@@ -2,8 +2,13 @@ import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
-const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    const { currentUser, loading } = useAuth();
+interface ProtectedRouteProps {
+    children: React.ReactNode;
+    requireHousehold?: boolean;
+}
+
+const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, requireHousehold = false }) => {
+    const { currentUser, userProfile, loading } = useAuth();
     const location = useLocation();
 
     if (loading) {
@@ -12,6 +17,10 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
 
     if (!currentUser) {
         return <Navigate to="/login" state={{ from: location }} replace />;
+    }
+
+    if (requireHousehold && !userProfile?.householdId) {
+        return <Navigate to="/onboarding" replace />;
     }
 
     return <>{children}</>;
