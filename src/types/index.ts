@@ -12,16 +12,53 @@ export interface Household {
     id: string;
     name: string;
     members: string[]; // emails
+    budgetAllocations?: BudgetAllocations;
+    createdAt: Timestamp;
+}
+
+export type ProjectCategory = '生活' | '居住' | '交通' | '保險' | '小孩' | '儲蓄';
+export type IncomeCategory = 'salary' | 'bonus' | 'investment' | 'other';
+
+// Budget allocation for a single income source
+export interface IncomeBudgetAllocation {
+    生活: number;  // percentage
+    居住: number;
+    交通: number;
+    保險: number;
+    小孩: number;
+    儲蓄: number;  // auto-calculated, remainder goes here
+}
+
+// Budget allocations for all income sources
+export interface BudgetAllocations {
+    salary: IncomeBudgetAllocation;
+    bonus: IncomeBudgetAllocation;
+    investment: IncomeBudgetAllocation;
+    other: IncomeBudgetAllocation;
+}
+
+export interface MonthlyBudget {
+    householdId: string;
+    year: number;
+    month: number;
+    totalIncome: number;
+    incomeBreakdown: {
+        [key in IncomeCategory]: number;
+    };
+    budgets: {
+        [key in ProjectCategory]: {
+            allocated: number;  // calculated from income * percentage
+            spent: number;      // actual spending
+        }
+    };
     createdAt: Timestamp;
 }
 
 export interface Project {
     id: string;
-    name: string;
-    budgetPercentage: number;
+    name: ProjectCategory;
     color: string;
     icon: string;
-    categories: string[];
 }
 
 export type TransactionType = 'income' | 'expense';

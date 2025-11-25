@@ -99,5 +99,38 @@ export const householdService = {
             return docSnap.data() as UserProfile;
         }
         return null;
+    },
+
+    // Smart method that creates or joins household based on input
+    async createOrJoinHousehold(input: string, user: UserProfile): Promise<string> {
+        const trimmedInput = input.trim();
+
+        if (!trimmedInput) {
+            throw new Error('Please enter a household name or ID');
+        }
+
+        // First, try to find by ID
+        const householdRef = doc(db, 'households', trimmedInput);
+        const householdSnap = await getDoc(householdRef);
+
+        if (householdSnap.exists()) {
+            // Found by ID, join this household
+            await this.joinHousehold(trimmedInput, user);
+            return trimmedInput;
+        }
+
+        // If not found by ID, try to find by name
+        const q = query(collection(db, 'households'), where('name', '==', trimmedInput));
+        const querySnapshot = await getDocs(q);
+
+        if (!querySnapshot.empty) {
+            // Found by name, join this household
+            const existingHouseholdId = querySnapshot.docs[0].id;
+            await this.joinHousehold(existingHouseholdId, user);
+            return existingHouseholdId;
+        }
+
+        // Not found by ID or name, create new household with this name
+        return await this.createHousehold(trimmedInput, user);
     }
 };

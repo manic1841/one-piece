@@ -6,6 +6,10 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    function isAdmin() {
+      return request.auth.uid == 'rnSCoxeAl0bmc9NQeHSzFR5gYUB3' ;
+    }
+
     match /test_connection/ping {
       allow get: if request.auth != null;
     }
@@ -15,6 +19,10 @@ service cloud.firestore {
     }
 
     match /users/{userId} {
+      allow read, write: if request.auth != null;
+    }
+
+    match /transactions/{transactionId} {
       allow read, write: if request.auth != null;
     }
   }
