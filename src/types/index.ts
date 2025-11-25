@@ -61,6 +61,35 @@ export interface Project {
     icon: string;
 }
 
+export type AccountType = 'bank' | 'credit_card' | 'cash' | 'investment' | 'other';
+
+export interface Account {
+    id: string;
+    householdId: string;
+    name: string;
+    type: AccountType;
+    currency: string;
+    createdAt: Timestamp;
+    createdBy: string;
+}
+
+export interface BalanceSnapshot {
+    id: string;
+    accountId: string;
+    householdId: string;
+    year: number;
+    month: number;
+    balance: number;
+    recordedAt: Timestamp;
+    recordedBy: string;
+}
+
+export interface AccessControl {
+    whitelistedEmails: string[];
+    updatedAt?: Timestamp;
+    updatedBy?: string;
+}
+
 export type TransactionType = 'income' | 'expense';
 
 export interface Transaction {

@@ -3,10 +3,12 @@ import { AuthProvider } from './contexts/AuthContext';
 import Layout from './components/Layout';
 import Login from './pages/Login';
 import Onboarding from './pages/Onboarding';
+import AccessDenied from './pages/AccessDenied';
 import ProtectedRoute from './components/ProtectedRoute';
 import Dashboard from './pages/Dashboard';
 import Transactions from './pages/Transactions';
 import Accounts from './pages/Accounts';
+import Assets from './pages/Assets';
 import Settings from './pages/Settings';
 
 function App() {
@@ -15,6 +17,7 @@ function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/login" element={<Login />} />
+          <Route path="/access-denied" element={<AccessDenied />} />
           <Route path="/onboarding" element={
             <ProtectedRoute>
               <Onboarding />
@@ -28,6 +31,7 @@ function App() {
             <Route index element={<Dashboard />} />
             <Route path="transactions" element={<Transactions />} />
             <Route path="accounts" element={<Accounts />} />
+            <Route path="assets" element={<Assets />} />
             <Route path="settings" element={<Settings />} />
           </Route>
         </Routes>

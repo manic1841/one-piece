@@ -1,29 +1,52 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Deny all read and write access
+    // Deny all read and write access by default
     match /{document=**} {
       allow read, write: if false;
     }
 
     function isAdmin() {
-      return request.auth.uid == 'rnSCoxeAl0bmc9NQeHSzFR5gYUB3' ;
+      return request.auth.uid == 'rnSCoxeAl0bmc9NQeHSzFR5gYUB3';
+    }
+
+    function isWhitelisted() {
+      return exists(/databases/$(database)/documents/access_control/config) &&
+             request.auth.token.email.lower() in get(/databases/$(database)/documents/access_control/config).data.whitelistedEmails;
+    }
+
+    function isAuthorized() {
+      return request.auth != null && (isAdmin() || isWhitelisted());
     }
 
     match /test_connection/ping {
       allow get: if request.auth != null;
     }
 
+    // Access control - admin only
+    match /access_control/{document} {
+      allow read: if isAuthorized();
+      allow write: if isAdmin();
+    }
+
     match /households/{householdId} {
-      allow read, write: if request.auth != null;
+      allow read, write: if isAuthorized();
     }
 
     match /users/{userId} {
-      allow read, write: if request.auth != null;
+      allow read, write: if isAuthorized();
     }
 
     match /transactions/{transactionId} {
-      allow read, write: if request.auth != null;
+      allow read, write: if isAuthorized();
+    }
+
+    match /accounts/{accountId} {
+      allow read, write: if isAuthorized();
+    }
+
+    match /balance_snapshots/{snapshotId} {
+      allow read, write: if isAuthorized();
     }
   }
 }
