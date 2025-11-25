@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { accountService } from '../services/accountService';
+import { assetTrackingService } from '../services/assetTrackingService';
 import { type Account, type BalanceSnapshot } from '../types';
 import AccountForm from '../components/AccountForm';
 import BalanceSnapshotForm from '../components/BalanceSnapshotForm';
-import { Plus, Pencil, Trash2, TrendingUp } from 'lucide-react';
+import AssetTrendChart from '../components/AssetTrendChart';
+import { Plus, Pencil, Trash2, TrendingUp, BarChart3 } from 'lucide-react';
 
 const accountTypeIcons: Record<string, string> = {
     bank: '🏦',
@@ -22,6 +24,9 @@ const Assets: React.FC = () => {
     const [isAccountFormOpen, setIsAccountFormOpen] = useState(false);
     const [isSnapshotFormOpen, setIsSnapshotFormOpen] = useState(false);
     const [editingAccount, setEditingAccount] = useState<Account | undefined>();
+    const [assetTrendData, setAssetTrendData] = useState<any[]>([]);
+    const [selectedPeriod, setSelectedPeriod] = useState<number>(12);
+    const [showIndividualAccounts, setShowIndividualAccounts] = useState(false);
 
     useEffect(() => {
         if (userProfile?.householdId) {
@@ -34,18 +39,26 @@ const Assets: React.FC = () => {
 
         setLoading(true);
         try {
-            const [accountsData, snapshotsMap] = await Promise.all([
+            const [accountsData, snapshotsMap, trendData] = await Promise.all([
                 accountService.getAccounts(userProfile.householdId),
-                accountService.getLatestSnapshots(userProfile.householdId)
+                accountService.getLatestSnapshots(userProfile.householdId),
+                assetTrackingService.getAssetTrend(userProfile.householdId, selectedPeriod)
             ]);
             setAccounts(accountsData);
             setLatestSnapshots(snapshotsMap);
+            setAssetTrendData(trendData);
         } catch (error) {
             console.error('Error loading assets:', error);
         } finally {
             setLoading(false);
         }
     };
+
+    useEffect(() => {
+        if (userProfile?.householdId) {
+            loadData();
+        }
+    }, [selectedPeriod]);
 
     const handleCreateAccount = async (account: Omit<Account, 'id' | 'createdAt'>) => {
         await accountService.createAccount(account);
@@ -116,6 +129,73 @@ const Assets: React.FC = () => {
                     Add Account
                 </button>
             </div>
+
+            {/* Asset Trend Chart */}
+            {assetTrendData.length > 0 && (
+                <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                    <div className="flex items-center justify-between mb-6">
+                        <div className="flex items-center gap-3">
+                            <BarChart3 className="text-blue-600" size={24} />
+                            <h2 className="text-lg font-semibold text-gray-900">Asset Trend</h2>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <button
+                                onClick={() => setSelectedPeriod(3)}
+                                className={`px-3 py-1 text-sm font-medium rounded-lg transition-colors ${selectedPeriod === 3
+                                        ? 'bg-blue-600 text-white'
+                                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                    }`}
+                            >
+                                3M
+                            </button>
+                            <button
+                                onClick={() => setSelectedPeriod(6)}
+                                className={`px-3 py-1 text-sm font-medium rounded-lg transition-colors ${selectedPeriod === 6
+                                        ? 'bg-blue-600 text-white'
+                                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                    }`}
+                            >
+                                6M
+                            </button>
+                            <button
+                                onClick={() => setSelectedPeriod(12)}
+                                className={`px-3 py-1 text-sm font-medium rounded-lg transition-colors ${selectedPeriod === 12
+                                        ? 'bg-blue-600 text-white'
+                                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                    }`}
+                            >
+                                1Y
+                            </button>
+                            <label className="flex items-center gap-2 ml-4 text-sm">
+                                <input
+                                    type="checkbox"
+                                    checked={showIndividualAccounts}
+                                    onChange={(e) => setShowIndividualAccounts(e.target.checked)}
+                                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                />
+                                <span className="text-gray-700">Show individual accounts</span>
+                            </label>
+                        </div>
+                    </div>
+                    <AssetTrendChart
+                        data={assetTrendData}
+                        showIndividualAccounts={showIndividualAccounts}
+                        accountNames={Object.fromEntries(accounts.map(a => [a.id, a.name]))}
+                    />
+                    {assetTrendData.length >= 2 && (
+                        <div className="mt-4 text-center text-sm text-gray-600">
+                            Growth:
+                            <span className={`ml-1 font-semibold ${assetTrackingService.calculateGrowth(assetTrendData) >= 0
+                                    ? 'text-green-600'
+                                    : 'text-red-600'
+                                }`}>
+                                {assetTrackingService.calculateGrowth(assetTrendData) >= 0 ? '+' : ''}
+                                {assetTrackingService.calculateGrowth(assetTrendData).toFixed(2)}%
+                            </span>
+                        </div>
+                    )}
+                </div>
+            )}
 
             {/* Total Assets Summary */}
             <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl shadow-sm p-6 text-white">
