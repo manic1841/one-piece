@@ -1,9 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Pencil, Trash2, TrendingUp, TrendingDown } from 'lucide-react';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../contexts/useAuth';
 import { transactionService } from '../services/transactionService';
 import TransactionForm from '../components/TransactionForm';
 import { type Transaction } from '../types';
+import { Timestamp } from 'firebase/firestore';
+import { useCallback } from 'react';
+import { toDate } from '../utils/dateUtils';
 
 const Transactions: React.FC = () => {
     const { userProfile, currentUser } = useAuth();
@@ -14,13 +17,8 @@ const Transactions: React.FC = () => {
     const [stats, setStats] = useState({ totalIncome: 0, totalExpense: 0, balance: 0 });
     const [filterType, setFilterType] = useState<'all' | 'income' | 'expense'>('all');
 
-    useEffect(() => {
-        if (userProfile?.householdId) {
-            loadTransactions();
-        }
-    }, [userProfile?.householdId]);
 
-    const loadTransactions = async () => {
+    const loadTransactions = useCallback(async () => {
         if (!userProfile?.householdId) return;
 
         setLoading(true);
@@ -35,7 +33,11 @@ const Transactions: React.FC = () => {
         } finally {
             setLoading(false);
         }
-    };
+    }, [userProfile?.householdId]);
+
+    useEffect(() => {
+        loadTransactions();
+    }, [loadTransactions]);
 
     const handleCreateTransaction = async (transaction: Omit<Transaction, 'id' | 'createdAt'>) => {
         if (!userProfile?.householdId) return;
@@ -74,9 +76,9 @@ const Transactions: React.FC = () => {
         return t.type === filterType;
     });
 
-    const formatDate = (timestamp: any) => {
+    const formatDate = (timestamp: Timestamp | Date) => {
         if (!timestamp) return '';
-        const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+        const date = toDate(timestamp);
         return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
     };
 

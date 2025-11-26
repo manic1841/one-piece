@@ -30,6 +30,21 @@ const DEFAULT_ALLOCATIONS: BudgetAllocations = {
     other: { ...DEFAULT_ALLOCATION }
 };
 
+export type MonthlyCategoryStat = {
+    category: ProjectCategory;
+    percentage: number;
+    allocated: number;
+    spent: number;
+    remaining: number;
+    percentageUsed: number;
+    isOverBudget: boolean;
+};
+export type MonthlyBudgetStats = {
+    totalIncome: number;
+    incomeBreakdown: Record<IncomeCategory, number>;
+    stats: MonthlyCategoryStat[];
+};
+
 export const budgetService = {
     // Get household's budget allocations
     async getBudgetAllocations(householdId: string): Promise<BudgetAllocations> {
@@ -97,7 +112,7 @@ export const budgetService = {
         const totalIncome = Object.values(incomeBreakdown).reduce((sum, val) => sum + val, 0);
 
         // Calculate budget for each project category
-        const budgets: MonthlyBudget['budgets'] = {} as any;
+        const budgets: MonthlyBudget['budgets'] = {} as Record<ProjectCategory, { allocated: number; spent: number }>;
         const categories: ProjectCategory[] = ['生活', '居住', '交通', '保險', '小孩', '儲蓄'];
 
         for (const category of categories) {
@@ -131,12 +146,12 @@ export const budgetService = {
     },
 
     // Get monthly statistics (budget vs actual)
-    async getMonthlyStats(householdId: string, year: number, month: number) {
+    async getMonthlyStats(householdId: string, year: number, month: number): Promise<MonthlyBudgetStats> {
         const monthlyBudget = await this.calculateMonthlyBudget(householdId, year, month);
         const allocations = await this.getBudgetAllocations(householdId);
 
         // Calculate average allocation percentage for each category
-        const avgAllocations: Record<ProjectCategory, number> = {} as any;
+        const avgAllocations: Record<ProjectCategory, number> = {} as Record<ProjectCategory, number>;
         const categories: ProjectCategory[] = ['生活', '居住', '交通', '保險', '小孩', '儲蓄'];
 
         for (const category of categories) {

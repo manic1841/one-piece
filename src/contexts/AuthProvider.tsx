@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     type User,
     onAuthStateChanged,
@@ -8,28 +8,14 @@ import {
     signInWithPopup
 } from 'firebase/auth';
 import { auth, googleProvider } from '../firebase';
-
 import { householdService } from '../services/householdService';
+import { type UserProfile } from '../schemas';
+import { AuthContext, type AuthContextType } from './AuthContext';
 
-interface AuthContextType {
-    currentUser: User | null;
-    userProfile: any | null;
-    loading: boolean;
-    login: (email: string, password: string) => Promise<void>;
-    signup: (email: string, password: string) => Promise<void>;
-    logout: () => Promise<void>;
-    loginWithGoogle: () => Promise<void>;
-    refreshProfile: () => Promise<void>;
-}
-
-// @ts-expect-error - Initial context value is partial but will be filled by provider
-const AuthContext = createContext<AuthContextType>({ currentUser: null, userProfile: null, loading: true });
-
-export const useAuth = () => useContext(AuthContext);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const [currentUser, setCurrentUser] = useState<User | null>(null);
-    const [userProfile, setUserProfile] = useState<any | null>(null);
+    const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
     const [loading, setLoading] = useState(true);
 
     const fetchUserProfile = async (uid: string) => {
@@ -79,7 +65,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         await signInWithPopup(auth, googleProvider);
     };
 
-    const value = {
+    const value: AuthContextType = {
         currentUser,
         userProfile,
         loading,

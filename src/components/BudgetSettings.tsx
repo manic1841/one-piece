@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { type BudgetAllocations, type IncomeBudgetAllocation, type ProjectCategory, type IncomeCategory } from '../types';
+import { type BudgetAllocations, type ProjectCategory, type IncomeCategory } from '../types';
 import { budgetService } from '../services/budgetService';
 
 interface BudgetSettingsProps {
@@ -64,19 +64,18 @@ const BudgetSettings: React.FC<BudgetSettingsProps> = ({ householdId }) => {
     const [success, setSuccess] = useState(false);
 
     useEffect(() => {
+        const loadAllocations = async () => {
+            try {
+                const data = await budgetService.getBudgetAllocations(householdId);
+                setAllocations(data);
+            } catch (err) {
+                console.error('Failed to load allocations:', err);
+            } finally {
+                setLoading(false);
+            }
+        };
         loadAllocations();
     }, [householdId]);
-
-    const loadAllocations = async () => {
-        try {
-            const data = await budgetService.getBudgetAllocations(householdId);
-            setAllocations(data);
-        } catch (err) {
-            console.error('Failed to load allocations:', err);
-        } finally {
-            setLoading(false);
-        }
-    };
 
     const handleChange = (category: ProjectCategory, value: number) => {
         setAllocations(prev => ({
@@ -111,8 +110,9 @@ const BudgetSettings: React.FC<BudgetSettingsProps> = ({ householdId }) => {
             await budgetService.updateBudgetAllocations(householdId, allocations);
             setSuccess(true);
             setTimeout(() => setSuccess(false), 3000);
-        } catch (err: any) {
-            setError(err.message || 'Failed to save budget allocations');
+        } catch (err) {
+            const error = err as Error;
+            setError(error.message || 'Failed to save budget allocations');
         } finally {
             setSaving(false);
         }
@@ -146,10 +146,10 @@ const BudgetSettings: React.FC<BudgetSettingsProps> = ({ householdId }) => {
                             key={incomeType}
                             onClick={() => setSelectedIncome(incomeType)}
                             className={`flex-shrink-0 px-4 py-2 rounded-lg font-medium transition-colors ${selectedIncome === incomeType
-                                    ? 'bg-blue-600 text-white'
-                                    : incomeValid
-                                        ? 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                                        : 'bg-red-100 text-red-700 hover:bg-red-200'
+                                ? 'bg-blue-600 text-white'
+                                : incomeValid
+                                    ? 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                    : 'bg-red-100 text-red-700 hover:bg-red-200'
                                 }`}
                         >
                             {incomeLabels[incomeType]}

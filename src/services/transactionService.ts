@@ -14,6 +14,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '../firebase';
 import { type Transaction } from '../types';
+import { toDateString } from '../utils/dateUtils';
 
 export const transactionService = {
     // Create a new transaction
@@ -47,7 +48,7 @@ export const transactionService = {
             category?: string;
         }
     ): Promise<Transaction[]> {
-        let q = query(
+        const q = query(
             collection(db, 'transactions'),
             where('householdId', '==', householdId),
             orderBy('date', 'desc')
@@ -60,13 +61,13 @@ export const transactionService = {
         if (filters) {
             if (filters.startDate) {
                 transactions = transactions.filter(t => {
-                    const dateStr = t.date.toDate ? t.date.toDate().toISOString().split('T')[0] : t.date;
+                    const dateStr = toDateString(t.date);
                     return dateStr >= filters.startDate!;
                 });
             }
             if (filters.endDate) {
                 transactions = transactions.filter(t => {
-                    const dateStr = t.date.toDate ? t.date.toDate().toISOString().split('T')[0] : t.date;
+                    const dateStr = toDateString(t.date);
                     return dateStr <= filters.endDate!;
                 });
             }
@@ -99,7 +100,7 @@ export const transactionService = {
         // Convert date to Timestamp if it's a Date object  
         const processedUpdates = { ...updates };
         if (processedUpdates.date && processedUpdates.date instanceof Date) {
-            processedUpdates.date = Timestamp.fromDate(processedUpdates.date) as any;
+            processedUpdates.date = Timestamp.fromDate(processedUpdates.date);
         }
 
         await updateDoc(transactionRef, processedUpdates);

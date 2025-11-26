@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../contexts/useAuth';
 import { householdService } from '../services/householdService';
 import { LogOut } from 'lucide-react';
 
@@ -40,9 +40,10 @@ const Onboarding: React.FC = () => {
             }
 
             navigate('/');
-        } catch (err: any) {
+        } catch (err) {
             console.error(err);
-            setError(err.message || 'Failed to process request');
+            const error = err as Error;
+            setError(error.message || 'Failed to process request');
         } finally {
             setLoading(false);
         }

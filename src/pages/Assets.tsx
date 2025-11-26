@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../contexts/useAuth';
 import { accountService } from '../services/accountService';
-import { assetTrackingService } from '../services/assetTrackingService';
+import { assetTrackingService, type AssetDataPoint } from '../services/assetTrackingService';
 import { type Account, type BalanceSnapshot } from '../types';
 import AccountForm from '../components/AccountForm';
 import BalanceSnapshotForm from '../components/BalanceSnapshotForm';
@@ -24,65 +24,110 @@ const Assets: React.FC = () => {
     const [isAccountFormOpen, setIsAccountFormOpen] = useState(false);
     const [isSnapshotFormOpen, setIsSnapshotFormOpen] = useState(false);
     const [editingAccount, setEditingAccount] = useState<Account | undefined>();
-    const [assetTrendData, setAssetTrendData] = useState<any[]>([]);
+    const [assetTrendData, setAssetTrendData] = useState<AssetDataPoint[]>([]);
     const [selectedPeriod, setSelectedPeriod] = useState<number>(12);
     const [showIndividualAccounts, setShowIndividualAccounts] = useState(false);
 
     useEffect(() => {
-        if (userProfile?.householdId) {
-            loadData();
-        }
-    }, [userProfile?.householdId]);
-
-    const loadData = async () => {
         if (!userProfile?.householdId) return;
 
-        setLoading(true);
+        let mounted = true;
+
+        const loadData = async () => {
+            if (!userProfile?.householdId) return;
+
+            try {
+                setLoading(true);
+
+                const [accountsData, snapshotsMap, trendData] = await Promise.all([
+                    accountService.getAccounts(userProfile.householdId),
+                    accountService.getLatestSnapshots(userProfile.householdId),
+                    assetTrackingService.getAssetTrend(userProfile.householdId, selectedPeriod)
+                ]);
+
+                if (!mounted) return;
+
+                setAccounts(accountsData);
+                setLatestSnapshots(snapshotsMap);
+                setAssetTrendData(trendData);
+            } catch (error) {
+                console.error('Error loading assets:', error);
+            } finally {
+                if (mounted) setLoading(false);
+            }
+        };
+
+        loadData();
+
+        return () => {
+            mounted = false;
+        };
+    }, [userProfile, selectedPeriod]);
+
+    const reloadData = async () => {
+        if (!userProfile?.householdId) return;
+
         try {
+            setLoading(true);
+
             const [accountsData, snapshotsMap, trendData] = await Promise.all([
                 accountService.getAccounts(userProfile.householdId),
                 accountService.getLatestSnapshots(userProfile.householdId),
                 assetTrackingService.getAssetTrend(userProfile.householdId, selectedPeriod)
             ]);
+
             setAccounts(accountsData);
             setLatestSnapshots(snapshotsMap);
             setAssetTrendData(trendData);
-        } catch (error) {
-            console.error('Error loading assets:', error);
+        } catch (err) {
+            console.error('Error reloading assets:', err);
         } finally {
             setLoading(false);
         }
     };
 
-    useEffect(() => {
-        if (userProfile?.householdId) {
-            loadData();
-        }
-    }, [selectedPeriod]);
-
     const handleCreateAccount = async (account: Omit<Account, 'id' | 'createdAt'>) => {
-        await accountService.createAccount(account);
-        await loadData();
+        if (!userProfile?.householdId) return;
+
+        try {
+            await accountService.createAccount(account);
+            await reloadData();
+        } catch (err) {
+            console.error('Error creating account:', err);
+        }
     };
 
+
     const handleUpdateAccount = async (account: Omit<Account, 'id' | 'createdAt'>) => {
-        if (editingAccount) {
+        if (!editingAccount) return;
+
+        try {
             await accountService.updateAccount(editingAccount.id, account);
             setEditingAccount(undefined);
-            await loadData();
+            await reloadData();
+        } catch (err) {
+            console.error('Error updating account:', err);
         }
     };
 
     const handleDeleteAccount = async (id: string) => {
-        if (confirm('Are you sure you want to delete this account?')) {
+        if (!confirm('Are you sure you want to delete this account?')) return;
+
+        try {
             await accountService.deleteAccount(id);
-            await loadData();
+            await reloadData();
+        } catch (err) {
+            console.error('Error deleting account:', err);
         }
     };
 
     const handleRecordBalance = async (snapshot: Omit<BalanceSnapshot, 'id' | 'recordedAt'>) => {
-        await accountService.recordBalanceSnapshot(snapshot);
-        await loadData();
+        try {
+            await accountService.recordBalanceSnapshot(snapshot);
+            await reloadData();
+        } catch (err) {
+            console.error('Error recording balance snapshot:', err);
+        }
     };
 
     const formatCurrency = (amount: number, currency: string) => {
@@ -142,8 +187,8 @@ const Assets: React.FC = () => {
                             <button
                                 onClick={() => setSelectedPeriod(3)}
                                 className={`px-3 py-1 text-sm font-medium rounded-lg transition-colors ${selectedPeriod === 3
-                                        ? 'bg-blue-600 text-white'
-                                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                    ? 'bg-blue-600 text-white'
+                                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                                     }`}
                             >
                                 3M
@@ -151,8 +196,8 @@ const Assets: React.FC = () => {
                             <button
                                 onClick={() => setSelectedPeriod(6)}
                                 className={`px-3 py-1 text-sm font-medium rounded-lg transition-colors ${selectedPeriod === 6
-                                        ? 'bg-blue-600 text-white'
-                                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                    ? 'bg-blue-600 text-white'
+                                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                                     }`}
                             >
                                 6M
@@ -160,8 +205,8 @@ const Assets: React.FC = () => {
                             <button
                                 onClick={() => setSelectedPeriod(12)}
                                 className={`px-3 py-1 text-sm font-medium rounded-lg transition-colors ${selectedPeriod === 12
-                                        ? 'bg-blue-600 text-white'
-                                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                    ? 'bg-blue-600 text-white'
+                                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                                     }`}
                             >
                                 1Y
@@ -186,8 +231,8 @@ const Assets: React.FC = () => {
                         <div className="mt-4 text-center text-sm text-gray-600">
                             Growth:
                             <span className={`ml-1 font-semibold ${assetTrackingService.calculateGrowth(assetTrendData) >= 0
-                                    ? 'text-green-600'
-                                    : 'text-red-600'
+                                ? 'text-green-600'
+                                : 'text-red-600'
                                 }`}>
                                 {assetTrackingService.calculateGrowth(assetTrendData) >= 0 ? '+' : ''}
                                 {assetTrackingService.calculateGrowth(assetTrendData).toFixed(2)}%

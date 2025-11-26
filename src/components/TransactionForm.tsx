@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import { type Transaction, type TransactionType } from '../types';
+import { toDateString } from '../utils/dateUtils';
 
 interface TransactionFormProps {
     isOpen: boolean;
@@ -44,7 +45,7 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
     const [category, setCategory] = useState(initialData?.category || '');
     const [date, setDate] = useState(
         initialData?.date
-            ? new Date(initialData.date.toDate()).toISOString().split('T')[0]
+            ? toDateString(initialData.date)
             : new Date().toISOString().split('T')[0]
     );
     const [description, setDescription] = useState(initialData?.description || '');
@@ -56,7 +57,7 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
             setType(initialData.type);
             setAmount(initialData.amount.toString());
             setCategory(initialData.category);
-            setDate(new Date(initialData.date.toDate()).toISOString().split('T')[0]);
+            setDate(toDateString(initialData.date));
             setDescription(initialData.description || '');
         }
     }, [initialData]);
@@ -84,10 +85,10 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
                 type,
                 category,
                 projectId: '', // Will be set based on category mapping later
-                date: new Date(date) as any,
+                date: new Date(date),
                 description,
                 createdBy: userEmail
-            } as any);
+            });
 
             // Reset form
             setAmount('');
@@ -95,8 +96,9 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
             setDescription('');
             setDate(new Date().toISOString().split('T')[0]);
             onClose();
-        } catch (err: any) {
-            setError(err.message || 'Failed to save transaction');
+        } catch (err) {
+            const error = err as Error;
+            setError(error.message || 'Failed to save transaction');
         } finally {
             setLoading(false);
         }

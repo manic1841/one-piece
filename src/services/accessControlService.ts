@@ -8,7 +8,7 @@ import {
     serverTimestamp
 } from 'firebase/firestore';
 import { db } from '../firebase';
-import { type AccessControl } from '../types';
+import { AccessControlSchema, parseWithSchemaOptional } from '../schemas';
 
 const ADMIN_UID = 'rnSCoxeAl0bmc9NQeHSzFR5gYUB3';
 const ACCESS_CONTROL_DOC = 'config';
@@ -26,8 +26,9 @@ export const accessControlService = {
             const docSnap = await getDoc(docRef);
 
             if (docSnap.exists()) {
-                const data = docSnap.data() as AccessControl;
-                return data.whitelistedEmails || [];
+                const data = docSnap.data();
+                const accessControl = parseWithSchemaOptional(AccessControlSchema, data);
+                return accessControl?.whitelistedEmails || [];
             }
 
             return [];

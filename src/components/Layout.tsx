@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { LayoutDashboard, Receipt, Wallet, Banknote, Calculator, Settings, LogOut } from 'lucide-react';
 import clsx from 'clsx';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../contexts/useAuth';
 import { householdService } from '../services/householdService';
 
 const Layout: React.FC = () => {

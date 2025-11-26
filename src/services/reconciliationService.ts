@@ -1,9 +1,35 @@
 import { accountService } from './accountService';
 import { transactionService } from './transactionService';
 
+export type ReconciliationReport = {
+    year: number;
+    month: number;
+    previousMonth: {
+        year: number;
+        month: number;
+        totalBalance: number;
+    };
+    currentMonth: {
+        year: number;
+        month: number;
+        totalBalance: number;
+    };
+    actualChange: number;
+    transactions: {
+        totalIncome: number;
+        totalExpenses: number;
+        incomeBySource: Record<string, number>;
+        expensesByProject: Record<string, number>;
+    };
+    calculatedChange: number;
+    discrepancy: number;
+    discrepancyPercentage: number;
+    hasDiscrepancy: boolean;
+};
+
 export const reconciliationService = {
     // Get reconciliation report for a specific month
-    async getReconciliationReport(householdId: string, year: number, month: number) {
+    async getReconciliationReport(householdId: string, year: number, month: number): Promise<ReconciliationReport> {
         // Get previous month
         let prevYear = year;
         let prevMonth = month - 1;

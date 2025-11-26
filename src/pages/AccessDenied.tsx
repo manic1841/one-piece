@@ -1,6 +1,6 @@
 import React from 'react';
 import { ShieldOff } from 'lucide-react';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../contexts/useAuth';
 import { useNavigate } from 'react-router-dom';
 
 const AccessDenied: React.FC = () => {

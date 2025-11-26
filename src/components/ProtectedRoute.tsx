@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../contexts/useAuth';
 import { accessControlService } from '../services/accessControlService';
 
 interface ProtectedRouteProps {
@@ -15,28 +15,28 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, requireHouseh
     const [checkingAuth, setCheckingAuth] = useState(true);
 
     useEffect(() => {
+        const checkAuthorization = async () => {
+            if (!currentUser) {
+                setCheckingAuth(false);
+                return;
+            }
+
+            try {
+                const authorized = await accessControlService.isUserAuthorized(
+                    currentUser.uid,
+                    currentUser.email
+                );
+                setIsAuthorized(authorized);
+            } catch (error) {
+                console.error('Authorization check failed:', error);
+                setIsAuthorized(false);
+            } finally {
+                setCheckingAuth(false);
+            }
+        };
         checkAuthorization();
     }, [currentUser]);
 
-    const checkAuthorization = async () => {
-        if (!currentUser) {
-            setCheckingAuth(false);
-            return;
-        }
-
-        try {
-            const authorized = await accessControlService.isUserAuthorized(
-                currentUser.uid,
-                currentUser.email
-            );
-            setIsAuthorized(authorized);
-        } catch (error) {
-            console.error('Authorization check failed:', error);
-            setIsAuthorized(false);
-        } finally {
-            setCheckingAuth(false);
-        }
-    };
 
     if (loading || checkingAuth) {
         return (

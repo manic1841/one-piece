@@ -1,7 +1,6 @@
 import { accountService } from './accountService';
-import type { BalanceSnapshot } from '../types';
 
-interface AssetDataPoint {
+export interface AssetDataPoint {
     date: string;
     totalAssets: number;
     accounts: Record<string, number>;

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { X } from 'lucide-react';
 import { type Account, type BalanceSnapshot } from '../types';
 import { accountService } from '../services/accountService';
@@ -29,13 +29,7 @@ const BalanceSnapshotForm: React.FC<BalanceSnapshotFormProps> = ({
     const [error, setError] = useState('');
     const [previousBalance, setPreviousBalance] = useState<number | null>(null);
 
-    useEffect(() => {
-        if (accountId && year && month) {
-            loadPreviousBalance();
-        }
-    }, [accountId, year, month]);
-
-    const loadPreviousBalance = async () => {
+    const loadPreviousBalance = useCallback(async () => {
         if (!accountId) return;
 
         try {
@@ -57,7 +51,13 @@ const BalanceSnapshotForm: React.FC<BalanceSnapshotFormProps> = ({
             console.error('Failed to load previous balance:', err);
             setPreviousBalance(null);
         }
-    };
+    }, [accountId, year, month]);
+
+    useEffect(() => {
+        if (accountId && year && month) {
+            loadPreviousBalance();
+        }
+    }, [accountId, year, month, loadPreviousBalance]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -90,8 +90,9 @@ const BalanceSnapshotForm: React.FC<BalanceSnapshotFormProps> = ({
             setBalance('');
             setPreviousBalance(null);
             onClose();
-        } catch (err: any) {
-            setError(err.message || 'Failed to record balance');
+        } catch (err) {
+            const error = err as Error;
+            setError(error.message || 'Failed to record balance');
         } finally {
             setLoading(false);
         }

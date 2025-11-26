@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../contexts/useAuth';
 import { accessControlService } from '../services/accessControlService';
 import { Mail, X, Plus } from 'lucide-react';
 
@@ -58,8 +58,9 @@ const EmailWhitelist: React.FC = () => {
             await accessControlService.addEmailToWhitelist(email, currentUser.uid);
             await loadWhitelist();
             setNewEmail('');
-        } catch (err: any) {
-            setError(err.message || 'Failed to add email');
+        } catch (err) {
+            const error = err as Error;
+            setError(error.message || 'Failed to add email');
         } finally {
             setSaving(false);
         }
@@ -74,8 +75,9 @@ const EmailWhitelist: React.FC = () => {
         try {
             await accessControlService.removeEmailFromWhitelist(email, currentUser.uid);
             await loadWhitelist();
-        } catch (err: any) {
-            setError(err.message || 'Failed to remove email');
+        } catch (err) {
+            const error = err as Error;
+            setError(error.message || 'Failed to remove email');
         } finally {
             setSaving(false);
         }

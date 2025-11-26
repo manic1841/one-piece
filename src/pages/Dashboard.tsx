@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '../contexts/AuthContext';
-import { budgetService } from '../services/budgetService';
+import { useAuth } from '../contexts/useAuth';
+import { budgetService, type MonthlyBudgetStats, type MonthlyCategoryStat } from '../services/budgetService';
 import { type ProjectCategory } from '../types';
 
 const projectInfo: Record<ProjectCategory, { icon: string; color: string }> = {
@@ -14,7 +14,7 @@ const projectInfo: Record<ProjectCategory, { icon: string; color: string }> = {
 
 const Dashboard: React.FC = () => {
     const { userProfile } = useAuth();
-    const [stats, setStats] = useState<any>(null);
+    const [stats, setStats] = useState<MonthlyBudgetStats | null>(null);
     const [loading, setLoading] = useState(true);
     const currentDate = new Date();
     const currentYear = currentDate.getFullYear();
@@ -22,27 +22,28 @@ const Dashboard: React.FC = () => {
 
     useEffect(() => {
         if (userProfile?.householdId) {
+            const loadStats = async () => {
+                if (!userProfile?.householdId) return;
+
+                setLoading(true);
+                try {
+                    const data = await budgetService.getMonthlyStats(
+                        userProfile.householdId,
+                        currentYear,
+                        currentMonth
+                    );
+                    setStats(data);
+                } catch (error) {
+                    console.error('Error loading stats:', error);
+                } finally {
+                    setLoading(false);
+                }
+            };
             loadStats();
         }
-    }, [userProfile?.householdId]);
+    }, [userProfile?.householdId, currentMonth, currentYear]);
 
-    const loadStats = async () => {
-        if (!userProfile?.householdId) return;
 
-        setLoading(true);
-        try {
-            const data = await budgetService.getMonthlyStats(
-                userProfile.householdId,
-                currentYear,
-                currentMonth
-            );
-            setStats(data);
-        } catch (error) {
-            console.error('Error loading stats:', error);
-        } finally {
-            setLoading(false);
-        }
-    };
 
     const formatCurrency = (amount: number) => {
         return new Intl.NumberFormat('en-US', {
@@ -60,8 +61,8 @@ const Dashboard: React.FC = () => {
         );
     }
 
-    const totalAllocated = stats?.stats.reduce((sum: number, s: any) => sum + s.allocated, 0) || 0;
-    const totalSpent = stats?.stats.reduce((sum: number, s: any) => sum + s.spent, 0) || 0;
+    const totalAllocated = stats?.stats.reduce((sum: number, s: MonthlyCategoryStat) => sum + s.allocated, 0) || 0;
+    const totalSpent = stats?.stats.reduce((sum: number, s: MonthlyCategoryStat) => sum + s.spent, 0) || 0;
     const totalRemaining = totalAllocated - totalSpent;
 
     return (
@@ -102,7 +103,7 @@ const Dashboard: React.FC = () => {
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
                 <h2 className="text-lg font-semibold text-gray-900 mb-6">Budget by Category</h2>
                 <div className="space-y-6">
-                    {stats?.stats.map((stat: any) => {
+                    {stats?.stats.map((stat: MonthlyCategoryStat) => {
                         const percentageUsed = stat.percentageUsed;
                         const isOverBudget = stat.isOverBudget;
 

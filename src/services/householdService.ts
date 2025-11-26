@@ -11,17 +11,22 @@ import {
     getDocs
 } from 'firebase/firestore';
 import { db } from '../firebase';
-import { type UserProfile, type Household } from '../types';
+import { HouseholdSchema, UserProfileSchema, parseWithSchema } from '../schemas';
+import type { UserProfile, Household } from '../schemas';
 
 export const householdService = {
     // Create a new household
     async createHousehold(name: string, user: UserProfile): Promise<string> {
+        // Validate user input
+        parseWithSchema(UserProfileSchema, user);
+
         const q = query(collection(db, 'households'), where('name', '==', name));
         const querySnapshot = await getDocs(q);
 
         if (!querySnapshot.empty) {
             // Household with this name already exists
-            const household = querySnapshot.docs[0].data() as Household;
+            const householdData = querySnapshot.docs[0].data();
+            const household = parseWithSchema(HouseholdSchema, householdData);
             await this.joinHousehold(household.id, user);
             return household.id;
         }
@@ -30,11 +35,11 @@ export const householdService = {
         const householdRef = doc(collection(db, 'households'));
         const householdId = householdRef.id;
 
-        const newHousehold: Household = {
+        const newHousehold = {
             id: householdId,
             name,
             members: [user.email],
-            createdAt: serverTimestamp() as any
+            createdAt: serverTimestamp()
         };
 
         await setDoc(householdRef, newHousehold);
@@ -52,6 +57,9 @@ export const householdService = {
 
     // Join an existing household by Id or name
     async joinHousehold(householdIdOrName: string, user: UserProfile): Promise<void> {
+        // Validate user input
+        parseWithSchema(UserProfileSchema, user);
+
         let householdRef = doc(db, 'households', householdIdOrName);
         const householdSnap = await getDoc(householdRef);
 
@@ -84,7 +92,9 @@ export const householdService = {
         const docSnap = await getDoc(docRef);
 
         if (docSnap.exists()) {
-            return docSnap.data() as Household;
+            const data = docSnap.data();
+            // Validate the data from Firestore
+            return parseWithSchema(HouseholdSchema, data);
         } else {
             return null;
         }

@@ -59,15 +59,16 @@ const AccountForm: React.FC<AccountFormProps> = ({
                 type,
                 currency,
                 createdBy: userEmail
-            } as any);
+            });
 
             // Reset form
             setName('');
             setType('bank');
             setCurrency('USD');
             onClose();
-        } catch (err: any) {
-            setError(err.message || 'Failed to save account');
+        } catch (err) {
+            const error = err as Error;
+            setError(error.message || 'Failed to save account');
         } finally {
             setLoading(false);
         }
@@ -124,8 +125,8 @@ const AccountForm: React.FC<AccountFormProps> = ({
                                     type="button"
                                     onClick={() => setType(accountType.value)}
                                     className={`flex items-center gap-2 px-3 py-2 rounded-lg border transition-colors ${type === accountType.value
-                                            ? 'border-blue-500 bg-blue-50 text-blue-700'
-                                            : 'border-gray-300 hover:border-gray-400'
+                                        ? 'border-blue-500 bg-blue-50 text-blue-700'
+                                        : 'border-gray-300 hover:border-gray-400'
                                         }`}
                                 >
                                     <span className="text-xl">{accountType.icon}</span>

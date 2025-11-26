@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { useAuth } from '../contexts/AuthContext';
+import React, { useMemo } from 'react';
+import { useAuth } from '../contexts/useAuth';
 import { accessControlService } from '../services/accessControlService';
 import BudgetSettings from '../components/BudgetSettings';
 import EmailWhitelist from '../components/EmailWhitelist';
@@ -7,19 +7,14 @@ import { ShieldAlert } from 'lucide-react';
 
 const Settings: React.FC = () => {
     const { currentUser, userProfile } = useAuth();
-    const [isAdmin, setIsAdmin] = useState(false);
-    const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
-        checkAdminStatus();
+    const isAdmin = useMemo(() => {
+        if (!currentUser) return false;
+        return accessControlService.isAdmin(currentUser.uid); // sync
     }, [currentUser]);
 
-    const checkAdminStatus = () => {
-        if (currentUser?.uid) {
-            setIsAdmin(accessControlService.isAdmin(currentUser.uid));
-        }
-        setLoading(false);
-    };
+    const loading = currentUser == null ? true : false;
+
 
     if (loading) {
         return (

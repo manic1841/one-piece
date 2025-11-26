@@ -1,4 +1,4 @@
-import { Timestamp } from 'firebase/firestore';
+import { Timestamp, FieldValue } from 'firebase/firestore';
 
 export interface UserProfile {
     uid: string;
@@ -13,7 +13,7 @@ export interface Household {
     name: string;
     members: string[]; // emails
     budgetAllocations?: BudgetAllocations;
-    createdAt: Timestamp;
+    createdAt: Timestamp | FieldValue;
 }
 
 export type ProjectCategory = '生活' | '居住' | '交通' | '保險' | '小孩' | '儲蓄';
@@ -94,7 +94,8 @@ export type TransactionType = 'income' | 'expense';
 
 export interface Transaction {
     id: string;
-    date: Timestamp;
+    householdId: string;
+    date: Timestamp | Date;
     amount: number;
     type: TransactionType;
     projectId: string;
@@ -108,17 +109,10 @@ export interface Transaction {
     incomeSource?: string;
     memberId?: string;
     createdBy: string;
-    createdAt: Timestamp;
+    createdAt: Timestamp | FieldValue;
 }
 
-export interface Account {
-    id: string;
-    name: string;
-    type: 'bank' | 'investment' | 'cash';
-    currency: 'TWD' | 'USD';
-    isActive: boolean;
-    balance?: number; // Latest snapshot balance
-}
+
 
 export interface AccountSnapshot {
     date: Timestamp;

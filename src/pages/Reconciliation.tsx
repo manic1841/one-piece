@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '../contexts/AuthContext';
-import { reconciliationService } from '../services/reconciliationService';
+import { useAuth } from '../contexts/useAuth';
+import { reconciliationService, type ReconciliationReport } from '../services/reconciliationService';
 import { ChevronLeft, ChevronRight, AlertTriangle, CheckCircle } from 'lucide-react';
 
 const Reconciliation: React.FC = () => {
@@ -8,32 +8,46 @@ const Reconciliation: React.FC = () => {
     const currentDate = new Date();
     const [selectedYear, setSelectedYear] = useState(currentDate.getFullYear());
     const [selectedMonth, setSelectedMonth] = useState(currentDate.getMonth() + 1);
-    const [report, setReport] = useState<any>(null);
+    const [report, setReport] = useState<ReconciliationReport | null>(null);
     const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
-        if (userProfile?.householdId) {
-            loadReport();
-        }
-    }, [userProfile?.householdId, selectedYear, selectedMonth]);
 
-    const loadReport = async () => {
+    useEffect(() => {
         if (!userProfile?.householdId) return;
 
-        setLoading(true);
-        try {
-            const data = await reconciliationService.getReconciliationReport(
-                userProfile.householdId,
-                selectedYear,
-                selectedMonth
-            );
-            setReport(data);
-        } catch (error) {
-            console.error('Error loading reconciliation report:', error);
-        } finally {
-            setLoading(false);
-        }
-    };
+        let mounted = true;
+
+        const fetchReport = async () => {
+            if (!userProfile?.householdId) return;
+
+            try {
+                setLoading(true);
+
+                const data = await reconciliationService.getReconciliationReport(
+                    userProfile.householdId,
+                    selectedYear,
+                    selectedMonth
+                );
+
+                if (mounted) {
+                    setReport(data);
+                }
+            } catch (error) {
+                console.error('Error loading reconciliation report:', error);
+            } finally {
+                if (mounted) {
+                    setLoading(false);
+                }
+            }
+        };
+
+        fetchReport();
+
+        return () => {
+            mounted = false;
+        };
+    }, [userProfile, selectedYear, selectedMonth]);
+
 
     const handlePreviousMonth = () => {
         if (selectedMonth === 1) {
@@ -235,8 +249,8 @@ const Reconciliation: React.FC = () => {
                             <div className="pt-3 border-t-2 border-gray-300 flex justify-between items-center">
                                 <span className="font-semibold text-gray-900">差異</span>
                                 <span className={`text-2xl font-bold ${Math.abs(report.discrepancy) < 0.01
-                                        ? 'text-green-600'
-                                        : 'text-yellow-600'
+                                    ? 'text-green-600'
+                                    : 'text-yellow-600'
                                     }`}>
                                     {Math.abs(report.discrepancy) < 0.01
                                         ? '✓ 完全一致'

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../contexts/useAuth';
 
 const Login: React.FC = () => {
     const [isLogin, setIsLogin] = useState(true);
@@ -57,12 +57,13 @@ const Login: React.FC = () => {
             const { db } = await import('../firebase');
             await getDoc(doc(db, 'test_connection', 'ping'));
             alert('Firebase Connection Successful! (Read succeeded)');
-        } catch (err: any) {
-            if (err.code === 'permission-denied') {
+        } catch (err) {
+            const error = err as { code?: string; message?: string };
+            if (error.code === 'permission-denied') {
                 alert('Firebase Connection Successful! (Reached Firestore, but permission denied as expected)');
             } else {
                 console.error(err);
-                setError('Connection Failed: ' + err.message);
+                setError('Connection Failed: ' + (error.message || 'Unknown error'));
             }
         }
         setLoading(false);

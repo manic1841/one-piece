@@ -10,10 +10,10 @@ import {
     where,
     orderBy,
     serverTimestamp,
-    Timestamp
 } from 'firebase/firestore';
 import { db } from '../firebase';
-import { type Account, type BalanceSnapshot, type AccountType } from '../types';
+import { AccountSchema, BalanceSnapshotSchema, parseWithSchema } from '../schemas';
+import type { Account, BalanceSnapshot } from '../schemas';
 
 export const accountService = {
     // Create a new account
@@ -40,7 +40,10 @@ export const accountService = {
         );
 
         const querySnapshot = await getDocs(q);
-        return querySnapshot.docs.map(doc => doc.data() as Account);
+        return querySnapshot.docs.map(doc => {
+            const data = doc.data();
+            return parseWithSchema(AccountSchema, data);
+        });
     },
 
     // Get a single account
@@ -49,7 +52,8 @@ export const accountService = {
         const docSnap = await getDoc(docRef);
 
         if (docSnap.exists()) {
-            return docSnap.data() as Account;
+            const data = docSnap.data();
+            return parseWithSchema(AccountSchema, data);
         }
         return null;
     },
@@ -87,7 +91,7 @@ export const accountService = {
         year?: number,
         month?: number
     ): Promise<BalanceSnapshot[]> {
-        let q = query(
+        const q = query(
             collection(db, 'balance_snapshots'),
             where('accountId', '==', accountId),
             orderBy('year', 'desc'),
@@ -95,7 +99,10 @@ export const accountService = {
         );
 
         const querySnapshot = await getDocs(q);
-        let snapshots = querySnapshot.docs.map(doc => doc.data() as BalanceSnapshot);
+        let snapshots = querySnapshot.docs.map(doc => {
+            const data = doc.data();
+            return parseWithSchema(BalanceSnapshotSchema, data);
+        });
 
         // Apply filters if provided
         if (year !== undefined) {
