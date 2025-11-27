@@ -78,13 +78,31 @@ export const plannedIncomeService = {
       orderBy('createdAt', 'desc'), // Tie-breaker
     );
 
-    // Limit 1 is not supported with orderBy unless index exists, but we can just fetch and take first
-    // Actually, we can use limit(1)
-    // const qLimited = query(q, limit(1));
-
     const snapshot = await getDocs(q);
     if (snapshot.empty) return null;
 
     return PlannedIncomeSchema.parse(snapshot.docs[0].data());
+  },
+
+  // Update a planned income (Note: This does NOT update related project transactions)
+  async updatePlannedIncome(
+    householdId: string,
+    plannedIncomeId: string,
+    data: Partial<Omit<PlannedIncome, 'id' | 'createdAt'>>,
+  ): Promise<void> {
+    const { updateDoc } = await import('firebase/firestore');
+    const plannedIncomeRef = doc(db, 'households', householdId, 'plannedIncome', plannedIncomeId);
+
+    await updateDoc(plannedIncomeRef, {
+      ...data,
+      updatedAt: serverTimestamp(),
+    });
+  },
+
+  // Delete a planned income (Note: This does NOT delete related project transactions)
+  async deletePlannedIncome(householdId: string, plannedIncomeId: string): Promise<void> {
+    const { deleteDoc } = await import('firebase/firestore');
+    const plannedIncomeRef = doc(db, 'households', householdId, 'plannedIncome', plannedIncomeId);
+    await deleteDoc(plannedIncomeRef);
   },
 };
