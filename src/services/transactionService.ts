@@ -1,46 +1,24 @@
-import {
-  collection,
-  doc,
-  setDoc,
-  getDoc,
-  getDocs,
-  updateDoc,
-  deleteDoc,
-  query,
-  orderBy,
-  serverTimestamp,
-  Timestamp,
-} from 'firebase/firestore';
-import { db } from '../firebase';
-import { TransactionSchema, parseWithSchema } from '../schemas';
+import { orderBy, Timestamp } from 'firebase/firestore';
+import { TransactionSchema } from '../schemas';
 import type { Transaction } from '../schemas';
 import { toDateString } from '../utils/dateUtils';
+import { BaseService } from './baseService';
 
-export const transactionService = {
+class TransactionService extends BaseService<Transaction> {
+  constructor() {
+    super('transactions', TransactionSchema);
+  }
+
   // Create a new transaction
+  // Overriding to return string directly and match existing signature
   async createTransaction(
     householdId: string,
     transaction: Omit<Transaction, 'id' | 'createdAt'>,
   ): Promise<string> {
-    const transactionRef = doc(collection(db, 'households', householdId, 'transactions'));
-    const transactionId = transactionRef.id;
+    return this.create(householdId, transaction);
+  }
 
-    // Convert date to Firestore Timestamp if it's a Date object
-    const date =
-      transaction.date instanceof Date ? Timestamp.fromDate(transaction.date) : transaction.date;
-
-    const newTransaction = {
-      ...transaction,
-      date,
-      id: transactionId,
-      createdAt: serverTimestamp(),
-    };
-
-    await setDoc(transactionRef, newTransaction);
-    return transactionId;
-  },
-
-  // Get all transactions for a household
+  // Get all transactions for a household with filters
   async getTransactions(
     householdId: string,
     filters?: {
@@ -50,17 +28,8 @@ export const transactionService = {
       category?: string;
     },
   ): Promise<Transaction[]> {
-    const transactionsRef = collection(db, 'households', householdId, 'transactions');
-    const q = query(transactionsRef, orderBy('date', 'desc'));
-
-    const querySnapshot = await getDocs(q);
-    let transactions = querySnapshot.docs.map((doc) => {
-      const data = doc.data();
-      // Ensure date is handled correctly before validation if needed,
-      // but Zod schema handles Timestamp | Date.
-      // Firestore returns Timestamp, so it should be fine.
-      return parseWithSchema(TransactionSchema, data);
-    });
+    // Get all transactions sorted by date
+    let transactions = await this.getAll(householdId, [orderBy('date', 'desc')]);
 
     // Apply client-side filters
     if (filters) {
@@ -87,18 +56,12 @@ export const transactionService = {
     }
 
     return transactions;
-  },
+  }
 
   // Get a single transaction by ID
   async getTransaction(householdId: string, id: string): Promise<Transaction | null> {
-    const docRef = doc(db, 'households', householdId, 'transactions', id);
-    const docSnap = await getDoc(docRef);
-
-    if (docSnap.exists()) {
-      return parseWithSchema(TransactionSchema, docSnap.data());
-    }
-    return null;
-  },
+    return this.getById(householdId, id);
+  }
 
   // Update a transaction
   async updateTransaction(
@@ -106,22 +69,13 @@ export const transactionService = {
     id: string,
     updates: Partial<Transaction>,
   ): Promise<void> {
-    const transactionRef = doc(db, 'households', householdId, 'transactions', id);
-
-    // Convert date to Timestamp if it's a Date object
-    const processedUpdates = { ...updates };
-    if (processedUpdates.date && processedUpdates.date instanceof Date) {
-      processedUpdates.date = Timestamp.fromDate(processedUpdates.date);
-    }
-
-    await updateDoc(transactionRef, processedUpdates);
-  },
+    return this.update(householdId, id, updates);
+  }
 
   // Delete a transaction
   async deleteTransaction(householdId: string, id: string): Promise<void> {
-    const transactionRef = doc(db, 'households', householdId, 'transactions', id);
-    await deleteDoc(transactionRef);
-  },
+    return this.delete(householdId, id);
+  }
 
   // Get transaction statistics (summary)
   async getTransactionStats(
@@ -148,5 +102,7 @@ export const transactionService = {
       totalExpense,
       balance: totalIncome - totalExpense,
     };
-  },
-};
+  }
+}
+
+export const transactionService = new TransactionService();

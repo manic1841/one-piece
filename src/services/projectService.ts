@@ -1,16 +1,13 @@
 import {
   collection,
   doc,
-  getDocs,
-  addDoc,
-  updateDoc,
-  deleteDoc,
-  query,
-  Timestamp,
   setDoc,
+  getDocs,
+  query,
   where,
   orderBy,
   serverTimestamp,
+  Timestamp,
 } from 'firebase/firestore';
 import { db } from '../firebase';
 import {
@@ -20,42 +17,35 @@ import {
   type ProjectSnapshot,
   parseWithSchema,
 } from '../schemas';
+import { BaseService } from './baseService';
 
-export const projectService = {
+class ProjectService extends BaseService<Project> {
+  constructor() {
+    super('projects', ProjectSchema);
+  }
+
   // Get all projects for a household
   async getProjects(householdId: string): Promise<Project[]> {
-    const projectsRef = collection(db, 'households', householdId, 'projects');
     // Remove orderBy to avoid index requirements for now
-    const q = query(projectsRef);
-    const snapshot = await getDocs(q);
-
-    const projects = snapshot.docs.map((doc) =>
-      ProjectSchema.parse({
-        id: doc.id,
-        ...doc.data(),
-      }),
-    );
+    // We use getAll without constraints
+    const projects = await this.getAll(householdId);
 
     // Sort in memory
     return projects.sort((a, b) => {
       if (!a.createdAt || !b.createdAt) return 0;
       // Check if it's a Timestamp (has seconds property)
-      if ('seconds' in a.createdAt && 'seconds' in b.createdAt) {
-        return a.createdAt.seconds - b.createdAt.seconds;
-      }
-      return 0;
+      // BaseService might have converted it to Date or Timestamp depending on schema
+      // But let's handle both
+      const timeA = a.createdAt instanceof Timestamp ? a.createdAt.toMillis() : (a.createdAt as Date).getTime();
+      const timeB = b.createdAt instanceof Timestamp ? b.createdAt.toMillis() : (b.createdAt as Date).getTime();
+      return timeA - timeB;
     });
-  },
+  }
 
   // Create a new project
   async createProject(householdId: string, project: Omit<Project, 'id'>): Promise<string> {
-    const projectsRef = collection(db, 'households', householdId, 'projects');
-    const docRef = await addDoc(projectsRef, {
-      ...project,
-      createdAt: Timestamp.now(),
-    });
-    return docRef.id;
-  },
+    return this.create(householdId, project);
+  }
 
   // Update a project
   async updateProject(
@@ -63,15 +53,13 @@ export const projectService = {
     projectId: string,
     updates: Partial<Project>,
   ): Promise<void> {
-    const projectRef = doc(db, 'households', householdId, 'projects', projectId);
-    await updateDoc(projectRef, updates);
-  },
+    return this.update(householdId, projectId, updates);
+  }
 
   // Delete a project
   async deleteProject(householdId: string, projectId: string): Promise<void> {
-    const projectRef = doc(db, 'households', householdId, 'projects', projectId);
-    await deleteDoc(projectRef);
-  },
+    return this.delete(householdId, projectId);
+  }
 
   // Record a project snapshot
   async recordSnapshot(
@@ -92,7 +80,7 @@ export const projectService = {
 
     await setDoc(snapshotRef, newSnapshot);
     return snapshotId;
-  },
+  }
 
   // Get snapshots for a project
   async getSnapshots(
@@ -123,5 +111,7 @@ export const projectService = {
       const data = doc.data();
       return parseWithSchema(ProjectSnapshotSchema, data);
     });
-  },
-};
+  }
+}
+
+export const projectService = new ProjectService();

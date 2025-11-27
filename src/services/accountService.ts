@@ -1,148 +1,129 @@
 import {
-    collection,
-    doc,
-    setDoc,
-    getDoc,
-    getDocs,
-    updateDoc,
-    deleteDoc,
-    query,
-    where,
-    orderBy,
-    serverTimestamp,
+  collection,
+  doc,
+  setDoc,
+  getDocs,
+  query,
+  where,
+  orderBy,
+  serverTimestamp,
 } from 'firebase/firestore';
 import { db } from '../firebase';
 import { AccountSchema, AccountSnapshotSchema, parseWithSchema } from '../schemas';
 import type { Account, AccountSnapshot } from '../schemas';
+import { BaseService } from './baseService';
 
-export const accountService = {
-    // Create a new account
-    async createAccount(householdId: string, account: Omit<Account, 'id' | 'createdAt'>): Promise<string> {
-        const accountRef = doc(collection(db, 'households', householdId, 'accounts'));
-        const accountId = accountRef.id;
+class AccountService extends BaseService<Account> {
+  constructor() {
+    super('accounts', AccountSchema);
+  }
 
-        const newAccount = {
-            ...account,
-            id: accountId,
-            createdAt: serverTimestamp(),
-        };
+  // Create a new account
+  async createAccount(
+    householdId: string,
+    account: Omit<Account, 'id' | 'createdAt'>,
+  ): Promise<string> {
+    return this.create(householdId, account);
+  }
 
-        await setDoc(accountRef, newAccount);
-        return accountId;
-    },
+  // Get all accounts for a household
+  async getAccounts(householdId: string): Promise<Account[]> {
+    return this.getAll(householdId, [orderBy('createdAt', 'desc')]);
+  }
 
-    // Get all accounts for a household
-    async getAccounts(householdId: string): Promise<Account[]> {
-        const accountsRef = collection(db, 'households', householdId, 'accounts');
-        const q = query(accountsRef, orderBy('createdAt', 'desc'));
+  // Get a single account
+  async getAccount(householdId: string, id: string): Promise<Account | null> {
+    return this.getById(householdId, id);
+  }
 
-        const querySnapshot = await getDocs(q);
-        return querySnapshot.docs.map((doc) => {
-            const data = doc.data();
-            return parseWithSchema(AccountSchema, data);
-        });
-    },
+  // Update an account
+  async updateAccount(householdId: string, id: string, updates: Partial<Account>): Promise<void> {
+    return this.update(householdId, id, updates);
+  }
 
-    // Get a single account
-    async getAccount(householdId: string, id: string): Promise<Account | null> {
-        const docRef = doc(db, 'households', householdId, 'accounts', id);
-        const docSnap = await getDoc(docRef);
+  // Delete an account
+  async deleteAccount(householdId: string, id: string): Promise<void> {
+    return this.delete(householdId, id);
+  }
 
-        if (docSnap.exists()) {
-            const data = docSnap.data();
-            return parseWithSchema(AccountSchema, data);
-        }
-        return null;
-    },
+  // Record a balance snapshot
+  async recordSnapshot(
+    householdId: string,
+    accountId: string,
+    snapshot: Omit<AccountSnapshot, 'id' | 'createdAt'>,
+  ): Promise<string> {
+    const snapshotRef = doc(
+      collection(db, 'households', householdId, 'accounts', accountId, 'snapshots'),
+    );
+    const snapshotId = snapshotRef.id;
 
-    // Update an account
-    async updateAccount(householdId: string, id: string, updates: Partial<Account>): Promise<void> {
-        const accountRef = doc(db, 'households', householdId, 'accounts', id);
-        await updateDoc(accountRef, updates);
-    },
+    const newSnapshot = {
+      ...snapshot,
+      id: snapshotId,
+      createdAt: serverTimestamp(),
+    };
 
-    // Delete an account
-    async deleteAccount(householdId: string, id: string): Promise<void> {
-        const accountRef = doc(db, 'households', householdId, 'accounts', id);
-        await deleteDoc(accountRef);
-    },
+    await setDoc(snapshotRef, newSnapshot);
+    return snapshotId;
+  }
 
-    // Record a balance snapshot
-    async recordSnapshot(
-        householdId: string,
-        accountId: string,
-        snapshot: Omit<AccountSnapshot, 'id' | 'createdAt'>,
-    ): Promise<string> {
-        const snapshotRef = doc(
-            collection(db, 'households', householdId, 'accounts', accountId, 'snapshots'),
-        );
-        const snapshotId = snapshotRef.id;
+  // Get balance snapshots for an account
+  async getSnapshots(
+    householdId: string,
+    accountId: string,
+    year?: number,
+    month?: number,
+  ): Promise<AccountSnapshot[]> {
+    const snapshotsRef = collection(
+      db,
+      'households',
+      householdId,
+      'accounts',
+      accountId,
+      'snapshots',
+    );
+    let q = query(snapshotsRef, orderBy('year', 'desc'), orderBy('month', 'desc'));
 
-        const newSnapshot = {
-            ...snapshot,
-            id: snapshotId,
-            createdAt: serverTimestamp(),
-        };
+    if (year !== undefined) {
+      q = query(q, where('year', '==', year));
+    }
+    if (month !== undefined) {
+      q = query(q, where('month', '==', month));
+    }
 
-        await setDoc(snapshotRef, newSnapshot);
-        return snapshotId;
-    },
+    const querySnapshot = await getDocs(q);
+    return querySnapshot.docs.map((doc) => {
+      const data = doc.data();
+      return parseWithSchema(AccountSnapshotSchema, data);
+    });
+  }
 
-    // Get balance snapshots for an account
-    async getSnapshots(
-        householdId: string,
-        accountId: string,
-        year?: number,
-        month?: number,
-    ): Promise<AccountSnapshot[]> {
-        const snapshotsRef = collection(
-            db,
-            'households',
-            householdId,
-            'accounts',
-            accountId,
-            'snapshots',
-        );
-        let q = query(snapshotsRef, orderBy('year', 'desc'), orderBy('month', 'desc'));
+  // Get latest snapshot for each account in a household
+  async getLatestSnapshots(householdId: string): Promise<Map<string, AccountSnapshot>> {
+    const accounts = await this.getAccounts(householdId);
+    const latestSnapshots = new Map<string, AccountSnapshot>();
 
-        if (year !== undefined) {
-            q = query(q, where('year', '==', year));
-        }
-        if (month !== undefined) {
-            q = query(q, where('month', '==', month));
-        }
+    for (const account of accounts) {
+      const snapshots = await this.getSnapshots(householdId, account.id);
+      if (snapshots.length > 0) {
+        latestSnapshots.set(account.id, snapshots[0]);
+      }
+    }
 
-        const querySnapshot = await getDocs(q);
-        return querySnapshot.docs.map((doc) => {
-            const data = doc.data();
-            return parseWithSchema(AccountSnapshotSchema, data);
-        });
-    },
+    return latestSnapshots;
+  }
 
-    // Get latest snapshot for each account in a household
-    async getLatestSnapshots(householdId: string): Promise<Map<string, AccountSnapshot>> {
-        const accounts = await this.getAccounts(householdId);
-        const latestSnapshots = new Map<string, AccountSnapshot>();
+  // Get total assets for a household
+  async getTotalAssets(householdId: string): Promise<number> {
+    const latestSnapshots = await this.getLatestSnapshots(householdId);
+    let total = 0;
 
-        for (const account of accounts) {
-            const snapshots = await this.getSnapshots(householdId, account.id);
-            if (snapshots.length > 0) {
-                latestSnapshots.set(account.id, snapshots[0]);
-            }
-        }
+    for (const snapshot of latestSnapshots.values()) {
+      total += snapshot.amount;
+    }
 
-        return latestSnapshots;
-    },
+    return total;
+  }
+}
 
-    // Get total assets for a household
-    async getTotalAssets(householdId: string): Promise<number> {
-        const latestSnapshots = await this.getLatestSnapshots(householdId);
-        let total = 0;
-
-        for (const snapshot of latestSnapshots.values()) {
-            total += snapshot.amount;
-        }
-
-        return total;
-    },
-};
+export const accountService = new AccountService();
