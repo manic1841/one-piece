@@ -1,10 +1,11 @@
 import React from 'react';
 import { useAuth } from '../contexts/useAuth';
 import { useProjects } from '../hooks/useProjects';
-import { Plus, Pencil, Trash2 } from 'lucide-react';
+import { Plus, Pencil, Trash2, Calendar } from 'lucide-react';
 import ProjectCard from '../components/projects/ProjectCard';
 import ProjectDetailView from '../components/projects/ProjectDetailView';
 import ProjectFormModal from '../components/projects/ProjectFormModal';
+import MonthlySettlementDialog from '../components/projects/MonthlySettlementDialog';
 import { formatCurrency } from '../utils/formatUtils';
 import { projectService } from '../services/projectService';
 import { type Project } from '../schemas';
@@ -21,6 +22,7 @@ const Projects: React.FC = () => {
   } = useProjects(userProfile?.householdId);
   const [isCreateModalOpen, setIsCreateModalOpen] = React.useState(false);
   const [editingProject, setEditingProject] = React.useState<Project | null>(null);
+  const [isSettlementDialogOpen, setIsSettlementDialogOpen] = React.useState(false);
 
   const handleEdit = (project: Project, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -83,13 +85,22 @@ const Projects: React.FC = () => {
           <h1 className="text-2xl font-bold text-gray-900">Projects</h1>
           <p className="text-gray-600 mt-2">View and manage your project balances</p>
         </div>
-        <button
-          onClick={() => setIsCreateModalOpen(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors"
-        >
-          <Plus size={20} />
-          New Project
-        </button>
+        <div className="flex gap-3">
+          <button
+            onClick={() => setIsSettlementDialogOpen(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition-colors"
+          >
+            <Calendar size={20} />
+            Monthly Settlement
+          </button>
+          <button
+            onClick={() => setIsCreateModalOpen(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors"
+          >
+            <Plus size={20} />
+            New Project
+          </button>
+        </div>
       </div>
 
       {/* Total Balance Card */}
@@ -177,6 +188,22 @@ const Projects: React.FC = () => {
           setEditingProject(null);
         }}
         initialData={editingProject || undefined}
+      />
+
+      {/* Monthly Settlement Dialog */}
+      <MonthlySettlementDialog
+        isOpen={isSettlementDialogOpen}
+        onClose={() => setIsSettlementDialogOpen(false)}
+        householdId={userProfile?.householdId || ''}
+        projects={projects.map((p) => ({
+          id: p.id,
+          name: p.name,
+          icon: p.icon,
+          color: p.color,
+        }))}
+        onSuccess={async () => {
+          await reloadData();
+        }}
       />
     </div>
   );
