@@ -1,12 +1,13 @@
 import React from 'react';
 import { useAuth } from '../contexts/useAuth';
 import { useProjects } from '../hooks/useProjects';
-import { Plus } from 'lucide-react';
+import { Plus, Pencil, Trash2 } from 'lucide-react';
 import ProjectCard from '../components/projects/ProjectCard';
 import ProjectDetailView from '../components/projects/ProjectDetailView';
 import ProjectFormModal from '../components/projects/ProjectFormModal';
 import { formatCurrency } from '../utils/formatUtils';
 import { projectService } from '../services/projectService';
+import { type Project } from '../schemas';
 
 const Projects: React.FC = () => {
   const { userProfile } = useAuth();
@@ -19,6 +20,31 @@ const Projects: React.FC = () => {
     reloadData,
   } = useProjects(userProfile?.householdId);
   const [isCreateModalOpen, setIsCreateModalOpen] = React.useState(false);
+  const [editingProject, setEditingProject] = React.useState<Project | null>(null);
+
+  const handleEdit = (project: Project, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setEditingProject(project);
+  };
+
+  const handleDelete = async (project: Project, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!userProfile?.householdId) return;
+
+    if (
+      !confirm(`Are you sure you want to delete "${project.name}"? This action cannot be undone.`)
+    ) {
+      return;
+    }
+
+    try {
+      await projectService.deleteProject(userProfile.householdId, project.id);
+      await reloadData();
+    } catch (error) {
+      console.error('Error deleting project:', error);
+      alert('Failed to delete project. Please try again.');
+    }
+  };
 
   if (loading) {
     return (
@@ -89,12 +115,30 @@ const Projects: React.FC = () => {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {projects.map((project) => (
-            <ProjectCard
-              key={project.id}
-              project={project}
-              balance={project.balance}
-              onClick={() => setSelectedProject(project)}
-            />
+            <div key={project.id} className="relative">
+              <ProjectCard
+                project={project}
+                balance={project.balance}
+                onClick={() => setSelectedProject(project)}
+              />
+              {/* Action Buttons */}
+              <div className="absolute top-4 right-4 flex gap-2">
+                <button
+                  onClick={(e) => handleEdit(project, e)}
+                  className="p-2 bg-white hover:bg-blue-50 text-blue-600 rounded-lg shadow-sm border border-gray-200 transition-colors"
+                  title="Edit project"
+                >
+                  <Pencil size={16} />
+                </button>
+                <button
+                  onClick={(e) => handleDelete(project, e)}
+                  className="p-2 bg-white hover:bg-red-50 text-red-600 rounded-lg shadow-sm border border-gray-200 transition-colors"
+                  title="Delete project"
+                >
+                  <Trash2 size={16} />
+                </button>
+              </div>
+            </div>
           ))}
         </div>
       )}
@@ -116,6 +160,23 @@ const Projects: React.FC = () => {
           });
           await reloadData();
         }}
+      />
+
+      {/* Edit Project Modal */}
+      <ProjectFormModal
+        isOpen={!!editingProject}
+        onClose={() => setEditingProject(null)}
+        onSave={async (projectData) => {
+          if (!userProfile?.householdId || !editingProject?.id || !projectData.name) return;
+          await projectService.updateProject(
+            userProfile.householdId,
+            editingProject.id,
+            projectData,
+          );
+          await reloadData();
+          setEditingProject(null);
+        }}
+        initialData={editingProject || undefined}
       />
     </div>
   );
