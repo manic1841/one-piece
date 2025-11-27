@@ -90,8 +90,8 @@ class SettlementService {
       transactionService.getTransactions(householdId),
     ]);
 
-    // Calculate income (projectTransactions to this project in this month)
-    const income = projectTransactions
+    // Calculate income (projectTransactions and transactions to this project in this month)
+    const incomeProjectTrans = projectTransactions
       .filter((pt) => {
         const ptDate = pt.date instanceof Timestamp ? pt.date.toDate() : pt.date;
         return (
@@ -101,6 +101,18 @@ class SettlementService {
         );
       })
       .reduce((sum, pt) => sum + pt.amount, 0);
+    const incomeTrans = transactions
+      .filter((t) => {
+        const tDate = t.date instanceof Timestamp ? t.date.toDate() : t.date;
+        return (
+          t.projectId === projectId &&
+          t.type === 'income' &&
+          tDate.getFullYear() === year &&
+          tDate.getMonth() + 1 === month
+        );
+      })
+      .reduce((sum, t) => sum + t.amount, 0);
+    const income = incomeProjectTrans + incomeTrans;
 
     // Calculate expense (transactions for this project in this month)
     const expense = transactions

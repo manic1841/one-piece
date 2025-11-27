@@ -6,6 +6,7 @@ import ProjectCard from '../components/projects/ProjectCard';
 import ProjectDetailView from '../components/projects/ProjectDetailView';
 import ProjectFormModal from '../components/projects/ProjectFormModal';
 import MonthlySettlementDialog from '../components/projects/MonthlySettlementDialog';
+import ProjectBalanceChart from '../components/projects/ProjectBalanceChart';
 import { formatCurrency } from '../utils/formatUtils';
 import { projectService } from '../services/projectService';
 import { type Project } from '../schemas';
@@ -114,6 +115,19 @@ const Projects: React.FC = () => {
             Across {projects.length} project{projects.length !== 1 ? 's' : ''}
           </p>
         </div>
+      )}
+
+      {/* Balance Trend Chart */}
+      {projects.length > 0 && (
+        <ProjectBalanceChart
+          householdId={userProfile?.householdId || ''}
+          projects={projects.map((p) => ({
+            id: p.id,
+            name: p.name,
+            icon: p.icon,
+            color: p.color,
+          }))}
+        />
       )}
 
       {/* Projects Grid */}
