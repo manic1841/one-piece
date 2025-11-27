@@ -1,5 +1,5 @@
 import { accountService } from './accountService';
-import { transactionService } from './transactionService';
+import { projectService } from './projectService';
 
 export type ReconciliationReport = {
   year: number;
@@ -15,13 +15,13 @@ export type ReconciliationReport = {
     totalBalance: number;
   };
   actualChange: number;
-  transactions: {
+  expected: {
     totalIncome: number;
-    totalExpenses: number;
-    incomeBySource: Record<string, number>;
-    expensesByProject: Record<string, number>;
+    totalExpense: number;
+    incomeByProject: Record<string, number>;
+    expenseByProject: Record<string, number>;
   };
-  calculatedChange: number;
+  expectedChange: number;
   discrepancy: number;
   discrepancyPercentage: number;
   hasDiscrepancy: boolean;
@@ -71,7 +71,7 @@ export const reconciliationService = {
       }
     }
 
-    // Calculate total balances
+    // Calculate total balances from account snapshots
     let currentTotalBalance = 0;
     let previousTotalBalance = 0;
 
@@ -84,50 +84,44 @@ export const reconciliationService = {
 
     const actualChange = currentTotalBalance - previousTotalBalance;
 
-    // Get transactions for the month
-    const startDate = new Date(year, month - 1, 1);
-    const endDate = new Date(year, month, 0);
-    const startDateStr = startDate.toISOString().split('T')[0];
-    const endDateStr = endDate.toISOString().split('T')[0];
+    // Get all projects
+    const projects = await projectService.getProjects(householdId);
 
-    const transactions = await transactionService.getTransactions(householdId, {
-      startDate: startDateStr,
-      endDate: endDateStr,
-    });
+    // Get project snapshots for the month
+    const incomeByProject: Record<string, number> = {};
+    const expenseByProject: Record<string, number> = {};
+    let totalIncome = 0;
+    let totalExpense = 0;
 
-    // Calculate income and expenses
-    const totalIncome = transactions
-      .filter((t) => t.type === 'income')
-      .reduce((sum, t) => sum + t.amount, 0);
+    for (const project of projects) {
+      const projectSnapshots = await projectService.getSnapshots(
+        householdId,
+        project.id,
+        year,
+        month,
+      );
 
-    const totalExpenses = transactions
-      .filter((t) => t.type === 'expense')
-      .reduce((sum, t) => sum + t.amount, 0);
+      if (projectSnapshots.length > 0) {
+        const snapshot = projectSnapshots[0];
 
-    const calculatedChange = totalIncome - totalExpenses;
+        if (snapshot.income > 0) {
+          incomeByProject[project.id] = snapshot.income;
+          totalIncome += snapshot.income;
+        }
+
+        if (snapshot.expense > 0) {
+          expenseByProject[project.id] = snapshot.expense;
+          totalExpense += snapshot.expense;
+        }
+      }
+    }
+
+    const expectedChange = totalIncome - totalExpense;
 
     // Calculate discrepancy
-    const discrepancy = actualChange - calculatedChange;
+    const discrepancy = actualChange - expectedChange;
     const discrepancyPercentage =
       previousTotalBalance > 0 ? (discrepancy / previousTotalBalance) * 100 : 0;
-
-    // Group expenses by project
-    const expensesByProject: Record<string, number> = {};
-    transactions
-      .filter((t) => t.type === 'expense' && t.projectId)
-      .forEach((t) => {
-        const project = t.projectId!;
-        expensesByProject[project] = (expensesByProject[project] || 0) + t.amount;
-      });
-
-    // Group income by category
-    const incomeBySource: Record<string, number> = {};
-    transactions
-      .filter((t) => t.type === 'income')
-      .forEach((t) => {
-        const source = t.category;
-        incomeBySource[source] = (incomeBySource[source] || 0) + t.amount;
-      });
 
     return {
       year,
@@ -143,13 +137,13 @@ export const reconciliationService = {
         totalBalance: currentTotalBalance,
       },
       actualChange,
-      transactions: {
+      expected: {
         totalIncome,
-        totalExpenses,
-        incomeBySource,
-        expensesByProject,
+        totalExpense,
+        incomeByProject,
+        expenseByProject,
       },
-      calculatedChange,
+      expectedChange,
       discrepancy,
       discrepancyPercentage,
       hasDiscrepancy: Math.abs(discrepancy) > 0.01,

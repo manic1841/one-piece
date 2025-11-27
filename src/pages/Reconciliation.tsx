@@ -94,9 +94,7 @@ const Reconciliation: React.FC = () => {
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Reconciliation</h1>
-        <p className="text-gray-600 mt-2">
-          Compare actual balance changes with transaction records
-        </p>
+        <p className="text-gray-600 mt-2">比較實際餘額變化與專案快照預期</p>
       </div>
 
       {/* Month Selector */}
@@ -129,7 +127,7 @@ const Reconciliation: React.FC = () => {
               <div>
                 <h3 className="font-semibold text-yellow-900">發現差異</h3>
                 <p className="text-sm text-yellow-800 mt-1">
-                  實際餘額變化與交易記錄不符，差異金額：
+                  實際餘額變化與專案快照預期不符，差異金額：
                   <span className="font-bold ml-1">
                     {formatCurrency(Math.abs(report.discrepancy))}
                   </span>
@@ -142,7 +140,7 @@ const Reconciliation: React.FC = () => {
               <CheckCircle className="text-green-600 flex-shrink-0" size={24} />
               <div>
                 <h3 className="font-semibold text-green-900">對帳成功</h3>
-                <p className="text-sm text-green-800 mt-1">實際餘額變化與交易記錄完全一致</p>
+                <p className="text-sm text-green-800 mt-1">實際餘額變化與專案快照預期完全一致</p>
               </div>
             </div>
           )}
@@ -172,8 +170,9 @@ const Reconciliation: React.FC = () => {
               <div>
                 <p className="text-sm text-gray-600">實際變化</p>
                 <p
-                  className={`text-xl font-bold mt-1 ${report.actualChange >= 0 ? 'text-green-600' : 'text-red-600'
-                    }`}
+                  className={`text-xl font-bold mt-1 ${
+                    report.actualChange >= 0 ? 'text-green-600' : 'text-red-600'
+                  }`}
                 >
                   {report.actualChange >= 0 ? '+' : ''}
                   {formatCurrency(report.actualChange)}
@@ -182,17 +181,17 @@ const Reconciliation: React.FC = () => {
             </div>
           </div>
 
-          {/* Transaction Summary */}
+          {/* Project Summary */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">交易統計</h3>
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">專案統計（來自快照）</h3>
             <div className="grid grid-cols-2 gap-6">
               {/* Income */}
               <div>
                 <h4 className="font-medium text-gray-700 mb-3">收入明細</h4>
                 <div className="space-y-2">
-                  {Object.entries(report.transactions.incomeBySource).map(([source, amount]) => (
-                    <div key={source} className="flex justify-between text-sm">
-                      <span className="text-gray-600">{source}</span>
+                  {Object.entries(report.expected.incomeByProject).map(([projectId, amount]) => (
+                    <div key={projectId} className="flex justify-between text-sm">
+                      <span className="text-gray-600">{getProjectName(projectId)}</span>
                       <span className="font-medium text-green-600">
                         +{formatCurrency(amount as number)}
                       </span>
@@ -201,7 +200,7 @@ const Reconciliation: React.FC = () => {
                   <div className="pt-2 border-t border-gray-200 flex justify-between font-semibold">
                     <span>總收入</span>
                     <span className="text-green-600">
-                      +{formatCurrency(report.transactions.totalIncome)}
+                      +{formatCurrency(report.expected.totalIncome)}
                     </span>
                   </div>
                 </div>
@@ -211,36 +210,35 @@ const Reconciliation: React.FC = () => {
               <div>
                 <h4 className="font-medium text-gray-700 mb-3">支出明細</h4>
                 <div className="space-y-2">
-                  {Object.entries(report.transactions.expensesByProject).map(
-                    ([projectId, amount]) => (
-                      <div key={projectId} className="flex justify-between text-sm">
-                        <span className="text-gray-600">{getProjectName(projectId)}</span>
-                        <span className="font-medium text-red-600">
-                          -{formatCurrency(amount as number)}
-                        </span>
-                      </div>
-                    ),
-                  )}
+                  {Object.entries(report.expected.expenseByProject).map(([projectId, amount]) => (
+                    <div key={projectId} className="flex justify-between text-sm">
+                      <span className="text-gray-600">{getProjectName(projectId)}</span>
+                      <span className="font-medium text-red-600">
+                        -{formatCurrency(amount as number)}
+                      </span>
+                    </div>
+                  ))}
                   <div className="pt-2 border-t border-gray-200 flex justify-between font-semibold">
                     <span>總支出</span>
                     <span className="text-red-600">
-                      -{formatCurrency(report.transactions.totalExpenses)}
+                      -{formatCurrency(report.expected.totalExpense)}
                     </span>
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Calculated Change */}
+            {/* Expected Change */}
             <div className="mt-4 pt-4 border-t border-gray-200">
               <div className="flex justify-between items-center">
-                <span className="font-medium text-gray-700">理論變化（收入-支出）</span>
+                <span className="font-medium text-gray-700">預期變化（來自專案快照）</span>
                 <span
-                  className={`text-xl font-bold ${report.calculatedChange >= 0 ? 'text-green-600' : 'text-red-600'
-                    }`}
+                  className={`text-xl font-bold ${
+                    report.expectedChange >= 0 ? 'text-green-600' : 'text-red-600'
+                  }`}
                 >
-                  {report.calculatedChange >= 0 ? '+' : ''}
-                  {formatCurrency(report.calculatedChange)}
+                  {report.expectedChange >= 0 ? '+' : ''}
+                  {formatCurrency(report.expectedChange)}
                 </span>
               </div>
             </div>
@@ -255,14 +253,15 @@ const Reconciliation: React.FC = () => {
                 <span className="font-medium">{formatCurrency(report.actualChange)}</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-gray-600">理論變化</span>
-                <span className="font-medium">{formatCurrency(report.calculatedChange)}</span>
+                <span className="text-gray-600">預期變化</span>
+                <span className="font-medium">{formatCurrency(report.expectedChange)}</span>
               </div>
               <div className="pt-3 border-t-2 border-gray-300 flex justify-between items-center">
                 <span className="font-semibold text-gray-900">差異</span>
                 <span
-                  className={`text-2xl font-bold ${Math.abs(report.discrepancy) < 0.01 ? 'text-green-600' : 'text-yellow-600'
-                    }`}
+                  className={`text-2xl font-bold ${
+                    Math.abs(report.discrepancy) < 0.01 ? 'text-green-600' : 'text-yellow-600'
+                  }`}
                 >
                   {Math.abs(report.discrepancy) < 0.01
                     ? '✓ 完全一致'
@@ -271,7 +270,7 @@ const Reconciliation: React.FC = () => {
               </div>
               {report.hasDiscrepancy && (
                 <p className="text-sm text-gray-600 mt-2">
-                  💡 提示：差異可能來自未記錄的交易、手續費、或餘額記錄錯誤。
+                  💡 提示：差異可能來自未記錄的專案快照、手續費、或餘額記錄錯誤。
                 </p>
               )}
             </div>
