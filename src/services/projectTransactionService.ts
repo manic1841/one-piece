@@ -72,4 +72,43 @@ export const projectTransactionService = {
     const snapshot = await getDocs(q);
     return snapshot.docs.map((doc) => ProjectTransactionSchema.parse(doc.data()));
   },
+
+  // Get project transactions by income source (plannedIncomeId)
+  async getProjectTransactionsByIncomeSource(
+    householdId: string,
+    incomeSource: string,
+  ): Promise<ProjectTransaction[]> {
+    const q = query(
+      collection(db, 'households', householdId, 'projectTransactions'),
+      where('incomeSource', '==', incomeSource),
+    );
+
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map((doc) => ProjectTransactionSchema.parse(doc.data()));
+  },
+
+  // Delete project transactions by IDs
+  // Supports running within an existing Firestore transaction
+  async deleteProjectTransactions(
+    householdId: string,
+    transactionIds: string[],
+    transaction?: FirestoreTransaction,
+  ): Promise<void> {
+    if (transactionIds.length === 0) return;
+
+    if (transaction) {
+      // Use provided transaction
+      for (const id of transactionIds) {
+        const ref = doc(db, 'households', householdId, 'projectTransactions', id);
+        transaction.delete(ref);
+      }
+    } else {
+      // Use individual deletes
+      const { deleteDoc } = await import('firebase/firestore');
+      for (const id of transactionIds) {
+        const ref = doc(db, 'households', householdId, 'projectTransactions', id);
+        await deleteDoc(ref);
+      }
+    }
+  },
 };

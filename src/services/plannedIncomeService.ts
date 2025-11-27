@@ -49,7 +49,7 @@ class PlannedIncomeService extends BaseService<PlannedIncome> {
                 toProject: allocation.projectId,
                 amount: amount,
                 description: `Allocation from ${data.category}: ${data.description || ''}`,
-                incomeSource: data.category,
+                incomeSource: plannedIncomeId,
                 createdBy: data.createdBy,
               },
               transaction, // Pass transaction to ensure atomicity
@@ -85,18 +85,93 @@ class PlannedIncomeService extends BaseService<PlannedIncome> {
     return this.parseData(snapshot.docs[0].data());
   }
 
-  // Update a planned income (Note: This does NOT update related project transactions)
+  // Update a planned income and related project transactions
   async updatePlannedIncome(
     householdId: string,
     plannedIncomeId: string,
     data: Partial<Omit<PlannedIncome, 'id' | 'createdAt'>>,
   ): Promise<void> {
-    return this.update(householdId, plannedIncomeId, data);
+    // If allocations are being updated, we need to update projectTransactions too
+    if (data.allocations) {
+      await runTransaction(db, async (transaction) => {
+        // 1. Get the planned income to determine the amount
+        const plannedIncomeRef = doc(this.getCollectionRef(householdId), plannedIncomeId);
+        const plannedIncomeDoc = await transaction.get(plannedIncomeRef);
+
+        if (!plannedIncomeDoc.exists()) {
+          throw new Error('Planned income not found');
+        }
+
+        const currentPlannedIncome = this.parseData(plannedIncomeDoc.data());
+        const amount = data.amount ?? currentPlannedIncome.amount;
+        const date = data.date ?? currentPlannedIncome.date;
+        const category = data.category ?? currentPlannedIncome.category;
+        const description = data.description ?? currentPlannedIncome.description;
+        const createdBy = data.createdBy ?? currentPlannedIncome.createdBy;
+
+        // 2. Delete old project transactions
+        const oldTransactions =
+          await projectTransactionService.getProjectTransactionsByIncomeSource(
+            householdId,
+            plannedIncomeId,
+          );
+
+        await projectTransactionService.deleteProjectTransactions(
+          householdId,
+          oldTransactions.map((t) => t.id),
+          transaction,
+        );
+
+        // 3. Create new project transactions based on updated allocations
+        const allocations = data.allocations!; // Non-null assertion - we already checked in outer if
+        for (const allocation of allocations) {
+          if (allocation.percentage > 0) {
+            const allocationAmount = (amount * allocation.percentage) / 100;
+            await projectTransactionService.createProjectTransaction(
+              householdId,
+              {
+                date,
+                type: 'allocation',
+                toProject: allocation.projectId,
+                amount: allocationAmount,
+                description: `Allocation from ${category}: ${description || ''}`,
+                incomeSource: plannedIncomeId,
+                createdBy,
+              },
+              transaction,
+            );
+          }
+        }
+
+        // 4. Update the planned income document
+        transaction.update(plannedIncomeRef, data);
+      });
+    } else {
+      // No allocation changes, just update the planned income
+      return this.update(householdId, plannedIncomeId, data);
+    }
   }
 
-  // Delete a planned income (Note: This does NOT delete related project transactions)
+  // Delete a planned income and related project transactions
   async deletePlannedIncome(householdId: string, plannedIncomeId: string): Promise<void> {
-    return this.delete(householdId, plannedIncomeId);
+    await runTransaction(db, async (transaction) => {
+      // 1. Delete related project transactions
+      const relatedTransactions =
+        await projectTransactionService.getProjectTransactionsByIncomeSource(
+          householdId,
+          plannedIncomeId,
+        );
+
+      await projectTransactionService.deleteProjectTransactions(
+        householdId,
+        relatedTransactions.map((t) => t.id),
+        transaction,
+      );
+
+      // 2. Delete the planned income
+      const plannedIncomeRef = doc(this.getCollectionRef(householdId), plannedIncomeId);
+      transaction.delete(plannedIncomeRef);
+    });
   }
 }
 
