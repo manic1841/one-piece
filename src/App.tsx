@@ -8,7 +8,6 @@ import ProtectedRoute from './components/ProtectedRoute';
 import Dashboard from './pages/Dashboard';
 import Transactions from './pages/Transactions';
 import Accounts from './pages/Accounts';
-import Assets from './pages/Assets';
 import Reconciliation from './pages/Reconciliation';
 import Settings from './pages/Settings';
 
@@ -32,7 +31,6 @@ function App() {
             <Route index element={<Dashboard />} />
             <Route path="transactions" element={<Transactions />} />
             <Route path="accounts" element={<Accounts />} />
-            <Route path="assets" element={<Assets />} />
             <Route path="reconciliation" element={<Reconciliation />} />
             <Route path="settings" element={<Settings />} />
           </Route>

@@ -26,7 +26,7 @@ export const AccountSchema = z.object({
   currency: z.string(),
   createdAt: TimestampSchema,
   // subcollection
-  snapshot: z.array(AccountSnapshotSchema).optional(),
+  snapshots: z.array(AccountSnapshotSchema).optional(),
 });
 
 export type Account = z.infer<typeof AccountSchema>;

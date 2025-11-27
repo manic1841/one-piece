@@ -1,6 +1,13 @@
 import { z } from 'zod';
 import { TimestampSchema } from './helper';
 
+export * from './account';
+export * from './allocation';
+export * from './investment';
+export * from './project';
+export * from './transaction';
+export * from './helper';
+
 // Access Control Schema
 export const AccessControlSchema = z.object({
   whitelistedEmails: z.array(z.string().email()),
@@ -26,15 +33,14 @@ export const UserProfileSchema = z.object({
 
 export type UserProfile = z.infer<typeof UserProfileSchema>;
 
-// Household Schema
 export const HouseholdSchema = z.object({
   id: z.string(),
   name: z.string(),
-  members: z.array(
+  members: z.record(
+    z.string(),
     z.object({
-      uid: z.string(),
-      name: z.string(),
       role: RoleEnum.default('guest'),
+      joinedAt: TimestampSchema,
     }),
   ),
   createdAt: TimestampSchema,

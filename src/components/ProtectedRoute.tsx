@@ -4,62 +4,61 @@ import { useAuth } from '../contexts/useAuth';
 import { accessControlService } from '../services/accessControlService';
 
 interface ProtectedRouteProps {
-    children: React.ReactNode;
-    requireHousehold?: boolean;
+  children: React.ReactNode;
+  requireHousehold?: boolean;
 }
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, requireHousehold = false }) => {
-    const { currentUser, userProfile, loading } = useAuth();
-    const location = useLocation();
-    const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null);
-    const [checkingAuth, setCheckingAuth] = useState(true);
+  const { currentUser, userProfile, loading } = useAuth();
+  const location = useLocation();
+  const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null);
+  const [checkingAuth, setCheckingAuth] = useState(true);
 
-    useEffect(() => {
-        const checkAuthorization = async () => {
-            if (!currentUser) {
-                setCheckingAuth(false);
-                return;
-            }
+  useEffect(() => {
+    const checkAuthorization = async () => {
+      if (!currentUser) {
+        setCheckingAuth(false);
+        return;
+      }
 
-            try {
-                const authorized = await accessControlService.isUserAuthorized(
-                    currentUser.uid,
-                    currentUser.email
-                );
-                setIsAuthorized(authorized);
-            } catch (error) {
-                console.error('Authorization check failed:', error);
-                setIsAuthorized(false);
-            } finally {
-                setCheckingAuth(false);
-            }
-        };
-        checkAuthorization();
-    }, [currentUser]);
-
-
-    if (loading || checkingAuth) {
-        return (
-            <div className="min-h-screen flex items-center justify-center">
-                <div className="text-gray-500">Loading...</div>
-            </div>
+      try {
+        const authorized = await accessControlService.isUserAuthorized(
+          currentUser.uid,
+          currentUser.email,
         );
-    }
+        setIsAuthorized(authorized);
+      } catch (error) {
+        console.error('Authorization check failed:', error);
+        setIsAuthorized(false);
+      } finally {
+        setCheckingAuth(false);
+      }
+    };
+    checkAuthorization();
+  }, [currentUser]);
 
-    if (!currentUser) {
-        return <Navigate to="/login" state={{ from: location }} replace />;
-    }
+  if (loading || checkingAuth) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-gray-500">Loading...</div>
+      </div>
+    );
+  }
 
-    // Check whitelist authorization
-    if (isAuthorized === false) {
-        return <Navigate to="/access-denied" replace />;
-    }
+  if (!currentUser) {
+    return <Navigate to="/login" state={{ from: location }} replace />;
+  }
 
-    if (requireHousehold && !userProfile?.householdId) {
-        return <Navigate to="/onboarding" replace />;
-    }
+  // Check whitelist authorization
+  if (isAuthorized === false) {
+    return <Navigate to="/access-denied" replace />;
+  }
 
-    return <>{children}</>;
+  if (requireHousehold && !userProfile?.householdId) {
+    return <Navigate to="/onboarding" replace />;
+  }
+
+  return <>{children}</>;
 };
 
 export default ProtectedRoute;
