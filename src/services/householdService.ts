@@ -37,7 +37,12 @@ export const householdService = {
     const newHousehold = {
       id: householdId,
       name,
-      members: { [user.uid]: user.role || 'guest' },
+      members: {
+        [user.uid]: {
+          role: user.role || 'guest',
+          joinedAt: serverTimestamp(),
+        },
+      },
       createdAt: serverTimestamp(),
     };
 
@@ -64,7 +69,7 @@ export const householdService = {
     parseWithSchema(UserProfileSchema, user);
 
     let householdRef = doc(db, 'households', householdIdOrName);
-    const householdSnap = await getDoc(householdRef);
+    let householdSnap = await getDoc(householdRef);
 
     if (!householdSnap.exists()) {
       const q = query(collection(db, 'households'), where('name', '==', householdIdOrName));
@@ -73,12 +78,20 @@ export const householdService = {
         throw new Error('Household not found');
       }
       householdRef = doc(db, 'households', querySnapshot.docs[0].id);
+      householdSnap = querySnapshot.docs[0];
     }
 
-    // Add user to household members
-    await updateDoc(householdRef, {
-      [`members.${user.uid}`]: user.role || 'guest',
-    });
+    // Check if user is already a member
+    const householdData = householdSnap.data();
+    if (!householdData?.members?.[user.uid]) {
+      // Add user to household members
+      await updateDoc(householdRef, {
+        [`members.${user.uid}`]: {
+          role: user.role || 'guest',
+          joinedAt: serverTimestamp(),
+        },
+      });
+    }
 
     // Update user profile
     const userRef = doc(db, 'users', user.uid);
