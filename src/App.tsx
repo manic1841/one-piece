@@ -7,6 +7,7 @@ import AccessDenied from './pages/AccessDenied';
 import ProtectedRoute from './components/ProtectedRoute';
 import Dashboard from './pages/Dashboard';
 import Transactions from './pages/Transactions';
+import Projects from './pages/Projects';
 import Accounts from './pages/Accounts';
 import Reconciliation from './pages/Reconciliation';
 import Settings from './pages/Settings';
@@ -36,6 +37,7 @@ function App() {
           >
             <Route index element={<Dashboard />} />
             <Route path="transactions" element={<Transactions />} />
+            <Route path="projects" element={<Projects />} />
             <Route path="accounts" element={<Accounts />} />
             <Route path="reconciliation" element={<Reconciliation />} />
             <Route path="settings" element={<Settings />} />
