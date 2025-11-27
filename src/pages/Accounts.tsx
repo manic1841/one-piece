@@ -7,6 +7,7 @@ import AccountForm from '../components/AccountForm';
 import AccountSnapshotForm from '../components/AccountSnapshotForm';
 import AssetTrendChart from '../components/AssetTrendChart';
 import { toDate } from '../utils/dateUtils';
+import { formatCurrency } from '../utils/formatUtils';
 import { Plus, Pencil, Trash2, TrendingUp, BarChart3 } from 'lucide-react';
 
 const accountTypeIcons: Record<string, string> = {
@@ -144,13 +145,6 @@ const Accounts: React.FC = () => {
     }
   };
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-    }).format(amount);
-  };
-
   const getTotalBalance = () => {
     return accounts.reduce((sum, account) => {
       const snapshot = latestSnapshots.get(account.id);
@@ -206,31 +200,28 @@ const Accounts: React.FC = () => {
           <div className="flex gap-2">
             <button
               onClick={() => setSelectedPeriod(6)}
-              className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
-                selectedPeriod === 6
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
+              className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${selectedPeriod === 6
+                ? 'bg-blue-600 text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
             >
               6M
             </button>
             <button
               onClick={() => setSelectedPeriod(12)}
-              className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
-                selectedPeriod === 12
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
+              className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${selectedPeriod === 12
+                ? 'bg-blue-600 text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
             >
               1Y
             </button>
             <button
               onClick={() => setSelectedPeriod(24)}
-              className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
-                selectedPeriod === 24
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
+              className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${selectedPeriod === 24
+                ? 'bg-blue-600 text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
             >
               2Y
             </button>

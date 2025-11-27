@@ -7,6 +7,7 @@ import TransactionForm from '../components/TransactionForm';
 import { type Transaction, type PlannedIncome } from '../schemas';
 import { Timestamp } from 'firebase/firestore';
 import { toDate } from '../utils/dateUtils';
+import { formatCurrency } from '../utils/formatUtils';
 
 // Combined type for display
 type TransactionListItem =
@@ -50,8 +51,20 @@ const Transactions: React.FC = () => {
 
       setCombinedList(combined);
 
-      const statsData = await transactionService.getTransactionStats(userProfile.householdId);
-      setStats(statsData);
+      // Calculate stats from both transactions and planned incomes
+      const transactionIncome = transactionsData
+        .filter((t) => t.type === 'income')
+        .reduce((sum, t) => sum + t.amount, 0);
+      const transactionExpense = transactionsData
+        .filter((t) => t.type === 'expense')
+        .reduce((sum, t) => sum + t.amount, 0);
+      const plannedIncome = plannedIncomesData.reduce((sum, pi) => sum + pi.amount, 0);
+
+      const totalIncome = transactionIncome + plannedIncome;
+      const totalExpense = transactionExpense;
+      const balance = totalIncome - totalExpense;
+
+      setStats({ totalIncome, totalExpense, balance });
     } catch (error) {
       console.error('Error loading transactions:', error);
     } finally {
@@ -162,13 +175,6 @@ const Transactions: React.FC = () => {
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   };
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-    }).format(amount);
-  };
-
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -239,27 +245,24 @@ const Transactions: React.FC = () => {
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-2 flex gap-2">
         <button
           onClick={() => setFilterType('all')}
-          className={`flex-1 py-2 px-4 rounded-lg font-medium transition-colors ${
-            filterType === 'all' ? 'bg-blue-100 text-blue-700' : 'text-gray-600 hover:bg-gray-100'
-          }`}
+          className={`flex-1 py-2 px-4 rounded-lg font-medium transition-colors ${filterType === 'all' ? 'bg-blue-100 text-blue-700' : 'text-gray-600 hover:bg-gray-100'
+            }`}
         >
           All
         </button>
         <button
           onClick={() => setFilterType('income')}
-          className={`flex-1 py-2 px-4 rounded-lg font-medium transition-colors ${
-            filterType === 'income'
-              ? 'bg-green-100 text-green-700'
-              : 'text-gray-600 hover:bg-gray-100'
-          }`}
+          className={`flex-1 py-2 px-4 rounded-lg font-medium transition-colors ${filterType === 'income'
+            ? 'bg-green-100 text-green-700'
+            : 'text-gray-600 hover:bg-gray-100'
+            }`}
         >
           Income
         </button>
         <button
           onClick={() => setFilterType('expense')}
-          className={`flex-1 py-2 px-4 rounded-lg font-medium transition-colors ${
-            filterType === 'expense' ? 'bg-red-100 text-red-700' : 'text-gray-600 hover:bg-gray-100'
-          }`}
+          className={`flex-1 py-2 px-4 rounded-lg font-medium transition-colors ${filterType === 'expense' ? 'bg-red-100 text-red-700' : 'text-gray-600 hover:bg-gray-100'
+            }`}
         >
           Expense
         </button>
@@ -336,9 +339,8 @@ const Transactions: React.FC = () => {
                       <div className="flex-1">
                         <div className="flex items-center gap-3">
                           <div
-                            className={`w-2 h-2 rounded-full ${
-                              transaction.type === 'income' ? 'bg-green-500' : 'bg-red-500'
-                            }`}
+                            className={`w-2 h-2 rounded-full ${transaction.type === 'income' ? 'bg-green-500' : 'bg-red-500'
+                              }`}
                           />
                           <div>
                             <p className="font-medium text-gray-900 capitalize">
@@ -355,9 +357,8 @@ const Transactions: React.FC = () => {
                       </div>
                       <div className="flex items-center gap-4">
                         <p
-                          className={`text-lg font-bold ${
-                            transaction.type === 'income' ? 'text-green-600' : 'text-red-600'
-                          }`}
+                          className={`text-lg font-bold ${transaction.type === 'income' ? 'text-green-600' : 'text-red-600'
+                            }`}
                         >
                           {transaction.type === 'income' ? '+' : '-'}
                           {formatCurrency(transaction.amount)}

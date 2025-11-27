@@ -7,6 +7,7 @@ import {
 import { projectService } from '../services/projectService';
 import { type Project } from '../schemas';
 import { ChevronLeft, ChevronRight, AlertTriangle, CheckCircle } from 'lucide-react';
+import { formatCurrency } from '../utils/formatUtils';
 
 const Reconciliation: React.FC = () => {
   const { userProfile } = useAuth();
@@ -73,13 +74,6 @@ const Reconciliation: React.FC = () => {
     } else {
       setSelectedMonth(selectedMonth + 1);
     }
-  };
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-    }).format(amount);
   };
 
   const getProjectName = (projectId: string) => {
@@ -178,9 +172,8 @@ const Reconciliation: React.FC = () => {
               <div>
                 <p className="text-sm text-gray-600">實際變化</p>
                 <p
-                  className={`text-xl font-bold mt-1 ${
-                    report.actualChange >= 0 ? 'text-green-600' : 'text-red-600'
-                  }`}
+                  className={`text-xl font-bold mt-1 ${report.actualChange >= 0 ? 'text-green-600' : 'text-red-600'
+                    }`}
                 >
                   {report.actualChange >= 0 ? '+' : ''}
                   {formatCurrency(report.actualChange)}
@@ -243,9 +236,8 @@ const Reconciliation: React.FC = () => {
               <div className="flex justify-between items-center">
                 <span className="font-medium text-gray-700">理論變化（收入-支出）</span>
                 <span
-                  className={`text-xl font-bold ${
-                    report.calculatedChange >= 0 ? 'text-green-600' : 'text-red-600'
-                  }`}
+                  className={`text-xl font-bold ${report.calculatedChange >= 0 ? 'text-green-600' : 'text-red-600'
+                    }`}
                 >
                   {report.calculatedChange >= 0 ? '+' : ''}
                   {formatCurrency(report.calculatedChange)}
@@ -269,9 +261,8 @@ const Reconciliation: React.FC = () => {
               <div className="pt-3 border-t-2 border-gray-300 flex justify-between items-center">
                 <span className="font-semibold text-gray-900">差異</span>
                 <span
-                  className={`text-2xl font-bold ${
-                    Math.abs(report.discrepancy) < 0.01 ? 'text-green-600' : 'text-yellow-600'
-                  }`}
+                  className={`text-2xl font-bold ${Math.abs(report.discrepancy) < 0.01 ? 'text-green-600' : 'text-yellow-600'
+                    }`}
                 >
                   {Math.abs(report.discrepancy) < 0.01
                     ? '✓ 完全一致'

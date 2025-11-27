@@ -3,6 +3,7 @@ import { useAuth } from '../contexts/useAuth';
 import { budgetService } from '../services/budgetService';
 import { projectService } from '../services/projectService';
 import { type Project, type MonthlyBudgetStats, type MonthlyCategoryStat } from '../schemas';
+import { formatCurrency } from '../utils/formatUtils';
 
 const Dashboard: React.FC = () => {
   const { userProfile } = useAuth();
@@ -35,13 +36,6 @@ const Dashboard: React.FC = () => {
       loadData();
     }
   }, [userProfile?.householdId, currentMonth, currentYear]);
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-    }).format(amount);
-  };
 
   const getProjectInfo = (projectId: string) => {
     return (
@@ -146,13 +140,12 @@ const Dashboard: React.FC = () => {
                 {/* Progress Bar */}
                 <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
                   <div
-                    className={`h-2 rounded-full transition-all ${
-                      isOverBudget
-                        ? 'bg-red-500'
-                        : percentageUsed > 80
-                          ? 'bg-yellow-500'
-                          : 'bg-green-500'
-                    }`}
+                    className={`h-2 rounded-full transition-all ${isOverBudget
+                      ? 'bg-red-500'
+                      : percentageUsed > 80
+                        ? 'bg-yellow-500'
+                        : 'bg-green-500'
+                      }`}
                     style={{ width: `${Math.min(percentageUsed, 100)}%` }}
                   />
                 </div>

@@ -9,6 +9,7 @@ import {
   Legend,
   ResponsiveContainer,
 } from 'recharts';
+import { formatCurrency } from '../utils/formatUtils';
 
 interface AssetTrendChartProps {
   data: Array<{
@@ -34,15 +35,6 @@ const AssetTrendChart: React.FC<AssetTrendChartProps> = ({
   showIndividualAccounts = false,
   accountNames = {},
 }) => {
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(value);
-  };
-
   // Get unique account IDs from data
   const accountIds =
     showIndividualAccounts && data.length > 0 ? Object.keys(data[0].accounts || {}) : [];
