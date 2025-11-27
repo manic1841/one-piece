@@ -9,9 +9,9 @@ import {
   Legend,
   ResponsiveContainer,
 } from 'recharts';
-import { formatCurrency } from '../utils/formatUtils';
+import { formatCurrency } from '../../utils/formatUtils';
 
-interface AssetTrendChartProps {
+interface AccountTrendChartProps {
   data: Array<{
     date: string;
     totalAssets: number;
@@ -30,7 +30,7 @@ const COLORS = [
   '#ec4899', // pink
 ];
 
-const AssetTrendChart: React.FC<AssetTrendChartProps> = ({
+const AccountTrendChart: React.FC<AccountTrendChartProps> = ({
   data,
   showIndividualAccounts = false,
   accountNames = {},
@@ -85,4 +85,4 @@ const AssetTrendChart: React.FC<AssetTrendChartProps> = ({
   );
 };
 
-export default AssetTrendChart;
+export default AccountTrendChart;

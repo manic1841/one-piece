@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
-import { type Account, type AccountType } from '../schemas';
+import { type Account, type AccountType } from '../../schemas';
 
 interface AccountFormProps {
   isOpen: boolean;

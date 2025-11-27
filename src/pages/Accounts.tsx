@@ -3,9 +3,10 @@ import { useAuth } from '../contexts/useAuth';
 import { accountService } from '../services/accountService';
 import { assetTrackingService, type AssetDataPoint } from '../services/assetTrackingService';
 import { type Account, type AccountSnapshot } from '../schemas';
-import AccountForm from '../components/AccountForm';
-import AccountSnapshotForm from '../components/AccountSnapshotForm';
-import AssetTrendChart from '../components/AssetTrendChart';
+import AccountForm from '../components/accounts/AccountForm';
+import AccountSnapshotForm from '../components/accounts/AccountSnapshotForm';
+import AccountDetailView from '../components/accounts/AccountDetailView';
+import AccountTrendChart from '../components/accounts/AccountTrendChart';
 import { toDate } from '../utils/dateUtils';
 import { formatCurrency } from '../utils/formatUtils';
 import { Plus, Pencil, Trash2, TrendingUp, BarChart3 } from 'lucide-react';
@@ -32,6 +33,7 @@ const Accounts: React.FC = () => {
   const [selectedAccountForSnapshot, setSelectedAccountForSnapshot] = useState<
     string | undefined
   >();
+  const [selectedAccountForDetail, setSelectedAccountForDetail] = useState<Account | null>(null);
 
   useEffect(() => {
     if (!userProfile?.householdId) return;
@@ -161,6 +163,17 @@ const Accounts: React.FC = () => {
     );
   }
 
+  // Show detail view if account is selected
+  if (selectedAccountForDetail && userProfile?.householdId) {
+    return (
+      <AccountDetailView
+        account={selectedAccountForDetail}
+        householdId={userProfile.householdId}
+        onBack={() => setSelectedAccountForDetail(null)}
+      />
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -200,28 +213,31 @@ const Accounts: React.FC = () => {
           <div className="flex gap-2">
             <button
               onClick={() => setSelectedPeriod(6)}
-              className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${selectedPeriod === 6
-                ? 'bg-blue-600 text-white'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
+              className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
+                selectedPeriod === 6
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
             >
               6M
             </button>
             <button
               onClick={() => setSelectedPeriod(12)}
-              className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${selectedPeriod === 12
-                ? 'bg-blue-600 text-white'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
+              className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
+                selectedPeriod === 12
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
             >
               1Y
             </button>
             <button
               onClick={() => setSelectedPeriod(24)}
-              className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${selectedPeriod === 24
-                ? 'bg-blue-600 text-white'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
+              className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
+                selectedPeriod === 24
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
             >
               2Y
             </button>
@@ -240,7 +256,7 @@ const Accounts: React.FC = () => {
           </label>
         </div>
 
-        <AssetTrendChart data={assetTrendData} showIndividualAccounts={showIndividualAccounts} />
+        <AccountTrendChart data={assetTrendData} showIndividualAccounts={showIndividualAccounts} />
       </div>
 
       {/* Accounts List */}
@@ -252,7 +268,8 @@ const Accounts: React.FC = () => {
             return (
               <div
                 key={account.id}
-                className="border border-gray-200 rounded-lg p-4 hover:border-blue-300 transition-colors"
+                onClick={() => setSelectedAccountForDetail(account)}
+                className="border border-gray-200 rounded-lg p-4 hover:border-blue-300 transition-colors cursor-pointer"
               >
                 <div className="flex justify-between items-start mb-3">
                   <div className="flex items-center gap-3">
@@ -264,7 +281,8 @@ const Accounts: React.FC = () => {
                   </div>
                   <div className="flex gap-1">
                     <button
-                      onClick={() => {
+                      onClick={(e) => {
+                        e.stopPropagation();
                         setEditingAccount(account);
                         setIsAccountFormOpen(true);
                       }}
@@ -273,7 +291,10 @@ const Accounts: React.FC = () => {
                       <Pencil size={16} />
                     </button>
                     <button
-                      onClick={() => handleDeleteAccount(account.id)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteAccount(account.id);
+                      }}
                       className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
                     >
                       <Trash2 size={16} />
@@ -293,7 +314,8 @@ const Accounts: React.FC = () => {
                 </div>
 
                 <button
-                  onClick={() => {
+                  onClick={(e) => {
+                    e.stopPropagation();
                     setSelectedAccountForSnapshot(account.id);
                     setIsSnapshotFormOpen(true);
                   }}

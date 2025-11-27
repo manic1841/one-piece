@@ -7,6 +7,7 @@ import {
   where,
   orderBy,
   serverTimestamp,
+  deleteDoc,
 } from 'firebase/firestore';
 import { db } from '../firebase';
 import { AccountSchema, AccountSnapshotSchema, parseWithSchema } from '../schemas';
@@ -123,6 +124,38 @@ class AccountService extends BaseService<Account> {
     }
 
     return total;
+  }
+  // Update a snapshot
+  async updateSnapshot(
+    householdId: string,
+    accountId: string,
+    snapshotId: string,
+    updates: Partial<Omit<AccountSnapshot, 'id' | 'createdAt'>>,
+  ): Promise<void> {
+    const snapshotRef = doc(
+      db,
+      'households',
+      householdId,
+      'accounts',
+      accountId,
+      'snapshots',
+      snapshotId,
+    );
+    await setDoc(snapshotRef, updates, { merge: true });
+  }
+
+  // Delete a snapshot
+  async deleteSnapshot(householdId: string, accountId: string, snapshotId: string): Promise<void> {
+    const snapshotRef = doc(
+      db,
+      'households',
+      householdId,
+      'accounts',
+      accountId,
+      'snapshots',
+      snapshotId,
+    );
+    await deleteDoc(snapshotRef);
   }
 }
 

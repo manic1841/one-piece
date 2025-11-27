@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { X } from 'lucide-react';
-import { type Account, type AccountSnapshot } from '../schemas';
-import { accountService } from '../services/accountService';
+import { type Account, type AccountSnapshot } from '../../schemas';
+import { accountService } from '../../services/accountService';
 
 interface AccountSnapshotFormProps {
   isOpen: boolean;
