@@ -19,8 +19,11 @@ import { toDateString } from '../utils/dateUtils';
 
 export const transactionService = {
   // Create a new transaction
-  async createTransaction(transaction: Omit<Transaction, 'id' | 'createdAt'>): Promise<string> {
-    const transactionRef = doc(collection(db, 'transactions'));
+  async createTransaction(
+    householdId: string,
+    transaction: Omit<Transaction, 'id' | 'createdAt'>,
+  ): Promise<string> {
+    const transactionRef = doc(collection(db, 'households', householdId, 'transactions'));
     const transactionId = transactionRef.id;
 
     // Convert date to Firestore Timestamp if it's a Date object
@@ -48,11 +51,8 @@ export const transactionService = {
       category?: string;
     },
   ): Promise<Transaction[]> {
-    const q = query(
-      collection(db, 'transactions'),
-      where('householdId', '==', householdId),
-      orderBy('date', 'desc'),
-    );
+    const transactionsRef = collection(db, 'households', householdId, 'transactions');
+    const q = query(transactionsRef, orderBy('date', 'desc'));
 
     const querySnapshot = await getDocs(q);
     let transactions = querySnapshot.docs.map((doc) => {
@@ -91,8 +91,8 @@ export const transactionService = {
   },
 
   // Get a single transaction by ID
-  async getTransaction(id: string): Promise<Transaction | null> {
-    const docRef = doc(db, 'transactions', id);
+  async getTransaction(householdId: string, id: string): Promise<Transaction | null> {
+    const docRef = doc(db, 'households', householdId, 'transactions', id);
     const docSnap = await getDoc(docRef);
 
     if (docSnap.exists()) {
@@ -102,8 +102,12 @@ export const transactionService = {
   },
 
   // Update a transaction
-  async updateTransaction(id: string, updates: Partial<Transaction>): Promise<void> {
-    const transactionRef = doc(db, 'transactions', id);
+  async updateTransaction(
+    householdId: string,
+    id: string,
+    updates: Partial<Transaction>,
+  ): Promise<void> {
+    const transactionRef = doc(db, 'households', householdId, 'transactions', id);
 
     // Convert date to Timestamp if it's a Date object
     const processedUpdates = { ...updates };
@@ -115,8 +119,8 @@ export const transactionService = {
   },
 
   // Delete a transaction
-  async deleteTransaction(id: string): Promise<void> {
-    const transactionRef = doc(db, 'transactions', id);
+  async deleteTransaction(householdId: string, id: string): Promise<void> {
+    const transactionRef = doc(db, 'households', householdId, 'transactions', id);
     await deleteDoc(transactionRef);
   },
 

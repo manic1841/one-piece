@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from 'react';
-import { Plus, Pencil, Trash2, TrendingUp, TrendingDown } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Plus, Pencil, Trash2, TrendingUp, TrendingDown, Wallet } from 'lucide-react';
 import { useAuth } from '../contexts/useAuth';
 import { transactionService } from '../services/transactionService';
 import TransactionForm from '../components/TransactionForm';
+import PlannedIncomeForm from '../components/PlannedIncomeForm';
 import { type Transaction } from '../schemas';
 import { Timestamp } from 'firebase/firestore';
-import { useCallback } from 'react';
 import { toDate } from '../utils/dateUtils';
 
 const Transactions: React.FC = () => {
@@ -13,6 +13,7 @@ const Transactions: React.FC = () => {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isPlannedIncomeFormOpen, setIsPlannedIncomeFormOpen] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<Transaction | undefined>();
   const [stats, setStats] = useState({ totalIncome: 0, totalExpense: 0, balance: 0 });
   const [filterType, setFilterType] = useState<'all' | 'income' | 'expense'>('all');
@@ -41,22 +42,23 @@ const Transactions: React.FC = () => {
   const handleCreateTransaction = async (transaction: Omit<Transaction, 'id' | 'createdAt'>) => {
     if (!userProfile?.householdId) return;
 
-    await transactionService.createTransaction(transaction);
+    await transactionService.createTransaction(userProfile.householdId, transaction);
     await loadTransactions();
   };
 
   const handleUpdateTransaction = async (transaction: Omit<Transaction, 'id' | 'createdAt'>) => {
-    if (!editingTransaction) return;
+    if (!editingTransaction || !userProfile?.householdId) return;
 
-    await transactionService.updateTransaction(editingTransaction.id, transaction);
+    await transactionService.updateTransaction(userProfile.householdId, editingTransaction.id, transaction);
     setEditingTransaction(undefined);
     await loadTransactions();
   };
 
   const handleDeleteTransaction = async (id: string) => {
+    if (!userProfile?.householdId) return;
     if (!window.confirm('Are you sure you want to delete this transaction?')) return;
 
-    await transactionService.deleteTransaction(id);
+    await transactionService.deleteTransaction(userProfile.householdId, id);
     await loadTransactions();
   };
 
@@ -93,13 +95,22 @@ const Transactions: React.FC = () => {
       {/* Header */}
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold text-gray-900">Transactions</h1>
-        <button
-          onClick={() => setIsFormOpen(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
-        >
-          <Plus size={20} />
-          Add Transaction
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setIsPlannedIncomeFormOpen(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors"
+          >
+            <Wallet size={20} />
+            Record Income
+          </button>
+          <button
+            onClick={() => setIsFormOpen(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
+          >
+            <Plus size={20} />
+            Add Expense
+          </button>
+        </div>
       </div>
 
       {/* Stats Cards */}
@@ -158,27 +169,24 @@ const Transactions: React.FC = () => {
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-2 flex gap-2">
         <button
           onClick={() => setFilterType('all')}
-          className={`flex-1 py-2 px-4 rounded-lg font-medium transition-colors ${
-            filterType === 'all' ? 'bg-blue-100 text-blue-700' : 'text-gray-600 hover:bg-gray-100'
-          }`}
+          className={`flex-1 py-2 px-4 rounded-lg font-medium transition-colors ${filterType === 'all' ? 'bg-blue-100 text-blue-700' : 'text-gray-600 hover:bg-gray-100'
+            }`}
         >
           All
         </button>
         <button
           onClick={() => setFilterType('income')}
-          className={`flex-1 py-2 px-4 rounded-lg font-medium transition-colors ${
-            filterType === 'income'
+          className={`flex-1 py-2 px-4 rounded-lg font-medium transition-colors ${filterType === 'income'
               ? 'bg-green-100 text-green-700'
               : 'text-gray-600 hover:bg-gray-100'
-          }`}
+            }`}
         >
           Income
         </button>
         <button
           onClick={() => setFilterType('expense')}
-          className={`flex-1 py-2 px-4 rounded-lg font-medium transition-colors ${
-            filterType === 'expense' ? 'bg-red-100 text-red-700' : 'text-gray-600 hover:bg-gray-100'
-          }`}
+          className={`flex-1 py-2 px-4 rounded-lg font-medium transition-colors ${filterType === 'expense' ? 'bg-red-100 text-red-700' : 'text-gray-600 hover:bg-gray-100'
+            }`}
         >
           Expense
         </button>
@@ -200,9 +208,8 @@ const Transactions: React.FC = () => {
                   <div className="flex-1">
                     <div className="flex items-center gap-3">
                       <div
-                        className={`w-2 h-2 rounded-full ${
-                          transaction.type === 'income' ? 'bg-green-500' : 'bg-red-500'
-                        }`}
+                        className={`w-2 h-2 rounded-full ${transaction.type === 'income' ? 'bg-green-500' : 'bg-red-500'
+                          }`}
                       />
                       <div>
                         <p className="font-medium text-gray-900 capitalize">
@@ -217,9 +224,8 @@ const Transactions: React.FC = () => {
                   </div>
                   <div className="flex items-center gap-4">
                     <p
-                      className={`text-lg font-bold ${
-                        transaction.type === 'income' ? 'text-green-600' : 'text-red-600'
-                      }`}
+                      className={`text-lg font-bold ${transaction.type === 'income' ? 'text-green-600' : 'text-red-600'
+                        }`}
                     >
                       {transaction.type === 'income' ? '+' : '-'}
                       {formatCurrency(transaction.amount)}
@@ -248,14 +254,24 @@ const Transactions: React.FC = () => {
 
       {/* Transaction Form Modal */}
       {userProfile?.householdId && currentUser?.email && (
-        <TransactionForm
-          isOpen={isFormOpen}
-          onClose={handleCloseForm}
-          onSubmit={editingTransaction ? handleUpdateTransaction : handleCreateTransaction}
-          initialData={editingTransaction}
-          householdId={userProfile.householdId}
-          userEmail={currentUser.email}
-        />
+        <>
+          <TransactionForm
+            isOpen={isFormOpen}
+            onClose={handleCloseForm}
+            onSubmit={editingTransaction ? handleUpdateTransaction : handleCreateTransaction}
+            initialData={editingTransaction}
+            householdId={userProfile.householdId}
+            userEmail={currentUser.email}
+          />
+
+          <PlannedIncomeForm
+            isOpen={isPlannedIncomeFormOpen}
+            onClose={() => setIsPlannedIncomeFormOpen(false)}
+            onSuccess={loadTransactions}
+            householdId={userProfile.householdId}
+            userEmail={currentUser.email}
+          />
+        </>
       )}
     </div>
   );

@@ -6,6 +6,7 @@ import { type Account, type AccountSnapshot } from '../schemas';
 import AccountForm from '../components/AccountForm';
 import AccountSnapshotForm from '../components/AccountSnapshotForm';
 import AssetTrendChart from '../components/AssetTrendChart';
+import { toDate } from '../utils/dateUtils';
 import { Plus, Pencil, Trash2, TrendingUp, BarChart3 } from 'lucide-react';
 
 const accountTypeIcons: Record<string, string> = {
@@ -93,7 +94,7 @@ const Accounts: React.FC = () => {
     if (!userProfile?.householdId) return;
 
     try {
-      await accountService.createAccount(account);
+      await accountService.createAccount(userProfile.householdId, account);
       await reloadData();
     } catch (err) {
       console.error('Error creating account:', err);
@@ -101,10 +102,10 @@ const Accounts: React.FC = () => {
   };
 
   const handleUpdateAccount = async (account: Omit<Account, 'id' | 'createdAt'>) => {
-    if (!editingAccount) return;
+    if (!editingAccount || !userProfile?.householdId) return;
 
     try {
-      await accountService.updateAccount(editingAccount.id, account);
+      await accountService.updateAccount(userProfile.householdId, editingAccount.id, account);
       setEditingAccount(undefined);
       await reloadData();
     } catch (err) {
@@ -113,38 +114,48 @@ const Accounts: React.FC = () => {
   };
 
   const handleDeleteAccount = async (id: string) => {
+    if (!userProfile?.householdId) return;
     if (!confirm('Are you sure you want to delete this account?')) return;
 
     try {
-      await accountService.deleteAccount(id);
+      await accountService.deleteAccount(userProfile.householdId, id);
       await reloadData();
     } catch (err) {
       console.error('Error deleting account:', err);
     }
   };
 
-  const handleRecordSnapshot = async (snapshot: Omit<AccountSnapshot, 'id' | 'createdAt'>) => {
+  const handleRecordSnapshot = async (
+    accountId: string,
+    snapshot: Omit<AccountSnapshot, 'id' | 'createdAt'>,
+  ) => {
+    if (!userProfile?.householdId || !currentUser) return;
+
     try {
-      await accountService.recordSnapshot(snapshot);
+      await accountService.recordSnapshot(userProfile.householdId, accountId, {
+        ...snapshot,
+        createdBy: currentUser.uid,
+      });
       await reloadData();
+      setIsSnapshotFormOpen(false);
+      setSelectedAccountForSnapshot(undefined);
     } catch (err) {
-      console.error('Error recording snapshot:', err);
+      console.error('Error recording balance:', err);
     }
   };
 
-  const formatCurrency = (amount: number, currency: string) => {
+  const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
-      currency,
+      currency: 'USD',
     }).format(amount);
   };
 
-  const calculateTotalAssets = () => {
-    let total = 0;
-    for (const snapshot of latestSnapshots.values()) {
-      total += snapshot.amount;
-    }
-    return total;
+  const getTotalBalance = () => {
+    return accounts.reduce((sum, account) => {
+      const snapshot = latestSnapshots.get(account.id);
+      return sum + (snapshot?.amount || 0);
+    }, 0);
   };
 
   if (loading) {
@@ -156,14 +167,13 @@ const Accounts: React.FC = () => {
     );
   }
 
-  const totalAssets = calculateTotalAssets();
-
   return (
     <div className="space-y-6">
+      {/* Header */}
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Accounts</h1>
-          <p className="text-gray-600 mt-1">Manage your accounts and track balances</p>
+          <p className="text-gray-600 mt-2">Manage your accounts and track asset trends</p>
         </div>
         <button
           onClick={() => {
@@ -177,213 +187,170 @@ const Accounts: React.FC = () => {
         </button>
       </div>
 
-      {/* Asset Trend Chart */}
-      {assetTrendData.length > 0 && (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-3">
-              <BarChart3 className="text-blue-600" size={24} />
-              <h2 className="text-lg font-semibold text-gray-900">Asset Trend</h2>
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setSelectedPeriod(3)}
-                className={`px-3 py-1 text-sm font-medium rounded-lg transition-colors ${
-                  selectedPeriod === 3
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                3M
-              </button>
-              <button
-                onClick={() => setSelectedPeriod(6)}
-                className={`px-3 py-1 text-sm font-medium rounded-lg transition-colors ${
-                  selectedPeriod === 6
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                6M
-              </button>
-              <button
-                onClick={() => setSelectedPeriod(12)}
-                className={`px-3 py-1 text-sm font-medium rounded-lg transition-colors ${
-                  selectedPeriod === 12
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                1Y
-              </button>
-              <label className="flex items-center gap-2 ml-4 text-sm">
-                <input
-                  type="checkbox"
-                  checked={showIndividualAccounts}
-                  onChange={(e) => setShowIndividualAccounts(e.target.checked)}
-                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                />
-                <span className="text-gray-700">Show individual accounts</span>
-              </label>
-            </div>
-          </div>
-          <AssetTrendChart
-            data={assetTrendData}
-            showIndividualAccounts={showIndividualAccounts}
-            accountNames={Object.fromEntries(accounts.map((a) => [a.id, a.name]))}
-          />
-          {assetTrendData.length >= 2 && (
-            <div className="mt-4 text-center text-sm text-gray-600">
-              Growth:
-              <span
-                className={`ml-1 font-semibold ${
-                  assetTrackingService.calculateGrowth(assetTrendData) >= 0
-                    ? 'text-green-600'
-                    : 'text-red-600'
-                }`}
-              >
-                {assetTrackingService.calculateGrowth(assetTrendData) >= 0 ? '+' : ''}
-                {assetTrackingService.calculateGrowth(assetTrendData).toFixed(2)}%
-              </span>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Total Assets Summary */}
+      {/* Total Balance */}
       <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl shadow-sm p-6 text-white">
-        <h3 className="text-sm font-medium opacity-90">Total Assets</h3>
-        <p className="text-3xl font-bold mt-2">{formatCurrency(totalAssets, 'USD')}</p>
-        <button
-          onClick={() => setIsSnapshotFormOpen(true)}
-          className="mt-4 flex items-center gap-2 px-4 py-2 bg-white bg-opacity-20 hover:bg-opacity-30 rounded-lg transition-colors"
-        >
-          <TrendingUp size={18} />
-          Record Balance
-        </button>
+        <div className="flex items-center gap-3 mb-2">
+          <BarChart3 size={24} />
+          <h2 className="text-lg font-semibold">Total Balance</h2>
+        </div>
+        <p className="text-3xl font-bold">{formatCurrency(getTotalBalance())}</p>
+      </div>
+
+      {/* Asset Trend Chart */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+        <div className="flex justify-between items-center mb-6">
+          <div className="flex items-center gap-3">
+            <TrendingUp className="text-blue-600" size={24} />
+            <h2 className="text-lg font-semibold text-gray-900">Asset Trend</h2>
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setSelectedPeriod(6)}
+              className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
+                selectedPeriod === 6
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              6M
+            </button>
+            <button
+              onClick={() => setSelectedPeriod(12)}
+              className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
+                selectedPeriod === 12
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              1Y
+            </button>
+            <button
+              onClick={() => setSelectedPeriod(24)}
+              className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
+                selectedPeriod === 24
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              2Y
+            </button>
+          </div>
+        </div>
+
+        <div className="mb-4">
+          <label className="flex items-center gap-2 text-sm text-gray-600">
+            <input
+              type="checkbox"
+              checked={showIndividualAccounts}
+              onChange={(e) => setShowIndividualAccounts(e.target.checked)}
+              className="rounded border-gray-300"
+            />
+            Show individual accounts
+          </label>
+        </div>
+
+        <AssetTrendChart data={assetTrendData} showIndividualAccounts={showIndividualAccounts} />
       </div>
 
       {/* Accounts List */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100">
-        <div className="p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Accounts</h2>
-
-          {accounts.length === 0 ? (
-            <div className="text-center py-12">
-              <p className="text-gray-500 mb-4">No accounts yet</p>
-              <button
-                onClick={() => setIsAccountFormOpen(true)}
-                className="text-blue-600 hover:text-blue-700 font-medium"
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">Your Accounts</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {accounts.map((account) => {
+            const snapshot = latestSnapshots.get(account.id);
+            return (
+              <div
+                key={account.id}
+                className="border border-gray-200 rounded-lg p-4 hover:border-blue-300 transition-colors"
               >
-                Create your first account
-              </button>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {accounts.map((account) => {
-                const snapshot = latestSnapshots.get(account.id);
-                return (
-                  <div
-                    key={account.id}
-                    className="bg-white p-6 rounded-xl border border-gray-200 hover:border-blue-300 hover:shadow-md transition-all"
-                  >
-                    <div className="flex justify-between items-start mb-4">
-                      <div className="flex items-center gap-3">
-                        <span className="text-4xl">{accountTypeIcons[account.type]}</span>
-                        <div>
-                          <h3 className="font-semibold text-gray-900">{account.name}</h3>
-                          <p className="text-sm text-gray-500 capitalize">
-                            {account.type.replace('_', ' ')}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-
-                    {snapshot ? (
-                      <div className="mb-4">
-                        <p className="text-3xl font-bold text-gray-900">
-                          {formatCurrency(snapshot.amount, account.currency)}
-                        </p>
-                        <p className="text-xs text-gray-400 mt-1">
-                          Last updated: {snapshot.year}/{snapshot.month}
-                        </p>
-                      </div>
-                    ) : (
-                      <div className="mb-4">
-                        <p className="text-2xl font-bold text-gray-400">
-                          {formatCurrency(0, account.currency)}
-                        </p>
-                        <p className="text-xs text-gray-400 mt-1">No balance recorded</p>
-                      </div>
-                    )}
-
-                    <div className="flex gap-2 pt-4 border-t border-gray-100">
-                      <button
-                        onClick={() => {
-                          setSelectedAccountForSnapshot(account.id);
-                          setIsSnapshotFormOpen(true);
-                        }}
-                        className="flex-1 flex items-center justify-center gap-2 px-3 py-2 text-sm text-gray-700 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
-                        title="Update Balance"
-                      >
-                        <TrendingUp size={16} />
-                        <span>Balance</span>
-                      </button>
-                      <button
-                        onClick={() => {
-                          setEditingAccount(account);
-                          setIsAccountFormOpen(true);
-                        }}
-                        className="flex-1 flex items-center justify-center gap-2 px-3 py-2 text-sm text-gray-700 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                        title="Edit"
-                      >
-                        <Pencil size={16} />
-                        <span>Edit</span>
-                      </button>
-                      <button
-                        onClick={() => handleDeleteAccount(account.id)}
-                        className="flex-1 flex items-center justify-center gap-2 px-3 py-2 text-sm text-gray-700 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                        title="Delete"
-                      >
-                        <Trash2 size={16} />
-                        <span>Delete</span>
-                      </button>
+                <div className="flex justify-between items-start mb-3">
+                  <div className="flex items-center gap-3">
+                    <span className="text-2xl">{accountTypeIcons[account.type]}</span>
+                    <div>
+                      <h3 className="font-medium text-gray-900">{account.name}</h3>
+                      <p className="text-xs text-gray-500">{account.type}</p>
                     </div>
                   </div>
-                );
-              })}
-            </div>
-          )}
+                  <div className="flex gap-1">
+                    <button
+                      onClick={() => {
+                        setEditingAccount(account);
+                        setIsAccountFormOpen(true);
+                      }}
+                      className="p-1 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                    >
+                      <Pencil size={16} />
+                    </button>
+                    <button
+                      onClick={() => handleDeleteAccount(account.id)}
+                      className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                </div>
+
+                <div className="mb-3">
+                  <p className="text-2xl font-bold text-gray-900">
+                    {formatCurrency(snapshot?.amount || 0)}
+                  </p>
+                  {snapshot && (
+                    <p className="text-xs text-gray-500">
+                      As of {toDate(snapshot.createdAt).toLocaleDateString()}
+                    </p>
+                  )}
+                </div>
+
+                <button
+                  onClick={() => {
+                    setSelectedAccountForSnapshot(account.id);
+                    setIsSnapshotFormOpen(true);
+                  }}
+                  className="w-full px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium rounded-lg transition-colors"
+                >
+                  Record Balance
+                </button>
+              </div>
+            );
+          })}
         </div>
+
+        {accounts.length === 0 && (
+          <p className="text-gray-500 text-center py-8">
+            No accounts yet. Add your first account to start tracking your assets.
+          </p>
+        )}
       </div>
 
-      {/* Forms */}
-      {userProfile?.householdId && currentUser?.email && (
-        <>
-          <AccountForm
-            isOpen={isAccountFormOpen}
-            onClose={() => {
-              setIsAccountFormOpen(false);
-              setEditingAccount(undefined);
-            }}
-            onSubmit={editingAccount ? handleUpdateAccount : handleCreateAccount}
-            initialData={editingAccount}
-            householdId={userProfile.householdId}
-            userEmail={currentUser.email}
-          />
+      {/* Account Form Modal */}
+      {isAccountFormOpen && (
+        <AccountForm
+          isOpen={isAccountFormOpen}
+          onClose={() => {
+            setIsAccountFormOpen(false);
+            setEditingAccount(undefined);
+          }}
+          onSubmit={editingAccount ? handleUpdateAccount : handleCreateAccount}
+          initialData={editingAccount}
+          householdId={userProfile?.householdId || ''}
+          userEmail={currentUser?.email || ''}
+        />
+      )}
 
-          <AccountSnapshotForm
-            isOpen={isSnapshotFormOpen}
-            onClose={() => {
-              setIsSnapshotFormOpen(false);
-              setSelectedAccountForSnapshot(undefined);
-            }}
-            onSubmit={handleRecordSnapshot}
-            accounts={accounts}
-            userEmail={currentUser.email}
-            initialAccountId={selectedAccountForSnapshot}
-          />
-        </>
+      {/* Snapshot Form Modal */}
+      {isSnapshotFormOpen && selectedAccountForSnapshot && (
+        <AccountSnapshotForm
+          isOpen={isSnapshotFormOpen}
+          onClose={() => {
+            setIsSnapshotFormOpen(false);
+            setSelectedAccountForSnapshot(undefined);
+          }}
+          onSubmit={(snapshot) => handleRecordSnapshot(selectedAccountForSnapshot, snapshot)}
+          accounts={accounts}
+          userEmail={currentUser?.email || ''}
+          initialAccountId={selectedAccountForSnapshot}
+          householdId={userProfile?.householdId || ''}
+        />
       )}
     </div>
   );

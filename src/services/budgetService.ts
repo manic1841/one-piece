@@ -10,6 +10,7 @@ import {
 } from '../schemas';
 import { transactionService } from './transactionService';
 import { projectService } from './projectService';
+import { projectTransactionService } from './projectTransactionService';
 import { Timestamp } from 'firebase/firestore';
 import { parseWithSchema } from '../schemas';
 
@@ -68,27 +69,39 @@ export const budgetService = {
     });
   },
 
-  // Calculate monthly budget based on income
+  // Calculate monthly budget based on allocated income and expenses
   async calculateMonthlyBudget(
     householdId: string,
     year: number,
     month: number,
   ): Promise<MonthlyBudget> {
-    // Get budget allocations
-    const allocations = await this.getBudgetAllocations(householdId);
-
-    // Get projects to ensure we have all categories
+    // Get projects
     const projects = await projectService.getProjects(householdId);
 
-    // Get monthly transactions
+    // Define date range
     const startDate = new Date(year, month - 1, 1);
     const endDate = new Date(year, month, 0);
     const startDateStr = startDate.toISOString().split('T')[0];
     const endDateStr = endDate.toISOString().split('T')[0];
 
-    const allTransactions = await transactionService.getTransactions(householdId, {
+    // 1. Get Allocated Amounts from ProjectTransactions (Income allocated to projects)
+    const projectTransactions = await projectTransactionService.getProjectTransactions(householdId, {
       startDate: startDateStr,
       endDate: endDateStr,
+    });
+
+    // 2. Get Spent Amounts from Transactions (Expenses)
+    const transactions = await transactionService.getTransactions(householdId, {
+      startDate: startDateStr,
+      endDate: endDateStr,
+      type: 'expense',
+    });
+
+    // 3. Get Income Transactions for Breakdown
+    const incomeTransactions = await transactionService.getTransactions(householdId, {
+      startDate: startDateStr,
+      endDate: endDateStr,
+      type: 'income',
     });
 
     // Calculate income breakdown by category
@@ -99,40 +112,29 @@ export const budgetService = {
       other: 0,
     };
 
-    allTransactions
-      .filter((t) => t.type === 'income')
-      .forEach((t) => {
-        // Ensure category is a valid IncomeCategory
-        // If not, it might be 'other' or we should handle it.
-        // For now assuming it matches.
-        const category = t.category as IncomeCategory;
-        if (category in incomeBreakdown) {
-          incomeBreakdown[category] += t.amount;
-        } else {
-          // Fallback to other if category not found in breakdown
-          incomeBreakdown['other'] += t.amount;
-        }
-      });
+    incomeTransactions.forEach((t) => {
+      const category = t.category as IncomeCategory;
+      if (category in incomeBreakdown) {
+        incomeBreakdown[category] += t.amount;
+      } else {
+        incomeBreakdown['other'] += t.amount;
+      }
+    });
 
     const totalIncome = Object.values(incomeBreakdown).reduce((sum, val) => sum + val, 0);
 
     // Calculate budget for each project category
     const budgets: MonthlyBudget['budgets'] = {};
 
-    // Use project IDs as keys
     for (const project of projects) {
-      let allocated = 0;
+      // Sum allocations to this project
+      const allocated = projectTransactions
+        .filter((pt) => pt.toProject === project.id)
+        .reduce((sum, pt) => sum + pt.amount, 0);
 
-      // Sum up allocations from each income source
-      for (const [incomeType, incomeAmount] of Object.entries(incomeBreakdown)) {
-        const allocation = allocations[incomeType as IncomeCategory];
-        // Use project ID to look up allocation, fallback to 0
-        const percentage = allocation[project.id] || 0;
-        allocated += (incomeAmount * percentage) / 100;
-      }
-
-      const spent = allTransactions
-        .filter((t) => t.type === 'expense' && t.projectId === project.id)
+      // Sum expenses for this project
+      const spent = transactions
+        .filter((t) => t.projectId === project.id)
         .reduce((sum, t) => sum + t.amount, 0);
 
       budgets[project.id] = {
@@ -159,30 +161,10 @@ export const budgetService = {
     month: number,
   ): Promise<MonthlyBudgetStats> {
     const monthlyBudget = await this.calculateMonthlyBudget(householdId, year, month);
-    const allocations = await this.getBudgetAllocations(householdId);
-    const projects = await projectService.getProjects(householdId);
-
-    // Calculate average allocation percentage for each category
-    const avgAllocations: Record<string, number> = {};
-
-    for (const project of projects) {
-      let totalPercentage = 0;
-      let totalIncome = 0;
-
-      for (const [incomeType, incomeAmount] of Object.entries(monthlyBudget.incomeBreakdown)) {
-        if (incomeAmount > 0) {
-          const allocation = allocations[incomeType as IncomeCategory];
-          totalPercentage += (allocation[project.id] || 0) * incomeAmount;
-          totalIncome += incomeAmount;
-        }
-      }
-
-      avgAllocations[project.id] = totalIncome > 0 ? totalPercentage / totalIncome : 0;
-    }
 
     const stats = Object.entries(monthlyBudget.budgets).map(([projectId, data]) => ({
       category: projectId, // This is the ID, UI should map to name
-      percentage: avgAllocations[projectId] || 0,
+      percentage: monthlyBudget.totalIncome > 0 ? (data.allocated / monthlyBudget.totalIncome) * 100 : 0,
       allocated: data.allocated,
       spent: data.spent,
       remaining: data.allocated - data.spent,

@@ -10,6 +10,7 @@ interface AccountSnapshotFormProps {
   accounts: Account[];
   userEmail: string;
   initialAccountId?: string;
+  householdId: string;
 }
 
 const AccountSnapshotForm: React.FC<AccountSnapshotFormProps> = ({
@@ -19,6 +20,7 @@ const AccountSnapshotForm: React.FC<AccountSnapshotFormProps> = ({
   accounts,
   userEmail,
   initialAccountId,
+  householdId,
 }) => {
   const currentDate = new Date();
   const [accountId, setAccountId] = useState(initialAccountId || '');
@@ -41,7 +43,7 @@ const AccountSnapshotForm: React.FC<AccountSnapshotFormProps> = ({
         prevYear = year - 1;
       }
 
-      const snapshots = await accountService.getSnapshots(accountId, prevYear, prevMonth);
+      const snapshots = await accountService.getSnapshots(householdId, accountId, prevYear, prevMonth);
       if (snapshots.length > 0) {
         setPreviousAmount(snapshots[0].amount);
       } else {

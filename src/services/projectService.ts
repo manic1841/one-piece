@@ -7,9 +7,19 @@ import {
   deleteDoc,
   query,
   Timestamp,
+  setDoc,
+  where,
+  orderBy,
+  serverTimestamp,
 } from 'firebase/firestore';
 import { db } from '../firebase';
-import { ProjectSchema, type Project } from '../schemas';
+import {
+  ProjectSchema,
+  type Project,
+  ProjectSnapshotSchema,
+  type ProjectSnapshot,
+  parseWithSchema,
+} from '../schemas';
 
 export const projectService = {
   // Get all projects for a household
@@ -61,5 +71,57 @@ export const projectService = {
   async deleteProject(householdId: string, projectId: string): Promise<void> {
     const projectRef = doc(db, 'households', householdId, 'projects', projectId);
     await deleteDoc(projectRef);
+  },
+
+  // Record a project snapshot
+  async recordSnapshot(
+    householdId: string,
+    projectId: string,
+    snapshot: Omit<ProjectSnapshot, 'id' | 'createdAt'>,
+  ): Promise<string> {
+    const snapshotRef = doc(
+      collection(db, 'households', householdId, 'projects', projectId, 'snapshots'),
+    );
+    const snapshotId = snapshotRef.id;
+
+    const newSnapshot = {
+      ...snapshot,
+      id: snapshotId,
+      createdAt: serverTimestamp(),
+    };
+
+    await setDoc(snapshotRef, newSnapshot);
+    return snapshotId;
+  },
+
+  // Get snapshots for a project
+  async getSnapshots(
+    householdId: string,
+    projectId: string,
+    year?: number,
+    month?: number,
+  ): Promise<ProjectSnapshot[]> {
+    const snapshotsRef = collection(
+      db,
+      'households',
+      householdId,
+      'projects',
+      projectId,
+      'snapshots',
+    );
+    let q = query(snapshotsRef, orderBy('year', 'desc'), orderBy('month', 'desc'));
+
+    if (year !== undefined) {
+      q = query(q, where('year', '==', year));
+    }
+    if (month !== undefined) {
+      q = query(q, where('month', '==', month));
+    }
+
+    const querySnapshot = await getDocs(q);
+    return querySnapshot.docs.map((doc) => {
+      const data = doc.data();
+      return parseWithSchema(ProjectSnapshotSchema, data);
+    });
   },
 };

@@ -41,7 +41,7 @@ export const ProjectTransactionSchema = z.object({
   id: z.string(),
   date: z.union([TimestampSchema, z.instanceof(Date)]),
   type: ProjectTransactionTypeSchema,
-  fromProject: z.string(),
+  fromProject: z.string().nullable().optional(),
   toProject: z.string(),
   amount: z.number(),
   description: z.string().optional(),

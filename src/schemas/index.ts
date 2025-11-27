@@ -6,6 +6,7 @@ export * from './allocation';
 export * from './investment';
 export * from './project';
 export * from './transaction';
+export * from './plannedIncome';
 export * from './helper';
 
 // Access Control Schema

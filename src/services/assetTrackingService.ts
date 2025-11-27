@@ -20,7 +20,7 @@ export const assetTrackingService = {
 
     // Get snapshots for each account
     for (const account of accounts) {
-      const snapshots = await accountService.getSnapshots(account.id);
+      const snapshots = await accountService.getSnapshots(householdId, account.id);
 
       // Process each snapshot
       for (const snapshot of snapshots) {
@@ -54,7 +54,7 @@ export const assetTrackingService = {
     const trends: AccountTrend[] = [];
 
     for (const account of accounts) {
-      const snapshots = await accountService.getSnapshots(account.id);
+      const snapshots = await accountService.getSnapshots(householdId, account.id);
 
       const data = snapshots
         .map((snapshot) => ({

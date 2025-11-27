@@ -50,8 +50,8 @@ export const reconciliationService = {
     const previousSnapshots = new Map<string, number>();
 
     for (const account of accounts) {
-      const currentMonthSnapshots = await accountService.getSnapshots(account.id, year, month);
-      const prevMonthSnapshots = await accountService.getSnapshots(account.id, prevYear, prevMonth);
+      const currentMonthSnapshots = await accountService.getSnapshots(householdId, account.id, year, month);
+      const prevMonthSnapshots = await accountService.getSnapshots(householdId, account.id, prevYear, prevMonth);
 
       if (currentMonthSnapshots.length > 0) {
         currentSnapshots.set(account.id, currentMonthSnapshots[0].amount);
