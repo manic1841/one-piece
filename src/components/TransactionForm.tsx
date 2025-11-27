@@ -145,8 +145,8 @@ const TransactionForm: React.FC<TransactionFormProps> = (props) => {
             </div>
           </div>
 
-          {/* Project Selection (Expense Only) */}
-          {type === 'expense' && (
+          {/* Project Selection (Expense or Income without Allocations) */}
+          {(type === 'expense' || (type === 'income' && !showAllocations)) && (
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Project</label>
               <select
@@ -181,11 +181,10 @@ const TransactionForm: React.FC<TransactionFormProps> = (props) => {
                     setAllocations(projects.map((p) => ({ projectId: p.id, percentage: 0 })));
                   }
                 }}
-                className={`w-full py-2 px-4 rounded-lg font-medium transition-colors ${
-                  showAllocations
+                className={`w-full py-2 px-4 rounded-lg font-medium transition-colors ${showAllocations
                     ? 'bg-blue-100 text-blue-700 border-2 border-blue-300'
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
+                  }`}
               >
                 {showAllocations ? '✓ Allocate to Projects' : 'Allocate to Projects'}
               </button>

@@ -184,7 +184,7 @@ export const useTransactionForm = ({
       return;
     }
 
-    if (type === 'expense' && !projectId) {
+    if ((type === 'expense' || (type === 'income' && !showAllocations)) && !projectId) {
       setError('Please select a project');
       return;
     }
@@ -228,7 +228,7 @@ export const useTransactionForm = ({
           amount: parseFloat(amount),
           type,
           category,
-          projectId: type === 'expense' ? projectId : '',
+          projectId: (type === 'expense' || (type === 'income' && !showAllocations)) ? projectId : '',
           date: new Date(date),
           description,
           createdBy: userEmail,
