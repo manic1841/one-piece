@@ -43,7 +43,12 @@ const AccountSnapshotForm: React.FC<AccountSnapshotFormProps> = ({
         prevYear = year - 1;
       }
 
-      const snapshots = await accountService.getSnapshots(householdId, accountId, prevYear, prevMonth);
+      const snapshots = await accountService.getSnapshots(
+        householdId,
+        accountId,
+        prevYear,
+        prevMonth,
+      );
       if (snapshots.length > 0) {
         setPreviousAmount(snapshots[0].amount);
       } else {
@@ -53,7 +58,7 @@ const AccountSnapshotForm: React.FC<AccountSnapshotFormProps> = ({
       console.error('Failed to load previous amount:', err);
       setPreviousAmount(null);
     }
-  }, [accountId, year, month]);
+  }, [householdId, accountId, year, month]);
 
   useEffect(() => {
     if (initialAccountId) {

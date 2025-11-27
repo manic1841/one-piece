@@ -18,16 +18,22 @@ function App() {
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/access-denied" element={<AccessDenied />} />
-          <Route path="/onboarding" element={
-            <ProtectedRoute>
-              <Onboarding />
-            </ProtectedRoute>
-          } />
-          <Route path="/" element={
-            <ProtectedRoute requireHousehold>
-              <Layout />
-            </ProtectedRoute>
-          }>
+          <Route
+            path="/onboarding"
+            element={
+              <ProtectedRoute>
+                <Onboarding />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/"
+            element={
+              <ProtectedRoute requireHousehold>
+                <Layout />
+              </ProtectedRoute>
+            }
+          >
             <Route index element={<Dashboard />} />
             <Route path="transactions" element={<Transactions />} />
             <Route path="accounts" element={<Accounts />} />
