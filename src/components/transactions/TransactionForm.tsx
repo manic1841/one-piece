@@ -2,8 +2,8 @@ import React from 'react';
 import { type Transaction, type PlannedIncome } from '../../schemas';
 import { TRANSACTION_CATEGORIES as categories } from '../../constants/categories';
 import { useTransactionForm } from '../../hooks/useTransactionForm';
-import { TypeToggle } from '../transaction-form/TypeToggle';
-import { AllocationSection } from '../transaction-form/AllocationSection';
+import { TypeToggle } from './TypeToggle';
+import { AllocationSection } from './AllocationSection';
 import {
   Dialog,
   DialogContent,
