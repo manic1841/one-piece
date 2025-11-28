@@ -85,10 +85,13 @@ export const budgetService = {
     const endDateStr = endDate.toISOString().split('T')[0];
 
     // 1. Get Allocated Amounts from ProjectTransactions (Income allocated to projects)
-    const projectTransactions = await projectTransactionService.getProjectTransactions(householdId, {
-      startDate: startDateStr,
-      endDate: endDateStr,
-    });
+    const projectTransactions = await projectTransactionService.getProjectTransactions(
+      householdId,
+      {
+        startDate: startDateStr,
+        endDate: endDateStr,
+      },
+    );
 
     // 2. Get Spent Amounts from Transactions (Expenses)
     const transactions = await transactionService.getTransactions(householdId, {
@@ -164,7 +167,8 @@ export const budgetService = {
 
     const stats = Object.entries(monthlyBudget.budgets).map(([projectId, data]) => ({
       category: projectId, // This is the ID, UI should map to name
-      percentage: monthlyBudget.totalIncome > 0 ? (data.allocated / monthlyBudget.totalIncome) * 100 : 0,
+      percentage:
+        monthlyBudget.totalIncome > 0 ? (data.allocated / monthlyBudget.totalIncome) * 100 : 0,
       allocated: data.allocated,
       spent: data.spent,
       remaining: data.allocated - data.spent,
