@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { doc, getDoc } from 'firebase/firestore';
 import { useAuth } from '../contexts/useAuth';
+import { db } from '../firebase';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -57,8 +59,6 @@ const Login: React.FC = () => {
     try {
       // Try to access a random document.
       // Even if it fails with permission-denied, it means we reached Firebase.
-      const { doc, getDoc } = await import('firebase/firestore');
-      const { db } = await import('../firebase');
       await getDoc(doc(db, 'test_connection', 'ping'));
       alert('Firebase Connection Successful! (Read succeeded)');
     } catch (err) {
