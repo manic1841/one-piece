@@ -24,6 +24,7 @@ vi.mock('firebase/firestore', () => ({
       delete: vi.fn(),
     }),
   ),
+  updateDoc: vi.fn(),
   Timestamp: class {
     seconds: number;
     nanoseconds: number;
@@ -58,13 +59,223 @@ vi.mock('./projectTransactionService', () => ({
   },
 }));
 
-import { getDocs } from 'firebase/firestore';
+import { getDocs, runTransaction } from 'firebase/firestore';
+import { projectTransactionService } from './projectTransactionService';
 
 describe('plannedIncomeService', () => {
   const householdId = 'test-household';
 
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  describe('createPlannedIncome', () => {
+    it('should create planned income and return id', async () => {
+      const mockData = {
+        category: 'salary' as const,
+        amount: 5000,
+        date: Timestamp.fromDate(new Date('2023-10-15')),
+        allocations: [],
+        createdBy: 'user-1',
+      };
+
+      const result = await plannedIncomeService.createPlannedIncome(householdId, mockData);
+
+      expect(result).toBe('new-income-id');
+      expect(runTransaction).toHaveBeenCalled();
+    });
+
+    it('should create project transactions for allocations', async () => {
+      const mockData = {
+        category: 'salary' as const,
+        amount: 5000,
+        date: Timestamp.fromDate(new Date('2023-10-15')),
+        allocations: [
+          { projectId: 'proj-1', percentage: 50 },
+          { projectId: 'proj-2', percentage: 50 },
+        ],
+        createdBy: 'user-1',
+      };
+
+      await plannedIncomeService.createPlannedIncome(householdId, mockData);
+
+      expect(projectTransactionService.createProjectTransaction).toHaveBeenCalledTimes(2);
+      expect(projectTransactionService.createProjectTransaction).toHaveBeenCalledWith(
+        householdId,
+        expect.objectContaining({
+          toProject: 'proj-1',
+          amount: 2500,
+          type: 'allocation',
+        }),
+        expect.anything(),
+      );
+    });
+
+    it('should not create transaction for 0% allocation', async () => {
+      const mockData = {
+        category: 'salary' as const,
+        amount: 5000,
+        date: Timestamp.fromDate(new Date('2023-10-15')),
+        allocations: [
+          { projectId: 'proj-1', percentage: 100 },
+          { projectId: 'proj-2', percentage: 0 },
+        ],
+        createdBy: 'user-1',
+      };
+
+      await plannedIncomeService.createPlannedIncome(householdId, mockData);
+
+      expect(projectTransactionService.createProjectTransaction).toHaveBeenCalledTimes(1);
+      expect(projectTransactionService.createProjectTransaction).toHaveBeenCalledWith(
+        householdId,
+        expect.objectContaining({
+          toProject: 'proj-1',
+        }),
+        expect.anything(),
+      );
+    });
+  });
+
+  describe('updatePlannedIncome', () => {
+    it('should update planned income without allocations directly', async () => {
+      const updateData = {
+        amount: 6000,
+      };
+
+      // Mock runTransaction to just execute the callback or return value, 
+      // but here updatePlannedIncome calls this.update which calls updateDoc directly if no allocations
+      // Wait, let's check the code.
+      // If no allocations, it calls this.update.
+      // We need to mock this.update or the base service update.
+      // Since we are testing the service, we should probably spy on the base update method or mock the firestore updateDoc.
+      // But BaseService.update calls updateDoc.
+      // Let's rely on the mocked firestore updateDoc if possible, or spy on the method.
+      // Actually, let's just check if it calls updateDoc via the base class.
+      // The base class uses updateDoc.
+
+      // We need to mock updateDoc from firestore
+      const { updateDoc } = await import('firebase/firestore');
+
+      await plannedIncomeService.updatePlannedIncome(householdId, 'income-1', updateData);
+
+      // Since we didn't provide allocations, it goes to the else block: this.update
+      // this.update calls updateDoc
+      expect(updateDoc).toHaveBeenCalled();
+    });
+
+    it('should handle updates with allocations via transaction', async () => {
+      const updateData = {
+        amount: 6000,
+        allocations: [{ projectId: 'proj-1', percentage: 100 }],
+      };
+
+      // Mock the transaction.get to return existing document
+      const mockTransaction = {
+        get: vi.fn().mockResolvedValue({
+          exists: () => true,
+          data: () => ({
+            id: 'income-1',
+            category: 'salary',
+            amount: 5000,
+            date: Timestamp.fromDate(new Date('2023-10-15')),
+            allocations: [],
+            createdBy: 'user-1',
+            createdAt: Timestamp.now(),
+          }),
+        }),
+        update: vi.fn(),
+        set: vi.fn(),
+        delete: vi.fn(),
+      };
+
+      vi.mocked(runTransaction).mockImplementation(async (db, callback) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        return callback(mockTransaction as any);
+      });
+
+      // Mock existing transactions
+      vi.mocked(projectTransactionService.getProjectTransactionsByIncomeSource).mockResolvedValue([
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        { id: 'trans-1' } as any,
+      ]);
+
+      await plannedIncomeService.updatePlannedIncome(householdId, 'income-1', updateData);
+
+      // Verify steps
+      // 1. Get existing doc
+      expect(mockTransaction.get).toHaveBeenCalled();
+
+      // 2. Delete old transactions
+      expect(projectTransactionService.deleteProjectTransactions).toHaveBeenCalledWith(
+        householdId,
+        ['trans-1'],
+        mockTransaction,
+      );
+
+      // 3. Create new transactions
+      expect(projectTransactionService.createProjectTransaction).toHaveBeenCalledWith(
+        householdId,
+        expect.objectContaining({
+          amount: 6000, // 100% of new amount
+          toProject: 'proj-1',
+        }),
+        mockTransaction,
+      );
+
+      // 4. Update doc
+      expect(mockTransaction.update).toHaveBeenCalled();
+    });
+
+    it('should throw error if planned income not found during update with allocations', async () => {
+      const updateData = {
+        allocations: [],
+      };
+
+      const mockTransaction = {
+        get: vi.fn().mockResolvedValue({
+          exists: () => false,
+        }),
+      };
+
+      vi.mocked(runTransaction).mockImplementation(async (db, callback) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        return callback(mockTransaction as any);
+      });
+
+      await expect(
+        plannedIncomeService.updatePlannedIncome(householdId, 'income-1', updateData),
+      ).rejects.toThrow('Planned income not found');
+    });
+  });
+
+  describe('deletePlannedIncome', () => {
+    it('should delete planned income and related transactions', async () => {
+      const mockTransaction = {
+        delete: vi.fn(),
+      };
+
+      vi.mocked(runTransaction).mockImplementation(async (db, callback) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        return callback(mockTransaction as any);
+      });
+
+      vi.mocked(projectTransactionService.getProjectTransactionsByIncomeSource).mockResolvedValue([
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        { id: 'trans-1' } as any,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        { id: 'trans-2' } as any,
+      ]);
+
+      await plannedIncomeService.deletePlannedIncome(householdId, 'income-1');
+
+      expect(projectTransactionService.deleteProjectTransactions).toHaveBeenCalledWith(
+        householdId,
+        ['trans-1', 'trans-2'],
+        mockTransaction,
+      );
+
+      expect(mockTransaction.delete).toHaveBeenCalled();
+    });
   });
 
   describe('getPlannedIncomes', () => {

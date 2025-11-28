@@ -44,13 +44,111 @@ vi.mock('../firebase', () => ({
   db: {},
 }));
 
-import { getDocs } from 'firebase/firestore';
+import { getDocs, setDoc, deleteDoc } from 'firebase/firestore';
 
 describe('projectTransactionService', () => {
   const householdId = 'test-household';
 
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  describe('createProjectTransaction', () => {
+    it('should create a new transaction', async () => {
+      const mockData = {
+        type: 'transfer' as const,
+        fromProject: 'proj-1',
+        toProject: 'proj-2',
+        amount: 500,
+        date: Timestamp.fromDate(new Date('2023-10-15')),
+        description: 'Transfer',
+        createdBy: 'user-1',
+      };
+
+      const result = await projectTransactionService.createProjectTransaction(householdId, mockData);
+
+      expect(result).toBe('new-transaction-id');
+      expect(setDoc).toHaveBeenCalled();
+    });
+
+    it('should convert Date object to Timestamp', async () => {
+      const mockData = {
+        type: 'transfer' as const,
+        fromProject: 'proj-1',
+        toProject: 'proj-2',
+        amount: 500,
+        date: new Date('2023-10-15'), // Date object
+        description: 'Transfer',
+        createdBy: 'user-1',
+      };
+
+      await projectTransactionService.createProjectTransaction(householdId, mockData);
+
+      expect(setDoc).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          date: expect.any(Timestamp),
+        }),
+      );
+    });
+
+    it('should use existing transaction if provided', async () => {
+      const mockData = {
+        type: 'transfer' as const,
+        fromProject: 'proj-1',
+        toProject: 'proj-2',
+        amount: 500,
+        date: Timestamp.fromDate(new Date('2023-10-15')),
+        createdBy: 'user-1',
+      };
+
+      const mockTransaction = {
+        set: vi.fn(),
+      };
+
+      await projectTransactionService.createProjectTransaction(
+        householdId,
+        mockData,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        mockTransaction as any,
+      );
+
+      expect(mockTransaction.set).toHaveBeenCalled();
+      expect(setDoc).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('deleteProjectTransactions', () => {
+    it('should delete multiple transactions', async () => {
+      const ids = ['pt-1', 'pt-2'];
+
+      await projectTransactionService.deleteProjectTransactions(householdId, ids);
+
+      expect(deleteDoc).toHaveBeenCalledTimes(2);
+    });
+
+    it('should do nothing if ids array is empty', async () => {
+      await projectTransactionService.deleteProjectTransactions(householdId, []);
+
+      expect(deleteDoc).not.toHaveBeenCalled();
+    });
+
+    it('should use existing transaction if provided', async () => {
+      const ids = ['pt-1', 'pt-2'];
+      const mockTransaction = {
+        delete: vi.fn(),
+      };
+
+      await projectTransactionService.deleteProjectTransactions(
+        householdId,
+        ids,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        mockTransaction as any,
+      );
+
+      expect(mockTransaction.delete).toHaveBeenCalledTimes(2);
+      expect(deleteDoc).not.toHaveBeenCalled();
+    });
   });
 
   describe('getProjectTransactions', () => {
