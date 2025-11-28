@@ -88,7 +88,11 @@ const Login: React.FC = () => {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
-            {error && <div className="bg-destructive/10 text-destructive p-3 rounded-lg text-sm text-center">{error}</div>}
+            {error && (
+              <div className="bg-destructive/10 text-destructive p-3 rounded-lg text-sm text-center">
+                {error}
+              </div>
+            )}
 
             <div className="space-y-2">
               <Label htmlFor="email">Email address</Label>
@@ -140,11 +144,7 @@ const Login: React.FC = () => {
           </div>
 
           <div className="text-center mt-6">
-            <Button
-              variant="link"
-              onClick={() => setIsLogin(!isLogin)}
-              className="text-sm"
-            >
+            <Button variant="link" onClick={() => setIsLogin(!isLogin)} className="text-sm">
               {isLogin ? 'Need an account? Sign up' : 'Already have an account? Sign in'}
             </Button>
           </div>
