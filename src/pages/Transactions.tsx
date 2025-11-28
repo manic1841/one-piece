@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Plus } from 'lucide-react';
 import { useAuth } from '../contexts/useAuth';
-import TransactionForm from '../components/TransactionForm';
+import TransactionForm from '../components/transactions/TransactionForm';
 import { type Transaction, type PlannedIncome } from '../schemas';
 import { useTransactions } from '../hooks/useTransactions';
 import { TransactionStats } from '../components/transactions/TransactionStats';
@@ -103,24 +103,27 @@ const Transactions: React.FC = () => {
           <div className="flex gap-2">
             <Button
               variant={filterType === 'all' ? 'default' : 'ghost'}
-              className={`flex-1 ${filterType === 'all' ? 'bg-blue-100 text-blue-700 hover:bg-blue-200' : ''
-                }`}
+              className={`flex-1 ${
+                filterType === 'all' ? 'bg-blue-100 text-blue-700 hover:bg-blue-200' : ''
+              }`}
               onClick={() => setFilterType('all')}
             >
               All
             </Button>
             <Button
               variant={filterType === 'income' ? 'default' : 'ghost'}
-              className={`flex-1 ${filterType === 'income' ? 'bg-green-100 text-green-700 hover:bg-green-200' : ''
-                }`}
+              className={`flex-1 ${
+                filterType === 'income' ? 'bg-green-100 text-green-700 hover:bg-green-200' : ''
+              }`}
               onClick={() => setFilterType('income')}
             >
               Income
             </Button>
             <Button
               variant={filterType === 'expense' ? 'default' : 'ghost'}
-              className={`flex-1 ${filterType === 'expense' ? 'bg-red-100 text-red-700 hover:bg-red-200' : ''
-                }`}
+              className={`flex-1 ${
+                filterType === 'expense' ? 'bg-red-100 text-red-700 hover:bg-red-200' : ''
+              }`}
               onClick={() => setFilterType('expense')}
             >
               Expense

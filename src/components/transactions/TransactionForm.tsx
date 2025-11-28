@@ -1,9 +1,9 @@
 import React from 'react';
-import { type Transaction, type PlannedIncome } from '../schemas';
-import { TRANSACTION_CATEGORIES as categories } from '../constants/categories';
-import { useTransactionForm } from '../hooks/useTransactionForm';
-import { TypeToggle } from './transaction-form/TypeToggle';
-import { AllocationSection } from './transaction-form/AllocationSection';
+import { type Transaction, type PlannedIncome } from '../../schemas';
+import { TRANSACTION_CATEGORIES as categories } from '../../constants/categories';
+import { useTransactionForm } from '../../hooks/useTransactionForm';
+import { TypeToggle } from '../transaction-form/TypeToggle';
+import { AllocationSection } from '../transaction-form/AllocationSection';
 import {
   Dialog,
   DialogContent,
@@ -82,7 +82,9 @@ const TransactionForm: React.FC<TransactionFormProps> = (props) => {
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4 py-4">
-          {error && <div className="bg-destructive/10 text-destructive p-3 rounded-lg text-sm">{error}</div>}
+          {error && (
+            <div className="bg-destructive/10 text-destructive p-3 rounded-lg text-sm">{error}</div>
+          )}
 
           {/* Type Toggle */}
           {!isEditingPlannedIncome && (

@@ -4,6 +4,7 @@ import { LayoutDashboard, Receipt, Folder, Wallet, Calculator, Settings, LogOut 
 import clsx from 'clsx';
 import { useAuth } from '../contexts/useAuth';
 import { householdService } from '../services/householdService';
+import { Button } from '@/components/ui/button';
 
 const Layout: React.FC = () => {
   const { userProfile, logout } = useAuth();
@@ -68,12 +69,14 @@ const Layout: React.FC = () => {
             <p className="text-xs text-gray-600 font-medium">{familyName}</p>
           )}
         </div>
-        <button
+        <Button
+          variant="ghost"
+          size="icon"
           onClick={handleLogout}
-          className="p-2 rounded-lg text-gray-600 hover:bg-red-50 hover:text-red-600 transition-colors"
+          className="text-gray-600 hover:bg-red-50 hover:text-red-600"
         >
           <LogOut size={20} />
-        </button>
+        </Button>
       </div>
 
       {/* Mobile Bottom Navigation */}
@@ -125,13 +128,14 @@ const Layout: React.FC = () => {
 
         {/* Logout Button */}
         <div className="p-4 border-t border-gray-200">
-          <button
+          <Button
+            variant="ghost"
             onClick={handleLogout}
-            className="flex items-center gap-3 px-4 py-3 rounded-lg transition-colors text-gray-600 hover:bg-red-50 hover:text-red-600 w-full"
+            className="w-full justify-start gap-3 text-gray-600 hover:bg-red-50 hover:text-red-600"
           >
             <LogOut size={20} />
             <span className="font-medium">Logout</span>
-          </button>
+          </Button>
         </div>
       </aside>
     </div>
