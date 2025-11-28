@@ -1,6 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { X } from 'lucide-react';
 import { type Project } from '../../schemas';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 interface ProjectFormModalProps {
   isOpen: boolean;
@@ -41,91 +50,72 @@ const ProjectFormModal: React.FC<ProjectFormModalProps> = ({
     }
   };
 
-  if (!isOpen) return null;
-
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl shadow-xl max-w-md w-full">
-        <div className="p-6 border-b border-gray-200 flex justify-between items-center">
-          <h3 className="text-lg font-semibold text-gray-900">
-            {title || (initialData?.id ? 'Edit Project' : 'New Project')}
-          </h3>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-600"
-            disabled={loading}
-          >
-            <X size={24} />
-          </button>
-        </div>
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
-            <input
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>{title || (initialData?.id ? 'Edit Project' : 'New Project')}</DialogTitle>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="space-y-4 py-4">
+          <div className="space-y-2">
+            <Label htmlFor="project-name">Name</Label>
+            <Input
+              id="project-name"
               type="text"
               required
               value={formData.name || ''}
               onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
               placeholder="e.g., Groceries"
               disabled={loading}
             />
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Icon (Emoji)</label>
-            <input
+          <div className="space-y-2">
+            <Label htmlFor="project-icon">Icon (Emoji)</Label>
+            <Input
+              id="project-icon"
               type="text"
               value={formData.icon || ''}
               onChange={(e) => setFormData((prev) => ({ ...prev, icon: e.target.value }))}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
               placeholder="e.g., 🛒"
               disabled={loading}
             />
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Color Class</label>
-            <input
+          <div className="space-y-2">
+            <Label htmlFor="project-color">Color Class</Label>
+            <Input
+              id="project-color"
               type="text"
               value={formData.color || ''}
               onChange={(e) => setFormData((prev) => ({ ...prev, color: e.target.value }))}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
               placeholder="e.g., bg-blue-100 text-blue-700"
               disabled={loading}
             />
-            <p className="text-xs text-gray-500 mt-1">
+            <p className="text-xs text-muted-foreground">
               Tailwind CSS classes for background and text color
             </p>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+          <div className="space-y-2">
+            <Label htmlFor="project-description">Description</Label>
             <textarea
+              id="project-description"
               value={formData.description || ''}
               onChange={(e) => setFormData((prev) => ({ ...prev, description: e.target.value }))}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+              className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
               rows={3}
               disabled={loading}
             />
           </div>
-          <div className="flex gap-3 pt-4">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 py-2 px-4 border border-gray-300 rounded-lg font-medium text-gray-700 hover:bg-gray-50"
-              disabled={loading}
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="flex-1 py-2 px-4 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg disabled:opacity-50"
-              disabled={loading}
-            >
-              {loading ? 'Saving...' : 'Save'}
-            </button>
-          </div>
         </form>
-      </div>
-    </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose} disabled={loading}>
+            Cancel
+          </Button>
+          <Button type="submit" onClick={handleSubmit} disabled={loading}>
+            {loading ? 'Saving...' : 'Save'}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 };
 
