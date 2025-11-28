@@ -1,248 +1,164 @@
-import React, { useState, useEffect } from 'react';
-import { Plus, Pencil, Trash2, TrendingUp, TrendingDown } from 'lucide-react';
+import React, { useState } from 'react';
+import { Plus } from 'lucide-react';
 import { useAuth } from '../contexts/useAuth';
-import { transactionService } from '../services/transactionService';
-import TransactionForm from '../components/TransactionForm';
-import { type Transaction } from '../types';
-import { Timestamp } from 'firebase/firestore';
-import { useCallback } from 'react';
-import { toDate } from '../utils/dateUtils';
+import TransactionForm from '../components/transactions/TransactionForm';
+import { type Transaction, type PlannedIncome } from '../schemas';
+import { useTransactions } from '../hooks/useTransactions';
+import { TransactionStats } from '../components/transactions/TransactionStats';
+import { TransactionList } from '../components/transactions/TransactionList';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
 
 const Transactions: React.FC = () => {
-    const { userProfile, currentUser } = useAuth();
-    const [transactions, setTransactions] = useState<Transaction[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [isFormOpen, setIsFormOpen] = useState(false);
-    const [editingTransaction, setEditingTransaction] = useState<Transaction | undefined>();
-    const [stats, setStats] = useState({ totalIncome: 0, totalExpense: 0, balance: 0 });
-    const [filterType, setFilterType] = useState<'all' | 'income' | 'expense'>('all');
+  const { userProfile, currentUser } = useAuth();
+  const {
+    combinedList,
+    loading,
+    stats,
+    loadTransactions,
+    createTransaction,
+    createPlannedIncome,
+    updateTransaction,
+    updatePlannedIncome,
+    deleteTransaction,
+    deletePlannedIncome,
+  } = useTransactions(userProfile?.householdId);
 
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [editingTransaction, setEditingTransaction] = useState<Transaction | undefined>();
+  const [editingPlannedIncome, setEditingPlannedIncome] = useState<PlannedIncome | undefined>();
+  const [filterType, setFilterType] = useState<'all' | 'income' | 'expense'>('all');
 
-    const loadTransactions = useCallback(async () => {
-        if (!userProfile?.householdId) return;
+  const handleCreateTransaction = async (transaction: Omit<Transaction, 'id' | 'createdAt'>) => {
+    await createTransaction(transaction);
+  };
 
-        setLoading(true);
-        try {
-            const data = await transactionService.getTransactions(userProfile.householdId);
-            setTransactions(data);
+  const handleCreatePlannedIncome = async (
+    plannedIncome: Omit<PlannedIncome, 'id' | 'createdAt'>,
+  ) => {
+    await createPlannedIncome(plannedIncome);
+  };
 
-            const statsData = await transactionService.getTransactionStats(userProfile.householdId);
-            setStats(statsData);
-        } catch (error) {
-            console.error('Error loading transactions:', error);
-        } finally {
-            setLoading(false);
-        }
-    }, [userProfile?.householdId]);
+  const handleUpdateTransaction = async (transaction: Omit<Transaction, 'id' | 'createdAt'>) => {
+    if (!editingTransaction) return;
+    await updateTransaction(editingTransaction.id, transaction);
+    setEditingTransaction(undefined);
+  };
 
-    useEffect(() => {
-        loadTransactions();
-    }, [loadTransactions]);
+  const handleUpdatePlannedIncome = async (
+    plannedIncome: Omit<PlannedIncome, 'id' | 'createdAt'>,
+  ) => {
+    if (!editingPlannedIncome) return;
+    await updatePlannedIncome(editingPlannedIncome.id, plannedIncome);
+    setEditingPlannedIncome(undefined);
+  };
 
-    const handleCreateTransaction = async (transaction: Omit<Transaction, 'id' | 'createdAt'>) => {
-        if (!userProfile?.householdId) return;
+  const handleEditClick = (transaction: Transaction) => {
+    setEditingTransaction(transaction);
+    setIsFormOpen(true);
+  };
 
-        await transactionService.createTransaction(transaction);
-        await loadTransactions();
-    };
+  const handleEditPlannedIncome = (income: PlannedIncome) => {
+    setEditingPlannedIncome(income);
+    setIsFormOpen(true);
+  };
 
-    const handleUpdateTransaction = async (transaction: Omit<Transaction, 'id' | 'createdAt'>) => {
-        if (!editingTransaction) return;
+  const handleCloseForm = () => {
+    setIsFormOpen(false);
+    setEditingTransaction(undefined);
+    setEditingPlannedIncome(undefined);
+  };
 
-        await transactionService.updateTransaction(editingTransaction.id, transaction);
-        setEditingTransaction(undefined);
-        await loadTransactions();
-    };
+  const filteredList = combinedList.filter((item) => {
+    if (filterType === 'all') return true;
+    if (filterType === 'income') {
+      return (
+        item.type === 'plannedIncome' ||
+        (item.type === 'transaction' && item.data.type === 'income')
+      );
+    }
+    if (filterType === 'expense') {
+      return item.type === 'transaction' && item.data.type === 'expense';
+    }
+    return true;
+  });
 
-    const handleDeleteTransaction = async (id: string) => {
-        if (!window.confirm('Are you sure you want to delete this transaction?')) return;
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex justify-between items-center">
+        <h1 className="text-2xl font-bold text-foreground">Transactions</h1>
+        <Button onClick={() => setIsFormOpen(true)}>
+          <Plus size={20} />
+          Add Transaction
+        </Button>
+      </div>
 
-        await transactionService.deleteTransaction(id);
-        await loadTransactions();
-    };
+      {/* Stats Cards */}
+      <TransactionStats stats={stats} />
 
-    const handleEditClick = (transaction: Transaction) => {
-        setEditingTransaction(transaction);
-        setIsFormOpen(true);
-    };
+      {/* Filter Tabs */}
+      <Card>
+        <CardContent className="p-2">
+          <div className="flex gap-2">
+            <Button
+              variant={filterType === 'all' ? 'default' : 'ghost'}
+              className={`flex-1 ${
+                filterType === 'all' ? 'bg-blue-100 text-blue-700 hover:bg-blue-200' : ''
+              }`}
+              onClick={() => setFilterType('all')}
+            >
+              All
+            </Button>
+            <Button
+              variant={filterType === 'income' ? 'default' : 'ghost'}
+              className={`flex-1 ${
+                filterType === 'income' ? 'bg-green-100 text-green-700 hover:bg-green-200' : ''
+              }`}
+              onClick={() => setFilterType('income')}
+            >
+              Income
+            </Button>
+            <Button
+              variant={filterType === 'expense' ? 'default' : 'ghost'}
+              className={`flex-1 ${
+                filterType === 'expense' ? 'bg-red-100 text-red-700 hover:bg-red-200' : ''
+              }`}
+              onClick={() => setFilterType('expense')}
+            >
+              Expense
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
 
-    const handleCloseForm = () => {
-        setIsFormOpen(false);
-        setEditingTransaction(undefined);
-    };
+      {/* Transactions List */}
+      <TransactionList
+        items={filteredList}
+        loading={loading}
+        onEditTransaction={handleEditClick}
+        onEditPlannedIncome={handleEditPlannedIncome}
+        onDeleteTransaction={deleteTransaction}
+        onDeletePlannedIncome={deletePlannedIncome}
+      />
 
-    const filteredTransactions = transactions.filter(t => {
-        if (filterType === 'all') return true;
-        return t.type === filterType;
-    });
-
-    const formatDate = (timestamp: Timestamp | Date) => {
-        if (!timestamp) return '';
-        const date = toDate(timestamp);
-        return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-    };
-
-    const formatCurrency = (amount: number) => {
-        return new Intl.NumberFormat('en-US', {
-            style: 'currency',
-            currency: 'USD'
-        }).format(amount);
-    };
-
-    return (
-        <div className="space-y-6">
-            {/* Header */}
-            <div className="flex justify-between items-center">
-                <h1 className="text-2xl font-bold text-gray-900">Transactions</h1>
-                <button
-                    onClick={() => setIsFormOpen(true)}
-                    className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
-                >
-                    <Plus size={20} />
-                    Add Transaction
-                </button>
-            </div>
-
-            {/* Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                    <div className="flex items-center gap-3">
-                        <div className="p-3 bg-green-100 rounded-lg">
-                            <TrendingUp className="text-green-600" size={24} />
-                        </div>
-                        <div>
-                            <p className="text-sm text-gray-600">Total Income</p>
-                            <p className="text-2xl font-bold text-gray-900">{formatCurrency(stats.totalIncome)}</p>
-                        </div>
-                    </div>
-                </div>
-
-                <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                    <div className="flex items-center gap-3">
-                        <div className="p-3 bg-red-100 rounded-lg">
-                            <TrendingDown className="text-red-600" size={24} />
-                        </div>
-                        <div>
-                            <p className="text-sm text-gray-600">Total Expense</p>
-                            <p className="text-2xl font-bold text-gray-900">{formatCurrency(stats.totalExpense)}</p>
-                        </div>
-                    </div>
-                </div>
-
-                <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                    <div className="flex items-center gap-3">
-                        <div className={`p-3 rounded-lg ${stats.balance >= 0 ? 'bg-blue-100' : 'bg-orange-100'}`}>
-                            <TrendingUp className={stats.balance >= 0 ? 'text-blue-600' : 'text-orange-600'} size={24} />
-                        </div>
-                        <div>
-                            <p className="text-sm text-gray-600">Balance</p>
-                            <p className={`text-2xl font-bold ${stats.balance >= 0 ? 'text-gray-900' : 'text-orange-600'}`}>
-                                {formatCurrency(stats.balance)}
-                            </p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            {/* Filter Tabs */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-2 flex gap-2">
-                <button
-                    onClick={() => setFilterType('all')}
-                    className={`flex-1 py-2 px-4 rounded-lg font-medium transition-colors ${filterType === 'all'
-                        ? 'bg-blue-100 text-blue-700'
-                        : 'text-gray-600 hover:bg-gray-100'
-                        }`}
-                >
-                    All
-                </button>
-                <button
-                    onClick={() => setFilterType('income')}
-                    className={`flex-1 py-2 px-4 rounded-lg font-medium transition-colors ${filterType === 'income'
-                        ? 'bg-green-100 text-green-700'
-                        : 'text-gray-600 hover:bg-gray-100'
-                        }`}
-                >
-                    Income
-                </button>
-                <button
-                    onClick={() => setFilterType('expense')}
-                    className={`flex-1 py-2 px-4 rounded-lg font-medium transition-colors ${filterType === 'expense'
-                        ? 'bg-red-100 text-red-700'
-                        : 'text-gray-600 hover:bg-gray-100'
-                        }`}
-                >
-                    Expense
-                </button>
-            </div>
-
-            {/* Transactions List */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-                {loading ? (
-                    <div className="p-8 text-center text-gray-500">Loading transactions...</div>
-                ) : filteredTransactions.length === 0 ? (
-                    <div className="p-8 text-center text-gray-500">
-                        No transactions found. Click "Add Transaction" to get started.
-                    </div>
-                ) : (
-                    <div className="divide-y divide-gray-100">
-                        {filteredTransactions.map((transaction) => (
-                            <div key={transaction.id} className="p-4 hover:bg-gray-50 transition-colors">
-                                <div className="flex items-center justify-between">
-                                    <div className="flex-1">
-                                        <div className="flex items-center gap-3">
-                                            <div className={`w-2 h-2 rounded-full ${transaction.type === 'income' ? 'bg-green-500' : 'bg-red-500'
-                                                }`} />
-                                            <div>
-                                                <p className="font-medium text-gray-900 capitalize">
-                                                    {transaction.category.replace('_', ' ')}
-                                                </p>
-                                                {transaction.description && (
-                                                    <p className="text-sm text-gray-500">{transaction.description}</p>
-                                                )}
-                                                <p className="text-xs text-gray-400 mt-1">{formatDate(transaction.date)}</p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div className="flex items-center gap-4">
-                                        <p className={`text-lg font-bold ${transaction.type === 'income' ? 'text-green-600' : 'text-red-600'
-                                            }`}>
-                                            {transaction.type === 'income' ? '+' : '-'}{formatCurrency(transaction.amount)}
-                                        </p>
-                                        <div className="flex gap-2">
-                                            <button
-                                                onClick={() => handleEditClick(transaction)}
-                                                className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                                            >
-                                                <Pencil size={18} />
-                                            </button>
-                                            <button
-                                                onClick={() => handleDeleteTransaction(transaction.id)}
-                                                className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                                            >
-                                                <Trash2 size={18} />
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                )}
-            </div>
-
-            {/* Transaction Form Modal */}
-            {userProfile?.householdId && currentUser?.email && (
-                <TransactionForm
-                    isOpen={isFormOpen}
-                    onClose={handleCloseForm}
-                    onSubmit={editingTransaction ? handleUpdateTransaction : handleCreateTransaction}
-                    initialData={editingTransaction}
-                    householdId={userProfile.householdId}
-                    userEmail={currentUser.email}
-                />
-            )}
-        </div>
-    );
+      {/* Transaction Form Modal */}
+      {userProfile?.householdId && currentUser?.email && (
+        <TransactionForm
+          isOpen={isFormOpen}
+          onClose={handleCloseForm}
+          onSubmit={editingTransaction ? handleUpdateTransaction : handleCreateTransaction}
+          onSubmitPlannedIncome={handleCreatePlannedIncome}
+          onUpdatePlannedIncome={editingPlannedIncome ? handleUpdatePlannedIncome : undefined}
+          onSuccess={loadTransactions}
+          initialData={editingTransaction}
+          initialPlannedIncome={editingPlannedIncome}
+          householdId={userProfile.householdId}
+          userEmail={currentUser.email}
+        />
+      )}
+    </div>
+  );
 };
 
 export default Transactions;

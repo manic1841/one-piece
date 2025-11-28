@@ -7,8 +7,8 @@ import AccessDenied from './pages/AccessDenied';
 import ProtectedRoute from './components/ProtectedRoute';
 import Dashboard from './pages/Dashboard';
 import Transactions from './pages/Transactions';
+import Projects from './pages/Projects';
 import Accounts from './pages/Accounts';
-import Assets from './pages/Assets';
 import Reconciliation from './pages/Reconciliation';
 import Settings from './pages/Settings';
 
@@ -19,20 +19,26 @@ function App() {
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/access-denied" element={<AccessDenied />} />
-          <Route path="/onboarding" element={
-            <ProtectedRoute>
-              <Onboarding />
-            </ProtectedRoute>
-          } />
-          <Route path="/" element={
-            <ProtectedRoute requireHousehold>
-              <Layout />
-            </ProtectedRoute>
-          }>
+          <Route
+            path="/onboarding"
+            element={
+              <ProtectedRoute>
+                <Onboarding />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/"
+            element={
+              <ProtectedRoute requireHousehold>
+                <Layout />
+              </ProtectedRoute>
+            }
+          >
             <Route index element={<Dashboard />} />
             <Route path="transactions" element={<Transactions />} />
+            <Route path="projects" element={<Projects />} />
             <Route path="accounts" element={<Accounts />} />
-            <Route path="assets" element={<Assets />} />
             <Route path="reconciliation" element={<Reconciliation />} />
             <Route path="settings" element={<Settings />} />
           </Route>

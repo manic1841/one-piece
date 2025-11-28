@@ -1,137 +1,108 @@
-import {
-    collection,
-    doc,
-    setDoc,
-    getDoc,
-    getDocs,
-    updateDoc,
-    deleteDoc,
-    query,
-    where,
-    orderBy,
-    serverTimestamp,
-    Timestamp
-} from 'firebase/firestore';
-import { db } from '../firebase';
-import { type Transaction } from '../types';
+import { orderBy, Timestamp } from 'firebase/firestore';
+import { TransactionSchema } from '../schemas';
+import type { Transaction } from '../schemas';
 import { toDateString } from '../utils/dateUtils';
+import { BaseService } from './baseService';
 
-export const transactionService = {
-    // Create a new transaction
-    async createTransaction(transaction: Omit<Transaction, 'id' | 'createdAt'>): Promise<string> {
-        const transactionRef = doc(collection(db, 'transactions'));
-        const transactionId = transactionRef.id;
+class TransactionService extends BaseService<Transaction> {
+  constructor() {
+    super('transactions', TransactionSchema);
+  }
 
-        // Convert date to Firestore Timestamp if it's a Date object
-        const date = transaction.date instanceof Date
-            ? Timestamp.fromDate(transaction.date)
-            : transaction.date;
+  // Create a new transaction
+  // Overriding to return string directly and match existing signature
+  async createTransaction(
+    householdId: string,
+    transaction: Omit<Transaction, 'id' | 'createdAt'>,
+  ): Promise<string> {
+    return this.create(householdId, transaction);
+  }
 
-        const newTransaction = {
-            ...transaction,
-            date,
-            id: transactionId,
-            createdAt: serverTimestamp()
-        };
-
-        await setDoc(transactionRef, newTransaction);
-        return transactionId;
+  // Get all transactions for a household with filters
+  async getTransactions(
+    householdId: string,
+    filters?: {
+      startDate?: string;
+      endDate?: string;
+      type?: 'income' | 'expense';
+      category?: string;
     },
+  ): Promise<Transaction[]> {
+    // Get all transactions sorted by date
+    let transactions = await this.getAll(householdId, [orderBy('date', 'desc')]);
 
-    // Get all transactions for a household
-    async getTransactions(
-        householdId: string,
-        filters?: {
-            startDate?: string;
-            endDate?: string;
-            type?: 'income' | 'expense';
-            category?: string;
-        }
-    ): Promise<Transaction[]> {
-        const q = query(
-            collection(db, 'transactions'),
-            where('householdId', '==', householdId),
-            orderBy('date', 'desc')
-        );
-
-        const querySnapshot = await getDocs(q);
-        let transactions = querySnapshot.docs.map(doc => doc.data() as Transaction);
-
-        // Apply client-side filters
-        if (filters) {
-            if (filters.startDate) {
-                transactions = transactions.filter(t => {
-                    const dateStr = toDateString(t.date);
-                    return dateStr >= filters.startDate!;
-                });
-            }
-            if (filters.endDate) {
-                transactions = transactions.filter(t => {
-                    const dateStr = toDateString(t.date);
-                    return dateStr <= filters.endDate!;
-                });
-            }
-            if (filters.type) {
-                transactions = transactions.filter(t => t.type === filters.type);
-            }
-            if (filters.category) {
-                transactions = transactions.filter(t => t.category === filters.category);
-            }
-        }
-
-        return transactions;
-    },
-
-    // Get a single transaction by ID
-    async getTransaction(id: string): Promise<Transaction | null> {
-        const docRef = doc(db, 'transactions', id);
-        const docSnap = await getDoc(docRef);
-
-        if (docSnap.exists()) {
-            return docSnap.data() as Transaction;
-        }
-        return null;
-    },
-
-    // Update a transaction
-    async updateTransaction(id: string, updates: Partial<Transaction>): Promise<void> {
-        const transactionRef = doc(db, 'transactions', id);
-
-        // Convert date to Timestamp if it's a Date object  
-        const processedUpdates = { ...updates };
-        if (processedUpdates.date && processedUpdates.date instanceof Date) {
-            processedUpdates.date = Timestamp.fromDate(processedUpdates.date);
-        }
-
-        await updateDoc(transactionRef, processedUpdates);
-    },
-
-    // Delete a transaction
-    async deleteTransaction(id: string): Promise<void> {
-        const transactionRef = doc(db, 'transactions', id);
-        await deleteDoc(transactionRef);
-    },
-
-    // Get transaction statistics (summary)
-    async getTransactionStats(householdId: string, startDate?: string, endDate?: string): Promise<{
-        totalIncome: number;
-        totalExpense: number;
-        balance: number;
-    }> {
-        const transactions = await this.getTransactions(householdId, { startDate, endDate });
-
-        const totalIncome = transactions
-            .filter(t => t.type === 'income')
-            .reduce((sum, t) => sum + t.amount, 0);
-
-        const totalExpense = transactions
-            .filter(t => t.type === 'expense')
-            .reduce((sum, t) => sum + t.amount, 0);
-
-        return {
-            totalIncome,
-            totalExpense,
-            balance: totalIncome - totalExpense
-        };
+    // Apply client-side filters
+    if (filters) {
+      if (filters.startDate) {
+        transactions = transactions.filter((t) => {
+          const date = t.date instanceof Timestamp ? t.date.toDate() : t.date;
+          const dateStr = toDateString(date);
+          return dateStr >= filters.startDate!;
+        });
+      }
+      if (filters.endDate) {
+        transactions = transactions.filter((t) => {
+          const date = t.date instanceof Timestamp ? t.date.toDate() : t.date;
+          const dateStr = toDateString(date);
+          return dateStr <= filters.endDate!;
+        });
+      }
+      if (filters.type) {
+        transactions = transactions.filter((t) => t.type === filters.type);
+      }
+      if (filters.category) {
+        transactions = transactions.filter((t) => t.category === filters.category);
+      }
     }
-};
+
+    return transactions;
+  }
+
+  // Get a single transaction by ID
+  async getTransaction(householdId: string, id: string): Promise<Transaction | null> {
+    return this.getById(householdId, id);
+  }
+
+  // Update a transaction
+  async updateTransaction(
+    householdId: string,
+    id: string,
+    updates: Partial<Transaction>,
+  ): Promise<void> {
+    return this.update(householdId, id, updates);
+  }
+
+  // Delete a transaction
+  async deleteTransaction(householdId: string, id: string): Promise<void> {
+    return this.delete(householdId, id);
+  }
+
+  // Get transaction statistics (summary)
+  async getTransactionStats(
+    householdId: string,
+    startDate?: string,
+    endDate?: string,
+  ): Promise<{
+    totalIncome: number;
+    totalExpense: number;
+    balance: number;
+  }> {
+    const transactions = await this.getTransactions(householdId, { startDate, endDate });
+
+    const totalIncome = transactions
+      .filter((t) => t.type === 'income')
+      .reduce((sum, t) => sum + t.amount, 0);
+
+    const totalExpense = transactions
+      .filter((t) => t.type === 'expense')
+      .reduce((sum, t) => sum + t.amount, 0);
+
+    return {
+      totalIncome,
+      totalExpense,
+      balance: totalIncome - totalExpense,
+    };
+  }
+}
+
+export const transactionService = new TransactionService();
