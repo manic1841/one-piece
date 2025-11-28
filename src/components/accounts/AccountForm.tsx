@@ -1,6 +1,22 @@
 import React, { useState, useEffect } from 'react';
-import { X } from 'lucide-react';
 import { type Account, type AccountType } from '../../schemas';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 interface AccountFormProps {
   isOpen: boolean;
@@ -64,30 +80,25 @@ const AccountForm: React.FC<AccountFormProps> = ({ isOpen, onClose, onSubmit, in
     }
   };
 
-  if (!isOpen) return null;
-
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl shadow-xl max-w-md w-full">
-        <div className="border-b border-gray-200 px-6 py-4 flex justify-between items-center">
-          <h2 className="text-xl font-bold text-gray-900">
-            {initialData ? 'Edit Account' : 'New Account'}
-          </h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors">
-            <X size={24} />
-          </button>
-        </div>
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{initialData ? 'Edit Account' : 'New Account'}</DialogTitle>
+        </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          {error && <div className="bg-red-50 text-red-700 p-3 rounded-lg text-sm">{error}</div>}
+        <form onSubmit={handleSubmit} className="space-y-4 py-4">
+          {error && (
+            <div className="bg-destructive/10 text-destructive p-3 rounded-lg text-sm">{error}</div>
+          )}
 
           {/* Account Name */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Account Name</label>
-            <input
+          <div className="space-y-2">
+            <Label htmlFor="account-name">Account Name</Label>
+            <Input
+              id="account-name"
               type="text"
               required
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
               placeholder="e.g., Main Bank Account"
               value={name}
               onChange={(e) => setName(e.target.value)}
@@ -95,63 +106,52 @@ const AccountForm: React.FC<AccountFormProps> = ({ isOpen, onClose, onSubmit, in
           </div>
 
           {/* Account Type */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Account Type</label>
+          <div className="space-y-2">
+            <Label>Account Type</Label>
             <div className="grid grid-cols-2 gap-2">
               {accountTypes.map((accountType) => (
-                <button
+                <Button
                   key={accountType.value}
                   type="button"
+                  variant={type === accountType.value ? 'default' : 'outline'}
                   onClick={() => setType(accountType.value)}
-                  className={`flex items-center gap-2 px-3 py-2 rounded-lg border transition-colors ${
-                    type === accountType.value
-                      ? 'border-blue-500 bg-blue-50 text-blue-700'
-                      : 'border-gray-300 hover:border-gray-400'
-                  }`}
+                  className="justify-start gap-2"
                 >
                   <span className="text-xl">{accountType.icon}</span>
                   <span className="text-sm font-medium">{accountType.label}</span>
-                </button>
+                </Button>
               ))}
             </div>
           </div>
 
           {/* Currency */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Currency</label>
-            <select
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-              value={currency}
-              onChange={(e) => setCurrency(e.target.value)}
-            >
-              <option value="USD">USD ($)</option>
-              <option value="TWD">TWD (NT$)</option>
-              <option value="EUR">EUR (€)</option>
-              <option value="GBP">GBP (£)</option>
-              <option value="JPY">JPY (¥)</option>
-            </select>
+          <div className="space-y-2">
+            <Label htmlFor="currency">Currency</Label>
+            <Select value={currency} onValueChange={setCurrency}>
+              <SelectTrigger id="currency">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="USD">USD ($)</SelectItem>
+                <SelectItem value="TWD">TWD (NT$)</SelectItem>
+                <SelectItem value="EUR">EUR (€)</SelectItem>
+                <SelectItem value="GBP">GBP (£)</SelectItem>
+                <SelectItem value="JPY">JPY (¥)</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
-          {/* Actions */}
-          <div className="flex gap-3 pt-4">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 py-2 px-4 border border-gray-300 rounded-lg font-medium text-gray-700 hover:bg-gray-50 transition-colors"
-            >
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={onClose}>
               Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={loading}
-              className="flex-1 py-2 px-4 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
+            </Button>
+            <Button type="submit" disabled={loading}>
               {loading ? 'Saving...' : 'Save'}
-            </button>
-          </div>
+            </Button>
+          </DialogFooter>
         </form>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 };
 
