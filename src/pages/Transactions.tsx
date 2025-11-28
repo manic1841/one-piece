@@ -6,6 +6,8 @@ import { type Transaction, type PlannedIncome } from '../schemas';
 import { useTransactions } from '../hooks/useTransactions';
 import { TransactionStats } from '../components/transactions/TransactionStats';
 import { TransactionList } from '../components/transactions/TransactionList';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
 
 const Transactions: React.FC = () => {
   const { userProfile, currentUser } = useAuth();
@@ -85,48 +87,47 @@ const Transactions: React.FC = () => {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-gray-900">Transactions</h1>
-        <button
-          onClick={() => setIsFormOpen(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
-        >
+        <h1 className="text-2xl font-bold text-foreground">Transactions</h1>
+        <Button onClick={() => setIsFormOpen(true)}>
           <Plus size={20} />
           Add Transaction
-        </button>
+        </Button>
       </div>
 
       {/* Stats Cards */}
       <TransactionStats stats={stats} />
 
       {/* Filter Tabs */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-2 flex gap-2">
-        <button
-          onClick={() => setFilterType('all')}
-          className={`flex-1 py-2 px-4 rounded-lg font-medium transition-colors ${
-            filterType === 'all' ? 'bg-blue-100 text-blue-700' : 'text-gray-600 hover:bg-gray-100'
-          }`}
-        >
-          All
-        </button>
-        <button
-          onClick={() => setFilterType('income')}
-          className={`flex-1 py-2 px-4 rounded-lg font-medium transition-colors ${
-            filterType === 'income'
-              ? 'bg-green-100 text-green-700'
-              : 'text-gray-600 hover:bg-gray-100'
-          }`}
-        >
-          Income
-        </button>
-        <button
-          onClick={() => setFilterType('expense')}
-          className={`flex-1 py-2 px-4 rounded-lg font-medium transition-colors ${
-            filterType === 'expense' ? 'bg-red-100 text-red-700' : 'text-gray-600 hover:bg-gray-100'
-          }`}
-        >
-          Expense
-        </button>
-      </div>
+      <Card>
+        <CardContent className="p-2">
+          <div className="flex gap-2">
+            <Button
+              variant={filterType === 'all' ? 'default' : 'ghost'}
+              className={`flex-1 ${filterType === 'all' ? 'bg-blue-100 text-blue-700 hover:bg-blue-200' : ''
+                }`}
+              onClick={() => setFilterType('all')}
+            >
+              All
+            </Button>
+            <Button
+              variant={filterType === 'income' ? 'default' : 'ghost'}
+              className={`flex-1 ${filterType === 'income' ? 'bg-green-100 text-green-700 hover:bg-green-200' : ''
+                }`}
+              onClick={() => setFilterType('income')}
+            >
+              Income
+            </Button>
+            <Button
+              variant={filterType === 'expense' ? 'default' : 'ghost'}
+              className={`flex-1 ${filterType === 'expense' ? 'bg-red-100 text-red-700 hover:bg-red-200' : ''
+                }`}
+              onClick={() => setFilterType('expense')}
+            >
+              Expense
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Transactions List */}
       <TransactionList
