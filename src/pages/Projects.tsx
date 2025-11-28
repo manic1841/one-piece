@@ -10,6 +10,8 @@ import ProjectBalanceChart from '../components/projects/ProjectBalanceChart';
 import { formatCurrency } from '../utils/formatUtils';
 import { projectService } from '../services/projectService';
 import { type Project } from '../schemas';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 const Projects: React.FC = () => {
   const { userProfile } = useAuth();
@@ -52,8 +54,8 @@ const Projects: React.FC = () => {
   if (loading) {
     return (
       <div className="space-y-6">
-        <h1 className="text-2xl font-bold text-gray-900">Projects</h1>
-        <div className="text-gray-500">Loading...</div>
+        <h1 className="text-2xl font-bold text-foreground">Projects</h1>
+        <div className="text-muted-foreground">Loading...</div>
       </div>
     );
   }
@@ -83,38 +85,42 @@ const Projects: React.FC = () => {
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Projects</h1>
-          <p className="text-gray-600 mt-2">View and manage your project balances</p>
+          <h1 className="text-2xl font-bold text-foreground">Projects</h1>
+          <p className="text-muted-foreground mt-2">View and manage your project balances</p>
         </div>
         <div className="flex gap-3">
-          <button
+          <Button
             onClick={() => setIsSettlementDialogOpen(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition-colors"
+            variant="outline"
+            className="gap-2"
           >
-            <Calendar size={20} />
+            <Calendar size={16} />
             Monthly Settlement
-          </button>
-          <button
-            onClick={() => setIsCreateModalOpen(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors"
-          >
-            <Plus size={20} />
+          </Button>
+          <Button onClick={() => setIsCreateModalOpen(true)} className="gap-2">
+            <Plus size={16} />
             New Project
-          </button>
+          </Button>
         </div>
       </div>
 
       {/* Total Balance Card */}
       {projects.length > 0 && (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-          <h3 className="text-sm font-medium text-gray-500 mb-2">Total Balance (All Projects)</h3>
-          <p className={`text-3xl font-bold ${isPositive ? 'text-green-600' : 'text-red-600'}`}>
-            {formatCurrency(totalBalance)}
-          </p>
-          <p className="text-sm text-gray-500 mt-2">
-            Across {projects.length} project{projects.length !== 1 ? 's' : ''}
-          </p>
-        </div>
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Total Balance (All Projects)
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className={`text-3xl font-bold ${isPositive ? 'text-green-600' : 'text-red-600'}`}>
+              {formatCurrency(totalBalance)}
+            </p>
+            <p className="text-sm text-muted-foreground mt-2">
+              Across {projects.length} project{projects.length !== 1 ? 's' : ''}
+            </p>
+          </CardContent>
+        </Card>
       )}
 
       {/* Balance Trend Chart */}
@@ -132,36 +138,42 @@ const Projects: React.FC = () => {
 
       {/* Projects Grid */}
       {projects.length === 0 ? (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-8 text-center">
-          <p className="text-gray-500">
-            No projects found. Create projects in Settings to get started.
-          </p>
-        </div>
+        <Card>
+          <CardContent className="p-8 text-center">
+            <p className="text-muted-foreground">
+              No projects found. Create projects in Settings to get started.
+            </p>
+          </CardContent>
+        </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {projects.map((project) => (
-            <div key={project.id} className="relative">
+            <div key={project.id} className="relative group">
               <ProjectCard
                 project={project}
                 balance={project.balance}
                 onClick={() => setSelectedProject(project)}
               />
               {/* Action Buttons */}
-              <div className="absolute top-4 right-4 flex gap-2">
-                <button
+              <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                <Button
+                  variant="secondary"
+                  size="icon"
+                  className="h-8 w-8"
                   onClick={(e) => handleEdit(project, e)}
-                  className="p-2 bg-white hover:bg-blue-50 text-blue-600 rounded-lg shadow-sm border border-gray-200 transition-colors"
                   title="Edit project"
                 >
-                  <Pencil size={16} />
-                </button>
-                <button
+                  <Pencil size={14} />
+                </Button>
+                <Button
+                  variant="destructive"
+                  size="icon"
+                  className="h-8 w-8"
                   onClick={(e) => handleDelete(project, e)}
-                  className="p-2 bg-white hover:bg-red-50 text-red-600 rounded-lg shadow-sm border border-gray-200 transition-colors"
                   title="Delete project"
                 >
-                  <Trash2 size={16} />
-                </button>
+                  <Trash2 size={14} />
+                </Button>
               </div>
             </div>
           ))}
