@@ -10,6 +10,10 @@ import AccountTrendChart from '../components/accounts/AccountTrendChart';
 import { toDate } from '../utils/dateUtils';
 import { formatCurrency } from '../utils/formatUtils';
 import { Plus, Pencil, Trash2, TrendingUp, BarChart3 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
 
 const accountTypeIcons: Record<string, string> = {
   bank: '🏦',
@@ -157,8 +161,8 @@ const Accounts: React.FC = () => {
   if (loading) {
     return (
       <div className="space-y-6">
-        <h1 className="text-2xl font-bold text-gray-900">Accounts</h1>
-        <div className="text-gray-500">Loading...</div>
+        <h1 className="text-2xl font-bold text-foreground">Accounts</h1>
+        <div className="text-muted-foreground">Loading...</div>
       </div>
     );
   }
@@ -179,161 +183,150 @@ const Accounts: React.FC = () => {
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Accounts</h1>
-          <p className="text-gray-600 mt-2">Manage your accounts and track asset trends</p>
+          <h1 className="text-2xl font-bold text-foreground">Accounts</h1>
+          <p className="text-muted-foreground mt-2">Manage your accounts and track asset trends</p>
         </div>
-        <button
+        <Button
           onClick={() => {
             setEditingAccount(undefined);
             setIsAccountFormOpen(true);
           }}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors"
+          className="gap-2"
         >
           <Plus size={20} />
           Add Account
-        </button>
+        </Button>
       </div>
 
       {/* Total Balance */}
-      <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl shadow-sm p-6 text-white">
-        <div className="flex items-center gap-3 mb-2">
-          <BarChart3 size={24} />
-          <h2 className="text-lg font-semibold">Total Balance</h2>
-        </div>
-        <p className="text-3xl font-bold">{formatCurrency(getTotalBalance())}</p>
-      </div>
+      <Card className="bg-gradient-to-r from-blue-500 to-blue-600 text-white border-none">
+        <CardContent className="p-6">
+          <div className="flex items-center gap-3 mb-2">
+            <BarChart3 size={24} />
+            <h2 className="text-lg font-semibold">Total Balance</h2>
+          </div>
+          <p className="text-3xl font-bold">{formatCurrency(getTotalBalance())}</p>
+        </CardContent>
+      </Card>
 
       {/* Asset Trend Chart */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-        <div className="flex justify-between items-center mb-6">
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <div className="flex items-center gap-3">
             <TrendingUp className="text-blue-600" size={24} />
-            <h2 className="text-lg font-semibold text-gray-900">Asset Trend</h2>
+            <CardTitle className="text-lg font-semibold">Asset Trend</CardTitle>
           </div>
           <div className="flex gap-2">
-            <button
-              onClick={() => setSelectedPeriod(6)}
-              className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
-                selectedPeriod === 6
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-            >
-              6M
-            </button>
-            <button
-              onClick={() => setSelectedPeriod(12)}
-              className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
-                selectedPeriod === 12
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-            >
-              1Y
-            </button>
-            <button
-              onClick={() => setSelectedPeriod(24)}
-              className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
-                selectedPeriod === 24
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-            >
-              2Y
-            </button>
+            {[6, 12, 24].map((period) => (
+              <Button
+                key={period}
+                variant={selectedPeriod === period ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setSelectedPeriod(period)}
+              >
+                {period === 12 ? '1Y' : `${period}M`}
+              </Button>
+            ))}
           </div>
-        </div>
-
-        <div className="mb-4">
-          <label className="flex items-center gap-2 text-sm text-gray-600">
-            <input
-              type="checkbox"
+        </CardHeader>
+        <CardContent>
+          <div className="mb-4 flex items-center space-x-2">
+            <Checkbox
+              id="show-individual"
               checked={showIndividualAccounts}
-              onChange={(e) => setShowIndividualAccounts(e.target.checked)}
-              className="rounded border-gray-300"
+              onCheckedChange={(checked) => setShowIndividualAccounts(checked as boolean)}
             />
-            Show individual accounts
-          </label>
-        </div>
+            <Label htmlFor="show-individual">Show individual accounts</Label>
+          </div>
 
-        <AccountTrendChart data={assetTrendData} showIndividualAccounts={showIndividualAccounts} />
-      </div>
+          <AccountTrendChart data={assetTrendData} showIndividualAccounts={showIndividualAccounts} />
+        </CardContent>
+      </Card>
 
       {/* Accounts List */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Your Accounts</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {accounts.map((account) => {
-            const snapshot = latestSnapshots.get(account.id);
-            return (
-              <div
-                key={account.id}
-                onClick={() => setSelectedAccountForDetail(account)}
-                className="border border-gray-200 rounded-lg p-4 hover:border-blue-300 transition-colors cursor-pointer"
-              >
-                <div className="flex justify-between items-start mb-3">
-                  <div className="flex items-center gap-3">
-                    <span className="text-2xl">{accountTypeIcons[account.type]}</span>
-                    <div>
-                      <h3 className="font-medium text-gray-900">{account.name}</h3>
-                      <p className="text-xs text-gray-500">{account.type}</p>
+      <Card>
+        <CardHeader>
+          <CardTitle>Your Accounts</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {accounts.map((account) => {
+              const snapshot = latestSnapshots.get(account.id);
+              return (
+                <div
+                  key={account.id}
+                  onClick={() => setSelectedAccountForDetail(account)}
+                  className="border border-border rounded-lg p-4 hover:border-blue-300 transition-colors cursor-pointer bg-card text-card-foreground shadow-sm"
+                >
+                  <div className="flex justify-between items-start mb-3">
+                    <div className="flex items-center gap-3">
+                      <span className="text-2xl">{accountTypeIcons[account.type]}</span>
+                      <div>
+                        <h3 className="font-medium text-foreground">{account.name}</h3>
+                        <p className="text-xs text-muted-foreground">{account.type}</p>
+                      </div>
+                    </div>
+                    <div className="flex gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-muted-foreground hover:text-blue-600"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setEditingAccount(account);
+                          setIsAccountFormOpen(true);
+                        }}
+                      >
+                        <Pencil size={16} />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteAccount(account.id);
+                        }}
+                      >
+                        <Trash2 size={16} />
+                      </Button>
                     </div>
                   </div>
-                  <div className="flex gap-1">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setEditingAccount(account);
-                        setIsAccountFormOpen(true);
-                      }}
-                      className="p-1 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
-                    >
-                      <Pencil size={16} />
-                    </button>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDeleteAccount(account.id);
-                      }}
-                      className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
-                    >
-                      <Trash2 size={16} />
-                    </button>
-                  </div>
-                </div>
 
-                <div className="mb-3">
-                  <p className="text-2xl font-bold text-gray-900">
-                    {formatCurrency(snapshot?.amount || 0)}
-                  </p>
-                  {snapshot && (
-                    <p className="text-xs text-gray-500">
-                      As of {toDate(snapshot.createdAt).toLocaleDateString()}
+                  <div className="mb-3">
+                    <p className="text-2xl font-bold text-foreground">
+                      {formatCurrency(snapshot?.amount || 0)}
                     </p>
-                  )}
+                    {snapshot && (
+                      <p className="text-xs text-muted-foreground">
+                        As of {toDate(snapshot.createdAt).toLocaleDateString()}
+                      </p>
+                    )}
+                  </div>
+
+                  <Button
+                    variant="secondary"
+                    className="w-full"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedAccountForSnapshot(account.id);
+                      setIsSnapshotFormOpen(true);
+                    }}
+                  >
+                    Record Balance
+                  </Button>
                 </div>
+              );
+            })}
+          </div>
 
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setSelectedAccountForSnapshot(account.id);
-                    setIsSnapshotFormOpen(true);
-                  }}
-                  className="w-full px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium rounded-lg transition-colors"
-                >
-                  Record Balance
-                </button>
-              </div>
-            );
-          })}
-        </div>
-
-        {accounts.length === 0 && (
-          <p className="text-gray-500 text-center py-8">
-            No accounts yet. Add your first account to start tracking your assets.
-          </p>
-        )}
-      </div>
+          {accounts.length === 0 && (
+            <p className="text-muted-foreground text-center py-8">
+              No accounts yet. Add your first account to start tracking your assets.
+            </p>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Account Form Modal */}
       {isAccountFormOpen && (

@@ -10,6 +10,7 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 import { formatCurrency } from '../../utils/formatUtils';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 interface AccountTrendChartProps {
   data: Array<{
@@ -40,48 +41,55 @@ const AccountTrendChart: React.FC<AccountTrendChartProps> = ({
     showIndividualAccounts && data.length > 0 ? Object.keys(data[0].accounts || {}) : [];
 
   return (
-    <ResponsiveContainer width="100%" height={400}>
-      <LineChart data={data} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
-        <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-        <XAxis dataKey="date" stroke="#6b7280" style={{ fontSize: '12px' }} />
-        <YAxis stroke="#6b7280" style={{ fontSize: '12px' }} tickFormatter={formatCurrency} />
-        <Tooltip
-          formatter={(value: number) => formatCurrency(value)}
-          contentStyle={{
-            backgroundColor: 'white',
-            border: '1px solid #e5e7eb',
-            borderRadius: '8px',
-            boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
-          }}
-        />
-        <Legend />
-
-        {/* Total Assets Line */}
-        <Line
-          type="monotone"
-          dataKey="totalAssets"
-          name="Total Assets"
-          stroke="#3b82f6"
-          strokeWidth={3}
-          dot={{ fill: '#3b82f6', r: 4 }}
-          activeDot={{ r: 6 }}
-        />
-
-        {/* Individual Account Lines */}
-        {showIndividualAccounts &&
-          accountIds.map((accountId, index) => (
-            <Line
-              key={accountId}
-              type="monotone"
-              dataKey={`accounts.${accountId}`}
-              name={accountNames[accountId] || accountId}
-              stroke={COLORS[index % COLORS.length]}
-              strokeWidth={2}
-              dot={{ r: 3 }}
+    <Card>
+      <CardHeader>
+        <CardTitle>Asset Trend</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <ResponsiveContainer width="100%" height={400}>
+          <LineChart data={data} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+            <XAxis dataKey="date" stroke="#6b7280" style={{ fontSize: '12px' }} />
+            <YAxis stroke="#6b7280" style={{ fontSize: '12px' }} tickFormatter={formatCurrency} />
+            <Tooltip
+              formatter={(value: number) => formatCurrency(value)}
+              contentStyle={{
+                backgroundColor: 'white',
+                border: '1px solid #e5e7eb',
+                borderRadius: '8px',
+                boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
+              }}
             />
-          ))}
-      </LineChart>
-    </ResponsiveContainer>
+            <Legend />
+
+            {/* Total Assets Line */}
+            <Line
+              type="monotone"
+              dataKey="totalAssets"
+              name="Total Assets"
+              stroke="#3b82f6"
+              strokeWidth={3}
+              dot={{ fill: '#3b82f6', r: 4 }}
+              activeDot={{ r: 6 }}
+            />
+
+            {/* Individual Account Lines */}
+            {showIndividualAccounts &&
+              accountIds.map((accountId, index) => (
+                <Line
+                  key={accountId}
+                  type="monotone"
+                  dataKey={`accounts.${accountId}`}
+                  name={accountNames[accountId] || accountId}
+                  stroke={COLORS[index % COLORS.length]}
+                  strokeWidth={2}
+                  dot={{ r: 3 }}
+                />
+              ))}
+          </LineChart>
+        </ResponsiveContainer>
+      </CardContent>
+    </Card>
   );
 };
 

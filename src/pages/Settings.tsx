@@ -1,13 +1,13 @@
 import React, { useMemo } from 'react';
 import { useAuth } from '../contexts/useAuth';
 import { accessControlService } from '../services/accessControlService';
-import BudgetSettings from '../components/BudgetSettings';
-import ProjectSettings from '../components/ProjectSettings';
 import EmailWhitelist from '../components/EmailWhitelist';
 import { ShieldAlert } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
 
 const Settings: React.FC = () => {
-  const { currentUser, userProfile } = useAuth();
+  const { currentUser } = useAuth();
 
   const isAdmin = useMemo(() => {
     if (!currentUser) return false;
@@ -19,8 +19,8 @@ const Settings: React.FC = () => {
   if (loading) {
     return (
       <div className="space-y-6">
-        <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
-        <div className="text-gray-500">Loading...</div>
+        <h1 className="text-2xl font-bold text-foreground">Settings</h1>
+        <div className="text-muted-foreground">Loading...</div>
       </div>
     );
   }
@@ -28,22 +28,21 @@ const Settings: React.FC = () => {
   if (!isAdmin) {
     return (
       <div className="space-y-6">
-        <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-12">
-          <div className="text-center max-w-md mx-auto">
-            <div className="inline-flex items-center justify-center w-16 h-16 bg-red-100 rounded-full mb-4">
-              <ShieldAlert size={32} className="text-red-600" />
+        <h1 className="text-2xl font-bold text-foreground">Settings</h1>
+        <Card>
+          <CardContent className="p-12">
+            <div className="text-center max-w-md mx-auto">
+              <div className="inline-flex items-center justify-center w-16 h-16 bg-red-100 rounded-full mb-4">
+                <ShieldAlert size={32} className="text-red-600" />
+              </div>
+              <h2 className="text-xl font-semibold text-foreground mb-2">Access Denied</h2>
+              <p className="text-muted-foreground mb-6">Only administrators can access the Settings page.</p>
+              <Button variant="outline" onClick={() => window.history.back()}>
+                Go Back
+              </Button>
             </div>
-            <h2 className="text-xl font-semibold text-gray-900 mb-2">Access Denied</h2>
-            <p className="text-gray-600 mb-6">Only administrators can access the Settings page.</p>
-            <button
-              onClick={() => window.history.back()}
-              className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-lg transition-colors"
-            >
-              Go Back
-            </button>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
       </div>
     );
   }
@@ -51,8 +50,8 @@ const Settings: React.FC = () => {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
-        <p className="text-gray-600 mt-2">Manage your account and application settings</p>
+        <h1 className="text-2xl font-bold text-foreground">Settings</h1>
+        <p className="text-muted-foreground mt-2">Manage your account and application settings</p>
       </div>
 
       {/* Admin Badge */}
@@ -70,12 +69,6 @@ const Settings: React.FC = () => {
 
       {/* Email Whitelist */}
       <EmailWhitelist />
-
-      {/* Project Settings */}
-      {userProfile?.householdId && <ProjectSettings householdId={userProfile.householdId} />}
-
-      {/* Budget Settings */}
-      {userProfile?.householdId && <BudgetSettings householdId={userProfile.householdId} />}
     </div>
   );
 };

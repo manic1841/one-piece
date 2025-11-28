@@ -5,6 +5,8 @@ import { type TransactionListItem } from '../../hooks/useTransactions';
 import { formatCurrency } from '../../utils/formatUtils';
 import { toDate } from '../../utils/dateUtils';
 import { Timestamp } from 'firebase/firestore';
+import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 
 interface TransactionListProps {
   items: TransactionListItem[];
@@ -31,32 +33,36 @@ export const TransactionList: React.FC<TransactionListProps> = ({
 
   if (loading) {
     return (
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-        <div className="p-8 text-center text-gray-500">Loading transactions...</div>
-      </div>
+      <Card>
+        <CardContent className="p-8">
+          <div className="text-center text-muted-foreground">Loading transactions...</div>
+        </CardContent>
+      </Card>
     );
   }
 
   if (items.length === 0) {
     return (
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-        <div className="p-8 text-center text-gray-500">
-          No transactions found. Click "Record Income" or "Add Expense" to get started.
-        </div>
-      </div>
+      <Card>
+        <CardContent className="p-8">
+          <div className="text-center text-muted-foreground">
+            No transactions found. Click "Record Income" or "Add Expense" to get started.
+          </div>
+        </CardContent>
+      </Card>
     );
   }
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-      <div className="divide-y divide-gray-100">
+    <Card>
+      <div className="divide-y divide-border">
         {items.map((item) => {
           if (item.type === 'plannedIncome') {
             const income = item.data;
             return (
               <div
                 key={`income-${income.id}`}
-                className="p-4 hover:bg-gray-50 transition-colors bg-green-50/30"
+                className="p-4 hover:bg-accent/50 transition-colors bg-green-50/30"
               >
                 <div className="flex items-center justify-between">
                   <div className="flex-1">
@@ -64,7 +70,7 @@ export const TransactionList: React.FC<TransactionListProps> = ({
                       <div className="w-2 h-2 rounded-full bg-green-500" />
                       <div>
                         <div className="flex items-center gap-2">
-                          <p className="font-medium text-gray-900 capitalize">
+                          <p className="font-medium text-foreground capitalize">
                             {income.category.replace('_', ' ')}
                           </p>
                           <span className="text-xs px-2 py-0.5 bg-green-100 text-green-700 rounded-full">
@@ -72,9 +78,9 @@ export const TransactionList: React.FC<TransactionListProps> = ({
                           </span>
                         </div>
                         {income.description && (
-                          <p className="text-sm text-gray-500">{income.description}</p>
+                          <p className="text-sm text-muted-foreground">{income.description}</p>
                         )}
-                        <p className="text-xs text-gray-400 mt-1">{formatDate(income.date)}</p>
+                        <p className="text-xs text-muted-foreground mt-1">{formatDate(income.date)}</p>
                       </div>
                     </div>
                   </div>
@@ -83,18 +89,22 @@ export const TransactionList: React.FC<TransactionListProps> = ({
                       +{formatCurrency(income.amount)}
                     </p>
                     <div className="flex gap-2">
-                      <button
+                      <Button
+                        variant="ghost"
+                        size="icon"
                         onClick={() => onEditPlannedIncome(income)}
-                        className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                        className="text-muted-foreground hover:text-blue-600 hover:bg-blue-50"
                       >
                         <Pencil size={18} />
-                      </button>
-                      <button
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
                         onClick={() => onDeletePlannedIncome(income.id)}
-                        className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                        className="text-muted-foreground hover:text-red-600 hover:bg-red-50"
                       >
                         <Trash2 size={18} />
-                      </button>
+                      </Button>
                     </div>
                   </div>
                 </div>
@@ -105,49 +115,51 @@ export const TransactionList: React.FC<TransactionListProps> = ({
             return (
               <div
                 key={`transaction-${transaction.id}`}
-                className="p-4 hover:bg-gray-50 transition-colors"
+                className="p-4 hover:bg-accent/50 transition-colors"
               >
                 <div className="flex items-center justify-between">
                   <div className="flex-1">
                     <div className="flex items-center gap-3">
                       <div
-                        className={`w-2 h-2 rounded-full ${
-                          transaction.type === 'income' ? 'bg-green-500' : 'bg-red-500'
-                        }`}
+                        className={`w-2 h-2 rounded-full ${transaction.type === 'income' ? 'bg-green-500' : 'bg-red-500'
+                          }`}
                       />
                       <div>
-                        <p className="font-medium text-gray-900 capitalize">
+                        <p className="font-medium text-foreground capitalize">
                           {transaction.category.replace('_', ' ')}
                         </p>
                         {transaction.description && (
-                          <p className="text-sm text-gray-500">{transaction.description}</p>
+                          <p className="text-sm text-muted-foreground">{transaction.description}</p>
                         )}
-                        <p className="text-xs text-gray-400 mt-1">{formatDate(transaction.date)}</p>
+                        <p className="text-xs text-muted-foreground mt-1">{formatDate(transaction.date)}</p>
                       </div>
                     </div>
                   </div>
                   <div className="flex items-center gap-4">
                     <p
-                      className={`text-lg font-bold ${
-                        transaction.type === 'income' ? 'text-green-600' : 'text-red-600'
-                      }`}
+                      className={`text-lg font-bold ${transaction.type === 'income' ? 'text-green-600' : 'text-red-600'
+                        }`}
                     >
                       {transaction.type === 'income' ? '+' : '-'}
                       {formatCurrency(transaction.amount)}
                     </p>
                     <div className="flex gap-2">
-                      <button
+                      <Button
+                        variant="ghost"
+                        size="icon"
                         onClick={() => onEditTransaction(transaction)}
-                        className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                        className="text-muted-foreground hover:text-blue-600 hover:bg-blue-50"
                       >
                         <Pencil size={18} />
-                      </button>
-                      <button
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
                         onClick={() => onDeleteTransaction(transaction.id)}
-                        className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                        className="text-muted-foreground hover:text-red-600 hover:bg-red-50"
                       >
                         <Trash2 size={18} />
-                      </button>
+                      </Button>
                     </div>
                   </div>
                 </div>
@@ -156,6 +168,6 @@ export const TransactionList: React.FC<TransactionListProps> = ({
           }
         })}
       </div>
-    </div>
+    </Card>
   );
 };

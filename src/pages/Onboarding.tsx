@@ -3,6 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/useAuth';
 import { householdService } from '../services/householdService';
 import { LogOut } from 'lucide-react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 const Onboarding: React.FC = () => {
   const [input, setInput] = useState('');
@@ -61,40 +65,42 @@ const Onboarding: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
-      <div className="max-w-md w-full bg-white rounded-xl shadow-md overflow-hidden p-8">
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-2xl font-bold text-gray-900">Create or Join Family</h1>
-          <button onClick={handleLogout} className="text-gray-500 hover:text-gray-700">
-            <LogOut size={20} />
-          </button>
-        </div>
-
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {error && <div className="bg-red-50 text-red-700 p-3 rounded-lg text-sm">{error}</div>}
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Household Name or ID
-            </label>
-            <input
-              type="text"
-              required
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
-              placeholder="Enter a name to create or ID to join"
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-            />
+      <Card className="w-full max-w-md">
+        <CardHeader>
+          <div className="flex justify-between items-center">
+            <div>
+              <CardTitle>Create or Join Family</CardTitle>
+              <CardDescription className="mt-1.5">
+                Enter a household name or ID to get started
+              </CardDescription>
+            </div>
+            <Button variant="ghost" size="icon" onClick={handleLogout}>
+              <LogOut size={20} />
+            </Button>
           </div>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {error && <div className="bg-destructive/10 text-destructive p-3 rounded-lg text-sm">{error}</div>}
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full py-2 px-4 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {loading ? 'Processing...' : 'Continue'}
-          </button>
-        </form>
-      </div>
+            <div className="space-y-2">
+              <Label htmlFor="household">Household Name or ID</Label>
+              <Input
+                id="household"
+                type="text"
+                required
+                placeholder="Enter a name to create or ID to join"
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+              />
+            </div>
+
+            <Button type="submit" disabled={loading} className="w-full">
+              {loading ? 'Processing...' : 'Continue'}
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
     </div>
   );
 };

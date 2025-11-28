@@ -13,6 +13,25 @@ import { type Account, type AccountSnapshot } from '../../schemas';
 import { accountService } from '../../services/accountService';
 import { formatCurrency } from '../../utils/formatUtils';
 import { toDate } from '../../utils/dateUtils';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 interface AccountDetailViewProps {
   account: Account;
@@ -95,14 +114,11 @@ const AccountDetailView: React.FC<AccountDetailViewProps> = ({ account, househol
   if (loading) {
     return (
       <div className="space-y-6">
-        <button
-          onClick={onBack}
-          className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4"
-        >
+        <Button variant="ghost" onClick={onBack} className="gap-2 mb-4">
           <ArrowLeft size={20} />
           Back to Accounts
-        </button>
-        <div className="text-gray-500">Loading...</div>
+        </Button>
+        <div className="text-muted-foreground">Loading...</div>
       </div>
     );
   }
@@ -127,123 +143,122 @@ const AccountDetailView: React.FC<AccountDetailViewProps> = ({ account, househol
   return (
     <div className="space-y-6">
       {/* Back Button */}
-      <button
-        onClick={onBack}
-        className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors"
-      >
+      <Button variant="ghost" onClick={onBack} className="gap-2">
         <ArrowLeft size={20} />
         Back to Accounts
-      </button>
+      </Button>
 
       {/* Account Header */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">{account.name}</h2>
-        <div className="flex items-center gap-4 text-sm text-gray-600">
-          <span className="capitalize">{account.type}</span>
-          <span>•</span>
-          <span>{account.currency}</span>
-          {chartData.length > 0 && (
-            <>
-              <span>•</span>
-              <span>Current: {formatCurrency(chartData[chartData.length - 1].amount)}</span>
-            </>
-          )}
-        </div>
-
-        {/* Trend Summary */}
-        {chartData.length >= 2 && (
-          <div className="mt-4 pt-4 border-t border-gray-100">
-            <div className="flex items-center gap-2">
-              {trend >= 0 ? (
-                <TrendingUp className="text-green-600" size={20} />
-              ) : (
-                <TrendingUp
-                  className="text-red-600"
-                  size={20}
-                  style={{ transform: 'scaleY(-1)' }}
-                />
-              )}
-              <span className={`font-medium ${trend >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                {trend >= 0 ? '+' : ''}
-                {formatCurrency(trend)} ({trendPercentage}%)
-              </span>
-              <span className="text-sm text-gray-500">vs first record ({chartData[0].month})</span>
-            </div>
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-2xl font-bold">{account.name}</CardTitle>
+          <div className="flex items-center gap-4 text-sm text-muted-foreground">
+            <span className="capitalize">{account.type}</span>
+            <span>•</span>
+            <span>{account.currency}</span>
+            {chartData.length > 0 && (
+              <>
+                <span>•</span>
+                <span>Current: {formatCurrency(chartData[chartData.length - 1].amount)}</span>
+              </>
+            )}
           </div>
-        )}
-      </div>
+        </CardHeader>
+        <CardContent>
+          {/* Trend Summary */}
+          {chartData.length >= 2 && (
+            <div className="pt-4 border-t border-border">
+              <div className="flex items-center gap-2">
+                {trend >= 0 ? (
+                  <TrendingUp className="text-green-600" size={20} />
+                ) : (
+                  <TrendingUp
+                    className="text-red-600"
+                    size={20}
+                    style={{ transform: 'scaleY(-1)' }}
+                  />
+                )}
+                <span className={`font-medium ${trend >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                  {trend >= 0 ? '+' : ''}
+                  {formatCurrency(trend)} ({trendPercentage}%)
+                </span>
+                <span className="text-sm text-muted-foreground">
+                  vs first record ({chartData[0].month})
+                </span>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Balance Trend Chart */}
       {chartData.length > 0 && (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Balance History</h3>
-          <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={chartData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-              <XAxis
-                dataKey="month"
-                stroke="#6b7280"
-                style={{ fontSize: '12px' }}
-                tickFormatter={(value) => value.slice(5)} // Show only MM
-              />
-              <YAxis
-                stroke="#6b7280"
-                style={{ fontSize: '12px' }}
-                tickFormatter={(value) => formatCurrency(value)}
-              />
-              <Tooltip
-                formatter={(value: number) => formatCurrency(value)}
-                contentStyle={{
-                  backgroundColor: 'white',
-                  border: '1px solid #e5e7eb',
-                  borderRadius: '8px',
-                  boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
-                }}
-              />
-              <Line
-                type="monotone"
-                dataKey="amount"
-                name="Balance"
-                stroke="#3b82f6"
-                strokeWidth={3}
-                dot={{ fill: '#3b82f6', r: 5 }}
-                activeDot={{ r: 7 }}
-              />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
+        <Card>
+          <CardHeader>
+            <CardTitle>Balance History</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={300}>
+              <LineChart data={chartData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                <XAxis
+                  dataKey="month"
+                  stroke="#6b7280"
+                  style={{ fontSize: '12px' }}
+                  tickFormatter={(value) => value.slice(5)} // Show only MM
+                />
+                <YAxis
+                  stroke="#6b7280"
+                  style={{ fontSize: '12px' }}
+                  tickFormatter={(value) => formatCurrency(value)}
+                />
+                <Tooltip
+                  formatter={(value: number) => formatCurrency(value)}
+                  contentStyle={{
+                    backgroundColor: 'white',
+                    border: '1px solid #e5e7eb',
+                    borderRadius: '8px',
+                    boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
+                  }}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="amount"
+                  name="Balance"
+                  stroke="#3b82f6"
+                  strokeWidth={3}
+                  dot={{ fill: '#3b82f6', r: 5 }}
+                  activeDot={{ r: 7 }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
       )}
 
       {/* Snapshot History Table */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-        <div className="flex items-center gap-2 mb-4">
+      <Card>
+        <CardHeader className="flex flex-row items-center gap-2 space-y-0">
           <Calendar className="text-blue-600" size={20} />
-          <h3 className="text-lg font-semibold text-gray-900">Snapshot History</h3>
-        </div>
-
-        {snapshots.length === 0 ? (
-          <p className="text-gray-500 text-center py-8">
-            No snapshots recorded yet. Record your first balance to start tracking.
-          </p>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-gray-200">
-                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">Date</th>
-                  <th className="text-right py-3 px-4 text-sm font-medium text-gray-600">
-                    Balance
-                  </th>
-                  <th className="text-right py-3 px-4 text-sm font-medium text-gray-600">Change</th>
-                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">
-                    Recorded At
-                  </th>
-                  <th className="text-right py-3 px-4 text-sm font-medium text-gray-600">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
+          <CardTitle>Snapshot History</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {snapshots.length === 0 ? (
+            <p className="text-muted-foreground text-center py-8">
+              No snapshots recorded yet. Record your first balance to start tracking.
+            </p>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Date</TableHead>
+                  <TableHead className="text-right">Balance</TableHead>
+                  <TableHead className="text-right">Change</TableHead>
+                  <TableHead>Recorded At</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {snapshots
                   .sort((a, b) => {
                     if (a.year !== b.year) return b.year - a.year;
@@ -253,115 +268,106 @@ const AccountDetailView: React.FC<AccountDetailViewProps> = ({ account, househol
                     const previousSnapshot = arr[index + 1];
                     const change = previousSnapshot ? snapshot.amount - previousSnapshot.amount : 0;
                     return (
-                      <tr key={snapshot.id} className="border-b border-gray-100 hover:bg-gray-50">
-                        <td className="py-3 px-4 text-sm text-gray-900">
+                      <TableRow key={snapshot.id}>
+                        <TableCell>
                           {snapshot.year}-{String(snapshot.month).padStart(2, '0')}
-                        </td>
-                        <td className="py-3 px-4 text-sm text-right font-medium text-gray-900">
+                        </TableCell>
+                        <TableCell className="text-right font-medium">
                           {formatCurrency(snapshot.amount)}
-                        </td>
-                        <td className="py-3 px-4 text-sm text-right">
+                        </TableCell>
+                        <TableCell className="text-right">
                           {previousSnapshot ? (
                             <span
-                              className={`font-medium ${
-                                change >= 0 ? 'text-green-600' : 'text-red-600'
-                              }`}
+                              className={`font-medium ${change >= 0 ? 'text-green-600' : 'text-red-600'
+                                }`}
                             >
                               {change >= 0 ? '+' : ''}
                               {formatCurrency(change)}
                             </span>
                           ) : (
-                            <span className="text-gray-400">—</span>
+                            <span className="text-muted-foreground">—</span>
                           )}
-                        </td>
-                        <td className="py-3 px-4 text-sm text-gray-600">
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">
                           {toDate(snapshot.createdAt).toLocaleString()}
-                        </td>
-                        <td className="py-3 px-4 text-sm text-right">
+                        </TableCell>
+                        <TableCell className="text-right">
                           <div className="flex justify-end gap-1">
-                            <button
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-muted-foreground hover:text-blue-600"
                               onClick={() => handleEditSnapshot(snapshot)}
-                              className="p-1 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
                               title="Edit snapshot"
                             >
                               <Pencil size={14} />
-                            </button>
-                            <button
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-muted-foreground hover:text-destructive"
                               onClick={() => handleDeleteSnapshot(snapshot.id)}
-                              className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
                               title="Delete snapshot"
                             >
                               <Trash2 size={14} />
-                            </button>
+                            </Button>
                           </div>
-                        </td>
-                      </tr>
+                        </TableCell>
+                      </TableRow>
                     );
                   })}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Edit Snapshot Modal */}
-      {editingSnapshot && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Edit Snapshot</h3>
-
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Year</label>
-                <input
-                  type="number"
-                  value={editYear}
-                  onChange={(e) => setEditYear(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Month</label>
-                <input
-                  type="number"
-                  min="1"
-                  max="12"
-                  value={editMonth}
-                  onChange={(e) => setEditMonth(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Amount</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={editAmount}
-                  onChange={(e) => setEditAmount(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                />
-              </div>
+      <Dialog open={!!editingSnapshot} onOpenChange={(open) => !open && setEditingSnapshot(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Snapshot</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="year">Year</Label>
+              <Input
+                id="year"
+                type="number"
+                value={editYear}
+                onChange={(e) => setEditYear(e.target.value)}
+              />
             </div>
-
-            <div className="flex gap-3 mt-6">
-              <button
-                onClick={() => setEditingSnapshot(null)}
-                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg font-medium text-gray-700 hover:bg-gray-50"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleSaveSnapshot}
-                className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg"
-              >
-                Save
-              </button>
+            <div className="space-y-2">
+              <Label htmlFor="month">Month</Label>
+              <Input
+                id="month"
+                type="number"
+                min="1"
+                max="12"
+                value={editMonth}
+                onChange={(e) => setEditMonth(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="amount">Amount</Label>
+              <Input
+                id="amount"
+                type="number"
+                step="0.01"
+                value={editAmount}
+                onChange={(e) => setEditAmount(e.target.value)}
+              />
             </div>
           </div>
-        </div>
-      )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditingSnapshot(null)}>
+              Cancel
+            </Button>
+            <Button onClick={handleSaveSnapshot}>Save</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

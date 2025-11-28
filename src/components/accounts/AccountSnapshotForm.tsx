@@ -1,7 +1,24 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { X } from 'lucide-react';
 import { type Account, type AccountSnapshot } from '../../schemas';
 import { accountService } from '../../services/accountService';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Card } from '@/components/ui/card';
 
 interface AccountSnapshotFormProps {
   isOpen: boolean;
@@ -109,75 +126,71 @@ const AccountSnapshotForm: React.FC<AccountSnapshotFormProps> = ({
     }
   };
 
-  if (!isOpen) return null;
-
   const selectedAccount = accounts.find((a) => a.id === accountId);
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl shadow-xl max-w-md w-full">
-        <div className="border-b border-gray-200 px-6 py-4 flex justify-between items-center">
-          <h2 className="text-xl font-bold text-gray-900">Record Balance</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors">
-            <X size={24} />
-          </button>
-        </div>
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Record Balance</DialogTitle>
+        </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          {error && <div className="bg-red-50 text-red-700 p-3 rounded-lg text-sm">{error}</div>}
+        <form onSubmit={handleSubmit} className="space-y-4 py-4">
+          {error && (
+            <div className="bg-destructive/10 text-destructive p-3 rounded-lg text-sm">{error}</div>
+          )}
 
           {/* Account Selection */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Account</label>
-            <select
-              required
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-              value={accountId}
-              onChange={(e) => setAccountId(e.target.value)}
-            >
-              <option value="">Select an account</option>
-              {accounts.map((account) => (
-                <option key={account.id} value={account.id}>
-                  {account.name} ({account.currency})
-                </option>
-              ))}
-            </select>
+          <div className="space-y-2">
+            <Label htmlFor="account">Account</Label>
+            <Select value={accountId} onValueChange={setAccountId}>
+              <SelectTrigger id="account">
+                <SelectValue placeholder="Select an account" />
+              </SelectTrigger>
+              <SelectContent>
+                {accounts.map((account) => (
+                  <SelectItem key={account.id} value={account.id}>
+                    {account.name} ({account.currency})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Year & Month */}
           <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Year</label>
-              <input
+            <div className="space-y-2">
+              <Label htmlFor="year">Year</Label>
+              <Input
+                id="year"
                 type="number"
                 required
                 min="2000"
                 max="2100"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
                 value={year}
                 onChange={(e) => setYear(parseInt(e.target.value))}
               />
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Month</label>
-              <select
-                required
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-                value={month}
-                onChange={(e) => setMonth(parseInt(e.target.value))}
-              >
-                {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
-                  <option key={m} value={m}>
-                    {m}月
-                  </option>
-                ))}
-              </select>
+            <div className="space-y-2">
+              <Label htmlFor="month">Month</Label>
+              <Select value={month.toString()} onValueChange={(val) => setMonth(parseInt(val))}>
+                <SelectTrigger id="month">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
+                    <SelectItem key={m} value={m.toString()}>
+                      {m}月
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
           {/* Previous Balance Reference */}
           {previousAmount !== null && selectedAccount && (
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+            <Card className="bg-blue-50 border-blue-200 p-3">
               <p className="text-sm text-blue-700">
                 Previous month's balance:{' '}
                 <span className="font-semibold">
@@ -187,45 +200,36 @@ const AccountSnapshotForm: React.FC<AccountSnapshotFormProps> = ({
                   }).format(previousAmount)}
                 </span>
               </p>
-            </div>
+            </Card>
           )}
 
           {/* Amount */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+          <div className="space-y-2">
+            <Label htmlFor="amount">
               Balance {selectedAccount && `(${selectedAccount.currency})`}
-            </label>
-            <input
+            </Label>
+            <Input
+              id="amount"
               type="number"
               required
               step="0.01"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
               placeholder="0.00"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
             />
           </div>
 
-          {/* Actions */}
-          <div className="flex gap-3 pt-4">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 py-2 px-4 border border-gray-300 rounded-lg font-medium text-gray-700 hover:bg-gray-50 transition-colors"
-            >
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={onClose}>
               Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={loading}
-              className="flex-1 py-2 px-4 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
+            </Button>
+            <Button type="submit" disabled={loading}>
               {loading ? 'Saving...' : 'Record'}
-            </button>
-          </div>
+            </Button>
+          </DialogFooter>
         </form>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 };
 

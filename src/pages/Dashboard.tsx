@@ -4,6 +4,8 @@ import { budgetService } from '../services/budgetService';
 import { projectService } from '../services/projectService';
 import { type Project, type MonthlyBudgetStats, type MonthlyCategoryStat } from '../schemas';
 import { formatCurrency } from '../utils/formatUtils';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Progress } from '@/components/ui/progress';
 
 const Dashboard: React.FC = () => {
   const { userProfile } = useAuth();
@@ -50,8 +52,8 @@ const Dashboard: React.FC = () => {
   if (loading) {
     return (
       <div className="space-y-6">
-        <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-        <div className="text-gray-500">Loading...</div>
+        <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
+        <div className="text-muted-foreground">Loading...</div>
       </div>
     );
   }
@@ -65,43 +67,55 @@ const Dashboard: React.FC = () => {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-        <p className="text-gray-600 mt-2">
+        <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
+        <p className="text-muted-foreground mt-2">
           {currentYear}年{currentMonth}月 Budget Overview
         </p>
       </div>
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-          <h3 className="text-sm font-medium text-gray-500">Monthly Income</h3>
-          <p className="text-2xl font-bold text-gray-900 mt-2">
-            {formatCurrency(stats?.totalIncome || 0)}
-          </p>
-        </div>
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-          <h3 className="text-sm font-medium text-gray-500">Total Spent</h3>
-          <p className="text-2xl font-bold text-gray-900 mt-2">{formatCurrency(totalSpent)}</p>
-          <p className="text-sm text-gray-500 mt-1">
-            {totalAllocated > 0
-              ? `${((totalSpent / totalAllocated) * 100).toFixed(1)}% of budget`
-              : '0%'}
-          </p>
-        </div>
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-          <h3 className="text-sm font-medium text-gray-500">Remaining</h3>
-          <p
-            className={`text-2xl font-bold mt-2 ${totalRemaining >= 0 ? 'text-green-600' : 'text-red-600'}`}
-          >
-            {formatCurrency(totalRemaining)}
-          </p>
-        </div>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Monthly Income</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{formatCurrency(stats?.totalIncome || 0)}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Spent</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{formatCurrency(totalSpent)}</div>
+            <p className="text-xs text-muted-foreground mt-1">
+              {totalAllocated > 0
+                ? `${((totalSpent / totalAllocated) * 100).toFixed(1)}% of budget`
+                : '0%'}
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Remaining</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div
+              className={`text-2xl font-bold ${totalRemaining >= 0 ? 'text-green-600' : 'text-red-600'}`}
+            >
+              {formatCurrency(totalRemaining)}
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Budget by Category */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-6">Budget by Category</h2>
-        <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle>Budget by Category</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-6">
           {stats?.stats.map((stat: MonthlyCategoryStat) => {
             const project = getProjectInfo(stat.category);
             const percentageUsed = stat.percentageUsed;
@@ -117,19 +131,19 @@ const Dashboard: React.FC = () => {
                       {project.icon}
                     </span>
                     <div>
-                      <p className="font-medium text-gray-900">{project.name}</p>
-                      <p className="text-sm text-gray-500">
+                      <p className="font-medium text-foreground">{project.name}</p>
+                      <p className="text-sm text-muted-foreground">
                         {stat.percentage.toFixed(1)}% of income
                       </p>
                     </div>
                   </div>
                   <div className="text-right">
                     <p
-                      className={`font-semibold ${isOverBudget ? 'text-red-600' : 'text-gray-900'}`}
+                      className={`font-semibold ${isOverBudget ? 'text-destructive' : 'text-foreground'}`}
                     >
                       {formatCurrency(stat.spent)} / {formatCurrency(stat.allocated)}
                     </p>
-                    <p className="text-sm text-gray-500">
+                    <p className="text-sm text-muted-foreground">
                       {isOverBudget
                         ? `+${formatCurrency(Math.abs(stat.remaining))} over`
                         : `${formatCurrency(stat.remaining)} left`}
@@ -138,31 +152,30 @@ const Dashboard: React.FC = () => {
                 </div>
 
                 {/* Progress Bar */}
-                <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
-                  <div
-                    className={`h-2 rounded-full transition-all ${isOverBudget
-                      ? 'bg-red-500'
+                <Progress
+                  value={Math.min(percentageUsed, 100)}
+                  className={`h-2 ${
+                    isOverBudget
+                      ? '[&>div]:bg-red-500'
                       : percentageUsed > 80
-                        ? 'bg-yellow-500'
-                        : 'bg-green-500'
-                      }`}
-                    style={{ width: `${Math.min(percentageUsed, 100)}%` }}
-                  />
-                </div>
-                <p className="text-xs text-gray-500 text-right">
+                        ? '[&>div]:bg-yellow-500'
+                        : '[&>div]:bg-green-500'
+                  }`}
+                />
+                <p className="text-xs text-muted-foreground text-right">
                   {percentageUsed.toFixed(1)}% used
                 </p>
               </div>
             );
           })}
-        </div>
 
-        {(!stats || stats.stats.length === 0) && (
-          <p className="text-gray-500 text-center py-8">
-            No budget data available. Add some income and expenses to see your budget overview.
-          </p>
-        )}
-      </div>
+          {(!stats || stats.stats.length === 0) && (
+            <p className="text-muted-foreground text-center py-8">
+              No budget data available. Add some income and expenses to see your budget overview.
+            </p>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 };

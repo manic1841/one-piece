@@ -1,6 +1,12 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { doc, getDoc } from 'firebase/firestore';
 import { useAuth } from '../contexts/useAuth';
+import { db } from '../firebase';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 const Login: React.FC = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -53,8 +59,6 @@ const Login: React.FC = () => {
     try {
       // Try to access a random document.
       // Even if it fails with permission-denied, it means we reached Firebase.
-      const { doc, getDoc } = await import('firebase/firestore');
-      const { db } = await import('../firebase');
       await getDoc(doc(db, 'test_connection', 'ping'));
       alert('Firebase Connection Successful! (Read succeeded)');
     } catch (err) {
@@ -73,76 +77,79 @@ const Login: React.FC = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
-        <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+      <Card className="w-full max-w-md">
+        <CardHeader className="space-y-1">
+          <CardTitle className="text-2xl text-center">
             {isLogin ? 'Sign in to your account' : 'Create a new account'}
-          </h2>
-        </div>
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          {error && <div className="text-red-500 text-center text-sm">{error}</div>}
-          <div className="rounded-md shadow-sm -space-y-px">
-            <div>
-              <input
+          </CardTitle>
+          <CardDescription className="text-center">
+            Enter your email and password to {isLogin ? 'sign in' : 'create an account'}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {error && <div className="bg-destructive/10 text-destructive p-3 rounded-lg text-sm text-center">{error}</div>}
+
+            <div className="space-y-2">
+              <Label htmlFor="email">Email address</Label>
+              <Input
+                id="email"
                 type="email"
                 required
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-                placeholder="Email address"
+                placeholder="you@example.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
               />
             </div>
-            <div>
-              <input
+
+            <div className="space-y-2">
+              <Label htmlFor="password">Password</Label>
+              <Input
+                id="password"
                 type="password"
                 required
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-                placeholder="Password"
+                placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
               />
             </div>
-          </div>
 
-          <div>
-            <button
-              type="submit"
-              disabled={loading}
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-            >
+            <Button type="submit" disabled={loading} className="w-full">
               {isLogin ? 'Sign in' : 'Sign up'}
-            </button>
+            </Button>
+          </form>
+
+          <div className="mt-6 space-y-3">
+            <Button
+              variant="outline"
+              onClick={handleGoogleLogin}
+              disabled={loading}
+              className="w-full"
+            >
+              Sign in with Google
+            </Button>
+
+            <Button
+              variant="outline"
+              onClick={testConnection}
+              disabled={loading}
+              className="w-full text-muted-foreground"
+            >
+              Test Firebase Connection
+            </Button>
           </div>
-        </form>
 
-        <div className="mt-6 space-y-3">
-          <button
-            onClick={handleGoogleLogin}
-            disabled={loading}
-            className="w-full flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-          >
-            Sign in with Google
-          </button>
-
-          <button
-            type="button"
-            onClick={testConnection}
-            disabled={loading}
-            className="w-full flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-500 bg-gray-50 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
-          >
-            Test Firebase Connection
-          </button>
-        </div>
-
-        <div className="text-center">
-          <button
-            className="text-sm text-blue-600 hover:text-blue-500"
-            onClick={() => setIsLogin(!isLogin)}
-          >
-            {isLogin ? 'Need an account? Sign up' : 'Already have an account? Sign in'}
-          </button>
-        </div>
-      </div>
+          <div className="text-center mt-6">
+            <Button
+              variant="link"
+              onClick={() => setIsLogin(!isLogin)}
+              className="text-sm"
+            >
+              {isLogin ? 'Need an account? Sign up' : 'Already have an account? Sign in'}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 };
