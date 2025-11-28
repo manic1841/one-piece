@@ -36,8 +36,10 @@ class ProjectService extends BaseService<Project> {
       // Check if it's a Timestamp (has seconds property)
       // BaseService might have converted it to Date or Timestamp depending on schema
       // But let's handle both
-      const timeA = a.createdAt instanceof Timestamp ? a.createdAt.toMillis() : (a.createdAt as Date).getTime();
-      const timeB = b.createdAt instanceof Timestamp ? b.createdAt.toMillis() : (b.createdAt as Date).getTime();
+      const timeA =
+        a.createdAt instanceof Timestamp ? a.createdAt.toMillis() : (a.createdAt as Date).getTime();
+      const timeB =
+        b.createdAt instanceof Timestamp ? b.createdAt.toMillis() : (b.createdAt as Date).getTime();
       return timeA - timeB;
     });
   }
