@@ -10,6 +10,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
 
 interface ProjectFormModalProps {
   isOpen: boolean;
@@ -31,7 +32,10 @@ const ProjectFormModal: React.FC<ProjectFormModalProps> = ({
 
   useEffect(() => {
     if (isOpen) {
-      setFormData(initialData || {});
+      setFormData({
+        includeInReconciliation: true,
+        ...initialData,
+      });
     }
   }, [isOpen, initialData]);
 
@@ -104,6 +108,24 @@ const ProjectFormModal: React.FC<ProjectFormModalProps> = ({
               rows={3}
               disabled={loading}
             />
+          </div>
+
+          {/* Include in Reconciliation */}
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id="include-reconciliation"
+              checked={formData.includeInReconciliation ?? true}
+              onCheckedChange={(checked) =>
+                setFormData((prev) => ({ ...prev, includeInReconciliation: checked === true }))
+              }
+              disabled={loading}
+            />
+            <Label
+              htmlFor="include-reconciliation"
+              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+            >
+              Include in reconciliation
+            </Label>
           </div>
         </form>
         <DialogFooter>

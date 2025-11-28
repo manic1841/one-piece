@@ -558,5 +558,215 @@ describe('reconciliationService', () => {
       expect(report.currentMonth.totalBalance).toBe(7000); // 5000 + 0 + 2000
       expect(report.previousMonth.totalBalance).toBe(4500); // 4000 + 500 + 0
     });
+
+    it('should exclude accounts with includeInReconciliation=false from reconciliation', async () => {
+      const accounts = [
+        { id: 'acc-1', name: 'Bank Account', type: 'bank' as const, includeInReconciliation: true },
+        { id: 'acc-2', name: 'Cash', type: 'cash' as const, includeInReconciliation: false },
+        { id: 'acc-3', name: 'Savings', type: 'bank' as const }, // undefined should default to true
+      ];
+      vi.mocked(accountService.getAccounts).mockResolvedValue(accounts);
+
+      vi.mocked(accountService.getSnapshots)
+        // acc-1 current
+        .mockResolvedValueOnce([
+          {
+            id: 's1',
+            accountId: 'acc-1',
+            year: 2023,
+            month: 10,
+            amount: 5000,
+            createdAt: Timestamp.now(),
+          },
+        ])
+        // acc-1 previous
+        .mockResolvedValueOnce([
+          {
+            id: 's2',
+            accountId: 'acc-1',
+            year: 2023,
+            month: 9,
+            amount: 4000,
+            createdAt: Timestamp.now(),
+          },
+        ])
+        // acc-2 should be skipped (includeInReconciliation: false)
+        // acc-3 current
+        .mockResolvedValueOnce([
+          {
+            id: 's3',
+            accountId: 'acc-3',
+            year: 2023,
+            month: 10,
+            amount: 2000,
+            createdAt: Timestamp.now(),
+          },
+        ])
+        // acc-3 previous
+        .mockResolvedValueOnce([
+          {
+            id: 's4',
+            accountId: 'acc-3',
+            year: 2023,
+            month: 9,
+            amount: 1500,
+            createdAt: Timestamp.now(),
+          },
+        ]);
+
+      vi.mocked(projectService.getProjects).mockResolvedValue([]);
+
+      const report = await reconciliationService.getReconciliationReport(householdId, 2023, 10);
+
+      // Should only include acc-1 and acc-3, not acc-2
+      expect(report.currentMonth.totalBalance).toBe(7000); // 5000 + 2000
+      expect(report.previousMonth.totalBalance).toBe(5500); // 4000 + 1500
+      expect(report.actualChange).toBe(1500); // 7000 - 5500
+    });
+
+    it('should exclude projects with includeInReconciliation=false from reconciliation', async () => {
+      const accounts = [{ id: 'acc-1', name: 'Bank Account', type: 'bank' as const }];
+      vi.mocked(accountService.getAccounts).mockResolvedValue(accounts);
+
+      vi.mocked(accountService.getSnapshots)
+        .mockResolvedValueOnce([
+          {
+            id: 's1',
+            accountId: 'acc-1',
+            year: 2023,
+            month: 10,
+            amount: 2000,
+            createdAt: Timestamp.now(),
+          },
+        ])
+        .mockResolvedValueOnce([
+          {
+            id: 's2',
+            accountId: 'acc-1',
+            year: 2023,
+            month: 9,
+            amount: 1000,
+            createdAt: Timestamp.now(),
+          },
+        ]);
+
+      const projects = [
+        {
+          id: 'proj-1',
+          name: 'Project 1',
+          icon: '🏠',
+          color: '#4CAF50',
+          includeInReconciliation: true,
+        },
+        {
+          id: 'proj-2',
+          name: 'Project 2',
+          icon: '🚗',
+          color: '#2196F3',
+          includeInReconciliation: false,
+        },
+        { id: 'proj-3', name: 'Project 3', icon: '🍕', color: '#FF5722' }, // undefined should default to true
+      ];
+      vi.mocked(projectService.getProjects).mockResolvedValue(projects);
+
+      vi.mocked(projectService.getSnapshots)
+        // proj-1
+        .mockResolvedValueOnce([
+          {
+            id: 'ps1',
+            year: 2023,
+            month: 10,
+            openingBalance: 1000,
+            income: 800,
+            expense: 300,
+            closingBalance: 1500,
+            createdAt: Timestamp.now(),
+          },
+        ])
+        // proj-2 should be skipped (includeInReconciliation: false)
+        // proj-3
+        .mockResolvedValueOnce([
+          {
+            id: 'ps3',
+            year: 2023,
+            month: 10,
+            openingBalance: 500,
+            income: 200,
+            expense: 100,
+            closingBalance: 600,
+            createdAt: Timestamp.now(),
+          },
+        ]);
+
+      const report = await reconciliationService.getReconciliationReport(householdId, 2023, 10);
+
+      // Should only include proj-1 and proj-3, not proj-2
+      expect(report.expected.totalIncome).toBe(1000); // 800 + 200
+      expect(report.expected.totalExpense).toBe(400); // 300 + 100
+      expect(report.expected.incomeByProject).toEqual({
+        'proj-1': 800,
+        'proj-3': 200,
+      });
+      expect(report.expected.expenseByProject).toEqual({
+        'proj-1': 300,
+        'proj-3': 100,
+      });
+      expect(report.expectedChange).toBe(600); // 1000 - 400
+    });
+
+    it('should handle backward compatibility when includeInReconciliation is undefined', async () => {
+      const accounts = [
+        { id: 'acc-1', name: 'Bank Account', type: 'bank' as const }, // no includeInReconciliation field
+      ];
+      vi.mocked(accountService.getAccounts).mockResolvedValue(accounts);
+
+      vi.mocked(accountService.getSnapshots)
+        .mockResolvedValueOnce([
+          {
+            id: 's1',
+            accountId: 'acc-1',
+            year: 2023,
+            month: 10,
+            amount: 5000,
+            createdAt: Timestamp.now(),
+          },
+        ])
+        .mockResolvedValueOnce([
+          {
+            id: 's2',
+            accountId: 'acc-1',
+            year: 2023,
+            month: 9,
+            amount: 4000,
+            createdAt: Timestamp.now(),
+          },
+        ]);
+
+      const projects = [
+        { id: 'proj-1', name: 'Project 1', icon: '🏠', color: '#4CAF50' }, // no includeInReconciliation field
+      ];
+      vi.mocked(projectService.getProjects).mockResolvedValue(projects);
+
+      vi.mocked(projectService.getSnapshots).mockResolvedValueOnce([
+        {
+          id: 'ps1',
+          year: 2023,
+          month: 10,
+          openingBalance: 1000,
+          income: 500,
+          expense: 200,
+          closingBalance: 1300,
+          createdAt: Timestamp.now(),
+        },
+      ]);
+
+      const report = await reconciliationService.getReconciliationReport(householdId, 2023, 10);
+
+      // Should include everything when includeInReconciliation is undefined
+      expect(report.currentMonth.totalBalance).toBe(5000);
+      expect(report.previousMonth.totalBalance).toBe(4000);
+      expect(report.expected.totalIncome).toBe(500);
+      expect(report.expected.totalExpense).toBe(200);
+    });
   });
 });

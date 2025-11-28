@@ -24,6 +24,7 @@ export const ProjectSchema = z.object({
   description: z.string().optional(),
   isPersonal: z.boolean().default(false),
   isActive: z.boolean().default(true),
+  includeInReconciliation: z.boolean().default(true).optional(),
   createdAt: TimestampSchema.optional(),
   // subcollection
   snapshots: z.array(ProjectSnapshotSchema).optional(),

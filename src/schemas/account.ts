@@ -24,6 +24,7 @@ export const AccountSchema = z.object({
   name: z.string(),
   type: AccountTypeSchema,
   currency: z.string(),
+  includeInReconciliation: z.boolean().default(true).optional(),
   createdAt: TimestampSchema,
   // subcollection
   snapshots: z.array(AccountSnapshotSchema).optional(),
