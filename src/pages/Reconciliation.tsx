@@ -8,6 +8,8 @@ import { projectService } from '../services/projectService';
 import { type Project } from '../schemas';
 import { ChevronLeft, ChevronRight, AlertTriangle, CheckCircle } from 'lucide-react';
 import { formatCurrency } from '../utils/formatUtils';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 
 const Reconciliation: React.FC = () => {
   const { userProfile } = useAuth();
@@ -83,8 +85,8 @@ const Reconciliation: React.FC = () => {
   if (loading) {
     return (
       <div className="space-y-6">
-        <h1 className="text-2xl font-bold text-gray-900">Reconciliation</h1>
-        <div className="text-gray-500">Loading...</div>
+        <h1 className="text-2xl font-bold text-foreground">Reconciliation</h1>
+        <div className="text-muted-foreground">Loading...</div>
       </div>
     );
   }
@@ -93,30 +95,34 @@ const Reconciliation: React.FC = () => {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Reconciliation</h1>
-        <p className="text-gray-600 mt-2">比較實際餘額變化與專案快照預期</p>
+        <h1 className="text-2xl font-bold text-foreground">Reconciliation</h1>
+        <p className="text-muted-foreground mt-2">比較實際餘額變化與專案快照預期</p>
       </div>
 
       {/* Month Selector */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
-        <div className="flex items-center justify-between">
-          <button
-            onClick={handlePreviousMonth}
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-          >
-            <ChevronLeft size={20} />
-          </button>
-          <h2 className="text-lg font-semibold text-gray-900">
-            {selectedYear}年 {selectedMonth}月
-          </h2>
-          <button
-            onClick={handleNextMonth}
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-          >
-            <ChevronRight size={20} />
-          </button>
-        </div>
-      </div>
+      <Card>
+        <CardContent className="p-4">
+          <div className="flex items-center justify-between">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handlePreviousMonth}
+            >
+              <ChevronLeft size={20} />
+            </Button>
+            <h2 className="text-lg font-semibold text-foreground">
+              {selectedYear}年 {selectedMonth}月
+            </h2>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleNextMonth}
+            >
+              <ChevronRight size={20} />
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
 
       {report && (
         <>
@@ -146,145 +152,156 @@ const Reconciliation: React.FC = () => {
           )}
 
           {/* Actual Balance Section */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">實際餘額</h3>
-            <div className="grid grid-cols-3 gap-4">
-              <div>
-                <p className="text-sm text-gray-600">上月總餘額</p>
-                <p className="text-xl font-bold text-gray-900 mt-1">
-                  {formatCurrency(report.previousMonth.totalBalance)}
-                </p>
-                <p className="text-xs text-gray-500 mt-1">
-                  {report.previousMonth.year}/{report.previousMonth.month}
-                </p>
+          <Card>
+            <CardHeader>
+              <CardTitle>實際餘額</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <p className="text-sm text-muted-foreground">上月總餘額</p>
+                  <p className="text-xl font-bold text-foreground mt-1">
+                    {formatCurrency(report.previousMonth.totalBalance)}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {report.previousMonth.year}/{report.previousMonth.month}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">本月總餘額</p>
+                  <p className="text-xl font-bold text-foreground mt-1">
+                    {formatCurrency(report.currentMonth.totalBalance)}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {report.currentMonth.year}/{report.currentMonth.month}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">實際變化</p>
+                  <p
+                    className={`text-xl font-bold mt-1 ${report.actualChange >= 0 ? 'text-green-600' : 'text-red-600'
+                      }`}
+                  >
+                    {report.actualChange >= 0 ? '+' : ''}
+                    {formatCurrency(report.actualChange)}
+                  </p>
+                </div>
               </div>
-              <div>
-                <p className="text-sm text-gray-600">本月總餘額</p>
-                <p className="text-xl font-bold text-gray-900 mt-1">
-                  {formatCurrency(report.currentMonth.totalBalance)}
-                </p>
-                <p className="text-xs text-gray-500 mt-1">
-                  {report.currentMonth.year}/{report.currentMonth.month}
-                </p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-600">實際變化</p>
-                <p
-                  className={`text-xl font-bold mt-1 ${
-                    report.actualChange >= 0 ? 'text-green-600' : 'text-red-600'
-                  }`}
-                >
-                  {report.actualChange >= 0 ? '+' : ''}
-                  {formatCurrency(report.actualChange)}
-                </p>
-              </div>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
 
           {/* Project Summary */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">專案統計（來自快照）</h3>
-            <div className="grid grid-cols-2 gap-6">
-              {/* Income */}
-              <div>
-                <h4 className="font-medium text-gray-700 mb-3">收入明細</h4>
-                <div className="space-y-2">
-                  {Object.entries(report.expected.incomeByProject).map(([projectId, amount]) => (
-                    <div key={projectId} className="flex justify-between text-sm">
-                      <span className="text-gray-600">{getProjectName(projectId)}</span>
-                      <span className="font-medium text-green-600">
-                        +{formatCurrency(amount as number)}
+          <Card>
+            <CardHeader>
+              <CardTitle>專案統計（來自快照）</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 gap-6">
+                {/* Income */}
+                <div>
+                  <h4 className="font-medium text-foreground mb-3">收入明細</h4>
+                  <div className="space-y-2">
+                    {Object.entries(report.expected.incomeByProject).map(([projectId, amount]) => (
+                      <div key={projectId} className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">{getProjectName(projectId)}</span>
+                        <span className="font-medium text-green-600">
+                          +{formatCurrency(amount as number)}
+                        </span>
+                      </div>
+                    ))}
+                    <div className="pt-2 border-t border-border flex justify-between font-semibold">
+                      <span>總收入</span>
+                      <span className="text-green-600">
+                        +{formatCurrency(report.expected.totalIncome)}
                       </span>
                     </div>
-                  ))}
-                  <div className="pt-2 border-t border-gray-200 flex justify-between font-semibold">
-                    <span>總收入</span>
-                    <span className="text-green-600">
-                      +{formatCurrency(report.expected.totalIncome)}
-                    </span>
+                  </div>
+                </div>
+
+                {/* Expenses */}
+                <div>
+                  <h4 className="font-medium text-foreground mb-3">支出明細</h4>
+                  <div className="space-y-2">
+                    {Object.entries(report.expected.expenseByProject).map(([projectId, amount]) => (
+                      <div key={projectId} className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">{getProjectName(projectId)}</span>
+                        <span className="font-medium text-red-600">
+                          -{formatCurrency(amount as number)}
+                        </span>
+                      </div>
+                    ))}
+                    <div className="pt-2 border-t border-border flex justify-between font-semibold">
+                      <span>總支出</span>
+                      <span className="text-red-600">
+                        -{formatCurrency(report.expected.totalExpense)}
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>
 
-              {/* Expenses */}
-              <div>
-                <h4 className="font-medium text-gray-700 mb-3">支出明細</h4>
-                <div className="space-y-2">
-                  {Object.entries(report.expected.expenseByProject).map(([projectId, amount]) => (
-                    <div key={projectId} className="flex justify-between text-sm">
-                      <span className="text-gray-600">{getProjectName(projectId)}</span>
-                      <span className="font-medium text-red-600">
-                        -{formatCurrency(amount as number)}
-                      </span>
-                    </div>
-                  ))}
-                  <div className="pt-2 border-t border-gray-200 flex justify-between font-semibold">
-                    <span>總支出</span>
-                    <span className="text-red-600">
-                      -{formatCurrency(report.expected.totalExpense)}
-                    </span>
-                  </div>
+              {/* Expected Change */}
+              <div className="mt-4 pt-4 border-t border-border">
+                <div className="flex justify-between items-center">
+                  <span className="font-medium text-foreground">預期變化（來自專案快照）</span>
+                  <span
+                    className={`text-xl font-bold ${report.expectedChange >= 0 ? 'text-green-600' : 'text-red-600'
+                      }`}
+                  >
+                    {report.expectedChange >= 0 ? '+' : ''}
+                    {formatCurrency(report.expectedChange)}
+                  </span>
                 </div>
               </div>
-            </div>
-
-            {/* Expected Change */}
-            <div className="mt-4 pt-4 border-t border-gray-200">
-              <div className="flex justify-between items-center">
-                <span className="font-medium text-gray-700">預期變化（來自專案快照）</span>
-                <span
-                  className={`text-xl font-bold ${
-                    report.expectedChange >= 0 ? 'text-green-600' : 'text-red-600'
-                  }`}
-                >
-                  {report.expectedChange >= 0 ? '+' : ''}
-                  {formatCurrency(report.expectedChange)}
-                </span>
-              </div>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
 
           {/* Reconciliation Result */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">對帳結果</h3>
-            <div className="space-y-3">
-              <div className="flex justify-between items-center">
-                <span className="text-gray-600">實際變化</span>
-                <span className="font-medium">{formatCurrency(report.actualChange)}</span>
+          <Card>
+            <CardHeader>
+              <CardTitle>對帳結果</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                <div className="flex justify-between items-center">
+                  <span className="text-muted-foreground">實際變化</span>
+                  <span className="font-medium">{formatCurrency(report.actualChange)}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-muted-foreground">預期變化</span>
+                  <span className="font-medium">{formatCurrency(report.expectedChange)}</span>
+                </div>
+                <div className="pt-3 border-t-2 border-border flex justify-between items-center">
+                  <span className="font-semibold text-foreground">差異</span>
+                  <span
+                    className={`text-2xl font-bold ${Math.abs(report.discrepancy) < 0.01 ? 'text-green-600' : 'text-yellow-600'
+                      }`}
+                  >
+                    {Math.abs(report.discrepancy) < 0.01
+                      ? '✓ 完全一致'
+                      : formatCurrency(report.discrepancy)}
+                  </span>
+                </div>
+                {report.hasDiscrepancy && (
+                  <p className="text-sm text-muted-foreground mt-2">
+                    💡 提示：差異可能來自未記錄的專案快照、手續費、或餘額記錄錯誤。
+                  </p>
+                )}
               </div>
-              <div className="flex justify-between items-center">
-                <span className="text-gray-600">預期變化</span>
-                <span className="font-medium">{formatCurrency(report.expectedChange)}</span>
-              </div>
-              <div className="pt-3 border-t-2 border-gray-300 flex justify-between items-center">
-                <span className="font-semibold text-gray-900">差異</span>
-                <span
-                  className={`text-2xl font-bold ${
-                    Math.abs(report.discrepancy) < 0.01 ? 'text-green-600' : 'text-yellow-600'
-                  }`}
-                >
-                  {Math.abs(report.discrepancy) < 0.01
-                    ? '✓ 完全一致'
-                    : formatCurrency(report.discrepancy)}
-                </span>
-              </div>
-              {report.hasDiscrepancy && (
-                <p className="text-sm text-gray-600 mt-2">
-                  💡 提示：差異可能來自未記錄的專案快照、手續費、或餘額記錄錯誤。
-                </p>
-              )}
-            </div>
-          </div>
+            </CardContent>
+          </Card>
         </>
       )}
 
       {!report && !loading && (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-12 text-center">
-          <p className="text-gray-500">
-            沒有找到 {selectedYear}年{selectedMonth}月 的對帳資料
-          </p>
-          <p className="text-sm text-gray-400 mt-2">請先在 Assets 頁面記錄本月和上月的帳戶餘額</p>
-        </div>
+        <Card>
+          <CardContent className="p-12 text-center">
+            <p className="text-muted-foreground">
+              沒有找到 {selectedYear}年{selectedMonth}月 的對帳資料
+            </p>
+            <p className="text-sm text-muted-foreground mt-2">請先在 Assets 頁面記錄本月和上月的帳戶餘額</p>
+          </CardContent>
+        </Card>
       )}
     </div>
   );
