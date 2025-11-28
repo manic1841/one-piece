@@ -15,10 +15,10 @@ jobs:
   build_and_preview:
     name: Build and Deploy to Firebase Hosting Preview Channel
     if: >
-      github.event.workflow_run.conclusion == 'success'&& 
-      github.event.workflow_run.head_branch == 'develop'
+      github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     steps:
+      - run: echo "Branch ${{ github.event.workflow_run.head_branch }}"
       - uses: actions/checkout@v5
         with:
           ref: ${{ github.event.workflow_run.head_sha }}
