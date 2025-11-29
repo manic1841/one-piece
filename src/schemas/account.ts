@@ -6,12 +6,24 @@ export const AccountTypeSchema = z.enum(['bank', 'cash', 'investment', 'other'])
 
 export type AccountType = z.infer<typeof AccountTypeSchema>;
 
+// Holding Schema
+export const HoldingSchema = z.object({
+  symbol: z.string(),
+  name: z.string(),
+  quantity: z.number(),
+  marketValue: z.number(),
+  leverage: z.number().optional(),
+});
+
+export type Holding = z.infer<typeof HoldingSchema>;
+
 // AccountSnapshotModel Schema
 export const AccountSnapshotSchema = z.object({
   id: z.string(),
   year: z.number().int(),
   month: z.number().int().min(1).max(12),
   amount: z.number(),
+  holdings: z.array(HoldingSchema).optional(),
   createdBy: z.string(),
   createdAt: TimestampSchema,
 });
