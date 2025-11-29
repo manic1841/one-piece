@@ -1,6 +1,13 @@
 import { describe, it, expect } from 'vitest';
 import { Timestamp } from 'firebase/firestore';
-import { toDateString, toDate, toISOString, fromDate } from './dateUtils';
+import {
+  toDateString,
+  toDate,
+  toISOString,
+  fromDate,
+  getMonthRange,
+  formatDateRange,
+} from './dateUtils';
 
 describe('dateUtils', () => {
   const testDate = new Date('2023-10-05T12:00:00.000Z');
@@ -47,6 +54,38 @@ describe('dateUtils', () => {
       const result = fromDate(testDate);
       expect(result).toBeInstanceOf(Timestamp);
       expect(result.toMillis()).toBe(testDate.getTime());
+    });
+  });
+
+  describe('getMonthRange', () => {
+    it('should return correct start and end for January', () => {
+      const { start, end } = getMonthRange(2025, 1);
+      
+      expect(start.getFullYear()).toBe(2025);
+      expect(start.getMonth()).toBe(0);
+      expect(start.getDate()).toBe(1);
+      
+      expect(end.getFullYear()).toBe(2025);
+      expect(end.getMonth()).toBe(0);
+      expect(end.getDate()).toBe(31);
+    });
+
+    it('should return correct start and end for February (leap year)', () => {
+      const { start, end } = getMonthRange(2024, 2);
+      
+      expect(start.getDate()).toBe(1);
+      expect(end.getDate()).toBe(29);
+    });
+  });
+
+  describe('formatDateRange', () => {
+    it('should format date range correctly', () => {
+      const start = new Date(2025, 0, 1);
+      const end = new Date(2025, 0, 31);
+      
+      const formatted = formatDateRange(start, end);
+      
+      expect(formatted).toBe('2025/01/01 - 2025/01/31');
     });
   });
 });

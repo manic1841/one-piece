@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Receipt, Folder, Wallet, Calculator, Briefcase, Settings, LogOut } from 'lucide-react';
+import { LayoutDashboard, Receipt, Folder, Wallet, Calculator, Briefcase, FileText, Settings, LogOut } from 'lucide-react';
 import clsx from 'clsx';
 import { useAuth } from '../contexts/useAuth';
 import { householdService } from '../services/householdService';
@@ -52,6 +52,7 @@ const Layout: React.FC = () => {
     { to: '/accounts', icon: Wallet, label: 'Accounts' },
     { to: '/reconciliation', icon: Calculator, label: 'Reconciliation' },
     { to: '/portfolios', icon: Briefcase, label: 'Portfolios' },
+    { to: '/reports', icon: FileText, label: 'Reports' },
     { to: '/settings', icon: Settings, label: 'Settings' },
   ];
 

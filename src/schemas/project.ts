@@ -25,6 +25,14 @@ export const ProjectSchema = z.object({
   isPersonal: z.boolean().default(false),
   isActive: z.boolean().default(true),
   includeInReconciliation: z.boolean().default(true).optional(),
+  accounting: z.object({
+    enabled: z.boolean().default(false),
+    incomeStatement: z.object({
+      category: z.enum(['income', 'expense']),
+      subcategory: z.string(),
+      order: z.number().int().optional(),
+    }).optional(),
+  }).optional(),
   createdAt: TimestampSchema.optional(),
   // subcollection
   snapshots: z.array(ProjectSnapshotSchema).optional(),

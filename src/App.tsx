@@ -13,6 +13,8 @@ import Portfolios from './pages/Portfolios';
 import PortfolioView from './pages/PortfolioView';
 import Reconciliation from './pages/Reconciliation';
 import Settings from './pages/Settings';
+import Reports from './pages/Reports';
+import IncomeStatementPage from './pages/IncomeStatementPage';
 
 function App() {
   return (
@@ -44,6 +46,8 @@ function App() {
             <Route path="portfolios" element={<Portfolios />} />
             <Route path="portfolios/:id" element={<PortfolioView />} />
             <Route path="reconciliation" element={<Reconciliation />} />
+            <Route path="reports" element={<Reports />} />
+            <Route path="reports/income-statement" element={<IncomeStatementPage />} />
             <Route path="settings" element={<Settings />} />
           </Route>
         </Routes>
