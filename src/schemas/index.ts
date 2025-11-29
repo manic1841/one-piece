@@ -8,8 +8,8 @@ export * from './project';
 export * from './transaction';
 export * from './plannedIncome';
 export * from './helper';
+export * from './portfolio';
 
-// Access Control Schema
 export const AccessControlSchema = z.object({
   whitelistedEmails: z.array(z.string().email()),
   updatedAt: TimestampSchema.optional(),

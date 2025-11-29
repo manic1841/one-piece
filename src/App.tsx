@@ -9,6 +9,8 @@ import Dashboard from './pages/Dashboard';
 import Transactions from './pages/Transactions';
 import Projects from './pages/Projects';
 import Accounts from './pages/Accounts';
+import Portfolios from './pages/Portfolios';
+import PortfolioView from './pages/PortfolioView';
 import Reconciliation from './pages/Reconciliation';
 import Settings from './pages/Settings';
 
@@ -39,6 +41,8 @@ function App() {
             <Route path="transactions" element={<Transactions />} />
             <Route path="projects" element={<Projects />} />
             <Route path="accounts" element={<Accounts />} />
+            <Route path="portfolios" element={<Portfolios />} />
+            <Route path="portfolios/:id" element={<PortfolioView />} />
             <Route path="reconciliation" element={<Reconciliation />} />
             <Route path="settings" element={<Settings />} />
           </Route>
