@@ -3,8 +3,11 @@ import {
   type IncomeStatement,
   type CategoryGroup,
   type IncomeStatementItem,
-  type Transaction,
+  type ProjectSnapshot,
   type Project,
+  type PlannedIncome,
+  type Transaction,
+  type AccountingConfig,
   IncomeStatementSchema,
 } from '../../../schemas';
 import {
@@ -12,42 +15,32 @@ import {
   calculateSubtotals,
   calculateTotal,
 } from '../../../utils/aggregationUtils';
-import {
-  getCategoryType,
-  getDefaultCategoryOrder,
-  sortByOrder,
-  INCOME_CATEGORIES,
-  EXPENSE_CATEGORIES,
-} from '../../../utils/accountingUtils';
+import { sortByOrder } from '../../../utils/accountingUtils';
 
 /**
- * Pure function to calculate the income statement from transactions and projects.
+ * Pure function to calculate the income statement
  */
 export function calculateIncomeStatement(
-  transactions: Transaction[],
+  plannedIncomes: PlannedIncome[],
+  incomeTransactions: Transaction[],
+  snapshots: Array<ProjectSnapshot & { projectId: string }>,
   projects: Project[],
+  accountingConfig: AccountingConfig | null,
   startDate: Date,
   endDate: Date,
   createdBy: string,
-  householdId: string
+  householdId: string,
 ): IncomeStatement {
-  const projectMap = new Map(projects.map((p) => [p.id, p]));
+  // 1. Build Income Section
+  const income = buildIncomeSection(plannedIncomes, incomeTransactions, projects);
 
-  // 1. Convert transactions to income statement items
-  const items = transactionsToItems(transactions, projectMap);
+  // 2. Build Expense Section
+  const expense = buildExpenseSection(snapshots, projects, accountingConfig);
 
-  // 2. Separate into income and expense
-  const incomeItems = items.filter((item) => getCategoryType(item.category) === 'income');
-  const expenseItems = items.filter((item) => getCategoryType(item.category) === 'expense');
-
-  // 3. Group and calculate
-  const income = buildSection(incomeItems);
-  const expense = buildSection(expenseItems);
-
-  // 4. Calculate net income
+  // 3. Calculate net income
   const netIncome = income.total - expense.total;
 
-  // 5. Determine period type and extract year/month/quarter
+  // 4. Determine period type
   const periodDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
   let periodType: 'monthly' | 'quarterly' | 'yearly';
   const year = startDate.getFullYear();
@@ -64,7 +57,7 @@ export function calculateIncomeStatement(
     periodType = 'yearly';
   }
 
-  // 6. Create income statement object
+  // 5. Create income statement object
   const incomeStatement: IncomeStatement = {
     id: `is-${householdId}-${startDate.getTime()}-${endDate.getTime()}`,
     startDate: Timestamp.fromDate(startDate),
@@ -80,82 +73,166 @@ export function calculateIncomeStatement(
     createdBy,
   };
 
-  // Validate with schema (optional but good for safety)
+  // Validate with schema
   return IncomeStatementSchema.parse(incomeStatement);
 }
 
 /**
- * Convert transactions to income statement items
+ * Build income section from planned income and extra transactions
  */
-function transactionsToItems(
-  transactions: Transaction[],
-  projectMap: Map<string, Project>
-): IncomeStatementItem[] {
-  return transactions.map((transaction) => {
-    const project = projectMap.get(transaction.projectId);
+function buildIncomeSection(
+  plannedIncomes: PlannedIncome[],
+  incomeTransactions: Transaction[],
+  projects: Project[],
+): { categories: CategoryGroup[]; total: number } {
+  const items: IncomeStatementItem[] = [];
+  const projectMap = new Map(projects.map((p) => [p.id, p]));
 
-    // Determine category and subcategory
-    let category = transaction.category;
-    let subcategory: string | undefined;
-    let order: number | undefined;
+  // 1. Process Planned Income (Salary, Bonus, Other)
+  const incomeCategoryMap: Record<string, string> = {
+    salary: '薪資收入',
+    bonus: '獎金收入',
+    other: '其他收入',
+  };
 
-    // Check if project has accounting configuration
-    if (project?.accounting?.enabled && project.accounting.incomeStatement) {
-      const accountingConfig = project.accounting.incomeStatement;
-      // Use category from transaction but can be enhanced with project config
-      subcategory = project.name;
-      order = accountingConfig.order ?? getDefaultCategoryOrder(category);
-    } else {
-      // Use default order based on category
-      order = getDefaultCategoryOrder(category);
+  for (const pi of plannedIncomes) {
+    items.push({
+      id: pi.id,
+      category: incomeCategoryMap[pi.category] || pi.category,
+      subcategory: pi.description || 'Planned Income',
+      amount: pi.amount,
+      sourceType: 'plannedIncome',
+      sourceId: pi.id,
+    });
+  }
+
+  // 2. Process Extra Income (Transactions)
+  // Group by project
+  const transactionsByProject = new Map<string, Transaction[]>();
+  for (const t of incomeTransactions) {
+    const projectId = t.projectId;
+    if (!transactionsByProject.has(projectId)) {
+      transactionsByProject.set(projectId, []);
     }
+    transactionsByProject.get(projectId)!.push(t);
+  }
 
-    // Ensure category is valid, fallback to "其他"
-    if (getCategoryType(category) === null) {
-      category = transaction.type === 'income' ? INCOME_CATEGORIES.OTHER : EXPENSE_CATEGORIES.OTHER;
+  for (const [projectId, transactions] of transactionsByProject) {
+    const project = projectMap.get(projectId);
+    const projectName = project ? project.name : 'Unknown Project';
+    const totalAmount = transactions.reduce((sum, t) => sum + t.amount, 0);
+
+    if (totalAmount > 0) {
+      items.push({
+        id: `extra-${projectId}`,
+        category: '額外收入',
+        subcategory: projectName,
+        amount: totalAmount,
+        sourceType: 'transaction', // Represents aggregated transactions
+        sourceId: projectId,
+      });
     }
+  }
 
-    return {
-      id: transaction.id,
-      category,
-      subcategory,
-      amount: transaction.amount,
-      order,
-      sourceType: 'transaction',
-      sourceId: transaction.id,
-    };
-  });
-}
+  // 3. Group and Calculate
+  // Define order for income categories
+  const categoryOrder: Record<string, number> = {
+    薪資收入: 1,
+    獎金收入: 2,
+    其他收入: 3,
+    額外收入: 4,
+  };
 
-/**
- * Build income or expense section
- */
-function buildSection(items: IncomeStatementItem[]): {
-  categories: CategoryGroup[];
-  total: number;
-} {
-  // Group by category
   const grouped = groupByCategory(items, 'category');
-
-  // Calculate subtotals
   const subtotals = calculateSubtotals(grouped, 'amount');
 
-  // Convert to CategoryGroup format
   const categories: CategoryGroup[] = subtotals.map(({ category, subtotal, items }) => ({
     category,
     items: sortByOrder(items as IncomeStatementItem[]),
     subtotal,
-    order: getDefaultCategoryOrder(category),
+    order: categoryOrder[category] || 99,
   }));
 
-  // Sort categories by order
-  const sortedCategories = sortByOrder(categories);
-
-  // Calculate total
-  const total = calculateTotal(items, 'amount');
+  // Sort categories
+  const sortedCategories = categories.sort((a, b) => (a.order || 99) - (b.order || 99));
 
   return {
     categories: sortedCategories,
-    total,
+    total: calculateTotal(items, 'amount'),
+  };
+}
+
+/**
+ * Build expense section from project snapshots
+ */
+function buildExpenseSection(
+  snapshots: Array<ProjectSnapshot & { projectId: string }>,
+  projects: Project[],
+  accountingConfig: AccountingConfig | null,
+): { categories: CategoryGroup[]; total: number } {
+  const items: IncomeStatementItem[] = [];
+  const projectMap = new Map(projects.map((p) => [p.id, p]));
+
+  // Group snapshots by project to sum expenses
+  const snapshotsByProject = new Map<string, ProjectSnapshot[]>();
+  for (const s of snapshots) {
+    if (!snapshotsByProject.has(s.projectId)) {
+      snapshotsByProject.set(s.projectId, []);
+    }
+    snapshotsByProject.get(s.projectId)!.push(s);
+  }
+
+  // Process each project
+  for (const [projectId, projectSnapshots] of snapshotsByProject) {
+    const project = projectMap.get(projectId);
+    if (!project) continue;
+
+    const totalExpense = projectSnapshots.reduce((sum, s) => sum + (s.expense || 0), 0);
+
+    if (totalExpense > 0) {
+      // Determine accounting category
+      // Only include if mapped in accounting config
+      if (accountingConfig && accountingConfig.projectMappings[projectId]) {
+        const category = accountingConfig.projectMappings[projectId];
+
+        items.push({
+          id: `${projectId}-expense`,
+          category,
+          subcategory: project.name,
+          amount: totalExpense,
+          sourceType: 'project',
+          sourceId: projectId,
+        });
+      }
+    }
+  }
+
+  // Define order for expense categories
+  const categoryOrder: Record<string, number> = {
+    生活: 1,
+    居住: 2,
+    交通: 3,
+    保險: 4,
+    利息: 5,
+    稅: 6,
+    其他: 99,
+  };
+
+  const grouped = groupByCategory(items, 'category');
+  const subtotals = calculateSubtotals(grouped, 'amount');
+
+  const categories: CategoryGroup[] = subtotals.map(({ category, subtotal, items }) => ({
+    category,
+    items: sortByOrder(items as IncomeStatementItem[]),
+    subtotal,
+    order: categoryOrder[category] || 99,
+  }));
+
+  // Sort categories
+  const sortedCategories = categories.sort((a, b) => (a.order || 99) - (b.order || 99));
+
+  return {
+    categories: sortedCategories,
+    total: calculateTotal(items, 'amount'),
   };
 }

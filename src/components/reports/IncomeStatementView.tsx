@@ -48,7 +48,11 @@ const IncomeStatementView: React.FC<IncomeStatementViewProps> = ({
             <div className="flex items-center gap-2">
               {hasItems && (
                 <span className="text-slate-400">
-                  {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                  {isExpanded ? (
+                    <ChevronUp className="h-4 w-4" />
+                  ) : (
+                    <ChevronDown className="h-4 w-4" />
+                  )}
                 </span>
               )}
               {categoryGroup.category}
@@ -60,31 +64,32 @@ const IncomeStatementView: React.FC<IncomeStatementViewProps> = ({
         </TableRow>
 
         {/* Show items if expanded */}
-        {isExpanded && categoryGroup.items.map((item) => (
-          <TableRow
-            key={item.id}
-            className="bg-slate-50/50 text-slate-600 text-sm"
-            onClick={() => onCategoryClick?.(item.category)}
-          >
-            <TableCell className="pl-12">{item.subcategory || '明細'}</TableCell>
-            <TableCell className="text-right">{formatCurrency(item.amount)}</TableCell>
-          </TableRow>
-        ))}
+        {isExpanded &&
+          categoryGroup.items.map((item) => (
+            <TableRow
+              key={item.id}
+              className="bg-slate-50/50 text-slate-600 text-sm"
+              onClick={() => onCategoryClick?.(item.category)}
+            >
+              <TableCell className="pl-12">{item.subcategory || '明細'}</TableCell>
+              <TableCell className="text-right">{formatCurrency(item.amount)}</TableCell>
+            </TableRow>
+          ))}
       </React.Fragment>
     );
   };
 
-  const startDate = statement.startDate instanceof Date ? statement.startDate : statement.startDate.toDate();
-  const endDate = statement.endDate instanceof Date ? statement.endDate : statement.endDate.toDate();
+  const startDate =
+    statement.startDate instanceof Date ? statement.startDate : statement.startDate.toDate();
+  const endDate =
+    statement.endDate instanceof Date ? statement.endDate : statement.endDate.toDate();
 
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="text-center">
         <h2 className="text-2xl font-bold">損益表</h2>
-        <p className="text-sm text-muted-foreground mt-1">
-          {formatDateRange(startDate, endDate)}
-        </p>
+        <p className="text-sm text-muted-foreground mt-1">{formatDateRange(startDate, endDate)}</p>
       </div>
 
       {/* Summary Cards */}
@@ -121,8 +126,11 @@ const IncomeStatementView: React.FC<IncomeStatementViewProps> = ({
             )}
           </CardHeader>
           <CardContent>
-            <div className={`text-2xl font-bold ${statement.netIncome >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-              {statement.netIncome >= 0 ? '+' : ''}{formatCurrency(statement.netIncome)}
+            <div
+              className={`text-2xl font-bold ${statement.netIncome >= 0 ? 'text-green-600' : 'text-red-600'}`}
+            >
+              {statement.netIncome >= 0 ? '+' : ''}
+              {formatCurrency(statement.netIncome)}
             </div>
           </CardContent>
         </Card>
@@ -149,7 +157,9 @@ const IncomeStatementView: React.FC<IncomeStatementViewProps> = ({
               {statement.income.categories.map((cat) => renderCategory(cat, 'income'))}
               <TableRow className="bg-green-200 font-bold">
                 <TableCell>收入總計</TableCell>
-                <TableCell className="text-right">{formatCurrency(statement.income.total)}</TableCell>
+                <TableCell className="text-right">
+                  {formatCurrency(statement.income.total)}
+                </TableCell>
               </TableRow>
 
               {/* Spacer */}
@@ -164,17 +174,22 @@ const IncomeStatementView: React.FC<IncomeStatementViewProps> = ({
               {statement.expense.categories.map((cat) => renderCategory(cat, 'expense'))}
               <TableRow className="bg-red-200 font-bold">
                 <TableCell>支出總計</TableCell>
-                <TableCell className="text-right">{formatCurrency(statement.expense.total)}</TableCell>
+                <TableCell className="text-right">
+                  {formatCurrency(statement.expense.total)}
+                </TableCell>
               </TableRow>
 
               {/* Net Income */}
               <TableRow className="h-4">
                 <TableCell colSpan={2}></TableCell>
               </TableRow>
-              <TableRow className={`font-bold text-lg ${statement.netIncome >= 0 ? 'bg-green-300' : 'bg-red-300'}`}>
+              <TableRow
+                className={`font-bold text-lg ${statement.netIncome >= 0 ? 'bg-green-300' : 'bg-red-300'}`}
+              >
                 <TableCell>【本期損益】</TableCell>
                 <TableCell className="text-right">
-                  {statement.netIncome >= 0 ? '+' : ''}{formatCurrency(statement.netIncome)}
+                  {statement.netIncome >= 0 ? '+' : ''}
+                  {formatCurrency(statement.netIncome)}
                 </TableCell>
               </TableRow>
             </TableBody>

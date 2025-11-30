@@ -1,8 +1,8 @@
-import {
-  type IncomeStatement,
-} from '../schemas';
-import { transactionService } from './transactionService';
+import { type IncomeStatement } from '../schemas';
 import { projectService } from './projectService';
+import { transactionService } from './transactionService';
+import { plannedIncomeService } from './plannedIncomeService';
+import { accountingConfigService } from './accountingConfigService';
 import { calculateIncomeStatement } from '../domains/finance/calculators/incomeStatementCalculator';
 
 /**
@@ -18,24 +18,46 @@ class IncomeStatementService {
     endDate: Date,
     createdBy: string,
   ): Promise<IncomeStatement> {
-    // 1. Fetch transactions for the period
-    const transactions = await transactionService.getTransactionsByPeriod(
+    // 1. Fetch plannedIncome for the period
+    const plannedIncomes = await plannedIncomeService.getPlannedIncomesForPeriod(
       householdId,
       startDate,
       endDate,
     );
 
-    // 2. Fetch projects for accounting configuration
-    const projects = await projectService.getProjects(householdId);
+    // 2. Fetch income transactions (extra income)
+    // Convert dates to string YYYY-MM-DD for transaction query
+    const startDateStr = startDate.toISOString().split('T')[0];
+    const endDateStr = endDate.toISOString().split('T')[0];
 
-    // 3. Calculate income statement using pure function
+    const incomeTransactions = await transactionService.getTransactions(householdId, {
+      startDate: startDateStr,
+      endDate: endDateStr,
+      type: 'income',
+    });
+
+    // 3. Fetch project snapshots for expenses
+    const projects = await projectService.getProjects(householdId);
+    const snapshots = await projectService.getSnapshotsForPeriod(
+      householdId,
+      startDate.getFullYear(),
+      endDate.getFullYear(),
+    );
+
+    // 4. Fetch accounting configuration
+    const accountingConfig = await accountingConfigService.getConfig(householdId);
+
+    // 5. Calculate income statement using pure function
     return calculateIncomeStatement(
-      transactions,
+      plannedIncomes,
+      incomeTransactions,
+      snapshots,
       projects,
+      accountingConfig,
       startDate,
       endDate,
       createdBy,
-      householdId
+      householdId,
     );
   }
 }

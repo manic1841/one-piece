@@ -114,6 +114,44 @@ class ProjectService extends BaseService<Project> {
       return parseWithSchema(ProjectSnapshotSchema, data);
     });
   }
+
+  /**
+   * Get snapshots for multiple projects within a year range
+   * Attaches projectId to each snapshot for easy mapping
+   */
+  async getSnapshotsForProjects(
+    householdId: string,
+    projectIds: string[],
+    startYear: number,
+    endYear: number,
+  ): Promise<Array<ProjectSnapshot & { projectId: string }>> {
+    const allSnapshots: Array<ProjectSnapshot & { projectId: string }> = [];
+
+    for (const projectId of projectIds) {
+      for (let year = startYear; year <= endYear; year++) {
+        const snapshots = await this.getSnapshots(householdId, projectId, year);
+        // Attach projectId to each snapshot since it's not in the document itself
+        snapshots.forEach((snapshot) => {
+          allSnapshots.push({ ...snapshot, projectId });
+        });
+      }
+    }
+
+    return allSnapshots;
+  }
+
+  /**
+   * Get snapshots for ALL projects within a year range
+   */
+  async getSnapshotsForPeriod(
+    householdId: string,
+    startYear: number,
+    endYear: number,
+  ): Promise<Array<ProjectSnapshot & { projectId: string }>> {
+    const projects = await this.getProjects(householdId);
+    const projectIds = projects.map((p) => p.id);
+    return this.getSnapshotsForProjects(householdId, projectIds, startYear, endYear);
+  }
 }
 
 export const projectService = new ProjectService();

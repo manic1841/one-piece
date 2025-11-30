@@ -13,12 +13,14 @@ export type PeriodType = z.infer<typeof PeriodTypeSchema>;
  */
 export const IncomeStatementItemSchema = z.object({
   id: z.string(),
+  // For income: 'salary', 'bonus', 'other', 'extra'
+  // For expense: '生活', '居住', etc.
   category: z.string(),
-  subcategory: z.string().optional(),
+  subcategory: z.string().optional(), // Project name or specific detail
   amount: z.number(),
   order: z.number().int().optional(),
   // Reference to source (transaction ID, project ID, etc.)
-  sourceType: z.enum(['transaction', 'project', 'manual']).optional(),
+  sourceType: z.enum(['transaction', 'project', 'manual', 'plannedIncome']).optional(),
   sourceId: z.string().optional(),
 });
 
@@ -67,13 +69,13 @@ export const IncomeStatementSchema = z.object({
   year: z.number().int(),
   month: z.number().int().optional(), // For monthly reports
   quarter: z.number().int().optional(), // For quarterly reports
-  
+
   income: IncomeSectionSchema,
   expense: ExpenseSectionSchema,
-  
+
   // Net income (profit/loss)
   netIncome: z.number(),
-  
+
   createdAt: TimestampSchema,
   createdBy: z.string(),
 });

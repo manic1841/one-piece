@@ -19,6 +19,7 @@ import BalanceSheetPage from './pages/BalanceSheetPage';
 import CashFlowPage from './pages/CashFlowPage';
 import RetirementPlanList from './pages/RetirementPlanList';
 import RetirementPlanDetail from './pages/RetirementPlanDetail';
+import AccountingConfigPage from './pages/AccountingConfigPage';
 
 function App() {
   return (
@@ -57,6 +58,7 @@ function App() {
             <Route path="retirement" element={<RetirementPlanList />} />
             <Route path="retirement/:id" element={<RetirementPlanDetail />} />
             <Route path="settings" element={<Settings />} />
+            <Route path="settings/accounting-config" element={<AccountingConfigPage />} />
           </Route>
         </Routes>
       </BrowserRouter>

@@ -67,6 +67,23 @@ class PlannedIncomeService extends BaseService<PlannedIncome> {
     return this.getAll(householdId, [orderBy('date', 'desc')]);
   }
 
+  // Get planned incomes for a specific period
+  async getPlannedIncomesForPeriod(
+    householdId: string,
+    startDate: Date,
+    endDate: Date,
+  ): Promise<PlannedIncome[]> {
+    const q = query(
+      this.getCollectionRef(householdId),
+      where('date', '>=', startDate),
+      where('date', '<=', endDate),
+      orderBy('date', 'desc'),
+    );
+
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map((doc) => this.parseData(doc.data()));
+  }
+
   // Get latest planned income by category to retrieve user settings/defaults
   async getLatestPlannedIncomeByCategory(
     householdId: string,

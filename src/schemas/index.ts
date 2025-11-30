@@ -9,6 +9,7 @@ export * from './transaction';
 export * from './plannedIncome';
 export * from './helper';
 export * from './portfolio';
+export * from './accountingConfig';
 export * from './incomeStatement';
 export * from './balanceSheet';
 export * from './cashFlow';
