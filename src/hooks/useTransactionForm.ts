@@ -9,6 +9,11 @@ import { toDateString } from '../utils/dateUtils';
 import { projectService } from '../services/projectService';
 import { plannedIncomeService } from '../services/plannedIncomeService';
 import { type PlannedIncomeCategory } from '../schemas/plannedIncome';
+import {
+  validateTransactionForm,
+  buildPlannedIncomeData,
+  buildTransactionData,
+} from './transactionFormHelpers';
 
 export interface UseTransactionFormProps {
   isOpen: boolean;
@@ -174,48 +179,34 @@ export const useTransactionForm = ({
     e.preventDefault();
     setError('');
 
-    if (!amount || parseFloat(amount) <= 0) {
-      setError('Please enter a valid amount');
-      return;
-    }
+    // Validate form
+    const validation = validateTransactionForm(
+      amount,
+      category,
+      type,
+      showAllocations,
+      projectId,
+      totalPercentage,
+    );
 
-    if (!category) {
-      setError('Please select a category');
+    if (!validation.isValid) {
+      setError(validation.error);
       return;
-    }
-
-    if ((type === 'expense' || (type === 'income' && !showAllocations)) && !projectId) {
-      setError('Please select a project');
-      return;
-    }
-
-    // Validate allocations if showing
-    if (showAllocations && type === 'income') {
-      if (Math.abs(totalPercentage - 100) > 0.01) {
-        setError(`Total allocation must be 100%. Current: ${totalPercentage.toFixed(1)}%`);
-        return;
-      }
     }
 
     setLoading(true);
 
     try {
       if (showAllocations && type === 'income') {
-        // Create or update PlannedIncome with allocations
-        const plannedIncomeData: Omit<PlannedIncome, 'id' | 'createdAt'> = {
-          amount: parseFloat(amount),
-          category: category as PlannedIncomeCategory,
-          date: new Date(date),
+        // Handle planned income with allocations
+        const plannedIncomeData = buildPlannedIncomeData(
+          amount,
+          category,
+          date,
           description,
-          createdBy: userEmail,
-          allocations: allocations.map((a) => ({
-            projectId: a.projectId,
-            percentage: a.percentage,
-          })),
-          userSettings: {
-            adjustedAllocations: allocations,
-          },
-        };
+          userEmail,
+          allocations,
+        );
 
         if (isEditingPlannedIncome && onUpdatePlannedIncome) {
           await onUpdatePlannedIncome(plannedIncomeData);
@@ -223,16 +214,18 @@ export const useTransactionForm = ({
           await onSubmitPlannedIncome(plannedIncomeData);
         }
       } else {
-        // Create or update Transaction
-        await onSubmit({
-          amount: parseFloat(amount),
+        // Handle regular transaction
+        const transactionData = buildTransactionData(
+          amount,
           type,
           category,
-          projectId: (type === 'expense' || (type === 'income' && !showAllocations)) ? projectId : '',
-          date: new Date(date),
+          projectId,
+          date,
           description,
-          createdBy: userEmail,
-        });
+          userEmail,
+          showAllocations,
+        );
+        await onSubmit(transactionData);
       }
 
       // Reset form
