@@ -11,8 +11,8 @@ import {
 import { transactionService } from './transactionService';
 import { projectService } from './projectService';
 import { projectTransactionService } from './projectTransactionService';
-import { Timestamp } from 'firebase/firestore';
 import { parseWithSchema } from '../schemas';
+import { calculateMonthlyBudget, calculateMonthlyStats } from '../domains/finance/calculators/budgetCalculator';
 
 const DEFAULT_ALLOCATION: IncomeBudgetAllocation = {
   // Default to empty, will be populated by available projects
@@ -107,54 +107,15 @@ export const budgetService = {
       type: 'income',
     });
 
-    // Calculate income breakdown by category
-    const incomeBreakdown: Record<IncomeCategory, number> = {
-      salary: 0,
-      bonus: 0,
-      investment: 0,
-      other: 0,
-    };
-
-    incomeTransactions.forEach((t) => {
-      const category = t.category as IncomeCategory;
-      if (category in incomeBreakdown) {
-        incomeBreakdown[category] += t.amount;
-      } else {
-        incomeBreakdown['other'] += t.amount;
-      }
-    });
-
-    const totalIncome = Object.values(incomeBreakdown).reduce((sum, val) => sum + val, 0);
-
-    // Calculate budget for each project category
-    const budgets: MonthlyBudget['budgets'] = {};
-
-    for (const project of projects) {
-      // Sum allocations to this project
-      const allocated = projectTransactions
-        .filter((pt) => pt.toProject === project.id)
-        .reduce((sum, pt) => sum + pt.amount, 0);
-
-      // Sum expenses for this project
-      const spent = transactions
-        .filter((t) => t.projectId === project.id)
-        .reduce((sum, t) => sum + t.amount, 0);
-
-      budgets[project.id] = {
-        allocated,
-        spent,
-      };
-    }
-
-    return {
+    return calculateMonthlyBudget(
       householdId,
       year,
       month,
-      totalIncome,
-      incomeBreakdown,
-      budgets,
-      createdAt: Timestamp.now(),
-    };
+      projects,
+      projectTransactions,
+      transactions,
+      incomeTransactions
+    );
   },
 
   // Get monthly statistics (budget vs actual)
@@ -164,22 +125,6 @@ export const budgetService = {
     month: number,
   ): Promise<MonthlyBudgetStats> {
     const monthlyBudget = await this.calculateMonthlyBudget(householdId, year, month);
-
-    const stats = Object.entries(monthlyBudget.budgets).map(([projectId, data]) => ({
-      category: projectId, // This is the ID, UI should map to name
-      percentage:
-        monthlyBudget.totalIncome > 0 ? (data.allocated / monthlyBudget.totalIncome) * 100 : 0,
-      allocated: data.allocated,
-      spent: data.spent,
-      remaining: data.allocated - data.spent,
-      percentageUsed: data.allocated > 0 ? (data.spent / data.allocated) * 100 : 0,
-      isOverBudget: data.spent > data.allocated,
-    }));
-
-    return {
-      totalIncome: monthlyBudget.totalIncome,
-      incomeBreakdown: monthlyBudget.incomeBreakdown,
-      stats,
-    };
+    return calculateMonthlyStats(monthlyBudget);
   },
 };
