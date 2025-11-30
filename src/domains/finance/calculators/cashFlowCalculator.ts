@@ -1,8 +1,4 @@
-import type {
-  CashFlowStatement,
-  CashFlowItem,
-  CashFlowSection,
-} from '../../../schemas/cashFlow';
+import type { CashFlowStatement, CashFlowItem, CashFlowSection } from '../../../schemas/cashFlow';
 import type { Transaction, Project } from '../../../schemas';
 import { Timestamp } from 'firebase/firestore';
 
@@ -33,28 +29,29 @@ export function calculateCashFlow(
   for (const tx of transactions) {
     // Skip internal transfers unless they cross boundaries (e.g., to investment)
     // For simplicity in this version, we'll focus on Income/Expense and specific transfers
-    
+
     let section: 'operating' | 'investing' | 'financing' = 'operating';
     const amount = tx.amount;
-    
+
     // Determine section based on project or category
     const project = getProject(tx.projectId);
-    
+
     if (project?.accounting?.cashFlow?.category) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       section = project.accounting.cashFlow.category as any;
     } else {
       // Default logic if no project config
       if (tx.type === 'income') {
-        section = (tx.category === '投資收益' || tx.category === '股息') ? 'investing' : 'operating';
+        section = tx.category === '投資收益' || tx.category === '股息' ? 'investing' : 'operating';
       } else if (tx.type === 'expense') {
         if (tx.category === '投資' || tx.projectId === 'investment') {
           section = 'investing';
         } else {
-          section = (tx.category === '貸款' || tx.category === '還款') ? 'financing' : 'operating';
+          section = tx.category === '貸款' || tx.category === '還款' ? 'financing' : 'operating';
         }
       } else {
         // Skip transfers for now
-        continue; 
+        continue;
       }
     }
 
@@ -108,9 +105,7 @@ export function calculateCashFlow(
   };
 
   const netChange =
-    operatingSection.netAmount +
-    investingSection.netAmount +
-    financingSection.netAmount;
+    operatingSection.netAmount + investingSection.netAmount + financingSection.netAmount;
 
   return {
     id: `cash-flow-${householdId}-${year}-${month}`,

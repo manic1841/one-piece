@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { Button } from '../components/ui/button';
-import PeriodSelector, { type PeriodType } from '../components/reports/PeriodSelector';
+import PeriodSelector from '../components/reports/PeriodSelector';
 import CashFlowView from '../components/reports/CashFlowView';
 import { cashFlowService } from '../services/cashFlowService';
 import { useAuth } from '../contexts/useAuth';
@@ -38,7 +38,7 @@ export default function CashFlowPage() {
         period.end,
         userProfile.email,
       );
-      
+
       setCashFlow(data);
     } catch (err) {
       console.error('Failed to load cash flow statement:', err);
@@ -48,7 +48,7 @@ export default function CashFlowPage() {
     }
   };
 
-  const handlePeriodChange = useCallback((start: Date, end: Date, _type: PeriodType) => {
+  const handlePeriodChange = useCallback((start: Date, end: Date) => {
     setPeriod({ start, end });
   }, []);
 
@@ -57,11 +57,7 @@ export default function CashFlowPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => navigate('/reports')}
-          >
+          <Button variant="ghost" size="icon" onClick={() => navigate('/reports')}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div>
@@ -74,9 +70,7 @@ export default function CashFlowPage() {
       </div>
 
       {/* Period Selector */}
-      <PeriodSelector
-        onChange={handlePeriodChange}
-      />
+      <PeriodSelector onChange={handlePeriodChange} />
 
       {/* Content */}
       {loading && (
@@ -91,9 +85,7 @@ export default function CashFlowPage() {
         </div>
       )}
 
-      {!loading && !error && cashFlow && (
-        <CashFlowView cashFlow={cashFlow} />
-      )}
+      {!loading && !error && cashFlow && <CashFlowView cashFlow={cashFlow} />}
 
       {!loading && !error && !cashFlow && (
         <div className="flex justify-center items-center h-64">

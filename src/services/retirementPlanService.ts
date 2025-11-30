@@ -1,7 +1,4 @@
-import {
-  orderBy,
-  Timestamp,
-} from 'firebase/firestore';
+import { orderBy, Timestamp } from 'firebase/firestore';
 
 import {
   RetirementPlanSchema,
@@ -27,7 +24,7 @@ class RetirementPlanService extends BaseService<RetirementPlan> {
   // Create a new plan
   async createRetirementPlan(
     householdId: string,
-    plan: Omit<RetirementPlan, 'id' | 'createdAt'>
+    plan: Omit<RetirementPlan, 'id' | 'createdAt'>,
   ): Promise<string> {
     return this.create(householdId, plan);
   }
@@ -36,7 +33,7 @@ class RetirementPlanService extends BaseService<RetirementPlan> {
   async updateRetirementPlan(
     householdId: string,
     planId: string,
-    updates: Partial<RetirementPlan>
+    updates: Partial<RetirementPlan>,
   ): Promise<void> {
     return this.update(householdId, planId, updates);
   }
@@ -53,7 +50,7 @@ class RetirementPlanService extends BaseService<RetirementPlan> {
    */
   async importFromProjects(
     householdId: string,
-    referenceMonths: number = 12
+    referenceMonths: number = 12,
   ): Promise<RetirementExpenseCategory[]> {
     // 1. Get all active projects
     const projects = await projectService.getProjects(householdId);
@@ -63,17 +60,12 @@ class RetirementPlanService extends BaseService<RetirementPlan> {
     const endDate = new Date();
     const startDate = startOfMonth(subMonths(endDate, referenceMonths));
 
-
     // 3. Fetch snapshots for all projects in parallel
     const expenseCategories: RetirementExpenseCategory[] = [];
 
     await Promise.all(
       activeProjects.map(async (project) => {
         // Fetch snapshots
-        // Note: projectService.getSnapshots filters by exact year/month if provided, 
-        // but we need a range. We'll fetch all and filter in memory for now, 
-        // or we could improve projectService to support ranges.
-        // Given the number of snapshots is usually small (one per month), fetching all is likely fine.
         const snapshots = await projectService.getSnapshots(householdId, project.id);
 
         // Filter snapshots within range
@@ -103,7 +95,7 @@ class RetirementPlanService extends BaseService<RetirementPlan> {
             note: `Based on ${validSnapshots.length} months average from ${project.name}`,
           });
         }
-      })
+      }),
     );
 
     return expenseCategories;
@@ -114,10 +106,9 @@ class RetirementPlanService extends BaseService<RetirementPlan> {
    */
   async importFromPlannedIncome(
     householdId: string,
-    referenceMonths: number = 12
+    referenceMonths: number = 12,
   ): Promise<RetirementIncomeSource[]> {
     // 1. Get planned incomes
-    // We need to fetch all and filter by date
     const plannedIncomes = await plannedIncomeService.getPlannedIncomes(householdId);
 
     // 2. Calculate date range
@@ -126,56 +117,88 @@ class RetirementPlanService extends BaseService<RetirementPlan> {
 
     // 3. Filter and Group
     const validIncomes = plannedIncomes.filter((pi) => {
-        const date = pi.date instanceof Timestamp ? pi.date.toDate() : pi.date;
-        return date >= startDate && date <= endDate;
+      const date = pi.date instanceof Timestamp ? pi.date.toDate() : pi.date;
+      return date >= startDate && date <= endDate;
     });
 
     const incomeMap = new Map<string, { total: number; count: number; type: string }>();
 
     validIncomes.forEach((pi) => {
-        const key = pi.category; // Group by category (Salary, Bonus, etc.)
-        const current = incomeMap.get(key) || { total: 0, count: 0, type: pi.category };
-        
-        current.total += pi.amount;
-        current.count += 1; // Count occurrences to check frequency? 
-        // Actually for annualized, we should just sum everything in the last 12 months 
-        // if we assume the window is exactly 12 months.
-        // If the window is 12 months, the sum IS the annual amount.
-        // But if we have partial data, maybe average?
-        // Let's assume sum for now if referenceMonths is 12.
-        
-        incomeMap.set(key, current);
+      const key = pi.category; // Group by category (Salary, Bonus, etc.)
+      const current = incomeMap.get(key) || { total: 0, count: 0, type: pi.category };
+
+      current.total += pi.amount;
+      current.count += 1;
+      incomeMap.set(key, current);
     });
 
     const incomeSources: RetirementIncomeSource[] = [];
     const currentYear = new Date().getFullYear();
 
     incomeMap.forEach((value, key) => {
-        // If referenceMonths is 12, total is annual.
-        // If not, we might need to normalize.
-        const annualAmount = (value.total / referenceMonths) * 12;
+      const annualAmount = (value.total / referenceMonths) * 12;
 
-        incomeSources.push({
-            id: crypto.randomUUID(),
-            name: key.charAt(0).toUpperCase() + key.slice(1),
-            type: this.mapCategoryToType(key),
-            startYear: currentYear,
-            endYear: currentYear + 20, // Default 20 years work
-            baseAmount: Math.round(annualAmount),
-            growthRate: 3, // Default salary growth
-            note: `Based on last ${referenceMonths} months records`,
-        });
+      incomeSources.push({
+        id: crypto.randomUUID(),
+        name: key.charAt(0).toUpperCase() + key.slice(1),
+        type: this.mapCategoryToType(key),
+        startYear: currentYear,
+        endYear: currentYear + 20, // Default 20 years work
+        baseAmount: Math.round(annualAmount),
+        growthRate: 3, // Default salary growth
+        note: `Based on last ${referenceMonths} months records`,
+      });
     });
 
     return incomeSources;
   }
 
+  /**
+   * Get total planned income for a specific year and category.
+   */
+  async getYearlyPlannedIncomeTotal(
+    householdId: string,
+    year: number,
+    category: string,
+  ): Promise<number> {
+    const plannedIncomes = await plannedIncomeService.getPlannedIncomes(householdId);
+
+    // Filter by year and category
+    const validIncomes = plannedIncomes.filter((pi) => {
+      const date = pi.date instanceof Timestamp ? pi.date.toDate() : pi.date;
+      return date.getFullYear() === year && pi.category.toLowerCase() === category.toLowerCase();
+    });
+
+    return validIncomes.reduce((sum, pi) => sum + pi.amount, 0);
+  }
+
+  /**
+   * Get total expense for a specific project and year.
+   */
+  async getProjectYearlyExpense(
+    householdId: string,
+    projectId: string,
+    year: number,
+  ): Promise<number> {
+    const snapshots = await projectService.getSnapshots(householdId, projectId, year);
+    return snapshots.reduce((sum, s) => sum + s.expense, 0);
+  }
+
+  async getProjectYearlyIncome(
+    householdId: string,
+    projectId: string,
+    year: number,
+  ): Promise<number> {
+    const snapshots = await projectService.getSnapshots(householdId, projectId, year);
+    return snapshots.reduce((sum, s) => sum + (s.income || 0), 0);
+  }
+
   private mapCategoryToType(category: string): 'salary' | 'bonus' | 'pension' | 'rent' | 'other' {
-      const lower = category.toLowerCase();
-      if (lower.includes('salary')) return 'salary';
-      if (lower.includes('bonus')) return 'bonus';
-      if (lower.includes('rent')) return 'rent';
-      return 'other';
+    const lower = category.toLowerCase();
+    if (lower.includes('salary')) return 'salary';
+    if (lower.includes('bonus')) return 'bonus';
+    if (lower.includes('rent')) return 'rent';
+    return 'other';
   }
 }
 

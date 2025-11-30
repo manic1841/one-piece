@@ -1,7 +1,4 @@
-import type {
-  RetirementPlan,
-  RetirementProjectionYear,
-} from '../../../schemas/retirementPlan';
+import type { RetirementPlan, RetirementProjectionYear } from '../../../schemas/retirementPlan';
 
 /**
  * Calculates the future value of an amount based on a growth rate and number of years.
@@ -13,9 +10,7 @@ const calculateFutureValue = (presentValue: number, rate: number, years: number)
 /**
  * Calculates the retirement projection for a given plan.
  */
-export const calculateRetirementProjection = (
-  plan: RetirementPlan
-): RetirementProjectionYear[] => {
+export const calculateRetirementProjection = (plan: RetirementPlan): RetirementProjectionYear[] => {
   const projection: RetirementProjectionYear[] = [];
   let currentSavings = plan.currentSavings;
   const startYear = plan.currentYear;
@@ -27,11 +22,16 @@ export const calculateRetirementProjection = (
 
     // 1. Calculate Income
     let totalIncome = 0;
+    let totalSalary = 0; // Track total salary for ratio-based expenses
     plan.incomes.forEach((income) => {
       if (year >= income.startYear && year <= income.endYear) {
         const yearsGrowth = year - income.startYear;
         const amount = calculateFutureValue(income.baseAmount, income.growthRate, yearsGrowth);
         totalIncome += amount;
+
+        if (income.type === 'salary') {
+          totalSalary += amount;
+        }
       }
     });
 
@@ -41,12 +41,24 @@ export const calculateRetirementProjection = (
       const expenseEndYear = expense.endYear ?? endYear;
       if (year >= expense.startYear && year <= expenseEndYear) {
         const yearsGrowth = year - expense.startYear;
-        let amount = calculateFutureValue(expense.baseAmount, expense.growthRate, yearsGrowth);
-        
+        // Calculate growth-based amount
+        const growthAmount = calculateFutureValue(
+          expense.baseAmount,
+          expense.growthRate,
+          yearsGrowth,
+        );
+
+        // Calculate salary-ratio-based amount (if applicable)
+        let amount = growthAmount;
+        if (expense.percentOfSalary && expense.percentOfSalary > 0) {
+          const salaryAmount = totalSalary * (expense.percentOfSalary / 100);
+          amount = Math.max(growthAmount, salaryAmount);
+        }
+
         if (isRetired) {
           amount *= expense.retirementMultiplier;
         }
-        
+
         totalExpense += amount;
       }
     });
@@ -77,7 +89,8 @@ export const calculateRetirementProjection = (
 
     // 6. Closing Balance
     const openingBalance = currentSavings;
-    const closingBalance = openingBalance + netCashFlow + investmentIncome + oneTimeIncome - oneTimeExpense;
+    const closingBalance =
+      openingBalance + netCashFlow + investmentIncome + oneTimeIncome - oneTimeExpense;
 
     projection.push({
       year,
@@ -104,29 +117,32 @@ export const calculateRetirementProjection = (
 /**
  * Calculates summary statistics from a projection.
  */
-export const calculateProjectionSummary = (projection: RetirementProjectionYear[], plan: RetirementPlan) => {
-    const retirementYearIndex = projection.findIndex(p => p.isRetired);
-    const retirementProjection = retirementYearIndex >= 0 ? projection[retirementYearIndex] : null;
-    
-    let minSavings = Infinity;
-    let minSavingsYear = 0;
-    let isBankrupt = false;
+export const calculateProjectionSummary = (
+  projection: RetirementProjectionYear[],
+  plan: RetirementPlan,
+) => {
+  const retirementYearIndex = projection.findIndex((p) => p.isRetired);
+  const retirementProjection = retirementYearIndex >= 0 ? projection[retirementYearIndex] : null;
 
-    projection.forEach(p => {
-        if (p.closingBalance < minSavings) {
-            minSavings = p.closingBalance;
-            minSavingsYear = p.year;
-        }
-        if (p.closingBalance < 0) {
-            isBankrupt = true;
-        }
-    });
+  let minSavings = Infinity;
+  let minSavingsYear = 0;
+  let isBankrupt = false;
 
-    return {
-        retirementYear: plan.currentYear + (plan.retirementAge - plan.currentAge),
-        savingsAtRetirement: retirementProjection ? retirementProjection.openingBalance : 0,
-        minSavings,
-        minSavingsYear,
-        isBankrupt,
-    };
+  projection.forEach((p) => {
+    if (p.closingBalance < minSavings) {
+      minSavings = p.closingBalance;
+      minSavingsYear = p.year;
+    }
+    if (p.closingBalance < 0) {
+      isBankrupt = true;
+    }
+  });
+
+  return {
+    retirementYear: plan.currentYear + (plan.retirementAge - plan.currentAge),
+    savingsAtRetirement: retirementProjection ? retirementProjection.openingBalance : 0,
+    minSavings,
+    minSavingsYear,
+    isBankrupt,
+  };
 };
