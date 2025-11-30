@@ -10,6 +10,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Select,
   SelectContent,
@@ -38,6 +39,9 @@ const AccountForm: React.FC<AccountFormProps> = ({ isOpen, onClose, onSubmit, in
   const [name, setName] = useState(initialData?.name || '');
   const [type, setType] = useState<AccountType>(initialData?.type || 'bank');
   const [currency, setCurrency] = useState(initialData?.currency || 'USD');
+  const [includeInReconciliation, setIncludeInReconciliation] = useState(
+    initialData?.includeInReconciliation ?? true,
+  );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -46,6 +50,7 @@ const AccountForm: React.FC<AccountFormProps> = ({ isOpen, onClose, onSubmit, in
       setName(initialData.name);
       setType(initialData.type);
       setCurrency(initialData.currency);
+      setIncludeInReconciliation(initialData.includeInReconciliation ?? true);
     }
   }, [initialData]);
 
@@ -65,12 +70,14 @@ const AccountForm: React.FC<AccountFormProps> = ({ isOpen, onClose, onSubmit, in
         name: name.trim(),
         type,
         currency,
+        includeInReconciliation,
       });
 
       // Reset form
       setName('');
       setType('bank');
       setCurrency('USD');
+      setIncludeInReconciliation(true);
       onClose();
     } catch (err) {
       const error = err as Error;
@@ -139,6 +146,21 @@ const AccountForm: React.FC<AccountFormProps> = ({ isOpen, onClose, onSubmit, in
                 <SelectItem value="JPY">JPY (¥)</SelectItem>
               </SelectContent>
             </Select>
+          </div>
+
+          {/* Include in Reconciliation */}
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id="include-reconciliation"
+              checked={includeInReconciliation}
+              onCheckedChange={(checked) => setIncludeInReconciliation(checked === true)}
+            />
+            <Label
+              htmlFor="include-reconciliation"
+              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+            >
+              Include in reconciliation
+            </Label>
           </div>
 
           <DialogFooter>

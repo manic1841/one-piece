@@ -74,6 +74,31 @@ describe('accountService', () => {
         }),
       );
     });
+
+    it('should record an account snapshot with holdings', async () => {
+      const snapshotData = {
+        year: 2023,
+        month: 10,
+        amount: 15000,
+        holdings: [
+          { symbol: 'AAPL', name: 'Apple Inc.', quantity: 10, marketValue: 1500, leverage: 1 },
+          { symbol: 'GOOGL', name: 'Alphabet Inc.', quantity: 5, marketValue: 1000, leverage: 2 },
+        ],
+        createdBy: 'user-1',
+      };
+
+      const result = await accountService.recordSnapshot(householdId, 'acc-investment', snapshotData);
+
+      expect(result).toBe('new-snapshot-id');
+      expect(setDoc).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          ...snapshotData,
+          id: 'new-snapshot-id',
+          createdAt: 'mock-timestamp',
+        }),
+      );
+    });
   });
 
   describe('getSnapshots', () => {

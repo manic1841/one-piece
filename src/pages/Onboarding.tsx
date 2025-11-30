@@ -36,7 +36,6 @@ const Onboarding: React.FC = () => {
         photoURL: currentUser.photoURL || undefined,
         role: userProfile?.role || ('guest' as const),
       };
-      console.log('User Profile:', profile);
       await householdService.createOrJoinHousehold(input, profile);
 
       // Refresh auth context to get updated householdId

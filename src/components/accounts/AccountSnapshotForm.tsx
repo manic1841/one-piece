@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { type Account, type AccountSnapshot } from '../../schemas';
+import { type Account, type AccountSnapshot, type Holding } from '../../schemas';
 import { accountService } from '../../services/accountService';
 import {
   Dialog,
@@ -19,6 +19,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Card } from '@/components/ui/card';
+import { Plus, Trash2 } from 'lucide-react';
 
 interface AccountSnapshotFormProps {
   isOpen: boolean;
@@ -44,9 +45,13 @@ const AccountSnapshotForm: React.FC<AccountSnapshotFormProps> = ({
   const [year, setYear] = useState(currentDate.getFullYear());
   const [month, setMonth] = useState(currentDate.getMonth() + 1);
   const [amount, setAmount] = useState('');
+  const [holdings, setHoldings] = useState<Holding[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [previousAmount, setPreviousAmount] = useState<number | null>(null);
+
+  const selectedAccount = accounts.find((a) => a.id === accountId);
+  const isInvestment = selectedAccount?.type === 'investment';
 
   const loadPreviousAmount = useCallback(async () => {
     if (!accountId) return;
@@ -89,6 +94,30 @@ const AccountSnapshotForm: React.FC<AccountSnapshotFormProps> = ({
     }
   }, [accountId, year, month, loadPreviousAmount]);
 
+  // Update amount when holdings change for investment accounts
+  useEffect(() => {
+    if (isInvestment) {
+      const totalValue = holdings.reduce((sum, h) => sum + h.marketValue, 0);
+      setAmount(totalValue.toString());
+    }
+  }, [holdings, isInvestment]);
+
+  const handleAddHolding = () => {
+    setHoldings([...holdings, { symbol: '', name: '', quantity: 0, marketValue: 0 }]);
+  };
+
+  const handleRemoveHolding = (index: number) => {
+    const newHoldings = [...holdings];
+    newHoldings.splice(index, 1);
+    setHoldings(newHoldings);
+  };
+
+  const handleHoldingChange = (index: number, field: keyof Holding, value: string | number) => {
+    const newHoldings = [...holdings];
+    newHoldings[index] = { ...newHoldings[index], [field]: value };
+    setHoldings(newHoldings);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -110,12 +139,14 @@ const AccountSnapshotForm: React.FC<AccountSnapshotFormProps> = ({
         year,
         month,
         amount: parseFloat(amount),
+        holdings: isInvestment ? holdings : undefined,
         createdBy: userEmail,
       });
 
       // Reset form
       setAccountId('');
       setAmount('');
+      setHoldings([]);
       setPreviousAmount(null);
       onClose();
     } catch (err) {
@@ -126,11 +157,9 @@ const AccountSnapshotForm: React.FC<AccountSnapshotFormProps> = ({
     }
   };
 
-  const selectedAccount = accounts.find((a) => a.id === accountId);
-
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent>
+      <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle>Record Balance</DialogTitle>
         </DialogHeader>
@@ -203,6 +232,88 @@ const AccountSnapshotForm: React.FC<AccountSnapshotFormProps> = ({
             </Card>
           )}
 
+          {/* Holdings Section for Investment Accounts */}
+          {isInvestment && (
+            <div className="space-y-3 border rounded-md p-4 bg-slate-50">
+              <div className="flex justify-between items-center">
+                <Label>Holdings</Label>
+                <Button type="button" variant="outline" size="sm" onClick={handleAddHolding}>
+                  <Plus className="h-4 w-4 mr-1" /> Add Holding
+                </Button>
+              </div>
+
+              {holdings.length === 0 && (
+                <p className="text-sm text-muted-foreground text-center py-2">
+                  No holdings added. Total value will be 0.
+                </p>
+              )}
+
+              <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1">
+                {holdings.map((holding, index) => (
+                  <div key={index} className="grid grid-cols-12 gap-2 items-end border-b pb-2 last:border-0">
+                    <div className="col-span-3">
+                      <Label className="text-xs">Symbol</Label>
+                      <Input
+                        value={holding.symbol}
+                        onChange={(e) => handleHoldingChange(index, 'symbol', e.target.value)}
+                        placeholder="AAPL"
+                        className="h-8"
+                      />
+                    </div>
+                    <div className="col-span-3">
+                      <Label className="text-xs">Name</Label>
+                      <Input
+                        value={holding.name}
+                        onChange={(e) => handleHoldingChange(index, 'name', e.target.value)}
+                        placeholder="Apple Inc."
+                        className="h-8"
+                      />
+                    </div>
+                    <div className="col-span-2">
+                      <Label className="text-xs">Qty</Label>
+                      <Input
+                        type="number"
+                        value={holding.quantity}
+                        onChange={(e) => handleHoldingChange(index, 'quantity', parseFloat(e.target.value) || 0)}
+                        className="h-8"
+                      />
+                    </div>
+                    <div className="col-span-2">
+                      <Label className="text-xs">Value</Label>
+                      <Input
+                        type="number"
+                        value={holding.marketValue}
+                        onChange={(e) => handleHoldingChange(index, 'marketValue', parseFloat(e.target.value) || 0)}
+                        className="h-8"
+                      />
+                    </div>
+                    <div className="col-span-2">
+                      <Label className="text-xs">Leverage</Label>
+                      <Input
+                        type="number"
+                        value={holding.leverage || ''}
+                        placeholder="1"
+                        onChange={(e) => handleHoldingChange(index, 'leverage', parseFloat(e.target.value) || 0)}
+                        className="h-8"
+                      />
+                    </div>
+                    <div className="col-span-1">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-destructive hover:text-destructive/90"
+                        onClick={() => handleRemoveHolding(index)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Amount */}
           <div className="space-y-2">
             <Label htmlFor="amount">
@@ -216,7 +327,14 @@ const AccountSnapshotForm: React.FC<AccountSnapshotFormProps> = ({
               placeholder="0.00"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
+              readOnly={isInvestment} // Read-only for investment accounts as it's calculated from holdings
+              className={isInvestment ? 'bg-muted' : ''}
             />
+            {isInvestment && (
+              <p className="text-xs text-muted-foreground">
+                Calculated automatically from holdings total value.
+              </p>
+            )}
           </div>
 
           <DialogFooter>

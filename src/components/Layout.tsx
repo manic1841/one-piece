@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Receipt, Folder, Wallet, Calculator, Settings, LogOut } from 'lucide-react';
+import { LayoutDashboard, Receipt, Folder, Wallet, Calculator, Briefcase, FileText, Settings, LogOut } from 'lucide-react';
 import clsx from 'clsx';
 import { useAuth } from '../contexts/useAuth';
 import { householdService } from '../services/householdService';
 import { Button } from '@/components/ui/button';
+import HouseholdSwitcher from './HouseholdSwitcher';
 
 const Layout: React.FC = () => {
   const { userProfile, logout } = useAuth();
@@ -50,6 +51,8 @@ const Layout: React.FC = () => {
     { to: '/projects', icon: Folder, label: 'Projects' },
     { to: '/accounts', icon: Wallet, label: 'Accounts' },
     { to: '/reconciliation', icon: Calculator, label: 'Reconciliation' },
+    { to: '/portfolios', icon: Briefcase, label: 'Portfolios' },
+    { to: '/reports', icon: FileText, label: 'Reports' },
     { to: '/settings', icon: Settings, label: 'Settings' },
   ];
 
@@ -63,10 +66,14 @@ const Layout: React.FC = () => {
 
       {/* Mobile Top Bar */}
       <div className="md:hidden fixed top-0 left-0 right-0 bg-white border-b border-gray-200 px-4 py-3 flex justify-between items-center z-50">
-        <div>
+        <div className="flex-1">
           <h1 className="text-lg font-bold text-gray-900">One Piece</h1>
-          {!loadingHousehold && familyName && (
-            <p className="text-xs text-gray-600 font-medium">{familyName}</p>
+          {!loadingHousehold && familyName && userProfile?.householdId && (
+            <HouseholdSwitcher
+              currentHouseholdId={userProfile.householdId}
+              currentHouseholdName={familyName}
+              compact
+            />
           )}
         </div>
         <Button
@@ -102,8 +109,13 @@ const Layout: React.FC = () => {
       <aside className="hidden md:flex fixed top-0 left-0 bottom-0 w-64 bg-white border-r border-gray-200 flex-col">
         <div className="p-6 border-b border-gray-200">
           <h1 className="text-2xl font-bold text-gray-900">One Piece</h1>
-          {!loadingHousehold && familyName && (
-            <p className="mt-2 text-sm text-gray-600 font-medium">{familyName}</p>
+          {!loadingHousehold && familyName && userProfile?.householdId && (
+            <div className="mt-2">
+              <HouseholdSwitcher
+                currentHouseholdId={userProfile.householdId}
+                currentHouseholdName={familyName}
+              />
+            </div>
           )}
         </div>
         <nav className="flex-1 p-4 space-y-2">

@@ -45,11 +45,16 @@ export const reconciliationService = {
     // Get all accounts
     const accounts = await accountService.getAccounts(householdId);
 
+    // Filter accounts to only include those with reconciliation enabled
+    const reconciliationAccounts = accounts.filter(
+      (account) => account.includeInReconciliation !== false,
+    );
+
     // Get balance snapshots for current and previous month
     const currentSnapshots = new Map<string, number>();
     const previousSnapshots = new Map<string, number>();
 
-    for (const account of accounts) {
+    for (const account of reconciliationAccounts) {
       const currentMonthSnapshots = await accountService.getSnapshots(
         householdId,
         account.id,
@@ -87,13 +92,18 @@ export const reconciliationService = {
     // Get all projects
     const projects = await projectService.getProjects(householdId);
 
+    // Filter projects to only include those with reconciliation enabled
+    const reconciliationProjects = projects.filter(
+      (project) => project.includeInReconciliation !== false,
+    );
+
     // Get project snapshots for the month
     const incomeByProject: Record<string, number> = {};
     const expenseByProject: Record<string, number> = {};
     let totalIncome = 0;
     let totalExpense = 0;
 
-    for (const project of projects) {
+    for (const project of reconciliationProjects) {
       const projectSnapshots = await projectService.getSnapshots(
         householdId,
         project.id,

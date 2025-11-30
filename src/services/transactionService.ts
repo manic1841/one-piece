@@ -103,6 +103,17 @@ class TransactionService extends BaseService<Transaction> {
       balance: totalIncome - totalExpense,
     };
   }
+
+  // Get transactions by period (using Date objects)
+  async getTransactionsByPeriod(
+    householdId: string,
+    startDate: Date,
+    endDate: Date,
+  ): Promise<Transaction[]> {
+    const start = toDateString(startDate);
+    const end = toDateString(endDate);
+    return this.getTransactions(householdId, { startDate: start, endDate: end });
+  }
 }
 
 export const transactionService = new TransactionService();
