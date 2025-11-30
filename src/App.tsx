@@ -16,6 +16,7 @@ import Settings from './pages/Settings';
 import Reports from './pages/Reports';
 import IncomeStatementPage from './pages/IncomeStatementPage';
 import BalanceSheetPage from './pages/BalanceSheetPage';
+import CashFlowPage from './pages/CashFlowPage';
 import RetirementPlanList from './pages/RetirementPlanList';
 import RetirementPlanDetail from './pages/RetirementPlanDetail';
 
@@ -52,6 +53,7 @@ function App() {
             <Route path="reports" element={<Reports />} />
             <Route path="reports/income-statement" element={<IncomeStatementPage />} />
             <Route path="reports/balance-sheet" element={<BalanceSheetPage />} />
+            <Route path="reports/cash-flow" element={<CashFlowPage />} />
             <Route path="retirement" element={<RetirementPlanList />} />
             <Route path="retirement/:id" element={<RetirementPlanDetail />} />
             <Route path="settings" element={<Settings />} />

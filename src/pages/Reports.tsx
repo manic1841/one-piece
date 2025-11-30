@@ -35,7 +35,7 @@ const Reports: React.FC = () => {
       path: '/reports/cash-flow',
       color: 'text-green-600',
       bgColor: 'bg-green-50',
-      enabled: false,
+      enabled: true,
     },
   ];
 

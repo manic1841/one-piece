@@ -32,6 +32,9 @@ export const ProjectSchema = z.object({
       subcategory: z.string(),
       order: z.number().int().optional(),
     }).optional(),
+    cashFlow: z.object({
+      category: z.enum(['operating', 'investing', 'financing']),
+    }).optional(),
   }).optional(),
   createdAt: TimestampSchema.optional(),
   // subcollection
