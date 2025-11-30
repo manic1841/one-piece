@@ -107,6 +107,11 @@ service cloud.firestore {
         allow read: if isSignedIn() && isHouseholdMember(householdId);
         allow write: if isSignedIn() && isHouseholdAdmin(householdId);
       }
+
+      match /retirementPlans/{rpId} {
+        allow read: if isSignedIn() && isHouseholdMember(householdId);
+        allow write: if isSignedIn() && isHouseholdAdmin(householdId);
+      }
     }
   }
 }

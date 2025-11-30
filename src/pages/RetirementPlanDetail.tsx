@@ -6,6 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs'
 import AssumptionsForm from '../components/retirement/AssumptionsForm';
 import RetirementProjectionChart from '../components/retirement/RetirementProjectionChart';
 import RetirementYearlyTable from '../components/retirement/RetirementYearlyTable';
+import AddEventDialog from '../components/retirement/AddEventDialog';
 import { retirementPlanService } from '../services/retirementPlanService';
 import { calculateRetirementProjection, calculateProjectionSummary } from '../domains/finance/calculators/retirementCalculator';
 import { useAuth } from '../contexts/useAuth';
@@ -91,6 +92,24 @@ export default function RetirementPlanDetail() {
       console.error('Failed to import income', error);
     } finally {
       setImporting(false);
+    }
+  };
+
+  const handleAddEvent = async (eventData: Omit<import('../schemas/retirementPlan').RetirementOneTimeEvent, 'id'>) => {
+    if (!id || !userProfile?.householdId || !plan) return;
+    try {
+      const newEvent = {
+        ...eventData,
+        id: `event-${Date.now()}`,
+      };
+      
+      const updatedEvents = [...plan.events, newEvent];
+      await retirementPlanService.updateRetirementPlan(userProfile.householdId, id, {
+        events: updatedEvents,
+      });
+      await loadPlan();
+    } catch (error) {
+      console.error('Failed to add event:', error);
     }
   };
 
@@ -223,7 +242,10 @@ export default function RetirementPlanDetail() {
 
         <TabsContent value="events" className="space-y-4">
           <div className="rounded-lg border p-6">
-            <h3 className="text-lg font-semibold mb-4">One-Time Events ({plan.events.length})</h3>
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold">One-Time Events ({plan.events.length})</h3>
+              <AddEventDialog onAdd={handleAddEvent} currentYear={plan.currentYear} />
+            </div>
             {plan.events.length === 0 ? (
               <p className="text-muted-foreground">No events defined yet.</p>
             ) : (
