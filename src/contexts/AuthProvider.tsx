@@ -32,7 +32,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             photoURL: currentUser.photoURL || undefined,
             role: 'guest' as const,
           };
-
           // Save the profile to Firestore
           const userRef = doc(db, 'users', uid);
           await setDoc(userRef, profile);

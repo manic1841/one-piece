@@ -8,6 +8,7 @@ import {
   query,
   where,
   getDocs,
+  deleteField,
 } from 'firebase/firestore';
 import { db } from '../firebase';
 import { HouseholdSchema, UserProfileSchema, parseWithSchema } from '../schemas';
@@ -70,7 +71,6 @@ export const householdService = {
 
     let householdRef = doc(db, 'households', householdIdOrName);
     let householdSnap = await getDoc(householdRef);
-
     if (!householdSnap.exists()) {
       const q = query(collection(db, 'households'), where('name', '==', householdIdOrName));
       const querySnapshot = await getDocs(q);
@@ -80,7 +80,6 @@ export const householdService = {
       householdRef = doc(db, 'households', querySnapshot.docs[0].id);
       householdSnap = querySnapshot.docs[0];
     }
-
     // Check if user is already a member
     const householdData = householdSnap.data();
     if (!householdData?.members?.[user.uid]) {
@@ -92,7 +91,6 @@ export const householdService = {
         },
       });
     }
-
     // Update user profile
     const userRef = doc(db, 'users', user.uid);
     await setDoc(
@@ -145,22 +143,18 @@ export const householdService = {
       throw new Error('Please enter a household name or ID');
     }
 
-    console.log('Attempting to create or join household with input:', trimmedInput);
     // First, try to find by ID
     const householdRef = doc(db, 'households', trimmedInput);
     const householdSnap = await getDoc(householdRef);
-    console.log('Household lookup by ID:', householdSnap.exists());
     if (householdSnap.exists()) {
       // Found by ID, join this household
       await this.joinHousehold(trimmedInput, user);
       return trimmedInput;
     }
 
-    console.log('Household not found by ID, trying by name');
     // If not found by ID, try to find by name
     const q = query(collection(db, 'households'), where('name', '==', trimmedInput));
     const querySnapshot = await getDocs(q);
-    console.log('Household lookup by name, found count:', querySnapshot.size);
 
     if (!querySnapshot.empty) {
       // Found by name, join this household
@@ -171,5 +165,58 @@ export const householdService = {
 
     // Not found by ID or name, create new household with this name
     return await this.createHousehold(trimmedInput, user);
+  },
+
+  // Get all households where user is a member
+  async getUserHouseholds(uid: string): Promise<Household[]> {
+    const q = query(collection(db, 'households'));
+    const querySnapshot = await getDocs(q);
+
+    const households: Household[] = [];
+    for (const doc of querySnapshot.docs) {
+      const data = doc.data();
+      // Check if user is a member of this household
+      if (data.members && data.members[uid]) {
+        const household = parseWithSchema(HouseholdSchema, data);
+        households.push(household);
+      }
+    }
+
+    return households;
+  },
+
+  // Switch to a different household
+  async switchHousehold(uid: string, householdId: string): Promise<void> {
+    // Verify user is a member of the target household
+    const household = await this.getHousehold(householdId);
+    if (!household) {
+      throw new Error('Household not found');
+    }
+
+    if (!household.members[uid]) {
+      throw new Error('You are not a member of this household');
+    }
+
+    // Update user profile with new householdId
+    const userRef = doc(db, 'users', uid);
+    await updateDoc(userRef, {
+      householdId,
+      updatedAt: serverTimestamp(),
+    });
+  },
+
+  // Leave current household (clear householdId from user profile)
+  async leaveCurrentHousehold(uid: string): Promise<void> {
+    // First, get the current user profile to preserve the role
+    const currentProfile = await this.getUserProfile(uid);
+    if (!currentProfile) {
+      throw new Error('User profile not found');
+    }
+
+    const userRef = doc(db, 'users', uid);
+    await updateDoc(userRef, {
+      householdId: deleteField(),
+      updatedAt: serverTimestamp(),
+    });
   },
 };

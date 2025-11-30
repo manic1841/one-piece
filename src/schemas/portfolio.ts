@@ -1,0 +1,63 @@
+import { z } from 'zod';
+import { TimestampSchema } from './helper';
+import { AccountTypeSchema, HoldingSchema } from './account';
+
+// Portfolio Schema
+export const PortfolioSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  description: z.string().optional(),
+  accountIds: z.array(z.string()),
+  isActive: z.boolean().default(true),
+  createdAt: TimestampSchema,
+  updatedAt: TimestampSchema.optional(),
+});
+
+export type Portfolio = z.infer<typeof PortfolioSchema>;
+
+// Portfolio Account Snapshot (embedded in PortfolioSnapshot)
+export const PortfolioAccountSnapshotSchema = z.object({
+  accountId: z.string(),
+  accountName: z.string(),
+  type: AccountTypeSchema,
+  value: z.number(),
+  holdings: z.array(HoldingSchema).optional(),
+});
+
+export type PortfolioAccountSnapshot = z.infer<typeof PortfolioAccountSnapshotSchema>;
+
+// Portfolio Performance Schema
+export const PortfolioPerformanceSchema = z.object({
+  openingValue: z.number(),
+  closingValue: z.number(),
+  netCashFlow: z.number(),
+  gain: z.number(),
+  returnRate: z.number(),
+  cumulativeGain: z.number(),
+  cumulativeReturnRate: z.number(),
+});
+
+export type PortfolioPerformance = z.infer<typeof PortfolioPerformanceSchema>;
+
+// Portfolio Cash Flow Schema
+export const PortfolioCashFlowSchema = z.object({
+  deposits: z.number(),
+  withdrawals: z.number(),
+});
+
+export type PortfolioCashFlow = z.infer<typeof PortfolioCashFlowSchema>;
+
+// Portfolio Snapshot Schema
+export const PortfolioSnapshotSchema = z.object({
+  id: z.string(),
+  year: z.number().int(),
+  month: z.number().int().min(1).max(12),
+  accounts: z.array(PortfolioAccountSnapshotSchema),
+  totalValue: z.number(),
+  cashFlow: PortfolioCashFlowSchema,
+  performance: PortfolioPerformanceSchema,
+  createdAt: TimestampSchema,
+  createdBy: z.string(),
+});
+
+export type PortfolioSnapshot = z.infer<typeof PortfolioSnapshotSchema>;

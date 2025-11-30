@@ -32,4 +32,3 @@ jobs:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
           firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_ONE_PIECE_4E822 }}
           projectId: one-piece-4e822
-          channelId: dev

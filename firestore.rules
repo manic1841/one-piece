@@ -97,6 +97,16 @@ service cloud.firestore {
         allow read: if isSignedIn() && isHouseholdMember(householdId);
         allow write: if isSignedIn() && isHouseholdAdmin(householdId);
       }
+
+      match /portfolios/{portfolioId} {
+        allow read: if isSignedIn() && isHouseholdMember(householdId);
+        allow write: if isSignedIn() && isHouseholdAdmin(householdId);
+      }
+
+      match /portfolios/{portfolioId}/snapshots/{sid} {
+        allow read: if isSignedIn() && isHouseholdMember(householdId);
+        allow write: if isSignedIn() && isHouseholdAdmin(householdId);
+      }
     }
   }
 }

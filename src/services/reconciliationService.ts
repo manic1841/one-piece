@@ -1,5 +1,6 @@
 import { accountService } from './accountService';
 import { projectService } from './projectService';
+import { calculateReconciliationReport } from '../domains/finance/calculators/reconciliationCalculator';
 
 export type ReconciliationReport = {
   year: number;
@@ -42,14 +43,17 @@ export const reconciliationService = {
       prevYear = year - 1;
     }
 
-    // Get all accounts
+    // 1. Fetch Accounts
     const accounts = await accountService.getAccounts(householdId);
+    const reconciliationAccounts = accounts.filter(
+      (account) => account.includeInReconciliation !== false,
+    );
 
-    // Get balance snapshots for current and previous month
+    // 2. Fetch Account Snapshots (Current & Previous)
     const currentSnapshots = new Map<string, number>();
     const previousSnapshots = new Map<string, number>();
 
-    for (const account of accounts) {
+    for (const account of reconciliationAccounts) {
       const currentMonthSnapshots = await accountService.getSnapshots(
         householdId,
         account.id,
@@ -71,7 +75,7 @@ export const reconciliationService = {
       }
     }
 
-    // Calculate total balances from account snapshots
+    // 3. Calculate Total Balances
     let currentTotalBalance = 0;
     let previousTotalBalance = 0;
 
@@ -82,71 +86,38 @@ export const reconciliationService = {
       previousTotalBalance += balance;
     }
 
-    const actualChange = currentTotalBalance - previousTotalBalance;
-
-    // Get all projects
+    // 4. Fetch Projects
     const projects = await projectService.getProjects(householdId);
+    const reconciliationProjects = projects.filter(
+      (project) => project.includeInReconciliation !== false,
+    );
 
-    // Get project snapshots for the month
-    const incomeByProject: Record<string, number> = {};
-    const expenseByProject: Record<string, number> = {};
-    let totalIncome = 0;
-    let totalExpense = 0;
-
-    for (const project of projects) {
-      const projectSnapshots = await projectService.getSnapshots(
+    // 5. Fetch Project Snapshots
+    const projectSnapshots = [];
+    // Optimization: We could fetch all snapshots in parallel or batch, 
+    // but for now we keep the loop to minimize change risk, just collecting data.
+    // Ideally, projectService should support fetching snapshots for multiple projects or by period.
+    for (const project of reconciliationProjects) {
+      const snapshots = await projectService.getSnapshots(
         householdId,
         project.id,
         year,
         month,
       );
-
-      if (projectSnapshots.length > 0) {
-        const snapshot = projectSnapshots[0];
-
-        if (snapshot.income > 0) {
-          incomeByProject[project.id] = snapshot.income;
-          totalIncome += snapshot.income;
-        }
-
-        if (snapshot.expense > 0) {
-          expenseByProject[project.id] = snapshot.expense;
-          totalExpense += snapshot.expense;
-        }
+      if (snapshots.length > 0) {
+        // Inject projectId into snapshot for the calculator
+        projectSnapshots.push({ ...snapshots[0], projectId: project.id });
       }
     }
 
-    const expectedChange = totalIncome - totalExpense;
-
-    // Calculate discrepancy
-    const discrepancy = actualChange - expectedChange;
-    const discrepancyPercentage =
-      previousTotalBalance > 0 ? (discrepancy / previousTotalBalance) * 100 : 0;
-
-    return {
+    // 6. Calculate Report
+    return calculateReconciliationReport({
       year,
       month,
-      previousMonth: {
-        year: prevYear,
-        month: prevMonth,
-        totalBalance: previousTotalBalance,
-      },
-      currentMonth: {
-        year,
-        month,
-        totalBalance: currentTotalBalance,
-      },
-      actualChange,
-      expected: {
-        totalIncome,
-        totalExpense,
-        incomeByProject,
-        expenseByProject,
-      },
-      expectedChange,
-      discrepancy,
-      discrepancyPercentage,
-      hasDiscrepancy: Math.abs(discrepancy) > 0.01,
-    };
+      previousTotalBalance,
+      currentTotalBalance,
+      projects,
+      projectSnapshots,
+    });
   },
 };
