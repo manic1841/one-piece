@@ -2,20 +2,11 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { type Portfolio, type PortfolioSnapshot } from '../../schemas';
 import { portfolioService } from '../../services/portfolioService';
-import { formatCurrency, formatPercentage } from '../../utils/formatUtils';
-import { formatYearMonth } from '../../utils/dateUtils';
 import { Button } from '@/components/ui/button';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { ArrowLeft, TrendingUp, TrendingDown, Plus } from 'lucide-react';
+import { ArrowLeft, Plus } from 'lucide-react';
 import PortfolioSnapshotForm from './PortfolioSnapshotForm';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
+import { PortfolioPerformanceCards } from './detail/PortfolioPerformanceCards';
+import { PortfolioHistoryTable } from './detail/PortfolioHistoryTable';
 
 interface PortfolioDetailProps {
   householdId: string;
@@ -94,132 +85,10 @@ const PortfolioDetail: React.FC<PortfolioDetailProps> = ({ householdId, userEmai
       </div>
 
       {/* Performance Summary Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Value</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {latestSnapshot 
-                ? formatCurrency(latestSnapshot.totalValue)
-                : '--'}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {latestSnapshot ? formatYearMonth(latestSnapshot.year, latestSnapshot.month) : 'No data'}
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Monthly Return</CardTitle>
-            {latestSnapshot && latestSnapshot.performance.returnRate >= 0 ? (
-              <TrendingUp className="h-4 w-4 text-green-500" />
-            ) : (
-              <TrendingDown className="h-4 w-4 text-red-500" />
-            )}
-          </CardHeader>
-          <CardContent>
-            <div className={`text-2xl font-bold ${latestSnapshot?.performance.returnRate && latestSnapshot.performance.returnRate >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-              {latestSnapshot 
-                ? formatPercentage(latestSnapshot.performance.returnRate, 2)
-                : '--'}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {latestSnapshot 
-                ? formatCurrency(latestSnapshot.performance.gain)
-                : '--'}
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Cumulative Return</CardTitle>
-            {latestSnapshot && latestSnapshot.performance.cumulativeReturnRate >= 0 ? (
-              <TrendingUp className="h-4 w-4 text-green-500" />
-            ) : (
-              <TrendingDown className="h-4 w-4 text-red-500" />
-            )}
-          </CardHeader>
-          <CardContent>
-            <div className={`text-2xl font-bold ${latestSnapshot?.performance.cumulativeReturnRate && latestSnapshot.performance.cumulativeReturnRate >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-              {latestSnapshot 
-                ? formatPercentage(latestSnapshot.performance.cumulativeReturnRate, 2)
-                : '--'}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {latestSnapshot 
-                ? formatCurrency(latestSnapshot.performance.cumulativeGain)
-                : '--'}
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Net Cash Flow (MoM)</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {latestSnapshot 
-                ? formatCurrency(latestSnapshot.performance.netCashFlow)
-                : '--'}
-            </div>
-             <p className="text-xs text-muted-foreground">
-              In: {latestSnapshot ? formatCurrency(latestSnapshot.cashFlow.deposits) : '--'} / Out: {latestSnapshot ? formatCurrency(latestSnapshot.cashFlow.withdrawals) : '--'}
-            </p>
-          </CardContent>
-        </Card>
-      </div>
+      <PortfolioPerformanceCards latestSnapshot={latestSnapshot} />
 
       {/* Snapshots History Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle>History</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Date</TableHead>
-                <TableHead className="text-right">Total Value</TableHead>
-                <TableHead className="text-right">Return</TableHead>
-                <TableHead className="text-right">Return %</TableHead>
-                <TableHead className="text-right">Cumulative %</TableHead>
-                <TableHead className="text-right">Net Flow</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {snapshots.map((snapshot) => (
-                <TableRow key={snapshot.id}>
-                  <TableCell>{formatYearMonth(snapshot.year, snapshot.month)}</TableCell>
-                  <TableCell className="text-right font-medium">
-                    {formatCurrency(snapshot.totalValue)}
-                  </TableCell>
-                  <TableCell className={`text-right ${snapshot.performance.gain >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                    {formatCurrency(snapshot.performance.gain)}
-                  </TableCell>
-                  <TableCell className={`text-right ${snapshot.performance.returnRate >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                    {formatPercentage(snapshot.performance.returnRate, 2)}
-                  </TableCell>
-                  <TableCell className={`text-right ${snapshot.performance.cumulativeReturnRate >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                    {formatPercentage(snapshot.performance.cumulativeReturnRate, 2)}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    {formatCurrency(snapshot.performance.netCashFlow)}
-                  </TableCell>
-                </TableRow>
-              ))}
-              {snapshots.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={6} className="text-center text-muted-foreground">
-                    No snapshots recorded yet.
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+      <PortfolioHistoryTable snapshots={snapshots} />
 
       {portfolio && (
         <PortfolioSnapshotForm
