@@ -10,6 +10,7 @@ export * from './plannedIncome';
 export * from './helper';
 export * from './portfolio';
 export * from './incomeStatement';
+export * from './balanceSheet';
 
 export const AccessControlSchema = z.object({
   whitelistedEmails: z.array(z.string().email()),

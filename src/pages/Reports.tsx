@@ -25,7 +25,7 @@ const Reports: React.FC = () => {
       path: '/reports/balance-sheet',
       color: 'text-purple-600',
       bgColor: 'bg-purple-50',
-      enabled: false,
+      enabled: true,
     },
     {
       id: 'cash-flow',

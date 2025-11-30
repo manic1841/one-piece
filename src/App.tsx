@@ -15,6 +15,7 @@ import Reconciliation from './pages/Reconciliation';
 import Settings from './pages/Settings';
 import Reports from './pages/Reports';
 import IncomeStatementPage from './pages/IncomeStatementPage';
+import BalanceSheetPage from './pages/BalanceSheetPage';
 import RetirementPlanList from './pages/RetirementPlanList';
 import RetirementPlanDetail from './pages/RetirementPlanDetail';
 
@@ -50,6 +51,7 @@ function App() {
             <Route path="reconciliation" element={<Reconciliation />} />
             <Route path="reports" element={<Reports />} />
             <Route path="reports/income-statement" element={<IncomeStatementPage />} />
+            <Route path="reports/balance-sheet" element={<BalanceSheetPage />} />
             <Route path="retirement" element={<RetirementPlanList />} />
             <Route path="retirement/:id" element={<RetirementPlanDetail />} />
             <Route path="settings" element={<Settings />} />
