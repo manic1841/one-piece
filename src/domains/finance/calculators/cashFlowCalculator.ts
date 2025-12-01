@@ -36,9 +36,12 @@ export function calculateCashFlow(
     // Determine section based on project or category
     const project = getProject(tx.projectId);
 
-    if (project?.accounting?.cashFlow?.category) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      section = project.accounting.cashFlow.category as any;
+    if (project?.accounting?.cashFlow?.activity) {
+      const activity = project.accounting.cashFlow.activity;
+      if (activity === 'reconciliation') {
+        continue;
+      }
+      section = activity;
     } else {
       // Default logic if no project config
       if (tx.type === 'income') {

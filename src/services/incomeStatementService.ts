@@ -2,7 +2,7 @@ import { type IncomeStatement } from '../schemas';
 import { projectService } from './projectService';
 import { transactionService } from './transactionService';
 import { plannedIncomeService } from './plannedIncomeService';
-import { accountingConfigService } from './accountingConfigService';
+// import { accountingConfigService } from './accountingConfigService';
 import { calculateIncomeStatement } from '../domains/finance/calculators/incomeStatementCalculator';
 
 /**
@@ -44,8 +44,8 @@ class IncomeStatementService {
       endDate.getFullYear(),
     );
 
-    // 4. Fetch accounting configuration
-    const accountingConfig = await accountingConfigService.getConfig(householdId);
+    // 4. Fetch accounting configuration - No longer needed for expense calculation
+    // const accountingConfig = await accountingConfigService.getConfig(householdId);
 
     // 5. Calculate income statement using pure function
     return calculateIncomeStatement(
@@ -53,7 +53,6 @@ class IncomeStatementService {
       incomeTransactions,
       snapshots,
       projects,
-      accountingConfig,
       startDate,
       endDate,
       createdBy,

@@ -9,7 +9,7 @@ import MonthlySettlementDialog from '../components/projects/MonthlySettlementDia
 import ProjectBalanceChart from '../components/projects/ProjectBalanceChart';
 import { formatCurrency } from '../utils/formatUtils';
 import { projectService } from '../services/projectService';
-import { type Project } from '../schemas';
+import { type Project, ProjectCategory } from '../schemas';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
@@ -191,8 +191,11 @@ const Projects: React.FC = () => {
             icon: projectData.icon || '📁',
             color: projectData.color || 'bg-gray-100 text-gray-600',
             description: projectData.description || '',
+            category: ProjectCategory.OPERATING,
+            order: 0,
             isPersonal: false,
             isActive: true,
+            createdBy: userProfile?.uid || 'unknown',
             snapshots: [],
           });
           await reloadData();

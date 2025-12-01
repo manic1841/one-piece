@@ -32,7 +32,7 @@ export function calculateReconciliationReport(
 
   // Filter projects to only include those with reconciliation enabled
   const reconciliationProjects = projects.filter(
-    (project) => project.includeInReconciliation !== false
+    (project) => project.isActive !== false
   );
   const reconciliationProjectIds = new Set(reconciliationProjects.map((p) => p.id));
 

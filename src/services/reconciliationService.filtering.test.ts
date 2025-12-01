@@ -168,7 +168,7 @@ describe('reconciliationService - Filtering', () => {
     expect(report.actualChange).toBe(1500); // 7000 - 5500
   });
 
-  it('should exclude projects with includeInReconciliation=false from reconciliation', async () => {
+  it('should exclude projects with isActive=false from reconciliation', async () => {
     const accounts = [
       {
         id: 'acc-1',
@@ -208,7 +208,6 @@ describe('reconciliationService - Filtering', () => {
         name: 'Project 1',
         icon: '🏠',
         color: '#4CAF50',
-        includeInReconciliation: true,
         isPersonal: false,
         isActive: true,
       },
@@ -217,9 +216,8 @@ describe('reconciliationService - Filtering', () => {
         name: 'Project 2',
         icon: '🚗',
         color: '#2196F3',
-        includeInReconciliation: false,
         isPersonal: false,
-        isActive: true,
+        isActive: false, // Should be excluded
       },
       {
         id: 'proj-3',
@@ -228,7 +226,7 @@ describe('reconciliationService - Filtering', () => {
         color: '#FF5722',
         isPersonal: false,
         isActive: true,
-      }, // undefined should default to true
+      },
     ];
     vi.mocked(projectService.getProjects).mockResolvedValue(projects);
 
@@ -246,7 +244,7 @@ describe('reconciliationService - Filtering', () => {
           createdAt: Timestamp.now(),
         },
       ])
-      // proj-2 should be skipped (includeInReconciliation: false)
+      // proj-2 should be skipped (isActive: false)
       // proj-3
       .mockResolvedValueOnce([
         {

@@ -7,7 +7,6 @@ import {
   type Project,
   type PlannedIncome,
   type Transaction,
-  type AccountingConfig,
   IncomeStatementSchema,
 } from '../../../schemas';
 import {
@@ -25,7 +24,6 @@ export function calculateIncomeStatement(
   incomeTransactions: Transaction[],
   snapshots: Array<ProjectSnapshot & { projectId: string }>,
   projects: Project[],
-  accountingConfig: AccountingConfig | null,
   startDate: Date,
   endDate: Date,
   createdBy: string,
@@ -35,7 +33,7 @@ export function calculateIncomeStatement(
   const income = buildIncomeSection(plannedIncomes, incomeTransactions, projects);
 
   // 2. Build Expense Section
-  const expense = buildExpenseSection(snapshots, projects, accountingConfig);
+  const expense = buildExpenseSection(snapshots, projects);
 
   // 3. Calculate net income
   const netIncome = income.total - expense.total;
@@ -168,7 +166,6 @@ function buildIncomeSection(
 function buildExpenseSection(
   snapshots: Array<ProjectSnapshot & { projectId: string }>,
   projects: Project[],
-  accountingConfig: AccountingConfig | null,
 ): { categories: CategoryGroup[]; total: number } {
   const items: IncomeStatementItem[] = [];
   const projectMap = new Map(projects.map((p) => [p.id, p]));
@@ -190,42 +187,52 @@ function buildExpenseSection(
     const totalExpense = projectSnapshots.reduce((sum, s) => sum + (s.expense || 0), 0);
 
     if (totalExpense > 0) {
-      // Determine accounting category
-      // Only include if mapped in accounting config
-      if (accountingConfig && accountingConfig.projectMappings[projectId]) {
-        const category = accountingConfig.projectMappings[projectId];
+      // Check project accounting configuration
+      if (
+        project.accounting?.enabled &&
+        project.accounting.incomeStatement?.category === 'expense'
+      ) {
+        const { subcategory } = project.accounting.incomeStatement;
 
         items.push({
           id: `${projectId}-expense`,
-          category,
+          category: subcategory, // Use subcategory as the main category in the report for now, or map it? 
+          // Wait, the user request said: "subcategory: string // '生活費用' / '薪資收入'"
+          // And in the old logic: "category = accountingConfig.projectMappings[projectId]" which was like "生活", "居住"
+          // So here `subcategory` seems to correspond to the grouping category in the report.
           subcategory: project.name,
           amount: totalExpense,
           sourceType: 'project',
           sourceId: projectId,
+          // We need to pass the order to be used later
         });
       }
     }
   }
 
-  // Define order for expense categories
-  const categoryOrder: Record<string, number> = {
-    生活: 1,
-    居住: 2,
-    交通: 3,
-    保險: 4,
-    利息: 5,
-    稅: 6,
-    其他: 99,
-  };
-
+  // Group by category (which is actually the subcategory from project config)
   const grouped = groupByCategory(items, 'category');
   const subtotals = calculateSubtotals(grouped, 'amount');
+
+  // Build a map for category orders based on project config
+  const categoryOrderMap = new Map<string, number>();
+  for (const p of projects) {
+    if (
+      p.accounting?.enabled &&
+      p.accounting.incomeStatement?.category === 'expense'
+    ) {
+      categoryOrderMap.set(
+        p.accounting.incomeStatement.subcategory,
+        p.accounting.incomeStatement.order
+      );
+    }
+  }
 
   const categories: CategoryGroup[] = subtotals.map(({ category, subtotal, items }) => ({
     category,
     items: sortByOrder(items as IncomeStatementItem[]),
     subtotal,
-    order: categoryOrder[category] || 99,
+    order: categoryOrderMap.get(category) || 99,
   }));
 
   // Sort categories

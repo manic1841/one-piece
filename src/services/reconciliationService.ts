@@ -89,7 +89,7 @@ export const reconciliationService = {
     // 4. Fetch Projects
     const projects = await projectService.getProjects(householdId);
     const reconciliationProjects = projects.filter(
-      (project) => project.includeInReconciliation !== false,
+      (project) => project.isActive !== false,
     );
 
     // 5. Fetch Project Snapshots
