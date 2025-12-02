@@ -1,6 +1,6 @@
 import React from 'react';
 import { Pencil, Trash2 } from 'lucide-react';
-import { type Transaction, type PlannedIncome } from '../../schemas';
+import { type Transaction, type PlannedIncome, type ProjectTransaction } from '../../schemas';
 import { type TransactionListItem } from '../../hooks/useTransactions';
 import { formatCurrency } from '../../utils/formatUtils';
 import { toDate } from '../../utils/dateUtils';
@@ -13,8 +13,10 @@ interface TransactionListProps {
   loading: boolean;
   onEditTransaction: (transaction: Transaction) => void;
   onEditPlannedIncome: (income: PlannedIncome) => void;
+  onEditProjectTransaction: (pt: ProjectTransaction) => void;
   onDeleteTransaction: (id: string) => void;
   onDeletePlannedIncome: (id: string) => void;
+  onDeleteProjectTransaction: (id: string) => void;
 }
 
 export const TransactionList: React.FC<TransactionListProps> = ({
@@ -22,8 +24,10 @@ export const TransactionList: React.FC<TransactionListProps> = ({
   loading,
   onEditTransaction,
   onEditPlannedIncome,
+  onEditProjectTransaction,
   onDeleteTransaction,
   onDeletePlannedIncome,
+  onDeleteProjectTransaction,
 }) => {
   const formatDate = (timestamp: Timestamp | Date) => {
     if (!timestamp) return '';
@@ -101,6 +105,61 @@ export const TransactionList: React.FC<TransactionListProps> = ({
                         variant="ghost"
                         size="icon"
                         onClick={() => onDeletePlannedIncome(income.id)}
+                        className="text-muted-foreground hover:text-red-600 hover:bg-red-50"
+                      >
+                        <Trash2 size={18} />
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          } else if (item.type === 'projectTransaction') {
+            const pt = item.data;
+            const typeLabel = pt.type === 'transfer' ? '轉帳' : pt.type === 'adjustment' ? '調整' : '分配';
+
+            return (
+              <div
+                key={`pt-${pt.id}`}
+                className="p-4 hover:bg-accent/50 transition-colors bg-blue-50/30"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3">
+                      <div className="w-2 h-2 rounded-full bg-blue-500" />
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <p className="font-medium text-foreground capitalize">
+                            {typeLabel}
+                          </p>
+                          <span className="text-xs px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full">
+                            {typeLabel}
+                          </span>
+                        </div>
+                        {pt.description && (
+                          <p className="text-sm text-muted-foreground">{pt.description}</p>
+                        )}
+                        <p className="text-xs text-muted-foreground mt-1">{formatDate(pt.date)}</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <p className="text-lg font-bold text-blue-600">
+                      {formatCurrency(pt.amount)}
+                    </p>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => onEditProjectTransaction(pt)}
+                        className="text-muted-foreground hover:text-blue-600 hover:bg-blue-50"
+                      >
+                        <Pencil size={18} />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => onDeleteProjectTransaction(pt.id)}
                         className="text-muted-foreground hover:text-red-600 hover:bg-red-50"
                       >
                         <Trash2 size={18} />

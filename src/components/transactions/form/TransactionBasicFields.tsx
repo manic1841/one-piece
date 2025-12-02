@@ -9,9 +9,10 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { TRANSACTION_CATEGORIES as categories } from '../../../constants/categories';
+import { type TransactionType } from '../../../schemas';
 
 interface TransactionBasicFieldsProps {
-  type: 'income' | 'expense';
+  type: TransactionType;
   amount: string;
   setAmount: (value: string) => void;
   category: string;
@@ -34,12 +35,13 @@ export const TransactionBasicFields: React.FC<TransactionBasicFieldsProps> = ({
   setDescription,
 }) => {
   const availableCategories = type === 'income' ? categories.income : categories.expense;
+  const showCategory = type !== 'transfer';
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
       {/* Amount */}
       <div className="space-y-2">
-        <Label htmlFor="amount">Amount</Label>
+        <Label htmlFor="amount">金額</Label>
         <Input
           id="amount"
           type="number"
@@ -52,26 +54,28 @@ export const TransactionBasicFields: React.FC<TransactionBasicFieldsProps> = ({
         />
       </div>
 
-      {/* Category */}
-      <div className="space-y-2">
-        <Label htmlFor="category">Category</Label>
-        <Select value={category} onValueChange={setCategory} required>
-          <SelectTrigger id="category">
-            <SelectValue placeholder="Select a category" />
-          </SelectTrigger>
-          <SelectContent>
-            {availableCategories.map((cat) => (
-              <SelectItem key={cat.value} value={cat.value}>
-                {cat.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+      {/* Category (hidden for transfer) */}
+      {showCategory && (
+        <div className="space-y-2">
+          <Label htmlFor="category">類別</Label>
+          <Select value={category} onValueChange={setCategory} required>
+            <SelectTrigger id="category">
+              <SelectValue placeholder="選擇類別" />
+            </SelectTrigger>
+            <SelectContent>
+              {availableCategories.map((cat) => (
+                <SelectItem key={cat.value} value={cat.value}>
+                  {cat.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
 
       {/* Date */}
       <div className="space-y-2">
-        <Label htmlFor="date">Date</Label>
+        <Label htmlFor="date">日期</Label>
         <Input
           id="date"
           type="date"
@@ -83,11 +87,11 @@ export const TransactionBasicFields: React.FC<TransactionBasicFieldsProps> = ({
 
       {/* Description */}
       <div className="space-y-2">
-        <Label htmlFor="description">Description (Optional)</Label>
+        <Label htmlFor="description">備註（選填）</Label>
         <Input
           id="description"
           type="text"
-          placeholder="Add notes..."
+          placeholder="新增備註..."
           value={description}
           onChange={(e) => setDescription(e.target.value)}
         />

@@ -13,22 +13,32 @@ interface ProjectSelectionProps {
   projectId: string;
   setProjectId: (value: string) => void;
   projects: Project[];
+  label?: string;
+  excludeProjectId?: string; // For transfer: exclude source from destination options
+  required?: boolean;
 }
 
 export const ProjectSelection: React.FC<ProjectSelectionProps> = ({
   projectId,
   setProjectId,
   projects,
+  label = '專案',
+  excludeProjectId,
+  required = true,
 }) => {
+  const filteredProjects = excludeProjectId
+    ? projects.filter((p) => p.id !== excludeProjectId)
+    : projects;
+
   return (
     <div className="space-y-2">
-      <Label htmlFor="project">Project</Label>
-      <Select value={projectId} onValueChange={setProjectId} required>
+      <Label htmlFor="project">{label}</Label>
+      <Select value={projectId} onValueChange={setProjectId} required={required}>
         <SelectTrigger id="project">
-          <SelectValue placeholder="Select a project" />
+          <SelectValue placeholder="選擇專案" />
         </SelectTrigger>
         <SelectContent>
-          {projects.map((project) => (
+          {filteredProjects.map((project) => (
             <SelectItem key={project.id} value={project.id}>
               {project.icon} {project.name}
             </SelectItem>
@@ -37,7 +47,7 @@ export const ProjectSelection: React.FC<ProjectSelectionProps> = ({
       </Select>
       {projects.length === 0 && (
         <p className="text-xs text-destructive">
-          No projects found. Please create a project in Settings first.
+          找不到專案，請先在設定中建立專案
         </p>
       )}
     </div>

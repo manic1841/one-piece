@@ -223,7 +223,7 @@ function buildExpenseSection(
     ) {
       categoryOrderMap.set(
         p.accounting.incomeStatement.subcategory,
-        p.accounting.incomeStatement.order
+        p.accounting.incomeStatement.order ?? 0
       );
     }
   }

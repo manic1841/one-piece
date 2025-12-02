@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { TimestampSchema } from './helper';
 
 // TransactionType Schema
-export const TransactionTypeSchema = z.enum(['income', 'expense']);
+export const TransactionTypeSchema = z.enum(['income', 'expense', 'transfer']);
 
 export type TransactionType = z.infer<typeof TransactionTypeSchema>;
 

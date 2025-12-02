@@ -1,12 +1,14 @@
 import { useState, useEffect, useCallback } from 'react';
 import { transactionService } from '../services/transactionService';
 import { plannedIncomeService } from '../services/plannedIncomeService';
-import { type Transaction, type PlannedIncome } from '../schemas';
+import { projectTransactionService } from '../services/projectTransactionService';
+import { type Transaction, type PlannedIncome, type ProjectTransaction } from '../schemas';
 import { toDate } from '../utils/dateUtils';
 
 export type TransactionListItem =
   | { type: 'transaction'; data: Transaction }
-  | { type: 'plannedIncome'; data: PlannedIncome };
+  | { type: 'plannedIncome'; data: PlannedIncome }
+  | { type: 'projectTransaction'; data: ProjectTransaction };
 
 export const useTransactions = (householdId?: string) => {
   const [combinedList, setCombinedList] = useState<TransactionListItem[]>([]);
@@ -18,16 +20,23 @@ export const useTransactions = (householdId?: string) => {
 
     setLoading(true);
     try {
-      const [transactionsData, plannedIncomesData] = await Promise.all([
+      const [transactionsData, plannedIncomesData, projectTransactionsData] = await Promise.all([
         transactionService.getTransactions(householdId),
         plannedIncomeService.getPlannedIncomes(householdId),
+        projectTransactionService.getProjectTransactions(householdId),
       ]);
 
-      // Combine transactions and plannedIncomes into a single list
+      // Filter out projectTransactions with incomeSource (created from plannedIncome)
+      const filteredProjectTx = projectTransactionsData.filter((pt) => !pt.incomeSource);
+
+      // Combine transactions, plannedIncomes, and projectTransactions into a single list
       const combined: TransactionListItem[] = [
         ...transactionsData.map((t): TransactionListItem => ({ type: 'transaction', data: t })),
         ...plannedIncomesData.map(
           (pi): TransactionListItem => ({ type: 'plannedIncome', data: pi }),
+        ),
+        ...filteredProjectTx.map(
+          (pt): TransactionListItem => ({ type: 'projectTransaction', data: pt }),
         ),
       ];
 
@@ -107,6 +116,21 @@ export const useTransactions = (householdId?: string) => {
     await loadTransactions();
   };
 
+  const updateProjectTransaction = async (
+    id: string,
+    data: Partial<Omit<ProjectTransaction, 'id' | 'createdAt' | 'createdBy'>>,
+  ) => {
+    if (!householdId) return;
+    await projectTransactionService.updateProjectTransaction(householdId, id, data);
+    await loadTransactions();
+  };
+
+  const deleteProjectTransaction = async (id: string) => {
+    if (!householdId) return;
+    await projectTransactionService.deleteProjectTransactions(householdId, [id]);
+    await loadTransactions();
+  };
+
   return {
     combinedList,
     loading,
@@ -118,5 +142,7 @@ export const useTransactions = (householdId?: string) => {
     updatePlannedIncome,
     deleteTransaction,
     deletePlannedIncome,
+    updateProjectTransaction,
+    deleteProjectTransaction,
   };
 };

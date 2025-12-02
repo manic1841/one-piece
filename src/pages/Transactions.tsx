@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Plus } from 'lucide-react';
 import { useAuth } from '../contexts/useAuth';
 import TransactionForm from '../components/transactions/TransactionForm';
-import { type Transaction, type PlannedIncome } from '../schemas';
+import { type Transaction, type PlannedIncome, type ProjectTransaction } from '../schemas';
 import { useTransactions } from '../hooks/useTransactions';
 import { TransactionStats } from '../components/transactions/TransactionStats';
 import { TransactionList } from '../components/transactions/TransactionList';
@@ -20,13 +20,16 @@ const Transactions: React.FC = () => {
     createPlannedIncome,
     updateTransaction,
     updatePlannedIncome,
+    updateProjectTransaction,
     deleteTransaction,
     deletePlannedIncome,
+    deleteProjectTransaction,
   } = useTransactions(userProfile?.householdId);
 
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<Transaction | undefined>();
   const [editingPlannedIncome, setEditingPlannedIncome] = useState<PlannedIncome | undefined>();
+  const [editingProjectTransaction, setEditingProjectTransaction] = useState<ProjectTransaction | undefined>();
   const [filterType, setFilterType] = useState<'all' | 'income' | 'expense'>('all');
 
   const handleCreateTransaction = async (transaction: Omit<Transaction, 'id' | 'createdAt'>) => {
@@ -67,6 +70,18 @@ const Transactions: React.FC = () => {
     setIsFormOpen(false);
     setEditingTransaction(undefined);
     setEditingPlannedIncome(undefined);
+    setEditingProjectTransaction(undefined);
+  };
+
+  const handleEditProjectTransaction = (pt: ProjectTransaction) => {
+    setEditingProjectTransaction(pt);
+    setIsFormOpen(true);
+  };
+
+  const handleUpdateProjectTransaction = async (data: Omit<ProjectTransaction, 'id' | 'createdAt' | 'createdBy'>) => {
+    if (!editingProjectTransaction) return;
+    await updateProjectTransaction(editingProjectTransaction.id, data);
+    setEditingProjectTransaction(undefined);
   };
 
   const filteredList = combinedList.filter((item) => {
@@ -103,27 +118,24 @@ const Transactions: React.FC = () => {
           <div className="flex gap-2">
             <Button
               variant={filterType === 'all' ? 'default' : 'ghost'}
-              className={`flex-1 ${
-                filterType === 'all' ? 'bg-blue-100 text-blue-700 hover:bg-blue-200' : ''
-              }`}
+              className={`flex-1 ${filterType === 'all' ? 'bg-blue-100 text-blue-700 hover:bg-blue-200' : ''
+                }`}
               onClick={() => setFilterType('all')}
             >
               All
             </Button>
             <Button
               variant={filterType === 'income' ? 'default' : 'ghost'}
-              className={`flex-1 ${
-                filterType === 'income' ? 'bg-green-100 text-green-700 hover:bg-green-200' : ''
-              }`}
+              className={`flex-1 ${filterType === 'income' ? 'bg-green-100 text-green-700 hover:bg-green-200' : ''
+                }`}
               onClick={() => setFilterType('income')}
             >
               Income
             </Button>
             <Button
               variant={filterType === 'expense' ? 'default' : 'ghost'}
-              className={`flex-1 ${
-                filterType === 'expense' ? 'bg-red-100 text-red-700 hover:bg-red-200' : ''
-              }`}
+              className={`flex-1 ${filterType === 'expense' ? 'bg-red-100 text-red-700 hover:bg-red-200' : ''
+                }`}
               onClick={() => setFilterType('expense')}
             >
               Expense
@@ -138,8 +150,10 @@ const Transactions: React.FC = () => {
         loading={loading}
         onEditTransaction={handleEditClick}
         onEditPlannedIncome={handleEditPlannedIncome}
+        onEditProjectTransaction={handleEditProjectTransaction}
         onDeleteTransaction={deleteTransaction}
         onDeletePlannedIncome={deletePlannedIncome}
+        onDeleteProjectTransaction={deleteProjectTransaction}
       />
 
       {/* Transaction Form Modal */}
@@ -150,9 +164,13 @@ const Transactions: React.FC = () => {
           onSubmit={editingTransaction ? handleUpdateTransaction : handleCreateTransaction}
           onSubmitPlannedIncome={handleCreatePlannedIncome}
           onUpdatePlannedIncome={editingPlannedIncome ? handleUpdatePlannedIncome : undefined}
+          onUpdateProjectTransaction={
+            editingProjectTransaction ? handleUpdateProjectTransaction : undefined
+          }
           onSuccess={loadTransactions}
           initialData={editingTransaction}
           initialPlannedIncome={editingPlannedIncome}
+          initialProjectTransaction={editingProjectTransaction}
           householdId={userProfile.householdId}
           userEmail={currentUser.email}
         />

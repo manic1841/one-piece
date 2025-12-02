@@ -87,6 +87,24 @@ export const projectTransactionService = {
     return snapshot.docs.map((doc) => ProjectTransactionSchema.parse(doc.data()));
   },
 
+  // Update project transaction
+  async updateProjectTransaction(
+    householdId: string,
+    id: string,
+    data: Partial<Omit<ProjectTransaction, 'id' | 'createdAt' | 'createdBy'>>,
+  ): Promise<void> {
+    const ref = doc(db, 'households', householdId, 'projectTransactions', id);
+
+    // Convert date to Firestore Timestamp if it's a Date object
+    const updates: Record<string, unknown> = { ...data };
+    if (data.date) {
+      updates.date = data.date instanceof Date ? Timestamp.fromDate(data.date) : data.date;
+    }
+
+    const { updateDoc } = await import('firebase/firestore');
+    await updateDoc(ref, updates);
+  },
+
   // Delete project transactions by IDs
   // Supports running within an existing Firestore transaction
   async deleteProjectTransactions(

@@ -29,11 +29,11 @@ export const TypeToggle: React.FC<TypeToggleProps> = ({
             setShowAllocations(false);
           }}
           className={`flex-1 ${type === 'expense'
-              ? 'bg-red-100 text-red-700 hover:bg-red-200 border-red-200'
-              : ''
+            ? 'bg-red-100 text-red-700 hover:bg-red-200 border-red-200'
+            : ''
             }`}
         >
-          Expense
+          支出
         </Button>
         <Button
           type="button"
@@ -43,11 +43,26 @@ export const TypeToggle: React.FC<TypeToggleProps> = ({
             setCategory('');
           }}
           className={`flex-1 ${type === 'income'
-              ? 'bg-green-100 text-green-700 hover:bg-green-200 border-green-200'
-              : ''
+            ? 'bg-green-100 text-green-700 hover:bg-green-200 border-green-200'
+            : ''
             }`}
         >
-          Income
+          收入
+        </Button>
+        <Button
+          type="button"
+          variant={type === 'transfer' ? 'default' : 'outline'}
+          onClick={() => {
+            setType('transfer');
+            setCategory('');
+            setShowAllocations(false);
+          }}
+          className={`flex-1 ${type === 'transfer'
+            ? 'bg-blue-100 text-blue-700 hover:bg-blue-200 border-blue-200'
+            : ''
+            }`}
+        >
+          轉帳
         </Button>
       </div>
     </div>

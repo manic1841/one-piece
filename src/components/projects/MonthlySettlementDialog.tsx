@@ -14,6 +14,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card } from '@/components/ui/card';
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
   Table,
   TableBody,
   TableCell,
@@ -39,22 +46,18 @@ const MonthlySettlementDialog: React.FC<MonthlySettlementDialogProps> = ({
   projects,
   onSuccess,
 }) => {
+  const currentDate = new Date();
   const [status, setStatus] = useState<DialogStatus>('month-selection');
-  const [selectedMonth, setSelectedMonth] = useState('');
+  const [year, setYear] = useState(currentDate.getFullYear());
+  const [month, setMonth] = useState(currentDate.getMonth() + 1);
   const [settlements, setSettlements] = useState<SettlementPreview[]>([]);
   const [error, setError] = useState('');
 
   const handleMonthSelect = async () => {
-    if (!selectedMonth) {
-      setError('Please select a month');
-      return;
-    }
-
     setError('');
     setStatus('processing');
 
     try {
-      const [year, month] = selectedMonth.split('-').map(Number);
       const previews = await settlementService.calculateAllSettlements(
         householdId,
         projects,
@@ -71,13 +74,10 @@ const MonthlySettlementDialog: React.FC<MonthlySettlementDialogProps> = ({
   };
 
   const handleConfirmSettlement = async () => {
-    if (!selectedMonth) return;
-
     setError('');
     setStatus('processing');
 
     try {
-      const [year, month] = selectedMonth.split('-').map(Number);
       const result = await settlementService.batchCreateSettlement(
         householdId,
         year,
@@ -104,14 +104,13 @@ const MonthlySettlementDialog: React.FC<MonthlySettlementDialogProps> = ({
 
   const handleClose = () => {
     setStatus('month-selection');
-    setSelectedMonth('');
+    const now = new Date();
+    setYear(now.getFullYear());
+    setMonth(now.getMonth() + 1);
     setSettlements([]);
     setError('');
     onClose();
   };
-
-  // Get current month as default (format: YYYY-MM)
-  const currentMonth = new Date().toISOString().slice(0, 7);
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
@@ -131,16 +130,38 @@ const MonthlySettlementDialog: React.FC<MonthlySettlementDialogProps> = ({
                 Select the month you want to settle. This will create snapshots for all active
                 projects.
               </p>
-              <div className="space-y-2">
-                <Label htmlFor="settlement-month">Settlement Month</Label>
-                <Input
-                  id="settlement-month"
-                  type="month"
-                  value={selectedMonth}
-                  onChange={(e) => setSelectedMonth(e.target.value)}
-                  max={currentMonth}
-                />
+
+              {/* Year & Month */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label htmlFor="year">年份</Label>
+                  <Input
+                    id="year"
+                    type="number"
+                    required
+                    min="2000"
+                    max="2100"
+                    value={year}
+                    onChange={(e) => setYear(parseInt(e.target.value))}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="month">月份</Label>
+                  <Select value={month.toString()} onValueChange={(val) => setMonth(parseInt(val))}>
+                    <SelectTrigger id="month">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
+                        <SelectItem key={m} value={m.toString()}>
+                          {m}月
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
+
               {error && (
                 <div className="bg-destructive/10 text-destructive p-3 rounded-lg text-sm">
                   {error}
@@ -153,7 +174,7 @@ const MonthlySettlementDialog: React.FC<MonthlySettlementDialogProps> = ({
             <div className="space-y-4 py-4">
               <Card className="bg-blue-50 border-blue-200 p-4">
                 <p className="text-sm text-blue-800">
-                  <strong>Settlement Preview for {selectedMonth}</strong>
+                  <strong>Settlement Preview for {year}-{String(month).padStart(2, '0')}</strong>
                   <br />
                   Review the calculations below. Click "Confirm Settlement" to create snapshots for
                   all projects.
@@ -241,7 +262,7 @@ const MonthlySettlementDialog: React.FC<MonthlySettlementDialogProps> = ({
               <Button variant="outline" onClick={handleClose}>
                 Cancel
               </Button>
-              <Button onClick={handleMonthSelect} disabled={!selectedMonth}>
+              <Button onClick={handleMonthSelect}>
                 Next
               </Button>
             </>

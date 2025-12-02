@@ -55,19 +55,19 @@ export const ProjectSchema = z.object({
     incomeStatement: z.object({
       category: z.enum(['income', 'expense']),
       subcategory: z.string(),
-      order: z.number(),
+      order: z.number().optional(),
     }).optional(),
 
     cashFlow: z.object({
       activity: z.enum(['operating', 'investing', 'financing', 'reconciliation']),
       subcategory: z.string(),
-      order: z.number(),
+      order: z.number().optional(),
     }).optional(),
 
     balanceSheet: z.object({
       category: z.enum(['asset', 'liability', 'equity']),
       subcategory: z.enum(['current', 'fixed', 'investment', 'longTerm', 'shortTerm']),
-      order: z.number(),
+      order: z.number().optional(),
       isDebt: z.boolean().optional(),
       isInvestment: z.boolean().optional(),
       isRealEstate: z.boolean().optional(),
