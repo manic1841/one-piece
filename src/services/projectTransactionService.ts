@@ -1,16 +1,12 @@
 import {
-  collection,
-  doc,
-  getDocs,
-  query,
-  where,
   orderBy,
+  where,
   Timestamp,
-  serverTimestamp,
-  Transaction as FirestoreTransaction,
+  type QueryConstraint,
+  type Transaction as FirestoreTransaction,
 } from 'firebase/firestore';
-import { db } from '../firebase';
-import { ProjectTransactionSchema, type ProjectTransaction } from '../schemas';
+import { type ProjectTransaction } from '../schemas';
+import { projectTransactionRepository } from '../repositories/projectTransactionRepository';
 
 export const projectTransactionService = {
   // Create a new project transaction
@@ -20,26 +16,7 @@ export const projectTransactionService = {
     data: Omit<ProjectTransaction, 'id' | 'createdAt'>,
     transaction?: FirestoreTransaction,
   ): Promise<string> {
-    const ref = doc(collection(db, 'households', householdId, 'projectTransactions'));
-    const id = ref.id;
-
-    // Convert date to Firestore Timestamp if it's a Date object
-    const date = data.date instanceof Date ? Timestamp.fromDate(data.date) : data.date;
-
-    const newTransaction = {
-      ...data,
-      id,
-      date,
-      createdAt: serverTimestamp(),
-    };
-
-    if (transaction) {
-      transaction.set(ref, newTransaction);
-    } else {
-      await import('firebase/firestore').then(({ setDoc }) => setDoc(ref, newTransaction));
-    }
-
-    return id;
+    return projectTransactionRepository.create(householdId, data, transaction);
   },
 
   // Get project transactions
@@ -51,26 +28,22 @@ export const projectTransactionService = {
       endDate?: string;
     },
   ): Promise<ProjectTransaction[]> {
-    let q = query(
-      collection(db, 'households', householdId, 'projectTransactions'),
-      orderBy('date', 'desc'),
-    );
+    const constraints: QueryConstraint[] = [orderBy('date', 'desc')];
 
     if (options?.projectId) {
       // Note: This requires a composite index: projectId ASC, date DESC
-      q = query(q, where('toProject', '==', options.projectId));
+      constraints.push(where('toProject', '==', options.projectId));
     }
 
     if (options?.startDate) {
-      q = query(q, where('date', '>=', Timestamp.fromDate(new Date(options.startDate))));
+      constraints.push(where('date', '>=', Timestamp.fromDate(new Date(options.startDate))));
     }
 
     if (options?.endDate) {
-      q = query(q, where('date', '<=', Timestamp.fromDate(new Date(options.endDate))));
+      constraints.push(where('date', '<=', Timestamp.fromDate(new Date(options.endDate))));
     }
 
-    const snapshot = await getDocs(q);
-    return snapshot.docs.map((doc) => ProjectTransactionSchema.parse(doc.data()));
+    return projectTransactionRepository.getAll(householdId, constraints);
   },
 
   // Get project transactions by income source (plannedIncomeId)
@@ -78,13 +51,9 @@ export const projectTransactionService = {
     householdId: string,
     incomeSource: string,
   ): Promise<ProjectTransaction[]> {
-    const q = query(
-      collection(db, 'households', householdId, 'projectTransactions'),
+    return projectTransactionRepository.getAll(householdId, [
       where('incomeSource', '==', incomeSource),
-    );
-
-    const snapshot = await getDocs(q);
-    return snapshot.docs.map((doc) => ProjectTransactionSchema.parse(doc.data()));
+    ]);
   },
 
   // Update project transaction
@@ -93,16 +62,7 @@ export const projectTransactionService = {
     id: string,
     data: Partial<Omit<ProjectTransaction, 'id' | 'createdAt' | 'createdBy'>>,
   ): Promise<void> {
-    const ref = doc(db, 'households', householdId, 'projectTransactions', id);
-
-    // Convert date to Firestore Timestamp if it's a Date object
-    const updates: Record<string, unknown> = { ...data };
-    if (data.date) {
-      updates.date = data.date instanceof Date ? Timestamp.fromDate(data.date) : data.date;
-    }
-
-    const { updateDoc } = await import('firebase/firestore');
-    await updateDoc(ref, updates);
+    return projectTransactionRepository.update(householdId, id, data);
   },
 
   // Delete project transactions by IDs
@@ -112,21 +72,6 @@ export const projectTransactionService = {
     transactionIds: string[],
     transaction?: FirestoreTransaction,
   ): Promise<void> {
-    if (transactionIds.length === 0) return;
-
-    if (transaction) {
-      // Use provided transaction
-      for (const id of transactionIds) {
-        const ref = doc(db, 'households', householdId, 'projectTransactions', id);
-        transaction.delete(ref);
-      }
-    } else {
-      // Use individual deletes
-      const { deleteDoc } = await import('firebase/firestore');
-      for (const id of transactionIds) {
-        const ref = doc(db, 'households', householdId, 'projectTransactions', id);
-        await deleteDoc(ref);
-      }
-    }
+    return projectTransactionRepository.deleteMultiple(householdId, transactionIds, transaction);
   },
 };

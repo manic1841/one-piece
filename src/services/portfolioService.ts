@@ -1,47 +1,27 @@
-import {
-  collection,
-  doc,
-  setDoc,
-  getDocs,
-  query,
-  where,
-  orderBy,
-} from 'firebase/firestore';
-import { db } from '../firebase';
-import {
-  PortfolioSchema,
-  PortfolioSnapshotSchema,
-  parseWithSchema,
-  type Portfolio,
-  type PortfolioSnapshot,
-  type AccountSnapshot,
-} from '../schemas';
-import { BaseService } from './baseService';
+import { orderBy, where, type QueryConstraint } from 'firebase/firestore';
+import { type Portfolio, type PortfolioSnapshot, type AccountSnapshot } from '../schemas';
 import { accountService } from './accountService';
 import { calculatePortfolioSnapshot } from '../domains/finance/calculators/portfolioCalculator';
+import { portfolioRepository } from '../repositories/portfolioRepository';
 
-class PortfolioService extends BaseService<Portfolio> {
-  constructor() {
-    super('portfolios', PortfolioSchema);
-  }
-
+export const portfolioService = {
   // Create a new portfolio
   async createPortfolio(
     householdId: string,
     portfolio: Omit<Portfolio, 'id' | 'createdAt' | 'updatedAt'>,
   ): Promise<string> {
-    return this.create(householdId, portfolio);
-  }
+    return portfolioRepository.create(householdId, portfolio);
+  },
 
   // Get all portfolios for a household
   async getPortfolios(householdId: string): Promise<Portfolio[]> {
-    return this.getAll(householdId, [orderBy('createdAt', 'desc')]);
-  }
+    return portfolioRepository.getAll(householdId, [orderBy('createdAt', 'desc')]);
+  },
 
   // Get a single portfolio
   async getPortfolio(householdId: string, id: string): Promise<Portfolio | null> {
-    return this.getById(householdId, id);
-  }
+    return portfolioRepository.getById(householdId, id);
+  },
 
   // Update a portfolio
   async updatePortfolio(
@@ -49,13 +29,13 @@ class PortfolioService extends BaseService<Portfolio> {
     id: string,
     updates: Partial<Portfolio>,
   ): Promise<void> {
-    return this.update(householdId, id, updates);
-  }
+    return portfolioRepository.update(householdId, id, updates);
+  },
 
   // Delete a portfolio
   async deletePortfolio(householdId: string, id: string): Promise<void> {
-    return this.delete(householdId, id);
-  }
+    return portfolioRepository.delete(householdId, id);
+  },
 
   // Create a portfolio snapshot
   async createSnapshot(
@@ -66,7 +46,7 @@ class PortfolioService extends BaseService<Portfolio> {
     createdBy: string,
     cashFlow: { deposits: number; withdrawals: number } = { deposits: 0, withdrawals: 0 },
   ): Promise<string> {
-    const portfolio = await this.getPortfolio(householdId, portfolioId);
+    const portfolio = await portfolioRepository.getById(householdId, portfolioId);
     if (!portfolio) {
       throw new Error('Portfolio not found');
     }
@@ -78,11 +58,11 @@ class PortfolioService extends BaseService<Portfolio> {
     for (const accountId of portfolio.accountIds) {
       const account = await accountService.getAccount(householdId, accountId);
       if (!account) continue;
-      
+
       accounts.push(account);
 
       const snapshots = await accountService.getSnapshots(householdId, accountId, year, month);
-      
+
       if (snapshots.length > 0) {
         accountSnapshots.set(accountId, snapshots[0]);
       } else {
@@ -113,19 +93,8 @@ class PortfolioService extends BaseService<Portfolio> {
       createdBy,
     });
 
-    const snapshotRef = doc(
-      collection(db, 'households', householdId, 'portfolios', portfolioId, 'snapshots'),
-    );
-    const snapshotId = snapshotRef.id;
-
-    const newSnapshot = {
-      ...snapshotData,
-      id: snapshotId,
-    };
-
-    await setDoc(snapshotRef, newSnapshot);
-    return snapshotId;
-  }
+    return portfolioRepository.createSnapshot(householdId, portfolioId, snapshotData);
+  },
 
   // Get snapshots for a portfolio
   async getSnapshots(
@@ -134,29 +103,15 @@ class PortfolioService extends BaseService<Portfolio> {
     year?: number,
     month?: number,
   ): Promise<PortfolioSnapshot[]> {
-    const snapshotsRef = collection(
-      db,
-      'households',
-      householdId,
-      'portfolios',
-      portfolioId,
-      'snapshots',
-    );
-    let q = query(snapshotsRef, orderBy('year', 'desc'), orderBy('month', 'desc'));
+    const constraints: QueryConstraint[] = [orderBy('year', 'desc'), orderBy('month', 'desc')];
 
     if (year !== undefined) {
-      q = query(q, where('year', '==', year));
+      constraints.push(where('year', '==', year));
     }
     if (month !== undefined) {
-      q = query(q, where('month', '==', month));
+      constraints.push(where('month', '==', month));
     }
 
-    const querySnapshot = await getDocs(q);
-    return querySnapshot.docs.map((doc) => {
-      const data = doc.data();
-      return parseWithSchema(PortfolioSnapshotSchema, data);
-    });
-  }
-}
-
-export const portfolioService = new PortfolioService();
+    return portfolioRepository.getSnapshots(householdId, portfolioId, constraints);
+  },
+};

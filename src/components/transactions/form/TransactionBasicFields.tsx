@@ -8,11 +8,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { TRANSACTION_CATEGORIES as categories } from '../../../constants/transaction/categories';
-import { type TransactionType } from '../../../schemas';
+import { TRANSACTION_CATEGORIES as categories } from '../../../constants/transaction/transactionLabel';
 
 interface TransactionBasicFieldsProps {
-  type: TransactionType;
+  type: string;
   amount: string;
   setAmount: (value: string) => void;
   category: string;

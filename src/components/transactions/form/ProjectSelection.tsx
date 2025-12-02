@@ -46,9 +46,7 @@ export const ProjectSelection: React.FC<ProjectSelectionProps> = ({
         </SelectContent>
       </Select>
       {projects.length === 0 && (
-        <p className="text-xs text-destructive">
-          找不到專案，請先在設定中建立專案
-        </p>
+        <p className="text-xs text-destructive">找不到專案，請先在設定中建立專案</p>
       )}
     </div>
   );

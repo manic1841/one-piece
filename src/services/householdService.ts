@@ -1,18 +1,17 @@
 import {
-  collection,
   doc,
   setDoc,
   getDoc,
   updateDoc,
   serverTimestamp,
-  query,
   where,
-  getDocs,
   deleteField,
 } from 'firebase/firestore';
 import { db } from '../firebase';
-import { HouseholdSchema, UserProfileSchema, parseWithSchema } from '../schemas';
+import { UserProfileSchema, parseWithSchema } from '../schemas';
 import type { UserProfile, Household } from '../schemas';
+import { householdRepository } from '../repositories/householdRepository';
+import { RoleEnum } from '../domains/core/role';
 
 export const householdService = {
   // Create a new household
@@ -20,34 +19,25 @@ export const householdService = {
     // Validate user input
     parseWithSchema(UserProfileSchema, user);
 
-    const q = query(collection(db, 'households'), where('name', '==', name));
-    const querySnapshot = await getDocs(q);
+    const existingHouseholds = await householdRepository.getAll([where('name', '==', name)]);
 
-    if (!querySnapshot.empty) {
+    if (existingHouseholds.length > 0) {
       // Household with this name already exists
-      const householdData = querySnapshot.docs[0].data();
-      const household = parseWithSchema(HouseholdSchema, householdData);
+      const household = existingHouseholds[0];
       await this.joinHousehold(household.id, user);
       return household.id;
     }
 
-    // Create a new household
-    const householdRef = doc(collection(db, 'households'));
-    const householdId = householdRef.id;
-
-    const newHousehold = {
-      id: householdId,
+    // Create a new household using repository
+    const householdId = await householdRepository.create({
       name,
       members: {
         [user.uid]: {
-          role: user.role || 'guest',
+          role: user.role || RoleEnum.GUEST,
           joinedAt: serverTimestamp(),
         },
       },
-      createdAt: serverTimestamp(),
-    };
-
-    await setDoc(householdRef, newHousehold);
+    });
 
     // Update user profile with householdId
     const userRef = doc(db, 'users', user.uid);
@@ -69,35 +59,36 @@ export const householdService = {
     // Validate user input
     parseWithSchema(UserProfileSchema, user);
 
-    let householdRef = doc(db, 'households', householdIdOrName);
-    let householdSnap = await getDoc(householdRef);
-    if (!householdSnap.exists()) {
-      const q = query(collection(db, 'households'), where('name', '==', householdIdOrName));
-      const querySnapshot = await getDocs(q);
-      if (querySnapshot.empty) {
+    // Try to find by ID first
+    let household = await householdRepository.getById(householdIdOrName);
+
+    if (!household) {
+      // Try to find by name
+      const households = await householdRepository.getAll([where('name', '==', householdIdOrName)]);
+      if (households.length === 0) {
         throw new Error('Household not found');
       }
-      householdRef = doc(db, 'households', querySnapshot.docs[0].id);
-      householdSnap = querySnapshot.docs[0];
+      household = households[0];
     }
+
     // Check if user is already a member
-    const householdData = householdSnap.data();
-    if (!householdData?.members?.[user.uid]) {
-      // Add user to household members
-      await updateDoc(householdRef, {
+    if (!household.members[user.uid]) {
+      // Add user to household members using repository
+      await householdRepository.update(household.id, {
         [`members.${user.uid}`]: {
           role: user.role || 'guest',
           joinedAt: serverTimestamp(),
         },
       });
     }
+
     // Update user profile
     const userRef = doc(db, 'users', user.uid);
     await setDoc(
       userRef,
       {
         ...user,
-        householdId: householdRef.id,
+        householdId: household.id,
         updatedAt: serverTimestamp(),
       },
       { merge: true },
@@ -106,16 +97,7 @@ export const householdService = {
 
   // Get household details
   async getHousehold(householdId: string): Promise<Household | null> {
-    const docRef = doc(db, 'households', householdId);
-    const docSnap = await getDoc(docRef);
-
-    if (docSnap.exists()) {
-      const data = docSnap.data();
-      // Validate the data from Firestore
-      return parseWithSchema(HouseholdSchema, data);
-    } else {
-      return null;
-    }
+    return await householdRepository.getById(householdId);
   },
 
   // Get user profile (helper to check if user has household)
@@ -144,21 +126,19 @@ export const householdService = {
     }
 
     // First, try to find by ID
-    const householdRef = doc(db, 'households', trimmedInput);
-    const householdSnap = await getDoc(householdRef);
-    if (householdSnap.exists()) {
+    const householdById = await householdRepository.getById(trimmedInput);
+    if (householdById) {
       // Found by ID, join this household
       await this.joinHousehold(trimmedInput, user);
       return trimmedInput;
     }
 
     // If not found by ID, try to find by name
-    const q = query(collection(db, 'households'), where('name', '==', trimmedInput));
-    const querySnapshot = await getDocs(q);
+    const householdsByName = await householdRepository.getAll([where('name', '==', trimmedInput)]);
 
-    if (!querySnapshot.empty) {
+    if (householdsByName.length > 0) {
       // Found by name, join this household
-      const existingHouseholdId = querySnapshot.docs[0].id;
+      const existingHouseholdId = householdsByName[0].id;
       await this.joinHousehold(existingHouseholdId, user);
       return existingHouseholdId;
     }
@@ -169,20 +149,10 @@ export const householdService = {
 
   // Get all households where user is a member
   async getUserHouseholds(uid: string): Promise<Household[]> {
-    const q = query(collection(db, 'households'));
-    const querySnapshot = await getDocs(q);
+    const allHouseholds = await householdRepository.getAll();
 
-    const households: Household[] = [];
-    for (const doc of querySnapshot.docs) {
-      const data = doc.data();
-      // Check if user is a member of this household
-      if (data.members && data.members[uid]) {
-        const household = parseWithSchema(HouseholdSchema, data);
-        households.push(household);
-      }
-    }
-
-    return households;
+    // Filter households where user is a member
+    return allHouseholds.filter((household) => household.members[uid] !== undefined);
   },
 
   // Switch to a different household

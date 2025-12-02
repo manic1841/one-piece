@@ -1,31 +1,18 @@
-import {
-  doc,
-  getDocs,
-  query,
-  where,
-  orderBy,
-  serverTimestamp,
-  runTransaction,
-} from 'firebase/firestore';
+import { serverTimestamp, runTransaction, orderBy, where } from 'firebase/firestore';
 import { db } from '../firebase';
-import { PlannedIncomeSchema, type PlannedIncome } from '../schemas';
+import { type PlannedIncome } from '../schemas';
 import { projectTransactionService } from './projectTransactionService';
-import { BaseService } from './baseService';
+import { plannedIncomeRepository } from '../repositories/plannedIncomeRepository';
 
-class PlannedIncomeService extends BaseService<PlannedIncome> {
-  constructor() {
-    super('plannedIncome', PlannedIncomeSchema);
-  }
-
+export const plannedIncomeService = {
   // Create a new planned income and generate project transactions
-  // Overriding to use transaction
   async createPlannedIncome(
     householdId: string,
     data: Omit<PlannedIncome, 'id' | 'createdAt'>,
   ): Promise<string> {
     return await runTransaction(db, async (transaction) => {
       // 1. Create PlannedIncome document
-      const plannedIncomeRef = doc(this.getCollectionRef(householdId));
+      const plannedIncomeRef = plannedIncomeRepository.getDocRefForTransaction(householdId);
       const plannedIncomeId = plannedIncomeRef.id;
 
       const newPlannedIncome = {
@@ -60,12 +47,12 @@ class PlannedIncomeService extends BaseService<PlannedIncome> {
 
       return plannedIncomeId;
     });
-  }
+  },
 
   // Get planned incomes
   async getPlannedIncomes(householdId: string): Promise<PlannedIncome[]> {
-    return this.getAll(householdId, [orderBy('date', 'desc')]);
-  }
+    return plannedIncomeRepository.getAll(householdId, [orderBy('date', 'desc')]);
+  },
 
   // Get planned incomes for a specific period
   async getPlannedIncomesForPeriod(
@@ -73,34 +60,26 @@ class PlannedIncomeService extends BaseService<PlannedIncome> {
     startDate: Date,
     endDate: Date,
   ): Promise<PlannedIncome[]> {
-    const q = query(
-      this.getCollectionRef(householdId),
+    return plannedIncomeRepository.getAll(householdId, [
       where('date', '>=', startDate),
       where('date', '<=', endDate),
       orderBy('date', 'desc'),
-    );
-
-    const snapshot = await getDocs(q);
-    return snapshot.docs.map((doc) => this.parseData(doc.data()));
-  }
+    ]);
+  },
 
   // Get latest planned income by category to retrieve user settings/defaults
   async getLatestPlannedIncomeByCategory(
     householdId: string,
     category: string,
   ): Promise<PlannedIncome | null> {
-    const q = query(
-      this.getCollectionRef(householdId),
+    const results = await plannedIncomeRepository.getAll(householdId, [
       where('category', '==', category),
       orderBy('date', 'desc'),
       orderBy('createdAt', 'desc'), // Tie-breaker
-    );
+    ]);
 
-    const snapshot = await getDocs(q);
-    if (snapshot.empty) return null;
-
-    return this.parseData(snapshot.docs[0].data());
-  }
+    return results.length > 0 ? results[0] : null;
+  },
 
   // Update a planned income and related project transactions
   async updatePlannedIncome(
@@ -112,14 +91,17 @@ class PlannedIncomeService extends BaseService<PlannedIncome> {
     if (data.allocations) {
       await runTransaction(db, async (transaction) => {
         // 1. Get the planned income to determine the amount
-        const plannedIncomeRef = doc(this.getCollectionRef(householdId), plannedIncomeId);
+        const plannedIncomeRef = plannedIncomeRepository.getDocRefForTransaction(
+          householdId,
+          plannedIncomeId,
+        );
         const plannedIncomeDoc = await transaction.get(plannedIncomeRef);
 
         if (!plannedIncomeDoc.exists()) {
           throw new Error('Planned income not found');
         }
 
-        const currentPlannedIncome = this.parseData(plannedIncomeDoc.data());
+        const currentPlannedIncome = plannedIncomeDoc.data() as PlannedIncome;
         const amount = data.amount ?? currentPlannedIncome.amount;
         const date = data.date ?? currentPlannedIncome.date;
         const category = data.category ?? currentPlannedIncome.category;
@@ -165,9 +147,9 @@ class PlannedIncomeService extends BaseService<PlannedIncome> {
       });
     } else {
       // No allocation changes, just update the planned income
-      return this.update(householdId, plannedIncomeId, data);
+      return plannedIncomeRepository.update(householdId, plannedIncomeId, data);
     }
-  }
+  },
 
   // Delete a planned income and related project transactions
   async deletePlannedIncome(householdId: string, plannedIncomeId: string): Promise<void> {
@@ -186,10 +168,11 @@ class PlannedIncomeService extends BaseService<PlannedIncome> {
       );
 
       // 2. Delete the planned income
-      const plannedIncomeRef = doc(this.getCollectionRef(householdId), plannedIncomeId);
+      const plannedIncomeRef = plannedIncomeRepository.getDocRefForTransaction(
+        householdId,
+        plannedIncomeId,
+      );
       transaction.delete(plannedIncomeRef);
     });
-  }
-}
-
-export const plannedIncomeService = new PlannedIncomeService();
+  },
+};

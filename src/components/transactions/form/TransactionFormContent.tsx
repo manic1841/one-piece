@@ -8,6 +8,7 @@ import { ProjectSelection } from './ProjectSelection';
 import { AllocationButton } from './AllocationButton';
 import { DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import { TransferSettings } from './TransferSettings';
 
 interface TransactionFormContentProps {
   isOpen: boolean;
@@ -90,33 +91,18 @@ export const TransactionFormContent: React.FC<TransactionFormContentProps> = (pr
 
         {/* Transfer: From/To Project Selection */}
         {type === 'transfer' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <ProjectSelection
-              label="來源專案（選填）"
-              projectId={fromProjectId}
-              setProjectId={setFromProjectId}
-              projects={projects}
-              excludeProjectId={toProjectId}
-              required={false}
-            />
-            <ProjectSelection
-              label="目標專案（選填）"
-              projectId={toProjectId}
-              setProjectId={setToProjectId}
-              projects={projects}
-              excludeProjectId={fromProjectId}
-              required={false}
-            />
-          </div>
+          <TransferSettings
+            fromProjectId={fromProjectId}
+            setFromProjectId={setFromProjectId}
+            toProjectId={toProjectId}
+            setToProjectId={setToProjectId}
+            projects={projects}
+          />
         )}
 
         {/* Project Selection (Expense or Income without Allocations) */}
         {(type === 'expense' || (type === 'income' && !showAllocations)) && (
-          <ProjectSelection
-            projectId={projectId}
-            setProjectId={setProjectId}
-            projects={projects}
-          />
+          <ProjectSelection projectId={projectId} setProjectId={setProjectId} projects={projects} />
         )}
 
         {/* Allocate Button (Income Only) */}

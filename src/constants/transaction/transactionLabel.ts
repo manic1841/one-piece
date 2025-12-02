@@ -19,3 +19,13 @@ export const TRANSACTION_CATEGORIES = {
 
 export type IncomeCategoryType = (typeof TRANSACTION_CATEGORIES.income)[number]['value'];
 export type ExpenseCategoryType = (typeof TRANSACTION_CATEGORIES.expense)[number]['value'];
+
+// Transaction Type
+export const TRANSACTION_FORM_TYPES = {
+  income: 'income',
+  expense: 'expense',
+  transfer: 'transfer',
+} as const;
+
+export type TransactionFormType =
+  (typeof TRANSACTION_FORM_TYPES)[keyof typeof TRANSACTION_FORM_TYPES];

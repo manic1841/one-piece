@@ -59,8 +59,20 @@ vi.mock('./projectTransactionService', () => ({
   },
 }));
 
-import { getDocs, runTransaction } from 'firebase/firestore';
+vi.mock('../repositories/plannedIncomeRepository', () => ({
+  plannedIncomeRepository: {
+    create: vi.fn(),
+    getById: vi.fn(),
+    getAll: vi.fn(),
+    update: vi.fn(),
+    delete: vi.fn(),
+    getDocRefForTransaction: vi.fn(() => ({ id: 'new-income-id' })),
+  },
+}));
+
+import { runTransaction } from 'firebase/firestore';
 import { projectTransactionService } from './projectTransactionService';
+import { plannedIncomeRepository } from '../repositories/plannedIncomeRepository';
 
 describe('plannedIncomeService', () => {
   const householdId = 'test-household';
@@ -142,25 +154,14 @@ describe('plannedIncomeService', () => {
         amount: 6000,
       };
 
-      // Mock runTransaction to just execute the callback or return value, 
-      // but here updatePlannedIncome calls this.update which calls updateDoc directly if no allocations
-      // Wait, let's check the code.
-      // If no allocations, it calls this.update.
-      // We need to mock this.update or the base service update.
-      // Since we are testing the service, we should probably spy on the base update method or mock the firestore updateDoc.
-      // But BaseService.update calls updateDoc.
-      // Let's rely on the mocked firestore updateDoc if possible, or spy on the method.
-      // Actually, let's just check if it calls updateDoc via the base class.
-      // The base class uses updateDoc.
-
-      // We need to mock updateDoc from firestore
-      const { updateDoc } = await import('firebase/firestore');
-
       await plannedIncomeService.updatePlannedIncome(householdId, 'income-1', updateData);
 
-      // Since we didn't provide allocations, it goes to the else block: this.update
-      // this.update calls updateDoc
-      expect(updateDoc).toHaveBeenCalled();
+      // Since we didn't provide allocations, it goes to the repository update
+      expect(plannedIncomeRepository.update).toHaveBeenCalledWith(
+        householdId,
+        'income-1',
+        updateData,
+      );
     });
 
     it('should handle updates with allocations via transaction', async () => {
@@ -301,14 +302,7 @@ describe('plannedIncomeService', () => {
         },
       ];
 
-      vi.mocked(getDocs).mockResolvedValue({
-        docs: mockIncomes.map((i) => ({
-          id: i.id,
-          data: () => i,
-        })),
-        empty: false,
-        size: mockIncomes.length,
-      } as never);
+      vi.mocked(plannedIncomeRepository.getAll).mockResolvedValue(mockIncomes);
 
       const result = await plannedIncomeService.getPlannedIncomes(householdId);
 
@@ -316,11 +310,7 @@ describe('plannedIncomeService', () => {
     });
 
     it('should return empty array when no incomes exist', async () => {
-      vi.mocked(getDocs).mockResolvedValue({
-        docs: [],
-        empty: true,
-        size: 0,
-      } as never);
+      vi.mocked(plannedIncomeRepository.getAll).mockResolvedValue([]);
 
       const result = await plannedIncomeService.getPlannedIncomes(householdId);
 
@@ -340,16 +330,7 @@ describe('plannedIncomeService', () => {
         createdAt: Timestamp.now(),
       };
 
-      vi.mocked(getDocs).mockResolvedValue({
-        docs: [
-          {
-            id: mockIncome.id,
-            data: () => mockIncome,
-          },
-        ],
-        empty: false,
-        size: 1,
-      } as never);
+      vi.mocked(plannedIncomeRepository.getAll).mockResolvedValue([mockIncome]);
 
       const result = await plannedIncomeService.getLatestPlannedIncomeByCategory(
         householdId,
@@ -361,11 +342,7 @@ describe('plannedIncomeService', () => {
     });
 
     it('should return null when no income exists for category', async () => {
-      vi.mocked(getDocs).mockResolvedValue({
-        docs: [],
-        empty: true,
-        size: 0,
-      } as never);
+      vi.mocked(plannedIncomeRepository.getAll).mockResolvedValue([]);
 
       const result = await plannedIncomeService.getLatestPlannedIncomeByCategory(
         householdId,

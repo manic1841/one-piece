@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { TimestampSchema } from './helper';
+import { RoleEnum } from '../domains/core/role';
 
 export * from './account';
 export * from './project';
@@ -19,17 +20,13 @@ export const AccessControlSchema = z.object({
 
 export type AccessControl = z.infer<typeof AccessControlSchema>;
 
-export const RoleEnum = z.enum(['owner', 'admin', 'member', 'guest']);
-
-export type Role = z.infer<typeof RoleEnum>;
-
 // UserProfile Schema
 export const UserProfileSchema = z.object({
   uid: z.string(),
   email: z.email(),
   displayName: z.string(),
   photoURL: z.string().optional(),
-  role: RoleEnum.default('guest'),
+  role: z.enum(RoleEnum).default(RoleEnum.GUEST),
   householdId: z.string().optional(),
 });
 
@@ -41,7 +38,7 @@ export const HouseholdSchema = z.object({
   members: z.record(
     z.string(),
     z.object({
-      role: RoleEnum.default('guest'),
+      role: z.enum(RoleEnum).default(RoleEnum.GUEST),
       joinedAt: TimestampSchema,
     }),
   ),
