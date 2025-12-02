@@ -9,7 +9,8 @@ import MonthlySettlementDialog from '../components/projects/MonthlySettlementDia
 import ProjectBalanceChart from '../components/projects/ProjectBalanceChart';
 import { formatCurrency } from '../utils/formatUtils';
 import { projectService } from '../services/projectService';
-import { type Project, ProjectCategory } from '../schemas';
+import { type Project } from '../schemas';
+import { ProjectCategory } from '../domains/project/projectCategory';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 

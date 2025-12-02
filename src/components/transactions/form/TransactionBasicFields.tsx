@@ -8,7 +8,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { TRANSACTION_CATEGORIES as categories } from '../../../constants/categories';
+import { TRANSACTION_CATEGORIES as categories } from '../../../constants/transaction/categories';
 import { type TransactionType } from '../../../schemas';
 
 interface TransactionBasicFieldsProps {

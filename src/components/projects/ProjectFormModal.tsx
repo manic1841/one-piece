@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { type Project, ProjectCategory } from '../../schemas';
+import { type Project } from '../../schemas';
+import { ProjectCategory } from '@/domains/project/projectCategory';
+import { ICON_OPTIONS, CATEGORY_LABELS } from '../../constants/project/projectLabel';
 import {
   Dialog,
   DialogContent,
@@ -18,11 +20,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
+import AccountingSettings from './accounting/AccountingSettings';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 
 interface ProjectFormModalProps {
   isOpen: boolean;
@@ -31,29 +30,6 @@ interface ProjectFormModalProps {
   initialData?: Partial<Project> | null;
   title?: string;
 }
-
-const ICON_OPTIONS = [
-  '🏠', '🏡', '🏢', '🏪', '🏬', '🏭', '🏗️', '🏘️',
-  '🛒', '🛍️', '🍔', '🍕', '🍜', '🍱', '🍞', '☕',
-  '🚗', '🚕', '🚙', '🚌', '🚎', '🏎️', '🚓', '🚑',
-  '💰', '💵', '💴', '💶', '💷', '💳', '💸', '🏦',
-  '📱', '💻', '🖥️', '⌚', '📷', '📺', '🎮', '🎧',
-  '👔', '👗', '👕', '👖', '🧥', '👞', '👟', '🎒',
-  '🏥', '💊', '🩺', '💉', '🧬', '🔬', '🧪', '🩹',
-  '📚', '📖', '📝', '✏️', '🖊️', '📄', '📋', '📌',
-  '🎓', '🎯', '🎨', '🎭', '🎪', '🎬', '🎵', '🎸',
-  '⚽', '🏀', '🏈', '⚾', '🎾', '🏐', '🏓', '🏸',
-];
-
-const CATEGORY_LABELS: Record<string, string> = {
-  [ProjectCategory.OPERATING]: '營運類',
-  [ProjectCategory.FINANCING]: '融資類',
-  [ProjectCategory.INVESTING]: '投資類',
-  [ProjectCategory.ASSET]: '資產類',
-  [ProjectCategory.LIABILITY]: '負債類',
-  [ProjectCategory.RECONCILIATION]: '調節類',
-  [ProjectCategory.PERSONAL]: '個人類',
-};
 
 const ProjectFormModal: React.FC<ProjectFormModalProps> = ({
   isOpen,
@@ -75,6 +51,17 @@ const ProjectFormModal: React.FC<ProjectFormModalProps> = ({
       });
     }
   }, [isOpen, initialData]);
+
+  const handleAccountingChange = (data: Partial<Project>) => {
+    setFormData((prev) => ({
+      ...prev,
+      accounting: {
+        enabled: prev.accounting?.enabled ?? false,
+        ...prev.accounting,
+        ...data.accounting,
+      },
+    }));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -122,7 +109,9 @@ const ProjectFormModal: React.FC<ProjectFormModalProps> = ({
                 <Label htmlFor="project-category">專案類別 *</Label>
                 <Select
                   value={formData.category}
-                  onValueChange={(value) => setFormData((prev) => ({ ...prev, category: value as ProjectCategory }))}
+                  onValueChange={(value) =>
+                    setFormData((prev) => ({ ...prev, category: value as ProjectCategory }))
+                  }
                   disabled={loading}
                 >
                   <SelectTrigger id="project-category">
@@ -208,7 +197,10 @@ const ProjectFormModal: React.FC<ProjectFormModalProps> = ({
                 onCheckedChange={(checked) =>
                   setFormData((prev) => ({
                     ...prev,
-                    accounting: { ...(prev.accounting || {}), enabled: checked === true } as typeof prev.accounting,
+                    accounting: {
+                      ...(prev.accounting || {}),
+                      enabled: checked === true,
+                    } as typeof prev.accounting,
                   }))
                 }
                 disabled={loading}
@@ -219,318 +211,19 @@ const ProjectFormModal: React.FC<ProjectFormModalProps> = ({
             </div>
 
             {accountingEnabled && (
-              <div className="space-y-6 pl-6 border-l-2">
-                {/* Income Statement */}
-                <div className="space-y-3">
-                  <h4 className="text-sm font-medium">📊 損益表</h4>
-                  <div className="grid grid-cols-3 gap-3">
-                    <div className="space-y-2">
-                      <Label className="text-xs">類別</Label>
-                      <Select
-                        value={formData.accounting?.incomeStatement?.category || ''}
-                        onValueChange={(value) =>
-                          setFormData((prev) => ({
-                            ...prev,
-                            accounting: {
-                              ...(prev.accounting || {}),
-                              incomeStatement: {
-                                ...(prev.accounting?.incomeStatement || {} as never),
-                                category: value as 'income' | 'expense',
-                              },
-                            } as typeof prev.accounting,
-                          }))
-                        }
-                        disabled={loading}
-                      >
-                        <SelectTrigger><SelectValue placeholder="選擇" /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="income">收入</SelectItem>
-                          <SelectItem value="expense">支出</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label className="text-xs">子類別</Label>
-                      <Input
-                        value={formData.accounting?.incomeStatement?.subcategory || ''}
-                        onChange={(e) =>
-                          setFormData((prev) => ({
-                            ...prev,
-                            accounting: {
-                              ...(prev.accounting || {}),
-                              incomeStatement: {
-                                ...(prev.accounting?.incomeStatement || {} as never),
-                                subcategory: e.target.value,
-                              },
-                            } as typeof prev.accounting,
-                          }))
-                        }
-                        placeholder="生活費用"
-                        disabled={loading}
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label className="text-xs">排序</Label>
-                      <Input
-                        type="number"
-                        value={formData.accounting?.incomeStatement?.order ?? ''}
-                        onChange={(e) =>
-                          setFormData((prev) => ({
-                            ...prev,
-                            accounting: {
-                              ...(prev.accounting || {}),
-                              incomeStatement: {
-                                ...(prev.accounting?.incomeStatement || {} as never),
-                                order: parseInt(e.target.value) || 0,
-                              },
-                            } as typeof prev.accounting,
-                          }))
-                        }
-                        placeholder="0"
-                        disabled={loading}
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Cash Flow */}
-                <div className="space-y-3">
-                  <h4 className="text-sm font-medium">💰 現金流量</h4>
-                  <div className="grid grid-cols-3 gap-3">
-                    <div className="space-y-2">
-                      <Label className="text-xs">活動</Label>
-                      <Select
-                        value={formData.accounting?.cashFlow?.activity || ''}
-                        onValueChange={(value) =>
-                          setFormData((prev) => ({
-                            ...prev,
-                            accounting: {
-                              ...(prev.accounting || {}),
-                              cashFlow: {
-                                ...(prev.accounting?.cashFlow || {} as never),
-                                activity: value as 'operating' | 'investing' | 'financing' | 'reconciliation',
-                              },
-                            } as typeof prev.accounting,
-                          }))
-                        }
-                        disabled={loading}
-                      >
-                        <SelectTrigger><SelectValue placeholder="選擇" /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="operating">營運</SelectItem>
-                          <SelectItem value="investing">投資</SelectItem>
-                          <SelectItem value="financing">融資</SelectItem>
-                          <SelectItem value="reconciliation">調節</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label className="text-xs">子類別</Label>
-                      <Input
-                        value={formData.accounting?.cashFlow?.subcategory || ''}
-                        onChange={(e) =>
-                          setFormData((prev) => ({
-                            ...prev,
-                            accounting: {
-                              ...(prev.accounting || {}),
-                              cashFlow: {
-                                ...(prev.accounting?.cashFlow || {} as never),
-                                subcategory: e.target.value,
-                              },
-                            } as typeof prev.accounting,
-                          }))
-                        }
-                        disabled={loading}
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label className="text-xs">排序</Label>
-                      <Input
-                        type="number"
-                        value={formData.accounting?.cashFlow?.order ?? ''}
-                        onChange={(e) =>
-                          setFormData((prev) => ({
-                            ...prev,
-                            accounting: {
-                              ...(prev.accounting || {}),
-                              cashFlow: {
-                                ...(prev.accounting?.cashFlow || {} as never),
-                                order: parseInt(e.target.value) || 0,
-                              },
-                            } as typeof prev.accounting,
-                          }))
-                        }
-                        placeholder="0"
-                        disabled={loading}
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Balance Sheet */}
-                <div className="space-y-3">
-                  <h4 className="text-sm font-medium">📈 資產負債表</h4>
-                  <div className="grid grid-cols-3 gap-3">
-                    <div className="space-y-2">
-                      <Label className="text-xs">類別</Label>
-                      <Select
-                        value={formData.accounting?.balanceSheet?.category || ''}
-                        onValueChange={(value) =>
-                          setFormData((prev) => ({
-                            ...prev,
-                            accounting: {
-                              ...(prev.accounting || {}),
-                              balanceSheet: {
-                                ...(prev.accounting?.balanceSheet || {} as never),
-                                category: value as 'asset' | 'liability' | 'equity',
-                              },
-                            } as typeof prev.accounting,
-                          }))
-                        }
-                        disabled={loading}
-                      >
-                        <SelectTrigger><SelectValue placeholder="選擇" /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="asset">資產</SelectItem>
-                          <SelectItem value="liability">負債</SelectItem>
-                          <SelectItem value="equity">權益</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label className="text-xs">子類別</Label>
-                      <Select
-                        value={formData.accounting?.balanceSheet?.subcategory || ''}
-                        onValueChange={(value) =>
-                          setFormData((prev) => ({
-                            ...prev,
-                            accounting: {
-                              ...(prev.accounting || {}),
-                              balanceSheet: {
-                                ...(prev.accounting?.balanceSheet || {} as never),
-                                subcategory: value as 'current' | 'fixed' | 'investment' | 'longTerm' | 'shortTerm',
-                              },
-                            } as typeof prev.accounting,
-                          }))
-                        }
-                        disabled={loading}
-                      >
-                        <SelectTrigger><SelectValue placeholder="選擇" /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="current">流動</SelectItem>
-                          <SelectItem value="fixed">固定</SelectItem>
-                          <SelectItem value="investment">投資</SelectItem>
-                          <SelectItem value="longTerm">長期</SelectItem>
-                          <SelectItem value="shortTerm">短期</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label className="text-xs">排序</Label>
-                      <Input
-                        type="number"
-                        value={formData.accounting?.balanceSheet?.order ?? ''}
-                        onChange={(e) =>
-                          setFormData((prev) => ({
-                            ...prev,
-                            accounting: {
-                              ...(prev.accounting || {}),
-                              balanceSheet: {
-                                ...(prev.accounting?.balanceSheet || {} as never),
-                                order: parseInt(e.target.value) || 0,
-                              },
-                            } as typeof prev.accounting,
-                          }))
-                        }
-                        placeholder="0"
-                        disabled={loading}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="flex gap-4 text-sm">
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="is-debt"
-                        checked={formData.accounting?.balanceSheet?.isDebt || false}
-                        onCheckedChange={(checked) =>
-                          setFormData((prev) => ({
-                            ...prev,
-                            accounting: {
-                              ...(prev.accounting || {}),
-                              balanceSheet: {
-                                ...(prev.accounting?.balanceSheet || {} as never),
-                                isDebt: checked === true,
-                              },
-                            } as typeof prev.accounting,
-                          }))
-                        }
-                        disabled={loading}
-                      />
-                      <Label htmlFor="is-debt" className="cursor-pointer">債務</Label>
-                    </div>
-
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="is-investment"
-                        checked={formData.accounting?.balanceSheet?.isInvestment || false}
-                        onCheckedChange={(checked) =>
-                          setFormData((prev) => ({
-                            ...prev,
-                            accounting: {
-                              ...(prev.accounting || {}),
-                              balanceSheet: {
-                                ...(prev.accounting?.balanceSheet || {} as never),
-                                isInvestment: checked === true,
-                              },
-                            } as typeof prev.accounting,
-                          }))
-                        }
-                        disabled={loading}
-                      />
-                      <Label htmlFor="is-investment" className="cursor-pointer">投資</Label>
-                    </div>
-
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="is-real-estate"
-                        checked={formData.accounting?.balanceSheet?.isRealEstate || false}
-                        onCheckedChange={(checked) =>
-                          setFormData((prev) => ({
-                            ...prev,
-                            accounting: {
-                              ...(prev.accounting || {}),
-                              balanceSheet: {
-                                ...(prev.accounting?.balanceSheet || {} as never),
-                                isRealEstate: checked === true,
-                              },
-                            } as typeof prev.accounting,
-                          }))
-                        }
-                        disabled={loading}
-                      />
-                      <Label htmlFor="is-real-estate" className="cursor-pointer">不動產</Label>
-                    </div>
-                  </div>
-                </div>
-              </div>
+              <AccountingSettings data={formData} onChanged={handleAccountingChange} />
             )}
           </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={onClose} disabled={loading} type="button">
+              取消
+            </Button>
+            <Button type="submit" disabled={loading}>
+              {loading ? '儲存中...' : '儲存'}
+            </Button>
+          </DialogFooter>
         </form>
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose} disabled={loading}>
-            取消
-          </Button>
-          <Button type="submit" onClick={handleSubmit} disabled={loading}>
-            {loading ? '儲存中...' : '儲存'}
-          </Button>
-        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
