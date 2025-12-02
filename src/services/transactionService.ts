@@ -1,21 +1,15 @@
 import { orderBy, Timestamp } from 'firebase/firestore';
-import { TransactionSchema } from '../schemas';
 import type { Transaction } from '../schemas';
 import { toDateString } from '../utils/dateUtils';
-import { BaseService } from './baseService';
+import { transactionRepository } from '../repositories/transactionRepository';
 
-class TransactionService extends BaseService<Transaction> {
-  constructor() {
-    super('transactions', TransactionSchema);
-  }
-
+class TransactionService {
   // Create a new transaction
-  // Overriding to return string directly and match existing signature
   async createTransaction(
     householdId: string,
     transaction: Omit<Transaction, 'id' | 'createdAt'>,
   ): Promise<string> {
-    return this.create(householdId, transaction);
+    return transactionRepository.create(householdId, transaction);
   }
 
   // Get all transactions for a household with filters
@@ -29,7 +23,7 @@ class TransactionService extends BaseService<Transaction> {
     },
   ): Promise<Transaction[]> {
     // Get all transactions sorted by date
-    let transactions = await this.getAll(householdId, [orderBy('date', 'desc')]);
+    let transactions = await transactionRepository.getAll(householdId, [orderBy('date', 'desc')]);
 
     // Apply client-side filters
     if (filters) {
@@ -60,7 +54,7 @@ class TransactionService extends BaseService<Transaction> {
 
   // Get a single transaction by ID
   async getTransaction(householdId: string, id: string): Promise<Transaction | null> {
-    return this.getById(householdId, id);
+    return transactionRepository.getById(householdId, id);
   }
 
   // Update a transaction
@@ -69,12 +63,12 @@ class TransactionService extends BaseService<Transaction> {
     id: string,
     updates: Partial<Transaction>,
   ): Promise<void> {
-    return this.update(householdId, id, updates);
+    return transactionRepository.update(householdId, id, updates);
   }
 
   // Delete a transaction
   async deleteTransaction(householdId: string, id: string): Promise<void> {
-    return this.delete(householdId, id);
+    return transactionRepository.delete(householdId, id);
   }
 
   // Get transaction statistics (summary)

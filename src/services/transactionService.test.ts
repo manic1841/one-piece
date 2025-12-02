@@ -1,60 +1,19 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { transactionService } from './transactionService';
-import { Timestamp, QuerySnapshot } from 'firebase/firestore';
+import { transactionRepository } from '../repositories/transactionRepository';
+import { Timestamp } from 'firebase/firestore';
+import type { Transaction } from '../schemas';
 
-// Mock Firebase App
-vi.mock('firebase/app', () => ({
-  initializeApp: vi.fn(),
-}));
-
-// Mock Firebase Firestore
-vi.mock('firebase/firestore', () => ({
-  getFirestore: vi.fn(),
-  collection: vi.fn(),
-  addDoc: vi.fn(),
-  setDoc: vi.fn(),
-  getDocs: vi.fn(),
-  doc: vi.fn(() => ({ id: 'new-id' })),
-  getDoc: vi.fn(),
-  updateDoc: vi.fn(),
-  deleteDoc: vi.fn(),
-  query: vi.fn(),
-  where: vi.fn(),
-  orderBy: vi.fn(),
-  serverTimestamp: vi.fn(() => 'mock-timestamp'),
-  Timestamp: class {
-    seconds: number;
-    nanoseconds: number;
-
-    constructor(seconds: number, nanoseconds: number) {
-      this.seconds = seconds;
-      this.nanoseconds = nanoseconds;
-    }
-
-    toDate() {
-      return new Date(this.seconds * 1000 + this.nanoseconds / 1000000);
-    }
-
-    toMillis() {
-      return this.seconds * 1000 + this.nanoseconds / 1000000;
-    }
-
-    static fromDate(date: Date) {
-      return new this(Math.floor(date.getTime() / 1000), (date.getTime() % 1000) * 1000000);
-    }
-
-    static now() {
-      return this.fromDate(new Date());
-    }
+// Mock TransactionRepository
+vi.mock('../repositories/transactionRepository', () => ({
+  transactionRepository: {
+    create: vi.fn(),
+    getAll: vi.fn(),
+    getById: vi.fn(),
+    update: vi.fn(),
+    delete: vi.fn(),
   },
 }));
-
-// Mock Firebase config
-vi.mock('../firebase', () => ({
-  db: {},
-}));
-
-import { setDoc, getDocs } from 'firebase/firestore';
 
 describe('transactionService', () => {
   const householdId = 'test-household';
@@ -64,7 +23,7 @@ describe('transactionService', () => {
   });
 
   describe('createTransaction', () => {
-    it('should call setDoc with correct data', async () => {
+    it('should call repository.create', async () => {
       const transactionData = {
         amount: 100,
         type: 'expense' as const,
@@ -72,13 +31,14 @@ describe('transactionService', () => {
         date: new Date('2023-10-01'),
         description: 'Lunch',
         projectId: 'project-1',
-        allocations: [],
         createdBy: 'user-1',
       };
 
+      vi.mocked(transactionRepository.create).mockResolvedValue('new-id');
+
       const result = await transactionService.createTransaction(householdId, transactionData);
 
-      expect(setDoc).toHaveBeenCalled();
+      expect(transactionRepository.create).toHaveBeenCalledWith(householdId, transactionData);
       expect(result).toBe('new-id');
     });
   });
@@ -95,7 +55,6 @@ describe('transactionService', () => {
           projectId: 'p1',
           createdBy: 'u1',
           createdAt: Timestamp.now(),
-          householdId,
         },
         {
           id: '2',
@@ -106,16 +65,10 @@ describe('transactionService', () => {
           projectId: 'p1',
           createdBy: 'u1',
           createdAt: Timestamp.now(),
-          householdId,
         },
       ];
 
-      vi.mocked(getDocs).mockResolvedValue({
-        docs: mockTransactions.map((t) => ({
-          id: t.id,
-          data: () => t,
-        })),
-      } as unknown as QuerySnapshot);
+      vi.mocked(transactionRepository.getAll).mockResolvedValue(mockTransactions as Transaction[]);
 
       // Test filtering by type
       const expenses = await transactionService.getTransactions(householdId, { type: 'expense' });
@@ -143,7 +96,6 @@ describe('transactionService', () => {
           projectId: 'p1',
           createdBy: 'u1',
           createdAt: Timestamp.now(),
-          householdId,
         },
         {
           id: '2',
@@ -154,16 +106,10 @@ describe('transactionService', () => {
           projectId: 'p1',
           createdBy: 'u1',
           createdAt: Timestamp.now(),
-          householdId,
         },
       ];
 
-      vi.mocked(getDocs).mockResolvedValue({
-        docs: mockTransactions.map((t) => ({
-          id: t.id,
-          data: () => t,
-        })),
-      } as unknown as QuerySnapshot);
+      vi.mocked(transactionRepository.getAll).mockResolvedValue(mockTransactions as Transaction[]);
 
       const stats = await transactionService.getTransactionStats(householdId);
 

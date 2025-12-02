@@ -1,17 +1,6 @@
-import {
-  doc,
-  getDoc,
-  setDoc,
-  updateDoc,
-  arrayUnion,
-  arrayRemove,
-  serverTimestamp,
-} from 'firebase/firestore';
-import { db } from '../firebase';
-import { AccessControlSchema, parseWithSchemaOptional } from '../schemas';
+import { accessControlRepository } from '../repositories/accessControlRepository';
 
 const ADMIN_UID = 'rnSCoxeAl0bmc9NQeHSzFR5gYUB3';
-const ACCESS_CONTROL_DOC = 'config';
 
 export const accessControlService = {
   // Check if user is admin
@@ -21,21 +10,7 @@ export const accessControlService = {
 
   // Get whitelisted emails
   async getWhitelist(): Promise<string[]> {
-    try {
-      const docRef = doc(db, 'access_control', ACCESS_CONTROL_DOC);
-      const docSnap = await getDoc(docRef);
-
-      if (docSnap.exists()) {
-        const data = docSnap.data();
-        const accessControl = parseWithSchemaOptional(AccessControlSchema, data);
-        return accessControl?.whitelistedEmails || [];
-      }
-
-      return [];
-    } catch (error) {
-      console.error('Error getting whitelist:', error);
-      return [];
-    }
+    return accessControlRepository.getWhitelist();
   },
 
   // Add email to whitelist (admin only)
@@ -44,22 +19,7 @@ export const accessControlService = {
       throw new Error('Only admin can modify whitelist');
     }
 
-    const docRef = doc(db, 'access_control', ACCESS_CONTROL_DOC);
-    const docSnap = await getDoc(docRef);
-
-    if (docSnap.exists()) {
-      await updateDoc(docRef, {
-        whitelistedEmails: arrayUnion(email.toLowerCase().trim()),
-        updatedAt: serverTimestamp(),
-        updatedBy: adminUid,
-      });
-    } else {
-      await setDoc(docRef, {
-        whitelistedEmails: [email.toLowerCase().trim()],
-        updatedAt: serverTimestamp(),
-        updatedBy: adminUid,
-      });
-    }
+    return accessControlRepository.addEmailToWhitelist(email, adminUid);
   },
 
   // Remove email from whitelist (admin only)
@@ -68,12 +28,7 @@ export const accessControlService = {
       throw new Error('Only admin can modify whitelist');
     }
 
-    const docRef = doc(db, 'access_control', ACCESS_CONTROL_DOC);
-    await updateDoc(docRef, {
-      whitelistedEmails: arrayRemove(email.toLowerCase().trim()),
-      updatedAt: serverTimestamp(),
-      updatedBy: adminUid,
-    });
+    return accessControlRepository.removeEmailFromWhitelist(email, adminUid);
   },
 
   // Check if user is authorized (admin or whitelisted)

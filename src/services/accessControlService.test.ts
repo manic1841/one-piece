@@ -1,27 +1,15 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { accessControlService } from './accessControlService';
+import { accessControlRepository } from '../repositories/accessControlRepository';
 
-// Mock Firebase
-vi.mock('firebase/app', () => ({
-  initializeApp: vi.fn(),
+// Mock AccessControlRepository
+vi.mock('../repositories/accessControlRepository', () => ({
+  accessControlRepository: {
+    getWhitelist: vi.fn(),
+    addEmailToWhitelist: vi.fn(),
+    removeEmailFromWhitelist: vi.fn(),
+  },
 }));
-
-vi.mock('firebase/firestore', () => ({
-  getFirestore: vi.fn(),
-  doc: vi.fn(),
-  getDoc: vi.fn(),
-  setDoc: vi.fn(),
-  updateDoc: vi.fn(),
-  arrayUnion: vi.fn((value) => value),
-  arrayRemove: vi.fn((value) => value),
-  serverTimestamp: vi.fn(() => 'mock-timestamp'),
-}));
-
-vi.mock('../firebase', () => ({
-  db: {},
-}));
-
-import { getDoc } from 'firebase/firestore';
 
 describe('accessControlService', () => {
   const ADMIN_UID = 'rnSCoxeAl0bmc9NQeHSzFR5gYUB3';
@@ -46,88 +34,76 @@ describe('accessControlService', () => {
   describe('getWhitelist', () => {
     it('should return whitelisted emails', async () => {
       const mockEmails = ['test@example.com', 'user@example.com'];
-
-      vi.mocked(getDoc).mockResolvedValue({
-        exists: () => true,
-        data: () => ({
-          whitelistedEmails: mockEmails,
-        }),
-      } as never);
+      vi.mocked(accessControlRepository.getWhitelist).mockResolvedValue(mockEmails);
 
       const result = await accessControlService.getWhitelist();
 
       expect(result).toEqual(mockEmails);
+      expect(accessControlRepository.getWhitelist).toHaveBeenCalled();
+    });
+  });
+
+  describe('addEmailToWhitelist', () => {
+    it('should call repository when admin', async () => {
+      await accessControlService.addEmailToWhitelist('test@example.com', ADMIN_UID);
+      expect(accessControlRepository.addEmailToWhitelist).toHaveBeenCalledWith(
+        'test@example.com',
+        ADMIN_UID,
+      );
     });
 
-    it('should return empty array when document does not exist', async () => {
-      vi.mocked(getDoc).mockResolvedValue({
-        exists: () => false,
-        data: () => undefined,
-      } as never);
+    it('should throw error when not admin', async () => {
+      await expect(
+        accessControlService.addEmailToWhitelist('test@example.com', REGULAR_UID),
+      ).rejects.toThrow('Only admin can modify whitelist');
+    });
+  });
 
-      const result = await accessControlService.getWhitelist();
-
-      expect(result).toEqual([]);
+  describe('removeEmailFromWhitelist', () => {
+    it('should call repository when admin', async () => {
+      await accessControlService.removeEmailFromWhitelist('test@example.com', ADMIN_UID);
+      expect(accessControlRepository.removeEmailFromWhitelist).toHaveBeenCalledWith(
+        'test@example.com',
+        ADMIN_UID,
+      );
     });
 
-    it('should return empty array on error', async () => {
-      vi.mocked(getDoc).mockRejectedValue(new Error('Firestore error'));
-
-      const result = await accessControlService.getWhitelist();
-
-      expect(result).toEqual([]);
+    it('should throw error when not admin', async () => {
+      await expect(
+        accessControlService.removeEmailFromWhitelist('test@example.com', REGULAR_UID),
+      ).rejects.toThrow('Only admin can modify whitelist');
     });
   });
 
   describe('isUserAuthorized', () => {
     it('should return true for admin', async () => {
       const result = await accessControlService.isUserAuthorized(ADMIN_UID, 'admin@example.com');
-
       expect(result).toBe(true);
     });
 
     it('should return false when email is null', async () => {
       const result = await accessControlService.isUserAuthorized(REGULAR_UID, null);
-
       expect(result).toBe(false);
     });
 
     it('should return true for whitelisted email', async () => {
-      vi.mocked(getDoc).mockResolvedValue({
-        exists: () => true,
-        data: () => ({
-          whitelistedEmails: ['test@example.com'],
-        }),
-      } as never);
+      vi.mocked(accessControlRepository.getWhitelist).mockResolvedValue(['test@example.com']);
 
       const result = await accessControlService.isUserAuthorized(REGULAR_UID, 'test@example.com');
-
       expect(result).toBe(true);
     });
 
     it('should return false for non-whitelisted email', async () => {
-      vi.mocked(getDoc).mockResolvedValue({
-        exists: () => true,
-        data: () => ({
-          whitelistedEmails: ['other@example.com'],
-        }),
-      } as never);
+      vi.mocked(accessControlRepository.getWhitelist).mockResolvedValue(['other@example.com']);
 
       const result = await accessControlService.isUserAuthorized(REGULAR_UID, 'test@example.com');
-
       expect(result).toBe(false);
     });
 
     it('should handle email case insensitivity', async () => {
-      vi.mocked(getDoc).mockResolvedValue({
-        exists: () => true,
-        data: () => ({
-          whitelistedEmails: ['test@example.com'],
-        }),
-      } as never);
+      vi.mocked(accessControlRepository.getWhitelist).mockResolvedValue(['test@example.com']);
 
       const result = await accessControlService.isUserAuthorized(REGULAR_UID, 'TEST@EXAMPLE.COM');
-
       expect(result).toBe(true);
     });
   });
