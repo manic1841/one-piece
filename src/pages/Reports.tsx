@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { FileText, TrendingUp, Wallet, PlusCircle } from 'lucide-react';
-import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import FinancialReportGenerator from '@/components/reports/FinancialReportGenerator';
 
 const Reports: React.FC = () => {
@@ -59,6 +59,7 @@ const Reports: React.FC = () => {
             </div>
           </DialogTrigger>
           <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogTitle>產生月結報表</DialogTitle>
             <FinancialReportGenerator />
           </DialogContent>
         </Dialog>

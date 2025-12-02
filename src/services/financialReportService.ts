@@ -43,7 +43,7 @@ class FinancialReportService {
         const endTimestamp = Timestamp.fromDate(endDate);
 
         const [
-            projects,
+            allProjects,
             plannedIncomes,
             transactions,
             accounts,
@@ -54,11 +54,11 @@ class FinancialReportService {
             accountService.getAccounts(householdId),
         ]);
 
-        // Fetch Snapshots
-        // We need project snapshots for the current month
-        const projectSnapshots = await Promise.all(
-            projects.map(p => projectService.getSnapshots(householdId, p.id, year, month))
-        ).then(results => results.flat());
+        // Fetch Projects with Snapshots for the current month
+        const projectsWithSnapshots = await Promise.all(
+            allProjects.map(p => projectService.getProjectWithSnapshot(householdId, p.id, year, month))
+        );
+
 
         // We need account snapshots for the current month
         // Note: accountService might not have a direct method for this, we might need to query directly or add to service.
@@ -77,18 +77,17 @@ class FinancialReportService {
             return cat !== 'salary' && cat !== 'bonus';
         });
 
+        console.log('project:', projectsWithSnapshots);
         // 2. Calculate Reports
         const incomeStatementData = calculateIncomeStatement(
             plannedIncomes,
             otherIncomeTransactions,
-            projectSnapshots,
-            projects
+            projectsWithSnapshots
         );
 
         const balanceSheetData = calculateBalanceSheet(
             accountSnapshots,
-            projectSnapshots,
-            projects
+            projectsWithSnapshots
         );
 
         // For Cash Flow, we need beginning balance.
@@ -102,8 +101,7 @@ class FinancialReportService {
         const beginningCash = prevAccountSnapshots.reduce((sum, acc) => sum + acc.amount, 0);
 
         const cashFlowData = calculateCashFlowStatement(
-            projectSnapshots,
-            projects,
+            projectsWithSnapshots,
             beginningCash
         );
 

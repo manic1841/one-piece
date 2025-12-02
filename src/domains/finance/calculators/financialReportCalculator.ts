@@ -1,4 +1,4 @@
-import type { Project, ProjectSnapshot } from '../../../schemas/project';
+import type { ProjectWithSnapshot } from '../../../services/projectService';
 import type { AccountSnapshot } from '../../../schemas/account';
 import type { PlannedIncome } from '../../../schemas/plannedIncome';
 import type { Transaction } from '../../../schemas/transaction';
@@ -26,8 +26,7 @@ type CashFlowItem = z.infer<typeof CashFlowItemSchema>;
 export function calculateIncomeStatement(
     plannedIncomes: PlannedIncome[],
     otherIncomeTransactions: Transaction[],
-    projectSnapshots: ProjectSnapshot[],
-    projects: Project[]
+    projectWithSnapshots: ProjectWithSnapshot[]
 ): IncomeStatementData {
     // 1. Calculate Revenue
     const revenueItems: IncomeStatementItem[] = [];
@@ -74,13 +73,14 @@ export function calculateIncomeStatement(
 
     // 2. Calculate Expenses
     const expenseItems: IncomeStatementItem[] = [];
-    const projectMap = new Map(projects.map(p => [p.id, p]));
 
     // Group by subcategory defined in project.accounting.incomeStatement.subcategory
     const expenseMap = new Map<string, { amount: number; subItems: { name: string; amount: number }[] }>();
+    projectWithSnapshots.forEach(pws => {
+        const project = pws.project;
+        const snapshot = pws.snapshot;
+        if (!project || !snapshot) return;
 
-    projectSnapshots.forEach(snapshot => {
-        const project = projectMap.get(snapshot.id);
         if (project?.accounting?.incomeStatement?.category === 'expense') {
             const subcategory = project.accounting.incomeStatement.subcategory || 'Other';
             // Use 'expense' from snapshot, which represents the spending in that month
@@ -94,7 +94,6 @@ export function calculateIncomeStatement(
             }
         }
     });
-    console.log('expenseMap', expenseMap);
 
     expenseMap.forEach((data, category) => {
         expenseItems.push({
@@ -127,11 +126,8 @@ export function calculateIncomeStatement(
  */
 export function calculateBalanceSheet(
     accountSnapshots: AccountSnapshot[],
-    projectSnapshots: ProjectSnapshot[],
-    projects: Project[]
+    projectsWithSnapshots: ProjectWithSnapshot[],
 ): BalanceSheetData {
-    const projectMap = new Map(projects.map(p => [p.id, p]));
-
     // 1. Assets
     const assetItems: BalanceSheetItem[] = [];
 
@@ -149,8 +145,11 @@ export function calculateBalanceSheet(
     // Project Assets
     const assetMap = new Map<string, { amount: number; subItems: { name: string; amount: number }[] }>();
 
-    projectSnapshots.forEach(snapshot => {
-        const project = projectMap.get(snapshot.id);
+    projectsWithSnapshots.forEach(pws => {
+        const project = pws.project;
+        const snapshot = pws.snapshot;
+        if (!project || !snapshot) return;
+
         if (project?.accounting?.balanceSheet?.category === 'asset') {
             const subcategory = project.accounting.balanceSheet.subcategory || 'Other Assets';
             const amount = snapshot.closingBalance;
@@ -178,8 +177,11 @@ export function calculateBalanceSheet(
     const liabilityItems: BalanceSheetItem[] = [];
     const liabilityMap = new Map<string, { amount: number; subItems: { name: string; amount: number }[] }>();
 
-    projectSnapshots.forEach(snapshot => {
-        const project = projectMap.get(snapshot.id);
+    projectsWithSnapshots.forEach(pws => {
+        const project = pws.project;
+        const snapshot = pws.snapshot;
+        if (!project || !snapshot) return;
+
         if (project?.accounting?.balanceSheet?.category === 'liability') {
             const subcategory = project.accounting.balanceSheet.subcategory || 'Other Liabilities';
             const amount = snapshot.closingBalance;
@@ -207,8 +209,11 @@ export function calculateBalanceSheet(
     const equityItems: BalanceSheetItem[] = [];
     const equityMap = new Map<string, { amount: number; subItems: { name: string; amount: number }[] }>();
 
-    projectSnapshots.forEach(snapshot => {
-        const project = projectMap.get(snapshot.id);
+    projectsWithSnapshots.forEach(pws => {
+        const project = pws.project;
+        const snapshot = pws.snapshot;
+        if (!project || !snapshot) return;
+
         if (project?.accounting?.balanceSheet?.category === 'equity') {
             const subcategory = project.accounting.balanceSheet.subcategory || 'Other Equity';
             const amount = snapshot.closingBalance;
@@ -244,12 +249,9 @@ export function calculateBalanceSheet(
  * Operating, Investing, Financing based on project.accounting.cashFlow
  */
 export function calculateCashFlowStatement(
-    projectSnapshots: ProjectSnapshot[],
-    projects: Project[],
+    projectsWithSnapshots: ProjectWithSnapshot[],
     beginningCash: number
 ): CashFlowData {
-    const projectMap = new Map(projects.map(p => [p.id, p]));
-
     const operatingItems: CashFlowItem[] = [];
     const investingItems: CashFlowItem[] = [];
     const financingItems: CashFlowItem[] = [];
@@ -268,8 +270,11 @@ export function calculateCashFlowStatement(
         }
     };
 
-    projectSnapshots.forEach(snapshot => {
-        const project = projectMap.get(snapshot.id);
+    projectsWithSnapshots.forEach(pws => {
+        const project = pws.project;
+        const snapshot = pws.snapshot;
+        if (!project || !snapshot) return;
+
         if (project?.accounting?.cashFlow) {
             const { activity, subcategory } = project.accounting.cashFlow;
             // For Cash Flow, we look at the NET CHANGE in the project for the period.
