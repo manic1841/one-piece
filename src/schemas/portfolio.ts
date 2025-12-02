@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { TimestampSchema } from './helper';
-import { AccountTypeSchema, HoldingSchema } from './account';
+import { HoldingSchema } from './account';
+import { AccountCategory } from '@/domains/account/accountCategory';
 
 // Portfolio Schema
 export const PortfolioSchema = z.object({
@@ -19,7 +20,7 @@ export type Portfolio = z.infer<typeof PortfolioSchema>;
 export const PortfolioAccountSnapshotSchema = z.object({
   accountId: z.string(),
   accountName: z.string(),
-  type: AccountTypeSchema,
+  type: z.enum(AccountCategory),
   value: z.number(),
   holdings: z.array(HoldingSchema).optional(),
 });

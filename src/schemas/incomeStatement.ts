@@ -1,13 +1,6 @@
 import { z } from 'zod';
 import { TimestampSchema } from './helper';
-
-/**
- * Period type for income statement
- */
-export const PeriodTypeSchema = z.enum(['monthly', 'quarterly', 'yearly']);
-
-export type PeriodType = z.infer<typeof PeriodTypeSchema>;
-
+import { IncomeStatementSourceType } from '@/domains/finance/financeType';
 /**
  * Income statement item (single income or expense item)
  */
@@ -20,7 +13,7 @@ export const IncomeStatementItemSchema = z.object({
   amount: z.number(),
   order: z.number().int().optional(),
   // Reference to source (transaction ID, project ID, etc.)
-  sourceType: z.enum(['transaction', 'project', 'manual', 'plannedIncome']).optional(),
+  sourceType: z.enum(IncomeStatementSourceType).optional(),
   sourceId: z.string().optional(),
 });
 
@@ -65,7 +58,6 @@ export const IncomeStatementSchema = z.object({
   id: z.string(),
   startDate: z.union([TimestampSchema, z.instanceof(Date)]),
   endDate: z.union([TimestampSchema, z.instanceof(Date)]),
-  periodType: PeriodTypeSchema,
   year: z.number().int(),
   month: z.number().int().optional(), // For monthly reports
   quarter: z.number().int().optional(), // For quarterly reports

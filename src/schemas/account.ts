@@ -1,10 +1,6 @@
 import { z } from 'zod';
 import { TimestampSchema } from './helper';
-
-// AccountType
-export const AccountTypeSchema = z.enum(['bank', 'cash', 'investment', 'other']);
-
-export type AccountType = z.infer<typeof AccountTypeSchema>;
+import { AccountCategory } from '@/domains/account/accountCategory';
 
 // Holding Schema
 export const HoldingSchema = z.object({
@@ -34,7 +30,7 @@ export type AccountSnapshot = z.infer<typeof AccountSnapshotSchema>;
 export const AccountSchema = z.object({
   id: z.string(),
   name: z.string(),
-  type: AccountTypeSchema,
+  type: z.enum(AccountCategory),
   currency: z.string(),
   includeInReconciliation: z.boolean().default(true).optional(),
   createdAt: TimestampSchema,

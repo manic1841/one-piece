@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { TimestampSchema } from './helper';
+import { BalanceSheetSourceType } from '@/domains/finance/financeType';
 
 /**
  * Balance sheet item (asset or liability)
@@ -10,7 +11,7 @@ export const BalanceSheetItemSchema = z.object({
   amount: z.number(),
   order: z.number().int().optional(),
   // Reference to source (account ID, project ID, etc.)
-  sourceType: z.enum(['account', 'project', 'manual']).optional(),
+  sourceType: z.enum(BalanceSheetSourceType).optional(),
   sourceId: z.string().optional(),
 });
 
@@ -59,13 +60,13 @@ export const BalanceSheetSchema = z.object({
   asOfDate: z.union([TimestampSchema, z.instanceof(Date)]), // 截至日期
   year: z.number().int(),
   month: z.number().int(),
-  
+
   assets: AssetSectionSchema,
   liabilities: LiabilitySectionSchema,
-  
+
   // Net worth (equity) = Assets - Liabilities
   netWorth: z.number(),
-  
+
   createdAt: TimestampSchema,
   createdBy: z.string(),
 });

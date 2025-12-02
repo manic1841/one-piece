@@ -2,14 +2,11 @@ import { z } from 'zod';
 import { TimestampSchema } from './helper';
 
 export * from './account';
-export * from './allocation';
-export * from './investment';
 export * from './project';
 export * from './transaction';
 export * from './plannedIncome';
 export * from './helper';
 export * from './portfolio';
-export * from './accountingConfig';
 export * from './incomeStatement';
 export * from './balanceSheet';
 export * from './cashFlow';
