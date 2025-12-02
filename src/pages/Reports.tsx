@@ -1,10 +1,13 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import { FileText, TrendingUp, Wallet } from 'lucide-react';
+import { FileText, TrendingUp, Wallet, PlusCircle } from 'lucide-react';
+import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
+import FinancialReportGenerator from '@/components/reports/FinancialReportGenerator';
 
 const Reports: React.FC = () => {
   const navigate = useNavigate();
+  const [isGeneratorOpen, setIsGeneratorOpen] = useState(false);
 
   const reports = [
     {
@@ -41,20 +44,32 @@ const Reports: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold tracking-tight">財務報表</h2>
-        <p className="text-muted-foreground">
-          查看您的財務狀況和收支情況
-        </p>
+      <div className="flex justify-between items-center">
+        <div>
+          <h2 className="text-2xl font-bold tracking-tight">財務報表</h2>
+          <p className="text-muted-foreground">
+            查看您的財務狀況和收支情況
+          </p>
+        </div>
+        <Dialog open={isGeneratorOpen} onOpenChange={setIsGeneratorOpen}>
+          <DialogTrigger asChild>
+            <div className="cursor-pointer bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2 rounded-md flex items-center gap-2">
+              <PlusCircle className="h-4 w-4" />
+              <span>產生月結報表</span>
+            </div>
+          </DialogTrigger>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            <FinancialReportGenerator />
+          </DialogContent>
+        </Dialog>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {reports.map((report) => (
           <Card
             key={report.id}
-            className={`cursor-pointer transition-all hover:shadow-lg ${
-              report.enabled ? 'hover:scale-105' : 'opacity-50 cursor-not-allowed'
-            }`}
+            className={`cursor-pointer transition-all hover:shadow-lg ${report.enabled ? 'hover:scale-105' : 'opacity-50 cursor-not-allowed'
+              }`}
             onClick={() => report.enabled && navigate(report.path)}
           >
             <CardHeader>
