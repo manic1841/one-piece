@@ -15,7 +15,7 @@ import {
   type Transaction as FirestoreTransaction,
 } from 'firebase/firestore';
 import { db } from '../firebase';
-import { ProjectTransactionSchema, type ProjectTransaction } from '../schemas';
+import { ProjectTransactionSchema, type ProjectTransaction, convertToDate } from '../schemas';
 
 class ProjectTransactionRepository {
   private readonly collectionName = 'projectTransactions';
@@ -29,7 +29,13 @@ class ProjectTransactionRepository {
   }
 
   private parse(data: DocumentData): ProjectTransaction {
-    return ProjectTransactionSchema.parse(data);
+    // convert timestamp to date
+    const parsedData = {
+      ...data,
+      createdAt: convertToDate(data.createdAt),
+      date: convertToDate(data.date),
+    };
+    return ProjectTransactionSchema.parse(parsedData);
   }
 
   async create(

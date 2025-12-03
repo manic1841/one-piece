@@ -1,5 +1,4 @@
 import { z } from 'zod';
-import { TimestampSchema } from './helper';
 
 // --- Sub-Schemas ---
 
@@ -50,8 +49,8 @@ export const RetirementPlanSchema = z.object({
   name: z.string(),
   isActive: z.boolean().default(true),
   createdBy: z.string(),
-  createdAt: TimestampSchema,
-  updatedAt: TimestampSchema,
+  createdAt: z.date(),
+  updatedAt: z.date(),
 
   // Assumptions
   currentYear: z.number(),
@@ -67,7 +66,7 @@ export const RetirementPlanSchema = z.object({
   importSettings: z
     .object({
       fromProjects: z.boolean(),
-      importDate: TimestampSchema.optional(),
+      importDate: z.date().optional(),
       referenceMonths: z.number().default(12),
       projectMappings: z.record(z.string(), z.string()).optional(), // projectId -> expenseCategoryId (if needed)
     })
@@ -88,7 +87,7 @@ export const RetirementPlanSchema = z.object({
       minSavings: z.number(),
       minSavingsYear: z.number(),
       isBankrupt: z.boolean(),
-      lastCalculatedAt: TimestampSchema,
+      lastCalculatedAt: z.date(),
     })
     .optional(),
 });

@@ -1,5 +1,4 @@
 import { z } from 'zod';
-import { TimestampSchema } from './helper';
 import { IncomeStatementSourceType } from '@/domains/finance/financeType';
 /**
  * Income statement item (single income or expense item)
@@ -56,8 +55,8 @@ export type ExpenseSection = z.infer<typeof ExpenseSectionSchema>;
  */
 export const IncomeStatementSchema = z.object({
   id: z.string(),
-  startDate: z.union([TimestampSchema, z.instanceof(Date)]),
-  endDate: z.union([TimestampSchema, z.instanceof(Date)]),
+  startDate: z.date(),
+  endDate: z.date(),
   year: z.number().int(),
   month: z.number().int().optional(), // For monthly reports
   quarter: z.number().int().optional(), // For quarterly reports
@@ -68,7 +67,7 @@ export const IncomeStatementSchema = z.object({
   // Net income (profit/loss)
   netIncome: z.number(),
 
-  createdAt: TimestampSchema,
+  createdAt: z.date(),
   createdBy: z.string(),
 });
 

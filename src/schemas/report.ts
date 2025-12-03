@@ -1,5 +1,4 @@
 import { z } from 'zod';
-import { TimestampSchema } from './helper';
 import {
   ReportType,
   IncomeStatementSourceType,
@@ -118,8 +117,8 @@ export const FinancialReportSchema = z.object({
   type: z.enum(ReportType),
   year: z.number(),
   month: z.number(),
-  startDate: TimestampSchema,
-  endDate: TimestampSchema,
+  startDate: z.date(),
+  endDate: z.date(),
 
   reconciled: z.boolean(),
   cached: z.boolean(),
@@ -127,11 +126,11 @@ export const FinancialReportSchema = z.object({
   // Data can be one of the three types
   data: z.union([IncomeStatementDataSchema, BalanceSheetDataSchema, CashFlowDataSchema]),
 
-  generatedAt: TimestampSchema,
+  generatedAt: z.date(),
   generatedBy: z.string(),
-  reconciledAt: TimestampSchema.optional(),
+  reconciledAt: z.date().optional(),
   reconciledBy: z.string().optional(),
-  updatedAt: TimestampSchema,
+  updatedAt: z.date(),
 });
 
 export type FinancialReport = z.infer<typeof FinancialReportSchema>;

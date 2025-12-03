@@ -1,20 +1,28 @@
 import { z } from 'zod';
-import { TimestampSchema } from './helper';
 import { RoleEnum } from '../domains/core/role';
+import { Timestamp } from 'firebase/firestore';
 
 export * from './account';
 export * from './project';
 export * from './transaction';
 export * from './plannedIncome';
-export * from './helper';
 export * from './portfolio';
 export * from './incomeStatement';
 export * from './balanceSheet';
 export * from './cashFlow';
 
+export const convertToDate = (value: Timestamp): Date => {
+  // 檢查是否包含 toDate 函式 (Firestore Timestamp 的特徵)
+  if (value && typeof (value as Timestamp).toDate === 'function') {
+    return (value as Timestamp).toDate();
+  }
+  throw new Error('Invalid Timestamp');
+};
+
+// AccessControl Schema
 export const AccessControlSchema = z.object({
-  whitelistedEmails: z.array(z.string().email()),
-  updatedAt: TimestampSchema.optional(),
+  whitelistedEmails: z.array(z.email()),
+  updatedAt: z.date().optional(),
   updatedBy: z.string().optional(),
 });
 
@@ -39,10 +47,10 @@ export const HouseholdSchema = z.object({
     z.string(),
     z.object({
       role: z.enum(RoleEnum).default(RoleEnum.GUEST),
-      joinedAt: TimestampSchema,
+      joinedAt: z.date(),
     }),
   ),
-  createdAt: TimestampSchema,
+  createdAt: z.date(),
 });
 
 export type Household = z.infer<typeof HouseholdSchema>;

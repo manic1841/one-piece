@@ -1,5 +1,4 @@
 import { z } from 'zod';
-import { TimestampSchema } from './helper';
 import { BalanceSheetSourceType } from '@/domains/finance/financeType';
 
 /**
@@ -57,7 +56,7 @@ export type LiabilitySection = z.infer<typeof LiabilitySectionSchema>;
  */
 export const BalanceSheetSchema = z.object({
   id: z.string(),
-  asOfDate: z.union([TimestampSchema, z.instanceof(Date)]), // 截至日期
+  asOfDate: z.date(), // 截至日期
   year: z.number().int(),
   month: z.number().int(),
 
@@ -67,7 +66,7 @@ export const BalanceSheetSchema = z.object({
   // Net worth (equity) = Assets - Liabilities
   netWorth: z.number(),
 
-  createdAt: TimestampSchema,
+  createdAt: z.date(),
   createdBy: z.string(),
 });
 

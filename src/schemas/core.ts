@@ -1,5 +1,4 @@
 import { z } from 'zod';
-import { TimestampSchema } from './helper';
 
 // UserProfile Schema
 export const UserProfileSchema = z.object({
@@ -18,7 +17,7 @@ export const HouseholdSchema = z.object({
   name: z.string(),
   members: z.array(z.email()),
   budgetAllocations: z.any().optional(), // Will define this below
-  createdAt: TimestampSchema,
+  createdAt: z.date(),
 });
 
 export type Household = z.infer<typeof HouseholdSchema>;
@@ -26,7 +25,7 @@ export type Household = z.infer<typeof HouseholdSchema>;
 // Access Control Schema
 export const AccessControlSchema = z.object({
   whitelistedEmails: z.array(z.email()),
-  updatedAt: TimestampSchema.optional(),
+  updatedAt: z.date().optional(),
   updatedBy: z.string().optional(),
 });
 

@@ -1,5 +1,4 @@
 import { z } from 'zod';
-import { TimestampSchema } from './helper';
 
 /**
  * Cash flow item (inflow or outflow)
@@ -29,8 +28,8 @@ export type CashFlowSection = z.infer<typeof CashFlowSectionSchema>;
  */
 export const CashFlowStatementSchema = z.object({
   id: z.string(),
-  startDate: z.union([TimestampSchema, z.instanceof(Date)]),
-  endDate: z.union([TimestampSchema, z.instanceof(Date)]),
+  startDate: z.date(),
+  endDate: z.date(),
   year: z.number().int(),
   month: z.number().int().optional(),
   quarter: z.number().int().optional(),
@@ -43,7 +42,7 @@ export const CashFlowStatementSchema = z.object({
   beginningBalance: z.number(), // 期初現金
   endingBalance: z.number(), // 期末現金
 
-  createdAt: TimestampSchema,
+  createdAt: z.date(),
   createdBy: z.string(),
 });
 

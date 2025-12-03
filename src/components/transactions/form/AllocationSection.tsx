@@ -1,9 +1,9 @@
 import React from 'react';
-import { type Project } from '../../schemas';
+import { type Project } from '../../../schemas';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
-import { formatCurrency } from '../../utils/formatUtils';
+import { formatCurrency } from '../../../utils/formatUtils';
 
 interface AllocationSectionProps {
   projects: Project[];
@@ -25,8 +25,9 @@ export const AllocationSection: React.FC<AllocationSectionProps> = ({
       <div className="flex justify-between items-center">
         <Label>Project Allocations</Label>
         <span
-          className={`text-sm font-medium ${Math.abs(totalPercentage - 100) < 0.01 ? 'text-green-600' : 'text-red-600'
-            }`}
+          className={`text-sm font-medium ${
+            Math.abs(totalPercentage - 100) < 0.01 ? 'text-green-600' : 'text-red-600'
+          }`}
         >
           Total: {totalPercentage.toFixed(1)}%
         </span>

@@ -14,7 +14,7 @@ import {
   type QueryConstraint,
 } from 'firebase/firestore';
 import { db } from '../firebase';
-import { TransactionSchema, type Transaction } from '../schemas';
+import { TransactionSchema, type Transaction, convertToDate } from '../schemas';
 
 class TransactionRepository {
   private readonly collectionName = 'transactions';
@@ -28,7 +28,13 @@ class TransactionRepository {
   }
 
   private parse(data: DocumentData): Transaction {
-    return TransactionSchema.parse(data);
+    // convert timestamp to date
+    const parsedData = {
+      ...data,
+      createdAt: convertToDate(data.createdAt),
+      date: convertToDate(data.date),
+    };
+    return TransactionSchema.parse(parsedData);
   }
 
   async create(householdId: string, data: Omit<Transaction, 'id' | 'createdAt'>): Promise<string> {

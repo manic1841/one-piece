@@ -1,14 +1,100 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { type Transaction, type PlannedIncome, type ProjectTransaction } from '../../../schemas';
 import { useTransactionForm } from '../../../hooks/useTransactionForm';
 import { TypeToggle } from '../TypeToggle';
-import { AllocationSection } from '../AllocationSection';
+import { AllocationSection } from './AllocationSection';
 import { TransactionBasicFields } from './TransactionBasicFields';
 import { ProjectSelection } from './ProjectSelection';
 import { AllocationButton } from './AllocationButton';
 import { DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { TransferSettings } from './TransferSettings';
+
+type AnyRecord = Transaction | PlannedIncome | ProjectTransaction;
+const RecordType = {
+  transaction: 'transaction',
+  plannedIncome: 'plannedIncome',
+  projectTransaction: 'projectTransaction',
+};
+export type RecordType = (typeof RecordType)[keyof typeof RecordType];
+export interface UnifiedRecord {
+  recordType: RecordType;
+
+  id: string;
+  date: Date;
+  amount: number;
+  category?: string;
+  description?: string;
+  createdBy: string;
+  createdAt: Date;
+
+  // for
+  // transaction.projectId,
+  // projectTransaction.toProjectId
+  mainProjectId?: string | null;
+  // for projectTransaction.fromProjectId
+  sourceProjectId?: string | null;
+
+  // plannedIncome
+  allocations?: {
+    projectId: string;
+    percentage: number;
+  }[];
+  // projectTransaction
+  incomeSource?: string;
+  // transaction
+  transactionType?: string;
+}
+
+const normalizeRecord = (record: AnyRecord): UnifiedRecord => {
+  if ('projectId' in record) {
+    const txn = record as Transaction;
+    return {
+      id: txn.id,
+      recordType: RecordType.transaction,
+      date: txn.date,
+      category: txn.category,
+      amount: txn.amount,
+      description: txn.description,
+      createdBy: txn.createdBy,
+      createdAt: txn.createdAt,
+      mainProjectId: txn.projectId,
+      transactionType: txn.type,
+    };
+  }
+  if ('allocation' in record) {
+    const income = record as PlannedIncome;
+    return {
+      id: income.id,
+      recordType: RecordType.plannedIncome,
+      date: income.date,
+      category: income.category,
+      amount: income.amount,
+      description: income.description,
+      createdBy: income.createdBy,
+      createdAt: income.createdAt,
+
+      allocations: income.allocations,
+    };
+  }
+  if ('fromProjectId' in record) {
+    const pt = record as ProjectTransaction;
+    return {
+      id: pt.id,
+      recordType: RecordType.projectTransaction,
+      date: pt.date,
+      amount: pt.amount,
+      description: pt.description,
+      createdBy: pt.createdBy,
+      createdAt: pt.createdAt,
+      mainProjectId: pt.toProject,
+      sourceProjectId: pt.fromProject,
+      incomeSource: pt.incomeSource,
+    };
+  }
+
+  throw new Error('Invalid record type');
+};
 
 interface TransactionFormContentProps {
   isOpen: boolean;
@@ -23,16 +109,37 @@ interface TransactionFormContentProps {
   initialData?: Transaction;
   initialPlannedIncome?: PlannedIncome;
   initialProjectTransaction?: ProjectTransaction;
+  initialDataNew?: AnyRecord;
   householdId: string;
   userEmail: string;
 }
 
 export const TransactionFormContent: React.FC<TransactionFormContentProps> = (props) => {
   const { onClose, initialProjectTransaction } = props;
+  const [showAllocations, setShowAllocations] = useState(false);
+
+  const initialData =
+    props.initialDataNew ||
+    props.initialData ||
+    props.initialPlannedIncome ||
+    props.initialProjectTransaction;
+  const normalizedInitialData = initialData ? normalizeRecord(initialData) : null;
+
+  const [formData, setFormData] = useState(normalizedInitialData);
+  const isEditing = !!formData;
+
+  const handleFormChanged = (name: keyof UnifiedRecord, value: string | Date | number) => {
+    setFormData((prev) => {
+      if (!prev) return null;
+      return {
+        ...prev,
+        [name]: value,
+      };
+    });
+  };
 
   const {
     type,
-    setType,
     amount,
     setAmount,
     category,
@@ -50,8 +157,6 @@ export const TransactionFormContent: React.FC<TransactionFormContentProps> = (pr
     projects,
     allocations,
     setAllocations,
-    showAllocations,
-    setShowAllocations,
     loading,
     error,
     handleAllocationChange,
@@ -68,14 +173,7 @@ export const TransactionFormContent: React.FC<TransactionFormContentProps> = (pr
         )}
 
         {/* Type Toggle */}
-        {!isEditingPlannedIncome && !initialProjectTransaction && (
-          <TypeToggle
-            type={type}
-            setType={setType}
-            setCategory={setCategory}
-            setShowAllocations={setShowAllocations}
-          />
-        )}
+        {!isEditing && <TypeToggle type={type} onChanged={handleFormChanged} />}
 
         <TransactionBasicFields
           type={type}

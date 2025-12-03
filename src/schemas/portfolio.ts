@@ -1,5 +1,4 @@
 import { z } from 'zod';
-import { TimestampSchema } from './helper';
 import { HoldingSchema } from './account';
 import { AccountCategory } from '@/domains/account/accountCategory';
 
@@ -10,8 +9,8 @@ export const PortfolioSchema = z.object({
   description: z.string().optional(),
   accountIds: z.array(z.string()),
   isActive: z.boolean().default(true),
-  createdAt: TimestampSchema,
-  updatedAt: TimestampSchema.optional(),
+  createdAt: z.date(),
+  updatedAt: z.date().optional(),
 });
 
 export type Portfolio = z.infer<typeof PortfolioSchema>;
@@ -57,7 +56,7 @@ export const PortfolioSnapshotSchema = z.object({
   totalValue: z.number(),
   cashFlow: PortfolioCashFlowSchema,
   performance: PortfolioPerformanceSchema,
-  createdAt: TimestampSchema,
+  createdAt: z.date(),
   createdBy: z.string(),
 });
 

@@ -1,5 +1,4 @@
 import { z } from 'zod';
-import { TimestampSchema } from './helper';
 import { AccountCategory } from '@/domains/account/accountCategory';
 
 // Holding Schema
@@ -21,7 +20,7 @@ export const AccountSnapshotSchema = z.object({
   amount: z.number(),
   holdings: z.array(HoldingSchema).optional(),
   createdBy: z.string(),
-  createdAt: TimestampSchema,
+  createdAt: z.date(),
 });
 
 export type AccountSnapshot = z.infer<typeof AccountSnapshotSchema>;
@@ -33,7 +32,7 @@ export const AccountSchema = z.object({
   type: z.enum(AccountCategory),
   currency: z.string(),
   includeInReconciliation: z.boolean().default(true).optional(),
-  createdAt: TimestampSchema,
+  createdAt: z.date(),
   // subcollection
   snapshots: z.array(AccountSnapshotSchema).optional(),
 });

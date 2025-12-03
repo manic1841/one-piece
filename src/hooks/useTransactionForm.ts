@@ -1,16 +1,16 @@
 import { useState, useEffect } from 'react';
 import {
   type Transaction,
-  type TransactionType,
   type Project,
   type PlannedIncome,
   type ProjectTransaction,
 } from '../schemas';
+import { TransactionType } from '@/domains/transaction/transactionType';
 import { toDateString } from '../utils/dateUtils';
 import { projectService } from '../services/projectService';
 import { plannedIncomeService } from '../services/plannedIncomeService';
 import { projectTransactionService } from '../services/projectTransactionService';
-import { type PlannedIncomeCategory } from '../schemas/plannedIncome';
+import { PlannedIncomeCategory } from '@/domains/transaction/plannedIncomeCategory';
 import {
   validateTransactionForm,
   buildPlannedIncomeData,
@@ -52,9 +52,9 @@ export const useTransactionForm = ({
   const [type, setType] = useState<TransactionType>(initialData?.type || 'expense');
   const [amount, setAmount] = useState(
     initialData?.amount.toString() ||
-    initialPlannedIncome?.amount.toString() ||
-    initialProjectTransaction?.amount.toString() ||
-    '',
+      initialPlannedIncome?.amount.toString() ||
+      initialProjectTransaction?.amount.toString() ||
+      '',
   );
   const [category, setCategory] = useState(
     initialData?.category || initialPlannedIncome?.category || '',
@@ -73,13 +73,13 @@ export const useTransactionForm = ({
   );
   const [description, setDescription] = useState(
     initialData?.description ||
-    initialPlannedIncome?.description ||
-    initialProjectTransaction?.description ||
-    '',
+      initialPlannedIncome?.description ||
+      initialProjectTransaction?.description ||
+      '',
   );
   const [projects, setProjects] = useState<Project[]>([]);
   const [allocations, setAllocations] = useState<{ projectId: string; percentage: number }[]>([]);
-  const [showAllocations, setShowAllocations] = useState(false);
+  // const [showAllocations, setShowAllocations] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -111,34 +111,19 @@ export const useTransactionForm = ({
       setProjectId(initialData.projectId);
       setDate(toDateString(initialData.date));
       setDescription(initialData.description || '');
-      setShowAllocations(false);
     } else if (initialPlannedIncome) {
       setType('income');
       setAmount(initialPlannedIncome.amount.toString());
       setCategory(initialPlannedIncome.category);
       setDate(toDateString(initialPlannedIncome.date));
       setDescription(initialPlannedIncome.description || '');
-      setShowAllocations(true);
-
-      // Set allocations from initialPlannedIncome
-      if (initialPlannedIncome.userSettings?.adjustedAllocations) {
-        setAllocations(initialPlannedIncome.userSettings.adjustedAllocations);
-      } else if (initialPlannedIncome.allocations) {
-        setAllocations(
-          initialPlannedIncome.allocations.map((a) => ({
-            projectId: a.projectId,
-            percentage: a.percentage,
-          })),
-        );
-      }
     } else if (initialProjectTransaction) {
-      setType('transfer');
+      setType(TransactionType.EXPENSE);
       setAmount(initialProjectTransaction.amount.toString());
       setFromProjectId(initialProjectTransaction.fromProject || '');
       setToProjectId(initialProjectTransaction.toProject);
       setDate(toDateString(initialProjectTransaction.date));
       setDescription(initialProjectTransaction.description || '');
-      setShowAllocations(false);
     } else {
       // Reset form when not editing
       setAmount('');
@@ -149,14 +134,13 @@ export const useTransactionForm = ({
       setDate(new Date().toISOString().split('T')[0]);
       setDescription('');
       setAllocations([]);
-      setShowAllocations(false);
     }
   }, [initialData, initialPlannedIncome, initialProjectTransaction, isOpen]);
 
   // Load previous allocations when category changes (for income with allocations)
   useEffect(() => {
     const loadPreviousAllocations = async () => {
-      if (!householdId || !category || !showAllocations || type !== 'income') return;
+      if (!householdId || !category || type !== 'income') return;
       if (initialPlannedIncome) return; // Don't load when editing
 
       try {
@@ -164,18 +148,7 @@ export const useTransactionForm = ({
           householdId,
           category as PlannedIncomeCategory,
         );
-        if (previous && previous.userSettings?.adjustedAllocations) {
-          const newAllocations = projects.map((p) => {
-            const prevAlloc = previous.userSettings!.adjustedAllocations!.find(
-              (a) => a.projectId === p.id,
-            );
-            return {
-              projectId: p.id,
-              percentage: prevAlloc ? prevAlloc.percentage : 0,
-            };
-          });
-          setAllocations(newAllocations);
-        } else if (previous && previous.allocations) {
+        if (previous && previous.allocations) {
           const newAllocations = projects.map((p) => {
             const prevAlloc = previous.allocations.find((a) => a.projectId === p.id);
             return {
@@ -193,7 +166,7 @@ export const useTransactionForm = ({
     if (isOpen && projects.length > 0) {
       loadPreviousAllocations();
     }
-  }, [householdId, category, isOpen, projects, showAllocations, type, initialPlannedIncome]);
+  }, [householdId, category, isOpen, projects, type, initialPlannedIncome]);
 
   const handleAllocationChange = (projectId: string, percentage: number) => {
     setAllocations((prev) =>
@@ -208,7 +181,7 @@ export const useTransactionForm = ({
     setError('');
 
     // Validate form based on type
-    if (type === 'transfer') {
+    if (type !== TransactionType.EXPENSE) {
       if (!amount || isNaN(parseFloat(amount))) {
         setError('請輸入有效金額');
         return;
@@ -224,7 +197,7 @@ export const useTransactionForm = ({
         amount,
         category,
         type,
-        showAllocations,
+        true,
         projectId,
         totalPercentage,
       );
@@ -238,7 +211,7 @@ export const useTransactionForm = ({
     setLoading(true);
 
     try {
-      if (type === 'transfer') {
+      if (type === TransactionType.EXPENSE) {
         // Handle transfer
         const transferData = {
           type: 'transfer' as const,
@@ -257,7 +230,7 @@ export const useTransactionForm = ({
             createdBy: userEmail,
           });
         }
-      } else if (showAllocations && type === 'income') {
+      } else if (type === 'income') {
         // Handle planned income with allocations
         const plannedIncomeData = buildPlannedIncomeData(
           amount,
@@ -283,7 +256,7 @@ export const useTransactionForm = ({
           date,
           description,
           userEmail,
-          showAllocations,
+          false,
         );
         await onSubmit(transactionData);
       }
@@ -297,7 +270,6 @@ export const useTransactionForm = ({
       setDescription('');
       setDate(new Date().toISOString().split('T')[0]);
       setAllocations([]);
-      setShowAllocations(false);
       onClose();
       if (onSuccess) onSuccess();
     } catch (err) {
@@ -328,8 +300,6 @@ export const useTransactionForm = ({
     projects,
     allocations,
     setAllocations,
-    showAllocations,
-    setShowAllocations,
     loading,
     error,
     isEditingPlannedIncome,

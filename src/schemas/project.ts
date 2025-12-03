@@ -1,5 +1,4 @@
 import { z } from 'zod';
-import { TimestampSchema } from './helper';
 import { ProjectCategory, ProjectTransactionType } from '../domains/project/projectCategory';
 import {
   IncomeStatementCategory,
@@ -16,7 +15,7 @@ export const ProjectSnapshotSchema = z.object({
   income: z.number(),
   expense: z.number(),
   closingBalance: z.number(),
-  createdAt: TimestampSchema,
+  createdAt: z.date(),
 });
 
 export type ProjectSnapshot = z.infer<typeof ProjectSnapshotSchema>;
@@ -65,9 +64,9 @@ export const ProjectSchema = z.object({
     })
     .optional(),
 
-  createdAt: TimestampSchema.optional(),
+  createdAt: z.date().optional(),
   createdBy: z.string(),
-  updatedAt: TimestampSchema.optional(),
+  updatedAt: z.date().optional(),
   updatedBy: z.string().optional(),
 
   // subcollection
@@ -79,7 +78,7 @@ export type Project = z.infer<typeof ProjectSchema>;
 // ProjectTransaction Schema
 export const ProjectTransactionSchema = z.object({
   id: z.string(),
-  date: z.union([TimestampSchema, z.instanceof(Date)]),
+  date: z.date(),
   type: z.enum(ProjectTransactionType),
   fromProject: z.string().nullable().optional(),
   toProject: z.string(),
@@ -87,7 +86,7 @@ export const ProjectTransactionSchema = z.object({
   description: z.string().optional(),
   incomeSource: z.string().optional(),
   createdBy: z.string(),
-  createdAt: TimestampSchema,
+  createdAt: z.date(),
 });
 
 export type ProjectTransaction = z.infer<typeof ProjectTransactionSchema>;
