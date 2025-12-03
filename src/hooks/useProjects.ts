@@ -125,23 +125,9 @@ export const useProjects = (householdId?: string) => {
       // Combine and sort by date (newest first)
       const combined = [...projectTxs, ...regularTxs];
       combined.sort((a, b) => {
-        const dateA =
-          a.type === 'transaction'
-            ? a.data.date instanceof Date
-              ? a.data.date
-              : a.data.date.toDate()
-            : a.data.date instanceof Date
-              ? a.data.date
-              : a.data.date.toDate();
+        const dateA = a.data.date;
 
-        const dateB =
-          b.type === 'transaction'
-            ? b.data.date instanceof Date
-              ? b.data.date
-              : b.data.date.toDate()
-            : b.data.date instanceof Date
-              ? b.data.date
-              : b.data.date.toDate();
+        const dateB = b.data.date;
 
         return dateB.getTime() - dateA.getTime();
       });

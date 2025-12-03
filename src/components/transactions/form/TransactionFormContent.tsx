@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { type Transaction, type PlannedIncome, type ProjectTransaction } from '../../../schemas';
 import { useTransactionForm } from '../../../hooks/useTransactionForm';
-import { TypeToggle } from '../TypeToggle';
+import { TypeToggle } from './TypeToggle';
 import { AllocationSection } from './AllocationSection';
 import { TransactionBasicFields } from './TransactionBasicFields';
 import { ProjectSelection } from './ProjectSelection';
@@ -10,91 +10,7 @@ import { DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { TransferSettings } from './TransferSettings';
 
-type AnyRecord = Transaction | PlannedIncome | ProjectTransaction;
-const RecordType = {
-  transaction: 'transaction',
-  plannedIncome: 'plannedIncome',
-  projectTransaction: 'projectTransaction',
-};
-export type RecordType = (typeof RecordType)[keyof typeof RecordType];
-export interface UnifiedRecord {
-  recordType: RecordType;
-
-  id: string;
-  date: Date;
-  amount: number;
-  category?: string;
-  description?: string;
-  createdBy: string;
-  createdAt: Date;
-
-  // for
-  // transaction.projectId,
-  // projectTransaction.toProjectId
-  mainProjectId?: string | null;
-  // for projectTransaction.fromProjectId
-  sourceProjectId?: string | null;
-
-  // plannedIncome
-  allocations?: {
-    projectId: string;
-    percentage: number;
-  }[];
-  // projectTransaction
-  incomeSource?: string;
-  // transaction
-  transactionType?: string;
-}
-
-const normalizeRecord = (record: AnyRecord): UnifiedRecord => {
-  if ('projectId' in record) {
-    const txn = record as Transaction;
-    return {
-      id: txn.id,
-      recordType: RecordType.transaction,
-      date: txn.date,
-      category: txn.category,
-      amount: txn.amount,
-      description: txn.description,
-      createdBy: txn.createdBy,
-      createdAt: txn.createdAt,
-      mainProjectId: txn.projectId,
-      transactionType: txn.type,
-    };
-  }
-  if ('allocation' in record) {
-    const income = record as PlannedIncome;
-    return {
-      id: income.id,
-      recordType: RecordType.plannedIncome,
-      date: income.date,
-      category: income.category,
-      amount: income.amount,
-      description: income.description,
-      createdBy: income.createdBy,
-      createdAt: income.createdAt,
-
-      allocations: income.allocations,
-    };
-  }
-  if ('fromProjectId' in record) {
-    const pt = record as ProjectTransaction;
-    return {
-      id: pt.id,
-      recordType: RecordType.projectTransaction,
-      date: pt.date,
-      amount: pt.amount,
-      description: pt.description,
-      createdBy: pt.createdBy,
-      createdAt: pt.createdAt,
-      mainProjectId: pt.toProject,
-      sourceProjectId: pt.fromProject,
-      incomeSource: pt.incomeSource,
-    };
-  }
-
-  throw new Error('Invalid record type');
-};
+import { type AnyRecord, FormType, type UnifiedRecord, normalizeRecord } from './types';
 
 interface TransactionFormContentProps {
   isOpen: boolean;
@@ -115,55 +31,29 @@ interface TransactionFormContentProps {
 }
 
 export const TransactionFormContent: React.FC<TransactionFormContentProps> = (props) => {
-  const { onClose, initialProjectTransaction } = props;
+  const { onClose } = props;
   const [showAllocations, setShowAllocations] = useState(false);
+  const loading = false;
+  const error = '';
 
-  const initialData =
-    props.initialDataNew ||
-    props.initialData ||
-    props.initialPlannedIncome ||
-    props.initialProjectTransaction;
-  const normalizedInitialData = initialData ? normalizeRecord(initialData) : null;
+  const initialData = props.initialDataNew;
+  const normalizedInitialData = useMemo(() => normalizeRecord(initialData), [initialData]);
 
   const [formData, setFormData] = useState(normalizedInitialData);
-  const isEditing = !!formData;
+  const isEditing = !!initialData;
 
-  const handleFormChanged = (name: keyof UnifiedRecord, value: string | Date | number) => {
-    setFormData((prev) => {
-      if (!prev) return null;
-      return {
-        ...prev,
-        [name]: value,
-      };
-    });
+  useEffect(() => {
+    setFormData(normalizedInitialData);
+  }, [normalizedInitialData]);
+
+  const handleFormChanged = <K extends keyof UnifiedRecord>(name: K, value: UnifiedRecord[K]) => {
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
   };
 
-  const {
-    type,
-    amount,
-    setAmount,
-    category,
-    setCategory,
-    projectId,
-    setProjectId,
-    fromProjectId,
-    setFromProjectId,
-    toProjectId,
-    setToProjectId,
-    date,
-    setDate,
-    description,
-    setDescription,
-    projects,
-    allocations,
-    setAllocations,
-    loading,
-    error,
-    handleAllocationChange,
-    handleSubmit,
-    totalPercentage,
-    isEditingPlannedIncome,
-  } = useTransactionForm(props);
+  const { projects, handleSubmit } = useTransactionForm(props);
 
   return (
     <>
@@ -173,55 +63,61 @@ export const TransactionFormContent: React.FC<TransactionFormContentProps> = (pr
         )}
 
         {/* Type Toggle */}
-        {!isEditing && <TypeToggle type={type} onChanged={handleFormChanged} />}
+        {!isEditing && <TypeToggle type={formData.formType} onChanged={handleFormChanged} />}
 
         <TransactionBasicFields
-          type={type}
-          amount={amount}
-          setAmount={setAmount}
-          category={category}
-          setCategory={setCategory}
-          date={date}
-          setDate={setDate}
-          description={description}
-          setDescription={setDescription}
+          type={formData.formType}
+          amount={formData.amount}
+          category={formData.category}
+          date={formData.date}
+          description={formData.description}
+          onChanged={handleFormChanged}
         />
 
         {/* Transfer: From/To Project Selection */}
-        {type === 'transfer' && (
+        {formData.formType === FormType.transfer && (
           <TransferSettings
-            fromProjectId={fromProjectId}
-            setFromProjectId={setFromProjectId}
-            toProjectId={toProjectId}
-            setToProjectId={setToProjectId}
+            fromProjectId={formData.sourceProjectId || ''}
+            setFromProjectId={handleFormChanged}
+            toProjectId={formData.mainProjectId || ''}
+            setToProjectId={handleFormChanged}
             projects={projects}
           />
         )}
 
         {/* Project Selection (Expense or Income without Allocations) */}
-        {(type === 'expense' || (type === 'income' && !showAllocations)) && (
-          <ProjectSelection projectId={projectId} setProjectId={setProjectId} projects={projects} />
-        )}
-
-        {/* Allocate Button (Income Only) */}
-        {type === 'income' && !isEditingPlannedIncome && (
-          <AllocationButton
-            showAllocations={showAllocations}
-            setShowAllocations={setShowAllocations}
-            allocationsLength={allocations.length}
-            setAllocations={setAllocations}
+        {(formData.formType === FormType.expense ||
+          (formData.formType === FormType.income && !showAllocations)) && (
+          <ProjectSelection
+            projectId={formData.mainProjectId || ''}
+            setProjectId={(id: string) => {
+              handleFormChanged('mainProjectId', id);
+            }}
             projects={projects}
           />
         )}
 
+        {/* Allocate Button (Income Only) */}
+        {formData.formType === FormType.income && !isEditing && (
+          <AllocationButton
+            showAllocations={showAllocations}
+            setShowAllocations={setShowAllocations}
+          />
+        )}
+
         {/* Allocations Section */}
-        {(showAllocations || isEditingPlannedIncome) && type === 'income' && (
+        {(showAllocations || isEditing) && formData.formType === FormType.income && (
           <AllocationSection
             projects={projects}
-            allocations={allocations}
-            amount={amount}
-            handleAllocationChange={handleAllocationChange}
-            totalPercentage={totalPercentage}
+            allocations={formData.allocations || []}
+            amount={formData.amount}
+            onChanged={(projectId: string, percentage: number) => {
+              const allocations = formData.allocations || [];
+              handleFormChanged(
+                'allocations',
+                allocations.map((a) => (a.projectId === projectId ? { ...a, percentage } : a)),
+              );
+            }}
           />
         )}
       </form>
@@ -232,15 +128,7 @@ export const TransactionFormContent: React.FC<TransactionFormContentProps> = (pr
           取消
         </Button>
         <Button type="submit" onClick={handleSubmit} disabled={loading}>
-          {loading
-            ? '儲存中...'
-            : isEditingPlannedIncome || initialProjectTransaction
-              ? '更新'
-              : showAllocations && type === 'income'
-                ? '儲存並分配'
-                : type === 'transfer'
-                  ? '轉帳'
-                  : '儲存'}
+          {loading ? '儲存中...' : '儲存'}
         </Button>
       </DialogFooter>
     </>

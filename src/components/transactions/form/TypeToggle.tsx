@@ -1,10 +1,11 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { type UnifiedRecord } from './form/TransactionFormContent';
+import { type UnifiedRecord, FormType } from './types';
+
 interface TypeToggleProps {
-  type: string;
-  onChanged?: (name: keyof UnifiedRecord, value: string | Date | number) => void;
+  type: FormType;
+  onChanged?: <K extends keyof UnifiedRecord>(name: K, value: UnifiedRecord[K]) => void;
 }
 
 export const TypeToggle: React.FC<TypeToggleProps> = ({ type, onChanged }) => {
@@ -14,24 +15,26 @@ export const TypeToggle: React.FC<TypeToggleProps> = ({ type, onChanged }) => {
       <div className="flex gap-2">
         <Button
           type="button"
-          variant={type === 'expense' ? 'default' : 'outline'}
+          variant={type === FormType.expense ? 'default' : 'outline'}
           onClick={() => {
-            onChanged?.('transactionType', 'expense');
+            onChanged?.('transactionType', FormType.expense);
           }}
           className={`flex-1 ${
-            type === 'expense' ? 'bg-red-100 text-red-700 hover:bg-red-200 border-red-200' : ''
+            type === FormType.expense
+              ? 'bg-red-100 text-red-700 hover:bg-red-200 border-red-200'
+              : ''
           }`}
         >
           支出
         </Button>
         <Button
           type="button"
-          variant={type === 'income' ? 'default' : 'outline'}
+          variant={type === FormType.income ? 'default' : 'outline'}
           onClick={() => {
-            onChanged?.('transactionType', 'income');
+            onChanged?.('transactionType', FormType.income);
           }}
           className={`flex-1 ${
-            type === 'income'
+            type === FormType.income
               ? 'bg-green-100 text-green-700 hover:bg-green-200 border-green-200'
               : ''
           }`}
@@ -40,12 +43,14 @@ export const TypeToggle: React.FC<TypeToggleProps> = ({ type, onChanged }) => {
         </Button>
         <Button
           type="button"
-          variant={type === 'transfer' ? 'default' : 'outline'}
+          variant={type === FormType.transfer ? 'default' : 'outline'}
           onClick={() => {
-            onChanged?.('transactionType', 'transfer');
+            onChanged?.('transactionType', FormType.transfer);
           }}
           className={`flex-1 ${
-            type === 'transfer' ? 'bg-blue-100 text-blue-700 hover:bg-blue-200 border-blue-200' : ''
+            type === FormType.transfer
+              ? 'bg-blue-100 text-blue-700 hover:bg-blue-200 border-blue-200'
+              : ''
           }`}
         >
           轉帳

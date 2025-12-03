@@ -9,17 +9,20 @@ interface AllocationSectionProps {
   projects: Project[];
   allocations: { projectId: string; percentage: number }[];
   amount: string;
-  handleAllocationChange: (projectId: string, percentage: number) => void;
-  totalPercentage: number;
+  onChanged: (projectId: string, percentage: number) => void;
 }
 
 export const AllocationSection: React.FC<AllocationSectionProps> = ({
   projects,
   allocations,
   amount,
-  handleAllocationChange,
-  totalPercentage,
+  onChanged,
 }) => {
+  const totalPercentage = allocations.reduce(
+    (total, allocation) => total + allocation.percentage,
+    0,
+  );
+
   return (
     <div className="space-y-2">
       <div className="flex justify-between items-center">
@@ -57,9 +60,7 @@ export const AllocationSection: React.FC<AllocationSectionProps> = ({
                       step="0.1"
                       className="text-right pr-6"
                       value={percentage}
-                      onChange={(e) =>
-                        handleAllocationChange(project.id, parseFloat(e.target.value) || 0)
-                      }
+                      onChange={(e) => onChanged(project.id, parseFloat(e.target.value) || 0)}
                     />
                     <span className="absolute right-3 top-2.5 text-muted-foreground text-sm">
                       %

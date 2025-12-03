@@ -9,29 +9,24 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { TRANSACTION_CATEGORIES as categories } from '../../../constants/transaction/transactionLabel';
+import { type UnifiedRecord } from './types';
 
 interface TransactionBasicFieldsProps {
   type: string;
   amount: string;
-  setAmount: (value: string) => void;
-  category: string;
-  setCategory: (value: string) => void;
-  date: string;
-  setDate: (value: string) => void;
+  category?: string;
+  date?: string;
   description: string;
-  setDescription: (value: string) => void;
+  onChanged: <K extends keyof UnifiedRecord>(name: K, value: UnifiedRecord[K]) => void;
 }
 
 export const TransactionBasicFields: React.FC<TransactionBasicFieldsProps> = ({
   type,
   amount,
-  setAmount,
   category,
-  setCategory,
   date,
-  setDate,
   description,
-  setDescription,
+  onChanged,
 }) => {
   const availableCategories = type === 'income' ? categories.income : categories.expense;
   const showCategory = type !== 'transfer';
@@ -49,7 +44,7 @@ export const TransactionBasicFields: React.FC<TransactionBasicFieldsProps> = ({
           min="0"
           placeholder="0.00"
           value={amount}
-          onChange={(e) => setAmount(e.target.value)}
+          onChange={(e) => onChanged('amount', e.target.value)}
         />
       </div>
 
@@ -57,7 +52,7 @@ export const TransactionBasicFields: React.FC<TransactionBasicFieldsProps> = ({
       {showCategory && (
         <div className="space-y-2">
           <Label htmlFor="category">類別</Label>
-          <Select value={category} onValueChange={setCategory} required>
+          <Select value={category} onValueChange={(value) => onChanged('category', value)} required>
             <SelectTrigger id="category">
               <SelectValue placeholder="選擇類別" />
             </SelectTrigger>
@@ -80,7 +75,7 @@ export const TransactionBasicFields: React.FC<TransactionBasicFieldsProps> = ({
           type="date"
           required
           value={date}
-          onChange={(e) => setDate(e.target.value)}
+          onChange={(e) => onChanged('date', e.target.value)}
         />
       </div>
 
@@ -92,7 +87,7 @@ export const TransactionBasicFields: React.FC<TransactionBasicFieldsProps> = ({
           type="text"
           placeholder="新增備註..."
           value={description}
-          onChange={(e) => setDescription(e.target.value)}
+          onChange={(e) => onChanged('description', e.target.value)}
         />
       </div>
     </div>

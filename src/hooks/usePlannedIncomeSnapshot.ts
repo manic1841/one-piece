@@ -14,7 +14,7 @@ export function usePlannedIncomeSnapshot() {
       return projects.map((p) => ({ projectId: p.id, percentage: 0 }));
     }
 
-    const base = prev.userSettings?.adjustedAllocations ?? prev.allocations ?? [];
+    const base = prev.allocations ?? [];
 
     return projects.map((p) => {
       const found = base.find((a) => a.projectId === p.id);
