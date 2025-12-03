@@ -1,50 +1,34 @@
-import {
-  collection,
-  doc,
-  setDoc,
-  getDocs,
-  query,
-  where,
-  orderBy,
-  serverTimestamp,
-  deleteDoc,
-} from 'firebase/firestore';
-import { db } from '../firebase';
-import { AccountSchema, AccountSnapshotSchema, parseWithSchema } from '../schemas';
+import { orderBy } from 'firebase/firestore';
 import type { Account, AccountSnapshot } from '../schemas';
-import { BaseService } from './baseService';
+import { accountRepository } from '../repositories/accountRepository';
 
-class AccountService extends BaseService<Account> {
-  constructor() {
-    super('accounts', AccountSchema);
-  }
-
+class AccountService {
   // Create a new account
   async createAccount(
     householdId: string,
     account: Omit<Account, 'id' | 'createdAt'>,
   ): Promise<string> {
-    return this.create(householdId, account);
+    return accountRepository.create(householdId, account);
   }
 
   // Get all accounts for a household
   async getAccounts(householdId: string): Promise<Account[]> {
-    return this.getAll(householdId, [orderBy('createdAt', 'desc')]);
+    return accountRepository.getAll(householdId, [orderBy('createdAt', 'desc')]);
   }
 
   // Get a single account
   async getAccount(householdId: string, id: string): Promise<Account | null> {
-    return this.getById(householdId, id);
+    return accountRepository.getById(householdId, id);
   }
 
   // Update an account
   async updateAccount(householdId: string, id: string, updates: Partial<Account>): Promise<void> {
-    return this.update(householdId, id, updates);
+    return accountRepository.update(householdId, id, updates);
   }
 
   // Delete an account
   async deleteAccount(householdId: string, id: string): Promise<void> {
-    return this.delete(householdId, id);
+    return accountRepository.delete(householdId, id);
   }
 
   // Record a balance snapshot
@@ -53,19 +37,7 @@ class AccountService extends BaseService<Account> {
     accountId: string,
     snapshot: Omit<AccountSnapshot, 'id' | 'createdAt'>,
   ): Promise<string> {
-    const snapshotRef = doc(
-      collection(db, 'households', householdId, 'accounts', accountId, 'snapshots'),
-    );
-    const snapshotId = snapshotRef.id;
-
-    const newSnapshot = {
-      ...snapshot,
-      id: snapshotId,
-      createdAt: serverTimestamp(),
-    };
-
-    await setDoc(snapshotRef, newSnapshot);
-    return snapshotId;
+    return accountRepository.createSnapshot(householdId, accountId, snapshot);
   }
 
   // Get balance snapshots for an account
@@ -75,28 +47,7 @@ class AccountService extends BaseService<Account> {
     year?: number,
     month?: number,
   ): Promise<AccountSnapshot[]> {
-    const snapshotsRef = collection(
-      db,
-      'households',
-      householdId,
-      'accounts',
-      accountId,
-      'snapshots',
-    );
-    let q = query(snapshotsRef, orderBy('year', 'desc'), orderBy('month', 'desc'));
-
-    if (year !== undefined) {
-      q = query(q, where('year', '==', year));
-    }
-    if (month !== undefined) {
-      q = query(q, where('month', '==', month));
-    }
-
-    const querySnapshot = await getDocs(q);
-    return querySnapshot.docs.map((doc) => {
-      const data = doc.data();
-      return parseWithSchema(AccountSnapshotSchema, data);
-    });
+    return accountRepository.getSnapshots(householdId, accountId, year, month);
   }
 
   // Get latest snapshot for each account in a household
@@ -125,6 +76,7 @@ class AccountService extends BaseService<Account> {
 
     return total;
   }
+
   // Update a snapshot
   async updateSnapshot(
     householdId: string,
@@ -132,30 +84,12 @@ class AccountService extends BaseService<Account> {
     snapshotId: string,
     updates: Partial<Omit<AccountSnapshot, 'id' | 'createdAt'>>,
   ): Promise<void> {
-    const snapshotRef = doc(
-      db,
-      'households',
-      householdId,
-      'accounts',
-      accountId,
-      'snapshots',
-      snapshotId,
-    );
-    await setDoc(snapshotRef, updates, { merge: true });
+    return accountRepository.updateSnapshot(householdId, accountId, snapshotId, updates);
   }
 
   // Delete a snapshot
   async deleteSnapshot(householdId: string, accountId: string, snapshotId: string): Promise<void> {
-    const snapshotRef = doc(
-      db,
-      'households',
-      householdId,
-      'accounts',
-      accountId,
-      'snapshots',
-      snapshotId,
-    );
-    await deleteDoc(snapshotRef);
+    return accountRepository.deleteSnapshot(householdId, accountId, snapshotId);
   }
 }
 
