@@ -2,12 +2,12 @@ import React, { useState } from 'react';
 import { Plus } from 'lucide-react';
 import { useAuth } from '../contexts/useAuth';
 import TransactionForm from '../components/transactions/TransactionForm';
-import { type Transaction, type PlannedIncome, type ProjectTransaction } from '../schemas';
 import { useTransactions } from '../hooks/useTransactions';
 import { TransactionStats } from '../components/transactions/TransactionStats';
 import { TransactionList } from '../components/transactions/TransactionList';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { type UnifiedRecord } from '@/components/transactions/form/types/unifiedRecord';
 
 const Transactions: React.FC = () => {
   const { userProfile, currentUser } = useAuth();
@@ -16,84 +16,49 @@ const Transactions: React.FC = () => {
     loading,
     stats,
     loadTransactions,
-    createTransaction,
-    createPlannedIncome,
-    updateTransaction,
-    updatePlannedIncome,
-    updateProjectTransaction,
-    deleteTransaction,
-    deletePlannedIncome,
-    deleteProjectTransaction,
-  } = useTransactions(userProfile?.householdId);
+    createRecord,
+    updateRecord,
+    deleteRecord,
+  } = useTransactions(userProfile?.householdId, userProfile?.email);
 
   const [isFormOpen, setIsFormOpen] = useState(false);
-  const [editingTransaction, setEditingTransaction] = useState<Transaction | undefined>();
-  const [editingPlannedIncome, setEditingPlannedIncome] = useState<PlannedIncome | undefined>();
-  const [editingProjectTransaction, setEditingProjectTransaction] = useState<ProjectTransaction | undefined>();
+  const [edit, setEdit] = useState<UnifiedRecord | undefined>(undefined);
   const [filterType, setFilterType] = useState<'all' | 'income' | 'expense'>('all');
 
-  const handleCreateTransaction = async (transaction: Omit<Transaction, 'id' | 'createdAt'>) => {
-    await createTransaction(transaction);
+  const handleCreate = async (record: UnifiedRecord) => {
+    await createRecord(record);
   };
 
-  const handleCreatePlannedIncome = async (
-    plannedIncome: Omit<PlannedIncome, 'id' | 'createdAt'>,
-  ) => {
-    await createPlannedIncome(plannedIncome);
+  const handleUpdate = async (record: UnifiedRecord) => {
+    if (!edit) return;
+    await updateRecord(record);
+    setEdit(undefined);
   };
 
-  const handleUpdateTransaction = async (transaction: Omit<Transaction, 'id' | 'createdAt'>) => {
-    if (!editingTransaction) return;
-    await updateTransaction(editingTransaction.id, transaction);
-    setEditingTransaction(undefined);
-  };
-
-  const handleUpdatePlannedIncome = async (
-    plannedIncome: Omit<PlannedIncome, 'id' | 'createdAt'>,
-  ) => {
-    if (!editingPlannedIncome) return;
-    await updatePlannedIncome(editingPlannedIncome.id, plannedIncome);
-    setEditingPlannedIncome(undefined);
-  };
-
-  const handleEditClick = (transaction: Transaction) => {
-    setEditingTransaction(transaction);
+  const handleEditClick = (record: UnifiedRecord) => {
+    setEdit(record);
     setIsFormOpen(true);
   };
 
-  const handleEditPlannedIncome = (income: PlannedIncome) => {
-    setEditingPlannedIncome(income);
-    setIsFormOpen(true);
+  const handleDeleteClick = (record: UnifiedRecord) => {
+    deleteRecord(record);
   };
 
   const handleCloseForm = () => {
     setIsFormOpen(false);
-    setEditingTransaction(undefined);
-    setEditingPlannedIncome(undefined);
-    setEditingProjectTransaction(undefined);
-  };
-
-  const handleEditProjectTransaction = (pt: ProjectTransaction) => {
-    setEditingProjectTransaction(pt);
-    setIsFormOpen(true);
-  };
-
-  const handleUpdateProjectTransaction = async (data: Omit<ProjectTransaction, 'id' | 'createdAt' | 'createdBy'>) => {
-    if (!editingProjectTransaction) return;
-    await updateProjectTransaction(editingProjectTransaction.id, data);
-    setEditingProjectTransaction(undefined);
+    setEdit(undefined);
   };
 
   const filteredList = combinedList.filter((item) => {
     if (filterType === 'all') return true;
     if (filterType === 'income') {
       return (
-        item.type === 'plannedIncome' ||
-        (item.type === 'transaction' && item.data.type === 'income')
+        item.recordType === 'plannedIncome' ||
+        (item.recordType === 'transaction' && item.transactionType === 'income')
       );
     }
     if (filterType === 'expense') {
-      return item.type === 'transaction' && item.data.type === 'expense';
+      return item.recordType === 'transaction' && item.transactionType === 'expense';
     }
     return true;
   });
@@ -118,24 +83,27 @@ const Transactions: React.FC = () => {
           <div className="flex gap-2">
             <Button
               variant={filterType === 'all' ? 'default' : 'ghost'}
-              className={`flex-1 ${filterType === 'all' ? 'bg-blue-100 text-blue-700 hover:bg-blue-200' : ''
-                }`}
+              className={`flex-1 ${
+                filterType === 'all' ? 'bg-blue-100 text-blue-700 hover:bg-blue-200' : ''
+              }`}
               onClick={() => setFilterType('all')}
             >
               All
             </Button>
             <Button
               variant={filterType === 'income' ? 'default' : 'ghost'}
-              className={`flex-1 ${filterType === 'income' ? 'bg-green-100 text-green-700 hover:bg-green-200' : ''
-                }`}
+              className={`flex-1 ${
+                filterType === 'income' ? 'bg-green-100 text-green-700 hover:bg-green-200' : ''
+              }`}
               onClick={() => setFilterType('income')}
             >
               Income
             </Button>
             <Button
               variant={filterType === 'expense' ? 'default' : 'ghost'}
-              className={`flex-1 ${filterType === 'expense' ? 'bg-red-100 text-red-700 hover:bg-red-200' : ''
-                }`}
+              className={`flex-1 ${
+                filterType === 'expense' ? 'bg-red-100 text-red-700 hover:bg-red-200' : ''
+              }`}
               onClick={() => setFilterType('expense')}
             >
               Expense
@@ -148,12 +116,8 @@ const Transactions: React.FC = () => {
       <TransactionList
         items={filteredList}
         loading={loading}
-        onEditTransaction={handleEditClick}
-        onEditPlannedIncome={handleEditPlannedIncome}
-        onEditProjectTransaction={handleEditProjectTransaction}
-        onDeleteTransaction={deleteTransaction}
-        onDeletePlannedIncome={deletePlannedIncome}
-        onDeleteProjectTransaction={deleteProjectTransaction}
+        onEdit={handleEditClick}
+        onDelete={handleDeleteClick}
       />
 
       {/* Transaction Form Modal */}
@@ -161,16 +125,9 @@ const Transactions: React.FC = () => {
         <TransactionForm
           isOpen={isFormOpen}
           onClose={handleCloseForm}
-          onSubmit={editingTransaction ? handleUpdateTransaction : handleCreateTransaction}
-          onSubmitPlannedIncome={handleCreatePlannedIncome}
-          onUpdatePlannedIncome={editingPlannedIncome ? handleUpdatePlannedIncome : undefined}
-          onUpdateProjectTransaction={
-            editingProjectTransaction ? handleUpdateProjectTransaction : undefined
-          }
+          onSubmit={edit ? handleUpdate : handleCreate}
           onSuccess={loadTransactions}
-          initialData={editingTransaction}
-          initialPlannedIncome={editingPlannedIncome}
-          initialProjectTransaction={editingProjectTransaction}
+          initialData={edit}
           householdId={userProfile.householdId}
           userEmail={currentUser.email}
         />

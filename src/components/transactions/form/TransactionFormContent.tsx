@@ -1,6 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { type Transaction, type PlannedIncome, type ProjectTransaction } from '@/schemas';
-// import { useTransactionForm } from '../../../hooks/useTransactionForm';
+import React, { useState, useEffect } from 'react';
 import { useTransactionForm } from './hooks/useTransactionForm';
 import { TypeToggle } from './TypeToggle';
 import { AllocationSection } from './AllocationSection';
@@ -11,23 +9,15 @@ import { DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { TransferSettings } from './TransferSettings';
 import { useProjectsNew } from '@/hooks/useProjects';
-import { type AnyRecord, type UnifiedRecord, normalizeRecord } from './types/unifiedRecord';
+import { type UnifiedRecord, normalizeRecord } from './types/unifiedRecord';
 import { FormType } from './types/formType';
 
 interface TransactionFormContentProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (transaction: Omit<Transaction, 'id' | 'createdAt'>) => Promise<void>;
-  onSubmitPlannedIncome?: (plannedIncome: Omit<PlannedIncome, 'id' | 'createdAt'>) => Promise<void>;
-  onUpdatePlannedIncome?: (plannedIncome: Omit<PlannedIncome, 'id' | 'createdAt'>) => Promise<void>;
-  onUpdateProjectTransaction?: (
-    data: Omit<ProjectTransaction, 'id' | 'createdAt' | 'createdBy'>,
-  ) => Promise<void>;
+  onSubmit: (data: UnifiedRecord) => Promise<void>;
   onSuccess?: () => void;
-  initialData?: Transaction;
-  initialPlannedIncome?: PlannedIncome;
-  initialProjectTransaction?: ProjectTransaction;
-  initialDataNew?: AnyRecord;
+  initialData?: UnifiedRecord;
   householdId: string;
   userEmail: string;
 }
@@ -37,16 +27,13 @@ export const TransactionFormContent: React.FC<TransactionFormContentProps> = (pr
   const [showAllocations, setShowAllocations] = useState(false);
   const loading = false;
   const error = '';
-
-  const initialData = props.initialDataNew;
-  const normalizedInitialData = useMemo(() => normalizeRecord(initialData), [initialData]);
-
-  const [formData, setFormData] = useState(normalizedInitialData);
+  const initialData = props.initialData ? props.initialData : normalizeRecord();
+  const [formData, setFormData] = useState(initialData);
   const isEditing = !!initialData;
 
   useEffect(() => {
-    setFormData(normalizedInitialData);
-  }, [normalizedInitialData]);
+    setFormData(initialData);
+  }, [initialData]);
 
   const handleFormChanged = <K extends keyof UnifiedRecord>(name: K, value: UnifiedRecord[K]) => {
     setFormData((prev) => ({
@@ -70,9 +57,9 @@ export const TransactionFormContent: React.FC<TransactionFormContentProps> = (pr
 
         <TransactionBasicFields
           type={formData.formType}
-          amount={formData.amount}
+          amount={formData.amount.toString()}
           category={formData.category}
-          date={formData.date}
+          date={formData.date.toDateString()}
           description={formData.description}
           onChanged={handleFormChanged}
         />
@@ -113,7 +100,7 @@ export const TransactionFormContent: React.FC<TransactionFormContentProps> = (pr
           <AllocationSection
             projects={projects}
             allocations={formData.allocations || []}
-            amount={formData.amount}
+            amount={formData.amount.toString()}
             onChanged={(projectId: string, percentage: number) => {
               const allocations = formData.allocations || [];
               handleFormChanged(

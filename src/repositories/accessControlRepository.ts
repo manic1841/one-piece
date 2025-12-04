@@ -1,7 +1,7 @@
 import { doc, Timestamp, collection } from 'firebase/firestore';
 import { db } from '../firebase';
 import { type AccessControl, AccessControlSchema } from '../schemas';
-import { convertToDate } from '@/utils/dateUtils';
+import { toDate } from '@/utils/dateUtils';
 import { BaseRepository } from './baseRepository';
 
 type AccessControlFirestore = {
@@ -32,7 +32,7 @@ class AccessControlRepository extends BaseRepository<AccessControl, AccessContro
   protected fromFirestore(data: AccessControlFirestore): AccessControl {
     return AccessControlSchema.parse({
       ...data,
-      updatedAt: convertToDate(data.updatedAt),
+      updatedAt: toDate(data.updatedAt),
     });
   }
 }

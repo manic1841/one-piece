@@ -1,7 +1,7 @@
 import { Timestamp, collection, doc } from 'firebase/firestore';
 import { AccountSnapshotSchema, type AccountSnapshot } from '@/schemas';
 import { BaseRepository } from './baseRepository';
-import { convertToDate } from '@/utils/dateUtils';
+import { toDate } from '@/utils/dateUtils';
 import { db } from '@/firebase';
 
 type AccountSnapshotFirestore = Omit<AccountSnapshot, 'id' | 'createdAt'> & {
@@ -31,7 +31,7 @@ class AccountSnapshotRepository extends BaseRepository<
   protected fromFirestore(data: AccountSnapshotFirestore): AccountSnapshot {
     return AccountSnapshotSchema.parse({
       ...data,
-      createdAt: convertToDate(data.createdAt),
+      createdAt: toDate(data.createdAt),
     });
   }
 }

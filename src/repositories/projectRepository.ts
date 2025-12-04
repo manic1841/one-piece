@@ -1,7 +1,7 @@
 import { collection, doc, Timestamp } from 'firebase/firestore';
 import { db } from '../firebase';
 import { type Project, ProjectSchema } from '../schemas/project';
-import { convertToDate } from '@/utils/dateUtils';
+import { toDate } from '@/utils/dateUtils';
 import { BaseRepository } from './baseRepository';
 
 type ProjectFirestore = Omit<Project, 'createdAt' | 'updatedAt'> & {
@@ -35,8 +35,8 @@ class ProjectRepository extends BaseRepository<Project, ProjectFirestore, [strin
   protected fromFirestore(data: ProjectFirestore): Project {
     return ProjectSchema.parse({
       ...data,
-      createdAt: convertToDate(data.createdAt),
-      updatedAt: convertToDate(data.updatedAt),
+      createdAt: toDate(data.createdAt),
+      updatedAt: toDate(data.updatedAt),
     });
   }
 }

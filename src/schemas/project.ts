@@ -67,7 +67,7 @@ export const ProjectSchema = z.object({
   createdAt: z.date(),
   createdBy: z.string(),
   updatedAt: z.date(),
-  updatedBy: z.string(),
+  updatedBy: z.string().optional(),
 
   // subcollection
   snapshots: z.array(ProjectSnapshotSchema).optional(),
@@ -87,7 +87,7 @@ export const ProjectTransactionSchema = z.object({
   incomeSource: z.string().optional(),
   createdBy: z.string(),
   createdAt: z.date(),
-  updatedBy: z.string(),
+  updatedBy: z.string().optional(),
   updatedAt: z.date(),
 });
 

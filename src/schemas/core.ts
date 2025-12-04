@@ -19,7 +19,7 @@ export const HouseholdSchema = z.object({
   budgetAllocations: z.any().optional(), // Will define this below
   createdBy: z.string(),
   createdAt: z.date(),
-  updatedBy: z.string(),
+  updatedBy: z.string().optional(),
   updatedAt: z.date(),
 });
 
@@ -30,7 +30,7 @@ export const AccessControlSchema = z.object({
   whitelistedEmails: z.array(z.email()),
   createdBy: z.string(),
   createdAt: z.date(),
-  updatedBy: z.string(),
+  updatedBy: z.string().optional(),
   updatedAt: z.date(),
 });
 

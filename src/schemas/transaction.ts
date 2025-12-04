@@ -12,7 +12,7 @@ export const TransactionSchema = z.object({
   description: z.string().optional(),
   createdBy: z.string(),
   createdAt: z.date(),
-  updatedBy: z.string(),
+  updatedBy: z.string().optional(),
   updatedAt: z.date(),
 });
 

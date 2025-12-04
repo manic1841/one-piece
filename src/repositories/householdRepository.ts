@@ -1,7 +1,7 @@
 import { collection, doc, type DocumentData, Timestamp } from 'firebase/firestore';
 import { db } from '../firebase';
 import { HouseholdSchema, type Household } from '../schemas';
-import { convertToDate } from '@/utils/dateUtils';
+import { toDate } from '@/utils/dateUtils';
 import { BaseRepository } from './baseRepository';
 
 type HouseholdFirestore = {
@@ -58,7 +58,7 @@ class HouseholdRepository extends BaseRepository<Household, HouseholdFirestore, 
         const { role, joinedAt } = value as { role: string; joinedAt: Timestamp };
         acc[k] = {
           role,
-          joinedAt: convertToDate(joinedAt),
+          joinedAt: toDate(joinedAt),
         };
         return acc;
       },
@@ -67,8 +67,8 @@ class HouseholdRepository extends BaseRepository<Household, HouseholdFirestore, 
     return HouseholdSchema.parse({
       ...data,
       members,
-      createdAt: convertToDate(data.createdAt),
-      updatedAt: convertToDate(data.updatedAt),
+      createdAt: toDate(data.createdAt),
+      updatedAt: toDate(data.updatedAt),
     });
   }
 }

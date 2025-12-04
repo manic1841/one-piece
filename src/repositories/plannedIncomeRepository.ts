@@ -1,7 +1,7 @@
 import { collection, doc, Timestamp, type DocumentData } from 'firebase/firestore';
 import { db } from '../firebase';
 import { PlannedIncomeSchema, type PlannedIncome } from '../schemas';
-import { convertToDate } from '@/utils/dateUtils';
+import { toDate } from '@/utils/dateUtils';
 import { BaseRepository } from './baseRepository';
 
 type PlannedIncomeFirestore = Omit<PlannedIncome, 'date' | 'createdAt' | 'updatedAt'> & {
@@ -37,9 +37,9 @@ class PlannedIncomeRepository extends BaseRepository<
   protected fromFirestore(data: DocumentData): PlannedIncome {
     return PlannedIncomeSchema.parse({
       ...data,
-      date: convertToDate(data.date),
-      createdAt: convertToDate(data.createdAt),
-      updatedAt: convertToDate(data.updatedAt),
+      date: toDate(data.date),
+      createdAt: toDate(data.createdAt),
+      updatedAt: toDate(data.updatedAt),
     });
   }
 }

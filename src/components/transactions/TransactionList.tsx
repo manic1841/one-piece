@@ -1,37 +1,25 @@
 import React from 'react';
 import { Pencil, Trash2 } from 'lucide-react';
-import { type Transaction, type PlannedIncome, type ProjectTransaction } from '../../schemas';
-import { type TransactionListItem } from '../../hooks/useTransactions';
-import { formatCurrency } from '../../utils/formatUtils';
-import { toDate } from '../../utils/dateUtils';
-import { Timestamp } from 'firebase/firestore';
+import { formatCurrency } from '@/utils/formatUtils';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { type UnifiedRecord, RecordType } from './form/types/unifiedRecord';
 
 interface TransactionListProps {
-  items: TransactionListItem[];
+  items: UnifiedRecord[];
   loading: boolean;
-  onEditTransaction: (transaction: Transaction) => void;
-  onEditPlannedIncome: (income: PlannedIncome) => void;
-  onEditProjectTransaction: (pt: ProjectTransaction) => void;
-  onDeleteTransaction: (id: string) => void;
-  onDeletePlannedIncome: (id: string) => void;
-  onDeleteProjectTransaction: (id: string) => void;
+  onEdit: (record: UnifiedRecord) => void;
+  onDelete: (record: UnifiedRecord) => void;
 }
 
 export const TransactionList: React.FC<TransactionListProps> = ({
   items,
   loading,
-  onEditTransaction,
-  onEditPlannedIncome,
-  onEditProjectTransaction,
-  onDeleteTransaction,
-  onDeletePlannedIncome,
-  onDeleteProjectTransaction,
+  onDelete,
+  onEdit,
 }) => {
-  const formatDate = (timestamp: Timestamp | Date) => {
-    if (!timestamp) return '';
-    const date = toDate(timestamp);
+  const formatDate = (date: Date) => {
+    if (!date) return '';
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   };
 
@@ -61,8 +49,8 @@ export const TransactionList: React.FC<TransactionListProps> = ({
     <Card>
       <div className="divide-y divide-border">
         {items.map((item) => {
-          if (item.type === 'plannedIncome') {
-            const income = item.data;
+          if (item.recordType === RecordType.plannedIncome) {
+            const income = item;
             return (
               <div
                 key={`income-${income.id}`}
@@ -75,7 +63,7 @@ export const TransactionList: React.FC<TransactionListProps> = ({
                       <div>
                         <div className="flex items-center gap-2">
                           <p className="font-medium text-foreground capitalize">
-                            {income.category.replace('_', ' ')}
+                            {income?.category?.replace('_', ' ')}
                           </p>
                           <span className="text-xs px-2 py-0.5 bg-green-100 text-green-700 rounded-full">
                             Planned Income
@@ -84,7 +72,9 @@ export const TransactionList: React.FC<TransactionListProps> = ({
                         {income.description && (
                           <p className="text-sm text-muted-foreground">{income.description}</p>
                         )}
-                        <p className="text-xs text-muted-foreground mt-1">{formatDate(income.date)}</p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {formatDate(income.date)}
+                        </p>
                       </div>
                     </div>
                   </div>
@@ -96,7 +86,7 @@ export const TransactionList: React.FC<TransactionListProps> = ({
                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => onEditPlannedIncome(income)}
+                        onClick={() => onEdit(income)}
                         className="text-muted-foreground hover:text-blue-600 hover:bg-blue-50"
                       >
                         <Pencil size={18} />
@@ -104,7 +94,7 @@ export const TransactionList: React.FC<TransactionListProps> = ({
                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => onDeletePlannedIncome(income.id)}
+                        onClick={() => onDelete(income)}
                         className="text-muted-foreground hover:text-red-600 hover:bg-red-50"
                       >
                         <Trash2 size={18} />
@@ -114,9 +104,10 @@ export const TransactionList: React.FC<TransactionListProps> = ({
                 </div>
               </div>
             );
-          } else if (item.type === 'projectTransaction') {
-            const pt = item.data;
-            const typeLabel = pt.type === 'transfer' ? '轉帳' : pt.type === 'adjustment' ? '調整' : '分配';
+          } else if (item.recordType === 'projectTransaction') {
+            const pt = item;
+            const typeLabel =
+              pt.category === 'transfer' ? '轉帳' : pt.category === 'adjustment' ? '調整' : '分配';
 
             return (
               <div
@@ -129,9 +120,7 @@ export const TransactionList: React.FC<TransactionListProps> = ({
                       <div className="w-2 h-2 rounded-full bg-blue-500" />
                       <div>
                         <div className="flex items-center gap-2">
-                          <p className="font-medium text-foreground capitalize">
-                            {typeLabel}
-                          </p>
+                          <p className="font-medium text-foreground capitalize">{typeLabel}</p>
                           <span className="text-xs px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full">
                             {typeLabel}
                           </span>
@@ -144,14 +133,12 @@ export const TransactionList: React.FC<TransactionListProps> = ({
                     </div>
                   </div>
                   <div className="flex items-center gap-4">
-                    <p className="text-lg font-bold text-blue-600">
-                      {formatCurrency(pt.amount)}
-                    </p>
+                    <p className="text-lg font-bold text-blue-600">{formatCurrency(pt.amount)}</p>
                     <div className="flex gap-2">
                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => onEditProjectTransaction(pt)}
+                        onClick={() => onEdit(pt)}
                         className="text-muted-foreground hover:text-blue-600 hover:bg-blue-50"
                       >
                         <Pencil size={18} />
@@ -159,7 +146,7 @@ export const TransactionList: React.FC<TransactionListProps> = ({
                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => onDeleteProjectTransaction(pt.id)}
+                        onClick={() => onDelete(pt)}
                         className="text-muted-foreground hover:text-red-600 hover:bg-red-50"
                       >
                         <Trash2 size={18} />
@@ -170,7 +157,7 @@ export const TransactionList: React.FC<TransactionListProps> = ({
               </div>
             );
           } else {
-            const transaction = item.data;
+            const transaction = item;
             return (
               <div
                 key={`transaction-${transaction.id}`}
@@ -180,33 +167,37 @@ export const TransactionList: React.FC<TransactionListProps> = ({
                   <div className="flex-1">
                     <div className="flex items-center gap-3">
                       <div
-                        className={`w-2 h-2 rounded-full ${transaction.type === 'income' ? 'bg-green-500' : 'bg-red-500'
-                          }`}
+                        className={`w-2 h-2 rounded-full ${
+                          transaction.transactionType === 'income' ? 'bg-green-500' : 'bg-red-500'
+                        }`}
                       />
                       <div>
                         <p className="font-medium text-foreground capitalize">
-                          {transaction.category.replace('_', ' ')}
+                          {transaction?.category?.replace('_', ' ')}
                         </p>
                         {transaction.description && (
                           <p className="text-sm text-muted-foreground">{transaction.description}</p>
                         )}
-                        <p className="text-xs text-muted-foreground mt-1">{formatDate(transaction.date)}</p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {formatDate(transaction.date)}
+                        </p>
                       </div>
                     </div>
                   </div>
                   <div className="flex items-center gap-4">
                     <p
-                      className={`text-lg font-bold ${transaction.type === 'income' ? 'text-green-600' : 'text-red-600'
-                        }`}
+                      className={`text-lg font-bold ${
+                        transaction.transactionType === 'income' ? 'text-green-600' : 'text-red-600'
+                      }`}
                     >
-                      {transaction.type === 'income' ? '+' : '-'}
+                      {transaction.transactionType === 'income' ? '+' : '-'}
                       {formatCurrency(transaction.amount)}
                     </p>
                     <div className="flex gap-2">
                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => onEditTransaction(transaction)}
+                        onClick={() => onEdit(transaction)}
                         className="text-muted-foreground hover:text-blue-600 hover:bg-blue-50"
                       >
                         <Pencil size={18} />
@@ -214,7 +205,7 @@ export const TransactionList: React.FC<TransactionListProps> = ({
                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => onDeleteTransaction(transaction.id)}
+                        onClick={() => onDelete(transaction)}
                         className="text-muted-foreground hover:text-red-600 hover:bg-red-50"
                       >
                         <Trash2 size={18} />

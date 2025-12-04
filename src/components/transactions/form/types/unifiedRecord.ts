@@ -17,12 +17,12 @@ export interface UnifiedRecord {
   formType: FormType;
 
   id?: string;
-  date: string;
-  amount: string;
+  date: Date;
+  amount: number;
   category?: string;
   description: string;
   createdBy?: string;
-  createdAt?: string;
+  createdAt?: Date;
 
   // for
   // transaction.projectId,
@@ -43,57 +43,69 @@ export interface UnifiedRecord {
 }
 
 export const normalizeRecord = (record?: AnyRecord): UnifiedRecord => {
-  if (!record)
+  console.log('record', record);
+  if (!record) {
+    console.log('no record');
     return {
       formType: FormType.expense,
-      date: new Date().toISOString(),
-      amount: '',
+      date: new Date(),
+      amount: 0,
       description: '',
+      category: '',
+      mainProjectId: '',
+      sourceProjectId: '',
+      incomeSource: '',
+      allocations: [],
+      transactionType: TransactionType.EXPENSE,
     };
+  }
 
   if ('projectId' in record) {
+    console.log('transaction');
     const txn = record as Transaction;
     return {
       id: txn.id,
       recordType: RecordType.transaction,
       formType: txn.type === 'income' ? FormType.income : FormType.expense,
-      date: txn.date.toISOString(),
+      date: txn.date,
       category: txn.category,
-      amount: txn.amount.toString(),
+      amount: txn.amount,
       description: txn.description || '',
       createdBy: txn.createdBy,
-      createdAt: txn.createdAt.toISOString(),
+      createdAt: txn.createdAt,
       mainProjectId: txn.projectId,
       transactionType: txn.type,
     };
   }
-  if ('allocation' in record) {
+  if ('allocations' in record) {
+    console.log('planned income');
     const income = record as PlannedIncome;
     return {
       id: income.id,
       recordType: RecordType.plannedIncome,
       formType: FormType.income,
-      date: income.date.toISOString(),
+      date: income.date,
       category: income.category,
-      amount: income.amount.toString(),
+      amount: income.amount,
       description: income.description || '',
       createdBy: income.createdBy,
-      createdAt: income.createdAt.toISOString(),
+      createdAt: income.createdAt,
 
       allocations: income.allocations,
     };
   }
-  if ('fromProjectId' in record) {
+  if ('fromProject' in record) {
+    console.log('project transaction');
     const pt = record as ProjectTransaction;
     return {
       id: pt.id,
       recordType: RecordType.projectTransaction,
       formType: FormType.transfer,
-      date: pt.date.toISOString(),
-      amount: pt.amount.toString(),
+      date: pt.date,
+      amount: pt.amount,
       description: pt.description || '',
       createdBy: pt.createdBy,
-      createdAt: pt.createdAt.toISOString(),
+      createdAt: pt.createdAt,
       mainProjectId: pt.toProject,
       sourceProjectId: pt.fromProject,
       incomeSource: pt.incomeSource,
@@ -104,9 +116,8 @@ export const normalizeRecord = (record?: AnyRecord): UnifiedRecord => {
 };
 
 // convert normalizedRecord to schema
-export const convertToSchema = (record: UnifiedRecord, type: RecordType): AnyRecord => {
-  if (type === RecordType.transaction) {
-    return {
+export const transactionConverter = (record: UnifiedRecord) => {
+  return {
       id: record.id,
       type: record.transactionType,
       date: new Date(record.date),
@@ -115,9 +126,10 @@ export const convertToSchema = (record: UnifiedRecord, type: RecordType): AnyRec
       description: record.description,
       projectId: record.mainProjectId,
     } as Transaction;
-  }
-  if (type === RecordType.plannedIncome) {
-    return {
+}
+
+export const plannedIncomeConverter=(record: UnifiedRecord) {
+  return {
       id: record.id,
       category: record.category,
       amount: Number(record.amount),
@@ -125,9 +137,10 @@ export const convertToSchema = (record: UnifiedRecord, type: RecordType): AnyRec
       description: record.description,
       allocations: record.allocations,
     } as PlannedIncome;
-  }
-  if (type === RecordType.projectTransaction) {
-    return {
+}
+
+export const projectTransactionConverter=(record: UnifiedRecord) {
+  return {
       id: record.id,
       fromProject: record.sourceProjectId,
       toProject: record.mainProjectId,
@@ -138,5 +151,15 @@ export const convertToSchema = (record: UnifiedRecord, type: RecordType): AnyRec
     } as ProjectTransaction;
   }
 
-  throw new Error('Invalid record type');
-};
+
+
+export const convertToSchema=(record: UnifiedRecord, type: RecordType): AnyRecord => {
+  const converter = converters[type];
+  if (!converter) throw new Error(`No converter for ${type}`);
+  return converter(record);
+}
+export const converters = {
+  [RecordType.transaction]: transactionConverter,
+  [RecordType.plannedIncome]: plannedIncomeConverter,
+  [RecordType.projectTransaction]: projectTransactionConverter,
+} as const;

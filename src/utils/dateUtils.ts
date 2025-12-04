@@ -1,57 +1,24 @@
 import { Timestamp } from 'firebase/firestore';
 
 // Convert Firestore Timestamp to JavaScript Date object
-export const convertToDate = (value: Timestamp): Date => {
+export const toDate = (value: Timestamp): Date => {
   // 檢查是否包含 toDate 函式 (Firestore Timestamp 的特徵)
   if (value && typeof (value as Timestamp).toDate === 'function') {
     return (value as Timestamp).toDate();
+  }
+  if (value == null) {
+    return new Date();
   }
   throw new Error('Invalid Timestamp');
 };
 
 /**
- * Convert Firestore Timestamp or Date to date string (YYYY-MM-DD format)
- * @param date - Firestore Timestamp or Date object
+ * Convert Date to date string (YYYY-MM-DD format)
+ * @param date - Date object
  * @returns Date string in YYYY-MM-DD format
  */
-export const toDateString = (date: Timestamp | Date): string => {
-  if (date instanceof Timestamp) {
-    return date.toDate().toISOString().split('T')[0];
-  }
+export const toDateString = (date: Date): string => {
   return date.toISOString().split('T')[0];
-};
-
-/**
- * Convert Firestore Timestamp or Date to JavaScript Date object
- * @param date - Firestore Timestamp or Date object
- * @returns JavaScript Date object
- */
-export const toDate = (date: Timestamp | Date): Date => {
-  if (date instanceof Timestamp) {
-    return date.toDate();
-  }
-  return date;
-};
-
-/**
- * Convert Firestore Timestamp or Date to ISO string
- * @param date - Firestore Timestamp or Date object
- * @returns ISO 8601 date-time string
- */
-export const toISOString = (date: Timestamp | Date): string => {
-  if (date instanceof Timestamp) {
-    return date.toDate().toISOString();
-  }
-  return date.toISOString();
-};
-
-/**
- * Convert JavaScript Date to Firestore Timestamp
- * @param date - JavaScript Date object
- * @returns Firestore Timestamp
- */
-export const fromDate = (date: Date): Timestamp => {
-  return Timestamp.fromDate(date);
 };
 
 /**

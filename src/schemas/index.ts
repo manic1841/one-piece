@@ -14,7 +14,7 @@ export * from './cashFlow';
 export const AccessControlSchema = z.object({
   whitelistedEmails: z.array(z.email()),
   updatedAt: z.date(),
-  updatedBy: z.string(),
+  updatedBy: z.string().optional(),
 });
 
 export type AccessControl = z.infer<typeof AccessControlSchema>;
@@ -43,7 +43,7 @@ export const HouseholdSchema = z.object({
   ),
   createdBy: z.string(),
   createdAt: z.date(),
-  updatedBy: z.string(),
+  updatedBy: z.string().optional(),
   updatedAt: z.date(),
 });
 

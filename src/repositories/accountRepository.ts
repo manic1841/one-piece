@@ -1,7 +1,7 @@
 import { collection, doc, Timestamp } from 'firebase/firestore';
 import { db } from '../firebase';
 import { AccountSchema, type Account } from '../schemas';
-import { convertToDate } from '@/utils/dateUtils';
+import { toDate } from '@/utils/dateUtils';
 import { BaseRepository } from './baseRepository';
 
 type AccountFirestore = Omit<Account, 'createdAt' | 'updatedAt'> & {
@@ -31,8 +31,8 @@ class AccountRepository extends BaseRepository<Account, AccountFirestore, [strin
   protected fromFirestore(data: AccountFirestore): Account {
     return AccountSchema.parse({
       ...data,
-      createdAt: convertToDate(data.createdAt),
-      updatedAt: convertToDate(data.updatedAt),
+      createdAt: toDate(data.createdAt),
+      updatedAt: toDate(data.updatedAt),
     });
   }
 }

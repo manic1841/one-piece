@@ -132,7 +132,7 @@ export const FinancialReportSchema = z.object({
   reconciledBy: z.string().optional(),
   createdBy: z.string(),
   createdAt: z.date(),
-  updatedBy: z.string(),
+  updatedBy: z.string().optional(),
   updatedAt: z.date(),
 });
 

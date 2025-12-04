@@ -58,7 +58,7 @@ export const PortfolioSnapshotSchema = z.object({
   performance: PortfolioPerformanceSchema,
   createdBy: z.string(),
   createdAt: z.date(),
-  updatedBy: z.string(),
+  updatedBy: z.string().optional(),
   updatedAt: z.date(),
 });
 

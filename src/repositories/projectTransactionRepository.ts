@@ -1,10 +1,11 @@
 import { collection, doc, Timestamp } from 'firebase/firestore';
 import { db } from '../firebase';
 import { ProjectTransactionSchema, type ProjectTransaction } from '../schemas';
-import { convertToDate } from '@/utils/dateUtils';
+import { toDate } from '@/utils/dateUtils';
 import { BaseRepository } from './baseRepository';
 
-type ProjectTransactionFirestore = Omit<ProjectTransaction, 'createdAt' | 'updatedAt'> & {
+type ProjectTransactionFirestore = Omit<ProjectTransaction, 'date' | 'createdAt' | 'updatedAt'> & {
+  date: Timestamp;
   createdAt: Timestamp;
   updatedAt: Timestamp;
 };
@@ -27,6 +28,7 @@ class ProjectTransactionRepository extends BaseRepository<
   protected toFirestore(entity: ProjectTransaction): ProjectTransactionFirestore {
     return {
       ...entity,
+      date: Timestamp.fromDate(entity.date),
       createdAt: Timestamp.fromDate(entity.createdAt),
       updatedAt: Timestamp.fromDate(entity.updatedAt),
     };
@@ -35,8 +37,9 @@ class ProjectTransactionRepository extends BaseRepository<
   protected fromFirestore(data: ProjectTransactionFirestore): ProjectTransaction {
     return ProjectTransactionSchema.parse({
       ...data,
-      createdAt: convertToDate(data.createdAt),
-      updatedAt: convertToDate(data.updatedAt),
+      date: toDate(data.date),
+      createdAt: toDate(data.createdAt),
+      updatedAt: toDate(data.updatedAt),
     });
   }
 }

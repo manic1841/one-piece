@@ -1,4 +1,3 @@
-import { serverTimestamp, Timestamp } from 'firebase/firestore';
 import {
   type PortfolioSnapshot,
   type PortfolioAccountSnapshot,
@@ -21,17 +20,9 @@ export interface PortfolioCalculatorInput {
  * Pure function to calculate a portfolio snapshot.
  */
 export function calculatePortfolioSnapshot(
-  input: PortfolioCalculatorInput
+  input: PortfolioCalculatorInput,
 ): Omit<PortfolioSnapshot, 'id'> {
-  const {
-    year,
-    month,
-    accounts,
-    accountSnapshots,
-    prevSnapshot,
-    cashFlow,
-    createdBy,
-  } = input;
+  const { year, month, accounts, accountSnapshots, prevSnapshot, cashFlow, createdBy } = input;
 
   // 1. Process Account Snapshots
   const portfolioAccountSnapshots: PortfolioAccountSnapshot[] = [];
@@ -114,6 +105,7 @@ export function calculatePortfolioSnapshot(
     cashFlow,
     performance,
     createdBy,
-    createdAt: serverTimestamp() as unknown as Timestamp,
+    createdAt: new Date(),
+    updatedAt: new Date(),
   };
 }

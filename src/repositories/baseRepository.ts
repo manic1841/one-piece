@@ -3,8 +3,7 @@ import {
   DocumentReference,
   CollectionReference,
   type DocumentData,
-  Timestamp,
-  addDoc,
+  setDoc,
   updateDoc,
   getDoc,
   getDocs,
@@ -30,37 +29,6 @@ export abstract class BaseRepository<
   protected abstract toFirestore(entity: TDomain): TFirestore;
   protected abstract fromFirestore(data: TFirestore): TDomain;
 
-  // 用來處理日期轉換
-  private sanitizeForFirestore(value: unknown): unknown {
-    if (value instanceof Date) {
-      return Timestamp.fromDate(value);
-    }
-
-    if (Array.isArray(value)) {
-      return value.map((v) => this.sanitizeForFirestore(v));
-    }
-
-    if (value && typeof value === 'object') {
-      const output: Record<string, unknown> = {};
-      const blocked = new Set(this.getBlockedUpdateFields());
-
-      for (const [key, val] of Object.entries(value)) {
-        if (blocked.has(key as keyof TDomain)) continue;
-        if (val !== undefined) {
-          output[key] = this.sanitizeForFirestore(val);
-        }
-      }
-      return output;
-    }
-
-    return value;
-  }
-
-  // 可選：用來定義哪些欄位禁止更新
-  protected getBlockedUpdateFields(): (keyof TDomain)[] {
-    return ['id', 'createdAt', 'createdBy', 'updatedAt', 'updatedBy'] as (keyof TDomain)[];
-  }
-
   // create
   async create(
     args: RefArgs,
@@ -68,26 +36,28 @@ export abstract class BaseRepository<
     userEmail: string,
     tx?: Transaction,
   ): Promise<string> {
-    const docRef = this.getCollectionRef(...args);
+    const docRef = doc(this.getCollectionRef(...args));
     const id = docRef.id;
 
-    const payload = this.toFirestore({
+    const sanitized = this.toFirestore({
       ...data,
       id: id,
       createdBy: userEmail,
       updatedBy: userEmail,
+      createdAt: new Date(),
+      updatedAt: new Date(),
     } as TDomain);
 
-    const sanitized = this.sanitizeForFirestore({
-      ...payload,
+    const payload = {
+      ...sanitized,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
-    }) as TFirestore;
+    };
 
     if (tx) {
-      tx.set(doc(docRef), sanitized);
+      tx.set(docRef, payload);
     } else {
-      await addDoc(docRef, sanitized);
+      await setDoc(docRef, payload);
     }
     return id;
   }
@@ -118,25 +88,27 @@ export abstract class BaseRepository<
   ): Promise<void> {
     const docRef = this.getDocRef(...args);
 
-    const payload = this.toFirestore({
+    const sanitized = this.toFirestore({
       ...updates,
       updatedBy: userEmail,
+      updatedAt: new Date(),
     } as TDomain);
 
-    const sanitized = this.sanitizeForFirestore({
-      ...payload,
+    const payload = {
+      ...sanitized,
       updatedAt: serverTimestamp(),
-    }) as TFirestore;
+    };
 
     if (tx) {
-      tx.update(docRef, sanitized);
+      tx.update(docRef, payload);
     } else {
-      await updateDoc(docRef, sanitized);
+      await updateDoc(docRef, payload);
     }
   }
 
   // delete
   async delete(args: RefArgs, tx?: Transaction): Promise<void> {
+    console.log('delete handle', args);
     if (tx) {
       tx.delete(this.getDocRef(...args));
     } else {

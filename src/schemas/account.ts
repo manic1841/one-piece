@@ -21,7 +21,7 @@ export const AccountSnapshotSchema = z.object({
   holdings: z.array(HoldingSchema).optional(),
   createdBy: z.string(),
   createdAt: z.date(),
-  updatedBy: z.string(),
+  updatedBy: z.string().optional(),
   updatedAt: z.date(),
 });
 
@@ -35,7 +35,7 @@ export const AccountSchema = z.object({
   currency: z.string(),
   createdBy: z.string(),
   createdAt: z.date(),
-  updatedBy: z.string(),
+  updatedBy: z.string().optional(),
   updatedAt: z.date(),
   // subcollection
   snapshots: z.array(AccountSnapshotSchema).optional(),

@@ -1,16 +1,10 @@
 import { useState } from 'react';
 import { validateForm } from '../helper/validator';
 import { type UnifiedRecord } from '../types/unifiedRecord';
-import { FormType } from '../types/formType';
-import { normalizeRecord, convertToSchema, RecordType } from '../types/unifiedRecord';
-import type { Transaction, PlannedIncome, ProjectTransaction } from '@/schemas';
+import { normalizeRecord } from '../types/unifiedRecord';
 
 interface UseTransactionFormProps {
-  onSubmit: (transaction: Omit<Transaction, 'id' | 'createdAt'>) => Promise<void>;
-  onSubmitPlannedIncome?: (plannedIncome: Omit<PlannedIncome, 'id' | 'createdAt'>) => Promise<void>;
-  onUpdateProjectTransaction?: (
-    data: Omit<ProjectTransaction, 'id' | 'createdAt' | 'createdBy'>,
-  ) => Promise<void>;
+  onSubmit: (data: UnifiedRecord) => Promise<void>;
   onClose: () => void;
   onSuccess?: () => void;
   formData: UnifiedRecord;
@@ -20,8 +14,6 @@ interface UseTransactionFormProps {
 
 export const useTransactionForm = ({
   onSubmit,
-  onSubmitPlannedIncome,
-  onUpdateProjectTransaction,
   onClose,
   onSuccess,
   formData,
@@ -44,22 +36,7 @@ export const useTransactionForm = ({
 
     setLoading(true);
 
-    if (formData.formType == FormType.expense) {
-      const txn = convertToSchema(formData, RecordType.transaction) as Transaction;
-      await onSubmit(txn);
-    } else if (formData.formType == FormType.income && showAllocations) {
-      const plannedIncome = convertToSchema(formData, RecordType.transaction) as PlannedIncome;
-      await onSubmitPlannedIncome?.(plannedIncome);
-    } else if (formData.formType == FormType.income && !showAllocations) {
-      const txn = convertToSchema(formData, RecordType.transaction) as Transaction;
-      await onSubmit?.(txn);
-    } else if (formData.formType == FormType.transfer) {
-      const projectTransaction = convertToSchema(
-        formData,
-        RecordType.transaction,
-      ) as ProjectTransaction;
-      await onUpdateProjectTransaction?.(projectTransaction);
-    }
+    onSubmit(formData);
 
     try {
       // Reset form

@@ -13,7 +13,7 @@ export const projectTransactionService = {
   // Supports running within an existing Firestore transaction
   async createProjectTransaction(
     householdId: string,
-    data: Omit<ProjectTransaction, 'id' | 'createdAt'>,
+    data: Omit<ProjectTransaction, 'id' | 'createdAt' | 'createdBy' | 'updatedAt' | 'updatedBy'>,
     userEmail: string,
     transaction?: FirestoreTransaction,
   ): Promise<string> {

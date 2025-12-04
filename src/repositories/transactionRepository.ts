@@ -1,7 +1,7 @@
 import { collection, doc, Timestamp } from 'firebase/firestore';
 import { db } from '../firebase';
 import { type Transaction, TransactionSchema } from '../schemas';
-import { convertToDate } from '@/utils/dateUtils';
+import { toDate } from '@/utils/dateUtils';
 import { BaseRepository } from './baseRepository';
 
 type TransactionFirestore = Omit<Transaction, 'date' | 'createdAt' | 'updatedAt'> & {
@@ -37,9 +37,9 @@ class TransactionRepository extends BaseRepository<
   protected fromFirestore(data: TransactionFirestore): Transaction {
     return TransactionSchema.parse({
       ...data,
-      date: convertToDate(data.date),
-      createdAt: convertToDate(data.createdAt),
-      updatedAt: convertToDate(data.updatedAt),
+      date: toDate(data.date),
+      createdAt: toDate(data.createdAt),
+      updatedAt: toDate(data.updatedAt),
     });
   }
 }

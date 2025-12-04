@@ -2,7 +2,7 @@ import { BaseRepository } from './baseRepository';
 import { db } from '../firebase';
 import { type ProjectSnapshot } from '../schemas/project';
 import { Timestamp, collection, doc } from 'firebase/firestore';
-import { convertToDate } from '@/utils/dateUtils';
+import { toDate } from '@/utils/dateUtils';
 
 type ProjectSnapshotFirestore = Omit<ProjectSnapshot, 'createdAt'> & {
   createdAt: Timestamp;
@@ -31,7 +31,7 @@ class ProjectSnapshotRepository extends BaseRepository<
   protected fromFirestore(data: ProjectSnapshotFirestore): ProjectSnapshot {
     return {
       ...data,
-      createdAt: convertToDate(data.createdAt),
+      createdAt: toDate(data.createdAt),
     };
   }
 }

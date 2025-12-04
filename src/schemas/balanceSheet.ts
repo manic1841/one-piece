@@ -68,7 +68,7 @@ export const BalanceSheetSchema = z.object({
 
   createdBy: z.string(),
   createdAt: z.date(),
-  updatedBy: z.string(),
+  updatedBy: z.string().optional(),
   updatedAt: z.date(),
 });
 

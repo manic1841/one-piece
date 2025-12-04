@@ -1,7 +1,7 @@
 import { collection, doc, Timestamp } from 'firebase/firestore';
 import { db } from '../firebase';
 import { PortfolioSchema, type Portfolio } from '../schemas';
-import { convertToDate } from '@/utils/dateUtils';
+import { toDate } from '@/utils/dateUtils';
 import { BaseRepository } from './baseRepository';
 
 type PortfolioFirestore = Omit<Portfolio, 'createdAt' | 'updatedAt'> & {
@@ -31,8 +31,8 @@ class PortfolioRepository extends BaseRepository<Portfolio, PortfolioFirestore, 
   protected fromFirestore(data: PortfolioFirestore): Portfolio {
     return PortfolioSchema.parse({
       ...data,
-      createdAt: convertToDate(data.createdAt),
-      updatedAt: convertToDate(data.updatedAt),
+      createdAt: toDate(data.createdAt),
+      updatedAt: toDate(data.updatedAt),
     });
   }
 }
