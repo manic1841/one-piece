@@ -1,26 +1,28 @@
-import { orderBy, where, type QueryConstraint } from 'firebase/firestore';
-import { type Portfolio, type PortfolioSnapshot, type AccountSnapshot } from '../schemas';
+import { type Portfolio, type PortfolioSnapshot, type AccountSnapshot } from '@/schemas';
 import { accountService } from './accountService';
-import { calculatePortfolioSnapshot } from '../domains/finance/calculators/portfolioCalculator';
-import { portfolioRepository } from '../repositories/portfolioRepository';
+import { calculatePortfolioSnapshot } from '@/domains/finance/calculators/portfolioCalculator';
+import { portfolioRepository } from '@/repositories/portfolioRepository';
+import { portfolioSnapshotRepository } from '@/repositories/portfolioSnapshotRepository';
+import { where } from 'firebase/firestore';
 
 export const portfolioService = {
   // Create a new portfolio
   async createPortfolio(
     householdId: string,
     portfolio: Omit<Portfolio, 'id' | 'createdAt' | 'updatedAt'>,
+    userEmail: string,
   ): Promise<string> {
-    return portfolioRepository.create(householdId, portfolio);
+    return portfolioRepository.create([householdId], portfolio, userEmail);
   },
 
   // Get all portfolios for a household
   async getPortfolios(householdId: string): Promise<Portfolio[]> {
-    return portfolioRepository.getAll(householdId, [orderBy('createdAt', 'desc')]);
+    return portfolioRepository.list([householdId]);
   },
 
   // Get a single portfolio
   async getPortfolio(householdId: string, id: string): Promise<Portfolio | null> {
-    return portfolioRepository.getById(householdId, id);
+    return portfolioRepository.get([householdId, id]);
   },
 
   // Update a portfolio
@@ -28,13 +30,14 @@ export const portfolioService = {
     householdId: string,
     id: string,
     updates: Partial<Portfolio>,
+    userEmail: string,
   ): Promise<void> {
-    return portfolioRepository.update(householdId, id, updates);
+    return portfolioRepository.update([householdId, id], updates, userEmail);
   },
 
   // Delete a portfolio
   async deletePortfolio(householdId: string, id: string): Promise<void> {
-    return portfolioRepository.delete(householdId, id);
+    return portfolioRepository.delete([householdId, id]);
   },
 
   // Create a portfolio snapshot
@@ -45,8 +48,9 @@ export const portfolioService = {
     month: number,
     createdBy: string,
     cashFlow: { deposits: number; withdrawals: number } = { deposits: 0, withdrawals: 0 },
+    userEmail: string,
   ): Promise<string> {
-    const portfolio = await portfolioRepository.getById(householdId, portfolioId);
+    const portfolio = await portfolioRepository.get([householdId, portfolioId]);
     if (!portfolio) {
       throw new Error('Portfolio not found');
     }
@@ -93,7 +97,7 @@ export const portfolioService = {
       createdBy,
     });
 
-    return portfolioRepository.createSnapshot(householdId, portfolioId, snapshotData);
+    return portfolioSnapshotRepository.create([householdId, portfolioId], snapshotData, userEmail);
   },
 
   // Get snapshots for a portfolio
@@ -103,15 +107,9 @@ export const portfolioService = {
     year?: number,
     month?: number,
   ): Promise<PortfolioSnapshot[]> {
-    const constraints: QueryConstraint[] = [orderBy('year', 'desc'), orderBy('month', 'desc')];
-
-    if (year !== undefined) {
-      constraints.push(where('year', '==', year));
-    }
-    if (month !== undefined) {
-      constraints.push(where('month', '==', month));
-    }
-
-    return portfolioRepository.getSnapshots(householdId, portfolioId, constraints);
+    return portfolioSnapshotRepository.list(
+      [householdId, portfolioId],
+      [where('year', '==', year), where('month', '==', month)],
+    );
   },
 };

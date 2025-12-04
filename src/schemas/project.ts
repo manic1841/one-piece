@@ -64,10 +64,10 @@ export const ProjectSchema = z.object({
     })
     .optional(),
 
-  createdAt: z.date().optional(),
+  createdAt: z.date(),
   createdBy: z.string(),
-  updatedAt: z.date().optional(),
-  updatedBy: z.string().optional(),
+  updatedAt: z.date(),
+  updatedBy: z.string(),
 
   // subcollection
   snapshots: z.array(ProjectSnapshotSchema).optional(),
@@ -87,6 +87,8 @@ export const ProjectTransactionSchema = z.object({
   incomeSource: z.string().optional(),
   createdBy: z.string(),
   createdAt: z.date(),
+  updatedBy: z.string(),
+  updatedAt: z.date(),
 });
 
 export type ProjectTransaction = z.infer<typeof ProjectTransactionSchema>;

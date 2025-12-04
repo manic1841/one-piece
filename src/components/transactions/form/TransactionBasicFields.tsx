@@ -9,7 +9,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { TRANSACTION_CATEGORIES as categories } from '../../../constants/transaction/transactionLabel';
-import { type UnifiedRecord } from './types';
+import { type UnifiedRecord } from './types/unifiedRecord';
 
 interface TransactionBasicFieldsProps {
   type: string;

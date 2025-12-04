@@ -1,5 +1,14 @@
 import { Timestamp } from 'firebase/firestore';
 
+// Convert Firestore Timestamp to JavaScript Date object
+export const convertToDate = (value: Timestamp): Date => {
+  // 檢查是否包含 toDate 函式 (Firestore Timestamp 的特徵)
+  if (value && typeof (value as Timestamp).toDate === 'function') {
+    return (value as Timestamp).toDate();
+  }
+  throw new Error('Invalid Timestamp');
+};
+
 /**
  * Convert Firestore Timestamp or Date to date string (YYYY-MM-DD format)
  * @param date - Firestore Timestamp or Date object
@@ -105,6 +114,6 @@ export const formatDateRange = (start: Date, end: Date): string => {
     const day = date.getDate().toString().padStart(2, '0');
     return `${year}/${month}/${day}`;
   };
-  
+
   return `${formatDate(start)} - ${formatDate(end)}`;
 };

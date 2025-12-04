@@ -1,4 +1,4 @@
-import { serverTimestamp, runTransaction, orderBy, where } from 'firebase/firestore';
+import { runTransaction, orderBy, where } from 'firebase/firestore';
 import { db } from '../firebase';
 import { type PlannedIncome } from '../schemas';
 import { projectTransactionService } from './projectTransactionService';
@@ -9,19 +9,16 @@ export const plannedIncomeService = {
   async createPlannedIncome(
     householdId: string,
     data: Omit<PlannedIncome, 'id' | 'createdAt'>,
+    userEmail: string,
   ): Promise<string> {
     return await runTransaction(db, async (transaction) => {
       // 1. Create PlannedIncome document
-      const plannedIncomeRef = plannedIncomeRepository.getDocRefForTransaction(householdId);
-      const plannedIncomeId = plannedIncomeRef.id;
-
-      const newPlannedIncome = {
-        ...data,
-        id: plannedIncomeId,
-        createdAt: serverTimestamp(),
-      };
-
-      transaction.set(plannedIncomeRef, newPlannedIncome);
+      const plannedIncomeId = await plannedIncomeRepository.create(
+        [householdId],
+        data,
+        userEmail,
+        transaction,
+      );
 
       // 2. Create ProjectTransactions for each allocation
       if (data.allocations) {
@@ -39,6 +36,7 @@ export const plannedIncomeService = {
                 incomeSource: plannedIncomeId,
                 createdBy: data.createdBy,
               },
+              userEmail,
               transaction, // Pass transaction to ensure atomicity
             );
           }
@@ -51,7 +49,7 @@ export const plannedIncomeService = {
 
   // Get planned incomes
   async getPlannedIncomes(householdId: string): Promise<PlannedIncome[]> {
-    return plannedIncomeRepository.getAll(householdId, [orderBy('date', 'desc')]);
+    return plannedIncomeRepository.list([householdId], [orderBy('date', 'desc')]);
   },
 
   // Get planned incomes for a specific period
@@ -60,11 +58,10 @@ export const plannedIncomeService = {
     startDate: Date,
     endDate: Date,
   ): Promise<PlannedIncome[]> {
-    return plannedIncomeRepository.getAll(householdId, [
-      where('date', '>=', startDate),
-      where('date', '<=', endDate),
-      orderBy('date', 'desc'),
-    ]);
+    return plannedIncomeRepository.list(
+      [householdId],
+      [where('date', '>=', startDate), where('date', '<=', endDate), orderBy('date', 'desc')],
+    );
   },
 
   // Get latest planned income by category to retrieve user settings/defaults
@@ -72,11 +69,14 @@ export const plannedIncomeService = {
     householdId: string,
     category: string,
   ): Promise<PlannedIncome | null> {
-    const results = await plannedIncomeRepository.getAll(householdId, [
-      where('category', '==', category),
-      orderBy('date', 'desc'),
-      orderBy('createdAt', 'desc'), // Tie-breaker
-    ]);
+    const results = await plannedIncomeRepository.list(
+      [householdId],
+      [
+        where('category', '==', category),
+        orderBy('date', 'desc'),
+        orderBy('createdAt', 'desc'), // Tie-breaker
+      ],
+    );
 
     return results.length > 0 ? results[0] : null;
   },
@@ -86,6 +86,7 @@ export const plannedIncomeService = {
     householdId: string,
     plannedIncomeId: string,
     data: Partial<Omit<PlannedIncome, 'id' | 'createdAt'>>,
+    userEmail: string,
   ): Promise<void> {
     // If allocations are being updated, we need to update projectTransactions too
     if (data.allocations) {
@@ -147,7 +148,7 @@ export const plannedIncomeService = {
       });
     } else {
       // No allocation changes, just update the planned income
-      return plannedIncomeRepository.update(householdId, plannedIncomeId, data);
+      return plannedIncomeRepository.update([householdId, plannedIncomeId], data, userEmail);
     }
   },
 

@@ -1,6 +1,5 @@
 import { z } from 'zod';
 import { RoleEnum } from '../domains/core/role';
-import { Timestamp } from 'firebase/firestore';
 
 export * from './account';
 export * from './project';
@@ -11,19 +10,11 @@ export * from './incomeStatement';
 export * from './balanceSheet';
 export * from './cashFlow';
 
-export const convertToDate = (value: Timestamp): Date => {
-  // 檢查是否包含 toDate 函式 (Firestore Timestamp 的特徵)
-  if (value && typeof (value as Timestamp).toDate === 'function') {
-    return (value as Timestamp).toDate();
-  }
-  throw new Error('Invalid Timestamp');
-};
-
 // AccessControl Schema
 export const AccessControlSchema = z.object({
   whitelistedEmails: z.array(z.email()),
-  updatedAt: z.date().optional(),
-  updatedBy: z.string().optional(),
+  updatedAt: z.date(),
+  updatedBy: z.string(),
 });
 
 export type AccessControl = z.infer<typeof AccessControlSchema>;
@@ -50,7 +41,10 @@ export const HouseholdSchema = z.object({
       joinedAt: z.date(),
     }),
   ),
+  createdBy: z.string(),
   createdAt: z.date(),
+  updatedBy: z.string(),
+  updatedAt: z.date(),
 });
 
 export type Household = z.infer<typeof HouseholdSchema>;

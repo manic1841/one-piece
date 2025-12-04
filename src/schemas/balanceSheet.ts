@@ -66,8 +66,10 @@ export const BalanceSheetSchema = z.object({
   // Net worth (equity) = Assets - Liabilities
   netWorth: z.number(),
 
-  createdAt: z.date(),
   createdBy: z.string(),
+  createdAt: z.date(),
+  updatedBy: z.string(),
+  updatedAt: z.date(),
 });
 
 export type BalanceSheet = z.infer<typeof BalanceSheetSchema>;

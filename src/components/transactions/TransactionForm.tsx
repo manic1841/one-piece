@@ -1,12 +1,7 @@
 import React from 'react';
-import { type Transaction, type PlannedIncome, type ProjectTransaction } from '../../schemas';
+import { type Transaction, type PlannedIncome, type ProjectTransaction } from '@/schemas';
 import { TransactionFormContent } from './form/TransactionFormContent';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 interface TransactionFormProps {
   isOpen: boolean;

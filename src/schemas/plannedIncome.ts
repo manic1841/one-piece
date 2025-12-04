@@ -16,6 +16,8 @@ export const PlannedIncomeSchema = z.object({
   description: z.string().optional(),
   createdBy: z.string(),
   createdAt: z.date(),
+  updatedBy: z.string(),
+  updatedAt: z.date(),
   allocations: z.array(PlannedIncomeAllocationSchema),
 });
 

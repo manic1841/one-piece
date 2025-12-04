@@ -1,67 +1,40 @@
-import {
-  doc,
-  getDoc,
-  setDoc,
-  updateDoc,
-  arrayUnion,
-  arrayRemove,
-  serverTimestamp,
-} from 'firebase/firestore';
+import { doc, Timestamp, collection } from 'firebase/firestore';
 import { db } from '../firebase';
-import { AccessControlSchema, parseWithSchemaOptional } from '../schemas';
+import { type AccessControl, AccessControlSchema } from '../schemas';
+import { convertToDate } from '@/utils/dateUtils';
+import { BaseRepository } from './baseRepository';
 
-class AccessControlRepository {
+type AccessControlFirestore = {
+  whitelistedEmails: string[];
+  updatedAt: Timestamp;
+  updatedBy: string;
+};
+
+class AccessControlRepository extends BaseRepository<AccessControl, AccessControlFirestore, []> {
   private readonly collectionName = 'access_control';
   private readonly docId = 'config';
 
-  private getDocRef() {
-    return doc(db, this.collectionName, this.docId);
+  protected getCollectionRef() {
+    return collection(this.db, this.collectionName);
   }
 
-  async getWhitelist(): Promise<string[]> {
-    try {
-      const docSnap = await getDoc(this.getDocRef());
-
-      if (docSnap.exists()) {
-        const data = docSnap.data();
-        const accessControl = parseWithSchemaOptional(AccessControlSchema, data);
-        return accessControl?.whitelistedEmails || [];
-      }
-
-      return [];
-    } catch (error) {
-      console.error('Error getting whitelist:', error);
-      return [];
-    }
+  protected getDocRef() {
+    return doc(this.getCollectionRef(), this.docId);
   }
 
-  async addEmailToWhitelist(email: string, adminUid: string): Promise<void> {
-    const docRef = this.getDocRef();
-    const docSnap = await getDoc(docRef);
-
-    if (docSnap.exists()) {
-      await updateDoc(docRef, {
-        whitelistedEmails: arrayUnion(email.toLowerCase().trim()),
-        updatedAt: serverTimestamp(),
-        updatedBy: adminUid,
-      });
-    } else {
-      await setDoc(docRef, {
-        whitelistedEmails: [email.toLowerCase().trim()],
-        updatedAt: serverTimestamp(),
-        updatedBy: adminUid,
-      });
-    }
+  protected toFirestore(entity: AccessControl): AccessControlFirestore {
+    return {
+      ...entity,
+      updatedAt: Timestamp.fromDate(entity.updatedAt),
+    };
   }
 
-  async removeEmailFromWhitelist(email: string, adminUid: string): Promise<void> {
-    const docRef = this.getDocRef();
-    await updateDoc(docRef, {
-      whitelistedEmails: arrayRemove(email.toLowerCase().trim()),
-      updatedAt: serverTimestamp(),
-      updatedBy: adminUid,
+  protected fromFirestore(data: AccessControlFirestore): AccessControl {
+    return AccessControlSchema.parse({
+      ...data,
+      updatedAt: convertToDate(data.updatedAt),
     });
   }
 }
 
-export const accessControlRepository = new AccessControlRepository();
+export const accessControlRepository = new AccessControlRepository(db);

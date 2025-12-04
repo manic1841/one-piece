@@ -1,6 +1,7 @@
-import { Timestamp } from 'firebase/firestore';
+import { Timestamp, where } from 'firebase/firestore';
 import type { Project, ProjectSnapshot } from '../schemas/project';
 import { projectRepository } from '../repositories/projectRepository';
+import { projectSnapshotRepository } from '@/repositories/projectSnapshotRepository';
 
 export interface ProjectWithSnapshot {
   project: Project | null;
@@ -18,7 +19,7 @@ class ProjectService {
    * Sorted by createdAt (oldest first)
    */
   async getProjects(householdId: string): Promise<Project[]> {
-    const projects = await projectRepository.getAll(householdId);
+    const projects = await projectRepository.list([householdId]);
 
     // Sort in memory by createdAt
     return projects.sort((a, b) => {
@@ -38,9 +39,7 @@ class ProjectService {
    * Get active projects only
    */
   async getActiveProjects(householdId: string): Promise<Project[]> {
-    const projects = await projectRepository.getByFilter(householdId, {
-      isActive: true,
-    });
+    const projects = await projectRepository.list([householdId], [where('isActive', '==', true)]);
 
     // Sort by order, then by createdAt
     return projects.sort((a, b) => {
@@ -62,62 +61,46 @@ class ProjectService {
   async getProjectsByCategory(
     householdId: string,
     category: string,
-    activeOnly: boolean = true
+    activeOnly: boolean = true,
   ): Promise<Project[]> {
-    const filters: Parameters<typeof projectRepository.getByFilter>[1] = {
-      category,
-    };
+    const q = [where('category', '==', category)];
 
     if (activeOnly) {
-      filters.isActive = true;
+      q.push(where('isActive', '==', true));
     }
 
-    return projectRepository.getByFilter(householdId, filters);
+    return projectRepository.list([householdId], q);
   }
 
   /**
    * Get personal projects only
    */
-  async getPersonalProjects(
-    householdId: string,
-    activeOnly: boolean = true
-  ): Promise<Project[]> {
-    const filters: Parameters<typeof projectRepository.getByFilter>[1] = {
-      isPersonal: true,
-    };
+  async getPersonalProjects(householdId: string, activeOnly: boolean = true): Promise<Project[]> {
+    const q = [where('isPersonal', '==', true)];
 
     if (activeOnly) {
-      filters.isActive = true;
+      q.push(where('isActive', '==', true));
     }
 
-    return projectRepository.getByFilter(householdId, filters);
+    return projectRepository.list([householdId], q);
   }
 
   /**
    * Get a single project by ID
    */
   async getProjectById(householdId: string, projectId: string): Promise<Project | null> {
-    return projectRepository.getById(householdId, projectId);
+    return projectRepository.get([householdId, projectId]);
   }
 
   /**
    * Create a new project
    */
-  async createProject(householdId: string, project: Omit<Project, 'id'>): Promise<string> {
-    // Business logic: Validate or enhance data before saving
-    // For example, ensure order is set if not provided
-    const projectData = {
-      ...project,
-      order: project.order ?? 0,
-      isActive: project.isActive ?? true,
-      isPersonal: project.isPersonal ?? false,
-    };
-
-    // Remove id, createdAt, updatedAt if present
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { id: _id, createdAt: _createdAt, updatedAt: _updatedAt, ...dataToCreate } = projectData as Project;
-
-    return projectRepository.create(householdId, dataToCreate);
+  async createProject(
+    householdId: string,
+    project: Omit<Project, 'id'>,
+    userEmail: string,
+  ): Promise<string> {
+    return projectRepository.create([householdId], project, userEmail);
   }
 
   /**
@@ -126,14 +109,15 @@ class ProjectService {
   async updateProject(
     householdId: string,
     projectId: string,
-    updates: Partial<Project>
+    updates: Partial<Project>,
+    userEmail: string,
   ): Promise<void> {
     // Business logic: Validate updates if needed
     // Remove id and createdAt from updates to prevent overwriting
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { id: _id, createdAt: _createdAt, ...validUpdates } = updates;
 
-    return projectRepository.update(householdId, projectId, validUpdates);
+    return projectRepository.update([householdId, projectId], validUpdates, userEmail);
   }
 
   /**
@@ -141,21 +125,21 @@ class ProjectService {
    */
   async deleteProject(householdId: string, projectId: string): Promise<void> {
     // Business logic: Could add checks here (e.g., check if project has transactions)
-    return projectRepository.delete(householdId, projectId);
+    return projectRepository.delete([householdId, projectId]);
   }
 
   /**
    * Archive a project (soft delete)
    */
-  async archiveProject(householdId: string, projectId: string): Promise<void> {
-    return projectRepository.softDelete(householdId, projectId);
+  async archiveProject(householdId: string, projectId: string, userEmail: string): Promise<void> {
+    return projectRepository.update([householdId, projectId], { isActive: false }, userEmail);
   }
 
   /**
    * Restore an archived project
    */
-  async restoreProject(householdId: string, projectId: string): Promise<void> {
-    return projectRepository.update(householdId, projectId, { isActive: true });
+  async restoreProject(householdId: string, projectId: string, userEmail: string): Promise<void> {
+    return projectRepository.update([householdId, projectId], { isActive: true }, userEmail);
   }
 
   /**
@@ -164,11 +148,12 @@ class ProjectService {
    */
   async reorderProjects(
     householdId: string,
-    projectOrders: Array<{ id: string; order: number }>
+    projectOrders: Array<{ id: string; order: number }>,
+    userEmail: string,
   ): Promise<void> {
     // Business logic: Batch update orders
     const updatePromises = projectOrders.map(({ id, order }) =>
-      projectRepository.update(householdId, id, { order })
+      projectRepository.update([householdId, id], { order }, userEmail),
     );
 
     await Promise.all(updatePromises);
@@ -182,20 +167,20 @@ class ProjectService {
   async recordSnapshot(
     householdId: string,
     projectId: string,
-    snapshot: Omit<ProjectSnapshot, 'id' | 'createdAt'>
+    snapshot: Omit<ProjectSnapshot, 'id' | 'createdAt'>,
+    userEmail: string,
   ): Promise<string> {
     // Business logic: Could validate snapshot data here
     // For example, ensure closing balance = opening balance + income - expense
-    const calculatedClosingBalance =
-      snapshot.openingBalance + snapshot.income - snapshot.expense;
+    const calculatedClosingBalance = snapshot.openingBalance + snapshot.income - snapshot.expense;
 
     if (Math.abs(calculatedClosingBalance - snapshot.closingBalance) > 0.01) {
       console.warn(
-        `Snapshot closing balance mismatch: expected ${calculatedClosingBalance}, got ${snapshot.closingBalance}`
+        `Snapshot closing balance mismatch: expected ${calculatedClosingBalance}, got ${snapshot.closingBalance}`,
       );
     }
 
-    return projectRepository.createSnapshot(householdId, projectId, snapshot);
+    return projectSnapshotRepository.create([householdId, projectId], snapshot, userEmail);
   }
 
   /**
@@ -205,45 +190,30 @@ class ProjectService {
     householdId: string,
     projectId: string,
     year?: number,
-    month?: number
+    month?: number,
   ): Promise<ProjectSnapshot[]> {
-    return projectRepository.getSnapshots(householdId, projectId, {
-      year,
-      month,
-    });
+    return projectSnapshotRepository.list(
+      [householdId, projectId],
+      [where('year', '==', year), where('month', '==', month)],
+    );
   }
 
-  /**
-   * Get snapshots for multiple projects within a year range
-   */
-  async getSnapshotsForProjects(
-    householdId: string,
-    projectIds: string[],
-    startYear: number,
-    endYear: number
-  ): Promise<Array<ProjectSnapshot & { projectId: string }>> {
-    return projectRepository.getSnapshotsForProjects(householdId, projectIds, {
-      startYear,
-      endYear,
-    });
-  }
+  // /**
+  //  * Get snapshots for ALL projects within a year range
+  //  */
+  // async getSnapshotsForPeriod(
+  //   householdId: string,
+  //   startYear: number,
+  //   endYear: number,
+  // ): Promise<Array<ProjectSnapshot & { projectId: string }>> {
+  //   const projects = await this.getProjects(householdId);
+  //   const projectIds = projects.map((p) => p.id);
 
-  /**
-   * Get snapshots for ALL projects within a year range
-   */
-  async getSnapshotsForPeriod(
-    householdId: string,
-    startYear: number,
-    endYear: number
-  ): Promise<Array<ProjectSnapshot & { projectId: string }>> {
-    const projects = await this.getProjects(householdId);
-    const projectIds = projects.map((p) => p.id);
-
-    return projectRepository.getSnapshotsForProjects(householdId, projectIds, {
-      startYear,
-      endYear,
-    });
-  }
+  //   return projectRepository.getSnapshotsForProjects(householdId, projectIds, {
+  //     startYear,
+  //     endYear,
+  //   });
+  // }
 
   /**
    * Get snapshot for a specific project and period
@@ -252,12 +222,11 @@ class ProjectService {
     householdId: string,
     projectId: string,
     year: number,
-    month: number
+    month: number,
   ): Promise<ProjectSnapshot | null> {
-    const snapshots = await projectRepository.getSnapshots(
-      householdId,
-      projectId,
-      { year, month }
+    const snapshots = await projectSnapshotRepository.list(
+      [householdId, projectId],
+      [where('year', '==', year), where('month', '==', month)],
     );
 
     // Return the first snapshot (there should only be one per period)
@@ -271,26 +240,32 @@ class ProjectService {
     householdId: string,
     projectId: string,
     snapshotId: string,
-    updates: Partial<Omit<ProjectSnapshot, 'id' | 'createdAt'>>
+    updates: Partial<Omit<ProjectSnapshot, 'id' | 'createdAt'>>,
+    userEmail: string,
   ): Promise<void> {
-    return projectRepository.updateSnapshot(householdId, projectId, snapshotId, updates);
+    return projectSnapshotRepository.update(
+      [householdId, projectId, snapshotId],
+      updates,
+      userEmail,
+    );
   }
 
   /**
    * Delete a project snapshot
    */
-  async deleteSnapshot(
-    householdId: string,
-    projectId: string,
-    snapshotId: string
-  ): Promise<void> {
-    return projectRepository.deleteSnapshot(householdId, projectId, snapshotId);
+  async deleteSnapshot(householdId: string, projectId: string, snapshotId: string): Promise<void> {
+    return projectSnapshotRepository.delete([householdId, projectId, snapshotId]);
   }
 
   /**
    * Get project with its snapshot for a specific period
    */
-  async getProjectWithSnapshot(householdId: string, projectId: string, year: number, month: number): Promise<ProjectWithSnapshot> {
+  async getProjectWithSnapshot(
+    householdId: string,
+    projectId: string,
+    year: number,
+    month: number,
+  ): Promise<ProjectWithSnapshot> {
     const project = await this.getProjectById(householdId, projectId);
     const snapshot = await this.getSnapshotForPeriod(householdId, projectId, year, month);
     return { project, snapshot };
@@ -310,12 +285,7 @@ class ProjectService {
     let totalBalance = 0;
 
     for (const project of projects) {
-      const snapshot = await this.getSnapshotForPeriod(
-        householdId,
-        project.id,
-        year,
-        month
-      );
+      const snapshot = await this.getSnapshotForPeriod(householdId, project.id, year, month);
 
       if (snapshot) {
         totalBalance += snapshot.closingBalance;
@@ -338,12 +308,10 @@ class ProjectService {
    */
   async getProjectsByBalanceSheetCategory(
     householdId: string,
-    category: 'asset' | 'liability' | 'equity'
+    category: 'asset' | 'liability' | 'equity',
   ): Promise<Project[]> {
     const projects = await this.getAccountingProjects(householdId);
-    return projects.filter(
-      (p) => p.accounting?.balanceSheet?.category === category
-    );
+    return projects.filter((p) => p.accounting?.balanceSheet?.category === category);
   }
 
   /**
@@ -351,12 +319,10 @@ class ProjectService {
    */
   async getProjectsByCashFlowActivity(
     householdId: string,
-    activity: 'operating' | 'investing' | 'financing' | 'reconciliation'
+    activity: 'operating' | 'investing' | 'financing' | 'reconciliation',
   ): Promise<Project[]> {
     const projects = await this.getAccountingProjects(householdId);
-    return projects.filter(
-      (p) => p.accounting?.cashFlow?.activity === activity
-    );
+    return projects.filter((p) => p.accounting?.cashFlow?.category === activity);
   }
 }
 

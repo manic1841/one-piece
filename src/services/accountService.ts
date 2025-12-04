@@ -1,34 +1,41 @@
-import { orderBy } from 'firebase/firestore';
-import type { Account, AccountSnapshot } from '../schemas';
-import { accountRepository } from '../repositories/accountRepository';
+import { orderBy, where, QueryConstraint } from 'firebase/firestore';
+import type { Account, AccountSnapshot } from '@/schemas';
+import { accountRepository } from '@/repositories/accountRepository';
+import { accountSnapshotRepository } from '@/repositories/accountSnapshotRepository';
 
 class AccountService {
   // Create a new account
   async createAccount(
     householdId: string,
     account: Omit<Account, 'id' | 'createdAt'>,
+    userEmail: string,
   ): Promise<string> {
-    return accountRepository.create(householdId, account);
+    return accountRepository.create([householdId], account, userEmail);
   }
 
   // Get all accounts for a household
   async getAccounts(householdId: string): Promise<Account[]> {
-    return accountRepository.getAll(householdId, [orderBy('createdAt', 'desc')]);
+    return accountRepository.list([householdId], [orderBy('createdAt', 'desc')]);
   }
 
   // Get a single account
   async getAccount(householdId: string, id: string): Promise<Account | null> {
-    return accountRepository.getById(householdId, id);
+    return accountRepository.get([householdId, id]);
   }
 
   // Update an account
-  async updateAccount(householdId: string, id: string, updates: Partial<Account>): Promise<void> {
-    return accountRepository.update(householdId, id, updates);
+  async updateAccount(
+    householdId: string,
+    id: string,
+    updates: Partial<Account>,
+    userEmail: string,
+  ): Promise<void> {
+    return accountRepository.update([householdId, id], updates, userEmail);
   }
 
   // Delete an account
   async deleteAccount(householdId: string, id: string): Promise<void> {
-    return accountRepository.delete(householdId, id);
+    return accountRepository.delete([householdId, id]);
   }
 
   // Record a balance snapshot
@@ -36,8 +43,9 @@ class AccountService {
     householdId: string,
     accountId: string,
     snapshot: Omit<AccountSnapshot, 'id' | 'createdAt'>,
+    userEmail: string,
   ): Promise<string> {
-    return accountRepository.createSnapshot(householdId, accountId, snapshot);
+    return accountSnapshotRepository.create([householdId, accountId], snapshot, userEmail);
   }
 
   // Get balance snapshots for an account
@@ -47,7 +55,14 @@ class AccountService {
     year?: number,
     month?: number,
   ): Promise<AccountSnapshot[]> {
-    return accountRepository.getSnapshots(householdId, accountId, year, month);
+    const q: QueryConstraint[] = [orderBy('createdAt', 'desc')];
+    if (year) {
+      q.push(where('year', '==', year));
+    }
+    if (month) {
+      q.push(where('month', '==', month));
+    }
+    return accountSnapshotRepository.list([householdId, accountId], q);
   }
 
   // Get latest snapshot for each account in a household
@@ -83,13 +98,18 @@ class AccountService {
     accountId: string,
     snapshotId: string,
     updates: Partial<Omit<AccountSnapshot, 'id' | 'createdAt'>>,
+    userEmail: string,
   ): Promise<void> {
-    return accountRepository.updateSnapshot(householdId, accountId, snapshotId, updates);
+    return accountSnapshotRepository.update(
+      [householdId, accountId, snapshotId],
+      updates,
+      userEmail,
+    );
   }
 
   // Delete a snapshot
   async deleteSnapshot(householdId: string, accountId: string, snapshotId: string): Promise<void> {
-    return accountRepository.deleteSnapshot(householdId, accountId, snapshotId);
+    return accountSnapshotRepository.delete([householdId, accountId, snapshotId]);
   }
 }
 

@@ -21,6 +21,8 @@ export const AccountSnapshotSchema = z.object({
   holdings: z.array(HoldingSchema).optional(),
   createdBy: z.string(),
   createdAt: z.date(),
+  updatedBy: z.string(),
+  updatedAt: z.date(),
 });
 
 export type AccountSnapshot = z.infer<typeof AccountSnapshotSchema>;
@@ -31,8 +33,10 @@ export const AccountSchema = z.object({
   name: z.string(),
   type: z.enum(AccountCategory),
   currency: z.string(),
-  includeInReconciliation: z.boolean().default(true).optional(),
+  createdBy: z.string(),
   createdAt: z.date(),
+  updatedBy: z.string(),
+  updatedAt: z.date(),
   // subcollection
   snapshots: z.array(AccountSnapshotSchema).optional(),
 });

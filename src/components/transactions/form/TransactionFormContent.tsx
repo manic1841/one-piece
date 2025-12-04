@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { type Transaction, type PlannedIncome, type ProjectTransaction } from '../../../schemas';
-import { useTransactionForm } from '../../../hooks/useTransactionForm';
+import { type Transaction, type PlannedIncome, type ProjectTransaction } from '@/schemas';
+// import { useTransactionForm } from '../../../hooks/useTransactionForm';
+import { useTransactionForm } from './hooks/useTransactionForm';
 import { TypeToggle } from './TypeToggle';
 import { AllocationSection } from './AllocationSection';
 import { TransactionBasicFields } from './TransactionBasicFields';
@@ -9,8 +10,9 @@ import { AllocationButton } from './AllocationButton';
 import { DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { TransferSettings } from './TransferSettings';
-
-import { type AnyRecord, FormType, type UnifiedRecord, normalizeRecord } from './types';
+import { useProjectsNew } from '@/hooks/useProjects';
+import { type AnyRecord, type UnifiedRecord, normalizeRecord } from './types/unifiedRecord';
+import { FormType } from './types/formType';
 
 interface TransactionFormContentProps {
   isOpen: boolean;
@@ -31,7 +33,7 @@ interface TransactionFormContentProps {
 }
 
 export const TransactionFormContent: React.FC<TransactionFormContentProps> = (props) => {
-  const { onClose } = props;
+  const { onClose, isOpen } = props;
   const [showAllocations, setShowAllocations] = useState(false);
   const loading = false;
   const error = '';
@@ -53,7 +55,8 @@ export const TransactionFormContent: React.FC<TransactionFormContentProps> = (pr
     }));
   };
 
-  const { projects, handleSubmit } = useTransactionForm(props);
+  const { handleSubmit } = useTransactionForm({ ...props, formData, setFormData, showAllocations });
+  const { projects } = useProjectsNew(props.householdId, isOpen);
 
   return (
     <>

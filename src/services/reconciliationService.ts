@@ -1,6 +1,8 @@
 import { accountService } from './accountService';
 import { projectService } from './projectService';
 import { calculateReconciliationReport } from '../domains/finance/calculators/reconciliationCalculator';
+import { projectSnapshotRepository } from '@/repositories/projectSnapshotRepository';
+import { where } from 'firebase/firestore';
 
 export type ReconciliationReport = {
   year: number;
@@ -88,21 +90,17 @@ export const reconciliationService = {
 
     // 4. Fetch Projects
     const projects = await projectService.getProjects(householdId);
-    const reconciliationProjects = projects.filter(
-      (project) => project.isActive !== false,
-    );
+    const reconciliationProjects = projects.filter((project) => project.isActive !== false);
 
     // 5. Fetch Project Snapshots
     const projectSnapshots = [];
-    // Optimization: We could fetch all snapshots in parallel or batch, 
+    // Optimization: We could fetch all snapshots in parallel or batch,
     // but for now we keep the loop to minimize change risk, just collecting data.
     // Ideally, projectService should support fetching snapshots for multiple projects or by period.
     for (const project of reconciliationProjects) {
-      const snapshots = await projectService.getSnapshots(
-        householdId,
-        project.id,
-        year,
-        month,
+      const snapshots = await projectSnapshotRepository.list(
+        [householdId, project.id],
+        [where('year', '==', year), where('month', '==', month)],
       );
       if (snapshots.length > 0) {
         // Inject projectId into snapshot for the calculator

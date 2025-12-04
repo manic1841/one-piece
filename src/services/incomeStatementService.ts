@@ -38,11 +38,11 @@ class IncomeStatementService {
 
     // 3. Fetch project snapshots for expenses
     const projects = await projectService.getProjects(householdId);
-    const snapshots = await projectService.getSnapshotsForPeriod(
-      householdId,
-      startDate.getFullYear(),
-      endDate.getFullYear(),
-    );
+    // const snapshots = await projectService.getSnapshotsForPeriod(
+    //   householdId,
+    //   startDate.getFullYear(),
+    //   endDate.getFullYear(),
+    // );
 
     // 4. Fetch accounting configuration - No longer needed for expense calculation
     // const accountingConfig = await accountingConfigService.getConfig(householdId);
@@ -51,7 +51,7 @@ class IncomeStatementService {
     return calculateIncomeStatement(
       plannedIncomes,
       incomeTransactions,
-      snapshots,
+      [],
       projects,
       startDate,
       endDate,

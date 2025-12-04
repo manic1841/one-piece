@@ -1,74 +1,76 @@
-import {
-  collection,
-  doc,
-  setDoc,
-  getDoc,
-  getDocs,
-  updateDoc,
-  deleteDoc,
-  query,
-  serverTimestamp,
-  type DocumentData,
-  type WithFieldValue,
-  type QueryConstraint,
-} from 'firebase/firestore';
+import { collection, doc, type DocumentData, Timestamp } from 'firebase/firestore';
 import { db } from '../firebase';
 import { HouseholdSchema, type Household } from '../schemas';
+import { convertToDate } from '@/utils/dateUtils';
+import { BaseRepository } from './baseRepository';
 
-class HouseholdRepository {
+type HouseholdFirestore = {
+  id: string;
+  name: string;
+  members: Record<
+    string,
+    {
+      role: string;
+      joinedAt: Timestamp;
+    }
+  >;
+  createdBy: string;
+  createdAt: Timestamp;
+  updatedBy: string;
+  updatedAt: Timestamp;
+};
+
+class HouseholdRepository extends BaseRepository<Household, HouseholdFirestore, [string?]> {
   private readonly collectionName = 'households';
 
-  private getCollectionRef() {
-    return collection(db, this.collectionName);
+  protected getCollectionRef() {
+    return collection(this.db, this.collectionName);
   }
 
-  private getDocRef(householdId: string) {
-    return doc(db, this.collectionName, householdId);
+  protected getDocRef(householdId: string) {
+    return doc(this.db, this.collectionName, householdId);
   }
 
-  private parse(data: DocumentData): Household {
-    return HouseholdSchema.parse(data);
-  }
+  protected toFirestore(entity: Household): HouseholdFirestore {
+    const members = Object.entries(entity.members).reduce(
+      (acc, [key, value]) => {
+        acc[key] = {
+          role: value.role,
+          joinedAt: Timestamp.fromDate(value.joinedAt),
+        };
+        return acc;
+      },
+      {} as Record<string, { role: string; joinedAt: Timestamp }>,
+    );
 
-  async create(data: WithFieldValue<Omit<Household, 'id' | 'createdAt'>>): Promise<string> {
-    const docRef = doc(this.getCollectionRef());
-    const id = docRef.id;
-
-    const newHousehold = {
-      ...data,
-      id,
-      createdAt: serverTimestamp(),
+    return {
+      ...entity,
+      members,
+      createdAt: Timestamp.fromDate(entity.createdAt),
+      updatedAt: Timestamp.fromDate(entity.updatedAt),
     };
-
-    await setDoc(docRef, newHousehold as WithFieldValue<DocumentData>);
-    return id;
   }
 
-  async getById(householdId: string): Promise<Household | null> {
-    const docSnap = await getDoc(this.getDocRef(householdId));
-    if (docSnap.exists()) {
-      return this.parse(docSnap.data());
-    }
-    return null;
-  }
-
-  async getAll(constraints: QueryConstraint[] = []): Promise<Household[]> {
-    const q = query(this.getCollectionRef(), ...constraints);
-    const querySnapshot = await getDocs(q);
-    return querySnapshot.docs.map((doc) => this.parse(doc.data()));
-  }
-
-  async update(
-    householdId: string,
-    updates: WithFieldValue<Partial<Omit<Household, 'id' | 'createdAt'>>>,
-  ): Promise<void> {
-    const docRef = this.getDocRef(householdId);
-    await updateDoc(docRef, updates as DocumentData);
-  }
-
-  async delete(householdId: string): Promise<void> {
-    await deleteDoc(this.getDocRef(householdId));
+  protected fromFirestore(data: DocumentData): Household {
+    const members = Object.entries(data.members).reduce(
+      (acc, [key, value]) => {
+        const k = key as string;
+        const { role, joinedAt } = value as { role: string; joinedAt: Timestamp };
+        acc[k] = {
+          role,
+          joinedAt: convertToDate(joinedAt),
+        };
+        return acc;
+      },
+      {} as Record<string, { role: string; joinedAt: Date }>,
+    );
+    return HouseholdSchema.parse({
+      ...data,
+      members,
+      createdAt: convertToDate(data.createdAt),
+      updatedAt: convertToDate(data.updatedAt),
+    });
   }
 }
 
-export const householdRepository = new HouseholdRepository();
+export const householdRepository = new HouseholdRepository(db);

@@ -1,4 +1,4 @@
-import { orderBy, Timestamp } from 'firebase/firestore';
+import { orderBy } from 'firebase/firestore';
 import type { Transaction } from '../schemas';
 import { toDateString } from '../utils/dateUtils';
 import { transactionRepository } from '../repositories/transactionRepository';
@@ -8,8 +8,9 @@ class TransactionService {
   async createTransaction(
     householdId: string,
     transaction: Omit<Transaction, 'id' | 'createdAt'>,
+    userEmail: string,
   ): Promise<string> {
-    return transactionRepository.create(householdId, transaction);
+    return transactionRepository.create([householdId], transaction, userEmail);
   }
 
   // Get all transactions for a household with filters
@@ -23,20 +24,20 @@ class TransactionService {
     },
   ): Promise<Transaction[]> {
     // Get all transactions sorted by date
-    let transactions = await transactionRepository.getAll(householdId, [orderBy('date', 'desc')]);
+    let transactions = await transactionRepository.list([householdId], [orderBy('date', 'desc')]);
 
     // Apply client-side filters
     if (filters) {
       if (filters.startDate) {
         transactions = transactions.filter((t) => {
-          const date = t.date instanceof Timestamp ? t.date.toDate() : t.date;
+          const date = t.date;
           const dateStr = toDateString(date);
           return dateStr >= filters.startDate!;
         });
       }
       if (filters.endDate) {
         transactions = transactions.filter((t) => {
-          const date = t.date instanceof Timestamp ? t.date.toDate() : t.date;
+          const date = t.date;
           const dateStr = toDateString(date);
           return dateStr <= filters.endDate!;
         });
@@ -54,7 +55,7 @@ class TransactionService {
 
   // Get a single transaction by ID
   async getTransaction(householdId: string, id: string): Promise<Transaction | null> {
-    return transactionRepository.getById(householdId, id);
+    return transactionRepository.get([householdId, id]);
   }
 
   // Update a transaction
@@ -62,13 +63,14 @@ class TransactionService {
     householdId: string,
     id: string,
     updates: Partial<Transaction>,
+    userEmail: string,
   ): Promise<void> {
-    return transactionRepository.update(householdId, id, updates);
+    return transactionRepository.update([householdId, id], updates, userEmail);
   }
 
   // Delete a transaction
   async deleteTransaction(householdId: string, id: string): Promise<void> {
-    return transactionRepository.delete(householdId, id);
+    return transactionRepository.delete([householdId, id]);
   }
 
   // Get transaction statistics (summary)

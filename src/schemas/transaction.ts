@@ -12,6 +12,8 @@ export const TransactionSchema = z.object({
   description: z.string().optional(),
   createdBy: z.string(),
   createdAt: z.date(),
+  updatedBy: z.string(),
+  updatedAt: z.date(),
 });
 
 export type Transaction = z.infer<typeof TransactionSchema>;

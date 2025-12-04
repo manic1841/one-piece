@@ -10,7 +10,8 @@ export const accessControlService = {
 
   // Get whitelisted emails
   async getWhitelist(): Promise<string[]> {
-    return accessControlRepository.getWhitelist();
+    const config = await accessControlRepository.get([]);
+    return config?.whitelistedEmails || [];
   },
 
   // Add email to whitelist (admin only)
@@ -18,8 +19,14 @@ export const accessControlService = {
     if (!this.isAdmin(adminUid)) {
       throw new Error('Only admin can modify whitelist');
     }
-
-    return accessControlRepository.addEmailToWhitelist(email, adminUid);
+    const config = await accessControlRepository.get([]);
+    return await accessControlRepository.update(
+      [],
+      {
+        whitelistedEmails: [...(config?.whitelistedEmails || []), email.toLowerCase().trim()],
+      },
+      email,
+    );
   },
 
   // Remove email from whitelist (admin only)
@@ -27,8 +34,16 @@ export const accessControlService = {
     if (!this.isAdmin(adminUid)) {
       throw new Error('Only admin can modify whitelist');
     }
-
-    return accessControlRepository.removeEmailFromWhitelist(email, adminUid);
+    const config = await accessControlRepository.get([]);
+    return await accessControlRepository.update(
+      [],
+      {
+        whitelistedEmails: config?.whitelistedEmails?.filter(
+          (e) => e !== email.toLowerCase().trim(),
+        ),
+      },
+      email,
+    );
   },
 
   // Check if user is authorized (admin or whitelisted)

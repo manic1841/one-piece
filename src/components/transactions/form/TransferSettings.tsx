@@ -1,6 +1,6 @@
 import { ProjectSelection } from './ProjectSelection';
 import { type Project } from '@/schemas';
-import { type UnifiedRecord } from './types';
+import { type UnifiedRecord } from './types/unifiedRecord';
 
 interface TransferSettingsProps {
   fromProjectId: string;

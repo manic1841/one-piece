@@ -1,8 +1,8 @@
-import { projectService } from './projectService';
 import { projectTransactionService } from './projectTransactionService';
 import { transactionService } from './transactionService';
 import { type ProjectSnapshot } from '../schemas';
-import { Timestamp } from 'firebase/firestore';
+import { Timestamp, where } from 'firebase/firestore';
+import { projectSnapshotRepository } from '@/repositories/projectSnapshotRepository';
 
 export interface SettlementPreview {
   projectId: string;
@@ -41,7 +41,10 @@ class SettlementService {
     year: number,
     month: number,
   ): Promise<boolean> {
-    const snapshots = await projectService.getSnapshots(householdId, projectId, year, month);
+    const snapshots = await projectSnapshotRepository.list(
+      [householdId, projectId],
+      [where('year', '==', year), where('month', '==', month)],
+    );
     return snapshots.length > 0;
   }
 
@@ -49,7 +52,13 @@ class SettlementService {
    * Get the latest snapshot for a project
    */
   async getLatestSnapshot(householdId: string, projectId: string): Promise<ProjectSnapshot | null> {
-    const snapshots = await projectService.getSnapshots(householdId, projectId);
+    const snapshots = await projectSnapshotRepository.list(
+      [householdId, projectId],
+      [
+        where('year', '==', new Date().getFullYear()),
+        where('month', '==', new Date().getMonth() + 1),
+      ],
+    );
     return snapshots.length > 0 ? snapshots[0] : null;
   }
 
@@ -75,11 +84,9 @@ class SettlementService {
 
     // Get previous month's snapshot
     const prevMonth = this.getPreviousMonth(year, month);
-    const prevSnapshots = await projectService.getSnapshots(
-      householdId,
-      projectId,
-      prevMonth.year,
-      prevMonth.month,
+    const prevSnapshots = await projectSnapshotRepository.list(
+      [householdId, projectId],
+      [where('year', '==', prevMonth.year), where('month', '==', prevMonth.month)],
     );
     const prevSnapshot = prevSnapshots.length > 0 ? prevSnapshots[0] : null;
     const openingBalance = prevSnapshot?.closingBalance || 0;
@@ -183,6 +190,7 @@ class SettlementService {
     year: number,
     month: number,
     settlements: SettlementPreview[],
+    userEmail: string,
   ): Promise<{ success: boolean; errors: string[] }> {
     // Check for existing snapshots
     const existingProjects = settlements.filter((s) => s.hasExistingSnapshot);
@@ -199,14 +207,18 @@ class SettlementService {
     try {
       await Promise.all(
         settlements.map((settlement) =>
-          projectService.recordSnapshot(householdId, settlement.projectId, {
-            year,
-            month,
-            openingBalance: settlement.openingBalance,
-            income: settlement.income,
-            expense: settlement.expense,
-            closingBalance: settlement.closingBalance,
-          }),
+          projectSnapshotRepository.create(
+            [householdId, settlement.projectId],
+            {
+              year,
+              month,
+              openingBalance: settlement.openingBalance,
+              income: settlement.income,
+              expense: settlement.expense,
+              closingBalance: settlement.closingBalance,
+            },
+            userEmail,
+          ),
         ),
       );
       return { success: true, errors: [] };

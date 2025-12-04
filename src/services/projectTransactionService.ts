@@ -14,9 +14,10 @@ export const projectTransactionService = {
   async createProjectTransaction(
     householdId: string,
     data: Omit<ProjectTransaction, 'id' | 'createdAt'>,
+    userEmail: string,
     transaction?: FirestoreTransaction,
   ): Promise<string> {
-    return projectTransactionRepository.create(householdId, data, transaction);
+    return projectTransactionRepository.create([householdId], data, userEmail, transaction);
   },
 
   // Get project transactions
@@ -43,7 +44,7 @@ export const projectTransactionService = {
       constraints.push(where('date', '<=', Timestamp.fromDate(new Date(options.endDate))));
     }
 
-    return projectTransactionRepository.getAll(householdId, constraints);
+    return projectTransactionRepository.list([householdId], constraints);
   },
 
   // Get project transactions by income source (plannedIncomeId)
@@ -51,9 +52,10 @@ export const projectTransactionService = {
     householdId: string,
     incomeSource: string,
   ): Promise<ProjectTransaction[]> {
-    return projectTransactionRepository.getAll(householdId, [
-      where('incomeSource', '==', incomeSource),
-    ]);
+    return projectTransactionRepository.list(
+      [householdId],
+      [where('incomeSource', '==', incomeSource)],
+    );
   },
 
   // Update project transaction
@@ -61,8 +63,9 @@ export const projectTransactionService = {
     householdId: string,
     id: string,
     data: Partial<Omit<ProjectTransaction, 'id' | 'createdAt' | 'createdBy'>>,
+    userEmail: string,
   ): Promise<void> {
-    return projectTransactionRepository.update(householdId, id, data);
+    return projectTransactionRepository.update([householdId, id], data, userEmail);
   },
 
   // Delete project transactions by IDs
@@ -72,6 +75,8 @@ export const projectTransactionService = {
     transactionIds: string[],
     transaction?: FirestoreTransaction,
   ): Promise<void> {
-    return projectTransactionRepository.deleteMultiple(householdId, transactionIds, transaction);
+    transactionIds.forEach((id) => {
+      projectTransactionRepository.delete([householdId, id], transaction);
+    });
   },
 };

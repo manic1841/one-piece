@@ -1,7 +1,8 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { type UnifiedRecord, FormType } from './types';
+import { type UnifiedRecord } from './types/unifiedRecord';
+import { FormType } from './types/formType';
 
 interface TypeToggleProps {
   type: FormType;
@@ -17,7 +18,7 @@ export const TypeToggle: React.FC<TypeToggleProps> = ({ type, onChanged }) => {
           type="button"
           variant={type === FormType.expense ? 'default' : 'outline'}
           onClick={() => {
-            onChanged?.('transactionType', FormType.expense);
+            onChanged?.('formType', FormType.expense);
           }}
           className={`flex-1 ${
             type === FormType.expense
@@ -31,7 +32,7 @@ export const TypeToggle: React.FC<TypeToggleProps> = ({ type, onChanged }) => {
           type="button"
           variant={type === FormType.income ? 'default' : 'outline'}
           onClick={() => {
-            onChanged?.('transactionType', FormType.income);
+            onChanged?.('formType', FormType.income);
           }}
           className={`flex-1 ${
             type === FormType.income
@@ -45,7 +46,7 @@ export const TypeToggle: React.FC<TypeToggleProps> = ({ type, onChanged }) => {
           type="button"
           variant={type === FormType.transfer ? 'default' : 'outline'}
           onClick={() => {
-            onChanged?.('transactionType', FormType.transfer);
+            onChanged?.('formType', FormType.transfer);
           }}
           className={`flex-1 ${
             type === FormType.transfer

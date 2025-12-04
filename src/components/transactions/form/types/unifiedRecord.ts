@@ -1,4 +1,6 @@
-import { type Transaction, type PlannedIncome, type ProjectTransaction } from '../../../schemas';
+import { type Transaction, type PlannedIncome, type ProjectTransaction } from '../../../../schemas';
+import { TransactionType } from '@/domains/transaction/transactionType';
+import { FormType } from './formType';
 
 export type AnyRecord = Transaction | PlannedIncome | ProjectTransaction;
 
@@ -9,14 +11,6 @@ export const RecordType = {
 } as const;
 
 export type RecordType = (typeof RecordType)[keyof typeof RecordType];
-
-export const FormType = {
-  income: 'income',
-  expense: 'expense',
-  transfer: 'transfer',
-} as const;
-
-export type FormType = (typeof FormType)[keyof typeof FormType];
 
 export interface UnifiedRecord {
   recordType?: RecordType;
@@ -45,7 +39,7 @@ export interface UnifiedRecord {
   // projectTransaction
   incomeSource?: string;
   // transaction
-  transactionType?: string;
+  transactionType?: TransactionType;
 }
 
 export const normalizeRecord = (record?: AnyRecord): UnifiedRecord => {
@@ -104,6 +98,44 @@ export const normalizeRecord = (record?: AnyRecord): UnifiedRecord => {
       sourceProjectId: pt.fromProject,
       incomeSource: pt.incomeSource,
     };
+  }
+
+  throw new Error('Invalid record type');
+};
+
+// convert normalizedRecord to schema
+export const convertToSchema = (record: UnifiedRecord, type: RecordType): AnyRecord => {
+  if (type === RecordType.transaction) {
+    return {
+      id: record.id,
+      type: record.transactionType,
+      date: new Date(record.date),
+      category: record.category,
+      amount: Number(record.amount),
+      description: record.description,
+      projectId: record.mainProjectId,
+    } as Transaction;
+  }
+  if (type === RecordType.plannedIncome) {
+    return {
+      id: record.id,
+      category: record.category,
+      amount: Number(record.amount),
+      date: new Date(record.date),
+      description: record.description,
+      allocations: record.allocations,
+    } as PlannedIncome;
+  }
+  if (type === RecordType.projectTransaction) {
+    return {
+      id: record.id,
+      fromProject: record.sourceProjectId,
+      toProject: record.mainProjectId,
+      amount: Number(record.amount),
+      date: new Date(record.date),
+      description: record.description,
+      incomeSource: record.incomeSource,
+    } as ProjectTransaction;
   }
 
   throw new Error('Invalid record type');

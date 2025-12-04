@@ -1,4 +1,4 @@
-import { orderBy, Timestamp } from 'firebase/firestore';
+import { orderBy, Timestamp, where } from 'firebase/firestore';
 
 import {
   RetirementPlanSchema,
@@ -10,6 +10,7 @@ import { BaseService } from './baseService';
 import { projectService } from './projectService';
 import { plannedIncomeService } from './plannedIncomeService';
 import { subMonths, startOfMonth } from 'date-fns';
+import { projectSnapshotRepository } from '@/repositories/projectSnapshotRepository';
 
 class RetirementPlanService extends BaseService<RetirementPlan> {
   constructor() {
@@ -66,7 +67,13 @@ class RetirementPlanService extends BaseService<RetirementPlan> {
     await Promise.all(
       activeProjects.map(async (project) => {
         // Fetch snapshots
-        const snapshots = await projectService.getSnapshots(householdId, project.id);
+        const snapshots = await projectSnapshotRepository.list(
+          [householdId, project.id],
+          [
+            where('year', '>=', startDate.getFullYear()),
+            where('month', '>=', startDate.getMonth() + 1),
+          ],
+        );
 
         // Filter snapshots within range
         const validSnapshots = snapshots.filter((s) => {
@@ -180,7 +187,10 @@ class RetirementPlanService extends BaseService<RetirementPlan> {
     projectId: string,
     year: number,
   ): Promise<number> {
-    const snapshots = await projectService.getSnapshots(householdId, projectId, year);
+    const snapshots = await projectSnapshotRepository.list(
+      [householdId, projectId],
+      [where('year', '==', year)],
+    );
     return snapshots.reduce((sum, s) => sum + s.expense, 0);
   }
 
@@ -189,7 +199,10 @@ class RetirementPlanService extends BaseService<RetirementPlan> {
     projectId: string,
     year: number,
   ): Promise<number> {
-    const snapshots = await projectService.getSnapshots(householdId, projectId, year);
+    const snapshots = await projectSnapshotRepository.list(
+      [householdId, projectId],
+      [where('year', '==', year)],
+    );
     return snapshots.reduce((sum, s) => sum + (s.income || 0), 0);
   }
 

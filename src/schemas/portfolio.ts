@@ -10,7 +10,7 @@ export const PortfolioSchema = z.object({
   accountIds: z.array(z.string()),
   isActive: z.boolean().default(true),
   createdAt: z.date(),
-  updatedAt: z.date().optional(),
+  updatedAt: z.date(),
 });
 
 export type Portfolio = z.infer<typeof PortfolioSchema>;
@@ -56,8 +56,10 @@ export const PortfolioSnapshotSchema = z.object({
   totalValue: z.number(),
   cashFlow: PortfolioCashFlowSchema,
   performance: PortfolioPerformanceSchema,
-  createdAt: z.date(),
   createdBy: z.string(),
+  createdAt: z.date(),
+  updatedBy: z.string(),
+  updatedAt: z.date(),
 });
 
 export type PortfolioSnapshot = z.infer<typeof PortfolioSnapshotSchema>;

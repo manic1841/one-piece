@@ -19,7 +19,7 @@ export const householdService = {
     // Validate user input
     parseWithSchema(UserProfileSchema, user);
 
-    const existingHouseholds = await householdRepository.getAll([where('name', '==', name)]);
+    const existingHouseholds = await householdRepository.list([], [where('name', '==', name)]);
 
     if (existingHouseholds.length > 0) {
       // Household with this name already exists
@@ -29,15 +29,19 @@ export const householdService = {
     }
 
     // Create a new household using repository
-    const householdId = await householdRepository.create({
-      name,
-      members: {
-        [user.uid]: {
-          role: user.role || RoleEnum.GUEST,
-          joinedAt: serverTimestamp(),
+    const householdId = await householdRepository.create(
+      [],
+      {
+        name,
+        members: {
+          [user.uid]: {
+            role: user.role || RoleEnum.GUEST,
+            joinedAt: new Date(),
+          },
         },
       },
-    });
+      user.email,
+    );
 
     // Update user profile with householdId
     const userRef = doc(db, 'users', user.uid);
@@ -60,11 +64,14 @@ export const householdService = {
     parseWithSchema(UserProfileSchema, user);
 
     // Try to find by ID first
-    let household = await householdRepository.getById(householdIdOrName);
+    let household = await householdRepository.get([householdIdOrName]);
 
     if (!household) {
       // Try to find by name
-      const households = await householdRepository.getAll([where('name', '==', householdIdOrName)]);
+      const households = await householdRepository.list(
+        [],
+        [where('name', '==', householdIdOrName)],
+      );
       if (households.length === 0) {
         throw new Error('Household not found');
       }
@@ -74,12 +81,16 @@ export const householdService = {
     // Check if user is already a member
     if (!household.members[user.uid]) {
       // Add user to household members using repository
-      await householdRepository.update(household.id, {
-        [`members.${user.uid}`]: {
-          role: user.role || 'guest',
-          joinedAt: serverTimestamp(),
+      await householdRepository.update(
+        [household.id],
+        {
+          [`members.${user.uid}`]: {
+            role: user.role || 'guest',
+            joinedAt: new Date(),
+          },
         },
-      });
+        user.email,
+      );
     }
 
     // Update user profile
@@ -97,7 +108,7 @@ export const householdService = {
 
   // Get household details
   async getHousehold(householdId: string): Promise<Household | null> {
-    return await householdRepository.getById(householdId);
+    return await householdRepository.get([householdId]);
   },
 
   // Get user profile (helper to check if user has household)
@@ -126,7 +137,7 @@ export const householdService = {
     }
 
     // First, try to find by ID
-    const householdById = await householdRepository.getById(trimmedInput);
+    const householdById = await householdRepository.get([trimmedInput]);
     if (householdById) {
       // Found by ID, join this household
       await this.joinHousehold(trimmedInput, user);
@@ -134,7 +145,10 @@ export const householdService = {
     }
 
     // If not found by ID, try to find by name
-    const householdsByName = await householdRepository.getAll([where('name', '==', trimmedInput)]);
+    const householdsByName = await householdRepository.list(
+      [],
+      [where('name', '==', trimmedInput)],
+    );
 
     if (householdsByName.length > 0) {
       // Found by name, join this household
@@ -149,7 +163,7 @@ export const householdService = {
 
   // Get all households where user is a member
   async getUserHouseholds(uid: string): Promise<Household[]> {
-    const allHouseholds = await householdRepository.getAll();
+    const allHouseholds = await householdRepository.list([]);
 
     // Filter households where user is a member
     return allHouseholds.filter((household) => household.members[uid] !== undefined);
