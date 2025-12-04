@@ -4,7 +4,7 @@ import { type Project } from '../schemas';
 import { useLoadingTask } from './useLoadingTask';
 
 export const useProject = (householdId: string, projectId: string) => {
-  const { isLoading, error, run } = useLoadingTask();
+  const { loading, error, run } = useLoadingTask();
   const [project, setProject] = useState<Project | null>(null);
 
   const loadProject = useCallback(
@@ -22,7 +22,7 @@ export const useProject = (householdId: string, projectId: string) => {
 
   return {
     project,
-    isLoading,
+    loading,
     error,
     reload: loadProject,
   };

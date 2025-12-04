@@ -3,21 +3,16 @@ import { Pencil, Trash2 } from 'lucide-react';
 import { formatCurrency } from '@/utils/formatUtils';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { type UnifiedRecord, RecordType } from './form/types/unifiedRecord';
+import { type Record, RecordType } from '@/domains/record/record';
 
-interface TransactionListProps {
-  items: UnifiedRecord[];
+interface RecordListProps {
+  items: Record[];
   loading: boolean;
-  onEdit: (record: UnifiedRecord) => void;
-  onDelete: (record: UnifiedRecord) => void;
+  onEdit: (record: Record) => void;
+  onDelete: (record: Record) => void;
 }
 
-export const TransactionList: React.FC<TransactionListProps> = ({
-  items,
-  loading,
-  onDelete,
-  onEdit,
-}) => {
+export const RecordList: React.FC<RecordListProps> = ({ items, loading, onDelete, onEdit }) => {
   const formatDate = (date: Date) => {
     if (!date) return '';
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
@@ -49,7 +44,7 @@ export const TransactionList: React.FC<TransactionListProps> = ({
     <Card>
       <div className="divide-y divide-border">
         {items.map((item) => {
-          if (item.recordType === RecordType.plannedIncome) {
+          if (item.recordType === RecordType.PLANNED_INCOME) {
             const income = item;
             return (
               <div

@@ -1,33 +1,33 @@
 import React, { useState, useEffect } from 'react';
-import { useTransactionForm } from './hooks/useTransactionForm';
+import { useRecordForm } from './hooks/useRecordForm';
 import { TypeToggle } from './TypeToggle';
 import { AllocationSection } from './AllocationSection';
-import { TransactionBasicFields } from './TransactionBasicFields';
+import { RecordBasicFields } from './RecordBasicFields';
 import { ProjectSelection } from './ProjectSelection';
 import { AllocationButton } from './AllocationButton';
 import { DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { TransferSettings } from './TransferSettings';
 import { useProjectsNew } from '@/hooks/useProjects';
-import { type UnifiedRecord, normalizeRecord } from './types/unifiedRecord';
-import { FormType } from './types/formType';
+import { type Record, unifyRecord } from '@/domains/record/record';
+import { FormType } from '@/domains/record/formType';
 
-interface TransactionFormContentProps {
+interface RecordFormContentProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (data: UnifiedRecord) => Promise<void>;
+  onSubmit: (data: Record) => Promise<void>;
   onSuccess?: () => void;
-  initialData?: UnifiedRecord;
+  initialData?: Record;
   householdId: string;
   userEmail: string;
 }
 
-export const TransactionFormContent: React.FC<TransactionFormContentProps> = (props) => {
+export const RecordFormContent: React.FC<RecordFormContentProps> = (props) => {
   const { onClose, isOpen } = props;
   const [showAllocations, setShowAllocations] = useState(false);
   const loading = false;
   const error = '';
-  const initialData = props.initialData ? props.initialData : normalizeRecord();
+  const initialData = props.initialData ? props.initialData : unifyRecord();
   const [formData, setFormData] = useState(initialData);
   const isEditing = !!initialData;
 
@@ -35,14 +35,14 @@ export const TransactionFormContent: React.FC<TransactionFormContentProps> = (pr
     setFormData(initialData);
   }, [initialData]);
 
-  const handleFormChanged = <K extends keyof UnifiedRecord>(name: K, value: UnifiedRecord[K]) => {
+  const handleFormChanged = <K extends keyof Record>(name: K, value: Record[K]) => {
     setFormData((prev) => ({
       ...prev,
       [name]: value,
     }));
   };
 
-  const { handleSubmit } = useTransactionForm({ ...props, formData, setFormData, showAllocations });
+  const { handleSubmit } = useRecordForm({ ...props, formData, setFormData, showAllocations });
   const { projects } = useProjectsNew(props.householdId, isOpen);
 
   return (
@@ -55,7 +55,7 @@ export const TransactionFormContent: React.FC<TransactionFormContentProps> = (pr
         {/* Type Toggle */}
         {!isEditing && <TypeToggle type={formData.formType} onChanged={handleFormChanged} />}
 
-        <TransactionBasicFields
+        <RecordBasicFields
           type={formData.formType}
           amount={formData.amount.toString()}
           category={formData.category}
@@ -65,7 +65,7 @@ export const TransactionFormContent: React.FC<TransactionFormContentProps> = (pr
         />
 
         {/* Transfer: From/To Project Selection */}
-        {formData.formType === FormType.transfer && (
+        {formData.formType === FormType.TRANSFER && (
           <TransferSettings
             fromProjectId={formData.sourceProjectId || ''}
             setFromProjectId={handleFormChanged}
@@ -76,8 +76,8 @@ export const TransactionFormContent: React.FC<TransactionFormContentProps> = (pr
         )}
 
         {/* Project Selection (Expense or Income without Allocations) */}
-        {(formData.formType === FormType.expense ||
-          (formData.formType === FormType.income && !showAllocations)) && (
+        {(formData.formType === FormType.EXPENSE ||
+          (formData.formType === FormType.INCOME && !showAllocations)) && (
           <ProjectSelection
             projectId={formData.mainProjectId || ''}
             setProjectId={(id: string) => {
@@ -88,7 +88,7 @@ export const TransactionFormContent: React.FC<TransactionFormContentProps> = (pr
         )}
 
         {/* Allocate Button (Income Only) */}
-        {formData.formType === FormType.income && !isEditing && (
+        {formData.formType === FormType.INCOME && !isEditing && (
           <AllocationButton
             showAllocations={showAllocations}
             setShowAllocations={setShowAllocations}
@@ -96,7 +96,7 @@ export const TransactionFormContent: React.FC<TransactionFormContentProps> = (pr
         )}
 
         {/* Allocations Section */}
-        {(showAllocations || isEditing) && formData.formType === FormType.income && (
+        {(showAllocations || isEditing) && formData.formType === FormType.INCOME && (
           <AllocationSection
             projects={projects}
             allocations={formData.allocations || []}

@@ -1,12 +1,12 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { type UnifiedRecord } from './types/unifiedRecord';
-import { FormType } from './types/formType';
+import { type Record } from '@/domains/record/record';
+import { FormType } from '@/domains/record/formType';
 
 interface TypeToggleProps {
   type: FormType;
-  onChanged?: <K extends keyof UnifiedRecord>(name: K, value: UnifiedRecord[K]) => void;
+  onChanged?: <K extends keyof Record>(name: K, value: Record[K]) => void;
 }
 
 export const TypeToggle: React.FC<TypeToggleProps> = ({ type, onChanged }) => {
@@ -16,12 +16,12 @@ export const TypeToggle: React.FC<TypeToggleProps> = ({ type, onChanged }) => {
       <div className="flex gap-2">
         <Button
           type="button"
-          variant={type === FormType.expense ? 'default' : 'outline'}
+          variant={type === FormType.EXPENSE ? 'default' : 'outline'}
           onClick={() => {
-            onChanged?.('formType', FormType.expense);
+            onChanged?.('formType', FormType.EXPENSE);
           }}
           className={`flex-1 ${
-            type === FormType.expense
+            type === FormType.EXPENSE
               ? 'bg-red-100 text-red-700 hover:bg-red-200 border-red-200'
               : ''
           }`}
@@ -30,12 +30,12 @@ export const TypeToggle: React.FC<TypeToggleProps> = ({ type, onChanged }) => {
         </Button>
         <Button
           type="button"
-          variant={type === FormType.income ? 'default' : 'outline'}
+          variant={type === FormType.INCOME ? 'default' : 'outline'}
           onClick={() => {
-            onChanged?.('formType', FormType.income);
+            onChanged?.('formType', FormType.INCOME);
           }}
           className={`flex-1 ${
-            type === FormType.income
+            type === FormType.INCOME
               ? 'bg-green-100 text-green-700 hover:bg-green-200 border-green-200'
               : ''
           }`}
@@ -44,12 +44,12 @@ export const TypeToggle: React.FC<TypeToggleProps> = ({ type, onChanged }) => {
         </Button>
         <Button
           type="button"
-          variant={type === FormType.transfer ? 'default' : 'outline'}
+          variant={type === FormType.TRANSFER ? 'default' : 'outline'}
           onClick={() => {
-            onChanged?.('formType', FormType.transfer);
+            onChanged?.('formType', FormType.TRANSFER);
           }}
           className={`flex-1 ${
-            type === FormType.transfer
+            type === FormType.TRANSFER
               ? 'bg-blue-100 text-blue-700 hover:bg-blue-200 border-blue-200'
               : ''
           }`}

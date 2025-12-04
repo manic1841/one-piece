@@ -9,11 +9,14 @@ export function useProjectTransfer(householdId: string, userEmail: string) {
     date: Date;
     description?: string;
   }) => {
-    return projectTransactionService.createProjectTransaction(householdId, {
-      ...data,
-      type: ProjectTransactionType.TRANSFER,
-      createdBy: userEmail,
-    });
+    return projectTransactionService.createProjectTransaction(
+      householdId,
+      {
+        ...data,
+        type: ProjectTransactionType.TRANSFER,
+      },
+      userEmail,
+    );
   };
 
   return { submitTransfer };

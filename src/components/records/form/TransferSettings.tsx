@@ -1,12 +1,12 @@
 import { ProjectSelection } from './ProjectSelection';
 import { type Project } from '@/schemas';
-import { type UnifiedRecord } from './types/unifiedRecord';
+import { type Record } from '@/domains/record/record';
 
 interface TransferSettingsProps {
   fromProjectId: string;
-  setFromProjectId: <K extends keyof UnifiedRecord>(name: K, value: UnifiedRecord[K]) => void;
+  setFromProjectId: <K extends keyof Record>(name: K, value: Record[K]) => void;
   toProjectId: string;
-  setToProjectId: <K extends keyof UnifiedRecord>(name: K, value: UnifiedRecord[K]) => void;
+  setToProjectId: <K extends keyof Record>(name: K, value: Record[K]) => void;
   projects: Project[];
 }
 

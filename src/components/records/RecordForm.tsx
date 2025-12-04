@@ -1,23 +1,23 @@
 import React from 'react';
-import { TransactionFormContent } from './form/TransactionFormContent';
+import { RecordFormContent } from './form/RecordFormContent';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { type UnifiedRecord } from './form/types/unifiedRecord';
+import { type Record } from '@/domains/record/record';
 
-interface TransactionFormProps {
+interface RecordFormProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (data: UnifiedRecord) => Promise<void>;
+  onSubmit: (data: Record) => Promise<void>;
   onSuccess?: () => void;
-  initialData?: UnifiedRecord;
+  initialData?: Record;
   householdId: string;
   userEmail: string;
 }
 
-const TransactionForm: React.FC<TransactionFormProps> = (props) => {
+const RecordForm: React.FC<RecordFormProps> = (props) => {
   const { isOpen, onClose, initialData } = props;
   const getDialogTitle = () => {
-    if (initialData) return 'Edit Transaction';
-    return 'Transaction';
+    if (initialData) return '編輯紀錄';
+    return '建立紀錄';
   };
 
   return (
@@ -29,10 +29,10 @@ const TransactionForm: React.FC<TransactionFormProps> = (props) => {
         <DialogHeader>
           <DialogTitle>{getDialogTitle()}</DialogTitle>
         </DialogHeader>
-        <TransactionFormContent {...props} isOpen={isOpen} />
+        <RecordFormContent {...props} isOpen={isOpen} />
       </DialogContent>
     </Dialog>
   );
 };
 
-export default TransactionForm;
+export default RecordForm;

@@ -1,4 +1,3 @@
-import { Timestamp } from 'firebase/firestore';
 import type { PlannedIncome } from '../../schemas/plannedIncome';
 import type { Transaction } from '../../schemas/transaction';
 import type { Project, ProjectSnapshot } from '../../schemas/project';
@@ -13,12 +12,14 @@ import type { AccountSnapshot } from '../../schemas/account';
 export function createPlannedIncome(overrides?: Partial<PlannedIncome>): PlannedIncome {
   return {
     id: 'pi-test-1',
-    date: Timestamp.now(),
+    date: new Date(),
     amount: 50000,
     category: 'salary',
     description: 'Test Salary',
     createdBy: 'test-user',
-    createdAt: Timestamp.now(),
+    createdAt: new Date(),
+    updatedBy: 'test-user',
+    updatedAt: new Date(),
     allocations: [],
     ...overrides,
   };
@@ -29,13 +30,15 @@ export function createTransaction(overrides?: Partial<Transaction>): Transaction
   return {
     id: 'tx-test-1',
     projectId: 'project-test-1',
-    date: Timestamp.now(),
+    date: new Date(),
     type: 'expense',
     category: 'Food',
     amount: 500,
     description: 'Test Transaction',
     createdBy: 'test-user',
-    createdAt: Timestamp.now(),
+    createdAt: new Date(),
+    updatedBy: 'test-user',
+    updatedAt: new Date(),
     ...overrides,
   };
 }
@@ -52,20 +55,19 @@ export function createProject(overrides?: Partial<Project>): Project {
     isPersonal: false,
     isActive: true,
     createdBy: 'test-user',
-    createdAt: Timestamp.now(),
+    createdAt: new Date(),
+    updatedBy: 'test-user',
+    updatedAt: new Date(),
     accounting: {
       enabled: false,
       incomeStatement: {
         category: 'expense',
-        subcategory: 'Living',
       },
       cashFlow: {
-        activity: 'operating',
-        subcategory: 'daily-expenses',
+        category: 'operating',
       },
       balanceSheet: {
         category: 'asset',
-        subcategory: 'current',
       },
     },
     ...overrides,
@@ -82,7 +84,7 @@ export function createProjectSnapshot(overrides?: Partial<ProjectSnapshot>): Pro
     income: 0,
     expense: 1000,
     closingBalance: -1000,
-    createdAt: Timestamp.now(),
+    createdAt: new Date(),
     ...overrides,
   };
 }
@@ -95,7 +97,9 @@ export function createAccountSnapshot(overrides?: Partial<AccountSnapshot>): Acc
     month: new Date().getMonth() + 1,
     amount: 10000,
     createdBy: 'test-user',
-    createdAt: Timestamp.now(),
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    updatedBy: 'test-user',
     ...overrides,
   };
 }

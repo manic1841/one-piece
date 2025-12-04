@@ -7,7 +7,7 @@ import { useLoadingTask } from './useLoadingTask';
 
 export function useProjectsNew(householdId: string, active: boolean) {
   const [projects, setProjects] = useState<Project[]>([]);
-  const { isLoading, error, run } = useLoadingTask();
+  const { loading, error, run } = useLoadingTask();
   const load = useCallback(async () => {
     run(async () => {
       const data = await projectService.getProjects(householdId);
@@ -21,7 +21,7 @@ export function useProjectsNew(householdId: string, active: boolean) {
 
   return {
     projects,
-    isLoading,
+    loading,
     error,
     reload: load,
   };

@@ -1,46 +1,39 @@
 import React, { useState } from 'react';
 import { Plus } from 'lucide-react';
 import { useAuth } from '../contexts/useAuth';
-import TransactionForm from '../components/transactions/TransactionForm';
-import { useTransactions } from '../hooks/useTransactions';
-import { TransactionStats } from '../components/transactions/TransactionStats';
-import { TransactionList } from '../components/transactions/TransactionList';
+import RecordForm from '../components/records/RecordForm';
+import { useRecordPage } from './hooks/useRecordPage';
+import { RecordStats } from '../components/records/RecordStats';
+import { RecordList } from '../components/records/RecordList';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { type UnifiedRecord } from '@/components/transactions/form/types/unifiedRecord';
+import { type Record } from '@/domains/record/record';
 
-const Transactions: React.FC = () => {
+const Records: React.FC = () => {
   const { userProfile, currentUser } = useAuth();
-  const {
-    combinedList,
-    loading,
-    stats,
-    loadTransactions,
-    createRecord,
-    updateRecord,
-    deleteRecord,
-  } = useTransactions(userProfile?.householdId, userProfile?.email);
+  const { records, loading, stats, loadRecords, createRecord, updateRecord, deleteRecord } =
+    useRecordPage(userProfile?.householdId, userProfile?.email);
 
   const [isFormOpen, setIsFormOpen] = useState(false);
-  const [edit, setEdit] = useState<UnifiedRecord | undefined>(undefined);
+  const [edit, setEdit] = useState<Record | undefined>(undefined);
   const [filterType, setFilterType] = useState<'all' | 'income' | 'expense'>('all');
 
-  const handleCreate = async (record: UnifiedRecord) => {
+  const handleCreate = async (record: Record) => {
     await createRecord(record);
   };
 
-  const handleUpdate = async (record: UnifiedRecord) => {
+  const handleUpdate = async (record: Record) => {
     if (!edit) return;
     await updateRecord(record);
     setEdit(undefined);
   };
 
-  const handleEditClick = (record: UnifiedRecord) => {
+  const handleEditClick = (record: Record) => {
     setEdit(record);
     setIsFormOpen(true);
   };
 
-  const handleDeleteClick = (record: UnifiedRecord) => {
+  const handleDeleteClick = (record: Record) => {
     deleteRecord(record);
   };
 
@@ -49,7 +42,7 @@ const Transactions: React.FC = () => {
     setEdit(undefined);
   };
 
-  const filteredList = combinedList.filter((item) => {
+  const filteredList = records.filter((item) => {
     if (filterType === 'all') return true;
     if (filterType === 'income') {
       return (
@@ -75,7 +68,7 @@ const Transactions: React.FC = () => {
       </div>
 
       {/* Stats Cards */}
-      <TransactionStats stats={stats} />
+      <RecordStats stats={stats} />
 
       {/* Filter Tabs */}
       <Card>
@@ -113,7 +106,7 @@ const Transactions: React.FC = () => {
       </Card>
 
       {/* Transactions List */}
-      <TransactionList
+      <RecordList
         items={filteredList}
         loading={loading}
         onEdit={handleEditClick}
@@ -122,11 +115,11 @@ const Transactions: React.FC = () => {
 
       {/* Transaction Form Modal */}
       {userProfile?.householdId && currentUser?.email && (
-        <TransactionForm
+        <RecordForm
           isOpen={isFormOpen}
           onClose={handleCloseForm}
           onSubmit={edit ? handleUpdate : handleCreate}
-          onSuccess={loadTransactions}
+          onSuccess={loadRecords}
           initialData={edit}
           householdId={userProfile.householdId}
           userEmail={currentUser.email}
@@ -136,4 +129,4 @@ const Transactions: React.FC = () => {
   );
 };
 
-export default Transactions;
+export default Records;

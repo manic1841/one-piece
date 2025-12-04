@@ -1,18 +1,15 @@
-import { type UnifiedRecord } from '../types/unifiedRecord';
-import { FormType } from '../types/formType';
+import { type Record } from '@/domains/record/record';
+import { FormType } from '@/domains/record/formType';
 
 export type ValidationResult = {
   isValid: boolean;
   error: string;
 };
 
-export const validateForm = (
-  formData: UnifiedRecord,
-  showAllocations: boolean,
-): ValidationResult => {
-  if (formData.formType == FormType.expense) {
+export const validateForm = (formData: Record, showAllocations: boolean): ValidationResult => {
+  if (formData.formType == FormType.EXPENSE) {
     return validateExpenseForm(formData);
-  } else if (formData.formType == FormType.income) {
+  } else if (formData.formType == FormType.INCOME) {
     return validateIncomeForm(formData, showAllocations);
   } else {
     return validateTransferForm(formData);
@@ -20,8 +17,8 @@ export const validateForm = (
 };
 
 // Expense Form Validator
-const validateExpenseForm = (formData: UnifiedRecord): ValidationResult => {
-  if (!formData.amount || parseFloat(formData.amount) <= 0) {
+const validateExpenseForm = (formData: Record): ValidationResult => {
+  if (!formData.amount || formData.amount <= 0) {
     return { isValid: false, error: '請輸入有效金額' };
   }
 
@@ -37,11 +34,8 @@ const validateExpenseForm = (formData: UnifiedRecord): ValidationResult => {
 };
 
 // Income Form Validator
-const validateIncomeForm = (
-  formData: UnifiedRecord,
-  showAllocations: boolean,
-): ValidationResult => {
-  if (!formData.amount || parseFloat(formData.amount) <= 0) {
+const validateIncomeForm = (formData: Record, showAllocations: boolean): ValidationResult => {
+  if (!formData.amount || formData.amount <= 0) {
     return { isValid: false, error: '請輸入有效金額' };
   }
 
@@ -68,9 +62,9 @@ const validateIncomeForm = (
 };
 
 // Transfer Form Validator
-const validateTransferForm = (formData: UnifiedRecord): ValidationResult => {
+const validateTransferForm = (formData: Record): ValidationResult => {
   // NOT IMPLEMENTED
-  if (!formData.amount || isNaN(parseFloat(formData.amount))) {
+  if (!formData.amount || isNaN(formData.amount)) {
     return { isValid: false, error: '請輸入有效金額' };
   }
   // Only validate if both projects are selected that they're different

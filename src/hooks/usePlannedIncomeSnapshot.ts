@@ -1,6 +1,6 @@
 import { plannedIncomeService } from '@/services/plannedIncomeService';
 import { type Project } from '@/schemas';
-import { type PlannedIncomeCategory } from '@/domains/transaction/plannedIncomeCategory';
+import { type PlannedIncomeCategory } from '@/domains/unifiedTransaction/plannedIncomeCategory';
 
 export function usePlannedIncomeSnapshot() {
   const loadPreviousAllocations = async (

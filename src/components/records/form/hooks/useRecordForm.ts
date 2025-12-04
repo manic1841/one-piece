@@ -1,25 +1,24 @@
 import { useState } from 'react';
-import { validateForm } from '../helper/validator';
-import { type UnifiedRecord } from '../types/unifiedRecord';
-import { normalizeRecord } from '../types/unifiedRecord';
+import { validateForm } from '@/domains/record/validator';
+import { type Record, unifyRecord } from '@/domains/record/record';
 
-interface UseTransactionFormProps {
-  onSubmit: (data: UnifiedRecord) => Promise<void>;
+interface UseRecordFormProps {
+  onSubmit: (data: Record) => Promise<void>;
   onClose: () => void;
   onSuccess?: () => void;
-  formData: UnifiedRecord;
-  setFormData: (data: UnifiedRecord) => void;
+  formData: Record;
+  setFormData: (data: Record) => void;
   showAllocations: boolean;
 }
 
-export const useTransactionForm = ({
+export const useRecordForm = ({
   onSubmit,
   onClose,
   onSuccess,
   formData,
   setFormData,
   showAllocations,
-}: UseTransactionFormProps) => {
+}: UseRecordFormProps) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -40,7 +39,7 @@ export const useTransactionForm = ({
 
     try {
       // Reset form
-      setFormData(normalizeRecord());
+      setFormData(unifyRecord());
 
       onClose();
       if (onSuccess) onSuccess();

@@ -8,19 +8,19 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { TRANSACTION_CATEGORIES as categories } from '../../../constants/transaction/transactionLabel';
-import { type UnifiedRecord } from './types/unifiedRecord';
+import { TRANSACTION_CATEGORIES as categories } from '@/constants/transaction/transactionLabel';
+import { type Record } from '@/domains/record/record';
 
-interface TransactionBasicFieldsProps {
+interface RecordBasicFieldsProps {
   type: string;
   amount: string;
   category?: string;
   date?: string;
   description: string;
-  onChanged: <K extends keyof UnifiedRecord>(name: K, value: UnifiedRecord[K]) => void;
+  onChanged: <K extends keyof Record>(name: K, value: Record[K]) => void;
 }
 
-export const TransactionBasicFields: React.FC<TransactionBasicFieldsProps> = ({
+export const RecordBasicFields: React.FC<RecordBasicFieldsProps> = ({
   type,
   amount,
   category,
@@ -44,7 +44,7 @@ export const TransactionBasicFields: React.FC<TransactionBasicFieldsProps> = ({
           min="0"
           placeholder="0.00"
           value={amount}
-          onChange={(e) => onChanged('amount', e.target.value)}
+          onChange={(e) => onChanged('amount', Number(e.target.value))}
         />
       </div>
 
@@ -75,7 +75,7 @@ export const TransactionBasicFields: React.FC<TransactionBasicFieldsProps> = ({
           type="date"
           required
           value={date}
-          onChange={(e) => onChanged('date', e.target.value)}
+          onChange={(e) => onChanged('date', new Date(e.target.value))}
         />
       </div>
 
