@@ -1,13 +1,13 @@
-import { orderBy } from 'firebase/firestore';
-import type { Transaction } from '../schemas';
-import { toDateString } from '../utils/dateUtils';
-import { transactionRepository } from '../repositories/transactionRepository';
+import { orderBy, where, QueryConstraint } from 'firebase/firestore';
+import type { Transaction } from '@/schemas';
+import { transactionRepository } from '@/repositories/transactionRepository';
+import { type ExcludedColumn } from '@/repositories/baseRepository';
 
 class TransactionService {
   // Create a new transaction
   async createTransaction(
     householdId: string,
-    transaction: Omit<Transaction, 'id' | 'createdAt'>,
+    transaction: Omit<Transaction, ExcludedColumn>,
     userEmail: string,
   ): Promise<string> {
     return transactionRepository.create([householdId], transaction, userEmail);
@@ -17,40 +17,29 @@ class TransactionService {
   async getTransactions(
     householdId: string,
     filters?: {
-      startDate?: string;
-      endDate?: string;
+      startDate?: Date;
+      endDate?: Date;
       type?: 'income' | 'expense';
       category?: string;
     },
   ): Promise<Transaction[]> {
-    // Get all transactions sorted by date
-    let transactions = await transactionRepository.list([householdId], [orderBy('date', 'desc')]);
+    const q: QueryConstraint[] = [orderBy('date', 'desc')];
 
-    // Apply client-side filters
-    if (filters) {
-      if (filters.startDate) {
-        transactions = transactions.filter((t) => {
-          const date = t.date;
-          const dateStr = toDateString(date);
-          return dateStr >= filters.startDate!;
-        });
-      }
-      if (filters.endDate) {
-        transactions = transactions.filter((t) => {
-          const date = t.date;
-          const dateStr = toDateString(date);
-          return dateStr <= filters.endDate!;
-        });
-      }
-      if (filters.type) {
-        transactions = transactions.filter((t) => t.type === filters.type);
-      }
-      if (filters.category) {
-        transactions = transactions.filter((t) => t.category === filters.category);
-      }
+    if (filters?.startDate) {
+      q.push(where('date', '>=', filters.startDate));
+    }
+    if (filters?.endDate) {
+      q.push(where('date', '<=', filters.endDate));
+    }
+    if (filters?.type) {
+      q.push(where('type', '==', filters.type));
+    }
+    if (filters?.category) {
+      q.push(where('category', '==', filters.category));
     }
 
-    return transactions;
+    // Get all transactions sorted by date
+    return await transactionRepository.list([householdId], q);
   }
 
   // Get a single transaction by ID
@@ -71,44 +60,6 @@ class TransactionService {
   // Delete a transaction
   async deleteTransaction(householdId: string, id: string): Promise<void> {
     return transactionRepository.delete([householdId, id]);
-  }
-
-  // Get transaction statistics (summary)
-  async getTransactionStats(
-    householdId: string,
-    startDate?: string,
-    endDate?: string,
-  ): Promise<{
-    totalIncome: number;
-    totalExpense: number;
-    balance: number;
-  }> {
-    const transactions = await this.getTransactions(householdId, { startDate, endDate });
-
-    const totalIncome = transactions
-      .filter((t) => t.type === 'income')
-      .reduce((sum, t) => sum + t.amount, 0);
-
-    const totalExpense = transactions
-      .filter((t) => t.type === 'expense')
-      .reduce((sum, t) => sum + t.amount, 0);
-
-    return {
-      totalIncome,
-      totalExpense,
-      balance: totalIncome - totalExpense,
-    };
-  }
-
-  // Get transactions by period (using Date objects)
-  async getTransactionsByPeriod(
-    householdId: string,
-    startDate: Date,
-    endDate: Date,
-  ): Promise<Transaction[]> {
-    const start = toDateString(startDate);
-    const end = toDateString(endDate);
-    return this.getTransactions(householdId, { startDate: start, endDate: end });
   }
 }
 

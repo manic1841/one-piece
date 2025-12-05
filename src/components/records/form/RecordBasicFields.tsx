@@ -7,28 +7,48 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { TRANSACTION_CATEGORIES as categories } from '@/constants/transaction/transactionLabel';
-import { type RecordFormData } from '@/domains/record/types';
+import {
+  RecordFormType,
+  RecordType,
+  type RecordFormData,
+  type RecordCategory,
+  ProjectTransactionCategory,
+} from '@/domains/record/types';
+import { RecordCategoryOptions } from '@/constants/record/category';
 
 interface RecordBasicFieldsProps {
-  type: string;
+  formType: RecordFormType;
+  recordType?: RecordType;
   amount: string;
-  category: string;
+  category: RecordCategory;
   date: string;
   description: string;
   onChanged?: <K extends keyof RecordFormData>(name: K, value: RecordFormData[K]) => void;
 }
 
 export const RecordBasicFields: React.FC<RecordBasicFieldsProps> = ({
-  type,
+  formType,
+  recordType,
   amount,
   category,
   date,
   description,
   onChanged,
 }) => {
-  const availableCategories = type === 'income' ? categories.income : categories.expense;
-  const showCategory = type !== 'transfer';
+  const availableCategories =
+    formType === RecordFormType.EXPENSE
+      ? RecordCategoryOptions.expense
+      : recordType === RecordType.TRANSACTION
+        ? RecordCategoryOptions.income
+        : RecordCategoryOptions.planned;
+  const showCategory = formType !== RecordFormType.TRANSFER;
+
+  if (formType === RecordFormType.TRANSFER) {
+    // For transfer, set category to 'transfer' by default
+    if (category !== ProjectTransactionCategory.TRANSFER) {
+      onChanged?.('category', ProjectTransactionCategory.TRANSFER);
+    }
+  }
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

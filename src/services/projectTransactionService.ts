@@ -1,51 +1,51 @@
 import {
   orderBy,
   where,
-  Timestamp,
   type QueryConstraint,
   type Transaction as FirestoreTransaction,
 } from 'firebase/firestore';
-import { type ProjectTransaction } from '../schemas';
-import { projectTransactionRepository } from '../repositories/projectTransactionRepository';
+import { type ProjectTransaction } from '@/schemas';
+import { projectTransactionRepository } from '@/repositories/projectTransactionRepository';
+import { type ExcludedColumn } from '@/repositories/baseRepository';
 
-export const projectTransactionService = {
+class ProjectTransactionService {
   // Create a new project transaction
   // Supports running within an existing Firestore transaction
   async createProjectTransaction(
     householdId: string,
-    data: Omit<ProjectTransaction, 'id' | 'createdAt' | 'createdBy' | 'updatedAt' | 'updatedBy'>,
+    data: Omit<ProjectTransaction, ExcludedColumn>,
     userEmail: string,
     transaction?: FirestoreTransaction,
   ): Promise<string> {
     return projectTransactionRepository.create([householdId], data, userEmail, transaction);
-  },
+  }
 
   // Get project transactions
   async getProjectTransactions(
     householdId: string,
-    options?: {
+    filters?: {
       projectId?: string;
-      startDate?: string;
-      endDate?: string;
+      startDate?: Date;
+      endDate?: Date;
     },
   ): Promise<ProjectTransaction[]> {
     const constraints: QueryConstraint[] = [orderBy('date', 'desc')];
 
-    if (options?.projectId) {
+    if (filters?.projectId) {
       // Note: This requires a composite index: projectId ASC, date DESC
-      constraints.push(where('toProject', '==', options.projectId));
+      constraints.push(where('toProject', '==', filters.projectId));
     }
 
-    if (options?.startDate) {
-      constraints.push(where('date', '>=', Timestamp.fromDate(new Date(options.startDate))));
+    if (filters?.startDate) {
+      constraints.push(where('date', '>=', filters.startDate));
     }
 
-    if (options?.endDate) {
-      constraints.push(where('date', '<=', Timestamp.fromDate(new Date(options.endDate))));
+    if (filters?.endDate) {
+      constraints.push(where('date', '<=', filters.endDate));
     }
 
     return projectTransactionRepository.list([householdId], constraints);
-  },
+  }
 
   // Get project transactions by income source (plannedIncomeId)
   async getProjectTransactionsByIncomeSource(
@@ -56,17 +56,17 @@ export const projectTransactionService = {
       [householdId],
       [where('incomeSource', '==', incomeSource)],
     );
-  },
+  }
 
   // Update project transaction
   async updateProjectTransaction(
     householdId: string,
     id: string,
-    data: Partial<Omit<ProjectTransaction, 'id' | 'createdAt' | 'createdBy'>>,
+    data: Partial<Omit<ProjectTransaction, ExcludedColumn>>,
     userEmail: string,
   ): Promise<void> {
     return projectTransactionRepository.update([householdId, id], data, userEmail);
-  },
+  }
 
   // Delete project transactions by IDs
   // Supports running within an existing Firestore transaction
@@ -78,5 +78,7 @@ export const projectTransactionService = {
     transactionIds.forEach((id) => {
       projectTransactionRepository.delete([householdId, id], transaction);
     });
-  },
-};
+  }
+}
+
+export const projectTransactionService = new ProjectTransactionService();

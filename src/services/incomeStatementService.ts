@@ -19,20 +19,15 @@ class IncomeStatementService {
     createdBy: string,
   ): Promise<IncomeStatement> {
     // 1. Fetch plannedIncome for the period
-    const plannedIncomes = await plannedIncomeService.getPlannedIncomesForPeriod(
-      householdId,
-      startDate,
-      endDate,
-    );
+    const plannedIncomes = await plannedIncomeService.getPlannedIncomes(householdId, {
+      startDate: startDate,
+      endDate: endDate,
+    });
 
     // 2. Fetch income transactions (extra income)
-    // Convert dates to string YYYY-MM-DD for transaction query
-    const startDateStr = startDate.toISOString().split('T')[0];
-    const endDateStr = endDate.toISOString().split('T')[0];
-
     const incomeTransactions = await transactionService.getTransactions(householdId, {
-      startDate: startDateStr,
-      endDate: endDateStr,
+      startDate: startDate,
+      endDate: endDate,
       type: 'income',
     });
 

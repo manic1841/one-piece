@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import { useRecords } from '@/hooks/useRecords';
 import { useRecordStats } from '@/hooks/useRecordStats';
 import { useRecordCommands } from '@/hooks/useRecordCommand';
-import { type Record, RecordType, TransactionType } from '@/domains/record/types';
+import { type Record, RecordFilterType } from '@/domains/record/types';
+import { filterRecords } from '@/domains/record/filter';
 
 export const useRecordPage = (householdId?: string, email?: string) => {
   const { records, reload, loading, error } = useRecords(householdId);
@@ -14,29 +15,13 @@ export const useRecordPage = (householdId?: string, email?: string) => {
   );
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editing, setEditing] = useState<Record | undefined>(undefined);
-  const [filterType, setFilterType] = useState<'all' | 'income' | 'expense'>('all');
+  const [filterType, setFilterType] = useState<RecordFilterType>(RecordFilterType.ALL);
   const [filteredRecords, setFilteredRecords] = useState<Record[]>([]);
 
   // filter records
   useEffect(() => {
     const filter = async () => {
-      const filtered = records.filter((item) => {
-        if (filterType === 'all') return true;
-        if (filterType === 'income') {
-          return (
-            item.recordType === RecordType.PLANNED_INCOME ||
-            (item.recordType === RecordType.TRANSACTION &&
-              item.transactionType === TransactionType.INCOME)
-          );
-        }
-        if (filterType === 'expense') {
-          return (
-            item.recordType === RecordType.TRANSACTION &&
-            item.transactionType === TransactionType.EXPENSE
-          );
-        }
-        return true;
-      });
+      const filtered = filterRecords(records, filterType);
       setFilteredRecords(filtered);
     };
     filter();
@@ -44,11 +29,13 @@ export const useRecordPage = (householdId?: string, email?: string) => {
 
   // create record
   const create = async (record: Record) => {
+    console.log('Creating record:', record);
     await createRecord(record);
   };
 
   // update record
   const update = async (record: Record) => {
+    console.log('Updating record:', record, editing);
     if (!editing) return;
     await updateRecord(record);
     setEditing(undefined);
@@ -56,6 +43,7 @@ export const useRecordPage = (householdId?: string, email?: string) => {
 
   // edit record
   const editClick = (record: Record) => {
+    console.log('Editing record:', record);
     setEditing(record);
     setIsFormOpen(true);
   };

@@ -48,7 +48,7 @@ export const TypeToggle: React.FC<TypeToggleProps> = ({ type, onChanged }) => {
           }}
           className={`flex-1 ${
             type === RecordFormType.TRANSFER
-              ? 'bg-blue-100 text-blue-700 hover:bg-blue-200 border-blue-200'
+              ? 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200 border-yellow-200'
               : ''
           }`}
         >

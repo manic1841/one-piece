@@ -14,39 +14,49 @@ import {
 
 class RecordService {
   async getRecords(householdId: string) {
-    const unifiedRecords: Record[] = [];
+    const records: Record[] = [];
 
     // transaction
     const transactions = await transactionService.getTransactions(householdId);
     transactions.forEach((transaction) => {
       const record: Record = toRecord(transaction);
-      unifiedRecords.push(record);
+      records.push(record);
     });
 
     // planned income
     const plannedIncomes = await plannedIncomeService.getPlannedIncomes(householdId);
     plannedIncomes.forEach((plannedIncome) => {
       const record: Record = toRecord(plannedIncome);
-      unifiedRecords.push(record);
+      records.push(record);
     });
 
     // project transaction
     const projectTransactions = await projectTransactionService.getProjectTransactions(householdId);
     projectTransactions.forEach((projectTransaction) => {
       const record: Record = toRecord(projectTransaction);
-      unifiedRecords.push(record);
+      records.push(record);
     });
 
-    return unifiedRecords;
+    return records;
   }
 
   async createRecord(householdId: string, record: Record, userEmail: string) {
     if (record.formType === RecordFormType.EXPENSE) {
       const tnx = toSchema(record, RecordType.TRANSACTION) as Transaction;
       await transactionService.createTransaction(householdId, tnx, userEmail);
+      return;
     } else if (record.formType === RecordFormType.INCOME) {
-      const income = toSchema(record, RecordType.PLANNED_INCOME) as PlannedIncome;
-      await plannedIncomeService.createPlannedIncome(householdId, income, userEmail);
+      if (record.allocations && record.allocations.length > 0) {
+        const income = toSchema(record, RecordType.PLANNED_INCOME) as PlannedIncome;
+        // planned income with allocations
+        await plannedIncomeService.createPlannedIncome(householdId, income, userEmail);
+        return;
+      } else {
+        // regular income as transaction
+        const tnx = toSchema(record, RecordType.TRANSACTION) as Transaction;
+        await transactionService.createTransaction(householdId, tnx, userEmail);
+        return;
+      }
     } else if (record.formType === RecordFormType.TRANSFER) {
       const pt = toSchema(record, RecordType.PROJECT_TRANSACTION) as ProjectTransaction;
       await projectTransactionService.createProjectTransaction(householdId, pt, userEmail);

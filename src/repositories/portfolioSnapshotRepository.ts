@@ -22,11 +22,11 @@ class PortfolioSnapshotRepository extends BaseRepository<
     return doc(db, 'households', householdId, 'portfolios', portfolioId, 'snapshots', snapshotId);
   }
 
-  protected toFirestore(entity: PortfolioSnapshot): PortfolioSnapshotFirestore {
+  protected toFirestore(entity: PortfolioSnapshot): Partial<PortfolioSnapshotFirestore> {
     return {
       ...entity,
-      createdAt: Timestamp.fromDate(entity.createdAt),
-      updatedAt: Timestamp.fromDate(entity.updatedAt),
+      createdAt: entity.createdAt ? Timestamp.fromDate(entity.createdAt) : undefined,
+      updatedAt: entity.updatedAt ? Timestamp.fromDate(entity.updatedAt) : undefined,
     };
   }
 

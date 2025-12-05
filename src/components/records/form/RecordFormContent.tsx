@@ -1,14 +1,13 @@
 import { useRecordForm } from '@/components/records/form/useRecordForm';
 import { TypeToggle } from '@/components/records/form/TypeToggle';
-import { AllocationSection } from '@/components/records/form/AllocationSection';
 import { RecordBasicFields } from '@/components/records/form/RecordBasicFields';
 import { ProjectSelection } from '@/components/records/form/ProjectSelection';
-import { AllocationButton } from '@/components/records/form/AllocationButton';
 import { DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { TransferSettings } from '@/components/records/form/TransferSettings';
 import { type Record } from '@/domains/record/types';
 import { RecordFormType } from '@/domains/record/types';
+import { IncomeSection } from './IncomeSection';
 
 interface RecordFormContentProps {
   isOpen: boolean;
@@ -27,6 +26,7 @@ export const RecordFormContent: React.FC<RecordFormContentProps> = (props) => {
     error,
     isEditing,
     projects,
+    projectsLoading,
     save,
     formData,
     formChanged,
@@ -46,7 +46,8 @@ export const RecordFormContent: React.FC<RecordFormContentProps> = (props) => {
         {!isEditing && <TypeToggle type={formData.formType} onChanged={formChanged} />}
 
         <RecordBasicFields
-          type={formData.formType}
+          formType={formData.formType}
+          recordType={formData.recordType}
           amount={formData.amount}
           category={formData.category}
           date={formData.date}
@@ -62,35 +63,32 @@ export const RecordFormContent: React.FC<RecordFormContentProps> = (props) => {
             toProjectId={formData.toProjectId}
             setToProjectId={formChanged}
             projects={projects}
+            loading={projectsLoading}
           />
         )}
 
         {/* Project Selection (Expense or Income without Allocations) */}
-        {(formData.formType === RecordFormType.EXPENSE ||
-          (formData.formType === RecordFormType.INCOME && !showAllocations)) && (
+        {formData.formType === RecordFormType.EXPENSE && (
           <ProjectSelection
             projectId={formData.projectId}
             onChange={(projectId: string) => formChanged('projectId', projectId)}
             projects={projects}
+            loading={projectsLoading}
           />
         )}
 
-        {/* Allocate Button (Income Only) */}
-        {formData.formType === RecordFormType.INCOME && !isEditing && (
-          <AllocationButton
+        {formData.formType === RecordFormType.INCOME && (
+          <IncomeSection
+            editing={isEditing}
             showAllocations={showAllocations}
             setShowAllocations={setShowAllocations}
-          />
-        )}
-
-        {/* Allocations Section */}
-        {(showAllocations || isEditing) && formData.formType === RecordFormType.INCOME && (
-          <AllocationSection
+            onChanged={formChanged}
             projects={projects}
+            projectId={formData.projectId}
+            projectsLoading={projectsLoading}
             allocations={formData.allocations}
             amount={formData.amount}
             totalPercentage={totalPercentage}
-            onChanged={formChanged}
           />
         )}
       </form>
@@ -100,7 +98,7 @@ export const RecordFormContent: React.FC<RecordFormContentProps> = (props) => {
         <Button variant="outline" onClick={onClose}>
           取消
         </Button>
-        <Button type="submit" disabled={loading}>
+        <Button type="submit" disabled={loading} onClick={save}>
           {loading ? '儲存中...' : '儲存'}
         </Button>
       </DialogFooter>

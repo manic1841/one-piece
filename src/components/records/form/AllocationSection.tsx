@@ -54,17 +54,15 @@ export const AllocationSection: React.FC<AllocationSectionProps> = ({
                       type="number"
                       min="0"
                       max="100"
-                      step="0.1"
+                      step="1"
                       className="text-right pr-6"
                       value={percentage}
-                      onChange={(e) =>
-                        onChanged?.(
-                          'allocations',
-                          allocations.map((a) =>
-                            a.projectId === project.id ? { ...a, percentage: e.target.value } : a,
-                          ),
-                        )
-                      }
+                      onChange={(e) => {
+                        onChanged?.('allocations', [
+                          ...allocations.filter((a) => a.projectId !== project.id),
+                          { projectId: project.id, percentage: e.target.value },
+                        ]);
+                      }}
                     />
                     <span className="absolute right-3 top-2.5 text-muted-foreground text-sm">
                       %

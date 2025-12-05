@@ -12,6 +12,7 @@ export const useRecords = (householdId?: string) => {
       run(async () => {
         if (!householdId) return;
         const data = await recordService.getRecords(householdId);
+        console.log(`Loaded ${data.length} records.`);
         setRecords(data);
       }),
     [run, householdId],

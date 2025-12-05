@@ -31,7 +31,7 @@ class HouseholdRepository extends BaseRepository<Household, HouseholdFirestore, 
     return doc(this.db, this.collectionName, householdId);
   }
 
-  protected toFirestore(entity: Household): HouseholdFirestore {
+  protected toFirestore(entity: Household): Partial<HouseholdFirestore> {
     const members = Object.entries(entity.members).reduce(
       (acc, [key, value]) => {
         acc[key] = {

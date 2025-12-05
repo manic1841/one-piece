@@ -7,6 +7,7 @@ import { RecordStats } from '@/components/records/RecordStats';
 import { RecordList } from '@/components/records/RecordList';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { RecordFilterType } from '@/domains/record/types';
 
 const Records: React.FC = () => {
   const { userProfile, currentUser } = useAuth();
@@ -46,31 +47,48 @@ const Records: React.FC = () => {
         <CardContent className="p-2">
           <div className="flex gap-2">
             <Button
-              variant={filterType === 'all' ? 'default' : 'ghost'}
+              variant={filterType === RecordFilterType.ALL ? 'default' : 'ghost'}
               className={`flex-1 ${
-                filterType === 'all' ? 'bg-blue-100 text-blue-700 hover:bg-blue-200' : ''
+                filterType === RecordFilterType.ALL
+                  ? 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+                  : ''
               }`}
-              onClick={() => setFilterType('all')}
+              onClick={() => setFilterType(RecordFilterType.ALL)}
             >
               All
             </Button>
             <Button
-              variant={filterType === 'income' ? 'default' : 'ghost'}
+              variant={filterType === RecordFilterType.INCOME ? 'default' : 'ghost'}
               className={`flex-1 ${
-                filterType === 'income' ? 'bg-green-100 text-green-700 hover:bg-green-200' : ''
+                filterType === RecordFilterType.INCOME
+                  ? 'bg-green-100 text-green-700 hover:bg-green-200'
+                  : ''
               }`}
-              onClick={() => setFilterType('income')}
+              onClick={() => setFilterType(RecordFilterType.INCOME)}
             >
               Income
             </Button>
             <Button
-              variant={filterType === 'expense' ? 'default' : 'ghost'}
+              variant={filterType === RecordFilterType.EXPENSE ? 'default' : 'ghost'}
               className={`flex-1 ${
-                filterType === 'expense' ? 'bg-red-100 text-red-700 hover:bg-red-200' : ''
+                filterType === RecordFilterType.EXPENSE
+                  ? 'bg-red-100 text-red-700 hover:bg-red-200'
+                  : ''
               }`}
-              onClick={() => setFilterType('expense')}
+              onClick={() => setFilterType(RecordFilterType.EXPENSE)}
             >
               Expense
+            </Button>
+            <Button
+              variant={filterType === RecordFilterType.TRANSFER ? 'default' : 'ghost'}
+              className={`flex-1 ${
+                filterType === RecordFilterType.TRANSFER
+                  ? 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200'
+                  : ''
+              }`}
+              onClick={() => setFilterType(RecordFilterType.TRANSFER)}
+            >
+              Transfer
             </Button>
           </div>
         </CardContent>

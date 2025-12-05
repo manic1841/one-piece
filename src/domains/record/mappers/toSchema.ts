@@ -12,11 +12,15 @@ export const transactionConverter = (record: Record) => {
   return {
     id: record.id,
     type: record.transactionType,
-    date: new Date(record.date),
+    date: record.date,
     category: record.category,
-    amount: Number(record.amount),
+    amount: record.amount,
     description: record.description,
     projectId: record.mainProjectId,
+    createdAt: record.createdAt,
+    createdBy: record.createdBy,
+    updatedAt: record.createdAt,
+    updatedBy: record.createdBy,
   } as Transaction;
 };
 
@@ -28,6 +32,10 @@ export const plannedIncomeConverter = (record: Record) => {
     date: new Date(record.date),
     description: record.description,
     allocations: record.allocations,
+    createdAt: record.createdAt,
+    createdBy: record.createdBy,
+    updatedAt: record.createdAt,
+    updatedBy: record.createdBy,
   } as PlannedIncome;
 };
 
@@ -40,6 +48,10 @@ export const projectTransactionConverter = (record: Record) => {
     date: new Date(record.date),
     description: record.description,
     incomeSource: record.incomeSource,
+    createdAt: record.createdAt,
+    createdBy: record.createdBy,
+    updatedAt: record.createdAt,
+    updatedBy: record.createdBy,
   } as ProjectTransaction;
 };
 

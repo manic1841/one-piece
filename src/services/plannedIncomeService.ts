@@ -1,14 +1,16 @@
-import { runTransaction, orderBy, where } from 'firebase/firestore';
-import { db } from '../firebase';
-import { type PlannedIncome } from '../schemas';
-import { projectTransactionService } from './projectTransactionService';
-import { plannedIncomeRepository } from '../repositories/plannedIncomeRepository';
+import { runTransaction, orderBy, where, QueryConstraint } from 'firebase/firestore';
+import { db } from '@/firebase';
+import { type PlannedIncome } from '@/schemas';
+import { projectTransactionService } from '@/services/projectTransactionService';
+import { plannedIncomeRepository } from '@/repositories/plannedIncomeRepository';
+import { type ExcludedColumn } from '@/repositories/baseRepository';
+import { ProjectTransactionCategory } from '@/domains/record/types';
 
-export const plannedIncomeService = {
+class PlannedIncomeService {
   // Create a new planned income and generate project transactions
   async createPlannedIncome(
     householdId: string,
-    data: Omit<PlannedIncome, 'id' | 'createdAt'>,
+    data: Omit<PlannedIncome, ExcludedColumn>,
     userEmail: string,
   ): Promise<string> {
     return await runTransaction(db, async (transaction) => {
@@ -29,12 +31,11 @@ export const plannedIncomeService = {
               householdId,
               {
                 date: data.date,
-                type: 'allocation',
+                category: ProjectTransactionCategory.ALLOCATION,
                 toProject: allocation.projectId,
                 amount: amount,
                 description: `Allocation from ${data.category}: ${data.description || ''}`,
                 incomeSource: plannedIncomeId,
-                createdBy: data.createdBy,
               },
               userEmail,
               transaction, // Pass transaction to ensure atomicity
@@ -45,24 +46,25 @@ export const plannedIncomeService = {
 
       return plannedIncomeId;
     });
-  },
+  }
 
   // Get planned incomes
-  async getPlannedIncomes(householdId: string): Promise<PlannedIncome[]> {
-    return plannedIncomeRepository.list([householdId], [orderBy('date', 'desc')]);
-  },
-
-  // Get planned incomes for a specific period
-  async getPlannedIncomesForPeriod(
+  async getPlannedIncomes(
     householdId: string,
-    startDate: Date,
-    endDate: Date,
+    filters?: { startDate?: Date; endDate?: Date; category?: string },
   ): Promise<PlannedIncome[]> {
-    return plannedIncomeRepository.list(
-      [householdId],
-      [where('date', '>=', startDate), where('date', '<=', endDate), orderBy('date', 'desc')],
-    );
-  },
+    const q: QueryConstraint[] = [orderBy('date', 'desc')];
+    if (filters?.startDate) {
+      q.push(where('date', '>=', filters.startDate));
+    }
+    if (filters?.endDate) {
+      q.push(where('date', '<=', filters.endDate));
+    }
+    if (filters?.category) {
+      q.push(where('category', '==', filters.category));
+    }
+    return plannedIncomeRepository.list([householdId], q);
+  }
 
   // Get latest planned income by category to retrieve user settings/defaults
   async getLatestPlannedIncomeByCategory(
@@ -79,35 +81,32 @@ export const plannedIncomeService = {
     );
 
     return results.length > 0 ? results[0] : null;
-  },
+  }
 
   // Update a planned income and related project transactions
   async updatePlannedIncome(
     householdId: string,
     plannedIncomeId: string,
-    data: Partial<Omit<PlannedIncome, 'id' | 'createdAt'>>,
+    data: Partial<Omit<PlannedIncome, ExcludedColumn>>,
     userEmail: string,
   ): Promise<void> {
     // If allocations are being updated, we need to update projectTransactions too
     if (data.allocations) {
       await runTransaction(db, async (transaction) => {
         // 1. Get the planned income to determine the amount
-        const plannedIncomeRef = plannedIncomeRepository.getDocRefForTransaction(
+        const currentPlannedIncome = await plannedIncomeRepository.get([
           householdId,
           plannedIncomeId,
-        );
-        const plannedIncomeDoc = await transaction.get(plannedIncomeRef);
+        ]);
 
-        if (!plannedIncomeDoc.exists()) {
+        if (currentPlannedIncome === null) {
           throw new Error('Planned income not found');
         }
 
-        const currentPlannedIncome = plannedIncomeDoc.data() as PlannedIncome;
         const amount = data.amount ?? currentPlannedIncome.amount;
         const date = data.date ?? currentPlannedIncome.date;
         const category = data.category ?? currentPlannedIncome.category;
         const description = data.description ?? currentPlannedIncome.description;
-        const createdBy = data.createdBy ?? currentPlannedIncome.createdBy;
 
         // 2. Delete old project transactions
         const oldTransactions =
@@ -123,7 +122,7 @@ export const plannedIncomeService = {
         );
 
         // 3. Create new project transactions based on updated allocations
-        const allocations = data.allocations!; // Non-null assertion - we already checked in outer if
+        const allocations = data.allocations!;
         for (const allocation of allocations) {
           if (allocation.percentage > 0) {
             const allocationAmount = (amount * allocation.percentage) / 100;
@@ -131,26 +130,31 @@ export const plannedIncomeService = {
               householdId,
               {
                 date,
-                type: 'allocation',
+                category: ProjectTransactionCategory.ALLOCATION,
                 toProject: allocation.projectId,
                 amount: allocationAmount,
                 description: `Allocation from ${category}: ${description || ''}`,
                 incomeSource: plannedIncomeId,
-                createdBy,
               },
+              userEmail,
               transaction,
             );
           }
         }
 
         // 4. Update the planned income document
-        transaction.update(plannedIncomeRef, data);
+        await plannedIncomeRepository.update(
+          [householdId, plannedIncomeId],
+          data,
+          userEmail,
+          transaction,
+        );
       });
     } else {
       // No allocation changes, just update the planned income
       return plannedIncomeRepository.update([householdId, plannedIncomeId], data, userEmail);
     }
-  },
+  }
 
   // Delete a planned income and related project transactions
   async deletePlannedIncome(householdId: string, plannedIncomeId: string): Promise<void> {
@@ -169,11 +173,9 @@ export const plannedIncomeService = {
       );
 
       // 2. Delete the planned income
-      const plannedIncomeRef = plannedIncomeRepository.getDocRefForTransaction(
-        householdId,
-        plannedIncomeId,
-      );
-      transaction.delete(plannedIncomeRef);
+      await plannedIncomeRepository.delete([householdId, plannedIncomeId], transaction);
     });
-  },
-};
+  }
+}
+
+export const plannedIncomeService = new PlannedIncomeService();

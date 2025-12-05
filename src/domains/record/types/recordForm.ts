@@ -1,3 +1,5 @@
+import type { RecordCategory, RecordType } from '@/domains/record/types/';
+
 export const RecordFormType = {
   INCOME: 'income',
   EXPENSE: 'expense',
@@ -14,10 +16,11 @@ export const RecordFormTitles = {
 export type RecordFormTitles = (typeof RecordFormTitles)[keyof typeof RecordFormTitles];
 
 export interface RecordFormData {
-  amount: string;
+  recordType?: RecordType;
   formType: RecordFormType;
+  amount: string;
   date: string;
-  category: string;
+  category: RecordCategory;
   projectId: string;
   description: string;
   allocations: Array<{

@@ -21,10 +21,10 @@ class ProjectSnapshotRepository extends BaseRepository<
     return doc(this.db, 'households', householdId, 'projects', projectId, 'snapshots', snapshotId);
   }
 
-  protected toFirestore(entity: ProjectSnapshot): ProjectSnapshotFirestore {
+  protected toFirestore(entity: ProjectSnapshot): Partial<ProjectSnapshotFirestore> {
     return {
       ...entity,
-      createdAt: Timestamp.fromDate(entity.createdAt),
+      createdAt: entity.createdAt ? Timestamp.fromDate(entity.createdAt) : undefined,
     };
   }
 

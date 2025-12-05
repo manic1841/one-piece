@@ -11,6 +11,7 @@ import { getDoc, getDocs, setDoc, updateDoc, deleteDoc, doc, where } from 'fireb
 
 describe('projectTransactionRepository', () => {
   const householdId = 'test-household';
+  const userEmail = 'test@example.com';
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -24,13 +25,16 @@ describe('projectTransactionRepository', () => {
         toProject: 'project-1',
         amount: 5000,
         description: 'Test transaction',
-        createdBy: 'user-1',
       };
 
       const mockDocRef = { id: 'new-transaction-id' } as DocumentReference;
       vi.mocked(doc).mockReturnValue(mockDocRef);
 
-      const id = await projectTransactionRepository.create(householdId, newTransaction);
+      const id = await projectTransactionRepository.create(
+        [householdId],
+        newTransaction,
+        userEmail,
+      );
 
       expect(id).toBe('new-transaction-id');
       expect(setDoc).toHaveBeenCalledWith(
@@ -39,6 +43,7 @@ describe('projectTransactionRepository', () => {
           type: 'allocation',
           amount: 5000,
           id: 'new-transaction-id',
+          createdBy: userEmail,
         }),
       );
     });
@@ -50,7 +55,6 @@ describe('projectTransactionRepository', () => {
         fromProject: 'project-1',
         toProject: 'project-2',
         amount: 1000,
-        createdBy: 'user-1',
       };
 
       const mockDocRef = { id: 'new-transaction-id' } as DocumentReference;
@@ -61,8 +65,9 @@ describe('projectTransactionRepository', () => {
       };
 
       const id = await projectTransactionRepository.create(
-        householdId,
+        [householdId],
         newTransaction,
+        userEmail,
         mockFirestoreTransaction as unknown as FirestoreTransaction,
       );
 
@@ -72,7 +77,7 @@ describe('projectTransactionRepository', () => {
     });
   });
 
-  describe('getById', () => {
+  describe('get', () => {
     it('should return project transaction when it exists', async () => {
       const mockTransaction = {
         id: 'transaction-1',
@@ -82,6 +87,7 @@ describe('projectTransactionRepository', () => {
         amount: 5000,
         createdBy: 'user-1',
         createdAt: new Timestamp(1704067200, 0),
+        updatedAt: new Timestamp(1704067200, 0),
       };
 
       vi.mocked(getDoc).mockResolvedValue({
@@ -92,7 +98,7 @@ describe('projectTransactionRepository', () => {
         metadata: {} as unknown,
       } as unknown as DocumentSnapshot);
 
-      const result = await projectTransactionRepository.getById(householdId, 'transaction-1');
+      const result = await projectTransactionRepository.get([householdId, 'transaction-1']);
 
       expect(result).toBeTruthy();
       expect(result?.amount).toBe(5000);
@@ -108,13 +114,13 @@ describe('projectTransactionRepository', () => {
         metadata: {} as unknown,
       } as unknown as DocumentSnapshot);
 
-      const result = await projectTransactionRepository.getById(householdId, 'non-existent');
+      const result = await projectTransactionRepository.get([householdId, 'non-existent']);
 
       expect(result).toBe(null);
     });
   });
 
-  describe('getAll', () => {
+  describe('list', () => {
     it('should return all project transactions', async () => {
       const mockTransactions = [
         {
@@ -125,6 +131,7 @@ describe('projectTransactionRepository', () => {
           amount: 5000,
           createdBy: 'user-1',
           createdAt: new Timestamp(1704067200, 0),
+          updatedAt: new Timestamp(1704067200, 0),
         },
         {
           id: 'trans-2',
@@ -135,6 +142,7 @@ describe('projectTransactionRepository', () => {
           amount: 1000,
           createdBy: 'user-1',
           createdAt: new Timestamp(1706745600, 0),
+          updatedAt: new Timestamp(1706745600, 0),
         },
       ];
 
@@ -145,7 +153,7 @@ describe('projectTransactionRepository', () => {
         })),
       } as unknown as QuerySnapshot);
 
-      const result = await projectTransactionRepository.getAll(householdId);
+      const result = await projectTransactionRepository.list([householdId]);
 
       expect(result).toHaveLength(2);
       expect(result[0].amount).toBe(5000);
@@ -162,6 +170,7 @@ describe('projectTransactionRepository', () => {
           amount: 5000,
           createdBy: 'user-1',
           createdAt: new Timestamp(1704067200, 0),
+          updatedAt: new Timestamp(1704067200, 0),
         },
       ];
 
@@ -172,9 +181,10 @@ describe('projectTransactionRepository', () => {
         })),
       } as unknown as QuerySnapshot);
 
-      const result = await projectTransactionRepository.getAll(householdId, [
-        where('toProject', '==', 'project-1'),
-      ]);
+      const result = await projectTransactionRepository.list(
+        [householdId],
+        [where('toProject', '==', 'project-1')],
+      );
 
       expect(result).toHaveLength(1);
       expect(result[0].toProject).toBe('project-1');
@@ -183,25 +193,34 @@ describe('projectTransactionRepository', () => {
 
   describe('update', () => {
     it('should update a project transaction', async () => {
-      await projectTransactionRepository.update(householdId, 'trans-1', {
-        amount: 6000,
-        description: 'Updated transaction',
-      });
+      await projectTransactionRepository.update(
+        [householdId, 'trans-1'],
+        {
+          amount: 6000,
+          description: 'Updated transaction',
+        },
+        userEmail,
+      );
 
       expect(updateDoc).toHaveBeenCalledWith(
         expect.anything(),
         expect.objectContaining({
           amount: 6000,
           description: 'Updated transaction',
+          updatedBy: userEmail,
         }),
       );
     });
 
     it('should convert Date to Timestamp when updating', async () => {
       const newDate = new Date('2024-02-01');
-      await projectTransactionRepository.update(householdId, 'trans-1', {
-        date: newDate,
-      });
+      await projectTransactionRepository.update(
+        [householdId, 'trans-1'],
+        {
+          date: newDate,
+        },
+        userEmail,
+      );
 
       expect(updateDoc).toHaveBeenCalledWith(
         expect.anything(),
@@ -214,7 +233,7 @@ describe('projectTransactionRepository', () => {
 
   describe('delete', () => {
     it('should delete a project transaction', async () => {
-      await projectTransactionRepository.delete(householdId, 'trans-1');
+      await projectTransactionRepository.delete([householdId, 'trans-1']);
 
       expect(deleteDoc).toHaveBeenCalledWith(expect.anything());
     });
@@ -225,59 +244,12 @@ describe('projectTransactionRepository', () => {
       };
 
       await projectTransactionRepository.delete(
-        householdId,
-        'trans-1',
+        [householdId, 'trans-1'],
         mockFirestoreTransaction as unknown as FirestoreTransaction,
       );
 
       expect(mockFirestoreTransaction.delete).toHaveBeenCalled();
       expect(deleteDoc).not.toHaveBeenCalled();
-    });
-  });
-
-  describe('deleteMultiple', () => {
-    it('should delete multiple project transactions', async () => {
-      await projectTransactionRepository.deleteMultiple(householdId, ['trans-1', 'trans-2']);
-
-      expect(deleteDoc).toHaveBeenCalledTimes(2);
-    });
-
-    it('should handle empty array', async () => {
-      await projectTransactionRepository.deleteMultiple(householdId, []);
-
-      expect(deleteDoc).not.toHaveBeenCalled();
-    });
-
-    it('should support transaction parameter', async () => {
-      const mockFirestoreTransaction = {
-        delete: vi.fn(),
-      };
-
-      await projectTransactionRepository.deleteMultiple(
-        householdId,
-        ['trans-1', 'trans-2'],
-        mockFirestoreTransaction as unknown as FirestoreTransaction,
-      );
-
-      expect(mockFirestoreTransaction.delete).toHaveBeenCalledTimes(2);
-      expect(deleteDoc).not.toHaveBeenCalled();
-    });
-  });
-
-  describe('getDocRefForTransaction', () => {
-    it('should return a new doc ref when no ID provided', () => {
-      const mockDocRef = { id: 'new-doc-id' } as DocumentReference;
-      vi.mocked(doc).mockReturnValue(mockDocRef);
-
-      const ref = projectTransactionRepository.getDocRefForTransaction(householdId);
-
-      expect(ref).toBeDefined();
-    });
-
-    it('should return a specific doc ref when ID provided', () => {
-      const ref = projectTransactionRepository.getDocRefForTransaction(householdId, 'trans-1');
-
-      expect(ref).toBeDefined();
     });
   });
 });

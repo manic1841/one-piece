@@ -24,11 +24,11 @@ class ProjectRepository extends BaseRepository<Project, ProjectFirestore, [strin
     return doc(this.db, 'households', householdId, this.collectionName, projectId);
   }
 
-  protected toFirestore(entity: Project): ProjectFirestore {
+  protected toFirestore(entity: Project): Partial<ProjectFirestore> {
     return {
       ...entity,
-      createdAt: Timestamp.fromDate(entity.createdAt),
-      updatedAt: Timestamp.fromDate(entity.updatedAt),
+      createdAt: entity.createdAt ? Timestamp.fromDate(entity.createdAt) : undefined,
+      updatedAt: entity.updatedAt ? Timestamp.fromDate(entity.updatedAt) : undefined,
     };
   }
 

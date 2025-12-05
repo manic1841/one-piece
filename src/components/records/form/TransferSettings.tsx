@@ -8,17 +8,17 @@ interface TransferSettingsProps {
   toProjectId: string;
   setToProjectId: <K extends keyof RecordFormData>(name: K, value: RecordFormData[K]) => void;
   projects: Project[];
+  loading?: boolean;
 }
 
 export const TransferSettings: React.FC<TransferSettingsProps> = (props) => {
-  const { fromProjectId, setFromProjectId, toProjectId, setToProjectId, projects } = props;
-
+  const { fromProjectId, setFromProjectId, toProjectId, setToProjectId, projects, loading } = props;
   const handleFromProjectIdChange = (projectId: string) => {
     setFromProjectId('fromProjectId', projectId);
   };
 
   const handleToProjectIdChange = (projectId: string) => {
-    setToProjectId('projectId', projectId);
+    setToProjectId('toProjectId', projectId);
   };
 
   return (
@@ -30,6 +30,7 @@ export const TransferSettings: React.FC<TransferSettingsProps> = (props) => {
         projects={projects}
         excludeProjectId={toProjectId}
         required={false}
+        loading={loading}
       />
       <ProjectSelection
         label="目標專案（選填）"
@@ -38,6 +39,7 @@ export const TransferSettings: React.FC<TransferSettingsProps> = (props) => {
         projects={projects}
         excludeProjectId={fromProjectId}
         required={false}
+        loading={loading}
       />
     </div>
   );

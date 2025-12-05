@@ -4,7 +4,6 @@ import { PlannedIncomeCategory } from '@/domains/record/types';
 export const PlannedIncomeAllocationSchema = z.object({
   projectId: z.string(),
   percentage: z.number(),
-  lastUsedAmount: z.number().optional(),
 });
 export type PlannedIncomeAllocation = z.infer<typeof PlannedIncomeAllocationSchema>;
 

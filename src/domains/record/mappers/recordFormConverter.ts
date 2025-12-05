@@ -1,12 +1,13 @@
 import { RecordFormType, type Record, type RecordFormData } from '@/domains/record/types';
+import { toDateString } from '@/utils/dateUtils';
 
 export const toRecordFormData = (record?: Record): RecordFormData => {
   // default empty form
   if (!record) {
     return {
-      amount: '',
       formType: RecordFormType.EXPENSE,
-      date: new Date().toDateString(),
+      amount: '',
+      date: toDateString(new Date()),
       category: '',
       projectId: '',
       description: '',
@@ -17,9 +18,10 @@ export const toRecordFormData = (record?: Record): RecordFormData => {
   }
 
   return {
-    amount: record.amount.toString(),
+    recordType: record.recordType,
     formType: record.formType,
-    date: record.date.toDateString(),
+    amount: record.amount.toString(),
+    date: toDateString(record.date),
     category: record.category || '',
     projectId: record.mainProjectId || '',
     description: record.description,
@@ -33,8 +35,9 @@ export const toRecordFormData = (record?: Record): RecordFormData => {
   };
 };
 
-export const buildRecord = (formData: RecordFormData): Record => {
+export const buildRecord = (formData: RecordFormData, prevRecord?: Record): Record => {
   return {
+    ...prevRecord,
     formType: formData.formType,
     amount: parseFloat(formData.amount),
     date: new Date(formData.date),

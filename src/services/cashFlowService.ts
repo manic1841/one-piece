@@ -18,11 +18,10 @@ class CashFlowService {
     createdBy: string,
   ): Promise<CashFlowStatement> {
     // 1. Fetch transactions for the period
-    const transactions = await transactionService.getTransactionsByPeriod(
-      householdId,
-      startDate,
-      endDate,
-    );
+    const transactions = await transactionService.getTransactions(householdId, {
+      startDate: startDate,
+      endDate: endDate,
+    });
 
     // 2. Fetch projects for accounting configuration
     const projects = await projectService.getProjects(householdId);
@@ -32,10 +31,10 @@ class CashFlowService {
     // For now, let's try to get snapshots for the previous month end.
     const prevMonthEnd = new Date(startDate);
     prevMonthEnd.setDate(0); // Last day of previous month
-    
+
     const accounts = await accountService.getAccounts(householdId);
     let beginningBalance = 0;
-    
+
     // Try to get snapshots for previous month
     for (const account of accounts) {
       if (account.type === 'bank' || account.type === 'cash') {
@@ -43,9 +42,9 @@ class CashFlowService {
           householdId,
           account.id,
           prevMonthEnd.getFullYear(),
-          prevMonthEnd.getMonth() + 1
+          prevMonthEnd.getMonth() + 1,
         );
-        
+
         if (snapshots.length > 0) {
           beginningBalance += snapshots[0].amount;
         } else {
@@ -66,7 +65,7 @@ class CashFlowService {
       endDate,
       beginningBalance,
       createdBy,
-      householdId
+      householdId,
     );
   }
 }

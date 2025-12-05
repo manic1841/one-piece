@@ -15,6 +15,8 @@ import {
   Transaction,
 } from 'firebase/firestore';
 
+export type ExcludedColumn = 'id' | 'createdAt' | 'updatedAt' | 'createdBy' | 'updatedBy';
+
 export abstract class BaseRepository<
   TDomain extends object,
   TFirestore extends DocumentData,
@@ -32,7 +34,7 @@ export abstract class BaseRepository<
   // create
   async create(
     args: RefArgs,
-    data: Omit<TDomain, 'id' | 'createdAt' | 'updatedAt' | 'createdBy' | 'updatedBy'>,
+    data: Omit<TDomain, ExcludedColumn>,
     userEmail: string,
     tx?: Transaction,
   ): Promise<string> {

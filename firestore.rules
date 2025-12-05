@@ -88,7 +88,7 @@ service cloud.firestore {
         allow write: if isSignedIn() && isHouseholdAdmin(householdId);
       }
 
-      match /plannedIncome/{pid} {
+      match /plannedIncomes/{pid} {
         allow read: if isSignedIn() && isHouseholdMember(householdId);
         allow write: if isSignedIn() && isHouseholdAdmin(householdId);
       }

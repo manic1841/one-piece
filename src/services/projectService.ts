@@ -1,6 +1,6 @@
 import { Timestamp, where } from 'firebase/firestore';
-import type { Project, ProjectSnapshot } from '../schemas/project';
-import { projectRepository } from '../repositories/projectRepository';
+import type { Project, ProjectSnapshot } from '@/schemas/project';
+import { projectRepository } from '@/repositories/projectRepository';
 import { projectSnapshotRepository } from '@/repositories/projectSnapshotRepository';
 
 export interface ProjectWithSnapshot {
@@ -197,23 +197,6 @@ class ProjectService {
       [where('year', '==', year), where('month', '==', month)],
     );
   }
-
-  // /**
-  //  * Get snapshots for ALL projects within a year range
-  //  */
-  // async getSnapshotsForPeriod(
-  //   householdId: string,
-  //   startYear: number,
-  //   endYear: number,
-  // ): Promise<Array<ProjectSnapshot & { projectId: string }>> {
-  //   const projects = await this.getProjects(householdId);
-  //   const projectIds = projects.map((p) => p.id);
-
-  //   return projectRepository.getSnapshotsForProjects(householdId, projectIds, {
-  //     startYear,
-  //     endYear,
-  //   });
-  // }
 
   /**
    * Get snapshot for a specific project and period

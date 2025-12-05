@@ -22,10 +22,10 @@ class AccessControlRepository extends BaseRepository<AccessControl, AccessContro
     return doc(this.getCollectionRef(), this.docId);
   }
 
-  protected toFirestore(entity: AccessControl): AccessControlFirestore {
+  protected toFirestore(entity: AccessControl): Partial<AccessControlFirestore> {
     return {
       ...entity,
-      updatedAt: Timestamp.fromDate(entity.updatedAt),
+      updatedAt: entity.updatedAt ? Timestamp.fromDate(entity.updatedAt) : undefined,
     };
   }
 

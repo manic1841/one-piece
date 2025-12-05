@@ -38,7 +38,7 @@ export interface Record {
     percentage: number;
   }[];
   // projectTransaction
-  incomeSource?: string;
+  incomeSource?: string | null;
   // transaction
   transactionType?: TransactionType;
 }

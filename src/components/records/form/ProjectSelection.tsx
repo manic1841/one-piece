@@ -12,6 +12,7 @@ interface ProjectSelectionProps {
   projectId: string;
   onChange?: (projectId: string) => void;
   projects: Project[];
+  loading?: boolean;
   label?: string;
   excludeProjectId?: string; // For transfer: exclude source from destination options
   required?: boolean;
@@ -21,6 +22,7 @@ export const ProjectSelection: React.FC<ProjectSelectionProps> = ({
   projectId,
   onChange,
   projects,
+  loading,
   label = '專案',
   excludeProjectId,
   required = true,
@@ -44,7 +46,7 @@ export const ProjectSelection: React.FC<ProjectSelectionProps> = ({
           ))}
         </SelectContent>
       </Select>
-      {projects.length === 0 && (
+      {projects.length === 0 && !loading && (
         <p className="text-xs text-destructive">找不到專案，請先在設定中建立專案</p>
       )}
     </div>

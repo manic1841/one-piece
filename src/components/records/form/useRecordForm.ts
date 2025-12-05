@@ -19,17 +19,18 @@ export const useRecordForm = ({
   initialData,
   householdId,
 }: UseRecordFormProps) => {
-  const { projects } = useProjectsNew(householdId);
+  const { projects, loading: projectsLoading } = useProjectsNew(householdId);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
   const [formData, setFormData] = useState<RecordFormData>(toRecordFormData(initialData));
-  const [showAllocations, setShowAllocations] = useState(false);
+  const [showAllocations, setShowAllocations] = useState(formData.allocations.length > 0);
   const [totalPercentage, setTotalPercentage] = useState(0);
 
   const isEditing = !!initialData;
 
   const formChanged = <K extends keyof RecordFormData>(name: K, value: RecordFormData[K]) => {
+    console.log(`Form changed: ${String(name)} =`, value);
     setFormData((prev) => ({
       ...prev,
       [name]: value,
@@ -45,6 +46,7 @@ export const useRecordForm = ({
   }, [formData.allocations]);
 
   const save = async (e: React.FormEvent) => {
+    console.log('Saving record with formData:', formData);
     e.preventDefault();
     setError('');
 
@@ -57,7 +59,7 @@ export const useRecordForm = ({
 
     setLoading(true);
 
-    onSubmit(buildRecord(formData));
+    onSubmit(buildRecord(formData, initialData));
 
     try {
       // Reset form
@@ -83,6 +85,7 @@ export const useRecordForm = ({
     showAllocations,
     setShowAllocations,
     projects,
+    projectsLoading,
     save,
     totalPercentage,
   };

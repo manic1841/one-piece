@@ -1,8 +1,8 @@
 import { collection, doc, Timestamp, type DocumentData } from 'firebase/firestore';
-import { db } from '../firebase';
-import { PlannedIncomeSchema, type PlannedIncome } from '../schemas';
+import { db } from '@/firebase';
+import { PlannedIncomeSchema, type PlannedIncome } from '@/schemas';
 import { toDate } from '@/utils/dateUtils';
-import { BaseRepository } from './baseRepository';
+import { BaseRepository } from '@/repositories/baseRepository';
 
 type PlannedIncomeFirestore = Omit<PlannedIncome, 'date' | 'createdAt' | 'updatedAt'> & {
   date: Timestamp;
@@ -15,7 +15,7 @@ class PlannedIncomeRepository extends BaseRepository<
   PlannedIncomeFirestore,
   [string, string?]
 > {
-  private readonly collectionName = 'plannedIncome';
+  private readonly collectionName = 'plannedIncomes';
 
   protected getCollectionRef(householdId: string) {
     return collection(this.db, 'households', householdId, this.collectionName);
@@ -25,12 +25,12 @@ class PlannedIncomeRepository extends BaseRepository<
     return doc(this.db, 'households', householdId, this.collectionName, plannedIncomeId);
   }
 
-  protected toFirestore(entity: PlannedIncome): PlannedIncomeFirestore {
+  protected toFirestore(entity: PlannedIncome): Partial<PlannedIncomeFirestore> {
     return {
       ...entity,
-      date: Timestamp.fromDate(entity.date),
-      createdAt: Timestamp.fromDate(entity.createdAt),
-      updatedAt: Timestamp.fromDate(entity.updatedAt),
+      date: entity.date ? Timestamp.fromDate(entity.date) : undefined,
+      createdAt: entity.createdAt ? Timestamp.fromDate(entity.createdAt) : undefined,
+      updatedAt: entity.updatedAt ? Timestamp.fromDate(entity.updatedAt) : undefined,
     };
   }
 

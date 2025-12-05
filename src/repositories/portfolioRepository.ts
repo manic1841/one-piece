@@ -20,11 +20,11 @@ class PortfolioRepository extends BaseRepository<Portfolio, PortfolioFirestore, 
     return doc(db, 'households', householdId, this.collectionName, portfolioId);
   }
 
-  protected toFirestore(entity: Portfolio): PortfolioFirestore {
+  protected toFirestore(entity: Portfolio): Partial<PortfolioFirestore> {
     return {
       ...entity,
-      createdAt: Timestamp.fromDate(entity.createdAt),
-      updatedAt: Timestamp.fromDate(entity.updatedAt),
+      createdAt: entity.createdAt ? Timestamp.fromDate(entity.createdAt) : undefined,
+      updatedAt: entity.updatedAt ? Timestamp.fromDate(entity.updatedAt) : undefined,
     };
   }
 

@@ -17,13 +17,3 @@ export const ProjectCategory = {
 } as const;
 
 export type ProjectCategory = (typeof ProjectCategory)[keyof typeof ProjectCategory];
-
-// ProjectTransactionType Schema
-export const ProjectTransactionType = {
-  ALLOCATION: 'allocation',
-  TRANSFER: 'transfer',
-  ADJUSTMENT: 'adjustment',
-} as const;
-
-export type ProjectTransactionType =
-  (typeof ProjectTransactionType)[keyof typeof ProjectTransactionType];

@@ -13,6 +13,7 @@ export function useProjectsNew(householdId: string) {
   const load = useCallback(async () => {
     run(async () => {
       const data = await projectService.getProjects(householdId);
+      console.log('Fetched projects:', data.length);
       setProjects(data);
     });
   }, [run, householdId]);

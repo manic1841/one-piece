@@ -20,11 +20,11 @@ class AccountRepository extends BaseRepository<Account, AccountFirestore, [strin
     return doc(this.getCollectionRef(householdId), accountId);
   }
 
-  protected toFirestore(entity: Account): AccountFirestore {
+  protected toFirestore(entity: Account): Partial<AccountFirestore> {
     return {
       ...entity,
-      createdAt: Timestamp.fromDate(entity.createdAt),
-      updatedAt: Timestamp.fromDate(entity.updatedAt),
+      createdAt: entity.createdAt ? Timestamp.fromDate(entity.createdAt) : undefined,
+      updatedAt: entity.updatedAt ? Timestamp.fromDate(entity.updatedAt) : undefined,
     };
   }
 

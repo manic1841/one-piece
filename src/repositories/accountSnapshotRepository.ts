@@ -21,10 +21,10 @@ class AccountSnapshotRepository extends BaseRepository<
     return doc(this.getCollectionRef(householdId, accountId), snapshotId);
   }
 
-  protected toFirestore(entity: AccountSnapshot): AccountSnapshotFirestore {
+  protected toFirestore(entity: AccountSnapshot): Partial<AccountSnapshotFirestore> {
     return {
       ...entity,
-      createdAt: Timestamp.fromDate(entity.createdAt),
+      createdAt: entity.createdAt ? Timestamp.fromDate(entity.createdAt) : undefined,
     };
   }
 
