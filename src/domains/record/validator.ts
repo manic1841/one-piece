@@ -69,14 +69,14 @@ const validateTransferForm = (args: ValidateArgs): ValidationResult => {
   }
   // Only validate if both projects are selected that they're different
   if (
-    formData.projectId &&
+    formData.toProjectId &&
     formData.fromProjectId &&
-    formData.projectId === formData.fromProjectId
+    formData.toProjectId === formData.fromProjectId
   ) {
     return { isValid: false, error: '來源專案和目標專案不能相同' };
   }
 
-  if (!formData.projectId && !formData.fromProjectId) {
+  if (!formData.toProjectId && !formData.fromProjectId) {
     return { isValid: false, error: '請選擇來源專案或目標專案' };
   }
 

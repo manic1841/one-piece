@@ -18,6 +18,8 @@ const mapTransactionToRecord = (txn: Transaction): Record => {
     description: txn.description || '',
     createdBy: txn.createdBy,
     createdAt: txn.createdAt,
+    updatedBy: txn.updatedBy,
+    updatedAt: txn.updatedAt,
     mainProjectId: txn.projectId,
     transactionType: txn.type,
   };
@@ -34,6 +36,8 @@ const mapPlannedIncomeToRecord = (income: PlannedIncome): Record => {
     description: income.description || '',
     createdBy: income.createdBy,
     createdAt: income.createdAt,
+    updatedBy: income.updatedBy,
+    updatedAt: income.updatedAt,
 
     allocations: income.allocations,
   };
@@ -46,9 +50,12 @@ const mapProjectTransactionToRecord = (pt: ProjectTransaction): Record => {
     formType: RecordFormType.TRANSFER,
     date: pt.date,
     amount: pt.amount,
+    category: pt.category,
     description: pt.description || '',
     createdBy: pt.createdBy,
     createdAt: pt.createdAt,
+    updatedBy: pt.updatedBy,
+    updatedAt: pt.updatedAt,
     mainProjectId: pt.toProject,
     sourceProjectId: pt.fromProject,
     incomeSource: pt.incomeSource,

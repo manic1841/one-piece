@@ -24,6 +24,8 @@ export interface Record {
   description: string;
   createdBy?: string;
   createdAt?: Date;
+  updatedBy?: string;
+  updatedAt?: Date;
 
   // for
   // transaction.projectId,

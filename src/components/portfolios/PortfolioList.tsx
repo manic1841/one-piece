@@ -30,7 +30,7 @@ const PortfolioList: React.FC<PortfolioListProps> = ({ householdId }) => {
   const [latestSnapshots, setLatestSnapshots] = useState<Map<string, PortfolioSnapshot>>(new Map());
   const [loading, setLoading] = useState(true);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
-  
+
   // Create Form State
   const [newName, setNewName] = useState('');
   const [newDescription, setNewDescription] = useState('');
@@ -41,9 +41,8 @@ const PortfolioList: React.FC<PortfolioListProps> = ({ householdId }) => {
   const loadPortfolios = useCallback(async () => {
     try {
       const data = await portfolioService.getPortfolios(householdId);
-      console.log('data', data);
       setPortfolios(data);
-      
+
       // Load latest snapshot for each portfolio
       const snapshotsMap = new Map<string, PortfolioSnapshot>();
       for (const portfolio of data) {
@@ -99,10 +98,8 @@ const PortfolioList: React.FC<PortfolioListProps> = ({ householdId }) => {
   };
 
   const toggleAccountSelection = (accountId: string) => {
-    setSelectedAccountIds(prev => 
-      prev.includes(accountId) 
-        ? prev.filter(id => id !== accountId)
-        : [...prev, accountId]
+    setSelectedAccountIds((prev) =>
+      prev.includes(accountId) ? prev.filter((id) => id !== accountId) : [...prev, accountId],
     );
   };
 
@@ -121,36 +118,32 @@ const PortfolioList: React.FC<PortfolioListProps> = ({ householdId }) => {
         {portfolios.map((portfolio) => {
           const latestSnapshot = latestSnapshots.get(portfolio.id);
           return (
-          <Card 
-            key={portfolio.id} 
-            className="cursor-pointer hover:bg-slate-50 transition-colors"
-            onClick={() => navigate(`/portfolios/${portfolio.id}`)}
-          >
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                {portfolio.name}
-              </CardTitle>
-              <Briefcase className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {latestSnapshot 
-                  ? formatCurrency(latestSnapshot.totalValue)
-                  : '--'}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                {latestSnapshot 
-                  ? `As of ${formatYearMonth(latestSnapshot.year, latestSnapshot.month)}`
-                  : `${portfolio.accountIds.length} linked accounts`}
-              </p>
-              {portfolio.description && (
-                <p className="text-xs text-muted-foreground mt-2 line-clamp-2">
-                  {portfolio.description}
+            <Card
+              key={portfolio.id}
+              className="cursor-pointer hover:bg-slate-50 transition-colors"
+              onClick={() => navigate(`/portfolios/${portfolio.id}`)}
+            >
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">{portfolio.name}</CardTitle>
+                <Briefcase className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {latestSnapshot ? formatCurrency(latestSnapshot.totalValue) : '--'}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {latestSnapshot
+                    ? `As of ${formatYearMonth(latestSnapshot.year, latestSnapshot.month)}`
+                    : `${portfolio.accountIds.length} linked accounts`}
                 </p>
-              )}
-            </CardContent>
-          </Card>
-        );
+                {portfolio.description && (
+                  <p className="text-xs text-muted-foreground mt-2 line-clamp-2">
+                    {portfolio.description}
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+          );
         })}
         {portfolios.length === 0 && (
           <div className="col-span-full text-center py-10 text-muted-foreground">
@@ -187,14 +180,17 @@ const PortfolioList: React.FC<PortfolioListProps> = ({ householdId }) => {
             <div className="space-y-2">
               <Label>Linked Accounts</Label>
               <div className="border rounded-md p-3 max-h-[200px] overflow-y-auto space-y-2">
-                {availableAccounts.map(account => (
+                {availableAccounts.map((account) => (
                   <div key={account.id} className="flex items-center space-x-2">
-                    <Checkbox 
-                      id={`acc-${account.id}`} 
+                    <Checkbox
+                      id={`acc-${account.id}`}
                       checked={selectedAccountIds.includes(account.id)}
                       onCheckedChange={() => toggleAccountSelection(account.id)}
                     />
-                    <Label htmlFor={`acc-${account.id}`} className="text-sm font-normal cursor-pointer">
+                    <Label
+                      htmlFor={`acc-${account.id}`}
+                      className="text-sm font-normal cursor-pointer"
+                    >
                       {account.name} ({account.type})
                     </Label>
                   </div>

@@ -2,6 +2,7 @@ import { orderBy, where, QueryConstraint } from 'firebase/firestore';
 import type { Transaction } from '@/schemas';
 import { transactionRepository } from '@/repositories/transactionRepository';
 import { type ExcludedColumn } from '@/repositories/baseRepository';
+import type { TransactionCategory, TransactionType } from '@/domains/record/types';
 
 class TransactionService {
   // Create a new transaction
@@ -19,8 +20,8 @@ class TransactionService {
     filters?: {
       startDate?: Date;
       endDate?: Date;
-      type?: 'income' | 'expense';
-      category?: string;
+      type?: TransactionType;
+      category?: TransactionCategory;
     },
   ): Promise<Transaction[]> {
     const q: QueryConstraint[] = [orderBy('date', 'desc')];

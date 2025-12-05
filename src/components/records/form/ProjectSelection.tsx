@@ -7,6 +7,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { type Project } from '@/schemas';
+import { NO_SELECTED } from '@/constants/empty';
 
 interface ProjectSelectionProps {
   projectId: string;
@@ -39,6 +40,9 @@ export const ProjectSelection: React.FC<ProjectSelectionProps> = ({
           <SelectValue placeholder="選擇專案" />
         </SelectTrigger>
         <SelectContent>
+          <SelectItem key="id-1" value={NO_SELECTED}>
+            選擇專案
+          </SelectItem>
           {filteredProjects.map((project) => (
             <SelectItem key={project.id} value={project.id}>
               {project.icon} {project.name}

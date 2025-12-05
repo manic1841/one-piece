@@ -29,13 +29,11 @@ export const useRecordPage = (householdId?: string, email?: string) => {
 
   // create record
   const create = async (record: Record) => {
-    console.log('Creating record:', record);
     await createRecord(record);
   };
 
   // update record
   const update = async (record: Record) => {
-    console.log('Updating record:', record, editing);
     if (!editing) return;
     await updateRecord(record);
     setEditing(undefined);
@@ -43,7 +41,6 @@ export const useRecordPage = (householdId?: string, email?: string) => {
 
   // edit record
   const editClick = (record: Record) => {
-    console.log('Editing record:', record);
     setEditing(record);
     setIsFormOpen(true);
   };

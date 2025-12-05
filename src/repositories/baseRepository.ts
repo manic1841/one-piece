@@ -110,7 +110,6 @@ export abstract class BaseRepository<
 
   // delete
   async delete(args: RefArgs, tx?: Transaction): Promise<void> {
-    console.log('delete handle', args);
     if (tx) {
       tx.delete(this.getDocRef(...args));
     } else {

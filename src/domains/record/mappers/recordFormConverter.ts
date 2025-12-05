@@ -1,5 +1,6 @@
 import { RecordFormType, type Record, type RecordFormData } from '@/domains/record/types';
 import { toDateString } from '@/utils/dateUtils';
+import { nullOrData } from '@/constants/empty';
 
 export const toRecordFormData = (record?: Record): RecordFormData => {
   // default empty form
@@ -41,10 +42,10 @@ export const buildRecord = (formData: RecordFormData, prevRecord?: Record): Reco
     formType: formData.formType,
     amount: parseFloat(formData.amount),
     date: new Date(formData.date),
-    category: formData.category || '',
-    description: formData.description || '',
-    mainProjectId: formData.toProjectId || '',
-    sourceProjectId: formData.fromProjectId || '',
+    category: formData.category,
+    description: formData.description,
+    mainProjectId: nullOrData(formData.toProjectId),
+    sourceProjectId: nullOrData(formData.fromProjectId),
     allocations: formData.allocations?.map((alloc) => ({
       projectId: alloc.projectId,
       percentage: parseFloat(alloc.percentage),

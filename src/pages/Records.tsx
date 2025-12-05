@@ -32,10 +32,10 @@ const Records: React.FC = () => {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-foreground">Transactions</h1>
+        <h1 className="text-2xl font-bold text-foreground">交易紀錄</h1>
         <Button onClick={openForm}>
           <Plus size={20} />
-          Add Transaction
+          新增
         </Button>
       </div>
 

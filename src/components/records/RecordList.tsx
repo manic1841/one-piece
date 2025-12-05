@@ -37,7 +37,11 @@ export const RecordList: React.FC<RecordListProps> = ({ items, loading, onDelete
     <Card>
       <div className="divide-y divide-border">
         {items.map((item) => {
-          return <RecordItem record={item} onEdit={onEdit} onDelete={onDelete} />;
+          return (
+            <div key={item.id}>
+              <RecordItem record={item} onEdit={onEdit} onDelete={onDelete} />
+            </div>
+          );
         })}
       </div>
     </Card>

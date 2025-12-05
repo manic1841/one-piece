@@ -71,7 +71,6 @@ class FinancialReportService {
       return cat !== 'salary' && cat !== 'bonus';
     });
 
-    console.log('project:', projectsWithSnapshots);
     // 2. Calculate Reports
     const incomeStatementData = calculateIncomeStatement(
       plannedIncomes,

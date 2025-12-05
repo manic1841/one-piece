@@ -3,25 +3,23 @@ import { type Record, RecordType } from '@/domains/record/types';
 import { Button } from '@/components/ui/button';
 import { Pencil, Trash2 } from 'lucide-react';
 import { formatCurrency } from '@/utils/formatUtils';
+import { useRecordItem } from '@/components/records/useRecordItem';
 
 interface RecordItemProps {
   record: Record;
   onEdit: (record: Record) => void;
   onDelete: (record: Record) => void;
-  color?: string;
 }
 
-export const RecordItem: React.FC<RecordItemProps> = (props) => {
-  const { record, onEdit, onDelete, color } = props;
-  const formatDate = (date: Date) => {
-    if (!date) return '';
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-  };
+export const RecordItem: React.FC<RecordItemProps> = ({
+  record,
+  onEdit,
+  onDelete,
+}: RecordItemProps) => {
+  const { color, formatDate } = useRecordItem({ record });
+
   return (
-    <div
-      key={`income-${record.id}`}
-      className={`p-4 hover:bg-accent/50 transition-colors bg-${color}-50/30`}
-    >
+    <div className={`p-4 hover:bg-accent/50 transition-colors bg-${color}-50/30`}>
       <div className="flex items-center justify-between">
         <div className="flex-1">
           <div className="flex items-center gap-3">
@@ -47,7 +45,10 @@ export const RecordItem: React.FC<RecordItemProps> = (props) => {
           </div>
         </div>
         <div className="flex items-center gap-4">
-          <p className={`text-lg font-bold text-${color}-600`}>+{formatCurrency(record.amount)}</p>
+          <p className={`text-lg font-bold text-${color}-600`}>
+            {record.amount > 0 ? '+' : ''}
+            {formatCurrency(record.amount)}
+          </p>
           <div className="flex gap-2">
             <Button
               variant="ghost"

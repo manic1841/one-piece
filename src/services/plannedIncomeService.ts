@@ -4,7 +4,7 @@ import { type PlannedIncome } from '@/schemas';
 import { projectTransactionService } from '@/services/projectTransactionService';
 import { plannedIncomeRepository } from '@/repositories/plannedIncomeRepository';
 import { type ExcludedColumn } from '@/repositories/baseRepository';
-import { ProjectTransactionCategory } from '@/domains/record/types';
+import { PlannedIncomeCategory, ProjectTransactionCategory } from '@/domains/record/types';
 
 class PlannedIncomeService {
   // Create a new planned income and generate project transactions
@@ -51,7 +51,7 @@ class PlannedIncomeService {
   // Get planned incomes
   async getPlannedIncomes(
     householdId: string,
-    filters?: { startDate?: Date; endDate?: Date; category?: string },
+    filters?: { startDate?: Date; endDate?: Date; category?: PlannedIncomeCategory },
   ): Promise<PlannedIncome[]> {
     const q: QueryConstraint[] = [orderBy('date', 'desc')];
     if (filters?.startDate) {
@@ -69,7 +69,7 @@ class PlannedIncomeService {
   // Get latest planned income by category to retrieve user settings/defaults
   async getLatestPlannedIncomeByCategory(
     householdId: string,
-    category: string,
+    category: PlannedIncomeCategory,
   ): Promise<PlannedIncome | null> {
     const results = await plannedIncomeRepository.list(
       [householdId],

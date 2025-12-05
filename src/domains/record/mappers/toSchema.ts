@@ -46,6 +46,7 @@ export const projectTransactionConverter = (record: Record) => {
     toProject: record.mainProjectId,
     amount: Number(record.amount),
     date: new Date(record.date),
+    category: record.category,
     description: record.description,
     incomeSource: record.incomeSource,
     createdAt: record.createdAt,
