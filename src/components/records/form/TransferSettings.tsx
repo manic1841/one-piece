@@ -1,12 +1,12 @@
 import { ProjectSelection } from './ProjectSelection';
 import { type Project } from '@/schemas';
-import { type Record } from '@/domains/record/record';
+import { type RecordFormData } from '@/domains/record/types';
 
 interface TransferSettingsProps {
   fromProjectId: string;
-  setFromProjectId: <K extends keyof Record>(name: K, value: Record[K]) => void;
+  setFromProjectId: <K extends keyof RecordFormData>(name: K, value: RecordFormData[K]) => void;
   toProjectId: string;
-  setToProjectId: <K extends keyof Record>(name: K, value: Record[K]) => void;
+  setToProjectId: <K extends keyof RecordFormData>(name: K, value: RecordFormData[K]) => void;
   projects: Project[];
 }
 
@@ -14,11 +14,11 @@ export const TransferSettings: React.FC<TransferSettingsProps> = (props) => {
   const { fromProjectId, setFromProjectId, toProjectId, setToProjectId, projects } = props;
 
   const handleFromProjectIdChange = (projectId: string) => {
-    setFromProjectId('sourceProjectId', projectId);
+    setFromProjectId('fromProjectId', projectId);
   };
 
   const handleToProjectIdChange = (projectId: string) => {
-    setToProjectId('mainProjectId', projectId);
+    setToProjectId('projectId', projectId);
   };
 
   return (
@@ -26,7 +26,7 @@ export const TransferSettings: React.FC<TransferSettingsProps> = (props) => {
       <ProjectSelection
         label="來源專案（選填）"
         projectId={fromProjectId}
-        setProjectId={handleFromProjectIdChange}
+        onChange={handleFromProjectIdChange}
         projects={projects}
         excludeProjectId={toProjectId}
         required={false}
@@ -34,7 +34,7 @@ export const TransferSettings: React.FC<TransferSettingsProps> = (props) => {
       <ProjectSelection
         label="目標專案（選填）"
         projectId={toProjectId}
-        setProjectId={handleToProjectIdChange}
+        onChange={handleToProjectIdChange}
         projects={projects}
         excludeProjectId={fromProjectId}
         required={false}

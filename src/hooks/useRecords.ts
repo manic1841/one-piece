@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { type Record } from '@/domains/record/record';
+import { type Record } from '@/domains/record/types';
 import { recordService } from '@/services/recordService';
 import { useLoadingTask } from '@/hooks/useLoadingTask';
 
@@ -7,7 +7,7 @@ export const useRecords = (householdId?: string) => {
   const { loading, error, run } = useLoadingTask();
   const [records, setRecords] = useState<Record[]>([]);
 
-  const loadRecords = useCallback(
+  const load = useCallback(
     async () =>
       run(async () => {
         if (!householdId) return;
@@ -18,13 +18,14 @@ export const useRecords = (householdId?: string) => {
   );
 
   useEffect(() => {
-    loadRecords();
-  }, [loadRecords]);
+    console.log('Loading records...');
+    load();
+  }, [load]);
 
   return {
     records,
     loading,
     error,
-    reload: loadRecords,
+    reload: load,
   };
 };

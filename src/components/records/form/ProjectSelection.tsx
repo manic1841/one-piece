@@ -1,4 +1,3 @@
-import React from 'react';
 import { Label } from '@/components/ui/label';
 import {
   Select,
@@ -7,11 +6,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { type Project } from '../../../schemas';
+import { type Project } from '@/schemas';
 
 interface ProjectSelectionProps {
   projectId: string;
-  setProjectId: (value: string) => void;
+  onChange?: (projectId: string) => void;
   projects: Project[];
   label?: string;
   excludeProjectId?: string; // For transfer: exclude source from destination options
@@ -20,7 +19,7 @@ interface ProjectSelectionProps {
 
 export const ProjectSelection: React.FC<ProjectSelectionProps> = ({
   projectId,
-  setProjectId,
+  onChange,
   projects,
   label = '專案',
   excludeProjectId,
@@ -33,7 +32,7 @@ export const ProjectSelection: React.FC<ProjectSelectionProps> = ({
   return (
     <div className="space-y-2">
       <Label htmlFor="project">{label}</Label>
-      <Select value={projectId} onValueChange={setProjectId} required={required}>
+      <Select value={projectId} onValueChange={(value) => onChange?.(value)} required={required}>
         <SelectTrigger id="project">
           <SelectValue placeholder="選擇專案" />
         </SelectTrigger>

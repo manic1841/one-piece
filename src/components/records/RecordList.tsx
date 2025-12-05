@@ -3,7 +3,7 @@ import { Pencil, Trash2 } from 'lucide-react';
 import { formatCurrency } from '@/utils/formatUtils';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { type Record, RecordType } from '@/domains/record/record';
+import { type Record, RecordType } from '@/domains/record/types';
 
 interface RecordListProps {
   items: Record[];

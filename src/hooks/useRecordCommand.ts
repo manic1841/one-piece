@@ -1,4 +1,4 @@
-import { type Record } from '@/domains/record/record';
+import { type Record } from '@/domains/record/types';
 import { recordService } from '@/services/recordService';
 
 export const useRecordCommands = (

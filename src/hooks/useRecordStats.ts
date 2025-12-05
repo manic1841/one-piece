@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { type Record } from '@/domains/record/record';
+import { type Record } from '@/domains/record/types';
 
 export const useRecordStats = (records: Record[]) => {
   return useMemo(() => {

@@ -1,15 +1,16 @@
-import { transactionService } from './transactionService';
-import { plannedIncomeService } from './plannedIncomeService';
-import { projectTransactionService } from './projectTransactionService';
+import { transactionService } from '@/services/transactionService';
+import { plannedIncomeService } from '@/services/plannedIncomeService';
+import { projectTransactionService } from '@/services/projectTransactionService';
+import { toRecord } from '@/domains/record/mappers/toRecord';
+import { toSchema } from '@/domains/record/mappers/toSchema';
 import {
-  type Record,
   RecordType,
-  unifyRecord,
-  transactionConverter,
-  plannedIncomeConverter,
-  projectTransactionConverter,
-} from '@/domains/record/record';
-import { FormType } from '@/domains/record/formType';
+  RecordFormType,
+  type Record,
+  type Transaction,
+  type PlannedIncome,
+  type ProjectTransaction,
+} from '@/domains/record/types';
 
 class RecordService {
   async getRecords(householdId: string) {
@@ -18,21 +19,21 @@ class RecordService {
     // transaction
     const transactions = await transactionService.getTransactions(householdId);
     transactions.forEach((transaction) => {
-      const record: Record = unifyRecord(transaction);
+      const record: Record = toRecord(transaction);
       unifiedRecords.push(record);
     });
 
     // planned income
     const plannedIncomes = await plannedIncomeService.getPlannedIncomes(householdId);
     plannedIncomes.forEach((plannedIncome) => {
-      const record: Record = unifyRecord(plannedIncome);
+      const record: Record = toRecord(plannedIncome);
       unifiedRecords.push(record);
     });
 
     // project transaction
     const projectTransactions = await projectTransactionService.getProjectTransactions(householdId);
     projectTransactions.forEach((projectTransaction) => {
-      const record: Record = unifyRecord(projectTransaction);
+      const record: Record = toRecord(projectTransaction);
       unifiedRecords.push(record);
     });
 
@@ -40,40 +41,40 @@ class RecordService {
   }
 
   async createRecord(householdId: string, record: Record, userEmail: string) {
-    if (record.formType === FormType.EXPENSE) {
-      const tnx = transactionConverter(record);
+    if (record.formType === RecordFormType.EXPENSE) {
+      const tnx = toSchema(record, RecordType.TRANSACTION) as Transaction;
       await transactionService.createTransaction(householdId, tnx, userEmail);
-    } else if (record.formType === FormType.INCOME) {
-      const income = plannedIncomeConverter(record);
+    } else if (record.formType === RecordFormType.INCOME) {
+      const income = toSchema(record, RecordType.PLANNED_INCOME) as PlannedIncome;
       await plannedIncomeService.createPlannedIncome(householdId, income, userEmail);
-    } else if (record.formType === FormType.TRANSFER) {
-      const pt = projectTransactionConverter(record);
+    } else if (record.formType === RecordFormType.TRANSFER) {
+      const pt = toSchema(record, RecordType.PROJECT_TRANSACTION) as ProjectTransaction;
       await projectTransactionService.createProjectTransaction(householdId, pt, userEmail);
     }
   }
 
   async updateRecord(householdId: string, id: string, record: Record, userEmail: string) {
-    if (record.recordType === RecordType.TRNASACTION) {
-      const tnx = transactionConverter(record);
+    if (record.recordType === RecordType.TRANSACTION) {
+      const tnx = toSchema(record, RecordType.TRANSACTION) as Transaction;
       await transactionService.updateTransaction(householdId, id, tnx, userEmail);
     } else if (record.recordType === RecordType.PLANNED_INCOME) {
-      const income = plannedIncomeConverter(record);
+      const income = toSchema(record, RecordType.PLANNED_INCOME) as PlannedIncome;
       await plannedIncomeService.updatePlannedIncome(householdId, id, income, userEmail);
     } else if (record.recordType === RecordType.PROJECT_TRANSACTION) {
-      const pt = projectTransactionConverter(record);
+      const pt = toSchema(record, RecordType.PROJECT_TRANSACTION) as ProjectTransaction;
       await projectTransactionService.updateProjectTransaction(householdId, id, pt, userEmail);
     }
   }
 
   async deleteRecord(householdId: string, record: Record) {
-    if (record.recordType === RecordType.TRNASACTION) {
-      const tnx = transactionConverter(record);
+    if (record.recordType === RecordType.TRANSACTION) {
+      const tnx = toSchema(record, RecordType.TRANSACTION) as Transaction;
       await transactionService.deleteTransaction(householdId, tnx.id);
     } else if (record.recordType === RecordType.PLANNED_INCOME) {
-      const income = plannedIncomeConverter(record);
+      const income = toSchema(record, RecordType.PLANNED_INCOME) as PlannedIncome;
       await plannedIncomeService.deletePlannedIncome(householdId, income.id);
     } else if (record.recordType === RecordType.PROJECT_TRANSACTION) {
-      const pt = projectTransactionConverter(record);
+      const pt = toSchema(record, RecordType.PROJECT_TRANSACTION) as ProjectTransaction;
       await projectTransactionService.deleteProjectTransactions(householdId, [pt.id]);
     }
   }

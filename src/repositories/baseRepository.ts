@@ -26,7 +26,7 @@ export abstract class BaseRepository<
   protected db: Firestore;
   protected abstract getCollectionRef(...args: RefArgs): CollectionReference<DocumentData>;
   protected abstract getDocRef(...args: RefArgs): DocumentReference<DocumentData>;
-  protected abstract toFirestore(entity: TDomain): TFirestore;
+  protected abstract toFirestore(entity: TDomain): Partial<TFirestore>;
   protected abstract fromFirestore(data: TFirestore): TDomain;
 
   // create

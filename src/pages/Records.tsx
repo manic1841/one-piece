@@ -1,67 +1,38 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Plus } from 'lucide-react';
-import { useAuth } from '../contexts/useAuth';
-import RecordForm from '../components/records/RecordForm';
-import { useRecordPage } from './hooks/useRecordPage';
-import { RecordStats } from '../components/records/RecordStats';
-import { RecordList } from '../components/records/RecordList';
+import { useAuth } from '@/contexts/useAuth';
+import RecordForm from '@/components/records/RecordForm';
+import { useRecordPage } from '@/hooks/pages/useRecordPage';
+import { RecordStats } from '@/components/records/RecordStats';
+import { RecordList } from '@/components/records/RecordList';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { type Record } from '@/domains/record/record';
 
 const Records: React.FC = () => {
   const { userProfile, currentUser } = useAuth();
-  const { records, loading, stats, loadRecords, createRecord, updateRecord, deleteRecord } =
-    useRecordPage(userProfile?.householdId, userProfile?.email);
-
-  const [isFormOpen, setIsFormOpen] = useState(false);
-  const [edit, setEdit] = useState<Record | undefined>(undefined);
-  const [filterType, setFilterType] = useState<'all' | 'income' | 'expense'>('all');
-
-  const handleCreate = async (record: Record) => {
-    await createRecord(record);
-  };
-
-  const handleUpdate = async (record: Record) => {
-    if (!edit) return;
-    await updateRecord(record);
-    setEdit(undefined);
-  };
-
-  const handleEditClick = (record: Record) => {
-    setEdit(record);
-    setIsFormOpen(true);
-  };
-
-  const handleDeleteClick = (record: Record) => {
-    deleteRecord(record);
-  };
-
-  const handleCloseForm = () => {
-    setIsFormOpen(false);
-    setEdit(undefined);
-  };
-
-  const filteredList = records.filter((item) => {
-    if (filterType === 'all') return true;
-    if (filterType === 'income') {
-      return (
-        item.recordType === 'plannedIncome' ||
-        (item.recordType === 'transaction' && item.transactionType === 'income')
-      );
-    }
-    if (filterType === 'expense') {
-      return item.recordType === 'transaction' && item.transactionType === 'expense';
-    }
-    return true;
-  });
+  const {
+    loading,
+    stats,
+    reload,
+    filteredRecords,
+    filterType,
+    setFilterType,
+    openForm,
+    closeForm,
+    isFormOpen,
+    editing,
+    editClick,
+    deleteClick,
+    create,
+    update,
+  } = useRecordPage(userProfile?.householdId, userProfile?.email);
 
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold text-foreground">Transactions</h1>
-        <Button onClick={() => setIsFormOpen(true)}>
+        <Button onClick={openForm}>
           <Plus size={20} />
           Add Transaction
         </Button>
@@ -107,20 +78,20 @@ const Records: React.FC = () => {
 
       {/* Transactions List */}
       <RecordList
-        items={filteredList}
+        items={filteredRecords}
         loading={loading}
-        onEdit={handleEditClick}
-        onDelete={handleDeleteClick}
+        onEdit={editClick}
+        onDelete={deleteClick}
       />
 
       {/* Transaction Form Modal */}
       {userProfile?.householdId && currentUser?.email && (
         <RecordForm
           isOpen={isFormOpen}
-          onClose={handleCloseForm}
-          onSubmit={edit ? handleUpdate : handleCreate}
-          onSuccess={loadRecords}
-          initialData={edit}
+          onClose={closeForm}
+          onSubmit={editing ? update : create}
+          onSuccess={reload}
+          initialData={editing}
           householdId={userProfile.householdId}
           userEmail={currentUser.email}
         />

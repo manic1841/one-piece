@@ -25,12 +25,12 @@ class TransactionRepository extends BaseRepository<
     return doc(this.db, 'households', householdId, this.collectionName, transactionId);
   }
 
-  protected toFirestore(entity: Transaction): TransactionFirestore {
+  protected toFirestore(entity: Transaction): Partial<TransactionFirestore> {
     return {
       ...entity,
-      date: Timestamp.fromDate(entity.date),
-      createdAt: Timestamp.fromDate(entity.createdAt),
-      updatedAt: Timestamp.fromDate(entity.updatedAt),
+      date: entity.date ? Timestamp.fromDate(entity.date) : undefined,
+      createdAt: entity.createdAt ? Timestamp.fromDate(entity.createdAt) : undefined,
+      updatedAt: entity.updatedAt ? Timestamp.fromDate(entity.updatedAt) : undefined,
     };
   }
 

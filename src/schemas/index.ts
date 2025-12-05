@@ -5,6 +5,7 @@ export * from './account';
 export * from './project';
 export * from './transaction';
 export * from './plannedIncome';
+export * from './projectTransaction';
 export * from './portfolio';
 export * from './incomeStatement';
 export * from './balanceSheet';

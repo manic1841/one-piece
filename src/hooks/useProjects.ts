@@ -2,12 +2,14 @@ import { useState, useEffect, useCallback } from 'react';
 import { projectService } from '../services/projectService';
 import { projectTransactionService } from '../services/projectTransactionService';
 import { transactionService } from '../services/transactionService';
-import { type Project, type Transaction, type ProjectTransaction } from '../schemas';
+import { type Project, type Transaction } from '../schemas';
+import { type ProjectTransaction } from '@/domains/record/types/';
 import { useLoadingTask } from './useLoadingTask';
 
-export function useProjectsNew(householdId: string, active: boolean) {
+export function useProjectsNew(householdId: string) {
   const [projects, setProjects] = useState<Project[]>([]);
   const { loading, error, run } = useLoadingTask();
+
   const load = useCallback(async () => {
     run(async () => {
       const data = await projectService.getProjects(householdId);
@@ -16,8 +18,9 @@ export function useProjectsNew(householdId: string, active: boolean) {
   }, [run, householdId]);
 
   useEffect(() => {
-    if (active) load();
-  }, [active, load]);
+    console.log('Loading projects...');
+    load();
+  }, [load]);
 
   return {
     projects,

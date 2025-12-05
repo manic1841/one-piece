@@ -1,7 +1,6 @@
-import React from 'react';
-import { RecordFormContent } from './form/RecordFormContent';
+import { RecordFormContent } from '@/components/records/form/RecordFormContent';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { type Record } from '@/domains/record/record';
+import { type Record, RecordFormTitles } from '@/domains/record/types';
 
 interface RecordFormProps {
   isOpen: boolean;
@@ -16,8 +15,8 @@ interface RecordFormProps {
 const RecordForm: React.FC<RecordFormProps> = (props) => {
   const { isOpen, onClose, initialData } = props;
   const getDialogTitle = () => {
-    if (initialData) return '編輯紀錄';
-    return '建立紀錄';
+    if (initialData) return RecordFormTitles.EDIT;
+    return RecordFormTitles.CREATE;
   };
 
   return (

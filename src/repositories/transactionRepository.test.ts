@@ -11,6 +11,7 @@ import { setDoc, getDocs, getDoc, updateDoc, deleteDoc, doc } from 'firebase/fir
 
 describe('transactionRepository', () => {
   const householdId = 'test-household';
+  const userEmail = 'test@example.com';
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -25,21 +26,20 @@ describe('transactionRepository', () => {
         date: new Date('2023-10-01'),
         description: 'Lunch',
         projectId: 'project-1',
-        createdBy: 'user-1',
       };
 
       // Mock doc to return a reference with an ID
       const mockDocRef = { id: 'new-id' } as DocumentReference;
       vi.mocked(doc).mockReturnValue(mockDocRef);
 
-      const result = await transactionRepository.create(householdId, transactionData);
+      const result = await transactionRepository.create([householdId], transactionData, userEmail);
 
       expect(setDoc).toHaveBeenCalled();
       expect(result).toBe('new-id');
     });
   });
 
-  describe('getAll', () => {
+  describe('list', () => {
     it('should return all transactions', async () => {
       const mockTransactions = [
         {
@@ -51,6 +51,7 @@ describe('transactionRepository', () => {
           projectId: 'p1',
           createdBy: 'u1',
           createdAt: Timestamp.now(),
+          updatedAt: Timestamp.now(),
         },
       ];
 
@@ -61,13 +62,13 @@ describe('transactionRepository', () => {
         })),
       } as unknown as QuerySnapshot);
 
-      const result = await transactionRepository.getAll(householdId);
+      const result = await transactionRepository.list([householdId]);
       expect(result).toHaveLength(1);
       expect(result[0].id).toBe('1');
     });
   });
 
-  describe('getById', () => {
+  describe('get', () => {
     it('should return transaction if exists', async () => {
       const mockTransaction = {
         id: '1',
@@ -78,6 +79,7 @@ describe('transactionRepository', () => {
         projectId: 'p1',
         createdBy: 'u1',
         createdAt: Timestamp.now(),
+        updatedAt: Timestamp.now(),
       };
 
       vi.mocked(getDoc).mockResolvedValue({
@@ -88,7 +90,7 @@ describe('transactionRepository', () => {
         metadata: {} as unknown,
       } as unknown as DocumentSnapshot);
 
-      const result = await transactionRepository.getById(householdId, '1');
+      const result = await transactionRepository.get([householdId, '1']);
       expect(result).toBeDefined();
       expect(result?.id).toBe('1');
     });
@@ -102,21 +104,21 @@ describe('transactionRepository', () => {
         metadata: {} as unknown,
       } as unknown as DocumentSnapshot);
 
-      const result = await transactionRepository.getById(householdId, '1');
+      const result = await transactionRepository.get([householdId, '1']);
       expect(result).toBeNull();
     });
   });
 
   describe('update', () => {
     it('should call updateDoc', async () => {
-      await transactionRepository.update(householdId, '1', { amount: 200 });
+      await transactionRepository.update([householdId, '1'], { amount: 200 }, userEmail);
       expect(updateDoc).toHaveBeenCalled();
     });
   });
 
   describe('delete', () => {
     it('should call deleteDoc', async () => {
-      await transactionRepository.delete(householdId, '1');
+      await transactionRepository.delete([householdId, '1']);
       expect(deleteDoc).toHaveBeenCalled();
     });
   });

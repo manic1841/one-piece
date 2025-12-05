@@ -1,28 +1,25 @@
-import React from 'react';
 import { type Project } from '../../../schemas';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
 import { formatCurrency } from '../../../utils/formatUtils';
+import { type RecordFormData } from '@/domains/record/types';
 
 interface AllocationSectionProps {
   projects: Project[];
-  allocations: { projectId: string; percentage: number }[];
+  allocations: { projectId: string; percentage: string }[];
   amount: string;
-  onChanged: (projectId: string, percentage: number) => void;
+  totalPercentage: number;
+  onChanged?: <k extends keyof RecordFormData>(name: k, value: RecordFormData[k]) => void;
 }
 
 export const AllocationSection: React.FC<AllocationSectionProps> = ({
   projects,
   allocations,
   amount,
+  totalPercentage,
   onChanged,
 }) => {
-  const totalPercentage = allocations.reduce(
-    (total, allocation) => total + allocation.percentage,
-    0,
-  );
-
   return (
     <div className="space-y-2">
       <div className="flex justify-between items-center">
@@ -40,7 +37,7 @@ export const AllocationSection: React.FC<AllocationSectionProps> = ({
         <CardContent className="p-4 space-y-3 max-h-60 overflow-y-auto">
           {projects.map((project) => {
             const allocation = allocations.find((a) => a.projectId === project.id);
-            const percentage = allocation?.percentage || 0;
+            const percentage = parseFloat(allocation?.percentage || '0');
             const allocatedAmount = amount ? (parseFloat(amount) * percentage) / 100 : 0;
 
             return (
@@ -60,7 +57,14 @@ export const AllocationSection: React.FC<AllocationSectionProps> = ({
                       step="0.1"
                       className="text-right pr-6"
                       value={percentage}
-                      onChange={(e) => onChanged(project.id, parseFloat(e.target.value) || 0)}
+                      onChange={(e) =>
+                        onChanged?.(
+                          'allocations',
+                          allocations.map((a) =>
+                            a.projectId === project.id ? { ...a, percentage: e.target.value } : a,
+                          ),
+                        )
+                      }
                     />
                     <span className="absolute right-3 top-2.5 text-muted-foreground text-sm">
                       %

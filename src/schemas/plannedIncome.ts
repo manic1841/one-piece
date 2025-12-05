@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { PlannedIncomeCategory } from '@/domains/record/plannedIncomeCategory';
+import { PlannedIncomeCategory } from '@/domains/record/types';
 
 export const PlannedIncomeAllocationSchema = z.object({
   projectId: z.string(),
