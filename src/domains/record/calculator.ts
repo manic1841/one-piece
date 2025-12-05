@@ -23,10 +23,10 @@ export const calculateRecordStats = (records: Record[]) => {
       }
       case RecordType.PROJECT_TRANSACTION: {
         if (r.incomeSource) return; // skip allocated planned incomes
-        if (r.mainProjectId) {
+        if (r.toProjectId) {
           incomes.push(r.amount);
         }
-        if (r.sourceProjectId) {
+        if (r.fromProjectId) {
           expenses.push(r.amount);
         }
       }

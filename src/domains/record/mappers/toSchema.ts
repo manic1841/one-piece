@@ -16,7 +16,7 @@ export const transactionConverter = (record: Record) => {
     category: record.category,
     amount: record.amount,
     description: record.description,
-    projectId: record.mainProjectId,
+    projectId: record.projectId,
     createdAt: record.createdAt,
     createdBy: record.createdBy,
     updatedAt: record.createdAt,
@@ -42,8 +42,8 @@ export const plannedIncomeConverter = (record: Record) => {
 export const projectTransactionConverter = (record: Record) => {
   return {
     id: record.id,
-    fromProject: record.sourceProjectId,
-    toProject: record.mainProjectId,
+    fromProjectId: record.fromProjectId,
+    toProjectId: record.toProjectId,
     amount: Number(record.amount),
     date: new Date(record.date),
     category: record.category,

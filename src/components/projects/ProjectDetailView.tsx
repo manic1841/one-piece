@@ -123,7 +123,7 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
                   );
                 } else {
                   const pt = item.data;
-                  const isIncoming = pt.toProject === project.id;
+                  const isIncoming = pt.toProjectId === project.id;
                   const typeLabel =
                     pt.type === 'allocation'
                       ? 'Allocation'

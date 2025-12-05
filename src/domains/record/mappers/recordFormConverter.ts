@@ -24,15 +24,15 @@ export const toRecordFormData = (record?: Record): RecordFormData => {
     amount: record.amount.toString(),
     date: toDateString(record.date),
     category: record.category || '',
-    projectId: record.mainProjectId || '',
+    projectId: record.projectId || '',
     description: record.description,
     allocations:
       record.allocations?.map((alloc) => ({
         projectId: alloc.projectId,
         percentage: alloc.percentage.toString(),
       })) || [],
-    fromProjectId: record.sourceProjectId || '',
-    toProjectId: record.mainProjectId || '',
+    fromProjectId: record.fromProjectId || '',
+    toProjectId: record.toProjectId || '',
   };
 };
 
@@ -44,8 +44,9 @@ export const buildRecord = (formData: RecordFormData, prevRecord?: Record): Reco
     date: new Date(formData.date),
     category: formData.category,
     description: formData.description,
-    mainProjectId: nullOrData(formData.toProjectId),
-    sourceProjectId: nullOrData(formData.fromProjectId),
+    projectId: nullOrData(formData.projectId),
+    toProjectId: nullOrData(formData.toProjectId),
+    fromProjectId: nullOrData(formData.fromProjectId),
     allocations: formData.allocations?.map((alloc) => ({
       projectId: alloc.projectId,
       percentage: parseFloat(alloc.percentage),

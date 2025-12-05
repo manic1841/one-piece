@@ -102,7 +102,7 @@ class SettlementService {
       .filter((pt) => {
         const ptDate = pt.date instanceof Timestamp ? pt.date.toDate() : pt.date;
         return (
-          pt.toProject === projectId &&
+          pt.toProjectId === projectId &&
           ptDate.getFullYear() === year &&
           ptDate.getMonth() + 1 === month
         );

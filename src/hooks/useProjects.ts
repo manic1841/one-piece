@@ -67,17 +67,17 @@ export const useProjects = (householdId?: string) => {
       const projectsWithBalance: ProjectWithBalance[] = projectsData.map((project) => {
         // Incoming allocations (type = 'allocation', toProject = projectId)
         const incomingAllocations = projectTransactionsData
-          .filter((pt) => pt.type === 'allocation' && pt.toProject === project.id)
+          .filter((pt) => pt.type === 'allocation' && pt.toProjectId === project.id)
           .reduce((sum, pt) => sum + pt.amount, 0);
 
         // Incoming transfers (type = 'transfer', toProject = projectId)
         const incomingTransfers = projectTransactionsData
-          .filter((pt) => pt.type === 'transfer' && pt.toProject === project.id)
+          .filter((pt) => pt.type === 'transfer' && pt.toProjectId === project.id)
           .reduce((sum, pt) => sum + pt.amount, 0);
 
         // Outgoing transfers (type = 'transfer', fromProject = projectId)
         const outgoingTransfers = projectTransactionsData
-          .filter((pt) => pt.type === 'transfer' && pt.fromProject === project.id)
+          .filter((pt) => pt.type === 'transfer' && pt.fromProjectId === project.id)
           .reduce((sum, pt) => sum + pt.amount, 0);
 
         // All transactions for this project (income adds, expense subtracts)
@@ -117,7 +117,7 @@ export const useProjects = (householdId?: string) => {
   const getProjectTransactions = useCallback(
     (projectId: string): CombinedTransaction[] => {
       const projectTxs: CombinedTransaction[] = allProjectTransactions
-        .filter((pt) => pt.toProject === projectId || pt.fromProject === projectId)
+        .filter((pt) => pt.toProjectId === projectId || pt.fromProjectId === projectId)
         .map((pt) => ({ type: 'projectTransaction', data: pt }));
 
       const regularTxs: CombinedTransaction[] = allTransactions

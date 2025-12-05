@@ -32,7 +32,7 @@ class PlannedIncomeService {
               {
                 date: data.date,
                 category: ProjectTransactionCategory.ALLOCATION,
-                toProject: allocation.projectId,
+                toProjectId: allocation.projectId,
                 amount: amount,
                 description: `Allocation from ${data.category}: ${data.description || ''}`,
                 incomeSource: plannedIncomeId,
@@ -131,7 +131,7 @@ class PlannedIncomeService {
               {
                 date,
                 category: ProjectTransactionCategory.ALLOCATION,
-                toProject: allocation.projectId,
+                toProjectId: allocation.projectId,
                 amount: allocationAmount,
                 description: `Allocation from ${category}: ${description || ''}`,
                 incomeSource: plannedIncomeId,

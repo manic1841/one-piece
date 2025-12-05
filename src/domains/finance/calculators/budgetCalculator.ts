@@ -18,7 +18,7 @@ export function calculateMonthlyBudget(
   projects: Project[],
   projectTransactions: ProjectTransaction[],
   transactions: Transaction[],
-  incomeTransactions: Transaction[]
+  incomeTransactions: Transaction[],
 ): MonthlyBudget {
   // Calculate income breakdown by category
   const incomeBreakdown: Record<IncomeCategory, number> = {
@@ -45,7 +45,7 @@ export function calculateMonthlyBudget(
   for (const project of projects) {
     // Sum allocations to this project
     const allocated = projectTransactions
-      .filter((pt) => pt.toProject === project.id)
+      .filter((pt) => pt.toProjectId === project.id)
       .reduce((sum, pt) => sum + pt.amount, 0);
 
     // Sum expenses for this project

@@ -27,12 +27,9 @@ export interface Record {
   updatedBy?: string;
   updatedAt?: Date;
 
-  // for
-  // transaction.projectId,
-  // projectTransaction.toProjectId
-  mainProjectId?: string | null;
-  // for projectTransaction.fromProjectId
-  sourceProjectId?: string | null;
+  projectId?: string | null;
+  fromProjectId?: string | null;
+  toProjectId?: string | null;
 
   // plannedIncome
   allocations?: {

@@ -20,7 +20,7 @@ const mapTransactionToRecord = (txn: Transaction): Record => {
     createdAt: txn.createdAt,
     updatedBy: txn.updatedBy,
     updatedAt: txn.updatedAt,
-    mainProjectId: txn.projectId,
+    projectId: txn.projectId,
     transactionType: txn.type,
   };
 };
@@ -56,8 +56,8 @@ const mapProjectTransactionToRecord = (pt: ProjectTransaction): Record => {
     createdAt: pt.createdAt,
     updatedBy: pt.updatedBy,
     updatedAt: pt.updatedAt,
-    mainProjectId: pt.toProject,
-    sourceProjectId: pt.fromProject,
+    toProjectId: pt.toProjectId,
+    fromProjectId: pt.fromProjectId,
     incomeSource: pt.incomeSource,
   };
 };
@@ -68,8 +68,9 @@ const defaultRecord: Record = {
   amount: 0,
   description: '',
   category: '',
-  mainProjectId: '',
-  sourceProjectId: '',
+  projectId: '',
+  fromProjectId: '',
+  toProjectId: '',
   incomeSource: '',
   allocations: [],
   transactionType: TransactionType.EXPENSE,
@@ -90,7 +91,7 @@ export const toRecord = (record?: AnyRecord): Record => {
   } else if ('allocations' in record) {
     const converter = converters[RecordType.PLANNED_INCOME];
     return converter(record as PlannedIncome);
-  } else if ('fromProject' in record || 'toProject' in record) {
+  } else if ('fromProjectId' in record || 'toProjectId' in record) {
     const converter = converters[RecordType.PROJECT_TRANSACTION];
     return converter(record as ProjectTransaction);
   }
