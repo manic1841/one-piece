@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react';
-import { validateForm } from '@/domains/record/validator';
+import { buildRecord, toRecordFormData } from '@/domains/record/mappers/recordFormConverter';
 import { type Record, type RecordFormData } from '@/domains/record/types';
-import { useProjectsNew } from '@/hooks/useProjects';
-import { toRecordFormData, buildRecord } from '@/domains/record/mappers/recordFormConverter';
+import { validateForm } from '@/domains/record/validator';
+import { useProjects } from '@/hooks/useProjects';
+import { useEffect, useState } from 'react';
 
 interface UseRecordFormProps {
   onSubmit: (data: Record) => Promise<void>;
@@ -19,7 +19,7 @@ export const useRecordForm = ({
   initialData,
   householdId,
 }: UseRecordFormProps) => {
-  const { projects, loading: projectsLoading } = useProjectsNew(householdId);
+  const { projects, loading: projectsLoading } = useProjects(householdId);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 

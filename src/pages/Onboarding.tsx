@@ -1,12 +1,13 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../contexts/useAuth';
-import { householdService } from '../services/householdService';
-import { LogOut } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { LogOut } from 'lucide-react';
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+
+import { useAuth } from '../contexts/useAuth';
+import { householdService } from '../services/householdService';
 
 const Onboarding: React.FC = () => {
   const [input, setInput] = useState('');
@@ -29,14 +30,10 @@ const Onboarding: React.FC = () => {
     setLoading(true);
 
     try {
-      const profile = {
-        uid: currentUser.uid,
-        email: currentUser.email,
-        displayName: currentUser.displayName || currentUser.email.split('@')[0],
-        photoURL: currentUser.photoURL || undefined,
-        role: userProfile?.role || ('guest' as const),
-      };
-      await householdService.createOrJoinHousehold(input, profile);
+      if (!userProfile) {
+        throw new Error('User profile not found');
+      }
+      await householdService.createOrJoinHousehold(input, userProfile);
 
       // Refresh auth context to get updated householdId
       if (refreshProfile) {
@@ -80,7 +77,11 @@ const Onboarding: React.FC = () => {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
-            {error && <div className="bg-destructive/10 text-destructive p-3 rounded-lg text-sm">{error}</div>}
+            {error && (
+              <div className="bg-destructive/10 text-destructive p-3 rounded-lg text-sm">
+                {error}
+              </div>
+            )}
 
             <div className="space-y-2">
               <Label htmlFor="household">Household Name or ID</Label>

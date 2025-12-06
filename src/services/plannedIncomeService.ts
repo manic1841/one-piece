@@ -1,16 +1,19 @@
-import { runTransaction, orderBy, where, QueryConstraint } from 'firebase/firestore';
+import {
+  PlannedIncomeCategory,
+  type PlannedIncomeCreate,
+  ProjectTransactionCategory,
+} from '@/domains/record/types';
 import { db } from '@/firebase';
+import { plannedIncomeRepository } from '@/repositories/plannedIncomeRepository';
 import { type PlannedIncome } from '@/schemas';
 import { projectTransactionService } from '@/services/projectTransactionService';
-import { plannedIncomeRepository } from '@/repositories/plannedIncomeRepository';
-import { type ExcludedColumn } from '@/repositories/baseRepository';
-import { PlannedIncomeCategory, ProjectTransactionCategory } from '@/domains/record/types';
+import { QueryConstraint, orderBy, runTransaction, where } from 'firebase/firestore';
 
 class PlannedIncomeService {
   // Create a new planned income and generate project transactions
   async createPlannedIncome(
     householdId: string,
-    data: Omit<PlannedIncome, ExcludedColumn>,
+    data: PlannedIncomeCreate,
     userEmail: string,
   ): Promise<string> {
     return await runTransaction(db, async (transaction) => {
@@ -87,7 +90,7 @@ class PlannedIncomeService {
   async updatePlannedIncome(
     householdId: string,
     plannedIncomeId: string,
-    data: Partial<Omit<PlannedIncome, ExcludedColumn>>,
+    data: Partial<PlannedIncomeCreate>,
     userEmail: string,
   ): Promise<void> {
     // If allocations are being updated, we need to update projectTransactions too

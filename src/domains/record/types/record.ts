@@ -1,7 +1,7 @@
-import { type Transaction, type PlannedIncome } from '@/schemas';
 import { type ProjectTransaction } from '@/domains/record/types';
-import { TransactionType } from '@/domains/record/types/transactionType';
 import { RecordFormType } from '@/domains/record/types';
+import { TransactionType } from '@/domains/record/types/transactionType';
+import { type PlannedIncome, type Transaction } from '@/schemas';
 
 export type AnyRecord = Transaction | PlannedIncome | ProjectTransaction;
 

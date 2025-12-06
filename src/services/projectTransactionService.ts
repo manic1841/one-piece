@@ -23,16 +23,22 @@ class ProjectTransactionService {
   async getProjectTransactions(
     householdId: string,
     filters?: {
-      projectId?: string;
+      toProjectId?: string;
+      fromProjectId?: string;
       startDate?: Date;
       endDate?: Date;
     },
   ): Promise<ProjectTransaction[]> {
     const constraints: QueryConstraint[] = [orderBy('date', 'desc')];
 
-    if (filters?.projectId) {
+    if (filters?.toProjectId) {
       // Note: This requires a composite index: projectId ASC, date DESC
-      constraints.push(where('toProject', '==', filters.projectId));
+      constraints.push(where('toProject', '==', filters.toProjectId));
+    }
+
+    if (filters?.fromProjectId) {
+      // Note: This requires a composite index: projectId ASC, date DESC
+      constraints.push(where('fromProject', '==', filters.fromProjectId));
     }
 
     if (filters?.startDate) {
@@ -44,6 +50,46 @@ class ProjectTransactionService {
     }
 
     return projectTransactionRepository.list([householdId], constraints);
+  }
+
+  async getProjectTransactionsForPeriod(
+    householdId: string,
+    startDate: Date,
+    endDate: Date,
+    projectId?: string,
+  ): Promise<ProjectTransaction[]> {
+    if (projectId) {
+      const toData = await this.getProjectTransactions(householdId, {
+        startDate,
+        endDate,
+        toProjectId: projectId,
+      });
+      const fromData = await this.getProjectTransactions(householdId, {
+        startDate,
+        endDate,
+        fromProjectId: projectId,
+      });
+
+      return toData.concat(fromData);
+    }
+
+    return this.getProjectTransactions(householdId, {
+      startDate,
+      endDate,
+    });
+  }
+
+  async getProjectTransactionsForProject(
+    householdId: string,
+    projectId: string,
+  ): Promise<ProjectTransaction[]> {
+    const dataTo = await this.getProjectTransactions(householdId, {
+      toProjectId: projectId,
+    });
+    const dataFrom = await this.getProjectTransactions(householdId, {
+      fromProjectId: projectId,
+    });
+    return dataTo.concat(dataFrom);
   }
 
   // Get project transactions by income source (plannedIncomeId)

@@ -1,20 +1,14 @@
-import { collection, doc, Timestamp } from 'firebase/firestore';
-import { db } from '../firebase';
-import { type Project, ProjectSchema } from '../schemas/project';
-import { toDate } from '@/utils/dateUtils';
-import { BaseRepository } from './baseRepository';
-
-type ProjectFirestore = Omit<Project, 'createdAt' | 'updatedAt'> & {
-  createdAt: Timestamp;
-  updatedAt: Timestamp;
-};
+import { db } from '@/firebase';
+import { BaseRepository } from '@/repositories/baseRepository';
+import { type Project, ProjectSchema } from '@/schemas';
+import { collection, doc } from 'firebase/firestore';
 
 /**
  * ProjectRepository
  * Handles all database operations for Project and ProjectSnapshot entities
  * Follows Repository pattern - separates data access logic from business logic
  */
-class ProjectRepository extends BaseRepository<Project, ProjectFirestore, [string, string?]> {
+class ProjectRepository extends BaseRepository<Project, [string, string?]> {
   private readonly collectionName = 'projects';
 
   protected getCollectionRef(householdId: string) {
@@ -23,21 +17,8 @@ class ProjectRepository extends BaseRepository<Project, ProjectFirestore, [strin
   protected getDocRef(householdId: string, projectId: string) {
     return doc(this.db, 'households', householdId, this.collectionName, projectId);
   }
-
-  protected toFirestore(entity: Project): Partial<ProjectFirestore> {
-    return {
-      ...entity,
-      createdAt: entity.createdAt ? Timestamp.fromDate(entity.createdAt) : undefined,
-      updatedAt: entity.updatedAt ? Timestamp.fromDate(entity.updatedAt) : undefined,
-    };
-  }
-
-  protected fromFirestore(data: ProjectFirestore): Project {
-    return ProjectSchema.parse({
-      ...data,
-      createdAt: toDate(data.createdAt),
-      updatedAt: toDate(data.updatedAt),
-    });
+  protected getDomainSchema() {
+    return ProjectSchema;
   }
 }
 

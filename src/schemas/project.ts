@@ -1,28 +1,30 @@
-import { z } from 'zod';
-import { ProjectCategory } from '../domains/project/projectCategory';
 import {
-  IncomeStatementCategory,
-  CashFlowCategory,
   BalanceSheetCategory,
-} from '../domains/finance/finaceCategory';
+  CashFlowCategory,
+  IncomeStatementCategory,
+} from '@/domains/finance/finaceCategory';
+import { ProjectCategory } from '@/domains/project/types/category';
+import { BaseSchema } from '@/schemas';
+import { z } from 'zod';
 
 // ProjectSnapshot Schema
-export const ProjectSnapshotSchema = z.object({
-  id: z.string(),
+export const ProjectSnapshotCreateSchema = z.object({
   year: z.number(),
   month: z.number(),
   openingBalance: z.number(),
   income: z.number(),
   expense: z.number(),
   closingBalance: z.number(),
-  createdAt: z.date(),
 });
+
+export type ProjectSnapshotCreate = z.infer<typeof ProjectSnapshotCreateSchema>;
+
+export const ProjectSnapshotSchema = BaseSchema.extend(ProjectSnapshotCreateSchema.shape);
 
 export type ProjectSnapshot = z.infer<typeof ProjectSnapshotSchema>;
 
 // Project Schema
-export const ProjectSchema = z.object({
-  id: z.string(),
+export const ProjectCreateSchema = z.object({
   name: z.string(),
   color: z.string(),
   icon: z.string(),
@@ -64,13 +66,12 @@ export const ProjectSchema = z.object({
     })
     .optional(),
 
-  createdAt: z.date(),
-  createdBy: z.string(),
-  updatedAt: z.date(),
-  updatedBy: z.string().optional(),
-
   // subcollection
   snapshots: z.array(ProjectSnapshotSchema).optional(),
 });
+
+export type ProjectCreate = z.infer<typeof ProjectCreateSchema>;
+
+export const ProjectSchema = BaseSchema.extend(ProjectCreateSchema.shape);
 
 export type Project = z.infer<typeof ProjectSchema>;

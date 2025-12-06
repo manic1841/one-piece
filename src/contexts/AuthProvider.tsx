@@ -31,9 +31,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const fetchUserProfile = useCallback(
     async (uid: string) => {
       try {
-        console.log('Fetching user profile for UID:', uid);
         const profile = await userService.getUserProfile(uid);
-        console.log(profile);
 
         // If profile doesn't exist, create one with guest role
         if (!profile && currentUser) {

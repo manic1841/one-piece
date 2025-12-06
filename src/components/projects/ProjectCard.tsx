@@ -1,15 +1,17 @@
-import React from 'react';
-import { type Project } from '../../schemas';
-import { formatCurrency } from '../../utils/formatUtils';
+import { useProjectBalance } from '@/components/projects/useProjectBalance';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { type Project } from '@/domains/project/types';
+import { formatCurrency } from '@/utils/formatUtils';
 
 interface ProjectCardProps {
+  householdId?: string;
   project: Project;
-  balance: number;
   onClick: () => void;
 }
 
-const ProjectCard: React.FC<ProjectCardProps> = ({ project, balance, onClick }) => {
+export const ProjectCard: React.FC<ProjectCardProps> = ({ householdId, project, onClick }) => {
+  const { balance } = useProjectBalance(householdId, project.id);
+
   const isPositive = balance >= 0;
 
   return (

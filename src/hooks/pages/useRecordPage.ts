@@ -1,18 +1,14 @@
-import { useState, useEffect } from 'react';
-import { useRecords } from '@/hooks/useRecords';
-import { useRecordStats } from '@/hooks/useRecordStats';
-import { useRecordCommands } from '@/hooks/useRecordCommand';
-import { type Record, RecordFilterType } from '@/domains/record/types';
 import { filterRecords } from '@/domains/record/filter';
+import { type Record, RecordFilterType } from '@/domains/record/types';
+import { useRecordCmds } from '@/hooks/useRecordCmds';
+import { useRecordStats } from '@/hooks/useRecordStats';
+import { useRecords } from '@/hooks/useRecords';
+import { useEffect, useState } from 'react';
 
 export const useRecordPage = (householdId?: string, email?: string) => {
   const { records, reload, loading, error } = useRecords(householdId);
   const stats = useRecordStats(records);
-  const { createRecord, updateRecord, deleteRecord } = useRecordCommands(
-    householdId,
-    email,
-    reload,
-  );
+  const { createRecord, updateRecord, deleteRecord } = useRecordCmds(householdId, email, reload);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editing, setEditing] = useState<Record | undefined>(undefined);
   const [filterType, setFilterType] = useState<RecordFilterType>(RecordFilterType.ALL);
@@ -47,6 +43,9 @@ export const useRecordPage = (householdId?: string, email?: string) => {
 
   // delete record
   const deleteClick = (record: Record) => {
+    if (!confirm(`Are you sure you want to delete record? This action cannot be undone.`)) {
+      return;
+    }
     deleteRecord(record);
   };
 

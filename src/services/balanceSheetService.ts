@@ -1,7 +1,7 @@
+import { calculateBalanceSheet } from '../domains/finance/calculators/balanceSheetCalculator';
 import type { BalanceSheet } from '../schemas';
 import { accountService } from './accountService';
 import { projectService } from './projectService';
-import { calculateBalanceSheet } from '../domains/finance/calculators/balanceSheetCalculator';
 
 /**
  * Service for generating and managing balance sheets
@@ -24,12 +24,7 @@ class BalanceSheetService {
     // 2. Fetch account snapshots for the specified month
     const accountSnapshotsMap = new Map();
     for (const account of accounts) {
-      const snapshots = await accountService.getSnapshots(
-        householdId,
-        account.id,
-        year,
-        month,
-      );
+      const snapshots = await accountService.getSnapshots(householdId, account.id, year, month);
       // Get the first (and should be only) snapshot for this month
       accountSnapshotsMap.set(account.id, snapshots.length > 0 ? snapshots[0] : null);
     }
@@ -40,12 +35,10 @@ class BalanceSheetService {
     // 4. Fetch project snapshots for the specified month
     const projectSnapshotsMap = new Map();
     for (const project of projects) {
-      const snapshots = await projectService.getSnapshots(
-        householdId,
-        project.id,
+      const snapshots = await projectService.getSnapshots(householdId, project.id, {
         year,
         month,
-      );
+      });
       // Get the first (and should be only) snapshot for this month
       projectSnapshotsMap.set(project.id, snapshots.length > 0 ? snapshots[0] : null);
     }

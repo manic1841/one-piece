@@ -1,18 +1,14 @@
-import React, { useState } from 'react';
-import { Calendar, CheckCircle2 } from 'lucide-react';
-import { type SettlementPreview, settlementService } from '../../services/settlementService';
-import { formatCurrency } from '../../utils/formatUtils';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
 import {
   Dialog,
   DialogContent,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
 } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card } from '@/components/ui/card';
 import {
   Select,
   SelectContent,
@@ -28,6 +24,11 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { Calendar, CheckCircle2 } from 'lucide-react';
+import React, { useState } from 'react';
+
+import { type SettlementPreview, settlementService } from '../../services/settlementService';
+import { formatCurrency } from '../../utils/formatUtils';
 
 interface MonthlySettlementDialogProps {
   isOpen: boolean;
@@ -174,7 +175,9 @@ const MonthlySettlementDialog: React.FC<MonthlySettlementDialogProps> = ({
             <div className="space-y-4 py-4">
               <Card className="bg-blue-50 border-blue-200 p-4">
                 <p className="text-sm text-blue-800">
-                  <strong>Settlement Preview for {year}-{String(month).padStart(2, '0')}</strong>
+                  <strong>
+                    Settlement Preview for {year}-{String(month).padStart(2, '0')}
+                  </strong>
                   <br />
                   Review the calculations below. Click "Confirm Settlement" to create snapshots for
                   all projects.
@@ -262,9 +265,7 @@ const MonthlySettlementDialog: React.FC<MonthlySettlementDialogProps> = ({
               <Button variant="outline" onClick={handleClose}>
                 Cancel
               </Button>
-              <Button onClick={handleMonthSelect}>
-                Next
-              </Button>
+              <Button onClick={handleMonthSelect}>Next</Button>
             </>
           )}
 

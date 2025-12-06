@@ -1,7 +1,12 @@
-import { Timestamp, where } from 'firebase/firestore';
-import type { Project, ProjectSnapshot } from '@/schemas/project';
+import type {
+  Project,
+  ProjectCreate,
+  ProjectSnapshot,
+  ProjectSnapshotCreate,
+} from '@/domains/project/types';
 import { projectRepository } from '@/repositories/projectRepository';
 import { projectSnapshotRepository } from '@/repositories/projectSnapshotRepository';
+import { QueryConstraint, limit, orderBy, where } from 'firebase/firestore';
 
 export interface ProjectWithSnapshot {
   project: Project | null;
@@ -18,71 +23,24 @@ class ProjectService {
    * Get all projects for a household
    * Sorted by createdAt (oldest first)
    */
-  async getProjects(householdId: string): Promise<Project[]> {
-    const projects = await projectRepository.list([householdId]);
-
-    // Sort in memory by createdAt
-    return projects.sort((a, b) => {
-      if (!a.createdAt || !b.createdAt) return 0;
-
-      // Handle both Timestamp and Date types
-      const timeA =
-        a.createdAt instanceof Timestamp ? a.createdAt.toMillis() : (a.createdAt as Date).getTime();
-      const timeB =
-        b.createdAt instanceof Timestamp ? b.createdAt.toMillis() : (b.createdAt as Date).getTime();
-
-      return timeA - timeB;
-    });
-  }
-
-  /**
-   * Get active projects only
-   */
-  async getActiveProjects(householdId: string): Promise<Project[]> {
-    const projects = await projectRepository.list([householdId], [where('isActive', '==', true)]);
-
-    // Sort by order, then by createdAt
-    return projects.sort((a, b) => {
-      if (a.order !== b.order) {
-        return a.order - b.order;
-      }
-      if (!a.createdAt || !b.createdAt) return 0;
-      const timeA =
-        a.createdAt instanceof Timestamp ? a.createdAt.toMillis() : (a.createdAt as Date).getTime();
-      const timeB =
-        b.createdAt instanceof Timestamp ? b.createdAt.toMillis() : (b.createdAt as Date).getTime();
-      return timeA - timeB;
-    });
-  }
-
-  /**
-   * Get projects by category
-   */
-  async getProjectsByCategory(
+  async getProjects(
     householdId: string,
-    category: string,
-    activeOnly: boolean = true,
+    filters?: {
+      isActive?: boolean;
+      category?: string;
+    },
   ): Promise<Project[]> {
-    const q = [where('category', '==', category)];
+    const q: QueryConstraint[] = [];
 
-    if (activeOnly) {
-      q.push(where('isActive', '==', true));
+    if (filters?.isActive) {
+      q.push(where('isActive', '==', filters.isActive));
+    }
+    if (filters?.category) {
+      q.push(where('category', '==', filters.category));
     }
 
-    return projectRepository.list([householdId], q);
-  }
-
-  /**
-   * Get personal projects only
-   */
-  async getPersonalProjects(householdId: string, activeOnly: boolean = true): Promise<Project[]> {
-    const q = [where('isPersonal', '==', true)];
-
-    if (activeOnly) {
-      q.push(where('isActive', '==', true));
-    }
-
-    return projectRepository.list([householdId], q);
+    const projects = await projectRepository.list([householdId]);
+    return projects;
   }
 
   /**
@@ -97,7 +55,7 @@ class ProjectService {
    */
   async createProject(
     householdId: string,
-    project: Omit<Project, 'id'>,
+    project: ProjectCreate,
     userEmail: string,
   ): Promise<string> {
     return projectRepository.create([householdId], project, userEmail);
@@ -109,15 +67,10 @@ class ProjectService {
   async updateProject(
     householdId: string,
     projectId: string,
-    updates: Partial<Project>,
+    updates: Partial<ProjectCreate>,
     userEmail: string,
   ): Promise<void> {
-    // Business logic: Validate updates if needed
-    // Remove id and createdAt from updates to prevent overwriting
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { id: _id, createdAt: _createdAt, ...validUpdates } = updates;
-
-    return projectRepository.update([householdId, projectId], validUpdates, userEmail);
+    return projectRepository.update([householdId, projectId], updates, userEmail);
   }
 
   /**
@@ -167,7 +120,7 @@ class ProjectService {
   async recordSnapshot(
     householdId: string,
     projectId: string,
-    snapshot: Omit<ProjectSnapshot, 'id' | 'createdAt'>,
+    snapshot: ProjectSnapshotCreate,
     userEmail: string,
   ): Promise<string> {
     // Business logic: Could validate snapshot data here
@@ -189,13 +142,20 @@ class ProjectService {
   async getSnapshots(
     householdId: string,
     projectId: string,
-    year?: number,
-    month?: number,
+    filters?: {
+      year?: number;
+      month?: number;
+    },
   ): Promise<ProjectSnapshot[]> {
-    return projectSnapshotRepository.list(
-      [householdId, projectId],
-      [where('year', '==', year), where('month', '==', month)],
-    );
+    const q: QueryConstraint[] = [];
+    if (filters?.year) {
+      q.push(where('year', '==', filters.year));
+    }
+    if (filters?.month) {
+      q.push(where('month', '==', filters.month));
+    }
+
+    return projectSnapshotRepository.list([householdId, projectId], q);
   }
 
   /**
@@ -216,6 +176,14 @@ class ProjectService {
     return snapshots.length > 0 ? snapshots[0] : null;
   }
 
+  async getLatestSnapshot(householdId: string, projectId: string): Promise<ProjectSnapshot | null> {
+    const snapshots = await projectSnapshotRepository.list(
+      [householdId, projectId],
+      [orderBy('year', 'desc'), orderBy('month', 'desc'), limit(1)],
+    );
+    return snapshots.length > 0 ? snapshots[0] : null;
+  }
+
   /**
    * Update a project snapshot
    */
@@ -223,7 +191,7 @@ class ProjectService {
     householdId: string,
     projectId: string,
     snapshotId: string,
-    updates: Partial<Omit<ProjectSnapshot, 'id' | 'createdAt'>>,
+    updates: Partial<ProjectSnapshotCreate>,
     userEmail: string,
   ): Promise<void> {
     return projectSnapshotRepository.update(
@@ -260,7 +228,7 @@ class ProjectService {
    * Calculate total balance across all projects
    */
   async getTotalBalance(householdId: string): Promise<number> {
-    const projects = await this.getActiveProjects(householdId);
+    const projects = await this.getProjects(householdId, { isActive: true });
     const now = new Date();
     const year = now.getFullYear();
     const month = now.getMonth() + 1;
@@ -282,7 +250,7 @@ class ProjectService {
    * Get projects with accounting enabled
    */
   async getAccountingProjects(householdId: string): Promise<Project[]> {
-    const projects = await this.getActiveProjects(householdId);
+    const projects = await this.getProjects(householdId, { isActive: true });
     return projects.filter((p) => p.accounting?.enabled);
   }
 

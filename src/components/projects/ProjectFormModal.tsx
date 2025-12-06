@@ -1,18 +1,15 @@
-import React, { useState, useEffect } from 'react';
-import { type Project } from '../../schemas';
-import { ProjectCategory } from '@/domains/project/projectCategory';
-import { ICON_OPTIONS, CATEGORY_LABELS } from '../../constants/project/projectLabel';
+import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Dialog,
   DialogContent,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
 } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Checkbox } from '@/components/ui/checkbox';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import {
   Select,
   SelectContent,
@@ -20,13 +17,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { ProjectCategory } from '@/domains/project/types/category';
+import React, { useEffect, useState } from 'react';
+
+import { CATEGORY_LABELS, ICON_OPTIONS } from '../../constants/project/projectLabel';
+import { type Project } from '../../schemas';
 import AccountingSettings from './accounting/AccountingSettings';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 
 interface ProjectFormModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (project: Partial<Project>) => Promise<void>;
+  onSubmit: (project: Project) => Promise<void>;
   initialData?: Partial<Project> | null;
   title?: string;
 }
@@ -34,7 +35,7 @@ interface ProjectFormModalProps {
 const ProjectFormModal: React.FC<ProjectFormModalProps> = ({
   isOpen,
   onClose,
-  onSave,
+  onSubmit,
   initialData,
   title,
 }) => {
@@ -69,7 +70,7 @@ const ProjectFormModal: React.FC<ProjectFormModalProps> = ({
 
     setLoading(true);
     try {
-      await onSave(formData);
+      await onSubmit(formData);
       onClose();
     } catch (error) {
       console.error('Error saving project:', error);

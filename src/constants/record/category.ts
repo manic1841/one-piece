@@ -1,7 +1,7 @@
 import {
-  TransactionCategory,
   PlannedIncomeCategory,
   ProjectTransactionCategory,
+  TransactionCategory,
 } from '@/domains/record/types';
 
 export const ExpenseCategoryLabel = {

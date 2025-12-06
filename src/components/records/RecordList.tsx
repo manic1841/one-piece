@@ -1,6 +1,7 @@
-import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { type Record } from '@/domains/record/types';
+import React from 'react';
+
 import { RecordItem } from './RecordItem';
 
 interface RecordListProps {
@@ -15,7 +16,7 @@ export const RecordList: React.FC<RecordListProps> = ({ items, loading, onDelete
     return (
       <Card>
         <CardContent className="p-8">
-          <div className="text-center text-muted-foreground">Loading transactions...</div>
+          <div className="text-center text-muted-foreground">Loading records...</div>
         </CardContent>
       </Card>
     );

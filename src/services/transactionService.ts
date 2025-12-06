@@ -25,6 +25,7 @@ class TransactionService {
       endDate?: Date;
       type?: TransactionType;
       category?: TransactionCategory;
+      projectId?: string;
     },
   ): Promise<Transaction[]> {
     const q: QueryConstraint[] = [orderBy('date', 'desc')];
@@ -40,6 +41,9 @@ class TransactionService {
     }
     if (filters?.category) {
       q.push(where('category', '==', filters.category));
+    }
+    if (filters?.projectId) {
+      q.push(where('projectId', '==', filters.projectId));
     }
 
     // Get all transactions sorted by date

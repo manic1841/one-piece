@@ -1,17 +1,3 @@
-import React, { useEffect, useState } from 'react';
-import { TrendingUp, TrendingDown } from 'lucide-react';
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  Legend,
-} from 'recharts';
-import { projectService } from '../../services/projectService';
-import { formatCurrency } from '../../utils/formatUtils';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Select,
@@ -20,6 +6,21 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { TrendingDown, TrendingUp } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import {
+  CartesianGrid,
+  Legend,
+  Line,
+  LineChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from 'recharts';
+
+import { projectService } from '../../services/projectService';
+import { formatCurrency } from '../../utils/formatUtils';
 
 interface ProjectBalanceChartProps {
   householdId: string;

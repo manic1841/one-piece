@@ -1,5 +1,5 @@
+import { ProjectTransactionType } from '@/domains/project/types/category';
 import { projectTransactionService } from '@/services/projectTransactionService';
-import { ProjectTransactionType } from '@/domains/project/projectCategory';
 
 export function useProjectTransfer(householdId: string, userEmail: string) {
   const submitTransfer = async (data: {

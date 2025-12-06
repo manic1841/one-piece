@@ -7,14 +7,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { RecordCategoryOptions } from '@/constants/record/category';
 import {
+  ProjectTransactionCategory,
+  type RecordCategory,
+  type RecordFormData,
   RecordFormType,
   RecordType,
-  type RecordFormData,
-  type RecordCategory,
-  ProjectTransactionCategory,
 } from '@/domains/record/types';
-import { RecordCategoryOptions } from '@/constants/record/category';
 
 interface RecordBasicFieldsProps {
   formType: RecordFormType;

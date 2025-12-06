@@ -5,7 +5,7 @@ import { z } from 'zod';
 // ProjectTransaction Schema
 export const ProjectTransactionCreateSchema = z.object({
   date: z.date(),
-  category: z.enum(ProjectTransactionCategory).optional(),
+  category: z.enum(ProjectTransactionCategory),
   fromProjectId: z.string().nullable().optional(),
   toProjectId: z.string().nullable().optional(),
   amount: z.number(),
