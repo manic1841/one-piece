@@ -1,26 +1,10 @@
-import { collection, doc, type DocumentData, Timestamp } from 'firebase/firestore';
+import { collection, doc } from 'firebase/firestore';
+
 import { db } from '../firebase';
-import { HouseholdSchema, type Household } from '../schemas';
-import { toDate } from '@/utils/dateUtils';
+import { type Household, HouseholdSchema } from '../schemas';
 import { BaseRepository } from './baseRepository';
 
-type HouseholdFirestore = {
-  id: string;
-  name: string;
-  members: Record<
-    string,
-    {
-      role: string;
-      joinedAt: Timestamp;
-    }
-  >;
-  createdBy: string;
-  createdAt: Timestamp;
-  updatedBy: string;
-  updatedAt: Timestamp;
-};
-
-class HouseholdRepository extends BaseRepository<Household, HouseholdFirestore, [string?]> {
+class HouseholdRepository extends BaseRepository<Household, [string?]> {
   private readonly collectionName = 'households';
 
   protected getCollectionRef() {
@@ -31,45 +15,8 @@ class HouseholdRepository extends BaseRepository<Household, HouseholdFirestore, 
     return doc(this.db, this.collectionName, householdId);
   }
 
-  protected toFirestore(entity: Household): Partial<HouseholdFirestore> {
-    const members = Object.entries(entity.members).reduce(
-      (acc, [key, value]) => {
-        acc[key] = {
-          role: value.role,
-          joinedAt: Timestamp.fromDate(value.joinedAt),
-        };
-        return acc;
-      },
-      {} as Record<string, { role: string; joinedAt: Timestamp }>,
-    );
-
-    return {
-      ...entity,
-      members,
-      createdAt: Timestamp.fromDate(entity.createdAt),
-      updatedAt: Timestamp.fromDate(entity.updatedAt),
-    };
-  }
-
-  protected fromFirestore(data: DocumentData): Household {
-    const members = Object.entries(data.members).reduce(
-      (acc, [key, value]) => {
-        const k = key as string;
-        const { role, joinedAt } = value as { role: string; joinedAt: Timestamp };
-        acc[k] = {
-          role,
-          joinedAt: toDate(joinedAt),
-        };
-        return acc;
-      },
-      {} as Record<string, { role: string; joinedAt: Date }>,
-    );
-    return HouseholdSchema.parse({
-      ...data,
-      members,
-      createdAt: toDate(data.createdAt),
-      updatedAt: toDate(data.updatedAt),
-    });
+  protected getDomainSchema() {
+    return HouseholdSchema;
   }
 }
 

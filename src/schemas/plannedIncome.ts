@@ -1,5 +1,6 @@
-import { z } from 'zod';
 import { PlannedIncomeCategory } from '@/domains/record/types';
+import { BaseSchema } from '@/schemas';
+import { z } from 'zod';
 
 export const PlannedIncomeAllocationSchema = z.object({
   projectId: z.string(),
@@ -7,17 +8,16 @@ export const PlannedIncomeAllocationSchema = z.object({
 });
 export type PlannedIncomeAllocation = z.infer<typeof PlannedIncomeAllocationSchema>;
 
-export const PlannedIncomeSchema = z.object({
-  id: z.string(),
+export const PlannedIncomeCreateSchema = z.object({
   date: z.date(),
   amount: z.number(),
   category: z.enum(PlannedIncomeCategory),
   description: z.string().optional(),
-  createdBy: z.string(),
-  createdAt: z.date(),
-  updatedBy: z.string().optional(),
-  updatedAt: z.date(),
   allocations: z.array(PlannedIncomeAllocationSchema),
 });
+
+export type PlannedIncomeCreate = z.infer<typeof PlannedIncomeCreateSchema>;
+
+export const PlannedIncomeSchema = BaseSchema.extend(PlannedIncomeCreateSchema.shape);
 
 export type PlannedIncome = z.infer<typeof PlannedIncomeSchema>;

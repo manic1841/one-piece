@@ -1,19 +1,18 @@
+import { projectTransactionRepository } from '@/repositories/projectTransactionRepository';
+import { type ProjectTransaction, type ProjectTransactionCreate } from '@/schemas';
 import {
+  type Transaction as FirestoreTransaction,
+  type QueryConstraint,
   orderBy,
   where,
-  type QueryConstraint,
-  type Transaction as FirestoreTransaction,
 } from 'firebase/firestore';
-import { type ProjectTransaction } from '@/schemas';
-import { projectTransactionRepository } from '@/repositories/projectTransactionRepository';
-import { type ExcludedColumn } from '@/repositories/baseRepository';
 
 class ProjectTransactionService {
   // Create a new project transaction
   // Supports running within an existing Firestore transaction
   async createProjectTransaction(
     householdId: string,
-    data: Omit<ProjectTransaction, ExcludedColumn>,
+    data: ProjectTransactionCreate,
     userEmail: string,
     transaction?: FirestoreTransaction,
   ): Promise<string> {
@@ -62,7 +61,7 @@ class ProjectTransactionService {
   async updateProjectTransaction(
     householdId: string,
     id: string,
-    data: Partial<Omit<ProjectTransaction, ExcludedColumn>>,
+    data: Partial<ProjectTransactionCreate>,
     userEmail: string,
   ): Promise<void> {
     return projectTransactionRepository.update([householdId, id], data, userEmail);

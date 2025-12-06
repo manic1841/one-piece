@@ -1,40 +1,51 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import { AuthContext, type AuthContextType } from '@/contexts/AuthContext';
+import { RoleEnum } from '@/domains/auth/role';
+import { auth, googleProvider } from '@/firebase';
+import { type UserProfile } from '@/schemas';
+import { userService } from '@/services/userService';
 import {
   type User,
+  createUserWithEmailAndPassword,
   onAuthStateChanged,
   signInWithEmailAndPassword,
-  createUserWithEmailAndPassword,
-  signOut,
   signInWithPopup,
+  signOut,
 } from 'firebase/auth';
-import { doc, setDoc } from 'firebase/firestore';
-import { auth, googleProvider, db } from '../firebase';
-import { householdService } from '../services/householdService';
-import { type UserProfile } from '../schemas';
-import { AuthContext, type AuthContextType } from './AuthContext';
+import React, { useCallback, useEffect, useState } from 'react';
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const getDisplayName = (user: User): string => {
+    if (user.displayName && user.displayName.trim() !== '') {
+      return user.displayName;
+    }
+    if (user.email) {
+      return user.email.split('@')[0];
+    }
+    return 'Anonymous';
+  };
+
   const fetchUserProfile = useCallback(
     async (uid: string) => {
       try {
-        let profile = await householdService.getUserProfile(uid);
+        console.log('Fetching user profile for UID:', uid);
+        const profile = await userService.getUserProfile(uid);
+        console.log(profile);
 
         // If profile doesn't exist, create one with guest role
         if (!profile && currentUser) {
-          profile = {
+          const newProfile = {
             uid: currentUser.uid,
             email: currentUser.email || '',
-            displayName: currentUser.displayName || currentUser.email?.split('@')[0] || '',
+            displayName: getDisplayName(currentUser),
             photoURL: currentUser.photoURL || undefined,
-            role: 'guest' as const,
+            role: RoleEnum.GUEST,
           };
           // Save the profile to Firestore
-          const userRef = doc(db, 'users', uid);
-          await setDoc(userRef, profile);
+          await userService.createUserProfile(newProfile);
         }
 
         setUserProfile(profile);

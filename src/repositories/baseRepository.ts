@@ -1,35 +1,102 @@
+import { type Base } from '@/schemas';
 import {
-  Firestore,
-  DocumentReference,
   CollectionReference,
   type DocumentData,
-  setDoc,
-  updateDoc,
-  getDoc,
-  getDocs,
+  DocumentReference,
+  Firestore,
+  QueryConstraint,
+  Timestamp,
+  Transaction,
   deleteDoc,
   doc,
+  getDoc,
+  getDocs,
   query,
-  QueryConstraint,
   serverTimestamp,
-  Transaction,
+  setDoc,
+  updateDoc,
 } from 'firebase/firestore';
+import { z } from 'zod';
 
 export type ExcludedColumn = 'id' | 'createdAt' | 'updatedAt' | 'createdBy' | 'updatedBy';
 
-export abstract class BaseRepository<
-  TDomain extends object,
-  TFirestore extends DocumentData,
-  RefArgs extends unknown[],
-> {
+export abstract class BaseRepository<TDomain extends Base, RefArgs extends unknown[] = []> {
   constructor(db: Firestore) {
     this.db = db;
   }
   protected db: Firestore;
   protected abstract getCollectionRef(...args: RefArgs): CollectionReference<DocumentData>;
   protected abstract getDocRef(...args: RefArgs): DocumentReference<DocumentData>;
-  protected abstract toFirestore(entity: TDomain): Partial<TFirestore>;
-  protected abstract fromFirestore(data: TFirestore): TDomain;
+
+  protected abstract getDomainSchema(): z.ZodType<Base>;
+
+  protected convertDateToTimestamp(value: unknown): unknown {
+    if (value instanceof Date) {
+      return Timestamp.fromDate(value);
+    }
+
+    if (Array.isArray(value)) {
+      return value.map((item) => this.convertDateToTimestamp(item));
+    }
+
+    if (value && typeof value === 'object') {
+      const convertedObject: Record<string, unknown> = {};
+      for (const [key, val] of Object.entries(value)) {
+        convertedObject[key] = this.convertDateToTimestamp(val);
+      }
+      return convertedObject;
+    }
+
+    return value;
+  }
+
+  protected convertTimestampToDate(value: unknown): unknown {
+    if (value instanceof Timestamp) {
+      return value.toDate();
+    }
+    if (Array.isArray(value)) {
+      return value.map((item) => this.convertTimestampToDate(item));
+    }
+    if (value && typeof value === 'object') {
+      const convertedObject: Record<string, unknown> = {};
+      for (const [key, val] of Object.entries(value)) {
+        convertedObject[key] = this.convertTimestampToDate(val);
+      }
+      return convertedObject;
+    }
+    return value;
+  }
+
+  protected convertToFirestore(entity: TDomain): Partial<DocumentData> {
+    const { createdAt, updatedAt, ...rest } = entity;
+
+    const payload = this.convertDateToTimestamp(rest) as Partial<DocumentData>;
+
+    return {
+      ...payload,
+      createdAt: createdAt ? Timestamp.fromDate(createdAt) : serverTimestamp(),
+      updatedAt: updatedAt ? Timestamp.fromDate(updatedAt) : serverTimestamp(),
+    } as Partial<DocumentData>;
+  }
+
+  protected convertFromFirestore(data: DocumentData): TDomain {
+    // this.getDomainSchema().parse(data);
+
+    const { createdAt, updatedAt, ...rest } = data;
+
+    const payload = this.convertTimestampToDate(rest) as Partial<TDomain>;
+
+    return {
+      ...payload,
+      createdAt: createdAt ? createdAt.toDate() : new Date(),
+      updatedAt: updatedAt ? updatedAt.toDate() : new Date(),
+    } as unknown as TDomain;
+  }
+
+  protected sanitize(updates: Partial<TDomain>): Partial<TDomain> {
+    const sanitizedEntries = Object.entries(updates).filter(([, value]) => value !== undefined);
+    return Object.fromEntries(sanitizedEntries) as Partial<TDomain>;
+  }
 
   // create
   async create(
@@ -41,25 +108,19 @@ export abstract class BaseRepository<
     const docRef = doc(this.getCollectionRef(...args));
     const id = docRef.id;
 
-    const sanitized = this.toFirestore({
-      ...data,
+    const sanitized = this.sanitize(data as TDomain);
+
+    const entity = this.convertToFirestore({
+      ...sanitized,
       id: id,
       createdBy: userEmail,
       updatedBy: userEmail,
-      createdAt: new Date(),
-      updatedAt: new Date(),
     } as TDomain);
 
-    const payload = {
-      ...sanitized,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-    };
-
     if (tx) {
-      tx.set(docRef, payload);
+      tx.set(docRef, entity);
     } else {
-      await setDoc(docRef, payload);
+      await setDoc(docRef, entity);
     }
     return id;
   }
@@ -71,14 +132,14 @@ export abstract class BaseRepository<
 
     if (!snap.exists()) return null;
 
-    return this.fromFirestore(snap.data() as TFirestore);
+    return this.convertFromFirestore(snap.data());
   }
 
   // list
   async list(args: RefArgs, constraints: QueryConstraint[] = []): Promise<TDomain[]> {
     const q = query(this.getCollectionRef(...args), ...constraints);
     const snap = await getDocs(q);
-    return snap.docs.map((doc) => this.fromFirestore(doc.data() as TFirestore));
+    return snap.docs.map((doc) => this.convertFromFirestore(doc.data()));
   }
 
   // update
@@ -90,16 +151,13 @@ export abstract class BaseRepository<
   ): Promise<void> {
     const docRef = this.getDocRef(...args);
 
-    const sanitized = this.toFirestore({
-      ...updates,
-      updatedBy: userEmail,
-      updatedAt: new Date(),
-    } as TDomain);
+    // remove undefined fields
+    const sanitized = this.sanitize(updates as TDomain);
 
-    const payload = {
+    const payload = this.convertToFirestore({
       ...sanitized,
-      updatedAt: serverTimestamp(),
-    };
+      updatedBy: userEmail,
+    } as TDomain);
 
     if (tx) {
       tx.update(docRef, payload);

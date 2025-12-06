@@ -54,6 +54,15 @@ export default tseslint.config(
 
       // No God Objects: 一個檔案一個 class
       'max-classes-per-file': ['warn', 1],
+
+      // Import Sorting: import 排序
+      "sort-imports": ["error", {
+            "ignoreCase": false,
+            "ignoreDeclarationSort": true,
+            "ignoreMemberSort": false,
+            "memberSyntaxSortOrder": ["none", "all", "multiple", "single"],
+            "allowSeparatedGroups": false
+        }]
     },
   },
 );

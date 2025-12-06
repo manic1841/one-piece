@@ -1,19 +1,19 @@
+import { TransactionCategory, TransactionType } from '@/domains/record/types';
+import { BaseSchema } from '@/schemas';
 import { z } from 'zod';
-import { TransactionType, TransactionCategory } from '@/domains/record/types';
 
 // Transaction Schema
-export const TransactionSchema = z.object({
-  id: z.string(),
+export const TransactionCreateSchema = z.object({
   date: z.date(),
   amount: z.number(),
   type: z.enum(TransactionType),
   projectId: z.string(),
   category: z.enum(TransactionCategory),
   description: z.string().optional(),
-  createdBy: z.string(),
-  createdAt: z.date(),
-  updatedBy: z.string().optional(),
-  updatedAt: z.date(),
 });
+
+export type TransactionCreate = z.infer<typeof TransactionSchema>;
+
+export const TransactionSchema = BaseSchema.extend(TransactionCreateSchema.shape);
 
 export type Transaction = z.infer<typeof TransactionSchema>;

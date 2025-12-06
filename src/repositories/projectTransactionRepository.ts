@@ -1,20 +1,10 @@
-import { collection, doc, Timestamp } from 'firebase/firestore';
+import { collection, doc } from 'firebase/firestore';
+
 import { db } from '../firebase';
-import { ProjectTransactionSchema, type ProjectTransaction } from '../schemas';
-import { toDate } from '@/utils/dateUtils';
+import { type ProjectTransaction, ProjectTransactionSchema } from '../schemas';
 import { BaseRepository } from './baseRepository';
 
-type ProjectTransactionFirestore = Omit<ProjectTransaction, 'date' | 'createdAt' | 'updatedAt'> & {
-  date: Timestamp;
-  createdAt: Timestamp;
-  updatedAt: Timestamp;
-};
-
-class ProjectTransactionRepository extends BaseRepository<
-  ProjectTransaction,
-  ProjectTransactionFirestore,
-  [string, string?]
-> {
+class ProjectTransactionRepository extends BaseRepository<ProjectTransaction, [string, string?]> {
   private readonly collectionName = 'projectTransactions';
 
   protected getCollectionRef(householdId: string) {
@@ -24,24 +14,8 @@ class ProjectTransactionRepository extends BaseRepository<
   protected getDocRef(householdId: string, transactionId: string) {
     return doc(this.db, 'households', householdId, this.collectionName, transactionId);
   }
-
-  protected toFirestore(entity: ProjectTransaction): Partial<ProjectTransactionFirestore> {
-    return {
-      ...entity,
-      date: entity.date ? Timestamp.fromDate(entity.date) : undefined,
-      incomeSource: entity.incomeSource ?? null,
-      createdAt: entity.createdAt ? Timestamp.fromDate(entity.createdAt) : undefined,
-      updatedAt: entity.updatedAt ? Timestamp.fromDate(entity.updatedAt) : undefined,
-    };
-  }
-
-  protected fromFirestore(data: ProjectTransactionFirestore): ProjectTransaction {
-    return ProjectTransactionSchema.parse({
-      ...data,
-      date: toDate(data.date),
-      createdAt: toDate(data.createdAt),
-      updatedAt: toDate(data.updatedAt),
-    });
+  protected getDomainSchema() {
+    return ProjectTransactionSchema;
   }
 }
 

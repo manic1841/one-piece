@@ -1,24 +1,12 @@
-import {
-  doc,
-  setDoc,
-  getDoc,
-  updateDoc,
-  serverTimestamp,
-  where,
-  deleteField,
-} from 'firebase/firestore';
-import { db } from '../firebase';
-import { UserProfileSchema, parseWithSchema } from '../schemas';
-import type { UserProfile, Household } from '../schemas';
-import { householdRepository } from '../repositories/householdRepository';
-import { RoleEnum } from '../domains/core/role';
+import { RoleEnum } from '@/domains/auth/role';
+import { householdRepository } from '@/repositories/householdRepository';
+import type { Household, UserProfile } from '@/schemas';
+import { userService } from '@/services/userService';
+import { where } from 'firebase/firestore';
 
-export const householdService = {
+class HouseholdService {
   // Create a new household
   async createHousehold(name: string, user: UserProfile): Promise<string> {
-    // Validate user input
-    parseWithSchema(UserProfileSchema, user);
-
     const existingHouseholds = await householdRepository.list([], [where('name', '==', name)]);
 
     if (existingHouseholds.length > 0) {
@@ -29,40 +17,25 @@ export const householdService = {
     }
 
     // Create a new household using repository
-    const householdId = await householdRepository.create(
-      [],
-      {
-        name,
-        members: {
-          [user.uid]: {
-            role: user.role || RoleEnum.GUEST,
-            joinedAt: new Date(),
-          },
+    const newHousehold = {
+      name,
+      members: {
+        [user.uid]: {
+          role: user.role || RoleEnum.GUEST,
+          joinedAt: new Date(),
         },
       },
-      user.email,
-    );
+    };
+    const householdId = await householdRepository.create([], newHousehold, user.email);
 
     // Update user profile with householdId
-    const userRef = doc(db, 'users', user.uid);
-    await setDoc(
-      userRef,
-      {
-        ...user,
-        householdId,
-        updatedAt: serverTimestamp(),
-      },
-      { merge: true },
-    );
+    await userService.updateUserProfile(user.uid, { householdId });
 
     return householdId;
-  },
+  }
 
   // Join an existing household by Id or name
   async joinHousehold(householdIdOrName: string, user: UserProfile): Promise<void> {
-    // Validate user input
-    parseWithSchema(UserProfileSchema, user);
-
     // Try to find by ID first
     let household = await householdRepository.get([householdIdOrName]);
 
@@ -81,52 +54,23 @@ export const householdService = {
     // Check if user is already a member
     if (!household.members[user.uid]) {
       // Add user to household members using repository
-      await householdRepository.update(
-        [household.id],
-        {
-          [`members.${user.uid}`]: {
-            role: user.role || 'guest',
-            joinedAt: new Date(),
-          },
+      const updates = {
+        [`members.${user.uid}`]: {
+          role: user.role || RoleEnum.GUEST,
+          joinedAt: new Date(),
         },
-        user.email,
-      );
+      };
+      await householdRepository.update([household.id], updates, user.email);
     }
 
     // Update user profile
-    const userRef = doc(db, 'users', user.uid);
-    await setDoc(
-      userRef,
-      {
-        ...user,
-        householdId: household.id,
-        updatedAt: serverTimestamp(),
-      },
-      { merge: true },
-    );
-  },
+    await userService.updateUserProfile(user.uid, { householdId: household.id });
+  }
 
   // Get household details
   async getHousehold(householdId: string): Promise<Household | null> {
     return await householdRepository.get([householdId]);
-  },
-
-  // Get user profile (helper to check if user has household)
-  async getUserProfile(uid: string): Promise<UserProfile | null> {
-    const docRef = doc(db, 'users', uid);
-    const docSnap = await getDoc(docRef);
-
-    if (docSnap.exists()) {
-      const data = docSnap.data();
-      // Ensure role field exists, default to 'guest' if missing
-      if (!data.role) {
-        data.role = 'guest';
-        await updateDoc(docRef, { role: 'guest' });
-      }
-      return parseWithSchema(UserProfileSchema, data);
-    }
-    return null;
-  },
+  }
 
   // Smart method that creates or joins household based on input
   async createOrJoinHousehold(input: string, user: UserProfile): Promise<string> {
@@ -159,7 +103,7 @@ export const householdService = {
 
     // Not found by ID or name, create new household with this name
     return await this.createHousehold(trimmedInput, user);
-  },
+  }
 
   // Get all households where user is a member
   async getUserHouseholds(uid: string): Promise<Household[]> {
@@ -167,7 +111,7 @@ export const householdService = {
 
     // Filter households where user is a member
     return allHouseholds.filter((household) => household.members[uid] !== undefined);
-  },
+  }
 
   // Switch to a different household
   async switchHousehold(uid: string, householdId: string): Promise<void> {
@@ -182,25 +126,19 @@ export const householdService = {
     }
 
     // Update user profile with new householdId
-    const userRef = doc(db, 'users', uid);
-    await updateDoc(userRef, {
-      householdId,
-      updatedAt: serverTimestamp(),
-    });
-  },
+    await userService.updateUserProfile(uid, { householdId });
+  }
 
   // Leave current household (clear householdId from user profile)
   async leaveCurrentHousehold(uid: string): Promise<void> {
     // First, get the current user profile to preserve the role
-    const currentProfile = await this.getUserProfile(uid);
+    const currentProfile = await userService.getUserProfile(uid);
     if (!currentProfile) {
       throw new Error('User profile not found');
     }
 
-    const userRef = doc(db, 'users', uid);
-    await updateDoc(userRef, {
-      householdId: deleteField(),
-      updatedAt: serverTimestamp(),
-    });
-  },
-};
+    await userService.updateUserProfile(uid, { householdId: undefined });
+  }
+}
+
+export const householdService = new HouseholdService();

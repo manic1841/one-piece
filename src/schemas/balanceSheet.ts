@@ -1,5 +1,5 @@
-import { z } from 'zod';
 import { BalanceSheetSourceType } from '@/domains/finance/financeType';
+import { z } from 'zod';
 
 /**
  * Balance sheet item (asset or liability)
@@ -54,7 +54,7 @@ export type LiabilitySection = z.infer<typeof LiabilitySectionSchema>;
 /**
  * Complete Balance Sheet
  */
-export const BalanceSheetSchema = z.object({
+export const BalanceSheetCreateSchema = z.object({
   id: z.string(),
   asOfDate: z.date(), // 截至日期
   year: z.number().int(),
@@ -71,5 +71,9 @@ export const BalanceSheetSchema = z.object({
   updatedBy: z.string().optional(),
   updatedAt: z.date(),
 });
+
+export type BalanceSheetCreate = z.infer<typeof BalanceSheetCreateSchema>;
+
+export const BalanceSheetSchema = BalanceSheetCreateSchema;
 
 export type BalanceSheet = z.infer<typeof BalanceSheetSchema>;

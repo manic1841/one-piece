@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
-import { type Record, RecordType, TransactionType } from '@/domains/record/types';
 import { RecordColors } from '@/constants/record/colors';
+import { type Record, RecordType, TransactionType } from '@/domains/record/types';
+import { useEffect, useState } from 'react';
 
 interface UseRecordItemProps {
   record: Record;

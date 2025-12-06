@@ -1,14 +1,17 @@
-import { orderBy, where, QueryConstraint } from 'firebase/firestore';
-import type { Transaction } from '@/schemas';
+import type {
+  TransactionCategory,
+  TransactionCreate,
+  TransactionType,
+} from '@/domains/record/types';
 import { transactionRepository } from '@/repositories/transactionRepository';
-import { type ExcludedColumn } from '@/repositories/baseRepository';
-import type { TransactionCategory, TransactionType } from '@/domains/record/types';
+import type { Transaction } from '@/schemas';
+import { QueryConstraint, orderBy, where } from 'firebase/firestore';
 
 class TransactionService {
   // Create a new transaction
   async createTransaction(
     householdId: string,
-    transaction: Omit<Transaction, ExcludedColumn>,
+    transaction: TransactionCreate,
     userEmail: string,
   ): Promise<string> {
     return transactionRepository.create([householdId], transaction, userEmail);
@@ -52,7 +55,7 @@ class TransactionService {
   async updateTransaction(
     householdId: string,
     id: string,
-    updates: Partial<Transaction>,
+    updates: Partial<TransactionCreate>,
     userEmail: string,
   ): Promise<void> {
     return transactionRepository.update([householdId, id], updates, userEmail);
