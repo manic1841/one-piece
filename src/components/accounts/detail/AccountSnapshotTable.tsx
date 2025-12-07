@@ -1,5 +1,3 @@
-import React from 'react';
-import { Calendar, Pencil, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -10,9 +8,12 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { formatCurrency } from '../../../utils/formatUtils';
-import { toDate } from '../../../utils/dateUtils';
+import { Calendar, Pencil, Trash2 } from 'lucide-react';
+import React from 'react';
+
 import { type AccountSnapshot } from '../../../schemas';
+import { formatDate } from '../../../utils/dateUtils';
+import { formatCurrency } from '../../../utils/formatUtils';
 
 interface AccountSnapshotTableProps {
   snapshots: AccountSnapshot[];
@@ -67,8 +68,9 @@ export const AccountSnapshotTable: React.FC<AccountSnapshotTableProps> = ({
                       <TableCell className="text-right">
                         {previousSnapshot ? (
                           <span
-                            className={`font-medium ${change >= 0 ? 'text-green-600' : 'text-red-600'
-                              }`}
+                            className={`font-medium ${
+                              change >= 0 ? 'text-green-600' : 'text-red-600'
+                            }`}
                           >
                             {change >= 0 ? '+' : ''}
                             {formatCurrency(change)}
@@ -78,7 +80,7 @@ export const AccountSnapshotTable: React.FC<AccountSnapshotTableProps> = ({
                         )}
                       </TableCell>
                       <TableCell className="text-muted-foreground">
-                        {toDate(snapshot.createdAt).toLocaleString()}
+                        {formatDate(snapshot.createdAt)}
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-1">

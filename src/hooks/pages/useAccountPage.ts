@@ -22,7 +22,7 @@ export const useAccountPage = (householdId?: string, userEmail?: string) => {
   const [editing, setEditing] = useState<Account | undefined>(undefined);
 
   const [isSnapshotFormOpen, setIsSnapshotFormOpen] = useState(false);
-  const [selectedAccountForSnapshot, setSelectedAccountForSnapshot] = useState<string | undefined>(
+  const [selectedAccountForSnapshot, setSelectedAccountForSnapshot] = useState<Account | undefined>(
     undefined,
   );
 
@@ -77,8 +77,8 @@ export const useAccountPage = (householdId?: string, userEmail?: string) => {
     setIsAccountFormOpen(false);
   };
 
-  const openSnapshotForm = (accountId: string) => {
-    setSelectedAccountForSnapshot(accountId);
+  const openSnapshotForm = (account: Account) => {
+    setSelectedAccountForSnapshot(account);
     setIsSnapshotFormOpen(true);
   };
 

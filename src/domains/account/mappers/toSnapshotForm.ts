@@ -1,0 +1,43 @@
+import { NO_SELECTED } from '@/constants/empty';
+import {
+  type AccountSnapshotCreate,
+  type AccountSnapshotFormData,
+  CurrencyType,
+} from '@/domains/account/types';
+
+export const toSnapshotForm = (
+  accountId?: string,
+  currency?: string,
+  data?: AccountSnapshotCreate,
+): AccountSnapshotFormData => {
+  const id = accountId ?? NO_SELECTED;
+  const cur = currency ?? CurrencyType.TWD;
+
+  const current = new Date();
+  if (!data) {
+    return {
+      accountId: id,
+      currency: cur,
+      year: current.getFullYear().toString(),
+      month: (current.getMonth() + 1).toString(),
+      amount: '',
+      holdings: [],
+    };
+  }
+
+  return {
+    accountId: id,
+    currency: cur,
+    year: data.year.toString(),
+    month: data.month.toString(),
+    amount: data.amount.toString(),
+    holdings:
+      data.holdings?.map((h) => ({
+        symbol: h.symbol,
+        name: h.name,
+        quantity: h.quantity.toString(),
+        marketValue: h.marketValue.toString(),
+        leverage: h.leverage ? h.leverage.toString() : '',
+      })) || [],
+  };
+};

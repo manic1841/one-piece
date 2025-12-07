@@ -1,7 +1,7 @@
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { AccountCategoryIcons } from '@/constants/account/icon';
-import { type AccountWithSnapshot } from '@/domains/account/types';
+import { type Account, type AccountWithSnapshot } from '@/domains/account/types';
 import { formatDate } from '@/utils/dateUtils';
 import { formatCurrency } from '@/utils/formatUtils';
 import { Pencil, Trash2 } from 'lucide-react';
@@ -11,7 +11,7 @@ interface AccountGridProps {
   accounts: AccountWithSnapshot[];
   onEdit: (account: AccountWithSnapshot) => void;
   onDelete: (accountId: string) => void;
-  onRecordSnapshot?: (accountId: string) => void;
+  onRecordSnapshot?: (account: Account) => void;
   onSelectAccount?: (account: AccountWithSnapshot) => void;
 }
 
@@ -39,10 +39,10 @@ export const AccountGrid: React.FC<AccountGridProps> = ({
               >
                 <div className="flex justify-between items-start mb-3">
                   <div className="flex items-center gap-3">
-                    <span className="text-2xl">{AccountCategoryIcons[account.type]}</span>
+                    <span className="text-2xl">{AccountCategoryIcons[account.category!]}</span>
                     <div>
                       <h3 className="font-medium text-foreground">{account.name}</h3>
-                      <p className="text-xs text-muted-foreground">{account.type}</p>
+                      <p className="text-xs text-muted-foreground">{account.category}</p>
                     </div>
                   </div>
                   <div className="flex gap-1">
@@ -73,13 +73,13 @@ export const AccountGrid: React.FC<AccountGridProps> = ({
 
                 <div className="mb-3">
                   <p className="text-2xl font-bold text-foreground">
-                    {formatCurrency(snapshot?.amount || 0)}
+                    {formatCurrency(snapshot.amount || 0)}
                   </p>
-                  {snapshot && (
+                  {
                     <p className="text-xs text-muted-foreground">
                       As of {formatDate(snapshot.createdAt)}
                     </p>
-                  )}
+                  }
                 </div>
 
                 <Button
@@ -87,7 +87,7 @@ export const AccountGrid: React.FC<AccountGridProps> = ({
                   className="w-full"
                   onClick={(e) => {
                     e.stopPropagation();
-                    onRecordSnapshot?.(account.id);
+                    onRecordSnapshot?.(account);
                   }}
                 >
                   Record Balance

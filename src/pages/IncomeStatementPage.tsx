@@ -1,11 +1,12 @@
-import React, { useState, useCallback, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { ArrowLeft, ChevronLeft, ChevronRight } from 'lucide-react';
+import React, { useCallback, useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+
 import IncomeStatementView from '../components/reports/IncomeStatementView';
+import { useAuth } from '../contexts/useAuth';
 import type { IncomeStatement } from '../schemas';
 import { incomeStatementService } from '../services/incomeStatementService';
-import { useAuth } from '../contexts/useAuth';
 
 const IncomeStatementPage: React.FC = () => {
   const navigate = useNavigate();
@@ -69,8 +70,7 @@ const IncomeStatementPage: React.FC = () => {
   const isCurrentMonth = () => {
     const now = new Date();
     return (
-      currentDate.getFullYear() === now.getFullYear() &&
-      currentDate.getMonth() === now.getMonth()
+      currentDate.getFullYear() === now.getFullYear() && currentDate.getMonth() === now.getMonth()
     );
   };
 
@@ -147,13 +147,10 @@ const IncomeStatementPage: React.FC = () => {
       {statement && <IncomeStatementView statement={statement} />}
 
       {!statement && !loading && (
-        <div className="text-center text-muted-foreground py-12">
-          無法載入損益表
-        </div>
+        <div className="text-center text-muted-foreground py-12">無法載入損益表</div>
       )}
     </div>
   );
 };
 
 export default IncomeStatementPage;
-

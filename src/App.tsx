@@ -1,25 +1,25 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import Layout from '@/components/Layout';
+import ProtectedRoute from '@/components/ProtectedRoute';
+import { AuthProvider } from '@/contexts/AuthProvider';
+import AccessDenied from '@/pages/AccessDenied';
+import Accounts from '@/pages/Accounts';
+import BalanceSheetPage from '@/pages/BalanceSheetPage';
+import CashFlowPage from '@/pages/CashFlowPage';
+import Dashboard from '@/pages/Dashboard';
+import IncomeStatementPage from '@/pages/IncomeStatementPage';
+import Login from '@/pages/Login';
+import Onboarding from '@/pages/Onboarding';
+import PortfolioView from '@/pages/PortfolioView';
+import Portfolios from '@/pages/Portfolios';
+import Projects from '@/pages/Projects';
+import Reconciliation from '@/pages/Reconciliation';
+import Records from '@/pages/Records';
+import Reports from '@/pages/Reports';
+import RetirementPlanDetail from '@/pages/RetirementPlanDetail';
+import RetirementPlanList from '@/pages/RetirementPlanList';
+import Settings from '@/pages/Settings';
+import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import { Toaster } from 'sonner';
-import { AuthProvider } from './contexts/AuthProvider';
-import Layout from './components/Layout';
-import Login from './pages/Login';
-import Onboarding from './pages/Onboarding';
-import AccessDenied from './pages/AccessDenied';
-import ProtectedRoute from './components/ProtectedRoute';
-import Dashboard from './pages/Dashboard';
-import Records from './pages/Records';
-import Projects from './pages/Projects';
-import Accounts from './pages/Accounts';
-import Portfolios from './pages/Portfolios';
-import PortfolioView from './pages/PortfolioView';
-import Reconciliation from './pages/Reconciliation';
-import Settings from './pages/Settings';
-import Reports from './pages/Reports';
-import IncomeStatementPage from './pages/IncomeStatementPage';
-import BalanceSheetPage from './pages/BalanceSheetPage';
-import CashFlowPage from './pages/CashFlowPage';
-import RetirementPlanList from './pages/RetirementPlanList';
-import RetirementPlanDetail from './pages/RetirementPlanDetail';
 
 function App() {
   return (

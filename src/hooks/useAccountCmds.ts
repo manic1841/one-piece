@@ -27,6 +27,7 @@ export const useAccountCmds = (householdId?: string, email?: string) => {
     [householdId],
   );
 
+  // record account snapshot
   const recordSnapshot = useCallback(
     async (accountId: string, snapshot: AccountSnapshotCreate) => {
       if (!householdId || !email) return;
@@ -35,17 +36,45 @@ export const useAccountCmds = (householdId?: string, email?: string) => {
     [householdId, email],
   );
 
+  // update account snapshot
+  const updateSnapshot = async (
+    accountId: string,
+    snapshotId: string,
+    updates: { amount: number; year: number; month: number },
+  ) => {
+    if (!householdId || !email) return;
+    await accountService.updateSnapshot(householdId, accountId, snapshotId, updates, email);
+  };
+
+  const deleteSnapshot = async (accountId: string, snapshotId: string) => {
+    if (!householdId) return;
+
+    await accountService.deleteSnapshot(householdId, accountId, snapshotId);
+  };
+
   // get total asset balance
   const getTotalBalance = useCallback(async () => {
     if (!householdId) return 0;
     return await accountService.getTotalAssets(householdId);
   }, [householdId]);
 
+  // get previous snapshot
+  const getPreviousSnapshot = useCallback(
+    async (accountId: string, year: number, month: number) => {
+      if (!householdId) return null;
+      return await accountService.getPreviousSnapshot(householdId, accountId, year, month);
+    },
+    [householdId],
+  );
+
   return {
     createAccount,
     updateAccount,
     deleteAccount,
     recordSnapshot,
+    updateSnapshot,
+    deleteSnapshot,
     getTotalBalance,
+    getPreviousSnapshot,
   };
 };

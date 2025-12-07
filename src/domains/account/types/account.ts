@@ -3,8 +3,14 @@ import { type AccountSnapshot } from '@/domains/account/types';
 
 export type AccountWithSnapshot = Account & { snapshots: AccountSnapshot[] };
 
-export type AssetTrendData = Array<{
+export interface AssetDataPoint {
   date: string;
   totalAssets: number;
-  type: string; // account name
-}>;
+  accounts: Record<string, number>;
+}
+
+export interface ChartDataPoint {
+  month: string;
+  amount: number;
+  date: Date;
+}

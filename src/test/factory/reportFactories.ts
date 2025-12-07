@@ -1,12 +1,13 @@
 import { Timestamp } from 'firebase/firestore';
+
 import type {
-  FinancialReport,
-  IncomeStatementData,
-  IncomeStatementItem,
   BalanceSheetData,
   BalanceSheetItem,
   CashFlowData,
   CashFlowItem,
+  FinancialReport,
+  IncomeStatementData,
+  IncomeStatementItem,
 } from '../../schemas/report';
 
 /**

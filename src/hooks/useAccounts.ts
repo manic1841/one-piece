@@ -10,7 +10,7 @@ export function useAccounts(householdId?: string) {
   const load = useCallback(async () => {
     run(async () => {
       if (!householdId) return;
-      const data = await accountService.getAccountWithSnapshots(householdId);
+      const data = await accountService.getAccountWithLatestSnapshots(householdId);
       setAccounts(data);
     });
   }, [run, householdId]);

@@ -62,7 +62,6 @@ export const useProjectForm = (
   };
 
   const accountingClick = (enabled: boolean) => {
-    console.log('accountingClick enabled:', enabled);
     setAccountingEnabled(enabled);
     setFormData((prev) => {
       if (!prev) return prev;

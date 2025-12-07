@@ -1,8 +1,9 @@
-import React from 'react';
-import { TrendingUp } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { formatCurrency } from '../../../utils/formatUtils';
+import { TrendingUp } from 'lucide-react';
+import React from 'react';
+
 import { type Account } from '../../../schemas';
+import { formatCurrency } from '../../../utils/formatUtils';
 
 interface AccountHeaderProps {
   account: Account;

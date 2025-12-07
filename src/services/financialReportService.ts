@@ -1,13 +1,14 @@
-import { collection, doc, getDocs, query, setDoc, Timestamp, where } from 'firebase/firestore';
-import { db } from '../firebase';
+import { Timestamp, collection, doc, getDocs, query, setDoc, where } from 'firebase/firestore';
+
 import {
   calculateBalanceSheet,
   calculateCashFlowStatement,
   calculateIncomeStatement,
   reconcileReports,
 } from '../domains/finance/calculators/financialReportCalculator';
-import type { FinancialReport } from '../schemas/report';
+import { db } from '../firebase';
 import type { AccountSnapshot } from '../schemas/account';
+import type { FinancialReport } from '../schemas/report';
 import { accountService } from './accountService';
 import { plannedIncomeService } from './plannedIncomeService';
 import { projectService } from './projectService';

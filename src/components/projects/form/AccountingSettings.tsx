@@ -10,9 +10,7 @@ interface AccountingSettingsProps {
 }
 
 const AccountingSettings: React.FC<AccountingSettingsProps> = ({ data, onChanged }) => {
-  console.log('AccountingSettings data:', data);
   const [accounting, setAccounting] = useState(data?.accounting || { enabled: false });
-  console.log('AccountingSettings accounting state:', accounting);
 
   useEffect(() => {
     onChanged({

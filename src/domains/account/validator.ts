@@ -1,4 +1,6 @@
-import type { AccountFormData } from './types';
+import { nullOrData } from '@/constants/empty';
+
+import type { AccountFormData, AccountSnapshotFormData } from './types';
 
 export const validate = (formData: AccountFormData) => {
   // 驗證名稱
@@ -14,6 +16,18 @@ export const validate = (formData: AccountFormData) => {
   // 驗證幣別
   if (!formData.currency || formData.currency.trim().length === 0) {
     return { isValid: false, error: '請選擇幣別' };
+  }
+
+  return { isValid: true, error: '' };
+};
+
+export const validateSnapshot = (formData: AccountSnapshotFormData) => {
+  if (!nullOrData(formData.accountId)) {
+    return { isValid: false, error: '請選擇帳戶' };
+  }
+
+  if (!formData.amount || parseFloat(formData.amount) < 0) {
+    return { isValid: false, error: '請輸入有效的金額' };
   }
 
   return { isValid: true, error: '' };

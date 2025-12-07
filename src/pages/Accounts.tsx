@@ -90,7 +90,7 @@ const Accounts: React.FC = () => {
       </Card>
 
       {/* Asset Trend Chart */}
-      <AccountTrendChart accounts={accounts} />
+      <AccountTrendChart householdId={userProfile?.householdId} />
 
       {/* Accounts List */}
       <AccountGrid
@@ -120,8 +120,7 @@ const Accounts: React.FC = () => {
           onClose={closeSnapshotForm}
           onSubmit={record}
           accounts={accounts}
-          userEmail={currentUser?.email || ''}
-          initialAccountId={selectedAccountForSnapshot}
+          selectedAccount={selectedAccountForSnapshot}
           householdId={userProfile?.householdId || ''}
         />
       )}

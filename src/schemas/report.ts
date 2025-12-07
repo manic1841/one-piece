@@ -1,10 +1,10 @@
-import { z } from 'zod';
 import {
-  ReportType,
-  IncomeStatementSourceType,
-  CashFlowSourceType,
   BalanceSheetSourceType,
+  CashFlowSourceType,
+  IncomeStatementSourceType,
+  ReportType,
 } from '@/domains/finance/financeType';
+import { z } from 'zod';
 
 // --- Income Statement Data Structures ---
 export const IncomeStatementItemSchema = z.object({

@@ -75,7 +75,7 @@ class AccountService {
     return accountSnapshotRepository.list([householdId, accountId], q);
   }
 
-  async getAccountWithSnapshots(
+  async getAccountWithLatestSnapshots(
     householdId: string,
     accountId?: string,
   ): Promise<AccountWithSnapshot[]> {
@@ -86,34 +86,53 @@ class AccountService {
     const result: AccountWithSnapshot[] = [];
     for (const account of accounts) {
       if (!account) continue;
-      const snapshots = await this.getSnapshots(householdId, account.id);
-      result.push({ ...account, snapshots });
+      const snapshot = await this.getLatestSnapshot(householdId, account.id);
+
+      result.push({ ...account, snapshots: snapshot ? [snapshot] : [] });
     }
     return result;
   }
 
   // Get latest snapshot for each account in a household
-  async getLatestSnapshots(householdId: string): Promise<Map<string, AccountSnapshot>> {
-    const accounts = await this.getAccounts(householdId);
-    const latestSnapshots = new Map<string, AccountSnapshot>();
+  async getLatestSnapshot(householdId: string, accountId: string): Promise<AccountSnapshot | null> {
+    const snapshots = await this.getSnapshots(householdId, accountId);
+    // compare year and month to get the latest snapshot
+    const latestSnapshot = snapshots.reduce(
+      (latest, current) => {
+        if (!latest) return current;
+        if (current.year > latest.year) return current;
+        if (current.year === latest.year && current.month > latest.month) return current;
+        return latest;
+      },
+      null as AccountSnapshot | null,
+    );
+    return latestSnapshot;
+  }
 
-    for (const account of accounts) {
-      const snapshots = await this.getSnapshots(householdId, account.id);
-      if (snapshots.length > 0) {
-        latestSnapshots.set(account.id, snapshots[0]);
-      }
+  async getPreviousSnapshot(
+    householdId: string,
+    accountId: string,
+    year: number,
+    month: number,
+  ): Promise<AccountSnapshot | null> {
+    let prevYear = year;
+    let prevMonth = month - 1;
+    if (prevMonth === 0) {
+      prevMonth = 12;
+      prevYear = year - 1;
     }
-
-    return latestSnapshots;
+    const snapshots = await this.getSnapshots(householdId, accountId, prevYear, prevMonth);
+    return snapshots.length > 0 ? snapshots[0] : null;
   }
 
   // Get total assets for a household
   async getTotalAssets(householdId: string): Promise<number> {
-    const latestSnapshots = await this.getLatestSnapshots(householdId);
+    const accounts = await this.getAccounts(householdId);
     let total = 0;
-
-    for (const snapshot of latestSnapshots.values()) {
-      total += snapshot.amount;
+    for (const account of accounts) {
+      if (!account) continue;
+      const latest = await this.getLatestSnapshot(householdId, account.id);
+      total += latest ? latest.amount : 0;
     }
 
     return total;

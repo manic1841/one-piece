@@ -1,12 +1,13 @@
-import { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
-import { Button } from '../components/ui/button';
-import PeriodSelector from '../components/reports/PeriodSelector';
+import { useCallback, useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+
 import BalanceSheetView from '../components/reports/BalanceSheetView';
-import { balanceSheetService } from '../services/balanceSheetService';
+import PeriodSelector from '../components/reports/PeriodSelector';
+import { Button } from '../components/ui/button';
 import { useAuth } from '../contexts/useAuth';
 import type { BalanceSheet } from '../schemas/balanceSheet';
+import { balanceSheetService } from '../services/balanceSheetService';
 
 export default function BalanceSheetPage() {
   const navigate = useNavigate();
@@ -34,7 +35,7 @@ export default function BalanceSheetPage() {
         asOfDate,
         userProfile.email,
       );
-      
+
       setBalanceSheet(data);
     } catch (err) {
       console.error('Failed to load balance sheet:', err);
@@ -53,11 +54,7 @@ export default function BalanceSheetPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => navigate('/reports')}
-          >
+          <Button variant="ghost" size="icon" onClick={() => navigate('/reports')}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div>
@@ -71,9 +68,7 @@ export default function BalanceSheetPage() {
       </div>
 
       {/* Period Selector */}
-      <PeriodSelector
-        onChange={handlePeriodChange}
-      />
+      <PeriodSelector onChange={handlePeriodChange} />
 
       {/* Content */}
       {loading && (
@@ -88,9 +83,7 @@ export default function BalanceSheetPage() {
         </div>
       )}
 
-      {!loading && !error && balanceSheet && (
-        <BalanceSheetView balanceSheet={balanceSheet} />
-      )}
+      {!loading && !error && balanceSheet && <BalanceSheetView balanceSheet={balanceSheet} />}
 
       {!loading && !error && !balanceSheet && (
         <div className="flex justify-center items-center h-64">
