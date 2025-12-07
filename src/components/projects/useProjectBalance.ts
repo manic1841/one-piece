@@ -7,13 +7,13 @@ export const useProjectBalance = (householdId?: string, projectId?: string) => {
 
   useEffect(() => {
     const fetchBalance = async () => {
-      if (!householdId || !projectId) return;
+      if (!projectId) return;
 
       const bal = await getProjectBalance(projectId);
       setBalance(bal || 0);
     };
     fetchBalance();
-  }, [householdId, projectId, getProjectBalance]);
+  }, [projectId, getProjectBalance]);
 
   return { balance };
 };

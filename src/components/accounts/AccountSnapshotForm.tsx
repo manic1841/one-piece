@@ -1,14 +1,12 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { type Account, type AccountSnapshot, type Holding } from '../../schemas';
-import { accountService } from '../../services/accountService';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
 import {
   Dialog,
   DialogContent,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
 } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -18,13 +16,21 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Card } from '@/components/ui/card';
 import { Plus, Trash2 } from 'lucide-react';
+import React, { useCallback, useEffect, useState } from 'react';
+
+import {
+  type Account,
+  type AccountSnapshot,
+  type AccountSnapshotCreate,
+  type Holding,
+} from '../../schemas';
+import { accountService } from '../../services/accountService';
 
 interface AccountSnapshotFormProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (snapshot: Omit<AccountSnapshot, 'id' | 'createdAt'>) => Promise<void>;
+  onSubmit: (accountId: string, snapshot: AccountSnapshotCreate) => Promise<void>;
   accounts: Account[];
   userEmail: string;
   initialAccountId?: string;
@@ -250,7 +256,10 @@ const AccountSnapshotForm: React.FC<AccountSnapshotFormProps> = ({
 
               <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1">
                 {holdings.map((holding, index) => (
-                  <div key={index} className="grid grid-cols-12 gap-2 items-end border-b pb-2 last:border-0">
+                  <div
+                    key={index}
+                    className="grid grid-cols-12 gap-2 items-end border-b pb-2 last:border-0"
+                  >
                     <div className="col-span-3">
                       <Label className="text-xs">Symbol</Label>
                       <Input
@@ -274,7 +283,9 @@ const AccountSnapshotForm: React.FC<AccountSnapshotFormProps> = ({
                       <Input
                         type="number"
                         value={holding.quantity}
-                        onChange={(e) => handleHoldingChange(index, 'quantity', parseFloat(e.target.value) || 0)}
+                        onChange={(e) =>
+                          handleHoldingChange(index, 'quantity', parseFloat(e.target.value) || 0)
+                        }
                         className="h-8"
                       />
                     </div>
@@ -283,7 +294,9 @@ const AccountSnapshotForm: React.FC<AccountSnapshotFormProps> = ({
                       <Input
                         type="number"
                         value={holding.marketValue}
-                        onChange={(e) => handleHoldingChange(index, 'marketValue', parseFloat(e.target.value) || 0)}
+                        onChange={(e) =>
+                          handleHoldingChange(index, 'marketValue', parseFloat(e.target.value) || 0)
+                        }
                         className="h-8"
                       />
                     </div>
@@ -293,7 +306,9 @@ const AccountSnapshotForm: React.FC<AccountSnapshotFormProps> = ({
                         type="number"
                         value={holding.leverage || ''}
                         placeholder="1"
-                        onChange={(e) => handleHoldingChange(index, 'leverage', parseFloat(e.target.value) || 0)}
+                        onChange={(e) =>
+                          handleHoldingChange(index, 'leverage', parseFloat(e.target.value) || 0)
+                        }
                         className="h-8"
                       />
                     </div>

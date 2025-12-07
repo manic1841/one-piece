@@ -1,11 +1,11 @@
 import type {
   AnyRecord,
-  Record,
-  Transaction,
   PlannedIncome,
   ProjectTransaction,
+  Record,
+  Transaction,
 } from '@/domains/record/types';
-import { RecordType, RecordFormType, TransactionType } from '@/domains/record/types';
+import { RecordFormType, RecordType, TransactionType } from '@/domains/record/types';
 
 const mapTransactionToRecord = (txn: Transaction): Record => {
   return {

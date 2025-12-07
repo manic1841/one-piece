@@ -1,6 +1,12 @@
+import type {
+  Account,
+  AccountCreate,
+  AccountSnapshot,
+  AccountSnapshotCreate,
+  AccountWithSnapshot,
+} from '@/domains/account/types';
 import { accountRepository } from '@/repositories/accountRepository';
 import { accountSnapshotRepository } from '@/repositories/accountSnapshotRepository';
-import type { Account, AccountCreate, AccountSnapshot, AccountSnapshotCreate } from '@/schemas';
 import { QueryConstraint, orderBy, where } from 'firebase/firestore';
 
 class AccountService {
@@ -15,7 +21,11 @@ class AccountService {
 
   // Get all accounts for a household
   async getAccounts(householdId: string): Promise<Account[]> {
-    return accountRepository.list([householdId], [orderBy('createdAt', 'desc')]);
+    const accounts = await accountRepository.list([householdId], [orderBy('createdAt', 'desc')]);
+    return accounts.map((account) => {
+      if (!account.category) account.category = account.type; // for backward compatibility
+      return account;
+    });
   }
 
   // Get a single account
@@ -63,6 +73,23 @@ class AccountService {
       q.push(where('month', '==', month));
     }
     return accountSnapshotRepository.list([householdId, accountId], q);
+  }
+
+  async getAccountWithSnapshots(
+    householdId: string,
+    accountId?: string,
+  ): Promise<AccountWithSnapshot[]> {
+    const accounts = accountId
+      ? [await this.getAccount(householdId, accountId)]
+      : await this.getAccounts(householdId);
+
+    const result: AccountWithSnapshot[] = [];
+    for (const account of accounts) {
+      if (!account) continue;
+      const snapshots = await this.getSnapshots(householdId, account.id);
+      result.push({ ...account, snapshots });
+    }
+    return result;
   }
 
   // Get latest snapshot for each account in a household

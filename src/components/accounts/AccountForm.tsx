@@ -1,16 +1,14 @@
-import React, { useState, useEffect } from 'react';
-import { type Account, type AccountType } from '../../schemas';
+import { useAccountForm } from '@/components/accounts/useAccountForm';
+import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogContent,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
 } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Checkbox } from '@/components/ui/checkbox';
 import {
   Select,
   SelectContent,
@@ -18,83 +16,38 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { AccountCategoryIcons } from '@/constants/account/icon';
+import { AccountCategoryLabels } from '@/constants/account/label';
+import { CurrencyOptions } from '@/constants/account/label';
+import { AccountCategory } from '@/domains/account/types';
+import { type Account } from '@/domains/account/types';
+import type { AccountArgs } from '@/hooks/pages/useAccountPage';
 
 interface AccountFormProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (account: Omit<Account, 'id' | 'snapshots' | 'createdAt'>) => Promise<void>;
+  onSubmit: (args: AccountArgs) => Promise<void>;
   initialData?: Account;
   householdId: string;
   userEmail: string;
 }
 
-const accountTypes: { value: AccountType; label: string; icon: string }[] = [
-  { value: 'bank', label: 'Bank Account', icon: '🏦' },
-  { value: 'cash', label: 'Cash', icon: '💵' },
-  { value: 'investment', label: 'Investment', icon: '📈' },
-  { value: 'other', label: 'Other', icon: '📦' },
-];
-
 const AccountForm: React.FC<AccountFormProps> = ({ isOpen, onClose, onSubmit, initialData }) => {
-  const [name, setName] = useState(initialData?.name || '');
-  const [type, setType] = useState<AccountType>(initialData?.type || 'bank');
-  const [currency, setCurrency] = useState(initialData?.currency || 'USD');
-  const [includeInReconciliation, setIncludeInReconciliation] = useState(
-    initialData?.includeInReconciliation ?? true,
+  const { loading, error, formData, save, updateFormData } = useAccountForm(
+    initialData,
+    onSubmit,
+    onClose,
+    isOpen,
   );
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-
-  useEffect(() => {
-    if (initialData) {
-      setName(initialData.name);
-      setType(initialData.type);
-      setCurrency(initialData.currency);
-      setIncludeInReconciliation(initialData.includeInReconciliation ?? true);
-    }
-  }, [initialData]);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-
-    if (!name.trim()) {
-      setError('Please enter an account name');
-      return;
-    }
-
-    setLoading(true);
-
-    try {
-      await onSubmit({
-        name: name.trim(),
-        type,
-        currency,
-        includeInReconciliation,
-      });
-
-      // Reset form
-      setName('');
-      setType('bank');
-      setCurrency('USD');
-      setIncludeInReconciliation(true);
-      onClose();
-    } catch (err) {
-      const error = err as Error;
-      setError(error.message || 'Failed to save account');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent>
+      <DialogContent aria-describedby={undefined}>
         <DialogHeader>
           <DialogTitle>{initialData ? 'Edit Account' : 'New Account'}</DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4 py-4">
+        <form onSubmit={save} className="space-y-4 py-4">
           {error && (
             <div className="bg-destructive/10 text-destructive p-3 rounded-lg text-sm">{error}</div>
           )}
@@ -107,25 +60,25 @@ const AccountForm: React.FC<AccountFormProps> = ({ isOpen, onClose, onSubmit, in
               type="text"
               required
               placeholder="e.g., Main Bank Account"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
+              value={formData.name}
+              onChange={(e) => updateFormData({ name: e.target.value })}
             />
           </div>
 
-          {/* Account Type */}
+          {/* Account Category */}
           <div className="space-y-2">
-            <Label>Account Type</Label>
+            <Label>Account Category</Label>
             <div className="grid grid-cols-2 gap-2">
-              {accountTypes.map((accountType) => (
+              {Object.entries(AccountCategory).map(([key, value]) => (
                 <Button
-                  key={accountType.value}
+                  key={key}
                   type="button"
-                  variant={type === accountType.value ? 'default' : 'outline'}
-                  onClick={() => setType(accountType.value)}
+                  variant={formData.category === value ? 'default' : 'outline'}
+                  onClick={() => updateFormData({ category: value })}
                   className="justify-start gap-2"
                 >
-                  <span className="text-xl">{accountType.icon}</span>
-                  <span className="text-sm font-medium">{accountType.label}</span>
+                  <span className="text-xl">{AccountCategoryIcons[value]}</span>
+                  <span className="text-sm font-medium">{AccountCategoryLabels[value]}</span>
                 </Button>
               ))}
             </div>
@@ -134,33 +87,21 @@ const AccountForm: React.FC<AccountFormProps> = ({ isOpen, onClose, onSubmit, in
           {/* Currency */}
           <div className="space-y-2">
             <Label htmlFor="currency">Currency</Label>
-            <Select value={currency} onValueChange={setCurrency}>
+            <Select
+              value={formData?.currency}
+              onValueChange={(value) => updateFormData({ currency: value })}
+            >
               <SelectTrigger id="currency">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="USD">USD ($)</SelectItem>
-                <SelectItem value="TWD">TWD (NT$)</SelectItem>
-                <SelectItem value="EUR">EUR (€)</SelectItem>
-                <SelectItem value="GBP">GBP (£)</SelectItem>
-                <SelectItem value="JPY">JPY (¥)</SelectItem>
+                {CurrencyOptions.map((currency) => (
+                  <SelectItem key={currency.value} value={currency.value}>
+                    {currency.label}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
-          </div>
-
-          {/* Include in Reconciliation */}
-          <div className="flex items-center space-x-2">
-            <Checkbox
-              id="include-reconciliation"
-              checked={includeInReconciliation}
-              onCheckedChange={(checked) => setIncludeInReconciliation(checked === true)}
-            />
-            <Label
-              htmlFor="include-reconciliation"
-              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-            >
-              Include in reconciliation
-            </Label>
           </div>
 
           <DialogFooter>
