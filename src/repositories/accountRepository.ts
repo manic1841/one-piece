@@ -1,15 +1,9 @@
-import { collection, doc, Timestamp } from 'firebase/firestore';
-import { db } from '../firebase';
-import { AccountSchema, type Account } from '../schemas';
-import { toDate } from '@/utils/dateUtils';
-import { BaseRepository } from './baseRepository';
+import { db } from '@/firebase';
+import { BaseRepository } from '@/repositories/baseRepository';
+import { type Account, AccountSchema } from '@/schemas';
+import { collection, doc } from 'firebase/firestore';
 
-type AccountFirestore = Omit<Account, 'createdAt' | 'updatedAt'> & {
-  createdAt: Timestamp;
-  updatedAt: Timestamp;
-};
-
-class AccountRepository extends BaseRepository<Account, AccountFirestore, [string, string?]> {
+class AccountRepository extends BaseRepository<Account, [string, string?]> {
   private readonly collectionName = 'accounts';
 
   protected getCollectionRef(householdId: string) {
@@ -19,21 +13,8 @@ class AccountRepository extends BaseRepository<Account, AccountFirestore, [strin
   protected getDocRef(householdId: string, accountId: string) {
     return doc(this.getCollectionRef(householdId), accountId);
   }
-
-  protected toFirestore(entity: Account): Partial<AccountFirestore> {
-    return {
-      ...entity,
-      createdAt: entity.createdAt ? Timestamp.fromDate(entity.createdAt) : undefined,
-      updatedAt: entity.updatedAt ? Timestamp.fromDate(entity.updatedAt) : undefined,
-    };
-  }
-
-  protected fromFirestore(data: AccountFirestore): Account {
-    return AccountSchema.parse({
-      ...data,
-      createdAt: toDate(data.createdAt),
-      updatedAt: toDate(data.updatedAt),
-    });
+  protected getDomainSchema() {
+    return AccountSchema;
   }
 }
 

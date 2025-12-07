@@ -1,18 +1,9 @@
-import { Timestamp, collection, doc } from 'firebase/firestore';
-import { AccountSnapshotSchema, type AccountSnapshot } from '@/schemas';
-import { BaseRepository } from './baseRepository';
-import { toDate } from '@/utils/dateUtils';
 import { db } from '@/firebase';
+import { BaseRepository } from '@/repositories/baseRepository';
+import { type AccountSnapshot, AccountSnapshotSchema } from '@/schemas';
+import { collection, doc } from 'firebase/firestore';
 
-type AccountSnapshotFirestore = Omit<AccountSnapshot, 'id' | 'createdAt'> & {
-  createdAt: Timestamp;
-};
-
-class AccountSnapshotRepository extends BaseRepository<
-  AccountSnapshot,
-  AccountSnapshotFirestore,
-  [string, string, string?]
-> {
+class AccountSnapshotRepository extends BaseRepository<AccountSnapshot, [string, string, string?]> {
   protected getCollectionRef(householdId: string, accountId: string) {
     return collection(this.db, 'households', householdId, 'accounts', accountId, 'snapshots');
   }
@@ -20,19 +11,8 @@ class AccountSnapshotRepository extends BaseRepository<
   protected getDocRef(householdId: string, accountId: string, snapshotId: string) {
     return doc(this.getCollectionRef(householdId, accountId), snapshotId);
   }
-
-  protected toFirestore(entity: AccountSnapshot): Partial<AccountSnapshotFirestore> {
-    return {
-      ...entity,
-      createdAt: entity.createdAt ? Timestamp.fromDate(entity.createdAt) : undefined,
-    };
-  }
-
-  protected fromFirestore(data: AccountSnapshotFirestore): AccountSnapshot {
-    return AccountSnapshotSchema.parse({
-      ...data,
-      createdAt: toDate(data.createdAt),
-    });
+  protected getDomainSchema() {
+    return AccountSnapshotSchema;
   }
 }
 

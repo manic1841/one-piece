@@ -32,6 +32,16 @@ export const formatYearMonth = (year: number, month: number): string => {
 };
 
 /**
+ *
+ * @param date
+ * @returns
+ */
+export const formatDate = (date: Date) => {
+  if (!date) return '';
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+};
+
+/**
  * Get start and end dates for a given month
  * @param year - Year
  * @param month - Month (1-12)

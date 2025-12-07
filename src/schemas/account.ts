@@ -1,4 +1,4 @@
-import { AccountCategory } from '@/domains/account/accountCategory';
+import { AccountCategory } from '@/domains/account/types/category';
 import { BaseSchema } from '@/schemas';
 import { z } from 'zod';
 
@@ -15,15 +15,10 @@ export type Holding = z.infer<typeof HoldingSchema>;
 
 // AccountSnapshotModel Schema
 export const AccountSnapshotCreateSchema = z.object({
-  id: z.string(),
   year: z.number().int(),
   month: z.number().int().min(1).max(12),
   amount: z.number(),
   holdings: z.array(HoldingSchema).optional(),
-  createdBy: z.string(),
-  createdAt: z.date(),
-  updatedBy: z.string().optional(),
-  updatedAt: z.date(),
 });
 
 export type AccountSnapshotCreate = z.infer<typeof AccountSnapshotCreateSchema>;
@@ -34,14 +29,9 @@ export type AccountSnapshot = z.infer<typeof AccountSnapshotSchema>;
 
 // Account Schema
 export const AccountCreateSchema = z.object({
-  id: z.string(),
   name: z.string(),
   type: z.enum(AccountCategory),
   currency: z.string(),
-  createdBy: z.string(),
-  createdAt: z.date(),
-  updatedBy: z.string().optional(),
-  updatedAt: z.date(),
   // subcollection
   snapshots: z.array(AccountSnapshotSchema).optional(),
 });

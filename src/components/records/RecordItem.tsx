@@ -1,9 +1,10 @@
-import type React from 'react';
-import { type Record, RecordType } from '@/domains/record/types';
-import { Button } from '@/components/ui/button';
-import { Pencil, Trash2 } from 'lucide-react';
-import { formatCurrency } from '@/utils/formatUtils';
 import { useRecordItem } from '@/components/records/useRecordItem';
+import { Button } from '@/components/ui/button';
+import { type Record, RecordType } from '@/domains/record/types';
+import { formatDate } from '@/utils/dateUtils';
+import { formatCurrency } from '@/utils/formatUtils';
+import { Pencil, Trash2 } from 'lucide-react';
+import type React from 'react';
 
 interface RecordItemProps {
   record: Record;
@@ -16,7 +17,7 @@ export const RecordItem: React.FC<RecordItemProps> = ({
   onEdit,
   onDelete,
 }: RecordItemProps) => {
-  const { color, formatDate } = useRecordItem({ record });
+  const { color } = useRecordItem({ record });
 
   return (
     <div className={`p-4 hover:bg-accent/50 transition-colors bg-${color}-50/30`}>

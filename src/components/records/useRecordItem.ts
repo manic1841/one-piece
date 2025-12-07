@@ -31,10 +31,5 @@ export const useRecordItem = ({ record }: UseRecordItemProps) => {
     determineColor();
   }, [record]);
 
-  const formatDate = (date: Date) => {
-    if (!date) return '';
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-  };
-
-  return { color, formatDate };
+  return { color };
 };

@@ -1,19 +1,17 @@
-import React, { useState, useEffect } from 'react';
-import { useAuth } from '../contexts/useAuth';
-import { accountService } from '../services/accountService';
-import { assetTrackingService, type AssetDataPoint } from '../services/assetTrackingService';
-import { type Account, type AccountSnapshot } from '../schemas';
-import AccountForm from '../components/accounts/AccountForm';
-import AccountSnapshotForm from '../components/accounts/AccountSnapshotForm';
-import AccountDetailView from '../components/accounts/AccountDetailView';
-import AccountTrendChart from '../components/accounts/AccountTrendChart';
-import { toDate } from '../utils/dateUtils';
-import { formatCurrency } from '../utils/formatUtils';
-import { Plus, Pencil, Trash2, TrendingUp, BarChart3 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
+import { useAccountPage } from '@/hooks/pages/useAccountPage';
+import { BarChart3, Pencil, Plus, Trash2, TrendingUp } from 'lucide-react';
+
+import AccountDetailView from '../components/accounts/AccountDetailView';
+import AccountForm from '../components/accounts/AccountForm';
+import AccountSnapshotForm from '../components/accounts/AccountSnapshotForm';
+import AccountTrendChart from '../components/accounts/AccountTrendChart';
+import { useAuth } from '../contexts/useAuth';
+import { formatDate } from '../utils/dateUtils';
+import { formatCurrency } from '../utils/formatUtils';
 
 const accountTypeIcons: Record<string, string> = {
   bank: '🏦',
@@ -25,138 +23,31 @@ const accountTypeIcons: Record<string, string> = {
 
 const Accounts: React.FC = () => {
   const { userProfile, currentUser } = useAuth();
-  const [accounts, setAccounts] = useState<Account[]>([]);
-  const [latestSnapshots, setLatestSnapshots] = useState<Map<string, AccountSnapshot>>(new Map());
-  const [loading, setLoading] = useState(true);
-  const [isAccountFormOpen, setIsAccountFormOpen] = useState(false);
-  const [isSnapshotFormOpen, setIsSnapshotFormOpen] = useState(false);
-  const [editingAccount, setEditingAccount] = useState<Account | undefined>();
-  const [assetTrendData, setAssetTrendData] = useState<AssetDataPoint[]>([]);
-  const [selectedPeriod, setSelectedPeriod] = useState<number>(12);
-  const [showIndividualAccounts, setShowIndividualAccounts] = useState(false);
-  const [selectedAccountForSnapshot, setSelectedAccountForSnapshot] = useState<
-    string | undefined
-  >();
-  const [selectedAccountForDetail, setSelectedAccountForDetail] = useState<Account | null>(null);
-
-  useEffect(() => {
-    if (!userProfile?.householdId) return;
-
-    let mounted = true;
-
-    const loadData = async () => {
-      if (!userProfile?.householdId) return;
-
-      try {
-        setLoading(true);
-
-        const [accountsData, snapshotsMap, trendData] = await Promise.all([
-          accountService.getAccounts(userProfile.householdId),
-          accountService.getLatestSnapshots(userProfile.householdId),
-          assetTrackingService.getAssetTrend(userProfile.householdId, selectedPeriod),
-        ]);
-
-        if (!mounted) return;
-
-        setAccounts(accountsData);
-        setLatestSnapshots(snapshotsMap);
-        setAssetTrendData(trendData);
-      } catch (error) {
-        console.error('Error loading assets:', error);
-      } finally {
-        if (mounted) setLoading(false);
-      }
-    };
-
-    loadData();
-
-    return () => {
-      mounted = false;
-    };
-  }, [userProfile, selectedPeriod]);
-
-  const reloadData = async () => {
-    if (!userProfile?.householdId) return;
-
-    try {
-      setLoading(true);
-
-      const [accountsData, snapshotsMap, trendData] = await Promise.all([
-        accountService.getAccounts(userProfile.householdId),
-        accountService.getLatestSnapshots(userProfile.householdId),
-        assetTrackingService.getAssetTrend(userProfile.householdId, selectedPeriod),
-      ]);
-
-      setAccounts(accountsData);
-      setLatestSnapshots(snapshotsMap);
-      setAssetTrendData(trendData);
-    } catch (err) {
-      console.error('Error reloading assets:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleCreateAccount = async (account: Omit<Account, 'id' | 'createdAt'>) => {
-    if (!userProfile?.householdId) return;
-
-    try {
-      await accountService.createAccount(userProfile.householdId, account);
-      await reloadData();
-    } catch (err) {
-      console.error('Error creating account:', err);
-    }
-  };
-
-  const handleUpdateAccount = async (account: Omit<Account, 'id' | 'createdAt'>) => {
-    if (!editingAccount || !userProfile?.householdId) return;
-
-    try {
-      await accountService.updateAccount(userProfile.householdId, editingAccount.id, account);
-      setEditingAccount(undefined);
-      await reloadData();
-    } catch (err) {
-      console.error('Error updating account:', err);
-    }
-  };
-
-  const handleDeleteAccount = async (id: string) => {
-    if (!userProfile?.householdId) return;
-    if (!confirm('Are you sure you want to delete this account?')) return;
-
-    try {
-      await accountService.deleteAccount(userProfile.householdId, id);
-      await reloadData();
-    } catch (err) {
-      console.error('Error deleting account:', err);
-    }
-  };
-
-  const handleRecordSnapshot = async (
-    accountId: string,
-    snapshot: Omit<AccountSnapshot, 'id' | 'createdAt'>,
-  ) => {
-    if (!userProfile?.householdId || !currentUser) return;
-
-    try {
-      await accountService.recordSnapshot(userProfile.householdId, accountId, {
-        ...snapshot,
-        createdBy: currentUser.uid,
-      });
-      await reloadData();
-      setIsSnapshotFormOpen(false);
-      setSelectedAccountForSnapshot(undefined);
-    } catch (err) {
-      console.error('Error recording balance:', err);
-    }
-  };
-
-  const getTotalBalance = () => {
-    return accounts.reduce((sum, account) => {
-      const snapshot = latestSnapshots.get(account.id);
-      return sum + (snapshot?.amount || 0);
-    }, 0);
-  };
+  const {
+    loading,
+    isAccountFormOpen,
+    setIsAccountFormOpen,
+    isSnapshotFormOpen,
+    setIsSnapshotFormOpen,
+    assetTrendData,
+    showIndividualAccounts,
+    setShowIndividualAccounts,
+    selectedAccountForSnapshot,
+    setSelectedAccountForSnapshot,
+    selectedAccountForDetail,
+    setSelectedAccountForDetail,
+    setSelectedPeriod,
+    handleCreateAccount,
+    handleDeleteAccount,
+    handleRecordSnapshot,
+    getTotalBalance,
+    handleUpdateAccount,
+    setEditingAccount,
+    selectedPeriod,
+    accounts,
+    latestSnapshots,
+    editingAccount,
+  } = useAccountPage(userProfile?.householdId, userProfile?.email);
 
   if (loading) {
     return (
@@ -239,7 +130,10 @@ const Accounts: React.FC = () => {
             <Label htmlFor="show-individual">Show individual accounts</Label>
           </div>
 
-          <AccountTrendChart data={assetTrendData} showIndividualAccounts={showIndividualAccounts} />
+          <AccountTrendChart
+            data={assetTrendData}
+            showIndividualAccounts={showIndividualAccounts}
+          />
         </CardContent>
       </Card>
 
@@ -299,7 +193,7 @@ const Accounts: React.FC = () => {
                     </p>
                     {snapshot && (
                       <p className="text-xs text-muted-foreground">
-                        As of {toDate(snapshot.createdAt).toLocaleDateString()}
+                        As of {formatDate(snapshot.createdAt)}
                       </p>
                     )}
                   </div>

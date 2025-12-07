@@ -1,13 +1,13 @@
-import { orderBy, where, QueryConstraint } from 'firebase/firestore';
-import type { Account, AccountSnapshot } from '@/schemas';
 import { accountRepository } from '@/repositories/accountRepository';
 import { accountSnapshotRepository } from '@/repositories/accountSnapshotRepository';
+import type { Account, AccountCreate, AccountSnapshot, AccountSnapshotCreate } from '@/schemas';
+import { QueryConstraint, orderBy, where } from 'firebase/firestore';
 
 class AccountService {
   // Create a new account
   async createAccount(
     householdId: string,
-    account: Omit<Account, 'id' | 'createdAt'>,
+    account: AccountCreate,
     userEmail: string,
   ): Promise<string> {
     return accountRepository.create([householdId], account, userEmail);
@@ -27,7 +27,7 @@ class AccountService {
   async updateAccount(
     householdId: string,
     id: string,
-    updates: Partial<Account>,
+    updates: Partial<AccountCreate>,
     userEmail: string,
   ): Promise<void> {
     return accountRepository.update([householdId, id], updates, userEmail);
@@ -42,7 +42,7 @@ class AccountService {
   async recordSnapshot(
     householdId: string,
     accountId: string,
-    snapshot: Omit<AccountSnapshot, 'id' | 'createdAt'>,
+    snapshot: AccountSnapshotCreate,
     userEmail: string,
   ): Promise<string> {
     return accountSnapshotRepository.create([householdId, accountId], snapshot, userEmail);
@@ -97,7 +97,7 @@ class AccountService {
     householdId: string,
     accountId: string,
     snapshotId: string,
-    updates: Partial<Omit<AccountSnapshot, 'id' | 'createdAt'>>,
+    updates: Partial<AccountSnapshotCreate>,
     userEmail: string,
   ): Promise<void> {
     return accountSnapshotRepository.update(

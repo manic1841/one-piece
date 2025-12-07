@@ -1,6 +1,7 @@
+import { AccountCategory } from '@/domains/account/types/category';
 import { z } from 'zod';
+
 import { HoldingSchema } from './account';
-import { AccountCategory } from '@/domains/account/accountCategory';
 
 // Portfolio Schema
 export const PortfolioSchema = z.object({
