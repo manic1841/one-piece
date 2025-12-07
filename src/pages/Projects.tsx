@@ -1,8 +1,8 @@
-import MonthlySettlementDialog from '@/components/projects/MonthlySettlementDialog';
 import ProjectBalanceChart from '@/components/projects/ProjectBalanceChart';
 import ProjectDetailView from '@/components/projects/ProjectDetailView';
-import ProjectFormModal from '@/components/projects/ProjectFormModal';
+import ProjectForm from '@/components/projects/ProjectForm';
 import { ProjectGrid } from '@/components/projects/ProjectGrid';
+import SettlementDialog from '@/components/projects/SettlementDialog';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/useAuth';
 import { useProjectPage } from '@/hooks/pages/useProjectPage';
@@ -63,7 +63,7 @@ const Projects: React.FC = () => {
         <div className="flex gap-3">
           <Button onClick={openSettleDialog} variant="outline" className="gap-2">
             <Calendar size={16} />
-            Monthly Settlement
+            Settlement
           </Button>
           <Button onClick={openForm} className="gap-2">
             <Plus size={16} />
@@ -95,7 +95,7 @@ const Projects: React.FC = () => {
       />
 
       {/* Create Project Modal */}
-      <ProjectFormModal
+      <ProjectForm
         isOpen={isFormOpen}
         onClose={closeForm}
         onSubmit={editing ? update : create}
@@ -103,16 +103,11 @@ const Projects: React.FC = () => {
       />
 
       {/* Monthly Settlement Dialog */}
-      <MonthlySettlementDialog
+      <SettlementDialog
         isOpen={isSettlementDialogOpen}
         onClose={closeSettleDialog}
         householdId={userProfile?.householdId || ''}
-        projects={projects.map((p) => ({
-          id: p.id,
-          name: p.name,
-          icon: p.icon,
-          color: p.color,
-        }))}
+        projects={projects}
         onSuccess={reload}
       />
     </div>

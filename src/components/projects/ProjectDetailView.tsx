@@ -1,12 +1,12 @@
+import { useProjectDetailView } from '@/components/projects/detail/useProjectDetailView';
 import { useProjectBalance } from '@/components/projects/useProjectBalance';
-import { useProjectDetailView } from '@/components/projects/useProjectDetailView';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ArrowLeft } from 'lucide-react';
 
 import { type Project } from '../../schemas';
 import { formatCurrency } from '../../utils/formatUtils';
-import { ProjectDetailList } from './ProjectDetailList';
+import { ProjectDetailList } from './detail/ProjectDetailList';
 
 interface ProjectDetailViewProps {
   householdId?: string;

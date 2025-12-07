@@ -1,6 +1,6 @@
-import { RecordFormType, type Record, type RecordFormData } from '@/domains/record/types';
-import { toDateString } from '@/utils/dateUtils';
 import { nullOrData } from '@/constants/empty';
+import { type Record, type RecordFormData, RecordFormType } from '@/domains/record/types';
+import { toDateString } from '@/utils/dateUtils';
 
 export const toRecordFormData = (record?: Record): RecordFormData => {
   // default empty form

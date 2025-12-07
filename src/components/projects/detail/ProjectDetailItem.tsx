@@ -1,4 +1,4 @@
-import { useProjectDetailItem } from '@/components/projects/useProjectDetailItem';
+import { useProjectDetailItem } from '@/components/projects/detail/useProjectDetailItem';
 import { type ProjectDetailData } from '@/domains/project/types';
 import { toDateString } from '@/utils/dateUtils';
 import { formatCurrency } from '@/utils/formatUtils';

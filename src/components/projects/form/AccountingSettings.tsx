@@ -1,19 +1,18 @@
-import React, { useState, useEffect } from 'react';
-import IncomeStatementForm from './IncomeStatementForm';
-import CashFlowForm from './cashFlowForm';
-import BalanceSheetForm from './balanceSheetForm';
-import { type Project } from '@/schemas/project';
-import { IncomeStatementCategory } from '@/domains/finance/finaceCategory';
-import { CashFlowCategory } from '@/domains/finance/finaceCategory';
-import { BalanceSheetCategory } from '@/domains/finance/finaceCategory';
+import BalanceSheetForm from '@/components/projects/form/BalanceSheetForm';
+import CashFlowForm from '@/components/projects/form/CashFlowForm';
+import IncomeStatementForm from '@/components/projects/form/IncomeStatementForm';
+import type { ProjectFormData } from '@/domains/project/types/projectForm';
+import { useEffect, useState } from 'react';
 
 interface AccountingSettingsProps {
-  data: Partial<Project> | null;
-  onChanged: (data: Partial<Project>) => void;
+  data?: ProjectFormData;
+  onChanged: (data: Partial<ProjectFormData>) => void;
 }
 
 const AccountingSettings: React.FC<AccountingSettingsProps> = ({ data, onChanged }) => {
+  console.log('AccountingSettings data:', data);
   const [accounting, setAccounting] = useState(data?.accounting || { enabled: false });
+  console.log('AccountingSettings accounting state:', accounting);
 
   useEffect(() => {
     onChanged({
@@ -21,37 +20,31 @@ const AccountingSettings: React.FC<AccountingSettingsProps> = ({ data, onChanged
     });
   }, [accounting, onChanged]);
 
-  const handleIncomeStatementChange = (incomeData: {
-    category?: IncomeStatementCategory;
-    order?: number;
-  }) => {
+  const handleIncomeStatementChange = (incomeData: { category: string; order?: number }) => {
     setAccounting((prev) => ({
       ...prev,
       incomeStatement: {
-        category: incomeData.category as IncomeStatementCategory,
+        category: incomeData.category,
         order: incomeData.order,
       },
     }));
   };
 
-  const handleCashFlowChange = (cashFlowData: { category?: CashFlowCategory; order?: number }) => {
+  const handleCashFlowChange = (cashFlowData: { category: string; order?: number }) => {
     setAccounting((prev) => ({
       ...prev,
       cashFlow: {
-        category: cashFlowData.category as CashFlowCategory,
+        category: cashFlowData.category,
         order: cashFlowData.order,
       },
     }));
   };
 
-  const handleBalanceSheetChange = (balanceSheetData: {
-    category?: BalanceSheetCategory;
-    order?: number;
-  }) => {
+  const handleBalanceSheetChange = (balanceSheetData: { category: string; order?: number }) => {
     setAccounting((prev) => ({
       ...prev,
       balanceSheet: {
-        category: balanceSheetData.category as BalanceSheetCategory,
+        category: balanceSheetData.category,
         order: balanceSheetData.order,
       },
     }));

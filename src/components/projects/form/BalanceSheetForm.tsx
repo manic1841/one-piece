@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
@@ -6,24 +7,19 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
-import { IncomeStatementCategory } from '@/domains/finance/finaceCategory';
-import { IncomeStatementCategoryOptions } from '@/constants/finance/financeLabel';
+import { NO_SELECTED } from '@/constants/empty';
+import { BalanceSheetCategoryOptions } from '@/constants/finance/financeLabel';
+import { useEffect, useState } from 'react';
 
-interface IncomeStatementFormProps {
-  category?: IncomeStatementCategory;
+interface BalanceSheetFormProps {
+  category?: string;
   order?: number;
-  onChanged: (data: { category?: IncomeStatementCategory; order?: number }) => void;
+  onChanged: (data: { category: string; order?: number }) => void;
 }
 
-const IncomeStatementForm: React.FC<IncomeStatementFormProps> = ({
-  category,
-  order,
-  onChanged,
-}) => {
+const BalanceSheetForm: React.FC<BalanceSheetFormProps> = ({ category, order, onChanged }) => {
   const [data, setData] = useState({
-    category,
+    category: category || NO_SELECTED,
     order,
   });
 
@@ -33,8 +29,8 @@ const IncomeStatementForm: React.FC<IncomeStatementFormProps> = ({
 
   return (
     <div className="space-y-3">
-      <h4 className="text-sm font-medium">📊 損益表</h4>
-      <div className="grid grid-cols-3 gap-3">
+      <h4 className="text-sm font-medium">📈 資產負債表</h4>
+      <div className="grid grid-cols-2 gap-3">
         <div className="space-y-2">
           <Label className="text-xs">類別</Label>
           <Select
@@ -42,7 +38,7 @@ const IncomeStatementForm: React.FC<IncomeStatementFormProps> = ({
             onValueChange={(value) =>
               setData((prev) => ({
                 ...prev,
-                category: value as IncomeStatementCategory,
+                category: value,
               }))
             }
           >
@@ -50,7 +46,10 @@ const IncomeStatementForm: React.FC<IncomeStatementFormProps> = ({
               <SelectValue placeholder="選擇" />
             </SelectTrigger>
             <SelectContent>
-              {IncomeStatementCategoryOptions.map((option) => (
+              <SelectItem key="id-1" value={NO_SELECTED}>
+                選擇
+              </SelectItem>
+              {BalanceSheetCategoryOptions.map((option) => (
                 <SelectItem key={option.value} value={option.value}>
                   {option.label}
                 </SelectItem>
@@ -77,4 +76,4 @@ const IncomeStatementForm: React.FC<IncomeStatementFormProps> = ({
   );
 };
 
-export default IncomeStatementForm;
+export default BalanceSheetForm;

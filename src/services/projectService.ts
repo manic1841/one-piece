@@ -1,3 +1,4 @@
+import { calculateBalance } from '@/domains/project/calculator';
 import type {
   Project,
   ProjectCreate,
@@ -6,6 +7,8 @@ import type {
 } from '@/domains/project/types';
 import { projectRepository } from '@/repositories/projectRepository';
 import { projectSnapshotRepository } from '@/repositories/projectSnapshotRepository';
+import { projectTransactionService } from '@/services/projectTransactionService';
+import { transactionService } from '@/services/transactionService';
 import { QueryConstraint, limit, orderBy, where } from 'firebase/firestore';
 
 export interface ProjectWithSnapshot {
@@ -110,6 +113,16 @@ class ProjectService {
     );
 
     await Promise.all(updatePromises);
+  }
+
+  async getRecords(householdId: string, projectId: string) {
+    const transactions = await transactionService.getTransactions(householdId, { projectId });
+    const projectTransactions = await projectTransactionService.getProjectTransactionsForProject(
+      householdId,
+      projectId,
+    );
+
+    return [...transactions, ...projectTransactions];
   }
 
   // ==================== ProjectSnapshot Operations ====================
@@ -223,6 +236,24 @@ class ProjectService {
   }
 
   // ==================== Business Logic Methods ====================
+
+  async getProjectBalance(householdId: string, projectId: string) {
+    const snapshot = await this.getLatestSnapshot(householdId, projectId);
+    const snapshotDate = snapshot ? new Date(snapshot.year, snapshot.month) : null;
+    const tnxs = await transactionService.getTransactions(householdId, {
+      startDate: snapshotDate || new Date(0),
+      endDate: new Date(),
+      projectId,
+    });
+    const pts = await projectTransactionService.getProjectTransactionsForPeriod(
+      householdId,
+      snapshotDate || new Date(0),
+      new Date(),
+      projectId,
+    );
+
+    return calculateBalance(snapshot ? snapshot.closingBalance : 0, projectId, tnxs, pts);
+  }
 
   /**
    * Calculate total balance across all projects

@@ -57,9 +57,9 @@ export const useRecordForm = ({
 
     setLoading(true);
 
-    onSubmit(buildRecord(formData, initialData));
-
     try {
+      await onSubmit(buildRecord(formData, initialData));
+
       // Reset form
       setFormData(toRecordFormData());
 

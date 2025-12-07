@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
@@ -6,39 +7,38 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
-import { BalanceSheetCategory } from '@/domains/finance/finaceCategory';
-import { BalanceSheetCategoryOptions } from '@/constants/finance/financeLabel';
+import { NO_SELECTED } from '@/constants/empty';
+import { CashFlowCategoryOptions } from '@/constants/finance/financeLabel';
+import { useEffect, useState } from 'react';
 
-interface BalanceSheetFormProps {
-  category?: BalanceSheetCategory;
+interface CashFlowFormProps {
+  category?: string;
   order?: number;
-  onChanged: (data: { category?: BalanceSheetCategory; order?: number }) => void;
+  onChanged: (data: { category: string; order?: number }) => void;
 }
 
-const BalanceSheetForm: React.FC<BalanceSheetFormProps> = ({ category, order, onChanged }) => {
+const CashFlowForm: React.FC<CashFlowFormProps> = ({ category, order, onChanged }) => {
   const [data, setData] = useState({
-    category,
-    order,
+    category: category || NO_SELECTED,
+    order: order,
   });
 
   useEffect(() => {
-    onChanged(data);
+    onChanged?.(data);
   }, [data, onChanged]);
 
   return (
     <div className="space-y-3">
-      <h4 className="text-sm font-medium">📈 資產負債表</h4>
-      <div className="grid grid-cols-3 gap-3">
+      <h4 className="text-sm font-medium">💰 現金流量</h4>
+      <div className="grid grid-cols-2 gap-3">
         <div className="space-y-2">
-          <Label className="text-xs">類別</Label>
+          <Label className="text-xs">活動</Label>
           <Select
             value={data.category}
             onValueChange={(value) =>
               setData((prev) => ({
                 ...prev,
-                category: value as BalanceSheetCategory,
+                category: value,
               }))
             }
           >
@@ -46,7 +46,10 @@ const BalanceSheetForm: React.FC<BalanceSheetFormProps> = ({ category, order, on
               <SelectValue placeholder="選擇" />
             </SelectTrigger>
             <SelectContent>
-              {BalanceSheetCategoryOptions.map((option) => (
+              <SelectItem key="id-1" value={NO_SELECTED}>
+                選擇
+              </SelectItem>
+              {CashFlowCategoryOptions.map((option) => (
                 <SelectItem key={option.value} value={option.value}>
                   {option.label}
                 </SelectItem>
@@ -54,6 +57,7 @@ const BalanceSheetForm: React.FC<BalanceSheetFormProps> = ({ category, order, on
             </SelectContent>
           </Select>
         </div>
+
         <div className="space-y-2">
           <Label className="text-xs">排序</Label>
           <Input
@@ -73,4 +77,4 @@ const BalanceSheetForm: React.FC<BalanceSheetFormProps> = ({ category, order, on
   );
 };
 
-export default BalanceSheetForm;
+export default CashFlowForm;

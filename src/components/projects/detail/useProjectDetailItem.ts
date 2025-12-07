@@ -2,7 +2,7 @@ import { RecordCategoryOptions } from '@/constants/record/category';
 import { ProjectDetailType } from '@/domains/project/types';
 import { type ProjectDetailData } from '@/domains/project/types';
 
-import { ProjectDetailItemColors } from '../../constants/project/color';
+import { ProjectDetailItemColors } from '../../../constants/project/color';
 
 export const useProjectDetailItem = (item: ProjectDetailData) => {
   const isIncome =

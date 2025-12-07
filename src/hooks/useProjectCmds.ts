@@ -1,4 +1,4 @@
-import { type Project } from '@/domains/project/types';
+import { type ProjectCreate } from '@/domains/project/types';
 import { projectService } from '@/services/projectService';
 import { useCallback } from 'react';
 
@@ -8,7 +8,7 @@ export const useProjectCmds = (
   reload?: () => Promise<void>,
 ) => {
   const createProject = useCallback(
-    async (project: Project) => {
+    async (project: ProjectCreate) => {
       if (!householdId || !email) return;
       await projectService.createProject(householdId, project, email);
       await reload?.();
@@ -17,32 +17,48 @@ export const useProjectCmds = (
   );
 
   const updateProject = useCallback(
-    async (project: Project) => {
-      if (!householdId || !email || !project.id) return;
-      await projectService.updateProject(householdId, project.id, project, email);
+    async (id: string, project: ProjectCreate) => {
+      if (!householdId || !email) return;
+      await projectService.updateProject(householdId, id, project, email);
       await reload?.();
     },
     [householdId, email, reload],
   );
 
   const deleteProject = useCallback(
-    async (project: Project) => {
-      if (!householdId || !project.id) return;
-      await projectService.deleteProject(householdId, project.id);
+    async (id: string) => {
+      if (!householdId) return;
+      await projectService.deleteProject(householdId, id);
       await reload?.();
     },
     [householdId, reload],
   );
 
-  // get latest snapshots
-  const getLatestSnapshots = useCallback(
+  // get records
+  const getRecords = useCallback(
     async (projectId: string) => {
       if (!householdId) return;
-      const data = await projectService.getLatestSnapshot(householdId, projectId);
+      const data = await projectService.getRecords(householdId, projectId);
       return data;
     },
     [householdId],
   );
 
-  return { createProject, updateProject, deleteProject, getLatestSnapshots };
+  // get project balance
+  const getProjectBalance = useCallback(
+    async (projectId: string) => {
+      if (!householdId) return;
+      const data = await projectService.getProjectBalance(householdId, projectId);
+      return data;
+    },
+    [householdId],
+  );
+
+  return {
+    createProject,
+    updateProject,
+    deleteProject,
+    getRecords,
+    getProjectBalance,
+  };
 };

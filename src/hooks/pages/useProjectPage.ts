@@ -1,7 +1,12 @@
-import { type Project } from '@/domains/project/types';
+import { type Project, type ProjectCreate } from '@/domains/project/types';
 import { useProjectCmds } from '@/hooks/useProjectCmds';
 import { useProjects } from '@/hooks/useProjects';
 import { useState } from 'react';
+
+export interface ProjectArgs {
+  project: ProjectCreate;
+  id: string;
+}
 
 export const useProjectPage = (householdId?: string, email?: string) => {
   const { projects, loading, error, reload } = useProjects(householdId);
@@ -17,14 +22,14 @@ export const useProjectPage = (householdId?: string, email?: string) => {
   const [selectedProject, setSelectedProject] = useState<Project | undefined>(undefined);
 
   // create project
-  const create = async (project: Project) => {
+  const create = async ({ project }: ProjectArgs) => {
     await createProject(project);
   };
 
   // update project
-  const update = async (project: Project) => {
+  const update = async ({ id, project }: ProjectArgs) => {
     if (!editing) return;
-    await updateProject(project);
+    await updateProject(id, project);
     setEditing(undefined);
   };
 
@@ -41,7 +46,7 @@ export const useProjectPage = (householdId?: string, email?: string) => {
     ) {
       return;
     }
-    deleteProject(project);
+    deleteProject(project.id);
   };
 
   // select project

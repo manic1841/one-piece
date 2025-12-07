@@ -1,4 +1,4 @@
-import { ProjectDetailItem } from '@/components/projects/ProjectDetailItem';
+import { ProjectDetailItem } from '@/components/projects/detail/ProjectDetailItem';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { type ProjectDetailData } from '@/domains/project/types';
 
