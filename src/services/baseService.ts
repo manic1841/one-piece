@@ -1,20 +1,21 @@
 import {
-  collection,
-  doc,
-  setDoc,
-  getDoc,
-  getDocs,
-  updateDoc,
-  deleteDoc,
-  query,
-  serverTimestamp,
-  Timestamp,
   type DocumentData,
   type QueryConstraint,
+  Timestamp,
   type WithFieldValue,
+  collection,
+  deleteDoc,
+  doc,
+  getDoc,
+  getDocs,
+  query,
+  serverTimestamp,
+  setDoc,
+  updateDoc,
 } from 'firebase/firestore';
-import { db } from '../firebase';
 import { z } from 'zod';
+
+import { db } from '../firebase';
 
 // Generic type for entities that have an ID and optional createdAt
 export interface BaseEntity {

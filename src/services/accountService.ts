@@ -88,7 +88,7 @@ class AccountService {
       if (!account) continue;
       const snapshot = await this.getLatestSnapshot(householdId, account.id);
 
-      result.push({ ...account, snapshots: snapshot ? [snapshot] : [] });
+      result.push({ ...account, snapshot });
     }
     return result;
   }

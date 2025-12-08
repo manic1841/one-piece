@@ -2,7 +2,7 @@ import {
   BalanceSheetCategory,
   CashFlowCategory,
   IncomeStatementCategory,
-} from '@/domains/finance/finaceCategory';
+} from '@/domains/finance/types/category';
 import { ProjectCategory } from '@/domains/project/types/category';
 import { BaseSchema } from '@/schemas';
 import { z } from 'zod';
@@ -65,9 +65,6 @@ export const ProjectCreateSchema = z.object({
         .optional(),
     })
     .optional(),
-
-  // subcollection
-  snapshots: z.array(ProjectSnapshotSchema).optional(),
 });
 
 export type ProjectCreate = z.infer<typeof ProjectCreateSchema>;

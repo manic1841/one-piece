@@ -1,13 +1,13 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { transactionRepository } from './transactionRepository';
 import {
-  Timestamp,
-  QuerySnapshot,
   type DocumentReference,
   type DocumentSnapshot,
+  QuerySnapshot,
+  Timestamp,
 } from 'firebase/firestore';
+import { deleteDoc, doc, getDoc, getDocs, setDoc, updateDoc } from 'firebase/firestore';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { setDoc, getDocs, getDoc, updateDoc, deleteDoc, doc } from 'firebase/firestore';
+import { transactionRepository } from './transactionRepository';
 
 describe('transactionRepository', () => {
   const householdId = 'test-household';

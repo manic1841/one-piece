@@ -1,49 +1,40 @@
+import { CashFlowSourceType } from '@/domains/finance/financeType';
 import { z } from 'zod';
 
-/**
- * Cash flow item (inflow or outflow)
- */
+// --- Cash Flow Statement Data Structures ---
 export const CashFlowItemSchema = z.object({
-  id: z.string(),
-  name: z.string(),
-  amount: z.number(), // Positive for inflow, negative for outflow
-  category: z.string().optional(),
-  order: z.number().int().optional(),
+  category: z.string(),
+  amount: z.number(),
+  subItems: z
+    .array(
+      z.object({
+        name: z.string(), // Account Name or Project Name
+        amount: z.number(),
+        sourceType: z.enum(CashFlowSourceType).optional(),
+        sourceId: z.string().optional(),
+      }),
+    )
+    .optional(),
 });
 
 export type CashFlowItem = z.infer<typeof CashFlowItemSchema>;
 
-/**
- * Cash flow section (Operating, Investing, Financing)
- */
-export const CashFlowSectionSchema = z.object({
-  items: z.array(CashFlowItemSchema),
-  netAmount: z.number(),
+export const CashFlowDataSchema = z.object({
+  operating: z.object({
+    netAmount: z.number(),
+    items: z.array(CashFlowItemSchema),
+  }),
+  investing: z.object({
+    netAmount: z.number(),
+    items: z.array(CashFlowItemSchema),
+  }),
+  financing: z.object({
+    netAmount: z.number(),
+    items: z.array(CashFlowItemSchema),
+  }),
+  netChange: z.number(),
+  beginningBalance: z.number(),
+  endingBalance: z.number(),
 });
 
-export type CashFlowSection = z.infer<typeof CashFlowSectionSchema>;
-
-/**
- * Complete Cash Flow Statement
- */
-export const CashFlowStatementSchema = z.object({
-  id: z.string(),
-  startDate: z.date(),
-  endDate: z.date(),
-  year: z.number().int(),
-  month: z.number().int().optional(),
-  quarter: z.number().int().optional(),
-
-  operating: CashFlowSectionSchema, // 營業活動
-  investing: CashFlowSectionSchema, // 投資活動
-  financing: CashFlowSectionSchema, // 融資活動
-
-  netChange: z.number(), // 現金淨增減
-  beginningBalance: z.number(), // 期初現金
-  endingBalance: z.number(), // 期末現金
-
-  createdAt: z.date(),
-  createdBy: z.string(),
-});
-
-export type CashFlowStatement = z.infer<typeof CashFlowStatementSchema>;
+export type CashFlowData = z.infer<typeof CashFlowDataSchema>;

@@ -1,18 +1,29 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { transactionService } from './transactionService';
+import { type Mocked, beforeEach, describe, expect, it, vi } from 'vitest';
+
+import type { BaseRepository } from '../repositories/baseRepository';
+// Import after mock
 import { transactionRepository } from '../repositories/transactionRepository';
-import type { Transaction } from '../schemas';
+import type { Transaction } from '../schemas/transaction';
+import { transactionService } from './transactionService';
 
 // Mock TransactionRepository
 vi.mock('../repositories/transactionRepository', () => ({
   transactionRepository: {
     create: vi.fn(),
-    getAll: vi.fn(),
-    getById: vi.fn(),
+    list: vi.fn(),
+    get: vi.fn(),
     update: vi.fn(),
     delete: vi.fn(),
   },
 }));
+
+// Type the mocked repository
+const mockedTransactionRepository = transactionRepository as unknown as Mocked<
+  Pick<
+    BaseRepository<Transaction, [string, string?]>,
+    'create' | 'list' | 'get' | 'update' | 'delete'
+  >
+>;
 
 describe('transactionService', () => {
   const householdId = 'test-household';
@@ -33,7 +44,7 @@ describe('transactionService', () => {
         createdBy: 'user-1',
       };
 
-      vi.mocked(transactionRepository.create).mockResolvedValue('new-id');
+      mockedTransactionRepository.create.mockResolvedValue('new-id');
 
       const result = await transactionService.createTransaction(
         householdId,
@@ -41,7 +52,11 @@ describe('transactionService', () => {
         'user@mail.com',
       );
 
-      expect(transactionRepository.create).toHaveBeenCalledWith(householdId, transactionData);
+      expect(mockedTransactionRepository.create).toHaveBeenCalledWith(
+        [householdId],
+        transactionData,
+        'user@mail.com',
+      );
       expect(result).toBe('new-id');
     });
   });
@@ -75,7 +90,7 @@ describe('transactionService', () => {
         },
       ];
 
-      vi.mocked(transactionRepository.list).mockResolvedValue(mockTransactions as Transaction[]);
+      mockedTransactionRepository.list.mockResolvedValue(mockTransactions as Transaction[]);
 
       // Test filtering by type
       const expenses = await transactionService.getTransactions(householdId, { type: 'expense' });

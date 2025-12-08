@@ -1,6 +1,6 @@
-import { IncomeStatementCategory } from '@/domains/finance/finaceCategory';
-import { CashFlowCategory } from '@/domains/finance/finaceCategory';
-import { BalanceSheetCategory } from '@/domains/finance/finaceCategory';
+import { IncomeStatementCategory } from '@/domains/finance/types/category';
+import { CashFlowCategory } from '@/domains/finance/types/category';
+import { BalanceSheetCategory } from '@/domains/finance/types/category';
 
 // Income Statement Category
 export const IncomeStatementCategoryLabel = {

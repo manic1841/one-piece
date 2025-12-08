@@ -1,7 +1,7 @@
 import { type Account } from '@/domains/account/types';
 import { type AccountSnapshot } from '@/domains/account/types';
 
-export type AccountWithSnapshot = Account & { snapshots: AccountSnapshot[] };
+export type AccountWithSnapshot = Account & { snapshot: AccountSnapshot | null };
 
 export interface AssetDataPoint {
   date: string;

@@ -1,12 +1,13 @@
+import { Timestamp } from 'firebase/firestore';
+
+import type { Account, AccountSnapshot, Project, ProjectSnapshot } from '../../../schemas';
 import type {
-  BalanceSheet,
-  BalanceSheetItem,
-  BalanceSheetCategory,
   AssetSection,
+  BalanceSheet,
+  BalanceSheetCategory,
+  BalanceSheetItem,
   LiabilitySection,
 } from '../../../schemas/balanceSheet';
-import type { Account, AccountSnapshot, Project, ProjectSnapshot } from '../../../schemas';
-import { Timestamp } from 'firebase/firestore';
 
 /**
  * Calculate balance sheet from accounts and projects
@@ -25,10 +26,10 @@ export function calculateBalanceSheet(
 
   // Calculate assets
   const assets = calculateAssets(accounts, accountSnapshots, projects, projectSnapshots);
-  
+
   // Calculate liabilities
   const liabilities = calculateLiabilities(accounts, accountSnapshots, projects, projectSnapshots);
-  
+
   // Calculate net worth
   const netWorth = assets.total - liabilities.total;
 
@@ -125,10 +126,7 @@ function calculateAssets(
     order: 3,
   };
 
-  const total =
-    currentCategory.subtotal +
-    investmentCategory.subtotal +
-    fixedCategory.subtotal;
+  const total = currentCategory.subtotal + investmentCategory.subtotal + fixedCategory.subtotal;
 
   return {
     current: currentCategory.items.length > 0 ? [currentCategory] : [],
@@ -158,7 +156,7 @@ function calculateLiabilities(
     // Negative balances are liabilities
     if (snapshot.amount < 0) {
       const amount = Math.abs(snapshot.amount);
-      
+
       if (account.name.includes('信用卡')) {
         shortTermLiabilities.push({
           id: account.id,

@@ -5,16 +5,12 @@ import type {
   ProjectSnapshot,
   ProjectSnapshotCreate,
 } from '@/domains/project/types';
+import type { ProjectWithSnapshot } from '@/domains/project/types';
 import { projectRepository } from '@/repositories/projectRepository';
 import { projectSnapshotRepository } from '@/repositories/projectSnapshotRepository';
 import { projectTransactionService } from '@/services/projectTransactionService';
 import { transactionService } from '@/services/transactionService';
 import { QueryConstraint, limit, orderBy, where } from 'firebase/firestore';
-
-export interface ProjectWithSnapshot {
-  project: Project | null;
-  snapshot: ProjectSnapshot | null;
-}
 
 /**
  * ProjectService
@@ -231,8 +227,11 @@ class ProjectService {
     month: number,
   ): Promise<ProjectWithSnapshot> {
     const project = await this.getProjectById(householdId, projectId);
+    if (!project) {
+      throw new Error(`Project not found: ${projectId}`);
+    }
     const snapshot = await this.getSnapshotForPeriod(householdId, projectId, year, month);
-    return { project, snapshot };
+    return { ...project, snapshot };
   }
 
   // ==================== Business Logic Methods ====================

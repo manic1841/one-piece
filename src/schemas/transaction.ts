@@ -1,5 +1,5 @@
 import { TransactionCategory, TransactionType } from '@/domains/record/types';
-import { BaseSchema } from '@/schemas';
+import { BaseSchema } from '@/schemas/base';
 import { z } from 'zod';
 
 // Transaction Schema
@@ -12,7 +12,7 @@ export const TransactionCreateSchema = z.object({
   description: z.string().optional(),
 });
 
-export type TransactionCreate = z.infer<typeof TransactionSchema>;
+export type TransactionCreate = z.infer<typeof TransactionCreateSchema>;
 
 export const TransactionSchema = BaseSchema.extend(TransactionCreateSchema.shape);
 

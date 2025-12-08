@@ -1,6 +1,9 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { reconciliationService } from './reconciliationService';
 import { Timestamp } from 'firebase/firestore';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+import { accountService } from './accountService';
+import { projectService } from './projectService';
+import { reconciliationService } from './reconciliationService';
 
 // Mock Firebase App
 vi.mock('firebase/app', () => ({
@@ -68,9 +71,6 @@ vi.mock('./projectService', () => ({
     getSnapshots: vi.fn(),
   },
 }));
-
-import { accountService } from './accountService';
-import { projectService } from './projectService';
 
 describe('reconciliationService - Basic', () => {
   const householdId = 'test-household';

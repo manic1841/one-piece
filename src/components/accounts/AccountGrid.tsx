@@ -30,7 +30,8 @@ export const AccountGrid: React.FC<AccountGridProps> = ({
       <CardContent>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {accounts.map((account) => {
-            const snapshot = account.snapshots?.[0];
+            const snapshot = account.snapshot;
+            if (!snapshot) return null;
             return (
               <div
                 key={account.id}

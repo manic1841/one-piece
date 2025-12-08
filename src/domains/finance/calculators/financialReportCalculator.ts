@@ -1,121 +1,12 @@
-import type { ProjectWithSnapshot } from '../../../services/projectService';
-import type { AccountSnapshot } from '../../../schemas/account';
-import type { PlannedIncome } from '../../../schemas/plannedIncome';
-import type { Transaction } from '../../../schemas/transaction';
-import {
-  IncomeStatementItemSchema,
-  BalanceSheetItemSchema,
-  CashFlowItemSchema,
-} from '../../../schemas/report';
-import type { IncomeStatementData, BalanceSheetData, CashFlowData } from '../../../schemas/report';
+import type { ProjectWithSnapshot } from '@/domains/project/types';
+import { BalanceSheetItemSchema, CashFlowItemSchema } from '@/schemas';
+import type { BalanceSheetData, CashFlowData } from '@/schemas';
 import { z } from 'zod';
 
-type IncomeStatementItem = z.infer<typeof IncomeStatementItemSchema>;
+import type { AccountSnapshot } from '../../../schemas/account';
+
 type BalanceSheetItem = z.infer<typeof BalanceSheetItemSchema>;
 type CashFlowItem = z.infer<typeof CashFlowItemSchema>;
-
-/**
- * Calculate Income Statement
- * Revenue: PlannedIncome + Transactions (type='income', category != 'salary'/'bonus')
- * Expenses: ProjectSnapshots where accounting.incomeStatement.category == 'expense'
- */
-export function calculateIncomeStatement(
-  plannedIncomes: PlannedIncome[],
-  otherIncomeTransactions: Transaction[],
-  projectWithSnapshots: ProjectWithSnapshot[],
-): IncomeStatementData {
-  // 1. Calculate Revenue
-  const revenueItems: IncomeStatementItem[] = [];
-
-  // Planned Income - Split by category
-  // Salary
-  const salaryIncomes = plannedIncomes.filter((pi) => pi.category.toLowerCase() === 'salary');
-  const salaryTotal = salaryIncomes.reduce((sum, pi) => sum + pi.amount, 0);
-  if (salaryTotal > 0) {
-    revenueItems.push({
-      category: 'Salary',
-      amount: salaryTotal,
-      subItems: salaryIncomes.map((pi) => ({ name: pi.category, amount: pi.amount })),
-    });
-  }
-
-  // Bonus
-  const bonusIncomes = plannedIncomes.filter((pi) => pi.category.toLowerCase() === 'bonus');
-  const bonusTotal = bonusIncomes.reduce((sum, pi) => sum + pi.amount, 0);
-  if (bonusTotal > 0) {
-    revenueItems.push({
-      category: 'Bonus',
-      amount: bonusTotal,
-      subItems: bonusIncomes.map((pi) => ({ name: pi.category, amount: pi.amount })),
-    });
-  }
-
-  // Other Income (Transactions)
-  // Group by category
-  const otherIncomeMap = new Map<string, number>();
-  otherIncomeTransactions.forEach((t) => {
-    const current = otherIncomeMap.get(t.category) || 0;
-    otherIncomeMap.set(t.category, current + t.amount);
-  });
-
-  otherIncomeMap.forEach((amount, category) => {
-    revenueItems.push({
-      category: category,
-      amount: amount,
-    });
-  });
-
-  const totalRevenue = revenueItems.reduce((sum, item) => sum + item.amount, 0);
-
-  // 2. Calculate Expenses
-  const expenseItems: IncomeStatementItem[] = [];
-
-  // Group by subcategory defined in project.accounting.incomeStatement.subcategory
-  const expenseMap = new Map<
-    string,
-    { amount: number; subItems: { name: string; amount: number }[] }
-  >();
-  projectWithSnapshots.forEach((pws) => {
-    const project = pws.project;
-    const snapshot = pws.snapshot;
-    if (!project || !snapshot) return;
-
-    if (project?.accounting?.incomeStatement?.category === 'expense') {
-      const subcategory = project.accounting.incomeStatement.subcategory || 'Other';
-      // Use 'expense' from snapshot, which represents the spending in that month
-      const amount = snapshot.expense;
-
-      if (amount > 0) {
-        const current = expenseMap.get(subcategory) || { amount: 0, subItems: [] };
-        current.amount += amount;
-        current.subItems.push({ name: project.name, amount });
-        expenseMap.set(subcategory, current);
-      }
-    }
-  });
-
-  expenseMap.forEach((data, category) => {
-    expenseItems.push({
-      category,
-      amount: data.amount,
-      subItems: data.subItems,
-    });
-  });
-
-  const totalExpenses = expenseItems.reduce((sum, item) => sum + item.amount, 0);
-
-  return {
-    revenue: {
-      total: totalRevenue,
-      items: revenueItems,
-    },
-    expenses: {
-      total: totalExpenses,
-      items: expenseItems,
-    },
-    netIncome: totalRevenue - totalExpenses,
-  };
-}
 
 /**
  * Calculate Balance Sheet

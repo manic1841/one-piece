@@ -1,79 +1,37 @@
 import { BalanceSheetSourceType } from '@/domains/finance/financeType';
 import { z } from 'zod';
 
-/**
- * Balance sheet item (asset or liability)
- */
+// --- Balance Sheet Data Structures ---
 export const BalanceSheetItemSchema = z.object({
-  id: z.string(),
-  name: z.string(),
+  category: z.string(), // e.g., 'Current Assets', 'Fixed Assets'
   amount: z.number(),
-  order: z.number().int().optional(),
-  // Reference to source (account ID, project ID, etc.)
-  sourceType: z.enum(BalanceSheetSourceType).optional(),
-  sourceId: z.string().optional(),
+  subItems: z
+    .array(
+      z.object({
+        name: z.string(), // Account Name or Project Name
+        amount: z.number(),
+        sourceType: z.enum(BalanceSheetSourceType).optional(),
+        sourceId: z.string().optional(),
+      }),
+    )
+    .optional(),
 });
 
 export type BalanceSheetItem = z.infer<typeof BalanceSheetItemSchema>;
 
-/**
- * Category with items and subtotal
- */
-export const BalanceSheetCategorySchema = z.object({
-  category: z.string(),
-  items: z.array(BalanceSheetItemSchema),
-  subtotal: z.number(),
-  order: z.number().int().optional(),
+export const BalanceSheetDataSchema = z.object({
+  assets: z.object({
+    total: z.number(),
+    items: z.array(BalanceSheetItemSchema),
+  }),
+  liabilities: z.object({
+    total: z.number(),
+    items: z.array(BalanceSheetItemSchema),
+  }),
+  equity: z.object({
+    total: z.number(),
+    items: z.array(BalanceSheetItemSchema),
+  }),
 });
 
-export type BalanceSheetCategory = z.infer<typeof BalanceSheetCategorySchema>;
-
-/**
- * Asset section
- */
-export const AssetSectionSchema = z.object({
-  current: z.array(BalanceSheetCategorySchema).default([]), // 流動資產
-  investment: z.array(BalanceSheetCategorySchema).default([]), // 投資資產
-  fixed: z.array(BalanceSheetCategorySchema).default([]), // 固定資產
-  total: z.number(),
-});
-
-export type AssetSection = z.infer<typeof AssetSectionSchema>;
-
-/**
- * Liability section
- */
-export const LiabilitySectionSchema = z.object({
-  shortTerm: z.array(BalanceSheetCategorySchema).default([]), // 短期負債
-  longTerm: z.array(BalanceSheetCategorySchema).default([]), // 長期負債
-  total: z.number(),
-});
-
-export type LiabilitySection = z.infer<typeof LiabilitySectionSchema>;
-
-/**
- * Complete Balance Sheet
- */
-export const BalanceSheetCreateSchema = z.object({
-  id: z.string(),
-  asOfDate: z.date(), // 截至日期
-  year: z.number().int(),
-  month: z.number().int(),
-
-  assets: AssetSectionSchema,
-  liabilities: LiabilitySectionSchema,
-
-  // Net worth (equity) = Assets - Liabilities
-  netWorth: z.number(),
-
-  createdBy: z.string(),
-  createdAt: z.date(),
-  updatedBy: z.string().optional(),
-  updatedAt: z.date(),
-});
-
-export type BalanceSheetCreate = z.infer<typeof BalanceSheetCreateSchema>;
-
-export const BalanceSheetSchema = BalanceSheetCreateSchema;
-
-export type BalanceSheet = z.infer<typeof BalanceSheetSchema>;
+export type BalanceSheetData = z.infer<typeof BalanceSheetDataSchema>;

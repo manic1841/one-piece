@@ -3,7 +3,7 @@ import {
   BalanceSheetCategory,
   CashFlowCategory,
   IncomeStatementCategory,
-} from '@/domains/finance/finaceCategory';
+} from '@/domains/finance/types/category';
 import type { ProjectCategory, ProjectFormData } from '@/domains/project/types';
 import type { ProjectCreate } from '@/schemas';
 

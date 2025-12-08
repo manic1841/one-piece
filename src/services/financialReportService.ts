@@ -1,4 +1,5 @@
-import { Timestamp, collection, doc, getDocs, query, setDoc, where } from 'firebase/firestore';
+import { reportRepository } from '@/repositories/reportRepository';
+import { Timestamp, getDocs, query, where } from 'firebase/firestore';
 
 import {
   calculateBalanceSheet,
@@ -64,20 +65,8 @@ class FinancialReportService {
       month,
     );
 
-    // Filter Transactions for Other Income
-    // Type = 'income', Category != 'salary' and != 'bonus' (case insensitive)
-    const otherIncomeTransactions = transactions.filter((t) => {
-      if (t.type !== 'income') return false;
-      const cat = t.category.toLowerCase();
-      return cat !== 'salary' && cat !== 'bonus';
-    });
-
     // 2. Calculate Reports
-    const incomeStatementData = calculateIncomeStatement(
-      plannedIncomes,
-      otherIncomeTransactions,
-      projectsWithSnapshots,
-    );
+    const incomeStatementData = calculateIncomeStatement(plannedIncomes, projectsWithSnapshots);
 
     const balanceSheetData = calculateBalanceSheet(accountSnapshots, projectsWithSnapshots);
 
@@ -147,16 +136,13 @@ class FinancialReportService {
   /**
    * Save confirmed reports to Firestore
    */
-  async saveFinancialReports(householdId: string, reports: FinancialReport[]): Promise<void> {
+  async saveFinancialReports(
+    householdId: string,
+    reports: FinancialReport[],
+    email: string,
+  ): Promise<void> {
     for (const report of reports) {
-      const reportRef = doc(db, 'households', householdId, 'reports', report.id);
-      // Update status to confirmed
-      const confirmedReport = {
-        ...report,
-        status: 'confirmed',
-        updatedAt: Timestamp.now(),
-      };
-      await setDoc(reportRef, confirmedReport);
+      reportRepository.create([householdId], report, email);
     }
   }
 
