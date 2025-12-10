@@ -95,6 +95,17 @@ export abstract class BaseRepository<TDomain extends Base, RefArgs extends unkno
 
   protected sanitize(updates: Partial<TDomain>): Partial<TDomain> {
     const sanitizedEntries = Object.entries(updates).filter(([, value]) => value !== undefined);
+    for (const [key, value] of sanitizedEntries) {
+      if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+        const nestedSanitized = this.sanitize(value as Partial<TDomain>);
+        // replace with sanitized nested object
+        sanitizedEntries.splice(
+          sanitizedEntries.findIndex(([k]) => k === key),
+          1,
+          [key, nestedSanitized],
+        );
+      }
+    }
     return Object.fromEntries(sanitizedEntries) as Partial<TDomain>;
   }
 
@@ -109,6 +120,7 @@ export abstract class BaseRepository<TDomain extends Base, RefArgs extends unkno
     const id = docRef.id;
 
     const sanitized = this.sanitize(data as TDomain);
+    console.log('Sanitized Data for Create:', sanitized);
 
     const entity = this.convertToFirestore({
       ...sanitized,
@@ -153,6 +165,7 @@ export abstract class BaseRepository<TDomain extends Base, RefArgs extends unkno
 
     // remove undefined fields
     const sanitized = this.sanitize(updates as TDomain);
+    console.log('Sanitized Data for Update:', sanitized);
 
     const payload = this.convertToFirestore({
       ...sanitized,

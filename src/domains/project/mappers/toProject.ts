@@ -1,4 +1,4 @@
-import { nullOrData } from '@/constants/empty';
+import { NO_SELECTED } from '@/constants/empty';
 import {
   BalanceSheetCategory,
   CashFlowCategory,
@@ -7,19 +7,25 @@ import {
 import type { ProjectCategory, ProjectFormData } from '@/domains/project/types';
 import type { ProjectCreate } from '@/schemas';
 
-function mapAccountingItem<T>(item: { category: string; order?: number } | null | undefined):
+function mapAccountingItem<T>(
+  item: { category: string; subcategory?: string; order?: number } | null | undefined,
+):
   | {
       category: T;
+      subcategory: string | null;
       order?: number;
     }
   | undefined {
-  if (item && !nullOrData(item.category)) {
-    return {
-      category: item.category as T,
-      order: item.order,
-    };
+  // Skip if item is null/undefined or category is NO_SELECTED
+  if (!item || !item.category || item.category === NO_SELECTED) {
+    return undefined;
   }
-  return undefined;
+
+  return {
+    category: item.category as T,
+    subcategory: item.subcategory && item.subcategory !== NO_SELECTED ? item.subcategory : null,
+    order: item.order ?? 0,
+  };
 }
 
 export const toProject = (formData: ProjectFormData): ProjectCreate => {
@@ -42,7 +48,6 @@ export const toProject = (formData: ProjectFormData): ProjectCreate => {
       balanceSheet,
     },
     isActive: true,
-    isPersonal: false,
     order: 0,
   };
 };

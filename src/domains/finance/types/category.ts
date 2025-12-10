@@ -30,6 +30,10 @@ export const IncomeStatementCategory = {
 export type IncomeStatementCategory =
   (typeof IncomeStatementCategory)[keyof typeof IncomeStatementCategory];
 
+export const mapIncomeStatementSubcategory = {
+  [IncomeStatementCategory.INCOME]: IncomeSubCategory,
+  [IncomeStatementCategory.EXPENSE]: ExpenseSubCategory,
+};
 // ------------- Balance Sheet -------------
 
 // Asset SubCategories
@@ -69,6 +73,12 @@ export const BalanceSheetCategory = {
 
 export type BalanceSheetCategory = (typeof BalanceSheetCategory)[keyof typeof BalanceSheetCategory];
 
+export const mapBalanceSheetSubcategory = {
+  [BalanceSheetCategory.ASSET]: AssetSubCategory,
+  [BalanceSheetCategory.LIABILITY]: LiabilitySubCategory,
+  [BalanceSheetCategory.EQUITY]: EquitySubCategory,
+};
+
 // ------------- Cash Flow -------------
 
 // Cash Flow Operating SubCategories
@@ -107,3 +117,9 @@ export const CashFlowCategory = {
 } as const;
 
 export type CashFlowCategory = (typeof CashFlowCategory)[keyof typeof CashFlowCategory];
+
+export const mapCashFlowSubcategory = {
+  [CashFlowCategory.OPERATING]: OperatingSubCategory,
+  [CashFlowCategory.INVESTING]: InvestingSubCategory,
+  [CashFlowCategory.FINANCING]: FinancingSubCategory,
+};

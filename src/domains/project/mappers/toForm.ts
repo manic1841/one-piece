@@ -1,6 +1,16 @@
 import { ProjectCategory, type ProjectFormData } from '@/domains/project/types';
 import type { Project } from '@/schemas';
 
+function mapAccountingItem(
+  item: { category: string; subcategory?: string | null; order?: number } | null | undefined,
+) {
+  return {
+    category: item?.category ?? '',
+    subcategory: item?.subcategory ?? '',
+    order: item?.order,
+  };
+}
+
 export const toForm = (project?: Project): ProjectFormData => {
   if (!project) {
     return {
@@ -15,14 +25,21 @@ export const toForm = (project?: Project): ProjectFormData => {
     };
   }
 
+  let accounting: ProjectFormData['accounting'] = { enabled: false };
+  if (project.accounting?.enabled) {
+    accounting = {
+      enabled: true,
+      incomeStatement: mapAccountingItem(project.accounting.incomeStatement),
+      cashFlow: mapAccountingItem(project.accounting.cashFlow),
+      balanceSheet: mapAccountingItem(project.accounting.balanceSheet),
+    };
+  }
   return {
     name: project.name,
     category: project.category,
     icon: project.icon,
     color: project.color,
-    description: project.description || '',
-    accounting: {
-      enabled: project.accounting?.enabled || false,
-    },
+    description: project.description ?? '',
+    accounting: accounting,
   };
 };

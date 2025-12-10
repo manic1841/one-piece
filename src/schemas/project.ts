@@ -1,17 +1,3 @@
-import {
-  AssetSubCategory,
-  BalanceSheetCategory,
-  CashFlowCategory,
-  EquitySubCategory,
-  ExpenseSubCategory,
-  FinancingSubCategory,
-  IncomeStatementCategory,
-  IncomeSubCategory,
-  InvestingSubCategory,
-  LiabilitySubCategory,
-  OperatingSubCategory,
-} from '@/domains/finance/types/category';
-import { ProjectCategory } from '@/domains/project/types/category';
 import { BaseSchema } from '@/schemas';
 import { z } from 'zod';
 
@@ -39,7 +25,7 @@ export const ProjectCreateSchema = z.object({
   order: z.number(),
   description: z.string().optional(),
 
-  category: z.enum(ProjectCategory),
+  category: z.string(),
 
   isActive: z.boolean().default(true),
 
@@ -49,34 +35,25 @@ export const ProjectCreateSchema = z.object({
 
       incomeStatement: z
         .object({
-          category: z.enum(IncomeStatementCategory),
-          subcategory: z.enum(IncomeSubCategory).or(z.enum(ExpenseSubCategory)),
+          category: z.string(),
+          subcategory: z.string().nullable().optional(),
           order: z.number().optional(),
         })
         .optional(),
 
       cashFlow: z
         .object({
-          category: z.enum(CashFlowCategory),
-          subcategory: z
-            .enum(OperatingSubCategory)
-            .or(z.enum(InvestingSubCategory))
-            .or(z.enum(FinancingSubCategory)),
+          category: z.string(),
+          subcategory: z.string().nullable().optional(),
           order: z.number().optional(),
         })
         .optional(),
 
       balanceSheet: z
         .object({
-          category: z.enum(BalanceSheetCategory),
-          subcategory: z
-            .enum(EquitySubCategory)
-            .or(z.enum(AssetSubCategory))
-            .or(z.enum(LiabilitySubCategory)),
+          category: z.string(),
+          subcategory: z.string().nullable().optional(),
           order: z.number().optional(),
-          isDebt: z.boolean().optional(),
-          isInvestment: z.boolean().optional(),
-          isRealEstate: z.boolean().optional(),
         })
         .optional(),
     })
