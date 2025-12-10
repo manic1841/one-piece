@@ -1,4 +1,10 @@
-import { useState, useEffect, useCallback } from 'react';
+import { Plus } from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
+
+import { useAuth } from '../../contexts/useAuth';
+import type { RetirementIncomeSource } from '../../schemas/retirementPlan';
+import { plannedIncomeService } from '../../services/plannedIncomeService';
+import { retirementPlanService } from '../../services/retirementPlanService';
 import { Button } from '../ui/button';
 import {
   Dialog,
@@ -12,12 +18,7 @@ import {
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
-import { Plus } from 'lucide-react';
-import { plannedIncomeService } from '../../services/plannedIncomeService';
-import { retirementPlanService } from '../../services/retirementPlanService';
-import { useAuth } from '../../contexts/useAuth';
-import { useRetirementDialogForm } from '../../hooks/useRetirementDialogForm';
-import type { RetirementIncomeSource } from '../../schemas/retirementPlan';
+import { useRetirementDialogForm } from './useRetirementDialogForm';
 
 interface AddRetirementIncomeDialogProps {
   onSave: (income: Omit<RetirementIncomeSource, 'id'>) => Promise<void>;

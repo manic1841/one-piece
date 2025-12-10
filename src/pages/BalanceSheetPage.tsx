@@ -1,95 +1,64 @@
-import { ArrowLeft } from 'lucide-react';
-import { useCallback, useEffect, useState } from 'react';
+import BalanceSheetView from '@/components/reports/BalanceSheetView';
+import { ReportPageLayout } from '@/components/reports/ReportPageLayout';
+import {
+  ReportEmptyState,
+  ReportErrorState,
+  ReportLoadingState,
+} from '@/components/reports/ReportStates';
+import type { BalanceSheetView as BalanceSheet } from '@/domains/finance/mappers/reportToView';
+import { useFinancialReportPage } from '@/hooks/pages/useFinancialReportPage';
 import { useNavigate } from 'react-router-dom';
 
-import BalanceSheetView from '../components/reports/BalanceSheetView';
-import PeriodSelector from '../components/reports/PeriodSelector';
-import { Button } from '../components/ui/button';
 import { useAuth } from '../contexts/useAuth';
-import type { BalanceSheet } from '../schemas/balanceSheet';
-import { balanceSheetService } from '../services/balanceSheetService';
 
 export default function BalanceSheetPage() {
   const navigate = useNavigate();
   const { userProfile } = useAuth();
-  const [balanceSheet, setBalanceSheet] = useState<BalanceSheet | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
-  // State for period
-  const [asOfDate, setAsOfDate] = useState<Date>(new Date());
+  const {
+    report: balanceSheet,
+    loading,
+    error,
+    currentDate,
+    handlePreviousMonth,
+    handleNextMonth,
+    handleCurrentMonth,
+    isCurrentMonth,
+    formatMonthYear,
+    reload,
+  } = useFinancialReportPage<BalanceSheet>({
+    householdId: userProfile?.householdId,
+    reportType: 'balance_sheet',
+  });
 
-  useEffect(() => {
-    loadBalanceSheet();
-  }, [asOfDate, userProfile?.householdId]);
+  if (!userProfile?.householdId) {
+    return <div>Loading...</div>;
+  }
 
-  const loadBalanceSheet = async () => {
-    if (!userProfile?.householdId || !userProfile.email) return;
+  if (loading && !balanceSheet) {
+    return <ReportLoadingState />;
+  }
 
-    setLoading(true);
-    setError(null);
-
-    try {
-      const data = await balanceSheetService.generateBalanceSheet(
-        userProfile.householdId,
-        asOfDate,
-        userProfile.email,
-      );
-
-      setBalanceSheet(data);
-    } catch (err) {
-      console.error('Failed to load balance sheet:', err);
-      setError('無法載入資產負債表');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handlePeriodChange = useCallback((_start: Date, end: Date) => {
-    setAsOfDate(end);
-  }, []);
+  if (error) {
+    return <ReportErrorState error={error} onBack={() => navigate('/reports')} onRetry={reload} />;
+  }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => navigate('/reports')}>
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-          <div>
-            <h1 className="text-3xl font-bold">資產負債表</h1>
-            <p className="text-muted-foreground">
-              截至 {asOfDate.getFullYear()}/{String(asOfDate.getMonth() + 1).padStart(2, '0')}/
-              {asOfDate.getDate()}
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* Period Selector */}
-      <PeriodSelector onChange={handlePeriodChange} />
-
-      {/* Content */}
-      {loading && (
-        <div className="flex justify-center items-center h-64">
-          <div className="text-muted-foreground">載入中...</div>
-        </div>
+    <ReportPageLayout
+      title="資產負債表"
+      currentDate={currentDate}
+      formatMonthYear={formatMonthYear}
+      isCurrentMonth={isCurrentMonth}
+      onPreviousMonth={handlePreviousMonth}
+      onNextMonth={handleNextMonth}
+      onCurrentMonth={handleCurrentMonth}
+      onBack={() => navigate('/reports')}
+    >
+      {balanceSheet ? (
+        <BalanceSheetView balanceSheet={balanceSheet} />
+      ) : (
+        <ReportEmptyState message="無法載入資產負債表" />
       )}
-
-      {error && (
-        <div className="flex justify-center items-center h-64">
-          <div className="text-red-500">{error}</div>
-        </div>
-      )}
-
-      {!loading && !error && balanceSheet && <BalanceSheetView balanceSheet={balanceSheet} />}
-
-      {!loading && !error && !balanceSheet && (
-        <div className="flex justify-center items-center h-64">
-          <div className="text-muted-foreground">無資料</div>
-        </div>
-      )}
-    </div>
+    </ReportPageLayout>
   );
 }

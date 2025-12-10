@@ -1,19 +1,12 @@
+import { calculateBalanceSheet } from '@/domains/finance/calculators/balanceSheetCalculator';
+import { calculateCashFlowStatement } from '@/domains/finance/calculators/cashFlowCalculator';
+import { reconcileReports } from '@/domains/finance/calculators/financialReportCalculator';
+import { calculateIncomeStatement } from '@/domains/finance/calculators/incomeStatementCalculator';
+import type { FinancialReport } from '@/domains/finance/types';
 import { reportRepository } from '@/repositories/reportRepository';
-import { Timestamp, getDocs, query, where } from 'firebase/firestore';
-
-import {
-  calculateBalanceSheet,
-  calculateCashFlowStatement,
-  calculateIncomeStatement,
-  reconcileReports,
-} from '../domains/finance/calculators/financialReportCalculator';
-import { db } from '../firebase';
-import type { AccountSnapshot } from '../schemas/account';
-import type { FinancialReport } from '../schemas/report';
-import { accountService } from './accountService';
-import { plannedIncomeService } from './plannedIncomeService';
-import { projectService } from './projectService';
-import { transactionService } from './transactionService';
+import { accountService } from '@/services/accountService';
+import { plannedIncomeService } from '@/services/plannedIncomeService';
+import { projectService } from '@/services/projectService';
 
 class FinancialReportService {
   /**
@@ -33,16 +26,13 @@ class FinancialReportService {
     // 1. Fetch Data
     const startDate = new Date(year, month - 1, 1);
     const endDate = new Date(year, month, 0, 23, 59, 59, 999);
-    const startTimestamp = Timestamp.fromDate(startDate);
-    const endTimestamp = Timestamp.fromDate(endDate);
 
-    const [allProjects, plannedIncomes, transactions, accounts] = await Promise.all([
+    const [allProjects, plannedIncomes, accounts] = await Promise.all([
       projectService.getProjects(householdId),
       plannedIncomeService.getPlannedIncomes(householdId, {
         startDate: startDate,
         endDate: endDate,
       }),
-      transactionService.getTransactions(householdId, { startDate: startDate, endDate: endDate }),
       accountService.getAccounts(householdId),
     ]);
 
@@ -51,14 +41,8 @@ class FinancialReportService {
       allProjects.map((p) => projectService.getProjectWithSnapshot(householdId, p.id, year, month)),
     );
 
-    // We need account snapshots for the current month
-    // Note: accountService might not have a direct method for this, we might need to query directly or add to service.
-    // Assuming we can query subcollections.
-    // For now, let's implement a helper here or assume accountService has it.
-    // Let's query manually here if service doesn't have it, but ideally service should.
-    // Checking accountService... it doesn't seem to have getSnapshots exposed widely in previous context.
-    // I'll implement a local helper to fetch account snapshots.
-    const accountSnapshots = await this.getAccountSnapshots(
+    // Get account snapshots for the current month
+    const accountSnapshots = await accountService.getAccountSnapshots(
       householdId,
       accounts.map((a) => a.id),
       year,
@@ -77,7 +61,7 @@ class FinancialReportService {
     // We need previous month's account snapshots.
     const prevYear = month === 1 ? year - 1 : year;
     const prevMonth = month === 1 ? 12 : month - 1;
-    const prevAccountSnapshots = await this.getAccountSnapshots(
+    const prevAccountSnapshots = await accountService.getAccountSnapshots(
       householdId,
       accounts.map((a) => a.id),
       prevYear,
@@ -91,17 +75,21 @@ class FinancialReportService {
     const reconciliation = reconcileReports(balanceSheetData, cashFlowData);
 
     // 4. Construct Report Objects
+    const now = new Date();
     const commonFields = {
       year,
       month,
-      startDate: startTimestamp,
-      endDate: endTimestamp,
+      startDate,
+      endDate,
       status: 'draft' as const,
       reconciled: reconciliation.reconciled,
       cached: false,
-      generatedAt: Timestamp.now(),
+      generatedAt: now,
       generatedBy: userId,
-      updatedAt: Timestamp.now(),
+      createdBy: userId,
+      createdAt: now,
+      updatedBy: userId,
+      updatedAt: now,
     };
 
     const incomeStatement: FinancialReport = {
@@ -146,30 +134,47 @@ class FinancialReportService {
     }
   }
 
-  // Helper to get account snapshots
-  private async getAccountSnapshots(
+  /**
+   * Get saved financial reports for a specific month
+   */
+  async getFinancialReports(
     householdId: string,
-    accountIds: string[],
     year: number,
     month: number,
-  ) {
-    const snapshots: AccountSnapshot[] = [];
-    for (const accountId of accountIds) {
-      const snapshotsRef = collection(
-        db,
-        'households',
-        householdId,
-        'accounts',
-        accountId,
-        'snapshots',
-      );
-      const q = query(snapshotsRef, where('year', '==', year), where('month', '==', month));
-      const snapshotDocs = await getDocs(q);
-      snapshotDocs.forEach((doc) => {
-        snapshots.push({ ...doc.data(), id: accountId } as unknown as AccountSnapshot);
-      });
-    }
-    return snapshots;
+  ): Promise<{
+    incomeStatement: FinancialReport | null;
+    balanceSheet: FinancialReport | null;
+    cashFlow: FinancialReport | null;
+  }> {
+    const reports = await reportRepository.list([householdId]);
+
+    const incomeStatement =
+      reports.find((r) => r.type === 'income_statement' && r.year === year && r.month === month) ||
+      null;
+    const balanceSheet =
+      reports.find((r) => r.type === 'balance_sheet' && r.year === year && r.month === month) ||
+      null;
+    const cashFlow =
+      reports.find((r) => r.type === 'cash_flow' && r.year === year && r.month === month) || null;
+
+    return {
+      incomeStatement,
+      balanceSheet,
+      cashFlow,
+    };
+  }
+
+  /**
+   * Get a specific financial report by type, year, and month
+   */
+  async getFinancialReport(
+    householdId: string,
+    type: 'income_statement' | 'balance_sheet' | 'cash_flow',
+    year: number,
+    month: number,
+  ): Promise<FinancialReport | null> {
+    const reports = await reportRepository.list([householdId]);
+    return reports.find((r) => r.type === type && r.year === year && r.month === month) || null;
   }
 }
 

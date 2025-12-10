@@ -1,9 +1,9 @@
+import FinancialReportGenerator from '@/components/reports/FinancialReportGenerator';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { FileText, PlusCircle, TrendingUp, Wallet } from 'lucide-react';
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import { FileText, TrendingUp, Wallet, PlusCircle } from 'lucide-react';
-import { Dialog, DialogContent, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import FinancialReportGenerator from '@/components/reports/FinancialReportGenerator';
 
 const Reports: React.FC = () => {
   const navigate = useNavigate();
@@ -47,9 +47,7 @@ const Reports: React.FC = () => {
       <div className="flex justify-between items-center">
         <div>
           <h2 className="text-2xl font-bold tracking-tight">財務報表</h2>
-          <p className="text-muted-foreground">
-            查看您的財務狀況和收支情況
-          </p>
+          <p className="text-muted-foreground">查看您的財務狀況和收支情況</p>
         </div>
         <Dialog open={isGeneratorOpen} onOpenChange={setIsGeneratorOpen}>
           <DialogTrigger asChild>
@@ -69,12 +67,15 @@ const Reports: React.FC = () => {
         {reports.map((report) => (
           <Card
             key={report.id}
-            className={`cursor-pointer transition-all hover:shadow-lg ${report.enabled ? 'hover:scale-105' : 'opacity-50 cursor-not-allowed'
-              }`}
+            className={`cursor-pointer transition-all hover:shadow-lg ${
+              report.enabled ? 'hover:scale-105' : 'opacity-50 cursor-not-allowed'
+            }`}
             onClick={() => report.enabled && navigate(report.path)}
           >
             <CardHeader>
-              <div className={`w-12 h-12 rounded-lg ${report.bgColor} flex items-center justify-center mb-2`}>
+              <div
+                className={`w-12 h-12 rounded-lg ${report.bgColor} flex items-center justify-center mb-2`}
+              >
                 <report.icon className={`h-6 w-6 ${report.color}`} />
               </div>
               <CardTitle className="flex items-center justify-between">

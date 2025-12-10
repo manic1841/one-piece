@@ -1,4 +1,11 @@
-import { useState, useEffect, useCallback } from 'react';
+import { Plus } from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
+
+import { useAuth } from '../../contexts/useAuth';
+import type { Project } from '../../schemas';
+import type { RetirementExpenseCategory } from '../../schemas/retirementPlan';
+import { projectService } from '../../services/projectService';
+import { retirementPlanService } from '../../services/retirementPlanService';
 import { Button } from '../ui/button';
 import {
   Dialog,
@@ -12,13 +19,7 @@ import {
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
-import { Plus } from 'lucide-react';
-import { projectService } from '../../services/projectService';
-import { retirementPlanService } from '../../services/retirementPlanService';
-import { useAuth } from '../../contexts/useAuth';
-import { useRetirementDialogForm } from '../../hooks/useRetirementDialogForm';
-import type { Project } from '../../schemas';
-import type { RetirementExpenseCategory } from '../../schemas/retirementPlan';
+import { useRetirementDialogForm } from './useRetirementDialogForm';
 
 interface AddRetirementExpenseDialogProps {
   onSave: (expense: Omit<RetirementExpenseCategory, 'id'>) => Promise<void>;

@@ -1,21 +1,21 @@
-import React, { useEffect, useState } from 'react';
-import { Outlet, NavLink, useNavigate } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
+import { useAuth } from '@/contexts/useAuth';
+import { householdService } from '@/services/householdService';
+import clsx from 'clsx';
 import {
-  LayoutDashboard,
-  Receipt,
-  Folder,
-  Wallet,
-  Calculator,
   Briefcase,
   FileText,
-  Settings,
+  Folder,
+  LayoutDashboard,
   LogOut,
+  Receipt,
+  Settings,
   TrendingUp,
+  Wallet,
 } from 'lucide-react';
-import clsx from 'clsx';
-import { useAuth } from '../contexts/useAuth';
-import { householdService } from '../services/householdService';
-import { Button } from '@/components/ui/button';
+import React, { useEffect, useState } from 'react';
+import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+
 import HouseholdSwitcher from './HouseholdSwitcher';
 
 const Layout: React.FC = () => {
@@ -61,10 +61,9 @@ const Layout: React.FC = () => {
     { to: '/records', icon: Receipt, label: 'Records' },
     { to: '/projects', icon: Folder, label: 'Projects' },
     { to: '/accounts', icon: Wallet, label: 'Accounts' },
-    { to: '/reconciliation', icon: Calculator, label: 'Reconciliation' },
+    { to: '/reports', icon: FileText, label: 'Reports' },
     { to: '/portfolios', icon: Briefcase, label: 'Portfolios' },
     { to: '/retirement', icon: TrendingUp, label: 'Retirement' },
-    { to: '/reports', icon: FileText, label: 'Reports' },
     { to: '/settings', icon: Settings, label: 'Settings' },
   ];
 

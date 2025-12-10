@@ -1,7 +1,15 @@
 import {
+  AssetSubCategory,
   BalanceSheetCategory,
   CashFlowCategory,
+  EquitySubCategory,
+  ExpenseSubCategory,
+  FinancingSubCategory,
   IncomeStatementCategory,
+  IncomeSubCategory,
+  InvestingSubCategory,
+  LiabilitySubCategory,
+  OperatingSubCategory,
 } from '@/domains/finance/types/category';
 import { ProjectCategory } from '@/domains/project/types/category';
 import { BaseSchema } from '@/schemas';
@@ -33,7 +41,6 @@ export const ProjectCreateSchema = z.object({
 
   category: z.enum(ProjectCategory),
 
-  isPersonal: z.boolean().default(false),
   isActive: z.boolean().default(true),
 
   accounting: z
@@ -43,6 +50,7 @@ export const ProjectCreateSchema = z.object({
       incomeStatement: z
         .object({
           category: z.enum(IncomeStatementCategory),
+          subcategory: z.enum(IncomeSubCategory).or(z.enum(ExpenseSubCategory)),
           order: z.number().optional(),
         })
         .optional(),
@@ -50,6 +58,10 @@ export const ProjectCreateSchema = z.object({
       cashFlow: z
         .object({
           category: z.enum(CashFlowCategory),
+          subcategory: z
+            .enum(OperatingSubCategory)
+            .or(z.enum(InvestingSubCategory))
+            .or(z.enum(FinancingSubCategory)),
           order: z.number().optional(),
         })
         .optional(),
@@ -57,6 +69,10 @@ export const ProjectCreateSchema = z.object({
       balanceSheet: z
         .object({
           category: z.enum(BalanceSheetCategory),
+          subcategory: z
+            .enum(EquitySubCategory)
+            .or(z.enum(AssetSubCategory))
+            .or(z.enum(LiabilitySubCategory)),
           order: z.number().optional(),
           isDebt: z.boolean().optional(),
           isInvestment: z.boolean().optional(),

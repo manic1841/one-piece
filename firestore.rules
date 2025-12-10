@@ -113,7 +113,7 @@ service cloud.firestore {
         allow write: if isSignedIn() && isHouseholdAdmin(householdId);
       }
 
-      match /accountingConfig/default {
+      match /reports/{reportId} {
         allow read: if isSignedIn() && isHouseholdMember(householdId);
         allow write: if isSignedIn() && isHouseholdAdmin(householdId);
       }

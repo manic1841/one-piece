@@ -157,6 +157,20 @@ class AccountService {
   async deleteSnapshot(householdId: string, accountId: string, snapshotId: string): Promise<void> {
     return accountSnapshotRepository.delete([householdId, accountId, snapshotId]);
   }
+
+  // Get snapshots for multiple accounts in a specific month
+  async getAccountSnapshots(
+    householdId: string,
+    accountIds: string[],
+    year: number,
+    month: number,
+  ): Promise<AccountSnapshot[]> {
+    const snapshotPromises = accountIds.map((accountId) =>
+      this.getSnapshots(householdId, accountId, year, month),
+    );
+    const snapshotArrays = await Promise.all(snapshotPromises);
+    return snapshotArrays.flat();
+  }
 }
 
 export const accountService = new AccountService();

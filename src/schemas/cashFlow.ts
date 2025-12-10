@@ -21,14 +21,20 @@ export type CashFlowItem = z.infer<typeof CashFlowItemSchema>;
 
 export const CashFlowDataSchema = z.object({
   operating: z.object({
+    income: z.array(CashFlowItemSchema),
+    expense: z.array(CashFlowItemSchema),
     netAmount: z.number(),
     items: z.array(CashFlowItemSchema),
   }),
   investing: z.object({
+    income: z.array(CashFlowItemSchema),
+    expense: z.array(CashFlowItemSchema),
     netAmount: z.number(),
     items: z.array(CashFlowItemSchema),
   }),
   financing: z.object({
+    income: z.array(CashFlowItemSchema),
+    expense: z.array(CashFlowItemSchema),
     netAmount: z.number(),
     items: z.array(CashFlowItemSchema),
   }),

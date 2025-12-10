@@ -1,223 +1,146 @@
-import { Timestamp } from 'firebase/firestore';
-
-import type { Account, AccountSnapshot, Project, ProjectSnapshot } from '../../../schemas';
-import type {
-  AssetSection,
-  BalanceSheet,
+import type { AccountSnapshot } from '@/domains/account/types';
+import {
+  AssetSubCategory,
   BalanceSheetCategory,
-  BalanceSheetItem,
-  LiabilitySection,
-} from '../../../schemas/balanceSheet';
+  type BalanceSheetData,
+  type BalanceSheetItem,
+  EquitySubCategory,
+  LiabilitySubCategory,
+} from '@/domains/finance/types';
+import type { ProjectWithSnapshot } from '@/domains/project/types';
 
-/**
- * Calculate balance sheet from accounts and projects
- */
 export function calculateBalanceSheet(
-  accounts: Account[],
-  accountSnapshots: Map<string, AccountSnapshot | null>,
-  projects: Project[],
-  projectSnapshots: Map<string, ProjectSnapshot | null>,
-  asOfDate: Date,
-  createdBy: string,
-  householdId: string,
-): BalanceSheet {
-  const year = asOfDate.getFullYear();
-  const month = asOfDate.getMonth() + 1;
+  accountSnapshots: AccountSnapshot[],
+  projectsWithSnapshots: ProjectWithSnapshot[],
+): BalanceSheetData {
+  // 1. Assets
+  const assetItems: BalanceSheetItem[] = [];
 
-  // Calculate assets
-  const assets = calculateAssets(accounts, accountSnapshots, projects, projectSnapshots);
-
-  // Calculate liabilities
-  const liabilities = calculateLiabilities(accounts, accountSnapshots, projects, projectSnapshots);
-
-  // Calculate net worth
-  const netWorth = assets.total - liabilities.total;
-
-  return {
-    id: `balance-sheet-${householdId}-${year}-${month}`,
-    asOfDate,
-    year,
-    month,
-    assets,
-    liabilities,
-    netWorth,
-    createdAt: Timestamp.now(),
-    createdBy,
-  };
-}
-
-/**
- * Calculate assets section
- */
-function calculateAssets(
-  accounts: Account[],
-  accountSnapshots: Map<string, AccountSnapshot | null>,
-  projects: Project[],
-  projectSnapshots: Map<string, ProjectSnapshot | null>,
-): AssetSection {
-  const currentAssets: BalanceSheetItem[] = [];
-  const investmentAssets: BalanceSheetItem[] = [];
-  const fixedAssets: BalanceSheetItem[] = [];
-
-  // Add bank and cash accounts to current assets
-  for (const account of accounts) {
-    const snapshot = accountSnapshots.get(account.id);
-    if (!snapshot) continue;
-
-    if (account.type === 'bank' || account.type === 'cash') {
-      currentAssets.push({
-        id: account.id,
-        name: account.name,
-        amount: snapshot.amount,
-        order: 1,
-        sourceType: 'account',
-        sourceId: account.id,
-      });
-    } else if (account.type === 'investment') {
-      investmentAssets.push({
-        id: account.id,
-        name: account.name,
-        amount: snapshot.amount,
-        order: 1,
-        sourceType: 'account',
-        sourceId: account.id,
-      });
-    }
-  }
-
-  // Add positive project balances to current assets
-  let projectAssetTotal = 0;
-  for (const project of projects) {
-    const snapshot = projectSnapshots.get(project.id);
-    if (!snapshot || snapshot.closingBalance <= 0) continue;
-
-    projectAssetTotal += snapshot.closingBalance;
-  }
-
-  if (projectAssetTotal > 0) {
-    currentAssets.push({
-      id: 'project-assets',
-      name: '專案帳戶餘額',
-      amount: projectAssetTotal,
-      order: 2,
-      sourceType: 'project',
+  // Cash & Equivalents (Accounts)
+  const cashAccounts = accountSnapshots.filter((acc) => !acc.holdings);
+  const cashTotal = cashAccounts.reduce((sum, acc) => sum + acc.amount, 0);
+  if (cashTotal > 0) {
+    assetItems.push({
+      category: AssetSubCategory.CASH,
+      amount: cashTotal,
+      subItems: cashAccounts.map((acc) => ({ name: acc.id, amount: acc.amount })), // Note: Account name might need to be fetched if not in snapshot, but snapshot has ID. Ideally snapshot should have name or we map it. AccountSnapshot doesn't have name, so we use ID for now or need to pass Accounts.
+      // Optimization: Pass Accounts to map ID to Name. For now using ID.
     });
   }
 
-  // Group into categories
-  const currentCategory: BalanceSheetCategory = {
-    category: '流動資產',
-    items: currentAssets,
-    subtotal: currentAssets.reduce((sum, item) => sum + item.amount, 0),
-    order: 1,
-  };
+  const investmentsAccounts = accountSnapshots.filter((acc) => acc.holdings);
+  const investmentsTotal = investmentsAccounts.reduce((sum, acc) => sum + acc.amount, 0);
+  if (investmentsTotal > 0) {
+    assetItems.push({
+      category: AssetSubCategory.INVESTMENTS,
+      amount: investmentsTotal,
+      subItems: investmentsAccounts.map((acc) => ({ name: acc.id, amount: acc.amount })), // Note: Account name might need to be fetched if not in snapshot, but snapshot has ID. Ideally snapshot should have name or we map it. AccountSnapshot doesn't have name, so we use ID for now or need to pass Accounts.
+      // Optimization: Pass Accounts to map ID to Name. For now using ID.
+    });
+  }
 
-  const investmentCategory: BalanceSheetCategory = {
-    category: '投資資產',
-    items: investmentAssets,
-    subtotal: investmentAssets.reduce((sum, item) => sum + item.amount, 0),
-    order: 2,
-  };
+  // Project Assets
+  const assetMap = new Map<
+    string,
+    { amount: number; subItems: { name: string; amount: number }[] }
+  >();
 
-  const fixedCategory: BalanceSheetCategory = {
-    category: '固定資產',
-    items: fixedAssets,
-    subtotal: fixedAssets.reduce((sum, item) => sum + item.amount, 0),
-    order: 3,
-  };
+  projectsWithSnapshots.forEach((pws) => {
+    if (!pws || !pws.snapshot) return;
 
-  const total = currentCategory.subtotal + investmentCategory.subtotal + fixedCategory.subtotal;
+    if (pws?.accounting?.balanceSheet?.category === BalanceSheetCategory.ASSET) {
+      const subcategory = pws.accounting.balanceSheet.subcategory || AssetSubCategory.OTHER_ASSETS;
+      const amount = pws.snapshot.closingBalance;
 
-  return {
-    current: currentCategory.items.length > 0 ? [currentCategory] : [],
-    investment: investmentCategory.items.length > 0 ? [investmentCategory] : [],
-    fixed: fixedCategory.items.length > 0 ? [fixedCategory] : [],
-    total,
-  };
-}
-
-/**
- * Calculate liabilities section
- */
-function calculateLiabilities(
-  accounts: Account[],
-  accountSnapshots: Map<string, AccountSnapshot | null>,
-  projects: Project[],
-  projectSnapshots: Map<string, ProjectSnapshot | null>,
-): LiabilitySection {
-  const shortTermLiabilities: BalanceSheetItem[] = [];
-  const longTermLiabilities: BalanceSheetItem[] = [];
-
-  // Add credit card and loan accounts to liabilities
-  for (const account of accounts) {
-    const snapshot = accountSnapshots.get(account.id);
-    if (!snapshot) continue;
-
-    // Negative balances are liabilities
-    if (snapshot.amount < 0) {
-      const amount = Math.abs(snapshot.amount);
-
-      if (account.name.includes('信用卡')) {
-        shortTermLiabilities.push({
-          id: account.id,
-          name: account.name,
-          amount,
-          order: 1,
-          sourceType: 'account',
-          sourceId: account.id,
-        });
-      } else {
-        longTermLiabilities.push({
-          id: account.id,
-          name: account.name,
-          amount,
-          order: 1,
-          sourceType: 'account',
-          sourceId: account.id,
-        });
+      if (amount !== 0) {
+        const current = assetMap.get(subcategory) || { amount: 0, subItems: [] };
+        current.amount += amount;
+        current.subItems.push({ name: pws.name, amount });
+        assetMap.set(subcategory, current);
       }
     }
-  }
+  });
 
-  // Add negative project balances to liabilities
-  let projectLiabilityTotal = 0;
-  for (const project of projects) {
-    const snapshot = projectSnapshots.get(project.id);
-    if (!snapshot || snapshot.closingBalance >= 0) continue;
-
-    projectLiabilityTotal += Math.abs(snapshot.closingBalance);
-  }
-
-  if (projectLiabilityTotal > 0) {
-    shortTermLiabilities.push({
-      id: 'project-liabilities',
-      name: '專案欠款',
-      amount: projectLiabilityTotal,
-      order: 2,
-      sourceType: 'project',
+  assetMap.forEach((data, category) => {
+    assetItems.push({
+      category,
+      amount: data.amount,
+      subItems: data.subItems,
     });
-  }
+  });
 
-  // Group into categories
-  const shortTermCategory: BalanceSheetCategory = {
-    category: '短期負債',
-    items: shortTermLiabilities,
-    subtotal: shortTermLiabilities.reduce((sum, item) => sum + item.amount, 0),
-    order: 1,
-  };
+  const totalAssets = assetItems.reduce((sum, item) => sum + item.amount, 0);
 
-  const longTermCategory: BalanceSheetCategory = {
-    category: '長期負債',
-    items: longTermLiabilities,
-    subtotal: longTermLiabilities.reduce((sum, item) => sum + item.amount, 0),
-    order: 2,
-  };
+  // 2. Liabilities
+  const liabilityItems: BalanceSheetItem[] = [];
+  const liabilityMap = new Map<
+    string,
+    { amount: number; subItems: { name: string; amount: number }[] }
+  >();
 
-  const total = shortTermCategory.subtotal + longTermCategory.subtotal;
+  projectsWithSnapshots.forEach((pws) => {
+    if (!pws || !pws.snapshot) return;
+
+    if (pws?.accounting?.balanceSheet?.category === BalanceSheetCategory.LIABILITY) {
+      const subcategory =
+        pws.accounting.balanceSheet.subcategory || LiabilitySubCategory.OTHER_LIABILITIES;
+      const amount = pws.snapshot.closingBalance;
+
+      if (amount !== 0) {
+        const current = liabilityMap.get(subcategory) || { amount: 0, subItems: [] };
+        current.amount += amount;
+        current.subItems.push({ name: pws.name, amount });
+        liabilityMap.set(subcategory, current);
+      }
+    }
+  });
+
+  liabilityMap.forEach((data, category) => {
+    liabilityItems.push({
+      category,
+      amount: data.amount,
+      subItems: data.subItems,
+    });
+  });
+
+  const totalLiabilities = liabilityItems.reduce((sum, item) => sum + item.amount, 0);
+
+  // 3. Equity
+  const equityItems: BalanceSheetItem[] = [];
+  const equityMap = new Map<
+    string,
+    { amount: number; subItems: { name: string; amount: number }[] }
+  >();
+
+  projectsWithSnapshots.forEach((pws) => {
+    if (!pws || !pws.snapshot) return;
+
+    if (pws?.accounting?.balanceSheet?.category === BalanceSheetCategory.EQUITY) {
+      const subcategory = pws.accounting.balanceSheet.subcategory || EquitySubCategory.OTHER_EQUITY;
+      const amount = pws.snapshot.closingBalance;
+
+      if (amount !== 0) {
+        const current = equityMap.get(subcategory) || { amount: 0, subItems: [] };
+        current.amount += amount;
+        current.subItems.push({ name: pws.name, amount });
+        equityMap.set(subcategory, current);
+      }
+    }
+  });
+
+  equityMap.forEach((data, category) => {
+    equityItems.push({
+      category,
+      amount: data.amount,
+      subItems: data.subItems,
+    });
+  });
+
+  const totalEquity = equityItems.reduce((sum, item) => sum + item.amount, 0);
 
   return {
-    shortTerm: shortTermCategory.items.length > 0 ? [shortTermCategory] : [],
-    longTerm: longTermCategory.items.length > 0 ? [longTermCategory] : [],
-    total,
+    assets: { total: totalAssets, items: assetItems },
+    liabilities: { total: totalLiabilities, items: liabilityItems },
+    equity: { total: totalEquity, items: equityItems },
   };
 }

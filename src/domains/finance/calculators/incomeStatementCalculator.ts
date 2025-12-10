@@ -1,8 +1,11 @@
 import type { IncomeStatementData, IncomeStatementItem } from '@/domains/finance/types';
+import {
+  ExpenseSubCategory,
+  IncomeStatementCategory,
+  IncomeSubCategory,
+} from '@/domains/finance/types';
 import type { ProjectWithSnapshot } from '@/domains/project/types';
-import type { PlannedIncome } from '@/domains/record/types';
-
-import { IncomeStatementCategory } from '../types/category';
+import { type PlannedIncome, PlannedIncomeCategory } from '@/domains/record/types';
 
 export function calculateIncomeStatement(
   plannedIncomes: PlannedIncome[],
@@ -13,70 +16,103 @@ export function calculateIncomeStatement(
 
   // Planned Income - Split by category
   // Salary
-  const salaryIncomes = plannedIncomes.filter((pi) => pi.category.toLowerCase() === 'salary');
+  const salaryIncomes = plannedIncomes.filter((pi) => pi.category === PlannedIncomeCategory.SALARY);
   const salaryTotal = salaryIncomes.reduce((sum, pi) => sum + pi.amount, 0);
   if (salaryTotal > 0) {
     revenueItems.push({
-      category: 'Salary',
+      category: IncomeSubCategory.SALARY,
       amount: salaryTotal,
       subItems: salaryIncomes.map((pi) => ({ name: pi.category, amount: pi.amount })),
     });
   }
 
   // Bonus
-  const bonusIncomes = plannedIncomes.filter((pi) => pi.category.toLowerCase() === 'bonus');
+  const bonusIncomes = plannedIncomes.filter((pi) => pi.category === PlannedIncomeCategory.BONUS);
   const bonusTotal = bonusIncomes.reduce((sum, pi) => sum + pi.amount, 0);
   if (bonusTotal > 0) {
     revenueItems.push({
-      category: 'Bonus',
+      category: IncomeSubCategory.BONUS,
       amount: bonusTotal,
       subItems: bonusIncomes.map((pi) => ({ name: pi.category, amount: pi.amount })),
     });
   }
 
-  // Other Incomes
-  const otherIncomes = projectWithSnapshots.filter(
-    (pws) => pws.accounting?.incomeStatement?.category === IncomeStatementCategory.INCOME,
+  // Other Planned Incomes
+  const otherIncomes = plannedIncomes.filter(
+    (pi) =>
+      pi.category !== PlannedIncomeCategory.SALARY && pi.category !== PlannedIncomeCategory.BONUS,
   );
-  const otherIncomeTotal = otherIncomes.reduce((sum, pws) => {
-    const snapshot = pws.snapshot;
-    if (!snapshot) return sum;
-    return sum + snapshot.income;
-  }, 0);
-  if (otherIncomeTotal > 0) {
+  const otherTotal = otherIncomes.reduce((sum, pi) => sum + pi.amount, 0);
+  if (otherTotal > 0) {
     revenueItems.push({
-      category: 'Other Income',
-      amount: otherIncomeTotal,
-      subItems: otherIncomes.map((pws) => {
-        if (!pws.snapshot) return { name: pws.name, amount: 0 };
-        return { name: pws.name, amount: pws.snapshot.income };
-      }),
+      category: IncomeSubCategory.OTHER_INCOME,
+      amount: otherTotal,
+      subItems: otherIncomes.map((pi) => ({ name: pi.category, amount: pi.amount })),
     });
   }
+
+  // Project Incomes
+  const projectIncomeMap = new Map<
+    string,
+    { amount: number; subItems: { name: string; amount: number }[] }
+  >();
+  projectWithSnapshots.forEach((pws) => {
+    if (!pws || !pws.snapshot) return;
+
+    if (pws?.accounting?.incomeStatement?.category === IncomeStatementCategory.INCOME) {
+      const subcategory =
+        pws.accounting.incomeStatement.subcategory || IncomeSubCategory.OTHER_INCOME;
+      const amount = pws.snapshot.closingBalance;
+
+      if (amount !== 0) {
+        const current = projectIncomeMap.get(subcategory) || { amount: 0, subItems: [] };
+        current.amount += amount;
+        current.subItems.push({ name: pws.name, amount });
+        projectIncomeMap.set(subcategory, current);
+      }
+    }
+  });
+  projectIncomeMap.forEach((data, category) => {
+    revenueItems.push({
+      category,
+      amount: data.amount,
+      subItems: data.subItems,
+    });
+  });
 
   const totalRevenue = revenueItems.reduce((sum, item) => sum + item.amount, 0);
 
-  // 2. Calculate Project Accounting Expenses and Other Income
+  // 2. Calculate Project Accounting Expenses
   const expenseItems: IncomeStatementItem[] = [];
 
-  const projectExpenses = projectWithSnapshots.filter(
-    (pws) => pws.accounting?.incomeStatement?.category === IncomeStatementCategory.EXPENSE,
-  );
-  const projectExpensesTotal = projectExpenses.reduce((sum, pws) => {
-    const snapshot = pws.snapshot;
-    if (!snapshot) return sum;
-    return sum + snapshot.expense;
-  }, 0);
-  if (projectExpensesTotal > 0) {
+  // Project Expenses
+  const projectExpenseMap = new Map<
+    string,
+    { amount: number; subItems: { name: string; amount: number }[] }
+  >();
+  projectWithSnapshots.forEach((pws) => {
+    if (!pws || !pws.snapshot) return;
+
+    if (pws?.accounting?.incomeStatement?.category === IncomeStatementCategory.EXPENSE) {
+      const subcategory =
+        pws.accounting.incomeStatement.subcategory || ExpenseSubCategory.OTHER_EXPENSE;
+      const amount = pws.snapshot.closingBalance;
+
+      if (amount !== 0) {
+        const current = projectExpenseMap.get(subcategory) || { amount: 0, subItems: [] };
+        current.amount += amount;
+        current.subItems.push({ name: pws.name, amount });
+        projectExpenseMap.set(subcategory, current);
+      }
+    }
+  });
+  projectExpenseMap.forEach((data, category) => {
     expenseItems.push({
-      category: 'Project Expenses',
-      amount: projectExpensesTotal,
-      subItems: projectExpenses.map((pws) => {
-        if (!pws.snapshot) return { name: pws.name, amount: 0 };
-        return { name: pws.name, amount: pws.snapshot.expense };
-      }),
+      category,
+      amount: data.amount,
+      subItems: data.subItems,
     });
-  }
+  });
 
   const totalExpenses = expenseItems.reduce((sum, item) => sum + item.amount, 0);
 

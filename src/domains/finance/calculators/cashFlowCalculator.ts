@@ -1,129 +1,108 @@
-import type { CashFlowStatement, CashFlowItem, CashFlowSection } from '../../../schemas/cashFlow';
-import type { Transaction, Project } from '../../../schemas';
-import { Timestamp } from 'firebase/firestore';
+import { CashFlowCategory, type CashFlowData, CashFlowItemSchema } from '@/domains/finance/types';
+import type { ProjectWithSnapshot } from '@/domains/project/types';
+import { z } from 'zod';
+
+type CashFlowItem = z.infer<typeof CashFlowItemSchema>;
 
 /**
- * Calculate cash flow statement from transactions
+ * Calculate Cash Flow Statement
+ * Operating, Investing, Financing based on project.accounting.cashFlow
  */
-export function calculateCashFlow(
-  transactions: Transaction[],
-  projects: Project[],
-  startDate: Date,
-  endDate: Date,
-  beginningBalance: number,
-  createdBy: string,
-  householdId: string,
-): CashFlowStatement {
-  const year = startDate.getFullYear();
-  const month = startDate.getMonth() + 1;
+export function calculateCashFlowStatement(
+  projectsWithSnapshots: ProjectWithSnapshot[],
+  beginningCash: number,
+): CashFlowData {
+  const operatingIncome: CashFlowItem[] = [];
+  const operatingExpense: CashFlowItem[] = [];
+  const investingIncome: CashFlowItem[] = [];
+  const investingExpense: CashFlowItem[] = [];
+  const financingIncome: CashFlowItem[] = [];
+  const financingExpense: CashFlowItem[] = [];
 
-  // Initialize sections
-  const operatingItems: CashFlowItem[] = [];
-  const investingItems: CashFlowItem[] = [];
-  const financingItems: CashFlowItem[] = [];
-
-  // Helper to find project
-  const getProject = (id?: string) => projects.find((p) => p.id === id);
-
-  // Process transactions
-  for (const tx of transactions) {
-    // Skip internal transfers unless they cross boundaries (e.g., to investment)
-    // For simplicity in this version, we'll focus on Income/Expense and specific transfers
-
-    let section: 'operating' | 'investing' | 'financing' = 'operating';
-    const amount = tx.amount;
-
-    // Determine section based on project or category
-    const project = getProject(tx.projectId);
-
-    if (project?.accounting?.cashFlow?.activity) {
-      const activity = project.accounting.cashFlow.activity;
-      if (activity === 'reconciliation') {
-        continue;
-      }
-      section = activity;
+  // Helper to aggregate
+  const aggregate = (items: CashFlowItem[], category: string, amount: number) => {
+    const existing = items.find((i) => i.category === category);
+    if (existing) {
+      existing.amount += amount;
     } else {
-      // Default logic if no project config
-      if (tx.type === 'income') {
-        section = tx.category === '投資收益' || tx.category === '股息' ? 'investing' : 'operating';
-      } else if (tx.type === 'expense') {
-        if (tx.category === '投資' || tx.projectId === 'investment') {
-          section = 'investing';
-        } else {
-          section = tx.category === '貸款' || tx.category === '還款' ? 'financing' : 'operating';
-        }
-      } else {
-        // Skip transfers for now
-        continue;
+      items.push({ category, amount });
+    }
+  };
+
+  projectsWithSnapshots.forEach((pws) => {
+    const project = pws;
+    const snapshot = pws.snapshot;
+    if (!project || !snapshot) return;
+
+    if (project?.accounting?.cashFlow) {
+      const { category, subcategory } = project.accounting.cashFlow;
+      const income = snapshot.income;
+      const expense = snapshot.expense;
+
+      // 分別處理收入和支出
+      if (category === CashFlowCategory.OPERATING) {
+        if (income > 0) aggregate(operatingIncome, subcategory, income);
+        if (expense > 0) aggregate(operatingExpense, subcategory, expense);
+      } else if (category === CashFlowCategory.INVESTING) {
+        if (income > 0) aggregate(investingIncome, subcategory, income);
+        if (expense > 0) aggregate(investingExpense, subcategory, expense);
+      } else if (category === CashFlowCategory.FINANCING) {
+        if (income > 0) aggregate(financingIncome, subcategory, income);
+        if (expense > 0) aggregate(financingExpense, subcategory, expense);
       }
     }
+  });
 
-    // Sign convention: Inflow positive, Outflow negative
-    const signedAmount = tx.type === 'expense' ? -amount : amount;
+  // 計算淨額
+  const operatingIncomeTotal = operatingIncome.reduce((sum, i) => sum + i.amount, 0);
+  const operatingExpenseTotal = operatingExpense.reduce((sum, i) => sum + i.amount, 0);
+  const netOperating = operatingIncomeTotal - operatingExpenseTotal;
 
-    const item: CashFlowItem = {
-      id: tx.id,
-      name: tx.description || tx.category,
-      amount: signedAmount,
-      category: tx.category,
-    };
+  const investingIncomeTotal = investingIncome.reduce((sum, i) => sum + i.amount, 0);
+  const investingExpenseTotal = investingExpense.reduce((sum, i) => sum + i.amount, 0);
+  const netInvesting = investingIncomeTotal - investingExpenseTotal;
 
-    if (section === 'operating') {
-      operatingItems.push(item);
-    } else if (section === 'investing') {
-      investingItems.push(item);
-    } else if (section === 'financing') {
-      financingItems.push(item);
-    }
-  }
+  const financingIncomeTotal = financingIncome.reduce((sum, i) => sum + i.amount, 0);
+  const financingExpenseTotal = financingExpense.reduce((sum, i) => sum + i.amount, 0);
+  const netFinancing = financingIncomeTotal - financingExpenseTotal;
 
-  // Group items by category/name to reduce noise
-  const groupItems = (items: CashFlowItem[]): CashFlowItem[] => {
-    const map = new Map<string, CashFlowItem>();
-    for (const item of items) {
-      const key = item.category || item.name; // Group by category primarily
-      const existing = map.get(key);
-      if (existing) {
-        existing.amount += item.amount;
-      } else {
-        map.set(key, { ...item, id: `group-${key}`, name: key });
-      }
-    }
-    return Array.from(map.values()).sort((a, b) => b.amount - a.amount);
-  };
+  const netChange = netOperating + netInvesting + netFinancing;
 
-  const operatingSection: CashFlowSection = {
-    items: groupItems(operatingItems),
-    netAmount: operatingItems.reduce((sum, item) => sum + item.amount, 0),
-  };
-
-  const investingSection: CashFlowSection = {
-    items: groupItems(investingItems),
-    netAmount: investingItems.reduce((sum, item) => sum + item.amount, 0),
-  };
-
-  const financingSection: CashFlowSection = {
-    items: groupItems(financingItems),
-    netAmount: financingItems.reduce((sum, item) => sum + item.amount, 0),
-  };
-
-  const netChange =
-    operatingSection.netAmount + investingSection.netAmount + financingSection.netAmount;
+  // 合併所有項目用於向後相容
+  const operatingItems = [
+    ...operatingIncome,
+    ...operatingExpense.map((e) => ({ ...e, amount: -e.amount })),
+  ];
+  const investingItems = [
+    ...investingIncome,
+    ...investingExpense.map((e) => ({ ...e, amount: -e.amount })),
+  ];
+  const financingItems = [
+    ...financingIncome,
+    ...financingExpense.map((e) => ({ ...e, amount: -e.amount })),
+  ];
 
   return {
-    id: `cash-flow-${householdId}-${year}-${month}`,
-    startDate,
-    endDate,
-    periodType: 'monthly', // Defaulting to monthly for now
-    year,
-    month,
-    operating: operatingSection,
-    investing: investingSection,
-    financing: financingSection,
+    operating: {
+      income: operatingIncome,
+      expense: operatingExpense,
+      netAmount: netOperating,
+      items: operatingItems,
+    },
+    investing: {
+      income: investingIncome,
+      expense: investingExpense,
+      netAmount: netInvesting,
+      items: investingItems,
+    },
+    financing: {
+      income: financingIncome,
+      expense: financingExpense,
+      netAmount: netFinancing,
+      items: financingItems,
+    },
     netChange,
-    beginningBalance,
-    endingBalance: beginningBalance + netChange,
-    createdAt: Timestamp.now(),
-    createdBy,
+    beginningBalance: beginningCash,
+    endingBalance: beginningCash + netChange,
   };
 }

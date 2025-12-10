@@ -12,7 +12,6 @@ import Onboarding from '@/pages/Onboarding';
 import PortfolioView from '@/pages/PortfolioView';
 import Portfolios from '@/pages/Portfolios';
 import Projects from '@/pages/Projects';
-import Reconciliation from '@/pages/Reconciliation';
 import Records from '@/pages/Records';
 import Reports from '@/pages/Reports';
 import RetirementPlanDetail from '@/pages/RetirementPlanDetail';
@@ -51,7 +50,6 @@ function App() {
             <Route path="accounts" element={<Accounts />} />
             <Route path="portfolios" element={<Portfolios />} />
             <Route path="portfolios/:id" element={<PortfolioView />} />
-            <Route path="reconciliation" element={<Reconciliation />} />
             <Route path="reports" element={<Reports />} />
             <Route path="reports/income-statement" element={<IncomeStatementPage />} />
             <Route path="reports/balance-sheet" element={<BalanceSheetPage />} />
