@@ -152,7 +152,7 @@ export default function AddRetirementExpenseDialog({
           </Button>
         )}
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent aria-describedby={undefined} className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>
             {initialData ? 'Edit Expense Category' : 'Add Expense Category'}

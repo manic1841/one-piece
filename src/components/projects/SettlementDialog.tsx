@@ -48,7 +48,10 @@ const SettlementDialog: React.FC<SettlementDialogProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && close()}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+      <DialogContent
+        aria-describedby={undefined}
+        className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col"
+      >
         <DialogHeader>
           <div className="flex items-center gap-3">
             <Calendar className="text-blue-600" size={24} />

@@ -139,7 +139,7 @@ export default function AddRetirementIncomeDialog({
           </Button>
         )}
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent aria-describedby={undefined} className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>{initialData ? 'Edit Income Source' : 'Add Income Source'}</DialogTitle>
           <DialogDescription>

@@ -56,7 +56,10 @@ const Reports: React.FC = () => {
               <span>產生月結報表</span>
             </div>
           </DialogTrigger>
-          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogContent
+            aria-describedby={undefined}
+            className="max-w-4xl max-h-[90vh] overflow-y-auto"
+          >
             <DialogTitle>產生月結報表</DialogTitle>
             <FinancialReportGenerator />
           </DialogContent>

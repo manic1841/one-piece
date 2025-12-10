@@ -8,14 +8,17 @@ export interface ProjectFormData {
     enabled: boolean;
     incomeStatement?: {
       category: string;
+      subcategory?: string;
       order?: number;
     };
     cashFlow?: {
       category: string;
+      subcategory?: string;
       order?: number;
     };
     balanceSheet?: {
       category: string;
+      subcategory?: string;
       order?: number;
     };
   };

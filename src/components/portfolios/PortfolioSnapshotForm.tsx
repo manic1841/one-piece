@@ -1,14 +1,11 @@
-import React, { useState, useEffect } from 'react';
-import { type Portfolio, type Account, type Holding } from '../../schemas';
-import { accountService } from '../../services/accountService';
+import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogContent,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
 } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -18,6 +15,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import React, { useEffect, useState } from 'react';
+
+import { type Account, type Holding, type Portfolio } from '../../schemas';
+import { accountService } from '../../services/accountService';
 
 interface PortfolioSnapshotFormProps {
   isOpen: boolean;
@@ -45,10 +46,12 @@ const PortfolioSnapshotForm: React.FC<PortfolioSnapshotFormProps> = ({
   const [withdrawals, setWithdrawals] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  
+
   // Account data for display/verification
   const [accounts, setAccounts] = useState<Account[]>([]);
-  const [accountSnapshots, setAccountSnapshots] = useState<Map<string, { amount: number; holdings?: Holding[] }>>(new Map());
+  const [accountSnapshots, setAccountSnapshots] = useState<
+    Map<string, { amount: number; holdings?: Holding[] }>
+  >(new Map());
 
   useEffect(() => {
     const loadAccounts = async () => {
@@ -68,15 +71,15 @@ const PortfolioSnapshotForm: React.FC<PortfolioSnapshotFormProps> = ({
   useEffect(() => {
     const loadSnapshots = async () => {
       if (accounts.length === 0) return;
-      
+
       const snapshotMap = new Map<string, { amount: number; holdings?: Holding[] }>();
-      
+
       for (const account of accounts) {
         const snapshots = await accountService.getSnapshots(householdId, account.id, year, month);
         if (snapshots.length > 0) {
-          snapshotMap.set(account.id, { 
+          snapshotMap.set(account.id, {
             amount: snapshots[0].amount,
-            holdings: snapshots[0].holdings 
+            holdings: snapshots[0].holdings,
           });
         }
       }
@@ -115,7 +118,10 @@ const PortfolioSnapshotForm: React.FC<PortfolioSnapshotFormProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+      <DialogContent
+        aria-describedby={undefined}
+        className="max-w-3xl max-h-[90vh] overflow-y-auto"
+      >
         <DialogHeader>
           <DialogTitle>Portfolio Snapshot - {portfolio.name}</DialogTitle>
         </DialogHeader>
@@ -163,7 +169,10 @@ const PortfolioSnapshotForm: React.FC<PortfolioSnapshotFormProps> = ({
               {accounts.map((account) => {
                 const snapshot = accountSnapshots.get(account.id);
                 return (
-                  <div key={account.id} className="flex justify-between items-start border-b last:border-0 pb-2 last:pb-0">
+                  <div
+                    key={account.id}
+                    className="flex justify-between items-start border-b last:border-0 pb-2 last:pb-0"
+                  >
                     <div>
                       <div className="font-medium">{account.name}</div>
                       <div className="text-xs text-muted-foreground capitalize">{account.type}</div>
@@ -171,7 +180,11 @@ const PortfolioSnapshotForm: React.FC<PortfolioSnapshotFormProps> = ({
                         <div className="mt-1 pl-2 border-l-2 border-slate-200">
                           {snapshot.holdings.map((h, idx) => (
                             <div key={idx} className="text-xs text-slate-600">
-                              {h.name} ({h.symbol}): {h.quantity} x {h.marketValue / h.quantity} = {new Intl.NumberFormat('en-US', { style: 'currency', currency: account.currency }).format(h.marketValue)}
+                              {h.name} ({h.symbol}): {h.quantity} x {h.marketValue / h.quantity} ={' '}
+                              {new Intl.NumberFormat('en-US', {
+                                style: 'currency',
+                                currency: account.currency,
+                              }).format(h.marketValue)}
                             </div>
                           ))}
                         </div>
@@ -180,7 +193,10 @@ const PortfolioSnapshotForm: React.FC<PortfolioSnapshotFormProps> = ({
                     <div className="text-right">
                       {snapshot ? (
                         <span className="font-semibold">
-                          {new Intl.NumberFormat('en-US', { style: 'currency', currency: account.currency }).format(snapshot.amount)}
+                          {new Intl.NumberFormat('en-US', {
+                            style: 'currency',
+                            currency: account.currency,
+                          }).format(snapshot.amount)}
                         </span>
                       ) : (
                         <span className="text-destructive text-sm">No snapshot found</span>
@@ -191,11 +207,16 @@ const PortfolioSnapshotForm: React.FC<PortfolioSnapshotFormProps> = ({
               })}
               <div className="flex justify-between items-center pt-2 mt-2 border-t border-slate-300 font-bold">
                 <span>Total Value</span>
-                <span>{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'TWD' }).format(totalValue)}</span>
+                <span>
+                  {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'TWD' }).format(
+                    totalValue,
+                  )}
+                </span>
               </div>
             </div>
             <p className="text-xs text-muted-foreground">
-              * Ensure you have recorded snapshots for all individual accounts for this month before creating the portfolio snapshot.
+              * Ensure you have recorded snapshots for all individual accounts for this month before
+              creating the portfolio snapshot.
             </p>
           </div>
 
@@ -204,7 +225,9 @@ const PortfolioSnapshotForm: React.FC<PortfolioSnapshotFormProps> = ({
             <Label>Monthly Cash Flow</Label>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="deposits" className="text-xs">Deposits (Inflow)</Label>
+                <Label htmlFor="deposits" className="text-xs">
+                  Deposits (Inflow)
+                </Label>
                 <Input
                   id="deposits"
                   type="number"
@@ -216,7 +239,9 @@ const PortfolioSnapshotForm: React.FC<PortfolioSnapshotFormProps> = ({
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="withdrawals" className="text-xs">Withdrawals (Outflow)</Label>
+                <Label htmlFor="withdrawals" className="text-xs">
+                  Withdrawals (Outflow)
+                </Label>
                 <Input
                   id="withdrawals"
                   type="number"
@@ -234,7 +259,10 @@ const PortfolioSnapshotForm: React.FC<PortfolioSnapshotFormProps> = ({
             <Button type="button" variant="outline" onClick={onClose}>
               Cancel
             </Button>
-            <Button type="submit" disabled={loading || accounts.some(a => !accountSnapshots.has(a.id))}>
+            <Button
+              type="submit"
+              disabled={loading || accounts.some((a) => !accountSnapshots.has(a.id))}
+            >
               {loading ? 'Saving...' : 'Create Snapshot'}
             </Button>
           </DialogFooter>
