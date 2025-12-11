@@ -29,9 +29,13 @@ export const useAccountSnapshotForm = (
 
   const isInvestment = selectedAccount?.category === AccountCategory.INVESTMENT;
 
+  const loadFormData = useCallback(async () => {
+    setFormData(toSnapshotForm(selectedAccount?.id, selectedAccount?.currency, initialData));
+  }, [initialData, selectedAccount]);
+
   useEffect(() => {
-    setFormData(toSnapshotForm(selectedAccount?.id, selectedAccount?.category, initialData));
-  }, [selectedAccount, initialData]);
+    loadFormData();
+  }, [loadFormData]);
 
   const updateFormData = (data: Partial<AccountSnapshotFormData>) => {
     setFormData((prev) => ({

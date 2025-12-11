@@ -21,6 +21,7 @@ interface SettlementDialogProps {
   isOpen: boolean;
   onClose: () => void;
   householdId: string;
+  email?: string;
   projects: Project[];
   onSuccess: () => void;
 }
@@ -29,6 +30,7 @@ const SettlementDialog: React.FC<SettlementDialogProps> = ({
   isOpen,
   onClose,
   householdId,
+  email,
   projects,
   onSuccess,
 }) => {
@@ -44,7 +46,7 @@ const SettlementDialog: React.FC<SettlementDialogProps> = ({
     toPreview,
     confirm,
     back,
-  } = useSettlementDialog(householdId, projects, undefined, onSuccess, onClose);
+  } = useSettlementDialog(householdId, projects, email, onSuccess, onClose);
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && close()}>

@@ -93,20 +93,24 @@ export abstract class BaseRepository<TDomain extends Base, RefArgs extends unkno
     } as unknown as TDomain;
   }
 
-  protected sanitize(updates: Partial<TDomain>): Partial<TDomain> {
-    const sanitizedEntries = Object.entries(updates).filter(([, value]) => value !== undefined);
-    for (const [key, value] of sanitizedEntries) {
-      if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
-        const nestedSanitized = this.sanitize(value as Partial<TDomain>);
-        // replace with sanitized nested object
-        sanitizedEntries.splice(
-          sanitizedEntries.findIndex(([k]) => k === key),
-          1,
-          [key, nestedSanitized],
-        );
-      }
+  protected sanitize(value: unknown): unknown {
+    if (value === undefined) return undefined;
+
+    if (value instanceof Date) return value;
+
+    if (Array.isArray(value)) {
+      return value.map((item) => this.sanitize(item)).filter((item) => item !== undefined);
     }
-    return Object.fromEntries(sanitizedEntries) as Partial<TDomain>;
+
+    if (typeof value === 'object' && value !== null) {
+      const entries = Object.entries(value)
+        .map(([k, v]) => [k, this.sanitize(v)] as const)
+        .filter(([, v]) => v !== undefined);
+
+      return Object.fromEntries(entries);
+    }
+
+    return value;
   }
 
   // create
@@ -119,8 +123,7 @@ export abstract class BaseRepository<TDomain extends Base, RefArgs extends unkno
     const docRef = doc(this.getCollectionRef(...args));
     const id = docRef.id;
 
-    const sanitized = this.sanitize(data as TDomain);
-    console.log('Sanitized Data for Create:', sanitized);
+    const sanitized = this.sanitize(data as TDomain) as TDomain;
 
     const entity = this.convertToFirestore({
       ...sanitized,
@@ -164,8 +167,7 @@ export abstract class BaseRepository<TDomain extends Base, RefArgs extends unkno
     const docRef = this.getDocRef(...args);
 
     // remove undefined fields
-    const sanitized = this.sanitize(updates as TDomain);
-    console.log('Sanitized Data for Update:', sanitized);
+    const sanitized = this.sanitize(updates as TDomain) as Partial<TDomain>;
 
     const payload = this.convertToFirestore({
       ...sanitized,

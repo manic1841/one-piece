@@ -1,4 +1,4 @@
-import type { AccountSnapshot } from '@/domains/account/types';
+import type { AccountWithSnapshot } from '@/domains/account/types';
 import {
   AssetSubCategory,
   BalanceSheetCategory,
@@ -10,31 +10,37 @@ import {
 import type { ProjectWithSnapshot } from '@/domains/project/types';
 
 export function calculateBalanceSheet(
-  accountSnapshots: AccountSnapshot[],
+  accountWithSnapshots: AccountWithSnapshot[],
   projectsWithSnapshots: ProjectWithSnapshot[],
 ): BalanceSheetData {
   // 1. Assets
   const assetItems: BalanceSheetItem[] = [];
 
   // Cash & Equivalents (Accounts)
-  const cashAccounts = accountSnapshots.filter((acc) => !acc.holdings);
-  const cashTotal = cashAccounts.reduce((sum, acc) => sum + acc.amount, 0);
+  const cashAccounts = accountWithSnapshots.filter((acc) => !acc.snapshot?.holdings);
+  const cashTotal = cashAccounts.reduce((sum, acc) => sum + (acc.snapshot?.amount || 0), 0);
   if (cashTotal > 0) {
     assetItems.push({
       category: AssetSubCategory.CASH,
       amount: cashTotal,
-      subItems: cashAccounts.map((acc) => ({ name: acc.id, amount: acc.amount })), // Note: Account name might need to be fetched if not in snapshot, but snapshot has ID. Ideally snapshot should have name or we map it. AccountSnapshot doesn't have name, so we use ID for now or need to pass Accounts.
+      subItems: cashAccounts.map((acc) => ({ name: acc.name, amount: acc.snapshot?.amount || 0 })), // Note: Account name might need to be fetched if not in snapshot, but snapshot has ID. Ideally snapshot should have name or we map it. AccountSnapshot doesn't have name, so we use ID for now or need to pass Accounts.
       // Optimization: Pass Accounts to map ID to Name. For now using ID.
     });
   }
 
-  const investmentsAccounts = accountSnapshots.filter((acc) => acc.holdings);
-  const investmentsTotal = investmentsAccounts.reduce((sum, acc) => sum + acc.amount, 0);
+  const investmentsAccounts = accountWithSnapshots.filter((acc) => acc.snapshot?.holdings);
+  const investmentsTotal = investmentsAccounts.reduce(
+    (sum, acc) => sum + (acc.snapshot?.amount || 0),
+    0,
+  );
   if (investmentsTotal > 0) {
     assetItems.push({
       category: AssetSubCategory.INVESTMENTS,
       amount: investmentsTotal,
-      subItems: investmentsAccounts.map((acc) => ({ name: acc.id, amount: acc.amount })), // Note: Account name might need to be fetched if not in snapshot, but snapshot has ID. Ideally snapshot should have name or we map it. AccountSnapshot doesn't have name, so we use ID for now or need to pass Accounts.
+      subItems: investmentsAccounts.map((acc) => ({
+        name: acc.name,
+        amount: acc.snapshot?.amount || 0,
+      })), // Note: Account name might need to be fetched if not in snapshot, but snapshot has ID. Ideally snapshot should have name or we map it. AccountSnapshot doesn't have name, so we use ID for now or need to pass Accounts.
       // Optimization: Pass Accounts to map ID to Name. For now using ID.
     });
   }

@@ -107,6 +107,7 @@ const Projects: React.FC = () => {
         isOpen={isSettlementDialogOpen}
         onClose={closeSettleDialog}
         householdId={userProfile?.householdId || ''}
+        email={userProfile?.email}
         projects={projects}
         onSuccess={reload}
       />

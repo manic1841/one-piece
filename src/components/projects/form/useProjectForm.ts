@@ -24,7 +24,6 @@ export const useProjectForm = (
       setAccountingEnabled(initialData?.accounting?.enabled || false);
     }
   }, [isOpen, initialData]);
-  console.log('Initial form data:', formData);
 
   const handleAccountingChange = useCallback((data: Partial<ProjectFormData>) => {
     setFormData((prev) => {

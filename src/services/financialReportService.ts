@@ -42,7 +42,7 @@ class FinancialReportService {
     );
 
     // Get account snapshots for the current month
-    const accountSnapshots = await accountService.getAccountSnapshots(
+    const accountSnapshots = await accountService.getAccountWithSnapshots(
       householdId,
       accounts.map((a) => a.id),
       year,

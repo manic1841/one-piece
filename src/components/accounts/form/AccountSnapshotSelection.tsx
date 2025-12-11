@@ -86,6 +86,7 @@ export const AccountSnapshotSelection: React.FC<AccountSnapshotSelectionProps> =
             <span className="font-semibold">
               {new Intl.NumberFormat('en-US', {
                 style: 'currency',
+                currency: formData.currency,
               }).format(previousAmount)}
             </span>
           </p>

@@ -18,7 +18,6 @@ export const RecordItem: React.FC<RecordItemProps> = ({
   onDelete,
 }: RecordItemProps) => {
   const { color } = useRecordItem({ record });
-
   return (
     <div className={`p-4 hover:bg-accent/50 transition-colors bg-${color}-50/30`}>
       <div className="flex items-center justify-between">

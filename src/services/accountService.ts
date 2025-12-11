@@ -171,6 +171,26 @@ class AccountService {
     const snapshotArrays = await Promise.all(snapshotPromises);
     return snapshotArrays.flat();
   }
+
+  // Get accounts with their snapshots for a specific month
+  async getAccountWithSnapshots(
+    householdId: string,
+    accountIds: string[],
+    year: number,
+    month: number,
+  ): Promise<AccountWithSnapshot[]> {
+    const accounts = await Promise.all(
+      accountIds.map((accountId) => this.getAccount(householdId, accountId)),
+    );
+    const result: AccountWithSnapshot[] = [];
+    for (const account of accounts) {
+      if (!account) continue;
+      const snapshots = await this.getSnapshots(householdId, account.id, year, month);
+      const snapshot = snapshots.length > 0 ? snapshots[0] : null;
+      result.push({ ...account, snapshot });
+    }
+    return result;
+  }
 }
 
 export const accountService = new AccountService();
