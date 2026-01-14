@@ -1,4 +1,4 @@
-export * from '@/domains/finance/types/category';
+export * from '@/domains/finance/types/categories';
 
 export * from '@/schemas/report';
 export * from '@/schemas/incomeStatement';

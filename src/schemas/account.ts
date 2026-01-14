@@ -1,4 +1,4 @@
-import { AccountCategory, CurrencyType } from '@/domains/account/types/category';
+import { AccountCategory, CurrencyType } from '@/domains/account/types/categories';
 import { BaseSchema } from '@/schemas';
 import { z } from 'zod';
 

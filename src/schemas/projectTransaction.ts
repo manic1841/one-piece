@@ -1,11 +1,11 @@
-import { ProjectTransactionCategory } from '@/domains/record/types';
-import { BaseSchema } from '@/schemas';
+import { ProjectTransactionCategory } from '@/domains/record/types/categories';
+import { BaseSchema } from '@/schemas/base';
 import { z } from 'zod';
 
 // ProjectTransaction Schema
 export const ProjectTransactionCreateSchema = z.object({
   date: z.date(),
-  category: z.enum(ProjectTransactionCategory),
+  category: z.nativeEnum(ProjectTransactionCategory),
   fromProjectId: z.string().nullable().optional(),
   toProjectId: z.string().nullable().optional(),
   amount: z.number(),

@@ -1,7 +1,7 @@
 import js from '@eslint/js';
-import globals from 'globals';
 import reactHooks from 'eslint-plugin-react-hooks';
 import reactRefresh from 'eslint-plugin-react-refresh';
+import globals from 'globals';
 import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
@@ -56,13 +56,25 @@ export default tseslint.config(
       'max-classes-per-file': ['warn', 1],
 
       // Import Sorting: import 排序
-      "sort-imports": ["error", {
-            "ignoreCase": false,
-            "ignoreDeclarationSort": true,
-            "ignoreMemberSort": false,
-            "memberSyntaxSortOrder": ["none", "all", "multiple", "single"],
-            "allowSeparatedGroups": false
-        }]
+      'sort-imports': [
+        'error',
+        {
+          ignoreCase: false,
+          ignoreDeclarationSort: true,
+          ignoreMemberSort: false,
+          memberSyntaxSortOrder: ['none', 'all', 'multiple', 'single'],
+          allowSeparatedGroups: false,
+        },
+      ],
     },
+    overrides: [
+      {
+        files: ['*.test.ts', '*.spec.ts', 'test.js'], // 針對測試檔案
+        rules: {
+          'max-lines': 'off', // 直接關閉行數限制
+          'max-lines-per-function': 'off', // 同時關閉函式長度限制
+        },
+      },
+    ],
   },
 );

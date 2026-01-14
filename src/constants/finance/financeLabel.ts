@@ -10,7 +10,7 @@ import {
   InvestingSubCategory,
   LiabilitySubCategory,
   OperatingSubCategory,
-} from '@/domains/finance/types/category';
+} from '@/domains/finance/types/categories';
 
 // Income Statement Category
 export const IncomeStatementCategoryLabel = {

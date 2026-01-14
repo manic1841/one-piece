@@ -1,4 +1,5 @@
-import { TransactionCategory, TransactionType } from '@/domains/record/types';
+import { TransactionCategory } from '@/domains/record/types/categories';
+import { TransactionType } from '@/domains/record/types/transactionType';
 import { BaseSchema } from '@/schemas/base';
 import { z } from 'zod';
 
@@ -6,9 +7,9 @@ import { z } from 'zod';
 export const TransactionCreateSchema = z.object({
   date: z.date(),
   amount: z.number(),
-  type: z.enum(TransactionType),
+  type: z.nativeEnum(TransactionType),
   projectId: z.string(),
-  category: z.enum(TransactionCategory),
+  category: z.nativeEnum(TransactionCategory),
   description: z.string().optional(),
 });
 

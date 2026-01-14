@@ -1,4 +1,5 @@
 import type { AccountWithSnapshot } from '@/domains/account/types';
+import { AccountCategory } from '@/domains/account/types';
 import {
   AssetSubCategory,
   BalanceSheetCategory,
@@ -8,6 +9,7 @@ import {
   LiabilitySubCategory,
 } from '@/domains/finance/types';
 import type { ProjectWithSnapshot } from '@/domains/project/types';
+import { logger } from '@/utils/logger';
 
 export function calculateBalanceSheet(
   accountWithSnapshots: AccountWithSnapshot[],
@@ -17,31 +19,53 @@ export function calculateBalanceSheet(
   const assetItems: BalanceSheetItem[] = [];
 
   // Cash & Equivalents (Accounts)
-  const cashAccounts = accountWithSnapshots.filter((acc) => !acc.snapshot?.holdings);
+  const cashAccounts = accountWithSnapshots.filter(
+    (acc) => acc.category === AccountCategory.CASH || acc.category === AccountCategory.BANK,
+  );
   const cashTotal = cashAccounts.reduce((sum, acc) => sum + (acc.snapshot?.amount || 0), 0);
   if (cashTotal > 0) {
+    logger.debug(`cashTotal: ${cashTotal}`, 'calculateBalanceSheet');
     assetItems.push({
       category: AssetSubCategory.CASH,
       amount: cashTotal,
-      subItems: cashAccounts.map((acc) => ({ name: acc.name, amount: acc.snapshot?.amount || 0 })), // Note: Account name might need to be fetched if not in snapshot, but snapshot has ID. Ideally snapshot should have name or we map it. AccountSnapshot doesn't have name, so we use ID for now or need to pass Accounts.
-      // Optimization: Pass Accounts to map ID to Name. For now using ID.
+      subItems: cashAccounts.map((acc) => ({ name: acc.name, amount: acc.snapshot?.amount || 0 })),
     });
   }
 
-  const investmentsAccounts = accountWithSnapshots.filter((acc) => acc.snapshot?.holdings);
+  // Investments (Accounts)
+  const investmentsAccounts = accountWithSnapshots.filter(
+    (acc) => acc.category === AccountCategory.INVESTMENT,
+  );
   const investmentsTotal = investmentsAccounts.reduce(
     (sum, acc) => sum + (acc.snapshot?.amount || 0),
     0,
   );
   if (investmentsTotal > 0) {
+    logger.debug(`investmentsTotal: ${investmentsTotal}`, 'calculateBalanceSheet');
     assetItems.push({
       category: AssetSubCategory.INVESTMENTS,
       amount: investmentsTotal,
       subItems: investmentsAccounts.map((acc) => ({
         name: acc.name,
         amount: acc.snapshot?.amount || 0,
-      })), // Note: Account name might need to be fetched if not in snapshot, but snapshot has ID. Ideally snapshot should have name or we map it. AccountSnapshot doesn't have name, so we use ID for now or need to pass Accounts.
-      // Optimization: Pass Accounts to map ID to Name. For now using ID.
+      })),
+    });
+  }
+
+  // Others (Account)
+  const otherAccounts = accountWithSnapshots.filter(
+    (acc) => acc.category === AccountCategory.OTHER,
+  );
+  const otherTotal = otherAccounts.reduce((sum, acc) => sum + (acc.snapshot?.amount || 0), 0);
+  if (otherTotal > 0) {
+    logger.debug(`otherTotal: ${otherTotal}`, 'calculateBalanceSheet');
+    assetItems.push({
+      category: AssetSubCategory.OTHER_ASSETS,
+      amount: otherTotal,
+      subItems: otherAccounts.map((acc) => ({
+        name: acc.name,
+        amount: acc.snapshot?.amount || 0,
+      })),
     });
   }
 
@@ -68,6 +92,7 @@ export function calculateBalanceSheet(
   });
 
   assetMap.forEach((data, category) => {
+    logger.debug(`assetMap category: ${category}, amount: ${data.amount}`, 'calculateBalanceSheet');
     assetItems.push({
       category,
       amount: data.amount,
@@ -102,6 +127,10 @@ export function calculateBalanceSheet(
   });
 
   liabilityMap.forEach((data, category) => {
+    logger.debug(
+      `liabilityMap category: ${category}, amount: ${data.amount}`,
+      'calculateBalanceSheet',
+    );
     liabilityItems.push({
       category,
       amount: data.amount,
@@ -135,6 +164,10 @@ export function calculateBalanceSheet(
   });
 
   equityMap.forEach((data, category) => {
+    logger.debug(
+      `equityMap category: ${category}, amount: ${data.amount}`,
+      'calculateBalanceSheet',
+    );
     equityItems.push({
       category,
       amount: data.amount,

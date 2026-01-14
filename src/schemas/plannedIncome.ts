@@ -1,5 +1,5 @@
-import { PlannedIncomeCategory } from '@/domains/record/types';
-import { BaseSchema } from '@/schemas';
+import { PlannedIncomeCategory } from '@/domains/record/types/categories';
+import { BaseSchema } from '@/schemas/base';
 import { z } from 'zod';
 
 export const PlannedIncomeAllocationSchema = z.object({
@@ -11,7 +11,7 @@ export type PlannedIncomeAllocation = z.infer<typeof PlannedIncomeAllocationSche
 export const PlannedIncomeCreateSchema = z.object({
   date: z.date(),
   amount: z.number(),
-  category: z.enum(PlannedIncomeCategory),
+  category: z.nativeEnum(PlannedIncomeCategory),
   description: z.string().optional(),
   allocations: z.array(PlannedIncomeAllocationSchema),
 });

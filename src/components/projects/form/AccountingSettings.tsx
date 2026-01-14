@@ -16,7 +16,7 @@ import {
   BalanceSheetCategory,
   CashFlowCategory,
   IncomeStatementCategory,
-} from '@/domains/finance/types/category';
+} from '@/domains/finance/types/categories';
 import type { ProjectFormData } from '@/domains/project/types/projectForm';
 import { useEffect, useState } from 'react';
 

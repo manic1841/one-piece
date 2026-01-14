@@ -1,6 +1,7 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { plannedIncomeService } from '../plannedIncomeService';
 import { Timestamp } from 'firebase/firestore';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+import { plannedIncomeService } from '../plannedIncomeService';
 
 // Mock Firebase
 vi.mock('firebase/app', () => ({
@@ -123,6 +124,7 @@ describe('Income Allocation Integration Flow', () => {
     const plannedIncomeId = await plannedIncomeService.createPlannedIncome(
       householdId,
       plannedIncomeData,
+      '',
     );
 
     // 2. Verify Planned Income in DB

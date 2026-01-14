@@ -1,4 +1,4 @@
-import { AssetSubCategory } from '@/domains/finance/types/category';
+import { AssetSubCategory } from '@/domains/finance/types/categories';
 import type { BalanceSheetData } from '@/schemas/balanceSheet';
 import { createBalanceSheet, createCashFlow } from '@/test/factory/factories';
 

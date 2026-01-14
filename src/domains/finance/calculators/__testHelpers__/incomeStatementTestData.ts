@@ -2,7 +2,7 @@ import {
   ExpenseSubCategory,
   IncomeStatementCategory,
   IncomeSubCategory,
-} from '@/domains/finance/types/category';
+} from '@/domains/finance/types/categories';
 import type { ProjectWithSnapshot } from '@/domains/project/types';
 import { PlannedIncomeCategory } from '@/domains/record/types/categories';
 import type { PlannedIncome } from '@/schemas/plannedIncome';

@@ -1,5 +1,13 @@
-import { CashFlowCategory, type CashFlowData, CashFlowItemSchema } from '@/domains/finance/types';
+import {
+  CashFlowCategory,
+  type CashFlowData,
+  CashFlowItemSchema,
+  FinancingSubCategory,
+  InvestingSubCategory,
+  OperatingSubCategory,
+} from '@/domains/finance/types';
 import type { ProjectWithSnapshot } from '@/domains/project/types';
+import { logger } from '@/utils/logger';
 import { z } from 'zod';
 
 type CashFlowItem = z.infer<typeof CashFlowItemSchema>;
@@ -20,7 +28,7 @@ export function calculateCashFlowStatement(
   const financingExpense: CashFlowItem[] = [];
 
   // Helper to aggregate
-  const aggregate = (items: CashFlowItem[], category: string, amount: number) => {
+  const aggregate = (items: CashFlowItem[], category: string, amount: number, _?: number) => {
     const existing = items.find((i) => i.category === category);
     if (existing) {
       existing.amount += amount;
@@ -35,20 +43,68 @@ export function calculateCashFlowStatement(
     if (!project || !snapshot) return;
 
     if (project?.accounting?.cashFlow) {
-      const { category, subcategory } = project.accounting.cashFlow;
+      const { category, subcategory, order } = project.accounting.cashFlow;
       const income = snapshot.income;
       const expense = snapshot.expense;
 
       // 分別處理收入和支出
       if (category === CashFlowCategory.OPERATING) {
-        if (income > 0) aggregate(operatingIncome, subcategory, income);
-        if (expense > 0) aggregate(operatingExpense, subcategory, expense);
+        if (income > 0) {
+          logger.debug(`Operating Income ${income} ${subcategory}`, 'cashFlowCalculator');
+          aggregate(
+            operatingIncome,
+            subcategory || OperatingSubCategory.OTHER_OPERATING,
+            income,
+            order,
+          );
+        }
+        if (expense > 0) {
+          logger.debug(`Operating Expense ${expense} ${subcategory}`, 'cashFlowCalculator');
+          aggregate(
+            operatingExpense,
+            subcategory || OperatingSubCategory.OTHER_OPERATING,
+            expense,
+            order,
+          );
+        }
       } else if (category === CashFlowCategory.INVESTING) {
-        if (income > 0) aggregate(investingIncome, subcategory, income);
-        if (expense > 0) aggregate(investingExpense, subcategory, expense);
+        if (income > 0) {
+          logger.debug(`Investing Income ${income} ${subcategory}`, 'cashFlowCalculator');
+          aggregate(
+            investingIncome,
+            subcategory || InvestingSubCategory.OTHER_INVESTING,
+            income,
+            order,
+          );
+        }
+        if (expense > 0) {
+          logger.debug(`Investing Expense ${expense} ${subcategory}`, 'cashFlowCalculator');
+          aggregate(
+            investingExpense,
+            subcategory || InvestingSubCategory.OTHER_INVESTING,
+            expense,
+            order,
+          );
+        }
       } else if (category === CashFlowCategory.FINANCING) {
-        if (income > 0) aggregate(financingIncome, subcategory, income);
-        if (expense > 0) aggregate(financingExpense, subcategory, expense);
+        if (income > 0) {
+          logger.debug(`Financing Income ${income} ${subcategory}`, 'cashFlowCalculator');
+          aggregate(
+            financingIncome,
+            subcategory || FinancingSubCategory.OTHER_FINANCING,
+            income,
+            order,
+          );
+        }
+        if (expense > 0) {
+          logger.debug(`Financing Expense ${expense} ${subcategory}`, 'cashFlowCalculator');
+          aggregate(
+            financingExpense,
+            subcategory || FinancingSubCategory.OTHER_FINANCING,
+            expense,
+            order,
+          );
+        }
       }
     }
   });
@@ -57,16 +113,29 @@ export function calculateCashFlowStatement(
   const operatingIncomeTotal = operatingIncome.reduce((sum, i) => sum + i.amount, 0);
   const operatingExpenseTotal = operatingExpense.reduce((sum, i) => sum + i.amount, 0);
   const netOperating = operatingIncomeTotal - operatingExpenseTotal;
+  logger.debug(
+    `operating: income ${operatingIncomeTotal}, expense ${operatingExpenseTotal}, net ${netOperating}`,
+    'cashFlowCalculator',
+  );
 
   const investingIncomeTotal = investingIncome.reduce((sum, i) => sum + i.amount, 0);
   const investingExpenseTotal = investingExpense.reduce((sum, i) => sum + i.amount, 0);
   const netInvesting = investingIncomeTotal - investingExpenseTotal;
+  logger.debug(
+    `investing: income ${investingIncomeTotal}, expense ${investingExpenseTotal}, net ${netInvesting}`,
+    'cashFlowCalculator',
+  );
 
   const financingIncomeTotal = financingIncome.reduce((sum, i) => sum + i.amount, 0);
   const financingExpenseTotal = financingExpense.reduce((sum, i) => sum + i.amount, 0);
   const netFinancing = financingIncomeTotal - financingExpenseTotal;
+  logger.debug(
+    `financing: income ${financingIncomeTotal}, expense ${financingExpenseTotal}, net ${netFinancing}`,
+    'cashFlowCalculator',
+  );
 
   const netChange = netOperating + netInvesting + netFinancing;
+  logger.debug(`netChange: ${netChange}`, 'cashFlowCalculator');
 
   // 合併所有項目用於向後相容
   const operatingItems = [

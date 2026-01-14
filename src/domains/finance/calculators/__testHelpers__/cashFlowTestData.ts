@@ -3,7 +3,7 @@ import {
   FinancingSubCategory,
   InvestingSubCategory,
   OperatingSubCategory,
-} from '@/domains/finance/types/category';
+} from '@/domains/finance/types/categories';
 import type { ProjectWithSnapshot } from '@/domains/project/types';
 import { createProjectWithSnapshot } from '@/test/factory/factories';
 

@@ -1,4 +1,4 @@
-import { ProjectCategory } from '@/domains/project/types/category';
+import { ProjectCategory } from '@/domains/project/types/categories';
 
 export const CATEGORY_LABELS: Record<string, string> = {
   [ProjectCategory.OPERATING]: '營運類',

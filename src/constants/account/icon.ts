@@ -1,4 +1,4 @@
-import { AccountCategory } from '@/domains/account/types/category';
+import { AccountCategory } from '@/domains/account/types/categories';
 
 export const AccountCategoryIcons = {
   [AccountCategory.BANK]: '🏦',

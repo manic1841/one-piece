@@ -1,4 +1,4 @@
-import { ProjectTransactionType } from '@/domains/project/types/category';
+import { ProjectTransactionType } from '@/domains/project/types/categories';
 import { projectTransactionService } from '@/services/projectTransactionService';
 
 export function useProjectTransfer(householdId: string, userEmail: string) {

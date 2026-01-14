@@ -7,6 +7,7 @@ import { reportRepository } from '@/repositories/reportRepository';
 import { accountService } from '@/services/accountService';
 import { plannedIncomeService } from '@/services/plannedIncomeService';
 import { projectService } from '@/services/projectService';
+import { logger } from '@/utils/logger';
 
 class FinancialReportService {
   /**
@@ -23,6 +24,7 @@ class FinancialReportService {
     cashFlow: FinancialReport;
     reconciliation: { reconciled: boolean; difference: number };
   }> {
+    logger.info('generateFinancialReports.start', 'FinancialReportService');
     // 1. Fetch Data
     const startDate = new Date(year, month - 1, 1);
     const endDate = new Date(year, month, 0, 23, 59, 59, 999);
@@ -49,11 +51,6 @@ class FinancialReportService {
       month,
     );
 
-    // 2. Calculate Reports
-    const incomeStatementData = calculateIncomeStatement(plannedIncomes, projectsWithSnapshots);
-
-    const balanceSheetData = calculateBalanceSheet(accountSnapshots, projectsWithSnapshots);
-
     // For Cash Flow, we need beginning balance.
     // Beginning Balance = Previous Month's Ending Balance of Cash & Equivalents.
     // Or simpler: Current Month's Opening Balance of Cash Accounts?
@@ -68,6 +65,11 @@ class FinancialReportService {
       prevMonth,
     );
     const beginningCash = prevAccountSnapshots.reduce((sum, acc) => sum + acc.amount, 0);
+
+    // 2. Calculate Reports
+    const incomeStatementData = calculateIncomeStatement(plannedIncomes, projectsWithSnapshots);
+
+    const balanceSheetData = calculateBalanceSheet(accountSnapshots, projectsWithSnapshots);
 
     const cashFlowData = calculateCashFlowStatement(projectsWithSnapshots, beginningCash);
 
@@ -112,6 +114,8 @@ class FinancialReportService {
       data: cashFlowData,
       ...commonFields,
     };
+
+    logger.info('generateFinancialReports.end', 'FinancialReportService');
 
     return {
       incomeStatement,

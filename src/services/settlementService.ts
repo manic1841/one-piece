@@ -46,6 +46,7 @@ class SettlementService {
       [householdId, projectId],
       [where('year', '==', year), where('month', '==', month)],
     );
+    console.log('snapshots', snapshots);
     return snapshots.length > 0;
   }
 
@@ -193,6 +194,7 @@ class SettlementService {
     settlements: SettlementPreview[],
     userEmail: string,
   ): Promise<{ success: boolean; errors: string[] }> {
+    console.log('settlements', settlements);
     // Check for existing snapshots
     const existingProjects = settlements.filter((s) => s.hasExistingSnapshot);
     if (existingProjects.length > 0) {
