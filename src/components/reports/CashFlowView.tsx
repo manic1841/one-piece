@@ -1,15 +1,21 @@
 import React from 'react';
 
-import type { CashFlowStatement, CashFlowSection } from '../../schemas/cashFlow';
-import { formatCurrency } from '../../utils/formatUtils';
-import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import type { CashFlowView as CashFlowViewData } from '@/domains/finance/mappers/reportToView';
+import { formatCurrency } from '@/utils/formatUtils';
 
 interface CashFlowViewProps {
-  cashFlow: CashFlowStatement;
+  cashFlow: CashFlowViewData;
 }
 
 const CashFlowView: React.FC<CashFlowViewProps> = ({ cashFlow }) => {
-  const renderSection = (title: string, section: CashFlowSection) => (
+  const renderSection = (
+    title: string,
+    section: {
+      netAmount: number;
+      items: Array<{ id: string; name: string; amount: number }>;
+    },
+  ) => (
     <div className="mb-6">
       <h4 className="font-semibold text-lg mb-3 flex justify-between items-center">
         <span>{title}</span>
@@ -51,9 +57,11 @@ const CashFlowView: React.FC<CashFlowViewProps> = ({ cashFlow }) => {
           <div className="mt-8 pt-4 border-t-2">
             <div className="flex justify-between items-center mb-2">
               <span className="font-bold">現金淨增減</span>
-              <span className={`font-bold font-mono text-lg ${
-                cashFlow.netChange >= 0 ? 'text-green-600' : 'text-red-600'
-              }`}>
+              <span
+                className={`font-bold font-mono text-lg ${
+                  cashFlow.netChange >= 0 ? 'text-green-600' : 'text-red-600'
+                }`}
+              >
                 {formatCurrency(cashFlow.netChange)}
               </span>
             </div>

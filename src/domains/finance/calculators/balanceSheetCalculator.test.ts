@@ -10,7 +10,7 @@ describe('balanceSheetCalculator', () => {
   describe('calculateBalanceSheet', () => {
     it('should calculate balance sheet with only cash accounts', () => {
       const result = calculateBalanceSheet(
-        testData.cashAccountsData.accountSnapshots,
+        testData.cashAccountsData.accountWithSnapshots,
         testData.cashAccountsData.projectsWithSnapshots,
       );
 
@@ -21,7 +21,7 @@ describe('balanceSheetCalculator', () => {
 
     it('should calculate balance sheet with investments', () => {
       const result = calculateBalanceSheet(
-        testData.investmentData.accountSnapshots,
+        testData.investmentData.accountWithSnapshots,
         testData.investmentData.projectsWithSnapshots,
       ) as BalanceSheetData;
 
@@ -34,7 +34,7 @@ describe('balanceSheetCalculator', () => {
 
     it('should calculate balance sheet with various asset types', () => {
       const result = calculateBalanceSheet(
-        testData.assetsData.accountSnapshots,
+        testData.assetsData.accountWithSnapshots,
         testData.assetsData.projectsWithSnapshots,
       );
 
@@ -44,7 +44,7 @@ describe('balanceSheetCalculator', () => {
 
     it('should calculate balance sheet with liabilities', () => {
       const result = calculateBalanceSheet(
-        testData.liabilitiesData.accountSnapshots,
+        testData.liabilitiesData.accountWithSnapshots,
         testData.liabilitiesData.projectsWithSnapshots,
       );
 
@@ -54,7 +54,7 @@ describe('balanceSheetCalculator', () => {
 
     it('should calculate balance sheet with equity', () => {
       const result = calculateBalanceSheet(
-        testData.equityData.accountSnapshots,
+        testData.equityData.accountWithSnapshots,
         testData.equityData.projectsWithSnapshots,
       );
 
@@ -64,7 +64,7 @@ describe('balanceSheetCalculator', () => {
 
     it('should calculate balance sheet with mixed categories', () => {
       const result = calculateBalanceSheet(
-        testData.mixedBalanceSheetData.accountSnapshots,
+        testData.mixedBalanceSheetData.accountWithSnapshots,
         testData.mixedBalanceSheetData.projectsWithSnapshots,
       );
 
@@ -75,7 +75,7 @@ describe('balanceSheetCalculator', () => {
 
     it('should return zero totals for empty data', () => {
       const result = calculateBalanceSheet(
-        testData.emptyData.accountSnapshots,
+        testData.emptyData.accountWithSnapshots,
         testData.emptyData.projectsWithSnapshots,
       );
 
@@ -86,7 +86,7 @@ describe('balanceSheetCalculator', () => {
 
     it('should aggregate amounts correctly', () => {
       const result = calculateBalanceSheet(
-        testData.aggregationData.accountSnapshots,
+        testData.aggregationData.accountWithSnapshots,
         testData.aggregationData.projectsWithSnapshots,
       ) as BalanceSheetData;
 

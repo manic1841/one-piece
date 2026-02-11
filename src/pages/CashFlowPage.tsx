@@ -7,10 +7,9 @@ import {
   ReportErrorState,
   ReportLoadingState,
 } from '@/components/reports/ReportStates';
+import { useAuth } from '@/contexts/useAuth';
 import type { CashFlowView as CashFlowStatement } from '@/domains/finance/mappers/reportToView';
 import { useFinancialReportPage } from '@/hooks/pages/useFinancialReportPage';
-
-import { useAuth } from '../contexts/useAuth';
 
 export default function CashFlowPage() {
   const navigate = useNavigate();

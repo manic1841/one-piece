@@ -13,6 +13,7 @@ export function calculateCashFlowStatement(
   projectsWithSnapshots: ProjectWithSnapshot[],
   beginningCash: number,
 ): CashFlowData {
+  console.log('cashFlowCalculator');
   const operatingIncome: CashFlowItem[] = [];
   const operatingExpense: CashFlowItem[] = [];
   const investingIncome: CashFlowItem[] = [];
@@ -33,23 +34,30 @@ export function calculateCashFlowStatement(
   projectsWithSnapshots.forEach((pws) => {
     const project = pws;
     const snapshot = pws.snapshot;
+    console.log('pws', pws);
     if (!project || !snapshot) return;
 
     if (project?.accounting?.cashFlow) {
       const { category, subcategory } = project.accounting.cashFlow;
       const income = snapshot.income;
       const expense = snapshot.expense;
+      const _subCategory = subcategory || 'OTHER';
+
+      console.log('category', category);
+      console.log('subcategory', subcategory);
+      console.log('income', income);
+      console.log('expense', expense);
 
       // 分別處理收入和支出
       if (category === CashFlowCategory.OPERATING) {
-        if (income > 0) aggregate(operatingIncome, subcategory, income);
-        if (expense > 0) aggregate(operatingExpense, subcategory, expense);
+        if (income > 0) aggregate(operatingIncome, _subCategory, income);
+        if (expense > 0) aggregate(operatingExpense, _subCategory, expense);
       } else if (category === CashFlowCategory.INVESTING) {
-        if (income > 0) aggregate(investingIncome, subcategory, income);
-        if (expense > 0) aggregate(investingExpense, subcategory, expense);
+        if (income > 0) aggregate(investingIncome, _subCategory, income);
+        if (expense > 0) aggregate(investingExpense, _subCategory, expense);
       } else if (category === CashFlowCategory.FINANCING) {
-        if (income > 0) aggregate(financingIncome, subcategory, income);
-        if (expense > 0) aggregate(financingExpense, subcategory, expense);
+        if (income > 0) aggregate(financingIncome, _subCategory, income);
+        if (expense > 0) aggregate(financingExpense, _subCategory, expense);
       }
     }
   });

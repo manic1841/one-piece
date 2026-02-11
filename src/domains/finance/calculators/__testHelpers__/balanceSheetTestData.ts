@@ -1,4 +1,5 @@
-import type { AccountSnapshot } from '@/domains/account/types';
+import type { AccountWithSnapshot } from '@/domains/account/types';
+import { CurrencyType } from '@/domains/account/types/category';
 import {
   AssetSubCategory,
   BalanceSheetCategory,
@@ -10,15 +11,31 @@ import { createAccountSnapshot, createProjectWithSnapshot } from '@/test/factory
 
 // Test data sets
 export const cashAccountsData = {
-  accountSnapshots: [
-    createAccountSnapshot({
-      id: 'account1',
-      amount: 1000,
-    }),
-    createAccountSnapshot({
-      id: 'account2',
-      amount: 2000,
-    }),
+  accountWithSnapshots: [
+    {
+      ...createAccountSnapshot({
+        id: 'account1',
+        amount: 1000,
+      }),
+      name: 'Account 1',
+      currency: CurrencyType.TWD,
+      snapshot: createAccountSnapshot({
+        id: 'snapshot1',
+        amount: 1000,
+      }),
+    } as unknown as AccountWithSnapshot,
+    {
+      ...createAccountSnapshot({
+        id: 'account2',
+        amount: 2000,
+      }),
+      name: 'Account 2',
+      currency: CurrencyType.TWD,
+      snapshot: createAccountSnapshot({
+        id: 'snapshot2',
+        amount: 2000,
+      }),
+    } as unknown as AccountWithSnapshot,
   ],
   projectsWithSnapshots: [] as ProjectWithSnapshot[],
 };
@@ -46,7 +63,7 @@ export const investmentData = {
       },
     ),
   ],
-  accountSnapshots: [] as AccountSnapshot[],
+  accountWithSnapshots: [] as AccountWithSnapshot[],
 };
 
 export const assetsData = {
@@ -90,7 +107,7 @@ export const assetsData = {
       },
     ),
   ],
-  accountSnapshots: [] as AccountSnapshot[],
+  accountWithSnapshots: [] as AccountWithSnapshot[],
 };
 
 export const liabilitiesData = {
@@ -115,7 +132,7 @@ export const liabilitiesData = {
       },
     ),
   ],
-  accountSnapshots: [] as AccountSnapshot[],
+  accountWithSnapshots: [] as AccountWithSnapshot[],
 };
 
 export const equityData = {
@@ -140,15 +157,23 @@ export const equityData = {
       },
     ),
   ],
-  accountSnapshots: [] as AccountSnapshot[],
+  accountWithSnapshots: [] as AccountWithSnapshot[],
 };
 
 export const mixedBalanceSheetData = {
-  accountSnapshots: [
-    createAccountSnapshot({
-      id: 'account1',
-      amount: 1000,
-    }),
+  accountWithSnapshots: [
+    {
+      ...createAccountSnapshot({
+        id: 'account1',
+        amount: 1000,
+      }),
+      name: 'Account 1',
+      currency: CurrencyType.TWD,
+      snapshot: createAccountSnapshot({
+        id: 'snapshot1',
+        amount: 1000,
+      }),
+    } as unknown as AccountWithSnapshot,
   ],
   projectsWithSnapshots: [
     createProjectWithSnapshot(
@@ -212,20 +237,36 @@ export const mixedBalanceSheetData = {
 };
 
 export const emptyData = {
-  accountSnapshots: [] as AccountSnapshot[],
+  accountWithSnapshots: [] as AccountWithSnapshot[],
   projectsWithSnapshots: [] as ProjectWithSnapshot[],
 };
 
 export const aggregationData = {
-  accountSnapshots: [
-    createAccountSnapshot({
-      id: 'account1',
-      amount: 1000,
-    }),
-    createAccountSnapshot({
-      id: 'account2',
-      amount: 2000,
-    }),
+  accountWithSnapshots: [
+    {
+      ...createAccountSnapshot({
+        id: 'account1',
+        amount: 1000,
+      }),
+      name: 'Account 1',
+      currency: CurrencyType.TWD,
+      snapshot: createAccountSnapshot({
+        id: 'snapshot1',
+        amount: 1000,
+      }),
+    } as unknown as AccountWithSnapshot,
+    {
+      ...createAccountSnapshot({
+        id: 'account2',
+        amount: 2000,
+      }),
+      name: 'Account 2',
+      currency: CurrencyType.TWD,
+      snapshot: createAccountSnapshot({
+        id: 'snapshot2',
+        amount: 2000,
+      }),
+    } as unknown as AccountWithSnapshot,
   ],
   projectsWithSnapshots: [
     createProjectWithSnapshot(
