@@ -1,5 +1,7 @@
-import { useState } from 'react';
 import { Plus } from 'lucide-react';
+import { useState } from 'react';
+
+import type { RetirementOneTimeEvent } from '../../schemas/retirementPlan';
 import { Button } from '../ui/button';
 import {
   Dialog,
@@ -8,8 +10,8 @@ import {
   DialogTitle,
   DialogFooter,
 } from '../ui/dialog';
-import { Label } from '../ui/label';
 import { Input } from '../ui/input';
+import { Label } from '../ui/label';
 import {
   Select,
   SelectContent,
@@ -17,7 +19,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '../ui/select';
-import type { RetirementOneTimeEvent } from '../../schemas/retirementPlan';
 
 interface AddEventDialogProps {
   onAdd: (event: Omit<RetirementOneTimeEvent, 'id'>) => Promise<void>;

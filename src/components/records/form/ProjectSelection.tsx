@@ -6,8 +6,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { type Project } from '@/schemas';
 import { NO_SELECTED } from '@/constants/empty';
+import { type Project } from '@/schemas';
 
 interface ProjectSelectionProps {
   projectId: string;

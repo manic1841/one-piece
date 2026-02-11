@@ -1,6 +1,7 @@
+import { useEffect, useState } from 'react';
+
 import { type AssetDataPoint } from '@/domains/account/types/account';
 import { assetTrackingService } from '@/services/assetTrackingService';
-import { useEffect, useState } from 'react';
 
 export const useAccountTrendChart = (householdId?: string) => {
   const [data, setData] = useState<AssetDataPoint[]>([]);

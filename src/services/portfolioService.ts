@@ -1,9 +1,12 @@
-import { type Portfolio, type PortfolioSnapshot, type AccountSnapshot } from '@/schemas';
-import { accountService } from './accountService';
+import { where } from 'firebase/firestore';
+
 import { calculatePortfolioSnapshot } from '@/domains/finance/calculators/portfolioCalculator';
 import { portfolioRepository } from '@/repositories/portfolioRepository';
 import { portfolioSnapshotRepository } from '@/repositories/portfolioSnapshotRepository';
-import { where } from 'firebase/firestore';
+import { type Portfolio, type PortfolioSnapshot, type AccountSnapshot } from '@/schemas';
+
+import { accountService } from './accountService';
+
 
 export const portfolioService = {
   // Create a new portfolio

@@ -1,7 +1,8 @@
+import { useState } from 'react';
+
 import { type Project, type ProjectCreate } from '@/domains/project/types';
 import { useProjectCmds } from '@/hooks/useProjectCmds';
 import { useProjects } from '@/hooks/useProjects';
-import { useState } from 'react';
 
 export interface ProjectArgs {
   project: ProjectCreate;

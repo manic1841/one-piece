@@ -1,3 +1,5 @@
+import { useCallback, useEffect, useState } from 'react';
+
 import type {
   BalanceSheetView,
   CashFlowView,
@@ -9,7 +11,6 @@ import {
   mapToIncomeStatementView,
 } from '@/domains/finance/mappers/reportToView';
 import { financialReportService } from '@/services/financialReportService';
-import { useCallback, useEffect, useState } from 'react';
 
 type ReportType = 'income_statement' | 'balance_sheet' | 'cash_flow';
 type ReportView = IncomeStatementView | BalanceSheetView | CashFlowView;

@@ -1,12 +1,15 @@
+import { doc, getDoc } from 'firebase/firestore';
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { doc, getDoc } from 'firebase/firestore';
-import { useAuth } from '../contexts/useAuth';
-import { db } from '../firebase';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+
+
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+
+import { useAuth } from '../contexts/useAuth';
+import { db } from '../firebase';
 
 const Login: React.FC = () => {
   const [isLogin, setIsLogin] = useState(true);

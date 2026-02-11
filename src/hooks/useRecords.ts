@@ -1,7 +1,8 @@
+import { useCallback, useEffect, useState } from 'react';
+
 import { type Record } from '@/domains/record/types';
 import { useLoadingTask } from '@/hooks/useLoadingTask';
 import { recordService } from '@/services/recordService';
-import { useCallback, useEffect, useState } from 'react';
 
 export const useRecords = (householdId?: string) => {
   const { loading, error, run } = useLoadingTask();

@@ -1,4 +1,5 @@
 import React from 'react';
+
 import type { BalanceSheet, BalanceSheetCategory } from '../../schemas/balanceSheet';
 import { formatCurrency } from '../../utils/formatUtils';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';

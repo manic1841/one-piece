@@ -1,7 +1,8 @@
+import { useCallback, useEffect, useState } from 'react';
+
 import { type Project } from '@/domains/project/types';
 import { useLoadingTask } from '@/hooks/useLoadingTask';
 import { projectService } from '@/services/projectService';
-import { useCallback, useEffect, useState } from 'react';
 
 export function useProjects(householdId?: string) {
   const [projects, setProjects] = useState<Project[]>([]);

@@ -1,4 +1,5 @@
 import React from 'react';
+
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Table,
@@ -8,9 +9,10 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { formatCurrency, formatPercentage } from '../../../utils/formatUtils';
-import { formatYearMonth } from '../../../utils/dateUtils';
+
 import { type PortfolioSnapshot } from '../../../schemas';
+import { formatYearMonth } from '../../../utils/dateUtils';
+import { formatCurrency, formatPercentage } from '../../../utils/formatUtils';
 
 interface PortfolioHistoryTableProps {
   snapshots: PortfolioSnapshot[];

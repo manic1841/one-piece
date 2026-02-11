@@ -1,6 +1,7 @@
-import { projectSnapshotRepository } from '@/repositories/projectSnapshotRepository';
 import { startOfMonth, subMonths } from 'date-fns';
 import { Timestamp, orderBy, where } from 'firebase/firestore';
+
+import { projectSnapshotRepository } from '@/repositories/projectSnapshotRepository';
 
 import {
   type RetirementExpenseCategory,
@@ -8,6 +9,7 @@ import {
   type RetirementPlan,
   RetirementPlanSchema,
 } from '../schemas/retirementPlan';
+
 import { BaseService } from './baseService';
 import { plannedIncomeService } from './plannedIncomeService';
 import { projectService } from './projectService';

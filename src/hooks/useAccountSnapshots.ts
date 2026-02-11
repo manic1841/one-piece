@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 
 import { type AccountSnapshot } from '../schemas';
 import { accountService } from '../services/accountService';
+
 import { useLoadingTask } from './useLoadingTask';
 
 export function useAccountSnapshots(householdId: string, accountId: string) {

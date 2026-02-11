@@ -1,7 +1,8 @@
+import { collection, doc } from 'firebase/firestore';
+
 import { db } from '@/firebase';
 import { BaseRepository } from '@/repositories/baseRepository';
 import { type PlannedIncome, PlannedIncomeSchema } from '@/schemas';
-import { collection, doc } from 'firebase/firestore';
 
 class PlannedIncomeRepository extends BaseRepository<PlannedIncome, [string, string?]> {
   private readonly collectionName = 'plannedIncomes';

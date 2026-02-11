@@ -1,4 +1,5 @@
 import React from 'react';
+
 import type { CashFlowStatement, CashFlowSection } from '../../schemas/cashFlow';
 import { formatCurrency } from '../../utils/formatUtils';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';

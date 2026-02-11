@@ -1,7 +1,8 @@
+import { useEffect, useState } from 'react';
+
 import { type AccountSnapshot, type ChartDataPoint } from '@/domains/account/types';
 import { useAccountCmds } from '@/hooks/useAccountCmds';
 import { assetTrackingService } from '@/services/assetTrackingService';
-import { useEffect, useState } from 'react';
 
 export const useAccountDetailView = (householdId?: string, accountId?: string, email?: string) => {
   const { updateSnapshot, deleteSnapshot } = useAccountCmds(householdId, email);

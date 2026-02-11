@@ -1,9 +1,11 @@
-import { type Project } from '../../../schemas';
+import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent } from '@/components/ui/card';
-import { formatCurrency } from '../../../utils/formatUtils';
 import { type RecordFormData } from '@/domains/record/types';
+
+import { type Project } from '../../../schemas';
+import { formatCurrency } from '../../../utils/formatUtils';
+
 
 interface AllocationSectionProps {
   projects: Project[];

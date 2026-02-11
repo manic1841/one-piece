@@ -1,8 +1,9 @@
+import { where } from 'firebase/firestore';
+
 import { RoleEnum } from '@/domains/auth/role';
 import { householdRepository } from '@/repositories/householdRepository';
 import type { Household, UserProfile } from '@/schemas';
 import { userService } from '@/services/userService';
-import { where } from 'firebase/firestore';
 
 class HouseholdService {
   // Create a new household

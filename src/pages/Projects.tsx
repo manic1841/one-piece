@@ -1,3 +1,5 @@
+import { Calendar, Plus } from 'lucide-react';
+
 import ProjectBalanceChart from '@/components/projects/ProjectBalanceChart';
 import ProjectDetailView from '@/components/projects/ProjectDetailView';
 import ProjectForm from '@/components/projects/ProjectForm';
@@ -6,7 +8,6 @@ import SettlementDialog from '@/components/projects/SettlementDialog';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/useAuth';
 import { useProjectPage } from '@/hooks/pages/useProjectPage';
-import { Calendar, Plus } from 'lucide-react';
 
 const Projects: React.FC = () => {
   const { userProfile } = useAuth();

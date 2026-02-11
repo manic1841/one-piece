@@ -1,5 +1,6 @@
-import { CashFlowSourceType } from '@/domains/finance/financeType';
 import { z } from 'zod';
+
+import { CashFlowSourceType } from '@/domains/finance/financeType';
 
 // --- Cash Flow Statement Data Structures ---
 export const CashFlowItemSchema = z.object({

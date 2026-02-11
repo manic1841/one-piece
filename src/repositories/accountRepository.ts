@@ -1,7 +1,8 @@
+import { collection, doc } from 'firebase/firestore';
+
 import { db } from '@/firebase';
 import { BaseRepository } from '@/repositories/baseRepository';
 import { type Account, AccountSchema } from '@/schemas';
-import { collection, doc } from 'firebase/firestore';
 
 class AccountRepository extends BaseRepository<Account, [string, string?]> {
   private readonly collectionName = 'accounts';

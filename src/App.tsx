@@ -1,3 +1,6 @@
+import { BrowserRouter, Route, Routes } from 'react-router-dom';
+import { Toaster } from 'sonner';
+
 import Layout from '@/components/Layout';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { AuthProvider } from '@/contexts/AuthProvider';
@@ -9,16 +12,14 @@ import Dashboard from '@/pages/Dashboard';
 import IncomeStatementPage from '@/pages/IncomeStatementPage';
 import Login from '@/pages/Login';
 import Onboarding from '@/pages/Onboarding';
-import PortfolioView from '@/pages/PortfolioView';
 import Portfolios from '@/pages/Portfolios';
+import PortfolioView from '@/pages/PortfolioView';
 import Projects from '@/pages/Projects';
 import Records from '@/pages/Records';
 import Reports from '@/pages/Reports';
 import RetirementPlanDetail from '@/pages/RetirementPlanDetail';
 import RetirementPlanList from '@/pages/RetirementPlanList';
 import Settings from '@/pages/Settings';
-import { BrowserRouter, Route, Routes } from 'react-router-dom';
-import { Toaster } from 'sonner';
 
 function App() {
   return (

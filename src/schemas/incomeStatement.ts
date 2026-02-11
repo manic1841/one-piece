@@ -1,5 +1,6 @@
-import { IncomeStatementSourceType } from '@/domains/finance/financeType';
 import { z } from 'zod';
+
+import { IncomeStatementSourceType } from '@/domains/finance/financeType';
 
 export const IncomeStatementItemSchema = z.object({
   category: z.string(),

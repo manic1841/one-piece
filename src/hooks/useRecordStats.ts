@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
-import { type Record } from '@/domains/record/types';
+
 import { calculateRecordStats } from '@/domains/record/calculator';
+import { type Record } from '@/domains/record/types';
 
 export const useRecordStats = (records: Record[]) => {
   return useMemo(() => {

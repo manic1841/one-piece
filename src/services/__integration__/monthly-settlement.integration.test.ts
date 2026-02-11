@@ -1,6 +1,7 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { settlementService } from '../settlementService';
 import { Timestamp } from 'firebase/firestore';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+
+import { settlementService } from '../settlementService';
 
 // Mock Firebase
 vi.mock('firebase/app', () => ({

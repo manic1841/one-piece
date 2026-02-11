@@ -1,6 +1,7 @@
+import { z } from 'zod';
+
 import { CashFlowCategory, type CashFlowData, CashFlowItemSchema } from '@/domains/finance/types';
 import type { ProjectWithSnapshot } from '@/domains/project/types';
-import { z } from 'zod';
 
 type CashFlowItem = z.infer<typeof CashFlowItemSchema>;
 

@@ -1,3 +1,5 @@
+import { QueryConstraint, orderBy, where } from 'firebase/firestore';
+
 import type {
   Account,
   AccountCreate,
@@ -7,7 +9,6 @@ import type {
 } from '@/domains/account/types';
 import { accountRepository } from '@/repositories/accountRepository';
 import { accountSnapshotRepository } from '@/repositories/accountSnapshotRepository';
-import { QueryConstraint, orderBy, where } from 'firebase/firestore';
 
 class AccountService {
   // Create a new account

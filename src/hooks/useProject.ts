@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 
 import { type Project } from '../schemas';
 import { projectService } from '../services/projectService';
+
 import { useLoadingTask } from './useLoadingTask';
 
 export const useProject = (householdId: string, projectId: string) => {

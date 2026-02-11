@@ -1,7 +1,8 @@
+import { collection, doc } from 'firebase/firestore';
+
 import { db } from '@/firebase';
 import { BaseRepository } from '@/repositories/baseRepository';
 import { type Project, ProjectSchema } from '@/schemas';
-import { collection, doc } from 'firebase/firestore';
 
 /**
  * ProjectRepository

@@ -2,6 +2,7 @@ import { collection, doc } from 'firebase/firestore';
 
 import { db } from '../firebase';
 import { type ProjectTransaction, ProjectTransactionSchema } from '../schemas';
+
 import { BaseRepository } from './baseRepository';
 
 class ProjectTransactionRepository extends BaseRepository<ProjectTransaction, [string, string?]> {

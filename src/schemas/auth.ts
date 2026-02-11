@@ -1,6 +1,7 @@
+import { z } from 'zod';
+
 import { RoleEnum } from '@/domains/auth/role';
 import { BaseSchema } from '@/schemas';
-import { z } from 'zod';
 
 // AccessControl Schema
 export const AccessControlCreateSchema = z.object({

@@ -1,3 +1,5 @@
+import { useNavigate } from 'react-router-dom';
+
 import BalanceSheetView from '@/components/reports/BalanceSheetView';
 import { ReportPageLayout } from '@/components/reports/ReportPageLayout';
 import {
@@ -7,7 +9,6 @@ import {
 } from '@/components/reports/ReportStates';
 import type { BalanceSheetView as BalanceSheet } from '@/domains/finance/mappers/reportToView';
 import { useFinancialReportPage } from '@/hooks/pages/useFinancialReportPage';
-import { useNavigate } from 'react-router-dom';
 
 import { useAuth } from '../contexts/useAuth';
 

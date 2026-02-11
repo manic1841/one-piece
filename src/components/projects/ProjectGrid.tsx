@@ -1,9 +1,10 @@
+import { Pencil, Trash2 } from 'lucide-react';
+import React from 'react';
+
 import { ProjectCard } from '@/components/projects/ProjectCard';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import type { Project } from '@/domains/project/types';
-import { Pencil, Trash2 } from 'lucide-react';
-import React from 'react';
 
 interface ProjectGridProps {
   householdId?: string;

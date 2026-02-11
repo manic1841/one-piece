@@ -1,9 +1,10 @@
+import { Plus, Trash2 } from 'lucide-react';
+
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import type { AccountSnapshotFormData } from '@/domains/account/types';
 import type { Holding } from '@/schemas';
-import { Plus, Trash2 } from 'lucide-react';
 
 interface AccountHoldingProps {
   holdings: AccountSnapshotFormData['holdings'];

@@ -1,13 +1,14 @@
-import React from 'react';
 import { Plus } from 'lucide-react';
-import { useAuth } from '@/contexts/useAuth';
+import React from 'react';
+
 import RecordForm from '@/components/records/RecordForm';
-import { useRecordPage } from '@/hooks/pages/useRecordPage';
-import { RecordStats } from '@/components/records/RecordStats';
 import { RecordList } from '@/components/records/RecordList';
+import { RecordStats } from '@/components/records/RecordStats';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { useAuth } from '@/contexts/useAuth';
 import { RecordFilterType } from '@/domains/record/types';
+import { useRecordPage } from '@/hooks/pages/useRecordPage';
 
 const Records: React.FC = () => {
   const { userProfile, currentUser } = useAuth();

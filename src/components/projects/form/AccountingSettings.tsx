@@ -1,3 +1,5 @@
+import { useEffect, useState } from 'react';
+
 import FinancialStatementForm from '@/components/projects/form/FinancialStatementForm';
 import {
   AssetSubCategoryOptions,
@@ -18,7 +20,6 @@ import {
   IncomeStatementCategory,
 } from '@/domains/finance/types/category';
 import type { ProjectFormData } from '@/domains/project/types/projectForm';
-import { useEffect, useState } from 'react';
 
 interface AccountingSettingsProps {
   data?: ProjectFormData;

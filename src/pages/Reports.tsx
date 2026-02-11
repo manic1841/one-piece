@@ -1,9 +1,10 @@
-import FinancialReportGenerator from '@/components/reports/FinancialReportGenerator';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { FileText, PlusCircle, TrendingUp, Wallet } from 'lucide-react';
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+
+import FinancialReportGenerator from '@/components/reports/FinancialReportGenerator';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 
 const Reports: React.FC = () => {
   const navigate = useNavigate();

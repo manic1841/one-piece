@@ -1,15 +1,16 @@
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
+
 import {
-  INCOME_CATEGORIES,
-  EXPENSE_CATEGORIES,
-  isIncomeCategory,
-  isExpenseCategory,
-  isValidCategory,
-  getCategoryType,
-  sortByOrder,
-  getDefaultCategoryOrder,
-  formatCategory,
   type AccountingItem,
+  EXPENSE_CATEGORIES,
+  formatCategory,
+  getCategoryType,
+  getDefaultCategoryOrder,
+  INCOME_CATEGORIES,
+  isExpenseCategory,
+  isIncomeCategory,
+  isValidCategory,
+  sortByOrder,
 } from './accountingUtils';
 
 describe('accountingUtils', () => {
@@ -58,7 +59,7 @@ describe('accountingUtils', () => {
       ];
 
       const sorted = sortByOrder(items);
-      
+
       expect(sorted[0].category).toBe('B');
       expect(sorted[1].category).toBe('A');
       expect(sorted[2].category).toBe('C');
@@ -72,7 +73,7 @@ describe('accountingUtils', () => {
       ];
 
       const sorted = sortByOrder(items);
-      
+
       expect(sorted[0].amount).toBe(200);
       expect(sorted[1].amount).toBe(150);
       expect(sorted[2].amount).toBe(100);
@@ -86,7 +87,7 @@ describe('accountingUtils', () => {
       ];
 
       const sorted = sortByOrder(items);
-      
+
       // Items with order should come first
       expect(sorted[0].category).toBe('B');
     });
@@ -96,14 +97,14 @@ describe('accountingUtils', () => {
     it('should return lower number for higher priority income', () => {
       const salaryOrder = getDefaultCategoryOrder(INCOME_CATEGORIES.SALARY);
       const otherOrder = getDefaultCategoryOrder(INCOME_CATEGORIES.OTHER);
-      
+
       expect(salaryOrder).toBeLessThan(otherOrder);
     });
 
     it('should return lower number for higher priority expense', () => {
       const livingOrder = getDefaultCategoryOrder(EXPENSE_CATEGORIES.LIVING);
       const otherOrder = getDefaultCategoryOrder(EXPENSE_CATEGORIES.OTHER);
-      
+
       expect(livingOrder).toBeLessThan(otherOrder);
     });
 

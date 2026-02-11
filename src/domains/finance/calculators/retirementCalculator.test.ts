@@ -1,7 +1,8 @@
-import { describe, it, expect } from 'vitest';
-import { Timestamp } from 'firebase/firestore';
-import { calculateRetirementProjection, calculateProjectionSummary } from './retirementCalculator';
+import { describe, expect, it } from 'vitest';
+
 import { RetirementPlan } from '../../../schemas/retirementPlan';
+
+import { calculateProjectionSummary, calculateRetirementProjection } from './retirementCalculator';
 
 describe('retirementCalculator', () => {
   const mockPlan: RetirementPlan = {
@@ -9,8 +10,8 @@ describe('retirementCalculator', () => {
     name: 'Test Plan',
     isActive: true,
     createdBy: 'user1',
-    createdAt: Timestamp.fromMillis(0),
-    updatedAt: Timestamp.fromMillis(0),
+    createdAt: new Date(),
+    updatedAt: new Date(),
     currentYear: 2025,
     currentAge: 30,
     retirementAge: 60,
@@ -47,7 +48,7 @@ describe('retirementCalculator', () => {
   it('should calculate projection for basic scenario', () => {
     const projection = calculateRetirementProjection(mockPlan);
     expect(projection).toHaveLength(mockPlan.lifeExpectancy - mockPlan.currentAge + 1);
-    
+
     // Check first year
     const firstYear = projection[0];
     expect(firstYear.year).toBe(2025);
@@ -55,12 +56,12 @@ describe('retirementCalculator', () => {
     expect(firstYear.totalIncome).toBe(1000000); // Base amount
     expect(firstYear.totalExpense).toBe(500000); // Base amount
     expect(firstYear.investmentIncome).toBe(1000000 * 0.05); // 5% of opening balance
-    
+
     // Check retirement year (2055, age 60)
-    const retirementYear = projection.find(p => p.age === 60);
+    const retirementYear = projection.find((p) => p.age === 60);
     expect(retirementYear).toBeDefined();
     expect(retirementYear?.isRetired).toBe(true);
-    
+
     // Check expense multiplier after retirement
     // Base 500k * (1.02)^30 * 0.7
     const expectedExpense = 500000 * Math.pow(1.02, 30) * 0.7;
@@ -90,12 +91,12 @@ describe('retirementCalculator', () => {
     };
 
     const projection = calculateRetirementProjection(planWithEvents);
-    
-    const year2030 = projection.find(p => p.year === 2030);
+
+    const year2030 = projection.find((p) => p.year === 2030);
     expect(year2030?.oneTimeExpense).toBe(200000);
     expect(year2030?.events).toContain('Car');
 
-    const year2040 = projection.find(p => p.year === 2040);
+    const year2040 = projection.find((p) => p.year === 2040);
     expect(year2040?.oneTimeIncome).toBe(500000);
     expect(year2040?.events).toContain('Inheritance');
   });
@@ -116,15 +117,15 @@ describe('retirementCalculator', () => {
       incomes: [], // No income
       expenses: [
         {
-            id: 'expense1',
-            name: 'Living',
-            baseAmount: 500000,
-            growthRate: 2,
-            retirementMultiplier: 1,
-            startYear: 2025,
-            endYear: null,
-        }
-      ]
+          id: 'expense1',
+          name: 'Living',
+          baseAmount: 500000,
+          growthRate: 2,
+          retirementMultiplier: 1,
+          startYear: 2025,
+          endYear: null,
+        },
+      ],
     };
 
     const projection = calculateRetirementProjection(poorPlan);

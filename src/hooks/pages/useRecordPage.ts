@@ -1,9 +1,10 @@
+import { useEffect, useState } from 'react';
+
 import { filterRecords } from '@/domains/record/filter';
 import { type Record, RecordFilterType } from '@/domains/record/types';
 import { useRecordCmds } from '@/hooks/useRecordCmds';
-import { useRecordStats } from '@/hooks/useRecordStats';
 import { useRecords } from '@/hooks/useRecords';
-import { useEffect, useState } from 'react';
+import { useRecordStats } from '@/hooks/useRecordStats';
 
 export const useRecordPage = (householdId?: string, email?: string) => {
   const { records, reload, loading, error } = useRecords(householdId);

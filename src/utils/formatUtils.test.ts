@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+
 import { formatCurrency, formatPercentage, formatCompactNumber } from './formatUtils';
 
 describe('formatUtils', () => {

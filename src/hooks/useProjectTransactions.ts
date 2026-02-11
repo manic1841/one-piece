@@ -1,7 +1,8 @@
+import { useCallback, useEffect, useState } from 'react';
+
 import { type ProjectTransaction } from '@/domains/record/types/';
 import { useLoadingTask } from '@/hooks/useLoadingTask';
 import { projectTransactionService } from '@/services/projectTransactionService';
-import { useCallback, useEffect, useState } from 'react';
 
 export const useProjectTransactions = (householdId?: string) => {
   const [projectTransactions, setProjectTransactions] = useState<ProjectTransaction[]>([]);

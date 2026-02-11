@@ -1,8 +1,9 @@
 import { useState } from 'react';
+
+import type { RetirementPlan } from '../../schemas/retirementPlan';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
-import type { RetirementPlan } from '../../schemas/retirementPlan';
 
 interface AssumptionsFormProps {
   plan: RetirementPlan;

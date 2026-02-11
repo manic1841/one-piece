@@ -1,3 +1,5 @@
+import { QueryConstraint, limit, orderBy, where } from 'firebase/firestore';
+
 import { calculateBalance } from '@/domains/project/calculator';
 import type {
   Project,
@@ -10,7 +12,6 @@ import { projectRepository } from '@/repositories/projectRepository';
 import { projectSnapshotRepository } from '@/repositories/projectSnapshotRepository';
 import { projectTransactionService } from '@/services/projectTransactionService';
 import { transactionService } from '@/services/transactionService';
-import { QueryConstraint, limit, orderBy, where } from 'firebase/firestore';
 
 /**
  * ProjectService

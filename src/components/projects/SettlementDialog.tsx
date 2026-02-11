@@ -1,3 +1,5 @@
+import { Calendar } from 'lucide-react';
+
 import { SettlementDone } from '@/components/projects/settlement/SettlementDone';
 import { SettlementPreview } from '@/components/projects/settlement/SettlementPreview';
 import { SettlementProcessing } from '@/components/projects/settlement/SettlementProcessing';
@@ -15,7 +17,6 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import type { Project } from '@/domains/project/types';
-import { Calendar } from 'lucide-react';
 
 interface SettlementDialogProps {
   isOpen: boolean;

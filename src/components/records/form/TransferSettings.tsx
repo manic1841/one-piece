@@ -1,6 +1,7 @@
-import { ProjectSelection } from './ProjectSelection';
-import { type Project } from '@/schemas';
 import { type RecordFormData } from '@/domains/record/types';
+import { type Project } from '@/schemas';
+
+import { ProjectSelection } from './ProjectSelection';
 
 interface TransferSettingsProps {
   fromProjectId: string;

@@ -1,3 +1,5 @@
+import type React from 'react';
+
 import { Card } from '@/components/ui/card';
 import {
   Table,
@@ -8,7 +10,6 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { formatCurrency } from '@/utils/formatUtils';
-import type React from 'react';
 
 interface SettlementPreviewProps {
   year: number;

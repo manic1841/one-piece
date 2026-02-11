@@ -1,3 +1,5 @@
+import { z } from 'zod';
+
 import { ReportType } from '@/domains/finance/financeType';
 import {
   BalanceSheetDataSchema,
@@ -5,7 +7,6 @@ import {
   CashFlowDataSchema,
   IncomeStatementDataSchema,
 } from '@/schemas';
-import { z } from 'zod';
 
 // --- Main Report Schema ---
 export const FinancialReportCreateSchema = z.object({

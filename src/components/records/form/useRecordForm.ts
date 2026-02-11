@@ -1,8 +1,9 @@
+import { useEffect, useState } from 'react';
+
 import { buildRecord, toRecordFormData } from '@/domains/record/mappers/recordFormConverter';
 import { type Record, type RecordFormData } from '@/domains/record/types';
 import { validateForm } from '@/domains/record/validator';
 import { useProjects } from '@/hooks/useProjects';
-import { useEffect, useState } from 'react';
 
 interface UseRecordFormProps {
   onSubmit: (data: Record) => Promise<void>;

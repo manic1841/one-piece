@@ -7,6 +7,7 @@ import {
   IncomeStatementCategory,
 } from '../../finance/types/category';
 import type { ProjectFormData } from '../types/projectForm';
+
 import { toProject } from './toProject';
 
 describe('toProject', () => {

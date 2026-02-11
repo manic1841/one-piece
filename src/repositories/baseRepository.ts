@@ -1,4 +1,3 @@
-import { type Base } from '@/schemas';
 import {
   CollectionReference,
   type DocumentData,
@@ -17,6 +16,8 @@ import {
   updateDoc,
 } from 'firebase/firestore';
 import { z } from 'zod';
+
+import { type Base } from '@/schemas';
 
 export type ExcludedColumn = 'id' | 'createdAt' | 'updatedAt' | 'createdBy' | 'updatedBy';
 

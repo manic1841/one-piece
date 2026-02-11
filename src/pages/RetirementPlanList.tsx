@@ -1,13 +1,15 @@
+import { serverTimestamp, Timestamp } from 'firebase/firestore';
+import { Plus, TrendingUp, Calendar } from 'lucide-react';
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, TrendingUp, Calendar } from 'lucide-react';
+
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
-import { retirementPlanService } from '../services/retirementPlanService';
 import { useAuth } from '../contexts/useAuth';
 import type { RetirementPlan } from '../schemas/retirementPlan';
+import { retirementPlanService } from '../services/retirementPlanService';
 import { formatCurrency } from '../utils/formatUtils';
-import { serverTimestamp, Timestamp } from 'firebase/firestore';
+
 
 export default function RetirementPlanList() {
   const { userProfile } = useAuth();

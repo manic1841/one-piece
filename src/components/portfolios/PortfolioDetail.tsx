@@ -1,12 +1,15 @@
+import { ArrowLeft, Plus } from 'lucide-react';
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+
+import { Button } from '@/components/ui/button';
+
 import { type Portfolio, type PortfolioSnapshot } from '../../schemas';
 import { portfolioService } from '../../services/portfolioService';
-import { Button } from '@/components/ui/button';
-import { ArrowLeft, Plus } from 'lucide-react';
-import PortfolioSnapshotForm from './PortfolioSnapshotForm';
-import { PortfolioPerformanceCards } from './detail/PortfolioPerformanceCards';
+
 import { PortfolioHistoryTable } from './detail/PortfolioHistoryTable';
+import { PortfolioPerformanceCards } from './detail/PortfolioPerformanceCards';
+import PortfolioSnapshotForm from './PortfolioSnapshotForm';
 
 interface PortfolioDetailProps {
   householdId: string;

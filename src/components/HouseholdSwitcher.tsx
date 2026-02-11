@@ -1,9 +1,8 @@
+import { ChevronDown, Home, LogOut as LogOutIcon } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronDown, Home, LogOut as LogOutIcon } from 'lucide-react';
-import { useAuth } from '../contexts/useAuth';
-import { householdService } from '../services/householdService';
-import type { Household } from '../schemas';
+
+import { Button } from '@/components/ui/button';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -12,7 +11,10 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Button } from '@/components/ui/button';
+
+import { useAuth } from '../contexts/useAuth';
+import type { Household } from '../schemas';
+import { householdService } from '../services/householdService';
 
 interface HouseholdSwitcherProps {
     currentHouseholdId?: string;

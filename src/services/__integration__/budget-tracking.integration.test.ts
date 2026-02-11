@@ -1,8 +1,9 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { budgetService } from '../budgetService';
-import { transactionService } from '../transactionService';
-import { projectTransactionService } from '../projectTransactionService';
 import { Timestamp } from 'firebase/firestore';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+
+import { budgetService } from '../budgetService';
+import { projectTransactionService } from '../projectTransactionService';
+import { transactionService } from '../transactionService';
 
 // Mock Firebase
 vi.mock('firebase/app', () => ({

@@ -1,3 +1,5 @@
+import { QueryConstraint, orderBy, where } from 'firebase/firestore';
+
 import type {
   TransactionCategory,
   TransactionCreate,
@@ -5,7 +7,6 @@ import type {
 } from '@/domains/record/types';
 import { transactionRepository } from '@/repositories/transactionRepository';
 import type { Transaction } from '@/schemas';
-import { QueryConstraint, orderBy, where } from 'firebase/firestore';
 
 class TransactionService {
   // Create a new transaction

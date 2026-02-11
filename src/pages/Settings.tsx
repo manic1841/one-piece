@@ -1,10 +1,12 @@
-import React, { useMemo } from 'react';
-import { useAuth } from '../contexts/useAuth';
-import { accessControlService } from '../services/accessControlService';
-import EmailWhitelist from '../components/EmailWhitelist';
 import { ShieldAlert } from 'lucide-react';
+import React, { useMemo } from 'react';
+
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+
+import EmailWhitelist from '../components/EmailWhitelist';
+import { useAuth } from '../contexts/useAuth';
+import { accessControlService } from '../services/accessControlService';
 
 const Settings: React.FC = () => {
   const { currentUser } = useAuth();

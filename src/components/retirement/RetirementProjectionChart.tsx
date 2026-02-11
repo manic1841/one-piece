@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ReferenceLine } from 'recharts';
+
 import type { RetirementProjectionYear } from '../../schemas/retirementPlan';
 
 interface RetirementProjectionChartProps {
