@@ -1,9 +1,14 @@
-import { where } from 'firebase/firestore';
+import { QueryConstraint, where } from 'firebase/firestore';
 
 import { calculatePortfolioSnapshot } from '@/domains/finance/calculators/portfolioCalculator';
 import { portfolioRepository } from '@/repositories/portfolioRepository';
 import { portfolioSnapshotRepository } from '@/repositories/portfolioSnapshotRepository';
-import { type AccountSnapshot, type Portfolio, type PortfolioSnapshot } from '@/schemas';
+import {
+  type AccountSnapshot,
+  type Portfolio,
+  type PortfolioCreate,
+  type PortfolioSnapshot,
+} from '@/schemas';
 
 import { accountService } from './accountService';
 
@@ -11,7 +16,7 @@ export const portfolioService = {
   // Create a new portfolio
   async createPortfolio(
     householdId: string,
-    portfolio: Omit<Portfolio, 'id' | 'createdAt' | 'updatedAt'>,
+    portfolio: PortfolioCreate,
     userEmail: string,
   ): Promise<string> {
     return portfolioRepository.create([householdId], portfolio, userEmail);
@@ -48,7 +53,6 @@ export const portfolioService = {
     portfolioId: string,
     year: number,
     month: number,
-    createdBy: string,
     cashFlow: { deposits: number; withdrawals: number } = { deposits: 0, withdrawals: 0 },
     userEmail: string,
   ): Promise<string> {
@@ -96,7 +100,6 @@ export const portfolioService = {
       accountSnapshots,
       prevSnapshot,
       cashFlow,
-      createdBy,
     });
 
     return portfolioSnapshotRepository.create([householdId, portfolioId], snapshotData, userEmail);
@@ -109,9 +112,13 @@ export const portfolioService = {
     year?: number,
     month?: number,
   ): Promise<PortfolioSnapshot[]> {
-    return portfolioSnapshotRepository.list(
-      [householdId, portfolioId],
-      [where('year', '==', year), where('month', '==', month)],
-    );
+    const queryConstraints: QueryConstraint[] = [];
+    if (year) {
+      queryConstraints.push(where('year', '==', year));
+    }
+    if (month) {
+      queryConstraints.push(where('month', '==', month));
+    }
+    return portfolioSnapshotRepository.list([householdId, portfolioId], queryConstraints);
   },
 };

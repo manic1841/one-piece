@@ -1,21 +1,9 @@
 import { z } from 'zod';
 
 import { AccountCategory } from '@/domains/account/types/categories';
+import { BaseSchema } from '@/schemas/base';
 
 import { HoldingSchema } from './account';
-
-// Portfolio Schema
-export const PortfolioSchema = z.object({
-  id: z.string(),
-  name: z.string(),
-  description: z.string().optional(),
-  accountIds: z.array(z.string()),
-  isActive: z.boolean().default(true),
-  createdAt: z.date(),
-  updatedAt: z.date(),
-});
-
-export type Portfolio = z.infer<typeof PortfolioSchema>;
 
 // Portfolio Account Snapshot (embedded in PortfolioSnapshot)
 export const PortfolioAccountSnapshotSchema = z.object({
@@ -49,19 +37,34 @@ export const PortfolioCashFlowSchema = z.object({
 
 export type PortfolioCashFlow = z.infer<typeof PortfolioCashFlowSchema>;
 
-// Portfolio Snapshot Schema
-export const PortfolioSnapshotSchema = z.object({
-  id: z.string(),
+// Portfolio Create Schema
+export const PortfolioCreateSchema = z.object({
+  name: z.string(),
+  description: z.string().optional(),
+  accountIds: z.array(z.string()),
+  isActive: z.boolean().default(true),
+});
+
+export type PortfolioCreate = z.infer<typeof PortfolioCreateSchema>;
+
+// Portfolio Base Schema (standardized)
+export const PortfolioSchema = BaseSchema.extend(PortfolioCreateSchema.shape);
+
+export type Portfolio = z.infer<typeof PortfolioSchema>;
+
+// Portfolio Snapshot Create Schema
+export const PortfolioSnapshotCreateSchema = z.object({
   year: z.number().int(),
   month: z.number().int().min(1).max(12),
   accounts: z.array(PortfolioAccountSnapshotSchema),
   totalValue: z.number(),
   cashFlow: PortfolioCashFlowSchema,
   performance: PortfolioPerformanceSchema,
-  createdBy: z.string(),
-  createdAt: z.date(),
-  updatedBy: z.string().optional(),
-  updatedAt: z.date(),
 });
+
+export type PortfolioSnapshotCreate = z.infer<typeof PortfolioSnapshotCreateSchema>;
+
+// Portfolio Snapshot Base Schema (standardized)
+export const PortfolioSnapshotSchema = BaseSchema.extend(PortfolioSnapshotCreateSchema.shape);
 
 export type PortfolioSnapshot = z.infer<typeof PortfolioSnapshotSchema>;

@@ -3,6 +3,7 @@ import {
   type AccountSnapshot,
   type PortfolioAccountSnapshot,
   type PortfolioSnapshot,
+  type PortfolioSnapshotCreate,
 } from '../../../schemas';
 
 export interface PortfolioCalculatorInput {
@@ -13,7 +14,6 @@ export interface PortfolioCalculatorInput {
   accountSnapshots: Map<string, AccountSnapshot | null>; // Map accountId to snapshot (or null if missing)
   prevSnapshot: PortfolioSnapshot | null;
   cashFlow: { deposits: number; withdrawals: number };
-  createdBy: string;
 }
 
 /**
@@ -21,8 +21,8 @@ export interface PortfolioCalculatorInput {
  */
 export function calculatePortfolioSnapshot(
   input: PortfolioCalculatorInput,
-): Omit<PortfolioSnapshot, 'id'> {
-  const { year, month, accounts, accountSnapshots, prevSnapshot, cashFlow, createdBy } = input;
+): PortfolioSnapshotCreate {
+  const { year, month, accounts, accountSnapshots, prevSnapshot, cashFlow } = input;
 
   // 1. Process Account Snapshots
   const portfolioAccountSnapshots: PortfolioAccountSnapshot[] = [];
@@ -104,8 +104,5 @@ export function calculatePortfolioSnapshot(
     totalValue,
     cashFlow,
     performance,
-    createdBy,
-    createdAt: new Date(),
-    updatedAt: new Date(),
   };
 }

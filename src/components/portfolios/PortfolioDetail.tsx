@@ -1,12 +1,12 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useState } from 'react';
 
 import { ArrowLeft, Plus } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 
 import { Button } from '@/components/ui/button';
+import { usePortfolio } from '@/hooks/usePortfolio';
+import { usePortfolioCmds } from '@/hooks/usePortfolioCmds';
 
-import { type Portfolio, type PortfolioSnapshot } from '../../schemas';
-import { portfolioService } from '../../services/portfolioService';
 import PortfolioSnapshotForm from './PortfolioSnapshotForm';
 import { PortfolioHistoryTable } from './detail/PortfolioHistoryTable';
 import { PortfolioPerformanceCards } from './detail/PortfolioPerformanceCards';
@@ -19,29 +19,10 @@ interface PortfolioDetailProps {
 const PortfolioDetail: React.FC<PortfolioDetailProps> = ({ householdId, userEmail }) => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [portfolio, setPortfolio] = useState<Portfolio | null>(null);
-  const [snapshots, setSnapshots] = useState<PortfolioSnapshot[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { portfolio, snapshots, loading, reload } = usePortfolio(householdId, id);
+  const { createSnapshot } = usePortfolioCmds(householdId, userEmail);
+
   const [isSnapshotOpen, setIsSnapshotOpen] = useState(false);
-
-  const loadData = useCallback(async () => {
-    if (!id) return;
-    try {
-      const p = await portfolioService.getPortfolio(householdId, id);
-      setPortfolio(p);
-
-      const s = await portfolioService.getSnapshots(householdId, id);
-      setSnapshots(s);
-    } catch (error) {
-      console.error('Failed to load portfolio data:', error);
-    } finally {
-      setLoading(false);
-    }
-  }, [householdId, id]);
-
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
 
   const handleCreateSnapshot = async (data: {
     year: number;
@@ -50,15 +31,8 @@ const PortfolioDetail: React.FC<PortfolioDetailProps> = ({ householdId, userEmai
   }) => {
     if (!id) return;
     try {
-      await portfolioService.createSnapshot(
-        householdId,
-        id,
-        data.year,
-        data.month,
-        userEmail,
-        data.cashFlow,
-      );
-      loadData(); // Reload to show new snapshot
+      await createSnapshot(id, data.year, data.month, data.cashFlow);
+      reload(); // Reload to show new snapshot
     } catch (error) {
       console.error('Failed to create snapshot:', error);
       throw error; // Re-throw to be caught by form

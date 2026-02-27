@@ -1,8 +1,9 @@
 import React from 'react';
 
-import { type PortfolioSnapshot } from '../../../schemas';
-import { formatYearMonth } from '../../../utils/dateUtils';
-import { formatCurrency, formatPercentage } from '../../../utils/formatUtils';
+import { type PortfolioSnapshot } from '@/schemas';
+import { formatYearMonth } from '@/utils/dateUtils';
+import { formatCurrency, formatPercentage } from '@/utils/formatUtils';
+
 import { PerformanceCard } from './PerformanceCard';
 
 interface PortfolioPerformanceCardsProps {
