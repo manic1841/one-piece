@@ -1,3 +1,4 @@
+import { AssetSubCategory, LiabilitySubCategory } from '@/domains/finance/types';
 import type {
   BalanceSheetData,
   BalanceSheetItem,
@@ -58,8 +59,16 @@ export interface BalanceSheetView {
       subtotal: number;
       items: Array<{ id: string; name: string; amount: number }>;
     }>;
-    investment: Array<unknown>;
-    fixed: Array<unknown>;
+    investment: Array<{
+      category: string;
+      subtotal: number;
+      items: Array<{ id: string; name: string; amount: number }>;
+    }>;
+    fixed: Array<{
+      category: string;
+      subtotal: number;
+      items: Array<{ id: string; name: string; amount: number }>;
+    }>;
   };
   liabilities: {
     total: number;
@@ -68,7 +77,11 @@ export interface BalanceSheetView {
       subtotal: number;
       items: Array<{ id: string; name: string; amount: number }>;
     }>;
-    longTerm: Array<unknown>;
+    longTerm: Array<{
+      category: string;
+      subtotal: number;
+      items: Array<{ id: string; name: string; amount: number }>;
+    }>;
   };
   netWorth: number;
   createdAt: Date;
@@ -84,15 +97,42 @@ export interface CashFlowView {
   month: number;
   operating: {
     netAmount: number;
-    items: Array<{ id: string; name: string; amount: number }>;
+    inflow: Array<{
+      category: string;
+      amount: number;
+      items: Array<{ name: string; amount: number }>;
+    }>;
+    outflow: Array<{
+      category: string;
+      amount: number;
+      items: Array<{ name: string; amount: number }>;
+    }>;
   };
   investing: {
     netAmount: number;
-    items: Array<{ id: string; name: string; amount: number }>;
+    inflow: Array<{
+      category: string;
+      amount: number;
+      items: Array<{ name: string; amount: number }>;
+    }>;
+    outflow: Array<{
+      category: string;
+      amount: number;
+      items: Array<{ name: string; amount: number }>;
+    }>;
   };
   financing: {
     netAmount: number;
-    items: Array<{ id: string; name: string; amount: number }>;
+    inflow: Array<{
+      category: string;
+      amount: number;
+      items: Array<{ name: string; amount: number }>;
+    }>;
+    outflow: Array<{
+      category: string;
+      amount: number;
+      items: Array<{ name: string; amount: number }>;
+    }>;
   };
   netChange: number;
   beginningBalance: number;
@@ -156,7 +196,7 @@ export const mapToBalanceSheetView = (report: FinancialReport): BalanceSheetView
   if (report.type !== 'balance_sheet' || !('assets' in report.data)) return null;
   const data = report.data as BalanceSheetData;
 
-  // Helper to map items to categories
+  // Helper to map items to categories with sub-items
   const mapItems = (items: BalanceSheetItem[]) =>
     items.map((item) => ({
       category: item.category,
@@ -176,14 +216,29 @@ export const mapToBalanceSheetView = (report: FinancialReport): BalanceSheetView
     month: report.month,
     assets: {
       total: data.assets.total,
-      current: mapItems(data.assets.items),
-      investment: [],
-      fixed: [],
+      current: mapItems(
+        data.assets.items.filter(
+          (i) =>
+            i.category === AssetSubCategory.CASH || i.category === AssetSubCategory.OTHER_ASSETS,
+        ),
+      ),
+      investment: mapItems(
+        data.assets.items.filter((i) => i.category === AssetSubCategory.INVESTMENTS),
+      ),
+      fixed: mapItems(data.assets.items.filter((i) => i.category === AssetSubCategory.REAL_ESTATE)),
     },
     liabilities: {
       total: data.liabilities.total,
-      shortTerm: mapItems(data.liabilities.items),
-      longTerm: [],
+      shortTerm: mapItems(
+        data.liabilities.items.filter(
+          (i) =>
+            i.category === LiabilitySubCategory.SHORT_TERM_DEBT ||
+            i.category === LiabilitySubCategory.OTHER_LIABILITIES,
+        ),
+      ),
+      longTerm: mapItems(
+        data.liabilities.items.filter((i) => i.category === LiabilitySubCategory.LONG_TERM_DEBT),
+      ),
     },
     netWorth: data.equity.total,
     createdAt: report.generatedAt,
@@ -198,13 +253,26 @@ export const mapToCashFlowView = (report: FinancialReport): CashFlowView | null 
   if (report.type !== 'cash_flow' || !('operating' in report.data)) return null;
   const data = report.data as CashFlowData;
 
-  const mapSection = (section: { netAmount: number; items: CashFlowItem[] }) => ({
-    netAmount: section.netAmount,
-    items: section.items.map((item, idx: number) => ({
-      id: `${idx}`,
-      name: item.category,
+  const mapInternalSection = (items: CashFlowItem[]) => {
+    return items.map((item) => ({
+      category: item.category,
       amount: item.amount,
-    })),
+      items:
+        item.subItems?.map((sub) => ({
+          name: sub.name,
+          amount: sub.amount,
+        })) || [],
+    }));
+  };
+
+  const mapSection = (section: {
+    netAmount: number;
+    income: CashFlowItem[];
+    expense: CashFlowItem[];
+  }) => ({
+    netAmount: section.netAmount,
+    inflow: mapInternalSection(section.income),
+    outflow: mapInternalSection(section.expense),
   });
 
   return {

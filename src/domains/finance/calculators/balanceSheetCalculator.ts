@@ -175,7 +175,7 @@ export function calculateBalanceSheet(
     });
   });
 
-  const totalEquity = equityItems.reduce((sum, item) => sum + item.amount, 0);
+  const totalEquity = totalAssets - totalLiabilities;
 
   return {
     assets: { total: totalAssets, items: assetItems },

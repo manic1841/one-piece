@@ -8,9 +8,9 @@ import { BaseSchema } from '@/schemas/base';
 export const TransactionCreateSchema = z.object({
   date: z.date(),
   amount: z.number(),
-  type: z.nativeEnum(TransactionType),
+  type: z.enum(TransactionType),
   projectId: z.string(),
-  category: z.nativeEnum(TransactionCategory),
+  category: z.enum(TransactionCategory),
   description: z.string().optional(),
 });
 

@@ -80,7 +80,12 @@ This project uses **ESLint** and **Prettier** to maintain high code quality and 
 
 ### Automatic Import Sorting
 
-We use `@trivago/prettier-plugin-sort-imports` to automatically sort and group imports. The sorting rules are:
+This project uses `@trivago/prettier-plugin-sort-imports` to automatically sort and group imports.
+
+> [!NOTE]
+> To avoid formatting conflicts, ESLint's `import/order` and `sort-imports` rules are disabled. **Prettier is the single source of truth for import sorting.**
+
+The sorting rules are:
 
 1.  **React & Core**: `react`, `react-dom`
 2.  **Third-party Modules**: All external npm packages
@@ -92,4 +97,4 @@ We use `@trivago/prettier-plugin-sort-imports` to automatically sort and group i
 - **Format Code**: `pnpm format` (Runs Prettier to sort imports and format files)
 - **Lint Code**: `pnpm lint` (Runs ESLint to check for code quality issues and fix them)
 
-Imports are automatically sorted on save if your IDE is configured to run Prettier/ESLint on save.
+Imports are automatically sorted by Prettier. It is recommended to configure your IDE to run Prettier on save.

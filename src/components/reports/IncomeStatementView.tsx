@@ -11,13 +11,20 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-
-import type { CategoryGroup, IncomeStatement } from '../../schemas';
-import { formatDateRange } from '../../utils/dateUtils';
-import { formatCurrency } from '../../utils/formatUtils';
+import {
+  ExpenseSubCategoryLabel,
+  IncomeStatementCategoryLabel,
+  IncomeStatementReportLabel,
+  IncomeSubCategoryLabel,
+  ReportCommonLabel,
+} from '@/constants/finance/financeLabel';
+import type { IncomeStatementView as IncomeStatementViewData } from '@/domains/finance/mappers/reportToView';
+import { IncomeStatementCategory } from '@/domains/finance/types/categories';
+import { formatDateRange } from '@/utils/dateUtils';
+import { formatCurrency } from '@/utils/formatUtils';
 
 interface IncomeStatementViewProps {
-  statement: IncomeStatement;
+  statement: IncomeStatementViewData;
   onCategoryClick?: (category: string) => void;
 }
 
@@ -37,9 +44,16 @@ const IncomeStatementView: React.FC<IncomeStatementViewProps> = ({
     setExpandedCategories(newExpanded);
   };
 
-  const renderCategory = (categoryGroup: CategoryGroup, type: 'income' | 'expense') => {
+  const renderCategory = (
+    categoryGroup: IncomeStatementViewData['income']['categories'][number],
+    type: 'income' | 'expense',
+  ) => {
     const isExpanded = expandedCategories.has(categoryGroup.category);
     const hasItems = categoryGroup.items.length > 0;
+
+    const labelMap = type === 'income' ? IncomeSubCategoryLabel : ExpenseSubCategoryLabel;
+    const localizedCategory =
+      (labelMap as Record<string, string>)[categoryGroup.category] || categoryGroup.category;
 
     return (
       <React.Fragment key={categoryGroup.category}>
@@ -58,7 +72,7 @@ const IncomeStatementView: React.FC<IncomeStatementViewProps> = ({
                   )}
                 </span>
               )}
-              {categoryGroup.category}
+              {localizedCategory}
             </div>
           </TableCell>
           <TableCell className="text-right font-semibold">
@@ -74,7 +88,9 @@ const IncomeStatementView: React.FC<IncomeStatementViewProps> = ({
               className="bg-slate-50/50 text-slate-600 text-sm"
               onClick={() => onCategoryClick?.(item.category)}
             >
-              <TableCell className="pl-12">{item.subcategory || '明細'}</TableCell>
+              <TableCell className="pl-12">
+                {item.subcategory || ReportCommonLabel.DETAILS}
+              </TableCell>
               <TableCell className="text-right">{formatCurrency(item.amount)}</TableCell>
             </TableRow>
           ))}
@@ -82,16 +98,14 @@ const IncomeStatementView: React.FC<IncomeStatementViewProps> = ({
     );
   };
 
-  const startDate =
-    statement.startDate instanceof Date ? statement.startDate : statement.startDate.toDate();
-  const endDate =
-    statement.endDate instanceof Date ? statement.endDate : statement.endDate.toDate();
+  const startDate = statement.startDate;
+  const endDate = statement.endDate;
 
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="text-center">
-        <h2 className="text-2xl font-bold">損益表</h2>
+        <h2 className="text-2xl font-bold">{IncomeStatementReportLabel.TITLE}</h2>
         <p className="text-sm text-muted-foreground mt-1">{formatDateRange(startDate, endDate)}</p>
       </div>
 
@@ -99,7 +113,9 @@ const IncomeStatementView: React.FC<IncomeStatementViewProps> = ({
       <div className="grid gap-4 md:grid-cols-3">
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">收入總計</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              {IncomeStatementReportLabel.INCOME_TOTAL}
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-green-600">
@@ -110,7 +126,9 @@ const IncomeStatementView: React.FC<IncomeStatementViewProps> = ({
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">支出總計</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              {IncomeStatementReportLabel.EXPENSE_TOTAL}
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-red-600">
@@ -121,7 +139,9 @@ const IncomeStatementView: React.FC<IncomeStatementViewProps> = ({
 
         <Card>
           <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
-            <CardTitle className="text-sm font-medium text-muted-foreground">本期損益</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              {IncomeStatementReportLabel.NET_INCOME}
+            </CardTitle>
             {statement.netIncome >= 0 ? (
               <TrendingUp className="h-4 w-4 text-green-500" />
             ) : (
@@ -142,28 +162,27 @@ const IncomeStatementView: React.FC<IncomeStatementViewProps> = ({
       {/* Detailed Income Statement */}
       <Card>
         <CardHeader>
-          <CardTitle>明細</CardTitle>
+          <CardTitle>{ReportCommonLabel.DETAILS}</CardTitle>
         </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>科目</TableHead>
-                <TableHead className="text-right">金額</TableHead>
+                <TableHead>{ReportCommonLabel.SUBJECT}</TableHead>
+                <TableHead className="text-right">{ReportCommonLabel.AMOUNT}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {/* Income Section */}
-              <TableRow className="bg-green-100 font-semibold">
-                <TableCell colSpan={2}>【收入】</TableCell>
-              </TableRow>
-              {statement.income.categories.map((cat) => renderCategory(cat, 'income'))}
-              <TableRow className="bg-green-200 font-bold">
-                <TableCell>收入總計</TableCell>
+              <TableRow className="bg-green-50 font-black text-green-900 hover:bg-green-50">
+                <TableCell>
+                  {IncomeStatementCategoryLabel[IncomeStatementCategory.INCOME]}
+                </TableCell>
                 <TableCell className="text-right">
                   {formatCurrency(statement.income.total)}
                 </TableCell>
               </TableRow>
+              {statement.income.categories.map((cat) => renderCategory(cat, 'income'))}
 
               {/* Spacer */}
               <TableRow className="h-4">
@@ -171,26 +190,27 @@ const IncomeStatementView: React.FC<IncomeStatementViewProps> = ({
               </TableRow>
 
               {/* Expense Section */}
-              <TableRow className="bg-red-100 font-semibold">
-                <TableCell colSpan={2}>【支出】</TableCell>
-              </TableRow>
-              {statement.expense.categories.map((cat) => renderCategory(cat, 'expense'))}
-              <TableRow className="bg-red-200 font-bold">
-                <TableCell>支出總計</TableCell>
-                <TableCell className="text-right">
+              <TableRow className="bg-red-50 font-black text-red-900 hover:bg-red-50">
+                <TableCell>
+                  {IncomeStatementCategoryLabel[IncomeStatementCategory.EXPENSE]}
+                </TableCell>
+                <TableCell className="text-right text-red-600">
                   {formatCurrency(statement.expense.total)}
                 </TableCell>
               </TableRow>
+              {statement.expense.categories.map((cat) => renderCategory(cat, 'expense'))}
 
               {/* Net Income */}
               <TableRow className="h-4">
                 <TableCell colSpan={2}></TableCell>
               </TableRow>
-              <TableRow
-                className={`font-bold text-lg ${statement.netIncome >= 0 ? 'bg-green-300' : 'bg-red-300'}`}
-              >
-                <TableCell>【本期損益】</TableCell>
-                <TableCell className="text-right">
+              <TableRow className={`border-t-2 border-slate-300 font-bold bg-slate-50`}>
+                <TableCell className="text-lg">
+                  {IncomeStatementReportLabel.NET_INCOME_SUMMARY}
+                </TableCell>
+                <TableCell
+                  className={`text-right text-lg ${statement.netIncome >= 0 ? 'text-green-600' : 'text-red-600'}`}
+                >
                   {statement.netIncome >= 0 ? '+' : ''}
                   {formatCurrency(statement.netIncome)}
                 </TableCell>

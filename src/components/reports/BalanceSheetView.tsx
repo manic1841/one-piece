@@ -1,101 +1,209 @@
 import React from 'react';
 
-import type { BalanceSheet, BalanceSheetCategory } from '../../schemas/balanceSheet';
-import { formatCurrency } from '../../utils/formatUtils';
-import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
+import { ChevronDown, ChevronUp } from 'lucide-react';
+
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import {
+  AssetSubCategoryLabel,
+  BalanceSheetCategoryLabel,
+  BalanceSheetReportLabel,
+  EquitySubCategoryLabel,
+  LiabilitySubCategoryLabel,
+  ReportCommonLabel,
+} from '@/constants/finance/financeLabel';
+import type { BalanceSheetView as BalanceSheetViewData } from '@/domains/finance/mappers/reportToView';
+import { BalanceSheetCategory } from '@/domains/finance/types/categories';
+import { formatCurrency } from '@/utils/formatUtils';
 
 interface BalanceSheetViewProps {
-  balanceSheet: BalanceSheet;
+  balanceSheet: BalanceSheetViewData;
 }
 
 const BalanceSheetView: React.FC<BalanceSheetViewProps> = ({ balanceSheet }) => {
-  const renderCategory = (category: BalanceSheetCategory) => (
-    <div key={category.category} className="mb-4">
-      <h4 className="font-medium text-sm text-muted-foreground mb-2">{category.category}</h4>
-      <div className="space-y-1 pl-4">
-        {category.items.map((item) => (
-          <div key={item.id} className="flex justify-between text-sm">
-            <span>{item.name}</span>
-            <span className="font-mono">{formatCurrency(item.amount)}</span>
-          </div>
-        ))}
-        <div className="flex justify-between text-sm font-medium pt-1 border-t">
-          <span>小計</span>
-          <span className="font-mono">{formatCurrency(category.subtotal)}</span>
-        </div>
-      </div>
-    </div>
-  );
+  const [expandedItems, setExpandedItems] = React.useState<Set<string>>(new Set());
+
+  const toggleItem = (itemId: string) => {
+    const newExpanded = new Set(expandedItems);
+    if (newExpanded.has(itemId)) {
+      newExpanded.delete(itemId);
+    } else {
+      newExpanded.add(itemId);
+    }
+    setExpandedItems(newExpanded);
+  };
+
+  const renderSection = (
+    title: string,
+    categories: Array<{
+      category: string;
+      subtotal: number;
+      items: Array<{ id: string; name: string; amount: number }>;
+    }>,
+    sectionKey: string,
+  ) => {
+    return (
+      <React.Fragment key={sectionKey}>
+        {/* Section Header */}
+        <TableRow className="bg-slate-100 font-bold hover:bg-slate-100">
+          <TableCell colSpan={2}>{title}</TableCell>
+        </TableRow>
+
+        {categories.length === 0 ? (
+          <TableRow>
+            <TableCell colSpan={2} className="text-center text-muted-foreground py-2 text-sm">
+              {ReportCommonLabel.NO_DATA}
+            </TableCell>
+          </TableRow>
+        ) : (
+          categories.map((cat, idx) => renderCategory(cat, `${sectionKey}-${idx}`))
+        )}
+      </React.Fragment>
+    );
+  };
+
+  const renderCategory = (
+    category: {
+      category: string;
+      subtotal: number;
+      items: Array<{ id: string; name: string; amount: number }>;
+    },
+    key: string,
+  ) => {
+    const isExpanded = expandedItems.has(key);
+    const hasItems = category.items.length > 0;
+
+    const allSubLabels = {
+      ...AssetSubCategoryLabel,
+      ...LiabilitySubCategoryLabel,
+      ...EquitySubCategoryLabel,
+    };
+    const localizedCategory =
+      (allSubLabels as Record<string, string>)[category.category] || category.category;
+
+    return (
+      <React.Fragment key={key}>
+        <TableRow
+          className="cursor-pointer hover:bg-slate-50"
+          onClick={() => hasItems && toggleItem(key)}
+        >
+          <TableCell className="pl-6">
+            <div className="flex items-center gap-2">
+              {hasItems && (
+                <span className="text-slate-400">
+                  {isExpanded ? (
+                    <ChevronUp className="h-4 w-4" />
+                  ) : (
+                    <ChevronDown className="h-4 w-4" />
+                  )}
+                </span>
+              )}
+              {localizedCategory}
+            </div>
+          </TableCell>
+          <TableCell className="text-right font-medium">
+            {formatCurrency(category.subtotal)}
+          </TableCell>
+        </TableRow>
+
+        {isExpanded &&
+          category.items.map((item) => (
+            <TableRow key={item.id} className="bg-slate-50/30 text-slate-500 text-xs">
+              <TableCell className="pl-16">{item.name}</TableCell>
+              <TableCell className="text-right">{formatCurrency(item.amount)}</TableCell>
+            </TableRow>
+          ))}
+      </React.Fragment>
+    );
+  };
 
   return (
     <div className="space-y-6">
-      {/* Assets Section */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <span>💰</span>
-            <span>資產</span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {balanceSheet.assets.current.map(renderCategory)}
-          {balanceSheet.assets.investment.map(renderCategory)}
-          {balanceSheet.assets.fixed.map(renderCategory)}
-
-          <div className="flex justify-between font-bold text-lg pt-4 border-t-2">
-            <span>資產總計</span>
-            <span className="font-mono text-blue-600">
-              {formatCurrency(balanceSheet.assets.total)}
-            </span>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Liabilities Section */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <span>📌</span>
-            <span>負債</span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {balanceSheet.liabilities.shortTerm.map(renderCategory)}
-          {balanceSheet.liabilities.longTerm.map(renderCategory)}
-
-          {balanceSheet.liabilities.total === 0 ? (
-            <p className="text-muted-foreground text-sm">目前無負債</p>
-          ) : (
-            <div className="flex justify-between font-bold text-lg pt-4 border-t-2">
-              <span>負債總計</span>
-              <span className="font-mono text-red-600">
-                {formatCurrency(balanceSheet.liabilities.total)}
-              </span>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Net Worth Section */}
-      <Card className="border-2 border-primary">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <span>✨</span>
-            <span>淨資產</span>
-          </CardTitle>
+          <CardTitle className="text-xl font-bold">{BalanceSheetReportLabel.TITLE}</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex justify-between items-center">
-            <span className="text-lg">淨資產</span>
-            <span
-              className={`text-3xl font-bold font-mono ${
-                balanceSheet.netWorth >= 0 ? 'text-green-600' : 'text-red-600'
-              }`}
-            >
-              {formatCurrency(balanceSheet.netWorth)}
-            </span>
-          </div>
-          <p className="text-xs text-muted-foreground mt-2">淨資產 = 資產總計 - 負債總計</p>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>{ReportCommonLabel.SUBJECT}</TableHead>
+                <TableHead className="text-right">{ReportCommonLabel.AMOUNT}</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {/* ASSETS SECTION */}
+              <TableRow className="bg-blue-50 font-black text-blue-900 hover:bg-blue-50">
+                <TableCell>{BalanceSheetCategoryLabel[BalanceSheetCategory.ASSET]}</TableCell>
+                <TableCell className="text-right">
+                  {formatCurrency(balanceSheet.assets.total)}
+                </TableCell>
+              </TableRow>
+              {renderSection(
+                BalanceSheetReportLabel.CURRENT_ASSETS,
+                balanceSheet.assets.current,
+                'assets-current',
+              )}
+              {renderSection(
+                BalanceSheetReportLabel.INVESTMENT_ASSETS,
+                balanceSheet.assets.investment,
+                'assets-investment',
+              )}
+              {renderSection(
+                BalanceSheetReportLabel.FIXED_ASSETS,
+                balanceSheet.assets.fixed,
+                'assets-fixed',
+              )}
+
+              <TableRow className="h-4">
+                <TableCell colSpan={2} />
+              </TableRow>
+
+              {/* LIABILITIES SECTION */}
+              <TableRow className="bg-red-50 font-black text-red-900 hover:bg-red-50">
+                <TableCell>{BalanceSheetCategoryLabel[BalanceSheetCategory.LIABILITY]}</TableCell>
+                <TableCell className="text-right text-red-600">
+                  {formatCurrency(balanceSheet.liabilities.total)}
+                </TableCell>
+              </TableRow>
+              {renderSection(
+                BalanceSheetReportLabel.SHORT_TERM_LIABILITIES,
+                balanceSheet.liabilities.shortTerm,
+                'liabilities-short',
+              )}
+              {renderSection(
+                BalanceSheetReportLabel.LONG_TERM_LIABILITIES,
+                balanceSheet.liabilities.longTerm,
+                'liabilities-long',
+              )}
+
+              <TableRow className="h-4">
+                <TableCell colSpan={2} />
+              </TableRow>
+
+              {/* EQUITY SECTION */}
+              <TableRow className="border-t-2 border-slate-300 font-bold bg-slate-50">
+                <TableCell className="text-lg">{BalanceSheetReportLabel.NET_WORTH}</TableCell>
+                <TableCell
+                  className={`text-right text-lg ${balanceSheet.netWorth >= 0 ? 'text-green-600' : 'text-red-600'}`}
+                >
+                  {formatCurrency(balanceSheet.netWorth)}
+                </TableCell>
+              </TableRow>
+              <TableRow>
+                <TableCell colSpan={2} className="text-xs text-muted-foreground pt-2 pl-4">
+                  {BalanceSheetReportLabel.NET_WORTH_NOTE}
+                </TableCell>
+              </TableRow>
+            </TableBody>
+          </Table>
         </CardContent>
       </Card>
     </div>

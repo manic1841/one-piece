@@ -161,7 +161,7 @@ export const EquitySubCategoryLabel = {
   [EquitySubCategory.RETAINED_EARNINGS]: '保留盈餘',
   [EquitySubCategory.OWNER_INVESTMENTS]: '業主投資',
   [EquitySubCategory.STOCK_PROFIT]: '股票利潤',
-  [EquitySubCategory.OTHER_EQUITY]: '其他權益',
+  [EquitySubCategory.OTHER_EQUITY]: '權益項目',
 };
 
 export const EquitySubCategoryOptions = Object.entries(EquitySubCategoryLabel).map(
@@ -170,3 +170,51 @@ export const EquitySubCategoryOptions = Object.entries(EquitySubCategoryLabel).m
     label: value,
   }),
 );
+
+// --- Report UI Common Labels ---
+export const ReportCommonLabel = {
+  SUBJECT: '科目',
+  AMOUNT: '金額',
+  TOTAL: '總計',
+  SUBTOTAL: '小計',
+  DETAILS: '明細',
+  NO_DATA: '無資料',
+  NO_ACTIVITY: '無顯著活動',
+  DATE_RANGE: '期間',
+  GENERATED_AT: '生成時間',
+};
+
+// --- Report Specific Labels ---
+export const CashFlowReportLabel = {
+  TITLE: '現金流量表',
+  ITEM: '活動項目',
+  INFLOW: '【現金流入】',
+  OUTFLOW: '【現金流出】',
+  NET_CHANGE: '【現金淨增減】',
+  BEGINNING_BALANCE: '期初現金 (估計)',
+  ENDING_BALANCE: '期末現金 (估計)',
+  OPERATING: '營業活動',
+  INVESTING: '投資活動',
+  FINANCING: '融資活動',
+};
+
+export const BalanceSheetReportLabel = {
+  TITLE: '資產負債表',
+  ASSETS: '資產',
+  LIABILITIES: '負債',
+  NET_WORTH: '【淨資產】',
+  NET_WORTH_NOTE: '* 淨資產 = 資產總額 - 負債總額',
+  CURRENT_ASSETS: '流動資產',
+  INVESTMENT_ASSETS: '投資資產',
+  FIXED_ASSETS: '固定資產',
+  SHORT_TERM_LIABILITIES: '短期負債',
+  LONG_TERM_LIABILITIES: '長期負債',
+};
+
+export const IncomeStatementReportLabel = {
+  TITLE: '損益表',
+  INCOME_TOTAL: '收入總計',
+  EXPENSE_TOTAL: '支出總計',
+  NET_INCOME: '本期損益',
+  NET_INCOME_SUMMARY: '【本期損益】',
+};

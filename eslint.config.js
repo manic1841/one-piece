@@ -56,44 +56,6 @@ export default tseslint.config(
 
       // No God Objects: 一個檔案一個 class
       'max-classes-per-file': ['warn', 1],
-
-      // Import Sorting: 使用 eslint-plugin-import 自動排序
-      'import/order': [
-        'error',
-        {
-          groups: [
-            'builtin', // Node.js built-in modules
-            'external', // npm packages
-            'internal', // Aliased modules
-            'parent', // ../
-            'sibling', // ./
-            'index', // ./index
-          ],
-          pathGroups: [
-            {
-              pattern: '@/**',
-              group: 'internal',
-              position: 'before',
-            },
-          ],
-          'newlines-between': 'always',
-          alphabetize: {
-            order: 'asc',
-            caseInsensitive: true,
-          },
-        },
-      ],
-
-      // Sort named imports within a single import statement
-      'sort-imports': [
-        'error',
-        {
-          ignoreCase: true,
-          ignoreDeclarationSort: true, // 讓 import/order 處理 import 語句順序
-          ignoreMemberSort: false, // 排序 import 內的成員
-          memberSyntaxSortOrder: ['none', 'all', 'multiple', 'single'],
-        },
-      ],
     },
   },
   {
