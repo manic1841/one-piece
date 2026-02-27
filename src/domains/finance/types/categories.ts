@@ -60,6 +60,7 @@ export const EquitySubCategory = {
   OWNER_INVESTMENTS: 'owner_investments',
   STOCK_PROFIT: 'stock_profit',
   OTHER_EQUITY: 'other_equity',
+  RECONCILIATION: 'reconciliation',
 } as const;
 
 export type EquitySubCategory = (typeof EquitySubCategory)[keyof typeof EquitySubCategory];

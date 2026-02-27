@@ -162,6 +162,7 @@ export const EquitySubCategoryLabel = {
   [EquitySubCategory.OWNER_INVESTMENTS]: '業主投資',
   [EquitySubCategory.STOCK_PROFIT]: '股票利潤',
   [EquitySubCategory.OTHER_EQUITY]: '權益項目',
+  [EquitySubCategory.RECONCILIATION]: '平帳調整',
 };
 
 export const EquitySubCategoryOptions = Object.entries(EquitySubCategoryLabel).map(
@@ -182,6 +183,7 @@ export const ReportCommonLabel = {
   NO_ACTIVITY: '無顯著活動',
   DATE_RANGE: '期間',
   GENERATED_AT: '生成時間',
+  ADJUSTMENTS: '系統自動調整',
 };
 
 // --- Report Specific Labels ---
@@ -209,6 +211,7 @@ export const BalanceSheetReportLabel = {
   FIXED_ASSETS: '固定資產',
   SHORT_TERM_LIABILITIES: '短期負債',
   LONG_TERM_LIABILITIES: '長期負債',
+  CASH_RECONCILIATION: '現金平帳',
 };
 
 export const IncomeStatementReportLabel = {

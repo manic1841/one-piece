@@ -18,6 +18,7 @@ type ReportView = IncomeStatementView | BalanceSheetView | CashFlowView;
 interface UseFinancialReportPageProps {
   householdId: string | undefined;
   reportType: ReportType;
+  externalDate?: Date;
 }
 
 interface UseFinancialReportPageReturn<T extends ReportView> {
@@ -31,16 +32,20 @@ interface UseFinancialReportPageReturn<T extends ReportView> {
   isCurrentMonth: () => boolean;
   formatMonthYear: (date: Date) => string;
   reload: () => void;
+  jumpToDate: (date: Date) => void;
 }
 
 export function useFinancialReportPage<T extends ReportView>({
   householdId,
   reportType,
+  externalDate,
 }: UseFinancialReportPageProps): UseFinancialReportPageReturn<T> {
   const [report, setReport] = useState<T | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [currentDate, setCurrentDate] = useState<Date>(new Date());
+  const [internalDate, setInternalDate] = useState<Date>(new Date());
+
+  const currentDate = externalDate || internalDate;
 
   const getErrorMessage = (type: ReportType): string => {
     const messages = {
@@ -108,16 +113,20 @@ export function useFinancialReportPage<T extends ReportView>({
 
   const handlePreviousMonth = useCallback(() => {
     const newDate = new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1);
-    setCurrentDate(newDate);
+    setInternalDate(newDate);
   }, [currentDate]);
 
   const handleNextMonth = useCallback(() => {
     const newDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1);
-    setCurrentDate(newDate);
+    setInternalDate(newDate);
   }, [currentDate]);
 
   const handleCurrentMonth = useCallback(() => {
-    setCurrentDate(new Date());
+    setInternalDate(new Date());
+  }, []);
+
+  const jumpToDate = useCallback((date: Date) => {
+    setInternalDate(date);
   }, []);
 
   const isCurrentMonth = useCallback(() => {
@@ -146,5 +155,6 @@ export function useFinancialReportPage<T extends ReportView>({
     isCurrentMonth,
     formatMonthYear,
     reload,
+    jumpToDate,
   };
 }

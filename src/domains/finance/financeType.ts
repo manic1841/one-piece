@@ -12,6 +12,7 @@ export const BalanceSheetSourceType = {
   ACCOUNT: 'account',
   PROJECT: 'project',
   MANUAL: 'manual',
+  SYSTEM: 'system',
 } as const;
 
 export type BalanceSheetSourceType =
@@ -23,6 +24,7 @@ export const IncomeStatementSourceType = {
   PROJECT: 'project',
   MANUAL: 'manual',
   PLANNED_INCOME: 'plannedIncome',
+  SYSTEM: 'system',
 } as const;
 
 export type IncomeStatementSourceType =
@@ -33,6 +35,7 @@ export const CashFlowSourceType = {
   ACCOUNT: 'account',
   PROJECT: 'project',
   MANUAL: 'manual',
+  SYSTEM: 'system',
 } as const;
 
 export type CashFlowSourceType = (typeof CashFlowSourceType)[keyof typeof CashFlowSourceType];

@@ -191,6 +191,15 @@ describe('Financial Report Service - Granular Tests', () => {
       createdAt: Timestamp.now(),
     };
 
+    // Current Month Snapshot (Jan 2025): -207,500 (To align with expected ending balance and prevent automatic reconciliation)
+    mockDb[`households/${householdId}/accounts/${accountId}/snapshots/${accountId}_2025-01`] = {
+      id: `${accountId}_2025-01`,
+      year: 2025,
+      month: 1,
+      amount: -207500,
+      createdAt: Timestamp.now(),
+    };
+
     // Act
     const reports = await financialReportService.generateFinancialReports(
       householdId,

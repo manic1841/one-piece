@@ -1,7 +1,5 @@
 import React from 'react';
 
-import { ArrowLeft } from 'lucide-react';
-
 import { Button } from '@/components/ui/button';
 
 interface ReportLoadingStateProps {
@@ -23,17 +21,12 @@ export const ReportLoadingState: React.FC<ReportLoadingStateProps> = ({
 
 interface ReportErrorStateProps {
   error: string;
-  onBack: () => void;
   onRetry: () => void;
 }
 
-export const ReportErrorState: React.FC<ReportErrorStateProps> = ({ error, onBack, onRetry }) => {
+export const ReportErrorState: React.FC<ReportErrorStateProps> = ({ error, onRetry }) => {
   return (
     <div className="space-y-4">
-      <Button variant="ghost" onClick={onBack}>
-        <ArrowLeft className="mr-2 h-4 w-4" />
-        返回
-      </Button>
       <div className="flex items-center justify-center h-96">
         <div className="text-center">
           <p className="text-red-600 font-medium">{error}</p>

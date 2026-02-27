@@ -384,6 +384,24 @@ describe('Financial Report Service - Granular Tests', () => {
       createdAt: Timestamp.now(),
     };
 
+    // 5. Add Balancing Asset (Bank Account)
+    const accountId = 'acc_equity_balance';
+    mockDb[`households/${householdId}/accounts/${accountId}`] = {
+      id: accountId,
+      name: 'Equity Balancing Account',
+      type: 'bank',
+      category: AccountCategory.BANK,
+      currency: CurrencyType.TWD,
+      createdAt: Timestamp.now(),
+    };
+    mockDb[`households/${householdId}/accounts/${accountId}/snapshots/${accountId}_2025-01`] = {
+      id: `${accountId}_2025-01`,
+      year: 2025,
+      month: 1,
+      amount: 161000,
+      createdAt: Timestamp.now(),
+    };
+
     // Act
     const reports = await financialReportService.generateFinancialReports(
       householdId,

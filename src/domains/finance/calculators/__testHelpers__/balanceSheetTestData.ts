@@ -10,7 +10,7 @@ import { createAccountSnapshot, createProjectWithSnapshot } from '@/test/factory
 
 // Test data sets
 export const cashAccountsData = {
-  accountSnapshots: [
+  accountWithSnapshots: [
     {
       id: 'account1',
       name: 'Cash 1',
@@ -150,11 +150,21 @@ export const equityData = {
       },
     ),
   ],
-  accountWithSnapshots: [] as AccountWithSnapshot[],
+  accountWithSnapshots: [
+    {
+      id: 'cash_acc',
+      name: 'Cash for Equity',
+      category: 'cash',
+      snapshot: createAccountSnapshot({
+        id: 'cash_acc',
+        amount: 8000,
+      }),
+    },
+  ],
 };
 
 export const mixedBalanceSheetData = {
-  accountSnapshots: [
+  accountWithSnapshots: [
     {
       id: 'account1',
       name: 'Cash 1',
@@ -232,7 +242,7 @@ export const emptyData = {
 };
 
 export const aggregationData = {
-  accountSnapshots: [
+  accountWithSnapshots: [
     {
       id: 'account1',
       name: 'Cash 1',

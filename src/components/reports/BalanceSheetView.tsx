@@ -1,6 +1,6 @@
 import React from 'react';
 
-import { ChevronDown, ChevronUp } from 'lucide-react';
+import { ChevronDown, ChevronUp, Landmark, Scale, Wallet } from 'lucide-react';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -21,6 +21,7 @@ import {
 } from '@/constants/finance/financeLabel';
 import type { BalanceSheetView as BalanceSheetViewData } from '@/domains/finance/mappers/reportToView';
 import { BalanceSheetCategory } from '@/domains/finance/types/categories';
+import { formatDate } from '@/utils/dateUtils';
 import { formatCurrency } from '@/utils/formatUtils';
 
 interface BalanceSheetViewProps {
@@ -126,9 +127,63 @@ const BalanceSheetView: React.FC<BalanceSheetViewProps> = ({ balanceSheet }) => 
 
   return (
     <div className="space-y-6">
+      {/* Header */}
+      <div className="text-center">
+        <h2 className="text-2xl font-bold">{BalanceSheetReportLabel.TITLE}</h2>
+        <p className="text-sm text-muted-foreground mt-1">{formatDate(balanceSheet.asOfDate)}</p>
+      </div>
+
+      {/* Summary Cards */}
+      <div className="grid gap-4 md:grid-cols-3">
+        <Card>
+          <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              {BalanceSheetCategoryLabel[BalanceSheetCategory.ASSET]}
+            </CardTitle>
+            <Wallet className="h-4 w-4 text-blue-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-blue-600">
+              {formatCurrency(balanceSheet.assets.total)}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              {BalanceSheetCategoryLabel[BalanceSheetCategory.LIABILITY]}
+            </CardTitle>
+            <Landmark className="h-4 w-4 text-red-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-red-600">
+              {formatCurrency(balanceSheet.liabilities.total)}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              {BalanceSheetReportLabel.NET_WORTH}
+            </CardTitle>
+            <Scale className="h-4 w-4 text-green-500" />
+          </CardHeader>
+          <CardContent>
+            <div
+              className={`text-2xl font-bold ${balanceSheet.netWorth >= 0 ? 'text-green-600' : 'text-red-600'}`}
+            >
+              {formatCurrency(balanceSheet.netWorth)}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Detailed Table */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-xl font-bold">{BalanceSheetReportLabel.TITLE}</CardTitle>
+          <CardTitle>{ReportCommonLabel.DETAILS}</CardTitle>
         </CardHeader>
         <CardContent>
           <Table>
@@ -189,6 +244,34 @@ const BalanceSheetView: React.FC<BalanceSheetViewProps> = ({ balanceSheet }) => 
               </TableRow>
 
               {/* EQUITY SECTION */}
+              <TableRow className="bg-slate-100 font-black text-slate-900 hover:bg-slate-100">
+                <TableCell>{BalanceSheetCategoryLabel[BalanceSheetCategory.EQUITY]}</TableCell>
+                <TableCell className="text-right">
+                  {formatCurrency(balanceSheet.equity.total)}
+                </TableCell>
+              </TableRow>
+              {balanceSheet.equity.items.map((cat, idx) => renderCategory(cat, `equity-${idx}`))}
+
+              {balanceSheet.adjustments.length > 0 && (
+                <>
+                  <TableRow className="h-4">
+                    <TableCell colSpan={2} />
+                  </TableRow>
+                  <TableRow className="bg-slate-50 font-semibold text-slate-700">
+                    <TableCell colSpan={2}>{ReportCommonLabel.ADJUSTMENTS}</TableCell>
+                  </TableRow>
+                  {balanceSheet.adjustments.map((adj, idx) => (
+                    <TableRow key={`adj-${idx}`} className="text-xs text-slate-500 italic">
+                      <TableCell className="pl-6">{adj.name}</TableCell>
+                      <TableCell className="text-right">{formatCurrency(adj.amount)}</TableCell>
+                    </TableRow>
+                  ))}
+                </>
+              )}
+
+              <TableRow className="h-4">
+                <TableCell colSpan={2} />
+              </TableRow>
               <TableRow className="border-t-2 border-slate-300 font-bold bg-slate-50">
                 <TableCell className="text-lg">{BalanceSheetReportLabel.NET_WORTH}</TableCell>
                 <TableCell

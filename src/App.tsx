@@ -6,10 +6,7 @@ import ProtectedRoute from '@/components/ProtectedRoute';
 import { AuthProvider } from '@/contexts/AuthProvider';
 import AccessDenied from '@/pages/AccessDenied';
 import Accounts from '@/pages/Accounts';
-import BalanceSheetPage from '@/pages/BalanceSheetPage';
-import CashFlowPage from '@/pages/CashFlowPage';
 import Dashboard from '@/pages/Dashboard';
-import IncomeStatementPage from '@/pages/IncomeStatementPage';
 import Login from '@/pages/Login';
 import Onboarding from '@/pages/Onboarding';
 import PortfolioView from '@/pages/PortfolioView';
@@ -52,9 +49,6 @@ function App() {
             <Route path="portfolios" element={<Portfolios />} />
             <Route path="portfolios/:id" element={<PortfolioView />} />
             <Route path="reports" element={<Reports />} />
-            <Route path="reports/income-statement" element={<IncomeStatementPage />} />
-            <Route path="reports/balance-sheet" element={<BalanceSheetPage />} />
-            <Route path="reports/cash-flow" element={<CashFlowPage />} />
             <Route path="retirement" element={<RetirementPlanList />} />
             <Route path="retirement/:id" element={<RetirementPlanDetail />} />
             <Route path="settings" element={<Settings />} />

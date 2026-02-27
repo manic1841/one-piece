@@ -17,7 +17,6 @@ import {
 import { PlannedIncomeCategory } from '../../domains/record/types/categories';
 import { mockDb, resetMockDb } from '../../test/mocks/firebase';
 import { financialReportService } from '../financialReportService';
-import { plannedIncomeService } from '../plannedIncomeService';
 
 describe('Financial Report Service Integration - Full Scenario', () => {
   const householdId = 'household_wang_001';
@@ -273,11 +272,12 @@ describe('Financial Report Service Integration - Full Scenario', () => {
 
     // Check Total Revenue
     const revenue = incomeStatement.data.revenue.total;
+    expect(revenue).toBe(120000);
     // Check Total Expense
     const expenses = incomeStatement.data.expenses.total;
+    expect(expenses).toBe(49000);
     const netIncome = incomeStatement.data.netIncome;
-
-    console.log('Income Statement:', JSON.stringify(incomeStatement.data, null, 2));
+    expect(netIncome).toBe(71000);
 
     // -------------------------------------------------------------------------
     // 9. Verify Cash Flow

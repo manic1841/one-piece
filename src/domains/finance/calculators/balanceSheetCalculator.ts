@@ -1,5 +1,6 @@
 import type { AccountWithSnapshot } from '@/domains/account/types';
 import { AccountCategory } from '@/domains/account/types';
+import { BalanceSheetSourceType } from '@/domains/finance/financeType';
 import {
   AssetSubCategory,
   BalanceSheetCategory,
@@ -23,8 +24,7 @@ export function calculateBalanceSheet(
     (acc) => acc.category === AccountCategory.BANK || acc.category === AccountCategory.CASH,
   );
   const cashTotal = cashAccounts.reduce((sum, acc) => sum + (acc.snapshot?.amount || 0), 0);
-  console.log('cashTotal', cashTotal);
-  if (cashTotal > 0) {
+  if (cashTotal !== 0) {
     logger.debug(`cashTotal: ${cashTotal}`, 'calculateBalanceSheet');
     assetItems.push({
       category: AssetSubCategory.CASH,
@@ -40,7 +40,7 @@ export function calculateBalanceSheet(
     (sum, acc) => sum + (acc.snapshot?.amount || 0),
     0,
   );
-  if (investmentsTotal > 0) {
+  if (investmentsTotal !== 0) {
     logger.debug(`investmentsTotal: ${investmentsTotal}`, 'calculateBalanceSheet');
     assetItems.push({
       category: AssetSubCategory.INVESTMENTS,
@@ -56,7 +56,7 @@ export function calculateBalanceSheet(
     (acc) => acc.category === AccountCategory.OTHER,
   );
   const otherTotal = otherAccounts.reduce((sum, acc) => sum + (acc.snapshot?.amount || 0), 0);
-  if (otherTotal > 0) {
+  if (otherTotal !== 0) {
     logger.debug(`otherTotal: ${otherTotal}`, 'calculateBalanceSheet');
     assetItems.push({
       category: AssetSubCategory.OTHER_ASSETS,
@@ -100,7 +100,6 @@ export function calculateBalanceSheet(
   });
 
   const totalAssets = assetItems.reduce((sum, item) => sum + item.amount, 0);
-  console.log('totalAssets', totalAssets);
 
   // 2. Liabilities
   const liabilityItems: BalanceSheetItem[] = [];
@@ -175,7 +174,19 @@ export function calculateBalanceSheet(
     });
   });
 
+  const explicitEquityTotal = equityItems.reduce((sum, item) => sum + item.amount, 0);
   const totalEquity = totalAssets - totalLiabilities;
+  const imbalance = totalEquity - explicitEquityTotal;
+
+  if (Math.abs(imbalance) > 0.01) {
+    equityItems.push({
+      category: EquitySubCategory.RECONCILIATION,
+      amount: imbalance,
+      subItems: [
+        { name: '自動平帳調整', amount: imbalance, sourceType: BalanceSheetSourceType.SYSTEM },
+      ],
+    });
+  }
 
   return {
     assets: { total: totalAssets, items: assetItems },

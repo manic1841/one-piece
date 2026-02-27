@@ -1,4 +1,5 @@
-import { AssetSubCategory } from '@/domains/finance/types/categories';
+import { CashFlowSourceType } from '@/domains/finance/financeType';
+import { AssetSubCategory, OperatingSubCategory } from '@/domains/finance/types/categories';
 import type { BalanceSheetData, CashFlowData } from '@/schemas';
 
 /**
@@ -16,7 +17,35 @@ export function reconcileReports(
   const cashFlowEnding = cashFlow.endingBalance;
 
   const cashDifference = balanceSheetCash - cashFlowEnding;
-  const cashReconciled = Math.abs(cashDifference) < 0.01; // Tolerance for floating point errors
+  const cashReconciled = Math.abs(cashDifference) < 0.01;
+
+  // Inject reconciliation item if not balanced
+  if (!cashReconciled) {
+    const reconciliationItem = {
+      category: OperatingSubCategory.OTHER_OPERATING,
+      amount: cashDifference,
+      subItems: [
+        {
+          name: '現金流量平帳',
+          amount: cashDifference,
+          sourceType: CashFlowSourceType.SYSTEM,
+        },
+      ],
+    };
+
+    if (cashDifference > 0) {
+      cashFlow.operating.income.push(reconciliationItem);
+    } else {
+      cashFlow.operating.expense.push({
+        ...reconciliationItem,
+        amount: Math.abs(cashDifference),
+      });
+    }
+
+    cashFlow.operating.netAmount += cashDifference;
+    cashFlow.netChange += cashDifference;
+    cashFlow.endingBalance += cashDifference;
+  }
 
   // Check Balance Sheet equation: Assets = Liabilities + Equity
   const totalAssets = balanceSheet.assets.total;

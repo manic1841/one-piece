@@ -1,6 +1,6 @@
 import React from 'react';
 
-import { ChevronDown, ChevronUp } from 'lucide-react';
+import { Activity, Banknote, ChevronDown, ChevronUp, RefreshCw } from 'lucide-react';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -21,6 +21,7 @@ import {
 } from '@/constants/finance/financeLabel';
 import type { CashFlowView as CashFlowViewData } from '@/domains/finance/mappers/reportToView';
 import { CashFlowCategory } from '@/domains/finance/types/categories';
+import { formatDateRange } from '@/utils/dateUtils';
 import { formatCurrency } from '@/utils/formatUtils';
 
 interface CashFlowViewProps {
@@ -166,9 +167,68 @@ const CashFlowView: React.FC<CashFlowViewProps> = ({ cashFlow }) => {
 
   return (
     <div className="space-y-6">
+      {/* Header */}
+      <div className="text-center">
+        <h2 className="text-2xl font-bold">{CashFlowReportLabel.TITLE}</h2>
+        <p className="text-sm text-muted-foreground mt-1">
+          {formatDateRange(cashFlow.startDate, cashFlow.endDate)}
+        </p>
+      </div>
+
+      {/* Summary Cards */}
+      <div className="grid gap-4 md:grid-cols-3">
+        <Card>
+          <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              {CashFlowCategoryLabel[CashFlowCategory.OPERATING]}
+            </CardTitle>
+            <Activity className="h-4 w-4 text-blue-500" />
+          </CardHeader>
+          <CardContent>
+            <div
+              className={`text-2xl font-bold ${cashFlow.operating.netAmount >= 0 ? 'text-green-600' : 'text-red-600'}`}
+            >
+              {formatCurrency(cashFlow.operating.netAmount)}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              {CashFlowReportLabel.NET_CHANGE}
+            </CardTitle>
+            <RefreshCw className="h-4 w-4 text-indigo-500" />
+          </CardHeader>
+          <CardContent>
+            <div
+              className={`text-2xl font-bold ${cashFlow.netChange >= 0 ? 'text-green-600' : 'text-red-600'}`}
+            >
+              {cashFlow.netChange >= 0 ? '+' : ''}
+              {formatCurrency(cashFlow.netChange)}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              {CashFlowReportLabel.ENDING_BALANCE}
+            </CardTitle>
+            <Banknote className="h-4 w-4 text-green-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-green-600">
+              {formatCurrency(cashFlow.endingBalance)}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Detailed Table */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-xl font-bold">{CashFlowReportLabel.TITLE}</CardTitle>
+          <CardTitle>{ReportCommonLabel.DETAILS}</CardTitle>
         </CardHeader>
         <CardContent>
           <Table>
@@ -199,6 +259,24 @@ const CashFlowView: React.FC<CashFlowViewProps> = ({ cashFlow }) => {
                 CashFlowCategoryLabel[CashFlowCategory.FINANCING],
                 cashFlow.financing,
                 'financing',
+              )}
+
+              {/* Summary */}
+              {cashFlow.adjustments.length > 0 && (
+                <>
+                  <TableRow className="h-8">
+                    <TableCell colSpan={2} />
+                  </TableRow>
+                  <TableRow className="bg-slate-50 font-semibold text-slate-700">
+                    <TableCell colSpan={2}>{ReportCommonLabel.ADJUSTMENTS}</TableCell>
+                  </TableRow>
+                  {cashFlow.adjustments.map((adj, idx) => (
+                    <TableRow key={`adj-${idx}`} className="text-xs text-slate-500 italic">
+                      <TableCell className="pl-6">{adj.name}</TableCell>
+                      <TableCell className="text-right">{formatCurrency(adj.amount)}</TableCell>
+                    </TableRow>
+                  ))}
+                </>
               )}
 
               {/* Summary */}
