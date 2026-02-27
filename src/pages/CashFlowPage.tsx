@@ -1,3 +1,5 @@
+import { useNavigate } from 'react-router-dom';
+
 import CashFlowView from '@/components/reports/CashFlowView';
 import { ReportPageLayout } from '@/components/reports/ReportPageLayout';
 import {
@@ -5,11 +7,9 @@ import {
   ReportErrorState,
   ReportLoadingState,
 } from '@/components/reports/ReportStates';
+import { useAuth } from '@/contexts/useAuth';
 import type { CashFlowView as CashFlowStatement } from '@/domains/finance/mappers/reportToView';
 import { useFinancialReportPage } from '@/hooks/pages/useFinancialReportPage';
-import { useNavigate } from 'react-router-dom';
-
-import { useAuth } from '../contexts/useAuth';
 
 export default function CashFlowPage() {
   const navigate = useNavigate();

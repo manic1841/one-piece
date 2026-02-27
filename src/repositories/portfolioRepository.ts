@@ -1,7 +1,9 @@
-import { collection, doc, Timestamp } from 'firebase/firestore';
-import { db } from '../firebase';
-import { PortfolioSchema, type Portfolio } from '../schemas';
+import { Timestamp, collection, doc } from 'firebase/firestore';
+
 import { toDate } from '@/utils/dateUtils';
+
+import { db } from '../firebase';
+import { type Portfolio, PortfolioSchema } from '../schemas';
 import { BaseRepository } from './baseRepository';
 
 type PortfolioFirestore = Omit<Portfolio, 'createdAt' | 'updatedAt'> & {

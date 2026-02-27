@@ -1,9 +1,12 @@
 import React from 'react';
+
 import { ShieldOff } from 'lucide-react';
-import { useAuth } from '../contexts/useAuth';
 import { useNavigate } from 'react-router-dom';
-import { Card, CardContent } from '@/components/ui/card';
+
 import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+
+import { useAuth } from '../contexts/useAuth';
 
 const AccessDenied: React.FC = () => {
   const { logout } = useAuth();
@@ -29,8 +32,8 @@ const AccessDenied: React.FC = () => {
           <h1 className="text-2xl font-bold text-foreground mb-3">Access Denied</h1>
 
           <p className="text-muted-foreground mb-8">
-            You do not have permission to access this application. Please contact the administrator to
-            request access.
+            You do not have permission to access this application. Please contact the administrator
+            to request access.
           </p>
 
           <Button onClick={handleLogout} variant="destructive" className="w-full">

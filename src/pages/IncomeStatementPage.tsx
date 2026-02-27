@@ -1,3 +1,7 @@
+import React from 'react';
+
+import { useNavigate } from 'react-router-dom';
+
 import IncomeStatementView from '@/components/reports/IncomeStatementView';
 import { ReportPageLayout } from '@/components/reports/ReportPageLayout';
 import {
@@ -7,8 +11,6 @@ import {
 } from '@/components/reports/ReportStates';
 import type { IncomeStatementView as IncomeStatement } from '@/domains/finance/mappers/reportToView';
 import { useFinancialReportPage } from '@/hooks/pages/useFinancialReportPage';
-import React from 'react';
-import { useNavigate } from 'react-router-dom';
 
 import { useAuth } from '../contexts/useAuth';
 

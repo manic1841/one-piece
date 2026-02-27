@@ -23,6 +23,7 @@ export function calculateBalanceSheet(
     (acc) => acc.category === AccountCategory.BANK || acc.category === AccountCategory.CASH,
   );
   const cashTotal = cashAccounts.reduce((sum, acc) => sum + (acc.snapshot?.amount || 0), 0);
+  console.log('cashTotal', cashTotal);
   if (cashTotal > 0) {
     logger.debug(`cashTotal: ${cashTotal}`, 'calculateBalanceSheet');
     assetItems.push({
@@ -99,6 +100,7 @@ export function calculateBalanceSheet(
   });
 
   const totalAssets = assetItems.reduce((sum, item) => sum + item.amount, 0);
+  console.log('totalAssets', totalAssets);
 
   // 2. Liabilities
   const liabilityItems: BalanceSheetItem[] = [];

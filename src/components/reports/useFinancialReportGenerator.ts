@@ -1,8 +1,10 @@
+import { useState } from 'react';
+
+import { toast } from 'sonner';
+
 import { useAuth } from '@/contexts/useAuth';
 import type { FinancialReport } from '@/schemas/report';
 import { financialReportService } from '@/services/financialReportService';
-import { useState } from 'react';
-import { toast } from 'sonner';
 
 interface GeneratedReports {
   incomeStatement: FinancialReport;

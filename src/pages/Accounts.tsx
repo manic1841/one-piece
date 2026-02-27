@@ -1,3 +1,5 @@
+import { BarChart3, Plus } from 'lucide-react';
+
 import AccountDetailView from '@/components/accounts/AccountDetailView';
 import AccountForm from '@/components/accounts/AccountForm';
 import { AccountGrid } from '@/components/accounts/AccountGrid';
@@ -8,7 +10,6 @@ import { Card, CardContent } from '@/components/ui/card';
 import { useAuth } from '@/contexts/useAuth';
 import { useAccountPage } from '@/hooks/pages/useAccountPage';
 import { formatCurrency } from '@/utils/formatUtils';
-import { BarChart3, Plus } from 'lucide-react';
 
 const Accounts: React.FC = () => {
   const { userProfile, currentUser } = useAuth();

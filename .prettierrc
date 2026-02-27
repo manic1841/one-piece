@@ -6,7 +6,7 @@
   "tabWidth": 2,
   "arrowParens": "always",
   "plugins": ["@trivago/prettier-plugin-sort-imports"],
-  "importOrder": ["^@core/(.*)$", "^@server/(.*)$", "^@ui/(.*)$", "^[./]"],
+  "importOrder": ["^react$", "^react-dom$", "<THIRD_PARTY_MODULES>", "^@/(.*)$", "^[./]"],
   "importOrderSeparation": true,
   "importOrderSortSpecifiers": true
 }

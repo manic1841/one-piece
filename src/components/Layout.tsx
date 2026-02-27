@@ -1,6 +1,5 @@
-import { Button } from '@/components/ui/button';
-import { useAuth } from '@/contexts/useAuth';
-import { householdService } from '@/services/householdService';
+import React, { useEffect, useState } from 'react';
+
 import clsx from 'clsx';
 import {
   Briefcase,
@@ -13,8 +12,11 @@ import {
   TrendingUp,
   Wallet,
 } from 'lucide-react';
-import React, { useEffect, useState } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+
+import { Button } from '@/components/ui/button';
+import { useAuth } from '@/contexts/useAuth';
+import { householdService } from '@/services/householdService';
 
 import HouseholdSwitcher from './HouseholdSwitcher';
 

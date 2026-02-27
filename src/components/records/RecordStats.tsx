@@ -1,7 +1,10 @@
 import React from 'react';
-import { TrendingUp, TrendingDown } from 'lucide-react';
-import { formatCurrency } from '../../utils/formatUtils';
+
+import { TrendingDown, TrendingUp } from 'lucide-react';
+
 import { Card, CardContent } from '@/components/ui/card';
+
+import { formatCurrency } from '../../utils/formatUtils';
 
 interface RecordStatsProps {
   stats: {

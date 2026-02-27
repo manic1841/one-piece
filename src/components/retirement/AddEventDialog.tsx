@@ -1,23 +1,13 @@
 import { useState } from 'react';
+
 import { Plus } from 'lucide-react';
-import { Button } from '../ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from '../ui/dialog';
-import { Label } from '../ui/label';
-import { Input } from '../ui/input';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '../ui/select';
+
 import type { RetirementOneTimeEvent } from '../../schemas/retirementPlan';
+import { Button } from '../ui/button';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '../ui/dialog';
+import { Input } from '../ui/input';
+import { Label } from '../ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 
 interface AddEventDialogProps {
   onAdd: (event: Omit<RetirementOneTimeEvent, 'id'>) => Promise<void>;
@@ -35,7 +25,7 @@ export default function AddEventDialog({ onAdd, currentYear }: AddEventDialogPro
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!name || !year || !amount) {
       return;
     }
@@ -49,7 +39,7 @@ export default function AddEventDialog({ onAdd, currentYear }: AddEventDialogPro
         amount: parseFloat(amount),
         note: note || undefined,
       });
-      
+
       // Reset form
       setName('');
       setYear(currentYear.toString());
@@ -104,7 +94,10 @@ export default function AddEventDialog({ onAdd, currentYear }: AddEventDialogPro
 
               <div>
                 <Label htmlFor="event-type">Type *</Label>
-                <Select value={type} onValueChange={(value: 'income' | 'expense') => setType(value)}>
+                <Select
+                  value={type}
+                  onValueChange={(value: 'income' | 'expense') => setType(value)}
+                >
                   <SelectTrigger id="event-type">
                     <SelectValue />
                   </SelectTrigger>

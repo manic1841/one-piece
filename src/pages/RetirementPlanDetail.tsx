@@ -1,23 +1,25 @@
-import { useState, useEffect, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Trash2, Calculator, Pencil } from 'lucide-react';
-import { Button } from '../components/ui/button';
-import { Input } from '../components/ui/input';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
-import AssumptionsForm from '../components/retirement/AssumptionsForm';
-import RetirementProjectionChart from '../components/retirement/RetirementProjectionChart';
-import RetirementYearlyTable from '../components/retirement/RetirementYearlyTable';
+import { useCallback, useEffect, useState } from 'react';
+
+import { Timestamp } from 'firebase/firestore';
+import { ArrowLeft, Calculator, Pencil, Trash2 } from 'lucide-react';
+import { useNavigate, useParams } from 'react-router-dom';
+
 import AddEventDialog from '../components/retirement/AddEventDialog';
 import AddRetirementExpenseDialog from '../components/retirement/AddRetirementExpenseDialog';
 import AddRetirementIncomeDialog from '../components/retirement/AddRetirementIncomeDialog';
-import { retirementPlanService } from '../services/retirementPlanService';
-import {
-  calculateRetirementProjection,
-  calculateProjectionSummary,
-} from '../domains/finance/calculators/retirementCalculator';
+import AssumptionsForm from '../components/retirement/AssumptionsForm';
+import RetirementProjectionChart from '../components/retirement/RetirementProjectionChart';
+import RetirementYearlyTable from '../components/retirement/RetirementYearlyTable';
+import { Button } from '../components/ui/button';
+import { Input } from '../components/ui/input';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { useAuth } from '../contexts/useAuth';
+import {
+  calculateProjectionSummary,
+  calculateRetirementProjection,
+} from '../domains/finance/calculators/retirementCalculator';
 import type { RetirementPlan } from '../schemas/retirementPlan';
-import { Timestamp } from 'firebase/firestore';
+import { retirementPlanService } from '../services/retirementPlanService';
 
 export default function RetirementPlanDetail() {
   const { id } = useParams<{ id: string }>();

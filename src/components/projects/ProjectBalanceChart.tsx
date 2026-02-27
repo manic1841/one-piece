@@ -1,13 +1,6 @@
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { TrendingDown, TrendingUp } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
+
+import { TrendingDown, TrendingUp } from 'lucide-react';
 import {
   CartesianGrid,
   Legend,
@@ -18,6 +11,15 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
+
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 import { projectService } from '../../services/projectService';
 import { formatCurrency } from '../../utils/formatUtils';

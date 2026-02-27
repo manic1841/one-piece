@@ -16,8 +16,9 @@
 ## 已實現的 Schemas
 
 ### 核心 Schemas
+
 - `UserProfileSchema` - 用戶資料
-- `HouseholdSchema` - 家庭資料  
+- `HouseholdSchema` - 家庭資料
 - `AccountSchema` - 帳戶資料
 - `BalanceSnapshotSchema` - 餘額快照
 - `TransactionSchema` - 交易記錄
@@ -26,6 +27,7 @@
 - `MonthlyBudgetSchema` - 月度預算
 
 ### 輔助 Schemas
+
 - `TimestampSchema` - Firestore Timestamp 驗證
 - `DateOrTimestampSchema` - 接受 Date、Timestamp 或 ISO 字串
 - `ProjectCategorySchema` - 項目類別枚舉
@@ -37,11 +39,7 @@
 ### 1. 導入 Schema 和工具函數
 
 ```typescript
-import { 
-    UserProfileSchema, 
-    parseWithSchema,
-    parseWithSchemaOptional 
-} from '../schemas';
+import { UserProfileSchema, parseWithSchema, parseWithSchemaOptional } from '../schemas';
 import type { UserProfile } from '../schemas';
 ```
 
@@ -52,7 +50,7 @@ import type { UserProfile } from '../schemas';
 async getUser(id: string): Promise<UserProfile | null> {
     const docRef = doc(db, 'users', id);
     const docSnap = await getDoc(docRef);
-    
+
     if (docSnap.exists()) {
         const data = docSnap.data();
         // 使用 schema 驗證數據
@@ -77,7 +75,7 @@ async getUsers(): Promise<UserProfile[]> {
 async createUser(userData: unknown): Promise<string> {
     // 驗證並轉換用戶輸入
     const validatedUser = parseWithSchema(UserProfileSchema, userData);
-    
+
     // 現在 validatedUser 是完全類型安全的
     await setDoc(doc(db, 'users', validatedUser.uid), validatedUser);
     return validatedUser.uid;
@@ -90,7 +88,7 @@ async createUser(userData: unknown): Promise<string> {
 async getUserOptional(id: string): Promise<UserProfile | null> {
     const docRef = doc(db, 'users', id);
     const docSnap = await getDoc(docRef);
-    
+
     if (docSnap.exists()) {
         const data = docSnap.data();
         // 如果驗證失敗，返回 null 而不拋出錯誤
@@ -103,11 +101,13 @@ async getUserOptional(id: string): Promise<UserProfile | null> {
 ## 工具函數
 
 ### `parseWithSchema<T>(schema, data)`
+
 - 驗證數據並返回類型化結果
 - 驗證失敗時拋出錯誤
 - 用於必須成功的場景
 
 ### `parseWithSchemaOptional<T>(schema, data)`
+
 - 驗證數據並返回類型化結果或 null
 - 驗證失敗時返回 null 並記錄警告
 - 用於可選數據或降級場景
@@ -115,7 +115,9 @@ async getUserOptional(id: string): Promise<UserProfile | null> {
 ## 最佳實踐
 
 ### ✅ 應該做
+
 1. **總是驗證從 Firestore 讀取的數據**
+
    ```typescript
    const data = docSnap.data();
    const validated = parseWithSchema(MySchema, data);
@@ -128,19 +130,21 @@ async getUserOptional(id: string): Promise<UserProfile | null> {
 3. **處理驗證錯誤**
    ```typescript
    try {
-       const validated = parseWithSchema(MySchema, data);
+     const validated = parseWithSchema(MySchema, data);
    } catch (error) {
-       console.error('Validation failed:', error);
-       // 處理錯誤...
+     console.error('Validation failed:', error);
+     // 處理錯誤...
    }
    ```
 
 ### ❌ 不應該做
+
 1. **不要跳過驗證**
+
    ```typescript
    // ❌ 不好
    const user = docSnap.data() as UserProfile;
-   
+
    // ✅ 好
    const user = parseWithSchema(UserProfileSchema, docSnap.data());
    ```
@@ -151,11 +155,13 @@ async getUserOptional(id: string): Promise<UserProfile | null> {
 ## 類型定義遷移
 
 ### 舊方式（僅 TypeScript）
+
 ```typescript
 import { type User } from '../types';
 ```
 
 ### 新方式（Zod + TypeScript）
+
 ```typescript
 import { UserProfileSchema } from '../schemas';
 import type { UserProfile } from '../schemas';
@@ -166,7 +172,7 @@ import type { UserProfile } from '../schemas';
 以下服務已實現 Zod 驗證：
 
 - ✅ `householdService` - 家庭管理
-- ✅ `accountService` - 帳戶管理  
+- ✅ `accountService` - 帳戶管理
 - ✅ `accessControlService` - 訪問控制
 - 🔄 `transactionService` - 進行中
 - 🔄 `budgetService` - 進行中
@@ -210,9 +216,9 @@ Zod 驗證錯誤會提供詳細信息：
 
 ```typescript
 try {
-    const result = parseWithSchema(UserProfileSchema, data);
+  const result = parseWithSchema(UserProfileSchema, data);
 } catch (error) {
-    // Error: Data validation failed: Invalid email, uid must be a string
+  // Error: Data validation failed: Invalid email, uid must be a string
 }
 ```
 

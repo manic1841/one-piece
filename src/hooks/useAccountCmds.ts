@@ -1,6 +1,7 @@
+import { useCallback } from 'react';
+
 import { type AccountCreate, type AccountSnapshotCreate } from '@/domains/account/types';
 import { accountService } from '@/services/accountService';
-import { useCallback } from 'react';
 
 export const useAccountCmds = (householdId?: string, email?: string) => {
   const createAccount = useCallback(

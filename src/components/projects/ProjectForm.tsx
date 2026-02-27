@@ -1,3 +1,5 @@
+import React from 'react';
+
 import AccountingSettings from '@/components/projects/form/AccountingSettings';
 import { ProjectFormFields } from '@/components/projects/form/ProjectFormFields';
 import { useProjectForm } from '@/components/projects/form/useProjectForm';
@@ -13,7 +15,6 @@ import {
 import { Label } from '@/components/ui/label';
 import { type Project } from '@/domains/project/types';
 import { type ProjectArgs } from '@/hooks/pages/useProjectPage';
-import React from 'react';
 
 interface ProjectFormProps {
   isOpen: boolean;

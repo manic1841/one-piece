@@ -1,6 +1,6 @@
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { RecordFormType, type RecordFormData } from '@/domains/record/types';
+import { type RecordFormData, RecordFormType } from '@/domains/record/types';
 
 interface TypeToggleProps {
   type: RecordFormType;

@@ -1,3 +1,7 @@
+import React from 'react';
+
+import { AlertTriangle, CheckCircle, Loader2 } from 'lucide-react';
+
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -7,8 +11,6 @@ import {
   mapToIncomeStatementView,
 } from '@/domains/finance/mappers/reportToView';
 import type { FinancialReport } from '@/schemas/report';
-import { AlertTriangle, CheckCircle, Loader2 } from 'lucide-react';
-import React from 'react';
 
 import BalanceSheetView from './BalanceSheetView';
 import CashFlowView from './CashFlowView';

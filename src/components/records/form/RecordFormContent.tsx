@@ -1,12 +1,13 @@
-import { useRecordForm } from '@/components/records/form/useRecordForm';
-import { TypeToggle } from '@/components/records/form/TypeToggle';
-import { RecordBasicFields } from '@/components/records/form/RecordBasicFields';
 import { ProjectSelection } from '@/components/records/form/ProjectSelection';
-import { DialogFooter } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
+import { RecordBasicFields } from '@/components/records/form/RecordBasicFields';
 import { TransferSettings } from '@/components/records/form/TransferSettings';
+import { TypeToggle } from '@/components/records/form/TypeToggle';
+import { useRecordForm } from '@/components/records/form/useRecordForm';
+import { Button } from '@/components/ui/button';
+import { DialogFooter } from '@/components/ui/dialog';
 import { type Record } from '@/domains/record/types';
 import { RecordFormType } from '@/domains/record/types';
+
 import { IncomeSection } from './IncomeSection';
 
 interface RecordFormContentProps {

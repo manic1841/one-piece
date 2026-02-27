@@ -1,5 +1,6 @@
-import { AccountCategory } from '@/domains/account/types/categories';
 import { z } from 'zod';
+
+import { AccountCategory } from '@/domains/account/types/categories';
 
 import { HoldingSchema } from './account';
 

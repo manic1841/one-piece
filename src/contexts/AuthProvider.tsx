@@ -1,8 +1,5 @@
-import { AuthContext, type AuthContextType } from '@/contexts/AuthContext';
-import { RoleEnum } from '@/domains/auth/role';
-import { auth, googleProvider } from '@/firebase';
-import { type UserProfile } from '@/schemas';
-import { userService } from '@/services/userService';
+import React, { useCallback, useEffect, useState } from 'react';
+
 import {
   type User,
   createUserWithEmailAndPassword,
@@ -11,7 +8,12 @@ import {
   signInWithPopup,
   signOut,
 } from 'firebase/auth';
-import React, { useCallback, useEffect, useState } from 'react';
+
+import { AuthContext, type AuthContextType } from '@/contexts/AuthContext';
+import { RoleEnum } from '@/domains/auth/role';
+import { auth, googleProvider } from '@/firebase';
+import { type UserProfile } from '@/schemas';
+import { userService } from '@/services/userService';
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);

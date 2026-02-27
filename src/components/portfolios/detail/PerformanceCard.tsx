@@ -1,6 +1,8 @@
 import React from 'react';
+
+import { TrendingDown, TrendingUp } from 'lucide-react';
+
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { TrendingUp, TrendingDown } from 'lucide-react';
 
 interface PerformanceCardProps {
   title: string;
@@ -27,11 +29,7 @@ export const PerformanceCard: React.FC<PerformanceCardProps> = ({
       <CardContent>
         <div
           className={`text-2xl font-bold ${
-            valueColor === 'green'
-              ? 'text-green-600'
-              : valueColor === 'red'
-              ? 'text-red-600'
-              : ''
+            valueColor === 'green' ? 'text-green-600' : valueColor === 'red' ? 'text-red-600' : ''
           }`}
         >
           {value}

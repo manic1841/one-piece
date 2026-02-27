@@ -1,6 +1,7 @@
+import { z } from 'zod';
+
 import { AccountCategory, CurrencyType } from '@/domains/account/types/categories';
 import { BaseSchema } from '@/schemas';
-import { z } from 'zod';
 
 // Holding Schema
 export const HoldingSchema = z.object({
@@ -30,9 +31,8 @@ export type AccountSnapshot = z.infer<typeof AccountSnapshotSchema>;
 // Account Schema
 export const AccountCreateSchema = z.object({
   name: z.string(),
-  category: z.nativeEnum(AccountCategory),
-  currency: z.nativeEnum(CurrencyType),
-  type: z.nativeEnum(AccountCategory).optional(), // deprecated
+  category: z.enum(AccountCategory),
+  currency: z.enum(CurrencyType),
   // subcollection
   snapshots: z.array(AccountSnapshotSchema).optional(),
 });

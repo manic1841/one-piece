@@ -1,3 +1,5 @@
+import { z } from 'zod';
+
 import {
   CashFlowCategory,
   type CashFlowData,
@@ -8,7 +10,6 @@ import {
 } from '@/domains/finance/types';
 import type { ProjectWithSnapshot } from '@/domains/project/types';
 import { logger } from '@/utils/logger';
-import { z } from 'zod';
 
 type CashFlowItem = z.infer<typeof CashFlowItemSchema>;
 
@@ -21,6 +22,7 @@ export function calculateCashFlowStatement(
   beginningCash: number,
   netIncome: number = 0,
 ): CashFlowData {
+  console.log('cashFlowCalculator');
   const operatingIncome: CashFlowItem[] = [];
   const operatingExpense: CashFlowItem[] = [];
   const investingIncome: CashFlowItem[] = [];
@@ -64,12 +66,18 @@ export function calculateCashFlowStatement(
   projectsWithSnapshots.forEach((pws) => {
     const project = pws;
     const snapshot = pws.snapshot;
+    console.log('pws', pws);
     if (!project || !snapshot) return;
 
     if (project?.accounting?.cashFlow) {
       const { category, subcategory, order } = project.accounting.cashFlow;
       const income = snapshot.income;
       const expense = snapshot.expense;
+
+      console.log('category', category);
+      console.log('subcategory', subcategory);
+      console.log('income', income);
+      console.log('expense', expense);
 
       // 分別處理收入和支出
       if (category === CashFlowCategory.OPERATING) {

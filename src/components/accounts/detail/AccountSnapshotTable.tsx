@@ -1,3 +1,7 @@
+import React from 'react';
+
+import { Calendar, Pencil, Trash2 } from 'lucide-react';
+
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -8,12 +12,9 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Calendar, Pencil, Trash2 } from 'lucide-react';
-import React from 'react';
-
-import { type AccountSnapshot } from '../../../schemas';
-import { formatDate } from '../../../utils/dateUtils';
-import { formatCurrency } from '../../../utils/formatUtils';
+import { type AccountSnapshot } from '@/schemas';
+import { formatDate } from '@/utils/dateUtils';
+import { formatCurrency } from '@/utils/formatUtils';
 
 interface AccountSnapshotTableProps {
   snapshots: AccountSnapshot[];

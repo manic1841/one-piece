@@ -1,4 +1,5 @@
 import React from 'react';
+
 import type { BalanceSheet, BalanceSheetCategory } from '../../schemas/balanceSheet';
 import { formatCurrency } from '../../utils/formatUtils';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
@@ -40,7 +41,7 @@ const BalanceSheetView: React.FC<BalanceSheetViewProps> = ({ balanceSheet }) => 
           {balanceSheet.assets.current.map(renderCategory)}
           {balanceSheet.assets.investment.map(renderCategory)}
           {balanceSheet.assets.fixed.map(renderCategory)}
-          
+
           <div className="flex justify-between font-bold text-lg pt-4 border-t-2">
             <span>資產總計</span>
             <span className="font-mono text-blue-600">
@@ -61,7 +62,7 @@ const BalanceSheetView: React.FC<BalanceSheetViewProps> = ({ balanceSheet }) => 
         <CardContent className="space-y-4">
           {balanceSheet.liabilities.shortTerm.map(renderCategory)}
           {balanceSheet.liabilities.longTerm.map(renderCategory)}
-          
+
           {balanceSheet.liabilities.total === 0 ? (
             <p className="text-muted-foreground text-sm">目前無負債</p>
           ) : (
@@ -86,15 +87,15 @@ const BalanceSheetView: React.FC<BalanceSheetViewProps> = ({ balanceSheet }) => 
         <CardContent>
           <div className="flex justify-between items-center">
             <span className="text-lg">淨資產</span>
-            <span className={`text-3xl font-bold font-mono ${
-              balanceSheet.netWorth >= 0 ? 'text-green-600' : 'text-red-600'
-            }`}>
+            <span
+              className={`text-3xl font-bold font-mono ${
+                balanceSheet.netWorth >= 0 ? 'text-green-600' : 'text-red-600'
+              }`}
+            >
               {formatCurrency(balanceSheet.netWorth)}
             </span>
           </div>
-          <p className="text-xs text-muted-foreground mt-2">
-            淨資產 = 資產總計 - 負債總計
-          </p>
+          <p className="text-xs text-muted-foreground mt-2">淨資產 = 資產總計 - 負債總計</p>
         </CardContent>
       </Card>
     </div>

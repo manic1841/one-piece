@@ -1,7 +1,8 @@
+import { z } from 'zod';
+
 import { TransactionCategory } from '@/domains/record/types/categories';
 import { TransactionType } from '@/domains/record/types/transactionType';
 import { BaseSchema } from '@/schemas/base';
-import { z } from 'zod';
 
 // Transaction Schema
 export const TransactionCreateSchema = z.object({

@@ -1,7 +1,3 @@
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { AccountTrendPeriodLabels, AccountTrendPeriods } from '@/constants/account/trend';
-import { formatCurrency } from '@/utils/formatUtils';
 import { TrendingUp } from 'lucide-react';
 import {
   CartesianGrid,
@@ -13,6 +9,11 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
+
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { AccountTrendPeriodLabels, AccountTrendPeriods } from '@/constants/account/trend';
+import { formatCurrency } from '@/utils/formatUtils';
 
 import { useAccountTrendChart } from './useAccountTrendChart';
 

@@ -1,7 +1,9 @@
-import { doc, Timestamp, collection } from 'firebase/firestore';
+import { Timestamp, collection, doc } from 'firebase/firestore';
+
+import { toDate } from '@/utils/dateUtils';
+
 import { db } from '../firebase';
 import { type AccessControl, AccessControlSchema } from '../schemas';
-import { toDate } from '@/utils/dateUtils';
 import { BaseRepository } from './baseRepository';
 
 type AccessControlFirestore = {

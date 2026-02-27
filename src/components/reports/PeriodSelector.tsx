@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
+
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+
 import { Button } from '@/components/ui/button';
 import {
   Select,
@@ -8,6 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+
 import { getMonthRange, getQuarterRange, getYearRange } from '../../utils/dateUtils';
 
 export type PeriodType = 'monthly' | 'quarterly' | 'yearly';
@@ -29,7 +32,7 @@ const PeriodSelector: React.FC<PeriodSelectorProps> = ({ onChange }) => {
   // Update parent when period changes
   React.useEffect(() => {
     let range: { start: Date; end: Date };
-    
+
     if (periodType === 'monthly') {
       range = getMonthRange(year, month);
     } else if (periodType === 'quarterly') {
@@ -37,7 +40,7 @@ const PeriodSelector: React.FC<PeriodSelectorProps> = ({ onChange }) => {
     } else {
       range = getYearRange(year);
     }
-    
+
     onChange(range.start, range.end, periodType);
   }, [periodType, year, month, quarter, onChange]);
 
@@ -107,23 +110,13 @@ const PeriodSelector: React.FC<PeriodSelectorProps> = ({ onChange }) => {
 
       {/* Navigation */}
       <div className="flex items-center gap-2">
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={handlePrevious}
-        >
+        <Button variant="outline" size="icon" onClick={handlePrevious}>
           <ChevronLeft className="h-4 w-4" />
         </Button>
-        
-        <div className="min-w-[120px] text-center font-medium">
-          {getPeriodLabel()}
-        </div>
-        
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={handleNext}
-        >
+
+        <div className="min-w-[120px] text-center font-medium">{getPeriodLabel()}</div>
+
+        <Button variant="outline" size="icon" onClick={handleNext}>
           <ChevronRight className="h-4 w-4" />
         </Button>
       </div>

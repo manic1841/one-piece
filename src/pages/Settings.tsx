@@ -1,10 +1,13 @@
 import React, { useMemo } from 'react';
-import { useAuth } from '../contexts/useAuth';
-import { accessControlService } from '../services/accessControlService';
-import EmailWhitelist from '../components/EmailWhitelist';
+
 import { ShieldAlert } from 'lucide-react';
+
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+
+import EmailWhitelist from '../components/EmailWhitelist';
+import { useAuth } from '../contexts/useAuth';
+import { accessControlService } from '../services/accessControlService';
 
 const Settings: React.FC = () => {
   const { currentUser } = useAuth();
@@ -36,7 +39,9 @@ const Settings: React.FC = () => {
                 <ShieldAlert size={32} className="text-red-600" />
               </div>
               <h2 className="text-xl font-semibold text-foreground mb-2">Access Denied</h2>
-              <p className="text-muted-foreground mb-6">Only administrators can access the Settings page.</p>
+              <p className="text-muted-foreground mb-6">
+                Only administrators can access the Settings page.
+              </p>
               <Button variant="outline" onClick={() => window.history.back()}>
                 Go Back
               </Button>

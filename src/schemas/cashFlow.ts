@@ -1,5 +1,6 @@
-import { CashFlowSourceType } from '@/domains/finance/financeType';
 import { z } from 'zod';
+
+import { CashFlowSourceType } from '@/domains/finance/financeType';
 
 // --- Cash Flow Statement Data Structures ---
 export const CashFlowItemSchema = z.object({
@@ -19,25 +20,19 @@ export const CashFlowItemSchema = z.object({
 
 export type CashFlowItem = z.infer<typeof CashFlowItemSchema>;
 
+export const CashFlowSectionSchema = z.object({
+  income: z.array(CashFlowItemSchema),
+  expense: z.array(CashFlowItemSchema),
+  netAmount: z.number(),
+  items: z.array(CashFlowItemSchema),
+});
+
+export type CashFlowSection = z.infer<typeof CashFlowSectionSchema>;
+
 export const CashFlowDataSchema = z.object({
-  operating: z.object({
-    income: z.array(CashFlowItemSchema),
-    expense: z.array(CashFlowItemSchema),
-    netAmount: z.number(),
-    items: z.array(CashFlowItemSchema),
-  }),
-  investing: z.object({
-    income: z.array(CashFlowItemSchema),
-    expense: z.array(CashFlowItemSchema),
-    netAmount: z.number(),
-    items: z.array(CashFlowItemSchema),
-  }),
-  financing: z.object({
-    income: z.array(CashFlowItemSchema),
-    expense: z.array(CashFlowItemSchema),
-    netAmount: z.number(),
-    items: z.array(CashFlowItemSchema),
-  }),
+  operating: CashFlowSectionSchema,
+  investing: CashFlowSectionSchema,
+  financing: CashFlowSectionSchema,
   netChange: z.number(),
   beginningBalance: z.number(),
   endingBalance: z.number(),

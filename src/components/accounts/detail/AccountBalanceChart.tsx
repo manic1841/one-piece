@@ -1,5 +1,5 @@
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import React from 'react';
+
 import {
   CartesianGrid,
   Line,
@@ -10,7 +10,8 @@ import {
   YAxis,
 } from 'recharts';
 
-import { formatCurrency } from '../../../utils/formatUtils';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { formatCurrency } from '@/utils/formatUtils';
 
 interface ChartDataPoint {
   month: string;

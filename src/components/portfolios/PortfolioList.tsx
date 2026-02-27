@@ -1,3 +1,8 @@
+import React, { useCallback, useEffect, useState } from 'react';
+
+import { Briefcase, Plus } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -11,9 +16,6 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Briefcase, Plus } from 'lucide-react';
-import React, { useCallback, useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 
 import { type Account, type Portfolio, type PortfolioSnapshot } from '../../schemas';
 import { accountService } from '../../services/accountService';

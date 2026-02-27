@@ -1,3 +1,5 @@
+import { QueryConstraint, orderBy, runTransaction, where } from 'firebase/firestore';
+
 import {
   PlannedIncomeCategory,
   type PlannedIncomeCreate,
@@ -7,7 +9,6 @@ import { db } from '@/firebase';
 import { plannedIncomeRepository } from '@/repositories/plannedIncomeRepository';
 import { type PlannedIncome } from '@/schemas';
 import { projectTransactionService } from '@/services/projectTransactionService';
-import { QueryConstraint, orderBy, runTransaction, where } from 'firebase/firestore';
 
 class PlannedIncomeService {
   // Create a new planned income and generate project transactions

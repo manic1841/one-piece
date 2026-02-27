@@ -1,10 +1,12 @@
+import type React from 'react';
+
+import { Pencil, Trash2 } from 'lucide-react';
+
 import { useRecordItem } from '@/components/records/useRecordItem';
 import { Button } from '@/components/ui/button';
 import { type Record, RecordType } from '@/domains/record/types';
 import { formatDate } from '@/utils/dateUtils';
 import { formatCurrency } from '@/utils/formatUtils';
-import { Pencil, Trash2 } from 'lucide-react';
-import type React from 'react';
 
 interface RecordItemProps {
   record: Record;

@@ -1,3 +1,7 @@
+import React from 'react';
+
+import { Loader2 } from 'lucide-react';
+
 import GeneratedReportsPreview from '@/components/reports/GeneratedReportsPreview';
 import { useFinancialReportGenerator } from '@/components/reports/useFinancialReportGenerator';
 import { Button } from '@/components/ui/button';
@@ -9,8 +13,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Loader2 } from 'lucide-react';
-import React from 'react';
 
 const FinancialReportGenerator: React.FC = () => {
   const {

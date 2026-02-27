@@ -1,4 +1,7 @@
 import React from 'react';
+
+import { ChevronDown, ChevronUp, TrendingDown, TrendingUp } from 'lucide-react';
+
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Table,
@@ -8,10 +11,10 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { TrendingUp, TrendingDown, ChevronDown, ChevronUp } from 'lucide-react';
-import { formatCurrency } from '../../utils/formatUtils';
+
+import type { CategoryGroup, IncomeStatement } from '../../schemas';
 import { formatDateRange } from '../../utils/dateUtils';
-import type { IncomeStatement, CategoryGroup } from '../../schemas';
+import { formatCurrency } from '../../utils/formatUtils';
 
 interface IncomeStatementViewProps {
   statement: IncomeStatement;

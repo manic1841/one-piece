@@ -1,5 +1,6 @@
-import { describe, it, expect } from 'vitest';
-import { formatCurrency, formatPercentage, formatCompactNumber } from './formatUtils';
+import { describe, expect, it } from 'vitest';
+
+import { formatCompactNumber, formatCurrency, formatPercentage } from './formatUtils';
 
 describe('formatUtils', () => {
   describe('formatCurrency', () => {

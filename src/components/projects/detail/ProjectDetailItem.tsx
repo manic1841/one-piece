@@ -1,8 +1,9 @@
+import { TrendingDown, TrendingUp } from 'lucide-react';
+
 import { useProjectDetailItem } from '@/components/projects/detail/useProjectDetailItem';
 import { type ProjectDetailData } from '@/domains/project/types';
 import { toDateString } from '@/utils/dateUtils';
 import { formatCurrency } from '@/utils/formatUtils';
-import { TrendingDown, TrendingUp } from 'lucide-react';
 
 interface ProjectDetailItemProps {
   item: ProjectDetailData;

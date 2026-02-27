@@ -1,6 +1,7 @@
 import React from 'react';
-import { useAuth } from '../contexts/useAuth';
+
 import PortfolioList from '../components/portfolios/PortfolioList';
+import { useAuth } from '../contexts/useAuth';
 
 const Portfolios: React.FC = () => {
   const { userProfile } = useAuth();

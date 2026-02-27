@@ -1,7 +1,8 @@
+import { useCallback, useEffect, useState } from 'react';
+
 import { toDetailItem } from '@/domains/project/mappers/toDetailItem';
 import { type ProjectDetailData } from '@/domains/project/types';
 import { useProjectCmds } from '@/hooks/useProjectCmds';
-import { useCallback, useEffect, useState } from 'react';
 
 export const useProjectDetailView = (householdId?: string, projectId?: string) => {
   const { getRecords } = useProjectCmds(householdId);

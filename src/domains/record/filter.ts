@@ -1,4 +1,4 @@
-import { RecordFilterType, type Record, RecordType, TransactionType } from '@/domains/record/types';
+import { type Record, RecordFilterType, RecordType, TransactionType } from '@/domains/record/types';
 
 export const filterRecords = (records: Record[], filters: RecordFilterType) => {
   // exclude records with incomeSource (allocated planned incomes)

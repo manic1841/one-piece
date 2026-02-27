@@ -1,12 +1,15 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import React, { useCallback, useEffect, useState } from 'react';
+
+import { ArrowLeft, Plus } from 'lucide-react';
+import { useNavigate, useParams } from 'react-router-dom';
+
+import { Button } from '@/components/ui/button';
+
 import { type Portfolio, type PortfolioSnapshot } from '../../schemas';
 import { portfolioService } from '../../services/portfolioService';
-import { Button } from '@/components/ui/button';
-import { ArrowLeft, Plus } from 'lucide-react';
 import PortfolioSnapshotForm from './PortfolioSnapshotForm';
-import { PortfolioPerformanceCards } from './detail/PortfolioPerformanceCards';
 import { PortfolioHistoryTable } from './detail/PortfolioHistoryTable';
+import { PortfolioPerformanceCards } from './detail/PortfolioPerformanceCards';
 
 interface PortfolioDetailProps {
   householdId: string;
@@ -26,7 +29,7 @@ const PortfolioDetail: React.FC<PortfolioDetailProps> = ({ householdId, userEmai
     try {
       const p = await portfolioService.getPortfolio(householdId, id);
       setPortfolio(p);
-      
+
       const s = await portfolioService.getSnapshots(householdId, id);
       setSnapshots(s);
     } catch (error) {
@@ -53,7 +56,7 @@ const PortfolioDetail: React.FC<PortfolioDetailProps> = ({ householdId, userEmai
         data.year,
         data.month,
         userEmail,
-        data.cashFlow
+        data.cashFlow,
       );
       loadData(); // Reload to show new snapshot
     } catch (error) {

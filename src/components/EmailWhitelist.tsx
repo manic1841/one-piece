@@ -1,11 +1,14 @@
-import React, { useState, useEffect } from 'react';
-import { useAuth } from '../contexts/useAuth';
-import { accessControlService } from '../services/accessControlService';
-import { Mail, X, Plus } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import React, { useEffect, useState } from 'react';
+
+import { Mail, Plus, X } from 'lucide-react';
+
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+
+import { useAuth } from '../contexts/useAuth';
+import { accessControlService } from '../services/accessControlService';
 
 const EmailWhitelist: React.FC = () => {
   const { currentUser } = useAuth();
@@ -114,7 +117,9 @@ const EmailWhitelist: React.FC = () => {
         </div>
       </CardHeader>
       <CardContent className="space-y-6">
-        {error && <div className="bg-destructive/10 text-destructive p-3 rounded-lg text-sm">{error}</div>}
+        {error && (
+          <div className="bg-destructive/10 text-destructive p-3 rounded-lg text-sm">{error}</div>
+        )}
 
         {/* Add Email Form */}
         <form onSubmit={handleAddEmail} className="space-y-2">

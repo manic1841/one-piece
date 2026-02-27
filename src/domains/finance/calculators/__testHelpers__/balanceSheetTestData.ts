@@ -1,4 +1,4 @@
-import type { AccountSnapshot } from '@/domains/account/types';
+import type { AccountWithSnapshot } from '@/domains/account/types';
 import {
   AssetSubCategory,
   BalanceSheetCategory,
@@ -56,7 +56,7 @@ export const investmentData = {
       },
     ),
   ],
-  accountSnapshots: [] as AccountSnapshot[],
+  accountWithSnapshots: [] as AccountWithSnapshot[],
 };
 
 export const assetsData = {
@@ -100,7 +100,7 @@ export const assetsData = {
       },
     ),
   ],
-  accountSnapshots: [] as AccountSnapshot[],
+  accountWithSnapshots: [] as AccountWithSnapshot[],
 };
 
 export const liabilitiesData = {
@@ -125,7 +125,7 @@ export const liabilitiesData = {
       },
     ),
   ],
-  accountSnapshots: [] as AccountSnapshot[],
+  accountWithSnapshots: [] as AccountWithSnapshot[],
 };
 
 export const equityData = {
@@ -150,7 +150,7 @@ export const equityData = {
       },
     ),
   ],
-  accountSnapshots: [] as AccountSnapshot[],
+  accountWithSnapshots: [] as AccountWithSnapshot[],
 };
 
 export const mixedBalanceSheetData = {
@@ -227,7 +227,7 @@ export const mixedBalanceSheetData = {
 };
 
 export const emptyData = {
-  accountSnapshots: [] as AccountSnapshot[],
+  accountWithSnapshots: [] as AccountWithSnapshot[],
   projectsWithSnapshots: [] as ProjectWithSnapshot[],
 };
 

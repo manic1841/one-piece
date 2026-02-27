@@ -1,3 +1,5 @@
+import { ArrowLeft } from 'lucide-react';
+
 import { AccountSnapshotForm } from '@/components/accounts/AccountSnapshotForm';
 import { AccountBalanceChart } from '@/components/accounts/detail/AccountBalanceChart';
 import { AccountHeader } from '@/components/accounts/detail/AccountHeader';
@@ -6,7 +8,6 @@ import { useAccountDetailView } from '@/components/accounts/detail/useAccountDet
 import { Button } from '@/components/ui/button';
 import { type Account } from '@/domains/account/types';
 import { useAccountSnapshots } from '@/hooks/useAccountSnapshots';
-import { ArrowLeft } from 'lucide-react';
 
 interface AccountDetailViewProps {
   account: Account;

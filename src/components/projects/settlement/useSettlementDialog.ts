@@ -1,7 +1,8 @@
+import { useState } from 'react';
+
 import { type SettlementPreview } from '@/domains/project/types';
 import { type Project } from '@/schemas';
 import { settlementService } from '@/services/settlementService';
-import { useState } from 'react';
 
 export const DialogStatus = {
   SELECTION: 'selection',

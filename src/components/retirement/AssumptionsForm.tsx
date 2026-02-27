@@ -1,8 +1,9 @@
 import { useState } from 'react';
+
+import type { RetirementPlan } from '../../schemas/retirementPlan';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
-import type { RetirementPlan } from '../../schemas/retirementPlan';
 
 interface AssumptionsFormProps {
   plan: RetirementPlan;
@@ -132,7 +133,9 @@ export default function AssumptionsForm({ plan, onSave }: AssumptionsFormProps) 
             id="currentSavings"
             type="number"
             value={formData.currentSavings}
-            onChange={(e) => setFormData({ ...formData, currentSavings: parseFloat(e.target.value) })}
+            onChange={(e) =>
+              setFormData({ ...formData, currentSavings: parseFloat(e.target.value) })
+            }
           />
         </div>
         <div className="space-y-2">
@@ -142,7 +145,9 @@ export default function AssumptionsForm({ plan, onSave }: AssumptionsFormProps) 
             type="number"
             step="0.1"
             value={formData.salaryGrowthRate}
-            onChange={(e) => setFormData({ ...formData, salaryGrowthRate: parseFloat(e.target.value) })}
+            onChange={(e) =>
+              setFormData({ ...formData, salaryGrowthRate: parseFloat(e.target.value) })
+            }
           />
         </div>
         <div className="space-y-2">
@@ -152,7 +157,9 @@ export default function AssumptionsForm({ plan, onSave }: AssumptionsFormProps) 
             type="number"
             step="0.1"
             value={formData.inflationRate}
-            onChange={(e) => setFormData({ ...formData, inflationRate: parseFloat(e.target.value) })}
+            onChange={(e) =>
+              setFormData({ ...formData, inflationRate: parseFloat(e.target.value) })
+            }
           />
         </div>
         <div className="space-y-2">
@@ -162,13 +169,17 @@ export default function AssumptionsForm({ plan, onSave }: AssumptionsFormProps) 
             type="number"
             step="0.1"
             value={formData.investmentReturnRate}
-            onChange={(e) => setFormData({ ...formData, investmentReturnRate: parseFloat(e.target.value) })}
+            onChange={(e) =>
+              setFormData({ ...formData, investmentReturnRate: parseFloat(e.target.value) })
+            }
           />
         </div>
       </div>
       <div className="flex gap-2 mt-6">
         <Button onClick={handleSave}>Save</Button>
-        <Button variant="outline" onClick={handleCancel}>Cancel</Button>
+        <Button variant="outline" onClick={handleCancel}>
+          Cancel
+        </Button>
       </div>
     </div>
   );

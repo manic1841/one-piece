@@ -1,3 +1,6 @@
+import { BrowserRouter, Route, Routes } from 'react-router-dom';
+import { Toaster } from 'sonner';
+
 import Layout from '@/components/Layout';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { AuthProvider } from '@/contexts/AuthProvider';
@@ -17,8 +20,6 @@ import Reports from '@/pages/Reports';
 import RetirementPlanDetail from '@/pages/RetirementPlanDetail';
 import RetirementPlanList from '@/pages/RetirementPlanList';
 import Settings from '@/pages/Settings';
-import { BrowserRouter, Route, Routes } from 'react-router-dom';
-import { Toaster } from 'sonner';
 
 function App() {
   return (

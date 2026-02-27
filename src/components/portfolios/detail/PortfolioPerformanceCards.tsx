@@ -1,14 +1,17 @@
 import React from 'react';
-import { formatCurrency, formatPercentage } from '../../../utils/formatUtils';
-import { formatYearMonth } from '../../../utils/dateUtils';
+
 import { type PortfolioSnapshot } from '../../../schemas';
+import { formatYearMonth } from '../../../utils/dateUtils';
+import { formatCurrency, formatPercentage } from '../../../utils/formatUtils';
 import { PerformanceCard } from './PerformanceCard';
 
 interface PortfolioPerformanceCardsProps {
   latestSnapshot: PortfolioSnapshot | null;
 }
 
-export const PortfolioPerformanceCards: React.FC<PortfolioPerformanceCardsProps> = ({ latestSnapshot }) => {
+export const PortfolioPerformanceCards: React.FC<PortfolioPerformanceCardsProps> = ({
+  latestSnapshot,
+}) => {
   const getTrend = (value: number) => {
     if (value > 0) return 'up';
     if (value < 0) return 'down';
@@ -26,23 +29,37 @@ export const PortfolioPerformanceCards: React.FC<PortfolioPerformanceCardsProps>
       <PerformanceCard
         title="Total Value"
         value={latestSnapshot ? formatCurrency(latestSnapshot.totalValue) : '--'}
-        subValue={latestSnapshot ? formatYearMonth(latestSnapshot.year, latestSnapshot.month) : 'No data'}
+        subValue={
+          latestSnapshot ? formatYearMonth(latestSnapshot.year, latestSnapshot.month) : 'No data'
+        }
       />
-      
+
       <PerformanceCard
         title="Monthly Return"
         value={latestSnapshot ? formatPercentage(latestSnapshot.performance.returnRate, 2) : '--'}
         subValue={latestSnapshot ? formatCurrency(latestSnapshot.performance.gain) : '--'}
         trend={latestSnapshot ? getTrend(latestSnapshot.performance.returnRate) : undefined}
-        valueColor={latestSnapshot ? getValueColor(latestSnapshot.performance.returnRate) : 'default'}
+        valueColor={
+          latestSnapshot ? getValueColor(latestSnapshot.performance.returnRate) : 'default'
+        }
       />
 
       <PerformanceCard
         title="Cumulative Return"
-        value={latestSnapshot ? formatPercentage(latestSnapshot.performance.cumulativeReturnRate, 2) : '--'}
+        value={
+          latestSnapshot
+            ? formatPercentage(latestSnapshot.performance.cumulativeReturnRate, 2)
+            : '--'
+        }
         subValue={latestSnapshot ? formatCurrency(latestSnapshot.performance.cumulativeGain) : '--'}
-        trend={latestSnapshot ? getTrend(latestSnapshot.performance.cumulativeReturnRate) : undefined}
-        valueColor={latestSnapshot ? getValueColor(latestSnapshot.performance.cumulativeReturnRate) : 'default'}
+        trend={
+          latestSnapshot ? getTrend(latestSnapshot.performance.cumulativeReturnRate) : undefined
+        }
+        valueColor={
+          latestSnapshot
+            ? getValueColor(latestSnapshot.performance.cumulativeReturnRate)
+            : 'default'
+        }
       />
 
       <PerformanceCard
@@ -53,4 +70,3 @@ export const PortfolioPerformanceCards: React.FC<PortfolioPerformanceCardsProps>
     </div>
   );
 };
-

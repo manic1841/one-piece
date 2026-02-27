@@ -1,5 +1,6 @@
-import { useProjectCmds } from '@/hooks/useProjectCmds';
 import { useEffect, useState } from 'react';
+
+import { useProjectCmds } from '@/hooks/useProjectCmds';
 
 export const useProjectBalance = (householdId?: string, projectId?: string) => {
   const { getProjectBalance } = useProjectCmds(householdId);

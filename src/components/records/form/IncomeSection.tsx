@@ -1,7 +1,7 @@
-import { ProjectSelection } from '@/components/records/form/ProjectSelection';
-import { type RecordFormData } from '@/domains/record/types';
 import { AllocationButton } from '@/components/records/form/AllocationButton';
 import { AllocationSection } from '@/components/records/form/AllocationSection';
+import { ProjectSelection } from '@/components/records/form/ProjectSelection';
+import { type RecordFormData } from '@/domains/record/types';
 import { type Project } from '@/schemas';
 
 interface IncomeSectionProps {

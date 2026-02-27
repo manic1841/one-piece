@@ -1,6 +1,7 @@
+import React from 'react';
+
 import { Card, CardContent } from '@/components/ui/card';
 import { type Record } from '@/domains/record/types';
-import React from 'react';
 
 import { RecordItem } from './RecordItem';
 
