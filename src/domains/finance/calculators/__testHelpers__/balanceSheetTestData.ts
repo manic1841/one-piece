@@ -11,14 +11,24 @@ import { createAccountSnapshot, createProjectWithSnapshot } from '@/test/factory
 // Test data sets
 export const cashAccountsData = {
   accountSnapshots: [
-    createAccountSnapshot({
+    {
       id: 'account1',
-      amount: 1000,
-    }),
-    createAccountSnapshot({
+      name: 'Cash 1',
+      category: 'cash',
+      snapshot: createAccountSnapshot({
+        id: 'account1',
+        amount: 1000,
+      }),
+    },
+    {
       id: 'account2',
-      amount: 2000,
-    }),
+      name: 'Cash 2',
+      category: 'bank',
+      snapshot: createAccountSnapshot({
+        id: 'account2',
+        amount: 2000,
+      }),
+    },
   ],
   projectsWithSnapshots: [] as ProjectWithSnapshot[],
 };
@@ -145,10 +155,15 @@ export const equityData = {
 
 export const mixedBalanceSheetData = {
   accountSnapshots: [
-    createAccountSnapshot({
+    {
       id: 'account1',
-      amount: 1000,
-    }),
+      name: 'Cash 1',
+      category: 'cash',
+      snapshot: createAccountSnapshot({
+        id: 'account1',
+        amount: 1000,
+      }),
+    },
   ],
   projectsWithSnapshots: [
     createProjectWithSnapshot(
@@ -218,14 +233,24 @@ export const emptyData = {
 
 export const aggregationData = {
   accountSnapshots: [
-    createAccountSnapshot({
+    {
       id: 'account1',
-      amount: 1000,
-    }),
-    createAccountSnapshot({
+      name: 'Cash 1',
+      category: 'cash',
+      snapshot: createAccountSnapshot({
+        id: 'account1',
+        amount: 1000,
+      }),
+    },
+    {
       id: 'account2',
-      amount: 2000,
-    }),
+      name: 'Cash 2',
+      category: 'cash',
+      snapshot: createAccountSnapshot({
+        id: 'account2',
+        amount: 2000,
+      }),
+    },
   ],
   projectsWithSnapshots: [
     createProjectWithSnapshot(

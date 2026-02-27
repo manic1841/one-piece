@@ -1,24 +1,25 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { type Portfolio, type Account, type PortfolioSnapshot } from '../../schemas';
-import { portfolioService } from '../../services/portfolioService';
-import { accountService } from '../../services/accountService';
-import { formatCurrency } from '../../utils/formatUtils';
-import { formatYearMonth } from '../../utils/dateUtils';
 import { Button } from '@/components/ui/button';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Plus, Briefcase } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Dialog,
   DialogContent,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Checkbox } from '@/components/ui/checkbox';
+import { Briefcase, Plus } from 'lucide-react';
+import React, { useCallback, useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+
+import { type Account, type Portfolio, type PortfolioSnapshot } from '../../schemas';
+import { accountService } from '../../services/accountService';
+import { portfolioService } from '../../services/portfolioService';
+import { formatYearMonth } from '../../utils/dateUtils';
+import { formatCurrency } from '../../utils/formatUtils';
 
 interface PortfolioListProps {
   householdId: string;
@@ -79,12 +80,16 @@ const PortfolioList: React.FC<PortfolioListProps> = ({ householdId }) => {
 
     setCreateLoading(true);
     try {
-      await portfolioService.createPortfolio(householdId, {
-        name: newName,
-        description: newDescription,
-        accountIds: selectedAccountIds,
-        isActive: true,
-      });
+      await portfolioService.createPortfolio(
+        householdId,
+        {
+          name: newName,
+          description: newDescription,
+          accountIds: selectedAccountIds,
+          isActive: true,
+        },
+        'test-user@example.com',
+      );
       setIsCreateOpen(false);
       setNewName('');
       setNewDescription('');
@@ -191,7 +196,7 @@ const PortfolioList: React.FC<PortfolioListProps> = ({ householdId }) => {
                       htmlFor={`acc-${account.id}`}
                       className="text-sm font-normal cursor-pointer"
                     >
-                      {account.name} ({account.type})
+                      {account.name} ({account.category})
                     </Label>
                   </div>
                 ))}

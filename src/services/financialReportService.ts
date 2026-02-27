@@ -52,10 +52,6 @@ class FinancialReportService {
     );
 
     // For Cash Flow, we need beginning balance.
-    // Beginning Balance = Previous Month's Ending Balance of Cash & Equivalents.
-    // Or simpler: Current Month's Opening Balance of Cash Accounts?
-    // AccountSnapshot has 'amount' which is closing balance.
-    // We need previous month's account snapshots.
     const prevYear = month === 1 ? year - 1 : year;
     const prevMonth = month === 1 ? 12 : month - 1;
     const prevAccountSnapshots = await accountService.getAccountSnapshots(
@@ -71,7 +67,11 @@ class FinancialReportService {
 
     const balanceSheetData = calculateBalanceSheet(accountSnapshots, projectsWithSnapshots);
 
-    const cashFlowData = calculateCashFlowStatement(projectsWithSnapshots, beginningCash);
+    const cashFlowData = calculateCashFlowStatement(
+      projectsWithSnapshots,
+      beginningCash,
+      incomeStatementData.netIncome,
+    );
 
     // 3. Reconcile
     const reconciliation = reconcileReports(balanceSheetData, cashFlowData);

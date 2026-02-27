@@ -20,7 +20,7 @@ export function calculateBalanceSheet(
 
   // Cash & Equivalents (Accounts)
   const cashAccounts = accountWithSnapshots.filter(
-    (acc) => acc.category === AccountCategory.CASH || acc.category === AccountCategory.BANK,
+    (acc) => acc.category === AccountCategory.BANK || acc.category === AccountCategory.CASH,
   );
   const cashTotal = cashAccounts.reduce((sum, acc) => sum + (acc.snapshot?.amount || 0), 0);
   if (cashTotal > 0) {
@@ -32,7 +32,6 @@ export function calculateBalanceSheet(
     });
   }
 
-  // Investments (Accounts)
   const investmentsAccounts = accountWithSnapshots.filter(
     (acc) => acc.category === AccountCategory.INVESTMENT,
   );
@@ -52,7 +51,6 @@ export function calculateBalanceSheet(
     });
   }
 
-  // Others (Account)
   const otherAccounts = accountWithSnapshots.filter(
     (acc) => acc.category === AccountCategory.OTHER,
   );
@@ -133,8 +131,8 @@ export function calculateBalanceSheet(
     );
     liabilityItems.push({
       category,
-      amount: data.amount,
-      subItems: data.subItems,
+      amount: Math.abs(data.amount),
+      subItems: data.subItems.map((si) => ({ ...si, amount: Math.abs(si.amount) })),
     });
   });
 

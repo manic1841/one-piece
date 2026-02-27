@@ -5,7 +5,7 @@ import {
   BalanceSheetCategory,
   CashFlowCategory,
   IncomeStatementCategory,
-} from '../../finance/types/category';
+} from '../../finance/types/categories';
 import type { ProjectFormData } from '../types/projectForm';
 import { toProject } from './toProject';
 

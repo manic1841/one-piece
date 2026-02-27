@@ -20,7 +20,7 @@ export type Portfolio = z.infer<typeof PortfolioSchema>;
 export const PortfolioAccountSnapshotSchema = z.object({
   accountId: z.string(),
   accountName: z.string(),
-  type: z.enum(AccountCategory),
+  category: z.enum(AccountCategory),
   value: z.number(),
   holdings: z.array(HoldingSchema).optional(),
 });

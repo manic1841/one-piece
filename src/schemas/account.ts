@@ -30,9 +30,9 @@ export type AccountSnapshot = z.infer<typeof AccountSnapshotSchema>;
 // Account Schema
 export const AccountCreateSchema = z.object({
   name: z.string(),
-  type: z.enum(AccountCategory).optional(), // for backward compatibility
-  category: z.enum(AccountCategory).optional(), // for backward compatibility
-  currency: z.enum(CurrencyType),
+  category: z.nativeEnum(AccountCategory),
+  currency: z.nativeEnum(CurrencyType),
+  type: z.nativeEnum(AccountCategory).optional(), // deprecated
   // subcollection
   snapshots: z.array(AccountSnapshotSchema).optional(),
 });

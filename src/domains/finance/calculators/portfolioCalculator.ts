@@ -1,8 +1,8 @@
 import {
-  type PortfolioSnapshot,
-  type PortfolioAccountSnapshot,
-  type AccountSnapshot,
   type Account,
+  type AccountSnapshot,
+  type PortfolioAccountSnapshot,
+  type PortfolioSnapshot,
 } from '../../../schemas';
 
 export interface PortfolioCalculatorInput {
@@ -35,7 +35,7 @@ export function calculatePortfolioSnapshot(
       const accountSnapshot: PortfolioAccountSnapshot = {
         accountId: account.id,
         accountName: account.name,
-        type: account.type,
+        category: account.category,
         value: snapshot.amount,
       };
 
@@ -51,7 +51,7 @@ export function calculatePortfolioSnapshot(
       portfolioAccountSnapshots.push({
         accountId: account.id,
         accountName: account.name,
-        type: account.type,
+        category: account.category,
         value: 0,
       });
     }

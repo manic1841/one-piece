@@ -220,6 +220,14 @@ vi.mock('firebase/firestore', async () => {
       static fromDate(date: Date) {
         return new this(Math.floor(date.getTime() / 1000), (date.getTime() % 1000) * 1000000);
       }
+
+      static fromMillis(millis: number) {
+        return new this(Math.floor(millis / 1000), (millis % 1000) * 1000000);
+      }
+
+      static fromSeconds(seconds: number) {
+        return new this(seconds, 0);
+      }
     },
   };
 });

@@ -19,6 +19,7 @@ type CashFlowItem = z.infer<typeof CashFlowItemSchema>;
 export function calculateCashFlowStatement(
   projectsWithSnapshots: ProjectWithSnapshot[],
   beginningCash: number,
+  netIncome: number = 0,
 ): CashFlowData {
   const operatingIncome: CashFlowItem[] = [];
   const operatingExpense: CashFlowItem[] = [];
@@ -28,15 +29,38 @@ export function calculateCashFlowStatement(
   const financingExpense: CashFlowItem[] = [];
 
   // Helper to aggregate
-  const aggregate = (items: CashFlowItem[], category: string, amount: number, _?: number) => {
+  const aggregate = (
+    items: CashFlowItem[],
+    category: string,
+    amount: number,
+    _?: number,
+    subItem?: { name: string; amount: number },
+  ) => {
     const existing = items.find((i) => i.category === category);
     if (existing) {
       existing.amount += amount;
+      if (subItem) {
+        if (!existing.subItems) existing.subItems = [];
+        existing.subItems.push(subItem);
+      }
     } else {
-      items.push({ category, amount });
+      items.push({
+        category,
+        amount,
+        subItems: subItem ? [subItem] : [],
+      });
     }
   };
 
+  // 1. Starting point: Net Income as Operating Inflow (Regular Operations)
+  if (netIncome !== 0) {
+    aggregate(operatingIncome, OperatingSubCategory.REGULAR_OPERATIONS, netIncome, 0, {
+      name: '本期淨利',
+      amount: netIncome,
+    });
+  }
+
+  // 2. Process Projects
   projectsWithSnapshots.forEach((pws) => {
     const project = pws;
     const snapshot = pws.snapshot;
@@ -49,6 +73,12 @@ export function calculateCashFlowStatement(
 
       // 分別處理收入和支出
       if (category === CashFlowCategory.OPERATING) {
+        // 如果該專案已經包含在損益表中，則跳過，避免在現金流量表中重複計算
+        // (因為我們已經從 Net Income 開始了)
+        if (project.accounting.incomeStatement) {
+          return;
+        }
+
         if (income > 0) {
           logger.debug(`Operating Income ${income} ${subcategory}`, 'cashFlowCalculator');
           aggregate(
@@ -56,6 +86,7 @@ export function calculateCashFlowStatement(
             subcategory || OperatingSubCategory.OTHER_OPERATING,
             income,
             order,
+            { name: project.name, amount: income },
           );
         }
         if (expense > 0) {
@@ -65,6 +96,7 @@ export function calculateCashFlowStatement(
             subcategory || OperatingSubCategory.OTHER_OPERATING,
             expense,
             order,
+            { name: project.name, amount: expense },
           );
         }
       } else if (category === CashFlowCategory.INVESTING) {
@@ -75,6 +107,7 @@ export function calculateCashFlowStatement(
             subcategory || InvestingSubCategory.OTHER_INVESTING,
             income,
             order,
+            { name: project.name, amount: income },
           );
         }
         if (expense > 0) {
@@ -84,6 +117,7 @@ export function calculateCashFlowStatement(
             subcategory || InvestingSubCategory.OTHER_INVESTING,
             expense,
             order,
+            { name: project.name, amount: expense },
           );
         }
       } else if (category === CashFlowCategory.FINANCING) {
@@ -94,6 +128,7 @@ export function calculateCashFlowStatement(
             subcategory || FinancingSubCategory.OTHER_FINANCING,
             income,
             order,
+            { name: project.name, amount: income },
           );
         }
         if (expense > 0) {
@@ -103,6 +138,7 @@ export function calculateCashFlowStatement(
             subcategory || FinancingSubCategory.OTHER_FINANCING,
             expense,
             order,
+            { name: project.name, amount: expense },
           );
         }
       }

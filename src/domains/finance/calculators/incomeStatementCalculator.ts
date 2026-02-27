@@ -96,7 +96,7 @@ export function calculateIncomeStatement(
     if (pws?.accounting?.incomeStatement?.category === IncomeStatementCategory.EXPENSE) {
       const subcategory =
         pws.accounting.incomeStatement.subcategory || ExpenseSubCategory.OTHER_EXPENSE;
-      const amount = pws.snapshot.closingBalance;
+      const amount = Math.abs(pws.snapshot.closingBalance);
 
       if (amount !== 0) {
         const current = projectExpenseMap.get(subcategory) || { amount: 0, subItems: [] };

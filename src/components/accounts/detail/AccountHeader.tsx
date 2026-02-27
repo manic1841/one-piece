@@ -25,7 +25,7 @@ export const AccountHeader: React.FC<AccountHeaderProps> = ({
       <CardHeader>
         <CardTitle className="text-2xl font-bold">{account.name}</CardTitle>
         <div className="flex items-center gap-4 text-sm text-muted-foreground">
-          <span className="capitalize">{account.type}</span>
+          <span className="capitalize">{account.category}</span>
           <span>•</span>
           <span>{account.currency}</span>
           {currentBalance !== undefined && (

@@ -216,15 +216,15 @@ describe('Financial Report Service - Granular Tests', () => {
 
     // Assert
     // Expenses = 20,000 (Living) + 50,000 (House) = 70,000
-    expect(reports.incomeStatement.data.expenses.total).toBe(-70000);
+    expect(reports.incomeStatement.data.expenses.total).toBe(70000);
 
     const data = reports.incomeStatement.data as IncomeStatementData;
     const item = data.expenses.items.find((i) => i.category === ExpenseSubCategory.LIVING);
     expect(item).toBeDefined();
-    expect(item?.amount).toBe(-20000);
+    expect(item?.amount).toBe(20000);
 
     const item2 = data.expenses.items.find((i) => i.category === ExpenseSubCategory.HOUSING);
     expect(item2).toBeDefined();
-    expect(item2?.amount).toBe(-50000);
+    expect(item2?.amount).toBe(50000);
   });
 });

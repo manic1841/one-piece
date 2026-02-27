@@ -21,11 +21,7 @@ class AccountService {
 
   // Get all accounts for a household
   async getAccounts(householdId: string): Promise<Account[]> {
-    const accounts = await accountRepository.list([householdId], [orderBy('createdAt', 'desc')]);
-    return accounts.map((account) => {
-      if (!account.category) account.category = account.type; // for backward compatibility
-      return account;
-    });
+    return accountRepository.list([householdId], [orderBy('createdAt', 'desc')]);
   }
 
   // Get a single account
