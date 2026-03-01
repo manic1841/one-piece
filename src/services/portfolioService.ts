@@ -121,4 +121,13 @@ export const portfolioService = {
     }
     return portfolioSnapshotRepository.list([householdId, portfolioId], queryConstraints);
   },
+
+  // Delete a portfolio snapshot
+  async deleteSnapshot(
+    householdId: string,
+    portfolioId: string,
+    snapshotId: string,
+  ): Promise<void> {
+    return portfolioSnapshotRepository.delete([householdId, portfolioId, snapshotId]);
+  },
 };

@@ -20,7 +20,7 @@ const PortfolioDetail: React.FC<PortfolioDetailProps> = ({ householdId, userEmai
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { portfolio, snapshots, loading, reload } = usePortfolio(householdId, id);
-  const { createSnapshot } = usePortfolioCmds(householdId, userEmail);
+  const { createSnapshot, deleteSnapshot } = usePortfolioCmds(householdId, userEmail);
 
   const [isSnapshotOpen, setIsSnapshotOpen] = useState(false);
 
@@ -65,7 +65,14 @@ const PortfolioDetail: React.FC<PortfolioDetailProps> = ({ householdId, userEmai
       <PortfolioPerformanceCards latestSnapshot={latestSnapshot} />
 
       {/* Snapshots History Table */}
-      <PortfolioHistoryTable snapshots={snapshots} />
+      <PortfolioHistoryTable
+        snapshots={snapshots}
+        onDelete={async (snapshotId) => {
+          if (!id) return;
+          await deleteSnapshot(id, snapshotId);
+          reload();
+        }}
+      />
 
       {portfolio && (
         <PortfolioSnapshotForm

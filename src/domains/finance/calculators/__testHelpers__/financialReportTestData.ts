@@ -1,6 +1,6 @@
 import { AssetSubCategory } from '@/domains/finance/types/categories';
 import type { BalanceSheetData } from '@/schemas/balanceSheet';
-import { createBalanceSheet, createCashFlow } from '@/test/factory/factories';
+import { createBalanceSheet, createCashFlow } from '@/test/factory';
 
 // Test case: Full reconciliation (cash matches + balance sheet equation holds)
 export const reconciledData = {

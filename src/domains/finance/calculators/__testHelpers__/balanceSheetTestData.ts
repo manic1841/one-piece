@@ -6,7 +6,7 @@ import {
   LiabilitySubCategory,
 } from '@/domains/finance/types';
 import type { ProjectWithSnapshot } from '@/domains/project/types';
-import { createAccountSnapshot, createProjectWithSnapshot } from '@/test/factory/factories';
+import { createAccountSnapshot, createProjectWithSnapshot } from '@/test/factory';
 
 // Test data sets
 export const cashAccountsData = {

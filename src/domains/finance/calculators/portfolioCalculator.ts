@@ -4,7 +4,7 @@ import {
   type PortfolioAccountSnapshot,
   type PortfolioSnapshot,
   type PortfolioSnapshotCreate,
-} from '../../../schemas';
+} from '@/schemas';
 
 export interface PortfolioCalculatorInput {
   year: number;

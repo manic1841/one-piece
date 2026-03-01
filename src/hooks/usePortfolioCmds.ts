@@ -53,5 +53,12 @@ export const usePortfolioCmds = (householdId?: string, email?: string) => {
     updatePortfolio,
     deletePortfolio,
     createSnapshot,
+    deleteSnapshot: useCallback(
+      async (portfolioId: string, snapshotId: string) => {
+        if (!householdId) return;
+        await portfolioService.deleteSnapshot(householdId, portfolioId, snapshotId);
+      },
+      [householdId],
+    ),
   };
 };

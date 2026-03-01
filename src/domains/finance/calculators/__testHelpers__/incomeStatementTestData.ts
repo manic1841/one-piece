@@ -6,8 +6,8 @@ import {
 import type { ProjectWithSnapshot } from '@/domains/project/types';
 import { PlannedIncomeCategory } from '@/domains/record/types/categories';
 import type { PlannedIncome } from '@/schemas/plannedIncome';
-import { createPlannedIncome } from '@/test/factory/factories';
-import { createProjectWithSnapshot } from '@/test/factory/factories';
+import { createPlannedIncome } from '@/test/factory';
+import { createProjectWithSnapshot } from '@/test/factory';
 
 // Test case: Salary income only
 export const salaryData = {

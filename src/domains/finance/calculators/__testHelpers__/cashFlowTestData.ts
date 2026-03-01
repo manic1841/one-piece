@@ -5,7 +5,7 @@ import {
   OperatingSubCategory,
 } from '@/domains/finance/types/categories';
 import type { ProjectWithSnapshot } from '@/domains/project/types';
-import { createProjectWithSnapshot } from '@/test/factory/factories';
+import { createProjectWithSnapshot } from '@/test/factory';
 
 // Test case: Operating activities with income and expense
 export const operatingData = {
