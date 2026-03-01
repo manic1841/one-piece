@@ -1,7 +1,8 @@
 import { TrendingDown, TrendingUp } from 'lucide-react';
 
+import { ProjectSnapshotItem } from '@/components/projects/detail/ProjectSnapshotItem';
 import { useProjectDetailItem } from '@/components/projects/detail/useProjectDetailItem';
-import { type ProjectDetailData } from '@/domains/project/types';
+import { type ProjectDetailData, ProjectDetailType } from '@/domains/project/types';
 import { toDateString } from '@/utils/dateUtils';
 import { formatCurrency } from '@/utils/formatUtils';
 
@@ -11,6 +12,11 @@ interface ProjectDetailItemProps {
 
 export const ProjectDetailItem: React.FC<ProjectDetailItemProps> = ({ item }) => {
   const { isIncome, color, category } = useProjectDetailItem(item);
+
+  if (item.type === ProjectDetailType.SNAPSHOT) {
+    return <ProjectSnapshotItem item={item} />;
+  }
+
   return (
     <div className="p-4 hover:bg-muted/50 transition-colors">
       <div className="flex items-center justify-between">

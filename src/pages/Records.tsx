@@ -4,18 +4,19 @@ import { Plus } from 'lucide-react';
 
 import RecordForm from '@/components/records/RecordForm';
 import { RecordList } from '@/components/records/RecordList';
-import { RecordStats } from '@/components/records/RecordStats';
+// import { RecordStats } from '@/components/records/RecordStats';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { useAuth } from '@/contexts/useAuth';
 import { RecordFilterType } from '@/domains/record/types';
 import { useRecordPage } from '@/hooks/pages/useRecordPage';
+import { useProjects } from '@/hooks/useProjects';
 
 const Records: React.FC = () => {
   const { userProfile, currentUser } = useAuth();
   const {
     loading,
-    stats,
+    // stats,
     reload,
     filteredRecords,
     filterType,
@@ -30,6 +31,8 @@ const Records: React.FC = () => {
     update,
   } = useRecordPage(userProfile?.householdId, userProfile?.email);
 
+  const { projects } = useProjects(userProfile?.householdId);
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -42,7 +45,7 @@ const Records: React.FC = () => {
       </div>
 
       {/* Stats Cards */}
-      <RecordStats stats={stats} />
+      {/* <RecordStats stats={stats} /> */}
 
       {/* Filter Tabs */}
       <Card>
@@ -102,6 +105,7 @@ const Records: React.FC = () => {
         loading={loading}
         onEdit={editClick}
         onDelete={deleteClick}
+        projects={projects}
       />
 
       {/* Transaction Form Modal */}

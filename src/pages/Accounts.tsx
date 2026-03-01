@@ -4,7 +4,7 @@ import AccountDetailView from '@/components/accounts/AccountDetailView';
 import AccountForm from '@/components/accounts/AccountForm';
 import { AccountGrid } from '@/components/accounts/AccountGrid';
 import AccountSnapshotForm from '@/components/accounts/AccountSnapshotForm';
-import AccountTrendChart from '@/components/accounts/AccountTrendChart';
+// import AccountTrendChart from '@/components/accounts/AccountTrendChart';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { useAuth } from '@/contexts/useAuth';
@@ -91,7 +91,7 @@ const Accounts: React.FC = () => {
       </Card>
 
       {/* Asset Trend Chart */}
-      <AccountTrendChart householdId={userProfile?.householdId} />
+      {/* <AccountTrendChart householdId={userProfile?.householdId} /> */}
 
       {/* Accounts List */}
       <AccountGrid

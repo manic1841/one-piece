@@ -10,4 +10,5 @@ export const ProjectDetailItemColors = {
   [ProjectDetailType.EXPENSE]: ExpenseColor,
   [ProjectDetailType.TRANSFER_INCOME]: TransferIncomeColor,
   [ProjectDetailType.TRANSFER_EXPENSE]: TransferExpenseColor,
+  [ProjectDetailType.SNAPSHOT]: 'slate',
 } as const;

@@ -1,6 +1,6 @@
 import { Calendar, Plus } from 'lucide-react';
 
-import ProjectBalanceChart from '@/components/projects/ProjectBalanceChart';
+// import ProjectBalanceChart from '@/components/projects/ProjectBalanceChart';
 import ProjectDetailView from '@/components/projects/ProjectDetailView';
 import ProjectForm from '@/components/projects/ProjectForm';
 import { ProjectGrid } from '@/components/projects/ProjectGrid';
@@ -74,7 +74,7 @@ const Projects: React.FC = () => {
       </div>
 
       {/* Balance Trend Chart */}
-      {projects.length > 0 && (
+      {/* {projects.length > 0 && (
         <ProjectBalanceChart
           householdId={userProfile?.householdId || ''}
           projects={projects.map((p) => ({
@@ -84,7 +84,7 @@ const Projects: React.FC = () => {
             color: p.color,
           }))}
         />
-      )}
+      )} */}
 
       <ProjectGrid
         householdId={userProfile?.householdId}

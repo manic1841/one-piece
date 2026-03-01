@@ -55,11 +55,22 @@ export const useProjectCmds = (
     [householdId],
   );
 
+  // get snapshots
+  const getSnapshots = useCallback(
+    async (projectId: string) => {
+      if (!householdId) return;
+      const data = await projectService.getSnapshots(householdId, projectId);
+      return data;
+    },
+    [householdId],
+  );
+
   return {
     createProject,
     updateProject,
     deleteProject,
     getRecords,
     getProjectBalance,
+    getSnapshots,
   };
 };

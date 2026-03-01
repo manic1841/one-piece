@@ -5,13 +5,17 @@ import type {
   Record,
   Transaction,
 } from '@/domains/record/types';
-import { RecordType } from '@/domains/record/types';
+import { RecordFormType, RecordType, TransactionType } from '@/domains/record/types';
 
 // convert record to schema
 export const transactionConverter = (record: Record) => {
+  const transactionType =
+    record.transactionType ??
+    (record.formType === RecordFormType.EXPENSE ? TransactionType.EXPENSE : TransactionType.INCOME);
+
   return {
     id: record.id,
-    type: record.transactionType,
+    type: transactionType,
     date: record.date,
     category: record.category,
     amount: record.amount,

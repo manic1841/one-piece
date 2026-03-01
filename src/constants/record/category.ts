@@ -5,15 +5,15 @@ import {
 } from '@/domains/record/types';
 
 export const ExpenseCategoryLabel = {
-  [TransactionCategory.FOOD]: 'Food & Dining',
-  [TransactionCategory.TRANSPORTATION]: 'Transportation',
-  [TransactionCategory.HOUSING]: 'Housing',
-  [TransactionCategory.UTILITIES]: 'Utilities',
-  [TransactionCategory.ENTERTAINMENT]: 'Entertainment',
-  [TransactionCategory.HEALTHCARE]: 'Healthcare',
-  [TransactionCategory.EDUCATION]: 'Education',
-  [TransactionCategory.SHOPPING]: 'Shopping',
-  [TransactionCategory.OTHER]: 'Other',
+  [TransactionCategory.FOOD]: '飲食',
+  [TransactionCategory.TRANSPORTATION]: '交通',
+  [TransactionCategory.HOUSING]: '家居',
+  [TransactionCategory.UTILITIES]: '生活',
+  [TransactionCategory.ENTERTAINMENT]: '娛樂',
+  [TransactionCategory.HEALTHCARE]: '醫療',
+  [TransactionCategory.EDUCATION]: '教育',
+  [TransactionCategory.SHOPPING]: '購物',
+  [TransactionCategory.OTHER]: '其他',
 } as const;
 
 export const ExpenseCategoryOptions = Object.entries(ExpenseCategoryLabel).map(([key, value]) => ({
@@ -22,9 +22,9 @@ export const ExpenseCategoryOptions = Object.entries(ExpenseCategoryLabel).map((
 }));
 
 export const IncomeCategoryLabel = {
-  [TransactionCategory.SALARY]: 'Salary',
-  [TransactionCategory.BONUS]: 'Bonus',
-  [TransactionCategory.OTHER]: 'Other',
+  [TransactionCategory.SALARY]: '薪水',
+  [TransactionCategory.BONUS]: '獎金',
+  [TransactionCategory.OTHER]: '其他',
 } as const;
 
 export const IncomeCategoryOptions = Object.entries(IncomeCategoryLabel).map(([key, value]) => ({
@@ -33,9 +33,9 @@ export const IncomeCategoryOptions = Object.entries(IncomeCategoryLabel).map(([k
 }));
 
 export const PlannedIncomeCategoryLabel = {
-  [PlannedIncomeCategory.SALARY]: 'Salary',
-  [PlannedIncomeCategory.BONUS]: 'Bonus',
-  [PlannedIncomeCategory.OTHER]: 'Other',
+  [PlannedIncomeCategory.SALARY]: '薪水',
+  [PlannedIncomeCategory.BONUS]: '獎金',
+  [PlannedIncomeCategory.OTHER]: '其他',
 } as const;
 
 export const PlannedIncomeCategoryOptions = Object.entries(PlannedIncomeCategoryLabel).map(

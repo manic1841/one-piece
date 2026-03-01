@@ -5,6 +5,7 @@ export const ProjectDetailType = {
   EXPENSE: 'expense',
   TRANSFER_INCOME: 'transfer-income',
   TRANSFER_EXPENSE: 'transfer-expense',
+  SNAPSHOT: 'snapshot',
 } as const;
 
 export type ProjectDetailType = (typeof ProjectDetailType)[keyof typeof ProjectDetailType];
@@ -17,4 +18,12 @@ export interface ProjectDetailData {
   amount: number;
   label: string;
   description: string;
+  snapshot?: {
+    year: number;
+    month: number;
+    openingBalance: number;
+    closingBalance: number;
+    income: number;
+    expense: number;
+  };
 }

@@ -33,13 +33,13 @@ class ProjectTransactionService {
     const constraints: QueryConstraint[] = [orderBy('date', 'desc')];
 
     if (filters?.toProjectId) {
-      // Note: This requires a composite index: projectId ASC, date DESC
-      constraints.push(where('toProject', '==', filters.toProjectId));
+      // Note: This requires a composite index: toProjectId ASC, date DESC
+      constraints.push(where('toProjectId', '==', filters.toProjectId));
     }
 
     if (filters?.fromProjectId) {
-      // Note: This requires a composite index: projectId ASC, date DESC
-      constraints.push(where('fromProject', '==', filters.fromProjectId));
+      // Note: This requires a composite index: fromProjectId ASC, date DESC
+      constraints.push(where('fromProjectId', '==', filters.fromProjectId));
     }
 
     if (filters?.startDate) {
