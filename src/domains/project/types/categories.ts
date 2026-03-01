@@ -14,6 +14,9 @@ export const ProjectCategory = {
 
   // 個人專案（不計入家庭報表）
   PERSONAL: 'personal', // 個人零用錢
+
+  // 持有權益專案
+  EQUITY: 'equity', // 權益類：累積盈餘
 } as const;
 
 export type ProjectCategory = (typeof ProjectCategory)[keyof typeof ProjectCategory];

@@ -130,4 +130,30 @@ export const portfolioService = {
   ): Promise<void> {
     return portfolioSnapshotRepository.delete([householdId, portfolioId, snapshotId]);
   },
+
+  // Get stock gain loss for a specific period (for balance sheet)
+  async getStockGainLoss(
+    householdId: string,
+    year: number,
+    month: number,
+  ): Promise<{ totalMarketValue: number; totalCost: number; totalGainLoss: number }> {
+    const portfolios = await this.getPortfolios(householdId);
+    let totalMarketValue = 0;
+    let totalGainLoss = 0;
+
+    for (const portfolio of portfolios) {
+      const snapshots = await this.getSnapshots(householdId, portfolio.id, year, month);
+      if (snapshots.length > 0) {
+        const snapshot = snapshots[0];
+        totalMarketValue += snapshot.totalValue;
+        totalGainLoss += snapshot.performance.gain;
+      }
+    }
+
+    return {
+      totalMarketValue,
+      totalCost: totalMarketValue - totalGainLoss,
+      totalGainLoss,
+    };
+  },
 };

@@ -4,12 +4,12 @@ import type {
   BalanceSheetView,
   CashFlowView,
   IncomeStatementView,
-} from '@/domains/finance/mappers/reportToView';
+} from '@/domains/finance/mappers';
 import {
   mapToBalanceSheetView,
   mapToCashFlowView,
   mapToIncomeStatementView,
-} from '@/domains/finance/mappers/reportToView';
+} from '@/domains/finance/mappers';
 import { financialReportService } from '@/services/financialReportService';
 
 type ReportType = 'income_statement' | 'balance_sheet' | 'cash_flow';

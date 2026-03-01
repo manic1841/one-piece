@@ -18,7 +18,7 @@ import {
   IncomeSubCategoryLabel,
   ReportCommonLabel,
 } from '@/constants/finance/financeLabel';
-import type { IncomeStatementView as IncomeStatementViewData } from '@/domains/finance/mappers/reportToView';
+import type { IncomeStatementView as IncomeStatementViewData } from '@/domains/finance/mappers';
 import { IncomeStatementCategory } from '@/domains/finance/types/categories';
 import { formatDateRange } from '@/utils/dateUtils';
 import { formatCurrency } from '@/utils/formatUtils';

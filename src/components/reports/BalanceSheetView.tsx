@@ -19,7 +19,7 @@ import {
   LiabilitySubCategoryLabel,
   ReportCommonLabel,
 } from '@/constants/finance/financeLabel';
-import type { BalanceSheetView as BalanceSheetViewData } from '@/domains/finance/mappers/reportToView';
+import type { BalanceSheetView as BalanceSheetViewData } from '@/domains/finance/mappers';
 import { BalanceSheetCategory } from '@/domains/finance/types/categories';
 import { formatDate } from '@/utils/dateUtils';
 import { formatCurrency } from '@/utils/formatUtils';

@@ -104,6 +104,7 @@ export const FinancingSubCategory = {
   SHORT_TERM_LOANS: 'short_term_loans',
   LONG_TERM_LOANS: 'long_term_loans',
   OWNER_DRAWS: 'owner_draws',
+  OWNER_DEPOSIT: 'owner_deposit',
   OTHER_FINANCING: 'other_financing',
 } as const;
 

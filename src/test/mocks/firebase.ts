@@ -90,12 +90,22 @@ const filterDocs = (collectionPath: string, constraints: any[]) => {
 };
 
 // Mock Firebase App
-vi.mock('firebase/app', () => ({
-  initializeApp: vi.fn(),
-}));
+vi.mock('firebase/app', async () => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  if ((globalThis as any).process?.env?.VITE_USE_REAL_DB === 'true') {
+    return await vi.importActual('firebase/app');
+  }
+  return {
+    initializeApp: vi.fn(),
+  };
+});
 
 // Mock Firebase Firestore
 vi.mock('firebase/firestore', async () => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  if ((globalThis as any).process?.env?.VITE_USE_REAL_DB === 'true') {
+    return await vi.importActual('firebase/firestore');
+  }
   const actual = await vi.importActual('firebase/firestore');
 
   return {
@@ -110,7 +120,7 @@ vi.mock('firebase/firestore', async () => {
         const id =
           pathSegments.length > 0
             ? pathSegments[0]
-            : 'new-id-' + Math.random().toString(36).substr(2, 9);
+            : 'new-id-' + Math.random().toString(36).substring(2, 9);
         return { id, path: refOrDb.path + '/' + id };
       }
       const path = pathSegments.join('/');
@@ -154,7 +164,7 @@ vi.mock('firebase/firestore', async () => {
       delete mockDb[ref.path];
     }),
     addDoc: vi.fn(async (ref, data) => {
-      const newId = 'new-id-' + Math.random().toString(36).substr(2, 9);
+      const newId = 'new-id-' + Math.random().toString(36).substring(2, 9);
       const path = ref.path + '/' + newId;
       mockDb[path] = data;
       return { id: newId, path };
@@ -233,7 +243,13 @@ vi.mock('firebase/firestore', async () => {
 });
 
 // Mock local firebase config
-vi.mock('@/firebase', () => ({
-  db: {},
-  auth: {},
-}));
+vi.mock('@/firebase', async () => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  if ((globalThis as any).process?.env?.VITE_USE_REAL_DB === 'true') {
+    return await vi.importActual('@/firebase');
+  }
+  return {
+    db: {},
+    auth: {},
+  };
+});

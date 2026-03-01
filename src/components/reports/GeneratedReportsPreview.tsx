@@ -9,7 +9,7 @@ import {
   mapToBalanceSheetView,
   mapToCashFlowView,
   mapToIncomeStatementView,
-} from '@/domains/finance/mappers/reportToView';
+} from '@/domains/finance/mappers';
 import type { FinancialReport } from '@/schemas/report';
 
 import BalanceSheetView from './BalanceSheetView';

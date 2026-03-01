@@ -63,8 +63,8 @@ const Layout: React.FC = () => {
     { to: '/records', icon: Receipt, label: 'Records' },
     { to: '/projects', icon: Folder, label: 'Projects' },
     { to: '/accounts', icon: Wallet, label: 'Accounts' },
-    { to: '/reports', icon: FileText, label: 'Reports' },
     { to: '/portfolios', icon: Briefcase, label: 'Portfolios' },
+    { to: '/reports', icon: FileText, label: 'Reports' },
     { to: '/retirement', icon: TrendingUp, label: 'Retirement' },
     { to: '/settings', icon: Settings, label: 'Settings' },
   ];

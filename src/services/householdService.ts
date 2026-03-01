@@ -1,8 +1,10 @@
 import { where } from 'firebase/firestore';
 
+import { DEFAULT_PROJECTS } from '@/constants/project/defaultProjects';
 import { RoleEnum } from '@/domains/auth/role';
 import { householdRepository } from '@/repositories/householdRepository';
 import type { Household, UserProfile } from '@/schemas';
+import { projectService } from '@/services/projectService';
 import { userService } from '@/services/userService';
 
 class HouseholdService {
@@ -22,12 +24,18 @@ class HouseholdService {
       name,
       members: {
         [user.uid]: {
-          role: user.role || RoleEnum.GUEST,
+          role: user.role || RoleEnum.OWNER, // New household creator should be OWNER
           joinedAt: new Date(),
         },
       },
     };
     const householdId = await householdRepository.create([], newHousehold, user.email);
+
+    // Initialize default projects
+    const initProjects = DEFAULT_PROJECTS.map((project) =>
+      projectService.createProject(householdId, project, 'system'),
+    );
+    await Promise.all(initProjects);
 
     // Update user profile with householdId
     await userService.updateUserProfile(user.uid, { householdId });

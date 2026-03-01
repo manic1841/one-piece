@@ -19,7 +19,7 @@ import {
   OperatingSubCategoryLabel,
   ReportCommonLabel,
 } from '@/constants/finance/financeLabel';
-import type { CashFlowView as CashFlowViewData } from '@/domains/finance/mappers/reportToView';
+import type { CashFlowView as CashFlowViewData } from '@/domains/finance/mappers';
 import { CashFlowCategory } from '@/domains/finance/types/categories';
 import { formatDateRange } from '@/utils/dateUtils';
 import { formatCurrency } from '@/utils/formatUtils';

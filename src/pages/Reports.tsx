@@ -19,7 +19,7 @@ import type {
   BalanceSheetView as BalanceSheet,
   CashFlowView as CashFlow,
   IncomeStatementView as IncomeStatement,
-} from '@/domains/finance/mappers/reportToView';
+} from '@/domains/finance/mappers';
 import { useFinancialReportPage } from '@/hooks/pages/useFinancialReportPage';
 
 import { useAuth } from '../contexts/useAuth';
