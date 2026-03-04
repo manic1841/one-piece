@@ -33,7 +33,6 @@ export const AccountGrid: React.FC<AccountGridProps> = ({
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {accounts.map((account) => {
             const snapshot = account.snapshot;
-            if (!snapshot) return null;
             return (
               <div
                 key={account.id}
@@ -76,11 +75,11 @@ export const AccountGrid: React.FC<AccountGridProps> = ({
 
                 <div className="mb-3">
                   <p className="text-2xl font-bold text-foreground">
-                    {formatCurrency(snapshot.amount || 0)}
+                    {formatCurrency(snapshot?.amount || 0)}
                   </p>
                   {
                     <p className="text-xs text-muted-foreground">
-                      As of {formatDate(snapshot.createdAt)}
+                      As of {snapshot?.createdAt ? formatDate(snapshot.createdAt) : 'N/A'}
                     </p>
                   }
                 </div>

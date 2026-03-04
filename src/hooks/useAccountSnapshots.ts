@@ -17,8 +17,25 @@ export function useAccountSnapshots(householdId: string, accountId: string) {
   }, [run, householdId, accountId]);
 
   useEffect(() => {
-    loadSnapshots();
-  }, [loadSnapshots]);
+    let ignore = false;
+
+    const init = async () => {
+      if (!householdId || !accountId) return;
+
+      await run(async () => {
+        const result = await accountService.getSnapshots(householdId, accountId);
+        if (!ignore) {
+          setSnapshots(result);
+        }
+      });
+    };
+
+    init();
+
+    return () => {
+      ignore = true;
+    };
+  }, [householdId, accountId, run]);
 
   return {
     loading,

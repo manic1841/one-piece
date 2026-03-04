@@ -22,7 +22,7 @@ const AccountDetailView: React.FC<AccountDetailViewProps> = ({
   userEmail,
   onBack,
 }) => {
-  const { snapshots, loading } = useAccountSnapshots(householdId, account.id);
+  const { snapshots, loading, reload } = useAccountSnapshots(householdId, account.id);
   const {
     chartData,
     trend,
@@ -33,7 +33,7 @@ const AccountDetailView: React.FC<AccountDetailViewProps> = ({
     closeForm,
     editing,
     isFormOpen,
-  } = useAccountDetailView(householdId, account.id, userEmail);
+  } = useAccountDetailView(householdId, account.id, userEmail, reload);
 
   if (loading) {
     return (

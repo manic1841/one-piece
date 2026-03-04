@@ -22,7 +22,8 @@ class AccountService {
 
   // Get all accounts for a household
   async getAccounts(householdId: string): Promise<Account[]> {
-    return accountRepository.list([householdId], [orderBy('createdAt', 'desc')]);
+    const accounts = await accountRepository.list([householdId], [orderBy('createdAt', 'desc')]);
+    return accounts;
   }
 
   // Get a single account
@@ -191,6 +192,17 @@ class AccountService {
       result.push({ ...account, snapshot });
     }
     return result;
+  }
+  // Batch record balance snapshots
+  async batchRecordSnapshots(
+    householdId: string,
+    snapshots: Array<{ accountId: string; data: AccountSnapshotCreate }>,
+    userEmail: string,
+  ): Promise<void> {
+    const promises = snapshots.map((s) =>
+      this.recordSnapshot(householdId, s.accountId, s.data, userEmail),
+    );
+    await Promise.all(promises);
   }
 }
 

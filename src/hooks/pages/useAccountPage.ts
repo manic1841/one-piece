@@ -29,6 +29,7 @@ export const useAccountPage = (householdId?: string, userEmail?: string) => {
 
   const [selected, setSelected] = useState<AccountWithSnapshot | undefined>(undefined);
   const [balance, setBalance] = useState<number>(0);
+  const [isBatchSnapshotOpen, setIsBatchSnapshotOpen] = useState(false);
 
   useEffect(() => {
     const fetchBalance = async () => {
@@ -115,5 +116,16 @@ export const useAccountPage = (householdId?: string, userEmail?: string) => {
     unselect,
     selectedAccountForSnapshot,
     balance,
+    isBatchSnapshotOpen,
+    openBatchSnapshot: () => setIsBatchSnapshotOpen(true),
+    closeBatchSnapshot: () => setIsBatchSnapshotOpen(false),
+    onBatchSuccess: () => {
+      reload();
+      const fetchBalance = async () => {
+        const bal = await getTotalBalance();
+        setBalance(bal || 0);
+      };
+      fetchBalance();
+    },
   };
 };

@@ -37,6 +37,14 @@ class RecordService {
       records.push(record);
     });
 
+    // Sort all records by date descending, if date is same, sort by createdAt descending
+    records.sort((a, b) => {
+      if (a.date.getTime() === b.date.getTime() && a.createdAt && b.createdAt) {
+        return b.createdAt.getTime() - a.createdAt.getTime();
+      }
+      return b.date.getTime() - a.date.getTime();
+    });
+
     return records;
   }
 

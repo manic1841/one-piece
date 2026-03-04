@@ -4,6 +4,7 @@ import AccountDetailView from '@/components/accounts/AccountDetailView';
 import AccountForm from '@/components/accounts/AccountForm';
 import { AccountGrid } from '@/components/accounts/AccountGrid';
 import AccountSnapshotForm from '@/components/accounts/AccountSnapshotForm';
+import { BatchSnapshotForm } from '@/components/accounts/BatchSnapshotForm';
 // import AccountTrendChart from '@/components/accounts/AccountTrendChart';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -34,6 +35,10 @@ const Accounts: React.FC = () => {
     unselect,
     selectedAccountForSnapshot,
     balance,
+    isBatchSnapshotOpen,
+    openBatchSnapshot,
+    closeBatchSnapshot,
+    onBatchSuccess,
   } = useAccountPage(userProfile?.householdId, userProfile?.email);
 
   if (loading) {
@@ -73,10 +78,16 @@ const Accounts: React.FC = () => {
           <h1 className="text-2xl font-bold text-foreground">Accounts</h1>
           <p className="text-muted-foreground mt-2">Manage your accounts and track asset trends</p>
         </div>
-        <Button onClick={openAccountForm} className="gap-2">
-          <Plus size={20} />
-          Add Account
-        </Button>
+        <div className="flex gap-2">
+          <Button onClick={openBatchSnapshot} variant="outline" className="gap-2">
+            <BarChart3 size={20} />
+            Settlement (結算)
+          </Button>
+          <Button onClick={openAccountForm} className="gap-2">
+            <Plus size={20} />
+            Add Account
+          </Button>
+        </div>
       </div>
 
       {/* Total Balance */}
@@ -123,6 +134,17 @@ const Accounts: React.FC = () => {
           accounts={accounts}
           selectedAccount={selectedAccountForSnapshot}
           householdId={userProfile?.householdId || ''}
+        />
+      )}
+
+      {/* Batch Snapshot Modal */}
+      {isBatchSnapshotOpen && userProfile && (
+        <BatchSnapshotForm
+          isOpen={isBatchSnapshotOpen}
+          onClose={closeBatchSnapshot}
+          onSuccess={onBatchSuccess}
+          householdId={userProfile?.householdId || ''}
+          userEmail={userProfile.email || ''}
         />
       )}
     </div>

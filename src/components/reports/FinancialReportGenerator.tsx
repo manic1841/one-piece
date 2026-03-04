@@ -6,6 +6,7 @@ import GeneratedReportsPreview from '@/components/reports/GeneratedReportsPrevie
 import { useFinancialReportGenerator } from '@/components/reports/useFinancialReportGenerator';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 import {
   Select,
   SelectContent,
@@ -37,18 +38,16 @@ const FinancialReportGenerator: React.FC = () => {
           <div className="flex items-end gap-4">
             <div className="space-y-2">
               <label className="text-sm font-medium">Year</label>
-              <Select value={year.toString()} onValueChange={(v) => setYear(parseInt(v))}>
-                <SelectTrigger className="w-[120px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {[year - 1, year, year + 1].map((y) => (
-                    <SelectItem key={y} value={y.toString()}>
-                      {y}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Input
+                className="w-[120px]"
+                id="year"
+                type="number"
+                required
+                min="2000"
+                max="2100"
+                value={year}
+                onChange={(e) => setYear(parseInt(e.target.value))}
+              />
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium">Month</label>
