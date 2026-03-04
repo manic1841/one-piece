@@ -111,6 +111,13 @@ class HouseholdService {
     }
 
     // Not found by ID or name, create new household with this name
+    // ONLY admin can create new household
+    if (user.role !== RoleEnum.ADMIN) {
+      throw new Error(
+        'Only admin users can create new households. Please enter a valid household ID to join.',
+      );
+    }
+
     return await this.createHousehold(trimmedInput, user);
   }
 

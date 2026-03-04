@@ -73,6 +73,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const refreshProfile = async () => {
     if (currentUser) {
+      await currentUser.getIdTokenResult(true);
       await fetchUserProfile(currentUser.uid);
     }
   };
