@@ -17,8 +17,9 @@ export const useRetirementPlanListPage = (householdId?: string, email?: string) 
     const newPlan: RetirementPlanCreate = {
       name: `New Plan ${new Date().toLocaleDateString()}`,
       isActive: true,
+      autoUpdate: false,
       currentYear: new Date().getFullYear(),
-      currentAge: 30, // Default
+      birthYear: new Date().getFullYear() - 30, // Default age 30
       retirementAge: 60,
       lifeExpectancy: 85,
       currentSavings: 0,

@@ -14,10 +14,11 @@ export const calculateRetirementProjection = (plan: RetirementPlan): RetirementP
   const projection: RetirementProjectionYear[] = [];
   let currentSavings = plan.currentSavings;
   const startYear = plan.currentYear;
-  const endYear = startYear + (plan.lifeExpectancy - plan.currentAge);
+  const currentAge = startYear - plan.birthYear;
+  const endYear = startYear + (plan.lifeExpectancy - currentAge);
 
   for (let year = startYear; year <= endYear; year++) {
-    const age = plan.currentAge + (year - startYear);
+    const age = year - plan.birthYear;
     const isRetired = age >= plan.retirementAge;
 
     // 1. Calculate Income
@@ -139,7 +140,7 @@ export const calculateProjectionSummary = (
   });
 
   return {
-    retirementYear: plan.currentYear + (plan.retirementAge - plan.currentAge),
+    retirementYear: plan.birthYear + plan.retirementAge,
     savingsAtRetirement: retirementProjection ? retirementProjection.openingBalance : 0,
     minSavings,
     minSavingsYear,

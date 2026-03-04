@@ -65,7 +65,7 @@ export const RetirementPlanCreateSchema = z.object({
 
   // Assumptions
   currentYear: z.number(),
-  currentAge: z.number(),
+  birthYear: z.number(),
   retirementAge: z.number(),
   lifeExpectancy: z.number(),
   currentSavings: z.number(),

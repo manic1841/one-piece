@@ -14,7 +14,7 @@ export default function AssumptionsForm({ plan, onSave }: AssumptionsFormProps) 
   const [editing, setEditing] = useState(false);
   const [formData, setFormData] = useState({
     currentYear: plan.currentYear,
-    currentAge: plan.currentAge,
+    birthYear: plan.birthYear,
     retirementAge: plan.retirementAge,
     lifeExpectancy: plan.lifeExpectancy,
     currentSavings: plan.currentSavings,
@@ -31,7 +31,7 @@ export default function AssumptionsForm({ plan, onSave }: AssumptionsFormProps) 
   const handleCancel = () => {
     setFormData({
       currentYear: plan.currentYear,
-      currentAge: plan.currentAge,
+      birthYear: plan.birthYear,
       retirementAge: plan.retirementAge,
       lifeExpectancy: plan.lifeExpectancy,
       currentSavings: plan.currentSavings,
@@ -55,8 +55,8 @@ export default function AssumptionsForm({ plan, onSave }: AssumptionsFormProps) 
             <div className="text-lg font-medium">{plan.currentYear}</div>
           </div>
           <div>
-            <div className="text-sm text-muted-foreground">Current Age</div>
-            <div className="text-lg font-medium">{plan.currentAge}</div>
+            <div className="text-sm text-muted-foreground">Birth Year</div>
+            <div className="text-lg font-medium">{plan.birthYear}</div>
           </div>
           <div>
             <div className="text-sm text-muted-foreground">Retirement Age</div>
@@ -101,12 +101,12 @@ export default function AssumptionsForm({ plan, onSave }: AssumptionsFormProps) 
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="currentAge">Current Age</Label>
+          <Label htmlFor="birthYear">Birth Year</Label>
           <Input
-            id="currentAge"
+            id="birthYear"
             type="number"
-            value={formData.currentAge}
-            onChange={(e) => setFormData({ ...formData, currentAge: parseInt(e.target.value) })}
+            value={formData.birthYear}
+            onChange={(e) => setFormData({ ...formData, birthYear: parseInt(e.target.value) })}
           />
         </div>
         <div className="space-y-2">

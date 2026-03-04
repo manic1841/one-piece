@@ -12,7 +12,7 @@ describe('retirementCalculator', () => {
     createdAt: new Date(),
     updatedAt: new Date(),
     currentYear: 2025,
-    currentAge: 30,
+    birthYear: 1995,
     retirementAge: 60,
     lifeExpectancy: 80,
     currentSavings: 1000000,
@@ -46,7 +46,9 @@ describe('retirementCalculator', () => {
 
   it('should calculate projection for basic scenario', () => {
     const projection = calculateRetirementProjection(mockPlan);
-    expect(projection).toHaveLength(mockPlan.lifeExpectancy - mockPlan.currentAge + 1);
+    expect(projection).toHaveLength(
+      mockPlan.lifeExpectancy - (mockPlan.currentYear - mockPlan.birthYear) + 1,
+    );
 
     // Check first year
     const firstYear = projection[0];
