@@ -1,4 +1,4 @@
-import type { RetirementPlan, RetirementProjectionYear } from '../../../schemas/retirementPlan';
+import type { RetirementPlan, RetirementProjectionYear } from '@/domains/retirement/types';
 
 /**
  * Calculates the future value of an amount based on a growth rate and number of years.

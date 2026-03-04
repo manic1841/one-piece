@@ -1,12 +1,26 @@
 import { z } from 'zod';
 
+import { RetirementIncomeType } from '@/domains/retirement/types/categories';
+import { BaseSchema } from '@/schemas/base';
+
 // --- Sub-Schemas ---
 
 export const RetirementIncomeSourceSchema = z.object({
   id: z.string(),
   name: z.string(),
-  sourceProjectId: z.string().optional(), // If imported from a Project
-  type: z.enum(['salary', 'bonus', 'pension', 'rent', 'other']),
+  importedFrom: z.enum(['manual', 'plannedIncome']).default('manual'),
+  calculatedFrom: z
+    .object({
+      startDate: z.string(),
+      endDate: z.string(),
+      totalAmount: z.number(),
+      monthlyAverage: z.number(),
+      sampleCount: z.number(),
+      importedAt: z.string(),
+    })
+    .optional(),
+  incomeCategory: z.string().optional(), // Linked to PlannedIncomeCategory if imported
+  type: z.enum(RetirementIncomeType),
   startYear: z.number(),
   endYear: z.number(),
   baseAmount: z.number(), // Annual amount at startYear
@@ -44,13 +58,10 @@ export type RetirementOneTimeEvent = z.infer<typeof RetirementOneTimeEventSchema
 
 // --- Main Plan Schema ---
 
-export const RetirementPlanSchema = z.object({
-  id: z.string(),
+export const RetirementPlanCreateSchema = z.object({
   name: z.string(),
   isActive: z.boolean().default(true),
-  createdBy: z.string(),
-  createdAt: z.date(),
-  updatedAt: z.date(),
+  autoUpdate: z.boolean().default(false),
 
   // Assumptions
   currentYear: z.number(),
@@ -72,14 +83,12 @@ export const RetirementPlanSchema = z.object({
     })
     .optional(),
 
-  // Data Collections (Embedded for simplicity in this document structure,
-  // but could be subcollections in Firestore if large.
-  // Given the typical size of a personal plan, arrays are likely fine and easier to query/copy.)
+  // Data Collections
   incomes: z.array(RetirementIncomeSourceSchema).default([]),
   expenses: z.array(RetirementExpenseCategorySchema).default([]),
   events: z.array(RetirementOneTimeEventSchema).default([]),
 
-  // Cached Results (Optional, for quick list view)
+  // Cached Results
   summary: z
     .object({
       retirementYear: z.number(),
@@ -92,28 +101,8 @@ export const RetirementPlanSchema = z.object({
     .optional(),
 });
 
+export type RetirementPlanCreate = z.infer<typeof RetirementPlanCreateSchema>;
+
+export const RetirementPlanSchema = BaseSchema.extend(RetirementPlanCreateSchema.shape);
+
 export type RetirementPlan = z.infer<typeof RetirementPlanSchema>;
-
-// --- Projection Result Types (Not stored in DB, used for calculation return) ---
-
-export const RetirementProjectionYearSchema = z.object({
-  year: z.number(),
-  age: z.number(),
-  isRetired: z.boolean(),
-
-  // Cash Flow
-  totalIncome: z.number(),
-  totalExpense: z.number(),
-  netCashFlow: z.number(),
-
-  // Balance
-  openingBalance: z.number(),
-  investmentIncome: z.number(),
-  oneTimeIncome: z.number(),
-  oneTimeExpense: z.number(),
-  closingBalance: z.number(),
-
-  events: z.array(z.string()), // Names of events happening this year
-});
-
-export type RetirementProjectionYear = z.infer<typeof RetirementProjectionYearSchema>;

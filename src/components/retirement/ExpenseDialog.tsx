@@ -1,13 +1,6 @@
-import { useCallback, useEffect, useState } from 'react';
-
 import { Plus } from 'lucide-react';
 
-import { useAuth } from '../../contexts/useAuth';
-import type { Project } from '../../schemas';
-import type { RetirementExpenseCategory } from '../../schemas/retirementPlan';
-import { projectService } from '../../services/projectService';
-import { retirementPlanService } from '../../services/retirementPlanService';
-import { Button } from '../ui/button';
+import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogContent,
@@ -16,34 +9,37 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from '../ui/dialog';
-import { Input } from '../ui/input';
-import { Label } from '../ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
-import { useRetirementDialogForm } from './useRetirementDialogForm';
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { type RetirementExpenseCategory } from '@/domains/retirement/types';
 
-interface AddRetirementExpenseDialogProps {
+import { useRetirementExpenseDialog } from './useRetirementExpenseDialog';
+
+interface RetirementExpenseDialogProps {
   onSave: (expense: Omit<RetirementExpenseCategory, 'id'>) => Promise<void>;
   currentYear: number;
   initialData?: RetirementExpenseCategory;
   trigger?: React.ReactNode;
 }
 
-export default function AddRetirementExpenseDialog({
+export default function RetirementExpenseDialog({
   onSave,
   currentYear,
   initialData,
   trigger,
-}: AddRetirementExpenseDialogProps) {
-  const { userProfile } = useAuth();
-  const [projects, setProjects] = useState<Project[]>([]);
-
-  // Use shared hook for common fields
+}: RetirementExpenseDialogProps) {
   const {
     open,
     setOpen,
     loading,
-    setLoading,
     name,
     setName,
     amount,
@@ -52,96 +48,21 @@ export default function AddRetirementExpenseDialog({
     setGrowthRate,
     startYear,
     setStartYear,
-  } = useRetirementDialogForm({
+    endYear,
+    setEndYear,
+    selectedProjectId,
+    percentOfSalary,
+    setPercentOfSalary,
+    retirementMultiplier,
+    setRetirementMultiplier,
+    projects,
+    handleProjectChange,
+    handleSubmit,
+  } = useRetirementExpenseDialog({
     initialData,
     currentYear,
-    defaultValues: { growthRate: 2 },
+    onSave,
   });
-
-  // Expense-specific fields
-  const [selectedProjectId, setSelectedProjectId] = useState<string>(
-    initialData?.sourceProjectId || 'none',
-  );
-  const [endYear, setEndYear] = useState<string>(
-    initialData?.endYear ? initialData.endYear.toString() : '',
-  );
-  const [percentOfSalary, setPercentOfSalary] = useState<number>(initialData?.percentOfSalary || 0);
-  const [retirementMultiplier, setRetirementMultiplier] = useState<number>(
-    initialData ? initialData.retirementMultiplier * 100 : 70,
-  );
-
-  const loadProjects = useCallback(async () => {
-    if (!userProfile?.householdId) return;
-    try {
-      const allProjects = await projectService.getProjects(userProfile.householdId);
-      setProjects(allProjects.filter((p) => p.isActive));
-    } catch (error) {
-      console.error('Failed to load projects', error);
-    }
-  }, [userProfile?.householdId]);
-
-  useEffect(() => {
-    if (open && userProfile?.householdId) {
-      loadProjects();
-    }
-  }, [open, userProfile?.householdId, loadProjects]);
-
-  // Reset expense-specific fields when dialog opens
-  useEffect(() => {
-    if (open) {
-      setSelectedProjectId(initialData?.sourceProjectId || 'none');
-      setEndYear(initialData?.endYear ? initialData.endYear.toString() : '');
-      setPercentOfSalary(initialData?.percentOfSalary || 0);
-      setRetirementMultiplier(initialData ? initialData.retirementMultiplier * 100 : 70);
-    }
-  }, [open, initialData]);
-
-  const handleProjectChange = async (projectId: string) => {
-    setSelectedProjectId(projectId);
-
-    if (projectId === 'none') return;
-
-    const project = projects.find((p) => p.id === projectId);
-    if (project) {
-      if (!name) setName(project.name);
-
-      if (userProfile?.householdId) {
-        try {
-          const yearlyExpense = await retirementPlanService.getProjectYearlyExpense(
-            userProfile.householdId,
-            projectId,
-            currentYear,
-          );
-          setAmount(yearlyExpense);
-        } catch (error) {
-          console.error('Failed to fetch project expense', error);
-        }
-      }
-    }
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-
-    try {
-      await onSave({
-        name,
-        sourceProjectId: selectedProjectId === 'none' ? undefined : selectedProjectId,
-        baseAmount: amount,
-        growthRate,
-        percentOfSalary: percentOfSalary > 0 ? percentOfSalary : undefined,
-        retirementMultiplier: retirementMultiplier / 100,
-        startYear,
-        endYear: endYear ? parseInt(endYear) : null,
-      });
-      setOpen(false);
-    } catch (error) {
-      console.error('Failed to save expense', error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>

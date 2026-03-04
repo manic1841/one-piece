@@ -1,4 +1,5 @@
-import type { RetirementProjectionYear } from '../../schemas/retirementPlan';
+import type { RetirementProjectionYear } from '@/domains/retirement/types';
+import { formatCurrency } from '@/utils/formatUtils';
 
 interface RetirementYearlyTableProps {
   projection: RetirementProjectionYear[];
@@ -27,22 +28,21 @@ export default function RetirementYearlyTable({ projection }: RetirementYearlyTa
               <td className="p-2">
                 {year.age} {year.isRetired && '🏖️'}
               </td>
-              <td className="p-2 text-right text-green-600">
-                ${year.totalIncome.toLocaleString()}
-              </td>
-              <td className="p-2 text-right text-red-600">${year.totalExpense.toLocaleString()}</td>
+              <td className="p-2 text-right text-green-600">{formatCurrency(year.totalIncome)}</td>
+              <td className="p-2 text-right text-red-600">{formatCurrency(year.totalExpense)}</td>
               <td
                 className={`p-2 text-right font-medium ${year.netCashFlow >= 0 ? 'text-green-600' : 'text-red-600'}`}
               >
-                {year.netCashFlow >= 0 ? '+' : ''}${year.netCashFlow.toLocaleString()}
+                {year.netCashFlow >= 0 ? '+' : ''}
+                {formatCurrency(year.netCashFlow)}
               </td>
               <td className="p-2 text-right text-blue-600">
-                ${year.investmentIncome.toLocaleString()}
+                {formatCurrency(year.investmentIncome)}
               </td>
               <td
                 className={`p-2 text-right font-bold ${year.closingBalance < 0 ? 'text-red-600' : 'text-green-600'}`}
               >
-                ${year.closingBalance.toLocaleString()}
+                {formatCurrency(year.closingBalance)}
               </td>
               <td className="p-2 text-xs text-muted-foreground">{year.events.join(', ')}</td>
             </tr>

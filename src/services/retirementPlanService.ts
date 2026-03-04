@@ -1,48 +1,212 @@
 import { startOfMonth, subMonths } from 'date-fns';
 import { Timestamp, orderBy, where } from 'firebase/firestore';
 
-import { projectSnapshotRepository } from '@/repositories/projectSnapshotRepository';
-
+import type { FinancialReport } from '@/domains/finance/types';
+import type { ProjectSnapshot } from '@/domains/project/types';
+import {
+  calculateExpenseSuggestion,
+  calculateIncomeImportMetadata,
+  calculateIncomeSourceSuggestions,
+  processAutoUpdate,
+} from '@/domains/retirement/logic/retirementPlanLogic';
 import {
   type RetirementExpenseCategory,
   type RetirementIncomeSource,
+  type RetirementOneTimeEvent,
   type RetirementPlan,
-  RetirementPlanSchema,
-} from '../schemas/retirementPlan';
-import { BaseService } from './baseService';
+  type RetirementPlanCreate,
+} from '@/domains/retirement/types';
+import { projectSnapshotRepository } from '@/repositories/projectSnapshotRepository';
+import { reportRepository } from '@/repositories/reportRepository';
+import { retirementPlanRepository } from '@/repositories/retirementPlanRepository';
+
 import { plannedIncomeService } from './plannedIncomeService';
 import { projectService } from './projectService';
 
-class RetirementPlanService extends BaseService<RetirementPlan> {
-  constructor() {
-    super('retirementPlans', RetirementPlanSchema);
-  }
-
+class RetirementPlanService {
   // Get all plans for a household
   async getRetirementPlans(householdId: string): Promise<RetirementPlan[]> {
-    return this.getAll(householdId, [orderBy('updatedAt', 'desc')]);
+    return retirementPlanRepository.list([householdId], [orderBy('updatedAt', 'desc')]);
   }
 
   // Create a new plan
   async createRetirementPlan(
     householdId: string,
-    plan: Omit<RetirementPlan, 'id' | 'createdAt'>,
+    plan: RetirementPlanCreate,
+    userEmail: string,
   ): Promise<string> {
-    return this.create(householdId, plan);
+    return retirementPlanRepository.create([householdId], plan, userEmail);
+  }
+
+  // Get a single plan
+  async getRetirementPlan(householdId: string, planId: string): Promise<RetirementPlan | null> {
+    return retirementPlanRepository.get([householdId, planId]);
   }
 
   // Update a plan
   async updateRetirementPlan(
     householdId: string,
     planId: string,
-    updates: Partial<RetirementPlan>,
+    updates: Partial<RetirementPlanCreate>,
+    userEmail: string,
   ): Promise<void> {
-    return this.update(householdId, planId, updates);
+    return retirementPlanRepository.update([householdId, planId], updates, userEmail);
   }
 
   // Delete a plan
   async deleteRetirementPlan(householdId: string, planId: string): Promise<void> {
-    return this.delete(householdId, planId);
+    return retirementPlanRepository.delete([householdId, planId]);
+  }
+
+  // --- Collection Management ---
+
+  async addExpense(
+    householdId: string,
+    planId: string,
+    expenseData: Omit<RetirementExpenseCategory, 'id'>,
+    userEmail: string,
+  ): Promise<void> {
+    const plan = await this.getRetirementPlan(householdId, planId);
+    if (!plan) throw new Error('Plan not found');
+
+    const newExpense = { ...expenseData, id: crypto.randomUUID() };
+    await this.updateRetirementPlan(
+      householdId,
+      planId,
+      {
+        expenses: [...plan.expenses, newExpense],
+      },
+      userEmail,
+    );
+  }
+
+  async updateExpense(
+    householdId: string,
+    planId: string,
+    expenseId: string,
+    updates: Omit<RetirementExpenseCategory, 'id'>,
+    userEmail: string,
+  ): Promise<void> {
+    const plan = await this.getRetirementPlan(householdId, planId);
+    if (!plan) throw new Error('Plan not found');
+
+    const updatedExpenses = plan.expenses.map((e: RetirementExpenseCategory) =>
+      e.id === expenseId ? { ...updates, id: expenseId } : e,
+    );
+    await this.updateRetirementPlan(householdId, planId, { expenses: updatedExpenses }, userEmail);
+  }
+
+  async deleteExpense(
+    householdId: string,
+    planId: string,
+    expenseId: string,
+    userEmail: string,
+  ): Promise<void> {
+    const plan = await this.getRetirementPlan(householdId, planId);
+    if (!plan) throw new Error('Plan not found');
+
+    const updatedExpenses = plan.expenses.filter(
+      (e: RetirementExpenseCategory) => e.id !== expenseId,
+    );
+    await this.updateRetirementPlan(householdId, planId, { expenses: updatedExpenses }, userEmail);
+  }
+
+  async addIncome(
+    householdId: string,
+    planId: string,
+    incomeData: Omit<RetirementIncomeSource, 'id'>,
+    userEmail: string,
+  ): Promise<void> {
+    const plan = await this.getRetirementPlan(householdId, planId);
+    if (!plan) throw new Error('Plan not found');
+
+    const newIncome = { ...incomeData, id: crypto.randomUUID() };
+    await this.updateRetirementPlan(
+      householdId,
+      planId,
+      {
+        incomes: [...plan.incomes, newIncome],
+      },
+      userEmail,
+    );
+  }
+
+  async updateIncome(
+    householdId: string,
+    planId: string,
+    incomeId: string,
+    updates: Omit<RetirementIncomeSource, 'id'>,
+    userEmail: string,
+  ): Promise<void> {
+    const plan = await this.getRetirementPlan(householdId, planId);
+    if (!plan) throw new Error('Plan not found');
+
+    const updatedIncomes = plan.incomes.map((i: RetirementIncomeSource) =>
+      i.id === incomeId ? { ...updates, id: incomeId } : i,
+    );
+    await this.updateRetirementPlan(householdId, planId, { incomes: updatedIncomes }, userEmail);
+  }
+
+  async deleteIncome(
+    householdId: string,
+    planId: string,
+    incomeId: string,
+    userEmail: string,
+  ): Promise<void> {
+    const plan = await this.getRetirementPlan(householdId, planId);
+    if (!plan) throw new Error('Plan not found');
+
+    const updatedIncomes = plan.incomes.filter((i: RetirementIncomeSource) => i.id !== incomeId);
+    await this.updateRetirementPlan(householdId, planId, { incomes: updatedIncomes }, userEmail);
+  }
+
+  async addEvent(
+    householdId: string,
+    planId: string,
+    eventData: Omit<RetirementOneTimeEvent, 'id'>,
+    userEmail: string,
+  ): Promise<void> {
+    const plan = await this.getRetirementPlan(householdId, planId);
+    if (!plan) throw new Error('Plan not found');
+
+    const newEvent = { ...eventData, id: `event-${Date.now()}` };
+    await this.updateRetirementPlan(
+      householdId,
+      planId,
+      {
+        events: [...plan.events, newEvent],
+      },
+      userEmail,
+    );
+  }
+
+  async updateEvent(
+    householdId: string,
+    planId: string,
+    eventId: string,
+    updates: Omit<RetirementOneTimeEvent, 'id'>,
+    userEmail: string,
+  ): Promise<void> {
+    const plan = await this.getRetirementPlan(householdId, planId);
+    if (!plan) throw new Error('Plan not found');
+
+    const updatedEvents = plan.events.map((e: RetirementOneTimeEvent) =>
+      e.id === eventId ? { ...updates, id: eventId } : e,
+    );
+    await this.updateRetirementPlan(householdId, planId, { events: updatedEvents }, userEmail);
+  }
+
+  async deleteEvent(
+    householdId: string,
+    planId: string,
+    eventId: string,
+    userEmail: string,
+  ): Promise<void> {
+    const plan = await this.getRetirementPlan(householdId, planId);
+    if (!plan) throw new Error('Plan not found');
+
+    const updatedEvents = plan.events.filter((e: RetirementOneTimeEvent) => e.id !== eventId);
+    await this.updateRetirementPlan(householdId, planId, { events: updatedEvents }, userEmail);
   }
 
   // --- Import Logic ---
@@ -68,7 +232,7 @@ class RetirementPlanService extends BaseService<RetirementPlan> {
     await Promise.all(
       activeProjects.map(async (project) => {
         // Fetch snapshots
-        const snapshots = await projectSnapshotRepository.list(
+        const snapshots: ProjectSnapshot[] = await projectSnapshotRepository.list(
           [householdId, project.id],
           [
             where('year', '>=', startDate.getFullYear()),
@@ -83,26 +247,8 @@ class RetirementPlanService extends BaseService<RetirementPlan> {
         });
 
         if (validSnapshots.length === 0) return;
-
-        // Calculate average monthly expense
-        const totalExpense = validSnapshots.reduce((sum, s) => sum + s.expense, 0);
-        const averageMonthly = totalExpense / validSnapshots.length;
-        const annualized = averageMonthly * 12;
-
-        // Create category suggestion
-        if (annualized > 0) {
-          expenseCategories.push({
-            id: crypto.randomUUID(), // Temporary ID
-            name: project.name,
-            sourceProjectId: project.id,
-            baseAmount: Math.round(annualized),
-            growthRate: 2, // Default inflation
-            retirementMultiplier: 0.7, // Default assumption
-            startYear: new Date().getFullYear(),
-            endYear: null, // Lifetime
-            note: `Based on ${validSnapshots.length} months average from ${project.name}`,
-          });
-        }
+        const suggestion = calculateExpenseSuggestion(project, validSnapshots);
+        if (suggestion) expenseCategories.push(suggestion);
       }),
     );
 
@@ -129,36 +275,33 @@ class RetirementPlanService extends BaseService<RetirementPlan> {
       return date >= startDate && date <= endDate;
     });
 
-    const incomeMap = new Map<string, { total: number; count: number; type: string }>();
+    return calculateIncomeSourceSuggestions(validIncomes, referenceMonths);
+  }
 
-    validIncomes.forEach((pi) => {
-      const key = pi.category; // Group by category (Salary, Bonus, etc.)
-      const current = incomeMap.get(key) || { total: 0, count: 0, type: pi.category };
+  /**
+   * Get detailed planned income import data for a specific category and date range.
+   */
+  async getPlannedIncomeImportData(
+    householdId: string,
+    category: string,
+    startDateStr?: string,
+    endDateStr?: string,
+  ): Promise<RetirementIncomeSource['calculatedFrom'] | null> {
+    const plannedIncomes = await plannedIncomeService.getPlannedIncomes(householdId);
 
-      current.total += pi.amount;
-      current.count += 1;
-      incomeMap.set(key, current);
+    const startDate = startDateStr ? new Date(startDateStr) : null;
+    const endDate = endDateStr ? new Date(endDateStr) : null;
+
+    const validIncomes = plannedIncomes.filter((pi) => {
+      const date = pi.date instanceof Timestamp ? pi.date.toDate() : pi.date;
+      const matchesCategory = pi.category.toLowerCase() === category.toLowerCase();
+      const matchesStart = !startDate || date >= startDate;
+      const matchesEnd = !endDate || date <= endDate;
+      return matchesCategory && matchesStart && matchesEnd;
     });
 
-    const incomeSources: RetirementIncomeSource[] = [];
-    const currentYear = new Date().getFullYear();
-
-    incomeMap.forEach((value, key) => {
-      const annualAmount = (value.total / referenceMonths) * 12;
-
-      incomeSources.push({
-        id: crypto.randomUUID(),
-        name: key.charAt(0).toUpperCase() + key.slice(1),
-        type: this.mapCategoryToType(key),
-        startYear: currentYear,
-        endYear: currentYear + 20, // Default 20 years work
-        baseAmount: Math.round(annualAmount),
-        growthRate: 3, // Default salary growth
-        note: `Based on last ${referenceMonths} months records`,
-      });
-    });
-
-    return incomeSources;
+    if (validIncomes.length === 0) return null;
+    return calculateIncomeImportMetadata(validIncomes);
   }
 
   /**
@@ -207,12 +350,43 @@ class RetirementPlanService extends BaseService<RetirementPlan> {
     return snapshots.reduce((sum, s) => sum + (s.income || 0), 0);
   }
 
-  private mapCategoryToType(category: string): 'salary' | 'bonus' | 'pension' | 'rent' | 'other' {
-    const lower = category.toLowerCase();
-    if (lower.includes('salary')) return 'salary';
-    if (lower.includes('bonus')) return 'bonus';
-    if (lower.includes('rent')) return 'rent';
-    return 'other';
+  /**
+   * Automatically update plan settings based on last 12 months of financial data.
+   */
+  async autoUpdatePlan(householdId: string, planId: string, userEmail: string): Promise<void> {
+    const plan = await this.getRetirementPlan(householdId, planId);
+    if (!plan) throw new Error('Plan not found');
+
+    // 1. Fetch all reports to find the latest 12 months
+    const reports: FinancialReport[] = await reportRepository.list([householdId]);
+
+    // 2. Identify the latest 12 unique month/year periods available
+    const uniquePeriods = Array.from(new Set(reports.map((r) => `${r.year}-${r.month}`)))
+      .map((p) => {
+        const [year, month] = p.split('-').map(Number);
+        return { year, month };
+      })
+      .sort((a, b) => b.year - a.year || b.month - a.month);
+
+    if (uniquePeriods.length < 12) {
+      throw new Error(
+        `Insufficient data: Found only ${uniquePeriods.length} months of reports, need at least 12.`,
+      );
+    }
+
+    const latest12Periods = uniquePeriods.slice(0, 12);
+    const latestPeriod = latest12Periods[0];
+
+    // 3. Filter reports for these 12 periods
+    const flowReports: FinancialReport[] = reports.filter((r) =>
+      latest12Periods.some((p) => p.year === r.year && p.month === r.month),
+    );
+
+    // 4. Calculate updates via domain logic
+    const updates = processAutoUpdate(plan, flowReports, latestPeriod);
+
+    // 5. Update plan
+    await this.updateRetirementPlan(householdId, planId, updates, userEmail);
   }
 }
 

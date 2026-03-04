@@ -12,7 +12,7 @@ export type PlannedIncomeAllocation = z.infer<typeof PlannedIncomeAllocationSche
 export const PlannedIncomeCreateSchema = z.object({
   date: z.date(),
   amount: z.number(),
-  category: z.nativeEnum(PlannedIncomeCategory),
+  category: z.enum(PlannedIncomeCategory),
   description: z.string().optional(),
   allocations: z.array(PlannedIncomeAllocationSchema),
 });

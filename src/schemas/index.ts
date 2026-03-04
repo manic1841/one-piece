@@ -11,3 +11,4 @@ export * from '@/schemas/incomeStatement';
 export * from '@/schemas/cashFlow';
 export * from '@/schemas/balanceSheet';
 export * from '@/schemas/report';
+export * from '@/schemas/retirementPlan';
