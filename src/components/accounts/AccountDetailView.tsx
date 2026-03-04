@@ -72,6 +72,7 @@ const AccountDetailView: React.FC<AccountDetailViewProps> = ({
 
       {/* Edit Snapshot Form */}
       <AccountSnapshotForm
+        key={editing?.id || 'new'}
         isOpen={isFormOpen}
         onClose={closeForm}
         onSubmit={save}

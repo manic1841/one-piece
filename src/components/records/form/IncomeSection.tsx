@@ -49,7 +49,7 @@ export const IncomeSection: React.FC<IncomeSectionProps> = ({
       )}
 
       {/* Allocations Section */}
-      {(showAllocations || editing) && (
+      {(showAllocations || (editing && allocations.length > 0)) && (
         <AllocationSection
           projects={projects}
           allocations={allocations}

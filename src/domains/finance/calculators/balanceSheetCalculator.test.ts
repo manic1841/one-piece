@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { AssetSubCategory } from '../../../domains/finance/types/categories';
+import { AssetSubCategory, EquitySubCategory } from '../../../domains/finance/types/categories';
 import type { BalanceSheetData } from '../../../schemas/balanceSheet';
 import * as testData from './__testHelpers__/balanceSheetTestData';
 import { calculateBalanceSheet } from './balanceSheetCalculator';
@@ -92,6 +92,18 @@ describe('balanceSheetCalculator', () => {
       expect(result.assets.total).toBe(8000); // 3000 cash + 5000 investments
       const cashItem = result.assets.items.find((item) => item.category === AssetSubCategory.CASH);
       expect(cashItem?.amount).toBe(3000);
+    });
+
+    it('should calculate stock profit from holding cost and market value', () => {
+      const result = calculateBalanceSheet(
+        testData.stockProfitData.accountWithSnapshots as any,
+        testData.stockProfitData.projectsWithSnapshots,
+      );
+
+      const stockProfitItem = result.equity.items.find(
+        (item) => item.category === EquitySubCategory.STOCK_PROFIT,
+      );
+      expect(stockProfitItem?.amount).toBe(500); // 1500 - 1000
     });
   });
 });

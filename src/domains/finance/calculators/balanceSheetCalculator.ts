@@ -16,7 +16,6 @@ import { logger } from '@/utils/logger';
 export function calculateBalanceSheet(
   accountWithSnapshots: AccountWithSnapshot[],
   projectsWithSnapshots: ProjectWithSnapshot[],
-  stockGainLoss?: number,
   netIncome?: number,
 ): BalanceSheetData {
   // 1. Assets
@@ -103,6 +102,15 @@ export function calculateBalanceSheet(
   });
 
   const totalAssets = assetItems.reduce((sum, item) => sum + item.amount, 0);
+
+  // Calculate stock profit from investment accounts
+  const calculatedStockGainLoss = accountWithSnapshots.reduce((accSum, acc) => {
+    if (!acc.snapshot?.holdings) return accSum;
+    const snapshotGainLoss = acc.snapshot.holdings.reduce((hSum, h) => {
+      return hSum + (h.marketValue - h.cost);
+    }, 0);
+    return accSum + snapshotGainLoss;
+  }, 0);
 
   // 2. Liabilities
   const liabilityItems: BalanceSheetItem[] = [];
@@ -210,15 +218,15 @@ export function calculateBalanceSheet(
     });
   });
 
-  // Add Stock Gain/Loss if provided
-  if (stockGainLoss && stockGainLoss !== 0) {
+  // Add calculated Stock Gain/Loss
+  if (calculatedStockGainLoss !== 0) {
     equityItems.push({
       category: EquitySubCategory.STOCK_PROFIT,
-      amount: stockGainLoss,
+      amount: calculatedStockGainLoss,
       subItems: [
         {
           name: '股市累計盈虧',
-          amount: stockGainLoss,
+          amount: calculatedStockGainLoss,
           sourceType: BalanceSheetSourceType.SYSTEM,
         },
       ],

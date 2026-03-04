@@ -303,3 +303,29 @@ export const aggregationData = {
     ),
   ],
 };
+
+export const stockProfitData = {
+  accountWithSnapshots: [
+    {
+      id: 'inv_acc',
+      name: 'Stock Account',
+      category: 'investment',
+      snapshot: {
+        id: 'snap1',
+        amount: 1500, // Total Market Value
+        year: 2024,
+        month: 1,
+        holdings: [
+          {
+            symbol: 'AAPL',
+            name: 'Apple',
+            quantity: 10,
+            cost: 1000,
+            marketValue: 1500,
+          },
+        ],
+      },
+    },
+  ],
+  projectsWithSnapshots: [] as ProjectWithSnapshot[],
+};

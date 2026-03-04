@@ -1,3 +1,5 @@
+import React from 'react';
+
 import { Plus, Trash2 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -40,22 +42,22 @@ export const AccountHolding: React.FC<AccountHoldingProps> = ({
             key={index}
             className="grid grid-cols-12 gap-2 items-end border-b pb-2 last:border-0"
           >
-            <div className="col-span-3">
+            <div className="col-span-2">
               <Label className="text-xs">Symbol</Label>
               <Input
                 value={holding.symbol}
                 onChange={(e) => onUpdateHolding(index, 'symbol', e.target.value)}
                 placeholder="AAPL"
-                className="h-8"
+                className="h-8 text-xs"
               />
             </div>
-            <div className="col-span-3">
+            <div className="col-span-2">
               <Label className="text-xs">Name</Label>
               <Input
                 value={holding.name}
                 onChange={(e) => onUpdateHolding(index, 'name', e.target.value)}
                 placeholder="Apple Inc."
-                className="h-8"
+                className="h-8 text-xs"
               />
             </div>
             <div className="col-span-2">
@@ -64,7 +66,16 @@ export const AccountHolding: React.FC<AccountHoldingProps> = ({
                 type="number"
                 value={holding.quantity}
                 onChange={(e) => onUpdateHolding(index, 'quantity', e.target.value)}
-                className="h-8"
+                className="h-8 text-xs"
+              />
+            </div>
+            <div className="col-span-2">
+              <Label className="text-xs">Cost</Label>
+              <Input
+                type="number"
+                value={holding.cost}
+                onChange={(e) => onUpdateHolding(index, 'cost', e.target.value)}
+                className="h-8 text-xs"
               />
             </div>
             <div className="col-span-2">
@@ -73,17 +84,17 @@ export const AccountHolding: React.FC<AccountHoldingProps> = ({
                 type="number"
                 value={holding.marketValue}
                 onChange={(e) => onUpdateHolding(index, 'marketValue', e.target.value)}
-                className="h-8"
+                className="h-8 text-xs"
               />
             </div>
-            <div className="col-span-2">
-              <Label className="text-xs">Leverage</Label>
+            <div className="col-span-1">
+              <Label className="text-xs">Lev</Label>
               <Input
                 type="number"
                 value={holding.leverage || ''}
                 placeholder="1"
                 onChange={(e) => onUpdateHolding(index, 'leverage', e.target.value)}
-                className="h-8"
+                className="h-8 text-xs px-1"
               />
             </div>
             <div className="col-span-1">

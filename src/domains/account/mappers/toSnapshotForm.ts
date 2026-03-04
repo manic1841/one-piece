@@ -36,6 +36,7 @@ export const toSnapshotForm = (
         symbol: h.symbol,
         name: h.name,
         quantity: h.quantity.toString(),
+        cost: h.cost.toString(),
         marketValue: h.marketValue.toString(),
         leverage: h.leverage ? h.leverage.toString() : '',
       })) || [],

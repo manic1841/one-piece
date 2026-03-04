@@ -8,6 +8,7 @@ export const HoldingSchema = z.object({
   symbol: z.string(),
   name: z.string(),
   quantity: z.number(),
+  cost: z.number(),
   marketValue: z.number(),
   leverage: z.number().optional(),
 });
@@ -33,8 +34,6 @@ export const AccountCreateSchema = z.object({
   name: z.string(),
   category: z.enum(AccountCategory),
   currency: z.enum(CurrencyType),
-  // subcollection
-  snapshots: z.array(AccountSnapshotSchema).optional(),
 });
 
 export type AccountCreate = z.infer<typeof AccountCreateSchema>;

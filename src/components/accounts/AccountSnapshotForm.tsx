@@ -52,7 +52,7 @@ export const AccountSnapshotForm: React.FC<AccountSnapshotFormProps> = ({
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent aria-describedby={undefined} className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Record Balance</DialogTitle>
+          <DialogTitle>{initialData ? 'Edit Balance' : 'Record Balance'}</DialogTitle>
         </DialogHeader>
 
         <form onSubmit={save} className="space-y-4 py-4">
@@ -91,7 +91,7 @@ export const AccountSnapshotForm: React.FC<AccountSnapshotFormProps> = ({
               Cancel
             </Button>
             <Button type="submit" disabled={loading}>
-              {loading ? 'Saving...' : 'Record'}
+              {loading ? 'Saving...' : initialData ? 'Update' : 'Record'}
             </Button>
           </DialogFooter>
         </form>

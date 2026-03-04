@@ -22,7 +22,9 @@ export const useAccountSnapshotForm = (
 ) => {
   const { getPreviousSnapshot } = useAccountCmds(householdId);
 
-  const [formData, setFormData] = useState<AccountSnapshotFormData>(toSnapshotForm());
+  const [formData, setFormData] = useState<AccountSnapshotFormData>(() =>
+    toSnapshotForm(selectedAccount?.id, selectedAccount?.currency, initialData),
+  );
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -30,7 +32,7 @@ export const useAccountSnapshotForm = (
 
   const isInvestment = selectedAccount?.category === AccountCategory.INVESTMENT;
 
-  const loadFormData = useCallback(async () => {
+  const loadFormData = useCallback(() => {
     setFormData(toSnapshotForm(selectedAccount?.id, selectedAccount?.currency, initialData));
   }, [initialData, selectedAccount]);
 
@@ -81,7 +83,7 @@ export const useAccountSnapshotForm = (
         ...prev,
         holdings: [
           ...prev.holdings,
-          { symbol: '', name: '', quantity: '0', marketValue: '0', leverage: '1' },
+          { symbol: '', name: '', quantity: '0', cost: '0', marketValue: '0', leverage: '1' },
         ],
       };
     });

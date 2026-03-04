@@ -8,7 +8,6 @@ import { ProjectExpenseBehavior } from '@/domains/project/types/categories';
 import { reportRepository } from '@/repositories/reportRepository';
 import { accountService } from '@/services/accountService';
 import { plannedIncomeService } from '@/services/plannedIncomeService';
-import { portfolioService } from '@/services/portfolioService';
 import { projectService } from '@/services/projectService';
 import { logger } from '@/utils/logger';
 
@@ -32,14 +31,13 @@ class FinancialReportService {
     const startDate = new Date(year, month - 1, 1);
     const endDate = new Date(year, month, 0, 23, 59, 59, 999);
 
-    const [allProjects, plannedIncomes, accounts, portfolioSummary] = await Promise.all([
+    const [allProjects, plannedIncomes, accounts] = await Promise.all([
       projectService.getProjects(householdId),
       plannedIncomeService.getPlannedIncomes(householdId, {
         startDate: startDate,
         endDate: endDate,
       }),
       accountService.getAccounts(householdId),
-      portfolioService.getStockGainLoss(householdId, year, month),
     ]);
 
     // Fetch Projects with Snapshots for the current month
@@ -72,7 +70,6 @@ class FinancialReportService {
     const balanceSheetData = calculateBalanceSheet(
       accountSnapshots,
       projectsWithSnapshots,
-      portfolioSummary?.totalGainLoss || 0,
       incomeStatementData.netIncome,
     );
 

@@ -65,6 +65,7 @@ const Accounts: React.FC = () => {
       <AccountDetailView
         account={selected}
         householdId={userProfile.householdId}
+        userEmail={userProfile.email}
         onBack={unselect}
       />
     );

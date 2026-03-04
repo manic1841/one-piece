@@ -177,15 +177,11 @@ class AccountService {
     year: number,
     month: number,
   ): Promise<AccountWithSnapshot[]> {
-    console.log(
-      `DEBUG: getAccountWithSnapshots year=${year} month=${month} ids=${accountIds.join(',')}`,
-    );
     const accounts = await Promise.all(
       accountIds.map((accountId) => this.getAccount(householdId, accountId)),
     );
     const result: AccountWithSnapshot[] = [];
     for (const account of accounts) {
-      console.log(`DEBUG: Processing account ${account ? account.id : 'null'}`);
       if (!account) continue;
       const snapshots = await this.getSnapshots(householdId, account.id, year, month);
       const snapshot = snapshots.length > 0 ? snapshots[0] : null;

@@ -9,6 +9,7 @@ export const toSnapshot = (data: AccountSnapshotFormData): AccountSnapshotCreate
       symbol: holding.symbol,
       name: holding.name,
       quantity: parseFloat(holding.quantity),
+      cost: parseFloat(holding.cost),
       marketValue: parseFloat(holding.marketValue),
       leverage: parseFloat(holding.leverage),
     })),
