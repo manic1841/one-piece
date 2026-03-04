@@ -16,6 +16,7 @@ export function calculateBalanceSheet(
   accountWithSnapshots: AccountWithSnapshot[],
   projectsWithSnapshots: ProjectWithSnapshot[],
   stockGainLoss?: number,
+  netIncome?: number,
 ): BalanceSheetData {
   // 1. Assets
   const assetItems: BalanceSheetItem[] = [];
@@ -144,7 +145,14 @@ export function calculateBalanceSheet(
   const equityItems: BalanceSheetItem[] = [];
   const equityMap = new Map<
     string,
-    { amount: number; subItems: { name: string; amount: number }[] }
+    {
+      amount: number;
+      subItems: {
+        name: string;
+        amount: number;
+        sourceType?: BalanceSheetSourceType;
+      }[];
+    }
   >();
 
   projectsWithSnapshots.forEach((pws) => {
@@ -157,11 +165,28 @@ export function calculateBalanceSheet(
       if (amount !== 0) {
         const current = equityMap.get(subcategory) || { amount: 0, subItems: [] };
         current.amount += amount;
-        current.subItems.push({ name: pws.name, amount });
+        current.subItems.push({
+          name: pws.name,
+          amount,
+          sourceType: BalanceSheetSourceType.PROJECT,
+        });
         equityMap.set(subcategory, current);
       }
     }
   });
+
+  // Add Net Income to Retained Earnings
+  if (netIncome && netIncome !== 0) {
+    const subcategory = EquitySubCategory.RETAINED_EARNINGS;
+    const current = equityMap.get(subcategory) || { amount: 0, subItems: [] };
+    current.amount += netIncome;
+    current.subItems.push({
+      name: '本期淨利',
+      amount: netIncome,
+      sourceType: BalanceSheetSourceType.SYSTEM,
+    });
+    equityMap.set(subcategory, current);
+  }
 
   equityMap.forEach((data, category) => {
     logger.debug(

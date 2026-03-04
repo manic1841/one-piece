@@ -103,7 +103,7 @@ export const FinancingSubCategoryLabel = {
   [FinancingSubCategory.SHORT_TERM_LOANS]: '短期貸款',
   [FinancingSubCategory.LONG_TERM_LOANS]: '長期貸款',
   [FinancingSubCategory.OWNER_DRAWS]: '業主提款',
-  [FinancingSubCategory.OWNER_DEPOSIT]: '分紅提取',
+  [FinancingSubCategory.OWNER_DEPOSIT]: '業主存款',
   [FinancingSubCategory.OTHER_FINANCING]: '其他融資',
 };
 

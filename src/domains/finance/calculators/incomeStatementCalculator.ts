@@ -62,7 +62,7 @@ export function calculateIncomeStatement(
     if (pws?.accounting?.incomeStatement?.category === IncomeStatementCategory.INCOME) {
       const subcategory =
         pws.accounting.incomeStatement.subcategory || IncomeSubCategory.OTHER_INCOME;
-      const amount = pws.snapshot.closingBalance;
+      const amount = pws.snapshot.income;
 
       if (amount !== 0) {
         const current = projectIncomeMap.get(subcategory) || { amount: 0, subItems: [] };
@@ -96,7 +96,8 @@ export function calculateIncomeStatement(
     if (pws?.accounting?.incomeStatement?.category === IncomeStatementCategory.EXPENSE) {
       const subcategory =
         pws.accounting.incomeStatement.subcategory || ExpenseSubCategory.OTHER_EXPENSE;
-      const amount = Math.abs(pws.snapshot.closingBalance);
+
+      const amount = Math.abs(pws.snapshot.expense);
 
       if (amount !== 0) {
         const current = projectExpenseMap.get(subcategory) || { amount: 0, subItems: [] };

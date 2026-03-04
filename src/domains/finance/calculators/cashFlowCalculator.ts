@@ -122,24 +122,28 @@ export function calculateCashFlowStatement(
           );
         }
       } else if (category === CashFlowCategory.FINANCING) {
-        if (income > 0) {
-          logger.debug(`Financing Income ${income} ${subcategory}`, 'cashFlowCalculator');
+        const isOwnerDraw = subcategory === FinancingSubCategory.OWNER_DRAWS;
+        const inflow = isOwnerDraw ? expense : income;
+        const outflow = isOwnerDraw ? income : expense;
+
+        if (inflow > 0) {
+          logger.debug(`Financing Income ${inflow} ${subcategory}`, 'cashFlowCalculator');
           aggregate(
             financingIncome,
             subcategory || FinancingSubCategory.OTHER_FINANCING,
-            income,
+            inflow,
             order,
-            { name: project.name, amount: income },
+            { name: project.name, amount: inflow },
           );
         }
-        if (expense > 0) {
-          logger.debug(`Financing Expense ${expense} ${subcategory}`, 'cashFlowCalculator');
+        if (outflow > 0) {
+          logger.debug(`Financing Expense ${outflow} ${subcategory}`, 'cashFlowCalculator');
           aggregate(
             financingExpense,
             subcategory || FinancingSubCategory.OTHER_FINANCING,
-            expense,
+            outflow,
             order,
-            { name: project.name, amount: expense },
+            { name: project.name, amount: outflow },
           );
         }
       }

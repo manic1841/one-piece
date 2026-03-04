@@ -1,8 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { DEFAULT_PROJECTS } from '@/constants/project/defaultProjects';
-import { EquitySubCategory, FinancingSubCategory } from '@/domains/finance/types';
-
+import { EquitySubCategory, FinancingSubCategory } from '../domains/finance/types/categories';
 import { accountService } from './accountService';
 import { financialReportService } from './financialReportService';
 import { plannedIncomeService } from './plannedIncomeService';
@@ -27,16 +25,33 @@ describe('FinancialReportService Integration', () => {
         totalGainLoss: 2000,
       } as any);
 
-      // Mock projects - specifically Retained Earnings
-      const reConfig = DEFAULT_PROJECTS.find(
-        (p: any) => p.accounting?.balanceSheet?.subcategory === EquitySubCategory.RETAINED_EARNINGS,
-      )!;
+      // Mock projects - specifically Retained Earnings and a Dividend source
       const reId = 're-project-id';
-      vi.spyOn(projectService, 'getProjects').mockResolvedValue([{ id: reId, ...reConfig } as any]);
-      vi.spyOn(projectService, 'getProjectById').mockResolvedValue({
+      const divId = 'div-project-id';
+      const householdId = 'test-household';
+
+      const reProject = {
         id: reId,
-        ...reConfig,
-      } as any);
+        name: 'Retained Earnings',
+        accounting: {
+          balanceSheet: { subcategory: EquitySubCategory.RETAINED_EARNINGS },
+        },
+      };
+
+      const divProject = {
+        id: divId,
+        name: 'Dividends',
+        accounting: {
+          cashFlow: { subcategory: FinancingSubCategory.OWNER_DEPOSIT },
+        },
+      };
+
+      vi.spyOn(projectService, 'getProjects').mockResolvedValue([reProject, divProject] as any);
+      vi.spyOn(projectService, 'getProjectById').mockImplementation(async (_hhId, pId) => {
+        if (pId === reId) return reProject as any;
+        if (pId === divId) return divProject as any;
+        return null;
+      });
 
       // Mock financial activity for the month
       vi.spyOn(financialReportService, 'generateFinancialReports').mockResolvedValue({
@@ -46,13 +61,12 @@ describe('FinancialReportService Integration', () => {
         reconciliation: { reconciled: true, difference: 0 },
       });
 
-      // Mock snapshots to return 1000 dividend (OWNER_DEPOSIT)
+      // Mock snapshots: RE has existing snapshot, DIV has 1000 expense
       vi.spyOn(projectService, 'getProjectWithSnapshot').mockImplementation(
-        async (hhId: string, pId: string, y: number, m: number) => {
-          const p = await projectService.getProjectById(hhId, pId);
-          if (p?.accounting?.cashFlow?.subcategory === FinancingSubCategory.OWNER_DEPOSIT) {
+        async (_hhId: string, pId: string, y: number, m: number) => {
+          if (pId === divId) {
             return {
-              ...p,
+              ...divProject,
               snapshot: {
                 expense: 1000,
                 income: 0,
@@ -60,11 +74,25 @@ describe('FinancialReportService Integration', () => {
                 closingBalance: -1000,
                 year: y,
                 month: m,
-                id: 'snap-1',
+                id: 'snap-div',
               },
             } as any;
           }
-          return { ...p, snapshot: null } as any;
+          if (pId === reId) {
+            return {
+              ...reProject,
+              snapshot: {
+                year: y,
+                month: m,
+                openingBalance: 0,
+                income: 0,
+                expense: 0,
+                closingBalance: 0,
+                id: 'snap-re-1',
+              },
+            } as any;
+          }
+          return { id: pId, snapshot: null } as any;
         },
       );
 
@@ -78,7 +106,7 @@ describe('FinancialReportService Integration', () => {
       expect(updateSpy).toHaveBeenCalledWith(
         householdId,
         reId,
-        'snap-1',
+        'snap-re-1',
         expect.objectContaining({
           income: 5000,
           expense: 1000,

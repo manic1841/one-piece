@@ -4,9 +4,13 @@ import { type ProjectDetailData } from '@/domains/project/types';
 
 interface ProjectDetailListProps {
   items: ProjectDetailData[];
+  onDeleteSnapshot?: (snapshotId: string) => Promise<void>;
 }
 
-export const ProjectDetailList: React.FC<ProjectDetailListProps> = ({ items }) => {
+export const ProjectDetailList: React.FC<ProjectDetailListProps> = ({
+  items,
+  onDeleteSnapshot,
+}) => {
   return (
     <Card>
       <CardHeader className="border-b border-border">
@@ -20,7 +24,13 @@ export const ProjectDetailList: React.FC<ProjectDetailListProps> = ({ items }) =
             </div>
           ) : (
             items.map((item, index) => {
-              return <ProjectDetailItem key={`tx-${item.id}-${index}`} item={item} />;
+              return (
+                <ProjectDetailItem
+                  key={`tx-${item.id}-${index}`}
+                  item={item}
+                  onDeleteSnapshot={onDeleteSnapshot}
+                />
+              );
             })
           )}
         </div>

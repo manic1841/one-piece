@@ -147,6 +147,7 @@ describe('Financial Report Service - Granular Tests', () => {
     };
 
     // 5. Financing Activity (Owner Draw)
+    // Owner Draw amount will be negative in income and positive in expense
     const projFinId2 = 'proj_fin2';
     mockDb[`households/${householdId}/projects/${projFinId2}`] = {
       id: projFinId2,
@@ -165,8 +166,8 @@ describe('Financial Report Service - Granular Tests', () => {
       id: '2025-01',
       year: 2025,
       month: 1,
-      income: 0,
-      expense: 10000,
+      income: 10000,
+      expense: 0,
       closingBalance: 0,
       openingBalance: 0,
       createdAt: Timestamp.now(),
@@ -225,6 +226,7 @@ describe('Financial Report Service - Granular Tests', () => {
     // Check Categories
 
     // operating
+    // if reconciliation is needed, it will be added to other_operating
     const totalOperatingIncome = data.operating.income.reduce((acc, item) => acc + item.amount, 0);
     const totalOperatingExpense = data.operating.expense.reduce(
       (acc, item) => acc + item.amount,

@@ -65,6 +65,15 @@ export const useProjectCmds = (
     [householdId],
   );
 
+  const deleteSnapshot = useCallback(
+    async (projectId: string, snapshotId: string) => {
+      if (!householdId) return;
+      await projectService.deleteSnapshot(householdId, projectId, snapshotId);
+      await reload?.();
+    },
+    [householdId, reload],
+  );
+
   return {
     createProject,
     updateProject,
@@ -72,5 +81,6 @@ export const useProjectCmds = (
     getRecords,
     getProjectBalance,
     getSnapshots,
+    deleteSnapshot,
   };
 };

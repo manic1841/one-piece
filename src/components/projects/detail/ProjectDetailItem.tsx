@@ -8,13 +8,14 @@ import { formatCurrency } from '@/utils/formatUtils';
 
 interface ProjectDetailItemProps {
   item: ProjectDetailData;
+  onDeleteSnapshot?: (snapshotId: string) => Promise<void>;
 }
 
-export const ProjectDetailItem: React.FC<ProjectDetailItemProps> = ({ item }) => {
+export const ProjectDetailItem: React.FC<ProjectDetailItemProps> = ({ item, onDeleteSnapshot }) => {
   const { isIncome, color, category } = useProjectDetailItem(item);
 
   if (item.type === ProjectDetailType.SNAPSHOT) {
-    return <ProjectSnapshotItem item={item} />;
+    return <ProjectSnapshotItem item={item} onDelete={onDeleteSnapshot} />;
   }
 
   return (

@@ -56,5 +56,16 @@ export const useProjectDetailView = (householdId?: string, projectId?: string) =
     setItems(merged);
   }, [projectId, getRecords, getSnapshots]);
 
-  return { items, reload };
+  const { deleteSnapshot: deleteSnapshotCmd } = useProjectCmds(householdId);
+
+  const deleteSnapshot = useCallback(
+    async (snapshotId: string) => {
+      if (!projectId) return;
+      await deleteSnapshotCmd(projectId, snapshotId);
+      await reload();
+    },
+    [projectId, deleteSnapshotCmd, reload],
+  );
+
+  return { items, reload, deleteSnapshot };
 };

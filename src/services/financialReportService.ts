@@ -72,6 +72,7 @@ class FinancialReportService {
       accountSnapshots,
       projectsWithSnapshots,
       portfolioSummary?.totalGainLoss || 0,
+      incomeStatementData.netIncome,
     );
 
     const cashFlowData = calculateCashFlowStatement(

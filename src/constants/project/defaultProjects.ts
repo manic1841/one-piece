@@ -1,9 +1,4 @@
-import {
-  BalanceSheetCategory,
-  CashFlowCategory,
-  EquitySubCategory,
-  FinancingSubCategory,
-} from '@/domains/finance/types/categories';
+import { BalanceSheetCategory, EquitySubCategory } from '@/domains/finance/types/categories';
 import { ProjectCategory } from '@/domains/project/types/categories';
 import type { ProjectCreate } from '@/schemas/project';
 
@@ -21,10 +16,6 @@ export const DEFAULT_PROJECTS: ProjectCreate[] = [
       balanceSheet: {
         category: BalanceSheetCategory.EQUITY,
         subcategory: EquitySubCategory.RETAINED_EARNINGS,
-      },
-      cashFlow: {
-        category: CashFlowCategory.FINANCING,
-        subcategory: FinancingSubCategory.OWNER_DEPOSIT,
       },
     },
   },
