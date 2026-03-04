@@ -20,6 +20,7 @@ import type {
   CashFlowView as CashFlow,
   IncomeStatementView as IncomeStatement,
 } from '@/domains/finance/mappers';
+import { ReportType } from '@/domains/finance/types';
 import { useFinancialReportPage } from '@/hooks/pages/useFinancialReportPage';
 
 import { useAuth } from '../contexts/useAuth';
@@ -27,30 +28,34 @@ import { useAuth } from '../contexts/useAuth';
 const Reports: React.FC = () => {
   const { userProfile } = useAuth();
   const [isGeneratorOpen, setIsGeneratorOpen] = useState(false);
-  const [currentTab, setCurrentTab] = useState('income-statement');
+  const [currentTab, setCurrentTab] = useState<ReportType>(ReportType.INCOME_STATEMENT);
   const [currentDate, setCurrentDate] = useState<Date>(new Date());
+  const [viewType, setViewType] = useState<'month' | 'year'>('month');
 
   const householdId = userProfile?.householdId;
 
   // Income Statement
   const isState = useFinancialReportPage<IncomeStatement>({
     householdId,
-    reportType: 'income_statement',
+    reportType: ReportType.INCOME_STATEMENT,
     externalDate: currentDate,
+    viewType,
   });
 
   // Balance Sheet
   const bsState = useFinancialReportPage<BalanceSheet>({
     householdId,
-    reportType: 'balance_sheet',
+    reportType: ReportType.BALANCE_SHEET,
     externalDate: currentDate,
+    viewType,
   });
 
   // Cash Flow
   const cfState = useFinancialReportPage<CashFlow>({
     householdId,
-    reportType: 'cash_flow',
+    reportType: ReportType.CASH_FLOW,
     externalDate: currentDate,
+    viewType,
   });
 
   if (!householdId) {
@@ -62,9 +67,9 @@ const Reports: React.FC = () => {
   }
 
   const activeState =
-    currentTab === 'income-statement'
+    currentTab === ReportType.INCOME_STATEMENT
       ? isState
-      : currentTab === 'balance-sheet'
+      : currentTab === ReportType.BALANCE_SHEET
         ? bsState
         : cfState;
 
@@ -82,11 +87,11 @@ const Reports: React.FC = () => {
     }
 
     switch (currentTab) {
-      case 'income-statement':
+      case ReportType.INCOME_STATEMENT:
         return <IncomeStatementView statement={activeState.report as IncomeStatement} />;
-      case 'balance-sheet':
+      case ReportType.BALANCE_SHEET:
         return <BalanceSheetView balanceSheet={activeState.report as BalanceSheet} />;
-      case 'cash-flow':
+      case ReportType.CASH_FLOW:
         return <CashFlowView cashFlow={activeState.report as CashFlow} />;
       default:
         return null;
@@ -94,13 +99,23 @@ const Reports: React.FC = () => {
   };
 
   const handlePreviousMonth = () => {
-    const newDate = new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1);
-    setCurrentDate(newDate);
+    if (viewType === 'year') {
+      const newDate = new Date(currentDate.getFullYear() - 1, currentDate.getMonth(), 1);
+      setCurrentDate(newDate);
+    } else {
+      const newDate = new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1);
+      setCurrentDate(newDate);
+    }
   };
 
   const handleNextMonth = () => {
-    const newDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1);
-    setCurrentDate(newDate);
+    if (viewType === 'year') {
+      const newDate = new Date(currentDate.getFullYear() + 1, currentDate.getMonth(), 1);
+      setCurrentDate(newDate);
+    } else {
+      const newDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1);
+      setCurrentDate(newDate);
+    }
   };
 
   const handleCurrentMonth = () => {
@@ -109,6 +124,9 @@ const Reports: React.FC = () => {
 
   const isCurrentMonth = () => {
     const now = new Date();
+    if (viewType === 'year') {
+      return currentDate.getFullYear() === now.getFullYear();
+    }
     return (
       currentDate.getFullYear() === now.getFullYear() && currentDate.getMonth() === now.getMonth()
     );
@@ -124,21 +142,30 @@ const Reports: React.FC = () => {
         onNextMonth={handleNextMonth}
         onCurrentMonth={handleCurrentMonth}
         onDateChange={setCurrentDate}
+        viewType={viewType}
+        onViewTypeChange={setViewType}
       >
         <div className="flex flex-col gap-4">
           <div className="flex items-center justify-between border-b pb-4">
-            <Tabs defaultValue={currentTab} className="w-full" onValueChange={setCurrentTab}>
+            <Tabs
+              value={currentTab}
+              className="w-full"
+              onValueChange={(val) => setCurrentTab(val as ReportType)}
+            >
               <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <TabsList>
-                  <TabsTrigger value="income-statement" className="flex items-center gap-2">
+                  <TabsTrigger
+                    value={ReportType.INCOME_STATEMENT}
+                    className="flex items-center gap-2"
+                  >
                     <FileText className="h-4 w-4" />
                     損益表
                   </TabsTrigger>
-                  <TabsTrigger value="balance-sheet" className="flex items-center gap-2">
+                  <TabsTrigger value={ReportType.BALANCE_SHEET} className="flex items-center gap-2">
                     <Wallet className="h-4 w-4" />
                     資產負債表
                   </TabsTrigger>
-                  <TabsTrigger value="cash-flow" className="flex items-center gap-2">
+                  <TabsTrigger value={ReportType.CASH_FLOW} className="flex items-center gap-2">
                     <TrendingUp className="h-4 w-4" />
                     現金流量表
                   </TabsTrigger>

@@ -1,4 +1,4 @@
-import type { IncomeStatementData } from '@/domains/finance/types';
+import { type IncomeStatementData, ReportType } from '@/domains/finance/types';
 import type { FinancialReport } from '@/schemas/report';
 
 export interface IncomeStatementView {
@@ -43,7 +43,7 @@ export interface IncomeStatementView {
  * Map FinancialReport to IncomeStatementView format
  */
 export const mapToIncomeStatementView = (report: FinancialReport): IncomeStatementView | null => {
-  if (report.type !== 'income_statement' || !('revenue' in report.data)) return null;
+  if (report.type !== ReportType.INCOME_STATEMENT || !('revenue' in report.data)) return null;
   const data = report.data as IncomeStatementData;
 
   return {

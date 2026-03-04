@@ -1,7 +1,11 @@
 import { Timestamp } from 'firebase/firestore';
 
-import type { FinancialReport } from '@/domains/finance/types';
-import { AssetSubCategory, IncomeSubCategory } from '@/domains/finance/types/categories';
+import {
+  AssetSubCategory,
+  type FinancialReport,
+  IncomeSubCategory,
+  ReportType,
+} from '@/domains/finance/types';
 import type { ProjectSnapshot } from '@/domains/project/types';
 import type { PlannedIncome } from '@/domains/record/types';
 import { mapCategoryToRetirementIncomeType } from '@/domains/retirement/mappers/retirementMapper';
@@ -148,11 +152,13 @@ export function processAutoUpdate(
   // 1. Latest Savings
   const latestBS = reports.find(
     (r) =>
-      r.type === 'balance_sheet' && r.year === latestPeriod.year && r.month === latestPeriod.month,
+      r.type === ReportType.BALANCE_SHEET &&
+      r.year === latestPeriod.year &&
+      r.month === latestPeriod.month,
   );
   let currentSavings = plan.currentSavings;
   if (latestBS && latestBS.data && 'assets' in latestBS.data) {
-    const assets = latestBS.data.assets.items;
+    const assets = latestBS.data.assets.items as Array<{ category: string; amount: number }>;
     const liquidAssets = assets
       .filter(
         (item) =>
@@ -163,11 +169,11 @@ export function processAutoUpdate(
   }
 
   // 2. Salary Average
-  const isReports = reports.filter((r) => r.type === 'income_statement');
+  const isReports = reports.filter((r) => r.type === ReportType.INCOME_STATEMENT);
   let totalSalary = 0;
   isReports.forEach((r) => {
     if (r.data && 'revenue' in r.data) {
-      const salaryItem = r.data.revenue.items.find(
+      const salaryItem = (r.data.revenue.items as Array<{ category: string; amount: number }>).find(
         (item) => item.category === IncomeSubCategory.SALARY,
       );
       if (salaryItem) totalSalary += salaryItem.amount;

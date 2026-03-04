@@ -10,15 +10,18 @@ import {
   mapToCashFlowView,
   mapToIncomeStatementView,
 } from '@/domains/finance/mappers';
+import { type FinancialReport, ReportType } from '@/domains/finance/types';
 import { financialReportService } from '@/services/financialReportService';
 
-type ReportType = 'income_statement' | 'balance_sheet' | 'cash_flow';
+type ReportTypeEnum = ReportType;
+type ViewType = 'month' | 'year';
 type ReportView = IncomeStatementView | BalanceSheetView | CashFlowView;
 
 interface UseFinancialReportPageProps {
   householdId: string | undefined;
-  reportType: ReportType;
+  reportType: ReportTypeEnum;
   externalDate?: Date;
+  viewType?: ViewType;
 }
 
 interface UseFinancialReportPageReturn<T extends ReportView> {
@@ -26,6 +29,7 @@ interface UseFinancialReportPageReturn<T extends ReportView> {
   loading: boolean;
   error: string | null;
   currentDate: Date;
+  viewType: ViewType;
   handlePreviousMonth: () => void;
   handleNextMonth: () => void;
   handleCurrentMonth: () => void;
@@ -39,6 +43,7 @@ export function useFinancialReportPage<T extends ReportView>({
   householdId,
   reportType,
   externalDate,
+  viewType = 'month',
 }: UseFinancialReportPageProps): UseFinancialReportPageReturn<T> {
   const [report, setReport] = useState<T | null>(null);
   const [loading, setLoading] = useState(false);
@@ -47,23 +52,23 @@ export function useFinancialReportPage<T extends ReportView>({
 
   const currentDate = externalDate || internalDate;
 
-  const getErrorMessage = (type: ReportType): string => {
-    const messages = {
-      income_statement: '此月份尚未生成損益表，請先至報表頁面生成。',
-      balance_sheet: '此月份尚未生成資產負債表，請先至報表頁面生成。',
-      cash_flow: '此月份尚未生成現金流量表，請先至報表頁面生成。',
+  const getErrorMessage = (type: ReportTypeEnum): string => {
+    const messages: Record<ReportTypeEnum, string> = {
+      [ReportType.INCOME_STATEMENT]: '此月份尚未生成損益表，請先至報表頁面生成。',
+      [ReportType.BALANCE_SHEET]: '此月份尚未生成資產負債表，請先至報表頁面生成。',
+      [ReportType.CASH_FLOW]: '此月份尚未生成現金流量表，請先至報表頁面生成。',
     };
     return messages[type];
   };
 
   const mapReportToView = useCallback(
-    (reportData: Parameters<typeof mapToIncomeStatementView>[0]): T | null => {
+    (reportData: FinancialReport): T | null => {
       switch (reportType) {
-        case 'income_statement':
+        case ReportType.INCOME_STATEMENT:
           return mapToIncomeStatementView(reportData) as T | null;
-        case 'balance_sheet':
+        case ReportType.BALANCE_SHEET:
           return mapToBalanceSheetView(reportData) as T | null;
-        case 'cash_flow':
+        case ReportType.CASH_FLOW:
           return mapToCashFlowView(reportData) as T | null;
         default:
           return null;
@@ -83,12 +88,36 @@ export function useFinancialReportPage<T extends ReportView>({
         const year = date.getFullYear();
         const month = date.getMonth() + 1;
 
-        const reportData = await financialReportService.getFinancialReport(
-          householdId,
-          reportType,
-          year,
-          month,
-        );
+        let reportsData;
+        if (viewType === 'year') {
+          reportsData = await financialReportService.getYearlyReports(householdId, year);
+        } else {
+          const singleReport = await financialReportService.getFinancialReport(
+            householdId,
+            reportType,
+            year,
+            month,
+          );
+          reportsData = {
+            incomeStatement: reportType === ReportType.INCOME_STATEMENT ? singleReport : null,
+            balanceSheet: reportType === ReportType.BALANCE_SHEET ? singleReport : null,
+            cashFlow: reportType === ReportType.CASH_FLOW ? singleReport : null,
+          };
+        }
+
+        type ReportDataCollection = {
+          incomeStatement: FinancialReport | null;
+          balanceSheet: FinancialReport | null;
+          cashFlow: FinancialReport | null;
+        };
+
+        const reportsDataMap: Record<ReportTypeEnum, keyof ReportDataCollection> = {
+          [ReportType.INCOME_STATEMENT]: 'incomeStatement',
+          [ReportType.BALANCE_SHEET]: 'balanceSheet',
+          [ReportType.CASH_FLOW]: 'cashFlow',
+        };
+
+        const reportData = (reportsData as ReportDataCollection)[reportsDataMap[reportType]];
 
         if (reportData) {
           const viewData = mapReportToView(reportData);
@@ -104,7 +133,7 @@ export function useFinancialReportPage<T extends ReportView>({
         setLoading(false);
       }
     },
-    [householdId, reportType, mapReportToView],
+    [householdId, reportType, mapReportToView, viewType],
   );
 
   useEffect(() => {
@@ -112,14 +141,24 @@ export function useFinancialReportPage<T extends ReportView>({
   }, [currentDate, householdId, loadReport]);
 
   const handlePreviousMonth = useCallback(() => {
-    const newDate = new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1);
-    setInternalDate(newDate);
-  }, [currentDate]);
+    if (viewType === 'year') {
+      const newDate = new Date(currentDate.getFullYear() - 1, currentDate.getMonth(), 1);
+      setInternalDate(newDate);
+    } else {
+      const newDate = new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1);
+      setInternalDate(newDate);
+    }
+  }, [currentDate, viewType]);
 
   const handleNextMonth = useCallback(() => {
-    const newDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1);
-    setInternalDate(newDate);
-  }, [currentDate]);
+    if (viewType === 'year') {
+      const newDate = new Date(currentDate.getFullYear() + 1, currentDate.getMonth(), 1);
+      setInternalDate(newDate);
+    } else {
+      const newDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1);
+      setInternalDate(newDate);
+    }
+  }, [currentDate, viewType]);
 
   const handleCurrentMonth = useCallback(() => {
     setInternalDate(new Date());
@@ -131,14 +170,23 @@ export function useFinancialReportPage<T extends ReportView>({
 
   const isCurrentMonth = useCallback(() => {
     const now = new Date();
+    if (viewType === 'year') {
+      return currentDate.getFullYear() === now.getFullYear();
+    }
     return (
       currentDate.getFullYear() === now.getFullYear() && currentDate.getMonth() === now.getMonth()
     );
-  }, [currentDate]);
+  }, [currentDate, viewType]);
 
-  const formatMonthYear = useCallback((date: Date) => {
-    return `${date.getFullYear()} 年 ${date.getMonth() + 1} 月`;
-  }, []);
+  const formatMonthYear = useCallback(
+    (date: Date) => {
+      if (viewType === 'year') {
+        return `${date.getFullYear()} 年`;
+      }
+      return `${date.getFullYear()} 年 ${date.getMonth() + 1} 月`;
+    },
+    [viewType],
+  );
 
   const reload = useCallback(() => {
     loadReport(currentDate);
@@ -149,6 +197,7 @@ export function useFinancialReportPage<T extends ReportView>({
     loading,
     error,
     currentDate,
+    viewType,
     handlePreviousMonth,
     handleNextMonth,
     handleCurrentMonth,

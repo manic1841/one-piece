@@ -2,10 +2,20 @@ import { calculateBalanceSheet } from '@/domains/finance/calculators/balanceShee
 import { calculateCashFlowStatement } from '@/domains/finance/calculators/cashFlowCalculator';
 import { reconcileReports } from '@/domains/finance/calculators/financialReportCalculator';
 import { calculateIncomeStatement } from '@/domains/finance/calculators/incomeStatementCalculator';
-import type { FinancialReport } from '@/domains/finance/types';
-import { EquitySubCategory, FinancingSubCategory } from '@/domains/finance/types';
+import {
+  aggregateCashFlows,
+  aggregateIncomeStatements,
+  aggregateLatestBalanceSheet,
+} from '@/domains/finance/logic/reportAggregation';
+import {
+  EquitySubCategory,
+  type FinancialReport,
+  FinancingSubCategory,
+  ReportType,
+} from '@/domains/finance/types';
 import { ProjectExpenseBehavior } from '@/domains/project/types/categories';
 import { reportRepository } from '@/repositories/reportRepository';
+import { type BalanceSheetData, type CashFlowData, type IncomeStatementData } from '@/schemas';
 import { accountService } from '@/services/accountService';
 import { plannedIncomeService } from '@/services/plannedIncomeService';
 import { projectService } from '@/services/projectService';
@@ -102,21 +112,21 @@ class FinancialReportService {
 
     const incomeStatement: FinancialReport = {
       id: `income_statement_${year}-${month}`,
-      type: 'income_statement',
+      type: ReportType.INCOME_STATEMENT,
       data: incomeStatementData,
       ...commonFields,
     };
 
     const balanceSheet: FinancialReport = {
       id: `balance_sheet_${year}-${month}`,
-      type: 'balance_sheet',
+      type: ReportType.BALANCE_SHEET,
       data: balanceSheetData,
       ...commonFields,
     };
 
     const cashFlow: FinancialReport = {
       id: `cash_flow_${year}-${month}`,
-      type: 'cash_flow',
+      type: ReportType.CASH_FLOW,
       data: cashFlowData,
       ...commonFields,
     };
@@ -159,13 +169,17 @@ class FinancialReportService {
     const reports = await reportRepository.list([householdId]);
 
     const incomeStatement =
-      reports.find((r) => r.type === 'income_statement' && r.year === year && r.month === month) ||
-      null;
+      reports.find(
+        (r) => r.type === ReportType.INCOME_STATEMENT && r.year === year && r.month === month,
+      ) || null;
     const balanceSheet =
-      reports.find((r) => r.type === 'balance_sheet' && r.year === year && r.month === month) ||
-      null;
+      reports.find(
+        (r) => r.type === ReportType.BALANCE_SHEET && r.year === year && r.month === month,
+      ) || null;
     const cashFlow =
-      reports.find((r) => r.type === 'cash_flow' && r.year === year && r.month === month) || null;
+      reports.find(
+        (r) => r.type === ReportType.CASH_FLOW && r.year === year && r.month === month,
+      ) || null;
 
     return {
       incomeStatement,
@@ -179,12 +193,86 @@ class FinancialReportService {
    */
   async getFinancialReport(
     householdId: string,
-    type: 'income_statement' | 'balance_sheet' | 'cash_flow',
+    type: ReportType,
     year: number,
     month: number,
   ): Promise<FinancialReport | null> {
     const reports = await reportRepository.list([householdId]);
     return reports.find((r) => r.type === type && r.year === year && r.month === month) || null;
+  }
+
+  /**
+   * Get yearly aggregated reports
+   */
+  async getYearlyReports(
+    householdId: string,
+    year: number,
+  ): Promise<{
+    incomeStatement: FinancialReport | null;
+    balanceSheet: FinancialReport | null;
+    cashFlow: FinancialReport | null;
+  }> {
+    const allReports = await reportRepository.list([householdId]);
+    const yearlyReports = allReports.filter((r) => r.year === year);
+
+    if (yearlyReports.length === 0) {
+      return { incomeStatement: null, balanceSheet: null, cashFlow: null };
+    }
+
+    const isData = yearlyReports
+      .filter((r) => r.type === ReportType.INCOME_STATEMENT)
+      .sort((a, b) => a.month - b.month)
+      .map((r) => r.data as IncomeStatementData);
+    const bsData = yearlyReports
+      .filter((r) => r.type === ReportType.BALANCE_SHEET)
+      .sort((a, b) => a.month - b.month)
+      .map((r) => r.data as BalanceSheetData);
+    const cfData = yearlyReports
+      .filter((r) => r.type === ReportType.CASH_FLOW)
+      .sort((a, b) => a.month - b.month)
+      .map((r) => r.data as CashFlowData);
+
+    const now = new Date();
+    const commonFields = {
+      year,
+      month: 12, // Represent yearly as month 12 or similar
+      startDate: new Date(year, 0, 1),
+      endDate: new Date(year, 11, 31, 23, 59, 59, 999),
+      reconciled: true,
+      cached: true,
+      generatedAt: now,
+      generatedBy: 'system',
+    };
+
+    return {
+      incomeStatement:
+        isData.length > 0
+          ? ({
+              id: `income_statement_${year}_yearly`,
+              type: ReportType.INCOME_STATEMENT,
+              data: aggregateIncomeStatements(isData),
+              ...commonFields,
+            } as FinancialReport)
+          : null,
+      balanceSheet:
+        bsData.length > 0
+          ? ({
+              id: `balance_sheet_${year}_yearly`,
+              type: ReportType.BALANCE_SHEET,
+              data: aggregateLatestBalanceSheet(bsData),
+              ...commonFields,
+            } as FinancialReport)
+          : null,
+      cashFlow:
+        cfData.length > 0
+          ? ({
+              id: `cash_flow_${year}_yearly`,
+              type: ReportType.CASH_FLOW,
+              data: aggregateCashFlows(cfData),
+              ...commonFields,
+            } as FinancialReport)
+          : null,
+    };
   }
 
   /**
@@ -205,7 +293,7 @@ class FinancialReportService {
 
     // Ensure we are accessing the correct data type
     if (
-      reports.incomeStatement.type !== 'income_statement' ||
+      reports.incomeStatement.type !== ReportType.INCOME_STATEMENT ||
       !('netIncome' in reports.incomeStatement.data)
     ) {
       throw new Error('Invalid income statement data');

@@ -1,7 +1,7 @@
 import { Timestamp } from 'firebase/firestore';
 import { describe, expect, it } from 'vitest';
 
-import { AssetSubCategory, IncomeSubCategory } from '@/domains/finance/types/categories';
+import { AssetSubCategory, IncomeSubCategory, ReportType } from '@/domains/finance/types';
 import { type RetirementPlan } from '@/domains/retirement/types';
 import { RetirementIncomeType } from '@/domains/retirement/types/categories';
 
@@ -100,7 +100,7 @@ describe('retirementPlanLogic', () => {
 
     const reports = [
       {
-        type: 'balance_sheet',
+        type: ReportType.BALANCE_SHEET,
         year: 2025,
         month: 1,
         data: {
@@ -114,7 +114,7 @@ describe('retirementPlanLogic', () => {
         },
       } as any,
       {
-        type: 'income_statement',
+        type: ReportType.INCOME_STATEMENT,
         year: 2025,
         month: 1,
         data: {

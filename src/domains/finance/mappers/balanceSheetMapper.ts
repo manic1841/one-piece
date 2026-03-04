@@ -1,10 +1,12 @@
-import type { BalanceSheetData, BalanceSheetItem } from '@/domains/finance/types';
 import {
   AssetSubCategory,
+  type BalanceSheetData,
+  type BalanceSheetItem,
   EquitySubCategory,
+  type FinancialReport,
   LiabilitySubCategory,
-} from '@/domains/finance/types/categories';
-import type { FinancialReport } from '@/schemas/report';
+  ReportType,
+} from '@/domains/finance/types';
 
 export interface BalanceSheetView {
   id: string;
@@ -60,7 +62,7 @@ export interface BalanceSheetView {
  * Map FinancialReport to BalanceSheetView format
  */
 export const mapToBalanceSheetView = (report: FinancialReport): BalanceSheetView | null => {
-  if (report.type !== 'balance_sheet' || !('assets' in report.data)) return null;
+  if (report.type !== ReportType.BALANCE_SHEET || !('assets' in report.data)) return null;
   const data = report.data as BalanceSheetData;
 
   // 1. Extract and separate adjustments (system-generated items)

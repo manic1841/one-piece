@@ -4,7 +4,6 @@ import { EquitySubCategory, FinancingSubCategory } from '../domains/finance/type
 import { accountService } from './accountService';
 import { financialReportService } from './financialReportService';
 import { plannedIncomeService } from './plannedIncomeService';
-import { portfolioService } from './portfolioService';
 import { projectService } from './projectService';
 
 describe('FinancialReportService Integration', () => {
@@ -18,13 +17,6 @@ describe('FinancialReportService Integration', () => {
 
   describe('closeMonth', () => {
     it('should correctly calculate and record Retained Earnings snapshot', async () => {
-      // Mock portfolio gain
-      vi.spyOn(portfolioService, 'getStockGainLoss').mockResolvedValue({
-        totalMarketValue: 10000,
-        totalCost: 8000,
-        totalGainLoss: 2000,
-      } as any);
-
       // Mock projects - specifically Retained Earnings and a Dividend source
       const reId = 're-project-id';
       const divId = 'div-project-id';
@@ -123,15 +115,29 @@ describe('FinancialReportService Integration', () => {
       vi.spyOn(projectService, 'getProjects').mockResolvedValue([]);
       vi.spyOn(plannedIncomeService, 'getPlannedIncomes').mockResolvedValue([]);
       vi.spyOn(accountService, 'getAccounts').mockResolvedValue([]);
-      vi.spyOn(accountService, 'getAccountWithSnapshots').mockResolvedValue([]);
       vi.spyOn(accountService, 'getAccountSnapshots').mockResolvedValue([]);
 
-      // Mock portfolio gain
-      vi.spyOn(portfolioService, 'getStockGainLoss').mockResolvedValue({
-        totalMarketValue: 15000,
-        totalCost: 10000,
-        totalGainLoss: 5000,
-      } as any);
+      // Mock account with holdings resulting in 5000 gain
+      vi.spyOn(accountService, 'getAccountWithSnapshots').mockResolvedValue([
+        {
+          id: 'inv-1',
+          name: 'Investment Account',
+          category: 'investment',
+          currency: 'TWD',
+          snapshot: {
+            amount: 15000,
+            holdings: [
+              {
+                symbol: 'STOCK1',
+                name: 'Stock 1',
+                quantity: 100,
+                cost: 10000,
+                marketValue: 15000,
+              },
+            ],
+          },
+        } as any,
+      ]);
 
       // Execute
       const reports = await financialReportService.generateFinancialReports(

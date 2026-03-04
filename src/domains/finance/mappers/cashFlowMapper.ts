@@ -1,7 +1,10 @@
-import { CashFlowSourceType } from '@/domains/finance/financeType';
-import type { CashFlowData } from '@/domains/finance/types';
+import {
+  type CashFlowData,
+  CashFlowSourceType,
+  type FinancialReport,
+  ReportType,
+} from '@/domains/finance/types';
 import type { CashFlowItem } from '@/schemas/cashFlow';
-import type { FinancialReport } from '@/schemas/report';
 
 export interface CashFlowView {
   id: string;
@@ -61,7 +64,7 @@ export interface CashFlowView {
  * Map FinancialReport to CashFlowView format
  */
 export const mapToCashFlowView = (report: FinancialReport): CashFlowView | null => {
-  if (report.type !== 'cash_flow' || !('operating' in report.data)) return null;
+  if (report.type !== ReportType.CASH_FLOW || !('operating' in report.data)) return null;
   const data = report.data as CashFlowData;
 
   // 1. Separate adjustments (extract all system sub-items from everywhere)

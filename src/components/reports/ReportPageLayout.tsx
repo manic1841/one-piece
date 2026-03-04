@@ -19,6 +19,8 @@ interface ReportPageLayoutProps {
   onPreviousMonth: () => void;
   onNextMonth: () => void;
   onCurrentMonth: () => void;
+  viewType?: 'month' | 'year';
+  onViewTypeChange?: (viewType: 'month' | 'year') => void;
   children: React.ReactNode;
 }
 
@@ -30,6 +32,8 @@ export const ReportPageLayout: React.FC<ReportPageLayoutProps> = ({
   onPreviousMonth,
   onNextMonth,
   onCurrentMonth,
+  viewType = 'month',
+  onViewTypeChange,
   children,
 }) => {
   const years = React.useMemo(() => {
@@ -63,6 +67,26 @@ export const ReportPageLayout: React.FC<ReportPageLayoutProps> = ({
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div className="flex items-center gap-4">
           <h1 className="text-3xl font-bold">{title}</h1>
+
+          {/* View Type Toggle */}
+          <div className="bg-muted inline-flex h-10 items-center justify-center rounded-md p-1">
+            <button
+              onClick={() => onViewTypeChange?.('month')}
+              className={`inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium transition-all ${
+                viewType === 'month' ? 'bg-background shadow-sm' : 'hover:bg-background/50'
+              }`}
+            >
+              月
+            </button>
+            <button
+              onClick={() => onViewTypeChange?.('year')}
+              className={`inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium transition-all ${
+                viewType === 'year' ? 'bg-background shadow-sm' : 'hover:bg-background/50'
+              }`}
+            >
+              年
+            </button>
+          </div>
         </div>
 
         {/* Month Navigation */}
@@ -85,21 +109,23 @@ export const ReportPageLayout: React.FC<ReportPageLayoutProps> = ({
               </SelectContent>
             </Select>
 
-            <Select
-              value={(currentDate.getMonth() + 1).toString()}
-              onValueChange={handleMonthChange}
-            >
-              <SelectTrigger className="w-[85px]">
-                <SelectValue placeholder="月份" />
-              </SelectTrigger>
-              <SelectContent>
-                {months.map((m) => (
-                  <SelectItem key={m} value={m.toString()}>
-                    {m} 月
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            {viewType === 'month' && (
+              <Select
+                value={(currentDate.getMonth() + 1).toString()}
+                onValueChange={handleMonthChange}
+              >
+                <SelectTrigger className="w-[85px]">
+                  <SelectValue placeholder="月份" />
+                </SelectTrigger>
+                <SelectContent>
+                  {months.map((m) => (
+                    <SelectItem key={m} value={m.toString()}>
+                      {m} 月
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
           </div>
 
           <Button variant="outline" size="icon" onClick={onNextMonth}>
@@ -107,7 +133,7 @@ export const ReportPageLayout: React.FC<ReportPageLayoutProps> = ({
           </Button>
           {!isCurrentMonth() && (
             <Button variant="outline" onClick={onCurrentMonth}>
-              本月
+              {viewType === 'month' ? '本月' : '今年'}
             </Button>
           )}
         </div>
