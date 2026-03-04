@@ -1,5 +1,9 @@
 import { BalanceSheetCategory, EquitySubCategory } from '@/domains/finance/types/categories';
-import { ProjectCategory } from '@/domains/project/types/categories';
+import {
+  ProjectCategory,
+  ProjectExpenseBehavior,
+  ProjectIncomeBehavior,
+} from '@/domains/project/types/categories';
 import type { ProjectCreate } from '@/schemas/project';
 
 export const DEFAULT_PROJECTS: ProjectCreate[] = [
@@ -13,6 +17,10 @@ export const DEFAULT_PROJECTS: ProjectCreate[] = [
     isActive: true,
     accounting: {
       enabled: true,
+      flowBehavior: {
+        incomeAs: ProjectIncomeBehavior.INCREASE_INCOME,
+        expenseAs: ProjectExpenseBehavior.INCREASE_EXPENSE,
+      },
       balanceSheet: {
         category: BalanceSheetCategory.EQUITY,
         subcategory: EquitySubCategory.RETAINED_EARNINGS,

@@ -10,6 +10,7 @@ import {
   LiabilitySubCategory,
 } from '@/domains/finance/types';
 import type { ProjectWithSnapshot } from '@/domains/project/types';
+import { ProjectIncomeBehavior } from '@/domains/project/types/categories';
 import { logger } from '@/utils/logger';
 
 export function calculateBalanceSheet(
@@ -116,7 +117,10 @@ export function calculateBalanceSheet(
     if (pws?.accounting?.balanceSheet?.category === BalanceSheetCategory.LIABILITY) {
       const subcategory =
         pws.accounting.balanceSheet.subcategory || LiabilitySubCategory.OTHER_LIABILITIES;
-      const amount = pws.snapshot.closingBalance;
+
+      // For liabilities, a positive balance (In > Out) means liability decreased.
+      // So Liability Amount = -closingBalance.
+      const amount = -pws.snapshot.closingBalance;
 
       if (amount !== 0) {
         const current = liabilityMap.get(subcategory) || { amount: 0, subItems: [] };
@@ -160,7 +164,13 @@ export function calculateBalanceSheet(
 
     if (pws?.accounting?.balanceSheet?.category === BalanceSheetCategory.EQUITY) {
       const subcategory = pws.accounting.balanceSheet.subcategory || EquitySubCategory.OTHER_EQUITY;
-      const amount = pws.snapshot.closingBalance;
+      const behavior = pws.accounting.flowBehavior;
+
+      // Equity is usually +closingBalance, but owner_draw projects have -closingBalance contribution.
+      const amount =
+        behavior?.incomeAs === ProjectIncomeBehavior.OWNER_DRAW
+          ? -pws.snapshot.closingBalance
+          : pws.snapshot.closingBalance;
 
       if (amount !== 0) {
         const current = equityMap.get(subcategory) || { amount: 0, subItems: [] };

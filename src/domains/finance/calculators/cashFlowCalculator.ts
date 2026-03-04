@@ -9,6 +9,7 @@ import {
   OperatingSubCategory,
 } from '@/domains/finance/types';
 import type { ProjectWithSnapshot } from '@/domains/project/types';
+import { ProjectExpenseBehavior, ProjectIncomeBehavior } from '@/domains/project/types/categories';
 import { logger } from '@/utils/logger';
 
 type CashFlowItem = z.infer<typeof CashFlowItemSchema>;
@@ -71,81 +72,105 @@ export function calculateCashFlowStatement(
       const { category, subcategory, order } = project.accounting.cashFlow;
       const income = snapshot.income;
       const expense = snapshot.expense;
+      const behavior = project.accounting.flowBehavior;
 
-      // 分別處理收入和支出
-      if (category === CashFlowCategory.OPERATING) {
-        // 如果該專案已經包含在損益表中，則跳過，避免在現金流量表中重複計算
-        // (因為我們已經從 Net Income 開始了)
-        if (project.accounting.incomeStatement) {
-          return;
+      // Calculate Net Inflow and Outflow based on flowBehavior
+      let netProjectInflow = 0;
+      let netProjectOutflow = 0;
+
+      if (!behavior) {
+        // Legacy behavior
+        netProjectInflow = income;
+        netProjectOutflow = expense;
+      } else {
+        // Handle Income mapping
+        if (
+          (
+            [
+              ProjectIncomeBehavior.INCREASE_INCOME,
+              ProjectExpenseBehavior.DECREASE_ASSET,
+              ProjectExpenseBehavior.INCREASE_LIABILITY,
+              ProjectExpenseBehavior.OWNER_DEPOSIT,
+            ] as string[]
+          ).includes(behavior.incomeAs)
+        ) {
+          netProjectInflow += income;
+        } else if (
+          (
+            [
+              ProjectIncomeBehavior.DECREASE_INCOME,
+              ProjectIncomeBehavior.INCREASE_ASSET,
+              ProjectIncomeBehavior.DECREASE_LIABILITY,
+              ProjectIncomeBehavior.OWNER_DRAW,
+            ] as string[]
+          ).includes(behavior.incomeAs)
+        ) {
+          netProjectOutflow += income;
         }
 
-        if (income > 0) {
-          logger.debug(`Operating Income ${income} ${subcategory}`, 'cashFlowCalculator');
-          aggregate(
-            operatingIncome,
-            subcategory || OperatingSubCategory.OTHER_OPERATING,
-            income,
-            order,
-            { name: project.name, amount: income },
-          );
+        // Handle Expense mapping
+        if (
+          (
+            [
+              ProjectExpenseBehavior.INCREASE_EXPENSE,
+              ProjectIncomeBehavior.INCREASE_ASSET,
+              ProjectIncomeBehavior.DECREASE_LIABILITY,
+              ProjectIncomeBehavior.OWNER_DRAW,
+            ] as string[]
+          ).includes(behavior.expenseAs)
+        ) {
+          netProjectOutflow += expense;
+        } else if (
+          (
+            [
+              ProjectExpenseBehavior.DECREASE_EXPENSE,
+              ProjectExpenseBehavior.DECREASE_ASSET,
+              ProjectExpenseBehavior.INCREASE_LIABILITY,
+              ProjectExpenseBehavior.OWNER_DEPOSIT,
+            ] as string[]
+          ).includes(behavior.expenseAs)
+        ) {
+          netProjectInflow += expense;
         }
-        if (expense > 0) {
-          logger.debug(`Operating Expense ${expense} ${subcategory}`, 'cashFlowCalculator');
-          aggregate(
-            operatingExpense,
-            subcategory || OperatingSubCategory.OTHER_OPERATING,
-            expense,
-            order,
-            { name: project.name, amount: expense },
-          );
-        }
-      } else if (category === CashFlowCategory.INVESTING) {
-        if (income > 0) {
-          logger.debug(`Investing Income ${income} ${subcategory}`, 'cashFlowCalculator');
-          aggregate(
-            investingIncome,
-            subcategory || InvestingSubCategory.OTHER_INVESTING,
-            income,
-            order,
-            { name: project.name, amount: income },
-          );
-        }
-        if (expense > 0) {
-          logger.debug(`Investing Expense ${expense} ${subcategory}`, 'cashFlowCalculator');
-          aggregate(
-            investingExpense,
-            subcategory || InvestingSubCategory.OTHER_INVESTING,
-            expense,
-            order,
-            { name: project.name, amount: expense },
-          );
-        }
+      }
+
+      // Determine target bucket
+      let targetIncomes: CashFlowItem[];
+      let targetExpenses: CashFlowItem[];
+      let defaultSubcategory: string;
+
+      if (category === CashFlowCategory.INVESTING) {
+        targetIncomes = investingIncome;
+        targetExpenses = investingExpense;
+        defaultSubcategory = InvestingSubCategory.OTHER_INVESTING;
       } else if (category === CashFlowCategory.FINANCING) {
-        const isOwnerDraw = subcategory === FinancingSubCategory.OWNER_DRAWS;
-        const inflow = isOwnerDraw ? expense : income;
-        const outflow = isOwnerDraw ? income : expense;
+        targetIncomes = financingIncome;
+        targetExpenses = financingExpense;
+        defaultSubcategory = FinancingSubCategory.OTHER_FINANCING;
+      } else {
+        // OPERATING
+        if (project.accounting.incomeStatement) return; // Skip if already in IS
+        targetIncomes = operatingIncome;
+        targetExpenses = operatingExpense;
+        defaultSubcategory = OperatingSubCategory.OTHER_OPERATING;
+      }
 
-        if (inflow > 0) {
-          logger.debug(`Financing Income ${inflow} ${subcategory}`, 'cashFlowCalculator');
-          aggregate(
-            financingIncome,
-            subcategory || FinancingSubCategory.OTHER_FINANCING,
-            inflow,
-            order,
-            { name: project.name, amount: inflow },
-          );
-        }
-        if (outflow > 0) {
-          logger.debug(`Financing Expense ${outflow} ${subcategory}`, 'cashFlowCalculator');
-          aggregate(
-            financingExpense,
-            subcategory || FinancingSubCategory.OTHER_FINANCING,
-            outflow,
-            order,
-            { name: project.name, amount: outflow },
-          );
-        }
+      if (netProjectInflow > 0) {
+        logger.debug(`${category} Inflow ${netProjectInflow} ${subcategory}`, 'cashFlowCalculator');
+        aggregate(targetIncomes, subcategory || defaultSubcategory, netProjectInflow, order, {
+          name: project.name,
+          amount: netProjectInflow,
+        });
+      }
+      if (netProjectOutflow > 0) {
+        logger.debug(
+          `${category} Outflow ${netProjectOutflow} ${subcategory}`,
+          'cashFlowCalculator',
+        );
+        aggregate(targetExpenses, subcategory || defaultSubcategory, netProjectOutflow, order, {
+          name: project.name,
+          amount: netProjectOutflow,
+        });
       }
     }
   });

@@ -1,4 +1,9 @@
-import { ProjectCategory, type ProjectFormData } from '@/domains/project/types';
+import {
+  ProjectCategory,
+  ProjectExpenseBehavior,
+  type ProjectFormData,
+  ProjectIncomeBehavior,
+} from '@/domains/project/types';
 import type { Project } from '@/schemas';
 
 function mapAccountingItem(
@@ -29,6 +34,14 @@ export const toForm = (project?: Project): ProjectFormData => {
   if (project.accounting?.enabled) {
     accounting = {
       enabled: true,
+      flowBehavior: {
+        incomeAs:
+          (project.accounting.flowBehavior?.incomeAs as ProjectIncomeBehavior) ??
+          ProjectIncomeBehavior.INCREASE_INCOME,
+        expenseAs:
+          (project.accounting.flowBehavior?.expenseAs as ProjectExpenseBehavior) ??
+          ProjectExpenseBehavior.INCREASE_EXPENSE,
+      },
       incomeStatement: mapAccountingItem(project.accounting.incomeStatement),
       cashFlow: mapAccountingItem(project.accounting.cashFlow),
       balanceSheet: mapAccountingItem(project.accounting.balanceSheet),

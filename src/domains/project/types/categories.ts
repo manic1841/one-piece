@@ -20,3 +20,27 @@ export const ProjectCategory = {
 } as const;
 
 export type ProjectCategory = (typeof ProjectCategory)[keyof typeof ProjectCategory];
+
+// Project Income Behavior Enum
+export const ProjectIncomeBehavior = {
+  INCREASE_INCOME: 'increase_income',
+  DECREASE_INCOME: 'decrease_income',
+  INCREASE_ASSET: 'increase_asset',
+  DECREASE_LIABILITY: 'decrease_liability',
+  OWNER_DRAW: 'owner_draw',
+} as const;
+
+export type ProjectIncomeBehavior =
+  (typeof ProjectIncomeBehavior)[keyof typeof ProjectIncomeBehavior];
+
+// Project Expense Behavior Enum
+export const ProjectExpenseBehavior = {
+  INCREASE_EXPENSE: 'increase_expense',
+  DECREASE_EXPENSE: 'decrease_expense',
+  DECREASE_ASSET: 'decrease_asset',
+  INCREASE_LIABILITY: 'increase_liability',
+  OWNER_DEPOSIT: 'owner_deposit',
+} as const;
+
+export type ProjectExpenseBehavior =
+  (typeof ProjectExpenseBehavior)[keyof typeof ProjectExpenseBehavior];

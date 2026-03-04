@@ -50,6 +50,10 @@ describe('Financial Report Service - Granular Tests', () => {
       category: ProjectCategory.OPERATING,
       accounting: {
         enabled: true,
+        flowBehavior: {
+          incomeAs: 'increase_income',
+          expenseAs: 'increase_expense',
+        },
         cashFlow: {
           category: CashFlowCategory.OPERATING,
           subcategory: OperatingSubCategory.REGULAR_OPERATIONS,
@@ -76,6 +80,10 @@ describe('Financial Report Service - Granular Tests', () => {
       category: ProjectCategory.INVESTING,
       accounting: {
         enabled: true,
+        flowBehavior: {
+          incomeAs: 'decrease_asset',
+          expenseAs: 'increase_asset',
+        },
         cashFlow: {
           category: CashFlowCategory.INVESTING,
           subcategory: InvestingSubCategory.STOCK_INVESTMENTS,
@@ -102,6 +110,10 @@ describe('Financial Report Service - Granular Tests', () => {
       category: ProjectCategory.INVESTING,
       accounting: {
         enabled: true,
+        flowBehavior: {
+          incomeAs: 'decrease_asset',
+          expenseAs: 'increase_asset',
+        },
         cashFlow: {
           category: CashFlowCategory.INVESTING,
           subcategory: InvestingSubCategory.PURCHASE_ASSETS,
@@ -128,6 +140,10 @@ describe('Financial Report Service - Granular Tests', () => {
       category: 'liabilities',
       accounting: {
         enabled: true,
+        flowBehavior: {
+          incomeAs: 'increase_liability', // Borrow (Inflow)
+          expenseAs: 'decrease_liability', // Repay (Outflow)
+        },
         cashFlow: {
           category: CashFlowCategory.FINANCING,
           subcategory: FinancingSubCategory.SHORT_TERM_LOANS,
@@ -155,6 +171,10 @@ describe('Financial Report Service - Granular Tests', () => {
       category: 'liabilities',
       accounting: {
         enabled: true,
+        flowBehavior: {
+          incomeAs: 'owner_draw', // Draw Increases -> Family Flow Out
+          expenseAs: 'owner_deposit', // Draw Decreases -> Family Flow In
+        },
         cashFlow: {
           category: CashFlowCategory.FINANCING,
           subcategory: FinancingSubCategory.OWNER_DRAWS,

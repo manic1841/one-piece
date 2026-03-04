@@ -1,9 +1,12 @@
 import { useEffect, useState } from 'react';
 
 import FinancialStatementForm from '@/components/projects/form/FinancialStatementForm';
+import FlowBehaviorForm from '@/components/projects/form/FlowBehaviorForm';
 import {
   AssetSubCategoryOptions,
   BalanceSheetCategoryOptions,
+  // ...
+  // (rest of imports are same, I'll just replace the relevant part)
   CashFlowCategoryOptions,
   EquitySubCategoryOptions,
   ExpenseSubCategoryOptions,
@@ -19,6 +22,7 @@ import {
   CashFlowCategory,
   IncomeStatementCategory,
 } from '@/domains/finance/types/categories';
+import { ProjectExpenseBehavior, ProjectIncomeBehavior } from '@/domains/project/types/categories';
 import type { ProjectFormData } from '@/domains/project/types/projectForm';
 
 interface AccountingSettingsProps {
@@ -69,8 +73,25 @@ const AccountingSettings: React.FC<AccountingSettingsProps> = ({ data, onChanged
   const handleCashFlowChange = createStatementHandler(setAccounting, 'cashFlow');
   const handleBalanceSheetChange = createStatementHandler(setAccounting, 'balanceSheet');
 
+  const handleFlowBehaviorChange = (flowData: {
+    incomeAs: ProjectIncomeBehavior;
+    expenseAs: ProjectExpenseBehavior;
+  }) => {
+    setAccounting((prev) => ({
+      ...prev,
+      flowBehavior: flowData,
+    }));
+  };
+
   return (
     <div className="space-y-6 pl-6 border-l-2">
+      {/* Flow Behavior */}
+      <FlowBehaviorForm
+        incomeAs={data?.accounting?.flowBehavior?.incomeAs}
+        expenseAs={data?.accounting?.flowBehavior?.expenseAs}
+        onChanged={handleFlowBehaviorChange}
+      />
+
       {/* Income Statement */}
       <FinancialStatementForm
         type="incomeStatement"

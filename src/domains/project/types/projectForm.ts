@@ -1,3 +1,5 @@
+import { ProjectExpenseBehavior, ProjectIncomeBehavior } from '@/domains/project/types/categories';
+
 export interface ProjectFormData {
   name: string;
   category: string;
@@ -6,6 +8,10 @@ export interface ProjectFormData {
   description: string;
   accounting: {
     enabled: boolean;
+    flowBehavior?: {
+      incomeAs: ProjectIncomeBehavior;
+      expenseAs: ProjectExpenseBehavior;
+    };
     incomeStatement?: {
       category: string;
       subcategory?: string;

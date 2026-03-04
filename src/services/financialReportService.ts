@@ -4,6 +4,7 @@ import { reconcileReports } from '@/domains/finance/calculators/financialReportC
 import { calculateIncomeStatement } from '@/domains/finance/calculators/incomeStatementCalculator';
 import type { FinancialReport } from '@/domains/finance/types';
 import { EquitySubCategory, FinancingSubCategory } from '@/domains/finance/types';
+import { ProjectExpenseBehavior } from '@/domains/project/types/categories';
 import { reportRepository } from '@/repositories/reportRepository';
 import { accountService } from '@/services/accountService';
 import { plannedIncomeService } from '@/services/plannedIncomeService';
@@ -220,9 +221,16 @@ class FinancialReportService {
       allProjects.map((p) => projectService.getProjectWithSnapshot(householdId, p.id, year, month)),
     );
 
-    // Dividends are the 'expense' of any project marked with OWNER_DEPOSIT
+    // Dividends are the money sent back to the owner (Inflow to family, Outflow from project)
     const dividends = projectsWithSnapshots
-      .filter((p) => p.accounting?.cashFlow?.subcategory === FinancingSubCategory.OWNER_DEPOSIT)
+      .filter((p) => {
+        const subcategory = p.accounting?.cashFlow?.subcategory;
+        const behavior = p.accounting?.flowBehavior;
+        return (
+          subcategory === FinancingSubCategory.OWNER_DEPOSIT ||
+          behavior?.expenseAs === ProjectExpenseBehavior.OWNER_DEPOSIT
+        );
+      })
       .reduce((sum, p) => sum + (p.snapshot?.expense || 0), 0);
 
     logger.debug(

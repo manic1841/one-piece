@@ -4,7 +4,12 @@ import {
   CashFlowCategory,
   IncomeStatementCategory,
 } from '@/domains/finance/types/categories';
-import type { ProjectCategory, ProjectFormData } from '@/domains/project/types';
+import {
+  ProjectCategory,
+  ProjectExpenseBehavior,
+  type ProjectFormData,
+  ProjectIncomeBehavior,
+} from '@/domains/project/types';
 import type { ProjectCreate } from '@/schemas';
 
 function mapAccountingItem<T>(
@@ -43,6 +48,12 @@ export const toProject = (formData: ProjectFormData): ProjectCreate => {
     description: formData.description || undefined,
     accounting: {
       enabled: formData.accounting.enabled,
+      flowBehavior: formData.accounting.flowBehavior
+        ? {
+            incomeAs: formData.accounting.flowBehavior.incomeAs,
+            expenseAs: formData.accounting.flowBehavior.expenseAs,
+          }
+        : undefined,
       incomeStatement,
       cashFlow,
       balanceSheet,

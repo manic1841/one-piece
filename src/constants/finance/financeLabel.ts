@@ -11,6 +11,7 @@ import {
   LiabilitySubCategory,
   OperatingSubCategory,
 } from '@/domains/finance/types/categories';
+import { ProjectExpenseBehavior, ProjectIncomeBehavior } from '@/domains/project/types/categories';
 
 // Income Statement Category
 export const IncomeStatementCategoryLabel = {
@@ -167,6 +168,36 @@ export const EquitySubCategoryLabel = {
 };
 
 export const EquitySubCategoryOptions = Object.entries(EquitySubCategoryLabel).map(
+  ([key, value]) => ({
+    value: key,
+    label: value,
+  }),
+);
+
+// Project Flow Behavior - IncomeAs
+export const ProjectIncomeAsLabel = {
+  [ProjectIncomeBehavior.INCREASE_INCOME]: '增加收入 (預設)',
+  [ProjectIncomeBehavior.DECREASE_INCOME]: '減少收入',
+  [ProjectIncomeBehavior.INCREASE_ASSET]: '增加資產 (資金流出)',
+  [ProjectIncomeBehavior.DECREASE_LIABILITY]: '減少負債 (資金流出)',
+  [ProjectIncomeBehavior.OWNER_DRAW]: '業主提取 (資金流出)',
+};
+
+export const ProjectIncomeAsOptions = Object.entries(ProjectIncomeAsLabel).map(([key, value]) => ({
+  value: key,
+  label: value,
+}));
+
+// Project Flow Behavior - ExpenseAs
+export const ProjectExpenseAsLabel = {
+  [ProjectExpenseBehavior.INCREASE_EXPENSE]: '增加支出 (預設)',
+  [ProjectExpenseBehavior.DECREASE_EXPENSE]: '減少支出',
+  [ProjectExpenseBehavior.DECREASE_ASSET]: '減少資產 (資金流入)',
+  [ProjectExpenseBehavior.INCREASE_LIABILITY]: '增加負債 (資金流入)',
+  [ProjectExpenseBehavior.OWNER_DEPOSIT]: '業主注入 (資金流入)',
+};
+
+export const ProjectExpenseAsOptions = Object.entries(ProjectExpenseAsLabel).map(
   ([key, value]) => ({
     value: key,
     label: value,

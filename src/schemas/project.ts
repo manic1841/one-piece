@@ -1,5 +1,6 @@
 import { z } from 'zod';
 
+import { ProjectExpenseBehavior, ProjectIncomeBehavior } from '@/domains/project/types/categories';
 import { BaseSchema } from '@/schemas';
 
 // ProjectSnapshot Schema
@@ -33,6 +34,17 @@ export const ProjectCreateSchema = z.object({
   accounting: z
     .object({
       enabled: z.boolean().default(false),
+
+      flowBehavior: z
+        .object({
+          incomeAs: z
+            .nativeEnum(ProjectIncomeBehavior)
+            .default(ProjectIncomeBehavior.INCREASE_INCOME),
+          expenseAs: z
+            .nativeEnum(ProjectExpenseBehavior)
+            .default(ProjectExpenseBehavior.INCREASE_EXPENSE),
+        })
+        .optional(),
 
       incomeStatement: z
         .object({

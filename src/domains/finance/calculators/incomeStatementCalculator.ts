@@ -5,6 +5,7 @@ import {
   IncomeSubCategory,
 } from '@/domains/finance/types';
 import type { ProjectWithSnapshot } from '@/domains/project/types';
+import { ProjectExpenseBehavior, ProjectIncomeBehavior } from '@/domains/project/types/categories';
 import { type PlannedIncome, PlannedIncomeCategory } from '@/domains/record/types';
 
 export function calculateIncomeStatement(
@@ -62,7 +63,16 @@ export function calculateIncomeStatement(
     if (pws?.accounting?.incomeStatement?.category === IncomeStatementCategory.INCOME) {
       const subcategory =
         pws.accounting.incomeStatement.subcategory || IncomeSubCategory.OTHER_INCOME;
-      const amount = pws.snapshot.income;
+      const behavior = pws.accounting.flowBehavior;
+      const snapshot = pws.snapshot;
+
+      let amount = 0;
+      if (!behavior) {
+        amount = snapshot.income;
+      } else {
+        if (behavior.incomeAs === ProjectIncomeBehavior.INCREASE_INCOME) amount += snapshot.income;
+        if (behavior.incomeAs === ProjectIncomeBehavior.DECREASE_INCOME) amount -= snapshot.income;
+      }
 
       if (amount !== 0) {
         const current = projectIncomeMap.get(subcategory) || { amount: 0, subItems: [] };
@@ -96,8 +106,18 @@ export function calculateIncomeStatement(
     if (pws?.accounting?.incomeStatement?.category === IncomeStatementCategory.EXPENSE) {
       const subcategory =
         pws.accounting.incomeStatement.subcategory || ExpenseSubCategory.OTHER_EXPENSE;
+      const behavior = pws.accounting.flowBehavior;
+      const snapshot = pws.snapshot;
 
-      const amount = Math.abs(pws.snapshot.expense);
+      let amount = 0;
+      if (!behavior) {
+        amount = snapshot.expense;
+      } else {
+        if (behavior.expenseAs === ProjectExpenseBehavior.INCREASE_EXPENSE)
+          amount += snapshot.expense;
+        if (behavior.expenseAs === ProjectExpenseBehavior.DECREASE_EXPENSE)
+          amount -= snapshot.expense;
+      }
 
       if (amount !== 0) {
         const current = projectExpenseMap.get(subcategory) || { amount: 0, subItems: [] };
