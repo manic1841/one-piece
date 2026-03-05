@@ -22,10 +22,6 @@ try {
     role: 'admin',
   });
 
-  console.log(`Updating Firestore profile for \x1b[36m${uid}\x1b[0m...`);
-  const db = admin.firestore();
-  await db.collection('users').doc(uid).set({ role: 'admin' }, { merge: true });
-
   console.log('\x1b[32mSuccess: Admin role granted.\x1b[0m');
   console.log(
     'The user needs to re-login or refresh their ID token for the changes to take effect.',

@@ -7,6 +7,11 @@ import type { Household, UserProfile } from '@/schemas';
 import { projectService } from '@/services/projectService';
 import { userService } from '@/services/userService';
 
+export interface AuthContext {
+  uid: string;
+  isGlobalAdmin?: boolean;
+}
+
 class HouseholdService {
   // Create a new household
   async createHousehold(name: string, user: UserProfile): Promise<string> {
@@ -24,7 +29,7 @@ class HouseholdService {
       name,
       members: {
         [user.uid]: {
-          role: user.role || RoleEnum.OWNER, // New household creator should be OWNER
+          role: RoleEnum.OWNER, // New household creator should be OWNER
           joinedAt: new Date(),
         },
       },
@@ -33,7 +38,10 @@ class HouseholdService {
 
     // Initialize default projects
     const initProjects = DEFAULT_PROJECTS.map((project) =>
-      projectService.createProject(householdId, project, 'system'),
+      projectService.createProject(householdId, project, 'system', {
+        uid: user.uid,
+        isGlobalAdmin: true,
+      }),
     );
     await Promise.all(initProjects);
 
@@ -60,16 +68,10 @@ class HouseholdService {
       household = households[0];
     }
 
-    // Check if user is already a member
     if (!household.members[user.uid]) {
-      // Add user to household members using repository
-      const updates = {
-        [`members.${user.uid}`]: {
-          role: user.role || RoleEnum.GUEST,
-          joinedAt: new Date(),
-        },
-      };
-      await householdRepository.update([household.id], updates, user.email);
+      throw new Error(
+        'You are not a member of this household. Please ask an owner to add your email first.',
+      );
     }
 
     // Update user profile
@@ -82,7 +84,7 @@ class HouseholdService {
   }
 
   // Smart method that creates or joins household based on input
-  async createOrJoinHousehold(input: string, user: UserProfile): Promise<string> {
+  async createOrJoinHousehold(input: string, user: UserProfile, isAdmin: boolean): Promise<string> {
     const trimmedInput = input.trim();
 
     if (!trimmedInput) {
@@ -112,7 +114,7 @@ class HouseholdService {
 
     // Not found by ID or name, create new household with this name
     // ONLY admin can create new household
-    if (user.role !== RoleEnum.ADMIN) {
+    if (!isAdmin) {
       throw new Error(
         'Only admin users can create new households. Please enter a valid household ID to join.',
       );
@@ -154,6 +156,106 @@ class HouseholdService {
     }
 
     await userService.updateUserProfile(uid, { householdId: undefined });
+  }
+
+  // Member Management
+  async addMemberByEmail(
+    householdId: string,
+    email: string,
+    role: string,
+    adminEmail: string,
+    auth: AuthContext,
+  ): Promise<void> {
+    await this.assertWritePermission(householdId, auth.uid, auth.isGlobalAdmin);
+    const userToInvite = await userService.getUserByEmail(email);
+    if (!userToInvite) {
+      throw new Error('User with this email not found in the system');
+    }
+
+    const updates = {
+      [`members.${userToInvite.uid}`]: {
+        role,
+        joinedAt: new Date(),
+      },
+    };
+    await householdRepository.update([householdId], updates, adminEmail);
+
+    // Also update that user's profile to point to this household
+    await userService.updateUserProfile(userToInvite.uid, { householdId });
+  }
+
+  async updateMemberRole(
+    householdId: string,
+    targetUid: string,
+    newRole: string,
+    adminEmail: string,
+    auth: AuthContext,
+  ): Promise<void> {
+    await this.assertWritePermission(householdId, auth.uid, auth.isGlobalAdmin);
+    const updates = {
+      [`members.${targetUid}.role`]: newRole,
+    };
+    await householdRepository.update([householdId], updates, adminEmail);
+  }
+
+  async removeMember(
+    householdId: string,
+    targetUid: string,
+    adminEmail: string,
+    auth: AuthContext,
+  ): Promise<void> {
+    await this.assertWritePermission(householdId, auth.uid, auth.isGlobalAdmin);
+    // In Firestore, removing a field from a map can be done by setting it to deleteField()
+    // or manually updating the whole map. BaseRepository doesn't explicitly support deleteField yet,
+    // so we'll fetch, modify, and update the whole members object or use a specific implementation.
+    // However, our repository is simplified. Let's use the update method with a dot notation if possible,
+    // but the actual "deletion" of a key in deep map is tricky without fieldvalue.delete().
+
+    // For now, let's fetch the household and update the entire members object
+    const household = await this.getHousehold(householdId);
+    if (!household) throw new Error('Household not found');
+
+    const newMembers = { ...household.members };
+    delete newMembers[targetUid];
+
+    await householdRepository.update([householdId], { members: newMembers }, adminEmail);
+
+    // Also clear the user's householdId if they were in this household
+    const targetProfile = await userService.getUserProfile(targetUid);
+    if (targetProfile?.householdId === householdId) {
+      await userService.updateUserProfile(targetUid, { householdId: undefined });
+    }
+  }
+
+  // Check if user is a member of a household
+  async isUserMember(householdId: string, uid: string): Promise<boolean> {
+    const household = await this.getHousehold(householdId);
+    if (!household) return false;
+    return !!household.members[uid];
+  }
+
+  // Check if user is an admin or owner of a household
+  async isUserAdmin(householdId: string, uid: string): Promise<boolean> {
+    const household = await this.getHousehold(householdId);
+    if (!household) return false;
+    const role = household.members[uid]?.role;
+    return role === RoleEnum.ADMIN || role === RoleEnum.OWNER;
+  }
+
+  // Assert that user has write permission (household admin/owner or global admin)
+  async assertWritePermission(
+    householdId: string,
+    uid: string,
+    isGlobalAdmin?: boolean,
+  ): Promise<void> {
+    if (isGlobalAdmin) return;
+
+    const isAdmin = await this.isUserAdmin(householdId, uid);
+    if (!isAdmin) {
+      throw new Error(
+        'Permission denied: Only household owners or admins can perform this action.',
+      );
+    }
   }
 }
 

@@ -1,58 +1,42 @@
-import { accessControlRepository } from '../repositories/accessControlRepository';
-
-const ADMIN_UID = 'rnSCoxeAl0bmc9NQeHSzFR5gYUB3';
+import { accessControlRepository } from '@/repositories/accessControlRepository';
 
 export const accessControlService = {
-  // Check if user is admin
-  isAdmin(uid: string): boolean {
-    return uid === ADMIN_UID;
-  },
-
   // Get whitelisted emails
   async getWhitelist(): Promise<string[]> {
-    const config = await accessControlRepository.get([]);
-    return config?.whitelistedEmails || [];
+    const whitelist = await accessControlRepository.getWhitelist();
+    return whitelist?.emails || [];
   },
 
   // Add email to whitelist (admin only)
-  async addEmailToWhitelist(email: string, adminUid: string): Promise<void> {
-    if (!this.isAdmin(adminUid)) {
+  async addEmailToWhitelist(email: string, isAdmin: boolean): Promise<void> {
+    if (!isAdmin) {
       throw new Error('Only admin can modify whitelist');
     }
-    const config = await accessControlRepository.get([]);
-    return await accessControlRepository.update(
-      [],
-      {
-        whitelistedEmails: [...(config?.whitelistedEmails || []), email.toLowerCase().trim()],
-      },
-      email,
-    );
+    const whitelist = await accessControlRepository.getWhitelist();
+    if (whitelist?.emails.includes(email.toLowerCase().trim())) {
+      return;
+    }
+    return await accessControlRepository.saveWhitelist({
+      emails: [...(whitelist?.emails || []), email.toLowerCase().trim()],
+    });
   },
 
   // Remove email from whitelist (admin only)
-  async removeEmailFromWhitelist(email: string, adminUid: string): Promise<void> {
-    if (!this.isAdmin(adminUid)) {
+  async removeEmailFromWhitelist(email: string, isAdmin: boolean): Promise<void> {
+    if (!isAdmin) {
       throw new Error('Only admin can modify whitelist');
     }
-    const config = await accessControlRepository.get([]);
-    return await accessControlRepository.update(
-      [],
-      {
-        whitelistedEmails: config?.whitelistedEmails?.filter(
-          (e) => e !== email.toLowerCase().trim(),
-        ),
-      },
-      email,
-    );
+    const whitelist = await accessControlRepository.getWhitelist();
+    if (!whitelist?.emails.includes(email.toLowerCase().trim())) {
+      return;
+    }
+    return await accessControlRepository.saveWhitelist({
+      emails: whitelist?.emails?.filter((e) => e !== email.toLowerCase().trim()),
+    });
   },
 
   // Check if user is authorized (admin or whitelisted)
-  async isUserAuthorized(uid: string, email: string | null): Promise<boolean> {
-    // Admin is always authorized
-    if (this.isAdmin(uid)) {
-      return true;
-    }
-
+  async isUserAuthorized(email: string | null): Promise<boolean> {
     // Check whitelist
     if (!email) {
       return false;

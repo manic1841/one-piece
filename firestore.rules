@@ -17,47 +17,43 @@ service cloud.firestore {
              request.auth.token.email.lower() in cfg.emails;
     }
 
-    function householdRole(householdId) {
-      let hm = get(/databases/$(database)/documents/households/$(householdId)).data;
-      return hm.members.get(request.auth.uid, { role: 'guest' }).role;
+    function isSystemUser() {
+      return isSignedIn() && isWhitelisted();
     }
 
     function isHouseholdMember(householdId) {
-      return householdRole(householdId) in ['member', 'admin', 'owner'];
+      let household = get(/databases/$(database)/documents/households/$(householdId));
+      return request.auth.uid in household.data.members &&
+             household.data.members[request.auth.uid].role in ['owner', 'admin', 'member'];
     }
 
     function isHouseholdAdmin(householdId) {
-      return householdRole(householdId) in ['admin', 'owner'];
+      let household = get(/databases/$(database)/documents/households/$(householdId));
+      return request.auth.uid in household.data.members &&
+             household.data.members[request.auth.uid].role in ['owner', 'admin'];
     }
 
     match /access_control/{docId} {
-      allow read: if isSignedIn() && (isGlobalAdmin() || isWhitelisted());
-      allow write: if isSignedIn() && isGlobalAdmin();
+      allow read: if isSystemUser() || isGlobalAdmin();
+      allow write: if isGlobalAdmin();
     }
 
     match /users/{userId} {
-      allow read: if isSignedIn();
-      allow write: if isSignedIn() && request.auth.uid == userId;
+      allow read: if isSystemUser();
+      allow write: if isSystemUser() && request.auth.uid == userId;
     }
 
     match /households/{householdId} {
-      allow read: if isSignedIn();
-      allow update: if isSignedIn() && (
-        isHouseholdAdmin(householdId) || 
-        (
-          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['members']) &&
-          !(request.auth.uid in resource.data.members) &&
-          request.resource.data.members[request.auth.uid].role == 'guest'
-        )
-      );
+      allow read: if isSystemUser();
+      allow update: if isSystemUser() && isHouseholdAdmin(householdId);
 
       allow create: if isGlobalAdmin();
       allow delete: if isGlobalAdmin();
 
       // ---- Subcollections ----
       match /{allSubcollections=**} {
-        allow read: if isHouseholdMember(householdId);
-        allow write: if isHouseholdAdmin(householdId);
+        allow read: if isGlobalAdmin() || (isSystemUser() && isHouseholdMember(householdId));
+        allow write: if isGlobalAdmin() || (isSystemUser() && isHouseholdAdmin(householdId));
       }
     }
   }

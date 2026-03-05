@@ -13,6 +13,8 @@ import { projectSnapshotRepository } from '@/repositories/projectSnapshotReposit
 import { projectTransactionService } from '@/services/projectTransactionService';
 import { transactionService } from '@/services/transactionService';
 
+import { type AuthContext, householdService } from './householdService';
+
 /**
  * ProjectService
  * Business logic layer for Project operations
@@ -57,7 +59,9 @@ class ProjectService {
     householdId: string,
     project: ProjectCreate,
     userEmail: string,
+    auth: AuthContext,
   ): Promise<string> {
+    await householdService.assertWritePermission(householdId, auth.uid, auth.isGlobalAdmin);
     return projectRepository.create([householdId], project, userEmail);
   }
 
@@ -69,14 +73,17 @@ class ProjectService {
     projectId: string,
     updates: Partial<ProjectCreate>,
     userEmail: string,
+    auth: AuthContext,
   ): Promise<void> {
+    await householdService.assertWritePermission(householdId, auth.uid, auth.isGlobalAdmin);
     return projectRepository.update([householdId, projectId], updates, userEmail);
   }
 
   /**
    * Delete a project (hard delete)
    */
-  async deleteProject(householdId: string, projectId: string): Promise<void> {
+  async deleteProject(householdId: string, projectId: string, auth: AuthContext): Promise<void> {
+    await householdService.assertWritePermission(householdId, auth.uid, auth.isGlobalAdmin);
     // Business logic: Could add checks here (e.g., check if project has transactions)
     return projectRepository.delete([householdId, projectId]);
   }
@@ -84,14 +91,26 @@ class ProjectService {
   /**
    * Archive a project (soft delete)
    */
-  async archiveProject(householdId: string, projectId: string, userEmail: string): Promise<void> {
+  async archiveProject(
+    householdId: string,
+    projectId: string,
+    userEmail: string,
+    auth: AuthContext,
+  ): Promise<void> {
+    await householdService.assertWritePermission(householdId, auth.uid, auth.isGlobalAdmin);
     return projectRepository.update([householdId, projectId], { isActive: false }, userEmail);
   }
 
   /**
    * Restore an archived project
    */
-  async restoreProject(householdId: string, projectId: string, userEmail: string): Promise<void> {
+  async restoreProject(
+    householdId: string,
+    projectId: string,
+    userEmail: string,
+    auth: AuthContext,
+  ): Promise<void> {
+    await householdService.assertWritePermission(householdId, auth.uid, auth.isGlobalAdmin);
     return projectRepository.update([householdId, projectId], { isActive: true }, userEmail);
   }
 
@@ -103,7 +122,9 @@ class ProjectService {
     householdId: string,
     projectOrders: Array<{ id: string; order: number }>,
     userEmail: string,
+    auth: AuthContext,
   ): Promise<void> {
+    await householdService.assertWritePermission(householdId, auth.uid, auth.isGlobalAdmin);
     // Business logic: Batch update orders
     const updatePromises = projectOrders.map(({ id, order }) =>
       projectRepository.update([householdId, id], { order }, userEmail),
@@ -132,7 +153,9 @@ class ProjectService {
     projectId: string,
     snapshot: ProjectSnapshotCreate,
     userEmail: string,
+    auth: AuthContext,
   ): Promise<string> {
+    await householdService.assertWritePermission(householdId, auth.uid, auth.isGlobalAdmin);
     // Business logic: Could validate snapshot data here
     // For example, ensure closing balance = opening balance + income - expense
     const calculatedClosingBalance = snapshot.openingBalance + snapshot.income - snapshot.expense;
@@ -203,7 +226,9 @@ class ProjectService {
     snapshotId: string,
     updates: Partial<ProjectSnapshotCreate>,
     userEmail: string,
+    auth: AuthContext,
   ): Promise<void> {
+    await householdService.assertWritePermission(householdId, auth.uid, auth.isGlobalAdmin);
     return projectSnapshotRepository.update(
       [householdId, projectId, snapshotId],
       updates,
@@ -214,7 +239,13 @@ class ProjectService {
   /**
    * Delete a project snapshot
    */
-  async deleteSnapshot(householdId: string, projectId: string, snapshotId: string): Promise<void> {
+  async deleteSnapshot(
+    householdId: string,
+    projectId: string,
+    snapshotId: string,
+    auth: AuthContext,
+  ): Promise<void> {
+    await householdService.assertWritePermission(householdId, auth.uid, auth.isGlobalAdmin);
     return projectSnapshotRepository.delete([householdId, projectId, snapshotId]);
   }
 

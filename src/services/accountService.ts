@@ -9,6 +9,12 @@ import type {
 } from '@/domains/account/types';
 import { accountRepository } from '@/repositories/accountRepository';
 import { accountSnapshotRepository } from '@/repositories/accountSnapshotRepository';
+import { householdService } from '@/services/householdService';
+
+export interface AuthContext {
+  uid: string;
+  isGlobalAdmin?: boolean;
+}
 
 class AccountService {
   // Create a new account
@@ -16,7 +22,9 @@ class AccountService {
     householdId: string,
     account: AccountCreate,
     userEmail: string,
+    auth: AuthContext,
   ): Promise<string> {
+    await householdService.assertWritePermission(householdId, auth.uid, auth.isGlobalAdmin);
     return accountRepository.create([householdId], account, userEmail);
   }
 
@@ -37,12 +45,15 @@ class AccountService {
     id: string,
     updates: Partial<AccountCreate>,
     userEmail: string,
+    auth: AuthContext,
   ): Promise<void> {
+    await householdService.assertWritePermission(householdId, auth.uid, auth.isGlobalAdmin);
     return accountRepository.update([householdId, id], updates, userEmail);
   }
 
   // Delete an account
-  async deleteAccount(householdId: string, id: string): Promise<void> {
+  async deleteAccount(householdId: string, id: string, auth: AuthContext): Promise<void> {
+    await householdService.assertWritePermission(householdId, auth.uid, auth.isGlobalAdmin);
     return accountRepository.delete([householdId, id]);
   }
 
@@ -52,7 +63,9 @@ class AccountService {
     accountId: string,
     snapshot: AccountSnapshotCreate,
     userEmail: string,
+    auth: AuthContext,
   ): Promise<string> {
+    await householdService.assertWritePermission(householdId, auth.uid, auth.isGlobalAdmin);
     return accountSnapshotRepository.create([householdId, accountId], snapshot, userEmail);
   }
 
@@ -143,7 +156,9 @@ class AccountService {
     snapshotId: string,
     updates: Partial<AccountSnapshotCreate>,
     userEmail: string,
+    auth: AuthContext,
   ): Promise<void> {
+    await householdService.assertWritePermission(householdId, auth.uid, auth.isGlobalAdmin);
     return accountSnapshotRepository.update(
       [householdId, accountId, snapshotId],
       updates,
@@ -152,7 +167,13 @@ class AccountService {
   }
 
   // Delete a snapshot
-  async deleteSnapshot(householdId: string, accountId: string, snapshotId: string): Promise<void> {
+  async deleteSnapshot(
+    householdId: string,
+    accountId: string,
+    snapshotId: string,
+    auth: AuthContext,
+  ): Promise<void> {
+    await householdService.assertWritePermission(householdId, auth.uid, auth.isGlobalAdmin);
     return accountSnapshotRepository.delete([householdId, accountId, snapshotId]);
   }
 
@@ -194,9 +215,10 @@ class AccountService {
     householdId: string,
     snapshots: Array<{ accountId: string; data: AccountSnapshotCreate }>,
     userEmail: string,
+    auth: AuthContext,
   ): Promise<void> {
     const promises = snapshots.map((s) =>
-      this.recordSnapshot(householdId, s.accountId, s.data, userEmail),
+      this.recordSnapshot(householdId, s.accountId, s.data, userEmail, auth),
     );
     await Promise.all(promises);
   }

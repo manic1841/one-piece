@@ -11,6 +11,7 @@ import {
 } from '@/schemas';
 
 import { accountService } from './accountService';
+import { type AuthContext, householdService } from './householdService';
 
 export const portfolioService = {
   // Create a new portfolio
@@ -18,7 +19,9 @@ export const portfolioService = {
     householdId: string,
     portfolio: PortfolioCreate,
     userEmail: string,
+    auth: AuthContext,
   ): Promise<string> {
+    await householdService.assertWritePermission(householdId, auth.uid, auth.isGlobalAdmin);
     return portfolioRepository.create([householdId], portfolio, userEmail);
   },
 
@@ -38,12 +41,15 @@ export const portfolioService = {
     id: string,
     updates: Partial<Portfolio>,
     userEmail: string,
+    auth: AuthContext,
   ): Promise<void> {
+    await householdService.assertWritePermission(householdId, auth.uid, auth.isGlobalAdmin);
     return portfolioRepository.update([householdId, id], updates, userEmail);
   },
 
   // Delete a portfolio
-  async deletePortfolio(householdId: string, id: string): Promise<void> {
+  async deletePortfolio(householdId: string, id: string, auth: AuthContext): Promise<void> {
+    await householdService.assertWritePermission(householdId, auth.uid, auth.isGlobalAdmin);
     return portfolioRepository.delete([householdId, id]);
   },
 
@@ -55,7 +61,9 @@ export const portfolioService = {
     month: number,
     cashFlow: { deposits: number; withdrawals: number } = { deposits: 0, withdrawals: 0 },
     userEmail: string,
+    auth: AuthContext,
   ): Promise<string> {
+    await householdService.assertWritePermission(householdId, auth.uid, auth.isGlobalAdmin);
     const portfolio = await portfolioRepository.get([householdId, portfolioId]);
     if (!portfolio) {
       throw new Error('Portfolio not found');
@@ -127,7 +135,9 @@ export const portfolioService = {
     householdId: string,
     portfolioId: string,
     snapshotId: string,
+    auth: AuthContext,
   ): Promise<void> {
+    await householdService.assertWritePermission(householdId, auth.uid, auth.isGlobalAdmin);
     return portfolioSnapshotRepository.delete([householdId, portfolioId, snapshotId]);
   },
 

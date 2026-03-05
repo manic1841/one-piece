@@ -81,8 +81,6 @@ export abstract class BaseRepository<TDomain extends Base, RefArgs extends unkno
   }
 
   protected convertFromFirestore(data: DocumentData): TDomain {
-    // this.getDomainSchema().parse(data);
-
     const { createdAt, updatedAt, ...rest } = data;
 
     const payload = this.convertTimestampToDate(rest) as Partial<TDomain>;

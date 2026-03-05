@@ -8,6 +8,8 @@ import {
 import { projectTransactionRepository } from '@/repositories/projectTransactionRepository';
 import { type ProjectTransaction, type ProjectTransactionCreate } from '@/schemas';
 
+import { type AuthContext, householdService } from './householdService';
+
 class ProjectTransactionService {
   // Create a new project transaction
   // Supports running within an existing Firestore transaction
@@ -15,8 +17,10 @@ class ProjectTransactionService {
     householdId: string,
     data: ProjectTransactionCreate,
     userEmail: string,
+    auth: AuthContext,
     transaction?: FirestoreTransaction,
   ): Promise<string> {
+    await householdService.assertWritePermission(householdId, auth.uid, auth.isGlobalAdmin);
     return projectTransactionRepository.create([householdId], data, userEmail, transaction);
   }
 
@@ -110,7 +114,9 @@ class ProjectTransactionService {
     id: string,
     data: Partial<ProjectTransactionCreate>,
     userEmail: string,
+    auth: AuthContext,
   ): Promise<void> {
+    await householdService.assertWritePermission(householdId, auth.uid, auth.isGlobalAdmin);
     return projectTransactionRepository.update([householdId, id], data, userEmail);
   }
 
@@ -119,8 +125,10 @@ class ProjectTransactionService {
   async deleteProjectTransactions(
     householdId: string,
     transactionIds: string[],
+    auth: AuthContext,
     transaction?: FirestoreTransaction,
   ): Promise<void> {
+    await householdService.assertWritePermission(householdId, auth.uid, auth.isGlobalAdmin);
     transactionIds.forEach((id) => {
       projectTransactionRepository.delete([householdId, id], transaction);
     });

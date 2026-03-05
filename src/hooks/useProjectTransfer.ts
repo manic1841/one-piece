@@ -1,7 +1,16 @@
-import { ProjectTransactionType } from '@/domains/project/types/categories';
+import { useMemo } from 'react';
+
+import { useAuth } from '@/contexts/useAuth';
+import { ProjectTransactionCategory } from '@/domains/record/types';
 import { projectTransactionService } from '@/services/projectTransactionService';
 
 export function useProjectTransfer(householdId: string, userEmail: string) {
+  const { currentUser, isAdmin } = useAuth();
+  const auth = useMemo(
+    () => ({ uid: currentUser?.uid || '', isGlobalAdmin: isAdmin }),
+    [currentUser, isAdmin],
+  );
+
   const submitTransfer = async (data: {
     fromProject: string | null;
     toProject: string;
@@ -13,9 +22,10 @@ export function useProjectTransfer(householdId: string, userEmail: string) {
       householdId,
       {
         ...data,
-        type: ProjectTransactionType.TRANSFER,
+        category: ProjectTransactionCategory.TRANSFER,
       },
       userEmail,
+      auth,
     );
   };
 

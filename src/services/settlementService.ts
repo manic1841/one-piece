@@ -3,6 +3,7 @@ import { Timestamp, where } from 'firebase/firestore';
 import { projectSnapshotRepository } from '@/repositories/projectSnapshotRepository';
 
 import { type ProjectSnapshot } from '../schemas';
+import { type AuthContext, householdService } from './householdService';
 import { projectTransactionService } from './projectTransactionService';
 import { transactionService } from './transactionService';
 
@@ -194,7 +195,9 @@ class SettlementService {
     month: number,
     settlements: SettlementPreview[],
     userEmail: string,
+    auth: AuthContext,
   ): Promise<{ success: boolean; errors: string[] }> {
+    await householdService.assertWritePermission(householdId, auth.uid, auth.isGlobalAdmin);
     console.log('settlements', settlements);
     // Check for existing snapshots
     const existingProjects = settlements.filter((s) => s.hasExistingSnapshot);

@@ -1,5 +1,6 @@
-import { useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
 
+import { useAuth } from '@/contexts/useAuth';
 import { type ProjectCreate } from '@/domains/project/types';
 import { projectService } from '@/services/projectService';
 
@@ -8,31 +9,37 @@ export const useProjectCmds = (
   email?: string,
   reload?: () => Promise<void>,
 ) => {
+  const { currentUser, isAdmin } = useAuth();
+  const auth = useMemo(
+    () => ({ uid: currentUser?.uid || '', isGlobalAdmin: isAdmin }),
+    [currentUser, isAdmin],
+  );
+
   const createProject = useCallback(
     async (project: ProjectCreate) => {
       if (!householdId || !email) return;
-      await projectService.createProject(householdId, project, email);
+      await projectService.createProject(householdId, project, email, auth);
       await reload?.();
     },
-    [householdId, email, reload],
+    [householdId, email, reload, auth],
   );
 
   const updateProject = useCallback(
     async (id: string, project: ProjectCreate) => {
       if (!householdId || !email) return;
-      await projectService.updateProject(householdId, id, project, email);
+      await projectService.updateProject(householdId, id, project, email, auth);
       await reload?.();
     },
-    [householdId, email, reload],
+    [householdId, email, reload, auth],
   );
 
   const deleteProject = useCallback(
     async (id: string) => {
       if (!householdId) return;
-      await projectService.deleteProject(householdId, id);
+      await projectService.deleteProject(householdId, id, auth);
       await reload?.();
     },
-    [householdId, reload],
+    [householdId, reload, auth],
   );
 
   // get records
@@ -68,10 +75,10 @@ export const useProjectCmds = (
   const deleteSnapshot = useCallback(
     async (projectId: string, snapshotId: string) => {
       if (!householdId) return;
-      await projectService.deleteSnapshot(householdId, projectId, snapshotId);
+      await projectService.deleteSnapshot(householdId, projectId, snapshotId, auth);
       await reload?.();
     },
-    [householdId, reload],
+    [householdId, reload, auth],
   );
 
   return {

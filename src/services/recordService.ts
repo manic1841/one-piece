@@ -12,6 +12,8 @@ import { plannedIncomeService } from '@/services/plannedIncomeService';
 import { projectTransactionService } from '@/services/projectTransactionService';
 import { transactionService } from '@/services/transactionService';
 
+import { type AuthContext, householdService } from './householdService';
+
 class RecordService {
   async getRecords(householdId: string) {
     const records: Record[] = [];
@@ -48,52 +50,67 @@ class RecordService {
     return records;
   }
 
-  async createRecord(householdId: string, record: Record, userEmail: string) {
+  async createRecord(householdId: string, record: Record, userEmail: string, auth: AuthContext) {
+    await householdService.assertWritePermission(householdId, auth.uid, auth.isGlobalAdmin);
     if (record.formType === RecordFormType.EXPENSE) {
       const tnx = toSchema(record, RecordType.TRANSACTION) as Transaction;
-      await transactionService.createTransaction(householdId, tnx, userEmail);
+      await transactionService.createTransaction(householdId, tnx, userEmail, auth);
       return;
     } else if (record.formType === RecordFormType.INCOME) {
       if (record.allocations && record.allocations.length > 0) {
         const income = toSchema(record, RecordType.PLANNED_INCOME) as PlannedIncome;
         // planned income with allocations
-        await plannedIncomeService.createPlannedIncome(householdId, income, userEmail);
+        await plannedIncomeService.createPlannedIncome(householdId, income, userEmail, auth);
         return;
       } else {
         // regular income as transaction
         const tnx = toSchema(record, RecordType.TRANSACTION) as Transaction;
-        await transactionService.createTransaction(householdId, tnx, userEmail);
+        await transactionService.createTransaction(householdId, tnx, userEmail, auth);
         return;
       }
     } else if (record.formType === RecordFormType.TRANSFER) {
       const pt = toSchema(record, RecordType.PROJECT_TRANSACTION) as ProjectTransaction;
-      await projectTransactionService.createProjectTransaction(householdId, pt, userEmail);
+      await projectTransactionService.createProjectTransaction(householdId, pt, userEmail, auth);
     }
   }
 
-  async updateRecord(householdId: string, id: string, record: Record, userEmail: string) {
+  async updateRecord(
+    householdId: string,
+    id: string,
+    record: Record,
+    userEmail: string,
+    auth: AuthContext,
+  ) {
+    await householdService.assertWritePermission(householdId, auth.uid, auth.isGlobalAdmin);
     if (record.recordType === RecordType.TRANSACTION) {
       const tnx = toSchema(record, RecordType.TRANSACTION) as Transaction;
-      await transactionService.updateTransaction(householdId, id, tnx, userEmail);
+      await transactionService.updateTransaction(householdId, id, tnx, userEmail, auth);
     } else if (record.recordType === RecordType.PLANNED_INCOME) {
       const income = toSchema(record, RecordType.PLANNED_INCOME) as PlannedIncome;
-      await plannedIncomeService.updatePlannedIncome(householdId, id, income, userEmail);
+      await plannedIncomeService.updatePlannedIncome(householdId, id, income, userEmail, auth);
     } else if (record.recordType === RecordType.PROJECT_TRANSACTION) {
       const pt = toSchema(record, RecordType.PROJECT_TRANSACTION) as ProjectTransaction;
-      await projectTransactionService.updateProjectTransaction(householdId, id, pt, userEmail);
+      await projectTransactionService.updateProjectTransaction(
+        householdId,
+        id,
+        pt,
+        userEmail,
+        auth,
+      );
     }
   }
 
-  async deleteRecord(householdId: string, record: Record) {
+  async deleteRecord(householdId: string, record: Record, auth: AuthContext) {
+    await householdService.assertWritePermission(householdId, auth.uid, auth.isGlobalAdmin);
     if (record.recordType === RecordType.TRANSACTION) {
       const tnx = toSchema(record, RecordType.TRANSACTION) as Transaction;
-      await transactionService.deleteTransaction(householdId, tnx.id);
+      await transactionService.deleteTransaction(householdId, tnx.id, auth);
     } else if (record.recordType === RecordType.PLANNED_INCOME) {
       const income = toSchema(record, RecordType.PLANNED_INCOME) as PlannedIncome;
-      await plannedIncomeService.deletePlannedIncome(householdId, income.id);
+      await plannedIncomeService.deletePlannedIncome(householdId, income.id, auth);
     } else if (record.recordType === RecordType.PROJECT_TRANSACTION) {
       const pt = toSchema(record, RecordType.PROJECT_TRANSACTION) as ProjectTransaction;
-      await projectTransactionService.deleteProjectTransactions(householdId, [pt.id]);
+      await projectTransactionService.deleteProjectTransactions(householdId, [pt.id], auth);
     }
   }
 }

@@ -14,7 +14,7 @@ interface GeneratedReports {
 }
 
 export const useFinancialReportGenerator = () => {
-  const { userProfile } = useAuth();
+  const { userProfile, isAdmin, currentUser } = useAuth();
   const [year, setYear] = useState(new Date().getFullYear());
   const [month, setMonth] = useState(new Date().getMonth() + 1);
   const [loading, setLoading] = useState(false);
@@ -60,6 +60,7 @@ export const useFinancialReportGenerator = () => {
           generatedReports.cashFlow,
         ],
         userProfile.email,
+        { uid: currentUser?.uid || '', isGlobalAdmin: isAdmin },
       );
       toast.success('Reports saved to database');
       setGeneratedReports(null);

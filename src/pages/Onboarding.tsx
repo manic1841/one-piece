@@ -16,7 +16,7 @@ const Onboarding: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const { currentUser, userProfile, logout, refreshProfile } = useAuth();
+  const { currentUser, userProfile, isAdmin, logout, refreshProfile } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -35,7 +35,7 @@ const Onboarding: React.FC = () => {
       if (!userProfile) {
         throw new Error('User profile not found');
       }
-      await householdService.createOrJoinHousehold(input, userProfile);
+      await householdService.createOrJoinHousehold(input, userProfile, isAdmin);
 
       // Refresh auth context to get updated householdId
       if (refreshProfile) {

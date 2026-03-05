@@ -1,18 +1,14 @@
 import { z } from 'zod';
 
-import { RoleEnum } from '@/domains/auth/role';
-import { BaseSchema } from '@/schemas';
+import { BaseSchema } from '@/schemas/base';
 
 // AccessControl Schema
-export const AccessControlCreateSchema = z.object({
-  whitelistedEmails: z.array(z.email()),
+// whitelist
+export const AccessControlWhitelistSchema = z.object({
+  emails: z.array(z.email()),
 });
 
-export type AccessControlCreate = z.infer<typeof AccessControlCreateSchema>;
-
-export const AccessControlSchema = BaseSchema.extend(AccessControlCreateSchema.shape);
-
-export type AccessControl = z.infer<typeof AccessControlSchema>;
+export type AccessControlWhitelist = z.infer<typeof AccessControlWhitelistSchema>;
 
 // UserProfile Schema
 export const UserProfileCreateSchema = z.object({
@@ -20,7 +16,6 @@ export const UserProfileCreateSchema = z.object({
   email: z.email(),
   displayName: z.string(),
   photoURL: z.string().optional(),
-  role: z.enum(RoleEnum).default(RoleEnum.GUEST),
   householdId: z.string().optional(),
 });
 

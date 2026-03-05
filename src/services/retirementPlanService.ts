@@ -20,6 +20,7 @@ import { projectSnapshotRepository } from '@/repositories/projectSnapshotReposit
 import { reportRepository } from '@/repositories/reportRepository';
 import { retirementPlanRepository } from '@/repositories/retirementPlanRepository';
 
+import { type AuthContext, householdService } from './householdService';
 import { plannedIncomeService } from './plannedIncomeService';
 import { projectService } from './projectService';
 
@@ -34,7 +35,9 @@ class RetirementPlanService {
     householdId: string,
     plan: RetirementPlanCreate,
     userEmail: string,
+    auth: AuthContext,
   ): Promise<string> {
+    await householdService.assertWritePermission(householdId, auth.uid, auth.isGlobalAdmin);
     return retirementPlanRepository.create([householdId], plan, userEmail);
   }
 
@@ -49,12 +52,19 @@ class RetirementPlanService {
     planId: string,
     updates: Partial<RetirementPlanCreate>,
     userEmail: string,
+    auth: AuthContext,
   ): Promise<void> {
+    await householdService.assertWritePermission(householdId, auth.uid, auth.isGlobalAdmin);
     return retirementPlanRepository.update([householdId, planId], updates, userEmail);
   }
 
   // Delete a plan
-  async deleteRetirementPlan(householdId: string, planId: string): Promise<void> {
+  async deleteRetirementPlan(
+    householdId: string,
+    planId: string,
+    auth: AuthContext,
+  ): Promise<void> {
+    await householdService.assertWritePermission(householdId, auth.uid, auth.isGlobalAdmin);
     return retirementPlanRepository.delete([householdId, planId]);
   }
 
@@ -65,7 +75,9 @@ class RetirementPlanService {
     planId: string,
     expenseData: Omit<RetirementExpenseCategory, 'id'>,
     userEmail: string,
+    auth: AuthContext,
   ): Promise<void> {
+    await householdService.assertWritePermission(householdId, auth.uid, auth.isGlobalAdmin);
     const plan = await this.getRetirementPlan(householdId, planId);
     if (!plan) throw new Error('Plan not found');
 
@@ -77,6 +89,7 @@ class RetirementPlanService {
         expenses: [...plan.expenses, newExpense],
       },
       userEmail,
+      auth,
     );
   }
 
@@ -86,14 +99,22 @@ class RetirementPlanService {
     expenseId: string,
     updates: Omit<RetirementExpenseCategory, 'id'>,
     userEmail: string,
+    auth: AuthContext,
   ): Promise<void> {
+    await householdService.assertWritePermission(householdId, auth.uid, auth.isGlobalAdmin);
     const plan = await this.getRetirementPlan(householdId, planId);
     if (!plan) throw new Error('Plan not found');
 
     const updatedExpenses = plan.expenses.map((e: RetirementExpenseCategory) =>
       e.id === expenseId ? { ...updates, id: expenseId } : e,
     );
-    await this.updateRetirementPlan(householdId, planId, { expenses: updatedExpenses }, userEmail);
+    await this.updateRetirementPlan(
+      householdId,
+      planId,
+      { expenses: updatedExpenses },
+      userEmail,
+      auth,
+    );
   }
 
   async deleteExpense(
@@ -101,14 +122,22 @@ class RetirementPlanService {
     planId: string,
     expenseId: string,
     userEmail: string,
+    auth: AuthContext,
   ): Promise<void> {
+    await householdService.assertWritePermission(householdId, auth.uid, auth.isGlobalAdmin);
     const plan = await this.getRetirementPlan(householdId, planId);
     if (!plan) throw new Error('Plan not found');
 
     const updatedExpenses = plan.expenses.filter(
       (e: RetirementExpenseCategory) => e.id !== expenseId,
     );
-    await this.updateRetirementPlan(householdId, planId, { expenses: updatedExpenses }, userEmail);
+    await this.updateRetirementPlan(
+      householdId,
+      planId,
+      { expenses: updatedExpenses },
+      userEmail,
+      auth,
+    );
   }
 
   async addIncome(
@@ -116,7 +145,9 @@ class RetirementPlanService {
     planId: string,
     incomeData: Omit<RetirementIncomeSource, 'id'>,
     userEmail: string,
+    auth: AuthContext,
   ): Promise<void> {
+    await householdService.assertWritePermission(householdId, auth.uid, auth.isGlobalAdmin);
     const plan = await this.getRetirementPlan(householdId, planId);
     if (!plan) throw new Error('Plan not found');
 
@@ -128,6 +159,7 @@ class RetirementPlanService {
         incomes: [...plan.incomes, newIncome],
       },
       userEmail,
+      auth,
     );
   }
 
@@ -137,14 +169,22 @@ class RetirementPlanService {
     incomeId: string,
     updates: Omit<RetirementIncomeSource, 'id'>,
     userEmail: string,
+    auth: AuthContext,
   ): Promise<void> {
+    await householdService.assertWritePermission(householdId, auth.uid, auth.isGlobalAdmin);
     const plan = await this.getRetirementPlan(householdId, planId);
     if (!plan) throw new Error('Plan not found');
 
     const updatedIncomes = plan.incomes.map((i: RetirementIncomeSource) =>
       i.id === incomeId ? { ...updates, id: incomeId } : i,
     );
-    await this.updateRetirementPlan(householdId, planId, { incomes: updatedIncomes }, userEmail);
+    await this.updateRetirementPlan(
+      householdId,
+      planId,
+      { incomes: updatedIncomes },
+      userEmail,
+      auth,
+    );
   }
 
   async deleteIncome(
@@ -152,12 +192,20 @@ class RetirementPlanService {
     planId: string,
     incomeId: string,
     userEmail: string,
+    auth: AuthContext,
   ): Promise<void> {
+    await householdService.assertWritePermission(householdId, auth.uid, auth.isGlobalAdmin);
     const plan = await this.getRetirementPlan(householdId, planId);
     if (!plan) throw new Error('Plan not found');
 
     const updatedIncomes = plan.incomes.filter((i: RetirementIncomeSource) => i.id !== incomeId);
-    await this.updateRetirementPlan(householdId, planId, { incomes: updatedIncomes }, userEmail);
+    await this.updateRetirementPlan(
+      householdId,
+      planId,
+      { incomes: updatedIncomes },
+      userEmail,
+      auth,
+    );
   }
 
   async addEvent(
@@ -165,7 +213,9 @@ class RetirementPlanService {
     planId: string,
     eventData: Omit<RetirementOneTimeEvent, 'id'>,
     userEmail: string,
+    auth: AuthContext,
   ): Promise<void> {
+    await householdService.assertWritePermission(householdId, auth.uid, auth.isGlobalAdmin);
     const plan = await this.getRetirementPlan(householdId, planId);
     if (!plan) throw new Error('Plan not found');
 
@@ -177,6 +227,7 @@ class RetirementPlanService {
         events: [...plan.events, newEvent],
       },
       userEmail,
+      auth,
     );
   }
 
@@ -186,14 +237,22 @@ class RetirementPlanService {
     eventId: string,
     updates: Omit<RetirementOneTimeEvent, 'id'>,
     userEmail: string,
+    auth: AuthContext,
   ): Promise<void> {
+    await householdService.assertWritePermission(householdId, auth.uid, auth.isGlobalAdmin);
     const plan = await this.getRetirementPlan(householdId, planId);
     if (!plan) throw new Error('Plan not found');
 
     const updatedEvents = plan.events.map((e: RetirementOneTimeEvent) =>
       e.id === eventId ? { ...updates, id: eventId } : e,
     );
-    await this.updateRetirementPlan(householdId, planId, { events: updatedEvents }, userEmail);
+    await this.updateRetirementPlan(
+      householdId,
+      planId,
+      { events: updatedEvents },
+      userEmail,
+      auth,
+    );
   }
 
   async deleteEvent(
@@ -201,12 +260,20 @@ class RetirementPlanService {
     planId: string,
     eventId: string,
     userEmail: string,
+    auth: AuthContext,
   ): Promise<void> {
+    await householdService.assertWritePermission(householdId, auth.uid, auth.isGlobalAdmin);
     const plan = await this.getRetirementPlan(householdId, planId);
     if (!plan) throw new Error('Plan not found');
 
     const updatedEvents = plan.events.filter((e: RetirementOneTimeEvent) => e.id !== eventId);
-    await this.updateRetirementPlan(householdId, planId, { events: updatedEvents }, userEmail);
+    await this.updateRetirementPlan(
+      householdId,
+      planId,
+      { events: updatedEvents },
+      userEmail,
+      auth,
+    );
   }
 
   // --- Import Logic ---
@@ -353,7 +420,13 @@ class RetirementPlanService {
   /**
    * Automatically update plan settings based on last 12 months of financial data.
    */
-  async autoUpdatePlan(householdId: string, planId: string, userEmail: string): Promise<void> {
+  async autoUpdatePlan(
+    householdId: string,
+    planId: string,
+    userEmail: string,
+    auth: AuthContext,
+  ): Promise<void> {
+    await householdService.assertWritePermission(householdId, auth.uid, auth.isGlobalAdmin);
     const plan = await this.getRetirementPlan(householdId, planId);
     if (!plan) throw new Error('Plan not found');
 
@@ -386,7 +459,7 @@ class RetirementPlanService {
     const updates = processAutoUpdate(plan, flowReports, latestPeriod);
 
     // 5. Update plan
-    await this.updateRetirementPlan(householdId, planId, updates, userEmail);
+    await this.updateRetirementPlan(householdId, planId, updates, userEmail, auth);
   }
 }
 

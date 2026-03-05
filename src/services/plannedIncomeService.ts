@@ -10,13 +10,17 @@ import { plannedIncomeRepository } from '@/repositories/plannedIncomeRepository'
 import { type PlannedIncome } from '@/schemas';
 import { projectTransactionService } from '@/services/projectTransactionService';
 
+import { type AuthContext, householdService } from './householdService';
+
 class PlannedIncomeService {
   // Create a new planned income and generate project transactions
   async createPlannedIncome(
     householdId: string,
     data: PlannedIncomeCreate,
     userEmail: string,
+    auth: AuthContext,
   ): Promise<string> {
+    await householdService.assertWritePermission(householdId, auth.uid, auth.isGlobalAdmin);
     return await runTransaction(db, async (transaction) => {
       // 1. Create PlannedIncome document
       const plannedIncomeId = await plannedIncomeRepository.create(
@@ -42,6 +46,7 @@ class PlannedIncomeService {
                 incomeSource: plannedIncomeId,
               },
               userEmail,
+              auth,
               transaction, // Pass transaction to ensure atomicity
             );
           }
@@ -93,7 +98,9 @@ class PlannedIncomeService {
     plannedIncomeId: string,
     data: Partial<PlannedIncomeCreate>,
     userEmail: string,
+    auth: AuthContext,
   ): Promise<void> {
+    await householdService.assertWritePermission(householdId, auth.uid, auth.isGlobalAdmin);
     // If allocations are being updated, we need to update projectTransactions too
     if (data.allocations) {
       await runTransaction(db, async (transaction) => {
@@ -122,6 +129,7 @@ class PlannedIncomeService {
         await projectTransactionService.deleteProjectTransactions(
           householdId,
           oldTransactions.map((t) => t.id),
+          auth,
           transaction,
         );
 
@@ -141,6 +149,7 @@ class PlannedIncomeService {
                 incomeSource: plannedIncomeId,
               },
               userEmail,
+              auth,
               transaction,
             );
           }
@@ -161,7 +170,12 @@ class PlannedIncomeService {
   }
 
   // Delete a planned income and related project transactions
-  async deletePlannedIncome(householdId: string, plannedIncomeId: string): Promise<void> {
+  async deletePlannedIncome(
+    householdId: string,
+    plannedIncomeId: string,
+    auth: AuthContext,
+  ): Promise<void> {
+    await householdService.assertWritePermission(householdId, auth.uid, auth.isGlobalAdmin);
     await runTransaction(db, async (transaction) => {
       // 1. Delete related project transactions
       const relatedTransactions =
@@ -173,6 +187,7 @@ class PlannedIncomeService {
       await projectTransactionService.deleteProjectTransactions(
         householdId,
         relatedTransactions.map((t) => t.id),
+        auth, // Added auth here
         transaction,
       );
 

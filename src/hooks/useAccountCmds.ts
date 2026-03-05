@@ -1,40 +1,47 @@
-import { useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
 
+import { useAuth } from '@/contexts/useAuth';
 import { type AccountCreate, type AccountSnapshotCreate } from '@/domains/account/types';
 import { accountService } from '@/services/accountService';
 
 export const useAccountCmds = (householdId?: string, email?: string) => {
+  const { currentUser, isAdmin } = useAuth();
+  const auth = useMemo(
+    () => ({ uid: currentUser?.uid || '', isGlobalAdmin: isAdmin }),
+    [currentUser, isAdmin],
+  );
+
   const createAccount = useCallback(
     async (account: AccountCreate) => {
       if (!householdId || !email) return;
-      await accountService.createAccount(householdId, account, email);
+      await accountService.createAccount(householdId, account, email, auth);
     },
-    [householdId, email],
+    [householdId, email, auth],
   );
 
   const updateAccount = useCallback(
     async (id: string, account: AccountCreate) => {
       if (!householdId || !email) return;
-      await accountService.updateAccount(householdId, id, account, email);
+      await accountService.updateAccount(householdId, id, account, email, auth);
     },
-    [householdId, email],
+    [householdId, email, auth],
   );
 
   const deleteAccount = useCallback(
     async (id: string) => {
       if (!householdId) return;
-      await accountService.deleteAccount(householdId, id);
+      await accountService.deleteAccount(householdId, id, auth);
     },
-    [householdId],
+    [householdId, auth],
   );
 
   // record account snapshot
   const recordSnapshot = useCallback(
     async (accountId: string, snapshot: AccountSnapshotCreate) => {
       if (!householdId || !email) return;
-      await accountService.recordSnapshot(householdId, accountId, snapshot, email);
+      await accountService.recordSnapshot(householdId, accountId, snapshot, email, auth);
     },
-    [householdId, email],
+    [householdId, email, auth],
   );
 
   // update account snapshot
@@ -44,13 +51,13 @@ export const useAccountCmds = (householdId?: string, email?: string) => {
     updates: { amount: number; year: number; month: number },
   ) => {
     if (!householdId || !email) return;
-    await accountService.updateSnapshot(householdId, accountId, snapshotId, updates, email);
+    await accountService.updateSnapshot(householdId, accountId, snapshotId, updates, email, auth);
   };
 
   const deleteSnapshot = async (accountId: string, snapshotId: string) => {
     if (!householdId) return;
 
-    await accountService.deleteSnapshot(householdId, accountId, snapshotId);
+    await accountService.deleteSnapshot(householdId, accountId, snapshotId, auth);
   };
 
   // get total asset balance

@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
+import { useMemo } from 'react';
 
 import { useNavigate } from 'react-router-dom';
 
+import { useAuth } from '@/contexts/useAuth';
 import {
   calculateProjectionSummary,
   calculateRetirementProjection,
@@ -22,6 +24,11 @@ export const useRetirementPlanDetailPage = (
   householdId: string | undefined,
   userEmail: string | undefined,
 ) => {
+  const { currentUser, isAdmin } = useAuth();
+  const auth = useMemo(
+    () => ({ uid: currentUser?.uid || '', isGlobalAdmin: isAdmin }),
+    [currentUser, isAdmin],
+  );
   const navigate = useNavigate();
   const [plan, setPlan] = useState<RetirementPlan | null>(null);
   const [loading, setLoading] = useState(true);
@@ -86,7 +93,7 @@ export const useRetirementPlanDetailPage = (
     try {
       // 1. Trigger auto-update if enabled
       if (plan.autoUpdate) {
-        await retirementPlanService.autoUpdatePlan(householdId, id, userEmail || '');
+        await retirementPlanService.autoUpdatePlan(householdId, id, userEmail || '', auth);
         // Reload plan after service-side updates
         const updatedData = await retirementPlanService.getRetirementPlan(householdId, id);
         if (updatedData) {

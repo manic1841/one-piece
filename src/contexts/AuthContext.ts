@@ -8,9 +8,8 @@ import { type UserProfile } from '../schemas';
 export interface AuthContextType {
   currentUser: User | null;
   userProfile: UserProfile | null;
+  isAdmin: boolean;
   loading: boolean;
-  login: (email: string, password: string) => Promise<void>;
-  signup: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   loginWithGoogle: () => Promise<void>;
   refreshProfile: () => Promise<void>;
@@ -20,9 +19,8 @@ export interface AuthContextType {
 export const AuthContext = createContext<AuthContextType>({
   currentUser: null,
   userProfile: null,
+  isAdmin: false,
   loading: true,
-  login: async () => {},
-  signup: async () => {},
   logout: async () => {},
   loginWithGoogle: async () => {},
   refreshProfile: async () => {},

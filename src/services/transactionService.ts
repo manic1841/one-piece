@@ -8,13 +8,17 @@ import type {
 import { transactionRepository } from '@/repositories/transactionRepository';
 import type { Transaction } from '@/schemas';
 
+import { type AuthContext, householdService } from './householdService';
+
 class TransactionService {
   // Create a new transaction
   async createTransaction(
     householdId: string,
     transaction: TransactionCreate,
     userEmail: string,
+    auth: AuthContext,
   ): Promise<string> {
+    await householdService.assertWritePermission(householdId, auth.uid, auth.isGlobalAdmin);
     return transactionRepository.create([householdId], transaction, userEmail);
   }
 
@@ -62,12 +66,15 @@ class TransactionService {
     id: string,
     updates: Partial<TransactionCreate>,
     userEmail: string,
+    auth: AuthContext,
   ): Promise<void> {
+    await householdService.assertWritePermission(householdId, auth.uid, auth.isGlobalAdmin);
     return transactionRepository.update([householdId, id], updates, userEmail);
   }
 
   // Delete a transaction
-  async deleteTransaction(householdId: string, id: string): Promise<void> {
+  async deleteTransaction(householdId: string, id: string, auth: AuthContext): Promise<void> {
+    await householdService.assertWritePermission(householdId, auth.uid, auth.isGlobalAdmin);
     return transactionRepository.delete([householdId, id]);
   }
 }

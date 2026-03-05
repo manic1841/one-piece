@@ -21,6 +21,8 @@ import { plannedIncomeService } from '@/services/plannedIncomeService';
 import { projectService } from '@/services/projectService';
 import { logger } from '@/utils/logger';
 
+import { type AuthContext, householdService } from './householdService';
+
 class FinancialReportService {
   /**
    * Generate Financial Reports for a specific month
@@ -148,7 +150,9 @@ class FinancialReportService {
     householdId: string,
     reports: FinancialReport[],
     email: string,
+    auth: AuthContext,
   ): Promise<void> {
+    await householdService.assertWritePermission(householdId, auth.uid, auth.isGlobalAdmin);
     for (const report of reports) {
       reportRepository.create([householdId], report, email);
     }
@@ -284,7 +288,9 @@ class FinancialReportService {
     month: number,
     userId: string,
     userEmail: string,
+    auth: AuthContext,
   ): Promise<void> {
+    await householdService.assertWritePermission(householdId, auth.uid, auth.isGlobalAdmin);
     logger.info(`closeMonth.start: ${year}-${month}`, 'FinancialReportService');
 
     // 1. Get Net Income and Dividends
@@ -362,6 +368,7 @@ class FinancialReportService {
         retainedEarningsProject.snapshot.id,
         snapshotData,
         userEmail,
+        auth,
       );
     } else {
       await projectService.recordSnapshot(
@@ -369,6 +376,7 @@ class FinancialReportService {
         retainedEarningsProject.id,
         snapshotData,
         userEmail,
+        auth,
       );
     }
 

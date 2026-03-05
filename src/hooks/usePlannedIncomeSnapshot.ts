@@ -1,4 +1,4 @@
-import { type PlannedIncomeCategory } from '@/domains/unifiedTransaction/plannedIncomeCategory';
+import { type PlannedIncomeCategory } from '@/domains/record/types';
 import { type Project } from '@/schemas';
 import { plannedIncomeService } from '@/services/plannedIncomeService';
 

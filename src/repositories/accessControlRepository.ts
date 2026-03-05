@@ -1,41 +1,35 @@
-import { Timestamp, collection, doc } from 'firebase/firestore';
+import { Firestore, collection, doc, getDoc, setDoc } from 'firebase/firestore';
 
-import { toDate } from '@/utils/dateUtils';
+import { db } from '@/firebase';
+import { type AccessControlWhitelist, AccessControlWhitelistSchema } from '@/schemas';
 
-import { db } from '../firebase';
-import { type AccessControl, AccessControlSchema } from '../schemas';
-import { BaseRepository } from './baseRepository';
-
-type AccessControlFirestore = {
-  whitelistedEmails: string[];
-  updatedAt: Timestamp;
-  updatedBy: string;
-};
-
-class AccessControlRepository extends BaseRepository<AccessControl, AccessControlFirestore, []> {
+class AccessControlRepository {
+  constructor(db: Firestore) {
+    this.db = db;
+  }
+  protected db: Firestore;
   private readonly collectionName = 'access_control';
-  private readonly docId = 'config';
+  private readonly whitelistDocId = 'whitelist';
 
   protected getCollectionRef() {
     return collection(this.db, this.collectionName);
   }
 
-  protected getDocRef() {
-    return doc(this.getCollectionRef(), this.docId);
+  protected getDocRef(name: string) {
+    return doc(this.getCollectionRef(), name);
   }
 
-  protected toFirestore(entity: AccessControl): Partial<AccessControlFirestore> {
-    return {
-      ...entity,
-      updatedAt: entity.updatedAt ? Timestamp.fromDate(entity.updatedAt) : undefined,
-    };
+  async saveWhitelist(whitelist: AccessControlWhitelist) {
+    const docRef = this.getDocRef(this.whitelistDocId);
+    const data = AccessControlWhitelistSchema.parse(whitelist);
+    await setDoc(docRef, data);
   }
 
-  protected fromFirestore(data: AccessControlFirestore): AccessControl {
-    return AccessControlSchema.parse({
-      ...data,
-      updatedAt: toDate(data.updatedAt),
-    });
+  async getWhitelist() {
+    const docRef = this.getDocRef(this.whitelistDocId);
+    const snap = await getDoc(docRef);
+    if (!snap.exists()) return null;
+    return AccessControlWhitelistSchema.parse(snap.data());
   }
 }
 

@@ -1,31 +1,38 @@
-import { useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
 
+import { useAuth } from '@/contexts/useAuth';
 import { type Portfolio, type PortfolioCreate } from '@/schemas';
 import { portfolioService } from '@/services/portfolioService';
 
 export const usePortfolioCmds = (householdId?: string, email?: string) => {
+  const { currentUser, isAdmin } = useAuth();
+  const auth = useMemo(
+    () => ({ uid: currentUser?.uid || '', isGlobalAdmin: isAdmin }),
+    [currentUser, isAdmin],
+  );
+
   const createPortfolio = useCallback(
     async (portfolio: PortfolioCreate) => {
       if (!householdId || !email) return;
-      return await portfolioService.createPortfolio(householdId, portfolio, email);
+      return await portfolioService.createPortfolio(householdId, portfolio, email, auth);
     },
-    [householdId, email],
+    [householdId, email, auth],
   );
 
   const updatePortfolio = useCallback(
     async (id: string, updates: Partial<Portfolio>) => {
       if (!householdId || !email) return;
-      await portfolioService.updatePortfolio(householdId, id, updates, email);
+      await portfolioService.updatePortfolio(householdId, id, updates, email, auth);
     },
-    [householdId, email],
+    [householdId, email, auth],
   );
 
   const deletePortfolio = useCallback(
     async (id: string) => {
       if (!householdId) return;
-      await portfolioService.deletePortfolio(householdId, id);
+      await portfolioService.deletePortfolio(householdId, id, auth);
     },
-    [householdId],
+    [householdId, auth],
   );
 
   const createSnapshot = useCallback(
@@ -43,9 +50,10 @@ export const usePortfolioCmds = (householdId?: string, email?: string) => {
         month,
         cashFlow,
         email,
+        auth,
       );
     },
-    [householdId, email],
+    [householdId, email, auth],
   );
 
   return {
@@ -56,9 +64,9 @@ export const usePortfolioCmds = (householdId?: string, email?: string) => {
     deleteSnapshot: useCallback(
       async (portfolioId: string, snapshotId: string) => {
         if (!householdId) return;
-        await portfolioService.deleteSnapshot(householdId, portfolioId, snapshotId);
+        await portfolioService.deleteSnapshot(householdId, portfolioId, snapshotId, auth);
       },
-      [householdId],
+      [householdId, auth],
     ),
   };
 };

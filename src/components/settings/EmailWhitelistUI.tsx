@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 
 import { Mail, Plus, X } from 'lucide-react';
 
@@ -7,86 +7,63 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
-import { useAuth } from '../contexts/useAuth';
-import { accessControlService } from '../services/accessControlService';
+interface EmailWhitelistUIProps {
+  whitelist: string[];
+  loading: boolean;
+  saving: boolean;
+  error: string;
+  onAdd: (email: string) => Promise<void>;
+  onRemove: (email: string) => Promise<void>;
+}
 
-const EmailWhitelist: React.FC = () => {
-  const { currentUser } = useAuth();
-  const [whitelist, setWhitelist] = useState<string[]>([]);
+const EmailWhitelistUI: React.FC<EmailWhitelistUIProps> = ({
+  whitelist,
+  loading,
+  saving,
+  error: propError,
+  onAdd,
+  onRemove,
+}) => {
   const [newEmail, setNewEmail] = useState('');
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState('');
+  const [localError, setLocalError] = useState('');
 
-  useEffect(() => {
-    loadWhitelist();
-  }, []);
-
-  const loadWhitelist = async () => {
-    setLoading(true);
-    try {
-      const emails = await accessControlService.getWhitelist();
-      setWhitelist(emails);
-    } catch (err) {
-      console.error('Error loading whitelist:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const error = propError || localError;
 
   const handleAddEmail = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
-
-    if (!currentUser?.uid) {
-      setError('User not authenticated');
-      return;
-    }
+    setLocalError('');
 
     const email = newEmail.trim().toLowerCase();
     if (!email) {
-      setError('Please enter an email address');
+      setLocalError('Please enter an email address');
       return;
     }
 
     // Basic email validation
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      setError('Please enter a valid email address');
+      setLocalError('Please enter a valid email address');
       return;
     }
 
     if (whitelist.includes(email)) {
-      setError('This email is already in the whitelist');
+      setLocalError('This email is already in the whitelist');
       return;
     }
 
-    setSaving(true);
     try {
-      await accessControlService.addEmailToWhitelist(email, currentUser.uid);
-      await loadWhitelist();
+      await onAdd(email);
       setNewEmail('');
-    } catch (err) {
-      const error = err as Error;
-      setError(error.message || 'Failed to add email');
-    } finally {
-      setSaving(false);
+    } catch {
+      // Error handled by parent hook
     }
   };
 
   const handleRemoveEmail = async (email: string) => {
-    if (!currentUser?.uid) return;
-
     if (!confirm(`Remove ${email} from whitelist?`)) return;
-
-    setSaving(true);
     try {
-      await accessControlService.removeEmailFromWhitelist(email, currentUser.uid);
-      await loadWhitelist();
-    } catch (err) {
-      const error = err as Error;
-      setError(error.message || 'Failed to remove email');
-    } finally {
-      setSaving(false);
+      await onRemove(email);
+    } catch {
+      // Error handled by parent hook
     }
   };
 
@@ -174,4 +151,4 @@ const EmailWhitelist: React.FC = () => {
   );
 };
 
-export default EmailWhitelist;
+export default EmailWhitelistUI;

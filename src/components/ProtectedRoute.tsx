@@ -4,6 +4,7 @@ import { Navigate, useLocation } from 'react-router-dom';
 
 import { useAuth } from '../contexts/useAuth';
 import { accessControlService } from '../services/accessControlService';
+import { householdService } from '../services/householdService';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -11,9 +12,10 @@ interface ProtectedRouteProps {
 }
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, requireHousehold = false }) => {
-  const { currentUser, userProfile, loading } = useAuth();
+  const { currentUser, userProfile, loading, isAdmin } = useAuth();
   const location = useLocation();
-  const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null);
+  const [isAuthorized, setIsAuthorized] = useState<boolean | null>(isAdmin);
+  const [isMemberOfHousehold, setIsMemberOfHousehold] = useState<boolean | null>(null);
   const [checkingAuth, setCheckingAuth] = useState(true);
 
   useEffect(() => {
@@ -24,20 +26,35 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, requireHouseh
       }
 
       try {
-        const authorized = await accessControlService.isUserAuthorized(
-          currentUser.uid,
-          currentUser.email,
-        );
-        setIsAuthorized(authorized);
+        // Whitelist check
+        if (!isAdmin) {
+          const authorized = await accessControlService.isUserAuthorized(currentUser.email);
+          setIsAuthorized(authorized);
+        }
+
+        // Household membership check
+        if (requireHousehold && userProfile?.householdId) {
+          const isMember = await householdService.isUserMember(
+            userProfile.householdId,
+            currentUser.uid,
+          );
+          setIsMemberOfHousehold(isMember);
+        } else {
+          setIsMemberOfHousehold(true);
+        }
       } catch (error) {
-        console.error('Authorization check failed:', error);
+        console.error(
+          `[ProtectedRoute] Authorization check failed for user ${currentUser.uid} with email ${currentUser.email}:`,
+          error,
+        );
         setIsAuthorized(false);
+        setIsMemberOfHousehold(false);
       } finally {
         setCheckingAuth(false);
       }
     };
     checkAuthorization();
-  }, [currentUser]);
+  }, [currentUser, isAdmin, requireHousehold, userProfile?.householdId]);
 
   if (loading || checkingAuth) {
     return (
@@ -56,7 +73,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, requireHouseh
     return <Navigate to="/access-denied" replace />;
   }
 
-  if (requireHousehold && !userProfile?.householdId) {
+  if (requireHousehold && (!userProfile?.householdId || isMemberOfHousehold === false)) {
     return <Navigate to="/onboarding" replace />;
   }
 
