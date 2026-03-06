@@ -111,21 +111,21 @@ class FinancialReportService {
     };
 
     const incomeStatement: FinancialReport = {
-      id: `income_statement_${year}-${month}`,
+      id: reportRepository.buildId(ReportType.INCOME_STATEMENT, year, month),
       type: ReportType.INCOME_STATEMENT,
       data: incomeStatementData,
       ...commonFields,
     };
 
     const balanceSheet: FinancialReport = {
-      id: `balance_sheet_${year}-${month}`,
+      id: reportRepository.buildId(ReportType.BALANCE_SHEET, year, month),
       type: ReportType.BALANCE_SHEET,
       data: balanceSheetData,
       ...commonFields,
     };
 
     const cashFlow: FinancialReport = {
-      id: `cash_flow_${year}-${month}`,
+      id: reportRepository.buildId(ReportType.CASH_FLOW, year, month),
       type: ReportType.CASH_FLOW,
       data: cashFlowData,
       ...commonFields,
@@ -152,7 +152,7 @@ class FinancialReportService {
   ): Promise<void> {
     await householdService.assertWritePermission(householdId, auth.uid, auth.isGlobalAdmin);
     for (const report of reports) {
-      reportRepository.create([householdId], report, email);
+      await reportRepository.create([householdId], report, email, undefined, report.id);
     }
   }
 

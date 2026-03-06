@@ -11,11 +11,15 @@ class ReportRepository extends BaseRepository<FinancialReport, [string, string?]
     return collection(this.db, 'households', householdId, this.collectionName);
   }
 
-  protected getDocRef(householdId: string, transactionId: string) {
-    return doc(this.db, 'households', householdId, this.collectionName, transactionId);
+  protected getDocRef(householdId: string, reportId: string) {
+    return doc(this.db, 'households', householdId, this.collectionName, reportId);
   }
   protected getDomainSchema() {
     return FinancialReportSchema;
+  }
+
+  buildId(type: string, year: number, month: number): string {
+    return `${type.toLowerCase()}-${year}-${String(month).padStart(2, '0')}`;
   }
 }
 

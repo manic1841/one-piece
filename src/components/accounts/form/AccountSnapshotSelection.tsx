@@ -1,5 +1,5 @@
+import { YearMonthPicker } from '@/components/shared/YearMonthPicker';
 import { Card } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
   Select,
@@ -48,35 +48,12 @@ export const AccountSnapshotSelection: React.FC<AccountSnapshotSelectionProps> =
       )}
 
       {/* Year & Month */}
-      <div className="grid grid-cols-2 gap-3">
-        <div className="space-y-2">
-          <Label htmlFor="year">Year</Label>
-          <Input
-            id="year"
-            type="number"
-            required
-            min="2000"
-            max="2100"
-            value={formData.year}
-            onChange={(e) => onUpdateFormData({ year: e.target.value })}
-          />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="month">Month</Label>
-          <Select value={formData.month} onValueChange={(val) => onUpdateFormData({ month: val })}>
-            <SelectTrigger id="month">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
-                <SelectItem key={m} value={m.toString()}>
-                  {m}月
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
+      <YearMonthPicker
+        year={formData.year}
+        month={formData.month}
+        onYearChange={(year) => onUpdateFormData({ year })}
+        onMonthChange={(month) => onUpdateFormData({ month })}
+      />
 
       {/* Previous Balance Reference */}
       {previousAmount && formData.accountId && (

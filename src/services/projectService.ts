@@ -166,7 +166,14 @@ class ProjectService {
       );
     }
 
-    return projectSnapshotRepository.create([householdId, projectId], snapshot, userEmail);
+    const customId = projectSnapshotRepository.buildId(snapshot.year, snapshot.month);
+    return projectSnapshotRepository.create(
+      [householdId, projectId],
+      snapshot,
+      userEmail,
+      undefined,
+      customId,
+    );
   }
 
   /**

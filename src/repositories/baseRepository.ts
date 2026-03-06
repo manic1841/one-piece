@@ -118,8 +118,11 @@ export abstract class BaseRepository<TDomain extends Base, RefArgs extends unkno
     data: Omit<TDomain, ExcludedColumn>,
     userEmail: string,
     tx?: Transaction,
+    customId?: string,
   ): Promise<string> {
-    const docRef = doc(this.getCollectionRef(...args));
+    const docRef = customId
+      ? doc(this.getCollectionRef(...args), customId)
+      : doc(this.getCollectionRef(...args));
     const id = docRef.id;
 
     const sanitized = this.sanitize(data as TDomain) as TDomain;

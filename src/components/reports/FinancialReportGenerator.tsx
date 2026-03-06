@@ -4,16 +4,9 @@ import { Loader2 } from 'lucide-react';
 
 import GeneratedReportsPreview from '@/components/reports/GeneratedReportsPreview';
 import { useFinancialReportGenerator } from '@/components/reports/useFinancialReportGenerator';
+import { YearMonthPicker } from '@/components/shared/YearMonthPicker';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 
 const FinancialReportGenerator: React.FC = () => {
   const {
@@ -36,34 +29,13 @@ const FinancialReportGenerator: React.FC = () => {
         </CardHeader>
         <CardContent>
           <div className="flex items-end gap-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Year</label>
-              <Input
-                className="w-[120px]"
-                id="year"
-                type="number"
-                required
-                min="2000"
-                max="2100"
-                value={year}
-                onChange={(e) => setYear(parseInt(e.target.value))}
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Month</label>
-              <Select value={month.toString()} onValueChange={(v) => setMonth(parseInt(v))}>
-                <SelectTrigger className="w-[120px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
-                    <SelectItem key={m} value={m.toString()}>
-                      {m}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            <YearMonthPicker
+              year={year}
+              month={month}
+              onYearChange={(y) => setYear(parseInt(y) || 0)}
+              onMonthChange={(m) => setMonth(parseInt(m) || 1)}
+              className="flex gap-4"
+            />
             <Button onClick={generateReports} disabled={loading}>
               {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Generate Preview

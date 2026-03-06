@@ -2,6 +2,7 @@ import React from 'react';
 
 import { AlertCircle, Trash2 } from 'lucide-react';
 
+import { YearMonthPicker } from '@/components/shared/YearMonthPicker';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -11,13 +12,6 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 
 import { useBatchSnapshotForm } from './useBatchSnapshotForm';
 
@@ -49,9 +43,6 @@ export const BatchSnapshotForm: React.FC<BatchSnapshotFormProps> = ({
     submit,
   } = useBatchSnapshotForm(householdId, userEmail, onSuccess, onClose);
 
-  const years = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i);
-  const months = Array.from({ length: 12 }, (_, i) => i + 1);
-
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-w-3xl max-h-[90vh] flex flex-col">
@@ -59,37 +50,13 @@ export const BatchSnapshotForm: React.FC<BatchSnapshotFormProps> = ({
           <DialogTitle>Batch Settlement (結算)</DialogTitle>
         </DialogHeader>
 
-        <div className="flex gap-4 py-4 border-b">
-          <div className="flex-1">
-            <label className="text-sm font-medium mb-1 block">Year</label>
-            <Select value={year.toString()} onValueChange={(v) => setYear(parseInt(v))}>
-              <SelectTrigger>
-                <SelectValue placeholder="Year" />
-              </SelectTrigger>
-              <SelectContent>
-                {years.map((y) => (
-                  <SelectItem key={y} value={y.toString()}>
-                    {y}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="flex-1">
-            <label className="text-sm font-medium mb-1 block">Month</label>
-            <Select value={month.toString()} onValueChange={(v) => setMonth(parseInt(v))}>
-              <SelectTrigger>
-                <SelectValue placeholder="Month" />
-              </SelectTrigger>
-              <SelectContent>
-                {months.map((m) => (
-                  <SelectItem key={m} value={m.toString()}>
-                    {m}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+        <div className="py-4 border-b">
+          <YearMonthPicker
+            year={year}
+            month={month}
+            onYearChange={(y) => setYear(parseInt(y) || 0)}
+            onMonthChange={(m) => setMonth(parseInt(m) || 1)}
+          />
         </div>
 
         <div className="flex-1 overflow-y-auto py-4">

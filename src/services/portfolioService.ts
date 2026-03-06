@@ -111,7 +111,14 @@ export const portfolioService = {
       cashFlow,
     });
 
-    return portfolioSnapshotRepository.create([householdId, portfolioId], snapshotData, userEmail);
+    const customId = portfolioSnapshotRepository.buildId(year, month);
+    return portfolioSnapshotRepository.create(
+      [householdId, portfolioId],
+      snapshotData,
+      userEmail,
+      undefined,
+      customId,
+    );
   },
 
   // Get snapshots for a portfolio

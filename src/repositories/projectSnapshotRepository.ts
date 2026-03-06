@@ -15,6 +15,10 @@ class ProjectSnapshotRepository extends BaseRepository<ProjectSnapshot, [string,
   protected getDomainSchema() {
     return ProjectSnapshotSchema;
   }
+
+  buildId(year: number, month: number): string {
+    return `${year}-${String(month).padStart(2, '0')}`;
+  }
 }
 
 export const projectSnapshotRepository = new ProjectSnapshotRepository(db);

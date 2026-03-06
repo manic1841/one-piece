@@ -3,6 +3,7 @@ import React from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import {
   Select,
   SelectContent,
@@ -36,17 +37,6 @@ export const ReportPageLayout: React.FC<ReportPageLayoutProps> = ({
   onViewTypeChange,
   children,
 }) => {
-  const years = React.useMemo(() => {
-    const currentYear = new Date().getFullYear();
-    const startYear = currentYear - 5;
-    const endYear = currentYear + 2;
-    const result = [];
-    for (let i = startYear; i <= endYear; i++) {
-      result.push(i);
-    }
-    return result;
-  }, []);
-
   const months = Array.from({ length: 12 }, (_, i) => i + 1);
 
   const handleYearChange = (year: string) => {
@@ -96,18 +86,14 @@ export const ReportPageLayout: React.FC<ReportPageLayoutProps> = ({
           </Button>
 
           <div className="flex items-center gap-1">
-            <Select value={currentDate.getFullYear().toString()} onValueChange={handleYearChange}>
-              <SelectTrigger className="w-[100px]">
-                <SelectValue placeholder="年份" />
-              </SelectTrigger>
-              <SelectContent>
-                {years.map((y) => (
-                  <SelectItem key={y} value={y.toString()}>
-                    {y} 年
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Input
+              className="w-[100px]"
+              type="number"
+              min="2000"
+              max="2100"
+              value={currentDate.getFullYear()}
+              onChange={(e) => handleYearChange(e.target.value)}
+            />
 
             {viewType === 'month' && (
               <Select

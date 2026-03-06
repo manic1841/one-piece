@@ -1,12 +1,6 @@
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import React from 'react';
+
+import { YearMonthPicker } from '@/components/shared/YearMonthPicker';
 
 interface SettlementSelectionProps {
   year: number;
@@ -30,35 +24,14 @@ export const SettlementSelection: React.FC<SettlementSelectionProps> = ({
       </p>
 
       {/* Year & Month */}
-      <div className="grid grid-cols-2 gap-3">
-        <div className="space-y-2">
-          <Label htmlFor="year">年份</Label>
-          <Input
-            id="year"
-            type="number"
-            required
-            min="2000"
-            max="2100"
-            value={year}
-            onChange={(e) => setYear(parseInt(e.target.value))}
-          />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="month">月份</Label>
-          <Select value={month.toString()} onValueChange={(val) => setMonth(parseInt(val))}>
-            <SelectTrigger id="month">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
-                <SelectItem key={m} value={m.toString()}>
-                  {m}月
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
+      <YearMonthPicker
+        year={year}
+        month={month}
+        onYearChange={(y) => setYear(parseInt(y) || 0)}
+        onMonthChange={(m) => setMonth(parseInt(m) || 1)}
+        yearLabel="年份"
+        monthLabel="月份"
+      />
 
       {error && (
         <div className="bg-destructive/10 text-destructive p-3 rounded-lg text-sm">{error}</div>

@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
+import { useAuth } from '@/contexts/useAuth';
 import { type Account, type AccountWithSnapshot } from '@/domains/account/types';
 import { accountService } from '@/services/accountService';
 
@@ -9,6 +10,11 @@ export const useBatchSnapshotForm = (
   onSuccess: () => void,
   onClose: () => void,
 ) => {
+  const { currentUser, isAdmin } = useAuth();
+  const auth = useMemo(
+    () => ({ uid: currentUser?.uid || '', isGlobalAdmin: isAdmin }),
+    [currentUser, isAdmin],
+  );
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(false);
   const [year, setYear] = useState(new Date().getFullYear());
@@ -76,7 +82,7 @@ export const useBatchSnapshotForm = (
 
       if (snapshotsToCreate.length === 0) return;
 
-      await accountService.batchRecordSnapshots(householdId, snapshotsToCreate, userEmail);
+      await accountService.batchRecordSnapshots(householdId, snapshotsToCreate, userEmail, auth);
       onSuccess();
       onClose();
     } catch (err) {

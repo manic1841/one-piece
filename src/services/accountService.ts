@@ -66,7 +66,14 @@ class AccountService {
     auth: AuthContext,
   ): Promise<string> {
     await householdService.assertWritePermission(householdId, auth.uid, auth.isGlobalAdmin);
-    return accountSnapshotRepository.create([householdId, accountId], snapshot, userEmail);
+    const customId = accountSnapshotRepository.buildId(snapshot.year, snapshot.month);
+    return accountSnapshotRepository.create(
+      [householdId, accountId],
+      snapshot,
+      userEmail,
+      undefined,
+      customId,
+    );
   }
 
   // Get balance snapshots for an account
