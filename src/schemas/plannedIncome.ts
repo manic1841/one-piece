@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { PlannedIncomeCategory } from '@/domains/record/types/categories';
 import { BaseSchema } from '@/schemas/base';
 
+// PlannedIncomeSchema
 export const PlannedIncomeAllocationSchema = z.object({
   projectId: z.string(),
   percentage: z.number(),

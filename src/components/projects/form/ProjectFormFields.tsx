@@ -11,7 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { CATEGORY_LABELS, ICON_OPTIONS } from '@/constants/project/projectLabel';
+import { CATEGORY_LABELS, COLOR_OPTIONS, ICON_OPTIONS } from '@/constants/project/projectLabel';
 import { ProjectCategory, type ProjectFormData } from '@/domains/project/types';
 
 interface ProjectFormFieldsProps {
@@ -100,14 +100,50 @@ export const ProjectFormFields: React.FC<ProjectFormFieldsProps> = ({
 
         <div className="space-y-2">
           <Label htmlFor="project-color">顏色</Label>
-          <Input
-            id="project-color"
-            type="text"
-            value={formData.color || ''}
-            onChange={(e) => onChange({ color: e.target.value })}
-            placeholder="#3B82F6"
-            disabled={disabled}
-          />
+          <div className="flex gap-2 items-center">
+            <Input
+              id="project-color"
+              type="text"
+              value={formData.color || ''}
+              onChange={(e) => onChange({ color: e.target.value })}
+              placeholder="#3B82F6"
+              disabled={disabled}
+              className="font-mono"
+            />
+            <div
+              className="w-10 h-10 rounded border"
+              style={{ backgroundColor: formData.color || 'transparent' }}
+            />
+          </div>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="sm" type="button" className="w-full">
+                選擇顏色
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-64">
+              <div className="grid grid-cols-5 gap-2">
+                {COLOR_OPTIONS.map((color) => (
+                  <button
+                    key={color}
+                    type="button"
+                    className="w-10 h-10 rounded-full border-2 hover:scale-110 transition-transform flex items-center justify-center p-0 overflow-hidden"
+                    style={{
+                      backgroundColor: color,
+                      borderColor: formData.color === color ? 'white' : 'transparent',
+                      boxShadow: formData.color === color ? '0 0 0 2px black' : 'none',
+                    }}
+                    onClick={() => onChange({ color })}
+                    title={color}
+                  >
+                    {formData.color === color && (
+                      <span className="text-white drop-shadow-md">✓</span>
+                    )}
+                  </button>
+                ))}
+              </div>
+            </PopoverContent>
+          </Popover>
         </div>
       </div>
 

@@ -1,6 +1,7 @@
 import { QueryConstraint, where } from 'firebase/firestore';
 
 import { calculatePortfolioSnapshot } from '@/domains/finance/calculators/portfolioCalculator';
+import { type LeverageStats } from '@/domains/finance/types';
 import { portfolioRepository } from '@/repositories/portfolioRepository';
 import { portfolioSnapshotRepository } from '@/repositories/portfolioSnapshotRepository';
 import {
@@ -164,6 +165,32 @@ export const portfolioService = {
       totalMarketValue,
       totalCost: totalMarketValue - totalGainLoss,
       totalGainLoss,
+    };
+  },
+
+  // Get current leverage stats across all accounts
+  async getLeverageStats(householdId: string): Promise<LeverageStats> {
+    const accounts = await accountService.getAccounts(householdId);
+    let totalExposure = 0;
+    let totalNetValue = 0;
+
+    for (const account of accounts) {
+      const latest = await accountService.getLatestSnapshot(householdId, account.id);
+      if (!latest) continue;
+
+      totalNetValue += latest.amount;
+      const holdings = latest.holdings || [];
+      for (const holding of holdings) {
+        const leverage = holding.leverage || 1;
+        totalExposure += holding.marketValue * leverage;
+      }
+    }
+
+    const ratio = totalNetValue > 0 ? totalExposure / totalNetValue : 0;
+    return {
+      totalExposure,
+      totalNetValue,
+      ratio,
     };
   },
 };

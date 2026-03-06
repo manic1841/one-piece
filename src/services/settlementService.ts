@@ -2,8 +2,12 @@ import { Timestamp, where } from 'firebase/firestore';
 
 import { projectSnapshotRepository } from '@/repositories/projectSnapshotRepository';
 
-import { type ProjectSnapshot } from '../schemas';
+import { type UnsettledItem, type UnsettledStats } from '../domains/finance/types/TrendData';
+import { type ProjectSnapshot, type ProjectTransaction, type Transaction } from '../schemas';
+import { accountService } from './accountService';
 import { type AuthContext, householdService } from './householdService';
+import { portfolioService } from './portfolioService';
+import { projectService } from './projectService';
 import { projectTransactionService } from './projectTransactionService';
 import { transactionService } from './transactionService';
 
@@ -103,7 +107,7 @@ class SettlementService {
 
     // Calculate income (projectTransactions and transactions to this project in this month)
     const incomeProjectTrans = projectTransactions
-      .filter((pt) => {
+      .filter((pt: ProjectTransaction) => {
         const ptDate = pt.date instanceof Timestamp ? pt.date.toDate() : pt.date;
         return (
           pt.toProjectId === projectId &&
@@ -111,9 +115,9 @@ class SettlementService {
           ptDate.getMonth() + 1 === month
         );
       })
-      .reduce((sum, pt) => sum + pt.amount, 0);
+      .reduce((sum: number, pt: ProjectTransaction) => sum + pt.amount, 0);
     const incomeTrans = transactions
-      .filter((t) => {
+      .filter((t: Transaction) => {
         const tDate = t.date instanceof Timestamp ? t.date.toDate() : t.date;
         return (
           t.projectId === projectId &&
@@ -122,12 +126,12 @@ class SettlementService {
           tDate.getMonth() + 1 === month
         );
       })
-      .reduce((sum, t) => sum + t.amount, 0);
+      .reduce((sum: number, t: Transaction) => sum + t.amount, 0);
     const income = incomeProjectTrans + incomeTrans;
 
     // Calculate expense (transactions for this project in this month)
     const expense = transactions
-      .filter((t) => {
+      .filter((t: Transaction) => {
         const tDate = t.date instanceof Timestamp ? t.date.toDate() : t.date;
         return (
           t.projectId === projectId &&
@@ -136,7 +140,7 @@ class SettlementService {
           tDate.getMonth() + 1 === month
         );
       })
-      .reduce((sum, t) => sum + t.amount, 0);
+      .reduce((sum: number, t: Transaction) => sum + t.amount, 0);
 
     // Calculate closing balance
     const closingBalance = openingBalance + income - expense;
@@ -236,6 +240,60 @@ class SettlementService {
         errors: ['Failed to create settlements. Please try again.'],
       };
     }
+  }
+  /**
+   * Get unsettled items for the previous month
+   */
+  async getUnsettledStats(householdId: string): Promise<UnsettledStats> {
+    const now = new Date();
+    const prevMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const year = prevMonthDate.getFullYear();
+    const month = prevMonthDate.getMonth() + 1;
+
+    const [projects, accounts, portfolios] = await Promise.all([
+      projectService.getProjects(householdId),
+      accountService.getAccounts(householdId),
+      portfolioService.getPortfolios(householdId),
+    ]);
+
+    const unsettledProjects: UnsettledItem[] = [];
+    const unsettledAccounts: UnsettledItem[] = [];
+    const unsettledPortfolios: UnsettledItem[] = [];
+
+    // Check Projects
+    for (const project of projects) {
+      if (!project.isActive) continue;
+      const exists = await this.checkExistingSnapshot(householdId, project.id, year, month);
+      if (!exists) {
+        unsettledProjects.push({ id: project.id, name: project.name, type: 'project' });
+      }
+    }
+
+    // Check Accounts
+    for (const account of accounts) {
+      const snapshots = await accountService.getSnapshots(householdId, account.id, year, month);
+      if (snapshots.length === 0) {
+        unsettledAccounts.push({ id: account.id, name: account.name, type: 'account' });
+      }
+    }
+
+    // Check Portfolios
+    for (const portfolio of portfolios) {
+      const snapshots = await portfolioService.getSnapshots(householdId, portfolio.id, year, month);
+      if (snapshots.length === 0) {
+        unsettledPortfolios.push({ id: portfolio.id, name: portfolio.name, type: 'portfolio' });
+      }
+    }
+
+    return {
+      year,
+      month,
+      unsettledProjects,
+      unsettledAccounts,
+      unsettledPortfolios,
+      totalUnsettled:
+        unsettledProjects.length + unsettledAccounts.length + unsettledPortfolios.length,
+    };
   }
 }
 

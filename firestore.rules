@@ -18,7 +18,7 @@ service cloud.firestore {
     }
 
     function isSystemUser() {
-      return isSignedIn() && isWhitelisted();
+      return isSignedIn() && (isWhitelisted() || isGlobalAdmin());
     }
 
     function isHouseholdMember(householdId) {

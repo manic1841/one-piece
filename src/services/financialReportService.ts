@@ -3,17 +3,15 @@ import { calculateCashFlowStatement } from '@/domains/finance/calculators/cashFl
 import { reconcileReports } from '@/domains/finance/calculators/financialReportCalculator';
 import { calculateIncomeStatement } from '@/domains/finance/calculators/incomeStatementCalculator';
 import {
+  calculateClosingBalance,
+  calculateDividends,
+} from '@/domains/finance/logic/financialLogic';
+import {
   aggregateCashFlows,
   aggregateIncomeStatements,
   aggregateLatestBalanceSheet,
 } from '@/domains/finance/logic/reportAggregation';
-import {
-  EquitySubCategory,
-  type FinancialReport,
-  FinancingSubCategory,
-  ReportType,
-} from '@/domains/finance/types';
-import { ProjectExpenseBehavior } from '@/domains/project/types/categories';
+import { EquitySubCategory, type FinancialReport, ReportType } from '@/domains/finance/types';
 import { reportRepository } from '@/repositories/reportRepository';
 import { type BalanceSheetData, type CashFlowData, type IncomeStatementData } from '@/schemas';
 import { accountService } from '@/services/accountService';
@@ -294,10 +292,8 @@ class FinancialReportService {
     logger.info(`closeMonth.start: ${year}-${month}`, 'FinancialReportService');
 
     // 1. Get Net Income and Dividends
-    // Generate draft reports to get the current month's figures
     const reports = await this.generateFinancialReports(householdId, year, month, userId);
 
-    // Ensure we are accessing the correct data type
     if (
       reports.incomeStatement.type !== ReportType.INCOME_STATEMENT ||
       !('netIncome' in reports.incomeStatement.data)
@@ -306,23 +302,12 @@ class FinancialReportService {
     }
     const netIncome = reports.incomeStatement.data.netIncome;
 
-    // Fetch projects with snapshots to find Retained Earnings and identify dividends
     const allProjects = await projectService.getProjects(householdId);
     const projectsWithSnapshots = await Promise.all(
       allProjects.map((p) => projectService.getProjectWithSnapshot(householdId, p.id, year, month)),
     );
 
-    // Dividends are the money sent back to the owner (Inflow to family, Outflow from project)
-    const dividends = projectsWithSnapshots
-      .filter((p) => {
-        const subcategory = p.accounting?.cashFlow?.subcategory;
-        const behavior = p.accounting?.flowBehavior;
-        return (
-          subcategory === FinancingSubCategory.OWNER_DEPOSIT ||
-          behavior?.expenseAs === ProjectExpenseBehavior.OWNER_DEPOSIT
-        );
-      })
-      .reduce((sum, p) => sum + (p.snapshot?.expense || 0), 0);
+    const dividends = calculateDividends(projectsWithSnapshots);
 
     logger.debug(
       `Closing values - NetIncome: ${netIncome}, Dividends: ${dividends}`,
@@ -339,7 +324,7 @@ class FinancialReportService {
       throw new Error('Retained Earnings project not found');
     }
 
-    // 3. Get Beginning Balance (Closing Balance of previous month)
+    // 3. Get Beginning Balance
     const prevYear = month === 1 ? year - 1 : year;
     const prevMonth = month === 1 ? 12 : month - 1;
     const prevSnapshot = await projectService.getSnapshotForPeriod(
@@ -351,7 +336,7 @@ class FinancialReportService {
     const openingBalance = prevSnapshot?.closingBalance || 0;
 
     // 4. Update Snapshot
-    const closingBalance = openingBalance + netIncome - dividends;
+    const closingBalance = calculateClosingBalance(openingBalance, netIncome, dividends);
     const snapshotData = {
       year,
       month,
