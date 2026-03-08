@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { type Project, type ProjectCreate } from '@/domains/project/types';
 import { useProjectCmds } from '@/hooks/useProjectCmds';
@@ -11,16 +11,22 @@ export interface ProjectArgs {
 
 export const useProjectPage = (householdId?: string, email?: string) => {
   const { projects, loading, error, reload } = useProjects(householdId);
-  const { createProject, updateProject, deleteProject } = useProjectCmds(
+  const [editing, setEditing] = useState<Project | undefined>(undefined);
+  const [isSettlementDialogOpen, setIsSettlementDialogOpen] = useState(false);
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [selectedProject, setSelectedProject] = useState<Project | undefined>(undefined);
+  const [isReorderMode, setIsReorderMode] = useState(false);
+  const [localProjects, setLocalProjects] = useState<Project[]>([]);
+
+  const { createProject, updateProject, deleteProject, reorderProjects } = useProjectCmds(
     householdId,
     email,
     reload,
   );
 
-  const [editing, setEditing] = useState<Project | undefined>(undefined);
-  const [isSettlementDialogOpen, setIsSettlementDialogOpen] = useState(false);
-  const [isFormOpen, setIsFormOpen] = useState(false);
-  const [selectedProject, setSelectedProject] = useState<Project | undefined>(undefined);
+  useEffect(() => {
+    setLocalProjects(projects);
+  }, [projects]);
 
   // create project
   const create = async ({ project }: ProjectArgs) => {
@@ -80,10 +86,42 @@ export const useProjectPage = (householdId?: string, email?: string) => {
     setIsSettlementDialogOpen(false);
   };
 
+  const moveProjectUp = (projectId: string) => {
+    const index = localProjects.findIndex((p) => p.id === projectId);
+    if (index <= 0) return;
+
+    const newProjects = [...localProjects];
+    const temp = newProjects[index];
+    newProjects[index] = newProjects[index - 1];
+    newProjects[index - 1] = temp;
+    setLocalProjects(newProjects);
+  };
+
+  const moveProjectDown = (projectId: string) => {
+    const index = localProjects.findIndex((p) => p.id === projectId);
+    if (index < 0 || index >= localProjects.length - 1) return;
+
+    const newProjects = [...localProjects];
+    const temp = newProjects[index];
+    newProjects[index] = newProjects[index + 1];
+    newProjects[index + 1] = temp;
+    setLocalProjects(newProjects);
+  };
+
+  const saveOrder = async () => {
+    const orders = localProjects.map((p, index) => ({
+      id: p.id,
+      order: index,
+    }));
+    await reorderProjects(orders);
+    setIsReorderMode(false);
+    reload();
+  };
+
   return {
     loading,
     error,
-    projects,
+    projects: localProjects,
     reload,
     create,
     update,
@@ -100,5 +138,15 @@ export const useProjectPage = (householdId?: string, email?: string) => {
     setSelectedProject,
     selectProject,
     unselectProject,
+    isReorderMode,
+    toggleReorderMode: () => {
+      if (isReorderMode) {
+        setLocalProjects(projects);
+      }
+      setIsReorderMode(!isReorderMode);
+    },
+    moveProjectUp,
+    moveProjectDown,
+    saveOrder,
   };
 };

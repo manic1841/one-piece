@@ -163,7 +163,7 @@ export const EquitySubCategoryLabel = {
   [EquitySubCategory.RETAINED_EARNINGS]: '保留盈餘',
   [EquitySubCategory.OWNER_INVESTMENTS]: '業主投資',
   [EquitySubCategory.STOCK_PROFIT]: '股票利潤',
-  [EquitySubCategory.OTHER_EQUITY]: '權益項目',
+  [EquitySubCategory.OTHER_EQUITY]: '其他權益',
   [EquitySubCategory.RECONCILIATION]: '平帳調整',
 };
 

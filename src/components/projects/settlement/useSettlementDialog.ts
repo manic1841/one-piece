@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 
+import { useAuth } from '@/contexts/useAuth';
 import { type SettlementPreview } from '@/domains/project/types';
 import { type Project } from '@/schemas';
 import { settlementService } from '@/services/settlementService';
@@ -20,6 +21,11 @@ export const useSettlementDialog = (
   onSuccess?: () => void,
   onClose?: () => void,
 ) => {
+  const { currentUser, isAdmin } = useAuth();
+  const auth = useMemo(
+    () => ({ uid: currentUser?.uid || '', isGlobalAdmin: isAdmin }),
+    [currentUser, isAdmin],
+  );
   const currentDate = new Date();
   const [status, setStatus] = useState<DialogStatusType>(DialogStatus.SELECTION);
   const [year, setYear] = useState(currentDate.getFullYear());
@@ -60,6 +66,7 @@ export const useSettlementDialog = (
         month,
         settlements,
         userEmail,
+        auth,
       );
 
       if (result.success) {

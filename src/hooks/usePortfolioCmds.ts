@@ -68,5 +68,12 @@ export const usePortfolioCmds = (householdId?: string, email?: string) => {
       },
       [householdId, auth],
     ),
+    reorderPortfolios: useCallback(
+      async (portfolioOrders: Array<{ id: string; order: number }>) => {
+        if (!householdId || !email) return;
+        await portfolioService.reorderPortfolios(householdId, portfolioOrders, email, auth);
+      },
+      [householdId, email, auth],
+    ),
   };
 };

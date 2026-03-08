@@ -1,6 +1,6 @@
 import React from 'react';
 
-import { Pencil, Trash2 } from 'lucide-react';
+import { ArrowDown, ArrowUp, Pencil, Trash2 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -15,6 +15,9 @@ interface AccountGridProps {
   onDelete: (accountId: string) => void;
   onRecordSnapshot?: (account: Account) => void;
   onSelectAccount?: (account: AccountWithSnapshot) => void;
+  isReorderMode?: boolean;
+  onMoveUp?: (accountId: string) => void;
+  onMoveDown?: (accountId: string) => void;
 }
 
 export const AccountGrid: React.FC<AccountGridProps> = ({
@@ -23,6 +26,9 @@ export const AccountGrid: React.FC<AccountGridProps> = ({
   onDelete,
   onRecordSnapshot,
   onSelectAccount,
+  isReorderMode,
+  onMoveUp,
+  onMoveDown,
 }) => {
   return (
     <Card>
@@ -48,28 +54,59 @@ export const AccountGrid: React.FC<AccountGridProps> = ({
                     </div>
                   </div>
                   <div className="flex gap-1">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 text-muted-foreground hover:text-blue-600"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onEdit(account);
-                      }}
-                    >
-                      <Pencil size={16} />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onDelete(account.id);
-                      }}
-                    >
-                      <Trash2 size={16} />
-                    </Button>
+                    {isReorderMode ? (
+                      <>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-muted-foreground hover:text-blue-600"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onMoveUp?.(account.id);
+                          }}
+                          title="Move Up"
+                        >
+                          <ArrowUp size={16} />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-muted-foreground hover:text-blue-600"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onMoveDown?.(account.id);
+                          }}
+                          title="Move Down"
+                        >
+                          <ArrowDown size={16} />
+                        </Button>
+                      </>
+                    ) : (
+                      <>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-muted-foreground hover:text-blue-600"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onEdit(account);
+                          }}
+                        >
+                          <Pencil size={16} />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onDelete(account.id);
+                          }}
+                        >
+                          <Trash2 size={16} />
+                        </Button>
+                      </>
+                    )}
                   </div>
                 </div>
 
@@ -84,16 +121,18 @@ export const AccountGrid: React.FC<AccountGridProps> = ({
                   }
                 </div>
 
-                <Button
-                  variant="secondary"
-                  className="w-full"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onRecordSnapshot?.(account);
-                  }}
-                >
-                  Record Balance
-                </Button>
+                {!isReorderMode && (
+                  <Button
+                    variant="secondary"
+                    className="w-full"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onRecordSnapshot?.(account);
+                    }}
+                  >
+                    Record Balance
+                  </Button>
+                )}
               </div>
             );
           })}

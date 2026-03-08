@@ -2,10 +2,11 @@ import React from 'react';
 
 import { Info, TrendingUp } from 'lucide-react';
 import {
+  Bar,
   CartesianGrid,
+  ComposedChart,
   Legend,
   Line,
-  LineChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -32,7 +33,24 @@ const AssetTrendCardUI: React.FC<AssetTrendCardUIProps> = ({
 }) => {
   const chartData = React.useMemo(() => {
     if (!data) return [];
-    return data.points;
+
+    // Find the last index with actual data
+    let lastDataIndex = -1;
+    for (let i = data.points.length - 1; i >= 0; i--) {
+      const p = data.points[i];
+      if (
+        (p.totalAssets !== null && p.totalAssets !== 0) ||
+        (p.income !== null && p.income !== 0) ||
+        (p.expense !== null && p.expense !== 0) ||
+        (p.investmentGain !== null && p.investmentGain !== 0)
+      ) {
+        lastDataIndex = i;
+        break;
+      }
+    }
+
+    if (lastDataIndex === -1) return [];
+    return data.points.slice(0, lastDataIndex + 1);
   }, [data]);
 
   const modes: { label: string; value: AssetTrendViewMode }[] = [
@@ -82,7 +100,7 @@ const AssetTrendCardUI: React.FC<AssetTrendCardUIProps> = ({
         ) : (
           <div className="h-[350px] w-full mt-4">
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={chartData} margin={{ top: 5, right: 10, left: 10, bottom: 0 }}>
+              <ComposedChart data={chartData} margin={{ top: 5, right: 10, left: 10, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
                 <XAxis
                   dataKey="label"
@@ -92,9 +110,24 @@ const AssetTrendCardUI: React.FC<AssetTrendCardUIProps> = ({
                   dy={10}
                 />
                 <YAxis
+                  yAxisId="left"
                   axisLine={false}
                   tickLine={false}
                   tick={{ fontSize: 11, fill: '#94a3b8' }}
+                  tickFormatter={(val) =>
+                    val >= 1000000
+                      ? `${(val / 1000000).toFixed(1)}M`
+                      : val >= 1000
+                        ? `${(val / 1000).toFixed(0)}K`
+                        : val
+                  }
+                />
+                <YAxis
+                  yAxisId="right"
+                  orientation="right"
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fontSize: 11, fill: '#3b82f6' }}
                   tickFormatter={(val) =>
                     val >= 1000000
                       ? `${(val / 1000000).toFixed(1)}M`
@@ -116,17 +149,16 @@ const AssetTrendCardUI: React.FC<AssetTrendCardUIProps> = ({
                 />
                 <Legend iconType="circle" wrapperStyle={{ paddingTop: '20px' }} />
 
-                <Line
-                  type="monotone"
+                <Bar
+                  yAxisId="right"
                   dataKey="totalAssets"
                   name="總資產"
-                  stroke="#3b82f6"
-                  strokeWidth={3}
-                  dot={{ r: 4, fill: '#3b82f6', strokeWidth: 2, stroke: '#fff' }}
-                  activeDot={{ r: 6, strokeWidth: 0 }}
-                  connectNulls
+                  fill="#3b82f6"
+                  opacity={0.15}
+                  radius={[4, 4, 0, 0]}
                 />
                 <Line
+                  yAxisId="left"
                   type="monotone"
                   dataKey="income"
                   name="收入"
@@ -136,6 +168,7 @@ const AssetTrendCardUI: React.FC<AssetTrendCardUIProps> = ({
                   connectNulls
                 />
                 <Line
+                  yAxisId="left"
                   type="monotone"
                   dataKey="expense"
                   name="支出"
@@ -145,6 +178,7 @@ const AssetTrendCardUI: React.FC<AssetTrendCardUIProps> = ({
                   connectNulls
                 />
                 <Line
+                  yAxisId="left"
                   type="monotone"
                   dataKey="investmentGain"
                   name="投資收益"
@@ -153,7 +187,7 @@ const AssetTrendCardUI: React.FC<AssetTrendCardUIProps> = ({
                   dot={{ r: 3, fill: '#f59e0b', strokeWidth: 1, stroke: '#fff' }}
                   connectNulls
                 />
-              </LineChart>
+              </ComposedChart>
             </ResponsiveContainer>
           </div>
         )}

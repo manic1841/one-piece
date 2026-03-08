@@ -34,6 +34,7 @@ export const AccountCreateSchema = z.object({
   name: z.string(),
   category: z.enum(AccountCategory),
   currency: z.enum(CurrencyType),
+  order: z.number().default(0),
 });
 
 export type AccountCreate = z.infer<typeof AccountCreateSchema>;

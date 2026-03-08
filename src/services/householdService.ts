@@ -1,4 +1,4 @@
-import { where } from 'firebase/firestore';
+import { type Transaction, where } from 'firebase/firestore';
 
 import { DEFAULT_PROJECTS } from '@/constants/project/defaultProjects';
 import { RoleEnum } from '@/domains/auth/role';
@@ -79,8 +79,8 @@ class HouseholdService {
   }
 
   // Get household details
-  async getHousehold(householdId: string): Promise<Household | null> {
-    return await householdRepository.get([householdId]);
+  async getHousehold(householdId: string, tx?: Transaction): Promise<Household | null> {
+    return await householdRepository.get([householdId], tx);
   }
 
   // Smart method that creates or joins household based on input
@@ -235,8 +235,8 @@ class HouseholdService {
   }
 
   // Check if user is an admin or owner of a household
-  async isUserAdmin(householdId: string, uid: string): Promise<boolean> {
-    const household = await this.getHousehold(householdId);
+  async isUserAdmin(householdId: string, uid: string, tx?: Transaction): Promise<boolean> {
+    const household = await this.getHousehold(householdId, tx);
     if (!household) return false;
     const role = household.members[uid]?.role;
     return role === RoleEnum.ADMIN || role === RoleEnum.OWNER;
@@ -247,10 +247,11 @@ class HouseholdService {
     householdId: string,
     uid: string,
     isGlobalAdmin?: boolean,
+    tx?: Transaction,
   ): Promise<void> {
     if (isGlobalAdmin) return;
 
-    const isAdmin = await this.isUserAdmin(householdId, uid);
+    const isAdmin = await this.isUserAdmin(householdId, uid, tx);
     if (!isAdmin) {
       throw new Error(
         'Permission denied: Only household owners or admins can perform this action.',

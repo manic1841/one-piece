@@ -38,7 +38,8 @@ export const useFinancialReportGenerator = () => {
       toast.success('Reports generated successfully');
     } catch (error) {
       console.error('Failed to generate reports:', error);
-      toast.error('Failed to generate reports');
+      const message = error instanceof Error ? error.message : 'Failed to generate reports';
+      toast.error(message);
     } finally {
       setLoading(false);
     }

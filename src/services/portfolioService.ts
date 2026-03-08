@@ -1,4 +1,4 @@
-import { QueryConstraint, where } from 'firebase/firestore';
+import { QueryConstraint, orderBy, where } from 'firebase/firestore';
 
 import { calculatePortfolioSnapshot } from '@/domains/finance/calculators/portfolioCalculator';
 import { type LeverageStats } from '@/domains/finance/types';
@@ -28,7 +28,7 @@ export const portfolioService = {
 
   // Get all portfolios for a household
   async getPortfolios(householdId: string): Promise<Portfolio[]> {
-    return portfolioRepository.list([householdId]);
+    return portfolioRepository.list([householdId], [orderBy('order', 'asc')]);
   },
 
   // Get a single portfolio
@@ -199,5 +199,19 @@ export const portfolioService = {
       totalNetValue,
       ratio,
     };
+  },
+
+  // Reorder portfolios
+  async reorderPortfolios(
+    householdId: string,
+    portfolioOrders: Array<{ id: string; order: number }>,
+    userEmail: string,
+    auth: AuthContext,
+  ): Promise<void> {
+    await householdService.assertWritePermission(householdId, auth.uid, auth.isGlobalAdmin);
+    const updatePromises = portfolioOrders.map(({ id, order }) =>
+      portfolioRepository.update([householdId, id], { order }, userEmail),
+    );
+    await Promise.all(updatePromises);
   },
 };

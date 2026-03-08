@@ -1,13 +1,14 @@
 import { useEffect, useMemo, useState } from 'react';
 
 import { calculatePortfolioSnapshot } from '@/domains/finance/calculators/portfolioCalculator';
-import { useLoadingTask } from '@/hooks/useLoadingTask';
+import { toPortfolioSnapshotForm, toPortfolioSnapshotFormData } from '@/domains/portfolio/mappers';
 import {
-  type Account,
-  type AccountSnapshot,
   type Portfolio,
   type PortfolioSnapshot,
-} from '@/schemas';
+  type PortfolioSnapshotFormData,
+} from '@/domains/portfolio/types';
+import { useLoadingTask } from '@/hooks/useLoadingTask';
+import { type Account, type AccountSnapshot } from '@/schemas';
 import { accountService } from '@/services/accountService';
 import { portfolioService } from '@/services/portfolioService';
 
@@ -15,17 +16,13 @@ export const usePortfolioSnapshotForm = (
   householdId: string,
   portfolio: Portfolio,
   onClose: () => void,
-  onSubmit: (data: {
-    year: number;
-    month: number;
-    cashFlow: { deposits: number; withdrawals: number };
-  }) => Promise<void>,
+  onSubmit: (data: PortfolioSnapshotFormData) => Promise<void>,
 ) => {
-  const currentDate = new Date();
-  const [year, setYear] = useState(currentDate.getFullYear());
-  const [month, setMonth] = useState(currentDate.getMonth() + 1);
-  const [deposits, setDeposits] = useState('0');
-  const [withdrawals, setWithdrawals] = useState('0');
+  const initialData = toPortfolioSnapshotForm();
+  const [year, setYear] = useState(initialData.year);
+  const [month, setMonth] = useState(initialData.month);
+  const [deposits, setDeposits] = useState(initialData.deposits.toString());
+  const [withdrawals, setWithdrawals] = useState(initialData.withdrawals.toString());
 
   const { loading, error: taskError, run } = useLoadingTask();
   const [submitError, setSubmitError] = useState('');
@@ -138,14 +135,7 @@ export const usePortfolioSnapshotForm = (
 
     await run(async () => {
       try {
-        await onSubmit({
-          year,
-          month,
-          cashFlow: {
-            deposits: parseFloat(deposits) || 0,
-            withdrawals: parseFloat(withdrawals) || 0,
-          },
-        });
+        await onSubmit(toPortfolioSnapshotFormData(year, month, deposits, withdrawals));
         onClose();
       } catch (err) {
         setSubmitError((err as Error).message || 'Failed to create snapshot');

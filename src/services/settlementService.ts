@@ -1,9 +1,9 @@
 import { Timestamp, where } from 'firebase/firestore';
 
+import { type UnsettledItem, type UnsettledStats } from '@/domains/finance/types/TrendData';
 import { projectSnapshotRepository } from '@/repositories/projectSnapshotRepository';
+import { type ProjectSnapshot, type ProjectTransaction, type Transaction } from '@/schemas';
 
-import { type UnsettledItem, type UnsettledStats } from '../domains/finance/types/TrendData';
-import { type ProjectSnapshot, type ProjectTransaction, type Transaction } from '../schemas';
 import { accountService } from './accountService';
 import { type AuthContext, householdService } from './householdService';
 import { portfolioService } from './portfolioService';
@@ -48,12 +48,9 @@ class SettlementService {
     year: number,
     month: number,
   ): Promise<boolean> {
-    const snapshots = await projectSnapshotRepository.list(
-      [householdId, projectId],
-      [where('year', '==', year), where('month', '==', month)],
-    );
-    console.log('snapshots', snapshots);
-    return snapshots.length > 0;
+    const snapshotId = projectSnapshotRepository.buildId(year, month);
+    const snapshot = await projectSnapshotRepository.get([householdId, projectId, snapshotId]);
+    return snapshot !== null;
   }
 
   /**
@@ -202,7 +199,6 @@ class SettlementService {
     auth: AuthContext,
   ): Promise<{ success: boolean; errors: string[] }> {
     await householdService.assertWritePermission(householdId, auth.uid, auth.isGlobalAdmin);
-    console.log('settlements', settlements);
     // Check for existing snapshots
     const existingProjects = settlements.filter((s) => s.hasExistingSnapshot);
     if (existingProjects.length > 0) {
@@ -217,7 +213,8 @@ class SettlementService {
     // Create all snapshots
     try {
       await Promise.all(
-        settlements.map((settlement) =>
+        settlements.map((settlement) => {
+          const customId = projectSnapshotRepository.buildId(year, month);
           projectSnapshotRepository.create(
             [householdId, settlement.projectId],
             {
@@ -229,8 +226,10 @@ class SettlementService {
               closingBalance: settlement.closingBalance,
             },
             userEmail,
-          ),
-        ),
+            undefined,
+            customId,
+          );
+        }),
       );
       return { success: true, errors: [] };
     } catch (error) {
@@ -242,13 +241,17 @@ class SettlementService {
     }
   }
   /**
-   * Get unsettled items for the previous month
+   * Get unsettled items for a specific month
    */
-  async getUnsettledStats(householdId: string): Promise<UnsettledStats> {
+  async getUnsettledStats(
+    householdId: string,
+    targetYear?: number,
+    targetMonth?: number,
+  ): Promise<UnsettledStats> {
     const now = new Date();
     const prevMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-    const year = prevMonthDate.getFullYear();
-    const month = prevMonthDate.getMonth() + 1;
+    const year = targetYear ?? prevMonthDate.getFullYear();
+    const month = targetMonth ?? prevMonthDate.getMonth() + 1;
 
     const [projects, accounts, portfolios] = await Promise.all([
       projectService.getProjects(householdId),

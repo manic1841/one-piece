@@ -1,4 +1,4 @@
-import { QueryConstraint, limit, orderBy, where } from 'firebase/firestore';
+import { QueryConstraint, type Transaction, limit, orderBy, where } from 'firebase/firestore';
 
 import { calculateBalance } from '@/domains/project/calculator';
 import type {
@@ -14,6 +14,8 @@ import { projectTransactionService } from '@/services/projectTransactionService'
 import { transactionService } from '@/services/transactionService';
 
 import { type AuthContext, householdService } from './householdService';
+
+export type { ProjectWithSnapshot };
 
 /**
  * ProjectService
@@ -41,7 +43,7 @@ class ProjectService {
       q.push(where('category', '==', filters.category));
     }
 
-    const projects = await projectRepository.list([householdId]);
+    const projects = await projectRepository.list([householdId], [orderBy('order', 'asc')]);
     return projects;
   }
 
@@ -154,8 +156,9 @@ class ProjectService {
     snapshot: ProjectSnapshotCreate,
     userEmail: string,
     auth: AuthContext,
+    tx?: Transaction,
   ): Promise<string> {
-    await householdService.assertWritePermission(householdId, auth.uid, auth.isGlobalAdmin);
+    await householdService.assertWritePermission(householdId, auth.uid, auth.isGlobalAdmin, tx);
     // Business logic: Could validate snapshot data here
     // For example, ensure closing balance = opening balance + income - expense
     const calculatedClosingBalance = snapshot.openingBalance + snapshot.income - snapshot.expense;
@@ -167,11 +170,12 @@ class ProjectService {
     }
 
     const customId = projectSnapshotRepository.buildId(snapshot.year, snapshot.month);
+    console.log('custom ID', customId);
     return projectSnapshotRepository.create(
       [householdId, projectId],
       snapshot,
       userEmail,
-      undefined,
+      tx,
       customId,
     );
   }
@@ -206,14 +210,10 @@ class ProjectService {
     projectId: string,
     year: number,
     month: number,
+    tx?: Transaction,
   ): Promise<ProjectSnapshot | null> {
-    const snapshots = await projectSnapshotRepository.list(
-      [householdId, projectId],
-      [where('year', '==', year), where('month', '==', month)],
-    );
-
-    // Return the first snapshot (there should only be one per period)
-    return snapshots.length > 0 ? snapshots[0] : null;
+    const snapshotId = projectSnapshotRepository.buildId(year, month);
+    return projectSnapshotRepository.get([householdId, projectId, snapshotId], tx);
   }
 
   async getLatestSnapshot(householdId: string, projectId: string): Promise<ProjectSnapshot | null> {
@@ -234,12 +234,14 @@ class ProjectService {
     updates: Partial<ProjectSnapshotCreate>,
     userEmail: string,
     auth: AuthContext,
+    tx?: Transaction,
   ): Promise<void> {
-    await householdService.assertWritePermission(householdId, auth.uid, auth.isGlobalAdmin);
+    await householdService.assertWritePermission(householdId, auth.uid, auth.isGlobalAdmin, tx);
     return projectSnapshotRepository.update(
       [householdId, projectId, snapshotId],
       updates,
       userEmail,
+      tx,
     );
   }
 

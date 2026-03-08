@@ -12,14 +12,16 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { toPortfolioForm, toPortfolioFormData } from '@/domains/portfolio/mappers';
+import { type Portfolio, type PortfolioFormData } from '@/domains/portfolio/types';
 import { useAccounts } from '@/hooks/useAccounts';
-import { type PortfolioCreate } from '@/schemas';
 
 interface PortfolioFormProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (data: PortfolioCreate) => Promise<void>;
+  onSubmit: (data: PortfolioFormData) => Promise<void>;
   householdId: string;
+  portfolio?: Portfolio;
 }
 
 const PortfolioForm: React.FC<PortfolioFormProps> = ({
@@ -27,12 +29,29 @@ const PortfolioForm: React.FC<PortfolioFormProps> = ({
   onClose,
   onSubmit,
   householdId,
+  portfolio,
 }) => {
   const { accounts: availableAccounts } = useAccounts(householdId);
-  const [newName, setNewName] = useState('');
-  const [newDescription, setNewDescription] = useState('');
-  const [selectedAccountIds, setSelectedAccountIds] = useState<string[]>([]);
+  const initialData = toPortfolioForm(portfolio);
+
+  const [newName, setNewName] = useState(initialData.name);
+  const [newDescription, setNewDescription] = useState(initialData.description);
+  const [selectedAccountIds, setSelectedAccountIds] = useState<string[]>(initialData.accountIds);
+  const [isActive, setIsActive] = useState(initialData.isActive);
+  const [initialOrder, setInitialOrder] = useState(initialData.order);
   const [loading, setLoading] = useState(false);
+
+  // Reset form when portfolio changes or modal opens
+  React.useEffect(() => {
+    if (isOpen) {
+      const data = toPortfolioForm(portfolio);
+      setNewName(data.name);
+      setNewDescription(data.description || '');
+      setSelectedAccountIds(data.accountIds);
+      setIsActive(data.isActive);
+      setInitialOrder(data.order);
+    }
+  }, [isOpen, portfolio]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,12 +59,15 @@ const PortfolioForm: React.FC<PortfolioFormProps> = ({
 
     setLoading(true);
     try {
-      await onSubmit({
-        name: newName,
-        description: newDescription,
-        accountIds: selectedAccountIds,
-        isActive: true,
-      });
+      await onSubmit(
+        toPortfolioFormData(
+          newName,
+          newDescription || '',
+          selectedAccountIds,
+          isActive,
+          initialOrder,
+        ),
+      );
       setNewName('');
       setNewDescription('');
       setSelectedAccountIds([]);
@@ -67,7 +89,7 @@ const PortfolioForm: React.FC<PortfolioFormProps> = ({
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent aria-describedby={undefined}>
         <DialogHeader>
-          <DialogTitle>Create Portfolio</DialogTitle>
+          <DialogTitle>{portfolio ? 'Edit Portfolio' : 'Create Portfolio'}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4 py-4">
           <div className="space-y-2">
@@ -88,6 +110,16 @@ const PortfolioForm: React.FC<PortfolioFormProps> = ({
               onChange={(e) => setNewDescription(e.target.value)}
               placeholder="Describe the purpose of this portfolio"
             />
+          </div>
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id="active"
+              checked={isActive}
+              onCheckedChange={(checked) => setIsActive(!!checked)}
+            />
+            <Label htmlFor="active" className="text-sm font-normal cursor-pointer">
+              Active
+            </Label>
           </div>
           <div className="space-y-2">
             <Label>Linked Accounts</Label>
@@ -117,7 +149,7 @@ const PortfolioForm: React.FC<PortfolioFormProps> = ({
               Cancel
             </Button>
             <Button type="submit" disabled={loading}>
-              {loading ? 'Creating...' : 'Create'}
+              {loading ? 'Saving...' : portfolio ? 'Save Changes' : 'Create Portfolio'}
             </Button>
           </DialogFooter>
         </form>

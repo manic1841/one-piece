@@ -1,6 +1,6 @@
 import React from 'react';
 
-import { Pencil, Trash2 } from 'lucide-react';
+import { ArrowDown, ArrowUp, Pencil, Trash2 } from 'lucide-react';
 
 import { ProjectCard } from '@/components/projects/ProjectCard';
 import { Button } from '@/components/ui/button';
@@ -14,9 +14,22 @@ interface ProjectGridProps {
   onSelect: (project: Project) => void;
   onEdit: (record: Project) => void;
   onDelete: (record: Project) => void;
+  isReorderMode?: boolean;
+  onMoveUp?: (projectId: string) => void;
+  onMoveDown?: (projectId: string) => void;
 }
 export const ProjectGrid: React.FC<ProjectGridProps> = (props: ProjectGridProps) => {
-  const { householdId, projects, loading, onSelect, onEdit, onDelete } = props;
+  const {
+    householdId,
+    projects,
+    loading,
+    onSelect,
+    onEdit,
+    onDelete,
+    isReorderMode,
+    onMoveUp,
+    onMoveDown,
+  } = props;
 
   // Loading state
   if (loading) {
@@ -51,30 +64,65 @@ export const ProjectGrid: React.FC<ProjectGridProps> = (props: ProjectGridProps)
             <ProjectCard
               householdId={householdId}
               project={project}
-              onClick={() => onSelect(project)}
+              onClick={() => !isReorderMode && onSelect(project)}
             />
             {/* Action Buttons */}
             <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-              <Button
-                variant="secondary"
-                size="icon"
-                className="h-8 w-8"
-                onClick={() => {
-                  onEdit(project);
-                }}
-                title="Edit project"
-              >
-                <Pencil size={14} />
-              </Button>
-              <Button
-                variant="destructive"
-                size="icon"
-                className="h-8 w-8"
-                onClick={() => onDelete(project)}
-                title="Delete project"
-              >
-                <Trash2 size={14} />
-              </Button>
+              {isReorderMode ? (
+                <>
+                  <Button
+                    variant="secondary"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onMoveUp?.(project.id);
+                    }}
+                    title="Move Up"
+                  >
+                    <ArrowUp size={14} />
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onMoveDown?.(project.id);
+                    }}
+                    title="Move Down"
+                  >
+                    <ArrowDown size={14} />
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button
+                    variant="secondary"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onEdit(project);
+                    }}
+                    title="Edit project"
+                  >
+                    <Pencil size={14} />
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onDelete(project);
+                    }}
+                    title="Delete project"
+                  >
+                    <Trash2 size={14} />
+                  </Button>
+                </>
+              )}
             </div>
           </div>
         ))}

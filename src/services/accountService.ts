@@ -30,7 +30,10 @@ class AccountService {
 
   // Get all accounts for a household
   async getAccounts(householdId: string): Promise<Account[]> {
-    const accounts = await accountRepository.list([householdId], [orderBy('createdAt', 'desc')]);
+    const accounts = await accountRepository.list(
+      [householdId],
+      [orderBy('order', 'asc'), orderBy('createdAt', 'desc')],
+    );
     return accounts;
   }
 
@@ -228,6 +231,20 @@ class AccountService {
       this.recordSnapshot(householdId, s.accountId, s.data, userEmail, auth),
     );
     await Promise.all(promises);
+  }
+
+  // Reorder accounts
+  async reorderAccounts(
+    householdId: string,
+    accountOrders: Array<{ id: string; order: number }>,
+    userEmail: string,
+    auth: AuthContext,
+  ): Promise<void> {
+    await householdService.assertWritePermission(householdId, auth.uid, auth.isGlobalAdmin);
+    const updatePromises = accountOrders.map(({ id, order }) =>
+      accountRepository.update([householdId, id], { order }, userEmail),
+    );
+    await Promise.all(updatePromises);
   }
 }
 

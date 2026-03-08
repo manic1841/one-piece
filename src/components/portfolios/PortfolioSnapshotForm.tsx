@@ -8,7 +8,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { type Portfolio } from '@/schemas';
+import { type Portfolio, type PortfolioSnapshotFormData } from '@/domains/portfolio/types';
 
 import { usePortfolioSnapshotForm } from './hooks/usePortfolioSnapshotForm';
 import { AccountSnapshotList } from './snapshot/AccountSnapshotList';
@@ -19,11 +19,7 @@ import { PeriodSelection } from './snapshot/PeriodSelection';
 interface PortfolioSnapshotFormProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (data: {
-    year: number;
-    month: number;
-    cashFlow: { deposits: number; withdrawals: number };
-  }) => Promise<void>;
+  onSubmit: (data: PortfolioSnapshotFormData) => Promise<void>;
   portfolio: Portfolio;
   householdId: string;
 }

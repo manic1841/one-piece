@@ -1,3 +1,5 @@
+import { type Transaction, runTransaction } from 'firebase/firestore';
+
 import { calculateBalanceSheet } from '@/domains/finance/calculators/balanceSheetCalculator';
 import { calculateCashFlowStatement } from '@/domains/finance/calculators/cashFlowCalculator';
 import { reconcileReports } from '@/domains/finance/calculators/financialReportCalculator';
@@ -12,11 +14,18 @@ import {
   aggregateLatestBalanceSheet,
 } from '@/domains/finance/logic/reportAggregation';
 import { EquitySubCategory, type FinancialReport, ReportType } from '@/domains/finance/types';
+import { db } from '@/firebase';
 import { reportRepository } from '@/repositories/reportRepository';
-import { type BalanceSheetData, type CashFlowData, type IncomeStatementData } from '@/schemas';
+import {
+  type BalanceSheetData,
+  type CashFlowData,
+  type IncomeStatementData,
+  type Project,
+} from '@/schemas';
 import { accountService } from '@/services/accountService';
 import { plannedIncomeService } from '@/services/plannedIncomeService';
-import { projectService } from '@/services/projectService';
+import { type ProjectWithSnapshot, projectService } from '@/services/projectService';
+import { settlementService } from '@/services/settlementService';
 import { logger } from '@/utils/logger';
 
 import { type AuthContext, householdService } from './householdService';
@@ -37,6 +46,17 @@ class FinancialReportService {
     reconciliation: { reconciled: boolean; difference: number };
   }> {
     logger.info('generateFinancialReports.start', 'FinancialReportService');
+
+    // 0. Validate Snapshots
+    const unsettled = await settlementService.getUnsettledStats(householdId, year, month);
+    if (unsettled.totalUnsettled > 0) {
+      const missing = [
+        ...unsettled.unsettledProjects.map((p) => `專案 [${p.name}]`),
+        ...unsettled.unsettledAccounts.map((a) => `帳戶 [${a.name}]`),
+        ...unsettled.unsettledPortfolios.map((p) => `投資組合 [${p.name}]`),
+      ].join('、');
+      throw new Error(`無法產生報表：尚有項目未建立 ${year}/${month} 快照 (${missing})`);
+    }
     // 1. Fetch Data
     const startDate = new Date(year, month - 1, 1);
     const endDate = new Date(year, month, 0, 23, 59, 59, 999);
@@ -150,10 +170,44 @@ class FinancialReportService {
     email: string,
     auth: AuthContext,
   ): Promise<void> {
-    await householdService.assertWritePermission(householdId, auth.uid, auth.isGlobalAdmin);
-    for (const report of reports) {
-      await reportRepository.create([householdId], report, email, undefined, report.id);
+    // 1. Fetch data needed for closing OUTSIDE the transaction because it uses queries
+    // queries (like list/getProjects) are not supported inside transactions
+    const incomeStatement = reports.find((r) => r.type === ReportType.INCOME_STATEMENT);
+    const incomeStatementData = incomeStatement?.data as IncomeStatementData;
+    let closingData = null;
+
+    if (incomeStatement && 'netIncome' in incomeStatementData) {
+      closingData = await this.getClosingData(
+        householdId,
+        incomeStatement.year,
+        incomeStatement.month,
+      );
     }
+
+    await runTransaction(db, async (tx) => {
+      // 2. Permission check (READ)
+      await householdService.assertWritePermission(householdId, auth.uid, auth.isGlobalAdmin, tx);
+
+      // 3. Perform closing writes (READs then WRITEs)
+      if (closingData && incomeStatement) {
+        await this.executeClosing(
+          householdId,
+          incomeStatement.year,
+          incomeStatement.month,
+          email,
+          auth,
+          incomeStatementData.netIncome,
+          closingData.dividends,
+          closingData.retainedEarningsProject,
+          tx,
+        );
+      }
+
+      // 4. Save reports (WRITEs)
+      for (const report of reports) {
+        await reportRepository.create([householdId], report, email, tx, report.id);
+      }
+    });
   }
 
   /**
@@ -277,9 +331,6 @@ class FinancialReportService {
     };
   }
 
-  /**
-   * Close the month: Calculate net income, dividends, and update Retained Earnings snapshot.
-   */
   async closeMonth(
     householdId: string,
     year: number,
@@ -287,55 +338,101 @@ class FinancialReportService {
     userId: string,
     userEmail: string,
     auth: AuthContext,
+    providedNetIncome?: number,
+    tx?: Transaction,
   ): Promise<void> {
-    await householdService.assertWritePermission(householdId, auth.uid, auth.isGlobalAdmin);
-    logger.info(`closeMonth.start: ${year}-${month}`, 'FinancialReportService');
+    // This is the public API. We must ensure reads happen before writes.
+    // However, the queries (getProjects) cannot be part of the transaction easily.
 
-    // 1. Get Net Income and Dividends
-    const reports = await this.generateFinancialReports(householdId, year, month, userId);
-
-    if (
-      reports.incomeStatement.type !== ReportType.INCOME_STATEMENT ||
-      !('netIncome' in reports.incomeStatement.data)
-    ) {
-      throw new Error('Invalid income statement data');
+    let netIncome = providedNetIncome;
+    if (netIncome === undefined) {
+      const reports = await this.generateFinancialReports(householdId, year, month, userId);
+      if (
+        reports.incomeStatement.type !== ReportType.INCOME_STATEMENT ||
+        !('netIncome' in reports.incomeStatement.data)
+      ) {
+        throw new Error('Invalid income statement data');
+      }
+      netIncome = reports.incomeStatement.data.netIncome;
     }
-    const netIncome = reports.incomeStatement.data.netIncome;
 
+    const data = await this.getClosingData(householdId, year, month);
+
+    const execute = async (t: Transaction) => {
+      await householdService.assertWritePermission(householdId, auth.uid, auth.isGlobalAdmin, t);
+      await this.executeClosing(
+        householdId,
+        year,
+        month,
+        userEmail,
+        auth,
+        netIncome!,
+        data.dividends,
+        data.retainedEarningsProject,
+        t,
+      );
+    };
+
+    if (tx) {
+      await execute(tx);
+    } else {
+      await runTransaction(db, (t) => execute(t));
+    }
+  }
+
+  /**
+   * Internal helper to fetch data for closing (contains queries, call outside tx)
+   */
+  private async getClosingData(householdId: string, year: number, month: number) {
     const allProjects = await projectService.getProjects(householdId);
     const projectsWithSnapshots = await Promise.all(
-      allProjects.map((p) => projectService.getProjectWithSnapshot(householdId, p.id, year, month)),
+      allProjects.map((p: Project) =>
+        projectService.getProjectWithSnapshot(householdId, p.id, year, month),
+      ),
     );
 
     const dividends = calculateDividends(projectsWithSnapshots);
-
-    logger.debug(
-      `Closing values - NetIncome: ${netIncome}, Dividends: ${dividends}`,
-      'FinancialReportService',
-    );
-
-    // 2. Find Retained Earnings Project
     const retainedEarningsProject = projectsWithSnapshots.find(
       (p) => p.accounting?.balanceSheet?.subcategory === EquitySubCategory.RETAINED_EARNINGS,
     );
 
     if (!retainedEarningsProject) {
-      logger.error('Retained Earnings project not found for household', 'FinancialReportService');
       throw new Error('Retained Earnings project not found');
     }
 
-    // 3. Get Beginning Balance
+    return { dividends, retainedEarningsProject };
+  }
+
+  /**
+   * Internal helper to execute closing writes (READs then WRITEs)
+   */
+  private async executeClosing(
+    householdId: string,
+    year: number,
+    month: number,
+    userEmail: string,
+    auth: AuthContext,
+    netIncome: number,
+    dividends: number,
+    retainedEarningsProject: ProjectWithSnapshot,
+    tx: Transaction,
+  ) {
+    logger.info(`executeClosing: ${year}-${month}`, 'FinancialReportService');
+
     const prevYear = month === 1 ? year - 1 : year;
     const prevMonth = month === 1 ? 12 : month - 1;
+
+    // READ phase
     const prevSnapshot = await projectService.getSnapshotForPeriod(
       householdId,
       retainedEarningsProject.id,
       prevYear,
       prevMonth,
+      tx,
     );
     const openingBalance = prevSnapshot?.closingBalance || 0;
 
-    // 4. Update Snapshot
+    // WRITE phase
     const closingBalance = calculateClosingBalance(openingBalance, netIncome, dividends);
     const snapshotData = {
       year,
@@ -354,6 +451,7 @@ class FinancialReportService {
         snapshotData,
         userEmail,
         auth,
+        tx,
       );
     } else {
       await projectService.recordSnapshot(
@@ -362,10 +460,9 @@ class FinancialReportService {
         snapshotData,
         userEmail,
         auth,
+        tx,
       );
     }
-
-    logger.info(`closeMonth.end: ${year}-${month} success`, 'FinancialReportService');
   }
 }
 

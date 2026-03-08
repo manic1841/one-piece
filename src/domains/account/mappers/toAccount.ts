@@ -11,5 +11,6 @@ export const toAccount = (data: AccountFormData): AccountCreate => {
     name: data.name,
     category: nullOrData(data.category) as AccountCategory,
     currency: data.currency as CurrencyType,
+    order: data.order ?? 0,
   };
 };

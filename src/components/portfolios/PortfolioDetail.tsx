@@ -4,6 +4,11 @@ import { ArrowLeft, Plus } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 
 import { Button } from '@/components/ui/button';
+import { fromPortfolioSnapshotForm, toPortfolioDetailViewModel } from '@/domains/portfolio/mappers';
+import {
+  type PortfolioDetailViewModel,
+  type PortfolioSnapshotFormData,
+} from '@/domains/portfolio/types';
 import { usePortfolio } from '@/hooks/usePortfolio';
 import { usePortfolioCmds } from '@/hooks/usePortfolioCmds';
 
@@ -24,14 +29,10 @@ const PortfolioDetail: React.FC<PortfolioDetailProps> = ({ householdId, userEmai
 
   const [isSnapshotOpen, setIsSnapshotOpen] = useState(false);
 
-  const handleCreateSnapshot = async (data: {
-    year: number;
-    month: number;
-    cashFlow: { deposits: number; withdrawals: number };
-  }) => {
+  const handleCreateSnapshot = async (data: PortfolioSnapshotFormData) => {
     if (!id) return;
     try {
-      await createSnapshot(id, data.year, data.month, data.cashFlow);
+      await createSnapshot(id, data.year, data.month, fromPortfolioSnapshotForm(data));
       reload(); // Reload to show new snapshot
     } catch (error) {
       console.error('Failed to create snapshot:', error);
@@ -42,7 +43,7 @@ const PortfolioDetail: React.FC<PortfolioDetailProps> = ({ householdId, userEmai
   if (loading) return <div>Loading...</div>;
   if (!portfolio) return <div>Portfolio not found</div>;
 
-  const latestSnapshot = snapshots.length > 0 ? snapshots[0] : null;
+  const viewModel: PortfolioDetailViewModel = toPortfolioDetailViewModel(portfolio, snapshots);
 
   return (
     <div className="space-y-6">
@@ -51,8 +52,8 @@ const PortfolioDetail: React.FC<PortfolioDetailProps> = ({ householdId, userEmai
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <div>
-          <h2 className="text-2xl font-bold tracking-tight">{portfolio.name}</h2>
-          <p className="text-sm text-muted-foreground">{portfolio.description}</p>
+          <h2 className="text-2xl font-bold tracking-tight">{viewModel.name}</h2>
+          <p className="text-sm text-muted-foreground">{viewModel.description}</p>
         </div>
         <div className="ml-auto">
           <Button onClick={() => setIsSnapshotOpen(true)}>
@@ -62,11 +63,11 @@ const PortfolioDetail: React.FC<PortfolioDetailProps> = ({ householdId, userEmai
       </div>
 
       {/* Performance Summary Cards */}
-      <PortfolioPerformanceCards latestSnapshot={latestSnapshot} />
+      <PortfolioPerformanceCards latestSnapshot={viewModel.latestSnapshot} />
 
       {/* Snapshots History Table */}
       <PortfolioHistoryTable
-        snapshots={snapshots}
+        snapshots={viewModel.history}
         onDelete={async (snapshotId) => {
           if (!id) return;
           await deleteSnapshot(id, snapshotId);

@@ -1,4 +1,4 @@
-import { Calendar, Plus } from 'lucide-react';
+import { Calendar, ListOrdered, Plus } from 'lucide-react';
 
 // import ProjectBalanceChart from '@/components/projects/ProjectBalanceChart';
 import ProjectDetailView from '@/components/projects/ProjectDetailView';
@@ -27,9 +27,14 @@ const Projects: React.FC = () => {
     isSettlementDialogOpen,
     openSettleDialog,
     closeSettleDialog,
+    unselectProject,
     selectedProject,
     selectProject,
-    unselectProject,
+    isReorderMode,
+    toggleReorderMode,
+    moveProjectUp,
+    moveProjectDown,
+    saveOrder,
   } = useProjectPage(userProfile?.householdId, userProfile?.email);
 
   if (loading) {
@@ -62,14 +67,33 @@ const Projects: React.FC = () => {
           <p className="text-muted-foreground mt-2">View and manage your project balances</p>
         </div>
         <div className="flex gap-3">
-          <Button onClick={openSettleDialog} variant="outline" className="gap-2">
-            <Calendar size={16} />
-            Settlement
-          </Button>
-          <Button onClick={openForm} className="gap-2">
-            <Plus size={16} />
-            New Project
-          </Button>
+          {isReorderMode ? (
+            <Button onClick={saveOrder} variant="default" className="gap-2">
+              Save Order
+            </Button>
+          ) : (
+            <Button onClick={toggleReorderMode} variant="outline" className="gap-2">
+              <ListOrdered size={20} />
+              Reorder
+            </Button>
+          )}
+          {!isReorderMode && (
+            <>
+              <Button onClick={openSettleDialog} variant="outline" className="gap-2">
+                <Calendar size={16} />
+                Settlement
+              </Button>
+              <Button onClick={openForm} className="gap-2">
+                <Plus size={16} />
+                New Project
+              </Button>
+            </>
+          )}
+          {isReorderMode && (
+            <Button onClick={toggleReorderMode} variant="ghost">
+              Cancel
+            </Button>
+          )}
         </div>
       </div>
 
@@ -93,6 +117,9 @@ const Projects: React.FC = () => {
         onSelect={selectProject}
         onEdit={editClick}
         onDelete={deleteClick}
+        isReorderMode={isReorderMode}
+        onMoveUp={moveProjectUp}
+        onMoveDown={moveProjectDown}
       />
 
       {/* Create Project Modal */}

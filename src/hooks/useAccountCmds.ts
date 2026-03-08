@@ -75,6 +75,15 @@ export const useAccountCmds = (householdId?: string, email?: string) => {
     [householdId],
   );
 
+  // reorder accounts
+  const reorderAccounts = useCallback(
+    async (accountOrders: Array<{ id: string; order: number }>) => {
+      if (!householdId || !email) return;
+      await accountService.reorderAccounts(householdId, accountOrders, email, auth);
+    },
+    [householdId, email, auth],
+  );
+
   return {
     createAccount,
     updateAccount,
@@ -84,5 +93,6 @@ export const useAccountCmds = (householdId?: string, email?: string) => {
     deleteSnapshot,
     getTotalBalance,
     getPreviousSnapshot,
+    reorderAccounts,
   };
 };

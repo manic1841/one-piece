@@ -17,8 +17,14 @@ export type AccountArgs = {
 
 export const useAccountPage = (householdId?: string, userEmail?: string) => {
   const { accounts, loading, error, reload } = useAccounts(householdId);
-  const { createAccount, updateAccount, deleteAccount, recordSnapshot, getTotalBalance } =
-    useAccountCmds(householdId, userEmail);
+  const {
+    createAccount,
+    updateAccount,
+    deleteAccount,
+    recordSnapshot,
+    getTotalBalance,
+    reorderAccounts,
+  } = useAccountCmds(householdId, userEmail);
   const [isAccountFormOpen, setIsAccountFormOpen] = useState(false);
   const [editing, setEditing] = useState<Account | undefined>(undefined);
 
@@ -30,6 +36,12 @@ export const useAccountPage = (householdId?: string, userEmail?: string) => {
   const [selected, setSelected] = useState<AccountWithSnapshot | undefined>(undefined);
   const [balance, setBalance] = useState<number>(0);
   const [isBatchSnapshotOpen, setIsBatchSnapshotOpen] = useState(false);
+  const [isReorderMode, setIsReorderMode] = useState(false);
+  const [localAccounts, setLocalAccounts] = useState<AccountWithSnapshot[]>([]);
+
+  useEffect(() => {
+    setLocalAccounts(accounts);
+  }, [accounts]);
 
   useEffect(() => {
     const fetchBalance = async () => {
@@ -95,10 +107,41 @@ export const useAccountPage = (householdId?: string, userEmail?: string) => {
     reload();
   };
 
+  const moveAccountUp = (accountId: string) => {
+    const index = localAccounts.findIndex((a) => a.id === accountId);
+    if (index <= 0) return;
+
+    const newAccounts = [...localAccounts];
+    const temp = newAccounts[index];
+    newAccounts[index] = newAccounts[index - 1];
+    newAccounts[index - 1] = temp;
+    setLocalAccounts(newAccounts);
+  };
+
+  const moveAccountDown = (accountId: string) => {
+    const index = localAccounts.findIndex((a) => a.id === accountId);
+    if (index < 0 || index >= localAccounts.length - 1) return;
+
+    const newAccounts = [...localAccounts];
+    const temp = newAccounts[index];
+    newAccounts[index] = newAccounts[index + 1];
+    newAccounts[index + 1] = temp;
+    setLocalAccounts(newAccounts);
+  };
+
+  const saveOrder = async () => {
+    const orders = localAccounts.map((account, index) => ({
+      id: account.id,
+      order: index,
+    }));
+    await reorderAccounts(orders);
+    setIsReorderMode(false);
+    reload();
+  };
+
   return {
     loading,
     error,
-    accounts,
     editing,
     create,
     update,
@@ -127,5 +170,16 @@ export const useAccountPage = (householdId?: string, userEmail?: string) => {
       };
       fetchBalance();
     },
+    isReorderMode,
+    toggleReorderMode: () => {
+      if (isReorderMode) {
+        setLocalAccounts(accounts); // Reset if canceling
+      }
+      setIsReorderMode(!isReorderMode);
+    },
+    moveAccountUp,
+    moveAccountDown,
+    saveOrder,
+    accounts: localAccounts,
   };
 };

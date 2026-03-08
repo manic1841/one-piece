@@ -4,12 +4,7 @@ import {
   CashFlowCategory,
   IncomeStatementCategory,
 } from '@/domains/finance/types/categories';
-import {
-  ProjectCategory,
-  ProjectExpenseBehavior,
-  type ProjectFormData,
-  ProjectIncomeBehavior,
-} from '@/domains/project/types';
+import { ProjectCategory, type ProjectFormData } from '@/domains/project/types';
 import type { ProjectCreate } from '@/schemas';
 
 function mapAccountingItem<T>(

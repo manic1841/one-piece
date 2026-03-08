@@ -11,6 +11,7 @@ export const toAccountForm = (data?: Account): AccountFormData => {
       name: '',
       category: AccountCategory.BANK,
       currency: CurrencyType.TWD,
+      order: 0,
     };
   }
 
@@ -18,5 +19,6 @@ export const toAccountForm = (data?: Account): AccountFormData => {
     name: data.name,
     category: data.category || '',
     currency: data.currency || '',
+    order: data.order ?? 0,
   };
 };

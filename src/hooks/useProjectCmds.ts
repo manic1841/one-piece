@@ -89,5 +89,12 @@ export const useProjectCmds = (
     getProjectBalance,
     getSnapshots,
     deleteSnapshot,
+    reorderProjects: useCallback(
+      async (projectOrders: Array<{ id: string; order: number }>) => {
+        if (!householdId || !email) return;
+        await projectService.reorderProjects(householdId, projectOrders, email, auth);
+      },
+      [householdId, email, auth],
+    ),
   };
 };

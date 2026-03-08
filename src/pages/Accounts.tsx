@@ -1,4 +1,4 @@
-import { BarChart3, Plus } from 'lucide-react';
+import { BarChart3, ListOrdered, Plus } from 'lucide-react';
 
 import AccountDetailView from '@/components/accounts/AccountDetailView';
 import AccountForm from '@/components/accounts/AccountForm';
@@ -39,6 +39,11 @@ const Accounts: React.FC = () => {
     openBatchSnapshot,
     closeBatchSnapshot,
     onBatchSuccess,
+    isReorderMode,
+    toggleReorderMode,
+    moveAccountUp,
+    moveAccountDown,
+    saveOrder,
   } = useAccountPage(userProfile?.householdId, userProfile?.email);
 
   if (loading) {
@@ -80,14 +85,33 @@ const Accounts: React.FC = () => {
           <p className="text-muted-foreground mt-2">Manage your accounts and track asset trends</p>
         </div>
         <div className="flex gap-2">
-          <Button onClick={openBatchSnapshot} variant="outline" className="gap-2">
-            <BarChart3 size={20} />
-            Settlement (結算)
-          </Button>
-          <Button onClick={openAccountForm} className="gap-2">
-            <Plus size={20} />
-            Add Account
-          </Button>
+          {isReorderMode ? (
+            <Button onClick={saveOrder} variant="default" className="gap-2">
+              Save Order
+            </Button>
+          ) : (
+            <Button onClick={toggleReorderMode} variant="outline" className="gap-2">
+              <ListOrdered size={20} />
+              Reorder
+            </Button>
+          )}
+          {!isReorderMode && (
+            <>
+              <Button onClick={openBatchSnapshot} variant="outline" className="gap-2">
+                <BarChart3 size={20} />
+                Settlement (結算)
+              </Button>
+              <Button onClick={openAccountForm} className="gap-2">
+                <Plus size={20} />
+                Add Account
+              </Button>
+            </>
+          )}
+          {isReorderMode && (
+            <Button onClick={toggleReorderMode} variant="ghost">
+              Cancel
+            </Button>
+          )}
         </div>
       </div>
 
@@ -112,6 +136,9 @@ const Accounts: React.FC = () => {
         onDelete={deleteClick}
         onRecordSnapshot={openSnapshotForm}
         onSelectAccount={select}
+        isReorderMode={isReorderMode}
+        onMoveUp={moveAccountUp}
+        onMoveDown={moveAccountDown}
       />
 
       {/* Account Form Modal */}

@@ -43,6 +43,7 @@ export const PortfolioCreateSchema = z.object({
   description: z.string().optional(),
   accountIds: z.array(z.string()),
   isActive: z.boolean().default(true),
+  order: z.number().default(0),
 });
 
 export type PortfolioCreate = z.infer<typeof PortfolioCreateSchema>;
