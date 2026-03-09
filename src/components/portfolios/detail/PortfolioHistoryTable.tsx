@@ -56,44 +56,49 @@ export const PortfolioHistoryTable: React.FC<PortfolioHistoryTableProps> = ({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {snapshots.map((snapshot) => (
-              <TableRow key={snapshot.id}>
-                <TableCell>{formatYearMonth(snapshot.year, snapshot.month)}</TableCell>
-                <TableCell className="text-right font-medium">
-                  {formatCurrency(snapshot.totalValue)}
-                </TableCell>
-                <TableCell
-                  className={`text-right ${snapshot.performance.gain >= 0 ? 'text-green-600' : 'text-red-600'}`}
-                >
-                  {formatCurrency(snapshot.performance.gain)}
-                </TableCell>
-                <TableCell
-                  className={`text-right ${snapshot.performance.returnRate >= 0 ? 'text-green-600' : 'text-red-600'}`}
-                >
-                  {formatPercentage(snapshot.performance.returnRate, 2)}
-                </TableCell>
-                <TableCell
-                  className={`text-right ${snapshot.performance.cumulativeReturnRate >= 0 ? 'text-green-600' : 'text-red-600'}`}
-                >
-                  {formatPercentage(snapshot.performance.cumulativeReturnRate, 2)}
-                </TableCell>
-                <TableCell className="text-right">
-                  {formatCurrency(snapshot.performance.netCashFlow)}
-                </TableCell>
-                <TableCell className="text-right">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                    onClick={() =>
-                      handleDelete(snapshot.id, formatYearMonth(snapshot.year, snapshot.month))
-                    }
+            {[...snapshots]
+              .sort((a, b) => {
+                if (a.year !== b.year) return b.year - a.year;
+                return b.month - a.month;
+              })
+              .map((snapshot) => (
+                <TableRow key={snapshot.id}>
+                  <TableCell>{formatYearMonth(snapshot.year, snapshot.month)}</TableCell>
+                  <TableCell className="text-right font-medium">
+                    {formatCurrency(snapshot.totalValue)}
+                  </TableCell>
+                  <TableCell
+                    className={`text-right ${snapshot.performance.gain >= 0 ? 'text-green-600' : 'text-red-600'}`}
                   >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </TableCell>
-              </TableRow>
-            ))}
+                    {formatCurrency(snapshot.performance.gain)}
+                  </TableCell>
+                  <TableCell
+                    className={`text-right ${snapshot.performance.returnRate >= 0 ? 'text-green-600' : 'text-red-600'}`}
+                  >
+                    {formatPercentage(snapshot.performance.returnRate, 2)}
+                  </TableCell>
+                  <TableCell
+                    className={`text-right ${snapshot.performance.cumulativeReturnRate >= 0 ? 'text-green-600' : 'text-red-600'}`}
+                  >
+                    {formatPercentage(snapshot.performance.cumulativeReturnRate, 2)}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    {formatCurrency(snapshot.performance.netCashFlow)}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                      onClick={() =>
+                        handleDelete(snapshot.id, formatYearMonth(snapshot.year, snapshot.month))
+                      }
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
             {snapshots.length === 0 && (
               <TableRow>
                 <TableCell colSpan={7} className="text-center text-muted-foreground">

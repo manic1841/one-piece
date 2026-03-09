@@ -1,33 +1,31 @@
-import { type Transaction, runTransaction } from 'firebase/firestore';
+import { runTransaction } from 'firebase/firestore';
 
 import { calculateBalanceSheet } from '@/domains/finance/calculators/balanceSheetCalculator';
 import { calculateCashFlowStatement } from '@/domains/finance/calculators/cashFlowCalculator';
 import { reconcileReports } from '@/domains/finance/calculators/financialReportCalculator';
 import { calculateIncomeStatement } from '@/domains/finance/calculators/incomeStatementCalculator';
 import {
-  calculateClosingBalance,
-  calculateDividends,
-} from '@/domains/finance/logic/financialLogic';
-import {
   aggregateCashFlows,
   aggregateIncomeStatements,
   aggregateLatestBalanceSheet,
 } from '@/domains/finance/logic/reportAggregation';
-import { EquitySubCategory, type FinancialReport, ReportType } from '@/domains/finance/types';
+import { type FinancialReport, ReportType } from '@/domains/finance/types';
 import { db } from '@/firebase';
 import { reportRepository } from '@/repositories/reportRepository';
 import {
+  type Account,
   type BalanceSheetData,
   type CashFlowData,
   type IncomeStatementData,
-  type Project,
 } from '@/schemas';
 import { accountService } from '@/services/accountService';
 import { plannedIncomeService } from '@/services/plannedIncomeService';
-import { type ProjectWithSnapshot, projectService } from '@/services/projectService';
+import { portfolioService } from '@/services/portfolioService';
+import { projectService } from '@/services/projectService';
 import { settlementService } from '@/services/settlementService';
 import { logger } from '@/utils/logger';
 
+import { financialClosingService } from './financialClosingService';
 import { type AuthContext, householdService } from './householdService';
 
 class FinancialReportService {
@@ -48,51 +46,13 @@ class FinancialReportService {
     logger.info('generateFinancialReports.start', 'FinancialReportService');
 
     // 0. Validate Snapshots
-    const unsettled = await settlementService.getUnsettledStats(householdId, year, month);
-    if (unsettled.totalUnsettled > 0) {
-      const missing = [
-        ...unsettled.unsettledProjects.map((p) => `專案 [${p.name}]`),
-        ...unsettled.unsettledAccounts.map((a) => `帳戶 [${a.name}]`),
-        ...unsettled.unsettledPortfolios.map((p) => `投資組合 [${p.name}]`),
-      ].join('、');
-      throw new Error(`無法產生報表：尚有項目未建立 ${year}/${month} 快照 (${missing})`);
-    }
+    await this.validateSnapshots(householdId, year, month);
+
     // 1. Fetch Data
-    const startDate = new Date(year, month - 1, 1);
-    const endDate = new Date(year, month, 0, 23, 59, 59, 999);
+    const { projectsWithSnapshots, plannedIncomes, accountSnapshots, stockGainLossData, accounts } =
+      await this.fetchDataForReports(householdId, year, month);
 
-    const [allProjects, plannedIncomes, accounts] = await Promise.all([
-      projectService.getProjects(householdId),
-      plannedIncomeService.getPlannedIncomes(householdId, {
-        startDate: startDate,
-        endDate: endDate,
-      }),
-      accountService.getAccounts(householdId),
-    ]);
-
-    // Fetch Projects with Snapshots for the current month
-    const projectsWithSnapshots = await Promise.all(
-      allProjects.map((p) => projectService.getProjectWithSnapshot(householdId, p.id, year, month)),
-    );
-
-    // Get account snapshots for the current month
-    const accountSnapshots = await accountService.getAccountWithSnapshots(
-      householdId,
-      accounts.map((a) => a.id),
-      year,
-      month,
-    );
-
-    // For Cash Flow, we need beginning balance.
-    const prevYear = month === 1 ? year - 1 : year;
-    const prevMonth = month === 1 ? 12 : month - 1;
-    const prevAccountSnapshots = await accountService.getAccountSnapshots(
-      householdId,
-      accounts.map((a) => a.id),
-      prevYear,
-      prevMonth,
-    );
-    const beginningCash = prevAccountSnapshots.reduce((sum, acc) => sum + acc.amount, 0);
+    const beginningCash = await this.calculateBeginningCash(householdId, year, month, accounts);
 
     // 2. Calculate Reports
     const incomeStatementData = calculateIncomeStatement(plannedIncomes, projectsWithSnapshots);
@@ -101,6 +61,7 @@ class FinancialReportService {
       accountSnapshots,
       projectsWithSnapshots,
       incomeStatementData.netIncome,
+      stockGainLossData.totalGainLoss,
     );
 
     const cashFlowData = calculateCashFlowStatement(
@@ -113,7 +74,115 @@ class FinancialReportService {
     const reconciliation = reconcileReports(balanceSheetData, cashFlowData);
 
     // 4. Construct Report Objects
+    const reports = this.buildReportObjects(
+      year,
+      month,
+      userId,
+      incomeStatementData,
+      balanceSheetData,
+      cashFlowData,
+      reconciliation,
+    );
+
+    logger.info('generateFinancialReports.end', 'FinancialReportService');
+
+    return {
+      ...reports,
+      reconciliation,
+    };
+  }
+
+  private async validateSnapshots(householdId: string, year: number, month: number) {
+    const unsettled = await settlementService.getUnsettledStats(householdId, year, month);
+    if (unsettled.totalUnsettled > 0) {
+      const missing = [
+        ...unsettled.unsettledProjects.map((p) => `專案 [${p.name}]`),
+        ...unsettled.unsettledAccounts.map((a) => `帳戶 [${a.name}]`),
+        ...unsettled.unsettledPortfolios.map((p) => `投資組合 [${p.name}]`),
+      ].join('、');
+      throw new Error(`無法產生報表：尚有項目未建立 ${year}/${month} 快照 (${missing})`);
+    }
+  }
+
+  private async fetchDataForReports(householdId: string, year: number, month: number) {
+    const startDate = new Date(year, month - 1, 1);
+    const endDate = new Date(year, month, 0, 23, 59, 59, 999);
+
+    const [allProjects, plannedIncomes, accounts] = await Promise.all([
+      projectService.getProjects(householdId),
+      plannedIncomeService.getPlannedIncomes(householdId, { startDate, endDate }),
+      accountService.getAccounts(householdId),
+    ]);
+
+    const projectsWithSnapshots = await Promise.all(
+      allProjects.map((p) => projectService.getProjectWithSnapshot(householdId, p.id, year, month)),
+    );
+
+    const accountSnapshots = await accountService.getAccountWithSnapshots(
+      householdId,
+      accounts.map((a) => a.id),
+      year,
+      month,
+    );
+
+    const stockGainLossData = await portfolioService.getStockGainLoss(householdId, year, month);
+
+    return { projectsWithSnapshots, plannedIncomes, accountSnapshots, stockGainLossData, accounts };
+  }
+
+  private async calculateBeginningCash(
+    householdId: string,
+    year: number,
+    month: number,
+    accounts: Account[],
+  ): Promise<number> {
+    const prevYear = month === 1 ? year - 1 : year;
+    const prevMonth = month === 1 ? 12 : month - 1;
+
+    const prevReport = await this.getFinancialReport(
+      householdId,
+      ReportType.CASH_FLOW,
+      prevYear,
+      prevMonth,
+    );
+
+    const prevReportData = prevReport?.data as CashFlowData | undefined;
+
+    if (prevReportData && 'endingBalance' in prevReportData) {
+      logger.info(
+        `Beginning cash for ${year}/${month} from prev report: ${prevReportData.endingBalance}`,
+        'FinancialReportService',
+      );
+      return prevReportData.endingBalance;
+    }
+
+    const prevAccountSnapshots = await accountService.getAccountSnapshots(
+      householdId,
+      accounts.map((a) => a.id),
+      prevYear,
+      prevMonth,
+    );
+    const beginningCash = prevAccountSnapshots.reduce((sum, acc) => sum + acc.amount, 0);
+    logger.info(
+      `Beginning cash for ${year}/${month} from account snapshots: ${beginningCash}`,
+      'FinancialReportService',
+    );
+    return beginningCash;
+  }
+
+  private buildReportObjects(
+    year: number,
+    month: number,
+    userId: string,
+    incomeStatementData: IncomeStatementData,
+    balanceSheetData: BalanceSheetData,
+    cashFlowData: CashFlowData,
+    reconciliation: { reconciled: boolean; difference: number },
+  ) {
     const now = new Date();
+    const startDate = new Date(year, month - 1, 1);
+    const endDate = new Date(year, month, 0, 23, 59, 59, 999);
+
     const commonFields = {
       year,
       month,
@@ -151,14 +220,7 @@ class FinancialReportService {
       ...commonFields,
     };
 
-    logger.info('generateFinancialReports.end', 'FinancialReportService');
-
-    return {
-      incomeStatement,
-      balanceSheet,
-      cashFlow,
-      reconciliation,
-    };
+    return { incomeStatement, balanceSheet, cashFlow };
   }
 
   /**
@@ -177,7 +239,7 @@ class FinancialReportService {
     let closingData = null;
 
     if (incomeStatement && 'netIncome' in incomeStatementData) {
-      closingData = await this.getClosingData(
+      closingData = await financialClosingService.getClosingData(
         householdId,
         incomeStatement.year,
         incomeStatement.month,
@@ -190,7 +252,7 @@ class FinancialReportService {
 
       // 3. Perform closing writes (READs then WRITEs)
       if (closingData && incomeStatement) {
-        await this.executeClosing(
+        await financialClosingService.executeClosing(
           householdId,
           incomeStatement.year,
           incomeStatement.month,
@@ -329,140 +391,6 @@ class FinancialReportService {
             } as FinancialReport)
           : null,
     };
-  }
-
-  async closeMonth(
-    householdId: string,
-    year: number,
-    month: number,
-    userId: string,
-    userEmail: string,
-    auth: AuthContext,
-    providedNetIncome?: number,
-    tx?: Transaction,
-  ): Promise<void> {
-    // This is the public API. We must ensure reads happen before writes.
-    // However, the queries (getProjects) cannot be part of the transaction easily.
-
-    let netIncome = providedNetIncome;
-    if (netIncome === undefined) {
-      const reports = await this.generateFinancialReports(householdId, year, month, userId);
-      if (
-        reports.incomeStatement.type !== ReportType.INCOME_STATEMENT ||
-        !('netIncome' in reports.incomeStatement.data)
-      ) {
-        throw new Error('Invalid income statement data');
-      }
-      netIncome = reports.incomeStatement.data.netIncome;
-    }
-
-    const data = await this.getClosingData(householdId, year, month);
-
-    const execute = async (t: Transaction) => {
-      await householdService.assertWritePermission(householdId, auth.uid, auth.isGlobalAdmin, t);
-      await this.executeClosing(
-        householdId,
-        year,
-        month,
-        userEmail,
-        auth,
-        netIncome!,
-        data.dividends,
-        data.retainedEarningsProject,
-        t,
-      );
-    };
-
-    if (tx) {
-      await execute(tx);
-    } else {
-      await runTransaction(db, (t) => execute(t));
-    }
-  }
-
-  /**
-   * Internal helper to fetch data for closing (contains queries, call outside tx)
-   */
-  private async getClosingData(householdId: string, year: number, month: number) {
-    const allProjects = await projectService.getProjects(householdId);
-    const projectsWithSnapshots = await Promise.all(
-      allProjects.map((p: Project) =>
-        projectService.getProjectWithSnapshot(householdId, p.id, year, month),
-      ),
-    );
-
-    const dividends = calculateDividends(projectsWithSnapshots);
-    const retainedEarningsProject = projectsWithSnapshots.find(
-      (p) => p.accounting?.balanceSheet?.subcategory === EquitySubCategory.RETAINED_EARNINGS,
-    );
-
-    if (!retainedEarningsProject) {
-      throw new Error('Retained Earnings project not found');
-    }
-
-    return { dividends, retainedEarningsProject };
-  }
-
-  /**
-   * Internal helper to execute closing writes (READs then WRITEs)
-   */
-  private async executeClosing(
-    householdId: string,
-    year: number,
-    month: number,
-    userEmail: string,
-    auth: AuthContext,
-    netIncome: number,
-    dividends: number,
-    retainedEarningsProject: ProjectWithSnapshot,
-    tx: Transaction,
-  ) {
-    logger.info(`executeClosing: ${year}-${month}`, 'FinancialReportService');
-
-    const prevYear = month === 1 ? year - 1 : year;
-    const prevMonth = month === 1 ? 12 : month - 1;
-
-    // READ phase
-    const prevSnapshot = await projectService.getSnapshotForPeriod(
-      householdId,
-      retainedEarningsProject.id,
-      prevYear,
-      prevMonth,
-      tx,
-    );
-    const openingBalance = prevSnapshot?.closingBalance || 0;
-
-    // WRITE phase
-    const closingBalance = calculateClosingBalance(openingBalance, netIncome, dividends);
-    const snapshotData = {
-      year,
-      month,
-      openingBalance,
-      income: netIncome,
-      expense: dividends,
-      closingBalance,
-    };
-
-    if (retainedEarningsProject.snapshot) {
-      await projectService.updateSnapshot(
-        householdId,
-        retainedEarningsProject.id,
-        retainedEarningsProject.snapshot.id,
-        snapshotData,
-        userEmail,
-        auth,
-        tx,
-      );
-    } else {
-      await projectService.recordSnapshot(
-        householdId,
-        retainedEarningsProject.id,
-        snapshotData,
-        userEmail,
-        auth,
-        tx,
-      );
-    }
   }
 }
 

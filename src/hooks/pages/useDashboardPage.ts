@@ -1,9 +1,11 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
+import { aggregateTrendPoints } from '@/domains/finance/logic/trendAggregation';
 import {
   type AssetTrendData,
   type AssetTrendViewMode,
   type LeverageStats,
+  type TrendDataPoint,
   type UnsettledStats,
 } from '@/domains/finance/types';
 import { financialTrendService } from '@/services/financialTrendService';
@@ -15,48 +17,74 @@ interface UseDashboardPageProps {
 }
 
 export function useDashboardPage({ householdId }: UseDashboardPageProps) {
-  const [trendData, setTrendData] = useState<AssetTrendData | null>(null);
+  const [rawTrendData, setRawTrendData] = useState<TrendDataPoint[]>([]);
   const [unsettledStats, setUnsettledStats] = useState<UnsettledStats | null>(null);
   const [leverageStats, setLeverageStats] = useState<LeverageStats | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [trendLoading, setTrendLoading] = useState(false);
+  const [statsLoading, setStatsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<AssetTrendViewMode>('month');
 
-  const loadDashboardData = useCallback(async () => {
+  const trendData = useMemo<AssetTrendData>(() => {
+    return aggregateTrendPoints(rawTrendData, viewMode);
+  }, [rawTrendData, viewMode]);
+
+  const loadTrendData = useCallback(async () => {
     if (!householdId) return;
 
-    setLoading(true);
-    setError(null);
-
+    setTrendLoading(true);
     try {
-      const [trend, unsettled, leverage] = await Promise.all([
-        financialTrendService.getTrendData(householdId, viewMode),
+      const rawPoints = await financialTrendService.getTrendData(householdId);
+      setRawTrendData(rawPoints);
+      setError(null);
+    } catch (err) {
+      console.error('Failed to load trend data:', err);
+      setError('無法載入趨勢數據，請稍後再試。');
+    } finally {
+      setTrendLoading(false);
+    }
+  }, [householdId]);
+
+  const loadStatsData = useCallback(async () => {
+    if (!householdId) return;
+
+    setStatsLoading(true);
+    try {
+      const [unsettled, leverage] = await Promise.all([
         settlementService.getUnsettledStats(householdId),
         portfolioService.getLeverageStats(householdId),
       ]);
-      setTrendData(trend);
       setUnsettledStats(unsettled);
       setLeverageStats(leverage);
+      setError(null);
     } catch (err) {
-      console.error('Failed to load dashboard data:', err);
-      setError('無法載入儀表板數據，請稍後再試。');
+      console.error('Failed to load stats data:', err);
+      setError('無法載入統計數據，請稍後再試。');
     } finally {
-      setLoading(false);
+      setStatsLoading(false);
     }
-  }, [householdId, viewMode]);
+  }, [householdId]);
 
   useEffect(() => {
-    loadDashboardData();
-  }, [loadDashboardData]);
+    loadTrendData();
+  }, [loadTrendData]);
+
+  useEffect(() => {
+    loadStatsData();
+  }, [loadStatsData]);
 
   return {
     trendData,
     unsettledStats,
     leverageStats,
-    loading,
+    trendLoading,
+    statsLoading,
     error,
     viewMode,
     setViewMode,
-    reload: loadDashboardData,
+    reload: useCallback(() => {
+      loadTrendData();
+      loadStatsData();
+    }, [loadTrendData, loadStatsData]),
   };
 }

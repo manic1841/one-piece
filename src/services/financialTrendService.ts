@@ -1,11 +1,4 @@
-import { aggregateTrendPoints } from '@/domains/finance/logic/trendAggregation';
-import {
-  type AssetTrendData,
-  type AssetTrendViewMode,
-  type FinancialReport,
-  ReportType,
-  type TrendDataPoint,
-} from '@/domains/finance/types';
+import { type FinancialReport, ReportType, type TrendDataPoint } from '@/domains/finance/types';
 import { reportRepository } from '@/repositories/reportRepository';
 import { portfolioService } from '@/services/portfolioService';
 import { logger } from '@/utils/logger';
@@ -14,10 +7,7 @@ class FinancialTrendService {
   /**
    * Get historical trend data for assets, income, expenses, and investment gains
    */
-  async getTrendData(
-    householdId: string,
-    viewMode: AssetTrendViewMode = 'month',
-  ): Promise<AssetTrendData> {
+  async getTrendData(householdId: string): Promise<TrendDataPoint[]> {
     logger.info('getTrendData.start', 'FinancialTrendService');
     const [allReports, portfolios] = await Promise.all([
       reportRepository.list([householdId]),
@@ -25,7 +15,7 @@ class FinancialTrendService {
     ]);
 
     if (allReports.length === 0) {
-      return { points: [] };
+      return [];
     }
 
     // Find the earliest report
@@ -93,8 +83,8 @@ class FinancialTrendService {
       }
     }
 
-    logger.info('getTrendData.aggregation', 'FinancialTrendService');
-    return aggregateTrendPoints(monthlyPoints, viewMode);
+    logger.info('getTrendData.rawPoints', 'FinancialTrendService');
+    return monthlyPoints;
   }
 }
 

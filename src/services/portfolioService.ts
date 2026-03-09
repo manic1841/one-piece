@@ -135,6 +135,7 @@ export const portfolioService = {
     if (month) {
       queryConstraints.push(where('month', '==', month));
     }
+    queryConstraints.push(orderBy('year', 'desc'), orderBy('month', 'desc'));
     return portfolioSnapshotRepository.list([householdId, portfolioId], queryConstraints);
   },
 
@@ -164,7 +165,7 @@ export const portfolioService = {
       if (snapshots.length > 0) {
         const snapshot = snapshots[0];
         totalMarketValue += snapshot.totalValue;
-        totalGainLoss += snapshot.performance.gain;
+        totalGainLoss += snapshot.performance.cumulativeGain;
       }
     }
 

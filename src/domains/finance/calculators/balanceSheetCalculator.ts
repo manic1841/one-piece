@@ -17,6 +17,7 @@ export function calculateBalanceSheet(
   accountWithSnapshots: AccountWithSnapshot[],
   projectsWithSnapshots: ProjectWithSnapshot[],
   netIncome?: number,
+  cumulativeStockGainLoss?: number,
 ): BalanceSheetData {
   // 1. Assets
   const assetItems: BalanceSheetItem[] = [];
@@ -103,14 +104,8 @@ export function calculateBalanceSheet(
 
   const totalAssets = assetItems.reduce((sum, item) => sum + item.amount, 0);
 
-  // Calculate stock profit from investment accounts
-  const calculatedStockGainLoss = accountWithSnapshots.reduce((accSum, acc) => {
-    if (!acc.snapshot?.holdings) return accSum;
-    const snapshotGainLoss = acc.snapshot.holdings.reduce((hSum, h) => {
-      return hSum + (h.marketValue - h.cost);
-    }, 0);
-    return accSum + snapshotGainLoss;
-  }, 0);
+  // Set stock profit based on the provided parameter
+  const calculatedStockGainLoss = cumulativeStockGainLoss ?? 0;
 
   // 2. Liabilities
   const liabilityItems: BalanceSheetItem[] = [];

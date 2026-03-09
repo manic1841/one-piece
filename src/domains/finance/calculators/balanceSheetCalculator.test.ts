@@ -94,16 +94,18 @@ describe('balanceSheetCalculator', () => {
       expect(cashItem?.amount).toBe(3000);
     });
 
-    it('should calculate stock profit from holding cost and market value', () => {
+    it('should calculate stock profit from passed cumulative stock gain loss', () => {
       const result = calculateBalanceSheet(
         testData.stockProfitData.accountWithSnapshots as any,
         testData.stockProfitData.projectsWithSnapshots,
+        undefined, // netIncome
+        500, // cumulativeStockGainLoss
       );
 
       const stockProfitItem = result.equity.items.find(
         (item) => item.category === EquitySubCategory.STOCK_PROFIT,
       );
-      expect(stockProfitItem?.amount).toBe(500); // 1500 - 1000
+      expect(stockProfitItem?.amount).toBe(500);
     });
   });
 });

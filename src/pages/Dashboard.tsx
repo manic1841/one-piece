@@ -11,10 +11,17 @@ const Dashboard: React.FC = () => {
   const { userProfile } = useAuth();
   const householdId = userProfile?.householdId;
 
-  const { trendData, unsettledStats, leverageStats, loading, viewMode, setViewMode } =
-    useDashboardPage({
-      householdId,
-    });
+  const {
+    trendData,
+    unsettledStats,
+    leverageStats,
+    trendLoading,
+    statsLoading,
+    viewMode,
+    setViewMode,
+  } = useDashboardPage({
+    householdId,
+  });
 
   return (
     <div className="space-y-6">
@@ -22,13 +29,13 @@ const Dashboard: React.FC = () => {
         <div className="lg:col-span-2">
           <AssetTrendCardUI
             data={trendData}
-            loading={loading}
+            loading={trendLoading}
             viewMode={viewMode}
             onViewModeChange={setViewMode}
           />
         </div>
-        <UnsettledStatsCardUI stats={unsettledStats} loading={loading} />
-        <LeverageStatsCardUI stats={leverageStats} loading={loading} />
+        <UnsettledStatsCardUI stats={unsettledStats} loading={statsLoading} />
+        <LeverageStatsCardUI stats={leverageStats} loading={statsLoading} />
       </div>
     </div>
   );

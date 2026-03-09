@@ -277,7 +277,10 @@ class ProjectService {
 
   // ==================== Business Logic Methods ====================
 
-  async getProjectBalance(householdId: string, projectId: string) {
+  async getProjectBalance(
+    householdId: string,
+    projectId: string,
+  ): Promise<{ balance: number; year?: number; month?: number }> {
     const snapshot = await this.getLatestSnapshot(householdId, projectId);
     const snapshotDate = snapshot ? new Date(snapshot.year, snapshot.month) : null;
     const tnxs = await transactionService.getTransactions(householdId, {
@@ -292,7 +295,12 @@ class ProjectService {
       projectId,
     );
 
-    return calculateBalance(snapshot ? snapshot.closingBalance : 0, projectId, tnxs, pts);
+    const balance = calculateBalance(snapshot ? snapshot.closingBalance : 0, projectId, tnxs, pts);
+    return {
+      balance,
+      year: snapshot?.year,
+      month: snapshot?.month,
+    };
   }
 
   /**

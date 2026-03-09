@@ -47,25 +47,43 @@ export const useAccountSnapshotForm = (
     }));
   };
 
-  const loadPreviousAmount = useCallback(async () => {
-    try {
-      const snapshot = await getPreviousSnapshot(
-        formData?.accountId,
-        parseInt(formData?.year),
-        parseInt(formData?.month),
-      );
-      setPreviousAmount(snapshot?.amount);
-    } catch (err) {
-      console.error('Failed to load previous amount:', err);
-      setPreviousAmount(undefined);
-    }
-  }, [formData, getPreviousSnapshot]);
+  const loadPreviousAmount = useCallback(
+    async (accountId: string, year: number, month: number) => {
+      try {
+        const snapshot = await getPreviousSnapshot(accountId, year, month);
+        setPreviousAmount(snapshot?.amount);
+
+        if (!initialData && snapshot?.holdings && snapshot.holdings.length > 0) {
+          setFormData((prev) => {
+            if (prev.holdings.length === 0) {
+              return {
+                ...prev,
+                holdings: snapshot.holdings!.map((h) => ({
+                  symbol: h.symbol,
+                  name: h.name || '',
+                  quantity: h.quantity.toString(),
+                  cost: h.cost.toString(),
+                  marketValue: h.marketValue.toString(),
+                  leverage: h.leverage?.toString() || '1',
+                })),
+              };
+            }
+            return prev;
+          });
+        }
+      } catch (err) {
+        console.error('Failed to load previous amount:', err);
+        setPreviousAmount(undefined);
+      }
+    },
+    [getPreviousSnapshot, initialData],
+  );
 
   useEffect(() => {
     if (formData?.accountId && formData?.year && formData?.month) {
-      loadPreviousAmount();
+      loadPreviousAmount(formData.accountId, parseInt(formData.year), parseInt(formData.month));
     }
-  }, [formData, loadPreviousAmount]);
+  }, [formData?.accountId, formData?.year, formData?.month, loadPreviousAmount]);
 
   // Update amount when holdings change for investment accounts
   useEffect(() => {

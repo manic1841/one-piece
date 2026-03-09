@@ -10,7 +10,7 @@ interface ProjectCardProps {
 }
 
 export const ProjectCard: React.FC<ProjectCardProps> = ({ householdId, project, onClick }) => {
-  const { balance } = useProjectBalance(householdId, project.id);
+  const { balance, year, month } = useProjectBalance(householdId, project.id);
 
   const isPositive = balance >= 0;
 
@@ -36,9 +36,18 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({ householdId, project, 
         <div className="pt-4 border-t border-border">
           <div className="flex items-center justify-between">
             <span className="text-sm font-medium text-muted-foreground">Current Balance</span>
-            <span className={`text-xl font-bold ${isPositive ? 'text-green-600' : 'text-red-600'}`}>
-              {formatCurrency(balance)}
-            </span>
+            <div className="flex items-baseline gap-2">
+              <span
+                className={`text-xl font-bold ${isPositive ? 'text-green-600' : 'text-red-600'}`}
+              >
+                {formatCurrency(balance)}
+              </span>
+              {year && month && (
+                <span className="text-xs font-medium text-muted-foreground">
+                  ({year}/{month.toString().padStart(2, '0')})
+                </span>
+              )}
+            </div>
           </div>
         </div>
       </CardContent>

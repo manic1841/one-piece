@@ -111,11 +111,18 @@ export const AccountGrid: React.FC<AccountGridProps> = ({
                 </div>
 
                 <div className="mb-3">
-                  <p className="text-2xl font-bold text-foreground">
-                    {formatCurrency(snapshot?.amount || 0)}
-                  </p>
+                  <div className="flex items-baseline gap-2">
+                    <p className="text-2xl font-bold text-foreground">
+                      {formatCurrency(snapshot?.amount || 0)}
+                    </p>
+                    {snapshot?.year && snapshot?.month && (
+                      <span className="text-sm font-medium text-muted-foreground">
+                        ({snapshot.year}/{snapshot.month.toString().padStart(2, '0')})
+                      </span>
+                    )}
+                  </div>
                   {
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-xs text-muted-foreground mt-1">
                       As of {snapshot?.createdAt ? formatDate(snapshot.createdAt) : 'N/A'}
                     </p>
                   }

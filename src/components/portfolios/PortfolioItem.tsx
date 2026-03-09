@@ -90,13 +90,18 @@ export const PortfolioItem: React.FC<PortfolioItemProps> = ({
         </div>
       </CardHeader>
       <CardContent>
-        <div className="text-2xl font-bold">
-          {viewModel.totalValue > 0 ? formatCurrency(viewModel.totalValue) : '--'}
+        <div className="flex items-baseline gap-2">
+          <div className="text-2xl font-bold">
+            {viewModel.totalValue > 0 ? formatCurrency(viewModel.totalValue) : '--'}
+          </div>
+          {viewModel.asOfDate && (
+            <span className="text-sm font-medium text-muted-foreground">
+              ({viewModel.asOfDate.replace('-', '/')})
+            </span>
+          )}
         </div>
-        <p className="text-xs text-muted-foreground">
-          {viewModel.asOfDate
-            ? `As of ${viewModel.asOfDate}`
-            : `${viewModel.accountCount} linked accounts`}
+        <p className="text-xs text-muted-foreground mt-1">
+          {viewModel.accountCount} linked accounts
         </p>
         {viewModel.description && (
           <p className="text-xs text-muted-foreground mt-2 line-clamp-2">{viewModel.description}</p>

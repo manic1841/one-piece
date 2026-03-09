@@ -52,6 +52,31 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ householdId, proj
                 {project.description && (
                   <p className="text-muted-foreground mt-1">{project.description}</p>
                 )}
+                {project.accounting?.enabled && (
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {project.accounting.incomeStatement && (
+                      <span className="text-xs bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 px-2 py-1 rounded-md">
+                        IS:{' '}
+                        {project.accounting.incomeStatement.subcategory ??
+                          project.accounting.incomeStatement.category}
+                      </span>
+                    )}
+                    {project.accounting.balanceSheet && (
+                      <span className="text-xs bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 px-2 py-1 rounded-md">
+                        BS:{' '}
+                        {project.accounting.balanceSheet.subcategory ??
+                          project.accounting.balanceSheet.category}
+                      </span>
+                    )}
+                    {project.accounting.cashFlow && (
+                      <span className="text-xs bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200 px-2 py-1 rounded-md">
+                        CF:{' '}
+                        {project.accounting.cashFlow.subcategory ??
+                          project.accounting.cashFlow.category}
+                      </span>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
             <Button className="gap-2" variant="outline" onClick={() => setIsSettlementOpen(true)}>
