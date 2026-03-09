@@ -7,6 +7,7 @@ import {
   ComposedChart,
   Legend,
   Line,
+  ReferenceLine,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -148,6 +149,13 @@ const AssetTrendCardUI: React.FC<AssetTrendCardUIProps> = ({
                   itemStyle={{ padding: '2px 0' }}
                 />
                 <Legend iconType="circle" wrapperStyle={{ paddingTop: '20px' }} />
+                <ReferenceLine
+                  yAxisId="left"
+                  y={0}
+                  stroke="#cbd5e1"
+                  strokeWidth={1}
+                  strokeDasharray="3 3"
+                />
 
                 <Bar
                   yAxisId="right"

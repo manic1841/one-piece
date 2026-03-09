@@ -5,6 +5,8 @@ import { ArrowDown, ArrowUp, Pencil, Trash2 } from 'lucide-react';
 import { ProjectCard } from '@/components/projects/ProjectCard';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
 import type { Project } from '@/domains/project/types';
 
 interface ProjectGridProps {
@@ -30,6 +32,13 @@ export const ProjectGrid: React.FC<ProjectGridProps> = (props: ProjectGridProps)
     onMoveUp,
     onMoveDown,
   } = props;
+
+  const [showInactive, setShowInactive] = React.useState(false);
+
+  const filteredProjects = React.useMemo(() => {
+    if (showInactive) return projects;
+    return projects.filter((p) => p.isActive);
+  }, [projects, showInactive]);
 
   // Loading state
   if (loading) {
@@ -58,9 +67,22 @@ export const ProjectGrid: React.FC<ProjectGridProps> = (props: ProjectGridProps)
   // Projects grid
   return (
     <>
+      <div className="flex items-center justify-end space-x-2 mb-4">
+        <Checkbox
+          id="show-inactive"
+          checked={showInactive}
+          onCheckedChange={(checked) => setShowInactive(!!checked)}
+        />
+        <Label htmlFor="show-inactive" className="text-sm font-medium cursor-pointer">
+          顯示全部專案 (含不活躍)
+        </Label>
+      </div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {projects.map((project) => (
-          <div key={project.id} className="relative group">
+        {filteredProjects.map((project) => (
+          <div
+            key={project.id}
+            className={`relative group ${!project.isActive ? 'opacity-60 grayscale-[0.5]' : ''}`}
+          >
             <ProjectCard
               householdId={householdId}
               project={project}

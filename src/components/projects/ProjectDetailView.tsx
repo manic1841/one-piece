@@ -7,9 +7,13 @@ import { useProjectDetailView } from '@/components/projects/detail/useProjectDet
 import { useProjectBalance } from '@/components/projects/useProjectBalance';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
 import { useAuth } from '@/contexts/useAuth';
 import { type Project } from '@/schemas';
+import { projectService } from '@/services/projectService';
 import { formatCurrency } from '@/utils/formatUtils';
+import { logger } from '@/utils/logger';
 
 import { ProjectDetailList } from './detail/ProjectDetailList';
 
@@ -29,6 +33,25 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ householdId, proj
   } = useProjectDetailView(householdId, project.id);
 
   const [isSettlementOpen, setIsSettlementOpen] = useState(false);
+  const [active, setActive] = useState(project.isActive);
+
+  const handleToggleActive = async (checked: boolean) => {
+    if (!householdId) return;
+    try {
+      setActive(checked);
+      await projectService.updateProject(
+        householdId,
+        project.id,
+        { isActive: checked },
+        userProfile?.email || '',
+        { uid: userProfile?.uid || '', isGlobalAdmin: false }, // Simple auth context
+      );
+      reload();
+    } catch (error) {
+      logger.error('Failed to toggle active status', 'ProjectDetailView', { error });
+      setActive(!checked); // Revert UI if failed
+    }
+  };
 
   const isPositive = balance >= 0;
 
@@ -77,6 +100,22 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ householdId, proj
                     )}
                   </div>
                 )}
+                <div className="flex items-center space-x-2 mt-2">
+                  <Checkbox
+                    id="project-active"
+                    checked={active}
+                    onCheckedChange={(checked) => handleToggleActive(!!checked)}
+                  />
+                  <Label
+                    htmlFor="project-active"
+                    className="text-sm font-medium leading-none cursor-pointer"
+                  >
+                    Active Project
+                  </Label>
+                  {!active && (
+                    <span className="text-xs text-muted-foreground ml-2">(Inactive)</span>
+                  )}
+                </div>
               </div>
             </div>
             <Button className="gap-2" variant="outline" onClick={() => setIsSettlementOpen(true)}>

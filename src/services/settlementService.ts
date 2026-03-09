@@ -282,6 +282,7 @@ class SettlementService {
 
     // Check Portfolios
     for (const portfolio of portfolios) {
+      if (!portfolio.isActive) continue;
       const snapshots = await portfolioService.getSnapshots(householdId, portfolio.id, year, month);
       if (snapshots.length === 0) {
         unsettledPortfolios.push({ id: portfolio.id, name: portfolio.name, type: 'portfolio' });

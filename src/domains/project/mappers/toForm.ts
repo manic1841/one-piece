@@ -24,6 +24,7 @@ export const toForm = (project?: Project): ProjectFormData => {
       icon: '',
       color: '',
       description: '',
+      isActive: true,
       accounting: {
         enabled: false,
       },
@@ -53,6 +54,7 @@ export const toForm = (project?: Project): ProjectFormData => {
     icon: project.icon,
     color: project.color,
     description: project.description ?? '',
+    isActive: project.isActive ?? true,
     accounting: accounting,
   };
 };

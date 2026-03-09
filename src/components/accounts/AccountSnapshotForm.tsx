@@ -50,7 +50,7 @@ export const AccountSnapshotForm: React.FC<AccountSnapshotFormProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent aria-describedby={undefined} className="max-w-2xl">
+      <DialogContent aria-describedby={undefined} className="max-w-4xl w-full">
         <DialogHeader>
           <DialogTitle>{initialData ? 'Edit Balance' : 'Record Balance'}</DialogTitle>
         </DialogHeader>

@@ -6,6 +6,7 @@ export interface ProjectFormData {
   icon: string;
   color: string;
   description: string;
+  isActive: boolean;
   accounting: {
     enabled: boolean;
     flowBehavior?: {

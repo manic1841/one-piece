@@ -136,7 +136,7 @@ const Projects: React.FC = () => {
         onClose={closeSettleDialog}
         householdId={userProfile?.householdId || ''}
         email={userProfile?.email}
-        projects={projects}
+        projects={projects.filter((p) => p.isActive)}
         onSuccess={reload}
       />
     </div>

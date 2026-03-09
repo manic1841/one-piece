@@ -53,7 +53,7 @@ export const toProject = (formData: ProjectFormData): ProjectCreate => {
       cashFlow,
       balanceSheet,
     },
-    isActive: true,
+    isActive: formData.isActive,
     order: 0,
   };
 };

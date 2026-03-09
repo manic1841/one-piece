@@ -42,7 +42,7 @@ export const AccountHolding: React.FC<AccountHoldingProps> = ({
             key={index}
             className="grid grid-cols-12 gap-2 items-end border-b pb-2 last:border-0"
           >
-            <div className="col-span-2">
+            <div className="col-span-1">
               <Label className="text-xs">Symbol</Label>
               <Input
                 value={holding.symbol}
@@ -60,16 +60,16 @@ export const AccountHolding: React.FC<AccountHoldingProps> = ({
                 className="h-8 text-xs"
               />
             </div>
-            <div className="col-span-2">
+            <div className="col-span-1">
               <Label className="text-xs">Qty</Label>
               <Input
                 type="number"
                 value={holding.quantity}
                 onChange={(e) => onUpdateHolding(index, 'quantity', e.target.value)}
-                className="h-8 text-xs"
+                className="h-8 text-xs px-1"
               />
             </div>
-            <div className="col-span-2">
+            <div className="col-span-3">
               <Label className="text-xs">Cost</Label>
               <Input
                 type="number"
@@ -78,7 +78,7 @@ export const AccountHolding: React.FC<AccountHoldingProps> = ({
                 className="h-8 text-xs"
               />
             </div>
-            <div className="col-span-2">
+            <div className="col-span-3">
               <Label className="text-xs">Value</Label>
               <Input
                 type="number"
