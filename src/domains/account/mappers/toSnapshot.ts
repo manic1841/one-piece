@@ -5,6 +5,8 @@ export const toSnapshot = (data: AccountSnapshotFormData): AccountSnapshotCreate
     year: parseInt(data.year),
     month: parseInt(data.month),
     amount: parseFloat(data.amount),
+    ...(data.originalAmount ? { originalAmount: parseFloat(data.originalAmount) } : {}),
+    ...(data.exchangeRate ? { exchangeRate: parseFloat(data.exchangeRate) } : {}),
     holdings: data.holdings.map((holding) => ({
       symbol: holding.symbol,
       name: holding.name,

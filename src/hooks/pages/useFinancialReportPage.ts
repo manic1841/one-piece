@@ -48,7 +48,11 @@ export function useFinancialReportPage<T extends ReportView>({
   const [report, setReport] = useState<T | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [internalDate, setInternalDate] = useState<Date>(new Date());
+  const [internalDate, setInternalDate] = useState<Date>(() => {
+    const d = new Date();
+    d.setMonth(d.getMonth() - 1);
+    return d;
+  });
 
   const currentDate = externalDate || internalDate;
 

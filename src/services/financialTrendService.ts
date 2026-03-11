@@ -64,11 +64,20 @@ class FinancialTrendService {
         }
       }
 
+      // Extract income by category from income statement items
+      const incomeByCategory: Record<string, number> = {};
+      if (incomeReport && 'revenue' in incomeReport.data) {
+        incomeReport.data.revenue.items.forEach((item) => {
+          incomeByCategory[item.category] = (incomeByCategory[item.category] || 0) + item.amount;
+        });
+      }
+
       monthlyPoints.push({
         year,
         month,
         income:
           incomeReport && 'revenue' in incomeReport.data ? incomeReport.data.revenue.total : null,
+        incomeByCategory,
         expense:
           incomeReport && 'expenses' in incomeReport.data ? incomeReport.data.expenses.total : null,
         totalAssets:

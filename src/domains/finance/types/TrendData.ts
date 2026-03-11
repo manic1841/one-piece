@@ -5,6 +5,7 @@ export interface TrendDataPoint {
   month: number;
   label?: string; // e.g. "2024 Q1" or "2024"
   income: number | null;
+  incomeByCategory?: Record<string, number>;
   expense: number | null;
   totalAssets: number | null;
   investmentGain: number | null;

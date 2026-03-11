@@ -25,28 +25,21 @@ export const RecordItem: React.FC<RecordItemProps> = ({
 }: RecordItemProps) => {
   const { color } = useRecordItem({ record });
 
-  const getCategoryLabel = () => {
-    if (!record.category) return '';
+  const getRecordTitle = () => {
+    if (!record.category && !record.description) return '';
 
+    let typeKey = '';
     if (record.recordType === RecordType.PROJECT_TRANSACTION) {
-      return (
-        RecordCategoryLabels.transfer[
-          record.category as keyof typeof RecordCategoryLabels.transfer
-        ] || record.category
-      );
+      typeKey = 'transfer';
+    } else if (record.recordType === RecordType.PLANNED_INCOME) {
+      typeKey = 'planned';
+    } else {
+      typeKey = record.formType === RecordFormType.EXPENSE ? 'expense' : 'income';
     }
+    const labels = RecordCategoryLabels[typeKey as keyof typeof RecordCategoryLabels];
+    const label = labels[record.category as keyof typeof labels] || record.category;
 
-    if (record.recordType === RecordType.PLANNED_INCOME) {
-      return (
-        RecordCategoryLabels.planned[
-          record.category as keyof typeof RecordCategoryLabels.planned
-        ] || record.category
-      );
-    }
-
-    const typeKey = record.formType === RecordFormType.EXPENSE ? 'expense' : 'income';
-    const labels = RecordCategoryLabels[typeKey];
-    return labels[record.category as keyof typeof labels] || record.category;
+    return record.description ? label + ' (' + record.description + ')' : label;
   };
 
   return (
@@ -57,7 +50,7 @@ export const RecordItem: React.FC<RecordItemProps> = ({
             <div className={`w-2 h-2 rounded-full bg-${color}-500`} />
             <div>
               <div className="flex items-center gap-2">
-                <p className="font-medium text-foreground">{getCategoryLabel()}</p>
+                <p className="font-medium text-foreground">{getRecordTitle()}</p>
                 {record.recordType === RecordType.PLANNED_INCOME && (
                   <span
                     className={`text-xs px-2 py-0.5 bg-${color}-100 text-${color}-700 rounded-full`}
@@ -72,9 +65,6 @@ export const RecordItem: React.FC<RecordItemProps> = ({
                   </span>
                 )}
               </div>
-              {record.description && (
-                <p className="text-sm text-muted-foreground">{record.description}</p>
-              )}
               <p className="text-xs text-muted-foreground mt-1">{formatDate(record.date)}</p>
             </div>
           </div>

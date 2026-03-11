@@ -35,6 +35,17 @@ export function aggregateTrendPoints(
         month: (parseInt(qStr.substring(1)) - 1) * 3 + 1,
         label: `${year} ${qStr}`,
         income: points.reduce((sum, p) => (p.income !== null ? sum + p.income : sum), 0),
+        incomeByCategory: points.reduce(
+          (acc, p) => {
+            if (p.incomeByCategory) {
+              Object.entries(p.incomeByCategory).forEach(([cat, amt]) => {
+                acc[cat] = (acc[cat] || 0) + amt;
+              });
+            }
+            return acc;
+          },
+          {} as Record<string, number>,
+        ),
         expense: points.reduce((sum, p) => (p.expense !== null ? sum + p.expense : sum), 0),
         totalAssets: points[points.length - 1].totalAssets, // Use latest asset value in quarter
         investmentGain: points.reduce((sum, p) => sum + (p.investmentGain ?? 0), 0),
@@ -57,6 +68,17 @@ export function aggregateTrendPoints(
         month: 1,
         label: `${year}`,
         income: points.reduce((sum, p) => (p.income !== null ? sum + p.income : sum), 0),
+        incomeByCategory: points.reduce(
+          (acc, p) => {
+            if (p.incomeByCategory) {
+              Object.entries(p.incomeByCategory).forEach(([cat, amt]) => {
+                acc[cat] = (acc[cat] || 0) + amt;
+              });
+            }
+            return acc;
+          },
+          {} as Record<string, number>,
+        ),
         expense: points.reduce((sum, p) => (p.expense !== null ? sum + p.expense : sum), 0),
         totalAssets: points[points.length - 1].totalAssets, // Use latest asset value in year
         investmentGain: points.reduce((sum, p) => sum + (p.investmentGain ?? 0), 0),

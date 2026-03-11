@@ -46,6 +46,8 @@ export const AccountSnapshotForm: React.FC<AccountSnapshotFormProps> = ({
     removeHolding,
     updateHolding,
     save,
+    fetchingRate,
+    fetchExchangeRate,
   } = useAccountSnapshotForm(householdId, selectedAccount, initialData, onSubmit, onClose);
 
   return (
@@ -82,6 +84,13 @@ export const AccountSnapshotForm: React.FC<AccountSnapshotFormProps> = ({
           <AccountAmount
             amount={formData.amount}
             setAmount={(value) => updateFormData({ amount: value })}
+            originalAmount={formData.originalAmount || ''}
+            setOriginalAmount={(value) => updateFormData({ originalAmount: value })}
+            exchangeRate={formData.exchangeRate || ''}
+            setExchangeRate={(value) => updateFormData({ exchangeRate: value })}
+            currency={formData.currency}
+            fetchingRate={fetchingRate}
+            fetchExchangeRate={fetchExchangeRate}
             readonly={isInvestment}
             currencyLabel={formData.currency ? `(${formData.currency})` : undefined}
           />

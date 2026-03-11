@@ -51,7 +51,7 @@ export const YearMonthPicker: React.FC<YearMonthPickerProps> = ({
           <SelectTrigger id="month-picker">
             <SelectValue />
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent className="max-h-60">
             {months.map((m) => (
               <SelectItem key={m} value={m.toString()}>
                 {m} {monthLabel === '月份' ? '月' : 'Month'}

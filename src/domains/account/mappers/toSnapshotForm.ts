@@ -21,6 +21,8 @@ export const toSnapshotForm = (
       year: current.getFullYear().toString(),
       month: (current.getMonth() + 1).toString(),
       amount: '',
+      originalAmount: '',
+      exchangeRate: '',
       holdings: [],
     };
   }
@@ -31,6 +33,8 @@ export const toSnapshotForm = (
     year: data.year.toString(),
     month: data.month.toString(),
     amount: data.amount.toString(),
+    originalAmount: data.originalAmount?.toString() || '',
+    exchangeRate: data.exchangeRate?.toString() || '',
     holdings:
       data.holdings?.map((h) => ({
         symbol: h.symbol,

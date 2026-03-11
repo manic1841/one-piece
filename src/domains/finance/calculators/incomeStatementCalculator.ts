@@ -23,7 +23,10 @@ export function calculateIncomeStatement(
     revenueItems.push({
       category: IncomeSubCategory.SALARY,
       amount: salaryTotal,
-      subItems: salaryIncomes.map((pi) => ({ name: pi.category, amount: pi.amount })),
+      subItems: salaryIncomes.map((pi) => ({
+        name: pi.description || pi.category,
+        amount: pi.amount,
+      })),
     });
   }
 
@@ -34,7 +37,10 @@ export function calculateIncomeStatement(
     revenueItems.push({
       category: IncomeSubCategory.BONUS,
       amount: bonusTotal,
-      subItems: bonusIncomes.map((pi) => ({ name: pi.category, amount: pi.amount })),
+      subItems: bonusIncomes.map((pi) => ({
+        name: pi.description || pi.category,
+        amount: pi.amount,
+      })),
     });
   }
 

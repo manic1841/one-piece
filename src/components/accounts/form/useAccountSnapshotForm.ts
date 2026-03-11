@@ -12,6 +12,7 @@ import {
 import { type AccountSnapshotFormData } from '@/domains/account/types';
 import { validateSnapshot } from '@/domains/account/validator';
 import { useAccountCmds } from '@/hooks/useAccountCmds';
+import { exchangeRateService } from '@/services/exchangeRateService';
 
 export const useAccountSnapshotForm = (
   householdId?: string,
@@ -28,6 +29,7 @@ export const useAccountSnapshotForm = (
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [fetchingRate, setFetchingRate] = useState(false);
   const [previousAmount, setPreviousAmount] = useState<number | undefined>(undefined);
 
   const isInvestment = selectedAccount?.category === AccountCategory.INVESTMENT;
@@ -84,6 +86,55 @@ export const useAccountSnapshotForm = (
       loadPreviousAmount(formData.accountId, parseInt(formData.year), parseInt(formData.month));
     }
   }, [formData?.accountId, formData?.year, formData?.month, loadPreviousAmount]);
+
+  const fetchExchangeRate = useCallback(async () => {
+    if (!formData.currency || formData.currency === 'TWD') return;
+    setFetchingRate(true);
+    setError('');
+    try {
+      const rate = await exchangeRateService.getLatestRate(formData.currency, 'TWD');
+
+      setFormData((prev) => {
+        let newAmount = prev.amount;
+        if (prev.originalAmount) {
+          const calculated = Math.round(parseFloat(prev.originalAmount) * rate);
+          newAmount = isNaN(calculated) ? prev.amount : calculated.toString();
+        }
+        return {
+          ...prev,
+          exchangeRate: rate.toString(),
+          amount: newAmount,
+        };
+      });
+    } catch (err) {
+      console.error(err);
+      setError('Failed to fetch exchange rate. Please try again.');
+    } finally {
+      setFetchingRate(false);
+    }
+  }, [formData.currency]);
+
+  useEffect(() => {
+    if (
+      !isInvestment &&
+      formData.currency !== 'TWD' &&
+      formData.originalAmount &&
+      formData.exchangeRate
+    ) {
+      const calculated = Math.round(
+        parseFloat(formData.originalAmount) * parseFloat(formData.exchangeRate),
+      );
+      if (!isNaN(calculated) && calculated.toString() !== formData.amount) {
+        setFormData((prev) => ({ ...prev, amount: calculated.toString() }));
+      }
+    }
+  }, [
+    formData.originalAmount,
+    formData.exchangeRate,
+    formData.currency,
+    isInvestment,
+    formData.amount,
+  ]);
 
   // Update amount when holdings change for investment accounts
   useEffect(() => {
@@ -160,5 +211,7 @@ export const useAccountSnapshotForm = (
     removeHolding,
     updateHolding,
     save,
+    fetchingRate,
+    fetchExchangeRate,
   };
 };

@@ -20,6 +20,8 @@ export const AccountSnapshotCreateSchema = z.object({
   year: z.number().int(),
   month: z.number().int().min(1).max(12),
   amount: z.number(),
+  originalAmount: z.number().optional(),
+  exchangeRate: z.number().optional(),
   holdings: z.array(HoldingSchema).optional(),
 });
 
