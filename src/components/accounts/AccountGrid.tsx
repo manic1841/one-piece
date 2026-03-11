@@ -30,30 +30,46 @@ export const AccountGrid: React.FC<AccountGridProps> = ({
   onMoveUp,
   onMoveDown,
 }) => {
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Your Accounts</CardTitle>
-      </CardHeader>
-      <CardContent>
+  const { twdAccounts, foreignAccounts, investmentAccounts } = React.useMemo(() => {
+    return {
+      twdAccounts: accounts.filter((a) => a.currency === 'TWD' && a.category !== 'investment'),
+      foreignAccounts: accounts.filter((a) => a.currency !== 'TWD' && a.category !== 'investment'),
+      investmentAccounts: accounts.filter((a) => a.category === 'investment'),
+    };
+  }, [accounts]);
+
+  const renderAccountGroup = (title: string, groupAccounts: AccountWithSnapshot[]) => {
+    if (groupAccounts.length === 0) return null;
+
+    return (
+      <div className="mb-8 last:mb-0">
+        <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+          <div className="h-4 w-1 bg-primary rounded-full" />
+          {title}
+          <span className="text-sm font-normal text-muted-foreground ml-2">
+            ({groupAccounts.length})
+          </span>
+        </h3>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {accounts.map((account) => {
+          {groupAccounts.map((account) => {
             const snapshot = account.snapshot;
             return (
               <div
                 key={account.id}
                 onClick={() => onSelectAccount?.(account)}
-                className="border border-border rounded-lg p-4 hover:border-blue-300 transition-colors cursor-pointer bg-card text-card-foreground shadow-sm"
+                className="group border border-border rounded-lg p-4 hover:border-blue-300 transition-colors cursor-pointer bg-card text-card-foreground shadow-sm relative"
               >
                 <div className="flex justify-between items-start mb-3">
                   <div className="flex items-center gap-3">
                     <span className="text-2xl">{AccountCategoryIcons[account.category!]}</span>
                     <div>
                       <h3 className="font-medium text-foreground">{account.name}</h3>
-                      <p className="text-xs text-muted-foreground">{account.category}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {account.category} • {account.currency}
+                      </p>
                     </div>
                   </div>
-                  <div className="flex gap-1">
+                  <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                     {isReorderMode ? (
                       <>
                         <Button
@@ -144,11 +160,26 @@ export const AccountGrid: React.FC<AccountGridProps> = ({
             );
           })}
         </div>
+      </div>
+    );
+  };
 
-        {accounts.length === 0 && (
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Your Accounts</CardTitle>
+      </CardHeader>
+      <CardContent>
+        {accounts.length === 0 ? (
           <p className="text-muted-foreground text-center py-8">
             No accounts yet. Add your first account to start tracking your assets.
           </p>
+        ) : (
+          <>
+            {renderAccountGroup('台幣帳戶', twdAccounts)}
+            {renderAccountGroup('外幣帳戶', foreignAccounts)}
+            {renderAccountGroup('投資帳戶', investmentAccounts)}
+          </>
         )}
       </CardContent>
     </Card>

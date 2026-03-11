@@ -54,6 +54,6 @@ export const toProject = (formData: ProjectFormData): ProjectCreate => {
       balanceSheet,
     },
     isActive: formData.isActive,
-    order: 0,
+    order: formData.order,
   };
 };

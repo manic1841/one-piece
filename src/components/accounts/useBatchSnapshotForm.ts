@@ -32,7 +32,9 @@ export const useBatchSnapshotForm = (
     setFetching(true);
     try {
       const accounts = await accountService.getAccounts(householdId);
-      const nonInvestmentAccounts = accounts.filter((a) => a.category !== 'investment');
+      const nonInvestmentAccounts = accounts.filter(
+        (a) => a.category !== 'investment' && a.currency == 'TWD',
+      );
       const withSnapshots = await accountService.getAccountWithSnapshots(
         householdId,
         nonInvestmentAccounts.map((a) => a.id),

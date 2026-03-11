@@ -64,8 +64,7 @@ export function useAssetTrend({ householdId }: UseAssetTrendProps) {
   const healthStatus = useMemo<AssetHealthStatus | null>(() => {
     if (!activePlan || rawTrendData.length === 0) return null;
 
-    // const currentYear = new Date().getFullYear();
-    const currentYear = 2022;
+    const currentYear = new Date().getFullYear();
     const currentYearPoints = rawTrendData.filter((p) => p.year === currentYear);
 
     if (currentYearPoints.length === 0) return null;

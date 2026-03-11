@@ -26,14 +26,14 @@ export const PortfolioItem: React.FC<PortfolioItemProps> = ({
 }) => {
   return (
     <Card
-      className={`cursor-pointer transition-colors ${
+      className={`group cursor-pointer transition-colors relative ${
         isReorderMode ? 'hover:bg-slate-50' : 'hover:bg-slate-50'
       }`}
       onClick={() => !isReorderMode && onClick(viewModel.id)}
     >
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle className="text-sm font-medium">{viewModel.name}</CardTitle>
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
           {!isReorderMode && (
             <div className="flex justify-end space-x-2">
               <Button
