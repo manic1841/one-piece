@@ -17,6 +17,15 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
+  server: {
+    proxy: {
+      '/rter-api': {
+        target: 'https://tw.rter.info',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/rter-api/, ''),
+      },
+    },
+  },
   build: {
     rollupOptions: {
       output: {

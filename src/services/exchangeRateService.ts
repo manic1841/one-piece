@@ -14,20 +14,31 @@ export class ExchangeRateService {
     }
 
     try {
-      const response = await fetch(
-        `https://api.frankfurter.app/latest?from=${fromCurrency}&to=${toCurrency}`,
-      );
+      const isDev = import.meta.env.DEV;
+      const baseUrl = isDev ? '/rter-api' : 'https://tw.rter.info';
+      const response = await fetch(`${baseUrl}/capi.php`);
 
       if (!response.ok) {
-        throw new Error(`Frankfurter API HTTP error: ${response.status}`);
+        throw new Error(`rter.info API HTTP error: ${response.status}`);
       }
 
       const data = await response.json();
-      const rate = data.rates[toCurrency];
 
-      if (typeof rate !== 'number') {
-        throw new Error(`Invalid rate received for ${toCurrency}`);
-      }
+      const getUsdRate = (currency: string): number => {
+        if (currency === 'USD') return 1;
+        const pair = `USD${currency}`;
+        const rate = data[pair]?.Exrate;
+        if (typeof rate !== 'number') {
+          throw new Error(`Rate not found for ${currency}`);
+        }
+        return rate;
+      };
+
+      const fromUsdRate = getUsdRate(fromCurrency);
+      const toUsdRate = getUsdRate(toCurrency);
+
+      // (USD to toCurrency) / (USD to fromCurrency) = (fromCurrency to toCurrency)
+      const rate = toUsdRate / fromUsdRate;
 
       this.cache.set(cacheKey, { rate, timestamp: now });
       return rate;

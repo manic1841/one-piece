@@ -30,6 +30,12 @@ export function aggregateTrendPoints(
     quarters.forEach((points, key) => {
       const [yearStr, qStr] = key.split('-');
       const year = parseInt(yearStr);
+      let totalAssets = null;
+      for (const point of points) {
+        if (point.totalAssets !== null) {
+          totalAssets = point.totalAssets;
+        }
+      }
       seasonalPoints.push({
         year,
         month: (parseInt(qStr.substring(1)) - 1) * 3 + 1,
@@ -47,7 +53,7 @@ export function aggregateTrendPoints(
           {} as Record<string, number>,
         ),
         expense: points.reduce((sum, p) => (p.expense !== null ? sum + p.expense : sum), 0),
-        totalAssets: points[points.length - 1].totalAssets, // Use latest asset value in quarter
+        totalAssets: totalAssets, // Use latest asset value in quarter
         investmentGain: points.reduce((sum, p) => sum + (p.investmentGain ?? 0), 0),
       });
     });
@@ -61,8 +67,13 @@ export function aggregateTrendPoints(
       if (!years.has(p.year)) years.set(p.year, []);
       years.get(p.year)!.push(p);
     });
-
     years.forEach((points, year) => {
+      let totalAssets = null;
+      for (const point of points) {
+        if (point.totalAssets !== null) {
+          totalAssets = point.totalAssets;
+        }
+      }
       yearlyPoints.push({
         year,
         month: 1,
@@ -80,7 +91,7 @@ export function aggregateTrendPoints(
           {} as Record<string, number>,
         ),
         expense: points.reduce((sum, p) => (p.expense !== null ? sum + p.expense : sum), 0),
-        totalAssets: points[points.length - 1].totalAssets, // Use latest asset value in year
+        totalAssets: totalAssets, // Use latest asset value in year
         investmentGain: points.reduce((sum, p) => sum + (p.investmentGain ?? 0), 0),
       });
     });

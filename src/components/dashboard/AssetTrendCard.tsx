@@ -29,8 +29,6 @@ const AssetTrendCard: React.FC<AssetTrendCardProps> = ({ householdId }) => {
   const { trendData, healthStatus, loading, viewMode, setViewMode, activePlan } = useAssetTrend({
     householdId,
   });
-  console.log('healthStatus', healthStatus);
-  console.log('active plan', activePlan);
 
   const chartData = useMemo(() => {
     if (!trendData) return [];

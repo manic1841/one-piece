@@ -170,7 +170,6 @@ class ProjectService {
     }
 
     const customId = projectSnapshotRepository.buildId(snapshot.year, snapshot.month);
-    console.log('custom ID', customId);
     return projectSnapshotRepository.create(
       [householdId, projectId],
       snapshot,

@@ -53,7 +53,7 @@ export const useAccountSnapshotForm = (
     async (accountId: string, year: number, month: number) => {
       try {
         const snapshot = await getPreviousSnapshot(accountId, year, month);
-        setPreviousAmount(snapshot?.amount);
+        setPreviousAmount(snapshot?.originalAmount || snapshot?.amount);
 
         if (!initialData && snapshot?.holdings && snapshot.holdings.length > 0) {
           setFormData((prev) => {
