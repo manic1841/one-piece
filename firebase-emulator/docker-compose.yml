@@ -1,0 +1,16 @@
+version: '3.8'
+services:
+  firestore:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: firebase-emulator:local
+    container_name: firebase-emulator
+    ports:
+      - '8080:8080'
+      - '9099:9099'
+      - '4000:4000'
+    environment:
+      - GCP_PROJECT=demo-project
+    volumes:
+      - '$PWD/firebase_configs:/firebase'
