@@ -1,7 +1,7 @@
+import { type AllocationCreate } from '@/domains/allocation/schemas';
+import { type TransactionCreate } from '@/domains/ledger/schemas';
 import { allocationRepository } from '@/infra/repositories/allocationRepository';
 import { transactionRepository } from '@/infra/repositories/transactionRepository';
-import { type AllocationCreate } from '@/infra/schemas/allocation';
-import { type TransactionCreate } from '@/infra/schemas/ledger';
 
 interface AddIncomeInput {
   amount: number;
@@ -12,6 +12,10 @@ interface AddIncomeInput {
 }
 
 export const incomeService = {
+  toYearMonth(date: Date) {
+    return `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}`;
+  },
+
   async addIncome(
     householdId: string,
     userEmail: string,
@@ -59,9 +63,13 @@ export const incomeService = {
       items: { projectId: string; percentage: number }[];
     },
   ): Promise<void> {
+    const allocationDate = new Date();
+
     const allocationData: AllocationCreate = {
-      date: new Date(),
+      date: allocationDate,
+      yearMonth: this.toYearMonth(allocationDate),
       sourceTransactionId: input.transactionId,
+      direction: 'INCOME',
       totalAmount: input.totalAmount,
       items: input.items.map((item) => ({
         projectId: item.projectId,

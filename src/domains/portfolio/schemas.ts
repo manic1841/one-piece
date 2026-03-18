@@ -40,6 +40,8 @@ export const PortfolioCreateSchema = z.object({
 });
 
 export const PortfolioSchema = BaseSchema.extend(PortfolioCreateSchema.shape);
+export type PortfolioCreate = z.infer<typeof PortfolioCreateSchema>;
+export type Portfolio = z.infer<typeof PortfolioSchema>;
 
 // Portfolio Snapshot Create Schema
 export const PortfolioSnapshotCreateSchema = z.object({
@@ -52,3 +54,5 @@ export const PortfolioSnapshotCreateSchema = z.object({
 });
 
 export const PortfolioSnapshotSchema = BaseSchema.extend(PortfolioSnapshotCreateSchema.shape);
+export type PortfolioSnapshotCreate = z.infer<typeof PortfolioSnapshotCreateSchema>;
+export type PortfolioSnapshot = z.infer<typeof PortfolioSnapshotSchema>;

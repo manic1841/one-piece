@@ -1,6 +1,7 @@
-import { householdRepository } from '@/infra/repositories/householdRepository';
-import { type Household } from '@/infra/schemas/household';
 import { type Transaction } from 'firebase/firestore';
+
+import { type Household } from '@/domains/household/schemas';
+import { householdRepository } from '@/infra/repositories/householdRepository';
 
 export interface UpdateHouseholdRequest {
   householdId: string;

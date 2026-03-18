@@ -1,7 +1,7 @@
-import { transactionRepository } from '@/infra/repositories/transactionRepository';
-import { type Transaction } from '@/infra/schemas/ledger';
 import { householdPermissionService } from '@/application/household/householdPermissionService';
 import { type AuthContext } from '@/application/types';
+import { type Transaction } from '@/domains/ledger/schemas';
+import { transactionRepository } from '@/infra/repositories/transactionRepository';
 
 export interface ListRecentTransactionsRequest {
   householdId: string;

@@ -1,21 +1,15 @@
+import { type Project } from '@/domains/project/schemas';
 import { projectRepository } from '@/infra/repositories/projectRepository';
 import { transactionRepository } from '@/infra/repositories/transactionRepository';
-import { type Project } from '@/infra/schemas/project';
 
 export class ProjectService {
   /**
    * Archive a project after verifying no transactions in the current month.
    */
-  async archiveProject(
-    householdId: string,
-    projectId: string,
-    userEmail: string,
-  ): Promise<void> {
+  async archiveProject(householdId: string, projectId: string, userEmail: string): Promise<void> {
     const now = new Date();
-    const yearMonth = `${now.getFullYear()}-${(now.getMonth() + 1)
-      .toString()
-      .padStart(2, '0')}`;
-      
+    const yearMonth = `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}`;
+
     const recentTransactions = await transactionRepository.getTransactionsByProject(
       householdId,
       projectId,
@@ -23,9 +17,7 @@ export class ProjectService {
     );
 
     if (recentTransactions.length > 0) {
-      throw new Error(
-        'Cannot archive project with active transactions in the current month.',
-      );
+      throw new Error('Cannot archive project with active transactions in the current month.');
     }
 
     await projectRepository.archiveProject(householdId, projectId, userEmail);
@@ -72,8 +64,8 @@ export class ProjectService {
         fromProjectId,
         toProjectId,
         createdBy: userEmail,
-        entries: [], // Project transfers don't necessarily need journal entries if they are management-only, but the schema requires it. 
-                   // However, for project accounting, we track them via from/toProjectId.
+        entries: [], // Project transfers don't necessarily need journal entries if they are management-only, but the schema requires it.
+        // However, for project accounting, we track them via from/toProjectId.
       },
       userEmail,
     );

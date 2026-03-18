@@ -1,4 +1,4 @@
-import { type Transaction } from '@/infra/schemas/ledger';
+import { type Transaction } from '@/domains/ledger/schemas';
 
 import { type TransactionModel } from '../types';
 

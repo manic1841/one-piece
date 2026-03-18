@@ -1,17 +1,25 @@
+import { type AllocationCreate } from '@/domains/allocation/schemas';
 import { LedgerValidator } from '@/domains/ledger/validator';
 import { allocationRepository } from '@/infra/repositories/allocationRepository';
 import { transactionRepository } from '@/infra/repositories/transactionRepository';
-import { type AllocationCreate } from '@/infra/schemas/allocation';
 
 export interface CreateAllocationRequest {
   householdId: string;
   userEmail: string;
   data: {
     transactionId: string;
+    transactionDate: Date;
     totalAmount: number;
     items: { projectId: string; percentage: number }[];
+    direction: 'INCOME' | 'EXPENSE';
   };
 }
+
+const toYearMonth = (date: Date) => {
+  const year = date.getFullYear();
+  const month = (date.getMonth() + 1).toString().padStart(2, '0');
+  return `${year}-${month}`;
+};
 
 export class CreateAllocationUseCase {
   async execute(request: CreateAllocationRequest): Promise<string> {
@@ -24,8 +32,10 @@ export class CreateAllocationUseCase {
     }
 
     const allocationData: AllocationCreate = {
-      date: new Date(),
+      date: data.transactionDate,
+      yearMonth: toYearMonth(data.transactionDate),
       sourceTransactionId: data.transactionId,
+      direction: data.direction,
       totalAmount: data.totalAmount,
       items: data.items.map((item) => ({
         projectId: item.projectId,

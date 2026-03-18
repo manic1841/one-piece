@@ -3,6 +3,7 @@ export const TransactionCategoryLabels = {
     salary: '薪水',
     bonus: '獎金',
     investment: '投資',
+    refund: '退款回補',
     side_business: '副業',
     other: '其他收入',
   },
@@ -17,5 +18,19 @@ export const TransactionCategoryLabels = {
     education: '教育',
     social: '人際',
     other: '其他支出',
+  },
+  investment: {
+    investment: '買入證券',
+    property: '買入不動產',
+    cash: '投資現金流',
+    other: '其他投資',
+  },
+  financing: {
+    loan: '借貸',
+    owner_investment: '股東融資',
+    owner_draw: '發放分紅',
+    initial_capital: '初始資金',
+    cash: '融資現金流',
+    other: '其他融資',
   },
 } as const;

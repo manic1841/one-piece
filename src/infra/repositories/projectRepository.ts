@@ -1,10 +1,23 @@
 import { collection, doc, limit, orderBy, where } from 'firebase/firestore';
 
+import {
+  type Project,
+  type ProjectCreate,
+  ProjectSchema,
+  type ProjectSnapshot,
+  type ProjectSnapshotCreate,
+} from '@/domains/project/schemas';
 import { db } from '@/firebase';
 import { BaseRepository } from '@/infra/repositories/baseRepository';
 import { projectSnapshotRepository } from '@/infra/repositories/projectSnapshotRepository';
-import { type Project, type ProjectCreate, ProjectSchema, type ProjectSnapshot, type ProjectSnapshotCreate } from '@/infra/schemas/project';
-export { type Project, type ProjectCreate, ProjectSchema, type ProjectSnapshot, type ProjectSnapshotCreate };
+
+export {
+  type Project,
+  type ProjectCreate,
+  ProjectSchema,
+  type ProjectSnapshot,
+  type ProjectSnapshotCreate,
+};
 
 /**
  * v2 ProjectRepository
@@ -33,7 +46,11 @@ class ProjectRepository extends BaseRepository<Project, [string, string?]> {
     return this.list([householdId], constraints);
   }
 
-  async createProject(householdId: string, data: ProjectCreate, userEmail: string): Promise<string> {
+  async createProject(
+    householdId: string,
+    data: ProjectCreate,
+    userEmail: string,
+  ): Promise<string> {
     return this.create([householdId], data, userEmail);
   }
 
@@ -50,17 +67,51 @@ class ProjectRepository extends BaseRepository<Project, [string, string?]> {
     await this.update([householdId, projectId], { isActive: false }, userEmail);
   }
 
-  async getSnapshot(householdId: string, projectId: string, yearMonth: string): Promise<ProjectSnapshot | null> {
+  async getSnapshot(
+    householdId: string,
+    projectId: string,
+    yearMonth: string,
+  ): Promise<ProjectSnapshot | null> {
     return projectSnapshotRepository.get([householdId, projectId, yearMonth]);
   }
 
-  async saveSnapshot(householdId: string, projectId: string, snapshot: ProjectSnapshotCreate, userEmail: string): Promise<void> {
+  async saveSnapshot(
+    householdId: string,
+    projectId: string,
+    snapshot: ProjectSnapshotCreate,
+    userEmail: string,
+  ): Promise<void> {
     const snapshotId = projectSnapshotRepository.buildId(snapshot.year, snapshot.month);
-    await projectSnapshotRepository.update([householdId, projectId, snapshotId], snapshot, userEmail);
+    
+    // Upsert mechanism: check if exists
+    const existing = await projectSnapshotRepository.get([householdId, projectId, snapshotId]);
+    
+    if (existing) {
+      await projectSnapshotRepository.update(
+        [householdId, projectId, snapshotId],
+        snapshot,
+        userEmail,
+      );
+    } else {
+      await projectSnapshotRepository.create(
+        [householdId, projectId],
+        snapshot,
+        userEmail,
+        undefined,
+        snapshotId
+      );
+    }
   }
 
-  async getSnapshotHistory(householdId: string, projectId: string, months: number): Promise<ProjectSnapshot[]> {
-    return projectSnapshotRepository.list([householdId, projectId], [orderBy('year', 'desc'), orderBy('month', 'desc'), limit(months)]);
+  async getSnapshotHistory(
+    householdId: string,
+    projectId: string,
+    months: number,
+  ): Promise<ProjectSnapshot[]> {
+    return projectSnapshotRepository.list(
+      [householdId, projectId],
+      [orderBy('year', 'desc'), orderBy('month', 'desc'), limit(months)],
+    );
   }
 }
 

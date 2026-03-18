@@ -9,7 +9,7 @@ export type LedgerType = z.infer<typeof LedgerType>;
 
 export const CustomLedgerCodeCreateSchema = z.object({
   code: z.string(), // e.g. "asset:property:taipei"
-  label: z.string(), // e.g. "?啣??摮?"
+  label: z.string(), // e.g. "台北房產"
   type: LedgerType,
   isCustom: z.literal(true),
   createdBy: z.string(),
@@ -51,7 +51,8 @@ export const TransactionCreateSchema = z.object({
     .enum([
       'EXPENSE',
       'INCOME',
-      'REFUND',
+      'INVESTMENT',
+      'FINANCING',
       'TRANSFER',
       'ASSET_PURCHASE',
       'LIABILITY_BORROW',

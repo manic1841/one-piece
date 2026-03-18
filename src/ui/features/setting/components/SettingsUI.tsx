@@ -3,7 +3,7 @@ import React from 'react';
 import { type User } from 'firebase/auth';
 import { ShieldAlert } from 'lucide-react';
 
-import { type Household } from '@/infra/schemas/household';
+import { type Household } from '@/domains/household/schemas';
 import { Button } from '@/ui/components/ui/button';
 import { Card, CardContent } from '@/ui/components/ui/card';
 

@@ -1,6 +1,12 @@
 import { useCallback, useEffect, useState } from 'react';
+
 import { type ProjectSnapshot } from '@/domains/project/schemas';
-import { type ProjectDetailData, toDetailItem, toSnapshotDetailItem } from '@/domains/project/types/detail';
+import {
+  type ProjectDetailData,
+  toDetailItem,
+  toSnapshotDetailItem,
+} from '@/domains/project/types/detail';
+
 import { useProjectCmds } from './useProjectCmds';
 import { useProjectQueries } from './useProjects';
 
@@ -15,22 +21,26 @@ export const useProjectDetailView = (householdId: string, projectId: string) => 
     if (!householdId || !projectId) return;
 
     const [records, snapshots] = await Promise.all([
-      selectedYearMonth === 'current' 
-        ? getProjectRecords(projectId) 
+      selectedYearMonth === 'current'
+        ? getProjectRecords(projectId)
         : getProjectRecords(projectId, selectedYearMonth),
       getProjectSnapshots(projectId),
     ]);
 
     // Update history list (sorted DESC)
-    const yearMonths = (snapshots || []).map(s => `${s.year}-${s.month.toString().padStart(2, '0')}`);
+    const yearMonths = (snapshots || []).map(
+      (s) => `${s.year}-${s.month.toString().padStart(2, '0')}`,
+    );
     setHistory([...new Set(yearMonths)].sort((a, b) => b.localeCompare(a)));
 
     const recordItems = (records || []).map(toDetailItem);
-    
+
     if (selectedYearMonth !== 'current') {
-      const snapshot = snapshots?.find(s => `${s.year}-${s.month.toString().padStart(2, '0')}` === selectedYearMonth);
+      const snapshot = snapshots?.find(
+        (s) => `${s.year}-${s.month.toString().padStart(2, '0')}` === selectedYearMonth,
+      );
       setCurrentSnapshot(snapshot || null);
-      
+
       const snapshotItems = snapshot ? [toSnapshotDetailItem(snapshot)] : [];
       setItems([...snapshotItems, ...recordItems]);
     } else {
@@ -44,7 +54,6 @@ export const useProjectDetailView = (householdId: string, projectId: string) => 
   }, [householdId, projectId, selectedYearMonth, getProjectRecords, getProjectSnapshots]);
 
   useEffect(() => {
-     
     load();
   }, [load]);
 
@@ -59,13 +68,13 @@ export const useProjectDetailView = (householdId: string, projectId: string) => 
     [projectId, deleteSnapshotCmd, load],
   );
 
-  return { 
-    items, 
-    history, 
-    selectedYearMonth, 
-    setSelectedYearMonth, 
+  return {
+    items,
+    history,
+    selectedYearMonth,
+    setSelectedYearMonth,
     currentSnapshot,
-    reload: load, 
-    deleteSnapshot 
+    reload: load,
+    deleteSnapshot,
   };
 };

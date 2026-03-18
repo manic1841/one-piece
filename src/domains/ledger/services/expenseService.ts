@@ -1,5 +1,5 @@
+import { type TransactionCreate } from '@/domains/ledger/schemas';
 import { transactionRepository } from '@/infra/repositories/transactionRepository';
-import { type TransactionCreate } from '@/infra/schemas/ledger';
 
 interface AddExpenseInput {
   amount: number;

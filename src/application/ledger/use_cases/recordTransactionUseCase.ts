@@ -1,11 +1,11 @@
 import { runTransaction, where } from 'firebase/firestore';
 
+import { householdPermissionService } from '@/application/household/householdPermissionService';
+import { type AuthContext } from '@/application/types';
+import { type TransactionCreate } from '@/domains/ledger/schemas';
 import { db } from '@/firebase';
 import { intentMappingRepository } from '@/infra/repositories/intentMappingRepository';
 import { transactionRepository } from '@/infra/repositories/transactionRepository';
-import { type TransactionCreate } from '@/infra/schemas/ledger';
-import { householdPermissionService } from '@/application/household/householdPermissionService';
-import { type AuthContext } from '@/application/types';
 
 export interface RecordTransactionRequest {
   householdId: string;
@@ -39,8 +39,8 @@ export class RecordTransactionUseCase {
 
         // 2. Build entries based on Mapping
         // Simple logic: debit the debit ledger, credit the credit ledger
-        // We might need to determine which side gets the accountId. 
-        // For now, if it's an expense, debit is usually the expense category (ledgerCode only), 
+        // We might need to determine which side gets the accountId.
+        // For now, if it's an expense, debit is usually the expense category (ledgerCode only),
         // and credit is the bank account (ledgerCode + accountId).
         const entries = [
           {

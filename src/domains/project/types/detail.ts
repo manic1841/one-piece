@@ -42,7 +42,8 @@ export function toSnapshotDetailItem(snapshot: ProjectSnapshot): ProjectDetailDa
   return {
     id: snapshot.id,
     type: ProjectDetailType.SNAPSHOT,
-    date: new Date(snapshot.year, snapshot.month - 1, 1),
+    // Set to the very end of the month so it sorts above all transactions for this month in descending order
+    date: new Date(snapshot.year, snapshot.month, 0, 23, 59, 59),
     title: `Settlement: ${snapshot.year}-${snapshot.month.toString().padStart(2, '0')}`,
     amount: snapshot.closingBalance,
     isNegative: snapshot.closingBalance < 0,

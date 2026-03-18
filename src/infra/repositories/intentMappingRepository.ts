@@ -1,8 +1,8 @@
 import { collection, doc } from 'firebase/firestore';
 
+import { type IntentMapping, IntentMappingSchema } from '@/domains/ledger/schemas';
 import { db } from '@/firebase';
 import { BaseRepository } from '@/infra/repositories/baseRepository';
-import { type IntentMapping, IntentMappingSchema } from '@/infra/schemas/ledger';
 
 class IntentMappingRepository extends BaseRepository<IntentMapping, [string, string?]> {
   private readonly collectionName = 'intent_mappings';

@@ -76,7 +76,8 @@ firestore
        │    └─ settings: object
 
        ├─ allocations/{allocationId}     # 專案資金分配
-       │    ├─ transactionId: string
+     │    ├─ sourceTransactionId: string
+      │    ├─ direction: "INCOME" | "EXPENSE"
        │    ├─ yearMonth: string         # YYYY-MM
        │    ├─ totalAmount: number
        │    ├─ items: array
@@ -122,4 +123,5 @@ firestore
 - **移除舊有無效集合**: 移除 `asset` (資產)、`market_price` (市場價格)、`bankstatement` (對帳單) 以及獨立的 `journalentry`。
 
 ### 4. **Retirement Planning**
+
 - 退休規劃資料獨立存儲於 `retirement_plans`。

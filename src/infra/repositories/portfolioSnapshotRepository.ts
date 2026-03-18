@@ -1,17 +1,28 @@
 import { collection, doc } from 'firebase/firestore';
+
+import { type PortfolioSnapshot, PortfolioSnapshotSchema } from '@/domains/portfolio/schemas';
 import { db } from '@/firebase';
 import { BaseRepository } from '@/infra/repositories/baseRepository';
-import { type PortfolioSnapshot, PortfolioSnapshotSchema } from '@/infra/schemas/portfolio';
 
 /**
  * PortfolioSnapshotRepository
  * Path: households/{householdId}/portfolios/{portfolioId}/snapshots
  */
-class PortfolioSnapshotRepository extends BaseRepository<PortfolioSnapshot, [string, string, string?]> {
+class PortfolioSnapshotRepository extends BaseRepository<
+  PortfolioSnapshot,
+  [string, string, string?]
+> {
   private readonly collectionName = 'snapshots';
 
   protected getCollectionRef(householdId: string, portfolioId: string) {
-    return collection(this.db, 'households', householdId, 'portfolios', portfolioId, this.collectionName);
+    return collection(
+      this.db,
+      'households',
+      householdId,
+      'portfolios',
+      portfolioId,
+      this.collectionName,
+    );
   }
 
   protected getDocRef(householdId: string, portfolioId: string, snapshotId: string) {
@@ -22,7 +33,7 @@ class PortfolioSnapshotRepository extends BaseRepository<PortfolioSnapshot, [str
       'portfolios',
       portfolioId,
       this.collectionName,
-      snapshotId
+      snapshotId,
     );
   }
 

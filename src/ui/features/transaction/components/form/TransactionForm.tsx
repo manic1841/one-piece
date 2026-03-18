@@ -1,166 +1,316 @@
-import React from 'react';
-import { Button } from '@/ui/components/ui/button';
-import { Input } from '@/ui/components/ui/input';
-import { Label } from '@/ui/components/ui/label';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/ui/components/ui/dialog';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/ui/components/ui/select';
+import React, { useMemo, useState } from 'react';
 
-import { DEFAULT_INTENT_MAPPINGS } from '@/domains/ledger/intentMapping';
-import { useTransactionForm } from './useTransactionForm';
-import { AllocationSection } from './AllocationSection'; // Extracted from legacy
+import { ArrowRightLeft, HandCoins, Landmark, ReceiptText, SlidersHorizontal } from 'lucide-react';
+
+import { Badge } from '@/ui/components/ui/badge';
+import { Button } from '@/ui/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/ui/components/ui/dialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/ui/components/ui/tabs';
+import {
+  AdvancedPanel,
+  CategoryPanel,
+  ExpensePanel,
+  IncomePanel,
+  ProjectTransferPanel,
+} from '@/ui/features/transaction/components/form/TransactionFormPanels';
+import {
+  buildPreview,
+  buildPreviewDetails,
+} from '@/ui/features/transaction/components/form/transactionFormPreview';
+import {
+  type AdvancedFormState,
+  type ExpenseFormState,
+  type FinancingFormState,
+  type IncomeFormState,
+  type InvestmentFormState,
+  type ProjectTransferFormState,
+  type TransactionFormCategoryOption,
+  type TransactionFormOutput,
+  type TransactionFormProjectOption,
+  type TransactionFormTab,
+} from '@/ui/features/transaction/types/transaction';
 
 interface TransactionFormProps {
   isOpen: boolean;
   onClose: () => void;
-  onSuccess?: () => void;
-  householdId: string;
+  onSubmit: (output: TransactionFormOutput) => void | Promise<void>;
+  loading?: boolean;
+  error?: string;
+  projects: TransactionFormProjectOption[];
+  expenseCategories: TransactionFormCategoryOption[];
+  incomeCategories: TransactionFormCategoryOption[];
+  investmentCategories: TransactionFormCategoryOption[];
+  financingCategories: TransactionFormCategoryOption[];
+  advancedCategories: TransactionFormCategoryOption[];
 }
+
+const createExpenseState = (): ExpenseFormState => ({
+  amount: '',
+  date: new Date().toISOString().slice(0, 10),
+  projectId: null,
+  ledgerCode: null,
+  description: '',
+  triggerAllocation: false,
+  allocationItems: [],
+});
+
+const createIncomeState = (): IncomeFormState => ({
+  amount: '',
+  date: new Date().toISOString().slice(0, 10),
+  ledgerCode: null,
+  description: '',
+  triggerAllocation: false,
+  allocationItems: [],
+});
+
+const createInvestmentState = (): InvestmentFormState => ({
+  amount: '',
+  date: new Date().toISOString().slice(0, 10),
+  ledgerCode: null,
+  description: '',
+});
+
+const createFinancingState = (): FinancingFormState => ({
+  amount: '',
+  date: new Date().toISOString().slice(0, 10),
+  ledgerCode: null,
+  description: '',
+});
+
+const createProjectTransferState = (): ProjectTransferFormState => ({
+  amount: '',
+  fromProjectId: null,
+  toProjectId: null,
+  description: '',
+});
+
+const createAdvancedState = (): AdvancedFormState => ({
+  amount: '',
+  date: new Date().toISOString().slice(0, 10),
+  intentType: 'MANUAL',
+  projectId: null,
+  ledgerCode: null,
+  description: '',
+});
 
 export const TransactionForm: React.FC<TransactionFormProps> = ({
   isOpen,
   onClose,
-  onSuccess,
-  householdId,
+  onSubmit,
+  loading = false,
+  error,
+  projects,
+  expenseCategories,
+  incomeCategories,
+  investmentCategories,
+  financingCategories,
+  advancedCategories,
 }) => {
-  const {
-    formData,
-    formChanged,
-    showAllocations,
-    setShowAllocations,
-    projects,
-    projectsLoading,
-    loading,
-    error,
-    save,
-    totalPercentage,
-  } = useTransactionForm(householdId, onClose, onSuccess);
+  const [activeTab, setActiveTab] = useState<TransactionFormTab>('EXPENSE');
+  const [expense, setExpense] = useState<ExpenseFormState>(createExpenseState);
+  const [income, setIncome] = useState<IncomeFormState>(createIncomeState);
+  const [investment, setInvestment] = useState<InvestmentFormState>(createInvestmentState);
+  const [financing, setFinancing] = useState<FinancingFormState>(createFinancingState);
+  const [projectTransfer, setProjectTransfer] = useState<ProjectTransferFormState>(
+    createProjectTransferState,
+  );
+  const [advanced, setAdvanced] = useState<AdvancedFormState>(createAdvancedState);
+
+  const resetAll = () => {
+    setActiveTab('EXPENSE');
+    setExpense(createExpenseState());
+    setIncome(createIncomeState());
+    setInvestment(createInvestmentState());
+    setFinancing(createFinancingState());
+    setProjectTransfer(createProjectTransferState());
+    setAdvanced(createAdvancedState());
+  };
+
+  const preview = useMemo(
+    () =>
+      buildPreview({
+        activeTab,
+        expense,
+        income,
+        investment,
+        financing,
+        projectTransfer,
+        advanced,
+      }),
+    [activeTab, advanced, expense, financing, income, investment, projectTransfer],
+  );
+
+  const previewDetails = useMemo(
+    () =>
+      buildPreviewDetails({
+        preview,
+        projects,
+        expenseCategories,
+        incomeCategories,
+        investmentCategories,
+        financingCategories,
+        advancedCategories,
+      }),
+    [
+      preview,
+      projects,
+      expenseCategories,
+      incomeCategories,
+      investmentCategories,
+      financingCategories,
+      advancedCategories,
+    ],
+  );
+
+  const handleDialogOpenChange = (open: boolean) => {
+    if (!open) {
+      resetAll();
+      onClose();
+    }
+  };
+
+  const handleCancel = () => {
+    resetAll();
+    onClose();
+  };
+
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!preview) return;
+    await onSubmit(preview);
+  };
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
+    <Dialog open={isOpen} onOpenChange={handleDialogOpenChange}>
+      <DialogContent className="max-h-[90vh] max-w-4xl overflow-y-auto">
+        <DialogHeader className="space-y-2">
+          <Badge variant="outline" className="w-fit">
+            Transaction Form
+          </Badge>
           <DialogTitle>新增交易</DialogTitle>
         </DialogHeader>
 
-        {error && <div className="p-3 bg-red-100 text-red-600 rounded-md text-sm">{error}</div>}
-
-        <form onSubmit={save} className="space-y-6">
-          <div className="grid grid-cols-2 gap-4">
-            {/* Date */}
-            <div className="space-y-2">
-              <Label htmlFor="date">日期</Label>
-              <Input
-                id="date"
-                type="date"
-                required
-                value={formData.date.toISOString().split('T')[0]}
-                onChange={(e) => formChanged('date', new Date(e.target.value))}
-              />
+        <form onSubmit={handleSubmit} className="space-y-5">
+          {error ? (
+            <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+              {error}
             </div>
+          ) : null}
 
-            {/* Amount */}
-            <div className="space-y-2">
-              <Label htmlFor="amount">金額</Label>
-              <Input
-                id="amount"
-                type="number"
-                min="0"
-                step="0.01"
-                required
-                placeholder="0.00"
-                value={formData.amount}
-                onChange={(e) => formChanged('amount', e.target.value)}
-              />
-            </div>
-          </div>
+          <Tabs
+            value={activeTab}
+            onValueChange={(value) => setActiveTab(value as TransactionFormTab)}
+          >
+            <TabsList className="grid h-auto w-full grid-cols-3 gap-2 rounded-xl p-2 md:grid-cols-6">
+              <TabsTrigger value="EXPENSE" className="gap-1">
+                <ReceiptText className="h-3.5 w-3.5" />
+                支出
+              </TabsTrigger>
+              <TabsTrigger value="INCOME" className="gap-1">
+                <Landmark className="h-3.5 w-3.5" />
+                收入
+              </TabsTrigger>
+              <TabsTrigger value="INVESTMENT" className="gap-1">
+                <Landmark className="h-3.5 w-3.5" />
+                投資
+              </TabsTrigger>
+              <TabsTrigger value="FINANCING" className="gap-1">
+                <HandCoins className="h-3.5 w-3.5" />
+                融資
+              </TabsTrigger>
+              <TabsTrigger value="PROJECT_TRANSFER" className="gap-1">
+                <ArrowRightLeft className="h-3.5 w-3.5" />
+                專案轉帳
+              </TabsTrigger>
+              <TabsTrigger value="ADVANCED" className="gap-1">
+                <SlidersHorizontal className="h-3.5 w-3.5" />
+                進階
+              </TabsTrigger>
+            </TabsList>
 
-          <div className="grid grid-cols-2 gap-4">
-            {/* Intent Type */}
-            <div className="space-y-2">
-              <Label>類別</Label>
-              <Select
-                value={formData.intent}
-                onValueChange={(val) => formChanged('intent', val)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="選擇交易類別" />
-                </SelectTrigger>
-                <SelectContent>
-                  {DEFAULT_INTENT_MAPPINGS.map((mapping) => (
-                    <SelectItem key={mapping.intent} value={mapping.intent}>
-                      {mapping.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Description */}
-            <div className="space-y-2">
-              <Label htmlFor="description">說明 (選填)</Label>
-              <Input
-                id="description"
-                value={formData.description}
-                onChange={(e) => formChanged('description', e.target.value)}
-                placeholder="輸入交易說明"
-              />
-            </div>
-          </div>
-
-          {/* Project Splitting Section */}
-          <div className="space-y-4 pt-4 border-t">
-            <div className="flex items-center justify-between">
-              <Label>專案分配</Label>
-              <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  id="allow-splits"
-                  className="w-4 h-4"
-                  checked={showAllocations}
-                  onChange={(e) => setShowAllocations(e.target.checked)}
-                />
-                <Label htmlFor="allow-splits" className="text-sm font-normal cursor-pointer">
-                  分配到多個專案
-                </Label>
-              </div>
-            </div>
-
-            {showAllocations ? (
-              <AllocationSection
+            <TabsContent value="EXPENSE" className="mt-4">
+              <ExpensePanel
+                state={expense}
                 projects={projects}
-                allocations={formData.allocations}
-                amount={formData.amount}
-                totalPercentage={totalPercentage}
-                onAllocationsChange={(allocations) => formChanged('allocations', allocations)}
+                categories={expenseCategories}
+                onChange={setExpense}
               />
-            ) : (
-              <div className="space-y-2">
-                <Select
-                  value={formData.projectId}
-                  onValueChange={(val) => formChanged('projectId', val)}
-                  disabled={projectsLoading}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder={projectsLoading ? '載入中...' : '選擇專案'} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {projects.map((p) => (
-                      <SelectItem key={p.id} value={p.id}>
-                        {p.icon} {p.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-          </div>
+            </TabsContent>
 
-          <DialogFooter className="border-t pt-6">
-            <Button variant="outline" type="button" onClick={onClose} disabled={loading}>
+            <TabsContent value="INCOME" className="mt-4">
+              <IncomePanel
+                state={income}
+                categories={incomeCategories}
+                projects={projects}
+                onChange={setIncome}
+              />
+            </TabsContent>
+
+            <TabsContent value="INVESTMENT" className="mt-4">
+              <CategoryPanel
+                title="投資"
+                tone="neutral"
+                state={investment}
+                categories={investmentCategories}
+                onChange={setInvestment}
+              />
+            </TabsContent>
+
+            <TabsContent value="FINANCING" className="mt-4">
+              <CategoryPanel
+                title="融資"
+                tone="neutral"
+                state={financing}
+                categories={financingCategories}
+                onChange={setFinancing}
+              />
+            </TabsContent>
+
+            <TabsContent value="PROJECT_TRANSFER" className="mt-4">
+              <ProjectTransferPanel
+                state={projectTransfer}
+                projects={projects}
+                onChange={setProjectTransfer}
+              />
+            </TabsContent>
+
+            <TabsContent value="ADVANCED" className="mt-4">
+              <AdvancedPanel
+                state={advanced}
+                projects={projects}
+                categories={advancedCategories}
+                onChange={setAdvanced}
+              />
+            </TabsContent>
+          </Tabs>
+
+          {preview ? (
+            <div className="rounded-2xl border bg-slate-900 px-4 py-3 text-white">
+              <div className="text-xs uppercase tracking-[0.2em] text-slate-300">Preview</div>
+              <div className="mt-2 flex flex-wrap items-center gap-2 text-sm">
+                <Badge className="border-none bg-white/15 text-white">{preview.intentType}</Badge>
+                {previewDetails.map((detail) => (
+                  <span key={detail} className="rounded-full border border-white/10 px-3 py-1">
+                    {detail}
+                  </span>
+                ))}
+                <span className="ml-auto font-semibold">NT$ {preview.amount.toLocaleString()}</span>
+              </div>
+            </div>
+          ) : null}
+
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={handleCancel} disabled={loading}>
               取消
             </Button>
-            <Button type="submit" disabled={loading}>
-              {loading ? '儲存中...' : '儲存'}
+            <Button type="submit" disabled={loading || !preview}>
+              {loading ? '送出中...' : '送出'}
             </Button>
           </DialogFooter>
         </form>

@@ -1,8 +1,8 @@
 import { collection, doc, limit, orderBy } from 'firebase/firestore';
 
+import { type ProjectSnapshot, ProjectSnapshotSchema } from '@/domains/project/schemas';
 import { db } from '@/firebase';
 import { BaseRepository } from '@/infra/repositories/baseRepository';
-import { type ProjectSnapshot, ProjectSnapshotSchema } from '@/infra/schemas/project';
 
 /**
  * ProjectSnapshotRepository
@@ -12,7 +12,14 @@ class ProjectSnapshotRepository extends BaseRepository<ProjectSnapshot, [string,
   private readonly collectionName = 'snapshots';
 
   protected getCollectionRef(householdId: string, projectId: string) {
-    return collection(this.db, 'households', householdId, 'projects', projectId, this.collectionName);
+    return collection(
+      this.db,
+      'households',
+      householdId,
+      'projects',
+      projectId,
+      this.collectionName,
+    );
   }
 
   protected getDocRef(householdId: string, projectId: string, snapshotId: string) {
@@ -36,7 +43,10 @@ class ProjectSnapshotRepository extends BaseRepository<ProjectSnapshot, [string,
   }
 
   async getLatest(householdId: string, projectId: string): Promise<ProjectSnapshot | null> {
-    const result = await this.list([householdId, projectId], [orderBy('year', 'desc'), orderBy('month', 'desc'), limit(1)]);
+    const result = await this.list(
+      [householdId, projectId],
+      [orderBy('year', 'desc'), orderBy('month', 'desc'), limit(1)],
+    );
     return result[0] || null;
   }
 }

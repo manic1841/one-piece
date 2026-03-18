@@ -1,8 +1,9 @@
 import React from 'react';
 
+import { type Transaction as LedgerTransaction } from '@/domains/ledger/schemas';
+import { type Project } from '@/domains/project/schemas';
 import { Card, CardContent } from '@/ui/components/ui/card';
-import { type Project } from '@/infra/schemas/project';
-import { type Transaction as LedgerTransaction } from '@/infra/schemas/ledger';
+
 import { TransactionItem } from './TransactionItem';
 
 interface TransactionListProps {
@@ -25,7 +26,7 @@ export const TransactionList: React.FC<TransactionListProps> = ({
 
     items.forEach((item) => {
       const date = new Date(item.date);
-      const key = `${date.getFullYear()}å¹?{(date.getMonth() + 1).toString().padStart(2, '0')}?ˆ`;
+      const key = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}`;
       if (!groups[key]) {
         groups[key] = [];
       }
@@ -55,9 +56,7 @@ export const TransactionList: React.FC<TransactionListProps> = ({
     return (
       <Card>
         <CardContent className="p-8">
-          <div className="text-center text-muted-foreground">
-            No transactions found.
-          </div>
+          <div className="text-center text-muted-foreground">No transactions found.</div>
         </CardContent>
       </Card>
     );

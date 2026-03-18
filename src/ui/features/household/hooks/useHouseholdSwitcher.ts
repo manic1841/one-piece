@@ -5,8 +5,8 @@ import { useNavigate } from 'react-router-dom';
 import { getHouseholdsByUserUseCase } from '@/application/household/use_cases/getHouseholdsByUserUseCase';
 import { leaveHouseholdUseCase } from '@/application/household/use_cases/leaveHouseholdUseCase';
 import { switchHouseholdUseCase } from '@/application/household/use_cases/switchHouseholdUseCase';
+import { type Household } from '@/domains/household/schemas';
 import { useAuth } from '@/infra/contexts/useAuth';
-import { type Household } from '@/infra/schemas/household';
 
 export function useHouseholdSwitcher(
   currentHouseholdId: string | undefined,

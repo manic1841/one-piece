@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { listRecentTransactionsUseCase } from '@/application/ledger/use_cases/listRecentTransactionsUseCase';
+import { type Transaction } from '@/domains/ledger/schemas';
 import { useAuth } from '@/infra/contexts/useAuth';
-import { type Transaction } from '@/infra/schemas/ledger';
 import { useLoadingTask } from '@/ui/hooks/useLoadingTask';
 
 export function useTransactions(householdId?: string) {

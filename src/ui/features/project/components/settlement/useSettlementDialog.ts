@@ -29,7 +29,10 @@ export const useSettlementDialog = (
   const [error, setError] = useState('');
 
   const toPreview = async () => {
-    if (!householdId || !projects) return;
+    if (!householdId || !projects || projects.length === 0) {
+      setError('No project data found for settlement.');
+      return;
+    }
     setError('');
     setStatus(DialogStatus.PROCESSING);
 
@@ -50,7 +53,21 @@ export const useSettlementDialog = (
   };
 
   const confirm = async () => {
-    if (!householdId || settlements.length === 0 || !userEmail) return;
+    if (!householdId) {
+      setError('No household selected. Please reload and try again.');
+      return;
+    }
+
+    if (settlements.length === 0) {
+      setError('Please preview settlement before confirming.');
+      return;
+    }
+
+    if (!userEmail) {
+      setError('Unable to identify current user. Please sign in again.');
+      return;
+    }
+
     setError('');
     setStatus(DialogStatus.PROCESSING);
 
@@ -62,14 +79,15 @@ export const useSettlementDialog = (
         userEmail
       );
 
-      setStatus('done');
+      setStatus(DialogStatus.DONE);
       setTimeout(() => {
         onSuccess?.();
         close();
       }, 1500);
     } catch (err) {
       console.error('Error creating settlements:', err);
-      setError('Failed to create settlements. Please try again.');
+      const message = err instanceof Error ? err.message : 'Failed to create settlements. Please try again.';
+      setError(message);
       setStatus(DialogStatus.PREVIEW);
     }
   };

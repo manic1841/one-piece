@@ -2,8 +2,8 @@ import React from 'react';
 
 import { Pencil, Trash2 } from 'lucide-react';
 
+import { type Transaction as LedgerTransaction } from '@/domains/ledger/schemas';
 import { Button } from '@/ui/components/ui/button';
-import { type Transaction as LedgerTransaction } from '@/infra/schemas/ledger';
 import { TransactionCategoryLabels, TransactionColors } from '@/ui/constants/transaction';
 import { formatCurrency, formatDate } from '@/ui/utils';
 
@@ -14,6 +14,31 @@ interface TransactionItemProps {
   projectName?: string;
 }
 
+const CASH_LEDGER_PREFIX = 'asset:cash';
+
+const sumEntries = (transaction: LedgerTransaction) => {
+  const totals = transaction.entries.reduce(
+    (acc, entry) => {
+      acc.debit += entry.debit;
+      acc.credit += entry.credit;
+      return acc;
+    },
+    { debit: 0, credit: 0 },
+  );
+
+  return totals;
+};
+
+const findCashEntry = (transaction: LedgerTransaction) =>
+  transaction.entries.find((entry) => entry.ledgerCode.startsWith(CASH_LEDGER_PREFIX));
+
+const getLabelGroup = (intentType: string): Record<string, string> => {
+  if (intentType === 'INCOME') return TransactionCategoryLabels.income;
+  if (intentType === 'INVESTMENT') return TransactionCategoryLabels.investment;
+  if (intentType === 'FINANCING') return TransactionCategoryLabels.financing;
+  return TransactionCategoryLabels.expense;
+};
+
 export const TransactionItem: React.FC<TransactionItemProps> = ({
   transaction,
   onEdit,
@@ -21,13 +46,17 @@ export const TransactionItem: React.FC<TransactionItemProps> = ({
   projectName,
 }) => {
   const intentType = transaction.intentType || 'MANUAL';
-  const isIncome = intentType === 'INCOME' || intentType === 'REFUND';
-  const color = isIncome ? TransactionColors.income : TransactionColors.expense;
+  const isIncome = intentType === 'INCOME';
+  const { debit: totalDebit, credit: totalCredit } = sumEntries(transaction);
+  const cashEntry = findCashEntry(transaction);
+  const hasCashLedger = Boolean(cashEntry);
 
   // Determine amount
-  const displayAmount =
-    transaction.amount ||
-    transaction.entries.reduce((sum, entry) => sum + (isIncome ? entry.credit : entry.debit), 0);
+  const displayAmount = transaction.amount || (isIncome ? totalCredit : totalDebit);
+  const signedAmount = cashEntry
+    ? Math.abs(displayAmount) * (cashEntry.debit > 0 ? 1 : -1)
+    : (isIncome ? 1 : -1) * Math.abs(displayAmount);
+  const color = signedAmount >= 0 ? TransactionColors.income : TransactionColors.expense;
 
   // Determine category and title from entries or intent
   const primaryEntry =
@@ -37,7 +66,7 @@ export const TransactionItem: React.FC<TransactionItemProps> = ({
   const ledgerCode = primaryEntry?.ledgerCode || '';
   const categoryKey = ledgerCode.split(':').pop() || '';
 
-  const labels = isIncome ? TransactionCategoryLabels.income : TransactionCategoryLabels.expense;
+  const labels = getLabelGroup(intentType);
   const categoryLabel = labels[categoryKey as keyof typeof labels] || categoryKey || intentType;
   const title = transaction.description
     ? `${categoryLabel} (${transaction.description})`
@@ -66,10 +95,15 @@ export const TransactionItem: React.FC<TransactionItemProps> = ({
           </div>
         </div>
         <div className="flex items-center gap-4">
-          <p className={`text-lg font-bold text-${color}-600`}>
-            {isIncome ? '+' : '-'}
-            {formatCurrency(displayAmount)}
-          </p>
+          <div className="text-right space-y-1">
+            <p
+              className={`text-lg font-bold ${hasCashLedger ? `text-${color}-600` : 'text-yellow-600'}`}
+            >
+              {signedAmount >= 0 ? '+' : '-'}
+              {formatCurrency(Math.abs(signedAmount))}
+            </p>
+            {!hasCashLedger && <p className="text-[10px] text-yellow-700">無 asset:cash 分錄</p>}
+          </div>
           {(onEdit || onDelete) && (
             <div className="flex gap-2">
               {onEdit && (

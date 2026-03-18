@@ -1,5 +1,5 @@
-import { type AllocationCreate } from '@/infra/schemas/allocation';
-import { type TransactionCreate } from '@/infra/schemas/ledger';
+import { type AllocationCreate } from '@/domains/allocation/schemas';
+import { type TransactionCreate } from '@/domains/ledger/schemas';
 
 export class LedgerValidator {
   static validateTransaction(transaction: TransactionCreate): string[] {

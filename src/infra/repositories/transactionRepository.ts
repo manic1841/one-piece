@@ -7,13 +7,30 @@ import {
   where,
 } from 'firebase/firestore';
 
-import { db } from '@/firebase';
-import { BaseRepository } from '@/infra/repositories/baseRepository';
 import {
   type Transaction,
   type TransactionCreate,
   TransactionSchema,
-} from '@/infra/schemas/ledger';
+} from '@/domains/ledger/schemas';
+import { db } from '@/firebase';
+import { BaseRepository } from '@/infra/repositories/baseRepository';
+
+const toMillis = (value: unknown): number => {
+  if (value instanceof Date) {
+    return value.getTime();
+  }
+
+  if (
+    value &&
+    typeof value === 'object' &&
+    'seconds' in value &&
+    typeof (value as { seconds?: unknown }).seconds === 'number'
+  ) {
+    return ((value as { seconds: number }).seconds || 0) * 1000;
+  }
+
+  return 0;
+};
 
 class TransactionRepository extends BaseRepository<Transaction, [string, string?]> {
   private readonly collectionName = 'transactions';
@@ -52,15 +69,16 @@ class TransactionRepository extends BaseRepository<Transaction, [string, string?
     const startDate = new Date(year, month - 1, 1);
     const endDate = new Date(year, month, 1);
 
-    return this.list(
+    const monthlyTransactions = await this.list(
       [householdId],
       [
-        where('projectId', '==', projectId),
         where('date', '>=', startDate),
         where('date', '<', endDate),
         orderBy('date', 'desc'),
       ],
     );
+
+    return monthlyTransactions.filter((transaction) => transaction.projectId === projectId);
   }
 
   async getRecentTransactions(householdId: string, maxLimit: number): Promise<Transaction[]> {
@@ -75,24 +93,32 @@ class TransactionRepository extends BaseRepository<Transaction, [string, string?
   ): Promise<void> {
     await this.update([householdId, transactionId], { allocationId }, userEmail);
   }
+
+  async getById(householdId: string, transactionId: string): Promise<Transaction | null> {
+    return this.get([householdId, transactionId]);
+  }
+
   async getProjectTransfers(householdId: string, yearMonth: string): Promise<Transaction[]> {
     const [year, month] = yearMonth.split('-').map(Number);
     const startDate = new Date(year, month - 1, 1);
     const endDate = new Date(year, month, 1);
 
-    return this.list(
+    const monthlyTransactions = await this.list(
       [householdId],
       [
-        where('intentType', '==', 'PROJECT_TRANSFER'),
         where('date', '>=', startDate),
         where('date', '<', endDate),
         orderBy('date', 'desc'),
       ],
     );
+
+    return monthlyTransactions.filter((transaction) => transaction.intentType === 'PROJECT_TRANSFER');
   }
 
   async listByProject(householdId: string, projectId: string): Promise<Transaction[]> {
-    return this.list([householdId], [where('projectId', '==', projectId), orderBy('date', 'desc')]);
+    const projectTransactions = await this.list([householdId], [where('projectId', '==', projectId)]);
+
+    return projectTransactions.sort((a, b) => toMillis(b.date) - toMillis(a.date));
   }
 }
 

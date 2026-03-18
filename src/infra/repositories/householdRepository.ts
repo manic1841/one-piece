@@ -1,8 +1,8 @@
 import { collection, doc } from 'firebase/firestore';
 
+import { type Household, HouseholdSchema } from '@/domains/household/schemas';
 import { db } from '@/firebase';
 import { BaseRepository } from '@/infra/repositories/baseRepository';
-import { type Household, HouseholdSchema } from '@/infra/schemas/household';
 
 class HouseholdRepository extends BaseRepository<Household, [string?]> {
   private readonly collectionName = 'households';

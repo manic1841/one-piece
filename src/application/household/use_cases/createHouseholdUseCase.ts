@@ -1,5 +1,5 @@
+import { type HouseholdCreate } from '@/domains/household/schemas';
 import { householdRepository } from '@/infra/repositories/householdRepository';
-import { type HouseholdCreate } from '@/infra/schemas/household';
 
 export interface CreateHouseholdRequest {
   data: HouseholdCreate;

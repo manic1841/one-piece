@@ -1,8 +1,8 @@
 import { collection, doc, getDocs, query, where } from 'firebase/firestore';
 
+import { type Allocation, AllocationSchema } from '@/domains/allocation/schemas';
 import { db } from '@/firebase';
 import { BaseRepository } from '@/infra/repositories/baseRepository';
-import { type Allocation, AllocationSchema } from '@/infra/schemas/allocation';
 
 /**
  * AllocationRepository
@@ -27,6 +27,22 @@ class AllocationRepository extends BaseRepository<Allocation, [string, string?]>
     const q = query(this.getCollectionRef(householdId), where('yearMonth', '==', yearMonth));
     const snap = await getDocs(q);
     return snap.docs.map((doc) => this.convertFromFirestore(doc.data()));
+  }
+
+  async listByProject(
+    householdId: string,
+    projectId: string,
+    yearMonth?: string,
+  ): Promise<Allocation[]> {
+    const allocations = yearMonth
+      ? await this.getAllocationsByMonth(householdId, yearMonth)
+      : await this.list([householdId]);
+
+    return allocations.filter(
+      (allocation) =>
+        allocation.projectIds.includes(projectId) ||
+        allocation.items.some((item) => item.projectId === projectId),
+    );
   }
 }
 

@@ -24,6 +24,7 @@ function createEmptyUnsettledStats(): UnsettledStats {
     month: now.getMonth() + 1,
     unsettledAccounts: [],
     unsettledPortfolios: [],
+    unsettledProjects: [],
     totalUnsettled: 0,
   };
 }

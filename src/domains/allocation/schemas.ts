@@ -11,8 +11,10 @@ export type AllocationItem = z.infer<typeof AllocationItemSchema>;
 
 export const AllocationCreateSchema = z.object({
   date: z.date(),
+  yearMonth: z.string(),
   description: z.string().optional(),
   sourceTransactionId: z.string(),
+  direction: z.enum(['INCOME', 'EXPENSE']).optional(),
   totalAmount: z.number(),
   createdBy: z.string(),
   items: z.array(AllocationItemSchema),

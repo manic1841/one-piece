@@ -1,7 +1,7 @@
-import { intentMappingRepository } from '@/infra/repositories/intentMappingRepository';
-import { type IntentMapping } from '@/infra/schemas/ledger';
 import { householdPermissionService } from '@/application/household/householdPermissionService';
 import { type AuthContext } from '@/application/types';
+import { type IntentMapping } from '@/domains/ledger/schemas';
+import { intentMappingRepository } from '@/infra/repositories/intentMappingRepository';
 
 export interface ListIntentMappingsRequest {
   householdId: string;

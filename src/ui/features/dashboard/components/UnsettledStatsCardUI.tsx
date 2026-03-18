@@ -4,6 +4,7 @@ import { AlertCircle, Briefcase, CheckCircle2, ChevronRight, Wallet } from 'luci
 
 import { type Account } from '@/domains/account/types/account';
 import { type Portfolio } from '@/domains/portfolio/types/portfolio';
+import { type Project } from '@/domains/project/schemas';
 import { Badge } from '@/ui/components/ui/badge';
 import { Button } from '@/ui/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/ui/components/ui/card';
@@ -13,6 +14,7 @@ export interface UnsettledStats {
   month: number;
   unsettledAccounts: Account[];
   unsettledPortfolios: Portfolio[];
+  unsettledProjects: Project[];
   totalUnsettled: number;
 }
 
@@ -31,11 +33,12 @@ const UnsettledStatsCardUI: React.FC<UnsettledStatsCardUIProps> = ({ stats, load
   }
 
   const now = new Date();
-  const { year, month, unsettledAccounts, unsettledPortfolios, totalUnsettled } = stats ?? {
+  const { year, month, unsettledAccounts, unsettledPortfolios, unsettledProjects, totalUnsettled } = stats ?? {
     year: now.getFullYear(),
     month: now.getMonth() + 1,
     unsettledAccounts: [],
     unsettledPortfolios: [],
+    unsettledProjects: [],
     totalUnsettled: 0,
   };
 
@@ -106,6 +109,28 @@ const UnsettledStatsCardUI: React.FC<UnsettledStatsCardUIProps> = ({ stats, load
               />
             </div>
             <p className="text-[10px] text-slate-400">尚未建立投資組合快照</p>
+          </div>
+
+          {/* Projects */}
+          <div className="flex flex-col gap-2 p-3 rounded-xl bg-white border border-slate-100 shadow-sm">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-slate-500">
+                <AlertCircle size={16} />
+                <span className="text-xs font-medium uppercase tracking-wider">專案</span>
+              </div>
+              <span
+                className={`text-lg font-bold ${unsettledProjects.length > 0 ? 'text-amber-600' : 'text-slate-400'}`}
+              >
+                {unsettledProjects.length}
+              </span>
+            </div>
+            <div className="h-1 bg-slate-100 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-amber-500 transition-all duration-500"
+                style={{ width: `${unsettledProjects.length > 0 ? 100 : 0}%` }}
+              />
+            </div>
+            <p className="text-[10px] text-slate-400">尚未建立專案結算</p>
           </div>
         </div>
 

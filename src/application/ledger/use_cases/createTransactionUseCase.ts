@@ -1,6 +1,6 @@
+import { type TransactionCreate } from '@/domains/ledger/schemas';
 import { LedgerValidator } from '@/domains/ledger/validator';
 import { transactionRepository } from '@/infra/repositories/transactionRepository';
-import { type TransactionCreate } from '@/infra/schemas/ledger';
 
 export interface CreateTransactionRequest {
   householdId: string;
