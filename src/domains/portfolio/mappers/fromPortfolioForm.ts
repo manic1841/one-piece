@@ -1,6 +1,4 @@
-import { type PortfolioCreate } from '@/schemas';
-
-import { type PortfolioFormData } from '../types';
+import { type PortfolioCreate, type PortfolioFormData } from '../types';
 
 export const fromPortfolioForm = (formData: PortfolioFormData): PortfolioCreate => {
   return {

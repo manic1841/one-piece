@@ -1,10 +1,8 @@
 import { Timestamp } from 'firebase/firestore';
 import { describe, expect, it } from 'vitest';
 
-import { AssetSubCategory, IncomeSubCategory, ReportType } from '@/domains/finance/types';
-import { type RetirementPlan } from '@/domains/retirement/types';
-import { RetirementIncomeType } from '@/domains/retirement/types/categories';
-
+import { ReportType } from '../../report/schemas';
+import { RetirementIncomeType, type RetirementPlan } from '../types';
 import {
   calculateExpenseSuggestion,
   calculateIncomeImportMetadata,
@@ -25,6 +23,7 @@ describe('retirementPlanLogic', () => {
       expect(result?.baseAmount).toBe(18000);
       expect(result?.name).toBe('Household');
       expect(result?.sourceProjectId).toBe('p1');
+      expect(result?.retirementMultiplier).toBe(0.7);
     });
 
     it('should return null if snapshots are empty', () => {
@@ -57,6 +56,7 @@ describe('retirementPlanLogic', () => {
       // (100000 / 12) * 12 = 100000
       expect(salary?.baseAmount).toBe(100000);
       expect(salary?.calculatedFrom?.sampleCount).toBe(2);
+      expect(salary?.importedFrom).toBe('plannedIncome');
     });
   });
 
@@ -84,43 +84,56 @@ describe('retirementPlanLogic', () => {
   });
 
   describe('processAutoUpdate', () => {
-    const plan: RetirementPlan = {
+    const plan = {
       id: 'plan-1',
+      householdId: 'household-1',
+      name: 'Plan',
+      isActive: true,
+      autoUpdate: true,
+      createdBy: 'u1',
+      updatedBy: 'u1',
+      createdAt: new Date(),
+      updatedAt: new Date(),
       currentSavings: 10000,
       currentYear: 2024,
+      birthYear: 1990,
+      retirementAge: 60,
+      lifeExpectancy: 90,
+      salaryGrowthRate: 3,
+      inflationRate: 2,
+      investmentReturnRate: 5,
       incomes: [
         {
           id: 'i1',
           type: RetirementIncomeType.SALARY,
           baseAmount: 120000,
+          name: 'Salary',
+          importedFrom: 'manual',
+          growthRate: 3,
+          startYear: 2024,
+          endYear: 2060,
           calculatedFrom: { sampleCount: 12 },
         } as any,
       ],
-    } as any;
+      expenses: [],
+      events: [],
+    } as RetirementPlan;
 
     const reports = [
       {
         type: ReportType.BALANCE_SHEET,
-        year: 2025,
-        month: 1,
+        yearMonth: '2025-01',
         data: {
           assets: {
-            items: [
-              { category: AssetSubCategory.CASH, amount: 20000 },
-              { category: AssetSubCategory.INVESTMENTS, amount: 30000 },
-              { category: AssetSubCategory.OTHERS, amount: 10000 },
-            ],
+            total: 50000,
           },
         },
       } as any,
       {
         type: ReportType.INCOME_STATEMENT,
-        year: 2025,
-        month: 1,
+        yearMonth: '2025-01',
         data: {
-          revenue: {
-            items: [{ category: IncomeSubCategory.SALARY, amount: 10000 }],
-          },
+          incomeItems: [{ code: 'salary.base', amount: 10000 }],
         },
       } as any,
     ];
@@ -131,15 +144,16 @@ describe('retirementPlanLogic', () => {
       const result = processAutoUpdate(plan, reports, latestPeriod);
 
       expect(result.currentYear).toBe(2025);
-      // Liquid assets: 20000 + 30000 = 50000
       expect(result.currentSavings).toBe(50000);
 
-      // Salary: avg is 10000 (only 1 report provided but logic divides by 12)
-      // Actually the mock has 1 IS report with 10k. totalSalary = 10k. monthlySalaryAvg = 10k/12.
-      // Wait, the logic in processAutoUpdate does: totalSalary / 12.
-      // So if I only have 1 report with 10k, avg is 10k/12.
-      // annualBase = (10000/12) * 12 = 10000.
-      expect(result.incomes[0].baseAmount).toBe(10000);
+      expect(result.incomes[0].baseAmount).toBe(120000);
+    });
+
+    it('should keep existing savings when matching balance sheet is missing', () => {
+      const result = processAutoUpdate(plan, [], latestPeriod);
+
+      expect(result.currentYear).toBe(2025);
+      expect(result.currentSavings).toBe(10000);
     });
   });
 });

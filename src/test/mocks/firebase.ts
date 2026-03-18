@@ -1,255 +1,62 @@
+import { initializeApp } from 'firebase/app';
+import { connectAuthEmulator, getAuth } from 'firebase/auth';
+import { connectFirestoreEmulator, doc, getFirestore } from 'firebase/firestore';
 import { vi } from 'vitest';
 
-// --- In-Memory DB Logic ---
-interface MockDoc {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  [key: string]: any;
-}
-export const mockDb: Record<string, MockDoc> = {};
-
-// Helper to reset the DB
-export const resetMockDb = () => {
-  for (const key in mockDb) delete mockDb[key];
+const firebaseConfig = {
+  apiKey: 'AIzaSyCm6Bu5ibGuY-oQXYMeprq0FV9lhy3EFKo',
+  authDomain: 'one-piece-4e822.firebaseapp.com',
+  projectId: 'one-piece-4e822',
+  storageBucket: 'one-piece-4e822.firebasestorage.app',
+  messagingSenderId: '829742952504',
+  appId: '1:829742952504:web:b393e78707ecd29ea276cd',
 };
 
-// Helper to filter docs
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const filterDocs = (collectionPath: string, constraints: any[]) => {
-  return Object.entries(mockDb)
-    .filter(([path]) => {
-      // Simple check: is it a direct child of the collection?
-      if (!path.startsWith(collectionPath + '/')) {
-        return false;
-      }
-      const rest = path.slice(collectionPath.length + 1);
-      return !rest.includes('/');
-    })
-    .map(([path, data]) => ({ ...data, id: path.split('/').pop() }))
-    .filter((doc) => {
-      if (!constraints || constraints.length === 0) return true;
-      return constraints.every((c) => {
-        if (c.type === 'where') {
-          const { field, op, value } = c;
-          const docValue = doc[field];
+const app = initializeApp(firebaseConfig);
+export const db = getFirestore(app);
+export const auth = getAuth(app);
 
-          // --- Improved Date/Timestamp Handling ---
-          // normalize to millis if possible
-          let docTime: number | undefined;
-          let valTime: number | undefined;
+// Connect to Emulators
+connectFirestoreEmulator(db, '127.0.0.1', 8080);
+connectAuthEmulator(auth, 'http://127.0.0.1:9099');
 
-          if (docValue && typeof docValue.toDate === 'function') {
-            docTime = docValue.toDate().getTime();
-          } else if (docValue instanceof Date) {
-            docTime = docValue.getTime();
-          }
+// Mock @/firebase to return the emulator-connected instances
+vi.mock('@/firebase', () => ({
+  db,
+  auth,
+}));
 
-          if (value && typeof value.toDate === 'function') {
-            valTime = value.toDate().getTime();
-          } else if (value instanceof Date) {
-            valTime = value.getTime();
-          }
-
-          if (docTime !== undefined && valTime !== undefined) {
-            if (op === '>=') return docTime >= valTime;
-            if (op === '<=') return docTime <= valTime;
-            if (op === '==') return docTime === valTime;
-            if (op === '>') return docTime > valTime;
-            if (op === '<') return docTime < valTime;
-          }
-          // --- End Date Handling ---
-
-          if (op === '==') return docValue === value;
-          if (op === '>=') return docValue >= value;
-          if (op === '<=') return docValue <= value;
-          if (op === '>') return docValue > value;
-          if (op === '<') return docValue < value;
-          if (op === 'array-contains') return Array.isArray(docValue) && docValue.includes(value);
-          return true;
-        }
-        return true;
-      });
-    })
-    .sort((a, b) => {
-      // Find orderBy constraint
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const sortC = constraints.find((c: any) => c.type === 'orderBy');
-      if (sortC) {
-        const { field, dir } = sortC;
-        const va = a[field];
-        const vb = b[field];
-        // Handle Timestamps
-        const valA = va && typeof va.toDate === 'function' ? va.toDate().getTime() : va;
-        const valB = vb && typeof vb.toDate === 'function' ? vb.toDate().getTime() : vb;
-
-        if (valA < valB) return dir === 'desc' ? 1 : -1;
-        if (valA > valB) return dir === 'desc' ? -1 : 1;
-        return 0;
-      }
-      return 0;
-    });
+// Provide a way to reset the DB for tests
+export const resetMockDb = async () => {
+  // Clearing the emulator database can be done by deleting all collections.
+  // For a more robust solution, we can use the emulator's clear data endpoint.
+  const projectId = 'one-piece-4e822';
+  try {
+    await fetch(
+      `http://127.0.0.1:8080/emulator/v1/projects/${projectId}/databases/(default)/documents`,
+      { method: 'DELETE' },
+    );
+  } catch (err) {
+    console.error('Failed to reset emulator DB:', err);
+  }
 };
 
-// Mock Firebase App
-vi.mock('firebase/app', async () => {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  if ((globalThis as any).process?.env?.VITE_USE_REAL_DB === 'true') {
-    return await vi.importActual('firebase/app');
-  }
-  return {
-    initializeApp: vi.fn(),
-  };
-});
-
-// Mock Firebase Firestore
-vi.mock('firebase/firestore', async () => {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  if ((globalThis as any).process?.env?.VITE_USE_REAL_DB === 'true') {
-    return await vi.importActual('firebase/firestore');
-  }
-  const actual = await vi.importActual('firebase/firestore');
-
-  return {
-    ...actual,
-    getFirestore: vi.fn(),
-    collection: vi.fn((db, ...pathSegments) => ({
-      type: 'collection',
-      path: pathSegments.join('/'),
-    })),
-    doc: vi.fn((refOrDb, ...pathSegments) => {
-      if (refOrDb.type === 'collection') {
-        const id =
-          pathSegments.length > 0
-            ? pathSegments[0]
-            : 'new-id-' + Math.random().toString(36).substring(2, 9);
-        return { id, path: refOrDb.path + '/' + id };
-      }
-      const path = pathSegments.join('/');
-      return { id: pathSegments[pathSegments.length - 1], path };
-    }),
-    getDoc: vi.fn(async (ref) => ({
-      exists: () => !!mockDb[ref.path],
-      data: () => mockDb[ref.path],
-      id: ref.id,
-    })),
-    getDocs: vi.fn(async (queryOrRef) => {
-      let path = '';
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      let constraints: any[] = [];
-
-      if (queryOrRef.type === 'collection') {
-        path = queryOrRef.path;
-      } else if (queryOrRef.type === 'query') {
-        path = queryOrRef.source.path;
-        constraints = queryOrRef.constraints;
-      }
-
-      const docs = filterDocs(path, constraints);
-
-      return {
-        empty: docs.length === 0,
-        docs: docs.map((d) => ({
-          id: d.id,
-          data: () => d,
-        })),
-        size: docs.length,
-      };
-    }),
-    setDoc: vi.fn(async (ref, data) => {
-      mockDb[ref.path] = data;
-    }),
-    updateDoc: vi.fn(async (ref, data) => {
-      mockDb[ref.path] = { ...mockDb[ref.path], ...data };
-    }),
-    deleteDoc: vi.fn(async (ref) => {
-      delete mockDb[ref.path];
-    }),
-    addDoc: vi.fn(async (ref, data) => {
-      const newId = 'new-id-' + Math.random().toString(36).substring(2, 9);
-      const path = ref.path + '/' + newId;
-      mockDb[path] = data;
-      return { id: newId, path };
-    }),
-    query: vi.fn((collectionRef, ...constraints) => ({
-      type: 'query',
-      source: collectionRef,
-      constraints,
-    })),
-    where: vi.fn((field, op, value) => ({ type: 'where', field, op, value })),
-    orderBy: vi.fn((field, dir = 'asc') => ({ type: 'orderBy', field, dir })),
-    limit: vi.fn((limitVal) => ({ type: 'limit', value: limitVal })),
-    startAfter: vi.fn(),
-    arrayUnion: vi.fn((...args) => args),
-    arrayRemove: vi.fn((...args) => args),
-    serverTimestamp: vi.fn(() => ({
-      toDate: () => new Date(),
-      seconds: Math.floor(Date.now() / 1000),
-      nanoseconds: (Date.now() % 1000) * 1000000,
-    })),
-    runTransaction: vi.fn(async (db, callback) => {
-      const transaction = {
-        get: async (ref: { path: string; id: string }) => ({
-          exists: () => !!mockDb[ref.path],
-          data: () => mockDb[ref.path],
-          id: ref.id,
-        }),
-        set: (ref: { path: string }, data: unknown) => {
-          mockDb[ref.path] = data as MockDoc;
-        },
-        update: (ref: { path: string }, data: unknown) => {
-          mockDb[ref.path] = { ...(mockDb[ref.path] as object), ...(data as object) };
-        },
-        delete: (ref: { path: string }) => {
-          delete mockDb[ref.path];
-        },
-      };
-      return callback(transaction);
-    }),
-    Timestamp: class {
-      seconds: number;
-      nanoseconds: number;
-
-      constructor(seconds: number, nanoseconds: number) {
-        this.seconds = seconds;
-        this.nanoseconds = nanoseconds;
-      }
-
-      toDate() {
-        return new Date(this.seconds * 1000 + this.nanoseconds / 1000000);
-      }
-
-      toMillis() {
-        return this.seconds * 1000 + this.nanoseconds / 1000000;
-      }
-
-      static now() {
-        // Return a new timestamp representing the current time
-        const now = Date.now();
-        return new this(Math.floor(now / 1000), (now % 1000) * 1000000);
-      }
-
-      static fromDate(date: Date) {
-        return new this(Math.floor(date.getTime() / 1000), (date.getTime() % 1000) * 1000000);
-      }
-
-      static fromMillis(millis: number) {
-        return new this(Math.floor(millis / 1000), (millis % 1000) * 1000000);
-      }
-
-      static fromSeconds(seconds: number) {
-        return new this(seconds, 0);
-      }
+// Compatibility export for tests that might still try to use mockDb directly
+// Note: This is now a proxy or just a placeholder; tests should move to using real SDK calls or repositories.
+export const mockDb: Record<string, unknown> = new Proxy(
+  {},
+  {
+    set: (_target, path, value) => {
+      // This is a bit of a hack to keep legacy tests working if they assign to mockDb.
+      // However, since it's an async operation, it might not behave as expected in all tests.
+      const segments = (path as string).split('/');
+      const docRef = doc(db, segments[0], ...segments.slice(1));
+      import('firebase/firestore').then(({ setDoc }) => setDoc(docRef, value));
+      return true;
     },
-  };
-});
-
-// Mock local firebase config
-vi.mock('@/firebase', async () => {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  if ((globalThis as any).process?.env?.VITE_USE_REAL_DB === 'true') {
-    return await vi.importActual('@/firebase');
-  }
-  return {
-    db: {},
-    auth: {},
-  };
-});
+    get: () => {
+      // Returns undefined to signal it's not a real DB access point
+      return undefined;
+    },
+  },
+);

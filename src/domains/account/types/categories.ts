@@ -2,7 +2,7 @@
 export const AccountCategory = {
   BANK: 'bank',
   CASH: 'cash',
-  INVESTMENT: 'investment',
+  SECURITIES: 'securities',
   OTHER: 'other',
 } as const;
 

@@ -1,14 +1,17 @@
 import { describe, expect, it } from 'vitest';
 
-import { RetirementPlan } from '../../../schemas/retirementPlan';
+import { type RetirementPlan } from '../types';
 import { calculateProjectionSummary, calculateRetirementProjection } from './retirementCalculator';
 
 describe('retirementCalculator', () => {
-  const mockPlan: RetirementPlan = {
+  const mockPlan = {
     id: 'test-plan',
     name: 'Test Plan',
+    householdId: 'household-1',
+    autoUpdate: false,
     isActive: true,
     createdBy: 'user1',
+    updatedBy: 'user1',
     createdAt: new Date(),
     updatedAt: new Date(),
     currentYear: 2025,
@@ -42,13 +45,14 @@ describe('retirementCalculator', () => {
       },
     ],
     events: [],
-  };
+  } as RetirementPlan;
 
   it('should calculate projection for basic scenario', () => {
     const projection = calculateRetirementProjection(mockPlan);
-    expect(projection).toHaveLength(
-      mockPlan.lifeExpectancy - (mockPlan.currentYear - mockPlan.birthYear) + 1,
-    );
+    const expectedLength =
+      mockPlan.lifeExpectancy - (mockPlan.currentYear - mockPlan.birthYear) + 1;
+
+    expect(projection).toHaveLength(expectedLength);
 
     // Check first year
     const firstYear = projection[0];
@@ -71,7 +75,7 @@ describe('retirementCalculator', () => {
   });
 
   it('should handle one-time events', () => {
-    const planWithEvents: RetirementPlan = {
+    const planWithEvents = {
       ...mockPlan,
       events: [
         {
@@ -89,7 +93,7 @@ describe('retirementCalculator', () => {
           name: 'Inheritance',
         },
       ],
-    };
+    } as RetirementPlan;
 
     const projection = calculateRetirementProjection(planWithEvents);
 
@@ -112,7 +116,7 @@ describe('retirementCalculator', () => {
   });
 
   it('should detect bankruptcy', () => {
-    const poorPlan: RetirementPlan = {
+    const poorPlan = {
       ...mockPlan,
       currentSavings: 0,
       incomes: [], // No income
@@ -127,7 +131,7 @@ describe('retirementCalculator', () => {
           endYear: null,
         },
       ],
-    };
+    } as RetirementPlan;
 
     const projection = calculateRetirementProjection(poorPlan);
     const summary = calculateProjectionSummary(projection, poorPlan);

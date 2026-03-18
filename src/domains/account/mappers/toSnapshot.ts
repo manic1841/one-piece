@@ -2,6 +2,7 @@ import { type AccountSnapshotCreate, type AccountSnapshotFormData } from '@/doma
 
 export const toSnapshot = (data: AccountSnapshotFormData): AccountSnapshotCreate => {
   return {
+    accountId: data.accountId,
     year: parseInt(data.year),
     month: parseInt(data.month),
     amount: parseFloat(data.amount),

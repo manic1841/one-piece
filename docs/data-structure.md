@@ -25,7 +25,7 @@ firestore
        │    ├─ name: string
        │    └─ role: "owner" | "admin" | "member" | "guest"
 
-       ├─ projects/{projectId}       # 專案帳戶
+       ├─ projects/{projectId}       # 專案帳戶 (Management Accounting)
        │    ├─ name: string
        │    ├─ color: string
        │    ├─ icon: string
@@ -35,7 +35,7 @@ firestore
        │    ├─ createdAt: Timestamp
        │    └─ updatedAt: Timestamp
        │
-       │    └─ snapshots/{snapshotId}  # Subcollection: 每月快照
+       │    └─ snapshots/{snapshotId}  # Subcollection: 每月預算快照
        │         ├─ year: number
        │         ├─ month: number
        │         ├─ openingBalance: number
@@ -43,205 +43,83 @@ firestore
        │         ├─ expense: number
        │         ├─ closingBalance: number
        │         └─ createdAt: Timestamp
-       │         # 🔹 建議索引: year DESC, month DESC
 
-       ├─ projectTransactions/{transactionId}  # 專案資金調度
-       │    ├─ date: Timestamp
-       │    ├─ type: "allocation" | "transfer" | "adjustment"
-       │    ├─ fromProject: string (nullable)
-       │    ├─ toProject: string
-       │    ├─ amount: number
-       │    ├─ description: string
-       │    ├─ incomeSource: string
-       │    ├─ createdBy: string
-       │    └─ createdAt: Timestamp
-       │    # 🔹 建議索引: toProject, date DESC | fromProject, date DESC
+       ├─ accounts/{accountId}           # 實體帳戶 (Bank/Securities Accounts)
+       │    ├─ name: string
+       │    ├─ category: "bank" | "securities" | "cash"
+       │    ├─ currency: string
+       │    ├─ order: number
+       │    │
+       │    └─ snapshots/{snapshotId}    # Subcollection: 每月餘額與持倉
+       │         ├─ year: number
+       │         ├─ month: number
+       │         ├─ amount: number       # 總餘額 (折合本位幣)
+       │         ├─ originalAmount: number # 原始幣別金額
+       │         ├─ exchangeRate: number
+       │         ├─ holdings: array      # 證券持倉詳情 (symbol, quantity, cost, etc.)
+       │         └─ createdAt: Timestamp
 
-       ├─ transactions/{transactionId}         # 日常交易
-       │    ├─ date: Timestamp
-       │    ├─ amount: number
-       │    ├─ type: "income" | "expense"
-       │    ├─ projectId: string
-       │    ├─ category: string
-       │    ├─ description: string
-       │    ├─ createdBy: string
-       │    └─ createdAt: Timestamp
-       │    # 🔹 建議索引: projectId, date DESC | date DESC
+       ├─ portfolios/{portfolioId}       # 投資組合 (Investment Tracking)
+       │    ├─ name: string
+       │    ├─ isActive: boolean
+       │    │
+       │    └─ snapshots/{snapshotId}    # Subcollection: 每月持倉快照
+       │         ├─ year: number
+       │         ├─ month: number
+       │         ├─ holdings: array
+       │         └─ totalValue: number
 
-       ├─ plannedIncome/{incomeId}            # 計劃收入與分配
-       │    ├─ date: Timestamp
-       │    ├─ amount: number
-       │    ├─ category: "salary" | "bonus" | "other"
-       │    ├─ description: string
-       │    ├─ createdBy: string
-       │    ├─ createdAt: Timestamp
-       │    ├─ allocations: array              # 預設分配比例
+       ├─ retirement_plans/{planId}      # 退休規劃
+       │    ├─ name: string
+       │    ├─ expenses: array
+       │    ├─ incomes: array
+       │    └─ settings: object
+
+       ├─ allocations/{allocationId}     # 專案資金分配
+       │    ├─ transactionId: string
+       │    ├─ yearMonth: string         # YYYY-MM
+       │    ├─ totalAmount: number
+       │    ├─ items: array
        │    │    ├─ projectId: string
        │    │    ├─ percentage: number
-       │    │    └─ lastUsedAmount?: number
-       │    └─ userSettings: object            # 使用者調整
-       │         ├─ modifiedAt?: Timestamp
-       │         └─ adjustedAllocations?: array
-       │              ├─ projectId: string
-       │              └─ percentage: number
+       │    │    └─ amount: number
+       │    └─ projectIds: string[]      # 索引最佳化
 
-       ├─ accounts/{accountId}                # 銀行/投資帳戶
-       │    ├─ name: string
-       │    ├─ type: "bank" | "cash" | "investment" | "loan" | "other"
-       │    ├─ currency: string
-       │    ├─ isActive: boolean
-       │    ├─ createdAt: Timestamp
-       │    ├─ updatedAt: Timestamp
-       │    └─ holdings: array (optional)     # 投資帳戶的持倉
-       │         ├─ symbol: string
-       │         ├─ name: string
-       │         ├─ shares: number
-       │         ├─ averageCost: number
-       │         └─ type: "stock" | "etf" | "bond"
-       │
-       │    └─ snapshots/{snapshotId}         # Subcollection: 每月餘額快照
-       │         ├─ year: number
-       │         ├─ month: number
-       │         ├─ amount: number
-       │         ├─ createdBy: string
-       │         └─ createdAt: Timestamp
-       │         # 🔹 建議索引: year DESC, month DESC
-
-       ├─ portfolios/{portfolioId}            # 投資組合（帳戶群組）
-       │    ├─ name: string
+       ├─ transactions/{transactionId}   # 原始交易記錄 (Source Documents)
+       │    ├─ date: Timestamp
+       │    ├─ amount: number
        │    ├─ description: string
-       │    ├─ accountIds: string[]           # 包含的帳戶
-       │    ├─ isActive: boolean
+       │    ├─ intentType: string
+       │    ├─ entries: array (JournalEntryLine) # 包含 ledgerCode 與 accountId 的分錄
+       │    ├─ projectId?: string
+       │    ├─ createdBy: string
        │    ├─ createdAt: Timestamp
-       │    └─ updatedAt: Timestamp
-       │
-       │    └─ snapshots/{snapshotId}         # Subcollection: 每月績效快照
-       │         ├─ year: number
-       │         ├─ month: number
-       │         ├─ accounts: array            # 該時點各帳戶狀態
-       │         │    ├─ accountId: string
-       │         │    ├─ accountName: string
-       │         │    ├─ type: string
-       │         │    ├─ value: number
-       │         │    └─ holdings: array (optional)
-       │         ├─ totalValue: number
-       │         ├─ cashFlow: object
-       │         │    ├─ deposits: number
-       │         │    └─ withdrawals: number
-       │         ├─ performance: object
-       │         │    ├─ openingValue: number
-       │         │    ├─ closingValue: number
-       │         │    ├─ netCashFlow: number
-       │         │    ├─ gain: number
-       │         │    ├─ returnRate: number
-       │         │    ├─ cumulativeGain: number
-       │         │    └─ cumulativeReturnRate: number
-       │         ├─ createdAt: Timestamp
-       │         └─ createdBy: string
+       │    ├─ ledgerCodes: string[]      # 索引最佳化 (用於報表查詢)
 
-       └─ retirementPlans/{planId}            # 退休規劃方案
-            ├─ name: string
-            ├─ isActive: boolean
-            ├─ createdBy: string
-            ├─ createdAt: Timestamp
-            ├─ updatedAt: Timestamp
-            │
-            ├─ # === Assumptions（規劃假設）===
-            ├─ currentYear: number
-            ├─ currentAge: number
-            ├─ retirementAge: number
-            ├─ lifeExpectancy: number
-            ├─ currentSavings: number
-            ├─ salaryGrowthRate: number       # 薪資成長率 (%)
-            ├─ inflationRate: number          # 通膨率 (%)
-            ├─ investmentReturnRate: number   # 投資報酬率 (%)
-            │
-            ├─ # === Data Collections（內嵌陣列）===
-            ├─ incomes: array                 # 收入來源
-            │    ├─ id: string
-            │    ├─ name: string
-            │    ├─ type: "salary" | "bonus" | "pension" | "rent" | "other"
-            │    ├─ startYear: number
-            │    ├─ endYear: number
-            │    ├─ baseAmount: number        # 起始年度金額
-            │    ├─ growthRate: number        # 成長率 (%)
-            │    └─ note: string
-            │
-            ├─ expenses: array                # 支出類別
-            │    ├─ id: string
-            │    ├─ name: string
-            │    ├─ sourceProjectId: string   # 來源專案（若匯入）
-            │    ├─ baseAmount: number        # 年度金額
-            │    ├─ growthRate: number        # 成長率 (%)
-            │    ├─ retirementMultiplier: number  # 退休後乘數（0.7 = 70%）
-            │    ├─ startYear: number
-            │    ├─ endYear: number | null    # null = 終身
-            │    └─ note: string
-            │
-            ├─ events: array                  # 一次性事件
-            │    ├─ id: string
-            │    ├─ year: number
-            │    ├─ type: "income" | "expense"
-            │    ├─ amount: number
-            │    ├─ name: string
-            │    └─ note: string
-            │
-            ├─ importSettings: object (optional)  # 匯入設定
-            │    ├─ fromProjects: boolean
-            │    ├─ importDate: Timestamp
-            │    ├─ referenceMonths: number
-            │    └─ projectMappings: Record<string, string>
-            │
-            └─ summary: object (optional)     # 計算結果快取
-                 ├─ retirementYear: number
-                 ├─ savingsAtRetirement: number
-                 ├─ minSavings: number
-                 ├─ minSavingsYear: number
-                 ├─ isBankrupt: boolean
-                 └─ lastCalculatedAt: Timestamp
+       └─ reports/{reportId}             # 財務報表快照
+            ├─ year: number
+            ├─ month: number
+            ├─ type: "income_statement" | "balance_sheet" | "cash_flow"
+            ├─ data: object
+            └─ generatedAt: Timestamp
 ```
-
-## Schema 檔案對應
-
-| Collection            | Schema File         | Notes          |
-| --------------------- | ------------------- | -------------- |
-| `users`               | `core.ts`           | 使用者基本資料 |
-| `households`          | `core.ts`           | 家庭與成員管理 |
-| `projects`            | `project.ts`        | 專案帳戶與快照 |
-| `projectTransactions` | `allocation.ts`     | 資金調度記錄   |
-| `transactions`        | `transaction.ts`    | 日常收支交易   |
-| `plannedIncome`       | `plannedIncome.ts`  | 收入分配計畫   |
-| `accounts`            | `account.ts`        | 銀行/投資帳戶  |
-| `portfolios`          | `portfolio.ts`      | 投資組合與績效 |
-| `retirementPlans`     | `retirementPlan.ts` | 退休規劃方案   |
 
 ## 設計注意事項
 
-### 1. **Retirement Planning System**（退休規劃系統）
+### 1. **Management vs Financial Accounting**
 
-- 使用內嵌陣列而非 subcollections，因個人計畫資料量小
-- 優點：減少讀取次數、易於複製、簡化同步
-- 資料匯入：從 `projects` snapshots 與 `plannedIncome` 自動匯入
-- 計算邏輯：前端即時計算，僅快取摘要結果
+- **Management Accounting (專案)**: 用於預算管理、目標追蹤（`projects/`）。
+- **Financial Accounting (複式簿記)**: 記帳邏輯以 `transactions` 中的 `entries` 為主。
+- **Ledger Codes**: 會計科目不再是獨立的文檔集合，而是具備層級關係的字串標記（如 `asset:cash:bank_a`）。
 
-### 2. **Portfolio System**（投資組合系統）
+### 2. **Source Document Pattern**
 
-- `portfolios` 是帳戶的邏輯分組（如「退休帳戶」、「教育基金」）
-- Snapshots 記錄完整的帳戶狀態與績效指標
-- 支援淨現金流、收益率、累積收益等計算
+- `transactions` 集合儲存使用者的原始輸入（意圖）以及產生的會計分錄（entries）。
 
-### 3. **Account Holdings**（帳戶持倉）
+### 3. **Asset & Valuation**
 
-- 投資帳戶的 `holdings` 陣列記錄股票/ETF/債券持倉
-- Snapshots 保留歷史持倉狀況，用於績效追蹤
+- **資產主要依據 `accounts/snapshots` 取得**: 實體帳戶的金額與持倉即為資產最準確的來源。
+- **移除舊有無效集合**: 移除 `asset` (資產)、`market_price` (市場價格)、`bankstatement` (對帳單) 以及獨立的 `journalentry`。
 
-### 4. **索引建議**
-
-- 所有依時間查詢的 collection 建議建立複合索引
-- 常見查詢路徑：`(householdId, date DESC)` 或 `(projectId, date DESC)`
-- Snapshots 建議索引：`(year DESC, month DESC)`
-
-### 5. **IncomeStatement**（損益表） - 計算型資料
-
-- 不儲存在 Firestore，由前端從 `transactions` 與 `projects` 計算
-- Schema 定義於 `incomeStatement.ts`，僅用於型別驗證
+### 4. **Retirement Planning**
+- 退休規劃資料獨立存儲於 `retirement_plans`。

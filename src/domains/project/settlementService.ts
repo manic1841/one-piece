@@ -1,0 +1,120 @@
+import { projectRepository } from '@/infra/repositories/projectRepository';
+import { transactionRepository } from '@/infra/repositories/transactionRepository';
+import { allocationRepository } from '@/infra/repositories/allocationRepository';
+import { type ProjectSnapshotCreate } from './schemas';
+
+export class SettlementService {
+  /**
+   * Recalculate and save snapshots for all active projects for a given month.
+   */
+  async settleMonth(
+    householdId: string,
+    yearMonth: string,
+    userEmail: string,
+  ): Promise<void> {
+    const projects = await projectRepository.getProjects(householdId);
+    
+    for (const project of projects) {
+      const snapshot = await this.recalculateSnapshot(householdId, project.id, yearMonth);
+      await projectRepository.saveSnapshot(householdId, project.id, snapshot, userEmail);
+    }
+  }
+
+  /**
+   * Pre-calculate snapshots for all projects for preview purposes.
+   */
+  async calculateAllSettlements(
+    householdId: string,
+    projects: { id: string; name: string }[],
+    year: number,
+    month: number
+  ): Promise<(ProjectSnapshotCreate & { projectId: string; projectName: string })[]> {
+    const yearMonth = `${year}-${month.toString().padStart(2, '0')}`;
+    const previews = [];
+    
+    for (const project of projects) {
+      const snapshot = await this.recalculateSnapshot(householdId, project.id, yearMonth);
+      previews.push({
+        projectId: project.id,
+        projectName: project.name,
+        ...snapshot
+      });
+    }
+    
+    return previews;
+  }
+
+  /**
+   * Calculate the snapshot for a specific project and month.
+   */
+  async recalculateSnapshot(
+    householdId: string,
+    projectId: string,
+    yearMonth: string
+  ): Promise<ProjectSnapshotCreate> {
+    const [year, month] = yearMonth.split('-').map(Number);
+    
+    // 1. Get opening balance from previous month
+    const prevYearMonth = this.getPreviousYearMonth(year, month);
+    const prevSnapshot = await projectRepository.getSnapshot(householdId, projectId, prevYearMonth);
+    const openingBalance = prevSnapshot?.closingBalance ?? 0;
+
+    // 2. Get Income: Allocations + PROJECT_TRANSFER to this project
+    const [allocations, transfers] = await Promise.all([
+      allocationRepository.getAllocationsByMonth(householdId, yearMonth),
+      transactionRepository.getProjectTransfers(householdId, yearMonth)
+    ]);
+
+    const incomeFromAllocations = allocations
+      .flatMap(a => a.items)
+      .filter(item => item.projectId === projectId)
+      .reduce((sum, item) => sum + item.amount, 0);
+
+    const incomeFromTransfers = transfers
+      .filter(t => t.toProjectId === projectId)
+      .reduce((sum, t) => sum + (t.amount || 0), 0);
+
+    const totalIncome = incomeFromAllocations + incomeFromTransfers;
+
+    // 3. Get Expense: Transactions (EXPENSE/REFUND) + PROJECT_TRANSFER from this project
+    const projectTransactions = await transactionRepository.getTransactionsByProject(householdId, projectId, yearMonth);
+    
+    // Note: Transaction intent types can be EXPENSE, REFUND, etc.
+    // REFUND should likely be negative expense or positive income? 
+    // In many systems REFUND reduces expense.
+    const directExpenses = projectTransactions.reduce((sum, t) => {
+      if (t.intentType === 'REFUND') return sum - (t.amount || 0);
+      return sum + (t.amount || 0);
+    }, 0);
+
+    const expenseFromTransfers = transfers
+      .filter(t => t.fromProjectId === projectId)
+      .reduce((sum, t) => sum + (t.amount || 0), 0);
+
+    const totalExpense = directExpenses + expenseFromTransfers;
+
+    // 4. Calculate closing balance
+    const closingBalance = openingBalance + totalIncome - totalExpense;
+
+    return {
+      year,
+      month,
+      openingBalance,
+      income: totalIncome,
+      expense: totalExpense,
+      closingBalance,
+    };
+  }
+
+  private getPreviousYearMonth(year: number, month: number): string {
+    let pYear = year;
+    let pMonth = month - 1;
+    if (pMonth === 0) {
+      pMonth = 12;
+      pYear -= 1;
+    }
+    return `${pYear}-${pMonth.toString().padStart(2, '0')}`;
+  }
+}
+
+export const settlementService = new SettlementService();

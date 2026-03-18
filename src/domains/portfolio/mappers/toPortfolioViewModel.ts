@@ -1,4 +1,4 @@
-import { formatYearMonth } from '@/utils/dateUtils';
+import { formatYearMonth } from '@/ui/utils';
 
 import {
   type Portfolio,
@@ -20,6 +20,7 @@ export const toPortfolioListItemViewModel = (
       ? formatYearMonth(latestSnapshot.year, latestSnapshot.month)
       : undefined,
     accountCount: portfolio.accountIds.length,
+    isActive: portfolio.isActive,
     order: portfolio.order || 0,
   };
 };

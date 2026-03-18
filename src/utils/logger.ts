@@ -1,7 +1,12 @@
-type LogLevel = 'info' | 'warn' | 'error' | 'debug';
+﻿export const LogLevel = {
+  INFO: 'info',
+  WARN: 'warn',
+  ERROR: 'error',
+  DEBUG: 'debug',
+} as const;
 
 interface LogEntry {
-  level: LogLevel;
+  level: (typeof LogLevel)[keyof typeof LogLevel];
   message: string;
   context?: string;
   metadata?: Record<string, unknown>;
@@ -20,24 +25,13 @@ class Logger {
   }
 
   private log(entry: LogEntry) {
-    // 1. 開發環境：印出到控制台
     if (import.meta.env.DEV) {
       console[entry.level](
         `[${entry.timestamp}] [${entry.context}]: ${entry.message}`,
         entry.metadata,
       );
     }
-
-    // 2. 生產環境：緩衝並發送到遠端日誌伺服器 (如 ELK, Sentry, Datadog)
-    // if (entry.level === 'error' || entry.level === 'warn') {
-    //   this.sendToRemote(entry);
-    // }
   }
-
-  //   private sendToRemote(entry: LogEntry) {
-  //     // 實作發送到 API 的邏輯（建議使用 Queue 或是 Batch 處理，避免影響效能）
-  //     console.log('Sending log to remote server:', entry);
-  //   }
 
   public info(message: string, context?: string, metadata?: Record<string, unknown>) {
     this.log({ level: 'info', message, context, metadata, timestamp: new Date().toISOString() });

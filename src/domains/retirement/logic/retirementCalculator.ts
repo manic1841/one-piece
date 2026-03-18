@@ -35,7 +35,7 @@ function calculateYearlyFlowDetails(plan: RetirementPlan, year: number): YearlyF
   let totalSalary = 0;
   plan.incomes.forEach((income) => {
     if (year >= income.startYear && year <= income.endYear) {
-      const yearsGrowth = year - income.startYear;
+      const yearsGrowth = year - plan.currentYear;
       const amount = calculateFutureValue(income.baseAmount, income.growthRate, yearsGrowth);
       totalIncome += amount;
 
@@ -52,22 +52,22 @@ function calculateYearlyFlowDetails(plan: RetirementPlan, year: number): YearlyF
   plan.expenses.forEach((expense) => {
     const expenseEndYear = expense.endYear ?? planEndYear;
     if (year >= expense.startYear && year <= expenseEndYear) {
-      const yearsGrowth = year - expense.startYear;
+      const yearsGrowth = year - plan.currentYear;
       const growthAmount = calculateFutureValue(
         expense.baseAmount,
         expense.growthRate,
         yearsGrowth,
       );
 
-      // Calculate salary-ratio-based amount (if applicable)
       let amount = growthAmount;
-      if (expense.percentOfSalary && expense.percentOfSalary > 0) {
-        const salaryAmount = totalSalary * (expense.percentOfSalary / 100);
-        amount = Math.max(growthAmount, salaryAmount);
-      }
-
-      if (isRetired) {
-        amount *= expense.retirementMultiplier;
+      if ((expense.percentOfSalary ?? 0) > 0) {
+        if (isRetired) {
+          amount = growthAmount * expense.retirementMultiplier;
+        } else {
+          amount = totalSalary * ((expense.percentOfSalary ?? 0) / 100);
+        }
+      } else if (isRetired) {
+        amount = growthAmount * expense.retirementMultiplier;
       }
 
       totalExpense += amount;

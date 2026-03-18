@@ -1,10 +1,10 @@
-import { nullOrData } from '@/constants/empty';
 import type {
   AccountCategory,
   AccountCreate,
   AccountFormData,
   CurrencyType,
 } from '@/domains/account/types';
+import { nullOrData } from '@/ui/constants/empty';
 
 export const toAccount = (data: AccountFormData): AccountCreate => {
   return {

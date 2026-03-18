@@ -1,9 +1,9 @@
-import { NO_SELECTED } from '@/constants/empty';
 import {
   type AccountSnapshotCreate,
   type AccountSnapshotFormData,
   CurrencyType,
 } from '@/domains/account/types';
+import { NO_SELECTED } from '@/ui/constants/empty';
 
 export const toSnapshotForm = (
   accountId?: string,

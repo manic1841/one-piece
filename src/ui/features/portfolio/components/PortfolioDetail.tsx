@@ -1,0 +1,109 @@
+import React, { useState } from 'react';
+
+import { ArrowLeft, Plus } from 'lucide-react';
+import { useNavigate, useParams } from 'react-router-dom';
+
+import { fromPortfolioSnapshotForm, toPortfolioDetailViewModel } from '@/domains/portfolio/mappers';
+import {
+  type PortfolioDetailViewModel,
+  type PortfolioSnapshot,
+  type PortfolioSnapshotFormData,
+} from '@/domains/portfolio/types/portfolio';
+import { Button } from '@/ui/components/ui/button';
+import { usePortfolioCmds } from '@/ui/features/portfolio/hooks/usePortfolioCmds';
+import { usePortfolioQueries, usePortfolios } from '@/ui/features/portfolio/hooks/usePortfolios';
+
+import PortfolioSnapshotForm from './PortfolioSnapshotForm';
+import { PortfolioHistoryTable } from './detail/PortfolioHistoryTable';
+import { PortfolioPerformanceCards } from './detail/PortfolioPerformanceCards';
+
+interface PortfolioDetailProps {
+  householdId: string;
+  userEmail: string;
+}
+
+const PortfolioDetail: React.FC<PortfolioDetailProps> = ({ householdId, userEmail }) => {
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const { portfolios, reload, loading: listLoading } = usePortfolios(householdId);
+  const { getSnapshots, loading: queryLoading } = usePortfolioQueries(householdId);
+  const { createSnapshot, deleteSnapshot } = usePortfolioCmds(householdId, userEmail, reload);
+
+  const portfolio = portfolios.find((p) => p.id === id);
+  const [snapshots, setSnapshots] = useState<PortfolioSnapshot[]>([]);
+  const [loadingSnapshots, setLoadingSnapshots] = useState(false);
+
+  React.useEffect(() => {
+    if (id) {
+      setLoadingSnapshots(true);
+      getSnapshots(id).then((res) => {
+        if (res) {
+          setSnapshots(res);
+        }
+        setLoadingSnapshots(false);
+      });
+    }
+  }, [id, getSnapshots, reload]);
+
+  const loading = listLoading || queryLoading || loadingSnapshots;
+
+  const [isSnapshotOpen, setIsSnapshotOpen] = useState(false);
+
+  const handleCreateSnapshot = async (data: PortfolioSnapshotFormData) => {
+    if (!id) return;
+    try {
+      await createSnapshot(id, data.year, data.month, fromPortfolioSnapshotForm(data));
+    } catch (error) {
+      console.error('Failed to create snapshot:', error);
+      throw error; // Re-throw to be caught by form
+    }
+  };
+
+  if (loading) return <div>Loading...</div>;
+  if (!portfolio) return <div>Portfolio not found</div>;
+
+  const viewModel: PortfolioDetailViewModel = toPortfolioDetailViewModel(portfolio, snapshots);
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center space-x-4">
+        <Button variant="ghost" size="icon" onClick={() => navigate('/portfolios')}>
+          <ArrowLeft className="h-4 w-4" />
+        </Button>
+        <div>
+          <h2 className="text-2xl font-bold tracking-tight">{viewModel.name}</h2>
+          <p className="text-sm text-muted-foreground">{viewModel.description}</p>
+        </div>
+        <div className="ml-auto">
+          <Button onClick={() => setIsSnapshotOpen(true)}>
+            <Plus className="mr-2 h-4 w-4" /> Record Snapshot
+          </Button>
+        </div>
+      </div>
+
+      {/* Performance Summary Cards */}
+      <PortfolioPerformanceCards latestSnapshot={viewModel.latestSnapshot} />
+
+      {/* Snapshots History Table */}
+      <PortfolioHistoryTable
+        snapshots={viewModel.history}
+        onDelete={async (snapshotId) => {
+          if (!id) return;
+          await deleteSnapshot(id, snapshotId);
+        }}
+      />
+
+      {portfolio && (
+        <PortfolioSnapshotForm
+          isOpen={isSnapshotOpen}
+          onClose={() => setIsSnapshotOpen(false)}
+          onSubmit={handleCreateSnapshot}
+          portfolio={portfolio}
+          householdId={householdId}
+        />
+      )}
+    </div>
+  );
+};
+
+export default PortfolioDetail;

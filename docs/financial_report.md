@@ -1,157 +1,59 @@
 # 財務報表計算邏輯說明
 
-本文檔說明系統中三大財務報表（損益表、資產負債表、現金流量表）的計算邏輯。
+One-Piece 結合了「管理會計 (Projects)」與「財務會計 (Accounts)」的概念。以下說明三大報表的具體來源。
 
 ---
 
 ## 1. 損益表 (Income Statement)
 
-損益表反映特定期間內的經營成果。
+損益表主要展現特定期間內的收支狀況，其資料來源為**財務會計層 (General Ledger)**。
 
-#### 資料結構 (Data Structure)
+### 資料來源
 
-```typescript
-interface IncomeStatementData {
-  revenue: {
-    total: number;
-    items: IncomeStatementItem[];
-  };
-  expenses: {
-    total: number;
-    items: IncomeStatementItem[];
-  };
-  netIncome: number;
-}
+- **分類帳分錄 (Journal Entries)**: 根據 `ledgerCode` 分類。
+  - **收入 (Revenue)**: `income:*` 開頭的分錄。
+  - **支出 (Expenses)**: `expense:*` 開頭的分錄。
+- **專案核算 (Project Allocation)**: 雖然總額來自分類帳，但細項明細可連結至 `projectId` 進行專案維度的成本分析。
 
-interface IncomeStatementItem {
-  category: string; // 對應 IncomeSubCategory 或 ExpenseSubCategory
-  amount: number;
-  subItems?: Array<{
-    name: string;
-    amount: number;
-    sourceType?: 'transaction' | 'project' | 'manual' | 'plannedIncome';
-    sourceId?: string;
-  }>;
-}
-```
+### 計算重點
 
-### 收入 (Revenue)
-
-- **計畫收入 (Planned Income)**: 從使用者的計畫收入資料中提取，包含：
-  - 薪資 (Salary)
-  - 獎金 (Bonus)
-  - 其他固定收入 (Other Income)
-- **專案收入 (Project Income)**: 標記為 `INCOME` 類別的專案結餘。
-
-### 支出 (Expenses)
-
-- **專案支出 (Project Expenses)**: 標記為 `EXPENSE` 類別的專案支出金額。
-
-### 本期損益 (Net Income)
-
-- **計算公式**: `收入總計 - 支出總計`
+- 報表由 `incomeStatementCalculator` 處理，遍歷當月所有經扁平化處理的分錄。
+- **Net Income (本期淨利)** = 總收入 - 總支出。
 
 ---
 
 ## 2. 資產負債表 (Balance Sheet)
 
-資產負債表反映特定時間點的財務狀況。
+資產負債表反映特定時間點的財務存量，由**帳戶快照**與**當前分錄**共同構成。
 
-#### 資料結構 (Data Structure)
+### 資料來源
 
-```typescript
-interface BalanceSheetData {
-  assets: {
-    total: number;
-    items: BalanceSheetItem[];
-  };
-  liabilities: {
-    total: number;
-    items: BalanceSheetItem[];
-  };
-  equity: {
-    total: number;
-    items: BalanceSheetItem[];
-  };
-}
+- **帳戶快照 (Account Snapshots)**: 提供當月月底的實體帳戶餘額（銀行、證券、現金）。
+- **分類帳分錄 (Journal Entries)**: 對於非帳戶類的資產負債項目進行累加。
+  - **資產 (Assets)**: `asset:*` 開頭的分錄（除實體帳戶外）。
+  - **負債 (Liabilities)**: `liability:*` 開頭的分錄。
+  - **權益 (Equity)**: `equity:*` 開頭的分錄 + 本期淨利 (Retained Earnings)。
 
-interface BalanceSheetItem {
-  category: string; // 對應 AssetSubCategory, LiabilitySubCategory 或 EquitySubCategory
-  amount: number;
-  subItems?: Array<{
-    name: string;
-    amount: number;
-    sourceType?: 'account' | 'project' | 'manual';
-    sourceId?: string;
-  }>;
-}
-```
+### 平衡機制
 
-### 資產 (Assets)
-
-- **帳戶資產 (Account Assets)**: 包含銀行存款、現金、投資帳戶（股票/基金）及其他資產帳戶的餘額。
-- **專案資產 (Project Assets)**: 標記為 `ASSET` 類別的專案項目（如：房地產估值、固定資產）。
-
-### 負債 (Liabilities)
-
-- **專案負債 (Project Liabilities)**: 標記為 `LIABILITY` 類別的項目（如：房貸、車貸、信用卡欠款）。
-
-### 淨資產 (Net Worth)
-
-- **計算公式**: `總資產 - 總負債`
-- _備註：系統遵循會計基本恆等式（資產 = 負債 + 淨資產）。_
+- **本期淨利 (Net Income)**: 從損益表結轉而來，列於淨資產 (Equity) 項下。
+- **公式**: `資產 = 負債 + 權益`。其中權益包含 `期初留存收益 + 本期淨利`。
 
 ---
 
 ## 3. 現金流量表 (Cash Flow)
 
-現金流量表反映現金的流入與流出情況。
+現金流量表反映現金的實際流動情況，主要由**現金類帳戶的交易分錄**驅動。
 
-#### 資料結構 (Data Structure)
+### 資料來源
 
-```typescript
-interface CashFlowData {
-  operating: CashFlowSection;
-  investing: CashFlowSection;
-  financing: CashFlowSection;
-  netChange: number;
-  beginningBalance: number;
-  endingBalance: number;
-}
+- **分類帳分錄 (Journal Entries)**: 篩選 `ledgerCode` 為現金類資產 (`asset:cash:*`) 的分錄。
+- **分類規則**:
+  - **營業活動 (Operating)**: 與一般損益相關的現金對價。
+  - **投資活動 (Investing)**: 與資產購置、出售、證券買賣相關的現金流。
+  - **融資活動 (Financing)**: 與貸款、股本變動相關的現金流。
 
-interface CashFlowSection {
-  income: CashFlowItem[];
-  expense: CashFlowItem[];
-  netAmount: number;
-  items: CashFlowItem[]; // 包含正負值的合併清單
-}
+### 核對機制 (Reconciliation)
 
-interface CashFlowItem {
-  category: string; // 對應 Operating / Investing / Financing SubCategory
-  amount: number;
-  subItems?: Array<{
-    name: string;
-    amount: number;
-    sourceType?: 'account' | 'project' | 'manual';
-    sourceId?: string;
-  }>;
-}
-```
-
-### 營業活動 (Operating Activities)
-
-- **起點**: 以損益表的「本期淨利」作為經營現金的基礎。
-- **調整**: 加上其他標記為 `OPERATING` 的現金專案（排除已在損益表中計算過的專案，避免重複計入）。
-
-### 投資活動 (Investing Activities)
-
-- **現金流入/流出**: 來自標記為 `INVESTING` 類別的專案交易（如：購買/出售資產、投資支出）。
-
-### 融資活動 (Financing Activities)
-
-- **現金流入/流出**: 來自標記為 `FINANCING` 類別的專案交易（如：借款、還還本金）。
-
-### 現金變動與餘額
-
-- **現金淨增減 (Net Change)**: `營業活動淨額 + 投資活動淨額 + 融資活動淨額`
-- **期末現金 (Ending Balance)**: `期初現金 + 現金淨增減`
+- 系統會比對「現金流量表算出的期末現金」與「資產負債表的現金類帳戶總額」。
+- 若兩者不符，表示有交易未正確標記科目或快照數據不一致。

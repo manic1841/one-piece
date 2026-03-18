@@ -2,13 +2,10 @@ import type {
   RetirementExpenseCategory,
   RetirementIncomeSource,
   RetirementOneTimeEvent,
-} from '@/schemas/retirementPlan';
-
-import type {
   RetirementEventFormData,
   RetirementExpenseFormData,
   RetirementIncomeFormData,
-} from '../types/retirementForm';
+} from '../types';
 
 // --- Income ---
 

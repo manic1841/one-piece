@@ -1,4 +1,4 @@
-import { RetirementIncomeType } from '@/domains/retirement/types/categories';
+import { RetirementIncomeType } from '@/domains/retirement/types';
 
 /**
  * Maps a generic category string to a valid retirement income source type.

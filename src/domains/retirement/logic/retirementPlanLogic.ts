@@ -1,20 +1,20 @@
 import { Timestamp } from 'firebase/firestore';
 
-import {
-  AssetSubCategory,
-  type FinancialReport,
-  IncomeSubCategory,
-  ReportType,
-} from '@/domains/finance/types';
-import type { ProjectSnapshot } from '@/domains/project/types';
-import type { PlannedIncome } from '@/domains/record/types';
+import type { ProjectSnapshot } from '@/domains/project/schemas';
+import { type FinancialReport, ReportType } from '@/domains/report/schemas';
 import { mapCategoryToRetirementIncomeType } from '@/domains/retirement/mappers/retirementMapper';
 import {
   type RetirementExpenseCategory,
   type RetirementIncomeSource,
   type RetirementPlan,
 } from '@/domains/retirement/types';
-import { RetirementIncomeType } from '@/domains/retirement/types/categories';
+import { RetirementIncomeType } from '@/domains/retirement/types';
+
+type PlannedIncome = {
+  category: string;
+  amount: number;
+  date: Date | Timestamp;
+};
 
 /**
  * Pure logic to calculate expense suggestion from project snapshots.
@@ -68,7 +68,7 @@ export function calculateIncomeSourceSuggestions(
       total: 0,
       count: 0,
       type: pi.category,
-      allDates: [],
+      allDates: [] as Date[],
     };
 
     current.total += pi.amount;
@@ -153,39 +153,35 @@ export function processAutoUpdate(
   const latestBS = reports.find(
     (r) =>
       r.type === ReportType.BALANCE_SHEET &&
-      r.year === latestPeriod.year &&
-      r.month === latestPeriod.month,
+      r.yearMonth === `${latestPeriod.year}-${String(latestPeriod.month).padStart(2, '0')}`,
   );
   let currentSavings = plan.currentSavings;
   if (latestBS && latestBS.data && 'assets' in latestBS.data) {
-    const assets = latestBS.data.assets.items as Array<{ category: string; amount: number }>;
-    const liquidAssets = assets
-      .filter(
-        (item) =>
-          item.category === AssetSubCategory.CASH || item.category === AssetSubCategory.INVESTMENTS,
-      )
-      .reduce((sum, item) => sum + item.amount, 0);
-    currentSavings = liquidAssets;
+    currentSavings = latestBS.data.assets.total;
   }
 
   // 2. Salary Average
   const isReports = reports.filter((r) => r.type === ReportType.INCOME_STATEMENT);
   let totalSalary = 0;
+  let sampleCount = 0;
   isReports.forEach((r) => {
-    if (r.data && 'revenue' in r.data) {
-      const salaryItem = (r.data.revenue.items as Array<{ category: string; amount: number }>).find(
-        (item) => item.category === IncomeSubCategory.SALARY,
+    if (r.data && 'incomeItems' in r.data) {
+      const salaryItem = r.data.incomeItems.find((item: { code: string }) =>
+        item.code.toLowerCase().includes('salary'),
       );
-      if (salaryItem) totalSalary += salaryItem.amount;
+      if (salaryItem) {
+        totalSalary += salaryItem.amount;
+        sampleCount += 1;
+      }
     }
   });
-  const monthlySalaryAvg = totalSalary / 12;
+  const monthlySalaryAvg = sampleCount > 0 ? totalSalary / sampleCount : 0;
 
   // 3. Update Incomes
   const updatedIncomes = plan.incomes.map((income) => {
     if (income.type === RetirementIncomeType.SALARY) {
-      const sampleCount = income.calculatedFrom?.sampleCount || 12;
-      const annualBase = monthlySalaryAvg * sampleCount;
+      const dataPointCount = income.calculatedFrom?.sampleCount || 12;
+      const annualBase = monthlySalaryAvg * dataPointCount;
       return {
         ...income,
         baseAmount: Math.round(annualBase),
