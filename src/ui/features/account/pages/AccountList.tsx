@@ -15,6 +15,7 @@ import { useAccounts } from '@/ui/features/account/hooks/useAccounts';
 
 import AccountForm from './AccountForm';
 import AccountSnapshotEditor from './AccountSnapshotEditor';
+import { AccountHistoryDialog } from '../components/detail/AccountHistoryDialog';
 
 const AccountList: React.FC = () => {
   const { userProfile } = useAuth();
@@ -26,6 +27,7 @@ const AccountList: React.FC = () => {
   const [showForm, setShowForm] = useState(false);
   const [editingAccount, setEditingAccount] = useState<Account | null>(null);
   const [snapshotAccountId, setSnapshotAccountId] = useState<string | null>(null);
+  const [historyAccountId, setHistoryAccountId] = useState<string | null>(null);
 
   const loadAccounts = React.useCallback(async () => {
     if (householdId) {
@@ -158,7 +160,12 @@ const AccountList: React.FC = () => {
                 <Plus size={14} />
                 月底餘額
               </Button>
-              <Button variant="ghost" className="px-3" title="歷史記錄">
+              <Button 
+                variant="ghost" 
+                className="px-3" 
+                title="歷史記錄"
+                onClick={() => setHistoryAccountId(account.id)}
+              >
                 <History size={16} className="text-gray-400" />
               </Button>
             </div>
@@ -185,6 +192,17 @@ const AccountList: React.FC = () => {
           isOpen={true}
           onClose={() => {
             setSnapshotAccountId(null);
+            loadAccounts();
+          }}
+        />
+      )}
+
+      {historyAccountId && (
+        <AccountHistoryDialog
+          account={accounts.find((a) => a.id === historyAccountId)!}
+          isOpen={true}
+          onClose={() => {
+            setHistoryAccountId(null);
             loadAccounts();
           }}
         />

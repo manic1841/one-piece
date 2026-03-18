@@ -74,7 +74,13 @@ export const BalanceSheetDataSchema = z.object({
     total: z.number(),
     groups: z.record(z.string(), BalanceSheetGroupSchema),
   }),
-  equity: z.number(),
+  equity: z.union([
+    z.number(),
+    z.object({
+      total: z.number(),
+      groups: z.record(z.string(), BalanceSheetGroupSchema).optional(),
+    }),
+  ]),
 });
 
 export type BalanceSheetData = z.infer<typeof BalanceSheetDataSchema>;

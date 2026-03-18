@@ -13,7 +13,7 @@ export const CASH_FLOW_MAPPING = {
     expense: ['asset:investment', 'expense:vehicle'],
   },
   financing: {
-    income: ['liability:loan'],
-    expense: ['liability:credit', 'liability:loan'],
+    income: ['liability:loan', 'equity:initial_capital', 'equity:owner_investment'],
+    expense: ['liability:credit', 'liability:loan', 'equity:owner_draw'],
   },
 } as const;

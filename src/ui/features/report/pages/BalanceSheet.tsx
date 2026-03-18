@@ -111,7 +111,9 @@ const BalanceSheetPage: React.FC<BalanceSheetPageProps> = ({ householdId, onBack
             <Card className="bg-slate-900 text-white">
               <CardContent className="pt-6">
                 <p className="text-sm font-medium text-slate-400 mb-1">淨資產 (Equity)</p>
-                <p className="text-2xl font-bold text-white">{formatCurrency(data.equity)}</p>
+                <p className="text-2xl font-bold text-white">
+                  {formatCurrency(typeof data.equity === 'number' ? data.equity : data.equity.total)}
+                </p>
               </CardContent>
             </Card>
           </div>
@@ -126,13 +128,26 @@ const BalanceSheetPage: React.FC<BalanceSheetPageProps> = ({ householdId, onBack
               {Object.values(data.assets.groups).map((group) => renderGroup(group))}
             </div>
 
-            {/* Liabilities side */}
-            <div className="space-y-2">
-              <h3 className="text-lg font-bold flex items-center gap-2 mb-4">
-                <div className="w-1 h-6 bg-rose-500 rounded-full" />
-                負債 (Liabilities)
-              </h3>
-              {Object.values(data.liabilities.groups).map((group) => renderGroup(group))}
+            <div className="space-y-8">
+              {/* Liabilities side */}
+              <div className="space-y-2">
+                <h3 className="text-lg font-bold flex items-center gap-2 mb-4">
+                  <div className="w-1 h-6 bg-rose-500 rounded-full" />
+                  負債 (Liabilities)
+                </h3>
+                {Object.values(data.liabilities.groups).map((group) => renderGroup(group))}
+              </div>
+
+              {/* Equity side */}
+              {typeof data.equity === 'object' && data.equity.groups && (
+                <div className="space-y-2 pb-6">
+                  <h3 className="text-lg font-bold flex items-center gap-2 mb-4">
+                    <div className="w-1 h-6 bg-slate-500 rounded-full" />
+                    權益 (Equity)
+                  </h3>
+                  {Object.values(data.equity.groups).map((group) => renderGroup(group as BalanceSheetGroup))}
+                </div>
+              )}
             </div>
           </div>
         </div>

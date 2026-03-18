@@ -84,8 +84,10 @@ export const mapToBalanceSheetView = (report: FinancialReport): BalanceSheetView
     g.category.toLowerCase().includes('long'),
   );
 
-  const totalManualEquity = data.equity;
-  const finalEquityTotal = data.equity;
+  const isEquityObject = typeof data.equity === 'object' && data.equity !== null;
+  const equityObj = isEquityObject ? (data.equity as { total: number; groups?: BalanceSheetData['assets']['groups'] }) : null;
+  const equityGroups = equityObj && equityObj.groups ? mapGroups(equityObj.groups) : [];
+  const finalEquityTotal = equityObj ? equityObj.total : (data.equity as number);
 
   return {
     id: report.id,
@@ -104,8 +106,8 @@ export const mapToBalanceSheetView = (report: FinancialReport): BalanceSheetView
       longTerm: longTermLiabilities,
     },
     equity: {
-      total: totalManualEquity,
-      items: [],
+      total: finalEquityTotal,
+      items: equityGroups,
     },
     netWorth: finalEquityTotal,
     adjustments: [],

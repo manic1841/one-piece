@@ -36,7 +36,9 @@ export const AccountAmount: React.FC<AccountAmountProps> = ({
       {isForeignCurrency && setOriginalAmount && setExchangeRate && (
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label htmlFor="originalAmount">Foreign Amount {currencyLabel}</Label>
+            <div className="flex items-center h-5">
+              <Label htmlFor="originalAmount">Foreign Amount {currencyLabel}</Label>
+            </div>
             <Input
               id="originalAmount"
               type="number"
@@ -47,7 +49,7 @@ export const AccountAmount: React.FC<AccountAmountProps> = ({
             />
           </div>
           <div className="space-y-2">
-            <div className="flex justify-between items-center">
+            <div className="flex justify-between items-center h-5">
               <Label htmlFor="exchangeRate">Exchange Rate</Label>
               {fetchExchangeRate && (
                 <button

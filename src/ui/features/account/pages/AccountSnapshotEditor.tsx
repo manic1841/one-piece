@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 
 import { Save } from 'lucide-react';
 
-import { type Account } from '@/domains/account/types/account';
+import { type Account, type AccountSnapshot } from '@/domains/account/types/account';
 import { useAuth } from '@/infra/contexts/useAuth';
 import { Button } from '@/ui/components/ui/button';
 import {
@@ -20,34 +20,116 @@ import {
   AccountSnapshotFormSchema,
   mapAccountSnapshotVMToDomain,
 } from '../viewmodels/accountSnapshot.vm';
+import { AccountAmount } from '../components/form/AccountAmount';
+import { AccountHolding } from '../components/form/AccountHolding';
+import { useExchangeRate } from '../hooks/useExchangeRate';
+import { AccountCategory } from '@/domains/account/types/categories';
+import type { Holding } from '@/domains/account/schemas';
+import type { CurrencyCode } from '@/domains/exchange_rate/types';
 
 interface AccountSnapshotEditorProps {
   account: Account;
   isOpen?: boolean;
+  snapshot?: AccountSnapshot;
   onClose: () => void;
 }
 
 const AccountSnapshotEditor: React.FC<AccountSnapshotEditorProps> = ({
   account,
   isOpen = true,
+  snapshot,
   onClose,
 }) => {
   const { userProfile } = useAuth();
   const householdId = userProfile?.householdId || '';
   const { recordSnapshot, loading } = useAccountCmds(householdId);
+  const { getRate, loading: fetchingRate } = useExchangeRate();
+
+  const isSecurities = account.category === AccountCategory.SECURITIES;
 
   const today = new Date();
   const [formData, setFormData] = useState({
-    year: today.getFullYear(),
-    month: today.getMonth() + 1,
-    amount: 0,
-    originalAmount: 0,
-    exchangeRate: 1,
+    year: snapshot?.year ?? today.getFullYear(),
+    month: snapshot?.month ?? today.getMonth() + 1,
+    amount: snapshot?.amount ?? 0,
+    originalAmount: snapshot?.originalAmount ?? 0,
+    exchangeRate: snapshot?.exchangeRate ?? 1,
+    holdings: snapshot?.holdings ?? [],
   });
   const [error, setError] = useState<string | null>(null);
 
   const handleDisplayChange = (field: keyof typeof formData, value: number) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
+    setFormData((prev) => {
+      const updated = { ...prev, [field]: value };
+      if (isSecurities && updated.holdings && updated.holdings.length > 0) {
+        if (field === 'exchangeRate' && account.currency !== 'TWD') {
+          updated.amount = updated.originalAmount * updated.exchangeRate;
+        }
+      } else {
+        if (account.currency !== 'TWD' && (field === 'originalAmount' || field === 'exchangeRate')) {
+          updated.amount = updated.originalAmount * updated.exchangeRate;
+        }
+      }
+      return updated;
+    });
+  };
+
+  const handleFetchRate = async () => {
+    if (account.currency === 'TWD') return;
+    const rate = await getRate(account.currency as CurrencyCode, 'TWD');
+    handleDisplayChange('exchangeRate', rate);
+  };
+
+  const handleAddHolding = () => {
+    setFormData((prev) => ({
+      ...prev,
+      holdings: [
+        ...(prev.holdings || []),
+        { symbol: '', name: '', quantity: 0, cost: 0, marketValue: 0 },
+      ],
+    }));
+  };
+
+  const handleRemoveHolding = (index: number) => {
+    setFormData((prev) => {
+      const newHoldings = [...(prev.holdings || [])];
+      newHoldings.splice(index, 1);
+      
+      const updated = { ...prev, holdings: newHoldings };
+      if (isSecurities) {
+         const total = newHoldings.reduce((sum, h) => sum + (h.marketValue || 0), 0);
+         if (account.currency !== 'TWD') {
+             updated.originalAmount = total;
+             updated.amount = total * updated.exchangeRate;
+         } else {
+             updated.amount = total;
+         }
+      }
+      return updated;
+    });
+  };
+
+  const handleUpdateHolding = (index: number, field: keyof Holding, value: string | number) => {
+    setFormData((prev) => {
+      const newHoldings = [...(prev.holdings || [])];
+      let finalValue: string | number = value;
+      if (['quantity', 'cost', 'marketValue', 'leverage'].includes(field)) {
+        finalValue = typeof value === 'string' ? parseFloat(value) || 0 : value;
+      }
+      newHoldings[index] = { ...newHoldings[index], [field]: finalValue };
+      
+      const updated = { ...prev, holdings: newHoldings };
+      if (isSecurities) {
+         const total = newHoldings.reduce((sum, h) => sum + (h.marketValue || 0), 0);
+         if (account.currency !== 'TWD') {
+             updated.originalAmount = total;
+             updated.amount = total * updated.exchangeRate;
+         } else {
+             updated.amount = total;
+         }
+      }
+      return updated;
+    });
   };
 
   const onSubmit = async (e: React.FormEvent) => {
@@ -70,7 +152,7 @@ const AccountSnapshotEditor: React.FC<AccountSnapshotEditorProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
             輸入月底餘額 - {account.name} ({account.currency})
@@ -103,46 +185,27 @@ const AccountSnapshotEditor: React.FC<AccountSnapshotEditorProps> = ({
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label>月底餘額 (折合台幣)</Label>
-            <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">
-                NT$
-              </span>
-              <Input
-                type="number"
-                className="pl-12 text-lg font-bold"
-                placeholder="0"
-                value={formData.amount}
-                onChange={(e) => handleDisplayChange('amount', parseFloat(e.target.value) || 0)}
-              />
-            </div>
-          </div>
+          <AccountAmount 
+            currency={account.currency}
+            currencyLabel={account.currency}
+            amount={formData.amount.toString()}
+            setAmount={(val) => handleDisplayChange('amount', parseFloat(val) || 0)}
+            originalAmount={formData.originalAmount.toString()}
+            setOriginalAmount={(val) => handleDisplayChange('originalAmount', parseFloat(val) || 0)}
+            exchangeRate={formData.exchangeRate.toString()}
+            setExchangeRate={(val) => handleDisplayChange('exchangeRate', parseFloat(val) || 0)}
+            fetchExchangeRate={handleFetchRate}
+            fetchingRate={fetchingRate}
+            readonly={isSecurities && formData.holdings && formData.holdings.length > 0} 
+          />
 
-          {account.currency !== 'TWD' && (
-            <div className="p-4 bg-blue-50 rounded-lg space-y-4">
-              <div className="space-y-2">
-                <Label>原始金額 ({account.currency})</Label>
-                <Input
-                  type="number"
-                  value={formData.originalAmount || ''}
-                  onChange={(e) =>
-                    handleDisplayChange('originalAmount', parseFloat(e.target.value) || 0)
-                  }
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>匯率 (1 {account.currency} = ? TWD)</Label>
-                <Input
-                  type="number"
-                  step="0.0001"
-                  value={formData.exchangeRate || ''}
-                  onChange={(e) =>
-                    handleDisplayChange('exchangeRate', parseFloat(e.target.value) || 0)
-                  }
-                />
-              </div>
-            </div>
+          {isSecurities && (
+            <AccountHolding
+              holdings={formData.holdings || []}
+              onAddHolding={handleAddHolding}
+              onRemoveHolding={handleRemoveHolding}
+              onUpdateHolding={handleUpdateHolding}
+            />
           )}
 
           <DialogFooter>

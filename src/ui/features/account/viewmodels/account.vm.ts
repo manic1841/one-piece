@@ -1,11 +1,12 @@
 import { z } from 'zod';
-import { AccountCategory, CurrencyType } from '@/domains/account/types/categories';
+
 import { type AccountCreate } from '@/domains/account/types/account';
+import { AccountCategory, CurrencyType } from '@/domains/account/types/categories';
 
 export const AccountFormSchema = z.object({
   name: z.string().min(1, '帳戶名稱不能為空'),
-  category: z.nativeEnum(AccountCategory),
-  currency: z.nativeEnum(CurrencyType),
+  category: z.enum(AccountCategory),
+  currency: z.enum(CurrencyType),
   order: z.number().int(),
 });
 

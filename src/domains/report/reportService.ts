@@ -176,7 +176,6 @@ export class ReportService {
     const investment = getCumulativeTotal('asset:investment');
     const receivable = getCumulativeTotal('asset:receivable');
 
-    // Liabilities (Credit and Loan usually have Credit balance, so we use credit - debit for positive display)
     const getLiabilityTotal = (prefix: string) => {
       let total = 0;
       const items: BalanceSheetItem[] = [];
@@ -195,12 +194,25 @@ export class ReportService {
       return { total, items };
     };
 
+    const getEquityTotal = (prefix: string) => {
+      const { total, items } = getLiabilityTotal(prefix);
+      return { total, items };
+    };
+
     const creditPayable = getLiabilityTotal('liability:credit');
     const loan = getLiabilityTotal('liability:loan');
 
     const assetsTotal = cashAndBankTotal + investment.total + receivable.total;
     const liabilitiesTotal = creditPayable.total + loan.total;
-    const equity = assetsTotal - liabilitiesTotal;
+    
+    // Explicit Equities
+    const equityInitial = getEquityTotal('equity:initial_capital');
+    const equityInvestment = getEquityTotal('equity:owner_investment');
+    const equityDraw = getEquityTotal('equity:owner_draw');
+
+    const netWorth = assetsTotal - liabilitiesTotal;
+    const explicitEquityTotal = equityInitial.total + equityInvestment.total + equityDraw.total;
+    const retainedEarnings = netWorth - explicitEquityTotal;
 
     return {
       yearMonth,
@@ -219,7 +231,19 @@ export class ReportService {
           loan: { label: '貸款', total: loan.total, items: loan.items },
         },
       },
-      equity,
+      equity: {
+        total: netWorth,
+        groups: {
+          initial_capital: { label: '初始資金', total: equityInitial.total, items: equityInitial.items },
+          owner_investment: { label: '業主投資', total: equityInvestment.total, items: equityInvestment.items },
+          owner_draw: { label: '業主提款', total: equityDraw.total, items: equityDraw.items },
+          retained_earnings: { 
+             label: '保留盈餘 (本期未分配)', 
+             total: retainedEarnings, 
+             items: [{ code: 'equity:retained_earnings', label: '保留盈餘', amount: retainedEarnings }] 
+          }
+        }
+      },
     };
   }
 
@@ -279,19 +303,6 @@ export class ReportService {
     for (const entry of entries) {
       const code = entry.ledgerCode;
 
-      // Special handling for liability:loan
-      if (code === 'liability:loan') {
-        const amount = Math.abs(entry.debit - entry.credit);
-        if (amount === 0) continue;
-        const item = { code, label: getLedgerLabel(code), amount };
-        if (entry.credit > entry.debit) {
-          financingInflow.push(item); // 借款入帳
-        } else {
-          financingOutflow.push(item); // 還款
-        }
-        continue;
-      }
-
       // Mapping rules
       if (
         (CASH_FLOW_MAPPING.operating.income as readonly string[]).includes(code) ||
@@ -320,12 +331,19 @@ export class ReportService {
         (CASH_FLOW_MAPPING.financing.income as readonly string[]).includes(code) ||
         (CASH_FLOW_MAPPING.financing.expense as readonly string[]).includes(code)
       ) {
-        if (code === 'liability:credit') {
-          financingOutflow.push({
-            code,
-            label: getLedgerLabel(code),
-            amount: Math.abs(entry.debit),
-          });
+        if (entry.credit > 0) {
+           financingInflow.push({
+             code,
+             label: getLedgerLabel(code),
+             amount: entry.credit,
+           });
+        }
+        if (entry.debit > 0) {
+           financingOutflow.push({
+             code,
+             label: getLedgerLabel(code),
+             amount: entry.debit,
+           });
         }
       }
     }
