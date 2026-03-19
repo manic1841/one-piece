@@ -5,7 +5,7 @@ import { BaseSchema } from '@/infra/schemas/base';
 // UserProfile Schema
 export const UserProfileCreateSchema = z.object({
   uid: z.string(),
-  email: z.string().email(),
+  email: z.email(),
   displayName: z.string(),
   photoURL: z.string().optional(),
   householdId: z.string().optional(),

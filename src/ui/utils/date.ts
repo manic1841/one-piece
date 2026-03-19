@@ -1,6 +1,4 @@
-/**
- * Date formatting utilities
- */
+import { format } from 'date-fns';
 
 /**
  * Format a date to a string (YYYY-MM-DD)
@@ -8,7 +6,7 @@
  * @returns Formatted date string (e.g., "2022-01-01")
  */
 export const formatDate = (date: Date): string => {
-  return date.toISOString().split('T')[0];
+  return format(date, 'yyyy-MM-dd');
 };
 
 /**

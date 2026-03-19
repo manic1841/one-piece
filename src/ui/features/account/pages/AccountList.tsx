@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 
-import { Edit2, History, Landmark, LineChart, Plus, Wallet } from 'lucide-react';
+import { Download, Edit2, History, Landmark, LineChart, Plus, Upload, Wallet } from 'lucide-react';
 
 import {
   type Account,
@@ -12,6 +12,7 @@ import { useAuth } from '@/infra/contexts/useAuth';
 import { Button } from '@/ui/components/ui/button';
 import { useAccountCmds } from '@/ui/features/account/hooks/useAccountCmds';
 import { useAccounts } from '@/ui/features/account/hooks/useAccounts';
+import { useAccountExport } from '@/ui/features/account/hooks/useAccountExport';
 
 import AccountForm from './AccountForm';
 import AccountSnapshotEditor from './AccountSnapshotEditor';
@@ -22,12 +23,15 @@ const AccountList: React.FC = () => {
   const householdId = userProfile?.householdId || '';
   const { fetchAccountsWithSnapshots, loading: loadingAccounts } = useAccounts();
   const { createAccount, updateAccount } = useAccountCmds(householdId);
+  const { exportToCSV, importFromCSV } = useAccountExport();
 
   const [accounts, setAccounts] = useState<AccountWithSnapshot[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [editingAccount, setEditingAccount] = useState<Account | null>(null);
   const [snapshotAccountId, setSnapshotAccountId] = useState<string | null>(null);
   const [historyAccountId, setHistoryAccountId] = useState<string | null>(null);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const [importing, setImporting] = useState(false);
 
   const loadAccounts = React.useCallback(async () => {
     if (householdId) {
@@ -78,6 +82,30 @@ const AccountList: React.FC = () => {
     }).format(amount);
   };
 
+  const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setImporting(true);
+    const result = await importFromCSV(file);
+    setImporting(false);
+
+    if (result.errors.length > 0) {
+      alert(`匯入完成。成功: ${result.success}, 失敗: ${result.failed}\n\n錯誤資訊:\n${result.errors.join('\n')}`);
+    } else {
+      alert(`匯入成功！共 ${result.success} 筆紀錄`);
+    }
+
+    if (result.success > 0) {
+      loadAccounts();
+    }
+    
+    // Reset file input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
   if (showForm || editingAccount) {
     return (
       <div className="max-w-2xl mx-auto py-8">
@@ -100,10 +128,27 @@ const AccountList: React.FC = () => {
           <h2 className="text-2xl font-bold text-gray-900">帳戶管理</h2>
           <p className="text-gray-500">管理您的銀行、券商與現金帳戶</p>
         </div>
-        <Button onClick={() => setShowForm(true)} className="gap-2">
-          <Plus size={18} />
-          新增帳戶
-        </Button>
+        <div className="flex gap-2">
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={handleImport}
+            accept=".csv"
+            className="hidden"
+          />
+          <Button variant="outline" onClick={exportToCSV} className="gap-2">
+            <Download size={18} />
+            匯出
+          </Button>
+          <Button variant="outline" onClick={() => fileInputRef.current?.click()} className="gap-2" disabled={importing}>
+            <Upload size={18} />
+            {importing ? '匯入中...' : '匯入'}
+          </Button>
+          <Button onClick={() => setShowForm(true)} className="gap-2">
+            <Plus size={18} />
+            新增帳戶
+          </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

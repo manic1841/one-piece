@@ -10,6 +10,9 @@ import {
   type TransactionFormProjectOption,
   type TransactionFormTab,
 } from '@/ui/features/transaction/types/transaction';
+import { type DebtPaymentFormState } from '@/ui/features/transaction/components/form/DebtPaymentPanel';
+import { calculateSplit } from '@/domains/debt/debtPaymentCalculator';
+import { type DebtAccount } from '@/domains/debt/schemas';
 
 const getToday = () => new Date().toISOString().slice(0, 10);
 
@@ -174,8 +177,10 @@ export const buildPreview = (input: {
   financing: FinancingFormState;
   projectTransfer: ProjectTransferFormState;
   advanced: AdvancedFormState;
+  debtPayment: DebtPaymentFormState;
+  debtAccounts?: DebtAccount[];
 }): TransactionFormOutput | null => {
-  const { activeTab, expense, income, investment, financing, projectTransfer, advanced } = input;
+  const { activeTab, expense, income, investment, financing, projectTransfer, advanced, debtPayment, debtAccounts = [] } = input;
 
   if (activeTab === 'EXPENSE') return previewExpense(expense);
   if (activeTab === 'INCOME') return previewIncome(income);
@@ -183,6 +188,24 @@ export const buildPreview = (input: {
   if (activeTab === 'FINANCING') return previewCategory('FINANCING', financing);
   if (activeTab === 'PROJECT_TRANSFER') return previewProjectTransfer(projectTransfer);
   if (activeTab === 'ADVANCED') return previewAdvanced(advanced);
+  if (activeTab === 'DEBT_PAYMENT') {
+    const total = parseAmount(debtPayment.totalPayment);
+    if (!total || !debtPayment.debtAccountId) return null;
+    const account = debtAccounts.find((a) => a.id === debtPayment.debtAccountId);
+    const split = account
+      ? calculateSplit(account.currentBalance, account.interestRate, total)
+      : { principal: 0, interest: 0 };
+    return {
+      intentType: 'DEBT_PAYMENT',
+      date: debtPayment.date,
+      amount: total,
+      debtAccountId: debtPayment.debtAccountId,
+      projectId: debtPayment.projectId ?? undefined,
+      description: debtPayment.description || undefined,
+      principal: split.principal,
+      interest: split.interest,
+    };
+  }
 
   return null;
 };
@@ -240,6 +263,15 @@ export const buildPreviewDetails = (input: {
   if (preview.intentType === 'PROJECT_TRANSFER') {
     return [
       `${findProjectLabel(projects, preview.fromProjectId)} -> ${findProjectLabel(projects, preview.toProjectId)}`,
+    ].filter(Boolean);
+  }
+
+  if (preview.intentType === 'DEBT_PAYMENT') {
+    return [
+      preview.debtAccountId ?? '',
+      `本金 $${preview.principal?.toLocaleString() ?? 0}`,
+      `利息 $${preview.interest?.toLocaleString() ?? 0}`,
+      preview.date,
     ].filter(Boolean);
   }
 

@@ -115,6 +115,15 @@ class TransactionRepository extends BaseRepository<Transaction, [string, string?
     return monthlyTransactions.filter((transaction) => transaction.intentType === 'PROJECT_TRANSFER');
   }
 
+  async listByDebtAccount(householdId: string, debtAccountId: string): Promise<Transaction[]> {
+    const transactions = await this.list([householdId], [
+      where('debtAccountId', '==', debtAccountId),
+      where('intentType', '==', 'DEBT_PAYMENT'),
+    ]);
+
+    return transactions.sort((a, b) => toMillis(b.date) - toMillis(a.date));
+  }
+
   async listByProject(householdId: string, projectId: string): Promise<Transaction[]> {
     const projectTransactions = await this.list([householdId], [where('projectId', '==', projectId)]);
 

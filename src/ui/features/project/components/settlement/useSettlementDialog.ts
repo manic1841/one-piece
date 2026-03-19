@@ -83,7 +83,7 @@ export const useSettlementDialog = (
       setTimeout(() => {
         onSuccess?.();
         close();
-      }, 1500);
+      }, 2000);
     } catch (err) {
       console.error('Error creating settlements:', err);
       const message = err instanceof Error ? err.message : 'Failed to create settlements. Please try again.';

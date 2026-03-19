@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 
-import { ArrowRightLeft, HandCoins, Landmark, ReceiptText, SlidersHorizontal } from 'lucide-react';
+import { ArrowRightLeft, CreditCard, HandCoins, Landmark, ReceiptText, SlidersHorizontal } from 'lucide-react';
 
 import { Badge } from '@/ui/components/ui/badge';
 import { Button } from '@/ui/components/ui/button';
@@ -19,6 +19,11 @@ import {
   IncomePanel,
   ProjectTransferPanel,
 } from '@/ui/features/transaction/components/form/TransactionFormPanels';
+import {
+  type DebtPaymentFormState,
+  DebtPaymentPanel,
+} from '@/ui/features/transaction/components/form/DebtPaymentPanel';
+import { type DebtAccount } from '@/domains/debt/schemas';
 import {
   buildPreview,
   buildPreviewDetails,
@@ -48,6 +53,7 @@ interface TransactionFormProps {
   investmentCategories: TransactionFormCategoryOption[];
   financingCategories: TransactionFormCategoryOption[];
   advancedCategories: TransactionFormCategoryOption[];
+  debtAccounts?: DebtAccount[];
 }
 
 const createExpenseState = (): ExpenseFormState => ({
@@ -99,6 +105,14 @@ const createAdvancedState = (): AdvancedFormState => ({
   description: '',
 });
 
+const createDebtPaymentState = (): DebtPaymentFormState => ({
+  debtAccountId: null,
+  date: new Date().toISOString().slice(0, 10),
+  totalPayment: '',
+  projectId: null,
+  description: '',
+});
+
 export const TransactionForm: React.FC<TransactionFormProps> = ({
   isOpen,
   onClose,
@@ -111,6 +125,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
   investmentCategories,
   financingCategories,
   advancedCategories,
+  debtAccounts = [],
 }) => {
   const [activeTab, setActiveTab] = useState<TransactionFormTab>('EXPENSE');
   const [expense, setExpense] = useState<ExpenseFormState>(createExpenseState);
@@ -121,6 +136,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
     createProjectTransferState,
   );
   const [advanced, setAdvanced] = useState<AdvancedFormState>(createAdvancedState);
+  const [debtPayment, setDebtPayment] = useState<DebtPaymentFormState>(createDebtPaymentState);
 
   const resetAll = () => {
     setActiveTab('EXPENSE');
@@ -130,6 +146,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
     setFinancing(createFinancingState());
     setProjectTransfer(createProjectTransferState());
     setAdvanced(createAdvancedState());
+    setDebtPayment(createDebtPaymentState());
   };
 
   const preview = useMemo(
@@ -142,8 +159,10 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
         financing,
         projectTransfer,
         advanced,
+        debtPayment,
+        debtAccounts,
       }),
-    [activeTab, advanced, expense, financing, income, investment, projectTransfer],
+    [activeTab, advanced, expense, financing, income, investment, projectTransfer, debtPayment, debtAccounts],
   );
 
   const previewDetails = useMemo(
@@ -207,7 +226,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
             value={activeTab}
             onValueChange={(value) => setActiveTab(value as TransactionFormTab)}
           >
-            <TabsList className="grid h-auto w-full grid-cols-3 gap-2 rounded-xl p-2 md:grid-cols-6">
+            <TabsList className="grid h-auto w-full grid-cols-3 gap-2 rounded-xl p-2 md:grid-cols-7">
               <TabsTrigger value="EXPENSE" className="gap-1">
                 <ReceiptText className="h-3.5 w-3.5" />
                 支出
@@ -231,6 +250,10 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
               <TabsTrigger value="ADVANCED" className="gap-1">
                 <SlidersHorizontal className="h-3.5 w-3.5" />
                 進階
+              </TabsTrigger>
+              <TabsTrigger value="DEBT_PAYMENT" className="gap-1">
+                <CreditCard className="h-3.5 w-3.5" />
+                還款
               </TabsTrigger>
             </TabsList>
 
@@ -286,6 +309,15 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
                 projects={projects}
                 categories={advancedCategories}
                 onChange={setAdvanced}
+              />
+            </TabsContent>
+
+            <TabsContent value="DEBT_PAYMENT" className="mt-4">
+              <DebtPaymentPanel
+                state={debtPayment}
+                debtAccounts={debtAccounts}
+                projects={projects}
+                onChange={setDebtPayment}
               />
             </TabsContent>
           </Tabs>

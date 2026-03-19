@@ -1,5 +1,6 @@
 import { z } from 'zod';
 
+import { IntentType } from '@/domains/ledger/constants';
 import { BaseSchema } from '@/infra/schemas/base';
 
 export type LedgerCode = string; // e.g. "asset:cash", "income:salary"
@@ -47,27 +48,14 @@ export type JournalEntryLine = z.infer<typeof JournalEntryLineSchema>;
 export const TransactionCreateSchema = z.object({
   date: z.date(),
   description: z.string().optional(),
-  intentType: z
-    .enum([
-      'EXPENSE',
-      'INCOME',
-      'INVESTMENT',
-      'FINANCING',
-      'TRANSFER',
-      'ASSET_PURCHASE',
-      'LIABILITY_BORROW',
-      'LIABILITY_PAYMENT',
-      'INVESTMENT',
-      'MANUAL',
-      'PROJECT_TRANSFER',
-    ])
-    .optional(),
+  intentType: z.enum(IntentType).optional(),
   intent: z.string().optional(),
   amount: z.number().optional(),
   projectId: z.string().nullable().optional(),
   fromProjectId: z.string().nullable().optional(),
   toProjectId: z.string().nullable().optional(),
   allocationId: z.string().nullable().optional(),
+  debtAccountId: z.string().nullable().optional(), // Index for DEBT_PAYMENT transactions
   createdBy: z.string(),
   entries: z.array(JournalEntryLineSchema),
   ledgerCodes: z.array(z.string()).optional(), // Denormalization index

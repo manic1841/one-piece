@@ -1,20 +1,29 @@
 import React, { useState } from 'react';
-import { Calendar, ChevronLeft, ChevronRight, ArrowLeft, ChevronDown, ChevronUp, TrendingUp, TrendingDown, Wallet } from 'lucide-react';
-import { Button } from '@/ui/components/ui/button';
+import { ChevronDown, ChevronUp, TrendingUp, TrendingDown, Wallet, AlertTriangle } from 'lucide-react';
+import { type CashFlowGroup } from '@/domains/report/schemas';
 import { Card, CardContent } from '@/ui/components/ui/card';
+import { Alert, AlertDescription, AlertTitle } from '@/ui/components/ui/alert';
 import { useCashFlow } from '@/ui/features/report/hooks/useCashFlow';
 import { formatCurrency } from '@/ui/utils';
-import { format } from 'date-fns';
-import { type CashFlowGroup } from '@/domains/report/schemas';
 import { cn } from '@/ui/utils/cn';
+import { ReportHeader, type ReportView } from '../components/ReportHeader';
 
 interface CashFlowStatementProps {
   householdId: string;
-  onBack?: () => void;
+  currentDate: Date;
+  onDateChange: (date: Date) => void;
+  onViewChange: (view: ReportView) => void;
+  onBack: () => void;
 }
 
-const CashFlowStatement: React.FC<CashFlowStatementProps> = ({ householdId, onBack }) => {
-  const { data, loading, error, currentDate, nextMonth, prevMonth } = useCashFlow(householdId);
+const CashFlowStatement: React.FC<CashFlowStatementProps> = ({ 
+  householdId, 
+  currentDate, 
+  onDateChange, 
+  onViewChange, 
+  onBack 
+}) => {
+  const { data, loading, error } = useCashFlow(householdId, currentDate);
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
     operating: true,
     investing: false,
@@ -113,33 +122,15 @@ const CashFlowStatement: React.FC<CashFlowStatementProps> = ({ householdId, onBa
 
   return (
     <div className="max-w-4xl mx-auto space-y-6 pb-20">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          {onBack && (
-            <Button variant="ghost" size="icon" onClick={onBack}>
-              <ArrowLeft size={24} />
-            </Button>
-          )}
-          <div>
-            <h1 className="text-2xl font-bold">現金流量表 (Cash Flow)</h1>
-            <p className="text-muted-foreground">資金來源與去向</p>
-          </div>
-        </div>
-        
-        <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 p-1 rounded-lg">
-          <Button variant="ghost" size="icon" onClick={prevMonth} disabled={loading}>
-            <ChevronLeft size={18} />
-          </Button>
-          <div className="flex items-center gap-2 px-3 font-medium min-w-[120px] justify-center">
-            <Calendar size={16} className="text-slate-400" />
-            <span>{format(currentDate, 'yyyy / MM')}</span>
-          </div>
-          <Button variant="ghost" size="icon" onClick={nextMonth} disabled={loading}>
-            <ChevronRight size={18} />
-          </Button>
-        </div>
-      </div>
+      <ReportHeader
+        title="現金流量表 (Cash Flow)"
+        subtitle="資金來源與去向，衡量財務流動性。"
+        currentDate={currentDate}
+        onDateChange={onDateChange}
+        onBack={onBack}
+        currentView="CASH_FLOW"
+        onViewChange={onViewChange}
+      />
 
       {!data && loading ? (
         <div className="h-64 flex items-center justify-center">
@@ -148,11 +139,11 @@ const CashFlowStatement: React.FC<CashFlowStatementProps> = ({ householdId, onBa
       ) : data ? (
         <div className="space-y-6">
           {/* Main Highlights */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
              <Card className="bg-slate-50 dark:bg-slate-900/50">
-              <CardContent className="pt-6">
+              <CardContent className="pt-6 px-4">
                 <p className="text-sm font-medium text-slate-500 mb-1">期初餘額</p>
-                <p className="text-xl font-bold text-slate-700 dark:text-slate-300">
+                <p className="text-lg font-bold text-slate-700 dark:text-slate-300">
                   {formatCurrency(data.beginningBalance)}
                 </p>
               </CardContent>
@@ -161,21 +152,29 @@ const CashFlowStatement: React.FC<CashFlowStatementProps> = ({ householdId, onBa
               "border-2",
               data.netCashChange >= 0 ? "bg-emerald-50/50 border-emerald-100 dark:bg-emerald-950/10 dark:border-emerald-900" : "bg-rose-50/50 border-rose-100 dark:bg-rose-950/10 dark:border-rose-900"
             )}>
-              <CardContent className="pt-6">
+              <CardContent className="pt-6 px-4">
                 <p className="text-sm font-medium text-slate-500 mb-1">淨現金變動</p>
                 <p className={cn(
-                  "text-2xl font-bold",
+                  "text-xl font-bold",
                   data.netCashChange >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"
                 )}>
                   {data.netCashChange > 0 ? '+' : ''}{formatCurrency(data.netCashChange)}
                 </p>
               </CardContent>
             </Card>
-            <Card className="bg-slate-900 border-slate-800">
-              <CardContent className="pt-6">
-                <p className="text-sm font-medium text-slate-400 mb-1">期末餘額</p>
-                <p className="text-xl font-bold text-white">
+            <Card className="bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700">
+              <CardContent className="pt-6 px-4">
+                <p className="text-sm font-medium text-slate-500 mb-1">期末餘額 (計算)</p>
+                <p className="text-lg font-bold text-slate-700 dark:text-slate-300">
                   {formatCurrency(data.endingBalance)}
+                </p>
+              </CardContent>
+            </Card>
+            <Card className="bg-slate-900 border-slate-800">
+              <CardContent className="pt-6 px-4">
+                <p className="text-sm font-medium text-slate-400 mb-1">帳戶實際餘額</p>
+                <p className="text-lg font-bold text-white">
+                  {formatCurrency(data.actualBalance)}
                 </p>
               </CardContent>
             </Card>
@@ -188,8 +187,21 @@ const CashFlowStatement: React.FC<CashFlowStatementProps> = ({ householdId, onBa
             {renderActivityGroup(data.financing, 'financing')}
           </div>
 
+          {/* Reconciliation Alert */}
+          {data.adjustment !== 0 && (
+            <Alert variant="destructive" className="bg-amber-50 border-amber-200 text-amber-800 dark:bg-amber-950/20 dark:border-amber-900 dark:text-amber-400">
+              <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-500" />
+              <AlertTitle>對帳差異提醒</AlertTitle>
+              <AlertDescription>
+                期末現金（計算值：{formatCurrency(data.endingBalance)}）與帳戶實際餘額（{formatCurrency(data.actualBalance)}）存在差異，
+                金額為 <span className="font-bold underline">{formatCurrency(data.adjustment)}</span>。
+                請確認是否有漏記交易，或帳戶結算金額是否有誤。
+              </AlertDescription>
+            </Alert>
+          )}
+
           <p className="text-xs text-slate-400 text-center italic">
-            * 期初餘額由上月帳戶快照計算，期末餘額 = 期初 + 淨現金變動。
+            * 帳戶實際餘額取自各帳戶該月份之結算金額。
           </p>
         </div>
       ) : null}

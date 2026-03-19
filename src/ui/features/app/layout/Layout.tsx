@@ -65,6 +65,7 @@ const Layout: React.FC = () => {
     { to: '/projects', icon: Folder, label: 'Projects' },
     { to: '/accounts', icon: Wallet, label: 'Accounts' },
     { to: '/portfolios', icon: Briefcase, label: 'Portfolios' },
+    { to: '/debt', icon: Wallet, label: 'Debt' },
     { to: '/reports', icon: FileText, label: 'Reports' },
     { to: '/retirement', icon: TrendingUp, label: 'Retirement' },
     { to: '/settings', icon: Settings, label: 'Settings' },

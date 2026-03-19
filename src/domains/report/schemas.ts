@@ -1,11 +1,13 @@
 import { z } from 'zod';
 
-export const IncomeStatementItemSchema: z.ZodType<IncomeStatementItem> = z.lazy(() => z.object({
-  code: z.string(),
-  label: z.string(),
-  amount: z.number(),
-  subItems: z.array(IncomeStatementItemSchema).optional(),
-}));
+export const IncomeStatementItemSchema: z.ZodType<IncomeStatementItem> = z.lazy(() =>
+  z.object({
+    code: z.string(),
+    label: z.string(),
+    amount: z.number(),
+    subItems: z.array(IncomeStatementItemSchema).optional(),
+  }),
+);
 
 export interface IncomeStatementItem {
   code: string;
@@ -28,9 +30,10 @@ export type IncomeStatementData = z.infer<typeof IncomeStatementDataSchema>;
 export const ReportType = {
   INCOME_STATEMENT: 'INCOME_STATEMENT',
   BALANCE_SHEET: 'BALANCE_SHEET',
+  CASH_FLOW: 'CASH_FLOW',
 } as const;
 
-export type ReportType = typeof ReportType[keyof typeof ReportType];
+export type ReportType = (typeof ReportType)[keyof typeof ReportType];
 
 export const FinancialReportSchema = z.object({
   id: z.string(),
@@ -63,6 +66,12 @@ export const BalanceSheetGroupSchema = z.object({
 });
 
 export type BalanceSheetGroup = z.infer<typeof BalanceSheetGroupSchema>;
+export const BalanceSheetEquitySchema = z.object({
+  total: z.number(),
+  groups: z.record(z.string(), BalanceSheetGroupSchema),
+});
+
+export type BalanceSheetEquity = z.infer<typeof BalanceSheetEquitySchema>;
 
 export const BalanceSheetDataSchema = z.object({
   yearMonth: z.string(),
@@ -74,13 +83,7 @@ export const BalanceSheetDataSchema = z.object({
     total: z.number(),
     groups: z.record(z.string(), BalanceSheetGroupSchema),
   }),
-  equity: z.union([
-    z.number(),
-    z.object({
-      total: z.number(),
-      groups: z.record(z.string(), BalanceSheetGroupSchema).optional(),
-    }),
-  ]),
+  equity: BalanceSheetEquitySchema,
 });
 
 export type BalanceSheetData = z.infer<typeof BalanceSheetDataSchema>;
@@ -111,6 +114,8 @@ export const CashFlowDataSchema = z.object({
   netCashChange: z.number(),
   beginningBalance: z.number(),
   endingBalance: z.number(),
+  actualBalance: z.number(),
+  adjustment: z.number(),
 });
 
 export type CashFlowData = z.infer<typeof CashFlowDataSchema>;

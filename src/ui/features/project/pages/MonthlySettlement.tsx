@@ -2,6 +2,7 @@ import React from 'react';
 import { ArrowLeft, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/ui/components/ui/button';
 import { Card } from '@/ui/components/ui/card';
+import { YearMonthPicker } from '@/ui/components/YearMonthPicker';
 import { useSettlementDialog, DialogStatus } from '@/ui/features/project/components/settlement/useSettlementDialog';
 import { SettlementPreview } from '@/ui/features/project/components/settlement/SettlementPreview';
 import { type Project } from '@/domains/project/schemas';
@@ -34,9 +35,6 @@ const MonthlySettlement: React.FC<MonthlySettlementProps> = ({
     back,
   } = useSettlementDialog(householdId, projects, userEmail, onSuccess, onBack);
 
-  const years = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i);
-  const months = Array.from({ length: 12 }, (_, i) => i + 1);
-
   if (status === DialogStatus.DONE) {
     return (
       <div className="flex flex-col items-center justify-center py-12 space-y-4">
@@ -63,33 +61,15 @@ const MonthlySettlement: React.FC<MonthlySettlementProps> = ({
       {status === DialogStatus.SELECTION && (
         <Card className="p-6 max-w-md mx-auto">
           <div className="space-y-4">
-            <h3 className="font-semibold text-lg">Select Period</h3>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Year</label>
-                <select
-                  value={year}
-                  onChange={(e) => setYear(Number(e.target.value))}
-                  className="w-full p-2 border rounded-md"
-                >
-                  {years.map((y) => (
-                    <option key={y} value={y}>{y}</option>
-                  ))}
-                </select>
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Month</label>
-                <select
-                  value={month}
-                  onChange={(e) => setMonth(Number(e.target.value))}
-                  className="w-full p-2 border rounded-md"
-                >
-                  {months.map((m) => (
-                    <option key={m} value={m}>{m}</option>
-                  ))}
-                </select>
-              </div>
-            </div>
+            <h3 className="font-semibold text-lg text-slate-900">選擇結算期間</h3>
+            <YearMonthPicker
+              year={year}
+              month={month}
+              onYearChange={(y) => setYear(parseInt(y) || 0)}
+              onMonthChange={(m) => setMonth(parseInt(m) || 1)}
+              yearLabel="結算年份"
+              monthLabel="結算月份"
+            />
             <Button className="w-full" onClick={toPreview}>
               Preview Settlement
             </Button>

@@ -1,11 +1,14 @@
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 import { createAllocationUseCase } from '@/application/ledger/use_cases/createAllocationUseCase';
 import { createTransactionUseCase } from '@/application/ledger/use_cases/createTransactionUseCase';
+import { createDebtPaymentUseCase } from '@/application/debt/use_cases/createDebtPaymentUseCase';
 import { DEFAULT_INTENT_MAPPINGS } from '@/domains/ledger/intentMapping';
 import { type TransactionCreate } from '@/domains/ledger/schemas';
+import { type DebtAccount } from '@/domains/debt/schemas';
 import { projectService } from '@/domains/project/projectService';
 import { useAuth } from '@/infra/contexts/useAuth';
+import { listDebtAccountsUseCase } from '@/application/debt/use_cases/listDebtAccountsUseCase';
 import {
   type TransactionFormCategoryOption,
   type TransactionFormOutput,
@@ -181,9 +184,25 @@ export const useTransactionForm = (
   onClose: () => void,
   onSuccess?: () => void,
 ) => {
-  const { userProfile } = useAuth();
+  const { userProfile, currentUser, isAdmin } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [debtAccounts, setDebtAccounts] = useState<DebtAccount[]>([]);
+
+  // Fetch active debt accounts for the DEBT_PAYMENT tab
+  const fetchDebtAccounts = useCallback(async () => {
+    if (!householdId) return;
+    try {
+      const accounts = await listDebtAccountsUseCase.execute({ householdId });
+      setDebtAccounts(accounts);
+    } catch {
+      // non-critical — DEBT_PAYMENT tab will simply show empty list
+    }
+  }, [householdId]);
+
+  useEffect(() => {
+    fetchDebtAccounts();
+  }, [fetchDebtAccounts]);
 
   const executeAllocation = async (input: {
     output: TransactionFormOutput;
@@ -228,7 +247,22 @@ export const useTransactionForm = (
         throw new Error('Amount must be greater than zero.');
       }
 
-      if (output.intentType === 'PROJECT_TRANSFER') {
+      if (output.intentType === 'DEBT_PAYMENT') {
+        if (!output.debtAccountId) throw new Error('請選擇貸款帳戶');
+        await createDebtPaymentUseCase.execute({
+          householdId,
+          userEmail: userProfile.email,
+          auth: {
+            uid: currentUser?.uid ?? '',
+            isGlobalAdmin: isAdmin ?? false,
+          },
+          debtAccountId: output.debtAccountId,
+          totalPayment: output.amount,
+          date: new Date(`${output.date}T00:00:00`),
+          description: output.description,
+          projectId: output.projectId,
+        });
+      } else if (output.intentType === 'PROJECT_TRANSFER') {
         if (!output.fromProjectId || !output.toProjectId) {
           throw new Error('Please select both source and target projects.');
         }
@@ -280,6 +314,7 @@ export const useTransactionForm = (
     investmentCategories,
     financingCategories,
     advancedCategories,
+    debtAccounts,
     loading,
     error,
     handleSubmit,

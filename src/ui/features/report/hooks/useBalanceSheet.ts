@@ -4,10 +4,12 @@ import { type BalanceSheetData } from '@/domains/report/schemas';
 import { useLoadingTask } from '@/ui/hooks/useLoadingTask';
 import { format } from 'date-fns';
 
-export function useBalanceSheet(householdId: string, initialDate: Date = new Date()) {
+export function useBalanceSheet(householdId: string, controlledDate?: Date) {
   const [data, setData] = useState<BalanceSheetData | null>(null);
-  const [currentDate, setCurrentDate] = useState<Date>(initialDate);
+  const [internalDate, setInternalDate] = useState<Date>(new Date());
   const { loading, error, run } = useLoadingTask();
+
+  const currentDate = controlledDate || internalDate;
 
   const load = useCallback(async () => {
     if (!householdId) return;
@@ -24,11 +26,11 @@ export function useBalanceSheet(householdId: string, initialDate: Date = new Dat
   }, [load]);
 
   const nextMonth = () => {
-    setCurrentDate(prev => new Date(prev.getFullYear(), prev.getMonth() + 1, 1));
+    setInternalDate(prev => new Date(prev.getFullYear(), prev.getMonth() + 1, 1));
   };
 
   const prevMonth = () => {
-    setCurrentDate(prev => new Date(prev.getFullYear(), prev.getMonth() - 1, 1));
+    setInternalDate(prev => new Date(prev.getFullYear(), prev.getMonth() - 1, 1));
   };
 
   return {
@@ -36,7 +38,7 @@ export function useBalanceSheet(householdId: string, initialDate: Date = new Dat
     loading,
     error,
     currentDate,
-    setCurrentDate,
+    setCurrentDate: setInternalDate,
     nextMonth,
     prevMonth,
     reload: load

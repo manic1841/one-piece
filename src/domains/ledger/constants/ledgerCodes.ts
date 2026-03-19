@@ -1,0 +1,40 @@
+export const LEDGER_PREFIX = {
+  ASSET: 'asset',
+  LIABILITY: 'liability',
+  EQUITY: 'equity',
+  INCOME: 'income',
+  EXPENSE: 'expense',
+} as const;
+
+export type LedgerCode = (typeof LEDGER_PREFIX)[keyof typeof LEDGER_PREFIX];
+
+export const LEDGER_CODES = {
+  // Asset
+  ASSET_CASH: LEDGER_PREFIX.ASSET + ':cash',
+  ASSET_BANK: LEDGER_PREFIX.ASSET + ':bank',
+  ASSET_INVESTMENT: LEDGER_PREFIX.ASSET + ':investment',
+  ASSET_PROPERTY: LEDGER_PREFIX.ASSET + ':property',
+  // Liability
+  LIABILITY_LOAN: LEDGER_PREFIX.LIABILITY + ':loan',
+  LIABILITY_MORTGAGE: LEDGER_PREFIX.LIABILITY + ':mortgage',
+  // Equity
+  EQUITY_CAPITAL: LEDGER_PREFIX.EQUITY + ':capital',
+  // Income
+  INCOME_SALARY: LEDGER_PREFIX.INCOME + ':salary',
+  INCOME_BONUS: LEDGER_PREFIX.INCOME + ':bonus',
+  INCOME_INVESTMENT: LEDGER_PREFIX.INCOME + ':investment',
+  INCOME_REFUND: LEDGER_PREFIX.INCOME + ':refund',
+  // Expense
+  EXPENSE_FOOD: LEDGER_PREFIX.EXPENSE + ':food',
+  EXPENSE_TRANSPORTATION: LEDGER_PREFIX.EXPENSE + ':transportation',
+  EXPENSE_SHOPPING: LEDGER_PREFIX.EXPENSE + ':shopping',
+  EXPENSE_ENTERTAINMENT: LEDGER_PREFIX.EXPENSE + ':entertainment',
+  EXPENSE_HOUSING: LEDGER_PREFIX.EXPENSE + ':housing',
+  EXPENSE_RENT: LEDGER_PREFIX.EXPENSE + ':rent',
+  EXPENSE_LOAN_INTEREST: LEDGER_PREFIX.EXPENSE + ':loan_interest',
+  EXPENSE_MORTGAGE_INTEREST: LEDGER_PREFIX.EXPENSE + ':mortgage_interest',
+  EXPENSE_INSURANCE: LEDGER_PREFIX.EXPENSE + ':insurance',
+  EXPENSE_TAX: LEDGER_PREFIX.EXPENSE + ':tax',
+} as const;
+
+export type LedgerCodeMap = (typeof LEDGER_CODES)[keyof typeof LEDGER_CODES];

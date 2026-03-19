@@ -49,6 +49,21 @@ const SettlementDialog: React.FC<SettlementDialogProps> = ({
     back,
   } = useSettlementDialog(householdId, projects, email, onSuccess, onClose);
 
+  const getStepTitle = () => {
+    switch (status) {
+      case DialogStatus.SELECTION:
+        return 'Step 1: 選擇月份';
+      case DialogStatus.PREVIEW:
+        return 'Step 2: 預覽結算內容';
+      case DialogStatus.PROCESSING:
+        return 'Step 3: 執行中...';
+      case DialogStatus.DONE:
+        return '結算完成';
+      default:
+        return '月度結算';
+    }
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && close()}>
       <DialogContent
@@ -58,7 +73,7 @@ const SettlementDialog: React.FC<SettlementDialogProps> = ({
         <DialogHeader>
           <div className="flex items-center gap-3">
             <Calendar className="text-blue-600" size={24} />
-            <DialogTitle>Monthly Settlement</DialogTitle>
+            <DialogTitle>{getStepTitle()}</DialogTitle>
           </div>
         </DialogHeader>
 
@@ -96,10 +111,10 @@ const SettlementDialog: React.FC<SettlementDialogProps> = ({
           {status === DialogStatus.PREVIEW && (
             <>
               <Button variant="outline" onClick={back}>
-                Back
+                上一步
               </Button>
               <Button onClick={confirm} className="bg-green-600 hover:bg-green-700">
-                Confirm
+                確認結算並進入下一步
               </Button>
             </>
           )}

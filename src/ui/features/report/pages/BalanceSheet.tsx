@@ -1,21 +1,29 @@
 import React from 'react';
-
-import { format } from 'date-fns';
-import { ArrowLeft, Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
-
-import { type BalanceSheetGroup } from '@/domains/report/schemas';
-import { Button } from '@/ui/components/ui/button';
+import { AlertTriangle } from 'lucide-react';
+import { type BalanceSheetGroup, type BalanceSheetData } from '@/domains/report/schemas';
 import { Card, CardContent } from '@/ui/components/ui/card';
+import { Alert, AlertDescription, AlertTitle } from '@/ui/components/ui/alert';
 import { useBalanceSheet } from '@/ui/features/report/hooks/useBalanceSheet';
 import { formatCurrency } from '@/ui/utils';
+import { cn } from '@/ui/utils/cn';
+import { ReportHeader, type ReportView } from '../components/ReportHeader';
 
 interface BalanceSheetPageProps {
   householdId: string;
-  onBack?: () => void;
+  currentDate: Date;
+  onDateChange: (date: Date) => void;
+  onViewChange: (view: ReportView) => void;
+  onBack: () => void;
 }
 
-const BalanceSheetPage: React.FC<BalanceSheetPageProps> = ({ householdId, onBack }) => {
-  const { data, loading, error, currentDate, nextMonth, prevMonth } = useBalanceSheet(householdId);
+const BalanceSheetPage: React.FC<BalanceSheetPageProps> = ({ 
+  householdId, 
+  currentDate, 
+  onDateChange, 
+  onViewChange, 
+  onBack 
+}) => {
+  const { data, loading, error } = useBalanceSheet(householdId, currentDate);
 
   if (error) {
     const errorMsg = String(error);
@@ -50,35 +58,68 @@ const BalanceSheetPage: React.FC<BalanceSheetPageProps> = ({ householdId, onBack
     );
   };
 
-  return (
-    <div className="max-w-4xl mx-auto space-y-6 pb-20">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          {onBack && (
-            <Button variant="ghost" size="icon" onClick={onBack}>
-              <ArrowLeft size={24} />
-            </Button>
+  const renderEquity = (equity: BalanceSheetData['equity']) => {
+    const adjustmentTotal = equity.groups.adjustment?.total || 0;
+    const showWarning = Math.abs(adjustmentTotal) > 1000;
+
+    return (
+      <div className="space-y-4">
+        <h3 className="text-lg font-bold flex items-center gap-2 mb-4">
+          <div className="w-1 h-6 bg-slate-500 rounded-full" />
+          權益 (Equity)
+        </h3>
+        
+        <div className="space-y-2">
+          {Object.entries(equity.groups).map(([id, group]) => {
+            if (id === 'adjustment') return null; // Handle adjustment separately for warning
+            return renderGroup(group);
+          })}
+          
+          {/* Render Adjustment with warning if needed */}
+          {equity.groups.adjustment && (
+            <div key="adjustment" className="mb-6">
+              <div className="flex justify-between items-center mb-2 px-2">
+                <div className="flex items-center gap-2">
+                  <h4 className="font-semibold text-slate-700 dark:text-slate-300">{equity.groups.adjustment.label}</h4>
+                  {showWarning && <AlertTriangle className="w-4 h-4 text-amber-500" />}
+                </div>
+                <span className={cn("font-bold", Math.abs(adjustmentTotal) > 0 ? "text-amber-600" : "text-slate-500")}>
+                  {formatCurrency(adjustmentTotal)}
+                </span>
+              </div>
+            </div>
           )}
-          <div>
-            <h1 className="text-2xl font-bold">資產負債表 (Balance Sheet)</h1>
-            <p className="text-muted-foreground">財務存量分析</p>
+
+          <div className="flex justify-between items-center py-4 px-4 bg-slate-900 text-white rounded-xl">
+            <span className="font-bold">期末權益 (Total Equity)</span>
+            <span className="text-xl font-bold">{formatCurrency(equity.total)}</span>
           </div>
         </div>
 
-        <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 p-1 rounded-lg">
-          <Button variant="ghost" size="icon" onClick={prevMonth} disabled={loading}>
-            <ChevronLeft size={18} />
-          </Button>
-          <div className="flex items-center gap-2 px-3 font-medium min-w-[120px] justify-center">
-            <Calendar size={16} className="text-slate-400" />
-            <span>{format(currentDate, 'yyyy / MM')}</span>
-          </div>
-          <Button variant="ghost" size="icon" onClick={nextMonth} disabled={loading}>
-            <ChevronRight size={18} />
-          </Button>
-        </div>
+        {showWarning && (
+          <Alert variant="destructive" className="bg-amber-50 border-amber-200 text-amber-800 dark:bg-amber-950/20 dark:border-amber-900 dark:text-amber-400">
+            <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-500" />
+            <AlertTitle>注意</AlertTitle>
+            <AlertDescription>
+              調整項目偏大，請確認是否有漏記交易，或帳戶結算金額是否正確。
+            </AlertDescription>
+          </Alert>
+        )}
       </div>
+    );
+  };
+
+  return (
+    <div className="max-w-4xl mx-auto space-y-6 pb-20">
+      <ReportHeader
+        title="資產負債表 (BS)"
+        subtitle="財務存量分析，掌握資產與負債分佈。"
+        currentDate={currentDate}
+        onDateChange={onDateChange}
+        onBack={onBack}
+        currentView="BALANCE_SHEET"
+        onViewChange={onViewChange}
+      />
 
       {!data && loading ? (
         <div className="h-64 flex items-center justify-center">
@@ -112,7 +153,7 @@ const BalanceSheetPage: React.FC<BalanceSheetPageProps> = ({ householdId, onBack
               <CardContent className="pt-6">
                 <p className="text-sm font-medium text-slate-400 mb-1">淨資產 (Equity)</p>
                 <p className="text-2xl font-bold text-white">
-                  {formatCurrency(typeof data.equity === 'number' ? data.equity : data.equity.total)}
+                  {formatCurrency(data.equity.total)}
                 </p>
               </CardContent>
             </Card>
@@ -139,15 +180,7 @@ const BalanceSheetPage: React.FC<BalanceSheetPageProps> = ({ householdId, onBack
               </div>
 
               {/* Equity side */}
-              {typeof data.equity === 'object' && data.equity.groups && (
-                <div className="space-y-2 pb-6">
-                  <h3 className="text-lg font-bold flex items-center gap-2 mb-4">
-                    <div className="w-1 h-6 bg-slate-500 rounded-full" />
-                    權益 (Equity)
-                  </h3>
-                  {Object.values(data.equity.groups).map((group) => renderGroup(group as BalanceSheetGroup))}
-                </div>
-              )}
+              {renderEquity(data.equity)}
             </div>
           </div>
         </div>

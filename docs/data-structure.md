@@ -97,12 +97,35 @@ firestore
        │    ├─ createdAt: Timestamp
        │    ├─ ledgerCodes: string[]      # 索引最佳化 (用於報表查詢)
 
-       └─ reports/{reportId}             # 財務報表快照
+       ├─ reports/{reportId}             # 財務報表快照
             ├─ year: number
             ├─ month: number
             ├─ type: "income_statement" | "balance_sheet" | "cash_flow"
             ├─ data: object
             └─ generatedAt: Timestamp
+
+       ├─ ledgerCodes/{code}             # 自訂會計科目（isCustom: true）
+       │    ├─ code: string              # e.g. "liability:mortgage"
+       │    ├─ label: string             # e.g. "房貸"
+       │    ├─ type: LedgerType
+       │    ├─ isCustom: true
+       │    ├─ createdBy: string
+       │    └─ createdAt: Timestamp
+
+       └─ debtAccounts/{debtAccountId}  # 債務帳戶
+            ├─ name: string             # e.g. 玉山房貸
+            ├─ type: "mortgage" | "car_loan" | "personal_loan"
+            ├─ repaymentType: "equal_payment"
+            ├─ originalAmount: number
+            ├─ currentBalance: number
+            ├─ interestRate: number     # 年利率 %
+            ├─ startDate: Timestamp
+            ├─ endDate: Timestamp
+            ├─ monthlyPayment: number
+            ├─ linkedLedgerCode: string # 由 type 自動對應，e.g. "liability:mortgage"
+            ├─ linkedProjectId?: string | null
+            ├─ note?: string
+            └─ isActive: boolean        # false = soft-deleted
 ```
 
 ## 設計注意事項

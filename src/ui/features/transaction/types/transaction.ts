@@ -11,7 +11,8 @@ export type TransactionFormTab =
   | 'INVESTMENT'
   | 'FINANCING'
   | 'PROJECT_TRANSFER'
-  | 'ADVANCED';
+  | 'ADVANCED'
+  | 'DEBT_PAYMENT';
 
 export type ExpenseFormState = {
   amount: string;
@@ -73,7 +74,7 @@ export type AdvancedFormState = {
 };
 
 export type TransactionFormOutput = {
-  intentType: IntentType;
+  intentType: IntentType | 'DEBT_PAYMENT';
   date: string;
   amount: number;
   projectId?: string;
@@ -84,6 +85,10 @@ export type TransactionFormOutput = {
   allocationDirection?: 'INCOME' | 'EXPENSE';
   fromProjectId?: string;
   toProjectId?: string;
+  // DEBT_PAYMENT specific
+  debtAccountId?: string;
+  principal?: number;
+  interest?: number;
 };
 
 export type TransactionFormCategoryOption = {

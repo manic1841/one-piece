@@ -9,6 +9,7 @@ import AccessDenied from '@/ui/features/auth/pages/AccessDeniedPage';
 import Login from '@/ui/features/auth/pages/LoginPage';
 import Onboarding from '@/ui/features/auth/pages/OnboardingPage';
 import Dashboard from '@/ui/features/dashboard/pages/DashboardPage';
+import DebtListPage from '@/ui/features/debt/pages/DebtListPage';
 import PortfolioDetailPage from '@/ui/features/portfolio/pages/PortfolioDetailPage';
 import PortfoliosPage from '@/ui/features/portfolio/pages/PortfoliosPage';
 import ProjectsPage from '@/ui/features/project/pages/ProjectsPage';
@@ -51,6 +52,7 @@ function App() {
             <Route path="reports" element={<Reports />} />
             <Route path="retirement" element={<RetirementPlanList />} />
             <Route path="retirement/:id" element={<RetirementPlanForm />} />
+            <Route path="debt" element={<DebtListPage />} />
             <Route path="settings" element={<Settings />} />
           </Route>
         </Routes>

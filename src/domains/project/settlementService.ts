@@ -1,6 +1,9 @@
 import { allocationRepository } from '@/infra/repositories/allocationRepository';
 import { projectRepository } from '@/infra/repositories/projectRepository';
 import { transactionRepository } from '@/infra/repositories/transactionRepository';
+import { debtAccountRepository } from '@/infra/repositories/debtAccountRepository';
+import { debtSnapshotRepository } from '@/infra/repositories/debtSnapshotRepository';
+import { type DebtSnapshotCreate } from '@/domains/debt/schemas';
 
 import { type ProjectSnapshotCreate } from './schemas';
 
@@ -9,11 +12,39 @@ export class SettlementService {
    * Recalculate and save snapshots for all active projects for a given month.
    */
   async settleMonth(householdId: string, yearMonth: string, userEmail: string): Promise<void> {
+    // 1. Settle Projects
     const projects = await projectRepository.getProjects(householdId);
-
     for (const project of projects) {
       const snapshot = await this.recalculateSnapshot(householdId, project.id, yearMonth);
       await projectRepository.saveSnapshot(householdId, project.id, snapshot, userEmail);
+    }
+
+    // 2. Settle Debt Accounts
+    await this.settleDebtAccounts(householdId, yearMonth, userEmail);
+  }
+
+  /**
+   * Ensure all active debt accounts have a snapshot for the month.
+   */
+  async settleDebtAccounts(householdId: string, yearMonth: string, userEmail: string): Promise<void> {
+    const debtAccounts = await debtAccountRepository.getDebtAccounts(householdId);
+
+    for (const account of debtAccounts) {
+      // Check if snapshot already exists (e.g. from a payment)
+      const existing = await debtSnapshotRepository.getSnapshot(householdId, account.id, yearMonth);
+      if (existing) continue;
+
+      // If no payment, create one with zero paid amounts
+      const snapshot: DebtSnapshotCreate = {
+        yearMonth,
+        openingBalance: account.currentBalance, // Simplified: should ideally fetch from previous month if complex
+        principalPaid: 0,
+        interestPaid: 0,
+        totalPaid: 0,
+        closingBalance: account.currentBalance,
+      };
+
+      await debtSnapshotRepository.upsertSnapshot(householdId, account.id, snapshot, userEmail);
     }
   }
 

@@ -63,26 +63,29 @@ export const TransactionList: React.FC<TransactionListProps> = ({
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-10">
       {groupedItems.map(([month, transactions]) => (
-        <section key={month}>
-          <h3 className="text-sm font-semibold text-muted-foreground mb-3 ml-1 uppercase tracking-wider">
-            {month}
-          </h3>
-          <Card>
-            <div className="divide-y divide-border">
-              {transactions.map((item) => (
-                <div key={item.id}>
-                  <TransactionItem
-                    transaction={item}
-                    onEdit={onEdit}
-                    onDelete={onDelete}
-                    projectName={projects?.find((p) => p.id === item.projectId)?.name}
-                  />
-                </div>
-              ))}
-            </div>
-          </Card>
+        <section key={month} className="relative">
+          <div className="sticky top-0 z-10 bg-gray-50/80 backdrop-blur-sm pt-2 pb-3 mb-2 -mx-4 px-4 flex items-center justify-between border-b border-gray-100/50">
+            <h3 className="text-xs font-bold text-gray-400 uppercase tracking-[0.2em]">
+              {month}
+            </h3>
+            <span className="text-[10px] text-gray-300 font-medium">
+              {transactions.length} 筆交易
+            </span>
+          </div>
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden divide-y divide-gray-50">
+            {transactions.map((item) => (
+              <div key={item.id}>
+                <TransactionItem
+                  transaction={item}
+                  onEdit={onEdit}
+                  onDelete={onDelete}
+                  projectName={projects?.find((p) => p.id === item.projectId)?.name}
+                />
+              </div>
+            ))}
+          </div>
         </section>
       ))}
     </div>

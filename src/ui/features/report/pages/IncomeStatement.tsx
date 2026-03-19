@@ -1,19 +1,27 @@
 import React, { useState } from 'react';
-import { ChevronDown, ChevronRight, Calendar, ChevronLeft, ArrowLeft } from 'lucide-react';
-import { Button } from '@/ui/components/ui/button';
+import { ChevronDown, ChevronRight } from 'lucide-react';
+import { type IncomeStatementItem } from '@/domains/report/schemas';
 import { Card, CardHeader, CardTitle, CardContent } from '@/ui/components/ui/card';
 import { useIncomeStatement } from '@/ui/features/report/hooks/useIncomeStatement';
 import { formatCurrency } from '@/ui/utils';
-import { format } from 'date-fns';
-import { type IncomeStatementItem } from '@/domains/report/schemas';
+import { ReportHeader, type ReportView } from '../components/ReportHeader';
 
 interface IncomeStatementPageProps {
   householdId: string;
-  onBack?: () => void;
+  currentDate: Date;
+  onDateChange: (date: Date) => void;
+  onViewChange: (view: ReportView) => void;
+  onBack: () => void;
 }
 
-const IncomeStatementPage: React.FC<IncomeStatementPageProps> = ({ householdId, onBack }) => {
-  const { data, loading, error, currentDate, nextMonth, prevMonth } = useIncomeStatement(householdId);
+const IncomeStatementPage: React.FC<IncomeStatementPageProps> = ({ 
+  householdId, 
+  currentDate, 
+  onDateChange, 
+  onViewChange, 
+  onBack 
+}) => {
+  const { data, loading, error } = useIncomeStatement(householdId, currentDate);
   const [expandedCodes, setExpandedCodes] = useState<Set<string>>(new Set());
 
   const toggleExpand = (code: string) => {
@@ -66,33 +74,15 @@ const IncomeStatementPage: React.FC<IncomeStatementPageProps> = ({ householdId, 
 
   return (
     <div className="max-w-4xl mx-auto space-y-6 pb-20">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          {onBack && (
-            <Button variant="ghost" size="icon" onClick={onBack}>
-              <ArrowLeft size={24} />
-            </Button>
-          )}
-          <div>
-            <h1 className="text-2xl font-bold">損益表 (Income Statement)</h1>
-            <p className="text-muted-foreground">收入與支出分析</p>
-          </div>
-        </div>
-        
-        <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 p-1 rounded-lg">
-          <Button variant="ghost" size="icon" onClick={prevMonth} disabled={loading}>
-            <ChevronLeft size={18} />
-          </Button>
-          <div className="flex items-center gap-2 px-3 font-medium min-w-[120px] justify-center">
-            <Calendar size={16} className="text-slate-400" />
-            <span>{format(currentDate, 'yyyy / MM')}</span>
-          </div>
-          <Button variant="ghost" size="icon" onClick={nextMonth} disabled={loading}>
-            <ChevronRight size={18} />
-          </Button>
-        </div>
-      </div>
+      <ReportHeader
+        title="損益表 (Income Statement)"
+        subtitle="收入與支出分析，掌握每月的淨利潤。"
+        currentDate={currentDate}
+        onDateChange={onDateChange}
+        onBack={onBack}
+        currentView="INCOME_STATEMENT"
+        onViewChange={onViewChange}
+      />
 
       {!data && loading ? (
         <div className="h-64 flex items-center justify-center">
