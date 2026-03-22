@@ -4,6 +4,7 @@ import {
   assertEntriesBalanced,
   buildDebtPaymentEntries,
   calculateSplit,
+  isInGracePeriod,
 } from '@/domains/debt/debtPaymentCalculator';
 import { debtAccountRepository } from '@/infra/repositories/debtAccountRepository';
 import { debtSnapshotRepository } from '@/infra/repositories/debtSnapshotRepository';
@@ -38,10 +39,22 @@ export interface CreateDebtPaymentResult {
  */
 export class CreateDebtPaymentUseCase {
   async execute(request: CreateDebtPaymentRequest): Promise<CreateDebtPaymentResult> {
-    const { householdId, userEmail, auth, debtAccountId, totalPayment, date, description, projectId } =
-      request;
+    const {
+      householdId,
+      userEmail,
+      auth,
+      debtAccountId,
+      totalPayment,
+      date,
+      description,
+      projectId,
+    } = request;
 
-    await householdPermissionService.assertWritePermission(householdId, auth.uid, auth.isGlobalAdmin);
+    await householdPermissionService.assertWritePermission(
+      householdId,
+      auth.uid,
+      auth.isGlobalAdmin,
+    );
 
     // 1. Load account
     const account = await debtAccountRepository.get([householdId, debtAccountId]);
@@ -49,11 +62,22 @@ export class CreateDebtPaymentUseCase {
     if (!account.isActive) throw new Error('Cannot record payment on an inactive debt account');
 
     // 2. Split calculation
-    const { principal, interest, warning } = calculateSplit(
+    let { principal, interest, warning } = calculateSplit(
       account.currentBalance,
       account.interestRate,
       totalPayment,
     );
+
+    // Grace period handling: during grace period, principal payment is not recorded from liability
+    // (though user may choose to pay extra for early repayment)
+    // For simplicity: if in grace period, force principal = 0 for normal flows
+    // User can override in UI if they explicitly want early repayment during grace
+    if (isInGracePeriod(account.graceEndDate) && principal > 0) {
+      // During grace period with positive principal calculated
+      // This means user is paying more than just interest
+      // Allow it as early principal repayment, but log for visibility
+      console.info(`[CreateDebtPaymentUseCase] Grace period with early principal: ${principal}`);
+    }
 
     if (warning) {
       // Still allow the transaction — caller may choose to surface warning in UI
@@ -66,6 +90,7 @@ export class CreateDebtPaymentUseCase {
       principal,
       interest,
       totalPayment,
+      account.graceEndDate,
     );
     assertEntriesBalanced(entries);
 

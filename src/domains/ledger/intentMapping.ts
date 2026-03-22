@@ -7,6 +7,10 @@ export interface IntentMappingInfo {
   type: IntentType;
   debitLedgerCode: string;
   creditLedgerCode: string;
+  debitUserSelect?: boolean;
+  creditUserSelect?: boolean;
+  allowedDebitPrefix?: string;
+  allowedCreditPrefix?: string;
 }
 
 export const DEFAULT_INTENT_MAPPINGS: IntentMappingInfo[] = [
@@ -26,6 +30,13 @@ export const DEFAULT_INTENT_MAPPINGS: IntentMappingInfo[] = [
     creditLedgerCode: LEDGER_CODES.ASSET_CASH,
   },
   {
+    intent: 'VEHICLE',
+    label: '汽車',
+    type: IntentType.EXPENSE,
+    debitLedgerCode: LEDGER_CODES.EXPENSE_VEHICLE,
+    creditLedgerCode: LEDGER_CODES.ASSET_CASH,
+  },
+  {
     intent: 'SHOPPING',
     label: '購物',
     type: IntentType.EXPENSE,
@@ -37,6 +48,34 @@ export const DEFAULT_INTENT_MAPPINGS: IntentMappingInfo[] = [
     label: '娛樂',
     type: IntentType.EXPENSE,
     debitLedgerCode: LEDGER_CODES.EXPENSE_ENTERTAINMENT,
+    creditLedgerCode: LEDGER_CODES.ASSET_CASH,
+  },
+  {
+    intent: 'LIVING',
+    label: '生活',
+    type: IntentType.EXPENSE,
+    debitLedgerCode: LEDGER_CODES.EXPENSE_LIVING,
+    creditLedgerCode: LEDGER_CODES.ASSET_CASH,
+  },
+  {
+    intent: 'HEALTHCARE',
+    label: '醫療',
+    type: IntentType.EXPENSE,
+    debitLedgerCode: LEDGER_CODES.EXPENSE_HEALTHCARE,
+    creditLedgerCode: LEDGER_CODES.ASSET_CASH,
+  },
+  {
+    intent: 'EDUCATION',
+    label: '教育',
+    type: IntentType.EXPENSE,
+    debitLedgerCode: LEDGER_CODES.EXPENSE_EDUCATION,
+    creditLedgerCode: LEDGER_CODES.ASSET_CASH,
+  },
+  {
+    intent: 'SOCIAL',
+    label: '社交',
+    type: IntentType.EXPENSE,
+    debitLedgerCode: LEDGER_CODES.EXPENSE_SOCIAL,
     creditLedgerCode: LEDGER_CODES.ASSET_CASH,
   },
   {
@@ -74,6 +113,15 @@ export const DEFAULT_INTENT_MAPPINGS: IntentMappingInfo[] = [
     debitLedgerCode: LEDGER_CODES.EXPENSE_TAX,
     creditLedgerCode: LEDGER_CODES.ASSET_CASH,
   },
+  {
+    intent: 'OTHER_EXPENSE',
+    label: '其他支出',
+    type: IntentType.EXPENSE,
+    debitLedgerCode: LEDGER_CODES.EXPENSE_OTHER,
+    creditLedgerCode: LEDGER_CODES.ASSET_CASH,
+    debitUserSelect: true,
+    allowedDebitPrefix: 'expense:',
+  },
 
   // Incomes
   {
@@ -82,6 +130,8 @@ export const DEFAULT_INTENT_MAPPINGS: IntentMappingInfo[] = [
     type: IntentType.INCOME,
     debitLedgerCode: LEDGER_CODES.ASSET_CASH,
     creditLedgerCode: LEDGER_CODES.INCOME_SALARY,
+    creditUserSelect: true,
+    allowedCreditPrefix: 'income:salary',
   },
   {
     intent: 'BONUS',
@@ -89,6 +139,8 @@ export const DEFAULT_INTENT_MAPPINGS: IntentMappingInfo[] = [
     type: IntentType.INCOME,
     debitLedgerCode: LEDGER_CODES.ASSET_CASH,
     creditLedgerCode: LEDGER_CODES.INCOME_BONUS,
+    creditUserSelect: true,
+    allowedCreditPrefix: 'income:bonus',
   },
   {
     intent: 'INVESTMENT_INCOME',
@@ -103,6 +155,15 @@ export const DEFAULT_INTENT_MAPPINGS: IntentMappingInfo[] = [
     type: IntentType.INCOME,
     debitLedgerCode: LEDGER_CODES.ASSET_CASH,
     creditLedgerCode: LEDGER_CODES.INCOME_REFUND,
+  },
+  {
+    intent: 'OTHER_INCOME',
+    label: '其他收入',
+    type: IntentType.INCOME,
+    debitLedgerCode: LEDGER_CODES.ASSET_CASH,
+    creditLedgerCode: LEDGER_CODES.INCOME_OTHER,
+    creditUserSelect: true,
+    allowedCreditPrefix: 'income:',
   },
 
   // Transfers
@@ -135,6 +196,8 @@ export const DEFAULT_INTENT_MAPPINGS: IntentMappingInfo[] = [
     type: IntentType.INVESTMENT,
     debitLedgerCode: LEDGER_CODES.ASSET_PROPERTY,
     creditLedgerCode: LEDGER_CODES.ASSET_CASH,
+    debitUserSelect: true,
+    allowedDebitPrefix: 'asset:property',
   },
   {
     intent: 'REAL_ESTATE_SELL',
@@ -142,6 +205,8 @@ export const DEFAULT_INTENT_MAPPINGS: IntentMappingInfo[] = [
     type: IntentType.INVESTMENT,
     debitLedgerCode: LEDGER_CODES.ASSET_CASH,
     creditLedgerCode: LEDGER_CODES.ASSET_PROPERTY,
+    creditUserSelect: true,
+    allowedCreditPrefix: 'asset:property',
   },
 
   // Financing
@@ -172,13 +237,6 @@ export const DEFAULT_INTENT_MAPPINGS: IntentMappingInfo[] = [
     type: IntentType.FINANCING,
     debitLedgerCode: LEDGER_CODES.EQUITY_CAPITAL,
     creditLedgerCode: LEDGER_CODES.ASSET_CASH,
-  },
-  {
-    intent: 'INITIAL_CAPITAL',
-    label: '初始資金',
-    type: IntentType.FINANCING,
-    debitLedgerCode: LEDGER_CODES.ASSET_CASH,
-    creditLedgerCode: LEDGER_CODES.EQUITY_CAPITAL,
   },
 ];
 

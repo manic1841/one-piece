@@ -4,11 +4,17 @@ import { formatCurrency } from '@/ui/utils';
 import { Card, CardContent, CardHeader, CardTitle } from '@/ui/components/ui/card';
 import { FileText, Wallet, TrendingUp } from 'lucide-react';
 
+import {
+  type BalanceSheetData,
+  type CashFlowData,
+  type IncomeStatementData,
+} from '@/domains/report/schemas';
+
 interface ReportPreviewProps {
   data: {
-    incomeStatement: any;
-    balanceSheet: any;
-    cashFlow: any;
+    incomeStatement: IncomeStatementData;
+    balanceSheet: BalanceSheetData;
+    cashFlow: CashFlowData;
   };
 }
 
@@ -47,13 +53,13 @@ export const ReportPreview: React.FC<ReportPreviewProps> = ({ data }) => {
              </CardHeader>
              <CardContent className="p-0 max-h-[400px] overflow-y-auto">
                <div className="divide-y divide-slate-100">
-                 {incomeStatement.incomeItems.map((item: any) => (
+                 {incomeStatement.incomeItems.map((item) => (
                    <div key={item.code} className="flex justify-between p-3 px-6 text-sm">
                      <span className="text-slate-600">{item.label}</span>
                      <span className="font-mono text-emerald-600">+{formatCurrency(item.amount)}</span>
                    </div>
                  ))}
-                 {incomeStatement.expenseItems.map((item: any) => (
+                 {incomeStatement.expenseItems.map((item) => (
                    <div key={item.code} className="flex justify-between p-3 px-6 text-sm">
                      <span className="text-slate-600">{item.label}</span>
                      <span className="font-mono text-rose-600">-{formatCurrency(item.amount)}</span>
@@ -85,7 +91,7 @@ export const ReportPreview: React.FC<ReportPreviewProps> = ({ data }) => {
                   <div>
                     <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-2 px-2">主要資產</h4>
                     <div className="space-y-1">
-                      {Object.values(balanceSheet.assets.groups).map((group: any) => (
+                      {Object.values(balanceSheet.assets.groups).map((group) => (
                         <div key={group.label} className="flex justify-between p-2 px-4 bg-slate-50/50 rounded-xl text-sm">
                           <span className="font-bold text-slate-700">{group.label}</span>
                           <span className="font-mono">{formatCurrency(group.total)}</span>
@@ -96,10 +102,23 @@ export const ReportPreview: React.FC<ReportPreviewProps> = ({ data }) => {
                   <div>
                     <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-2 px-2">主要負債</h4>
                     <div className="space-y-1">
-                      {Object.values(balanceSheet.liabilities.groups).map((group: any) => (
+                      {Object.values(balanceSheet.liabilities.groups).map((group) => (
                         <div key={group.label} className="flex justify-between p-2 px-4 bg-slate-50/50 rounded-xl text-sm">
                           <span className="font-bold text-slate-700">{group.label}</span>
                           <span className="font-mono">{formatCurrency(group.total)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-2 px-2">權益</h4>
+                    <div className="space-y-1">
+                      {Object.values(balanceSheet.equity.groups).map((group) => (
+                        <div key={group.label} className="flex justify-between p-2 px-4 bg-indigo-50/30 rounded-xl text-sm">
+                          <span className="font-bold text-slate-700">{group.label}</span>
+                          <span className={`font-mono ${group.total >= 0 ? 'text-slate-700' : 'text-rose-600'}`}>
+                            {formatCurrency(group.total)}
+                          </span>
                         </div>
                       ))}
                     </div>
@@ -124,9 +143,9 @@ export const ReportPreview: React.FC<ReportPreviewProps> = ({ data }) => {
              <CardHeader className="py-4 bg-slate-50/50">
                <CardTitle className="text-sm font-bold text-indigo-700">現金變動淨額: {formatCurrency(cashFlow.netCashChange)}</CardTitle>
              </CardHeader>
-             <CardContent className="p-4 space-y-4 max-h-[350px] overflow-y-auto">
-                {['operating', 'investing', 'financing'].map((id) => {
-                  const group = (cashFlow as any)[id];
+              <CardContent className="p-4 space-y-4 max-h-[350px] overflow-y-auto">
+                {(['operating', 'investing', 'financing'] as const).map((id) => {
+                  const group = cashFlow[id];
                   if (!group) return null;
                   return (
                     <div key={id} className="space-y-1">

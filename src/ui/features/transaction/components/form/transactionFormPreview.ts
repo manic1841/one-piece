@@ -1,3 +1,6 @@
+import { calculateSplit } from '@/domains/debt/debtPaymentCalculator';
+import { type DebtAccount } from '@/domains/debt/schemas';
+import { type DebtPaymentFormState } from '@/ui/features/transaction/components/form/DebtPaymentPanel';
 import {
   type AdvancedFormState,
   type ExpenseFormState,
@@ -10,9 +13,6 @@ import {
   type TransactionFormProjectOption,
   type TransactionFormTab,
 } from '@/ui/features/transaction/types/transaction';
-import { type DebtPaymentFormState } from '@/ui/features/transaction/components/form/DebtPaymentPanel';
-import { calculateSplit } from '@/domains/debt/debtPaymentCalculator';
-import { type DebtAccount } from '@/domains/debt/schemas';
 
 const getToday = () => new Date().toISOString().slice(0, 10);
 
@@ -39,7 +39,7 @@ const findCategoryLabel = (categories: TransactionFormCategoryOption[], ledgerCo
 
 const previewExpense = (expense: ExpenseFormState): TransactionFormOutput | null => {
   const amount = parseAmount(expense.amount);
-  if (!amount || !expense.date || !expense.ledgerCode) return null;
+  if (!amount || !expense.date) return null;
 
   const allocationItems = expense.allocationItems
     .map((item) => {
@@ -66,10 +66,11 @@ const previewExpense = (expense: ExpenseFormState): TransactionFormOutput | null
 
   return {
     intentType: 'EXPENSE',
+    intent: expense.intent || undefined,
     date: expense.date,
     amount,
     projectId: expense.projectId || undefined,
-    ledgerCode: expense.ledgerCode,
+    ledgerCode: expense.ledgerCode || undefined,
     description: expense.description || undefined,
     triggerAllocation: expense.triggerAllocation,
     allocationItems: expense.triggerAllocation ? allocationItems : undefined,
@@ -79,7 +80,7 @@ const previewExpense = (expense: ExpenseFormState): TransactionFormOutput | null
 
 const previewIncome = (income: IncomeFormState): TransactionFormOutput | null => {
   const amount = parseAmount(income.amount);
-  if (!amount || !income.date || !income.ledgerCode) return null;
+  if (!amount || !income.date) return null;
 
   const allocationItems = income.allocationItems
     .map((item) => {
@@ -106,9 +107,10 @@ const previewIncome = (income: IncomeFormState): TransactionFormOutput | null =>
 
   return {
     intentType: 'INCOME',
+    intent: income.intent || undefined,
     date: income.date,
     amount,
-    ledgerCode: income.ledgerCode,
+    ledgerCode: income.ledgerCode || undefined,
     description: income.description || undefined,
     triggerAllocation: income.triggerAllocation,
     allocationItems: income.triggerAllocation ? allocationItems : undefined,
@@ -121,13 +123,14 @@ const previewCategory = (
   state: InvestmentFormState | FinancingFormState,
 ): TransactionFormOutput | null => {
   const amount = parseAmount(state.amount);
-  if (!amount || !state.date || !state.ledgerCode) return null;
+  if (!amount || !state.date) return null;
 
   return {
     intentType,
+    intent: state.intent || undefined,
     date: state.date,
     amount,
-    ledgerCode: state.ledgerCode,
+    ledgerCode: state.ledgerCode || undefined,
     description: state.description || undefined,
   };
 };
@@ -146,7 +149,7 @@ const previewProjectTransfer = (
   }
 
   return {
-    intentType: 'PROJECT_TRANSFER',
+    intentType: 'TRANSFER',
     date: getToday(),
     amount,
     fromProjectId: projectTransfer.fromProjectId,
@@ -161,10 +164,11 @@ const previewAdvanced = (advanced: AdvancedFormState): TransactionFormOutput | n
 
   return {
     intentType: advanced.intentType,
+    intent: advanced.intent || undefined,
     date: advanced.date,
     amount,
     projectId: advanced.projectId || undefined,
-    ledgerCode: advanced.ledgerCode,
+    ledgerCode: advanced.ledgerCode || undefined,
     description: advanced.description || undefined,
   };
 };
@@ -180,13 +184,23 @@ export const buildPreview = (input: {
   debtPayment: DebtPaymentFormState;
   debtAccounts?: DebtAccount[];
 }): TransactionFormOutput | null => {
-  const { activeTab, expense, income, investment, financing, projectTransfer, advanced, debtPayment, debtAccounts = [] } = input;
+  const {
+    activeTab,
+    expense,
+    income,
+    investment,
+    financing,
+    projectTransfer,
+    advanced,
+    debtPayment,
+    debtAccounts = [],
+  } = input;
 
   if (activeTab === 'EXPENSE') return previewExpense(expense);
   if (activeTab === 'INCOME') return previewIncome(income);
   if (activeTab === 'INVESTMENT') return previewCategory('INVESTMENT', investment);
   if (activeTab === 'FINANCING') return previewCategory('FINANCING', financing);
-  if (activeTab === 'PROJECT_TRANSFER') return previewProjectTransfer(projectTransfer);
+  if (activeTab === 'TRANSFER') return previewProjectTransfer(projectTransfer);
   if (activeTab === 'ADVANCED') return previewAdvanced(advanced);
   if (activeTab === 'DEBT_PAYMENT') {
     const total = parseAmount(debtPayment.totalPayment);
@@ -249,18 +263,22 @@ export const buildPreviewDetails = (input: {
   }
 
   if (preview.intentType === 'INVESTMENT') {
-    return [findCategoryLabel(investmentCategories, preview.ledgerCode), preview.date].filter(
-      Boolean,
-    );
+    return [
+      findCategoryLabel(investmentCategories, preview.intent || preview.ledgerCode),
+      preview.ledgerCode,
+      preview.date,
+    ].filter(Boolean);
   }
 
   if (preview.intentType === 'FINANCING') {
-    return [findCategoryLabel(financingCategories, preview.ledgerCode), preview.date].filter(
-      Boolean,
-    );
+    return [
+      findCategoryLabel(financingCategories, preview.intent || preview.ledgerCode),
+      preview.ledgerCode,
+      preview.date,
+    ].filter(Boolean);
   }
 
-  if (preview.intentType === 'PROJECT_TRANSFER') {
+  if (preview.intentType === 'TRANSFER') {
     return [
       `${findProjectLabel(projects, preview.fromProjectId)} -> ${findProjectLabel(projects, preview.toProjectId)}`,
     ].filter(Boolean);

@@ -44,69 +44,101 @@ checkHasPayments(id)
 
 ---
 
-## 5. 每月還款試算
+## 5.5. 寬限期（Grace Period）
 
-公式（等額還款）位於 `src/utils/loanCalculator.ts`：
+### 欄位
 
+`DebtAccount` 新增可選欄位：
 ```
-r = interestRate / 100 / 12
-n = 月份差（startDate → endDate）
+graceEndDate: Date | null  // 寬限期結束日期，null 表示無寬限期
+```
+
+### 判斷邏輯
+
+寬限期定義為：`startDate ≤ 今天 < graceEndDate`
+
+實作於 `src/domains/debt/debtPaymentCalculator.ts`：
+- `isInGracePeriod(graceEndDate)` — 檢查今天是否在寬限期內
+
+### 試算邏輯
+
+表單（`DebtAccountForm`）支援有無寬限期的試算：
+
+**無寬限期**：
+```
 monthlyPayment = P × r × (1+r)^n / ((1+r)^n - 1)
-
-interestRate = 0：monthlyPayment = P / n
+  其中 n = startDate → endDate 的月份差
 ```
 
+**有寬限期**：
+```
+graceMonths     = startDate → graceEndDate 的月份差
+normalMonths    = graceEndDate → endDate 的月份差
+
+graceMonthlyPayment = originalAmount × (interestRate / 100 / 12)  // 利息專用
+monthlyPayment      = originalAmount / normalMonths 的等額還款    // 寬限期後
+
+表單顯示：
+  寬限期每月應付（利息）: graceMonthlyPayment
+  正式還款每月應付: monthlyPayment
+  正式還款月數: normalMonths
+```
+
+### 還款邏輯 (DEBT_PAYMENT)
+
+**寬限期間**（判斷邏輯於 `buildDebtPaymentEntries`）：
+```
+// 只記錄利息，本金不動
+Dr. expense:interest     interest
+Cr. asset:cash           totalPayment
+
+// 注：closingBalance = openingBalance（本金不減少）
+```
+
+**寬限期後**（正常還款）：
+```
+Dr. {linkedLedgerCode}  principal
+Dr. expense:interest    interest
+Cr. asset:cash          totalPayment
+
+// closingBalance = openingBalance - principal
+```
+
+### UI 上的寬限期標示
+
+**DebtListPage 卡片**：
+- 如果 `isInGracePeriod = true`，顯示 badge：「寬限期至 YYYY/MM」
+- 「每月應付」項目改為「本月應付（利息）」，顯示 `calculateGraceMonthlyPayment(currentBalance, interestRate)`
+
+**DebtAccountForm**：
+- 日期區塊新增「寬限期結束日」欄位（選填）
+- 試算摘要區塊根據是否有寬限期顯示不同內容
+- 每月應還金額標籤改為「正式還款期間的每月應還金額」（有寬限期時）
+
+### 相關函數
+
+| 函數 | 位置 | 目的 |
+|------|------|------|
+| `isInGracePeriod()` | `src/domains/debt/debtPaymentCalculator.ts` | 判斷是否在寬限期 |
+| `calculateGraceMonthlyPayment()` | `src/domains/debt/debtPaymentCalculator.ts` | 計算寬限期利息 |
+| `calculateLoan()` | `src/ui/features/debt/utils/loanCalculator.ts` | 試算時包含 `graceEndDate` 參數 |
+| `buildDebtPaymentEntries()` | `src/domains/debt/debtPaymentCalculator.ts` | 建立分錄時檢查寬限期 |
+
 ---
 
-## 6. 路由
+## 7. 路由
 
 `/debt` → `DebtListPage`（在受保護的 Layout 內）
 
 ---
 
-## 7. 相關檔案
-
-| 層 | 路徑 |
-|---|---|
-| Page | `src/ui/features/debt/pages/DebtListPage.tsx` |
-
----
-
-## 5. 還款紀錄與快照邏輯 (DEBT_PAYMENT)
-
-當使用者透過「新增交易 > 還款」進行操作時：
-
-1. **Transaction 建立**：
-   - `intentType` 為 `DEBT_PAYMENT`。
-   - 記錄 `debtAccountId`。
-   - 自動分錄：
-     - Dr. {LiabilityAccount} (本金)
-     - Dr. expense:interest (利息)
-     - Cr. asset:cash (總額)
-
-2. **DebtSnapshot 自動產生**：
-   - 文件 ID 為 `YYYY-MM`。
-   - 同月內若有多次還款，則採累加方式更新 `principalPaid` / `interestPaid` / `totalPaid`。
-   - `closingBalance` 依據 `openingBalance` (前一月快照結尾或帳戶即時本金) 扣除累計本金計算。
-
-3. **帳戶餘額同步**：
-   - 交易完成後，`DebtAccount.currentBalance` 會同步更新為快照的 `closingBalance`。
-
----
-
-## 6. 路由
-
-`/debt` → `DebtListPage`（在受保護的 Layout 內）
-
----
-
-## 7. 相關檔案
+## 8. 相關檔案
 
 | 層 | 路徑 |
 |---|---|
 | Domain | `src/domains/debt/schemas.ts` |
-| Utility | `src/utils/loanCalculator.ts` |
-| Calculator (Split) | `src/domains/debt/debtPaymentCalculator.ts` |
+| Utility | `src/ui/features/debt/utils/loanCalculator.ts` |
+| Calculator (Split & Grace) | `src/domains/debt/debtPaymentCalculator.ts` |
 | Repository | `src/infra/repositories/debtAccountRepository.ts` |
 | Repository (Snapshot) | `src/infra/repositories/debtSnapshotRepository.ts` |
 | Use Cases | `src/application/debt/use_cases/` |

@@ -1,4 +1,5 @@
 import { format, subMonths } from 'date-fns';
+import { limit } from 'firebase/firestore';
 
 import { LEDGER_CODES, LEDGER_PREFIX } from '@/domains/ledger/constants';
 import { accountRepository } from '@/infra/repositories/accountRepository';
@@ -7,8 +8,8 @@ import { debtSnapshotRepository } from '@/infra/repositories/debtSnapshotReposit
 import { portfolioRepository } from '@/infra/repositories/portfolioRepository';
 import { portfolioSnapshotRepository } from '@/infra/repositories/portfolioSnapshotRepository';
 import { reportRepository } from '@/infra/repositories/reportRepository';
-import { getLedgerLabel } from '@/ui/constants/report/ledgerCodeLabels';
 
+import { categorizeLedgerEntry } from './cashFlowUtils';
 import {
   type BalanceSheetData,
   type BalanceSheetItem,
@@ -19,10 +20,23 @@ import {
   ReportType,
 } from './schemas';
 
+export type ReportLabelResolver = (code: string, fallbackLabel?: string) => string;
+
 export class ReportService {
+  private resolveLabel(
+    code: string,
+    labelResolver?: ReportLabelResolver,
+    fallbackLabel?: string,
+  ): string {
+    if (!labelResolver) return fallbackLabel ?? code;
+    const resolved = labelResolver(code, fallbackLabel);
+    return resolved || fallbackLabel || code;
+  }
+
   async generateIncomeStatement(
     householdId: string,
     yearMonth: string,
+    labelResolver?: ReportLabelResolver,
   ): Promise<IncomeStatementData> {
     const entries = await reportRepository.getEntriesByMonth(householdId, yearMonth);
 
@@ -35,16 +49,15 @@ export class ReportService {
       if (parts.length < 2) continue;
 
       const type = parts[0];
-      const categoryCode = `${type}:${parts[1]}`;
 
       if (type === LEDGER_PREFIX.INCOME) {
         // Revenue: Sum of credits
-        const amount = incomeMap.get(categoryCode) || 0;
-        incomeMap.set(categoryCode, amount + entry.credit);
+        const amount = incomeMap.get(fullCode) || 0;
+        incomeMap.set(fullCode, amount + entry.credit);
       } else if (type === LEDGER_PREFIX.EXPENSE) {
         // Expenses: Sum of debits
-        const amount = expenseMap.get(categoryCode) || 0;
-        expenseMap.set(categoryCode, amount + entry.debit);
+        const amount = expenseMap.get(fullCode) || 0;
+        expenseMap.set(fullCode, amount + entry.debit);
       }
     }
 
@@ -52,7 +65,7 @@ export class ReportService {
       return Array.from(map.entries())
         .map(([code, amount]) => ({
           code,
-          label: getLedgerLabel(code),
+          label: this.resolveLabel(code, labelResolver, code),
           amount: Math.abs(amount),
         }))
         .filter((item) => item.amount > 0)
@@ -115,13 +128,11 @@ export class ReportService {
     );
   }
 
-  /**
-   * Generates and saves all three monthly reports sequentially.
-   */
   async generateMonthlyFinancialReports(
     householdId: string,
     yearMonth: string,
     userEmail: string,
+    labelResolver?: ReportLabelResolver,
   ): Promise<{
     incomeStatement: IncomeStatementData;
     balanceSheet: BalanceSheetData;
@@ -129,9 +140,9 @@ export class ReportService {
     timestamp: Date;
   }> {
     const [incomeStatement, balanceSheet, cashFlow] = await Promise.all([
-      this.generateIncomeStatement(householdId, yearMonth),
-      this.generateBalanceSheet(householdId, yearMonth),
-      this.generateCashFlow(householdId, yearMonth),
+      this.generateIncomeStatement(householdId, yearMonth, labelResolver),
+      this.generateBalanceSheet(householdId, yearMonth, labelResolver),
+      this.generateCashFlow(householdId, yearMonth, labelResolver),
     ]);
 
     await Promise.all([
@@ -148,13 +159,16 @@ export class ReportService {
     };
   }
 
-  async generateBalanceSheet(householdId: string, yearMonth: string): Promise<BalanceSheetData> {
+  async generateBalanceSheet(
+    householdId: string,
+    yearMonth: string,
+    labelResolver?: ReportLabelResolver,
+  ): Promise<BalanceSheetData> {
     const entries = await reportRepository.getEntriesUntilMonth(householdId, yearMonth);
     const accounts = await accountRepository.getAccounts(householdId);
     const portfolios = await portfolioRepository.list([householdId]);
     const debtAccounts = await debtAccountRepository.getDebtAccounts(householdId);
 
-    // 1. Assets: Cash & Bank (from Snapshots, and only cash and bank)
     let cashAndBankTotal = 0;
     const accountItems: BalanceSheetItem[] = [];
 
@@ -171,7 +185,6 @@ export class ReportService {
       }
     }
 
-    // 2. Assets: Investment (from Account Snapshots, and only securities)
     let investmentTotalValue = 0;
     const investmentItems: BalanceSheetItem[] = [];
     for (const account of accounts) {
@@ -187,7 +200,6 @@ export class ReportService {
       }
     }
 
-    // 3. Assets: Property (Cumulative from Ledger asset:property*)
     const ledgerTotals = new Map<string, number>();
     for (const entry of entries) {
       const current = ledgerTotals.get(entry.ledgerCode) || 0;
@@ -202,7 +214,7 @@ export class ReportService {
           total += amount;
           items.push({
             code,
-            label: getLedgerLabel(code),
+            label: this.resolveLabel(code, labelResolver, code),
             amount,
           });
         }
@@ -212,7 +224,6 @@ export class ReportService {
 
     const property = getCumulativeTotal(LEDGER_CODES.ASSET_PROPERTY);
 
-    // 4. Liabilities: Loans (from DebtSnapshots)
     let debtTotal = 0;
     const debtItems: BalanceSheetItem[] = [];
     for (const debt of debtAccounts) {
@@ -229,10 +240,8 @@ export class ReportService {
     const assetsTotal = cashAndBankTotal + investmentTotalValue + property.total;
     const liabilitiesTotal = debtTotal;
 
-    // 6. Equity calculation
     const totalEquity = assetsTotal - liabilitiesTotal;
 
-    // 6.1 Opening Equity (Previous month's total equity)
     const [year, month] = yearMonth.split('-').map(Number);
     const prevMonthDate = subMonths(new Date(year, month - 1, 1), 1);
     const prevYearMonth = format(prevMonthDate, 'yyyy-MM');
@@ -249,22 +258,30 @@ export class ReportService {
       openingEquity = 0;
     }
 
-    // 6.2 Net Income (Current month's net income)
-    const incomeStatement = await this.generateIncomeStatement(householdId, yearMonth);
+    const incomeStatement = await this.generateIncomeStatement(
+      householdId,
+      yearMonth,
+      labelResolver,
+    );
     const netIncome = incomeStatement.netIncome;
 
-    // 6.3 資本 (equity:capital)
+    const monthlyEntries = await reportRepository.getEntriesByMonth(householdId, yearMonth);
+    const monthlyLedgerTotals = new Map<string, number>();
+    for (const entry of monthlyEntries) {
+      const current = monthlyLedgerTotals.get(entry.ledgerCode) || 0;
+      monthlyLedgerTotals.set(entry.ledgerCode, current + (entry.debit - entry.credit));
+    }
+
     const getCapitalTotal = (prefix: string) => {
       let total = 0;
       const items: BalanceSheetItem[] = [];
-      for (const [code, amount] of ledgerTotals.entries()) {
+      for (const [code, amount] of monthlyLedgerTotals.entries()) {
         if (code.startsWith(prefix)) {
-          // amount is debit - credit, so we negate it for equity
           const val = -amount;
           total += val;
           items.push({
             code,
-            label: getLedgerLabel(code),
+            label: this.resolveLabel(code, labelResolver, code),
             amount: val,
           });
         }
@@ -273,7 +290,6 @@ export class ReportService {
     };
     const capital = getCapitalTotal(LEDGER_CODES.EQUITY_CAPITAL);
 
-    // 6.4 資本利得 (From portfolio snapshot cumulative gain)
     let stockGain = 0;
     const stockGainItems: BalanceSheetItem[] = [];
     for (const portfolio of portfolios) {
@@ -334,48 +350,31 @@ export class ReportService {
     return total;
   }
 
-  private addToMap(map: Map<string, number>, key: string, value: number) {
-    if (value === 0) return;
-    map.set(key, (map.get(key) || 0) + value);
-  }
-
-  private categorizeLedgerEntry(
-    entry: { ledgerCode: string; debit: number; credit: number },
-    groups: {
-      operating: { inflow: Map<string, number>; outflow: Map<string, number> };
-      investing: { inflow: Map<string, number>; outflow: Map<string, number> };
-      financing: { inflow: Map<string, number>; outflow: Map<string, number> };
-    },
-  ) {
-    const { ledgerCode: code, debit, credit } = entry;
-    const amount = debit - credit;
-    console.log('entry', entry);
-
-    if (code.startsWith(LEDGER_PREFIX.INCOME)) {
-      this.addToMap(groups.operating.inflow, code, Math.abs(credit));
-    } else if (code.startsWith(LEDGER_PREFIX.EXPENSE)) {
-      this.addToMap(groups.operating.outflow, code, debit);
-    } else if (
-      code.startsWith(LEDGER_CODES.ASSET_INVESTMENT) ||
-      code.startsWith(LEDGER_CODES.ASSET_PROPERTY)
-    ) {
-      console.log('code', code, amount);
-      if (amount > 0) {
-        this.addToMap(groups.investing.outflow, code, amount);
-      } else {
-        this.addToMap(groups.investing.inflow, code, Math.abs(amount));
-      }
-    } else if (code.startsWith(LEDGER_PREFIX.LIABILITY) || code.startsWith(LEDGER_PREFIX.EQUITY)) {
-      if (credit > 0) this.addToMap(groups.financing.inflow, code, credit);
-      if (debit > 0) this.addToMap(groups.financing.outflow, code, debit);
-    }
-  }
-
-  async generateCashFlow(householdId: string, yearMonth: string): Promise<CashFlowData> {
-    // Beginning Balance (Total non-investment account snapshots of previous month)
+  async generateCashFlow(
+    householdId: string,
+    yearMonth: string,
+    labelResolver?: ReportLabelResolver,
+  ): Promise<CashFlowData> {
     const [year, month] = yearMonth.split('-').map(Number);
     const prevYearMonth = format(subMonths(new Date(year, month - 1, 1), 1), 'yyyy-MM');
-    const beginningBalance = await this.getLiquidBalance(householdId, prevYearMonth);
+
+    const prevReport = await reportRepository.getReport(
+      householdId,
+      prevYearMonth,
+      ReportType.CASH_FLOW,
+    );
+
+    let beginningBalance = 0;
+    if (prevReport && prevReport.data) {
+      beginningBalance = (prevReport.data as CashFlowData).actualBalance;
+    } else {
+      const existingReports = await reportRepository.list([householdId], [limit(1)]);
+      if (existingReports.length === 0) {
+        beginningBalance = 0;
+      } else {
+        beginningBalance = await this.getLiquidBalance(householdId, prevYearMonth);
+      }
+    }
 
     const groups = {
       operating: { inflow: new Map<string, number>(), outflow: new Map<string, number>() },
@@ -385,7 +384,7 @@ export class ReportService {
 
     const entries = await reportRepository.getEntriesByMonth(householdId, yearMonth);
     for (const entry of entries) {
-      this.categorizeLedgerEntry(entry, groups);
+      categorizeLedgerEntry(entry, groups);
     }
 
     const buildGroup = (
@@ -395,7 +394,7 @@ export class ReportService {
       const inflowItems: CashFlowItem[] = Array.from(data.inflow.entries())
         .map(([code, amount]) => ({
           code,
-          label: getLedgerLabel(code),
+          label: this.resolveLabel(code, labelResolver, code),
           amount,
         }))
         .filter((i) => i.amount > 0);
@@ -403,7 +402,7 @@ export class ReportService {
       const outflowItems: CashFlowItem[] = Array.from(data.outflow.entries())
         .map(([code, amount]) => ({
           code,
-          label: getLedgerLabel(code),
+          label: this.resolveLabel(code, labelResolver, code),
           amount,
         }))
         .filter((i) => i.amount > 0);
@@ -422,7 +421,6 @@ export class ReportService {
     const netCashChange = operating.total + investing.total + financing.total;
     const endingBalance = beginningBalance + netCashChange;
 
-    // Reconciliation: Actual monthly account balance sum
     const actualBalance = await this.getLiquidBalance(householdId, yearMonth);
     const adjustment = actualBalance - endingBalance;
 

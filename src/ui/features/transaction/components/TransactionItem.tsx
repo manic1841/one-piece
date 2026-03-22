@@ -13,6 +13,7 @@ interface TransactionItemProps {
   onEdit?: (transaction: LedgerTransaction) => void;
   onDelete?: (transaction: LedgerTransaction) => void;
   projectName?: string;
+  getLabel?: (code: string) => string;
 }
 
 const CASH_LEDGER_PREFIX = 'asset:cash';
@@ -43,6 +44,7 @@ export const TransactionItem: React.FC<TransactionItemProps> = ({
   onEdit,
   onDelete,
   projectName,
+  getLabel,
 }) => {
   const intentType = transaction.intentType || 'MANUAL';
   const isIncome = intentType === 'INCOME';
@@ -69,7 +71,8 @@ export const TransactionItem: React.FC<TransactionItemProps> = ({
   const categoryKey = ledgerCode.split(':').pop() || '';
 
   const labels = getLabelGroup(intentType);
-  const categoryLabel = labels[categoryKey as keyof typeof labels] || categoryKey || intentType;
+  const systemLabel = labels[categoryKey as keyof typeof labels];
+  const categoryLabel = getLabel ? getLabel(ledgerCode) : (systemLabel || categoryKey || intentType);
   
   return (
     <div className={cn(

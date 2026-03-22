@@ -37,6 +37,7 @@ export const DebtAccountCreateSchema = z.object({
   interestRate: z.number().min(0), // annual, in %
   startDate: z.date(),
   endDate: z.date(),
+  graceEndDate: z.date().nullable().optional(), // Grace period end date; null/undefined = no grace period
   monthlyPayment: z.number().positive(),
   linkedLedgerCode: z.string(), // auto-derived from type on write
   linkedProjectId: z.string().nullable().optional(),

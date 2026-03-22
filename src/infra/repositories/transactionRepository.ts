@@ -7,6 +7,7 @@ import {
   where,
 } from 'firebase/firestore';
 
+import { IntentType } from '@/domains/ledger/constants/intentType';
 import {
   type Transaction,
   type TransactionCreate,
@@ -71,11 +72,7 @@ class TransactionRepository extends BaseRepository<Transaction, [string, string?
 
     const monthlyTransactions = await this.list(
       [householdId],
-      [
-        where('date', '>=', startDate),
-        where('date', '<', endDate),
-        orderBy('date', 'desc'),
-      ],
+      [where('date', '>=', startDate), where('date', '<', endDate), orderBy('date', 'desc')],
     );
 
     return monthlyTransactions.filter((transaction) => transaction.projectId === projectId);
@@ -105,27 +102,31 @@ class TransactionRepository extends BaseRepository<Transaction, [string, string?
 
     const monthlyTransactions = await this.list(
       [householdId],
-      [
-        where('date', '>=', startDate),
-        where('date', '<', endDate),
-        orderBy('date', 'desc'),
-      ],
+      [where('date', '>=', startDate), where('date', '<', endDate), orderBy('date', 'desc')],
     );
 
-    return monthlyTransactions.filter((transaction) => transaction.intentType === 'PROJECT_TRANSFER');
+    return monthlyTransactions.filter(
+      (transaction) => transaction.intentType === IntentType.TRANSFER,
+    );
   }
 
   async listByDebtAccount(householdId: string, debtAccountId: string): Promise<Transaction[]> {
-    const transactions = await this.list([householdId], [
-      where('debtAccountId', '==', debtAccountId),
-      where('intentType', '==', 'DEBT_PAYMENT'),
-    ]);
+    const transactions = await this.list(
+      [householdId],
+      [
+        where('debtAccountId', '==', debtAccountId),
+        where('intentType', '==', IntentType.DEBT_PAYMENT),
+      ],
+    );
 
     return transactions.sort((a, b) => toMillis(b.date) - toMillis(a.date));
   }
 
   async listByProject(householdId: string, projectId: string): Promise<Transaction[]> {
-    const projectTransactions = await this.list([householdId], [where('projectId', '==', projectId)]);
+    const projectTransactions = await this.list(
+      [householdId],
+      [where('projectId', '==', projectId)],
+    );
 
     return projectTransactions.sort((a, b) => toMillis(b.date) - toMillis(a.date));
   }

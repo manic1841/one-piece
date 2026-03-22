@@ -1,11 +1,23 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+
 import { format } from 'date-fns';
+
+import { getUnsettledStatsUseCase } from '@/application/report/use_cases/getUnsettledStatsUseCase';
 import { reportService } from '@/domains/report/reportService';
+import {
+  type BalanceSheetData,
+  type CashFlowData,
+  type IncomeStatementData,
+  ReportType,
+} from '@/domains/report/schemas';
+import { useAuth } from '@/infra/contexts/useAuth';
 import { reportRepository } from '@/infra/repositories/reportRepository';
-import { ReportType } from '@/domains/report/schemas';
-import { projectRepository } from '@/infra/repositories/projectRepository';
+import { useLedgerCodes } from '@/ui/features/ledger/hooks/useLedgerCodes';
 
 export const useReportSettlement = (householdId: string, userEmail: string) => {
+  const { currentUser, isAdmin } = useAuth();
+  const { getLabel } = useLedgerCodes();
+
   const [year, setYear] = useState(new Date().getFullYear());
   const [month, setMonth] = useState(new Date().getMonth() + 1);
   const [summary, setSummary] = useState<{
@@ -23,23 +35,35 @@ export const useReportSettlement = (householdId: string, userEmail: string) => {
   }>({});
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [unsettledProjectNames, setUnsettledProjectNames] = useState<string[]>([]);
+  const [unsettledAccountNames, setUnsettledAccountNames] = useState<string[]>([]);
+  const [unsettledPortfolioNames, setUnsettledPortfolioNames] = useState<string[]>([]);
+  const [unsettledDebtNames, setUnsettledDebtNames] = useState<string[]>([]);
   const [previewData, setPreviewData] = useState<{
-    incomeStatement: any;
-    balanceSheet: any;
-    cashFlow: any;
+    incomeStatement: IncomeStatementData;
+    balanceSheet: BalanceSheetData;
+    cashFlow: CashFlowData;
   } | null>(null);
   const [isPreviewing, setIsPreviewing] = useState(false);
 
   const yearMonth = `${year}-${month.toString().padStart(2, '0')}`;
+
+  const resolveReportLabel = useCallback(
+    (code: string, fallbackLabel?: string) => {
+      const resolved = getLabel(code);
+      return resolved === code ? fallbackLabel || code : resolved;
+    },
+    [getLabel],
+  );
 
   const fetchPreview = async () => {
     if (!householdId) return;
     setIsLoading(true);
     try {
       const [income, balance, cash] = await Promise.all([
-        reportService.generateIncomeStatement(householdId, yearMonth),
-        reportService.generateBalanceSheet(householdId, yearMonth),
-        reportService.generateCashFlow(householdId, yearMonth),
+        reportService.generateIncomeStatement(householdId, yearMonth, resolveReportLabel),
+        reportService.generateBalanceSheet(householdId, yearMonth, resolveReportLabel),
+        reportService.generateCashFlow(householdId, yearMonth, resolveReportLabel),
       ]);
       setPreviewData({ incomeStatement: income, balanceSheet: balance, cashFlow: cash });
     } catch (err) {
@@ -54,28 +78,42 @@ export const useReportSettlement = (householdId: string, userEmail: string) => {
     if (!householdId) return;
     setIsLoading(true);
     setError('');
-    
+
     try {
-      // 1. Check if ANY project snapshots exist for this month
-      // We list projects and check if any has a snapshot for this month
-      const projects = await projectRepository.getProjects(householdId);
-      const snapshotCheck = await Promise.all(
-        projects.map(p => projectRepository.getSnapshot(householdId, p.id, yearMonth))
-      );
-      
-      const hasSnapshots = snapshotCheck.some(s => s !== null);
-      
-      if (!hasSnapshots) {
+      // Check whether all active entities are settled for this month.
+      const unsettled = await getUnsettledStatsUseCase.execute({
+        householdId,
+        auth: {
+          uid: currentUser?.uid || '',
+          email: currentUser?.email || undefined,
+          isGlobalAdmin: isAdmin,
+        },
+        year,
+        month,
+      });
+
+      if (unsettled.totalUnsettled > 0) {
+        setUnsettledProjectNames(unsettled.unsettledProjects.map((project) => project.name));
+        setUnsettledAccountNames(unsettled.unsettledAccounts.map((account) => account.name));
+        setUnsettledPortfolioNames(
+          unsettled.unsettledPortfolios.map((portfolio) => portfolio.name),
+        );
+        setUnsettledDebtNames(unsettled.unsettledDebts.map((debt) => debt.name));
         setSummary(null);
         setReportsGenerated(false);
         setIsLoading(false);
         return;
       }
 
+      setUnsettledProjectNames([]);
+      setUnsettledAccountNames([]);
+      setUnsettledPortfolioNames([]);
+      setUnsettledDebtNames([]);
+
       // 2. Load financial summary
       const [incomeStmt, balanceSheet] = await Promise.all([
-        reportService.generateIncomeStatement(householdId, yearMonth),
-        reportService.generateBalanceSheet(householdId, yearMonth),
+        reportService.generateIncomeStatement(householdId, yearMonth, resolveReportLabel),
+        reportService.generateBalanceSheet(householdId, yearMonth, resolveReportLabel),
       ]);
 
       setSummary({
@@ -92,7 +130,7 @@ export const useReportSettlement = (householdId: string, userEmail: string) => {
         reportRepository.getReport(householdId, yearMonth, ReportType.CASH_FLOW),
       ]);
 
-      if (existingReports.every(r => r !== null)) {
+      if (existingReports.every((report) => report !== null)) {
         setReportsGenerated(true);
         setReportTimestamps({
           incomeStatement: format(existingReports[0]!.updatedAt, 'HH:mm'),
@@ -109,7 +147,16 @@ export const useReportSettlement = (householdId: string, userEmail: string) => {
     } finally {
       setIsLoading(false);
     }
-  }, [householdId, yearMonth]);
+  }, [
+    householdId,
+    year,
+    month,
+    yearMonth,
+    currentUser?.uid,
+    currentUser?.email,
+    isAdmin,
+    resolveReportLabel,
+  ]);
 
   useEffect(() => {
     loadStatus();
@@ -131,7 +178,8 @@ export const useReportSettlement = (householdId: string, userEmail: string) => {
       const results = await reportService.generateMonthlyFinancialReports(
         householdId,
         yearMonth,
-        userEmail
+        userEmail,
+        resolveReportLabel,
       );
 
       setReportTimestamps({
@@ -159,6 +207,10 @@ export const useReportSettlement = (householdId: string, userEmail: string) => {
     reportTimestamps,
     error,
     isLoading,
+    unsettledProjectNames,
+    unsettledAccountNames,
+    unsettledPortfolioNames,
+    unsettledDebtNames,
     generateReports,
     refresh: loadStatus,
     previewData,

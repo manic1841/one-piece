@@ -34,7 +34,7 @@ export function useReports(householdId: string | undefined) {
           auth,
         });
       });
-      return result || null;
+      return (result as FinancialReport) || null;
     },
     [householdId, auth, run],
   );

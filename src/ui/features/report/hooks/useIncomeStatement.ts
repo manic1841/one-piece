@@ -1,12 +1,16 @@
 import { useCallback, useEffect, useState } from 'react';
+
+import { format } from 'date-fns';
+
 import { reportService } from '@/domains/report/reportService';
 import { type IncomeStatementData } from '@/domains/report/schemas';
+import { useLedgerCodes } from '@/ui/features/ledger/hooks/useLedgerCodes';
 import { useLoadingTask } from '@/ui/hooks/useLoadingTask';
-import { format } from 'date-fns';
 
 export function useIncomeStatement(householdId: string, controlledDate?: Date) {
   const [data, setData] = useState<IncomeStatementData | null>(null);
   const [internalDate, setInternalDate] = useState<Date>(new Date());
+  const { getLabel } = useLedgerCodes();
   const { loading, error, run } = useLoadingTask();
 
   const currentDate = controlledDate || internalDate;
@@ -14,23 +18,30 @@ export function useIncomeStatement(householdId: string, controlledDate?: Date) {
   const load = useCallback(async () => {
     if (!householdId) return;
     const yearMonth = format(currentDate, 'yyyy-MM');
-    
+
     await run(async () => {
-      const result = await reportService.generateIncomeStatement(householdId, yearMonth);
+      const result = await reportService.generateIncomeStatement(
+        householdId,
+        yearMonth,
+        (code, fallbackLabel) => {
+          const resolved = getLabel(code);
+          return resolved === code ? fallbackLabel || code : resolved;
+        },
+      );
       setData(result);
     });
-  }, [householdId, currentDate, run]);
+  }, [householdId, currentDate, run, getLabel]);
 
   useEffect(() => {
     load();
   }, [load]);
 
   const nextMonth = () => {
-    setInternalDate(prev => new Date(prev.getFullYear(), prev.getMonth() + 1, 1));
+    setInternalDate((prev) => new Date(prev.getFullYear(), prev.getMonth() + 1, 1));
   };
 
   const prevMonth = () => {
-    setInternalDate(prev => new Date(prev.getFullYear(), prev.getMonth() - 1, 1));
+    setInternalDate((prev) => new Date(prev.getFullYear(), prev.getMonth() - 1, 1));
   };
 
   return {
@@ -41,6 +52,6 @@ export function useIncomeStatement(householdId: string, controlledDate?: Date) {
     setCurrentDate: setInternalDate,
     nextMonth,
     prevMonth,
-    reload: load
+    reload: load,
   };
 }

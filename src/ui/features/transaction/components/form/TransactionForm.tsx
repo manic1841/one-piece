@@ -1,7 +1,15 @@
 import React, { useMemo, useState } from 'react';
 
-import { ArrowRightLeft, CreditCard, HandCoins, Landmark, ReceiptText, SlidersHorizontal } from 'lucide-react';
+import {
+  ArrowRightLeft,
+  CreditCard,
+  HandCoins,
+  Landmark,
+  ReceiptText,
+  SlidersHorizontal,
+} from 'lucide-react';
 
+import { type DebtAccount } from '@/domains/debt/schemas';
 import { Badge } from '@/ui/components/ui/badge';
 import { Button } from '@/ui/components/ui/button';
 import {
@@ -12,18 +20,16 @@ import {
   DialogTitle,
 } from '@/ui/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/ui/components/ui/tabs';
-import {
-  AdvancedPanel,
-  CategoryPanel,
-  ExpensePanel,
-  IncomePanel,
-  ProjectTransferPanel,
-} from '@/ui/features/transaction/components/form/TransactionFormPanels';
+import { type LedgerCodeItem } from '@/ui/features/ledger/hooks/useLedgerCodes';
+import { AdvancedPanel } from '@/ui/features/transaction/components/form/AdvancedPanel';
+import { CategoryPanel } from '@/ui/features/transaction/components/form/CategoryPanel';
 import {
   type DebtPaymentFormState,
   DebtPaymentPanel,
 } from '@/ui/features/transaction/components/form/DebtPaymentPanel';
-import { type DebtAccount } from '@/domains/debt/schemas';
+import { ExpensePanel } from '@/ui/features/transaction/components/form/ExpensePanel';
+import { IncomePanel } from '@/ui/features/transaction/components/form/IncomePanel';
+import { ProjectTransferPanel } from '@/ui/features/transaction/components/form/ProjectTransferPanel';
 import {
   buildPreview,
   buildPreviewDetails,
@@ -54,12 +60,14 @@ interface TransactionFormProps {
   financingCategories: TransactionFormCategoryOption[];
   advancedCategories: TransactionFormCategoryOption[];
   debtAccounts?: DebtAccount[];
+  allActiveLedgerCodes: LedgerCodeItem[];
 }
 
 const createExpenseState = (): ExpenseFormState => ({
   amount: '',
   date: new Date().toISOString().slice(0, 10),
   projectId: null,
+  intent: null,
   ledgerCode: null,
   description: '',
   triggerAllocation: false,
@@ -69,6 +77,7 @@ const createExpenseState = (): ExpenseFormState => ({
 const createIncomeState = (): IncomeFormState => ({
   amount: '',
   date: new Date().toISOString().slice(0, 10),
+  intent: null,
   ledgerCode: null,
   description: '',
   triggerAllocation: false,
@@ -78,6 +87,7 @@ const createIncomeState = (): IncomeFormState => ({
 const createInvestmentState = (): InvestmentFormState => ({
   amount: '',
   date: new Date().toISOString().slice(0, 10),
+  intent: null,
   ledgerCode: null,
   description: '',
 });
@@ -85,6 +95,7 @@ const createInvestmentState = (): InvestmentFormState => ({
 const createFinancingState = (): FinancingFormState => ({
   amount: '',
   date: new Date().toISOString().slice(0, 10),
+  intent: null,
   ledgerCode: null,
   description: '',
 });
@@ -101,6 +112,7 @@ const createAdvancedState = (): AdvancedFormState => ({
   date: new Date().toISOString().slice(0, 10),
   intentType: 'MANUAL',
   projectId: null,
+  intent: null,
   ledgerCode: null,
   description: '',
 });
@@ -126,6 +138,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
   financingCategories,
   advancedCategories,
   debtAccounts = [],
+  allActiveLedgerCodes,
 }) => {
   const [activeTab, setActiveTab] = useState<TransactionFormTab>('EXPENSE');
   const [expense, setExpense] = useState<ExpenseFormState>(createExpenseState);
@@ -162,7 +175,17 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
         debtPayment,
         debtAccounts,
       }),
-    [activeTab, advanced, expense, financing, income, investment, projectTransfer, debtPayment, debtAccounts],
+    [
+      activeTab,
+      advanced,
+      expense,
+      financing,
+      income,
+      investment,
+      projectTransfer,
+      debtPayment,
+      debtAccounts,
+    ],
   );
 
   const previewDetails = useMemo(
@@ -243,17 +266,17 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
                 <HandCoins className="h-3.5 w-3.5" />
                 融資
               </TabsTrigger>
-              <TabsTrigger value="PROJECT_TRANSFER" className="gap-1">
+              <TabsTrigger value="TRANSFER" className="gap-1">
                 <ArrowRightLeft className="h-3.5 w-3.5" />
                 專案轉帳
-              </TabsTrigger>
-              <TabsTrigger value="ADVANCED" className="gap-1">
-                <SlidersHorizontal className="h-3.5 w-3.5" />
-                進階
               </TabsTrigger>
               <TabsTrigger value="DEBT_PAYMENT" className="gap-1">
                 <CreditCard className="h-3.5 w-3.5" />
                 還款
+              </TabsTrigger>
+              <TabsTrigger value="ADVANCED" className="gap-1">
+                <SlidersHorizontal className="h-3.5 w-3.5" />
+                進階
               </TabsTrigger>
             </TabsList>
 
@@ -262,6 +285,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
                 state={expense}
                 projects={projects}
                 categories={expenseCategories}
+                allLedgerCodes={allActiveLedgerCodes}
                 onChange={setExpense}
               />
             </TabsContent>
@@ -271,6 +295,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
                 state={income}
                 categories={incomeCategories}
                 projects={projects}
+                allLedgerCodes={allActiveLedgerCodes}
                 onChange={setIncome}
               />
             </TabsContent>
@@ -281,6 +306,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
                 tone="neutral"
                 state={investment}
                 categories={investmentCategories}
+                allLedgerCodes={allActiveLedgerCodes}
                 onChange={setInvestment}
               />
             </TabsContent>
@@ -291,11 +317,12 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
                 tone="neutral"
                 state={financing}
                 categories={financingCategories}
+                allLedgerCodes={allActiveLedgerCodes}
                 onChange={setFinancing}
               />
             </TabsContent>
 
-            <TabsContent value="PROJECT_TRANSFER" className="mt-4">
+            <TabsContent value="TRANSFER" className="mt-4">
               <ProjectTransferPanel
                 state={projectTransfer}
                 projects={projects}
@@ -307,7 +334,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
               <AdvancedPanel
                 state={advanced}
                 projects={projects}
-                categories={advancedCategories}
+                allLedgerCodes={allActiveLedgerCodes}
                 onChange={setAdvanced}
               />
             </TabsContent>

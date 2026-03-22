@@ -59,7 +59,7 @@ export class ProjectService {
       {
         date: date || new Date(),
         description: description || 'Project Transfer',
-        intentType: 'PROJECT_TRANSFER',
+        intentType: 'TRANSFER',
         amount,
         fromProjectId,
         toProjectId,

@@ -1,9 +1,9 @@
+import { type DebtSnapshotCreate } from '@/domains/debt/schemas';
 import { allocationRepository } from '@/infra/repositories/allocationRepository';
-import { projectRepository } from '@/infra/repositories/projectRepository';
-import { transactionRepository } from '@/infra/repositories/transactionRepository';
 import { debtAccountRepository } from '@/infra/repositories/debtAccountRepository';
 import { debtSnapshotRepository } from '@/infra/repositories/debtSnapshotRepository';
-import { type DebtSnapshotCreate } from '@/domains/debt/schemas';
+import { projectRepository } from '@/infra/repositories/projectRepository';
+import { transactionRepository } from '@/infra/repositories/transactionRepository';
 
 import { type ProjectSnapshotCreate } from './schemas';
 
@@ -26,7 +26,11 @@ export class SettlementService {
   /**
    * Ensure all active debt accounts have a snapshot for the month.
    */
-  async settleDebtAccounts(householdId: string, yearMonth: string, userEmail: string): Promise<void> {
+  async settleDebtAccounts(
+    householdId: string,
+    yearMonth: string,
+    userEmail: string,
+  ): Promise<void> {
     const debtAccounts = await debtAccountRepository.getDebtAccounts(householdId);
 
     for (const account of debtAccounts) {
@@ -87,7 +91,7 @@ export class SettlementService {
     const prevSnapshot = await projectRepository.getSnapshot(householdId, projectId, prevYearMonth);
     const openingBalance = prevSnapshot?.closingBalance ?? 0;
 
-    // 2. Get Income: Allocations + PROJECT_TRANSFER to this project
+    // 2. Get Income: Allocations + TRANSFER to this project
     const [allocations, transfers] = await Promise.all([
       allocationRepository.getAllocationsByMonth(householdId, yearMonth),
       transactionRepository.getProjectTransfers(householdId, yearMonth),
@@ -111,7 +115,7 @@ export class SettlementService {
 
     const totalIncome = incomeFromAllocations + incomeFromTransfers;
 
-    // 3. Get Expense: Project transactions + PROJECT_TRANSFER from this project
+    // 3. Get Expense: Project transactions + TRANSFER from this project
     const projectTransactions = await transactionRepository.getTransactionsByProject(
       householdId,
       projectId,

@@ -147,17 +147,84 @@ export function DebtAccountForm({
         </div>
       </div>
 
+      {/* 寬限期結束日（非必填） */}
+      <div className="space-y-1.5">
+        <Label htmlFor="df-grace-end">寬限期結束日（選填）</Label>
+        <Input
+          id="df-grace-end"
+          type="date"
+          value={values.graceEndDate}
+          onChange={(e) => setField('graceEndDate', e.target.value)}
+        />
+        <p className="text-xs text-muted-foreground">
+          留空表示無寬限期。設定後，前端將動態判斷是否在寬限期內。
+        </p>
+        <FieldError msg={errors.graceEndDate} />
+      </div>
+
       {/* 試算摘要 */}
       {calcResult && (
-        <div className="bg-muted rounded-md px-4 py-3 flex items-center gap-4 text-sm flex-wrap">
-          <span>
-            總期數：<strong className="font-semibold">{calcResult.totalMonths} 期</strong>
-          </span>
-          <span>
-            總利息：<strong className="font-semibold">${formatCurrency(calcResult.totalInterest)}</strong>
-          </span>
+        <div className="bg-muted rounded-md px-4 py-4 space-y-3 text-sm">
+          {/* 無寬限期的試算結果 */}
+          {!calcResult.graceMonths && (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <span>總期數：</span>
+                <strong className="font-semibold">{calcResult.totalMonths} 期</strong>
+              </div>
+              <div className="flex items-center justify-between">
+                <span>總利息：</span>
+                <strong className="font-semibold">
+                  ${formatCurrency(calcResult.totalInterest)}
+                </strong>
+              </div>
+            </div>
+          )}
+
+          {/* 有寬限期的試算結果 */}
+          {calcResult.graceMonths !== undefined && calcResult.graceMonths > 0 && (
+            <div className="space-y-2">
+              <div className="text-xs text-amber-700 bg-amber-50 rounded px-2 py-1">
+                ⚠️ 寬限期設定
+              </div>
+              <div className="flex items-center justify-between">
+                <span>寬限期月數：</span>
+                <strong className="font-semibold">{calcResult.graceMonths} 期</strong>
+              </div>
+              <div className="flex items-center justify-between">
+                <span>寬限期每月應付（利息）：</span>
+                <strong className="font-semibold">
+                  ${formatCurrency(calcResult.graceMonthlyPayment ?? 0)}
+                </strong>
+              </div>
+              <hr className="my-1" />
+              <div className="flex items-center justify-between">
+                <span>正式還款月數：</span>
+                <strong className="font-semibold">{calcResult.normalMonths} 期</strong>
+              </div>
+              <div className="flex items-center justify-between">
+                <span>正式還款每月應付：</span>
+                <strong className="font-semibold text-destructive">
+                  ${formatCurrency(calcResult.monthlyPayment)}
+                </strong>
+              </div>
+              <div className="flex items-center justify-between">
+                <span>總利息：</span>
+                <strong className="font-semibold">
+                  ${formatCurrency(calcResult.totalInterest)}
+                </strong>
+              </div>
+            </div>
+          )}
+
           {isManualPayment && (
-            <Button type="button" variant="link" size="sm" className="p-0 h-auto" onClick={resetCalc}>
+            <Button
+              type="button"
+              variant="link"
+              size="sm"
+              className="p-0 h-auto"
+              onClick={resetCalc}
+            >
               重新試算
             </Button>
           )}
@@ -167,9 +234,11 @@ export function DebtAccountForm({
       {/* 每月應還金額 */}
       <div className="space-y-1.5">
         <Label htmlFor="df-monthly">
-          每月應還金額 *
+          {calcResult?.graceMonths ? '正式還款期間的每月應還金額' : '每月應還金額'} *
           {isManualPayment && (
-            <span className="ml-2 text-xs bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded">手動</span>
+            <span className="ml-2 text-xs bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded">
+              手動
+            </span>
           )}
         </Label>
         <Input

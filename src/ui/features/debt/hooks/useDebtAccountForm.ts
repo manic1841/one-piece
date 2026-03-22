@@ -12,6 +12,7 @@ export interface DebtFormValues {
   interestRate: string;
   startDate: string; // ISO date string YYYY-MM-DD
   endDate: string;
+  graceEndDate: string; // ISO date string YYYY-MM-DD or empty if no grace period
   monthlyPayment: string;
   linkedProjectId: string;
   note: string;
@@ -26,13 +27,14 @@ const emptyForm: DebtFormValues = {
   interestRate: '',
   startDate: '',
   endDate: '',
+  graceEndDate: '',
   monthlyPayment: '',
   linkedProjectId: '',
   note: '',
 };
 
 function toFormValues(account: DebtAccount): DebtFormValues {
-  const toDateStr = (d: Date) => d.toISOString().substring(0, 10);
+  const toDateStr = (d: Date | null | undefined) => (d ? d.toISOString().substring(0, 10) : '');
   return {
     name: account.name,
     type: account.type,
@@ -42,6 +44,7 @@ function toFormValues(account: DebtAccount): DebtFormValues {
     interestRate: String(account.interestRate),
     startDate: toDateStr(account.startDate),
     endDate: toDateStr(account.endDate),
+    graceEndDate: toDateStr(account.graceEndDate),
     monthlyPayment: String(account.monthlyPayment),
     linkedProjectId: account.linkedProjectId ?? '',
     note: account.note ?? '',
@@ -53,6 +56,7 @@ function tryCalc(values: DebtFormValues): LoanCalcResult | null {
   const rate = parseFloat(values.interestRate);
   const start = values.startDate ? new Date(values.startDate) : null;
   const end = values.endDate ? new Date(values.endDate) : null;
+  const grace = values.graceEndDate ? new Date(values.graceEndDate) : undefined;
 
   if (!isNaN(amount) && !isNaN(rate) && start && end && end > start) {
     return calculateLoan({
@@ -60,6 +64,7 @@ function tryCalc(values: DebtFormValues): LoanCalcResult | null {
       interestRate: rate,
       startDate: start,
       endDate: end,
+      graceEndDate: grace,
     });
   }
   return null;
@@ -135,6 +140,15 @@ export function useDebtAccountForm(initialAccount?: DebtAccount): DebtAccountFor
     if (values.startDate && values.endDate && values.endDate <= values.startDate) {
       errs.endDate = '結束日須晚於開始日';
     }
+    // If graceEndDate is provided, validate it is between startDate and endDate
+    if (values.graceEndDate) {
+      if (values.startDate && values.graceEndDate <= values.startDate) {
+        errs.graceEndDate = '寬限期結束日須晚於還款開始日';
+      }
+      if (values.endDate && values.graceEndDate > values.endDate) {
+        errs.graceEndDate = '寬限期結束日須早於貸款到期日';
+      }
+    }
     if (!values.monthlyPayment || parseFloat(values.monthlyPayment) <= 0)
       errs.monthlyPayment = '必填且須大於 0';
 
@@ -153,6 +167,7 @@ export function useDebtAccountForm(initialAccount?: DebtAccount): DebtAccountFor
       interestRate: parseFloat(values.interestRate),
       startDate: new Date(values.startDate),
       endDate: new Date(values.endDate),
+      graceEndDate: values.graceEndDate ? new Date(values.graceEndDate) : null,
       monthlyPayment: parseFloat(values.monthlyPayment),
       linkedProjectId: values.linkedProjectId || null,
       note: values.note || undefined,

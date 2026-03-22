@@ -13,6 +13,7 @@ export const CustomLedgerCodeCreateSchema = z.object({
   label: z.string(), // e.g. "台北房產"
   type: LedgerType,
   isCustom: z.literal(true),
+  isActive: z.boolean().default(true),
   createdBy: z.string(),
 });
 export type CustomLedgerCodeCreate = z.infer<typeof CustomLedgerCodeCreateSchema>;
@@ -24,6 +25,10 @@ export const IntentMappingCreateSchema = z.object({
   intent: z.string(),
   debitLedgerCode: z.string(),
   creditLedgerCode: z.string(),
+  debitUserSelect: z.boolean().optional(),
+  creditUserSelect: z.boolean().optional(),
+  allowedDebitPrefix: z.string().optional(),
+  allowedCreditPrefix: z.string().optional(),
 });
 export type IntentMappingCreate = z.infer<typeof IntentMappingCreateSchema>;
 

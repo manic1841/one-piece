@@ -76,8 +76,8 @@ firestore
        │    └─ settings: object
 
        ├─ allocations/{allocationId}     # 專案資金分配
-     │    ├─ sourceTransactionId: string
-      │    ├─ direction: "INCOME" | "EXPENSE"
+       │    ├─ sourceTransactionId: string
+       │    ├─ direction: "INCOME" | "EXPENSE"
        │    ├─ yearMonth: string         # YYYY-MM
        │    ├─ totalAmount: number
        │    ├─ items: array

@@ -1,14 +1,16 @@
 import { useCallback, useEffect, useState } from 'react';
 
+import { createDebtPaymentUseCase } from '@/application/debt/use_cases/createDebtPaymentUseCase';
+import { listDebtAccountsUseCase } from '@/application/debt/use_cases/listDebtAccountsUseCase';
 import { createAllocationUseCase } from '@/application/ledger/use_cases/createAllocationUseCase';
 import { createTransactionUseCase } from '@/application/ledger/use_cases/createTransactionUseCase';
-import { createDebtPaymentUseCase } from '@/application/debt/use_cases/createDebtPaymentUseCase';
+import { type DebtAccount } from '@/domains/debt/schemas';
+import { IntentType } from '@/domains/ledger/constants';
 import { DEFAULT_INTENT_MAPPINGS } from '@/domains/ledger/intentMapping';
 import { type TransactionCreate } from '@/domains/ledger/schemas';
-import { type DebtAccount } from '@/domains/debt/schemas';
 import { projectService } from '@/domains/project/projectService';
 import { useAuth } from '@/infra/contexts/useAuth';
-import { listDebtAccountsUseCase } from '@/application/debt/use_cases/listDebtAccountsUseCase';
+import { useLedgerCodes } from '@/ui/features/ledger/hooks/useLedgerCodes';
 import {
   type TransactionFormCategoryOption,
   type TransactionFormOutput,
@@ -16,43 +18,35 @@ import {
 
 const expenseCategories: TransactionFormCategoryOption[] = [
   ...DEFAULT_INTENT_MAPPINGS.filter((mapping) => mapping.type === 'EXPENSE').map((mapping) => ({
-    value: mapping.debitLedgerCode,
+    value: mapping.intent,
     label: mapping.label,
   })),
-  {
-    value: 'expense:other',
-    label: '其他支出',
-  },
 ];
 
 const incomeCategories: TransactionFormCategoryOption[] = [
   ...DEFAULT_INTENT_MAPPINGS.filter((mapping) => mapping.type === 'INCOME').map((mapping) => ({
-    value: mapping.creditLedgerCode,
+    value: mapping.intent,
     label: mapping.label,
   })),
-  {
-    value: 'income:other',
-    label: '其他收入',
-  },
 ];
 
 const investmentCategories: TransactionFormCategoryOption[] = DEFAULT_INTENT_MAPPINGS.filter(
   (mapping) => mapping.type === 'INVESTMENT',
 ).map((mapping) => ({
-  value: `${mapping.debitLedgerCode}|${mapping.creditLedgerCode}`,
+  value: mapping.intent,
   label: mapping.label,
 }));
 
 const financingCategories: TransactionFormCategoryOption[] = DEFAULT_INTENT_MAPPINGS.filter(
   (mapping) => mapping.type === 'FINANCING',
 ).map((mapping) => ({
-  value: `${mapping.debitLedgerCode}|${mapping.creditLedgerCode}`,
+  value: mapping.intent,
   label: mapping.label,
 }));
 
 const advancedCategories: TransactionFormCategoryOption[] = [
   ...expenseCategories,
-  ...incomeCategories.filter((option) => option.value !== 'income:other'),
+  ...incomeCategories,
 ];
 
 const toDate = (date: string) => new Date(`${date}T00:00:00`);
@@ -83,52 +77,6 @@ const buildIncomeEntries = (amount: number, ledgerCode: string): TransactionCrea
   },
 ];
 
-const buildInvestmentFinancingEntries = (
-  amount: number,
-  ledgerCode: string,
-): TransactionCreate['entries'] => {
-  const [debitLedgerCode, creditLedgerCode] = ledgerCode.split('|');
-  return [
-    {
-      ledgerCode: debitLedgerCode,
-      debit: amount,
-      credit: 0,
-    },
-    {
-      ledgerCode: creditLedgerCode,
-      debit: 0,
-      credit: amount,
-    },
-  ];
-};
-
-const buildAdvancedEntries = (amount: number, ledgerCode: string): TransactionCreate['entries'] =>
-  ledgerCode.startsWith('income:')
-    ? [
-        {
-          ledgerCode,
-          debit: 0,
-          credit: amount,
-        },
-        {
-          ledgerCode: 'asset:cash',
-          debit: amount,
-          credit: 0,
-        },
-      ]
-    : [
-        {
-          ledgerCode,
-          debit: amount,
-          credit: 0,
-        },
-        {
-          ledgerCode: 'asset:cash',
-          debit: 0,
-          credit: amount,
-        },
-      ];
-
 const buildStandardTransaction = (input: {
   output: TransactionFormOutput;
   userEmail: string;
@@ -151,32 +99,36 @@ const buildStandardTransaction = (input: {
 };
 
 const buildEntriesByIntent = (output: TransactionFormOutput): TransactionCreate['entries'] => {
-  switch (output.intentType) {
-    case 'EXPENSE':
-      if (!output.ledgerCode) {
-        throw new Error('Expense requires a category.');
+  const mapping = DEFAULT_INTENT_MAPPINGS.find((m) => m.intent === output.intent);
+
+  // Use the explicitly provided ledgerCode if it exists (for dynamic selection)
+  // Otherwise use the default from mapping
+  const debitCode = mapping?.debitUserSelect ? output.ledgerCode : mapping?.debitLedgerCode;
+  const creditCode = mapping?.creditUserSelect ? output.ledgerCode : mapping?.creditLedgerCode;
+
+  if (!debitCode || !creditCode) {
+    // Advanced/Manual handling fallback
+    if (output.ledgerCode) {
+      if (output.ledgerCode.startsWith('income:')) {
+        return buildIncomeEntries(output.amount, output.ledgerCode);
       }
       return buildExpenseEntries(output.amount, output.ledgerCode);
-    case 'INCOME':
-      if (!output.ledgerCode) {
-        throw new Error('Income requires a category.');
-      }
-      return buildIncomeEntries(output.amount, output.ledgerCode);
-    case 'INVESTMENT':
-    case 'FINANCING':
-      if (!output.ledgerCode || !output.ledgerCode.includes('|')) {
-        throw new Error('Investment/financing requires a mapped debit-credit pair.');
-      }
-      return buildInvestmentFinancingEntries(output.amount, output.ledgerCode);
-    case 'MANUAL':
-    case 'TRANSFER':
-      if (!output.ledgerCode) {
-        throw new Error('Advanced entry requires a ledger category.');
-      }
-      return buildAdvancedEntries(output.amount, output.ledgerCode);
-    default:
-      throw new Error('Unsupported transaction type.');
+    }
+    throw new Error('Could not resolve ledger codes for this intent.');
   }
+
+  return [
+    {
+      ledgerCode: debitCode,
+      debit: output.amount,
+      credit: 0,
+    },
+    {
+      ledgerCode: creditCode,
+      debit: 0,
+      credit: output.amount,
+    },
+  ];
 };
 
 export const useTransactionForm = (
@@ -188,6 +140,7 @@ export const useTransactionForm = (
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [debtAccounts, setDebtAccounts] = useState<DebtAccount[]>([]);
+  const { codes: allActiveLedgerCodes } = useLedgerCodes(false);
 
   // Fetch active debt accounts for the DEBT_PAYMENT tab
   const fetchDebtAccounts = useCallback(async () => {
@@ -247,7 +200,7 @@ export const useTransactionForm = (
         throw new Error('Amount must be greater than zero.');
       }
 
-      if (output.intentType === 'DEBT_PAYMENT') {
+      if (output.intentType === IntentType.DEBT_PAYMENT) {
         if (!output.debtAccountId) throw new Error('請選擇貸款帳戶');
         await createDebtPaymentUseCase.execute({
           householdId,
@@ -262,7 +215,7 @@ export const useTransactionForm = (
           description: output.description,
           projectId: output.projectId,
         });
-      } else if (output.intentType === 'PROJECT_TRANSFER') {
+      } else if (output.intentType === IntentType.TRANSFER) {
         if (!output.fromProjectId || !output.toProjectId) {
           throw new Error('Please select both source and target projects.');
         }
@@ -315,6 +268,7 @@ export const useTransactionForm = (
     financingCategories,
     advancedCategories,
     debtAccounts,
+    allActiveLedgerCodes,
     loading,
     error,
     handleSubmit,

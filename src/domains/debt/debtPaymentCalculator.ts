@@ -7,6 +7,36 @@ export interface DebtPaymentSplit {
 }
 
 /**
+ * Check if today is within the grace period.
+ *
+ * @param graceEndDate The grace period end date (null/undefined means no grace period)
+ * @returns true if graceEndDate is set and today < graceEndDate
+ */
+export function isInGracePeriod(graceEndDate: Date | null | undefined): boolean {
+  if (!graceEndDate) return false;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const graceEnd = new Date(graceEndDate);
+  graceEnd.setHours(0, 0, 0, 0);
+  return today < graceEnd;
+}
+
+/**
+ * Calculate monthly interest payment during grace period.
+ *
+ * Formula: currentBalance × (interestRate / 100 / 12)
+ *
+ * @returns Monthly interest amount (rounded)
+ */
+export function calculateGraceMonthlyPayment(
+  currentBalance: number,
+  interestRate: number, // annual, in %
+): number {
+  const monthlyInterest = currentBalance * (interestRate / 100 / 12);
+  return Math.round(monthlyInterest);
+}
+
+/**
  * Calculate the principal/interest split for a single payment.
  *
  * Formula:
@@ -38,21 +68,51 @@ export function calculateSplit(
 }
 
 /**
- * Build the three journal entry lines for a DEBT_PAYMENT transaction.
+ * Build the journal entry lines for a DEBT_PAYMENT transaction.
  *
- * Dr. {linkedLedgerCode}   principal
- * Dr. expense:interest     interest
- * Cr. asset:cash           totalPayment
+ * Supports two scenarios:
  *
- * Precondition: principal + interest must equal totalPayment (within rounding).
- * Caller is responsible for ensuring balance before calling this.
+ * 1. Normal repayment (no grace period or after grace period):
+ *    - Dr. {linkedLedgerCode}  principal
+ *    - Dr. expense:interest    interest
+ *    - Cr. asset:cash          totalPayment
+ *
+ * 2. Grace period (within grace period, interest-only):
+ *    - Dr. expense:interest    interest
+ *    - Cr. asset:cash          totalPayment (same as interest)
+ *    - Note: Principal remains 0, no liability reduction
+ *
+ * @param linkedLedgerCode The liability ledger code (e.g., 'liability:mortgage')
+ * @param principal Amount to reduce principal (0 during grace period)
+ * @param interest Interest amount to record as expense
+ * @param totalPayment Total cash paid
+ * @param graceEndDate Optional grace period end date; if set and today < graceEndDate, only interest is recorded
+ * @returns Array of journal entry lines
  */
 export function buildDebtPaymentEntries(
   linkedLedgerCode: string,
   principal: number,
   interest: number,
   totalPayment: number,
+  graceEndDate?: Date | null,
 ): JournalEntryLine[] {
+  // Check if currently in grace period
+  const inGracePeriod = isInGracePeriod(graceEndDate);
+
+  if (inGracePeriod) {
+    // Grace period: interest-only payment, no principal reduction
+    const entries: JournalEntryLine[] = [
+      // Record interest expense
+      { ledgerCode: 'expense:interest', debit: interest, credit: 0 },
+      // Cash paid out
+      { ledgerCode: 'asset:cash', debit: 0, credit: totalPayment },
+    ];
+
+    // Filter out zero-value lines
+    return entries.filter((e) => e.debit > 0 || e.credit > 0);
+  }
+
+  // Normal repayment (no grace period or after grace period)
   const entries: JournalEntryLine[] = [
     // Reduce liability (debit the liability ledger code)
     { ledgerCode: linkedLedgerCode, debit: principal, credit: 0 },
@@ -75,8 +135,6 @@ export function assertEntriesBalanced(entries: JournalEntryLine[]): void {
   const totalCredit = entries.reduce((s, e) => s + e.credit, 0);
   if (Math.abs(totalDebit - totalCredit) > 1) {
     // tolerance of 1 for rounding
-    throw new Error(
-      `Journal entries are not balanced: debit=${totalDebit}, credit=${totalCredit}`,
-    );
+    throw new Error(`Journal entries are not balanced: debit=${totalDebit}, credit=${totalCredit}`);
   }
 }

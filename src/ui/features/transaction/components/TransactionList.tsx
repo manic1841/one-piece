@@ -3,6 +3,7 @@ import React from 'react';
 import { type Transaction as LedgerTransaction } from '@/domains/ledger/schemas';
 import { type Project } from '@/domains/project/schemas';
 import { Card, CardContent } from '@/ui/components/ui/card';
+import { useLedgerCodes } from '@/ui/features/ledger/hooks/useLedgerCodes';
 
 import { TransactionItem } from './TransactionItem';
 
@@ -21,6 +22,7 @@ export const TransactionList: React.FC<TransactionListProps> = ({
   onEdit,
   projects,
 }) => {
+  const { getLabel } = useLedgerCodes();
   const groupedItems = React.useMemo(() => {
     const groups: Record<string, LedgerTransaction[]> = {};
 
@@ -82,6 +84,7 @@ export const TransactionList: React.FC<TransactionListProps> = ({
                   onEdit={onEdit}
                   onDelete={onDelete}
                   projectName={projects?.find((p) => p.id === item.projectId)?.name}
+                  getLabel={getLabel}
                 />
               </div>
             ))}

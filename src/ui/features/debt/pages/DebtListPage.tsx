@@ -1,23 +1,22 @@
 import { useState } from 'react';
 
-import { type DebtAccount, DEBT_TYPE_LABEL } from '@/domains/debt/schemas';
+import {
+  calculateGraceMonthlyPayment,
+  isInGracePeriod,
+} from '@/domains/debt/debtPaymentCalculator';
+import { DEBT_TYPE_LABEL, type DebtAccount } from '@/domains/debt/schemas';
+import { type Transaction } from '@/domains/ledger/schemas';
 import { useAuth } from '@/infra/contexts/useAuth';
 import { Badge } from '@/ui/components/ui/badge';
 import { Button } from '@/ui/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/ui/components/ui/card';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/ui/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/ui/components/ui/dialog';
 import { Progress } from '@/ui/components/ui/progress';
 import { DebtAccountForm } from '@/ui/features/debt/components/DebtAccountForm';
 import { DebtPaymentHistory } from '@/ui/features/debt/components/DebtPaymentHistory';
 import { useDebtAccountCmds } from '@/ui/features/debt/hooks/useDebtAccountCmds';
 import { useDebtAccountForm } from '@/ui/features/debt/hooks/useDebtAccountForm';
 import { type DebtAccountView, useDebtPage } from '@/ui/features/debt/hooks/useDebtPage';
-import { type Transaction } from '@/domains/ledger/schemas';
 
 function formatCurrency(n: number) {
   return n.toLocaleString('zh-TW', { maximumFractionDigits: 0 });
@@ -92,6 +91,18 @@ function DebtCard({
             >
               {DEBT_TYPE_LABEL[account.type]}
             </span>
+            {isInGracePeriod(account.graceEndDate) && (
+              <Badge
+                variant="destructive"
+                className="text-xs font-medium bg-amber-100 text-amber-800 border-amber-200"
+              >
+                寬限期至{' '}
+                {account.graceEndDate?.toLocaleDateString('zh-TW', {
+                  year: 'numeric',
+                  month: '2-digit',
+                })}
+              </Badge>
+            )}
             {account.projectName && (
               <Badge variant="outline" className="text-xs">
                 {account.projectName}
@@ -129,15 +140,26 @@ function DebtCard({
           <div>
             <p className="text-muted-foreground text-xs">剩餘本金</p>
             <p className="font-medium">${formatCurrency(account.currentBalance)}</p>
-            <p className="text-xs text-muted-foreground">/ ${formatCurrency(account.originalAmount)}</p>
+            <p className="text-xs text-muted-foreground">
+              / ${formatCurrency(account.originalAmount)}
+            </p>
           </div>
           <div>
             <p className="text-muted-foreground text-xs">年利率</p>
             <p className="font-medium">{account.interestRate}%</p>
           </div>
           <div>
-            <p className="text-muted-foreground text-xs">每月還款</p>
-            <p className="font-medium">${formatCurrency(account.monthlyPayment)}</p>
+            <p className="text-muted-foreground text-xs">
+              {isInGracePeriod(account.graceEndDate) ? '本月應付（利息）' : '每月還款'}
+            </p>
+            <p className="font-medium">
+              $
+              {formatCurrency(
+                isInGracePeriod(account.graceEndDate)
+                  ? calculateGraceMonthlyPayment(account.currentBalance, account.interestRate)
+                  : account.monthlyPayment,
+              )}
+            </p>
           </div>
           <div>
             <p className="text-muted-foreground text-xs">預計還清</p>
@@ -159,9 +181,7 @@ function DebtCard({
         </div>
 
         {/* History List */}
-        {showHistory && (
-          <DebtPaymentHistory debtAccountId={account.id} getHistory={getHistory} />
-        )}
+        {showHistory && <DebtPaymentHistory debtAccountId={account.id} getHistory={getHistory} />}
       </CardContent>
     </Card>
   );
@@ -183,8 +203,12 @@ export default function DebtListPage() {
     error,
     reload,
   } = useDebtPage(householdId);
-  const { createDebtAccount, updateDebtAccount, removeDebtAccount, loading: cmdLoading } =
-    useDebtAccountCmds(householdId);
+  const {
+    createDebtAccount,
+    updateDebtAccount,
+    removeDebtAccount,
+    loading: cmdLoading,
+  } = useDebtAccountCmds(householdId);
 
   const [dialogMode, setDialogMode] = useState<DialogMode | null>(null);
   const [editTarget, setEditTarget] = useState<DebtAccount | null>(null);
@@ -278,7 +302,10 @@ export default function DebtListPage() {
 
       {/* Create / Edit Dialog */}
       <Dialog open={dialogMode !== null} onOpenChange={(open) => !open && closeDialog()}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" aria-describedby={undefined}>
+        <DialogContent
+          className="max-w-2xl max-h-[90vh] overflow-y-auto"
+          aria-describedby={undefined}
+        >
           <DialogHeader>
             <DialogTitle>{dialogMode === 'create' ? '新增貸款' : '編輯貸款'}</DialogTitle>
           </DialogHeader>

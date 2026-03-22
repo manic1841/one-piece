@@ -9,6 +9,7 @@ import { Card, CardContent } from '@/ui/components/ui/card';
 
 import EmailWhitelistUI from './EmailWhitelistUI';
 import MemberManagementUI from './MemberManagementUI';
+import { LedgerCodeSettings } from '@/ui/features/ledger/components/LedgerCodeSettings';
 
 interface SettingsUIProps {
   isAdmin: boolean;
@@ -134,6 +135,7 @@ const SettingsUI: React.FC<SettingsUIProps> = (props) => {
             onUpdateRole={updateMemberRole}
             currentUser={currentUser}
           />
+          <LedgerCodeSettings />
         </section>
       )}
     </div>

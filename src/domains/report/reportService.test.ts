@@ -15,6 +15,7 @@ vi.mock('@/infra/repositories/reportRepository', () => ({
     getEntriesByMonth: vi.fn(),
     getEntriesUntilMonth: vi.fn(),
     getReport: vi.fn(),
+    list: vi.fn(),
     saveReport: vi.fn(),
   },
 }));
@@ -78,6 +79,26 @@ describe('ReportService', () => {
       expect(result.incomeItems).toHaveLength(2);
       expect(result.expenseItems).toHaveLength(2);
     });
+
+    it('should keep salary and bonus sub-ledger codes as separate items', async () => {
+      const mockEntries = [
+        { ledgerCode: 'income:salary', debit: 0, credit: 30000 },
+        { ledgerCode: 'income:salary:charles', debit: 0, credit: 20000 },
+        { ledgerCode: 'income:bonus', debit: 0, credit: 8000 },
+        { ledgerCode: 'income:bonus:charles', debit: 0, credit: 2000 },
+      ];
+      vi.mocked(reportRepository.getEntriesByMonth).mockResolvedValue(mockEntries as any);
+
+      const result = await reportService.generateIncomeStatement(householdId, yearMonth);
+
+      expect(result.incomeItems.map((item) => item.code)).toEqual([
+        'income:salary',
+        'income:salary:charles',
+        'income:bonus',
+        'income:bonus:charles',
+      ]);
+      expect(result.incomeTotal).toBe(60000);
+    });
   });
 
   describe('generateBalanceSheet', () => {
@@ -117,7 +138,11 @@ describe('ReportService', () => {
       ] as any);
 
       // 5.3 netIncome mock (current month entries)
-      const currentMonthEntries = [{ ledgerCode: 'income:salary', debit: 0, credit: 50000 }];
+      const currentMonthEntries = [
+        { ledgerCode: 'income:salary', debit: 0, credit: 50000 },
+        { ledgerCode: 'equity:capital', debit: 10000, credit: 0 },
+        { ledgerCode: 'equity:capital', debit: 0, credit: 20000 },
+      ];
       vi.mocked(reportRepository.getEntriesByMonth).mockResolvedValue(currentMonthEntries as any);
 
       // 5.4 Investment Gain (from portfolio)
@@ -178,6 +203,8 @@ describe('ReportService', () => {
         if (ym === '2026-03') return Promise.resolve({ amount: 102000 } as any); // Actual Ending
         return Promise.resolve(null);
       });
+      vi.mocked(reportRepository.getReport).mockResolvedValue(null);
+      vi.mocked(reportRepository.list).mockResolvedValue([{ id: 'r1' } as any]);
 
       const result = await reportService.generateCashFlow(householdId, yearMonth);
 

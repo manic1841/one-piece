@@ -2,6 +2,16 @@
 
 One-Piece 結合了「管理會計 (Projects)」與「財務會計 (Accounts)」的概念。以下說明三大報表的具體來源。
 
+## 0. 報表產生前置檢查
+
+- 報表頁在產生正式報表前，會先檢查以下「啟用中」資產負債來源是否都有該月份結算快照：
+  - 專案 (`Project Snapshot`)
+  - 帳戶 (`Account Snapshot`)
+  - 投資組合 (`Portfolio Snapshot`)
+  - 債務帳戶 (`Debt Snapshot`)
+- 若上述任一類別存在未結算項目，報表發佈應被阻擋。
+- 若某一類別在當月沒有任何啟用中資料，則該類別視為通過，不應單獨阻擋報表生成。
+
 ---
 
 ## 1. 損益表 (Income Statement)

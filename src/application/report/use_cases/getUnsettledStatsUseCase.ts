@@ -1,19 +1,23 @@
 import { getAccountSnapshotsUseCase } from '@/application/account/use_cases/getAccountSnapshotsUseCase';
 import { getAccountsUseCase } from '@/application/account/use_cases/getAccountsUseCase';
+import { listDebtAccountsUseCase } from '@/application/debt/use_cases/listDebtAccountsUseCase';
 import { listPortfolioSnapshotsUseCase } from '@/application/portfolio/use_cases/listPortfolioSnapshotsUseCase';
 import { listPortfoliosUseCase } from '@/application/portfolio/use_cases/listPortfoliosUseCase';
+import { listProjectSnapshotsUseCase } from '@/application/project/use_cases/listProjectSnapshotsUseCase';
+import { listProjectsUseCase } from '@/application/project/use_cases/listProjectsUseCase';
 import { type AuthContext } from '@/application/types';
 import { type Account } from '@/domains/account/types/account';
+import { type DebtAccount } from '@/domains/debt/schemas';
 import { type Portfolio } from '@/domains/portfolio/types/portfolio';
 import { type Project } from '@/domains/project/schemas';
-import { listProjectsUseCase } from '@/application/project/use_cases/listProjectsUseCase';
-import { listProjectSnapshotsUseCase } from '@/application/project/use_cases/listProjectSnapshotsUseCase';
+import { debtSnapshotRepository } from '@/infra/repositories/debtSnapshotRepository';
 
 export interface UnsettledStats {
   year: number;
   month: number;
   unsettledAccounts: Account[];
   unsettledPortfolios: Portfolio[];
+  unsettledDebts: DebtAccount[];
   unsettledProjects: Project[];
   totalUnsettled: number;
 }
@@ -31,10 +35,12 @@ export class GetUnsettledStatsUseCase {
     const now = new Date();
     const year = request.year ?? now.getFullYear();
     const month = request.month ?? now.getMonth() + 1;
+    const yearMonth = `${year}-${month.toString().padStart(2, '0')}`;
 
-    const [accounts, portfolios, projects] = await Promise.all([
+    const [accounts, portfolios, debts, projects] = await Promise.all([
       getAccountsUseCase.execute({ householdId, auth }),
       listPortfoliosUseCase.execute({ householdId, auth }),
+      listDebtAccountsUseCase.execute({ householdId }),
       listProjectsUseCase.execute({ householdId }),
     ]);
 
@@ -66,13 +72,17 @@ export class GetUnsettledStatsUseCase {
       }),
     );
 
+    const activeDebts = debts.filter((debt) => debt.isActive);
+    const debtSettlementFlags = await Promise.all(
+      activeDebts.map(async (debt) => {
+        const snapshot = await debtSnapshotRepository.getSnapshot(householdId, debt.id, yearMonth);
+        return { debt, settled: snapshot !== null };
+      }),
+    );
+
     const activeProjects = projects.filter((project) => project.isActive);
     const projectSettlementFlags = await Promise.all(
       activeProjects.map(async (project) => {
-        // listProjectSnapshotsUseCase assumes yearMonth format like "2024-05" or year, month ordering
-        // listProjectSnapshotsUseCase takes { householdId, projectId, yearMonth?, limit? }
-        // We will pass yearMonth formatted
-        const yearMonth = `${year}-${month.toString().padStart(2, '0')}`;
         const snapshots = await listProjectSnapshotsUseCase.execute({
           householdId,
           projectId: project.id,
@@ -88,6 +98,9 @@ export class GetUnsettledStatsUseCase {
     const unsettledPortfolios = portfolioSettlementFlags
       .filter((result) => !result.settled)
       .map((result) => result.portfolio);
+    const unsettledDebts = debtSettlementFlags
+      .filter((result) => !result.settled)
+      .map((result) => result.debt);
     const unsettledProjects = projectSettlementFlags
       .filter((result) => !result.settled)
       .map((result) => result.project);
@@ -97,8 +110,13 @@ export class GetUnsettledStatsUseCase {
       month,
       unsettledAccounts,
       unsettledPortfolios,
+      unsettledDebts,
       unsettledProjects,
-      totalUnsettled: unsettledAccounts.length + unsettledPortfolios.length + unsettledProjects.length,
+      totalUnsettled:
+        unsettledAccounts.length +
+        unsettledPortfolios.length +
+        unsettledDebts.length +
+        unsettledProjects.length,
     };
   }
 }

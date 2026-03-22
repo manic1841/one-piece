@@ -1,5 +1,17 @@
 import React from 'react';
-import { Check, Loader2, FileText, AlertCircle, ArrowRight, TrendingUp, Wallet, ArrowDownCircle, ArrowUpCircle } from 'lucide-react';
+
+import {
+  AlertCircle,
+  ArrowDownCircle,
+  ArrowRight,
+  ArrowUpCircle,
+  Check,
+  FileText,
+  Loader2,
+  TrendingUp,
+  Wallet,
+} from 'lucide-react';
+
 import { Button } from '@/ui/components/ui/button';
 import { formatCurrency } from '@/ui/utils';
 
@@ -16,6 +28,10 @@ interface SettlementSummaryProps {
   reportsGenerated: boolean;
   onGenerateReports: () => void;
   error?: string;
+  unsettledProjectNames?: string[];
+  unsettledAccountNames?: string[];
+  unsettledPortfolioNames?: string[];
+  unsettledDebtNames?: string[];
   reportTimestamps?: {
     incomeStatement?: string;
     balanceSheet?: string;
@@ -32,6 +48,10 @@ export const SettlementSummary: React.FC<SettlementSummaryProps> = ({
   reportsGenerated,
   onGenerateReports,
   error,
+  unsettledProjectNames = [],
+  unsettledAccountNames = [],
+  unsettledPortfolioNames = [],
+  unsettledDebtNames = [],
   reportTimestamps,
   onGoToProjectSettlement,
 }) => {
@@ -43,14 +63,57 @@ export const SettlementSummary: React.FC<SettlementSummaryProps> = ({
             <AlertCircle size={32} strokeWidth={2.5} />
           </div>
           <div className="flex-1 text-center md:text-left space-y-2">
-            <h4 className="text-lg font-black text-amber-900 leading-tight">尚未執行 {year}-{String(month).padStart(2, '0')} 月度結算</h4>
+            <h4 className="text-lg font-black text-amber-900 leading-tight">
+              尚未執行 {year}-{String(month).padStart(2, '0')} 月度結算
+            </h4>
             <p className="text-sm text-amber-800/80 font-medium leading-relaxed max-w-xl">
-              財務報表需要引用該月份的各項資產與負債結算快照 (Snapshots)。請先前往「專案管理」完成該月份的自動化結算流程。
+              財務報表需要引用該月份的各項資產與負債結算快照
+              (Snapshots)。請先前往「專案管理」完成該月份的自動化結算流程。
             </p>
+            {unsettledProjectNames.length > 0 && (
+              <div className="pt-2">
+                <p className="text-xs font-bold uppercase tracking-widest text-amber-700/80">
+                  尚未結算的專案
+                </p>
+                <p className="text-sm text-amber-900 font-semibold leading-relaxed">
+                  {unsettledProjectNames.join('、')}
+                </p>
+              </div>
+            )}
+            {unsettledAccountNames.length > 0 && (
+              <div className="pt-2">
+                <p className="text-xs font-bold uppercase tracking-widest text-amber-700/80">
+                  尚未結算的帳戶
+                </p>
+                <p className="text-sm text-amber-900 font-semibold leading-relaxed">
+                  {unsettledAccountNames.join('、')}
+                </p>
+              </div>
+            )}
+            {unsettledPortfolioNames.length > 0 && (
+              <div className="pt-2">
+                <p className="text-xs font-bold uppercase tracking-widest text-amber-700/80">
+                  尚未結算的 Portfolio
+                </p>
+                <p className="text-sm text-amber-900 font-semibold leading-relaxed">
+                  {unsettledPortfolioNames.join('、')}
+                </p>
+              </div>
+            )}
+            {unsettledDebtNames.length > 0 && (
+              <div className="pt-2">
+                <p className="text-xs font-bold uppercase tracking-widest text-amber-700/80">
+                  尚未結算的債務
+                </p>
+                <p className="text-sm text-amber-900 font-semibold leading-relaxed">
+                  {unsettledDebtNames.join('、')}
+                </p>
+              </div>
+            )}
           </div>
           {onGoToProjectSettlement && (
-            <Button 
-              variant="default" 
+            <Button
+              variant="default"
               onClick={onGoToProjectSettlement}
               className="bg-amber-600 hover:bg-amber-700 text-white border-0 shadow-lg shadow-amber-200 shrink-0 gap-2 h-12 px-6 rounded-xl font-bold"
             >
@@ -60,30 +123,30 @@ export const SettlementSummary: React.FC<SettlementSummaryProps> = ({
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <StatCard 
-            label="本月總收入" 
-            value={summary.totalRevenue} 
+          <StatCard
+            label="本月總收入"
+            value={summary.totalRevenue}
             icon={<ArrowDownCircle className="text-emerald-500" size={16} />}
             colorClass="text-emerald-600"
             bgClass="bg-emerald-50/50"
           />
-          <StatCard 
-            label="本月總支出" 
-            value={summary.totalExpense} 
+          <StatCard
+            label="本月總支出"
+            value={summary.totalExpense}
             icon={<ArrowUpCircle className="text-rose-500" size={16} />}
             colorClass="text-rose-600"
             bgClass="bg-rose-50/50"
           />
-          <StatCard 
-            label="本月淨損益" 
-            value={summary.netIncome} 
+          <StatCard
+            label="本月淨損益"
+            value={summary.netIncome}
             icon={<TrendingUp className="text-indigo-500" size={16} />}
-            colorClass={summary.netIncome >= 0 ? "text-indigo-600" : "text-orange-600"}
+            colorClass={summary.netIncome >= 0 ? 'text-indigo-600' : 'text-orange-600'}
             bgClass="bg-indigo-50/50"
           />
-          <StatCard 
-            label="結算後總資產" 
-            value={summary.netWorth} 
+          <StatCard
+            label="結算後總資產"
+            value={summary.netWorth}
             icon={<Wallet className="text-slate-500" size={16} />}
             colorClass="text-slate-900"
             bgClass="bg-slate-100/50"
@@ -96,7 +159,9 @@ export const SettlementSummary: React.FC<SettlementSummaryProps> = ({
           <div className="w-full border-t border-slate-200"></div>
         </div>
         <div className="relative flex justify-start">
-          <span className="bg-white pr-4 text-xs font-black uppercase tracking-widest text-slate-400">正式報表作業</span>
+          <span className="bg-white pr-4 text-xs font-black uppercase tracking-widest text-slate-400">
+            正式報表作業
+          </span>
         </div>
       </div>
 
@@ -108,13 +173,18 @@ export const SettlementSummary: React.FC<SettlementSummaryProps> = ({
                 <div className="bg-indigo-100 p-2 rounded-lg text-indigo-600">
                   <FileText size={20} />
                 </div>
-                <h4 className="text-lg font-black text-slate-900 tracking-tight">產生正式財務三表</h4>
+                <h4 className="text-lg font-black text-slate-900 tracking-tight">
+                  產生正式財務三表
+                </h4>
               </div>
               <p className="text-sm text-slate-500 leading-relaxed max-w-lg font-medium">
-                點選按鈕後，系統將鎖定當前快照數據並產出 <span className="text-slate-900 font-bold">損益表</span>、<span className="text-slate-900 font-bold">資產負債表</span> 與 <span className="text-slate-900 font-bold">現金流量表</span>。
+                點選按鈕後，系統將鎖定當前快照數據並產出{' '}
+                <span className="text-slate-900 font-bold">損益表</span>、
+                <span className="text-slate-900 font-bold">資產負債表</span> 與{' '}
+                <span className="text-slate-900 font-bold">現金流量表</span>。
               </p>
             </div>
-            
+
             <div className="flex flex-col items-center gap-3">
               <Button
                 onClick={onGenerateReports}
@@ -173,23 +243,47 @@ export const SettlementSummary: React.FC<SettlementSummaryProps> = ({
   );
 };
 
-function StatCard({ label, value, icon, colorClass, bgClass }: { label: string; value: number; icon: React.ReactNode; colorClass: string; bgClass: string }) {
+function StatCard({
+  label,
+  value,
+  icon,
+  colorClass,
+  bgClass,
+}: {
+  label: string;
+  value: number;
+  icon: React.ReactNode;
+  colorClass: string;
+  bgClass: string;
+}) {
   return (
-    <div className={`${bgClass} border border-slate-100 rounded-2xl p-5 space-y-2 transition-all hover:shadow-md hover:translate-y-[-2px]`}>
+    <div
+      className={`${bgClass} border border-slate-100 rounded-2xl p-5 space-y-2 transition-all hover:shadow-md hover:translate-y-[-2px]`}
+    >
       <div className="flex items-center gap-2">
         {icon}
-        <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">{label}</span>
+        <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+          {label}
+        </span>
       </div>
-      <p className={`text-2xl font-black tracking-tight ${colorClass}`}>
-        {formatCurrency(value)}
-      </p>
+      <p className={`text-2xl font-black tracking-tight ${colorClass}`}>{formatCurrency(value)}</p>
     </div>
   );
 }
 
-function ReportStatusItem({ label, timestamp, isDone }: { label: string; timestamp?: string; isDone: boolean }) {
+function ReportStatusItem({
+  label,
+  timestamp,
+  isDone,
+}: {
+  label: string;
+  timestamp?: string;
+  isDone: boolean;
+}) {
   return (
-    <div className={`flex flex-col gap-1 p-4 rounded-xl border transition-all ${isDone ? 'bg-slate-50 border-slate-200 shadow-sm' : 'bg-white border-dashed border-slate-300 opacity-50'}`}>
+    <div
+      className={`flex flex-col gap-1 p-4 rounded-xl border transition-all ${isDone ? 'bg-slate-50 border-slate-200 shadow-sm' : 'bg-white border-dashed border-slate-300 opacity-50'}`}
+    >
       <span className="text-xs font-black text-slate-800 tracking-tight">{label}</span>
       <span className="text-[10px] font-bold text-slate-400">
         {timestamp ? `LAST UPDATED: ${timestamp}` : 'NOT GENERATED'}

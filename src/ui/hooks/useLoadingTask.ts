@@ -7,6 +7,8 @@ export function useLoadingTask() {
   const loading = loadingCount > 0;
 
   const run = useCallback(async <T>(task: () => Promise<T>): Promise<T | undefined> => {
+    // Avoid Cascading Render warning by moving state update to next microtask
+    await Promise.resolve();
     setLoadingCount((n) => n + 1);
     setError(null);
 

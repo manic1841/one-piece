@@ -2,7 +2,7 @@ import { type TransactionCreate } from '@/domains/ledger/schemas';
 
 export type IntentType = Extract<
   NonNullable<TransactionCreate['intentType']>,
-  'EXPENSE' | 'INCOME' | 'INVESTMENT' | 'FINANCING' | 'TRANSFER' | 'PROJECT_TRANSFER' | 'MANUAL'
+  'EXPENSE' | 'INCOME' | 'INVESTMENT' | 'FINANCING' | 'TRANSFER' | 'MANUAL' | 'DEBT_PAYMENT'
 >;
 
 export type TransactionFormTab =
@@ -10,7 +10,7 @@ export type TransactionFormTab =
   | 'INCOME'
   | 'INVESTMENT'
   | 'FINANCING'
-  | 'PROJECT_TRANSFER'
+  | 'TRANSFER'
   | 'ADVANCED'
   | 'DEBT_PAYMENT';
 
@@ -18,6 +18,7 @@ export type ExpenseFormState = {
   amount: string;
   date: string;
   projectId: string | null;
+  intent: string | null;
   ledgerCode: string | null;
   description: string;
   triggerAllocation: boolean;
@@ -27,6 +28,7 @@ export type ExpenseFormState = {
 export type IncomeFormState = {
   amount: string;
   date: string;
+  intent: string | null;
   ledgerCode: string | null;
   description: string;
   triggerAllocation: boolean;
@@ -46,6 +48,7 @@ export type AllocationItemInput = {
 export type InvestmentFormState = {
   amount: string;
   date: string;
+  intent: string | null;
   ledgerCode: string | null;
   description: string;
 };
@@ -53,6 +56,7 @@ export type InvestmentFormState = {
 export type FinancingFormState = {
   amount: string;
   date: string;
+  intent: string | null;
   ledgerCode: string | null;
   description: string;
 };
@@ -69,12 +73,14 @@ export type AdvancedFormState = {
   date: string;
   intentType: Extract<IntentType, 'TRANSFER' | 'MANUAL'>;
   projectId: string | null;
+  intent: string | null;
   ledgerCode: string | null;
   description: string;
 };
 
 export type TransactionFormOutput = {
-  intentType: IntentType | 'DEBT_PAYMENT';
+  intentType: IntentType;
+  intent?: string;
   date: string;
   amount: number;
   projectId?: string;
