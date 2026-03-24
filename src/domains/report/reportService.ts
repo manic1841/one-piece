@@ -10,6 +10,7 @@ import { reportRepository } from '@/infra/repositories/reportRepository';
 
 import { generateCashFlowSnapshot } from './reportMonthlyGenerators';
 import {
+  aggregateBalanceSheetSnapshots,
   aggregateCashFlowSnapshots,
   aggregateIncomeStatementSnapshots,
   buildYearMonthKeys,
@@ -133,21 +134,26 @@ export class ReportService {
     const isYearMode = yearMonth.length === 4;
 
     if (isYearMode) {
-      // Use December snapshot for year-end balance sheet
-      const decemberMonth = yearMonth + '-12';
-      const report = await reportRepository.getReport(
-        householdId,
-        decemberMonth,
-        ReportType.BALANCE_SHEET,
-      );
-      if (!report) return null;
+      // Fetch all 12 monthly snapshots
+      const monthlyReports = (
+        await Promise.all(
+          buildYearMonthKeys(yearMonth).map(async (monthKey) => {
+            const report = await reportRepository.getReport(
+              householdId,
+              monthKey,
+              ReportType.BALANCE_SHEET,
+            );
+            return report ? (report.data as BalanceSheetData) : null;
+          }),
+        )
+      ).filter((r): r is BalanceSheetData => r !== null);
 
-      // Update yearMonth to the year format
-      const data = report.data as BalanceSheetData;
-      return {
-        ...data,
-        yearMonth,
-      };
+      // Require at least December to have a meaningful year-end position
+      const decemberKey = yearMonth + '-12';
+      const hasDecember = monthlyReports.some((r) => r.yearMonth === decemberKey);
+      if (!hasDecember || monthlyReports.length === 0) return null;
+
+      return aggregateBalanceSheetSnapshots(yearMonth, monthlyReports);
     } else {
       // Monthly mode: fetch single snapshot
       const report = await reportRepository.getReport(
@@ -385,7 +391,7 @@ export class ReportService {
         portfolio.id,
         yearMonth,
       ]);
-      const amount = snapshot?.performance?.cumulativeGain || 0;
+      const amount = snapshot?.performance?.gain || 0;
       stockGain += amount;
       stockGainItems.push({
         code: `portfolio:${portfolio.id}`,

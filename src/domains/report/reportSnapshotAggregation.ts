@@ -1,4 +1,5 @@
 import {
+  type BalanceSheetData,
   type CashFlowData,
   type CashFlowGroup,
   type CashFlowItem,
@@ -97,6 +98,66 @@ export function aggregateIncomeStatementSnapshots(
     netIncome: incomeTotal - expenseTotal,
     incomeItems: mapToIncomeStatementItems(incomeMap),
     expenseItems: mapToIncomeStatementItems(expenseMap),
+  };
+}
+
+export function aggregateBalanceSheetSnapshots(
+  yearMonth: string,
+  reports: BalanceSheetData[], // ordered Jan–Dec, missing months omitted
+): BalanceSheetData {
+  const january = reports[0];
+  const december = reports[reports.length - 1];
+
+  // Assets and liabilities: year-end position (December)
+  const assets = december.assets;
+  const liabilities = december.liabilities;
+
+  // Equity: opening balance from January, flow items summed across all 12 months
+  const openingEquityGroup = january.equity.groups['openingEquity'];
+  const openingEquity = openingEquityGroup?.total ?? 0;
+
+  let netIncomeTotal = 0;
+  let capitalTotal = 0;
+  let stockGainTotal = 0;
+  const capitalItemsMap = new Map<string, AmountEntry>();
+
+  for (const report of reports) {
+    netIncomeTotal += report.equity.groups['netIncome']?.total ?? 0;
+    capitalTotal += report.equity.groups['capital']?.total ?? 0;
+    stockGainTotal += report.equity.groups['stock_gain']?.total ?? 0;
+    mergeAmountEntries(capitalItemsMap, report.equity.groups['capital']?.items ?? []);
+  }
+
+  const equityTotal = assets.total - liabilities.total;
+  const adjustmentTotal =
+    equityTotal - (openingEquity + netIncomeTotal + capitalTotal + stockGainTotal);
+
+  return {
+    yearMonth,
+    assets,
+    liabilities,
+    equity: {
+      total: equityTotal,
+      groups: {
+        openingEquity: {
+          label: openingEquityGroup?.label ?? '期初餘額',
+          total: openingEquity,
+          items: [],
+        },
+        netIncome: { label: '本期淨利', total: netIncomeTotal, items: [] },
+        capital: {
+          label: '資本',
+          total: capitalTotal,
+          items: Array.from(capitalItemsMap.entries()).map(([code, v]) => ({
+            code,
+            label: v.label,
+            amount: v.amount,
+          })),
+        },
+        stock_gain: { label: '股票損益', total: stockGainTotal, items: [] },
+        adjustment: { label: '調整', total: adjustmentTotal, items: [] },
+      },
+    },
   };
 }
 
