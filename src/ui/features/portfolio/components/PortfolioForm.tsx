@@ -14,6 +14,7 @@ import { Label } from '@/ui/components/ui/label';
 import { Textarea } from '@/ui/components/ui/textarea';
 import { toPortfolioForm, toPortfolioFormData } from '@/domains/portfolio/mappers';
 import { type Portfolio, type PortfolioFormData } from '@/domains/portfolio/types';
+import { type Account } from '@/domains/account/types/account';
 import { useAccounts } from '@/ui/features/account/hooks/useAccounts';
 
 interface PortfolioFormProps {
@@ -32,7 +33,7 @@ const PortfolioForm: React.FC<PortfolioFormProps> = ({
   portfolio,
 }) => {
   const { fetchAccounts } = useAccounts();
-  const [availableAccounts, setAvailableAccounts] = useState<any[]>([]);
+  const [availableAccounts, setAvailableAccounts] = useState<Account[]>([]);
   const initialData = toPortfolioForm(portfolio);
 
   const [newName, setNewName] = useState(initialData.name);

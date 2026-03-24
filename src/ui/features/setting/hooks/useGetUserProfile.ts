@@ -11,8 +11,8 @@ export function useGetUserProfile() {
     setError(null);
     try {
       return await getUserProfileUseCase.execute({ uid });
-    } catch (e: any) {
-      setError(e.message);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
       return null;
     } finally {
       setLoading(false);

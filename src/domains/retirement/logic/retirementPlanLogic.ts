@@ -10,7 +10,7 @@ import {
 } from '@/domains/retirement/types';
 import { RetirementIncomeType } from '@/domains/retirement/types';
 
-type PlannedIncome = {
+export type PlannedIncome = {
   category: string;
   amount: number;
   date: Date | Timestamp;

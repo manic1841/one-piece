@@ -104,7 +104,10 @@ export function useFinancialReportPage<T extends ReportView>({
   );
 
   useEffect(() => {
-    loadReport(currentDate);
+    const init = async () => {
+      await loadReport(currentDate);
+    };
+    init();
   }, [currentDate, householdId, loadReport]);
 
   const handlePreviousMonth = useCallback(() => {

@@ -6,9 +6,20 @@ export interface AssetTrendData {
   labels: string[];
   incomes: number[];
   expenses: number[];
+  investmentGains: number[];
   assets: number[];
 }
 
+/**
+ * Aggregates monthly trend points into the specified view mode.
+ * 
+ * Aggregation logic:
+ * - Flow metrics (income, expense, investmentGains) are SUMMED for the period.
+ * - Point-in-time metrics (assets) take the LAST recorded value of the period.
+ * 
+ * @param points Raw monthly trend data points (assumed sorted by date)
+ * @param mode Target view mode (month, quarter, year)
+ */
 export function aggregateTrendPoints(
   points: TrendDataPoint[],
   mode: AssetTrendViewMode,
@@ -17,13 +28,16 @@ export function aggregateTrendPoints(
     labels: [],
     incomes: [],
     expenses: [],
+    investmentGains: [],
     assets: [],
   };
 
   if (points.length === 0) return result;
 
-  // Basic implementation: for 'month', just use all points
-  // A robust implementation would group by quarter or year
+  // Use an object as a map to preserve grouping and order
+  const groupMap: Record<string, { income: number; expense: number; investmentGain: number; totalAssets: number }> = {};
+  const labels: string[] = [];
+
   points.forEach((p) => {
     let label = '';
     if (mode === 'month') {
@@ -35,13 +49,35 @@ export function aggregateTrendPoints(
       label = `${p.year}`;
     }
 
-    // Optimization: actual aggregation logic could combine points with the same label
-    // For now, we return monthly data if they aren't grouped properly, but labels are set
-    // In a real app, you'd reduce into a map and then map to arrays
+    if (!groupMap[label]) {
+      groupMap[label] = {
+        income: p.income || 0,
+        expense: p.expense || 0,
+        investmentGain: p.investmentGain || 0,
+        totalAssets: p.totalAssets || 0,
+      };
+      labels.push(label);
+    } else {
+      const group = groupMap[label];
+      group.income += p.income || 0;
+      group.expense += p.expense || 0;
+      group.investmentGain += p.investmentGain || 0;
+      
+      // Points are assumed sorted, so taking the current one updates the "latest" balance
+      if (p.totalAssets !== null) {
+        group.totalAssets = p.totalAssets;
+      }
+    }
+  });
+
+  // Convert map to result arrays
+  labels.forEach((label) => {
+    const group = groupMap[label];
     result.labels.push(label);
-    result.incomes.push(p.income || 0);
-    result.expenses.push(p.expense || 0);
-    result.assets.push(p.totalAssets || 0);
+    result.incomes.push(group.income);
+    result.expenses.push(group.expense);
+    result.investmentGains.push(group.investmentGain);
+    result.assets.push(group.totalAssets);
   });
 
   return result;

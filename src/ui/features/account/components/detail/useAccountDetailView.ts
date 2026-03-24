@@ -33,7 +33,10 @@ export const useAccountDetailView = (
   }, [householdId, accountId]);
 
   useEffect(() => {
-    fetchData();
+    const init = async () => {
+      await fetchData();
+    };
+    init();
   }, [fetchData]);
 
   const save = async (_id: string, snapshot: AccountSnapshotCreate) => {

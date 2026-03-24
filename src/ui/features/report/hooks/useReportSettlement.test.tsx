@@ -118,8 +118,16 @@ describe('useReportSettlement', () => {
       year,
       month,
     });
-    expect(reportService.generateIncomeStatement).toHaveBeenCalledWith('household-1', yearMonth);
-    expect(reportService.generateBalanceSheet).toHaveBeenCalledWith('household-1', yearMonth);
+    expect(reportService.generateIncomeStatement).toHaveBeenCalledWith(
+      'household-1',
+      yearMonth,
+      expect.any(Function),
+    );
+    expect(reportService.generateBalanceSheet).toHaveBeenCalledWith(
+      'household-1',
+      yearMonth,
+      expect.any(Function),
+    );
   });
 
   it('blocks summary loading when any account, portfolio, debt, or project is unsettled', async () => {
@@ -204,7 +212,15 @@ describe('useReportSettlement', () => {
       year,
       month,
     });
-    expect(reportService.generateIncomeStatement).toHaveBeenCalledWith('household-1', yearMonth);
-    expect(reportService.generateBalanceSheet).toHaveBeenCalledWith('household-1', yearMonth);
+    expect(reportService.generateIncomeStatement).toHaveBeenCalledWith(
+      'household-1',
+      yearMonth,
+      expect.any(Function),
+    );
+    expect(reportService.generateBalanceSheet).toHaveBeenCalledWith(
+      'household-1',
+      yearMonth,
+      expect.any(Function),
+    );
   });
 });

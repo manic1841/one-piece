@@ -77,6 +77,8 @@ export const usePortfolioSnapshotForm = (
             householdId,
             auth,
             accountId: account.id,
+            year,
+            month,
           });
           if (data.length > 0 && data[0].snapshot) {
             snapshotMap.set(account.id, data[0].snapshot);

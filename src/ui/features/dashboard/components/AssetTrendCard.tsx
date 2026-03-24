@@ -25,20 +25,28 @@ interface AssetTrendCardProps {
   householdId: string | undefined;
 }
 
+interface ChartPoint {
+  label: string;
+  totalAssets: number;
+  income: number;
+  expense: number;
+  investmentGain: number;
+}
+
 const AssetTrendCard: React.FC<AssetTrendCardProps> = ({ householdId }) => {
   const { trendData, healthStatus, loading, viewMode, setViewMode, activePlan } = useAssetTrend({
     householdId,
   });
 
-  const chartData = useMemo(() => {
+  const chartData = useMemo<ChartPoint[]>(() => {
     if (!trendData) return [];
 
-    const points = trendData.labels.map((label, index) => ({
+    const points: ChartPoint[] = trendData.labels.map((label, index) => ({
       label,
       totalAssets: trendData.assets[index] ?? 0,
       income: trendData.incomes[index] ?? 0,
       expense: trendData.expenses[index] ?? 0,
-      investmentGain: 0,
+      investmentGain: trendData.investmentGains[index] ?? 0,
     }));
 
     let lastDataIndex = -1;
@@ -60,12 +68,12 @@ const AssetTrendCard: React.FC<AssetTrendCardProps> = ({ householdId }) => {
   }, [trendData]);
 
   const yAxisDomains = useMemo(() => {
-    const actualAssetsMax = Math.max(...chartData.map((p: any) => p.totalAssets || 0), 0);
+    const actualAssetsMax = Math.max(...chartData.map((p) => p.totalAssets || 0), 0);
     const projectedAssets = healthStatus?.assets?.projected || 0;
     const rightMax = Math.max(actualAssetsMax, projectedAssets);
 
-    const actualIncomeMax = Math.max(...chartData.map((p: any) => p.income || 0), 0);
-    const actualExpenseMax = Math.max(...chartData.map((p: any) => p.expense || 0), 0);
+    const actualIncomeMax = Math.max(...chartData.map((p) => p.income || 0), 0);
+    const actualExpenseMax = Math.max(...chartData.map((p) => p.expense || 0), 0);
     const projectedIncome = healthStatus?.income?.projected || 0;
     const projectedExpense = healthStatus?.expense?.projected || 0;
     const leftMax = Math.max(actualIncomeMax, actualExpenseMax, projectedIncome, projectedExpense);

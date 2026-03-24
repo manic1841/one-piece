@@ -41,7 +41,10 @@ export const useRetirementPlanDetailPage = (
   }, [id, householdId, getPlan]);
 
   useEffect(() => {
-    loadPlan();
+    const init = async () => {
+      await loadPlan();
+    };
+    init();
   }, [loadPlan, loadPlanToken]);
 
   const handleUpdatePlan = async (updates: Partial<RetirementPlanCreate>) => {

@@ -85,6 +85,28 @@ export class ReportRepository extends BaseRepository<FinancialReport, [string, s
   }
 
   /**
+   * Fetch all entries for a given year by querying transactions
+   */
+  async getEntriesByYear(householdId: string, year: string): Promise<JournalEntryLine[]> {
+    const yearNum = parseInt(year, 10);
+    const startDate = new Date(yearNum, 0, 1);
+    const endDate = new Date(yearNum + 1, 0, 1);
+
+    const transactions = await transactionRepository.list(
+      [householdId],
+      [where('date', '>=', startDate), where('date', '<', endDate), orderBy('date', 'asc')],
+    );
+
+    const entries: JournalEntryLine[] = [];
+    for (const tx of transactions) {
+      if (tx.entries && tx.entries.length > 0) {
+        entries.push(...tx.entries);
+      }
+    }
+    return entries;
+  }
+
+  /**
    * Fetch all entries from the beginning of time until the end of a given month
    */
   async getEntriesUntilMonth(householdId: string, yearMonth: string): Promise<JournalEntryLine[]> {

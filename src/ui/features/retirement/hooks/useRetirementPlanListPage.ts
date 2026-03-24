@@ -17,7 +17,10 @@ export const useRetirementPlanListPage = (householdId?: string, email?: string) 
   }, [listPlans]);
 
   useEffect(() => {
-    fetchPlans();
+    const init = async () => {
+      await fetchPlans();
+    };
+    init();
   }, [fetchPlans]);
 
   const handleCreatePlan = async () => {

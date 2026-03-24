@@ -84,10 +84,16 @@ export const mapToBalanceSheetView = (report: FinancialReport): BalanceSheetView
     g.category.toLowerCase().includes('long'),
   );
 
-  const isEquityObject = typeof data.equity === 'object' && data.equity !== null;
-  const equityObj = isEquityObject ? (data.equity as { total: number; groups?: BalanceSheetData['assets']['groups'] }) : null;
-  const equityGroups = equityObj && equityObj.groups ? mapGroups(equityObj.groups) : [];
-  const finalEquityTotal = equityObj ? equityObj.total : (data.equity as number);
+  let finalEquityTotal: number;
+  let equityGroups: ReturnType<typeof mapGroups>;
+
+  if (typeof data.equity === 'number') {
+    finalEquityTotal = data.equity;
+    equityGroups = [];
+  } else {
+    finalEquityTotal = data.equity.total;
+    equityGroups = mapGroups(data.equity.groups);
+  }
 
   return {
     id: report.id,

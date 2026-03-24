@@ -1,6 +1,10 @@
+import { runTransaction } from 'firebase/firestore';
+
 import { householdPermissionService } from '@/application/household/householdPermissionService';
 import { type AuthContext } from '@/application/types';
+import { db } from '@/firebase';
 import { debtAccountRepository } from '@/infra/repositories/debtAccountRepository';
+import { transactionRepository } from '@/infra/repositories/transactionRepository';
 
 export interface RemoveDebtAccountRequest {
   householdId: string;
@@ -21,7 +25,16 @@ export interface RemoveDebtAccountResult {
 export class RemoveDebtAccountUseCase {
   async execute(request: RemoveDebtAccountRequest): Promise<RemoveDebtAccountResult> {
     const { householdId, debtAccountId, userEmail, auth } = request;
-    await householdPermissionService.assertWritePermission(householdId, auth.uid, auth.isGlobalAdmin);
+    await householdPermissionService.assertWritePermission(
+      householdId,
+      auth.uid,
+      auth.isGlobalAdmin,
+    );
+
+    const debtAccount = await debtAccountRepository.get([householdId, debtAccountId]);
+    if (!debtAccount) {
+      throw new Error(`DebtAccount ${debtAccountId} not found`);
+    }
 
     const hasPayments = await debtAccountRepository.checkHasPayments(householdId, debtAccountId);
 
@@ -29,7 +42,18 @@ export class RemoveDebtAccountUseCase {
       await debtAccountRepository.deactivateDebtAccount(householdId, debtAccountId, userEmail);
       return { strategy: 'deactivated' };
     } else {
-      await debtAccountRepository.deleteDebtAccount(householdId, debtAccountId);
+      const borrowTransactions = await transactionRepository.findBorrowTransactionsForDebtAccount(
+        householdId,
+        debtAccount,
+      );
+
+      await runTransaction(db, async (tx) => {
+        for (const borrowTransaction of borrowTransactions) {
+          await transactionRepository.delete([householdId, borrowTransaction.id], tx);
+        }
+        await debtAccountRepository.deleteDebtAccount(householdId, debtAccountId, tx);
+      });
+
       return { strategy: 'deleted' };
     }
   }

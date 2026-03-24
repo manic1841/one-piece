@@ -1,4 +1,10 @@
-import { collection, doc, orderBy, where } from 'firebase/firestore';
+import {
+  type Transaction as FirestoreTransaction,
+  collection,
+  doc,
+  orderBy,
+  where,
+} from 'firebase/firestore';
 
 import {
   type DebtAccount,
@@ -71,8 +77,9 @@ class DebtAccountRepository extends BaseRepository<DebtAccount, [string, string?
     householdId: string,
     data: DebtAccountCreate,
     userEmail: string,
+    tx?: FirestoreTransaction,
   ): Promise<string> {
-    return this.create([householdId], data, userEmail);
+    return this.create([householdId], data, userEmail, tx);
   }
 
   async updateDebtAccount(
@@ -84,8 +91,12 @@ class DebtAccountRepository extends BaseRepository<DebtAccount, [string, string?
     await this.update([householdId, debtAccountId], data, userEmail);
   }
 
-  async deleteDebtAccount(householdId: string, debtAccountId: string): Promise<void> {
-    await this.delete([householdId, debtAccountId]);
+  async deleteDebtAccount(
+    householdId: string,
+    debtAccountId: string,
+    tx?: FirestoreTransaction,
+  ): Promise<void> {
+    await this.delete([householdId, debtAccountId], tx);
   }
 }
 

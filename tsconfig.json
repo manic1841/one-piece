@@ -1,4 +1,5 @@
 {
-  "files": [],
-  "extends": "./tsconfig.app.json"
+  "extends": "./tsconfig.app.json",
+  "include": ["src"],
+  "exclude": ["**/*.test.ts", "**/*.test.tsx", "**/__integration__/**"]
 }

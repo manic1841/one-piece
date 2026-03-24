@@ -54,7 +54,10 @@ export const useProjectDetailView = (householdId: string, projectId: string) => 
   }, [householdId, projectId, selectedYearMonth, getProjectRecords, getProjectSnapshots]);
 
   useEffect(() => {
-    load();
+    const init = async () => {
+      await load();
+    };
+    init();
   }, [load]);
 
   const { deleteSnapshot: deleteSnapshotCmd } = useProjectCmds(householdId);

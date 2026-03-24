@@ -3,7 +3,10 @@ import { startOfMonth, subMonths } from 'date-fns';
 import { queryJournalEntriesUseCase } from '@/application/ledger/use_cases/queryJournalEntriesUseCase';
 import { listProjectsUseCase } from '@/application/project/use_cases/listProjectsUseCase';
 import { importRetirementExpensesFromProjects } from '@/application/retirement/services/retirementProjectImportService';
-import { calculateIncomeSourceSuggestions } from '@/domains/retirement/logic/retirementPlanLogic';
+import {
+  calculateIncomeSourceSuggestions,
+  type PlannedIncome,
+} from '@/domains/retirement/logic/retirementPlanLogic';
 import {
   type RetirementExpenseCategory,
   type RetirementIncomeSource,
@@ -75,7 +78,7 @@ export class ImportRetirementDataUseCase {
       }));
 
     // Domain logic expects raw mapped data and returns RetirementIncomeSource suggestions
-    return calculateIncomeSourceSuggestions(mappedIncomes as any, referenceMonths);
+    return calculateIncomeSourceSuggestions(mappedIncomes as PlannedIncome[], referenceMonths);
   }
 }
 

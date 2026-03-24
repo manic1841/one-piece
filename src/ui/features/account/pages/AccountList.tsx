@@ -44,7 +44,10 @@ const AccountList: React.FC = () => {
   }, [householdId, fetchAccountsWithSnapshots, userProfile?.uid]);
 
   useEffect(() => {
-    loadAccounts();
+    const init = async () => {
+      await loadAccounts();
+    };
+    init();
   }, [loadAccounts]);
 
   const handleCreate = async (data: AccountCreate) => {

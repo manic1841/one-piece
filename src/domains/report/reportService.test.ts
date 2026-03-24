@@ -8,7 +8,6 @@ import { portfolioSnapshotRepository } from '@/infra/repositories/portfolioSnaps
 import { reportRepository } from '@/infra/repositories/reportRepository';
 
 import { reportService } from './reportService';
-import { ReportType } from './schemas';
 
 vi.mock('@/infra/repositories/reportRepository', () => ({
   reportRepository: {
@@ -54,7 +53,6 @@ vi.mock('@/infra/repositories/debtSnapshotRepository', () => ({
 describe('ReportService', () => {
   const householdId = 'h1';
   const yearMonth = '2026-03';
-  const userEmail = 'test@example.com';
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -69,7 +67,7 @@ describe('ReportService', () => {
         { ledgerCode: 'expense:food', debit: 15000, credit: 0 },
         { ledgerCode: 'expense:rent', debit: 20000, credit: 0 },
       ];
-      vi.mocked(reportRepository.getEntriesByMonth).mockResolvedValue(mockEntries as any);
+      vi.mocked(reportRepository.getEntriesByMonth).mockResolvedValue(mockEntries as Parameters<typeof reportRepository.getEntriesByMonth>[0]);
 
       const result = await reportService.generateIncomeStatement(householdId, yearMonth);
 
@@ -87,7 +85,7 @@ describe('ReportService', () => {
         { ledgerCode: 'income:bonus', debit: 0, credit: 8000 },
         { ledgerCode: 'income:bonus:charles', debit: 0, credit: 2000 },
       ];
-      vi.mocked(reportRepository.getEntriesByMonth).mockResolvedValue(mockEntries as any);
+      vi.mocked(reportRepository.getEntriesByMonth).mockResolvedValue(mockEntries as unknown as Parameters<typeof reportRepository.getEntriesByMonth>[0]);
 
       const result = await reportService.generateIncomeStatement(householdId, yearMonth);
 
@@ -105,11 +103,11 @@ describe('ReportService', () => {
     it('should calculate assets, liabilities, and equity with complex data', async () => {
       // 1. Assets: Cash & Investment
       const mockedAccount = [
-        { id: 'acc1', name: 'Chase Bank', category: 'bank' } as any,
-        { id: 'acc2', name: 'Securities', category: 'securities' } as any,
+        { id: 'acc1', name: 'Chase Bank', category: 'bank' } as unknown as Account,
+        { id: 'acc2', name: 'Securities', category: 'securities' } as unknown as Account,
       ];
-      vi.mocked(accountRepository.getAccounts).mockResolvedValue(mockedAccount);
-      vi.mocked(accountRepository.getSnapshot).mockResolvedValue({ amount: 100000 } as any);
+      vi.mocked(accountRepository.getAccounts).mockResolvedValue(mockedAccount as unknown as Parameters<typeof accountRepository.getAccounts>[0]);
+      vi.mocked(accountRepository.getSnapshot).mockResolvedValue({ amount: 100000 } as unknown as Parameters<typeof accountRepository.getSnapshot>[0]);
 
       // 3. Assets: Property (Buying a house: 10,000,000)
       const mockUntilEntries = [{ ledgerCode: 'asset:property:house', debit: 10000000, credit: 0 }];
@@ -117,11 +115,11 @@ describe('ReportService', () => {
 
       // 4. Liabilities: Mortgage
       vi.mocked(debtAccountRepository.getDebtAccounts).mockResolvedValue([
-        { id: 'debt1', name: 'Mortgage' } as any,
+        { id: 'debt1', name: 'Mortgage' } as unknown as any,
       ]);
       vi.mocked(debtSnapshotRepository.getSnapshot).mockResolvedValue({
         closingBalance: 8000000,
-      } as any);
+      } as unknown as any);
 
       // 5. Equity logic mocks
       // 5.1 Previous report for openingEquity (not found, fallback to equity:opening)
@@ -147,11 +145,11 @@ describe('ReportService', () => {
 
       // 5.4 Investment Gain (from portfolio)
       vi.mocked(portfolioRepository.list).mockResolvedValue([
-        { id: 'port1', name: 'Stocks' } as any,
+        { id: 'port1', name: 'Stocks' } as unknown as any,
       ]);
       vi.mocked(portfolioSnapshotRepository.get).mockResolvedValue({
         performance: { cumulativeGain: 500000 },
-      } as any);
+      } as unknown as any);
 
       const result = await reportService.generateBalanceSheet(householdId, yearMonth);
 
@@ -198,13 +196,13 @@ describe('ReportService', () => {
       vi.mocked(accountRepository.getAccounts).mockResolvedValue([
         { id: 'acc1', name: 'Cash', category: 'cash' } as any,
       ]);
-      vi.mocked(accountRepository.getSnapshot).mockImplementation((hid, aid, ym) => {
-        if (ym === '2026-02') return Promise.resolve({ amount: 100000 } as any); // Beginning
-        if (ym === '2026-03') return Promise.resolve({ amount: 102000 } as any); // Actual Ending
+      vi.mocked(accountRepository.getSnapshot).mockImplementation((_hid: string, _aid: string, ym: string) => {
+        if (ym === '2026-02') return Promise.resolve({ amount: 100000 } as unknown as any); // Beginning
+        if (ym === '2026-03') return Promise.resolve({ amount: 102000 } as unknown as any); // Actual Ending
         return Promise.resolve(null);
       });
       vi.mocked(reportRepository.getReport).mockResolvedValue(null);
-      vi.mocked(reportRepository.list).mockResolvedValue([{ id: 'r1' } as any]);
+      vi.mocked(reportRepository.list).mockResolvedValue([{ id: 'r1' } as unknown as any]);
 
       const result = await reportService.generateCashFlow(householdId, yearMonth);
 

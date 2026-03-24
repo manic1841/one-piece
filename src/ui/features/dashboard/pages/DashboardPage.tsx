@@ -2,15 +2,16 @@ import React from 'react';
 
 import { useAuth } from '@/infra/contexts/useAuth';
 import AssetTrendCard from '@/ui/features/dashboard/components/AssetTrendCard';
+import DebtSummaryCard from '@/ui/features/dashboard/components/DebtSummaryCard';
 import LeverageStatsCardUI from '@/ui/features/dashboard/components/LeverageStatsCardUI';
-import UnsettledStatsCardUI from '@/ui/features/dashboard/components/UnsettledStatsCardUI';
+// import UnsettledStatsCardUI from '@/ui/features/dashboard/components/UnsettledStatsCardUI';
 import { useDashboardPage } from '@/ui/features/dashboard/hooks/useDashboardPage';
 
 const Dashboard: React.FC = () => {
   const { userProfile } = useAuth();
   const householdId = userProfile?.householdId;
 
-  const { unsettledStats, leverageStats, statsLoading } = useDashboardPage({
+  const { leverageStats, statsLoading } = useDashboardPage({
     householdId,
   });
 
@@ -20,8 +21,12 @@ const Dashboard: React.FC = () => {
         <div className="lg:col-span-2">
           <AssetTrendCard householdId={householdId} />
         </div>
-        <UnsettledStatsCardUI stats={unsettledStats} loading={statsLoading} />
+        <DebtSummaryCard householdId={householdId} />
         <LeverageStatsCardUI stats={leverageStats} loading={statsLoading} />
+        
+        {/* Temporarily hidden UnsettledStatsCardUI
+        <UnsettledStatsCardUI stats={unsettledStats} loading={statsLoading} />
+        */}
       </div>
     </div>
   );

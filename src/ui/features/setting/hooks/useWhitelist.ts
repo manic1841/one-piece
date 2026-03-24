@@ -16,8 +16,8 @@ export function useWhitelist() {
     try {
       const whitelist = await getWhitelistUseCase.execute();
       return whitelist?.emails || [];
-    } catch (e: any) {
-      setError(e.message);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
       return [];
     } finally {
       setLoading(false);
@@ -30,8 +30,8 @@ export function useWhitelist() {
       setError(null);
       try {
         await addWhitelistEmailUseCase.execute(email, isAdmin, currentUser?.email || '');
-      } catch (e: any) {
-        setError(e.message);
+      } catch (e) {
+        setError(e instanceof Error ? e.message : String(e));
         throw e;
       } finally {
         setLoading(false);
@@ -46,8 +46,8 @@ export function useWhitelist() {
       setError(null);
       try {
         await removeWhitelistEmailUseCase.execute(email, isAdmin, currentUser?.email || '');
-      } catch (e: any) {
-        setError(e.message);
+      } catch (e) {
+        setError(e instanceof Error ? e.message : String(e));
         throw e;
       } finally {
         setLoading(false);

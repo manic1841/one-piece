@@ -6,6 +6,7 @@ import { useAuth } from '@/infra/contexts/useAuth';
 import { Button } from '@/ui/components/ui/button';
 import { Input } from '@/ui/components/ui/input';
 import { cn } from '@/ui/utils/cn';
+import { type Transaction } from '@/domains/ledger/schemas';
 import { useProjects } from '@/ui/features/project/hooks/useProjects';
 import { TransactionList } from '@/ui/features/transaction/components/TransactionList';
 import { useTransactionForm } from '@/ui/features/transaction/components/form/useTransactionForm';
@@ -15,8 +16,15 @@ import { TransactionForm } from '../components/form/TransactionForm';
 
 const Transactions: React.FC = () => {
   const { userProfile } = useAuth();
-  const { transactions, loading, reload } = useTransactions(userProfile?.householdId);
+  const { transactions, loading, reload, deleteTransaction } = useTransactions(userProfile?.householdId);
   const { projects } = useProjects(userProfile?.householdId);
+
+  const handleDelete = async (transaction: Transaction) => {
+    if (window.confirm('確定要刪除這筆交易嗎？相關的分攤資料也將一併刪除。')) {
+      await deleteTransaction(transaction.id);
+    }
+  };
+
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState<string>('ALL');
@@ -102,7 +110,7 @@ const Transactions: React.FC = () => {
         </div>
       </div>
 
-      <TransactionList items={filteredTransactions} loading={loading} projects={projects} />
+      <TransactionList items={filteredTransactions} loading={loading} projects={projects} onDelete={handleDelete} />
 
       {userProfile?.householdId && isFormOpen && (
         <TransactionForm

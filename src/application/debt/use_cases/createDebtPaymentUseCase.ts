@@ -62,7 +62,7 @@ export class CreateDebtPaymentUseCase {
     if (!account.isActive) throw new Error('Cannot record payment on an inactive debt account');
 
     // 2. Split calculation
-    let { principal, interest, warning } = calculateSplit(
+    const { principal, interest, warning } = calculateSplit(
       account.currentBalance,
       account.interestRate,
       totalPayment,

@@ -17,9 +17,9 @@ describe('useLedgerCodes', () => {
   beforeEach(async () => {
     vi.clearAllMocks();
 
-    const { useAuth } = await import('../../infra/contexts/useAuth');
+    const { useAuth } = await import('../../../../infra/contexts/useAuth');
     const { listCustomLedgerCodesUseCase } = await import(
-      '../../application/ledger/use_cases/listCustomLedgerCodesUseCase'
+      '../../../../application/ledger/use_cases/listCustomLedgerCodesUseCase'
     );
 
     vi.mocked(useAuth).mockReturnValue({
@@ -44,7 +44,7 @@ describe('useLedgerCodes', () => {
 
   it('loads system codes and active custom codes by default', async () => {
     const { listCustomLedgerCodesUseCase } = await import(
-      '../../application/ledger/use_cases/listCustomLedgerCodesUseCase'
+      '../../../../application/ledger/use_cases/listCustomLedgerCodesUseCase'
     );
 
     const { result } = renderHook(() => useLedgerCodes());
@@ -72,7 +72,7 @@ describe('useLedgerCodes', () => {
 
   it('passes includeInactive to the use case when requested', async () => {
     const { listCustomLedgerCodesUseCase } = await import(
-      '../../application/ledger/use_cases/listCustomLedgerCodesUseCase'
+      '../../../../application/ledger/use_cases/listCustomLedgerCodesUseCase'
     );
 
     renderHook(() => useLedgerCodes(true));

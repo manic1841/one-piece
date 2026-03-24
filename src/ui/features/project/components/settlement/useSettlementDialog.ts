@@ -73,7 +73,7 @@ export const useSettlementDialog = (
 
     try {
       const yearMonth = `${year}-${month.toString().padStart(2, '0')}`;
-      await settlementService.settleMonth(
+      await settlementService.settleProjects(
         householdId,
         yearMonth,
         userEmail

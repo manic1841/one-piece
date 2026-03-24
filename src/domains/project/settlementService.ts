@@ -11,16 +11,13 @@ export class SettlementService {
   /**
    * Recalculate and save snapshots for all active projects for a given month.
    */
-  async settleMonth(householdId: string, yearMonth: string, userEmail: string): Promise<void> {
+  async settleProjects(householdId: string, yearMonth: string, userEmail: string): Promise<void> {
     // 1. Settle Projects
     const projects = await projectRepository.getProjects(householdId);
     for (const project of projects) {
       const snapshot = await this.recalculateSnapshot(householdId, project.id, yearMonth);
       await projectRepository.saveSnapshot(householdId, project.id, snapshot, userEmail);
     }
-
-    // 2. Settle Debt Accounts
-    await this.settleDebtAccounts(householdId, yearMonth, userEmail);
   }
 
   /**

@@ -1,5 +1,4 @@
 import { format, subMonths } from 'date-fns';
-import { limit } from 'firebase/firestore';
 
 import { LEDGER_CODES, LEDGER_PREFIX } from '@/domains/ledger/constants';
 import { accountRepository } from '@/infra/repositories/accountRepository';
@@ -9,12 +8,16 @@ import { portfolioRepository } from '@/infra/repositories/portfolioRepository';
 import { portfolioSnapshotRepository } from '@/infra/repositories/portfolioSnapshotRepository';
 import { reportRepository } from '@/infra/repositories/reportRepository';
 
-import { categorizeLedgerEntry } from './cashFlowUtils';
+import { generateCashFlowSnapshot } from './reportMonthlyGenerators';
+import {
+  aggregateCashFlowSnapshots,
+  aggregateIncomeStatementSnapshots,
+  buildYearMonthKeys,
+} from './reportSnapshotAggregation';
 import {
   type BalanceSheetData,
   type BalanceSheetItem,
   type CashFlowData,
-  type CashFlowItem,
   type IncomeStatementData,
   type IncomeStatementItem,
   ReportType,
@@ -38,6 +41,7 @@ export class ReportService {
     yearMonth: string,
     labelResolver?: ReportLabelResolver,
   ): Promise<IncomeStatementData> {
+    // Only support monthly snapshots (yyyy-MM format)
     const entries = await reportRepository.getEntriesByMonth(householdId, yearMonth);
 
     const incomeMap = new Map<string, number>();
@@ -88,16 +92,98 @@ export class ReportService {
     };
   }
 
-  async getStoredReport(
+  async getStoredIncomeStatement(
     householdId: string,
     yearMonth: string,
   ): Promise<IncomeStatementData | null> {
-    const report = await reportRepository.getReport(
-      householdId,
-      yearMonth,
-      ReportType.INCOME_STATEMENT,
+    if (yearMonth.length !== 4) {
+      const report = await reportRepository.getReport(
+        householdId,
+        yearMonth,
+        ReportType.INCOME_STATEMENT,
+      );
+      return report ? (report.data as IncomeStatementData) : null;
+    }
+
+    const reports = await Promise.all(
+      buildYearMonthKeys(yearMonth).map(async (monthKey: string) => {
+        const report = await reportRepository.getReport(
+          householdId,
+          monthKey,
+          ReportType.INCOME_STATEMENT,
+        );
+        return report ? (report.data as IncomeStatementData) : null;
+      }),
     );
-    return report ? (report.data as IncomeStatementData) : null;
+    const monthlyReports = reports.filter(
+      (report: IncomeStatementData | null): report is IncomeStatementData => report !== null,
+    );
+
+    if (monthlyReports.length === 0) {
+      return null;
+    }
+
+    return aggregateIncomeStatementSnapshots(yearMonth, monthlyReports);
+  }
+
+  async getStoredBalanceSheet(
+    householdId: string,
+    yearMonth: string,
+  ): Promise<BalanceSheetData | null> {
+    const isYearMode = yearMonth.length === 4;
+
+    if (isYearMode) {
+      // Use December snapshot for year-end balance sheet
+      const decemberMonth = yearMonth + '-12';
+      const report = await reportRepository.getReport(
+        householdId,
+        decemberMonth,
+        ReportType.BALANCE_SHEET,
+      );
+      if (!report) return null;
+
+      // Update yearMonth to the year format
+      const data = report.data as BalanceSheetData;
+      return {
+        ...data,
+        yearMonth,
+      };
+    } else {
+      // Monthly mode: fetch single snapshot
+      const report = await reportRepository.getReport(
+        householdId,
+        yearMonth,
+        ReportType.BALANCE_SHEET,
+      );
+      return report ? (report.data as BalanceSheetData) : null;
+    }
+  }
+
+  async getStoredCashFlow(householdId: string, yearMonth: string): Promise<CashFlowData | null> {
+    if (yearMonth.length !== 4) {
+      const report = await reportRepository.getReport(householdId, yearMonth, ReportType.CASH_FLOW);
+      return report ? (report.data as CashFlowData) : null;
+    }
+
+    const reports = await Promise.all(
+      buildYearMonthKeys(yearMonth).map(async (monthKey: string) => {
+        const report = await reportRepository.getReport(
+          householdId,
+          monthKey,
+          ReportType.CASH_FLOW,
+        );
+        return report ? (report.data as CashFlowData) : null;
+      }),
+    );
+    const monthlyReports = reports.filter(
+      (report: CashFlowData | null): report is CashFlowData => report !== null,
+    );
+
+    if (monthlyReports.length === 0) {
+      return null;
+    }
+
+    return aggregateCashFlowSnapshots(yearMonth, monthlyReports);
   }
 
   async saveReport(
@@ -164,6 +250,7 @@ export class ReportService {
     yearMonth: string,
     labelResolver?: ReportLabelResolver,
   ): Promise<BalanceSheetData> {
+    // Only support monthly snapshots (yyyy-MM format)
     const entries = await reportRepository.getEntriesUntilMonth(householdId, yearMonth);
     const accounts = await accountRepository.getAccounts(householdId);
     const portfolios = await portfolioRepository.list([householdId]);
@@ -242,8 +329,8 @@ export class ReportService {
 
     const totalEquity = assetsTotal - liabilitiesTotal;
 
-    const [year, month] = yearMonth.split('-').map(Number);
-    const prevMonthDate = subMonths(new Date(year, month - 1, 1), 1);
+    const [yearNum, monthNum] = yearMonth.split('-').map(Number);
+    const prevMonthDate = subMonths(new Date(yearNum, monthNum - 1, 1), 1);
     const prevYearMonth = format(prevMonthDate, 'yyyy-MM');
 
     const prevReport = await reportRepository.getReport(
@@ -338,103 +425,17 @@ export class ReportService {
     };
   }
 
-  private async getLiquidBalance(householdId: string, yearMonth: string): Promise<number> {
-    const accounts = await accountRepository.getAccounts(householdId);
-    let total = 0;
-    for (const account of accounts) {
-      if (account.category === 'bank' || account.category === 'cash') {
-        const snapshot = await accountRepository.getSnapshot(householdId, account.id, yearMonth);
-        total += snapshot?.amount || 0;
-      }
-    }
-    return total;
-  }
-
   async generateCashFlow(
     householdId: string,
     yearMonth: string,
     labelResolver?: ReportLabelResolver,
   ): Promise<CashFlowData> {
-    const [year, month] = yearMonth.split('-').map(Number);
-    const prevYearMonth = format(subMonths(new Date(year, month - 1, 1), 1), 'yyyy-MM');
-
-    const prevReport = await reportRepository.getReport(
+    return generateCashFlowSnapshot(
       householdId,
-      prevYearMonth,
-      ReportType.CASH_FLOW,
-    );
-
-    let beginningBalance = 0;
-    if (prevReport && prevReport.data) {
-      beginningBalance = (prevReport.data as CashFlowData).actualBalance;
-    } else {
-      const existingReports = await reportRepository.list([householdId], [limit(1)]);
-      if (existingReports.length === 0) {
-        beginningBalance = 0;
-      } else {
-        beginningBalance = await this.getLiquidBalance(householdId, prevYearMonth);
-      }
-    }
-
-    const groups = {
-      operating: { inflow: new Map<string, number>(), outflow: new Map<string, number>() },
-      investing: { inflow: new Map<string, number>(), outflow: new Map<string, number>() },
-      financing: { inflow: new Map<string, number>(), outflow: new Map<string, number>() },
-    };
-
-    const entries = await reportRepository.getEntriesByMonth(householdId, yearMonth);
-    for (const entry of entries) {
-      categorizeLedgerEntry(entry, groups);
-    }
-
-    const buildGroup = (
-      label: string,
-      data: { inflow: Map<string, number>; outflow: Map<string, number> },
-    ) => {
-      const inflowItems: CashFlowItem[] = Array.from(data.inflow.entries())
-        .map(([code, amount]) => ({
-          code,
-          label: this.resolveLabel(code, labelResolver, code),
-          amount,
-        }))
-        .filter((i) => i.amount > 0);
-
-      const outflowItems: CashFlowItem[] = Array.from(data.outflow.entries())
-        .map(([code, amount]) => ({
-          code,
-          label: this.resolveLabel(code, labelResolver, code),
-          amount,
-        }))
-        .filter((i) => i.amount > 0);
-
-      const total =
-        inflowItems.reduce((s, i) => s + i.amount, 0) -
-        outflowItems.reduce((s, i) => s + i.amount, 0);
-
-      return { label, total, inflowItems, outflowItems };
-    };
-
-    const operating = buildGroup('營業活動', groups.operating);
-    const investing = buildGroup('投資活動', groups.investing);
-    const financing = buildGroup('融資活動', groups.financing);
-
-    const netCashChange = operating.total + investing.total + financing.total;
-    const endingBalance = beginningBalance + netCashChange;
-
-    const actualBalance = await this.getLiquidBalance(householdId, yearMonth);
-    const adjustment = actualBalance - endingBalance;
-
-    return {
       yearMonth,
-      operating,
-      investing,
-      financing,
-      netCashChange,
-      beginningBalance,
-      endingBalance,
-      actualBalance,
-      adjustment,
-    };
+      (code: string, fallbackLabel?: string) =>
+        this.resolveLabel(code, labelResolver, fallbackLabel),
+    );
   }
 }
 

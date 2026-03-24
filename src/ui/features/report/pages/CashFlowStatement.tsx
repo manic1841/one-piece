@@ -16,7 +16,7 @@ import { useCashFlow } from '@/ui/features/report/hooks/useCashFlow';
 import { formatCurrency } from '@/ui/utils';
 import { cn } from '@/ui/utils/cn';
 
-import { ReportHeader, type ReportView } from '../components/ReportHeader';
+import { ReportHeader, type ReportMode, type ReportView } from '../components/ReportHeader';
 
 interface CashFlowStatementProps {
   householdId: string;
@@ -24,6 +24,8 @@ interface CashFlowStatementProps {
   onDateChange: (date: Date) => void;
   onViewChange: (view: ReportView) => void;
   onBack: () => void;
+  reportMode: ReportMode;
+  onReportModeChange: (mode: ReportMode) => void;
 }
 
 const CashFlowStatement: React.FC<CashFlowStatementProps> = ({
@@ -32,8 +34,10 @@ const CashFlowStatement: React.FC<CashFlowStatementProps> = ({
   onDateChange,
   onViewChange,
   onBack,
+  reportMode,
+  onReportModeChange,
 }) => {
-  const { data, loading, error } = useCashFlow(householdId, currentDate);
+  const { data, loading, error } = useCashFlow(householdId, currentDate, reportMode);
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
     operating: true,
     investing: false,
@@ -173,6 +177,8 @@ const CashFlowStatement: React.FC<CashFlowStatementProps> = ({
         onBack={onBack}
         currentView="CASH_FLOW"
         onViewChange={onViewChange}
+        reportMode={reportMode}
+        onReportModeChange={onReportModeChange}
       />
 
       {!data && loading ? (

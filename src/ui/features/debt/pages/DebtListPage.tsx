@@ -1,5 +1,7 @@
 import { useState } from 'react';
 
+import { Calendar } from 'lucide-react';
+
 import {
   calculateGraceMonthlyPayment,
   isInGracePeriod,
@@ -14,6 +16,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/ui/component
 import { Progress } from '@/ui/components/ui/progress';
 import { DebtAccountForm } from '@/ui/features/debt/components/DebtAccountForm';
 import { DebtPaymentHistory } from '@/ui/features/debt/components/DebtPaymentHistory';
+import { DebtSettlement } from '@/ui/features/debt/components/DebtSettlement';
 import { useDebtAccountCmds } from '@/ui/features/debt/hooks/useDebtAccountCmds';
 import { useDebtAccountForm } from '@/ui/features/debt/hooks/useDebtAccountForm';
 import { type DebtAccountView, useDebtPage } from '@/ui/features/debt/hooks/useDebtPage';
@@ -203,6 +206,7 @@ export default function DebtListPage() {
     error,
     reload,
   } = useDebtPage(householdId);
+
   const {
     createDebtAccount,
     updateDebtAccount,
@@ -213,6 +217,7 @@ export default function DebtListPage() {
   const [dialogMode, setDialogMode] = useState<DialogMode | null>(null);
   const [editTarget, setEditTarget] = useState<DebtAccount | null>(null);
   const [removingId, setRemovingId] = useState<string | null>(null);
+  const [isSettlementOpen, setIsSettlementOpen] = useState(false);
 
   const form = useDebtAccountForm(editTarget ?? undefined);
 
@@ -237,7 +242,11 @@ export default function DebtListPage() {
 
     let ok: unknown;
     if (dialogMode === 'create') {
-      ok = await createDebtAccount(payload);
+      const createMeta = form.buildCreateMeta();
+      ok = await createDebtAccount(payload, {
+        disbursementDate: createMeta?.disbursementDate,
+        disbursementDescription: createMeta?.disbursementDescription,
+      });
     } else if (editTarget) {
       ok = await updateDebtAccount(editTarget.id, payload);
     }
@@ -264,7 +273,13 @@ export default function DebtListPage() {
           <h1 className="text-2xl font-bold text-foreground">債務管理</h1>
           <p className="text-muted-foreground mt-1">追蹤所有貸款與還款進度</p>
         </div>
-        <Button onClick={openCreate}>+ 新增貸款</Button>
+        <div className="flex gap-2">
+          <Button variant="outline" className="gap-2" onClick={() => setIsSettlementOpen(true)}>
+            <Calendar size={16} />
+            月度結算
+          </Button>
+          <Button onClick={openCreate}>+ 新增貸款</Button>
+        </div>
       </div>
 
       {/* Loading / Error */}
@@ -316,6 +331,21 @@ export default function DebtListPage() {
             onSubmit={handleSubmit}
             onCancel={closeDialog}
             loading={cmdLoading}
+          />
+        </DialogContent>
+      </Dialog>
+
+      {/* Debt Settlement Dialog */}
+      <Dialog open={isSettlementOpen} onOpenChange={setIsSettlementOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>債務月度結算</DialogTitle>
+          </DialogHeader>
+          <DebtSettlement
+            householdId={householdId}
+            userEmail={userProfile?.email || ''}
+            onSuccess={() => reload()}
+            onCancel={() => setIsSettlementOpen(false)}
           />
         </DialogContent>
       </Dialog>

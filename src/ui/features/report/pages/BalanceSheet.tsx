@@ -9,7 +9,7 @@ import { useBalanceSheet } from '@/ui/features/report/hooks/useBalanceSheet';
 import { formatCurrency } from '@/ui/utils';
 import { cn } from '@/ui/utils/cn';
 
-import { ReportHeader, type ReportView } from '../components/ReportHeader';
+import { ReportHeader, type ReportMode, type ReportView } from '../components/ReportHeader';
 
 interface BalanceSheetPageProps {
   householdId: string;
@@ -17,6 +17,8 @@ interface BalanceSheetPageProps {
   onDateChange: (date: Date) => void;
   onViewChange: (view: ReportView) => void;
   onBack: () => void;
+  reportMode: ReportMode;
+  onReportModeChange: (mode: ReportMode) => void;
 }
 
 const BalanceSheetPage: React.FC<BalanceSheetPageProps> = ({
@@ -25,8 +27,10 @@ const BalanceSheetPage: React.FC<BalanceSheetPageProps> = ({
   onDateChange,
   onViewChange,
   onBack,
+  reportMode,
+  onReportModeChange,
 }) => {
-  const { data, loading, error } = useBalanceSheet(householdId, currentDate);
+  const { data, loading, error } = useBalanceSheet(householdId, currentDate, reportMode);
 
   if (error) {
     const errorMsg = String(error);
@@ -131,6 +135,8 @@ const BalanceSheetPage: React.FC<BalanceSheetPageProps> = ({
         onBack={onBack}
         currentView="BALANCE_SHEET"
         onViewChange={onViewChange}
+        reportMode={reportMode}
+        onReportModeChange={onReportModeChange}
       />
 
       {!data && loading ? (

@@ -68,7 +68,10 @@ export function useDebtPage(householdId: string) {
   }, [householdId, run]);
 
   useEffect(() => {
-    loadData();
+    const init = async () => {
+      await loadData();
+    };
+    init();
   }, [loadData]);
 
   // Build project lookup map

@@ -37,10 +37,48 @@
 ```
 checkHasPayments(id)
   有 LIABILITY_PAYMENT 記錄 → deactivate（isActive: false）
-  無記錄                   → hard delete
+  無記錄                   → hard delete（連同建立時的 LIABILITY_BORROW 一起刪除）
 ```
 
 查詢依據：transactions 的 `intentType == 'LIABILITY_PAYMENT'` AND `ledgerCodes array-contains linkedLedgerCode`
+
+- hard delete 會一併刪除與該 DebtAccount 關聯的借款入帳交易，避免留下孤立負債建立紀錄
+
+---
+
+## 5. 建立貸款同步入帳（LIABILITY_BORROW）
+
+新增 DebtAccount 時，系統會同步建立一筆借款入帳交易，確保負債與現金部位一致。
+
+### 表單欄位
+
+| 欄位 | 用途 | 預設值 |
+|---|---|---|
+| 撥款日期 | `LIABILITY_BORROW` 的 `transaction.date` | `startDate` |
+| 撥款說明（選填） | `LIABILITY_BORROW` 的 `description` | `{貸款名稱} 借款入帳` |
+
+### 建立流程（原子操作）
+
+1. 寫入 `DebtAccount`（含 `graceEndDate`）
+2. 同步建立 `LIABILITY_BORROW` Transaction：
+
+```
+date:        撥款日期
+intentType:  "LIABILITY_BORROW"
+description: 撥款說明
+projectId:   null
+entries: [
+  { ledgerCode: "asset:cash",     debit: originalAmount, credit: 0 },
+  { ledgerCode: linkedLedgerCode,   debit: 0,              credit: originalAmount },
+]
+```
+
+3. `DebtAccount.currentBalance` 初始值固定為 `originalAmount`
+
+### 一致性保證
+
+- Step 1 與 Step 2 以 Firestore transaction 實作（原子寫入）
+- 任一步驟失敗時，整筆建立會回滾，不會留下孤立 DebtAccount
 
 ---
 

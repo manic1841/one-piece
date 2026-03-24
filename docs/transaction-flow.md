@@ -20,6 +20,7 @@ We replaced it with `TransactionForm` and a direct `IntentMapping` flow. This av
 - `REFUND` is no longer treated as a standalone `intentType`; refunds are merged into `INCOME` as a dedicated income intent.
 - `INVESTMENT` intents now cover securities and real-estate buy/sell flows.
 - `FINANCING` intents now cover borrow/repay/shareholder-funding/dividend/initial-capital flows.
+- `LIABILITY_BORROW` is system-generated when creating a new `DebtAccount` (Dr. `asset:cash`, Cr. debt `linkedLedgerCode`) and is not entered from TransactionForm tabs.
 
 ## Allocation Rules (Income / Expense)
 

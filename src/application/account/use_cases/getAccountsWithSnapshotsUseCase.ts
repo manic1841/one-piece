@@ -1,3 +1,4 @@
+import { getAccountSnapshotsUseCase } from './getAccountSnapshotsUseCase';
 import { getAccountsUseCase } from './getAccountsUseCase';
 import { getAccountUseCase } from './getAccountUseCase';
 import { getLatestSnapshotUseCase } from './getLatestSnapshotUseCase';
@@ -12,11 +13,13 @@ export interface GetAccountsWithSnapshotsRequest {
   householdId: string;
   auth: AuthContext;
   accountId?: string;
+  year?: number;
+  month?: number;
 }
 
 export class GetAccountsWithSnapshotsUseCase {
   async execute(request: GetAccountsWithSnapshotsRequest): Promise<AccountWithSnapshot[]> {
-    const { householdId, auth, accountId } = request;
+    const { householdId, auth, accountId, year, month } = request;
 
     const accounts = accountId
       ? [await getAccountUseCase.execute({ householdId, accountId, auth })]
@@ -25,11 +28,26 @@ export class GetAccountsWithSnapshotsUseCase {
     const result: AccountWithSnapshot[] = [];
     for (const account of accounts) {
       if (!account) continue;
-      const snapshot = await getLatestSnapshotUseCase.execute({ 
-        householdId, 
-        accountId: account.id, 
-        auth 
-      });
+      
+      let snapshot: AccountSnapshot | null = null;
+      
+      if (year || month) {
+        const snapshots = await getAccountSnapshotsUseCase.execute({
+          householdId,
+          accountId: account.id,
+          auth,
+          year,
+          month,
+        });
+        snapshot = snapshots.length > 0 ? snapshots[0] : null;
+      } else {
+        snapshot = await getLatestSnapshotUseCase.execute({ 
+          householdId, 
+          accountId: account.id, 
+          auth 
+        });
+      }
+      
       result.push({ ...account, snapshot });
     }
     return result;

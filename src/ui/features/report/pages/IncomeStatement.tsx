@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/ui/components/ui/car
 import { useIncomeStatement } from '@/ui/features/report/hooks/useIncomeStatement';
 import { formatCurrency } from '@/ui/utils';
 
-import { ReportHeader, type ReportView } from '../components/ReportHeader';
+import { ReportHeader, type ReportMode, type ReportView } from '../components/ReportHeader';
 
 interface IncomeStatementPageProps {
   householdId: string;
@@ -15,6 +15,8 @@ interface IncomeStatementPageProps {
   onDateChange: (date: Date) => void;
   onViewChange: (view: ReportView) => void;
   onBack: () => void;
+  reportMode: ReportMode;
+  onReportModeChange: (mode: ReportMode) => void;
 }
 
 const IncomeStatementPage: React.FC<IncomeStatementPageProps> = ({
@@ -23,8 +25,10 @@ const IncomeStatementPage: React.FC<IncomeStatementPageProps> = ({
   onDateChange,
   onViewChange,
   onBack,
+  reportMode,
+  onReportModeChange,
 }) => {
-  const { data, loading, error } = useIncomeStatement(householdId, currentDate);
+  const { data, loading, error } = useIncomeStatement(householdId, currentDate, reportMode);
   const [expandedCodes, setExpandedCodes] = useState<Set<string>>(new Set());
 
   const toggleExpand = (code: string) => {
@@ -94,6 +98,8 @@ const IncomeStatementPage: React.FC<IncomeStatementPageProps> = ({
         onBack={onBack}
         currentView="INCOME_STATEMENT"
         onViewChange={onViewChange}
+        reportMode={reportMode}
+        onReportModeChange={onReportModeChange}
       />
 
       {!data && loading ? (

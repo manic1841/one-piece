@@ -10,8 +10,6 @@ if (!admin.apps.length) {
   });
 }
 
-const db = admin.firestore();
-
 const runInit = async () => {
   const email = 'admin@test.com';
   const password = 'password123';
@@ -23,8 +21,8 @@ const runInit = async () => {
   try {
     user = await admin.auth().getUserByEmail(email);
     console.log(`User already exists with UID: ${user.uid}`);
-  } catch (error: any) {
-    if (error.code === 'auth/user-not-found') {
+  } catch (error) {
+    if (typeof error === 'object' && error !== null && 'code' in error && error.code === 'auth/user-not-found') {
       console.log('Creating new admin user...');
       user = await admin.auth().createUser({
         email,

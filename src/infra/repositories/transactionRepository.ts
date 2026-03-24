@@ -7,6 +7,7 @@ import {
   where,
 } from 'firebase/firestore';
 
+import { type DebtAccount } from '@/domains/debt/schemas';
 import { IntentType } from '@/domains/ledger/constants/intentType';
 import {
   type Transaction,
@@ -120,6 +121,54 @@ class TransactionRepository extends BaseRepository<Transaction, [string, string?
     );
 
     return transactions.sort((a, b) => toMillis(b.date) - toMillis(a.date));
+  }
+
+  async listByDebtAccountAndIntent(
+    householdId: string,
+    debtAccountId: string,
+    intentType: Transaction['intentType'],
+  ): Promise<Transaction[]> {
+    const transactions = await this.list(
+      [householdId],
+      [where('debtAccountId', '==', debtAccountId), where('intentType', '==', intentType)],
+    );
+
+    return transactions.sort((a, b) => toMillis(b.date) - toMillis(a.date));
+  }
+
+  async findBorrowTransactionsForDebtAccount(
+    householdId: string,
+    debtAccount: DebtAccount,
+  ): Promise<Transaction[]> {
+    const exactMatches = await this.listByDebtAccountAndIntent(
+      householdId,
+      debtAccount.id,
+      IntentType.LIABILITY_BORROW,
+    );
+    if (exactMatches.length > 0) return exactMatches;
+
+    const legacyCandidates = await this.list(
+      [householdId],
+      [
+        where('intentType', '==', IntentType.LIABILITY_BORROW),
+        where('ledgerCodes', 'array-contains', debtAccount.linkedLedgerCode),
+      ],
+    );
+
+    const startAt = debtAccount.startDate.getTime();
+
+    return legacyCandidates.filter((transaction) => {
+      if (transaction.debtAccountId) return false;
+      if (transaction.projectId !== null && transaction.projectId !== undefined) return false;
+      if ((transaction.amount ?? 0) !== debtAccount.originalAmount) return false;
+      if (toMillis(transaction.date) !== startAt) return false;
+
+      return transaction.entries.some(
+        (entry) =>
+          entry.ledgerCode === debtAccount.linkedLedgerCode &&
+          entry.credit === debtAccount.originalAmount,
+      );
+    });
   }
 
   async listByProject(householdId: string, projectId: string): Promise<Transaction[]> {

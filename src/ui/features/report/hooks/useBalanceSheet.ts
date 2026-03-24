@@ -4,33 +4,31 @@ import { format } from 'date-fns';
 
 import { reportService } from '@/domains/report/reportService';
 import { type BalanceSheetData } from '@/domains/report/schemas';
-import { useLedgerCodes } from '@/ui/features/ledger/hooks/useLedgerCodes';
 import { useLoadingTask } from '@/ui/hooks/useLoadingTask';
 
-export function useBalanceSheet(householdId: string, controlledDate?: Date) {
+type ReportMode = 'MONTHLY' | 'YEARLY';
+
+export function useBalanceSheet(
+  householdId: string,
+  controlledDate?: Date,
+  reportMode: ReportMode = 'MONTHLY',
+) {
   const [data, setData] = useState<BalanceSheetData | null>(null);
   const [internalDate, setInternalDate] = useState<Date>(new Date());
-  const { getLabel } = useLedgerCodes();
   const { loading, error, run } = useLoadingTask();
 
   const currentDate = controlledDate || internalDate;
 
   const load = useCallback(async () => {
     if (!householdId) return;
-    const yearMonth = format(currentDate, 'yyyy-MM');
+    const yearMonth =
+      reportMode === 'YEARLY' ? format(currentDate, 'yyyy') : format(currentDate, 'yyyy-MM');
 
     await run(async () => {
-      const result = await reportService.generateBalanceSheet(
-        householdId,
-        yearMonth,
-        (code, fallbackLabel) => {
-          const resolved = getLabel(code);
-          return resolved === code ? fallbackLabel || code : resolved;
-        },
-      );
+      const result = await reportService.getStoredBalanceSheet(householdId, yearMonth);
       setData(result);
     });
-  }, [householdId, currentDate, run, getLabel]);
+  }, [householdId, currentDate, run, reportMode]);
 
   useEffect(() => {
     load();

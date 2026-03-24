@@ -17,7 +17,7 @@ export class ReorderProjectsUseCase {
     // Simple implementation: update each project's order
     await Promise.all(
       projectOrders.map((po) =>
-        projectRepository.update([householdId, po.id], { order: po.order } as any, userEmail)
+        projectRepository.update([householdId, po.id], { order: po.order } as Partial<Parameters<typeof projectRepository.update>[1]>, userEmail)
       )
     );
   }

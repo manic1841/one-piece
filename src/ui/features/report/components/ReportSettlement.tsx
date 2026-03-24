@@ -112,7 +112,7 @@ export const ReportSettlement: React.FC<ReportSettlementProps> = ({
             <div className="flex items-start gap-2 max-w-[280px] bg-amber-50/50 p-3 rounded-xl border border-amber-100/50">
               <AlertCircle size={14} className="text-amber-600 mt-0.5 shrink-0" />
               <p className="text-[11px] leading-relaxed text-amber-800 font-medium">
-                專案、帳戶與債務快照數據取自「專案管理」結算結果。若數據有誤，請回該模組更新。
+                專案與帳戶快照數據取自「專案管理」結算結果；債務數據取自「債務管理」。若數據有誤，請回該模組更新。
               </p>
             </div>
           </div>

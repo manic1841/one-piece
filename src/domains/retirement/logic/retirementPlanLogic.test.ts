@@ -1,6 +1,8 @@
 import { Timestamp } from 'firebase/firestore';
 import { describe, expect, it } from 'vitest';
 
+import type { ProjectSnapshot } from '../../project/schemas';
+
 import { ReportType } from '../../report/schemas';
 import { RetirementIncomeType, type RetirementPlan } from '../types';
 import {
@@ -8,6 +10,7 @@ import {
   calculateIncomeImportMetadata,
   calculateIncomeSourceSuggestions,
   processAutoUpdate,
+  type PlannedIncome,
 } from './retirementPlanLogic';
 
 describe('retirementPlanLogic', () => {
@@ -15,7 +18,7 @@ describe('retirementPlanLogic', () => {
     const project = { id: 'p1', name: 'Household' };
 
     it('should calculate annualized expense correctly', () => {
-      const snapshots = [{ expense: 1000 } as any, { expense: 2000 } as any];
+      const snapshots = [{ expense: 1000 } as unknown as ProjectSnapshot, { expense: 2000 } as unknown as ProjectSnapshot];
       const result = calculateExpenseSuggestion(project, snapshots);
 
       expect(result).not.toBeNull();
@@ -32,7 +35,7 @@ describe('retirementPlanLogic', () => {
     });
 
     it('should return null if annualized amount is 0', () => {
-      const snapshots = [{ expense: 0 } as any];
+      const snapshots = [{ expense: 0 } as unknown as ProjectSnapshot];
       const result = calculateExpenseSuggestion(project, snapshots);
       expect(result).toBeNull();
     });
@@ -42,9 +45,9 @@ describe('retirementPlanLogic', () => {
     it('should group and calculate income sources from planned incomes', () => {
       const now = new Date();
       const plannedIncomes = [
-        { category: 'salary', amount: 50000, date: now } as any,
-        { category: 'salary', amount: 50000, date: now } as any,
-        { category: 'bonus', amount: 10000, date: now } as any,
+        { category: 'salary', amount: 50000, date: now } as PlannedIncome,
+        { category: 'salary', amount: 50000, date: now } as PlannedIncome,
+        { category: 'bonus', amount: 10000, date: now } as PlannedIncome,
       ];
       const referenceMonths = 12;
       const result = calculateIncomeSourceSuggestions(plannedIncomes, referenceMonths);
@@ -65,8 +68,8 @@ describe('retirementPlanLogic', () => {
       const d1 = new Date(Date.UTC(2025, 0, 1));
       const d2 = new Date(Date.UTC(2025, 1, 1));
       const validIncomes = [
-        { amount: 1000, date: Timestamp.fromDate(d1) } as any,
-        { amount: 2000, date: Timestamp.fromDate(d2) } as any,
+        { amount: 1000, date: Timestamp.fromDate(d1) } as unknown as PlannedIncome,
+        { amount: 2000, date: Timestamp.fromDate(d2) } as unknown as PlannedIncome,
       ];
       const result = calculateIncomeImportMetadata(validIncomes);
 
@@ -113,11 +116,11 @@ describe('retirementPlanLogic', () => {
           startYear: 2024,
           endYear: 2060,
           calculatedFrom: { sampleCount: 12 },
-        } as any,
+        } as unknown,
       ],
       expenses: [],
       events: [],
-    } as RetirementPlan;
+    } as unknown as RetirementPlan;
 
     const reports = [
       {
@@ -128,14 +131,14 @@ describe('retirementPlanLogic', () => {
             total: 50000,
           },
         },
-      } as any,
+      } as unknown,
       {
         type: ReportType.INCOME_STATEMENT,
         yearMonth: '2025-01',
         data: {
           incomeItems: [{ code: 'salary.base', amount: 10000 }],
         },
-      } as any,
+      } as unknown,
     ];
 
     const latestPeriod = { year: 2025, month: 1 };

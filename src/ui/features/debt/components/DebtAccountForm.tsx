@@ -41,7 +41,7 @@ export function DebtAccountForm({
   onCancel,
   loading,
 }: DebtAccountFormProps) {
-  const { values, calcResult, isManualPayment, errors, setField, resetCalc } = form;
+  const { values, calcResult, isManualPayment, isCreateMode, errors, setField, resetCalc } = form;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -103,7 +103,13 @@ export function DebtAccountForm({
             placeholder="6000000"
             value={values.currentBalance}
             onChange={(e) => setField('currentBalance', e.target.value)}
+            disabled={isCreateMode}
           />
+          {isCreateMode && (
+            <p className="text-xs text-muted-foreground">
+              建立時會自動等於原始貸款金額，後續由還款自動遞減。
+            </p>
+          )}
           <FieldError msg={errors.currentBalance} />
         </div>
       </div>
@@ -160,6 +166,32 @@ export function DebtAccountForm({
           留空表示無寬限期。設定後，前端將動態判斷是否在寬限期內。
         </p>
         <FieldError msg={errors.graceEndDate} />
+      </div>
+
+      {/* 撥款交易資訊（建立時使用） */}
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-1.5">
+          <Label htmlFor="df-disbursement-date">撥款日期{isCreateMode ? ' *' : ''}</Label>
+          <Input
+            id="df-disbursement-date"
+            type="date"
+            value={values.disbursementDate}
+            onChange={(e) => setField('disbursementDate', e.target.value)}
+          />
+          <p className="text-xs text-muted-foreground">
+            預設為還款開始日，建立貸款時會寫入借款入帳交易日期。
+          </p>
+          <FieldError msg={errors.disbursementDate} />
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="df-disbursement-description">撥款說明（選填）</Label>
+          <Input
+            id="df-disbursement-description"
+            placeholder={`${values.name || '貸款'} 借款入帳`}
+            value={values.disbursementDescription}
+            onChange={(e) => setField('disbursementDescription', e.target.value)}
+          />
+        </div>
       </div>
 
       {/* 試算摘要 */}

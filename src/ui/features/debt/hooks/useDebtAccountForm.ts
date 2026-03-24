@@ -13,6 +13,8 @@ export interface DebtFormValues {
   startDate: string; // ISO date string YYYY-MM-DD
   endDate: string;
   graceEndDate: string; // ISO date string YYYY-MM-DD or empty if no grace period
+  disbursementDate: string; // ISO date string YYYY-MM-DD
+  disbursementDescription: string;
   monthlyPayment: string;
   linkedProjectId: string;
   note: string;
@@ -28,6 +30,8 @@ const emptyForm: DebtFormValues = {
   startDate: '',
   endDate: '',
   graceEndDate: '',
+  disbursementDate: '',
+  disbursementDescription: '',
   monthlyPayment: '',
   linkedProjectId: '',
   note: '',
@@ -45,6 +49,8 @@ function toFormValues(account: DebtAccount): DebtFormValues {
     startDate: toDateStr(account.startDate),
     endDate: toDateStr(account.endDate),
     graceEndDate: toDateStr(account.graceEndDate),
+    disbursementDate: toDateStr(account.startDate),
+    disbursementDescription: `${account.name} 借款入帳`,
     monthlyPayment: String(account.monthlyPayment),
     linkedProjectId: account.linkedProjectId ?? '',
     note: account.note ?? '',
@@ -74,14 +80,17 @@ export interface DebtAccountFormHook {
   values: DebtFormValues;
   calcResult: LoanCalcResult | null;
   isManualPayment: boolean;
+  isCreateMode: boolean;
   errors: Partial<Record<keyof DebtFormValues, string>>;
   setField: (field: keyof DebtFormValues, value: string) => void;
   resetCalc: () => void;
   validate: () => boolean;
   buildPayload: () => Omit<DebtAccountCreate, 'linkedLedgerCode'> | null;
+  buildCreateMeta: () => { disbursementDate: Date; disbursementDescription?: string } | null;
 }
 
 export function useDebtAccountForm(initialAccount?: DebtAccount): DebtAccountFormHook {
+  const isCreateMode = !initialAccount;
   const [values, setValues] = useState<DebtFormValues>(
     initialAccount ? toFormValues(initialAccount) : emptyForm,
   );
@@ -94,6 +103,32 @@ export function useDebtAccountForm(initialAccount?: DebtAccount): DebtAccountFor
     setIsManualPayment(false);
     setErrors({});
   }, [initialAccount]);
+
+  // In create mode, disbursement date defaults to start date unless user has changed it.
+  useEffect(() => {
+    if (!isCreateMode) return;
+    setValues((prev) => {
+      const shouldSyncDisbursementDate =
+        !prev.disbursementDate || prev.disbursementDate === prev.startDate;
+      if (!shouldSyncDisbursementDate) return prev;
+      return {
+        ...prev,
+        disbursementDate: prev.startDate,
+      };
+    });
+  }, [values.startDate, isCreateMode]);
+
+  // In create mode, current balance must start at original amount.
+  useEffect(() => {
+    if (!isCreateMode) return;
+    setValues((prev) => {
+      if (prev.currentBalance === prev.originalAmount) return prev;
+      return {
+        ...prev,
+        currentBalance: prev.originalAmount,
+      };
+    });
+  }, [values.originalAmount, isCreateMode]);
 
   // Derived calc result (recalculated whenever trigger fields change, unless isManualPayment)
   const calcResult = tryCalc(values);
@@ -137,6 +172,7 @@ export function useDebtAccountForm(initialAccount?: DebtAccount): DebtAccountFor
       errs.interestRate = '必填且須 >= 0';
     if (!values.startDate) errs.startDate = '必填';
     if (!values.endDate) errs.endDate = '必填';
+    if (isCreateMode && !values.disbursementDate) errs.disbursementDate = '必填';
     if (values.startDate && values.endDate && values.endDate <= values.startDate) {
       errs.endDate = '結束日須晚於開始日';
     }
@@ -154,7 +190,7 @@ export function useDebtAccountForm(initialAccount?: DebtAccount): DebtAccountFor
 
     setErrors(errs);
     return Object.keys(errs).length === 0;
-  }, [values]);
+  }, [values, isCreateMode]);
 
   const buildPayload = useCallback((): Omit<DebtAccountCreate, 'linkedLedgerCode'> | null => {
     if (!validate()) return null;
@@ -175,14 +211,26 @@ export function useDebtAccountForm(initialAccount?: DebtAccount): DebtAccountFor
     };
   }, [values, validate]);
 
+  const buildCreateMeta = useCallback(() => {
+    if (values.disbursementDate) {
+      return {
+        disbursementDate: new Date(values.disbursementDate),
+        disbursementDescription: values.disbursementDescription.trim() || undefined,
+      };
+    }
+    return null;
+  }, [values.disbursementDate, values.disbursementDescription]);
+
   return {
     values,
     calcResult,
     isManualPayment,
+    isCreateMode,
     errors,
     setField,
     resetCalc,
     validate,
     buildPayload,
+    buildCreateMeta,
   };
 }

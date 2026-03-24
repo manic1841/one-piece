@@ -22,11 +22,16 @@ export function useDebtAccountCmds(householdId: string) {
   const { loading, error, run } = useLoadingTask();
 
   const createDebtAccount = useCallback(
-    async (data: Omit<DebtAccountCreate, 'linkedLedgerCode'>) => {
+    async (
+      data: Omit<DebtAccountCreate, 'linkedLedgerCode'>,
+      meta?: { disbursementDate?: Date; disbursementDescription?: string },
+    ) => {
       return run(() =>
         createDebtAccountUseCase.execute({
           householdId,
           data,
+          disbursementDate: meta?.disbursementDate,
+          disbursementDescription: meta?.disbursementDescription,
           userEmail: auth.email,
           auth: { uid: auth.uid, isGlobalAdmin: auth.isGlobalAdmin },
         }),
@@ -65,12 +70,16 @@ export function useDebtAccountCmds(householdId: string) {
     [householdId, auth, run],
   );
 
-  const listDebtAccounts = useCallback(
-    async (): Promise<DebtAccount[] | undefined> => {
-      return run(() => listDebtAccountsUseCase.execute({ householdId }));
-    },
-    [householdId, run],
-  );
+  const listDebtAccounts = useCallback(async (): Promise<DebtAccount[] | undefined> => {
+    return run(() => listDebtAccountsUseCase.execute({ householdId }));
+  }, [householdId, run]);
 
-  return { loading, error, createDebtAccount, updateDebtAccount, removeDebtAccount, listDebtAccounts };
+  return {
+    loading,
+    error,
+    createDebtAccount,
+    updateDebtAccount,
+    removeDebtAccount,
+    listDebtAccounts,
+  };
 }

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
+import { deleteTransactionUseCase } from '@/application/ledger/use_cases/deleteTransactionUseCase';
 import { listRecentTransactionsUseCase } from '@/application/ledger/use_cases/listRecentTransactionsUseCase';
 import { type Transaction } from '@/domains/ledger/schemas';
 import { useAuth } from '@/infra/contexts/useAuth';
@@ -22,6 +23,21 @@ export function useTransactions(householdId?: string) {
     });
   }, [run, householdId, auth]);
 
+  const deleteTransaction = useCallback(
+    async (transactionId: string) => {
+      if (!householdId) return;
+      await run(async () => {
+        await deleteTransactionUseCase.execute({
+          householdId,
+          transactionId,
+          auth,
+        });
+        await load();
+      });
+    },
+    [householdId, auth, run, load],
+  );
+
   useEffect(() => {
     load();
   }, [load]);
@@ -31,5 +47,6 @@ export function useTransactions(householdId?: string) {
     loading,
     error,
     reload: load,
+    deleteTransaction,
   };
 }

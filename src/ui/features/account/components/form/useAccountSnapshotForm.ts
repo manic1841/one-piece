@@ -138,7 +138,7 @@ export const useAccountSnapshotForm = (
   useEffect(() => {
     if (isInvestment) {
       const totalValue = formData?.holdings.reduce(
-        (sum, h: any) => sum + parseFloat(h.marketValue),
+        (sum, h) => sum + parseFloat(h.marketValue || '0'),
         0,
       );
       setFormData((prev) => {
@@ -170,7 +170,7 @@ export const useAccountSnapshotForm = (
   const updateHolding = (index: number, field: keyof Holding, value: string | number) => {
     setFormData((prev) => {
       const newHoldings = [...prev.holdings];
-      newHoldings[index] = { ...newHoldings[index], [field]: value } as any;
+      newHoldings[index] = { ...newHoldings[index], [field]: value.toString() };
       return { ...prev, holdings: newHoldings };
     });
   };
