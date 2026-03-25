@@ -87,6 +87,7 @@ const createIncomeState = (): IncomeFormState => ({
 const createInvestmentState = (): InvestmentFormState => ({
   amount: '',
   date: new Date().toISOString().slice(0, 10),
+  projectId: null,
   intent: null,
   ledgerCode: null,
   description: '',
@@ -95,6 +96,7 @@ const createInvestmentState = (): InvestmentFormState => ({
 const createFinancingState = (): FinancingFormState => ({
   amount: '',
   date: new Date().toISOString().slice(0, 10),
+  projectId: null,
   intent: null,
   ledgerCode: null,
   description: '',
@@ -306,6 +308,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
                 tone="neutral"
                 state={investment}
                 categories={investmentCategories}
+                projects={projects}
                 allLedgerCodes={allActiveLedgerCodes}
                 onChange={setInvestment}
               />
@@ -317,6 +320,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
                 tone="neutral"
                 state={financing}
                 categories={financingCategories}
+                projects={projects}
                 allLedgerCodes={allActiveLedgerCodes}
                 onChange={setFinancing}
               />

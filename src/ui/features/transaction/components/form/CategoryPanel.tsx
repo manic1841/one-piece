@@ -5,6 +5,7 @@ import {
   type FinancingFormState,
   type InvestmentFormState,
   type TransactionFormCategoryOption,
+  type TransactionFormProjectOption,
 } from '@/ui/features/transaction/types/transaction';
 
 import { AmountDateFields } from './AmountDateFields';
@@ -16,15 +17,23 @@ type CategoryPanelProps = {
   tone: 'expense' | 'income' | 'neutral';
   state: InvestmentFormState | FinancingFormState;
   categories: TransactionFormCategoryOption[];
+  projects: TransactionFormProjectOption[];
   allLedgerCodes: LedgerCodeItem[];
   onChange: (next: InvestmentFormState | FinancingFormState) => void;
 };
+
+const toProjectOptions = (projects: TransactionFormProjectOption[]) =>
+  projects.map((project) => ({
+    value: project.id,
+    label: `${project.icon ? `${project.icon} ` : ''}${project.name}`,
+  }));
 
 export function CategoryPanel({
   title,
   tone,
   state,
   categories,
+  projects,
   allLedgerCodes,
   onChange,
 }: CategoryPanelProps) {
@@ -39,6 +48,15 @@ export function CategoryPanel({
         onAmountChange={(amount) => onChange({ ...state, amount })}
         onDateChange={(date) => onChange({ ...state, date })}
       />
+      <div className="space-y-2">
+        <Label>專案</Label>
+        <ChipGroup
+          options={toProjectOptions(projects)}
+          value={state.projectId}
+          onChange={(projectId) => onChange({ ...state, projectId })}
+          tone="neutral"
+        />
+      </div>
       <div className="space-y-2">
         <Label>類別</Label>
         <ChipGroup

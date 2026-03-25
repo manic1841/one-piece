@@ -247,3 +247,31 @@ export const getIntentMapping = (intent: string): IntentMappingInfo | undefined 
 export const getIntentsByType = (type: IntentType): IntentMappingInfo[] => {
   return DEFAULT_INTENT_MAPPINGS.filter((mapping) => mapping.type === type);
 };
+
+/**
+ * Determines whether a project transaction represents inflow (income) or outflow (expense)
+ * from the project's perspective.
+ *
+ * - INCOME intentType → always income
+ * - EXPENSE / DEBT_PAYMENT intentType → always expense
+ * - FINANCING / INVESTMENT → determined by intent mapping:
+ *     if the mapped debitLedgerCode is asset:cash, cash flows in → income
+ *     (e.g. SHAREHOLDER_FINANCING, LOAN_BORROW, SECURITY_SELL)
+ * - Unrecognised/MANUAL → conservative fallback of expense
+ */
+export function isTransactionProjectIncome(
+  intentType: string | null | undefined,
+  intent: string | null | undefined,
+): boolean {
+  if (intentType === IntentType.INCOME || intentType === IntentType.LIABILITY_BORROW) return true;
+  if (intentType === IntentType.EXPENSE || intentType === IntentType.DEBT_PAYMENT) return false;
+
+  if (intent) {
+    const mapping = getIntentMapping(intent);
+    if (mapping) {
+      return mapping.debitLedgerCode === LEDGER_CODES.ASSET_CASH;
+    }
+  }
+
+  return false;
+}

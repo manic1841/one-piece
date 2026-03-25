@@ -130,6 +130,7 @@ const previewCategory = (
     intent: state.intent || undefined,
     date: state.date,
     amount,
+    projectId: state.projectId || undefined,
     ledgerCode: state.ledgerCode || undefined,
     description: state.description || undefined,
   };
@@ -264,6 +265,7 @@ export const buildPreviewDetails = (input: {
 
   if (preview.intentType === 'INVESTMENT') {
     return [
+      findProjectLabel(projects, preview.projectId),
       findCategoryLabel(investmentCategories, preview.intent || preview.ledgerCode),
       preview.ledgerCode,
       preview.date,
@@ -272,6 +274,7 @@ export const buildPreviewDetails = (input: {
 
   if (preview.intentType === 'FINANCING') {
     return [
+      findProjectLabel(projects, preview.projectId),
       findCategoryLabel(financingCategories, preview.intent || preview.ledgerCode),
       preview.ledgerCode,
       preview.date,

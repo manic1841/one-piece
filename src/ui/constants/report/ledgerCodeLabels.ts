@@ -36,7 +36,7 @@ export const LEDGER_CODE_LABELS: Record<string, string> = {
   // Equity
   'equity:owner_investment': '股東投入資本',
   'equity:owner_draw': '股東分紅',
-  'equity:initial_capital': '初始資金',
+  'equity:capital': '股東資本',
 
   // Income Additions
   'income:refund': '退款',

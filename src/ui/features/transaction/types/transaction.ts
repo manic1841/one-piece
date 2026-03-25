@@ -48,6 +48,7 @@ export type AllocationItemInput = {
 export type InvestmentFormState = {
   amount: string;
   date: string;
+  projectId: string | null;
   intent: string | null;
   ledgerCode: string | null;
   description: string;
@@ -56,6 +57,7 @@ export type InvestmentFormState = {
 export type FinancingFormState = {
   amount: string;
   date: string;
+  projectId: string | null;
   intent: string | null;
   ledgerCode: string | null;
   description: string;
