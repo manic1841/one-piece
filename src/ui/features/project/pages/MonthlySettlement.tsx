@@ -1,11 +1,13 @@
 import React from 'react';
+
 import { ArrowLeft, CheckCircle2 } from 'lucide-react';
+
+import { type Project } from '@/domains/project/schemas';
+import { YearMonthPicker } from '@/ui/components/YearMonthPicker';
 import { Button } from '@/ui/components/ui/button';
 import { Card } from '@/ui/components/ui/card';
-import { YearMonthPicker } from '@/ui/components/YearMonthPicker';
-import { useSettlementDialog, DialogStatus } from '@/ui/features/project/components/settlement/useSettlementDialog';
 import { SettlementPreview } from '@/ui/features/project/components/settlement/SettlementPreview';
-import { type Project } from '@/domains/project/schemas';
+import { DialogStatus, useSettlementDialog } from '@/ui/features/project/hooks/useSettlementDialog';
 
 interface MonthlySettlementProps {
   householdId: string;
@@ -22,25 +24,17 @@ const MonthlySettlement: React.FC<MonthlySettlementProps> = ({
   onBack,
   onSuccess,
 }) => {
-  const {
-    status,
-    year,
-    month,
-    setYear,
-    setMonth,
-    settlements,
-    error,
-    toPreview,
-    confirm,
-    back,
-  } = useSettlementDialog(householdId, projects, userEmail, onSuccess, onBack);
+  const { status, year, month, setYear, setMonth, settlements, error, toPreview, confirm, back } =
+    useSettlementDialog(householdId, projects, userEmail, onSuccess, onBack);
 
   if (status === DialogStatus.DONE) {
     return (
       <div className="flex flex-col items-center justify-center py-12 space-y-4">
         <CheckCircle2 size={64} className="text-green-500 animate-in zoom-in duration-300" />
         <h2 className="text-2xl font-bold">Settlement Complete</h2>
-        <p className="text-muted-foreground">Monthly snapshots have been created for all projects.</p>
+        <p className="text-muted-foreground">
+          Monthly snapshots have been created for all projects.
+        </p>
         <Button onClick={onBack}>Return to Projects</Button>
       </div>
     );
@@ -54,7 +48,9 @@ const MonthlySettlement: React.FC<MonthlySettlementProps> = ({
         </Button>
         <div>
           <h1 className="text-2xl font-bold">Monthly Settlement</h1>
-          <p className="text-muted-foreground">Calculate and finalize project balances for a specific month</p>
+          <p className="text-muted-foreground">
+            Calculate and finalize project balances for a specific month
+          </p>
         </div>
       </div>
 
@@ -79,14 +75,11 @@ const MonthlySettlement: React.FC<MonthlySettlementProps> = ({
 
       {status === DialogStatus.PREVIEW && (
         <div className="space-y-4">
-          <SettlementPreview
-            year={year}
-            month={month}
-            settlements={settlements}
-            error={error}
-          />
+          <SettlementPreview year={year} month={month} settlements={settlements} error={error} />
           <div className="flex justify-end gap-3">
-            <Button variant="outline" onClick={back}>Back</Button>
+            <Button variant="outline" onClick={back}>
+              Back
+            </Button>
             <Button onClick={confirm}>Confirm Settlement</Button>
           </div>
         </div>

@@ -11,7 +11,7 @@ import {
 } from '@/ui/components/ui/dialog';
 import { type PortfolioSnapshotFormVM } from '@/ui/features/portfolio/viewmodels/portfolioForm.vm';
 
-import { usePortfolioSnapshotForm } from './hooks/usePortfolioSnapshotForm';
+import { usePortfolioSnapshotForm } from '../hooks/usePortfolioSnapshotForm';
 import { AccountSnapshotList } from './snapshot/AccountSnapshotList';
 import { CashFlowInput } from './snapshot/CashFlowInput';
 import { PerformancePreview } from './snapshot/PerformancePreview';

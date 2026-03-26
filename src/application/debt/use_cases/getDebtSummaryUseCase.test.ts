@@ -20,7 +20,9 @@ describe('getDebtSummaryUseCase', () => {
   it('aggregates debt totals, monthly due, and unpaid count', async () => {
     const { getDebtSummaryUseCase } = await import('./getDebtSummaryUseCase');
     const { listDebtAccountsUseCase } = await import('./listDebtAccountsUseCase');
-    const { transactionRepository } = await import('@/infra/repositories/transactionRepository');
+    const { transactionRepository } = await import(
+      '../../../infra/repositories/transactionRepository'
+    );
 
     vi.mocked(listDebtAccountsUseCase.execute).mockResolvedValue([
       {

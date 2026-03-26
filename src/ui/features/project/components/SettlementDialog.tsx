@@ -13,10 +13,7 @@ import { SettlementDone } from '@/ui/features/project/components/settlement/Sett
 import { SettlementPreview } from '@/ui/features/project/components/settlement/SettlementPreview';
 import { SettlementProcessing } from '@/ui/features/project/components/settlement/SettlementProcessing';
 import { SettlementSelection } from '@/ui/features/project/components/settlement/SettlementSelection';
-import {
-  DialogStatus,
-  useSettlementDialog,
-} from '@/ui/features/project/components/settlement/useSettlementDialog';
+import { DialogStatus, useSettlementDialog } from '@/ui/features/project/hooks/useSettlementDialog';
 
 interface SettlementDialogProps {
   isOpen: boolean;

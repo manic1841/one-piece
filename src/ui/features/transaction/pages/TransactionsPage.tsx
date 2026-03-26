@@ -2,21 +2,23 @@ import React, { useMemo, useState } from 'react';
 
 import { Plus, Search } from 'lucide-react';
 
+import { type Transaction } from '@/domains/ledger/schemas';
 import { useAuth } from '@/infra/contexts/useAuth';
 import { Button } from '@/ui/components/ui/button';
 import { Input } from '@/ui/components/ui/input';
-import { cn } from '@/ui/utils/cn';
-import { type Transaction } from '@/domains/ledger/schemas';
 import { useProjects } from '@/ui/features/project/hooks/useProjects';
 import { TransactionList } from '@/ui/features/transaction/components/TransactionList';
-import { useTransactionForm } from '@/ui/features/transaction/components/form/useTransactionForm';
+import { useTransactionForm } from '@/ui/features/transaction/hooks/useTransactionForm';
 import { useTransactions } from '@/ui/features/transaction/hooks/useTransactions';
+import { cn } from '@/ui/utils/cn';
 
 import { TransactionForm } from '../components/form/TransactionForm';
 
 const Transactions: React.FC = () => {
   const { userProfile } = useAuth();
-  const { transactions, loading, reload, deleteTransaction } = useTransactions(userProfile?.householdId);
+  const { transactions, loading, reload, deleteTransaction } = useTransactions(
+    userProfile?.householdId,
+  );
   const { projects } = useProjects(userProfile?.householdId);
 
   const handleDelete = async (transaction: Transaction) => {
@@ -52,9 +54,9 @@ const Transactions: React.FC = () => {
         ? t.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
           t.intentType?.toLowerCase().includes(searchTerm.toLowerCase())
         : true;
-      
+
       const matchType = filterType === 'ALL' ? true : t.intentType === filterType;
-      
+
       return matchSearch && matchType;
     });
   }, [transactions, searchTerm, filterType]);
@@ -80,8 +82,8 @@ const Transactions: React.FC = () => {
       <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
         <div className="relative w-full md:w-96">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-          <Input 
-            placeholder="搜尋備註或類型..." 
+          <Input
+            placeholder="搜尋備註或類型..."
             className="pl-9 bg-gray-50/50 border-none focus-visible:ring-1 focus-visible:ring-gray-200"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
@@ -98,10 +100,10 @@ const Transactions: React.FC = () => {
               key={type.id}
               onClick={() => setFilterType(type.id)}
               className={cn(
-                "px-4 py-1.5 rounded-full text-sm font-medium transition-all whitespace-nowrap",
+                'px-4 py-1.5 rounded-full text-sm font-medium transition-all whitespace-nowrap',
                 filterType === type.id
-                  ? "bg-gray-900 text-white shadow-md"
-                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                  ? 'bg-gray-900 text-white shadow-md'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200',
               )}
             >
               {type.label}
@@ -110,7 +112,12 @@ const Transactions: React.FC = () => {
         </div>
       </div>
 
-      <TransactionList items={filteredTransactions} loading={loading} projects={projects} onDelete={handleDelete} />
+      <TransactionList
+        items={filteredTransactions}
+        loading={loading}
+        projects={projects}
+        onDelete={handleDelete}
+      />
 
       {userProfile?.householdId && isFormOpen && (
         <TransactionForm

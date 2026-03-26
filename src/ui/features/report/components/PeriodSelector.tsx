@@ -11,8 +11,6 @@ import {
   SelectValue,
 } from '@/ui/components/ui/select';
 
-// import { getMonthRange, getQuarterRange, getYearRange } from '../../utils/dateUtils';
-
 export type PeriodType = 'monthly' | 'quarterly' | 'yearly';
 
 interface PeriodSelectorProps {
