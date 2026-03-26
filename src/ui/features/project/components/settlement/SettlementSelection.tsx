@@ -29,8 +29,6 @@ export const SettlementSelection: React.FC<SettlementSelectionProps> = ({
         month={month}
         onYearChange={(y) => setYear(parseInt(y) || 0)}
         onMonthChange={(m) => setMonth(parseInt(m) || 1)}
-        yearLabel="年份"
-        monthLabel="月份"
       />
 
       {error && (

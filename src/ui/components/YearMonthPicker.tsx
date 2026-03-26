@@ -11,28 +11,33 @@ import {
 } from '@/ui/components/ui/select';
 
 interface YearMonthPickerProps {
+  mode?: 'year-month' | 'year';
   year: string | number;
-  month: string | number;
+  month?: string | number;
   onYearChange: (year: string) => void;
-  onMonthChange: (month: string) => void;
+  onMonthChange?: (month: string) => void;
   yearLabel?: string;
   monthLabel?: string;
   className?: string;
 }
 
 export const YearMonthPicker: React.FC<YearMonthPickerProps> = ({
+  mode = 'year-month',
   year,
   month,
   onYearChange,
   onMonthChange,
   yearLabel = '年',
   monthLabel = '月',
-  className = 'grid grid-cols-2 gap-3',
+  className,
 }) => {
   const months = Array.from({ length: 12 }, (_, i) => i + 1);
+  const isYearOnly = mode === 'year';
+  const resolvedClassName =
+    className || (isYearOnly ? 'grid grid-cols-1 gap-3' : 'grid grid-cols-2 gap-3');
 
   return (
-    <div className={className}>
+    <div className={resolvedClassName}>
       <div className="space-y-2">
         <Label htmlFor="year-picker">{yearLabel}</Label>
         <Input
@@ -45,21 +50,28 @@ export const YearMonthPicker: React.FC<YearMonthPickerProps> = ({
           onChange={(e) => onYearChange(e.target.value)}
         />
       </div>
-      <div className="space-y-2">
-        <Label htmlFor="month-picker">{monthLabel}</Label>
-        <Select value={month.toString()} onValueChange={(val) => onMonthChange(val)}>
-          <SelectTrigger id="month-picker">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent className="max-h-60">
-            {months.map((m) => (
-              <SelectItem key={m} value={m.toString()}>
-                {m} {monthLabel === '月' ? '月' : 'Month'}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+      {!isYearOnly && (
+        <div className="space-y-2">
+          <Label htmlFor="month-picker">{monthLabel}</Label>
+          <Select
+            value={(month ?? 1).toString()}
+            onValueChange={(val) => {
+              onMonthChange?.(val);
+            }}
+          >
+            <SelectTrigger id="month-picker">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="max-h-60">
+              {months.map((m) => (
+                <SelectItem key={m} value={m.toString()}>
+                  {m} 月
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
     </div>
   );
 };

@@ -234,29 +234,13 @@ export const ReportHeader: React.FC<ReportHeaderProps> = ({
                     className="grid grid-cols-1 gap-4"
                   />
                 ) : (
-                  <div className="space-y-2">
-                    <label className="text-xs font-bold text-slate-600 uppercase tracking-wider">
-                      年份
-                    </label>
-                    <select
-                      value={currentDate.getFullYear()}
-                      onChange={(e) => {
-                        const newDate = new Date(currentDate);
-                        newDate.setFullYear(parseInt(e.target.value));
-                        onDateChange(newDate);
-                      }}
-                      className="w-full px-3 py-2 border border-slate-200 rounded-lg bg-white text-slate-900 font-semibold"
-                    >
-                      {Array.from({ length: 20 }, (_, i) => {
-                        const year = new Date().getFullYear() - 10 + i;
-                        return (
-                          <option key={year} value={year}>
-                            {year} 年
-                          </option>
-                        );
-                      })}
-                    </select>
-                  </div>
+                  <YearMonthPicker
+                    mode="year"
+                    year={currentDate.getFullYear()}
+                    onYearChange={handleYearChange}
+                    yearLabel="年份"
+                    className="grid grid-cols-1 gap-4"
+                  />
                 )}
               </div>
             </PopoverContent>
