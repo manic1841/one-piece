@@ -4,7 +4,7 @@ import {
   mapDebtAccountVMToCreateMeta,
   mapDebtAccountVMToDomain,
   parseDebtAccountFormVM,
-} from '@/ui/features/debt/viewmodels/debtAccountForm.vm';
+} from './debtAccountForm.vm';
 
 const createValidInput = () => ({
   name: '房貸 A',

@@ -4,11 +4,11 @@ import { ArrowDown, ArrowUp, Edit, Trash2 } from 'lucide-react';
 
 import { Button } from '@/ui/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/ui/components/ui/card';
-import { type PortfolioListItemViewModel } from '@/domains/portfolio/types';
+import { type PortfolioListItemVM } from '@/ui/features/portfolio/viewmodels/portfolioDisplay.vm';
 import { formatCurrency } from '@/ui/utils';
 
 interface PortfolioItemProps {
-  viewModel: PortfolioListItemViewModel;
+  viewModel: PortfolioListItemVM;
   onClick: (id: string) => void;
   onEdit?: (id: string) => void;
   isReorderMode?: boolean;

@@ -1,7 +1,11 @@
 import { useState } from 'react';
 
-import { type Project, type ProjectSnapshotCreate } from '@/domains/project/schemas';
+import { type Project } from '@/domains/project/schemas';
 import { settlementService } from '@/domains/project/settlementService';
+import {
+  type SettlementPreviewItemVM,
+  mapSettlementToPreviewVM,
+} from '@/ui/features/project/viewmodels/settlementPreview.vm';
 
 export const DialogStatus = {
   SELECTION: 'selection',
@@ -23,9 +27,7 @@ export const useSettlementDialog = (
   const [status, setStatus] = useState<DialogStatusType>(DialogStatus.SELECTION);
   const [year, setYear] = useState(currentDate.getFullYear());
   const [month, setMonth] = useState(currentDate.getMonth() + 1);
-  const [settlements, setSettlements] = useState<
-    (ProjectSnapshotCreate & { projectId: string; projectName: string })[]
-  >([]);
+  const [settlements, setSettlements] = useState<SettlementPreviewItemVM[]>([]);
   const [error, setError] = useState('');
 
   const toPreview = async () => {
@@ -43,7 +45,7 @@ export const useSettlementDialog = (
         year,
         month,
       );
-      setSettlements(previews);
+      setSettlements(previews.map(mapSettlementToPreviewVM));
       setStatus(DialogStatus.PREVIEW);
     } catch (err) {
       console.error('Error calculating settlements:', err);
@@ -73,11 +75,7 @@ export const useSettlementDialog = (
 
     try {
       const yearMonth = `${year}-${month.toString().padStart(2, '0')}`;
-      await settlementService.settleProjects(
-        householdId,
-        yearMonth,
-        userEmail
-      );
+      await settlementService.settleProjects(householdId, yearMonth, userEmail);
 
       setStatus(DialogStatus.DONE);
       setTimeout(() => {
@@ -86,7 +84,8 @@ export const useSettlementDialog = (
       }, 2000);
     } catch (err) {
       console.error('Error creating settlements:', err);
-      const message = err instanceof Error ? err.message : 'Failed to create settlements. Please try again.';
+      const message =
+        err instanceof Error ? err.message : 'Failed to create settlements. Please try again.';
       setError(message);
       setStatus(DialogStatus.PREVIEW);
     }

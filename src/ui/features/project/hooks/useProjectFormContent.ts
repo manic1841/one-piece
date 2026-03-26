@@ -1,54 +1,40 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+
+import { z } from 'zod';
+
 import { type Project, type ProjectCreate } from '@/domains/project/schemas';
-import { ProjectCategory } from '@/domains/project/types/categories';
+import {
+  type ProjectFormVM,
+  createDefaultProjectFormVM,
+  mapProjectToFormVM,
+  mapProjectVMToDomain,
+  parseProjectFormVM,
+} from '@/ui/features/project/viewmodels/projectForm.vm';
+
 import { type ProjectArgs } from './useProjectPage';
 
 export function useProjectFormContent(
   initialData: Project | undefined,
   onSubmit: (args: ProjectArgs) => Promise<void>,
   onClose: () => void,
-  isOpen: boolean
+  isOpen: boolean,
 ) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [formData, setFormData] = useState<ProjectCreate>({
-    name: '',
-    color: '#3B82F6',
-    icon: '📊',
-    order: 0,
-    description: '',
-    category: ProjectCategory.OPERATING,
-    isActive: true,
-  });
+  const [formData, setFormData] = useState<ProjectFormVM>(createDefaultProjectFormVM());
 
   useEffect(() => {
     if (isOpen) {
       if (initialData) {
-        setFormData({
-          name: initialData.name,
-          color: initialData.color,
-          icon: initialData.icon,
-          order: initialData.order,
-          description: initialData.description || '',
-          category: initialData.category,
-          isActive: initialData.isActive,
-        });
+        setFormData(mapProjectToFormVM(initialData));
       } else {
-        setFormData({
-          name: '',
-          color: '#3B82F6',
-          icon: '📊',
-          order: 0,
-          description: '',
-          category: ProjectCategory.OPERATING,
-          isActive: true,
-        });
+        setFormData(createDefaultProjectFormVM());
       }
       setError(null);
     }
   }, [isOpen, initialData]);
 
-  const updateFormData = useCallback((updates: Partial<ProjectCreate>) => {
+  const updateFormData = useCallback((updates: Partial<ProjectFormVM>) => {
     setFormData((prev) => ({ ...prev, ...updates }));
   }, []);
 
@@ -57,13 +43,17 @@ export function useProjectFormContent(
     setLoading(true);
     setError(null);
     try {
+      const vm = parseProjectFormVM(formData);
+      const domainData: ProjectCreate = mapProjectVMToDomain(vm);
       await onSubmit({
         id: initialData?.id || '',
-        project: formData,
+        project: domainData,
       });
       onClose();
     } catch (err: unknown) {
-      if (err instanceof Error) {
+      if (err instanceof z.ZodError) {
+        setError(err.issues[0]?.message || '資料格式錯誤');
+      } else if (err instanceof Error) {
         setError(err.message);
       } else {
         setError('Failed to save project');

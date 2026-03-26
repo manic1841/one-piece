@@ -1,16 +1,32 @@
+import { type Portfolio, type PortfolioSnapshot } from '@/domains/portfolio/types/portfolio';
 import { formatYearMonth } from '@/ui/utils';
 
-import {
-  type Portfolio,
-  type PortfolioDetailViewModel,
-  type PortfolioListItemViewModel,
-  type PortfolioSnapshot,
-} from '../types';
+export interface PortfolioListItemVM {
+  id: string;
+  name: string;
+  description?: string;
+  totalValue: number;
+  asOfDate?: string;
+  accountCount: number;
+  isActive: boolean;
+  order: number;
+}
 
-export const toPortfolioListItemViewModel = (
+export interface PortfolioDetailVM {
+  id: string;
+  name: string;
+  description?: string;
+  accountIds: string[];
+  isActive: boolean;
+  order: number;
+  latestSnapshot: PortfolioSnapshot | null;
+  history: PortfolioSnapshot[];
+}
+
+export const mapPortfolioToListItemVM = (
   portfolio: Portfolio,
   latestSnapshot?: PortfolioSnapshot,
-): PortfolioListItemViewModel => {
+): PortfolioListItemVM => {
   return {
     id: portfolio.id,
     name: portfolio.name,
@@ -25,10 +41,10 @@ export const toPortfolioListItemViewModel = (
   };
 };
 
-export const toPortfolioDetailViewModel = (
+export const mapPortfolioToDetailVM = (
   portfolio: Portfolio,
   snapshots: PortfolioSnapshot[],
-): PortfolioDetailViewModel => {
+): PortfolioDetailVM => {
   return {
     id: portfolio.id,
     name: portfolio.name,

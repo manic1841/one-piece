@@ -5,20 +5,20 @@ import { getAccountsWithSnapshotsUseCase } from '@/application/account/use_cases
 import { listPortfolioSnapshotsUseCase } from '@/application/portfolio/use_cases/listPortfolioSnapshotsUseCase';
 import { type Account, type AccountSnapshot } from '@/domains/account/types/account';
 import { calculatePortfolioSnapshot } from '@/domains/portfolio/calculators/portfolioCalculator';
-import { toPortfolioSnapshotForm, toPortfolioSnapshotFormData } from '@/domains/portfolio/mappers';
-import {
-  type Portfolio,
-  type PortfolioSnapshot,
-  type PortfolioSnapshotFormData,
-} from '@/domains/portfolio/types/portfolio';
+import { type Portfolio, type PortfolioSnapshot } from '@/domains/portfolio/types/portfolio';
 import { useAuth } from '@/infra/contexts/useAuth';
+import {
+  type PortfolioSnapshotFormVM,
+  createDefaultPortfolioSnapshotFormVM,
+  mapPortfolioSnapshotInputsToVM,
+} from '@/ui/features/portfolio/viewmodels/portfolioForm.vm';
 import { useLoadingTask } from '@/ui/hooks/useLoadingTask';
 
 export const usePortfolioSnapshotForm = (
   householdId: string,
   portfolio: Portfolio,
   onClose: () => void,
-  onSubmit: (data: PortfolioSnapshotFormData) => Promise<void>,
+  onSubmit: (data: PortfolioSnapshotFormVM) => Promise<void>,
 ) => {
   const { currentUser, isAdmin } = useAuth();
   const auth = useMemo(
@@ -26,7 +26,7 @@ export const usePortfolioSnapshotForm = (
     [currentUser, isAdmin],
   );
 
-  const initialData = toPortfolioSnapshotForm();
+  const initialData = createDefaultPortfolioSnapshotFormVM();
   const [year, setYear] = useState(initialData.year);
   const [month, setMonth] = useState(initialData.month);
   const [deposits, setDeposits] = useState(initialData.deposits.toString());
@@ -151,7 +151,8 @@ export const usePortfolioSnapshotForm = (
 
     await run(async () => {
       try {
-        await onSubmit(toPortfolioSnapshotFormData(year, month, deposits, withdrawals));
+        const vm = mapPortfolioSnapshotInputsToVM(year, month, deposits, withdrawals);
+        await onSubmit(vm);
         onClose();
       } catch (err) {
         setSubmitError((err as Error).message || 'Failed to create snapshot');

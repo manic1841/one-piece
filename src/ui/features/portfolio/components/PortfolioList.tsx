@@ -3,12 +3,15 @@ import React, { useEffect, useState } from 'react';
 import { ListOrdered, Plus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
-import { fromPortfolioForm, toPortfolioListItemViewModel } from '@/domains/portfolio/mappers';
-import { type Portfolio, type PortfolioFormData } from '@/domains/portfolio/types/portfolio';
+import { type Portfolio } from '@/domains/portfolio/types/portfolio';
 import { useAuth } from '@/infra/contexts/useAuth';
 import { Button } from '@/ui/components/ui/button';
 import { usePortfolioCmds } from '@/ui/features/portfolio/hooks/usePortfolioCmds';
 import { usePortfolios } from '@/ui/features/portfolio/hooks/usePortfolios';
+import {
+  type PortfolioFormVM,
+  mapPortfolioVMToDomain,
+} from '@/ui/features/portfolio/viewmodels/portfolioForm.vm';
 
 import PortfolioForm from './PortfolioForm';
 import { PortfolioItem } from './PortfolioItem';
@@ -20,7 +23,7 @@ interface PortfolioListProps {
 const PortfolioList: React.FC<PortfolioListProps> = ({ householdId }) => {
   const navigate = useNavigate();
   const { userProfile } = useAuth();
-  const { portfolios, latestSnapshots, loading, reload } = usePortfolios(householdId);
+  const { portfolios, toListItemVM, loading, reload } = usePortfolios(householdId);
   const { createPortfolio, updatePortfolio, reorderPortfolios } = usePortfolioCmds(
     householdId,
     userProfile?.email || '',
@@ -61,13 +64,13 @@ const PortfolioList: React.FC<PortfolioListProps> = ({ householdId }) => {
     reload();
   };
 
-  const handleCreateSubmit = async (data: PortfolioFormData) => {
-    await createPortfolio(fromPortfolioForm(data));
+  const handleCreateSubmit = async (vm: PortfolioFormVM) => {
+    await createPortfolio(mapPortfolioVMToDomain(vm));
   };
 
-  const handleEditSubmit = async (data: PortfolioFormData) => {
+  const handleEditSubmit = async (vm: PortfolioFormVM) => {
     if (!editingPortfolio) return;
-    await updatePortfolio(editingPortfolio.id, fromPortfolioForm(data));
+    await updatePortfolio(editingPortfolio.id, mapPortfolioVMToDomain(vm));
     setEditingPortfolio(null);
   };
 
@@ -110,7 +113,7 @@ const PortfolioList: React.FC<PortfolioListProps> = ({ householdId }) => {
         {localPortfolios.map((portfolio) => (
           <PortfolioItem
             key={portfolio.id}
-            viewModel={toPortfolioListItemViewModel(portfolio, latestSnapshots.get(portfolio.id))}
+            viewModel={toListItemVM(portfolio)}
             onClick={(id) => navigate(`/portfolios/${id}`)}
             onEdit={() => setEditingPortfolio(portfolio)}
             isReorderMode={isReorderMode}

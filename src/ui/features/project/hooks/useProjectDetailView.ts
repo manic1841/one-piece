@@ -1,21 +1,21 @@
 import { useCallback, useEffect, useState } from 'react';
 
-import { type ProjectSnapshot } from '@/domains/project/schemas';
 import {
-  type ProjectDetailData,
-  toDetailItem,
-  toSnapshotDetailItem,
-} from '@/domains/project/types/detail';
+  type ProjectDetailItemVM,
+  type ProjectSnapshotItemVM,
+  mapSnapshotToProjectDetailVM,
+  mapTransactionToProjectDetailVM,
+} from '@/ui/features/project/viewmodels/projectDetail.vm';
 
 import { useProjectCmds } from './useProjectCmds';
 import { useProjectQueries } from './useProjects';
 
 export const useProjectDetailView = (householdId: string, projectId: string) => {
   const { getProjectRecords, getProjectSnapshots } = useProjectQueries(householdId);
-  const [items, setItems] = useState<ProjectDetailData[]>([]);
+  const [items, setItems] = useState<ProjectDetailItemVM[]>([]);
   const [history, setHistory] = useState<string[]>([]);
   const [selectedYearMonth, setSelectedYearMonth] = useState<string>('current');
-  const [currentSnapshot, setCurrentSnapshot] = useState<ProjectSnapshot | null>(null);
+  const [currentSnapshot, setCurrentSnapshot] = useState<ProjectSnapshotItemVM | null>(null);
 
   const load = useCallback(async () => {
     if (!householdId || !projectId) return;
@@ -33,19 +33,20 @@ export const useProjectDetailView = (householdId: string, projectId: string) => 
     );
     setHistory([...new Set(yearMonths)].sort((a, b) => b.localeCompare(a)));
 
-    const recordItems = (records || []).map(toDetailItem);
+    const recordItems = (records || []).map(mapTransactionToProjectDetailVM);
 
     if (selectedYearMonth !== 'current') {
       const snapshot = snapshots?.find(
         (s) => `${s.year}-${s.month.toString().padStart(2, '0')}` === selectedYearMonth,
       );
-      setCurrentSnapshot(snapshot || null);
+      const snapshotVM = snapshot ? mapSnapshotToProjectDetailVM(snapshot) : null;
+      setCurrentSnapshot(snapshotVM);
 
-      const snapshotItems = snapshot ? [toSnapshotDetailItem(snapshot)] : [];
+      const snapshotItems = snapshotVM ? [snapshotVM] : [];
       setItems([...snapshotItems, ...recordItems]);
     } else {
       setCurrentSnapshot(null);
-      const snapshotItems = (snapshots || []).map(toSnapshotDetailItem);
+      const snapshotItems = (snapshots || []).map(mapSnapshotToProjectDetailVM);
       const merged = [...recordItems, ...snapshotItems].sort(
         (a, b) => b.date.getTime() - a.date.getTime(),
       );

@@ -2,16 +2,20 @@ import React, { useState } from 'react';
 
 import { ArrowLeft, Plus } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { ZodError } from 'zod';
 
-import { fromPortfolioSnapshotForm, toPortfolioDetailViewModel } from '@/domains/portfolio/mappers';
-import {
-  type PortfolioDetailViewModel,
-  type PortfolioSnapshot,
-  type PortfolioSnapshotFormData,
-} from '@/domains/portfolio/types/portfolio';
+import { type PortfolioSnapshot } from '@/domains/portfolio/types/portfolio';
 import { Button } from '@/ui/components/ui/button';
 import { usePortfolioCmds } from '@/ui/features/portfolio/hooks/usePortfolioCmds';
-import { usePortfolioQueries, usePortfolios } from '@/ui/features/portfolio/hooks/usePortfolios';
+import {
+  usePortfolioDetailView,
+  usePortfolioQueries,
+  usePortfolios,
+} from '@/ui/features/portfolio/hooks/usePortfolios';
+import {
+  type PortfolioSnapshotFormVM,
+  mapPortfolioSnapshotVMToDomain,
+} from '@/ui/features/portfolio/viewmodels/portfolioForm.vm';
 
 import PortfolioSnapshotForm from './PortfolioSnapshotForm';
 import { PortfolioHistoryTable } from './detail/PortfolioHistoryTable';
@@ -46,23 +50,25 @@ const PortfolioDetail: React.FC<PortfolioDetailProps> = ({ householdId, userEmai
   }, [id, getSnapshots, reload]);
 
   const loading = listLoading || queryLoading || loadingSnapshots;
+  const viewModel = usePortfolioDetailView(portfolio, snapshots);
 
   const [isSnapshotOpen, setIsSnapshotOpen] = useState(false);
 
-  const handleCreateSnapshot = async (data: PortfolioSnapshotFormData) => {
+  const handleCreateSnapshot = async (vm: PortfolioSnapshotFormVM) => {
     if (!id) return;
     try {
-      await createSnapshot(id, data.year, data.month, fromPortfolioSnapshotForm(data));
+      await createSnapshot(id, vm.year, vm.month, mapPortfolioSnapshotVMToDomain(vm));
     } catch (error) {
+      if (error instanceof ZodError) {
+        throw new Error(error.issues[0]?.message || 'Invalid snapshot form data');
+      }
       console.error('Failed to create snapshot:', error);
       throw error; // Re-throw to be caught by form
     }
   };
 
   if (loading) return <div>Loading...</div>;
-  if (!portfolio) return <div>Portfolio not found</div>;
-
-  const viewModel: PortfolioDetailViewModel = toPortfolioDetailViewModel(portfolio, snapshots);
+  if (!portfolio || !viewModel) return <div>Portfolio not found</div>;
 
   return (
     <div className="space-y-6">

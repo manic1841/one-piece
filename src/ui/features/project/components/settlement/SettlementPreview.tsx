@@ -9,22 +9,13 @@ import {
   TableHeader,
   TableRow,
 } from '@/ui/components/ui/table';
-import { formatCurrency } from '@/ui/utils';
+import { type SettlementPreviewItemVM } from '@/ui/features/project/viewmodels/settlementPreview.vm';
 
 interface SettlementPreviewProps {
   year: number;
   month: number;
   error?: string;
-  settlements: Array<{
-    projectId: string;
-    projectName: string;
-    openingBalance: number;
-    income: number;
-    expense: number;
-    closingBalance: number;
-    year: number;
-    month: number;
-  }>;
+  settlements: SettlementPreviewItemVM[];
 }
 
 export const SettlementPreview: React.FC<SettlementPreviewProps> = ({
@@ -69,16 +60,16 @@ export const SettlementPreview: React.FC<SettlementPreviewProps> = ({
                 </div>
               </TableCell>
               <TableCell className="text-right font-medium">
-                {formatCurrency(settlement.openingBalance)}
+                {settlement.openingBalanceText}
               </TableCell>
               <TableCell className="text-right text-green-600 font-medium">
-                +{formatCurrency(settlement.income)}
+                +{settlement.incomeText}
               </TableCell>
               <TableCell className="text-right text-red-600 font-medium">
-                -{formatCurrency(settlement.expense)}
+                -{settlement.expenseText}
               </TableCell>
               <TableCell className="text-right font-bold">
-                {formatCurrency(settlement.closingBalance)}
+                {settlement.closingBalanceText}
               </TableCell>
             </TableRow>
           ))}

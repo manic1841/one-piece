@@ -1,5 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 
+import { type Account } from '@/domains/account/types/account';
+import { type Portfolio } from '@/domains/portfolio/types';
 import { Button } from '@/ui/components/ui/button';
 import { Checkbox } from '@/ui/components/ui/checkbox';
 import {
@@ -12,15 +14,17 @@ import {
 import { Input } from '@/ui/components/ui/input';
 import { Label } from '@/ui/components/ui/label';
 import { Textarea } from '@/ui/components/ui/textarea';
-import { toPortfolioForm, toPortfolioFormData } from '@/domains/portfolio/mappers';
-import { type Portfolio, type PortfolioFormData } from '@/domains/portfolio/types';
-import { type Account } from '@/domains/account/types/account';
 import { useAccounts } from '@/ui/features/account/hooks/useAccounts';
+import {
+  type PortfolioFormVM,
+  mapPortfolioToFormVM,
+  parsePortfolioFormVM,
+} from '@/ui/features/portfolio/viewmodels/portfolioForm.vm';
 
 interface PortfolioFormProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (data: PortfolioFormData) => Promise<void>;
+  onSubmit: (data: PortfolioFormVM) => Promise<void>;
   householdId: string;
   portfolio?: Portfolio;
 }
@@ -34,7 +38,7 @@ const PortfolioForm: React.FC<PortfolioFormProps> = ({
 }) => {
   const { fetchAccounts } = useAccounts();
   const [availableAccounts, setAvailableAccounts] = useState<Account[]>([]);
-  const initialData = toPortfolioForm(portfolio);
+  const initialData = mapPortfolioToFormVM(portfolio);
 
   const [newName, setNewName] = useState(initialData.name);
   const [newDescription, setNewDescription] = useState(initialData.description);
@@ -55,7 +59,7 @@ const PortfolioForm: React.FC<PortfolioFormProps> = ({
   // Reset form when portfolio changes or modal opens
   React.useEffect(() => {
     if (isOpen) {
-      const data = toPortfolioForm(portfolio);
+      const data = mapPortfolioToFormVM(portfolio);
       setNewName(data.name);
       setNewDescription(data.description || '');
       setSelectedAccountIds(data.accountIds);
@@ -70,15 +74,14 @@ const PortfolioForm: React.FC<PortfolioFormProps> = ({
 
     setLoading(true);
     try {
-      await onSubmit(
-        toPortfolioFormData(
-          newName,
-          newDescription || '',
-          selectedAccountIds,
-          isActive,
-          initialOrder,
-        ),
-      );
+      const vm = parsePortfolioFormVM({
+        name: newName,
+        description: newDescription || undefined,
+        accountIds: selectedAccountIds,
+        isActive,
+        order: initialOrder,
+      });
+      await onSubmit(vm);
       setNewName('');
       setNewDescription('');
       setSelectedAccountIds([]);

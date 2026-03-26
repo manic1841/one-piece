@@ -1,9 +1,9 @@
-import { type ProjectDetailData } from '@/domains/project/types/detail';
 import { Card, CardContent, CardHeader, CardTitle } from '@/ui/components/ui/card';
 import { ProjectDetailItem } from '@/ui/features/project/components/detail/ProjectDetailItem';
+import { type ProjectDetailItemVM } from '@/ui/features/project/viewmodels/projectDetail.vm';
 
 interface ProjectDetailListProps {
-  items: ProjectDetailData[];
+  items: ProjectDetailItemVM[];
   onDeleteSnapshot?: (snapshotId: string) => Promise<void>;
 }
 

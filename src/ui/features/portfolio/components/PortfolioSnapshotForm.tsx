@@ -1,5 +1,6 @@
 import React from 'react';
 
+import { type Portfolio } from '@/domains/portfolio/types';
 import { Button } from '@/ui/components/ui/button';
 import {
   Dialog,
@@ -8,7 +9,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/ui/components/ui/dialog';
-import { type Portfolio, type PortfolioSnapshotFormData } from '@/domains/portfolio/types';
+import { type PortfolioSnapshotFormVM } from '@/ui/features/portfolio/viewmodels/portfolioForm.vm';
 
 import { usePortfolioSnapshotForm } from './hooks/usePortfolioSnapshotForm';
 import { AccountSnapshotList } from './snapshot/AccountSnapshotList';
@@ -19,7 +20,7 @@ import { PeriodSelection } from './snapshot/PeriodSelection';
 interface PortfolioSnapshotFormProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (data: PortfolioSnapshotFormData) => Promise<void>;
+  onSubmit: (data: PortfolioSnapshotFormVM) => Promise<void>;
   portfolio: Portfolio;
   householdId: string;
 }

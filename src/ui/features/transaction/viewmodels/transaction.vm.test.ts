@@ -4,7 +4,7 @@ import {
   mapTransactionVMToAllocationData,
   mapTransactionVMToDomain,
   parseTransactionFormVM,
-} from '@/ui/features/transaction/viewmodels/transaction.vm';
+} from './transaction.vm';
 
 describe('transaction.vm', () => {
   const toYmdLocal = (date: Date) => {

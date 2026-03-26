@@ -4,6 +4,12 @@ import { listPortfolioSnapshotsUseCase } from '@/application/portfolio/use_cases
 import { listPortfoliosUseCase } from '@/application/portfolio/use_cases/listPortfoliosUseCase';
 import { type Portfolio, type PortfolioSnapshot } from '@/domains/portfolio/types/portfolio';
 import { useAuth } from '@/infra/contexts/useAuth';
+import {
+  type PortfolioDetailVM,
+  type PortfolioListItemVM,
+  mapPortfolioToDetailVM,
+  mapPortfolioToListItemVM,
+} from '@/ui/features/portfolio/viewmodels/portfolioDisplay.vm';
 import { useLoadingTask } from '@/ui/hooks/useLoadingTask';
 
 export function usePortfolios(householdId: string) {
@@ -45,10 +51,22 @@ export function usePortfolios(householdId: string) {
   return {
     portfolios,
     latestSnapshots,
+    toListItemVM: (portfolio: Portfolio): PortfolioListItemVM =>
+      mapPortfolioToListItemVM(portfolio, latestSnapshots.get(portfolio.id)),
     loading,
     error,
     reload: load,
   };
+}
+
+export function usePortfolioDetailView(
+  portfolio: Portfolio | undefined,
+  snapshots: PortfolioSnapshot[],
+) {
+  return useMemo<PortfolioDetailVM | null>(() => {
+    if (!portfolio) return null;
+    return mapPortfolioToDetailVM(portfolio, snapshots);
+  }, [portfolio, snapshots]);
 }
 
 export function usePortfolioQueries(householdId: string) {

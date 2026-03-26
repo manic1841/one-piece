@@ -1,6 +1,5 @@
 import React from 'react';
 
-import { type ProjectCreate } from '@/domains/project/schemas';
 import { ProjectCategory } from '@/domains/project/types/categories';
 import { Button } from '@/ui/components/ui/button';
 import { Input } from '@/ui/components/ui/input';
@@ -14,10 +13,11 @@ import {
   SelectValue,
 } from '@/ui/components/ui/select';
 import { CATEGORY_LABELS, COLOR_OPTIONS, ICON_OPTIONS } from '@/ui/constants/project/projectLabel';
+import { type ProjectFormVM } from '@/ui/features/project/viewmodels/projectForm.vm';
 
 interface ProjectFormFieldsProps {
-  formData: ProjectCreate;
-  onChange: (data: Partial<ProjectCreate>) => void;
+  formData: ProjectFormVM;
+  onChange: (data: Partial<ProjectFormVM>) => void;
   disabled?: boolean;
 }
 
