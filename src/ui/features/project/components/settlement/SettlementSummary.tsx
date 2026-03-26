@@ -32,6 +32,7 @@ interface SettlementSummaryProps {
   unsettledAccountNames?: string[];
   unsettledPortfolioNames?: string[];
   unsettledDebtNames?: string[];
+  debtNoRepaymentWarningNames?: string[];
   reportTimestamps?: {
     incomeStatement?: string;
     balanceSheet?: string;
@@ -52,6 +53,7 @@ export const SettlementSummary: React.FC<SettlementSummaryProps> = ({
   unsettledAccountNames = [],
   unsettledPortfolioNames = [],
   unsettledDebtNames = [],
+  debtNoRepaymentWarningNames = [],
   reportTimestamps,
   onGoToProjectSettlement,
 }) => {
@@ -107,6 +109,17 @@ export const SettlementSummary: React.FC<SettlementSummaryProps> = ({
                 </p>
                 <p className="text-sm text-amber-900 font-semibold leading-relaxed">
                   {unsettledDebtNames.join('、')}
+                </p>
+              </div>
+            )}
+            {debtNoRepaymentWarningNames.length > 0 && (
+              <div className="pt-3 mt-2 border-t border-amber-200/70">
+                <p className="text-xs font-bold uppercase tracking-widest text-rose-700/80">
+                  債務無還款警訊
+                </p>
+                <p className="text-sm text-rose-900 font-semibold leading-relaxed">
+                  {debtNoRepaymentWarningNames.join('、')} 於該月無還款紀錄。
+                  可結算但請先在債務結算預覽中確認。
                 </p>
               </div>
             )}

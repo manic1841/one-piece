@@ -11,10 +11,10 @@
 
 系統進入債務管理頁面時，會 lazy init 三筆自訂 LedgerCode（若不存在）：
 
-| LedgerCode | 標籤 |
-|---|---|
-| `liability:mortgage` | 房貸 |
-| `liability:car_loan` | 車貸 |
+| LedgerCode                | 標籤     |
+| ------------------------- | -------- |
+| `liability:mortgage`      | 房貸     |
+| `liability:car_loan`      | 車貸     |
 | `liability:personal_loan` | 個人信貸 |
 
 - 使用 `initDebtLedgerCodesUseCase` 執行，idempotent（可重複執行不影響已有資料）
@@ -52,10 +52,10 @@ checkHasPayments(id)
 
 ### 表單欄位
 
-| 欄位 | 用途 | 預設值 |
-|---|---|---|
-| 撥款日期 | `LIABILITY_BORROW` 的 `transaction.date` | `startDate` |
-| 撥款說明（選填） | `LIABILITY_BORROW` 的 `description` | `{貸款名稱} 借款入帳` |
+| 欄位             | 用途                                     | 預設值                |
+| ---------------- | ---------------------------------------- | --------------------- |
+| 撥款日期         | `LIABILITY_BORROW` 的 `transaction.date` | `startDate`           |
+| 撥款說明（選填） | `LIABILITY_BORROW` 的 `description`      | `{貸款名稱} 借款入帳` |
 
 ### 建立流程（原子操作）
 
@@ -87,6 +87,7 @@ entries: [
 ### 欄位
 
 `DebtAccount` 新增可選欄位：
+
 ```
 graceEndDate: Date | null  // 寬限期結束日期，null 表示無寬限期
 ```
@@ -96,6 +97,7 @@ graceEndDate: Date | null  // 寬限期結束日期，null 表示無寬限期
 寬限期定義為：`startDate ≤ 今天 < graceEndDate`
 
 實作於 `src/domains/debt/debtPaymentCalculator.ts`：
+
 - `isInGracePeriod(graceEndDate)` — 檢查今天是否在寬限期內
 
 ### 試算邏輯
@@ -103,12 +105,14 @@ graceEndDate: Date | null  // 寬限期結束日期，null 表示無寬限期
 表單（`DebtAccountForm`）支援有無寬限期的試算：
 
 **無寬限期**：
+
 ```
 monthlyPayment = P × r × (1+r)^n / ((1+r)^n - 1)
   其中 n = startDate → endDate 的月份差
 ```
 
 **有寬限期**：
+
 ```
 graceMonths     = startDate → graceEndDate 的月份差
 normalMonths    = graceEndDate → endDate 的月份差
@@ -125,6 +129,7 @@ monthlyPayment      = originalAmount / normalMonths 的等額還款    // 寬限
 ### 還款邏輯 (DEBT_PAYMENT)
 
 **寬限期間**（判斷邏輯於 `buildDebtPaymentEntries`）：
+
 ```
 // 只記錄利息，本金不動
 Dr. expense:interest     interest
@@ -134,6 +139,7 @@ Cr. asset:cash           totalPayment
 ```
 
 **寬限期後**（正常還款）：
+
 ```
 Dr. {linkedLedgerCode}  principal
 Dr. expense:interest    interest
@@ -145,22 +151,51 @@ Cr. asset:cash          totalPayment
 ### UI 上的寬限期標示
 
 **DebtListPage 卡片**：
+
 - 如果 `isInGracePeriod = true`，顯示 badge：「寬限期至 YYYY/MM」
 - 「每月應付」項目改為「本月應付（利息）」，顯示 `calculateGraceMonthlyPayment(currentBalance, interestRate)`
 
 **DebtAccountForm**：
+
 - 日期區塊新增「寬限期結束日」欄位（選填）
 - 試算摘要區塊根據是否有寬限期顯示不同內容
 - 每月應還金額標籤改為「正式還款期間的每月應還金額」（有寬限期時）
 
 ### 相關函數
 
-| 函數 | 位置 | 目的 |
-|------|------|------|
-| `isInGracePeriod()` | `src/domains/debt/debtPaymentCalculator.ts` | 判斷是否在寬限期 |
-| `calculateGraceMonthlyPayment()` | `src/domains/debt/debtPaymentCalculator.ts` | 計算寬限期利息 |
-| `calculateLoan()` | `src/ui/features/debt/utils/loanCalculator.ts` | 試算時包含 `graceEndDate` 參數 |
-| `buildDebtPaymentEntries()` | `src/domains/debt/debtPaymentCalculator.ts` | 建立分錄時檢查寬限期 |
+| 函數                             | 位置                                           | 目的                           |
+| -------------------------------- | ---------------------------------------------- | ------------------------------ |
+| `isInGracePeriod()`              | `src/domains/debt/debtPaymentCalculator.ts`    | 判斷是否在寬限期               |
+| `calculateGraceMonthlyPayment()` | `src/domains/debt/debtPaymentCalculator.ts`    | 計算寬限期利息                 |
+| `calculateLoan()`                | `src/ui/features/debt/utils/loanCalculator.ts` | 試算時包含 `graceEndDate` 參數 |
+| `buildDebtPaymentEntries()`      | `src/domains/debt/debtPaymentCalculator.ts`    | 建立分錄時檢查寬限期           |
+
+---
+
+## 6. 債務月結算預覽與警訊
+
+`DebtSettlement` 採用「先預覽、再確認」流程：
+
+1. 使用者選擇 `year` / `month` 後，先執行預覽。
+2. 系統逐一檢查啟用中的 `DebtAccount`：
+
+- 當月是否有 `DEBT_PAYMENT` 還款紀錄。
+- 當月是否已存在 `Debt Snapshot`。
+
+3. 預覽畫面顯示每個帳戶的：
+
+- 還款筆數與還款總額。
+- 快照是否已存在、或本次結算是否會建立快照。
+
+### 無還款警訊規則
+
+- 若某些帳戶在該月沒有還款紀錄，系統必須顯示警訊。
+- 這不是阻擋條件：使用者勾選「仍要繼續結算」後，仍可執行結算。
+- 結算時，無還款帳戶會建立「零還款快照」：
+  - `principalPaid = 0`
+  - `interestPaid = 0`
+  - `totalPaid = 0`
+  - `closingBalance = openingBalance`
 
 ---
 
@@ -172,15 +207,15 @@ Cr. asset:cash          totalPayment
 
 ## 8. 相關檔案
 
-| 層 | 路徑 |
-|---|---|
-| Domain | `src/domains/debt/schemas.ts` |
-| Utility | `src/ui/features/debt/utils/loanCalculator.ts` |
-| Calculator (Split & Grace) | `src/domains/debt/debtPaymentCalculator.ts` |
-| Repository | `src/infra/repositories/debtAccountRepository.ts` |
-| Repository (Snapshot) | `src/infra/repositories/debtSnapshotRepository.ts` |
-| Use Cases | `src/application/debt/use_cases/` |
-| LedgerCode Init | `src/application/ledger/use_cases/initDebtLedgerCodesUseCase.ts` |
-| Hooks | `src/ui/features/debt/hooks/` |
-| Components | `src/ui/features/debt/components/DebtAccountForm.tsx`, `DebtPaymentHistory.tsx` |
-| Page | `src/ui/features/debt/pages/DebtListPage.tsx` |
+| 層                         | 路徑                                                                            |
+| -------------------------- | ------------------------------------------------------------------------------- |
+| Domain                     | `src/domains/debt/schemas.ts`                                                   |
+| Utility                    | `src/ui/features/debt/utils/loanCalculator.ts`                                  |
+| Calculator (Split & Grace) | `src/domains/debt/debtPaymentCalculator.ts`                                     |
+| Repository                 | `src/infra/repositories/debtAccountRepository.ts`                               |
+| Repository (Snapshot)      | `src/infra/repositories/debtSnapshotRepository.ts`                              |
+| Use Cases                  | `src/application/debt/use_cases/`                                               |
+| LedgerCode Init            | `src/application/ledger/use_cases/initDebtLedgerCodesUseCase.ts`                |
+| Hooks                      | `src/ui/features/debt/hooks/`                                                   |
+| Components                 | `src/ui/features/debt/components/DebtAccountForm.tsx`, `DebtPaymentHistory.tsx` |
+| Page                       | `src/ui/features/debt/pages/DebtListPage.tsx`                                   |

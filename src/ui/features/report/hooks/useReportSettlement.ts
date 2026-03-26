@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { format } from 'date-fns';
 
 import { getUnsettledStatsUseCase } from '@/application/report/use_cases/getUnsettledStatsUseCase';
+import { previewDebtSettlementsUseCase } from '@/application/settlement/use_cases/previewDebtSettlementsUseCase';
 import { reportService } from '@/domains/report/reportService';
 import { ReportType } from '@/domains/report/schemas';
 import { useAuth } from '@/infra/contexts/useAuth';
@@ -42,6 +43,7 @@ export const useReportSettlement = (householdId: string, userEmail: string) => {
   const [unsettledAccountNames, setUnsettledAccountNames] = useState<string[]>([]);
   const [unsettledPortfolioNames, setUnsettledPortfolioNames] = useState<string[]>([]);
   const [unsettledDebtNames, setUnsettledDebtNames] = useState<string[]>([]);
+  const [debtNoRepaymentWarningNames, setDebtNoRepaymentWarningNames] = useState<string[]>([]);
   const [previewData, setPreviewData] = useState<{
     incomeStatement: IncomeStatementVM;
     balanceSheet: BalanceSheetVM;
@@ -87,6 +89,13 @@ export const useReportSettlement = (householdId: string, userEmail: string) => {
     setError('');
 
     try {
+      const debtPreview = await previewDebtSettlementsUseCase.execute({
+        householdId,
+        year,
+        month,
+      });
+      setDebtNoRepaymentWarningNames(debtPreview.missingRepaymentAccountNames);
+
       // Check whether all active entities are settled for this month.
       const unsettled = await getUnsettledStatsUseCase.execute({
         householdId,
@@ -218,6 +227,7 @@ export const useReportSettlement = (householdId: string, userEmail: string) => {
     unsettledAccountNames,
     unsettledPortfolioNames,
     unsettledDebtNames,
+    debtNoRepaymentWarningNames,
     generateReports,
     refresh: loadStatus,
     previewData,

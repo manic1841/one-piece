@@ -43,6 +43,7 @@ export const ReportSettlement: React.FC<ReportSettlementProps> = ({
     unsettledAccountNames,
     unsettledPortfolioNames,
     unsettledDebtNames,
+    debtNoRepaymentWarningNames,
     generateReports,
     refresh,
     previewData,
@@ -131,6 +132,7 @@ export const ReportSettlement: React.FC<ReportSettlementProps> = ({
               unsettledAccountNames={unsettledAccountNames}
               unsettledPortfolioNames={unsettledPortfolioNames}
               unsettledDebtNames={unsettledDebtNames}
+              debtNoRepaymentWarningNames={debtNoRepaymentWarningNames}
               onGoToProjectSettlement={onGoToProjectSettlement}
             />
 

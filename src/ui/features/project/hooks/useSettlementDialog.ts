@@ -1,7 +1,8 @@
 import { useState } from 'react';
 
+import { previewProjectSettlementsUseCase } from '@/application/settlement/use_cases/previewProjectSettlementsUseCase';
+import { settleProjectsUseCase } from '@/application/settlement/use_cases/settleProjectsUseCase';
 import { type Project } from '@/domains/project/schemas';
-import { settlementService } from '@/domains/project/settlementService';
 import {
   type SettlementPreviewItemVM,
   mapSettlementToPreviewVM,
@@ -39,12 +40,12 @@ export const useSettlementDialog = (
     setStatus(DialogStatus.PROCESSING);
 
     try {
-      const previews = await settlementService.calculateAllSettlements(
+      const previews = await previewProjectSettlementsUseCase.execute({
         householdId,
         projects,
         year,
         month,
-      );
+      });
       setSettlements(previews.map(mapSettlementToPreviewVM));
       setStatus(DialogStatus.PREVIEW);
     } catch (err) {
@@ -75,7 +76,7 @@ export const useSettlementDialog = (
 
     try {
       const yearMonth = `${year}-${month.toString().padStart(2, '0')}`;
-      await settlementService.settleProjects(householdId, yearMonth, userEmail);
+      await settleProjectsUseCase.execute({ householdId, yearMonth, userEmail });
 
       setStatus(DialogStatus.DONE);
       setTimeout(() => {

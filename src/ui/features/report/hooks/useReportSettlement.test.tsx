@@ -14,6 +14,12 @@ vi.mock('@/application/report/use_cases/getUnsettledStatsUseCase', () => ({
   },
 }));
 
+vi.mock('@/application/settlement/use_cases/previewDebtSettlementsUseCase', () => ({
+  previewDebtSettlementsUseCase: {
+    execute: vi.fn(),
+  },
+}));
+
 vi.mock('@/infra/contexts/useAuth', () => ({
   useAuth: () => ({
     currentUser: { uid: 'user-1', email: 'user@example.com' },
@@ -46,6 +52,9 @@ describe('useReportSettlement', () => {
     const { getUnsettledStatsUseCase } = await import(
       '../../../../application/report/use_cases/getUnsettledStatsUseCase'
     );
+    const { previewDebtSettlementsUseCase } = await import(
+      '../../../../application/settlement/use_cases/previewDebtSettlementsUseCase'
+    );
 
     vi.mocked(getUnsettledStatsUseCase.execute).mockResolvedValue({
       year: 2026,
@@ -55,6 +64,15 @@ describe('useReportSettlement', () => {
       unsettledDebts: [],
       unsettledProjects: [],
       totalUnsettled: 0,
+    });
+
+    vi.mocked(previewDebtSettlementsUseCase.execute).mockResolvedValue({
+      year: 2026,
+      month: 3,
+      yearMonth: '2026-03',
+      items: [],
+      hasMissingRepayments: false,
+      missingRepaymentAccountNames: [],
     });
 
     vi.mocked(reportService.generateIncomeStatement).mockResolvedValue({
@@ -81,6 +99,9 @@ describe('useReportSettlement', () => {
     const { getUnsettledStatsUseCase } = await import(
       '../../../../application/report/use_cases/getUnsettledStatsUseCase'
     );
+    const { previewDebtSettlementsUseCase } = await import(
+      '../../../../application/settlement/use_cases/previewDebtSettlementsUseCase'
+    );
     const yearMonth = getCurrentYearMonth();
     const [year, month] = yearMonth.split('-').map(Number);
 
@@ -92,6 +113,14 @@ describe('useReportSettlement', () => {
       unsettledDebts: [],
       unsettledProjects: [],
       totalUnsettled: 0,
+    });
+    vi.mocked(previewDebtSettlementsUseCase.execute).mockResolvedValue({
+      year,
+      month,
+      yearMonth,
+      items: [],
+      hasMissingRepayments: false,
+      missingRepaymentAccountNames: [],
     });
 
     const { result } = renderHook(() => useReportSettlement('household-1', 'user@example.com'));
@@ -118,6 +147,11 @@ describe('useReportSettlement', () => {
       year,
       month,
     });
+    expect(previewDebtSettlementsUseCase.execute).toHaveBeenCalledWith({
+      householdId: 'household-1',
+      year,
+      month,
+    });
     expect(reportService.generateIncomeStatement).toHaveBeenCalledWith(
       'household-1',
       yearMonth,
@@ -135,6 +169,9 @@ describe('useReportSettlement', () => {
     const { getUnsettledStatsUseCase } = await import(
       '../../../../application/report/use_cases/getUnsettledStatsUseCase'
     );
+    const { previewDebtSettlementsUseCase } = await import(
+      '../../../../application/settlement/use_cases/previewDebtSettlementsUseCase'
+    );
 
     vi.mocked(getUnsettledStatsUseCase.execute).mockResolvedValue({
       year: 2026,
@@ -144,6 +181,14 @@ describe('useReportSettlement', () => {
       unsettledDebts: [{ id: 'd2', name: 'Debt 2' } as never],
       unsettledProjects: [{ id: 'project-2', name: 'Project 2' } as never],
       totalUnsettled: 4,
+    });
+    vi.mocked(previewDebtSettlementsUseCase.execute).mockResolvedValue({
+      year: 2026,
+      month: 3,
+      yearMonth: '2026-03',
+      items: [],
+      hasMissingRepayments: true,
+      missingRepaymentAccountNames: ['Debt 2'],
     });
 
     const { result } = renderHook(() => useReportSettlement('household-1', 'user@example.com'));
@@ -158,6 +203,7 @@ describe('useReportSettlement', () => {
     expect(result.current.unsettledAccountNames).toEqual(['Account 2']);
     expect(result.current.unsettledPortfolioNames).toEqual(['Portfolio 2']);
     expect(result.current.unsettledDebtNames).toEqual(['Debt 2']);
+    expect(result.current.debtNoRepaymentWarningNames).toEqual(['Debt 2']);
     expect(reportService.generateIncomeStatement).not.toHaveBeenCalled();
     expect(reportService.generateBalanceSheet).not.toHaveBeenCalled();
   });
@@ -167,6 +213,9 @@ describe('useReportSettlement', () => {
     const { reportRepository } = await import('../../../../infra/repositories/reportRepository');
     const { getUnsettledStatsUseCase } = await import(
       '../../../../application/report/use_cases/getUnsettledStatsUseCase'
+    );
+    const { previewDebtSettlementsUseCase } = await import(
+      '../../../../application/settlement/use_cases/previewDebtSettlementsUseCase'
     );
     const yearMonth = getCurrentYearMonth();
     const [year, month] = yearMonth.split('-').map(Number);
@@ -179,6 +228,14 @@ describe('useReportSettlement', () => {
       unsettledDebts: [],
       unsettledProjects: [],
       totalUnsettled: 0,
+    });
+    vi.mocked(previewDebtSettlementsUseCase.execute).mockResolvedValue({
+      year,
+      month,
+      yearMonth,
+      items: [],
+      hasMissingRepayments: false,
+      missingRepaymentAccountNames: [],
     });
     vi.mocked(reportRepository.getReport).mockResolvedValueOnce({ updatedAt: new Date() } as never);
     vi.mocked(reportRepository.getReport).mockResolvedValueOnce({ updatedAt: new Date() } as never);
