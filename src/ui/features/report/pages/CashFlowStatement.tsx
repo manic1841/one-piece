@@ -9,11 +9,10 @@ import {
   Wallet,
 } from 'lucide-react';
 
-import { type CashFlowGroup } from '@/domains/report/schemas';
 import { Alert, AlertDescription, AlertTitle } from '@/ui/components/ui/alert';
 import { Card, CardContent } from '@/ui/components/ui/card';
 import { useCashFlow } from '@/ui/features/report/hooks/useCashFlow';
-import { formatCurrency } from '@/ui/utils';
+import { type CashFlowGroupVM } from '@/ui/features/report/viewmodels/reportDisplay.vm';
 import { cn } from '@/ui/utils/cn';
 
 import { ReportHeader, type ReportMode, type ReportView } from '../components/ReportHeader';
@@ -53,7 +52,7 @@ const CashFlowStatement: React.FC<CashFlowStatementProps> = ({
     setExpandedSections((prev) => ({ ...prev, [section]: !prev[section] }));
   };
 
-  const renderActivityGroup = (group: CashFlowGroup, id: string) => {
+  const renderActivityGroup = (group: CashFlowGroupVM, id: string) => {
     const isExpanded = expandedSections[id];
     const isPositive = group.total >= 0;
 
@@ -96,7 +95,7 @@ const CashFlowStatement: React.FC<CashFlowStatementProps> = ({
                   : 'text-rose-600 dark:text-rose-400',
               )}
             >
-              {formatCurrency(group.total)}
+              {group.totalText}
             </span>
             {isExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
           </div>
@@ -118,7 +117,7 @@ const CashFlowStatement: React.FC<CashFlowStatementProps> = ({
                     >
                       <span className="text-slate-600 dark:text-slate-400">{item.label}</span>
                       <span className="font-mono text-emerald-600 dark:text-emerald-400">
-                        +{formatCurrency(item.amount)}
+                        +{item.amountText}
                       </span>
                     </div>
                   ))}
@@ -140,7 +139,7 @@ const CashFlowStatement: React.FC<CashFlowStatementProps> = ({
                     >
                       <span className="text-slate-600 dark:text-slate-400">{item.label}</span>
                       <span className="font-mono text-rose-600 dark:text-rose-400">
-                        -{formatCurrency(item.amount)}
+                        -{item.amountText}
                       </span>
                     </div>
                   ))}
@@ -158,7 +157,7 @@ const CashFlowStatement: React.FC<CashFlowStatementProps> = ({
                     : 'text-rose-600 dark:text-rose-400',
                 )}
               >
-                {formatCurrency(group.total)}
+                {group.totalText}
               </span>
             </div>
           </div>
@@ -193,7 +192,7 @@ const CashFlowStatement: React.FC<CashFlowStatementProps> = ({
               <CardContent className="pt-6 px-4">
                 <p className="text-sm font-medium text-slate-500 mb-1">期初餘額</p>
                 <p className="text-lg font-bold text-slate-700 dark:text-slate-300">
-                  {formatCurrency(data.beginningBalance)}
+                  {data.beginningBalanceText}
                 </p>
               </CardContent>
             </Card>
@@ -216,7 +215,7 @@ const CashFlowStatement: React.FC<CashFlowStatementProps> = ({
                   )}
                 >
                   {data.netCashChange > 0 ? '+' : ''}
-                  {formatCurrency(data.netCashChange)}
+                  {data.netCashChangeText}
                 </p>
               </CardContent>
             </Card>
@@ -224,14 +223,14 @@ const CashFlowStatement: React.FC<CashFlowStatementProps> = ({
               <CardContent className="pt-6 px-4">
                 <p className="text-sm font-medium text-slate-500 mb-1">期末餘額 (計算)</p>
                 <p className="text-lg font-bold text-slate-700 dark:text-slate-300">
-                  {formatCurrency(data.endingBalance)}
+                  {data.endingBalanceText}
                 </p>
               </CardContent>
             </Card>
             <Card className="bg-slate-900 border-slate-800">
               <CardContent className="pt-6 px-4">
                 <p className="text-sm font-medium text-slate-400 mb-1">帳戶實際餘額</p>
-                <p className="text-lg font-bold text-white">{formatCurrency(data.actualBalance)}</p>
+                <p className="text-lg font-bold text-white">{data.actualBalanceText}</p>
               </CardContent>
             </Card>
           </div>
@@ -252,9 +251,9 @@ const CashFlowStatement: React.FC<CashFlowStatementProps> = ({
               <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-500" />
               <AlertTitle>對帳差異提醒</AlertTitle>
               <AlertDescription>
-                期末現金（計算值：{formatCurrency(data.endingBalance)}）與帳戶實際餘額（
-                {formatCurrency(data.actualBalance)}）存在差異， 金額為{' '}
-                <span className="font-bold underline">{formatCurrency(data.adjustment)}</span>。
+                期末現金（計算值：{data.endingBalanceText}）與帳戶實際餘額（
+                {data.actualBalanceText}）存在差異， 金額為{' '}
+                <span className="font-bold underline">{data.adjustmentText}</span>。
                 請確認是否有漏記交易，或帳戶結算金額是否有誤。
               </AlertDescription>
             </Alert>

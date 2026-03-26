@@ -3,7 +3,10 @@ import { useCallback, useEffect, useState } from 'react';
 import { format } from 'date-fns';
 
 import { reportService } from '@/domains/report/reportService';
-import { type IncomeStatementData } from '@/domains/report/schemas';
+import {
+  type IncomeStatementVM,
+  mapIncomeStatementToVM,
+} from '@/ui/features/report/viewmodels/reportDisplay.vm';
 import { useLoadingTask } from '@/ui/hooks/useLoadingTask';
 
 type ReportMode = 'MONTHLY' | 'YEARLY';
@@ -13,7 +16,7 @@ export function useIncomeStatement(
   controlledDate?: Date,
   reportMode: ReportMode = 'MONTHLY',
 ) {
-  const [data, setData] = useState<IncomeStatementData | null>(null);
+  const [data, setData] = useState<IncomeStatementVM | null>(null);
   const [internalDate, setInternalDate] = useState<Date>(new Date());
   const { loading, error, run } = useLoadingTask();
 
@@ -26,7 +29,7 @@ export function useIncomeStatement(
 
     await run(async () => {
       const result = await reportService.getStoredIncomeStatement(householdId, yearMonth);
-      setData(result);
+      setData(result ? mapIncomeStatementToVM(result) : null);
     });
   }, [householdId, currentDate, run, reportMode]);
 

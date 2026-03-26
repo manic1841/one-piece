@@ -3,7 +3,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { addMonths, format, subMonths } from 'date-fns';
 
 import { reportService } from '@/domains/report/reportService';
-import { type CashFlowData } from '@/domains/report/schemas';
+import { type CashFlowVM, mapCashFlowToVM } from '@/ui/features/report/viewmodels/reportDisplay.vm';
 
 type ReportMode = 'MONTHLY' | 'YEARLY';
 
@@ -12,7 +12,7 @@ export function useCashFlow(
   controlledDate?: Date,
   reportMode: ReportMode = 'MONTHLY',
 ) {
-  const [data, setData] = useState<CashFlowData | null>(null);
+  const [data, setData] = useState<CashFlowVM | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const [internalDate, setInternalDate] = useState(new Date());
@@ -26,7 +26,7 @@ export function useCashFlow(
       setLoading(true);
       setError(null);
       const result = await reportService.getStoredCashFlow(householdId, yearMonth);
-      setData(result);
+      setData(result ? mapCashFlowToVM(result) : null);
     } catch (err) {
       setError(err instanceof Error ? err : new Error(String(err)));
     } finally {

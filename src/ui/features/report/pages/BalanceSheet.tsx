@@ -2,11 +2,13 @@ import React from 'react';
 
 import { AlertTriangle } from 'lucide-react';
 
-import { type BalanceSheetData, type BalanceSheetGroup } from '@/domains/report/schemas';
 import { Alert, AlertDescription, AlertTitle } from '@/ui/components/ui/alert';
 import { Card, CardContent } from '@/ui/components/ui/card';
 import { useBalanceSheet } from '@/ui/features/report/hooks/useBalanceSheet';
-import { formatCurrency } from '@/ui/utils';
+import {
+  type BalanceSheetGroupVM,
+  type BalanceSheetVM,
+} from '@/ui/features/report/viewmodels/reportDisplay.vm';
 import { cn } from '@/ui/utils/cn';
 
 import { ReportHeader, type ReportMode, type ReportView } from '../components/ReportHeader';
@@ -37,15 +39,13 @@ const BalanceSheetPage: React.FC<BalanceSheetPageProps> = ({
     return <div className="p-8 text-center text-red-500">Error loading report: {errorMsg}</div>;
   }
 
-  const renderGroup = (group: BalanceSheetGroup) => {
+  const renderGroup = (group: BalanceSheetGroupVM) => {
     if (group.total === 0) return null;
     return (
       <div key={group.label} className="mb-6">
         <div className="flex justify-between items-center mb-2 px-2">
           <h4 className="font-semibold text-slate-700 dark:text-slate-300">{group.label}</h4>
-          <span className="font-bold text-slate-900 dark:text-slate-100">
-            {formatCurrency(group.total)}
-          </span>
+          <span className="font-bold text-slate-900 dark:text-slate-100">{group.totalText}</span>
         </div>
         <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
           {group.items.map((item) => (
@@ -55,7 +55,7 @@ const BalanceSheetPage: React.FC<BalanceSheetPageProps> = ({
             >
               <span className="text-slate-600 dark:text-slate-400">{item.label}</span>
               <span className="font-mono text-slate-800 dark:text-slate-200">
-                {formatCurrency(item.amount)}
+                {item.amountText}
               </span>
             </div>
           ))}
@@ -64,7 +64,7 @@ const BalanceSheetPage: React.FC<BalanceSheetPageProps> = ({
     );
   };
 
-  const renderEquity = (equity: BalanceSheetData['equity']) => {
+  const renderEquity = (equity: BalanceSheetVM['equity']) => {
     const adjustmentTotal = equity.groups.adjustment?.total || 0;
     const showWarning = Math.abs(adjustmentTotal) > 1000;
 
@@ -97,7 +97,7 @@ const BalanceSheetPage: React.FC<BalanceSheetPageProps> = ({
                     Math.abs(adjustmentTotal) > 0 ? 'text-amber-600' : 'text-slate-500',
                   )}
                 >
-                  {formatCurrency(adjustmentTotal)}
+                  {equity.groups.adjustment.totalText}
                 </span>
               </div>
             </div>
@@ -105,7 +105,7 @@ const BalanceSheetPage: React.FC<BalanceSheetPageProps> = ({
 
           <div className="flex justify-between items-center py-4 px-4 bg-slate-900 text-white rounded-xl">
             <span className="font-bold">期末權益 (Total Equity)</span>
-            <span className="text-xl font-bold">{formatCurrency(equity.total)}</span>
+            <span className="text-xl font-bold">{equity.totalText}</span>
           </div>
         </div>
 
@@ -153,7 +153,7 @@ const BalanceSheetPage: React.FC<BalanceSheetPageProps> = ({
                   資產合計
                 </p>
                 <p className="text-2xl font-bold text-blue-700 dark:text-blue-300">
-                  {formatCurrency(data.assets.total)}
+                  {data.assets.totalText}
                 </p>
               </CardContent>
             </Card>
@@ -163,14 +163,14 @@ const BalanceSheetPage: React.FC<BalanceSheetPageProps> = ({
                   負債合計
                 </p>
                 <p className="text-2xl font-bold text-rose-700 dark:text-rose-300">
-                  {formatCurrency(data.liabilities.total)}
+                  {data.liabilities.totalText}
                 </p>
               </CardContent>
             </Card>
             <Card className="bg-slate-900 text-white">
               <CardContent className="pt-6">
                 <p className="text-sm font-medium text-slate-400 mb-1">淨資產 (Equity)</p>
-                <p className="text-2xl font-bold text-white">{formatCurrency(data.equity.total)}</p>
+                <p className="text-2xl font-bold text-white">{data.equity.totalText}</p>
               </CardContent>
             </Card>
           </div>

@@ -2,10 +2,9 @@ import React, { useState } from 'react';
 
 import { ChevronDown, ChevronRight } from 'lucide-react';
 
-import { type IncomeStatementItem } from '@/domains/report/schemas';
 import { Card, CardContent, CardHeader, CardTitle } from '@/ui/components/ui/card';
 import { useIncomeStatement } from '@/ui/features/report/hooks/useIncomeStatement';
-import { formatCurrency } from '@/ui/utils';
+import { type IncomeStatementItemVM } from '@/ui/features/report/viewmodels/reportDisplay.vm';
 
 import { ReportHeader, type ReportMode, type ReportView } from '../components/ReportHeader';
 
@@ -41,7 +40,7 @@ const IncomeStatementPage: React.FC<IncomeStatementPageProps> = ({
     setExpandedCodes(next);
   };
 
-  const renderItem = (item: IncomeStatementItem, depth = 0) => {
+  const renderItem = (item: IncomeStatementItemVM, depth = 0) => {
     const hasSubItems = item.subItems && item.subItems.length > 0;
     const isExpanded = expandedCodes.has(item.code);
 
@@ -70,13 +69,11 @@ const IncomeStatementPage: React.FC<IncomeStatementPageProps> = ({
               {item.label}
             </span>
           </div>
-          <span className={`font-mono ${depth === 0 ? 'font-bold' : ''}`}>
-            {formatCurrency(item.amount)}
-          </span>
+          <span className={`font-mono ${depth === 0 ? 'font-bold' : ''}`}>{item.amountText}</span>
         </div>
         {isExpanded && hasSubItems && (
           <div className="bg-slate-50/30 dark:bg-slate-900/10">
-            {item.subItems!.map((sub: IncomeStatementItem) => renderItem(sub, depth + 1))}
+            {item.subItems!.map((sub: IncomeStatementItemVM) => renderItem(sub, depth + 1))}
           </div>
         )}
       </div>
@@ -116,7 +113,7 @@ const IncomeStatementPage: React.FC<IncomeStatementPageProps> = ({
                   收入合計
                 </p>
                 <p className="text-2xl font-bold text-emerald-700 dark:text-emerald-300">
-                  {formatCurrency(data.incomeTotal)}
+                  {data.incomeTotalText}
                 </p>
               </CardContent>
             </Card>
@@ -126,7 +123,7 @@ const IncomeStatementPage: React.FC<IncomeStatementPageProps> = ({
                   支出合計
                 </p>
                 <p className="text-2xl font-bold text-rose-700 dark:text-rose-300">
-                  {formatCurrency(data.expenseTotal)}
+                  {data.expenseTotalText}
                 </p>
               </CardContent>
             </Card>
@@ -136,7 +133,7 @@ const IncomeStatementPage: React.FC<IncomeStatementPageProps> = ({
                 <p
                   className={`text-2xl font-bold ${data.netIncome >= 0 ? 'text-primary' : 'text-rose-600'}`}
                 >
-                  {formatCurrency(data.netIncome)}
+                  {data.netIncomeText}
                 </p>
               </CardContent>
             </Card>
@@ -144,7 +141,7 @@ const IncomeStatementPage: React.FC<IncomeStatementPageProps> = ({
 
           <div className="grid grid-cols-1 gap-6">
             {/* Income Table */}
-            <Card overflow-hidden>
+            <Card className="overflow-hidden">
               <CardHeader className="bg-emerald-50/50 dark:bg-emerald-950/10 border-b border-emerald-100/50">
                 <CardTitle className="text-lg flex items-center gap-2 text-emerald-700 dark:text-emerald-300">
                   收入 (Income)

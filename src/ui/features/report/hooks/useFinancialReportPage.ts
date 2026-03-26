@@ -1,22 +1,26 @@
 import { useCallback, useEffect, useState } from 'react';
 
 import {
-  type BalanceSheetView,
-  type CashFlowView,
-  type IncomeStatementView,
-} from '@/domains/report/mappers';
-import {
-  mapToBalanceSheetView,
-  mapToCashFlowView,
-  mapToIncomeStatementView,
-} from '@/domains/report/mappers';
-import { type FinancialReport, ReportType } from '@/domains/report/types';
+  type BalanceSheetData,
+  type CashFlowData,
+  type FinancialReport,
+  type IncomeStatementData,
+  ReportType,
+} from '@/domains/report/schemas';
 import { useReportCmds } from '@/ui/features/report/hooks/useReportCmds';
 import { useReports } from '@/ui/features/report/hooks/useReports';
+import {
+  type BalanceSheetVM,
+  type CashFlowVM,
+  type IncomeStatementVM,
+  mapBalanceSheetToVM,
+  mapCashFlowToVM,
+  mapIncomeStatementToVM,
+} from '@/ui/features/report/viewmodels/reportDisplay.vm';
 
 type ReportTypeEnum = ReportType;
 type ViewType = 'month' | 'year';
-type ReportView = IncomeStatementView | BalanceSheetView | CashFlowView;
+type ReportView = IncomeStatementVM | BalanceSheetVM | CashFlowVM;
 
 interface UseFinancialReportPageProps {
   householdId: string | undefined;
@@ -59,11 +63,11 @@ export function useFinancialReportPage<T extends ReportView>({
     (reportData: FinancialReport): T | null => {
       switch (reportType) {
         case ReportType.INCOME_STATEMENT:
-          return mapToIncomeStatementView(reportData) as T | null;
+          return mapIncomeStatementToVM(reportData.data as IncomeStatementData) as T;
         case ReportType.BALANCE_SHEET:
-          return mapToBalanceSheetView(reportData) as T | null;
+          return mapBalanceSheetToVM(reportData.data as BalanceSheetData) as T;
         case ReportType.CASH_FLOW:
-          return mapToCashFlowView(reportData) as T | null;
+          return mapCashFlowToVM(reportData.data as CashFlowData) as T;
         default:
           return null;
       }

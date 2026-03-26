@@ -4,15 +4,18 @@ import { format } from 'date-fns';
 
 import { getUnsettledStatsUseCase } from '@/application/report/use_cases/getUnsettledStatsUseCase';
 import { reportService } from '@/domains/report/reportService';
-import {
-  type BalanceSheetData,
-  type CashFlowData,
-  type IncomeStatementData,
-  ReportType,
-} from '@/domains/report/schemas';
+import { ReportType } from '@/domains/report/schemas';
 import { useAuth } from '@/infra/contexts/useAuth';
 import { reportRepository } from '@/infra/repositories/reportRepository';
 import { useLedgerCodes } from '@/ui/features/ledger/hooks/useLedgerCodes';
+import {
+  type BalanceSheetVM,
+  type CashFlowVM,
+  type IncomeStatementVM,
+  mapBalanceSheetToVM,
+  mapCashFlowToVM,
+  mapIncomeStatementToVM,
+} from '@/ui/features/report/viewmodels/reportDisplay.vm';
 
 export const useReportSettlement = (householdId: string, userEmail: string) => {
   const { currentUser, isAdmin } = useAuth();
@@ -40,9 +43,9 @@ export const useReportSettlement = (householdId: string, userEmail: string) => {
   const [unsettledPortfolioNames, setUnsettledPortfolioNames] = useState<string[]>([]);
   const [unsettledDebtNames, setUnsettledDebtNames] = useState<string[]>([]);
   const [previewData, setPreviewData] = useState<{
-    incomeStatement: IncomeStatementData;
-    balanceSheet: BalanceSheetData;
-    cashFlow: CashFlowData;
+    incomeStatement: IncomeStatementVM;
+    balanceSheet: BalanceSheetVM;
+    cashFlow: CashFlowVM;
   } | null>(null);
   const [isPreviewing, setIsPreviewing] = useState(false);
 
@@ -65,7 +68,11 @@ export const useReportSettlement = (householdId: string, userEmail: string) => {
         reportService.generateBalanceSheet(householdId, yearMonth, resolveReportLabel),
         reportService.generateCashFlow(householdId, yearMonth, resolveReportLabel),
       ]);
-      setPreviewData({ incomeStatement: income, balanceSheet: balance, cashFlow: cash });
+      setPreviewData({
+        incomeStatement: mapIncomeStatementToVM(income),
+        balanceSheet: mapBalanceSheetToVM(balance),
+        cashFlow: mapCashFlowToVM(cash),
+      });
     } catch (err) {
       console.error('Error fetching preview data:', err);
       setError('無法載入預覽數據。');
