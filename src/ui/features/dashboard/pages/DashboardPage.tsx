@@ -11,8 +11,9 @@ const Dashboard: React.FC = () => {
   const { userProfile } = useAuth();
   const householdId = userProfile?.householdId;
 
-  const { leverageStats, statsLoading } = useDashboardPage({
+  const { leverageStatsVM, statsLoading } = useDashboardPage({
     householdId,
+    includeUnsettledStats: false,
   });
 
   return (
@@ -22,8 +23,8 @@ const Dashboard: React.FC = () => {
           <AssetTrendCard householdId={householdId} />
         </div>
         <DebtSummaryCard householdId={householdId} />
-        <LeverageStatsCardUI stats={leverageStats} loading={statsLoading} />
-        
+        <LeverageStatsCardUI stats={leverageStatsVM} loading={statsLoading} />
+
         {/* Temporarily hidden UnsettledStatsCardUI
         <UnsettledStatsCardUI stats={unsettledStats} loading={statsLoading} />
         */}

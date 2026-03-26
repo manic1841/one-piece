@@ -19,18 +19,17 @@ import { type AssetTrendViewMode } from '@/domains/report/logic/trendAggregation
 import { Button } from '@/ui/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/ui/components/ui/card';
 import { useAssetTrend } from '@/ui/features/account/hooks/useAssetTrend';
-import { formatCurrency } from '@/ui/utils';
+import {
+  formatCompactAxisValue,
+  formatTrendTooltipValue,
+  mapAssetTrendDataToChartPoints,
+  mapAssetTrendMetricToVM,
+  mapAssetTrendStatusToBadgeVM,
+  mapAssetTrendYAxisDomains,
+} from '@/ui/features/dashboard/viewmodels/dashboardDisplay.vm';
 
 interface AssetTrendCardProps {
   householdId: string | undefined;
-}
-
-interface ChartPoint {
-  label: string;
-  totalAssets: number;
-  income: number;
-  expense: number;
-  investmentGain: number;
 }
 
 const AssetTrendCard: React.FC<AssetTrendCardProps> = ({ householdId }) => {
@@ -38,50 +37,15 @@ const AssetTrendCard: React.FC<AssetTrendCardProps> = ({ householdId }) => {
     householdId,
   });
 
-  const chartData = useMemo<ChartPoint[]>(() => {
-    if (!trendData) return [];
-
-    const points: ChartPoint[] = trendData.labels.map((label, index) => ({
-      label,
-      totalAssets: trendData.assets[index] ?? 0,
-      income: trendData.incomes[index] ?? 0,
-      expense: trendData.expenses[index] ?? 0,
-      investmentGain: trendData.investmentGains[index] ?? 0,
-    }));
-
-    let lastDataIndex = -1;
-    for (let i = points.length - 1; i >= 0; i--) {
-      const p = points[i];
-      if (
-        (p.totalAssets !== null && p.totalAssets !== 0) ||
-        (p.income !== null && p.income !== 0) ||
-        (p.expense !== null && p.expense !== 0) ||
-        (p.investmentGain !== null && p.investmentGain !== 0)
-      ) {
-        lastDataIndex = i;
-        break;
-      }
-    }
-
-    if (lastDataIndex === -1) return [];
-    return points.slice(0, lastDataIndex + 1);
-  }, [trendData]);
+  const chartData = useMemo(() => mapAssetTrendDataToChartPoints(trendData), [trendData]);
 
   const yAxisDomains = useMemo(() => {
-    const actualAssetsMax = Math.max(...chartData.map((p) => p.totalAssets || 0), 0);
-    const projectedAssets = healthStatus?.assets?.projected || 0;
-    const rightMax = Math.max(actualAssetsMax, projectedAssets);
-
-    const actualIncomeMax = Math.max(...chartData.map((p) => p.income || 0), 0);
-    const actualExpenseMax = Math.max(...chartData.map((p) => p.expense || 0), 0);
-    const projectedIncome = healthStatus?.income?.projected || 0;
-    const projectedExpense = healthStatus?.expense?.projected || 0;
-    const leftMax = Math.max(actualIncomeMax, actualExpenseMax, projectedIncome, projectedExpense);
-
-    return {
-      left: [0, Math.ceil(leftMax * 1.1)],
-      right: [0, Math.ceil(rightMax * 1.1)],
-    };
+    return mapAssetTrendYAxisDomains(
+      chartData,
+      healthStatus?.assets?.projected || 0,
+      healthStatus?.income?.projected || 0,
+      healthStatus?.expense?.projected || 0,
+    );
   }, [chartData, healthStatus]);
 
   const modes: { label: string; value: AssetTrendViewMode }[] = [
@@ -101,47 +65,31 @@ const AssetTrendCard: React.FC<AssetTrendCardProps> = ({ householdId }) => {
     );
   }
 
-  const renderStatusIcon = (status: 'ahead' | 'on-track' | 'behind', size = 16) => {
-    if (status === 'ahead') return <CheckCircle size={size} className="text-emerald-500" />;
-    if (status === 'on-track') return <MinusCircle size={size} className="text-blue-500" />;
-    return <AlertCircle size={size} className="text-rose-500" />;
-  };
-
-  const renderStatusLabel = (status: 'ahead' | 'on-track' | 'behind') => {
-    if (status === 'ahead') return '進度超前';
-    if (status === 'on-track') return '符合預期';
-    return '稍微落後';
-  };
-
-  // Build the text metrics row
-  const renderMetric = (
-    label: string,
-    actual: number,
-    projected: number,
-    gapPercent: number,
-    invertGoodMode: boolean = false,
+  const renderStatusIcon = (
+    icon: 'ahead' | 'on-track' | 'behind',
+    className: string,
+    size = 16,
   ) => {
-    const isGood = invertGoodMode ? gapPercent <= 0 : gapPercent >= 0;
-    const sign = gapPercent > 0 ? '+' : '';
-    const colorClass = isGood ? 'text-emerald-600' : 'text-rose-600';
+    if (icon === 'ahead') return <CheckCircle size={size} className={className} />;
+    if (icon === 'on-track') return <MinusCircle size={size} className={className} />;
+    return <AlertCircle size={size} className={className} />;
+  };
 
+  const renderMetric = (metric: ReturnType<typeof mapAssetTrendMetricToVM>) => {
     return (
       <div className="flex flex-col text-sm bg-slate-50 p-3 rounded-lg border border-slate-100 flex-1">
-        <span className="text-slate-500 mb-1">{label}</span>
+        <span className="text-slate-500 mb-1">{metric.label}</span>
         <div className="flex items-end justify-between">
           <div className="flex flex-col">
-            <span className="font-semibold text-slate-800 tabular-nums">
-              {formatCurrency(Math.round(actual))}
-            </span>
+            <span className="font-semibold text-slate-800 tabular-nums">{metric.actualText}</span>
             <span className="text-xs text-slate-400 tabular-nums mb-0.5">
-              ??{formatCurrency(Math.round(projected))}
+              {metric.projectedText}
             </span>
           </div>
           <span
-            className={`text-xs font-medium ml-2 px-1.5 py-0.5 rounded-full ${isGood ? 'bg-emerald-100' : 'bg-rose-100'} ${colorClass}`}
+            className={`text-xs font-medium ml-2 px-1.5 py-0.5 rounded-full ${metric.gapBadgeClassName}`}
           >
-            {sign}
-            {gapPercent.toFixed(1)}% {isGood ? '超前' : '落後'}
+            {metric.gapText}
           </span>
         </div>
       </div>
@@ -155,12 +103,16 @@ const AssetTrendCard: React.FC<AssetTrendCardProps> = ({ householdId }) => {
           <TrendingUp className="text-blue-600" size={24} />
           <CardTitle className="text-lg font-semibold flex items-center gap-3">
             資產趨勢
-            {healthStatus && (
-              <span className="flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full bg-slate-100 font-medium text-slate-600 border border-slate-200">
-                {renderStatusIcon(healthStatus.status)}
-                {renderStatusLabel(healthStatus.status)}
-              </span>
-            )}
+            {healthStatus &&
+              (() => {
+                const statusBadge = mapAssetTrendStatusToBadgeVM(healthStatus.status);
+                return (
+                  <span className="flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full bg-slate-100 font-medium text-slate-600 border border-slate-200">
+                    {renderStatusIcon(statusBadge.icon, statusBadge.iconClassName)}
+                    {statusBadge.label}
+                  </span>
+                );
+              })()}
           </CardTitle>
         </div>
 
@@ -183,18 +135,21 @@ const AssetTrendCard: React.FC<AssetTrendCardProps> = ({ householdId }) => {
         {healthStatus && activePlan && (
           <div className="flex flex-col sm:flex-row gap-3 mb-6 mt-2">
             {renderMetric(
-              '累計收入',
-              healthStatus.income.actual,
-              healthStatus.income.projected,
-              healthStatus.income.gapPercent,
-              false,
+              mapAssetTrendMetricToVM(
+                '累計收入',
+                healthStatus.income.actual,
+                healthStatus.income.projected,
+                healthStatus.income.gapPercent,
+              ),
             )}
             {renderMetric(
-              '累計支出',
-              healthStatus.expense.actual,
-              healthStatus.expense.projected,
-              healthStatus.expense.gapPercent,
-              true,
+              mapAssetTrendMetricToVM(
+                '累計支出',
+                healthStatus.expense.actual,
+                healthStatus.expense.projected,
+                healthStatus.expense.gapPercent,
+                true,
+              ),
             )}
           </div>
         )}
@@ -222,13 +177,7 @@ const AssetTrendCard: React.FC<AssetTrendCardProps> = ({ householdId }) => {
                   axisLine={false}
                   tickLine={false}
                   tick={{ fontSize: 11, fill: '#94a3b8' }}
-                  tickFormatter={(val) =>
-                    val >= 1000000
-                      ? `${(val / 1000000).toFixed(1)}M`
-                      : val >= 1000
-                        ? `${(val / 1000).toFixed(0)}K`
-                        : val
-                  }
+                  tickFormatter={formatCompactAxisValue}
                 />
                 <YAxis
                   yAxisId="right"
@@ -237,16 +186,10 @@ const AssetTrendCard: React.FC<AssetTrendCardProps> = ({ householdId }) => {
                   axisLine={false}
                   tickLine={false}
                   tick={{ fontSize: 11, fill: '#3b82f6' }}
-                  tickFormatter={(val) =>
-                    val >= 1000000
-                      ? `${(val / 1000000).toFixed(1)}M`
-                      : val >= 1000
-                        ? `${(val / 1000).toFixed(0)}K`
-                        : val
-                  }
+                  tickFormatter={formatCompactAxisValue}
                 />
                 <Tooltip
-                  formatter={(value: number) => formatCurrency(value)}
+                  formatter={formatTrendTooltipValue}
                   contentStyle={{
                     backgroundColor: 'white',
                     border: '1px solid #e2e8f0',

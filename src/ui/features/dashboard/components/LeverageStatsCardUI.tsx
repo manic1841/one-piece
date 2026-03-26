@@ -2,12 +2,11 @@ import React from 'react';
 
 import { Info, Rocket, Shield } from 'lucide-react';
 
-import { type LeverageStats } from '@/application/portfolio/use_cases/getLeverageStatsUseCase';
 import { Card, CardContent, CardHeader, CardTitle } from '@/ui/components/ui/card';
-import { formatCurrency } from '@/ui/utils';
+import { type LeverageStatsCardVM } from '@/ui/features/dashboard/viewmodels/dashboardDisplay.vm';
 
 interface LeverageStatsCardUIProps {
-  stats: LeverageStats | null;
+  stats: LeverageStatsCardVM;
   loading: boolean;
 }
 
@@ -19,24 +18,6 @@ const LeverageStatsCardUI: React.FC<LeverageStatsCardUIProps> = ({ stats, loadin
       </Card>
     );
   }
-
-  const { ratio, totalExposure, totalNetValue } = stats ?? {
-    ratio: 0,
-    totalExposure: 0,
-    totalNetValue: 0,
-  };
-
-  const getStatusColor = (r: number) => {
-    if (r <= 1.05) return 'text-green-600';
-    if (r <= 1.5) return 'text-amber-600';
-    return 'text-red-600';
-  };
-
-  const getProgressColor = (r: number) => {
-    if (r <= 1.05) return 'bg-green-500';
-    if (r <= 1.5) return 'bg-amber-500';
-    return 'bg-red-500';
-  };
 
   return (
     <Card className="overflow-hidden border-none shadow-md bg-white">
@@ -50,10 +31,7 @@ const LeverageStatsCardUI: React.FC<LeverageStatsCardUIProps> = ({ stats, loadin
       </CardHeader>
       <CardContent className="pt-4 space-y-6">
         <div className="flex flex-col items-center justify-center py-4">
-          <div className={`text-5xl font-black ${getStatusColor(ratio)}`}>
-            {ratio.toFixed(2)}
-            <span className="text-xl ml-1">x</span>
-          </div>
+          <div className={`text-5xl font-black ${stats.statusColorClass}`}>{stats.ratioText}</div>
           <p className="text-sm text-slate-400 mt-2 font-medium">槓桿比率（越低越穩健）</p>
         </div>
 
@@ -61,12 +39,12 @@ const LeverageStatsCardUI: React.FC<LeverageStatsCardUIProps> = ({ stats, loadin
           <div className="space-y-2">
             <div className="flex justify-between text-xs font-medium text-slate-500">
               <span>總曝險 (Exposure)</span>
-              <span>{formatCurrency(totalExposure)}</span>
+              <span>{stats.totalExposureText}</span>
             </div>
             <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
               <div
-                className={`h-full ${getProgressColor(ratio)} transition-all duration-1000`}
-                style={{ width: `${Math.min((ratio / 2) * 100, 100)}%` }}
+                className={`h-full ${stats.progressColorClass} transition-all duration-1000`}
+                style={{ width: `${stats.progressWidth}%` }}
               />
             </div>
           </div>
@@ -76,7 +54,7 @@ const LeverageStatsCardUI: React.FC<LeverageStatsCardUIProps> = ({ stats, loadin
               <Info size={14} />
               <span className="text-xs">淨資產價值 (NAV)</span>
             </div>
-            <span className="text-sm font-semibold">{formatCurrency(totalNetValue)}</span>
+            <span className="text-sm font-semibold">{stats.totalNetValueText}</span>
           </div>
         </div>
 

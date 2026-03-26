@@ -123,6 +123,23 @@ class TransactionRepository extends BaseRepository<Transaction, [string, string?
     return transactions.sort((a, b) => toMillis(b.date) - toMillis(a.date));
   }
 
+  async listDebtPaymentsByDateRange(
+    householdId: string,
+    startDate: Date,
+    endDate: Date,
+  ): Promise<Transaction[]> {
+    const transactions = await this.list(
+      [householdId],
+      [
+        where('intentType', '==', IntentType.DEBT_PAYMENT),
+        where('date', '>=', startDate),
+        where('date', '<', endDate),
+      ],
+    );
+
+    return transactions.sort((a, b) => toMillis(b.date) - toMillis(a.date));
+  }
+
   async listByDebtAccountAndIntent(
     householdId: string,
     debtAccountId: string,

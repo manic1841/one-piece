@@ -1,10 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
-import { where } from 'firebase/firestore';
 
-import { IntentType } from '@/domains/ledger/constants';
-import { isInGracePeriod, calculateGraceMonthlyPayment } from '@/domains/debt/debtPaymentCalculator';
-import { listDebtAccountsUseCase } from '@/application/debt/use_cases/listDebtAccountsUseCase';
-import { transactionRepository } from '@/infra/repositories/transactionRepository';
+import { getDebtSummaryUseCase } from '@/application/debt/use_cases/getDebtSummaryUseCase';
+import { mapDebtSummaryToCardVM } from '@/ui/features/dashboard/viewmodels/dashboardDisplay.vm';
 
 export interface DebtSummaryData {
   totalDebt: number;
@@ -28,48 +25,12 @@ export function useDebtSummary(householdId: string | undefined) {
 
     setData((prev) => ({ ...prev, loading: true, error: null }));
     try {
-      const accounts = await listDebtAccountsUseCase.execute({ householdId });
-      
-      const now = new Date();
-      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-      const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
-
-      // Fetch all debt payments for this month in the household
-      const payments = await transactionRepository.list(
-        [householdId],
-        [
-          where('intentType', '==', IntentType.DEBT_PAYMENT),
-          where('date', '>=', startOfMonth),
-          where('date', '<', endOfMonth),
-        ]
-      );
-
-      const paidAccountIds = new Set(payments.map(p => p.debtAccountId).filter(Boolean));
-
-      let totalDebt = 0;
-      let monthlyPaymentTotal = 0;
-      let unpaidCount = 0;
-
-      accounts.forEach((acc) => {
-        totalDebt += acc.currentBalance;
-        
-        // Calculate monthly due based on grace period logic
-        if (isInGracePeriod(acc.graceEndDate)) {
-          monthlyPaymentTotal += calculateGraceMonthlyPayment(acc.currentBalance, acc.interestRate);
-        } else {
-          monthlyPaymentTotal += acc.monthlyPayment;
-        }
-
-        // Check if unpaid this month
-        if (!paidAccountIds.has(acc.id)) {
-          unpaidCount++;
-        }
-      });
+      const summary = await getDebtSummaryUseCase.execute({ householdId });
 
       setData({
-        totalDebt,
-        monthlyPaymentTotal,
-        unpaidCount,
+        totalDebt: summary.totalDebt,
+        monthlyPaymentTotal: summary.monthlyPaymentTotal,
+        unpaidCount: summary.unpaidCount,
         loading: false,
         error: null,
       });
@@ -83,5 +44,9 @@ export function useDebtSummary(householdId: string | undefined) {
     loadData();
   }, [loadData]);
 
-  return { ...data, reload: loadData };
+  return {
+    ...data,
+    cardVM: mapDebtSummaryToCardVM(data.totalDebt, data.monthlyPaymentTotal, data.unpaidCount),
+    reload: loadData,
+  };
 }

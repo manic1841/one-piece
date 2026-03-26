@@ -6,9 +6,14 @@ import { getUnsettledStatsUseCase } from '@/application/report/use_cases/getUnse
 import { type UnsettledStats } from '@/application/report/use_cases/getUnsettledStatsUseCase';
 import { type AuthContext } from '@/application/types';
 import { useAuth } from '@/infra/contexts/useAuth';
+import {
+  mapLeverageStatsToCardVM,
+  mapUnsettledStatsToCardVM,
+} from '@/ui/features/dashboard/viewmodels/dashboardDisplay.vm';
 
 interface UseDashboardPageProps {
   householdId: string | undefined;
+  includeUnsettledStats?: boolean;
 }
 
 const EMPTY_LEVERAGE_STATS: LeverageStats = {
@@ -30,7 +35,10 @@ function createEmptyUnsettledStats(): UnsettledStats {
   };
 }
 
-export function useDashboardPage({ householdId }: UseDashboardPageProps) {
+export function useDashboardPage({
+  householdId,
+  includeUnsettledStats = false,
+}: UseDashboardPageProps) {
   const { currentUser, isAdmin } = useAuth();
   const [unsettledStats, setUnsettledStats] = useState<UnsettledStats>(createEmptyUnsettledStats());
   const [leverageStats, setLeverageStats] = useState<LeverageStats>(EMPTY_LEVERAGE_STATS);
@@ -57,7 +65,9 @@ export function useDashboardPage({ householdId }: UseDashboardPageProps) {
     try {
       const [leverage, unsettled] = await Promise.all([
         getLeverageStatsUseCase.execute({ householdId, auth }),
-        getUnsettledStatsUseCase.execute({ householdId, auth }),
+        includeUnsettledStats
+          ? getUnsettledStatsUseCase.execute({ householdId, auth })
+          : Promise.resolve(createEmptyUnsettledStats()),
       ]);
       setUnsettledStats(unsettled ?? createEmptyUnsettledStats());
       setLeverageStats(leverage ?? EMPTY_LEVERAGE_STATS);
@@ -70,7 +80,7 @@ export function useDashboardPage({ householdId }: UseDashboardPageProps) {
     } finally {
       setStatsLoading(false);
     }
-  }, [householdId, auth]);
+  }, [householdId, auth, includeUnsettledStats]);
 
   useEffect(() => {
     loadStatsData();
@@ -78,11 +88,13 @@ export function useDashboardPage({ householdId }: UseDashboardPageProps) {
 
   return {
     unsettledStats,
+    unsettledStatsVM: mapUnsettledStatsToCardVM(unsettledStats),
     leverageStats,
+    leverageStatsVM: mapLeverageStatsToCardVM(leverageStats),
     statsLoading,
     error,
     reload: useCallback(() => {
-      loadStatsData();
+      return loadStatsData();
     }, [loadStatsData]),
   };
 }
