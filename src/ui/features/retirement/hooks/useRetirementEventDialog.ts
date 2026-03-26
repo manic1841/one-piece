@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
 
-import {
-  toRetirementEventDomain,
-  toRetirementEventForm,
-} from '@/domains/retirement/mappers/retirementFormMapper';
 import type { RetirementOneTimeEvent } from '@/domains/retirement/types';
+import {
+  RetirementEventFormVMSchema,
+  buildRetirementEventFormVM,
+  mapRetirementEventVMToDomain,
+} from '@/ui/features/retirement/viewmodels/retirementForm.vm';
 
 interface UseRetirementEventDialogOptions {
   initialData?: RetirementOneTimeEvent;
@@ -20,7 +21,7 @@ export function useRetirementEventDialog({
   const [isOpen, setIsOpen] = useState(false);
 
   // Initialize with mapper
-  const initialForm = toRetirementEventForm(initialData, currentYear);
+  const initialForm = buildRetirementEventFormVM(initialData, currentYear);
 
   const [name, setName] = useState(initialForm.name);
   const [year, setYear] = useState(initialForm.year);
@@ -32,7 +33,7 @@ export function useRetirementEventDialog({
   // Sync state when initialData changes or dialog opens
   useEffect(() => {
     if (isOpen) {
-      const form = toRetirementEventForm(initialData, currentYear);
+      const form = buildRetirementEventFormVM(initialData, currentYear);
       setName(form.name);
       setYear(form.year);
       setType(form.type);
@@ -50,18 +51,19 @@ export function useRetirementEventDialog({
 
     setLoading(true);
     try {
-      const domainData = toRetirementEventDomain({
+      const vm = RetirementEventFormVMSchema.parse({
         name,
         year,
         type,
         amount,
         note,
       });
+      const domainData = mapRetirementEventVMToDomain(vm);
       await onSave(domainData);
 
       if (!initialData) {
         // Reset form if it's a new entry
-        const resetForm = toRetirementEventForm(undefined, currentYear);
+        const resetForm = buildRetirementEventFormVM(undefined, currentYear);
         setName(resetForm.name);
         setYear(resetForm.year);
         setType(resetForm.type);

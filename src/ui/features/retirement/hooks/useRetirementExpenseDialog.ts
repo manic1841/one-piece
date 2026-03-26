@@ -2,15 +2,13 @@ import { useCallback, useEffect, useState } from 'react';
 
 import { listProjectsUseCase } from '@/application/project/use_cases/listProjectsUseCase';
 import { type Project } from '@/domains/project/schemas';
-import {
-  toRetirementExpenseDomain,
-  toRetirementExpenseForm,
-} from '@/domains/retirement/mappers/retirementFormMapper';
 import type { RetirementExpenseCategory } from '@/domains/retirement/types';
 import { useAuth } from '@/infra/contexts/useAuth';
-
-// import { projectService } from '@/services/projectService';
-// import { retirementPlanService } from '@/services/retirementPlanService';
+import {
+  RetirementExpenseFormVMSchema,
+  buildRetirementExpenseFormVM,
+  mapRetirementExpenseVMToDomain,
+} from '@/ui/features/retirement/viewmodels/retirementForm.vm';
 
 import { useRetirementDialogForm } from './useRetirementDialogForm';
 
@@ -29,7 +27,7 @@ export function useRetirementExpenseDialog({
   const [projects, setProjects] = useState<Project[]>([]);
 
   // Initialize with mapper
-  const initialForm = toRetirementExpenseForm(initialData, currentYear);
+  const initialForm = buildRetirementExpenseFormVM(initialData, currentYear);
 
   // Base fields from shared hook
   const {
@@ -84,7 +82,7 @@ export function useRetirementExpenseDialog({
   // Sync expense-specific fields when opening
   useEffect(() => {
     if (open) {
-      const form = toRetirementExpenseForm(initialData, currentYear);
+      const form = buildRetirementExpenseFormVM(initialData, currentYear);
       setSelectedProjectId(form.sourceProjectId || 'none');
       setEndYear(form.endYear || '');
       setPercentOfSalary(form.percentOfSalary || 0);
@@ -108,7 +106,7 @@ export function useRetirementExpenseDialog({
     setLoading(true);
 
     try {
-      const domainData = toRetirementExpenseDomain({
+      const vm = RetirementExpenseFormVMSchema.parse({
         name,
         sourceProjectId: selectedProjectId,
         baseAmount: amount,
@@ -118,6 +116,7 @@ export function useRetirementExpenseDialog({
         startYear,
         endYear,
       });
+      const domainData = mapRetirementExpenseVMToDomain(vm);
       await onSave(domainData);
       setOpen(false);
     } catch (error) {

@@ -17,6 +17,12 @@ const RetirementPlanForm: React.FC = () => {
   const { userProfile } = useAuth();
   const {
     plan,
+    headerVM,
+    assumptionsVM,
+    incomeItems,
+    expenseItems,
+    eventItems,
+    projectionVM,
     loading,
     isEditingName,
     editedName,
@@ -48,10 +54,18 @@ const RetirementPlanForm: React.FC = () => {
     return <div className="p-8">Plan not found</div>;
   }
 
+  if (!headerVM) {
+    return <div className="p-8">Plan not found</div>;
+  }
+
+  if (!assumptionsVM) {
+    return <div className="p-8">Plan not found</div>;
+  }
+
   return (
     <div className="space-y-6">
       <RetirementPlanHeader
-        plan={plan}
+        header={headerVM}
         isEditingName={isEditingName}
         editedName={editedName}
         setEditedName={setEditedName}
@@ -73,12 +87,13 @@ const RetirementPlanForm: React.FC = () => {
         </TabsList>
 
         <TabsContent value="assumptions" className="space-y-4">
-          <AssumptionsForm plan={plan} onSave={handleUpdatePlan} />
+          <AssumptionsForm assumptions={assumptionsVM} onSave={handleUpdatePlan} />
         </TabsContent>
 
         <TabsContent value="income" className="space-y-6">
           <IncomeTabContent
-            plan={plan}
+            currentYear={plan.currentYear}
+            incomeItems={incomeItems}
             handleAddIncome={handleAddIncome}
             handleUpdateIncome={handleUpdateIncome}
             handleDeleteIncome={handleDeleteIncome}
@@ -87,7 +102,8 @@ const RetirementPlanForm: React.FC = () => {
 
         <TabsContent value="expenses" className="space-y-4">
           <ExpenseTabContent
-            plan={plan}
+            currentYear={plan.currentYear}
+            expenseItems={expenseItems}
             handleAddExpense={handleAddExpense}
             handleUpdateExpense={handleUpdateExpense}
             handleDeleteExpense={handleDeleteExpense}
@@ -97,7 +113,8 @@ const RetirementPlanForm: React.FC = () => {
 
         <TabsContent value="events" className="space-y-4">
           <EventTabContent
-            plan={plan}
+            currentYear={plan.currentYear}
+            eventItems={eventItems}
             handleAddEvent={handleAddEvent}
             handleUpdateEvent={handleUpdateEvent}
             handleDeleteEvent={handleDeleteEvent}
@@ -105,7 +122,7 @@ const RetirementPlanForm: React.FC = () => {
         </TabsContent>
 
         <TabsContent value="results" className="space-y-4">
-          <ProjectionResultsContent plan={plan} />
+          <ProjectionResultsContent projectionVM={projectionVM} />
         </TabsContent>
       </Tabs>
     </div>

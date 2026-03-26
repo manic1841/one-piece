@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useState } from 'react';
+
 import { useNavigate } from 'react-router-dom';
 
-import { useRetirementPlans } from '@/ui/features/retirement/hooks/useRetirementPlans';
-import { type RetirementPlanCreate, type RetirementPlan } from '@/domains/retirement/types';
+import { type RetirementPlan, type RetirementPlanCreate } from '@/domains/retirement/types';
 import { useRetirementPlanCmds } from '@/ui/features/retirement/hooks/useRetirementPlanCmds';
+import { useRetirementPlans } from '@/ui/features/retirement/hooks/useRetirementPlans';
+import { mapRetirementPlanToListItemVM } from '@/ui/features/retirement/viewmodels/retirementDisplay.vm';
 
 export const useRetirementPlanListPage = (householdId?: string, email?: string) => {
   const navigate = useNavigate();
@@ -58,7 +60,7 @@ export const useRetirementPlanListPage = (householdId?: string, email?: string) 
     if (!window.confirm('Are you sure you want to delete this plan?')) return;
     try {
       await deletePlan(id);
-      listPlans();
+      await fetchPlans();
     } catch (err) {
       console.error('Failed to delete plan', err);
     }
@@ -66,6 +68,7 @@ export const useRetirementPlanListPage = (householdId?: string, email?: string) 
 
   return {
     plans,
+    planItems: plans.map(mapRetirementPlanToListItemVM),
     listPlans, // This will be used as the data source (async fetch)
     loading,
     error,

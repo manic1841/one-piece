@@ -1,5 +1,6 @@
 import { Info, Plus } from 'lucide-react';
 
+import { type RetirementIncomeSource } from '@/domains/retirement/types';
 import { Button } from '@/ui/components/ui/button';
 import {
   Dialog,
@@ -19,10 +20,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/ui/components/ui/select';
-import { type RetirementIncomeSource } from '@/domains/retirement/types';
 import { RetirementIncomeTypeOptions } from '@/ui/constants/retirement/retirementLabel';
 
-import { useRetirementIncomeDialog } from './useRetirementIncomeDialog';
+import { useRetirementIncomeDialog } from '../hooks/useRetirementIncomeDialog';
 
 interface RetirementIncomeDialogProps {
   onSave: (income: Omit<RetirementIncomeSource, 'id'>) => Promise<void>;

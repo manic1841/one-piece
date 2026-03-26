@@ -15,6 +15,14 @@ import {
 } from '@/domains/retirement/types';
 import { useRetirementPlanCmds } from '@/ui/features/retirement/hooks/useRetirementPlanCmds';
 import { useRetirementPlans } from '@/ui/features/retirement/hooks/useRetirementPlans';
+import {
+  mapRetirementEventToVM,
+  mapRetirementExpenseToVM,
+  mapRetirementIncomeToVM,
+  mapRetirementPlanToAssumptionsDisplayVM,
+  mapRetirementPlanToHeaderVM,
+  mapRetirementProjectionToVM,
+} from '@/ui/features/retirement/viewmodels/retirementDisplay.vm';
 
 export const useRetirementPlanDetailPage = (
   id: string | undefined,
@@ -217,6 +225,18 @@ export const useRetirementPlanDetailPage = (
 
   return {
     plan,
+    headerVM: plan ? mapRetirementPlanToHeaderVM(plan) : null,
+    assumptionsVM: plan ? mapRetirementPlanToAssumptionsDisplayVM(plan) : null,
+    incomeItems: plan
+      ? plan.incomes.map((income) => ({ domain: income, vm: mapRetirementIncomeToVM(income) }))
+      : [],
+    expenseItems: plan
+      ? plan.expenses.map((expense) => ({ domain: expense, vm: mapRetirementExpenseToVM(expense) }))
+      : [],
+    eventItems: plan
+      ? plan.events.map((event) => ({ domain: event, vm: mapRetirementEventToVM(event) }))
+      : [],
+    projectionVM: plan ? mapRetirementProjectionToVM(plan) : null,
     loading: planLoading,
     error: planError,
     isEditingName,

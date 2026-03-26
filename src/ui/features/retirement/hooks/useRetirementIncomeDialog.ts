@@ -1,14 +1,12 @@
 import { useCallback, useEffect, useState } from 'react';
 
-import {
-  toRetirementIncomeDomain,
-  toRetirementIncomeForm,
-} from '@/domains/retirement/mappers/retirementFormMapper';
 import type { RetirementIncomeSource } from '@/domains/retirement/types';
 import { useAuth } from '@/infra/contexts/useAuth';
-
-// import { plannedIncomeService } from '@/services/plannedIncomeService';
-// import { retirementPlanService } from '@/services/retirementPlanService';
+import {
+  RetirementIncomeFormVMSchema,
+  buildRetirementIncomeFormVM,
+  mapRetirementIncomeVMToDomain,
+} from '@/ui/features/retirement/viewmodels/retirementForm.vm';
 
 import { useRetirementDialogForm } from './useRetirementDialogForm';
 
@@ -27,7 +25,7 @@ export function useRetirementIncomeDialog({
   const [categories, setCategories] = useState<string[]>([]);
 
   // Initialize with mapper
-  const initialForm = toRetirementIncomeForm(initialData, currentYear);
+  const initialForm = buildRetirementIncomeFormVM(initialData, currentYear);
 
   // Base fields from shared hook
   const {
@@ -100,7 +98,7 @@ export function useRetirementIncomeDialog({
   // Sync income-specific fields when opening
   useEffect(() => {
     if (open) {
-      const form = toRetirementIncomeForm(initialData, currentYear);
+      const form = buildRetirementIncomeFormVM(initialData, currentYear);
       setType(form.type);
       setSelectedCategory(form.incomeCategory || 'none');
       setEndYear(form.endYear);
@@ -124,14 +122,7 @@ export function useRetirementIncomeDialog({
     } catch (error) {
       console.error('Failed to recalculate import data', error);
     }
-  }, [
-    userProfile?.householdId,
-    selectedCategory,
-    importStartDate,
-    importEndDate,
-    importSampleCount,
-    setAmount,
-  ]);
+  }, [userProfile?.householdId, selectedCategory]);
 
   // Recalculate when interactive params change, but ONLY if we are in plannedIncome mode
   useEffect(() => {
@@ -160,7 +151,7 @@ export function useRetirementIncomeDialog({
     setLoading(true);
 
     try {
-      const domainData = toRetirementIncomeDomain({
+      const vm = RetirementIncomeFormVMSchema.parse({
         name,
         type,
         baseAmount: amount,
@@ -171,6 +162,7 @@ export function useRetirementIncomeDialog({
         calculatedFrom,
         incomeCategory,
       });
+      const domainData = mapRetirementIncomeVMToDomain(vm);
       await onSave(domainData);
       setOpen(false);
     } catch (error) {

@@ -5,12 +5,11 @@ import { useAuth } from '@/infra/contexts/useAuth';
 import { Button } from '@/ui/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/ui/components/ui/card';
 import { useRetirementPlanListPage } from '@/ui/features/retirement/hooks/useRetirementPlanListPage';
-import { formatCurrency } from '@/ui/utils';
 
 export default function RetirementPlanList() {
   const { userProfile } = useAuth();
   const navigate = useNavigate();
-  const { plans, loading, error, createPlan } = useRetirementPlanListPage(
+  const { planItems, loading, error, createPlan } = useRetirementPlanListPage(
     userProfile?.householdId,
     userProfile?.email,
   );
@@ -43,7 +42,7 @@ export default function RetirementPlanList() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {plans.map((plan) => (
+        {planItems.map((plan) => (
           <Card
             key={plan.id}
             className="cursor-pointer hover:shadow-md transition-shadow"
@@ -61,21 +60,21 @@ export default function RetirementPlanList() {
               <div className="grid gap-2 pt-4">
                 <div className="flex items-center text-sm text-muted-foreground">
                   <Calendar className="mr-2 h-4 w-4" />
-                  Retire in {plan.birthYear + plan.retirementAge}
+                  Retire in {plan.retireYear}
                 </div>
                 <div className="flex items-center text-sm text-muted-foreground">
                   <TrendingUp className="mr-2 h-4 w-4" />
-                  {plan.investmentReturnRate}% Return
+                  {plan.returnRateText}
                 </div>
                 <div className="flex items-center text-sm text-muted-foreground">
                   <AlertTriangle className="mr-2 h-4 w-4" />
-                  {plan.summary?.isBankrupt ? 'Bankrupt Risk' : 'No Bankruptcy'}
+                  {plan.bankruptcyText}
                 </div>
-                {plan.summary && (
+                {plan.projectedSavingsText && (
                   <div className="mt-2 pt-2 border-t">
                     <div className="text-xs text-muted-foreground">Projected Savings</div>
                     <div className="text-lg font-bold text-green-600">
-                      {formatCurrency(plan.summary.savingsAtRetirement)}
+                      {plan.projectedSavingsText}
                     </div>
                   </div>
                 )}
@@ -84,7 +83,7 @@ export default function RetirementPlanList() {
           </Card>
         ))}
 
-        {plans.length === 0 && (
+        {planItems.length === 0 && (
           <div className="col-span-full flex flex-col items-center justify-center p-12 border-2 border-dashed rounded-lg text-center">
             <TrendingUp className="h-12 w-12 text-muted-foreground mb-4" />
             <h3 className="text-lg font-medium">No plans yet</h3>

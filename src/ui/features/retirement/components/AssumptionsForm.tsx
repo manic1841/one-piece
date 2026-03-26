@@ -1,44 +1,54 @@
 import { useState } from 'react';
 
-import { type RetirementPlan } from '@/domains/retirement/types';
 import { Button } from '@/ui/components/ui/button';
 import { Input } from '@/ui/components/ui/input';
 import { Label } from '@/ui/components/ui/label';
+import { type RetirementAssumptionsDisplayVM } from '@/ui/features/retirement/viewmodels/retirementDisplay.vm';
+import {
+  type RetirementAssumptionsFormVM,
+  RetirementAssumptionsFormVMSchema,
+} from '@/ui/features/retirement/viewmodels/retirementForm.vm';
 
 interface AssumptionsFormProps {
-  plan: RetirementPlan;
-  onSave: (updates: Partial<RetirementPlan>) => void;
+  assumptions: RetirementAssumptionsDisplayVM;
+  onSave: (updates: RetirementAssumptionsFormVM) => void;
 }
 
-export default function AssumptionsForm({ plan, onSave }: AssumptionsFormProps) {
+const toAssumptionsFormVM = (
+  assumptions: RetirementAssumptionsDisplayVM,
+): RetirementAssumptionsFormVM => ({
+  currentYear: assumptions.currentYear,
+  birthYear: assumptions.birthYear,
+  retirementAge: assumptions.retirementAge,
+  lifeExpectancy: assumptions.lifeExpectancy,
+  currentSavings: assumptions.currentSavings,
+  salaryGrowthRate: assumptions.salaryGrowthRate,
+  inflationRate: assumptions.inflationRate,
+  investmentReturnRate: assumptions.investmentReturnRate,
+});
+
+const parseNumberOrFallback = (value: string, fallback: number) => {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+};
+
+export default function AssumptionsForm({ assumptions, onSave }: AssumptionsFormProps) {
   const [editing, setEditing] = useState(false);
-  const [formData, setFormData] = useState({
-    currentYear: plan.currentYear,
-    birthYear: plan.birthYear,
-    retirementAge: plan.retirementAge,
-    lifeExpectancy: plan.lifeExpectancy,
-    currentSavings: plan.currentSavings,
-    salaryGrowthRate: plan.salaryGrowthRate,
-    inflationRate: plan.inflationRate,
-    investmentReturnRate: plan.investmentReturnRate,
-  });
+  const [formData, setFormData] = useState<RetirementAssumptionsFormVM>(
+    toAssumptionsFormVM(assumptions),
+  );
 
   const handleSave = () => {
-    onSave(formData);
+    const parsed = RetirementAssumptionsFormVMSchema.safeParse(formData);
+    if (!parsed.success) {
+      return;
+    }
+    onSave(parsed.data);
     setEditing(false);
   };
 
   const handleCancel = () => {
-    setFormData({
-      currentYear: plan.currentYear,
-      birthYear: plan.birthYear,
-      retirementAge: plan.retirementAge,
-      lifeExpectancy: plan.lifeExpectancy,
-      currentSavings: plan.currentSavings,
-      salaryGrowthRate: plan.salaryGrowthRate,
-      inflationRate: plan.inflationRate,
-      investmentReturnRate: plan.investmentReturnRate,
-    });
+    setFormData(toAssumptionsFormVM(assumptions));
     setEditing(false);
   };
 
@@ -52,35 +62,35 @@ export default function AssumptionsForm({ plan, onSave }: AssumptionsFormProps) 
         <div className="grid grid-cols-2 gap-4">
           <div>
             <div className="text-sm text-muted-foreground">Current Year</div>
-            <div className="text-lg font-medium">{plan.currentYear}</div>
+            <div className="text-lg font-medium">{assumptions.currentYear}</div>
           </div>
           <div>
             <div className="text-sm text-muted-foreground">Birth Year</div>
-            <div className="text-lg font-medium">{plan.birthYear}</div>
+            <div className="text-lg font-medium">{assumptions.birthYear}</div>
           </div>
           <div>
             <div className="text-sm text-muted-foreground">Retirement Age</div>
-            <div className="text-lg font-medium">{plan.retirementAge}</div>
+            <div className="text-lg font-medium">{assumptions.retirementAge}</div>
           </div>
           <div>
             <div className="text-sm text-muted-foreground">Life Expectancy</div>
-            <div className="text-lg font-medium">{plan.lifeExpectancy}</div>
+            <div className="text-lg font-medium">{assumptions.lifeExpectancy}</div>
           </div>
           <div>
             <div className="text-sm text-muted-foreground">Current Savings</div>
-            <div className="text-lg font-medium">${plan.currentSavings.toLocaleString()}</div>
+            <div className="text-lg font-medium">{assumptions.currentSavingsText}</div>
           </div>
           <div>
             <div className="text-sm text-muted-foreground">Salary Growth Rate</div>
-            <div className="text-lg font-medium">{plan.salaryGrowthRate}%</div>
+            <div className="text-lg font-medium">{assumptions.salaryGrowthRate}%</div>
           </div>
           <div>
             <div className="text-sm text-muted-foreground">Inflation Rate</div>
-            <div className="text-lg font-medium">{plan.inflationRate}%</div>
+            <div className="text-lg font-medium">{assumptions.inflationRate}%</div>
           </div>
           <div>
             <div className="text-sm text-muted-foreground">Investment Return</div>
-            <div className="text-lg font-medium">{plan.investmentReturnRate}%</div>
+            <div className="text-lg font-medium">{assumptions.investmentReturnRate}%</div>
           </div>
         </div>
       </div>
@@ -97,7 +107,12 @@ export default function AssumptionsForm({ plan, onSave }: AssumptionsFormProps) 
             id="currentYear"
             type="number"
             value={formData.currentYear}
-            onChange={(e) => setFormData({ ...formData, currentYear: parseInt(e.target.value) })}
+            onChange={(e) =>
+              setFormData({
+                ...formData,
+                currentYear: parseNumberOrFallback(e.target.value, formData.currentYear),
+              })
+            }
           />
         </div>
         <div className="space-y-2">
@@ -106,7 +121,12 @@ export default function AssumptionsForm({ plan, onSave }: AssumptionsFormProps) 
             id="birthYear"
             type="number"
             value={formData.birthYear}
-            onChange={(e) => setFormData({ ...formData, birthYear: parseInt(e.target.value) })}
+            onChange={(e) =>
+              setFormData({
+                ...formData,
+                birthYear: parseNumberOrFallback(e.target.value, formData.birthYear),
+              })
+            }
           />
         </div>
         <div className="space-y-2">
@@ -115,7 +135,12 @@ export default function AssumptionsForm({ plan, onSave }: AssumptionsFormProps) 
             id="retirementAge"
             type="number"
             value={formData.retirementAge}
-            onChange={(e) => setFormData({ ...formData, retirementAge: parseInt(e.target.value) })}
+            onChange={(e) =>
+              setFormData({
+                ...formData,
+                retirementAge: parseNumberOrFallback(e.target.value, formData.retirementAge),
+              })
+            }
           />
         </div>
         <div className="space-y-2">
@@ -124,7 +149,12 @@ export default function AssumptionsForm({ plan, onSave }: AssumptionsFormProps) 
             id="lifeExpectancy"
             type="number"
             value={formData.lifeExpectancy}
-            onChange={(e) => setFormData({ ...formData, lifeExpectancy: parseInt(e.target.value) })}
+            onChange={(e) =>
+              setFormData({
+                ...formData,
+                lifeExpectancy: parseNumberOrFallback(e.target.value, formData.lifeExpectancy),
+              })
+            }
           />
         </div>
         <div className="space-y-2">
@@ -134,7 +164,10 @@ export default function AssumptionsForm({ plan, onSave }: AssumptionsFormProps) 
             type="number"
             value={formData.currentSavings}
             onChange={(e) =>
-              setFormData({ ...formData, currentSavings: parseFloat(e.target.value) })
+              setFormData({
+                ...formData,
+                currentSavings: parseNumberOrFallback(e.target.value, formData.currentSavings),
+              })
             }
           />
         </div>
@@ -146,7 +179,10 @@ export default function AssumptionsForm({ plan, onSave }: AssumptionsFormProps) 
             step="0.1"
             value={formData.salaryGrowthRate}
             onChange={(e) =>
-              setFormData({ ...formData, salaryGrowthRate: parseFloat(e.target.value) })
+              setFormData({
+                ...formData,
+                salaryGrowthRate: parseNumberOrFallback(e.target.value, formData.salaryGrowthRate),
+              })
             }
           />
         </div>
@@ -158,7 +194,10 @@ export default function AssumptionsForm({ plan, onSave }: AssumptionsFormProps) 
             step="0.1"
             value={formData.inflationRate}
             onChange={(e) =>
-              setFormData({ ...formData, inflationRate: parseFloat(e.target.value) })
+              setFormData({
+                ...formData,
+                inflationRate: parseNumberOrFallback(e.target.value, formData.inflationRate),
+              })
             }
           />
         </div>
@@ -170,7 +209,13 @@ export default function AssumptionsForm({ plan, onSave }: AssumptionsFormProps) 
             step="0.1"
             value={formData.investmentReturnRate}
             onChange={(e) =>
-              setFormData({ ...formData, investmentReturnRate: parseFloat(e.target.value) })
+              setFormData({
+                ...formData,
+                investmentReturnRate: parseNumberOrFallback(
+                  e.target.value,
+                  formData.investmentReturnRate,
+                ),
+              })
             }
           />
         </div>

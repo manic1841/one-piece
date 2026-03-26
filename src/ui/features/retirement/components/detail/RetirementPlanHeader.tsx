@@ -5,10 +5,10 @@ import { useNavigate } from 'react-router-dom';
 
 import { Button } from '@/ui/components/ui/button';
 import { Input } from '@/ui/components/ui/input';
-import { type RetirementPlan } from '@/domains/retirement/types';
+import { type RetirementPlanHeaderVM } from '@/ui/features/retirement/viewmodels/retirementDisplay.vm';
 
 interface RetirementPlanHeaderProps {
-  plan: RetirementPlan;
+  header: RetirementPlanHeaderVM;
   isEditingName: boolean;
   editedName: string;
   setEditedName: (name: string) => void;
@@ -21,7 +21,7 @@ interface RetirementPlanHeaderProps {
 }
 
 export const RetirementPlanHeader: React.FC<RetirementPlanHeaderProps> = ({
-  plan,
+  header,
   isEditingName,
   editedName,
   setEditedName,
@@ -62,7 +62,7 @@ export const RetirementPlanHeader: React.FC<RetirementPlanHeaderProps> = ({
             </div>
           ) : (
             <div className="flex items-center gap-2">
-              <h1 className="text-3xl font-bold">{plan.name}</h1>
+              <h1 className="text-3xl font-bold">{header.name}</h1>
               <Button
                 variant="ghost"
                 size="icon"
@@ -73,19 +73,17 @@ export const RetirementPlanHeader: React.FC<RetirementPlanHeaderProps> = ({
               </Button>
             </div>
           )}
-          <p className="text-muted-foreground">
-            Retire at {plan.retirementAge}, life expectancy {plan.lifeExpectancy}
-          </p>
+          <p className="text-muted-foreground">{header.retirementSummaryText}</p>
         </div>
       </div>
       <div className="flex gap-2">
         <Button
-          variant={plan.autoUpdate ? 'default' : 'outline'}
+          variant={header.autoUpdate ? 'default' : 'outline'}
           size="sm"
           onClick={handleToggleAutoUpdate}
-          className={plan.autoUpdate ? 'bg-blue-600 hover:bg-blue-700' : ''}
+          className={header.autoUpdate ? 'bg-blue-600 hover:bg-blue-700' : ''}
         >
-          {plan.autoUpdate ? '??Auto-Update: ON' : '?? Auto-Update: OFF'}
+          {header.autoUpdate ? 'Auto-Update: ON' : 'Auto-Update: OFF'}
         </Button>
         <Button variant="outline" size="sm" onClick={handleRecalculate}>
           <Calculator className="mr-2 h-4 w-4" />

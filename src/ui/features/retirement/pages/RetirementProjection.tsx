@@ -9,47 +9,34 @@ import {
   YAxis,
 } from 'recharts';
 
-import { calculatePlanProjection } from '@/domains/retirement/logic/retirementPlanProjection';
-import { type RetirementPlan } from '@/domains/retirement/types';
-import { formatCurrency } from '@/ui/utils';
+import { type RetirementProjectionVM } from '@/ui/features/retirement/viewmodels/retirementDisplay.vm';
 
 type RetirementProjectionProps = {
-  plan: RetirementPlan;
+  projection: RetirementProjectionVM;
 };
 
-export default function RetirementProjection({ plan }: RetirementProjectionProps) {
-  const projection = calculatePlanProjection(plan);
-  const retirementYear = plan.birthYear + plan.retirementAge;
-  const retirementSnapshot = projection.find((item) => item.year === retirementYear);
-  const bankruptSnapshot = projection.find((item) => item.savings < 0);
-
-  let minSnapshot = projection[0];
-  for (const snapshot of projection) {
-    if (!minSnapshot || snapshot.savings < minSnapshot.savings) {
-      minSnapshot = snapshot;
-    }
-  }
-
-  const chartData = projection.map((item) => ({
-    year: item.year,
-    savings: item.savings,
-    isBankruptYear: bankruptSnapshot?.year === item.year,
-  }));
-
+export default function RetirementProjection({ projection }: RetirementProjectionProps) {
   return (
     <div className="space-y-6">
       <div className="h-[360px] w-full rounded-lg border p-4">
         <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={chartData} margin={{ top: 16, right: 24, left: 8, bottom: 8 }}>
+          <LineChart
+            data={projection.chartData}
+            margin={{ top: 16, right: 24, left: 8, bottom: 8 }}
+          >
             <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.3} />
             <XAxis dataKey="year" />
             <YAxis tickFormatter={(value) => `${Math.round(value / 1000)}k`} />
             <Tooltip
               labelFormatter={(value) => `Year ${value}`}
-              formatter={(value: number) => [formatCurrency(value), 'Savings']}
+              formatter={(
+                _value: number,
+                _name: string,
+                payload: { payload?: { savingsText?: string } },
+              ) => [payload.payload?.savingsText ?? '', 'Savings']}
             />
             <ReferenceLine
-              x={retirementYear}
+              x={projection.retirementYear}
               stroke="#f59e0b"
               strokeDasharray="4 4"
               label={{ value: 'Retirement', position: 'top', fill: '#f59e0b' }}
@@ -74,22 +61,18 @@ export default function RetirementProjection({ plan }: RetirementProjectionProps
       <div className="grid gap-4 md:grid-cols-3">
         <div className="rounded-lg border p-4">
           <p className="text-sm text-muted-foreground">退休時資產</p>
-          <p className="text-xl font-semibold">
-            {formatCurrency(retirementSnapshot?.savings ?? 0)}
-          </p>
+          <p className="text-xl font-semibold">{projection.retirementSavingsText}</p>
         </div>
         <div className="rounded-lg border p-4">
           <p className="text-sm text-muted-foreground">最低資產年份</p>
           <p className="text-xl font-semibold">
-            {minSnapshot?.year ?? '-'} / {formatCurrency(minSnapshot?.savings ?? 0)}
+            {projection.minYearText} / {projection.minSavingsText}
           </p>
         </div>
         <div className="rounded-lg border p-4">
           <p className="text-sm text-muted-foreground">是否破產</p>
-          <p
-            className={`text-xl font-semibold ${bankruptSnapshot ? 'text-red-600' : 'text-green-600'}`}
-          >
-            {bankruptSnapshot ? `是 (${bankruptSnapshot.year})` : '否'}
+          <p className={`text-xl font-semibold ${projection.bankruptClassName}`}>
+            {projection.bankruptText}
           </p>
         </div>
       </div>

@@ -1,5 +1,6 @@
 import { Plus } from 'lucide-react';
 
+import { type RetirementOneTimeEvent } from '@/domains/retirement/types';
 import { Button } from '@/ui/components/ui/button';
 import {
   Dialog,
@@ -18,9 +19,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/ui/components/ui/select';
-import { type RetirementOneTimeEvent } from '@/domains/retirement/types';
 
-import { useRetirementEventDialog } from './useRetirementEventDialog';
+import { useRetirementEventDialog } from '../hooks/useRetirementEventDialog';
 
 interface EventDialogProps {
   onSave: (event: Omit<RetirementOneTimeEvent, 'id'>) => Promise<void>;

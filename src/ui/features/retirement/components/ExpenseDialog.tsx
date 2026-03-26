@@ -1,5 +1,6 @@
 import { Plus } from 'lucide-react';
 
+import { type RetirementExpenseCategory } from '@/domains/retirement/types';
 import { Button } from '@/ui/components/ui/button';
 import {
   Dialog,
@@ -19,9 +20,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/ui/components/ui/select';
-import { type RetirementExpenseCategory } from '@/domains/retirement/types';
 
-import { useRetirementExpenseDialog } from './useRetirementExpenseDialog';
+import { useRetirementExpenseDialog } from '../hooks/useRetirementExpenseDialog';
 
 interface RetirementExpenseDialogProps {
   onSave: (expense: Omit<RetirementExpenseCategory, 'id'>) => Promise<void>;
