@@ -1,0 +1,79 @@
+import { describe, expect, it } from 'vitest';
+
+import {
+  addHoldingToForm,
+  applyDisplayFieldChange,
+  createSnapshotEditorFormVM,
+  removeHoldingFromForm,
+  updateHoldingInForm,
+} from '@/ui/features/account/viewmodels/accountSnapshotEditor.vm';
+
+describe('accountSnapshotEditor.vm', () => {
+  it('creates default form vm', () => {
+    const vm = createSnapshotEditorFormVM();
+    expect(vm.month).toBeGreaterThanOrEqual(1);
+    expect(vm.month).toBeLessThanOrEqual(12);
+    expect(vm.exchangeRate).toBe(1);
+    expect(vm.holdings).toEqual([]);
+  });
+
+  it('recalculates amount for non-securities in foreign currency', () => {
+    const vm = {
+      year: 2026,
+      month: 3,
+      amount: 0,
+      originalAmount: 100,
+      exchangeRate: 30,
+      holdings: [],
+    };
+
+    const next = applyDisplayFieldChange(vm, 'exchangeRate', 31, {
+      isSecurities: false,
+      currency: 'USD',
+    });
+
+    expect(next.amount).toBe(3100);
+  });
+
+  it('recalculates securities totals from holdings', () => {
+    const base = {
+      year: 2026,
+      month: 3,
+      amount: 0,
+      originalAmount: 0,
+      exchangeRate: 32,
+      holdings: [
+        { symbol: 'AAA', name: 'A', quantity: 1, cost: 10, marketValue: 100, leverage: 1 },
+        { symbol: 'BBB', name: 'B', quantity: 1, cost: 20, marketValue: 200, leverage: 1 },
+      ],
+    };
+
+    const next = updateHoldingInForm(base, 0, 'marketValue', '150', {
+      isSecurities: true,
+      currency: 'USD',
+    });
+
+    expect(next.originalAmount).toBe(350);
+    expect(next.amount).toBe(11200);
+  });
+
+  it('adds and removes holdings', () => {
+    const vm = {
+      year: 2026,
+      month: 3,
+      amount: 0,
+      originalAmount: 0,
+      exchangeRate: 1,
+      holdings: [],
+    };
+
+    const added = addHoldingToForm(vm);
+    expect(added.holdings).toHaveLength(1);
+
+    const removed = removeHoldingFromForm(added, 0, {
+      isSecurities: true,
+      currency: 'TWD',
+    });
+    expect(removed.holdings).toHaveLength(0);
+  });
+});

@@ -44,7 +44,7 @@ export class GetProjectBalanceUseCase {
     // If there's no snapshot, start from 0 balance
     const baseBalance = latestSnapshot?.closingBalance ?? 0;
     const snapshotDate = latestSnapshot
-      ? new Date(latestSnapshot.year, latestSnapshot.month - 1, 1)
+      ? new Date(latestSnapshot.year, latestSnapshot.month, 0)
       : new Date(0);
     const currentDate = new Date();
 

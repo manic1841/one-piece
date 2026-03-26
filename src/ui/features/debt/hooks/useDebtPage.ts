@@ -6,39 +6,11 @@ import { listProjectsUseCase } from '@/application/project/use_cases/listProject
 import { type DebtAccount } from '@/domains/debt/schemas';
 import { type Project } from '@/domains/project/schemas';
 import { useAuth } from '@/infra/contexts/useAuth';
+import {
+  type DebtAccountDisplayVM,
+  mapDebtAccountToDisplayVM,
+} from '@/ui/features/debt/viewmodels/debtDisplay.vm';
 import { useLoadingTask } from '@/ui/hooks/useLoadingTask';
-
-/**
- * Use equal-payment amortization to estimate remaining months.
- * Returns a Date representing the projected payoff month.
- */
-function estimatePayoffDate(account: DebtAccount): Date | null {
-  const { currentBalance, interestRate, monthlyPayment } = account;
-  if (monthlyPayment <= 0) return null;
-
-  if (interestRate === 0) {
-    const months = Math.ceil(currentBalance / monthlyPayment);
-    const date = new Date();
-    date.setMonth(date.getMonth() + months);
-    return date;
-  }
-
-  const r = interestRate / 100 / 12;
-  // n = -ln(1 - P*r / M) / ln(1+r)   (from solving amortization for n)
-  const ratio = (currentBalance * r) / monthlyPayment;
-  if (ratio >= 1) return null; // Payments don't cover interest — no payoff
-  const n = -Math.log(1 - ratio) / Math.log(1 + r);
-  const months = Math.ceil(n);
-  const date = new Date();
-  date.setMonth(date.getMonth() + months);
-  return date;
-}
-
-export interface DebtAccountView extends DebtAccount {
-  payoffDate: Date | null;
-  repaidPercent: number; // 0–100
-  projectName: string | null;
-}
 
 export function useDebtPage(householdId: string) {
   const { currentUser, isAdmin } = useAuth();
@@ -82,20 +54,13 @@ export function useDebtPage(householdId: string) {
   }, [projects]);
 
   // Enrich debt accounts with computed fields
-  const debtAccountViews = useMemo<DebtAccountView[]>(() => {
-    return debtAccounts.map((account) => ({
-      ...account,
-      payoffDate: estimatePayoffDate(account),
-      repaidPercent:
-        account.originalAmount > 0
-          ? Math.round(
-              ((account.originalAmount - account.currentBalance) / account.originalAmount) * 100,
-            )
-          : 0,
-      projectName: account.linkedProjectId
-        ? (projectMap.get(account.linkedProjectId)?.name ?? null)
-        : null,
-    }));
+  const debtAccountViews = useMemo<DebtAccountDisplayVM[]>(() => {
+    return debtAccounts.map((account) =>
+      mapDebtAccountToDisplayVM(
+        account,
+        account.linkedProjectId ? (projectMap.get(account.linkedProjectId)?.name ?? null) : null,
+      ),
+    );
   }, [debtAccounts, projectMap]);
 
   // Page-level summaries

@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 
+import { z } from 'zod';
+
 import { createDebtPaymentUseCase } from '@/application/debt/use_cases/createDebtPaymentUseCase';
 import { listDebtAccountsUseCase } from '@/application/debt/use_cases/listDebtAccountsUseCase';
 import { createAllocationUseCase } from '@/application/ledger/use_cases/createAllocationUseCase';
@@ -7,7 +9,6 @@ import { createTransactionUseCase } from '@/application/ledger/use_cases/createT
 import { type DebtAccount } from '@/domains/debt/schemas';
 import { IntentType } from '@/domains/ledger/constants';
 import { DEFAULT_INTENT_MAPPINGS } from '@/domains/ledger/intentMapping';
-import { type TransactionCreate } from '@/domains/ledger/schemas';
 import { projectService } from '@/domains/project/projectService';
 import { useAuth } from '@/infra/contexts/useAuth';
 import { useLedgerCodes } from '@/ui/features/ledger/hooks/useLedgerCodes';
@@ -15,6 +16,12 @@ import {
   type TransactionFormCategoryOption,
   type TransactionFormOutput,
 } from '@/ui/features/transaction/types/transaction';
+import {
+  type TransactionFormVM,
+  mapTransactionVMToAllocationData,
+  mapTransactionVMToDomain,
+  parseTransactionFormVM,
+} from '@/ui/features/transaction/viewmodels/transaction.vm';
 
 const expenseCategories: TransactionFormCategoryOption[] = [
   ...DEFAULT_INTENT_MAPPINGS.filter((mapping) => mapping.type === 'EXPENSE').map((mapping) => ({
@@ -51,86 +58,6 @@ const advancedCategories: TransactionFormCategoryOption[] = [
 
 const toDate = (date: string) => new Date(`${date}T00:00:00`);
 
-const buildExpenseEntries = (amount: number, ledgerCode: string): TransactionCreate['entries'] => [
-  {
-    ledgerCode,
-    debit: amount,
-    credit: 0,
-  },
-  {
-    ledgerCode: 'asset:cash',
-    debit: 0,
-    credit: amount,
-  },
-];
-
-const buildIncomeEntries = (amount: number, ledgerCode: string): TransactionCreate['entries'] => [
-  {
-    ledgerCode,
-    debit: 0,
-    credit: amount,
-  },
-  {
-    ledgerCode: 'asset:cash',
-    debit: amount,
-    credit: 0,
-  },
-];
-
-const buildStandardTransaction = (input: {
-  output: TransactionFormOutput;
-  userEmail: string;
-  entries: TransactionCreate['entries'];
-}): TransactionCreate => {
-  const { output, userEmail, entries } = input;
-
-  return {
-    date: toDate(output.date),
-    description: output.description,
-    intentType: output.intentType,
-    amount: output.amount,
-    projectId: output.projectId ?? null,
-    fromProjectId: output.fromProjectId ?? null,
-    toProjectId: output.toProjectId ?? null,
-    allocationId: null,
-    createdBy: userEmail,
-    entries,
-  };
-};
-
-const buildEntriesByIntent = (output: TransactionFormOutput): TransactionCreate['entries'] => {
-  const mapping = DEFAULT_INTENT_MAPPINGS.find((m) => m.intent === output.intent);
-
-  // Use the explicitly provided ledgerCode if it exists (for dynamic selection)
-  // Otherwise use the default from mapping
-  const debitCode = mapping?.debitUserSelect ? output.ledgerCode : mapping?.debitLedgerCode;
-  const creditCode = mapping?.creditUserSelect ? output.ledgerCode : mapping?.creditLedgerCode;
-
-  if (!debitCode || !creditCode) {
-    // Advanced/Manual handling fallback
-    if (output.ledgerCode) {
-      if (output.ledgerCode.startsWith('income:')) {
-        return buildIncomeEntries(output.amount, output.ledgerCode);
-      }
-      return buildExpenseEntries(output.amount, output.ledgerCode);
-    }
-    throw new Error('Could not resolve ledger codes for this intent.');
-  }
-
-  return [
-    {
-      ledgerCode: debitCode,
-      debit: output.amount,
-      credit: 0,
-    },
-    {
-      ledgerCode: creditCode,
-      debit: 0,
-      credit: output.amount,
-    },
-  ];
-};
-
 export const useTransactionForm = (
   householdId: string,
   onClose: () => void,
@@ -158,34 +85,19 @@ export const useTransactionForm = (
   }, [fetchDebtAccounts]);
 
   const executeAllocation = async (input: {
-    output: TransactionFormOutput;
+    vm: TransactionFormVM;
     transactionId: string;
     userEmail: string;
   }) => {
-    const { output, transactionId, userEmail } = input;
+    const { vm, transactionId, userEmail } = input;
 
-    if (!output.triggerAllocation) {
-      return;
-    }
-
-    if (output.intentType !== 'INCOME' && output.intentType !== 'EXPENSE') {
-      return;
-    }
-
-    if (!output.allocationItems || output.allocationItems.length === 0) {
-      throw new Error('請至少填寫一筆分配。');
-    }
+    const allocationData = mapTransactionVMToAllocationData(vm, transactionId);
+    if (!allocationData) return;
 
     await createAllocationUseCase.execute({
       householdId,
       userEmail,
-      data: {
-        transactionId,
-        transactionDate: toDate(output.date),
-        totalAmount: output.amount,
-        items: output.allocationItems,
-        direction: output.intentType,
-      },
+      data: allocationData,
     });
   };
 
@@ -196,12 +108,10 @@ export const useTransactionForm = (
     setLoading(true);
 
     try {
-      if (output.amount <= 0) {
-        throw new Error('Amount must be greater than zero.');
-      }
+      const vm = parseTransactionFormVM(output);
 
-      if (output.intentType === IntentType.DEBT_PAYMENT) {
-        if (!output.debtAccountId) throw new Error('請選擇貸款帳戶');
+      if (vm.intentType === IntentType.DEBT_PAYMENT) {
+        if (!vm.debtAccountId) throw new Error('請選擇貸款帳戶');
         await createDebtPaymentUseCase.execute({
           householdId,
           userEmail: userProfile.email,
@@ -209,43 +119,36 @@ export const useTransactionForm = (
             uid: currentUser?.uid ?? '',
             isGlobalAdmin: isAdmin ?? false,
           },
-          debtAccountId: output.debtAccountId,
-          totalPayment: output.amount,
-          date: new Date(`${output.date}T00:00:00`),
-          description: output.description,
-          projectId: output.projectId,
+          debtAccountId: vm.debtAccountId,
+          totalPayment: vm.amount,
+          date: new Date(`${vm.date}T00:00:00`),
+          description: vm.description,
+          projectId: vm.projectId,
         });
-      } else if (output.intentType === IntentType.TRANSFER) {
-        if (!output.fromProjectId || !output.toProjectId) {
+      } else if (vm.intentType === IntentType.TRANSFER) {
+        if (!vm.fromProjectId || !vm.toProjectId)
           throw new Error('Please select both source and target projects.');
-        }
 
         await projectService.transferBetweenProjects(
           householdId,
           {
-            fromProjectId: output.fromProjectId,
-            toProjectId: output.toProjectId,
-            amount: output.amount,
-            date: toDate(output.date),
-            description: output.description,
+            fromProjectId: vm.fromProjectId,
+            toProjectId: vm.toProjectId,
+            amount: vm.amount,
+            date: toDate(vm.date),
+            description: vm.description,
           },
           userProfile.email,
         );
       } else {
-        const entries = buildEntriesByIntent(output);
-
         const transactionId = await createTransactionUseCase.execute({
           householdId,
           userEmail: userProfile.email,
-          data: buildStandardTransaction({
-            output,
-            userEmail: userProfile.email,
-            entries,
-          }),
+          data: mapTransactionVMToDomain(vm, userProfile.email),
         });
 
         await executeAllocation({
-          output,
+          vm,
           transactionId,
           userEmail: userProfile.email,
         });
@@ -254,8 +157,12 @@ export const useTransactionForm = (
       onClose();
       if (onSuccess) onSuccess();
     } catch (err: unknown) {
-      const e = err as Error;
-      setError(e.message || 'Failed to save transaction.');
+      if (err instanceof z.ZodError) {
+        setError(err.issues[0]?.message || 'Invalid transaction form input.');
+      } else {
+        const e = err as Error;
+        setError(e.message || 'Failed to save transaction.');
+      }
     } finally {
       setLoading(false);
     }

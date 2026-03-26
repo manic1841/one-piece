@@ -2,11 +2,7 @@ import { useState } from 'react';
 
 import { Calendar } from 'lucide-react';
 
-import {
-  calculateGraceMonthlyPayment,
-  isInGracePeriod,
-} from '@/domains/debt/debtPaymentCalculator';
-import { DEBT_TYPE_LABEL, type DebtAccount } from '@/domains/debt/schemas';
+import { type DebtAccount } from '@/domains/debt/schemas';
 import { type Transaction } from '@/domains/ledger/schemas';
 import { useAuth } from '@/infra/contexts/useAuth';
 import { Badge } from '@/ui/components/ui/badge';
@@ -18,8 +14,9 @@ import { DebtAccountForm } from '@/ui/features/debt/components/DebtAccountForm';
 import { DebtPaymentHistory } from '@/ui/features/debt/components/DebtPaymentHistory';
 import { DebtSettlement } from '@/ui/features/debt/components/DebtSettlement';
 import { useDebtAccountCmds } from '@/ui/features/debt/hooks/useDebtAccountCmds';
-import { useDebtAccountForm } from '@/ui/features/debt/hooks/useDebtAccountForm';
-import { type DebtAccountView, useDebtPage } from '@/ui/features/debt/hooks/useDebtPage';
+import { useDebtPage } from '@/ui/features/debt/hooks/useDebtPage';
+import { type DebtAccountDisplayVM } from '@/ui/features/debt/viewmodels/debtDisplay.vm';
+import { useDebtAccountFormViewModel } from '@/ui/features/debt/viewmodels/useDebtAccountFormViewModel';
 
 function formatCurrency(n: number) {
   return n.toLocaleString('zh-TW', { maximumFractionDigits: 0 });
@@ -74,7 +71,7 @@ function DebtCard({
   removing,
   getHistory,
 }: {
-  account: DebtAccountView;
+  account: DebtAccountDisplayVM;
   onEdit: () => void;
   onRemove: () => void;
   removing: boolean;
@@ -92,18 +89,14 @@ function DebtCard({
             <span
               className={`text-xs px-2 py-0.5 rounded-full font-medium ${TYPE_BADGE_CLASS[account.type] ?? ''}`}
             >
-              {DEBT_TYPE_LABEL[account.type]}
+              {account.typeLabel}
             </span>
-            {isInGracePeriod(account.graceEndDate) && (
+            {account.inGracePeriod && (
               <Badge
                 variant="destructive"
                 className="text-xs font-medium bg-amber-100 text-amber-800 border-amber-200"
               >
-                寬限期至{' '}
-                {account.graceEndDate?.toLocaleDateString('zh-TW', {
-                  year: 'numeric',
-                  month: '2-digit',
-                })}
+                寬限期至 {account.graceEndYearMonthText}
               </Badge>
             )}
             {account.projectName && (
@@ -153,16 +146,9 @@ function DebtCard({
           </div>
           <div>
             <p className="text-muted-foreground text-xs">
-              {isInGracePeriod(account.graceEndDate) ? '本月應付（利息）' : '每月還款'}
+              {account.inGracePeriod ? '本月應付（利息）' : '每月還款'}
             </p>
-            <p className="font-medium">
-              $
-              {formatCurrency(
-                isInGracePeriod(account.graceEndDate)
-                  ? calculateGraceMonthlyPayment(account.currentBalance, account.interestRate)
-                  : account.monthlyPayment,
-              )}
-            </p>
+            <p className="font-medium">${formatCurrency(account.monthlyDueAmount)}</p>
           </div>
           <div>
             <p className="text-muted-foreground text-xs">預計還清</p>
@@ -207,26 +193,19 @@ export default function DebtListPage() {
     reload,
   } = useDebtPage(householdId);
 
-  const {
-    createDebtAccount,
-    updateDebtAccount,
-    removeDebtAccount,
-    loading: cmdLoading,
-  } = useDebtAccountCmds(householdId);
+  const { removeDebtAccount } = useDebtAccountCmds(householdId);
 
   const [dialogMode, setDialogMode] = useState<DialogMode | null>(null);
   const [editTarget, setEditTarget] = useState<DebtAccount | null>(null);
   const [removingId, setRemovingId] = useState<string | null>(null);
   const [isSettlementOpen, setIsSettlementOpen] = useState(false);
 
-  const form = useDebtAccountForm(editTarget ?? undefined);
-
   const openCreate = () => {
     setEditTarget(null);
     setDialogMode('create');
   };
 
-  const openEdit = (account: DebtAccountView) => {
+  const openEdit = (account: DebtAccountDisplayVM) => {
     setEditTarget(account);
     setDialogMode('edit');
   };
@@ -236,26 +215,17 @@ export default function DebtListPage() {
     setEditTarget(null);
   };
 
-  const handleSubmit = async () => {
-    const payload = form.buildPayload();
-    if (!payload) return;
-
-    let ok: unknown;
-    if (dialogMode === 'create') {
-      const createMeta = form.buildCreateMeta();
-      ok = await createDebtAccount(payload, {
-        disbursementDate: createMeta?.disbursementDate,
-        disbursementDescription: createMeta?.disbursementDescription,
-      });
-    } else if (editTarget) {
-      ok = await updateDebtAccount(editTarget.id, payload);
-    }
-
-    if (ok !== undefined) {
+  const formVm = useDebtAccountFormViewModel({
+    householdId,
+    initialAccount: editTarget ?? undefined,
+    projects,
+    submitLabel: dialogMode === 'create' ? '新增' : '儲存',
+    onSubmitSuccess: () => {
       closeDialog();
       reload();
-    }
-  };
+    },
+    onCancel: closeDialog,
+  });
 
   const handleRemove = async (id: string) => {
     if (!window.confirm('確定要停用或刪除這筆貸款嗎？')) return;
@@ -324,14 +294,7 @@ export default function DebtListPage() {
           <DialogHeader>
             <DialogTitle>{dialogMode === 'create' ? '新增貸款' : '編輯貸款'}</DialogTitle>
           </DialogHeader>
-          <DebtAccountForm
-            form={form}
-            projects={projects}
-            submitLabel={dialogMode === 'create' ? '新增' : '儲存'}
-            onSubmit={handleSubmit}
-            onCancel={closeDialog}
-            loading={cmdLoading}
-          />
+          <DebtAccountForm vm={formVm} />
         </DialogContent>
       </Dialog>
 

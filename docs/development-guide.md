@@ -26,9 +26,16 @@
 - 在 `src/application/{domain_name}/hooks/` 建立 Hook。
 - Hook 職責：管理 UI 狀態、注入 `AuthContext`、呼叫 Use Case。
 
-### 第五步：實作 UI 組件
+### 第五步：建立 UI Form ViewModel 與 Mapper (UI Layer)
+
+- 在 `src/ui/features/{feature_name}/viewmodels/` 建立表單 VM Schema（Zod）。
+- 定義 `mapXxxVMToDomain`，集中處理字串/日期/數值轉換。
+- 規則：Component 與 Hook 不得直接組裝 Domain payload。
+
+### 第六步：實作 UI 組件
 
 - 呼叫 Hook 並渲染畫面。
+- 提交路徑必須經過 `Schema.parse -> Mapper -> UseCase`。
 
 ## 2. 代碼風格要求
 
@@ -36,6 +43,8 @@
 - **編排規則**: 不要讓 Hook 呼叫超過一個以上的 Use Case。
 - **嚴格型別**: 絕對禁止使用 `any`。所有資料流動應有清晰的介面定義。
 - **單一職責**: 一個 Use Case 文件只做一件事（例如：`recordTransactionUseCase.ts` 只負責記錄交易）。
+- **表單一致性**: 表單資料必須先映射到 ViewModel，再由 mapper 轉換成 domain 型別。
+- **驗證一致性**: 所有新表單路徑統一採用 Zod schema，禁止分散式手寫驗證。
 
 ## 3. 維護建議
 

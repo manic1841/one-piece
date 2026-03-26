@@ -1,7 +1,6 @@
 import React from 'react';
 
 import { DEBT_TYPE_LABEL, type DebtType } from '@/domains/debt/schemas';
-import { type Project } from '@/domains/project/schemas';
 import { Button } from '@/ui/components/ui/button';
 import { Input } from '@/ui/components/ui/input';
 import { Label } from '@/ui/components/ui/label';
@@ -13,15 +12,10 @@ import {
   SelectValue,
 } from '@/ui/components/ui/select';
 import { Textarea } from '@/ui/components/ui/textarea';
-import { type DebtAccountFormHook } from '@/ui/features/debt/hooks/useDebtAccountForm';
+import { type DebtAccountFormViewModel } from '@/ui/features/debt/viewmodels/useDebtAccountFormViewModel';
 
 interface DebtAccountFormProps {
-  form: DebtAccountFormHook;
-  projects: Project[];
-  submitLabel?: string;
-  onSubmit: () => void;
-  onCancel: () => void;
-  loading?: boolean;
+  vm: DebtAccountFormViewModel;
 }
 
 function formatCurrency(n: number) {
@@ -33,19 +27,26 @@ function FieldError({ msg }: { msg?: string }) {
   return <p className="text-xs text-destructive mt-1">{msg}</p>;
 }
 
-export function DebtAccountForm({
-  form,
-  projects,
-  submitLabel = '儲存',
-  onSubmit,
-  onCancel,
-  loading,
-}: DebtAccountFormProps) {
-  const { values, calcResult, isManualPayment, isCreateMode, errors, setField, resetCalc } = form;
+export function DebtAccountForm({ vm }: DebtAccountFormProps) {
+  const {
+    values,
+    calcResult,
+    isManualPayment,
+    isCreateMode,
+    errors,
+    setField,
+    resetCalc,
+    projects,
+    submitLabel,
+    submit,
+    cancel,
+    loading,
+    error,
+  } = vm;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit();
+    submit();
   };
 
   return (
@@ -316,8 +317,13 @@ export function DebtAccountForm({
       </div>
 
       {/* 操作 */}
+      {error && (
+        <div className="text-sm text-destructive bg-destructive/10 p-3 rounded-md animate-in fade-in">
+          {error}
+        </div>
+      )}
       <div className="flex justify-end gap-3 pt-2">
-        <Button type="button" variant="outline" onClick={onCancel} disabled={loading}>
+        <Button type="button" variant="outline" onClick={cancel} disabled={loading}>
           取消
         </Button>
         <Button type="submit" disabled={loading}>

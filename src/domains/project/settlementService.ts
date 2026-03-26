@@ -1,4 +1,5 @@
 import { type DebtSnapshotCreate } from '@/domains/debt/schemas';
+import { isTransactionProjectIncome } from '@/domains/ledger/intentMapping';
 import { allocationRepository } from '@/infra/repositories/allocationRepository';
 import { debtAccountRepository } from '@/infra/repositories/debtAccountRepository';
 import { debtSnapshotRepository } from '@/infra/repositories/debtSnapshotRepository';
@@ -110,8 +111,6 @@ export class SettlementService {
       .filter((t) => t.toProjectId === projectId)
       .reduce((sum, t) => sum + (t.amount || 0), 0);
 
-    const totalIncome = incomeFromAllocations + incomeFromTransfers;
-
     // 3. Get Expense: Project transactions + TRANSFER from this project
     const projectTransactions = await transactionRepository.getTransactionsByProject(
       householdId,
@@ -119,12 +118,22 @@ export class SettlementService {
       yearMonth,
     );
 
-    const directExpenses = projectTransactions.reduce((sum, t) => sum + (t.amount || 0), 0);
+    let directExpenses = 0;
+    let directInccomes = 0;
+    for (const transaction of projectTransactions) {
+      console.log('transaction', transaction);
+      if (isTransactionProjectIncome(transaction.intentType, transaction.intent)) {
+        directInccomes += transaction.amount || 0;
+      } else {
+        directExpenses += transaction.amount || 0;
+      }
+    }
 
     const expenseFromTransfers = transfers
       .filter((t) => t.fromProjectId === projectId)
       .reduce((sum, t) => sum + (t.amount || 0), 0);
 
+    const totalIncome = directInccomes + incomeFromAllocations + incomeFromTransfers;
     const totalExpense = directExpenses + expenseFromTransfers + expenseFromAllocations;
 
     // 4. Calculate closing balance

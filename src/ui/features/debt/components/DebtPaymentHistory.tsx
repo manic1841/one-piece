@@ -3,6 +3,10 @@ import { useEffect, useState } from 'react';
 import { Calendar, ReceiptText } from 'lucide-react';
 
 import { type Transaction } from '@/domains/ledger/schemas';
+import {
+  type DebtPaymentHistoryItemVM,
+  mapDebtPaymentTransactionToHistoryVM,
+} from '@/ui/features/debt/viewmodels/debtDisplay.vm';
 
 interface DebtPaymentHistoryProps {
   debtAccountId: string;
@@ -10,7 +14,7 @@ interface DebtPaymentHistoryProps {
 }
 
 export function DebtPaymentHistory({ debtAccountId, getHistory }: DebtPaymentHistoryProps) {
-  const [history, setHistory] = useState<Transaction[]>([]);
+  const [history, setHistory] = useState<DebtPaymentHistoryItemVM[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -19,7 +23,7 @@ export function DebtPaymentHistory({ debtAccountId, getHistory }: DebtPaymentHis
     getHistory(debtAccountId)
       .then((data) => {
         if (mounted) {
-          setHistory(data);
+          setHistory(data.map(mapDebtPaymentTransactionToHistoryVM));
           setLoading(false);
         }
       })
@@ -53,35 +57,29 @@ export function DebtPaymentHistory({ debtAccountId, getHistory }: DebtPaymentHis
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-100">
-          {history.map((tx) => {
-            // Extract principal/interest from entries
-            // Entry with linkedLedgerCode (usually liability:*) is principal (debit)
-            // Entry with expense:interest is interest (debit)
-            const principal = tx.entries.find((e) => e.ledgerCode.startsWith('liability:'))?.debit || 0;
-            const interest = tx.entries.find((e) => e.ledgerCode === 'expense:interest')?.debit || 0;
-
+          {history.map((item) => {
             return (
-              <tr key={tx.id} className="hover:bg-white/50 transition-colors">
+              <tr key={item.id} className="hover:bg-white/50 transition-colors">
                 <td className="whitespace-nowrap px-4 py-2.5">
                   <div className="flex items-center gap-1.5 text-slate-600">
                     <Calendar className="h-3.5 w-3.5" />
-                    {tx.date.toISOString().slice(0, 10)}
+                    {item.dateText}
                   </div>
                 </td>
                 <td className="px-4 py-2.5 text-slate-500">
                   <div className="flex items-center gap-1.5">
                     <ReceiptText className="h-3.5 w-3.5" />
-                    {tx.description}
+                    {item.descriptionText}
                   </div>
                 </td>
                 <td className="px-4 py-2.5 text-right font-medium text-emerald-600">
-                  ${principal.toLocaleString()}
+                  {item.principalText}
                 </td>
                 <td className="px-4 py-2.5 text-right font-medium text-rose-600">
-                  ${interest.toLocaleString()}
+                  {item.interestText}
                 </td>
                 <td className="px-4 py-2.5 text-right font-bold text-slate-900">
-                  ${(tx.amount || 0).toLocaleString()}
+                  {item.totalText}
                 </td>
               </tr>
             );

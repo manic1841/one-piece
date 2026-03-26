@@ -27,14 +27,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const fetchUserProfile = useCallback(
     async (uid: string) => {
       try {
-        console.log('fetchUserProfile', uid);
         let profile = await getUserProfileUseCase.execute({ uid });
-        console.log('profile', profile);
-        console.log('currentUser', currentUser);
 
         // If profile doesn't exist, create one
         if (!profile && currentUser) {
-          console.log('create profile');
           const newProfile = {
             uid: currentUser.uid,
             email: currentUser.email || '',
@@ -43,12 +39,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           };
           // Save the profile to Firestore
           await createUserProfileUseCase.execute({ profile: newProfile });
-          console.log('after created');
 
           profile = await getUserProfileUseCase.execute({ uid });
-          console.log('get profile:', profile);
         }
-        console.log('profile', profile);
 
         setUserProfile(profile);
       } catch (error) {

@@ -1,8 +1,12 @@
 import React, { useState } from 'react';
 
 import { Save } from 'lucide-react';
+import { z } from 'zod';
 
+import type { Holding } from '@/domains/account/schemas';
 import { type Account, type AccountSnapshot } from '@/domains/account/types/account';
+import { AccountCategory } from '@/domains/account/types/categories';
+import type { CurrencyCode } from '@/domains/exchange_rate/types';
 import { useAuth } from '@/infra/contexts/useAuth';
 import { Button } from '@/ui/components/ui/button';
 import {
@@ -16,16 +20,21 @@ import { Input } from '@/ui/components/ui/input';
 import { Label } from '@/ui/components/ui/label';
 import { useAccountCmds } from '@/ui/features/account/hooks/useAccountCmds';
 
+import { AccountAmount } from '../components/form/AccountAmount';
+import { AccountHolding } from '../components/form/AccountHolding';
+import { useExchangeRate } from '../hooks/useExchangeRate';
 import {
   AccountSnapshotFormSchema,
   mapAccountSnapshotVMToDomain,
 } from '../viewmodels/accountSnapshot.vm';
-import { AccountAmount } from '../components/form/AccountAmount';
-import { AccountHolding } from '../components/form/AccountHolding';
-import { useExchangeRate } from '../hooks/useExchangeRate';
-import { AccountCategory } from '@/domains/account/types/categories';
-import type { Holding } from '@/domains/account/schemas';
-import type { CurrencyCode } from '@/domains/exchange_rate/types';
+import {
+  type AccountSnapshotEditorFormVM,
+  addHoldingToForm,
+  applyDisplayFieldChange,
+  createSnapshotEditorFormVM,
+  removeHoldingFromForm,
+  updateHoldingInForm,
+} from '../viewmodels/accountSnapshotEditor.vm';
 
 interface AccountSnapshotEditorProps {
   account: Account;
@@ -47,31 +56,18 @@ const AccountSnapshotEditor: React.FC<AccountSnapshotEditorProps> = ({
 
   const isSecurities = account.category === AccountCategory.SECURITIES;
 
-  const today = new Date();
-  const [formData, setFormData] = useState({
-    year: snapshot?.year ?? today.getFullYear(),
-    month: snapshot?.month ?? today.getMonth() + 1,
-    amount: snapshot?.amount ?? 0,
-    originalAmount: snapshot?.originalAmount ?? 0,
-    exchangeRate: snapshot?.exchangeRate ?? 1,
-    holdings: snapshot?.holdings ?? [],
-  });
+  const [formData, setFormData] = useState<AccountSnapshotEditorFormVM>(
+    createSnapshotEditorFormVM(snapshot),
+  );
   const [error, setError] = useState<string | null>(null);
 
   const handleDisplayChange = (field: keyof typeof formData, value: number) => {
-    setFormData((prev) => {
-      const updated = { ...prev, [field]: value };
-      if (isSecurities && updated.holdings && updated.holdings.length > 0) {
-        if (field === 'exchangeRate' && account.currency !== 'TWD') {
-          updated.amount = updated.originalAmount * updated.exchangeRate;
-        }
-      } else {
-        if (account.currency !== 'TWD' && (field === 'originalAmount' || field === 'exchangeRate')) {
-          updated.amount = updated.originalAmount * updated.exchangeRate;
-        }
-      }
-      return updated;
-    });
+    setFormData((prev) =>
+      applyDisplayFieldChange(prev, field, value, {
+        isSecurities,
+        currency: account.currency,
+      }),
+    );
   };
 
   const handleFetchRate = async () => {
@@ -81,55 +77,25 @@ const AccountSnapshotEditor: React.FC<AccountSnapshotEditorProps> = ({
   };
 
   const handleAddHolding = () => {
-    setFormData((prev) => ({
-      ...prev,
-      holdings: [
-        ...(prev.holdings || []),
-        { symbol: '', name: '', quantity: 0, cost: 0, marketValue: 0 },
-      ],
-    }));
+    setFormData((prev) => addHoldingToForm(prev));
   };
 
   const handleRemoveHolding = (index: number) => {
-    setFormData((prev) => {
-      const newHoldings = [...(prev.holdings || [])];
-      newHoldings.splice(index, 1);
-      
-      const updated = { ...prev, holdings: newHoldings };
-      if (isSecurities) {
-         const total = newHoldings.reduce((sum, h) => sum + (h.marketValue || 0), 0);
-         if (account.currency !== 'TWD') {
-             updated.originalAmount = total;
-             updated.amount = total * updated.exchangeRate;
-         } else {
-             updated.amount = total;
-         }
-      }
-      return updated;
-    });
+    setFormData((prev) =>
+      removeHoldingFromForm(prev, index, {
+        isSecurities,
+        currency: account.currency,
+      }),
+    );
   };
 
   const handleUpdateHolding = (index: number, field: keyof Holding, value: string | number) => {
-    setFormData((prev) => {
-      const newHoldings = [...(prev.holdings || [])];
-      let finalValue: string | number = value;
-      if (['quantity', 'cost', 'marketValue', 'leverage'].includes(field)) {
-        finalValue = typeof value === 'string' ? parseFloat(value) || 0 : value;
-      }
-      newHoldings[index] = { ...newHoldings[index], [field]: finalValue };
-      
-      const updated = { ...prev, holdings: newHoldings };
-      if (isSecurities) {
-         const total = newHoldings.reduce((sum, h) => sum + (h.marketValue || 0), 0);
-         if (account.currency !== 'TWD') {
-             updated.originalAmount = total;
-             updated.amount = total * updated.exchangeRate;
-         } else {
-             updated.amount = total;
-         }
-      }
-      return updated;
-    });
+    setFormData((prev) =>
+      updateHoldingInForm(prev, index, field, value, {
+        isSecurities,
+        currency: account.currency,
+      }),
+    );
   };
 
   const onSubmit = async (e: React.FormEvent) => {
@@ -141,9 +107,8 @@ const AccountSnapshotEditor: React.FC<AccountSnapshotEditorProps> = ({
       await recordSnapshot(account.id, domainData);
       onClose();
     } catch (err) {
-      const error = err as { errors?: { message: string }[] };
-      if (error.errors && error.errors.length > 0) {
-        setError(error.errors[0].message);
+      if (err instanceof z.ZodError) {
+        setError(err.issues[0]?.message || '請檢查輸入資料是否正確');
       } else {
         setError('請檢查輸入資料是否正確');
       }
@@ -152,7 +117,10 @@ const AccountSnapshotEditor: React.FC<AccountSnapshotEditorProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+      <DialogContent
+        className="max-w-3xl max-h-[90vh] overflow-y-auto"
+        aria-describedby={undefined}
+      >
         <DialogHeader>
           <DialogTitle>
             輸入月底餘額 - {account.name} ({account.currency})
@@ -185,7 +153,7 @@ const AccountSnapshotEditor: React.FC<AccountSnapshotEditorProps> = ({
             </div>
           </div>
 
-          <AccountAmount 
+          <AccountAmount
             currency={account.currency}
             currencyLabel={account.currency}
             amount={formData.amount.toString()}
@@ -196,7 +164,7 @@ const AccountSnapshotEditor: React.FC<AccountSnapshotEditorProps> = ({
             setExchangeRate={(val) => handleDisplayChange('exchangeRate', parseFloat(val) || 0)}
             fetchExchangeRate={handleFetchRate}
             fetchingRate={fetchingRate}
-            readonly={isSecurities && formData.holdings && formData.holdings.length > 0} 
+            readonly={isSecurities && formData.holdings && formData.holdings.length > 0}
           />
 
           {isSecurities && (

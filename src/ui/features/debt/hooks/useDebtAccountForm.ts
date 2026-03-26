@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import { type DebtAccount, type DebtAccountCreate, type DebtType } from '@/domains/debt/schemas';
+import { type DebtAccount, type DebtType } from '@/domains/debt/schemas';
 import { type LoanCalcResult, calculateLoan } from '@/ui/features/debt/utils/loanCalculator';
 
 export interface DebtFormValues {
@@ -83,10 +83,8 @@ export interface DebtAccountFormHook {
   isCreateMode: boolean;
   errors: Partial<Record<keyof DebtFormValues, string>>;
   setField: (field: keyof DebtFormValues, value: string) => void;
+  setValidationErrors: (next: Partial<Record<keyof DebtFormValues, string>>) => void;
   resetCalc: () => void;
-  validate: () => boolean;
-  buildPayload: () => Omit<DebtAccountCreate, 'linkedLedgerCode'> | null;
-  buildCreateMeta: () => { disbursementDate: Date; disbursementDescription?: string } | null;
 }
 
 export function useDebtAccountForm(initialAccount?: DebtAccount): DebtAccountFormHook {
@@ -160,66 +158,9 @@ export function useDebtAccountForm(initialAccount?: DebtAccount): DebtAccountFor
     prevCalcRef.current = null; // force effect to re-apply
   }, []);
 
-  const validate = useCallback((): boolean => {
-    const errs: Partial<Record<keyof DebtFormValues, string>> = {};
-
-    if (!values.name.trim()) errs.name = '必填';
-    if (!values.originalAmount || parseFloat(values.originalAmount) <= 0)
-      errs.originalAmount = '必填且須大於 0';
-    if (!values.currentBalance || parseFloat(values.currentBalance) <= 0)
-      errs.currentBalance = '必填且須大於 0';
-    if (values.interestRate === '' || parseFloat(values.interestRate) < 0)
-      errs.interestRate = '必填且須 >= 0';
-    if (!values.startDate) errs.startDate = '必填';
-    if (!values.endDate) errs.endDate = '必填';
-    if (isCreateMode && !values.disbursementDate) errs.disbursementDate = '必填';
-    if (values.startDate && values.endDate && values.endDate <= values.startDate) {
-      errs.endDate = '結束日須晚於開始日';
-    }
-    // If graceEndDate is provided, validate it is between startDate and endDate
-    if (values.graceEndDate) {
-      if (values.startDate && values.graceEndDate <= values.startDate) {
-        errs.graceEndDate = '寬限期結束日須晚於還款開始日';
-      }
-      if (values.endDate && values.graceEndDate > values.endDate) {
-        errs.graceEndDate = '寬限期結束日須早於貸款到期日';
-      }
-    }
-    if (!values.monthlyPayment || parseFloat(values.monthlyPayment) <= 0)
-      errs.monthlyPayment = '必填且須大於 0';
-
-    setErrors(errs);
-    return Object.keys(errs).length === 0;
-  }, [values, isCreateMode]);
-
-  const buildPayload = useCallback((): Omit<DebtAccountCreate, 'linkedLedgerCode'> | null => {
-    if (!validate()) return null;
-    return {
-      name: values.name.trim(),
-      type: values.type,
-      repaymentType: values.repaymentType,
-      originalAmount: parseFloat(values.originalAmount),
-      currentBalance: parseFloat(values.currentBalance),
-      interestRate: parseFloat(values.interestRate),
-      startDate: new Date(values.startDate),
-      endDate: new Date(values.endDate),
-      graceEndDate: values.graceEndDate ? new Date(values.graceEndDate) : null,
-      monthlyPayment: parseFloat(values.monthlyPayment),
-      linkedProjectId: values.linkedProjectId || null,
-      note: values.note || undefined,
-      isActive: true,
-    };
-  }, [values, validate]);
-
-  const buildCreateMeta = useCallback(() => {
-    if (values.disbursementDate) {
-      return {
-        disbursementDate: new Date(values.disbursementDate),
-        disbursementDescription: values.disbursementDescription.trim() || undefined,
-      };
-    }
-    return null;
-  }, [values.disbursementDate, values.disbursementDescription]);
+  const setValidationErrors = useCallback((next: Partial<Record<keyof DebtFormValues, string>>) => {
+    setErrors(next);
+  }, []);
 
   return {
     values,
@@ -228,9 +169,7 @@ export function useDebtAccountForm(initialAccount?: DebtAccount): DebtAccountFor
     isCreateMode,
     errors,
     setField,
+    setValidationErrors,
     resetCalc,
-    validate,
-    buildPayload,
-    buildCreateMeta,
   };
 }
