@@ -2,14 +2,18 @@ import React, { useMemo, useState } from 'react';
 
 import { Plus, Search } from 'lucide-react';
 
-import { type Transaction } from '@/domains/ledger/schemas';
 import { useAuth } from '@/infra/contexts/useAuth';
 import { Button } from '@/ui/components/ui/button';
 import { Input } from '@/ui/components/ui/input';
+import { useLedgerCodes } from '@/ui/features/ledger/hooks/useLedgerCodes';
 import { useProjects } from '@/ui/features/project/hooks/useProjects';
 import { TransactionList } from '@/ui/features/transaction/components/TransactionList';
 import { useTransactionForm } from '@/ui/features/transaction/hooks/useTransactionForm';
 import { useTransactions } from '@/ui/features/transaction/hooks/useTransactions';
+import {
+  type TransactionListItemVM,
+  mapTransactionToListItemVM,
+} from '@/ui/features/transaction/viewmodels/transaction-list.vm';
 import { cn } from '@/ui/utils/cn';
 
 import { TransactionForm } from '../components/form/TransactionForm';
@@ -20,8 +24,9 @@ const Transactions: React.FC = () => {
     userProfile?.householdId,
   );
   const { projects } = useProjects(userProfile?.householdId);
+  const { getLabel } = useLedgerCodes();
 
-  const handleDelete = async (transaction: Transaction) => {
+  const handleDelete = async (transaction: TransactionListItemVM) => {
     if (window.confirm('確定要刪除這筆交易嗎？相關的分攤資料也將一併刪除。')) {
       await deleteTransaction(transaction.id);
     }
@@ -48,18 +53,32 @@ const Transactions: React.FC = () => {
     () => reload(),
   );
 
+  const projectNameById = useMemo(() => {
+    return new Map(projects.map((project) => [project.id, project.name]));
+  }, [projects]);
+
+  const transactionItems = useMemo(() => {
+    return transactions.map((transaction) =>
+      mapTransactionToListItemVM(transaction, {
+        projectName: transaction.projectId ? projectNameById.get(transaction.projectId) : undefined,
+        getLedgerLabel: getLabel,
+      }),
+    );
+  }, [transactions, projectNameById, getLabel]);
+
   const filteredTransactions = useMemo(() => {
-    return transactions.filter((t) => {
+    return transactionItems.filter((item) => {
       const matchSearch = searchTerm
-        ? t.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          t.intentType?.toLowerCase().includes(searchTerm.toLowerCase())
+        ? item.displayTitle.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          item.categoryLabel.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          item.intentType.toLowerCase().includes(searchTerm.toLowerCase())
         : true;
 
-      const matchType = filterType === 'ALL' ? true : t.intentType === filterType;
+      const matchType = filterType === 'ALL' ? true : item.intentType === filterType;
 
       return matchSearch && matchType;
     });
-  }, [transactions, searchTerm, filterType]);
+  }, [transactionItems, searchTerm, filterType]);
 
   const projectOptions = projects
     .filter((project) => project.isActive)
@@ -112,12 +131,7 @@ const Transactions: React.FC = () => {
         </div>
       </div>
 
-      <TransactionList
-        items={filteredTransactions}
-        loading={loading}
-        projects={projects}
-        onDelete={handleDelete}
-      />
+      <TransactionList items={filteredTransactions} loading={loading} onDelete={handleDelete} />
 
       {userProfile?.householdId && isFormOpen && (
         <TransactionForm

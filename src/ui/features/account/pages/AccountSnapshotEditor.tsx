@@ -16,9 +16,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/ui/components/ui/dialog';
-import { Input } from '@/ui/components/ui/input';
-import { Label } from '@/ui/components/ui/label';
+
 import { useAccountCmds } from '@/ui/features/account/hooks/useAccountCmds';
+
+import { YearMonthPicker } from '@/ui/components/YearMonthPicker';
 
 import { AccountAmount } from '../components/form/AccountAmount';
 import { AccountHolding } from '../components/form/AccountHolding';
@@ -130,28 +131,15 @@ const AccountSnapshotEditor: React.FC<AccountSnapshotEditorProps> = ({
         {error && <div className="p-3 bg-red-100 text-red-600 rounded-md text-sm">{error}</div>}
 
         <form onSubmit={onSubmit} className="space-y-6">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>年份</Label>
-              <Input
-                type="number"
-                value={formData.year}
-                onChange={(e) =>
-                  handleDisplayChange('year', parseInt(e.target.value) || new Date().getFullYear())
-                }
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>月份</Label>
-              <Input
-                type="number"
-                min={1}
-                max={12}
-                value={formData.month}
-                onChange={(e) => handleDisplayChange('month', parseInt(e.target.value) || 1)}
-              />
-            </div>
-          </div>
+          <YearMonthPicker
+            year={formData.year}
+            month={formData.month}
+            onYearChange={(year) =>
+              handleDisplayChange('year', parseInt(year) || new Date().getFullYear())
+            }
+            onMonthChange={(month) => handleDisplayChange('month', parseInt(month) || 1)}
+            className="grid grid-cols-2 gap-4"
+          />
 
           <AccountAmount
             currency={account.currency}

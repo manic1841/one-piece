@@ -122,6 +122,7 @@ export const ReportSettlement: React.FC<ReportSettlementProps> = ({
               month={month}
               summary={summary}
               isGenerating={isGenerating}
+              isLoadingSummary={isLoading}
               reportsGenerated={reportsGenerated}
               onGenerateReports={generateReports}
               reportTimestamps={reportTimestamps}

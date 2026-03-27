@@ -39,6 +39,7 @@ interface SettlementSummaryProps {
     cashFlow?: string;
   };
   onGoToProjectSettlement?: () => void;
+  isLoadingSummary?: boolean;
 }
 
 export const SettlementSummary: React.FC<SettlementSummaryProps> = ({
@@ -56,22 +57,43 @@ export const SettlementSummary: React.FC<SettlementSummaryProps> = ({
   debtNoRepaymentWarningNames = [],
   reportTimestamps,
   onGoToProjectSettlement,
+  isLoadingSummary = false,
 }) => {
+  const isSummaryPending = isLoadingSummary && !summary;
+  const hasPreviousUnsettledDetails =
+    unsettledProjectNames.length > 0 ||
+    unsettledAccountNames.length > 0 ||
+    unsettledPortfolioNames.length > 0 ||
+    unsettledDebtNames.length > 0 ||
+    debtNoRepaymentWarningNames.length > 0;
+
   return (
     <div className="space-y-8">
       {!summary ? (
-        <div className="bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-200/60 rounded-2xl p-8 flex flex-col md:flex-row items-center gap-6 shadow-sm">
+        <div className="bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-200/60 rounded-2xl p-8 flex flex-col md:flex-row items-center gap-6 shadow-sm min-h-[280px]">
           <div className="bg-amber-100 p-4 rounded-2xl text-amber-600 shadow-inner">
-            <AlertCircle size={32} strokeWidth={2.5} />
+            {isSummaryPending ? (
+              <Loader2 size={32} strokeWidth={2.5} className="animate-spin" />
+            ) : (
+              <AlertCircle size={32} strokeWidth={2.5} />
+            )}
           </div>
           <div className="flex-1 text-center md:text-left space-y-2">
             <h4 className="text-lg font-black text-amber-900 leading-tight">
-              尚未執行 {year}-{String(month).padStart(2, '0')} 月度結算
+              {isSummaryPending
+                ? `正在更新 ${year}-${String(month).padStart(2, '0')} 月度結算摘要`
+                : `尚未取得 ${year}-${String(month).padStart(2, '0')} 月度結算摘要`}
             </h4>
             <p className="text-sm text-amber-800/80 font-medium leading-relaxed max-w-xl">
-              財務報表需要引用該月份的各項資產與負債結算快照
-              (Snapshots)。請先前往「專案管理」完成該月份的自動化結算流程。
+              {isSummaryPending
+                ? '系統正在讀取該月份的結算快照並整理報表摘要，完成後會自動更新畫面。'
+                : '財務報表會引用該月份的資產與負債結算快照 (Snapshots)。若您剛完成結算，系統可能仍在同步中，請稍候片刻或點右上角重新整理。'}
             </p>
+            {isSummaryPending && hasPreviousUnsettledDetails && (
+              <p className="text-xs text-amber-700/80 font-semibold pt-1">
+                正在更新資料，以下清單可能是上一個月份的結果。
+              </p>
+            )}
             {unsettledProjectNames.length > 0 && (
               <div className="pt-2">
                 <p className="text-xs font-bold uppercase tracking-widest text-amber-700/80">
@@ -124,7 +146,7 @@ export const SettlementSummary: React.FC<SettlementSummaryProps> = ({
               </div>
             )}
           </div>
-          {onGoToProjectSettlement && (
+          {onGoToProjectSettlement && !isSummaryPending && (
             <Button
               variant="default"
               onClick={onGoToProjectSettlement}
