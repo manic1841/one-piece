@@ -1,3 +1,4 @@
+import { isTransactionProjectIncome } from '@/domains/ledger/intentMapping';
 import { type Transaction } from '@/domains/ledger/schemas';
 import { type ProjectSnapshot } from '@/domains/project/schemas';
 import { ExpenseSubCategoryLabel, IncomeSubCategoryLabel } from '@/domains/report/labels';
@@ -65,7 +66,7 @@ const toCategoryLabel = (category: string): string => {
 
 export const mapTransactionToProjectDetailVM = (transaction: Transaction): ProjectRecordItemVM => {
   const amount = transaction.amount || 0;
-  const isIncome = amount >= 0;
+  const isIncome = isTransactionProjectIncome(transaction.intentType, transaction.intent);
   const date = toDate(transaction.date);
 
   return {

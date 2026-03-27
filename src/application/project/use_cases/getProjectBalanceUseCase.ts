@@ -1,4 +1,4 @@
-import { IntentType } from '@/domains/ledger/constants';
+import { isTransactionProjectIncome } from '@/domains/ledger/intentMapping';
 import { allocationRepository } from '@/infra/repositories/allocationRepository';
 import { projectRepository } from '@/infra/repositories/projectRepository';
 import { projectSnapshotRepository } from '@/infra/repositories/projectSnapshotRepository';
@@ -44,7 +44,7 @@ export class GetProjectBalanceUseCase {
     // If there's no snapshot, start from 0 balance
     const baseBalance = latestSnapshot?.closingBalance ?? 0;
     const snapshotDate = latestSnapshot
-      ? new Date(latestSnapshot.year, latestSnapshot.month, 0)
+      ? new Date(latestSnapshot.year, latestSnapshot.month, 0, 23, 59, 59)
       : new Date(0);
     const currentDate = new Date();
 
@@ -57,18 +57,10 @@ export class GetProjectBalanceUseCase {
     // Calculate impact from direct project transactions
     let transactionImpact = 0;
     for (const tx of transactionsSinceSnapshot) {
-      // For TRANSFER transactions, check from/toProjectId
-      if (tx.intentType === IntentType.TRANSFER) {
-        if (tx.toProjectId === projectId) {
-          transactionImpact += tx.amount ?? 0;
-        }
-        if (tx.fromProjectId === projectId) {
-          transactionImpact -= tx.amount ?? 0;
-        }
-      } else if (tx.projectId === projectId) {
-        // Direct project transactions - use the transaction amount
-        // The amount field represents the impact on the project
+      if (isTransactionProjectIncome(tx.intentType, tx.intent)) {
         transactionImpact += tx.amount ?? 0;
+      } else {
+        transactionImpact -= tx.amount ?? 0;
       }
     }
 
