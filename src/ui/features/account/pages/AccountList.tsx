@@ -11,12 +11,12 @@ import { AccountCategory } from '@/domains/account/types/categories';
 import { useAuth } from '@/infra/contexts/useAuth';
 import { Button } from '@/ui/components/ui/button';
 import { useAccountCmds } from '@/ui/features/account/hooks/useAccountCmds';
-import { useAccounts } from '@/ui/features/account/hooks/useAccounts';
 import { useAccountExport } from '@/ui/features/account/hooks/useAccountExport';
+import { useAccounts } from '@/ui/features/account/hooks/useAccounts';
 
+import { AccountHistoryDialog } from '../components/detail/AccountHistoryDialog';
 import AccountForm from './AccountForm';
 import AccountSnapshotEditor from './AccountSnapshotEditor';
-import { AccountHistoryDialog } from '../components/detail/AccountHistoryDialog';
 
 const AccountList: React.FC = () => {
   const { userProfile } = useAuth();
@@ -94,7 +94,9 @@ const AccountList: React.FC = () => {
     setImporting(false);
 
     if (result.errors.length > 0) {
-      alert(`匯入完成。成功: ${result.success}, 失敗: ${result.failed}\n\n錯誤資訊:\n${result.errors.join('\n')}`);
+      alert(
+        `匯入完成。成功: ${result.success}, 失敗: ${result.failed}\n\n錯誤資訊:\n${result.errors.join('\n')}`,
+      );
     } else {
       alert(`匯入成功！共 ${result.success} 筆紀錄`);
     }
@@ -102,7 +104,7 @@ const AccountList: React.FC = () => {
     if (result.success > 0) {
       loadAccounts();
     }
-    
+
     // Reset file input
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
@@ -143,7 +145,12 @@ const AccountList: React.FC = () => {
             <Download size={18} />
             匯出
           </Button>
-          <Button variant="outline" onClick={() => fileInputRef.current?.click()} className="gap-2" disabled={importing}>
+          <Button
+            variant="outline"
+            onClick={() => fileInputRef.current?.click()}
+            className="gap-2"
+            disabled={importing}
+          >
             <Upload size={18} />
             {importing ? '匯入中...' : '匯入'}
           </Button>
@@ -188,7 +195,10 @@ const AccountList: React.FC = () => {
               <div className="text-sm text-gray-500">最新餘額</div>
               <div className="text-2xl font-bold text-gray-900">
                 {account.snapshot
-                  ? formatCurrency(account.snapshot.amount, account.currency)
+                  ? formatCurrency(
+                      account.snapshot.originalAmount || account.snapshot.amount,
+                      account.currency,
+                    )
                   : '尚未設定'}
               </div>
               {account.snapshot && (
@@ -208,9 +218,9 @@ const AccountList: React.FC = () => {
                 <Plus size={14} />
                 月底餘額
               </Button>
-              <Button 
-                variant="ghost" 
-                className="px-3" 
+              <Button
+                variant="ghost"
+                className="px-3"
                 title="歷史記錄"
                 onClick={() => setHistoryAccountId(account.id)}
               >

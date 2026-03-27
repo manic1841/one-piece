@@ -99,7 +99,7 @@ export const AccountSnapshotTable: React.FC<AccountSnapshotTableProps> = ({
                           </div>
                         </TableCell>
                         <TableCell className="text-right font-medium">
-                          {formatCurrency(snapshot.amount)}
+                          {formatCurrency(snapshot.originalAmount || snapshot.amount)}
                         </TableCell>
                         <TableCell className="text-right">
                           {previousSnapshot ? (
