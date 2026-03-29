@@ -127,9 +127,12 @@ export const useProjectPage = (householdId?: string) => {
       id: p.id,
       order: index,
     }));
-    await reorderProjects(orders);
+    const result = await reorderProjects(orders);
+    if (result === undefined) {
+      throw new Error('Failed to save project order. Please try again.');
+    }
     setIsReorderMode(false);
-    reload();
+    await reload();
   };
 
   return {
@@ -172,4 +175,4 @@ export const useProjectPage = (householdId?: string) => {
     openMonthlySettlement: () => setIsMonthlySettlementView(true),
     closeMonthlySettlement: () => setIsMonthlySettlementView(false),
   };
-}
+};

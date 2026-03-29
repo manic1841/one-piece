@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { z } from 'zod';
 
@@ -6,6 +6,8 @@ import { createDebtPaymentUseCase } from '@/application/debt/use_cases/createDeb
 import { listDebtAccountsUseCase } from '@/application/debt/use_cases/listDebtAccountsUseCase';
 import { createAllocationUseCase } from '@/application/ledger/use_cases/createAllocationUseCase';
 import { createTransactionUseCase } from '@/application/ledger/use_cases/createTransactionUseCase';
+import { getIncomeAllocationTemplateUseCase } from '@/application/ledger/use_cases/getIncomeAllocationTemplateUseCase';
+import { upsertIncomeAllocationTemplateUseCase } from '@/application/ledger/use_cases/upsertIncomeAllocationTemplateUseCase';
 import { type DebtAccount } from '@/domains/debt/schemas';
 import { IntentType } from '@/domains/ledger/constants';
 import { DEFAULT_INTENT_MAPPINGS } from '@/domains/ledger/intentMapping';
@@ -13,6 +15,7 @@ import { projectService } from '@/domains/project/projectService';
 import { useAuth } from '@/infra/contexts/useAuth';
 import { useLedgerCodes } from '@/ui/features/ledger/hooks/useLedgerCodes';
 import {
+  type AllocationItemInput,
   type TransactionFormCategoryOption,
   type TransactionFormOutput,
 } from '@/ui/features/transaction/types/transaction';
@@ -22,6 +25,7 @@ import {
   mapTransactionVMToDomain,
   parseTransactionFormVM,
 } from '@/ui/features/transaction/viewmodels/transaction.vm';
+import { logger } from '@/utils/logger';
 
 const expenseCategories: TransactionFormCategoryOption[] = [
   ...DEFAULT_INTENT_MAPPINGS.filter((mapping) => mapping.type === 'EXPENSE').map((mapping) => ({
@@ -67,6 +71,7 @@ export const useTransactionForm = (
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [debtAccounts, setDebtAccounts] = useState<DebtAccount[]>([]);
+  const incomeTemplateCacheRef = useRef<Map<string, AllocationItemInput[] | null>>(new Map());
   const { codes: allActiveLedgerCodes } = useLedgerCodes(false);
 
   // Fetch active debt accounts for the DEBT_PAYMENT tab
@@ -84,6 +89,32 @@ export const useTransactionForm = (
     fetchDebtAccounts();
   }, [fetchDebtAccounts]);
 
+  const loadIncomeAllocationTemplate = useCallback(
+    async (ledgerCode: string): Promise<AllocationItemInput[] | null> => {
+      if (!householdId || !ledgerCode.startsWith('income:')) return null;
+
+      if (incomeTemplateCacheRef.current.has(ledgerCode)) {
+        return incomeTemplateCacheRef.current.get(ledgerCode) ?? null;
+      }
+
+      const template = await getIncomeAllocationTemplateUseCase.execute({
+        householdId,
+        ledgerCode,
+      });
+
+      const items = template
+        ? template.items.map((item) => ({
+            projectId: item.projectId,
+            percentage: item.percentage,
+          }))
+        : null;
+
+      incomeTemplateCacheRef.current.set(ledgerCode, items);
+      return items;
+    },
+    [householdId],
+  );
+
   const executeAllocation = async (input: {
     vm: TransactionFormVM;
     transactionId: string;
@@ -99,6 +130,26 @@ export const useTransactionForm = (
       userEmail,
       data: allocationData,
     });
+
+    if (vm.intentType !== IntentType.INCOME || !vm.ledgerCode?.startsWith('income:')) {
+      return;
+    }
+
+    try {
+      await upsertIncomeAllocationTemplateUseCase.execute({
+        householdId,
+        userEmail,
+        ledgerCode: vm.ledgerCode,
+        items: allocationData.items,
+      });
+
+      incomeTemplateCacheRef.current.set(vm.ledgerCode, allocationData.items);
+    } catch (templateError) {
+      logger.warn('Failed to persist income allocation template', 'useTransactionForm', {
+        templateError,
+        ledgerCode: vm.ledgerCode,
+      });
+    }
   };
 
   const handleSubmit = async (output: TransactionFormOutput) => {
@@ -176,6 +227,7 @@ export const useTransactionForm = (
     advancedCategories,
     debtAccounts,
     allActiveLedgerCodes,
+    loadIncomeAllocationTemplate,
     loading,
     error,
     handleSubmit,

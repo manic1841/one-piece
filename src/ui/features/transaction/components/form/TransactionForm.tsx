@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 
 import {
   ArrowRightLeft,
@@ -36,6 +36,7 @@ import {
 } from '@/ui/features/transaction/components/form/transactionFormPreview';
 import {
   type AdvancedFormState,
+  type AllocationItemInput,
   type ExpenseFormState,
   type FinancingFormState,
   type IncomeFormState,
@@ -61,6 +62,7 @@ interface TransactionFormProps {
   advancedCategories: TransactionFormCategoryOption[];
   debtAccounts?: DebtAccount[];
   allActiveLedgerCodes: LedgerCodeItem[];
+  loadIncomeAllocationTemplate?: (ledgerCode: string) => Promise<AllocationItemInput[] | null>;
 }
 
 const createExpenseState = (): ExpenseFormState => ({
@@ -141,6 +143,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
   advancedCategories,
   debtAccounts = [],
   allActiveLedgerCodes,
+  loadIncomeAllocationTemplate,
 }) => {
   const [activeTab, setActiveTab] = useState<TransactionFormTab>('EXPENSE');
   const [expense, setExpense] = useState<ExpenseFormState>(createExpenseState);
@@ -152,6 +155,48 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
   );
   const [advanced, setAdvanced] = useState<AdvancedFormState>(createAdvancedState);
   const [debtPayment, setDebtPayment] = useState<DebtPaymentFormState>(createDebtPaymentState);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    if (activeTab !== 'INCOME') return;
+
+    const ledgerCode = income.ledgerCode;
+    if (!ledgerCode) {
+      setIncome((prev) => ({ ...prev, triggerAllocation: false, allocationItems: [] }));
+      return;
+    }
+
+    let cancelled = false;
+
+    const applyTemplate = async () => {
+      const templateItems = (await loadIncomeAllocationTemplate?.(ledgerCode)) ?? null;
+      if (cancelled) return;
+
+      const projectIds = new Set(projects.map((project) => project.id));
+      const nextItems = (templateItems ?? [])
+        .filter((item) => projectIds.has(item.projectId))
+        .map((item) => ({
+          projectId: item.projectId,
+          percentage: item.percentage.toString(),
+        }));
+
+      setIncome((prev) => {
+        if (prev.ledgerCode !== ledgerCode) return prev;
+
+        return {
+          ...prev,
+          triggerAllocation: nextItems.length > 0,
+          allocationItems: nextItems,
+        };
+      });
+    };
+
+    void applyTemplate();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activeTab, income.ledgerCode, isOpen, loadIncomeAllocationTemplate, projects]);
 
   const resetAll = () => {
     setActiveTab('EXPENSE');

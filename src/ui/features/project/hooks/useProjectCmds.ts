@@ -120,12 +120,13 @@ export function useProjectCmds(householdId: string) {
   const reorderProjects = useCallback(
     async (projectOrders: Array<{ id: string; order: number }>) => {
       return run(async () => {
-        return reorderProjectsUseCase.execute({
+        await reorderProjectsUseCase.execute({
           householdId,
           projectOrders,
           userEmail: auth.email || '',
           auth: { uid: auth.uid, isGlobalAdmin: auth.isGlobalAdmin },
         });
+        return true;
       });
     },
     [householdId, auth, run],

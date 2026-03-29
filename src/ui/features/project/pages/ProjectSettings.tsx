@@ -1,13 +1,26 @@
 import React from 'react';
-import { ArrowLeft, ArrowDown, ArrowUp, Save } from 'lucide-react';
+
+import { ArrowDown, ArrowLeft, ArrowUp, Save } from 'lucide-react';
+
+import { type Project } from '@/domains/project/schemas';
 import { Button } from '@/ui/components/ui/button';
 import { Card, CardContent } from '@/ui/components/ui/card';
 import { Label } from '@/ui/components/ui/label';
-import { type Project } from '@/domains/project/schemas';
 import { useProjectPage } from '@/ui/features/project/hooks/useProjectPage';
+import { logger } from '@/utils/logger';
 
 // Simple Toggle fallback since switch.tsx is missing in the project
-const Switch = ({ id, checked, onCheckedChange, disabled }: { id: string, checked: boolean, onCheckedChange: (checked: boolean) => void, disabled?: boolean }) => (
+const Switch = ({
+  id,
+  checked,
+  onCheckedChange,
+  disabled,
+}: {
+  id: string;
+  checked: boolean;
+  onCheckedChange: (checked: boolean) => void;
+  disabled?: boolean;
+}) => (
   <button
     id={id}
     type="button"
@@ -29,21 +42,20 @@ interface ProjectSettingsProps {
 }
 
 const ProjectSettings: React.FC<ProjectSettingsProps> = ({ householdId, onBack }) => {
-  const {
-    projects,
-    loading,
-    moveProjectUp,
-    moveProjectDown,
-    saveOrder,
-    update,
-  } = useProjectPage(householdId);
+  const { projects, loading, moveProjectUp, moveProjectDown, saveOrder, update } =
+    useProjectPage(householdId);
 
   const [saving, setSaving] = React.useState(false);
+  const [saveError, setSaveError] = React.useState<string | null>(null);
 
   const handleSaveOrder = async () => {
     setSaving(true);
+    setSaveError(null);
     try {
       await saveOrder();
+    } catch (error) {
+      logger.error('Failed to save project order', 'ProjectSettings', { error });
+      setSaveError(error instanceof Error ? error.message : 'Failed to save project order.');
     } finally {
       setSaving(false);
     }
@@ -73,12 +85,7 @@ const ProjectSettings: React.FC<ProjectSettingsProps> = ({ householdId, onBack }
           <h1 className="text-2xl font-bold text-foreground">Project Settings</h1>
           <p className="text-muted-foreground">Manage project order and status</p>
         </div>
-        <Button 
-          variant="default" 
-          className="gap-2" 
-          onClick={handleSaveOrder}
-          disabled={saving}
-        >
+        <Button variant="default" className="gap-2" onClick={handleSaveOrder} disabled={saving}>
           <Save size={18} />
           {saving ? 'Saving...' : 'Save Order'}
         </Button>
@@ -86,10 +93,15 @@ const ProjectSettings: React.FC<ProjectSettingsProps> = ({ householdId, onBack }
 
       <Card>
         <CardContent className="p-4">
+          {saveError && (
+            <div className="mb-4 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-medium text-rose-700">
+              {saveError}
+            </div>
+          )}
           <div className="space-y-4">
             {projects.map((project, index) => (
-              <div 
-                key={project.id} 
+              <div
+                key={project.id}
                 className="flex items-center justify-between p-4 bg-muted/30 rounded-lg hover:bg-muted/50 transition-colors"
               >
                 <div className="flex items-center gap-4">
@@ -114,7 +126,7 @@ const ProjectSettings: React.FC<ProjectSettingsProps> = ({ householdId, onBack }
                     </Button>
                   </div>
                   <div className="flex items-center gap-3">
-                    <span 
+                    <span
                       className="w-10 h-10 flex items-center justify-center rounded-lg text-lg"
                       style={{ backgroundColor: project.color }}
                     >
@@ -122,11 +134,13 @@ const ProjectSettings: React.FC<ProjectSettingsProps> = ({ householdId, onBack }
                     </span>
                     <div>
                       <p className="font-semibold">{project.name}</p>
-                      <p className="text-xs text-muted-foreground">{project.description || 'No description'}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {project.description || 'No description'}
+                      </p>
                     </div>
                   </div>
                 </div>
-                
+
                 <div className="flex items-center gap-6">
                   <div className="flex items-center space-x-2">
                     <Switch

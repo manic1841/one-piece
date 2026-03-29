@@ -44,6 +44,7 @@ const Transactions: React.FC = () => {
     advancedCategories,
     debtAccounts,
     allActiveLedgerCodes,
+    loadIncomeAllocationTemplate,
     loading: formSubmitting,
     error: formError,
     handleSubmit,
@@ -148,6 +149,7 @@ const Transactions: React.FC = () => {
           advancedCategories={advancedCategories}
           debtAccounts={debtAccounts}
           allActiveLedgerCodes={allActiveLedgerCodes}
+          loadIncomeAllocationTemplate={loadIncomeAllocationTemplate}
         />
       )}
     </div>

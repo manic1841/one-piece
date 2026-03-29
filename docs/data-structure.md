@@ -86,6 +86,21 @@ firestore
        │    │    └─ amount: number
        │    └─ projectIds: string[]      # 索引最佳化
 
+     ├─ allocationTemplates/{templateId} # 收入分配模板（UI 輔助）
+     │    ├─ name: string
+     │    ├─ ledgerCode: string          # e.g. "income:salary:charles"
+     │    ├─ isDefault: boolean          # fallback 模板
+     │    ├─ items: array
+     │    │    ├─ projectId: string
+     │    │    └─ percentage: number
+     │    ├─ createdBy: string
+     │    └─ updatedAt: Timestamp
+     │
+     │    # 規則：
+     │    # - 同一 household 中，一個 ledgerCode 僅對應一個 template
+     │    # - 可設定一筆 isDefault = true 作為無匹配 ledgerCode 的 fallback
+     │    # - template 僅供 UI 預填，修改 template 不會回寫既有 allocations
+
        ├─ transactions/{transactionId}   # 原始交易記錄 (Source Documents)
        │    ├─ date: Timestamp
        │    ├─ amount: number

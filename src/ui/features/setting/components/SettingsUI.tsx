@@ -6,10 +6,11 @@ import { ShieldAlert } from 'lucide-react';
 import { type Household } from '@/domains/household/schemas';
 import { Button } from '@/ui/components/ui/button';
 import { Card, CardContent } from '@/ui/components/ui/card';
+import { AllocationTemplateSettings } from '@/ui/features/ledger/components/AllocationTemplateSettings';
+import { LedgerCodeSettings } from '@/ui/features/ledger/components/LedgerCodeSettings';
 
 import EmailWhitelistUI from './EmailWhitelistUI';
 import MemberManagementUI from './MemberManagementUI';
-import { LedgerCodeSettings } from '@/ui/features/ledger/components/LedgerCodeSettings';
 
 interface SettingsUIProps {
   isAdmin: boolean;
@@ -136,6 +137,7 @@ const SettingsUI: React.FC<SettingsUIProps> = (props) => {
             currentUser={currentUser}
           />
           <LedgerCodeSettings />
+          <AllocationTemplateSettings />
         </section>
       )}
     </div>
