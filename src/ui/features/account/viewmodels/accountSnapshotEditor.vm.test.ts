@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   addHoldingToForm,
   applyDisplayFieldChange,
+  applyImportedHoldings,
   createSnapshotEditorFormVM,
   removeHoldingFromForm,
   updateHoldingInForm,
@@ -75,5 +76,39 @@ describe('accountSnapshotEditor.vm', () => {
       currency: 'TWD',
     });
     expect(removed.holdings).toHaveLength(0);
+  });
+
+  it('applies imported holdings and recalculates totals', () => {
+    const vm = {
+      year: 2026,
+      month: 3,
+      amount: 0,
+      originalAmount: 0,
+      exchangeRate: 30,
+      holdings: [],
+    };
+
+    const next = applyImportedHoldings(
+      vm,
+      [
+        { symbol: 'AAPL', name: 'Apple', quantity: 1, cost: 100, marketValue: 120, leverage: 1 },
+        {
+          symbol: 'MSFT',
+          name: 'Microsoft',
+          quantity: 1,
+          cost: 200,
+          marketValue: 210,
+          leverage: 1,
+        },
+      ],
+      {
+        isSecurities: true,
+        currency: 'USD',
+      },
+    );
+
+    expect(next.originalAmount).toBe(330);
+    expect(next.amount).toBe(9900);
+    expect(next.holdings).toHaveLength(2);
   });
 });

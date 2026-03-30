@@ -155,3 +155,37 @@ export const updateHoldingInForm = (
     amount: total,
   };
 };
+
+export const applyImportedHoldings = (
+  prev: AccountSnapshotEditorFormVM,
+  holdings: Holding[],
+  options: {
+    isSecurities: boolean;
+    currency: string;
+  },
+): AccountSnapshotEditorFormVM => {
+  if (!options.isSecurities) {
+    return {
+      ...prev,
+      holdings: [],
+    };
+  }
+
+  const copiedHoldings = holdings.map((holding) => ({ ...holding }));
+  const total = totalHoldingValue(copiedHoldings);
+
+  if (options.currency !== 'TWD') {
+    return {
+      ...prev,
+      holdings: copiedHoldings,
+      originalAmount: total,
+      amount: total * prev.exchangeRate,
+    };
+  }
+
+  return {
+    ...prev,
+    holdings: copiedHoldings,
+    amount: total,
+  };
+};

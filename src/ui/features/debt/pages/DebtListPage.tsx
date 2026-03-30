@@ -27,6 +27,11 @@ function formatYearMonth(date: Date | null): string {
   return `${date.getFullYear()}年${date.getMonth() + 1}月`;
 }
 
+function formatDate(date: Date | null | undefined): string {
+  if (!date) return '—';
+  return `${date.getFullYear()}/${String(date.getMonth() + 1).padStart(2, '0')}/${String(date.getDate()).padStart(2, '0')}`;
+}
+
 /** Page-level summary cards */
 function SummaryCards({
   totalDebt,
@@ -78,94 +83,149 @@ function DebtCard({
   getHistory: (id: string) => Promise<Transaction[]>;
 }) {
   const [showHistory, setShowHistory] = useState(false);
+  const isSettled = !account.isActive;
 
   return (
-    <Card>
-      <CardContent className="p-5 space-y-4">
+    <Card className={isSettled ? 'bg-slate-50/60 border-slate-200' : ''}>
+      <CardContent className={`p-5 space-y-4 ${isSettled ? 'text-slate-600' : ''}`}>
         {/* Header row */}
         <div className="flex items-start justify-between gap-2">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="font-semibold text-base">{account.name}</span>
-            <span
-              className={`text-xs px-2 py-0.5 rounded-full font-medium ${TYPE_BADGE_CLASS[account.type] ?? ''}`}
-            >
-              {account.typeLabel}
+            <span className={`font-semibold text-base ${isSettled ? 'text-slate-500' : ''}`}>
+              {account.name}
             </span>
-            {account.inGracePeriod && (
-              <Badge
-                variant="destructive"
-                className="text-xs font-medium bg-amber-100 text-amber-800 border-amber-200"
-              >
-                寬限期至 {account.graceEndYearMonthText}
-              </Badge>
-            )}
-            {account.projectName && (
-              <Badge variant="outline" className="text-xs">
-                {account.projectName}
-              </Badge>
+            {isSettled ? (
+              <>
+                <span className="text-xs px-2 py-0.5 rounded-full font-medium text-slate-500 bg-slate-100 border border-slate-200">
+                  {account.typeLabel}
+                </span>
+                <Badge
+                  variant="outline"
+                  className="text-xs bg-emerald-50 text-emerald-700 border-emerald-200"
+                >
+                  ✓ 已結清
+                </Badge>
+                <span className="text-xs text-slate-500 font-medium">
+                  {formatDate(account.closedAt)}
+                </span>
+              </>
+            ) : (
+              <>
+                <span
+                  className={`text-xs px-2 py-0.5 rounded-full font-medium ${TYPE_BADGE_CLASS[account.type] ?? ''}`}
+                >
+                  {account.typeLabel}
+                </span>
+                {account.inGracePeriod && (
+                  <Badge
+                    variant="destructive"
+                    className="text-xs font-medium bg-amber-100 text-amber-800 border-amber-200"
+                  >
+                    寬限期至 {account.graceEndYearMonthText}
+                  </Badge>
+                )}
+                {account.projectName && (
+                  <Badge variant="outline" className="text-xs">
+                    {account.projectName}
+                  </Badge>
+                )}
+              </>
             )}
           </div>
           <div className="flex gap-1 shrink-0">
-            <Button variant="ghost" size="sm" onClick={onEdit} title="編輯">
-              ✏️
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onRemove}
-              disabled={removing}
-              title="停用/刪除"
-              className="text-destructive hover:text-destructive"
-            >
-              🗑
-            </Button>
+            {!isSettled && (
+              <>
+                <Button variant="ghost" size="sm" onClick={onEdit} title="編輯">
+                  ✏️
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={onRemove}
+                  disabled={removing}
+                  title="停用/刪除"
+                  className="text-destructive hover:text-destructive"
+                >
+                  🗑
+                </Button>
+              </>
+            )}
           </div>
         </div>
 
-        {/* Progress bar */}
-        <div className="space-y-1">
-          <div className="flex justify-between text-xs text-muted-foreground">
-            <span>還款進度</span>
-            <span>{account.repaidPercent}% 已還</span>
+        {/* Progress bar - only for active accounts */}
+        {!isSettled && (
+          <div className="space-y-1">
+            <div className="flex justify-between text-xs text-muted-foreground">
+              <span>還款進度</span>
+              <span>{account.repaidPercent}% 已還</span>
+            </div>
+            <Progress value={account.repaidPercent} className="h-2" />
           </div>
-          <Progress value={account.repaidPercent} className="h-2" />
-        </div>
+        )}
 
-        {/* Stats grid */}
-        <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm sm:grid-cols-4">
-          <div>
-            <p className="text-muted-foreground text-xs">剩餘本金</p>
-            <p className="font-medium">${formatCurrency(account.currentBalance)}</p>
-            <p className="text-xs text-muted-foreground">
-              / ${formatCurrency(account.originalAmount)}
-            </p>
+        {/* Stats grid - conditional content */}
+        {isSettled ? (
+          <div className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm sm:grid-cols-3">
+            <div>
+              <p className="text-slate-500 text-xs font-medium">原始借款</p>
+              <p className="font-semibold text-slate-700">
+                ${formatCurrency(account.originalAmount)}
+              </p>
+            </div>
+            <div>
+              <p className="text-slate-500 text-xs font-medium">年利率</p>
+              <p className="font-semibold text-slate-700">{account.interestRate}%</p>
+            </div>
+            <div>
+              <p className="text-slate-500 text-xs font-medium">借款期間</p>
+              <p className="font-semibold text-slate-700">
+                {formatYearMonth(account.startDate)} ~ {formatYearMonth(account.endDate)}
+              </p>
+            </div>
           </div>
-          <div>
-            <p className="text-muted-foreground text-xs">年利率</p>
-            <p className="font-medium">{account.interestRate}%</p>
+        ) : (
+          <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm sm:grid-cols-4">
+            <div>
+              <p className="text-muted-foreground text-xs">剩餘本金</p>
+              <p className="font-medium">${formatCurrency(account.currentBalance)}</p>
+              <p className="text-xs text-muted-foreground">
+                / ${formatCurrency(account.originalAmount)}
+              </p>
+            </div>
+            <div>
+              <p className="text-muted-foreground text-xs">年利率</p>
+              <p className="font-medium">{account.interestRate}%</p>
+            </div>
+            <div>
+              <p className="text-muted-foreground text-xs">
+                {account.inGracePeriod ? '本月應付（利息）' : '每月還款'}
+              </p>
+              <p className="font-medium">${formatCurrency(account.monthlyDueAmount)}</p>
+            </div>
+            <div>
+              <p className="text-muted-foreground text-xs">預計還清</p>
+              <p className="font-medium">{formatYearMonth(account.payoffDate)}</p>
+            </div>
           </div>
-          <div>
-            <p className="text-muted-foreground text-xs">
-              {account.inGracePeriod ? '本月應付（利息）' : '每月還款'}
-            </p>
-            <p className="font-medium">${formatCurrency(account.monthlyDueAmount)}</p>
-          </div>
-          <div>
-            <p className="text-muted-foreground text-xs">預計還清</p>
-            <p className="font-medium">{formatYearMonth(account.payoffDate)}</p>
-          </div>
-        </div>
+        )}
 
         {/* Action Toggle */}
-        <div className="pt-2 border-t border-slate-50">
+        <div className={`pt-2 border-t ${isSettled ? 'border-slate-200' : 'border-slate-50'}`}>
           <Button
             variant="ghost"
             size="sm"
-            className="w-full text-xs text-slate-500 gap-1 hover:bg-slate-50"
+            className={`w-full text-xs gap-1 ${
+              isSettled
+                ? 'text-slate-400 hover:bg-slate-100 hover:text-slate-500'
+                : 'text-slate-500 hover:bg-slate-50'
+            }`}
             onClick={() => setShowHistory(!showHistory)}
           >
             {showHistory ? '收合還款紀錄' : '查看還款紀錄'}
-            <span className="text-slate-400">{showHistory ? '▲' : '▼'}</span>
+            <span className={isSettled ? 'text-slate-300' : 'text-slate-400'}>
+              {showHistory ? '▲' : '▼'}
+            </span>
           </Button>
         </div>
 

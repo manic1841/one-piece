@@ -31,7 +31,7 @@ export function useDebtPage(householdId: string) {
     if (!householdId) return;
     await run(async () => {
       const [accounts, projs] = await Promise.all([
-        listDebtAccountsUseCase.execute({ householdId }),
+        listDebtAccountsUseCase.execute({ householdId, includeInactive: true }),
         listProjectsUseCase.execute({ householdId }),
       ]);
       setDebtAccounts(accounts);
@@ -65,12 +65,12 @@ export function useDebtPage(householdId: string) {
 
   // Page-level summaries
   const totalDebt = useMemo(
-    () => debtAccounts.reduce((s, a) => s + a.currentBalance, 0),
+    () => debtAccounts.filter((a) => a.isActive).reduce((s, a) => s + a.currentBalance, 0),
     [debtAccounts],
   );
 
   const totalMonthlyPayment = useMemo(
-    () => debtAccounts.reduce((s, a) => s + a.monthlyPayment, 0),
+    () => debtAccounts.filter((a) => a.isActive).reduce((s, a) => s + a.monthlyPayment, 0),
     [debtAccounts],
   );
 

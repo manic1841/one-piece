@@ -36,7 +36,10 @@ class DebtAccountRepository extends BaseRepository<DebtAccount, [string, string?
   }
 
   /** Returns all active debt accounts ordered by type */
-  async getDebtAccounts(householdId: string): Promise<DebtAccount[]> {
+  async getDebtAccounts(householdId: string, includeInactive = false): Promise<DebtAccount[]> {
+    if (includeInactive) {
+      return this.list([householdId], [orderBy('type', 'asc')]);
+    }
     return this.list([householdId], [where('isActive', '==', true), orderBy('type', 'asc')]);
   }
 

@@ -29,6 +29,7 @@ describe('AccountSnapshotEditor', () => {
 
     vi.mocked(useAccountCmds).mockReturnValue({
       recordSnapshot: vi.fn().mockResolvedValue(undefined),
+      getPreviousSnapshot: vi.fn().mockResolvedValue(null),
       loading: false,
     } as never);
 
@@ -83,5 +84,73 @@ describe('AccountSnapshotEditor', () => {
 
     expect(await screen.findByText('匯率需大於 0')).toBeInTheDocument();
     expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it('imports previous month holdings for securities account', async () => {
+    const account = {
+      id: 'acc-sec',
+      name: 'Brokerage',
+      category: 'securities',
+      currency: 'TWD',
+    };
+
+    const { useAccountCmds } = await import('@/ui/features/account/hooks/useAccountCmds');
+    const getPreviousSnapshot = vi.fn().mockResolvedValue({
+      id: 'snap-1',
+      accountId: 'acc-sec',
+      year: 2026,
+      month: 2,
+      amount: 1000,
+      holdings: [
+        {
+          symbol: 'AAPL',
+          name: 'Apple Inc.',
+          quantity: 10,
+          cost: 150,
+          marketValue: 1200,
+        },
+      ],
+    });
+    vi.mocked(useAccountCmds).mockReturnValue({
+      recordSnapshot: vi.fn().mockResolvedValue(undefined),
+      getPreviousSnapshot,
+      loading: false,
+    } as never);
+
+    render(<AccountSnapshotEditor account={account as never} isOpen={true} onClose={vi.fn()} />);
+
+    fireEvent.click(screen.getByRole('button', { name: '導入上月持倉' }));
+
+    await waitFor(() => {
+      expect(getPreviousSnapshot).toHaveBeenCalledWith(
+        'acc-sec',
+        expect.any(Number),
+        expect.any(Number),
+      );
+      expect(screen.getByDisplayValue('AAPL')).toBeInTheDocument();
+      expect(screen.getByDisplayValue('Apple Inc.')).toBeInTheDocument();
+    });
+  });
+
+  it('shows error when previous snapshot has no holdings', async () => {
+    const account = {
+      id: 'acc-sec-2',
+      name: 'Brokerage 2',
+      category: 'securities',
+      currency: 'TWD',
+    };
+
+    const { useAccountCmds } = await import('@/ui/features/account/hooks/useAccountCmds');
+    vi.mocked(useAccountCmds).mockReturnValue({
+      recordSnapshot: vi.fn().mockResolvedValue(undefined),
+      getPreviousSnapshot: vi.fn().mockResolvedValue(null),
+      loading: false,
+    } as never);
+
+    render(<AccountSnapshotEditor account={account as never} isOpen={true} onClose={vi.fn()} />);
+
+    fireEvent.click(screen.getByRole('button', { name: '導入上月持倉' }));
+
+    expect(await screen.findByText('上個月沒有可導入的持倉資料')).toBeInTheDocument();
   });
 });

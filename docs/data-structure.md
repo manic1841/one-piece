@@ -140,7 +140,8 @@ firestore
             ├─ linkedLedgerCode: string # 由 type 自動對應，e.g. "liability:mortgage"
             ├─ linkedProjectId?: string | null
             ├─ note?: string
-            └─ isActive: boolean        # false = soft-deleted
+            ├─ isActive: boolean        # false = 已結清/停用
+            └─ closedAt?: Timestamp | null # 結清日期，isActive=false 時寫入
 ```
 
 ## 設計注意事項

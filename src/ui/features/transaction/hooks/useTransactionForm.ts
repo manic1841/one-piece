@@ -4,6 +4,7 @@ import { z } from 'zod';
 
 import { createDebtPaymentUseCase } from '@/application/debt/use_cases/createDebtPaymentUseCase';
 import { listDebtAccountsUseCase } from '@/application/debt/use_cases/listDebtAccountsUseCase';
+import { updateDebtAccountUseCase } from '@/application/debt/use_cases/updateDebtAccountUseCase';
 import { createAllocationUseCase } from '@/application/ledger/use_cases/createAllocationUseCase';
 import { createTransactionUseCase } from '@/application/ledger/use_cases/createTransactionUseCase';
 import { getIncomeAllocationTemplateUseCase } from '@/application/ledger/use_cases/getIncomeAllocationTemplateUseCase';
@@ -62,6 +63,11 @@ const advancedCategories: TransactionFormCategoryOption[] = [
 
 const toDate = (date: string) => new Date(`${date}T00:00:00`);
 
+type SettlementPrompt = {
+  debtAccountId: string;
+  debtAccountName: string;
+};
+
 export const useTransactionForm = (
   householdId: string,
   onClose: () => void,
@@ -71,6 +77,7 @@ export const useTransactionForm = (
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [debtAccounts, setDebtAccounts] = useState<DebtAccount[]>([]);
+  const [settlementPrompt, setSettlementPrompt] = useState<SettlementPrompt | null>(null);
   const incomeTemplateCacheRef = useRef<Map<string, AllocationItemInput[] | null>>(new Map());
   const { codes: allActiveLedgerCodes } = useLedgerCodes(false);
 
@@ -163,7 +170,8 @@ export const useTransactionForm = (
 
       if (vm.intentType === IntentType.DEBT_PAYMENT) {
         if (!vm.debtAccountId) throw new Error('請選擇貸款帳戶');
-        await createDebtPaymentUseCase.execute({
+        const account = debtAccounts.find((item) => item.id === vm.debtAccountId) ?? null;
+        const result = await createDebtPaymentUseCase.execute({
           householdId,
           userEmail: userProfile.email,
           auth: {
@@ -176,6 +184,13 @@ export const useTransactionForm = (
           description: vm.description,
           projectId: vm.projectId,
         });
+
+        if (result.newBalance <= 0) {
+          setSettlementPrompt({
+            debtAccountId: vm.debtAccountId,
+            debtAccountName: account?.name ?? '貸款',
+          });
+        }
       } else if (vm.intentType === IntentType.TRANSFER) {
         if (!vm.fromProjectId || !vm.toProjectId)
           throw new Error('Please select both source and target projects.');
@@ -219,6 +234,36 @@ export const useTransactionForm = (
     }
   };
 
+  const dismissSettlementPrompt = () => {
+    setSettlementPrompt(null);
+  };
+
+  const confirmSettlementPrompt = async () => {
+    if (!settlementPrompt || !userProfile?.email) return;
+
+    try {
+      await updateDebtAccountUseCase.execute({
+        householdId,
+        debtAccountId: settlementPrompt.debtAccountId,
+        userEmail: userProfile.email,
+        auth: {
+          uid: currentUser?.uid ?? '',
+          isGlobalAdmin: isAdmin ?? false,
+        },
+        data: {
+          isActive: false,
+          closedAt: new Date(),
+        },
+      });
+
+      setSettlementPrompt(null);
+      await fetchDebtAccounts();
+    } catch (err: unknown) {
+      const e = err as Error;
+      setError(e.message || 'Failed to settle debt account.');
+    }
+  };
+
   return {
     expenseCategories,
     incomeCategories,
@@ -228,6 +273,9 @@ export const useTransactionForm = (
     debtAccounts,
     allActiveLedgerCodes,
     loadIncomeAllocationTemplate,
+    settlementPrompt,
+    confirmSettlementPrompt,
+    dismissSettlementPrompt,
     loading,
     error,
     handleSubmit,

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 
 import { ArrowLeft, Plus } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -37,17 +37,23 @@ const PortfolioDetail: React.FC<PortfolioDetailProps> = ({ householdId, userEmai
   const [snapshots, setSnapshots] = useState<PortfolioSnapshot[]>([]);
   const [loadingSnapshots, setLoadingSnapshots] = useState(false);
 
-  React.useEffect(() => {
-    if (id) {
-      setLoadingSnapshots(true);
-      getSnapshots(id).then((res) => {
-        if (res) {
-          setSnapshots(res);
-        }
-        setLoadingSnapshots(false);
-      });
+  const refreshSnapshots = useCallback(async () => {
+    if (!id) return;
+
+    setLoadingSnapshots(true);
+    try {
+      const res = await getSnapshots(id);
+      if (res) {
+        setSnapshots(res);
+      }
+    } finally {
+      setLoadingSnapshots(false);
     }
-  }, [id, getSnapshots, reload]);
+  }, [id, getSnapshots]);
+
+  React.useEffect(() => {
+    refreshSnapshots();
+  }, [refreshSnapshots, reload]);
 
   const loading = listLoading || queryLoading || loadingSnapshots;
   const viewModel = usePortfolioDetailView(portfolio, snapshots);
@@ -58,6 +64,7 @@ const PortfolioDetail: React.FC<PortfolioDetailProps> = ({ householdId, userEmai
     if (!id) return;
     try {
       await createSnapshot(id, vm.year, vm.month, mapPortfolioSnapshotVMToDomain(vm));
+      await refreshSnapshots();
     } catch (error) {
       if (error instanceof ZodError) {
         throw new Error(error.issues[0]?.message || 'Invalid snapshot form data');
@@ -96,6 +103,7 @@ const PortfolioDetail: React.FC<PortfolioDetailProps> = ({ householdId, userEmai
         onDelete={async (snapshotId) => {
           if (!id) return;
           await deleteSnapshot(id, snapshotId);
+          await refreshSnapshots();
         }}
       />
 

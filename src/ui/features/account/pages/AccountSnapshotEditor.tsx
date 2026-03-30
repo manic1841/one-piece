@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 
-import { Save } from 'lucide-react';
+import { Save, Upload } from 'lucide-react';
 import { z } from 'zod';
 
 import type { Holding } from '@/domains/account/schemas';
@@ -8,6 +8,7 @@ import { type Account, type AccountSnapshot } from '@/domains/account/types/acco
 import { AccountCategory } from '@/domains/account/types/categories';
 import type { CurrencyCode } from '@/domains/exchange_rate/types';
 import { useAuth } from '@/infra/contexts/useAuth';
+import { YearMonthPicker } from '@/ui/components/YearMonthPicker';
 import { Button } from '@/ui/components/ui/button';
 import {
   Dialog,
@@ -16,10 +17,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/ui/components/ui/dialog';
-
 import { useAccountCmds } from '@/ui/features/account/hooks/useAccountCmds';
-
-import { YearMonthPicker } from '@/ui/components/YearMonthPicker';
 
 import { AccountAmount } from '../components/form/AccountAmount';
 import { AccountHolding } from '../components/form/AccountHolding';
@@ -32,6 +30,7 @@ import {
   type AccountSnapshotEditorFormVM,
   addHoldingToForm,
   applyDisplayFieldChange,
+  applyImportedHoldings,
   createSnapshotEditorFormVM,
   removeHoldingFromForm,
   updateHoldingInForm,
@@ -52,7 +51,7 @@ const AccountSnapshotEditor: React.FC<AccountSnapshotEditorProps> = ({
 }) => {
   const { userProfile } = useAuth();
   const householdId = userProfile?.householdId || '';
-  const { recordSnapshot, loading } = useAccountCmds(householdId);
+  const { recordSnapshot, getPreviousSnapshot, loading } = useAccountCmds(householdId);
   const { getRate, loading: fetchingRate } = useExchangeRate();
 
   const isSecurities = account.category === AccountCategory.SECURITIES;
@@ -61,6 +60,7 @@ const AccountSnapshotEditor: React.FC<AccountSnapshotEditorProps> = ({
     createSnapshotEditorFormVM(snapshot),
   );
   const [error, setError] = useState<string | null>(null);
+  const [importingHoldings, setImportingHoldings] = useState(false);
 
   const handleDisplayChange = (field: keyof typeof formData, value: number) => {
     setFormData((prev) =>
@@ -97,6 +97,32 @@ const AccountSnapshotEditor: React.FC<AccountSnapshotEditorProps> = ({
         currency: account.currency,
       }),
     );
+  };
+
+  const handleImportPreviousHoldings = async () => {
+    if (!isSecurities) return;
+
+    try {
+      setError(null);
+      setImportingHoldings(true);
+
+      const previousSnapshot = await getPreviousSnapshot(account.id, formData.year, formData.month);
+      if (!previousSnapshot?.holdings || previousSnapshot.holdings.length === 0) {
+        setError('上個月沒有可導入的持倉資料');
+        return;
+      }
+
+      setFormData((prev) =>
+        applyImportedHoldings(prev, previousSnapshot.holdings || [], {
+          isSecurities,
+          currency: account.currency,
+        }),
+      );
+    } catch {
+      setError('導入上月持倉失敗，請稍後再試');
+    } finally {
+      setImportingHoldings(false);
+    }
   };
 
   const onSubmit = async (e: React.FormEvent) => {
@@ -156,12 +182,27 @@ const AccountSnapshotEditor: React.FC<AccountSnapshotEditorProps> = ({
           />
 
           {isSecurities && (
-            <AccountHolding
-              holdings={formData.holdings || []}
-              onAddHolding={handleAddHolding}
-              onRemoveHolding={handleRemoveHolding}
-              onUpdateHolding={handleUpdateHolding}
-            />
+            <div className="space-y-2">
+              <div className="flex justify-end">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleImportPreviousHoldings}
+                  disabled={importingHoldings || loading}
+                  className="gap-2"
+                >
+                  <Upload size={16} />
+                  {importingHoldings ? '導入中...' : '導入上月持倉'}
+                </Button>
+              </div>
+              <AccountHolding
+                holdings={formData.holdings || []}
+                onAddHolding={handleAddHolding}
+                onRemoveHolding={handleRemoveHolding}
+                onUpdateHolding={handleUpdateHolding}
+              />
+            </div>
           )}
 
           <DialogFooter>

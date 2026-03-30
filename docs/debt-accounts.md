@@ -172,6 +172,85 @@ Cr. asset:cash          totalPayment
 
 ---
 
+## 5.6. 結清欄位與狀態（Debt Settlement State）
+
+`DebtAccount` 包含下列結清相關欄位：
+
+```
+isActive: boolean                   // true=啟用中, false=已結清/停用
+closedAt: Date | null | undefined   // 結清日期，結清時寫入
+```
+
+`closedAt` 為記錄用途；當帳戶被標記結清時，需同時寫入：
+
+```
+DebtAccount.isActive = false
+DebtAccount.closedAt = today
+```
+
+---
+
+## 5.7. DEBT_PAYMENT 後的結清偵測
+
+每次 `DEBT_PAYMENT` 建立成功後，流程為：
+
+```
+寫入 DEBT_PAYMENT
+  → 重算並更新 DebtAccount.currentBalance
+  → 若 currentBalance <= 0
+      顯示結清確認對話框
+```
+
+備註：
+
+- 因尾款四捨五入，`currentBalance` 可能略小於 0。
+- 系統直接視為可結清，不額外做負值特例流程。
+
+---
+
+## 5.8. 結清確認對話框
+
+觸發條件：`DEBT_PAYMENT` 成功後，`currentBalance <= 0`。
+
+內容：
+
+- 標題：`{貸款名稱} 已還清`
+- 內文：`剩餘本金已為 0，是否將此貸款標記為結清？`
+- 按鈕：`確認結清` / `稍後再說`
+
+行為：
+
+- `確認結清`：寫入 `isActive=false`、`closedAt=today`
+- `稍後再說`：不修改帳戶，讓使用者可稍後手動結清
+
+---
+
+## 5.9. 手動結清入口
+
+在債務管理頁中，符合以下條件的帳戶會顯示 `標記結清` 按鈕：
+
+```
+currentBalance <= 0 && isActive == true
+```
+
+手動結清執行邏輯與對話框確認相同：
+
+```
+DebtAccount.isActive = false
+DebtAccount.closedAt = today
+```
+
+---
+
+## 5.10. 結清後 UI 規則
+
+- 債務列表頁：預設只顯示啟用中帳戶，使用者可透過「顯示已結清」切換查看歷史
+- Dashboard 債務摘要：僅統計 `isActive=true` 帳戶
+- 新增交易的 `DEBT_PAYMENT` 帳戶選單：僅顯示 `isActive=true` 帳戶
+- 月初待繳提醒/待繳筆數：僅計算 `isActive=true` 帳戶
+
+---
+
 ## 6. 債務月結算預覽與警訊
 
 `DebtSettlement` 採用「先預覽、再確認」流程：

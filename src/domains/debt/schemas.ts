@@ -43,11 +43,16 @@ export const DebtAccountCreateSchema = z.object({
   linkedProjectId: z.string().nullable().optional(),
   note: z.string().optional(),
   isActive: z.boolean().default(true),
+  closedAt: z.date().nullable().optional(),
 });
 
 export type DebtAccountCreate = z.infer<typeof DebtAccountCreateSchema>;
 
-export const DebtAccountSchema = BaseSchema.extend(DebtAccountCreateSchema.shape);
+export const DebtAccountSchema = BaseSchema.extend(DebtAccountCreateSchema.shape).extend({
+  // After final repayment, rounding can make currentBalance hit 0 or slightly below 0.
+  // Keep domain reads tolerant so settled accounts are still parseable.
+  currentBalance: z.number(),
+});
 export type DebtAccount = z.infer<typeof DebtAccountSchema>;
 
 // ─── DebtSnapshot ────────────────────────────────────────────────────────────

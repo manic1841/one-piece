@@ -81,8 +81,14 @@ export const mapDebtAccountToDisplayVM = (
     payoffDate: estimatePayoffDate(account),
     repaidPercent:
       account.originalAmount > 0
-        ? Math.round(
-            ((account.originalAmount - account.currentBalance) / account.originalAmount) * 100,
+        ? Math.max(
+            0,
+            Math.min(
+              100,
+              Math.round(
+                ((account.originalAmount - account.currentBalance) / account.originalAmount) * 100,
+              ),
+            ),
           )
         : 0,
     projectName,

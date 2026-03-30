@@ -3,11 +3,15 @@ import { debtAccountRepository } from '@/infra/repositories/debtAccountRepositor
 
 export interface ListDebtAccountsRequest {
   householdId: string;
+  includeInactive?: boolean;
 }
 
 export class ListDebtAccountsUseCase {
   async execute(request: ListDebtAccountsRequest): Promise<DebtAccount[]> {
-    return debtAccountRepository.getDebtAccounts(request.householdId);
+    return debtAccountRepository.getDebtAccounts(
+      request.householdId,
+      request.includeInactive ?? false,
+    );
   }
 }
 
