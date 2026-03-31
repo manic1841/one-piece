@@ -45,7 +45,7 @@ export function useAccountCmds(householdId: string) {
   );
 
   const updateAccount = useCallback(
-    async (accountId: string, updates: AccountCreate) => {
+    async (accountId: string, updates: Partial<AccountCreate>) => {
       return run(async () => {
         await updateAccountUseCase.execute({
           householdId,

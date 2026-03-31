@@ -1,7 +1,7 @@
-import { accountRepository } from '@/infra/repositories/accountRepository';
-import { type AccountCreate } from '@/domains/account/types/account';
 import { householdPermissionService } from '@/application/household/householdPermissionService';
 import { type AuthContext } from '@/application/types';
+import { type AccountCreate } from '@/domains/account/types/account';
+import { accountRepository } from '@/infra/repositories/accountRepository';
 
 export interface CreateAccountRequest {
   householdId: string;
@@ -20,7 +20,7 @@ export class CreateAccountUseCase {
       auth.isGlobalAdmin,
     );
 
-    const accountId = await accountRepository.create([householdId], data, userEmail);
+    const accountId = await accountRepository.createAccount(householdId, data, userEmail);
 
     return accountId;
   }

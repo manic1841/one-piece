@@ -10,9 +10,14 @@ export function useAccounts() {
   const { loading, error, run } = useLoadingTask();
 
   const fetchAccounts = useCallback(
-    async (householdId: string, auth: AuthContext): Promise<Account[]> => {
+    async (
+      householdId: string,
+      auth: AuthContext,
+      options?: { includeInactive?: boolean },
+    ): Promise<Account[]> => {
+      const includeInactive = options?.includeInactive ?? false;
       const result = await run(async () => {
-        return await getAccountsUseCase.execute({ householdId, auth });
+        return await getAccountsUseCase.execute({ householdId, auth, includeInactive });
       });
       return result ?? [];
     },
@@ -20,9 +25,18 @@ export function useAccounts() {
   );
 
   const fetchAccountsWithSnapshots = useCallback(
-    async (householdId: string, auth: AuthContext): Promise<AccountWithSnapshot[]> => {
+    async (
+      householdId: string,
+      auth: AuthContext,
+      options?: { includeInactive?: boolean },
+    ): Promise<AccountWithSnapshot[]> => {
+      const includeInactive = options?.includeInactive ?? false;
       const result = await run(async () => {
-        return await getAccountsWithSnapshotsUseCase.execute({ householdId, auth });
+        return await getAccountsWithSnapshotsUseCase.execute({
+          householdId,
+          auth,
+          includeInactive,
+        });
       });
       return result ?? [];
     },

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
+import { checkAccountMonthlyUsageUseCase } from '@/application/account/use_cases/checkAccountMonthlyUsageUseCase';
 import {
   type Account,
   type AccountCreate,
@@ -11,7 +12,7 @@ import { useAccountExport } from '@/ui/features/account/hooks/useAccountExport';
 import { useAccounts } from '@/ui/features/account/hooks/useAccounts';
 
 export function useAccountListController() {
-  const { userProfile } = useAuth();
+  const { userProfile, currentUser, isAdmin } = useAuth();
   const householdId = userProfile?.householdId || '';
 
   const { fetchAccountsWithSnapshots, loading: loadingAccounts } = useAccounts();
@@ -28,19 +29,24 @@ export function useAccountListController() {
   const [snapshotAccountId, setSnapshotAccountId] = useState<string | null>(null);
   const [historyAccountId, setHistoryAccountId] = useState<string | null>(null);
   const [importing, setImporting] = useState(false);
+  const [togglingAccountId, setTogglingAccountId] = useState<string | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const loadAccounts = useCallback(async () => {
     if (!householdId) return;
 
-    const data = await fetchAccountsWithSnapshots(householdId, {
-      uid: userProfile?.uid || '',
-      isGlobalAdmin: false,
-    });
+    const data = await fetchAccountsWithSnapshots(
+      householdId,
+      {
+        uid: userProfile?.uid || '',
+        isGlobalAdmin: isAdmin,
+      },
+      { includeInactive: true },
+    );
     setAccounts(data);
     setLocalAccounts(data);
-  }, [householdId, fetchAccountsWithSnapshots, userProfile?.uid]);
+  }, [householdId, fetchAccountsWithSnapshots, userProfile?.uid, isAdmin]);
 
   useEffect(() => {
     const init = async () => {
@@ -171,6 +177,43 @@ export function useAccountListController() {
     await loadAccounts();
   }, [loadAccounts]);
 
+  const handleToggleActive = useCallback(
+    async (account: Account) => {
+      const nextActive = !(account.isActive !== false);
+
+      if (!nextActive) {
+        const now = new Date();
+        const warning = await checkAccountMonthlyUsageUseCase.execute({
+          householdId,
+          accountId: account.id,
+          accountCategory: account.category,
+          year: now.getFullYear(),
+          month: now.getMonth() + 1,
+          auth: {
+            uid: currentUser?.uid || '',
+            isGlobalAdmin: isAdmin,
+          },
+        });
+
+        if (warning.hasReferences) {
+          const confirmed = window.confirm(
+            `提醒：此帳戶本月有 ${warning.referenceCount} 筆交易可能引用，停用後將不再出現在記帳與月底結算選單。是否仍要停用？`,
+          );
+          if (!confirmed) return;
+        }
+      }
+
+      setTogglingAccountId(account.id);
+      try {
+        await updateAccount(account.id, { isActive: nextActive });
+      } finally {
+        setTogglingAccountId(null);
+      }
+      await loadAccounts();
+    },
+    [householdId, currentUser?.uid, isAdmin, updateAccount, loadAccounts],
+  );
+
   return {
     accounts,
     localAccounts,
@@ -189,6 +232,7 @@ export function useAccountListController() {
     setHistoryAccountId,
     fileInputRef,
     importing,
+    togglingAccountId,
     exportToCSV,
     handleCreate,
     handleUpdate,
@@ -201,5 +245,6 @@ export function useAccountListController() {
     cancelReorderMode,
     closeSnapshotEditor,
     closeHistoryDialog,
+    handleToggleActive,
   };
 }

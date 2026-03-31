@@ -50,7 +50,11 @@ const PortfolioForm: React.FC<PortfolioFormProps> = ({
   useEffect(() => {
     const loadAccounts = async () => {
       if (!householdId) return;
-      const data = await fetchAccounts(householdId, { uid: '', email: '', isGlobalAdmin: true });
+      const data = await fetchAccounts(
+        householdId,
+        { uid: '', email: '', isGlobalAdmin: true },
+        { includeInactive: true },
+      );
       setAvailableAccounts(data);
     };
     loadAccounts();

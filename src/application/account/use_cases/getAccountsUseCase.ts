@@ -1,17 +1,17 @@
-import { orderBy } from 'firebase/firestore';
-import { accountRepository } from '@/infra/repositories/accountRepository';
-import { type Account } from '@/domains/account/types/account';
 import { householdPermissionService } from '@/application/household/householdPermissionService';
 import { type AuthContext } from '@/application/types';
+import { type Account } from '@/domains/account/types/account';
+import { accountRepository } from '@/infra/repositories/accountRepository';
 
 export interface GetAccountsRequest {
   householdId: string;
   auth: AuthContext;
+  includeInactive?: boolean;
 }
 
 export class GetAccountsUseCase {
   async execute(request: GetAccountsRequest): Promise<Account[]> {
-    const { householdId, auth } = request;
+    const { householdId, auth, includeInactive = false } = request;
 
     await householdPermissionService.assertReadPermission(
       householdId,
@@ -19,10 +19,7 @@ export class GetAccountsUseCase {
       auth.isGlobalAdmin,
     );
 
-    return await accountRepository.list(
-      [householdId],
-      [orderBy('order', 'asc'), orderBy('createdAt', 'desc')],
-    );
+    return await accountRepository.getAccounts(householdId, includeInactive);
   }
 }
 

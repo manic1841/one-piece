@@ -1,7 +1,7 @@
-import { accountRepository } from '@/infra/repositories/accountRepository';
-import { type AccountCreate } from '@/domains/account/types/account';
 import { householdPermissionService } from '@/application/household/householdPermissionService';
 import { type AuthContext } from '@/application/types';
+import { type AccountCreate } from '@/domains/account/types/account';
+import { accountRepository } from '@/infra/repositories/accountRepository';
 
 export interface UpdateAccountRequest {
   householdId: string;
@@ -21,7 +21,7 @@ export class UpdateAccountUseCase {
       auth.isGlobalAdmin,
     );
 
-    return await accountRepository.update([householdId, accountId], updates, userEmail);
+    return await accountRepository.updateAccount(householdId, accountId, updates, userEmail);
   }
 }
 

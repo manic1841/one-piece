@@ -49,6 +49,7 @@ firestore
        │    ├─ category: "bank" | "securities" | "cash"
        │    ├─ currency: string
        │    ├─ order: number
+     │    ├─ isActive: boolean         # false = 停用（仍保留歷史快照）
        │    │
        │    └─ snapshots/{snapshotId}    # Subcollection: 每月餘額與持倉
        │         ├─ year: number
@@ -58,6 +59,10 @@ firestore
        │         ├─ exchangeRate: number
        │         ├─ holdings: array      # 證券持倉詳情 (symbol, quantity, cost, etc.)
        │         └─ createdAt: Timestamp
+
+     # Account 停用規則：
+     # - 停用帳戶不再出現在記帳表單/月底結算輸入列表
+     # - snapshots 子集合為歷史記錄，停用不影響既有資料
 
        ├─ portfolios/{portfolioId}       # 投資組合 (Investment Tracking)
        │    ├─ name: string

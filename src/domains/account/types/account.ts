@@ -43,9 +43,10 @@ export const AccountCreateSchema = z.object({
   category: z.nativeEnum(AccountCategory),
   currency: z.nativeEnum(CurrencyType),
   order: z.number().default(0),
+  isActive: z.boolean().default(true),
 });
 
-export type AccountCreate = z.infer<typeof AccountCreateSchema>;
+export type AccountCreate = z.input<typeof AccountCreateSchema>;
 
 export const AccountSchema = BaseSchema.extend(AccountCreateSchema.shape);
 export type Account = z.infer<typeof AccountSchema>;

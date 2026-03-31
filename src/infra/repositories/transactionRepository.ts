@@ -83,6 +83,17 @@ class TransactionRepository extends BaseRepository<Transaction, [string, string?
     return this.list([householdId], [orderBy('date', 'desc'), limit(maxLimit)]);
   }
 
+  async listByDateRange(
+    householdId: string,
+    startDate: Date,
+    endDate: Date,
+  ): Promise<Transaction[]> {
+    return this.list(
+      [householdId],
+      [where('date', '>=', startDate), where('date', '<', endDate), orderBy('date', 'desc')],
+    );
+  }
+
   async updateAllocationId(
     householdId: string,
     transactionId: string,

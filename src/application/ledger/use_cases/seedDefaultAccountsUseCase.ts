@@ -1,8 +1,8 @@
-import { CurrencyType, AccountCategory } from '@/domains/account/types/categories';
-import { accountRepository } from '@/infra/repositories/accountRepository';
-import { type AccountCreate } from '@/domains/account/types/account';
 import { householdPermissionService } from '@/application/household/householdPermissionService';
 import { type AuthContext } from '@/application/types';
+import { type AccountCreate } from '@/domains/account/types/account';
+import { AccountCategory, CurrencyType } from '@/domains/account/types/categories';
+import { accountRepository } from '@/infra/repositories/accountRepository';
 
 export interface SeedDefaultAccountsRequest {
   householdId: string;
@@ -38,7 +38,7 @@ export class SeedDefaultAccountsUseCase {
     for (const account of defaultAccounts) {
       // Logic could check if account already exists by name before creating
       // For now, we assume this is a fresh start
-      await accountRepository.create([householdId], account, userEmail);
+      await accountRepository.createAccount(householdId, account, userEmail);
     }
   }
 }
