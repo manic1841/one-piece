@@ -145,7 +145,7 @@ const AccountSnapshotEditor: React.FC<AccountSnapshotEditorProps> = ({
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent
-        className="max-w-3xl max-h-[90vh] overflow-y-auto"
+        className="w-[min(95vw,1200px)] max-w-5xl max-h-[90vh] overflow-y-auto"
         aria-describedby={undefined}
       >
         <DialogHeader>

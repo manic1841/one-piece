@@ -3,10 +3,10 @@ import React from 'react';
 import { Plus, Trash2 } from 'lucide-react';
 
 import type { Holding } from '@/domains/account/schemas';
-import type { AccountSnapshotFormVM } from '@/ui/features/account/viewmodels/accountSnapshot.vm';
 import { Button } from '@/ui/components/ui/button';
 import { Input } from '@/ui/components/ui/input';
 import { Label } from '@/ui/components/ui/label';
+import type { AccountSnapshotFormVM } from '@/ui/features/account/viewmodels/accountSnapshot.vm';
 
 interface AccountHoldingProps {
   holdings: NonNullable<AccountSnapshotFormVM['holdings']>;
@@ -36,13 +36,13 @@ export const AccountHolding: React.FC<AccountHoldingProps> = ({
         </p>
       )}
 
-      <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1">
+      <div className="space-y-2 max-h-[420px] overflow-y-auto pr-1">
         {holdings.map((holding, index) => (
           <div
             key={index}
             className="grid grid-cols-12 gap-2 items-end border-b pb-2 last:border-0"
           >
-            <div className="col-span-1">
+            <div className="sm:col-span-1 col-span-6">
               <Label className="text-xs">Symbol</Label>
               <Input
                 value={holding.symbol}
@@ -51,7 +51,7 @@ export const AccountHolding: React.FC<AccountHoldingProps> = ({
                 className="h-8 text-xs"
               />
             </div>
-            <div className="col-span-2">
+            <div className="sm:col-span-2 col-span-6">
               <Label className="text-xs">Name</Label>
               <Input
                 value={holding.name}
@@ -60,7 +60,7 @@ export const AccountHolding: React.FC<AccountHoldingProps> = ({
                 className="h-8 text-xs"
               />
             </div>
-            <div className="col-span-1">
+            <div className="sm:col-span-1 col-span-2">
               <Label className="text-xs">Qty</Label>
               <Input
                 type="number"
@@ -69,7 +69,7 @@ export const AccountHolding: React.FC<AccountHoldingProps> = ({
                 className="h-8 text-xs px-1"
               />
             </div>
-            <div className="col-span-3">
+            <div className="sm:col-span-3 col-span-6">
               <Label className="text-xs">Cost</Label>
               <Input
                 type="number"
@@ -78,7 +78,7 @@ export const AccountHolding: React.FC<AccountHoldingProps> = ({
                 className="h-8 text-xs"
               />
             </div>
-            <div className="col-span-3">
+            <div className="sm:col-span-3 col-span-6">
               <Label className="text-xs">Value</Label>
               <Input
                 type="number"
@@ -87,7 +87,7 @@ export const AccountHolding: React.FC<AccountHoldingProps> = ({
                 className="h-8 text-xs"
               />
             </div>
-            <div className="col-span-1">
+            <div className="sm:col-span-1 col-span-2">
               <Label className="text-xs">Lev</Label>
               <Input
                 type="number"
@@ -97,7 +97,7 @@ export const AccountHolding: React.FC<AccountHoldingProps> = ({
                 className="h-8 text-xs px-1"
               />
             </div>
-            <div className="col-span-1">
+            <div className="sm:col-span-1 col-span-2">
               <Button
                 type="button"
                 variant="ghost"

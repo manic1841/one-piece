@@ -111,6 +111,37 @@ class TransactionRepository extends BaseRepository<Transaction, [string, string?
     );
   }
 
+  async listTransfersByProject(
+    householdId: string,
+    projectId: string,
+    yearMonth?: string,
+  ): Promise<Transaction[]> {
+    // If yearMonth provided, reuse monthly fetch and filter in-memory
+    if (yearMonth) {
+      const monthly = await this.getProjectTransfers(householdId, yearMonth);
+      return monthly.filter((t) => t.fromProjectId === projectId || t.toProjectId === projectId);
+    }
+
+    // Firestore doesn't support OR queries; run two queries and merge
+    const fromTransfers = await this.list(
+      [householdId],
+      [where('intentType', '==', IntentType.TRANSFER), where('fromProjectId', '==', projectId)],
+    );
+
+    const toTransfers = await this.list(
+      [householdId],
+      [where('intentType', '==', IntentType.TRANSFER), where('toProjectId', '==', projectId)],
+    );
+
+    const combined = [...fromTransfers, ...toTransfers];
+    const seen = new Map<string, Transaction>();
+    for (const t of combined) {
+      seen.set(t.id, t);
+    }
+
+    return Array.from(seen.values()).sort((a, b) => toMillis(b.date) - toMillis(a.date));
+  }
+
   async listByDebtAccount(householdId: string, debtAccountId: string): Promise<Transaction[]> {
     const transactions = await this.list(
       [householdId],

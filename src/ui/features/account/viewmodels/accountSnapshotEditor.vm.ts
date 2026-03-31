@@ -68,6 +68,14 @@ export const applyDisplayFieldChange = (
     };
   }
 
+  if (!options.isSecurities && options.currency === 'TWD' && field === 'amount') {
+    return {
+      ...next,
+      originalAmount: next.amount,
+      exchangeRate: 1,
+    };
+  }
+
   return next;
 };
 
@@ -108,6 +116,8 @@ export const removeHoldingFromForm = (
   return {
     ...prev,
     holdings,
+    originalAmount: total,
+    exchangeRate: 1,
     amount: total,
   };
 };
@@ -152,6 +162,8 @@ export const updateHoldingInForm = (
   return {
     ...prev,
     holdings,
+    originalAmount: total,
+    exchangeRate: 1,
     amount: total,
   };
 };
@@ -186,6 +198,8 @@ export const applyImportedHoldings = (
   return {
     ...prev,
     holdings: copiedHoldings,
+    originalAmount: total,
+    exchangeRate: 1,
     amount: total,
   };
 };

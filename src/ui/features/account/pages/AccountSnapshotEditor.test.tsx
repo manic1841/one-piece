@@ -86,6 +86,20 @@ describe('AccountSnapshotEditor', () => {
     expect(onClose).not.toHaveBeenCalled();
   });
 
+  it('keeps TWD create form as balance-only input', async () => {
+    const account = {
+      id: 'acc-twd',
+      name: 'TWD Bank',
+      category: 'bank',
+      currency: 'TWD',
+    };
+
+    render(<AccountSnapshotEditor account={account as never} isOpen={true} onClose={vi.fn()} />);
+
+    expect(screen.queryByLabelText('Original Amount TWD')).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Balance (TWD)')).toBeInTheDocument();
+  });
+
   it('imports previous month holdings for securities account', async () => {
     const account = {
       id: 'acc-sec',

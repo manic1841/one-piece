@@ -36,6 +36,26 @@ describe('accountSnapshotEditor.vm', () => {
     expect(next.amount).toBe(3100);
   });
 
+  it('syncs original amount when non-securities TWD balance changes', () => {
+    const vm = {
+      year: 2026,
+      month: 3,
+      amount: 0,
+      originalAmount: 0,
+      exchangeRate: 1,
+      holdings: [],
+    };
+
+    const next = applyDisplayFieldChange(vm, 'amount', 1200, {
+      isSecurities: false,
+      currency: 'TWD',
+    });
+
+    expect(next.amount).toBe(1200);
+    expect(next.originalAmount).toBe(1200);
+    expect(next.exchangeRate).toBe(1);
+  });
+
   it('recalculates securities totals from holdings', () => {
     const base = {
       year: 2026,

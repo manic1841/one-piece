@@ -1,6 +1,7 @@
-import { transactionRepository } from '@/infra/repositories/transactionRepository';
-import { allocationRepository } from '@/infra/repositories/allocationRepository';
+import { IntentType } from '@/domains/ledger/constants/intentType';
 import { type Transaction } from '@/domains/ledger/schemas';
+import { allocationRepository } from '@/infra/repositories/allocationRepository';
+import { transactionRepository } from '@/infra/repositories/transactionRepository';
 
 export interface ListProjectRecordsRequest {
   householdId: string;
@@ -87,7 +88,9 @@ export class ListProjectRecordsUseCase {
         }
 
         const signedAmount =
-          allocated.direction === 'EXPENSE' ? -Math.abs(allocated.amount) : Math.abs(allocated.amount);
+          allocated.direction === 'EXPENSE'
+            ? -Math.abs(allocated.amount)
+            : Math.abs(allocated.amount);
 
         return {
           ...sourceTransaction,
@@ -101,7 +104,34 @@ export class ListProjectRecordsUseCase {
       })
       .filter((record): record is Transaction => record !== null);
 
-    return [...directRecords, ...allocationRecords].sort((a, b) => toMillis(b.date) - toMillis(a.date));
+    // Include transfer records where this project is either source or destination
+    const transferCandidates = await transactionRepository.listTransfersByProject(
+      householdId,
+      projectId,
+      yearMonth,
+    );
+
+    const transferRecords: Transaction[] = transferCandidates
+      .map((t) => {
+        const amountVal = Math.abs(t.amount ?? 0);
+        // If this project is the destination -> income, else expense
+        const signedAmount = t.toProjectId === projectId ? amountVal : -amountVal;
+
+        return {
+          ...t,
+          id: `${t.id}:transfer:${projectId}`,
+          projectId,
+          amount: signedAmount,
+          // Adjust intentType for VM mapping so direction is computed correctly
+          intentType: t.toProjectId === projectId ? IntentType.INCOME : IntentType.EXPENSE,
+          description: t.description ? `${t.description} (transfer)` : 'Transfer',
+        } as Transaction;
+      })
+      .filter((r): r is Transaction => r !== null);
+
+    return [...directRecords, ...allocationRecords, ...transferRecords].sort(
+      (a, b) => toMillis(b.date) - toMillis(a.date),
+    );
   }
 }
 

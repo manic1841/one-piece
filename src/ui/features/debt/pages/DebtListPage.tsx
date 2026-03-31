@@ -259,6 +259,8 @@ export default function DebtListPage() {
   const [editTarget, setEditTarget] = useState<DebtAccount | null>(null);
   const [removingId, setRemovingId] = useState<string | null>(null);
   const [isSettlementOpen, setIsSettlementOpen] = useState(false);
+  // 是否顯示已結清帳戶（預設不顯示）
+  const [showSettled, setShowSettled] = useState(false);
 
   const openCreate = () => {
     setEditTarget(null);
@@ -308,6 +310,14 @@ export default function DebtListPage() {
             <Calendar size={16} />
             月度結算
           </Button>
+          <Button
+            variant="outline"
+            className="gap-2"
+            onClick={() => setShowSettled((s) => !s)}
+            title={showSettled ? '隱藏已結清帳戶' : '顯示已結清帳戶'}
+          >
+            {showSettled ? '隱藏已結清' : '顯示已結清'}
+          </Button>
           <Button onClick={openCreate}>+ 新增貸款</Button>
         </div>
       </div>
@@ -330,16 +340,27 @@ export default function DebtListPage() {
             </Card>
           ) : (
             <div className="space-y-4">
-              {debtAccountViews.map((account) => (
-                <DebtCard
-                  key={account.id}
-                  account={account}
-                  onEdit={() => openEdit(account)}
-                  onRemove={() => handleRemove(account.id)}
-                  removing={removingId === account.id}
-                  getHistory={getPaymentHistory}
-                />
-              ))}
+              {/**
+               * 預設不顯示已結清帳戶；可切換顯示全部。
+               * 未結清（isActive === true）帳戶顯示在最上層。
+               */}
+              {debtAccountViews
+                .filter((a) => (showSettled ? true : a.isActive))
+                .slice()
+                .sort((a, b) => {
+                  if (a.isActive === b.isActive) return 0;
+                  return a.isActive ? -1 : 1; // active（未結清）先顯示
+                })
+                .map((account) => (
+                  <DebtCard
+                    key={account.id}
+                    account={account}
+                    onEdit={() => openEdit(account)}
+                    onRemove={() => handleRemove(account.id)}
+                    removing={removingId === account.id}
+                    getHistory={getPaymentHistory}
+                  />
+                ))}
             </div>
           )}
         </>

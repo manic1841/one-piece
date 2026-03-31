@@ -31,13 +31,14 @@ export const AccountAmount: React.FC<AccountAmountProps> = ({
   readonly,
 }) => {
   const isForeignCurrency = currency && currency !== 'TWD' && !readonly;
+
   return (
     <div className="space-y-2">
       {isForeignCurrency && setOriginalAmount && setExchangeRate && (
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
             <div className="flex items-center h-5">
-              <Label htmlFor="originalAmount">Foreign Amount {currencyLabel}</Label>
+              <Label htmlFor="originalAmount">Original Amount {currencyLabel}</Label>
             </div>
             <Input
               id="originalAmount"
@@ -48,6 +49,7 @@ export const AccountAmount: React.FC<AccountAmountProps> = ({
               onChange={(e) => setOriginalAmount(e.target.value)}
             />
           </div>
+
           <div className="space-y-2">
             <div className="flex justify-between items-center h-5">
               <Label htmlFor="exchangeRate">Exchange Rate</Label>

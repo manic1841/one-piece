@@ -50,6 +50,7 @@ export class GetProjectBalanceUseCase {
 
     // Get all transactions after snapshot date
     const allTransactions = await transactionRepository.listByProject(householdId, projectId);
+
     const transactionsSinceSnapshot = allTransactions.filter(
       (tx) => toMillis(tx.date) >= snapshotDate.getTime(),
     );
@@ -61,6 +62,24 @@ export class GetProjectBalanceUseCase {
         transactionImpact += tx.amount ?? 0;
       } else {
         transactionImpact -= tx.amount ?? 0;
+      }
+    }
+    // Include transfer records where this project is either source or destination
+    const transferTransactions = await transactionRepository.listTransfersByProject(
+      householdId,
+      projectId,
+    );
+    const transferSinceSnapshot = transferTransactions.filter(
+      (tx) => toMillis(tx.date) >= snapshotDate.getTime(),
+    );
+
+    for (const tx of transferSinceSnapshot) {
+      if (tx.projectId === projectId) {
+        // This is a transfer out from this project
+        transactionImpact -= tx.amount ?? 0;
+      } else {
+        // This is a transfer into this project
+        transactionImpact += tx.amount ?? 0;
       }
     }
 
