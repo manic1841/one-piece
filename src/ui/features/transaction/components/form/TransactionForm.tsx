@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React from 'react';
 
 import {
   ArrowRightLeft,
@@ -23,25 +23,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/ui/components/ui/tab
 import { type LedgerCodeItem } from '@/ui/features/ledger/hooks/useLedgerCodes';
 import { AdvancedPanel } from '@/ui/features/transaction/components/form/AdvancedPanel';
 import { CategoryPanel } from '@/ui/features/transaction/components/form/CategoryPanel';
-import {
-  type DebtPaymentFormState,
-  DebtPaymentPanel,
-} from '@/ui/features/transaction/components/form/DebtPaymentPanel';
+import { DebtPaymentPanel } from '@/ui/features/transaction/components/form/DebtPaymentPanel';
 import { ExpensePanel } from '@/ui/features/transaction/components/form/ExpensePanel';
 import { IncomePanel } from '@/ui/features/transaction/components/form/IncomePanel';
 import { ProjectTransferPanel } from '@/ui/features/transaction/components/form/ProjectTransferPanel';
+import { useTransactionFormState } from '@/ui/features/transaction/hooks/useTransactionFormState';
+import { type AllocationItemInput } from '@/ui/features/transaction/types/allocation';
 import {
-  buildPreview,
-  buildPreviewDetails,
-} from '@/ui/features/transaction/components/form/transactionFormPreview';
-import {
-  type AdvancedFormState,
-  type AllocationItemInput,
-  type ExpenseFormState,
-  type FinancingFormState,
-  type IncomeFormState,
-  type InvestmentFormState,
-  type ProjectTransferFormState,
   type TransactionFormCategoryOption,
   type TransactionFormOutput,
   type TransactionFormProjectOption,
@@ -50,6 +38,8 @@ import {
 
 interface TransactionFormProps {
   isOpen: boolean;
+  mode?: 'create' | 'edit';
+  initialOutput?: TransactionFormOutput | null;
   onClose: () => void;
   onSubmit: (output: TransactionFormOutput) => void | Promise<void>;
   loading?: boolean;
@@ -65,72 +55,10 @@ interface TransactionFormProps {
   loadIncomeAllocationTemplate?: (ledgerCode: string) => Promise<AllocationItemInput[] | null>;
 }
 
-const createExpenseState = (): ExpenseFormState => ({
-  amount: '',
-  date: new Date().toISOString().slice(0, 10),
-  projectId: null,
-  intent: null,
-  ledgerCode: null,
-  description: '',
-  triggerAllocation: false,
-  allocationItems: [],
-});
-
-const createIncomeState = (): IncomeFormState => ({
-  amount: '',
-  date: new Date().toISOString().slice(0, 10),
-  intent: null,
-  ledgerCode: null,
-  description: '',
-  triggerAllocation: false,
-  allocationItems: [],
-});
-
-const createInvestmentState = (): InvestmentFormState => ({
-  amount: '',
-  date: new Date().toISOString().slice(0, 10),
-  projectId: null,
-  intent: null,
-  ledgerCode: null,
-  description: '',
-});
-
-const createFinancingState = (): FinancingFormState => ({
-  amount: '',
-  date: new Date().toISOString().slice(0, 10),
-  projectId: null,
-  intent: null,
-  ledgerCode: null,
-  description: '',
-});
-
-const createProjectTransferState = (): ProjectTransferFormState => ({
-  amount: '',
-  fromProjectId: null,
-  toProjectId: null,
-  description: '',
-});
-
-const createAdvancedState = (): AdvancedFormState => ({
-  amount: '',
-  date: new Date().toISOString().slice(0, 10),
-  intentType: 'MANUAL',
-  projectId: null,
-  intent: null,
-  ledgerCode: null,
-  description: '',
-});
-
-const createDebtPaymentState = (): DebtPaymentFormState => ({
-  debtAccountId: null,
-  date: new Date().toISOString().slice(0, 10),
-  totalPayment: '',
-  projectId: null,
-  description: '',
-});
-
 export const TransactionForm: React.FC<TransactionFormProps> = ({
   isOpen,
+  mode = 'create',
+  initialOutput,
   onClose,
   onSubmit,
   loading = false,
@@ -145,117 +73,41 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
   allActiveLedgerCodes,
   loadIncomeAllocationTemplate,
 }) => {
-  const [activeTab, setActiveTab] = useState<TransactionFormTab>('EXPENSE');
-  const [expense, setExpense] = useState<ExpenseFormState>(createExpenseState);
-  const [income, setIncome] = useState<IncomeFormState>(createIncomeState);
-  const [investment, setInvestment] = useState<InvestmentFormState>(createInvestmentState);
-  const [financing, setFinancing] = useState<FinancingFormState>(createFinancingState);
-  const [projectTransfer, setProjectTransfer] = useState<ProjectTransferFormState>(
-    createProjectTransferState,
-  );
-  const [advanced, setAdvanced] = useState<AdvancedFormState>(createAdvancedState);
-  const [debtPayment, setDebtPayment] = useState<DebtPaymentFormState>(createDebtPaymentState);
+  const { state, setters, derived, actions } = useTransactionFormState({
+    isOpen,
+    initialOutput,
+    projects,
+    expenseCategories,
+    incomeCategories,
+    investmentCategories,
+    financingCategories,
+    advancedCategories,
+    debtAccounts,
+    loadIncomeAllocationTemplate,
+  });
 
-  useEffect(() => {
-    if (!isOpen) return;
-    if (activeTab !== 'INCOME') return;
-
-    const ledgerCode = income.ledgerCode;
-    if (!ledgerCode) {
-      setIncome((prev) => ({ ...prev, triggerAllocation: false, allocationItems: [] }));
-      return;
-    }
-
-    let cancelled = false;
-
-    const applyTemplate = async () => {
-      const templateItems = (await loadIncomeAllocationTemplate?.(ledgerCode)) ?? null;
-      if (cancelled) return;
-
-      const projectIds = new Set(projects.map((project) => project.id));
-      const nextItems = (templateItems ?? [])
-        .filter((item) => projectIds.has(item.projectId))
-        .map((item) => ({
-          projectId: item.projectId,
-          percentage: item.percentage.toString(),
-        }));
-
-      setIncome((prev) => {
-        if (prev.ledgerCode !== ledgerCode) return prev;
-
-        return {
-          ...prev,
-          triggerAllocation: nextItems.length > 0,
-          allocationItems: nextItems,
-        };
-      });
-    };
-
-    void applyTemplate();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [activeTab, income.ledgerCode, isOpen, loadIncomeAllocationTemplate, projects]);
-
-  const resetAll = () => {
-    setActiveTab('EXPENSE');
-    setExpense(createExpenseState());
-    setIncome(createIncomeState());
-    setInvestment(createInvestmentState());
-    setFinancing(createFinancingState());
-    setProjectTransfer(createProjectTransferState());
-    setAdvanced(createAdvancedState());
-    setDebtPayment(createDebtPaymentState());
-  };
-
-  const preview = useMemo(
-    () =>
-      buildPreview({
-        activeTab,
-        expense,
-        income,
-        investment,
-        financing,
-        projectTransfer,
-        advanced,
-        debtPayment,
-        debtAccounts,
-      }),
-    [
-      activeTab,
-      advanced,
-      expense,
-      financing,
-      income,
-      investment,
-      projectTransfer,
-      debtPayment,
-      debtAccounts,
-    ],
-  );
-
-  const previewDetails = useMemo(
-    () =>
-      buildPreviewDetails({
-        preview,
-        projects,
-        expenseCategories,
-        incomeCategories,
-        investmentCategories,
-        financingCategories,
-        advancedCategories,
-      }),
-    [
-      preview,
-      projects,
-      expenseCategories,
-      incomeCategories,
-      investmentCategories,
-      financingCategories,
-      advancedCategories,
-    ],
-  );
+  const {
+    activeTab,
+    expense,
+    income,
+    investment,
+    financing,
+    projectTransfer,
+    advanced,
+    debtPayment,
+  } = state;
+  const {
+    setActiveTab,
+    setExpense,
+    setIncome,
+    setInvestment,
+    setFinancing,
+    setProjectTransfer,
+    setAdvanced,
+    setDebtPayment,
+  } = setters;
+  const { preview, previewDetails } = derived;
+  const { resetAll } = actions;
 
   const handleDialogOpenChange = (open: boolean) => {
     if (!open) {
@@ -282,7 +134,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
           <Badge variant="outline" className="w-fit">
             Transaction Form
           </Badge>
-          <DialogTitle>新增交易</DialogTitle>
+          <DialogTitle>{mode === 'edit' ? '編輯交易' : '新增交易'}</DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-5">
@@ -418,7 +270,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
               取消
             </Button>
             <Button type="submit" disabled={loading || !preview}>
-              {loading ? '送出中...' : '送出'}
+              {loading ? '送出中...' : mode === 'edit' ? '更新交易' : '送出'}
             </Button>
           </DialogFooter>
         </form>

@@ -82,12 +82,13 @@ export const TransactionItem: React.FC<TransactionItemProps> = ({
             )}
           </div>
 
-          <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          <div className="flex gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
             {onEdit && (
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={() => onEdit(transaction)}
+                aria-label="編輯交易"
                 className="h-9 w-9 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl"
               >
                 <Pencil size={16} />
@@ -98,6 +99,7 @@ export const TransactionItem: React.FC<TransactionItemProps> = ({
                 variant="ghost"
                 size="icon"
                 onClick={() => onDelete(transaction)}
+                aria-label="刪除交易"
                 className="h-9 w-9 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-xl"
               >
                 <Trash2 size={16} />

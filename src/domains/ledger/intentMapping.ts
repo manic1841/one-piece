@@ -58,6 +58,13 @@ export const DEFAULT_INTENT_MAPPINGS: IntentMappingInfo[] = [
     creditLedgerCode: LEDGER_CODES.ASSET_CASH,
   },
   {
+    intent: 'FAMILY',
+    label: '家庭',
+    type: IntentType.EXPENSE,
+    debitLedgerCode: LEDGER_CODES.EXPENSE_FAMILY,
+    creditLedgerCode: LEDGER_CODES.ASSET_CASH,
+  },
+  {
     intent: 'HEALTHCARE',
     label: '醫療',
     type: IntentType.EXPENSE,
@@ -80,7 +87,7 @@ export const DEFAULT_INTENT_MAPPINGS: IntentMappingInfo[] = [
   },
   {
     intent: 'HOUSING',
-    label: '居住',
+    label: '家居',
     type: IntentType.EXPENSE,
     debitLedgerCode: LEDGER_CODES.EXPENSE_HOUSING,
     creditLedgerCode: LEDGER_CODES.ASSET_CASH,

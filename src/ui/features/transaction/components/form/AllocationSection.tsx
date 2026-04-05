@@ -4,10 +4,8 @@ import { Button } from '@/ui/components/ui/button';
 import { Card, CardContent } from '@/ui/components/ui/card';
 import { Input } from '@/ui/components/ui/input';
 import { Label } from '@/ui/components/ui/label';
-import {
-  type AllocationDraftItem,
-  type TransactionFormProjectOption,
-} from '@/ui/features/transaction/types/transaction';
+import { type AllocationDraftItem } from '@/ui/features/transaction/types/allocation';
+import { type TransactionFormProjectOption } from '@/ui/features/transaction/types/transaction';
 import { formatCurrency } from '@/ui/utils';
 
 interface AllocationSectionProps {

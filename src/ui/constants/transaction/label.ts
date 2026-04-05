@@ -12,7 +12,7 @@ export const TransactionCategoryLabels = {
     transportation: '交通',
     shopping: '購物',
     entertainment: '娛樂',
-    housing: '居住',
+    housing: '家居',
     rent: '房租',
     living: '生活',
     insurance: '保險',

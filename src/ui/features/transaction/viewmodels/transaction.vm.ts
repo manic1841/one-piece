@@ -1,7 +1,10 @@
 import { z } from 'zod';
 
+import { type Allocation } from '@/domains/allocation/schemas';
 import { DEFAULT_INTENT_MAPPINGS } from '@/domains/ledger/intentMapping';
-import { type TransactionCreate } from '@/domains/ledger/schemas';
+import { type Transaction, type TransactionCreate } from '@/domains/ledger/schemas';
+
+import { type TransactionFormOutput } from '../types/transaction';
 
 const TransactionIntentTypeSchema = z.enum([
   'EXPENSE',
@@ -215,5 +218,58 @@ export const mapTransactionVMToAllocationData = (
     totalAmount: vm.amount,
     items: vm.allocationItems,
     direction: vm.allocationDirection,
+  };
+};
+
+const toDateInput = (date: Date) => date.toISOString().slice(0, 10);
+
+const resolveLedgerCodeForEdit = (transaction: Transaction): string | undefined => {
+  const nonCashEntry = transaction.entries.find((entry) => entry.ledgerCode !== 'asset:cash');
+  return nonCashEntry?.ledgerCode;
+};
+
+export const mapDomainTransactionToFormOutput = (
+  transaction: Transaction,
+  allocation?: Allocation | null,
+): TransactionFormOutput => {
+  const normalizedIntentType: TransactionFormOutput['intentType'] =
+    transaction.intentType === 'EXPENSE' ||
+    transaction.intentType === 'INCOME' ||
+    transaction.intentType === 'INVESTMENT' ||
+    transaction.intentType === 'FINANCING' ||
+    transaction.intentType === 'TRANSFER' ||
+    transaction.intentType === 'DEBT_PAYMENT'
+      ? transaction.intentType
+      : 'MANUAL';
+
+  const date = toDateInput(new Date(transaction.date));
+  const amount = transaction.amount ?? 0;
+
+  const baseOutput: TransactionFormOutput = {
+    intentType: normalizedIntentType,
+    intent: transaction.intent || undefined,
+    date,
+    amount,
+    projectId: transaction.projectId ?? undefined,
+    description: transaction.description || undefined,
+    fromProjectId: transaction.fromProjectId ?? undefined,
+    toProjectId: transaction.toProjectId ?? undefined,
+    debtAccountId: transaction.debtAccountId ?? undefined,
+    ledgerCode: resolveLedgerCodeForEdit(transaction),
+  };
+
+  if (!allocation) {
+    return baseOutput;
+  }
+
+  return {
+    ...baseOutput,
+    triggerAllocation: true,
+    allocationDirection:
+      allocation.direction ?? (baseOutput.intentType === 'INCOME' ? 'INCOME' : 'EXPENSE'),
+    allocationItems: allocation.items.map((item) => ({
+      projectId: item.projectId,
+      percentage: item.percentage,
+    })),
   };
 };

@@ -29,6 +29,21 @@ class AllocationRepository extends BaseRepository<Allocation, [string, string?]>
     return snap.docs.map((doc) => this.convertFromFirestore(doc.data()));
   }
 
+  async getBySourceTransactionId(
+    householdId: string,
+    sourceTransactionId: string,
+  ): Promise<Allocation | null> {
+    const q = query(
+      this.getCollectionRef(householdId),
+      where('sourceTransactionId', '==', sourceTransactionId),
+    );
+    const snap = await getDocs(q);
+    if (snap.empty) return null;
+
+    const allocation = this.convertFromFirestore(snap.docs[0].data());
+    return this.getDomainSchema().parse(allocation);
+  }
+
   async listByProject(
     householdId: string,
     projectId: string,

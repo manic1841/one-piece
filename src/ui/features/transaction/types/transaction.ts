@@ -1,5 +1,7 @@
 import { type TransactionCreate } from '@/domains/ledger/schemas';
 
+import { type AllocationDraftItem, type AllocationItemInput } from './allocation';
+
 export type IntentType = Extract<
   NonNullable<TransactionCreate['intentType']>,
   'EXPENSE' | 'INCOME' | 'INVESTMENT' | 'FINANCING' | 'TRANSFER' | 'MANUAL' | 'DEBT_PAYMENT'
@@ -33,16 +35,6 @@ export type IncomeFormState = {
   description: string;
   triggerAllocation: boolean;
   allocationItems: AllocationDraftItem[];
-};
-
-export type AllocationDraftItem = {
-  projectId: string;
-  percentage: string;
-};
-
-export type AllocationItemInput = {
-  projectId: string;
-  percentage: number;
 };
 
 export type InvestmentFormState = {

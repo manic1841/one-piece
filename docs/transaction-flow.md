@@ -11,8 +11,8 @@ We replaced it with `TransactionForm` and a direct `IntentMapping` flow. This av
 1. **Pure UI Form**: `TransactionForm` is a presentation component only. It owns local tab/form state and emits a normalized `TransactionFormOutput` payload via callback props.
 2. **UI Controller (`useTransactionForm.ts`)**: The feature hook receives `TransactionFormOutput`, validates the selected intent path, and converts it into the correct application action.
 3. **Intent Mapping / Ledger Selection**: Expense and income tabs still derive from `src/domains/ledger/intentMapping.ts`, but the UI now exposes normalized `ledgerCode` and `projectId` fields instead of invoking use cases directly.
-4. **Transaction Use Case / Project Service**: Standard balanced entries go through `createTransactionUseCase`; project-to-project movement goes through `projectService.transferBetweenProjects`.
-5. **Allocation Trigger**: The income form emits `triggerAllocation` plus allocation items. The UI controller now orchestrates a two-step flow: create transaction first, then create allocation and write back `allocationId`.
+4. **Transaction Use Case / Project Service**: Standard balanced entries go through `createTransactionUseCase` (create) and `updateTransactionUseCase` (edit); project-to-project movement goes through `projectService.transferBetweenProjects`.
+5. **Allocation Trigger**: The income/expense form emits `triggerAllocation` plus allocation items. On create, the UI controller creates transaction first, then creates allocation and writes back `allocationId`. On edit, `updateTransactionUseCase` replaces the original allocation (if any) and rewrites `allocationId` atomically inside one Firestore transaction.
 6. **Income Allocation Template Prefill**: When an income `ledgerCode` is selected, the UI controller queries `allocationTemplates` by exact `ledgerCode`; if not found, it falls back to `isDefault == true`; if still not found, allocation stays blank.
 7. **Template Persistence**: After an income allocation is successfully created, the same allocation percentages are upserted into `allocationTemplates` for that `ledgerCode` as a convenience template. Historical allocations are not mutated.
 8. **Project Selection Rule**: `projectId` is optional for regular entries (expense, income, investment, financing, manual/transfer). Only `TRANSFER` requires both `fromProjectId` and `toProjectId`.
@@ -23,6 +23,7 @@ We replaced it with `TransactionForm` and a direct `IntentMapping` flow. This av
 - `INVESTMENT` intents now cover securities and real-estate buy/sell flows.
 - `FINANCING` intents now cover borrow/repay/shareholder-funding/dividend/initial-capital flows.
 - `LIABILITY_BORROW` is system-generated when creating a new `DebtAccount` (Dr. `asset:cash`, Cr. debt `linkedLedgerCode`) and is not entered from TransactionForm tabs.
+- Current edit support intentionally excludes `DEBT_PAYMENT` and `TRANSFER` transactions to avoid partial side effects (debt balance mutation and cross-project transfer orchestration) until dedicated update flows are implemented.
 
 ## Allocation Rules (Income / Expense)
 

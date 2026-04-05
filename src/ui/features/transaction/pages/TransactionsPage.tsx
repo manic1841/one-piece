@@ -18,19 +18,20 @@ import { useProjects } from '@/ui/features/project/hooks/useProjects';
 import { TransactionList } from '@/ui/features/transaction/components/TransactionList';
 import { useTransactionForm } from '@/ui/features/transaction/hooks/useTransactionForm';
 import { useTransactions } from '@/ui/features/transaction/hooks/useTransactions';
+import { type TransactionFormOutput } from '@/ui/features/transaction/types/transaction';
 import {
   type TransactionListItemVM,
   mapTransactionToListItemVM,
 } from '@/ui/features/transaction/viewmodels/transaction-list.vm';
+import { mapDomainTransactionToFormOutput } from '@/ui/features/transaction/viewmodels/transaction.vm';
 import { cn } from '@/ui/utils/cn';
 
 import { TransactionForm } from '../components/form/TransactionForm';
 
 const Transactions: React.FC = () => {
   const { userProfile } = useAuth();
-  const { transactions, loading, reload, deleteTransaction } = useTransactions(
-    userProfile?.householdId,
-  );
+  const { transactions, loading, reload, deleteTransaction, getTransactionAllocation } =
+    useTransactions(userProfile?.householdId);
   const { projects } = useProjects(userProfile?.householdId);
   const { getLabel } = useLedgerCodes();
 
@@ -38,6 +39,44 @@ const Transactions: React.FC = () => {
     if (window.confirm('確定要刪除這筆交易嗎？相關的分攤資料也將一併刪除。')) {
       await deleteTransaction(transaction.id);
     }
+  };
+
+  const handleDateRangeSearch = async (range: { fromDate?: Date; toDate?: Date }) => {
+    await reload({
+      limit: 100,
+      startDate: range.fromDate,
+      endDate: range.toDate,
+    });
+  };
+
+  const [editingTransactionId, setEditingTransactionId] = useState<string | null>(null);
+  const [editingInitialOutput, setEditingInitialOutput] = useState<TransactionFormOutput | null>(
+    null,
+  );
+
+  const resetEditState = () => {
+    setEditingTransactionId(null);
+    setEditingInitialOutput(null);
+  };
+
+  const handleEdit = async (transaction: TransactionListItemVM) => {
+    const target = transactions.find((item) => item.id === transaction.id);
+    if (!target) {
+      window.alert('找不到要編輯的交易資料。');
+      return;
+    }
+
+    if (target.intentType === 'TRANSFER' || target.intentType === 'DEBT_PAYMENT') {
+      window.alert('目前不支援編輯還款與專案轉帳交易。');
+      return;
+    }
+
+    const allocation = await getTransactionAllocation(target.id);
+    const initialOutput = mapDomainTransactionToFormOutput(target, allocation);
+
+    setEditingTransactionId(target.id);
+    setEditingInitialOutput(initialOutput);
+    setIsFormOpen(true);
   };
 
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -59,11 +98,24 @@ const Transactions: React.FC = () => {
     loading: formSubmitting,
     error: formError,
     handleSubmit,
+    handleUpdate,
   } = useTransactionForm(
     userProfile?.householdId || '',
-    () => setIsFormOpen(false),
+    () => {
+      setIsFormOpen(false);
+      resetEditState();
+    },
     () => reload(),
   );
+
+  const handleFormSubmit = async (output: TransactionFormOutput) => {
+    if (editingTransactionId) {
+      await handleUpdate(editingTransactionId, output);
+      return;
+    }
+
+    await handleSubmit(output);
+  };
 
   const projectNameById = useMemo(() => {
     return new Map(projects.map((project) => [project.id, project.name]));
@@ -104,7 +156,13 @@ const Transactions: React.FC = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold text-foreground">交易</h1>
-        <Button onClick={() => setIsFormOpen(true)} className="gap-2 shadow-sm">
+        <Button
+          onClick={() => {
+            resetEditState();
+            setIsFormOpen(true);
+          }}
+          className="gap-2 shadow-sm"
+        >
           <Plus className="w-4 h-4" />
           新增交易
         </Button>
@@ -143,13 +201,24 @@ const Transactions: React.FC = () => {
         </div>
       </div>
 
-      <TransactionList items={filteredTransactions} loading={loading} onDelete={handleDelete} />
+      <TransactionList
+        items={filteredTransactions}
+        loading={loading}
+        onEdit={handleEdit}
+        onDelete={handleDelete}
+        onDateRangeSearch={handleDateRangeSearch}
+      />
 
       {userProfile?.householdId && isFormOpen && (
         <TransactionForm
           isOpen={isFormOpen}
-          onClose={() => setIsFormOpen(false)}
-          onSubmit={handleSubmit}
+          mode={editingTransactionId ? 'edit' : 'create'}
+          initialOutput={editingInitialOutput}
+          onClose={() => {
+            setIsFormOpen(false);
+            resetEditState();
+          }}
+          onSubmit={handleFormSubmit}
           loading={formSubmitting}
           error={formError}
           projects={projectOptions}

@@ -8,6 +8,7 @@ import { updateDebtAccountUseCase } from '@/application/debt/use_cases/updateDeb
 import { createAllocationUseCase } from '@/application/ledger/use_cases/createAllocationUseCase';
 import { createTransactionUseCase } from '@/application/ledger/use_cases/createTransactionUseCase';
 import { getIncomeAllocationTemplateUseCase } from '@/application/ledger/use_cases/getIncomeAllocationTemplateUseCase';
+import { updateTransactionUseCase } from '@/application/ledger/use_cases/updateTransactionUseCase';
 import { upsertIncomeAllocationTemplateUseCase } from '@/application/ledger/use_cases/upsertIncomeAllocationTemplateUseCase';
 import { type DebtAccount } from '@/domains/debt/schemas';
 import { IntentType } from '@/domains/ledger/constants';
@@ -15,8 +16,8 @@ import { DEFAULT_INTENT_MAPPINGS } from '@/domains/ledger/intentMapping';
 import { projectService } from '@/domains/project/projectService';
 import { useAuth } from '@/infra/contexts/useAuth';
 import { useLedgerCodes } from '@/ui/features/ledger/hooks/useLedgerCodes';
+import { type AllocationItemInput } from '@/ui/features/transaction/types/allocation';
 import {
-  type AllocationItemInput,
   type TransactionFormCategoryOption,
   type TransactionFormOutput,
 } from '@/ui/features/transaction/types/transaction';
@@ -234,6 +235,74 @@ export const useTransactionForm = (
     }
   };
 
+  const handleUpdate = async (transactionId: string, output: TransactionFormOutput) => {
+    if (!userProfile?.email) return;
+
+    setError('');
+    setLoading(true);
+
+    try {
+      const vm = parseTransactionFormVM(output);
+
+      if (vm.intentType === IntentType.DEBT_PAYMENT || vm.intentType === IntentType.TRANSFER) {
+        throw new Error('目前不支援編輯還款與專案轉帳交易。');
+      }
+
+      const allocationData = mapTransactionVMToAllocationData(vm, transactionId);
+
+      await updateTransactionUseCase.execute({
+        householdId,
+        transactionId,
+        userEmail: userProfile.email,
+        auth: {
+          uid: currentUser?.uid ?? '',
+          isGlobalAdmin: isAdmin ?? false,
+        },
+        data: mapTransactionVMToDomain(vm, userProfile.email),
+        allocation: allocationData
+          ? {
+              transactionDate: allocationData.transactionDate,
+              totalAmount: allocationData.totalAmount,
+              items: allocationData.items,
+              direction: allocationData.direction,
+            }
+          : null,
+      });
+
+      if (
+        allocationData &&
+        vm.intentType === IntentType.INCOME &&
+        vm.ledgerCode?.startsWith('income:')
+      ) {
+        try {
+          await upsertIncomeAllocationTemplateUseCase.execute({
+            householdId,
+            userEmail: userProfile.email,
+            ledgerCode: vm.ledgerCode,
+            items: allocationData.items,
+          });
+        } catch (templateError) {
+          logger.warn('Failed to persist income allocation template', 'useTransactionForm', {
+            templateError,
+            ledgerCode: vm.ledgerCode,
+          });
+        }
+      }
+
+      onClose();
+      if (onSuccess) onSuccess();
+    } catch (err: unknown) {
+      if (err instanceof z.ZodError) {
+        setError(err.issues[0]?.message || 'Invalid transaction form input.');
+      } else {
+        const e = err as Error;
+        setError(e.message || 'Failed to update transaction.');
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const dismissSettlementPrompt = () => {
     setSettlementPrompt(null);
   };
@@ -279,5 +348,6 @@ export const useTransactionForm = (
     loading,
     error,
     handleSubmit,
+    handleUpdate,
   };
 };

@@ -61,6 +61,28 @@ class TransactionRepository extends BaseRepository<Transaction, [string, string?
     return super.create(args, { ...data, ledgerCodes }, userEmail, tx, customId);
   }
 
+  async updateTransactionData(
+    householdId: string,
+    transactionId: string,
+    data: Partial<TransactionCreate>,
+    userEmail: string,
+    tx?: FirestoreTransaction,
+  ): Promise<void> {
+    const ledgerCodes = data.entries
+      ? Array.from(new Set(data.entries.map((entry) => entry.ledgerCode)))
+      : undefined;
+
+    await this.update(
+      [householdId, transactionId],
+      {
+        ...data,
+        ...(ledgerCodes ? { ledgerCodes } : {}),
+      },
+      userEmail,
+      tx,
+    );
+  }
+
   async getTransactionsByProject(
     householdId: string,
     projectId: string,
@@ -99,8 +121,9 @@ class TransactionRepository extends BaseRepository<Transaction, [string, string?
     transactionId: string,
     allocationId: string,
     userEmail: string,
+    tx?: FirestoreTransaction,
   ): Promise<void> {
-    await this.update([householdId, transactionId], { allocationId }, userEmail);
+    await this.update([householdId, transactionId], { allocationId }, userEmail, tx);
   }
 
   async getById(householdId: string, transactionId: string): Promise<Transaction | null> {
