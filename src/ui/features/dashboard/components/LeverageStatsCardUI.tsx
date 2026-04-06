@@ -47,6 +47,13 @@ const LeverageStatsCardUI: React.FC<LeverageStatsCardUIProps> = ({ stats, loadin
                 style={{ width: `${stats.progressWidth}%` }}
               />
             </div>
+            <div className="relative flex text-[10px] text-slate-400 font-medium">
+              <span className="absolute left-0">0x</span>
+              <span className="absolute left-1/2 -translate-x-1/2">1x</span>
+              <span className="absolute right-0">2x</span>
+            </div>
+            <div className="h-3" />
+            {/* spacer for the absolute-positioned labels */}
           </div>
 
           <div className="flex justify-between items-center p-3 rounded-xl bg-slate-50">
