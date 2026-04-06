@@ -106,6 +106,48 @@ describe('retirementCalculator', () => {
     expect(year2040?.events).toContain('Inheritance');
   });
 
+  it('should handle phased events with mixed modes', () => {
+    const planWithPhases = {
+      ...mockPlan,
+      events: [
+        {
+          id: 'education',
+          name: 'Education',
+          type: 'expense',
+          calculationMode: 'FIXED',
+          phases: [
+            {
+              name: 'Kindergarten',
+              startYear: 2025,
+              endYear: 2027,
+              mode: 'FIXED',
+              amount: 80000,
+              growthRate: 3,
+            },
+            {
+              name: 'High school',
+              startYear: 2028,
+              endYear: 2030,
+              mode: 'SALARY_PERCENTAGE',
+              percentage: 0.1,
+              linkedIncomeId: 'income1',
+            },
+          ],
+        },
+      ],
+    } as RetirementPlan;
+
+    const projection = calculateRetirementProjection(planWithPhases);
+
+    const year2025 = projection.find((p) => p.year === 2025);
+    expect(year2025?.oneTimeExpense).toBeCloseTo(80000, 0);
+    expect(year2025?.events).toContain('Education');
+
+    const year2028 = projection.find((p) => p.year === 2028);
+    expect(year2028?.oneTimeExpense).toBeGreaterThan(100000);
+    expect(year2028?.events).toContain('Education');
+  });
+
   it('should calculate summary correctly', () => {
     const projection = calculateRetirementProjection(mockPlan);
     const summary = calculateProjectionSummary(projection, mockPlan);

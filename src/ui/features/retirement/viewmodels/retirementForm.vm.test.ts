@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
+import { CalculationMode } from '@/domains/retirement/types';
+
 import {
   RetirementAssumptionsFormVMSchema,
   buildRetirementEventFormVM,
@@ -44,16 +46,28 @@ describe('retirementForm.vm', () => {
 
   it('builds and maps event form vm', () => {
     const vm = buildRetirementEventFormVM(undefined, 2030);
-    expect(vm.year).toBe('2030');
+    expect(vm.phases[0]?.startYear).toBe('2030');
 
     const domain = mapRetirementEventVMToDomain({
       ...vm,
       name: 'One-time cost',
-      amount: '10000',
+      type: 'expense',
+      phases: [
+        {
+          name: 'Phase 1',
+          startYear: '2030',
+          endYear: '2030',
+          mode: CalculationMode.FIXED,
+          amount: '10000',
+          growthRate: '0',
+          percentage: '0',
+          linkedIncomeId: '',
+        },
+      ],
     });
 
-    expect(domain.year).toBe(2030);
-    expect(domain.amount).toBe(10000);
+    expect(domain.phases?.[0]?.startYear).toBe(2030);
+    expect(domain.phases?.[0]?.amount).toBe(10000);
   });
 
   it('validates assumptions vm', () => {

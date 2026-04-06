@@ -17,5 +17,5 @@ export const RetirementIncomeTypeOptions = Object.entries(RetirementIncomeTypeLa
 
 export const RetirementIncomeImportSourceLabel = {
   [RetirementIncomeImportSource.MANUAL]: '手動',
-  [RetirementIncomeImportSource.PLANNED_INCOME]: '從計畫收入匯入',
+  [RetirementIncomeImportSource.TRANSACTION_ENTRIES]: '從交易分錄匯入',
 };

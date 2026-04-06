@@ -1,7 +1,10 @@
 import { z } from 'zod';
 
 import {
+  CalculationMode as CalculationModeEnum,
   RetirementExpenseCategorySchema,
+  RetirementExpenseType as RetirementExpenseTypeEnum,
+  RetirementIncomeCalculationMode as RetirementIncomeCalculationModeEnum,
   RetirementIncomeImportSource as RetirementIncomeImportSourceEnum,
   RetirementIncomeSourceSchema,
   RetirementIncomeType as RetirementIncomeTypeEnum,
@@ -9,6 +12,9 @@ import {
   RetirementPlanCreateSchema,
   RetirementPlanSchema,
   RetirementProjectionYearSchema,
+  RetirementTransitionMode as RetirementTransitionModeEnum,
+  RetirementTransitionSchema,
+  SalaryPercentageRetirementMode as SalaryPercentageRetirementModeEnum,
 } from './schemas';
 
 export type RetirementPlan = z.infer<typeof RetirementPlanSchema>;
@@ -23,3 +29,20 @@ export const RetirementIncomeType = RetirementIncomeTypeEnum;
 
 export type RetirementIncomeImportSource = RetirementIncomeImportSourceEnum;
 export const RetirementIncomeImportSource = RetirementIncomeImportSourceEnum;
+
+export type RetirementIncomeCalculationMode = RetirementIncomeCalculationModeEnum;
+export const RetirementIncomeCalculationMode = RetirementIncomeCalculationModeEnum;
+
+export type CalculationMode = CalculationModeEnum;
+export const CalculationMode = CalculationModeEnum;
+
+export type SalaryPercentageRetirementMode = SalaryPercentageRetirementModeEnum;
+export const SalaryPercentageRetirementMode = SalaryPercentageRetirementModeEnum;
+
+export type RetirementExpenseType = RetirementExpenseTypeEnum;
+export const RetirementExpenseType = RetirementExpenseTypeEnum;
+
+export type RetirementTransitionMode = RetirementTransitionModeEnum;
+export const RetirementTransitionMode = RetirementTransitionModeEnum;
+
+export type RetirementTransition = z.infer<typeof RetirementTransitionSchema>;

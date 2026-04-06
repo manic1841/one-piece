@@ -1,5 +1,11 @@
 import type { RetirementPlan, RetirementProjectionYear } from '@/domains/retirement/types';
 
+import { calculateYearlyExpense } from './expenseEngine';
+import {
+  calculateRetirementEventPhaseAmount,
+  normalizeRetirementEventPhases,
+} from './retirementEventPhases';
+
 /**
  * Calculates the future value of an amount based on a growth rate and number of years.
  */
@@ -19,6 +25,8 @@ interface YearlyFlowDetails {
   totalExpense: number;
   oneTimeIncome: number;
   oneTimeExpense: number;
+  incomeBreakdown: Array<{ name: string; amount: number }>;
+  expenseBreakdown: Array<{ name: string; amount: number }>;
   yearEvents: string[];
   isRetired: boolean;
 }
@@ -29,15 +37,20 @@ interface YearlyFlowDetails {
 function calculateYearlyFlowDetails(plan: RetirementPlan, year: number): YearlyFlowDetails {
   const age = year - plan.birthYear;
   const isRetired = age >= plan.retirementAge;
+  const incomeBreakdown: Array<{ name: string; amount: number }> = [];
+  const expenseBreakdown: Array<{ name: string; amount: number }> = [];
 
-  // 1. Calculate Income
+  // 1. Calculate Income — build per-income map for SALARY_PERCENTAGE expense linking
+  const yearlyIncomeMap = new Map<string, number>();
   let totalIncome = 0;
   let totalSalary = 0;
   plan.incomes.forEach((income) => {
     if (year >= income.startYear && year <= income.endYear) {
       const yearsGrowth = year - plan.currentYear;
       const amount = calculateFutureValue(income.baseAmount, income.growthRate, yearsGrowth);
+      yearlyIncomeMap.set(income.id, amount);
       totalIncome += amount;
+      incomeBreakdown.push({ name: income.name, amount });
 
       if (income.type === 'salary') {
         totalSalary += amount;
@@ -45,32 +58,13 @@ function calculateYearlyFlowDetails(plan: RetirementPlan, year: number): YearlyF
     }
   });
 
-  // 2. Calculate Expenses
+  // 2. Calculate Expenses (income map must be built first)
   let totalExpense = 0;
-  const planEndYear =
-    plan.currentYear + (plan.lifeExpectancy - (plan.currentYear - plan.birthYear));
   plan.expenses.forEach((expense) => {
-    const expenseEndYear = expense.endYear ?? planEndYear;
-    if (year >= expense.startYear && year <= expenseEndYear) {
-      const yearsGrowth = year - plan.currentYear;
-      const growthAmount = calculateFutureValue(
-        expense.baseAmount,
-        expense.growthRate,
-        yearsGrowth,
-      );
-
-      let amount = growthAmount;
-      if ((expense.percentOfSalary ?? 0) > 0) {
-        if (isRetired) {
-          amount = growthAmount * expense.retirementMultiplier;
-        } else {
-          amount = totalSalary * ((expense.percentOfSalary ?? 0) / 100);
-        }
-      } else if (isRetired) {
-        amount = growthAmount * expense.retirementMultiplier;
-      }
-
-      totalExpense += amount;
+    const amount = calculateYearlyExpense(expense, year, plan, yearlyIncomeMap, totalSalary);
+    totalExpense += amount;
+    if (amount > 0) {
+      expenseBreakdown.push({ name: expense.name, amount });
     }
   });
 
@@ -80,13 +74,38 @@ function calculateYearlyFlowDetails(plan: RetirementPlan, year: number): YearlyF
   const yearEvents: string[] = [];
 
   plan.events.forEach((event) => {
-    if (event.year === year) {
-      if (event.type === 'income') {
-        oneTimeIncome += event.amount;
-      } else {
-        oneTimeExpense += event.amount;
+    const phases = normalizeRetirementEventPhases(event);
+    let hasEventInYear = false;
+    let eventYearAmount = 0;
+    phases.forEach((phase) => {
+      const phaseAmount = calculateRetirementEventPhaseAmount(
+        phase,
+        year,
+        yearlyIncomeMap,
+        totalSalary,
+      );
+
+      if (phaseAmount <= 0) {
+        return;
       }
+
+      eventYearAmount += phaseAmount;
+
+      if (event.type === 'income') {
+        oneTimeIncome += phaseAmount;
+      } else {
+        oneTimeExpense += phaseAmount;
+      }
+      hasEventInYear = true;
+    });
+
+    if (hasEventInYear) {
       yearEvents.push(event.name);
+      if (event.type === 'income') {
+        incomeBreakdown.push({ name: `Event: ${event.name}`, amount: eventYearAmount });
+      } else {
+        expenseBreakdown.push({ name: `Event: ${event.name}`, amount: eventYearAmount });
+      }
     }
   });
 
@@ -95,6 +114,8 @@ function calculateYearlyFlowDetails(plan: RetirementPlan, year: number): YearlyF
     totalExpense,
     oneTimeIncome,
     oneTimeExpense,
+    incomeBreakdown,
+    expenseBreakdown,
     yearEvents,
     isRetired,
   };
@@ -136,6 +157,8 @@ export const calculateRetirementProjection = (plan: RetirementPlan): RetirementP
       investmentIncome,
       oneTimeIncome: flows.oneTimeIncome,
       oneTimeExpense: flows.oneTimeExpense,
+      incomeBreakdown: flows.incomeBreakdown,
+      expenseBreakdown: flows.expenseBreakdown,
       closingBalance,
       events: flows.yearEvents,
     });

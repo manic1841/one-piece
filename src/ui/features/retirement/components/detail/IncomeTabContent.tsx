@@ -14,6 +14,8 @@ interface IncomeTabContentProps {
   handleAddIncome: (data: Omit<RetirementIncomeSource, 'id'>) => Promise<void>;
   handleUpdateIncome: (id: string, data: Omit<RetirementIncomeSource, 'id'>) => Promise<void>;
   handleDeleteIncome: (id: string) => Promise<void>;
+  handleImportIncomeFromTransactions: () => Promise<void>;
+  householdId: string;
 }
 
 export const IncomeTabContent: React.FC<IncomeTabContentProps> = ({
@@ -22,12 +24,24 @@ export const IncomeTabContent: React.FC<IncomeTabContentProps> = ({
   handleAddIncome,
   handleUpdateIncome,
   handleDeleteIncome,
+  handleImportIncomeFromTransactions,
+  householdId,
 }) => {
   return (
     <div className="rounded-lg border p-6 space-y-6">
       <div className="flex justify-between items-center mb-4">
         <h3 className="text-lg font-semibold">Income Sources</h3>
-        <RetirementIncomeDialog onSave={handleAddIncome} currentYear={currentYear} />
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={handleImportIncomeFromTransactions}>
+            匯入近 12 個月收入
+          </Button>
+          <RetirementIncomeDialog
+            onSave={handleAddIncome}
+            currentYear={currentYear}
+            availableIncomes={incomeItems.map((item) => item.domain)}
+            householdId={householdId}
+          />
+        </div>
       </div>
 
       <div className="space-y-2">
@@ -52,6 +66,8 @@ export const IncomeTabContent: React.FC<IncomeTabContentProps> = ({
                     <Pencil className="h-4 w-4" />
                   </Button>
                 }
+                availableIncomes={incomeItems.map((item) => item.domain)}
+                householdId={householdId}
               />
               <Button
                 variant="ghost"

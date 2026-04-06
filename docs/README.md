@@ -20,6 +20,10 @@
    - 損益表、資產負債表與現金流量表的產生原理。
    - 不同會計層級的資料來源說明。
 
+5. **[退休系統設計 (Retirement System)](/docs/retirement-system.md)**
+   - 退休資料模型與收入流 (`incomeStreams`) 子集合規格。
+   - 從交易分錄 (`Transaction.entries`) 導入收入的完整流程。
+
 ## 🛠️ 維護原則
 
 > "Bad code is bad code regardless of comments. Refactor first." - *Linus Torvalds*

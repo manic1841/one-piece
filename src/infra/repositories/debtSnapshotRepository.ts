@@ -1,4 +1,4 @@
-import { collection, doc } from 'firebase/firestore';
+import { collection, doc, orderBy, where } from 'firebase/firestore';
 
 import {
   type DebtSnapshot,
@@ -50,6 +50,22 @@ class DebtSnapshotRepository extends BaseRepository<DebtSnapshot, [string, strin
     yearMonth: string,
   ): Promise<DebtSnapshot | null> {
     return this.get([householdId, debtAccountId, yearMonth]);
+  }
+
+  async listByYearMonthRange(
+    householdId: string,
+    debtAccountId: string,
+    startYearMonth: string,
+    endYearMonth: string,
+  ): Promise<DebtSnapshot[]> {
+    return this.list(
+      [householdId, debtAccountId],
+      [
+        where('yearMonth', '>=', startYearMonth),
+        where('yearMonth', '<=', endYearMonth),
+        orderBy('yearMonth', 'desc'),
+      ],
+    );
   }
 
   /**

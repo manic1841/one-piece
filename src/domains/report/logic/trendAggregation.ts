@@ -18,7 +18,8 @@ export interface AssetTrendData {
  *
  * Aggregation logic:
  * - Flow metrics (income, expense, investmentGains) are SUMMED for the period.
- * - Point-in-time metrics (assets) take the LAST recorded value of the period.
+ * - Point-in-time metrics (assets/liabilities/netAssets) take the LAST recorded value.
+ * - Period return (investmentReturnRates) is COMPOUNDED from monthly return rates.
  *
  * @param points Raw monthly trend data points (assumed sorted by date)
  * @param mode Target view mode (month, quarter, year)
@@ -51,6 +52,7 @@ export function aggregateTrendPoints(
       liabilities: number;
       netAssets: number;
       investmentReturnRate: number | null;
+      hasInvestmentReturnRate: boolean;
     }
   > = {};
   const labels: string[] = [];
@@ -75,6 +77,7 @@ export function aggregateTrendPoints(
         liabilities: p.liabilities || 0,
         netAssets: p.netAssets || 0,
         investmentReturnRate: p.investmentReturnRate ?? null,
+        hasInvestmentReturnRate: p.investmentReturnRate !== null,
       };
       labels.push(label);
     } else {
@@ -94,7 +97,14 @@ export function aggregateTrendPoints(
         group.netAssets = p.netAssets;
       }
       if (p.investmentReturnRate !== null) {
-        group.investmentReturnRate = p.investmentReturnRate;
+        if (!group.hasInvestmentReturnRate || group.investmentReturnRate === null) {
+          group.investmentReturnRate = p.investmentReturnRate;
+          group.hasInvestmentReturnRate = true;
+        } else {
+          const currentGrowthFactor = 1 + group.investmentReturnRate / 100;
+          const nextGrowthFactor = 1 + p.investmentReturnRate / 100;
+          group.investmentReturnRate = (currentGrowthFactor * nextGrowthFactor - 1) * 100;
+        }
       }
     }
   });

@@ -11,7 +11,7 @@ export const useRetirementPlanListPage = (householdId?: string, email?: string) 
   const navigate = useNavigate();
   const [plans, setPlans] = useState<RetirementPlan[]>([]);
   const { listPlans, loading, error } = useRetirementPlans(householdId);
-  const { createPlan, deletePlan } = useRetirementPlanCmds(householdId, email);
+  const { createPlan, deletePlan, duplicatePlan } = useRetirementPlanCmds(householdId, email);
 
   const fetchPlans = useCallback(async () => {
     const data = await listPlans();
@@ -66,6 +66,19 @@ export const useRetirementPlanListPage = (householdId?: string, email?: string) 
     }
   };
 
+  const handleDuplicatePlan = async (id: string) => {
+    if (!householdId || !email) return;
+    try {
+      const duplicatedId = await duplicatePlan(id);
+      if (duplicatedId) {
+        navigate(`/retirement/${duplicatedId}`);
+      }
+      await fetchPlans();
+    } catch (err) {
+      console.error('Failed to duplicate plan', err);
+    }
+  };
+
   return {
     plans,
     planItems: plans.map(mapRetirementPlanToListItemVM),
@@ -74,6 +87,7 @@ export const useRetirementPlanListPage = (householdId?: string, email?: string) 
     error,
     createPlan: handleCreatePlan,
     deletePlan: handleDeletePlan,
+    duplicatePlan: handleDuplicatePlan,
     reload: fetchPlans,
   };
 };

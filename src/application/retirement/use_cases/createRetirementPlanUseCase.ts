@@ -22,7 +22,13 @@ export class CreateRetirementPlanUseCase {
       auth.isGlobalAdmin,
     );
 
-    return retirementRepository.createPlan(householdId, userEmail, plan);
+    const planId = await retirementRepository.createPlan(householdId, userEmail, plan);
+
+    if (plan.isActive) {
+      await retirementRepository.setOnlyActivePlan(householdId, planId, userEmail);
+    }
+
+    return planId;
   }
 }
 

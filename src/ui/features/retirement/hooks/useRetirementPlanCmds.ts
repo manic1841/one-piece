@@ -2,6 +2,7 @@ import { useCallback, useMemo } from 'react';
 
 import { createRetirementPlanUseCase } from '@/application/retirement/use_cases/createRetirementPlanUseCase';
 import { deleteRetirementPlanUseCase } from '@/application/retirement/use_cases/deleteRetirementPlanUseCase';
+import { duplicateRetirementPlanUseCase } from '@/application/retirement/use_cases/duplicateRetirementPlanUseCase';
 import { importRetirementDataUseCase } from '@/application/retirement/use_cases/importRetirementDataUseCase';
 import { updateRetirementPlanUseCase } from '@/application/retirement/use_cases/updateRetirementPlanUseCase';
 import {
@@ -37,16 +38,30 @@ export function useRetirementPlanCmds(
 
   const updatePlan = useCallback(
     async (planId: string, updates: Partial<RetirementPlanCreate>): Promise<void> => {
-      if (!householdId || !userEmail) return;
-      await run(async () => {
-        return updateRetirementPlanUseCase.execute({
-          householdId,
-          planId,
-          updates,
-          userEmail,
-          auth,
-        });
+      if (!householdId || !userEmail) {
+        throw new Error('Missing household or user context. Please refresh and try again.');
+      }
+
+      const result = await run(async () => {
+        try {
+          await updateRetirementPlanUseCase.execute({
+            householdId,
+            planId,
+            updates,
+            userEmail,
+            auth,
+          });
+          return { ok: true as const };
+        } catch (err) {
+          const message = err instanceof Error ? err.message : String(err);
+          return { ok: false as const, message };
+        }
       });
+
+      if (!result || !result.ok) {
+        const reason = result && !result.ok ? result.message : 'Unknown error';
+        throw new Error(`Failed to update retirement plan in Firestore: ${reason}`);
+      }
     },
     [householdId, userEmail, auth, run],
   );
@@ -61,9 +76,25 @@ export function useRetirementPlanCmds(
     [householdId, auth, run],
   );
 
+  const duplicatePlan = useCallback(
+    async (sourcePlanId: string): Promise<string | null> => {
+      if (!householdId || !userEmail) return null;
+      const result = await run(async () => {
+        return duplicateRetirementPlanUseCase.execute({
+          householdId,
+          sourcePlanId,
+          userEmail,
+          auth,
+        });
+      });
+      return result || null;
+    },
+    [householdId, userEmail, auth, run],
+  );
+
   const importData = useCallback(
     async (
-      type: 'projects' | 'transactions',
+      type: 'transactions' | 'debtRepayments',
       referenceMonths: number = 12,
     ): Promise<RetirementExpenseCategory[] | RetirementIncomeSource[]> => {
       if (!householdId) return [];
@@ -79,6 +110,7 @@ export function useRetirementPlanCmds(
     createPlan,
     updatePlan,
     deletePlan,
+    duplicatePlan,
     importData,
     loading,
     error,

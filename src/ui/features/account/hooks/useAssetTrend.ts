@@ -97,32 +97,9 @@ export function useAssetTrend({ householdId }: UseAssetTrendProps) {
     if (validMonthsCount === 0 && actualAssets === 0) return null;
 
     // Projected
-    const prevYearPoints = rawTrendData.filter((p) => p.year === currentYear - 1);
-    const prevYearIncomeByCategory = prevYearPoints.reduce(
-      (acc, p) => {
-        if (p.incomeByCategory) {
-          Object.entries(p.incomeByCategory).forEach(([cat, amt]) => {
-            acc[cat] = (acc[cat] || 0) + amt;
-          });
-        }
-        return acc;
-      },
-      {} as Record<string, number>,
-    );
-
     const planToProject = JSON.parse(JSON.stringify(activePlan)) as typeof activePlan;
-    if (Object.keys(prevYearIncomeByCategory).length > 0) {
-      planToProject.incomes.forEach((income) => {
-        if (income.importedFrom === 'plannedIncome') {
-          const category = income.incomeCategory || 'salary'; // Default to salary if not specified
-          const actualAmount = prevYearIncomeByCategory[category] || 0;
-          if (actualAmount > 0) {
-            income.baseAmount = actualAmount;
-            income.startYear = currentYear - 1; // Align growth curve base year
-          }
-        }
-      });
-    }
+    // No longer update planned income sources as they have been deprecated
+    // and replaced with derived income calculation mode
 
     const projection = getYearlyProjection(planToProject, currentYear);
     const prorateFactor = validMonthsCount > 0 ? validMonthsCount / 12 : 1;

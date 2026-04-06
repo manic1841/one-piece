@@ -1,51 +1,20 @@
-import { Timestamp } from 'firebase/firestore';
-
-import type { ProjectSnapshot } from '@/domains/project/schemas';
-import { type FinancialReport, ReportType } from '@/domains/report/schemas';
 import { mapCategoryToRetirementIncomeType } from '@/domains/retirement/mappers/retirementMapper';
-import {
-  type RetirementExpenseCategory,
-  type RetirementIncomeSource,
-  type RetirementPlan,
-} from '@/domains/retirement/types';
-import { RetirementIncomeType } from '@/domains/retirement/types';
+import { type RetirementIncomeSource } from '@/domains/retirement/types';
 
 export type PlannedIncome = {
-  category: string;
+  ledgerCode: string;
   amount: number;
-  date: Date | Timestamp;
+  date: Date;
+};
+
+const toIncomeStreamName = (ledgerCode: string): string => {
+  const segments = ledgerCode.split(':').slice(1);
+  if (segments.length === 0) return ledgerCode;
+  return segments.map((part) => part.charAt(0).toUpperCase() + part.slice(1)).join(' ');
 };
 
 /**
- * Pure logic to calculate expense suggestion from project snapshots.
- */
-export function calculateExpenseSuggestion(
-  project: { id: string; name: string },
-  snapshots: ProjectSnapshot[],
-): RetirementExpenseCategory | null {
-  if (snapshots.length === 0) return null;
-
-  const totalExpense = snapshots.reduce((sum, s) => sum + s.expense, 0);
-  const averageMonthly = totalExpense / snapshots.length;
-  const annualized = averageMonthly * 12;
-
-  if (annualized <= 0) return null;
-
-  return {
-    id: crypto.randomUUID(),
-    name: project.name,
-    sourceProjectId: project.id,
-    baseAmount: Math.round(annualized),
-    growthRate: 2,
-    retirementMultiplier: 0.7,
-    startYear: new Date().getFullYear(),
-    endYear: null,
-    note: `Based on ${snapshots.length} months average from ${project.name}`,
-  };
-}
-
-/**
- * Pure logic to group and calculate income source suggestions from planned incomes.
+ * Pure logic to group and calculate income stream suggestions from income ledger entries.
  */
 export function calculateIncomeSourceSuggestions(
   plannedIncomes: PlannedIncome[],
@@ -62,12 +31,12 @@ export function calculateIncomeSourceSuggestions(
   >();
 
   plannedIncomes.forEach((pi) => {
-    const key = pi.category;
-    const date = pi.date instanceof Timestamp ? pi.date.toDate() : pi.date;
+    const key = pi.ledgerCode;
+    const date = pi.date;
     const current = incomeMap.get(key) || {
       total: 0,
       count: 0,
-      type: pi.category,
+      type: pi.ledgerCode,
       allDates: [] as Date[],
     };
 
@@ -87,11 +56,13 @@ export function calculateIncomeSourceSuggestions(
 
     incomeSources.push({
       id: crypto.randomUUID(),
-      name: key.charAt(0).toUpperCase() + key.slice(1),
-      importedFrom: 'plannedIncome',
+      name: toIncomeStreamName(key),
+      importedFrom: 'transactionEntries',
+      incomeCalculationMode: 'IMPORTED',
       incomeCategory: key,
       type: mapCategoryToRetirementIncomeType(key),
       calculatedFrom: {
+        ledgerCode: key,
         startDate: minDate.toISOString().split('T')[0],
         endDate: maxDate.toISOString().split('T')[0],
         totalAmount: value.total,
@@ -103,7 +74,7 @@ export function calculateIncomeSourceSuggestions(
       endYear: currentYear + 20,
       baseAmount: Math.round(annualAmount),
       growthRate: 3,
-      note: `Based on last ${referenceMonths} months records (${value.count} samples)`,
+      note: `Based on last ${referenceMonths} months income entries (${value.count} samples)`,
     });
   });
 
@@ -119,9 +90,7 @@ export function calculateIncomeImportMetadata(
   if (validIncomes.length === 0) return null;
 
   const totalAmount = validIncomes.reduce((sum, pi) => sum + pi.amount, 0);
-  const dates = validIncomes.map((pi) =>
-    pi.date instanceof Timestamp ? pi.date.toDate() : pi.date,
-  );
+  const dates = validIncomes.map((pi) => pi.date);
   const minDate = new Date(Math.min(...dates.map((d) => d.getTime())));
   const maxDate = new Date(Math.max(...dates.map((d) => d.getTime())));
 
@@ -134,66 +103,5 @@ export function calculateIncomeImportMetadata(
     monthlyAverage,
     sampleCount: validIncomes.length,
     importedAt: new Date().toISOString(),
-  };
-}
-
-/**
- * Pure logic to process auto-update data from financial reports.
- */
-export function processAutoUpdate(
-  plan: RetirementPlan,
-  reports: FinancialReport[],
-  latestPeriod: { year: number; month: number },
-): {
-  currentYear: number;
-  currentSavings: number;
-  incomes: RetirementIncomeSource[];
-} {
-  // 1. Latest Savings
-  const latestBS = reports.find(
-    (r) =>
-      r.type === ReportType.BALANCE_SHEET &&
-      r.yearMonth === `${latestPeriod.year}-${String(latestPeriod.month).padStart(2, '0')}`,
-  );
-  let currentSavings = plan.currentSavings;
-  if (latestBS && latestBS.data && 'assets' in latestBS.data) {
-    currentSavings = latestBS.data.assets.total;
-  }
-
-  // 2. Salary Average
-  const isReports = reports.filter((r) => r.type === ReportType.INCOME_STATEMENT);
-  let totalSalary = 0;
-  let sampleCount = 0;
-  isReports.forEach((r) => {
-    if (r.data && 'incomeItems' in r.data) {
-      const salaryItem = r.data.incomeItems.find((item: { code: string }) =>
-        item.code.toLowerCase().includes('salary'),
-      );
-      if (salaryItem) {
-        totalSalary += salaryItem.amount;
-        sampleCount += 1;
-      }
-    }
-  });
-  const monthlySalaryAvg = sampleCount > 0 ? totalSalary / sampleCount : 0;
-
-  // 3. Update Incomes
-  const updatedIncomes = plan.incomes.map((income) => {
-    if (income.type === RetirementIncomeType.SALARY) {
-      const dataPointCount = income.calculatedFrom?.sampleCount || 12;
-      const annualBase = monthlySalaryAvg * dataPointCount;
-      return {
-        ...income,
-        baseAmount: Math.round(annualBase),
-        note: `${income.note || ''} (Auto-updated from 12m reports avg: ${Math.round(monthlySalaryAvg)})`.trim(),
-      };
-    }
-    return income;
-  });
-
-  return {
-    currentYear: latestPeriod.year,
-    currentSavings: Math.round(currentSavings),
-    incomes: updatedIncomes,
   };
 }

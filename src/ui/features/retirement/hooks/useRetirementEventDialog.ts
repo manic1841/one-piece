@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
 
+import { CalculationMode } from '@/domains/retirement/types';
 import type { RetirementOneTimeEvent } from '@/domains/retirement/types';
 import {
+  type RetirementEventFormVM,
   RetirementEventFormVMSchema,
   buildRetirementEventFormVM,
   mapRetirementEventVMToDomain,
@@ -24,9 +26,8 @@ export function useRetirementEventDialog({
   const initialForm = buildRetirementEventFormVM(initialData, currentYear);
 
   const [name, setName] = useState(initialForm.name);
-  const [year, setYear] = useState(initialForm.year);
   const [type, setType] = useState<'income' | 'expense'>(initialForm.type);
-  const [amount, setAmount] = useState(initialForm.amount);
+  const [phases, setPhases] = useState<RetirementEventFormVM['phases']>(initialForm.phases);
   const [note, setNote] = useState(initialForm.note || '');
   const [loading, setLoading] = useState(false);
 
@@ -35,9 +36,8 @@ export function useRetirementEventDialog({
     if (isOpen) {
       const form = buildRetirementEventFormVM(initialData, currentYear);
       setName(form.name);
-      setYear(form.year);
       setType(form.type);
-      setAmount(form.amount);
+      setPhases(form.phases);
       setNote(form.note || '');
     }
   }, [isOpen, initialData, currentYear]);
@@ -45,7 +45,7 @@ export function useRetirementEventDialog({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!name || !year || !amount) {
+    if (!name || phases.length === 0) {
       return;
     }
 
@@ -53,9 +53,8 @@ export function useRetirementEventDialog({
     try {
       const vm = RetirementEventFormVMSchema.parse({
         name,
-        year,
         type,
-        amount,
+        phases,
         note,
       });
       const domainData = mapRetirementEventVMToDomain(vm);
@@ -65,9 +64,8 @@ export function useRetirementEventDialog({
         // Reset form if it's a new entry
         const resetForm = buildRetirementEventFormVM(undefined, currentYear);
         setName(resetForm.name);
-        setYear(resetForm.year);
         setType(resetForm.type);
-        setAmount(resetForm.amount);
+        setPhases(resetForm.phases);
         setNote(resetForm.note || '');
       }
       setIsOpen(false);
@@ -78,17 +76,44 @@ export function useRetirementEventDialog({
     }
   };
 
+  const handleAddPhase = () => {
+    setPhases((prev) => [
+      ...prev,
+      {
+        name: `Phase ${prev.length + 1}`,
+        startYear: String(currentYear),
+        endYear: String(currentYear),
+        mode: CalculationMode.FIXED,
+        amount: '',
+        growthRate: '0',
+        percentage: '0',
+        linkedIncomeId: '',
+      },
+    ]);
+  };
+
+  const handleRemovePhase = (index: number) => {
+    setPhases((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleUpdatePhase = (
+    index: number,
+    updates: Partial<RetirementEventFormVM['phases'][number]>,
+  ) => {
+    setPhases((prev) => prev.map((phase, i) => (i === index ? { ...phase, ...updates } : phase)));
+  };
+
   return {
     isOpen,
     setIsOpen,
     name,
     setName,
-    year,
-    setYear,
     type,
     setType,
-    amount,
-    setAmount,
+    phases,
+    handleAddPhase,
+    handleRemovePhase,
+    handleUpdatePhase,
     note,
     setNote,
     loading,

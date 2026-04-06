@@ -1,14 +1,19 @@
 import { useCallback, useEffect, useState } from 'react';
 
 import { listProjectsUseCase } from '@/application/project/use_cases/listProjectsUseCase';
-import { type Project } from '@/domains/project/schemas';
-import type { RetirementExpenseCategory } from '@/domains/retirement/types';
+import {
+  CalculationMode,
+  type RetirementExpenseCategory,
+  type RetirementIncomeSource,
+  SalaryPercentageRetirementMode,
+} from '@/domains/retirement/types';
 import { useAuth } from '@/infra/contexts/useAuth';
 import {
   RetirementExpenseFormVMSchema,
   buildRetirementExpenseFormVM,
   mapRetirementExpenseVMToDomain,
 } from '@/ui/features/retirement/viewmodels/retirementForm.vm';
+import { logger } from '@/utils/logger';
 
 import { useRetirementDialogForm } from './useRetirementDialogForm';
 
@@ -16,12 +21,17 @@ interface UseRetirementExpenseDialogOptions {
   initialData?: RetirementExpenseCategory;
   currentYear: number;
   onSave: (expense: Omit<RetirementExpenseCategory, 'id'>) => Promise<void>;
+  /** Available income streams in the plan (used for linkedIncomeId dropdown) */
+  incomes?: RetirementIncomeSource[];
 }
+
+type Project = Awaited<ReturnType<typeof listProjectsUseCase.execute>>[number];
 
 export function useRetirementExpenseDialog({
   initialData,
   currentYear,
   onSave,
+  incomes = [],
 }: UseRetirementExpenseDialogOptions) {
   const { userProfile } = useAuth();
   const [projects, setProjects] = useState<Project[]>([]);
@@ -52,14 +62,25 @@ export function useRetirementExpenseDialog({
   });
 
   // Expense-specific fields
-  const [selectedProjectId, setSelectedProjectId] = useState<string>(
-    initialForm.sourceProjectId || 'none',
-  );
   const [endYear, setEndYear] = useState<string>(initialForm.endYear || '2100');
-  const [percentOfSalary, setPercentOfSalary] = useState<number>(initialForm.percentOfSalary || 0);
   const [retirementMultiplier, setRetirementMultiplier] = useState<number>(
     initialForm.retirementMultiplier,
   );
+  // Dual-mode fields
+  const [calculationMode, setCalculationMode] = useState<CalculationMode>(
+    initialForm.calculationMode,
+  );
+  const [salaryPercentage, setSalaryPercentage] = useState<number>(
+    initialForm.salaryPercentage ?? 35,
+  );
+  const [salaryPercentageRetirementMode, setSalaryPercentageRetirementMode] =
+    useState<SalaryPercentageRetirementMode>(
+      initialForm.salaryPercentageRetirementMode ?? SalaryPercentageRetirementMode.MANUAL_FALLBACK,
+    );
+  const [linkedIncomeId, setLinkedIncomeId] = useState<string | undefined>(
+    initialForm.linkedIncomeId ?? undefined,
+  );
+  const [fallbackAmount, setFallbackAmount] = useState<number>(initialForm.fallbackAmount ?? 0);
 
   const loadProjects = useCallback(async () => {
     if (!userProfile?.householdId) return;
@@ -83,43 +104,88 @@ export function useRetirementExpenseDialog({
   useEffect(() => {
     if (open) {
       const form = buildRetirementExpenseFormVM(initialData, currentYear);
-      setSelectedProjectId(form.sourceProjectId || 'none');
       setEndYear(form.endYear || '');
-      setPercentOfSalary(form.percentOfSalary || 0);
       setRetirementMultiplier(form.retirementMultiplier);
+      setCalculationMode(form.calculationMode);
+      setSalaryPercentage(form.salaryPercentage ?? 35);
+      setSalaryPercentageRetirementMode(
+        form.salaryPercentageRetirementMode ?? SalaryPercentageRetirementMode.MANUAL_FALLBACK,
+      );
+      setLinkedIncomeId(form.linkedIncomeId ?? undefined);
+      setFallbackAmount(form.fallbackAmount ?? 0);
     }
   }, [open, initialData, currentYear]);
-
-  const handleProjectChange = async (projectId: string) => {
-    setSelectedProjectId(projectId);
-
-    if (projectId === 'none') return;
-
-    const project = projects.find((p) => p.id === projectId);
-    if (project) {
-      if (!name) setName(project.name);
-    }
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
+      logger.debug('Submitting expense form', 'retirement/useRetirementExpenseDialog', {
+        mode: calculationMode,
+        name,
+        linkedIncomeId,
+        salaryPercentage,
+        salaryPercentageRetirementMode,
+        fallbackAmount,
+        startYear,
+        endYear,
+        isEditing: !!initialData,
+      });
+
       const vm = RetirementExpenseFormVMSchema.parse({
         name,
-        sourceProjectId: selectedProjectId,
+        sourceDebtAccountId: initialForm.sourceDebtAccountId,
+        type: initialForm.type,
+        includesPrincipal: initialForm.includesPrincipal,
+        interestOnly: initialForm.interestOnly,
+        calculatedFrom: initialForm.calculatedFrom,
+        calculationMode,
         baseAmount: amount,
         growthRate,
-        percentOfSalary,
         retirementMultiplier,
+        salaryPercentage,
+        salaryPercentageRetirementMode,
+        linkedIncomeId: linkedIncomeId || undefined,
+        fallbackAmount:
+          salaryPercentageRetirementMode === SalaryPercentageRetirementMode.MANUAL_FALLBACK &&
+          fallbackAmount > 0
+            ? fallbackAmount
+            : undefined,
         startYear,
         endYear,
       });
+
+      logger.debug('Expense form parsed', 'retirement/useRetirementExpenseDialog', {
+        mode: vm.calculationMode,
+        linkedIncomeId: vm.linkedIncomeId,
+        salaryPercentage: vm.salaryPercentage,
+        fallbackAmount: vm.fallbackAmount,
+      });
+
       const domainData = mapRetirementExpenseVMToDomain(vm);
+
+      logger.debug('Expense domain payload mapped', 'retirement/useRetirementExpenseDialog', {
+        mode: domainData.calculationMode,
+        linkedIncomeId: domainData.linkedIncomeId,
+        salaryPercentage: domainData.salaryPercentage,
+        fallbackAmount: domainData.fallbackAmount,
+        startYear: domainData.startYear,
+        endYear: domainData.endYear,
+      });
+
       await onSave(domainData);
+      logger.info('Expense save callback succeeded', 'retirement/useRetirementExpenseDialog', {
+        mode: domainData.calculationMode,
+        linkedIncomeId: domainData.linkedIncomeId,
+      });
       setOpen(false);
     } catch (error) {
+      logger.error('Expense save failed', 'retirement/useRetirementExpenseDialog', {
+        error: error instanceof Error ? error.message : String(error),
+        mode: calculationMode,
+        linkedIncomeId,
+      });
       console.error('Failed to save expense', error);
     } finally {
       setLoading(false);
@@ -141,15 +207,22 @@ export function useRetirementExpenseDialog({
     setStartYear,
     endYear,
     setEndYear,
-    selectedProjectId,
-    percentOfSalary,
-    setPercentOfSalary,
     retirementMultiplier,
     setRetirementMultiplier,
+    calculationMode,
+    setCalculationMode,
+    salaryPercentage,
+    setSalaryPercentage,
+    salaryPercentageRetirementMode,
+    setSalaryPercentageRetirementMode,
+    linkedIncomeId,
+    setLinkedIncomeId,
+    fallbackAmount,
+    setFallbackAmount,
     projects,
+    incomes,
 
     // Handlers
-    handleProjectChange,
     handleSubmit,
   };
 }

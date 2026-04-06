@@ -251,7 +251,30 @@ DebtAccount.closedAt = today
 
 ---
 
-## 6. 債務月結算預覽與警訊
+## 6. 退休系統導入規則（Debt -> Retirement）
+
+退休系統支援「匯入債務還款」：
+
+1. 掃描 `isActive=true` 的 DebtAccount
+2. 每個帳戶建立一筆退休 `expenseCategory`（`type = debt_payment`）
+3. 欄位來源：
+   - `name` <- DebtAccount.name
+   - `baseAmount` <- DebtAccount.monthlyPayment * 12（`includesPrincipal=true`）
+   - `startYear/endYear` <- DebtAccount.startDate/endDate
+4. 讀取最近 12 個月 DebtSnapshot，寫入 `calculatedFrom` 統計
+
+### 本金與利息策略
+
+匯入支出可用以下旗標描述：
+
+- `includesPrincipal: true`
+  - 表示包含本金與利息，預設使用 `monthlyPayment * 12`
+- `interestOnly: true`
+  - 表示只計利息，使用 DebtSnapshot 的 `interestPaid` 年化值
+
+備註：本金在會計上不是損益費用，但退休現金流模型可依需求納入現金流出；需以上述旗標清楚標記。
+
+## 7. 債務月結算預覽與警訊
 
 `DebtSettlement` 採用「先預覽、再確認」流程：
 

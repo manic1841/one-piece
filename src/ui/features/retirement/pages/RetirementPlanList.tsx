@@ -1,4 +1,4 @@
-import { AlertTriangle, Calendar, Plus, TrendingUp } from 'lucide-react';
+import { AlertTriangle, Calendar, Copy, Plus, TrendingUp } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 import { useAuth } from '@/infra/contexts/useAuth';
@@ -9,7 +9,7 @@ import { useRetirementPlanListPage } from '@/ui/features/retirement/hooks/useRet
 export default function RetirementPlanList() {
   const { userProfile } = useAuth();
   const navigate = useNavigate();
-  const { planItems, loading, error, createPlan } = useRetirementPlanListPage(
+  const { planItems, loading, error, createPlan, duplicatePlan } = useRetirementPlanListPage(
     userProfile?.householdId,
     userProfile?.email,
   );
@@ -78,6 +78,17 @@ export default function RetirementPlanList() {
                     </div>
                   </div>
                 )}
+                <div className="pt-3" onClick={(event) => event.stopPropagation()}>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => duplicatePlan(plan.id)}
+                  >
+                    <Copy className="mr-2 h-4 w-4" />
+                    Duplicate
+                  </Button>
+                </div>
               </div>
             </CardContent>
           </Card>

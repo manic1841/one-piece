@@ -1,8 +1,17 @@
 import { useState } from 'react';
 
+import { RetirementTransitionMode } from '@/domains/retirement/schemas';
+import type { RetirementPlanCreate, RetirementTransition } from '@/domains/retirement/types';
 import { Button } from '@/ui/components/ui/button';
 import { Input } from '@/ui/components/ui/input';
 import { Label } from '@/ui/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/ui/components/ui/select';
 import { type RetirementAssumptionsDisplayVM } from '@/ui/features/retirement/viewmodels/retirementDisplay.vm';
 import {
   type RetirementAssumptionsFormVM,
@@ -11,7 +20,8 @@ import {
 
 interface AssumptionsFormProps {
   assumptions: RetirementAssumptionsDisplayVM;
-  onSave: (updates: RetirementAssumptionsFormVM) => void;
+  onSave: (updates: Partial<RetirementPlanCreate>) => void;
+  retirementTransition?: RetirementTransition;
 }
 
 const toAssumptionsFormVM = (
@@ -32,10 +42,20 @@ const parseNumberOrFallback = (value: string, fallback: number) => {
   return Number.isFinite(parsed) ? parsed : fallback;
 };
 
-export default function AssumptionsForm({ assumptions, onSave }: AssumptionsFormProps) {
+export default function AssumptionsForm({
+  assumptions,
+  onSave,
+  retirementTransition,
+}: AssumptionsFormProps) {
   const [editing, setEditing] = useState(false);
   const [formData, setFormData] = useState<RetirementAssumptionsFormVM>(
     toAssumptionsFormVM(assumptions),
+  );
+  const [transitionMode, setTransitionMode] = useState<RetirementTransitionMode>(
+    retirementTransition?.mode ?? RetirementTransitionMode.IMMEDIATE,
+  );
+  const [transitionYears, setTransitionYears] = useState<number>(
+    retirementTransition?.transitionYears ?? 3,
   );
 
   const handleSave = () => {
@@ -43,7 +63,13 @@ export default function AssumptionsForm({ assumptions, onSave }: AssumptionsForm
     if (!parsed.success) {
       return;
     }
-    onSave(parsed.data);
+    onSave({
+      ...parsed.data,
+      retirementTransition: {
+        mode: transitionMode,
+        transitionYears,
+      },
+    });
     setEditing(false);
   };
 
@@ -91,6 +117,16 @@ export default function AssumptionsForm({ assumptions, onSave }: AssumptionsForm
           <div>
             <div className="text-sm text-muted-foreground">Investment Return</div>
             <div className="text-lg font-medium">{assumptions.investmentReturnRate}%</div>
+          </div>
+        </div>
+
+        {/* Retirement Transition */}
+        <div className="mt-6 rounded-md border p-4">
+          <div className="text-sm font-semibold mb-2">退休後支出調整方式</div>
+          <div className="text-sm text-muted-foreground">
+            {retirementTransition?.mode === RetirementTransitionMode.GRADUAL
+              ? `漸進轉換（${retirementTransition.transitionYears} 年）`
+              : '立即轉換'}
           </div>
         </div>
       </div>
@@ -220,6 +256,42 @@ export default function AssumptionsForm({ assumptions, onSave }: AssumptionsForm
           />
         </div>
       </div>
+
+      {/* Retirement Transition Block */}
+      <div className="mt-6 rounded-md border p-4 grid gap-4">
+        <div className="text-sm font-semibold">退休後支出調整方式</div>
+        <div className="grid grid-cols-2 gap-4 items-start">
+          <div className="grid gap-2">
+            <Label>調整模式</Label>
+            <Select
+              value={transitionMode}
+              onValueChange={(v) => setTransitionMode(v as RetirementTransitionMode)}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={RetirementTransitionMode.IMMEDIATE}>立即轉換</SelectItem>
+                <SelectItem value={RetirementTransitionMode.GRADUAL}>漸進轉換</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          {transitionMode === RetirementTransitionMode.GRADUAL && (
+            <div className="grid gap-2">
+              <Label htmlFor="transitionYears">過渡年數</Label>
+              <Input
+                id="transitionYears"
+                type="number"
+                min={1}
+                max={10}
+                value={transitionYears}
+                onChange={(e) => setTransitionYears(Number(e.target.value))}
+              />
+            </div>
+          )}
+        </div>
+      </div>
+
       <div className="flex gap-2 mt-6">
         <Button onClick={handleSave}>Save</Button>
         <Button variant="outline" onClick={handleCancel}>

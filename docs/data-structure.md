@@ -76,10 +76,50 @@ firestore
 
        ├─ retirement_plans/{planId}      # 退休規劃
        │    ├─ name: string
-       │    ├─ expenses: array
-       │    ├─ incomes: array
-       │    └─ settings: object
-
+      │    ├─ isActive: boolean          # 同一 household 僅允許一筆 active=true
+       │    ├─ events: array
+       │    ├─ settings: object
+       │    │
+       │    ├─ incomeStreams/{incomeStreamId}   # 由交易分錄推導的收入流
+      │         ├─ name: string
+      │         ├─ importedFrom: "manual" | "transactionEntries"
+      │         ├─ incomeCategory: string       # e.g. "income:salary:charles"
+      │         ├─ calculatedFrom: object
+      │         │    ├─ ledgerCode: string      # e.g. "income:salary:charles"
+      │         │    ├─ startDate: string       # YYYY-MM-DD
+      │         │    ├─ endDate: string         # YYYY-MM-DD
+      │         │    ├─ totalAmount: number
+      │         │    ├─ monthlyAverage: number
+      │         │    ├─ sampleCount: number
+      │         │    └─ importedAt: string      # ISO datetime
+      │         ├─ type: "salary" | "bonus" | "pension" | "rent" | "other"
+      │         ├─ baseAmount: number           # annualized amount
+      │         ├─ growthRate: number
+      │         ├─ startYear: number
+      │         ├─ endYear: number
+      │         └─ note?: string       │
+       │    └─ expenseCategories/{expenseCategoryId}  # 退休支出類別（含債務匯入）
+       │         ├─ name: string
+       │         ├─ type: "general" | "debt_payment"
+       │         ├─ sourceDebtAccountId?: string
+       │         ├─ includesPrincipal: boolean
+       │         ├─ interestOnly: boolean
+       │         ├─ calculationMode: "FIXED" | "SALARY_PERCENTAGE"
+      │         ├─ salaryPercentageRetirementMode?: "MANUAL_FALLBACK" | "INFLATION_BASED"
+       │         ├─ baseAmount: number
+       │         ├─ growthRate: number
+       │         ├─ retirementMultiplier: number
+       │         ├─ startYear: number
+       │         ├─ endYear?: number | null
+       │         ├─ calculatedFrom?: object
+       │         │    ├─ debtAccountId?: string
+       │         │    ├─ sampleStartYearMonth?: string
+       │         │    ├─ sampleEndYearMonth?: string
+       │         │    ├─ totalPaid?: number
+       │         │    ├─ interestPaid?: number
+       │         │    ├─ sampleCount?: number
+       │         │    └─ importedAt?: string
+       │         └─ note?: string
        ├─ allocations/{allocationId}     # 專案資金分配
        │    ├─ sourceTransactionId: string
        │    ├─ direction: "INCOME" | "EXPENSE"
@@ -169,3 +209,12 @@ firestore
 ### 4. **Retirement Planning**
 
 - 退休規劃資料獨立存儲於 `retirement_plans`。
+- 收入流 (`incomeStreams`) 來源以 `transactions.entries` 中 `ledgerCode` 前綴為 `income:` 的分錄為準。
+- 收入匯入流程固定採最近 12 個月交易資料，依 `ledgerCode` 分組、加總並年化。
+- 當 `retirement_plans.autoUpdate = true` 且收入來源為 `IMPORTED` 時，系統會在打開退休規劃頁時檢查 `calculatedFrom.startDate/endDate`；若目前日期已跨過樣本窗結束日，會將樣本窗平移到最新完整窗口並重新計算 `baseAmount`、`totalAmount`、`monthlyAverage`。
+- 債務還款匯入來源為 active `debtAccounts` 搭配最近 12 個月 `snapshots`；產物寫入 `expenseCategories`。
+- `debt_payment` 支出可標註是否包含本金 (`includesPrincipal`) 或僅計利息 (`interestOnly`)。
+- `events` 支援分段設定 `phases[]`（每段可使用 `FIXED` 或 `SALARY_PERCENTAGE`），可用於教育、醫療等人生階段型支出/收入。
+- 舊版單次事件欄位（`year`/`amount`）仍可讀取，系統會視為單段 `FIXED` phase 以維持相容性。
+- 複製 retirement plan 會建立一筆完整副本（含 incomes / expenses / events / assumptions），並預設 `isActive=false`。
+- 當任一 plan 被建立或更新為 `isActive=true` 時，系統會自動將同一 household 其他 plans 的 `isActive` 設為 `false`。

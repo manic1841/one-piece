@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 
 import { useParams } from 'react-router-dom';
 
@@ -34,7 +34,7 @@ const RetirementPlanForm: React.FC = () => {
     handleAddExpense,
     handleUpdateExpense,
     handleDeleteExpense,
-    handleImportFromProjects,
+    handleImportDebtRepayments,
     handleAddEvent,
     handleUpdateEvent,
     handleDeleteEvent,
@@ -44,7 +44,10 @@ const RetirementPlanForm: React.FC = () => {
     handleAddIncome,
     handleUpdateIncome,
     handleDeleteIncome,
+    handleImportIncomeFromTransactions,
   } = useRetirementPlanDetailPage(id, userProfile?.householdId, userProfile?.email);
+
+  const [activeTab, setActiveTab] = useState('assumptions');
 
   if (loading) {
     return <div className="p-8">Loading...</div>;
@@ -77,7 +80,7 @@ const RetirementPlanForm: React.FC = () => {
         handleDelete={handleDelete}
       />
 
-      <Tabs defaultValue="assumptions" className="w-full">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="assumptions">Assumptions</TabsTrigger>
           <TabsTrigger value="income">Income</TabsTrigger>
@@ -87,7 +90,11 @@ const RetirementPlanForm: React.FC = () => {
         </TabsList>
 
         <TabsContent value="assumptions" className="space-y-4">
-          <AssumptionsForm assumptions={assumptionsVM} onSave={handleUpdatePlan} />
+          <AssumptionsForm
+            assumptions={assumptionsVM}
+            onSave={handleUpdatePlan}
+            retirementTransition={plan.retirementTransition}
+          />
         </TabsContent>
 
         <TabsContent value="income" className="space-y-6">
@@ -97,6 +104,8 @@ const RetirementPlanForm: React.FC = () => {
             handleAddIncome={handleAddIncome}
             handleUpdateIncome={handleUpdateIncome}
             handleDeleteIncome={handleDeleteIncome}
+            handleImportIncomeFromTransactions={handleImportIncomeFromTransactions}
+            householdId={userProfile?.householdId || ''}
           />
         </TabsContent>
 
@@ -104,16 +113,18 @@ const RetirementPlanForm: React.FC = () => {
           <ExpenseTabContent
             currentYear={plan.currentYear}
             expenseItems={expenseItems}
+            incomes={plan.incomes}
             handleAddExpense={handleAddExpense}
             handleUpdateExpense={handleUpdateExpense}
             handleDeleteExpense={handleDeleteExpense}
-            handleImportFromProjects={handleImportFromProjects}
+            handleImportDebtRepayments={handleImportDebtRepayments}
           />
         </TabsContent>
 
         <TabsContent value="events" className="space-y-4">
           <EventTabContent
             currentYear={plan.currentYear}
+            incomes={plan.incomes}
             eventItems={eventItems}
             handleAddEvent={handleAddEvent}
             handleUpdateEvent={handleUpdateEvent}

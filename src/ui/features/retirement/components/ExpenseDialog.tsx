@@ -1,6 +1,10 @@
 import { Plus } from 'lucide-react';
 
-import { type RetirementExpenseCategory } from '@/domains/retirement/types';
+import { CalculationMode, SalaryPercentageRetirementMode } from '@/domains/retirement/schemas';
+import {
+  type RetirementExpenseCategory,
+  type RetirementIncomeSource,
+} from '@/domains/retirement/types';
 import { Button } from '@/ui/components/ui/button';
 import {
   Dialog,
@@ -28,13 +32,17 @@ interface RetirementExpenseDialogProps {
   currentYear: number;
   initialData?: RetirementExpenseCategory;
   trigger?: React.ReactNode;
+  incomes?: RetirementIncomeSource[];
 }
+
+const ALL_SALARY_OPTION_VALUE = '__all_salary__';
 
 export default function RetirementExpenseDialog({
   onSave,
   currentYear,
   initialData,
   trigger,
+  incomes = [],
 }: RetirementExpenseDialogProps) {
   const {
     open,
@@ -43,26 +51,47 @@ export default function RetirementExpenseDialog({
     name,
     setName,
     amount,
-    setAmount,
     growthRate,
     setGrowthRate,
     startYear,
     setStartYear,
     endYear,
     setEndYear,
-    selectedProjectId,
-    percentOfSalary,
-    setPercentOfSalary,
     retirementMultiplier,
     setRetirementMultiplier,
-    projects,
-    handleProjectChange,
+    calculationMode,
+    setCalculationMode,
+    salaryPercentage,
+    setSalaryPercentage,
+    salaryPercentageRetirementMode,
+    setSalaryPercentageRetirementMode,
+    linkedIncomeId,
+    setLinkedIncomeId,
+    fallbackAmount,
+    setFallbackAmount,
+
     handleSubmit,
   } = useRetirementExpenseDialog({
     initialData,
     currentYear,
     onSave,
+    incomes,
   });
+
+  const isPercentage = calculationMode === CalculationMode.SALARY_PERCENTAGE;
+
+  // Inline preview: retirement-year expense estimate
+  const retirementYearPreview = (() => {
+    if (isPercentage) {
+      if (salaryPercentageRetirementMode === SalaryPercentageRetirementMode.MANUAL_FALLBACK) {
+        return fallbackAmount > 0
+          ? `退休第一年支出約 ${fallbackAmount.toLocaleString()} /yr`
+          : null;
+      }
+      return '退休後支出將以退休第一年估算值為基準，依通膨率逐年調整';
+    }
+    return `退休第一年支出約 ${Math.round(amount * Math.pow(1 + growthRate / 100, currentYear + 20 - currentYear) * (retirementMultiplier / 100)).toLocaleString()} /yr (估算)`;
+  })();
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -74,7 +103,7 @@ export default function RetirementExpenseDialog({
           </Button>
         )}
       </DialogTrigger>
-      <DialogContent aria-describedby={undefined} className="sm:max-w-[425px]">
+      <DialogContent aria-describedby={undefined} className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>
             {initialData ? 'Edit Expense Category' : 'Add Expense Category'}
@@ -98,40 +127,124 @@ export default function RetirementExpenseDialog({
             />
           </div>
 
-          {/* Row 2: Annual Amount & Import from Project */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="grid gap-2">
-              <Label htmlFor="amount">Annual Amount</Label>
-              <Input
-                id="amount"
-                type="number"
-                value={amount}
-                onChange={(e) => setAmount(Number(e.target.value))}
-                required
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="project">Import from Project</Label>
-              <Select value={selectedProjectId} onValueChange={handleProjectChange}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select..." />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">None (Manual)</SelectItem>
-                  {projects.map((project) => (
-                    <SelectItem key={project.id} value={project.id}>
-                      {project.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+          {/* Row 2: Calculation Mode Toggle */}
+          <div className="grid gap-2">
+            <Label>計算模式</Label>
+            <div className="flex rounded-md border overflow-hidden">
+              <button
+                type="button"
+                onClick={() => setCalculationMode(CalculationMode.FIXED)}
+                className={`flex-1 px-4 py-2 text-sm font-medium transition-colors ${
+                  !isPercentage
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-background text-muted-foreground hover:bg-muted'
+                }`}
+              >
+                固定金額
+              </button>
+              <button
+                type="button"
+                onClick={() => setCalculationMode(CalculationMode.SALARY_PERCENTAGE)}
+                className={`flex-1 px-4 py-2 text-sm font-medium transition-colors border-l ${
+                  isPercentage
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-background text-muted-foreground hover:bg-muted'
+                }`}
+              >
+                薪資比例
+              </button>
             </div>
           </div>
 
-          {/* Row 3: Growth Rate & Percent of Salary */}
+          {/* Dynamic fields by mode */}
+          {
+            /* SALARY_PERCENTAGE mode */
+            <div className="grid gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="salaryPct">薪資比例 (%)</Label>
+                <div className="flex items-center gap-3">
+                  <input
+                    id="salaryPct"
+                    type="range"
+                    min={0}
+                    max={100}
+                    step={1}
+                    value={salaryPercentage}
+                    onChange={(e) => setSalaryPercentage(Number(e.target.value))}
+                    className="flex-1"
+                  />
+                  <span className="w-12 text-right text-sm font-medium tabular-nums">
+                    {salaryPercentage}%
+                  </span>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="linkedIncome">連結收入來源</Label>
+                  <Select
+                    value={linkedIncomeId ?? ALL_SALARY_OPTION_VALUE}
+                    onValueChange={(v) =>
+                      setLinkedIncomeId(v === ALL_SALARY_OPTION_VALUE ? undefined : v)
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={ALL_SALARY_OPTION_VALUE}>所有薪資收入合計</SelectItem>
+                      {incomes
+                        .filter((income) => income.type === 'salary')
+                        .map((income) => (
+                          <SelectItem key={income.id} value={income.id}>
+                            {income.name}
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="retMode">退休後計算</Label>
+                  <Select
+                    value={salaryPercentageRetirementMode}
+                    onValueChange={(v: SalaryPercentageRetirementMode) =>
+                      setSalaryPercentageRetirementMode(v)
+                    }
+                  >
+                    <SelectTrigger id="retMode">
+                      <SelectValue placeholder="Select mode..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={SalaryPercentageRetirementMode.MANUAL_FALLBACK}>
+                        手動輸入保底金額
+                      </SelectItem>
+                      <SelectItem value={SalaryPercentageRetirementMode.INFLATION_BASED}>
+                        直接按通膨率推估
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {salaryPercentageRetirementMode ===
+                SalaryPercentageRetirementMode.MANUAL_FALLBACK && (
+                <div className="grid gap-2">
+                  <Label htmlFor="fallback">退休後保底年度支出</Label>
+                  <Input
+                    id="fallback"
+                    type="number"
+                    value={fallbackAmount}
+                    onChange={(e) => setFallbackAmount(Number(e.target.value))}
+                    placeholder="0"
+                  />
+                </div>
+              )}
+            </div>
+          }
+
+          {/* Growth Rate & Retirement Multiplier */}
           <div className="grid grid-cols-2 gap-4">
             <div className="grid gap-2">
-              <Label htmlFor="growth">Growth Rate (%)</Label>
+              <Label htmlFor="growth">通膨/成長率 (%)</Label>
               <Input
                 id="growth"
                 type="number"
@@ -141,20 +254,21 @@ export default function RetirementExpenseDialog({
                 required
               />
             </div>
-            <div className="grid gap-2">
-              <Label htmlFor="percentOfSalary">Percent of Salary (%)</Label>
-              <Input
-                id="percentOfSalary"
-                type="number"
-                step="0.1"
-                value={percentOfSalary}
-                onChange={(e) => setPercentOfSalary(Number(e.target.value))}
-                placeholder="Optional"
-              />
-            </div>
+            {!isPercentage && (
+              <div className="grid gap-2">
+                <Label htmlFor="multiplier">退休後費用比例 (%)</Label>
+                <Input
+                  id="multiplier"
+                  type="number"
+                  value={retirementMultiplier}
+                  onChange={(e) => setRetirementMultiplier(Number(e.target.value))}
+                  required
+                />
+              </div>
+            )}
           </div>
 
-          {/* Row 4: Start Year & End Year */}
+          {/* Start / End Year */}
           <div className="grid grid-cols-2 gap-4">
             <div className="grid gap-2">
               <Label htmlFor="startYear">Start Year</Label>
@@ -178,22 +292,12 @@ export default function RetirementExpenseDialog({
             </div>
           </div>
 
-          {/* Row 5: Retirement Multiplier */}
-          <div className="grid gap-2">
-            <Label htmlFor="multiplier">Retirement Multiplier (%)</Label>
-            <div className="flex items-center gap-2">
-              <Input
-                id="multiplier"
-                type="number"
-                value={retirementMultiplier}
-                onChange={(e) => setRetirementMultiplier(Number(e.target.value))}
-                required
-              />
-              <span className="text-sm text-muted-foreground">
-                % of expense continuing after retirement
-              </span>
+          {/* Retirement year inline preview */}
+          {retirementYearPreview && (
+            <div className="rounded-md bg-muted px-4 py-2 text-sm text-muted-foreground">
+              {retirementYearPreview}
             </div>
-          </div>
+          )}
 
           <DialogFooter>
             <Button type="submit" disabled={loading}>
