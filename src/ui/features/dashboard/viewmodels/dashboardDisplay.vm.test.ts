@@ -50,9 +50,12 @@ describe('dashboardDisplay.vm', () => {
     const chartData = mapAssetTrendDataToChartPoints({
       labels: ['2026-01', '2026-02', '2026-03'],
       assets: [1000, 2000, 0],
+      liabilities: [200, 300, 0],
+      netAssets: [800, 1700, 0],
       incomes: [500, 600, 0],
       expenses: [300, 350, 0],
       investmentGains: [50, 60, 0],
+      investmentReturnRates: [2.5, 3.0, null],
     });
 
     expect(chartData.length).toBe(2);

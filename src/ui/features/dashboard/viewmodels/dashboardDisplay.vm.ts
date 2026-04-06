@@ -136,9 +136,14 @@ export const mapAssetTrendMetricToVM = (
 export interface AssetTrendChartPointVM {
   label: string;
   totalAssets: number;
+  liabilities: number;
+  netAssets: number;
+  netAssetsGrowthPct: number | null;
+  liabilitiesGrowthPct: number | null;
   income: number;
   expense: number;
   investmentGain: number;
+  investmentReturnRate: number | null;
 }
 
 export const mapAssetTrendDataToChartPoints = (
@@ -146,18 +151,47 @@ export const mapAssetTrendDataToChartPoints = (
 ): AssetTrendChartPointVM[] => {
   if (!trendData) return [];
 
-  const points: AssetTrendChartPointVM[] = trendData.labels.map((label, index) => ({
-    label,
-    totalAssets: trendData.assets[index] ?? 0,
-    income: trendData.incomes[index] ?? 0,
-    expense: trendData.expenses[index] ?? 0,
-    investmentGain: trendData.investmentGains[index] ?? 0,
-  }));
+  const points: AssetTrendChartPointVM[] = trendData.labels.map((label, index) => {
+    const netAssets = trendData.netAssets[index] ?? 0;
+    const liabilities = trendData.liabilities[index] ?? 0;
+    const prevNetAssets = index > 0 ? (trendData.netAssets[index - 1] ?? 0) : null;
+    const prevLiabilities = index > 0 ? (trendData.liabilities[index - 1] ?? 0) : null;
+
+    const netAssetsGrowthPct =
+      prevNetAssets !== null && prevNetAssets !== 0
+        ? ((netAssets - prevNetAssets) / Math.abs(prevNetAssets)) * 100
+        : null;
+
+    const liabilitiesGrowthPct =
+      prevLiabilities !== null && prevLiabilities !== 0
+        ? ((liabilities - prevLiabilities) / Math.abs(prevLiabilities)) * 100
+        : null;
+
+    return {
+      label,
+      totalAssets: trendData.assets[index] ?? 0,
+      liabilities,
+      netAssets,
+      netAssetsGrowthPct,
+      liabilitiesGrowthPct,
+      income: trendData.incomes[index] ?? 0,
+      expense: trendData.expenses[index] ?? 0,
+      investmentGain: trendData.investmentGains[index] ?? 0,
+      investmentReturnRate: trendData.investmentReturnRates[index] ?? null,
+    };
+  });
 
   let lastDataIndex = -1;
   for (let i = points.length - 1; i >= 0; i--) {
     const p = points[i];
-    if (p.totalAssets !== 0 || p.income !== 0 || p.expense !== 0 || p.investmentGain !== 0) {
+    if (
+      p.totalAssets !== 0 ||
+      p.liabilities !== 0 ||
+      p.netAssets !== 0 ||
+      p.income !== 0 ||
+      p.expense !== 0 ||
+      p.investmentGain !== 0
+    ) {
       lastDataIndex = i;
       break;
     }
@@ -206,7 +240,28 @@ export const formatCompactAxisValue = (value: number): string => {
   return String(value);
 };
 
-export const formatTrendTooltipValue = (value: number) => formatCurrency(value);
+export const formatTrendTooltipValue = (
+  value: number,
+  name: string,
+  entry: { payload?: AssetTrendChartPointVM },
+): [string, string] => {
+  const currency = formatCurrency(value);
+  const point = entry?.payload;
+
+  if (name === '淨資產' && point?.netAssetsGrowthPct != null) {
+    const sign = point.netAssetsGrowthPct >= 0 ? '+' : '';
+    return [`${currency} (${sign}${point.netAssetsGrowthPct.toFixed(1)}%)`, name];
+  }
+  if (name === '負債' && point?.liabilitiesGrowthPct != null) {
+    const sign = point.liabilitiesGrowthPct >= 0 ? '+' : '';
+    return [`${currency} (${sign}${point.liabilitiesGrowthPct.toFixed(1)}%)`, name];
+  }
+  if (name === '投資收益' && point?.investmentReturnRate != null) {
+    const sign = point.investmentReturnRate >= 0 ? '+' : '';
+    return [`${currency} (${sign}${point.investmentReturnRate.toFixed(2)}%)`, name];
+  }
+  return [currency, name];
+};
 
 export interface UnsettledStatsCardSectionVM {
   countText: string;

@@ -65,6 +65,7 @@ class GetTrendDataUseCase {
 
       // Fetch investment gains across all portfolios
       let periodInvestmentGain = 0;
+      let periodOpeningValue = 0;
       let hasPortfolioData = false;
 
       // Optimize: In a real scenario, we'd batch fetch snapshots
@@ -78,6 +79,7 @@ class GetTrendDataUseCase {
         });
         if (snapshots.length > 0) {
           periodInvestmentGain += snapshots[0].performance.gain;
+          periodOpeningValue += snapshots[0].performance.openingValue;
           hasPortfolioData = true;
         }
       }
@@ -102,7 +104,19 @@ class GetTrendDataUseCase {
             : null,
         totalAssets:
           balanceReport && 'assets' in balanceReport.data ? balanceReport.data.assets.total : null,
+        liabilities:
+          balanceReport && 'liabilities' in balanceReport.data
+            ? balanceReport.data.liabilities.total
+            : null,
+        netAssets:
+          balanceReport && 'assets' in balanceReport.data && 'liabilities' in balanceReport.data
+            ? balanceReport.data.assets.total - balanceReport.data.liabilities.total
+            : null,
         investmentGain: hasPortfolioData ? periodInvestmentGain : null,
+        investmentReturnRate:
+          hasPortfolioData && periodOpeningValue > 0
+            ? (periodInvestmentGain / periodOpeningValue) * 100
+            : null,
       });
 
       iterMonth++;

@@ -228,10 +228,21 @@ const AssetTrendCard: React.FC<AssetTrendCardProps> = ({ householdId }) => {
 
                 <Bar
                   yAxisId="right"
-                  dataKey="totalAssets"
-                  name="總資產"
+                  stackId="balance"
+                  dataKey="netAssets"
+                  name="淨資產"
                   fill="#3b82f6"
-                  opacity={0.15}
+                  opacity={0.2}
+                  radius={[0, 0, 0, 0]}
+                  maxBarSize={50}
+                />
+                <Bar
+                  yAxisId="right"
+                  stackId="balance"
+                  dataKey="liabilities"
+                  name="負債"
+                  fill="#ef4444"
+                  opacity={0.35}
                   radius={[4, 4, 0, 0]}
                   maxBarSize={50}
                 />

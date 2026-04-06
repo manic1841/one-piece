@@ -1,12 +1,13 @@
 // Re-exporting inferred types from schemas to avoid ambiguity or double definitions
 import { type z } from 'zod';
+
 import {
+  type BalanceSheetDataSchema,
+  type BalanceSheetItemSchema,
+  type CashFlowDataSchema,
   type FinancialReportSchema,
   type IncomeStatementDataSchema,
-  type BalanceSheetDataSchema,
-  type CashFlowDataSchema,
   type IncomeStatementItemSchema,
-  type BalanceSheetItemSchema,
 } from './schemas';
 
 export type FinancialReport = z.infer<typeof FinancialReportSchema>;
@@ -39,5 +40,8 @@ export interface TrendDataPoint {
   incomeByCategory: Record<string, number>;
   expense: number | null;
   totalAssets: number | null;
+  liabilities: number | null;
+  netAssets: number | null;
   investmentGain: number | null;
+  investmentReturnRate: number | null; // percentage, e.g. 5.0 = 5%
 }
