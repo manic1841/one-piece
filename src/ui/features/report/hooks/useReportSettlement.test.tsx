@@ -280,4 +280,21 @@ describe('useReportSettlement', () => {
       expect.any(Function),
     );
   });
+
+  it('uses unified report label resolver with fallback support', async () => {
+    const { reportService } = await import('../../../../domains/report/reportService');
+
+    renderHook(() => useReportSettlement('household-1', 'user@example.com'));
+
+    await waitFor(() => {
+      expect(reportService.generateIncomeStatement).toHaveBeenCalled();
+    });
+
+    const resolver = vi.mocked(reportService.generateIncomeStatement).mock.calls[0]?.[2];
+    expect(typeof resolver).toBe('function');
+
+    const resolveLabel = resolver as (code: string, fallbackLabel?: string) => string;
+    expect(resolveLabel('income:salary')).toBe('薪資');
+    expect(resolveLabel('unknown:code', '自訂分類')).toBe('自訂分類');
+  });
 });

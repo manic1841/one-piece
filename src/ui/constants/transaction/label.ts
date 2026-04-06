@@ -1,8 +1,8 @@
 export const TransactionCategoryLabels = {
   income: {
-    salary: '薪水',
+    salary: '薪資',
     bonus: '獎金',
-    investment: '投資',
+    investment: '投資收益',
     refund: '退款回補',
     side_business: '副業',
     other: '其他收入',
@@ -12,12 +12,12 @@ export const TransactionCategoryLabels = {
     transportation: '交通',
     shopping: '購物',
     entertainment: '娛樂',
-    housing: '家居',
+    housing: '住房',
     rent: '房租',
-    living: '生活',
+    living: '生活費',
     insurance: '保險',
     education: '教育',
-    social: '人際',
+    social: '社交',
     other: '其他支出',
   },
   investment: {
@@ -27,9 +27,9 @@ export const TransactionCategoryLabels = {
     other: '其他投資',
   },
   financing: {
-    loan: '借貸',
+    loan: '貸款',
     owner_investment: '股東融資',
-    owner_draw: '發放分紅',
+    owner_draw: '股東分紅',
     initial_capital: '初始資金',
     cash: '融資現金流',
     other: '其他融資',

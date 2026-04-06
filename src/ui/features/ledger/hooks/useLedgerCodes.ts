@@ -3,7 +3,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { listCustomLedgerCodesUseCase } from '@/application/ledger/use_cases/listCustomLedgerCodesUseCase';
 import { LEDGER_CODES } from '@/domains/ledger/constants/ledgerCodes';
 import { useAuth } from '@/infra/contexts/useAuth';
-import { getLedgerLabel } from '@/ui/constants/report/ledgerCodeLabels';
+import { getUnifiedLedgerCodeLabel } from '@/ui/constants/transaction';
 
 export interface LedgerCodeItem {
   code: string;
@@ -30,7 +30,7 @@ export const useLedgerCodes = (includeInactive = false) => {
       // 1. Get System Defaults
       const systemCodes: LedgerCodeItem[] = Object.values(LEDGER_CODES).map((code) => ({
         code,
-        label: getLedgerLabel(code),
+        label: getUnifiedLedgerCodeLabel(code),
         type: code.split(':')[0],
         isCustom: false,
         isActive: true,
@@ -71,7 +71,7 @@ export const useLedgerCodes = (includeInactive = false) => {
     (code: string) => {
       const item = codes.find((c) => c.code === code);
       if (item) return item.label;
-      return getLedgerLabel(code);
+      return getUnifiedLedgerCodeLabel(code);
     },
     [codes],
   );

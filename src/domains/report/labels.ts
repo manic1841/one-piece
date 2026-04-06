@@ -12,6 +12,14 @@ import {
   OperatingSubCategory,
 } from '@/domains/report/categories';
 
+/**
+ * Legacy report label maps.
+ *
+ * @deprecated
+ * UI-facing transaction/category labels should use
+ * `@/ui/constants/transaction/displayLabels` to keep wording consistent.
+ */
+
 const toOptions = <T extends Record<string, string>>(labels: T) =>
   Object.entries(labels).map(([value, label]) => ({ value, label }));
 

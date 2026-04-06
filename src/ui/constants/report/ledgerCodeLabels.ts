@@ -1,6 +1,6 @@
 export const LEDGER_CODE_LABELS: Record<string, string> = {
   // Income
-  'income:salary': '薪資收入',
+  'income:salary': '薪資',
   'income:bonus': '獎金',
   'income:investment': '投資收益',
   'income:other': '其他收入',
@@ -8,7 +8,7 @@ export const LEDGER_CODE_LABELS: Record<string, string> = {
   // Expense
   'expense:food': '餐飲',
   'expense:transportation': '交通',
-  'expense:living': '生活',
+  'expense:living': '生活費',
   'expense:housing': '家居',
   'expense:rent': '房租',
   'expense:vehicle': '汽車',
@@ -17,7 +17,7 @@ export const LEDGER_CODE_LABELS: Record<string, string> = {
   'expense:education': '教育',
   'expense:entertainment': '娛樂',
   'expense:insurance': '保險',
-  'expense:social': '人情往來',
+  'expense:social': '社交',
   'expense:interest': '利息支出',
   'expense:loan_interest': '借貸利息',
   'expense:mortgage_interest': '房貸利息',
@@ -39,7 +39,7 @@ export const LEDGER_CODE_LABELS: Record<string, string> = {
   'equity:capital': '股東資本',
 
   // Income Additions
-  'income:refund': '退款',
+  'income:refund': '退款回補',
 };
 
 export const getLedgerLabel = (code: string): string => {

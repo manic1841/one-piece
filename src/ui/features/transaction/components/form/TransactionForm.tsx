@@ -20,6 +20,7 @@ import {
   DialogTitle,
 } from '@/ui/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/ui/components/ui/tabs';
+import { getIntentTypeLabel } from '@/ui/constants/transaction';
 import { type LedgerCodeItem } from '@/ui/features/ledger/hooks/useLedgerCodes';
 import { AdvancedPanel } from '@/ui/features/transaction/components/form/AdvancedPanel';
 import { CategoryPanel } from '@/ui/features/transaction/components/form/CategoryPanel';
@@ -254,7 +255,9 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
             <div className="rounded-2xl border bg-slate-900 px-4 py-3 text-white">
               <div className="text-xs uppercase tracking-[0.2em] text-slate-300">Preview</div>
               <div className="mt-2 flex flex-wrap items-center gap-2 text-sm">
-                <Badge className="border-none bg-white/15 text-white">{preview.intentType}</Badge>
+                <Badge className="border-none bg-white/15 text-white">
+                  {getIntentTypeLabel(preview.intentType)}
+                </Badge>
                 {previewDetails.map((detail) => (
                   <span key={detail} className="rounded-full border border-white/10 px-3 py-1">
                     {detail}

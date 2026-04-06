@@ -52,7 +52,7 @@ export const DEFAULT_INTENT_MAPPINGS: IntentMappingInfo[] = [
   },
   {
     intent: 'LIVING',
-    label: '生活',
+    label: '生活費',
     type: IntentType.EXPENSE,
     debitLedgerCode: LEDGER_CODES.EXPENSE_LIVING,
     creditLedgerCode: LEDGER_CODES.ASSET_CASH,
@@ -87,7 +87,7 @@ export const DEFAULT_INTENT_MAPPINGS: IntentMappingInfo[] = [
   },
   {
     intent: 'HOUSING',
-    label: '家居',
+    label: '住房',
     type: IntentType.EXPENSE,
     debitLedgerCode: LEDGER_CODES.EXPENSE_HOUSING,
     creditLedgerCode: LEDGER_CODES.ASSET_CASH,
@@ -133,7 +133,7 @@ export const DEFAULT_INTENT_MAPPINGS: IntentMappingInfo[] = [
   // Incomes
   {
     intent: 'SALARY',
-    label: '薪水',
+    label: '薪資',
     type: IntentType.INCOME,
     debitLedgerCode: LEDGER_CODES.ASSET_CASH,
     creditLedgerCode: LEDGER_CODES.INCOME_SALARY,
@@ -151,7 +151,7 @@ export const DEFAULT_INTENT_MAPPINGS: IntentMappingInfo[] = [
   },
   {
     intent: 'INVESTMENT_INCOME',
-    label: '投資收入',
+    label: '投資收益',
     type: IntentType.INCOME,
     debitLedgerCode: LEDGER_CODES.ASSET_CASH,
     creditLedgerCode: LEDGER_CODES.INCOME_INVESTMENT,

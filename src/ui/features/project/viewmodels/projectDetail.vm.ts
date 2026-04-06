@@ -1,8 +1,12 @@
 import { isTransactionProjectIncome } from '@/domains/ledger/intentMapping';
 import { type Transaction } from '@/domains/ledger/schemas';
 import { type ProjectSnapshot } from '@/domains/project/schemas';
-import { ExpenseSubCategoryLabel, IncomeSubCategoryLabel } from '@/domains/report/labels';
 import { ProjectDetailItemColors } from '@/ui/constants/project/color';
+import {
+  getIntentLabel,
+  getIntentTypeLabel,
+  getUnifiedLedgerCodeLabel,
+} from '@/ui/constants/transaction';
 import { formatCurrency, formatDate } from '@/ui/utils';
 
 export const ProjectDetailItemType = {
@@ -55,13 +59,25 @@ const toDate = (value: unknown): Date => {
   return new Date();
 };
 
-const toCategoryLabel = (category: string): string => {
-  return (
-    IncomeSubCategoryLabel[category as keyof typeof IncomeSubCategoryLabel] ||
-    ExpenseSubCategoryLabel[category as keyof typeof ExpenseSubCategoryLabel] ||
-    category ||
-    'Uncategorized'
-  );
+const toPrimaryLedgerCode = (transaction: Transaction): string | undefined => {
+  const nonCashEntry = transaction.entries.find((entry) => entry.ledgerCode !== 'asset:cash');
+  return nonCashEntry?.ledgerCode;
+};
+
+const toCategoryLabel = (transaction: Transaction): string => {
+  const intentLabel = getIntentLabel(transaction.intent);
+  if (intentLabel) return intentLabel;
+
+  const ledgerCode = toPrimaryLedgerCode(transaction);
+  if (ledgerCode) {
+    const ledgerLabel = getUnifiedLedgerCodeLabel(ledgerCode);
+    if (ledgerLabel) return ledgerLabel;
+  }
+
+  const intentTypeLabel = getIntentTypeLabel(transaction.intentType);
+  if (intentTypeLabel) return intentTypeLabel;
+
+  return '未分類';
 };
 
 export const mapTransactionToProjectDetailVM = (transaction: Transaction): ProjectRecordItemVM => {
@@ -80,7 +96,7 @@ export const mapTransactionToProjectDetailVM = (transaction: Transaction): Proje
     color: ProjectDetailItemColors.record,
     title: transaction.description || 'Transaction',
     description: transaction.description || '',
-    categoryLabel: toCategoryLabel(transaction.intent || ''),
+    categoryLabel: toCategoryLabel(transaction),
   };
 };
 

@@ -3,15 +3,8 @@ import {
   type JournalEntryLine,
   type Transaction as LedgerTransaction,
 } from '@/domains/ledger/schemas';
-import { TransactionCategoryLabels } from '@/ui/constants/transaction';
+import { getTransactionCategoryLabel } from '@/ui/constants/transaction';
 import { formatCurrency, formatDate } from '@/ui/utils';
-
-const getLabelGroup = (intentType: string): Record<string, string> => {
-  if (intentType === 'INCOME') return TransactionCategoryLabels.income;
-  if (intentType === 'INVESTMENT') return TransactionCategoryLabels.investment;
-  if (intentType === 'FINANCING') return TransactionCategoryLabels.financing;
-  return TransactionCategoryLabels.expense;
-};
 
 const sumEntries = (transaction: LedgerTransaction) => {
   return transaction.entries.reduce(
@@ -86,11 +79,12 @@ export const mapTransactionToListItemVM = (
   const primaryEntry = findPrimaryEntry(transaction, intentType);
   const ledgerCode = primaryEntry?.ledgerCode || '';
   const categoryKey = ledgerCode.split(':').pop() || '';
-
-  const labels = getLabelGroup(intentType);
-  const systemLabel = labels[categoryKey as keyof typeof labels];
-  const categoryLabel =
-    options?.getLedgerLabel?.(ledgerCode) || systemLabel || categoryKey || intentType;
+  const categoryLabel = getTransactionCategoryLabel({
+    intentType,
+    intent: transaction.intent,
+    ledgerCode,
+    getLedgerLabel: options?.getLedgerLabel,
+  });
 
   const date = new Date(transaction.date);
   const monthKey = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}`;

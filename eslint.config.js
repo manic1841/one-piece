@@ -28,6 +28,27 @@ export default tseslint.config(
       // Explicit Typing: 不要使用 any
       '@typescript-eslint/no-explicit-any': 'error',
 
+      // Label Consistency: UI must use unified display label APIs
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: [
+            {
+              name: '@/domains/report/labels',
+              message:
+                'Use unified display label APIs from @/ui/constants/transaction/displayLabels instead of legacy report label maps.',
+            },
+          ],
+          patterns: [
+            {
+              group: ['**/domains/report/labels'],
+              message:
+                'Use unified display label APIs from @/ui/constants/transaction/displayLabels instead of legacy report label maps.',
+            },
+          ],
+        },
+      ],
+
       // Flat is Better than Nested: 巢狀層數限制（最多3層）
       'max-depth': ['warn', 3],
 

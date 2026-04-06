@@ -1,5 +1,6 @@
 import { calculateSplit } from '@/domains/debt/debtPaymentCalculator';
 import { type DebtAccount } from '@/domains/debt/schemas';
+import { getIntentTypeLabel, getUnifiedLedgerCodeLabel } from '@/ui/constants/transaction';
 import { type DebtPaymentFormState } from '@/ui/features/transaction/components/form/DebtPaymentPanel';
 import {
   type AdvancedFormState,
@@ -267,7 +268,7 @@ export const buildPreviewDetails = (input: {
     return [
       findProjectLabel(projects, preview.projectId),
       findCategoryLabel(investmentCategories, preview.intent || preview.ledgerCode),
-      preview.ledgerCode,
+      getUnifiedLedgerCodeLabel(preview.ledgerCode),
       preview.date,
     ].filter(Boolean);
   }
@@ -276,7 +277,7 @@ export const buildPreviewDetails = (input: {
     return [
       findProjectLabel(projects, preview.projectId),
       findCategoryLabel(financingCategories, preview.intent || preview.ledgerCode),
-      preview.ledgerCode,
+      getUnifiedLedgerCodeLabel(preview.ledgerCode),
       preview.date,
     ].filter(Boolean);
   }
@@ -297,7 +298,7 @@ export const buildPreviewDetails = (input: {
   }
 
   return [
-    preview.intentType,
+    getIntentTypeLabel(preview.intentType),
     findCategoryLabel(advancedCategories, preview.ledgerCode),
     findProjectLabel(projects, preview.projectId),
     preview.date,

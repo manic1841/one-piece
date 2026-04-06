@@ -8,7 +8,7 @@ import { reportService } from '@/domains/report/reportService';
 import { ReportType } from '@/domains/report/schemas';
 import { useAuth } from '@/infra/contexts/useAuth';
 import { reportRepository } from '@/infra/repositories/reportRepository';
-import { useLedgerCodes } from '@/ui/features/ledger/hooks/useLedgerCodes';
+import { getUnifiedLedgerCodeLabel } from '@/ui/constants/transaction';
 import {
   type BalanceSheetVM,
   type CashFlowVM,
@@ -20,7 +20,6 @@ import {
 
 export const useReportSettlement = (householdId: string, userEmail: string) => {
   const { currentUser, isAdmin } = useAuth();
-  const { getLabel } = useLedgerCodes();
 
   const [year, setYear] = useState(new Date().getFullYear());
   const [month, setMonth] = useState(new Date().getMonth() + 1);
@@ -53,13 +52,10 @@ export const useReportSettlement = (householdId: string, userEmail: string) => {
 
   const yearMonth = `${year}-${month.toString().padStart(2, '0')}`;
 
-  const resolveReportLabel = useCallback(
-    (code: string, fallbackLabel?: string) => {
-      const resolved = getLabel(code);
-      return resolved === code ? fallbackLabel || code : resolved;
-    },
-    [getLabel],
-  );
+  const resolveReportLabel = useCallback((code: string, fallbackLabel?: string) => {
+    const resolved = getUnifiedLedgerCodeLabel(code);
+    return resolved === code ? fallbackLabel || code : resolved;
+  }, []);
 
   const fetchPreview = async () => {
     if (!householdId) return;
