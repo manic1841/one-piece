@@ -80,8 +80,9 @@ export default tseslint.config(
     },
   },
   {
-    files: ['*.test.ts', '*.spec.ts', 'test.js'], // 針對測試檔案
+    files: ['**/*.{test,spec}.{ts,tsx,js,jsx}', '**/test.{ts,tsx,js,jsx}'], // 針對測試檔案
     rules: {
+      '@typescript-eslint/no-explicit-any': 'warn', // 測試允許快速 mock，保留警告提示
       'max-lines': 'off', // 直接關閉行數限制
       'max-lines-per-function': 'off', // 同時關閉函式長度限制
     },

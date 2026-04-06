@@ -41,7 +41,11 @@ export function useDebtSummary(householdId: string | undefined) {
   }, [householdId]);
 
   useEffect(() => {
-    loadData();
+    const timer = setTimeout(() => {
+      void loadData();
+    }, 0);
+
+    return () => clearTimeout(timer);
   }, [loadData]);
 
   return {
