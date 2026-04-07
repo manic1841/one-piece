@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
 
+import { exportHouseholdBackupUseCase } from '@/application/household/use_cases/exportHouseholdBackupUseCase';
 import { getHouseholdUseCase } from '@/application/household/use_cases/getHouseholdUseCase';
+import { importHouseholdBackupUseCase } from '@/application/household/use_cases/importHouseholdBackupUseCase';
 import { type AuthContext } from '@/application/types';
 import { RoleEnum } from '@/domains/auth/role';
 import { type Household } from '@/domains/household/schemas';
@@ -48,6 +50,12 @@ export const useSettingsPage = () => {
     Record<string, { email: string; displayName: string }>
   >({});
   const [memberSuccess, setMemberSuccess] = useState('');
+  const [backupLoading, setBackupLoading] = useState(false);
+  const [backupError, setBackupError] = useState('');
+  const [backupSuccess, setBackupSuccess] = useState('');
+  const [restoreLoading, setRestoreLoading] = useState(false);
+  const [restoreError, setRestoreError] = useState('');
+  const [restoreSuccess, setRestoreSuccess] = useState('');
 
   // --- Authorization ---
   const [householdRole, setHouseholdRole] = useState<string | null>(null);
@@ -140,6 +148,71 @@ export const useSettingsPage = () => {
     await fetchHouseholdData();
   };
 
+  const exportHouseholdBackup = async () => {
+    if (!household) return;
+
+    setBackupLoading(true);
+    setBackupError('');
+    setBackupSuccess('');
+
+    try {
+      const backup = await exportHouseholdBackupUseCase.execute({
+        householdId: household.id,
+        auth: authContext,
+      });
+
+      const json = JSON.stringify(backup, null, 2);
+      const blob = new Blob([json], { type: 'application/json;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      const dateCode = new Date().toISOString().replace(/[:.]/g, '-');
+      link.setAttribute('href', url);
+      link.setAttribute('download', `household-backup-${household.id}-${dateCode}.json`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      setBackupSuccess('備份檔已匯出完成。');
+    } catch (err) {
+      const message = err instanceof Error ? err.message : '匯出備份失敗';
+      setBackupError(message);
+    } finally {
+      setBackupLoading(false);
+    }
+  };
+
+  const restoreHouseholdBackup = async (file: File) => {
+    if (!household) return;
+
+    setRestoreLoading(true);
+    setRestoreError('');
+    setRestoreSuccess('');
+
+    try {
+      const text = await file.text();
+      const parsed = JSON.parse(text) as Parameters<
+        typeof importHouseholdBackupUseCase.execute
+      >[0]['backup'];
+
+      const summary = await importHouseholdBackupUseCase.execute({
+        householdId: household.id,
+        auth: authContext,
+        backup: parsed,
+      });
+
+      setRestoreSuccess(
+        `還原完成：已清除 ${summary.deletedDocuments} 筆，並匯入 ${summary.restoredDocuments} 筆資料。`,
+      );
+      await fetchHouseholdData();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : '還原備份失敗';
+      setRestoreError(message);
+    } finally {
+      setRestoreLoading(false);
+    }
+  };
+
   const isHouseholdOwnerOrAdmin =
     householdRole === RoleEnum.OWNER || householdRole === RoleEnum.ADMIN;
 
@@ -169,6 +242,14 @@ export const useSettingsPage = () => {
     addHouseholdMember,
     removeHouseholdMember,
     updateMemberRole,
+    backupLoading,
+    backupError,
+    backupSuccess,
+    exportHouseholdBackup,
+    restoreLoading,
+    restoreError,
+    restoreSuccess,
+    restoreHouseholdBackup,
     refreshHousehold: fetchHouseholdData,
   };
 };

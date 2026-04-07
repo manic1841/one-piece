@@ -51,3 +51,4 @@
 - **定期更新文件**: 如果修改了資料結構，務必同步更新 `docs/data-structure.md`。
 - **保持 `docs/` 的準確性**: 文件是維護大型專案的唯一救星。
 - **效能考量**: 避免在前端進行超大規模的資料處理與循環引用。
+- **備份/還原流程**: Settings 提供 household 等級的 JSON 備份與還原。還原應包含各主集合與其 snapshot 子集合，並限制為 household owner/admin（或 global admin）可執行。

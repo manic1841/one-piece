@@ -1,11 +1,19 @@
 import React from 'react';
 
 import { type User } from 'firebase/auth';
-import { ShieldAlert } from 'lucide-react';
+import { Database, Download, ShieldAlert } from 'lucide-react';
 
 import { type Household } from '@/domains/household/schemas';
 import { Button } from '@/ui/components/ui/button';
 import { Card, CardContent } from '@/ui/components/ui/card';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/ui/components/ui/dialog';
 import { AllocationTemplateSettings } from '@/ui/features/ledger/components/AllocationTemplateSettings';
 import { LedgerCodeSettings } from '@/ui/features/ledger/components/LedgerCodeSettings';
 
@@ -34,6 +42,14 @@ interface SettingsUIProps {
   removeHouseholdMember: (uid: string) => Promise<void>;
   updateMemberRole: (uid: string, newRole: string) => Promise<void>;
   currentUser: User | null;
+  backupLoading: boolean;
+  backupError: string;
+  backupSuccess: string;
+  exportHouseholdBackup: () => Promise<void>;
+  restoreLoading: boolean;
+  restoreError: string;
+  restoreSuccess: string;
+  restoreHouseholdBackup: (file: File) => Promise<void>;
 }
 
 const SettingsUI: React.FC<SettingsUIProps> = (props) => {
@@ -57,7 +73,50 @@ const SettingsUI: React.FC<SettingsUIProps> = (props) => {
     removeHouseholdMember,
     updateMemberRole,
     currentUser,
+    backupLoading,
+    backupError,
+    backupSuccess,
+    exportHouseholdBackup,
+    restoreLoading,
+    restoreError,
+    restoreSuccess,
+    restoreHouseholdBackup,
   } = props;
+
+  const restoreInputRef = React.useRef<HTMLInputElement>(null);
+  const [isRestoreConfirmOpen, setRestoreConfirmOpen] = React.useState(false);
+  const [pendingRestoreFile, setPendingRestoreFile] = React.useState<File | null>(null);
+
+  const handleRestoreClick = () => {
+    if (restoreLoading) return;
+    restoreInputRef.current?.click();
+  };
+
+  const handleRestoreFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setPendingRestoreFile(file);
+    setRestoreConfirmOpen(true);
+    event.target.value = '';
+  };
+
+  const handleConfirmRestore = async () => {
+    if (!pendingRestoreFile) {
+      setRestoreConfirmOpen(false);
+      return;
+    }
+
+    await restoreHouseholdBackup(pendingRestoreFile);
+    setPendingRestoreFile(null);
+    setRestoreConfirmOpen(false);
+  };
+
+  const handleCancelRestore = () => {
+    if (restoreLoading) return;
+    setPendingRestoreFile(null);
+    setRestoreConfirmOpen(false);
+  };
 
   if (loading) {
     return (
@@ -136,10 +195,83 @@ const SettingsUI: React.FC<SettingsUIProps> = (props) => {
             onUpdateRole={updateMemberRole}
             currentUser={currentUser}
           />
+
+          <Card>
+            <CardContent className="p-6 space-y-4">
+              <div className="flex items-start justify-between gap-4">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2 text-lg font-semibold text-foreground">
+                    <Database size={18} />
+                    <span>備份資料庫</span>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    匯出此 household 的完整資料（包含所有 snapshots）為 JSON 檔。
+                  </p>
+                </div>
+                <Button onClick={exportHouseholdBackup} disabled={backupLoading}>
+                  <Download size={16} className="mr-2" />
+                  {backupLoading ? '匯出中...' : '備份資料庫'}
+                </Button>
+              </div>
+
+              <div className="flex items-center justify-between gap-4 border-t pt-4">
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-foreground">一鍵還原備份</p>
+                  <p className="text-xs text-muted-foreground">
+                    選擇備份檔後立即還原，會覆蓋目前 household 的既有資料。
+                  </p>
+                </div>
+                <>
+                  <input
+                    ref={restoreInputRef}
+                    type="file"
+                    accept="application/json"
+                    className="hidden"
+                    onChange={handleRestoreFileChange}
+                  />
+                  <Button
+                    variant="destructive"
+                    onClick={handleRestoreClick}
+                    disabled={restoreLoading}
+                  >
+                    {restoreLoading ? '還原中...' : '還原備份'}
+                  </Button>
+                </>
+              </div>
+
+              {backupError && <p className="text-sm text-red-600">{backupError}</p>}
+              {backupSuccess && <p className="text-sm text-emerald-600">{backupSuccess}</p>}
+              {restoreError && <p className="text-sm text-red-600">{restoreError}</p>}
+              {restoreSuccess && <p className="text-sm text-emerald-600">{restoreSuccess}</p>}
+            </CardContent>
+          </Card>
+
           <LedgerCodeSettings />
           <AllocationTemplateSettings />
         </section>
       )}
+
+      <Dialog open={isRestoreConfirmOpen} onOpenChange={setRestoreConfirmOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>確認還原備份</DialogTitle>
+            <DialogDescription>
+              此操作會先刪除目前 household 既有資料，再以備份檔完整覆蓋。此動作無法復原。
+            </DialogDescription>
+          </DialogHeader>
+          <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+            {pendingRestoreFile ? `即將還原檔案：${pendingRestoreFile.name}` : '尚未選擇備份檔案。'}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={handleCancelRestore} disabled={restoreLoading}>
+              取消
+            </Button>
+            <Button variant="destructive" onClick={handleConfirmRestore} disabled={restoreLoading}>
+              {restoreLoading ? '還原中...' : '確認還原'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
