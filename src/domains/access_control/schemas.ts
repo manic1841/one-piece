@@ -1,7 +1,5 @@
 import { z } from 'zod';
 
-import { BaseSchema } from '@/infra/schemas/base';
-
-export const AccessControlWhitelistSchema = BaseSchema.extend({
+export const AccessControlWhitelistSchema = z.object({
   emails: z.array(z.string().email()),
 });

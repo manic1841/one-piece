@@ -2,13 +2,12 @@ import { accessControlRepository } from '@/infra/repositories/accessControlRepos
 
 export interface UpdateWhitelistRequest {
   emails: string[];
-  userEmail: string;
 }
 
 export class UpdateWhitelistUseCase {
   async execute(request: UpdateWhitelistRequest): Promise<void> {
-    const { emails, userEmail } = request;
-    await accessControlRepository.saveWhitelist({ emails }, userEmail);
+    const { emails } = request;
+    await accessControlRepository.saveWhitelist({ emails });
   }
 }
 

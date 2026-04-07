@@ -5,9 +5,7 @@
 ```
 firestore
   ├─ access_control                  # 白名單控制
-  │    ├─ whitelistEmails: string[]
-  │    ├─ updatedAt: Timestamp
-  │    └─ updatedBy: string
+  │    └─ emails: string[]
 
   ├─ users                           # 使用者資料
   │    ├─ uid: string

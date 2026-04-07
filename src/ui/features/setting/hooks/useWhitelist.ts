@@ -6,7 +6,7 @@ import { removeWhitelistEmailUseCase } from '@/application/access_control/use_ca
 import { useAuth } from '@/infra/contexts/useAuth';
 
 export function useWhitelist() {
-  const { isAdmin, currentUser } = useAuth();
+  const { isAdmin } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -29,7 +29,7 @@ export function useWhitelist() {
       setLoading(true);
       setError(null);
       try {
-        await addWhitelistEmailUseCase.execute(email, isAdmin, currentUser?.email || '');
+        await addWhitelistEmailUseCase.execute(email, isAdmin);
       } catch (e) {
         setError(e instanceof Error ? e.message : String(e));
         throw e;
@@ -37,7 +37,7 @@ export function useWhitelist() {
         setLoading(false);
       }
     },
-    [isAdmin, currentUser],
+    [isAdmin],
   );
 
   const removeEmail = useCallback(
@@ -45,7 +45,7 @@ export function useWhitelist() {
       setLoading(true);
       setError(null);
       try {
-        await removeWhitelistEmailUseCase.execute(email, isAdmin, currentUser?.email || '');
+        await removeWhitelistEmailUseCase.execute(email, isAdmin);
       } catch (e) {
         setError(e instanceof Error ? e.message : String(e));
         throw e;
@@ -53,7 +53,7 @@ export function useWhitelist() {
         setLoading(false);
       }
     },
-    [isAdmin, currentUser],
+    [isAdmin],
   );
 
   return { fetchWhitelist, addEmail, removeEmail, loading, error };

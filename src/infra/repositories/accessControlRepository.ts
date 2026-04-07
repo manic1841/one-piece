@@ -1,32 +1,35 @@
-import { collection, doc } from 'firebase/firestore';
-import { db } from '@/firebase';
-import { BaseRepository } from '@/infra/repositories/baseRepository';
-import { type AccessControlWhitelist } from '@/domains/access_control/types';
-import { AccessControlWhitelistSchema } from '@/domains/access_control/schemas';
+import { collection, doc, getDoc, setDoc } from 'firebase/firestore';
 
-class AccessControlRepository extends BaseRepository<AccessControlWhitelist, [string?]> {
+import { AccessControlWhitelistSchema } from '@/domains/access_control/schemas';
+import { type AccessControlWhitelist } from '@/domains/access_control/types';
+import { db } from '@/firebase';
+
+class AccessControlRepository {
+  private readonly db = db;
   private readonly collectionName = 'access_control';
   private readonly whitelistDocId = 'whitelist';
 
-  protected getCollectionRef() {
+  private getCollectionRef() {
     return collection(this.db, this.collectionName);
   }
 
-  protected getDocRef(docId: string = this.whitelistDocId) {
+  private getDocRef(docId: string = this.whitelistDocId) {
     return doc(this.getCollectionRef(), docId);
   }
 
-  protected getDomainSchema() {
-    return AccessControlWhitelistSchema;
-  }
-  
   async getWhitelist(): Promise<AccessControlWhitelist | null> {
-    return this.get([this.whitelistDocId]);
+    const snap = await getDoc(this.getDocRef(this.whitelistDocId));
+    if (!snap.exists()) return null;
+
+    const raw = snap.data();
+    return AccessControlWhitelistSchema.parse({
+      emails: Array.isArray(raw.emails) ? raw.emails.filter((e) => typeof e === 'string') : [],
+    });
   }
 
-  async saveWhitelist(data: Omit<AccessControlWhitelist, 'id' | 'createdAt' | 'updatedAt' | 'createdBy' | 'updatedBy'>, userEmail: string): Promise<void> {
-    await this.create([], data, userEmail, undefined, this.whitelistDocId);
+  async saveWhitelist(data: AccessControlWhitelist): Promise<void> {
+    await setDoc(this.getDocRef(this.whitelistDocId), AccessControlWhitelistSchema.parse(data));
   }
 }
 
-export const accessControlRepository = new AccessControlRepository(db);
+export const accessControlRepository = new AccessControlRepository();
