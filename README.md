@@ -1,75 +1,50 @@
 # One Piece
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+## Install dependencies
 
-Currently, two official plugins are available:
-
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
-
-## React Compiler
-
-The React Compiler is enabled on this template. See [this documentation](https://react.dev/learn/react-compiler) for more information.
-
-Note: This will impact Vite dev & build performances.
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+pnpm install
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## Run dev
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+pnpm run dev
 ```
+
+## Run firebase emulator
+
+```bash
+pnpm run emulators:start
+```
+
+## Deploy firebase rules
+
+```bash
+firebase deploy --only firestore:rules
+```
+
+## Code Style & Formatting
+
+This project uses **ESLint** and **Prettier** to maintain high code quality and consistency.
+
+### Automatic Import Sorting
+
+This project uses `@trivago/prettier-plugin-sort-imports` to automatically sort and group imports.
+
+> [!NOTE]
+> To avoid formatting conflicts, ESLint's `import/order` and `sort-imports` rules are disabled. **Prettier is the single source of truth for import sorting.**
+
+The sorting rules are:
+
+1.  **React & Core**: `react`, `react-dom`
+2.  **Third-party Modules**: All external npm packages
+3.  **Internal Aliases**: Modules starting with `@/`
+4.  **Relative Imports**: Parents (`../`) and siblings (`./`)
+
+### Commands
+
+- **Format Code**: `pnpm format` (Runs Prettier to sort imports and format files)
+- **Lint Code**: `pnpm lint` (Runs ESLint to check for code quality issues and fix them)
+
+Imports are automatically sorted by Prettier. It is recommended to configure your IDE to run Prettier on save.

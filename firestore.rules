@@ -7,20 +7,8 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    function userData() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
-    }
-
-    function globalRole() {
-      return userData().role;
-    }
-
-    function isGlobalOwner() {
-      return isSignedIn() && globalRole() == 'owner';
-    }
-
     function isGlobalAdmin() {
-      return isSignedIn() && globalRole() == 'admin';
+      return isSignedIn() && request.auth.token.role == 'admin';
     }
 
     function isWhitelisted() {
@@ -29,83 +17,43 @@ service cloud.firestore {
              request.auth.token.email.lower() in cfg.emails;
     }
 
-    function householdRole(householdId) {
-      let hm = get(/databases/$(database)/documents/households/$(householdId)).data;
-      return hm.members[request.auth.uid].role;
+    function isSystemUser() {
+      return isSignedIn() && (isWhitelisted() || isGlobalAdmin());
     }
 
     function isHouseholdMember(householdId) {
-      return householdRole(householdId) in ['member', 'admin', 'owner'];
+      let household = get(/databases/$(database)/documents/households/$(householdId));
+      return request.auth.uid in household.data.members &&
+             household.data.members[request.auth.uid].role in ['owner', 'admin', 'member'];
     }
 
     function isHouseholdAdmin(householdId) {
-      return householdRole(householdId) in ['admin', 'owner'];
+      let household = get(/databases/$(database)/documents/households/$(householdId));
+      return request.auth.uid in household.data.members &&
+             household.data.members[request.auth.uid].role in ['owner', 'admin'];
     }
 
     match /access_control/{docId} {
-      allow read: if isSignedIn() && (isGlobalOwner() || isGlobalAdmin() || isWhitelisted());
-      allow write: if isSignedIn() && (isGlobalOwner() || isGlobalAdmin());
+      allow read: if isSystemUser() || isGlobalAdmin();
+      allow write: if isGlobalAdmin();
     }
 
     match /users/{userId} {
-      allow read, write: if isSignedIn() && (isGlobalOwner() || isGlobalAdmin());
+      allow read: if isSystemUser();
+      allow write: if isSystemUser() && request.auth.uid == userId;
     }
 
     match /households/{householdId} {
-      allow read: if isSignedIn();
-      allow write: if isSignedIn() && isHouseholdMember(householdId);
+      allow read: if isSystemUser();
+      allow update: if isSystemUser() && isHouseholdAdmin(householdId);
 
-      match /members/{userId} {
-        allow read: if isSignedIn();
-        allow create: if isSignedIn() && request.auth.uid == userId;
-        allow update, delete: if isSignedIn() && isHouseholdAdmin(householdId);
-      }
+      allow create: if isGlobalAdmin();
+      allow delete: if isGlobalAdmin();
 
       // ---- Subcollections ----
-
-      match /projects/{id} {
-        allow read: if isSignedIn() && isHouseholdMember(householdId);
-        allow write: if isSignedIn() && isHouseholdAdmin(householdId);
-      }
-
-      match /projects/{id}/snapshots/{sid} {
-        allow read: if isSignedIn() && isHouseholdMember(householdId);
-        allow write: if isSignedIn() && isHouseholdAdmin(householdId);
-      }
-
-      match /transactions/{transactionId} {
-        allow read: if isSignedIn() && isHouseholdMember(householdId);
-        allow write: if isSignedIn() && isHouseholdAdmin(householdId);
-      }
-
-      match /accounts/{accountId} {
-        allow read: if isSignedIn() && isHouseholdMember(householdId);
-        allow write: if isSignedIn() && isHouseholdAdmin(householdId);
-      }
-
-      match /accounts/{accountId}/snapshots/{sid} {
-        allow read: if isSignedIn() && isHouseholdMember(householdId);
-        allow write: if isSignedIn() && isHouseholdAdmin(householdId);
-      }
-
-      match /plannedIncome/{pid} {
-        allow read: if isSignedIn() && isHouseholdMember(householdId);
-        allow write: if isSignedIn() && isHouseholdAdmin(householdId);
-      }
-
-      match /projectTransactions/{tid} {
-        allow read: if isSignedIn() && isHouseholdMember(householdId);
-        allow write: if isSignedIn() && isHouseholdAdmin(householdId);
-      }
-
-      match /portfolios/{portfolioId} {
-        allow read: if isSignedIn() && isHouseholdMember(householdId);
-        allow write: if isSignedIn() && isHouseholdAdmin(householdId);
-      }
-
-      match /portfolios/{portfolioId}/snapshots/{sid} {
-        allow read: if isSignedIn() && isHouseholdMember(householdId);
-        allow write: if isSignedIn() && isHouseholdAdmin(householdId);
+      match /{allSubcollections=**} {
+        allow read: if isGlobalAdmin() || (isSystemUser() && isHouseholdMember(householdId));
+        allow write: if isGlobalAdmin() || (isSystemUser() && isHouseholdAdmin(householdId));
       }
     }
   }
