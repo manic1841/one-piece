@@ -2,7 +2,6 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { allocationRepository } from '../../../infra/repositories/allocationRepository';
 import { transactionRepository } from '../../../infra/repositories/transactionRepository';
-
 import { listProjectRecordsUseCase } from './listProjectRecordsUseCase';
 
 vi.mock('@/infra/repositories/transactionRepository', () => ({
@@ -10,6 +9,7 @@ vi.mock('@/infra/repositories/transactionRepository', () => ({
     getTransactionsByProject: vi.fn(),
     listByProject: vi.fn(),
     getById: vi.fn(),
+    listTransfersByProject: vi.fn(),
   },
 }));
 
@@ -22,6 +22,7 @@ vi.mock('@/infra/repositories/allocationRepository', () => ({
 describe('listProjectRecordsUseCase', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(transactionRepository.listTransfersByProject).mockResolvedValue([] as never);
   });
 
   it('includes allocation-derived records in project detail list', async () => {
@@ -56,12 +57,14 @@ describe('listProjectRecordsUseCase', () => {
     };
 
     vi.mocked(transactionRepository.listByProject).mockResolvedValue([directRecord] as never);
-    vi.mocked(transactionRepository.getById).mockImplementation(async (_householdId, transactionId) => {
-      if (transactionId === 'tx-alloc-source') {
-        return sourceTransaction as never;
-      }
-      return null;
-    });
+    vi.mocked(transactionRepository.getById).mockImplementation(
+      async (_householdId, transactionId) => {
+        if (transactionId === 'tx-alloc-source') {
+          return sourceTransaction as never;
+        }
+        return null;
+      },
+    );
 
     vi.mocked(allocationRepository.listByProject).mockResolvedValue([
       {

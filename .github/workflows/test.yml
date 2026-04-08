@@ -26,5 +26,14 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
+      - name: Start Firebase emulators
+        working-directory: firebase-emulator
+        run: docker compose up -d --build
+
       - name: Run tests
         run: pnpm test
+
+      - name: Stop Firebase emulators
+        if: always()
+        working-directory: firebase-emulator
+        run: docker compose down -v

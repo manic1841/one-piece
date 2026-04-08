@@ -69,6 +69,7 @@ describe('transaction-list.vm', () => {
   it('uses fallback sign logic and marks missing cash entry', () => {
     const transaction = buildTransaction({
       intentType: 'INCOME',
+      intent: 'SALARY',
       amount: 3500,
       entries: [
         {
@@ -82,7 +83,7 @@ describe('transaction-list.vm', () => {
     const vm = mapTransactionToListItemVM(transaction);
 
     expect(vm.categoryKey).toBe('salary');
-    expect(vm.categoryLabel).toBe('薪水');
+    expect(vm.categoryLabel).toBe('薪資');
     expect(vm.signedAmount).toBe(3500);
     expect(vm.amountText).toBe('$3,500');
     expect(vm.isPositive).toBe(true);
