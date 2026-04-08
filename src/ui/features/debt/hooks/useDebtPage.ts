@@ -1,0 +1,95 @@
+import { useCallback, useEffect, useMemo, useState } from 'react';
+
+import { listDebtAccountsUseCase } from '@/application/debt/use_cases/listDebtAccountsUseCase';
+import { listDebtPaymentsUseCase } from '@/application/debt/use_cases/listDebtPaymentsUseCase';
+import { listProjectsUseCase } from '@/application/project/use_cases/listProjectsUseCase';
+import { type DebtAccount } from '@/domains/debt/schemas';
+import { type Project } from '@/domains/project/schemas';
+import { useAuth } from '@/infra/contexts/useAuth';
+import {
+  type DebtAccountDisplayVM,
+  mapDebtAccountToDisplayVM,
+} from '@/ui/features/debt/viewmodels/debtDisplay.vm';
+import { useLoadingTask } from '@/ui/hooks/useLoadingTask';
+
+export function useDebtPage(householdId: string) {
+  const { currentUser, isAdmin } = useAuth();
+  const auth = useMemo(
+    () => ({
+      uid: currentUser?.uid || '',
+      email: currentUser?.email || '',
+      isGlobalAdmin: isAdmin,
+    }),
+    [currentUser, isAdmin],
+  );
+
+  const [debtAccounts, setDebtAccounts] = useState<DebtAccount[]>([]);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const { loading, error, run } = useLoadingTask();
+
+  const loadData = useCallback(async () => {
+    if (!householdId) return;
+    await run(async () => {
+      const [accounts, projs] = await Promise.all([
+        listDebtAccountsUseCase.execute({ householdId, includeInactive: true }),
+        listProjectsUseCase.execute({ householdId }),
+      ]);
+      setDebtAccounts(accounts);
+      setProjects(projs);
+    });
+  }, [householdId, run]);
+
+  useEffect(() => {
+    const init = async () => {
+      await loadData();
+    };
+    init();
+  }, [loadData]);
+
+  // Build project lookup map
+  const projectMap = useMemo(() => {
+    const map = new Map<string, Project>();
+    projects.forEach((p) => map.set(p.id, p));
+    return map;
+  }, [projects]);
+
+  // Enrich debt accounts with computed fields
+  const debtAccountViews = useMemo<DebtAccountDisplayVM[]>(() => {
+    return debtAccounts.map((account) =>
+      mapDebtAccountToDisplayVM(
+        account,
+        account.linkedProjectId ? (projectMap.get(account.linkedProjectId)?.name ?? null) : null,
+      ),
+    );
+  }, [debtAccounts, projectMap]);
+
+  // Page-level summaries
+  const totalDebt = useMemo(
+    () => debtAccounts.filter((a) => a.isActive).reduce((s, a) => s + a.currentBalance, 0),
+    [debtAccounts],
+  );
+
+  const totalMonthlyPayment = useMemo(
+    () => debtAccounts.filter((a) => a.isActive).reduce((s, a) => s + a.monthlyPayment, 0),
+    [debtAccounts],
+  );
+
+  const getPaymentHistory = useCallback(
+    async (debtAccountId: string) => {
+      if (!householdId) return [];
+      return listDebtPaymentsUseCase.execute({ householdId, debtAccountId, auth });
+    },
+    [householdId, auth],
+  );
+
+  return {
+    loading,
+    error,
+    debtAccountViews,
+    projects,
+    totalDebt,
+    totalMonthlyPayment,
+    getPaymentHistory,
+    reload: loadData,
+  };
+}
