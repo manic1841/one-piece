@@ -1,5 +1,5 @@
 import { getUserByEmailUseCase } from '@/application/user/use_cases/getUserByEmailUseCase';
-import { updateUserProfileUseCase } from '@/application/user/use_cases/updateUserProfileUseCase';
+
 import { updateHouseholdUseCase } from './updateHouseholdUseCase';
 
 export interface AddHouseholdMemberRequest {
@@ -12,7 +12,7 @@ export interface AddHouseholdMemberRequest {
 export class AddHouseholdMemberUseCase {
   async execute(request: AddHouseholdMemberRequest): Promise<void> {
     const { householdId, email, role, adminEmail } = request;
-    
+
     const userToInvite = await getUserByEmailUseCase.execute({ email });
     if (!userToInvite) {
       throw new Error('User with this email not found in the system');
@@ -25,7 +25,6 @@ export class AddHouseholdMemberUseCase {
       },
     };
     await updateHouseholdUseCase.execute({ householdId, updates, userEmail: adminEmail });
-    await updateUserProfileUseCase.execute({ uid: userToInvite.uid, updates: { householdId } });
   }
 }
 

@@ -1,12 +1,13 @@
 import { useState } from 'react';
-import { joinHouseholdUseCase } from '@/application/household/use_cases/joinHouseholdUseCase';
+
 import { addHouseholdMemberUseCase } from '@/application/household/use_cases/addHouseholdMemberUseCase';
-import { updateHouseholdMemberRoleUseCase } from '@/application/household/use_cases/updateHouseholdMemberRoleUseCase';
-import { removeHouseholdMemberUseCase } from '@/application/household/use_cases/removeHouseholdMemberUseCase';
+import { joinHouseholdUseCase } from '@/application/household/use_cases/joinHouseholdUseCase';
 import { leaveHouseholdUseCase } from '@/application/household/use_cases/leaveHouseholdUseCase';
+import { removeHouseholdMemberUseCase } from '@/application/household/use_cases/removeHouseholdMemberUseCase';
 import { switchHouseholdUseCase } from '@/application/household/use_cases/switchHouseholdUseCase';
-import { type UserProfile } from '@/domains/user/types';
+import { updateHouseholdMemberRoleUseCase } from '@/application/household/use_cases/updateHouseholdMemberRoleUseCase';
 import { type AuthContext } from '@/application/types';
+import { type UserProfile } from '@/domains/user/types';
 
 export function useHousehold() {
   const [loading, setLoading] = useState(false);
@@ -34,7 +35,7 @@ export function useHousehold() {
         householdId,
         email,
         role,
-        adminEmail: auth.email || 'system'
+        adminEmail: auth.email || 'system',
       });
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : String(e);
@@ -46,10 +47,10 @@ export function useHousehold() {
   };
 
   const updateMemberRole = async (
-    householdId: string, 
-    targetUid: string, 
-    newRole: string, 
-    auth: AuthContext
+    householdId: string,
+    targetUid: string,
+    newRole: string,
+    auth: AuthContext,
   ) => {
     setLoading(true);
     setError(null);
@@ -58,7 +59,7 @@ export function useHousehold() {
         householdId,
         targetUid,
         newRole,
-        adminEmail: auth.email || 'system'
+        adminEmail: auth.email || 'system',
       });
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : String(e);
@@ -76,7 +77,7 @@ export function useHousehold() {
       await removeHouseholdMemberUseCase.execute({
         householdId,
         targetUid,
-        adminEmail: auth.email || 'system'
+        adminEmail: auth.email || 'system',
       });
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : String(e);
@@ -115,14 +116,14 @@ export function useHousehold() {
     }
   };
 
-  return { 
-    joinHousehold, 
-    addMember, 
-    updateMemberRole, 
-    removeMember, 
-    leaveHousehold, 
-    switchHousehold, 
-    loading, 
-    error 
+  return {
+    joinHousehold,
+    addMember,
+    updateMemberRole,
+    removeMember,
+    leaveHousehold,
+    switchHousehold,
+    loading,
+    error,
   };
 }
