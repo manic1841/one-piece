@@ -35,16 +35,36 @@
 關鍵欄位：
 
 - `incomeCategory`: 對應會計科目，例如 `income:salary:charles`
-- `calculatedFrom.ledgerCode`: 記錄來源科目
-- `baseAmount`: 年化後金額
-- `importedFrom`: `manual` 或 `transactionEntries`
+- `type`: `salary` | `bonus` | `pension` | `rent` | `other`
 - `incomeCalculationMode`: `FIXED`、`IMPORTED` 或 `DERIVED`
   - `FIXED`: 用戶手動輸入，按 `baseAmount` 和 `growthRate` 計算
   - `IMPORTED`: 由交易分錄導入，按 `baseAmount` 和 `growthRate` 計算
   - `DERIVED`: 由另一收入來源衍生，使用 `derivedFrom.baseIncomeId` 和 `derivedFrom.multiplier`
-- `derivedFrom` (當 `incomeCalculationMode='DERIVED'`):
-  - `baseIncomeId`: 參考的基礎收入 id
-  - `multiplier`: 倍數（例如 1.67 代表 2 個月獎金）
+
+年份連動欄位：
+
+- `startYearMode`: `MANUAL` | `LINKED_TO_RETIREMENT`
+  - `LINKED_TO_RETIREMENT`: `startYear` 動態從 plan settings 的退休年份讀取（pension 常用）
+- `endYearMode`: `MANUAL` | `LINKED_TO_RETIREMENT`
+  - `LINKED_TO_RETIREMENT`: `endYear` 動態從 plan settings 的退休年份讀取（salary/bonus 常用）
+- `lifelong`: boolean
+  - `true`: 忽略 `endYear`，計算至退休投影模型的最後一年（pension 終身領取時使用）
+  - `false`: 以 `endYear` 為準
+
+派生收入欄位（`incomeCalculationMode=DERIVED` 時）：
+
+- `derivedFrom.baseIncomeId`: 參考的基礎收入 id
+- `derivedFrom.multiplier`: 倍數（例如 1.67 代表 2 個月獎金）
+
+匯入來源統計欄位（`importedFrom=transactionEntries` 時）：
+
+- `autoUpdate`: boolean，true 表示允許系統偵測過期並提示更新
+- `calculatedFrom.ledgerCode`: 來源會計科目
+- `calculatedFrom.sampleYear`: 資料來源年度（完整年度，e.g. 2025）
+- `calculatedFrom.totalAmount`: 該年度加總金額
+- `calculatedFrom.monthlyAverage`: totalAmount / 12
+- `calculatedFrom.sampleCount`: 該年度分錄筆數
+- `calculatedFrom.importedAt`: 匯入時間（ISO datetime）
 
 ### 2.3 支出類別子集合
 
@@ -86,9 +106,11 @@
 
 導入來源：`Transaction.entries`
 
+樣本窗口：**上一個完整年度**（`lastFullYear = 當前年份 - 1`）
+
 步驟：
 
-1. 查詢最近 12 個月 `transactions`
+1. 查詢 `lastFullYear` 整年的 `transactions`（1月1日～12月31日）
 2. 展開每筆 `entries`
 3. 篩選 `ledgerCode` 以 `income:` 開頭的分錄
 4. 依 `ledgerCode` 分組後加總 `(credit - debit)`
@@ -98,8 +120,19 @@
 
 - `incomeCategory = ledgerCode`
 - `calculatedFrom.ledgerCode = ledgerCode`
+- `calculatedFrom.sampleYear = lastFullYear`
+- `calculatedFrom.totalAmount = 該年度加總`
+- `calculatedFrom.monthlyAverage = totalAmount / 12`
 - `calculatedFrom.sampleCount = 該科目分錄數`
-- `calculatedFrom.startDate/endDate = 該科目樣本範圍`
+- `calculatedFrom.importedAt = 匯入時間`
+
+過期偵測與批次更新（選項B）：
+
+- 進入退休規劃頁時，系統計算 `lastFullYear`
+- 檢查所有 `autoUpdate=true` 且 `calculatedFrom.sampleYear < lastFullYear` 的收入流
+- 若有過期項目，頁面頂端顯示 banner：「N 筆收入資料仍使用 {sampleYear} 年資料，建議更新至 {lastFullYear} 年。[更新]」
+- 使用者確認後，批次重算所有過期收入流，更新 `baseAmount`、`calculatedFrom` 統計欄位與 `sampleYear`
+- `autoUpdate=false` 的收入流不納入偵測，使用者可手動觸發單筆更新
 
 ## 3.5 派生收入計算流程
 
@@ -196,3 +229,13 @@ Use Case 協作規則：
   - 新版：`phases.length > 0`
   - 舊版相容：同時具備 `year` 與 `amount`
 - active plan 唯一性必須成立（同 household 不能同時存在兩筆 `isActive=true`）。
+- 年份連動驗證：
+  - `endYearMode=LINKED_TO_RETIREMENT` 時，計算引擎必須從 plan settings 動態讀取退休年份，不可讀 `endYear` 欄位
+  - `startYearMode=LINKED_TO_RETIREMENT` 時同理
+  - `lifelong=true` 時忽略 `endYear`，計算至模型終止年，不可因 `endYear` 為空而報錯
+- 過期偵測驗證：
+  - `sampleYear` 必須為完整年度數字，不可為空或非數字
+  - 批次更新時，若某科目在 `lastFullYear` 無任何分錄，保留原 `baseAmount` 不變，僅更新 `sampleYear` 並加註警告
+- 退休金（pension）驗證：
+  - `lifelong=true` 時不可要求填入 `endYear`
+  - `startYear` 允許大於退休年份（晚於退休才開始領取）

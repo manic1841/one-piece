@@ -31,6 +31,14 @@ export const RetirementIncomeCalculationMode = {
 export type RetirementIncomeCalculationMode =
   (typeof RetirementIncomeCalculationMode)[keyof typeof RetirementIncomeCalculationMode];
 
+export const RetirementYearLinkMode = {
+  MANUAL: 'MANUAL',
+  LINKED_TO_RETIREMENT: 'LINKED_TO_RETIREMENT',
+} as const;
+
+export type RetirementYearLinkMode =
+  (typeof RetirementYearLinkMode)[keyof typeof RetirementYearLinkMode];
+
 export const CalculationMode = {
   FIXED: 'FIXED',
   SALARY_PERCENTAGE: 'SALARY_PERCENTAGE',
@@ -56,38 +64,75 @@ export type RetirementTransitionMode =
 
 // --- Sub-Schemas ---
 
-export const RetirementIncomeSourceSchema = z.object({
-  id: z.string(),
-  name: z.string(),
-  importedFrom: z.enum(RetirementIncomeImportSource).default(RetirementIncomeImportSource.MANUAL),
-  incomeCalculationMode: z
-    .enum(RetirementIncomeCalculationMode)
-    .default(RetirementIncomeCalculationMode.FIXED),
-  calculatedFrom: z
-    .object({
-      ledgerCode: z.string().optional(),
-      startDate: z.string(),
-      endDate: z.string(),
-      totalAmount: z.number(),
-      monthlyAverage: z.number(),
-      sampleCount: z.number(),
-      importedAt: z.string(),
-    })
-    .optional(),
-  incomeCategory: z.string().optional(),
-  derivedFrom: z
-    .object({
-      baseIncomeId: z.string(),
-      multiplier: z.number().positive(),
-    })
-    .optional(),
-  type: z.enum(RetirementIncomeType),
-  startYear: z.number(),
-  endYear: z.number(),
-  baseAmount: z.number(),
-  growthRate: z.number(),
-  note: z.string().optional(),
-});
+export const RetirementIncomeSourceSchema = z
+  .object({
+    id: z.string(),
+    name: z.string(),
+    importedFrom: z.enum(RetirementIncomeImportSource).default(RetirementIncomeImportSource.MANUAL),
+    incomeCalculationMode: z
+      .enum(RetirementIncomeCalculationMode)
+      .default(RetirementIncomeCalculationMode.FIXED),
+    calculatedFrom: z
+      .object({
+        ledgerCode: z.string().optional(),
+        sampleYear: z.number(),
+        totalAmount: z.number(),
+        monthlyAverage: z.number(),
+        sampleCount: z.number(),
+        importedAt: z.string(),
+      })
+      .optional(),
+    autoUpdate: z.boolean().default(false),
+    incomeCategory: z.string().optional(),
+    derivedFrom: z
+      .object({
+        baseIncomeId: z.string(),
+        multiplier: z.number().positive(),
+      })
+      .optional(),
+    type: z.enum(RetirementIncomeType),
+    startYearMode: z.enum(RetirementYearLinkMode).default(RetirementYearLinkMode.MANUAL),
+    endYearMode: z.enum(RetirementYearLinkMode).default(RetirementYearLinkMode.MANUAL),
+    lifelong: z.boolean().default(false),
+    startYear: z.number(),
+    endYear: z.number().optional(),
+    baseAmount: z.number(),
+    growthRate: z.number(),
+    note: z.string().optional(),
+  })
+  .superRefine((income, ctx) => {
+    if (
+      income.incomeCalculationMode === RetirementIncomeCalculationMode.DERIVED &&
+      !income.derivedFrom
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'derivedFrom is required when incomeCalculationMode is DERIVED',
+      });
+    }
+
+    if (
+      !income.lifelong &&
+      income.endYearMode === RetirementYearLinkMode.MANUAL &&
+      typeof income.endYear !== 'number'
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'endYear is required when lifelong is false and endYearMode is MANUAL',
+      });
+    }
+
+    if (
+      !income.lifelong &&
+      typeof income.endYear === 'number' &&
+      income.endYear < income.startYear
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'endYear must be greater than or equal to startYear',
+      });
+    }
+  });
 
 export const RetirementExpenseType = {
   GENERAL: 'general',

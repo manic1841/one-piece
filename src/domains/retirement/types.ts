@@ -14,6 +14,7 @@ import {
   RetirementProjectionYearSchema,
   RetirementTransitionMode as RetirementTransitionModeEnum,
   RetirementTransitionSchema,
+  RetirementYearLinkMode as RetirementYearLinkModeEnum,
   SalaryPercentageRetirementMode as SalaryPercentageRetirementModeEnum,
 } from './schemas';
 
@@ -32,6 +33,9 @@ export const RetirementIncomeImportSource = RetirementIncomeImportSourceEnum;
 
 export type RetirementIncomeCalculationMode = RetirementIncomeCalculationModeEnum;
 export const RetirementIncomeCalculationMode = RetirementIncomeCalculationModeEnum;
+
+export type RetirementYearLinkMode = RetirementYearLinkModeEnum;
+export const RetirementYearLinkMode = RetirementYearLinkModeEnum;
 
 export type CalculationMode = CalculationModeEnum;
 export const CalculationMode = CalculationModeEnum;

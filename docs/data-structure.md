@@ -73,29 +73,44 @@ firestore
        │         ├─ holdings: array
        │         └─ totalValue: number
 
-       ├─ retirement_plans/{planId}      # 退休規劃
-       │    ├─ name: string
+      ├─ retirement_plans/{planId}      # 退休規劃
+      │    ├─ name: string
       │    ├─ isActive: boolean          # 同一 household 僅允許一筆 active=true
-       │    ├─ events: array
-       │    ├─ settings: object
-       │    │
-       │    ├─ incomeStreams/{incomeStreamId}   # 由交易分錄推導的收入流
+      │    ├─ events: array
+      │    ├─ settings: object
+      │    │
+      │    ├─ incomeStreams/{incomeStreamId}   # 由交易分錄推導的收入流
       │         ├─ name: string
       │         ├─ importedFrom: "manual" | "transactionEntries"
       │         ├─ incomeCategory: string       # e.g. "income:salary:charles"
+      │         ├─ type: "salary" | "bonus" | "pension" | "rent" | "other"
+      │         ├─ incomeCalculationMode: "FIXED" | "IMPORTED" | "DERIVED"
+      │         │
+      │         │  # --- 年份連動設定 ---
+      │         ├─ startYearMode: "MANUAL" | "LINKED_TO_RETIREMENT"
+      │         ├─ endYearMode: "MANUAL" | "LINKED_TO_RETIREMENT"
+      │         ├─ lifelong: boolean                 # true = 忽略 endYear，計算至模型終止年（pension 用）
+      │         │
+      │         │  # --- 金額設定 ---
+      │         ├─ baseAmount: number                # 年化金額
+      │         ├─ growthRate: number                # 年成長率（%），pension 通常設 0 或通膨率
+      │         ├─ startYear: number                 # startYearMode=MANUAL 時有效
+      │         ├─ endYear?: number                  # endYearMode=MANUAL 且 lifelong=false 時有效
+      │         │
+      │         │  # --- DERIVED 模式專用 ---
+      │         ├─ derivedFrom?: object              # incomeCalculationMode=DERIVED 時必填
+      │         │    ├─ baseIncomeId: string         # 參考的基礎收入 id
+      │         │    └─ multiplier: number           # 倍數，e.g. 1.67 代表 2 個月獎金
+      │         │
+      │         │
       │         ├─ calculatedFrom: object
       │         │    ├─ ledgerCode: string      # e.g. "income:salary:charles"
-      │         │    ├─ startDate: string       # YYYY-MM-DD
-      │         │    ├─ endDate: string         # YYYY-MM-DD
+      │         │    ├─ sampleYear: number      # 表示資料來自哪個年度
       │         │    ├─ totalAmount: number
       │         │    ├─ monthlyAverage: number
       │         │    ├─ sampleCount: number
       │         │    └─ importedAt: string      # ISO datetime
-      │         ├─ type: "salary" | "bonus" | "pension" | "rent" | "other"
-      │         ├─ baseAmount: number           # annualized amount
-      │         ├─ growthRate: number
-      │         ├─ startYear: number
-      │         ├─ endYear: number
+      │         ├─ autoUpdate: boolean           # true = 允許系統偵測 sampleYear 過期並提示更新
       │         └─ note?: string       │
        │    └─ expenseCategories/{expenseCategoryId}  # 退休支出類別（含債務匯入）
        │         ├─ name: string
@@ -209,8 +224,11 @@ firestore
 
 - 退休規劃資料獨立存儲於 `retirement_plans`。
 - 收入流 (`incomeStreams`) 來源以 `transactions.entries` 中 `ledgerCode` 前綴為 `income:` 的分錄為準。
-- 收入匯入流程固定採最近 12 個月交易資料，依 `ledgerCode` 分組、加總並年化。
-- 當 `retirement_plans.autoUpdate = true` 且收入來源為 `IMPORTED` 時，系統會在打開退休規劃頁時檢查 `calculatedFrom.startDate/endDate`；若目前日期已跨過樣本窗結束日，會將樣本窗平移到最新完整窗口並重新計算 `baseAmount`、`totalAmount`、`monthlyAverage`。
+- 收入匯入以**完整年度**為單位，固定抓上一個完整年度（`lastFullYear = 當前年份 - 1`），依 `ledgerCode` 分組加總並年化，結果存入 `calculatedFrom.sampleYear`。
+- 過期偵測：進入退休規劃頁時，系統檢查所有 `autoUpdate=true` 且 `calculatedFrom.sampleYear < lastFullYear` 的收入流，若有過期項目則顯示 banner 提示使用者批次更新（選項B：詢問確認後執行）。
+- 薪資類收入（salary/bonus）通常設 `endYearMode=LINKED_TO_RETIREMENT`，退休年份調整時自動同步結束年。
+- 退休金收入（pension）通常設 `startYearMode=MANUAL`（領取起始年可能晚於退休年），`lifelong=true` 表示終身領取，計算至模型終止年。
+- 派生收入（DERIVED）從基礎收入乘以倍數計算，不單獨設成長率，跟隨基礎收入年化成長。
 - 債務還款匯入來源為 active `debtAccounts` 搭配最近 12 個月 `snapshots`；產物寫入 `expenseCategories`。
 - `debt_payment` 支出可標註是否包含本金 (`includesPrincipal`) 或僅計利息 (`interestOnly`)。
 - `events` 支援分段設定 `phases[]`（每段可使用 `FIXED` 或 `SALARY_PERCENTAGE`），可用於教育、醫療等人生階段型支出/收入。

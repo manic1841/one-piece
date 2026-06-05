@@ -35,20 +35,42 @@ export function calculateYearlyIncomes(
 ): Map<string, number> {
   const result = new Map<string, number>();
   const yearsFromBase = year - baseYear;
+  const byId = new Map(incomes.map((income) => [income.id, income]));
+  const visited = new Set<string>();
+  const inStack = new Set<string>();
 
-  // First pass: calculate non-derived incomes
-  for (const income of incomes) {
-    if (income.incomeCalculationMode !== 'DERIVED') {
-      const amount = calculateYearlyIncome(income, yearsFromBase);
-      result.set(income.id, amount);
+  const computeIncome = (income: RetirementIncomeSource): number => {
+    if (visited.has(income.id)) {
+      return result.get(income.id) ?? 0;
     }
-  }
 
-  // Second pass: calculate derived incomes (now that base incomes are available)
-  for (const income of incomes) {
-    if (income.incomeCalculationMode === 'DERIVED') {
-      const amount = calculateYearlyIncome(income, yearsFromBase, result);
+    const mode = income.incomeCalculationMode ?? 'FIXED';
+    if (mode !== 'DERIVED' || !income.derivedFrom) {
+      const amount = calculateYearlyIncome(income, yearsFromBase);
+      visited.add(income.id);
       result.set(income.id, amount);
+      return amount;
+    }
+
+    if (inStack.has(income.id)) {
+      visited.add(income.id);
+      result.set(income.id, 0);
+      return 0;
+    }
+
+    inStack.add(income.id);
+    const baseIncome = byId.get(income.derivedFrom.baseIncomeId);
+    const baseAmount = baseIncome ? computeIncome(baseIncome) : 0;
+    const amount = baseAmount * income.derivedFrom.multiplier;
+    inStack.delete(income.id);
+    visited.add(income.id);
+    result.set(income.id, amount);
+    return amount;
+  };
+
+  for (const income of incomes) {
+    if (!visited.has(income.id)) {
+      computeIncome(income);
     }
   }
 
@@ -77,8 +99,22 @@ export function calculateTotalYearlyIncome(
 export function filterActiveIncomes(
   incomes: RetirementIncomeSource[],
   year: number,
+  retirementYear?: number,
+  projectionEndYear?: number,
 ): RetirementIncomeSource[] {
-  return incomes.filter((income) => year >= income.startYear && year <= income.endYear);
+  return incomes.filter((income) => {
+    const effectiveStartYear =
+      income.startYearMode === 'LINKED_TO_RETIREMENT' && typeof retirementYear === 'number'
+        ? retirementYear
+        : income.startYear;
+    const effectiveEndYear = income.lifelong
+      ? (projectionEndYear ?? Number.MAX_SAFE_INTEGER)
+      : income.endYearMode === 'LINKED_TO_RETIREMENT' && typeof retirementYear === 'number'
+        ? retirementYear
+        : (income.endYear ?? Number.MAX_SAFE_INTEGER);
+
+    return year >= effectiveStartYear && year <= effectiveEndYear;
+  });
 }
 
 /**
