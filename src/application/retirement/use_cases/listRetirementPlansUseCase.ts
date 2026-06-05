@@ -20,7 +20,7 @@ export class ListRetirementPlansUseCase {
       auth.isGlobalAdmin,
     );
 
-    return retirementRepository.getPlans(householdId);
+    return retirementRepository.getPlanSummaries(householdId);
   }
 }
 

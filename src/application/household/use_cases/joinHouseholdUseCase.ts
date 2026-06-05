@@ -1,6 +1,8 @@
-import { getHouseholdUseCase } from './getHouseholdUseCase';
 import { updateUserProfileUseCase } from '@/application/user/use_cases/updateUserProfileUseCase';
 import { type UserProfile } from '@/domains/user/types';
+
+import { getHouseholdByNameUseCase } from './getHouseholdByNameUseCase';
+import { getHouseholdUseCase } from './getHouseholdUseCase';
 
 export interface JoinHouseholdRequest {
   householdId: string;
@@ -10,7 +12,17 @@ export interface JoinHouseholdRequest {
 export class JoinHouseholdUseCase {
   async execute(request: JoinHouseholdRequest): Promise<void> {
     const { householdId, user } = request;
-    const household = await getHouseholdUseCase.execute({ householdId });
+    const input = householdId.trim();
+
+    if (!input) {
+      throw new Error('Household ID or household name is required');
+    }
+
+    // Backward compatible behavior: treat input as id first, then exact name.
+    let household = await getHouseholdUseCase.execute({ householdId: input });
+    if (!household) {
+      household = await getHouseholdByNameUseCase.execute({ name: input });
+    }
 
     if (!household) {
       throw new Error('Household not found');
@@ -22,7 +34,10 @@ export class JoinHouseholdUseCase {
       );
     }
 
-    await updateUserProfileUseCase.execute({ uid: user.uid, updates: { householdId: household.id } });
+    await updateUserProfileUseCase.execute({
+      uid: user.uid,
+      updates: { householdId: household.id },
+    });
   }
 }
 

@@ -188,6 +188,11 @@ class RetirementRepository extends BaseRepository<RetirementPlan, [string, strin
     return enriched;
   }
 
+  // Lightweight list for plan index pages. Avoids N+1 reads on subcollections.
+  async getPlanSummaries(householdId: string): Promise<RetirementPlan[]> {
+    return this.list([householdId], [orderBy('updatedAt', 'desc')]);
+  }
+
   async getPlan(householdId: string, id: string): Promise<RetirementPlan | null> {
     const plan = await this.get([householdId, id]);
     if (!plan) return null;

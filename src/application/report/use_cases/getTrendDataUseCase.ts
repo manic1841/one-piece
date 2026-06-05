@@ -11,6 +11,9 @@ const parseYearMonth = (yearMonth: string) => {
   return { year, month };
 };
 
+const toYearMonthKey = (year: number, month: number): string =>
+  `${year}-${String(month).padStart(2, '0')}`;
+
 interface GetTrendDataRequest {
   householdId: string;
   auth: {
@@ -46,6 +49,30 @@ class GetTrendDataUseCase {
 
     const monthlyPoints: TrendDataPoint[] = [];
 
+    const reportsByTypeAndMonth = new Map<string, (typeof allReports)[number]>();
+    for (const report of allReports) {
+      reportsByTypeAndMonth.set(`${report.type}:${report.yearMonth}`, report);
+    }
+
+    const portfolioSnapshotsByMonth = new Map<string, { gain: number; openingValue: number }>();
+    await Promise.all(
+      portfolios.map(async (portfolio) => {
+        const snapshots = await listPortfolioSnapshotsUseCase.execute({
+          householdId,
+          portfolioId: portfolio.id,
+        });
+
+        for (const snapshot of snapshots) {
+          const key = toYearMonthKey(snapshot.year, snapshot.month);
+          const current = portfolioSnapshotsByMonth.get(key) ?? { gain: 0, openingValue: 0 };
+          portfolioSnapshotsByMonth.set(key, {
+            gain: current.gain + (snapshot.performance?.gain ?? 0),
+            openingValue: current.openingValue + (snapshot.performance?.openingValue ?? 0),
+          });
+        }
+      }),
+    );
+
     // Iterate from the earliest report to now
     const first = parseYearMonth(sortedReports[0].yearMonth);
     let iterYear = first.year;
@@ -55,34 +82,18 @@ class GetTrendDataUseCase {
       const year = iterYear;
       const month = iterMonth;
 
-      const lookupYearMonth = `${year}-${String(month).padStart(2, '0')}`;
-      const incomeReport = allReports.find(
-        (r) => r.type === ReportType.INCOME_STATEMENT && r.yearMonth === lookupYearMonth,
+      const lookupYearMonth = toYearMonthKey(year, month);
+      const incomeReport = reportsByTypeAndMonth.get(
+        `${ReportType.INCOME_STATEMENT}:${lookupYearMonth}`,
       );
-      const balanceReport = allReports.find(
-        (r) => r.type === ReportType.BALANCE_SHEET && r.yearMonth === lookupYearMonth,
+      const balanceReport = reportsByTypeAndMonth.get(
+        `${ReportType.BALANCE_SHEET}:${lookupYearMonth}`,
       );
 
-      // Fetch investment gains across all portfolios
-      let periodInvestmentGain = 0;
-      let periodOpeningValue = 0;
-      let hasPortfolioData = false;
-
-      // Optimize: In a real scenario, we'd batch fetch snapshots
-      for (const portfolio of portfolios) {
-        const snapshots = await listPortfolioSnapshotsUseCase.execute({
-          householdId,
-          portfolioId: portfolio.id,
-          year,
-          month,
-          auth,
-        });
-        if (snapshots.length > 0) {
-          periodInvestmentGain += snapshots[0].performance.gain;
-          periodOpeningValue += snapshots[0].performance.openingValue;
-          hasPortfolioData = true;
-        }
-      }
+      const portfolioSnapshot = portfolioSnapshotsByMonth.get(lookupYearMonth);
+      const hasPortfolioData = Boolean(portfolioSnapshot);
+      const periodInvestmentGain = portfolioSnapshot?.gain ?? 0;
+      const periodOpeningValue = portfolioSnapshot?.openingValue ?? 0;
 
       // Extract income by category
       const incomeByCategory: Record<string, number> = {};

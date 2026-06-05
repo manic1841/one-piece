@@ -1,4 +1,4 @@
-import { collection, doc, getDocs, query, where } from 'firebase/firestore';
+import { collection, doc, getDocs, limit, query, where } from 'firebase/firestore';
 
 import { type Allocation, AllocationSchema } from '@/domains/allocation/schemas';
 import { db } from '@/firebase';
@@ -36,6 +36,7 @@ class AllocationRepository extends BaseRepository<Allocation, [string, string?]>
     const q = query(
       this.getCollectionRef(householdId),
       where('sourceTransactionId', '==', sourceTransactionId),
+      limit(1),
     );
     const snap = await getDocs(q);
     if (snap.empty) return null;
@@ -49,15 +50,12 @@ class AllocationRepository extends BaseRepository<Allocation, [string, string?]>
     projectId: string,
     yearMonth?: string,
   ): Promise<Allocation[]> {
-    const allocations = yearMonth
-      ? await this.getAllocationsByMonth(householdId, yearMonth)
-      : await this.list([householdId]);
+    const constraints = [where('projectIds', 'array-contains', projectId)];
+    if (yearMonth) {
+      constraints.push(where('yearMonth', '==', yearMonth));
+    }
 
-    return allocations.filter(
-      (allocation) =>
-        allocation.projectIds.includes(projectId) ||
-        allocation.items.some((item) => item.projectId === projectId),
-    );
+    return this.list([householdId], constraints);
   }
 }
 

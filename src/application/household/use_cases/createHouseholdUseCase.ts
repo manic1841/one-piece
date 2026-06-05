@@ -9,7 +9,18 @@ export interface CreateHouseholdRequest {
 export class CreateHouseholdUseCase {
   async execute(request: CreateHouseholdRequest): Promise<string> {
     const { data, userEmail } = request;
-    return await householdRepository.create([], data, userEmail);
+    const memberUids = Array.from(
+      new Set([...(data.memberUids ?? []), ...Object.keys(data.members)]),
+    );
+
+    return await householdRepository.create(
+      [],
+      {
+        ...data,
+        memberUids,
+      },
+      userEmail,
+    );
   }
 }
 

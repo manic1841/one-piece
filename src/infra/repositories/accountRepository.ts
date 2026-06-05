@@ -1,4 +1,4 @@
-import { collection, doc, orderBy } from 'firebase/firestore';
+import { collection, doc, orderBy, where } from 'firebase/firestore';
 
 import {
   type Account,
@@ -32,9 +32,11 @@ class AccountRepository extends BaseRepository<Account, [string, string?]> {
   }
 
   async getAccounts(householdId: string, includeInactive = false): Promise<Account[]> {
-    const accounts = await this.list([householdId], [orderBy('order', 'asc')]);
-    if (includeInactive) return accounts;
-    return accounts.filter((account) => account.isActive !== false);
+    if (includeInactive) {
+      return this.list([householdId], [orderBy('order', 'asc')]);
+    }
+
+    return this.list([householdId], [where('isActive', '==', true), orderBy('order', 'asc')]);
   }
 
   async createAccount(

@@ -10,6 +10,7 @@ export const LEDGER_CODE_LABELS: Record<string, string> = {
   'expense:transportation': '交通',
   'expense:living': '生活費',
   'expense:housing': '家居',
+  'expense:family': '家庭',
   'expense:rent': '房租',
   'expense:vehicle': '汽車',
   'expense:shopping': '購物',
