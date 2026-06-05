@@ -22,6 +22,15 @@ interface UseAssetTrendProps {
   householdId: string | undefined;
 }
 
+interface AssetTrendCacheEntry {
+  timestamp: number;
+  rawTrendData: TrendDataPoint[];
+  activePlan: RetirementPlan | null;
+}
+
+const ASSET_TREND_CACHE_TTL_MS = 60 * 1000;
+const assetTrendCache = new Map<string, AssetTrendCacheEntry>();
+
 export function useAssetTrend({ householdId }: UseAssetTrendProps) {
   const [rawTrendData, setRawTrendData] = useState<TrendDataPoint[]>([]);
   const [activePlan, setActivePlan] = useState<RetirementPlan | null>(null);
@@ -35,30 +44,53 @@ export function useAssetTrend({ householdId }: UseAssetTrendProps) {
   }, [rawTrendData, viewMode]);
 
   const { getTrendData, loading: trendLoading, error: trendError } = useReportTrend(householdId);
-  const { listPlans } = useRetirementPlans(householdId);
+  const { listPlans, getPlan } = useRetirementPlans(householdId);
 
-  const loadData = useCallback(async () => {
-    if (!householdId) return;
+  const loadData = useCallback(
+    async (forceRefresh = false) => {
+      if (!householdId) return;
 
-    setLoading(true);
-    try {
-      const [trendPoints, plans] = await Promise.all([
-        getTrendData(),
-        listPlans(), // Use the hook's method
-      ]);
+      if (!forceRefresh) {
+        const cached = assetTrendCache.get(householdId);
+        const isCacheValid = cached && Date.now() - cached.timestamp <= ASSET_TREND_CACHE_TTL_MS;
 
-      setRawTrendData(trendPoints);
+        if (isCacheValid && cached) {
+          setRawTrendData(cached.rawTrendData);
+          setActivePlan(cached.activePlan);
+          setError(null);
+          return;
+        }
+      }
 
-      const active = plans.find((p) => p.isActive) || null;
-      setActivePlan(active);
-      setError(null);
-    } catch (err) {
-      console.error('Failed to load asset trend data:', err);
-      setError('無法載入資產趨勢，請稍後再試');
-    } finally {
-      setLoading(false);
-    }
-  }, [householdId, getTrendData, listPlans]);
+      setLoading(true);
+      try {
+        const [trendPoints, plans] = await Promise.all([getTrendData(), listPlans()]);
+
+        let resolvedActivePlan: RetirementPlan | null = null;
+        const activeSummary = plans.find((p) => p.isActive) || null;
+        if (!activeSummary) {
+          resolvedActivePlan = null;
+        } else {
+          resolvedActivePlan = await getPlan(activeSummary.id);
+        }
+
+        setRawTrendData(trendPoints);
+        setActivePlan(resolvedActivePlan);
+        assetTrendCache.set(householdId, {
+          timestamp: Date.now(),
+          rawTrendData: trendPoints,
+          activePlan: resolvedActivePlan,
+        });
+        setError(null);
+      } catch (err) {
+        console.error('Failed to load asset trend data:', err);
+        setError('無法載入資產趨勢，請稍後再試');
+      } finally {
+        setLoading(false);
+      }
+    },
+    [householdId, getTrendData, listPlans, getPlan],
+  );
 
   const loading = trendLoading || internalLoading;
   const error = trendError || internalError;
@@ -160,6 +192,6 @@ export function useAssetTrend({ householdId }: UseAssetTrendProps) {
     error,
     viewMode,
     setViewMode,
-    reload: loadData,
+    reload: () => loadData(true),
   };
 }

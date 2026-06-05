@@ -15,12 +15,14 @@
 路徑：`households/{householdId}/retirement_plans/{planId}`
 
 主文件保留：
+
 - 假設參數（年齡、報酬率、通膨、現有資產）
 - 一次性事件 (`events`)
 - 快取摘要 (`summary`)
 - 啟用旗標 (`isActive`)
 
 啟用規則：
+
 - 同一 `household` 僅允許一筆 `isActive=true` 的退休計畫。
 - 當建立或更新任一計畫為 `isActive=true` 時，系統會自動將其他計畫設為 `isActive=false`。
 
@@ -31,6 +33,7 @@
 路徑：`households/{householdId}/retirement_plans/{planId}/incomeStreams/{incomeStreamId}`
 
 關鍵欄位：
+
 - `incomeCategory`: 對應會計科目，例如 `income:salary:charles`
 - `calculatedFrom.ledgerCode`: 記錄來源科目
 - `baseAmount`: 年化後金額
@@ -48,6 +51,7 @@
 路徑：`households/{householdId}/retirement_plans/{planId}/expenseCategories/{expenseCategoryId}`
 
 關鍵欄位：
+
 - `type`: `general` 或 `debt_payment`
 - `sourceDebtAccountId`: 債務匯入對應的 DebtAccount id
 - `includesPrincipal`: 是否包含本金（預設債務匯入為 true）
@@ -59,12 +63,14 @@
 事件支援 `phases[]`，可描述不同人生階段的不同計算模式。
 
 事件主欄位：
+
 - `name`
 - `type`: `income` | `expense`
 - `calculationMode`: 事件預設模式（主要作為設定語意）
 - `phases[]`
 
 每個 phase 欄位：
+
 - `name`
 - `startYear` / `endYear`
 - `mode`: `FIXED` | `SALARY_PERCENTAGE`
@@ -72,6 +78,7 @@
 - `percentage` / `linkedIncomeId`（`SALARY_PERCENTAGE` 模式）
 
 相容性規則：
+
 - 舊版 `year` + `amount` 單次事件仍可讀取。
 - 系統會將舊資料視為單段 `FIXED` phase（`startYear=endYear=year`）。
 
@@ -80,6 +87,7 @@
 導入來源：`Transaction.entries`
 
 步驟：
+
 1. 查詢最近 12 個月 `transactions`
 2. 展開每筆 `entries`
 3. 篩選 `ledgerCode` 以 `income:` 開頭的分錄
@@ -87,6 +95,7 @@
 5. 計算年化金額並建立對應 `incomeStream`
 
 輸出欄位：
+
 - `incomeCategory = ledgerCode`
 - `calculatedFrom.ledgerCode = ledgerCode`
 - `calculatedFrom.sampleCount = 該科目分錄數`
@@ -97,16 +106,19 @@
 派生收入是從另一收入來源衍生的收入（例如獎金 = 月薪 × 倍數）。
 
 特性：
+
 - 自動計算：用戶設定基礎收入、倍數，則派生收入自動跟隨基礎收入計算
 - 無獨立成長：派生收入不單獨設定成長率，僅受基礎收入年化成長影響
 - 依賴順序：計算時需先算出基礎收入，再計算派生收入
 
 計算規則：
+
 ```
 派生收入(年度 Y) = 基礎收入(年度 Y) × 倍數
 ```
 
 例子：
+
 - 用戶設定「月薪」：importedFrom=transactionEntries, baseAmount=$48000, growthRate=3%
 - 用戶設定「年終獎金」：incomeCalculationMode=DERIVED, baseIncomeId=salary_id, multiplier=1.67
 - 系統計算結果：
@@ -114,6 +126,7 @@
   - 年度 2: 獎金 = $48000×1.03 × 1.67 = $82565
 
 Repository 行為：
+
 - 計算派生收入時，自動載入所有相關基礎收入並計算出年度值
 - 支援多層派生（A→B→C），按依賴順序迭代計算
 
@@ -122,6 +135,7 @@ Repository 行為：
 導入來源：`DebtAccount` + `DebtSnapshot`
 
 步驟：
+
 1. 掃描所有 `isActive=true` 的 DebtAccount
 2. 每個 DebtAccount 建立一筆 `type=debt_payment` 的退休支出類別
 3. 讀取 DebtAccount 的 `name`、`monthlyPayment`、`startDate/endDate`
@@ -129,19 +143,23 @@ Repository 行為：
 5. 建立固定支出項目並寫入 `expenseCategories`
 
 計算規則：
+
 - `includesPrincipal=true`: 年支出使用 `monthlyPayment * 12`
 - `interestOnly=true`: 年支出使用 snapshots 的 `interestPaid` 年化值
 
 ## 5. Repository 行為
 
 `retirementRepository` 的規則：
-- `getPlan/getPlans`：讀取主文件後，載入 `incomeStreams` + `expenseCategories` 並組裝到 plan
+
+- `getPlan/getPlans`：讀取主文件後，載入 `incomeStreams` + `expenseCategories` 並組裝到 plan（完整資料）
+- `getPlanSummaries`：僅讀取 `retirement_plans` 主文件，不載入 `incomeStreams/expenseCategories`（供清單頁使用，避免 N+1）
 - `createPlan`：主文件建立時不直接寫 `incomes/expenses`，改寫入對應子集合
 - `updatePlan`：若 payload 含 `incomes` 或 `expenses`，以「整批替換」方式同步到子集合
 - `deletePlan`：先刪除 `incomeStreams`、`expenseCategories` 子集合文件，再刪除主文件
 - `setOnlyActivePlan`：批次更新同 household 所有 retirement plans，保留指定 `planId` 為 `isActive=true`
 
 Use Case 協作規則：
+
 - `CreateRetirementPlanUseCase`：當新建 plan 為 active，會呼叫 `setOnlyActivePlan`
 - `UpdateRetirementPlanUseCase`：當更新 `isActive=true`，會呼叫 `setOnlyActivePlan`
 - `DuplicateRetirementPlanUseCase`：複製來源 plan（含 assumptions/incomes/expenses/events/summary），新 plan 預設 `isActive=false`

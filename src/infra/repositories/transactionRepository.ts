@@ -93,12 +93,15 @@ class TransactionRepository extends BaseRepository<Transaction, [string, string?
     const startDate = new Date(year, month - 1, 1);
     const endDate = new Date(year, month, 1);
 
-    const monthlyTransactions = await this.list(
+    return this.list(
       [householdId],
-      [where('date', '>=', startDate), where('date', '<', endDate), orderBy('date', 'desc')],
+      [
+        where('projectId', '==', projectId),
+        where('date', '>=', startDate),
+        where('date', '<', endDate),
+        orderBy('date', 'desc'),
+      ],
     );
-
-    return monthlyTransactions.filter((transaction) => transaction.projectId === projectId);
   }
 
   async getRecentTransactions(householdId: string, maxLimit: number): Promise<Transaction[]> {
@@ -135,13 +138,14 @@ class TransactionRepository extends BaseRepository<Transaction, [string, string?
     const startDate = new Date(year, month - 1, 1);
     const endDate = new Date(year, month, 1);
 
-    const monthlyTransactions = await this.list(
+    return this.list(
       [householdId],
-      [where('date', '>=', startDate), where('date', '<', endDate), orderBy('date', 'desc')],
-    );
-
-    return monthlyTransactions.filter(
-      (transaction) => transaction.intentType === IntentType.TRANSFER,
+      [
+        where('intentType', '==', IntentType.TRANSFER),
+        where('date', '>=', startDate),
+        where('date', '<', endDate),
+        orderBy('date', 'desc'),
+      ],
     );
   }
 
@@ -150,21 +154,33 @@ class TransactionRepository extends BaseRepository<Transaction, [string, string?
     projectId: string,
     yearMonth?: string,
   ): Promise<Transaction[]> {
-    // If yearMonth provided, reuse monthly fetch and filter in-memory
-    if (yearMonth) {
-      const monthly = await this.getProjectTransfers(householdId, yearMonth);
-      return monthly.filter((t) => t.fromProjectId === projectId || t.toProjectId === projectId);
-    }
+    const buildDateRangeConstraints = () => {
+      if (!yearMonth) return [];
+      const [year, month] = yearMonth.split('-').map(Number);
+      const startDate = new Date(year, month - 1, 1);
+      const endDate = new Date(year, month, 1);
+      return [where('date', '>=', startDate), where('date', '<', endDate), orderBy('date', 'desc')];
+    };
 
     // Firestore doesn't support OR queries; run two queries and merge
+    const dateRangeConstraints = buildDateRangeConstraints();
+
     const fromTransfers = await this.list(
       [householdId],
-      [where('intentType', '==', IntentType.TRANSFER), where('fromProjectId', '==', projectId)],
+      [
+        where('intentType', '==', IntentType.TRANSFER),
+        where('fromProjectId', '==', projectId),
+        ...dateRangeConstraints,
+      ],
     );
 
     const toTransfers = await this.list(
       [householdId],
-      [where('intentType', '==', IntentType.TRANSFER), where('toProjectId', '==', projectId)],
+      [
+        where('intentType', '==', IntentType.TRANSFER),
+        where('toProjectId', '==', projectId),
+        ...dateRangeConstraints,
+      ],
     );
 
     const combined = [...fromTransfers, ...toTransfers];
@@ -177,15 +193,14 @@ class TransactionRepository extends BaseRepository<Transaction, [string, string?
   }
 
   async listByDebtAccount(householdId: string, debtAccountId: string): Promise<Transaction[]> {
-    const transactions = await this.list(
+    return this.list(
       [householdId],
       [
         where('debtAccountId', '==', debtAccountId),
         where('intentType', '==', IntentType.DEBT_PAYMENT),
+        orderBy('date', 'desc'),
       ],
     );
-
-    return transactions.sort((a, b) => toMillis(b.date) - toMillis(a.date));
   }
 
   async listDebtPaymentsByDateRange(
@@ -193,16 +208,15 @@ class TransactionRepository extends BaseRepository<Transaction, [string, string?
     startDate: Date,
     endDate: Date,
   ): Promise<Transaction[]> {
-    const transactions = await this.list(
+    return this.list(
       [householdId],
       [
         where('intentType', '==', IntentType.DEBT_PAYMENT),
         where('date', '>=', startDate),
         where('date', '<', endDate),
+        orderBy('date', 'desc'),
       ],
     );
-
-    return transactions.sort((a, b) => toMillis(b.date) - toMillis(a.date));
   }
 
   async listByDebtAccountAndIntent(
@@ -210,12 +224,14 @@ class TransactionRepository extends BaseRepository<Transaction, [string, string?
     debtAccountId: string,
     intentType: Transaction['intentType'],
   ): Promise<Transaction[]> {
-    const transactions = await this.list(
+    return this.list(
       [householdId],
-      [where('debtAccountId', '==', debtAccountId), where('intentType', '==', intentType)],
+      [
+        where('debtAccountId', '==', debtAccountId),
+        where('intentType', '==', intentType),
+        orderBy('date', 'desc'),
+      ],
     );
-
-    return transactions.sort((a, b) => toMillis(b.date) - toMillis(a.date));
   }
 
   async findBorrowTransactionsForDebtAccount(
@@ -254,12 +270,7 @@ class TransactionRepository extends BaseRepository<Transaction, [string, string?
   }
 
   async listByProject(householdId: string, projectId: string): Promise<Transaction[]> {
-    const projectTransactions = await this.list(
-      [householdId],
-      [where('projectId', '==', projectId)],
-    );
-
-    return projectTransactions.sort((a, b) => toMillis(b.date) - toMillis(a.date));
+    return this.list([householdId], [where('projectId', '==', projectId), orderBy('date', 'desc')]);
   }
 }
 

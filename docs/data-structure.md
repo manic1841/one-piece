@@ -17,6 +17,7 @@ firestore
 
   └─ households/{householdId}        # 家庭（根文檔）
        ├─ name: string
+      ├─ memberUids: string[]        # 成員 uid 索引（供 array-contains 查詢）
        ├─ createdAt: Timestamp
        └─ members: array
        │    ├─ uid: string

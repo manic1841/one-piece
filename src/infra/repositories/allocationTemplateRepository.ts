@@ -26,7 +26,11 @@ class AllocationTemplateRepository extends BaseRepository<AllocationTemplate, [s
     householdId: string,
     ledgerCode: string,
   ): Promise<AllocationTemplate | null> {
-    const q = query(this.getCollectionRef(householdId), where('ledgerCode', '==', ledgerCode));
+    const q = query(
+      this.getCollectionRef(householdId),
+      where('ledgerCode', '==', ledgerCode),
+      limit(1),
+    );
     const snap = await getDocs(q);
 
     if (snap.empty) return null;

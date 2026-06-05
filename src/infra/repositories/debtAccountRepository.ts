@@ -2,6 +2,7 @@ import {
   type Transaction as FirestoreTransaction,
   collection,
   doc,
+  limit,
   orderBy,
   where,
 } from 'firebase/firestore';
@@ -70,6 +71,7 @@ class DebtAccountRepository extends BaseRepository<DebtAccount, [string, string?
       [
         where('intentType', '==', 'LIABILITY_PAYMENT'),
         where('ledgerCodes', 'array-contains', linkedLedgerCode),
+        limit(1),
       ],
     );
 
