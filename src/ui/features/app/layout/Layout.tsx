@@ -16,8 +16,8 @@ import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 
 import { getHouseholdUseCase } from '@/application/household/use_cases/getHouseholdUseCase';
 import { useAuth } from '@/infra/contexts/useAuth';
-import HouseholdSwitcher from '@/ui/components/HouseholdSwitcher';
 import { Button } from '@/ui/components/ui/button';
+import HouseholdSwitcher from '@/ui/features/household/components/HouseholdSwitcher';
 
 const Layout: React.FC = () => {
   const { userProfile, logout } = useAuth();
@@ -27,26 +27,37 @@ const Layout: React.FC = () => {
 
   useEffect(() => {
     const fetchHousehold = async () => {
-      if (userProfile?.householdId) {
-        try {
-          const household = await getHouseholdUseCase.execute({
-            householdId: userProfile.householdId,
-          });
-          if (household) {
-            setFamilyName(household.name);
-          }
-        } catch (error) {
-          console.error('Error fetching household:', error);
-        } finally {
-          setLoadingHousehold(false);
+      if (!userProfile) {
+        setLoadingHousehold(false);
+        return;
+      }
+
+      if (!userProfile.householdId) {
+        setLoadingHousehold(false);
+        navigate('/onboarding', { replace: true });
+        return;
+      }
+
+      try {
+        const household = await getHouseholdUseCase.execute({
+          householdId: userProfile.householdId,
+        });
+
+        if (household) {
+          setFamilyName(household.name);
+        } else {
+          navigate('/onboarding', { replace: true });
         }
-      } else {
+      } catch (error) {
+        console.error('Error fetching household:', error);
+        navigate('/onboarding', { replace: true });
+      } finally {
         setLoadingHousehold(false);
       }
     };
 
     fetchHousehold();
-  }, [userProfile?.householdId]);
+  }, [navigate, userProfile]);
 
   const handleLogout = async () => {
     if (window.confirm('Are you sure you want to logout?')) {

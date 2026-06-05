@@ -87,9 +87,7 @@ export function useDashboardPage({
   }, [loadStatsData]);
 
   return {
-    unsettledStats,
     unsettledStatsVM: mapUnsettledStatsToCardVM(unsettledStats),
-    leverageStats,
     leverageStatsVM: mapLeverageStatsToCardVM(leverageStats),
     statsLoading,
     error,

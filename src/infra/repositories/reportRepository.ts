@@ -4,6 +4,7 @@ import {
   type DocumentReference,
   collection,
   doc,
+  limit,
   orderBy,
   where,
 } from 'firebase/firestore';
@@ -41,9 +42,15 @@ export class ReportRepository extends BaseRepository<FinancialReport, [string, s
     yearMonth: string,
     type: ReportType,
   ): Promise<FinancialReport | null> {
+    const reportId = this.buildId(type, yearMonth);
+    const direct = await this.get([householdId, reportId]);
+    if (direct) {
+      return direct;
+    }
+
     const reports = await this.list(
       [householdId],
-      [where('yearMonth', '==', yearMonth), where('type', '==', type)],
+      [where('yearMonth', '==', yearMonth), where('type', '==', type), limit(1)],
     );
     return reports[0] || null;
   }

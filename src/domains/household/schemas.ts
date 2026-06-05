@@ -5,6 +5,7 @@ import { BaseSchema } from '@/infra/schemas/base';
 
 export const HouseholdCreateSchema = z.object({
   name: z.string(),
+  memberUids: z.array(z.string()).default([]),
   members: z.record(
     z.string(),
     z.object({
