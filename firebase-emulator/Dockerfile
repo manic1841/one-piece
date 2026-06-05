@@ -1,8 +1,8 @@
 FROM node:20-alpine
 
 ENV FIREBASE_TOOLS_VERSION=11.25.2
-RUN yarn global add firebase-tools@${FIREBASE_TOOLS_VERSION} && \
-    yarn cache clean
+RUN npm install -g firebase-tools@${FIREBASE_TOOLS_VERSION} && \
+    npm cache clean --force
 
 RUN firebase -V && \
     mkdir $HOME/.cache
