@@ -85,7 +85,9 @@ export const mapRetirementIncomeToVM = (
   name: income.name,
   amountText: `${formatCurrency(income.baseAmount)}/yr`,
   growthText: `${income.growthRate}% growth`,
-  periodText: `${income.startYear}- ${income.endYear}`,
+  periodText: income.lifelong
+    ? `${income.startYearMode === 'LINKED_TO_RETIREMENT' ? 'Retirement Year' : income.startYear} - 終身`
+    : `${income.startYearMode === 'LINKED_TO_RETIREMENT' ? 'Retirement Year' : income.startYear} - ${income.endYearMode === 'LINKED_TO_RETIREMENT' ? 'Retirement Year' : (income.endYear ?? '-')}`,
 });
 
 export interface RetirementExpenseItemVM {
@@ -238,9 +240,19 @@ export const mapRetirementProjectionToVM = (
   if (plan) {
     const yearlyIncomeMap = new Map<string, number>();
     let totalSalaryIncome = 0;
+    const currentAge = plan.currentYear - plan.birthYear;
+    const projectionEndYear = plan.currentYear + (plan.lifeExpectancy - currentAge);
 
     for (const income of plan.incomes) {
-      if (retirementYear < income.startYear || retirementYear > income.endYear) {
+      const effectiveStartYear =
+        income.startYearMode === 'LINKED_TO_RETIREMENT' ? retirementYear : income.startYear;
+      const effectiveEndYear = income.lifelong
+        ? projectionEndYear
+        : income.endYearMode === 'LINKED_TO_RETIREMENT'
+          ? retirementYear
+          : (income.endYear ?? effectiveStartYear);
+
+      if (retirementYear < effectiveStartYear || retirementYear > effectiveEndYear) {
         continue;
       }
 

@@ -6,35 +6,9 @@ import { type Project } from '@/domains/project/schemas';
 import { Button } from '@/ui/components/ui/button';
 import { Card, CardContent } from '@/ui/components/ui/card';
 import { Label } from '@/ui/components/ui/label';
+import { Switch } from '@/ui/components/ui/switch';
 import { useProjectPage } from '@/ui/features/project/hooks/useProjectPage';
 import { logger } from '@/utils/logger';
-
-// Simple Toggle fallback since switch.tsx is missing in the project
-const Switch = ({
-  id,
-  checked,
-  onCheckedChange,
-  disabled,
-}: {
-  id: string;
-  checked: boolean;
-  onCheckedChange: (checked: boolean) => void;
-  disabled?: boolean;
-}) => (
-  <button
-    id={id}
-    type="button"
-    role="switch"
-    aria-checked={checked}
-    disabled={disabled}
-    onClick={() => onCheckedChange(!checked)}
-    className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 ${checked ? 'bg-primary' : 'bg-input'}`}
-  >
-    <span
-      className={`pointer-events-none block h-5 w-5 rounded-full bg-background shadow-lg ring-0 transition-transform ${checked ? 'translate-x-5' : 'translate-x-0'}`}
-    />
-  </button>
-);
 
 interface ProjectSettingsProps {
   householdId: string;

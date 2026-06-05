@@ -18,6 +18,13 @@ interface UseRetirementPlanCoreParams {
   userEmail: string | undefined;
 }
 
+export interface StaleIncomeSyncBannerState {
+  staleCount: number;
+  targetSampleYear: number;
+  incomes: RetirementPlan['incomes'];
+  hasChanges: boolean;
+}
+
 export const useRetirementPlanCore = ({
   id,
   householdId,
@@ -27,6 +34,8 @@ export const useRetirementPlanCore = ({
   const [plan, setPlan] = useState<RetirementPlan | null>(null);
   const [isEditingName, setIsEditingName] = useState(false);
   const [editedName, setEditedName] = useState('');
+  const [staleIncomeSyncBanner, setStaleIncomeSyncBanner] =
+    useState<StaleIncomeSyncBannerState | null>(null);
   const autoSyncingRef = useRef(false);
 
   const { getPlan, loading: planLoading, error: planError } = useRetirementPlans(householdId);
@@ -142,20 +151,42 @@ export const useRetirementPlanCore = ({
         plan,
       });
 
-      if (syncResult.hasChanges) {
-        await handleUpdatePlan({ incomes: syncResult.incomes });
-      }
+      setStaleIncomeSyncBanner(
+        syncResult.staleCount > 0
+          ? {
+              staleCount: syncResult.staleCount,
+              targetSampleYear: syncResult.targetSampleYear,
+              incomes: syncResult.incomes,
+              hasChanges: syncResult.hasChanges,
+            }
+          : null,
+      );
     } catch (error) {
       console.error('Failed to auto-sync imported income sources', error);
     } finally {
       autoSyncingRef.current = false;
     }
-  }, [householdId, id, plan, handleUpdatePlan]);
+  }, [householdId, id, plan]);
 
   useEffect(() => {
     if (!plan?.autoUpdate) return;
     void syncAutoUpdatedImportedIncomes();
   }, [plan?.autoUpdate, syncAutoUpdatedImportedIncomes]);
+
+  const handleApplyStaleIncomeSync = useCallback(async () => {
+    if (!staleIncomeSyncBanner) {
+      return;
+    }
+
+    if (staleIncomeSyncBanner.hasChanges) {
+      await handleUpdatePlan({ incomes: staleIncomeSyncBanner.incomes });
+    }
+    setStaleIncomeSyncBanner(null);
+  }, [staleIncomeSyncBanner, handleUpdatePlan]);
+
+  const handleDismissStaleIncomeSync = useCallback(() => {
+    setStaleIncomeSyncBanner(null);
+  }, []);
 
   return {
     plan,
@@ -165,6 +196,9 @@ export const useRetirementPlanCore = ({
     editedName,
     setEditedName,
     setIsEditingName,
+    staleIncomeSyncBanner,
+    handleApplyStaleIncomeSync,
+    handleDismissStaleIncomeSync,
     handleUpdatePlan,
     handleToggleAutoUpdate,
     handleRecalculate,
