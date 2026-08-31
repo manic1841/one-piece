@@ -6,6 +6,8 @@ The legacy `RecordForm` was a convoluted mess tied to a deprecated `plannedIncom
 
 We replaced it with `TransactionForm` and a direct `IntentMapping` flow. This avoids complex conditional logic on the client and strictly defines the debits and credits from a single user intent.
 
+本文件描述目前的 UI 與 Use Case 呼叫流程，不重新定義財務模型。分錄架構、IntentType 分層、Allocation 與 user-select 科目的決策分別以 [ADR-0005](adr/0005-journal-entry-architecture.md)、[ADR-0010](adr/0010-intenttype-three-tier.md)、[ADR-0011](adr/0011-allocation-separate-collection.md)、[ADR-0022](adr/0022-intent-userselect-flag.md) 為準；債務還款另見 [ADR-0014](adr/0014-debt-payment-intenttype.md)。
+
 ## Core Flow
 
 1. **Pure UI Form**: `TransactionForm` is a presentation component only. It owns local tab/form state and emits a normalized `TransactionFormOutput` payload via callback props.
@@ -19,13 +21,13 @@ We replaced it with `TransactionForm` and a direct `IntentMapping` flow. This av
 
 ## Intent Type Notes
 
-- `REFUND` is no longer treated as a standalone `intentType`; refunds are merged into `INCOME` as a dedicated income intent.
-- `INVESTMENT` intents now cover securities and real-estate buy/sell flows.
-- `FINANCING` intents now cover borrow/repay/shareholder-funding/dividend/initial-capital flows.
-- `LIABILITY_BORROW` is system-generated when creating a new `DebtAccount` (Dr. `asset:cash`, Cr. debt `linkedLedgerCode`) and is not entered from TransactionForm tabs.
-- Current edit support intentionally excludes `DEBT_PAYMENT` and `TRANSFER` transactions to avoid partial side effects (debt balance mutation and cross-project transfer orchestration) until dedicated update flows are implemented.
+IntentType 的分類與映射規則不在本文件重述，請以 [ADR-0010](adr/0010-intenttype-three-tier.md)、[ADR-0014](adr/0014-debt-payment-intenttype.md) 與 [ADR-0022](adr/0022-intent-userselect-flag.md) 為準。
+
+目前 UI 的實作限制如下：`LIABILITY_BORROW` 由建立 `DebtAccount` 的流程產生，不從 `TransactionForm` 輸入；編輯流程暫不支援 `DEBT_PAYMENT` 與 `TRANSFER`，以避免尚未具備專用更新流程時產生部分副作用。
 
 ## Allocation Rules (Income / Expense)
+
+Allocation 的資料邊界與獨立集合決策見 [ADR-0011](adr/0011-allocation-separate-collection.md)，以下只保留表單與交易流程的操作細節。
 
 - Allocation is supported on both `INCOME` and `EXPENSE` submissions.
 - When `triggerAllocation` is enabled, users must provide project allocation percentages totaling 100%.

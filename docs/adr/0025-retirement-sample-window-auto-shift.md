@@ -1,3 +1,7 @@
-# autoUpdate 收入流樣本窗過期後自動平移
+# autoUpdate 收入流樣本年度過期後提示批次更新
 
-當 autoUpdate=true 且來源為 IMPORTED,系統在打開退休規劃頁時檢查 calculatedFrom.startDate/endDate;若目前日期已跨過樣本窗結束日,自動將樣本窗平移到最新完整窗口並重新計算 baseAmount/totalAmount/monthlyAverage。取捨是使用者可能沒注意到數字已被靜默更新,需要 UI 明確提示。
+當收入流的 `importedFrom=transactionEntries`、`incomeCalculationMode=IMPORTED`、`autoUpdate=true`，且 `calculatedFrom.sampleYear < lastFullYear` 時，系統在開啟退休規劃頁面時將其視為過期資料。
+
+系統顯示過期筆數與目標年度的提示，使用者確認後才批次重新計算所有過期收入流，更新 `baseAmount`、`totalAmount`、`monthlyAverage`、`sampleCount`、`sampleYear` 與 `importedAt`。若目標年度沒有該科目的分錄，保留原 `baseAmount` 並記錄警告；`autoUpdate=false` 的收入流不自動納入批次更新。
+
+樣本年度以 `sampleYear` 表示，不使用 `calculatedFrom.startDate/endDate` 作為自動更新判斷。這保留使用者對重大金額變動的確認權，也避免資料在未察覺的情況下靜默改變。

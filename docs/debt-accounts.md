@@ -5,6 +5,8 @@
 債務帳戶（DebtAccount）追蹤家庭的負債部位，如房貸、車貸、個人信貸。
 提供每月還款試算、還清進度追蹤、與 Project 的關聯。
 
+本文件保留債務功能的表單、試算與操作流程；債務還款意圖、派生餘額、建立時同步入帳與寬限期狀態的決策，以 [ADR-0014](adr/0014-debt-payment-intenttype.md) 至 [ADR-0017](adr/0017-grace-period-derived-not-stored.md) 為準。退休匯入規則以 [ADR-0032](adr/0032-debt-import-active-only.md) 與 [ADR-0033](adr/0033-debt-expense-principal-interest-mode.md) 為準。
+
 ---
 
 ## 2. LedgerCode 初始化策略
@@ -40,7 +42,9 @@ checkHasPayments(id)
   無記錄                   → hard delete（連同建立時的 LIABILITY_BORROW 一起刪除）
 ```
 
-查詢依據：transactions 的 `intentType == 'LIABILITY_PAYMENT'` AND `ledgerCodes array-contains linkedLedgerCode`
+目前實作依 `transactions` 的付款意圖與 `ledgerCodes array-contains linkedLedgerCode` 查詢。
+
+> 注意：目前 repository 的付款查詢仍使用 legacy `LIABILITY_PAYMENT`，而 [ADR-0014](adr/0014-debt-payment-intenttype.md) 定義定期貸款還款使用 `DEBT_PAYMENT`。兩者應在程式碼與決策中進一步統一；本文件不把這個現況誤寫成新的規則。
 
 - hard delete 會一併刪除與該 DebtAccount 關聯的借款入帳交易，避免留下孤立負債建立紀錄
 
@@ -49,6 +53,8 @@ checkHasPayments(id)
 ## 5. 建立貸款同步入帳（LIABILITY_BORROW）
 
 新增 DebtAccount 時，系統會同步建立一筆借款入帳交易，確保負債與現金部位一致。
+
+同步建立與原子性是 [ADR-0016](adr/0016-debt-account-creation-liability-borrow-sync.md) 的決策；以下只保留表單欄位與目前交易流程。
 
 ### 表單欄位
 
@@ -83,6 +89,8 @@ entries: [
 ---
 
 ## 5.5. 寬限期（Grace Period）
+
+寬限期狀態不另存 boolean，而由日期動態判斷；決策依據見 [ADR-0017](adr/0017-grace-period-derived-not-stored.md)。本節補充試算、分錄與 UI 的操作細節。
 
 ### 欄位
 
@@ -192,6 +200,8 @@ DebtAccount.closedAt = today
 
 ## 5.7. DEBT_PAYMENT 後的結清偵測
 
+`currentBalance` 的來源與派生規則見 [ADR-0015](adr/0015-debt-account-balance-derived.md)。
+
 每次 `DEBT_PAYMENT` 建立成功後，流程為：
 
 ```
@@ -253,13 +263,15 @@ DebtAccount.closedAt = today
 
 ## 6. 退休系統導入規則（Debt -> Retirement）
 
+只匯入啟用中的債務，以及本金/利息的退休支出模式，分別由 [ADR-0032](adr/0032-debt-import-active-only.md) 與 [ADR-0033](adr/0033-debt-expense-principal-interest-mode.md) 定義；以下保留匯入流程與欄位對應。
+
 退休系統支援「匯入債務還款」：
 
 1. 掃描 `isActive=true` 的 DebtAccount
 2. 每個帳戶建立一筆退休 `expenseCategory`（`type = debt_payment`）
 3. 欄位來源：
    - `name` <- DebtAccount.name
-   - `baseAmount` <- DebtAccount.monthlyPayment * 12（`includesPrincipal=true`）
+   - `baseAmount` <- DebtAccount.monthlyPayment \* 12（`includesPrincipal=true`）
    - `startYear/endYear` <- DebtAccount.startDate/endDate
 4. 讀取最近 12 個月 DebtSnapshot，寫入 `calculatedFrom` 統計
 

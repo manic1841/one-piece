@@ -24,9 +24,13 @@
    - 退休資料模型與收入流 (`incomeStreams`) 子集合規格。
    - 從交易分錄 (`Transaction.entries`) 導入收入的完整流程。
 
+6. **[架構決策紀錄 (ADR)](/docs/adr/)**
+   - 架構與業務取捨的唯一決策來源。
+   - 各功能文件只保留流程、結構索引與操作說明，遇到規則差異時以 ADR 為準。
+
 ## 🛠️ 維護原則
 
-> "Bad code is bad code regardless of comments. Refactor first." - *Linus Torvalds*
+> "Bad code is bad code regardless of comments. Refactor first." - _Linus Torvalds_
 
 - **保持簡潔**: 不要過度封裝，優先考慮效能與可讀性。
 - **文件即時性**: 代碼異動時，務必同步更新相關文件，以免誤導後續接手者。
