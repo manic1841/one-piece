@@ -1,4 +1,10 @@
-import { collection, doc, orderBy, where } from 'firebase/firestore';
+import {
+  type Transaction as FirestoreTransaction,
+  collection,
+  doc,
+  orderBy,
+  where,
+} from 'firebase/firestore';
 
 import {
   type DebtSnapshot,
@@ -48,8 +54,9 @@ class DebtSnapshotRepository extends BaseRepository<DebtSnapshot, [string, strin
     householdId: string,
     debtAccountId: string,
     yearMonth: string,
+    tx?: FirestoreTransaction,
   ): Promise<DebtSnapshot | null> {
-    return this.get([householdId, debtAccountId, yearMonth]);
+    return this.get([householdId, debtAccountId, yearMonth], tx);
   }
 
   async listByYearMonthRange(
@@ -79,8 +86,9 @@ class DebtSnapshotRepository extends BaseRepository<DebtSnapshot, [string, strin
     debtAccountId: string,
     data: DebtSnapshotCreate,
     userEmail: string,
+    tx?: FirestoreTransaction,
   ): Promise<void> {
-    const existing = await this.getSnapshot(householdId, debtAccountId, data.yearMonth);
+    const existing = await this.getSnapshot(householdId, debtAccountId, data.yearMonth, tx);
 
     if (existing) {
       const principalPaid = existing.principalPaid + data.principalPaid;
@@ -92,13 +100,14 @@ class DebtSnapshotRepository extends BaseRepository<DebtSnapshot, [string, strin
         [householdId, debtAccountId, data.yearMonth],
         { principalPaid, interestPaid, totalPaid, closingBalance },
         userEmail,
+        tx,
       );
     } else {
       await this.create(
         [householdId, debtAccountId],
         data,
         userEmail,
-        undefined,
+        tx,
         data.yearMonth, // use yearMonth as document ID
       );
     }

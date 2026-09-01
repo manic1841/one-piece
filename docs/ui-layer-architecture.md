@@ -73,6 +73,10 @@ In React, Hooks in the `features/hooks` folder act as **Application Controllers*
 - **Return Intent**: Don't just return data; return actions (e.g., `onSave`, `onCancel`).
 - **Atomic Operations**: Each hook should focus on a specific interaction flow.
 - **Validation Gate**: Hook submit paths must validate Form VM via schema before calling Use Cases.
+- **Retry Identity**: For a financial command that requires an idempotency key,
+  create one key for the user's action, keep it in the hook while retries are
+  possible, and clear it only after a successful result. Build the retry
+  signature from the same canonical operation inputs as the command fingerprint.
 
 ---
 

@@ -6,7 +6,7 @@ This document is the continuation checkpoint for the current implementation work
 
 ### Tooling and development environment
 
-The implementation for issue #38 is present in the working tree and has been
+The implementation for issue #38 is present on the current branch and has been
 validated locally:
 
 - Unit and integration test boundaries are separated.
@@ -25,12 +25,32 @@ Validation baseline:
 - Production build: passed.
 - Docker Compose configuration and diff checks: passed.
 
-The #38 changes are not committed yet, and issue #38 remains open pending final
-review and GitHub bookkeeping.
+Issue #38 remains open pending final GitHub bookkeeping.
+
+## Completed Since Checkpoint
+
+### #43–#46 Debt Payment
+
+- ADR-0038 defines command classification, Firestore atomicity, idempotency keys,
+   deterministic identities, operation records, retry behavior, retention, and
+   cache synchronization.
+- Debt Payment validates finite positive amounts, principal limits, balanced
+   entries, normal principal/interest splits, and strict interest-only grace
+   periods with an inclusive start and exclusive end date.
+- Transaction, DebtSnapshot, DebtAccount.currentBalance, and the household
+   operation record commit atomically with Firestore optimistic concurrency.
+- Caller-generated idempotency keys support replay, conflict detection, and
+   failure cleanup; the transaction form reuses one key for retries of one user
+   action.
+- Focused unit and Firebase Emulator integration coverage was added for domain
+   rules, application behavior, atomic persistence, concurrency, replay, conflict,
+   independent keys, and failure cleanup.
 
 ## Remaining Implementation
 
-Work through these issues in order:
+No implementation remains from the #43–#46 dependency chain.
+
+The earlier checkpoint listed these issues in order:
 
 1. **#43: Architecture ADR**
    - Define command atomicity and retry policy.
@@ -99,9 +119,10 @@ The source tree is bind-mounted at `/workspace`. Firebase Emulator is available
 inside the Compose network as `firebase`; the published host endpoints are
 listed in [the development guide](development-guide.md).
 
-## Git State At Checkpoint
+## Git State
 
 - Branch: `refactor/code-review`
-- Base commit: `4b82e42`
-- Current #38 implementation and Docker changes: uncommitted working-tree changes
+- Review base commit: `4b82e42`
+- The #38 tooling changes and #43–#46 Debt Payment implementation are committed
+   after final validation; issue status is managed separately in GitHub.
 - `CONTEXT.md`: existing untracked domain glossary; preserve it

@@ -102,11 +102,14 @@ graceEndDate: Date | null  // 寬限期結束日期，null 表示無寬限期
 
 ### 判斷邏輯
 
-寬限期定義為：`startDate ≤ 今天 < graceEndDate`
+寬限期定義為：`startDate ≤ paymentDate < graceEndDate`。起始日包含，結束日不
+包含；付款日等於 `graceEndDate` 時走正常還款。完整決策以
+[ADR-0017](adr/0017-grace-period-derived-not-stored.md) 與
+[ADR-0038](adr/0038-command-atomicity-and-retry-policy.md) 為準。
 
 實作於 `src/domains/debt/debtPaymentCalculator.ts`：
 
-- `isInGracePeriod(graceEndDate)` — 檢查今天是否在寬限期內
+- `isInGracePeriod(startDate, paymentDate, graceEndDate)` — 檢查付款日是否在寬限期內
 
 ### 試算邏輯
 
@@ -144,6 +147,10 @@ Dr. expense:interest     interest
 Cr. asset:cash           totalPayment
 
 // 注：closingBalance = openingBalance（本金不減少）
+
+寬限期間的 ordinary `DEBT_PAYMENT` 不接受高於適用利息的金額；這不代表可以
+透過一般還款流程提前償還本金。低於適用利息的正付款可記錄為實際支付的利息，
+並附上未覆蓋利息的 warning。
 ```
 
 **寬限期後**（正常還款）：
@@ -210,6 +217,11 @@ DebtAccount.closedAt = today
   → 若 currentBalance <= 0
       顯示結清確認對話框
 ```
+
+Transaction、該月份 DebtSnapshot 與 DebtAccount.currentBalance 必須和付款的
+operation record 在同一個 Firestore transaction 內提交；任一寫入失敗時不得
+留下部分財務資料。重試與同 key replay 規則以
+[ADR-0038](adr/0038-command-atomicity-and-retry-policy.md) 為準。
 
 備註：
 

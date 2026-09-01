@@ -14,7 +14,10 @@
 ### 第二步：實作存取層 (Infrastructure Layer)
 
 - 在 `src/infra/repositories/` 建立 Repository。
-- 繼承 `BaseRepository`，並引用 **Domain Layer** 定義的 Schema。
+- 一般 CRUD Repository 應繼承 `BaseRepository`，並引用 **Domain Layer** 定義的 Schema。
+- 若資料需要專用的 operation schema、server timestamp 或 Firestore transaction
+	讀寫封裝，可以使用明確的 custom Repository；仍須把資料契約放在 Domain
+	Layer，並讓 transaction context 由 Application Use Case 傳入。
 
 ### 第三步：建立原子使用案例 (Application Use Cases)
 

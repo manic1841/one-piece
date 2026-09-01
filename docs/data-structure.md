@@ -173,6 +173,18 @@ firestore
        │    ├─ createdAt: Timestamp
        │    ├─ ledgerCodes: string[]      # 索引最佳化 (用於報表查詢)
 
+      ├─ operations/{operationRecordId}  # household-scoped command retry record
+      │    ├─ operationType: string
+      │    ├─ idempotencyKey: string
+      │    ├─ fingerprintVersion: number
+      │    ├─ payloadFingerprint: string
+      │    ├─ status: "IN_PROGRESS" | "SUCCEEDED" | "FAILED"
+      │    ├─ resultReference: object | null
+      │    ├─ createdAt: Timestamp
+      │    ├─ updatedAt: Timestamp
+      │    ├─ completedAt?: Timestamp | null
+      │    └─ createdByUid: string
+
        ├─ reports/{reportId}             # 財務報表快照
             ├─ year: number
             ├─ month: number
@@ -202,7 +214,8 @@ firestore
             ├─ linkedProjectId?: string | null
             ├─ note?: string
             ├─ isActive: boolean        # false = 已結清/停用
-            └─ closedAt?: Timestamp | null # 結清日期，isActive=false 時寫入
+            ├─ closedAt?: Timestamp | null # 結清日期，isActive=false 時寫入
+            └─ snapshots/{yearMonth}     # 每月 DEBT_PAYMENT 累計快照，ID = YYYY-MM
 ```
 
 ## ADR 索引
@@ -214,6 +227,7 @@ firestore
 | Transaction、entries 與 IntentType        | [ADR-0005](adr/0005-journal-entry-architecture.md)、[ADR-0010](adr/0010-intenttype-three-tier.md)                                                                                                                                                                                                  |
 | Project、Account、LedgerCode 的責任與命名 | [ADR-0006](adr/0006-project-legercode-separation.md)、[ADR-0007](adr/0007-account-ledgercode-naming-distinction.md)、[ADR-0008](adr/0008-asset-cash-no-bank-distinction.md)、[ADR-0009](adr/0009-user-defined-ledgercode.md)、[ADR-0021](adr/0021-subcategory-not-snapshot-for-property-income.md) |
 | Allocation 與 ProjectSnapshot             | [ADR-0011](adr/0011-allocation-separate-collection.md)、[ADR-0012](adr/0012-project-snapshot-cache.md)、[ADR-0013](adr/0013-negative-project-balance-allowed.md)                                                                                                                                   |
-| DebtAccount、還款與寬限期                 | [ADR-0014](adr/0014-debt-payment-intenttype.md)、[ADR-0015](adr/0015-debt-account-balance-derived.md)、[ADR-0016](adr/0016-debt-account-creation-liability-borrow-sync.md)、[ADR-0017](adr/0017-grace-period-derived-not-stored.md)                                                                |
+| DebtAccount、還款與寬限期                 | [ADR-0014](adr/0014-debt-payment-intenttype.md)、[ADR-0015](adr/0015-debt-account-balance-derived.md)、[ADR-0016](adr/0016-debt-account-creation-liability-borrow-sync.md)、[ADR-0017](adr/0017-grace-period-derived-not-stored.md)、[ADR-0038](adr/0038-command-atomicity-and-retry-policy.md) |
+| Command 原子性、重試與 operation record    | [ADR-0038](adr/0038-command-atomicity-and-retry-policy.md)                                                                                                                                                                                                                                      |
 | 財務報表與快照                            | [ADR-0018](adr/0018-manual-financial-report-generation.md)、[ADR-0019](adr/0019-balance-sheet-hybrid-equity-derived.md)、[ADR-0020](adr/0020-cash-flow-ending-vs-actual-balance.md)                                                                                                                |
 | RetirementPlan 與收入/支出/事件子集合     | [ADR-0023](adr/0023-retirement-income-from-entries-only.md) 至 [ADR-0037](adr/0037-retirement-plan-duplicate-inactive.md)                                                                                                                                                                          |

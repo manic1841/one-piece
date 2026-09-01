@@ -92,8 +92,9 @@ class DebtAccountRepository extends BaseRepository<DebtAccount, [string, string?
     debtAccountId: string,
     data: Partial<DebtAccountCreate>,
     userEmail: string,
+    tx?: FirestoreTransaction,
   ): Promise<void> {
-    await this.update([householdId, debtAccountId], data, userEmail);
+    await this.update([householdId, debtAccountId], data, userEmail, tx);
   }
 
   async deleteDebtAccount(

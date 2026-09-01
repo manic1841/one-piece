@@ -13,6 +13,7 @@ import { upsertIncomeAllocationTemplateUseCase } from '@/application/ledger/use_
 import { type DebtAccount } from '@/domains/debt/schemas';
 import { IntentType } from '@/domains/ledger/constants';
 import { DEFAULT_INTENT_MAPPINGS } from '@/domains/ledger/intentMapping';
+import { normalizeDescription } from '@/domains/operation/fingerprint';
 import { projectService } from '@/domains/project/projectService';
 import { useAuth } from '@/infra/contexts/useAuth';
 import { useLedgerCodes } from '@/ui/features/ledger/hooks/useLedgerCodes';
@@ -69,6 +70,20 @@ type SettlementPrompt = {
   debtAccountName: string;
 };
 
+type DebtPaymentAttempt = {
+  signature: string;
+  idempotencyKey: string;
+};
+
+const getDebtPaymentAttemptSignature = (vm: TransactionFormVM): string =>
+  JSON.stringify({
+    debtAccountId: vm.debtAccountId,
+    amount: vm.amount,
+    date: vm.date,
+    description: normalizeDescription(vm.description),
+    projectId: vm.projectId ?? null,
+  });
+
 export const useTransactionForm = (
   householdId: string,
   onClose: () => void,
@@ -80,7 +95,19 @@ export const useTransactionForm = (
   const [debtAccounts, setDebtAccounts] = useState<DebtAccount[]>([]);
   const [settlementPrompt, setSettlementPrompt] = useState<SettlementPrompt | null>(null);
   const incomeTemplateCacheRef = useRef<Map<string, AllocationItemInput[] | null>>(new Map());
+  const debtPaymentAttemptRef = useRef<DebtPaymentAttempt | null>(null);
   const { codes: allActiveLedgerCodes } = useLedgerCodes(false);
+
+  const getDebtPaymentIdempotencyKey = (vm: TransactionFormVM): string => {
+    const signature = getDebtPaymentAttemptSignature(vm);
+    if (debtPaymentAttemptRef.current?.signature === signature) {
+      return debtPaymentAttemptRef.current.idempotencyKey;
+    }
+
+    const idempotencyKey = globalThis.crypto.randomUUID();
+    debtPaymentAttemptRef.current = { signature, idempotencyKey };
+    return idempotencyKey;
+  };
 
   // Fetch active debt accounts for the DEBT_PAYMENT tab
   const fetchDebtAccounts = useCallback(async () => {
@@ -180,6 +207,7 @@ export const useTransactionForm = (
             isGlobalAdmin: isAdmin ?? false,
           },
           debtAccountId: vm.debtAccountId,
+          idempotencyKey: getDebtPaymentIdempotencyKey(vm),
           totalPayment: vm.amount,
           date: new Date(`${vm.date}T00:00:00`),
           description: vm.description,
@@ -222,6 +250,7 @@ export const useTransactionForm = (
       }
 
       onClose();
+      debtPaymentAttemptRef.current = null;
       if (onSuccess) onSuccess();
     } catch (err: unknown) {
       if (err instanceof z.ZodError) {
