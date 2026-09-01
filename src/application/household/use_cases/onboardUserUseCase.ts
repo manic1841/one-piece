@@ -27,6 +27,7 @@ export class OnboardUserUseCase {
         const newHouseholdId = await createHouseholdUseCase.execute({
           data: {
             name: householdId,
+            memberUids: [userProfile.uid],
             members: {
               [userProfile.uid]: {
                 role: 'owner',

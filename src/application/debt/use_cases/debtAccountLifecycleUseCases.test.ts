@@ -1,8 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('firebase/firestore', () => ({
-  runTransaction: vi.fn(async (_db, callback: (tx: object) => Promise<unknown>) => callback({})),
-}));
+vi.mock('firebase/firestore', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('firebase/firestore')>();
+  return {
+    ...actual,
+    runTransaction: vi.fn(async (_db, callback: (tx: object) => Promise<unknown>) => callback({})),
+  };
+});
 
 vi.mock('@/application/household/householdPermissionService', () => ({
   householdPermissionService: {

@@ -23,7 +23,7 @@
 
 ### 第四步：建立應用控制器 (Application Hook)
 
-- 在 `src/application/{domain_name}/hooks/` 建立 Hook。
+- 在 `src/ui/features/{feature_name}/hooks/` 建立 Hook。
 - Hook 職責：管理 UI 狀態、注入 `AuthContext`、呼叫 Use Case。
 
 ### 第五步：建立 UI Form ViewModel 與 Mapper (UI Layer)
@@ -53,3 +53,40 @@
 - **保持 `docs/` 的準確性**: 流程文件應說明如何運作，決策理由與不可逆約束則集中在 ADR。
 - **效能考量**: 避免在前端進行超大規模的資料處理與循環引用。
 - **備份/還原流程**: Settings 提供 household 等級的 JSON 備份與還原。還原應包含各主集合與其 snapshot 子集合，並限制為 household owner/admin（或 global admin）可執行。
+
+## 4. 驗證命令
+
+- `pnpm test`: 執行不依賴 Firebase Emulator 的 unit tests。
+- `pnpm test:coverage`: 對相同的 unit test 範圍產生 text、JSON 與 HTML coverage 報告。
+- `pnpm test:integration`: 執行需要 Firebase Emulator 的 integration tests；執行前會檢查 emulator 是否可連線。
+- `pnpm lint`: 執行唯讀 ESLint 檢查。
+- `pnpm lint:fix`: 明確執行 ESLint 自動修正。
+
+## 5. Docker 開發環境
+
+專案提供 root-level Docker development stack，固定 Node.js 24 與 pnpm 10，並以同一個 Compose project 啟動 Vite 與 Firebase Emulator。適合需要一致工具鏈或不想在 host 安裝 Node/pnpm 的開發者。
+
+```bash
+docker compose up --build
+```
+
+Vite 預設在 `http://localhost:5173`；若 host port 已被占用，可改用其他 port：
+
+```bash
+VITE_PORT=5174 docker compose up --build
+```
+
+- Vite host port: `5173` by default, or the value supplied through `VITE_PORT`
+- Firebase Emulator UI: `http://localhost:4000`
+- Firestore Emulator: `localhost:8080`
+- Auth Emulator: `localhost:9099`
+
+在 container 中執行驗證命令：
+
+```bash
+docker compose run --rm app pnpm test
+docker compose run --rm app pnpm test:integration
+docker compose down
+```
+
+`pnpm test` 不需要 emulator；`pnpm test:integration` 會透過 Compose service name 連線到 Firebase Emulator。若直接在 host 執行 integration tests，helper 會使用 published localhost ports。

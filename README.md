@@ -6,17 +6,48 @@
 pnpm install
 ```
 
-## Run dev
+## Run dev locally
 
 ```bash
 pnpm run dev
 ```
 
-## Run firebase emulator
+## Run the Docker development stack
 
 ```bash
-pnpm run emulators:start
+docker compose up --build
 ```
+
+The app is available at http://localhost:5173 and the Firebase Emulator UI is
+available at http://localhost:4000. The stack uses the development Firebase
+project configuration and publishes Firestore/Auth on ports `8080` and `9099`.
+Set `VITE_PORT` when port `5173` is already in use, for example
+`VITE_PORT=5174 docker compose up --build`.
+
+Run the test suites in the same environment with:
+
+```bash
+docker compose run --rm app pnpm test
+docker compose run --rm app pnpm test:integration
+docker compose down
+```
+
+To run only the Firebase Emulator without the Vite app, use
+`docker compose up --build firebase`.
+
+## Test and lint
+
+```bash
+pnpm test
+pnpm test:integration
+pnpm test:coverage
+pnpm lint
+pnpm lint:fix
+```
+
+Unit tests and coverage do not require Firebase Emulator. Run integration tests
+with the emulator available; the integration setup fails early when it cannot
+connect.
 
 ## Deploy firebase rules
 
@@ -45,6 +76,7 @@ The sorting rules are:
 ### Commands
 
 - **Format Code**: `pnpm format` (Runs Prettier to sort imports and format files)
-- **Lint Code**: `pnpm lint` (Runs ESLint to check for code quality issues and fix them)
+- **Lint Code**: `pnpm lint` (Runs ESLint as a read-only quality check)
+- **Fix lint issues**: `pnpm lint:fix` (Runs ESLint with automatic fixes)
 
 Imports are automatically sorted by Prettier. It is recommended to configure your IDE to run Prettier on save.

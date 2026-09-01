@@ -17,10 +17,6 @@
 - **職責**: 協調領域對象與基礎設施，實現具體的使用案例 (Use Cases) 或複雜的業務服務 (Application Services)。
 - **內容**:
   - `use_cases/`: 原子級業務操作，封裝單一職責邏輯（如：`createUserUseCase.ts`）。
-  - `hooks/`: **應用控制器 (Application Controller)**。React 進入點，負責：
-    - 管理 `loading`、`error` 狀態。
-    - 注入 `AuthContext`（使用者權限上下文）。
-    - 處理 UI 副作用。
   - **Permission Services**: 專門處理複雜權限校驗的應用服務（如：`HouseholdPermissionService`）。
 - **規則**: 這裡負責事務控制與業務流程。**絕對禁止在此層級使用 React Hooks 或依賴任何 UI 框架。**
 
@@ -36,7 +32,7 @@
 - **內容**:
   - `features/[feature-name]/hooks/`: **應用控制器 (Application Controller)**。React 進入點，負責銜接 UI 與核心邏輯。
   - `components/`: React 組件。
-- **規則**: Component 只調用 Hook (Application Controller)，不直接觸碰業務邏輯或資料庫。
+- **規則**: Component 只調用 feature Hook (Application Controller)，不直接觸碰業務邏輯或資料庫。
 
 ## 2. 資料流 (Data Flow)
 

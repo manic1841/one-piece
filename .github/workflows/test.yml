@@ -33,6 +33,9 @@ jobs:
       - name: Run tests
         run: pnpm test
 
+      - name: Run Firestore Emulator integration tests
+        run: pnpm test:integration
+
       - name: Stop Firebase emulators
         if: always()
         working-directory: firebase-emulator
