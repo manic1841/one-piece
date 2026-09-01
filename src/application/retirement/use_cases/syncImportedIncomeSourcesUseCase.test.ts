@@ -39,10 +39,10 @@ const createPlan = (): RetirementPlan => ({
       name: 'Salary',
       importedFrom: 'transactionEntries',
       incomeCalculationMode: 'IMPORTED',
+      autoUpdate: true,
       calculatedFrom: {
         ledgerCode: 'income:salary:charles',
-        startDate: '2024-01-01',
-        endDate: '2024-12-31',
+        sampleYear: 2024,
         totalAmount: 120000,
         monthlyAverage: 10000,
         sampleCount: 12,
@@ -62,6 +62,7 @@ const createPlan = (): RetirementPlan => ({
       name: 'Pension',
       importedFrom: 'manual',
       incomeCalculationMode: 'FIXED',
+      autoUpdate: false,
       type: RetirementIncomeType.PENSION,
       startYear: 2030,
       endYear: 2080,
@@ -131,24 +132,29 @@ describe('syncImportedIncomeSourcesUseCase', () => {
     });
 
     expect(result.hasChanges).toBe(true);
+    expect(result.staleCount).toBe(1);
+    expect(result.targetSampleYear).toBe(2025);
     expect(transactionRepository.listByDateRange).toHaveBeenCalledTimes(1);
 
     const imported = result.incomes.find((income) => income.id === 'income-imported');
     expect(imported).toBeTruthy();
-    expect(imported?.calculatedFrom?.startDate).toBe('2025-01-01');
-    expect(imported?.calculatedFrom?.endDate).toBe('2025-12-31');
-    expect(imported?.calculatedFrom?.sampleCount).toBe(12);
+    expect(imported?.calculatedFrom?.sampleYear).toBe(2025);
+    expect(imported?.calculatedFrom?.sampleCount).toBe(2);
     expect(imported?.calculatedFrom?.totalAmount).toBe(36000);
     expect(imported?.calculatedFrom?.monthlyAverage).toBe(3000);
     expect(imported?.baseAmount).toBe(36000);
-    expect(imported?.note).toContain('Auto-updated from 2025-01-01 to 2025-12-31');
+    expect(imported?.note).toContain('Auto-updated using 2025 full-year transactions');
 
     const manual = result.incomes.find((income) => income.id === 'income-manual');
     expect(manual).toEqual(plan.incomes[1]);
   });
 
-  it('does not update when the shifted window is not ready yet', async () => {
+  it('does not update when sample year already matches last full year', async () => {
     const plan = createPlan();
+    plan.incomes[0].calculatedFrom = {
+      ...plan.incomes[0].calculatedFrom!,
+      sampleYear: 2024,
+    };
 
     const result = await syncImportedIncomeSourcesUseCase.execute({
       householdId: 'household-1',
@@ -157,6 +163,7 @@ describe('syncImportedIncomeSourcesUseCase', () => {
     });
 
     expect(result.hasChanges).toBe(false);
+    expect(result.staleCount).toBe(0);
     expect(result.incomes[0]).toEqual(plan.incomes[0]);
     expect(transactionRepository.listByDateRange).not.toHaveBeenCalled();
   });

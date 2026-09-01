@@ -3,6 +3,7 @@ import React from 'react';
 import { Pencil, Trash2 } from 'lucide-react';
 
 import { type RetirementIncomeSource } from '@/domains/retirement/types';
+import { Badge } from '@/ui/components/ui/badge';
 import { Button } from '@/ui/components/ui/button';
 import { type RetirementIncomeItemVM } from '@/ui/features/retirement/viewmodels/retirementDisplay.vm';
 
@@ -33,7 +34,7 @@ export const IncomeTabContent: React.FC<IncomeTabContentProps> = ({
         <h3 className="text-lg font-semibold">Income Sources</h3>
         <div className="flex items-center gap-2">
           <Button variant="outline" onClick={handleImportIncomeFromTransactions}>
-            匯入近 12 個月收入
+            匯入上一完整年度收入
           </Button>
           <RetirementIncomeDialog
             onSave={handleAddIncome}
@@ -54,6 +55,13 @@ export const IncomeTabContent: React.FC<IncomeTabContentProps> = ({
               <div className="font-medium">{vm.name}</div>
               <div className="text-sm text-muted-foreground">
                 {vm.amountText} {vm.growthText} {vm.periodText}
+              </div>
+              <div className="mt-1 flex items-center gap-2">
+                {(domain.startYearMode === 'LINKED_TO_RETIREMENT' ||
+                  domain.endYearMode === 'LINKED_TO_RETIREMENT') && (
+                  <Badge variant="secondary">連動退休年</Badge>
+                )}
+                {domain.lifelong && <Badge variant="outline">終身</Badge>}
               </div>
             </div>
             <div className="flex items-center gap-2">

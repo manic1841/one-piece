@@ -123,6 +123,15 @@
         { "fieldPath": "intentType", "order": "ASCENDING" },
         { "fieldPath": "ledgerCodes", "arrayConfig": "CONTAINS" }
       ]
+    },
+    {
+      "collectionGroup": "transactions",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "intentType", "order": "ASCENDING" },
+        { "fieldPath": "date", "order": "ASCENDING" },
+        { "fieldPath": "__name__", "order": "DESCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []

@@ -51,14 +51,15 @@ export class ImportRetirementDataUseCase {
       auth.isGlobalAdmin,
     );
 
-    const fixedWindowMonths = 12;
-    const endDate = new Date();
-    const startDate = startOfMonth(subMonths(endDate, fixedWindowMonths));
+    const now = new Date();
+    const lastFullYear = now.getFullYear() - 1;
+    const startDate = new Date(lastFullYear, 0, 1);
+    const endDateExclusive = new Date(lastFullYear + 1, 0, 1);
 
     const transactions = await transactionRepository.listByDateRange(
       householdId,
       startDate,
-      endDate,
+      endDateExclusive,
     );
 
     const mappedIncomes: PlannedIncome[] = transactions.flatMap((transaction) =>
@@ -71,7 +72,7 @@ export class ImportRetirementDataUseCase {
         })),
     );
 
-    return calculateIncomeSourceSuggestions(mappedIncomes, fixedWindowMonths);
+    return calculateIncomeSourceSuggestions(mappedIncomes, lastFullYear);
   }
 
   private async importFromDebtRepayments(

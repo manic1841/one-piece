@@ -1,9 +1,7 @@
 import {
-  addDays,
-  getInclusiveMonthCount,
-  getShiftedWindow,
+  getFullYearWindow,
+  getLastFullYear,
   isImportedIncomeSyncTarget,
-  toIsoDate,
 } from '@/domains/retirement/logic/importedIncomeAutoUpdate';
 import type { RetirementIncomeSource, RetirementPlan } from '@/domains/retirement/types';
 import { transactionRepository } from '@/infra/repositories/transactionRepository';
@@ -17,6 +15,8 @@ interface SyncImportedIncomeSourcesRequest {
 interface SyncImportedIncomeSourcesResult {
   incomes: RetirementIncomeSource[];
   hasChanges: boolean;
+  staleCount: number;
+  targetSampleYear: number;
 }
 
 class SyncImportedIncomeSourcesUseCase {
@@ -24,12 +24,19 @@ class SyncImportedIncomeSourcesUseCase {
     request: SyncImportedIncomeSourcesRequest,
   ): Promise<SyncImportedIncomeSourcesResult> {
     const { householdId, plan, today = new Date() } = request;
+    const targetSampleYear = getLastFullYear(today);
 
     if (!plan.autoUpdate) {
-      return { incomes: plan.incomes, hasChanges: false };
+      return {
+        incomes: plan.incomes,
+        hasChanges: false,
+        staleCount: 0,
+        targetSampleYear,
+      };
     }
 
     let hasChanges = false;
+    let staleCount = 0;
 
     const incomes = await Promise.all(
       plan.incomes.map(async (income): Promise<RetirementIncomeSource> => {
@@ -37,30 +44,17 @@ class SyncImportedIncomeSourcesUseCase {
           return income;
         }
 
-        const shiftedWindow = getShiftedWindow(
-          income.calculatedFrom.startDate,
-          income.calculatedFrom.endDate,
-          today,
-        );
-
-        if (!shiftedWindow) {
+        if (income.calculatedFrom.sampleYear >= targetSampleYear) {
           return income;
         }
+        staleCount += 1;
 
-        const nextStartDateIso = toIsoDate(shiftedWindow.startDate);
-        const nextEndDateIso = toIsoDate(shiftedWindow.endDate);
-
-        if (
-          income.calculatedFrom.startDate === nextStartDateIso &&
-          income.calculatedFrom.endDate === nextEndDateIso
-        ) {
-          return income;
-        }
+        const window = getFullYearWindow(targetSampleYear);
 
         const transactions = await transactionRepository.listByDateRange(
           householdId,
-          shiftedWindow.startDate,
-          addDays(shiftedWindow.endDate, 1),
+          window.startDate,
+          window.endDateExclusive,
         );
 
         const totalAmount = transactions
@@ -68,9 +62,8 @@ class SyncImportedIncomeSourcesUseCase {
           .filter((entry) => entry.ledgerCode === income.calculatedFrom.ledgerCode)
           .reduce((sum, entry) => sum + (entry.credit || 0) - (entry.debit || 0), 0);
 
-        const sampleCount = getInclusiveMonthCount(shiftedWindow.startDate, shiftedWindow.endDate);
-        const monthlyAverage = totalAmount / sampleCount;
-        const nextBaseAmount = monthlyAverage * 12;
+        const monthlyAverage = totalAmount / 12;
+        const nextBaseAmount = totalAmount > 0 ? totalAmount : income.baseAmount;
 
         hasChanges = true;
         return {
@@ -78,19 +71,21 @@ class SyncImportedIncomeSourcesUseCase {
           baseAmount: nextBaseAmount,
           calculatedFrom: {
             ...income.calculatedFrom,
-            startDate: nextStartDateIso,
-            endDate: nextEndDateIso,
+            sampleYear: targetSampleYear,
             totalAmount,
             monthlyAverage,
-            sampleCount,
+            sampleCount: transactions.length,
             importedAt: new Date().toISOString(),
           },
-          note: `Auto-updated from ${nextStartDateIso} to ${nextEndDateIso}`,
+          note:
+            totalAmount > 0
+              ? `Auto-updated using ${targetSampleYear} full-year transactions`
+              : `No ${targetSampleYear} transaction sample found; kept previous base amount`,
         };
       }),
     );
 
-    return { incomes, hasChanges };
+    return { incomes, hasChanges, staleCount, targetSampleYear };
   }
 }
 

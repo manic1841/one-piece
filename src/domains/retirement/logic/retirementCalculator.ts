@@ -5,13 +5,7 @@ import {
   calculateRetirementEventPhaseAmount,
   normalizeRetirementEventPhases,
 } from './retirementEventPhases';
-
-/**
- * Calculates the future value of an amount based on a growth rate and number of years.
- */
-const calculateFutureValue = (presentValue: number, rate: number, years: number): number => {
-  return presentValue * Math.pow(1 + rate / 100, years);
-};
+import { calculateYearlyIncomes } from './retirementIncomeCalculator';
 
 export interface YearlyProjection {
   year: number;
@@ -31,6 +25,27 @@ interface YearlyFlowDetails {
   isRetired: boolean;
 }
 
+function resolveIncomeWindow(
+  plan: RetirementPlan,
+  income: RetirementPlan['incomes'][number],
+  projectionEndYear: number,
+): { effectiveStartYear: number; effectiveEndYear: number } {
+  const retirementYear = plan.birthYear + plan.retirementAge;
+  const effectiveStartYear =
+    income.startYearMode === 'LINKED_TO_RETIREMENT' ? retirementYear : income.startYear;
+
+  const effectiveEndYear = income.lifelong
+    ? projectionEndYear
+    : income.endYearMode === 'LINKED_TO_RETIREMENT'
+      ? retirementYear
+      : (income.endYear ?? effectiveStartYear);
+
+  return {
+    effectiveStartYear,
+    effectiveEndYear,
+  };
+}
+
 /**
  * Shared logic for calculating financial flows for a specific year.
  */
@@ -41,20 +56,31 @@ function calculateYearlyFlowDetails(plan: RetirementPlan, year: number): YearlyF
   const expenseBreakdown: Array<{ name: string; amount: number }> = [];
 
   // 1. Calculate Income — build per-income map for SALARY_PERCENTAGE expense linking
-  const yearlyIncomeMap = new Map<string, number>();
+  const currentAge = plan.currentYear - plan.birthYear;
+  const projectionEndYear = plan.currentYear + (plan.lifeExpectancy - currentAge);
+  const activeIncomes = plan.incomes.filter((income) => {
+    const { effectiveStartYear, effectiveEndYear } = resolveIncomeWindow(
+      plan,
+      income,
+      projectionEndYear,
+    );
+    return year >= effectiveStartYear && year <= effectiveEndYear;
+  });
+
+  const yearlyIncomeMap = calculateYearlyIncomes(activeIncomes, year, plan.currentYear);
   let totalIncome = 0;
   let totalSalary = 0;
-  plan.incomes.forEach((income) => {
-    if (year >= income.startYear && year <= income.endYear) {
-      const yearsGrowth = year - plan.currentYear;
-      const amount = calculateFutureValue(income.baseAmount, income.growthRate, yearsGrowth);
-      yearlyIncomeMap.set(income.id, amount);
-      totalIncome += amount;
-      incomeBreakdown.push({ name: income.name, amount });
+  activeIncomes.forEach((income) => {
+    const amount = yearlyIncomeMap.get(income.id) ?? 0;
+    if (amount <= 0) {
+      return;
+    }
 
-      if (income.type === 'salary') {
-        totalSalary += amount;
-      }
+    totalIncome += amount;
+    incomeBreakdown.push({ name: income.name, amount });
+
+    if (income.type === 'salary') {
+      totalSalary += amount;
     }
   });
 
