@@ -25,7 +25,7 @@ Validation baseline:
 - Production build: passed.
 - Docker Compose configuration and diff checks: passed.
 
-Issue #38 remains open pending final GitHub bookkeeping.
+Issue #38 was closed after final validation and GitHub bookkeeping.
 
 ## Completed Since Checkpoint
 
@@ -46,11 +46,30 @@ Issue #38 remains open pending final GitHub bookkeeping.
    rules, application behavior, atomic persistence, concurrency, replay, conflict,
    independent keys, and failure cleanup.
 
+### #47 Allocation composite creation
+
+- `INCOME` and `EXPENSE` creation with Allocation now uses one application command
+   for the Transaction, deterministic Allocation, source link, and successful
+   operation result.
+- Caller-generated idempotency keys support same-payload replay and stable
+   different-payload conflict handling; failed validation and durable writes leave
+   no partial command data.
+- The transaction form reuses one key for an unchanged retry and keeps ordinary
+   no-Allocation Transaction creation on its existing path. Income template
+   persistence remains a separate UI-assistance operation.
+- Application, domain fingerprint, UI retry, and Firebase Emulator coverage was
+   added for permission ordering, validation, INCOME/EXPENSE persistence,
+   deterministic identity, rollback, replay, and concurrent retry.
+
 ## Remaining Implementation
 
 No implementation remains from the #43–#46 dependency chain.
 
-The earlier checkpoint listed these issues in order:
+The next planned work is documented in [Post-#40 Roadmap](post-40-roadmap.md).
+The next slice is #48, replacing the current Allocation atomically while keeping
+the source Transaction unchanged.
+
+The completed checkpoint listed these issues in order:
 
 1. **#43: Architecture ADR**
    - Define command atomicity and retry policy.
@@ -83,8 +102,9 @@ Dependency order:
 #38 tooling  ->  #43 ADR  ->  #44 validation  ->  #45 atomic persistence  ->  #46 idempotency
 ```
 
-The full acceptance criteria remain in the corresponding GitHub issues. Do not
-close an issue until its acceptance criteria and focused validation are complete.
+The historical acceptance criteria remain in the corresponding GitHub issues. New
+work should follow [ADR-0038](adr/0038-command-atomicity-and-retry-policy.md) and
+[ADR-0039](adr/0039-allocation-atomicity-and-identity.md) before implementation.
 
 ## Continue In The Development Container
 
@@ -125,4 +145,4 @@ listed in [the development guide](development-guide.md).
 - Review base commit: `4b82e42`
 - The #38 tooling changes and #43–#46 Debt Payment implementation are committed
    after final validation; issue status is managed separately in GitHub.
-- `CONTEXT.md`: existing untracked domain glossary; preserve it
+- Current committed baseline: `43b2017 feat: make debt payments atomic and idempotent`

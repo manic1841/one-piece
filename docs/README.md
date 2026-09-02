@@ -17,18 +17,23 @@
    - 代碼風格建議與品質要求。
 
 4. **[實作進度 (Implementation Status)](/docs/implementation-status.md)**
-   - 目前已完成的 tooling 與 Docker 開發環境。
-   - 尚未完成的 GitHub tickets、依賴順序與 container 續作指令。
+   - 目前已完成的 tooling、Debt Payment vertical slice 與驗證結果。
+   - 已完成與後續 roadmap 的狀態索引。
 
-5. **[財務報表計算邏輯 (Financial Report)](/docs/financial_report.md)**
+5. **[Post-#40 Roadmap](/docs/post-40-roadmap.md)**
+   - Phase 0 + Phase 1 完成後的 follow-up 優先順序。
+   - Allocation atomicity、retirement consistency、persistence/access 與 UI/E2E
+     的切片邊界。
+
+6. **[財務報表計算邏輯 (Financial Report)](/docs/financial_report.md)**
    - 損益表、資產負債表與現金流量表的產生原理。
    - 不同會計層級的資料來源說明。
 
-6. **[退休系統設計 (Retirement System)](/docs/retirement-system.md)**
+7. **[退休系統設計 (Retirement System)](/docs/retirement-system.md)**
    - 退休資料模型與收入流 (`incomeStreams`) 子集合規格。
    - 從交易分錄 (`Transaction.entries`) 導入收入的完整流程。
 
-7. **[架構決策紀錄 (ADR)](/docs/adr/)**
+8. **[架構決策紀錄 (ADR)](/docs/adr/)**
    - 架構與業務取捨的唯一決策來源。
    - 各功能文件只保留流程、結構索引與操作說明，遇到規則差異時以 ADR 為準。
 

@@ -16,5 +16,6 @@ export default defineConfig({
     environment: 'jsdom',
     setupFiles: './vitest.integration.setup.ts',
     include: ['src/**/*.integration.test.{ts,tsx}'],
+    fileParallelism: false,
   },
 });

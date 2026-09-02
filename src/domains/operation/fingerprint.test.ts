@@ -3,7 +3,10 @@ import { describe, expect, it } from 'vitest';
 import {
   DEBT_PAYMENT_FINGERPRINT_VERSION,
   DEBT_PAYMENT_OPERATION_TYPE,
+  TRANSACTION_WITH_ALLOCATION_FINGERPRINT_VERSION,
+  TRANSACTION_WITH_ALLOCATION_OPERATION_TYPE,
   createDebtPaymentFingerprint,
+  createTransactionWithAllocationFingerprint,
 } from './fingerprint';
 
 const baseInput = {
@@ -48,5 +51,72 @@ describe('createDebtPaymentFingerprint', () => {
     ]);
 
     expect(changed.every((fingerprint) => fingerprint !== base)).toBe(true);
+  });
+});
+
+const transactionWithAllocationInput = {
+  transaction: {
+    date: new Date(2026, 8, 2, 8),
+    description: '  September   salary  ',
+    intent: 'SALARY',
+    intentType: 'INCOME',
+    amount: 10000,
+    projectId: null,
+    entries: [
+      { ledgerCode: 'asset:cash', debit: 10000, credit: 0 },
+      { ledgerCode: 'income:salary:charles', debit: 0, credit: 10000 },
+    ],
+  },
+  allocation: {
+    direction: 'INCOME' as const,
+    items: [{ projectId: 'project-1', percentage: 100 }],
+  },
+} as const;
+
+describe('createTransactionWithAllocationFingerprint', () => {
+  it('normalizes description and time within the same calendar date', async () => {
+    const first = await createTransactionWithAllocationFingerprint(
+      transactionWithAllocationInput,
+    );
+    const second = await createTransactionWithAllocationFingerprint({
+      ...transactionWithAllocationInput,
+      transaction: {
+        ...transactionWithAllocationInput.transaction,
+        date: new Date(2026, 8, 2, 23, 59),
+        description: 'September salary',
+      },
+    });
+
+    expect(second).toBe(first);
+  });
+
+  it('changes when an operation-affecting transaction or allocation input changes', async () => {
+    const base = await createTransactionWithAllocationFingerprint(
+      transactionWithAllocationInput,
+    );
+    const changed = await Promise.all([
+      createTransactionWithAllocationFingerprint({
+        ...transactionWithAllocationInput,
+        transaction: { ...transactionWithAllocationInput.transaction, amount: 11000 },
+      }),
+      createTransactionWithAllocationFingerprint({
+        ...transactionWithAllocationInput,
+        transaction: { ...transactionWithAllocationInput.transaction, projectId: 'project-1' },
+      }),
+      createTransactionWithAllocationFingerprint({
+        ...transactionWithAllocationInput,
+        allocation: {
+          direction: 'INCOME',
+          items: [{ projectId: 'project-2', percentage: 100 }],
+        },
+      }),
+    ]);
+
+    expect(changed.every((fingerprint) => fingerprint !== base)).toBe(true);
+  });
+
+  it('uses the versioned operation identity', () => {
+    expect(TRANSACTION_WITH_ALLOCATION_OPERATION_TYPE).toBe('TRANSACTION_WITH_ALLOCATION');
+    expect(TRANSACTION_WITH_ALLOCATION_FINGERPRINT_VERSION).toBe(1);
   });
 });

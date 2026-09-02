@@ -200,6 +200,18 @@ export const mapTransactionVMToAllocationData = (
   items: { projectId: string; percentage: number }[];
   direction: 'INCOME' | 'EXPENSE';
 } | null => {
+  const allocation = mapTransactionVMToAllocationInput(vm);
+  return allocation ? { transactionId, ...allocation } : null;
+};
+
+export const mapTransactionVMToAllocationInput = (
+  vm: TransactionFormVM,
+): {
+  transactionDate: Date;
+  totalAmount: number;
+  items: { projectId: string; percentage: number }[];
+  direction: 'INCOME' | 'EXPENSE';
+} | null => {
   if (!vm.triggerAllocation) {
     return null;
   }
@@ -213,7 +225,6 @@ export const mapTransactionVMToAllocationData = (
   }
 
   return {
-    transactionId,
     transactionDate: toDate(vm.date),
     totalAmount: vm.amount,
     items: vm.allocationItems,

@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { createDebtPaymentUseCase } from '@/application/debt/use_cases/createDebtPaymentUseCase';
 import { listDebtAccountsUseCase } from '@/application/debt/use_cases/listDebtAccountsUseCase';
 import { updateDebtAccountUseCase } from '@/application/debt/use_cases/updateDebtAccountUseCase';
-import { createAllocationUseCase } from '@/application/ledger/use_cases/createAllocationUseCase';
+import { createTransactionWithAllocationUseCase } from '@/application/ledger/use_cases/createTransactionWithAllocationUseCase';
 import { createTransactionUseCase } from '@/application/ledger/use_cases/createTransactionUseCase';
 import { getIncomeAllocationTemplateUseCase } from '@/application/ledger/use_cases/getIncomeAllocationTemplateUseCase';
 import { updateTransactionUseCase } from '@/application/ledger/use_cases/updateTransactionUseCase';
@@ -24,6 +24,7 @@ import {
 } from '@/ui/features/transaction/types/transaction';
 import {
   type TransactionFormVM,
+  mapTransactionVMToAllocationInput,
   mapTransactionVMToAllocationData,
   mapTransactionVMToDomain,
   parseTransactionFormVM,
@@ -75,6 +76,11 @@ type DebtPaymentAttempt = {
   idempotencyKey: string;
 };
 
+type TransactionWithAllocationAttempt = {
+  signature: string;
+  idempotencyKey: string;
+};
+
 const getDebtPaymentAttemptSignature = (vm: TransactionFormVM): string =>
   JSON.stringify({
     debtAccountId: vm.debtAccountId,
@@ -82,6 +88,19 @@ const getDebtPaymentAttemptSignature = (vm: TransactionFormVM): string =>
     date: vm.date,
     description: normalizeDescription(vm.description),
     projectId: vm.projectId ?? null,
+  });
+
+const getTransactionWithAllocationAttemptSignature = (vm: TransactionFormVM): string =>
+  JSON.stringify({
+    intentType: vm.intentType,
+    intent: vm.intent ?? null,
+    date: vm.date,
+    amount: vm.amount,
+    ledgerCode: vm.ledgerCode ?? null,
+    description: normalizeDescription(vm.description),
+    projectId: vm.projectId ?? null,
+    allocationDirection: vm.allocationDirection ?? null,
+    allocationItems: vm.allocationItems ?? [],
   });
 
 export const useTransactionForm = (
@@ -96,6 +115,7 @@ export const useTransactionForm = (
   const [settlementPrompt, setSettlementPrompt] = useState<SettlementPrompt | null>(null);
   const incomeTemplateCacheRef = useRef<Map<string, AllocationItemInput[] | null>>(new Map());
   const debtPaymentAttemptRef = useRef<DebtPaymentAttempt | null>(null);
+  const transactionWithAllocationAttemptRef = useRef<TransactionWithAllocationAttempt | null>(null);
   const { codes: allActiveLedgerCodes } = useLedgerCodes(false);
 
   const getDebtPaymentIdempotencyKey = (vm: TransactionFormVM): string => {
@@ -106,6 +126,17 @@ export const useTransactionForm = (
 
     const idempotencyKey = globalThis.crypto.randomUUID();
     debtPaymentAttemptRef.current = { signature, idempotencyKey };
+    return idempotencyKey;
+  };
+
+  const getTransactionWithAllocationIdempotencyKey = (vm: TransactionFormVM): string => {
+    const signature = getTransactionWithAllocationAttemptSignature(vm);
+    if (transactionWithAllocationAttemptRef.current?.signature === signature) {
+      return transactionWithAllocationAttemptRef.current.idempotencyKey;
+    }
+
+    const idempotencyKey = globalThis.crypto.randomUUID();
+    transactionWithAllocationAttemptRef.current = { signature, idempotencyKey };
     return idempotencyKey;
   };
 
@@ -150,22 +181,12 @@ export const useTransactionForm = (
     [householdId],
   );
 
-  const executeAllocation = async (input: {
+  const persistIncomeAllocationTemplate = async (input: {
     vm: TransactionFormVM;
-    transactionId: string;
+    items: AllocationItemInput[];
     userEmail: string;
   }) => {
-    const { vm, transactionId, userEmail } = input;
-
-    const allocationData = mapTransactionVMToAllocationData(vm, transactionId);
-    if (!allocationData) return;
-
-    await createAllocationUseCase.execute({
-      householdId,
-      userEmail,
-      data: allocationData,
-    });
-
+    const { vm, items, userEmail } = input;
     if (vm.intentType !== IntentType.INCOME || !vm.ledgerCode?.startsWith('income:')) {
       return;
     }
@@ -175,10 +196,10 @@ export const useTransactionForm = (
         householdId,
         userEmail,
         ledgerCode: vm.ledgerCode,
-        items: allocationData.items,
+        items,
       });
 
-      incomeTemplateCacheRef.current.set(vm.ledgerCode, allocationData.items);
+      incomeTemplateCacheRef.current.set(vm.ledgerCode, items);
     } catch (templateError) {
       logger.warn('Failed to persist income allocation template', 'useTransactionForm', {
         templateError,
@@ -236,21 +257,42 @@ export const useTransactionForm = (
           userProfile.email,
         );
       } else {
-        const transactionId = await createTransactionUseCase.execute({
-          householdId,
-          userEmail: userProfile.email,
-          data: mapTransactionVMToDomain(vm, userProfile.email),
-        });
+        const transactionData = mapTransactionVMToDomain(vm, userProfile.email);
+        const allocationData = mapTransactionVMToAllocationInput(vm);
 
-        await executeAllocation({
-          vm,
-          transactionId,
-          userEmail: userProfile.email,
-        });
+        if (allocationData) {
+          await createTransactionWithAllocationUseCase.execute({
+            householdId,
+            userEmail: userProfile.email,
+            auth: {
+              uid: currentUser?.uid ?? '',
+              isGlobalAdmin: isAdmin ?? false,
+            },
+            idempotencyKey: getTransactionWithAllocationIdempotencyKey(vm),
+            data: transactionData,
+            allocation: {
+              direction: allocationData.direction,
+              items: allocationData.items,
+            },
+          });
+
+          await persistIncomeAllocationTemplate({
+            vm,
+            items: allocationData.items,
+            userEmail: userProfile.email,
+          });
+        } else {
+          await createTransactionUseCase.execute({
+            householdId,
+            userEmail: userProfile.email,
+            data: transactionData,
+          });
+        }
       }
 
       onClose();
       debtPaymentAttemptRef.current = null;
+      transactionWithAllocationAttemptRef.current = null;
       if (onSuccess) onSuccess();
     } catch (err: unknown) {
       if (err instanceof z.ZodError) {

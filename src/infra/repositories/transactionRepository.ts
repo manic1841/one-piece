@@ -49,6 +49,10 @@ class TransactionRepository extends BaseRepository<Transaction, [string, string?
     return TransactionSchema;
   }
 
+  generateId(householdId: string): string {
+    return doc(this.getCollectionRef(householdId)).id;
+  }
+
   // Override create to auto-extract ledgerCodes and accountIds
   async create(
     args: [string, string?],

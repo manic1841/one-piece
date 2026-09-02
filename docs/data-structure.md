@@ -136,7 +136,7 @@ firestore
        │         │    ├─ sampleCount?: number
        │         │    └─ importedAt?: string
        │         └─ note?: string
-       ├─ allocations/{allocationId}     # 專案資金分配
+      ├─ allocations/{allocationId}     # 專案資金分配；新建資料的 ID = sourceTransactionId
        │    ├─ sourceTransactionId: string
        │    ├─ direction: "INCOME" | "EXPENSE"
        │    ├─ yearMonth: string         # YYYY-MM
@@ -173,7 +173,7 @@ firestore
        │    ├─ createdAt: Timestamp
        │    ├─ ledgerCodes: string[]      # 索引最佳化 (用於報表查詢)
 
-      ├─ operations/{operationRecordId}  # household-scoped command retry record
+      ├─ operations/{operationRecordId}  # household-scoped command retry record；operation type + key 穩定映射
       │    ├─ operationType: string
       │    ├─ idempotencyKey: string
       │    ├─ fingerprintVersion: number

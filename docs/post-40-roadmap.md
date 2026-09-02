@@ -1,0 +1,116 @@
+# Post-#40 Roadmap
+
+## Baseline
+
+Issue #40 的第一步定義為 Phase 0 + Phase 1，已在 commit `43b2017` 完成：
+
+- Phase 0：unit/integration boundary、Emulator preflight/reset failure、read-only
+  lint、CI/Docker development baseline。
+- Phase 1：Debt Payment validation、strict grace-period behavior、atomic
+  persistence、optimistic concurrency、idempotency 與 operation record。
+
+本文件只規劃後續工作，不在本文件中混入 production code。第一個可執行切片的
+spec 已發布為 [issue #47](https://github.com/manic1841/one-piece/issues/47)；後續
+ticket 建立前，先依下列順序確認 domain invariant、command classification 與驗收
+邊界。
+
+## 1. Allocation Consistency
+
+來源：[issue #34](https://github.com/manic1841/one-piece/issues/34)、
+[issue #47](https://github.com/manic1841/one-piece/issues/47)、
+[issue #48](https://github.com/manic1841/one-piece/issues/48)、
+[ADR-0039](adr/0039-allocation-atomicity-and-identity.md)。這是下一個優先切片，
+分成兩個互相銜接但可獨立驗收的工作。
+
+### 1A. Create Transaction With Allocation — issue #47
+
+**目的**：讓初次建立帶分配的 `INCOME` / `EXPENSE` 成為一個可重試的 composite
+command。
+
+**邊界**：
+
+- Transaction、Allocation、`allocationId` link 與成功 operation result 同一個
+  Firestore transaction。
+- caller-generated idempotency key；same-key same-payload replay 回傳原結果，
+  different payload 回傳 stable conflict。
+- 任一驗證、寫入、競爭或 retry failure 不留下本次新建的任何資料。
+- 沒有 Allocation 的一般 Transaction 不受影響。
+- 新 Allocation ID 使用 `sourceTransactionId`，不把它當成 idempotency key。
+
+**必要測試**：application permission/validation/replay/conflict tests；Emulator
+成功 persistence、任一寫入 failure rollback、concurrent retry、operation record、
+ledger index 與 balanced entries。
+
+### 1B. Replace Current Allocation — issue #48
+
+**目的**：讓同一 `sourceTransactionId` 維持唯一 current Allocation，並安全支援
+重新分配。
+
+**邊界**：
+
+- Allocation 內容與 source Transaction link 同一 transaction 更新。
+- 不刪除或 rollback 已存在的 Transaction。
+- 同一 desired state 可安全重試；不同 desired state 是新的 replacement。
+- 新 deterministic ID、舊 random-ID fallback 與 lazy normalization 不可造成兩筆
+  current Allocation。
+- 只支援 `INCOME` / `EXPENSE`。
+
+**必要測試**：create/replace/no-allocation scenarios、legacy lookup、failure
+rollback、concurrent replacement、唯一 current Allocation 與 source link consistency。
+
+## 2. Retirement Consistency
+
+對應 #34 的第二個切片，依 [ADR-0036](adr/0036-single-active-retirement-plan.md)、
+[ADR-0030](adr/0030-retirement-update-batch-replace.md) 與
+[ADR-0031](adr/0031-retirement-delete-order.md) 先釐清：
+
+- plan activation 與 child replacement 的 transaction/batch boundary。
+- Firestore batch/transaction limit 到達時的 failure contract。
+- concurrent activation 下同一 household 只有一筆 active plan。
+- child replacement 失敗時，舊 child set 是否完整保留。
+
+先補 application 與 Emulator failure/concurrency tests，再決定是否需要新的 ADR。
+
+## 3. Reordering Contract
+
+針對 Account、Project、Portfolio reorder use cases，先選定 all-or-nothing 或明確
+允許 partial update；不能讓 `Promise.all` 的部分成功成為未文件化行為。確認排序
+是否屬於 atomic desired-state command 後，再補 repository transaction/batch boundary
+與 failure tests。
+
+## 4. Persistence And Access Boundaries
+
+依 #39 Phase 2 排序：
+
+1. Repository nested collection、query shape、timestamp conversion 與 cascade
+   behavior 的 Emulator tests。
+2. Firestore security rules authorization matrix。
+3. Household backup/restore round-trip、malformed payload、nested collection、
+   chunking 與 failure tests。
+4. Onboarding/auth initialization 與 application authorization rejection tests，
+   對應 #35、#37。
+
+## 5. Settlement, Reports And Retirement Import
+
+依 #39 Phase 3 處理 settlement readiness、report generation/storage 與 retirement
+import orchestration，分別對應 #32、#31 與 #30。每一個工作先確認 period boundary、
+source-versus-snapshot authority、retry classification 與 stored result identity。
+
+## 6. UI And End-to-End Confidence
+
+最後依 #39 Phase 4 補 complex hook 的 loading/error/retry/cancellation/double-submit
+coverage，再加入最小 browser smoke suite，涵蓋 onboarding、transaction entry、
+monthly settlement 與 report viewing。E2E 不取代 domain、application、Emulator
+boundary tests。
+
+## Ordering Rule
+
+後續切片遵循：
+
+```text
+domain invariant -> command classification -> application boundary
+-> Emulator persistence/failure test -> UI integration -> issue bookkeeping
+```
+
+任何會改變既有 ADR 定義的工作，必須先更新 ADR 與 regression tests；未完成前不
+建立實作 ticket。

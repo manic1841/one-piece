@@ -14,7 +14,7 @@ We replaced it with `TransactionForm` and a direct `IntentMapping` flow. This av
 2. **UI Controller (`useTransactionForm.ts`)**: The feature hook receives `TransactionFormOutput`, validates the selected intent path, and converts it into the correct application action.
 3. **Intent Mapping / Ledger Selection**: Expense and income tabs still derive from `src/domains/ledger/intentMapping.ts`, but the UI now exposes normalized `ledgerCode` and `projectId` fields instead of invoking use cases directly.
 4. **Transaction Use Case / Project Service**: Standard balanced entries go through `createTransactionUseCase` (create) and `updateTransactionUseCase` (edit); project-to-project movement goes through `projectService.transferBetweenProjects`.
-5. **Allocation Trigger**: The income/expense form emits `triggerAllocation` plus allocation items. On create, the UI controller creates transaction first, then creates allocation and writes back `allocationId`. On edit, `updateTransactionUseCase` replaces the original allocation (if any) and rewrites `allocationId` atomically inside one Firestore transaction.
+5. **Allocation Trigger**: The income/expense form emits `triggerAllocation` plus allocation items. On create, the UI controller sends the normalized Transaction and Allocation payload to the dedicated composite command, which atomically creates the Transaction, deterministic Allocation, source `allocationId` link, and operation result. On edit, `updateTransactionUseCase` replaces the original allocation (if any) and rewrites `allocationId` atomically inside one Firestore transaction.
 6. **Income Allocation Template Prefill**: When an income `ledgerCode` is selected, the UI controller queries `allocationTemplates` by exact `ledgerCode`; if not found, it falls back to `isDefault == true`; if still not found, allocation stays blank.
 7. **Template Persistence**: After an income allocation is successfully created, the same allocation percentages are upserted into `allocationTemplates` for that `ledgerCode` as a convenience template. Historical allocations are not mutated.
 8. **Project Selection Rule**: `projectId` is optional for regular entries (expense, income, investment, financing, manual/transfer). Only `TRANSFER` requires both `fromProjectId` and `toProjectId`.
@@ -36,6 +36,7 @@ Allocation 的資料邊界與獨立集合決策見 [ADR-0011](adr/0011-allocatio
 - Allocation is supported on both `INCOME` and `EXPENSE` submissions.
 - When `triggerAllocation` is enabled, users must provide project allocation percentages totaling 100%.
 - Allocation record uses `sourceTransactionId`, `yearMonth` (`YYYY-MM`), and `direction` (`INCOME` or `EXPENSE`) derived from the source transaction.
+- A newly created Allocation uses its source Transaction ID as its deterministic document ID; the composite create command uses a caller-generated idempotency key separately for retry identity.
 - Project detail records must include allocation-derived entries, even when the source transaction has no `projectId`.
 - `AllocationTemplate` is UI assistance data only. Editing templates does not modify existing `allocations` records.
 
