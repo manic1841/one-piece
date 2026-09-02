@@ -44,7 +44,7 @@
 
 - **不要直接呼叫 Repository**: 除非是極其簡單的讀取，否則應透過 Use Case 排列組合業務邏輯。
 - **編排規則**: 不要讓 Hook 呼叫超過一個以上的 Use Case。
-- **嚴格型別**: 絕對禁止使用 `any`。所有資料流動應有清晰的介面定義。
+- **嚴格型別**: 正式程式碼絕對禁止使用 `any`。測試檔為了建立 mock 或 fixture，已由 ESLint 測試檔規則放寬 `no-explicit-any`；能使用 `unknown`、具體型別或 typed helper 時仍應優先使用。
 - **單一職責**: 一個 Use Case 文件只做一件事（例如：`recordTransactionUseCase.ts` 只負責記錄交易）。
 - **表單一致性**: 表單資料必須先映射到 ViewModel，再由 mapper 轉換成 domain 型別。
 - **驗證一致性**: 所有新表單路徑統一採用 Zod schema，禁止分散式手寫驗證。
@@ -62,6 +62,7 @@
 - `pnpm test`: 執行不依賴 Firebase Emulator 的 unit tests。
 - `pnpm test:coverage`: 對相同的 unit test 範圍產生 text、JSON 與 HTML coverage 報告。
 - `pnpm test:integration`: 執行需要 Firebase Emulator 的 integration tests；執行前會檢查 emulator 是否可連線。
+- `pnpm exec tsc --noEmit -p tsconfig.test.json`: 驗證測試檔的 TypeScript project 設定與 `@/*` 路徑別名；此設定供 IDE 解析使用，不進行完整語意型別檢查。
 - `pnpm lint`: 執行唯讀 ESLint 檢查。
 - `pnpm lint:fix`: 明確執行 ESLint 自動修正。
 
