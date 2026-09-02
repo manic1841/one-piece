@@ -62,7 +62,7 @@
 - `pnpm test`: 執行不依賴 Firebase Emulator 的 unit tests。
 - `pnpm test:coverage`: 對相同的 unit test 範圍產生 text、JSON 與 HTML coverage 報告。
 - `pnpm test:integration`: 執行需要 Firebase Emulator 的 integration tests；執行前會檢查 emulator 是否可連線。
-- `pnpm exec tsc --noEmit -p tsconfig.test.json`: 驗證測試檔的 TypeScript project 設定與 `@/*` 路徑別名；此設定供 IDE 解析使用，不進行完整語意型別檢查。
+- `pnpm exec tsc --noEmit -p tsconfig.test.json`: 驗證測試檔的 TypeScript project 設定與 `@/*` 路徑別名；此 project 也由 root solution reference，供 IDE 解析使用，並以 declaration-only、no-check 方式納入 build graph，不進行完整語意型別檢查。
 - `pnpm lint`: 執行唯讀 ESLint 檢查。
 - `pnpm lint:fix`: 明確執行 ESLint 自動修正。
 
