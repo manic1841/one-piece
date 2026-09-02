@@ -1,4 +1,4 @@
-import { collection, doc, getDocs, limit, query, where } from 'firebase/firestore';
+import { collection, doc, getDocs, query, type Transaction, where } from 'firebase/firestore';
 
 import { type Allocation, AllocationSchema } from '@/domains/allocation/schemas';
 import { db } from '@/firebase';
@@ -33,16 +33,40 @@ class AllocationRepository extends BaseRepository<Allocation, [string, string?]>
     householdId: string,
     sourceTransactionId: string,
   ): Promise<Allocation | null> {
+    const allocations = await this.listBySourceTransactionId(householdId, sourceTransactionId);
+    return (
+      allocations.find((allocation) => allocation.id === sourceTransactionId) ??
+      allocations[0] ??
+      null
+    );
+  }
+
+  async listBySourceTransactionId(
+    householdId: string,
+    sourceTransactionId: string,
+  ): Promise<Allocation[]> {
     const q = query(
       this.getCollectionRef(householdId),
       where('sourceTransactionId', '==', sourceTransactionId),
-      limit(1),
     );
     const snap = await getDocs(q);
-    if (snap.empty) return null;
 
-    const allocation = this.convertFromFirestore(snap.docs[0].data());
-    return this.getDomainSchema().parse(allocation);
+    return snap.docs.map((allocationDoc) => {
+      const allocation = this.convertFromFirestore(allocationDoc.data());
+      return this.getDomainSchema().parse(allocation);
+    });
+  }
+
+  async getByIds(
+    householdId: string,
+    allocationIds: string[],
+    tx: Transaction,
+  ): Promise<Allocation[]> {
+    const uniqueIds = [...new Set(allocationIds.filter((allocationId) => allocationId.length > 0))];
+    const allocations = await Promise.all(
+      uniqueIds.map((allocationId) => this.get([householdId, allocationId], tx)),
+    );
+    return allocations.filter((allocation): allocation is Allocation => allocation !== null);
   }
 
   async listByProject(

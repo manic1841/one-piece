@@ -46,6 +46,10 @@ ledger index 與 balanced entries。
 **目的**：讓同一 `sourceTransactionId` 維持唯一 current Allocation，並安全支援
 重新分配。
 
+**狀態**：已完成。`replaceAllocationUseCase` 與既有交易編輯流程共用同一個
+Firestore transaction replacement helper；source Transaction 的財務欄位不會被
+重新建立或刪除。
+
 **邊界**：
 
 - Allocation 內容與 source Transaction link 同一 transaction 更新。
@@ -55,7 +59,7 @@ ledger index 與 balanced entries。
   current Allocation。
 - 只支援 `INCOME` / `EXPENSE`。
 
-**必要測試**：create/replace/no-allocation scenarios、legacy lookup、failure
+**驗證**：已涵蓋 create/replace/no-allocation scenarios、legacy lookup、failure
 rollback、concurrent replacement、唯一 current Allocation 與 source link consistency。
 
 ## 2. Retirement Consistency

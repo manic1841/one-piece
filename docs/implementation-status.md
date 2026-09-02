@@ -61,13 +61,30 @@ Issue #38 was closed after final validation and GitHub bookkeeping.
    added for permission ordering, validation, INCOME/EXPENSE persistence,
    deterministic identity, rollback, replay, and concurrent retry.
 
+### #48 Allocation replacement
+
+- Existing `INCOME` and `EXPENSE` Transactions can replace their current
+   Allocation as an atomic desired-state command without recreating or rolling
+   back the financial source.
+- Deterministic Allocation documents are updated in place; unallocated sources
+   are allocated with `sourceTransactionId` as the document ID.
+- Legacy random-ID Allocations are discovered by `sourceTransactionId`, then
+   normalized in the same transaction. Duplicate current records are removed so
+   the source keeps one Allocation and one deterministic link.
+- Stable application errors reject invalid payloads, unsupported intent types,
+   and missing source Transactions before durable mutation. Firestore optimistic
+   concurrency and rollback preserve the prior state on failed replacement.
+- Application and Firebase Emulator coverage covers unallocated creation,
+   replacement, repeated desired state, expense direction, legacy normalization,
+   duplicate cleanup, rollback, concurrent replacement, and source-link
+   consistency.
+
 ## Remaining Implementation
 
-No implementation remains from the #43–#46 dependency chain.
+No implementation remains from the #43–#48 dependency chain.
 
 The next planned work is documented in [Post-#40 Roadmap](post-40-roadmap.md).
-The next slice is #48, replacing the current Allocation atomically while keeping
-the source Transaction unchanged.
+The next slice is Retirement Consistency as described in that roadmap.
 
 The completed checkpoint listed these issues in order:
 

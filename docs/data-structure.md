@@ -136,7 +136,7 @@ firestore
        │         │    ├─ sampleCount?: number
        │         │    └─ importedAt?: string
        │         └─ note?: string
-      ├─ allocations/{allocationId}     # 專案資金分配；新建資料的 ID = sourceTransactionId
+      ├─ allocations/{allocationId}     # 專案資金分配；新建資料的 ID = sourceTransactionId；legacy random ID 以 sourceTransactionId fallback 並在取代時 lazy normalize
        │    ├─ sourceTransactionId: string
        │    ├─ direction: "INCOME" | "EXPENSE"
        │    ├─ yearMonth: string         # YYYY-MM

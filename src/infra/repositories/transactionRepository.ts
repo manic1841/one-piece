@@ -4,6 +4,8 @@ import {
   doc,
   limit,
   orderBy,
+  serverTimestamp,
+  updateDoc,
   where,
 } from 'firebase/firestore';
 
@@ -130,7 +132,18 @@ class TransactionRepository extends BaseRepository<Transaction, [string, string?
     userEmail: string,
     tx?: FirestoreTransaction,
   ): Promise<void> {
-    await this.update([householdId, transactionId], { allocationId }, userEmail, tx);
+    const docRef = this.getDocRef(householdId, transactionId);
+    const payload = {
+      allocationId,
+      updatedBy: userEmail,
+      updatedAt: serverTimestamp(),
+    };
+
+    if (tx) {
+      tx.update(docRef, payload);
+    } else {
+      await updateDoc(docRef, payload);
+    }
   }
 
   async getById(householdId: string, transactionId: string): Promise<Transaction | null> {
