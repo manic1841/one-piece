@@ -1,13 +1,15 @@
+import {
+  RetirementPlanCommandError,
+  RetirementPlanCommandErrorCode,
+} from '@/application/retirement/retirementPlanErrors';
 import { householdPermissionService } from '@/application/household/householdPermissionService';
+import { type AuthContext } from '@/application/types';
 import { retirementRepository } from '@/infra/repositories/retirementRepository';
 
 interface DeleteRetirementPlanRequest {
   householdId: string;
   planId: string;
-  auth: {
-    uid: string;
-    isGlobalAdmin: boolean;
-  };
+  auth: AuthContext;
 }
 
 export class DeleteRetirementPlanUseCase {
@@ -20,7 +22,18 @@ export class DeleteRetirementPlanUseCase {
       auth.isGlobalAdmin,
     );
 
-    return retirementRepository.deletePlan(householdId, planId);
+    try {
+      await retirementRepository.deletePlanAtomically({ householdId, planId });
+    } catch (error: unknown) {
+      if (error instanceof RetirementPlanCommandError) throw error;
+
+      const message =
+        error instanceof Error ? error.message : 'unknown transaction failure';
+      throw new RetirementPlanCommandError(
+        RetirementPlanCommandErrorCode.TRANSACTION_FAILED,
+        message,
+      );
+    }
   }
 }
 

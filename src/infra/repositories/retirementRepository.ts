@@ -1,5 +1,19 @@
-import { collection, deleteDoc, doc, getDocs, orderBy, writeBatch } from 'firebase/firestore';
+import {
+  collection,
+  deleteDoc,
+  doc,
+  getDocs,
+  orderBy,
+  runTransaction,
+  type Transaction,
+  writeBatch,
+} from 'firebase/firestore';
 
+import {
+  RetirementPlanCommandError,
+  RetirementPlanCommandErrorCode,
+  RETIREMENT_PLAN_TRANSACTION_WRITE_LIMIT,
+} from '@/application/retirement/retirementPlanErrors';
 import {
   RetirementExpenseCategorySchema,
   RetirementIncomeSourceSchema,
@@ -191,6 +205,208 @@ class RetirementRepository extends BaseRepository<RetirementPlan, [string, strin
   // Lightweight list for plan index pages. Avoids N+1 reads on subcollections.
   async getPlanSummaries(householdId: string): Promise<RetirementPlan[]> {
     return this.list([householdId], [orderBy('updatedAt', 'desc')]);
+  }
+
+  async createPlanAtomically(input: {
+    householdId: string;
+    plan: RetirementPlanCreate;
+    userEmail: string;
+    existingPlans: RetirementPlan[];
+  }): Promise<string> {
+    const { householdId, plan, userEmail, existingPlans } = input;
+    const { incomes, expenses, ...planWithoutCollections } = plan;
+
+    return runTransaction(this.db, async (tx) => {
+      const writeCount =
+        1 + incomes.length + expenses.length + Math.max(existingPlans.length - 1, 0);
+      if (writeCount > RETIREMENT_PLAN_TRANSACTION_WRITE_LIMIT) {
+        throw new RetirementPlanCommandError(
+          RetirementPlanCommandErrorCode.PLAN_TOO_LARGE,
+          `plan write count ${writeCount} exceeds the transaction limit ${RETIREMENT_PLAN_TRANSACTION_WRITE_LIMIT}`,
+        );
+      }
+
+      const planRef = doc(this.getCollectionRef(householdId));
+      const planId = planRef.id;
+
+      tx.set(
+        planRef,
+        this.convertToFirestore({
+          ...(stripUndefinedDeep(planWithoutCollections) as RetirementPlanCreate),
+          id: planId,
+          createdBy: userEmail,
+          updatedBy: userEmail,
+        } as RetirementPlan),
+      );
+      this.writeChildrenInTransaction(householdId, planId, userEmail, incomes, expenses, tx);
+
+      for (const activePlan of existingPlans) {
+        if (activePlan.id === planId) continue;
+        tx.update(this.getDocRef(householdId, activePlan.id), {
+          isActive: false,
+          updatedAt: new Date(),
+          updatedBy: userEmail,
+        });
+      }
+
+      return planId;
+    });
+  }
+
+  async updatePlanAtomically(input: {
+    householdId: string;
+    planId: string;
+    updates: Partial<RetirementPlanCreate>;
+    userEmail: string;
+    existingPlans: RetirementPlan[];
+  }): Promise<void> {
+    const { householdId, planId, updates, userEmail, existingPlans } = input;
+    const { incomes, expenses, ...planUpdates } = updates;
+
+    // Preflight outside the transaction: getDocs inside runTransaction poisons
+    // the read set on this SDK version and silently drops later writes.
+    const staleIncomeDocs = incomes
+      ? await getDocs(this.getIncomeStreamsCollectionRef(householdId, planId))
+      : null;
+    const staleExpenseDocs = expenses
+      ? await getDocs(this.getExpenseCategoriesCollectionRef(householdId, planId))
+      : null;
+
+    await runTransaction(this.db, async (tx) => {
+      const existingPlan = await this.get([householdId, planId], tx);
+      if (!existingPlan) {
+        throw new RetirementPlanCommandError(
+          RetirementPlanCommandErrorCode.PLAN_NOT_FOUND,
+          'Retirement plan not found.',
+        );
+      }
+
+      const fanOutTargets = updates.isActive === true ? existingPlans : [];
+      const writeCount =
+        1 + (incomes?.length ?? 0) + (expenses?.length ?? 0) + Math.max(fanOutTargets.length - 1, 0);
+      if (writeCount > RETIREMENT_PLAN_TRANSACTION_WRITE_LIMIT) {
+        throw new RetirementPlanCommandError(
+          RetirementPlanCommandErrorCode.PLAN_TOO_LARGE,
+          `plan write count ${writeCount} exceeds the transaction limit ${RETIREMENT_PLAN_TRANSACTION_WRITE_LIMIT}`,
+        );
+      }
+
+      if (Object.keys(planUpdates).length > 0) {
+        tx.update(
+          this.getDocRef(householdId, planId),
+          this.convertToFirestore({
+            ...(stripUndefinedDeep(planUpdates) as Partial<RetirementPlanCreate>),
+            id: planId,
+            createdBy: existingPlan.createdBy,
+            updatedBy: userEmail,
+          } as RetirementPlan),
+        );
+      }
+
+      if (staleIncomeDocs) {
+        for (const staleDoc of staleIncomeDocs.docs) {
+          tx.delete(staleDoc.ref);
+        }
+      }
+      if (staleExpenseDocs) {
+        for (const staleDoc of staleExpenseDocs.docs) {
+          tx.delete(staleDoc.ref);
+        }
+      }
+      this.writeChildrenInTransaction(householdId, planId, userEmail, incomes ?? [], expenses ?? [], tx);
+
+      if (updates.isActive === true) {
+        for (const activePlan of fanOutTargets) {
+          if (activePlan.id === planId) continue;
+          tx.update(this.getDocRef(householdId, activePlan.id), {
+            isActive: false,
+            updatedAt: new Date(),
+            updatedBy: userEmail,
+          });
+        }
+      }
+    });
+  }
+
+  async deletePlanAtomically(input: {
+    householdId: string;
+    planId: string;
+  }): Promise<void> {
+    const { householdId, planId } = input;
+
+    // Preflight outside the transaction (see updatePlanAtomically note).
+    const incomeDocs = await getDocs(this.getIncomeStreamsCollectionRef(householdId, planId));
+    const expenseDocs = await getDocs(
+      this.getExpenseCategoriesCollectionRef(householdId, planId),
+    );
+    const writeCount = 1 + incomeDocs.docs.length + expenseDocs.docs.length;
+    if (writeCount > RETIREMENT_PLAN_TRANSACTION_WRITE_LIMIT) {
+      throw new RetirementPlanCommandError(
+        RetirementPlanCommandErrorCode.PLAN_TOO_LARGE,
+        `plan write count ${writeCount} exceeds the transaction limit ${RETIREMENT_PLAN_TRANSACTION_WRITE_LIMIT}`,
+      );
+    }
+
+    await runTransaction(this.db, async (tx) => {
+      const existingPlan = await this.get([householdId, planId], tx);
+      if (!existingPlan) {
+        throw new RetirementPlanCommandError(
+          RetirementPlanCommandErrorCode.PLAN_NOT_FOUND,
+          'Retirement plan not found.',
+        );
+      }
+
+      for (const incomeDoc of incomeDocs.docs) {
+        tx.delete(incomeDoc.ref);
+      }
+      for (const expenseDoc of expenseDocs.docs) {
+        tx.delete(expenseDoc.ref);
+      }
+      tx.delete(this.getDocRef(householdId, planId));
+    });
+  }
+
+  private writeChildrenInTransaction(
+    householdId: string,
+    planId: string,
+    userEmail: string,
+    incomes: RetirementIncomeSource[],
+    expenses: RetirementExpenseCategory[],
+    tx: Transaction,
+  ): void {
+    for (const income of incomes) {
+      const docRef = doc(
+        this.getIncomeStreamsCollectionRef(householdId, planId),
+        income.id,
+      );
+      const converted = this.convertDateToTimestamp(income) as Record<string, unknown>;
+      tx.set(
+        docRef,
+        stripUndefinedDeep({
+          ...converted,
+          id: income.id,
+          updatedAt: new Date(),
+          updatedBy: userEmail,
+        }),
+      );
+    }
+
+    for (const expense of expenses) {
+      const docRef = doc(
+        this.getExpenseCategoriesCollectionRef(householdId, planId),
+        expense.id,
+      );
+      const converted = this.convertDateToTimestamp(expense) as Record<string, unknown>;
+      tx.set(
+        docRef,
+        stripUndefinedDeep({
+          ...converted,
+          id: expense.id,
+          updatedAt: new Date(),
+          updatedBy: userEmail,
+        }),
+      );
+    }
   }
 
   async getPlan(householdId: string, id: string): Promise<RetirementPlan | null> {

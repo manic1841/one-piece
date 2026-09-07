@@ -10,6 +10,7 @@ import { mapRetirementPlanToListItemVM } from '@/ui/features/retirement/viewmode
 export const useRetirementPlanListPage = (householdId?: string, email?: string) => {
   const navigate = useNavigate();
   const [plans, setPlans] = useState<RetirementPlan[]>([]);
+  const [mutating, setMutating] = useState(false);
   const { listPlans, loading, error } = useRetirementPlans(householdId);
   const { createPlan, deletePlan, duplicatePlan } = useRetirementPlanCmds(householdId, email);
 
@@ -26,7 +27,7 @@ export const useRetirementPlanListPage = (householdId?: string, email?: string) 
   }, [fetchPlans]);
 
   const handleCreatePlan = async () => {
-    if (!householdId || !email) return;
+    if (!householdId || !email || mutating) return;
 
     // Create a default plan
     const newPlan: RetirementPlanCreate = {
@@ -47,12 +48,15 @@ export const useRetirementPlanListPage = (householdId?: string, email?: string) 
     };
 
     try {
+      setMutating(true);
       const id = await createPlan(newPlan);
       if (id) {
         navigate(`/retirement/${id}`);
       }
     } catch (err) {
       console.error('Failed to create plan', err);
+    } finally {
+      setMutating(false);
     }
   };
 
@@ -67,8 +71,9 @@ export const useRetirementPlanListPage = (householdId?: string, email?: string) 
   };
 
   const handleDuplicatePlan = async (id: string) => {
-    if (!householdId || !email) return;
+    if (!householdId || !email || mutating) return;
     try {
+      setMutating(true);
       const duplicatedId = await duplicatePlan(id);
       if (duplicatedId) {
         navigate(`/retirement/${duplicatedId}`);
@@ -76,6 +81,8 @@ export const useRetirementPlanListPage = (householdId?: string, email?: string) 
       await fetchPlans();
     } catch (err) {
       console.error('Failed to duplicate plan', err);
+    } finally {
+      setMutating(false);
     }
   };
 
@@ -85,6 +92,7 @@ export const useRetirementPlanListPage = (householdId?: string, email?: string) 
     listPlans, // This will be used as the data source (async fetch)
     loading,
     error,
+    mutating,
     createPlan: handleCreatePlan,
     deletePlan: handleDeletePlan,
     duplicatePlan: handleDuplicatePlan,
