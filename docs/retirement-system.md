@@ -88,11 +88,12 @@ Repository 與 Use Case 的規則集中在下表，本文不再複述決策理�
 | ----------------------------- | ---------------------------------------------------------- |
 | 摘要查詢避免 N+1              | [ADR-0029](adr/0029-plan-summaries-avoid-n-plus-1.md)      |
 | income/expense 子集合整批替換 | [ADR-0030](adr/0030-retirement-update-batch-replace.md)    |
-| 刪除順序                      | [ADR-0031](adr/0031-retirement-delete-order.md)            |
+| 刪除順序（歷史；已原子化）    | [ADR-0031](adr/0031-retirement-delete-order.md)            |
 | active plan 唯一性            | [ADR-0036](adr/0036-single-active-retirement-plan.md)      |
 | 複製後預設非啟用              | [ADR-0037](adr/0037-retirement-plan-duplicate-inactive.md) |
+| 寫入原子邊界、上限與併發      | [ADR-0040](adr/0040-retirement-plan-atomic-writes.md)      |
 
-目前對應的主要操作包括 `getPlan/getPlans`、`getPlanSummaries`、`createPlan`、`updatePlan`、`deletePlan`、`setOnlyActivePlan` 與 `DuplicateRetirementPlanUseCase`。
+目前對應的主要操作包括 `getPlan/getPlans`、`getPlanSummaries`、`createPlan`、`updatePlan`、`deletePlan`、`setOnlyActivePlan` 與 `DuplicateRetirementPlanUseCase`；create/update/delete/duplicate 的寫入一律走 [ADR-0040](adr/0040-retirement-plan-atomic-writes.md) 的單一 transaction 邊界。
 
 ## 6. UI 操作
 

@@ -64,16 +64,20 @@ rollback、concurrent replacement、唯一 current Allocation 與 source link co
 
 ## 2. Retirement Consistency
 
-對應 #34 的第二個切片，依 [ADR-0036](adr/0036-single-active-retirement-plan.md)、
-[ADR-0030](adr/0030-retirement-update-batch-replace.md) 與
-[ADR-0031](adr/0031-retirement-delete-order.md) 先釐清：
+對應 #34 的第二個切片。boundary 與併發語意已由
+[ADR-0040](adr/0040-retirement-plan-atomic-writes.md) 決定：
 
-- plan activation 與 child replacement 的 transaction/batch boundary。
-- Firestore batch/transaction limit 到達時的 failure contract。
-- concurrent activation 下同一 household 只有一筆 active plan。
-- child replacement 失敗時，舊 child set 是否完整保留。
+- create/update/delete/duplicate 的主文件、child replacement 與 active fan-out
+  在單一 Firestore transaction 內完成。
+- 寫入數動態計算，超過 400 回穩定錯誤 `PLAN_TOO_LARGE`，不做部分寫入。
+- preflight 讀取在 transaction callback 內；併發啟用由既有 plan 文件衝突收斂，
+  preflight 後新建 active plan 的極小視窗已接受並文件化。
+- 「至多一筆 active、零筆合法」；create/duplicate 不自動啟用。
+- `PLAN_NOT_FOUND` 顯式拒絕遺失來源計畫；create/duplicate 不引入
+  operation record，UI 補 create/duplicate 的 pending disabled 防護。
 
-先補 application 與 Emulator failure/concurrency tests，再決定是否需要新的 ADR。
+實作需涵蓋 application 單元測試與 Emulator failure/concurrency tests（rollback、
+併發啟用、child replacement 失敗保留舊資料、duplicate/delete 原子性、上限錯誤）。
 
 ## 3. Reordering Contract
 
