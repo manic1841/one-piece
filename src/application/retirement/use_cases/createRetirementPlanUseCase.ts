@@ -2,7 +2,8 @@ import {
   RetirementPlanCommandError,
   RetirementPlanCommandErrorCode,
   RETIREMENT_PLAN_TRANSACTION_WRITE_LIMIT,
-} from '@/application/retirement/retirementPlanErrors';
+  estimateRetirementPlanWriteCount,
+} from '@/domains/retirement/retirementPlanErrors';
 import { householdPermissionService } from '@/application/household/householdPermissionService';
 import { type AuthContext } from '@/application/types';
 import { type RetirementPlanCreate } from '@/domains/retirement/types';
@@ -14,9 +15,6 @@ interface CreateRetirementPlanRequest {
   userEmail: string;
   auth: AuthContext;
 }
-
-const estimateCreateWriteCount = (plan: RetirementPlanCreate, existingPlans: number): number =>
-  1 + plan.incomes.length + plan.expenses.length + Math.max(existingPlans - 1, 0);
 
 export class CreateRetirementPlanUseCase {
   async execute(request: CreateRetirementPlanRequest): Promise<string> {
@@ -33,10 +31,14 @@ export class CreateRetirementPlanUseCase {
         ? await retirementRepository.getPlanSummaries(householdId)
         : [];
 
-      if (
-        estimateCreateWriteCount(plan, existingPlans.length) >
-        RETIREMENT_PLAN_TRANSACTION_WRITE_LIMIT
-      ) {
+      // The new plan itself is not among existingPlans, so all of them may
+      // need a fan-out update.
+      const writeCount = estimateRetirementPlanWriteCount({
+        staleChildCount: 0,
+        newChildCount: plan.incomes.length + plan.expenses.length,
+        fanOutUpdateCount: plan.isActive ? existingPlans.length : 0,
+      });
+      if (writeCount > RETIREMENT_PLAN_TRANSACTION_WRITE_LIMIT) {
         throw new RetirementPlanCommandError(
           RetirementPlanCommandErrorCode.PLAN_TOO_LARGE,
           'plan write count exceeds the transaction limit',

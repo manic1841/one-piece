@@ -1,7 +1,7 @@
 import {
   RetirementPlanCommandError,
   RetirementPlanCommandErrorCode,
-} from '@/application/retirement/retirementPlanErrors';
+} from '@/domains/retirement/retirementPlanErrors';
 import { householdPermissionService } from '@/application/household/householdPermissionService';
 import { type RetirementPlanCreate } from '@/domains/retirement/types';
 import { retirementRepository } from '@/infra/repositories/retirementRepository';

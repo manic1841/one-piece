@@ -14,7 +14,7 @@ import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
 import {
   RetirementPlanCommandErrorCode,
   RETIREMENT_PLAN_TRANSACTION_WRITE_LIMIT,
-} from '../retirementPlanErrors';
+} from '@/domains/retirement/retirementPlanErrors';
 import { createRetirementPlanUseCase } from './createRetirementPlanUseCase';
 import { deleteRetirementPlanUseCase } from './deleteRetirementPlanUseCase';
 import { duplicateRetirementPlanUseCase } from './duplicateRetirementPlanUseCase';

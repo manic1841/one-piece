@@ -12,8 +12,7 @@ import {
 import {
   RetirementPlanCommandError,
   RetirementPlanCommandErrorCode,
-  RETIREMENT_PLAN_TRANSACTION_WRITE_LIMIT,
-} from '@/application/retirement/retirementPlanErrors';
+} from '@/domains/retirement/retirementPlanErrors';
 import {
   RetirementExpenseCategorySchema,
   RetirementIncomeSourceSchema,
@@ -207,6 +206,18 @@ class RetirementRepository extends BaseRepository<RetirementPlan, [string, strin
     return this.list([householdId], [orderBy('updatedAt', 'desc')]);
   }
 
+  async countChildren(
+    householdId: string,
+    planId: string,
+    collection: 'incomes' | 'expenses',
+  ): Promise<number> {
+    const snapshot =
+      collection === 'incomes'
+        ? await getDocs(this.getIncomeStreamsCollectionRef(householdId, planId))
+        : await getDocs(this.getExpenseCategoriesCollectionRef(householdId, planId));
+    return snapshot.docs.length;
+  }
+
   async createPlanAtomically(input: {
     householdId: string;
     plan: RetirementPlanCreate;
@@ -217,15 +228,6 @@ class RetirementRepository extends BaseRepository<RetirementPlan, [string, strin
     const { incomes, expenses, ...planWithoutCollections } = plan;
 
     return runTransaction(this.db, async (tx) => {
-      const writeCount =
-        1 + incomes.length + expenses.length + Math.max(existingPlans.length - 1, 0);
-      if (writeCount > RETIREMENT_PLAN_TRANSACTION_WRITE_LIMIT) {
-        throw new RetirementPlanCommandError(
-          RetirementPlanCommandErrorCode.PLAN_TOO_LARGE,
-          `plan write count ${writeCount} exceeds the transaction limit ${RETIREMENT_PLAN_TRANSACTION_WRITE_LIMIT}`,
-        );
-      }
-
       const planRef = doc(this.getCollectionRef(householdId));
       const planId = planRef.id;
 
@@ -281,22 +283,13 @@ class RetirementRepository extends BaseRepository<RetirementPlan, [string, strin
         );
       }
 
-      const fanOutTargets = updates.isActive === true ? existingPlans : [];
-      const writeCount =
-        1 + (incomes?.length ?? 0) + (expenses?.length ?? 0) + Math.max(fanOutTargets.length - 1, 0);
-      if (writeCount > RETIREMENT_PLAN_TRANSACTION_WRITE_LIMIT) {
-        throw new RetirementPlanCommandError(
-          RetirementPlanCommandErrorCode.PLAN_TOO_LARGE,
-          `plan write count ${writeCount} exceeds the transaction limit ${RETIREMENT_PLAN_TRANSACTION_WRITE_LIMIT}`,
-        );
-      }
-
       if (Object.keys(planUpdates).length > 0) {
         tx.update(
           this.getDocRef(householdId, planId),
           this.convertToFirestore({
             ...(stripUndefinedDeep(planUpdates) as Partial<RetirementPlanCreate>),
             id: planId,
+            createdAt: existingPlan.createdAt,
             createdBy: existingPlan.createdBy,
             updatedBy: userEmail,
           } as RetirementPlan),
@@ -316,7 +309,7 @@ class RetirementRepository extends BaseRepository<RetirementPlan, [string, strin
       this.writeChildrenInTransaction(householdId, planId, userEmail, incomes ?? [], expenses ?? [], tx);
 
       if (updates.isActive === true) {
-        for (const activePlan of fanOutTargets) {
+        for (const activePlan of existingPlans) {
           if (activePlan.id === planId) continue;
           tx.update(this.getDocRef(householdId, activePlan.id), {
             isActive: false,
@@ -339,13 +332,6 @@ class RetirementRepository extends BaseRepository<RetirementPlan, [string, strin
     const expenseDocs = await getDocs(
       this.getExpenseCategoriesCollectionRef(householdId, planId),
     );
-    const writeCount = 1 + incomeDocs.docs.length + expenseDocs.docs.length;
-    if (writeCount > RETIREMENT_PLAN_TRANSACTION_WRITE_LIMIT) {
-      throw new RetirementPlanCommandError(
-        RetirementPlanCommandErrorCode.PLAN_TOO_LARGE,
-        `plan write count ${writeCount} exceeds the transaction limit ${RETIREMENT_PLAN_TRANSACTION_WRITE_LIMIT}`,
-      );
-    }
 
     await runTransaction(this.db, async (tx) => {
       const existingPlan = await this.get([householdId, planId], tx);
@@ -374,6 +360,7 @@ class RetirementRepository extends BaseRepository<RetirementPlan, [string, strin
     expenses: RetirementExpenseCategory[],
     tx: Transaction,
   ): void {
+    const now = new Date();
     for (const income of incomes) {
       const docRef = doc(
         this.getIncomeStreamsCollectionRef(householdId, planId),
@@ -385,7 +372,9 @@ class RetirementRepository extends BaseRepository<RetirementPlan, [string, strin
         stripUndefinedDeep({
           ...converted,
           id: income.id,
-          updatedAt: new Date(),
+          createdAt: converted.createdAt ?? now,
+          createdBy: userEmail,
+          updatedAt: now,
           updatedBy: userEmail,
         }),
       );
@@ -402,7 +391,9 @@ class RetirementRepository extends BaseRepository<RetirementPlan, [string, strin
         stripUndefinedDeep({
           ...converted,
           id: expense.id,
-          updatedAt: new Date(),
+          createdAt: converted.createdAt ?? now,
+          createdBy: userEmail,
+          updatedAt: now,
           updatedBy: userEmail,
         }),
       );

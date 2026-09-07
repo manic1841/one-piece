@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   RetirementPlanCommandError,
   RetirementPlanCommandErrorCode,
-} from '../retirementPlanErrors';
+} from '@/domains/retirement/retirementPlanErrors';
 import { updateRetirementPlanUseCase } from './updateRetirementPlanUseCase';
 import { householdPermissionService } from '@/application/household/householdPermissionService';
 import { retirementRepository } from '@/infra/repositories/retirementRepository';

@@ -1,7 +1,9 @@
 import {
   RetirementPlanCommandError,
   RetirementPlanCommandErrorCode,
-} from '@/application/retirement/retirementPlanErrors';
+  RETIREMENT_PLAN_TRANSACTION_WRITE_LIMIT,
+  estimateRetirementPlanWriteCount,
+} from '@/domains/retirement/retirementPlanErrors';
 import { householdPermissionService } from '@/application/household/householdPermissionService';
 import { type AuthContext } from '@/application/types';
 import { type RetirementPlanCreate } from '@/domains/retirement/types';
@@ -30,6 +32,24 @@ export class UpdateRetirementPlanUseCase {
         updates.isActive === true
           ? await retirementRepository.getPlanSummaries(householdId)
           : [];
+
+      // Whole-batch replacement deletes every stale child before writing the
+      // new list, so both sides count toward the transaction write limit.
+      const fanOutUpdateCount =
+        updates.isActive === true ? Math.max(existingPlans.length - 1, 0) : 0;
+      const writeCount = estimateRetirementPlanWriteCount({
+        staleChildCount:
+          (updates.incomes ? await retirementRepository.countChildren(householdId, planId, 'incomes') : 0) +
+          (updates.expenses ? await retirementRepository.countChildren(householdId, planId, 'expenses') : 0),
+        newChildCount: (updates.incomes?.length ?? 0) + (updates.expenses?.length ?? 0),
+        fanOutUpdateCount,
+      });
+      if (writeCount > RETIREMENT_PLAN_TRANSACTION_WRITE_LIMIT) {
+        throw new RetirementPlanCommandError(
+          RetirementPlanCommandErrorCode.PLAN_TOO_LARGE,
+          'plan write count exceeds the transaction limit',
+        );
+      }
 
       await retirementRepository.updatePlanAtomically({
         householdId,

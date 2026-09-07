@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   RetirementPlanCommandError,
   RetirementPlanCommandErrorCode,
-} from '../retirementPlanErrors';
+} from '@/domains/retirement/retirementPlanErrors';
 import { deleteRetirementPlanUseCase } from './deleteRetirementPlanUseCase';
 import { householdPermissionService } from '@/application/household/householdPermissionService';
 import { retirementRepository } from '@/infra/repositories/retirementRepository';
@@ -17,6 +17,7 @@ vi.mock('@/application/household/householdPermissionService', () => ({
 vi.mock('@/infra/repositories/retirementRepository', () => ({
   retirementRepository: {
     deletePlanAtomically: vi.fn(),
+    countChildren: vi.fn().mockResolvedValue(0),
   },
 }));
 

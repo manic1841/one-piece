@@ -12,11 +12,13 @@
 
 ### Preflight 讀取
 
-Firestore transaction 內不能執行 query，因此 plan 清單（fan-out 目標）與現有 children 清單在 transaction callback 內以普通讀取 preflight，每次 Firestore 自動 retry 都重新讀取；transaction 內只對已知 document ref 執行 `tx.get` 與寫入。
+Firestore transaction 內不能執行 query，因此 plan 清單（fan-out 目標）與現有 children 清單在 transaction 前以普通讀取 preflight；transaction 內只對已知 document ref 執行 `tx.get` 與寫入，且所有讀取先於任何寫入。
+
+修訂（實作期間實測 firebase 12.6.0 + Emulator）：原規劃將 children preflight 放在 transaction callback 內，但實測顯示 callback 內的 `getDocs` 會使其後同一 transaction 的部分寫入被靜默丟棄；因此 preflight 一律置於 `runTransaction` 之外。代價是 Firestore 自動 retry 時 children 清單可能過期，屬於已接受的併發視窗之一，與下述 fan-out 視窗同級。
 
 ### 寫入上限
 
-Transaction 寫入數以動態計算保護：主文件 1 筆 + 舊 children 刪除數 + 新 children 寫入數 + fan-out 更新數。超過 400 時在驗證階段拒絕，回傳穩定錯誤 `PLAN_TOO_LARGE`，不做任何部分寫入。上限預留 headroom 給 fan-out 與未來欄位開銷；不採用靜態 per-collection 上限，避免誤拒合理組合。
+Transaction 寫入數以動態計算保護：主文件 1 筆 + 舊 children 刪除數 + 新 children 寫入數 + fan-out 更新數。超過 400 時在驗證階段（任何寫入之前）拒絕，回傳穩定錯誤 `PLAN_TOO_LARGE`，不做任何部分寫入。上限預留 headroom 給 fan-out 與未來欄位開銷；不採用靜態 per-collection 上限，避免誤拒合理組合。寫入數估算與上限常數屬於 domain 層，repository 不執行業務驗證。
 
 ### 併發啟用的已知視窗
 

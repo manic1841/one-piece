@@ -7,6 +7,8 @@ export const RetirementPlanCommandErrorCode = {
 export type RetirementPlanCommandErrorCode =
   (typeof RetirementPlanCommandErrorCode)[keyof typeof RetirementPlanCommandErrorCode];
 
+export const RETIREMENT_PLAN_TRANSACTION_WRITE_LIMIT = 400;
+
 export class RetirementPlanCommandError extends Error {
   readonly code: RetirementPlanCommandErrorCode;
 
@@ -17,4 +19,8 @@ export class RetirementPlanCommandError extends Error {
   }
 }
 
-export const RETIREMENT_PLAN_TRANSACTION_WRITE_LIMIT = 400;
+export const estimateRetirementPlanWriteCount = (input: {
+  staleChildCount: number;
+  newChildCount: number;
+  fanOutUpdateCount: number;
+}): number => 1 + input.staleChildCount + input.newChildCount + input.fanOutUpdateCount;
