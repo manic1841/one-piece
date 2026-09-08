@@ -58,6 +58,32 @@ describe('reorderProjectsUseCase', () => {
     expect(projectRepository.update).not.toHaveBeenCalled();
   });
 
+  it('returns success for an empty order list without touching the database', async () => {
+    await reorderProjectsUseCase.execute({
+      householdId: 'household-1',
+      projectOrders: [],
+      userEmail: 'user@example.com',
+      auth,
+    });
+
+    expect(projectRepository.update).not.toHaveBeenCalled();
+  });
+
+  it('propagates permission rejections without touching the database', async () => {
+    vi.mocked(householdPermissionService.assertWritePermission).mockRejectedValue(
+      new Error('denied'),
+    );
+
+    await expect(
+      reorderProjectsUseCase.execute({
+        householdId: 'household-1',
+        projectOrders: [{ id: 'project-1', order: 0 }],
+        userEmail: 'user@example.com',
+        auth,
+      }),
+    ).rejects.toThrow('denied');
+  });
+
   it('rejects duplicate target ids with INVALID_ORDERS', async () => {
     await expect(
       reorderProjectsUseCase.execute({

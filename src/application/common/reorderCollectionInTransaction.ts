@@ -35,26 +35,31 @@ export const reorderCollectionInTransaction = async (input: {
 
   if (orders.length === 0) return;
 
-  await runTransaction(db, async (tx: Transaction) => {
-    const snapshots = [];
-    for (const entry of orders) {
-      const snapshot = await tx.get(getDocRef(entry.id));
-      if (!snapshot.exists()) {
-        throw new ReorderCommandError(
-          ReorderCommandErrorCode.TARGET_NOT_FOUND,
-          `target not found: ${entry.id}`,
-        );
+  try {
+    await runTransaction(db, async (tx: Transaction) => {
+      for (const entry of orders) {
+        const snapshot = await tx.get(getDocRef(entry.id));
+        if (!snapshot.exists()) {
+          throw new ReorderCommandError(
+            ReorderCommandErrorCode.TARGET_NOT_FOUND,
+            `target not found: ${entry.id}`,
+          );
+        }
       }
-      snapshots.push(snapshot);
-    }
 
-    const now = new Date();
-    for (const entry of orders) {
-      tx.update(getDocRef(entry.id), {
-        order: entry.order,
-        updatedAt: now,
-        updatedBy: userEmail,
-      });
-    }
-  });
+      const now = new Date();
+      for (const entry of orders) {
+        tx.update(getDocRef(entry.id), {
+          order: entry.order,
+          updatedAt: now,
+          updatedBy: userEmail,
+        });
+      }
+    });
+  } catch (error: unknown) {
+    if (error instanceof ReorderCommandError) throw error;
+
+    const message = error instanceof Error ? error.message : 'unknown transaction failure';
+    throw new ReorderCommandError(ReorderCommandErrorCode.TRANSACTION_FAILED, message);
+  }
 };

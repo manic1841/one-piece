@@ -2,7 +2,6 @@ import {
   reorderCollectionInTransaction,
   type ReorderEntry,
 } from '@/application/common/reorderCollectionInTransaction';
-import { ReorderCommandError, ReorderCommandErrorCode } from '@/application/common/reorderErrors';
 import { householdPermissionService } from '@/application/household/householdPermissionService';
 import { type AuthContext } from '@/application/types';
 import { accountRepository } from '@/infra/repositories/accountRepository';
@@ -24,18 +23,11 @@ export class ReorderAccountsUseCase {
       auth.isGlobalAdmin,
     );
 
-    try {
-      await reorderCollectionInTransaction({
-        getDocRef: (id) => accountRepository.getDocRefById(householdId, id),
-        orders: accountOrders as ReorderEntry[],
-        userEmail,
-      });
-    } catch (error: unknown) {
-      if (error instanceof ReorderCommandError) throw error;
-
-      const message = error instanceof Error ? error.message : 'unknown transaction failure';
-      throw new ReorderCommandError(ReorderCommandErrorCode.TRANSACTION_FAILED, message);
-    }
+    await reorderCollectionInTransaction({
+      getDocRef: (id) => accountRepository.getDocRefById(householdId, id),
+      orders: accountOrders as ReorderEntry[],
+      userEmail,
+    });
   }
 }
 

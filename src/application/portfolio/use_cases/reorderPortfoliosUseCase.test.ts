@@ -58,6 +58,32 @@ describe('reorderPortfoliosUseCase', () => {
     expect(portfolioRepository.update).not.toHaveBeenCalled();
   });
 
+  it('returns success for an empty order list without touching the database', async () => {
+    await reorderPortfoliosUseCase.execute({
+      householdId: 'household-1',
+      portfolioOrders: [],
+      userEmail: 'user@example.com',
+      auth,
+    });
+
+    expect(portfolioRepository.update).not.toHaveBeenCalled();
+  });
+
+  it('propagates permission rejections without touching the database', async () => {
+    vi.mocked(householdPermissionService.assertWritePermission).mockRejectedValue(
+      new Error('denied'),
+    );
+
+    await expect(
+      reorderPortfoliosUseCase.execute({
+        householdId: 'household-1',
+        portfolioOrders: [{ id: 'portfolio-1', order: 0 }],
+        userEmail: 'user@example.com',
+        auth,
+      }),
+    ).rejects.toThrow('denied');
+  });
+
   it('rejects duplicate target ids with INVALID_ORDERS', async () => {
     await expect(
       reorderPortfoliosUseCase.execute({
