@@ -1,6 +1,11 @@
-import { accountRepository } from '@/infra/repositories/accountRepository';
+import {
+  reorderCollectionInTransaction,
+  type ReorderEntry,
+} from '@/application/common/reorderCollectionInTransaction';
+import { ReorderCommandError, ReorderCommandErrorCode } from '@/application/common/reorderErrors';
 import { householdPermissionService } from '@/application/household/householdPermissionService';
 import { type AuthContext } from '@/application/types';
+import { accountRepository } from '@/infra/repositories/accountRepository';
 
 export interface ReorderAccountsRequest {
   householdId: string;
@@ -19,11 +24,18 @@ export class ReorderAccountsUseCase {
       auth.isGlobalAdmin,
     );
 
-    const updatePromises = accountOrders.map(({ id, order }) =>
-      accountRepository.update([householdId, id], { order }, userEmail),
-    );
+    try {
+      await reorderCollectionInTransaction({
+        getDocRef: (id) => accountRepository.getDocRefById(householdId, id),
+        orders: accountOrders as ReorderEntry[],
+        userEmail,
+      });
+    } catch (error: unknown) {
+      if (error instanceof ReorderCommandError) throw error;
 
-    await Promise.all(updatePromises);
+      const message = error instanceof Error ? error.message : 'unknown transaction failure';
+      throw new ReorderCommandError(ReorderCommandErrorCode.TRANSACTION_FAILED, message);
+    }
   }
 }
 

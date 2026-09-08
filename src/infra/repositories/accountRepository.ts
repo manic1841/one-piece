@@ -27,6 +27,10 @@ class AccountRepository extends BaseRepository<Account, [string, string?]> {
     return doc(this.db, 'households', householdId, this.collectionName, accountId);
   }
 
+  getDocRefById(householdId: string, accountId: string) {
+    return this.getDocRef(householdId, accountId);
+  }
+
   protected getDomainSchema() {
     return AccountSchema;
   }

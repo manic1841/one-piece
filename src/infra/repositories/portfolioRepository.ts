@@ -19,6 +19,10 @@ class PortfolioRepository extends BaseRepository<Portfolio, [string, string?]> {
     return doc(this.db, 'households', householdId, this.collectionName, portfolioId);
   }
 
+  getDocRefById(householdId: string, portfolioId: string) {
+    return this.getDocRef(householdId, portfolioId);
+  }
+
   protected getDomainSchema() {
     return PortfolioSchema;
   }

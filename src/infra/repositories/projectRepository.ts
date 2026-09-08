@@ -34,6 +34,10 @@ class ProjectRepository extends BaseRepository<Project, [string, string?]> {
     return doc(this.db, 'households', householdId, this.collectionName, projectId);
   }
 
+  getDocRefById(householdId: string, projectId: string) {
+    return this.getDocRef(householdId, projectId);
+  }
+
   protected getDomainSchema() {
     return ProjectSchema;
   }

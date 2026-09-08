@@ -1,6 +1,11 @@
-import { projectRepository } from '@/infra/repositories/projectRepository';
+import {
+  reorderCollectionInTransaction,
+  type ReorderEntry,
+} from '@/application/common/reorderCollectionInTransaction';
+import { ReorderCommandError, ReorderCommandErrorCode } from '@/application/common/reorderErrors';
 import { householdPermissionService } from '@/application/household/householdPermissionService';
 import { type AuthContext } from '@/application/types';
+import { projectRepository } from '@/infra/repositories/projectRepository';
 
 export interface ReorderProjectsRequest {
   householdId: string;
@@ -12,14 +17,25 @@ export interface ReorderProjectsRequest {
 export class ReorderProjectsUseCase {
   async execute(request: ReorderProjectsRequest): Promise<void> {
     const { householdId, projectOrders, userEmail, auth } = request;
-    await householdPermissionService.assertWritePermission(householdId, auth.uid, auth.isGlobalAdmin);
-    
-    // Simple implementation: update each project's order
-    await Promise.all(
-      projectOrders.map((po) =>
-        projectRepository.update([householdId, po.id], { order: po.order } as Partial<Parameters<typeof projectRepository.update>[1]>, userEmail)
-      )
+
+    await householdPermissionService.assertWritePermission(
+      householdId,
+      auth.uid,
+      auth.isGlobalAdmin,
     );
+
+    try {
+      await reorderCollectionInTransaction({
+        getDocRef: (id) => projectRepository.getDocRefById(householdId, id),
+        orders: projectOrders as ReorderEntry[],
+        userEmail,
+      });
+    } catch (error: unknown) {
+      if (error instanceof ReorderCommandError) throw error;
+
+      const message = error instanceof Error ? error.message : 'unknown transaction failure';
+      throw new ReorderCommandError(ReorderCommandErrorCode.TRANSACTION_FAILED, message);
+    }
   }
 }
 
