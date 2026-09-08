@@ -81,10 +81,11 @@ rollback、concurrent replacement、唯一 current Allocation 與 source link co
 
 ## 3. Reordering Contract
 
-針對 Account、Project、Portfolio reorder use cases，先選定 all-or-nothing 或明確
-允許 partial update；不能讓 `Promise.all` 的部分成功成為未文件化行為。確認排序
-是否屬於 atomic desired-state command 後，再補 repository transaction/batch boundary
-與 failure tests。
+已完成。Account、Project、Portfolio reorder 選定 all-or-nothing 契約並依
+[ADR-0041](adr/0041-reorder-atomic-contract.md) 實作：三個 command 共用單一
+transaction helper，重複 id 回 `INVALID_ORDERS`、遺失目標回 `TARGET_NOT_FOUND`、
+transaction 失敗包裝為 `TRANSACTION_FAILED`；不再使用 `Promise.all` 部分成功。
+Emulator 覆蓋全量套用、寫入失敗回滾與併發收斂。
 
 ## 4. Persistence And Access Boundaries
 
