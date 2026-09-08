@@ -2,8 +2,10 @@ import {
   type Transaction as FirestoreTransaction,
   collection,
   doc,
+  getDocs,
   limit,
   orderBy,
+  query,
   where,
 } from 'firebase/firestore';
 
@@ -54,28 +56,30 @@ class DebtAccountRepository extends BaseRepository<DebtAccount, [string, string?
   }
 
   /**
-   * Checks whether a debt account has any associated LIABILITY_PAYMENT transactions.
-   * Queries the transactions collection for entries referencing this debt account's
-   * linkedLedgerCode (via the denormalized ledgerCodes index field).
+   * Two-tier debt history detection for smart delete.
+   * Canonical tier: DEBT_PAYMENT transactions scoped to this debtAccountId.
+   * Legacy tier: raw LIABILITY_PAYMENT documents on the linked ledger code,
+   * read without the domain schema because LIABILITY_PAYMENT was removed from
+   * IntentType; history documents must still block deletion.
    */
   async checkHasPayments(householdId: string, debtAccountId: string): Promise<boolean> {
-    // Fetch the debt account to get its linkedLedgerCode
     const account = await this.get([householdId, debtAccountId]);
     if (!account) return false;
 
-    const { linkedLedgerCode } = account;
-
-    // Query transactions that reference this ledger code AND are LIABILITY_PAYMENT intent
-    const transactions = await transactionRepository.list(
-      [householdId],
-      [
-        where('intentType', '==', 'LIABILITY_PAYMENT'),
-        where('ledgerCodes', 'array-contains', linkedLedgerCode),
-        limit(1),
-      ],
+    const hasCanonicalPayments = await transactionRepository.hasDebtPaymentForAccount(
+      householdId,
+      debtAccountId,
     );
+    if (hasCanonicalPayments) return true;
 
-    return transactions.length > 0;
+    const legacyQuery = query(
+      collection(this.db, 'households', householdId, 'transactions'),
+      where('intentType', '==', 'LIABILITY_PAYMENT'),
+      where('ledgerCodes', 'array-contains', account.linkedLedgerCode),
+      limit(1),
+    );
+    const legacySnapshot = await getDocs(legacyQuery);
+    return !legacySnapshot.empty;
   }
 
   async createDebtAccount(

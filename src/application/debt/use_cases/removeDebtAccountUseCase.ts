@@ -4,6 +4,7 @@ import { householdPermissionService } from '@/application/household/householdPer
 import { type AuthContext } from '@/application/types';
 import { db } from '@/firebase';
 import { debtAccountRepository } from '@/infra/repositories/debtAccountRepository';
+import { debtSnapshotRepository } from '@/infra/repositories/debtSnapshotRepository';
 import { transactionRepository } from '@/infra/repositories/transactionRepository';
 
 export interface RemoveDebtAccountRequest {
@@ -19,8 +20,13 @@ export interface RemoveDebtAccountResult {
 
 /**
  * Smart delete:
- *   - Has LIABILITY_PAYMENT transactions → soft delete (isActive: false)
- *   - No payments → hard delete
+ *   - Has DEBT_PAYMENT history (or legacy LIABILITY_PAYMENT) or snapshots → soft delete
+ *   - No payments and no snapshots → hard delete
+ *
+ * The hard-delete transaction re-reads the account and compares updatedAt so a
+ * DEBT_PAYMENT committed between detection and deletion aborts the delete; any
+ * payment touches the account document (ADR-0038), so contention is guaranteed
+ * to be observed. Firestore then retries or surfaces the conflict to the caller.
  */
 export class RemoveDebtAccountUseCase {
   async execute(request: RemoveDebtAccountRequest): Promise<RemoveDebtAccountResult> {
@@ -37,8 +43,11 @@ export class RemoveDebtAccountUseCase {
     }
 
     const hasPayments = await debtAccountRepository.checkHasPayments(householdId, debtAccountId);
+    const hasSnapshots = hasPayments
+      ? false
+      : await debtSnapshotRepository.hasSnapshots(householdId, debtAccountId);
 
-    if (hasPayments) {
+    if (hasPayments || hasSnapshots) {
       await debtAccountRepository.deactivateDebtAccount(householdId, debtAccountId, userEmail);
       return { strategy: 'deactivated' };
     } else {
@@ -48,6 +57,16 @@ export class RemoveDebtAccountUseCase {
       );
 
       await runTransaction(db, async (tx) => {
+        const currentAccount = await debtAccountRepository.get([householdId, debtAccountId], tx);
+        if (!currentAccount) {
+          throw new Error(`DebtAccount ${debtAccountId} not found`);
+        }
+        if (currentAccount.updatedAt.getTime() !== debtAccount.updatedAt.getTime()) {
+          throw new Error(
+            `DebtAccount ${debtAccountId} changed during removal (concurrent update); retry`,
+          );
+        }
+
         for (const borrowTransaction of borrowTransactions) {
           await transactionRepository.delete([householdId, borrowTransaction.id], tx);
         }

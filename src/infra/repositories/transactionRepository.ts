@@ -251,6 +251,18 @@ class TransactionRepository extends BaseRepository<Transaction, [string, string?
     );
   }
 
+  async hasDebtPaymentForAccount(householdId: string, debtAccountId: string): Promise<boolean> {
+    const transactions = await this.list(
+      [householdId],
+      [
+        where('debtAccountId', '==', debtAccountId),
+        where('intentType', '==', IntentType.DEBT_PAYMENT),
+        limit(1),
+      ],
+    );
+    return transactions.length > 0;
+  }
+
   async findBorrowTransactionsForDebtAccount(
     householdId: string,
     debtAccount: DebtAccount,

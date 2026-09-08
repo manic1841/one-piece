@@ -2,6 +2,7 @@ import {
   type Transaction as FirestoreTransaction,
   collection,
   doc,
+  limit,
   orderBy,
   where,
 } from 'firebase/firestore';
@@ -73,6 +74,11 @@ class DebtSnapshotRepository extends BaseRepository<DebtSnapshot, [string, strin
         orderBy('yearMonth', 'desc'),
       ],
     );
+  }
+
+  async hasSnapshots(householdId: string, debtAccountId: string): Promise<boolean> {
+    const snapshots = await this.list([householdId, debtAccountId], [limit(1)]);
+    return snapshots.length > 0;
   }
 
   /**

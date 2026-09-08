@@ -37,14 +37,21 @@
 `removeDebtAccountUseCase` 自動判斷：
 
 ```
-checkHasPayments(id)
-  有 LIABILITY_PAYMENT 記錄 → deactivate（isActive: false）
-  無記錄                   → hard delete（連同建立時的 LIABILITY_BORROW 一起刪除）
+有還款歷史或 snapshots → deactivate（isActive: false）
+皆無                   → hard delete（連同建立時的 LIABILITY_BORROW 一起刪除）
 ```
 
-目前實作依 `transactions` 的付款意圖與 `ledgerCodes array-contains linkedLedgerCode` 查詢。
+還款歷史採兩層偵測：
 
-> 注意：目前 repository 的付款查詢仍使用 legacy `LIABILITY_PAYMENT`，而 [ADR-0014](adr/0014-debt-payment-intenttype.md) 定義定期貸款還款使用 `DEBT_PAYMENT`。兩者應在程式碼與決策中進一步統一；本文件不把這個現況誤寫成新的規則。
+1. **Canonical**：`debtAccountId == <此帳戶>` 且 `intentType == DEBT_PAYMENT`。
+   以帳戶 ID 精確比對，共用同一 `linkedLedgerCode` 的其他債務帳戶不會互相阻擋。
+2. **Legacy fallback**：`intentType == LIABILITY_PAYMENT` 且
+   `ledgerCodes array-contains linkedLedgerCode`。此查詢直接讀取原始文件、
+   不經 domain schema（`LIABILITY_PAYMENT` 已自 [ADR-0014](adr/0014-debt-payment-intenttype.md)
+   從 IntentType 移除），僅作為歷史資料的保守防護；共用 ledger code 可能造成
+   誤判為 soft delete，屬可接受的安全方向。
+
+另外，帳戶下存在任何 `DebtSnapshot` 文件也會強制 soft delete，即使沒有付款交易。
 
 - hard delete 會一併刪除與該 DebtAccount 關聯的借款入帳交易，避免留下孤立負債建立紀錄
 
