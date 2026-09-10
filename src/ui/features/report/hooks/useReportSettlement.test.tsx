@@ -39,10 +39,6 @@ vi.mock('@/infra/contexts/useAuth', () => ({
   }),
 }));
 
-vi.mock('@/domains/report/reportService', () => ({
-  reportService: {},
-}));
-
 const buildPreviewResult = (overrides?: {
   isPersisted?: boolean;
   timestamps?: { incomeStatement?: string; balanceSheet?: string; cashFlow?: string };

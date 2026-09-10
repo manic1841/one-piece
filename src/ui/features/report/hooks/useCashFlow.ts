@@ -2,7 +2,8 @@ import { useCallback, useEffect, useState } from 'react';
 
 import { addMonths, format, subMonths } from 'date-fns';
 
-import { reportService } from '@/domains/report/reportService';
+import { getStoredReportUseCase } from '@/application/report/use_cases/getStoredReportUseCase';
+import { type CashFlowData } from '@/domains/report/schemas';
 import { type CashFlowVM, mapCashFlowToVM } from '@/ui/features/report/viewmodels/reportDisplay.vm';
 
 type ReportMode = 'MONTHLY' | 'YEARLY';
@@ -25,8 +26,12 @@ export function useCashFlow(
     try {
       setLoading(true);
       setError(null);
-      const result = await reportService.getStoredCashFlow(householdId, yearMonth);
-      setData(result ? mapCashFlowToVM(result) : null);
+      const result = await getStoredReportUseCase.execute({
+        householdId,
+        yearMonth,
+        kind: 'cashFlow',
+      });
+      setData(result ? mapCashFlowToVM(result as CashFlowData) : null);
     } catch (err) {
       setError(err instanceof Error ? err : new Error(String(err)));
     } finally {

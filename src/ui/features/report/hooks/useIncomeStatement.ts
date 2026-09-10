@@ -2,7 +2,8 @@ import { useCallback, useEffect, useState } from 'react';
 
 import { format } from 'date-fns';
 
-import { reportService } from '@/domains/report/reportService';
+import { getStoredReportUseCase } from '@/application/report/use_cases/getStoredReportUseCase';
+import { type IncomeStatementData } from '@/domains/report/schemas';
 import {
   type IncomeStatementVM,
   mapIncomeStatementToVM,
@@ -28,8 +29,12 @@ export function useIncomeStatement(
       reportMode === 'YEARLY' ? format(currentDate, 'yyyy') : format(currentDate, 'yyyy-MM');
 
     await run(async () => {
-      const result = await reportService.getStoredIncomeStatement(householdId, yearMonth);
-      setData(result ? mapIncomeStatementToVM(result) : null);
+      const result = await getStoredReportUseCase.execute({
+        householdId,
+        yearMonth,
+        kind: 'incomeStatement',
+      });
+      setData(result ? mapIncomeStatementToVM(result as IncomeStatementData) : null);
     });
   }, [householdId, currentDate, run, reportMode]);
 

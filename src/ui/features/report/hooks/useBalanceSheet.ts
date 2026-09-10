@@ -2,7 +2,8 @@ import { useCallback, useEffect, useState } from 'react';
 
 import { format } from 'date-fns';
 
-import { reportService } from '@/domains/report/reportService';
+import { getStoredReportUseCase } from '@/application/report/use_cases/getStoredReportUseCase';
+import { type BalanceSheetData } from '@/domains/report/schemas';
 import {
   type BalanceSheetVM,
   mapBalanceSheetToVM,
@@ -28,8 +29,12 @@ export function useBalanceSheet(
       reportMode === 'YEARLY' ? format(currentDate, 'yyyy') : format(currentDate, 'yyyy-MM');
 
     await run(async () => {
-      const result = await reportService.getStoredBalanceSheet(householdId, yearMonth);
-      setData(result ? mapBalanceSheetToVM(result) : null);
+      const result = await getStoredReportUseCase.execute({
+        householdId,
+        yearMonth,
+        kind: 'balanceSheet',
+      });
+      setData(result ? mapBalanceSheetToVM(result as BalanceSheetData) : null);
     });
   }, [householdId, currentDate, run, reportMode]);
 
