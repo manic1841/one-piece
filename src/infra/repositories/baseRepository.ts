@@ -17,7 +17,7 @@ import {
 } from 'firebase/firestore';
 import { z } from 'zod';
 
-import { type Base } from '@/infra/schemas/base';
+import { type Base } from '@/shared/schemas/base';
 
 export type ExcludedColumn = 'id' | 'createdAt' | 'updatedAt' | 'createdBy' | 'updatedBy';
 
