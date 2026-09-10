@@ -3,9 +3,9 @@ import { useCallback, useEffect, useState } from 'react';
 import { format } from 'date-fns';
 
 import { getSettlementReadinessUseCase } from '@/application/report/use_cases/getSettlementReadinessUseCase';
+import { generateFinancialReportsUseCase } from '@/application/report/use_cases/generateFinancialReportsUseCase';
 import { previewFinancialReportsUseCase } from '@/application/report/use_cases/previewFinancialReportsUseCase';
 import { previewDebtSettlementsUseCase } from '@/application/settlement/use_cases/previewDebtSettlementsUseCase';
-import { reportService } from '@/domains/report/reportService';
 import { useAuth } from '@/infra/contexts/useAuth';
 import { getUnifiedLedgerCodeLabel } from '@/ui/constants/transaction';
 import {
@@ -183,12 +183,17 @@ export const useReportSettlement = (householdId: string, userEmail: string) => {
     setIsGenerating(true);
 
     try {
-      const results = await reportService.generateMonthlyFinancialReports(
+      const results = await generateFinancialReportsUseCase.execute({
         householdId,
-        yearMonth,
-        userEmail,
-        resolveReportLabel,
-      );
+        auth: {
+          uid: currentUser?.uid || '',
+          email: currentUser?.email || undefined,
+          isGlobalAdmin: isAdmin,
+        },
+        year,
+        month,
+        labelResolver: resolveReportLabel,
+      });
 
       setReportTimestamps({
         incomeStatement: format(results.timestamp, 'HH:mm'),

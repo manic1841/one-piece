@@ -26,6 +26,12 @@ vi.mock('@/application/settlement/use_cases/previewDebtSettlementsUseCase', () =
   },
 }));
 
+vi.mock('@/application/report/use_cases/generateFinancialReportsUseCase', () => ({
+  generateFinancialReportsUseCase: {
+    execute: vi.fn(),
+  },
+}));
+
 vi.mock('@/infra/contexts/useAuth', () => ({
   useAuth: () => ({
     currentUser: { uid: 'user-1', email: 'user@example.com' },
@@ -34,9 +40,7 @@ vi.mock('@/infra/contexts/useAuth', () => ({
 }));
 
 vi.mock('@/domains/report/reportService', () => ({
-  reportService: {
-    generateMonthlyFinancialReports: vi.fn(),
-  },
+  reportService: {},
 }));
 
 const buildPreviewResult = (overrides?: {
