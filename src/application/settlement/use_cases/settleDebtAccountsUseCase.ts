@@ -1,3 +1,5 @@
+import { householdPermissionService } from '@/application/household/householdPermissionService';
+import { type AuthContext } from '@/application/types';
 import { type DebtSnapshotCreate } from '@/domains/debt/schemas';
 import { debtAccountRepository } from '@/infra/repositories/debtAccountRepository';
 import { debtSnapshotRepository } from '@/infra/repositories/debtSnapshotRepository';
@@ -6,11 +8,17 @@ export interface SettleDebtAccountsRequest {
   householdId: string;
   yearMonth: string;
   userEmail: string;
+  auth: AuthContext;
 }
 
 export class SettleDebtAccountsUseCase {
   async execute(request: SettleDebtAccountsRequest): Promise<void> {
-    const { householdId, yearMonth, userEmail } = request;
+    const { householdId, yearMonth, userEmail, auth } = request;
+    await householdPermissionService.assertWritePermission(
+      householdId,
+      auth.uid,
+      auth.isGlobalAdmin,
+    );
     const debtAccounts = await debtAccountRepository.getDebtAccounts(householdId);
 
     for (const account of debtAccounts) {

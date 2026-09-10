@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { previewProjectSettlementsUseCase } from '@/application/settlement/use_cases/previewProjectSettlementsUseCase';
 import { settleProjectsUseCase } from '@/application/settlement/use_cases/settleProjectsUseCase';
 import { type Project } from '@/domains/project/schemas';
+import { useAuth } from '@/infra/contexts/useAuth';
 import {
   type SettlementPreviewItemVM,
   mapSettlementToPreviewVM,
@@ -25,6 +26,7 @@ export const useSettlementDialog = (
   onClose?: () => void,
 ) => {
   const currentDate = new Date();
+  const { currentUser, isAdmin } = useAuth();
   const [status, setStatus] = useState<DialogStatusType>(DialogStatus.SELECTION);
   const [year, setYear] = useState(currentDate.getFullYear());
   const [month, setMonth] = useState(currentDate.getMonth() + 1);
@@ -45,6 +47,7 @@ export const useSettlementDialog = (
         projects,
         year,
         month,
+        auth: { uid: currentUser?.uid || '', isGlobalAdmin: isAdmin },
       });
       setSettlements(previews.map(mapSettlementToPreviewVM));
       setStatus(DialogStatus.PREVIEW);
@@ -76,7 +79,12 @@ export const useSettlementDialog = (
 
     try {
       const yearMonth = `${year}-${month.toString().padStart(2, '0')}`;
-      await settleProjectsUseCase.execute({ householdId, yearMonth, userEmail });
+      await settleProjectsUseCase.execute({
+        householdId,
+        yearMonth,
+        userEmail,
+        auth: { uid: currentUser?.uid || '', isGlobalAdmin: isAdmin },
+      });
 
       setStatus(DialogStatus.DONE);
       setTimeout(() => {

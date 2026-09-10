@@ -1,3 +1,5 @@
+import { householdPermissionService } from '@/application/household/householdPermissionService';
+import { type AuthContext } from '@/application/types';
 import {
   type BalanceSheetData,
   type CashFlowData,
@@ -18,13 +20,19 @@ export interface GetStoredReportRequest {
   householdId: string;
   yearMonth: string;
   kind: StoredReportKind;
+  auth: AuthContext;
 }
 
 export type StoredReportData = IncomeStatementData | BalanceSheetData | CashFlowData;
 
 export class GetStoredReportUseCase {
   async execute(request: GetStoredReportRequest): Promise<StoredReportData | null> {
-    const { householdId, yearMonth, kind } = request;
+    const { householdId, yearMonth, kind, auth } = request;
+    await householdPermissionService.assertReadPermission(
+      householdId,
+      auth.uid,
+      auth.isGlobalAdmin,
+    );
 
     switch (kind) {
       case 'incomeStatement':

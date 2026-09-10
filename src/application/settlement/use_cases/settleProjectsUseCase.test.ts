@@ -25,6 +25,13 @@ vi.mock('@/infra/repositories/transactionRepository', () => ({
   },
 }));
 
+vi.mock('@/application/household/householdPermissionService', () => ({
+  householdPermissionService: {
+    assertReadPermission: vi.fn().mockResolvedValue(undefined),
+    assertWritePermission: vi.fn().mockResolvedValue(undefined),
+  },
+}));
+
 describe('settleProjectsUseCase — period-wide query deduplication', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -46,6 +53,7 @@ describe('settleProjectsUseCase — period-wide query deduplication', () => {
       householdId: 'h1',
       yearMonth: '2025-06',
       userEmail: 'u1@test.com',
+      auth: { uid: 'user-1', isGlobalAdmin: false },
     });
 
     expect(allocationRepository.getAllocationsByMonth).toHaveBeenCalledTimes(1);
@@ -62,6 +70,7 @@ describe('settleProjectsUseCase — period-wide query deduplication', () => {
       householdId: 'h1',
       yearMonth: '2025-06',
       userEmail: 'u1@test.com',
+      auth: { uid: 'user-1', isGlobalAdmin: false },
     });
 
     expect(transactionRepository.getTransactionsByProject).toHaveBeenCalledTimes(2);
@@ -77,6 +86,7 @@ describe('settleProjectsUseCase — period-wide query deduplication', () => {
       householdId: 'h1',
       yearMonth: '2025-06',
       userEmail: 'u1@test.com',
+      auth: { uid: 'user-1', isGlobalAdmin: false },
     });
 
     expect(projectRepository.saveSnapshot).toHaveBeenCalledWith(

@@ -171,6 +171,7 @@ describe('useReportSettlement', () => {
       householdId: 'household-1',
       year,
       month,
+      auth: { uid: 'user-1', isGlobalAdmin: false },
     });
     expect(previewFinancialReportsUseCase.execute).toHaveBeenCalledWith(
       expect.objectContaining({ householdId: 'household-1', year, month }),

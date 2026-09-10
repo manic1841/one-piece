@@ -94,6 +94,7 @@ export const useReportSettlement = (householdId: string, userEmail: string) => {
         householdId,
         year,
         month,
+        auth: { uid: currentUser?.uid || '', isGlobalAdmin: isAdmin },
       });
       setDebtNoRepaymentWarningNames(debtPreview.missingRepaymentAccountNames);
 

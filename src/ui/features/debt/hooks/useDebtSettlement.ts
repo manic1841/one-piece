@@ -5,6 +5,7 @@ import {
   previewDebtSettlementsUseCase,
 } from '@/application/settlement/use_cases/previewDebtSettlementsUseCase';
 import { settleDebtAccountsUseCase } from '@/application/settlement/use_cases/settleDebtAccountsUseCase';
+import { useAuth } from '@/infra/contexts/useAuth';
 
 export const DebtSettlementStatus = {
   SELECTION: 'selection',
@@ -18,6 +19,7 @@ export type DebtSettlementStatusType =
   (typeof DebtSettlementStatus)[keyof typeof DebtSettlementStatus];
 
 export function useDebtSettlement(householdId: string, userEmail: string, onSuccess?: () => void) {
+  const { currentUser, isAdmin } = useAuth();
   const [status, setStatus] = useState<DebtSettlementStatusType>(DebtSettlementStatus.SELECTION);
   const [error, setError] = useState<string | null>(null);
   const [year, setYear] = useState(new Date().getFullYear());
@@ -34,7 +36,12 @@ export function useDebtSettlement(householdId: string, userEmail: string, onSucc
     setError(null);
 
     try {
-      const result = await previewDebtSettlementsUseCase.execute({ householdId, year, month });
+      const result = await previewDebtSettlementsUseCase.execute({
+        householdId,
+        year,
+        month,
+        auth: { uid: currentUser?.uid || '', isGlobalAdmin: isAdmin },
+      });
       setPreview(result);
       setStatus(DebtSettlementStatus.PREVIEW);
     } catch (err) {
@@ -67,7 +74,12 @@ export function useDebtSettlement(householdId: string, userEmail: string, onSucc
 
     try {
       const yearMonth = `${year}-${month.toString().padStart(2, '0')}`;
-      await settleDebtAccountsUseCase.execute({ householdId, yearMonth, userEmail });
+      await settleDebtAccountsUseCase.execute({
+        householdId,
+        yearMonth,
+        userEmail,
+        auth: { uid: currentUser?.uid || '', isGlobalAdmin: isAdmin },
+      });
       setStatus(DebtSettlementStatus.SUCCESS);
       onSuccess?.();
     } catch (err) {

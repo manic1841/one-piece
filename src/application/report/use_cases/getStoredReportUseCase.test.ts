@@ -11,6 +11,13 @@ vi.mock('@/infra/repositories/reportRepository', () => ({
   reportRepository: { getReport: vi.fn() },
 }));
 
+vi.mock('@/application/household/householdPermissionService', () => ({
+  householdPermissionService: {
+    assertReadPermission: vi.fn().mockResolvedValue(undefined),
+    assertWritePermission: vi.fn().mockResolvedValue(undefined),
+  },
+}));
+
 const incomeStatementData = {
   yearMonth: '2026-03',
   incomeTotal: 1000,
@@ -50,6 +57,7 @@ describe('getStoredReportUseCase', () => {
       householdId: 'household-1',
       yearMonth: '2026-03',
       kind: 'incomeStatement',
+      auth: { uid: 'user-1', isGlobalAdmin: false },
     });
 
     expect(result).toBeNull();
@@ -67,6 +75,7 @@ describe('getStoredReportUseCase', () => {
       householdId: 'household-1',
       yearMonth: '2026-03',
       kind: 'incomeStatement',
+      auth: { uid: 'user-1', isGlobalAdmin: false },
     });
 
     expect(result).toEqual(incomeStatementData);
@@ -79,6 +88,7 @@ describe('getStoredReportUseCase', () => {
       householdId: 'household-1',
       yearMonth: '2026-03',
       kind: 'balanceSheet',
+      auth: { uid: 'user-1', isGlobalAdmin: false },
     });
 
     expect(result).toEqual(balanceSheetData);
@@ -91,6 +101,7 @@ describe('getStoredReportUseCase', () => {
       householdId: 'household-1',
       yearMonth: '2026-03',
       kind: 'cashFlow',
+      auth: { uid: 'user-1', isGlobalAdmin: false },
     });
 
     expect(result).toEqual(cashFlowData);
@@ -104,6 +115,7 @@ describe('getStoredReportUseCase', () => {
       householdId: 'household-1',
       yearMonth: '2026',
       kind: 'incomeStatement',
+      auth: { uid: 'user-1', isGlobalAdmin: false },
     });
 
     expect(reportRepository.getReport).toHaveBeenCalledTimes(12);
@@ -122,6 +134,7 @@ describe('getStoredReportUseCase', () => {
       householdId: 'household-1',
       yearMonth: '2026',
       kind: 'balanceSheet',
+      auth: { uid: 'user-1', isGlobalAdmin: false },
     });
 
     expect(result).toBeNull();
@@ -135,6 +148,7 @@ describe('getStoredReportUseCase', () => {
       householdId: 'household-1',
       yearMonth: '2026',
       kind: 'balanceSheet',
+      auth: { uid: 'user-1', isGlobalAdmin: false },
     });
 
     expect(result).not.toBeNull();
@@ -147,6 +161,7 @@ describe('getStoredReportUseCase', () => {
       householdId: 'household-1',
       yearMonth: '2026',
       kind: 'cashFlow',
+      auth: { uid: 'user-1', isGlobalAdmin: false },
     });
 
     expect(result).toBeNull();
@@ -161,6 +176,7 @@ describe('getStoredReportUseCase', () => {
       await getStoredReportUseCase.execute({
         householdId: 'household-1',
         yearMonth: '2026-03',
+        auth: { uid: 'user-1', isGlobalAdmin: false },
         kind,
       });
 

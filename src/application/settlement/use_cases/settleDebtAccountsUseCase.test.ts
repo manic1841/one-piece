@@ -17,6 +17,13 @@ vi.mock('@/infra/repositories/debtSnapshotRepository', () => ({
   },
 }));
 
+vi.mock('@/application/household/householdPermissionService', () => ({
+  householdPermissionService: {
+    assertReadPermission: vi.fn().mockResolvedValue(undefined),
+    assertWritePermission: vi.fn().mockResolvedValue(undefined),
+  },
+}));
+
 describe('settleDebtAccountsUseCase', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -34,6 +41,7 @@ describe('settleDebtAccountsUseCase', () => {
       householdId: 'household-1',
       yearMonth: '2026-03',
       userEmail: 'user@example.com',
+      auth: { uid: 'user-1', isGlobalAdmin: false },
     });
 
     expect(debtSnapshotRepository.getSnapshot).toHaveBeenCalledTimes(1);
@@ -54,6 +62,7 @@ describe('settleDebtAccountsUseCase', () => {
       householdId: 'household-1',
       yearMonth: '2026-03',
       userEmail: 'user@example.com',
+      auth: { uid: 'user-1', isGlobalAdmin: false },
     });
 
     expect(debtSnapshotRepository.create).not.toHaveBeenCalled();
@@ -68,6 +77,7 @@ describe('settleDebtAccountsUseCase', () => {
       householdId: 'household-1',
       yearMonth: '2026-03',
       userEmail: 'user@example.com',
+      auth: { uid: 'user-1', isGlobalAdmin: false },
     });
 
     const call = vi.mocked(debtSnapshotRepository.create).mock.calls[0];
