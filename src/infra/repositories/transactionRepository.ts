@@ -1,4 +1,5 @@
 import {
+  type QueryConstraint,
   type Transaction as FirestoreTransaction,
   collection,
   doc,
@@ -118,11 +119,17 @@ class TransactionRepository extends BaseRepository<Transaction, [string, string?
     householdId: string,
     startDate: Date,
     endDate: Date,
+    maxLimit?: number,
   ): Promise<Transaction[]> {
-    return this.list(
-      [householdId],
-      [where('date', '>=', startDate), where('date', '<', endDate), orderBy('date', 'desc')],
-    );
+    const constraints: QueryConstraint[] = [
+      where('date', '>=', startDate),
+      where('date', '<', endDate),
+      orderBy('date', 'desc'),
+    ];
+    if (maxLimit !== undefined) {
+      constraints.push(limit(maxLimit));
+    }
+    return this.list([householdId], constraints);
   }
 
   async updateAllocationId(
