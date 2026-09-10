@@ -60,13 +60,11 @@ export class ReportRepository extends BaseRepository<FinancialReport, [string, s
     report: Omit<FinancialReport, 'id' | 'createdAt' | 'updatedAt'>,
     userEmail: string,
   ): Promise<void> {
-    const existing = await this.getReport(householdId, report.yearMonth, report.type);
-    if (existing) {
-      await this.update([householdId, existing.id], report, userEmail);
-    } else {
-      const id = this.buildId(report.type, report.yearMonth);
-      await this.create([householdId], report, userEmail, undefined, id);
-    }
+    // Deterministic write: no read-before-write. Legacy reports with random IDs
+    // (if any) are left in place; getReport checks the deterministic ID first,
+    // so reads remain correct. Legacy docs are read-only artifacts.
+    const id = this.buildId(report.type, report.yearMonth);
+    await this.set([householdId, id], report, userEmail);
   }
 
   /**

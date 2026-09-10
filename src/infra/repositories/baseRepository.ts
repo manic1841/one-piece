@@ -142,6 +142,35 @@ export abstract class BaseRepository<TDomain extends Base, RefArgs extends unkno
     return id;
   }
 
+  /**
+   * Deterministic upsert: writes to a known doc ID without a prior read.
+   * Uses setDoc with merge so existing fields (e.g. createdAt) are preserved
+   * on overwrite, and serverTimestamp fills them on first create.
+   */
+  async set(
+    args: RefArgs,
+    data: Omit<TDomain, ExcludedColumn>,
+    userEmail: string,
+    tx?: Transaction,
+  ): Promise<void> {
+    const docRef = this.getDocRef(...args);
+
+    const sanitized = this.sanitize(data as TDomain) as TDomain;
+
+    const entity = this.convertToFirestore({
+      ...sanitized,
+      id: docRef.id,
+      createdBy: userEmail,
+      updatedBy: userEmail,
+    } as TDomain);
+
+    if (tx) {
+      tx.set(docRef, entity, { merge: true });
+    } else {
+      await setDoc(docRef, entity, { merge: true });
+    }
+  }
+
   // get
   async get(args: RefArgs, tx?: Transaction): Promise<TDomain | null> {
     const ref = this.getDocRef(...args);
