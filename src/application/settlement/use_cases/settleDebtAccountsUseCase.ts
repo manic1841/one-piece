@@ -17,6 +17,8 @@ export class SettleDebtAccountsUseCase {
       const existing = await debtSnapshotRepository.getSnapshot(householdId, account.id, yearMonth);
       if (existing) continue;
 
+      // No snapshot exists — create directly with deterministic ID.
+      // upsertSnapshot would re-read the same document we just checked.
       const snapshot: DebtSnapshotCreate = {
         yearMonth,
         openingBalance: account.currentBalance,
@@ -26,7 +28,13 @@ export class SettleDebtAccountsUseCase {
         closingBalance: account.currentBalance,
       };
 
-      await debtSnapshotRepository.upsertSnapshot(householdId, account.id, snapshot, userEmail);
+      await debtSnapshotRepository.create(
+        [householdId, account.id],
+        snapshot,
+        userEmail,
+        undefined,
+        yearMonth,
+      );
     }
   }
 }
