@@ -2,7 +2,7 @@ import { portfolioRepository } from '@/infra/repositories/portfolioRepository';
 import { portfolioSnapshotRepository } from '@/infra/repositories/portfolioSnapshotRepository';
 import { householdPermissionService } from '@/application/household/householdPermissionService';
 import { type AuthContext } from '@/application/types';
-import { where, orderBy } from 'firebase/firestore';
+import { orderBy } from 'firebase/firestore';
 
 export interface GetStockGainLossRequest {
   householdId: string;
@@ -17,17 +17,18 @@ export class GetStockGainLossUseCase {
     await householdPermissionService.assertReadPermission(householdId, auth.uid, auth.isGlobalAdmin);
 
     const portfolios = await portfolioRepository.list([householdId], [orderBy('order', 'asc')]);
+    const yearMonth = `${year}-${month.toString().padStart(2, '0')}`;
     let totalMarketValue = 0;
     let totalGainLoss = 0;
 
     for (const portfolio of portfolios) {
-      const snapshots = await portfolioSnapshotRepository.list(
-        [householdId, portfolio.id],
-        [where('year', '==', year), where('month', '==', month), orderBy('year', 'desc'), orderBy('month', 'desc')]
+      const snapshot = await portfolioSnapshotRepository.getSnapshot(
+        householdId,
+        portfolio.id,
+        yearMonth,
       );
 
-      if (snapshots.length > 0) {
-        const snapshot = snapshots[0];
+      if (snapshot) {
         totalMarketValue += snapshot.totalValue;
         totalGainLoss += snapshot.performance.cumulativeGain;
       }
