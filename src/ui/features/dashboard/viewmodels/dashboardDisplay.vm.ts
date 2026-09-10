@@ -1,5 +1,5 @@
 import { type LeverageStats } from '@/application/portfolio/use_cases/getLeverageStatsUseCase';
-import { type UnsettledStats } from '@/application/report/use_cases/getUnsettledStatsUseCase';
+import { type SettlementReadiness } from '@/application/report/use_cases/getSettlementReadinessUseCase';
 import { type AssetTrendData } from '@/domains/report/logic/trendAggregation';
 import { formatCurrency } from '@/ui/utils';
 
@@ -288,11 +288,12 @@ const mapCountToSectionVM = (count: number): UnsettledStatsCardSectionVM => ({
   progressWidth: count > 0 ? 100 : 0,
 });
 
-const buildEmptyUnsettledStats = (): UnsettledStats => {
+const buildEmptySettlementReadiness = (): SettlementReadiness => {
   const now = new Date();
   return {
     year: now.getFullYear(),
     month: now.getMonth() + 1,
+    isReady: true,
     unsettledAccounts: [],
     unsettledPortfolios: [],
     unsettledDebts: [],
@@ -301,9 +302,11 @@ const buildEmptyUnsettledStats = (): UnsettledStats => {
   };
 };
 
-export const mapUnsettledStatsToCardVM = (stats: UnsettledStats | null): UnsettledStatsCardVM => {
-  const base = stats ?? buildEmptyUnsettledStats();
-  const isFullySettled = base.totalUnsettled === 0;
+export const mapUnsettledStatsToCardVM = (
+  stats: SettlementReadiness | null,
+): UnsettledStatsCardVM => {
+  const base = stats ?? buildEmptySettlementReadiness();
+  const isFullySettled = base.isReady;
 
   return {
     titleText: `結算 (${base.year}/${base.month})`,

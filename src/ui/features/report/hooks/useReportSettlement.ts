@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 
 import { format } from 'date-fns';
 
-import { getUnsettledStatsUseCase } from '@/application/report/use_cases/getUnsettledStatsUseCase';
+import { getSettlementReadinessUseCase } from '@/application/report/use_cases/getSettlementReadinessUseCase';
 import { previewDebtSettlementsUseCase } from '@/application/settlement/use_cases/previewDebtSettlementsUseCase';
 import { reportService } from '@/domains/report/reportService';
 import { ReportType } from '@/domains/report/schemas';
@@ -93,7 +93,7 @@ export const useReportSettlement = (householdId: string, userEmail: string) => {
       setDebtNoRepaymentWarningNames(debtPreview.missingRepaymentAccountNames);
 
       // Check whether all active entities are settled for this month.
-      const unsettled = await getUnsettledStatsUseCase.execute({
+      const readiness = await getSettlementReadinessUseCase.execute({
         householdId,
         auth: {
           uid: currentUser?.uid || '',
@@ -104,13 +104,13 @@ export const useReportSettlement = (householdId: string, userEmail: string) => {
         month,
       });
 
-      if (unsettled.totalUnsettled > 0) {
-        setUnsettledProjectNames(unsettled.unsettledProjects.map((project) => project.name));
-        setUnsettledAccountNames(unsettled.unsettledAccounts.map((account) => account.name));
+      if (!readiness.isReady) {
+        setUnsettledProjectNames(readiness.unsettledProjects.map((project) => project.name));
+        setUnsettledAccountNames(readiness.unsettledAccounts.map((account) => account.name));
         setUnsettledPortfolioNames(
-          unsettled.unsettledPortfolios.map((portfolio) => portfolio.name),
+          readiness.unsettledPortfolios.map((portfolio) => portfolio.name),
         );
-        setUnsettledDebtNames(unsettled.unsettledDebts.map((debt) => debt.name));
+        setUnsettledDebtNames(readiness.unsettledDebts.map((debt) => debt.name));
         setSummary(null);
         setReportsGenerated(false);
         setIsLoading(false);

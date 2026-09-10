@@ -12,9 +12,10 @@ import { type Portfolio } from '@/domains/portfolio/types/portfolio';
 import { type Project } from '@/domains/project/schemas';
 import { debtSnapshotRepository } from '@/infra/repositories/debtSnapshotRepository';
 
-export interface UnsettledStats {
+export interface SettlementReadiness {
   year: number;
   month: number;
+  isReady: boolean;
   unsettledAccounts: Account[];
   unsettledPortfolios: Portfolio[];
   unsettledDebts: DebtAccount[];
@@ -22,15 +23,15 @@ export interface UnsettledStats {
   totalUnsettled: number;
 }
 
-export interface GetUnsettledStatsRequest {
+export interface GetSettlementReadinessRequest {
   householdId: string;
   auth: AuthContext;
   year?: number;
   month?: number;
 }
 
-export class GetUnsettledStatsUseCase {
-  async execute(request: GetUnsettledStatsRequest): Promise<UnsettledStats> {
+export class GetSettlementReadinessUseCase {
+  async execute(request: GetSettlementReadinessRequest): Promise<SettlementReadiness> {
     const { householdId, auth } = request;
     const now = new Date();
     const year = request.year ?? now.getFullYear();
@@ -44,10 +45,11 @@ export class GetUnsettledStatsUseCase {
       listProjectsUseCase.execute({ householdId }),
     ]);
 
+    const activeAccounts = accounts.filter((account) => account.isActive);
     const activePortfolios = portfolios.filter((portfolio) => portfolio.isActive);
 
     const accountSettlementFlags = await Promise.all(
-      accounts.map(async (account) => {
+      activeAccounts.map(async (account) => {
         const snapshots = await getAccountSnapshotsUseCase.execute({
           householdId,
           accountId: account.id,
@@ -105,20 +107,23 @@ export class GetUnsettledStatsUseCase {
       .filter((result) => !result.settled)
       .map((result) => result.project);
 
+    const totalUnsettled =
+      unsettledAccounts.length +
+      unsettledPortfolios.length +
+      unsettledDebts.length +
+      unsettledProjects.length;
+
     return {
       year,
       month,
+      isReady: totalUnsettled === 0,
       unsettledAccounts,
       unsettledPortfolios,
       unsettledDebts,
       unsettledProjects,
-      totalUnsettled:
-        unsettledAccounts.length +
-        unsettledPortfolios.length +
-        unsettledDebts.length +
-        unsettledProjects.length,
+      totalUnsettled,
     };
   }
 }
 
-export const getUnsettledStatsUseCase = new GetUnsettledStatsUseCase();
+export const getSettlementReadinessUseCase = new GetSettlementReadinessUseCase();

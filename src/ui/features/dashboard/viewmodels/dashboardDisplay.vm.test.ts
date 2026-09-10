@@ -70,6 +70,7 @@ describe('dashboardDisplay.vm', () => {
     const vm = mapUnsettledStatsToCardVM({
       year: 2026,
       month: 3,
+      isReady: false,
       unsettledAccounts: [{} as never],
       unsettledPortfolios: [],
       unsettledDebts: [],

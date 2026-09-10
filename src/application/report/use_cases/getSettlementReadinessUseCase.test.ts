@@ -2,15 +2,19 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { getAccountSnapshotsUseCase } from '@/application/account/use_cases/getAccountSnapshotsUseCase';
 import { getAccountsUseCase } from '@/application/account/use_cases/getAccountsUseCase';
+import { listDebtAccountsUseCase } from '@/application/debt/use_cases/listDebtAccountsUseCase';
 import { listPortfolioSnapshotsUseCase } from '@/application/portfolio/use_cases/listPortfolioSnapshotsUseCase';
 import { listPortfoliosUseCase } from '@/application/portfolio/use_cases/listPortfoliosUseCase';
+import { listProjectSnapshotsUseCase } from '@/application/project/use_cases/listProjectSnapshotsUseCase';
+import { listProjectsUseCase } from '@/application/project/use_cases/listProjectsUseCase';
 import { type AuthContext } from '@/application/types';
 import { type Account } from '@/domains/account/types/account';
 import { type DebtAccount } from '@/domains/debt/schemas';
 import { type Portfolio } from '@/domains/portfolio/types/portfolio';
 import { type Project } from '@/domains/project/schemas';
+import { debtSnapshotRepository } from '@/infra/repositories/debtSnapshotRepository';
 
-import { getUnsettledStatsUseCase } from './getUnsettledStatsUseCase';
+import { getSettlementReadinessUseCase } from './getSettlementReadinessUseCase';
 
 vi.mock('@/application/account/use_cases/getAccountsUseCase', () => ({
   getAccountsUseCase: { execute: vi.fn() },
@@ -50,12 +54,13 @@ const auth: AuthContext = {
   isGlobalAdmin: false,
 };
 
-const createAccount = (id: string): Account => ({
+const createAccount = (id: string, isActive = true): Account => ({
   id,
   name: `Account ${id}`,
   category: 'cash',
   currency: 'TWD',
   order: 0,
+  isActive,
   createdBy: 'u1',
   updatedBy: 'u1',
   createdAt: new Date('2026-01-01T00:00:00.000Z'),
@@ -95,13 +100,13 @@ const createDebt = (id: string, isActive: boolean): DebtAccount =>
     isActive,
   }) as DebtAccount;
 
-describe('getUnsettledStatsUseCase', () => {
+describe('getSettlementReadinessUseCase', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.useRealTimers();
   });
 
-  it('returns unsettled accounts, active unsettled portfolios, active unsettled debts, and active unsettled projects for the specified period', async () => {
+  it('returns unsettled active entities and isReady=false when snapshots are missing', async () => {
     const account1 = createAccount('a1');
     const account2 = createAccount('a2');
     const portfolio1 = createPortfolio('p1', true);
@@ -113,17 +118,6 @@ describe('getUnsettledStatsUseCase', () => {
     const project1 = createProject('pr1', true);
     const project2 = createProject('pr2', false);
     const project3 = createProject('pr3', true);
-
-    const { listProjectsUseCase } = await import(
-      '@/application/project/use_cases/listProjectsUseCase'
-    );
-    const { listProjectSnapshotsUseCase } = await import(
-      '@/application/project/use_cases/listProjectSnapshotsUseCase'
-    );
-    const { listDebtAccountsUseCase } = await import(
-      '@/application/debt/use_cases/listDebtAccountsUseCase'
-    );
-    const { debtSnapshotRepository } = await import('@/infra/repositories/debtSnapshotRepository');
 
     vi.mocked(getAccountsUseCase.execute).mockResolvedValue([account1, account2]);
     vi.mocked(listPortfoliosUseCase.execute).mockResolvedValue([
@@ -162,7 +156,7 @@ describe('getUnsettledStatsUseCase', () => {
       },
     );
 
-    const result = await getUnsettledStatsUseCase.execute({
+    const result = await getSettlementReadinessUseCase.execute({
       householdId: 'household-1',
       auth,
       year: 2026,
@@ -171,6 +165,7 @@ describe('getUnsettledStatsUseCase', () => {
 
     expect(result.year).toBe(2026);
     expect(result.month).toBe(3);
+    expect(result.isReady).toBe(false);
     expect(result.unsettledAccounts.map((a) => a.id)).toEqual(['a2']);
     expect(result.unsettledPortfolios.map((p) => p.id)).toEqual(['p1']);
     expect(result.unsettledDebts.map((d) => d.id)).toEqual(['d1']);
@@ -194,6 +189,151 @@ describe('getUnsettledStatsUseCase', () => {
     );
   });
 
+  it('returns isReady=true when all active entities have snapshots', async () => {
+    const account1 = createAccount('a1');
+    const portfolio1 = createPortfolio('p1', true);
+    const debt1 = createDebt('d1', true);
+    const project1 = createProject('pr1', true);
+
+    vi.mocked(getAccountsUseCase.execute).mockResolvedValue([account1]);
+    vi.mocked(listPortfoliosUseCase.execute).mockResolvedValue([portfolio1]);
+    vi.mocked(listDebtAccountsUseCase.execute).mockResolvedValue([debt1]);
+    vi.mocked(listProjectsUseCase.execute).mockResolvedValue([project1]);
+    vi.mocked(getAccountSnapshotsUseCase.execute).mockResolvedValue([{ id: 'snap-a1' } as never]);
+    vi.mocked(listPortfolioSnapshotsUseCase.execute).mockResolvedValue([
+      { id: 'snap-p1' } as never,
+    ]);
+    vi.mocked(debtSnapshotRepository.getSnapshot).mockResolvedValue({ id: 'snap-d1' } as never);
+    vi.mocked(listProjectSnapshotsUseCase.execute).mockResolvedValue([
+      { id: 'snap-pr1' } as never,
+    ]);
+
+    const result = await getSettlementReadinessUseCase.execute({
+      householdId: 'household-1',
+      auth,
+      year: 2026,
+      month: 3,
+    });
+
+    expect(result.isReady).toBe(true);
+    expect(result.totalUnsettled).toBe(0);
+    expect(result.unsettledAccounts).toEqual([]);
+    expect(result.unsettledPortfolios).toEqual([]);
+    expect(result.unsettledDebts).toEqual([]);
+    expect(result.unsettledProjects).toEqual([]);
+  });
+
+  it('filters inactive accounts so they do not produce false unsettled results', async () => {
+    const activeAccount = createAccount('a1', true);
+    const inactiveAccount = createAccount('a2', false);
+
+    vi.mocked(getAccountsUseCase.execute).mockResolvedValue([activeAccount, inactiveAccount]);
+    vi.mocked(listPortfoliosUseCase.execute).mockResolvedValue([]);
+    vi.mocked(listDebtAccountsUseCase.execute).mockResolvedValue([]);
+    vi.mocked(listProjectsUseCase.execute).mockResolvedValue([]);
+    vi.mocked(getAccountSnapshotsUseCase.execute).mockResolvedValue([
+      { id: 'snap-a1' } as never,
+    ]);
+
+    const result = await getSettlementReadinessUseCase.execute({
+      householdId: 'household-1',
+      auth,
+      year: 2026,
+      month: 3,
+    });
+
+    expect(result.isReady).toBe(true);
+    expect(result.unsettledAccounts).toEqual([]);
+    expect(getAccountSnapshotsUseCase.execute).toHaveBeenCalledTimes(1);
+    expect(getAccountSnapshotsUseCase.execute).toHaveBeenCalledWith(
+      expect.objectContaining({ accountId: 'a1' }),
+    );
+    expect(getAccountSnapshotsUseCase.execute).not.toHaveBeenCalledWith(
+      expect.objectContaining({ accountId: 'a2' }),
+    );
+  });
+
+  it('returns isReady=false when only accounts are unsettled', async () => {
+    const account1 = createAccount('a1');
+
+    vi.mocked(getAccountsUseCase.execute).mockResolvedValue([account1]);
+    vi.mocked(listPortfoliosUseCase.execute).mockResolvedValue([]);
+    vi.mocked(listDebtAccountsUseCase.execute).mockResolvedValue([]);
+    vi.mocked(listProjectsUseCase.execute).mockResolvedValue([]);
+    vi.mocked(getAccountSnapshotsUseCase.execute).mockResolvedValue([]);
+
+    const result = await getSettlementReadinessUseCase.execute({
+      householdId: 'household-1',
+      auth,
+      year: 2026,
+      month: 3,
+    });
+
+    expect(result.isReady).toBe(false);
+    expect(result.unsettledAccounts.map((a) => a.id)).toEqual(['a1']);
+    expect(result.totalUnsettled).toBe(1);
+  });
+
+  it('returns isReady=false when only portfolios are unsettled', async () => {
+    const portfolio1 = createPortfolio('p1', true);
+
+    vi.mocked(getAccountsUseCase.execute).mockResolvedValue([]);
+    vi.mocked(listPortfoliosUseCase.execute).mockResolvedValue([portfolio1]);
+    vi.mocked(listDebtAccountsUseCase.execute).mockResolvedValue([]);
+    vi.mocked(listProjectsUseCase.execute).mockResolvedValue([]);
+    vi.mocked(listPortfolioSnapshotsUseCase.execute).mockResolvedValue([]);
+
+    const result = await getSettlementReadinessUseCase.execute({
+      householdId: 'household-1',
+      auth,
+      year: 2026,
+      month: 3,
+    });
+
+    expect(result.isReady).toBe(false);
+    expect(result.unsettledPortfolios.map((p) => p.id)).toEqual(['p1']);
+  });
+
+  it('returns isReady=false when only debts are unsettled', async () => {
+    const debt1 = createDebt('d1', true);
+
+    vi.mocked(getAccountsUseCase.execute).mockResolvedValue([]);
+    vi.mocked(listPortfoliosUseCase.execute).mockResolvedValue([]);
+    vi.mocked(listDebtAccountsUseCase.execute).mockResolvedValue([debt1]);
+    vi.mocked(listProjectsUseCase.execute).mockResolvedValue([]);
+    vi.mocked(debtSnapshotRepository.getSnapshot).mockResolvedValue(null);
+
+    const result = await getSettlementReadinessUseCase.execute({
+      householdId: 'household-1',
+      auth,
+      year: 2026,
+      month: 3,
+    });
+
+    expect(result.isReady).toBe(false);
+    expect(result.unsettledDebts.map((d) => d.id)).toEqual(['d1']);
+  });
+
+  it('returns isReady=false when only projects are unsettled', async () => {
+    const project1 = createProject('pr1', true);
+
+    vi.mocked(getAccountsUseCase.execute).mockResolvedValue([]);
+    vi.mocked(listPortfoliosUseCase.execute).mockResolvedValue([]);
+    vi.mocked(listDebtAccountsUseCase.execute).mockResolvedValue([]);
+    vi.mocked(listProjectsUseCase.execute).mockResolvedValue([project1]);
+    vi.mocked(listProjectSnapshotsUseCase.execute).mockResolvedValue([]);
+
+    const result = await getSettlementReadinessUseCase.execute({
+      householdId: 'household-1',
+      auth,
+      year: 2026,
+      month: 3,
+    });
+
+    expect(result.isReady).toBe(false);
+    expect(result.unsettledProjects.map((p) => p.id)).toEqual(['pr1']);
+  });
+
   it('uses current year and month when period is not provided', async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-03-18T08:00:00.000Z'));
@@ -202,17 +342,6 @@ describe('getUnsettledStatsUseCase', () => {
     const portfolio = createPortfolio('p1', true);
     const debt = createDebt('d1', true);
     const project = createProject('pr1', true);
-
-    const { listProjectsUseCase } = await import(
-      '@/application/project/use_cases/listProjectsUseCase'
-    );
-    const { listProjectSnapshotsUseCase } = await import(
-      '@/application/project/use_cases/listProjectSnapshotsUseCase'
-    );
-    const { listDebtAccountsUseCase } = await import(
-      '@/application/debt/use_cases/listDebtAccountsUseCase'
-    );
-    const { debtSnapshotRepository } = await import('@/infra/repositories/debtSnapshotRepository');
 
     vi.mocked(getAccountsUseCase.execute).mockResolvedValue([account]);
     vi.mocked(listPortfoliosUseCase.execute).mockResolvedValue([portfolio]);
@@ -223,7 +352,7 @@ describe('getUnsettledStatsUseCase', () => {
     vi.mocked(debtSnapshotRepository.getSnapshot).mockResolvedValue(null);
     vi.mocked(listProjectSnapshotsUseCase.execute).mockResolvedValue([]);
 
-    const result = await getUnsettledStatsUseCase.execute({
+    const result = await getSettlementReadinessUseCase.execute({
       householdId: 'household-1',
       auth,
     });
@@ -242,27 +371,20 @@ describe('getUnsettledStatsUseCase', () => {
     );
   });
 
-  it('returns empty unsettled result when there are no accounts, portfolios, debts, or projects', async () => {
-    const { listProjectsUseCase } = await import(
-      '@/application/project/use_cases/listProjectsUseCase'
-    );
-    const { listDebtAccountsUseCase } = await import(
-      '@/application/debt/use_cases/listDebtAccountsUseCase'
-    );
-    const { debtSnapshotRepository } = await import('@/infra/repositories/debtSnapshotRepository');
-
+  it('returns isReady=true with empty unsettled result when there are no entities', async () => {
     vi.mocked(getAccountsUseCase.execute).mockResolvedValue([]);
     vi.mocked(listPortfoliosUseCase.execute).mockResolvedValue([]);
     vi.mocked(listDebtAccountsUseCase.execute).mockResolvedValue([]);
     vi.mocked(listProjectsUseCase.execute).mockResolvedValue([]);
 
-    const result = await getUnsettledStatsUseCase.execute({
+    const result = await getSettlementReadinessUseCase.execute({
       householdId: 'household-1',
       auth,
       year: 2026,
       month: 3,
     });
 
+    expect(result.isReady).toBe(true);
     expect(result.unsettledAccounts).toEqual([]);
     expect(result.unsettledPortfolios).toEqual([]);
     expect(result.unsettledDebts).toEqual([]);
@@ -271,9 +393,6 @@ describe('getUnsettledStatsUseCase', () => {
     expect(getAccountSnapshotsUseCase.execute).not.toHaveBeenCalled();
     expect(listPortfolioSnapshotsUseCase.execute).not.toHaveBeenCalled();
     expect(debtSnapshotRepository.getSnapshot).not.toHaveBeenCalled();
-    const { listProjectSnapshotsUseCase } = await import(
-      '@/application/project/use_cases/listProjectSnapshotsUseCase'
-    );
     expect(listProjectSnapshotsUseCase.execute).not.toHaveBeenCalled();
   });
 });
