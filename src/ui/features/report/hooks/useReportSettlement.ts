@@ -4,7 +4,7 @@ import { format } from 'date-fns';
 
 import { getSettlementReadinessUseCase } from '@/application/report/use_cases/getSettlementReadinessUseCase';
 import { generateFinancialReportsUseCase } from '@/application/report/use_cases/generateFinancialReportsUseCase';
-import { previewFinancialReportsUseCase } from '@/application/report/use_cases/previewFinancialReportsUseCase';
+import { previewFinancialReportsWorkflow } from '@/application/report/use_cases/previewFinancialReportsWorkflow';
 import { previewDebtSettlementsUseCase } from '@/application/settlement/use_cases/previewDebtSettlementsUseCase';
 import { useAuth } from '@/infra/contexts/useAuth';
 import { getUnifiedLedgerCodeLabel } from '@/ui/constants/transaction';
@@ -58,7 +58,7 @@ export const useReportSettlement = (householdId: string, userEmail: string) => {
     if (!householdId) return;
     setIsLoading(true);
     try {
-      const preview = await previewFinancialReportsUseCase.execute({
+      const preview = await previewFinancialReportsWorkflow.execute({
         householdId,
         auth: {
           uid: currentUser?.uid || '',
@@ -127,7 +127,7 @@ export const useReportSettlement = (householdId: string, userEmail: string) => {
       setUnsettledDebtNames([]);
 
       // 2. Load financial preview (calculation + persistence state)
-      const preview = await previewFinancialReportsUseCase.execute({
+      const preview = await previewFinancialReportsWorkflow.execute({
         householdId,
         auth: {
           uid: currentUser?.uid || '',

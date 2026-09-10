@@ -14,8 +14,8 @@ vi.mock('@/application/report/use_cases/getSettlementReadinessUseCase', () => ({
   },
 }));
 
-vi.mock('@/application/report/use_cases/previewFinancialReportsUseCase', () => ({
-  previewFinancialReportsUseCase: {
+vi.mock('@/application/report/use_cases/previewFinancialReportsWorkflow', () => ({
+  previewFinancialReportsWorkflow: {
     execute: vi.fn(),
   },
 }));
@@ -80,8 +80,8 @@ describe('useReportSettlement', () => {
     const { getSettlementReadinessUseCase } = await import(
       '../../../../application/report/use_cases/getSettlementReadinessUseCase'
     );
-    const { previewFinancialReportsUseCase } = await import(
-      '../../../../application/report/use_cases/previewFinancialReportsUseCase'
+    const { previewFinancialReportsWorkflow } = await import(
+      '../../../../application/report/use_cases/previewFinancialReportsWorkflow'
     );
     const { previewDebtSettlementsUseCase } = await import(
       '../../../../application/settlement/use_cases/previewDebtSettlementsUseCase'
@@ -107,15 +107,15 @@ describe('useReportSettlement', () => {
       missingRepaymentAccountNames: [],
     });
 
-    vi.mocked(previewFinancialReportsUseCase.execute).mockResolvedValue(buildPreviewResult());
+    vi.mocked(previewFinancialReportsWorkflow.execute).mockResolvedValue(buildPreviewResult());
   });
 
   it('treats zero active projects as settled and loads the summary', async () => {
     const { getSettlementReadinessUseCase } = await import(
       '../../../../application/report/use_cases/getSettlementReadinessUseCase'
     );
-    const { previewFinancialReportsUseCase } = await import(
-      '../../../../application/report/use_cases/previewFinancialReportsUseCase'
+    const { previewFinancialReportsWorkflow } = await import(
+      '../../../../application/report/use_cases/previewFinancialReportsWorkflow'
     );
     const { previewDebtSettlementsUseCase } = await import(
       '../../../../application/settlement/use_cases/previewDebtSettlementsUseCase'
@@ -141,7 +141,7 @@ describe('useReportSettlement', () => {
       hasMissingRepayments: false,
       missingRepaymentAccountNames: [],
     });
-    vi.mocked(previewFinancialReportsUseCase.execute).mockResolvedValue(buildPreviewResult());
+    vi.mocked(previewFinancialReportsWorkflow.execute).mockResolvedValue(buildPreviewResult());
 
     const { result } = renderHook(() => useReportSettlement('household-1', 'user@example.com'));
 
@@ -173,14 +173,14 @@ describe('useReportSettlement', () => {
       month,
       auth: { uid: 'user-1', isGlobalAdmin: false },
     });
-    expect(previewFinancialReportsUseCase.execute).toHaveBeenCalledWith(
+    expect(previewFinancialReportsWorkflow.execute).toHaveBeenCalledWith(
       expect.objectContaining({ householdId: 'household-1', year, month }),
     );
   });
 
   it('blocks summary loading when any account, portfolio, debt, or project is unsettled', async () => {
-    const { previewFinancialReportsUseCase } = await import(
-      '../../../../application/report/use_cases/previewFinancialReportsUseCase'
+    const { previewFinancialReportsWorkflow } = await import(
+      '../../../../application/report/use_cases/previewFinancialReportsWorkflow'
     );
     const { getSettlementReadinessUseCase } = await import(
       '../../../../application/report/use_cases/getSettlementReadinessUseCase'
@@ -209,15 +209,15 @@ describe('useReportSettlement', () => {
     expect(result.current.unsettledAccountNames).toEqual(['Account 2']);
     expect(result.current.unsettledPortfolioNames).toEqual(['Portfolio 2']);
     expect(result.current.unsettledDebtNames).toEqual(['Debt 2']);
-    expect(previewFinancialReportsUseCase.execute).not.toHaveBeenCalled();
+    expect(previewFinancialReportsWorkflow.execute).not.toHaveBeenCalled();
   });
 
   it('loads the summary only when all active projects are settled', async () => {
     const { getSettlementReadinessUseCase } = await import(
       '../../../../application/report/use_cases/getSettlementReadinessUseCase'
     );
-    const { previewFinancialReportsUseCase } = await import(
-      '../../../../application/report/use_cases/previewFinancialReportsUseCase'
+    const { previewFinancialReportsWorkflow } = await import(
+      '../../../../application/report/use_cases/previewFinancialReportsWorkflow'
     );
     const { previewDebtSettlementsUseCase } = await import(
       '../../../../application/settlement/use_cases/previewDebtSettlementsUseCase'
@@ -243,7 +243,7 @@ describe('useReportSettlement', () => {
       hasMissingRepayments: false,
       missingRepaymentAccountNames: [],
     });
-    vi.mocked(previewFinancialReportsUseCase.execute).mockResolvedValue(
+    vi.mocked(previewFinancialReportsWorkflow.execute).mockResolvedValue(
       buildPreviewResult({
         isPersisted: true,
         timestamps: { incomeStatement: '10:30', balanceSheet: '10:30', cashFlow: '10:30' },
@@ -280,23 +280,23 @@ describe('useReportSettlement', () => {
       year,
       month,
     });
-    expect(previewFinancialReportsUseCase.execute).toHaveBeenCalledWith(
+    expect(previewFinancialReportsWorkflow.execute).toHaveBeenCalledWith(
       expect.objectContaining({ householdId: 'household-1', year, month }),
     );
   });
 
   it('uses unified report label resolver with fallback support', async () => {
-    const { previewFinancialReportsUseCase } = await import(
-      '../../../../application/report/use_cases/previewFinancialReportsUseCase'
+    const { previewFinancialReportsWorkflow } = await import(
+      '../../../../application/report/use_cases/previewFinancialReportsWorkflow'
     );
 
     renderHook(() => useReportSettlement('household-1', 'user@example.com'));
 
     await waitFor(() => {
-      expect(previewFinancialReportsUseCase.execute).toHaveBeenCalled();
+      expect(previewFinancialReportsWorkflow.execute).toHaveBeenCalled();
     });
 
-    const resolver = vi.mocked(previewFinancialReportsUseCase.execute).mock.calls[0]?.[0]
+    const resolver = vi.mocked(previewFinancialReportsWorkflow.execute).mock.calls[0]?.[0]
       ?.labelResolver;
     expect(typeof resolver).toBe('function');
 

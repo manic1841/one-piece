@@ -10,18 +10,17 @@ import {
   type IncomeStatementData,
   ReportType,
 } from '@/domains/report/schemas';
-import {
-  type ReportLabelResolver,
-  calculateBalanceSheet,
-  calculateCashFlow,
-  calculateIncomeStatement,
-} from '@/domains/report/reportCalculations';
+import { type ReportLabelResolver } from '@/domains/report/reportCalculations';
 import { accountRepository } from '@/infra/repositories/accountRepository';
 import { debtAccountRepository } from '@/infra/repositories/debtAccountRepository';
 import { debtSnapshotRepository } from '@/infra/repositories/debtSnapshotRepository';
 import { portfolioRepository } from '@/infra/repositories/portfolioRepository';
 import { portfolioSnapshotRepository } from '@/infra/repositories/portfolioSnapshotRepository';
 import { reportRepository } from '@/infra/repositories/reportRepository';
+
+import { previewBalanceSheetUseCase } from './previewBalanceSheetUseCase';
+import { previewCashFlowUseCase } from './previewCashFlowUseCase';
+import { previewIncomeStatementUseCase } from './previewIncomeStatementUseCase';
 
 export interface PreviewFinancialReportsRequest {
   householdId: string;
@@ -45,7 +44,7 @@ export interface PreviewFinancialReportsResult {
   timestamps: ReportTimestamps;
 }
 
-export class PreviewFinancialReportsUseCase {
+export class PreviewFinancialReportsWorkflow {
   async execute(
     request: PreviewFinancialReportsRequest,
   ): Promise<PreviewFinancialReportsResult> {
@@ -68,8 +67,12 @@ export class PreviewFinancialReportsUseCase {
         debtAccountRepository.getDebtAccounts(householdId),
       ]);
 
-    // Income statement
-    const incomeStatement = calculateIncomeStatement({ yearMonth, entries: entriesByMonth, labelResolver });
+    // Income statement (independent)
+    const incomeStatement = previewIncomeStatementUseCase.execute({
+      yearMonth,
+      entries: entriesByMonth,
+      labelResolver,
+    });
 
     // Fetch snapshots needed for balance sheet
     const activeAccounts = accounts.filter((a) => a.isActive);
@@ -114,8 +117,8 @@ export class PreviewFinancialReportsUseCase {
       ? (prevBalanceSheetReport.data as BalanceSheetData)
       : null;
 
-    // Balance sheet
-    const balanceSheet = calculateBalanceSheet({
+    // Balance sheet (depends on income statement)
+    const balanceSheet = previewBalanceSheetUseCase.execute({
       yearMonth,
       entries: entriesUntilMonth,
       monthlyEntries: entriesByMonth,
@@ -148,7 +151,7 @@ export class PreviewFinancialReportsUseCase {
 
     const actualBalance = await this.getLiquidBalance(householdId, yearMonth, accounts);
 
-    const cashFlow = calculateCashFlow({
+    const cashFlow = previewCashFlowUseCase.execute({
       yearMonth,
       entries: entriesByMonth,
       beginningBalance,
@@ -196,4 +199,4 @@ export class PreviewFinancialReportsUseCase {
   }
 }
 
-export const previewFinancialReportsUseCase = new PreviewFinancialReportsUseCase();
+export const previewFinancialReportsWorkflow = new PreviewFinancialReportsWorkflow();

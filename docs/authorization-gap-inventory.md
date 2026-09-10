@@ -31,7 +31,7 @@ catalogs the current state, Firestore-rules coverage, and recommended contracts.
 
 | Use case | AuthContext? | Permission call | Permission | Firestore rules guard? |
 |---|---|---|---|---|
-| `previewFinancialReportsUseCase` | Yes | `assertReadPermission` | Read | Yes (read: member) |
+| `previewFinancialReportsWorkflow` | Yes | `assertReadPermission` | Read | Yes (read: member) |
 | `generateFinancialReportsUseCase` | Yes | `assertWritePermission` | Write | Yes (write: admin) |
 | `getStoredReportUseCase` | No | None | None | Yes (read: member) |
 | `getSettlementReadinessUseCase` | Yes | None (delegated) | Indirect | Yes (read: member) |

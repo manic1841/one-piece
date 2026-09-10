@@ -18,8 +18,8 @@ vi.mock('./getSettlementReadinessUseCase', () => ({
   getSettlementReadinessUseCase: { execute: vi.fn() },
 }));
 
-vi.mock('./previewFinancialReportsUseCase', () => ({
-  previewFinancialReportsUseCase: { execute: vi.fn() },
+vi.mock('./previewFinancialReportsWorkflow', () => ({
+  previewFinancialReportsWorkflow: { execute: vi.fn() },
 }));
 
 vi.mock('@/infra/repositories/reportRepository', () => ({
@@ -83,8 +83,8 @@ describe('generateFinancialReportsUseCase', () => {
       unsettledProjects: [],
       totalUnsettled: 0,
     } as never);
-    const { previewFinancialReportsUseCase } = await import('./previewFinancialReportsUseCase');
-    vi.mocked(previewFinancialReportsUseCase.execute).mockResolvedValue(previewResult);
+    const { previewFinancialReportsWorkflow } = await import('./previewFinancialReportsWorkflow');
+    vi.mocked(previewFinancialReportsWorkflow.execute).mockResolvedValue(previewResult);
     vi.mocked(reportRepository.saveReport).mockResolvedValue(undefined);
   });
 
@@ -108,7 +108,7 @@ describe('generateFinancialReportsUseCase', () => {
       new Error('forbidden'),
     );
 
-    const { previewFinancialReportsUseCase } = await import('./previewFinancialReportsUseCase');
+    const { previewFinancialReportsWorkflow } = await import('./previewFinancialReportsWorkflow');
 
     await expect(
       generateFinancialReportsUseCase.execute({
@@ -119,13 +119,13 @@ describe('generateFinancialReportsUseCase', () => {
       }),
     ).rejects.toThrow('forbidden');
 
-    expect(previewFinancialReportsUseCase.execute).not.toHaveBeenCalled();
+    expect(previewFinancialReportsWorkflow.execute).not.toHaveBeenCalled();
     expect(reportRepository.saveReport).not.toHaveBeenCalled();
   });
 
   it('rejects with SettlementNotReadyError when settlement is not ready', async () => {
     const { getSettlementReadinessUseCase } = await import('./getSettlementReadinessUseCase');
-    const { previewFinancialReportsUseCase } = await import('./previewFinancialReportsUseCase');
+    const { previewFinancialReportsWorkflow } = await import('./previewFinancialReportsWorkflow');
 
     vi.mocked(getSettlementReadinessUseCase.execute).mockResolvedValue({
       year: 2026,
@@ -147,12 +147,12 @@ describe('generateFinancialReportsUseCase', () => {
       }),
     ).rejects.toThrow(/Settlement not ready/);
 
-    expect(previewFinancialReportsUseCase.execute).not.toHaveBeenCalled();
+    expect(previewFinancialReportsWorkflow.execute).not.toHaveBeenCalled();
     expect(reportRepository.saveReport).not.toHaveBeenCalled();
   });
 
   it('proceeds with generation when settlement is ready', async () => {
-    const { previewFinancialReportsUseCase } = await import('./previewFinancialReportsUseCase');
+    const { previewFinancialReportsWorkflow } = await import('./previewFinancialReportsWorkflow');
 
     const result = await generateFinancialReportsUseCase.execute({
       householdId: 'household-1',
@@ -161,13 +161,13 @@ describe('generateFinancialReportsUseCase', () => {
       month: 3,
     });
 
-    expect(previewFinancialReportsUseCase.execute).toHaveBeenCalled();
+    expect(previewFinancialReportsWorkflow.execute).toHaveBeenCalled();
     expect(reportRepository.saveReport).toHaveBeenCalledTimes(3);
     expect(result.timestamp).toBeInstanceOf(Date);
   });
 
-  it('delegates calculation to previewFinancialReportsUseCase', async () => {
-    const { previewFinancialReportsUseCase } = await import('./previewFinancialReportsUseCase');
+  it('delegates calculation to previewFinancialReportsWorkflow', async () => {
+    const { previewFinancialReportsWorkflow } = await import('./previewFinancialReportsWorkflow');
 
     await generateFinancialReportsUseCase.execute({
       householdId: 'household-1',
@@ -177,7 +177,7 @@ describe('generateFinancialReportsUseCase', () => {
       labelResolver: (code) => code,
     });
 
-    expect(previewFinancialReportsUseCase.execute).toHaveBeenCalledWith({
+    expect(previewFinancialReportsWorkflow.execute).toHaveBeenCalledWith({
       householdId: 'household-1',
       auth,
       year: 2026,

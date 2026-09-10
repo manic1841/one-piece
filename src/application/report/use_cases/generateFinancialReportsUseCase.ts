@@ -12,8 +12,8 @@ import { reportRepository } from '@/infra/repositories/reportRepository';
 import { type SettlementReadiness, getSettlementReadinessUseCase } from './getSettlementReadinessUseCase';
 import {
   type PreviewFinancialReportsResult,
-  previewFinancialReportsUseCase,
-} from './previewFinancialReportsUseCase';
+  previewFinancialReportsWorkflow,
+} from './previewFinancialReportsWorkflow';
 
 export interface GenerateFinancialReportsRequest {
   householdId: string;
@@ -62,7 +62,7 @@ export class GenerateFinancialReportsUseCase {
       throw new SettlementNotReadyError(readiness);
     }
 
-    const preview: PreviewFinancialReportsResult = await previewFinancialReportsUseCase.execute({
+    const preview: PreviewFinancialReportsResult = await previewFinancialReportsWorkflow.execute({
       householdId,
       auth,
       year,
