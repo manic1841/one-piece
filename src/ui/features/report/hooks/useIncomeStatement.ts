@@ -39,7 +39,7 @@ export function useIncomeStatement(
       });
       setData(result ? mapIncomeStatementToVM(result as IncomeStatementData) : null);
     });
-  }, [householdId, currentDate, run, reportMode]);
+  }, [householdId, currentDate, run, reportMode, currentUser?.uid, isAdmin]);
 
   useEffect(() => {
     load();

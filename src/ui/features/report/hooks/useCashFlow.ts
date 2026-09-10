@@ -40,7 +40,7 @@ export function useCashFlow(
     } finally {
       setLoading(false);
     }
-  }, [householdId, yearMonth]);
+  }, [householdId, yearMonth, currentUser?.uid, isAdmin]);
 
   useEffect(() => {
     fetchReport();

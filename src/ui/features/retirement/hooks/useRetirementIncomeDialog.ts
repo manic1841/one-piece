@@ -3,6 +3,33 @@ import { useEffect, useState } from 'react';
 import { ZodError } from 'zod';
 
 import type { RetirementIncomeSource } from '@/domains/retirement/types';
+
+interface LedgerEntry {
+  ledgerCode: string;
+  credit?: number | null;
+  debit?: number | null;
+}
+
+interface TransactionWithEntries {
+  entries: LedgerEntry[];
+}
+
+function sumLedgerCodeAmounts(
+  transactions: TransactionWithEntries[],
+  ledgerCode: string,
+): { totalAmount: number; sampleCount: number } {
+  let totalAmount = 0;
+  let sampleCount = 0;
+  for (const transaction of transactions) {
+    for (const entry of transaction.entries) {
+      if (entry.ledgerCode === ledgerCode) {
+        totalAmount += (entry.credit || 0) - (entry.debit || 0);
+        sampleCount += 1;
+      }
+    }
+  }
+  return { totalAmount, sampleCount };
+}
 import {
   RetirementIncomeFormVMSchema,
   buildRetirementIncomeFormVM,
@@ -135,16 +162,10 @@ export function useRetirementIncomeDialog({
 
       // Sum the amounts for this ledger code across all transactions
       // For income ledger codes, sum the credit amounts
-      let totalAmount = 0;
-      let sampleCount = 0;
-      for (const transaction of transactions) {
-        for (const entry of transaction.entries) {
-          if (entry.ledgerCode === normalizedLedgerCode) {
-            totalAmount += (entry.credit || 0) - (entry.debit || 0);
-            sampleCount += 1;
-          }
-        }
-      }
+      const { totalAmount, sampleCount } = sumLedgerCodeAmounts(
+        transactions,
+        normalizedLedgerCode,
+      );
 
       setAmount(Math.round(totalAmount));
       if (sampleCount === 0) {

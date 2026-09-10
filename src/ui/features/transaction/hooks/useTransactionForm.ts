@@ -208,6 +208,87 @@ export const useTransactionForm = (
     }
   };
 
+  const handleDebtPayment = async (vm: TransactionFormVM) => {
+    if (!userProfile?.email) return;
+    if (!vm.debtAccountId) throw new Error('請選擇貸款帳戶');
+    const account = debtAccounts.find((item) => item.id === vm.debtAccountId) ?? null;
+    const result = await createDebtPaymentUseCase.execute({
+      householdId,
+      userEmail: userProfile.email,
+      auth: {
+        uid: currentUser?.uid ?? '',
+        isGlobalAdmin: isAdmin ?? false,
+      },
+      debtAccountId: vm.debtAccountId,
+      idempotencyKey: getDebtPaymentIdempotencyKey(vm),
+      totalPayment: vm.amount,
+      date: new Date(`${vm.date}T00:00:00`),
+      description: vm.description,
+      projectId: vm.projectId,
+    });
+
+    if (result.newBalance <= 0) {
+      setSettlementPrompt({
+        debtAccountId: vm.debtAccountId,
+        debtAccountName: account?.name ?? '貸款',
+      });
+    }
+  };
+
+  const handleTransfer = async (vm: TransactionFormVM) => {
+    if (!userProfile?.email) return;
+    if (!vm.fromProjectId || !vm.toProjectId)
+      throw new Error('Please select both source and target projects.');
+
+    await transferBetweenProjectsUseCase.execute({
+      householdId,
+      input: {
+        fromProjectId: vm.fromProjectId,
+        toProjectId: vm.toProjectId,
+        amount: vm.amount,
+        date: toDate(vm.date),
+        description: vm.description,
+      },
+      userEmail: userProfile.email,
+      auth: { uid: currentUser?.uid ?? '', isGlobalAdmin: isAdmin ?? false },
+    });
+  };
+
+  const handleStandardTransaction = async (vm: TransactionFormVM) => {
+    if (!userProfile?.email) return;
+    const transactionData = mapTransactionVMToDomain(vm, userProfile.email);
+    const allocationData = mapTransactionVMToAllocationInput(vm);
+
+    if (allocationData) {
+      await createTransactionWithAllocationUseCase.execute({
+        householdId,
+        userEmail: userProfile.email,
+        auth: {
+          uid: currentUser?.uid ?? '',
+          isGlobalAdmin: isAdmin ?? false,
+        },
+        idempotencyKey: getTransactionWithAllocationIdempotencyKey(vm),
+        data: transactionData,
+        allocation: {
+          direction: allocationData.direction,
+          items: allocationData.items,
+        },
+      });
+
+      await persistIncomeAllocationTemplate({
+        vm,
+        items: allocationData.items,
+        userEmail: userProfile.email,
+      });
+    } else {
+      await createTransactionUseCase.execute({
+        householdId,
+        userEmail: userProfile.email,
+        data: transactionData,
+      });
+    }
+  };
+
   const handleSubmit = async (output: TransactionFormOutput) => {
     if (!userProfile?.email) return;
 
@@ -218,77 +299,11 @@ export const useTransactionForm = (
       const vm = parseTransactionFormVM(output);
 
       if (vm.intentType === IntentType.DEBT_PAYMENT) {
-        if (!vm.debtAccountId) throw new Error('請選擇貸款帳戶');
-        const account = debtAccounts.find((item) => item.id === vm.debtAccountId) ?? null;
-        const result = await createDebtPaymentUseCase.execute({
-          householdId,
-          userEmail: userProfile.email,
-          auth: {
-            uid: currentUser?.uid ?? '',
-            isGlobalAdmin: isAdmin ?? false,
-          },
-          debtAccountId: vm.debtAccountId,
-          idempotencyKey: getDebtPaymentIdempotencyKey(vm),
-          totalPayment: vm.amount,
-          date: new Date(`${vm.date}T00:00:00`),
-          description: vm.description,
-          projectId: vm.projectId,
-        });
-
-        if (result.newBalance <= 0) {
-          setSettlementPrompt({
-            debtAccountId: vm.debtAccountId,
-            debtAccountName: account?.name ?? '貸款',
-          });
-        }
+        await handleDebtPayment(vm);
       } else if (vm.intentType === IntentType.TRANSFER) {
-        if (!vm.fromProjectId || !vm.toProjectId)
-          throw new Error('Please select both source and target projects.');
-
-        await transferBetweenProjectsUseCase.execute({
-          householdId,
-          input: {
-            fromProjectId: vm.fromProjectId,
-            toProjectId: vm.toProjectId,
-            amount: vm.amount,
-            date: toDate(vm.date),
-            description: vm.description,
-          },
-          userEmail: userProfile.email,
-          auth: { uid: currentUser?.uid ?? '', isGlobalAdmin: isAdmin ?? false },
-        });
+        await handleTransfer(vm);
       } else {
-        const transactionData = mapTransactionVMToDomain(vm, userProfile.email);
-        const allocationData = mapTransactionVMToAllocationInput(vm);
-
-        if (allocationData) {
-          await createTransactionWithAllocationUseCase.execute({
-            householdId,
-            userEmail: userProfile.email,
-            auth: {
-              uid: currentUser?.uid ?? '',
-              isGlobalAdmin: isAdmin ?? false,
-            },
-            idempotencyKey: getTransactionWithAllocationIdempotencyKey(vm),
-            data: transactionData,
-            allocation: {
-              direction: allocationData.direction,
-              items: allocationData.items,
-            },
-          });
-
-          await persistIncomeAllocationTemplate({
-            vm,
-            items: allocationData.items,
-            userEmail: userProfile.email,
-          });
-        } else {
-          await createTransactionUseCase.execute({
-            householdId,
-            userEmail: userProfile.email,
-            data: transactionData,
-          });
-        }
+        await handleStandardTransaction(vm);
       }
 
       onClose();

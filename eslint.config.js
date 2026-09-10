@@ -80,6 +80,18 @@ export default tseslint.config(
     },
   },
   {
+    files: ['src/domains/**/errors.ts', 'src/application/**/use_cases/**'],
+    rules: {
+      'max-classes-per-file': 'off',
+    },
+  },
+  {
+    files: ['src/ui/components/ui/**'],
+    rules: {
+      'react-refresh/only-export-components': 'off',
+    },
+  },
+  {
     files: ['**/*.{test,spec}.{ts,tsx,js,jsx}', '**/test.{ts,tsx,js,jsx}'], // 針對測試檔案
     rules: {
       '@typescript-eslint/no-explicit-any': 'off',

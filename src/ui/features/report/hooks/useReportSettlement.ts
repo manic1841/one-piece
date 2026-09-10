@@ -49,8 +49,6 @@ export const useReportSettlement = (householdId: string, userEmail: string) => {
   } | null>(null);
   const [isPreviewing, setIsPreviewing] = useState(false);
 
-  const yearMonth = `${year}-${month.toString().padStart(2, '0')}`;
-
   const resolveReportLabel = useCallback((code: string, fallbackLabel?: string) => {
     const resolved = getUnifiedLedgerCodeLabel(code);
     return resolved === code ? fallbackLabel || code : resolved;
@@ -160,7 +158,6 @@ export const useReportSettlement = (householdId: string, userEmail: string) => {
     householdId,
     year,
     month,
-    yearMonth,
     currentUser?.uid,
     currentUser?.email,
     isAdmin,
