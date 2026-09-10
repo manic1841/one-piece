@@ -17,14 +17,6 @@ export type CashFlowData = z.infer<typeof CashFlowDataSchema>;
 export type IncomeStatementItem = z.infer<typeof IncomeStatementItemSchema>;
 export type BalanceSheetItem = z.infer<typeof BalanceSheetItemSchema>;
 
-export const ReportType = {
-  INCOME_STATEMENT: 'income_statement',
-  BALANCE_SHEET: 'balance_sheet',
-  CASH_FLOW: 'cash_flow',
-} as const;
-
-export type ReportType = (typeof ReportType)[keyof typeof ReportType];
-
 export const CashFlowSourceType = {
   SYSTEM: 'SYSTEM',
   MANUAL: 'MANUAL',
