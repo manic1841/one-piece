@@ -34,14 +34,15 @@ export const useRetirementPlanDetailPage = (
     handleDelete,
     handleSaveName,
     handleCancelEditName,
-    importData,
+    importIncomeData,
+    importDebtData,
   } = useRetirementPlanCore({ id, householdId, userEmail });
 
   const { handleAddExpense, handleUpdateExpense, handleDeleteExpense, handleImportDebtRepayments } =
     useRetirementExpenseActions({
       id,
       plan,
-      importData,
+      importDebtData,
       handleUpdatePlan,
     });
 
@@ -59,7 +60,7 @@ export const useRetirementPlanDetailPage = (
   } = useRetirementIncomeActions({
     id,
     plan,
-    importData,
+    importIncomeData,
     handleUpdatePlan,
   });
 
@@ -109,6 +110,5 @@ export const useRetirementPlanDetailPage = (
     handleUpdateIncome,
     handleDeleteIncome,
     handleImportIncomeFromTransactions,
-    handleImportData: importData,
   };
 };

@@ -133,7 +133,8 @@ describe('useRetirementPlanDetailPage', () => {
       handleDelete,
       handleSaveName,
       handleCancelEditName,
-      importData: vi.fn().mockResolvedValue([]),
+      importIncomeData: vi.fn().mockResolvedValue([]),
+      importDebtData: vi.fn().mockResolvedValue([]),
     });
 
     mockedExpenseActions.mockReturnValue({
@@ -215,7 +216,8 @@ describe('useRetirementPlanDetailPage', () => {
       handleDelete,
       handleSaveName,
       handleCancelEditName,
-      importData: vi.fn().mockResolvedValue([]),
+      importIncomeData: vi.fn().mockResolvedValue([]),
+      importDebtData: vi.fn().mockResolvedValue([]),
     });
 
     const { result } = renderHook(() =>

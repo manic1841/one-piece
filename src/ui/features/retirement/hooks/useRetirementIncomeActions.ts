@@ -3,7 +3,6 @@ import { useCallback } from 'react';
 import { manageRetirementIncomesUseCase } from '@/application/retirement/use_cases/manageRetirementIncomesUseCase';
 import { mergeImportedIncomeSourcesUseCase } from '@/application/retirement/use_cases/mergeImportedIncomeSourcesUseCase';
 import type {
-  RetirementExpenseCategory,
   RetirementIncomeSource,
   RetirementPlan,
   RetirementPlanCreate,
@@ -12,17 +11,14 @@ import type {
 interface UseRetirementIncomeActionsParams {
   id: string | undefined;
   plan: RetirementPlan | null;
-  importData: (
-    type: 'transactions' | 'debtRepayments',
-    referenceMonths?: number,
-  ) => Promise<RetirementExpenseCategory[] | RetirementIncomeSource[]>;
+  importIncomeData: () => Promise<RetirementIncomeSource[]>;
   handleUpdatePlan: (updates: Partial<RetirementPlanCreate>) => Promise<void>;
 }
 
 export const useRetirementIncomeActions = ({
   id,
   plan,
-  importData,
+  importIncomeData,
   handleUpdatePlan,
 }: UseRetirementIncomeActionsParams) => {
   const handleAddIncome = useCallback(
@@ -72,8 +68,8 @@ export const useRetirementIncomeActions = ({
   const handleImportIncomeFromTransactions = useCallback(async () => {
     if (!id || !plan) return;
 
-    const imported = await importData('transactions', 12);
-    const importedIncomes = (imported as RetirementIncomeSource[]).filter(
+    const imported = await importIncomeData();
+    const importedIncomes = imported.filter(
       (item) => typeof item.baseAmount === 'number' && item.incomeCategory,
     );
 
@@ -91,7 +87,7 @@ export const useRetirementIncomeActions = ({
     }
 
     await handleUpdatePlan({ incomes: mergeResult.incomes });
-  }, [id, plan, importData, handleUpdatePlan]);
+  }, [id, plan, importIncomeData, handleUpdatePlan]);
 
   return {
     handleAddIncome,
