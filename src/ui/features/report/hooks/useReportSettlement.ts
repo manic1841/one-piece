@@ -3,11 +3,10 @@ import { useCallback, useEffect, useState } from 'react';
 import { format } from 'date-fns';
 
 import { getSettlementReadinessUseCase } from '@/application/report/use_cases/getSettlementReadinessUseCase';
+import { previewFinancialReportsUseCase } from '@/application/report/use_cases/previewFinancialReportsUseCase';
 import { previewDebtSettlementsUseCase } from '@/application/settlement/use_cases/previewDebtSettlementsUseCase';
 import { reportService } from '@/domains/report/reportService';
-import { ReportType } from '@/domains/report/schemas';
 import { useAuth } from '@/infra/contexts/useAuth';
-import { reportRepository } from '@/infra/repositories/reportRepository';
 import { getUnifiedLedgerCodeLabel } from '@/ui/constants/transaction';
 import {
   type BalanceSheetVM,
@@ -61,15 +60,21 @@ export const useReportSettlement = (householdId: string, userEmail: string) => {
     if (!householdId) return;
     setIsLoading(true);
     try {
-      const [income, balance, cash] = await Promise.all([
-        reportService.generateIncomeStatement(householdId, yearMonth, resolveReportLabel),
-        reportService.generateBalanceSheet(householdId, yearMonth, resolveReportLabel),
-        reportService.generateCashFlow(householdId, yearMonth, resolveReportLabel),
-      ]);
+      const preview = await previewFinancialReportsUseCase.execute({
+        householdId,
+        auth: {
+          uid: currentUser?.uid || '',
+          email: currentUser?.email || undefined,
+          isGlobalAdmin: isAdmin,
+        },
+        year,
+        month,
+        labelResolver: resolveReportLabel,
+      });
       setPreviewData({
-        incomeStatement: mapIncomeStatementToVM(income),
-        balanceSheet: mapBalanceSheetToVM(balance),
-        cashFlow: mapCashFlowToVM(cash),
+        incomeStatement: mapIncomeStatementToVM(preview.incomeStatement),
+        balanceSheet: mapBalanceSheetToVM(preview.balanceSheet),
+        cashFlow: mapCashFlowToVM(preview.cashFlow),
       });
     } catch (err) {
       console.error('Error fetching preview data:', err);
@@ -122,37 +127,28 @@ export const useReportSettlement = (householdId: string, userEmail: string) => {
       setUnsettledPortfolioNames([]);
       setUnsettledDebtNames([]);
 
-      // 2. Load financial summary
-      const [incomeStmt, balanceSheet] = await Promise.all([
-        reportService.generateIncomeStatement(householdId, yearMonth, resolveReportLabel),
-        reportService.generateBalanceSheet(householdId, yearMonth, resolveReportLabel),
-      ]);
-
-      setSummary({
-        totalRevenue: incomeStmt.incomeTotal,
-        totalExpense: incomeStmt.expenseTotal,
-        netIncome: incomeStmt.netIncome,
-        netWorth: balanceSheet.assets.total - balanceSheet.liabilities.total,
+      // 2. Load financial preview (calculation + persistence state)
+      const preview = await previewFinancialReportsUseCase.execute({
+        householdId,
+        auth: {
+          uid: currentUser?.uid || '',
+          email: currentUser?.email || undefined,
+          isGlobalAdmin: isAdmin,
+        },
+        year,
+        month,
+        labelResolver: resolveReportLabel,
       });
 
-      // 3. Check for existing reports
-      const existingReports = await Promise.all([
-        reportRepository.getReport(householdId, yearMonth, ReportType.INCOME_STATEMENT),
-        reportRepository.getReport(householdId, yearMonth, ReportType.BALANCE_SHEET),
-        reportRepository.getReport(householdId, yearMonth, ReportType.CASH_FLOW),
-      ]);
+      setSummary({
+        totalRevenue: preview.incomeStatement.incomeTotal,
+        totalExpense: preview.incomeStatement.expenseTotal,
+        netIncome: preview.incomeStatement.netIncome,
+        netWorth: preview.balanceSheet.assets.total - preview.balanceSheet.liabilities.total,
+      });
 
-      if (existingReports.every((report) => report !== null)) {
-        setReportsGenerated(true);
-        setReportTimestamps({
-          incomeStatement: format(existingReports[0]!.updatedAt, 'HH:mm'),
-          balanceSheet: format(existingReports[1]!.updatedAt, 'HH:mm'),
-          cashFlow: format(existingReports[2]!.updatedAt, 'HH:mm'),
-        });
-      } else {
-        setReportsGenerated(false);
-        setReportTimestamps({});
-      }
+      setReportsGenerated(preview.isPersisted);
+      setReportTimestamps(preview.timestamps);
     } catch (err) {
       console.error('Error loading report settlement status:', err);
       setError('無法載入結算狀態，請稍後再試。');
