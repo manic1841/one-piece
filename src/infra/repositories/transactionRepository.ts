@@ -3,6 +3,7 @@ import {
   type Transaction as FirestoreTransaction,
   collection,
   doc,
+  documentId,
   limit,
   orderBy,
   serverTimestamp,
@@ -155,6 +156,25 @@ class TransactionRepository extends BaseRepository<Transaction, [string, string?
 
   async getById(householdId: string, transactionId: string): Promise<Transaction | null> {
     return this.get([householdId, transactionId]);
+  }
+
+  /**
+   * Batched document-ID read. Firestore `in` supports max 30 values per query,
+   * so IDs are chunked accordingly. Returns all found transactions in any order.
+   */
+  async getByIds(householdId: string, transactionIds: string[]): Promise<Transaction[]> {
+    if (transactionIds.length === 0) return [];
+
+    const FIRESTORE_IN_LIMIT = 30;
+    const results: Transaction[] = [];
+
+    for (let i = 0; i < transactionIds.length; i += FIRESTORE_IN_LIMIT) {
+      const chunk = transactionIds.slice(i, i + FIRESTORE_IN_LIMIT);
+      const found = await this.list([householdId], [where(documentId(), 'in', chunk)]);
+      results.push(...found);
+    }
+
+    return results;
   }
 
   async getProjectTransfers(householdId: string, yearMonth: string): Promise<Transaction[]> {

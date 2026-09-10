@@ -70,14 +70,15 @@ export class ListProjectRecordsUseCase {
       (transactionId) => !directRecordIds.has(transactionId),
     );
 
-    const sourceTransactions = await Promise.all(
-      sourceTransactionIds.map((transactionId) =>
-        transactionRepository.getById(householdId, transactionId),
-      ),
+    const sourceTransactions = await transactionRepository.getByIds(
+      householdId,
+      sourceTransactionIds,
     );
+    const sourceTransactionMap = new Map(sourceTransactions.map((tx) => [tx.id, tx]));
 
-    const allocationRecords: Transaction[] = sourceTransactions
-      .map((sourceTransaction) => {
+    const allocationRecords: Transaction[] = sourceTransactionIds
+      .map((transactionId) => {
+        const sourceTransaction = sourceTransactionMap.get(transactionId);
         if (!sourceTransaction) {
           return null;
         }
