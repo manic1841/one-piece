@@ -11,6 +11,24 @@ import {
 } from 'firebase/firestore';
 import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
 
+// Mock toggle: when true, writeChildrenInTransaction throws to simulate a
+// child-write failure inside the Firestore transaction. The mock factory
+// delegates to the real implementation otherwise.
+let shouldFailChildWrite = false;
+
+vi.mock('@/infra/repositories/retirementSubcollectionHelpers', async (importActual) => {
+  const actual = await importActual<typeof import('@/infra/repositories/retirementSubcollectionHelpers')>();
+  return {
+    ...actual,
+    writeChildrenInTransaction: (...args: Parameters<typeof actual.writeChildrenInTransaction>) => {
+      if (shouldFailChildWrite) {
+        throw new Error('injected failure');
+      }
+      return actual.writeChildrenInTransaction(...args);
+    },
+  };
+});
+
 import {
   RetirementPlanCommandErrorCode,
   RETIREMENT_PLAN_TRANSACTION_WRITE_LIMIT,
@@ -19,7 +37,6 @@ import { createRetirementPlanUseCase } from './createRetirementPlanUseCase';
 import { deleteRetirementPlanUseCase } from './deleteRetirementPlanUseCase';
 import { duplicateRetirementPlanUseCase } from './duplicateRetirementPlanUseCase';
 import { updateRetirementPlanUseCase } from './updateRetirementPlanUseCase';
-import { retirementRepository } from '@/infra/repositories/retirementRepository';
 import { resetMockDb } from '@/test/mocks/firebase';
 
 const auth = { uid: 'user-1', isGlobalAdmin: true };
@@ -201,15 +218,7 @@ describe('Retirement plan atomic writes with Firestore Emulator', () => {
     const householdId = 'household-create-rollback';
     await seedPlan(householdId, 'plan-old', { isActive: true });
 
-    const failure = vi
-      .spyOn(
-        retirementRepository as unknown as Record<string, unknown>,
-        'writeChildrenInTransaction',
-      )
-      .mockImplementation(() => {
-        throw new Error('injected failure');
-      });
-
+    shouldFailChildWrite = true;
     try {
       await expect(
         createRetirementPlanUseCase.execute({
@@ -220,7 +229,7 @@ describe('Retirement plan atomic writes with Firestore Emulator', () => {
         }),
       ).rejects.toMatchObject({ code: RetirementPlanCommandErrorCode.TRANSACTION_FAILED });
     } finally {
-      failure.mockRestore();
+      shouldFailChildWrite = false;
     }
 
     const state = await readFresh(async (db) => {
