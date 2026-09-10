@@ -1,16 +1,16 @@
-import { getAccountSnapshotsUseCase } from '@/application/account/use_cases/getAccountSnapshotsUseCase';
 import { getAccountsUseCase } from '@/application/account/use_cases/getAccountsUseCase';
 import { listDebtAccountsUseCase } from '@/application/debt/use_cases/listDebtAccountsUseCase';
-import { listPortfolioSnapshotsUseCase } from '@/application/portfolio/use_cases/listPortfolioSnapshotsUseCase';
 import { listPortfoliosUseCase } from '@/application/portfolio/use_cases/listPortfoliosUseCase';
-import { listProjectSnapshotsUseCase } from '@/application/project/use_cases/listProjectSnapshotsUseCase';
 import { listProjectsUseCase } from '@/application/project/use_cases/listProjectsUseCase';
 import { type AuthContext } from '@/application/types';
 import { type Account } from '@/domains/account/types/account';
 import { type DebtAccount } from '@/domains/debt/schemas';
 import { type Portfolio } from '@/domains/portfolio/types/portfolio';
 import { type Project } from '@/domains/project/schemas';
+import { accountSnapshotRepository } from '@/infra/repositories/accountSnapshotRepository';
 import { debtSnapshotRepository } from '@/infra/repositories/debtSnapshotRepository';
+import { portfolioSnapshotRepository } from '@/infra/repositories/portfolioSnapshotRepository';
+import { projectSnapshotRepository } from '@/infra/repositories/projectSnapshotRepository';
 
 export interface SettlementReadiness {
   year: number;
@@ -50,27 +50,23 @@ export class GetSettlementReadinessUseCase {
 
     const accountSettlementFlags = await Promise.all(
       activeAccounts.map(async (account) => {
-        const snapshots = await getAccountSnapshotsUseCase.execute({
+        const snapshot = await accountSnapshotRepository.getSnapshot(
           householdId,
-          accountId: account.id,
-          year,
-          month,
-          auth,
-        });
-        return { account, settled: snapshots.length > 0 };
+          account.id,
+          yearMonth,
+        );
+        return { account, settled: snapshot !== null };
       }),
     );
 
     const portfolioSettlementFlags = await Promise.all(
       activePortfolios.map(async (portfolio) => {
-        const snapshots = await listPortfolioSnapshotsUseCase.execute({
+        const snapshot = await portfolioSnapshotRepository.getSnapshot(
           householdId,
-          portfolioId: portfolio.id,
-          year,
-          month,
-          auth,
-        });
-        return { portfolio, settled: snapshots.length > 0 };
+          portfolio.id,
+          yearMonth,
+        );
+        return { portfolio, settled: snapshot !== null };
       }),
     );
 
@@ -85,12 +81,12 @@ export class GetSettlementReadinessUseCase {
     const activeProjects = projects.filter((project) => project.isActive);
     const projectSettlementFlags = await Promise.all(
       activeProjects.map(async (project) => {
-        const snapshots = await listProjectSnapshotsUseCase.execute({
+        const snapshot = await projectSnapshotRepository.getSnapshot(
           householdId,
-          projectId: project.id,
+          project.id,
           yearMonth,
-        });
-        return { project, settled: snapshots.length > 0 };
+        );
+        return { project, settled: snapshot !== null };
       }),
     );
 

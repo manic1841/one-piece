@@ -1,18 +1,18 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { getAccountSnapshotsUseCase } from '@/application/account/use_cases/getAccountSnapshotsUseCase';
 import { getAccountsUseCase } from '@/application/account/use_cases/getAccountsUseCase';
 import { listDebtAccountsUseCase } from '@/application/debt/use_cases/listDebtAccountsUseCase';
-import { listPortfolioSnapshotsUseCase } from '@/application/portfolio/use_cases/listPortfolioSnapshotsUseCase';
 import { listPortfoliosUseCase } from '@/application/portfolio/use_cases/listPortfoliosUseCase';
-import { listProjectSnapshotsUseCase } from '@/application/project/use_cases/listProjectSnapshotsUseCase';
 import { listProjectsUseCase } from '@/application/project/use_cases/listProjectsUseCase';
 import { type AuthContext } from '@/application/types';
 import { type Account } from '@/domains/account/types/account';
 import { type DebtAccount } from '@/domains/debt/schemas';
 import { type Portfolio } from '@/domains/portfolio/types/portfolio';
 import { type Project } from '@/domains/project/schemas';
+import { accountSnapshotRepository } from '@/infra/repositories/accountSnapshotRepository';
 import { debtSnapshotRepository } from '@/infra/repositories/debtSnapshotRepository';
+import { portfolioSnapshotRepository } from '@/infra/repositories/portfolioSnapshotRepository';
+import { projectSnapshotRepository } from '@/infra/repositories/projectSnapshotRepository';
 
 import { getSettlementReadinessUseCase } from './getSettlementReadinessUseCase';
 
@@ -20,32 +20,32 @@ vi.mock('@/application/account/use_cases/getAccountsUseCase', () => ({
   getAccountsUseCase: { execute: vi.fn() },
 }));
 
-vi.mock('@/application/account/use_cases/getAccountSnapshotsUseCase', () => ({
-  getAccountSnapshotsUseCase: { execute: vi.fn() },
-}));
-
 vi.mock('@/application/portfolio/use_cases/listPortfoliosUseCase', () => ({
   listPortfoliosUseCase: { execute: vi.fn() },
-}));
-
-vi.mock('@/application/portfolio/use_cases/listPortfolioSnapshotsUseCase', () => ({
-  listPortfolioSnapshotsUseCase: { execute: vi.fn() },
 }));
 
 vi.mock('@/application/debt/use_cases/listDebtAccountsUseCase', () => ({
   listDebtAccountsUseCase: { execute: vi.fn() },
 }));
 
-vi.mock('@/infra/repositories/debtSnapshotRepository', () => ({
-  debtSnapshotRepository: { getSnapshot: vi.fn() },
-}));
-
 vi.mock('@/application/project/use_cases/listProjectsUseCase', () => ({
   listProjectsUseCase: { execute: vi.fn() },
 }));
 
-vi.mock('@/application/project/use_cases/listProjectSnapshotsUseCase', () => ({
-  listProjectSnapshotsUseCase: { execute: vi.fn() },
+vi.mock('@/infra/repositories/accountSnapshotRepository', () => ({
+  accountSnapshotRepository: { getSnapshot: vi.fn() },
+}));
+
+vi.mock('@/infra/repositories/portfolioSnapshotRepository', () => ({
+  portfolioSnapshotRepository: { getSnapshot: vi.fn() },
+}));
+
+vi.mock('@/infra/repositories/debtSnapshotRepository', () => ({
+  debtSnapshotRepository: { getSnapshot: vi.fn() },
+}));
+
+vi.mock('@/infra/repositories/projectSnapshotRepository', () => ({
+  projectSnapshotRepository: { getSnapshot: vi.fn() },
 }));
 
 const auth: AuthContext = {
@@ -128,17 +128,17 @@ describe('getSettlementReadinessUseCase', () => {
     vi.mocked(listDebtAccountsUseCase.execute).mockResolvedValue([debt1, debt2, debt3]);
     vi.mocked(listProjectsUseCase.execute).mockResolvedValue([project1, project2, project3]);
 
-    vi.mocked(getAccountSnapshotsUseCase.execute).mockImplementation(
-      async ({ accountId }: { accountId: string }) => {
-        if (accountId === 'a1') return [{ id: 'snap-a1' } as never];
-        return [];
+    vi.mocked(accountSnapshotRepository.getSnapshot).mockImplementation(
+      async (_hid: string, accountId: string) => {
+        if (accountId === 'a1') return { id: 'snap-a1' } as never;
+        return null;
       },
     );
 
-    vi.mocked(listPortfolioSnapshotsUseCase.execute).mockImplementation(
-      async ({ portfolioId }: { portfolioId: string }) => {
-        if (portfolioId === 'p3') return [{ id: 'snap-p3' } as never];
-        return [];
+    vi.mocked(portfolioSnapshotRepository.getSnapshot).mockImplementation(
+      async (_hid: string, portfolioId: string) => {
+        if (portfolioId === 'p3') return { id: 'snap-p3' } as never;
+        return null;
       },
     );
 
@@ -149,10 +149,10 @@ describe('getSettlementReadinessUseCase', () => {
       },
     );
 
-    vi.mocked(listProjectSnapshotsUseCase.execute).mockImplementation(
-      async ({ projectId }: { projectId: string }) => {
-        if (projectId === 'pr3') return [{ id: 'snap-pr3' } as never];
-        return [];
+    vi.mocked(projectSnapshotRepository.getSnapshot).mockImplementation(
+      async (_hid: string, projectId: string) => {
+        if (projectId === 'pr3') return { id: 'snap-pr3' } as never;
+        return null;
       },
     );
 
@@ -172,20 +172,68 @@ describe('getSettlementReadinessUseCase', () => {
     expect(result.unsettledProjects.map((p) => p.id)).toEqual(['pr1']);
     expect(result.totalUnsettled).toBe(4);
 
-    expect(getAccountSnapshotsUseCase.execute).toHaveBeenCalledTimes(2);
-    expect(listPortfolioSnapshotsUseCase.execute).toHaveBeenCalledTimes(2);
+    expect(accountSnapshotRepository.getSnapshot).toHaveBeenCalledTimes(2);
+    expect(portfolioSnapshotRepository.getSnapshot).toHaveBeenCalledTimes(2);
     expect(debtSnapshotRepository.getSnapshot).toHaveBeenCalledTimes(2);
-    expect(listProjectSnapshotsUseCase.execute).toHaveBeenCalledTimes(2);
-    expect(listPortfolioSnapshotsUseCase.execute).not.toHaveBeenCalledWith(
-      expect.objectContaining({ portfolioId: 'p2' }),
+    expect(projectSnapshotRepository.getSnapshot).toHaveBeenCalledTimes(2);
+    expect(portfolioSnapshotRepository.getSnapshot).not.toHaveBeenCalledWith(
+      expect.anything(),
+      'p2',
+      expect.anything(),
     );
-    expect(listProjectSnapshotsUseCase.execute).not.toHaveBeenCalledWith(
-      expect.objectContaining({ projectId: 'pr2' }),
+    expect(projectSnapshotRepository.getSnapshot).not.toHaveBeenCalledWith(
+      expect.anything(),
+      'pr2',
+      expect.anything(),
     );
     expect(debtSnapshotRepository.getSnapshot).not.toHaveBeenCalledWith(
       expect.anything(),
       'd2',
       expect.anything(),
+    );
+  });
+
+  it('uses deterministic point reads with YYYY-MM document IDs', async () => {
+    const account1 = createAccount('a1');
+    const portfolio1 = createPortfolio('p1', true);
+    const debt1 = createDebt('d1', true);
+    const project1 = createProject('pr1', true);
+
+    vi.mocked(getAccountsUseCase.execute).mockResolvedValue([account1]);
+    vi.mocked(listPortfoliosUseCase.execute).mockResolvedValue([portfolio1]);
+    vi.mocked(listDebtAccountsUseCase.execute).mockResolvedValue([debt1]);
+    vi.mocked(listProjectsUseCase.execute).mockResolvedValue([project1]);
+    vi.mocked(accountSnapshotRepository.getSnapshot).mockResolvedValue({ id: 'snap-a1' } as never);
+    vi.mocked(portfolioSnapshotRepository.getSnapshot).mockResolvedValue({
+      id: 'snap-p1',
+    } as never);
+    vi.mocked(debtSnapshotRepository.getSnapshot).mockResolvedValue({ id: 'snap-d1' } as never);
+    vi.mocked(projectSnapshotRepository.getSnapshot).mockResolvedValue({
+      id: 'snap-pr1',
+    } as never);
+
+    await getSettlementReadinessUseCase.execute({
+      householdId: 'household-1',
+      auth,
+      year: 2026,
+      month: 3,
+    });
+
+    expect(accountSnapshotRepository.getSnapshot).toHaveBeenCalledWith(
+      'household-1',
+      'a1',
+      '2026-03',
+    );
+    expect(portfolioSnapshotRepository.getSnapshot).toHaveBeenCalledWith(
+      'household-1',
+      'p1',
+      '2026-03',
+    );
+    expect(debtSnapshotRepository.getSnapshot).toHaveBeenCalledWith('household-1', 'd1', '2026-03');
+    expect(projectSnapshotRepository.getSnapshot).toHaveBeenCalledWith(
+      'household-1',
+      'pr1',
+      '2026-03',
     );
   });
 
@@ -199,14 +247,14 @@ describe('getSettlementReadinessUseCase', () => {
     vi.mocked(listPortfoliosUseCase.execute).mockResolvedValue([portfolio1]);
     vi.mocked(listDebtAccountsUseCase.execute).mockResolvedValue([debt1]);
     vi.mocked(listProjectsUseCase.execute).mockResolvedValue([project1]);
-    vi.mocked(getAccountSnapshotsUseCase.execute).mockResolvedValue([{ id: 'snap-a1' } as never]);
-    vi.mocked(listPortfolioSnapshotsUseCase.execute).mockResolvedValue([
-      { id: 'snap-p1' } as never,
-    ]);
+    vi.mocked(accountSnapshotRepository.getSnapshot).mockResolvedValue({ id: 'snap-a1' } as never);
+    vi.mocked(portfolioSnapshotRepository.getSnapshot).mockResolvedValue({
+      id: 'snap-p1',
+    } as never);
     vi.mocked(debtSnapshotRepository.getSnapshot).mockResolvedValue({ id: 'snap-d1' } as never);
-    vi.mocked(listProjectSnapshotsUseCase.execute).mockResolvedValue([
-      { id: 'snap-pr1' } as never,
-    ]);
+    vi.mocked(projectSnapshotRepository.getSnapshot).mockResolvedValue({
+      id: 'snap-pr1',
+    } as never);
 
     const result = await getSettlementReadinessUseCase.execute({
       householdId: 'household-1',
@@ -231,9 +279,9 @@ describe('getSettlementReadinessUseCase', () => {
     vi.mocked(listPortfoliosUseCase.execute).mockResolvedValue([]);
     vi.mocked(listDebtAccountsUseCase.execute).mockResolvedValue([]);
     vi.mocked(listProjectsUseCase.execute).mockResolvedValue([]);
-    vi.mocked(getAccountSnapshotsUseCase.execute).mockResolvedValue([
-      { id: 'snap-a1' } as never,
-    ]);
+    vi.mocked(accountSnapshotRepository.getSnapshot).mockResolvedValue({
+      id: 'snap-a1',
+    } as never);
 
     const result = await getSettlementReadinessUseCase.execute({
       householdId: 'household-1',
@@ -244,12 +292,16 @@ describe('getSettlementReadinessUseCase', () => {
 
     expect(result.isReady).toBe(true);
     expect(result.unsettledAccounts).toEqual([]);
-    expect(getAccountSnapshotsUseCase.execute).toHaveBeenCalledTimes(1);
-    expect(getAccountSnapshotsUseCase.execute).toHaveBeenCalledWith(
-      expect.objectContaining({ accountId: 'a1' }),
+    expect(accountSnapshotRepository.getSnapshot).toHaveBeenCalledTimes(1);
+    expect(accountSnapshotRepository.getSnapshot).toHaveBeenCalledWith(
+      'household-1',
+      'a1',
+      '2026-03',
     );
-    expect(getAccountSnapshotsUseCase.execute).not.toHaveBeenCalledWith(
-      expect.objectContaining({ accountId: 'a2' }),
+    expect(accountSnapshotRepository.getSnapshot).not.toHaveBeenCalledWith(
+      expect.anything(),
+      'a2',
+      expect.anything(),
     );
   });
 
@@ -260,7 +312,7 @@ describe('getSettlementReadinessUseCase', () => {
     vi.mocked(listPortfoliosUseCase.execute).mockResolvedValue([]);
     vi.mocked(listDebtAccountsUseCase.execute).mockResolvedValue([]);
     vi.mocked(listProjectsUseCase.execute).mockResolvedValue([]);
-    vi.mocked(getAccountSnapshotsUseCase.execute).mockResolvedValue([]);
+    vi.mocked(accountSnapshotRepository.getSnapshot).mockResolvedValue(null);
 
     const result = await getSettlementReadinessUseCase.execute({
       householdId: 'household-1',
@@ -281,7 +333,7 @@ describe('getSettlementReadinessUseCase', () => {
     vi.mocked(listPortfoliosUseCase.execute).mockResolvedValue([portfolio1]);
     vi.mocked(listDebtAccountsUseCase.execute).mockResolvedValue([]);
     vi.mocked(listProjectsUseCase.execute).mockResolvedValue([]);
-    vi.mocked(listPortfolioSnapshotsUseCase.execute).mockResolvedValue([]);
+    vi.mocked(portfolioSnapshotRepository.getSnapshot).mockResolvedValue(null);
 
     const result = await getSettlementReadinessUseCase.execute({
       householdId: 'household-1',
@@ -321,7 +373,7 @@ describe('getSettlementReadinessUseCase', () => {
     vi.mocked(listPortfoliosUseCase.execute).mockResolvedValue([]);
     vi.mocked(listDebtAccountsUseCase.execute).mockResolvedValue([]);
     vi.mocked(listProjectsUseCase.execute).mockResolvedValue([project1]);
-    vi.mocked(listProjectSnapshotsUseCase.execute).mockResolvedValue([]);
+    vi.mocked(projectSnapshotRepository.getSnapshot).mockResolvedValue(null);
 
     const result = await getSettlementReadinessUseCase.execute({
       householdId: 'household-1',
@@ -347,27 +399,31 @@ describe('getSettlementReadinessUseCase', () => {
     vi.mocked(listPortfoliosUseCase.execute).mockResolvedValue([portfolio]);
     vi.mocked(listDebtAccountsUseCase.execute).mockResolvedValue([debt]);
     vi.mocked(listProjectsUseCase.execute).mockResolvedValue([project]);
-    vi.mocked(getAccountSnapshotsUseCase.execute).mockResolvedValue([]);
-    vi.mocked(listPortfolioSnapshotsUseCase.execute).mockResolvedValue([]);
+    vi.mocked(accountSnapshotRepository.getSnapshot).mockResolvedValue(null);
+    vi.mocked(portfolioSnapshotRepository.getSnapshot).mockResolvedValue(null);
     vi.mocked(debtSnapshotRepository.getSnapshot).mockResolvedValue(null);
-    vi.mocked(listProjectSnapshotsUseCase.execute).mockResolvedValue([]);
+    vi.mocked(projectSnapshotRepository.getSnapshot).mockResolvedValue(null);
 
-    const result = await getSettlementReadinessUseCase.execute({
+    await getSettlementReadinessUseCase.execute({
       householdId: 'household-1',
       auth,
     });
 
-    expect(result.year).toBe(2026);
-    expect(result.month).toBe(3);
-    expect(getAccountSnapshotsUseCase.execute).toHaveBeenCalledWith(
-      expect.objectContaining({ year: 2026, month: 3 }),
+    expect(accountSnapshotRepository.getSnapshot).toHaveBeenCalledWith(
+      'household-1',
+      'a1',
+      '2026-03',
     );
-    expect(listPortfolioSnapshotsUseCase.execute).toHaveBeenCalledWith(
-      expect.objectContaining({ year: 2026, month: 3 }),
+    expect(portfolioSnapshotRepository.getSnapshot).toHaveBeenCalledWith(
+      'household-1',
+      'p1',
+      '2026-03',
     );
     expect(debtSnapshotRepository.getSnapshot).toHaveBeenCalledWith('household-1', 'd1', '2026-03');
-    expect(listProjectSnapshotsUseCase.execute).toHaveBeenCalledWith(
-      expect.objectContaining({ yearMonth: '2026-03' }),
+    expect(projectSnapshotRepository.getSnapshot).toHaveBeenCalledWith(
+      'household-1',
+      'pr1',
+      '2026-03',
     );
   });
 
@@ -390,9 +446,9 @@ describe('getSettlementReadinessUseCase', () => {
     expect(result.unsettledDebts).toEqual([]);
     expect(result.unsettledProjects).toEqual([]);
     expect(result.totalUnsettled).toBe(0);
-    expect(getAccountSnapshotsUseCase.execute).not.toHaveBeenCalled();
-    expect(listPortfolioSnapshotsUseCase.execute).not.toHaveBeenCalled();
+    expect(accountSnapshotRepository.getSnapshot).not.toHaveBeenCalled();
+    expect(portfolioSnapshotRepository.getSnapshot).not.toHaveBeenCalled();
     expect(debtSnapshotRepository.getSnapshot).not.toHaveBeenCalled();
-    expect(listProjectSnapshotsUseCase.execute).not.toHaveBeenCalled();
+    expect(projectSnapshotRepository.getSnapshot).not.toHaveBeenCalled();
   });
 });
