@@ -1,6 +1,6 @@
 import { type ProjectSnapshotCreate } from '@/domains/project/schemas';
 
-import { buildProjectSettlementSnapshot } from './buildProjectSettlementSnapshot';
+import { buildProjectSettlementSnapshot, loadPeriodWideData } from './buildProjectSettlementSnapshot';
 
 export interface PreviewProjectSettlementsRequest {
   householdId: string;
@@ -18,10 +18,16 @@ export class PreviewProjectSettlementsUseCase {
   async execute(request: PreviewProjectSettlementsRequest): Promise<ProjectSettlementPreview[]> {
     const { householdId, projects, year, month } = request;
     const yearMonth = `${year}-${month.toString().padStart(2, '0')}`;
+    const periodWideData = await loadPeriodWideData(householdId, yearMonth);
     const previews: ProjectSettlementPreview[] = [];
 
     for (const project of projects) {
-      const snapshot = await buildProjectSettlementSnapshot(householdId, project.id, yearMonth);
+      const snapshot = await buildProjectSettlementSnapshot(
+        householdId,
+        project.id,
+        yearMonth,
+        periodWideData,
+      );
       previews.push({
         projectId: project.id,
         projectName: project.name,
