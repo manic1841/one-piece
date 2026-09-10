@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { householdPermissionService } from '@/application/household/householdPermissionService';
 import { removeDebtAccountUseCase } from './removeDebtAccountUseCase';
 import { debtAccountRepository } from '@/infra/repositories/debtAccountRepository';
 import { debtSnapshotRepository } from '@/infra/repositories/debtSnapshotRepository';
@@ -125,5 +126,22 @@ describe('removeDebtAccountUseCase', () => {
     );
     expect(debtAccountRepository.deleteDebtAccount).not.toHaveBeenCalled();
     expect(transactionRepository.delete).not.toHaveBeenCalled();
+  });
+
+  it('rejects before repository access when permission is denied', async () => {
+    vi.mocked(householdPermissionService.assertWritePermission).mockRejectedValue(
+      new Error('denied'),
+    );
+
+    await expect(
+      removeDebtAccountUseCase.execute({
+        householdId: 'h1',
+        debtAccountId: 'd1',
+        userEmail: 'u1@test.com',
+        auth: { uid: 'user-1', isGlobalAdmin: false },
+      }),
+    ).rejects.toThrow('denied');
+    expect(debtAccountRepository.get).not.toHaveBeenCalled();
+    expect(debtAccountRepository.deleteDebtAccount).not.toHaveBeenCalled();
   });
 });
