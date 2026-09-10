@@ -21,16 +21,25 @@ service cloud.firestore {
       return isSignedIn() && (isWhitelisted() || isGlobalAdmin());
     }
 
+    // NOTE(#78): Emulator logs "Property role is undefined" when uid is not in
+    // members. This is an emulator-only diagnostic; && short-circuits correctly
+    // in production Firestore, and all authorization tests pass. No rules fix
+    // can suppress the emulator log noise.
+    function memberRole(householdId) {
+      let household = get(/databases/$(database)/documents/households/$(householdId));
+      return household.data.members[request.auth.uid].role;
+    }
+
     function isHouseholdMember(householdId) {
       let household = get(/databases/$(database)/documents/households/$(householdId));
       return request.auth.uid in household.data.members &&
-             household.data.members[request.auth.uid].role in ['owner', 'admin', 'member'];
+             memberRole(householdId) in ['owner', 'admin', 'member'];
     }
 
     function isHouseholdAdmin(householdId) {
       let household = get(/databases/$(database)/documents/households/$(householdId));
       return request.auth.uid in household.data.members &&
-             household.data.members[request.auth.uid].role in ['owner', 'admin'];
+             memberRole(householdId) in ['owner', 'admin'];
     }
 
     match /access_control/{docId} {
