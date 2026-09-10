@@ -47,8 +47,8 @@ vi.mock('@/application/ledger/use_cases/upsertIncomeAllocationTemplateUseCase', 
   upsertIncomeAllocationTemplateUseCase: { execute: vi.fn() },
 }));
 
-vi.mock('@/domains/project/projectService', () => ({
-  projectService: { transferBetweenProjects: vi.fn() },
+vi.mock('@/application/project/use_cases/transferBetweenProjectsUseCase', () => ({
+  transferBetweenProjectsUseCase: { execute: vi.fn() },
 }));
 
 const output = {

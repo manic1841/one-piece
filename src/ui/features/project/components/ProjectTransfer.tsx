@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 
 import { ArrowRightLeft } from 'lucide-react';
 
-import { projectService } from '@/domains/project/projectService';
+import { transferBetweenProjectsUseCase } from '@/application/project/use_cases/transferBetweenProjectsUseCase';
+import { useAuth } from '@/infra/contexts/useAuth';
 import { type Project } from '@/domains/project/schemas';
 import { Button } from '@/ui/components/ui/button';
 import {
@@ -45,6 +46,8 @@ const ProjectTransfer: React.FC<ProjectTransferProps> = ({
   const [toProjectId, setToProjectId] = useState<string>('');
   const [amount, setAmount] = useState<number>(0);
 
+  const { currentUser, isAdmin } = useAuth();
+
   const activeProjects = projects.filter((p) => p.isActive);
 
   const handleTransfer = async (e: React.FormEvent) => {
@@ -58,15 +61,16 @@ const ProjectTransfer: React.FC<ProjectTransferProps> = ({
     setError(null);
 
     try {
-      await projectService.transferBetweenProjects(
+      await transferBetweenProjectsUseCase.execute({
         householdId,
-        {
+        input: {
           fromProjectId,
           toProjectId,
           amount,
         },
         userEmail,
-      );
+        auth: { uid: currentUser?.uid || '', isGlobalAdmin: isAdmin },
+      });
       onSuccess();
       onClose();
     } catch (err: unknown) {

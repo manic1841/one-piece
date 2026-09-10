@@ -14,7 +14,7 @@ import { type DebtAccount } from '@/domains/debt/schemas';
 import { IntentType } from '@/domains/ledger/constants';
 import { DEFAULT_INTENT_MAPPINGS } from '@/domains/ledger/intentMapping';
 import { normalizeDescription } from '@/domains/operation/fingerprint';
-import { projectService } from '@/domains/project/projectService';
+import { transferBetweenProjectsUseCase } from '@/application/project/use_cases/transferBetweenProjectsUseCase';
 import { useAuth } from '@/infra/contexts/useAuth';
 import { useLedgerCodes } from '@/ui/features/ledger/hooks/useLedgerCodes';
 import { type AllocationItemInput } from '@/ui/features/transaction/types/allocation';
@@ -245,17 +245,18 @@ export const useTransactionForm = (
         if (!vm.fromProjectId || !vm.toProjectId)
           throw new Error('Please select both source and target projects.');
 
-        await projectService.transferBetweenProjects(
+        await transferBetweenProjectsUseCase.execute({
           householdId,
-          {
+          input: {
             fromProjectId: vm.fromProjectId,
             toProjectId: vm.toProjectId,
             amount: vm.amount,
             date: toDate(vm.date),
             description: vm.description,
           },
-          userProfile.email,
-        );
+          userEmail: userProfile.email,
+          auth: { uid: currentUser?.uid ?? '', isGlobalAdmin: isAdmin ?? false },
+        });
       } else {
         const transactionData = mapTransactionVMToDomain(vm, userProfile.email);
         const allocationData = mapTransactionVMToAllocationInput(vm);
