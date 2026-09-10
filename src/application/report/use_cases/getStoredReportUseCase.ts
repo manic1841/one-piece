@@ -111,7 +111,7 @@ export class GetStoredReportUseCase {
         return report ? report.data : null;
       }),
     );
-    return reports.filter((r): r is NonNullable<unknown> => r !== null);
+    return reports.filter((r): r is NonNullable<typeof r> => r !== null);
   }
 }
 
