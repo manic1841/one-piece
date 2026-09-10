@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 import { LEDGER_CODES } from '@/domains/ledger/constants';
-import { BaseSchema } from '@/infra/schemas/base';
+import { BaseSchema } from '@/shared/schemas/base';
 
 // [DOMAIN ENTITY]
 // DebtAccount represents a liability position such as a mortgage, car loan, or personal loan.

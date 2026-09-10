@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { BaseSchema } from '@/infra/schemas/base';
+import { BaseSchema } from '@/shared/schemas/base';
 
 // --- Categories and Enums ---
 
