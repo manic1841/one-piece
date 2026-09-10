@@ -273,7 +273,7 @@ export const RetirementPlanCreateSchema = z.object({
   importSettings: z
     .object({
       fromProjects: z.boolean(),
-      importDate: z.any().optional(), // Allow Timestamp
+      importDate: z.date().optional(),
       referenceMonths: z.number().default(12),
       projectMappings: z.record(z.string(), z.string()).optional(),
     })
@@ -295,7 +295,7 @@ export const RetirementPlanCreateSchema = z.object({
       minSavings: z.number(),
       minSavingsYear: z.number(),
       isBankrupt: z.boolean(),
-      lastCalculatedAt: z.any(), // Allow Timestamp
+      lastCalculatedAt: z.date(),
     })
     .optional(),
 });
