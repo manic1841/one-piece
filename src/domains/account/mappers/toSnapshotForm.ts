@@ -3,7 +3,7 @@ import {
   type AccountSnapshotFormData,
   CurrencyType,
 } from '@/domains/account/types';
-import { NO_SELECTED } from '@/ui/constants/empty';
+import { NO_SELECTED } from '@/shared/constants/empty';
 
 export const toSnapshotForm = (
   accountId?: string,
