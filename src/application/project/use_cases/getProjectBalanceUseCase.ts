@@ -15,23 +15,6 @@ export interface ProjectBalanceResponse {
   month: number;
 }
 
-const toMillis = (value: unknown): number => {
-  if (value instanceof Date) {
-    return value.getTime();
-  }
-
-  if (
-    value &&
-    typeof value === 'object' &&
-    'seconds' in value &&
-    typeof (value as { seconds?: unknown }).seconds === 'number'
-  ) {
-    return ((value as { seconds: number }).seconds || 0) * 1000;
-  }
-
-  return 0;
-};
-
 export class GetProjectBalanceUseCase {
   async execute(request: GetProjectBalanceRequest): Promise<ProjectBalanceResponse | null> {
     const { householdId, projectId } = request;
@@ -48,11 +31,11 @@ export class GetProjectBalanceUseCase {
       : new Date(0);
     const currentDate = new Date();
 
-    // Get all transactions after snapshot date
-    const allTransactions = await transactionRepository.listByProject(householdId, projectId);
-
-    const transactionsSinceSnapshot = allTransactions.filter(
-      (tx) => toMillis(tx.date) >= snapshotDate.getTime(),
+    // Get all transactions after snapshot date (server-side filtered)
+    const transactionsSinceSnapshot = await transactionRepository.listByProject(
+      householdId,
+      projectId,
+      snapshotDate,
     );
 
     // Calculate impact from direct project transactions
@@ -65,12 +48,11 @@ export class GetProjectBalanceUseCase {
       }
     }
     // Include transfer records where this project is either source or destination
-    const transferTransactions = await transactionRepository.listTransfersByProject(
+    const transferSinceSnapshot = await transactionRepository.listTransfersByProject(
       householdId,
       projectId,
-    );
-    const transferSinceSnapshot = transferTransactions.filter(
-      (tx) => toMillis(tx.date) >= snapshotDate.getTime(),
+      undefined,
+      snapshotDate,
     );
 
     for (const tx of transferSinceSnapshot) {
@@ -83,19 +65,27 @@ export class GetProjectBalanceUseCase {
       }
     }
 
-    // Get allocations since snapshot to calculate allocation impacts
-    const allocations = await allocationRepository.listByProject(householdId, projectId);
-    const allocationsSinceSnapshot = allocations.filter((allocation) => {
-      const [allocYear, allocMonth] = allocation.yearMonth.split('-').map(Number);
-      const allocDate = new Date(allocYear, allocMonth - 1, 1);
-      return allocDate.getTime() >= snapshotDate.getTime();
-    });
+    // Get allocations since snapshot to calculate allocation impacts.
+    // The snapshot closing balance already includes the snapshot month's
+    // allocations, so exclude that month (use next month as the lower bound).
+    const sinceYearMonth = latestSnapshot
+      ? (() => {
+          const d = new Date(latestSnapshot.year, latestSnapshot.month, 1);
+          return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+        })()
+      : undefined;
+    const allocations = await allocationRepository.listByProject(
+      householdId,
+      projectId,
+      undefined,
+      sinceYearMonth,
+    );
 
     // Calculate impact from allocations (only allocation-derived amounts)
     let allocationImpact = 0;
     const processedSourceTxIds = new Set<string>();
 
-    for (const allocation of allocationsSinceSnapshot) {
+    for (const allocation of allocations) {
       // Skip if this is a direct project transaction (avoid double counting)
       if (processedSourceTxIds.has(allocation.sourceTransactionId)) {
         continue;

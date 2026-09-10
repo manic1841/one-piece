@@ -197,13 +197,23 @@ class TransactionRepository extends BaseRepository<Transaction, [string, string?
     householdId: string,
     projectId: string,
     yearMonth?: string,
+    sinceDate?: Date,
   ): Promise<Transaction[]> {
     const buildDateRangeConstraints = () => {
-      if (!yearMonth) return [];
-      const [year, month] = yearMonth.split('-').map(Number);
-      const startDate = new Date(year, month - 1, 1);
-      const endDate = new Date(year, month, 1);
-      return [where('date', '>=', startDate), where('date', '<', endDate), orderBy('date', 'desc')];
+      const constraints: QueryConstraint[] = [];
+      if (sinceDate) {
+        constraints.push(where('date', '>=', sinceDate));
+      }
+      if (yearMonth) {
+        const [year, month] = yearMonth.split('-').map(Number);
+        const startDate = new Date(year, month - 1, 1);
+        const endDate = new Date(year, month, 1);
+        constraints.push(where('date', '>=', startDate), where('date', '<', endDate));
+      }
+      if (constraints.length > 0) {
+        constraints.push(orderBy('date', 'desc'));
+      }
+      return constraints;
     };
 
     // Firestore doesn't support OR queries; run two queries and merge
@@ -325,8 +335,17 @@ class TransactionRepository extends BaseRepository<Transaction, [string, string?
     });
   }
 
-  async listByProject(householdId: string, projectId: string): Promise<Transaction[]> {
-    return this.list([householdId], [where('projectId', '==', projectId), orderBy('date', 'desc')]);
+  async listByProject(
+    householdId: string,
+    projectId: string,
+    sinceDate?: Date,
+  ): Promise<Transaction[]> {
+    const constraints: QueryConstraint[] = [where('projectId', '==', projectId)];
+    if (sinceDate) {
+      constraints.push(where('date', '>=', sinceDate));
+    }
+    constraints.push(orderBy('date', 'desc'));
+    return this.list([householdId], constraints);
   }
 }
 

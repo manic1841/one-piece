@@ -73,10 +73,14 @@ class AllocationRepository extends BaseRepository<Allocation, [string, string?]>
     householdId: string,
     projectId: string,
     yearMonth?: string,
+    sinceYearMonth?: string,
   ): Promise<Allocation[]> {
     const constraints = [where('projectIds', 'array-contains', projectId)];
     if (yearMonth) {
       constraints.push(where('yearMonth', '==', yearMonth));
+    }
+    if (sinceYearMonth) {
+      constraints.push(where('yearMonth', '>=', sinceYearMonth));
     }
 
     return this.list([householdId], constraints);
