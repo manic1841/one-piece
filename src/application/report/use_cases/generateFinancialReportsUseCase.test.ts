@@ -14,6 +14,10 @@ vi.mock('@/application/household/householdPermissionService', () => ({
   householdPermissionService: { assertWritePermission: vi.fn().mockResolvedValue(undefined) },
 }));
 
+vi.mock('./getSettlementReadinessUseCase', () => ({
+  getSettlementReadinessUseCase: { execute: vi.fn() },
+}));
+
 vi.mock('./previewFinancialReportsUseCase', () => ({
   previewFinancialReportsUseCase: { execute: vi.fn() },
 }));
@@ -68,6 +72,17 @@ describe('generateFinancialReportsUseCase', () => {
   beforeEach(async () => {
     vi.clearAllMocks();
     vi.mocked(householdPermissionService.assertWritePermission).mockResolvedValue(undefined);
+    const { getSettlementReadinessUseCase } = await import('./getSettlementReadinessUseCase');
+    vi.mocked(getSettlementReadinessUseCase.execute).mockResolvedValue({
+      year: 2026,
+      month: 3,
+      isReady: true,
+      unsettledAccounts: [],
+      unsettledPortfolios: [],
+      unsettledDebts: [],
+      unsettledProjects: [],
+      totalUnsettled: 0,
+    } as never);
     const { previewFinancialReportsUseCase } = await import('./previewFinancialReportsUseCase');
     vi.mocked(previewFinancialReportsUseCase.execute).mockResolvedValue(previewResult);
     vi.mocked(reportRepository.saveReport).mockResolvedValue(undefined);
@@ -106,6 +121,49 @@ describe('generateFinancialReportsUseCase', () => {
 
     expect(previewFinancialReportsUseCase.execute).not.toHaveBeenCalled();
     expect(reportRepository.saveReport).not.toHaveBeenCalled();
+  });
+
+  it('rejects with SettlementNotReadyError when settlement is not ready', async () => {
+    const { getSettlementReadinessUseCase } = await import('./getSettlementReadinessUseCase');
+    const { previewFinancialReportsUseCase } = await import('./previewFinancialReportsUseCase');
+
+    vi.mocked(getSettlementReadinessUseCase.execute).mockResolvedValue({
+      year: 2026,
+      month: 3,
+      isReady: false,
+      unsettledAccounts: [{ id: 'a1', name: 'Account 1' } as never],
+      unsettledPortfolios: [],
+      unsettledDebts: [],
+      unsettledProjects: [],
+      totalUnsettled: 1,
+    } as never);
+
+    await expect(
+      generateFinancialReportsUseCase.execute({
+        householdId: 'household-1',
+        auth,
+        year: 2026,
+        month: 3,
+      }),
+    ).rejects.toThrow(/Settlement not ready/);
+
+    expect(previewFinancialReportsUseCase.execute).not.toHaveBeenCalled();
+    expect(reportRepository.saveReport).not.toHaveBeenCalled();
+  });
+
+  it('proceeds with generation when settlement is ready', async () => {
+    const { previewFinancialReportsUseCase } = await import('./previewFinancialReportsUseCase');
+
+    const result = await generateFinancialReportsUseCase.execute({
+      householdId: 'household-1',
+      auth,
+      year: 2026,
+      month: 3,
+    });
+
+    expect(previewFinancialReportsUseCase.execute).toHaveBeenCalled();
+    expect(reportRepository.saveReport).toHaveBeenCalledTimes(3);
+    expect(result.timestamp).toBeInstanceOf(Date);
   });
 
   it('delegates calculation to previewFinancialReportsUseCase', async () => {

@@ -9,6 +9,7 @@ import {
 import { type ReportLabelResolver } from '@/domains/report/reportCalculations';
 import { reportRepository } from '@/infra/repositories/reportRepository';
 
+import { type SettlementReadiness, getSettlementReadinessUseCase } from './getSettlementReadinessUseCase';
 import {
   type PreviewFinancialReportsResult,
   previewFinancialReportsUseCase,
@@ -29,6 +30,16 @@ export interface GenerateFinancialReportsResult {
   timestamp: Date;
 }
 
+export class SettlementNotReadyError extends Error {
+  readonly readiness: SettlementReadiness;
+
+  constructor(readiness: SettlementReadiness) {
+    super(`Settlement not ready: ${readiness.totalUnsettled} unsettled entities`);
+    this.name = 'SettlementNotReadyError';
+    this.readiness = readiness;
+  }
+}
+
 export class GenerateFinancialReportsUseCase {
   async execute(
     request: GenerateFinancialReportsRequest,
@@ -40,6 +51,16 @@ export class GenerateFinancialReportsUseCase {
       auth.uid,
       auth.isGlobalAdmin,
     );
+
+    const readiness = await getSettlementReadinessUseCase.execute({
+      householdId,
+      auth,
+      year,
+      month,
+    });
+    if (!readiness.isReady) {
+      throw new SettlementNotReadyError(readiness);
+    }
 
     const preview: PreviewFinancialReportsResult = await previewFinancialReportsUseCase.execute({
       householdId,
