@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { HouseholdNotFoundError, InvalidHouseholdInputError } from '@/domains/household/errors';
 import { type UserProfile } from '@/domains/user/types';
 
 vi.mock('./joinHouseholdUseCase', () => ({
@@ -62,7 +63,7 @@ describe('OnboardUserUseCase', () => {
   // --- Non-admin: all join failure categories must propagate distinctly ---
 
   it.each([
-    ['not-found', new Error('Household not found')],
+    ['not-found', new HouseholdNotFoundError()],
     ['permission', new Error('You are not a member of this household.')],
     ['network', new Error('Network request failed')],
     ['unknown', new Error('Something unexpected happened')],
@@ -99,7 +100,7 @@ describe('OnboardUserUseCase', () => {
     );
 
     vi.mocked(joinHouseholdUseCase.execute).mockRejectedValue(
-      new Error('Household not found'),
+      new HouseholdNotFoundError(),
     );
     vi.mocked(createHouseholdUseCase.execute).mockResolvedValue('new-household-id');
 
@@ -136,7 +137,7 @@ describe('OnboardUserUseCase', () => {
     const { createHouseholdUseCase } = await import('./createHouseholdUseCase');
 
     vi.mocked(joinHouseholdUseCase.execute).mockRejectedValue(
-      new Error('Household ID or household name is required'),
+      new InvalidHouseholdInputError(),
     );
     vi.mocked(createHouseholdUseCase.execute).mockResolvedValue('new-household-id');
 

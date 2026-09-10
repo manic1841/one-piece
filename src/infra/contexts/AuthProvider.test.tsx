@@ -1,4 +1,5 @@
-import { act, renderHook, waitFor } from '@testing-library/react';
+import { act, render, waitFor } from '@testing-library/react';
+import React from 'react';
 import type { User } from 'firebase/auth';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -53,9 +54,12 @@ const baseProfile = {
 };
 
 /**
- * Renders AuthProvider and captures the onAuthStateChanged callback so the test
- * can fire it explicitly. This mirrors how the real Firebase SDK invokes the
- * listener, letting us control timing precisely.
+ * Renders AuthProvider with a probe child that reads AuthContext. The probe
+ * only mounts once AuthProvider's `loading` state flips to false (after the
+ * auth callback fires), so tests use `waitFor` to observe the context value.
+ *
+ * Returns the auth callback so the test can fire it explicitly, and a
+ * `getProbeValue` accessor to read the latest context value.
  */
 const renderAuthProvider = async () => {
   let authCallback: ((user: User | null) => void) | null = null;
@@ -65,13 +69,21 @@ const renderAuthProvider = async () => {
   });
 
   const { AuthProvider } = await import('@/infra/contexts/AuthProvider');
-  const { useAuth } = await import('@/infra/contexts/useAuth');
+  const { AuthContext } = await import('@/infra/contexts/AuthContext');
+  type AuthContextType = import('@/infra/contexts/AuthContext').AuthContextType;
 
-  const result = renderHook(() => useAuth(), {
-    wrapper: ({ children }) => <AuthProvider>{children}</AuthProvider>,
+  const probeRef: { current: AuthContextType | null } = { current: null };
+  const Probe = React.memo(function Probe() {
+    const value = React.useContext(AuthContext);
+    React.useEffect(() => {
+      probeRef.current = value;
+    }, [value]);
+    return null;
   });
 
-  return { result, getAuthCallback: () => authCallback };
+  render(React.createElement(AuthProvider, null, React.createElement(Probe)));
+
+  return { getAuthCallback: () => authCallback, getProbeValue: () => probeRef.current };
 };
 
 describe('AuthProvider profile initialization', () => {
@@ -88,14 +100,15 @@ describe('AuthProvider profile initialization', () => {
 
     vi.mocked(createUserProfileUseCase.execute).mockResolvedValue('user-1');
 
-    const { result, getAuthCallback } = await renderAuthProvider();
+    const { getAuthCallback, getProbeValue } = await renderAuthProvider();
 
     await act(async () => {
       await getAuthCallback()?.(user);
     });
 
+    await waitFor(() => expect(getProbeValue()).toBeTruthy());
     await waitFor(() => {
-      expect(result.current.userProfile).not.toBeNull();
+      expect(getProbeValue()?.userProfile).not.toBeNull();
     });
 
     expect(createUserProfileUseCase.execute).toHaveBeenCalledTimes(1);
@@ -106,7 +119,7 @@ describe('AuthProvider profile initialization', () => {
         displayName: 'Test User',
       }),
     });
-    expect(result.current.userProfile).toMatchObject({ uid: 'user-1' });
+    expect(getProbeValue()?.userProfile).toMatchObject({ uid: 'user-1' });
   });
 
   it('refreshes an existing profile and admin claims without creating a new one', async () => {
@@ -115,22 +128,23 @@ describe('AuthProvider profile initialization', () => {
     const existingProfile = { ...baseProfile, householdId: 'household-1' };
     vi.mocked(getUserProfileUseCase.execute).mockResolvedValue(existingProfile);
 
-    const { result, getAuthCallback } = await renderAuthProvider();
+    const { getAuthCallback, getProbeValue } = await renderAuthProvider();
 
     await act(async () => {
       await getAuthCallback()?.(user);
     });
 
+    await waitFor(() => expect(getProbeValue()).toBeTruthy());
     await waitFor(() => {
-      expect(result.current.userProfile).not.toBeNull();
+      expect(getProbeValue()?.userProfile).not.toBeNull();
     });
 
     expect(createUserProfileUseCase.execute).not.toHaveBeenCalled();
-    expect(result.current.userProfile).toMatchObject({
+    expect(getProbeValue()?.userProfile).toMatchObject({
       uid: 'user-1',
       householdId: 'household-1',
     });
-    expect(result.current.isAdmin).toBe(true);
+    expect(getProbeValue()?.isAdmin).toBe(true);
   });
 
   it('creates a profile deterministically on first login even when closure state is stale', async () => {
@@ -149,28 +163,26 @@ describe('AuthProvider profile initialization', () => {
       .mockResolvedValueOnce(null)
       .mockResolvedValueOnce(createdProfile);
 
-    vi.mocked(createUserProfileUseCase.execute).mockResolvedValue('user-1');
-
-    const { result, getAuthCallback } = await renderAuthProvider();
-
     let createdDuringCallback = false;
     vi.mocked(createUserProfileUseCase.execute).mockImplementation(async () => {
       createdDuringCallback = true;
       return 'user-1';
     });
 
+    const { getAuthCallback, getProbeValue } = await renderAuthProvider();
+
     await act(async () => {
       await getAuthCallback()?.(user);
     });
 
+    await waitFor(() => expect(getProbeValue()).toBeTruthy());
     await waitFor(() => {
-      expect(result.current.userProfile).not.toBeNull();
+      expect(getProbeValue()?.userProfile).not.toBeNull();
     });
 
     // Profile creation must have occurred during the first auth callback,
     // not skipped due to a stale null closure value.
     expect(createdDuringCallback).toBe(true);
-    expect(result.current.userProfile).toMatchObject({ uid: 'user-1' });
+    expect(getProbeValue()?.userProfile).toMatchObject({ uid: 'user-1' });
   });
 });
-

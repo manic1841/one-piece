@@ -1,6 +1,7 @@
 import { createHouseholdUseCase } from './createHouseholdUseCase';
 import { joinHouseholdUseCase } from './joinHouseholdUseCase';
 import { updateUserProfileUseCase } from '@/application/user/use_cases/updateUserProfileUseCase';
+import { isMissingHouseholdError } from '@/domains/household/errors';
 import { type UserProfile } from '@/domains/user/types';
 
 export interface OnboardUserRequest {
@@ -22,12 +23,12 @@ export class OnboardUserUseCase {
         user: userProfile,
       });
     } catch (joinErr: unknown) {
-      // 2. If join fails and user is admin, try to create new household
-      if (isAdmin) {
+      // 2. Only fall back to household creation for a verified missing/invalid
+      //    household condition. Permission, network, and unknown errors propagate.
+      if (isAdmin && isMissingHouseholdError(joinErr)) {
         const newHouseholdId = await createHouseholdUseCase.execute({
           data: {
             name: householdId,
-            memberUids: [userProfile.uid],
             members: {
               [userProfile.uid]: {
                 role: 'owner',
@@ -44,7 +45,7 @@ export class OnboardUserUseCase {
           updates: { householdId: newHouseholdId },
         });
       } else {
-        // If not admin and join failed, re-throw the join error
+        // Non-admin, or admin with a non-not-found error: re-throw
         throw joinErr;
       }
     }

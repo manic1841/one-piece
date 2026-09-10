@@ -24,33 +24,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return 'Anonymous';
   };
 
-  const fetchUserProfile = useCallback(
-    async (uid: string) => {
-      try {
-        let profile = await getUserProfileUseCase.execute({ uid });
+  const fetchUserProfile = useCallback(async (uid: string, user?: User | null) => {
+    try {
+      let profile = await getUserProfileUseCase.execute({ uid });
 
-        // If profile doesn't exist, create one
-        if (!profile && currentUser) {
-          const newProfile = {
-            uid: currentUser.uid,
-            email: currentUser.email || '',
-            displayName: getDisplayName(currentUser),
-            photoURL: currentUser.photoURL || undefined,
-          };
-          // Save the profile to Firestore
-          await createUserProfileUseCase.execute({ profile: newProfile });
+      // If profile doesn't exist, create one using the explicitly-passed User
+      // rather than closure-captured currentUser, which may be stale on the
+      // first onAuthStateChanged callback before React flushes state.
+      if (!profile && user) {
+        const newProfile = {
+          uid: user.uid,
+          email: user.email || '',
+          displayName: getDisplayName(user),
+          photoURL: user.photoURL || undefined,
+        };
+        // Save the profile to Firestore
+        await createUserProfileUseCase.execute({ profile: newProfile });
 
-          profile = await getUserProfileUseCase.execute({ uid });
-        }
-
-        setUserProfile(profile);
-      } catch (error) {
-        console.error('Error fetching user profile:', error);
-        setUserProfile(null);
+        profile = await getUserProfileUseCase.execute({ uid });
       }
-    },
-    [currentUser],
-  );
+
+      setUserProfile(profile);
+    } catch (error) {
+      console.error('Error fetching user profile:', error);
+      setUserProfile(null);
+    }
+  }, []);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -59,7 +58,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // Fetch custom claims to check for admin role
         const tokenResult = await user.getIdTokenResult();
         setIsAdmin(tokenResult.claims.role === 'admin');
-        await fetchUserProfile(user.uid);
+        await fetchUserProfile(user.uid, user);
       } else {
         setUserProfile(null);
         setIsAdmin(false);
@@ -74,7 +73,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (currentUser) {
       const tokenResult = await currentUser.getIdTokenResult(true);
       setIsAdmin(tokenResult.claims.role === 'admin');
-      await fetchUserProfile(currentUser.uid);
+      await fetchUserProfile(currentUser.uid, currentUser);
     }
   };
 
