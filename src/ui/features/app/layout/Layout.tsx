@@ -1,23 +1,22 @@
 import React, { useEffect, useState } from 'react';
 
 import clsx from 'clsx';
-import {
-  Briefcase,
-  FileText,
-  Folder,
-  LayoutDashboard,
-  LogOut,
-  Receipt,
-  Settings,
-  TrendingUp,
-  Wallet,
-} from 'lucide-react';
+import { LogOut, MoreHorizontal } from 'lucide-react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 
 import { getHouseholdUseCase } from '@/application/household/use_cases/getHouseholdUseCase';
 import { useAuth } from '@/infra/contexts/useAuth';
 import { Button } from '@/ui/components/ui/button';
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from '@/ui/components/ui/sheet';
 import HouseholdSwitcher from '@/ui/features/household/components/HouseholdSwitcher';
+
+import { getPrimaryNavItems, getSecondaryNavItems, NAV_ITEMS } from './navigation';
 
 const Layout: React.FC = () => {
   const { userProfile, logout } = useAuth();
@@ -70,17 +69,7 @@ const Layout: React.FC = () => {
     }
   };
 
-  const navItems = [
-    { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
-    { to: '/transactions', icon: Receipt, label: 'Transactions' },
-    { to: '/projects', icon: Folder, label: 'Projects' },
-    { to: '/accounts', icon: Wallet, label: 'Accounts' },
-    { to: '/portfolios', icon: Briefcase, label: 'Portfolios' },
-    { to: '/debt', icon: Wallet, label: 'Debt' },
-    { to: '/reports', icon: FileText, label: 'Reports' },
-    { to: '/retirement', icon: TrendingUp, label: 'Retirement' },
-    { to: '/settings', icon: Settings, label: 'Settings' },
-  ];
+  const [moreOpen, setMoreOpen] = useState(false);
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
@@ -113,14 +102,14 @@ const Layout: React.FC = () => {
       </div>
 
       {/* Mobile Bottom Navigation */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-4 py-2 flex justify-around items-center z-50">
-        {navItems.map(({ to, icon: Icon, label }) => (
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-2 py-2 flex justify-around items-center z-50">
+        {getPrimaryNavItems().map(({ to, icon: Icon, label }) => (
           <NavLink
             key={to}
             to={to}
             className={({ isActive }) =>
               clsx(
-                'flex flex-col items-center gap-1 p-2 rounded-lg transition-colors',
+                'flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition-colors',
                 isActive ? 'text-blue-600 bg-blue-50' : 'text-gray-500 hover:text-gray-900',
               )
             }
@@ -129,6 +118,42 @@ const Layout: React.FC = () => {
             <span className="text-xs font-medium">{label}</span>
           </NavLink>
         ))}
+        <Sheet open={moreOpen} onOpenChange={setMoreOpen}>
+          <SheetTrigger asChild>
+            <button
+              type="button"
+              className="flex flex-col items-center gap-1 px-3 py-2 rounded-lg text-gray-500 hover:text-gray-900 transition-colors"
+            >
+              <MoreHorizontal size={24} />
+              <span className="text-xs font-medium">More</span>
+            </button>
+          </SheetTrigger>
+          <SheetContent side="bottom">
+            <SheetHeader>
+              <SheetTitle>More</SheetTitle>
+            </SheetHeader>
+            <div className="flex flex-col gap-1 pb-4">
+              {getSecondaryNavItems().map(({ to, icon: Icon, label }) => (
+                <NavLink
+                  key={to}
+                  to={to}
+                  onClick={() => setMoreOpen(false)}
+                  className={({ isActive }) =>
+                    clsx(
+                      'flex items-center gap-3 px-4 py-3 rounded-lg transition-colors',
+                      isActive
+                        ? 'text-blue-600 bg-blue-50'
+                        : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900',
+                    )
+                  }
+                >
+                  <Icon size={20} />
+                  <span className="font-medium">{label}</span>
+                </NavLink>
+              ))}
+            </div>
+          </SheetContent>
+        </Sheet>
       </nav>
 
       {/* Desktop Sidebar */}
@@ -145,7 +170,7 @@ const Layout: React.FC = () => {
           )}
         </div>
         <nav className="flex-1 p-4 space-y-2">
-          {navItems.map(({ to, icon: Icon, label }) => (
+          {NAV_ITEMS.map(({ to, icon: Icon, label }) => (
             <NavLink
               key={to}
               to={to}
