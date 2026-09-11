@@ -1,7 +1,5 @@
 import { useCallback, useMemo } from 'react';
 
-import { type Transaction } from 'firebase/firestore';
-
 import { createProjectUseCase } from '@/application/project/use_cases/createProjectUseCase';
 import { deleteProjectSnapshotUseCase } from '@/application/project/use_cases/deleteProjectSnapshotUseCase';
 import { deleteProjectUseCase } from '@/application/project/use_cases/deleteProjectUseCase';
@@ -67,7 +65,7 @@ export function useProjectCmds(householdId: string) {
   );
 
   const recordSnapshot = useCallback(
-    async (projectId: string, data: ProjectSnapshotCreate, tx?: Transaction) => {
+    async (projectId: string, data: ProjectSnapshotCreate) => {
       return run(async () => {
         return recordProjectSnapshotUseCase.execute({
           householdId,
@@ -75,7 +73,6 @@ export function useProjectCmds(householdId: string) {
           data,
           userEmail: auth.email || '',
           auth: { uid: auth.uid, isGlobalAdmin: auth.isGlobalAdmin },
-          tx,
         });
       });
     },
@@ -87,7 +84,6 @@ export function useProjectCmds(householdId: string) {
       projectId: string,
       snapshotId: string,
       updates: Partial<ProjectSnapshot>,
-      tx?: Transaction,
     ) => {
       return run(async () => {
         return updateProjectSnapshotUseCase.execute({
@@ -97,7 +93,6 @@ export function useProjectCmds(householdId: string) {
           updates,
           userEmail: auth.email || '',
           auth: { uid: auth.uid, isGlobalAdmin: auth.isGlobalAdmin },
-          tx,
         });
       });
     },
