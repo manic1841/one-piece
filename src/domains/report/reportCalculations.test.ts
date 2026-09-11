@@ -4,6 +4,7 @@ import {
   calculateBalanceSheet,
   calculateCashFlow,
   calculateIncomeStatement,
+  calculateLiquidBalance,
 } from './reportCalculations';
 import { type JournalEntryLine } from '@/domains/ledger/schemas';
 
@@ -196,5 +197,33 @@ describe('calculateCashFlow', () => {
     });
 
     expect(result.operating.inflowItems[0].label).toBe('L:income:salary');
+  });
+});
+
+describe('calculateLiquidBalance', () => {
+  it('sums only bank and cash account snapshots', () => {
+    const result = calculateLiquidBalance(
+      [
+        { id: 'a1', category: 'bank' },
+        { id: 'a2', category: 'cash' },
+        { id: 'a3', category: 'securities' },
+      ],
+      [
+        { accountId: 'a1', amount: 500 },
+        { accountId: 'a2', amount: 1000 },
+        { accountId: 'a3', amount: 9999 },
+      ],
+    );
+
+    expect(result).toBe(1500);
+  });
+
+  it('treats missing snapshots as zero', () => {
+    const result = calculateLiquidBalance(
+      [{ id: 'a1', category: 'bank' }],
+      [],
+    );
+
+    expect(result).toBe(0);
   });
 });

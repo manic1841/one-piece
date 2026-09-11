@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { previewBalanceSheetUseCase } from './previewBalanceSheetUseCase';
+import { type ReportDataBundle } from './fetchReportDataUseCase';
 import { type IncomeStatementData } from '@/domains/report/schemas';
 
 const baseIncome: IncomeStatementData = {
@@ -12,21 +13,36 @@ const baseIncome: IncomeStatementData = {
   expenseItems: [],
 };
 
+const baseBundle: ReportDataBundle = {
+  yearMonth: '2025-06',
+  prevYearMonth: '2025-05',
+  entriesByMonth: [],
+  entriesUntilMonth: [],
+  activeAccounts: [],
+  activePortfolios: [],
+  activeDebts: [],
+  accountSnapshots: [],
+  debtSnapshots: [],
+  portfolioSnapshots: [],
+  prevAccountSnapshots: [],
+  prevBalanceSheet: null,
+  prevCashFlow: null,
+  hasAnyStoredReport: false,
+};
+
 describe('PreviewBalanceSheetUseCase', () => {
-  it('computes assets, liabilities, and equity from snapshots and entries', () => {
-    const result = previewBalanceSheetUseCase.execute({
-      yearMonth: '2025-06',
-      entries: [],
-      monthlyEntries: [],
-      accounts: [{ id: 'a1', name: 'Bank', category: 'bank' }],
-      portfolios: [{ id: 'p1', name: 'Stocks' }],
-      debtAccounts: [{ id: 'd1', name: 'Loan' }],
-      accountSnapshots: [{ accountId: 'a1', amount: 5000 }],
-      debtSnapshots: [{ debtId: 'd1', closingBalance: 2000 }],
-      portfolioSnapshots: [{ portfolioId: 'p1', gain: 300 }],
-      prevBalanceSheet: null,
-      incomeStatement: baseIncome,
-    });
+  it('computes assets, liabilities, and equity from bundle snapshots and entries', () => {
+    const result = previewBalanceSheetUseCase.execute(
+      {
+        ...baseBundle,
+        activeAccounts: [{ id: 'a1', name: 'Bank', category: 'bank' } as never],
+        activeDebts: [{ id: 'd1', name: 'Loan' } as never],
+        accountSnapshots: [{ accountId: 'a1', amount: 5000 }],
+        debtSnapshots: [{ debtId: 'd1', closingBalance: 2000 }],
+        portfolioSnapshots: [{ portfolioId: 'p1', gain: 300 }],
+      },
+      baseIncome,
+    );
 
     expect(result.yearMonth).toBe('2025-06');
     expect(result.assets.total).toBe(5000);
@@ -35,24 +51,20 @@ describe('PreviewBalanceSheetUseCase', () => {
   });
 
   it('uses prevBalanceSheet opening equity when provided', () => {
-    const result = previewBalanceSheetUseCase.execute({
-      yearMonth: '2025-06',
-      entries: [],
-      monthlyEntries: [],
-      accounts: [{ id: 'a1', name: 'Bank', category: 'bank' }],
-      portfolios: [],
-      debtAccounts: [],
-      accountSnapshots: [{ accountId: 'a1', amount: 1000 }],
-      debtSnapshots: [],
-      portfolioSnapshots: [],
-      prevBalanceSheet: {
-        yearMonth: '2025-05',
-        assets: { total: 0, groups: {} },
-        liabilities: { total: 0, groups: {} },
-        equity: { total: 800, groups: {} },
+    const result = previewBalanceSheetUseCase.execute(
+      {
+        ...baseBundle,
+        activeAccounts: [{ id: 'a1', name: 'Bank', category: 'bank' } as never],
+        accountSnapshots: [{ accountId: 'a1', amount: 1000 }],
+        prevBalanceSheet: {
+          yearMonth: '2025-05',
+          assets: { total: 0, groups: {} },
+          liabilities: { total: 0, groups: {} },
+          equity: { total: 800, groups: {} },
+        },
       },
-      incomeStatement: baseIncome,
-    });
+      baseIncome,
+    );
 
     expect(result.equity.groups.openingEquity.total).toBe(800);
   });

@@ -2,20 +2,35 @@ import { type CashFlowData } from '@/domains/report/schemas';
 import {
   type ReportLabelResolver,
   calculateCashFlow,
+  calculateLiquidBalance,
 } from '@/domains/report/reportCalculations';
-import { type JournalEntryLine } from '@/domains/ledger/schemas';
 
-export interface PreviewCashFlowRequest {
-  yearMonth: string;
-  entries: JournalEntryLine[];
-  beginningBalance: number;
-  actualBalance: number;
-  labelResolver?: ReportLabelResolver;
-}
+import { type ReportDataBundle } from './fetchReportDataUseCase';
 
 export class PreviewCashFlowUseCase {
-  execute(request: PreviewCashFlowRequest): CashFlowData {
-    return calculateCashFlow(request);
+  execute(bundle: ReportDataBundle, labelResolver?: ReportLabelResolver): CashFlowData {
+    const actualBalance = calculateLiquidBalance(
+      bundle.activeAccounts,
+      bundle.accountSnapshots,
+    );
+
+    let beginningBalance = 0;
+    if (bundle.prevCashFlow) {
+      beginningBalance = bundle.prevCashFlow.actualBalance;
+    } else if (bundle.hasAnyStoredReport) {
+      beginningBalance = calculateLiquidBalance(
+        bundle.activeAccounts,
+        bundle.prevAccountSnapshots,
+      );
+    }
+
+    return calculateCashFlow({
+      yearMonth: bundle.yearMonth,
+      entries: bundle.entriesByMonth,
+      beginningBalance,
+      actualBalance,
+      labelResolver,
+    });
   }
 }
 

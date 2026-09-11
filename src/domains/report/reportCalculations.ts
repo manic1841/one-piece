@@ -301,3 +301,17 @@ export function calculateCashFlow(input: CashFlowInput): CashFlowData {
     adjustment: actualBalance - endingBalance,
   };
 }
+
+// ── Liquid Balance ──
+
+const LIQUID_ACCOUNT_CATEGORIES = ['bank', 'cash'] as const;
+
+export function calculateLiquidBalance(
+  accounts: { id: string; category: string }[],
+  snapshots: AccountSnapshotData[],
+): number {
+  const snapshotMap = new Map(snapshots.map((s) => [s.accountId, s.amount]));
+  return accounts
+    .filter((account) => (LIQUID_ACCOUNT_CATEGORIES as readonly string[]).includes(account.category))
+    .reduce((total, account) => total + (snapshotMap.get(account.id) || 0), 0);
+}

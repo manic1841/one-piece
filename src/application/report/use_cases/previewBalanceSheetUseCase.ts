@@ -3,32 +3,32 @@ import {
   type IncomeStatementData,
 } from '@/domains/report/schemas';
 import {
-  type AccountSnapshotData,
-  type DebtSnapshotData,
-  type PortfolioSnapshotData,
   type ReportLabelResolver,
   calculateBalanceSheet,
 } from '@/domains/report/reportCalculations';
-import { type JournalEntryLine } from '@/domains/ledger/schemas';
 
-export interface PreviewBalanceSheetRequest {
-  yearMonth: string;
-  entries: JournalEntryLine[];
-  monthlyEntries: JournalEntryLine[];
-  accounts: { id: string; name: string; category: string }[];
-  portfolios: { id: string; name: string }[];
-  debtAccounts: { id: string; name: string }[];
-  accountSnapshots: AccountSnapshotData[];
-  debtSnapshots: DebtSnapshotData[];
-  portfolioSnapshots: PortfolioSnapshotData[];
-  prevBalanceSheet: BalanceSheetData | null;
-  incomeStatement: IncomeStatementData;
-  labelResolver?: ReportLabelResolver;
-}
+import { type ReportDataBundle } from './fetchReportDataUseCase';
 
 export class PreviewBalanceSheetUseCase {
-  execute(request: PreviewBalanceSheetRequest): BalanceSheetData {
-    return calculateBalanceSheet(request);
+  execute(
+    bundle: ReportDataBundle,
+    incomeStatement: IncomeStatementData,
+    labelResolver?: ReportLabelResolver,
+  ): BalanceSheetData {
+    return calculateBalanceSheet({
+      yearMonth: bundle.yearMonth,
+      entries: bundle.entriesUntilMonth,
+      monthlyEntries: bundle.entriesByMonth,
+      accounts: bundle.activeAccounts.map((a) => ({ id: a.id, name: a.name, category: a.category })),
+      portfolios: bundle.activePortfolios.map((p) => ({ id: p.id, name: p.name })),
+      debtAccounts: bundle.activeDebts.map((d) => ({ id: d.id, name: d.name })),
+      accountSnapshots: bundle.accountSnapshots,
+      debtSnapshots: bundle.debtSnapshots,
+      portfolioSnapshots: bundle.portfolioSnapshots,
+      prevBalanceSheet: bundle.prevBalanceSheet,
+      incomeStatement,
+      labelResolver,
+    });
   }
 }
 
