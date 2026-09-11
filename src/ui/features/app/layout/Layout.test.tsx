@@ -85,3 +85,19 @@ describe('Layout mobile navigation', () => {
     });
   });
 });
+
+describe('Layout responsive widths', () => {
+  it('narrows the desktop sidebar at the tablet breakpoint and restores it on large screens', () => {
+    renderLayout();
+
+    const aside = screen.getByRole('complementary');
+    expect(aside.className).toContain('md:w-56');
+    expect(aside.className).toContain('lg:w-64');
+    expect(aside.className).not.toMatch(/(^|\s)w-64(\s|$)/);
+
+    const main = screen.getByRole('main');
+    expect(main.className).toContain('md:pl-56');
+    expect(main.className).toContain('lg:pl-64');
+    expect(main.className).not.toMatch(/(^|\s)md:pl-64(\s|$)/);
+  });
+});
