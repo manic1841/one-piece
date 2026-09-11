@@ -1,5 +1,15 @@
 # Admin scripts
 
+## Emulator QA bootstrap
+
+瀏覽器 QA 前的環境準備:建立測試帳號、whitelist、household、user profile,並印出可直接貼入 DevTools 的 localStorage session 注入片段。
+
+```bash
+pnpm qa:init
+```
+
+前置條件:Firebase emulator 運行中(Firestore :8080、Auth :9099)。腳本可重複執行,已存在的資料會跳過或補齊連結。
+
 ## 安裝 Firebase Admin SDK
 
 ```bash
