@@ -5,7 +5,7 @@ import {
   previewDebtSettlementsUseCase,
 } from '@/application/settlement/use_cases/previewDebtSettlementsUseCase';
 import { settleDebtAccountsUseCase } from '@/application/settlement/use_cases/settleDebtAccountsUseCase';
-import { useAuth } from '@/infra/contexts/useAuth';
+import { useAuthContext } from '@/ui/hooks/useAuthContext';
 
 export const DebtSettlementStatus = {
   SELECTION: 'selection',
@@ -19,7 +19,7 @@ export type DebtSettlementStatusType =
   (typeof DebtSettlementStatus)[keyof typeof DebtSettlementStatus];
 
 export function useDebtSettlement(householdId: string, userEmail: string, onSuccess?: () => void) {
-  const { currentUser, isAdmin } = useAuth();
+  const auth = useAuthContext();
   const [status, setStatus] = useState<DebtSettlementStatusType>(DebtSettlementStatus.SELECTION);
   const [error, setError] = useState<string | null>(null);
   const [year, setYear] = useState(new Date().getFullYear());
@@ -40,7 +40,7 @@ export function useDebtSettlement(householdId: string, userEmail: string, onSucc
         householdId,
         year,
         month,
-        auth: { uid: currentUser?.uid || '', isGlobalAdmin: isAdmin },
+        auth,
       });
       setPreview(result);
       setStatus(DebtSettlementStatus.PREVIEW);
@@ -78,7 +78,7 @@ export function useDebtSettlement(householdId: string, userEmail: string, onSucc
         householdId,
         yearMonth,
         userEmail,
-        auth: { uid: currentUser?.uid || '', isGlobalAdmin: isAdmin },
+        auth,
       });
       setStatus(DebtSettlementStatus.SUCCESS);
       onSuccess?.();

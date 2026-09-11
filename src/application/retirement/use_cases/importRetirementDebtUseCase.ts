@@ -1,5 +1,6 @@
 import { startOfMonth, subMonths } from 'date-fns';
 
+import { type AuthContext } from '@/application/types';
 import { householdPermissionService } from '@/application/household/householdPermissionService';
 import {
   type RetirementExpenseCategory,
@@ -11,10 +12,7 @@ import { debtSnapshotRepository } from '@/infra/repositories/debtSnapshotReposit
 
 interface ImportRetirementDebtRequest {
   householdId: string;
-  auth: {
-    uid: string;
-    isGlobalAdmin: boolean;
-  };
+  auth: AuthContext;
 }
 
 const toYearMonth = (date: Date): string =>

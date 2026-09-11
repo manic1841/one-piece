@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from 'react';
+import { useCallback } from 'react';
 
 import { createAccountUseCase } from '@/application/account/use_cases/createAccountUseCase';
 import { deleteAccountSnapshotUseCase } from '@/application/account/use_cases/deleteAccountSnapshotUseCase';
@@ -14,19 +14,11 @@ import {
   type AccountSnapshot,
   type AccountSnapshotCreate,
 } from '@/domains/account/types';
-import { useAuth } from '@/infra/contexts/useAuth';
+import { useAuthContext } from '@/ui/hooks/useAuthContext';
 import { useLoadingTask } from '@/ui/hooks/useLoadingTask';
 
 export function useAccountCmds(householdId: string) {
-  const { currentUser, isAdmin } = useAuth();
-  const auth = useMemo(
-    () => ({
-      uid: currentUser?.uid || '',
-      email: currentUser?.email || '',
-      isGlobalAdmin: isAdmin,
-    }),
-    [currentUser, isAdmin],
-  );
+  const auth = useAuthContext();
 
   const { loading, error, run } = useLoadingTask();
 
@@ -37,7 +29,7 @@ export function useAccountCmds(householdId: string) {
           householdId,
           data,
           userEmail: auth.email || '',
-          auth: { uid: auth.uid, isGlobalAdmin: auth.isGlobalAdmin },
+          auth,
         });
       });
     },
@@ -52,7 +44,7 @@ export function useAccountCmds(householdId: string) {
           accountId,
           updates,
           userEmail: auth.email || '',
-          auth: { uid: auth.uid, isGlobalAdmin: auth.isGlobalAdmin },
+          auth,
         });
       });
     },
@@ -65,7 +57,7 @@ export function useAccountCmds(householdId: string) {
         await deleteAccountUseCase.execute({
           householdId,
           accountId,
-          auth: { uid: auth.uid, isGlobalAdmin: auth.isGlobalAdmin },
+          auth,
         });
       });
     },
@@ -80,7 +72,7 @@ export function useAccountCmds(householdId: string) {
           accountId,
           snapshot,
           userEmail: auth.email || '',
-          auth: { uid: auth.uid, isGlobalAdmin: auth.isGlobalAdmin },
+          auth,
         });
       });
     },
@@ -96,7 +88,7 @@ export function useAccountCmds(householdId: string) {
           snapshotId,
           updates,
           userEmail: auth.email || '',
-          auth: { uid: auth.uid, isGlobalAdmin: auth.isGlobalAdmin },
+          auth,
         });
       });
     },
@@ -110,7 +102,7 @@ export function useAccountCmds(householdId: string) {
           householdId,
           accountId,
           snapshotId,
-          auth: { uid: auth.uid, isGlobalAdmin: auth.isGlobalAdmin },
+          auth,
         });
       });
     },
@@ -124,7 +116,7 @@ export function useAccountCmds(householdId: string) {
           householdId,
           accountOrders,
           userEmail: auth.email || '',
-          auth: { uid: auth.uid, isGlobalAdmin: auth.isGlobalAdmin },
+          auth,
         });
       });
     },
@@ -134,7 +126,7 @@ export function useAccountCmds(householdId: string) {
   const getTotalBalance = useCallback(async (): Promise<number> => {
     return await getTotalAssetsUseCase.execute({
       householdId,
-      auth: { uid: auth.uid, isGlobalAdmin: auth.isGlobalAdmin },
+      auth,
     });
   }, [householdId, auth]);
 
@@ -145,7 +137,7 @@ export function useAccountCmds(householdId: string) {
         accountId,
         year,
         month,
-        auth: { uid: auth.uid, isGlobalAdmin: auth.isGlobalAdmin },
+        auth,
       });
     },
     [householdId, auth],

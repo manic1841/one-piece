@@ -2,8 +2,9 @@ import { useCallback, useEffect, useState } from 'react';
 
 import { listCustomLedgerCodesUseCase } from '@/application/ledger/use_cases/listCustomLedgerCodesUseCase';
 import { LEDGER_CODES } from '@/domains/ledger/constants/ledgerCodes';
-import { useAuth } from '@/infra/contexts/useAuth';
 import { getUnifiedLedgerCodeLabel } from '@/ui/constants/transaction';
+import { useAuth } from '@/infra/contexts/useAuth';
+import { useAuthContext } from '@/ui/hooks/useAuthContext';
 
 export interface LedgerCodeItem {
   code: string;
@@ -14,7 +15,8 @@ export interface LedgerCodeItem {
 }
 
 export const useLedgerCodes = (includeInactive = false) => {
-  const { userProfile, currentUser, isAdmin } = useAuth();
+  const { userProfile } = useAuth();
+  const auth = useAuthContext();
   const householdId = userProfile?.householdId;
   const [codes, setCodes] = useState<LedgerCodeItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -40,11 +42,7 @@ export const useLedgerCodes = (includeInactive = false) => {
       const customCodes = await listCustomLedgerCodesUseCase.execute({
         householdId,
         includeInactive,
-        auth: {
-          uid: currentUser?.uid ?? '',
-          email: currentUser?.email ?? '',
-          isGlobalAdmin: isAdmin,
-        },
+        auth,
       });
       const customItems: LedgerCodeItem[] = customCodes.map((c) => ({
         code: c.code,
@@ -61,7 +59,7 @@ export const useLedgerCodes = (includeInactive = false) => {
     } finally {
       setLoading(false);
     }
-  }, [currentUser, householdId, includeInactive, isAdmin]);
+  }, [auth, householdId, includeInactive]);
 
   useEffect(() => {
     fetchCodes();

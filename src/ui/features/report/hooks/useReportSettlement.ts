@@ -6,7 +6,6 @@ import { getSettlementReadinessUseCase } from '@/application/report/use_cases/ge
 import { generateFinancialReportsUseCase } from '@/application/report/use_cases/generateFinancialReportsUseCase';
 import { previewFinancialReportsWorkflow } from '@/application/report/use_cases/previewFinancialReportsWorkflow';
 import { previewDebtSettlementsUseCase } from '@/application/settlement/use_cases/previewDebtSettlementsUseCase';
-import { useAuth } from '@/infra/contexts/useAuth';
 import { getUnifiedLedgerCodeLabel } from '@/ui/constants/transaction';
 import {
   type BalanceSheetVM,
@@ -16,9 +15,10 @@ import {
   mapCashFlowToVM,
   mapIncomeStatementToVM,
 } from '@/ui/features/report/viewmodels/reportDisplay.vm';
+import { useAuthContext } from '@/ui/hooks/useAuthContext';
 
 export const useReportSettlement = (householdId: string, userEmail: string) => {
-  const { currentUser, isAdmin } = useAuth();
+  const auth = useAuthContext();
 
   const [year, setYear] = useState(new Date().getFullYear());
   const [month, setMonth] = useState(new Date().getMonth() + 1);
@@ -60,11 +60,7 @@ export const useReportSettlement = (householdId: string, userEmail: string) => {
     try {
       const preview = await previewFinancialReportsWorkflow.execute({
         householdId,
-        auth: {
-          uid: currentUser?.uid || '',
-          email: currentUser?.email || undefined,
-          isGlobalAdmin: isAdmin,
-        },
+        auth,
         year,
         month,
         labelResolver: resolveReportLabel,
@@ -92,18 +88,14 @@ export const useReportSettlement = (householdId: string, userEmail: string) => {
         householdId,
         year,
         month,
-        auth: { uid: currentUser?.uid || '', isGlobalAdmin: isAdmin },
+        auth,
       });
       setDebtNoRepaymentWarningNames(debtPreview.missingRepaymentAccountNames);
 
       // Check whether all active entities are settled for this month.
       const readiness = await getSettlementReadinessUseCase.execute({
         householdId,
-        auth: {
-          uid: currentUser?.uid || '',
-          email: currentUser?.email || undefined,
-          isGlobalAdmin: isAdmin,
-        },
+        auth,
         year,
         month,
       });
@@ -129,11 +121,7 @@ export const useReportSettlement = (householdId: string, userEmail: string) => {
       // 2. Load financial preview (calculation + persistence state)
       const preview = await previewFinancialReportsWorkflow.execute({
         householdId,
-        auth: {
-          uid: currentUser?.uid || '',
-          email: currentUser?.email || undefined,
-          isGlobalAdmin: isAdmin,
-        },
+        auth,
         year,
         month,
         labelResolver: resolveReportLabel,
@@ -154,15 +142,7 @@ export const useReportSettlement = (householdId: string, userEmail: string) => {
     } finally {
       setIsLoading(false);
     }
-  }, [
-    householdId,
-    year,
-    month,
-    currentUser?.uid,
-    currentUser?.email,
-    isAdmin,
-    resolveReportLabel,
-  ]);
+  }, [householdId, year, month, auth, resolveReportLabel]);
 
   useEffect(() => {
     loadStatus();
@@ -183,11 +163,7 @@ export const useReportSettlement = (householdId: string, userEmail: string) => {
     try {
       const results = await generateFinancialReportsUseCase.execute({
         householdId,
-        auth: {
-          uid: currentUser?.uid || '',
-          email: currentUser?.email || undefined,
-          isGlobalAdmin: isAdmin,
-        },
+        auth,
         year,
         month,
         labelResolver: resolveReportLabel,

@@ -2,6 +2,7 @@ import {
   RetirementPlanCommandError,
   RetirementPlanCommandErrorCode,
 } from '@/domains/retirement/retirementPlanErrors';
+import { type AuthContext } from '@/application/types';
 import { householdPermissionService } from '@/application/household/householdPermissionService';
 import { type RetirementPlanCreate } from '@/domains/retirement/types';
 import { retirementRepository } from '@/infra/repositories/retirementRepository';
@@ -10,10 +11,7 @@ interface DuplicateRetirementPlanRequest {
   householdId: string;
   sourcePlanId: string;
   userEmail: string;
-  auth: {
-    uid: string;
-    isGlobalAdmin: boolean;
-  };
+  auth: AuthContext;
 }
 
 const toDuplicateName = (name: string): string => `${name} (Copy)`;

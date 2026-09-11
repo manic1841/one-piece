@@ -20,6 +20,7 @@ import {
   mapPortfolioToFormVM,
   parsePortfolioFormVM,
 } from '@/ui/features/portfolio/viewmodels/portfolioForm.vm';
+import { useAuthContext } from '@/ui/hooks/useAuthContext';
 
 interface PortfolioFormProps {
   isOpen: boolean;
@@ -37,6 +38,7 @@ const PortfolioForm: React.FC<PortfolioFormProps> = ({
   portfolio,
 }) => {
   const { fetchAccounts } = useAccounts();
+  const auth = useAuthContext();
   const [availableAccounts, setAvailableAccounts] = useState<Account[]>([]);
   const initialData = mapPortfolioToFormVM(portfolio);
 
@@ -52,13 +54,13 @@ const PortfolioForm: React.FC<PortfolioFormProps> = ({
       if (!householdId) return;
       const data = await fetchAccounts(
         householdId,
-        { uid: '', email: '', isGlobalAdmin: true },
+        auth,
         { includeInactive: true },
       );
       setAvailableAccounts(data);
     };
     loadAccounts();
-  }, [householdId, fetchAccounts]);
+  }, [householdId, fetchAccounts, auth]);
 
   // Reset form when portfolio changes or modal opens
   React.useEffect(() => {

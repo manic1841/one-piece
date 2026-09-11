@@ -78,6 +78,12 @@ In React, Hooks in the `features/hooks` folder act as **Application Controllers*
   create one key for the user's action, keep it in the hook while retries are
   possible, and clear it only after a successful result. Build the retry
   signature from the same canonical operation inputs as the command fingerprint.
+- **Auth Assembly**: Hooks must obtain the `AuthContext` passed to Use Cases via
+  `useAuthContext()` (`@/ui/hooks/useAuthContext`), never by hand-assembling
+  `{ uid, isGlobalAdmin }` literals from `useAuth()`. Direct `useAuth()` use is
+  reserved for concerns the auth context does not carry (e.g. `userProfile`,
+  `refreshProfile`, sign-in UI). Never fabricate a fake auth object (empty uid,
+  forced `isGlobalAdmin: true`) to bypass permission checks.
 
 ---
 

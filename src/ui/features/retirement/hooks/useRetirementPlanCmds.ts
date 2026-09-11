@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from 'react';
+import { useCallback } from 'react';
 
 import { createRetirementPlanUseCase } from '@/application/retirement/use_cases/createRetirementPlanUseCase';
 import { deleteRetirementPlanUseCase } from '@/application/retirement/use_cases/deleteRetirementPlanUseCase';
@@ -11,20 +11,15 @@ import {
   type RetirementIncomeSource,
   type RetirementPlanCreate,
 } from '@/domains/retirement/types';
-import { useAuth } from '@/infra/contexts/useAuth';
+import { useAuthContext } from '@/ui/hooks/useAuthContext';
 import { useLoadingTask } from '@/ui/hooks/useLoadingTask';
 
 export function useRetirementPlanCmds(
   householdId: string | undefined,
   userEmail: string | undefined,
 ) {
-  const { currentUser, isAdmin } = useAuth();
+  const auth = useAuthContext();
   const { loading, error, run } = useLoadingTask();
-
-  const auth = useMemo(
-    () => ({ uid: currentUser?.uid || '', isGlobalAdmin: isAdmin }),
-    [currentUser?.uid, isAdmin],
-  );
 
   const createPlan = useCallback(
     async (plan: RetirementPlanCreate): Promise<string | null> => {

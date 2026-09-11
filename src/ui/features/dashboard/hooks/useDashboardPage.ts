@@ -1,15 +1,14 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 import { getLeverageStatsUseCase } from '@/application/portfolio/use_cases/getLeverageStatsUseCase';
 import { type LeverageStats } from '@/application/portfolio/use_cases/getLeverageStatsUseCase';
 import { getSettlementReadinessUseCase } from '@/application/report/use_cases/getSettlementReadinessUseCase';
 import { type SettlementReadiness } from '@/application/report/use_cases/getSettlementReadinessUseCase';
-import { type AuthContext } from '@/application/types';
-import { useAuth } from '@/infra/contexts/useAuth';
 import {
   mapLeverageStatsToCardVM,
   mapUnsettledStatsToCardVM,
 } from '@/ui/features/dashboard/viewmodels/dashboardDisplay.vm';
+import { useAuthContext } from '@/ui/hooks/useAuthContext';
 
 interface UseDashboardPageProps {
   householdId: string | undefined;
@@ -40,22 +39,13 @@ export function useDashboardPage({
   householdId,
   includeUnsettledStats = false,
 }: UseDashboardPageProps) {
-  const { currentUser, isAdmin } = useAuth();
+  const auth = useAuthContext();
   const [unsettledStats, setUnsettledStats] = useState<SettlementReadiness>(
     createEmptySettlementReadiness(),
   );
   const [leverageStats, setLeverageStats] = useState<LeverageStats>(EMPTY_LEVERAGE_STATS);
   const [statsLoading, setStatsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  const auth: AuthContext = useMemo(
-    () => ({
-      uid: currentUser?.uid || '',
-      email: currentUser?.email || undefined,
-      isGlobalAdmin: isAdmin,
-    }),
-    [currentUser?.uid, currentUser?.email, isAdmin],
-  );
 
   const loadStatsData = useCallback(async () => {
     if (!householdId) {

@@ -4,11 +4,11 @@ import { format } from 'date-fns';
 
 import { getStoredReportUseCase } from '@/application/report/use_cases/getStoredReportUseCase';
 import { type IncomeStatementData } from '@/domains/report/schemas';
-import { useAuth } from '@/infra/contexts/useAuth';
 import {
   type IncomeStatementVM,
   mapIncomeStatementToVM,
 } from '@/ui/features/report/viewmodels/reportDisplay.vm';
+import { useAuthContext } from '@/ui/hooks/useAuthContext';
 import { useLoadingTask } from '@/ui/hooks/useLoadingTask';
 
 type ReportMode = 'MONTHLY' | 'YEARLY';
@@ -21,7 +21,7 @@ export function useIncomeStatement(
   const [data, setData] = useState<IncomeStatementVM | null>(null);
   const [internalDate, setInternalDate] = useState<Date>(new Date());
   const { loading, error, run } = useLoadingTask();
-  const { currentUser, isAdmin } = useAuth();
+  const auth = useAuthContext();
 
   const currentDate = controlledDate || internalDate;
 
@@ -35,11 +35,11 @@ export function useIncomeStatement(
         householdId,
         yearMonth,
         kind: 'incomeStatement',
-        auth: { uid: currentUser?.uid || '', isGlobalAdmin: isAdmin },
+        auth,
       });
       setData(result ? mapIncomeStatementToVM(result as IncomeStatementData) : null);
     });
-  }, [householdId, currentDate, run, reportMode, currentUser?.uid, isAdmin]);
+  }, [householdId, currentDate, run, reportMode, auth]);
 
   useEffect(() => {
     load();

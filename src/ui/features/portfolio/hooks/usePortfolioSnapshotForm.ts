@@ -6,13 +6,13 @@ import { listPortfolioSnapshotsUseCase } from '@/application/portfolio/use_cases
 import { type Account, type AccountSnapshot } from '@/domains/account/types/account';
 import { calculatePortfolioSnapshot } from '@/domains/portfolio/calculators/portfolioCalculator';
 import { type Portfolio, type PortfolioSnapshot } from '@/domains/portfolio/types/portfolio';
-import { useAuth } from '@/infra/contexts/useAuth';
 import {
   type PortfolioSnapshotFormVM,
   createDefaultPortfolioSnapshotFormVM,
   mapPortfolioSnapshotInputsToVM,
 } from '@/ui/features/portfolio/viewmodels/portfolioForm.vm';
 import { useLoadingTask } from '@/ui/hooks/useLoadingTask';
+import { useAuthContext } from '@/ui/hooks/useAuthContext';
 
 export const usePortfolioSnapshotForm = (
   householdId: string,
@@ -20,11 +20,7 @@ export const usePortfolioSnapshotForm = (
   onClose: () => void,
   onSubmit: (data: PortfolioSnapshotFormVM) => Promise<void>,
 ) => {
-  const { currentUser, isAdmin } = useAuth();
-  const auth = useMemo(
-    () => ({ uid: currentUser?.uid || '', isGlobalAdmin: isAdmin }),
-    [currentUser, isAdmin],
-  );
+  const auth = useAuthContext();
 
   const initialData = createDefaultPortfolioSnapshotFormVM();
   const [year, setYear] = useState(initialData.year);

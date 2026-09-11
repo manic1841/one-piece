@@ -1,16 +1,12 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 import { getAccountSnapshotsUseCase } from '@/application/account/use_cases/getAccountSnapshotsUseCase';
 import { type AccountSnapshot } from '@/domains/account/types/account';
-import { useAuth } from '@/infra/contexts/useAuth';
+import { useAuthContext } from '@/ui/hooks/useAuthContext';
 import { useLoadingTask } from '@/ui/hooks/useLoadingTask';
 
 export function useAccountSnapshots(householdId: string, accountId: string) {
-  const { currentUser, isAdmin } = useAuth();
-  const auth = useMemo(
-    () => ({ uid: currentUser?.uid || '', isGlobalAdmin: isAdmin }),
-    [currentUser, isAdmin],
-  );
+  const auth = useAuthContext();
   const [snapshots, setSnapshots] = useState<AccountSnapshot[]>([]);
   const { loading, error, run } = useLoadingTask();
 

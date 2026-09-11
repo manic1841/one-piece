@@ -5,10 +5,9 @@ import { getProjectWithSnapshotUseCase } from '@/application/project/use_cases/g
 import { listProjectRecordsUseCase } from '@/application/project/use_cases/listProjectRecordsUseCase';
 import { listProjectSnapshotsUseCase } from '@/application/project/use_cases/listProjectSnapshotsUseCase';
 import { listProjectsUseCase } from '@/application/project/use_cases/listProjectsUseCase';
-import { type AuthContext } from '@/application/types';
 import { type Project, type ProjectWithSnapshot } from '@/domains/project/schemas';
-import { useAuth } from '@/infra/contexts/useAuth';
 import { useLoadingTask } from '@/ui/hooks/useLoadingTask';
+import { useAuthContext } from '@/ui/hooks/useAuthContext';
 
 export function useProjects(householdId?: string) {
   const [projects, setProjects] = useState<Project[]>([]);
@@ -70,19 +69,15 @@ export function useProjectDetail(
 
 export function useProjectQueries(householdId: string) {
   const { run } = useLoadingTask();
-  const { currentUser, isAdmin } = useAuth();
+  const auth = useAuthContext();
 
   const getProjectBalance = useCallback(
     async (projectId: string) => {
-      const auth: AuthContext = {
-        uid: currentUser?.uid ?? '',
-        isGlobalAdmin: isAdmin ?? false,
-      };
       return run(async () => {
         return getProjectBalanceUseCase.execute({ householdId, projectId, auth });
       });
     },
-    [householdId, run, currentUser, isAdmin],
+    [householdId, run, auth],
   );
 
   const getProjectRecords = useCallback(

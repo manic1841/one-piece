@@ -4,7 +4,7 @@ import { format } from 'date-fns';
 
 import { getStoredReportUseCase } from '@/application/report/use_cases/getStoredReportUseCase';
 import { type BalanceSheetData } from '@/domains/report/schemas';
-import { useAuth } from '@/infra/contexts/useAuth';
+import { useAuthContext } from '@/ui/hooks/useAuthContext';
 import {
   type BalanceSheetVM,
   mapBalanceSheetToVM,
@@ -21,7 +21,7 @@ export function useBalanceSheet(
   const [data, setData] = useState<BalanceSheetVM | null>(null);
   const [internalDate, setInternalDate] = useState<Date>(new Date());
   const { loading, error, run } = useLoadingTask();
-  const { currentUser, isAdmin } = useAuth();
+  const auth = useAuthContext();
 
   const currentDate = controlledDate || internalDate;
 
@@ -35,11 +35,11 @@ export function useBalanceSheet(
         householdId,
         yearMonth,
         kind: 'balanceSheet',
-        auth: { uid: currentUser?.uid || '', isGlobalAdmin: isAdmin },
+        auth,
       });
       setData(result ? mapBalanceSheetToVM(result as BalanceSheetData) : null);
     });
-  }, [householdId, currentDate, run, reportMode, currentUser?.uid, isAdmin]);
+  }, [householdId, currentDate, run, reportMode, auth]);
 
   useEffect(() => {
     load();

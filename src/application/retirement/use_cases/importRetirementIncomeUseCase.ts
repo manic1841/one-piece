@@ -1,3 +1,4 @@
+import { type AuthContext } from '@/application/types';
 import { householdPermissionService } from '@/application/household/householdPermissionService';
 import {
   type PlannedIncome,
@@ -8,10 +9,7 @@ import { transactionRepository } from '@/infra/repositories/transactionRepositor
 
 interface ImportRetirementIncomeRequest {
   householdId: string;
-  auth: {
-    uid: string;
-    isGlobalAdmin: boolean;
-  };
+  auth: AuthContext;
 }
 
 export class ImportRetirementIncomeUseCase {

@@ -1,20 +1,15 @@
-import { useCallback, useMemo } from 'react';
+import { useCallback } from 'react';
 
 import { type RetirementPlan } from '@/domains/retirement/types';
-import { useAuth } from '@/infra/contexts/useAuth';
 import { useLoadingTask } from '@/ui/hooks/useLoadingTask';
+import { useAuthContext } from '@/ui/hooks/useAuthContext';
 
 import { getRetirementPlanUseCase } from '../../../../application/retirement/use_cases/getRetirementPlanUseCase';
 import { listRetirementPlansUseCase } from '../../../../application/retirement/use_cases/listRetirementPlansUseCase';
 
 export function useRetirementPlans(householdId: string | undefined) {
-  const { currentUser, isAdmin } = useAuth();
+  const auth = useAuthContext();
   const { loading, error, run } = useLoadingTask();
-
-  const auth = useMemo(
-    () => ({ uid: currentUser?.uid || '', isGlobalAdmin: isAdmin }),
-    [currentUser?.uid, isAdmin],
-  );
 
   const listPlans = useCallback(async (): Promise<RetirementPlan[]> => {
     if (!householdId) return [];

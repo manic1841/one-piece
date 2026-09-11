@@ -16,6 +16,7 @@ import { DEFAULT_INTENT_MAPPINGS } from '@/domains/ledger/intentMapping';
 import { normalizeDescription } from '@/domains/operation/fingerprint';
 import { useAuth } from '@/infra/contexts/useAuth';
 import { useLedgerCodes } from '@/ui/features/ledger/hooks/useLedgerCodes';
+import { useAuthContext } from '@/ui/hooks/useAuthContext';
 import { type AllocationItemInput } from '@/ui/features/transaction/types/allocation';
 import {
   type TransactionFormCategoryOption,
@@ -105,7 +106,8 @@ export const useTransactionForm = (
   onClose: () => void,
   onSuccess?: () => void,
 ) => {
-  const { userProfile, currentUser, isAdmin } = useAuth();
+  const { userProfile } = useAuth();
+  const auth = useAuthContext();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [debtAccounts, setDebtAccounts] = useState<DebtAccount[]>([]);
@@ -211,11 +213,8 @@ export const useTransactionForm = (
     const account = debtAccounts.find((item) => item.id === vm.debtAccountId) ?? null;
     const result = await createDebtPaymentUseCase.execute({
       householdId,
-      userEmail: userProfile.email,
-      auth: {
-        uid: currentUser?.uid ?? '',
-        isGlobalAdmin: isAdmin ?? false,
-      },
+      userEmail: auth.email || '',
+      auth,
       debtAccountId: vm.debtAccountId,
       idempotencyKey: getDebtPaymentIdempotencyKey(vm),
       totalPayment: vm.amount,
@@ -240,11 +239,8 @@ export const useTransactionForm = (
     if (allocationData) {
       await createTransactionWithAllocationUseCase.execute({
         householdId,
-        userEmail: userProfile.email,
-        auth: {
-          uid: currentUser?.uid ?? '',
-          isGlobalAdmin: isAdmin ?? false,
-        },
+        userEmail: auth.email || '',
+        auth,
         idempotencyKey: getTransactionWithAllocationIdempotencyKey(vm),
         data: transactionData,
         allocation: {
@@ -256,12 +252,12 @@ export const useTransactionForm = (
       await persistIncomeAllocationTemplate({
         vm,
         items: allocationData.items,
-        userEmail: userProfile.email,
+        userEmail: auth.email || '',
       });
     } else {
       await createTransactionUseCase.execute({
         householdId,
-        userEmail: userProfile.email,
+        userEmail: auth.email || '',
         data: transactionData,
       });
     }
@@ -316,11 +312,8 @@ export const useTransactionForm = (
       await updateTransactionUseCase.execute({
         householdId,
         transactionId,
-        userEmail: userProfile.email,
-        auth: {
-          uid: currentUser?.uid ?? '',
-          isGlobalAdmin: isAdmin ?? false,
-        },
+        userEmail: auth.email || '',
+        auth,
         data: mapTransactionVMToDomain(vm, userProfile.email),
         allocation: allocationData
           ? {
@@ -340,7 +333,7 @@ export const useTransactionForm = (
         try {
           await upsertIncomeAllocationTemplateUseCase.execute({
             householdId,
-            userEmail: userProfile.email,
+            userEmail: auth.email || '',
             ledgerCode: vm.ledgerCode,
             items: allocationData.items,
           });
@@ -377,11 +370,8 @@ export const useTransactionForm = (
       await updateDebtAccountUseCase.execute({
         householdId,
         debtAccountId: settlementPrompt.debtAccountId,
-        userEmail: userProfile.email,
-        auth: {
-          uid: currentUser?.uid ?? '',
-          isGlobalAdmin: isAdmin ?? false,
-        },
+        userEmail: auth.email || '',
+        auth,
         data: {
           isActive: false,
           closedAt: new Date(),

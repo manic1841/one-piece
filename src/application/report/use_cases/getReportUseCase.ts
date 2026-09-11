@@ -1,4 +1,5 @@
 import { householdPermissionService } from '@/application/household/householdPermissionService';
+import { type AuthContext } from '@/application/types';
 import { type FinancialReport, type ReportType } from '@/domains/report/schemas';
 import { reportRepository } from '@/infra/repositories/reportRepository';
 
@@ -7,10 +8,7 @@ interface GetReportRequest {
   type: ReportType;
   year: number;
   month: number;
-  auth: {
-    uid: string;
-    isGlobalAdmin: boolean;
-  };
+  auth: AuthContext;
 }
 
 class GetReportUseCase {

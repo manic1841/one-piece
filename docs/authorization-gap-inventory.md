@@ -76,6 +76,20 @@ cases that use `AuthContext`.
 
 **Recommendation:** Migrate to `AuthContext` type for consistency.
 
+### UI-side gap: fabricated auth in PortfolioForm (fixed)
+
+`PortfolioForm` called `fetchAccounts(householdId, { uid: '', email: '',
+isGlobalAdmin: true }, ...)` — a fabricated identity that skipped
+`assertReadPermission` in `getAccountsUseCase` and granted global-admin
+read scope to any signed-in user of the household page. This was not an
+application-layer contract violation (the use case still ran), but the
+caller bypassed the permission check that every other `fetchAccounts`
+call site performs.
+
+**Resolution:** The component now passes the real `AuthContext` from
+`useAuthContext()`, so `getAccountsUseCase` enforces
+`assertReadPermission` for this call site like everywhere else.
+
 ### Indirect auth: delegation chains
 
 `getSettlementReadinessUseCase` accepts `AuthContext` but performs no

@@ -4,8 +4,8 @@ import { addMonths, format, subMonths } from 'date-fns';
 
 import { getStoredReportUseCase } from '@/application/report/use_cases/getStoredReportUseCase';
 import { type CashFlowData } from '@/domains/report/schemas';
-import { useAuth } from '@/infra/contexts/useAuth';
 import { type CashFlowVM, mapCashFlowToVM } from '@/ui/features/report/viewmodels/reportDisplay.vm';
+import { useAuthContext } from '@/ui/hooks/useAuthContext';
 
 type ReportMode = 'MONTHLY' | 'YEARLY';
 
@@ -18,7 +18,7 @@ export function useCashFlow(
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const [internalDate, setInternalDate] = useState(new Date());
-  const { currentUser, isAdmin } = useAuth();
+  const auth = useAuthContext();
 
   const currentDate = controlledDate || internalDate;
   const yearMonth =
@@ -32,7 +32,7 @@ export function useCashFlow(
         householdId,
         yearMonth,
         kind: 'cashFlow',
-        auth: { uid: currentUser?.uid || '', isGlobalAdmin: isAdmin },
+        auth,
       });
       setData(result ? mapCashFlowToVM(result as CashFlowData) : null);
     } catch (err) {
@@ -40,7 +40,7 @@ export function useCashFlow(
     } finally {
       setLoading(false);
     }
-  }, [householdId, yearMonth, currentUser?.uid, isAdmin]);
+  }, [householdId, yearMonth, auth]);
 
   useEffect(() => {
     fetchReport();
