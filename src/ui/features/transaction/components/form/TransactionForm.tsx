@@ -1,7 +1,6 @@
 import React from 'react';
 
 import {
-  ArrowRightLeft,
   CreditCard,
   HandCoins,
   Landmark,
@@ -27,7 +26,6 @@ import { CategoryPanel } from '@/ui/features/transaction/components/form/Categor
 import { DebtPaymentPanel } from '@/ui/features/transaction/components/form/DebtPaymentPanel';
 import { ExpensePanel } from '@/ui/features/transaction/components/form/ExpensePanel';
 import { IncomePanel } from '@/ui/features/transaction/components/form/IncomePanel';
-import { ProjectTransferPanel } from '@/ui/features/transaction/components/form/ProjectTransferPanel';
 import { useTransactionFormState } from '@/ui/features/transaction/hooks/useTransactionFormState';
 import { type AllocationItemInput } from '@/ui/features/transaction/types/allocation';
 import {
@@ -93,7 +91,6 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
     income,
     investment,
     financing,
-    projectTransfer,
     advanced,
     debtPayment,
   } = state;
@@ -103,7 +100,6 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
     setIncome,
     setInvestment,
     setFinancing,
-    setProjectTransfer,
     setAdvanced,
     setDebtPayment,
   } = setters;
@@ -149,7 +145,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
             value={activeTab}
             onValueChange={(value) => setActiveTab(value as TransactionFormTab)}
           >
-            <TabsList className="grid h-auto w-full grid-cols-3 gap-2 rounded-xl p-2 md:grid-cols-7">
+            <TabsList className="grid h-auto w-full grid-cols-3 gap-2 rounded-xl p-2 md:grid-cols-6">
               <TabsTrigger value="EXPENSE" className="gap-1">
                 <ReceiptText className="h-3.5 w-3.5" />
                 支出
@@ -165,10 +161,6 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
               <TabsTrigger value="FINANCING" className="gap-1">
                 <HandCoins className="h-3.5 w-3.5" />
                 融資
-              </TabsTrigger>
-              <TabsTrigger value="TRANSFER" className="gap-1">
-                <ArrowRightLeft className="h-3.5 w-3.5" />
-                專案轉帳
               </TabsTrigger>
               <TabsTrigger value="DEBT_PAYMENT" className="gap-1">
                 <CreditCard className="h-3.5 w-3.5" />
@@ -221,14 +213,6 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
                 projects={projects}
                 allLedgerCodes={allActiveLedgerCodes}
                 onChange={setFinancing}
-              />
-            </TabsContent>
-
-            <TabsContent value="TRANSFER" className="mt-4">
-              <ProjectTransferPanel
-                state={projectTransfer}
-                projects={projects}
-                onChange={setProjectTransfer}
               />
             </TabsContent>
 

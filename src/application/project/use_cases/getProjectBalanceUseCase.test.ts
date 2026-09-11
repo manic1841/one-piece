@@ -26,6 +26,12 @@ vi.mock('@/infra/repositories/projectSnapshotRepository', () => ({
   projectSnapshotRepository: { getLatest: vi.fn() },
 }));
 
+vi.mock('@/application/household/householdPermissionService', () => ({
+  householdPermissionService: { assertReadPermission: vi.fn().mockResolvedValue(undefined) },
+}));
+
+const auth = { uid: 'user-1', isGlobalAdmin: false };
+
 describe('getProjectBalanceUseCase — server-side date filtering', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -44,7 +50,7 @@ describe('getProjectBalanceUseCase — server-side date filtering', () => {
     vi.mocked(transactionRepository.listTransfersByProject).mockResolvedValue([] as never);
     vi.mocked(allocationRepository.listByProject).mockResolvedValue([] as never);
 
-    await getProjectBalanceUseCase.execute({ householdId: 'h1', projectId: 'p1' });
+    await getProjectBalanceUseCase.execute({ householdId: 'h1', projectId: 'p1', auth });
 
     expect(transactionRepository.listByProject).toHaveBeenCalledWith(
       'h1',
@@ -64,7 +70,7 @@ describe('getProjectBalanceUseCase — server-side date filtering', () => {
     vi.mocked(transactionRepository.listTransfersByProject).mockResolvedValue([] as never);
     vi.mocked(allocationRepository.listByProject).mockResolvedValue([] as never);
 
-    await getProjectBalanceUseCase.execute({ householdId: 'h1', projectId: 'p1' });
+    await getProjectBalanceUseCase.execute({ householdId: 'h1', projectId: 'p1', auth });
 
     expect(transactionRepository.listTransfersByProject).toHaveBeenCalledWith(
       'h1',
@@ -84,7 +90,7 @@ describe('getProjectBalanceUseCase — server-side date filtering', () => {
     vi.mocked(transactionRepository.listTransfersByProject).mockResolvedValue([] as never);
     vi.mocked(allocationRepository.listByProject).mockResolvedValue([] as never);
 
-    await getProjectBalanceUseCase.execute({ householdId: 'h1', projectId: 'p1' });
+    await getProjectBalanceUseCase.execute({ householdId: 'h1', projectId: 'p1', auth });
 
     expect(allocationRepository.listByProject).toHaveBeenCalledWith(
       'h1',
@@ -106,7 +112,7 @@ describe('getProjectBalanceUseCase — server-side date filtering', () => {
     vi.mocked(transactionRepository.listTransfersByProject).mockResolvedValue([] as never);
     vi.mocked(allocationRepository.listByProject).mockResolvedValue([] as never);
 
-    const result = await getProjectBalanceUseCase.execute({ householdId: 'h1', projectId: 'p1' });
+    const result = await getProjectBalanceUseCase.execute({ householdId: 'h1', projectId: 'p1', auth });
 
     expect(result?.balance).toBe(1200); // 1000 base + 200 income
   });

@@ -14,7 +14,6 @@ import { type DebtAccount } from '@/domains/debt/schemas';
 import { IntentType } from '@/domains/ledger/constants';
 import { DEFAULT_INTENT_MAPPINGS } from '@/domains/ledger/intentMapping';
 import { normalizeDescription } from '@/domains/operation/fingerprint';
-import { transferBetweenProjectsUseCase } from '@/application/project/use_cases/transferBetweenProjectsUseCase';
 import { useAuth } from '@/infra/contexts/useAuth';
 import { useLedgerCodes } from '@/ui/features/ledger/hooks/useLedgerCodes';
 import { type AllocationItemInput } from '@/ui/features/transaction/types/allocation';
@@ -63,8 +62,6 @@ const advancedCategories: TransactionFormCategoryOption[] = [
   ...expenseCategories,
   ...incomeCategories,
 ];
-
-const toDate = (date: string) => new Date(`${date}T00:00:00`);
 
 type SettlementPrompt = {
   debtAccountId: string;
@@ -235,25 +232,6 @@ export const useTransactionForm = (
     }
   };
 
-  const handleTransfer = async (vm: TransactionFormVM) => {
-    if (!userProfile?.email) return;
-    if (!vm.fromProjectId || !vm.toProjectId)
-      throw new Error('Please select both source and target projects.');
-
-    await transferBetweenProjectsUseCase.execute({
-      householdId,
-      input: {
-        fromProjectId: vm.fromProjectId,
-        toProjectId: vm.toProjectId,
-        amount: vm.amount,
-        date: toDate(vm.date),
-        description: vm.description,
-      },
-      userEmail: userProfile.email,
-      auth: { uid: currentUser?.uid ?? '', isGlobalAdmin: isAdmin ?? false },
-    });
-  };
-
   const handleStandardTransaction = async (vm: TransactionFormVM) => {
     if (!userProfile?.email) return;
     const transactionData = mapTransactionVMToDomain(vm, userProfile.email);
@@ -300,8 +278,6 @@ export const useTransactionForm = (
 
       if (vm.intentType === IntentType.DEBT_PAYMENT) {
         await handleDebtPayment(vm);
-      } else if (vm.intentType === IntentType.TRANSFER) {
-        await handleTransfer(vm);
       } else {
         await handleStandardTransaction(vm);
       }
@@ -331,8 +307,8 @@ export const useTransactionForm = (
     try {
       const vm = parseTransactionFormVM(output);
 
-      if (vm.intentType === IntentType.DEBT_PAYMENT || vm.intentType === IntentType.TRANSFER) {
-        throw new Error('目前不支援編輯還款與專案轉帳交易。');
+      if (vm.intentType === IntentType.DEBT_PAYMENT) {
+        throw new Error('目前不支援編輯還款交易。');
       }
 
       const allocationData = mapTransactionVMToAllocationData(vm, transactionId);

@@ -11,7 +11,6 @@ const TransactionIntentTypeSchema = z.enum([
   'INCOME',
   'INVESTMENT',
   'FINANCING',
-  'TRANSFER',
   'MANUAL',
   'DEBT_PAYMENT',
 ]);
@@ -33,30 +32,11 @@ export const TransactionFormVMSchema = z
     triggerAllocation: z.boolean().optional(),
     allocationItems: z.array(AllocationItemSchema).optional(),
     allocationDirection: z.enum(['INCOME', 'EXPENSE']).optional(),
-    fromProjectId: z.string().optional(),
-    toProjectId: z.string().optional(),
     debtAccountId: z.string().optional(),
     principal: z.number().nonnegative().optional(),
     interest: z.number().nonnegative().optional(),
   })
   .superRefine((value, context) => {
-    if (value.intentType === 'TRANSFER') {
-      if (!value.fromProjectId || !value.toProjectId) {
-        context.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: 'Please select both source and target projects.',
-          path: ['fromProjectId'],
-        });
-      }
-      if (value.fromProjectId && value.toProjectId && value.fromProjectId === value.toProjectId) {
-        context.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: 'Source and target projects must be different.',
-          path: ['toProjectId'],
-        });
-      }
-    }
-
     if (value.intentType === 'DEBT_PAYMENT' && !value.debtAccountId) {
       context.addIssue({
         code: z.ZodIssueCode.custom,
@@ -171,7 +151,7 @@ export const mapTransactionVMToDomain = (
   vm: TransactionFormVM,
   userEmail: string,
 ): TransactionCreate => {
-  if (vm.intentType === 'TRANSFER' || vm.intentType === 'DEBT_PAYMENT') {
+  if (vm.intentType === 'DEBT_PAYMENT') {
     throw new Error(`Intent type ${vm.intentType} does not map to a standard transaction payload.`);
   }
 
@@ -182,8 +162,6 @@ export const mapTransactionVMToDomain = (
     intentType: vm.intentType,
     amount: vm.amount,
     projectId: vm.projectId ?? null,
-    fromProjectId: vm.fromProjectId ?? null,
-    toProjectId: vm.toProjectId ?? null,
     allocationId: null,
     createdBy: userEmail,
     entries: resolveEntriesByIntent(vm),
@@ -248,7 +226,6 @@ export const mapDomainTransactionToFormOutput = (
     transaction.intentType === 'INCOME' ||
     transaction.intentType === 'INVESTMENT' ||
     transaction.intentType === 'FINANCING' ||
-    transaction.intentType === 'TRANSFER' ||
     transaction.intentType === 'DEBT_PAYMENT'
       ? transaction.intentType
       : 'MANUAL';
@@ -263,8 +240,6 @@ export const mapDomainTransactionToFormOutput = (
     amount,
     projectId: transaction.projectId ?? undefined,
     description: transaction.description || undefined,
-    fromProjectId: transaction.fromProjectId ?? undefined,
-    toProjectId: transaction.toProjectId ?? undefined,
     debtAccountId: transaction.debtAccountId ?? undefined,
     ledgerCode: resolveLedgerCodeForEdit(transaction),
   };

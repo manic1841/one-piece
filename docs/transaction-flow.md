@@ -13,18 +13,18 @@ We replaced it with `TransactionForm` and a direct `IntentMapping` flow. This av
 1. **Pure UI Form**: `TransactionForm` is a presentation component only. It owns local tab/form state and emits a normalized `TransactionFormOutput` payload via callback props.
 2. **UI Controller (`useTransactionForm.ts`)**: The feature hook receives `TransactionFormOutput`, validates the selected intent path, and converts it into the correct application action.
 3. **Intent Mapping / Ledger Selection**: Expense and income tabs still derive from `src/domains/ledger/intentMapping.ts`, but the UI now exposes normalized `ledgerCode` and `projectId` fields instead of invoking use cases directly.
-4. **Transaction Use Case / Transfer Use Case**: Standard balanced entries go through `createTransactionUseCase` (create) and `updateTransactionUseCase` (edit); project-to-project movement goes through `transferBetweenProjectsUseCase`.
+4. **Transaction Use Case / Transfer Use Case**: Standard balanced entries go through `createTransactionUseCase` (create) and `updateTransactionUseCase` (edit). Project-to-project movement previously used `transferBetweenProjectsUseCase`; that feature is currently paused (see [ADR-0042](adr/0042-pause-project-transfer-feature.md)): the UI entry and write use case are removed, while historical TRANSFER transactions remain readable and are still counted in balances and settlement.
 5. **Allocation Trigger**: The income/expense form emits `triggerAllocation` plus allocation items. On create, the UI controller sends the normalized Transaction and Allocation payload to the dedicated composite command, which atomically creates the Transaction, deterministic Allocation, source `allocationId` link, and operation result. Reallocation-only actions use `replaceAllocationUseCase`, which changes only the Allocation desired state and source link atomically; the existing financial Transaction is not recreated or deleted. On edit, `updateTransactionUseCase` uses the same replacement helper while updating the other editable Transaction fields.
 6. **Income Allocation Template Prefill**: When an income `ledgerCode` is selected, the UI controller queries `allocationTemplates` by exact `ledgerCode`; if not found, it falls back to `isDefault == true`; if still not found, allocation stays blank.
 7. **Template Persistence**: After an income allocation is successfully created, the same allocation percentages are upserted into `allocationTemplates` for that `ledgerCode` as a convenience template. Historical allocations are not mutated.
-8. **Project Selection Rule**: `projectId` is optional for regular entries (expense, income, investment, financing, manual/transfer). Only `TRANSFER` requires both `fromProjectId` and `toProjectId`.
+8. **Project Selection Rule**: `projectId` is optional for regular entries (expense, income, investment, financing, manual). Only historical `TRANSFER` transactions carry `fromProjectId` and `toProjectId`; the form no longer creates them ([ADR-0042](adr/0042-pause-project-transfer-feature.md)).
 9. **Debt Payment Retry Rule**: `DEBT_PAYMENT` is an append-only financial command. The caller creates one idempotency key per user action and reuses it for retries; the Transaction, DebtSnapshot, DebtAccount balance cache, and household operation record commit in one Firestore transaction. A same-key replay returns the original result, while a different payload returns `IDEMPOTENCY_CONFLICT`.
 
 ## Intent Type Notes
 
 IntentType 的分類與映射規則不在本文件重述，請以 [ADR-0010](adr/0010-intenttype-three-tier.md)、[ADR-0014](adr/0014-debt-payment-intenttype.md) 與 [ADR-0022](adr/0022-intent-userselect-flag.md) 為準。
 
-目前 UI 的實作限制如下：`LIABILITY_BORROW` 由建立 `DebtAccount` 的流程產生，不從 `TransactionForm` 輸入；編輯流程暫不支援 `DEBT_PAYMENT` 與 `TRANSFER`，以避免尚未具備專用更新流程時產生部分副作用。
+目前 UI 的實作限制如下：`LIABILITY_BORROW` 由建立 `DebtAccount` 的流程產生，不從 `TransactionForm` 輸入；`TRANSFER` 目前暫停實作（[ADR-0042](adr/0042-pause-project-transfer-feature.md)）；編輯流程暫不支援 `DEBT_PAYMENT` 與 `TRANSFER`，以避免尚未具備專用更新流程時產生部分副作用。
 
 `DEBT_PAYMENT` 的付款規則、atomicity、retry 與 operation record 以
 [ADR-0014](adr/0014-debt-payment-intenttype.md)、[ADR-0015](adr/0015-debt-account-balance-derived.md)、[ADR-0017](adr/0017-grace-period-derived-not-stored.md) 與 [ADR-0038](adr/0038-command-atomicity-and-retry-policy.md) 為準。
