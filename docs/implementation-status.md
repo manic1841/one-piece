@@ -83,8 +83,12 @@ Issue #38 was closed after final validation and GitHub bookkeeping.
 
 No implementation remains from the #43–#48 dependency chain.
 
-The next planned work is documented in [Post-#40 Roadmap](post-40-roadmap.md).
-The next slice is Retirement Consistency as described in that roadmap.
+The follow-up slices planned in [Post-#40 Roadmap](archive/post-40-roadmap.md)
+(allocation consistency, retirement consistency, reorder contract, persistence
+and access boundaries, settlement/reports/retirement import) are all
+implemented and their issues closed. The roadmap is archived for historical
+reference; the E2E and testing-layer plans it described now live in the
+[Testing Guide](testing.md).
 
 The completed checkpoint listed these issues in order:
 

@@ -16,8 +16,8 @@
 - 在 `src/infra/repositories/` 建立 Repository。
 - 一般 CRUD Repository 應繼承 `BaseRepository`，並引用 **Domain Layer** 定義的 Schema。
 - 若資料需要專用的 operation schema、server timestamp 或 Firestore transaction
-	讀寫封裝，可以使用明確的 custom Repository；仍須把資料契約放在 Domain
-	Layer，並讓 transaction context 由 Application Use Case 傳入。
+  讀寫封裝，可以使用明確的 custom Repository；仍須把資料契約放在 Domain
+  Layer，並讓 transaction context 由 Application Use Case 傳入。
 
 ### 第三步：建立原子使用案例 (Application Use Cases)
 
@@ -65,6 +65,9 @@
 - `pnpm exec tsc --noEmit -p tsconfig.test.json`: 驗證測試檔的 TypeScript project 設定與 `@/*` 路徑別名；此 project 也由 root solution reference，供 IDE 解析使用，並以 declaration-only、no-check 方式納入 build graph，不進行完整語意型別檢查。
 - `pnpm lint`: 執行唯讀 ESLint 檢查。
 - `pnpm lint:fix`: 明確執行 ESLint 自動修正。
+
+各測試層級的完整說明(模擬器環境變數、security rules 測試、E2E 規劃)見
+[測試指南](testing.md)。
 
 ## 5. Docker 開發環境
 
