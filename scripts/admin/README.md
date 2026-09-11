@@ -10,6 +10,16 @@ pnpm qa:init
 
 前置條件:Firebase emulator 運行中(Firestore :8080、Auth :9099)。腳本可重複執行,已存在的資料會跳過或補齊連結。
 
+### 注意事項
+
+- 腳本連線目標固定為 `localhost:8080/9099`(程式碼內硬編碼,不讀外部
+  `FIRESTORE_EMULATOR_HOST`)。在 Docker dev stack 內需先把 `localhost`
+  轉發到 `firebase` service 再執行。
+- 印出的 localStorage 注入片段在 Firebase JS SDK v12 可能不足以登入:SDK
+  以 IndexedDB(`firebaseLocalStorageDb`)為主要 session 來源,localStorage
+  僅為 fallback。詳細說明見 [docs/testing.md](../../docs/testing.md) 的
+  「瀏覽器 QA 環境注意事項」。
+
 ## 安裝 Firebase Admin SDK
 
 ```bash

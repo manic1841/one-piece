@@ -85,6 +85,24 @@ pnpm qa:init
 DevTools 的 localStorage session 注入片段。細節見
 [scripts/admin/README.md](../scripts/admin/README.md)。
 
+### 瀏覽器 QA 環境注意事項
+
+以下為 2026-09-11 在 Docker dev stack 內做瀏覽器 QA 時實測到的限制:
+
+- `qa:init` 與 admin scripts 的模擬器 host 硬編碼為 `localhost:8080/9099`,
+  不讀外部 `FIRESTORE_EMULATOR_HOST`。在 Docker dev stack 內需先把
+  `localhost` 轉發到 `firebase` service(port-forward),腳本才連得上。
+- Firebase JS SDK v12 的登入 session 以 IndexedDB
+  (`firebaseLocalStorageDb` 的 `firebaseLocalStorage` store)為主要來源,
+  localStorage 只是 fallback。只注入 localStorage 片段可能不會生效;注入
+  失敗時可改以 Identity Toolkit REST API 對 Auth emulator 呼叫
+  `signInWithPassword` 取得 token,再同時寫入 localStorage 與 IndexedDB。
+- 容器化瀏覽器內的 Google 登入 popup 可能無法完成(需存取 Google 網域),
+  瀏覽器 QA 請優先使用測試帳號。
+- 需要 production build 的 QA 頁面時,使用 `pnpm preview`(或開發中的
+  `pnpm dev`),兩者皆有 SPA fallback;以一般靜態伺服器直接伺服 `dist/`
+  缺少 fallback,深層連結(如 `/transactions`)會 404。
+
 ## E2E 測試(瀏覽器)
 
 目前尚未導入 E2E 測試。E2E 是最後一層信心來源:在 complex hook 的 loading/error/retry/cancellation/
