@@ -99,4 +99,34 @@ export default tseslint.config(
       'max-lines-per-function': 'off', // 同時關閉函式長度限制
     },
   },
+  // Label Consistency: feature code must go through displayLabels, not the internal ledger label layer
+  {
+    files: ['src/ui/features/**/*.{ts,tsx}'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: [
+            {
+              name: '@/domains/report/labels',
+              message:
+                'Use unified display label APIs from @/ui/constants/transaction/displayLabels instead of legacy report label maps.',
+            },
+            {
+              name: '@/ui/constants/report/ledgerCodeLabels',
+              message:
+                'Use unified display label APIs from @/ui/constants/transaction/displayLabels instead of the internal ledger label layer.',
+            },
+          ],
+          patterns: [
+            {
+              group: ['**/domains/report/labels', '**/ui/constants/report/ledgerCodeLabels'],
+              message:
+                'Use unified display label APIs from @/ui/constants/transaction/displayLabels.',
+            },
+          ],
+        },
+      ],
+    },
+  },
 );

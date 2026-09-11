@@ -12,7 +12,7 @@ We replaced it with `TransactionForm` and a direct `IntentMapping` flow. This av
 
 1. **Pure UI Form**: `TransactionForm` is a presentation component only. It owns local tab/form state and emits a normalized `TransactionFormOutput` payload via callback props.
 2. **UI Controller (`useTransactionForm.ts`)**: The feature hook receives `TransactionFormOutput`, validates the selected intent path, and converts it into the correct application action.
-3. **Intent Mapping / Ledger Selection**: Expense and income tabs still derive from `src/domains/ledger/intentMapping.ts`, but the UI now exposes normalized `ledgerCode` and `projectId` fields instead of invoking use cases directly.
+3. **Intent Mapping / Ledger Selection**: Expense and income tabs still derive from `src/domains/ledger/intentMapping.ts` (accounting semantics only; display wording lives in `displayLabels.ts`, see ADR-0046), but the UI now exposes normalized `ledgerCode` and `projectId` fields instead of invoking use cases directly.
 4. **Transaction Use Case / Transfer Use Case**: Standard balanced entries go through `createTransactionUseCase` (create) and `updateTransactionUseCase` (edit). Project-to-project movement previously used `transferBetweenProjectsUseCase`; that feature is currently paused (see [ADR-0042](adr/0042-pause-project-transfer-feature.md)): the UI entry and write use case are removed, while historical TRANSFER transactions remain readable and are still counted in balances and settlement.
 5. **Allocation Trigger**: The income/expense form emits `triggerAllocation` plus allocation items. On create, the UI controller sends the normalized Transaction and Allocation payload to the dedicated composite command, which atomically creates the Transaction, deterministic Allocation, source `allocationId` link, and operation result. Reallocation-only actions use `replaceAllocationUseCase`, which changes only the Allocation desired state and source link atomically; the existing financial Transaction is not recreated or deleted. On edit, `updateTransactionUseCase` uses the same replacement helper while updating the other editable Transaction fields.
 6. **Income Allocation Template Prefill**: When an income `ledgerCode` is selected, the UI controller queries `allocationTemplates` by exact `ledgerCode`; if not found, it falls back to `isDefault == true`; if still not found, allocation stays blank.
@@ -42,4 +42,7 @@ Allocation 的資料邊界與獨立集合決策見 [ADR-0011](adr/0011-allocatio
 
 ## Adding New Intents
 
-If you need a new transaction type (like "Entertainment"), don't clutter the UI with new hardcoded components. Go into `DEFAULT_INTENT_MAPPINGS`, add the new `IntentType`, define its debit and credit ledger codes, and it will automatically populate in the form. Keep it simple.
+If you need a new transaction type (like "Entertainment"), don't clutter the UI with new hardcoded components. The flow is two steps:
+
+1. Go into `DEFAULT_INTENT_MAPPINGS`, add the new `IntentType`, and define its debit and credit ledger codes. It will automatically populate in the form.
+2. Add the display wording for the new intent to `INTENT_LABELS` in `src/ui/constants/transaction/displayLabels.ts` (see the UI labeling guideline and ADR-0046). A guard test fails if a domain intent has no display label.

@@ -243,20 +243,21 @@ export const formatCompactAxisValue = (value: number): string => {
 export const formatTrendTooltipValue = (
   value: number,
   name: string,
-  entry: { payload?: AssetTrendChartPointVM },
+  entry: { payload?: AssetTrendChartPointVM; dataKey?: unknown },
 ): [string, string] => {
   const currency = formatCurrency(value);
   const point = entry?.payload;
+  const seriesKey = typeof entry?.dataKey === 'string' ? entry.dataKey : undefined;
 
-  if (name === '淨資產' && point?.netAssetsGrowthPct != null) {
+  if (seriesKey === 'netAssets' && point?.netAssetsGrowthPct != null) {
     const sign = point.netAssetsGrowthPct >= 0 ? '+' : '';
     return [`${currency} (${sign}${point.netAssetsGrowthPct.toFixed(1)}%)`, name];
   }
-  if (name === '負債' && point?.liabilitiesGrowthPct != null) {
+  if (seriesKey === 'liabilities' && point?.liabilitiesGrowthPct != null) {
     const sign = point.liabilitiesGrowthPct >= 0 ? '+' : '';
     return [`${currency} (${sign}${point.liabilitiesGrowthPct.toFixed(1)}%)`, name];
   }
-  if (name === '投資收益' && point?.investmentReturnRate != null) {
+  if (seriesKey === 'investmentGain' && point?.investmentReturnRate != null) {
     const sign = point.investmentReturnRate >= 0 ? '+' : '';
     return [`${currency} (${sign}${point.investmentReturnRate.toFixed(2)}%)`, name];
   }

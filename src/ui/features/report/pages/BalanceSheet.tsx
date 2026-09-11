@@ -4,6 +4,7 @@ import { AlertTriangle } from 'lucide-react';
 
 import { Alert, AlertDescription, AlertTitle } from '@/ui/components/ui/alert';
 import { Card, CardContent } from '@/ui/components/ui/card';
+import { REPORT_VIEW_TITLES } from '@/ui/constants/report/reportViewLabels';
 import { useBalanceSheet } from '@/ui/features/report/hooks/useBalanceSheet';
 import {
   type BalanceSheetGroupVM,
@@ -128,7 +129,7 @@ const BalanceSheetPage: React.FC<BalanceSheetPageProps> = ({
   return (
     <div className="max-w-4xl mx-auto space-y-6 pb-20">
       <ReportHeader
-        title="資產負債表 (BS)"
+        title={REPORT_VIEW_TITLES.BALANCE_SHEET}
         subtitle="財務存量分析，掌握資產與負債分佈。"
         currentDate={currentDate}
         onDateChange={onDateChange}

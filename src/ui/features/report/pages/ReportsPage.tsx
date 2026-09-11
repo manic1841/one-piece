@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 
 import { useAuth } from '@/infra/contexts/useAuth';
 import { Card, CardContent } from '@/ui/components/ui/card';
+import { REPORT_VIEW_TITLES } from '@/ui/constants/report/reportViewLabels';
 
 import { ReportSettlement } from '../components/ReportSettlement';
 import BalanceSheetPage from './BalanceSheet';
@@ -85,7 +86,7 @@ const Reports: React.FC = () => {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <ReportLinkCard
-            title="損益表"
+            title={REPORT_VIEW_TITLES.INCOME_STATEMENT}
             desc="查看特定期間內的收入與支出明細，掌握您的淨利潤。"
             gradient="from-emerald-50 to-teal-50"
             border="border-emerald-100/50"
@@ -94,7 +95,7 @@ const Reports: React.FC = () => {
             onClick={() => setView('INCOME_STATEMENT')}
           />
           <ReportLinkCard
-            title="資產負債表"
+            title={REPORT_VIEW_TITLES.BALANCE_SHEET}
             desc="資產、負債與股東權益之快照，衡量財務健康度。"
             gradient="from-indigo-50 to-blue-50"
             border="border-indigo-100/50"
@@ -103,7 +104,7 @@ const Reports: React.FC = () => {
             onClick={() => setView('BALANCE_SHEET')}
           />
           <ReportLinkCard
-            title="現金流量表"
+            title={REPORT_VIEW_TITLES.CASH_FLOW}
             desc="追蹤現金流入與流出，分為營業、投資與融資活動。"
             gradient="from-purple-50 to-fuchsia-50"
             border="border-purple-100/50"

@@ -3,7 +3,6 @@ import { IntentType } from './constants';
 
 export interface IntentMappingInfo {
   intent: string;
-  label: string;
   type: IntentType;
   debitLedgerCode: string;
   creditLedgerCode: string;
@@ -17,112 +16,96 @@ export const DEFAULT_INTENT_MAPPINGS: IntentMappingInfo[] = [
   // Expenses
   {
     intent: 'FOOD',
-    label: '餐飲',
     type: IntentType.EXPENSE,
     debitLedgerCode: LEDGER_CODES.EXPENSE_FOOD,
     creditLedgerCode: LEDGER_CODES.ASSET_CASH,
   },
   {
     intent: 'TRANSPORTATION',
-    label: '交通',
     type: IntentType.EXPENSE,
     debitLedgerCode: LEDGER_CODES.EXPENSE_TRANSPORTATION,
     creditLedgerCode: LEDGER_CODES.ASSET_CASH,
   },
   {
     intent: 'VEHICLE',
-    label: '汽車',
     type: IntentType.EXPENSE,
     debitLedgerCode: LEDGER_CODES.EXPENSE_VEHICLE,
     creditLedgerCode: LEDGER_CODES.ASSET_CASH,
   },
   {
     intent: 'SHOPPING',
-    label: '購物',
     type: IntentType.EXPENSE,
     debitLedgerCode: LEDGER_CODES.EXPENSE_SHOPPING,
     creditLedgerCode: LEDGER_CODES.ASSET_CASH,
   },
   {
     intent: 'ENTERTAINMENT',
-    label: '娛樂',
     type: IntentType.EXPENSE,
     debitLedgerCode: LEDGER_CODES.EXPENSE_ENTERTAINMENT,
     creditLedgerCode: LEDGER_CODES.ASSET_CASH,
   },
   {
     intent: 'LIVING',
-    label: '生活費',
     type: IntentType.EXPENSE,
     debitLedgerCode: LEDGER_CODES.EXPENSE_LIVING,
     creditLedgerCode: LEDGER_CODES.ASSET_CASH,
   },
   {
     intent: 'FAMILY',
-    label: '家庭',
     type: IntentType.EXPENSE,
     debitLedgerCode: LEDGER_CODES.EXPENSE_FAMILY,
     creditLedgerCode: LEDGER_CODES.ASSET_CASH,
   },
   {
     intent: 'HEALTHCARE',
-    label: '醫療',
     type: IntentType.EXPENSE,
     debitLedgerCode: LEDGER_CODES.EXPENSE_HEALTHCARE,
     creditLedgerCode: LEDGER_CODES.ASSET_CASH,
   },
   {
     intent: 'EDUCATION',
-    label: '教育',
     type: IntentType.EXPENSE,
     debitLedgerCode: LEDGER_CODES.EXPENSE_EDUCATION,
     creditLedgerCode: LEDGER_CODES.ASSET_CASH,
   },
   {
     intent: 'SOCIAL',
-    label: '社交',
     type: IntentType.EXPENSE,
     debitLedgerCode: LEDGER_CODES.EXPENSE_SOCIAL,
     creditLedgerCode: LEDGER_CODES.ASSET_CASH,
   },
   {
     intent: 'HOUSING',
-    label: '住房',
     type: IntentType.EXPENSE,
     debitLedgerCode: LEDGER_CODES.EXPENSE_HOUSING,
     creditLedgerCode: LEDGER_CODES.ASSET_CASH,
   },
   {
     intent: 'RENT',
-    label: '房租',
     type: IntentType.EXPENSE,
     debitLedgerCode: LEDGER_CODES.EXPENSE_RENT,
     creditLedgerCode: LEDGER_CODES.ASSET_CASH,
   },
   {
     intent: 'MORTGAGE_INTEREST',
-    label: '房貸利息',
     type: IntentType.EXPENSE,
     debitLedgerCode: LEDGER_CODES.EXPENSE_MORTGAGE_INTEREST,
     creditLedgerCode: LEDGER_CODES.ASSET_CASH,
   },
   {
     intent: 'INSURANCE',
-    label: '保險',
     type: IntentType.EXPENSE,
     debitLedgerCode: LEDGER_CODES.EXPENSE_INSURANCE,
     creditLedgerCode: LEDGER_CODES.ASSET_CASH,
   },
   {
     intent: 'TAX',
-    label: '稅金',
     type: IntentType.EXPENSE,
     debitLedgerCode: LEDGER_CODES.EXPENSE_TAX,
     creditLedgerCode: LEDGER_CODES.ASSET_CASH,
   },
   {
     intent: 'OTHER_EXPENSE',
-    label: '其他支出',
     type: IntentType.EXPENSE,
     debitLedgerCode: LEDGER_CODES.EXPENSE_OTHER,
     creditLedgerCode: LEDGER_CODES.ASSET_CASH,
@@ -133,7 +116,6 @@ export const DEFAULT_INTENT_MAPPINGS: IntentMappingInfo[] = [
   // Incomes
   {
     intent: 'SALARY',
-    label: '薪資',
     type: IntentType.INCOME,
     debitLedgerCode: LEDGER_CODES.ASSET_CASH,
     creditLedgerCode: LEDGER_CODES.INCOME_SALARY,
@@ -142,7 +124,6 @@ export const DEFAULT_INTENT_MAPPINGS: IntentMappingInfo[] = [
   },
   {
     intent: 'BONUS',
-    label: '獎金',
     type: IntentType.INCOME,
     debitLedgerCode: LEDGER_CODES.ASSET_CASH,
     creditLedgerCode: LEDGER_CODES.INCOME_BONUS,
@@ -151,21 +132,18 @@ export const DEFAULT_INTENT_MAPPINGS: IntentMappingInfo[] = [
   },
   {
     intent: 'INVESTMENT_INCOME',
-    label: '投資收益',
     type: IntentType.INCOME,
     debitLedgerCode: LEDGER_CODES.ASSET_CASH,
     creditLedgerCode: LEDGER_CODES.INCOME_INVESTMENT,
   },
   {
     intent: 'REFUND_AS_INCOME',
-    label: '退款回補',
     type: IntentType.INCOME,
     debitLedgerCode: LEDGER_CODES.ASSET_CASH,
     creditLedgerCode: LEDGER_CODES.INCOME_REFUND,
   },
   {
     intent: 'OTHER_INCOME',
-    label: '其他收入',
     type: IntentType.INCOME,
     debitLedgerCode: LEDGER_CODES.ASSET_CASH,
     creditLedgerCode: LEDGER_CODES.INCOME_OTHER,
@@ -176,7 +154,6 @@ export const DEFAULT_INTENT_MAPPINGS: IntentMappingInfo[] = [
   // Transfers
   {
     intent: 'TRANSFER_GENERIC',
-    label: '轉帳',
     type: IntentType.TRANSFER,
     debitLedgerCode: LEDGER_CODES.ASSET_CASH,
     creditLedgerCode: LEDGER_CODES.ASSET_CASH,
@@ -185,21 +162,18 @@ export const DEFAULT_INTENT_MAPPINGS: IntentMappingInfo[] = [
   // Investment
   {
     intent: 'SECURITY_BUY',
-    label: '買入證券',
     type: IntentType.INVESTMENT,
     debitLedgerCode: LEDGER_CODES.ASSET_INVESTMENT,
     creditLedgerCode: LEDGER_CODES.ASSET_CASH,
   },
   {
     intent: 'SECURITY_SELL',
-    label: '賣出證券',
     type: IntentType.INVESTMENT,
     debitLedgerCode: LEDGER_CODES.ASSET_CASH,
     creditLedgerCode: LEDGER_CODES.ASSET_INVESTMENT,
   },
   {
     intent: 'REAL_ESTATE_BUY',
-    label: '買入不動產',
     type: IntentType.INVESTMENT,
     debitLedgerCode: LEDGER_CODES.ASSET_PROPERTY,
     creditLedgerCode: LEDGER_CODES.ASSET_CASH,
@@ -208,7 +182,6 @@ export const DEFAULT_INTENT_MAPPINGS: IntentMappingInfo[] = [
   },
   {
     intent: 'REAL_ESTATE_SELL',
-    label: '賣出不動產',
     type: IntentType.INVESTMENT,
     debitLedgerCode: LEDGER_CODES.ASSET_CASH,
     creditLedgerCode: LEDGER_CODES.ASSET_PROPERTY,
@@ -219,28 +192,24 @@ export const DEFAULT_INTENT_MAPPINGS: IntentMappingInfo[] = [
   // Financing
   {
     intent: 'LOAN_BORROW',
-    label: '借貸入帳',
     type: IntentType.FINANCING,
     debitLedgerCode: LEDGER_CODES.ASSET_CASH,
     creditLedgerCode: LEDGER_CODES.LIABILITY_LOAN,
   },
   {
     intent: 'LOAN_REPAYMENT',
-    label: '借貸還款',
     type: IntentType.FINANCING,
     debitLedgerCode: LEDGER_CODES.LIABILITY_LOAN,
     creditLedgerCode: LEDGER_CODES.ASSET_CASH,
   },
   {
     intent: 'SHAREHOLDER_FINANCING',
-    label: '股東融資',
     type: IntentType.FINANCING,
     debitLedgerCode: LEDGER_CODES.ASSET_CASH,
     creditLedgerCode: LEDGER_CODES.EQUITY_CAPITAL,
   },
   {
     intent: 'DIVIDEND_PAYOUT',
-    label: '發放分紅',
     type: IntentType.FINANCING,
     debitLedgerCode: LEDGER_CODES.EQUITY_CAPITAL,
     creditLedgerCode: LEDGER_CODES.ASSET_CASH,

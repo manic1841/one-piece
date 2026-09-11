@@ -15,6 +15,7 @@ import { IntentType } from '@/domains/ledger/constants';
 import { DEFAULT_INTENT_MAPPINGS } from '@/domains/ledger/intentMapping';
 import { normalizeDescription } from '@/domains/operation/fingerprint';
 import { useAuth } from '@/infra/contexts/useAuth';
+import { getIntentLabel } from '@/ui/constants/transaction';
 import { useLedgerCodes } from '@/ui/features/ledger/hooks/useLedgerCodes';
 import { useAuthContext } from '@/ui/hooks/useAuthContext';
 import { type AllocationItemInput } from '@/ui/features/transaction/types/allocation';
@@ -34,14 +35,14 @@ import { logger } from '@/utils/logger';
 const expenseCategories: TransactionFormCategoryOption[] = [
   ...DEFAULT_INTENT_MAPPINGS.filter((mapping) => mapping.type === 'EXPENSE').map((mapping) => ({
     value: mapping.intent,
-    label: mapping.label,
+    label: getIntentLabel(mapping.intent),
   })),
 ];
 
 const incomeCategories: TransactionFormCategoryOption[] = [
   ...DEFAULT_INTENT_MAPPINGS.filter((mapping) => mapping.type === 'INCOME').map((mapping) => ({
     value: mapping.intent,
-    label: mapping.label,
+    label: getIntentLabel(mapping.intent),
   })),
 ];
 
@@ -49,14 +50,14 @@ const investmentCategories: TransactionFormCategoryOption[] = DEFAULT_INTENT_MAP
   (mapping) => mapping.type === 'INVESTMENT',
 ).map((mapping) => ({
   value: mapping.intent,
-  label: mapping.label,
+  label: getIntentLabel(mapping.intent),
 }));
 
 const financingCategories: TransactionFormCategoryOption[] = DEFAULT_INTENT_MAPPINGS.filter(
   (mapping) => mapping.type === 'FINANCING',
 ).map((mapping) => ({
   value: mapping.intent,
-  label: mapping.label,
+  label: getIntentLabel(mapping.intent),
 }));
 
 const advancedCategories: TransactionFormCategoryOption[] = [

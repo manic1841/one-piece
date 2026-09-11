@@ -23,6 +23,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/ui/components/ui/select';
+import { AccountCategoryLabels } from '@/ui/constants/account/label';
 
 import {
   AccountFormSchema,
@@ -114,9 +115,15 @@ const AccountForm: React.FC<AccountFormProps> = ({ initialData, onSubmit, onCanc
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value={AccountCategory.BANK}>銀行</SelectItem>
-                      <SelectItem value={AccountCategory.SECURITIES}>券商</SelectItem>
-                      <SelectItem value={AccountCategory.CASH}>現金</SelectItem>
+                      <SelectItem value={AccountCategory.BANK}>
+                        {AccountCategoryLabels[AccountCategory.BANK]}
+                      </SelectItem>
+                      <SelectItem value={AccountCategory.SECURITIES}>
+                        {AccountCategoryLabels[AccountCategory.SECURITIES]}
+                      </SelectItem>
+                      <SelectItem value={AccountCategory.CASH}>
+                        {AccountCategoryLabels[AccountCategory.CASH]}
+                      </SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />

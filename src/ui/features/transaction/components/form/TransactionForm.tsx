@@ -148,23 +148,23 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
             <TabsList className="grid h-auto w-full grid-cols-3 gap-2 rounded-xl p-2 md:grid-cols-6">
               <TabsTrigger value="EXPENSE" className="gap-1">
                 <ReceiptText className="h-3.5 w-3.5" />
-                支出
+                {getIntentTypeLabel('EXPENSE')}
               </TabsTrigger>
               <TabsTrigger value="INCOME" className="gap-1">
                 <Landmark className="h-3.5 w-3.5" />
-                收入
+                {getIntentTypeLabel('INCOME')}
               </TabsTrigger>
               <TabsTrigger value="INVESTMENT" className="gap-1">
                 <Landmark className="h-3.5 w-3.5" />
-                投資
+                {getIntentTypeLabel('INVESTMENT')}
               </TabsTrigger>
               <TabsTrigger value="FINANCING" className="gap-1">
                 <HandCoins className="h-3.5 w-3.5" />
-                融資
+                {getIntentTypeLabel('FINANCING')}
               </TabsTrigger>
               <TabsTrigger value="DEBT_PAYMENT" className="gap-1">
                 <CreditCard className="h-3.5 w-3.5" />
-                還款
+                {getIntentTypeLabel('DEBT_PAYMENT')}
               </TabsTrigger>
               <TabsTrigger value="ADVANCED" className="gap-1">
                 <SlidersHorizontal className="h-3.5 w-3.5" />
@@ -194,7 +194,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
 
             <TabsContent value="INVESTMENT" className="mt-4">
               <CategoryPanel
-                title="投資"
+                title={getIntentTypeLabel('INVESTMENT')}
                 tone="neutral"
                 state={investment}
                 categories={investmentCategories}
@@ -206,7 +206,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
 
             <TabsContent value="FINANCING" className="mt-4">
               <CategoryPanel
-                title="融資"
+                title={getIntentTypeLabel('FINANCING')}
                 tone="neutral"
                 state={financing}
                 categories={financingCategories}

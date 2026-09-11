@@ -46,23 +46,43 @@ Project detail and report UIs must also follow this rule:
 - `SALARY` -> `薪資` (not `薪水`)
 - `INVESTMENT_INCOME` -> `投資收益` (not `投資收入`)
 - `expense:living` -> `生活費` (not `生活`)
-- `expense:housing` -> `住房` (not `家居`)
+- `expense:housing` -> `家居` (not `住房`)
 - `expense:social` -> `社交` (not `人際` / `人情往來`)
 - `income:refund` -> `退款回補` (not `退款`)
+
+## Scope (2026-09 decision)
+
+Managed display labels cover:
+
+- Transaction labels: `intentType`, `intent`, `ledgerCode` (via `displayLabels.ts`)
+- Account category labels (via `src/ui/constants/account/label.ts` `AccountCategoryLabels`)
+- Report view titles: 損益表 / 資產負債表 / 現金流量表 (via `src/ui/constants/report/reportViewLabels.ts`)
+
+Free-form UI chrome (button text, error messages, subtitles, descriptive copy) is out of scope.
 
 ## Implementation Rule
 
 - New UI features must not introduce new hardcoded transaction labels in components.
 - Resolve labels via `displayLabels.ts`.
 - If new intent or ledger code is added, update `displayLabels.ts` first, then update UI.
+- Account category options render `AccountCategoryLabels`; do not write 銀行/券商/現金 literals in account UI.
+- Report tabs, link cards, and page headers render `REPORT_VIEW_TITLES`; do not duplicate report title strings.
+
+## Label Source Layers
+
+- `src/ui/constants/transaction/displayLabels.ts` is the only API surface UI code may import.
+- `INTENT_LABELS` in `displayLabels.ts` is a full static table for all domain intents (see ADR-0046); `src/domains/ledger/intentMapping.ts` carries no display labels, only accounting semantics.
+- `src/ui/constants/report/ledgerCodeLabels.ts` is an internal layer under `displayLabels.ts`; UI feature code must not import it directly.
+- `src/ui/constants/transaction/label.ts` does not exist (removed); references to it are historical.
 
 ## Notes
 
-- `src/ui/constants/transaction/label.ts` is a legacy grouped label map retained for compatibility.
 - `src/domains/report/labels.ts` is legacy for report-domain compatibility and must not be imported by UI feature code.
 - New code should prefer `displayLabels.ts` APIs.
 
 ## Enforcement
 
 - ESLint has a restricted import rule to block direct imports of `@/domains/report/labels`.
+- ESLint additionally blocks `@/ui/constants/report/ledgerCodeLabels` imports from `src/ui/features/**`; only `displayLabels.ts` may use that internal layer.
 - If a new UI display text is needed, extend `displayLabels.ts` first instead of adding a new label map.
+- `src/ui/constants/transaction/displayLabels.test.ts` pins the canonical wording above; a wording change must update this test in the same task.
