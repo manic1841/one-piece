@@ -46,22 +46,35 @@ const emulatorEndpoints = [
   { name: 'Auth', url: authEmulator.baseUrl },
 ];
 
+const EMULATOR_WAIT_TOTAL_MS = 15_000;
+const EMULATOR_WAIT_INTERVAL_MS = 500;
+const EMULATOR_PROBE_TIMEOUT_MS = 1_000;
+
 export const assertEmulatorsAvailable = async (): Promise<void> => {
-  const failures: string[] = [];
+  const deadline = Date.now() + EMULATOR_WAIT_TOTAL_MS;
 
-  for (const endpoint of emulatorEndpoints) {
-    try {
-      await fetch(endpoint.url, { signal: AbortSignal.timeout(1000) });
-    } catch (error) {
-      const detail = error instanceof Error ? `: ${error.message}` : '';
-      failures.push(`${endpoint.name} emulator unavailable${detail}`);
+  for (;;) {
+    const failures: string[] = [];
+
+    for (const endpoint of emulatorEndpoints) {
+      try {
+        await fetch(endpoint.url, { signal: AbortSignal.timeout(EMULATOR_PROBE_TIMEOUT_MS) });
+      } catch (error) {
+        const detail = error instanceof Error ? `: ${error.message}` : '';
+        failures.push(`${endpoint.name} emulator unavailable${detail}`);
+      }
     }
-  }
 
-  if (failures.length > 0) {
-    throw new Error(
-      `${failures.join('; ')}. Start the Firebase emulators before running integration tests.`,
-    );
+    if (failures.length === 0) return;
+
+    if (Date.now() >= deadline) {
+      throw new Error(
+        `${failures.join('; ')} after waiting ${EMULATOR_WAIT_TOTAL_MS / 1000}s. ` +
+          'Start the Firebase emulators before running integration tests.',
+      );
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, EMULATOR_WAIT_INTERVAL_MS));
   }
 };
 

@@ -61,15 +61,36 @@
 
 - `pnpm test`: 執行不依賴 Firebase Emulator 的 unit tests。
 - `pnpm test:coverage`: 對相同的 unit test 範圍產生 text、JSON 與 HTML coverage 報告。
-- `pnpm test:integration`: 執行需要 Firebase Emulator 的 integration tests；執行前會檢查 emulator 是否可連線。
+- `pnpm test:integration`: 執行需要 Firebase Emulator 的 integration tests；執行前會在期限內重試等待 emulator 可連線。
 - `pnpm exec tsc --noEmit -p tsconfig.test.json`: 驗證測試檔的 TypeScript project 設定與 `@/*` 路徑別名；此 project 也由 root solution reference，供 IDE 解析使用，並以 declaration-only、no-check 方式納入 build graph，不進行完整語意型別檢查。
+- `pnpm exec tsc -b`: 依 root solution 執行完整 build graph 型別檢查（正式程式碼）。
 - `pnpm lint`: 執行唯讀 ESLint 檢查。
 - `pnpm lint:fix`: 明確執行 ESLint 自動修正。
+
+## 4.1 CI/CD 流程
+
+GitHub Actions 位於 `.github/workflows/`：
+
+- **CI**（`test.yml`）：對 main/develop 的 push 與 PR 觸發。依序執行 lint、
+  `tsc -b`、unit tests、Firestore Emulator integration tests。Node 版本以 `.nvmrc`
+  為單一真相來源；依賴以 `--frozen-lockfile` 安裝並快取 pnpm store。同一分支的新
+  push 會取消舊的執行（concurrency），整體逾時 20 分鐘。
+- **Deploy to Firebase Hosting on PR**（`firebase-hosting-pull-request.yml`）：
+  CI 成功後，對每個 PR 與 develop 的 push 部署 Hosting preview channel。
+  checkout 鎖定 `workflow_run.head_sha`，部署的 commit 與測試的 commit 一致。
+- **Deploy to Firebase Hosting on merge**（`firebase-hosting-merge.yml`）：
+  CI 成功後，對 main 的 push 部署到 live channel，同樣鎖定 `head_sha`。
+
+部署以「CI 綠燈」為閘門；lint 與型別檢查也必須通過，PR 才能被視為可合併。
 
 各測試層級的完整說明(模擬器環境變數、security rules 測試、E2E 規劃)見
 [測試指南](testing.md)。
 
-## 5. Docker 開發環境
+## 5. CI/CD
+
+見上方 4.1 節的 GitHub Actions 流程說明。
+
+## 6. Docker 開發環境
 
 專案提供 root-level Docker development stack，固定 Node.js 24 與 pnpm 10，並以同一個 Compose project 啟動 Vite 與 Firebase Emulator。適合需要一致工具鏈或不想在 host 安裝 Node/pnpm 的開發者。
 

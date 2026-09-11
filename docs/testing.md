@@ -33,7 +33,8 @@ pnpm test:integration
 ```
 
 - 執行 `vitest.integration.config.ts`,include `src/**/*.integration.test.{ts,tsx}`。
-- 執行前由 `vitest.integration.setup.ts` 呼叫 `assertEmulatorsAvailable()`,emulator 無法連線時提早失敗。
+- 執行前由 `vitest.integration.setup.ts` 呼叫 `assertEmulatorsAvailable()`，
+  在 15 秒期限內重試等待 emulator 可連線，逾時才提早失敗。
 - 需要 Firestore (8080) 與 Auth (9099) 模擬器運行中。
 
 ### 模擬器環境變數

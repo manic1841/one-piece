@@ -177,12 +177,20 @@ describe('CreateDebtPaymentUseCase with Firestore Emulator', () => {
     ]);
 
     expect(results).toHaveLength(2);
-    expect(accountSnapshot.data()).toMatchObject({ currentBalance: 7989 });
+    // Interest accrues on the balance at commit time, so either commit order is valid.
+    const initialBalance = accountData.originalAmount;
+    const totalPrincipal = results.reduce((sum, { principal }) => sum + principal, 0);
+    const totalInterest = results.reduce((sum, { interest }) => sum + interest, 0);
+    const finalBalance = initialBalance - totalPrincipal;
+
+    expect(Math.min(...results.map(({ newBalance }) => newBalance))).toBe(finalBalance);
+    expect(accountSnapshot.data()).toMatchObject({ currentBalance: finalBalance });
     expect(debtSnapshot.data()).toMatchObject({
-      principalPaid: 2011,
-      interestPaid: 189,
+      openingBalance: initialBalance,
+      principalPaid: totalPrincipal,
+      interestPaid: totalInterest,
       totalPaid: 2200,
-      closingBalance: 7989,
+      closingBalance: finalBalance,
     });
     expect(payments).toHaveLength(2);
   });
