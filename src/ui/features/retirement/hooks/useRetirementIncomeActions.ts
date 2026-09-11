@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 
-import { manageRetirementIncomesUseCase } from '@/application/retirement/use_cases/manageRetirementIncomesUseCase';
+import { appendById, removeById, upsertById } from '@/domains/retirement/planMutations';
 import { mergeImportedIncomeSourcesUseCase } from '@/application/retirement/use_cases/mergeImportedIncomeSourcesUseCase';
 import type {
   RetirementIncomeSource,
@@ -27,11 +27,7 @@ export const useRetirementIncomeActions = ({
         throw new Error('Retirement plan is not ready yet. Please wait and try again.');
       }
       await handleUpdatePlan({
-        incomes: manageRetirementIncomesUseCase.add({
-          plan,
-          incomeData,
-          id: crypto.randomUUID(),
-        }),
+        incomes: appendById(plan.incomes, { ...incomeData, id: crypto.randomUUID() }),
       });
     },
     [id, plan, handleUpdatePlan],
@@ -41,11 +37,7 @@ export const useRetirementIncomeActions = ({
     async (incomeId: string, updates: Omit<RetirementIncomeSource, 'id'>) => {
       if (!id || !plan) return;
       await handleUpdatePlan({
-        incomes: manageRetirementIncomesUseCase.update({
-          plan,
-          incomeId,
-          updates,
-        }),
+        incomes: upsertById(plan.incomes, incomeId, updates),
       });
     },
     [id, plan, handleUpdatePlan],
@@ -56,10 +48,7 @@ export const useRetirementIncomeActions = ({
       if (!id || !plan) return;
       if (!window.confirm('Are you sure you want to delete this income source?')) return;
       await handleUpdatePlan({
-        incomes: manageRetirementIncomesUseCase.remove({
-          plan,
-          incomeId,
-        }),
+        incomes: removeById(plan.incomes, incomeId),
       });
     },
     [id, plan, handleUpdatePlan],

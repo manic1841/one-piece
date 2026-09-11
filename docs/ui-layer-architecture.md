@@ -31,8 +31,9 @@ Dependencies must flow **inwards**. The UI layer is the outermost shell.
 
 1.  **UI -> Application (Hooks)**: UI components only talk to Hooks. Never call a Use Case or Repository directly from a component.
 2.  **UI -> Domain (Types)**: UI can use Domain types for reference, but should prefer ViewModels for display.
-3.  **UI -X-> Infrastructure**: The UI layer must never know about Firestore, API clients, or external storage details.
-4.  **Feature Isolation**: Features should be self-contained. Shared components belong in `src/ui/components`, not cross-referenced between features.
+3.  **UI -> Domain (Pure Functions)**: Hooks may call domain pure functions directly for state derivation that requires no persistence (e.g. `aggregateTrendPoints`, retirement `planMutations`). This is the prescribed alternative to pass-through application classes. Persistence-affecting operations must still go through a Use Case.
+4.  **UI -X-> Infrastructure**: The UI layer must never know about Firestore, API clients, or external storage details.
+5.  **Feature Isolation**: Features should be self-contained. Shared components belong in `src/ui/components`, not cross-referenced between features.
 
 ---
 

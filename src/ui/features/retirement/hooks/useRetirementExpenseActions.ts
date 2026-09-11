@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 
-import { manageRetirementExpensesUseCase } from '@/application/retirement/use_cases/manageRetirementExpensesUseCase';
+import { appendById, removeById, upsertById } from '@/domains/retirement/planMutations';
 import { mergeImportedDebtRepaymentExpensesUseCase } from '@/application/retirement/use_cases/mergeImportedDebtRepaymentExpensesUseCase';
 import type {
   RetirementExpenseCategory,
@@ -31,11 +31,7 @@ export const useRetirementExpenseActions = ({
         linkedIncomeId: expenseData.linkedIncomeId,
       });
       await handleUpdatePlan({
-        expenses: manageRetirementExpensesUseCase.add({
-          plan,
-          expenseData,
-          id: crypto.randomUUID(),
-        }),
+        expenses: appendById(plan.expenses, { ...expenseData, id: crypto.randomUUID() }),
       });
       logger.info('handleAddExpense completed', 'retirement/useRetirementExpenseActions', {
         planId: id,
@@ -57,11 +53,7 @@ export const useRetirementExpenseActions = ({
         currentLinkedIncomeId: current?.linkedIncomeId,
       });
 
-      const nextExpenses = manageRetirementExpensesUseCase.update({
-        plan,
-        expenseId,
-        updates,
-      });
+      const nextExpenses = upsertById(plan.expenses, expenseId, updates);
       const next = nextExpenses.find((expense) => expense.id === expenseId);
       logger.debug('handleUpdateExpense merged result', 'retirement/useRetirementExpenseActions', {
         planId: id,
@@ -86,10 +78,7 @@ export const useRetirementExpenseActions = ({
       if (!id || !plan) return;
       if (!window.confirm('Are you sure you want to delete this expense category?')) return;
       await handleUpdatePlan({
-        expenses: manageRetirementExpensesUseCase.remove({
-          plan,
-          expenseId,
-        }),
+        expenses: removeById(plan.expenses, expenseId),
       });
     },
     [id, plan, handleUpdatePlan],
