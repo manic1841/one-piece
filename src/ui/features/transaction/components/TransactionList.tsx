@@ -79,8 +79,8 @@ export const TransactionList: React.FC<TransactionListProps> = ({
   return (
     <div className="space-y-10">
       <div className="rounded-xl border border-gray-100 bg-white p-3 shadow-sm">
-        <div className="flex flex-col gap-3 md:flex-row md:items-end">
-          <div className="w-full md:w-56">
+        <div className="flex flex-col gap-3 md:flex-row md:flex-wrap md:items-end">
+          <div className="w-full md:min-w-56 md:max-w-64 md:flex-1">
             <label className="mb-1 block text-xs font-semibold text-gray-500">開始日期</label>
             <Input
               type="date"
@@ -88,7 +88,7 @@ export const TransactionList: React.FC<TransactionListProps> = ({
               onChange={(event) => setFromDate(event.target.value)}
             />
           </div>
-          <div className="w-full md:w-56">
+          <div className="w-full md:min-w-56 md:max-w-64 md:flex-1">
             <label className="mb-1 block text-xs font-semibold text-gray-500">結束日期</label>
             <Input type="date" value={toDate} onChange={(event) => setToDate(event.target.value)} />
           </div>
