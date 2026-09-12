@@ -78,10 +78,36 @@ GitHub Actions 位於 `.github/workflows/`：
 - **Deploy to Firebase Hosting on PR**（`firebase-hosting-pull-request.yml`）：
   CI 成功後，對每個 PR 與 develop 的 push 部署 Hosting preview channel。
   checkout 鎖定 `workflow_run.head_sha`，部署的 commit 與測試的 commit 一致。
+  channel 名稱由 workflow 自行推導後明確傳入 `channelId`：PR 為
+  `pr<N>-<branch>`（存 7 天），develop 的 push 為固定的 `develop`（每次 push
+  延長到 30 天），因此 develop 有一條長期穩定的 staging URL。
 - **Deploy to Firebase Hosting on merge**（`firebase-hosting-merge.yml`）：
   CI 成功後，對 main 的 push 部署到 live channel，同樣鎖定 `head_sha`。
 
 部署以「CI 綠燈」為閘門；lint 與型別檢查也必須通過，PR 才能被視為可合併。
+live 只認 push main：`pull_request` 在 PR 開啟與每次 push 時都會觸發，若讓它寫 live，
+合併前、甚至最終不會合併的 PR 都會上線，且 `pull_request` checkout 的是
+`refs/pull/N/merge` 這個模擬合併產物，等於把 main 上從未存在的內容推上線。
+
+兩個部署 workflow 都以 `workflow_run` 觸發，因此其 YAML 與 secrets 一律取自預設分支
+(`main`)，只有被部署的程式碼取自 `workflow_run.head_sha`。這帶來三點限制：
+
+1. 修改部署 workflow 需合併到 `main` 後才生效；且 `workflow_run` 的執行自帶 secrets，
+   所以 CI 綠燈是限制未信任程式碼的唯一防線。
+2. `workflows: [...]` 比對的是被觸發 workflow 的 `name`，而該 name 取自各分支自己的
+   `test.yml`。兩個部署檔目前同時監聽 `CI` 與改名前的 `Unit Tests`，屬過渡設定；等所有
+   分支都跑新名字後可移除 `Unit Tests`。
+3. payload 不含 `pull_request`，所以 Firebase action 不會留言到 PR、也不會建立
+   `Deploy Preview` check run，且其自動命名的 channel id 會是空字串而使部署以
+   `HTTP 400` 失敗。這就是上面必須自行傳入 `channelId` 的原因；preview URL 改寫入
+   該次 run 的 job summary。
+
+兩個 workflow 都會在 checkout 前確認 `head_sha` 非空，避免 `actions/checkout` 在 `ref`
+為空時無聲地退回預設分支。
+
+**preview URL 會打生產後端**，且 URL 只是難猜而非私有。詳見
+[ADR 0047](adr/0047-preview-channel-shares-production-backend.md)：preview 僅供視覺確認，
+不在上面錄入資料；需要可寫入的環境請用本機 Firebase Emulator。
 
 各測試層級的完整說明(模擬器環境變數、security rules 測試、E2E 規劃)見
 [測試指南](testing.md)。
