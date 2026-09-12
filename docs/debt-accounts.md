@@ -5,6 +5,8 @@
 債務帳戶（DebtAccount）追蹤家庭的負債部位，如房貸、車貸、個人信貸。
 提供每月還款試算、還清進度追蹤、與 Project 的關聯。
 
+本文件保留債務功能的表單、試算與操作流程；債務還款意圖、派生餘額、建立時同步入帳與寬限期狀態的決策，以 [ADR-0014](adr/0014-debt-payment-intenttype.md) 至 [ADR-0017](adr/0017-grace-period-derived-not-stored.md) 為準。退休匯入規則以 [ADR-0032](adr/0032-debt-import-active-only.md) 與 [ADR-0033](adr/0033-debt-expense-principal-interest-mode.md) 為準。
+
 ---
 
 ## 2. LedgerCode 初始化策略
@@ -35,12 +37,21 @@
 `removeDebtAccountUseCase` 自動判斷：
 
 ```
-checkHasPayments(id)
-  有 LIABILITY_PAYMENT 記錄 → deactivate（isActive: false）
-  無記錄                   → hard delete（連同建立時的 LIABILITY_BORROW 一起刪除）
+有還款歷史或 snapshots → deactivate（isActive: false）
+皆無                   → hard delete（連同建立時的 LIABILITY_BORROW 一起刪除）
 ```
 
-查詢依據：transactions 的 `intentType == 'LIABILITY_PAYMENT'` AND `ledgerCodes array-contains linkedLedgerCode`
+還款歷史採兩層偵測：
+
+1. **Canonical**：`debtAccountId == <此帳戶>` 且 `intentType == DEBT_PAYMENT`。
+   以帳戶 ID 精確比對，共用同一 `linkedLedgerCode` 的其他債務帳戶不會互相阻擋。
+2. **Legacy fallback**：`intentType == LIABILITY_PAYMENT` 且
+   `ledgerCodes array-contains linkedLedgerCode`。此查詢直接讀取原始文件、
+   不經 domain schema（`LIABILITY_PAYMENT` 已自 [ADR-0014](adr/0014-debt-payment-intenttype.md)
+   從 IntentType 移除），僅作為歷史資料的保守防護；共用 ledger code 可能造成
+   誤判為 soft delete，屬可接受的安全方向。
+
+另外，帳戶下存在任何 `DebtSnapshot` 文件也會強制 soft delete，即使沒有付款交易。
 
 - hard delete 會一併刪除與該 DebtAccount 關聯的借款入帳交易，避免留下孤立負債建立紀錄
 
@@ -49,6 +60,8 @@ checkHasPayments(id)
 ## 5. 建立貸款同步入帳（LIABILITY_BORROW）
 
 新增 DebtAccount 時，系統會同步建立一筆借款入帳交易，確保負債與現金部位一致。
+
+同步建立與原子性是 [ADR-0016](adr/0016-debt-account-creation-liability-borrow-sync.md) 的決策；以下只保留表單欄位與目前交易流程。
 
 ### 表單欄位
 
@@ -84,6 +97,8 @@ entries: [
 
 ## 5.5. 寬限期（Grace Period）
 
+寬限期狀態不另存 boolean，而由日期動態判斷；決策依據見 [ADR-0017](adr/0017-grace-period-derived-not-stored.md)。本節補充試算、分錄與 UI 的操作細節。
+
 ### 欄位
 
 `DebtAccount` 新增可選欄位：
@@ -94,11 +109,14 @@ graceEndDate: Date | null  // 寬限期結束日期，null 表示無寬限期
 
 ### 判斷邏輯
 
-寬限期定義為：`startDate ≤ 今天 < graceEndDate`
+寬限期定義為：`startDate ≤ paymentDate < graceEndDate`。起始日包含，結束日不
+包含；付款日等於 `graceEndDate` 時走正常還款。完整決策以
+[ADR-0017](adr/0017-grace-period-derived-not-stored.md) 與
+[ADR-0038](adr/0038-command-atomicity-and-retry-policy.md) 為準。
 
 實作於 `src/domains/debt/debtPaymentCalculator.ts`：
 
-- `isInGracePeriod(graceEndDate)` — 檢查今天是否在寬限期內
+- `isInGracePeriod(startDate, paymentDate, graceEndDate)` — 檢查付款日是否在寬限期內
 
 ### 試算邏輯
 
@@ -136,6 +154,10 @@ Dr. expense:interest     interest
 Cr. asset:cash           totalPayment
 
 // 注：closingBalance = openingBalance（本金不減少）
+
+寬限期間的 ordinary `DEBT_PAYMENT` 不接受高於適用利息的金額；這不代表可以
+透過一般還款流程提前償還本金。低於適用利息的正付款可記錄為實際支付的利息，
+並附上未覆蓋利息的 warning。
 ```
 
 **寬限期後**（正常還款）：
@@ -192,6 +214,8 @@ DebtAccount.closedAt = today
 
 ## 5.7. DEBT_PAYMENT 後的結清偵測
 
+`currentBalance` 的來源與派生規則見 [ADR-0015](adr/0015-debt-account-balance-derived.md)。
+
 每次 `DEBT_PAYMENT` 建立成功後，流程為：
 
 ```
@@ -200,6 +224,11 @@ DebtAccount.closedAt = today
   → 若 currentBalance <= 0
       顯示結清確認對話框
 ```
+
+Transaction、該月份 DebtSnapshot 與 DebtAccount.currentBalance 必須和付款的
+operation record 在同一個 Firestore transaction 內提交；任一寫入失敗時不得
+留下部分財務資料。重試與同 key replay 規則以
+[ADR-0038](adr/0038-command-atomicity-and-retry-policy.md) 為準。
 
 備註：
 
@@ -253,13 +282,15 @@ DebtAccount.closedAt = today
 
 ## 6. 退休系統導入規則（Debt -> Retirement）
 
+只匯入啟用中的債務，以及本金/利息的退休支出模式，分別由 [ADR-0032](adr/0032-debt-import-active-only.md) 與 [ADR-0033](adr/0033-debt-expense-principal-interest-mode.md) 定義；以下保留匯入流程與欄位對應。
+
 退休系統支援「匯入債務還款」：
 
 1. 掃描 `isActive=true` 的 DebtAccount
 2. 每個帳戶建立一筆退休 `expenseCategory`（`type = debt_payment`）
 3. 欄位來源：
    - `name` <- DebtAccount.name
-   - `baseAmount` <- DebtAccount.monthlyPayment * 12（`includesPrincipal=true`）
+   - `baseAmount` <- DebtAccount.monthlyPayment \* 12（`includesPrincipal=true`）
    - `startYear/endYear` <- DebtAccount.startDate/endDate
 4. 讀取最近 12 個月 DebtSnapshot，寫入 `calculatedFrom` 統計
 

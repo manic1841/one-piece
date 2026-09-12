@@ -2,11 +2,13 @@ import { useCallback, useEffect, useState } from 'react';
 
 import { format } from 'date-fns';
 
-import { reportService } from '@/domains/report/reportService';
+import { getStoredReportUseCase } from '@/application/report/use_cases/getStoredReportUseCase';
+import { type IncomeStatementData } from '@/domains/report/schemas';
 import {
   type IncomeStatementVM,
   mapIncomeStatementToVM,
 } from '@/ui/features/report/viewmodels/reportDisplay.vm';
+import { useAuthContext } from '@/ui/hooks/useAuthContext';
 import { useLoadingTask } from '@/ui/hooks/useLoadingTask';
 
 type ReportMode = 'MONTHLY' | 'YEARLY';
@@ -19,6 +21,7 @@ export function useIncomeStatement(
   const [data, setData] = useState<IncomeStatementVM | null>(null);
   const [internalDate, setInternalDate] = useState<Date>(new Date());
   const { loading, error, run } = useLoadingTask();
+  const auth = useAuthContext();
 
   const currentDate = controlledDate || internalDate;
 
@@ -28,10 +31,15 @@ export function useIncomeStatement(
       reportMode === 'YEARLY' ? format(currentDate, 'yyyy') : format(currentDate, 'yyyy-MM');
 
     await run(async () => {
-      const result = await reportService.getStoredIncomeStatement(householdId, yearMonth);
-      setData(result ? mapIncomeStatementToVM(result) : null);
+      const result = await getStoredReportUseCase.execute({
+        householdId,
+        yearMonth,
+        kind: 'incomeStatement',
+        auth,
+      });
+      setData(result ? mapIncomeStatementToVM(result as IncomeStatementData) : null);
     });
-  }, [householdId, currentDate, run, reportMode]);
+  }, [householdId, currentDate, run, reportMode, auth]);
 
   useEffect(() => {
     load();

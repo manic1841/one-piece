@@ -1,9 +1,13 @@
 import {
+  type QueryConstraint,
   type Transaction as FirestoreTransaction,
   collection,
   doc,
+  documentId,
   limit,
   orderBy,
+  serverTimestamp,
+  updateDoc,
   where,
 } from 'firebase/firestore';
 
@@ -47,6 +51,10 @@ class TransactionRepository extends BaseRepository<Transaction, [string, string?
 
   protected getDomainSchema() {
     return TransactionSchema;
+  }
+
+  generateId(householdId: string): string {
+    return doc(this.getCollectionRef(householdId)).id;
   }
 
   // Override create to auto-extract ledgerCodes and accountIds
@@ -112,11 +120,17 @@ class TransactionRepository extends BaseRepository<Transaction, [string, string?
     householdId: string,
     startDate: Date,
     endDate: Date,
+    maxLimit?: number,
   ): Promise<Transaction[]> {
-    return this.list(
-      [householdId],
-      [where('date', '>=', startDate), where('date', '<', endDate), orderBy('date', 'desc')],
-    );
+    const constraints: QueryConstraint[] = [
+      where('date', '>=', startDate),
+      where('date', '<', endDate),
+      orderBy('date', 'desc'),
+    ];
+    if (maxLimit !== undefined) {
+      constraints.push(limit(maxLimit));
+    }
+    return this.list([householdId], constraints);
   }
 
   async updateAllocationId(
@@ -126,11 +140,41 @@ class TransactionRepository extends BaseRepository<Transaction, [string, string?
     userEmail: string,
     tx?: FirestoreTransaction,
   ): Promise<void> {
-    await this.update([householdId, transactionId], { allocationId }, userEmail, tx);
+    const docRef = this.getDocRef(householdId, transactionId);
+    const payload = {
+      allocationId,
+      updatedBy: userEmail,
+      updatedAt: serverTimestamp(),
+    };
+
+    if (tx) {
+      tx.update(docRef, payload);
+    } else {
+      await updateDoc(docRef, payload);
+    }
   }
 
   async getById(householdId: string, transactionId: string): Promise<Transaction | null> {
     return this.get([householdId, transactionId]);
+  }
+
+  /**
+   * Batched document-ID read. Firestore `in` supports max 30 values per query,
+   * so IDs are chunked accordingly. Returns all found transactions in any order.
+   */
+  async getByIds(householdId: string, transactionIds: string[]): Promise<Transaction[]> {
+    if (transactionIds.length === 0) return [];
+
+    const FIRESTORE_IN_LIMIT = 30;
+    const results: Transaction[] = [];
+
+    for (let i = 0; i < transactionIds.length; i += FIRESTORE_IN_LIMIT) {
+      const chunk = transactionIds.slice(i, i + FIRESTORE_IN_LIMIT);
+      const found = await this.list([householdId], [where(documentId(), 'in', chunk)]);
+      results.push(...found);
+    }
+
+    return results;
   }
 
   async getProjectTransfers(householdId: string, yearMonth: string): Promise<Transaction[]> {
@@ -153,13 +197,23 @@ class TransactionRepository extends BaseRepository<Transaction, [string, string?
     householdId: string,
     projectId: string,
     yearMonth?: string,
+    sinceDate?: Date,
   ): Promise<Transaction[]> {
     const buildDateRangeConstraints = () => {
-      if (!yearMonth) return [];
-      const [year, month] = yearMonth.split('-').map(Number);
-      const startDate = new Date(year, month - 1, 1);
-      const endDate = new Date(year, month, 1);
-      return [where('date', '>=', startDate), where('date', '<', endDate), orderBy('date', 'desc')];
+      const constraints: QueryConstraint[] = [];
+      if (sinceDate) {
+        constraints.push(where('date', '>=', sinceDate));
+      }
+      if (yearMonth) {
+        const [year, month] = yearMonth.split('-').map(Number);
+        const startDate = new Date(year, month - 1, 1);
+        const endDate = new Date(year, month, 1);
+        constraints.push(where('date', '>=', startDate), where('date', '<', endDate));
+      }
+      if (constraints.length > 0) {
+        constraints.push(orderBy('date', 'desc'));
+      }
+      return constraints;
     };
 
     // Firestore doesn't support OR queries; run two queries and merge
@@ -234,6 +288,18 @@ class TransactionRepository extends BaseRepository<Transaction, [string, string?
     );
   }
 
+  async hasDebtPaymentForAccount(householdId: string, debtAccountId: string): Promise<boolean> {
+    const transactions = await this.list(
+      [householdId],
+      [
+        where('debtAccountId', '==', debtAccountId),
+        where('intentType', '==', IntentType.DEBT_PAYMENT),
+        limit(1),
+      ],
+    );
+    return transactions.length > 0;
+  }
+
   async findBorrowTransactionsForDebtAccount(
     householdId: string,
     debtAccount: DebtAccount,
@@ -269,8 +335,17 @@ class TransactionRepository extends BaseRepository<Transaction, [string, string?
     });
   }
 
-  async listByProject(householdId: string, projectId: string): Promise<Transaction[]> {
-    return this.list([householdId], [where('projectId', '==', projectId), orderBy('date', 'desc')]);
+  async listByProject(
+    householdId: string,
+    projectId: string,
+    sinceDate?: Date,
+  ): Promise<Transaction[]> {
+    const constraints: QueryConstraint[] = [where('projectId', '==', projectId)];
+    if (sinceDate) {
+      constraints.push(where('date', '>=', sinceDate));
+    }
+    constraints.push(orderBy('date', 'desc'));
+    return this.list([householdId], constraints);
   }
 }
 

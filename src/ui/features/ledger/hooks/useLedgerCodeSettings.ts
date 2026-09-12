@@ -6,20 +6,14 @@ import { updateCustomLedgerCodeUseCase } from '@/application/ledger/use_cases/up
 import { type LedgerType } from '@/domains/ledger/schemas';
 import { useAuth } from '@/infra/contexts/useAuth';
 import { type LedgerCodeItem, useLedgerCodes } from '@/ui/features/ledger/hooks/useLedgerCodes';
+import { useAuthContext } from '@/ui/hooks/useAuthContext';
 export { type LedgerCodeItem };
 
 export function useLedgerCodeSettings() {
-  const { userProfile, currentUser, isAdmin } = useAuth();
+  const { userProfile, currentUser } = useAuth();
   const householdId = userProfile?.householdId;
   const userEmail = currentUser?.email;
-  const auth = useMemo(
-    () => ({
-      uid: currentUser?.uid ?? '',
-      email: currentUser?.email ?? '',
-      isGlobalAdmin: isAdmin,
-    }),
-    [currentUser, isAdmin],
-  );
+  const auth = useAuthContext();
 
   const { codes, loading, refresh } = useLedgerCodes(true);
   const [newLabel, setNewLabel] = useState('');

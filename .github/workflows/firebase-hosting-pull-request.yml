@@ -4,31 +4,112 @@
 name: Deploy to Firebase Hosting on PR
 on:
   workflow_run:
-    workflows: ['Unit Tests']
+    # 'Unit Tests' is the pre-rename name of test.yml, still running on main and
+    # develop. Transitional; drop the entry once every branch runs the 'CI' name.
+    workflows: ['CI', 'Unit Tests']
     types:
       - completed
+# The action only posts a PR comment or a check run when the event payload
+# carries pull_request, which workflow_run never does; it needs no write scope
+# and no repoToken. The preview URL goes to the job summary instead.
 permissions:
-  checks: write
   contents: read
-  pull-requests: write
 jobs:
   build_and_preview:
     name: Build and Deploy to Firebase Hosting Preview Channel
     if: >
       github.event.workflow_run.conclusion == 'success' &&
-      github.event.workflow_run.head_branch == 'develop'
+      (
+        github.event.workflow_run.event == 'pull_request' ||
+        (github.event.workflow_run.event == 'push' &&
+          github.event.workflow_run.head_branch == 'develop')
+      )
     runs-on: ubuntu-latest
     steps:
-      - run: echo "Branch ${{ github.event.workflow_run.head_branch }}"
-      - uses: actions/checkout@v5
+      # An empty ref makes actions/checkout silently fall back to the default
+      # branch, which would deploy main's code into a PR preview channel.
+      - name: Assert the tested commit is known
+        env:
+          TESTED_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          if [ -z "$TESTED_SHA" ]; then
+            echo "::error::workflow_run.head_sha is empty; refusing to deploy the default branch"
+            exit 1
+          fi
+      # Under workflow_run the action cannot derive a channel id: its fallback
+      # reads context.payload.pull_request, which that payload never has, and an
+      # empty id makes `hosting:channel:deploy ""` fail with HTTP 400.
+      - name: Derive preview channel id
+        id: channel
+        env:
+          EVENT: ${{ github.event.workflow_run.event }}
+          HEAD_BRANCH: ${{ github.event.workflow_run.head_branch }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+          PULL_REQUESTS: ${{ toJSON(github.event.workflow_run.pull_requests) }}
+        run: |
+          set -eu
+          if [ "$EVENT" = "push" ]; then
+            printf 'channel_id=develop\nexpires=30d\n' >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          # Indexing pull_requests[0] directly raises when the array is empty,
+          # so the array is passed as JSON and parsed here instead.
+          PR_NUMBER=$(node -e '
+            const list = JSON.parse(process.env.PULL_REQUESTS || "[]");
+            const n = Array.isArray(list) && list[0] ? list[0].number : "";
+            process.stdout.write(String(n ?? ""));
+          ')
+          # Channel ids accept letters, digits, '_', '-' and '.' only.
+          slug=$(printf '%s' "$HEAD_BRANCH" | tr '[:upper:]' '[:lower:]' | tr -c 'a-z0-9_.-' '_' | cut -c1-20 | sed 's/[-_.]*$//')
+          if [ -z "$slug" ]; then
+            # Branch name has no ASCII characters; fall back rather than fail the deploy.
+            slug="sha-$(printf '%s' "$HEAD_SHA" | cut -c1-8)"
+          fi
+          if [ -n "$PR_NUMBER" ]; then
+            printf 'channel_id=pr%s-%s\nexpires=7d\n' "$PR_NUMBER" "$slug" >> "$GITHUB_OUTPUT"
+          else
+            # workflow_run only fills pull_requests for PRs based on the default
+            # branch, so a PR into develop lands here and loses its PR number.
+            echo "::warning::no pull request number in workflow_run payload; channel will not be linked to a PR"
+            printf 'channel_id=pr-%s\nexpires=7d\n' "$slug" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Checkout tested commit
+        uses: actions/checkout@v5
         with:
           ref: ${{ github.event.workflow_run.head_sha }}
-      - uses: pnpm/action-setup@v4
+      # No `version` input: packageManager in package.json is the single source of
+      # truth. Passing both fails with "Multiple versions of pnpm specified".
+      - uses: pnpm/action-setup@v5
+      - uses: actions/setup-node@v5
         with:
-          version: 10
+          node-version-file: .nvmrc
+          cache: pnpm
       - run: pnpm install --frozen-lockfile && pnpm run build
-      - uses: FirebaseExtended/action-hosting-deploy@v0
+      - name: Deploy preview channel
+        id: deploy
+        uses: FirebaseExtended/action-hosting-deploy@v0
         with:
-          repoToken: ${{ secrets.GITHUB_TOKEN }}
           firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_ONE_PIECE_4E822 }}
+          channelId: ${{ steps.channel.outputs.channel_id }}
+          expires: ${{ steps.channel.outputs.expires }}
           projectId: one-piece-4e822
+      # Replaces the action's PR comment, which never fires under workflow_run.
+      - name: Publish preview URL
+        env:
+          CHANNEL_ID: ${{ steps.channel.outputs.channel_id }}
+          PREVIEW_URL: ${{ steps.deploy.outputs.details_url }}
+          EXPIRES: ${{ steps.channel.outputs.expires }}
+          HEAD_BRANCH: ${{ github.event.workflow_run.head_branch }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          {
+            echo "## Firebase preview channel"
+            echo ""
+            echo "| Channel | URL | Expires | Source |"
+            echo "| --- | --- | --- | --- |"
+            echo "| \`$CHANNEL_ID\` | [$PREVIEW_URL]($PREVIEW_URL) | $EXPIRES | \`$HEAD_BRANCH\` @ \`${HEAD_SHA:0:7}\` |"
+            echo ""
+            echo "Preview URLs hit the **production** Firestore/Auth backend and are"
+            echo "public to anyone who knows the URL. Visual checks only -- do not"
+            echo "enter real data. See docs/adr/0047-preview-channel-shares-production-backend.md."
+          } >> "$GITHUB_STEP_SUMMARY"

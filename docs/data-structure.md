@@ -1,5 +1,7 @@
 # One-Piece Data Structure
 
+本文是 Firestore 集合與欄位的結構參考，不重新定義欄位背後的架構取捨或業務政策。相關決策以 `docs/adr/` 為唯一來源；若欄位清單與 ADR 不一致，應以 ADR 修正本文件。
+
 ## Firestore Collection Structure
 
 ```
@@ -19,10 +21,9 @@ firestore
        ├─ name: string
       ├─ memberUids: string[]        # 成員 uid 索引（供 array-contains 查詢）
        ├─ createdAt: Timestamp
-       └─ members: array
-       │    ├─ uid: string
-       │    ├─ name: string
-       │    └─ role: "owner" | "admin" | "member" | "guest"
+       └─ members: map<uid, { role, joinedAt }>
+            ├─ role: "owner" | "admin" | "member" | "guest"
+            └─ joinedAt: Timestamp
 
        ├─ projects/{projectId}       # 專案帳戶 (Management Accounting)
        │    ├─ name: string
@@ -73,29 +74,44 @@ firestore
        │         ├─ holdings: array
        │         └─ totalValue: number
 
-       ├─ retirement_plans/{planId}      # 退休規劃
-       │    ├─ name: string
+      ├─ retirement_plans/{planId}      # 退休規劃
+      │    ├─ name: string
       │    ├─ isActive: boolean          # 同一 household 僅允許一筆 active=true
-       │    ├─ events: array
-       │    ├─ settings: object
-       │    │
-       │    ├─ incomeStreams/{incomeStreamId}   # 由交易分錄推導的收入流
+      │    ├─ events: array
+      │    ├─ settings: object
+      │    │
+      │    ├─ incomeStreams/{incomeStreamId}   # 由交易分錄推導的收入流
       │         ├─ name: string
       │         ├─ importedFrom: "manual" | "transactionEntries"
       │         ├─ incomeCategory: string       # e.g. "income:salary:charles"
+      │         ├─ type: "salary" | "bonus" | "pension" | "rent" | "other"
+      │         ├─ incomeCalculationMode: "FIXED" | "IMPORTED" | "DERIVED"
+      │         │
+      │         │  # --- 年份連動設定 ---
+      │         ├─ startYearMode: "MANUAL" | "LINKED_TO_RETIREMENT"
+      │         ├─ endYearMode: "MANUAL" | "LINKED_TO_RETIREMENT"
+      │         ├─ lifelong: boolean                 # true = 忽略 endYear，計算至模型終止年（pension 用）
+      │         │
+      │         │  # --- 金額設定 ---
+      │         ├─ baseAmount: number                # 年化金額
+      │         ├─ growthRate: number                # 年成長率（%），pension 通常設 0 或通膨率
+      │         ├─ startYear: number                 # startYearMode=MANUAL 時有效
+      │         ├─ endYear?: number                  # endYearMode=MANUAL 且 lifelong=false 時有效
+      │         │
+      │         │  # --- DERIVED 模式專用 ---
+      │         ├─ derivedFrom?: object              # incomeCalculationMode=DERIVED 時必填
+      │         │    ├─ baseIncomeId: string         # 參考的基礎收入 id
+      │         │    └─ multiplier: number           # 倍數，e.g. 1.67 代表 2 個月獎金
+      │         │
+      │         │
       │         ├─ calculatedFrom: object
       │         │    ├─ ledgerCode: string      # e.g. "income:salary:charles"
-      │         │    ├─ startDate: string       # YYYY-MM-DD
-      │         │    ├─ endDate: string         # YYYY-MM-DD
+      │         │    ├─ sampleYear: number      # 表示資料來自哪個年度
       │         │    ├─ totalAmount: number
       │         │    ├─ monthlyAverage: number
       │         │    ├─ sampleCount: number
       │         │    └─ importedAt: string      # ISO datetime
-      │         ├─ type: "salary" | "bonus" | "pension" | "rent" | "other"
-      │         ├─ baseAmount: number           # annualized amount
-      │         ├─ growthRate: number
-      │         ├─ startYear: number
-      │         ├─ endYear: number
+      │         ├─ autoUpdate: boolean           # true = 允許系統偵測 sampleYear 過期並提示更新
       │         └─ note?: string       │
        │    └─ expenseCategories/{expenseCategoryId}  # 退休支出類別（含債務匯入）
        │         ├─ name: string
@@ -119,7 +135,7 @@ firestore
        │         │    ├─ sampleCount?: number
        │         │    └─ importedAt?: string
        │         └─ note?: string
-       ├─ allocations/{allocationId}     # 專案資金分配
+      ├─ allocations/{allocationId}     # 專案資金分配；新建資料的 ID = sourceTransactionId；legacy random ID 以 sourceTransactionId fallback 並在取代時 lazy normalize
        │    ├─ sourceTransactionId: string
        │    ├─ direction: "INCOME" | "EXPENSE"
        │    ├─ yearMonth: string         # YYYY-MM
@@ -156,6 +172,18 @@ firestore
        │    ├─ createdAt: Timestamp
        │    ├─ ledgerCodes: string[]      # 索引最佳化 (用於報表查詢)
 
+      ├─ operations/{operationRecordId}  # household-scoped command retry record；operation type + key 穩定映射
+      │    ├─ operationType: string
+      │    ├─ idempotencyKey: string
+      │    ├─ fingerprintVersion: number
+      │    ├─ payloadFingerprint: string
+      │    ├─ status: "IN_PROGRESS" | "SUCCEEDED" | "FAILED"
+      │    ├─ resultReference: object | null
+      │    ├─ createdAt: Timestamp
+      │    ├─ updatedAt: Timestamp
+      │    ├─ completedAt?: Timestamp | null
+      │    └─ createdByUid: string
+
        ├─ reports/{reportId}             # 財務報表快照
             ├─ year: number
             ├─ month: number
@@ -185,35 +213,20 @@ firestore
             ├─ linkedProjectId?: string | null
             ├─ note?: string
             ├─ isActive: boolean        # false = 已結清/停用
-            └─ closedAt?: Timestamp | null # 結清日期，isActive=false 時寫入
+            ├─ closedAt?: Timestamp | null # 結清日期，isActive=false 時寫入
+            └─ snapshots/{yearMonth}     # 每月 DEBT_PAYMENT 累計快照，ID = YYYY-MM
 ```
 
-## 設計注意事項
+## ADR 索引
 
-### 1. **Management vs Financial Accounting**
+下表只列出影響本資料結構的決策；欄位清單仍保留在上方，決策理由與約束請直接閱讀對應 ADR。
 
-- **Management Accounting (專案)**: 用於預算管理、目標追蹤（`projects/`）。
-- **Financial Accounting (複式簿記)**: 記帳邏輯以 `transactions` 中的 `entries` 為主。
-- **Ledger Codes**: 會計科目不再是獨立的文檔集合，而是具備層級關係的字串標記（如 `asset:cash:bank_a`）。
-
-### 2. **Source Document Pattern**
-
-- `transactions` 集合儲存使用者的原始輸入（意圖）以及產生的會計分錄（entries）。
-
-### 3. **Asset & Valuation**
-
-- **資產主要依據 `accounts/snapshots` 取得**: 實體帳戶的金額與持倉即為資產最準確的來源。
-- **移除舊有無效集合**: 移除 `asset` (資產)、`market_price` (市場價格)、`bankstatement` (對帳單) 以及獨立的 `journalentry`。
-
-### 4. **Retirement Planning**
-
-- 退休規劃資料獨立存儲於 `retirement_plans`。
-- 收入流 (`incomeStreams`) 來源以 `transactions.entries` 中 `ledgerCode` 前綴為 `income:` 的分錄為準。
-- 收入匯入流程固定採最近 12 個月交易資料，依 `ledgerCode` 分組、加總並年化。
-- 當 `retirement_plans.autoUpdate = true` 且收入來源為 `IMPORTED` 時，系統會在打開退休規劃頁時檢查 `calculatedFrom.startDate/endDate`；若目前日期已跨過樣本窗結束日，會將樣本窗平移到最新完整窗口並重新計算 `baseAmount`、`totalAmount`、`monthlyAverage`。
-- 債務還款匯入來源為 active `debtAccounts` 搭配最近 12 個月 `snapshots`；產物寫入 `expenseCategories`。
-- `debt_payment` 支出可標註是否包含本金 (`includesPrincipal`) 或僅計利息 (`interestOnly`)。
-- `events` 支援分段設定 `phases[]`（每段可使用 `FIXED` 或 `SALARY_PERCENTAGE`），可用於教育、醫療等人生階段型支出/收入。
-- 舊版單次事件欄位（`year`/`amount`）仍可讀取，系統會視為單段 `FIXED` phase 以維持相容性。
-- 複製 retirement plan 會建立一筆完整副本（含 incomes / expenses / events / assumptions），並預設 `isActive=false`。
-- 當任一 plan 被建立或更新為 `isActive=true` 時，系統會自動將同一 household 其他 plans 的 `isActive` 設為 `false`。
+| 資料或規則                                | 權威決策                                                                                                                                                                                                                                                                                           |
+| ----------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Transaction、entries 與 IntentType        | [ADR-0005](adr/0005-journal-entry-architecture.md)、[ADR-0010](adr/0010-intenttype-three-tier.md)                                                                                                                                                                                                  |
+| Project、Account、LedgerCode 的責任與命名 | [ADR-0006](adr/0006-project-legercode-separation.md)、[ADR-0007](adr/0007-account-ledgercode-naming-distinction.md)、[ADR-0008](adr/0008-asset-cash-no-bank-distinction.md)、[ADR-0009](adr/0009-user-defined-ledgercode.md)、[ADR-0021](adr/0021-subcategory-not-snapshot-for-property-income.md) |
+| Allocation 與 ProjectSnapshot             | [ADR-0011](adr/0011-allocation-separate-collection.md)、[ADR-0012](adr/0012-project-snapshot-cache.md)、[ADR-0013](adr/0013-negative-project-balance-allowed.md)                                                                                                                                   |
+| DebtAccount、還款與寬限期                 | [ADR-0014](adr/0014-debt-payment-intenttype.md)、[ADR-0015](adr/0015-debt-account-balance-derived.md)、[ADR-0016](adr/0016-debt-account-creation-liability-borrow-sync.md)、[ADR-0017](adr/0017-grace-period-derived-not-stored.md)、[ADR-0038](adr/0038-command-atomicity-and-retry-policy.md) |
+| Command 原子性、重試與 operation record    | [ADR-0038](adr/0038-command-atomicity-and-retry-policy.md)                                                                                                                                                                                                                                      |
+| 財務報表與快照                            | [ADR-0018](adr/0018-manual-financial-report-generation.md)、[ADR-0019](adr/0019-balance-sheet-hybrid-equity-derived.md)、[ADR-0020](adr/0020-cash-flow-ending-vs-actual-balance.md)                                                                                                                |
+| RetirementPlan 與收入/支出/事件子集合     | [ADR-0023](adr/0023-retirement-income-from-entries-only.md) 至 [ADR-0040](adr/0040-retirement-plan-atomic-writes.md)                                                                                                                                                                               |

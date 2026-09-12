@@ -15,7 +15,6 @@ import {
   type FinancingFormState,
   type IncomeFormState,
   type InvestmentFormState,
-  type ProjectTransferFormState,
   type TransactionFormCategoryOption,
   type TransactionFormOutput,
   type TransactionFormProjectOption,
@@ -60,13 +59,6 @@ const createFinancingState = (): FinancingFormState => ({
   projectId: null,
   intent: null,
   ledgerCode: null,
-  description: '',
-});
-
-const createProjectTransferState = (): ProjectTransferFormState => ({
-  amount: '',
-  fromProjectId: null,
-  toProjectId: null,
   description: '',
 });
 
@@ -140,13 +132,6 @@ const toFinancingState = (output: TransactionFormOutput): FinancingFormState => 
   description: output.description ?? '',
 });
 
-const toProjectTransferState = (output: TransactionFormOutput): ProjectTransferFormState => ({
-  amount: output.amount.toString(),
-  fromProjectId: output.fromProjectId ?? null,
-  toProjectId: output.toProjectId ?? null,
-  description: output.description ?? '',
-});
-
 const toDebtPaymentState = (output: TransactionFormOutput): DebtPaymentFormState => ({
   debtAccountId: output.debtAccountId ?? null,
   date: output.date,
@@ -158,7 +143,7 @@ const toDebtPaymentState = (output: TransactionFormOutput): DebtPaymentFormState
 const toAdvancedState = (output: TransactionFormOutput): AdvancedFormState => ({
   amount: output.amount.toString(),
   date: output.date,
-  intentType: output.intentType === 'TRANSFER' ? 'TRANSFER' : 'MANUAL',
+  intentType: 'MANUAL',
   projectId: output.projectId ?? null,
   intent: output.intent ?? null,
   ledgerCode: output.ledgerCode ?? null,
@@ -195,9 +180,6 @@ export const useTransactionFormState = ({
   const [income, setIncome] = useState<IncomeFormState>(createIncomeState);
   const [investment, setInvestment] = useState<InvestmentFormState>(createInvestmentState);
   const [financing, setFinancing] = useState<FinancingFormState>(createFinancingState);
-  const [projectTransfer, setProjectTransfer] = useState<ProjectTransferFormState>(
-    createProjectTransferState,
-  );
   const [advanced, setAdvanced] = useState<AdvancedFormState>(createAdvancedState);
   const [debtPayment, setDebtPayment] = useState<DebtPaymentFormState>(createDebtPaymentState);
 
@@ -207,7 +189,6 @@ export const useTransactionFormState = ({
     setIncome(createIncomeState());
     setInvestment(createInvestmentState());
     setFinancing(createFinancingState());
-    setProjectTransfer(createProjectTransferState());
     setAdvanced(createAdvancedState());
     setDebtPayment(createDebtPaymentState());
   };
@@ -233,11 +214,6 @@ export const useTransactionFormState = ({
 
     if (tab === 'FINANCING') {
       setFinancing(toFinancingState(output));
-      return;
-    }
-
-    if (tab === 'TRANSFER') {
-      setProjectTransfer(toProjectTransferState(output));
       return;
     }
 
@@ -316,22 +292,11 @@ export const useTransactionFormState = ({
         income,
         investment,
         financing,
-        projectTransfer,
         advanced,
         debtPayment,
         debtAccounts,
       }),
-    [
-      activeTab,
-      advanced,
-      expense,
-      financing,
-      income,
-      investment,
-      projectTransfer,
-      debtPayment,
-      debtAccounts,
-    ],
+    [activeTab, advanced, expense, financing, income, investment, debtPayment, debtAccounts],
   );
 
   const previewDetails = useMemo(
@@ -363,7 +328,6 @@ export const useTransactionFormState = ({
       income,
       investment,
       financing,
-      projectTransfer,
       advanced,
       debtPayment,
     },
@@ -373,7 +337,6 @@ export const useTransactionFormState = ({
       setIncome,
       setInvestment,
       setFinancing,
-      setProjectTransfer,
       setAdvanced,
       setDebtPayment,
     },

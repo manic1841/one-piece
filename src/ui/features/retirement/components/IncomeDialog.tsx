@@ -61,6 +61,14 @@ export default function IncomeDialog({
     setStartYear,
     endYear,
     setEndYear,
+    startYearMode,
+    setStartYearMode,
+    endYearMode,
+    setEndYearMode,
+    lifelong,
+    setLifelong,
+    autoUpdate,
+    setAutoUpdate,
     incomeCalculationMode,
     setIncomeCalculationMode,
     baseIncomeId,
@@ -69,10 +77,8 @@ export default function IncomeDialog({
     setMultiplier,
     ledgerCode,
     setLedgerCode,
-    sampleStartDate,
-    setSampleStartDate,
-    sampleEndDate,
-    setSampleEndDate,
+    sampleYear,
+    setSampleYear,
     submitError,
     handleSubmit,
     handleCalculateImported,
@@ -142,10 +148,10 @@ export default function IncomeDialog({
             <ImportedModeSection
               ledgerCode={ledgerCode}
               setLedgerCode={setLedgerCode}
-              sampleStartDate={sampleStartDate}
-              setSampleStartDate={setSampleStartDate}
-              sampleEndDate={sampleEndDate}
-              setSampleEndDate={setSampleEndDate}
+              sampleYear={sampleYear}
+              setSampleYear={setSampleYear}
+              autoUpdate={autoUpdate}
+              setAutoUpdate={setAutoUpdate}
               amount={amount}
               type={type}
               setType={setType}
@@ -170,12 +176,19 @@ export default function IncomeDialog({
 
           {/* Shared fields */}
           <IncomeFormSharedFields
+            type={type}
             growthRate={growthRate}
             setGrowthRate={setGrowthRate}
             startYear={startYear}
             setStartYear={setStartYear}
+            startYearMode={startYearMode}
+            setStartYearMode={setStartYearMode}
             endYear={endYear}
             setEndYear={setEndYear}
+            endYearMode={endYearMode}
+            setEndYearMode={setEndYearMode}
+            lifelong={lifelong}
+            setLifelong={setLifelong}
           />
 
           {submitError && <p className="text-sm text-destructive">{submitError}</p>}

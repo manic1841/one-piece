@@ -1,4 +1,3 @@
-import { DEFAULT_INTENT_MAPPINGS } from '@/domains/ledger/intentMapping';
 import { getLedgerLabel } from '@/ui/constants/report/ledgerCodeLabels';
 
 const INTENT_TYPE_LABELS: Record<string, string> = {
@@ -12,15 +11,47 @@ const INTENT_TYPE_LABELS: Record<string, string> = {
   MANUAL: '手動分錄',
 };
 
-const INTENT_LABEL_OVERRIDES: Record<string, string> = {
-  SALARY: '薪資',
-  INVESTMENT_INCOME: '投資收益',
-};
+const INTENT_LABELS: Record<string, string> = {
+  // Expenses
+  FOOD: '餐飲',
+  TRANSPORTATION: '交通',
+  VEHICLE: '汽車',
+  SHOPPING: '購物',
+  ENTERTAINMENT: '娛樂',
+  LIVING: '生活費',
+  FAMILY: '家庭',
+  HEALTHCARE: '醫療',
+  EDUCATION: '教育',
+  SOCIAL: '社交',
+  HOUSING: '家居',
+  RENT: '房租',
+  MORTGAGE_INTEREST: '房貸利息',
+  INSURANCE: '保險',
+  TAX: '稅金',
+  OTHER_EXPENSE: '其他支出',
 
-const INTENT_LABELS = DEFAULT_INTENT_MAPPINGS.reduce<Record<string, string>>((acc, item) => {
-  acc[item.intent] = INTENT_LABEL_OVERRIDES[item.intent] ?? item.label;
-  return acc;
-}, {});
+  // Incomes
+  SALARY: '薪資',
+  BONUS: '獎金',
+  INVESTMENT_INCOME: '投資收益',
+  REFUND_AS_INCOME: '退款回補',
+  OTHER_INCOME: '其他收入',
+
+  // Transfers
+  TRANSFER_GENERIC: '轉帳',
+
+  // Investment
+  SECURITY_BUY: '買入證券',
+  SECURITY_SELL: '賣出證券',
+  REAL_ESTATE_BUY: '買入不動產',
+  REAL_ESTATE_SELL: '賣出不動產',
+
+  // Financing
+  LOAN_BORROW: '借貸入帳',
+  LOAN_REPAYMENT: '借貸還款',
+  SHAREHOLDER_FINANCING: '股東融資',
+  DIVIDEND_PAYOUT: '發放分紅',
+};
 
 const LEDGER_LABEL_OVERRIDES: Record<string, string> = {
   'income:salary': '薪資',

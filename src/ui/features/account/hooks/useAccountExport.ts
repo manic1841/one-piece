@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from 'react';
+import { useCallback } from 'react';
 
 import { getAccountSnapshotsUseCase } from '@/application/account/use_cases/getAccountSnapshotsUseCase';
 import { type AccountSnapshotCreate } from '@/domains/account/types';
@@ -6,6 +6,7 @@ import { useAuth } from '@/infra/contexts/useAuth';
 
 import { useAccountCmds } from './useAccountCmds';
 import { useAccounts } from './useAccounts';
+import { useAuthContext } from '@/ui/hooks/useAuthContext';
 
 interface ExportData {
   date: string;
@@ -17,12 +18,9 @@ interface ExportData {
 }
 
 export function useAccountExport() {
-  const { userProfile, isAdmin, currentUser } = useAuth();
+  const auth = useAuthContext();
+  const { userProfile } = useAuth();
   const householdId = userProfile?.householdId || '';
-  const auth = useMemo(
-    () => ({ uid: currentUser?.uid || '', isGlobalAdmin: isAdmin }),
-    [currentUser, isAdmin],
-  );
 
   const { fetchAccountsWithSnapshots } = useAccounts();
   const { recordSnapshot } = useAccountCmds(householdId);

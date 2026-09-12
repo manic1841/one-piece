@@ -1,6 +1,4 @@
-import { useCallback, useMemo } from 'react';
-
-import { type Transaction } from 'firebase/firestore';
+import { useCallback } from 'react';
 
 import { createProjectUseCase } from '@/application/project/use_cases/createProjectUseCase';
 import { deleteProjectSnapshotUseCase } from '@/application/project/use_cases/deleteProjectSnapshotUseCase';
@@ -15,7 +13,7 @@ import {
   type ProjectSnapshot,
   type ProjectSnapshotCreate,
 } from '@/domains/project/schemas';
-import { useAuth } from '@/infra/contexts/useAuth';
+import { useAuthContext } from '@/ui/hooks/useAuthContext';
 import { useLoadingTask } from '@/ui/hooks/useLoadingTask';
 
 export interface DeleteProjectSnapshotRequest {
@@ -25,15 +23,7 @@ export interface DeleteProjectSnapshotRequest {
 }
 
 export function useProjectCmds(householdId: string) {
-  const { currentUser, isAdmin } = useAuth();
-  const auth = useMemo(
-    () => ({
-      uid: currentUser?.uid || '',
-      email: currentUser?.email || '',
-      isGlobalAdmin: isAdmin,
-    }),
-    [currentUser, isAdmin],
-  );
+  const auth = useAuthContext();
 
   const { loading, error, run } = useLoadingTask();
 
@@ -44,7 +34,7 @@ export function useProjectCmds(householdId: string) {
           householdId,
           data,
           userEmail: auth.email || '',
-          auth: { uid: auth.uid, isGlobalAdmin: auth.isGlobalAdmin },
+          auth,
         });
       });
     },
@@ -59,7 +49,7 @@ export function useProjectCmds(householdId: string) {
           projectId,
           updates,
           userEmail: auth.email || '',
-          auth: { uid: auth.uid, isGlobalAdmin: auth.isGlobalAdmin },
+          auth,
         });
       });
     },
@@ -67,15 +57,14 @@ export function useProjectCmds(householdId: string) {
   );
 
   const recordSnapshot = useCallback(
-    async (projectId: string, data: ProjectSnapshotCreate, tx?: Transaction) => {
+    async (projectId: string, data: ProjectSnapshotCreate) => {
       return run(async () => {
         return recordProjectSnapshotUseCase.execute({
           householdId,
           projectId,
           data,
           userEmail: auth.email || '',
-          auth: { uid: auth.uid, isGlobalAdmin: auth.isGlobalAdmin },
-          tx,
+          auth,
         });
       });
     },
@@ -87,7 +76,6 @@ export function useProjectCmds(householdId: string) {
       projectId: string,
       snapshotId: string,
       updates: Partial<ProjectSnapshot>,
-      tx?: Transaction,
     ) => {
       return run(async () => {
         return updateProjectSnapshotUseCase.execute({
@@ -96,8 +84,7 @@ export function useProjectCmds(householdId: string) {
           snapshotId,
           updates,
           userEmail: auth.email || '',
-          auth: { uid: auth.uid, isGlobalAdmin: auth.isGlobalAdmin },
-          tx,
+          auth,
         });
       });
     },
@@ -110,7 +97,7 @@ export function useProjectCmds(householdId: string) {
         return deleteProjectUseCase.execute({
           householdId,
           projectId,
-          auth: { uid: auth.uid, isGlobalAdmin: auth.isGlobalAdmin },
+          auth,
         });
       });
     },
@@ -124,7 +111,7 @@ export function useProjectCmds(householdId: string) {
           householdId,
           projectOrders,
           userEmail: auth.email || '',
-          auth: { uid: auth.uid, isGlobalAdmin: auth.isGlobalAdmin },
+          auth,
         });
         return true;
       });
@@ -139,7 +126,7 @@ export function useProjectCmds(householdId: string) {
           householdId,
           projectId: _projectId,
           snapshotId,
-          auth: { uid: auth.uid, isGlobalAdmin: auth.isGlobalAdmin },
+          auth,
         });
       });
     },

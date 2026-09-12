@@ -1,0 +1,110 @@
+import { householdPermissionService } from '@/application/household/householdPermissionService';
+import { type AuthContext } from '@/application/types';
+import {
+  type BalanceSheetData,
+  type CashFlowData,
+  type IncomeStatementData,
+  ReportType,
+} from '@/domains/report/schemas';
+import { type ReportLabelResolver } from '@/domains/report/reportCalculations';
+import { reportRepository } from '@/infra/repositories/reportRepository';
+
+import { type SettlementReadiness, getSettlementReadinessUseCase } from './getSettlementReadinessUseCase';
+import {
+  type PreviewFinancialReportsResult,
+  previewFinancialReportsWorkflow,
+} from './previewFinancialReportsWorkflow';
+
+export interface GenerateFinancialReportsRequest {
+  householdId: string;
+  auth: AuthContext;
+  year: number;
+  month: number;
+  labelResolver?: ReportLabelResolver;
+}
+
+export interface GenerateFinancialReportsResult {
+  incomeStatement: IncomeStatementData;
+  balanceSheet: BalanceSheetData;
+  cashFlow: CashFlowData;
+  timestamp: Date;
+}
+
+export class SettlementNotReadyError extends Error {
+  readonly readiness: SettlementReadiness;
+
+  constructor(readiness: SettlementReadiness) {
+    super(`Settlement not ready: ${readiness.totalUnsettled} unsettled entities`);
+    this.name = 'SettlementNotReadyError';
+    this.readiness = readiness;
+  }
+}
+
+export class GenerateFinancialReportsUseCase {
+  async execute(
+    request: GenerateFinancialReportsRequest,
+  ): Promise<GenerateFinancialReportsResult> {
+    const { householdId, auth, year, month, labelResolver } = request;
+
+    await householdPermissionService.assertWritePermission(
+      householdId,
+      auth.uid,
+      auth.isGlobalAdmin,
+    );
+
+    const readiness = await getSettlementReadinessUseCase.execute({
+      householdId,
+      auth,
+      year,
+      month,
+    });
+    if (!readiness.isReady) {
+      throw new SettlementNotReadyError(readiness);
+    }
+
+    const preview: PreviewFinancialReportsResult = await previewFinancialReportsWorkflow.execute({
+      householdId,
+      auth,
+      year,
+      month,
+      labelResolver,
+    });
+
+    const timestamp = new Date();
+    const userEmail = auth.email ?? auth.uid;
+    await Promise.all([
+      this.persist(householdId, preview.incomeStatement, ReportType.INCOME_STATEMENT, userEmail),
+      this.persist(householdId, preview.balanceSheet, ReportType.BALANCE_SHEET, userEmail),
+      this.persist(householdId, preview.cashFlow, ReportType.CASH_FLOW, userEmail),
+    ]);
+
+    return {
+      incomeStatement: preview.incomeStatement,
+      balanceSheet: preview.balanceSheet,
+      cashFlow: preview.cashFlow,
+      timestamp,
+    };
+  }
+
+  private persist(
+    householdId: string,
+    data: IncomeStatementData | BalanceSheetData | CashFlowData,
+    type: ReportType,
+    userEmail: string,
+  ): Promise<void> {
+    return reportRepository.saveReport(
+      householdId,
+      {
+        householdId,
+        type,
+        yearMonth: data.yearMonth,
+        data,
+        createdBy: userEmail,
+        updatedBy: userEmail,
+      },
+      userEmail,
+    );
+  }
+}
+
+export const generateFinancialReportsUseCase = new GenerateFinancialReportsUseCase();

@@ -8,7 +8,7 @@ vi.mock('@/infra/repositories/transactionRepository', () => ({
   transactionRepository: {
     getTransactionsByProject: vi.fn(),
     listByProject: vi.fn(),
-    getById: vi.fn(),
+    getByIds: vi.fn(),
     listTransfersByProject: vi.fn(),
   },
 }));
@@ -57,14 +57,7 @@ describe('listProjectRecordsUseCase', () => {
     };
 
     vi.mocked(transactionRepository.listByProject).mockResolvedValue([directRecord] as never);
-    vi.mocked(transactionRepository.getById).mockImplementation(
-      async (_householdId, transactionId) => {
-        if (transactionId === 'tx-alloc-source') {
-          return sourceTransaction as never;
-        }
-        return null;
-      },
-    );
+    vi.mocked(transactionRepository.getByIds).mockResolvedValue([sourceTransaction] as never);
 
     vi.mocked(allocationRepository.listByProject).mockResolvedValue([
       {
@@ -112,7 +105,7 @@ describe('listProjectRecordsUseCase', () => {
     };
 
     vi.mocked(transactionRepository.getTransactionsByProject).mockResolvedValue([] as never);
-    vi.mocked(transactionRepository.getById).mockResolvedValue(sourceTransaction as never);
+    vi.mocked(transactionRepository.getByIds).mockResolvedValue([sourceTransaction] as never);
 
     vi.mocked(allocationRepository.listByProject).mockResolvedValue([
       {
@@ -140,5 +133,38 @@ describe('listProjectRecordsUseCase', () => {
     expect(records).toHaveLength(1);
     expect(records[0].amount).toBe(-450);
     expect(records[0].id).toBe('tx-expense-source:allocation:project-1');
+  });
+
+  it('uses batched getByIds instead of one read per source transaction', async () => {
+    vi.mocked(transactionRepository.listByProject).mockResolvedValue([] as never);
+    vi.mocked(transactionRepository.getByIds).mockResolvedValue([] as never);
+
+    vi.mocked(allocationRepository.listByProject).mockResolvedValue([
+      {
+        id: 'alloc-1',
+        sourceTransactionId: 'tx-1',
+        direction: 'INCOME',
+        totalAmount: 1000,
+        items: [{ projectId: 'project-1', percentage: 100, amount: 1000 }],
+        projectIds: ['project-1'],
+        createdBy: 'u1',
+        date: new Date('2026-03-18T00:00:00.000Z'),
+        yearMonth: '2026-03',
+        createdAt: new Date('2026-03-18T00:00:00.000Z'),
+        updatedAt: new Date('2026-03-18T00:00:00.000Z'),
+        updatedBy: 'u1',
+      },
+    ] as never);
+
+    await listProjectRecordsUseCase.execute({
+      householdId: 'household-1',
+      projectId: 'project-1',
+    });
+
+    expect(transactionRepository.getByIds).toHaveBeenCalledTimes(1);
+    expect(transactionRepository.getByIds).toHaveBeenCalledWith(
+      'household-1',
+      ['tx-1'],
+    );
   });
 });

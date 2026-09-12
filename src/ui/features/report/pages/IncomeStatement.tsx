@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/ui/components/ui/card';
+import { REPORT_VIEW_TITLES } from '@/ui/constants/report/reportViewLabels';
 import { useIncomeStatement } from '@/ui/features/report/hooks/useIncomeStatement';
 import { type IncomeStatementItemVM } from '@/ui/features/report/viewmodels/reportDisplay.vm';
 
@@ -88,7 +89,7 @@ const IncomeStatementPage: React.FC<IncomeStatementPageProps> = ({
   return (
     <div className="max-w-4xl mx-auto space-y-6 pb-20">
       <ReportHeader
-        title="損益表 (Income Statement)"
+        title={REPORT_VIEW_TITLES.INCOME_STATEMENT}
         subtitle="收入與支出分析，掌握每月的淨利潤。"
         currentDate={currentDate}
         onDateChange={onDateChange}

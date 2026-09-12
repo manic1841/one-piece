@@ -5,6 +5,7 @@ import { GripVertical } from 'lucide-react';
 import { type Account, type AccountWithSnapshot } from '@/domains/account/types/account';
 import { AccountCategory } from '@/domains/account/types/categories';
 import { Button } from '@/ui/components/ui/button';
+import { AccountCategoryLabels } from '@/ui/constants/account/label';
 import { cn } from '@/ui/utils/cn';
 
 interface AccountCardProps {
@@ -24,16 +25,7 @@ interface AccountCardProps {
 }
 
 const getCategoryLabel = (category: AccountCategory) => {
-  switch (category) {
-    case AccountCategory.BANK:
-      return '銀行';
-    case AccountCategory.SECURITIES:
-      return '券商';
-    case AccountCategory.CASH:
-      return '現金';
-    default:
-      return '帳戶';
-  }
+  return AccountCategoryLabels[category];
 };
 
 const formatCurrency = (amount: number, currency: string) => {

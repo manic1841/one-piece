@@ -11,6 +11,7 @@ node_modules
 dist
 dist-ssr
 *.local
+.pnpm-store/
 
 # Editor directories and files
 .vscode/*
@@ -25,6 +26,9 @@ dist-ssr
 
 # Firebase CLI and tools
 .firebase/
+firebase-emulator/firebase_configs/emulators.data/
+firebase-emulator/firebase_configs/firebase-export-*/
 
 # Testing
 test.ts
+coverage/

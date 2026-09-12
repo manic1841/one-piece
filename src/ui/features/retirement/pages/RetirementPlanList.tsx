@@ -9,10 +9,8 @@ import { useRetirementPlanListPage } from '@/ui/features/retirement/hooks/useRet
 export default function RetirementPlanList() {
   const { userProfile } = useAuth();
   const navigate = useNavigate();
-  const { planItems, loading, error, createPlan, duplicatePlan } = useRetirementPlanListPage(
-    userProfile?.householdId,
-    userProfile?.email,
-  );
+  const { planItems, loading, error, mutating, createPlan, duplicatePlan } =
+    useRetirementPlanListPage(userProfile?.householdId, userProfile?.email);
 
   if (loading) {
     return <div className="p-8">Loading...</div>;
@@ -35,7 +33,7 @@ export default function RetirementPlanList() {
             Plan your financial future and simulate different scenarios.
           </p>
         </div>
-        <Button onClick={createPlan}>
+        <Button onClick={createPlan} disabled={mutating}>
           <Plus className="mr-2 h-4 w-4" />
           New Plan
         </Button>
@@ -84,6 +82,7 @@ export default function RetirementPlanList() {
                     variant="outline"
                     size="sm"
                     onClick={() => duplicatePlan(plan.id)}
+                    disabled={mutating}
                   >
                     <Copy className="mr-2 h-4 w-4" />
                     Duplicate
@@ -101,7 +100,7 @@ export default function RetirementPlanList() {
             <p className="text-muted-foreground mb-4">
               Create your first retirement plan to get started.
             </p>
-            <Button onClick={createPlan}>Create Plan</Button>
+            <Button onClick={createPlan} disabled={mutating}>Create Plan</Button>
           </div>
         )}
       </div>

@@ -73,7 +73,7 @@ function projectIncomeAtYear(
   year: number,
   currentYear: number,
 ): number {
-  if (year < income.startYear || year > income.endYear) return 0;
+  if (year < income.startYear || (income.endYear !== undefined && year > income.endYear)) return 0;
   const yearsGrowth = year - currentYear;
   return income.baseAmount * Math.pow(1 + income.growthRate / 100, yearsGrowth);
 }
@@ -87,7 +87,7 @@ function resolveRetirementBaselineSalaryAmount(
     const linkedIncome = plan.incomes.find((income) => income.id === expense.linkedIncomeId);
     if (!linkedIncome) return 0;
 
-    const referenceYear = Math.min(retirementYear, linkedIncome.endYear);
+    const referenceYear = Math.min(retirementYear, linkedIncome.endYear ?? retirementYear);
     return projectIncomeAtYear(linkedIncome, referenceYear, plan.currentYear);
   }
 
@@ -96,7 +96,7 @@ function resolveRetirementBaselineSalaryAmount(
   return plan.incomes
     .filter((income) => income.type === 'salary')
     .reduce((sum, income) => {
-      const referenceYear = Math.min(retirementYear, income.endYear);
+      const referenceYear = Math.min(retirementYear, income.endYear ?? retirementYear);
       return sum + projectIncomeAtYear(income, referenceYear, plan.currentYear);
     }, 0);
 }

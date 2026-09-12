@@ -181,4 +181,57 @@ describe('retirementCalculator', () => {
     expect(summary.isBankrupt).toBe(true);
     expect(summary.minSavings).toBeLessThan(0);
   });
+
+  it('should apply linked retirement year and lifelong pension behaviors', () => {
+    const salaryAndPensionPlan = {
+      ...mockPlan,
+      retirementAge: 60,
+      incomes: [
+        {
+          id: 'salary-linked',
+          name: 'Salary Linked',
+          type: 'salary',
+          importedFrom: 'manual',
+          incomeCalculationMode: 'FIXED',
+          autoUpdate: false,
+          startYearMode: 'MANUAL',
+          endYearMode: 'LINKED_TO_RETIREMENT',
+          lifelong: false,
+          startYear: 2025,
+          endYear: 2099,
+          baseAmount: 1000000,
+          growthRate: 0,
+        },
+        {
+          id: 'pension-gap-lifelong',
+          name: 'Pension',
+          type: 'pension',
+          importedFrom: 'manual',
+          incomeCalculationMode: 'FIXED',
+          autoUpdate: false,
+          startYearMode: 'MANUAL',
+          endYearMode: 'MANUAL',
+          lifelong: true,
+          startYear: 2060,
+          baseAmount: 200000,
+          growthRate: 0,
+        },
+      ],
+    } as RetirementPlan;
+
+    const projection = calculateRetirementProjection(salaryAndPensionPlan);
+    const retirementYear = salaryAndPensionPlan.birthYear + salaryAndPensionPlan.retirementAge;
+
+    const beforeRetirement = projection.find((p) => p.year === retirementYear - 1);
+    const atRetirement = projection.find((p) => p.year === retirementYear);
+    const pensionStartYear = projection.find((p) => p.year === 2060);
+    const endYear = projection[projection.length - 1]?.year;
+    const endYearRow = projection.find((p) => p.year === endYear);
+
+    expect(beforeRetirement?.totalIncome).toBe(1000000);
+    expect(atRetirement?.totalIncome).toBe(1000000);
+    expect(projection.find((p) => p.year === 2059)?.totalIncome).toBe(0);
+    expect(pensionStartYear?.totalIncome).toBe(200000);
+    expect(endYearRow?.totalIncome).toBe(200000);
+  });
 });

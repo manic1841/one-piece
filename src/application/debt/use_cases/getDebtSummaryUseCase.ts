@@ -25,8 +25,8 @@ const endOfMonth = (date: Date) => new Date(date.getFullYear(), date.getMonth() 
 const getPaidAccountIds = (payments: Transaction[]): Set<string> =>
   new Set(payments.map((p) => p.debtAccountId).filter((id): id is string => Boolean(id)));
 
-const getMonthlyDue = (account: DebtAccount): number => {
-  if (isInGracePeriod(account.graceEndDate)) {
+const getMonthlyDue = (account: DebtAccount, referenceDate: Date): number => {
+  if (isInGracePeriod(account.startDate, referenceDate, account.graceEndDate)) {
     return calculateGraceMonthlyPayment(account.currentBalance, account.interestRate);
   }
   return account.monthlyPayment;
@@ -50,7 +50,7 @@ export class GetDebtSummaryUseCase {
 
     for (const account of accounts) {
       totalDebt += account.currentBalance;
-      monthlyPaymentTotal += getMonthlyDue(account);
+      monthlyPaymentTotal += getMonthlyDue(account, referenceDate);
       if (!paidAccountIds.has(account.id)) {
         unpaidCount += 1;
       }

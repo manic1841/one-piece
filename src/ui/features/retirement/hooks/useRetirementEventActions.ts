@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 
-import { manageRetirementEventsUseCase } from '@/application/retirement/use_cases/manageRetirementEventsUseCase';
+import { appendById, removeById, upsertById } from '@/domains/retirement/planMutations';
 import type {
   RetirementOneTimeEvent,
   RetirementPlan,
@@ -22,11 +22,7 @@ export const useRetirementEventActions = ({
     async (eventData: Omit<RetirementOneTimeEvent, 'id'>) => {
       if (!id || !plan) return;
       await handleUpdatePlan({
-        events: manageRetirementEventsUseCase.add({
-          plan,
-          eventData,
-          id: crypto.randomUUID(),
-        }),
+        events: appendById(plan.events, { ...eventData, id: crypto.randomUUID() }),
       });
     },
     [id, plan, handleUpdatePlan],
@@ -36,11 +32,7 @@ export const useRetirementEventActions = ({
     async (eventId: string, updates: Omit<RetirementOneTimeEvent, 'id'>) => {
       if (!id || !plan) return;
       await handleUpdatePlan({
-        events: manageRetirementEventsUseCase.update({
-          plan,
-          eventId,
-          updates,
-        }),
+        events: upsertById(plan.events, eventId, updates),
       });
     },
     [id, plan, handleUpdatePlan],
@@ -51,10 +43,7 @@ export const useRetirementEventActions = ({
       if (!id || !plan) return;
       if (!window.confirm('Are you sure you want to delete this event?')) return;
       await handleUpdatePlan({
-        events: manageRetirementEventsUseCase.remove({
-          plan,
-          eventId,
-        }),
+        events: removeById(plan.events, eventId),
       });
     },
     [id, plan, handleUpdatePlan],

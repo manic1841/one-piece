@@ -35,21 +35,6 @@ export const ReportType = {
 
 export type ReportType = (typeof ReportType)[keyof typeof ReportType];
 
-export const FinancialReportSchema = z.object({
-  id: z.string(),
-  householdId: z.string(),
-  type: z.nativeEnum(ReportType),
-  yearMonth: z.string(),
-  data: z.any(), // Can be IncomeStatementData or BalanceSheetData
-  createdBy: z.string(),
-  updatedBy: z.string(),
-  createdAt: z.date(),
-  updatedAt: z.date(),
-});
-
-export type FinancialReport = z.infer<typeof FinancialReportSchema>;
-export type FinancialReportCreate = Omit<FinancialReport, 'id' | 'createdAt' | 'updatedAt'>;
-
 // Balance Sheet
 export const BalanceSheetItemSchema = z.object({
   code: z.string(),
@@ -119,3 +104,42 @@ export const CashFlowDataSchema = z.object({
 });
 
 export type CashFlowData = z.infer<typeof CashFlowDataSchema>;
+
+export const FinancialReportSchema = z.discriminatedUnion('type', [
+  z
+    .object({
+      id: z.string(),
+      householdId: z.string(),
+      yearMonth: z.string(),
+      createdBy: z.string(),
+      updatedBy: z.string(),
+      createdAt: z.date(),
+      updatedAt: z.date(),
+    })
+    .extend({ type: z.literal(ReportType.INCOME_STATEMENT), data: IncomeStatementDataSchema }),
+  z
+    .object({
+      id: z.string(),
+      householdId: z.string(),
+      yearMonth: z.string(),
+      createdBy: z.string(),
+      updatedBy: z.string(),
+      createdAt: z.date(),
+      updatedAt: z.date(),
+    })
+    .extend({ type: z.literal(ReportType.BALANCE_SHEET), data: BalanceSheetDataSchema }),
+  z
+    .object({
+      id: z.string(),
+      householdId: z.string(),
+      yearMonth: z.string(),
+      createdBy: z.string(),
+      updatedBy: z.string(),
+      createdAt: z.date(),
+      updatedAt: z.date(),
+    })
+    .extend({ type: z.literal(ReportType.CASH_FLOW), data: CashFlowDataSchema }),
+]);
+
+export type FinancialReport = z.infer<typeof FinancialReportSchema>;
+export type FinancialReportCreate = Omit<FinancialReport, 'id' | 'createdAt' | 'updatedAt'>;

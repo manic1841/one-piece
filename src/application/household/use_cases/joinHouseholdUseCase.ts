@@ -1,5 +1,6 @@
 import { updateUserProfileUseCase } from '@/application/user/use_cases/updateUserProfileUseCase';
 import { type UserProfile } from '@/domains/user/types';
+import { HouseholdNotFoundError, InvalidHouseholdInputError } from '@/domains/household/errors';
 
 import { getHouseholdByNameUseCase } from './getHouseholdByNameUseCase';
 import { getHouseholdUseCase } from './getHouseholdUseCase';
@@ -15,7 +16,7 @@ export class JoinHouseholdUseCase {
     const input = householdId.trim();
 
     if (!input) {
-      throw new Error('Household ID or household name is required');
+      throw new InvalidHouseholdInputError();
     }
 
     // Backward compatible behavior: treat input as id first, then exact name.
@@ -25,7 +26,7 @@ export class JoinHouseholdUseCase {
     }
 
     if (!household) {
-      throw new Error('Household not found');
+      throw new HouseholdNotFoundError();
     }
 
     if (!household.members[user.uid]) {

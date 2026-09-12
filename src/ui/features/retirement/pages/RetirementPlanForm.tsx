@@ -3,6 +3,8 @@ import React, { useState } from 'react';
 import { useParams } from 'react-router-dom';
 
 import { useAuth } from '@/infra/contexts/useAuth';
+import { Alert, AlertDescription, AlertTitle } from '@/ui/components/ui/alert';
+import { Button } from '@/ui/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/ui/components/ui/tabs';
 import AssumptionsForm from '@/ui/features/retirement/components/AssumptionsForm';
 import { EventTabContent } from '@/ui/features/retirement/components/detail/EventTabContent';
@@ -28,6 +30,9 @@ const RetirementPlanForm: React.FC = () => {
     editedName,
     setEditedName,
     setIsEditingName,
+    staleIncomeSyncBanner,
+    handleApplyStaleIncomeSync,
+    handleDismissStaleIncomeSync,
     handleUpdatePlan,
     handleToggleAutoUpdate,
     handleRecalculate,
@@ -67,6 +72,26 @@ const RetirementPlanForm: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      {staleIncomeSyncBanner && (
+        <Alert className="border-amber-300 bg-amber-50">
+          <AlertTitle>收入樣本年度可更新</AlertTitle>
+          <AlertDescription className="flex items-center justify-between gap-3">
+            <span>
+              {staleIncomeSyncBanner.staleCount} 筆收入資料仍使用舊年度，建議更新至{' '}
+              {staleIncomeSyncBanner.targetSampleYear} 年。
+            </span>
+            <div className="flex items-center gap-2">
+              <Button size="sm" onClick={handleApplyStaleIncomeSync}>
+                更新
+              </Button>
+              <Button size="sm" variant="outline" onClick={handleDismissStaleIncomeSync}>
+                稍後
+              </Button>
+            </div>
+          </AlertDescription>
+        </Alert>
+      )}
+
       <RetirementPlanHeader
         header={headerVM}
         isEditingName={isEditingName}

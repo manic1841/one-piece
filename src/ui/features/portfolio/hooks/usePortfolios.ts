@@ -3,7 +3,6 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { listPortfolioSnapshotsUseCase } from '@/application/portfolio/use_cases/listPortfolioSnapshotsUseCase';
 import { listPortfoliosUseCase } from '@/application/portfolio/use_cases/listPortfoliosUseCase';
 import { type Portfolio, type PortfolioSnapshot } from '@/domains/portfolio/types/portfolio';
-import { useAuth } from '@/infra/contexts/useAuth';
 import {
   type PortfolioDetailVM,
   type PortfolioListItemVM,
@@ -11,17 +10,14 @@ import {
   mapPortfolioToListItemVM,
 } from '@/ui/features/portfolio/viewmodels/portfolioDisplay.vm';
 import { useLoadingTask } from '@/ui/hooks/useLoadingTask';
+import { useAuthContext } from '@/ui/hooks/useAuthContext';
 
 export function usePortfolios(householdId: string) {
-  const { currentUser, isAdmin } = useAuth();
   const [portfolios, setPortfolios] = useState<Portfolio[]>([]);
   const [latestSnapshots, setLatestSnapshots] = useState<Map<string, PortfolioSnapshot>>(new Map());
   const { loading, error, run } = useLoadingTask();
 
-  const auth = useMemo(
-    () => ({ uid: currentUser?.uid || '', isGlobalAdmin: isAdmin }),
-    [currentUser?.uid, isAdmin],
-  );
+  const auth = useAuthContext();
 
   const load = useCallback(async () => {
     if (!householdId) return;
@@ -70,12 +66,8 @@ export function usePortfolioDetailView(
 }
 
 export function usePortfolioQueries(householdId: string) {
-  const { currentUser, isAdmin } = useAuth();
   const { loading, error, run } = useLoadingTask();
-  const auth = useMemo(
-    () => ({ uid: currentUser?.uid || '', isGlobalAdmin: isAdmin }),
-    [currentUser?.uid, isAdmin],
-  );
+  const auth = useAuthContext();
 
   const getSnapshots = useCallback(
     async (portfolioId: string, year?: number, month?: number) => {

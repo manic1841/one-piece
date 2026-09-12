@@ -13,6 +13,7 @@ import {
   DialogTitle,
 } from '@/ui/components/ui/dialog';
 import { Input } from '@/ui/components/ui/input';
+import { getIntentTypeLabel } from '@/ui/constants/transaction';
 import { useLedgerCodes } from '@/ui/features/ledger/hooks/useLedgerCodes';
 import { useProjects } from '@/ui/features/project/hooks/useProjects';
 import { TransactionList } from '@/ui/features/transaction/components/TransactionList';
@@ -181,9 +182,9 @@ const Transactions: React.FC = () => {
         <div className="flex gap-2 overflow-x-auto w-full md:w-auto pb-1 md:pb-0">
           {[
             { id: 'ALL', label: '全部' },
-            { id: 'EXPENSE', label: '支出' },
-            { id: 'INCOME', label: '收入' },
-            { id: 'INVESTMENT', label: '投資' },
+            { id: 'EXPENSE', label: getIntentTypeLabel('EXPENSE') },
+            { id: 'INCOME', label: getIntentTypeLabel('INCOME') },
+            { id: 'INVESTMENT', label: getIntentTypeLabel('INVESTMENT') },
           ].map((type) => (
             <button
               key={type.id}

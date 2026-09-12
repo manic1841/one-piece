@@ -37,6 +37,22 @@ describe('retirementIncomeCalculator', () => {
     },
   };
 
+  const chainedDerivedIncome: RetirementIncomeSource = {
+    id: 'allowance-1',
+    name: 'Allowance',
+    type: 'other',
+    importedFrom: 'manual',
+    incomeCalculationMode: 'DERIVED',
+    baseAmount: 0,
+    growthRate: 0,
+    startYear: 2025,
+    endYear: 2030,
+    derivedFrom: {
+      baseIncomeId: 'bonus-1',
+      multiplier: 0.5,
+    },
+  };
+
   describe('calculateYearlyIncome', () => {
     it('should calculate fixed income with growth rate', () => {
       const year0 = calculateYearlyIncome(baseIncome, 0);
@@ -74,6 +90,15 @@ describe('retirementIncomeCalculator', () => {
       // Bonus year 1: (48000 * 1.03) * 1.67
       expect(result.get('bonus-1')).toBeCloseTo(48000 * 1.03 * 1.67, 0);
     });
+
+    it('should support multi-layer derived dependencies (A->B->C)', () => {
+      const incomes = [baseIncome, derivedIncome, chainedDerivedIncome];
+      const result = calculateYearlyIncomes(incomes, 2025, 2025);
+
+      const bonus = 48000 * 1.67;
+      expect(result.get('bonus-1')).toBeCloseTo(bonus, 0);
+      expect(result.get('allowance-1')).toBeCloseTo(bonus * 0.5, 0);
+    });
   });
 
   describe('calculateTotalYearlyIncome', () => {
@@ -102,6 +127,24 @@ describe('retirementIncomeCalculator', () => {
       expect(active.map((i) => i.id)).toContain('salary-1');
       expect(active.map((i) => i.id)).toContain('bonus-1');
       expect(active.map((i) => i.id)).not.toContain('early');
+    });
+
+    it('should honor linked retirement year and lifelong settings', () => {
+      const linkedPension: RetirementIncomeSource = {
+        ...baseIncome,
+        id: 'pension-linked',
+        type: 'pension',
+        startYearMode: 'LINKED_TO_RETIREMENT',
+        endYearMode: 'MANUAL',
+        lifelong: true,
+        startYear: 2030,
+      };
+
+      const activeAtRetirement = filterActiveIncomes([linkedPension], 2055, 2055, 2080);
+      expect(activeAtRetirement).toHaveLength(1);
+
+      const beforeRetirement = filterActiveIncomes([linkedPension], 2054, 2055, 2080);
+      expect(beforeRetirement).toHaveLength(0);
     });
   });
 });

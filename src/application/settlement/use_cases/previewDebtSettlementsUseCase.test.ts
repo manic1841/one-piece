@@ -20,6 +20,13 @@ vi.mock('@/infra/repositories/transactionRepository', () => ({
   },
 }));
 
+vi.mock('@/application/household/householdPermissionService', () => ({
+  householdPermissionService: {
+    assertReadPermission: vi.fn().mockResolvedValue(undefined),
+    assertWritePermission: vi.fn().mockResolvedValue(undefined),
+  },
+}));
+
 describe('previewDebtSettlementsUseCase', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -48,6 +55,7 @@ describe('previewDebtSettlementsUseCase', () => {
       householdId: 'household-1',
       year: 2026,
       month: 3,
+      auth: { uid: 'user-1', isGlobalAdmin: false },
     });
 
     expect(result.yearMonth).toBe('2026-03');
@@ -96,6 +104,7 @@ describe('previewDebtSettlementsUseCase', () => {
       householdId: 'household-1',
       year: 2026,
       month: 3,
+      auth: { uid: 'user-1', isGlobalAdmin: false },
     });
 
     expect(result.hasMissingRepayments).toBe(false);

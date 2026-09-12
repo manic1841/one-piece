@@ -4,7 +4,7 @@ import type {
   AccountFormData,
   CurrencyType,
 } from '@/domains/account/types';
-import { nullOrData } from '@/ui/constants/empty';
+import { nullOrData } from '@/shared/constants/empty';
 
 export const toAccount = (data: AccountFormData): AccountCreate => {
   return {

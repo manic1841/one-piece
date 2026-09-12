@@ -1,13 +1,20 @@
 import { runTransaction } from 'firebase/firestore';
 
+import {
+  AllocationReplacementCommandError,
+  AllocationReplacementCommandErrorCode,
+} from '@/application/ledger/allocationReplacementErrors';
 import { householdPermissionService } from '@/application/household/householdPermissionService';
 import { type AuthContext } from '@/application/types';
-import { type AllocationCreate } from '@/domains/allocation/schemas';
 import { type TransactionCreate } from '@/domains/ledger/schemas';
-import { LedgerValidator } from '@/domains/ledger/validator';
 import { db } from '@/firebase';
 import { allocationRepository } from '@/infra/repositories/allocationRepository';
 import { transactionRepository } from '@/infra/repositories/transactionRepository';
+import {
+  replaceCurrentAllocationInTransaction,
+  type AllocationReplacementInput,
+  validateAllocationReplacementInput,
+} from './replaceAllocationUseCase';
 
 export interface UpdateTransactionRequest {
   householdId: string;
@@ -34,12 +41,6 @@ export interface UpdateTransactionRequest {
   } | null;
 }
 
-const toYearMonth = (date: Date) => {
-  const year = date.getFullYear();
-  const month = (date.getMonth() + 1).toString().padStart(2, '0');
-  return `${year}-${month}`;
-};
-
 export class UpdateTransactionUseCase {
   async execute(request: UpdateTransactionRequest): Promise<void> {
     const { householdId, transactionId, userEmail, auth, data, allocation } = request;
@@ -50,14 +51,58 @@ export class UpdateTransactionUseCase {
       auth.isGlobalAdmin,
     );
 
+    const candidateAllocations = await allocationRepository.listBySourceTransactionId(
+      householdId,
+      transactionId,
+    );
+
     await runTransaction(db, async (tx) => {
       const existing = await transactionRepository.get([householdId, transactionId], tx);
       if (!existing) {
         throw new Error('Transaction not found.');
       }
 
-      if (existing.allocationId) {
-        await allocationRepository.delete([householdId, existing.allocationId], tx);
+      const existingAllocations = (await allocationRepository.getByIds(
+        householdId,
+        [
+          transactionId,
+          ...candidateAllocations.map((candidate) => candidate.id),
+          existing.allocationId ?? '',
+        ],
+        tx,
+      )).filter(
+        (currentAllocation) =>
+          currentAllocation.sourceTransactionId === transactionId ||
+          currentAllocation.id === existing.allocationId,
+      );
+      const validatedAllocation: AllocationReplacementInput | null = allocation
+        ? validateAllocationReplacementInput(allocation)
+        : null;
+      const targetIntentType = data.intentType ?? existing.intentType;
+
+      if (validatedAllocation && targetIntentType !== 'INCOME' && targetIntentType !== 'EXPENSE') {
+        throw new AllocationReplacementCommandError(
+          AllocationReplacementCommandErrorCode.UNSUPPORTED_INTENT_TYPE,
+          'allocation is only supported for INCOME or EXPENSE transactions',
+        );
+      }
+
+      if (validatedAllocation && validatedAllocation.direction !== targetIntentType) {
+        throw new AllocationReplacementCommandError(
+          AllocationReplacementCommandErrorCode.INVALID_PAYLOAD,
+          'allocation direction must match transaction intent type',
+        );
+      }
+
+      if (
+        validatedAllocation &&
+        (validatedAllocation.totalAmount !== (data.amount ?? existing.amount) ||
+          validatedAllocation.transactionDate.getTime() !== data.date.getTime())
+      ) {
+        throw new AllocationReplacementCommandError(
+          AllocationReplacementCommandErrorCode.INVALID_PAYLOAD,
+          'allocation amount and date must match the source transaction',
+        );
       }
 
       await transactionRepository.updateTransactionData(
@@ -80,51 +125,23 @@ export class UpdateTransactionUseCase {
         tx,
       );
 
-      if (!allocation) {
+      if (!validatedAllocation) {
+        const allocationIds = new Set(existingAllocations.map((current) => current.id));
+        if (existing.allocationId) allocationIds.add(existing.allocationId);
+        for (const allocationId of allocationIds) {
+          await allocationRepository.delete([householdId, allocationId], tx);
+        }
         return;
       }
 
-      const totalPercentage = allocation.items.reduce((sum, item) => sum + item.percentage, 0);
-      if (Math.abs(totalPercentage - 100) > 0.01) {
-        throw new Error(
-          `Allocation percentages must sum to 100%. Current sum: ${totalPercentage}%`,
-        );
-      }
-
-      const allocationData: AllocationCreate = {
-        date: allocation.transactionDate,
-        yearMonth: toYearMonth(allocation.transactionDate),
-        sourceTransactionId: transactionId,
-        direction: allocation.direction,
-        totalAmount: allocation.totalAmount,
-        items: allocation.items.map((item) => ({
-          projectId: item.projectId,
-          percentage: item.percentage,
-          amount: Math.round((allocation.totalAmount * item.percentage) / 100),
-        })),
-        projectIds: allocation.items.map((item) => item.projectId),
-        createdBy: userEmail,
-      };
-
-      const validationErrors = LedgerValidator.validateAllocation(allocationData);
-      if (validationErrors.length > 0) {
-        throw new Error(`Invalid allocation: ${validationErrors.join(', ')}`);
-      }
-
-      const allocationId = await allocationRepository.create(
-        [householdId],
-        allocationData,
-        userEmail,
-        tx,
-      );
-
-      await transactionRepository.updateAllocationId(
+      await replaceCurrentAllocationInTransaction({
         householdId,
         transactionId,
-        allocationId,
         userEmail,
+        allocation: validatedAllocation,
         tx,
-      );
+        existingAllocations,
+      });
     });
   }
 }

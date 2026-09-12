@@ -9,15 +9,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/ui/components/ui/select';
+import { Switch } from '@/ui/components/ui/switch';
 import { RetirementIncomeTypeOptions } from '@/ui/constants/retirement/retirementLabel';
 
 interface ImportedModeSectionProps {
   ledgerCode: string;
   setLedgerCode: (code: string) => void;
-  sampleStartDate: string;
-  setSampleStartDate: (date: string) => void;
-  sampleEndDate: string;
-  setSampleEndDate: (date: string) => void;
+  sampleYear: number;
+  setSampleYear: (year: number) => void;
+  autoUpdate: boolean;
+  setAutoUpdate: (enabled: boolean) => void;
   amount: number;
   type: RetirementIncomeSource['type'];
   setType: (type: RetirementIncomeSource['type']) => void;
@@ -28,10 +29,10 @@ interface ImportedModeSectionProps {
 export const ImportedModeSection: React.FC<ImportedModeSectionProps> = ({
   ledgerCode,
   setLedgerCode,
-  sampleStartDate,
-  setSampleStartDate,
-  sampleEndDate,
-  setSampleEndDate,
+  sampleYear,
+  setSampleYear,
+  autoUpdate,
+  setAutoUpdate,
   amount,
   type,
   setType,
@@ -50,33 +51,27 @@ export const ImportedModeSection: React.FC<ImportedModeSectionProps> = ({
           required
         />
       </div>
-      <div className="grid grid-cols-2 gap-4">
-        <div className="grid gap-2">
-          <Label htmlFor="sampleStartDate">Start Date</Label>
-          <Input
-            id="sampleStartDate"
-            type="date"
-            value={sampleStartDate}
-            onChange={(e) => setSampleStartDate(e.target.value)}
-            required
-          />
-        </div>
-        <div className="grid gap-2">
-          <Label htmlFor="sampleEndDate">End Date</Label>
-          <Input
-            id="sampleEndDate"
-            type="date"
-            value={sampleEndDate}
-            onChange={(e) => setSampleEndDate(e.target.value)}
-            required
-          />
-        </div>
+      <div className="grid gap-2">
+        <Label htmlFor="sampleYear">Sample Year</Label>
+        <Input
+          id="sampleYear"
+          type="number"
+          value={sampleYear}
+          onChange={(e) => setSampleYear(Number(e.target.value))}
+          required
+        />
       </div>
+
+      <div className="flex items-center justify-between rounded-md border px-3 py-2">
+        <Label htmlFor="autoUpdate">Auto update stale sample year</Label>
+        <Switch id="autoUpdate" checked={autoUpdate} onCheckedChange={setAutoUpdate} />
+      </div>
+
       <Button
         type="button"
         variant="secondary"
         onClick={onCalculate}
-        disabled={calculating || !ledgerCode || !sampleStartDate || !sampleEndDate}
+        disabled={calculating || !ledgerCode || !Number.isInteger(sampleYear)}
       >
         {calculating ? 'Calculating...' : '試算'}
       </Button>

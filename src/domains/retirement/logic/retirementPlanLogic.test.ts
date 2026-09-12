@@ -42,10 +42,9 @@ describe('retirementPlanLogic', () => {
 
       expect(result).not.toBeNull();
       expect(result?.totalAmount).toBe(3000);
-      expect(result?.monthlyAverage).toBe(1500);
+      expect(result?.monthlyAverage).toBe(250);
       expect(result?.sampleCount).toBe(2);
-      expect(result?.startDate).toBe('2025-01-01');
-      expect(result?.endDate).toBe('2025-02-01');
+      expect(result?.sampleYear).toBe(2025);
     });
 
     it('should return null if no incomes', () => {

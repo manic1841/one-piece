@@ -1,9 +1,8 @@
 import { useCallback } from 'react';
 
-import { manageRetirementIncomesUseCase } from '@/application/retirement/use_cases/manageRetirementIncomesUseCase';
+import { appendById, removeById, upsertById } from '@/domains/retirement/planMutations';
 import { mergeImportedIncomeSourcesUseCase } from '@/application/retirement/use_cases/mergeImportedIncomeSourcesUseCase';
 import type {
-  RetirementExpenseCategory,
   RetirementIncomeSource,
   RetirementPlan,
   RetirementPlanCreate,
@@ -12,17 +11,14 @@ import type {
 interface UseRetirementIncomeActionsParams {
   id: string | undefined;
   plan: RetirementPlan | null;
-  importData: (
-    type: 'transactions' | 'debtRepayments',
-    referenceMonths?: number,
-  ) => Promise<RetirementExpenseCategory[] | RetirementIncomeSource[]>;
+  importIncomeData: () => Promise<RetirementIncomeSource[]>;
   handleUpdatePlan: (updates: Partial<RetirementPlanCreate>) => Promise<void>;
 }
 
 export const useRetirementIncomeActions = ({
   id,
   plan,
-  importData,
+  importIncomeData,
   handleUpdatePlan,
 }: UseRetirementIncomeActionsParams) => {
   const handleAddIncome = useCallback(
@@ -31,11 +27,7 @@ export const useRetirementIncomeActions = ({
         throw new Error('Retirement plan is not ready yet. Please wait and try again.');
       }
       await handleUpdatePlan({
-        incomes: manageRetirementIncomesUseCase.add({
-          plan,
-          incomeData,
-          id: crypto.randomUUID(),
-        }),
+        incomes: appendById(plan.incomes, { ...incomeData, id: crypto.randomUUID() }),
       });
     },
     [id, plan, handleUpdatePlan],
@@ -45,11 +37,7 @@ export const useRetirementIncomeActions = ({
     async (incomeId: string, updates: Omit<RetirementIncomeSource, 'id'>) => {
       if (!id || !plan) return;
       await handleUpdatePlan({
-        incomes: manageRetirementIncomesUseCase.update({
-          plan,
-          incomeId,
-          updates,
-        }),
+        incomes: upsertById(plan.incomes, incomeId, updates),
       });
     },
     [id, plan, handleUpdatePlan],
@@ -60,10 +48,7 @@ export const useRetirementIncomeActions = ({
       if (!id || !plan) return;
       if (!window.confirm('Are you sure you want to delete this income source?')) return;
       await handleUpdatePlan({
-        incomes: manageRetirementIncomesUseCase.remove({
-          plan,
-          incomeId,
-        }),
+        incomes: removeById(plan.incomes, incomeId),
       });
     },
     [id, plan, handleUpdatePlan],
@@ -72,8 +57,8 @@ export const useRetirementIncomeActions = ({
   const handleImportIncomeFromTransactions = useCallback(async () => {
     if (!id || !plan) return;
 
-    const imported = await importData('transactions', 12);
-    const importedIncomes = (imported as RetirementIncomeSource[]).filter(
+    const imported = await importIncomeData();
+    const importedIncomes = imported.filter(
       (item) => typeof item.baseAmount === 'number' && item.incomeCategory,
     );
 
@@ -91,7 +76,7 @@ export const useRetirementIncomeActions = ({
     }
 
     await handleUpdatePlan({ incomes: mergeResult.incomes });
-  }, [id, plan, importData, handleUpdatePlan]);
+  }, [id, plan, importIncomeData, handleUpdatePlan]);
 
   return {
     handleAddIncome,

@@ -1,25 +1,66 @@
 import { type JournalEntryLine } from '@/domains/ledger/schemas';
 
-export interface DebtPaymentSplit {
-  principal: number; // rounded to integer
-  interest: number; // rounded to integer
-  warning?: string; // shown when payment doesn't cover interest
+export const DebtPaymentErrorCode = {
+  INVALID_PAYMENT: 'INVALID_PAYMENT',
+  PAYMENT_EXCEEDS_PRINCIPAL: 'PAYMENT_EXCEEDS_PRINCIPAL',
+  GRACE_PERIOD_PAYMENT_EXCEEDS_INTEREST: 'GRACE_PERIOD_PAYMENT_EXCEEDS_INTEREST',
+} as const;
+
+export type DebtPaymentErrorCode = (typeof DebtPaymentErrorCode)[keyof typeof DebtPaymentErrorCode];
+
+export class DebtPaymentError extends Error {
+  readonly code: DebtPaymentErrorCode;
+
+  constructor(
+    code: DebtPaymentErrorCode,
+    message: string,
+  ) {
+    super(`${code}: ${message}`);
+    this.code = code;
+    this.name = 'DebtPaymentError';
+  }
 }
 
-/**
- * Check if today is within the grace period.
- *
- * @param graceEndDate The grace period end date (null/undefined means no grace period)
- * @returns true if graceEndDate is set and today < graceEndDate
- */
-export function isInGracePeriod(graceEndDate: Date | null | undefined): boolean {
-  if (!graceEndDate) return false;
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const graceEnd = new Date(graceEndDate);
-  graceEnd.setHours(0, 0, 0, 0);
-  return today < graceEnd;
+export interface DebtPaymentSplit {
+  principal: number;
+  interest: number;
+  warning?: string;
 }
+
+export interface DebtPaymentCalculationInput {
+  currentBalance: number;
+  interestRate: number;
+  totalPayment: number;
+  paymentDate: Date;
+  startDate: Date;
+  graceEndDate?: Date | null;
+}
+
+export interface DebtPaymentCalculation extends DebtPaymentSplit {
+  inGracePeriod: boolean;
+}
+
+export function isInGracePeriod(
+  startDate: Date | null | undefined,
+  paymentDate: Date | null | undefined,
+  graceEndDate: Date | null | undefined,
+): boolean {
+  if (!startDate || !paymentDate || !graceEndDate) return false;
+
+  const start = new Date(startDate);
+  const payment = new Date(paymentDate);
+  const graceEnd = new Date(graceEndDate);
+  start.setHours(0, 0, 0, 0);
+  payment.setHours(0, 0, 0, 0);
+  graceEnd.setHours(0, 0, 0, 0);
+
+  return start <= payment && payment < graceEnd;
+}
+
+const roundAmount = (amount: number): number => Math.round(amount * 100) / 100;
+
+const calculateMonthlyInterest = (currentBalance: number, interestRate: number): number =>
+  roundAmount(currentBalance * (interestRate / 100 / 12));
 
 /**
  * Calculate monthly interest payment during grace period.
@@ -32,8 +73,72 @@ export function calculateGraceMonthlyPayment(
   currentBalance: number,
   interestRate: number, // annual, in %
 ): number {
-  const monthlyInterest = currentBalance * (interestRate / 100 / 12);
-  return Math.round(monthlyInterest);
+  return calculateMonthlyInterest(currentBalance, interestRate);
+}
+
+export function calculateDebtPayment(
+  input: DebtPaymentCalculationInput,
+): DebtPaymentCalculation {
+  const { currentBalance, interestRate, totalPayment, paymentDate, startDate, graceEndDate } = input;
+
+  if (!Number.isFinite(totalPayment) || totalPayment <= 0) {
+    throw new DebtPaymentError(
+      DebtPaymentErrorCode.INVALID_PAYMENT,
+      'total payment must be a finite positive amount',
+    );
+  }
+  if (!Number.isFinite(currentBalance) || currentBalance < 0) {
+    throw new DebtPaymentError(
+      DebtPaymentErrorCode.INVALID_PAYMENT,
+      'current balance must be a finite non-negative amount',
+    );
+  }
+  if (!Number.isFinite(interestRate) || interestRate < 0) {
+    throw new DebtPaymentError(
+      DebtPaymentErrorCode.INVALID_PAYMENT,
+      'interest rate must be a finite non-negative amount',
+    );
+  }
+
+  const payment = roundAmount(totalPayment);
+  if (payment <= 0) {
+    throw new DebtPaymentError(
+      DebtPaymentErrorCode.INVALID_PAYMENT,
+      'total payment is below the supported precision',
+    );
+  }
+
+  const applicableInterest = calculateMonthlyInterest(currentBalance, interestRate);
+  const inGracePeriod = isInGracePeriod(startDate, paymentDate, graceEndDate);
+
+  if (inGracePeriod && payment > applicableInterest) {
+    throw new DebtPaymentError(
+      DebtPaymentErrorCode.GRACE_PERIOD_PAYMENT_EXCEEDS_INTEREST,
+      `grace-period payment cannot exceed applicable interest (${applicableInterest})`,
+    );
+  }
+
+  if (payment <= applicableInterest) {
+    return {
+      principal: 0,
+      interest: payment,
+      warning:
+        payment < applicableInterest
+          ? `還款金額 (${payment.toLocaleString()}) 不足以覆蓋本月利息 (${applicableInterest.toLocaleString()})，本金未能攤還`
+          : undefined,
+      inGracePeriod,
+    };
+  }
+
+  const principal = roundAmount(payment - applicableInterest);
+  if (!inGracePeriod && principal > currentBalance) {
+    throw new DebtPaymentError(
+      DebtPaymentErrorCode.PAYMENT_EXCEEDS_PRINCIPAL,
+      `calculated principal (${principal}) exceeds remaining principal (${currentBalance})`,
+    );
+  }
+
+  return { principal, interest: applicableInterest, inGracePeriod };
 }
 
 /**
@@ -52,15 +157,15 @@ export function calculateSplit(
   interestRate: number, // annual, in %
   totalPayment: number,
 ): DebtPaymentSplit {
-  const monthlyInterestRaw = currentBalance * (interestRate / 100 / 12);
-  const interest = Math.round(monthlyInterestRaw);
-  const principal = Math.round(totalPayment) - interest;
+  const interest = calculateMonthlyInterest(currentBalance, interestRate);
+  const payment = roundAmount(totalPayment);
+  const principal = roundAmount(payment - interest);
 
   if (principal <= 0) {
     return {
       principal: 0,
-      interest: Math.round(totalPayment),
-      warning: `還款金額 (${totalPayment.toLocaleString()}) 不足以覆蓋本月利息 (${interest.toLocaleString()})，本金未能攤還`,
+      interest: payment,
+      warning: `還款金額 (${payment.toLocaleString()}) 不足以覆蓋本月利息 (${interest.toLocaleString()})，本金未能攤還`,
     };
   }
 
@@ -83,46 +188,32 @@ export function calculateSplit(
  *    - Note: Principal remains 0, no liability reduction
  *
  * @param linkedLedgerCode The liability ledger code (e.g., 'liability:mortgage')
- * @param principal Amount to reduce principal (0 during grace period)
- * @param interest Interest amount to record as expense
+ * @param calculation Validated principal/interest split and grace-period state
  * @param totalPayment Total cash paid
- * @param graceEndDate Optional grace period end date; if set and today < graceEndDate, only interest is recorded
  * @returns Array of journal entry lines
  */
 export function buildDebtPaymentEntries(
   linkedLedgerCode: string,
-  principal: number,
-  interest: number,
+  calculation: DebtPaymentCalculation,
   totalPayment: number,
-  graceEndDate?: Date | null,
 ): JournalEntryLine[] {
-  // Check if currently in grace period
-  const inGracePeriod = isInGracePeriod(graceEndDate);
+  const { principal, interest, inGracePeriod } = calculation;
 
   if (inGracePeriod) {
-    // Grace period: interest-only payment, no principal reduction
     const entries: JournalEntryLine[] = [
-      // Record interest expense
       { ledgerCode: 'expense:interest', debit: interest, credit: 0 },
-      // Cash paid out
       { ledgerCode: 'asset:cash', debit: 0, credit: totalPayment },
     ];
 
-    // Filter out zero-value lines
     return entries.filter((e) => e.debit > 0 || e.credit > 0);
   }
 
-  // Normal repayment (no grace period or after grace period)
   const entries: JournalEntryLine[] = [
-    // Reduce liability (debit the liability ledger code)
     { ledgerCode: linkedLedgerCode, debit: principal, credit: 0 },
-    // Record interest expense
     { ledgerCode: 'expense:interest', debit: interest, credit: 0 },
-    // Cash paid out
     { ledgerCode: 'asset:cash', debit: 0, credit: totalPayment },
   ];
 
-  // Filter out zero-value interest line when interestRate = 0
   return entries.filter((e) => e.debit > 0 || e.credit > 0);
 }
 

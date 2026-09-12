@@ -14,6 +14,7 @@ import {
 import { YearMonthPicker } from '@/ui/components/YearMonthPicker';
 import { Button } from '@/ui/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/ui/components/ui/popover';
+import { REPORT_VIEW_TITLES } from '@/ui/constants/report/reportViewLabels';
 import { cn } from '@/ui/utils/cn';
 
 export type ReportView = 'MENU' | 'INCOME_STATEMENT' | 'BALANCE_SHEET' | 'CASH_FLOW';
@@ -87,9 +88,21 @@ export const ReportHeader: React.FC<ReportHeaderProps> = ({
   };
 
   const reportTabs = [
-    { id: 'INCOME_STATEMENT' as ReportView, label: '損益表', icon: <FileText size={16} /> },
-    { id: 'BALANCE_SHEET' as ReportView, label: '資產負債表', icon: <Wallet size={16} /> },
-    { id: 'CASH_FLOW' as ReportView, label: '現金流量表', icon: <TrendingUp size={16} /> },
+    {
+      id: 'INCOME_STATEMENT' as ReportView,
+      label: REPORT_VIEW_TITLES.INCOME_STATEMENT,
+      icon: <FileText size={16} />,
+    },
+    {
+      id: 'BALANCE_SHEET' as ReportView,
+      label: REPORT_VIEW_TITLES.BALANCE_SHEET,
+      icon: <Wallet size={16} />,
+    },
+    {
+      id: 'CASH_FLOW' as ReportView,
+      label: REPORT_VIEW_TITLES.CASH_FLOW,
+      icon: <TrendingUp size={16} />,
+    },
   ];
 
   return (

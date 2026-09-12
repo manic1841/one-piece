@@ -8,14 +8,26 @@ const getCurrentYearMonth = () => {
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
 };
 
-vi.mock('@/application/report/use_cases/getUnsettledStatsUseCase', () => ({
-  getUnsettledStatsUseCase: {
+vi.mock('@/application/report/use_cases/getSettlementReadinessUseCase', () => ({
+  getSettlementReadinessUseCase: {
+    execute: vi.fn(),
+  },
+}));
+
+vi.mock('@/application/report/use_cases/previewFinancialReportsWorkflow', () => ({
+  previewFinancialReportsWorkflow: {
     execute: vi.fn(),
   },
 }));
 
 vi.mock('@/application/settlement/use_cases/previewDebtSettlementsUseCase', () => ({
   previewDebtSettlementsUseCase: {
+    execute: vi.fn(),
+  },
+}));
+
+vi.mock('@/application/report/use_cases/generateFinancialReportsUseCase', () => ({
+  generateFinancialReportsUseCase: {
     execute: vi.fn(),
   },
 }));
@@ -27,38 +39,58 @@ vi.mock('@/infra/contexts/useAuth', () => ({
   }),
 }));
 
-vi.mock('@/domains/report/reportService', () => ({
-  reportService: {
-    generateIncomeStatement: vi.fn(),
-    generateBalanceSheet: vi.fn(),
-    generateCashFlow: vi.fn(),
-    generateMonthlyFinancialReports: vi.fn(),
+const buildPreviewResult = (overrides?: {
+  isPersisted?: boolean;
+  timestamps?: { incomeStatement?: string; balanceSheet?: string; cashFlow?: string };
+}) => ({
+  incomeStatement: {
+    yearMonth: getCurrentYearMonth(),
+    incomeTotal: 1000,
+    expenseTotal: 400,
+    netIncome: 600,
+    incomeItems: [],
+    expenseItems: [],
   },
-}));
-
-vi.mock('@/infra/repositories/reportRepository', () => ({
-  reportRepository: {
-    getReport: vi.fn(),
+  balanceSheet: {
+    yearMonth: getCurrentYearMonth(),
+    assets: { total: 5000, groups: {} },
+    liabilities: { total: 1200, groups: {} },
+    equity: { total: 3800, groups: {} },
   },
-}));
+  cashFlow: {
+    yearMonth: getCurrentYearMonth(),
+    operating: { label: '', total: 0, inflowItems: [], outflowItems: [] },
+    investing: { label: '', total: 0, inflowItems: [], outflowItems: [] },
+    financing: { label: '', total: 0, inflowItems: [], outflowItems: [] },
+    netCashChange: 0,
+    beginningBalance: 0,
+    endingBalance: 0,
+    actualBalance: 0,
+    adjustment: 0,
+  },
+  isPersisted: overrides?.isPersisted ?? false,
+  timestamps: overrides?.timestamps ?? {},
+});
 
 describe('useReportSettlement', () => {
   beforeEach(async () => {
     vi.clearAllMocks();
     vi.useRealTimers();
 
-    const { reportService } = await import('../../../../domains/report/reportService');
-    const { reportRepository } = await import('../../../../infra/repositories/reportRepository');
-    const { getUnsettledStatsUseCase } = await import(
-      '../../../../application/report/use_cases/getUnsettledStatsUseCase'
+    const { getSettlementReadinessUseCase } = await import(
+      '../../../../application/report/use_cases/getSettlementReadinessUseCase'
+    );
+    const { previewFinancialReportsWorkflow } = await import(
+      '../../../../application/report/use_cases/previewFinancialReportsWorkflow'
     );
     const { previewDebtSettlementsUseCase } = await import(
       '../../../../application/settlement/use_cases/previewDebtSettlementsUseCase'
     );
 
-    vi.mocked(getUnsettledStatsUseCase.execute).mockResolvedValue({
+    vi.mocked(getSettlementReadinessUseCase.execute).mockResolvedValue({
       year: 2026,
       month: 3,
+      isReady: true,
       unsettledAccounts: [],
       unsettledPortfolios: [],
       unsettledDebts: [],
@@ -75,29 +107,15 @@ describe('useReportSettlement', () => {
       missingRepaymentAccountNames: [],
     });
 
-    vi.mocked(reportService.generateIncomeStatement).mockResolvedValue({
-      yearMonth: getCurrentYearMonth(),
-      incomeTotal: 1000,
-      expenseTotal: 400,
-      netIncome: 600,
-      incomeItems: [],
-      expenseItems: [],
-    });
-
-    vi.mocked(reportService.generateBalanceSheet).mockResolvedValue({
-      yearMonth: getCurrentYearMonth(),
-      assets: { total: 5000, groups: {} },
-      liabilities: { total: 1200, groups: {} },
-      equity: { total: 3800, groups: {} },
-    } as never);
-
-    vi.mocked(reportRepository.getReport).mockResolvedValue(null);
+    vi.mocked(previewFinancialReportsWorkflow.execute).mockResolvedValue(buildPreviewResult());
   });
 
   it('treats zero active projects as settled and loads the summary', async () => {
-    const { reportService } = await import('../../../../domains/report/reportService');
-    const { getUnsettledStatsUseCase } = await import(
-      '../../../../application/report/use_cases/getUnsettledStatsUseCase'
+    const { getSettlementReadinessUseCase } = await import(
+      '../../../../application/report/use_cases/getSettlementReadinessUseCase'
+    );
+    const { previewFinancialReportsWorkflow } = await import(
+      '../../../../application/report/use_cases/previewFinancialReportsWorkflow'
     );
     const { previewDebtSettlementsUseCase } = await import(
       '../../../../application/settlement/use_cases/previewDebtSettlementsUseCase'
@@ -105,9 +123,10 @@ describe('useReportSettlement', () => {
     const yearMonth = getCurrentYearMonth();
     const [year, month] = yearMonth.split('-').map(Number);
 
-    vi.mocked(getUnsettledStatsUseCase.execute).mockResolvedValue({
+    vi.mocked(getSettlementReadinessUseCase.execute).mockResolvedValue({
       year,
       month,
+      isReady: true,
       unsettledAccounts: [],
       unsettledPortfolios: [],
       unsettledDebts: [],
@@ -122,6 +141,7 @@ describe('useReportSettlement', () => {
       hasMissingRepayments: false,
       missingRepaymentAccountNames: [],
     });
+    vi.mocked(previewFinancialReportsWorkflow.execute).mockResolvedValue(buildPreviewResult());
 
     const { result } = renderHook(() => useReportSettlement('household-1', 'user@example.com'));
 
@@ -137,7 +157,7 @@ describe('useReportSettlement', () => {
       netWorth: 3800,
     });
     expect(result.current.unsettledProjectNames).toEqual([]);
-    expect(getUnsettledStatsUseCase.execute).toHaveBeenCalledWith({
+    expect(getSettlementReadinessUseCase.execute).toHaveBeenCalledWith({
       householdId: 'household-1',
       auth: {
         uid: 'user-1',
@@ -151,44 +171,30 @@ describe('useReportSettlement', () => {
       householdId: 'household-1',
       year,
       month,
+      auth: { uid: 'user-1', email: 'user@example.com', isGlobalAdmin: false },
     });
-    expect(reportService.generateIncomeStatement).toHaveBeenCalledWith(
-      'household-1',
-      yearMonth,
-      expect.any(Function),
-    );
-    expect(reportService.generateBalanceSheet).toHaveBeenCalledWith(
-      'household-1',
-      yearMonth,
-      expect.any(Function),
+    expect(previewFinancialReportsWorkflow.execute).toHaveBeenCalledWith(
+      expect.objectContaining({ householdId: 'household-1', year, month }),
     );
   });
 
   it('blocks summary loading when any account, portfolio, debt, or project is unsettled', async () => {
-    const { reportService } = await import('../../../../domains/report/reportService');
-    const { getUnsettledStatsUseCase } = await import(
-      '../../../../application/report/use_cases/getUnsettledStatsUseCase'
+    const { previewFinancialReportsWorkflow } = await import(
+      '../../../../application/report/use_cases/previewFinancialReportsWorkflow'
     );
-    const { previewDebtSettlementsUseCase } = await import(
-      '../../../../application/settlement/use_cases/previewDebtSettlementsUseCase'
+    const { getSettlementReadinessUseCase } = await import(
+      '../../../../application/report/use_cases/getSettlementReadinessUseCase'
     );
 
-    vi.mocked(getUnsettledStatsUseCase.execute).mockResolvedValue({
+    vi.mocked(getSettlementReadinessUseCase.execute).mockResolvedValue({
       year: 2026,
       month: 3,
+      isReady: false,
       unsettledAccounts: [{ id: 'a2', name: 'Account 2' } as never],
       unsettledPortfolios: [{ id: 'p2', name: 'Portfolio 2' } as never],
       unsettledDebts: [{ id: 'd2', name: 'Debt 2' } as never],
       unsettledProjects: [{ id: 'project-2', name: 'Project 2' } as never],
       totalUnsettled: 4,
-    });
-    vi.mocked(previewDebtSettlementsUseCase.execute).mockResolvedValue({
-      year: 2026,
-      month: 3,
-      yearMonth: '2026-03',
-      items: [],
-      hasMissingRepayments: true,
-      missingRepaymentAccountNames: ['Debt 2'],
     });
 
     const { result } = renderHook(() => useReportSettlement('household-1', 'user@example.com'));
@@ -203,16 +209,15 @@ describe('useReportSettlement', () => {
     expect(result.current.unsettledAccountNames).toEqual(['Account 2']);
     expect(result.current.unsettledPortfolioNames).toEqual(['Portfolio 2']);
     expect(result.current.unsettledDebtNames).toEqual(['Debt 2']);
-    expect(result.current.debtNoRepaymentWarningNames).toEqual(['Debt 2']);
-    expect(reportService.generateIncomeStatement).not.toHaveBeenCalled();
-    expect(reportService.generateBalanceSheet).not.toHaveBeenCalled();
+    expect(previewFinancialReportsWorkflow.execute).not.toHaveBeenCalled();
   });
 
   it('loads the summary only when all active projects are settled', async () => {
-    const { reportService } = await import('../../../../domains/report/reportService');
-    const { reportRepository } = await import('../../../../infra/repositories/reportRepository');
-    const { getUnsettledStatsUseCase } = await import(
-      '../../../../application/report/use_cases/getUnsettledStatsUseCase'
+    const { getSettlementReadinessUseCase } = await import(
+      '../../../../application/report/use_cases/getSettlementReadinessUseCase'
+    );
+    const { previewFinancialReportsWorkflow } = await import(
+      '../../../../application/report/use_cases/previewFinancialReportsWorkflow'
     );
     const { previewDebtSettlementsUseCase } = await import(
       '../../../../application/settlement/use_cases/previewDebtSettlementsUseCase'
@@ -220,9 +225,10 @@ describe('useReportSettlement', () => {
     const yearMonth = getCurrentYearMonth();
     const [year, month] = yearMonth.split('-').map(Number);
 
-    vi.mocked(getUnsettledStatsUseCase.execute).mockResolvedValue({
+    vi.mocked(getSettlementReadinessUseCase.execute).mockResolvedValue({
       year,
       month,
+      isReady: true,
       unsettledAccounts: [],
       unsettledPortfolios: [],
       unsettledDebts: [],
@@ -237,9 +243,12 @@ describe('useReportSettlement', () => {
       hasMissingRepayments: false,
       missingRepaymentAccountNames: [],
     });
-    vi.mocked(reportRepository.getReport).mockResolvedValueOnce({ updatedAt: new Date() } as never);
-    vi.mocked(reportRepository.getReport).mockResolvedValueOnce({ updatedAt: new Date() } as never);
-    vi.mocked(reportRepository.getReport).mockResolvedValueOnce({ updatedAt: new Date() } as never);
+    vi.mocked(previewFinancialReportsWorkflow.execute).mockResolvedValue(
+      buildPreviewResult({
+        isPersisted: true,
+        timestamps: { incomeStatement: '10:30', balanceSheet: '10:30', cashFlow: '10:30' },
+      }),
+    );
 
     const { result } = renderHook(() => useReportSettlement('household-1', 'user@example.com'));
 
@@ -255,11 +264,13 @@ describe('useReportSettlement', () => {
       netWorth: 3800,
     });
     expect(result.current.reportsGenerated).toBe(true);
+    expect(result.current.reportTimestamps).toEqual({
+      incomeStatement: '10:30',
+      balanceSheet: '10:30',
+      cashFlow: '10:30',
+    });
     expect(result.current.unsettledProjectNames).toEqual([]);
-    expect(result.current.unsettledAccountNames).toEqual([]);
-    expect(result.current.unsettledPortfolioNames).toEqual([]);
-    expect(result.current.unsettledDebtNames).toEqual([]);
-    expect(getUnsettledStatsUseCase.execute).toHaveBeenCalledWith({
+    expect(getSettlementReadinessUseCase.execute).toHaveBeenCalledWith({
       householdId: 'household-1',
       auth: {
         uid: 'user-1',
@@ -269,28 +280,24 @@ describe('useReportSettlement', () => {
       year,
       month,
     });
-    expect(reportService.generateIncomeStatement).toHaveBeenCalledWith(
-      'household-1',
-      yearMonth,
-      expect.any(Function),
-    );
-    expect(reportService.generateBalanceSheet).toHaveBeenCalledWith(
-      'household-1',
-      yearMonth,
-      expect.any(Function),
+    expect(previewFinancialReportsWorkflow.execute).toHaveBeenCalledWith(
+      expect.objectContaining({ householdId: 'household-1', year, month }),
     );
   });
 
   it('uses unified report label resolver with fallback support', async () => {
-    const { reportService } = await import('../../../../domains/report/reportService');
+    const { previewFinancialReportsWorkflow } = await import(
+      '../../../../application/report/use_cases/previewFinancialReportsWorkflow'
+    );
 
     renderHook(() => useReportSettlement('household-1', 'user@example.com'));
 
     await waitFor(() => {
-      expect(reportService.generateIncomeStatement).toHaveBeenCalled();
+      expect(previewFinancialReportsWorkflow.execute).toHaveBeenCalled();
     });
 
-    const resolver = vi.mocked(reportService.generateIncomeStatement).mock.calls[0]?.[2];
+    const resolver = vi.mocked(previewFinancialReportsWorkflow.execute).mock.calls[0]?.[0]
+      ?.labelResolver;
     expect(typeof resolver).toBe('function');
 
     const resolveLabel = resolver as (code: string, fallbackLabel?: string) => string;

@@ -25,20 +25,24 @@ export const useRetirementPlanDetailPage = (
     editedName,
     setEditedName,
     setIsEditingName,
+    staleIncomeSyncBanner,
+    handleApplyStaleIncomeSync,
+    handleDismissStaleIncomeSync,
     handleUpdatePlan,
     handleToggleAutoUpdate,
     handleRecalculate,
     handleDelete,
     handleSaveName,
     handleCancelEditName,
-    importData,
+    importIncomeData,
+    importDebtData,
   } = useRetirementPlanCore({ id, householdId, userEmail });
 
   const { handleAddExpense, handleUpdateExpense, handleDeleteExpense, handleImportDebtRepayments } =
     useRetirementExpenseActions({
       id,
       plan,
-      importData,
+      importDebtData,
       handleUpdatePlan,
     });
 
@@ -56,7 +60,7 @@ export const useRetirementPlanDetailPage = (
   } = useRetirementIncomeActions({
     id,
     plan,
-    importData,
+    importIncomeData,
     handleUpdatePlan,
   });
 
@@ -86,6 +90,9 @@ export const useRetirementPlanDetailPage = (
     editedName,
     setEditedName,
     setIsEditingName,
+    staleIncomeSyncBanner,
+    handleApplyStaleIncomeSync,
+    handleDismissStaleIncomeSync,
     handleUpdatePlan,
     handleToggleAutoUpdate,
     handleRecalculate,
@@ -103,6 +110,5 @@ export const useRetirementPlanDetailPage = (
     handleUpdateIncome,
     handleDeleteIncome,
     handleImportIncomeFromTransactions,
-    handleImportData: importData,
   };
 };

@@ -2,6 +2,8 @@
 
 本文描述退休系統的核心資料模型、收入導入流程、計算流程與維護規則。
 
+本文件是退休功能的流程與實作參考，不重新定義資料模型的決策約束。收入來源與匯入窗口見 [ADR-0023](adr/0023-retirement-income-from-entries-only.md) 至 [ADR-0025](adr/0025-retirement-sample-window-auto-shift.md)；子集合、計算模式、Repository 行為、事件與計畫生命週期見 [ADR-0026](adr/0026-retirement-plan-subcollections.md) 至 [ADR-0037](adr/0037-retirement-plan-duplicate-inactive.md)。欄位清單見 [data-structure.md](data-structure.md)。
+
 ## 1. 系統目標
 
 - 以交易分錄為唯一財務來源，避免重複維護平行收入資料。
@@ -14,123 +16,57 @@
 
 路徑：`households/{householdId}/retirement_plans/{planId}`
 
-主文件保留：
-
-- 假設參數（年齡、報酬率、通膨、現有資產）
-- 一次性事件 (`events`)
-- 快取摘要 (`summary`)
-- 啟用旗標 (`isActive`)
-
-啟用規則：
-
-- 同一 `household` 僅允許一筆 `isActive=true` 的退休計畫。
-- 當建立或更新任一計畫為 `isActive=true` 時，系統會自動將其他計畫設為 `isActive=false`。
-
-主文件不作為收入/支出類別唯一來源，改由子集合管理。
+主文件保留假設參數、事件、快取摘要與 `isActive`。收入與支出類別由子集合管理；其結構見 [ADR-0026](adr/0026-retirement-plan-subcollections.md)，同一 household 的 active 唯一性見 [ADR-0036](adr/0036-single-active-retirement-plan.md)，複製後的啟用狀態見 [ADR-0037](adr/0037-retirement-plan-duplicate-inactive.md)。
 
 ### 2.2 收入流子集合
 
 路徑：`households/{householdId}/retirement_plans/{planId}/incomeStreams/{incomeStreamId}`
 
-關鍵欄位：
-
-- `incomeCategory`: 對應會計科目，例如 `income:salary:charles`
-- `calculatedFrom.ledgerCode`: 記錄來源科目
-- `baseAmount`: 年化後金額
-- `importedFrom`: `manual` 或 `transactionEntries`
-- `incomeCalculationMode`: `FIXED`、`IMPORTED` 或 `DERIVED`
-  - `FIXED`: 用戶手動輸入，按 `baseAmount` 和 `growthRate` 計算
-  - `IMPORTED`: 由交易分錄導入，按 `baseAmount` 和 `growthRate` 計算
-  - `DERIVED`: 由另一收入來源衍生，使用 `derivedFrom.baseIncomeId` 和 `derivedFrom.multiplier`
-- `derivedFrom` (當 `incomeCalculationMode='DERIVED'`):
-  - `baseIncomeId`: 參考的基礎收入 id
-  - `multiplier`: 倍數（例如 1.67 代表 2 個月獎金）
+收入流以會計科目、收入類型、計算模式、年份連動設定與來源統計描述。三種計算模式的邊界見 [ADR-0027](adr/0027-income-calculation-mode-three-tier.md) 與 [ADR-0028](adr/0028-derived-income-no-independent-growth.md)；分錄來源、樣本年度與過期更新見 [ADR-0023](adr/0023-retirement-income-from-entries-only.md) 至 [ADR-0025](adr/0025-retirement-sample-window-auto-shift.md)。欄位詳見 [data-structure.md](data-structure.md)。
 
 ### 2.3 支出類別子集合
 
 路徑：`households/{householdId}/retirement_plans/{planId}/expenseCategories/{expenseCategoryId}`
 
-關鍵欄位：
-
-- `type`: `general` 或 `debt_payment`
-- `sourceDebtAccountId`: 債務匯入對應的 DebtAccount id
-- `includesPrincipal`: 是否包含本金（預設債務匯入為 true）
-- `interestOnly`: 是否只計利息
-- `calculatedFrom`: 債務匯入的來源統計（sample window、totalPaid、interestPaid）
+支出類別可由一般設定或 DebtAccount 匯入產生；本金/利息的計算語意見 [ADR-0033](adr/0033-debt-expense-principal-interest-mode.md)，欄位詳見 [data-structure.md](data-structure.md)。
 
 ### 2.4 事件模型（分段設定）
 
-事件支援 `phases[]`，可描述不同人生階段的不同計算模式。
-
-事件主欄位：
-
-- `name`
-- `type`: `income` | `expense`
-- `calculationMode`: 事件預設模式（主要作為設定語意）
-- `phases[]`
-
-每個 phase 欄位：
-
-- `name`
-- `startYear` / `endYear`
-- `mode`: `FIXED` | `SALARY_PERCENTAGE`
-- `amount` / `growthRate`（`FIXED` 模式）
-- `percentage` / `linkedIncomeId`（`SALARY_PERCENTAGE` 模式）
-
-相容性規則：
-
-- 舊版 `year` + `amount` 單次事件仍可讀取。
-- 系統會將舊資料視為單段 `FIXED` phase（`startYear=endYear=year`）。
+事件支援 `phases[]` 以描述不同人生階段的計算模式。phase 欄位與驗證見 [ADR-0034](adr/0034-event-phases-segmented.md)；舊版 `year` + `amount` 的讀取相容性見 [ADR-0035](adr/0035-legacy-single-event-compatibility.md)。
 
 ## 3. 收入導入流程
 
+分錄來源與年化規則見 [ADR-0023](adr/0023-retirement-income-from-entries-only.md) 與 [ADR-0024](adr/0024-retirement-income-import-annualized.md)；過期偵測與更新確認見 [ADR-0025](adr/0025-retirement-sample-window-auto-shift.md)。
+
 導入來源：`Transaction.entries`
+
+樣本窗口：**上一個完整年度**（`lastFullYear = 當前年份 - 1`）
 
 步驟：
 
-1. 查詢最近 12 個月 `transactions`
+1. 查詢 `lastFullYear` 整年的 `transactions`（1月1日～12月31日）
 2. 展開每筆 `entries`
 3. 篩選 `ledgerCode` 以 `income:` 開頭的分錄
 4. 依 `ledgerCode` 分組後加總 `(credit - debit)`
 5. 計算年化金額並建立對應 `incomeStream`
 
-輸出欄位：
+輸出欄位與 metadata 對應見 [data-structure.md](data-structure.md)；決策約束以 [ADR-0023](adr/0023-retirement-income-from-entries-only.md) 與 [ADR-0024](adr/0024-retirement-income-import-annualized.md) 為準。
 
-- `incomeCategory = ledgerCode`
-- `calculatedFrom.ledgerCode = ledgerCode`
-- `calculatedFrom.sampleCount = 該科目分錄數`
-- `calculatedFrom.startDate/endDate = 該科目樣本範圍`
+過期偵測與批次更新依 [ADR-0025](adr/0025-retirement-sample-window-auto-shift.md) 執行：頁面顯示 banner，使用者確認後才批次更新；`autoUpdate=false` 的收入流不納入自動更新。
 
 ## 3.5 派生收入計算流程
 
-派生收入是從另一收入來源衍生的收入（例如獎金 = 月薪 × 倍數）。
-
-特性：
-
-- 自動計算：用戶設定基礎收入、倍數，則派生收入自動跟隨基礎收入計算
-- 無獨立成長：派生收入不單獨設定成長率，僅受基礎收入年化成長影響
-- 依賴順序：計算時需先算出基礎收入，再計算派生收入
-
-計算規則：
+派生收入的語意與無獨立成長率規則見 [ADR-0028](adr/0028-derived-income-no-independent-growth.md)。計算時先解析基礎收入，再依下式計算：
 
 ```
 派生收入(年度 Y) = 基礎收入(年度 Y) × 倍數
 ```
 
-例子：
-
-- 用戶設定「月薪」：importedFrom=transactionEntries, baseAmount=$48000, growthRate=3%
-- 用戶設定「年終獎金」：incomeCalculationMode=DERIVED, baseIncomeId=salary_id, multiplier=1.67
-- 系統計算結果：
-  - 年度 1: 獎金 = $48000 × 1.67 = $80160
-  - 年度 2: 獎金 = $48000×1.03 × 1.67 = $82565
-
-Repository 行為：
-
-- 計算派生收入時，自動載入所有相關基礎收入並計算出年度值
-- 支援多層派生（A→B→C），按依賴順序迭代計算
+實作支援多層派生，計算順序需先完成基礎收入，再計算依賴它的收入。
 
 ## 4. 債務還款導入流程
+
+啟用帳戶範圍與本金/利息模式分別見 [ADR-0032](adr/0032-debt-import-active-only.md) 與 [ADR-0033](adr/0033-debt-expense-principal-interest-mode.md)。
 
 導入來源：`DebtAccount` + `DebtSnapshot`
 
@@ -142,27 +78,22 @@ Repository 行為：
 4. 讀取最近 12 個月 DebtSnapshot，彙總 `totalPaid` 與 `interestPaid`
 5. 建立固定支出項目並寫入 `expenseCategories`
 
-計算規則：
-
-- `includesPrincipal=true`: 年支出使用 `monthlyPayment * 12`
-- `interestOnly=true`: 年支出使用 snapshots 的 `interestPaid` 年化值
+`includesPrincipal` 與 `interestOnly` 的計算規則以 [ADR-0033](adr/0033-debt-expense-principal-interest-mode.md) 為準。
 
 ## 5. Repository 行為
 
-`retirementRepository` 的規則：
+Repository 與 Use Case 的規則集中在下表，本文不再複述決策理由：
 
-- `getPlan/getPlans`：讀取主文件後，載入 `incomeStreams` + `expenseCategories` 並組裝到 plan（完整資料）
-- `getPlanSummaries`：僅讀取 `retirement_plans` 主文件，不載入 `incomeStreams/expenseCategories`（供清單頁使用，避免 N+1）
-- `createPlan`：主文件建立時不直接寫 `incomes/expenses`，改寫入對應子集合
-- `updatePlan`：若 payload 含 `incomes` 或 `expenses`，以「整批替換」方式同步到子集合
-- `deletePlan`：先刪除 `incomeStreams`、`expenseCategories` 子集合文件，再刪除主文件
-- `setOnlyActivePlan`：批次更新同 household 所有 retirement plans，保留指定 `planId` 為 `isActive=true`
+| 行為                          | 權威 ADR                                                   |
+| ----------------------------- | ---------------------------------------------------------- |
+| 摘要查詢避免 N+1              | [ADR-0029](adr/0029-plan-summaries-avoid-n-plus-1.md)      |
+| income/expense 子集合整批替換 | [ADR-0030](adr/0030-retirement-update-batch-replace.md)    |
+| 刪除順序（歷史；已原子化）    | [ADR-0031](adr/0031-retirement-delete-order.md)            |
+| active plan 唯一性            | [ADR-0036](adr/0036-single-active-retirement-plan.md)      |
+| 複製後預設非啟用              | [ADR-0037](adr/0037-retirement-plan-duplicate-inactive.md) |
+| 寫入原子邊界、上限與併發      | [ADR-0040](adr/0040-retirement-plan-atomic-writes.md)      |
 
-Use Case 協作規則：
-
-- `CreateRetirementPlanUseCase`：當新建 plan 為 active，會呼叫 `setOnlyActivePlan`
-- `UpdateRetirementPlanUseCase`：當更新 `isActive=true`，會呼叫 `setOnlyActivePlan`
-- `DuplicateRetirementPlanUseCase`：複製來源 plan（含 assumptions/incomes/expenses/events/summary），新 plan 預設 `isActive=false`
+目前對應的主要操作包括 `getPlan/getPlans`、`getPlanSummaries`、`createPlan`、`updatePlan`、`deletePlan`、`setOnlyActivePlan` 與 `DuplicateRetirementPlanUseCase`；create/update/delete/duplicate 的寫入一律走 [ADR-0040](adr/0040-retirement-plan-atomic-writes.md) 的單一 transaction 邊界。
 
 ## 6. UI 操作
 
@@ -183,16 +114,6 @@ Use Case 協作規則：
 
 ## 7. 驗證重點
 
-- 收入匯入只統計 `income:*` 科目，避免把資產/負債分錄誤算成收入。
-- 收入分錄金額使用 `(credit - debit)`，避免方向顛倒。
-- 債務匯入必須只處理 `isActive=true` 帳戶。
-- `interestOnly` 模式必須來自 DebtSnapshot `interestPaid`，不可混用本金。
-- 所有導入 metadata 保留來源欄位（ledgerCode/debtAccountId），便於追蹤與稽核。
-- phase 驗證：
-  - `endYear >= startYear`
-  - `FIXED` 必填 `amount`
-  - `SALARY_PERCENTAGE` 必填 `percentage`
-- 事件資料需符合以下任一條件：
-  - 新版：`phases.length > 0`
-  - 舊版相容：同時具備 `year` 與 `amount`
-- active plan 唯一性必須成立（同 household 不能同時存在兩筆 `isActive=true`）。
+驗證應由 domain schema 與相關 ADR 驅動：收入模式與派生依賴見 [ADR-0027](adr/0027-income-calculation-mode-three-tier.md)／[ADR-0028](adr/0028-derived-income-no-independent-growth.md)，事件格式與相容性見 [ADR-0034](adr/0034-event-phases-segmented.md)／[ADR-0035](adr/0035-legacy-single-event-compatibility.md)，債務匯入見 [ADR-0032](adr/0032-debt-import-active-only.md)／[ADR-0033](adr/0033-debt-expense-principal-interest-mode.md)，計畫生命週期見 [ADR-0036](adr/0036-single-active-retirement-plan.md)／[ADR-0037](adr/0037-retirement-plan-duplicate-inactive.md)。
+
+匯入測試仍應覆蓋收入只取 `income:*`、使用 `(credit - debit)`、保留來源 metadata，以及目標年度沒有資料時保留原金額並留下警告等現行實作行為。

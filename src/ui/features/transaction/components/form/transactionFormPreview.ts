@@ -8,14 +8,11 @@ import {
   type FinancingFormState,
   type IncomeFormState,
   type InvestmentFormState,
-  type ProjectTransferFormState,
   type TransactionFormCategoryOption,
   type TransactionFormOutput,
   type TransactionFormProjectOption,
   type TransactionFormTab,
 } from '@/ui/features/transaction/types/transaction';
-
-const getToday = () => new Date().toISOString().slice(0, 10);
 
 const parseAmount = (amount: string) => {
   const parsed = Number.parseFloat(amount);
@@ -137,29 +134,6 @@ const previewCategory = (
   };
 };
 
-const previewProjectTransfer = (
-  projectTransfer: ProjectTransferFormState,
-): TransactionFormOutput | null => {
-  const amount = parseAmount(projectTransfer.amount);
-  if (
-    !amount ||
-    !projectTransfer.fromProjectId ||
-    !projectTransfer.toProjectId ||
-    projectTransfer.fromProjectId === projectTransfer.toProjectId
-  ) {
-    return null;
-  }
-
-  return {
-    intentType: 'TRANSFER',
-    date: getToday(),
-    amount,
-    fromProjectId: projectTransfer.fromProjectId,
-    toProjectId: projectTransfer.toProjectId,
-    description: projectTransfer.description || undefined,
-  };
-};
-
 const previewAdvanced = (advanced: AdvancedFormState): TransactionFormOutput | null => {
   const amount = parseAmount(advanced.amount);
   if (!amount || !advanced.date || !advanced.ledgerCode) return null;
@@ -181,7 +155,6 @@ export const buildPreview = (input: {
   income: IncomeFormState;
   investment: InvestmentFormState;
   financing: FinancingFormState;
-  projectTransfer: ProjectTransferFormState;
   advanced: AdvancedFormState;
   debtPayment: DebtPaymentFormState;
   debtAccounts?: DebtAccount[];
@@ -192,7 +165,6 @@ export const buildPreview = (input: {
     income,
     investment,
     financing,
-    projectTransfer,
     advanced,
     debtPayment,
     debtAccounts = [],
@@ -202,7 +174,6 @@ export const buildPreview = (input: {
   if (activeTab === 'INCOME') return previewIncome(income);
   if (activeTab === 'INVESTMENT') return previewCategory('INVESTMENT', investment);
   if (activeTab === 'FINANCING') return previewCategory('FINANCING', financing);
-  if (activeTab === 'TRANSFER') return previewProjectTransfer(projectTransfer);
   if (activeTab === 'ADVANCED') return previewAdvanced(advanced);
   if (activeTab === 'DEBT_PAYMENT') {
     const total = parseAmount(debtPayment.totalPayment);
@@ -279,12 +250,6 @@ export const buildPreviewDetails = (input: {
       findCategoryLabel(financingCategories, preview.intent || preview.ledgerCode),
       getUnifiedLedgerCodeLabel(preview.ledgerCode),
       preview.date,
-    ].filter(Boolean);
-  }
-
-  if (preview.intentType === 'TRANSFER') {
-    return [
-      `${findProjectLabel(projects, preview.fromProjectId)} -> ${findProjectLabel(projects, preview.toProjectId)}`,
     ].filter(Boolean);
   }
 

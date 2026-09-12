@@ -1,4 +1,4 @@
-name: Unit Tests
+name: CI
 
 on:
   push:
@@ -6,25 +6,37 @@ on:
   pull_request:
     branches: [main, develop]
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   test:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
+
+      # No `version` input: packageManager in package.json is the single source of
+      # truth. Passing both fails with "Multiple versions of pnpm specified".
+      - name: Install pnpm
+        uses: pnpm/action-setup@v5
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
-          node-version: '20'
-
-      - name: Install pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 10
+          node-version-file: .nvmrc
+          cache: pnpm
 
       - name: Install dependencies
-        run: pnpm install
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Typecheck
+        run: pnpm exec tsc -b
 
       - name: Start Firebase emulators
         working-directory: firebase-emulator
@@ -32,6 +44,9 @@ jobs:
 
       - name: Run tests
         run: pnpm test
+
+      - name: Run Firestore Emulator integration tests
+        run: pnpm test:integration
 
       - name: Stop Firebase emulators
         if: always()

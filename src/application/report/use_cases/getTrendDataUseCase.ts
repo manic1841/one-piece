@@ -1,5 +1,6 @@
 import { listPortfolioSnapshotsUseCase } from '@/application/portfolio/use_cases/listPortfolioSnapshotsUseCase';
 import { listPortfoliosUseCase } from '@/application/portfolio/use_cases/listPortfoliosUseCase';
+import { type AuthContext } from '@/application/types';
 import { ReportType } from '@/domains/report/schemas';
 import { type TrendDataPoint } from '@/domains/report/types';
 import { logger } from '@/utils/logger';
@@ -16,10 +17,7 @@ const toYearMonthKey = (year: number, month: number): string =>
 
 interface GetTrendDataRequest {
   householdId: string;
-  auth: {
-    uid: string;
-    isGlobalAdmin: boolean;
-  };
+  auth: AuthContext;
 }
 
 class GetTrendDataUseCase {

@@ -3,6 +3,33 @@ import { useEffect, useState } from 'react';
 import { ZodError } from 'zod';
 
 import type { RetirementIncomeSource } from '@/domains/retirement/types';
+
+interface LedgerEntry {
+  ledgerCode: string;
+  credit?: number | null;
+  debit?: number | null;
+}
+
+interface TransactionWithEntries {
+  entries: LedgerEntry[];
+}
+
+function sumLedgerCodeAmounts(
+  transactions: TransactionWithEntries[],
+  ledgerCode: string,
+): { totalAmount: number; sampleCount: number } {
+  let totalAmount = 0;
+  let sampleCount = 0;
+  for (const transaction of transactions) {
+    for (const entry of transaction.entries) {
+      if (entry.ledgerCode === ledgerCode) {
+        totalAmount += (entry.credit || 0) - (entry.debit || 0);
+        sampleCount += 1;
+      }
+    }
+  }
+  return { totalAmount, sampleCount };
+}
 import {
   RetirementIncomeFormVMSchema,
   buildRetirementIncomeFormVM,
@@ -53,7 +80,15 @@ export function useRetirementIncomeDialog({
 
   // Income-specific fields
   const [type, setType] = useState<RetirementIncomeSource['type']>(initialForm.type);
-  const [endYear, setEndYear] = useState<number>(initialForm.endYear);
+  const [endYear, setEndYear] = useState<number>(initialForm.endYear ?? currentYear + 20);
+  const [startYearMode, setStartYearMode] = useState<'MANUAL' | 'LINKED_TO_RETIREMENT'>(
+    initialForm.startYearMode,
+  );
+  const [endYearMode, setEndYearMode] = useState<'MANUAL' | 'LINKED_TO_RETIREMENT'>(
+    initialForm.endYearMode,
+  );
+  const [lifelong, setLifelong] = useState<boolean>(initialForm.lifelong);
+  const [autoUpdate, setAutoUpdate] = useState<boolean>(initialForm.autoUpdate);
   const [incomeCategory, setIncomeCategory] = useState<string | undefined>(
     initialForm.incomeCategory,
   );
@@ -65,11 +100,8 @@ export function useRetirementIncomeDialog({
   const [ledgerCode, setLedgerCode] = useState<string>(
     initialForm.calculatedFrom?.ledgerCode ?? '',
   );
-  const [sampleStartDate, setSampleStartDate] = useState<string>(
-    initialForm.calculatedFrom?.startDate ?? '',
-  );
-  const [sampleEndDate, setSampleEndDate] = useState<string>(
-    initialForm.calculatedFrom?.endDate ?? '',
+  const [sampleYear, setSampleYear] = useState<number>(
+    initialForm.calculatedFrom?.sampleYear ?? currentYear - 1,
   );
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [calculating, setCalculating] = useState(false);
@@ -80,14 +112,17 @@ export function useRetirementIncomeDialog({
       setSubmitError(null);
       const form = buildRetirementIncomeFormVM(initialData, currentYear);
       setType(form.type);
-      setEndYear(form.endYear);
+      setEndYear(form.endYear ?? currentYear + 20);
+      setStartYearMode(form.startYearMode);
+      setEndYearMode(form.endYearMode);
+      setLifelong(form.lifelong);
+      setAutoUpdate(form.autoUpdate);
       setIncomeCategory(form.incomeCategory);
       setIncomeCalculationMode(form.incomeCalculationMode ?? 'FIXED');
       setBaseIncomeId(form.baseIncomeId);
       setMultiplier(form.multiplier ?? 1);
       setLedgerCode(form.calculatedFrom?.ledgerCode ?? '');
-      setSampleStartDate(form.calculatedFrom?.startDate ?? '');
-      setSampleEndDate(form.calculatedFrom?.endDate ?? '');
+      setSampleYear(form.calculatedFrom?.sampleYear ?? currentYear - 1);
     }
   }, [open, initialData, currentYear]);
 
@@ -104,11 +139,8 @@ export function useRetirementIncomeDialog({
       if (!normalizedLedgerCode.startsWith('income:')) {
         throw new Error('Ledger Code must start with income:.');
       }
-      if (!sampleStartDate || !sampleEndDate) {
-        throw new Error('Sample start and end dates are required.');
-      }
-      if (sampleStartDate > sampleEndDate) {
-        throw new Error('Sample start date must be earlier than or equal to end date.');
+      if (!Number.isInteger(sampleYear) || sampleYear < 1970) {
+        throw new Error('Sample year is invalid.');
       }
 
       // Import dynamically to avoid circular dependencies
@@ -116,9 +148,8 @@ export function useRetirementIncomeDialog({
       const { where } = await import('firebase/firestore');
 
       // Query transactions for the given ledger code within the date range
-      const startDate = new Date(sampleStartDate);
-      const endDate = new Date(sampleEndDate);
-      endDate.setDate(endDate.getDate() + 1); // Include end date
+      const startDate = new Date(sampleYear, 0, 1);
+      const endDate = new Date(sampleYear + 1, 0, 1);
 
       const transactions = await transactionRepository.list(
         [householdId],
@@ -131,16 +162,15 @@ export function useRetirementIncomeDialog({
 
       // Sum the amounts for this ledger code across all transactions
       // For income ledger codes, sum the credit amounts
-      let totalAmount = 0;
-      for (const transaction of transactions) {
-        for (const entry of transaction.entries) {
-          if (entry.ledgerCode === normalizedLedgerCode) {
-            totalAmount += entry.credit; // Income is typically credited
-          }
-        }
-      }
+      const { totalAmount, sampleCount } = sumLedgerCodeAmounts(
+        transactions,
+        normalizedLedgerCode,
+      );
 
-      setAmount(totalAmount);
+      setAmount(Math.round(totalAmount));
+      if (sampleCount === 0) {
+        setSubmitError(`No entries found for ${normalizedLedgerCode} in ${sampleYear}.`);
+      }
     } catch (error) {
       if (error instanceof Error) {
         setSubmitError(error.message);
@@ -198,19 +228,15 @@ export function useRetirementIncomeDialog({
         if (!normalizedLedgerCode.startsWith('income:')) {
           throw new Error('Ledger Code must start with income:.');
         }
-        if (!sampleStartDate || !sampleEndDate) {
-          throw new Error('Sample start and end dates are required.');
-        }
-        if (sampleStartDate > sampleEndDate) {
-          throw new Error('Sample start date must be earlier than or equal to end date.');
+        if (!Number.isInteger(sampleYear) || sampleYear < 1970) {
+          throw new Error('Sample year is invalid.');
         }
       }
 
       const calculatedFrom = isImported
         ? {
             ledgerCode: normalizedLedgerCode,
-            startDate: sampleStartDate,
-            endDate: sampleEndDate,
+            sampleYear,
             totalAmount: amount,
             monthlyAverage: amount / 12,
             sampleCount: 12,
@@ -218,13 +244,20 @@ export function useRetirementIncomeDialog({
           }
         : undefined;
 
+      const effectiveEndYear =
+        lifelong || endYearMode === 'LINKED_TO_RETIREMENT' ? undefined : endYear;
+
       const vm = RetirementIncomeFormVMSchema.parse({
         name,
         type,
+        autoUpdate: isImported ? autoUpdate : false,
         baseAmount: amount,
         growthRate,
+        startYearMode,
+        endYearMode,
+        lifelong,
         startYear,
-        endYear,
+        endYear: effectiveEndYear,
         importedFrom: isImported ? 'transactionEntries' : 'manual',
         incomeCalculationMode,
         calculatedFrom,
@@ -266,6 +299,14 @@ export function useRetirementIncomeDialog({
     setStartYear,
     endYear,
     setEndYear,
+    startYearMode,
+    setStartYearMode,
+    endYearMode,
+    setEndYearMode,
+    lifelong,
+    setLifelong,
+    autoUpdate,
+    setAutoUpdate,
     incomeCalculationMode,
     setIncomeCalculationMode,
     baseIncomeId,
@@ -274,10 +315,8 @@ export function useRetirementIncomeDialog({
     setMultiplier,
     ledgerCode,
     setLedgerCode,
-    sampleStartDate,
-    setSampleStartDate,
-    sampleEndDate,
-    setSampleEndDate,
+    sampleYear,
+    setSampleYear,
     submitError,
     calculating,
 

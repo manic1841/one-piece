@@ -2,6 +2,8 @@
 
 One-Piece 結合了「管理會計 (Projects)」與「財務會計 (Accounts)」的概念。以下說明三大報表的具體來源。
 
+本文件只說明報表計算流程。手動產生前置條件、資產負債表的混合制，以及現金流量表兩種餘額的定義，分別以 [ADR-0018](adr/0018-manual-financial-report-generation.md)、[ADR-0019](adr/0019-balance-sheet-hybrid-equity-derived.md)、[ADR-0020](adr/0020-cash-flow-ending-vs-actual-balance.md) 為準。
+
 ## 0. 報表產生前置檢查
 
 - 報表頁在產生正式報表前，會先檢查以下「啟用中」資產負債來源是否都有該月份結算快照：
@@ -13,6 +15,8 @@ One-Piece 結合了「管理會計 (Projects)」與「財務會計 (Accounts)」
 - 若某一類別在當月沒有任何啟用中資料，則該類別視為通過，不應單獨阻擋報表生成。
 - 債務類別另有提示：若某些債務帳戶在當月沒有還款紀錄，系統會顯示「無還款警訊」供使用者檢查。
   此警訊屬於風險提醒，不會直接阻擋結算；使用者仍可在債務結算預覽中確認後繼續。
+
+上述手動觸發與四類快照檢查的決策依據見 [ADR-0018](adr/0018-manual-financial-report-generation.md)。
 
 ---
 
@@ -38,6 +42,8 @@ One-Piece 結合了「管理會計 (Projects)」與「財務會計 (Accounts)」
 
 資產負債表反映特定時間點的財務存量，由**帳戶快照**與**當前分錄**共同構成。
 
+帳戶快照與分錄的混合制，以及權益直接推算的規則，詳見 [ADR-0019](adr/0019-balance-sheet-hybrid-equity-derived.md)。
+
 ### 資料來源
 
 - **帳戶快照 (Account Snapshots)**: 提供當月月底的實體帳戶餘額（銀行、證券、現金）。
@@ -56,6 +62,8 @@ One-Piece 結合了「管理會計 (Projects)」與「財務會計 (Accounts)」
 ## 3. 現金流量表 (Cash Flow)
 
 現金流量表反映現金的實際流動情況，主要由**現金類帳戶的交易分錄**驅動。
+
+`endingBalance` 與 `actualBalance` 的分工及差異處理，詳見 [ADR-0020](adr/0020-cash-flow-ending-vs-actual-balance.md)。
 
 ### 資料來源
 

@@ -3,21 +3,17 @@ import { useCallback, useEffect, useState } from 'react';
 import { exportHouseholdBackupUseCase } from '@/application/household/use_cases/exportHouseholdBackupUseCase';
 import { getHouseholdUseCase } from '@/application/household/use_cases/getHouseholdUseCase';
 import { importHouseholdBackupUseCase } from '@/application/household/use_cases/importHouseholdBackupUseCase';
-import { type AuthContext } from '@/application/types';
 import { RoleEnum } from '@/domains/auth/role';
 import { type Household } from '@/domains/household/schemas';
 import { useAuth } from '@/infra/contexts/useAuth';
 import { useGetUserProfile } from '@/ui/features/setting/hooks/useGetUserProfile';
 import { useHousehold } from '@/ui/features/setting/hooks/useHousehold';
 import { useWhitelist } from '@/ui/features/setting/hooks/useWhitelist';
+import { useAuthContext } from '@/ui/hooks/useAuthContext';
 
 export const useSettingsPage = () => {
   const { currentUser, userProfile, isAdmin } = useAuth();
-  const authContext: AuthContext = {
-    uid: currentUser?.uid || '',
-    email: currentUser?.email || undefined,
-    isGlobalAdmin: isAdmin,
-  };
+  const authContext = useAuthContext();
 
   const [loading, setLoading] = useState(true);
 

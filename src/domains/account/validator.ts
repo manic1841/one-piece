@@ -1,4 +1,4 @@
-import { nullOrData } from '@/ui/constants/empty';
+import { nullOrData } from '@/shared/constants/empty';
 
 import type { AccountFormData, AccountSnapshotFormData } from './types';
 
