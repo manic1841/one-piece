@@ -7,6 +7,7 @@ import {
   type SettlementPreviewItemVM,
   mapSettlementToPreviewVM,
 } from '@/ui/features/project/viewmodels/settlementPreview.vm';
+import { useAuthContext } from '@/ui/hooks/useAuthContext';
 
 export const DialogStatus = {
   SELECTION: 'selection',
@@ -25,6 +26,7 @@ export const useSettlementDialog = (
   onClose?: () => void,
 ) => {
   const currentDate = new Date();
+  const auth = useAuthContext();
   const [status, setStatus] = useState<DialogStatusType>(DialogStatus.SELECTION);
   const [year, setYear] = useState(currentDate.getFullYear());
   const [month, setMonth] = useState(currentDate.getMonth() + 1);
@@ -45,6 +47,7 @@ export const useSettlementDialog = (
         projects,
         year,
         month,
+        auth,
       });
       setSettlements(previews.map(mapSettlementToPreviewVM));
       setStatus(DialogStatus.PREVIEW);
@@ -76,7 +79,12 @@ export const useSettlementDialog = (
 
     try {
       const yearMonth = `${year}-${month.toString().padStart(2, '0')}`;
-      await settleProjectsUseCase.execute({ householdId, yearMonth, userEmail });
+      await settleProjectsUseCase.execute({
+        householdId,
+        yearMonth,
+        userEmail,
+        auth,
+      });
 
       setStatus(DialogStatus.DONE);
       setTimeout(() => {

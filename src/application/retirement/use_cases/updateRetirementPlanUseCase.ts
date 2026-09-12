@@ -1,31 +1,25 @@
+import {
+  RetirementPlanCommandError,
+  RetirementPlanCommandErrorCode,
+  RETIREMENT_PLAN_TRANSACTION_WRITE_LIMIT,
+  estimateRetirementPlanWriteCount,
+} from '@/domains/retirement/retirementPlanErrors';
 import { householdPermissionService } from '@/application/household/householdPermissionService';
+import { type AuthContext } from '@/application/types';
 import { type RetirementPlanCreate } from '@/domains/retirement/types';
 import { retirementRepository } from '@/infra/repositories/retirementRepository';
-import { logger } from '@/utils/logger';
 
 interface UpdateRetirementPlanRequest {
   householdId: string;
   planId: string;
   updates: Partial<RetirementPlanCreate>;
   userEmail: string;
-  auth: {
-    uid: string;
-    isGlobalAdmin: boolean;
-  };
+  auth: AuthContext;
 }
 
 export class UpdateRetirementPlanUseCase {
   async execute(request: UpdateRetirementPlanRequest): Promise<void> {
     const { householdId, planId, updates, userEmail, auth } = request;
-
-    logger.debug('UpdateRetirementPlan started', 'retirement/updateRetirementPlanUseCase', {
-      householdId,
-      planId,
-      userEmail,
-      updateKeys: Object.keys(updates),
-      hasExpenses: Array.isArray(updates.expenses),
-      expensesCount: Array.isArray(updates.expenses) ? updates.expenses.length : undefined,
-    });
 
     await householdPermissionService.assertWritePermission(
       householdId,
@@ -33,31 +27,46 @@ export class UpdateRetirementPlanUseCase {
       auth.isGlobalAdmin,
     );
 
-    logger.debug('Permission check passed', 'retirement/updateRetirementPlanUseCase', {
-      householdId,
-      planId,
-      uid: auth.uid,
-    });
+    try {
+      const existingPlans =
+        updates.isActive === true
+          ? await retirementRepository.getPlanSummaries(householdId)
+          : [];
 
-    await retirementRepository.updatePlan(householdId, planId, userEmail, updates);
+      // Whole-batch replacement deletes every stale child before writing the
+      // new list, so both sides count toward the transaction write limit.
+      const fanOutUpdateCount =
+        updates.isActive === true ? Math.max(existingPlans.length - 1, 0) : 0;
+      const writeCount = estimateRetirementPlanWriteCount({
+        staleChildCount:
+          (updates.incomes ? await retirementRepository.countChildren(householdId, planId, 'incomes') : 0) +
+          (updates.expenses ? await retirementRepository.countChildren(householdId, planId, 'expenses') : 0),
+        newChildCount: (updates.incomes?.length ?? 0) + (updates.expenses?.length ?? 0),
+        fanOutUpdateCount,
+      });
+      if (writeCount > RETIREMENT_PLAN_TRANSACTION_WRITE_LIMIT) {
+        throw new RetirementPlanCommandError(
+          RetirementPlanCommandErrorCode.PLAN_TOO_LARGE,
+          'plan write count exceeds the transaction limit',
+        );
+      }
 
-    logger.debug('Repository updatePlan completed', 'retirement/updateRetirementPlanUseCase', {
-      householdId,
-      planId,
-    });
-
-    if (updates.isActive === true) {
-      await retirementRepository.setOnlyActivePlan(householdId, planId, userEmail);
-      logger.info('setOnlyActivePlan completed', 'retirement/updateRetirementPlanUseCase', {
+      await retirementRepository.updatePlanAtomically({
         householdId,
         planId,
+        updates,
+        userEmail,
+        existingPlans,
       });
-    }
+    } catch (error: unknown) {
+      if (error instanceof RetirementPlanCommandError) throw error;
 
-    logger.info('UpdateRetirementPlan completed', 'retirement/updateRetirementPlanUseCase', {
-      householdId,
-      planId,
-    });
+      const message = error instanceof Error ? error.message : 'unknown transaction failure';
+      throw new RetirementPlanCommandError(
+        RetirementPlanCommandErrorCode.TRANSACTION_FAILED,
+        message,
+      );
+    }
   }
 }
 

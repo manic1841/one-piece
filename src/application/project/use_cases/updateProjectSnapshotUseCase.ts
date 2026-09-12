@@ -1,5 +1,3 @@
-import { type Transaction } from 'firebase/firestore';
-
 import { householdPermissionService } from '@/application/household/householdPermissionService';
 import { type AuthContext } from '@/application/types';
 import { type ProjectSnapshot } from '@/domains/project/schemas';
@@ -12,23 +10,20 @@ export interface UpdateProjectSnapshotRequest {
   updates: Partial<ProjectSnapshot>;
   userEmail: string;
   auth: AuthContext;
-  tx?: Transaction;
 }
 
 export class UpdateProjectSnapshotUseCase {
   async execute(request: UpdateProjectSnapshotRequest): Promise<void> {
-    const { householdId, projectId, snapshotId, updates, userEmail, auth, tx } = request;
+    const { householdId, projectId, snapshotId, updates, userEmail, auth } = request;
     await householdPermissionService.assertWritePermission(
       householdId,
       auth.uid,
       auth.isGlobalAdmin,
-      tx,
     );
     return projectSnapshotRepository.update(
       [householdId, projectId, snapshotId],
       updates,
       userEmail,
-      tx,
     );
   }
 }

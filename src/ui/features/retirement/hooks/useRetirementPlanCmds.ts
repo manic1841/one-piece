@@ -1,29 +1,25 @@
-import { useCallback, useMemo } from 'react';
+import { useCallback } from 'react';
 
 import { createRetirementPlanUseCase } from '@/application/retirement/use_cases/createRetirementPlanUseCase';
 import { deleteRetirementPlanUseCase } from '@/application/retirement/use_cases/deleteRetirementPlanUseCase';
 import { duplicateRetirementPlanUseCase } from '@/application/retirement/use_cases/duplicateRetirementPlanUseCase';
-import { importRetirementDataUseCase } from '@/application/retirement/use_cases/importRetirementDataUseCase';
+import { importRetirementDebtUseCase } from '@/application/retirement/use_cases/importRetirementDebtUseCase';
+import { importRetirementIncomeUseCase } from '@/application/retirement/use_cases/importRetirementIncomeUseCase';
 import { updateRetirementPlanUseCase } from '@/application/retirement/use_cases/updateRetirementPlanUseCase';
 import {
   type RetirementExpenseCategory,
   type RetirementIncomeSource,
   type RetirementPlanCreate,
 } from '@/domains/retirement/types';
-import { useAuth } from '@/infra/contexts/useAuth';
+import { useAuthContext } from '@/ui/hooks/useAuthContext';
 import { useLoadingTask } from '@/ui/hooks/useLoadingTask';
 
 export function useRetirementPlanCmds(
   householdId: string | undefined,
   userEmail: string | undefined,
 ) {
-  const { currentUser, isAdmin } = useAuth();
+  const auth = useAuthContext();
   const { loading, error, run } = useLoadingTask();
-
-  const auth = useMemo(
-    () => ({ uid: currentUser?.uid || '', isGlobalAdmin: isAdmin }),
-    [currentUser?.uid, isAdmin],
-  );
 
   const createPlan = useCallback(
     async (plan: RetirementPlanCreate): Promise<string | null> => {
@@ -92,14 +88,22 @@ export function useRetirementPlanCmds(
     [householdId, userEmail, auth, run],
   );
 
-  const importData = useCallback(
-    async (
-      type: 'transactions' | 'debtRepayments',
-      referenceMonths: number = 12,
-    ): Promise<RetirementExpenseCategory[] | RetirementIncomeSource[]> => {
+  const importIncomeData = useCallback(
+    async (): Promise<RetirementIncomeSource[]> => {
       if (!householdId) return [];
       const result = await run(async () => {
-        return importRetirementDataUseCase.execute({ householdId, referenceMonths, type, auth });
+        return importRetirementIncomeUseCase.execute({ householdId, auth });
+      });
+      return result || [];
+    },
+    [householdId, auth, run],
+  );
+
+  const importDebtData = useCallback(
+    async (): Promise<RetirementExpenseCategory[]> => {
+      if (!householdId) return [];
+      const result = await run(async () => {
+        return importRetirementDebtUseCase.execute({ householdId, auth });
       });
       return result || [];
     },
@@ -111,7 +115,8 @@ export function useRetirementPlanCmds(
     updatePlan,
     deletePlan,
     duplicatePlan,
-    importData,
+    importIncomeData,
+    importDebtData,
     loading,
     error,
   };

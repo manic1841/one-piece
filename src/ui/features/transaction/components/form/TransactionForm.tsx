@@ -1,7 +1,6 @@
 import React from 'react';
 
 import {
-  ArrowRightLeft,
   CreditCard,
   HandCoins,
   Landmark,
@@ -27,7 +26,6 @@ import { CategoryPanel } from '@/ui/features/transaction/components/form/Categor
 import { DebtPaymentPanel } from '@/ui/features/transaction/components/form/DebtPaymentPanel';
 import { ExpensePanel } from '@/ui/features/transaction/components/form/ExpensePanel';
 import { IncomePanel } from '@/ui/features/transaction/components/form/IncomePanel';
-import { ProjectTransferPanel } from '@/ui/features/transaction/components/form/ProjectTransferPanel';
 import { useTransactionFormState } from '@/ui/features/transaction/hooks/useTransactionFormState';
 import { type AllocationItemInput } from '@/ui/features/transaction/types/allocation';
 import {
@@ -93,7 +91,6 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
     income,
     investment,
     financing,
-    projectTransfer,
     advanced,
     debtPayment,
   } = state;
@@ -103,7 +100,6 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
     setIncome,
     setInvestment,
     setFinancing,
-    setProjectTransfer,
     setAdvanced,
     setDebtPayment,
   } = setters;
@@ -149,30 +145,26 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
             value={activeTab}
             onValueChange={(value) => setActiveTab(value as TransactionFormTab)}
           >
-            <TabsList className="grid h-auto w-full grid-cols-3 gap-2 rounded-xl p-2 md:grid-cols-7">
+            <TabsList className="grid h-auto w-full grid-cols-3 gap-2 rounded-xl p-2 md:grid-cols-6">
               <TabsTrigger value="EXPENSE" className="gap-1">
                 <ReceiptText className="h-3.5 w-3.5" />
-                支出
+                {getIntentTypeLabel('EXPENSE')}
               </TabsTrigger>
               <TabsTrigger value="INCOME" className="gap-1">
                 <Landmark className="h-3.5 w-3.5" />
-                收入
+                {getIntentTypeLabel('INCOME')}
               </TabsTrigger>
               <TabsTrigger value="INVESTMENT" className="gap-1">
                 <Landmark className="h-3.5 w-3.5" />
-                投資
+                {getIntentTypeLabel('INVESTMENT')}
               </TabsTrigger>
               <TabsTrigger value="FINANCING" className="gap-1">
                 <HandCoins className="h-3.5 w-3.5" />
-                融資
-              </TabsTrigger>
-              <TabsTrigger value="TRANSFER" className="gap-1">
-                <ArrowRightLeft className="h-3.5 w-3.5" />
-                專案轉帳
+                {getIntentTypeLabel('FINANCING')}
               </TabsTrigger>
               <TabsTrigger value="DEBT_PAYMENT" className="gap-1">
                 <CreditCard className="h-3.5 w-3.5" />
-                還款
+                {getIntentTypeLabel('DEBT_PAYMENT')}
               </TabsTrigger>
               <TabsTrigger value="ADVANCED" className="gap-1">
                 <SlidersHorizontal className="h-3.5 w-3.5" />
@@ -202,7 +194,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
 
             <TabsContent value="INVESTMENT" className="mt-4">
               <CategoryPanel
-                title="投資"
+                title={getIntentTypeLabel('INVESTMENT')}
                 tone="neutral"
                 state={investment}
                 categories={investmentCategories}
@@ -214,21 +206,13 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
 
             <TabsContent value="FINANCING" className="mt-4">
               <CategoryPanel
-                title="融資"
+                title={getIntentTypeLabel('FINANCING')}
                 tone="neutral"
                 state={financing}
                 categories={financingCategories}
                 projects={projects}
                 allLedgerCodes={allActiveLedgerCodes}
                 onChange={setFinancing}
-              />
-            </TabsContent>
-
-            <TabsContent value="TRANSFER" className="mt-4">
-              <ProjectTransferPanel
-                state={projectTransfer}
-                projects={projects}
-                onChange={setProjectTransfer}
               />
             </TabsContent>
 

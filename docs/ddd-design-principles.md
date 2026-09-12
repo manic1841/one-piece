@@ -18,6 +18,19 @@ Based on modern DDD practices and adjusted for our project's scale, these princi
     - **Cross-domain orchestration**
 - **Rules**: 不應包含核心業務邏輯。**絕對保持純粹 (Pure TS/JS)，不依賴於任何 UI 框架。**
 
+### Workflow Pattern (編排型 Workflow)
+
+當一個流程需要協調多個 use case 時，可建立 Workflow（如 `previewFinancialReportsWorkflow`）。
+Workflow 與 use case 的分工如下：
+
+- **Workflow 只負責組織**：決定 use case 的呼叫順序、傳遞資料、組合結果。
+- **Workflow 不得直接依賴**：repository、domain 計算函數、firebase SDK。
+  需要資料讀取或領域計算時，必須呼叫負責的 use case。
+- **Use case 擁有邏輯**：資料讀取（如 `fetchReportDataUseCase`）、
+  領域計算（呼叫 domain pure function）、權限檢查（如 persistence state 檢查）
+  都屬於 use case 的職責。
+- Workflow 可以執行入口的權限把關（auth check），因為它是該流程的入口。
+
 ### 📂 Infrastructure Layer (基礎層) - `src/infra/`
 - **Concrete Implementations**: 具體的資料庫操作 (Firestore Repositories)、外接 API。
 - **Persistence Schemas**: 與資料庫存儲結構對應的 Schema。

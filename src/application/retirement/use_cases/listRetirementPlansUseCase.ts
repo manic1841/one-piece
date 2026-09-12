@@ -1,13 +1,11 @@
+import { type AuthContext } from '@/application/types';
 import { householdPermissionService } from '@/application/household/householdPermissionService';
 import { type RetirementPlan } from '@/domains/retirement/types';
 import { retirementRepository } from '@/infra/repositories/retirementRepository';
 
 interface ListRetirementPlansRequest {
   householdId: string;
-  auth: {
-    uid: string;
-    isGlobalAdmin: boolean;
-  };
+  auth: AuthContext;
 }
 
 export class ListRetirementPlansUseCase {

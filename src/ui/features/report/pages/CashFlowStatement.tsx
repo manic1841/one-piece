@@ -11,6 +11,7 @@ import {
 
 import { Alert, AlertDescription, AlertTitle } from '@/ui/components/ui/alert';
 import { Card, CardContent } from '@/ui/components/ui/card';
+import { REPORT_VIEW_TITLES } from '@/ui/constants/report/reportViewLabels';
 import { useCashFlow } from '@/ui/features/report/hooks/useCashFlow';
 import { type CashFlowGroupVM } from '@/ui/features/report/viewmodels/reportDisplay.vm';
 import { cn } from '@/ui/utils/cn';
@@ -169,7 +170,7 @@ const CashFlowStatement: React.FC<CashFlowStatementProps> = ({
   return (
     <div className="max-w-4xl mx-auto space-y-6 pb-20">
       <ReportHeader
-        title="現金流量表 (Cash Flow)"
+        title={REPORT_VIEW_TITLES.CASH_FLOW}
         subtitle="資金來源與去向，衡量財務流動性。"
         currentDate={currentDate}
         onDateChange={onDateChange}

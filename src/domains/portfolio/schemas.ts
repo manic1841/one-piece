@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 // Import HoldingSchema from account domain
 import { HoldingSchema } from '@/domains/account/types/account';
-import { BaseSchema } from '@/infra/schemas/base';
+import { BaseSchema } from '@/shared/schemas/base';
 
 // Portfolio Account Snapshot (embedded in PortfolioSnapshot)
 export const PortfolioAccountSnapshotSchema = z.object({

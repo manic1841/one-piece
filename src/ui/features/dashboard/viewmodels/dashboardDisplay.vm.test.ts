@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   formatCompactAxisValue,
+  formatTrendTooltipValue,
   mapAssetTrendDataToChartPoints,
   mapAssetTrendMetricToVM,
   mapAssetTrendStatusToBadgeVM,
@@ -34,6 +35,43 @@ describe('dashboardDisplay.vm', () => {
     expect(vm.unpaidCountText).toBe('2');
     expect(vm.isUnpaid).toBe(true);
     expect(vm.unpaidContainerClassName).toContain('bg-rose-50');
+  });
+
+  it('formats trend tooltip by series dataKey, not display name', () => {
+    const point = {
+      label: '2026-01',
+      assets: 1000,
+      liabilities: 200,
+      netAssets: 800,
+      income: 500,
+      expense: 300,
+      investmentGain: 50,
+      netAssetsGrowthPct: 4.5,
+      liabilitiesGrowthPct: -2.0,
+      investmentReturnRate: 3.25,
+    };
+
+    const [netAssetsText] = formatTrendTooltipValue(800, '任意名稱', {
+      payload: point,
+      dataKey: 'netAssets',
+    });
+    expect(netAssetsText).toContain('+4.5%');
+
+    const [liabilitiesText] = formatTrendTooltipValue(200, '任意名稱', {
+      payload: point,
+      dataKey: 'liabilities',
+    });
+    expect(liabilitiesText).toContain('-2.0%');
+
+    const [investmentText] = formatTrendTooltipValue(50, '任意名稱', {
+      payload: point,
+      dataKey: 'investmentGain',
+    });
+    expect(investmentText).toContain('+3.25%');
+
+    const [fallbackText, fallbackName] = formatTrendTooltipValue(50, '其他', {});
+    expect(fallbackText).not.toContain('%');
+    expect(fallbackName).toBe('其他');
   });
 
   it('maps asset trend status and metric vm', () => {
@@ -70,6 +108,7 @@ describe('dashboardDisplay.vm', () => {
     const vm = mapUnsettledStatsToCardVM({
       year: 2026,
       month: 3,
+      isReady: false,
       unsettledAccounts: [{} as never],
       unsettledPortfolios: [],
       unsettledDebts: [],

@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 import { AccountCategory, CurrencyType } from '@/domains/account/types/categories';
-import { BaseSchema } from '@/infra/schemas/base';
+import { BaseSchema } from '@/shared/schemas/base';
 
 // Holding Schema
 export const HoldingSchema = z.object({

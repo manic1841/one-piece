@@ -38,7 +38,7 @@ describe('transaction.vm', () => {
     ).toThrow('Amount must be greater than zero.');
   });
 
-  it('rejects transfer with same source/target project', () => {
+  it('rejects TRANSFER as a form intent type', () => {
     expect(() =>
       parseTransactionFormVM({
         intentType: 'TRANSFER',
@@ -47,7 +47,7 @@ describe('transaction.vm', () => {
         fromProjectId: 'project-1',
         toProjectId: 'project-1',
       }),
-    ).toThrow('Source and target projects must be different.');
+    ).toThrow();
   });
 
   it('rejects allocation when percentage sum is not 100', () => {

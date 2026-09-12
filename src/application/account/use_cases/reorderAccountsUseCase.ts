@@ -1,6 +1,10 @@
-import { accountRepository } from '@/infra/repositories/accountRepository';
+import {
+  reorderCollectionInTransaction,
+  type ReorderEntry,
+} from '@/application/common/reorderCollectionInTransaction';
 import { householdPermissionService } from '@/application/household/householdPermissionService';
 import { type AuthContext } from '@/application/types';
+import { accountRepository } from '@/infra/repositories/accountRepository';
 
 export interface ReorderAccountsRequest {
   householdId: string;
@@ -19,11 +23,11 @@ export class ReorderAccountsUseCase {
       auth.isGlobalAdmin,
     );
 
-    const updatePromises = accountOrders.map(({ id, order }) =>
-      accountRepository.update([householdId, id], { order }, userEmail),
-    );
-
-    await Promise.all(updatePromises);
+    await reorderCollectionInTransaction({
+      getDocRef: (id) => accountRepository.getDocRefById(householdId, id),
+      orders: accountOrders as ReorderEntry[],
+      userEmail,
+    });
   }
 }
 

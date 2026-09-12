@@ -15,7 +15,6 @@ export const useProjectPage = (householdId?: string) => {
   const [editing, setEditing] = useState<Project | undefined>(undefined);
   const [isSettlementDialogOpen, setIsSettlementDialogOpen] = useState(false);
   const [isFormOpen, setIsFormOpen] = useState(false);
-  const [isTransferDialogOpen, setIsTransferDialogOpen] = useState(false);
   const [selectedProject, setSelectedProject] = useState<Project | undefined>(undefined);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isMonthlySettlementView, setIsMonthlySettlementView] = useState(false);
@@ -90,16 +89,6 @@ export const useProjectPage = (householdId?: string) => {
     setIsSettlementDialogOpen(false);
   };
 
-  // open transfer dialog
-  const openTransferDialog = () => {
-    setIsTransferDialogOpen(true);
-  };
-
-  // close transfer dialog
-  const closeTransferDialog = () => {
-    setIsTransferDialogOpen(false);
-  };
-
   const moveProjectUp = (projectId: string) => {
     const index = localProjects.findIndex((p) => p.id === projectId);
     if (index <= 0) return;
@@ -151,9 +140,6 @@ export const useProjectPage = (householdId?: string) => {
     isSettlementDialogOpen,
     openSettleDialog,
     closeSettleDialog,
-    isTransferDialogOpen,
-    openTransferDialog,
-    closeTransferDialog,
     selectedProject,
     setSelectedProject,
     selectProject,

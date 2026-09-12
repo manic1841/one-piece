@@ -4,24 +4,47 @@
 name: Deploy to Firebase Hosting on merge
 on:
   workflow_run:
-    workflows: ['Unit Tests']
+    # 'Unit Tests' is the pre-rename name of test.yml, still running on main and
+    # develop. Transitional; drop the entry once every branch runs the 'CI' name.
+    workflows: ['CI', 'Unit Tests']
     types:
       - completed
+# A live deploy needs no write scope: the action only uses repoToken for the PR
+# comment and check run, and workflow_run never carries pull_request.
+permissions:
+  contents: read
 jobs:
   build_and_deploy:
     if: >
       github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push' &&
       github.event.workflow_run.head_branch == 'main'
     runs-on: ubuntu-latest
     steps:
+      # An empty ref makes actions/checkout silently fall back to the default
+      # branch, which could ship a commit newer than the one CI tested.
+      - name: Assert the tested commit is known
+        env:
+          TESTED_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          if [ -z "$TESTED_SHA" ]; then
+            echo "::error::workflow_run.head_sha is empty; refusing to deploy an untested commit"
+            exit 1
+          fi
       - uses: actions/checkout@v5
-      - uses: pnpm/action-setup@v4
         with:
-          version: 10
+          ref: ${{ github.event.workflow_run.head_sha }}
+      # No `version` input: packageManager in package.json is the single source of
+      # truth. Passing both fails with "Multiple versions of pnpm specified".
+      - uses: pnpm/action-setup@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
       - run: pnpm install --frozen-lockfile && pnpm run build
-      - uses: FirebaseExtended/action-hosting-deploy@v0
+      - name: Deploy live channel
+        uses: FirebaseExtended/action-hosting-deploy@v0
         with:
-          repoToken: ${{ secrets.GITHUB_TOKEN }}
           firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_ONE_PIECE_4E822 }}
           channelId: live
           projectId: one-piece-4e822

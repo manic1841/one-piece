@@ -4,6 +4,7 @@ import { FileText, TrendingUp, Wallet } from 'lucide-react';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/ui/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/ui/components/ui/tabs';
+import { REPORT_VIEW_TITLES } from '@/ui/constants/report/reportViewLabels';
 import {
   type BalanceSheetVM,
   type CashFlowVM,
@@ -29,19 +30,19 @@ export const ReportPreview: React.FC<ReportPreviewProps> = ({ data }) => {
             value="income"
             className="rounded-xl font-bold data-[state=active]:bg-white data-[state=active]:text-indigo-600 data-[state=active]:shadow-sm"
           >
-            <FileText size={16} className="mr-2" /> 損益表
+            <FileText size={16} className="mr-2" /> {REPORT_VIEW_TITLES.INCOME_STATEMENT}
           </TabsTrigger>
           <TabsTrigger
             value="balance"
             className="rounded-xl font-bold data-[state=active]:bg-white data-[state=active]:text-indigo-600 data-[state=active]:shadow-sm"
           >
-            <Wallet size={16} className="mr-2" /> 資產負債表
+            <Wallet size={16} className="mr-2" /> {REPORT_VIEW_TITLES.BALANCE_SHEET}
           </TabsTrigger>
           <TabsTrigger
             value="cashflow"
             className="rounded-xl font-bold data-[state=active]:bg-white data-[state=active]:text-indigo-600 data-[state=active]:shadow-sm"
           >
-            <TrendingUp size={16} className="mr-2" /> 現金流量表
+            <TrendingUp size={16} className="mr-2" /> {REPORT_VIEW_TITLES.CASH_FLOW}
           </TabsTrigger>
         </TabsList>
 

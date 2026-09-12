@@ -3,10 +3,12 @@ import { connectAuthEmulator, getAuth } from 'firebase/auth';
 import { connectFirestoreEmulator, doc, getFirestore } from 'firebase/firestore';
 import { vi } from 'vitest';
 
+import { authEmulator, emulatorProjectId, firestoreEmulator } from '../emulatorEnv';
+
 const firebaseConfig = {
   apiKey: 'AIzaSyCm6Bu5ibGuY-oQXYMeprq0FV9lhy3EFKo',
   authDomain: 'one-piece-4e822.firebaseapp.com',
-  projectId: 'one-piece-4e822',
+  projectId: emulatorProjectId,
   storageBucket: 'one-piece-4e822.firebasestorage.app',
   messagingSenderId: '829742952504',
   appId: '1:829742952504:web:b393e78707ecd29ea276cd',
@@ -16,9 +18,46 @@ const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app);
 export const auth = getAuth(app);
 
+const emulatorEndpoints = [
+  { name: 'Firestore', url: firestoreEmulator.baseUrl },
+  { name: 'Auth', url: authEmulator.baseUrl },
+];
+
+const EMULATOR_WAIT_TOTAL_MS = 15_000;
+const EMULATOR_WAIT_INTERVAL_MS = 500;
+const EMULATOR_PROBE_TIMEOUT_MS = 1_000;
+
+export const assertEmulatorsAvailable = async (): Promise<void> => {
+  const deadline = Date.now() + EMULATOR_WAIT_TOTAL_MS;
+
+  for (;;) {
+    const failures: string[] = [];
+
+    for (const endpoint of emulatorEndpoints) {
+      try {
+        await fetch(endpoint.url, { signal: AbortSignal.timeout(EMULATOR_PROBE_TIMEOUT_MS) });
+      } catch (error) {
+        const detail = error instanceof Error ? `: ${error.message}` : '';
+        failures.push(`${endpoint.name} emulator unavailable${detail}`);
+      }
+    }
+
+    if (failures.length === 0) return;
+
+    if (Date.now() >= deadline) {
+      throw new Error(
+        `${failures.join('; ')} after waiting ${EMULATOR_WAIT_TOTAL_MS / 1000}s. ` +
+          'Start the Firebase emulators before running integration tests.',
+      );
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, EMULATOR_WAIT_INTERVAL_MS));
+  }
+};
+
 // Connect to Emulators
-connectFirestoreEmulator(db, '127.0.0.1', 8080);
-connectAuthEmulator(auth, 'http://127.0.0.1:9099');
+connectFirestoreEmulator(db, firestoreEmulator.host, firestoreEmulator.port);
+connectAuthEmulator(auth, authEmulator.baseUrl);
 
 // Mock @/firebase to return the emulator-connected instances
 vi.mock('@/firebase', () => ({
@@ -28,16 +67,19 @@ vi.mock('@/firebase', () => ({
 
 // Provide a way to reset the DB for tests
 export const resetMockDb = async () => {
-  // Clearing the emulator database can be done by deleting all collections.
-  // For a more robust solution, we can use the emulator's clear data endpoint.
-  const projectId = 'one-piece-4e822';
   try {
-    await fetch(
-      `http://127.0.0.1:8080/emulator/v1/projects/${projectId}/databases/(default)/documents`,
+    const response = await fetch(
+      `${firestoreEmulator.baseUrl}/emulator/v1/projects/${emulatorProjectId}/databases/(default)/documents`,
       { method: 'DELETE' },
     );
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
   } catch (err) {
-    console.error('Failed to reset emulator DB:', err);
+    const detail = err instanceof Error ? `: ${err.message}` : '';
+    throw new Error(
+      `Failed to reset emulator DB${detail}. Start the Firestore emulator before running integration tests.`,
+    );
   }
 };
 

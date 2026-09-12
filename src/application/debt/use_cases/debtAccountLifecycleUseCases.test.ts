@@ -1,8 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('firebase/firestore', () => ({
-  runTransaction: vi.fn(async (_db, callback: (tx: object) => Promise<unknown>) => callback({})),
-}));
+vi.mock('firebase/firestore', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('firebase/firestore')>();
+  return {
+    ...actual,
+    runTransaction: vi.fn(async (_db, callback: (tx: object) => Promise<unknown>) => callback({})),
+  };
+});
 
 vi.mock('@/application/household/householdPermissionService', () => ({
   householdPermissionService: {
@@ -17,6 +21,12 @@ vi.mock('@/infra/repositories/debtAccountRepository', () => ({
     checkHasPayments: vi.fn(),
     deactivateDebtAccount: vi.fn(),
     deleteDebtAccount: vi.fn(),
+  },
+}));
+
+vi.mock('@/infra/repositories/debtSnapshotRepository', () => ({
+  debtSnapshotRepository: {
+    hasSnapshots: vi.fn(),
   },
 }));
 
@@ -74,6 +84,7 @@ describe('debt account lifecycle use cases', () => {
   it('hard deletes associated LIABILITY_BORROW transactions when removing debt account without payments', async () => {
     const { removeDebtAccountUseCase } = await import('./removeDebtAccountUseCase');
     const { debtAccountRepository } = await import('@/infra/repositories/debtAccountRepository');
+    const { debtSnapshotRepository } = await import('@/infra/repositories/debtSnapshotRepository');
     const { transactionRepository } = await import('@/infra/repositories/transactionRepository');
 
     vi.mocked(debtAccountRepository.get).mockResolvedValue({
@@ -98,6 +109,7 @@ describe('debt account lifecycle use cases', () => {
       updatedBy: 'user@example.com',
     });
     vi.mocked(debtAccountRepository.checkHasPayments).mockResolvedValue(false);
+    vi.mocked(debtSnapshotRepository.hasSnapshots).mockResolvedValue(false);
     vi.mocked(transactionRepository.findBorrowTransactionsForDebtAccount).mockResolvedValue([
       {
         id: 'tx-1',

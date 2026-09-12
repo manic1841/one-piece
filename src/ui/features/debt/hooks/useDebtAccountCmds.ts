@@ -1,23 +1,15 @@
-import { useCallback, useMemo } from 'react';
+import { useCallback } from 'react';
 
 import { createDebtAccountUseCase } from '@/application/debt/use_cases/createDebtAccountUseCase';
 import { listDebtAccountsUseCase } from '@/application/debt/use_cases/listDebtAccountsUseCase';
 import { removeDebtAccountUseCase } from '@/application/debt/use_cases/removeDebtAccountUseCase';
 import { updateDebtAccountUseCase } from '@/application/debt/use_cases/updateDebtAccountUseCase';
 import { type DebtAccount, type DebtAccountCreate } from '@/domains/debt/schemas';
-import { useAuth } from '@/infra/contexts/useAuth';
+import { useAuthContext } from '@/ui/hooks/useAuthContext';
 import { useLoadingTask } from '@/ui/hooks/useLoadingTask';
 
 export function useDebtAccountCmds(householdId: string) {
-  const { currentUser, isAdmin } = useAuth();
-  const auth = useMemo(
-    () => ({
-      uid: currentUser?.uid || '',
-      email: currentUser?.email || '',
-      isGlobalAdmin: isAdmin,
-    }),
-    [currentUser, isAdmin],
-  );
+  const auth = useAuthContext();
 
   const { loading, error, run } = useLoadingTask();
 
@@ -32,8 +24,8 @@ export function useDebtAccountCmds(householdId: string) {
           data,
           disbursementDate: meta?.disbursementDate,
           disbursementDescription: meta?.disbursementDescription,
-          userEmail: auth.email,
-          auth: { uid: auth.uid, isGlobalAdmin: auth.isGlobalAdmin },
+          userEmail: auth.email || '',
+          auth,
         }),
       );
     },
@@ -47,8 +39,8 @@ export function useDebtAccountCmds(householdId: string) {
           householdId,
           debtAccountId,
           data,
-          userEmail: auth.email,
-          auth: { uid: auth.uid, isGlobalAdmin: auth.isGlobalAdmin },
+          userEmail: auth.email || '',
+          auth,
         });
         return true;
       });
@@ -62,8 +54,8 @@ export function useDebtAccountCmds(householdId: string) {
         removeDebtAccountUseCase.execute({
           householdId,
           debtAccountId,
-          userEmail: auth.email,
-          auth: { uid: auth.uid, isGlobalAdmin: auth.isGlobalAdmin },
+          userEmail: auth.email || '',
+          auth,
         }),
       );
     },

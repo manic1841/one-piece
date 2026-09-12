@@ -7,6 +7,7 @@ import { listProjectSnapshotsUseCase } from '@/application/project/use_cases/lis
 import { listProjectsUseCase } from '@/application/project/use_cases/listProjectsUseCase';
 import { type Project, type ProjectWithSnapshot } from '@/domains/project/schemas';
 import { useLoadingTask } from '@/ui/hooks/useLoadingTask';
+import { useAuthContext } from '@/ui/hooks/useAuthContext';
 
 export function useProjects(householdId?: string) {
   const [projects, setProjects] = useState<Project[]>([]);
@@ -68,14 +69,15 @@ export function useProjectDetail(
 
 export function useProjectQueries(householdId: string) {
   const { run } = useLoadingTask();
+  const auth = useAuthContext();
 
   const getProjectBalance = useCallback(
     async (projectId: string) => {
       return run(async () => {
-        return getProjectBalanceUseCase.execute({ householdId, projectId });
+        return getProjectBalanceUseCase.execute({ householdId, projectId, auth });
       });
     },
-    [householdId, run],
+    [householdId, run, auth],
   );
 
   const getProjectRecords = useCallback(

@@ -1,13 +1,11 @@
 import { reportRepository } from '@/infra/repositories/reportRepository';
+import { type AuthContext } from '@/application/types';
 import { householdPermissionService } from '@/application/household/householdPermissionService';
 import { type FinancialReport } from '@/domains/report/types';
 
 interface ListReportsRequest {
   householdId: string;
-  auth: {
-    uid: string;
-    isGlobalAdmin: boolean;
-  };
+  auth: AuthContext;
 }
 
 class ListReportsUseCase {

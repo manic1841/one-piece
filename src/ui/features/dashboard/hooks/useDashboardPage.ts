@@ -1,15 +1,14 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 import { getLeverageStatsUseCase } from '@/application/portfolio/use_cases/getLeverageStatsUseCase';
 import { type LeverageStats } from '@/application/portfolio/use_cases/getLeverageStatsUseCase';
-import { getUnsettledStatsUseCase } from '@/application/report/use_cases/getUnsettledStatsUseCase';
-import { type UnsettledStats } from '@/application/report/use_cases/getUnsettledStatsUseCase';
-import { type AuthContext } from '@/application/types';
-import { useAuth } from '@/infra/contexts/useAuth';
+import { getSettlementReadinessUseCase } from '@/application/report/use_cases/getSettlementReadinessUseCase';
+import { type SettlementReadiness } from '@/application/report/use_cases/getSettlementReadinessUseCase';
 import {
   mapLeverageStatsToCardVM,
   mapUnsettledStatsToCardVM,
 } from '@/ui/features/dashboard/viewmodels/dashboardDisplay.vm';
+import { useAuthContext } from '@/ui/hooks/useAuthContext';
 
 interface UseDashboardPageProps {
   householdId: string | undefined;
@@ -22,11 +21,12 @@ const EMPTY_LEVERAGE_STATS: LeverageStats = {
   ratio: 0,
 };
 
-function createEmptyUnsettledStats(): UnsettledStats {
+function createEmptySettlementReadiness(): SettlementReadiness {
   const now = new Date();
   return {
     year: now.getFullYear(),
     month: now.getMonth() + 1,
+    isReady: true,
     unsettledAccounts: [],
     unsettledPortfolios: [],
     unsettledDebts: [],
@@ -39,24 +39,17 @@ export function useDashboardPage({
   householdId,
   includeUnsettledStats = false,
 }: UseDashboardPageProps) {
-  const { currentUser, isAdmin } = useAuth();
-  const [unsettledStats, setUnsettledStats] = useState<UnsettledStats>(createEmptyUnsettledStats());
+  const auth = useAuthContext();
+  const [unsettledStats, setUnsettledStats] = useState<SettlementReadiness>(
+    createEmptySettlementReadiness(),
+  );
   const [leverageStats, setLeverageStats] = useState<LeverageStats>(EMPTY_LEVERAGE_STATS);
   const [statsLoading, setStatsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const auth: AuthContext = useMemo(
-    () => ({
-      uid: currentUser?.uid || '',
-      email: currentUser?.email || undefined,
-      isGlobalAdmin: isAdmin,
-    }),
-    [currentUser?.uid, currentUser?.email, isAdmin],
-  );
-
   const loadStatsData = useCallback(async () => {
     if (!householdId) {
-      setUnsettledStats(createEmptyUnsettledStats());
+      setUnsettledStats(createEmptySettlementReadiness());
       setLeverageStats(EMPTY_LEVERAGE_STATS);
       return;
     }
@@ -66,15 +59,15 @@ export function useDashboardPage({
       const [leverage, unsettled] = await Promise.all([
         getLeverageStatsUseCase.execute({ householdId, auth }),
         includeUnsettledStats
-          ? getUnsettledStatsUseCase.execute({ householdId, auth })
-          : Promise.resolve(createEmptyUnsettledStats()),
+          ? getSettlementReadinessUseCase.execute({ householdId, auth })
+          : Promise.resolve(createEmptySettlementReadiness()),
       ]);
-      setUnsettledStats(unsettled ?? createEmptyUnsettledStats());
+      setUnsettledStats(unsettled ?? createEmptySettlementReadiness());
       setLeverageStats(leverage ?? EMPTY_LEVERAGE_STATS);
       setError(null);
     } catch (err) {
       console.error('Failed to load stats data:', err);
-      setUnsettledStats(createEmptyUnsettledStats());
+      setUnsettledStats(createEmptySettlementReadiness());
       setLeverageStats(EMPTY_LEVERAGE_STATS);
       setError('載入統計資料失敗，請稍後再試');
     } finally {

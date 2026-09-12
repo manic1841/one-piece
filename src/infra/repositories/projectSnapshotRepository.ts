@@ -42,6 +42,14 @@ class ProjectSnapshotRepository extends BaseRepository<ProjectSnapshot, [string,
     return `${year}-${month.toString().padStart(2, '0')}`;
   }
 
+  async getSnapshot(
+    householdId: string,
+    projectId: string,
+    yearMonth: string,
+  ): Promise<ProjectSnapshot | null> {
+    return this.get([householdId, projectId, yearMonth]);
+  }
+
   async getLatest(householdId: string, projectId: string): Promise<ProjectSnapshot | null> {
     const result = await this.list(
       [householdId, projectId],

@@ -1,3 +1,5 @@
+import { householdPermissionService } from '@/application/household/householdPermissionService';
+import { type AuthContext } from '@/application/types';
 import { type DebtSnapshotCreate } from '@/domains/debt/schemas';
 import { debtAccountRepository } from '@/infra/repositories/debtAccountRepository';
 import { debtSnapshotRepository } from '@/infra/repositories/debtSnapshotRepository';
@@ -6,17 +8,25 @@ export interface SettleDebtAccountsRequest {
   householdId: string;
   yearMonth: string;
   userEmail: string;
+  auth: AuthContext;
 }
 
 export class SettleDebtAccountsUseCase {
   async execute(request: SettleDebtAccountsRequest): Promise<void> {
-    const { householdId, yearMonth, userEmail } = request;
+    const { householdId, yearMonth, userEmail, auth } = request;
+    await householdPermissionService.assertWritePermission(
+      householdId,
+      auth.uid,
+      auth.isGlobalAdmin,
+    );
     const debtAccounts = await debtAccountRepository.getDebtAccounts(householdId);
 
     for (const account of debtAccounts) {
       const existing = await debtSnapshotRepository.getSnapshot(householdId, account.id, yearMonth);
       if (existing) continue;
 
+      // No snapshot exists — create directly with deterministic ID.
+      // upsertSnapshot would re-read the same document we just checked.
       const snapshot: DebtSnapshotCreate = {
         yearMonth,
         openingBalance: account.currentBalance,
@@ -26,7 +36,13 @@ export class SettleDebtAccountsUseCase {
         closingBalance: account.currentBalance,
       };
 
-      await debtSnapshotRepository.upsertSnapshot(householdId, account.id, snapshot, userEmail);
+      await debtSnapshotRepository.create(
+        [householdId, account.id],
+        snapshot,
+        userEmail,
+        undefined,
+        yearMonth,
+      );
     }
   }
 }

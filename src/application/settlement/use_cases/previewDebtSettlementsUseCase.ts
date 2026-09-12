@@ -1,3 +1,5 @@
+import { householdPermissionService } from '@/application/household/householdPermissionService';
+import { type AuthContext } from '@/application/types';
 import { debtAccountRepository } from '@/infra/repositories/debtAccountRepository';
 import { debtSnapshotRepository } from '@/infra/repositories/debtSnapshotRepository';
 import { transactionRepository } from '@/infra/repositories/transactionRepository';
@@ -6,6 +8,7 @@ export interface PreviewDebtSettlementsRequest {
   householdId: string;
   year: number;
   month: number;
+  auth: AuthContext;
 }
 
 export interface DebtSettlementPreviewItem {
@@ -30,7 +33,12 @@ export interface PreviewDebtSettlementsResult {
 
 export class PreviewDebtSettlementsUseCase {
   async execute(request: PreviewDebtSettlementsRequest): Promise<PreviewDebtSettlementsResult> {
-    const { householdId, year, month } = request;
+    const { householdId, year, month, auth } = request;
+    await householdPermissionService.assertReadPermission(
+      householdId,
+      auth.uid,
+      auth.isGlobalAdmin,
+    );
     const yearMonth = `${year}-${month.toString().padStart(2, '0')}`;
     const startDate = new Date(year, month - 1, 1);
     const endDate = new Date(year, month, 1);

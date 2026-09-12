@@ -80,11 +80,53 @@ export default tseslint.config(
     },
   },
   {
+    files: ['src/domains/**/errors.ts', 'src/application/**/use_cases/**'],
+    rules: {
+      'max-classes-per-file': 'off',
+    },
+  },
+  {
+    files: ['src/ui/components/ui/**'],
+    rules: {
+      'react-refresh/only-export-components': 'off',
+    },
+  },
+  {
     files: ['**/*.{test,spec}.{ts,tsx,js,jsx}', '**/test.{ts,tsx,js,jsx}'], // 針對測試檔案
     rules: {
-      '@typescript-eslint/no-explicit-any': 'warn', // 測試允許快速 mock，保留警告提示
+      '@typescript-eslint/no-explicit-any': 'off',
       'max-lines': 'off', // 直接關閉行數限制
       'max-lines-per-function': 'off', // 同時關閉函式長度限制
+    },
+  },
+  // Label Consistency: feature code must go through displayLabels, not the internal ledger label layer
+  {
+    files: ['src/ui/features/**/*.{ts,tsx}'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: [
+            {
+              name: '@/domains/report/labels',
+              message:
+                'Use unified display label APIs from @/ui/constants/transaction/displayLabels instead of legacy report label maps.',
+            },
+            {
+              name: '@/ui/constants/report/ledgerCodeLabels',
+              message:
+                'Use unified display label APIs from @/ui/constants/transaction/displayLabels instead of the internal ledger label layer.',
+            },
+          ],
+          patterns: [
+            {
+              group: ['**/domains/report/labels', '**/ui/constants/report/ledgerCodeLabels'],
+              message:
+                'Use unified display label APIs from @/ui/constants/transaction/displayLabels.',
+            },
+          ],
+        },
+      ],
     },
   },
 );

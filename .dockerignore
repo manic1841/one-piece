@@ -1,0 +1,8 @@
+node_modules
+dist
+coverage
+.git
+.firebase
+firebase-emulator/emulators.data
+*.log
+.env*

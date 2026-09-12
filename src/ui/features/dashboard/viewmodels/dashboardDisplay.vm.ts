@@ -1,5 +1,5 @@
 import { type LeverageStats } from '@/application/portfolio/use_cases/getLeverageStatsUseCase';
-import { type UnsettledStats } from '@/application/report/use_cases/getUnsettledStatsUseCase';
+import { type SettlementReadiness } from '@/application/report/use_cases/getSettlementReadinessUseCase';
 import { type AssetTrendData } from '@/domains/report/logic/trendAggregation';
 import { formatCurrency } from '@/ui/utils';
 
@@ -243,20 +243,21 @@ export const formatCompactAxisValue = (value: number): string => {
 export const formatTrendTooltipValue = (
   value: number,
   name: string,
-  entry: { payload?: AssetTrendChartPointVM },
+  entry: { payload?: AssetTrendChartPointVM; dataKey?: unknown },
 ): [string, string] => {
   const currency = formatCurrency(value);
   const point = entry?.payload;
+  const seriesKey = typeof entry?.dataKey === 'string' ? entry.dataKey : undefined;
 
-  if (name === '淨資產' && point?.netAssetsGrowthPct != null) {
+  if (seriesKey === 'netAssets' && point?.netAssetsGrowthPct != null) {
     const sign = point.netAssetsGrowthPct >= 0 ? '+' : '';
     return [`${currency} (${sign}${point.netAssetsGrowthPct.toFixed(1)}%)`, name];
   }
-  if (name === '負債' && point?.liabilitiesGrowthPct != null) {
+  if (seriesKey === 'liabilities' && point?.liabilitiesGrowthPct != null) {
     const sign = point.liabilitiesGrowthPct >= 0 ? '+' : '';
     return [`${currency} (${sign}${point.liabilitiesGrowthPct.toFixed(1)}%)`, name];
   }
-  if (name === '投資收益' && point?.investmentReturnRate != null) {
+  if (seriesKey === 'investmentGain' && point?.investmentReturnRate != null) {
     const sign = point.investmentReturnRate >= 0 ? '+' : '';
     return [`${currency} (${sign}${point.investmentReturnRate.toFixed(2)}%)`, name];
   }
@@ -288,11 +289,12 @@ const mapCountToSectionVM = (count: number): UnsettledStatsCardSectionVM => ({
   progressWidth: count > 0 ? 100 : 0,
 });
 
-const buildEmptyUnsettledStats = (): UnsettledStats => {
+const buildEmptySettlementReadiness = (): SettlementReadiness => {
   const now = new Date();
   return {
     year: now.getFullYear(),
     month: now.getMonth() + 1,
+    isReady: true,
     unsettledAccounts: [],
     unsettledPortfolios: [],
     unsettledDebts: [],
@@ -301,9 +303,11 @@ const buildEmptyUnsettledStats = (): UnsettledStats => {
   };
 };
 
-export const mapUnsettledStatsToCardVM = (stats: UnsettledStats | null): UnsettledStatsCardVM => {
-  const base = stats ?? buildEmptyUnsettledStats();
-  const isFullySettled = base.totalUnsettled === 0;
+export const mapUnsettledStatsToCardVM = (
+  stats: SettlementReadiness | null,
+): UnsettledStatsCardVM => {
+  const base = stats ?? buildEmptySettlementReadiness();
+  const isFullySettled = base.isReady;
 
   return {
     titleText: `結算 (${base.year}/${base.month})`,

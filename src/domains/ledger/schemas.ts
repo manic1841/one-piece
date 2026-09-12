@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 import { IntentType } from '@/domains/ledger/constants';
-import { BaseSchema } from '@/infra/schemas/base';
+import { BaseSchema } from '@/shared/schemas/base';
 
 export type LedgerCode = string; // e.g. "asset:cash", "income:salary"
 

@@ -39,7 +39,7 @@ export const useRetirementPlanCore = ({
   const autoSyncingRef = useRef(false);
 
   const { getPlan, loading: planLoading, error: planError } = useRetirementPlans(householdId);
-  const { updatePlan, deletePlan, importData } = useRetirementPlanCmds(householdId, userEmail);
+  const { updatePlan, deletePlan, importIncomeData, importDebtData } = useRetirementPlanCmds(householdId, userEmail);
 
   const loadPlanToken = plan?.updatedAt?.getTime();
 
@@ -205,6 +205,7 @@ export const useRetirementPlanCore = ({
     handleDelete,
     handleSaveName,
     handleCancelEditName,
-    importData,
+    importIncomeData,
+    importDebtData,
   };
 };

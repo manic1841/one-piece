@@ -4,7 +4,7 @@ import { type AllocationDraftItem, type AllocationItemInput } from './allocation
 
 export type IntentType = Extract<
   NonNullable<TransactionCreate['intentType']>,
-  'EXPENSE' | 'INCOME' | 'INVESTMENT' | 'FINANCING' | 'TRANSFER' | 'MANUAL' | 'DEBT_PAYMENT'
+  'EXPENSE' | 'INCOME' | 'INVESTMENT' | 'FINANCING' | 'MANUAL' | 'DEBT_PAYMENT'
 >;
 
 export type TransactionFormTab =
@@ -12,7 +12,6 @@ export type TransactionFormTab =
   | 'INCOME'
   | 'INVESTMENT'
   | 'FINANCING'
-  | 'TRANSFER'
   | 'ADVANCED'
   | 'DEBT_PAYMENT';
 
@@ -55,17 +54,10 @@ export type FinancingFormState = {
   description: string;
 };
 
-export type ProjectTransferFormState = {
-  amount: string;
-  fromProjectId: string | null;
-  toProjectId: string | null;
-  description: string;
-};
-
 export type AdvancedFormState = {
   amount: string;
   date: string;
-  intentType: Extract<IntentType, 'TRANSFER' | 'MANUAL'>;
+  intentType: Extract<IntentType, 'MANUAL'>;
   projectId: string | null;
   intent: string | null;
   ledgerCode: string | null;
@@ -83,8 +75,6 @@ export type TransactionFormOutput = {
   triggerAllocation?: boolean;
   allocationItems?: AllocationItemInput[];
   allocationDirection?: 'INCOME' | 'EXPENSE';
-  fromProjectId?: string;
-  toProjectId?: string;
   // DEBT_PAYMENT specific
   debtAccountId?: string;
   principal?: number;

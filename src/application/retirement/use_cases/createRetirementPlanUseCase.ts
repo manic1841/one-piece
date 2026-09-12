@@ -1,4 +1,11 @@
+import {
+  RetirementPlanCommandError,
+  RetirementPlanCommandErrorCode,
+  RETIREMENT_PLAN_TRANSACTION_WRITE_LIMIT,
+  estimateRetirementPlanWriteCount,
+} from '@/domains/retirement/retirementPlanErrors';
 import { householdPermissionService } from '@/application/household/householdPermissionService';
+import { type AuthContext } from '@/application/types';
 import { type RetirementPlanCreate } from '@/domains/retirement/types';
 import { retirementRepository } from '@/infra/repositories/retirementRepository';
 
@@ -6,10 +13,7 @@ interface CreateRetirementPlanRequest {
   householdId: string;
   plan: RetirementPlanCreate;
   userEmail: string;
-  auth: {
-    uid: string;
-    isGlobalAdmin: boolean;
-  };
+  auth: AuthContext;
 }
 
 export class CreateRetirementPlanUseCase {
@@ -22,13 +26,40 @@ export class CreateRetirementPlanUseCase {
       auth.isGlobalAdmin,
     );
 
-    const planId = await retirementRepository.createPlan(householdId, userEmail, plan);
+    try {
+      const existingPlans = plan.isActive
+        ? await retirementRepository.getPlanSummaries(householdId)
+        : [];
 
-    if (plan.isActive) {
-      await retirementRepository.setOnlyActivePlan(householdId, planId, userEmail);
+      // The new plan itself is not among existingPlans, so all of them may
+      // need a fan-out update.
+      const writeCount = estimateRetirementPlanWriteCount({
+        staleChildCount: 0,
+        newChildCount: plan.incomes.length + plan.expenses.length,
+        fanOutUpdateCount: plan.isActive ? existingPlans.length : 0,
+      });
+      if (writeCount > RETIREMENT_PLAN_TRANSACTION_WRITE_LIMIT) {
+        throw new RetirementPlanCommandError(
+          RetirementPlanCommandErrorCode.PLAN_TOO_LARGE,
+          'plan write count exceeds the transaction limit',
+        );
+      }
+
+      return await retirementRepository.createPlanAtomically({
+        householdId,
+        plan,
+        userEmail,
+        existingPlans,
+      });
+    } catch (error: unknown) {
+      if (error instanceof RetirementPlanCommandError) throw error;
+
+      const message = error instanceof Error ? error.message : 'unknown transaction failure';
+      throw new RetirementPlanCommandError(
+        RetirementPlanCommandErrorCode.TRANSACTION_FAILED,
+        message,
+      );
     }
-
-    return planId;
   }
 }
 

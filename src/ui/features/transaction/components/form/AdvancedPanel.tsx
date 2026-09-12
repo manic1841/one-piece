@@ -57,7 +57,6 @@ export function AdvancedPanel({ state, projects, allLedgerCodes, onChange }: Adv
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="MANUAL">MANUAL</SelectItem>
-              <SelectItem value="TRANSFER">TRANSFER</SelectItem>
             </SelectContent>
           </Select>
         </div>

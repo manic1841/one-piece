@@ -1,11 +1,11 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { deleteTransactionUseCase } from '@/application/ledger/use_cases/deleteTransactionUseCase';
 import { getTransactionAllocationUseCase } from '@/application/ledger/use_cases/getTransactionAllocationUseCase';
 import { listRecentTransactionsUseCase } from '@/application/ledger/use_cases/listRecentTransactionsUseCase';
 import { type Allocation } from '@/domains/allocation/schemas';
 import { type Transaction } from '@/domains/ledger/schemas';
-import { useAuth } from '@/infra/contexts/useAuth';
+import { useAuthContext } from '@/ui/hooks/useAuthContext';
 import { useLoadingTask } from '@/ui/hooks/useLoadingTask';
 
 type TransactionListQuery = {
@@ -15,11 +15,7 @@ type TransactionListQuery = {
 };
 
 export function useTransactions(householdId?: string) {
-  const { currentUser, isAdmin } = useAuth();
-  const auth = useMemo(
-    () => ({ uid: currentUser?.uid || '', isGlobalAdmin: isAdmin }),
-    [currentUser, isAdmin],
-  );
+  const auth = useAuthContext();
   const lastQueryRef = useRef<TransactionListQuery>({ limit: 100 });
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const { loading, error, run } = useLoadingTask();

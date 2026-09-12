@@ -10,9 +10,11 @@ import { useAuth } from '@/infra/contexts/useAuth';
 import { useAccountCmds } from '@/ui/features/account/hooks/useAccountCmds';
 import { useAccountExport } from '@/ui/features/account/hooks/useAccountExport';
 import { useAccounts } from '@/ui/features/account/hooks/useAccounts';
+import { useAuthContext } from '@/ui/hooks/useAuthContext';
 
 export function useAccountListController() {
-  const { userProfile, currentUser, isAdmin } = useAuth();
+  const { userProfile } = useAuth();
+  const auth = useAuthContext();
   const householdId = userProfile?.householdId || '';
 
   const { fetchAccountsWithSnapshots, loading: loadingAccounts } = useAccounts();
@@ -38,15 +40,12 @@ export function useAccountListController() {
 
     const data = await fetchAccountsWithSnapshots(
       householdId,
-      {
-        uid: userProfile?.uid || '',
-        isGlobalAdmin: isAdmin,
-      },
+      auth,
       { includeInactive: true },
     );
     setAccounts(data);
     setLocalAccounts(data);
-  }, [householdId, fetchAccountsWithSnapshots, userProfile?.uid, isAdmin]);
+  }, [householdId, fetchAccountsWithSnapshots, auth]);
 
   useEffect(() => {
     const init = async () => {
@@ -189,10 +188,7 @@ export function useAccountListController() {
           accountCategory: account.category,
           year: now.getFullYear(),
           month: now.getMonth() + 1,
-          auth: {
-            uid: currentUser?.uid || '',
-            isGlobalAdmin: isAdmin,
-          },
+          auth,
         });
 
         if (warning.hasReferences) {
@@ -211,7 +207,7 @@ export function useAccountListController() {
       }
       await loadAccounts();
     },
-    [householdId, currentUser?.uid, isAdmin, updateAccount, loadAccounts],
+    [householdId, auth, updateAccount, loadAccounts],
   );
 
   return {

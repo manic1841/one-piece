@@ -1,9 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import {
+  RetirementPlanCommandErrorCode,
+} from '@/domains/retirement/retirementPlanErrors';
+import { duplicateRetirementPlanUseCase } from './duplicateRetirementPlanUseCase';
 import { householdPermissionService } from '@/application/household/householdPermissionService';
 import { retirementRepository } from '@/infra/repositories/retirementRepository';
-
-import { duplicateRetirementPlanUseCase } from './duplicateRetirementPlanUseCase';
 
 vi.mock('@/application/household/householdPermissionService', () => ({
   householdPermissionService: {
@@ -14,77 +16,103 @@ vi.mock('@/application/household/householdPermissionService', () => ({
 vi.mock('@/infra/repositories/retirementRepository', () => ({
   retirementRepository: {
     getPlan: vi.fn(),
-    createPlan: vi.fn(),
+    createPlanAtomically: vi.fn(),
+    getPlanSummaries: vi.fn(),
   },
 }));
+
+const auth = { uid: 'u1', isGlobalAdmin: false };
+
+const sourcePlan = {
+  id: 'plan-1',
+  name: 'Base Plan',
+  isActive: true,
+  autoUpdate: false,
+  currentYear: 2026,
+  birthYear: 1990,
+  retirementAge: 60,
+  lifeExpectancy: 85,
+  currentSavings: 0,
+  salaryGrowthRate: 3,
+  inflationRate: 2,
+  investmentReturnRate: 5,
+  incomes: [],
+  expenses: [],
+  events: [],
+};
 
 describe('duplicateRetirementPlanUseCase', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(householdPermissionService.assertWritePermission).mockResolvedValue();
+    vi.mocked(retirementRepository.getPlan).mockResolvedValue(sourcePlan as never);
+    vi.mocked(retirementRepository.createPlanAtomically).mockResolvedValue('plan-copy');
+    vi.mocked(retirementRepository.getPlanSummaries).mockResolvedValue([]);
   });
 
-  it('duplicates source plan as inactive copy', async () => {
-    vi.mocked(retirementRepository.getPlan).mockResolvedValue({
-      id: 'source-1',
+  it('duplicates through the atomic create as an inactive copy', async () => {
+    const planId = await duplicateRetirementPlanUseCase.execute({
       householdId: 'household-1',
-      name: 'My Plan',
-      isActive: true,
-      autoUpdate: true,
-      createdBy: 'u1',
-      updatedBy: 'u1',
-      createdAt: new Date('2026-01-01T00:00:00.000Z'),
-      updatedAt: new Date('2026-01-01T00:00:00.000Z'),
-      currentYear: 2026,
-      birthYear: 1990,
-      retirementAge: 60,
-      lifeExpectancy: 85,
-      currentSavings: 100000,
-      salaryGrowthRate: 3,
-      inflationRate: 2,
-      investmentReturnRate: 5,
-      incomes: [],
-      expenses: [],
-      events: [],
-      summary: {
-        retirementYear: 2050,
-        savingsAtRetirement: 2000000,
-        minSavings: 500000,
-        minSavingsYear: 2060,
-        isBankrupt: false,
-        lastCalculatedAt: new Date('2026-01-01T00:00:00.000Z'),
-      },
-    } as never);
-    vi.mocked(retirementRepository.createPlan).mockResolvedValue('copy-1');
-
-    const copyId = await duplicateRetirementPlanUseCase.execute({
-      householdId: 'household-1',
-      sourcePlanId: 'source-1',
+      sourcePlanId: 'plan-1',
       userEmail: 'user@example.com',
-      auth: { uid: 'u1', isGlobalAdmin: false },
+      auth,
     });
 
-    expect(copyId).toBe('copy-1');
-    expect(retirementRepository.createPlan).toHaveBeenCalledWith(
-      'household-1',
-      'user@example.com',
+    expect(planId).toBe('plan-copy');
+    expect(retirementRepository.createPlanAtomically).toHaveBeenCalledWith(
       expect.objectContaining({
-        name: 'My Plan (Copy)',
-        isActive: false,
-        autoUpdate: true,
+        plan: expect.objectContaining({
+          name: 'Base Plan (Copy)',
+          isActive: false,
+        }),
+        existingPlans: [],
       }),
     );
+    expect(retirementRepository.getPlanSummaries).not.toHaveBeenCalled();
   });
 
-  it('throws when source plan does not exist', async () => {
+  it('rejects with PLAN_NOT_FOUND when the source plan is missing', async () => {
     vi.mocked(retirementRepository.getPlan).mockResolvedValue(null);
 
     await expect(
       duplicateRetirementPlanUseCase.execute({
         householdId: 'household-1',
-        sourcePlanId: 'missing',
+        sourcePlanId: 'plan-missing',
         userEmail: 'user@example.com',
-        auth: { uid: 'u1', isGlobalAdmin: false },
+        auth,
       }),
-    ).rejects.toThrow('Retirement plan not found.');
+    ).rejects.toMatchObject({ code: RetirementPlanCommandErrorCode.PLAN_NOT_FOUND });
+    expect(retirementRepository.createPlanAtomically).not.toHaveBeenCalled();
+  });
+
+  it('wraps unexpected failures with TRANSACTION_FAILED', async () => {
+    vi.mocked(retirementRepository.createPlanAtomically).mockRejectedValue(
+      new Error('write failed'),
+    );
+
+    await expect(
+      duplicateRetirementPlanUseCase.execute({
+        householdId: 'household-1',
+        sourcePlanId: 'plan-1',
+        userEmail: 'user@example.com',
+        auth,
+      }),
+    ).rejects.toMatchObject({ code: RetirementPlanCommandErrorCode.TRANSACTION_FAILED });
+  });
+
+  it('propagates permission rejections without touching the repository', async () => {
+    vi.mocked(householdPermissionService.assertWritePermission).mockRejectedValue(
+      new Error('denied'),
+    );
+
+    await expect(
+      duplicateRetirementPlanUseCase.execute({
+        householdId: 'household-1',
+        sourcePlanId: 'plan-1',
+        userEmail: 'user@example.com',
+        auth,
+      }),
+    ).rejects.toThrow('denied');
+    expect(retirementRepository.getPlan).not.toHaveBeenCalled();
   });
 });

@@ -1,10 +1,18 @@
-import { collection, deleteDoc, doc, getDocs, orderBy, writeBatch } from 'firebase/firestore';
+import {
+  collection,
+  deleteDoc,
+  doc,
+  getDocs,
+  orderBy,
+  runTransaction,
+  writeBatch,
+} from 'firebase/firestore';
 
 import {
-  RetirementExpenseCategorySchema,
-  RetirementIncomeSourceSchema,
-  RetirementPlanSchema,
-} from '@/domains/retirement/schemas';
+  RetirementPlanCommandError,
+  RetirementPlanCommandErrorCode,
+} from '@/domains/retirement/retirementPlanErrors';
+import { RetirementPlanSchema } from '@/domains/retirement/schemas';
 import {
   type RetirementExpenseCategory,
   type RetirementIncomeSource,
@@ -13,28 +21,15 @@ import {
 } from '@/domains/retirement/types';
 import { db } from '@/firebase';
 import { BaseRepository } from '@/infra/repositories/baseRepository';
+import {
+  listExpenseCategories,
+  listIncomeStreams,
+  replaceExpenseCategories,
+  replaceIncomeStreams,
+  stripUndefinedDeep,
+  writeChildrenInTransaction,
+} from '@/infra/repositories/retirementSubcollectionHelpers';
 import { logger } from '@/utils/logger';
-
-function isPlainObject(value: unknown): value is Record<string, unknown> {
-  if (!value || typeof value !== 'object') return false;
-  const proto = Object.getPrototypeOf(value);
-  return proto === Object.prototype || proto === null;
-}
-
-function stripUndefinedDeep<T>(value: T): T {
-  if (Array.isArray(value)) {
-    return value.map((item) => stripUndefinedDeep(item)) as T;
-  }
-
-  if (isPlainObject(value)) {
-    const cleanedEntries = Object.entries(value)
-      .filter(([, v]) => v !== undefined)
-      .map(([k, v]) => [k, stripUndefinedDeep(v)]);
-    return Object.fromEntries(cleanedEntries) as T;
-  }
-
-  return value;
-}
 
 class RetirementRepository extends BaseRepository<RetirementPlan, [string, string?]> {
   private readonly collectionName = 'retirement_plans';
@@ -47,133 +42,8 @@ class RetirementRepository extends BaseRepository<RetirementPlan, [string, strin
     return doc(this.db, 'households', householdId, this.collectionName, planId);
   }
 
-  private getIncomeStreamsCollectionRef(householdId: string, planId: string) {
-    return collection(
-      this.db,
-      'households',
-      householdId,
-      this.collectionName,
-      planId,
-      'incomeStreams',
-    );
-  }
-
-  private getExpenseCategoriesCollectionRef(householdId: string, planId: string) {
-    return collection(
-      this.db,
-      'households',
-      householdId,
-      this.collectionName,
-      planId,
-      'expenseCategories',
-    );
-  }
-
   protected getDomainSchema() {
     return RetirementPlanSchema;
-  }
-
-  private async listIncomeStreams(
-    householdId: string,
-    planId: string,
-  ): Promise<RetirementIncomeSource[]> {
-    const snapshot = await getDocs(this.getIncomeStreamsCollectionRef(householdId, planId));
-    return snapshot.docs.map((incomeDoc) => {
-      const converted = this.convertTimestampToDate(incomeDoc.data());
-      const parsed = RetirementIncomeSourceSchema.parse(converted);
-      return parsed;
-    });
-  }
-
-  private async replaceIncomeStreams(
-    householdId: string,
-    planId: string,
-    userEmail: string,
-    incomes: RetirementIncomeSource[],
-  ): Promise<void> {
-    const collectionRef = this.getIncomeStreamsCollectionRef(householdId, planId);
-    const existingDocs = await getDocs(collectionRef);
-    const batch = writeBatch(this.db);
-
-    for (const incomeDoc of existingDocs.docs) {
-      batch.delete(incomeDoc.ref);
-    }
-
-    const now = new Date();
-    for (const income of incomes) {
-      const docRef = doc(collectionRef, income.id);
-      const converted = this.convertDateToTimestamp(income) as Record<string, unknown>;
-      const payload = stripUndefinedDeep({
-        ...converted,
-        id: income.id,
-        createdAt: converted.createdAt ?? now,
-        updatedAt: now,
-        createdBy: userEmail,
-        updatedBy: userEmail,
-      });
-      batch.set(docRef, payload);
-    }
-
-    await batch.commit();
-  }
-
-  private async listExpenseCategories(
-    householdId: string,
-    planId: string,
-  ): Promise<RetirementExpenseCategory[]> {
-    const snapshot = await getDocs(this.getExpenseCategoriesCollectionRef(householdId, planId));
-    const expenses = snapshot.docs.map((expenseDoc) => {
-      const converted = this.convertTimestampToDate(expenseDoc.data());
-      return RetirementExpenseCategorySchema.parse(converted);
-    });
-
-    logger.debug('listExpenseCategories loaded', 'retirement/retirementRepository', {
-      householdId,
-      planId,
-      count: expenses.length,
-      salaryModeItems: expenses
-        .filter((expense) => expense.calculationMode === 'SALARY_PERCENTAGE')
-        .map((expense) => ({
-          id: expense.id,
-          name: expense.name,
-          linkedIncomeId: expense.linkedIncomeId,
-          salaryPercentageRetirementMode: expense.salaryPercentageRetirementMode,
-        })),
-    });
-
-    return expenses;
-  }
-
-  private async replaceExpenseCategories(
-    householdId: string,
-    planId: string,
-    userEmail: string,
-    expenses: RetirementExpenseCategory[],
-  ): Promise<void> {
-    const collectionRef = this.getExpenseCategoriesCollectionRef(householdId, planId);
-    const existingDocs = await getDocs(collectionRef);
-    const batch = writeBatch(this.db);
-
-    for (const expenseDoc of existingDocs.docs) {
-      batch.delete(expenseDoc.ref);
-    }
-
-    const now = new Date();
-    for (const expense of expenses) {
-      const docRef = doc(collectionRef, expense.id);
-      const converted = this.convertDateToTimestamp(expense) as Record<string, unknown>;
-      const payload = stripUndefinedDeep({
-        ...converted,
-        id: expense.id,
-        createdAt: converted.createdAt ?? now,
-        updatedAt: now,
-        createdBy: userEmail,
-        updatedBy: userEmail,
-      });
-      batch.set(docRef, payload);
-    }
-
-    await batch.commit();
   }
 
   async getPlans(householdId: string): Promise<RetirementPlan[]> {
@@ -181,8 +51,8 @@ class RetirementRepository extends BaseRepository<RetirementPlan, [string, strin
     const enriched = await Promise.all(
       plans.map(async (plan) => ({
         ...plan,
-        incomes: await this.listIncomeStreams(householdId, plan.id),
-        expenses: await this.listExpenseCategories(householdId, plan.id),
+        incomes: await listIncomeStreams(this.db, this.convertTimestampToDate.bind(this), householdId, plan.id),
+        expenses: await listExpenseCategories(this.db, this.convertTimestampToDate.bind(this), householdId, plan.id),
       })),
     );
     return enriched;
@@ -193,12 +63,163 @@ class RetirementRepository extends BaseRepository<RetirementPlan, [string, strin
     return this.list([householdId], [orderBy('updatedAt', 'desc')]);
   }
 
+  async countChildren(
+    householdId: string,
+    planId: string,
+    collectionName: 'incomes' | 'expenses',
+  ): Promise<number> {
+    const ref =
+      collectionName === 'incomes'
+        ? collection(this.db, 'households', householdId, this.collectionName, planId, 'incomeStreams')
+        : collection(this.db, 'households', householdId, this.collectionName, planId, 'expenseCategories');
+    const snapshot = await getDocs(ref);
+    return snapshot.docs.length;
+  }
+
+  async createPlanAtomically(input: {
+    householdId: string;
+    plan: RetirementPlanCreate;
+    userEmail: string;
+    existingPlans: RetirementPlan[];
+  }): Promise<string> {
+    const { householdId, plan, userEmail, existingPlans } = input;
+    const { incomes, expenses, ...planWithoutCollections } = plan;
+
+    return runTransaction(this.db, async (tx) => {
+      const planRef = doc(this.getCollectionRef(householdId));
+      const planId = planRef.id;
+
+      tx.set(
+        planRef,
+        this.convertToFirestore({
+          ...(stripUndefinedDeep(planWithoutCollections) as RetirementPlanCreate),
+          id: planId,
+          createdBy: userEmail,
+          updatedBy: userEmail,
+        } as RetirementPlan),
+      );
+      writeChildrenInTransaction(
+        this.db, this.convertDateToTimestamp.bind(this),
+        householdId, planId, userEmail, incomes, expenses, tx,
+      );
+
+      for (const activePlan of existingPlans) {
+        if (activePlan.id === planId) continue;
+        tx.update(this.getDocRef(householdId, activePlan.id), {
+          isActive: false,
+          updatedAt: new Date(),
+          updatedBy: userEmail,
+        });
+      }
+
+      return planId;
+    });
+  }
+
+  async updatePlanAtomically(input: {
+    householdId: string;
+    planId: string;
+    updates: Partial<RetirementPlanCreate>;
+    userEmail: string;
+    existingPlans: RetirementPlan[];
+  }): Promise<void> {
+    const { householdId, planId, updates, userEmail, existingPlans } = input;
+    const { incomes, expenses, ...planUpdates } = updates;
+
+    // Preflight outside the transaction: getDocs inside runTransaction poisons
+    // the read set on this SDK version and silently drops later writes.
+    const incomeRef = collection(this.db, 'households', householdId, this.collectionName, planId, 'incomeStreams');
+    const expenseRef = collection(this.db, 'households', householdId, this.collectionName, planId, 'expenseCategories');
+    const staleIncomeDocs = incomes ? await getDocs(incomeRef) : null;
+    const staleExpenseDocs = expenses ? await getDocs(expenseRef) : null;
+
+    await runTransaction(this.db, async (tx) => {
+      const existingPlan = await this.get([householdId, planId], tx);
+      if (!existingPlan) {
+        throw new RetirementPlanCommandError(
+          RetirementPlanCommandErrorCode.PLAN_NOT_FOUND,
+          'Retirement plan not found.',
+        );
+      }
+
+      if (Object.keys(planUpdates).length > 0) {
+        tx.update(
+          this.getDocRef(householdId, planId),
+          this.convertToFirestore({
+            ...(stripUndefinedDeep(planUpdates) as Partial<RetirementPlanCreate>),
+            id: planId,
+            createdAt: existingPlan.createdAt,
+            createdBy: existingPlan.createdBy,
+            updatedBy: userEmail,
+          } as RetirementPlan),
+        );
+      }
+
+      if (staleIncomeDocs) {
+        for (const staleDoc of staleIncomeDocs.docs) {
+          tx.delete(staleDoc.ref);
+        }
+      }
+      if (staleExpenseDocs) {
+        for (const staleDoc of staleExpenseDocs.docs) {
+          tx.delete(staleDoc.ref);
+        }
+      }
+      writeChildrenInTransaction(
+        this.db, this.convertDateToTimestamp.bind(this),
+        householdId, planId, userEmail, incomes ?? [], expenses ?? [], tx,
+      );
+
+      if (updates.isActive === true) {
+        for (const activePlan of existingPlans) {
+          if (activePlan.id === planId) continue;
+          tx.update(this.getDocRef(householdId, activePlan.id), {
+            isActive: false,
+            updatedAt: new Date(),
+            updatedBy: userEmail,
+          });
+        }
+      }
+    });
+  }
+
+  async deletePlanAtomically(input: {
+    householdId: string;
+    planId: string;
+  }): Promise<void> {
+    const { householdId, planId } = input;
+
+    // Preflight outside the transaction (see updatePlanAtomically note).
+    const incomeRef = collection(this.db, 'households', householdId, this.collectionName, planId, 'incomeStreams');
+    const expenseRef = collection(this.db, 'households', householdId, this.collectionName, planId, 'expenseCategories');
+    const incomeDocs = await getDocs(incomeRef);
+    const expenseDocs = await getDocs(expenseRef);
+
+    await runTransaction(this.db, async (tx) => {
+      const existingPlan = await this.get([householdId, planId], tx);
+      if (!existingPlan) {
+        throw new RetirementPlanCommandError(
+          RetirementPlanCommandErrorCode.PLAN_NOT_FOUND,
+          'Retirement plan not found.',
+        );
+      }
+
+      for (const incomeDoc of incomeDocs.docs) {
+        tx.delete(incomeDoc.ref);
+      }
+      for (const expenseDoc of expenseDocs.docs) {
+        tx.delete(expenseDoc.ref);
+      }
+      tx.delete(this.getDocRef(householdId, planId));
+    });
+  }
+
   async getPlan(householdId: string, id: string): Promise<RetirementPlan | null> {
     const plan = await this.get([householdId, id]);
     if (!plan) return null;
 
-    const incomes = await this.listIncomeStreams(householdId, id);
-    const expenses = await this.listExpenseCategories(householdId, id);
+    const incomes = await listIncomeStreams(this.db, this.convertTimestampToDate.bind(this), householdId, id);
+    const expenses = await listExpenseCategories(this.db, this.convertTimestampToDate.bind(this), householdId, id);
     return {
       ...plan,
       incomes,
@@ -218,10 +239,10 @@ class RetirementRepository extends BaseRepository<RetirementPlan, [string, strin
       userEmail,
     );
     if (incomes.length > 0) {
-      await this.replaceIncomeStreams(householdId, planId, userEmail, incomes);
+      await replaceIncomeStreams(this.db, this.convertDateToTimestamp.bind(this), householdId, planId, userEmail, incomes);
     }
     if (expenses.length > 0) {
-      await this.replaceExpenseCategories(householdId, planId, userEmail, expenses);
+      await replaceExpenseCategories(this.db, this.convertDateToTimestamp.bind(this), householdId, planId, userEmail, expenses);
     }
     return planId;
   }
@@ -281,11 +302,9 @@ class RetirementRepository extends BaseRepository<RetirementPlan, [string, strin
     );
 
     if (incomes) {
-      await this.replaceIncomeStreams(
-        householdId,
-        id,
-        userEmail,
-        incomes as RetirementIncomeSource[],
+      await replaceIncomeStreams(
+        this.db, this.convertDateToTimestamp.bind(this),
+        householdId, id, userEmail, incomes as RetirementIncomeSource[],
       );
       logger.debug(
         'retirementRepository.replaceIncomeStreams completed',
@@ -298,11 +317,9 @@ class RetirementRepository extends BaseRepository<RetirementPlan, [string, strin
       );
     }
     if (expenses) {
-      await this.replaceExpenseCategories(
-        householdId,
-        id,
-        userEmail,
-        expenses as RetirementExpenseCategory[],
+      await replaceExpenseCategories(
+        this.db, this.convertDateToTimestamp.bind(this),
+        householdId, id, userEmail, expenses as RetirementExpenseCategory[],
       );
       logger.debug(
         'retirementRepository.replaceExpenseCategories completed',
@@ -322,10 +339,10 @@ class RetirementRepository extends BaseRepository<RetirementPlan, [string, strin
   }
 
   async deletePlan(householdId: string, id: string): Promise<void> {
-    const incomeStreamDocs = await getDocs(this.getIncomeStreamsCollectionRef(householdId, id));
-    const expenseCategoryDocs = await getDocs(
-      this.getExpenseCategoriesCollectionRef(householdId, id),
-    );
+    const incomeRef = collection(this.db, 'households', householdId, this.collectionName, id, 'incomeStreams');
+    const expenseRef = collection(this.db, 'households', householdId, this.collectionName, id, 'expenseCategories');
+    const incomeStreamDocs = await getDocs(incomeRef);
+    const expenseCategoryDocs = await getDocs(expenseRef);
     await Promise.all(incomeStreamDocs.docs.map((incomeDoc) => deleteDoc(incomeDoc.ref)));
     await Promise.all(expenseCategoryDocs.docs.map((expenseDoc) => deleteDoc(expenseDoc.ref)));
     await this.delete([householdId, id]);

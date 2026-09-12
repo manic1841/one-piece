@@ -1,0 +1,42 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: pnpm dev --host 0.0.0.0
+    depends_on:
+      firebase:
+        condition: service_healthy
+    environment:
+      CHOKIDAR_USEPOLLING: 'true'
+      FIREBASE_AUTH_EMULATOR_HOST: http://firebase:9099
+      FIREBASE_PROJECT_ID: demo-project
+      FIRESTORE_EMULATOR_HOST: firebase:8080
+      VITE_FIREBASE_API_KEY: fake-api-key
+      VITE_FIREBASE_AUTH_DOMAIN: fake.firebaseapp.com
+      VITE_FIREBASE_PROJECT_ID: demo-project
+      VITE_FIRESTORE_EMULATOR: 'true'
+    init: true
+    ports:
+      - '${VITE_PORT:-5173}:5173'
+    volumes:
+      - .:/workspace
+      - node_modules:/workspace/node_modules
+
+  firebase:
+    build:
+      context: ./firebase-emulator
+      dockerfile: Dockerfile
+    environment:
+      FIREBASE_PROJECT_ID: demo-project
+    stop_grace_period: 30s
+    expose:
+      - '4000'
+      - '8080'
+      - '9099'
+    volumes:
+      - firebase_data:/firebase
+
+volumes:
+  firebase_data:
+  node_modules:

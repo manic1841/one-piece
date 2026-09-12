@@ -31,8 +31,9 @@ Dependencies must flow **inwards**. The UI layer is the outermost shell.
 
 1.  **UI -> Application (Hooks)**: UI components only talk to Hooks. Never call a Use Case or Repository directly from a component.
 2.  **UI -> Domain (Types)**: UI can use Domain types for reference, but should prefer ViewModels for display.
-3.  **UI -X-> Infrastructure**: The UI layer must never know about Firestore, API clients, or external storage details.
-4.  **Feature Isolation**: Features should be self-contained. Shared components belong in `src/ui/components`, not cross-referenced between features.
+3.  **UI -> Domain (Pure Functions)**: Hooks may call domain pure functions directly for state derivation that requires no persistence (e.g. `aggregateTrendPoints`, retirement `planMutations`). This is the prescribed alternative to pass-through application classes. Persistence-affecting operations must still go through a Use Case.
+4.  **UI -X-> Infrastructure**: The UI layer must never know about Firestore, API clients, or external storage details.
+5.  **Feature Isolation**: Features should be self-contained. Shared components belong in `src/ui/components`, not cross-referenced between features.
 
 ---
 
@@ -73,6 +74,16 @@ In React, Hooks in the `features/hooks` folder act as **Application Controllers*
 - **Return Intent**: Don't just return data; return actions (e.g., `onSave`, `onCancel`).
 - **Atomic Operations**: Each hook should focus on a specific interaction flow.
 - **Validation Gate**: Hook submit paths must validate Form VM via schema before calling Use Cases.
+- **Retry Identity**: For a financial command that requires an idempotency key,
+  create one key for the user's action, keep it in the hook while retries are
+  possible, and clear it only after a successful result. Build the retry
+  signature from the same canonical operation inputs as the command fingerprint.
+- **Auth Assembly**: Hooks must obtain the `AuthContext` passed to Use Cases via
+  `useAuthContext()` (`@/ui/hooks/useAuthContext`), never by hand-assembling
+  `{ uid, isGlobalAdmin }` literals from `useAuth()`. Direct `useAuth()` use is
+  reserved for concerns the auth context does not carry (e.g. `userProfile`,
+  `refreshProfile`, sign-in UI). Never fabricate a fake auth object (empty uid,
+  forced `isGlobalAdmin: true`) to bypass permission checks.
 
 ---
 
@@ -106,6 +117,39 @@ Mapper (mapXxxVMToDomain)
 Use Case
 ```
 
-## 6. Linus's Final Word on UI
+## 6. RWD 斷點契約
+
+斷點決策見 [ADR-0044](adr/0044-rwd-breakpoint-contract.md)。`md`(768px)是行動殼
+與桌面殼的唯一切換點;平板沿用桌面殼,側欄 768-1023px 為 224px,1024px 起恢復
+256px。
+
+以下為四檔視窗的手動 QA 清單,項目均為可觀察行為,作為版面變更的驗收面:
+
+### 360px(手機直式)
+
+- 底部導航只有 4 個主要項目加 More,圖示與文字無截斷、無水平捲軸。
+- More 展開後 5 個次要目的地完整可點,點選後導航並關閉 sheet。
+- 頂部列顯示 App 名稱與 household 切換器,不與 Logout 重疊。
+- 交易列表呈現全寬度卡片式,日期篩選輸入與按鈕直向堆疊、各自佔滿列寬。
+- 寬表格(退休年度明細)在自身容器內橫向捲動,頁面本身不出現水平捲軸。
+
+### 768px(平板直式)
+
+- 固定側欄出現,寬 224px;內容區起點與側欄右緣對齊,無遮蓋、無異常留白。
+- 側欄 9 個導航項目全部可見可點,無換行截斷。
+- 內容區無水平捲軸;交易列表日期篩選列允許折行,所有控制項完整可見。
+- 頂部列與底部導航隱藏。
+
+### 1024px(平板橫式 / 小桌機)
+
+- 側欄恢復 256px,內容補償 padding 同步為 256px。
+- 版面與桌機完全相同,無平板專用元素。
+
+### 1280px(桌機)
+
+- 版面與 1024px 一致;`max-w-7xl` 容器置中,兩側留白對稱。
+- 任何斷點皆不得出現整頁水平捲軸。
+
+## 7. Linus's Final Word on UI
 
 Don't over-engineer with 50 levels of abstraction just because some blog post told you so. If a component is simple, keep it simple. But if you start leaking business logic into a "Button Click" handler, I will find you.

@@ -2,12 +2,10 @@ import { useCallback, useEffect, useState } from 'react';
 
 import { format } from 'date-fns';
 
-import { getUnsettledStatsUseCase } from '@/application/report/use_cases/getUnsettledStatsUseCase';
+import { getSettlementReadinessUseCase } from '@/application/report/use_cases/getSettlementReadinessUseCase';
+import { generateFinancialReportsUseCase } from '@/application/report/use_cases/generateFinancialReportsUseCase';
+import { previewFinancialReportsWorkflow } from '@/application/report/use_cases/previewFinancialReportsWorkflow';
 import { previewDebtSettlementsUseCase } from '@/application/settlement/use_cases/previewDebtSettlementsUseCase';
-import { reportService } from '@/domains/report/reportService';
-import { ReportType } from '@/domains/report/schemas';
-import { useAuth } from '@/infra/contexts/useAuth';
-import { reportRepository } from '@/infra/repositories/reportRepository';
 import { getUnifiedLedgerCodeLabel } from '@/ui/constants/transaction';
 import {
   type BalanceSheetVM,
@@ -17,9 +15,10 @@ import {
   mapCashFlowToVM,
   mapIncomeStatementToVM,
 } from '@/ui/features/report/viewmodels/reportDisplay.vm';
+import { useAuthContext } from '@/ui/hooks/useAuthContext';
 
 export const useReportSettlement = (householdId: string, userEmail: string) => {
-  const { currentUser, isAdmin } = useAuth();
+  const auth = useAuthContext();
 
   const [year, setYear] = useState(new Date().getFullYear());
   const [month, setMonth] = useState(new Date().getMonth() + 1);
@@ -50,8 +49,6 @@ export const useReportSettlement = (householdId: string, userEmail: string) => {
   } | null>(null);
   const [isPreviewing, setIsPreviewing] = useState(false);
 
-  const yearMonth = `${year}-${month.toString().padStart(2, '0')}`;
-
   const resolveReportLabel = useCallback((code: string, fallbackLabel?: string) => {
     const resolved = getUnifiedLedgerCodeLabel(code);
     return resolved === code ? fallbackLabel || code : resolved;
@@ -61,15 +58,17 @@ export const useReportSettlement = (householdId: string, userEmail: string) => {
     if (!householdId) return;
     setIsLoading(true);
     try {
-      const [income, balance, cash] = await Promise.all([
-        reportService.generateIncomeStatement(householdId, yearMonth, resolveReportLabel),
-        reportService.generateBalanceSheet(householdId, yearMonth, resolveReportLabel),
-        reportService.generateCashFlow(householdId, yearMonth, resolveReportLabel),
-      ]);
+      const preview = await previewFinancialReportsWorkflow.execute({
+        householdId,
+        auth,
+        year,
+        month,
+        labelResolver: resolveReportLabel,
+      });
       setPreviewData({
-        incomeStatement: mapIncomeStatementToVM(income),
-        balanceSheet: mapBalanceSheetToVM(balance),
-        cashFlow: mapCashFlowToVM(cash),
+        incomeStatement: mapIncomeStatementToVM(preview.incomeStatement),
+        balanceSheet: mapBalanceSheetToVM(preview.balanceSheet),
+        cashFlow: mapCashFlowToVM(preview.cashFlow),
       });
     } catch (err) {
       console.error('Error fetching preview data:', err);
@@ -89,28 +88,25 @@ export const useReportSettlement = (householdId: string, userEmail: string) => {
         householdId,
         year,
         month,
+        auth,
       });
       setDebtNoRepaymentWarningNames(debtPreview.missingRepaymentAccountNames);
 
       // Check whether all active entities are settled for this month.
-      const unsettled = await getUnsettledStatsUseCase.execute({
+      const readiness = await getSettlementReadinessUseCase.execute({
         householdId,
-        auth: {
-          uid: currentUser?.uid || '',
-          email: currentUser?.email || undefined,
-          isGlobalAdmin: isAdmin,
-        },
+        auth,
         year,
         month,
       });
 
-      if (unsettled.totalUnsettled > 0) {
-        setUnsettledProjectNames(unsettled.unsettledProjects.map((project) => project.name));
-        setUnsettledAccountNames(unsettled.unsettledAccounts.map((account) => account.name));
+      if (!readiness.isReady) {
+        setUnsettledProjectNames(readiness.unsettledProjects.map((project) => project.name));
+        setUnsettledAccountNames(readiness.unsettledAccounts.map((account) => account.name));
         setUnsettledPortfolioNames(
-          unsettled.unsettledPortfolios.map((portfolio) => portfolio.name),
+          readiness.unsettledPortfolios.map((portfolio) => portfolio.name),
         );
-        setUnsettledDebtNames(unsettled.unsettledDebts.map((debt) => debt.name));
+        setUnsettledDebtNames(readiness.unsettledDebts.map((debt) => debt.name));
         setSummary(null);
         setReportsGenerated(false);
         setIsLoading(false);
@@ -122,53 +118,31 @@ export const useReportSettlement = (householdId: string, userEmail: string) => {
       setUnsettledPortfolioNames([]);
       setUnsettledDebtNames([]);
 
-      // 2. Load financial summary
-      const [incomeStmt, balanceSheet] = await Promise.all([
-        reportService.generateIncomeStatement(householdId, yearMonth, resolveReportLabel),
-        reportService.generateBalanceSheet(householdId, yearMonth, resolveReportLabel),
-      ]);
-
-      setSummary({
-        totalRevenue: incomeStmt.incomeTotal,
-        totalExpense: incomeStmt.expenseTotal,
-        netIncome: incomeStmt.netIncome,
-        netWorth: balanceSheet.assets.total - balanceSheet.liabilities.total,
+      // 2. Load financial preview (calculation + persistence state)
+      const preview = await previewFinancialReportsWorkflow.execute({
+        householdId,
+        auth,
+        year,
+        month,
+        labelResolver: resolveReportLabel,
       });
 
-      // 3. Check for existing reports
-      const existingReports = await Promise.all([
-        reportRepository.getReport(householdId, yearMonth, ReportType.INCOME_STATEMENT),
-        reportRepository.getReport(householdId, yearMonth, ReportType.BALANCE_SHEET),
-        reportRepository.getReport(householdId, yearMonth, ReportType.CASH_FLOW),
-      ]);
+      setSummary({
+        totalRevenue: preview.incomeStatement.incomeTotal,
+        totalExpense: preview.incomeStatement.expenseTotal,
+        netIncome: preview.incomeStatement.netIncome,
+        netWorth: preview.balanceSheet.assets.total - preview.balanceSheet.liabilities.total,
+      });
 
-      if (existingReports.every((report) => report !== null)) {
-        setReportsGenerated(true);
-        setReportTimestamps({
-          incomeStatement: format(existingReports[0]!.updatedAt, 'HH:mm'),
-          balanceSheet: format(existingReports[1]!.updatedAt, 'HH:mm'),
-          cashFlow: format(existingReports[2]!.updatedAt, 'HH:mm'),
-        });
-      } else {
-        setReportsGenerated(false);
-        setReportTimestamps({});
-      }
+      setReportsGenerated(preview.isPersisted);
+      setReportTimestamps(preview.timestamps);
     } catch (err) {
       console.error('Error loading report settlement status:', err);
       setError('無法載入結算狀態，請稍後再試。');
     } finally {
       setIsLoading(false);
     }
-  }, [
-    householdId,
-    year,
-    month,
-    yearMonth,
-    currentUser?.uid,
-    currentUser?.email,
-    isAdmin,
-    resolveReportLabel,
-  ]);
+  }, [householdId, year, month, auth, resolveReportLabel]);
 
   useEffect(() => {
     loadStatus();
@@ -187,12 +161,13 @@ export const useReportSettlement = (householdId: string, userEmail: string) => {
     setIsGenerating(true);
 
     try {
-      const results = await reportService.generateMonthlyFinancialReports(
+      const results = await generateFinancialReportsUseCase.execute({
         householdId,
-        yearMonth,
-        userEmail,
-        resolveReportLabel,
-      );
+        auth,
+        year,
+        month,
+        labelResolver: resolveReportLabel,
+      });
 
       setReportTimestamps({
         incomeStatement: format(results.timestamp, 'HH:mm'),

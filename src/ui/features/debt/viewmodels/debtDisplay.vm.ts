@@ -75,7 +75,7 @@ export const mapDebtAccountToDisplayVM = (
   account: DebtAccount,
   projectName: string | null,
 ): DebtAccountDisplayVM => {
-  const inGracePeriod = isInGracePeriod(account.graceEndDate);
+  const inGracePeriod = isInGracePeriod(account.startDate, new Date(), account.graceEndDate);
   return {
     ...account,
     payoffDate: estimatePayoffDate(account),

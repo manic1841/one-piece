@@ -38,7 +38,7 @@ export const IncomeSubCategoryOptions = toOptions(IncomeSubCategoryLabel);
 
 export const ExpenseSubCategoryLabel = {
   [ExpenseSubCategory.LIVING]: '生活費',
-  [ExpenseSubCategory.HOUSING]: '住房',
+  [ExpenseSubCategory.HOUSING]: '家居',
   [ExpenseSubCategory.TRANSPORTATION]: '交通',
   [ExpenseSubCategory.INTEREST]: '利息',
   [ExpenseSubCategory.TAX]: '稅務',

@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { createDebtPaymentUseCase } from '@/application/debt/use_cases/createDebtPaymentUseCase';
 import { listDebtAccountsUseCase } from '@/application/debt/use_cases/listDebtAccountsUseCase';
 import { updateDebtAccountUseCase } from '@/application/debt/use_cases/updateDebtAccountUseCase';
-import { createAllocationUseCase } from '@/application/ledger/use_cases/createAllocationUseCase';
+import { createTransactionWithAllocationUseCase } from '@/application/ledger/use_cases/createTransactionWithAllocationUseCase';
 import { createTransactionUseCase } from '@/application/ledger/use_cases/createTransactionUseCase';
 import { getIncomeAllocationTemplateUseCase } from '@/application/ledger/use_cases/getIncomeAllocationTemplateUseCase';
 import { updateTransactionUseCase } from '@/application/ledger/use_cases/updateTransactionUseCase';
@@ -13,9 +13,11 @@ import { upsertIncomeAllocationTemplateUseCase } from '@/application/ledger/use_
 import { type DebtAccount } from '@/domains/debt/schemas';
 import { IntentType } from '@/domains/ledger/constants';
 import { DEFAULT_INTENT_MAPPINGS } from '@/domains/ledger/intentMapping';
-import { projectService } from '@/domains/project/projectService';
+import { normalizeDescription } from '@/domains/operation/fingerprint';
 import { useAuth } from '@/infra/contexts/useAuth';
+import { getIntentLabel } from '@/ui/constants/transaction';
 import { useLedgerCodes } from '@/ui/features/ledger/hooks/useLedgerCodes';
+import { useAuthContext } from '@/ui/hooks/useAuthContext';
 import { type AllocationItemInput } from '@/ui/features/transaction/types/allocation';
 import {
   type TransactionFormCategoryOption,
@@ -23,6 +25,7 @@ import {
 } from '@/ui/features/transaction/types/transaction';
 import {
   type TransactionFormVM,
+  mapTransactionVMToAllocationInput,
   mapTransactionVMToAllocationData,
   mapTransactionVMToDomain,
   parseTransactionFormVM,
@@ -32,14 +35,14 @@ import { logger } from '@/utils/logger';
 const expenseCategories: TransactionFormCategoryOption[] = [
   ...DEFAULT_INTENT_MAPPINGS.filter((mapping) => mapping.type === 'EXPENSE').map((mapping) => ({
     value: mapping.intent,
-    label: mapping.label,
+    label: getIntentLabel(mapping.intent),
   })),
 ];
 
 const incomeCategories: TransactionFormCategoryOption[] = [
   ...DEFAULT_INTENT_MAPPINGS.filter((mapping) => mapping.type === 'INCOME').map((mapping) => ({
     value: mapping.intent,
-    label: mapping.label,
+    label: getIntentLabel(mapping.intent),
   })),
 ];
 
@@ -47,14 +50,14 @@ const investmentCategories: TransactionFormCategoryOption[] = DEFAULT_INTENT_MAP
   (mapping) => mapping.type === 'INVESTMENT',
 ).map((mapping) => ({
   value: mapping.intent,
-  label: mapping.label,
+  label: getIntentLabel(mapping.intent),
 }));
 
 const financingCategories: TransactionFormCategoryOption[] = DEFAULT_INTENT_MAPPINGS.filter(
   (mapping) => mapping.type === 'FINANCING',
 ).map((mapping) => ({
   value: mapping.intent,
-  label: mapping.label,
+  label: getIntentLabel(mapping.intent),
 }));
 
 const advancedCategories: TransactionFormCategoryOption[] = [
@@ -62,25 +65,80 @@ const advancedCategories: TransactionFormCategoryOption[] = [
   ...incomeCategories,
 ];
 
-const toDate = (date: string) => new Date(`${date}T00:00:00`);
-
 type SettlementPrompt = {
   debtAccountId: string;
   debtAccountName: string;
 };
+
+type DebtPaymentAttempt = {
+  signature: string;
+  idempotencyKey: string;
+};
+
+type TransactionWithAllocationAttempt = {
+  signature: string;
+  idempotencyKey: string;
+};
+
+const getDebtPaymentAttemptSignature = (vm: TransactionFormVM): string =>
+  JSON.stringify({
+    debtAccountId: vm.debtAccountId,
+    amount: vm.amount,
+    date: vm.date,
+    description: normalizeDescription(vm.description),
+    projectId: vm.projectId ?? null,
+  });
+
+const getTransactionWithAllocationAttemptSignature = (vm: TransactionFormVM): string =>
+  JSON.stringify({
+    intentType: vm.intentType,
+    intent: vm.intent ?? null,
+    date: vm.date,
+    amount: vm.amount,
+    ledgerCode: vm.ledgerCode ?? null,
+    description: normalizeDescription(vm.description),
+    projectId: vm.projectId ?? null,
+    allocationDirection: vm.allocationDirection ?? null,
+    allocationItems: vm.allocationItems ?? [],
+  });
 
 export const useTransactionForm = (
   householdId: string,
   onClose: () => void,
   onSuccess?: () => void,
 ) => {
-  const { userProfile, currentUser, isAdmin } = useAuth();
+  const { userProfile } = useAuth();
+  const auth = useAuthContext();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [debtAccounts, setDebtAccounts] = useState<DebtAccount[]>([]);
   const [settlementPrompt, setSettlementPrompt] = useState<SettlementPrompt | null>(null);
   const incomeTemplateCacheRef = useRef<Map<string, AllocationItemInput[] | null>>(new Map());
+  const debtPaymentAttemptRef = useRef<DebtPaymentAttempt | null>(null);
+  const transactionWithAllocationAttemptRef = useRef<TransactionWithAllocationAttempt | null>(null);
   const { codes: allActiveLedgerCodes } = useLedgerCodes(false);
+
+  const getDebtPaymentIdempotencyKey = (vm: TransactionFormVM): string => {
+    const signature = getDebtPaymentAttemptSignature(vm);
+    if (debtPaymentAttemptRef.current?.signature === signature) {
+      return debtPaymentAttemptRef.current.idempotencyKey;
+    }
+
+    const idempotencyKey = globalThis.crypto.randomUUID();
+    debtPaymentAttemptRef.current = { signature, idempotencyKey };
+    return idempotencyKey;
+  };
+
+  const getTransactionWithAllocationIdempotencyKey = (vm: TransactionFormVM): string => {
+    const signature = getTransactionWithAllocationAttemptSignature(vm);
+    if (transactionWithAllocationAttemptRef.current?.signature === signature) {
+      return transactionWithAllocationAttemptRef.current.idempotencyKey;
+    }
+
+    const idempotencyKey = globalThis.crypto.randomUUID();
+    transactionWithAllocationAttemptRef.current = { signature, idempotencyKey };
+    return idempotencyKey;
+  };
 
   // Fetch active debt accounts for the DEBT_PAYMENT tab
   const fetchDebtAccounts = useCallback(async () => {
@@ -123,22 +181,12 @@ export const useTransactionForm = (
     [householdId],
   );
 
-  const executeAllocation = async (input: {
+  const persistIncomeAllocationTemplate = async (input: {
     vm: TransactionFormVM;
-    transactionId: string;
+    items: AllocationItemInput[];
     userEmail: string;
   }) => {
-    const { vm, transactionId, userEmail } = input;
-
-    const allocationData = mapTransactionVMToAllocationData(vm, transactionId);
-    if (!allocationData) return;
-
-    await createAllocationUseCase.execute({
-      householdId,
-      userEmail,
-      data: allocationData,
-    });
-
+    const { vm, items, userEmail } = input;
     if (vm.intentType !== IntentType.INCOME || !vm.ledgerCode?.startsWith('income:')) {
       return;
     }
@@ -148,14 +196,70 @@ export const useTransactionForm = (
         householdId,
         userEmail,
         ledgerCode: vm.ledgerCode,
-        items: allocationData.items,
+        items,
       });
 
-      incomeTemplateCacheRef.current.set(vm.ledgerCode, allocationData.items);
+      incomeTemplateCacheRef.current.set(vm.ledgerCode, items);
     } catch (templateError) {
       logger.warn('Failed to persist income allocation template', 'useTransactionForm', {
         templateError,
         ledgerCode: vm.ledgerCode,
+      });
+    }
+  };
+
+  const handleDebtPayment = async (vm: TransactionFormVM) => {
+    if (!userProfile?.email) return;
+    if (!vm.debtAccountId) throw new Error('請選擇貸款帳戶');
+    const account = debtAccounts.find((item) => item.id === vm.debtAccountId) ?? null;
+    const result = await createDebtPaymentUseCase.execute({
+      householdId,
+      userEmail: auth.email || '',
+      auth,
+      debtAccountId: vm.debtAccountId,
+      idempotencyKey: getDebtPaymentIdempotencyKey(vm),
+      totalPayment: vm.amount,
+      date: new Date(`${vm.date}T00:00:00`),
+      description: vm.description,
+      projectId: vm.projectId,
+    });
+
+    if (result.newBalance <= 0) {
+      setSettlementPrompt({
+        debtAccountId: vm.debtAccountId,
+        debtAccountName: account?.name ?? '貸款',
+      });
+    }
+  };
+
+  const handleStandardTransaction = async (vm: TransactionFormVM) => {
+    if (!userProfile?.email) return;
+    const transactionData = mapTransactionVMToDomain(vm, userProfile.email);
+    const allocationData = mapTransactionVMToAllocationInput(vm);
+
+    if (allocationData) {
+      await createTransactionWithAllocationUseCase.execute({
+        householdId,
+        userEmail: auth.email || '',
+        auth,
+        idempotencyKey: getTransactionWithAllocationIdempotencyKey(vm),
+        data: transactionData,
+        allocation: {
+          direction: allocationData.direction,
+          items: allocationData.items,
+        },
+      });
+
+      await persistIncomeAllocationTemplate({
+        vm,
+        items: allocationData.items,
+        userEmail: auth.email || '',
+      });
+    } else {
+      await createTransactionUseCase.execute({
+        householdId,
+        userEmail: auth.email || '',
+        data: transactionData,
       });
     }
   };
@@ -170,58 +274,14 @@ export const useTransactionForm = (
       const vm = parseTransactionFormVM(output);
 
       if (vm.intentType === IntentType.DEBT_PAYMENT) {
-        if (!vm.debtAccountId) throw new Error('請選擇貸款帳戶');
-        const account = debtAccounts.find((item) => item.id === vm.debtAccountId) ?? null;
-        const result = await createDebtPaymentUseCase.execute({
-          householdId,
-          userEmail: userProfile.email,
-          auth: {
-            uid: currentUser?.uid ?? '',
-            isGlobalAdmin: isAdmin ?? false,
-          },
-          debtAccountId: vm.debtAccountId,
-          totalPayment: vm.amount,
-          date: new Date(`${vm.date}T00:00:00`),
-          description: vm.description,
-          projectId: vm.projectId,
-        });
-
-        if (result.newBalance <= 0) {
-          setSettlementPrompt({
-            debtAccountId: vm.debtAccountId,
-            debtAccountName: account?.name ?? '貸款',
-          });
-        }
-      } else if (vm.intentType === IntentType.TRANSFER) {
-        if (!vm.fromProjectId || !vm.toProjectId)
-          throw new Error('Please select both source and target projects.');
-
-        await projectService.transferBetweenProjects(
-          householdId,
-          {
-            fromProjectId: vm.fromProjectId,
-            toProjectId: vm.toProjectId,
-            amount: vm.amount,
-            date: toDate(vm.date),
-            description: vm.description,
-          },
-          userProfile.email,
-        );
+        await handleDebtPayment(vm);
       } else {
-        const transactionId = await createTransactionUseCase.execute({
-          householdId,
-          userEmail: userProfile.email,
-          data: mapTransactionVMToDomain(vm, userProfile.email),
-        });
-
-        await executeAllocation({
-          vm,
-          transactionId,
-          userEmail: userProfile.email,
-        });
+        await handleStandardTransaction(vm);
       }
 
       onClose();
+      debtPaymentAttemptRef.current = null;
+      transactionWithAllocationAttemptRef.current = null;
       if (onSuccess) onSuccess();
     } catch (err: unknown) {
       if (err instanceof z.ZodError) {
@@ -244,8 +304,8 @@ export const useTransactionForm = (
     try {
       const vm = parseTransactionFormVM(output);
 
-      if (vm.intentType === IntentType.DEBT_PAYMENT || vm.intentType === IntentType.TRANSFER) {
-        throw new Error('目前不支援編輯還款與專案轉帳交易。');
+      if (vm.intentType === IntentType.DEBT_PAYMENT) {
+        throw new Error('目前不支援編輯還款交易。');
       }
 
       const allocationData = mapTransactionVMToAllocationData(vm, transactionId);
@@ -253,11 +313,8 @@ export const useTransactionForm = (
       await updateTransactionUseCase.execute({
         householdId,
         transactionId,
-        userEmail: userProfile.email,
-        auth: {
-          uid: currentUser?.uid ?? '',
-          isGlobalAdmin: isAdmin ?? false,
-        },
+        userEmail: auth.email || '',
+        auth,
         data: mapTransactionVMToDomain(vm, userProfile.email),
         allocation: allocationData
           ? {
@@ -277,7 +334,7 @@ export const useTransactionForm = (
         try {
           await upsertIncomeAllocationTemplateUseCase.execute({
             householdId,
-            userEmail: userProfile.email,
+            userEmail: auth.email || '',
             ledgerCode: vm.ledgerCode,
             items: allocationData.items,
           });
@@ -314,11 +371,8 @@ export const useTransactionForm = (
       await updateDebtAccountUseCase.execute({
         householdId,
         debtAccountId: settlementPrompt.debtAccountId,
-        userEmail: userProfile.email,
-        auth: {
-          uid: currentUser?.uid ?? '',
-          isGlobalAdmin: isAdmin ?? false,
-        },
+        userEmail: auth.email || '',
+        auth,
         data: {
           isActive: false,
           closedAt: new Date(),

@@ -2,6 +2,8 @@
 
 本專案採用領域驅動設計 (Domain-Driven Design, DDD) 的簡化版本，旨在分離業務邏輯、資料存取與 UI 呈現。
 
+本文件說明目前的分層與資料流；不可逆的架構取捨以 [ADR](adr/) 為準。若本文件與 ADR 不一致，應先修正本文件的導引內容。
+
 ## 1. 分層結構 (Layers)
 
 ### 📂 Domain (領域層) - `src/domains/`
@@ -15,10 +17,6 @@
 - **職責**: 協調領域對象與基礎設施，實現具體的使用案例 (Use Cases) 或複雜的業務服務 (Application Services)。
 - **內容**:
   - `use_cases/`: 原子級業務操作，封裝單一職責邏輯（如：`createUserUseCase.ts`）。
-  - `hooks/`: **應用控制器 (Application Controller)**。React 進入點，負責：
-    - 管理 `loading`、`error` 狀態。
-    - 注入 `AuthContext`（使用者權限上下文）。
-    - 處理 UI 副作用。
   - **Permission Services**: 專門處理複雜權限校驗的應用服務（如：`HouseholdPermissionService`）。
 - **規則**: 這裡負責事務控制與業務流程。**絕對禁止在此層級使用 React Hooks 或依賴任何 UI 框架。**
 
@@ -31,10 +29,10 @@
 ### 📂 Presentation (呈現層) - `src/ui/features/`, `src/ui/components/`
 
 - **職責**: UI 渲染與使用者互動。
-- **內容**: 
+- **內容**:
   - `features/[feature-name]/hooks/`: **應用控制器 (Application Controller)**。React 進入點，負責銜接 UI 與核心邏輯。
   - `components/`: React 組件。
-- **規則**: Component 只調用 Hook (Application Controller)，不直接觸碰業務邏輯或資料庫。
+- **規則**: Component 只調用 feature Hook (Application Controller)，不直接觸碰業務邏輯或資料庫。
 
 ## 2. 資料流 (Data Flow)
 
@@ -45,5 +43,6 @@
 
 ## 3. 重要約定 (Conventions)
 
-- **意圖導向 (Intent-based)**: 財務操作應盡量描述使用者的「意圖」（如：購物、薪資發放），由系統將其轉換為底層會計分錄。
-- **快照與快取 (Snapshots)**: 為優化讀取效能，歷史報表資料應使用每月 `snapshots`，而非每次重新計算所有原始交易。
+- **意圖導向 (Intent-based)**: 財務操作的分錄架構與 IntentType 分層詳見 [ADR-0005](adr/0005-journal-entry-architecture.md) 與 [ADR-0010](adr/0010-intenttype-three-tier.md)；實際輸入流程見 [transaction-flow.md](transaction-flow.md)。
+- **Project 與會計科目**: 兩者的責任邊界與餘額計算詳見 [ADR-0006](adr/0006-project-legercode-separation.md)。
+- **快照與快取 (Snapshots)**: ProjectSnapshot 與報表快照的來源及產生時機詳見 [ADR-0012](adr/0012-project-snapshot-cache.md) 與 [ADR-0018](adr/0018-manual-financial-report-generation.md)。本文件不另行定義快照規則。

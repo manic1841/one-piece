@@ -41,6 +41,7 @@ const isHouseholdAdminRole = (role: string | undefined) => {
 };
 
 const reviveDates = (value: unknown): unknown => {
+  if (value instanceof Date) return value;
   if (Array.isArray(value)) return value.map(reviveDates);
   if (typeof value === 'string' && ISO_DATE_TIME_RE.test(value)) return new Date(value);
 
@@ -132,6 +133,10 @@ class ImportHouseholdBackupUseCase {
     const backupData = reviveDates(backup) as HouseholdBackupPayload;
     const setOps = buildSetOps(householdId, backupData);
 
+    // CONTRACT: Deletes commit before writes. If the write phase fails
+    // partway, existing data is already deleted — the household will be
+    // in a partially restored state. Validation runs before any deletes,
+    // so malformed payloads never cause data loss.
     await commitDeletes(deleteRefs);
     await commitSets(setOps);
 

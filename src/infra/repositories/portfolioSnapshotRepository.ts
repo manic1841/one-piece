@@ -44,6 +44,14 @@ class PortfolioSnapshotRepository extends BaseRepository<
   buildId(year: number, month: number): string {
     return `${year}-${month.toString().padStart(2, '0')}`;
   }
+
+  async getSnapshot(
+    householdId: string,
+    portfolioId: string,
+    yearMonth: string,
+  ): Promise<PortfolioSnapshot | null> {
+    return this.get([householdId, portfolioId, yearMonth]);
+  }
 }
 
 export const portfolioSnapshotRepository = new PortfolioSnapshotRepository(db);
