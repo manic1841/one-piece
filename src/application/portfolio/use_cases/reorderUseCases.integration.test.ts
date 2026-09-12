@@ -15,6 +15,7 @@ import { reorderAccountsUseCase } from '@/application/account/use_cases/reorderA
 import { reorderPortfoliosUseCase } from './reorderPortfoliosUseCase';
 import { reorderProjectsUseCase } from '@/application/project/use_cases/reorderProjectsUseCase';
 import { projectRepository } from '@/infra/repositories/projectRepository';
+import { emulatorProjectId, firestoreEmulator } from '@/test/emulatorEnv';
 import { db, resetMockDb } from '@/test/mocks/firebase';
 
 const auth = { uid: 'user-1', isGlobalAdmin: true };
@@ -25,8 +26,11 @@ const userEmail = 'user@example.com';
 const readerApps: FirebaseApp[] = [];
 
 const makeReaderDb = () => {
-  const app = initializeApp({ projectId: 'demo-project' }, `reorder-reader-${readerApps.length}`);
-  connectFirestoreEmulator(getFirestore(app), 'firebase', 8080);
+  const app = initializeApp(
+    { projectId: emulatorProjectId },
+    `reorder-reader-${readerApps.length}`,
+  );
+  connectFirestoreEmulator(getFirestore(app), firestoreEmulator.host, firestoreEmulator.port);
   readerApps.push(app);
   return getFirestore(app);
 };

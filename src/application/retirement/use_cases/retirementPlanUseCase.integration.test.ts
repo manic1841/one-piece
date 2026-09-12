@@ -37,6 +37,7 @@ import { createRetirementPlanUseCase } from './createRetirementPlanUseCase';
 import { deleteRetirementPlanUseCase } from './deleteRetirementPlanUseCase';
 import { duplicateRetirementPlanUseCase } from './duplicateRetirementPlanUseCase';
 import { updateRetirementPlanUseCase } from './updateRetirementPlanUseCase';
+import { emulatorProjectId, firestoreEmulator } from '@/test/emulatorEnv';
 import { resetMockDb } from '@/test/mocks/firebase';
 
 const auth = { uid: 'user-1', isGlobalAdmin: true };
@@ -47,8 +48,8 @@ const userEmail = 'user@example.com';
 const readerApps: FirebaseApp[] = [];
 
 const makeReaderDb = () => {
-  const app = initializeApp({ projectId: 'demo-project' }, `reader-${readerApps.length}`);
-  connectFirestoreEmulator(getFirestore(app), 'firebase', 8080);
+  const app = initializeApp({ projectId: emulatorProjectId }, `reader-${readerApps.length}`);
+  connectFirestoreEmulator(getFirestore(app), firestoreEmulator.host, firestoreEmulator.port);
   readerApps.push(app);
   return getFirestore(app);
 };
