@@ -21,10 +21,9 @@ firestore
        ├─ name: string
       ├─ memberUids: string[]        # 成員 uid 索引（供 array-contains 查詢）
        ├─ createdAt: Timestamp
-       └─ members: array
-       │    ├─ uid: string
-       │    ├─ name: string
-       │    └─ role: "owner" | "admin" | "member" | "guest"
+       └─ members: map<uid, { role, joinedAt }>
+            ├─ role: "owner" | "admin" | "member" | "guest"
+            └─ joinedAt: Timestamp
 
        ├─ projects/{projectId}       # 專案帳戶 (Management Accounting)
        │    ├─ name: string

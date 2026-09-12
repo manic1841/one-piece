@@ -85,6 +85,22 @@ pnpm qa:init
 DevTools 的 localStorage session 注入片段。細節見
 [scripts/admin/README.md](../scripts/admin/README.md)。
 
+### QA 財務資料 seed
+
+`qa:init` 只建立帳號門戶;要讓每個 domain 有可測試的實際資料,再執行:
+
+```bash
+pnpm qa:seed
+```
+
+此腳本以固定 doc ID 寫入確定性的財務資料集(projects、accounts、
+ledgerCodes、intent_mappings、allocationTemplates、transactions、
+allocations、debtAccounts、portfolios、retirement_plans 全套子集合,
+以及由純 domain calculator 推導出的 project/account/debt/portfolio
+snapshots 與三份財務報表)。腳本可重複執行(upsert,非 append)。
+資料窗口固定在 2025-01～2026-09,確保退休收入流的 sampleYear 與報表
+本期都有資料支撐。`operation` 集合不 seed(runtime 重試記錄)。
+
 ### 瀏覽器 QA 環境注意事項
 
 以下為 2026-09-11 在 Docker dev stack 內做瀏覽器 QA 時實測到的限制:

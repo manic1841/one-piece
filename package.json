@@ -15,7 +15,8 @@
     "test": "vitest run --config vitest.config.ts",
     "test:coverage": "vitest run --config vitest.config.ts --coverage",
     "test:integration": "vitest run --config vitest.integration.config.ts",
-    "qa:init": "tsx scripts/admin/bootstrap-emulator-qa.ts"
+    "qa:init": "tsx scripts/admin/bootstrap-emulator-qa.ts",
+    "qa:seed": "tsx scripts/admin/seed-qa-data.ts"
   },
   "pre-commit": [
     "lint"

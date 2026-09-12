@@ -1,6 +1,7 @@
 import admin from 'firebase-admin';
 
 import { applyEmulatorEnv } from './emulator-env';
+import { QA_DISPLAY_NAME, QA_EMAIL, QA_HOUSEHOLD_ID, QA_PASSWORD } from './qa-identity';
 
 // Resolve emulator targets from env vars (defaults to localhost) before SDK init.
 const emulator = applyEmulatorEnv();
@@ -13,11 +14,6 @@ if (!admin.apps.length) {
 
 const db = admin.firestore();
 const auth = admin.auth();
-
-const QA_EMAIL = 'qa@onepiece.test';
-const QA_PASSWORD = 'password123';
-const QA_DISPLAY_NAME = 'QA Tester';
-const QA_HOUSEHOLD_ID = 'qa_household';
 
 const bootstrapAuth = async (): Promise<string> => {
   try {

@@ -31,6 +31,25 @@ pnpm qa:init
   僅為 fallback。詳細說明見 [docs/testing.md](../../docs/testing.md) 的
   「瀏覽器 QA 環境注意事項」。
 
+## QA 財務資料 seed
+
+`qa:init` 建立帳號門戶後,執行 `qa:seed` 寫入覆蓋每個 domain 的確定性
+財務資料:
+
+```bash
+pnpm qa:seed
+```
+
+前置條件:已執行 `pnpm qa:init`(seed 腳本會驗證 household 存在)。
+
+- 資料集由純 plan builder([`qa-data-plan.ts`](qa-data-plan.ts))在記憶體
+  組裝,snapshots 與報表經純 domain calculator 推導,寫入前每份文件過
+  zod schema 驗證。
+- 固定 doc ID,可重複執行(upsert)。
+- 資料窗口:2025-01～2026-09(薪資)、2026-04～2026-09(日常支出)、
+  2026-01 房貸借款 + 每月還款;報表涵蓋 2026-07～2026-09 三期。
+- `operation` 集合不 seed(runtime 重試記錄)。
+
 ## 安裝 Firebase Admin SDK
 
 ```bash
