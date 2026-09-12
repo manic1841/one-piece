@@ -1,12 +1,13 @@
 import admin from 'firebase-admin';
 
-// Connect to Emulator
-process.env.FIRESTORE_EMULATOR_HOST = 'localhost:8080';
-process.env.FIREBASE_AUTH_EMULATOR_HOST = 'localhost:9099';
+import { applyEmulatorEnv } from './emulator-env';
+
+// Resolve emulator targets from env vars (defaults to localhost) before SDK init.
+const emulator = applyEmulatorEnv();
 
 if (!admin.apps.length) {
   admin.initializeApp({
-    projectId: 'demo-project',
+    projectId: emulator.projectId,
   });
 }
 
@@ -107,8 +108,7 @@ const seedUserProfile = async (uid: string): Promise<void> => {
 };
 
 const printSessionRecipe = async (uid: string): Promise<void> => {
-  const url =
-    'http://localhost:9099/identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=fake-api-key';
+  const url = `${emulator.authBaseUrl}/identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=fake-api-key`;
   const response = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

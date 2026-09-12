@@ -31,3 +31,4 @@ firebase-emulator/firebase_configs/firebase-export-*/
 
 # Testing
 test.ts
+coverage/

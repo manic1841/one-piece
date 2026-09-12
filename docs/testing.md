@@ -89,9 +89,17 @@ DevTools 的 localStorage session 注入片段。細節見
 
 以下為 2026-09-11 在 Docker dev stack 內做瀏覽器 QA 時實測到的限制:
 
-- `qa:init` 與 admin scripts 的模擬器 host 硬編碼為 `localhost:8080/9099`,
-  不讀外部 `FIRESTORE_EMULATOR_HOST`。在 Docker dev stack 內需先把
-  `localhost` 轉發到 `firebase` service(port-forward),腳本才連得上。
+- `qa:init` 與 admin scripts 讀取 `FIRESTORE_EMULATOR_HOST` /
+  `FIREBASE_AUTH_EMULATOR_HOST` / `FIREBASE_PROJECT_ID`,值可含或不含
+  `http://` 前綴;未設定時預設 `localhost:8080/9099`,並會印出實際解析
+  後的連線目標。在 Docker dev stack 內直接附上 service 名稱即可:
+
+  ```bash
+  FIRESTORE_EMULATOR_HOST=firebase:8080 \
+  FIREBASE_AUTH_EMULATOR_HOST=firebase:9099 \
+  FIREBASE_PROJECT_ID=demo-project \
+  pnpm qa:init
+  ```
 - Firebase JS SDK v12 的登入 session 以 IndexedDB
   (`firebaseLocalStorageDb` 的 `firebaseLocalStorage` store)為主要來源,
   localStorage 只是 fallback。只注入 localStorage 片段可能不會生效;注入

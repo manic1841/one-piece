@@ -25,9 +25,9 @@ import {
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { afterAll, beforeAll, beforeEach, describe, it } from 'vitest';
 
-const PROJECT_ID = process.env.FIREBASE_PROJECT_ID ?? 'demo-project';
-const FIRESTORE_HOST = process.env.FIRESTORE_EMULATOR_HOST ?? 'firebase:8080';
-const [fireHost, firePort] = FIRESTORE_HOST.split(':');
+import { emulatorProjectId, firestoreEmulator } from './emulatorEnv';
+
+const PROJECT_ID = emulatorProjectId;
 
 const rulesPath = resolve(__dirname, '../../firestore.rules');
 const rules = readFileSync(rulesPath, 'utf8');
@@ -66,8 +66,8 @@ beforeAll(async () => {
   testEnv = await initializeTestEnvironment({
     projectId: PROJECT_ID,
     firestore: {
-      host: fireHost,
-      port: Number(firePort),
+      host: firestoreEmulator.host,
+      port: firestoreEmulator.port,
       rules,
     },
   });
@@ -78,7 +78,7 @@ afterAll(async () => {
   // Restore permissive rules so other integration tests are unaffected.
   // The Firestore emulator persists loaded rules across requests.
   await fetch(
-    `http://${FIRESTORE_HOST}/emulator/v1/projects/${PROJECT_ID}:securityRules`,
+    `${firestoreEmulator.baseUrl}/emulator/v1/projects/${PROJECT_ID}:securityRules`,
     {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },

@@ -3,35 +3,12 @@ import { connectAuthEmulator, getAuth } from 'firebase/auth';
 import { connectFirestoreEmulator, doc, getFirestore } from 'firebase/firestore';
 import { vi } from 'vitest';
 
-const runtimeEnv = (
-  globalThis as typeof globalThis & {
-    process?: { env?: Record<string, string | undefined> };
-  }
-).process?.env ?? {};
-
-const parseEmulatorAddress = (address: string, defaultPort: number) => {
-  const url = new URL(address.includes('://') ? address : `http://${address}`);
-  return {
-    host: url.hostname,
-    port: Number(url.port || defaultPort),
-    baseUrl: url.origin,
-  };
-};
-
-const firestoreEmulator = parseEmulatorAddress(
-  runtimeEnv.FIRESTORE_EMULATOR_HOST ?? '127.0.0.1:8080',
-  8080,
-);
-const authEmulator = parseEmulatorAddress(
-  runtimeEnv.FIREBASE_AUTH_EMULATOR_HOST ?? 'http://127.0.0.1:9099',
-  9099,
-);
-const projectId = runtimeEnv.FIREBASE_PROJECT_ID ?? 'demo-project';
+import { authEmulator, emulatorProjectId, firestoreEmulator } from '../emulatorEnv';
 
 const firebaseConfig = {
   apiKey: 'AIzaSyCm6Bu5ibGuY-oQXYMeprq0FV9lhy3EFKo',
   authDomain: 'one-piece-4e822.firebaseapp.com',
-  projectId,
+  projectId: emulatorProjectId,
   storageBucket: 'one-piece-4e822.firebasestorage.app',
   messagingSenderId: '829742952504',
   appId: '1:829742952504:web:b393e78707ecd29ea276cd',
@@ -92,7 +69,7 @@ vi.mock('@/firebase', () => ({
 export const resetMockDb = async () => {
   try {
     const response = await fetch(
-      `${firestoreEmulator.baseUrl}/emulator/v1/projects/${projectId}/databases/(default)/documents`,
+      `${firestoreEmulator.baseUrl}/emulator/v1/projects/${emulatorProjectId}/databases/(default)/documents`,
       { method: 'DELETE' },
     );
     if (!response.ok) {

@@ -12,9 +12,20 @@ pnpm qa:init
 
 ### 注意事項
 
-- 腳本連線目標固定為 `localhost:8080/9099`(程式碼內硬編碼,不讀外部
-  `FIRESTORE_EMULATOR_HOST`)。在 Docker dev stack 內需先把 `localhost`
-  轉發到 `firebase` service 再執行。
+- 腳本連線目標讀取 `FIRESTORE_EMULATOR_HOST` /
+  `FIREBASE_AUTH_EMULATOR_HOST` / `FIREBASE_PROJECT_ID` 環境變數,值可含
+  或不含 `http://` 前綴;未設定時預設 `localhost:8080/9099` 與
+  `demo-project`,並會印出實際解析後的連線目標。在 Docker dev stack 內:
+
+  ```bash
+  FIRESTORE_EMULATOR_HOST=firebase:8080 \
+  FIREBASE_AUTH_EMULATOR_HOST=firebase:9099 \
+  FIREBASE_PROJECT_ID=demo-project \
+  pnpm qa:init
+  ```
+
+  `grant-admin.js`、`list-users.js`、`check-role.js` 連線正式 Firebase
+  後端,不使用這些模擬器環境變數。
 - 印出的 localStorage 注入片段在 Firebase JS SDK v12 可能不足以登入:SDK
   以 IndexedDB(`firebaseLocalStorageDb`)為主要 session 來源,localStorage
   僅為 fallback。詳細說明見 [docs/testing.md](../../docs/testing.md) 的
