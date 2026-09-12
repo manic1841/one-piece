@@ -12,7 +12,7 @@
  */
 import { z } from 'zod';
 
-import { AccountSchema, AccountSnapshotSchema } from '@/domains/account/schemas';
+import { AccountSchema, AccountSnapshotSchema } from '@/domains/account/types/account';
 import {
   AccountCategory,
   CurrencyType,
@@ -523,6 +523,7 @@ const buildSnapshotDocs = (b: Builder, txns: InternalTxn[]) => {
     const [y, m] = target.split('-').map(Number);
     emit(b, AccountSnapshotSchema, hh(identity, 'accounts', 'acc_cash', 'snapshots'), target, {
       id: target,
+      accountId: 'acc_cash',
       year: y,
       month: m,
       amount: cashThrough(target),
@@ -530,6 +531,7 @@ const buildSnapshotDocs = (b: Builder, txns: InternalTxn[]) => {
     });
     emit(b, AccountSnapshotSchema, hh(identity, 'accounts', 'acc_securities', 'snapshots'), target, {
       id: target,
+      accountId: 'acc_securities',
       year: y,
       month: m,
       amount: SECURITIES_MARKET_VALUE[target],
