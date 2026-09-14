@@ -6,7 +6,7 @@ import { type CompletenessAnomalyVM } from '@/ui/features/project/viewmodels/set
 import SettlementCompletenessGate from './SettlementCompletenessGate';
 
 const anomaly = (
-  targetType: 'PROJECT' | 'LEDGER_CODE',
+  targetType: 'PROJECT' | 'LEDGER_CODE' | 'DEBT_ACCOUNT',
   targetId: string,
   name: string,
 ): CompletenessAnomalyVM => ({
@@ -95,5 +95,19 @@ describe('SettlementCompletenessGate', () => {
     );
 
     expect(screen.getByText('當月活動：3 筆，合計 1,234')).toBeInTheDocument();
+  });
+
+  it('names the missing repayment for a debt account instead of generic activity', () => {
+    render(
+      <SettlementCompletenessGate
+        anomalies={[anomaly('DEBT_ACCOUNT', 'd1', '房貸 A')]}
+        completenessError=""
+        onConfirm={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText(/債務帳戶／房貸 A/)).toBeInTheDocument();
+    expect(screen.getByText('當月沒有找到還款紀錄')).toBeInTheDocument();
+    expect(screen.queryByText(/當月活動/)).not.toBeInTheDocument();
   });
 });

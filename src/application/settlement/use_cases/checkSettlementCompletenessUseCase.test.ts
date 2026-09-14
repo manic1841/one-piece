@@ -29,6 +29,13 @@ vi.mock('@/infra/repositories/allocationRepository', () => ({
 vi.mock('@/infra/repositories/transactionRepository', () => ({
   transactionRepository: {
     listByDateRange: vi.fn(),
+    listDebtPaymentsByDateRange: vi.fn(),
+  },
+}));
+
+vi.mock('@/infra/repositories/debtAccountRepository', () => ({
+  debtAccountRepository: {
+    getDebtAccounts: vi.fn(),
   },
 }));
 
@@ -41,6 +48,17 @@ const watchTarget = (targetType: 'PROJECT' | 'LEDGER_CODE' | 'DEBT_ACCOUNT', tar
   createdAt: new Date(),
   updatedBy: 'user-1',
   updatedAt: new Date(),
+});
+
+const debtAccount = (id: string, overrides: Record<string, unknown> = {}) => ({
+  id,
+  name: id === 'd1' ? '房貸 A' : `${id}-name`,
+  isActive: true,
+  startDate: new Date('2026-01-15'),
+  endDate: new Date('2029-01-15'),
+  graceEndDate: null,
+  linkedLedgerCode: 'liability:mortgage',
+  ...overrides,
 });
 
 describe('checkSettlementCompletenessUseCase', () => {
@@ -302,20 +320,210 @@ describe('checkSettlementCompletenessUseCase', () => {
     );
   });
 
-  it('ignores debt account targets (covered by the debt repayment check)', async () => {
+  it('flags a watched debt account with no repayment in the target month', async () => {
     const { watchListRepository } = await import('@/infra/repositories/watchListRepository');
-    const { allocationRepository } = await import('@/infra/repositories/allocationRepository');
+    const { debtAccountRepository } = await import('@/infra/repositories/debtAccountRepository');
     const { transactionRepository } = await import('@/infra/repositories/transactionRepository');
 
     vi.mocked(watchListRepository.listTargets).mockResolvedValue([
       watchTarget('DEBT_ACCOUNT', 'd1'),
     ]);
+    vi.mocked(debtAccountRepository.getDebtAccounts).mockResolvedValue([
+      debtAccount('d1', {
+        startDate: new Date('2026-01-15'),
+        endDate: new Date('2029-01-15'),
+      }),
+    ] as never);
+    vi.mocked(transactionRepository.listDebtPaymentsByDateRange).mockResolvedValue([]);
+
+    const result = await checkSettlementCompletenessUseCase.execute(request);
+
+    // Repayment comes from DEBT_PAYMENT queries, not ledger-code activity: a
+    // new loan in the same month would hide a missed repayment (ADR-0048).
+    expect(transactionRepository.listDebtPaymentsByDateRange).toHaveBeenCalledWith(
+      'household-1',
+      new Date(2026, 8, 1),
+      new Date(2026, 9, 1),
+    );
+    expect(transactionRepository.listByDateRange).not.toHaveBeenCalled();
+    expect(result.anomalies).toEqual([
+      {
+        targetType: 'DEBT_ACCOUNT',
+        targetId: 'd1',
+        name: '房貸 A',
+        status: 'ZERO_ACTIVITY',
+        activityCount: 0,
+        activityAmount: 0,
+      },
+    ]);
+  });
+
+  it('summarizes repayment count and amount for a watched debt account', async () => {
+    const { watchListRepository } = await import('@/infra/repositories/watchListRepository');
+    const { debtAccountRepository } = await import('@/infra/repositories/debtAccountRepository');
+    const { transactionRepository } = await import('@/infra/repositories/transactionRepository');
+
+    vi.mocked(watchListRepository.listTargets).mockResolvedValue([
+      watchTarget('DEBT_ACCOUNT', 'd1'),
+    ]);
+    vi.mocked(debtAccountRepository.getDebtAccounts).mockResolvedValue([
+      debtAccount('d1'),
+    ] as never);
+    vi.mocked(transactionRepository.listDebtPaymentsByDateRange).mockResolvedValue([
+      { debtAccountId: 'd1', amount: 1200 },
+      { debtAccountId: 'd1', amount: 300 },
+      // Another account's payment must not count toward this one.
+      { debtAccountId: 'd2', amount: 900 },
+    ] as never);
 
     const result = await checkSettlementCompletenessUseCase.execute(request);
 
     expect(result.anomalies).toEqual([]);
-    expect(allocationRepository.getAllocationsByMonth).not.toHaveBeenCalled();
-    expect(transactionRepository.listByDateRange).not.toHaveBeenCalled();
+    expect(result.activities).toEqual([
+      {
+        targetType: 'DEBT_ACCOUNT',
+        targetId: 'd1',
+        name: '房貸 A',
+        status: 'HAS_ACTIVITY',
+        activityCount: 2,
+        activityAmount: 1500,
+      },
+    ]);
+  });
+
+  it('skips watched debt accounts that are inactive', async () => {
+    const { watchListRepository } = await import('@/infra/repositories/watchListRepository');
+    const { debtAccountRepository } = await import('@/infra/repositories/debtAccountRepository');
+    const { transactionRepository } = await import('@/infra/repositories/transactionRepository');
+
+    vi.mocked(watchListRepository.listTargets).mockResolvedValue([
+      watchTarget('DEBT_ACCOUNT', 'd1'),
+    ]);
+    vi.mocked(debtAccountRepository.getDebtAccounts).mockResolvedValue([
+      debtAccount('d1', { isActive: false }),
+    ] as never);
+
+    const result = await checkSettlementCompletenessUseCase.execute(request);
+
+    expect(result.activities).toEqual([]);
+    expect(result.anomalies).toEqual([]);
+    expect(transactionRepository.listDebtPaymentsByDateRange).not.toHaveBeenCalled();
+  });
+
+  it('skips watched debt accounts whose loan period has not started or already ended', async () => {
+    const { watchListRepository } = await import('@/infra/repositories/watchListRepository');
+    const { debtAccountRepository } = await import('@/infra/repositories/debtAccountRepository');
+    const { transactionRepository } = await import('@/infra/repositories/transactionRepository');
+
+    vi.mocked(watchListRepository.listTargets).mockResolvedValue([
+      watchTarget('DEBT_ACCOUNT', 'future'),
+      watchTarget('DEBT_ACCOUNT', 'finished'),
+    ]);
+    vi.mocked(debtAccountRepository.getDebtAccounts).mockResolvedValue([
+      debtAccount('future', { startDate: new Date('2026-10-01'), endDate: new Date('2029-01-15') }),
+      debtAccount('finished', {
+        startDate: new Date('2024-01-15'),
+        endDate: new Date('2026-08-31'),
+      }),
+    ] as never);
+
+    const result = await checkSettlementCompletenessUseCase.execute(request);
+
+    expect(result.activities).toEqual([]);
+    expect(result.anomalies).toEqual([]);
+    expect(transactionRepository.listDebtPaymentsByDateRange).not.toHaveBeenCalled();
+  });
+
+  it('still warns during a grace period, whose payments are recorded as DEBT_PAYMENT', async () => {
+    const { watchListRepository } = await import('@/infra/repositories/watchListRepository');
+    const { debtAccountRepository } = await import('@/infra/repositories/debtAccountRepository');
+    const { transactionRepository } = await import('@/infra/repositories/transactionRepository');
+
+    vi.mocked(watchListRepository.listTargets).mockResolvedValue([
+      watchTarget('DEBT_ACCOUNT', 'd1'),
+    ]);
+    vi.mocked(debtAccountRepository.getDebtAccounts).mockResolvedValue([
+      debtAccount('d1', {
+        startDate: new Date('2026-08-01'),
+        endDate: new Date('2029-01-15'),
+        graceEndDate: new Date('2026-12-01'),
+      }),
+    ] as never);
+    vi.mocked(transactionRepository.listDebtPaymentsByDateRange).mockResolvedValue([]);
+
+    const result = await checkSettlementCompletenessUseCase.execute(request);
+
+    expect(result.anomalies.map((a) => a.targetId)).toEqual(['d1']);
+  });
+
+  it('clears the warning for an interest-only repayment made during the grace period', async () => {
+    const { watchListRepository } = await import('@/infra/repositories/watchListRepository');
+    const { debtAccountRepository } = await import('@/infra/repositories/debtAccountRepository');
+    const { transactionRepository } = await import('@/infra/repositories/transactionRepository');
+
+    vi.mocked(watchListRepository.listTargets).mockResolvedValue([
+      watchTarget('DEBT_ACCOUNT', 'd1'),
+    ]);
+    vi.mocked(debtAccountRepository.getDebtAccounts).mockResolvedValue([
+      debtAccount('d1', {
+        startDate: new Date('2026-08-01'),
+        endDate: new Date('2029-01-15'),
+        graceEndDate: new Date('2026-12-01'),
+      }),
+    ] as never);
+    // Interest-only, principal 0: exactly the DEBT_PAYMENT a grace-period
+    // payment produces (ADR-0017), so the month counts as repaid.
+    vi.mocked(transactionRepository.listDebtPaymentsByDateRange).mockResolvedValue([
+      { debtAccountId: 'd1', amount: 2083 },
+    ] as never);
+
+    const result = await checkSettlementCompletenessUseCase.execute(request);
+
+    expect(result.anomalies).toEqual([]);
+    expect(result.activities).toEqual([
+      expect.objectContaining({ targetId: 'd1', status: 'HAS_ACTIVITY', activityCount: 1 }),
+    ]);
+  });
+
+  it('skips a watched debt account whose document was deleted', async () => {
+    const { watchListRepository } = await import('@/infra/repositories/watchListRepository');
+    const { debtAccountRepository } = await import('@/infra/repositories/debtAccountRepository');
+    const { transactionRepository } = await import('@/infra/repositories/transactionRepository');
+
+    vi.mocked(watchListRepository.listTargets).mockResolvedValue([
+      watchTarget('DEBT_ACCOUNT', 'gone'),
+    ]);
+    vi.mocked(debtAccountRepository.getDebtAccounts).mockResolvedValue([]);
+
+    const result = await checkSettlementCompletenessUseCase.execute(request);
+
+    expect(result.activities).toEqual([]);
+    expect(result.anomalies).toEqual([]);
+    expect(transactionRepository.listDebtPaymentsByDateRange).not.toHaveBeenCalled();
+  });
+
+  it('loads debt accounts once and reads repayments once for several accounts', async () => {
+    const { watchListRepository } = await import('@/infra/repositories/watchListRepository');
+    const { debtAccountRepository } = await import('@/infra/repositories/debtAccountRepository');
+    const { transactionRepository } = await import('@/infra/repositories/transactionRepository');
+
+    vi.mocked(watchListRepository.listTargets).mockResolvedValue([
+      watchTarget('DEBT_ACCOUNT', 'd1'),
+      watchTarget('DEBT_ACCOUNT', 'd2'),
+    ]);
+    vi.mocked(debtAccountRepository.getDebtAccounts).mockResolvedValue([
+      debtAccount('d1'),
+      debtAccount('d2', { name: '信貸 B' }),
+    ] as never);
+    vi.mocked(transactionRepository.listDebtPaymentsByDateRange).mockResolvedValue([
+      { debtAccountId: 'd1', amount: 1200 },
+    ] as never);
+
+    const result = await checkSettlementCompletenessUseCase.execute(request);
+
+    expect(debtAccountRepository.getDebtAccounts).toHaveBeenCalledTimes(1);
+    expect(transactionRepository.listDebtPaymentsByDateRange).toHaveBeenCalledTimes(1);
+    expect(result.anomalies.map((a) => a.name)).toEqual(['信貸 B']);
   });
 
   it('propagates permission errors instead of failing silently', async () => {

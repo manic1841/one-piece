@@ -25,8 +25,13 @@
 2. **還債用自己的檢查類型,不監看負債科目**。還債分錄的借方使用債務的
    `linkedLedgerCode`,監看該科目時,當月新借款入帳會讓活動不為零,**掩蓋漏還**
    ——盲點正好出現在最需要提醒的月份。因此債務檢查語意為:啟用中、在借款期間
-   內的債務,目標月沒有任何 `DEBT_PAYMENT` 交易即警示(可重用
-   `hasDebtPaymentForAccount`)。
+   內的債務,目標月沒有任何 `DEBT_PAYMENT` 交易即警示。查詢重用既有的
+   `listDebtPaymentsByDateRange`(結算預覽與債務摘要同一條路徑):一次查詢涵蓋
+   所有債務,避免逐帳戶查詢的 N+1,並讓有還款的債務能報出筆數與金額摘要;
+   原稿寫的 `hasDebtPaymentForAccount`(2026-09 修訂)只回布爾值,給不出摘要。
+   既有資料中無 `debtAccountId` 的 legacy 還款(見 `checkHasPayments` 的
+   LIABILITY_PAYMENT fallback)不計入:該欄位是 ADR-0014 後還款交易的正典索引,
+   本檢查屬新流程,誤報方向是提醒使用者確認,可接受。
 3. **檢查是結算流程的軟關卡,且異常才出現**。在結算對話框的選擇步驟自動執行;
    所有監看對象活動正常時零點擊、零摘要直接進預覽;有異常才內嵌警示,需逐項
    「確認無漏記」才放行。確認狀態不持久化:生命週期與單次結算對話框 session
@@ -34,7 +39,7 @@
    需新集合與規則,等重複叨擾真實發生再升級,故不採。
 4. **檢查只讀不寫**。檢查是監看清單的衍生行為,依既有 repository
    (`getAllocationsByMonth`、`listByDateRange` + 交易上的 `ledgerCodes`
-   反正規化陣列、`hasDebtPaymentForAccount`)在記憶體中計數,不新增寫入路徑、
+   反正規化陣列、`listDebtPaymentsByDateRange`)在記憶體中計數,不新增寫入路徑、
    不修改任何交易。第一版只做零活動判定;歷史偏離(比對前 3-6 個月均值)等
    零活動上線累積體感後再評估。
 

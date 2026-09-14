@@ -20,8 +20,10 @@ interface SettlementCompletenessGateProps {
  * Inline soft-gate warning for the settlement selection step (ADR-0048).
  * Zero activity never claims a missed entry; each anomaly needs an explicit
  * per-item confirmation before the wizard advances to the preview, and shows
- * the month's count/amount summary (issue #94). The raw check error stays in
- * the console; users only see the fixed constants wording.
+ * the month's count/amount summary (issue #94). Debt rows name repayments
+ * instead, since they are measured by DEBT_PAYMENT transactions (issue #95).
+ * The raw check error stays in the console; users only see the fixed constants
+ * wording.
  */
 const SettlementCompletenessGate: React.FC<SettlementCompletenessGateProps> = ({
   anomalies,
@@ -63,10 +65,12 @@ const SettlementCompletenessGate: React.FC<SettlementCompletenessGateProps> = ({
                     {getCompletenessTargetLabel(anomaly.targetType)}／{anomaly.name}
                   </p>
                   <p className="text-xs opacity-80">
-                    {COMPLETENESS_LABELS.activityHint(
-                      anomaly.activityCount,
-                      anomaly.activityAmount,
-                    )}
+                    {anomaly.targetType === 'DEBT_ACCOUNT'
+                      ? COMPLETENESS_LABELS.repaymentHint
+                      : COMPLETENESS_LABELS.activityHint(
+                          anomaly.activityCount,
+                          anomaly.activityAmount,
+                        )}
                   </p>
                 </div>
                 <Button

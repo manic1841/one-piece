@@ -57,6 +57,26 @@ export function isInGracePeriod(
   return start <= payment && payment < graceEnd;
 }
 
+/**
+ * Whether a loan's repayment period covers a given month, compared at month
+ * granularity: the start month and the maturity month are both included.
+ * Completeness checking needs whole-month resolution (issue #95), so a loan
+ * ending on 2026-08-31 does not cover September and one maturing 2026-09-05
+ * still does. Both dates are required on DebtAccount, so callers always pass a
+ * real Date; an unparseable date yields NaN month indices and compares false,
+ * which safely treats the loan as not covering the month.
+ *
+ * The grace period does not exempt a month: grace-period payments are recorded
+ * as interest-only DEBT_PAYMENT entries (ADR-0017), so zero activity there is
+ * still a missing record.
+ */
+export function isLoanActiveInMonth(startDate: Date, endDate: Date, monthStart: Date): boolean {
+  const monthIndex = (date: Date) => date.getFullYear() * 12 + date.getMonth();
+  const target = monthIndex(monthStart);
+
+  return monthIndex(startDate) <= target && target <= monthIndex(endDate);
+}
+
 const roundAmount = (amount: number): number => Math.round(amount * 100) / 100;
 
 const calculateMonthlyInterest = (currentBalance: number, interestRate: number): number =>

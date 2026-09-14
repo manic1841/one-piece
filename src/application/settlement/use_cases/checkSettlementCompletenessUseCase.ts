@@ -1,9 +1,11 @@
 import { householdPermissionService } from '@/application/household/householdPermissionService';
 import { type AuthContext } from '@/application/types';
 import { type Allocation } from '@/domains/allocation/schemas';
+import { isLoanActiveInMonth } from '@/domains/debt/debtPaymentCalculator';
 import { type Transaction } from '@/domains/ledger/schemas';
 import { type WatchListTargetType } from '@/domains/watch_list/schemas';
 import { allocationRepository } from '@/infra/repositories/allocationRepository';
+import { debtAccountRepository } from '@/infra/repositories/debtAccountRepository';
 import { projectRepository } from '@/infra/repositories/projectRepository';
 import { transactionRepository } from '@/infra/repositories/transactionRepository';
 import { watchListRepository } from '@/infra/repositories/watchListRepository';
@@ -16,8 +18,7 @@ export type CompletenessActivityStatus =
   (typeof CompletenessActivityStatus)[keyof typeof CompletenessActivityStatus];
 
 export interface CompletenessActivity {
-  /** Debt accounts are excluded; they get their own DEBT_PAYMENT check (ADR-0048). */
-  targetType: Extract<WatchListTargetType, 'PROJECT' | 'LEDGER_CODE'>;
+  targetType: WatchListTargetType;
   targetId: string;
   name: string;
   status: CompletenessActivityStatus;
@@ -106,14 +107,28 @@ const tallyProjects = (allocations: Allocation[], watchedIds: Set<string>) => {
   return tallies;
 };
 
+/** One pass over the month's repayments, tallied per debt account. */
+const tallyRepayments = (payments: Transaction[]): Map<string, ActivityTally> => {
+  const tallies = new Map<string, ActivityTally>();
+  for (const payment of payments) {
+    if (!payment.debtAccountId) continue;
+    const tally = tallies.get(payment.debtAccountId) ?? { count: 0, amount: 0 };
+    tally.count += 1;
+    tally.amount += payment.amount ?? 0;
+    tallies.set(payment.debtAccountId, tally);
+  }
+  return tallies;
+};
+
 const statusOf = (count: number): CompletenessActivityStatus =>
   count > 0 ? CompletenessActivityStatus.HAS_ACTIVITY : CompletenessActivityStatus.ZERO_ACTIVITY;
 
 /**
  * Read-only settlement completeness check (ADR-0048): counts, in memory,
- * whether each watched project had an allocation and each watched ledger code
- * appeared in a transaction for the target month. Reuses the same allocation
- * and transaction queries the settlement flow already runs; no write path.
+ * whether each watched project had an allocation, each watched ledger code
+ * appeared in a transaction, and each watched debt account received a
+ * DEBT_PAYMENT in the target month. Reuses the same allocation, transaction and
+ * repayment queries the settlement flow already runs; no write path.
  */
 export class CheckSettlementCompletenessUseCase {
   async execute(
@@ -128,9 +143,12 @@ export class CheckSettlementCompletenessUseCase {
     );
 
     const yearMonth = `${year}-${month.toString().padStart(2, '0')}`;
+    const monthStart = new Date(year, month - 1, 1);
+    const monthEnd = new Date(year, month, 1);
     const targets = await watchListRepository.listTargets(householdId);
     const projectTargets = targets.filter((target) => target.targetType === 'PROJECT');
     const codeTargets = targets.filter((target) => target.targetType === 'LEDGER_CODE');
+    const debtTargets = targets.filter((target) => target.targetType === 'DEBT_ACCOUNT');
 
     const activities: CompletenessActivity[] = [];
 
@@ -165,12 +183,10 @@ export class CheckSettlementCompletenessUseCase {
     }
 
     if (codeTargets.length > 0) {
-      const startDate = new Date(year, month - 1, 1);
-      const endDate = new Date(year, month, 1);
       const transactions = await transactionRepository.listByDateRange(
         householdId,
-        startDate,
-        endDate,
+        monthStart,
+        monthEnd,
       );
       const tallies = tallyLedgerCodes(transactions);
       for (const target of codeTargets) {
@@ -179,6 +195,47 @@ export class CheckSettlementCompletenessUseCase {
           targetType: 'LEDGER_CODE',
           targetId: target.targetId,
           name: target.name,
+          status: statusOf(count),
+          activityCount: count,
+          activityAmount: amount,
+        });
+      }
+    }
+
+    if (debtTargets.length > 0) {
+      // Repayment is measured by DEBT_PAYMENT transactions rather than by
+      // activity on the debt's linkedLedgerCode (ADR-0048 decision 2): a loan
+      // advanced in the same month would keep that code's activity non-zero and
+      // hide the missed repayment.
+      // getDebtAccounts(includeInactive=false) already filters server-side; the
+      // explicit isActive check keeps "inactive debts skip the check" (issue
+      // #95) enforced at this call site, same as the project branch above.
+      const accounts = await debtAccountRepository.getDebtAccounts(householdId);
+      const activeById = new Map(
+        accounts
+          .filter(
+            (account) =>
+              account.isActive &&
+              isLoanActiveInMonth(account.startDate, account.endDate, monthStart),
+          )
+          .map((account) => [account.id, account]),
+      );
+      const watchedActive = debtTargets.filter((target) => activeById.has(target.targetId));
+      const payments =
+        watchedActive.length > 0
+          ? await transactionRepository.listDebtPaymentsByDateRange(
+              householdId,
+              monthStart,
+              monthEnd,
+            )
+          : [];
+      const tallyByAccount = tallyRepayments(payments);
+      for (const target of watchedActive) {
+        const { count, amount } = tallyByAccount.get(target.targetId) ?? { count: 0, amount: 0 };
+        activities.push({
+          targetType: 'DEBT_ACCOUNT',
+          targetId: target.targetId,
+          name: activeById.get(target.targetId)?.name ?? target.name,
           status: statusOf(count),
           activityCount: count,
           activityAmount: amount,
