@@ -8,6 +8,7 @@ import { type Household } from '@/domains/household/schemas';
 import { useAuth } from '@/infra/contexts/useAuth';
 import { useGetUserProfile } from '@/ui/features/setting/hooks/useGetUserProfile';
 import { useHousehold } from '@/ui/features/setting/hooks/useHousehold';
+import { useWatchListPickerData } from '@/ui/features/setting/hooks/useWatchListPickerData';
 import { useWhitelist } from '@/ui/features/setting/hooks/useWhitelist';
 import { useAuthContext } from '@/ui/hooks/useAuthContext';
 
@@ -35,6 +36,8 @@ export const useSettingsPage = () => {
   } = useHousehold();
 
   const { execute: getUserProfile } = useGetUserProfile();
+
+  const watchListPickerOptions = useWatchListPickerData();
 
   // --- Whitelist State ---
   const [whitelist, setWhitelist] = useState<string[]>([]);
@@ -247,5 +250,6 @@ export const useSettingsPage = () => {
     restoreSuccess,
     restoreHouseholdBackup,
     refreshHousehold: fetchHouseholdData,
+    watchListPickerOptions,
   };
 };

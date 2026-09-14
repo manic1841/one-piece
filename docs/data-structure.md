@@ -155,6 +155,11 @@ firestore
      │    │    └─ percentage: number
      │    ├─ createdBy: string
      │    └─ updatedAt: Timestamp
+
+      ├─ watchList/{docId}              # 監看清單 (ADR-0048)；docId = "{targetType}:{targetId}"
+       │    ├─ targetType: "PROJECT" | "LEDGER_CODE" | "DEBT_ACCOUNT"
+       │    ├─ targetId: string          # 監看對象 id（ledger code 含 ':'，故 docId 以 targetType 命名空間隔離）
+       │    └─ name: string              # 名稱快照，供警示顯示
      │
      │    # 規則：
      │    # - 同一 household 中，一個 ledgerCode 僅對應一個 template

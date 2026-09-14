@@ -16,9 +16,11 @@ import {
 } from '@/ui/components/ui/dialog';
 import { AllocationTemplateSettings } from '@/ui/features/ledger/components/AllocationTemplateSettings';
 import { LedgerCodeSettings } from '@/ui/features/ledger/components/LedgerCodeSettings';
+import { type WatchListPickerData } from '@/ui/features/setting/hooks/useWatchListPickerData';
 
 import EmailWhitelistUI from './EmailWhitelistUI';
 import MemberManagementUI from './MemberManagementUI';
+import WatchListSettings from './WatchListSettings';
 
 interface SettingsUIProps {
   isAdmin: boolean;
@@ -50,6 +52,8 @@ interface SettingsUIProps {
   restoreError: string;
   restoreSuccess: string;
   restoreHouseholdBackup: (file: File) => Promise<void>;
+  // Watch list props
+  watchListPickerOptions: WatchListPickerData;
 }
 
 const SettingsUI: React.FC<SettingsUIProps> = (props) => {
@@ -81,6 +85,7 @@ const SettingsUI: React.FC<SettingsUIProps> = (props) => {
     restoreError,
     restoreSuccess,
     restoreHouseholdBackup,
+    watchListPickerOptions,
   } = props;
 
   const restoreInputRef = React.useRef<HTMLInputElement>(null);
@@ -195,6 +200,8 @@ const SettingsUI: React.FC<SettingsUIProps> = (props) => {
             onUpdateRole={updateMemberRole}
             currentUser={currentUser}
           />
+
+          <WatchListSettings pickerOptions={watchListPickerOptions} />
 
           <Card>
             <CardContent className="p-6 space-y-4">

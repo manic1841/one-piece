@@ -32,52 +32,68 @@ Issue #38 was closed after final validation and GitHub bookkeeping.
 ### #43–#46 Debt Payment
 
 - ADR-0038 defines command classification, Firestore atomicity, idempotency keys,
-   deterministic identities, operation records, retry behavior, retention, and
-   cache synchronization.
+  deterministic identities, operation records, retry behavior, retention, and
+  cache synchronization.
 - Debt Payment validates finite positive amounts, principal limits, balanced
-   entries, normal principal/interest splits, and strict interest-only grace
-   periods with an inclusive start and exclusive end date.
+  entries, normal principal/interest splits, and strict interest-only grace
+  periods with an inclusive start and exclusive end date.
 - Transaction, DebtSnapshot, DebtAccount.currentBalance, and the household
-   operation record commit atomically with Firestore optimistic concurrency.
+  operation record commit atomically with Firestore optimistic concurrency.
 - Caller-generated idempotency keys support replay, conflict detection, and
-   failure cleanup; the transaction form reuses one key for retries of one user
-   action.
+  failure cleanup; the transaction form reuses one key for retries of one user
+  action.
 - Focused unit and Firebase Emulator integration coverage was added for domain
-   rules, application behavior, atomic persistence, concurrency, replay, conflict,
-   independent keys, and failure cleanup.
+  rules, application behavior, atomic persistence, concurrency, replay, conflict,
+  independent keys, and failure cleanup.
 
 ### #47 Allocation composite creation
 
 - `INCOME` and `EXPENSE` creation with Allocation now uses one application command
-   for the Transaction, deterministic Allocation, source link, and successful
-   operation result.
+  for the Transaction, deterministic Allocation, source link, and successful
+  operation result.
 - Caller-generated idempotency keys support same-payload replay and stable
-   different-payload conflict handling; failed validation and durable writes leave
-   no partial command data.
+  different-payload conflict handling; failed validation and durable writes leave
+  no partial command data.
 - The transaction form reuses one key for an unchanged retry and keeps ordinary
-   no-Allocation Transaction creation on its existing path. Income template
-   persistence remains a separate UI-assistance operation.
+  no-Allocation Transaction creation on its existing path. Income template
+  persistence remains a separate UI-assistance operation.
 - Application, domain fingerprint, UI retry, and Firebase Emulator coverage was
-   added for permission ordering, validation, INCOME/EXPENSE persistence,
-   deterministic identity, rollback, replay, and concurrent retry.
+  added for permission ordering, validation, INCOME/EXPENSE persistence,
+  deterministic identity, rollback, replay, and concurrent retry.
 
 ### #48 Allocation replacement
 
 - Existing `INCOME` and `EXPENSE` Transactions can replace their current
-   Allocation as an atomic desired-state command without recreating or rolling
-   back the financial source.
+  Allocation as an atomic desired-state command without recreating or rolling
+  back the financial source.
 - Deterministic Allocation documents are updated in place; unallocated sources
-   are allocated with `sourceTransactionId` as the document ID.
+  are allocated with `sourceTransactionId` as the document ID.
 - Legacy random-ID Allocations are discovered by `sourceTransactionId`, then
-   normalized in the same transaction. Duplicate current records are removed so
-   the source keeps one Allocation and one deterministic link.
+  normalized in the same transaction. Duplicate current records are removed so
+  the source keeps one Allocation and one deterministic link.
 - Stable application errors reject invalid payloads, unsupported intent types,
-   and missing source Transactions before durable mutation. Firestore optimistic
-   concurrency and rollback preserve the prior state on failed replacement.
+  and missing source Transactions before durable mutation. Firestore optimistic
+  concurrency and rollback preserve the prior state on failed replacement.
 - Application and Firebase Emulator coverage covers unallocated creation,
-   replacement, repeated desired state, expense direction, legacy normalization,
-   duplicate cleanup, rollback, concurrent replacement, and source-link
-   consistency.
+  replacement, repeated desired state, expense direction, legacy normalization,
+  duplicate cleanup, rollback, concurrent replacement, and source-link
+  consistency.
+
+### #93 Watch list domain and settings management
+
+- Watch list is an independent domain (ADR-0048): households/{id}/watchList with
+  one document per watched object, doc ID namespaced by target type
+  (`PROJECT`/`LEDGER_CODE`/`DEBT_ACCOUNT` + target id) so ledger codes with ':'
+  do not collide.
+- The settings page household section gains a management card that adds and
+  removes all three target types from their existing lists (projects, system
+  and custom ledger codes, active debt accounts); display labels come from
+  `src/ui/constants/watchListLabels.ts` as the single source.
+- Completeness checking is a derived behavior and remains a later ticket; the
+  list itself is data with no write path beyond add/remove.
+- Firestore security rules tests cover the watch list authorization matrix
+  (anonymous/non-member denied, member read-only, owner/admin read-write);
+  repository persistence is covered by emulator integration tests.
 
 ## Remaining Implementation
 
@@ -165,5 +181,5 @@ listed in [the development guide](development-guide.md).
 - Branch: `refactor/code-review`
 - Review base commit: `4b82e42`
 - The #38 tooling changes and #43–#46 Debt Payment implementation are committed
-   after final validation; issue status is managed separately in GitHub.
+  after final validation; issue status is managed separately in GitHub.
 - Current committed baseline: `43b2017 feat: make debt payments atomic and idempotent`
