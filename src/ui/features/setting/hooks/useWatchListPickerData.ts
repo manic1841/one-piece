@@ -1,10 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
 
 import { listDebtAccountsUseCase } from '@/application/debt/use_cases/listDebtAccountsUseCase';
-import { listCustomLedgerCodesUseCase } from '@/application/ledger/use_cases/listCustomLedgerCodesUseCase';
+import { listAllLedgerCodesUseCase } from '@/application/ledger/use_cases/listAllLedgerCodesUseCase';
 import { listProjectsUseCase } from '@/application/project/use_cases/listProjectsUseCase';
 import { type DebtAccount } from '@/domains/debt/schemas';
-import { LEDGER_CODES } from '@/domains/ledger/constants/ledgerCodes';
 import { type Project } from '@/domains/project/schemas';
 import { useAuth } from '@/infra/contexts/useAuth';
 import { getUnifiedLedgerCodeLabel } from '@/ui/constants/transaction';
@@ -31,25 +30,20 @@ export function useWatchListPickerData(): WatchListPickerData {
   const fetchPickerData = useCallback(async () => {
     if (!householdId) return;
     await run(async () => {
-      const [projects, debtAccounts, customCodes] = await Promise.all([
+      const [projects, debtAccounts, ledgerCodeEntries] = await Promise.all([
         listProjectsUseCase.execute({ householdId }),
         listDebtAccountsUseCase.execute({ householdId, includeInactive: false }),
-        listCustomLedgerCodesUseCase.execute({ householdId, auth }),
+        listAllLedgerCodesUseCase.execute({
+          householdId,
+          auth,
+          labelResolver: getUnifiedLedgerCodeLabel,
+        }),
       ]);
-
-      const systemCodes = Object.values(LEDGER_CODES).map((code) => ({
-        code,
-        label: getUnifiedLedgerCodeLabel(code),
-      }));
-      const customItems = customCodes.map((custom) => ({
-        code: custom.code,
-        label: custom.label,
-      }));
 
       setPickerData({
         projects,
         debtAccounts,
-        ledgerCodes: [...systemCodes, ...customItems],
+        ledgerCodes: ledgerCodeEntries.map((entry) => ({ code: entry.code, label: entry.label })),
       });
     });
   }, [auth, householdId, run]);
