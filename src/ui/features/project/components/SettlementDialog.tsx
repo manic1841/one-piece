@@ -9,6 +9,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/ui/components/ui/dialog';
+import { COMPLETENESS_LABELS } from '@/ui/constants/settlementCompletenessLabels';
 import { SettlementDone } from '@/ui/features/project/components/settlement/SettlementDone';
 import { SettlementPreview } from '@/ui/features/project/components/settlement/SettlementPreview';
 import { SettlementProcessing } from '@/ui/features/project/components/settlement/SettlementProcessing';
@@ -41,6 +42,9 @@ const SettlementDialog: React.FC<SettlementDialogProps> = ({
     setMonth,
     settlements,
     error,
+    pendingAnomalies,
+    completenessError,
+    confirmAnomaly,
     toPreview,
     confirm,
     back,
@@ -83,6 +87,9 @@ const SettlementDialog: React.FC<SettlementDialogProps> = ({
               setYear={setYear}
               setMonth={setMonth}
               error={error}
+              pendingAnomalies={pendingAnomalies}
+              completenessError={completenessError}
+              onConfirmAnomaly={confirmAnomaly}
             />
           )}
 
@@ -101,7 +108,15 @@ const SettlementDialog: React.FC<SettlementDialogProps> = ({
               <Button variant="outline" onClick={close}>
                 Cancel
               </Button>
-              <Button onClick={toPreview}>Next</Button>
+              <Button
+                onClick={toPreview}
+                disabled={pendingAnomalies.length > 0}
+                title={
+                  pendingAnomalies.length > 0 ? COMPLETENESS_LABELS.confirmAllBlocked : undefined
+                }
+              >
+                Next
+              </Button>
             </>
           )}
 
