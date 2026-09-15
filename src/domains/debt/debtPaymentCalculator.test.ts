@@ -5,6 +5,7 @@ import {
   assertEntriesBalanced,
   buildDebtPaymentEntries,
   calculateDebtPayment,
+  isLoanActiveInMonth,
 } from './debtPaymentCalculator';
 
 const startDate = new Date('2026-01-01T00:00:00');
@@ -151,5 +152,37 @@ describe('calculateDebtPayment', () => {
         graceEndDate,
       }),
     ).toThrowError('GRACE_PERIOD_PAYMENT_EXCEEDS_INTEREST');
+  });
+});
+
+describe('isLoanActiveInMonth', () => {
+  it('includes a month inside the loan period', () => {
+    expect(
+      isLoanActiveInMonth(new Date('2026-01-15'), new Date('2029-01-15'), new Date('2026-09-01')),
+    ).toBe(true);
+  });
+
+  it('includes the month the loan starts', () => {
+    expect(
+      isLoanActiveInMonth(new Date('2026-09-20'), new Date('2029-01-15'), new Date('2026-09-01')),
+    ).toBe(true);
+  });
+
+  it('includes the month the loan ends', () => {
+    expect(
+      isLoanActiveInMonth(new Date('2026-01-15'), new Date('2026-09-05'), new Date('2026-09-01')),
+    ).toBe(true);
+  });
+
+  it('excludes a month before the loan starts', () => {
+    expect(
+      isLoanActiveInMonth(new Date('2026-10-01'), new Date('2029-01-15'), new Date('2026-09-01')),
+    ).toBe(false);
+  });
+
+  it('excludes the month after the loan period ends', () => {
+    expect(
+      isLoanActiveInMonth(new Date('2026-01-15'), new Date('2026-08-31'), new Date('2026-09-01')),
+    ).toBe(false);
   });
 });

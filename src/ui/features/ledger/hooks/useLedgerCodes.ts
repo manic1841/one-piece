@@ -1,9 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
 
-import { listCustomLedgerCodesUseCase } from '@/application/ledger/use_cases/listCustomLedgerCodesUseCase';
-import { LEDGER_CODES } from '@/domains/ledger/constants/ledgerCodes';
-import { getUnifiedLedgerCodeLabel } from '@/ui/constants/transaction';
+import { listAllLedgerCodesUseCase } from '@/application/ledger/use_cases/listAllLedgerCodesUseCase';
 import { useAuth } from '@/infra/contexts/useAuth';
+import { getUnifiedLedgerCodeLabel } from '@/ui/constants/transaction';
 import { useAuthContext } from '@/ui/hooks/useAuthContext';
 
 export interface LedgerCodeItem {
@@ -29,31 +28,13 @@ export const useLedgerCodes = (includeInactive = false) => {
 
     setLoading(true);
     try {
-      // 1. Get System Defaults
-      const systemCodes: LedgerCodeItem[] = Object.values(LEDGER_CODES).map((code) => ({
-        code,
-        label: getUnifiedLedgerCodeLabel(code),
-        type: code.split(':')[0],
-        isCustom: false,
-        isActive: true,
-      }));
-
-      // 2. Get Custom Codes through the application layer
-      const customCodes = await listCustomLedgerCodesUseCase.execute({
+      const entries = await listAllLedgerCodesUseCase.execute({
         householdId,
         includeInactive,
         auth,
+        labelResolver: getUnifiedLedgerCodeLabel,
       });
-      const customItems: LedgerCodeItem[] = customCodes.map((c) => ({
-        code: c.code,
-        label: c.label,
-        type: c.type,
-        isCustom: true,
-        isActive: c.isActive,
-      }));
-
-      // Merge: System codes first, then custom ones
-      setCodes([...systemCodes, ...customItems]);
+      setCodes(entries);
     } catch (error) {
       console.error('Error fetching ledger codes:', error);
     } finally {

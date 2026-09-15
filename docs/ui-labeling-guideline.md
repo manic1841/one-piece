@@ -75,6 +75,11 @@ Free-form UI chrome (button text, error messages, subtitles, descriptive copy) i
 - `src/ui/constants/report/ledgerCodeLabels.ts` is an internal layer under `displayLabels.ts`; UI feature code must not import it directly.
 - `src/ui/constants/transaction/label.ts` does not exist (removed); references to it are historical.
 
+## Ledger Code Enumeration
+
+- The single seam for "all ledger codes of a household" is `listAllLedgerCodesUseCase` (`src/application/ledger/use_cases/listAllLedgerCodesUseCase.ts`): system defaults from the `LEDGER_CODES` constant merged with household custom codes (`households/{id}/ledgerCodes`, ADR-0009).
+- UI code must not enumerate `LEDGER_CODES` directly for pickers or lists that should include custom codes; call the use case (via `useLedgerCodes` where a React hook fits) and pass `getUnifiedLedgerCodeLabel` as `labelResolver`.
+
 ## Notes
 
 - `src/domains/report/labels.ts` is legacy for report-domain compatibility and must not be imported by UI feature code.

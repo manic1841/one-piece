@@ -17,8 +17,8 @@
    - 代碼風格建議與品質要求。
 
 4. **[實作進度 (Implementation Status)](/docs/implementation-status.md)**
-   - 目前已完成的 tooling、Debt Payment vertical slice 與驗證結果。
-   - 已完成與後續 roadmap 的狀態索引。
+   - 目前分支的 agent 實作檢查點與驗證基準。
+   - 各票據的歷史記錄以 GitHub issues 為準，設計決策以 ADR 為準。
 
 5. **[財務報表計算邏輯 (Financial Report)](/docs/financial_report.md)**
    - 損益表、資產負債表與現金流量表的產生原理。

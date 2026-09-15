@@ -9,6 +9,8 @@ import {
 } from '@/ui/features/project/viewmodels/settlementPreview.vm';
 import { useAuthContext } from '@/ui/hooks/useAuthContext';
 
+import { useCompletenessGate } from './useCompletenessGate';
+
 export const DialogStatus = {
   SELECTION: 'selection',
   PREVIEW: 'preview',
@@ -33,9 +35,20 @@ export const useSettlementDialog = (
   const [settlements, setSettlements] = useState<SettlementPreviewItemVM[]>([]);
   const [error, setError] = useState('');
 
+  // Completeness soft gate lives in its own hook (one use case per hook);
+  // this hook only asks it whether the selection step may advance.
+  const gate = useCompletenessGate(householdId, year, month);
+  const { pendingAnomalies, completenessError, confirmAnomaly, reset: resetGate, isSettled } = gate;
+
   const toPreview = async () => {
     if (!householdId || !projects || projects.length === 0) {
       setError('No project data found for settlement.');
+      return;
+    }
+    // Awaiting inside the gate keeps a fast click from outrunning the check.
+    if (!(await isSettled())) {
+      setError('');
+      setStatus(DialogStatus.SELECTION);
       return;
     }
     setError('');
@@ -111,6 +124,8 @@ export const useSettlementDialog = (
     setMonth(now.getMonth() + 1);
     setSettlements([]);
     setError('');
+    // Reopening starts a fresh session: confirmations clear and the gate re-runs.
+    resetGate();
     onClose?.();
   };
 
@@ -122,6 +137,9 @@ export const useSettlementDialog = (
     setMonth,
     settlements,
     error,
+    pendingAnomalies,
+    completenessError,
+    confirmAnomaly,
     toPreview,
     confirm,
     back,
