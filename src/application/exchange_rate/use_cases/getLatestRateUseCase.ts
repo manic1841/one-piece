@@ -1,4 +1,4 @@
-import { rterExchangeRateClient } from '@/infra/external/rterExchangeRateClient';
+import { exchangeRateApiClient } from '@/infra/external/exchangeRateApiClient';
 import { type CurrencyCode } from '@/domains/exchange_rate/types';
 
 interface GetLatestRateRequest {
@@ -24,12 +24,11 @@ export class GetLatestRateUseCase {
     }
 
     try {
-      const data = await rterExchangeRateClient.fetchAllRates();
+      const { rates } = await exchangeRateApiClient.fetchUsdRates();
 
-      const getUsdRate = (currency: string): number => {
+      const getUsdRate = (currency: CurrencyCode): number => {
         if (currency === 'USD') return 1;
-        const pair = `USD${currency}`;
-        const rate = data[pair]?.Exrate;
+        const rate = rates[currency.toUpperCase()];
         if (typeof rate !== 'number') {
           throw new Error(`Rate not found for ${currency}`);
         }

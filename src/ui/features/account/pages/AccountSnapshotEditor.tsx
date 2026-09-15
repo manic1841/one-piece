@@ -73,7 +73,12 @@ const AccountSnapshotEditor: React.FC<AccountSnapshotEditorProps> = ({
 
   const handleFetchRate = async () => {
     if (account.currency === 'TWD') return;
+    setError(null);
     const rate = await getRate(account.currency as CurrencyCode, 'TWD');
+    if (rate === undefined) {
+      setError('取得匯率失敗，請稍後再試或手動輸入匯率');
+      return;
+    }
     handleDisplayChange('exchangeRate', rate);
   };
 

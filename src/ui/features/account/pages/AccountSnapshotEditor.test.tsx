@@ -36,6 +36,7 @@ describe('AccountSnapshotEditor', () => {
     vi.mocked(useExchangeRate).mockReturnValue({
       getRate: vi.fn().mockResolvedValue(31.2),
       loading: false,
+      error: null,
     } as never);
   });
 
@@ -166,5 +167,45 @@ describe('AccountSnapshotEditor', () => {
     fireEvent.click(screen.getByRole('button', { name: '導入上月持倉' }));
 
     expect(await screen.findByText('上個月沒有可導入的持倉資料')).toBeInTheDocument();
+  });
+
+  it('shows an error and keeps the existing rate when fetching fails', async () => {
+    const onClose = vi.fn();
+    const account = {
+      id: 'acc-usd',
+      name: 'USD Bank',
+      category: 'bank',
+      currency: 'USD',
+    };
+    const snapshot = {
+      year: 2026,
+      month: 8,
+      amount: 3120,
+      originalAmount: 100,
+      exchangeRate: 31.2,
+      holdings: [],
+    };
+
+    const { useExchangeRate } = await import('@/ui/features/account/hooks/useExchangeRate');
+    vi.mocked(useExchangeRate).mockReturnValue({
+      getRate: vi.fn().mockResolvedValue(undefined),
+      loading: false,
+      error: null,
+    } as never);
+
+    render(
+      <AccountSnapshotEditor
+        account={account as never}
+        isOpen={true}
+        snapshot={snapshot as never}
+        onClose={onClose}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Fetch Rate' }));
+
+    expect(await screen.findByText('取得匯率失敗，請稍後再試或手動輸入匯率')).toBeInTheDocument();
+    expect((screen.getByLabelText('Exchange Rate') as HTMLInputElement).value).toBe('31.2');
+    expect(onClose).not.toHaveBeenCalled();
   });
 });

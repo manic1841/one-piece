@@ -23,8 +23,9 @@
 ### 📂 Infrastructure (基礎設施層) - `src/infra/`
 
 - **職責**: 實作資料持久化 (Firestore)、外部 API 介接。
-- **內容**: `repositories/`, `schemas/` (與資料庫對應的實體)。
+- **內容**: `repositories/`, `schemas/` (與資料庫對應的實體), `external/` (第三方 API client)。
 - **工具**: 繼承 `src/repositories/baseRepository.ts` 進行標準 CRUD。
+- **外部 API 介接**: 匯率由 `external/exchangeRateApiClient.ts` 直接從 CORS 開放的每日匯率源取得（免 key、免後端代理，詳見 [ADR-0049](adr/0049-cors-open-exchange-rate-source.md)）；跨匯率換算由 `GetLatestRateUseCase` 以 USD 基準匯率推導，並保留 1 小時記憶體快取。
 
 ### 📂 Presentation (呈現層) - `src/ui/features/`, `src/ui/components/`
 
