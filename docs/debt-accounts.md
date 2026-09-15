@@ -185,12 +185,39 @@ Cr. asset:cash          totalPayment
 
 ### 相關函數
 
-| 函數                             | 位置                                           | 目的                           |
-| -------------------------------- | ---------------------------------------------- | ------------------------------ |
-| `isInGracePeriod()`              | `src/domains/debt/debtPaymentCalculator.ts`    | 判斷是否在寬限期               |
-| `calculateGraceMonthlyPayment()` | `src/domains/debt/debtPaymentCalculator.ts`    | 計算寬限期利息                 |
-| `calculateLoan()`                | `src/ui/features/debt/utils/loanCalculator.ts` | 試算時包含 `graceEndDate` 參數 |
-| `buildDebtPaymentEntries()`      | `src/domains/debt/debtPaymentCalculator.ts`    | 建立分錄時檢查寬限期           |
+| 函數                             | 位置                                           | 目的                                           |
+| -------------------------------- | ---------------------------------------------- | ---------------------------------------------- |
+| `isInGracePeriod()`              | `src/domains/debt/debtPaymentCalculator.ts`    | 判斷是否在寬限期                               |
+| `isLoanActiveInMonth()`          | `src/domains/debt/debtPaymentCalculator.ts`    | 判斷借款期間是否涵蓋某月份（記帳完整性檢查用） |
+| `calculateGraceMonthlyPayment()` | `src/domains/debt/debtPaymentCalculator.ts`    | 計算寬限期利息                                 |
+| `calculateLoan()`                | `src/ui/features/debt/utils/loanCalculator.ts` | 試算時包含 `graceEndDate` 參數                 |
+| `buildDebtPaymentEntries()`      | `src/domains/debt/debtPaymentCalculator.ts`    | 建立分錄時檢查寬限期                           |
+
+### 記帳完整性檢查中的債務語意
+
+監看清單（ADR-0048）可監看債務帳戶。結算前檢查以當月 `DEBT_PAYMENT` 交易為準，
+**不看** `linkedLedgerCode` 的活動：還債分錄借方正是該負債科目，當月若有新借款
+入帳，該科目活動不為零就會掩蓋漏還。
+
+參與檢查的條件：
+
+- `isActive = true`（停用／已結清的債務不參與檢查）
+- 借款期間涵蓋目標月份，由 `isLoanActiveInMonth(startDate, endDate, monthStart)`
+  以「月份」為粒度判斷：起始月與到期月都算在期間內（到期日 2026-08-31 不涵蓋
+  9 月，2026-09-05 仍涵蓋 9 月）
+- **寬限期不豁免檢查**。寬限期間的還款仍會產生利息的 `DEBT_PAYMENT` 交易
+  （見本節上方），所以該月零筆還款就是漏記的訊號，與 ADR-0017 一致
+- 債務文件已不存在時跳過（監看清單可能留有已刪除對象的殘留紀錄）
+- 無 `debtAccountId` 的 legacy 還款（`LIABILITY_PAYMENT`，見第 4 節）不計入：
+  `debtAccountId` 是 ADR-0014 之後還款交易的正典索引，本檢查只認正典格式；
+  誤報方向是請使用者確認，屬可接受
+
+已知偏差：日期比較一律採**本地日期**（`isInGracePeriod()` 亦同）。表單以
+`<input type="date">` 建立日期，字串 `2026-09-01` 会被解析成 UTC 午夜，因此在
+**UTC 負偏移**的瀏覽器上，本地日期會落到 8/31；若 `startDate` 或 `endDate` 恰好
+落在月初 1 日，涵蓋的月份會比預期早一個月。本專案目前沒有跨時區使用的需求，
+且此行為與既有債務日期判讀一致，故不另作處理；若要修正，應統一改採 UTC 欄位
+或日期字串比較，影響範圍含寬限期判斷。
 
 ---
 

@@ -6,6 +6,7 @@ import { type Project } from '@/domains/project/schemas';
 import { YearMonthPicker } from '@/ui/components/YearMonthPicker';
 import { Button } from '@/ui/components/ui/button';
 import { Card } from '@/ui/components/ui/card';
+import SettlementCompletenessGate from '@/ui/features/project/components/settlement/SettlementCompletenessGate';
 import { SettlementPreview } from '@/ui/features/project/components/settlement/SettlementPreview';
 import { DialogStatus, useSettlementDialog } from '@/ui/features/project/hooks/useSettlementDialog';
 
@@ -24,8 +25,21 @@ const MonthlySettlement: React.FC<MonthlySettlementProps> = ({
   onBack,
   onSuccess,
 }) => {
-  const { status, year, month, setYear, setMonth, settlements, error, toPreview, confirm, back } =
-    useSettlementDialog(householdId, projects, userEmail, onSuccess, onBack);
+  const {
+    status,
+    year,
+    month,
+    setYear,
+    setMonth,
+    settlements,
+    error,
+    pendingAnomalies,
+    completenessError,
+    confirmAnomaly,
+    toPreview,
+    confirm,
+    back,
+  } = useSettlementDialog(householdId, projects, userEmail, onSuccess, onBack);
 
   if (status === DialogStatus.DONE) {
     return (
@@ -66,7 +80,17 @@ const MonthlySettlement: React.FC<MonthlySettlementProps> = ({
               yearLabel="結算年份"
               monthLabel="結算月份"
             />
-            <Button className="w-full" onClick={toPreview}>
+            <SettlementCompletenessGate
+              anomalies={pendingAnomalies}
+              completenessError={completenessError}
+              onConfirm={confirmAnomaly}
+            />
+            {error && (
+              <div className="bg-destructive/10 text-destructive p-3 rounded-lg text-sm">
+                {error}
+              </div>
+            )}
+            <Button className="w-full" onClick={toPreview} disabled={pendingAnomalies.length > 0}>
               Preview Settlement
             </Button>
           </div>
