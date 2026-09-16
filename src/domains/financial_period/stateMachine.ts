@@ -11,7 +11,8 @@ export class FinancialPeriodStateError extends Error {
     | 'PERIOD_NOT_FOUND'
     | 'PERIOD_CLOSED'
     | 'STAGE_NOT_FOUND'
-    | 'STAGE_ALREADY_COMPLETED';
+    | 'STAGE_ALREADY_COMPLETED'
+    | 'STAGE_NOT_COMPLETED';
 
   constructor(code: FinancialPeriodStateError['code'], message: string) {
     super(`[${code}] ${message}`);
@@ -69,6 +70,36 @@ export const markNeedsReviewInState = (
 
 export const isStageCompleted = (period: FinancialPeriod, stageId: CloseStageId): boolean =>
   period.stages[stageId]?.status === 'COMPLETED';
+
+export const closePeriodInState = (
+  period: FinancialPeriod,
+  closedBy: string,
+  closedAt: Date,
+): FinancialPeriod => {
+  if (period.status === 'CLOSED') {
+    throw new FinancialPeriodStateError('PERIOD_CLOSED', 'period is already closed');
+  }
+  if (!isStageCompleted(period, 'CLOSE_PERIOD')) {
+    throw new FinancialPeriodStateError(
+      'STAGE_NOT_COMPLETED',
+      'Close Period stage must be confirmed before closing',
+    );
+  }
+
+  return {
+    ...period,
+    status: 'CLOSED',
+    reviewSourceStageId: null,
+    stages: {
+      ...period.stages,
+      CLOSE_PERIOD: {
+        status: 'COMPLETED',
+        confirmedBy: closedBy,
+        confirmedAt: closedAt,
+      },
+    },
+  };
+};
 
 export const completedStageCount = (period: FinancialPeriod): number =>
   Object.values(period.stages).filter((stage) => stage.status === 'COMPLETED').length;
