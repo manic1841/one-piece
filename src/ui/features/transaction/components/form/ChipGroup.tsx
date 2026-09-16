@@ -17,9 +17,9 @@ export function ChipGroup({ options, value, onChange, tone }: ChipGroupProps) {
   };
 
   const activeClass = {
-    expense: 'border-negative bg-negative text-white',
-    income: 'border-positive bg-positive text-white',
-    neutral: 'border-primary bg-primary text-white',
+    expense: 'border-negative bg-negative text-primary-foreground',
+    income: 'border-positive bg-positive text-primary-foreground',
+    neutral: 'border-primary bg-primary text-primary-foreground',
   };
 
   return (

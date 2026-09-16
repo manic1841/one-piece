@@ -78,14 +78,14 @@ export const DebtSettlement: React.FC<DebtSettlementProps> = ({
                         {item.repaymentCount} 筆 / {item.repaymentAmount.toLocaleString()}
                       </span>
                     ) : (
-                      <span className="text-amber-700 font-medium">無還款</span>
+                      <span className="text-warning font-medium">無還款</span>
                     )}
                   </td>
                   <td className="px-3 py-2 text-right">
                     {item.hasSnapshot ? (
                       <span className="text-muted-foreground">已存在</span>
                     ) : (
-                      <span className="text-indigo-700 font-medium">將建立</span>
+                      <span className="text-foreground font-medium">將建立</span>
                     )}
                   </td>
                 </tr>
@@ -95,8 +95,8 @@ export const DebtSettlement: React.FC<DebtSettlementProps> = ({
         </div>
 
         {preview.hasMissingRepayments && (
-          <div className="space-y-3 p-3 bg-amber-50 border border-amber-200 rounded-lg">
-            <div className="flex items-start gap-2 text-amber-800 text-sm">
+          <div className="space-y-3 p-3 bg-warning/10 border border-warning/20 rounded-lg">
+            <div className="flex items-start gap-2 text-warning text-sm">
               <AlertCircle size={16} className="mt-0.5" />
               <p className="font-medium leading-relaxed">
                 以下帳戶在 {preview.yearMonth} 沒有還款紀錄：
@@ -104,7 +104,7 @@ export const DebtSettlement: React.FC<DebtSettlementProps> = ({
                 仍可結算，但會建立「零還款」快照。
               </p>
             </div>
-            <label className="flex items-center gap-2 text-sm text-amber-900 font-medium">
+            <label className="flex items-center gap-2 text-sm text-warning font-medium">
               <input
                 type="checkbox"
                 checked={ackMissingRepayments}
@@ -133,7 +133,7 @@ export const DebtSettlement: React.FC<DebtSettlementProps> = ({
           <Button
             onClick={() => settle(preview.hasMissingRepayments)}
             disabled={status === DebtSettlementStatus.PROCESSING || !canConfirm}
-            className="bg-indigo-600 hover:bg-indigo-700 min-w-[120px]"
+            className="bg-primary text-primary-foreground hover:bg-primary/90 min-w-[120px]"
           >
             {status === DebtSettlementStatus.PROCESSING ? (
               <>
@@ -192,7 +192,7 @@ export const DebtSettlement: React.FC<DebtSettlementProps> = ({
         <Button
           onClick={toPreview}
           disabled={status === DebtSettlementStatus.PROCESSING}
-          className="bg-indigo-600 hover:bg-indigo-700 min-w-[100px]"
+          className="bg-primary text-primary-foreground hover:bg-primary/90 min-w-[100px]"
         >
           {status === DebtSettlementStatus.PROCESSING ? (
             <>

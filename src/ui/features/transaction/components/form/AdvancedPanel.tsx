@@ -31,7 +31,7 @@ const toProjectOptions = (projects: TransactionFormProjectOption[]) =>
 
 export function AdvancedPanel({ state, projects, allLedgerCodes, onChange }: AdvancedPanelProps) {
   return (
-    <div className="space-y-5 rounded-2xl border border-border bg-card p-5">
+    <div className="space-y-5 rounded-lg border border-border bg-card p-5">
       <AmountDateFields
         amountId="advanced-amount"
         dateId="advanced-date"

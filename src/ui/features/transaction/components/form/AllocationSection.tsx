@@ -53,7 +53,7 @@ export const AllocationSection: React.FC<AllocationSectionProps> = ({
       ? tone === 'income'
         ? 'text-positive'
         : 'text-negative'
-      : 'text-amber-700';
+      : 'text-warning';
 
   const addSelectedProject = () => {
     if (!selectedProjectId) return;

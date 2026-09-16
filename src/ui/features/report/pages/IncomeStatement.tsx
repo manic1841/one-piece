@@ -48,10 +48,10 @@ const IncomeStatementPage: React.FC<IncomeStatementPageProps> = ({
     return (
       <div
         key={item.code}
-        className="border-b last:border-0 border-border dark:border-slate-800"
+        className="border-b last:border-0 border-border"
       >
         <div
-          className={`flex items-center justify-between py-3 px-2 hover:bg-muted dark:hover:bg-slate-900 transition-colors cursor-pointer ${depth > 0 ? 'bg-muted/50 dark:bg-slate-900/30' : ''}`}
+          className={`flex items-center justify-between py-3 px-2 hover:bg-muted transition-colors cursor-pointer ${depth > 0 ? 'bg-muted/50' : ''}`}
           onClick={() => hasSubItems && toggleExpand(item.code)}
         >
           <div className="flex items-center gap-2" style={{ paddingLeft: `${depth * 1.5}rem` }}>
@@ -65,7 +65,7 @@ const IncomeStatementPage: React.FC<IncomeStatementPageProps> = ({
               <div className="w-4" />
             )}
             <span
-              className={`${depth === 0 ? 'font-medium' : 'text-muted-foreground dark:text-slate-400'}`}
+              className={`${depth === 0 ? 'font-medium' : 'text-muted-foreground'}`}
             >
               {item.label}
             </span>
@@ -73,7 +73,7 @@ const IncomeStatementPage: React.FC<IncomeStatementPageProps> = ({
           <span className={`font-mono ${depth === 0 ? 'font-bold' : ''}`}>{item.amountText}</span>
         </div>
         {isExpanded && hasSubItems && (
-          <div className="bg-muted/30 dark:bg-slate-900/10">
+          <div className="bg-muted/30">
             {item.subItems!.map((sub: IncomeStatementItemVM) => renderItem(sub, depth + 1))}
           </div>
         )}
@@ -108,27 +108,27 @@ const IncomeStatementPage: React.FC<IncomeStatementPageProps> = ({
         <>
           {/* Summary Cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Card className="bg-positive/5 dark:bg-emerald-950/20 border-positive/20 dark:border-emerald-900">
+            <Card className="bg-positive/5 border-positive/20">
               <CardContent className="pt-6">
-                <p className="text-sm font-medium text-positive dark:text-emerald-400 mb-1">
+                <p className="text-sm font-medium text-positive mb-1">
                   收入合計
                 </p>
-                <p className="text-2xl font-bold text-positive dark:text-emerald-300">
+                <p className="text-2xl font-bold text-positive">
                   {data.incomeTotalText}
                 </p>
               </CardContent>
             </Card>
-            <Card className="bg-negative/5 dark:bg-rose-950/20 border-negative/20 dark:border-rose-900">
+            <Card className="bg-negative/5 border-negative/20">
               <CardContent className="pt-6">
-                <p className="text-sm font-medium text-negative dark:text-rose-400 mb-1">
+                <p className="text-sm font-medium text-negative mb-1">
                   支出合計
                 </p>
-                <p className="text-2xl font-bold text-negative dark:text-rose-300">
+                <p className="text-2xl font-bold text-negative">
                   {data.expenseTotalText}
                 </p>
               </CardContent>
             </Card>
-            <Card className="bg-muted dark:bg-slate-900">
+            <Card className="bg-muted">
               <CardContent className="pt-6">
                 <p className="text-sm font-medium text-muted-foreground mb-1">淨收入</p>
                 <p
@@ -142,9 +142,9 @@ const IncomeStatementPage: React.FC<IncomeStatementPageProps> = ({
 
           <div className="grid grid-cols-1 gap-6">
             {/* Income Table */}
-            <Card className="bg-positive/5 dark:bg-emerald-950/20 border-positive/20 dark:border-emerald-900">
-              <CardHeader className="bg-positive/5 dark:bg-emerald-950/10 border-b border-positive/10">
-                <CardTitle className="text-lg flex items-center gap-2 text-positive dark:text-emerald-300">
+            <Card className="bg-positive/5 border-positive/20">
+              <CardHeader className="bg-positive/5 border-b border-positive/10">
+                <CardTitle className="text-lg flex items-center gap-2 text-positive">
                   收入 (Income)
                 </CardTitle>
               </CardHeader>
@@ -158,9 +158,9 @@ const IncomeStatementPage: React.FC<IncomeStatementPageProps> = ({
             </Card>
 
             {/* Expense Table */}
-            <Card className="bg-negative/5 dark:bg-rose-950/20 border-negative/20 dark:border-rose-900">
-              <CardHeader className="bg-negative/5 dark:bg-rose-950/10 border-b border-negative/10">
-                <CardTitle className="text-lg flex items-center gap-2 text-negative dark:text-rose-300">
+            <Card className="bg-negative/5 border-negative/20">
+              <CardHeader className="bg-negative/5 border-b border-negative/10">
+                <CardTitle className="text-lg flex items-center gap-2 text-negative">
                   支出 (Expense)
                 </CardTitle>
               </CardHeader>

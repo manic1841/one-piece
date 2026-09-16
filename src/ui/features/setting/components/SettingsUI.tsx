@@ -163,7 +163,7 @@ const SettingsUI: React.FC<SettingsUIProps> = (props) => {
 
       {isAdmin && (
         <section className="space-y-4">
-          <div className="bg-gradient-to-r from-purple-500 to-purple-600 rounded-xl shadow-sm p-4 text-white">
+          <div className="bg-elevated rounded-xl border border-border shadow-sm p-4 text-foreground">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-card/20 rounded-full flex items-center justify-center">
                 <ShieldAlert size={20} />
@@ -264,7 +264,7 @@ const SettingsUI: React.FC<SettingsUIProps> = (props) => {
               此操作會先刪除目前 household 既有資料，再以備份檔完整覆蓋。此動作無法復原。
             </DialogDescription>
           </DialogHeader>
-          <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+          <div className="rounded-md border border-warning/20 bg-warning/5 p-3 text-sm text-warning">
             {pendingRestoreFile ? `即將還原檔案：${pendingRestoreFile.name}` : '尚未選擇備份檔案。'}
           </div>
           <DialogFooter>

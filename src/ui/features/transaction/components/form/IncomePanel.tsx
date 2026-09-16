@@ -29,7 +29,7 @@ export function IncomePanel({
   onChange,
 }: IncomePanelProps) {
   return (
-    <div className="space-y-5 rounded-2xl border border-border bg-card p-5">
+    <div className="space-y-5 rounded-lg border border-border bg-card p-5">
       <AmountDateFields
         amountId="income-amount"
         dateId="income-date"

@@ -54,16 +54,16 @@ export const ReportSettlement: React.FC<ReportSettlementProps> = ({
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-top-4 duration-700">
-      <Card className="border-border/60 shadow-xl shadow-border/40 overflow-hidden rounded-2xl border-0">
-        <CardHeader className="bg-gradient-to-r from-primary via-indigo-950 to-primary text-white py-6 px-8 border-b-0">
+      <Card className="border-border/60 shadow-xl shadow-border/40 overflow-hidden rounded-lg border-0">
+        <CardHeader className="bg-elevated text-foreground py-6 px-8 border-b-0">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="bg-white/10 p-2.5 rounded-xl backdrop-blur-md border border-white/20">
-                <FileBarChart2 size={24} className="text-indigo-300" />
+              <div className="bg-foreground/10 p-2.5 rounded-xl backdrop-blur-md border border-foreground/20">
+                <FileBarChart2 size={24} className="text-muted-foreground" />
               </div>
               <div className="space-y-0.5">
                 <CardTitle className="text-xl font-black tracking-tight">財務結算中心</CardTitle>
-                <p className="text-xs text-indigo-200/70 font-medium">
+                <p className="text-xs text-muted-foreground font-medium">
                   MONTHLY FINANCIAL SETTLEMENT
                 </p>
               </div>
@@ -74,7 +74,7 @@ export const ReportSettlement: React.FC<ReportSettlementProps> = ({
                 variant="ghost"
                 size="icon"
                 title="需先完成專案、帳戶、投資組合與債務的月結算，才可產生正式報表。"
-                className="text-white/60 hover:text-white hover:bg-white/10 rounded-full h-9 w-9"
+                className="text-muted-foreground hover:text-foreground hover:bg-foreground/10 rounded-full h-9 w-9"
               >
                 <HelpCircle size={18} />
               </Button>
@@ -84,7 +84,7 @@ export const ReportSettlement: React.FC<ReportSettlementProps> = ({
                 size="icon"
                 onClick={refresh}
                 disabled={isLoading || isGenerating}
-                className="text-white/60 hover:text-white hover:bg-white/10 rounded-full h-9 w-9 transition-all active:scale-90"
+                className="text-muted-foreground hover:text-foreground hover:bg-foreground/10 rounded-full h-9 w-9 transition-all active:scale-90"
               >
                 <RefreshCw size={18} className={isLoading ? 'animate-spin' : ''} />
               </Button>
@@ -95,8 +95,8 @@ export const ReportSettlement: React.FC<ReportSettlementProps> = ({
         <CardContent className="p-0">
           <div className="bg-muted/50 border-b border-border p-8 flex flex-col md:flex-row md:items-center justify-between gap-6">
             <div className="flex items-center gap-4 flex-1">
-              <div className="bg-card p-3 rounded-2xl shadow-sm border border-border shrink-0">
-                <Calendar className="text-indigo-600" size={20} />
+              <div className="bg-card p-3 rounded-lg shadow-sm border border-border shrink-0">
+                <Calendar className="text-muted-foreground" size={20} />
               </div>
               <div className="flex-1 min-w-[320px]">
                 <YearMonthPicker
@@ -108,9 +108,9 @@ export const ReportSettlement: React.FC<ReportSettlementProps> = ({
               </div>
             </div>
 
-            <div className="flex items-start gap-2 max-w-[280px] bg-amber-50/50 p-3 rounded-xl border border-amber-100/50">
-              <AlertCircle size={14} className="text-amber-600 mt-0.5 shrink-0" />
-              <p className="text-[11px] leading-relaxed text-amber-800 font-medium">
+            <div className="flex items-start gap-2 max-w-[280px] bg-warning/5 p-3 rounded-xl border border-warning/20">
+              <AlertCircle size={14} className="text-warning mt-0.5 shrink-0" />
+              <p className="text-[11px] leading-relaxed text-foreground/80 font-medium">
                 專案與帳戶快照數據取自「專案管理」結算結果；債務數據取自「債務管理」。若數據有誤，請回該模組更新。
               </p>
             </div>
@@ -144,16 +144,16 @@ export const ReportSettlement: React.FC<ReportSettlementProps> = ({
                       size="lg"
                       disabled={isLoading || isGenerating}
                       onClick={() => fetchPreview().then(() => setIsPreviewing(true))}
-                      className="border-border text-foreground hover:bg-muted rounded-2xl font-bold group"
+                      className="border-border text-foreground hover:bg-muted rounded-lg font-bold group"
                     >
                       <Eye
                         size={18}
-                        className="mr-2 text-muted-foreground group-hover:text-indigo-600 transition-colors"
+                        className="mr-2 text-muted-foreground group-hover:text-foreground transition-colors"
                       />
                       預覽即將發佈之報表
                     </Button>
                   </DialogTrigger>
-                  <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto rounded-3xl p-8">
+                  <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto rounded-lg p-8">
                     <DialogHeader>
                       <DialogTitle className="text-2xl font-black text-foreground mb-6">
                         財務報表發佈預覽 ({year}-{month})
@@ -163,7 +163,7 @@ export const ReportSettlement: React.FC<ReportSettlementProps> = ({
                       <ReportPreview data={previewData} />
                     ) : (
                       <div className="h-64 flex flex-col items-center justify-center space-y-4">
-                        <RefreshCw size={32} className="text-indigo-600 animate-spin" />
+                        <RefreshCw size={32} className="text-muted-foreground animate-spin" />
                         <p className="font-bold text-muted-foreground">正在計算預覽數據...</p>
                       </div>
                     )}
@@ -180,7 +180,7 @@ export const ReportSettlement: React.FC<ReportSettlementProps> = ({
                           setIsPreviewing(false);
                           generateReports();
                         }}
-                        className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold"
+                        className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-xl font-bold"
                       >
                         確認數據無誤，正式發佈
                       </Button>

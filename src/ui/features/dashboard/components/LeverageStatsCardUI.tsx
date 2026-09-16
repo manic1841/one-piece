@@ -23,8 +23,8 @@ const LeverageStatsCardUI: React.FC<LeverageStatsCardUIProps> = ({ stats, loadin
     <Card className="overflow-hidden border-none shadow-md bg-card">
       <CardHeader className="pb-2">
         <div className="flex items-center gap-2">
-          <div className="p-2 rounded-lg bg-indigo-100">
-            <Shield size={20} className="text-indigo-600" />
+          <div className="p-2 rounded-lg bg-accent">
+            <Shield size={20} className="text-foreground" />
           </div>
           <CardTitle className="text-lg font-bold">槓桿風險監控</CardTitle>
         </div>

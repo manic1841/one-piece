@@ -217,7 +217,7 @@ export const ReportHeader: React.FC<ReportHeaderProps> = ({
                 variant="outline"
                 className="bg-card border-border shadow-sm hover:bg-muted px-4 h-11 rounded-xl flex items-center gap-3 transition-all active:scale-95"
               >
-                <div className="bg-indigo-50 p-1.5 rounded-lg text-indigo-600">
+                <div className="bg-accent p-1.5 rounded-lg text-foreground">
                   <Calendar size={18} />
                 </div>
                 <span className="font-bold text-foreground">
@@ -228,12 +228,12 @@ export const ReportHeader: React.FC<ReportHeaderProps> = ({
               </Button>
             </PopoverTrigger>
             <PopoverContent
-              className="w-80 p-6 rounded-2xl shadow-2xl border-border"
+              className="w-80 p-6 rounded-lg shadow-2xl border-border"
               align="end"
             >
               <div className="space-y-4">
                 <div className="flex items-center gap-2 mb-2">
-                  <Calendar size={16} className="text-indigo-600" />
+                  <Calendar size={16} className="text-muted-foreground" />
                   <span className="text-sm font-black text-foreground uppercase tracking-wider">
                     {reportMode === 'MONTHLY' ? '選擇報表期間' : '選擇年份'}
                   </span>
@@ -262,7 +262,7 @@ export const ReportHeader: React.FC<ReportHeaderProps> = ({
       </div>
 
       {/* Quick Switch Tabs */}
-      <div className="flex p-1 bg-muted/80 backdrop-blur-sm rounded-2xl border border-border/50 w-fit">
+      <div className="flex p-1 bg-muted/80 backdrop-blur-sm rounded-lg border border-border/50 w-fit">
         {reportTabs.map((tab) => (
           <button
             key={tab.id}
@@ -270,7 +270,7 @@ export const ReportHeader: React.FC<ReportHeaderProps> = ({
             className={cn(
               'flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-black transition-all',
               currentView === tab.id
-                ? 'bg-card text-indigo-600 shadow-md shadow-border/50 translate-y-[-1px]'
+                ? 'bg-card text-foreground shadow-md shadow-border/50 translate-y-[-1px]'
                 : 'text-muted-foreground hover:text-foreground hover:bg-card/50',
             )}
           >

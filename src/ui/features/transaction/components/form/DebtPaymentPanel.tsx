@@ -62,7 +62,7 @@ export function DebtPaymentPanel({ state, debtAccounts, projects, onChange }: De
     : null;
 
   return (
-    <div className="space-y-5 rounded-2xl border border-primary/20 bg-card p-5">
+    <div className="space-y-5 rounded-lg border border-primary/20 bg-card p-5">
       {/* 選擇貸款 */}
       <div className="space-y-2">
         <Label>選擇貸款 *</Label>
@@ -110,7 +110,7 @@ export function DebtPaymentPanel({ state, debtAccounts, projects, onChange }: De
       {split && totalPaymentNum > 0 && (
         <div className={`rounded-xl px-4 py-3 text-sm space-y-1 ${
           split.warning
-            ? 'bg-amber-50 border border-amber-200 text-amber-800'
+            ? 'bg-warning/5 border border-warning/20 text-warning'
             : 'bg-primary/10 border border-primary/20 text-primary'
         }`}>
           {split.warning ? (

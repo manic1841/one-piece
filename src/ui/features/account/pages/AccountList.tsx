@@ -173,7 +173,7 @@ const AccountList: React.FC = () => {
         )}
 
       {!loadingAccounts && accounts.length === 0 && (
-        <div className="text-center py-20 bg-muted rounded-2xl border-2 border-dashed border-border">
+        <div className="text-center py-20 bg-muted rounded-lg border-2 border-dashed border-border">
           <div className="text-muted-foreground mb-4 flex justify-center">
             <Landmark size={48} strokeWidth={1} />
           </div>

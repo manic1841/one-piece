@@ -196,7 +196,7 @@ const Transactions: React.FC = () => {
               className={cn(
                 'px-4 py-1.5 rounded-full text-sm font-medium transition-all whitespace-nowrap',
                 filterType === type.id
-                  ? 'bg-primary text-white shadow-md'
+                  ? 'bg-primary text-primary-foreground shadow-md'
                   : 'bg-muted text-muted-foreground hover:bg-muted',
               )}
             >

@@ -68,7 +68,7 @@ function SummaryCards({
 const TYPE_BADGE_CLASS: Record<string, string> = {
   mortgage: 'bg-primary/15 text-primary',
   car_loan: 'bg-positive/15 text-positive',
-  personal_loan: 'bg-purple-100 text-purple-700',
+  personal_loan: 'bg-accent text-accent-foreground',
 };
 
 /** Individual loan card */
@@ -122,7 +122,7 @@ function DebtCard({
                 {account.inGracePeriod && (
                   <Badge
                     variant="destructive"
-                    className="text-xs font-medium bg-amber-100 text-amber-800 border-amber-200"
+                    className="text-xs font-medium bg-warning/10 text-warning border-warning/20"
                   >
                     寬限期至 {account.graceEndYearMonthText}
                   </Badge>

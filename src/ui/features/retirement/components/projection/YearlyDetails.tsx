@@ -41,11 +41,11 @@ export function YearlyDetails({ projection }: RetirementProjectionProps) {
         <div className="overflow-x-auto">
           <div className="mb-3 flex items-center gap-4 text-xs text-muted-foreground">
             <div className="flex items-center gap-1.5">
-              <span className="inline-block h-2.5 w-2.5 rounded-sm border border-sky-200 bg-sky-100" />
+              <span className="inline-block h-2.5 w-2.5 rounded-sm border border-border bg-muted" />
               <span>退休前</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <span className="inline-block h-2.5 w-2.5 rounded-sm border border-amber-200 bg-amber-100" />
+              <span className="inline-block h-2.5 w-2.5 rounded-sm border border-warning/20 bg-warning/10" />
               <span>退休後</span>
             </div>
           </div>
@@ -69,15 +69,15 @@ export function YearlyDetails({ projection }: RetirementProjectionProps) {
 
                 return (
                   <Fragment key={row.year}>
-                    <tr className={`border-b ${row.isRetired ? 'bg-amber-50/60' : 'bg-sky-50/60'}`}>
+                    <tr className={`border-b ${row.isRetired ? 'bg-warning/5' : 'bg-transparent'}`}>
                       <td className="py-2 pr-3 tabular-nums">{row.year}</td>
                       <td className="py-2 pr-3 tabular-nums">{row.age}</td>
                       <td className="py-2 pr-3">
                         <span
                           className={`inline-flex rounded px-2 py-0.5 text-xs font-medium ${
                             row.isRetired
-                              ? 'bg-amber-100 text-amber-800'
-                              : 'bg-sky-100 text-sky-800'
+                              ? 'bg-warning/10 text-warning'
+                              : 'bg-muted text-muted-foreground'
                           }`}
                         >
                           {row.statusText}

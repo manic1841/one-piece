@@ -55,7 +55,7 @@ const UnsettledStatsCardUI: React.FC<UnsettledStatsCardUIProps> = ({ stats, load
             </div>
             <div className="h-1 bg-muted rounded-full overflow-hidden">
               <div
-                className="h-full bg-amber-500 transition-all duration-500"
+                className="h-full bg-warning transition-all duration-500"
                 style={{ width: `${stats.accounts.progressWidth}%` }}
               />
             </div>
@@ -75,7 +75,7 @@ const UnsettledStatsCardUI: React.FC<UnsettledStatsCardUIProps> = ({ stats, load
             </div>
             <div className="h-1 bg-muted rounded-full overflow-hidden">
               <div
-                className="h-full bg-amber-500 transition-all duration-500"
+                className="h-full bg-warning transition-all duration-500"
                 style={{ width: `${stats.portfolios.progressWidth}%` }}
               />
             </div>
@@ -95,7 +95,7 @@ const UnsettledStatsCardUI: React.FC<UnsettledStatsCardUIProps> = ({ stats, load
             </div>
             <div className="h-1 bg-muted rounded-full overflow-hidden">
               <div
-                className="h-full bg-amber-500 transition-all duration-500"
+                className="h-full bg-warning transition-all duration-500"
                 style={{ width: `${stats.projects.progressWidth}%` }}
               />
             </div>

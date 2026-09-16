@@ -73,7 +73,7 @@ const RetirementPlanForm: React.FC = () => {
   return (
     <div className="space-y-6">
       {staleIncomeSyncBanner && (
-        <Alert className="border-amber-300 bg-amber-50">
+        <Alert className="border-warning/20 bg-warning/5">
           <AlertTitle>收入樣本年度可更新</AlertTitle>
           <AlertDescription className="flex items-center justify-between gap-3">
             <span>

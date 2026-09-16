@@ -39,7 +39,7 @@ export const TransactionItem: React.FC<TransactionItemProps> = ({
         <div className="flex items-center gap-4 flex-1 min-w-0">
           <div
             className={cn(
-              'w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 shadow-sm transition-transform group-hover:scale-105',
+              'w-12 h-12 rounded-lg flex items-center justify-center shrink-0 shadow-sm transition-transform group-hover:scale-105',
               isPositive ? 'bg-positive/15 text-positive' : 'bg-negative/15 text-negative',
             )}
           >
@@ -50,7 +50,7 @@ export const TransactionItem: React.FC<TransactionItemProps> = ({
             <div className="flex items-center gap-2 mb-0.5">
               <h4 className="font-semibold text-foreground truncate">{displayTitle}</h4>
               {projectName && (
-                <span className="shrink-0 text-[10px] font-bold px-2 py-0.5 bg-indigo-50 text-indigo-500 rounded-md uppercase tracking-wider">
+                <span className="shrink-0 text-[10px] font-bold px-2 py-0.5 bg-accent text-muted-foreground rounded-md uppercase tracking-wider">
                   {projectName}
                 </span>
               )}
@@ -69,14 +69,14 @@ export const TransactionItem: React.FC<TransactionItemProps> = ({
             <p
               className={cn(
                 'text-lg font-bold tracking-tight tabular-nums',
-                hasCashLedger ? amountColor : 'text-amber-500',
+                hasCashLedger ? amountColor : 'text-warning',
               )}
             >
               {isPositive ? '+' : '-'}
               {amountText}
             </p>
             {!hasCashLedger && (
-              <p className="text-[9px] font-bold text-amber-600 uppercase tracking-tighter">
+              <p className="text-[9px] font-bold text-warning uppercase tracking-tighter">
                 No Cash Entry
               </p>
             )}

@@ -21,13 +21,13 @@ const EMPTY_LEVERAGE_STATS: LeverageStats = {
 
 const getStatusColorClass = (ratio: number) => {
   if (ratio <= 1.05) return 'text-positive';
-  if (ratio <= 1.5) return 'text-amber-600';
+  if (ratio <= 1.5) return 'text-warning';
   return 'text-negative';
 };
 
 const getProgressColorClass = (ratio: number) => {
   if (ratio <= 1.05) return 'bg-positive';
-  if (ratio <= 1.5) return 'bg-amber-500';
+  if (ratio <= 1.5) return 'bg-warning';
   return 'bg-negative';
 };
 
@@ -98,7 +98,7 @@ export const mapAssetTrendStatusToBadgeVM = (
   }
 
   if (status === 'on-track') {
-    return { label: '符合預期', icon: 'on-track', iconClassName: 'text-blue-500' };
+    return { label: '符合預期', icon: 'on-track', iconClassName: 'text-chart-1' };
   }
 
   return { label: '稍微落後', icon: 'behind', iconClassName: 'text-negative' };
@@ -285,7 +285,7 @@ export interface UnsettledStatsCardVM {
 
 const mapCountToSectionVM = (count: number): UnsettledStatsCardSectionVM => ({
   countText: String(count),
-  countClassName: count > 0 ? 'text-amber-600' : 'text-muted-foreground',
+  countClassName: count > 0 ? 'text-warning' : 'text-muted-foreground',
   progressWidth: count > 0 ? 100 : 0,
 });
 
@@ -314,8 +314,8 @@ export const mapUnsettledStatsToCardVM = (
     isFullySettled,
     totalBadgeText: isFullySettled ? '已全部結算' : `${base.totalUnsettled} 項未結算`,
     statusIconType: isFullySettled ? 'settled' : 'unsettled',
-    statusIconContainerClassName: isFullySettled ? 'bg-positive/10' : 'bg-amber-100',
-    statusIconClassName: isFullySettled ? 'text-positive' : 'text-amber-600',
+    statusIconContainerClassName: isFullySettled ? 'bg-positive/10' : 'bg-warning/10',
+    statusIconClassName: isFullySettled ? 'text-positive' : 'text-warning',
     badgeVariant: isFullySettled ? 'outline' : 'destructive',
     accounts: mapCountToSectionVM(base.unsettledAccounts.length),
     portfolios: mapCountToSectionVM(base.unsettledPortfolios.length),

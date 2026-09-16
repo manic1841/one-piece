@@ -51,8 +51,8 @@ export function NoSummaryCard({
     debtWarnings.length > 0;
 
   return (
-    <div className="bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-200/60 rounded-2xl p-8 flex flex-col md:flex-row items-center gap-6 shadow-sm min-h-[280px]">
-      <div className="bg-amber-100 p-4 rounded-2xl text-amber-600 shadow-inner">
+    <div className="bg-warning/5 border border-warning/20 rounded-lg p-8 flex flex-col md:flex-row items-center gap-6 shadow-sm min-h-[280px]">
+      <div className="bg-warning/10 p-4 rounded-lg text-warning shadow-inner">
         {isLoading ? (
           <Loader2 size={32} strokeWidth={2.5} className="animate-spin" />
         ) : (
@@ -60,18 +60,18 @@ export function NoSummaryCard({
         )}
       </div>
       <div className="flex-1 text-center md:text-left space-y-2">
-        <h4 className="text-lg font-black text-amber-900 leading-tight">
+        <h4 className="text-lg font-black text-foreground leading-tight">
           {isLoading
             ? `正在更新 ${year}-${String(month).padStart(2, '0')} 月度結算摘要`
             : `尚未取得 ${year}-${String(month).padStart(2, '0')} 月度結算摘要`}
         </h4>
-        <p className="text-sm text-amber-800/80 font-medium leading-relaxed max-w-xl">
+        <p className="text-sm text-foreground/80 font-medium leading-relaxed max-w-xl">
           {isLoading
             ? '系統正在讀取該月份的結算快照並整理報表摘要，完成後會自動更新畫面。'
             : '財務報表會引用該月份的資產與負債結算快照 (Snapshots)。若您剛完成結算，系統可能仍在同步中，請稍候片刻或點右上角重新整理。'}
         </p>
         {isLoading && hasUnsettledItems && (
-          <p className="text-xs text-amber-700/80 font-semibold pt-1">
+          <p className="text-xs text-warning font-semibold pt-1">
             正在更新資料，以下清單可能是上一個月份的結果。
           </p>
         )}
@@ -87,7 +87,7 @@ export function NoSummaryCard({
         <Button
           variant="default"
           onClick={onGoToSettlement}
-          className="bg-amber-600 hover:bg-amber-700 text-white border-0 shadow-lg shadow-amber-200 shrink-0 gap-2 h-12 px-6 rounded-xl font-bold"
+          className="bg-primary text-primary-foreground hover:bg-primary/90 border-0 shadow-lg shrink-0 gap-2 h-12 px-6 rounded-xl font-bold"
         >
           立刻前往結算 <ArrowRight size={18} />
         </Button>
@@ -118,7 +118,7 @@ function UnsettledItemsList({
       )}
       {debts.length > 0 && <UnsettledItemSection label="尚未結算的債務" items={debts} />}
       {debtWarnings.length > 0 && (
-        <div className="pt-3 mt-2 border-t border-amber-200/70">
+        <div className="pt-3 mt-2 border-t border-negative/20">
           <p className="text-xs font-bold uppercase tracking-widest text-negative/80">
             債務無還款警訊
           </p>
@@ -134,8 +134,8 @@ function UnsettledItemsList({
 function UnsettledItemSection({ label, items }: { label: string; items: string[] }) {
   return (
     <div className="pt-2">
-      <p className="text-xs font-bold uppercase tracking-widest text-amber-700/80">{label}</p>
-      <p className="text-sm text-amber-900 font-semibold leading-relaxed">{items.join('、')}</p>
+      <p className="text-xs font-bold uppercase tracking-widest text-warning">{label}</p>
+      <p className="text-sm text-foreground font-semibold leading-relaxed">{items.join('、')}</p>
     </div>
   );
 }
@@ -160,9 +160,14 @@ export function SummaryStatsGrid({ summary }: { summary: SummaryData }) {
       <StatCard
         label="本月淨損益"
         value={summary.netIncome}
-        icon={<TrendingUp className="text-indigo-500" size={16} />}
-        colorClass={summary.netIncome >= 0 ? 'text-indigo-600' : 'text-orange-600'}
-        bgClass="bg-indigo-50/50"
+        icon={
+          <TrendingUp
+            className={summary.netIncome >= 0 ? 'text-positive' : 'text-negative'}
+            size={16}
+          />
+        }
+        colorClass={summary.netIncome >= 0 ? 'text-positive' : 'text-negative'}
+        bgClass={summary.netIncome >= 0 ? 'bg-positive/5' : 'bg-negative/5'}
       />
       <StatCard
         label="結算後總資產"
@@ -196,11 +201,11 @@ export function ReportGenerationSection({
 }) {
   return (
     <div className="flex flex-col md:flex-row items-stretch gap-6">
-      <div className="flex-1 bg-card border border-border/60 rounded-2xl p-8 space-y-6 shadow-sm">
+      <div className="flex-1 bg-card border border-border/60 rounded-lg p-8 space-y-6 shadow-sm">
         <div className="flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="space-y-3 flex-1">
             <div className="flex items-center gap-2.5">
-              <div className="bg-indigo-100 p-2 rounded-lg text-indigo-600">
+              <div className="bg-accent p-2 rounded-lg text-foreground">
                 <FileText size={20} />
               </div>
               <h4 className="text-lg font-black text-foreground tracking-tight">產生正式財務三表</h4>
@@ -249,9 +254,9 @@ function ReportGenerationButton({
         onClick={onGenerateReports}
         disabled={!isEnabled}
         variant={reportsGenerated ? 'outline' : 'default'}
-        className={`h-14 px-8 rounded-2xl font-black text-base transition-all shadow-xl active:scale-95 ${
+        className={`h-14 px-8 rounded-lg font-black text-base transition-all shadow-xl active:scale-95 ${
           isPrimary
-            ? 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-100'
+            ? 'bg-primary text-primary-foreground hover:bg-primary/90'
             : 'border-border text-foreground hover:bg-muted shadow-none'
         }`}
       >
@@ -329,7 +334,7 @@ function StatCard({
 }) {
   return (
     <div
-      className={`${bgClass} border border-border rounded-2xl p-5 space-y-2 transition-all hover:shadow-md hover:translate-y-[-2px]`}
+      className={`${bgClass} border border-border rounded-lg p-5 space-y-2 transition-all hover:shadow-md hover:translate-y-[-2px]`}
     >
       <div className="flex items-center gap-2">
         {icon}

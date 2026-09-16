@@ -71,7 +71,7 @@ export const ExpenseTabContent: React.FC<ExpenseTabContentProps> = ({
                       </span>
                     )}
                     {vm.debtModeLabel && (
-                      <span className="text-xs px-1.5 py-0.5 rounded bg-amber-100 text-amber-700">
+                      <span className="text-xs px-1.5 py-0.5 rounded bg-warning/10 text-warning">
                         {vm.debtModeLabel}
                       </span>
                     )}

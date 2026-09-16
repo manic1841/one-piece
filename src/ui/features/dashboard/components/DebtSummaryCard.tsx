@@ -35,14 +35,14 @@ const DebtSummaryCard: React.FC<DebtSummaryCardProps> = ({ householdId }) => {
       <CardHeader className="pb-2 border-b border-border">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <CreditCard className="text-indigo-600" size={20} />
+            <CreditCard className="text-muted-foreground" size={20} />
             <CardTitle className="text-base font-bold text-foreground">債務摘要</CardTitle>
           </div>
           <Button
             variant="ghost"
             size="sm"
             asChild
-            className="text-muted-foreground hover:text-indigo-600 p-0 h-auto"
+            className="text-muted-foreground hover:text-foreground p-0 h-auto"
           >
             <Link to="/debt" className="flex items-center gap-1 text-xs font-medium">
               管理債務
@@ -56,7 +56,7 @@ const DebtSummaryCard: React.FC<DebtSummaryCardProps> = ({ householdId }) => {
           {/* Total Debt */}
           <div className="flex flex-col p-4 rounded-xl bg-muted border border-border transition-all hover:shadow-md group">
             <div className="flex items-center gap-2 mb-2">
-              <div className="p-1.5 rounded-lg bg-indigo-100 text-indigo-600">
+              <div className="p-1.5 rounded-lg bg-accent text-foreground">
                 <Wallet size={16} />
               </div>
               <span className="text-xs font-medium text-muted-foreground">總負債</span>

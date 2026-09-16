@@ -129,4 +129,26 @@ export default tseslint.config(
       ],
     },
   },
+  // FINANCE.OS Design Tokens: 鎖死語意色板，禁止 raw Tailwind palette class
+  {
+    files: ['src/**/*.{ts,tsx}'],
+    ignores: ['src/test/**', 'src/ui/components/StatusGlyph.tsx'],
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector:
+            "Literal[value=/\\b(?:bg|text|border|from|to|via|ring|shadow|fill|stroke|decoration|divide|outline|accent|caret)-(?:amber|indigo|purple|sky|emerald|rose|teal|cyan|violet|orange|pink|lime|yellow|blue|green|red|fuchsia|slate|gray|zinc|stone|neutral)-\\d/]",
+          message:
+            'Use semantic design tokens (primary, secondary, muted, accent, destructive, positive, negative, warning) instead of raw Tailwind palette classes.',
+        },
+        {
+          selector:
+            "TemplateElement[value.raw=/\\b(?:bg|text|border|from|to|via|ring|shadow|fill|stroke|decoration|divide|outline|accent|caret)-(?:amber|indigo|purple|sky|emerald|rose|teal|cyan|violet|orange|pink|lime|yellow|blue|green|red|fuchsia|slate|gray|zinc|stone|neutral)-\\d/]",
+          message:
+            'Use semantic design tokens (primary, secondary, muted, accent, destructive, positive, negative, warning) instead of raw Tailwind palette classes.',
+        },
+      ],
+    },
+  },
 );

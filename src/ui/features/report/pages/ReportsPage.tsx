@@ -57,7 +57,7 @@ const Reports: React.FC = () => {
   return (
     <div className="relative space-y-12 max-w-5xl mx-auto pb-20">
       {/* Background decoration */}
-      <div className="absolute top-[-10%] right-[-10%] w-[40%] h-[40%] bg-indigo-50/50 blur-[120px] rounded-full -z-10 animate-pulse" />
+      <div className="absolute top-[-10%] right-[-10%] w-[40%] h-[40%] bg-foreground/5 blur-[120px] rounded-full -z-10 animate-pulse" />
 
       <PageHeader
         title="財務報表中心"
@@ -85,7 +85,6 @@ const Reports: React.FC = () => {
           <ReportLinkCard
             title={REPORT_VIEW_TITLES.INCOME_STATEMENT}
             desc="查看特定期間內的收入與支出明細，掌握您的淨利潤。"
-            gradient="from-emerald-50 to-teal-50"
             border="border-positive/10"
             iconColor="text-positive"
             icon={<FileText size={32} />}
@@ -94,18 +93,16 @@ const Reports: React.FC = () => {
           <ReportLinkCard
             title={REPORT_VIEW_TITLES.BALANCE_SHEET}
             desc="資產、負債與股東權益之快照，衡量財務健康度。"
-            gradient="from-indigo-50 to-muted"
-            border="border-indigo-100/50"
-            iconColor="text-indigo-600"
+            border="border-border"
+            iconColor="text-foreground"
             icon={<Wallet size={32} />}
             onClick={() => setView('BALANCE_SHEET')}
           />
           <ReportLinkCard
             title={REPORT_VIEW_TITLES.CASH_FLOW}
             desc="追蹤現金流入與流出，分為營業、投資與融資活動。"
-            gradient="from-purple-50 to-fuchsia-50"
-            border="border-purple-100/50"
-            iconColor="text-purple-600"
+            border="border-border"
+            iconColor="text-foreground"
             icon={<TrendingUp size={32} />}
             onClick={() => setView('CASH_FLOW')}
           />
@@ -118,7 +115,6 @@ const Reports: React.FC = () => {
 function ReportLinkCard({
   title,
   desc,
-  gradient,
   border,
   iconColor,
   icon,
@@ -126,7 +122,6 @@ function ReportLinkCard({
 }: {
   title: string;
   desc: string;
-  gradient: string;
   border: string;
   iconColor: string;
   icon: React.ReactNode;
@@ -135,7 +130,7 @@ function ReportLinkCard({
   return (
     <Card
       onClick={onClick}
-      className={`group bg-gradient-to-br ${gradient} ${border} hover:shadow-xl hover:shadow-border/50 transition-all duration-300 cursor-pointer overflow-hidden rounded-3xl border-0 ring-1 ring-border`}
+      className={`group bg-card ${border} hover:shadow-xl hover:shadow-border/50 transition-all duration-300 cursor-pointer overflow-hidden rounded-lg border-0 ring-1 ring-border`}
     >
       <CardContent className="p-0">
         <div

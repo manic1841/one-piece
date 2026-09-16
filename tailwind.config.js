@@ -14,6 +14,8 @@ export default {
         foreground: 'hsl(var(--foreground))',
         positive: 'hsl(var(--positive))',
         negative: 'hsl(var(--negative))',
+        warning: 'hsl(var(--warning))',
+        elevated: 'hsl(var(--elevated))',
         card: {
           DEFAULT: 'hsl(var(--card))',
           foreground: 'hsl(var(--card-foreground))',
@@ -75,6 +77,10 @@ export default {
         display: '-0.02em',
         heading: '-0.01em',
         caption: '0.01em',
+      },
+      fontFamily: {
+        sans: ['"Inter Variable"', '"Noto Sans TC"', 'system-ui', 'sans-serif'],
+        mono: ['"JetBrains Mono Variable"', '"Noto Sans TC"', 'ui-monospace', 'monospace'],
       },
     },
   },

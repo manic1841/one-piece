@@ -25,7 +25,7 @@ export const ReportPreview: React.FC<ReportPreviewProps> = ({ data }) => {
   return (
     <div className="space-y-6">
       <Tabs defaultValue="income" className="w-full">
-        <TabsList className="grid grid-cols-3 mb-6 bg-muted p-1 rounded-2xl">
+        <TabsList className="grid grid-cols-3 mb-6 bg-muted p-1 rounded-lg">
           <TabsTrigger
             value="income"
             className="rounded-xl font-bold data-[state=active]:bg-card data-[state=active]:text-primary data-[state=active]:shadow-sm"
@@ -48,18 +48,18 @@ export const ReportPreview: React.FC<ReportPreviewProps> = ({ data }) => {
 
         <TabsContent value="income" className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
-            <div className="bg-positive/10 p-4 rounded-2xl border border-positive/20">
+            <div className="bg-positive/10 p-4 rounded-lg border border-positive/20">
               <p className="text-xs font-bold text-positive uppercase mb-1">總收入</p>
               <p className="text-xl font-black text-positive">
                 {incomeStatement.incomeTotalText}
               </p>
             </div>
-            <div className="bg-negative/10 p-4 rounded-2xl border border-negative/20">
+            <div className="bg-negative/10 p-4 rounded-lg border border-negative/20">
               <p className="text-xs font-bold text-negative uppercase mb-1">總支出</p>
               <p className="text-xl font-black text-negative">{incomeStatement.expenseTotalText}</p>
             </div>
           </div>
-          <Card className="rounded-2xl border-border shadow-sm overflow-hidden">
+          <Card className="rounded-lg border-border shadow-sm overflow-hidden">
             <CardHeader className="py-4 bg-muted/50">
               <CardTitle className="text-sm font-bold">
                 預計淨損益: {incomeStatement.netIncomeText}
@@ -86,24 +86,24 @@ export const ReportPreview: React.FC<ReportPreviewProps> = ({ data }) => {
 
         <TabsContent value="balance" className="space-y-4">
           <div className="grid grid-cols-3 gap-4">
-            <div className="bg-primary/10 p-4 rounded-2xl border border-primary/20">
+            <div className="bg-primary/10 p-4 rounded-lg border border-primary/20">
               <p className="text-xs font-bold text-primary mb-1">資產</p>
               <p className="text-lg font-black text-primary">{balanceSheet.assets.totalText}</p>
             </div>
-            <div className="bg-negative/10 p-4 rounded-2xl border border-negative/20">
+            <div className="bg-negative/10 p-4 rounded-lg border border-negative/20">
               <p className="text-xs font-bold text-negative mb-1">負債</p>
               <p className="text-lg font-black text-negative">
                 {balanceSheet.liabilities.totalText}
               </p>
             </div>
-            <div className="bg-primary p-4 rounded-2xl">
+            <div className="bg-primary p-4 rounded-lg">
               <p className="text-xs font-bold text-primary-foreground/70 mb-1">淨值</p>
               <p className="text-lg font-black text-primary-foreground">
                 {balanceSheet.equity.totalText}
               </p>
             </div>
           </div>
-          <Card className="rounded-2xl border-border shadow-sm overflow-hidden">
+          <Card className="rounded-lg border-border shadow-sm overflow-hidden">
             <CardContent className="p-0 max-h-[400px] overflow-y-auto">
               <div className="p-4 space-y-4">
                 <div>
@@ -169,16 +169,16 @@ export const ReportPreview: React.FC<ReportPreviewProps> = ({ data }) => {
 
         <TabsContent value="cashflow" className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
-            <div className="bg-muted p-4 rounded-2xl border border-border">
+            <div className="bg-muted p-4 rounded-lg border border-border">
               <p className="text-xs font-bold text-muted-foreground mb-1">期初餘額</p>
               <p className="text-lg font-black text-foreground">{cashFlow.beginningBalanceText}</p>
             </div>
-            <div className="bg-primary/10 p-4 rounded-2xl border border-primary/20">
+            <div className="bg-primary/10 p-4 rounded-lg border border-primary/20">
               <p className="text-xs font-bold text-primary mb-1">期末餘額</p>
               <p className="text-lg font-black text-primary">{cashFlow.endingBalanceText}</p>
             </div>
           </div>
-          <Card className="rounded-2xl border-border shadow-sm overflow-hidden">
+          <Card className="rounded-lg border-border shadow-sm overflow-hidden">
             <CardHeader className="py-4 bg-muted/50">
               <CardTitle className="text-sm font-bold text-primary">
                 現金變動淨額: {cashFlow.netCashChangeText}
@@ -208,9 +208,9 @@ export const ReportPreview: React.FC<ReportPreviewProps> = ({ data }) => {
         </TabsContent>
       </Tabs>
 
-      <div className="bg-amber-50 p-4 rounded-2xl border border-amber-100 flex gap-3 items-start">
-        <TrendingUp className="text-amber-600 shrink-0 mt-0.5" size={18} />
-        <p className="text-xs text-amber-800 font-medium leading-relaxed">
+      <div className="bg-warning/5 p-4 rounded-lg border border-warning/20 flex gap-3 items-start">
+        <TrendingUp className="text-warning shrink-0 mt-0.5" size={18} />
+        <p className="text-xs text-foreground/80 font-medium leading-relaxed">
           這是根據當前系統快照預算的數據。點選「正式發佈」後，這些數據將會被鎖定並儲存為正式報表。
         </p>
       </div>

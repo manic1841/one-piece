@@ -129,7 +129,7 @@ export const TransactionList: React.FC<TransactionListProps> = ({
               {transactions.length} 筆交易
             </span>
           </div>
-          <div className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden divide-y divide-border">
+          <div className="bg-card rounded-lg shadow-sm border border-border overflow-hidden divide-y divide-border">
             {transactions.map((item) => (
               <div key={item.id}>
                 <TransactionItem transaction={item} onEdit={onEdit} onDelete={onDelete} />

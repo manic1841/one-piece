@@ -45,17 +45,17 @@ const BalanceSheetPage: React.FC<BalanceSheetPageProps> = ({
     return (
       <div key={group.label} className="mb-6">
         <div className="flex justify-between items-center mb-2 px-2">
-          <h4 className="font-semibold text-foreground dark:text-slate-300">{group.label}</h4>
-          <span className="font-bold text-foreground dark:text-slate-100">{group.totalText}</span>
+          <h4 className="font-semibold text-foreground">{group.label}</h4>
+          <span className="font-bold text-foreground">{group.totalText}</span>
         </div>
-        <div className="bg-card dark:bg-slate-900 rounded-xl border border-border dark:border-slate-800 overflow-hidden">
+        <div className="bg-card rounded-xl border border-border overflow-hidden">
           {group.items.map((item) => (
             <div
               key={item.code}
-              className="flex justify-between items-center py-3 px-4 border-b last:border-0 border-border dark:border-slate-800 hover:bg-muted dark:hover:bg-slate-800/50 transition-colors"
+              className="flex justify-between items-center py-3 px-4 border-b last:border-0 border-border hover:bg-muted transition-colors"
             >
-              <span className="text-muted-foreground dark:text-slate-400">{item.label}</span>
-              <span className="font-mono text-foreground dark:text-slate-200">
+              <span className="text-muted-foreground">{item.label}</span>
+              <span className="font-mono text-foreground">
                 {item.amountText}
               </span>
             </div>
@@ -87,15 +87,15 @@ const BalanceSheetPage: React.FC<BalanceSheetPageProps> = ({
             <div key="adjustment" className="mb-6">
               <div className="flex justify-between items-center mb-2 px-2">
                 <div className="flex items-center gap-2">
-                  <h4 className="font-semibold text-foreground dark:text-slate-300">
+                  <h4 className="font-semibold text-foreground">
                     {equity.groups.adjustment.label}
                   </h4>
-                  {showWarning && <AlertTriangle className="w-4 h-4 text-amber-500" />}
+                  {showWarning && <AlertTriangle className="w-4 h-4 text-warning" />}
                 </div>
                 <span
                   className={cn(
                     'font-bold',
-                    Math.abs(adjustmentTotal) > 0 ? 'text-amber-600' : 'text-muted-foreground',
+                    Math.abs(adjustmentTotal) > 0 ? 'text-warning' : 'text-muted-foreground',
                   )}
                 >
                   {equity.groups.adjustment.totalText}
@@ -104,7 +104,7 @@ const BalanceSheetPage: React.FC<BalanceSheetPageProps> = ({
             </div>
           )}
 
-          <div className="flex justify-between items-center py-4 px-4 bg-primary text-white rounded-xl">
+          <div className="flex justify-between items-center py-4 px-4 bg-primary text-primary-foreground rounded-xl">
             <span className="font-bold">期末權益 (Total Equity)</span>
             <span className="text-xl font-bold">{equity.totalText}</span>
           </div>
@@ -113,9 +113,9 @@ const BalanceSheetPage: React.FC<BalanceSheetPageProps> = ({
         {showWarning && (
           <Alert
             variant="destructive"
-            className="bg-amber-50 border-amber-200 text-amber-800 dark:bg-amber-950/20 dark:border-amber-900 dark:text-amber-400"
+            className="bg-warning/5 border-warning/20 text-warning"
           >
-            <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-500" />
+            <AlertTriangle className="h-4 w-4 text-warning" />
             <AlertTitle>注意</AlertTitle>
             <AlertDescription>
               調整項目偏大，請確認是否有漏記交易，或帳戶結算金額是否正確。
@@ -148,30 +148,30 @@ const BalanceSheetPage: React.FC<BalanceSheetPageProps> = ({
         <div className="space-y-8">
           {/* Summary Cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Card className="bg-primary/5 dark:bg-blue-950/20 border-primary/20 dark:border-blue-900">
+            <Card className="bg-primary/5 border-primary/20">
               <CardContent className="pt-6">
-                <p className="text-sm font-medium text-primary dark:text-blue-400 mb-1">
+                <p className="text-sm font-medium text-primary mb-1">
                   資產合計
                 </p>
-                <p className="text-2xl font-bold text-primary dark:text-blue-300">
+                <p className="text-2xl font-bold text-primary">
                   {data.assets.totalText}
                 </p>
               </CardContent>
             </Card>
-            <Card className="bg-negative/5 dark:bg-rose-950/20 border-negative/20 dark:border-rose-900">
+            <Card className="bg-negative/5 border-negative/20">
               <CardContent className="pt-6">
-                <p className="text-sm font-medium text-negative dark:text-rose-400 mb-1">
+                <p className="text-sm font-medium text-negative mb-1">
                   負債合計
                 </p>
-                <p className="text-2xl font-bold text-negative dark:text-rose-300">
+                <p className="text-2xl font-bold text-negative">
                   {data.liabilities.totalText}
                 </p>
               </CardContent>
             </Card>
-            <Card className="bg-primary text-white">
+            <Card className="bg-primary">
               <CardContent className="pt-6">
                 <p className="text-sm font-medium text-muted-foreground mb-1">淨資產 (Equity)</p>
-                <p className="text-2xl font-bold text-white">{data.equity.totalText}</p>
+                <p className="text-2xl font-bold text-primary-foreground">{data.equity.totalText}</p>
               </CardContent>
             </Card>
           </div>

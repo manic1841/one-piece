@@ -139,9 +139,7 @@ export const ProjectFormFields: React.FC<ProjectFormFieldsProps> = ({
                     onClick={() => onChange({ color })}
                     title={color}
                   >
-                    {formData.color === color && (
-                      <span className="text-white drop-shadow-md">✓</span>
-                    )}
+                    {formData.color === color && <span className="drop-shadow-md">✓</span>}
                   </button>
                 ))}
               </div>

@@ -156,7 +156,7 @@ const PortfolioList: React.FC<PortfolioListProps> = ({ householdId }) => {
         }
       />
 
-      <Card className="border-positive/20 bg-gradient-to-br from-positive/10 via-white to-teal-50">
+      <Card className="border-positive/20 bg-positive/5">
         <CardHeader className="pb-3">
           <CardTitle className="text-lg">Overview</CardTitle>
           <CardDescription>

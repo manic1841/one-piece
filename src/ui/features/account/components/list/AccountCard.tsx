@@ -118,7 +118,7 @@ export const AccountCard: React.FC<AccountCardProps> = ({
               className={cn(
                 'h-8 px-2 text-xs font-medium',
                 isActive
-                  ? 'text-amber-700 hover:text-amber-800'
+                  ? 'text-warning hover:text-warning/80'
                   : 'text-positive hover:text-positive',
               )}
               onClick={() => onToggleActive(account)}

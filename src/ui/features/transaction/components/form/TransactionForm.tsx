@@ -236,14 +236,14 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
           </Tabs>
 
           {preview ? (
-            <div className="rounded-2xl border bg-primary px-4 py-3 text-white">
+            <div className="rounded-lg border bg-primary px-4 py-3 text-primary-foreground">
               <div className="text-xs uppercase tracking-[0.2em] text-primary-foreground">Preview</div>
               <div className="mt-2 flex flex-wrap items-center gap-2 text-sm">
-                <Badge className="border-none bg-white/15 text-white">
+                <Badge className="border-none bg-foreground/15 text-primary-foreground">
                   {getIntentTypeLabel(preview.intentType)}
                 </Badge>
                 {previewDetails.map((detail) => (
-                  <span key={detail} className="rounded-full border border-white/10 px-3 py-1">
+                  <span key={detail} className="rounded-full border border-foreground/10 px-3 py-1">
                     {detail}
                   </span>
                 ))}

@@ -60,11 +60,11 @@ const CashFlowStatement: React.FC<CashFlowStatementProps> = ({
     return (
       <div
         key={id}
-        className="bg-card dark:bg-slate-900 rounded-xl border border-border dark:border-slate-800 overflow-hidden mb-4"
+        className="bg-card rounded-xl border border-border overflow-hidden mb-4"
       >
         <button
           onClick={() => toggleSection(id)}
-          className="w-full flex items-center justify-between p-4 hover:bg-muted dark:hover:bg-slate-800/50 transition-colors"
+          className="w-full flex items-center justify-between p-4 hover:bg-muted transition-colors"
         >
           <div className="flex items-center gap-3">
             <div
@@ -72,9 +72,7 @@ const CashFlowStatement: React.FC<CashFlowStatementProps> = ({
                 'p-2 rounded-lg',
                 id === 'operating'
                   ? 'bg-primary/15 text-primary'
-                  : id === 'investing'
-                    ? 'bg-purple-100 text-purple-600'
-                    : 'bg-amber-100 text-amber-600',
+                  : 'bg-accent text-foreground',
               )}
             >
               {id === 'operating' ? (
@@ -85,15 +83,15 @@ const CashFlowStatement: React.FC<CashFlowStatementProps> = ({
                 <TrendingDown size={18} />
               )}
             </div>
-            <h3 className="font-bold text-foreground dark:text-slate-200">{group.label}</h3>
+            <h3 className="font-bold text-foreground">{group.label}</h3>
           </div>
           <div className="flex items-center gap-4">
             <span
               className={cn(
                 'font-mono font-bold text-lg',
                 isPositive
-                  ? 'text-positive dark:text-emerald-400'
-                  : 'text-negative dark:text-rose-400',
+                  ? 'text-positive'
+                  : 'text-negative',
               )}
             >
               {group.totalText}
@@ -103,7 +101,7 @@ const CashFlowStatement: React.FC<CashFlowStatementProps> = ({
         </button>
 
         {isExpanded && (
-          <div className="px-4 pb-4 space-y-4 border-t border-border dark:border-slate-800 pt-4">
+          <div className="px-4 pb-4 space-y-4 border-t border-border pt-4">
             {/* Inflows */}
             {group.inflowItems.length > 0 && (
               <div>
@@ -116,8 +114,8 @@ const CashFlowStatement: React.FC<CashFlowStatementProps> = ({
                       key={`${item.code}-${idx}`}
                       className="flex justify-between items-center text-sm py-1"
                     >
-                      <span className="text-muted-foreground dark:text-slate-400">{item.label}</span>
-                      <span className="font-mono text-positive dark:text-emerald-400">
+                      <span className="text-muted-foreground">{item.label}</span>
+                      <span className="font-mono text-positive">
                         +{item.amountText}
                       </span>
                     </div>
@@ -138,8 +136,8 @@ const CashFlowStatement: React.FC<CashFlowStatementProps> = ({
                       key={`${item.code}-${idx}`}
                       className="flex justify-between items-center text-sm py-1"
                     >
-                      <span className="text-muted-foreground dark:text-slate-400">{item.label}</span>
-                      <span className="font-mono text-negative dark:text-rose-400">
+                      <span className="text-muted-foreground">{item.label}</span>
+                      <span className="font-mono text-negative">
                         -{item.amountText}
                       </span>
                     </div>
@@ -148,14 +146,14 @@ const CashFlowStatement: React.FC<CashFlowStatementProps> = ({
               </div>
             )}
 
-            <div className="pt-2 border-t border-dashed border-border dark:border-slate-700 flex justify-between items-center">
-              <span className="font-semibold text-foreground dark:text-slate-300">活動淨額</span>
+            <div className="pt-2 border-t border-dashed border-border flex justify-between items-center">
+              <span className="font-semibold text-foreground">活動淨額</span>
               <span
                 className={cn(
                   'font-mono font-bold',
                   isPositive
-                    ? 'text-positive dark:text-emerald-400'
-                    : 'text-negative dark:text-rose-400',
+                    ? 'text-positive'
+                    : 'text-negative',
                 )}
               >
                 {group.totalText}
@@ -189,10 +187,10 @@ const CashFlowStatement: React.FC<CashFlowStatementProps> = ({
         <div className="space-y-6">
           {/* Main Highlights */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <Card className="bg-muted dark:bg-slate-900/50">
+            <Card className="bg-muted">
               <CardContent className="pt-6 px-4">
                 <p className="text-sm font-medium text-muted-foreground mb-1">期初餘額</p>
-                <p className="text-lg font-bold text-foreground dark:text-slate-300">
+                <p className="text-lg font-bold text-foreground">
                   {data.beginningBalanceText}
                 </p>
               </CardContent>
@@ -201,8 +199,8 @@ const CashFlowStatement: React.FC<CashFlowStatementProps> = ({
               className={cn(
                 'border-2',
                 data.netCashChange >= 0
-                  ? 'bg-positive/5 border-positive/20 dark:bg-emerald-950/10 dark:border-emerald-900'
-                  : 'bg-negative/5 border-negative/20 dark:bg-rose-950/10 dark:border-rose-900',
+                  ? 'bg-positive/5 border-positive/20'
+                  : 'bg-negative/5 border-negative/20',
               )}
             >
               <CardContent className="pt-6 px-4">
@@ -211,8 +209,8 @@ const CashFlowStatement: React.FC<CashFlowStatementProps> = ({
                   className={cn(
                     'text-xl font-bold',
                     data.netCashChange >= 0
-                      ? 'text-positive dark:text-emerald-400'
-                      : 'text-negative dark:text-rose-400',
+                      ? 'text-positive'
+                      : 'text-negative',
                   )}
                 >
                   {data.netCashChange > 0 ? '+' : ''}
@@ -220,18 +218,20 @@ const CashFlowStatement: React.FC<CashFlowStatementProps> = ({
                 </p>
               </CardContent>
             </Card>
-            <Card className="bg-muted dark:bg-slate-800 border-border dark:border-slate-700">
+            <Card className="bg-muted border-border">
               <CardContent className="pt-6 px-4">
                 <p className="text-sm font-medium text-muted-foreground mb-1">期末餘額 (計算)</p>
-                <p className="text-lg font-bold text-foreground dark:text-slate-300">
+                <p className="text-lg font-bold text-foreground">
                   {data.endingBalanceText}
                 </p>
               </CardContent>
             </Card>
-            <Card className="bg-primary border-border">
+            <Card className="bg-muted border-border">
               <CardContent className="pt-6 px-4">
                 <p className="text-sm font-medium text-muted-foreground mb-1">帳戶實際餘額</p>
-                <p className="text-lg font-bold text-white">{data.actualBalanceText}</p>
+                <p className="text-lg font-bold text-primary-foreground">
+                  {data.actualBalanceText}
+                </p>
               </CardContent>
             </Card>
           </div>
@@ -247,9 +247,9 @@ const CashFlowStatement: React.FC<CashFlowStatementProps> = ({
           {data.adjustment !== 0 && (
             <Alert
               variant="destructive"
-              className="bg-amber-50 border-amber-200 text-amber-800 dark:bg-amber-950/20 dark:border-amber-900 dark:text-amber-400"
+              className="bg-warning/5 border-warning/20 text-warning"
             >
-              <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-500" />
+              <AlertTriangle className="h-4 w-4 text-warning" />
               <AlertTitle>對帳差異提醒</AlertTitle>
               <AlertDescription>
                 期末現金（計算值：{data.endingBalanceText}）與帳戶實際餘額（

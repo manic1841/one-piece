@@ -38,7 +38,7 @@ export function CategoryPanel({
   onChange,
 }: CategoryPanelProps) {
   return (
-    <div className="space-y-5 rounded-2xl border border-border bg-card p-5">
+    <div className="space-y-5 rounded-lg border border-border bg-card p-5">
       <p className="text-sm font-medium text-foreground">{title}</p>
       <AmountDateFields
         amountId={`${title}-amount`}

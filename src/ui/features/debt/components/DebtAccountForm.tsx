@@ -217,7 +217,7 @@ export function DebtAccountForm({ vm }: DebtAccountFormProps) {
           {/* 有寬限期的試算結果 */}
           {calcResult.graceMonths !== undefined && calcResult.graceMonths > 0 && (
             <div className="space-y-2">
-              <div className="text-xs text-amber-700 bg-amber-50 rounded px-2 py-1">
+              <div className="text-xs text-warning bg-warning/10 rounded px-2 py-1">
                 ⚠️ 寬限期設定
               </div>
               <div className="flex items-center justify-between">
@@ -269,7 +269,7 @@ export function DebtAccountForm({ vm }: DebtAccountFormProps) {
         <Label htmlFor="df-monthly">
           {calcResult?.graceMonths ? '正式還款期間的每月應還金額' : '每月應還金額'} *
           {isManualPayment && (
-            <span className="ml-2 text-xs bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded">
+            <span className="ml-2 text-xs bg-warning/10 text-warning px-1.5 py-0.5 rounded">
               手動
             </span>
           )}

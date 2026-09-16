@@ -23,8 +23,8 @@ describe('dashboardDisplay.vm', () => {
     expect(vm.ratioText).toBe('1.20x');
     expect(vm.totalExposureText).toContain('123,456');
     expect(vm.totalNetValueText).toContain('100,000');
-    expect(vm.statusColorClass).toBe('text-amber-600');
-    expect(vm.progressColorClass).toBe('bg-amber-500');
+    expect(vm.statusColorClass).toBe('text-warning');
+    expect(vm.progressColorClass).toBe('bg-warning');
   });
 
   it('maps debt summary to card vm', () => {
