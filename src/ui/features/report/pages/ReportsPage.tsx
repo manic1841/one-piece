@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 
 import { useAuth } from '@/infra/contexts/useAuth';
 import { Card, CardContent } from '@/ui/components/ui/card';
+import { PageHeader } from '@/ui/components/PageHeader';
 import { REPORT_VIEW_TITLES } from '@/ui/constants/report/reportViewLabels';
 
 import { ReportSettlement } from '../components/ReportSettlement';
@@ -58,19 +59,15 @@ const Reports: React.FC = () => {
       {/* Background decoration */}
       <div className="absolute top-[-10%] right-[-10%] w-[40%] h-[40%] bg-indigo-50/50 blur-[120px] rounded-full -z-10 animate-pulse" />
 
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 px-2">
-        <div className="space-y-1">
-          <h1 className="text-4xl font-black text-slate-900 tracking-tight flex items-center gap-3">
-            財務報表中心
-            <span className="text-xs bg-indigo-100 text-indigo-700 px-2.5 py-1 rounded-full font-black uppercase tracking-widest">
-              Standard
-            </span>
-          </h1>
-          <p className="text-slate-500 font-medium text-lg">
-            即時追蹤損益狀況，深度分析資產分佈與現金流。
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        title="財務報表中心"
+        description="即時追蹤損益狀況，深度分析資產分佈與現金流。"
+        badge={
+          <span className="text-xs bg-primary/10 text-primary px-2.5 py-1 rounded-full font-bold uppercase tracking-caption">
+            Standard
+          </span>
+        }
+      />
 
       <ReportSettlement
         householdId={householdId}
@@ -80,8 +77,8 @@ const Reports: React.FC = () => {
 
       <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-1000 delay-300">
         <div className="flex items-center gap-4 px-2">
-          <h2 className="text-2xl font-black text-slate-900 tracking-tight">報表檢視庫</h2>
-          <div className="h-0.5 flex-1 bg-slate-100/80 mt-1" />
+          <h2 className="text-2xl font-black text-foreground tracking-tight">報表檢視庫</h2>
+          <div className="h-0.5 flex-1 bg-muted/80 mt-1" />
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -89,15 +86,15 @@ const Reports: React.FC = () => {
             title={REPORT_VIEW_TITLES.INCOME_STATEMENT}
             desc="查看特定期間內的收入與支出明細，掌握您的淨利潤。"
             gradient="from-emerald-50 to-teal-50"
-            border="border-emerald-100/50"
-            iconColor="text-emerald-600"
+            border="border-positive/10"
+            iconColor="text-positive"
             icon={<FileText size={32} />}
             onClick={() => setView('INCOME_STATEMENT')}
           />
           <ReportLinkCard
             title={REPORT_VIEW_TITLES.BALANCE_SHEET}
             desc="資產、負債與股東權益之快照，衡量財務健康度。"
-            gradient="from-indigo-50 to-blue-50"
+            gradient="from-indigo-50 to-muted"
             border="border-indigo-100/50"
             iconColor="text-indigo-600"
             icon={<Wallet size={32} />}
@@ -138,20 +135,20 @@ function ReportLinkCard({
   return (
     <Card
       onClick={onClick}
-      className={`group bg-gradient-to-br ${gradient} ${border} hover:shadow-xl hover:shadow-slate-200/50 transition-all duration-300 cursor-pointer overflow-hidden rounded-3xl border-0 ring-1 ring-slate-100`}
+      className={`group bg-gradient-to-br ${gradient} ${border} hover:shadow-xl hover:shadow-border/50 transition-all duration-300 cursor-pointer overflow-hidden rounded-3xl border-0 ring-1 ring-border`}
     >
       <CardContent className="p-0">
         <div
-          className={`p-8 flex justify-between items-center ${iconColor} bg-white/40 backdrop-blur-sm`}
+          className={`p-8 flex justify-between items-center ${iconColor} bg-card/40 backdrop-blur-sm`}
         >
           {icon}
-          <div className="bg-white p-2 rounded-full shadow-sm group-hover:translate-x-1 transition-transform">
+          <div className="bg-card p-2 rounded-full shadow-sm group-hover:translate-x-1 transition-transform">
             <ChevronRight size={20} />
           </div>
         </div>
         <div className="p-8 space-y-3">
-          <h3 className="text-xl font-black text-slate-900 tracking-tight">{title}</h3>
-          <p className="text-sm text-slate-500 font-medium leading-relaxed">{desc}</p>
+          <h3 className="text-xl font-black text-foreground tracking-tight">{title}</h3>
+          <p className="text-sm text-muted-foreground font-medium leading-relaxed">{desc}</p>
           <div className="pt-4 flex items-center gap-2 group-hover:gap-3 transition-all">
             <span className={`text-xs font-black uppercase tracking-widest ${iconColor}`}>
               探索細節

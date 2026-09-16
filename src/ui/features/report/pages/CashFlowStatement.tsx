@@ -46,7 +46,7 @@ const CashFlowStatement: React.FC<CashFlowStatementProps> = ({
 
   if (error) {
     const errorMsg = error instanceof Error ? error.message : String(error);
-    return <div className="p-8 text-center text-red-500">Error loading report: {errorMsg}</div>;
+    return <div className="p-8 text-center text-destructive">Error loading report: {errorMsg}</div>;
   }
 
   const toggleSection = (section: string) => {
@@ -60,18 +60,18 @@ const CashFlowStatement: React.FC<CashFlowStatementProps> = ({
     return (
       <div
         key={id}
-        className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden mb-4"
+        className="bg-card dark:bg-slate-900 rounded-xl border border-border dark:border-slate-800 overflow-hidden mb-4"
       >
         <button
           onClick={() => toggleSection(id)}
-          className="w-full flex items-center justify-between p-4 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
+          className="w-full flex items-center justify-between p-4 hover:bg-muted dark:hover:bg-slate-800/50 transition-colors"
         >
           <div className="flex items-center gap-3">
             <div
               className={cn(
                 'p-2 rounded-lg',
                 id === 'operating'
-                  ? 'bg-blue-100 text-blue-600'
+                  ? 'bg-primary/15 text-primary'
                   : id === 'investing'
                     ? 'bg-purple-100 text-purple-600'
                     : 'bg-amber-100 text-amber-600',
@@ -85,15 +85,15 @@ const CashFlowStatement: React.FC<CashFlowStatementProps> = ({
                 <TrendingDown size={18} />
               )}
             </div>
-            <h3 className="font-bold text-slate-800 dark:text-slate-200">{group.label}</h3>
+            <h3 className="font-bold text-foreground dark:text-slate-200">{group.label}</h3>
           </div>
           <div className="flex items-center gap-4">
             <span
               className={cn(
                 'font-mono font-bold text-lg',
                 isPositive
-                  ? 'text-emerald-600 dark:text-emerald-400'
-                  : 'text-rose-600 dark:text-rose-400',
+                  ? 'text-positive dark:text-emerald-400'
+                  : 'text-negative dark:text-rose-400',
               )}
             >
               {group.totalText}
@@ -103,11 +103,11 @@ const CashFlowStatement: React.FC<CashFlowStatementProps> = ({
         </button>
 
         {isExpanded && (
-          <div className="px-4 pb-4 space-y-4 border-t border-slate-100 dark:border-slate-800 pt-4">
+          <div className="px-4 pb-4 space-y-4 border-t border-border dark:border-slate-800 pt-4">
             {/* Inflows */}
             {group.inflowItems.length > 0 && (
               <div>
-                <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
                   流入 (Inflow)
                 </p>
                 <div className="space-y-2">
@@ -116,8 +116,8 @@ const CashFlowStatement: React.FC<CashFlowStatementProps> = ({
                       key={`${item.code}-${idx}`}
                       className="flex justify-between items-center text-sm py-1"
                     >
-                      <span className="text-slate-600 dark:text-slate-400">{item.label}</span>
-                      <span className="font-mono text-emerald-600 dark:text-emerald-400">
+                      <span className="text-muted-foreground dark:text-slate-400">{item.label}</span>
+                      <span className="font-mono text-positive dark:text-emerald-400">
                         +{item.amountText}
                       </span>
                     </div>
@@ -129,7 +129,7 @@ const CashFlowStatement: React.FC<CashFlowStatementProps> = ({
             {/* Outflows */}
             {group.outflowItems.length > 0 && (
               <div>
-                <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
                   流出 (Outflow)
                 </p>
                 <div className="space-y-2">
@@ -138,8 +138,8 @@ const CashFlowStatement: React.FC<CashFlowStatementProps> = ({
                       key={`${item.code}-${idx}`}
                       className="flex justify-between items-center text-sm py-1"
                     >
-                      <span className="text-slate-600 dark:text-slate-400">{item.label}</span>
-                      <span className="font-mono text-rose-600 dark:text-rose-400">
+                      <span className="text-muted-foreground dark:text-slate-400">{item.label}</span>
+                      <span className="font-mono text-negative dark:text-rose-400">
                         -{item.amountText}
                       </span>
                     </div>
@@ -148,14 +148,14 @@ const CashFlowStatement: React.FC<CashFlowStatementProps> = ({
               </div>
             )}
 
-            <div className="pt-2 border-t border-dashed border-slate-200 dark:border-slate-700 flex justify-between items-center">
-              <span className="font-semibold text-slate-700 dark:text-slate-300">活動淨額</span>
+            <div className="pt-2 border-t border-dashed border-border dark:border-slate-700 flex justify-between items-center">
+              <span className="font-semibold text-foreground dark:text-slate-300">活動淨額</span>
               <span
                 className={cn(
                   'font-mono font-bold',
                   isPositive
-                    ? 'text-emerald-600 dark:text-emerald-400'
-                    : 'text-rose-600 dark:text-rose-400',
+                    ? 'text-positive dark:text-emerald-400'
+                    : 'text-negative dark:text-rose-400',
                 )}
               >
                 {group.totalText}
@@ -189,10 +189,10 @@ const CashFlowStatement: React.FC<CashFlowStatementProps> = ({
         <div className="space-y-6">
           {/* Main Highlights */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <Card className="bg-slate-50 dark:bg-slate-900/50">
+            <Card className="bg-muted dark:bg-slate-900/50">
               <CardContent className="pt-6 px-4">
-                <p className="text-sm font-medium text-slate-500 mb-1">期初餘額</p>
-                <p className="text-lg font-bold text-slate-700 dark:text-slate-300">
+                <p className="text-sm font-medium text-muted-foreground mb-1">期初餘額</p>
+                <p className="text-lg font-bold text-foreground dark:text-slate-300">
                   {data.beginningBalanceText}
                 </p>
               </CardContent>
@@ -201,18 +201,18 @@ const CashFlowStatement: React.FC<CashFlowStatementProps> = ({
               className={cn(
                 'border-2',
                 data.netCashChange >= 0
-                  ? 'bg-emerald-50/50 border-emerald-100 dark:bg-emerald-950/10 dark:border-emerald-900'
-                  : 'bg-rose-50/50 border-rose-100 dark:bg-rose-950/10 dark:border-rose-900',
+                  ? 'bg-positive/5 border-positive/20 dark:bg-emerald-950/10 dark:border-emerald-900'
+                  : 'bg-negative/5 border-negative/20 dark:bg-rose-950/10 dark:border-rose-900',
               )}
             >
               <CardContent className="pt-6 px-4">
-                <p className="text-sm font-medium text-slate-500 mb-1">淨現金變動</p>
+                <p className="text-sm font-medium text-muted-foreground mb-1">淨現金變動</p>
                 <p
                   className={cn(
                     'text-xl font-bold',
                     data.netCashChange >= 0
-                      ? 'text-emerald-600 dark:text-emerald-400'
-                      : 'text-rose-600 dark:text-rose-400',
+                      ? 'text-positive dark:text-emerald-400'
+                      : 'text-negative dark:text-rose-400',
                   )}
                 >
                   {data.netCashChange > 0 ? '+' : ''}
@@ -220,17 +220,17 @@ const CashFlowStatement: React.FC<CashFlowStatementProps> = ({
                 </p>
               </CardContent>
             </Card>
-            <Card className="bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700">
+            <Card className="bg-muted dark:bg-slate-800 border-border dark:border-slate-700">
               <CardContent className="pt-6 px-4">
-                <p className="text-sm font-medium text-slate-500 mb-1">期末餘額 (計算)</p>
-                <p className="text-lg font-bold text-slate-700 dark:text-slate-300">
+                <p className="text-sm font-medium text-muted-foreground mb-1">期末餘額 (計算)</p>
+                <p className="text-lg font-bold text-foreground dark:text-slate-300">
                   {data.endingBalanceText}
                 </p>
               </CardContent>
             </Card>
-            <Card className="bg-slate-900 border-slate-800">
+            <Card className="bg-primary border-border">
               <CardContent className="pt-6 px-4">
-                <p className="text-sm font-medium text-slate-400 mb-1">帳戶實際餘額</p>
+                <p className="text-sm font-medium text-muted-foreground mb-1">帳戶實際餘額</p>
                 <p className="text-lg font-bold text-white">{data.actualBalanceText}</p>
               </CardContent>
             </Card>
@@ -260,7 +260,7 @@ const CashFlowStatement: React.FC<CashFlowStatementProps> = ({
             </Alert>
           )}
 
-          <p className="text-xs text-slate-400 text-center italic">
+          <p className="text-xs text-muted-foreground text-center italic">
             * 帳戶實際餘額取自各帳戶該月份之結算金額。
           </p>
         </div>

@@ -22,7 +22,7 @@ const UnsettledStatsCardUI: React.FC<UnsettledStatsCardUIProps> = ({ stats, load
   }
 
   return (
-    <Card className="overflow-hidden border-none shadow-md bg-gradient-to-br from-white to-slate-50">
+    <Card className="overflow-hidden border-none shadow-md bg-gradient-to-br from-card to-muted">
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -43,9 +43,9 @@ const UnsettledStatsCardUI: React.FC<UnsettledStatsCardUIProps> = ({ stats, load
       <CardContent className="pt-4">
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {/* Accounts */}
-          <div className="flex flex-col gap-2 p-3 rounded-xl bg-white border border-slate-100 shadow-sm">
+          <div className="flex flex-col gap-2 p-3 rounded-xl bg-card border border-border shadow-sm">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 text-slate-500">
+              <div className="flex items-center gap-2 text-muted-foreground">
                 <Wallet size={16} />
                 <span className="text-xs font-medium uppercase tracking-wider">帳戶</span>
               </div>
@@ -53,19 +53,19 @@ const UnsettledStatsCardUI: React.FC<UnsettledStatsCardUIProps> = ({ stats, load
                 {stats.accounts.countText}
               </span>
             </div>
-            <div className="h-1 bg-slate-100 rounded-full overflow-hidden">
+            <div className="h-1 bg-muted rounded-full overflow-hidden">
               <div
                 className="h-full bg-amber-500 transition-all duration-500"
                 style={{ width: `${stats.accounts.progressWidth}%` }}
               />
             </div>
-            <p className="text-[10px] text-slate-400">尚未輸入餘額</p>
+            <p className="text-[10px] text-muted-foreground">尚未輸入餘額</p>
           </div>
 
           {/* Portfolios */}
-          <div className="flex flex-col gap-2 p-3 rounded-xl bg-white border border-slate-100 shadow-sm">
+          <div className="flex flex-col gap-2 p-3 rounded-xl bg-card border border-border shadow-sm">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 text-slate-500">
+              <div className="flex items-center gap-2 text-muted-foreground">
                 <Briefcase size={16} />
                 <span className="text-xs font-medium uppercase tracking-wider">投資組合</span>
               </div>
@@ -73,19 +73,19 @@ const UnsettledStatsCardUI: React.FC<UnsettledStatsCardUIProps> = ({ stats, load
                 {stats.portfolios.countText}
               </span>
             </div>
-            <div className="h-1 bg-slate-100 rounded-full overflow-hidden">
+            <div className="h-1 bg-muted rounded-full overflow-hidden">
               <div
                 className="h-full bg-amber-500 transition-all duration-500"
                 style={{ width: `${stats.portfolios.progressWidth}%` }}
               />
             </div>
-            <p className="text-[10px] text-slate-400">尚未建立投資組合快照</p>
+            <p className="text-[10px] text-muted-foreground">尚未建立投資組合快照</p>
           </div>
 
           {/* Projects */}
-          <div className="flex flex-col gap-2 p-3 rounded-xl bg-white border border-slate-100 shadow-sm">
+          <div className="flex flex-col gap-2 p-3 rounded-xl bg-card border border-border shadow-sm">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 text-slate-500">
+              <div className="flex items-center gap-2 text-muted-foreground">
                 <AlertCircle size={16} />
                 <span className="text-xs font-medium uppercase tracking-wider">專案</span>
               </div>
@@ -93,13 +93,13 @@ const UnsettledStatsCardUI: React.FC<UnsettledStatsCardUIProps> = ({ stats, load
                 {stats.projects.countText}
               </span>
             </div>
-            <div className="h-1 bg-slate-100 rounded-full overflow-hidden">
+            <div className="h-1 bg-muted rounded-full overflow-hidden">
               <div
                 className="h-full bg-amber-500 transition-all duration-500"
                 style={{ width: `${stats.projects.progressWidth}%` }}
               />
             </div>
-            <p className="text-[10px] text-slate-400">尚未建立專案結算</p>
+            <p className="text-[10px] text-muted-foreground">尚未建立專案結算</p>
           </div>
         </div>
 

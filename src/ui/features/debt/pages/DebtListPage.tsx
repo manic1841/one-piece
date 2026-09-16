@@ -10,6 +10,7 @@ import { Button } from '@/ui/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/ui/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/ui/components/ui/dialog';
 import { Progress } from '@/ui/components/ui/progress';
+import { PageHeader } from '@/ui/components/PageHeader';
 import { DebtAccountForm } from '@/ui/features/debt/components/DebtAccountForm';
 import { DebtPaymentHistory } from '@/ui/features/debt/components/DebtPaymentHistory';
 import { DebtSettlement } from '@/ui/features/debt/components/DebtSettlement';
@@ -47,7 +48,9 @@ function SummaryCards({
           <p className="text-sm text-muted-foreground">總負債金額</p>
         </CardHeader>
         <CardContent>
-          <p className="text-2xl font-bold text-destructive">${formatCurrency(totalDebt)}</p>
+          <p className="text-2xl font-bold text-destructive tabular-nums">
+            ${formatCurrency(totalDebt)}
+          </p>
         </CardContent>
       </Card>
       <Card>
@@ -55,7 +58,7 @@ function SummaryCards({
           <p className="text-sm text-muted-foreground">每月固定還款</p>
         </CardHeader>
         <CardContent>
-          <p className="text-2xl font-bold">${formatCurrency(totalMonthlyPayment)}</p>
+          <p className="text-2xl font-bold tabular-nums">${formatCurrency(totalMonthlyPayment)}</p>
         </CardContent>
       </Card>
     </div>
@@ -63,8 +66,8 @@ function SummaryCards({
 }
 
 const TYPE_BADGE_CLASS: Record<string, string> = {
-  mortgage: 'bg-blue-100 text-blue-700',
-  car_loan: 'bg-green-100 text-green-700',
+  mortgage: 'bg-primary/15 text-primary',
+  car_loan: 'bg-positive/15 text-positive',
   personal_loan: 'bg-purple-100 text-purple-700',
 };
 
@@ -86,26 +89,26 @@ function DebtCard({
   const isSettled = !account.isActive;
 
   return (
-    <Card className={isSettled ? 'bg-slate-50/60 border-slate-200' : ''}>
-      <CardContent className={`p-5 space-y-4 ${isSettled ? 'text-slate-600' : ''}`}>
+    <Card className={isSettled ? 'bg-muted/60 border-border' : ''}>
+      <CardContent className={`p-5 space-y-4 ${isSettled ? 'text-muted-foreground' : ''}`}>
         {/* Header row */}
         <div className="flex items-start justify-between gap-2">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className={`font-semibold text-base ${isSettled ? 'text-slate-500' : ''}`}>
+            <span className={`font-semibold text-base ${isSettled ? 'text-muted-foreground' : ''}`}>
               {account.name}
             </span>
             {isSettled ? (
               <>
-                <span className="text-xs px-2 py-0.5 rounded-full font-medium text-slate-500 bg-slate-100 border border-slate-200">
+                <span className="text-xs px-2 py-0.5 rounded-full font-medium text-muted-foreground bg-muted border border-border">
                   {account.typeLabel}
                 </span>
                 <Badge
                   variant="outline"
-                  className="text-xs bg-emerald-50 text-emerald-700 border-emerald-200"
+                  className="text-xs bg-positive/10 text-positive border-positive/20"
                 >
                   ✓ 已結清
                 </Badge>
-                <span className="text-xs text-slate-500 font-medium">
+                <span className="text-xs text-muted-foreground font-medium">
                   {formatDate(account.closedAt)}
                 </span>
               </>
@@ -168,18 +171,18 @@ function DebtCard({
         {isSettled ? (
           <div className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm sm:grid-cols-3">
             <div>
-              <p className="text-slate-500 text-xs font-medium">原始借款</p>
-              <p className="font-semibold text-slate-700">
+              <p className="text-muted-foreground text-xs font-medium">原始借款</p>
+              <p className="font-semibold text-foreground">
                 ${formatCurrency(account.originalAmount)}
               </p>
             </div>
             <div>
-              <p className="text-slate-500 text-xs font-medium">年利率</p>
-              <p className="font-semibold text-slate-700">{account.interestRate}%</p>
+              <p className="text-muted-foreground text-xs font-medium">年利率</p>
+              <p className="font-semibold text-foreground">{account.interestRate}%</p>
             </div>
             <div>
-              <p className="text-slate-500 text-xs font-medium">借款期間</p>
-              <p className="font-semibold text-slate-700">
+              <p className="text-muted-foreground text-xs font-medium">借款期間</p>
+              <p className="font-semibold text-foreground">
                 {formatYearMonth(account.startDate)} ~ {formatYearMonth(account.endDate)}
               </p>
             </div>
@@ -211,19 +214,19 @@ function DebtCard({
         )}
 
         {/* Action Toggle */}
-        <div className={`pt-2 border-t ${isSettled ? 'border-slate-200' : 'border-slate-50'}`}>
+        <div className={`pt-2 border-t ${isSettled ? 'border-border' : 'border-border'}`}>
           <Button
             variant="ghost"
             size="sm"
             className={`w-full text-xs gap-1 ${
               isSettled
-                ? 'text-slate-400 hover:bg-slate-100 hover:text-slate-500'
-                : 'text-slate-500 hover:bg-slate-50'
+                ? 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                : 'text-muted-foreground hover:bg-muted'
             }`}
             onClick={() => setShowHistory(!showHistory)}
           >
             {showHistory ? '收合還款紀錄' : '查看還款紀錄'}
-            <span className={isSettled ? 'text-slate-300' : 'text-slate-400'}>
+            <span className={isSettled ? 'text-muted-foreground' : 'text-muted-foreground'}>
               {showHistory ? '▲' : '▼'}
             </span>
           </Button>
@@ -299,28 +302,27 @@ export default function DebtListPage() {
 
   return (
     <div className="space-y-6">
-      {/* Page header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">債務管理</h1>
-          <p className="text-muted-foreground mt-1">追蹤所有貸款與還款進度</p>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline" className="gap-2" onClick={() => setIsSettlementOpen(true)}>
-            <Calendar size={16} />
-            月度結算
-          </Button>
-          <Button
-            variant="outline"
-            className="gap-2"
-            onClick={() => setShowSettled((s) => !s)}
-            title={showSettled ? '隱藏已結清帳戶' : '顯示已結清帳戶'}
-          >
-            {showSettled ? '隱藏已結清' : '顯示已結清'}
-          </Button>
-          <Button onClick={openCreate}>+ 新增貸款</Button>
-        </div>
-      </div>
+      <PageHeader
+        title="債務管理"
+        description="追蹤所有貸款與還款進度"
+        actions={
+          <div className="flex gap-2">
+            <Button variant="outline" className="gap-2" onClick={() => setIsSettlementOpen(true)}>
+              <Calendar size={16} />
+              月度結算
+            </Button>
+            <Button
+              variant="outline"
+              className="gap-2"
+              onClick={() => setShowSettled((s) => !s)}
+              title={showSettled ? '隱藏已結清帳戶' : '顯示已結清帳戶'}
+            >
+              {showSettled ? '隱藏已結清' : '顯示已結清'}
+            </Button>
+            <Button onClick={openCreate}>+ 新增貸款</Button>
+          </div>
+        }
+      />
 
       {/* Loading / Error */}
       {loading && <p className="text-muted-foreground">載入中…</p>}

@@ -104,7 +104,7 @@ export function YearlyDetails({ projection }: RetirementProjectionProps) {
                       <tr key={`${row.year}-detail`} className="border-b last:border-0 bg-muted/20">
                         <td colSpan={9} className="px-3 py-3">
                           <div className="grid gap-3 md:grid-cols-2">
-                            <div className="rounded-md border bg-white/70 p-3">
+                            <div className="rounded-md border bg-card/70 p-3">
                               <div className="mb-2 text-xs font-semibold text-muted-foreground">
                                 收入明細
                               </div>
@@ -118,7 +118,7 @@ export function YearlyDetails({ projection }: RetirementProjectionProps) {
                                       className="flex items-center gap-2 text-sm"
                                     >
                                       <span className="text-muted-foreground">{item.name}</span>
-                                      <span className="ml-auto font-medium tabular-nums text-emerald-700">
+                                      <span className="ml-auto font-medium tabular-nums text-positive">
                                         {item.amountText}
                                       </span>
                                     </div>
@@ -126,7 +126,7 @@ export function YearlyDetails({ projection }: RetirementProjectionProps) {
                                 </div>
                               )}
                             </div>
-                            <div className="rounded-md border bg-white/70 p-3">
+                            <div className="rounded-md border bg-card/70 p-3">
                               <div className="mb-2 text-xs font-semibold text-muted-foreground">
                                 支出明細
                               </div>
@@ -140,7 +140,7 @@ export function YearlyDetails({ projection }: RetirementProjectionProps) {
                                       className="flex items-center gap-2 text-sm"
                                     >
                                       <span className="text-muted-foreground">{item.name}</span>
-                                      <span className="ml-auto font-medium tabular-nums text-rose-700">
+                                      <span className="ml-auto font-medium tabular-nums text-negative">
                                         {item.amountText}
                                       </span>
                                     </div>

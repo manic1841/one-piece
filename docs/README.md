@@ -28,7 +28,11 @@
    - 單元測試、整合測試與 E2E 測試的三層策略與執行方式。
    - Firebase Emulator 環境變數設定與 security rules 測試說明。
 
-7. **[架構決策紀錄 (ADR)](/docs/adr/)**
+7. **[設計系統 (Design System)](/docs/design-system.md)**
+   - Apple Design 重設計的設計方向與分階段實作計畫。
+   - 色彩、動態、材質層級與字體排印的 token 契約與驗收標準。
+
+8. **[架構決策紀錄 (ADR)](/docs/adr/)**
    - 架構與業務取捨的唯一決策來源。
    - 各功能文件只保留流程、結構索引與操作說明，遇到規則差異時以 ADR 為準。
 

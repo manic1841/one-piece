@@ -81,7 +81,7 @@ export const RetirementPlanHeader: React.FC<RetirementPlanHeaderProps> = ({
           variant={header.autoUpdate ? 'default' : 'outline'}
           size="sm"
           onClick={handleToggleAutoUpdate}
-          className={header.autoUpdate ? 'bg-blue-600 hover:bg-blue-700' : ''}
+          className={header.autoUpdate ? 'bg-primary hover:bg-primary/90' : ''}
         >
           {header.autoUpdate ? 'Auto-Update: ON' : 'Auto-Update: OFF'}
         </Button>

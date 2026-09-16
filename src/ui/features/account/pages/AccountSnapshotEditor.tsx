@@ -159,7 +159,7 @@ const AccountSnapshotEditor: React.FC<AccountSnapshotEditorProps> = ({
           </DialogTitle>
         </DialogHeader>
 
-        {error && <div className="p-3 bg-red-100 text-red-600 rounded-md text-sm">{error}</div>}
+        {error && <div className="p-3 bg-destructive/15 text-destructive rounded-md text-sm">{error}</div>}
 
         <form onSubmit={onSubmit} className="space-y-6">
           <YearMonthPicker

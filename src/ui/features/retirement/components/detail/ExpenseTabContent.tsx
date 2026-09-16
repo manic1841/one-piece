@@ -61,12 +61,12 @@ export const ExpenseTabContent: React.FC<ExpenseTabContentProps> = ({
                       {vm.modeLabel}
                     </span>
                     {vm.retirementModeLabel && (
-                      <span className="text-xs px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700">
+                      <span className="text-xs px-1.5 py-0.5 rounded bg-positive/15 text-positive">
                         {vm.retirementModeLabel}
                       </span>
                     )}
                     {vm.expenseTypeLabel && (
-                      <span className="text-xs px-1.5 py-0.5 rounded bg-blue-100 text-blue-700">
+                      <span className="text-xs px-1.5 py-0.5 rounded bg-primary/15 text-primary">
                         {vm.expenseTypeLabel}
                       </span>
                     )}
@@ -100,7 +100,7 @@ export const ExpenseTabContent: React.FC<ExpenseTabContentProps> = ({
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                      className="text-destructive hover:text-destructive hover:bg-destructive/10"
                       onClick={() => handleDeleteExpense(domain.id)}
                     >
                       <Trash2 className="h-4 w-4" />

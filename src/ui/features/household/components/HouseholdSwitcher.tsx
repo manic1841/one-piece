@@ -31,8 +31,8 @@ const HouseholdSwitcher: React.FC<HouseholdSwitcherProps> = ({
       <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
         <DropdownMenuTrigger asChild>
           <button className="text-left flex items-center gap-1 hover:opacity-80 transition-opacity">
-            <p className="text-xs text-gray-600 font-medium">{currentHouseholdName}</p>
-            <ChevronDown size={12} className="text-gray-400" />
+            <p className="text-xs text-muted-foreground font-medium">{currentHouseholdName}</p>
+            <ChevronDown size={12} className="text-muted-foreground" />
           </button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start" className="w-56">
@@ -46,17 +46,17 @@ const HouseholdSwitcher: React.FC<HouseholdSwitcherProps> = ({
                 <DropdownMenuItem
                   key={household.id}
                   onClick={() => handleSwitchHousehold(household.id)}
-                  className={household.id === currentHouseholdId ? 'bg-blue-50' : ''}
+                  className={household.id === currentHouseholdId ? 'bg-primary/10' : ''}
                 >
                   <Home size={16} className="mr-2" />
                   {household.name}
                   {household.id === currentHouseholdId && (
-                    <span className="ml-auto text-xs text-blue-600">Current</span>
+                    <span className="ml-auto text-xs text-primary">Current</span>
                   )}
                 </DropdownMenuItem>
               ))}
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={handleLeaveHousehold} className="text-red-600">
+              <DropdownMenuItem onClick={handleLeaveHousehold} className="text-destructive">
                 <LogOutIcon size={16} className="mr-2" />
                 Leave Household
               </DropdownMenuItem>
@@ -71,8 +71,8 @@ const HouseholdSwitcher: React.FC<HouseholdSwitcherProps> = ({
     <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" className="w-full justify-between px-2 h-auto py-2">
-          <span className="text-sm text-gray-600 font-medium truncate">{currentHouseholdName}</span>
-          <ChevronDown size={16} className="text-gray-400 flex-shrink-0 ml-2" />
+          <span className="text-sm text-muted-foreground font-medium truncate">{currentHouseholdName}</span>
+          <ChevronDown size={16} className="text-muted-foreground flex-shrink-0 ml-2" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="w-56">
@@ -86,17 +86,17 @@ const HouseholdSwitcher: React.FC<HouseholdSwitcherProps> = ({
               <DropdownMenuItem
                 key={household.id}
                 onClick={() => handleSwitchHousehold(household.id)}
-                className={household.id === currentHouseholdId ? 'bg-blue-50' : ''}
+                className={household.id === currentHouseholdId ? 'bg-primary/10' : ''}
               >
                 <Home size={16} className="mr-2" />
                 {household.name}
                 {household.id === currentHouseholdId && (
-                  <span className="ml-auto text-xs text-blue-600">Current</span>
+                  <span className="ml-auto text-xs text-primary">Current</span>
                 )}
               </DropdownMenuItem>
             ))}
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={handleLeaveHousehold} className="text-red-600">
+            <DropdownMenuItem onClick={handleLeaveHousehold} className="text-destructive">
               <LogOutIcon size={16} className="mr-2" />
               Leave Household
             </DropdownMenuItem>

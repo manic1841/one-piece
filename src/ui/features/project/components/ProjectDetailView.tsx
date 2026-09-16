@@ -127,7 +127,7 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ householdId, proj
         </CardHeader>
         <CardContent>
           <div className="flex items-baseline gap-2">
-            <p className={`text-3xl font-bold ${isPositive ? 'text-green-600' : 'text-red-600'}`}>
+            <p className={`text-3xl font-bold ${isPositive ? 'text-positive' : 'text-negative'}`}>
               {formatCurrency(displayBalance)}
             </p>
             {selectedYearMonth !== 'current' && currentSnapshot && (

@@ -66,16 +66,16 @@ const AccountForm: React.FC<AccountFormProps> = ({ initialData, onSubmit, onCanc
   }, [initialData, form]);
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-      <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
-        <h3 className="text-lg font-semibold text-gray-900">
+    <div className="bg-card rounded-xl shadow-sm border border-border overflow-hidden">
+      <div className="px-6 py-4 border-b border-border flex justify-between items-center bg-muted/50">
+        <h3 className="text-lg font-semibold text-foreground">
           {initialData ? '編輯帳戶' : '新增帳戶'}
         </h3>
         <Button
           variant="ghost"
           size="icon"
           onClick={onCancel}
-          className="text-gray-400 hover:text-gray-600"
+          className="text-muted-foreground hover:text-muted-foreground"
         >
           <X size={20} />
         </Button>

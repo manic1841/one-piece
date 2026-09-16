@@ -21,11 +21,11 @@ const AccessDenied: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-muted flex items-center justify-center p-4">
       <Card className="max-w-md w-full">
         <CardContent className="p-12 text-center">
-          <div className="inline-flex items-center justify-center w-20 h-20 bg-red-100 rounded-full mb-6">
-            <ShieldOff size={40} className="text-red-600" />
+          <div className="inline-flex items-center justify-center w-20 h-20 bg-destructive/15 rounded-full mb-6">
+            <ShieldOff size={40} className="text-destructive" />
           </div>
 
           <h1 className="text-2xl font-bold text-foreground mb-3">Access Denied</h1>

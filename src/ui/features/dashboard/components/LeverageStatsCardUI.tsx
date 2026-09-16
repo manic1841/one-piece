@@ -20,7 +20,7 @@ const LeverageStatsCardUI: React.FC<LeverageStatsCardUIProps> = ({ stats, loadin
   }
 
   return (
-    <Card className="overflow-hidden border-none shadow-md bg-white">
+    <Card className="overflow-hidden border-none shadow-md bg-card">
       <CardHeader className="pb-2">
         <div className="flex items-center gap-2">
           <div className="p-2 rounded-lg bg-indigo-100">
@@ -32,22 +32,22 @@ const LeverageStatsCardUI: React.FC<LeverageStatsCardUIProps> = ({ stats, loadin
       <CardContent className="pt-4 space-y-6">
         <div className="flex flex-col items-center justify-center py-4">
           <div className={`text-5xl font-black ${stats.statusColorClass}`}>{stats.ratioText}</div>
-          <p className="text-sm text-slate-400 mt-2 font-medium">槓桿比率（越低越穩健）</p>
+          <p className="text-sm text-muted-foreground mt-2 font-medium">槓桿比率（越低越穩健）</p>
         </div>
 
         <div className="space-y-4">
           <div className="space-y-2">
-            <div className="flex justify-between text-xs font-medium text-slate-500">
+            <div className="flex justify-between text-xs font-medium text-muted-foreground">
               <span>總曝險 (Exposure)</span>
               <span>{stats.totalExposureText}</span>
             </div>
-            <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+            <div className="h-2 bg-muted rounded-full overflow-hidden">
               <div
                 className={`h-full ${stats.progressColorClass} transition-all duration-1000`}
                 style={{ width: `${stats.progressWidth}%` }}
               />
             </div>
-            <div className="relative flex text-[10px] text-slate-400 font-medium">
+            <div className="relative flex text-[10px] text-muted-foreground font-medium">
               <span className="absolute left-0">0x</span>
               <span className="absolute left-1/2 -translate-x-1/2">1x</span>
               <span className="absolute right-0">2x</span>
@@ -56,8 +56,8 @@ const LeverageStatsCardUI: React.FC<LeverageStatsCardUIProps> = ({ stats, loadin
             {/* spacer for the absolute-positioned labels */}
           </div>
 
-          <div className="flex justify-between items-center p-3 rounded-xl bg-slate-50">
-            <div className="flex items-center gap-2 text-slate-500">
+          <div className="flex justify-between items-center p-3 rounded-xl bg-muted">
+            <div className="flex items-center gap-2 text-muted-foreground">
               <Info size={14} />
               <span className="text-xs">淨資產價值 (NAV)</span>
             </div>
@@ -66,7 +66,7 @@ const LeverageStatsCardUI: React.FC<LeverageStatsCardUIProps> = ({ stats, loadin
         </div>
 
         <div className="pt-2">
-          <div className="flex items-start gap-2 p-3 rounded-lg bg-blue-50 text-blue-700">
+          <div className="flex items-start gap-2 p-3 rounded-lg bg-primary/10 text-primary">
             <Rocket size={16} className="mt-0.5 flex-shrink-0" />
             <p className="text-[11px] leading-relaxed">
               槓桿比率越接近 1 代表部位越健康。 若長期高於 1，請評估降低曝險或提升淨值緩衝。

@@ -48,11 +48,11 @@ export const ProjectSnapshotItem: React.FC<ProjectSnapshotItemProps> = ({ item, 
         </div>
         <div className="space-y-1">
           <p className="text-xs text-muted-foreground uppercase tracking-wider">本月收入</p>
-          <p className="font-semibold text-green-600">+{item.incomeText}</p>
+          <p className="font-semibold text-positive">+{item.incomeText}</p>
         </div>
         <div className="space-y-1">
           <p className="text-xs text-muted-foreground uppercase tracking-wider">本月支出</p>
-          <p className="font-semibold text-red-600">-{item.expenseText}</p>
+          <p className="font-semibold text-negative">-{item.expenseText}</p>
         </div>
         <div className="space-y-1">
           <p className="text-xs text-muted-foreground uppercase tracking-wider">期末餘額</p>

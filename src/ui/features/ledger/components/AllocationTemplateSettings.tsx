@@ -112,7 +112,7 @@ export const AllocationTemplateSettings = () => {
                   <Plus size={14} className="mr-1" /> Add Item
                 </Button>
                 <span
-                  className={`text-xs font-medium ${Math.abs(totalPercentage - 100) < 0.01 ? 'text-emerald-600' : 'text-amber-700'}`}
+                  className={`text-xs font-medium ${Math.abs(totalPercentage - 100) < 0.01 ? 'text-positive' : 'text-amber-700'}`}
                 >
                   Total {totalPercentage.toFixed(1)}%
                 </span>

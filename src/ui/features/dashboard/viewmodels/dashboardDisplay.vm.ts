@@ -20,15 +20,15 @@ const EMPTY_LEVERAGE_STATS: LeverageStats = {
 };
 
 const getStatusColorClass = (ratio: number) => {
-  if (ratio <= 1.05) return 'text-green-600';
+  if (ratio <= 1.05) return 'text-positive';
   if (ratio <= 1.5) return 'text-amber-600';
-  return 'text-red-600';
+  return 'text-negative';
 };
 
 const getProgressColorClass = (ratio: number) => {
-  if (ratio <= 1.05) return 'bg-green-500';
+  if (ratio <= 1.05) return 'bg-positive';
   if (ratio <= 1.5) return 'bg-amber-500';
-  return 'bg-red-500';
+  return 'bg-negative';
 };
 
 export const mapLeverageStatsToCardVM = (stats: LeverageStats | null): LeverageStatsCardVM => {
@@ -72,12 +72,12 @@ export const mapDebtSummaryToCardVM = (
     unpaidCountText: String(unpaidCount),
     unpaidUnitText: '筆',
     unpaidContainerClassName: isUnpaid
-      ? 'bg-rose-50 border-rose-100'
-      : 'bg-emerald-50 border-emerald-100',
-    unpaidIconClassName: isUnpaid ? 'bg-rose-100 text-rose-600' : 'bg-emerald-100 text-emerald-600',
-    unpaidLabelClassName: isUnpaid ? 'text-rose-600' : 'text-emerald-600',
-    unpaidCountClassName: isUnpaid ? 'text-rose-700' : 'text-emerald-700',
-    unpaidUnitClassName: isUnpaid ? 'text-rose-500' : 'text-emerald-500',
+      ? 'bg-negative/10 border-negative/20'
+      : 'bg-positive/10 border-positive/20',
+    unpaidIconClassName: isUnpaid ? 'bg-negative/15 text-negative' : 'bg-positive/15 text-positive',
+    unpaidLabelClassName: isUnpaid ? 'text-negative' : 'text-positive',
+    unpaidCountClassName: isUnpaid ? 'text-negative' : 'text-positive',
+    unpaidUnitClassName: isUnpaid ? 'text-negative' : 'text-positive',
     isUnpaid,
   };
 };
@@ -94,14 +94,14 @@ export const mapAssetTrendStatusToBadgeVM = (
   status: AssetHealthStatusType,
 ): AssetTrendStatusBadgeVM => {
   if (status === 'ahead') {
-    return { label: '進度超前', icon: 'ahead', iconClassName: 'text-emerald-500' };
+    return { label: '進度超前', icon: 'ahead', iconClassName: 'text-positive' };
   }
 
   if (status === 'on-track') {
     return { label: '符合預期', icon: 'on-track', iconClassName: 'text-blue-500' };
   }
 
-  return { label: '稍微落後', icon: 'behind', iconClassName: 'text-rose-500' };
+  return { label: '稍微落後', icon: 'behind', iconClassName: 'text-negative' };
 };
 
 export interface AssetTrendMetricVM {
@@ -121,8 +121,8 @@ export const mapAssetTrendMetricToVM = (
 ): AssetTrendMetricVM => {
   const isGood = invertGoodMode ? gapPercent <= 0 : gapPercent >= 0;
   const sign = gapPercent > 0 ? '+' : '';
-  const colorClass = isGood ? 'text-emerald-600' : 'text-rose-600';
-  const bgClass = isGood ? 'bg-emerald-100' : 'bg-rose-100';
+  const colorClass = isGood ? 'text-positive' : 'text-negative';
+  const bgClass = isGood ? 'bg-positive/10' : 'bg-negative/10';
 
   return {
     label,
@@ -285,7 +285,7 @@ export interface UnsettledStatsCardVM {
 
 const mapCountToSectionVM = (count: number): UnsettledStatsCardSectionVM => ({
   countText: String(count),
-  countClassName: count > 0 ? 'text-amber-600' : 'text-slate-400',
+  countClassName: count > 0 ? 'text-amber-600' : 'text-muted-foreground',
   progressWidth: count > 0 ? 100 : 0,
 });
 
@@ -314,8 +314,8 @@ export const mapUnsettledStatsToCardVM = (
     isFullySettled,
     totalBadgeText: isFullySettled ? '已全部結算' : `${base.totalUnsettled} 項未結算`,
     statusIconType: isFullySettled ? 'settled' : 'unsettled',
-    statusIconContainerClassName: isFullySettled ? 'bg-green-100' : 'bg-amber-100',
-    statusIconClassName: isFullySettled ? 'text-green-600' : 'text-amber-600',
+    statusIconContainerClassName: isFullySettled ? 'bg-positive/10' : 'bg-amber-100',
+    statusIconClassName: isFullySettled ? 'text-positive' : 'text-amber-600',
     badgeVariant: isFullySettled ? 'outline' : 'destructive',
     accounts: mapCountToSectionVM(base.unsettledAccounts.length),
     portfolios: mapCountToSectionVM(base.unsettledPortfolios.length),

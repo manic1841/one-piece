@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 
 import { useAuth } from '@/infra/contexts/useAuth';
 import { Button } from '@/ui/components/ui/button';
+import { PageHeader } from '@/ui/components/PageHeader';
 import { Card, CardContent, CardHeader, CardTitle } from '@/ui/components/ui/card';
 import { useRetirementPlanListPage } from '@/ui/features/retirement/hooks/useRetirementPlanListPage';
 
@@ -26,18 +27,16 @@ export default function RetirementPlanList() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Retirement Planning</h1>
-          <p className="text-muted-foreground mt-2">
-            Plan your financial future and simulate different scenarios.
-          </p>
-        </div>
-        <Button onClick={createPlan} disabled={mutating}>
-          <Plus className="mr-2 h-4 w-4" />
-          New Plan
-        </Button>
-      </div>
+      <PageHeader
+        title="退休規劃"
+        description="規劃未來財務並模擬不同情境。"
+        actions={
+          <Button onClick={createPlan} disabled={mutating}>
+            <Plus className="mr-2 h-4 w-4" />
+            New Plan
+          </Button>
+        }
+      />
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {planItems.map((plan) => (
@@ -49,7 +48,7 @@ export default function RetirementPlanList() {
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">{plan.name}</CardTitle>
               {plan.isActive && (
-                <span className="inline-flex items-center rounded-full bg-green-50 px-2 py-1 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20">
+                <span className="inline-flex items-center rounded-full bg-positive/10 px-2 py-1 text-xs font-medium text-positive ring-1 ring-inset ring-positive/20">
                   Active
                 </span>
               )}
@@ -71,7 +70,7 @@ export default function RetirementPlanList() {
                 {plan.projectedSavingsText && (
                   <div className="mt-2 pt-2 border-t">
                     <div className="text-xs text-muted-foreground">Projected Savings</div>
-                    <div className="text-lg font-bold text-green-600">
+                    <div className="text-lg font-bold text-positive">
                       {plan.projectedSavingsText}
                     </div>
                   </div>

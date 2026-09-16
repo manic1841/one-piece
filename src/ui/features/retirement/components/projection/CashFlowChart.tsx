@@ -36,7 +36,7 @@ export function CashFlowChart({ projection }: RetirementProjectionProps) {
           <ReferenceLine
             yAxisId="cashflow"
             y={0}
-            stroke="#94a3b8"
+            stroke="hsl(var(--muted-foreground))"
             strokeDasharray="3 3"
             strokeOpacity={0.8}
           />
@@ -65,15 +65,15 @@ export function CashFlowChart({ projection }: RetirementProjectionProps) {
           <ReferenceLine
             x={projection.retirementYear}
             yAxisId="cashflow"
-            stroke="#f59e0b"
+            stroke="hsl(var(--chart-4))"
             strokeDasharray="4 4"
-            label={{ value: 'Retirement', position: 'top', fill: '#f59e0b' }}
+            label={{ value: 'Retirement', position: 'top', fill: 'hsl(var(--chart-4))' }}
           />
           <Bar yAxisId="savings" dataKey="savings" barSize={14} radius={[4, 4, 0, 0]}>
             {projection.chartData.map((item) => (
               <Cell
                 key={item.year}
-                fill={item.isBankruptYear ? '#dc2626' : '#2563eb'}
+                fill={item.isBankruptYear ? 'hsl(var(--negative))' : 'hsl(var(--chart-3))'}
                 fillOpacity={item.isBankruptYear ? 0.85 : 0.45}
               />
             ))}
@@ -82,7 +82,7 @@ export function CashFlowChart({ projection }: RetirementProjectionProps) {
             yAxisId="cashflow"
             type="monotone"
             dataKey="income"
-            stroke="#16a34a"
+            stroke="hsl(var(--positive))"
             strokeWidth={2}
             dot={false}
           />
@@ -90,7 +90,7 @@ export function CashFlowChart({ projection }: RetirementProjectionProps) {
             yAxisId="cashflow"
             type="monotone"
             dataKey="expense"
-            stroke="#ef4444"
+            stroke="hsl(var(--negative))"
             strokeWidth={2}
             dot={false}
           />
@@ -98,7 +98,7 @@ export function CashFlowChart({ projection }: RetirementProjectionProps) {
             yAxisId="cashflow"
             type="monotone"
             dataKey="netCashFlow"
-            stroke="#f59e0b"
+            stroke="hsl(var(--chart-4))"
             strokeWidth={1.8}
             strokeDasharray="4 3"
             dot={false}

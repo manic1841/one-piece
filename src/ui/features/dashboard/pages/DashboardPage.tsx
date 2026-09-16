@@ -4,7 +4,6 @@ import { useAuth } from '@/infra/contexts/useAuth';
 import AssetTrendCard from '@/ui/features/dashboard/components/AssetTrendCard';
 import DebtSummaryCard from '@/ui/features/dashboard/components/DebtSummaryCard';
 import LeverageStatsCardUI from '@/ui/features/dashboard/components/LeverageStatsCardUI';
-// import UnsettledStatsCardUI from '@/ui/features/dashboard/components/UnsettledStatsCardUI';
 import { useDashboardPage } from '@/ui/features/dashboard/hooks/useDashboardPage';
 
 const Dashboard: React.FC = () => {
@@ -24,10 +23,6 @@ const Dashboard: React.FC = () => {
         </div>
         <DebtSummaryCard householdId={householdId} />
         <LeverageStatsCardUI stats={leverageStatsVM} loading={statsLoading} />
-
-        {/* Temporarily hidden UnsettledStatsCardUI
-        <UnsettledStatsCardUI stats={unsettledStats} loading={statsLoading} />
-        */}
       </div>
     </div>
   );

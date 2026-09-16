@@ -41,7 +41,7 @@ export const AccountSnapshotTable: React.FC<AccountSnapshotTableProps> = ({
   return (
     <Card>
       <CardHeader className="flex flex-row items-center gap-2 space-y-0">
-        <Calendar className="text-blue-600" size={20} />
+        <Calendar className="text-primary" size={20} />
         <CardTitle>Snapshot History</CardTitle>
       </CardHeader>
       <CardContent>
@@ -74,7 +74,7 @@ export const AccountSnapshotTable: React.FC<AccountSnapshotTableProps> = ({
 
                   return (
                     <React.Fragment key={snapshot.id}>
-                      <TableRow className={isExpanded ? 'border-b-0 bg-slate-50/50' : ''}>
+                      <TableRow className={isExpanded ? 'border-b-0 bg-muted/50' : ''}>
                         <TableCell>
                           <div className="flex items-center gap-1">
                             {hasHoldings ? (
@@ -105,7 +105,7 @@ export const AccountSnapshotTable: React.FC<AccountSnapshotTableProps> = ({
                           {previousSnapshot ? (
                             <span
                               className={`font-medium ${
-                                change >= 0 ? 'text-green-600' : 'text-red-600'
+                                change >= 0 ? 'text-positive' : 'text-negative'
                               }`}
                             >
                               {change >= 0 ? '+' : ''}
@@ -123,7 +123,7 @@ export const AccountSnapshotTable: React.FC<AccountSnapshotTableProps> = ({
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-8 w-8 text-muted-foreground hover:text-blue-600"
+                              className="h-8 w-8 text-muted-foreground hover:text-primary"
                               onClick={() => onEdit(snapshot)}
                               title="Edit snapshot"
                             >
@@ -142,11 +142,11 @@ export const AccountSnapshotTable: React.FC<AccountSnapshotTableProps> = ({
                         </TableCell>
                       </TableRow>
                       {isExpanded && hasHoldings && (
-                        <TableRow className="bg-slate-50/50 border-t-0">
+                        <TableRow className="bg-muted/50 border-t-0">
                           <TableCell colSpan={5} className="py-0 pb-4">
-                            <div className="ml-7 border rounded-lg bg-white overflow-hidden shadow-sm">
+                            <div className="ml-7 border rounded-lg bg-card overflow-hidden shadow-sm">
                               <Table>
-                                <TableHeader className="bg-slate-50">
+                                <TableHeader className="bg-muted">
                                   <TableRow className="hover:bg-transparent">
                                     <TableHead className="h-8 text-[10px] font-bold uppercase">
                                       Symbol
@@ -171,7 +171,7 @@ export const AccountSnapshotTable: React.FC<AccountSnapshotTableProps> = ({
                                     const gainPercent =
                                       holding.cost !== 0 ? (gain / holding.cost) * 100 : 0;
                                     return (
-                                      <TableRow key={idx} className="hover:bg-slate-50/50">
+                                      <TableRow key={idx} className="hover:bg-muted/50">
                                         <TableCell className="py-2 py-1 text-xs">
                                           <div className="font-bold">{holding.symbol}</div>
                                           <div className="text-[10px] text-muted-foreground">
@@ -190,7 +190,7 @@ export const AccountSnapshotTable: React.FC<AccountSnapshotTableProps> = ({
                                         <TableCell className="py-1 text-xs text-right">
                                           <div
                                             className={`flex items-center justify-end gap-1 font-medium ${
-                                              gain >= 0 ? 'text-green-600' : 'text-red-600'
+                                              gain >= 0 ? 'text-positive' : 'text-negative'
                                             }`}
                                           >
                                             {gain >= 0 && <TrendingUp size={10} />}

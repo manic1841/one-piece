@@ -74,30 +74,30 @@ export const AccountCard: React.FC<AccountCardProps> = ({
       }}
       onDragEnd={onDragEnd}
       className={cn(
-        'rounded-xl border border-gray-200 bg-white p-6 shadow-sm transition-all group hover:shadow-md',
-        !isActive && 'bg-slate-50 border-slate-200',
-        isReorderMode && 'cursor-grab border-dashed border-slate-300 active:cursor-grabbing',
+        'rounded-xl border border-border bg-card p-6 shadow-sm transition-all group hover:shadow-md',
+        !isActive && 'bg-muted border-border',
+        isReorderMode && 'cursor-grab border-dashed border-border active:cursor-grabbing',
         isDragging && 'scale-[0.98] opacity-60 shadow-none',
-        isDragOver && !isDragging && 'border-blue-400 bg-blue-50/60 ring-2 ring-blue-200',
+        isDragOver && !isDragging && 'border-primary/60 bg-primary/10 ring-2 ring-primary/30',
       )}
     >
       <div className="flex justify-between items-start mb-4">
         <div>
           <h3
             className={cn(
-              'font-semibold text-gray-900 tracking-tight',
-              !isActive && 'text-slate-500',
+              'font-semibold text-foreground tracking-tight',
+              !isActive && 'text-muted-foreground',
             )}
           >
             {account.name}
           </h3>
-          <span className="text-[11px] text-gray-400 tracking-wide">
+          <span className="text-[11px] text-muted-foreground tracking-wide">
             {getCategoryLabel(account.category)} · {account.currency}
           </span>
         </div>
         {isReorderMode ? (
-          <div className="flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium text-slate-500">
-            <GripVertical size={14} className="text-slate-400" />
+          <div className="flex items-center gap-2 rounded-full border border-border bg-muted px-3 py-1 text-xs font-medium text-muted-foreground">
+            <GripVertical size={14} className="text-muted-foreground" />
             拖拉排序
           </div>
         ) : (
@@ -106,8 +106,8 @@ export const AccountCard: React.FC<AccountCardProps> = ({
               className={cn(
                 'rounded-full px-2 py-0.5 text-[11px] font-medium',
                 isActive
-                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                  : 'bg-slate-100 text-slate-500 border border-slate-200',
+                  ? 'bg-positive/10 text-positive border border-positive/20'
+                  : 'bg-muted text-muted-foreground border border-border',
               )}
             >
               {isActive ? '啟用中' : '已停用'}
@@ -119,7 +119,7 @@ export const AccountCard: React.FC<AccountCardProps> = ({
                 'h-8 px-2 text-xs font-medium',
                 isActive
                   ? 'text-amber-700 hover:text-amber-800'
-                  : 'text-emerald-700 hover:text-emerald-800',
+                  : 'text-positive hover:text-positive',
               )}
               onClick={() => onToggleActive(account)}
               disabled={toggling}
@@ -131,8 +131,8 @@ export const AccountCard: React.FC<AccountCardProps> = ({
       </div>
 
       <div className="space-y-1">
-        <div className="text-xs text-gray-500 uppercase tracking-widest">餘額</div>
-        <div className={cn('text-2xl font-bold text-gray-900', !isActive && 'text-slate-500')}>
+        <div className="text-xs text-muted-foreground uppercase tracking-widest">餘額</div>
+        <div className={cn('text-2xl font-bold text-foreground', !isActive && 'text-muted-foreground')}>
           {account.snapshot
             ? formatCurrency(
                 account.snapshot.originalAmount || account.snapshot.amount,
@@ -142,7 +142,7 @@ export const AccountCard: React.FC<AccountCardProps> = ({
         </div>
         <div
           className={cn(
-            'text-xs text-gray-400 transition-opacity',
+            'text-xs text-muted-foreground transition-opacity',
             account.snapshot ? 'opacity-0 group-hover:opacity-100' : 'hidden',
           )}
         >
@@ -153,7 +153,7 @@ export const AccountCard: React.FC<AccountCardProps> = ({
       </div>
 
       {!isReorderMode && (
-        <div className="mt-6 pt-6 border-t border-gray-100 space-y-2">
+        <div className="mt-6 pt-6 border-t border-border space-y-2">
           {isActive ? (
             <Button
               variant="outline"
@@ -163,7 +163,7 @@ export const AccountCard: React.FC<AccountCardProps> = ({
               月底餘額
             </Button>
           ) : (
-            <div className="rounded-md border border-slate-200 bg-slate-100 px-3 py-2 text-center text-xs text-slate-500">
+            <div className="rounded-md border border-border bg-muted px-3 py-2 text-center text-xs text-muted-foreground">
               停用帳戶不列入月底結算
             </div>
           )}
@@ -171,14 +171,14 @@ export const AccountCard: React.FC<AccountCardProps> = ({
           <div className="flex items-center justify-between text-xs opacity-0 group-hover:opacity-100 transition-opacity">
             <button
               type="button"
-              className="text-slate-500 hover:text-slate-700 underline underline-offset-2"
+              className="text-muted-foreground hover:text-foreground underline underline-offset-2"
               onClick={() => onEdit(account)}
             >
               編輯帳戶
             </button>
             <button
               type="button"
-              className="text-slate-500 hover:text-slate-700 underline underline-offset-2"
+              className="text-muted-foreground hover:text-foreground underline underline-offset-2"
               onClick={() => onOpenHistory(account.id)}
             >
               歷史記錄

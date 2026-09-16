@@ -9,17 +9,17 @@ type ChipGroupProps = {
 
 export function ChipGroup({ options, value, onChange, tone }: ChipGroupProps) {
   const toneClass = {
-    expense: 'border-rose-200 bg-rose-50 text-rose-700 hover:border-rose-300 hover:bg-rose-100',
+    expense: 'border-negative/20 bg-negative/10 text-negative hover:border-negative/30 hover:bg-negative/15',
     income:
-      'border-emerald-200 bg-emerald-50 text-emerald-700 hover:border-emerald-300 hover:bg-emerald-100',
+      'border-positive/20 bg-positive/10 text-positive hover:border-positive/30 hover:bg-positive/15',
     neutral:
-      'border-slate-200 bg-slate-50 text-slate-700 hover:border-slate-300 hover:bg-slate-100',
+      'border-border bg-muted text-foreground hover:border-border hover:bg-muted',
   };
 
   const activeClass = {
-    expense: 'border-rose-500 bg-rose-600 text-white',
-    income: 'border-emerald-500 bg-emerald-600 text-white',
-    neutral: 'border-slate-500 bg-slate-700 text-white',
+    expense: 'border-negative bg-negative text-white',
+    income: 'border-positive bg-positive text-white',
+    neutral: 'border-primary bg-primary text-white',
   };
 
   return (

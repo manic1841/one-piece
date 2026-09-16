@@ -4,6 +4,7 @@ import { type User } from 'firebase/auth';
 import { Database, Download, ShieldAlert } from 'lucide-react';
 
 import { type Household } from '@/domains/household/schemas';
+import { PageHeader } from '@/ui/components/PageHeader';
 import { Button } from '@/ui/components/ui/button';
 import { Card, CardContent } from '@/ui/components/ui/card';
 import {
@@ -126,7 +127,7 @@ const SettingsUI: React.FC<SettingsUIProps> = (props) => {
   if (loading) {
     return (
       <div className="space-y-6">
-        <h1 className="text-2xl font-bold text-foreground">Settings</h1>
+        <PageHeader title="Settings" />
         <div className="text-muted-foreground">Loading...</div>
       </div>
     );
@@ -135,12 +136,12 @@ const SettingsUI: React.FC<SettingsUIProps> = (props) => {
   if (!isSettingsAuthorized) {
     return (
       <div className="space-y-6">
-        <h1 className="text-2xl font-bold text-foreground">Settings</h1>
+        <PageHeader title="Settings" />
         <Card>
           <CardContent className="p-12">
             <div className="text-center max-w-md mx-auto">
-              <div className="inline-flex items-center justify-center w-16 h-16 bg-red-100 rounded-full mb-4">
-                <ShieldAlert size={32} className="text-red-600" />
+              <div className="inline-flex items-center justify-center w-16 h-16 bg-destructive/15 rounded-full mb-4">
+                <ShieldAlert size={32} className="text-destructive" />
               </div>
               <h2 className="text-xl font-semibold text-foreground mb-2">Access Denied</h2>
               <p className="text-muted-foreground mb-6">
@@ -158,16 +159,13 @@ const SettingsUI: React.FC<SettingsUIProps> = (props) => {
 
   return (
     <div className="space-y-10">
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">Settings</h1>
-        <p className="text-muted-foreground mt-2">Manage your household and system settings</p>
-      </div>
+      <PageHeader title="Settings" description="Manage your household and system settings" />
 
       {isAdmin && (
         <section className="space-y-4">
           <div className="bg-gradient-to-r from-purple-500 to-purple-600 rounded-xl shadow-sm p-4 text-white">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-white bg-opacity-20 rounded-full flex items-center justify-center">
+              <div className="w-10 h-10 bg-card/20 rounded-full flex items-center justify-center">
                 <ShieldAlert size={20} />
               </div>
               <div>
@@ -246,10 +244,10 @@ const SettingsUI: React.FC<SettingsUIProps> = (props) => {
                 </>
               </div>
 
-              {backupError && <p className="text-sm text-red-600">{backupError}</p>}
-              {backupSuccess && <p className="text-sm text-emerald-600">{backupSuccess}</p>}
-              {restoreError && <p className="text-sm text-red-600">{restoreError}</p>}
-              {restoreSuccess && <p className="text-sm text-emerald-600">{restoreSuccess}</p>}
+              {backupError && <p className="text-sm text-destructive">{backupError}</p>}
+              {backupSuccess && <p className="text-sm text-positive">{backupSuccess}</p>}
+              {restoreError && <p className="text-sm text-destructive">{restoreError}</p>}
+              {restoreSuccess && <p className="text-sm text-positive">{restoreSuccess}</p>}
             </CardContent>
           </Card>
 

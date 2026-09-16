@@ -72,7 +72,7 @@ const Layout: React.FC = () => {
   const [moreOpen, setMoreOpen] = useState(false);
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className="min-h-screen bg-background flex flex-col">
       <main className="flex-1 pb-20 pt-16 md:pt-0 md:pb-0 md:pl-56 lg:pl-64">
         <div className="max-w-7xl mx-auto p-4 md:p-8">
           <Outlet />
@@ -80,9 +80,9 @@ const Layout: React.FC = () => {
       </main>
 
       {/* Mobile Top Bar */}
-      <div className="md:hidden fixed top-0 left-0 right-0 bg-white border-b border-gray-200 px-4 py-3 flex justify-between items-center z-50">
+      <div className="material-chrome md:hidden fixed top-0 left-0 right-0 bg-background/75 backdrop-blur-xl backdrop-saturate-150 px-4 py-3 flex justify-between items-center z-50">
         <div className="flex-1">
-          <h1 className="text-lg font-bold text-gray-900">One Piece</h1>
+          <h1 className="text-lg font-bold tracking-heading text-foreground">One Piece</h1>
           {!loadingHousehold && familyName && userProfile?.householdId && (
             <HouseholdSwitcher
               currentHouseholdId={userProfile.householdId}
@@ -95,22 +95,24 @@ const Layout: React.FC = () => {
           variant="ghost"
           size="icon"
           onClick={handleLogout}
-          className="text-gray-600 hover:bg-red-50 hover:text-red-600"
+          className="text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
         >
           <LogOut size={20} />
         </Button>
       </div>
 
       {/* Mobile Bottom Navigation */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-2 py-2 flex justify-around items-center z-50">
+      <nav className="material-chrome md:hidden fixed bottom-0 left-0 right-0 bg-background/75 backdrop-blur-xl backdrop-saturate-150 px-2 py-2 flex justify-around items-center z-50">
         {getPrimaryNavItems().map(({ to, icon: Icon, label }) => (
           <NavLink
             key={to}
             to={to}
             className={({ isActive }) =>
               clsx(
-                'flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition-colors',
-                isActive ? 'text-blue-600 bg-blue-50' : 'text-gray-500 hover:text-gray-900',
+                'flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition-[color,background-color] duration-fast ease-out-quint active:scale-[0.95]',
+                isActive
+                  ? 'text-primary bg-primary/10'
+                  : 'text-muted-foreground hover:text-foreground',
               )
             }
           >
@@ -122,7 +124,7 @@ const Layout: React.FC = () => {
           <SheetTrigger asChild>
             <button
               type="button"
-              className="flex flex-col items-center gap-1 px-3 py-2 rounded-lg text-gray-500 hover:text-gray-900 transition-colors"
+              className="flex flex-col items-center gap-1 px-3 py-2 rounded-lg text-muted-foreground hover:text-foreground transition-[color] duration-fast ease-out-quint active:scale-[0.95]"
             >
               <MoreHorizontal size={24} />
               <span className="text-xs font-medium">More</span>
@@ -140,10 +142,10 @@ const Layout: React.FC = () => {
                   onClick={() => setMoreOpen(false)}
                   className={({ isActive }) =>
                     clsx(
-                      'flex items-center gap-3 px-4 py-3 rounded-lg transition-colors',
+                      'flex items-center gap-3 px-4 py-3 rounded-lg transition-[color,background-color] duration-fast ease-out-quint active:scale-[0.98]',
                       isActive
-                        ? 'text-blue-600 bg-blue-50'
-                        : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900',
+                        ? 'text-primary bg-primary/10'
+                        : 'text-muted-foreground hover:bg-accent hover:text-foreground',
                     )
                   }
                 >
@@ -157,9 +159,9 @@ const Layout: React.FC = () => {
       </nav>
 
       {/* Desktop Sidebar */}
-      <aside className="hidden md:flex fixed top-0 left-0 bottom-0 md:w-56 lg:w-64 bg-white border-r border-gray-200 flex-col">
-        <div className="p-6 border-b border-gray-200">
-          <h1 className="text-2xl font-bold text-gray-900">One Piece</h1>
+      <aside className="material-chrome hidden md:flex fixed top-0 left-0 bottom-0 md:w-56 lg:w-64 bg-background/75 backdrop-blur-xl backdrop-saturate-150 flex-col">
+        <div className="p-6">
+          <h1 className="text-2xl font-bold tracking-display text-foreground">One Piece</h1>
           {!loadingHousehold && familyName && userProfile?.householdId && (
             <div className="mt-2">
               <HouseholdSwitcher
@@ -176,10 +178,10 @@ const Layout: React.FC = () => {
               to={to}
               className={({ isActive }) =>
                 clsx(
-                  'flex items-center gap-3 px-4 py-3 rounded-lg transition-colors',
+                  'flex items-center gap-3 px-4 py-3 rounded-lg transition-[color,background-color] duration-fast ease-out-quint active:scale-[0.98]',
                   isActive
-                    ? 'text-blue-600 bg-blue-50'
-                    : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900',
+                    ? 'text-primary bg-primary/10'
+                    : 'text-muted-foreground hover:bg-accent hover:text-foreground',
                 )
               }
             >
@@ -190,11 +192,11 @@ const Layout: React.FC = () => {
         </nav>
 
         {/* Logout Button */}
-        <div className="p-4 border-t border-gray-200">
+        <div className="p-4">
           <Button
             variant="ghost"
             onClick={handleLogout}
-            className="w-full justify-start gap-3 text-gray-600 hover:bg-red-50 hover:text-red-600"
+            className="w-full justify-start gap-3 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
           >
             <LogOut size={20} />
             <span className="font-medium">Logout</span>

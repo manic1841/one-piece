@@ -83,14 +83,14 @@ const PortfolioSnapshotForm: React.FC<PortfolioSnapshotFormProps> = ({
 
           <PerformancePreview preview={preview} isMissingSnapshots={isMissingSnapshots} />
 
-          <DialogFooter className="bg-slate-50 -mx-6 -mb-6 p-6 mt-6 border-t">
+          <DialogFooter className="bg-muted -mx-6 -mb-6 p-6 mt-6 border-t">
             <Button type="button" variant="outline" onClick={onClose}>
               Cancel
             </Button>
             <Button
               type="submit"
               disabled={loading || isMissingSnapshots}
-              className="bg-blue-600 hover:bg-blue-700"
+              className="bg-primary hover:bg-primary/90"
             >
               {loading ? 'Processing...' : 'Record Settlement'}
             </Button>

@@ -27,7 +27,7 @@ export const PortfolioItem: React.FC<PortfolioItemProps> = ({
   return (
     <Card
       className={`group cursor-pointer transition-colors relative ${
-        isReorderMode ? 'hover:bg-slate-50' : 'hover:bg-slate-50'
+        isReorderMode ? 'hover:bg-muted' : 'hover:bg-muted'
       }`}
       onClick={() => !isReorderMode && onClick(viewModel.id)}
     >

@@ -68,7 +68,7 @@ const ProjectSettings: React.FC<ProjectSettingsProps> = ({ householdId, onBack }
       <Card>
         <CardContent className="p-4">
           {saveError && (
-            <div className="mb-4 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-medium text-rose-700">
+            <div className="mb-4 rounded-lg border border-negative/20 bg-negative/10 px-3 py-2 text-sm font-medium text-negative">
               {saveError}
             </div>
           )}

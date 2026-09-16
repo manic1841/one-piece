@@ -136,7 +136,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
 
         <form onSubmit={handleSubmit} className="space-y-5">
           {error ? (
-            <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+            <div className="rounded-xl border border-negative/20 bg-negative/10 px-4 py-3 text-sm text-negative">
               {error}
             </div>
           ) : null}
@@ -236,8 +236,8 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
           </Tabs>
 
           {preview ? (
-            <div className="rounded-2xl border bg-slate-900 px-4 py-3 text-white">
-              <div className="text-xs uppercase tracking-[0.2em] text-slate-300">Preview</div>
+            <div className="rounded-2xl border bg-primary px-4 py-3 text-white">
+              <div className="text-xs uppercase tracking-[0.2em] text-primary-foreground">Preview</div>
               <div className="mt-2 flex flex-wrap items-center gap-2 text-sm">
                 <Badge className="border-none bg-white/15 text-white">
                   {getIntentTypeLabel(preview.intentType)}

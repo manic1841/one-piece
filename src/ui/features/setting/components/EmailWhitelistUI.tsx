@@ -88,7 +88,7 @@ const EmailWhitelistUI: React.FC<EmailWhitelistUIProps> = ({
             <CardTitle>Email Whitelist</CardTitle>
             <CardDescription>Only whitelisted users can access this application</CardDescription>
           </div>
-          <div className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium">
+          <div className="px-3 py-1 bg-primary/15 text-primary rounded-full text-sm font-medium">
             {whitelist.length} {whitelist.length === 1 ? 'user' : 'users'}
           </div>
         </div>
@@ -137,7 +137,7 @@ const EmailWhitelistUI: React.FC<EmailWhitelistUIProps> = ({
                   size="icon"
                   onClick={() => handleRemoveEmail(email)}
                   disabled={saving}
-                  className="text-muted-foreground hover:text-red-600 hover:bg-red-50"
+                  className="text-muted-foreground hover:text-destructive hover:bg-destructive/10"
                   title="Remove"
                 >
                   <X size={18} />

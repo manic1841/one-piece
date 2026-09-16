@@ -34,7 +34,7 @@ describe('dashboardDisplay.vm', () => {
     expect(vm.monthlyPaymentText).toContain('12,000');
     expect(vm.unpaidCountText).toBe('2');
     expect(vm.isUnpaid).toBe(true);
-    expect(vm.unpaidContainerClassName).toContain('bg-rose-50');
+    expect(vm.unpaidContainerClassName).toContain('bg-negative/10');
   });
 
   it('formats trend tooltip by series dataKey, not display name', () => {

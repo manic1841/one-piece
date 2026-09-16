@@ -62,7 +62,7 @@ export function DebtPaymentPanel({ state, debtAccounts, projects, onChange }: De
     : null;
 
   return (
-    <div className="space-y-5 rounded-2xl border border-blue-200 bg-white p-5">
+    <div className="space-y-5 rounded-2xl border border-primary/20 bg-card p-5">
       {/* 選擇貸款 */}
       <div className="space-y-2">
         <Label>選擇貸款 *</Label>
@@ -111,7 +111,7 @@ export function DebtPaymentPanel({ state, debtAccounts, projects, onChange }: De
         <div className={`rounded-xl px-4 py-3 text-sm space-y-1 ${
           split.warning
             ? 'bg-amber-50 border border-amber-200 text-amber-800'
-            : 'bg-blue-50 border border-blue-200 text-blue-800'
+            : 'bg-primary/10 border border-primary/20 text-primary'
         }`}>
           {split.warning ? (
             <p className="font-medium">⚠️ {split.warning}</p>
@@ -125,7 +125,7 @@ export function DebtPaymentPanel({ state, debtAccounts, projects, onChange }: De
                 <span>本月利息</span>
                 <strong>${formatCurrency(split.interest)}</strong>
               </div>
-              <div className="flex justify-between border-t border-blue-200 pt-1 mt-1">
+              <div className="flex justify-between border-t border-primary/20 pt-1 mt-1">
                 <span>合計</span>
                 <strong>${formatCurrency(split.principal + split.interest)}</strong>
               </div>

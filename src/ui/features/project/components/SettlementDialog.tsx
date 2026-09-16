@@ -73,7 +73,7 @@ const SettlementDialog: React.FC<SettlementDialogProps> = ({
       >
         <DialogHeader>
           <div className="flex items-center gap-3">
-            <Calendar className="text-blue-600" size={24} />
+            <Calendar className="text-primary" size={24} />
             <DialogTitle>{getStepTitle()}</DialogTitle>
           </div>
         </DialogHeader>
@@ -125,7 +125,7 @@ const SettlementDialog: React.FC<SettlementDialogProps> = ({
               <Button variant="outline" onClick={back}>
                 上一步
               </Button>
-              <Button onClick={confirm} className="bg-green-600 hover:bg-green-700">
+              <Button onClick={confirm} className="bg-positive hover:bg-positive/90">
                 確認結算並進入下一步
               </Button>
             </>

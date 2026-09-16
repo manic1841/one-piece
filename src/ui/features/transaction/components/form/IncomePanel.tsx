@@ -29,7 +29,7 @@ export function IncomePanel({
   onChange,
 }: IncomePanelProps) {
   return (
-    <div className="space-y-5 rounded-2xl border border-slate-200 bg-white p-5">
+    <div className="space-y-5 rounded-2xl border border-border bg-card p-5">
       <AmountDateFields
         amountId="income-amount"
         dateId="income-date"
@@ -64,7 +64,7 @@ export function IncomePanel({
           placeholder="例如：薪資、獎金、退款回補"
         />
       </div>
-      <label className="flex items-start gap-3 rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+      <label className="flex items-start gap-3 rounded-xl border border-positive/20 bg-positive/10 px-4 py-3 text-sm text-positive">
         <Checkbox
           checked={state.triggerAllocation}
           onCheckedChange={(checked) =>
@@ -74,7 +74,7 @@ export function IncomePanel({
               allocationItems: checked === true ? state.allocationItems : [],
             })
           }
-          className="mt-0.5 border-emerald-500"
+          className="mt-0.5 border-positive"
         />
         <span>收入分配</span>
       </label>

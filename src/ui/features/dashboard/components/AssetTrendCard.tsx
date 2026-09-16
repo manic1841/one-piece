@@ -77,12 +77,12 @@ const AssetTrendCard: React.FC<AssetTrendCardProps> = ({ householdId }) => {
 
   const renderMetric = (metric: ReturnType<typeof mapAssetTrendMetricToVM>) => {
     return (
-      <div className="flex flex-col text-sm bg-slate-50 p-3 rounded-lg border border-slate-100 flex-1">
-        <span className="text-slate-500 mb-1">{metric.label}</span>
+      <div className="flex flex-col text-sm bg-muted p-3 rounded-lg border border-border flex-1">
+        <span className="text-muted-foreground mb-1">{metric.label}</span>
         <div className="flex items-end justify-between">
           <div className="flex flex-col">
-            <span className="font-semibold text-slate-800 tabular-nums">{metric.actualText}</span>
-            <span className="text-xs text-slate-400 tabular-nums mb-0.5">
+            <span className="font-semibold text-foreground tabular-nums">{metric.actualText}</span>
+            <span className="text-xs text-muted-foreground tabular-nums mb-0.5">
               {metric.projectedText}
             </span>
           </div>
@@ -100,14 +100,14 @@ const AssetTrendCard: React.FC<AssetTrendCardProps> = ({ householdId }) => {
     <Card className="overflow-hidden flex flex-col h-full">
       <CardHeader className="flex flex-col sm:flex-row sm:items-start sm:justify-between space-y-4 sm:space-y-0 pb-2">
         <div className="flex items-center gap-3">
-          <TrendingUp className="text-blue-600" size={24} />
+          <TrendingUp className="text-primary" size={24} />
           <CardTitle className="text-lg font-semibold flex items-center gap-3">
             資產趨勢
             {healthStatus &&
               (() => {
                 const statusBadge = mapAssetTrendStatusToBadgeVM(healthStatus.status);
                 return (
-                  <span className="flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full bg-slate-100 font-medium text-slate-600 border border-slate-200">
+                  <span className="flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full bg-muted font-medium text-muted-foreground border border-border">
                     {renderStatusIcon(statusBadge.icon, statusBadge.iconClassName)}
                     {statusBadge.label}
                   </span>
@@ -116,13 +116,13 @@ const AssetTrendCard: React.FC<AssetTrendCardProps> = ({ householdId }) => {
           </CardTitle>
         </div>
 
-        <div className="flex gap-2 bg-slate-100 p-1 rounded-md self-start sm:self-auto">
+        <div className="flex gap-2 bg-muted p-1 rounded-md self-start sm:self-auto">
           {modes.map((mode) => (
             <Button
               key={mode.value}
               variant={viewMode === mode.value ? 'secondary' : 'ghost'}
               size="sm"
-              className={`h-7 px-3 text-xs ${viewMode === mode.value ? 'bg-white shadow-sm' : ''}`}
+              className={`h-7 px-3 text-xs ${viewMode === mode.value ? 'bg-card shadow-sm' : ''}`}
               onClick={() => setViewMode(mode.value)}
             >
               {mode.label}
@@ -163,12 +163,12 @@ const AssetTrendCard: React.FC<AssetTrendCardProps> = ({ householdId }) => {
           <div className="h-[350px] w-full mt-2 flex-grow">
             <ResponsiveContainer width="100%" height="100%">
               <ComposedChart data={chartData} margin={{ top: 20, right: 10, left: 10, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
                 <XAxis
                   dataKey="label"
                   axisLine={false}
                   tickLine={false}
-                  tick={{ fontSize: 11, fill: '#94a3b8' }}
+                  tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
                   dy={10}
                 />
                 <YAxis
@@ -176,7 +176,7 @@ const AssetTrendCard: React.FC<AssetTrendCardProps> = ({ householdId }) => {
                   domain={yAxisDomains.left}
                   axisLine={false}
                   tickLine={false}
-                  tick={{ fontSize: 11, fill: '#94a3b8' }}
+                  tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
                   tickFormatter={formatCompactAxisValue}
                 />
                 <YAxis
@@ -185,14 +185,14 @@ const AssetTrendCard: React.FC<AssetTrendCardProps> = ({ householdId }) => {
                   domain={yAxisDomains.right}
                   axisLine={false}
                   tickLine={false}
-                  tick={{ fontSize: 11, fill: '#3b82f6' }}
+                  tick={{ fontSize: 11, fill: 'hsl(var(--chart-3))' }}
                   tickFormatter={formatCompactAxisValue}
                 />
                 <Tooltip
                   formatter={formatTrendTooltipValue}
                   contentStyle={{
-                    backgroundColor: 'white',
-                    border: '1px solid #e2e8f0',
+                    backgroundColor: 'hsl(var(--card))',
+                    border: '1px solid hsl(var(--border))',
                     borderRadius: '12px',
                     boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)',
                     padding: '12px',
@@ -204,8 +204,9 @@ const AssetTrendCard: React.FC<AssetTrendCardProps> = ({ householdId }) => {
                 <ReferenceLine
                   yAxisId="left"
                   y={0}
-                  stroke="#cbd5e1"
+                  stroke="hsl(var(--muted-foreground))"
                   strokeWidth={1}
+                  strokeOpacity={0.4}
                   strokeDasharray="3 3"
                 />
 
@@ -213,13 +214,13 @@ const AssetTrendCard: React.FC<AssetTrendCardProps> = ({ householdId }) => {
                   <ReferenceLine
                     yAxisId="right"
                     y={healthStatus.assets.projected}
-                    stroke="#3b82f6"
+                    stroke="hsl(var(--chart-3))"
                     strokeWidth={2}
                     strokeDasharray="5 5"
                     label={{
                       position: 'insideTopLeft',
                       value: ` ${new Date().getFullYear()} 預測資產`,
-                      fill: '#3b82f6',
+                      fill: 'hsl(var(--chart-3))',
                       fontSize: 12,
                       fontWeight: 500,
                     }}
@@ -231,7 +232,7 @@ const AssetTrendCard: React.FC<AssetTrendCardProps> = ({ householdId }) => {
                   stackId="balance"
                   dataKey="netAssets"
                   name="淨資產"
-                  fill="#3b82f6"
+                  fill="hsl(var(--chart-3))"
                   opacity={0.2}
                   radius={[0, 0, 0, 0]}
                   maxBarSize={50}
@@ -241,7 +242,7 @@ const AssetTrendCard: React.FC<AssetTrendCardProps> = ({ householdId }) => {
                   stackId="balance"
                   dataKey="liabilities"
                   name="負債"
-                  fill="#ef4444"
+                  fill="hsl(var(--negative))"
                   opacity={0.35}
                   radius={[4, 4, 0, 0]}
                   maxBarSize={50}
@@ -251,9 +252,9 @@ const AssetTrendCard: React.FC<AssetTrendCardProps> = ({ householdId }) => {
                   type="monotone"
                   dataKey="income"
                   name="收入"
-                  stroke="#22c55e"
+                  stroke="hsl(var(--positive))"
                   strokeWidth={2}
-                  dot={{ r: 3, fill: '#22c55e', strokeWidth: 1, stroke: '#fff' }}
+                  dot={{ r: 3, fill: 'hsl(var(--positive))', strokeWidth: 1, stroke: 'hsl(var(--card))' }}
                   connectNulls
                 />
                 <Line
@@ -261,9 +262,9 @@ const AssetTrendCard: React.FC<AssetTrendCardProps> = ({ householdId }) => {
                   type="monotone"
                   dataKey="expense"
                   name="支出"
-                  stroke="#ef4444"
+                  stroke="hsl(var(--negative))"
                   strokeWidth={2}
-                  dot={{ r: 3, fill: '#ef4444', strokeWidth: 1, stroke: '#fff' }}
+                  dot={{ r: 3, fill: 'hsl(var(--negative))', strokeWidth: 1, stroke: 'hsl(var(--card))' }}
                   connectNulls
                 />
                 <Line
@@ -271,9 +272,9 @@ const AssetTrendCard: React.FC<AssetTrendCardProps> = ({ householdId }) => {
                   type="monotone"
                   dataKey="investmentGain"
                   name="投資收益"
-                  stroke="#f59e0b"
+                  stroke="hsl(var(--chart-4))"
                   strokeWidth={2}
-                  dot={{ r: 3, fill: '#f59e0b', strokeWidth: 1, stroke: '#fff' }}
+                  dot={{ r: 3, fill: 'hsl(var(--chart-4))', strokeWidth: 1, stroke: 'hsl(var(--card))' }}
                   connectNulls
                 />
               </ComposedChart>

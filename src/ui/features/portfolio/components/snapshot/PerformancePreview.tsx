@@ -22,16 +22,16 @@ export const PerformancePreview: React.FC<PerformancePreviewProps> = ({
       ) : (
         preview && (
           <div className="space-y-3">
-            <Label className="text-blue-600 font-bold flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-blue-600 animate-pulse" />
+            <Label className="text-primary font-bold flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
               Performance Preview (Trial Calculation)
             </Label>
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 border rounded-md p-4 bg-blue-50/50 border-blue-100">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 border rounded-md p-4 bg-primary/5 border-primary/20">
               <div className="space-y-1">
-                <div className="text-[10px] text-slate-500 uppercase font-bold">Gain / Loss</div>
+                <div className="text-[10px] text-muted-foreground uppercase font-bold">Gain / Loss</div>
                 <div
                   className={`text-sm font-bold ${
-                    preview.performance.gain >= 0 ? 'text-emerald-600' : 'text-rose-600'
+                    preview.performance.gain >= 0 ? 'text-positive' : 'text-negative'
                   }`}
                 >
                   {preview.performance.gain >= 0 ? '+' : ''}
@@ -39,10 +39,10 @@ export const PerformancePreview: React.FC<PerformancePreviewProps> = ({
                 </div>
               </div>
               <div className="space-y-1">
-                <div className="text-[10px] text-slate-500 uppercase font-bold">Return Rate</div>
+                <div className="text-[10px] text-muted-foreground uppercase font-bold">Return Rate</div>
                 <div
                   className={`text-sm font-bold ${
-                    preview.performance.returnRate >= 0 ? 'text-emerald-600' : 'text-rose-600'
+                    preview.performance.returnRate >= 0 ? 'text-positive' : 'text-negative'
                   }`}
                 >
                   {preview.performance.returnRate >= 0 ? '+' : ''}
@@ -50,12 +50,12 @@ export const PerformancePreview: React.FC<PerformancePreviewProps> = ({
                 </div>
               </div>
               <div className="space-y-1">
-                <div className="text-[10px] text-slate-500 uppercase font-bold">
+                <div className="text-[10px] text-muted-foreground uppercase font-bold">
                   Cumulative Gain
                 </div>
                 <div
                   className={`text-sm font-bold ${
-                    preview.performance.cumulativeGain >= 0 ? 'text-emerald-600' : 'text-rose-600'
+                    preview.performance.cumulativeGain >= 0 ? 'text-positive' : 'text-negative'
                   }`}
                 >
                   {preview.performance.cumulativeGain >= 0 ? '+' : ''}
@@ -63,12 +63,12 @@ export const PerformancePreview: React.FC<PerformancePreviewProps> = ({
                 </div>
               </div>
               <div className="space-y-1">
-                <div className="text-[10px] text-slate-500 uppercase font-bold">Total Return</div>
+                <div className="text-[10px] text-muted-foreground uppercase font-bold">Total Return</div>
                 <div
                   className={`text-sm font-bold ${
                     preview.performance.cumulativeReturnRate >= 0
-                      ? 'text-emerald-600'
-                      : 'text-rose-600'
+                      ? 'text-positive'
+                      : 'text-negative'
                   }`}
                 >
                   {preview.performance.cumulativeReturnRate >= 0 ? '+' : ''}

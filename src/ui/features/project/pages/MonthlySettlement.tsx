@@ -44,7 +44,7 @@ const MonthlySettlement: React.FC<MonthlySettlementProps> = ({
   if (status === DialogStatus.DONE) {
     return (
       <div className="flex flex-col items-center justify-center py-12 space-y-4">
-        <CheckCircle2 size={64} className="text-green-500 animate-in zoom-in duration-300" />
+        <CheckCircle2 size={64} className="text-positive animate-in zoom-in duration-300" />
         <h2 className="text-2xl font-bold">Settlement Complete</h2>
         <p className="text-muted-foreground">
           Monthly snapshots have been created for all projects.
@@ -71,7 +71,7 @@ const MonthlySettlement: React.FC<MonthlySettlementProps> = ({
       {status === DialogStatus.SELECTION && (
         <Card className="p-6 max-w-md mx-auto">
           <div className="space-y-4">
-            <h3 className="font-semibold text-lg text-slate-900">選擇結算期間</h3>
+            <h3 className="font-semibold text-lg text-foreground">選擇結算期間</h3>
             <YearMonthPicker
               year={year}
               month={month}

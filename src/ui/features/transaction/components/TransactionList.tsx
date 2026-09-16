@@ -78,10 +78,10 @@ export const TransactionList: React.FC<TransactionListProps> = ({
 
   return (
     <div className="space-y-10">
-      <div className="rounded-xl border border-gray-100 bg-white p-3 shadow-sm">
+      <div className="rounded-xl border border-border bg-card p-3 shadow-sm">
         <div className="flex flex-col gap-3 md:flex-row md:flex-wrap md:items-end">
           <div className="w-full md:min-w-56 md:max-w-64 md:flex-1">
-            <label className="mb-1 block text-xs font-semibold text-gray-500">開始日期</label>
+            <label className="mb-1 block text-xs font-semibold text-muted-foreground">開始日期</label>
             <Input
               type="date"
               value={fromDate}
@@ -89,7 +89,7 @@ export const TransactionList: React.FC<TransactionListProps> = ({
             />
           </div>
           <div className="w-full md:min-w-56 md:max-w-64 md:flex-1">
-            <label className="mb-1 block text-xs font-semibold text-gray-500">結束日期</label>
+            <label className="mb-1 block text-xs font-semibold text-muted-foreground">結束日期</label>
             <Input type="date" value={toDate} onChange={(event) => setToDate(event.target.value)} />
           </div>
           <Button
@@ -110,7 +110,7 @@ export const TransactionList: React.FC<TransactionListProps> = ({
             清除日期篩選
           </Button>
         </div>
-        {dateRangeError ? <p className="mt-2 text-xs text-rose-600">{dateRangeError}</p> : null}
+        {dateRangeError ? <p className="mt-2 text-xs text-destructive">{dateRangeError}</p> : null}
       </div>
 
       {items.length === 0 ? (
@@ -123,13 +123,13 @@ export const TransactionList: React.FC<TransactionListProps> = ({
 
       {groupedItems.map(([month, transactions]) => (
         <section key={month} className="relative">
-          <div className="sticky top-0 z-10 bg-gray-50/80 backdrop-blur-sm pt-2 pb-3 mb-2 -mx-4 px-4 flex items-center justify-between border-b border-gray-100/50">
-            <h3 className="text-xs font-bold text-gray-400 uppercase tracking-[0.2em]">{month}</h3>
-            <span className="text-[10px] text-gray-300 font-medium">
+          <div className="sticky top-0 z-10 bg-muted/80 backdrop-blur-sm pt-2 pb-3 mb-2 -mx-4 px-4 flex items-center justify-between border-b border-border/50">
+            <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-[0.2em]">{month}</h3>
+            <span className="text-[10px] text-muted-foreground font-medium">
               {transactions.length} 筆交易
             </span>
           </div>
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden divide-y divide-gray-50">
+          <div className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden divide-y divide-border">
             {transactions.map((item) => (
               <div key={item.id}>
                 <TransactionItem transaction={item} onEdit={onEdit} onDelete={onDelete} />

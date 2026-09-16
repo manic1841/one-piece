@@ -66,10 +66,10 @@ export const SettlementSummary: React.FC<SettlementSummaryProps> = ({
 
       <div className="relative">
         <div className="absolute inset-0 flex items-center" aria-hidden="true">
-          <div className="w-full border-t border-slate-200"></div>
+          <div className="w-full border-t border-border"></div>
         </div>
         <div className="relative flex justify-start">
-          <span className="bg-white pr-4 text-xs font-black uppercase tracking-widest text-slate-400">
+          <span className="bg-card pr-4 text-xs font-black uppercase tracking-widest text-muted-foreground">
             正式報表作業
           </span>
         </div>

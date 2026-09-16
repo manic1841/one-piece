@@ -14,6 +14,7 @@ import {
 } from '@/ui/components/ui/dialog';
 import { Input } from '@/ui/components/ui/input';
 import { getIntentTypeLabel } from '@/ui/constants/transaction';
+import { PageHeader } from '@/ui/components/PageHeader';
 import { useLedgerCodes } from '@/ui/features/ledger/hooks/useLedgerCodes';
 import { useProjects } from '@/ui/features/project/hooks/useProjects';
 import { TransactionList } from '@/ui/features/transaction/components/TransactionList';
@@ -155,26 +156,29 @@ const Transactions: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-foreground">交易</h1>
-        <Button
-          onClick={() => {
-            resetEditState();
-            setIsFormOpen(true);
-          }}
-          className="gap-2 shadow-sm"
-        >
-          <Plus className="w-4 h-4" />
-          新增交易
-        </Button>
-      </div>
+      <PageHeader
+        title="交易"
+        description="檢視與管理所有收支、轉帳與還款紀錄。"
+        actions={
+          <Button
+            onClick={() => {
+              resetEditState();
+              setIsFormOpen(true);
+            }}
+            className="gap-2 shadow-sm"
+          >
+            <Plus className="w-4 h-4" />
+            新增交易
+          </Button>
+        }
+      />
 
-      <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
+      <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between bg-card p-4 rounded-xl border border-border shadow-sm">
         <div className="relative w-full md:w-96">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="搜尋備註或類型..."
-            className="pl-9 bg-gray-50/50 border-none focus-visible:ring-1 focus-visible:ring-gray-200"
+            className="pl-9 bg-muted/50 border-none focus-visible:ring-1 focus-visible:ring-border"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
@@ -192,8 +196,8 @@ const Transactions: React.FC = () => {
               className={cn(
                 'px-4 py-1.5 rounded-full text-sm font-medium transition-all whitespace-nowrap',
                 filterType === type.id
-                  ? 'bg-gray-900 text-white shadow-md'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200',
+                  ? 'bg-primary text-white shadow-md'
+                  : 'bg-muted text-muted-foreground hover:bg-muted',
               )}
             >
               {type.label}

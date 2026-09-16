@@ -16,7 +16,7 @@ export const AccountSnapshotList: React.FC<AccountSnapshotListProps> = ({
   return (
     <div className="space-y-3">
       <label className="text-sm font-semibold">Linked Account Snapshots</label>
-      <div className="space-y-2 border rounded-md p-4 bg-slate-50">
+      <div className="space-y-2 border rounded-md p-4 bg-muted">
         {accounts.map((account: Account) => {
           const snapshot = accountSnapshots.get(account.id);
           const currency = account.currency || 'USD';
@@ -33,9 +33,9 @@ export const AccountSnapshotList: React.FC<AccountSnapshotListProps> = ({
                 </div>
 
                 {snapshot?.holdings && (
-                  <div className="mt-2 pl-3 border-l-2 border-slate-200 space-y-1">
+                  <div className="mt-2 pl-3 border-l-2 border-border space-y-1">
                     {snapshot.holdings.map((h: Holding, idx: number) => (
-                      <div key={idx} className="text-[11px] text-slate-500">
+                      <div key={idx} className="text-[11px] text-muted-foreground">
                         {h.name} ({h.symbol}): {h.quantity} @{' '}
                         {(h.marketValue / h.quantity).toLocaleString()} ={' '}
                         <span className="font-medium">
@@ -62,9 +62,9 @@ export const AccountSnapshotList: React.FC<AccountSnapshotListProps> = ({
           );
         })}
 
-        <div className="flex justify-between items-center pt-3 mt-3 border-t border-slate-300 font-bold">
+        <div className="flex justify-between items-center pt-3 mt-3 border-t border-border font-bold">
           <span className="text-sm">Combined Portfolio Value</span>
-          <span className="text-blue-600 font-mono">{totalValue.toLocaleString()} TWD</span>
+          <span className="text-primary font-mono">{totalValue.toLocaleString()} TWD</span>
         </div>
       </div>
     </div>

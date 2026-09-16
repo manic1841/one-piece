@@ -37,17 +37,17 @@ export function DebtPaymentHistory({ debtAccountId, getHistory }: DebtPaymentHis
   }, [debtAccountId, getHistory]);
 
   if (loading) {
-    return <div className="py-4 text-center text-sm text-slate-500">載入中...</div>;
+    return <div className="py-4 text-center text-sm text-muted-foreground">載入中...</div>;
   }
 
   if (history.length === 0) {
-    return <div className="py-8 text-center text-sm text-slate-400">目前尚無還款紀錄</div>;
+    return <div className="py-8 text-center text-sm text-muted-foreground">目前尚無還款紀錄</div>;
   }
 
   return (
-    <div className="mt-4 overflow-hidden rounded-xl border border-slate-100 bg-slate-50/50">
+    <div className="mt-4 overflow-hidden rounded-xl border border-border bg-muted/50">
       <table className="w-full text-left text-sm">
-        <thead className="bg-slate-100/50 text-slate-500">
+        <thead className="bg-muted/50 text-muted-foreground">
           <tr>
             <th className="px-4 py-2 font-medium">日期</th>
             <th className="px-4 py-2 font-medium">說明</th>
@@ -56,29 +56,29 @@ export function DebtPaymentHistory({ debtAccountId, getHistory }: DebtPaymentHis
             <th className="px-4 py-2 font-medium text-right">總額</th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-slate-100">
+        <tbody className="divide-y divide-border">
           {history.map((item) => {
             return (
-              <tr key={item.id} className="hover:bg-white/50 transition-colors">
+              <tr key={item.id} className="hover:bg-card/50 transition-colors">
                 <td className="whitespace-nowrap px-4 py-2.5">
-                  <div className="flex items-center gap-1.5 text-slate-600">
+                  <div className="flex items-center gap-1.5 text-muted-foreground">
                     <Calendar className="h-3.5 w-3.5" />
                     {item.dateText}
                   </div>
                 </td>
-                <td className="px-4 py-2.5 text-slate-500">
+                <td className="px-4 py-2.5 text-muted-foreground">
                   <div className="flex items-center gap-1.5">
                     <ReceiptText className="h-3.5 w-3.5" />
                     {item.descriptionText}
                   </div>
                 </td>
-                <td className="px-4 py-2.5 text-right font-medium text-emerald-600">
+                <td className="px-4 py-2.5 text-right font-medium text-positive">
                   {item.principalText}
                 </td>
-                <td className="px-4 py-2.5 text-right font-medium text-rose-600">
+                <td className="px-4 py-2.5 text-right font-medium text-negative">
                   {item.interestText}
                 </td>
-                <td className="px-4 py-2.5 text-right font-bold text-slate-900">
+                <td className="px-4 py-2.5 text-right font-bold text-foreground">
                   {item.totalText}
                 </td>
               </tr>

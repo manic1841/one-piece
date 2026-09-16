@@ -134,7 +134,7 @@ describe('retirementDisplay.vm', () => {
       note: 'Down payment',
     });
     expect(event.amountText).toContain('200,000');
-    expect(event.amountClassName).toBe('text-red-500');
+    expect(event.amountClassName).toBe('text-negative');
   });
 
   it('maps projection vm', () => {

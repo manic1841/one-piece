@@ -54,8 +54,8 @@ export const ReportSettlement: React.FC<ReportSettlementProps> = ({
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-top-4 duration-700">
-      <Card className="border-slate-200/60 shadow-xl shadow-slate-200/40 overflow-hidden rounded-2xl border-0">
-        <CardHeader className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white py-6 px-8 border-b-0">
+      <Card className="border-border/60 shadow-xl shadow-border/40 overflow-hidden rounded-2xl border-0">
+        <CardHeader className="bg-gradient-to-r from-primary via-indigo-950 to-primary text-white py-6 px-8 border-b-0">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="bg-white/10 p-2.5 rounded-xl backdrop-blur-md border border-white/20">
@@ -93,9 +93,9 @@ export const ReportSettlement: React.FC<ReportSettlementProps> = ({
         </CardHeader>
 
         <CardContent className="p-0">
-          <div className="bg-slate-50/50 border-b border-slate-100 p-8 flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div className="bg-muted/50 border-b border-border p-8 flex flex-col md:flex-row md:items-center justify-between gap-6">
             <div className="flex items-center gap-4 flex-1">
-              <div className="bg-white p-3 rounded-2xl shadow-sm border border-slate-100 shrink-0">
+              <div className="bg-card p-3 rounded-2xl shadow-sm border border-border shrink-0">
                 <Calendar className="text-indigo-600" size={20} />
               </div>
               <div className="flex-1 min-w-[320px]">
@@ -136,7 +136,7 @@ export const ReportSettlement: React.FC<ReportSettlementProps> = ({
             />
 
             {summary && (
-              <div className="mt-6 pt-6 border-t border-slate-100 flex justify-end">
+              <div className="mt-6 pt-6 border-t border-border flex justify-end">
                 <Dialog open={isPreviewing} onOpenChange={setIsPreviewing}>
                   <DialogTrigger asChild>
                     <Button
@@ -144,18 +144,18 @@ export const ReportSettlement: React.FC<ReportSettlementProps> = ({
                       size="lg"
                       disabled={isLoading || isGenerating}
                       onClick={() => fetchPreview().then(() => setIsPreviewing(true))}
-                      className="border-slate-200 text-slate-700 hover:bg-slate-50 rounded-2xl font-bold group"
+                      className="border-border text-foreground hover:bg-muted rounded-2xl font-bold group"
                     >
                       <Eye
                         size={18}
-                        className="mr-2 text-slate-400 group-hover:text-indigo-600 transition-colors"
+                        className="mr-2 text-muted-foreground group-hover:text-indigo-600 transition-colors"
                       />
                       預覽即將發佈之報表
                     </Button>
                   </DialogTrigger>
                   <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto rounded-3xl p-8">
                     <DialogHeader>
-                      <DialogTitle className="text-2xl font-black text-slate-900 mb-6">
+                      <DialogTitle className="text-2xl font-black text-foreground mb-6">
                         財務報表發佈預覽 ({year}-{month})
                       </DialogTitle>
                     </DialogHeader>
@@ -164,10 +164,10 @@ export const ReportSettlement: React.FC<ReportSettlementProps> = ({
                     ) : (
                       <div className="h-64 flex flex-col items-center justify-center space-y-4">
                         <RefreshCw size={32} className="text-indigo-600 animate-spin" />
-                        <p className="font-bold text-slate-500">正在計算預覽數據...</p>
+                        <p className="font-bold text-muted-foreground">正在計算預覽數據...</p>
                       </div>
                     )}
-                    <div className="mt-8 pt-8 border-t border-slate-100 flex justify-end gap-4">
+                    <div className="mt-8 pt-8 border-t border-border flex justify-end gap-4">
                       <Button
                         variant="ghost"
                         onClick={() => setIsPreviewing(false)}

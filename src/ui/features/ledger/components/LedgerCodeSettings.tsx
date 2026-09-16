@@ -160,7 +160,7 @@ export const LedgerCodeSettings = () => {
                             <Button
                               variant={item.isActive ? 'outline' : 'ghost'}
                               size="sm"
-                              className={`h-8 gap-1.5 ${item.isActive ? 'text-emerald-600 hover:text-emerald-700' : 'text-muted-foreground'}`}
+                              className={`h-8 gap-1.5 ${item.isActive ? 'text-positive hover:text-positive' : 'text-muted-foreground'}`}
                               onClick={() => handleToggleActive(item)}
                             >
                               <Power size={14} />

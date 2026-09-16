@@ -26,8 +26,8 @@ export const SettlementPreview: React.FC<SettlementPreviewProps> = ({
 }) => {
   return (
     <div className="space-y-4 py-4">
-      <Card className="bg-blue-50 border-blue-200 p-4">
-        <p className="text-sm text-blue-800">
+      <Card className="bg-primary/10 border-primary/20 p-4">
+        <p className="text-sm text-primary">
           <strong>
             Settlement Preview for {year}-{String(month).padStart(2, '0')}
           </strong>
@@ -62,10 +62,10 @@ export const SettlementPreview: React.FC<SettlementPreviewProps> = ({
               <TableCell className="text-right font-medium">
                 {settlement.openingBalanceText}
               </TableCell>
-              <TableCell className="text-right text-green-600 font-medium">
+              <TableCell className="text-right text-positive font-medium">
                 +{settlement.incomeText}
               </TableCell>
-              <TableCell className="text-right text-red-600 font-medium">
+              <TableCell className="text-right text-negative font-medium">
                 -{settlement.expenseText}
               </TableCell>
               <TableCell className="text-right font-bold">

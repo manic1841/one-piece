@@ -7,8 +7,8 @@ type PieDataItem = {
 };
 
 const PIE_COLORS = {
-  fixed: '#3b82f6',
-  variable: '#f59e0b',
+  fixed: 'hsl(var(--chart-3))',
+  variable: 'hsl(var(--chart-4))',
 };
 
 export function ExpenseBreakdownCard({ pieData }: { pieData: PieDataItem[] }) {

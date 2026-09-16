@@ -119,10 +119,10 @@ function UnsettledItemsList({
       {debts.length > 0 && <UnsettledItemSection label="尚未結算的債務" items={debts} />}
       {debtWarnings.length > 0 && (
         <div className="pt-3 mt-2 border-t border-amber-200/70">
-          <p className="text-xs font-bold uppercase tracking-widest text-rose-700/80">
+          <p className="text-xs font-bold uppercase tracking-widest text-negative/80">
             債務無還款警訊
           </p>
-          <p className="text-sm text-rose-900 font-semibold leading-relaxed">
+          <p className="text-sm text-negative font-semibold leading-relaxed">
             {debtWarnings.join('、')} 於該月無還款紀錄。 可結算但請先在債務結算預覽中確認。
           </p>
         </div>
@@ -146,16 +146,16 @@ export function SummaryStatsGrid({ summary }: { summary: SummaryData }) {
       <StatCard
         label="本月總收入"
         value={summary.totalRevenue}
-        icon={<ArrowDownCircle className="text-emerald-500" size={16} />}
-        colorClass="text-emerald-600"
-        bgClass="bg-emerald-50/50"
+        icon={<ArrowDownCircle className="text-positive" size={16} />}
+        colorClass="text-positive"
+        bgClass="bg-positive/5"
       />
       <StatCard
         label="本月總支出"
         value={summary.totalExpense}
-        icon={<ArrowUpCircle className="text-rose-500" size={16} />}
-        colorClass="text-rose-600"
-        bgClass="bg-rose-50/50"
+        icon={<ArrowUpCircle className="text-negative" size={16} />}
+        colorClass="text-negative"
+        bgClass="bg-negative/5"
       />
       <StatCard
         label="本月淨損益"
@@ -167,9 +167,9 @@ export function SummaryStatsGrid({ summary }: { summary: SummaryData }) {
       <StatCard
         label="結算後總資產"
         value={summary.netWorth}
-        icon={<Wallet className="text-slate-500" size={16} />}
-        colorClass="text-slate-900"
-        bgClass="bg-slate-100/50"
+        icon={<Wallet className="text-muted-foreground" size={16} />}
+        colorClass="text-foreground"
+        bgClass="bg-muted/50"
       />
     </div>
   );
@@ -196,20 +196,20 @@ export function ReportGenerationSection({
 }) {
   return (
     <div className="flex flex-col md:flex-row items-stretch gap-6">
-      <div className="flex-1 bg-white border border-slate-200/60 rounded-2xl p-8 space-y-6 shadow-sm">
+      <div className="flex-1 bg-card border border-border/60 rounded-2xl p-8 space-y-6 shadow-sm">
         <div className="flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="space-y-3 flex-1">
             <div className="flex items-center gap-2.5">
               <div className="bg-indigo-100 p-2 rounded-lg text-indigo-600">
                 <FileText size={20} />
               </div>
-              <h4 className="text-lg font-black text-slate-900 tracking-tight">產生正式財務三表</h4>
+              <h4 className="text-lg font-black text-foreground tracking-tight">產生正式財務三表</h4>
             </div>
-            <p className="text-sm text-slate-500 leading-relaxed max-w-lg font-medium">
+            <p className="text-sm text-muted-foreground leading-relaxed max-w-lg font-medium">
               點選按鈕後，系統將鎖定當前快照數據並產出{' '}
-              <span className="text-slate-900 font-bold">損益表</span>、
-              <span className="text-slate-900 font-bold">資產負債表</span> 與{' '}
-              <span className="text-slate-900 font-bold">現金流量表</span>。
+              <span className="text-foreground font-bold">損益表</span>、
+              <span className="text-foreground font-bold">資產負債表</span> 與{' '}
+              <span className="text-foreground font-bold">現金流量表</span>。
             </p>
           </div>
 
@@ -252,7 +252,7 @@ function ReportGenerationButton({
         className={`h-14 px-8 rounded-2xl font-black text-base transition-all shadow-xl active:scale-95 ${
           isPrimary
             ? 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-100'
-            : 'border-slate-200 text-slate-700 hover:bg-slate-50 shadow-none'
+            : 'border-border text-foreground hover:bg-muted shadow-none'
         }`}
       >
         {isGenerating ? (
@@ -267,7 +267,7 @@ function ReportGenerationButton({
         )}
       </Button>
       {reportsGenerated && (
-        <p className="text-[10px] text-emerald-600 font-black uppercase tracking-widest flex items-center gap-1">
+        <p className="text-[10px] text-positive font-black uppercase tracking-widest flex items-center gap-1">
           <Check size={12} strokeWidth={3} /> Data Synchronized
         </p>
       )}
@@ -277,7 +277,7 @@ function ReportGenerationButton({
 
 function ErrorAlert({ message }: { message: string }) {
   return (
-    <div className="flex items-center gap-3 text-sm font-bold text-rose-600 bg-rose-50/50 p-4 rounded-xl border border-rose-100 animate-in shake duration-500">
+    <div className="flex items-center gap-3 text-sm font-bold text-negative bg-negative/5 p-4 rounded-xl border border-negative/20 animate-in shake duration-500">
       <AlertCircle size={18} className="shrink-0" />
       {message}
     </div>
@@ -329,11 +329,11 @@ function StatCard({
 }) {
   return (
     <div
-      className={`${bgClass} border border-slate-100 rounded-2xl p-5 space-y-2 transition-all hover:shadow-md hover:translate-y-[-2px]`}
+      className={`${bgClass} border border-border rounded-2xl p-5 space-y-2 transition-all hover:shadow-md hover:translate-y-[-2px]`}
     >
       <div className="flex items-center gap-2">
         {icon}
-        <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+        <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
           {label}
         </span>
       </div>
@@ -353,10 +353,10 @@ function ReportStatusItem({
 }) {
   return (
     <div
-      className={`flex flex-col gap-1 p-4 rounded-xl border transition-all ${isDone ? 'bg-slate-50 border-slate-200 shadow-sm' : 'bg-white border-dashed border-slate-300 opacity-50'}`}
+      className={`flex flex-col gap-1 p-4 rounded-xl border transition-all ${isDone ? 'bg-muted border-border shadow-sm' : 'bg-card border-dashed border-border opacity-50'}`}
     >
-      <span className="text-xs font-black text-slate-800 tracking-tight">{label}</span>
-      <span className="text-[10px] font-bold text-slate-400">
+      <span className="text-xs font-black text-foreground tracking-tight">{label}</span>
+      <span className="text-[10px] font-bold text-muted-foreground">
         {timestamp ? `LAST UPDATED: ${timestamp}` : 'NOT GENERATED'}
       </span>
     </div>

@@ -20,6 +20,8 @@
     --accent-foreground: 222.2 47.4% 11.2%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
+    --positive: 160 84% 39%;
+    --negative: 350 89% 60%;
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
     --ring: 222.2 84% 4.9%;
@@ -65,5 +67,33 @@
   }
   body {
     @apply bg-background text-foreground;
+    font: 100%/1.5 'Noto Sans TC', system-ui, sans-serif;
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+
+@layer base {
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+
+  @media (prefers-reduced-transparency: reduce) {
+    .material-chrome {
+      background: hsl(var(--background)) !important;
+      backdrop-filter: none !important;
+      -webkit-backdrop-filter: none !important;
+    }
+  }
+
+  @media (prefers-contrast: more) {
+    .material-chrome {
+      border: 1px solid hsl(var(--border));
+    }
   }
 }

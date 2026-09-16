@@ -34,12 +34,12 @@ export const DebtSettlement: React.FC<DebtSettlementProps> = ({
   if (status === DebtSettlementStatus.SUCCESS) {
     return (
       <div className="flex flex-col items-center justify-center py-8 space-y-4">
-        <CheckCircle2 size={48} className="text-emerald-500 animate-in zoom-in duration-300" />
+        <CheckCircle2 size={48} className="text-positive animate-in zoom-in duration-300" />
         <h3 className="text-xl font-bold">債務結算完成</h3>
         <p className="text-muted-foreground text-center text-sm">
           {year}年{month}月的債務快照已成功建立。
         </p>
-        <Button onClick={onCancel} className="bg-emerald-600 hover:bg-emerald-700">
+        <Button onClick={onCancel} className="bg-positive hover:bg-positive/90">
           完成
         </Button>
       </div>
@@ -54,14 +54,14 @@ export const DebtSettlement: React.FC<DebtSettlementProps> = ({
 
     return (
       <div className="space-y-5 py-2">
-        <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
-          <p className="text-sm font-semibold text-slate-700">{preview.yearMonth} 債務結算預覽</p>
-          <p className="text-xs text-slate-600">請確認每個債務帳戶當月還款紀錄與快照建立狀態。</p>
+        <div className="p-4 bg-muted border border-border rounded-xl space-y-2">
+          <p className="text-sm font-semibold text-foreground">{preview.yearMonth} 債務結算預覽</p>
+          <p className="text-xs text-muted-foreground">請確認每個債務帳戶當月還款紀錄與快照建立狀態。</p>
         </div>
 
-        <div className="max-h-64 overflow-auto border border-slate-200 rounded-xl">
+        <div className="max-h-64 overflow-auto border border-border rounded-xl">
           <table className="w-full text-sm">
-            <thead className="bg-slate-50 text-slate-600 sticky top-0">
+            <thead className="bg-muted text-muted-foreground sticky top-0">
               <tr>
                 <th className="px-3 py-2 text-left font-medium">帳戶</th>
                 <th className="px-3 py-2 text-right font-medium">當月還款</th>
@@ -70,11 +70,11 @@ export const DebtSettlement: React.FC<DebtSettlementProps> = ({
             </thead>
             <tbody>
               {preview.items.map((item) => (
-                <tr key={item.debtAccountId} className="border-t border-slate-100">
-                  <td className="px-3 py-2 text-slate-700">{item.debtAccountName}</td>
+                <tr key={item.debtAccountId} className="border-t border-border">
+                  <td className="px-3 py-2 text-foreground">{item.debtAccountName}</td>
                   <td className="px-3 py-2 text-right">
                     {item.hasRepaymentRecord ? (
-                      <span className="text-emerald-700 font-medium">
+                      <span className="text-positive font-medium">
                         {item.repaymentCount} 筆 / {item.repaymentAmount.toLocaleString()}
                       </span>
                     ) : (
@@ -83,7 +83,7 @@ export const DebtSettlement: React.FC<DebtSettlementProps> = ({
                   </td>
                   <td className="px-3 py-2 text-right">
                     {item.hasSnapshot ? (
-                      <span className="text-slate-600">已存在</span>
+                      <span className="text-muted-foreground">已存在</span>
                     ) : (
                       <span className="text-indigo-700 font-medium">將建立</span>
                     )}
@@ -116,13 +116,13 @@ export const DebtSettlement: React.FC<DebtSettlementProps> = ({
         )}
 
         {error && (
-          <div className="flex items-center gap-2 p-3 bg-rose-50 border border-rose-100 rounded-lg text-rose-600 text-sm">
+          <div className="flex items-center gap-2 p-3 bg-negative/10 border border-negative/20 rounded-lg text-negative text-sm">
             <AlertCircle size={16} />
             <p className="font-medium">{error}</p>
           </div>
         )}
 
-        <div className="flex justify-end gap-3 pt-2 border-t border-slate-100">
+        <div className="flex justify-end gap-3 pt-2 border-t border-border">
           <Button
             variant="ghost"
             onClick={back}
@@ -154,15 +154,15 @@ export const DebtSettlement: React.FC<DebtSettlementProps> = ({
   return (
     <div className="space-y-6 py-2">
       <div className="space-y-4">
-        <div className="p-4 bg-blue-50 border border-blue-100 rounded-xl">
-          <p className="text-xs text-blue-700 leading-relaxed">
+        <div className="p-4 bg-primary/10 border border-primary/20 rounded-xl">
+          <p className="text-xs text-primary leading-relaxed">
             結算功能會為所有債務帳戶建立該月份的快照 (Snapshot)。
             如果該月有還款紀錄，快照將包含還款後的餘額；若無還款，則以目前餘額作為月底結算值。
           </p>
         </div>
 
         <div className="space-y-3">
-          <label className="text-sm font-bold text-slate-700">選擇結算期間</label>
+          <label className="text-sm font-bold text-foreground">選擇結算期間</label>
           <YearMonthPicker
             year={year}
             month={month}
@@ -174,14 +174,14 @@ export const DebtSettlement: React.FC<DebtSettlementProps> = ({
         </div>
 
         {error && (
-          <div className="flex items-center gap-2 p-3 bg-rose-50 border border-rose-100 rounded-lg text-rose-600 text-sm">
+          <div className="flex items-center gap-2 p-3 bg-negative/10 border border-negative/20 rounded-lg text-negative text-sm">
             <AlertCircle size={16} />
             <p className="font-medium">{error}</p>
           </div>
         )}
       </div>
 
-      <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
+      <div className="flex justify-end gap-3 pt-4 border-t border-border">
         <Button
           variant="ghost"
           onClick={onCancel}

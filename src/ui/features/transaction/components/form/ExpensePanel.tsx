@@ -35,7 +35,7 @@ export function ExpensePanel({
   onChange,
 }: ExpensePanelProps) {
   return (
-    <div className="space-y-5 rounded-2xl border border-slate-200 bg-white p-5">
+    <div className="space-y-5 rounded-2xl border border-border bg-card p-5">
       <AmountDateFields
         amountId="expense-amount"
         dateId="expense-date"
@@ -79,7 +79,7 @@ export function ExpensePanel({
           placeholder="補充這筆支出的脈絡"
         />
       </div>
-      <label className="flex items-start gap-3 rounded-xl border border-rose-100 bg-rose-50 px-4 py-3 text-sm text-rose-800">
+      <label className="flex items-start gap-3 rounded-xl border border-negative/20 bg-negative/10 px-4 py-3 text-sm text-negative">
         <Checkbox
           checked={state.triggerAllocation}
           onCheckedChange={(checked) =>
@@ -89,7 +89,7 @@ export function ExpensePanel({
               allocationItems: checked === true ? state.allocationItems : [],
             })
           }
-          className="mt-0.5 border-rose-500"
+          className="mt-0.5 border-negative"
         />
         <span>支出分配</span>
       </label>

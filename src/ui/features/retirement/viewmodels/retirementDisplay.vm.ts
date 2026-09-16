@@ -169,7 +169,7 @@ export const mapRetirementEventToVM = (event: RetirementOneTimeEvent): Retiremen
     yearText: `Year: ${minYear}${maxYear && maxYear !== minYear ? `-${maxYear}` : ''}`,
     amountText,
     typeText: event.type,
-    amountClassName: isIncome ? 'text-green-600' : 'text-red-500',
+    amountClassName: isIncome ? 'text-positive' : 'text-negative',
   };
 };
 
@@ -290,7 +290,7 @@ export const mapRetirementProjectionToVM = (
     minYearText: String(minSnapshot?.year ?? '-'),
     minSavingsText: formatCurrency(minSnapshot?.savings ?? 0),
     bankruptText: bankruptSnapshot ? `是 (${bankruptSnapshot.year})` : '否',
-    bankruptClassName: bankruptSnapshot ? 'text-red-600' : 'text-green-600',
+    bankruptClassName: bankruptSnapshot ? 'text-negative' : 'text-positive',
     chartData: projection.map((item) => ({
       year: item.year,
       age: item.age,

@@ -22,7 +22,7 @@ export const AccountHolding: React.FC<AccountHoldingProps> = ({
   onUpdateHolding,
 }) => {
   return (
-    <div className="space-y-3 border rounded-md p-4 bg-slate-50">
+    <div className="space-y-3 border rounded-md p-4 bg-muted">
       <div className="flex justify-between items-center">
         <Label>Holdings</Label>
         <Button type="button" variant="outline" size="sm" onClick={onAddHolding}>

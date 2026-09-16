@@ -12,6 +12,8 @@ export default {
       colors: {
         background: 'hsl(var(--background))',
         foreground: 'hsl(var(--foreground))',
+        positive: 'hsl(var(--positive))',
+        negative: 'hsl(var(--negative))',
         card: {
           DEFAULT: 'hsl(var(--card))',
           foreground: 'hsl(var(--card-foreground))',
@@ -50,6 +52,29 @@ export default {
           4: 'hsl(var(--chart-4))',
           5: 'hsl(var(--chart-5))',
         },
+      },
+      transitionDuration: {
+        fast: '120ms',
+        base: '240ms',
+        slow: '400ms',
+      },
+      animationDuration: {
+        fast: '120ms',
+        base: '240ms',
+        slow: '400ms',
+      },
+      transitionTimingFunction: {
+        'out-quint': 'cubic-bezier(0.22, 1, 0.36, 1)',
+        'in-quint': 'cubic-bezier(0.75, 0, 0.85, 0.4)',
+      },
+      animationTimingFunction: {
+        'out-quint': 'cubic-bezier(0.22, 1, 0.36, 1)',
+        'in-quint': 'cubic-bezier(0.75, 0, 0.85, 0.4)',
+      },
+      letterSpacing: {
+        display: '-0.02em',
+        heading: '-0.01em',
+        caption: '0.01em',
       },
     },
   },

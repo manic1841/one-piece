@@ -30,8 +30,8 @@ export const TransactionItem: React.FC<TransactionItemProps> = ({
     isPositive,
     amountText,
   } = transaction;
-  const amountColor = isPositive ? 'text-emerald-600' : 'text-rose-600';
-  const bgAlpha = isPositive ? 'hover:bg-emerald-50/50' : 'hover:bg-rose-50/50';
+  const amountColor = isPositive ? 'text-positive' : 'text-negative';
+  const bgAlpha = isPositive ? 'hover:bg-positive/5' : 'hover:bg-negative/5';
 
   return (
     <div className={cn('group p-4 transition-all duration-200', bgAlpha)}>
@@ -40,7 +40,7 @@ export const TransactionItem: React.FC<TransactionItemProps> = ({
           <div
             className={cn(
               'w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 shadow-sm transition-transform group-hover:scale-105',
-              isPositive ? 'bg-emerald-100 text-emerald-600' : 'bg-rose-100 text-rose-600',
+              isPositive ? 'bg-positive/15 text-positive' : 'bg-negative/15 text-negative',
             )}
           >
             <TransactionIcon category={categoryKey} intentType={intentType} size={22} />
@@ -48,7 +48,7 @@ export const TransactionItem: React.FC<TransactionItemProps> = ({
 
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-0.5">
-              <h4 className="font-semibold text-gray-900 truncate">{displayTitle}</h4>
+              <h4 className="font-semibold text-foreground truncate">{displayTitle}</h4>
               {projectName && (
                 <span className="shrink-0 text-[10px] font-bold px-2 py-0.5 bg-indigo-50 text-indigo-500 rounded-md uppercase tracking-wider">
                   {projectName}
@@ -56,9 +56,9 @@ export const TransactionItem: React.FC<TransactionItemProps> = ({
               )}
             </div>
 
-            <div className="flex items-center gap-2 text-xs text-gray-400">
-              <span className="font-medium text-gray-500">{categoryLabel}</span>
-              <span className="w-1 h-1 rounded-full bg-gray-200" />
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <span className="font-medium text-muted-foreground">{categoryLabel}</span>
+              <span className="w-1 h-1 rounded-full bg-muted" />
               <span>{dateText}</span>
             </div>
           </div>
@@ -68,7 +68,7 @@ export const TransactionItem: React.FC<TransactionItemProps> = ({
           <div className="text-right whitespace-nowrap">
             <p
               className={cn(
-                'text-lg font-bold tracking-tight',
+                'text-lg font-bold tracking-tight tabular-nums',
                 hasCashLedger ? amountColor : 'text-amber-500',
               )}
             >
@@ -89,7 +89,7 @@ export const TransactionItem: React.FC<TransactionItemProps> = ({
                 size="icon"
                 onClick={() => onEdit(transaction)}
                 aria-label="編輯交易"
-                className="h-9 w-9 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl"
+                className="h-9 w-9 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-xl"
               >
                 <Pencil size={16} />
               </Button>
@@ -100,7 +100,7 @@ export const TransactionItem: React.FC<TransactionItemProps> = ({
                 size="icon"
                 onClick={() => onDelete(transaction)}
                 aria-label="刪除交易"
-                className="h-9 w-9 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-xl"
+                className="h-9 w-9 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-xl"
               >
                 <Trash2 size={16} />
               </Button>

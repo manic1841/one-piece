@@ -12,7 +12,7 @@ const Onboarding: React.FC = () => {
   const { input, setInput, loading, error, handleSubmit, handleLogout } = useOnboarding();
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
+    <div className="min-h-screen bg-muted flex flex-col items-center justify-center p-4">
       <Card className="w-full max-w-md">
         <CardHeader>
           <div className="flex justify-between items-center">

@@ -51,8 +51,8 @@ export const AllocationSection: React.FC<AllocationSectionProps> = ({
   const totalClass =
     Math.abs(totalPercentage - 100) < 0.01
       ? tone === 'income'
-        ? 'text-emerald-700'
-        : 'text-rose-700'
+        ? 'text-positive'
+        : 'text-negative'
       : 'text-amber-700';
 
   const addSelectedProject = () => {

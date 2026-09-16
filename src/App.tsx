@@ -22,7 +22,13 @@ import Transactions from '@/ui/features/transaction/pages/TransactionsPage';
 function App() {
   return (
     <AuthProvider>
-      <Toaster />
+      <Toaster
+        toastOptions={{
+          classNames: {
+            toast: 'rounded-lg border border-border bg-card text-card-foreground shadow-lg',
+          },
+        }}
+      />
       <BrowserRouter>
         <Routes>
           <Route path="/login" element={<Login />} />

@@ -33,12 +33,12 @@ export function DynamicCategorySelector({
   const options = allLedgerCodes.filter((c) => c.code.startsWith(prefix));
 
   return (
-    <div className="space-y-2 mt-4 p-3 bg-slate-50 rounded-xl border border-slate-200">
-      <Label className="text-xs text-slate-500 uppercase tracking-wider font-bold">
+    <div className="space-y-2 mt-4 p-3 bg-muted rounded-xl border border-border">
+      <Label className="text-xs text-muted-foreground uppercase tracking-wider font-bold">
         屬性 / 詳細類別
       </Label>
       <Select value={ledgerCode ?? undefined} onValueChange={onChange}>
-        <SelectTrigger className="bg-white">
+        <SelectTrigger className="bg-card">
           <SelectValue placeholder="選擇具體項目..." />
         </SelectTrigger>
         <SelectContent>

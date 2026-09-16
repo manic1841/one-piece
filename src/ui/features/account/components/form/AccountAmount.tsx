@@ -58,7 +58,7 @@ export const AccountAmount: React.FC<AccountAmountProps> = ({
                   type="button"
                   onClick={fetchExchangeRate}
                   disabled={fetchingRate}
-                  className="text-xs text-blue-600 hover:text-blue-800 disabled:opacity-50"
+                  className="text-xs text-primary hover:text-primary disabled:opacity-50"
                 >
                   {fetchingRate ? 'Fetching...' : 'Fetch Rate'}
                 </button>

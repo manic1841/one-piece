@@ -17,7 +17,7 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({ householdId, project, 
   return (
     <Card
       onClick={onClick}
-      className="hover:shadow-md transition-all cursor-pointer hover:border-blue-200"
+      className="hover:shadow-md transition-all cursor-pointer hover:border-primary/20"
     >
       <CardHeader className="flex flex-row items-center gap-3 space-y-0 pb-2">
         <span
@@ -39,7 +39,7 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({ householdId, project, 
             <span className="text-sm font-medium text-muted-foreground">Current Balance</span>
             <div className="flex items-baseline gap-2">
               <span
-                className={`text-xl font-bold ${isPositive ? 'text-green-600' : 'text-red-600'}`}
+                className={`text-xl font-bold ${isPositive ? 'text-positive' : 'text-negative'}`}
               >
                 {formatCurrency(balance)}
               </span>
