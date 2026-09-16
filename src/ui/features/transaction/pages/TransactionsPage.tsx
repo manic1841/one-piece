@@ -4,14 +4,6 @@ import { Plus, Search } from 'lucide-react';
 
 import { useAuth } from '@/infra/contexts/useAuth';
 import { Button } from '@/ui/components/ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/ui/components/ui/dialog';
 import { Input } from '@/ui/components/ui/input';
 import { getIntentTypeLabel } from '@/ui/constants/transaction';
 import { PageHeader } from '@/ui/components/PageHeader';
@@ -68,8 +60,8 @@ const Transactions: React.FC = () => {
       return;
     }
 
-    if (target.intentType === 'TRANSFER' || target.intentType === 'DEBT_PAYMENT') {
-      window.alert('目前不支援編輯還款與專案轉帳交易。');
+    if (target.intentType === 'TRANSFER') {
+      window.alert('目前不支援編輯專案轉帳交易。');
       return;
     }
 
@@ -91,12 +83,8 @@ const Transactions: React.FC = () => {
     investmentCategories,
     financingCategories,
     advancedCategories,
-    debtAccounts,
     allActiveLedgerCodes,
     loadIncomeAllocationTemplate,
-    settlementPrompt,
-    confirmSettlementPrompt,
-    dismissSettlementPrompt,
     loading: formSubmitting,
     error: formError,
     handleSubmit,
@@ -232,33 +220,10 @@ const Transactions: React.FC = () => {
           investmentCategories={investmentCategories}
           financingCategories={financingCategories}
           advancedCategories={advancedCategories}
-          debtAccounts={debtAccounts}
           allActiveLedgerCodes={allActiveLedgerCodes}
           loadIncomeAllocationTemplate={loadIncomeAllocationTemplate}
         />
       )}
-
-      <Dialog
-        open={Boolean(settlementPrompt)}
-        onOpenChange={(open) => {
-          if (!open) dismissSettlementPrompt();
-        }}
-      >
-        <DialogContent className="max-w-md" aria-describedby={undefined}>
-          <DialogHeader>
-            <DialogTitle>{settlementPrompt?.debtAccountName ?? '貸款'} 已還清</DialogTitle>
-            <DialogDescription>剩餘本金已為 0，是否將此貸款標記為結清？</DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={dismissSettlementPrompt}>
-              稍後再說
-            </Button>
-            <Button type="button" onClick={confirmSettlementPrompt}>
-              確認結清
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };

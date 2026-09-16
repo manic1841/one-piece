@@ -1,23 +1,12 @@
 import { useCallback, useEffect, useState } from 'react';
 
-import { format } from 'date-fns';
-
 import { getSettlementReadinessUseCase } from '@/application/report/use_cases/getSettlementReadinessUseCase';
-import { generateFinancialReportsUseCase } from '@/application/report/use_cases/generateFinancialReportsUseCase';
 import { previewFinancialReportsWorkflow } from '@/application/report/use_cases/previewFinancialReportsWorkflow';
 import { previewDebtSettlementsUseCase } from '@/application/settlement/use_cases/previewDebtSettlementsUseCase';
 import { getUnifiedLedgerCodeLabel } from '@/ui/constants/transaction';
-import {
-  type BalanceSheetVM,
-  type CashFlowVM,
-  type IncomeStatementVM,
-  mapBalanceSheetToVM,
-  mapCashFlowToVM,
-  mapIncomeStatementToVM,
-} from '@/ui/features/report/viewmodels/reportDisplay.vm';
 import { useAuthContext } from '@/ui/hooks/useAuthContext';
 
-export const useReportSettlement = (householdId: string, userEmail: string) => {
+export const useReportSettlement = (householdId: string) => {
   const auth = useAuthContext();
 
   const [year, setYear] = useState(new Date().getFullYear());
@@ -28,7 +17,6 @@ export const useReportSettlement = (householdId: string, userEmail: string) => {
     netIncome: number;
     netWorth: number;
   } | null>(null);
-  const [isGenerating, setIsGenerating] = useState(false);
   const [reportsGenerated, setReportsGenerated] = useState(false);
   const [reportTimestamps, setReportTimestamps] = useState<{
     incomeStatement?: string;
@@ -42,41 +30,11 @@ export const useReportSettlement = (householdId: string, userEmail: string) => {
   const [unsettledPortfolioNames, setUnsettledPortfolioNames] = useState<string[]>([]);
   const [unsettledDebtNames, setUnsettledDebtNames] = useState<string[]>([]);
   const [debtNoRepaymentWarningNames, setDebtNoRepaymentWarningNames] = useState<string[]>([]);
-  const [previewData, setPreviewData] = useState<{
-    incomeStatement: IncomeStatementVM;
-    balanceSheet: BalanceSheetVM;
-    cashFlow: CashFlowVM;
-  } | null>(null);
-  const [isPreviewing, setIsPreviewing] = useState(false);
 
   const resolveReportLabel = useCallback((code: string, fallbackLabel?: string) => {
     const resolved = getUnifiedLedgerCodeLabel(code);
     return resolved === code ? fallbackLabel || code : resolved;
   }, []);
-
-  const fetchPreview = async () => {
-    if (!householdId) return;
-    setIsLoading(true);
-    try {
-      const preview = await previewFinancialReportsWorkflow.execute({
-        householdId,
-        auth,
-        year,
-        month,
-        labelResolver: resolveReportLabel,
-      });
-      setPreviewData({
-        incomeStatement: mapIncomeStatementToVM(preview.incomeStatement),
-        balanceSheet: mapBalanceSheetToVM(preview.balanceSheet),
-        cashFlow: mapCashFlowToVM(preview.cashFlow),
-      });
-    } catch (err) {
-      console.error('Error fetching preview data:', err);
-      setError('無法載入預覽數據。');
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const loadStatus = useCallback(async () => {
     if (!householdId) return;
@@ -148,48 +106,12 @@ export const useReportSettlement = (householdId: string, userEmail: string) => {
     loadStatus();
   }, [householdId, year, month, loadStatus]);
 
-  const generateReports = async () => {
-    if (!householdId || !userEmail || !summary) return;
-
-    if (reportsGenerated) {
-      if (!window.confirm('報表已存在，確定要重新產生嗎？這將會覆蓋現有數據。')) {
-        return;
-      }
-    }
-
-    setError('');
-    setIsGenerating(true);
-
-    try {
-      const results = await generateFinancialReportsUseCase.execute({
-        householdId,
-        auth,
-        year,
-        month,
-        labelResolver: resolveReportLabel,
-      });
-
-      setReportTimestamps({
-        incomeStatement: format(results.timestamp, 'HH:mm'),
-        balanceSheet: format(results.timestamp, 'HH:mm'),
-        cashFlow: format(results.timestamp, 'HH:mm'),
-      });
-      setReportsGenerated(true);
-    } catch (err) {
-      console.error('Error generating reports:', err);
-      setError('報表產生失敗，請務必先完成專案結算並檢查資料正確性。');
-    } finally {
-      setIsGenerating(false);
-    }
-  };
-
   return {
     year,
     month,
     setYear,
     setMonth,
     summary,
-    isGenerating,
     reportsGenerated,
     reportTimestamps,
     error,
@@ -199,11 +121,6 @@ export const useReportSettlement = (householdId: string, userEmail: string) => {
     unsettledPortfolioNames,
     unsettledDebtNames,
     debtNoRepaymentWarningNames,
-    generateReports,
     refresh: loadStatus,
-    previewData,
-    isPreviewing,
-    setIsPreviewing,
-    fetchPreview,
   };
 };

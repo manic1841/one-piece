@@ -10,6 +10,7 @@ import Login from '@/ui/features/auth/pages/LoginPage';
 import Onboarding from '@/ui/features/auth/pages/OnboardingPage';
 import Dashboard from '@/ui/features/dashboard/pages/DashboardPage';
 import DebtListPage from '@/ui/features/debt/pages/DebtListPage';
+import MonthlyClosePage from '@/ui/features/monthly_close/pages/MonthlyClosePage';
 import PortfolioDetailPage from '@/ui/features/portfolio/pages/PortfolioDetailPage';
 import PortfoliosPage from '@/ui/features/portfolio/pages/PortfoliosPage';
 import ProjectsPage from '@/ui/features/project/pages/ProjectsPage';
@@ -50,6 +51,7 @@ function App() {
             }
           >
             <Route index element={<Dashboard />} />
+            <Route path="close" element={<MonthlyClosePage />} />
             <Route path="transactions" element={<Transactions />} />
             <Route path="projects" element={<ProjectsPage />} />
             <Route path="accounts" element={<Accounts />} />

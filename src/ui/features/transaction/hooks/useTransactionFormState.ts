@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
 
-import { type DebtAccount } from '@/domains/debt/schemas';
 import {
   buildPreview,
   buildPreviewDetails,
@@ -20,8 +19,6 @@ import {
   type TransactionFormProjectOption,
   type TransactionFormTab,
 } from '@/ui/features/transaction/types/transaction';
-
-import { type DebtPaymentFormState } from '../components/form/DebtPaymentPanel';
 
 const createExpenseState = (): ExpenseFormState => ({
   amount: '',
@@ -69,14 +66,6 @@ const createAdvancedState = (): AdvancedFormState => ({
   projectId: null,
   intent: null,
   ledgerCode: null,
-  description: '',
-});
-
-const createDebtPaymentState = (): DebtPaymentFormState => ({
-  debtAccountId: null,
-  date: new Date().toISOString().slice(0, 10),
-  totalPayment: '',
-  projectId: null,
   description: '',
 });
 
@@ -132,14 +121,6 @@ const toFinancingState = (output: TransactionFormOutput): FinancingFormState => 
   description: output.description ?? '',
 });
 
-const toDebtPaymentState = (output: TransactionFormOutput): DebtPaymentFormState => ({
-  debtAccountId: output.debtAccountId ?? null,
-  date: output.date,
-  totalPayment: output.amount.toString(),
-  projectId: output.projectId ?? null,
-  description: output.description ?? '',
-});
-
 const toAdvancedState = (output: TransactionFormOutput): AdvancedFormState => ({
   amount: output.amount.toString(),
   date: output.date,
@@ -159,7 +140,6 @@ interface UseTransactionFormStateParams {
   investmentCategories: TransactionFormCategoryOption[];
   financingCategories: TransactionFormCategoryOption[];
   advancedCategories: TransactionFormCategoryOption[];
-  debtAccounts: DebtAccount[];
   loadIncomeAllocationTemplate?: (ledgerCode: string) => Promise<AllocationItemInput[] | null>;
 }
 
@@ -172,7 +152,6 @@ export const useTransactionFormState = ({
   investmentCategories,
   financingCategories,
   advancedCategories,
-  debtAccounts,
   loadIncomeAllocationTemplate,
 }: UseTransactionFormStateParams) => {
   const [activeTab, setActiveTab] = useState<TransactionFormTab>('EXPENSE');
@@ -181,7 +160,6 @@ export const useTransactionFormState = ({
   const [investment, setInvestment] = useState<InvestmentFormState>(createInvestmentState);
   const [financing, setFinancing] = useState<FinancingFormState>(createFinancingState);
   const [advanced, setAdvanced] = useState<AdvancedFormState>(createAdvancedState);
-  const [debtPayment, setDebtPayment] = useState<DebtPaymentFormState>(createDebtPaymentState);
 
   const resetAll = () => {
     setActiveTab('EXPENSE');
@@ -190,7 +168,6 @@ export const useTransactionFormState = ({
     setInvestment(createInvestmentState());
     setFinancing(createFinancingState());
     setAdvanced(createAdvancedState());
-    setDebtPayment(createDebtPaymentState());
   };
 
   const hydrateFromInitialOutput = (output: TransactionFormOutput) => {
@@ -214,11 +191,6 @@ export const useTransactionFormState = ({
 
     if (tab === 'FINANCING') {
       setFinancing(toFinancingState(output));
-      return;
-    }
-
-    if (tab === 'DEBT_PAYMENT') {
-      setDebtPayment(toDebtPaymentState(output));
       return;
     }
 
@@ -293,10 +265,8 @@ export const useTransactionFormState = ({
         investment,
         financing,
         advanced,
-        debtPayment,
-        debtAccounts,
       }),
-    [activeTab, advanced, expense, financing, income, investment, debtPayment, debtAccounts],
+    [activeTab, advanced, expense, financing, income, investment],
   );
 
   const previewDetails = useMemo(
@@ -329,7 +299,6 @@ export const useTransactionFormState = ({
       investment,
       financing,
       advanced,
-      debtPayment,
     },
     setters: {
       setActiveTab,
@@ -338,7 +307,6 @@ export const useTransactionFormState = ({
       setInvestment,
       setFinancing,
       setAdvanced,
-      setDebtPayment,
     },
     derived: {
       preview,

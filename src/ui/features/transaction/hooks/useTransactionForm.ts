@@ -1,16 +1,12 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 
 import { z } from 'zod';
 
-import { createDebtPaymentUseCase } from '@/application/debt/use_cases/createDebtPaymentUseCase';
-import { listDebtAccountsUseCase } from '@/application/debt/use_cases/listDebtAccountsUseCase';
-import { updateDebtAccountUseCase } from '@/application/debt/use_cases/updateDebtAccountUseCase';
 import { createTransactionWithAllocationUseCase } from '@/application/ledger/use_cases/createTransactionWithAllocationUseCase';
 import { createTransactionUseCase } from '@/application/ledger/use_cases/createTransactionUseCase';
 import { getIncomeAllocationTemplateUseCase } from '@/application/ledger/use_cases/getIncomeAllocationTemplateUseCase';
 import { updateTransactionUseCase } from '@/application/ledger/use_cases/updateTransactionUseCase';
 import { upsertIncomeAllocationTemplateUseCase } from '@/application/ledger/use_cases/upsertIncomeAllocationTemplateUseCase';
-import { type DebtAccount } from '@/domains/debt/schemas';
 import { IntentType } from '@/domains/ledger/constants';
 import { DEFAULT_INTENT_MAPPINGS } from '@/domains/ledger/intentMapping';
 import { normalizeDescription } from '@/domains/operation/fingerprint';
@@ -65,29 +61,10 @@ const advancedCategories: TransactionFormCategoryOption[] = [
   ...incomeCategories,
 ];
 
-type SettlementPrompt = {
-  debtAccountId: string;
-  debtAccountName: string;
-};
-
-type DebtPaymentAttempt = {
-  signature: string;
-  idempotencyKey: string;
-};
-
 type TransactionWithAllocationAttempt = {
   signature: string;
   idempotencyKey: string;
 };
-
-const getDebtPaymentAttemptSignature = (vm: TransactionFormVM): string =>
-  JSON.stringify({
-    debtAccountId: vm.debtAccountId,
-    amount: vm.amount,
-    date: vm.date,
-    description: normalizeDescription(vm.description),
-    projectId: vm.projectId ?? null,
-  });
 
 const getTransactionWithAllocationAttemptSignature = (vm: TransactionFormVM): string =>
   JSON.stringify({
@@ -111,23 +88,9 @@ export const useTransactionForm = (
   const auth = useAuthContext();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [debtAccounts, setDebtAccounts] = useState<DebtAccount[]>([]);
-  const [settlementPrompt, setSettlementPrompt] = useState<SettlementPrompt | null>(null);
   const incomeTemplateCacheRef = useRef<Map<string, AllocationItemInput[] | null>>(new Map());
-  const debtPaymentAttemptRef = useRef<DebtPaymentAttempt | null>(null);
   const transactionWithAllocationAttemptRef = useRef<TransactionWithAllocationAttempt | null>(null);
   const { codes: allActiveLedgerCodes } = useLedgerCodes(false);
-
-  const getDebtPaymentIdempotencyKey = (vm: TransactionFormVM): string => {
-    const signature = getDebtPaymentAttemptSignature(vm);
-    if (debtPaymentAttemptRef.current?.signature === signature) {
-      return debtPaymentAttemptRef.current.idempotencyKey;
-    }
-
-    const idempotencyKey = globalThis.crypto.randomUUID();
-    debtPaymentAttemptRef.current = { signature, idempotencyKey };
-    return idempotencyKey;
-  };
 
   const getTransactionWithAllocationIdempotencyKey = (vm: TransactionFormVM): string => {
     const signature = getTransactionWithAllocationAttemptSignature(vm);
@@ -139,21 +102,6 @@ export const useTransactionForm = (
     transactionWithAllocationAttemptRef.current = { signature, idempotencyKey };
     return idempotencyKey;
   };
-
-  // Fetch active debt accounts for the DEBT_PAYMENT tab
-  const fetchDebtAccounts = useCallback(async () => {
-    if (!householdId) return;
-    try {
-      const accounts = await listDebtAccountsUseCase.execute({ householdId });
-      setDebtAccounts(accounts);
-    } catch {
-      // non-critical — DEBT_PAYMENT tab will simply show empty list
-    }
-  }, [householdId]);
-
-  useEffect(() => {
-    fetchDebtAccounts();
-  }, [fetchDebtAccounts]);
 
   const loadIncomeAllocationTemplate = useCallback(
     async (ledgerCode: string): Promise<AllocationItemInput[] | null> => {
@@ -208,30 +156,6 @@ export const useTransactionForm = (
     }
   };
 
-  const handleDebtPayment = async (vm: TransactionFormVM) => {
-    if (!userProfile?.email) return;
-    if (!vm.debtAccountId) throw new Error('請選擇貸款帳戶');
-    const account = debtAccounts.find((item) => item.id === vm.debtAccountId) ?? null;
-    const result = await createDebtPaymentUseCase.execute({
-      householdId,
-      userEmail: auth.email || '',
-      auth,
-      debtAccountId: vm.debtAccountId,
-      idempotencyKey: getDebtPaymentIdempotencyKey(vm),
-      totalPayment: vm.amount,
-      date: new Date(`${vm.date}T00:00:00`),
-      description: vm.description,
-      projectId: vm.projectId,
-    });
-
-    if (result.newBalance <= 0) {
-      setSettlementPrompt({
-        debtAccountId: vm.debtAccountId,
-        debtAccountName: account?.name ?? '貸款',
-      });
-    }
-  };
-
   const handleStandardTransaction = async (vm: TransactionFormVM) => {
     if (!userProfile?.email) return;
     const transactionData = mapTransactionVMToDomain(vm, userProfile.email);
@@ -273,14 +197,9 @@ export const useTransactionForm = (
     try {
       const vm = parseTransactionFormVM(output);
 
-      if (vm.intentType === IntentType.DEBT_PAYMENT) {
-        await handleDebtPayment(vm);
-      } else {
-        await handleStandardTransaction(vm);
-      }
+      await handleStandardTransaction(vm);
 
       onClose();
-      debtPaymentAttemptRef.current = null;
       transactionWithAllocationAttemptRef.current = null;
       if (onSuccess) onSuccess();
     } catch (err: unknown) {
@@ -303,10 +222,6 @@ export const useTransactionForm = (
 
     try {
       const vm = parseTransactionFormVM(output);
-
-      if (vm.intentType === IntentType.DEBT_PAYMENT) {
-        throw new Error('目前不支援編輯還款交易。');
-      }
 
       const allocationData = mapTransactionVMToAllocationData(vm, transactionId);
 
@@ -360,45 +275,14 @@ export const useTransactionForm = (
     }
   };
 
-  const dismissSettlementPrompt = () => {
-    setSettlementPrompt(null);
-  };
-
-  const confirmSettlementPrompt = async () => {
-    if (!settlementPrompt || !userProfile?.email) return;
-
-    try {
-      await updateDebtAccountUseCase.execute({
-        householdId,
-        debtAccountId: settlementPrompt.debtAccountId,
-        userEmail: auth.email || '',
-        auth,
-        data: {
-          isActive: false,
-          closedAt: new Date(),
-        },
-      });
-
-      setSettlementPrompt(null);
-      await fetchDebtAccounts();
-    } catch (err: unknown) {
-      const e = err as Error;
-      setError(e.message || 'Failed to settle debt account.');
-    }
-  };
-
   return {
     expenseCategories,
     incomeCategories,
     investmentCategories,
     financingCategories,
     advancedCategories,
-    debtAccounts,
     allActiveLedgerCodes,
     loadIncomeAllocationTemplate,
-    settlementPrompt,
-    confirmSettlementPrompt,
-    dismissSettlementPrompt,
     loading,
     error,
     handleSubmit,

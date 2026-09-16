@@ -6,7 +6,8 @@ One-Piece 結合了「管理會計 (Projects)」與「財務會計 (Accounts)」
 
 ## 0. 報表產生前置檢查
 
-- 報表頁在產生正式報表前，會先檢查以下「啟用中」資產負債來源是否都有該月份結算快照：
+- 正式報表的產生入口為「月度關帳」流程（`/close` 的 FINANCIAL_REPORTS 階段，由 `monthlyCloseWorkflowUseCase` 呼叫 `generateFinancialReportsUseCase`）；財務結算中心僅顯示報表產生狀態，不再提供產生按鈕。
+- 產生正式報表前，會先檢查以下「啟用中」資產負債來源是否都有該月份結算快照：
   - 專案 (`Project Snapshot`)
   - 帳戶 (`Account Snapshot`)
   - 投資組合 (`Portfolio Snapshot`)

@@ -71,7 +71,6 @@ const Reports: React.FC = () => {
 
       <ReportSettlement
         householdId={householdId}
-        userEmail={userProfile?.email || ''}
         onGoToProjectSettlement={() => navigate('/projects')}
       />
 

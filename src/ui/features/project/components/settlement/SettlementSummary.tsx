@@ -2,18 +2,16 @@ import React from 'react';
 
 import {
   NoSummaryCard,
-  ReportGenerationSection,
   type SummaryData,
   SummaryStatsGrid,
+  ReportStatusSection,
 } from './SettlementSummaryComponents';
 
 interface SettlementSummaryProps {
   year: number;
   month: number;
   summary: SummaryData | null;
-  isGenerating: boolean;
   reportsGenerated: boolean;
-  onGenerateReports: () => void;
   error?: string;
   unsettledProjectNames?: string[];
   unsettledAccountNames?: string[];
@@ -33,9 +31,7 @@ export const SettlementSummary: React.FC<SettlementSummaryProps> = ({
   year,
   month,
   summary,
-  isGenerating,
   reportsGenerated,
-  onGenerateReports,
   error,
   unsettledProjectNames = [],
   unsettledAccountNames = [],
@@ -70,16 +66,13 @@ export const SettlementSummary: React.FC<SettlementSummaryProps> = ({
         </div>
         <div className="relative flex justify-start">
           <span className="bg-card pr-4 text-xs font-black uppercase tracking-widest text-muted-foreground">
-            正式報表作業
+            正式報表狀態
           </span>
         </div>
       </div>
 
-      <ReportGenerationSection
-        summary={summary}
-        isGenerating={isGenerating}
+      <ReportStatusSection
         reportsGenerated={reportsGenerated}
-        onGenerateReports={onGenerateReports}
         error={error}
         reportTimestamps={reportTimestamps}
       />

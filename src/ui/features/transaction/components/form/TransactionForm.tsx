@@ -1,7 +1,6 @@
 import React from 'react';
 
 import {
-  CreditCard,
   HandCoins,
   Landmark,
   ReceiptText,
@@ -23,7 +22,6 @@ import { getIntentTypeLabel } from '@/ui/constants/transaction';
 import { type LedgerCodeItem } from '@/ui/features/ledger/hooks/useLedgerCodes';
 import { AdvancedPanel } from '@/ui/features/transaction/components/form/AdvancedPanel';
 import { CategoryPanel } from '@/ui/features/transaction/components/form/CategoryPanel';
-import { DebtPaymentPanel } from '@/ui/features/transaction/components/form/DebtPaymentPanel';
 import { ExpensePanel } from '@/ui/features/transaction/components/form/ExpensePanel';
 import { IncomePanel } from '@/ui/features/transaction/components/form/IncomePanel';
 import { useTransactionFormState } from '@/ui/features/transaction/hooks/useTransactionFormState';
@@ -68,7 +66,6 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
   investmentCategories,
   financingCategories,
   advancedCategories,
-  debtAccounts = [],
   allActiveLedgerCodes,
   loadIncomeAllocationTemplate,
 }) => {
@@ -81,7 +78,6 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
     investmentCategories,
     financingCategories,
     advancedCategories,
-    debtAccounts,
     loadIncomeAllocationTemplate,
   });
 
@@ -92,7 +88,6 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
     investment,
     financing,
     advanced,
-    debtPayment,
   } = state;
   const {
     setActiveTab,
@@ -101,7 +96,6 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
     setInvestment,
     setFinancing,
     setAdvanced,
-    setDebtPayment,
   } = setters;
   const { preview, previewDetails } = derived;
   const { resetAll } = actions;
@@ -145,7 +139,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
             value={activeTab}
             onValueChange={(value) => setActiveTab(value as TransactionFormTab)}
           >
-            <TabsList className="grid h-auto w-full grid-cols-3 gap-2 rounded-xl p-2 md:grid-cols-6">
+            <TabsList className="grid h-auto w-full grid-cols-3 gap-2 rounded-xl p-2 md:grid-cols-5">
               <TabsTrigger value="EXPENSE" className="gap-1">
                 <ReceiptText className="h-3.5 w-3.5" />
                 {getIntentTypeLabel('EXPENSE')}
@@ -161,10 +155,6 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
               <TabsTrigger value="FINANCING" className="gap-1">
                 <HandCoins className="h-3.5 w-3.5" />
                 {getIntentTypeLabel('FINANCING')}
-              </TabsTrigger>
-              <TabsTrigger value="DEBT_PAYMENT" className="gap-1">
-                <CreditCard className="h-3.5 w-3.5" />
-                {getIntentTypeLabel('DEBT_PAYMENT')}
               </TabsTrigger>
               <TabsTrigger value="ADVANCED" className="gap-1">
                 <SlidersHorizontal className="h-3.5 w-3.5" />
@@ -222,15 +212,6 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
                 projects={projects}
                 allLedgerCodes={allActiveLedgerCodes}
                 onChange={setAdvanced}
-              />
-            </TabsContent>
-
-            <TabsContent value="DEBT_PAYMENT" className="mt-4">
-              <DebtPaymentPanel
-                state={debtPayment}
-                debtAccounts={debtAccounts}
-                projects={projects}
-                onChange={setDebtPayment}
               />
             </TabsContent>
           </Tabs>

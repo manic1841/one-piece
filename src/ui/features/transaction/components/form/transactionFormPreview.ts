@@ -1,7 +1,4 @@
-import { calculateSplit } from '@/domains/debt/debtPaymentCalculator';
-import { type DebtAccount } from '@/domains/debt/schemas';
 import { getIntentTypeLabel, getUnifiedLedgerCodeLabel } from '@/ui/constants/transaction';
-import { type DebtPaymentFormState } from '@/ui/features/transaction/components/form/DebtPaymentPanel';
 import {
   type AdvancedFormState,
   type ExpenseFormState,
@@ -156,8 +153,6 @@ export const buildPreview = (input: {
   investment: InvestmentFormState;
   financing: FinancingFormState;
   advanced: AdvancedFormState;
-  debtPayment: DebtPaymentFormState;
-  debtAccounts?: DebtAccount[];
 }): TransactionFormOutput | null => {
   const {
     activeTab,
@@ -166,8 +161,6 @@ export const buildPreview = (input: {
     investment,
     financing,
     advanced,
-    debtPayment,
-    debtAccounts = [],
   } = input;
 
   if (activeTab === 'EXPENSE') return previewExpense(expense);
@@ -175,24 +168,6 @@ export const buildPreview = (input: {
   if (activeTab === 'INVESTMENT') return previewCategory('INVESTMENT', investment);
   if (activeTab === 'FINANCING') return previewCategory('FINANCING', financing);
   if (activeTab === 'ADVANCED') return previewAdvanced(advanced);
-  if (activeTab === 'DEBT_PAYMENT') {
-    const total = parseAmount(debtPayment.totalPayment);
-    if (!total || !debtPayment.debtAccountId) return null;
-    const account = debtAccounts.find((a) => a.id === debtPayment.debtAccountId);
-    const split = account
-      ? calculateSplit(account.currentBalance, account.interestRate, total)
-      : { principal: 0, interest: 0 };
-    return {
-      intentType: 'DEBT_PAYMENT',
-      date: debtPayment.date,
-      amount: total,
-      debtAccountId: debtPayment.debtAccountId,
-      projectId: debtPayment.projectId ?? undefined,
-      description: debtPayment.description || undefined,
-      principal: split.principal,
-      interest: split.interest,
-    };
-  }
 
   return null;
 };
@@ -249,15 +224,6 @@ export const buildPreviewDetails = (input: {
       findProjectLabel(projects, preview.projectId),
       findCategoryLabel(financingCategories, preview.intent || preview.ledgerCode),
       getUnifiedLedgerCodeLabel(preview.ledgerCode),
-      preview.date,
-    ].filter(Boolean);
-  }
-
-  if (preview.intentType === 'DEBT_PAYMENT') {
-    return [
-      preview.debtAccountId ?? '',
-      `本金 $${preview.principal?.toLocaleString() ?? 0}`,
-      `利息 $${preview.interest?.toLocaleString() ?? 0}`,
       preview.date,
     ].filter(Boolean);
   }

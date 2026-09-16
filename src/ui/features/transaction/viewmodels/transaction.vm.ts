@@ -225,8 +225,7 @@ export const mapDomainTransactionToFormOutput = (
     transaction.intentType === 'EXPENSE' ||
     transaction.intentType === 'INCOME' ||
     transaction.intentType === 'INVESTMENT' ||
-    transaction.intentType === 'FINANCING' ||
-    transaction.intentType === 'DEBT_PAYMENT'
+    transaction.intentType === 'FINANCING'
       ? transaction.intentType
       : 'MANUAL';
 
@@ -240,7 +239,6 @@ export const mapDomainTransactionToFormOutput = (
     amount,
     projectId: transaction.projectId ?? undefined,
     description: transaction.description || undefined,
-    debtAccountId: transaction.debtAccountId ?? undefined,
     ledgerCode: resolveLedgerCodeForEdit(transaction),
   };
 

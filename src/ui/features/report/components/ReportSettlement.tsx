@@ -1,31 +1,21 @@
 import React from 'react';
 
-import { AlertCircle, Calendar, Eye, FileBarChart2, HelpCircle, RefreshCw } from 'lucide-react';
+import { AlertCircle, Calendar, FileBarChart2, HelpCircle, RefreshCw } from 'lucide-react';
 
 import { YearMonthPicker } from '@/ui/components/YearMonthPicker';
 import { Button } from '@/ui/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/ui/components/ui/card';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/ui/components/ui/dialog';
 import { SettlementSummary } from '@/ui/features/project/components/settlement/SettlementSummary';
 
 import { useReportSettlement } from '../hooks/useReportSettlement';
-import { ReportPreview } from './ReportPreview';
 
 interface ReportSettlementProps {
   householdId: string;
-  userEmail: string;
   onGoToProjectSettlement?: () => void;
 }
 
 export const ReportSettlement: React.FC<ReportSettlementProps> = ({
   householdId,
-  userEmail,
   onGoToProjectSettlement,
 }) => {
   const {
@@ -34,7 +24,6 @@ export const ReportSettlement: React.FC<ReportSettlementProps> = ({
     setYear,
     setMonth,
     summary,
-    isGenerating,
     reportsGenerated,
     reportTimestamps,
     error,
@@ -44,13 +33,8 @@ export const ReportSettlement: React.FC<ReportSettlementProps> = ({
     unsettledPortfolioNames,
     unsettledDebtNames,
     debtNoRepaymentWarningNames,
-    generateReports,
     refresh,
-    previewData,
-    isPreviewing,
-    setIsPreviewing,
-    fetchPreview,
-  } = useReportSettlement(householdId, userEmail);
+  } = useReportSettlement(householdId);
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-top-4 duration-700">
@@ -83,7 +67,7 @@ export const ReportSettlement: React.FC<ReportSettlementProps> = ({
                 variant="ghost"
                 size="icon"
                 onClick={refresh}
-                disabled={isLoading || isGenerating}
+                disabled={isLoading}
                 className="text-muted-foreground hover:text-foreground hover:bg-foreground/10 rounded-full h-9 w-9 transition-all active:scale-90"
               >
                 <RefreshCw size={18} className={isLoading ? 'animate-spin' : ''} />
@@ -121,10 +105,8 @@ export const ReportSettlement: React.FC<ReportSettlementProps> = ({
               year={year}
               month={month}
               summary={summary}
-              isGenerating={isGenerating}
               isLoadingSummary={isLoading}
               reportsGenerated={reportsGenerated}
-              onGenerateReports={generateReports}
               reportTimestamps={reportTimestamps}
               error={error}
               unsettledProjectNames={unsettledProjectNames}
@@ -134,61 +116,6 @@ export const ReportSettlement: React.FC<ReportSettlementProps> = ({
               debtNoRepaymentWarningNames={debtNoRepaymentWarningNames}
               onGoToProjectSettlement={onGoToProjectSettlement}
             />
-
-            {summary && (
-              <div className="mt-6 pt-6 border-t border-border flex justify-end">
-                <Dialog open={isPreviewing} onOpenChange={setIsPreviewing}>
-                  <DialogTrigger asChild>
-                    <Button
-                      variant="outline"
-                      size="lg"
-                      disabled={isLoading || isGenerating}
-                      onClick={() => fetchPreview().then(() => setIsPreviewing(true))}
-                      className="border-border text-foreground hover:bg-muted rounded-lg font-bold group"
-                    >
-                      <Eye
-                        size={18}
-                        className="mr-2 text-muted-foreground group-hover:text-foreground transition-colors"
-                      />
-                      預覽即將發佈之報表
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto rounded-lg p-8">
-                    <DialogHeader>
-                      <DialogTitle className="text-2xl font-black text-foreground mb-6">
-                        財務報表發佈預覽 ({year}-{month})
-                      </DialogTitle>
-                    </DialogHeader>
-                    {previewData ? (
-                      <ReportPreview data={previewData} />
-                    ) : (
-                      <div className="h-64 flex flex-col items-center justify-center space-y-4">
-                        <RefreshCw size={32} className="text-muted-foreground animate-spin" />
-                        <p className="font-bold text-muted-foreground">正在計算預覽數據...</p>
-                      </div>
-                    )}
-                    <div className="mt-8 pt-8 border-t border-border flex justify-end gap-4">
-                      <Button
-                        variant="ghost"
-                        onClick={() => setIsPreviewing(false)}
-                        className="rounded-xl font-bold"
-                      >
-                        關閉預覽
-                      </Button>
-                      <Button
-                        onClick={() => {
-                          setIsPreviewing(false);
-                          generateReports();
-                        }}
-                        className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-xl font-bold"
-                      >
-                        確認數據無誤，正式發佈
-                      </Button>
-                    </div>
-                  </DialogContent>
-                </Dialog>
-              </div>
-            )}
           </div>
         </CardContent>
       </Card>

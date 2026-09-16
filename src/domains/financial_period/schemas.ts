@@ -40,7 +40,7 @@ export const FinancialPeriodCreateSchema = z.object({
     (stages) => Object.keys(stages).every((stageId) => CLOSE_STAGE_IDS_SET.has(stageId)),
     { message: 'stages contain unknown stage IDs' },
   ),
-  reviewSourceStageId: z.string().nullable().optional(),
+  reviewSourceStageId: z.enum(CLOSE_STAGE_IDS).nullable().optional(),
 });
 export type FinancialPeriodCreate = z.infer<typeof FinancialPeriodCreateSchema>;
 

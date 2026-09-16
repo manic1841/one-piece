@@ -19,12 +19,13 @@ We replaced it with `TransactionForm` and a direct `IntentMapping` flow. This av
 7. **Template Persistence**: After an income allocation is successfully created, the same allocation percentages are upserted into `allocationTemplates` for that `ledgerCode` as a convenience template. Historical allocations are not mutated.
 8. **Project Selection Rule**: `projectId` is optional for regular entries (expense, income, investment, financing, manual). Only historical `TRANSFER` transactions carry `fromProjectId` and `toProjectId`; the form no longer creates them ([ADR-0042](adr/0042-pause-project-transfer-feature.md)).
 9. **Debt Payment Retry Rule**: `DEBT_PAYMENT` is an append-only financial command. The caller creates one idempotency key per user action and reuses it for retries; the Transaction, DebtSnapshot, DebtAccount balance cache, and household operation record commit in one Firestore transaction. A same-key replay returns the original result, while a different payload returns `IDEMPOTENCY_CONFLICT`.
+10. **Debt Payment Entry Point**: The form no longer offers a `DEBT_PAYMENT` tab or panel, and repayments are recorded only through the monthly close workflow (`/close` DEBT_REPAYMENT stage via `monthlyCloseWorkflowUseCase`, which also settles fully-repaid debt accounts). The settlement-prompt dialog in the transaction feature is removed with it.
 
 ## Intent Type Notes
 
 IntentType 的分類與映射規則不在本文件重述，請以 [ADR-0010](adr/0010-intenttype-three-tier.md)、[ADR-0014](adr/0014-debt-payment-intenttype.md) 與 [ADR-0022](adr/0022-intent-userselect-flag.md) 為準。
 
-目前 UI 的實作限制如下：`LIABILITY_BORROW` 由建立 `DebtAccount` 的流程產生，不從 `TransactionForm` 輸入；`TRANSFER` 目前暫停實作（[ADR-0042](adr/0042-pause-project-transfer-feature.md)）；編輯流程暫不支援 `DEBT_PAYMENT` 與 `TRANSFER`，以避免尚未具備專用更新流程時產生部分副作用。
+目前 UI 的實作限制如下：`LIABILITY_BORROW` 由建立 `DebtAccount` 的流程產生，不從 `TransactionForm` 輸入；`TRANSFER` 目前暫停實作（[ADR-0042](adr/0042-pause-project-transfer-feature.md)）；`DEBT_PAYMENT` 不再從表單輸入，僅能透過月度關帳流程（`/close` 的 DEBT_REPAYMENT 階段）錄入；編輯流程暫不支援 `TRANSFER`，以避免尚未具備專用更新流程時產生部分副作用。
 
 `DEBT_PAYMENT` 的付款規則、atomicity、retry 與 operation record 以
 [ADR-0014](adr/0014-debt-payment-intenttype.md)、[ADR-0015](adr/0015-debt-account-balance-derived.md)、[ADR-0017](adr/0017-grace-period-derived-not-stored.md) 與 [ADR-0038](adr/0038-command-atomicity-and-retry-policy.md) 為準。

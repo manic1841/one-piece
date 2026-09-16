@@ -1,5 +1,6 @@
 import {
   Briefcase,
+  CheckCheck,
   FileText,
   Folder,
   LayoutDashboard,
@@ -22,6 +23,7 @@ export const NAV_ITEMS: NavItem[] = [
   { to: '/projects', icon: Folder, label: 'Projects', group: 'primary' },
   { to: '/accounts', icon: Wallet, label: 'Accounts', group: 'primary' },
   { to: '/reports', icon: FileText, label: 'Reports', group: 'primary' },
+  { to: '/close', icon: CheckCheck, label: 'Close', group: 'secondary' },
   { to: '/transactions', icon: Receipt, label: 'Transactions', group: 'secondary' },
   { to: '/retirement', icon: TrendingUp, label: 'Retirement', group: 'secondary' },
   { to: '/portfolios', icon: Briefcase, label: 'Portfolios', group: 'secondary' },

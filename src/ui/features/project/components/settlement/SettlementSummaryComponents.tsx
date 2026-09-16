@@ -5,7 +5,6 @@ import {
   ArrowDownCircle,
   ArrowRight,
   ArrowUpCircle,
-  Check,
   FileText,
   Loader2,
   TrendingUp,
@@ -180,18 +179,12 @@ export function SummaryStatsGrid({ summary }: { summary: SummaryData }) {
   );
 }
 
-export function ReportGenerationSection({
-  summary,
-  isGenerating,
+export function ReportStatusSection({
   reportsGenerated,
-  onGenerateReports,
   error,
   reportTimestamps,
 }: {
-  summary: SummaryData | null;
-  isGenerating: boolean;
   reportsGenerated: boolean;
-  onGenerateReports: () => void;
   error?: string;
   reportTimestamps?: {
     incomeStatement?: string;
@@ -202,80 +195,25 @@ export function ReportGenerationSection({
   return (
     <div className="flex flex-col md:flex-row items-stretch gap-6">
       <div className="flex-1 bg-card border border-border/60 rounded-lg p-8 space-y-6 shadow-sm">
-        <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-          <div className="space-y-3 flex-1">
-            <div className="flex items-center gap-2.5">
-              <div className="bg-accent p-2 rounded-lg text-foreground">
-                <FileText size={20} />
-              </div>
-              <h4 className="text-lg font-black text-foreground tracking-tight">產生正式財務三表</h4>
+        <div className="space-y-3">
+          <div className="flex items-center gap-2.5">
+            <div className="bg-accent p-2 rounded-lg text-foreground">
+              <FileText size={20} />
             </div>
-            <p className="text-sm text-muted-foreground leading-relaxed max-w-lg font-medium">
-              點選按鈕後，系統將鎖定當前快照數據並產出{' '}
-              <span className="text-foreground font-bold">損益表</span>、
-              <span className="text-foreground font-bold">資產負債表</span> 與{' '}
-              <span className="text-foreground font-bold">現金流量表</span>。
-            </p>
+            <h4 className="text-lg font-black text-foreground tracking-tight">正式財務三表</h4>
           </div>
-
-          <ReportGenerationButton
-            isGenerating={isGenerating}
-            reportsGenerated={reportsGenerated}
-            summary={summary}
-            onGenerateReports={onGenerateReports}
-          />
+          <p className="text-sm text-muted-foreground leading-relaxed max-w-lg font-medium">
+            正式報表已改為透過「月度關帳」流程產生，此處僅顯示各報表的產生狀態。
+          </p>
         </div>
 
         {error && <ErrorAlert message={error} />}
 
         {reportsGenerated && reportTimestamps && <ReportStatusGrid timestamps={reportTimestamps} />}
-      </div>
-    </div>
-  );
-}
-
-function ReportGenerationButton({
-  isGenerating,
-  reportsGenerated,
-  summary,
-  onGenerateReports,
-}: {
-  isGenerating: boolean;
-  reportsGenerated: boolean;
-  summary: SummaryData | null;
-  onGenerateReports: () => void;
-}) {
-  const isEnabled = !isGenerating && summary;
-  const isPrimary = !reportsGenerated && summary;
-
-  return (
-    <div className="flex flex-col items-center gap-3">
-      <Button
-        onClick={onGenerateReports}
-        disabled={!isEnabled}
-        variant={reportsGenerated ? 'outline' : 'default'}
-        className={`h-14 px-8 rounded-lg font-black text-base transition-all shadow-xl active:scale-95 ${
-          isPrimary
-            ? 'bg-primary text-primary-foreground hover:bg-primary/90'
-            : 'border-border text-foreground hover:bg-muted shadow-none'
-        }`}
-      >
-        {isGenerating ? (
-          <>
-            <Loader2 size={20} className="mr-3 animate-spin" />
-            報表計算中...
-          </>
-        ) : reportsGenerated ? (
-          '重新更新報表數據'
-        ) : (
-          '正式發佈財務報表'
+        {!reportsGenerated && (
+          <p className="text-sm text-muted-foreground">本期尚未產生正式報表。</p>
         )}
-      </Button>
-      {reportsGenerated && (
-        <p className="text-[10px] text-positive font-black uppercase tracking-widest flex items-center gap-1">
-          <Check size={12} strokeWidth={3} /> Data Synchronized
-        </p>
-      )}
+      </div>
     </div>
   );
 }
