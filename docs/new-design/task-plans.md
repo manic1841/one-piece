@@ -36,7 +36,7 @@ Phase 0 audit 已完成（現有快照/債務同步/報表生成/完整性檢查
 
 > **文件歸屬原則**：本資料夾（docs/new-design/）是設計討論期的暫置文件。Redesign 落地後，spec/ui 的內容應拆解併入 docs/ 底下的正式文件（architecture.md、data-structure.md、transaction-flow.md、financial_report.md 等），資料夾本身退役或僅保留實作計畫。docs/adr/ 是專案永久決策紀錄，不引用任何 spec 代號。
 
-- **Phase 2+3 合併為一個 vertical slice（M1）**。Phase 2 的資料基礎大多已存在（見 ADR-0018）；真正的新增是財務期間狀態（ADR-0050）、對帳重定義（ADR-0051）、工作流 use case 與其 UI。合併後 M1 = 期間狀態 + 工作流 + 對帳 UI + 一條高階整合測試。
+**Phase 2+3 合併為一個 vertical slice（M1）**。Phase 2 的資料基礎大多已存在（見 ADR-0018）；真正的新增是財務期間狀態（ADR-0050）、關帳工作流階段模型（ADR-0052）、工作流 use case 與其 UI。合併後 M1 = 期間狀態 + 八階段工作流（`/close` 專屬路由，單一關帳入口）+ 一條高階整合測試。M1 使用 S2 已落地的設計系統（dark tokens、Inter + JetBrains Mono、4px radius、StatusGlyph）；UI 全面重設計另開 session，排在 M1 之後。
 - **Phase 1 待決策後才動工**：暗色優先 token、Inter + JetBrains Mono、4px radius、glyph 狀態系統的細節另開 session 討論（詳見 ui.md 修訂）。
 - **既有殘留**：約 108 處 amber/indigo/purple/sky 硬編碼（25 檔）與 4 檔 `dark:` slate 補丁，於 Phase 1 一併清掃，之後才是「一檔換主題」。
 - **Monthly Close 為前端 use case**（ADR-0002 無後端），不是 `POST /monthly-close/start`。
@@ -300,58 +300,44 @@ Cash Flow Statement
 
 > **Start Monthly Close → Closed**
 
----
+M1 階段模型見 ADR-0052（八階段，逐階段確認建立該階段資料）；`/close` 為單一關帳入口，原 Phase 3.2 的 Account Reconciliation 獨立階段已移除（報表本身呈現現金一致性，ADR-0020/0051）。
 
 ## Task 3.1 — Start Close
 
 ```text
-POST /monthly-close/start
+Start Monthly Close (frontend use case)
 ```
 
 概念上：
 
 ```text
-OPEN
+OPEN (no record)
  ↓
 IN_PROGRESS
 ```
 
 ---
 
-## Task 3.2 — Account Reconciliation
+## Task 3.3 — Completeness Check
 
 ```text
-IN_PROGRESS
-      ↓
-Account Reconciliation
-      ↓
-all matched?
+Completeness Check
+       ↓
+zero-activity anomalies?
 ```
 
 如果：
 
 ```text
-YES → Ledger Validation
-NO  → NEEDS_REVIEW
+YES → NEEDS_REVIEW（解除＝完成該階段確認）
+NO  → IN_PROGRESS
 ```
 
 ---
 
-## Task 3.3 — Ledger Validation
+## Task 3.4 — Data-Creation Stages
 
-```text
-Ledger Validation
-       ↓
-valid?
-```
-
----
-
-## Task 3.4 — Debt Update
-
-```text
-Debt Update
-```
+銀行帳戶餘額、證券買賣、Portfolio 金流、專案結算、債務還款：每個階段確認時冪等建立該階段的資料（快照或交易）；還款共用 `createDebtPaymentUseCase` 的原子邊界。
 
 ---
 
@@ -369,7 +355,7 @@ Generate
 ## Task 3.6 — Close Period
 
 ```text
-Reports complete
+Reports persisted (isPersisted)
       ↓
 CLOSED
 ```

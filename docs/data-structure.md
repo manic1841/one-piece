@@ -165,7 +165,13 @@ firestore
      │    # - 同一 household 中，一個 ledgerCode 僅對應一個 template
      │    # - 可設定一筆 isDefault = true 作為無匹配 ledgerCode 的 fallback
      │    # - template 僅供 UI 預填，修改 template 不會回寫既有 allocations
-
+       ├─ financialPeriods/{yearMonth}    # 財務期間狀態 (ADR-0050/0052)；docId = YYYY-MM，開始關帳才建檔，無紀錄 = OPEN
+       │    ├─ yearMonth: string          # 財務期間鍵 (YYYY-MM)
+       │    ├─ status: "OPEN" | "IN_PROGRESS" | "NEEDS_REVIEW" | "CLOSED"
+       │    ├─ stages: map<stageId, { status, confirmedBy?, confirmedAt? }>   # 各階段狀態 (ADR-0052 八階段)
+       │    ├─ reviewSourceStageId?: string # NEEDS_REVIEW 時的來源階段
+       │    ├─ createdBy: string
+       │    └─ updatedAt: Timestamp
        ├─ transactions/{transactionId}   # 原始交易記錄 (Source Documents)
        │    ├─ date: Timestamp
        │    ├─ amount: number
@@ -234,4 +240,5 @@ firestore
 | DebtAccount、還款與寬限期                 | [ADR-0014](adr/0014-debt-payment-intenttype.md)、[ADR-0015](adr/0015-debt-account-balance-derived.md)、[ADR-0016](adr/0016-debt-account-creation-liability-borrow-sync.md)、[ADR-0017](adr/0017-grace-period-derived-not-stored.md)、[ADR-0038](adr/0038-command-atomicity-and-retry-policy.md) |
 | Command 原子性、重試與 operation record    | [ADR-0038](adr/0038-command-atomicity-and-retry-policy.md)                                                                                                                                                                                                                                      |
 | 財務報表與快照                            | [ADR-0018](adr/0018-manual-financial-report-generation.md)、[ADR-0019](adr/0019-balance-sheet-hybrid-equity-derived.md)、[ADR-0020](adr/0020-cash-flow-ending-vs-actual-balance.md)                                                                                                                |
+| 財務期間與關帳工作流                      | [ADR-0050](adr/0050-financial-period-workflow-state.md)、[ADR-0051](adr/0051-reconciliation-statement-level-consistency.md)、[ADR-0052](adr/0052-monthly-close-stage-data-boundary.md)                                                                                                             |
 | RetirementPlan 與收入/支出/事件子集合     | [ADR-0023](adr/0023-retirement-income-from-entries-only.md) 至 [ADR-0040](adr/0040-retirement-plan-atomic-writes.md)                                                                                                                                                                               |

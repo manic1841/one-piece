@@ -270,13 +270,20 @@ The primary high-level testing seam is the **Monthly Close Workflow Application 
 
 * Monthly Close will be a first-class workflow rather than a subordinate Reports action.
 
-* Monthly Close will contain five conceptual stages:
+* Monthly Close will be accessible through a dedicated `/close` route as the single closing entry point; the settlement center inside Reports will not carry closing actions.
 
-  1. Account Reconciliation
-  2. Ledger Validation
-  3. Debt Update
-  4. Financial Reports
-  5. Close Period
+* Monthly Close will contain eight stages (see ADR-0052; data creation is idempotent per stage, stage order is UI guidance only):
+
+  1. Account Balance (bank account snapshots)
+  2. Securities Buy/Sell (INVESTMENT-intent transactions)
+  3. Portfolio Cash Flow (portfolio snapshots with deposits/withdrawals)
+  4. Project Settlement (project snapshots)
+  5. Debt Repayment (repayment transactions + zero-payment snapshots)
+  6. Completeness Check (zero-activity anomalies; no data creation)
+  7. Financial Reports (three statements; cash-flow adjustment shown as evidence)
+  8. Close Period (period status → CLOSED)
+
+* NEEDS_REVIEW is triggered only by Completeness Check zero-activity anomalies; resolving the stage's confirmation returns the workflow to IN_PROGRESS. Cash-flow adjustment remains a report-level warning (ADR-0020) and does not pause the workflow.
 
 * Each stage will expose an externally observable state.
 
