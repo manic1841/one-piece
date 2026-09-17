@@ -7,15 +7,15 @@
 # 建議實作順序
 
 ```text
-Phase 0  Architecture / Existing Code Audit
+Phase 0  Architecture / Existing Code Audit        ✅
              ↓
-Phase 1  Design System Foundation
+Phase 1  Design System Foundation                  ✅
              ↓
-Phase 2  Financial Data Foundation
+Phase 2  Financial Data Foundation                 ✅（併入 M1）
              ↓
-Phase 3  Monthly Close Workflow  ← 核心
+Phase 3  Monthly Close Workflow  ← 核心            ✅（M1）
              ↓
-Phase 4  Dashboard
+Phase 4  Dashboard                                 ✅ v1
              ↓
 Phase 5  Accounts / Ledger / Debt / Reports
              ↓
@@ -23,7 +23,7 @@ Phase 6  Portfolio
              ↓
 Phase 7  Retirement
              ↓
-Phase 8  Navigator + Pixel Pet
+Phase 8  Navigator + Pixel Pet                     ◐ 基礎已落地（#109/#110）
              ↓
 Phase 9  Integration / Polish / E2E
 ```
@@ -35,8 +35,8 @@ Phase 9  Integration / Polish / E2E
 Phase 0 audit 已完成（現有快照/債務同步/報表生成/完整性檢查/監看清單皆已存在）。決策：
 
 > **文件歸屬原則**：本資料夾（docs/new-design/）是設計討論期的暫置文件。Redesign 落地後，spec/ui 的內容應拆解併入 docs/ 底下的正式文件（architecture.md、data-structure.md、transaction-flow.md、financial_report.md 等），資料夾本身退役或僅保留實作計畫。docs/adr/ 是專案永久決策紀錄，不引用任何 spec 代號。
->
-> **修訂（2026-09-17，Grilling 三輪後）**
+
+> **修訂（2026-09-17，Grilling 三輪後；取代同日稍早「Phase 8 維持最後」的決策）**
 >
 > - **Phase 8 的核心提前**：Navigator + Pixel Pet 的互動基礎（Desktop Header、隱藏式 Navigator、Pet trigger）提前到 layout session（Session A）實作；Phase 8 剩餘範圍 = 正式 pixel-art mascot 視覺 + Mobile Navigator 統一整理 + 隱藏導覽收尾。移除桌面 permanent sidebar 提前，正好消解 spec 的 non-goal。
 > - **Header ≠ Navigator**：Header 是 System Status Bar（品牌 + 靜態 SYSTEM ONLINE + 今日日期 + Household Switcher / Search / Settings / Avatar）；Navigator 平時隱藏，由右下角 Pixel Pet trigger 開啟（Desktop: hover 反應 + click 開 overlay，滑鼠移開不關閉；Mobile: tap 開 bottom sheet，與既有 bottom nav 共存）。
@@ -45,401 +45,16 @@ Phase 0 audit 已完成（現有快照/債務同步/報表生成/完整性檢查
 > - **進度**：Phase 0-4 已完成（audit、design system、M1 Monthly Close vertical slice、Dashboard v1）；layout session（Session A，#109 sticky header）已於 2026-09-17 落地 — Desktop Header（System Status Bar）取代 permanent sidebar 與舊 mobile top bar，內容統一 `max-w-7xl mx-auto`；Navigator + Pixel Pet（#110）與 Footer（#111）待實作；Phase 5 finance modules 排在其後。
 
 **Phase 2+3 合併為一個 vertical slice（M1）**。Phase 2 的資料基礎大多已存在（見 ADR-0018）；真正的新增是財務期間狀態（ADR-0050）、關帳工作流階段模型（ADR-0052）、工作流 use case 與其 UI。合併後 M1 = 期間狀態 + 八階段工作流（`/close` 專屬路由，單一關帳入口）+ 一條高階整合測試。M1 使用 S2 已落地的設計系統（dark tokens、Inter + JetBrains Mono、4px radius、StatusGlyph）；UI 全面重設計另開 session，排在 M1 之後。
-- **Phase 1 待決策後才動工**：暗色優先 token、Inter + JetBrains Mono、4px radius、glyph 狀態系統的細節另開 session 討論（詳見 ui.md 修訂）。
-- **既有殘留**：約 108 處 amber/indigo/purple/sky 硬編碼（25 檔）與 4 檔 `dark:` slate 補丁，於 Phase 1 一併清掃，之後才是「一檔換主題」。
 - **Monthly Close 為前端 use case**（ADR-0002 無後端），不是 `POST /monthly-close/start`。
-- **Phase 8（Pixel Pet + 隱藏導覽）維持最後**，移除桌面側邊欄屬於該階段，不提前。
 - 其餘順序照原規劃。
 
----
-
-# Phase 0 — 先不要寫 UI
-
-### 目標
-
-先搞清楚現在專案已經有什麼，避免重複開發。
-
-建立一份：
-
-```text
-CURRENT SYSTEM MAP
-```
-
-至少確認：
-
-* Frontend framework
-* Backend framework
-* Database
-* 現有 routing
-* 現有 domain model
-* Ledger 現況
-* Account 現況
-* Debt 現況
-* Report 現況
-* Portfolio 現況
-* Retirement 是否已存在
-* Authentication
-* API layer
-* 現有 test framework
-* 現有 E2E / integration test
-
-### 這個 Phase 的產出
-
-```text
-Architecture Map
-Domain Map
-Existing API Map
-Existing Test Map
-```
-
-**這一步很重要。**
-
-因為我們前面討論的是產品設計，不應該假設你的 codebase 還是空的。
-
----
-
-# Phase 1 — Design System Foundation
-
-先把視覺基礎建立好。
-
-### Task 1.1 — Theme
-
-建立：
-
-```text
-Dark background
-Surface
-Border
-Primary text
-Secondary text
-Accent
-Positive
-Negative
-Warning
-```
-
-### Task 1.2 — Typography
-
-```text
-Inter
-JetBrains Mono
-```
-
-建立：
-
-```text
-Display
-H1
-H2
-H3
-Body
-Label
-Mono / Financial
-```
-
-### Task 1.3 — Spacing
-
-建立 8px spacing system：
-
-```text
-8
-16
-24
-32
-48
-64
-96
-128
-```
-
-### Task 1.4 — Core Components
-
-先做最少的一組：
-
-```text
-Button
-Text
-Input
-Select
-Tabs
-Table
-Status
-Divider
-Tooltip
-Dialog
-Progress
-```
-
-### Task 1.5 — Financial Components
-
-再做：
-
-```text
-Metric
-Financial Number
-Trend
-Chart
-Data Table
-Status Indicator
-Workflow Step
-```
-
-**這裡不要開始做 Dashboard。**
-
-先讓 component library 穩定。
-
----
-
-# Phase 2 — Financial Data Foundation
-
-這一階段是後端核心。
-
-先把資料關係確認：
-
-```text
-                 Ledger
-                   │
-        ┌──────────┼──────────┐
-        ↓          ↓          ↓
-     Account     Debt      Portfolio
-        │          │
-        └──────┬───┘
-               ↓
-             Report
-```
-
-### Task 2.1 — Financial Period
-
-建立明確的：
-
-```text
-Financial Period
-```
-
-例如：
-
-```text
-2026-09
-status = OPEN
-```
-
-狀態至少需要能表達：
-
-```text
-OPEN
-IN_PROGRESS
-NEEDS_REVIEW
-CLOSED
-```
-
----
-
-### Task 2.2 — Account Reconciliation
-
-建立：
-
-```text
-Bank Balance
-Ledger Balance
-Difference
-Reconciliation Status
-```
-
-核心邏輯：
-
-```text
-Bank Balance
-      -
-Ledger Balance
-      =
-Difference
-```
-
----
-
-### Task 2.3 — Ledger Validation
-
-確認：
-
-* Ledger entry 是否有效
-* 是否屬於該 period
-* 是否有需要 review 的 entry
-
----
-
-### Task 2.4 — Debt Update
-
-確認每個 Debt Account：
-
-```text
-Outstanding Balance
-Monthly Payment
-```
-
-可以在 Monthly Close 中被更新。
-
----
-
-### Task 2.5 — Report Generation
-
-建立：
-
-```text
-Balance Sheet
-Income Statement
-Cash Flow Statement
-```
-
-**先不要追求漂亮。**
-
-先確保：
-
-> 給定一組 Financial Data → 能產生正確 Report。
-
----
-
-# Phase 3 — Monthly Close
-
-這是第一個真正的 **Vertical Slice**。
-
-不要先做 5 個頁面。
-
-直接做：
-
-> **Start Monthly Close → Closed**
-
-M1 階段模型見 ADR-0052（八階段，逐階段確認建立該階段資料）；`/close` 為單一關帳入口，原 Phase 3.2 的 Account Reconciliation 獨立階段已移除（報表本身呈現現金一致性，ADR-0020/0051）。
-
-## Task 3.1 — Start Close
-
-```text
-Start Monthly Close (frontend use case)
-```
-
-概念上：
-
-```text
-OPEN (no record)
- ↓
-IN_PROGRESS
-```
-
----
-
-## Task 3.3 — Completeness Check
-
-```text
-Completeness Check
-       ↓
-zero-activity anomalies?
-```
-
-如果：
-
-```text
-YES → NEEDS_REVIEW（解除＝完成該階段確認）
-NO  → IN_PROGRESS
-```
-
----
-
-## Task 3.4 — Data-Creation Stages
-
-銀行帳戶餘額、證券買賣、Portfolio 金流、專案結算、債務還款：每個階段確認時冪等建立該階段的資料（快照或交易）；還款共用 `createDebtPaymentUseCase` 的原子邊界。
-
----
-
-## Task 3.5 — Report Generation
-
-```text
-Generate
- ├── Balance Sheet
- ├── Income Statement
- └── Cash Flow
-```
-
----
-
-## Task 3.6 — Close Period
-
-```text
-Reports persisted (isPersisted)
-      ↓
-CLOSED
-```
-
----
-
-# Phase 3 完成的 Definition of Done
-
-你應該可以跑完這個 scenario：
-
-```text
-September 2026
-
-START CLOSE
-     ↓
-Accounts ✓
-     ↓
-Ledger ✓
-     ↓
-Debt ✓
-     ↓
-Reports ✓
-     ↓
-CLOSED ✓
-```
-
-而且這個流程應該有 **一個高階 integration test**。
-
-這就是我們之前定義的：
-
-> **Monthly Close Workflow Application Boundary**
-
----
-
-# Phase 4 — Dashboard
-
-Monthly Close 主線穩定後，才做 Dashboard。第一版為 **report-anchored**（ADR-0053）：整頁錨定最新已關帳期間的 report 月份，單一時間點，不顯示 live 資料。
-
-```text
-NET WORTH            AUG 2026 REPORT
-
-$4,821,320
-        ───────────╮   (12 個月 netAssets sparkline, 缺月斷開)
-                   ╰──────
-
-Financial Pulse      (跟隨 hero 月份)
-
-Net Cash Flow         ← 現金流量表 netCashChange
-Investment Return     ← 該月 portfolio snapshots 月報酬率
-Investment Leverage   ← 該月 snapshots 推導
-Monthly Debt Payment  ← 該月 DEBT_PAYMENT 實際還款總和
-
-
-Monthly Close
-
-AUG 2026
-✓ CLOSED              ← M1 financialPeriodAccessUseCases + StatusGlyph
-
-
-Recent Transactions   ← 最新 ~8 筆 live 事件流 (不跟隨錨定月)
-```
-
-實作切分（tracer-bullet issues）：#104 錨點 + NET WORTH hero + 頁面重寫；#105 Financial Pulse 四指標；#106 Monthly Close 狀態區塊；#107 Recent Transactions + polish。
-
-### Dashboard 第一版不要做
-
-* 大量 cards
-* 太多 charts（只保留 hero 的 12 個月 sparkline）
-* 太多 breakdown
-* 複雜 filters
-* 動畫
-* 下月還款預測、其他新增資訊（post-v1 scope 討論）
-
-先確認：
-
-> **這個畫面是不是一眼就能理解目前財務狀態。**
+## 已完成紀錄（Phase 0-4）
+
+- **Phase 0 — Architecture Audit**：盤點既有 frontend/backend/database/routing/domain/test 基礎；產出 architecture map。快照、債務同步、報表生成、完整性檢查、監看清單皆已存在。
+- **Phase 1 — Design System Foundation**：dark-first token（`src/index.css`）、Inter + JetBrains Mono、4px radius、StatusGlyph 狀態系統、eslint token gate；詳見 ui.md Phase 1 完成紀錄。
+- **Phase 2 — Financial Data Foundation**：資料基礎大多已存在（ADR-0018）；新增財務期間狀態（ADR-0050）併入 M1。
+- **Phase 3 — Monthly Close（M1）**：八階段工作流 `/close` 單一入口（ADR-0052）；期間狀態 + 工作流 use case + UI + 一條高階整合測試（ADR-0018/0020/0051）。
+- **Phase 4 — Dashboard v1**：report-anchored（ADR-0053）— 錨點 + NET WORTH hero + Financial Pulse 四指標 + Monthly Close 狀態 + Recent Transactions（issues #104-#107）。
 
 ---
 
@@ -782,3 +397,5 @@ CLOSE
 > **Define Financial Period + Monthly Close state machine + application-level workflow interface**
 
 因為一旦這個核心成立，後面的 Account、Ledger、Debt、Report、Dashboard 都有一條清楚的資料與狀態流可以接上。
+
+---

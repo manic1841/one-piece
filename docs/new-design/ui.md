@@ -52,24 +52,25 @@ $4,821,320
 
 ---
 
+> **修訂（2026-09-17，Layout）**：新增 Layout 原則 —
+>
+> - **Desktop Header（System Status Bar）**：sticky，品牌 ONE PIECE + 靜態 ● SYSTEM ONLINE + 今日日期；右側 Household Switcher + Search + Settings + Avatar。permanent sidebar 移除；全站內容統一 `max-w-7xl mx-auto`。
+> - **Navigator**：平時完全隱藏，由右下角 Pixel Pet trigger 開啟（詳見 #10 修訂）。
+> - **Footer**：ONE PIECE v1.1.0 + DATA TODAY, A FREER TOMORROW。
+
+---
+
 ## 02 — Color
 
-核心只需要：
+色值以 `src/index.css` 為 source of truth（dark-first `:root` 變數），此處只定規則：
 
 ```text
-Background       #090B0D
-Surface          #101316
-Elevated         #15191D
-
-Border           #252A30
-
-Primary Text     #E6E8EB
-Secondary Text   #7C858F
-
-Accent           Blue
-Positive         Green
-Negative         Red
-Warning          Amber
+--background / --elevated   底層與抬升 surface
+--border                    1px 邊界
+--foreground / --muted      主文與次文
+--accent                    操作與強調
+--positive / --negative / --warning
+--chart-1..5                資料視覺
 ```
 
 **彩色只代表狀態或操作。**
@@ -108,7 +109,7 @@ Warning          Amber
 主要使用：
 
 ```text
-1px solid #252A30
+1px solid var(--border)
 ```
 
 而且低對比。
@@ -137,7 +138,7 @@ Border 只是告訴使用者：
 
 統一：
 
-**4px**
+**4px**（`--radius`）
 
 最多：
 
@@ -273,6 +274,15 @@ Cute / Organic / Playful
 **Low visual weight**
 
 所以不會破壞主介面的專業感。
+
+> **修訂（2026-09-17，Interaction Contract）**
+>
+> - **定位**：右下角固定。本次為簡單圓形 placeholder（primary 色，hover 輕微 scale 反應）；正式 pixel-art mascot 於 Phase 8 替換，不改 interaction contract。
+> - **Desktop**：hover → 輕微反應（眨眼／移動）；click → 展開 Navigator Overlay；滑鼠移開 → Overlay 不立刻消失（避免誤觸），點擊外部或再點 pet 關閉。
+> - **Mobile**：tap → 開啟 Navigator Bottom Sheet；再 tap pet 或 Close → 關閉；不使用 hover。
+> - **Reaction API**：元件定義四態 `idle / happy / nod / alert`，僅在使用者觸發或重要 system event 時反應（Monthly Close 完成 → happy、Reconciliation 確認 → nod、需要 Review → alert）；一般操作不反應。Pet 不主動打擾使用者，不是聊天機器人或 always-active assistant。
+> - **Navigator Overlay**：浮動 panel 2×4 grid，8 項（Transaction / Close / Account / Portfolio / Debt / Project / Report / Retirement）；Dashboard 為 Home 不進 panel，點 ONE PIECE 品牌回 Dashboard。動畫 200ms（見 #11）。
+> - **Header = System Status Bar**（與 Navigator 是兩個東西）：sticky 頂部 — 品牌 ONE PIECE + 靜態 ● SYSTEM ONLINE + 今日日期；右側 Household Switcher + Search + Settings + Avatar（含 logout）。
 
 ---
 

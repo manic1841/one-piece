@@ -9,6 +9,15 @@
 > 5. **五階段順序依賴僅為 UI 引導**，系統不強制（ADR-0018 順序由使用者手動流程保證）；NEEDS_REVIEW 暫停行為由期間狀態表達。
 > 6. **術語對照**：Ledger ≈ Transaction（UI 標籤「交易」）；Ledger entries ≈ Journal Entry（分錄）；Ledger Validation ≈ Completeness Check（記帳完整性檢查）；Financial Period（財務期間）與 Monthly Close（月度關帳）已收錄為 CONTEXT.md 正式術語；Net Worth 沿用既有 `NET_WORTH`（淨資產）標籤。
 > 7. **視覺系統**：以既有 Apple-style token 架構為基礎暗色化（詳見 ui.md 修訂）；中文介面維持。
+>
+> **修訂（2026-09-17，Layout 與品牌）**
+>
+> - **品牌定案**：產品名稱統一 **ONE PIECE**（header brand、layout、index.html title）；「FINANCE.OS」僅為設計討論代號，不作為產品名。
+> - **Header = System Status Bar**：sticky 頂部列 — 品牌 ONE PIECE + 靜態 ● SYSTEM ONLINE（StatusGlyph）+ 今日日期（瀏覽器本地時間，非期間概念）；右側 Household Switcher + Search（UI 先行，功能後接）+ Settings icon + Avatar（內含 logout）。不放假 global period picker（無全域 current period 概念；Dashboard 錨定最後一個 CLOSED report，Reports 自管 picker）。
+> - **Navigator（隱藏式）**：右下角 Pixel Pet trigger — Desktop：hover 輕微反應、click 開 Navigator Overlay、滑鼠移開不關閉（點外部或再點 pet 關閉）；Mobile：tap 開 bottom sheet，與既有 bottom nav + More sheet 共存（額外入口，不取代）。Overlay 為浮動 panel 2×4 grid，8 項（Transaction / Close / Account / Portfolio / Debt / Project / Report / Retirement）；Dashboard 為 Home 不進 panel。Pet reaction API：idle / happy / nod / alert，僅在使用者觸發或重要 system event 時反應，不做 always-active assistant。
+> - **版本**：package.json 升 1.1.0；Footer 顯示 ONE PIECE v1.1.0 + DATA TODAY, A FREER TOMORROW。
+> - **Dashboard 補充資訊**：stat row 3 指標（總資產 / 總負債 / 下月應付）；下月應付為前瞻 derived 值（債務帳戶 monthlyPayment／grace 試算對下月），UI 標「下月應付」；YTD（+8.42% YTD · +$374,210 形式）由 persisted reports 以曆年基準計算（錨定月 − 同年 1 月；1 月缺報表取年內第一筆）。Monthly Close 區塊升級為 per-stage 狀態 + 進度條 + VIEW CLOSE。
+> - **延後項**：Asset Allocation donut、Monthly Cash Flow chart（Phase 5 之後）；正式 pixel-art mascot 視覺（Phase 8）。
 
 ## Problem Statement
 
