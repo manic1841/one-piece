@@ -2,11 +2,12 @@ import React from 'react';
 
 import { useAuth } from '@/infra/contexts/useAuth';
 import { useDashboardOverview } from '@/ui/features/dashboard/hooks/useDashboardOverview';
+import { DASHBOARD_PULSE_LABELS } from '@/ui/constants/dashboard/pulseLabels';
 
 const Dashboard: React.FC = () => {
   const { userProfile } = useAuth();
   const householdId = userProfile?.householdId;
-  const { heroVM, loading, error } = useDashboardOverview(householdId);
+  const { heroVM, pulseVM, loading, error } = useDashboardOverview(householdId);
 
   return (
     <div className="space-y-6">
@@ -53,6 +54,30 @@ const Dashboard: React.FC = () => {
           </>
         )}
       </section>
+      {pulseVM.metrics.length > 0 && (
+        <section className="rounded-lg border border-border bg-elevated p-6 md:p-8">
+          <p className="text-xs font-medium tracking-widest text-muted-foreground">
+            {DASHBOARD_PULSE_LABELS.SECTION_TITLE}
+          </p>
+          <dl className="mt-5 grid grid-cols-2 gap-6 md:grid-cols-4">
+            {pulseVM.metrics.map((metric) => (
+              <div key={metric.key}>
+                <dt className="text-xs font-medium text-muted-foreground">{metric.label}</dt>
+                <dd
+                  className={`mt-2 font-mono text-xl tabular-nums text-foreground ${metric.valueClassName}`}
+                >
+                  {metric.valueText}
+                </dd>
+                {metric.detailText != null && (
+                  <dd className="mt-1 font-mono text-xs text-muted-foreground">
+                    {metric.detailText}
+                  </dd>
+                )}
+              </div>
+            ))}
+          </dl>
+        </section>
+      )}
     </div>
   );
 };

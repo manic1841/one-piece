@@ -1,9 +1,14 @@
 import { householdPermissionService } from '@/application/household/householdPermissionService';
 import { GetFinancialPeriodUseCase } from '@/application/monthly_close/use_cases/financialPeriodAccessUseCases';
 import { listReportsUseCase } from '@/application/report/use_cases/listReportsUseCase';
+import { listPortfoliosUseCase } from '@/application/portfolio/use_cases/listPortfoliosUseCase';
+import { listPortfolioSnapshotsUseCase } from '@/application/portfolio/use_cases/listPortfolioSnapshotsUseCase';
+import { transactionRepository } from '@/infra/repositories/transactionRepository';
 import { type AuthContext } from '@/application/types';
 import { ReportType } from '@/domains/report/schemas';
 import { type FinancialReport } from '@/domains/report/schemas';
+import { type PortfolioSnapshot } from '@/domains/portfolio/types/portfolio';
+import { type Transaction } from '@/domains/ledger/schemas';
 
 export interface DashboardNetWorthPoint {
   year: number;
@@ -17,8 +22,17 @@ export interface DashboardAnchor {
   netWorthSeries: DashboardNetWorthPoint[];
 }
 
+export interface DashboardPulse {
+  netCashFlow: number | null;
+  investmentReturn: number | null;
+  investmentLeverage: number | null;
+  monthlyDebtPayment: number | null;
+  investmentGain: number | null;
+}
+
 export interface DashboardOverview {
   anchor: DashboardAnchor | null;
+  pulse: DashboardPulse | null;
 }
 
 export interface GetDashboardOverviewRequest {
@@ -29,9 +43,13 @@ export interface GetDashboardOverviewRequest {
 const SERIES_LENGTH = 12;
 
 type BalanceSheetReport = Extract<FinancialReport, { type: typeof ReportType.BALANCE_SHEET }>;
+type CashFlowReport = Extract<FinancialReport, { type: typeof ReportType.CASH_FLOW }>;
 
 const isBalanceSheet = (report: FinancialReport): report is BalanceSheetReport =>
   report.type === ReportType.BALANCE_SHEET;
+
+const isCashFlow = (report: FinancialReport): report is CashFlowReport =>
+  report.type === ReportType.CASH_FLOW;
 
 const toMonthCode = (yearMonth: string): number => {
   const [year, month] = yearMonth.split('-').map(Number);
@@ -49,6 +67,17 @@ const shiftMonth = (
 
 const toYearMonth = ({ year, month }: { year: number; month: number }): string =>
   `${year}-${String(month).padStart(2, '0')}`;
+
+const buildMonthWindow = (yearMonth: string): { start: Date; end: Date } => {
+  const [year, month] = yearMonth.split('-').map(Number);
+  return {
+    start: new Date(year, month - 1, 1),
+    end: new Date(year, month, 1),
+  };
+};
+
+const sumDebtPayments = (transactions: Transaction[]): number =>
+  transactions.reduce((sum, transaction) => sum + (transaction.amount ?? 0), 0);
 
 export class GetDashboardOverviewUseCase {
   private readonly getFinancialPeriod = new GetFinancialPeriodUseCase();
@@ -74,10 +103,78 @@ export class GetDashboardOverviewUseCase {
       if (period?.status !== 'CLOSED') {
         continue;
       }
-      return { anchor: this.buildAnchor(report, balanceSheets) };
+      const pulse = await this.buildPulse(householdId, auth, report.yearMonth, reports);
+      return {
+        anchor: this.buildAnchor(report, balanceSheets),
+        pulse,
+      };
     }
 
-    return { anchor: null };
+    return { anchor: null, pulse: null };
+  }
+
+  private async buildPulse(
+    householdId: string,
+    auth: AuthContext,
+    anchorYearMonth: string,
+    reports: FinancialReport[],
+  ): Promise<DashboardPulse> {
+    const [year, month] = anchorYearMonth.split('-').map(Number);
+    const cashFlow = reports
+      .filter(isCashFlow)
+      .find((report) => report.yearMonth === anchorYearMonth);
+
+    const portfolios = await listPortfoliosUseCase.execute({ householdId, auth });
+    const snapshots: PortfolioSnapshot[] = [];
+    for (const portfolio of portfolios) {
+      const monthSnapshots = await listPortfolioSnapshotsUseCase.execute({
+        householdId,
+        portfolioId: portfolio.id,
+        year,
+        month,
+        auth,
+      });
+      snapshots.push(...monthSnapshots);
+    }
+
+    const totalGain = snapshots.reduce(
+      (sum, snapshot) => sum + (snapshot.performance?.gain ?? 0),
+      0,
+    );
+    const totalOpeningValue = snapshots.reduce(
+      (sum, snapshot) => sum + (snapshot.performance?.openingValue ?? 0),
+      0,
+    );
+
+    let exposure = 0;
+    let netValue = 0;
+    for (const snapshot of snapshots) {
+      for (const account of snapshot.accounts ?? []) {
+        for (const holding of account.holdings ?? []) {
+          const marketValue = holding.marketValue ?? 0;
+          exposure += marketValue * (holding.leverage ?? 1);
+          netValue += marketValue;
+        }
+      }
+    }
+
+    const { start, end } = buildMonthWindow(anchorYearMonth);
+    const debtPayments = await transactionRepository.listDebtPaymentsByDateRange(
+      householdId,
+      start,
+      end,
+    );
+
+    return {
+      netCashFlow: cashFlow ? cashFlow.data.netCashChange : null,
+      investmentReturn:
+        snapshots.length > 0 && totalOpeningValue > 0
+          ? (totalGain / totalOpeningValue) * 100
+          : null,
+      investmentLeverage: netValue > 0 ? exposure / netValue : null,
+      monthlyDebtPayment: debtPayments.length > 0 ? sumDebtPayments(debtPayments) : null,
+      investmentGain: snapshots.length > 0 ? totalGain : null,
+    };
   }
 
   private buildAnchor(

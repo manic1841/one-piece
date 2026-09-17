@@ -24,7 +24,7 @@ Dashboard v1（Phase 4）需要呈現家庭財務狀態：淨資產總覽、月�
   - Monthly Debt Payment：該月實際 DEBT_PAYMENT 交易總和，非排定應繳（合約值屬 Debt 模組職責）。
 - 缺月或缺指標顯示「—」佔位，不顯示 0（零是假資料）。
 - 近期交易為例外：維持最新 N 筆的即時事件流，不跟隨錨定月（交易是事件流，不是狀態指標）。
-- 舊三卡（資產趨勢、live 債務摘要、live 槓桿）自 Dashboard 退役；其 mapper 保留供 pulse 重用。
+- 舊三卡（資產趨勢、live 債務摘要、live 槓桿）自 Dashboard 退役；pulse 指標由新的期間版組裝推導，不重用舊卡 mapper（`mapLeverageStatsToCardVM`、`mapDebtSummaryToCardVM` 僅留存供 Debt 模組等其他消費者使用）。
 
 ## Alternatives Considered
 
