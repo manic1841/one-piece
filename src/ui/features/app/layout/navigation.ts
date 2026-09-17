@@ -38,3 +38,9 @@ export function getPrimaryNavItems(): NavItem[] {
 export function getSecondaryNavItems(): NavItem[] {
   return NAV_ITEMS.filter((item) => item.group === 'secondary');
 }
+
+const NAVIGATOR_EXCLUDED = new Set(['/', '/settings']);
+
+export function getNavigatorItems(): NavItem[] {
+  return NAV_ITEMS.filter((item) => !NAVIGATOR_EXCLUDED.has(item.to));
+}

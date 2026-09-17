@@ -3,6 +3,7 @@ import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import Layout from './Layout';
+import { getNavigatorItems } from './navigation';
 
 const mockLogout = vi.hoisted(() => vi.fn().mockResolvedValue(undefined));
 
@@ -172,5 +173,115 @@ describe('Layout content width', () => {
     const container = main.firstElementChild as HTMLElement;
     expect(container.className).toContain('max-w-7xl');
     expect(container.className).toContain('mx-auto');
+  });
+});
+
+describe('Layout pixel pet and navigator', () => {
+  it('renders a round pet placeholder fixed bottom-right', () => {
+    renderLayout();
+
+    const pet = screen.getByRole('button', { name: /pixel pet/i });
+    expect(pet.className).toContain('fixed');
+    expect(pet.className).toMatch(/(right|bottom)-/);
+    expect(pet.className).toContain('rounded-full');
+  });
+
+  it('renders the pet expression from the reaction API prop, idle by default', () => {
+    renderLayout();
+
+    const pet = screen.getByRole('button', { name: /pixel pet/i });
+    expect(pet.dataset.reaction).toBe('idle');
+    expect(screen.getByTestId('pet-face')).toBeInTheDocument();
+  });
+
+  it('opens the navigator as a floating panel with the eight secondary destinations in a 2x4 grid', () => {
+    renderLayout();
+
+    const pet = screen.getByRole('button', { name: /pixel pet/i });
+    fireEvent.pointerDown(pet);
+    fireEvent.click(pet);
+
+    const navigator = screen.getByTestId('navigator');
+    expect(navigator).toBeInTheDocument();
+
+    const grid = navigator.querySelector('[data-navigator-grid]') as HTMLElement;
+    expect(grid.className).toContain('grid-cols-2');
+    expect(grid.className).toContain('md:grid-cols-4');
+
+    const items = Array.from(grid.querySelectorAll('a'));
+    expect(items).toHaveLength(8);
+    expect(items.map((item) => item.getAttribute('href'))).toEqual(
+      getNavigatorItems().map((item) => item.to),
+    );
+    expect(items.map((item) => item.getAttribute('href'))).not.toContain('/');
+  });
+
+  it('keeps the navigator open after the pointer leaves the pet, and closes it on outside click', () => {
+    renderLayout();
+
+    const pet = screen.getByRole('button', { name: /pixel pet/i });
+    fireEvent.pointerDown(pet);
+    fireEvent.click(pet);
+    expect(screen.getByTestId('navigator')).toBeInTheDocument();
+
+    fireEvent.mouseLeave(pet);
+    expect(screen.getByTestId('navigator')).toBeInTheDocument();
+
+    fireEvent.pointerDown(screen.getByTestId('navigator-backdrop'));
+    expect(screen.queryByTestId('navigator')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('navigator-sheet')).not.toBeInTheDocument();
+  });
+
+  it('closes the navigator when re-clicking the pet', () => {
+    renderLayout();
+
+    const pet = screen.getByRole('button', { name: /pixel pet/i });
+    fireEvent.pointerDown(pet);
+    fireEvent.click(pet);
+    expect(screen.getByTestId('navigator')).toBeInTheDocument();
+
+    fireEvent.pointerDown(pet);
+    fireEvent.click(pet);
+    expect(screen.queryByTestId('navigator')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('navigator-sheet')).not.toBeInTheDocument();
+  });
+
+  it('closes the navigator when navigating to a destination', () => {
+    renderLayout({ withPageMarker: true });
+
+    const pet = screen.getByRole('button', { name: /pixel pet/i });
+    fireEvent.pointerDown(pet);
+    fireEvent.click(pet);
+
+    const closeLink = screen
+      .getByTestId('navigator')
+      .querySelector('a[href="/close"]') as HTMLAnchorElement | null;
+    expect(closeLink).not.toBeNull();
+
+    fireEvent.click(closeLink!);
+
+    expect(screen.getByTestId('page-marker').dataset.page).toBe('/close');
+    expect(screen.queryByTestId('navigator')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('navigator-sheet')).not.toBeInTheDocument();
+  });
+
+  it('exposes the navigator on mobile as a bottom sheet without regressing the bottom navigation', async () => {
+    renderLayout();
+
+    const nav = screen.getAllByRole('navigation')[0];
+    expect(nav.textContent).toContain('Dashboard');
+    expect(nav.textContent).not.toContain('Transactions');
+
+    const pet = screen.getByRole('button', { name: /pixel pet/i });
+    fireEvent.pointerDown(pet);
+    fireEvent.click(pet);
+
+    const sheet = await screen.findByTestId('navigator-sheet');
+
+    const firstLink = sheet.querySelector('a');
+    expect(firstLink).not.toBeNull();
+    fireEvent.click(firstLink!);
+
+    await waitFor(() => expect(screen.queryByTestId('navigator-sheet')).not.toBeInTheDocument());
   });
 });

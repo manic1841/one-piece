@@ -23,6 +23,7 @@ import {
 import HouseholdSwitcher from '@/ui/features/household/components/HouseholdSwitcher';
 
 import { getPrimaryNavItems, getSecondaryNavItems } from './navigation';
+import PixelPet from './PixelPet';
 import { useHouseholdGuard } from './useHouseholdGuard';
 
 const Layout: React.FC = () => {
@@ -203,6 +204,8 @@ const Layout: React.FC = () => {
           </SheetContent>
         </Sheet>
       </nav>
+
+      <PixelPet />
     </div>
   );
 };
