@@ -32,3 +32,6 @@ firebase-emulator/firebase_configs/firebase-export-*/
 # Testing
 test.ts
 coverage/
+
+# Local ticket records (kept locally, not stored in the repo)
+.scratch/

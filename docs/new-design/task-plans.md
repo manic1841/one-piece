@@ -35,6 +35,14 @@ Phase 9  Integration / Polish / E2E
 Phase 0 audit 已完成（現有快照/債務同步/報表生成/完整性檢查/監看清單皆已存在）。決策：
 
 > **文件歸屬原則**：本資料夾（docs/new-design/）是設計討論期的暫置文件。Redesign 落地後，spec/ui 的內容應拆解併入 docs/ 底下的正式文件（architecture.md、data-structure.md、transaction-flow.md、financial_report.md 等），資料夾本身退役或僅保留實作計畫。docs/adr/ 是專案永久決策紀錄，不引用任何 spec 代號。
+>
+> **修訂（2026-09-17，Grilling 三輪後）**
+>
+> - **Phase 8 的核心提前**：Navigator + Pixel Pet 的互動基礎（Desktop Header、隱藏式 Navigator、Pet trigger）提前到 layout session（Session A）實作；Phase 8 剩餘範圍 = 正式 pixel-art mascot 視覺 + Mobile Navigator 統一整理 + 隱藏導覽收尾。移除桌面 permanent sidebar 提前，正好消解 spec 的 non-goal。
+> - **Header ≠ Navigator**：Header 是 System Status Bar（品牌 + 靜態 SYSTEM ONLINE + 今日日期 + Household Switcher / Search / Settings / Avatar）；Navigator 平時隱藏，由右下角 Pixel Pet trigger 開啟（Desktop: hover 反應 + click 開 overlay，滑鼠移開不關閉；Mobile: tap 開 bottom sheet，與既有 bottom nav 共存）。
+> - **品牌定案**：產品名稱統一 ONE PIECE（header、layout、index.html title）；FINANCE.OS 僅作為設計討論代號，不作為產品名。
+> - **版本**：package.json 升 1.1.0，Footer 顯示 ONE PIECE v1.1.0。
+> - **進度**：Phase 0-4 已完成（audit、design system、M1 Monthly Close vertical slice、Dashboard v1）；layout session（Session A，#109 sticky header）已於 2026-09-17 落地 — Desktop Header（System Status Bar）取代 permanent sidebar 與舊 mobile top bar，內容統一 `max-w-7xl mx-auto`；Navigator + Pixel Pet（#110）與 Footer（#111）待實作；Phase 5 finance modules 排在其後。
 
 **Phase 2+3 合併為一個 vertical slice（M1）**。Phase 2 的資料基礎大多已存在（見 ADR-0018）；真正的新增是財務期間狀態（ADR-0050）、關帳工作流階段模型（ADR-0052）、工作流 use case 與其 UI。合併後 M1 = 期間狀態 + 八階段工作流（`/close` 專屬路由，單一關帳入口）+ 一條高階整合測試。M1 使用 S2 已落地的設計系統（dark tokens、Inter + JetBrains Mono、4px radius、StatusGlyph）；UI 全面重設計另開 session，排在 M1 之後。
 - **Phase 1 待決策後才動工**：暗色優先 token、Inter + JetBrains Mono、4px radius、glyph 狀態系統的細節另開 session 討論（詳見 ui.md 修訂）。
@@ -599,6 +607,8 @@ Navigation
 ```
 
 這樣不會讓一個 UI gimmick 阻塞核心產品開發。
+
+> **修訂（2026-09-17）**：互動基礎提前到 layout session（Session A）— Desktop Header（移除 permanent sidebar）、Pixel Pet trigger（右下角圓形 placeholder，hover 輕微反應 + click 開 Navigator）、Navigator Overlay（2×4 grid，8 項：Transaction / Close / Account / Portfolio / Debt / Project / Report / Retirement；Dashboard 為 Home 不進 panel，點 ONE PIECE 品牌回首頁）、Pet reaction API（idle / happy / nod / alert）、Footer。本 Phase 剩餘範圍 = 正式 pixel-art mascot 視覺（換視覺不換 interaction contract）、Mobile Navigator 統一整理（與 bottom nav 的長期收編）。
 
 ---
 

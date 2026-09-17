@@ -1,17 +1,21 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
-import { describe, expect, it, vi } from 'vitest';
+import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import Layout from './Layout';
+
+const mockLogout = vi.hoisted(() => vi.fn().mockResolvedValue(undefined));
 
 vi.mock('@/infra/contexts/useAuth', () => ({
   useAuth: () => ({
     userProfile: {
       uid: 'user-1',
+      email: 'user@example.com',
+      displayName: 'Test User',
       householdId: 'household-1',
       isGlobalAdmin: false,
     },
-    logout: vi.fn().mockResolvedValue(undefined),
+    logout: mockLogout,
   }),
 }));
 
@@ -25,79 +29,148 @@ vi.mock('@/ui/features/household/components/HouseholdSwitcher', () => ({
   default: () => <div data-testid="household-switcher" />,
 }));
 
-function renderLayout(initialRoute = '/') {
+function PageMarker() {
+  const { pathname } = useLocation();
+  return <div data-testid="page-marker" data-page={pathname} />;
+}
+
+function renderLayout({ initialRoute = '/', withPageMarker = false } = {}) {
   return render(
     <MemoryRouter initialEntries={[initialRoute]}>
-      <Layout />
+      {withPageMarker ? (
+        <Routes>
+          <Route element={<Layout />}>
+            <Route path="*" element={<PageMarker />} />
+          </Route>
+        </Routes>
+      ) : (
+        <Layout />
+      )}
     </MemoryRouter>,
   );
 }
 
-describe('Layout mobile navigation', () => {
-  it('shows four primary tabs and a More button, not the full nine-item bar', () => {
-    renderLayout();
-
-    const nav = screen.getAllByRole('navigation')[0];
-
-    expect(nav.textContent).toContain('Dashboard');
-    expect(nav.textContent).toContain('Projects');
-    expect(nav.textContent).toContain('Accounts');
-    expect(nav.textContent).toContain('Reports');
-    expect(nav.textContent).not.toContain('Transactions');
-    expect(nav.textContent).not.toContain('Settings');
+describe('Layout system status bar', () => {
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
-  it('opens the more sheet listing the five secondary destinations', async () => {
+  it('renders ONE PIECE brand, system-online glyph, and today date in one sticky header', () => {
     renderLayout();
 
-    fireEvent.click(screen.getByRole('button', { name: /more/i }));
+    const header = screen.getByRole('banner');
+    expect(header.tagName).toBe('HEADER');
+    expect(header.className).toContain('sticky');
 
-    expect(await screen.findByRole('dialog')).toBeInTheDocument();
-    expect(screen.getAllByText('Transactions').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('Retirement').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('Portfolios').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('Debt').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('Settings').length).toBeGreaterThan(0);
+    expect(screen.getByRole('link', { name: /one piece/i })).toBeInTheDocument();
+    expect(screen.getByText(/system online/i)).toBeInTheDocument();
+    expect(screen.getByTestId('header-today')).toBeInTheDocument();
   });
 
-  it('closes the sheet via the close control', async () => {
+  it('formats today date per browser locale', () => {
+    vi.useFakeTimers({ now: new Date('2026-01-15T12:00:00') });
+
     renderLayout();
 
-    fireEvent.click(screen.getByRole('button', { name: /more/i }));
-    expect(await screen.findByRole('dialog')).toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole('button', { name: /close/i }));
-    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    const dateText = screen.getByTestId('header-today').textContent ?? '';
+    expect(dateText).toContain('15');
+    expect(dateText).toContain('2026');
   });
 
-  it('navigates to a secondary destination and closes the sheet', async () => {
+  it('groups household switcher, search, settings, and avatar on the header', async () => {
     renderLayout();
 
-    fireEvent.click(screen.getByRole('button', { name: /more/i }));
-    const transactionsLink = (await screen.findAllByText('Transactions'))[0].closest('a');
-    expect(transactionsLink).not.toBeNull();
+    expect(await screen.findByTestId('household-switcher')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /search/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /settings/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /avatar/i })).toBeInTheDocument();
+  });
 
-    fireEvent.pointerDown(transactionsLink!);
-    fireEvent.click(transactionsLink!);
-    await waitFor(() => {
-      const dialogs = screen.queryAllByRole('dialog');
-      expect(dialogs.some((dialog) => (dialog as HTMLElement).dataset.state === 'open')).toBe(false);
-    });
+  it('keeps settings, avatar, and logout reachable when the desktop-only controls are hidden', async () => {
+    renderLayout();
+
+    const settingsButton = screen.getByRole('button', { name: /settings/i });
+    const avatarButton = screen.getByRole('button', { name: /avatar/i });
+    const searchButton = screen.getByRole('button', { name: /search/i });
+    const switcher = await screen.findByTestId('household-switcher');
+
+    expect(settingsButton.className).not.toContain('hidden');
+    expect(avatarButton.className).not.toContain('hidden');
+    expect(searchButton.className).toContain('hidden');
+    expect(switcher.parentElement?.className).toContain('hidden');
+  });
+
+  it('opens the avatar menu exposing logout and logs out from it', async () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+
+    renderLayout();
+
+    const avatarButton = screen.getByRole('button', { name: /avatar/i });
+    fireEvent.pointerDown(avatarButton);
+    fireEvent.click(avatarButton);
+    const logoutItem = await screen.findByRole('menuitem', { name: /logout/i });
+    fireEvent.pointerDown(logoutItem);
+    fireEvent.click(logoutItem);
+
+    await waitFor(() => expect(mockLogout).toHaveBeenCalledTimes(1));
+  });
+
+  it('keeps search present but inert', () => {
+    renderLayout();
+
+    const searchButton = screen.getByRole('button', { name: /search/i });
+    expect(searchButton).toBeDisabled();
+
+    fireEvent.click(searchButton);
   });
 });
 
-describe('Layout responsive widths', () => {
-  it('narrows the desktop sidebar at the tablet breakpoint and restores it on large screens', () => {
+describe('Layout primary navigation', () => {
+  it('navigates to the dashboard from the brand link', () => {
+    renderLayout({ initialRoute: '/reports', withPageMarker: true });
+
+    fireEvent.click(screen.getByRole('link', { name: /one piece/i }));
+
+    expect(screen.getByTestId('page-marker').dataset.page).toBe('/');
+  });
+
+  it('navigates to settings from the settings control', () => {
+    renderLayout({ withPageMarker: true });
+
+    fireEvent.click(screen.getByRole('button', { name: /settings/i }));
+
+    expect(screen.getByTestId('page-marker').dataset.page).toBe('/settings');
+  });
+
+  it('renders the desktop sidebar removed: no complementary landmark remains', () => {
     renderLayout();
 
-    const aside = screen.getByRole('complementary');
-    expect(aside.className).toContain('md:w-56');
-    expect(aside.className).toContain('lg:w-64');
-    expect(aside.className).not.toMatch(/(^|\s)w-64(\s|$)/);
+    expect(screen.queryByRole('complementary')).not.toBeInTheDocument();
+  });
+
+  it('keeps mobile primary tabs and the More sheet working', async () => {
+    renderLayout();
+
+    const nav = screen.getAllByRole('navigation')[0];
+    expect(nav.textContent).toContain('Dashboard');
+    expect(nav.textContent).not.toContain('Transactions');
+
+    fireEvent.click(screen.getByRole('button', { name: /more/i }));
+    expect(await screen.findByRole('dialog')).toBeInTheDocument();
+    expect(screen.getAllByText('Transactions').length).toBeGreaterThan(0);
+  });
+});
+
+describe('Layout content width', () => {
+  it('unifies content under the centered container with no sidebar offsets', () => {
+    renderLayout();
 
     const main = screen.getByRole('main');
-    expect(main.className).toContain('md:pl-56');
-    expect(main.className).toContain('lg:pl-64');
-    expect(main.className).not.toMatch(/(^|\s)md:pl-64(\s|$)/);
+    expect(main.className).not.toMatch(/(^|\s)md:pl-56(\s|$)/);
+    expect(main.className).not.toMatch(/(^|\s)lg:pl-64(\s|$)/);
+
+    const container = main.firstElementChild as HTMLElement;
+    expect(container.className).toContain('max-w-7xl');
+    expect(container.className).toContain('mx-auto');
   });
 });
