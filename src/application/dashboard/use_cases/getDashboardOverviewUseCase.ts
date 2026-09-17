@@ -19,6 +19,8 @@ export interface DashboardNetWorthPoint {
 export interface DashboardAnchor {
   yearMonth: string;
   netWorth: number;
+  assets: number;
+  liabilities: number;
   netWorthSeries: DashboardNetWorthPoint[];
 }
 
@@ -202,6 +204,8 @@ export class GetDashboardOverviewUseCase {
     return {
       yearMonth: anchorReport.yearMonth,
       netWorth: netAssetsByMonth.get(anchorReport.yearMonth) ?? 0,
+      assets: anchorReport.data.assets.total,
+      liabilities: anchorReport.data.liabilities.total,
       netWorthSeries,
     };
   }

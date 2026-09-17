@@ -44,6 +44,7 @@ export function useDashboardOverview(householdId: string | undefined) {
   const pulseVM: DashboardPulseVM = mapDashboardOverviewToPulseVM(overview);
 
   return {
+    overview,
     heroVM,
     pulseVM,
     loading,

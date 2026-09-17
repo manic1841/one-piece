@@ -5,17 +5,31 @@ import { useAuth } from '@/infra/contexts/useAuth';
 import { useDashboardOverview } from '@/ui/features/dashboard/hooks/useDashboardOverview';
 import { useDashboardCloseStatus } from '@/ui/features/dashboard/hooks/useDashboardCloseStatus';
 import { useDashboardRecentTransactions } from '@/ui/features/dashboard/hooks/useDashboardRecentTransactions';
+import { useDashboardStatRow } from '@/ui/features/dashboard/hooks/useDashboardStatRow';
 import { DASHBOARD_PULSE_LABELS } from '@/ui/constants/dashboard/pulseLabels';
 import { DASHBOARD_CLOSE_LABELS } from '@/ui/constants/dashboard/monthlyCloseStatus';
 import { DASHBOARD_RECENT_LABELS } from '@/ui/constants/dashboard/recentTransactionsLabels';
+import { mapDashboardOverviewToStatRowVM } from '@/ui/features/dashboard/viewmodels/dashboardStatRow.vm';
 import { StatusGlyph } from '@/ui/components/StatusGlyph';
 import { ChevronRight } from 'lucide-react';
+
+const resolveLoaded = <T,>(
+  loading: boolean,
+  error: string | null,
+  value: T | null,
+): T | null => (loading || error ? null : value);
 
 const Dashboard: React.FC = () => {
   const { userProfile } = useAuth();
   const navigate = useNavigate();
   const householdId = userProfile?.householdId;
-  const { heroVM, pulseVM, loading, error } = useDashboardOverview(householdId);
+  const { overview, heroVM, pulseVM, loading, error } = useDashboardOverview(householdId);
+  const { nextMonthDue, loading: statRowLoading, error: statRowError } =
+    useDashboardStatRow(householdId);
+  const statRowVM = mapDashboardOverviewToStatRowVM(
+    resolveLoaded(loading, error, overview),
+    resolveLoaded(statRowLoading, statRowError, nextMonthDue),
+  );
   const { vm: closeStatusVM, loading: closeStatusLoading, error: closeStatusError } =
     useDashboardCloseStatus(householdId);
   const { vm: recentVM, loading: recentLoading, error: recentError } =
@@ -64,6 +78,32 @@ const Dashboard: React.FC = () => {
             <p className="mt-4 text-sm text-muted-foreground">完成本月關帳後顯示淨資產</p>
           )}
         </div>
+      </section>
+
+      <section className="grid grid-cols-1 gap-4 md:grid-cols-3">
+        {statRowVM.metrics.map((metric) => (
+          <div
+            key={metric.key}
+            data-testid={`stat-${metric.key}`}
+            className="rounded-lg border border-border bg-elevated/30 backdrop-blur-sm p-5"
+          >
+            <p className="text-xs font-medium tracking-widest text-muted-foreground">
+              {metric.label}
+            </p>
+            {(statRowLoading || loading) ? (
+              <div className="mt-3 h-7 w-24 animate-pulse rounded bg-muted" />
+            ) : (
+              <p className="mt-2 font-mono text-2xl tabular-nums text-foreground">
+                {metric.valueText}
+              </p>
+            )}
+            {metric.detailText != null && !statRowLoading && !loading && (
+              <p className="mt-1 font-mono text-[10px] tracking-widest text-muted-foreground">
+                {metric.detailText}
+              </p>
+            )}
+          </div>
+        ))}
       </section>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">

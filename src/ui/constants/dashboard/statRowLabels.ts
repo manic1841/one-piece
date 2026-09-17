@@ -1,0 +1,6 @@
+export const DASHBOARD_STAT_ROW_LABELS = {
+  TOTAL_ASSETS: '總資產',
+  TOTAL_LIABILITIES: '總負債',
+  NEXT_MONTH_DEBT_DUE: '下月應付',
+  ANCHOR_PREFIX: 'ANCHORED',
+} as const;

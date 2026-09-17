@@ -218,6 +218,8 @@ describe('GetDashboardOverviewUseCase', () => {
     expect(result.anchor).not.toBeNull();
     expect(result.anchor?.yearMonth).toBe('2026-08');
     expect(result.anchor?.netWorth).toBe(450);
+    expect(result.anchor?.assets).toBe(600);
+    expect(result.anchor?.liabilities).toBe(150);
   });
 
   it('skips unclosed months and anchors to the latest closed one', async () => {

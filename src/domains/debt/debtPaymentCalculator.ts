@@ -1,3 +1,4 @@
+import { type DebtAccount } from '@/domains/debt/schemas';
 import { type JournalEntryLine } from '@/domains/ledger/schemas';
 
 export const DebtPaymentErrorCode = {
@@ -94,6 +95,13 @@ export function calculateGraceMonthlyPayment(
   interestRate: number, // annual, in %
 ): number {
   return calculateMonthlyInterest(currentBalance, interestRate);
+}
+
+export function getEffectiveMonthlyDue(account: DebtAccount, referenceDate: Date): number {
+  if (isInGracePeriod(account.startDate, referenceDate, account.graceEndDate)) {
+    return calculateGraceMonthlyPayment(account.currentBalance, account.interestRate);
+  }
+  return account.monthlyPayment;
 }
 
 export function calculateDebtPayment(

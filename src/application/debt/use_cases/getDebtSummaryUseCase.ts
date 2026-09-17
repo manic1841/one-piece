@@ -1,8 +1,4 @@
-import {
-  calculateGraceMonthlyPayment,
-  isInGracePeriod,
-} from '@/domains/debt/debtPaymentCalculator';
-import { type DebtAccount } from '@/domains/debt/schemas';
+import { getEffectiveMonthlyDue } from '@/domains/debt/debtPaymentCalculator';
 import { type Transaction } from '@/domains/ledger/schemas';
 import { transactionRepository } from '@/infra/repositories/transactionRepository';
 
@@ -25,13 +21,6 @@ const endOfMonth = (date: Date) => new Date(date.getFullYear(), date.getMonth() 
 const getPaidAccountIds = (payments: Transaction[]): Set<string> =>
   new Set(payments.map((p) => p.debtAccountId).filter((id): id is string => Boolean(id)));
 
-const getMonthlyDue = (account: DebtAccount, referenceDate: Date): number => {
-  if (isInGracePeriod(account.startDate, referenceDate, account.graceEndDate)) {
-    return calculateGraceMonthlyPayment(account.currentBalance, account.interestRate);
-  }
-  return account.monthlyPayment;
-};
-
 export class GetDebtSummaryUseCase {
   async execute(request: GetDebtSummaryRequest): Promise<DebtSummaryResult> {
     const referenceDate = request.referenceDate ?? new Date();
@@ -50,7 +39,7 @@ export class GetDebtSummaryUseCase {
 
     for (const account of accounts) {
       totalDebt += account.currentBalance;
-      monthlyPaymentTotal += getMonthlyDue(account, referenceDate);
+      monthlyPaymentTotal += getEffectiveMonthlyDue(account, referenceDate);
       if (!paidAccountIds.has(account.id)) {
         unpaidCount += 1;
       }
