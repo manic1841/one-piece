@@ -392,43 +392,42 @@ CLOSED ✓
 
 # Phase 4 — Dashboard
 
-Monthly Close backend 穩定後，才做 Dashboard。
-
-第一版只做：
+Monthly Close 主線穩定後，才做 Dashboard。第一版為 **report-anchored**（ADR-0053）：整頁錨定最新已關帳期間的 report 月份，單一時間點，不顯示 live 資料。
 
 ```text
-NET WORTH
+NET WORTH            AUG 2026 REPORT
 
 $4,821,320
-
-        ───────────╮
+        ───────────╮   (12 個月 netAssets sparkline, 缺月斷開)
                    ╰──────
 
-Financial Pulse
+Financial Pulse      (跟隨 hero 月份)
 
-Net Cash Flow
-Investment Return
-Investment Leverage
-Monthly Debt Payment
+Net Cash Flow         ← 現金流量表 netCashChange
+Investment Return     ← 該月 portfolio snapshots 月報酬率
+Investment Leverage   ← 該月 snapshots 推導
+Monthly Debt Payment  ← 該月 DEBT_PAYMENT 實際還款總和
 
 
 Monthly Close
 
-SEP 2026
-● CLOSED
+AUG 2026
+✓ CLOSED              ← M1 financialPeriodAccessUseCases + StatusGlyph
 
 
-Recent Ledger
-...
+Recent Transactions   ← 最新 ~8 筆 live 事件流 (不跟隨錨定月)
 ```
+
+實作切分（tracer-bullet issues）：#104 錨點 + NET WORTH hero + 頁面重寫；#105 Financial Pulse 四指標；#106 Monthly Close 狀態區塊；#107 Recent Transactions + polish。
 
 ### Dashboard 第一版不要做
 
 * 大量 cards
-* 太多 charts
+* 太多 charts（只保留 hero 的 12 個月 sparkline）
 * 太多 breakdown
 * 複雜 filters
 * 動畫
+* 下月還款預測、其他新增資訊（post-v1 scope 討論）
 
 先確認：
 

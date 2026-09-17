@@ -1,16 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import {
-  formatCompactAxisValue,
-  formatTrendTooltipValue,
-  mapAssetTrendDataToChartPoints,
-  mapAssetTrendMetricToVM,
-  mapAssetTrendStatusToBadgeVM,
-  mapAssetTrendYAxisDomains,
-  mapDebtSummaryToCardVM,
-  mapLeverageStatsToCardVM,
-  mapUnsettledStatsToCardVM,
-} from './dashboardDisplay.vm';
+import { mapDebtSummaryToCardVM, mapLeverageStatsToCardVM } from './dashboardDisplay.vm';
 
 describe('dashboardDisplay.vm', () => {
   it('maps leverage stats to card vm', () => {
@@ -35,92 +25,5 @@ describe('dashboardDisplay.vm', () => {
     expect(vm.unpaidCountText).toBe('2');
     expect(vm.isUnpaid).toBe(true);
     expect(vm.unpaidContainerClassName).toContain('bg-negative/10');
-  });
-
-  it('formats trend tooltip by series dataKey, not display name', () => {
-    const point = {
-      label: '2026-01',
-      assets: 1000,
-      liabilities: 200,
-      netAssets: 800,
-      income: 500,
-      expense: 300,
-      investmentGain: 50,
-      netAssetsGrowthPct: 4.5,
-      liabilitiesGrowthPct: -2.0,
-      investmentReturnRate: 3.25,
-    };
-
-    const [netAssetsText] = formatTrendTooltipValue(800, '任意名稱', {
-      payload: point,
-      dataKey: 'netAssets',
-    });
-    expect(netAssetsText).toContain('+4.5%');
-
-    const [liabilitiesText] = formatTrendTooltipValue(200, '任意名稱', {
-      payload: point,
-      dataKey: 'liabilities',
-    });
-    expect(liabilitiesText).toContain('-2.0%');
-
-    const [investmentText] = formatTrendTooltipValue(50, '任意名稱', {
-      payload: point,
-      dataKey: 'investmentGain',
-    });
-    expect(investmentText).toContain('+3.25%');
-
-    const [fallbackText, fallbackName] = formatTrendTooltipValue(50, '其他', {});
-    expect(fallbackText).not.toContain('%');
-    expect(fallbackName).toBe('其他');
-  });
-
-  it('maps asset trend status and metric vm', () => {
-    const status = mapAssetTrendStatusToBadgeVM('ahead');
-    expect(status.label).toBe('進度超前');
-
-    const metric = mapAssetTrendMetricToVM('累計收入', 100000, 90000, 11.1);
-    expect(metric.actualText).toContain('100,000');
-    expect(metric.projectedText).toContain('90,000');
-    expect(metric.gapText).toContain('+11.1%');
-  });
-
-  it('maps chart points and y-axis domains', () => {
-    const chartData = mapAssetTrendDataToChartPoints({
-      labels: ['2026-01', '2026-02', '2026-03'],
-      assets: [1000, 2000, 0],
-      liabilities: [200, 300, 0],
-      netAssets: [800, 1700, 0],
-      incomes: [500, 600, 0],
-      expenses: [300, 350, 0],
-      investmentGains: [50, 60, 0],
-      investmentReturnRates: [2.5, 3.0, null],
-    });
-
-    expect(chartData.length).toBe(2);
-
-    const domains = mapAssetTrendYAxisDomains(chartData, 3000, 1200, 800);
-    expect(domains.left[1]).toBeGreaterThan(0);
-    expect(domains.right[1]).toBeGreaterThan(0);
-    expect(formatCompactAxisValue(1200)).toBe('1K');
-  });
-
-  it('maps unsettled stats to card vm', () => {
-    const vm = mapUnsettledStatsToCardVM({
-      year: 2026,
-      month: 3,
-      isReady: false,
-      unsettledAccounts: [{} as never],
-      unsettledPortfolios: [],
-      unsettledDebts: [],
-      unsettledProjects: [{} as never, {} as never],
-      totalUnsettled: 3,
-    });
-
-    expect(vm.titleText).toBe('結算 (2026/3)');
-    expect(vm.isFullySettled).toBe(false);
-    expect(vm.totalBadgeText).toBe('3 項未結算');
-    expect(vm.accounts.countText).toBe('1');
-    expect(vm.projects.countText).toBe('2');
-    expect(vm.badgeVariant).toBe('destructive');
   });
 });
