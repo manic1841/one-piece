@@ -68,6 +68,19 @@ describe('Layout system status bar', () => {
     expect(screen.getByTestId('header-today')).toBeInTheDocument();
   });
 
+  it('renders a site footer with brand, version, and tagline', () => {
+    renderLayout();
+
+    expect(screen.getByTestId('footer-brand').textContent).toBe('ONE PIECE');
+    expect(screen.getByTestId('footer-version').textContent).toMatch(/^v\d+\.\d+\.\d+$/);
+    expect(screen.getByTestId('footer-tagline').textContent).toMatch(
+      /data today, a freer tomorrow/i,
+    );
+
+    const footer = screen.getByTestId('footer-brand').closest('footer');
+    expect(footer).not.toBeNull();
+  });
+
   it('formats today date per browser locale', () => {
     vi.useFakeTimers({ now: new Date('2026-01-15T12:00:00') });
 

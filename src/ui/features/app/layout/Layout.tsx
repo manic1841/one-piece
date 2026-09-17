@@ -24,6 +24,8 @@ import HouseholdSwitcher from '@/ui/features/household/components/HouseholdSwitc
 
 import { getPrimaryNavItems, getSecondaryNavItems } from './navigation';
 import PixelPet from './PixelPet';
+import SiteFooter from './SiteFooter';
+import { APP_BRAND } from './brand';
 import { useHouseholdGuard } from './useHouseholdGuard';
 
 const Layout: React.FC = () => {
@@ -76,7 +78,7 @@ const Layout: React.FC = () => {
             to="/"
             className="flex items-center gap-3 shrink-0 transition-opacity duration-fast ease-out-quint hover:opacity-80"
           >
-            <h1 className="text-lg font-bold tracking-heading text-foreground">ONE PIECE</h1>
+            <h1 className="text-lg font-bold tracking-heading text-foreground">{APP_BRAND}</h1>
           </NavLink>
           <div className="hidden sm:flex items-center gap-3 shrink-0">
             <StatusGlyph type="active" label="SYSTEM ONLINE" />
@@ -147,6 +149,8 @@ const Layout: React.FC = () => {
           <Outlet />
         </div>
       </main>
+
+      <SiteFooter />
 
       {/* Mobile Bottom Navigation */}
       <nav className="material-chrome md:hidden fixed bottom-0 left-0 right-0 bg-background/75 backdrop-blur-xl backdrop-saturate-150 px-2 py-2 flex justify-around items-center z-50">
