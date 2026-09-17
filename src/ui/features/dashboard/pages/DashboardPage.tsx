@@ -11,6 +11,7 @@ import { DASHBOARD_CLOSE_LABELS } from '@/ui/constants/dashboard/monthlyCloseSta
 import { DASHBOARD_RECENT_LABELS } from '@/ui/constants/dashboard/recentTransactionsLabels';
 import { mapDashboardOverviewToStatRowVM } from '@/ui/features/dashboard/viewmodels/dashboardStatRow.vm';
 import { StatusGlyph } from '@/ui/components/StatusGlyph';
+import { HeroYtd } from '@/ui/features/dashboard/components/HeroYtd';
 import { ChevronRight } from 'lucide-react';
 
 const resolveLoaded = <T,>(
@@ -73,6 +74,9 @@ const Dashboard: React.FC = () => {
             <p className="mt-3 font-mono text-xs tabular-nums text-muted-foreground">
               {heroVM.anchorPeriodText}
             </p>
+          )}
+          {heroVM.hasAnchor && (
+            <HeroYtd ytd={heroVM.ytd} />
           )}
           {!loading && !error && !heroVM.hasAnchor && (
             <p className="mt-4 text-sm text-muted-foreground">完成本月關帳後顯示淨資產</p>

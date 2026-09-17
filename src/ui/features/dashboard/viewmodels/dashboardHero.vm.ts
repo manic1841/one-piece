@@ -11,6 +11,11 @@ export interface DashboardHeroVM {
   hasAnchor: boolean;
   anchorPeriodText: string | null;
   netWorthText: string;
+  ytd: {
+    percentText: string;
+    amountText: string | null;
+    direction: 'positive' | 'negative';
+  } | null;
   sparkline: {
     points: NetWorthSparklinePointVM[];
     path: string | undefined;
@@ -102,6 +107,7 @@ export const mapDashboardOverviewToHeroVM = (
       hasAnchor: false,
       anchorPeriodText: null,
       netWorthText: '—',
+      ytd: null,
       sparkline: { points: [], path: undefined, areaPath: undefined },
       trend: { path: undefined, areaPath: undefined, endPoint: undefined, xLabels: [], yLabels: [] },
     };
@@ -114,8 +120,27 @@ export const mapDashboardOverviewToHeroVM = (
     hasAnchor: true,
     anchorPeriodText: `${formatYearMonth(year, month)} REPORT`,
     netWorthText: formatCurrency(anchor.netWorth),
+    ytd: buildYtdVM(anchor.netWorth, anchor.ytdBaseline?.netWorth ?? null),
     sparkline: buildSparklineGeometry(anchor.netWorthSeries),
     trend: buildTrendGeometry(anchor.netWorthSeries),
+  };
+};
+
+const buildYtdVM = (
+  netWorth: number,
+  baselineNetWorth: number | null,
+): DashboardHeroVM['ytd'] => {
+  if (baselineNetWorth === null) {
+    return { percentText: '—', amountText: null, direction: 'positive' };
+  }
+  const change = netWorth - baselineNetWorth;
+  const percent = (change / baselineNetWorth) * 100;
+  const direction = change >= 0 ? 'positive' : 'negative';
+  const signedPercentText = `${percent >= 0 ? '+' : ''}${percent.toFixed(1)}%`;
+  return {
+    percentText: `${signedPercentText} YTD`,
+    amountText: `${change >= 0 ? '+' : '-'}${formatCurrency(Math.abs(change))}`,
+    direction,
   };
 };
 

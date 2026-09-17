@@ -361,4 +361,78 @@ describe('GetDashboardOverviewUseCase', () => {
     expect(result.pulse).toBeNull();
     expect(listDebtPaymentsMock).not.toHaveBeenCalled();
   });
+
+  describe('ytd baseline resolution', () => {
+    it('uses same-year January net worth as the baseline', async () => {
+      listReportsMock.mockResolvedValue([
+        buildBalanceSheet('2026-01', 400, 100),
+        buildBalanceSheet('2026-08', 600, 150),
+      ]);
+      listPortfoliosMock.mockResolvedValue([]);
+      listDebtPaymentsMock.mockResolvedValue([]);
+      getFinancialPeriodMock.mockResolvedValue(buildPeriod('CLOSED'));
+
+      const result = await getDashboardOverviewUseCase.execute({
+        householdId: 'household-1',
+        auth,
+      });
+
+      expect(result.anchor?.ytdBaseline).toMatchObject({
+        yearMonth: '2026-01',
+        netWorth: 300,
+      });
+    });
+
+    it('falls back to the earliest report of the anchor year when January is missing', async () => {
+      listReportsMock.mockResolvedValue([
+        buildBalanceSheet('2026-08', 600, 150),
+        buildBalanceSheet('2026-03', 440, 120),
+        buildBalanceSheet('2026-05', 520, 130),
+      ]);
+      listPortfoliosMock.mockResolvedValue([]);
+      listDebtPaymentsMock.mockResolvedValue([]);
+      getFinancialPeriodMock.mockResolvedValue(buildPeriod('CLOSED'));
+
+      const result = await getDashboardOverviewUseCase.execute({
+        householdId: 'household-1',
+        auth,
+      });
+
+      expect(result.anchor?.ytdBaseline).toMatchObject({
+        yearMonth: '2026-03',
+        netWorth: 320,
+      });
+    });
+
+    it('returns null baseline when the anchor year has no earlier report', async () => {
+      listReportsMock.mockResolvedValue([buildBalanceSheet('2026-08', 600, 150)]);
+      listPortfoliosMock.mockResolvedValue([]);
+      listDebtPaymentsMock.mockResolvedValue([]);
+      getFinancialPeriodMock.mockResolvedValue(buildPeriod('CLOSED'));
+
+      const result = await getDashboardOverviewUseCase.execute({
+        householdId: 'household-1',
+        auth,
+      });
+
+      expect(result.anchor?.ytdBaseline).toBeNull();
+    });
+
+    it('does not use prior-year reports as the baseline', async () => {
+      listReportsMock.mockResolvedValue([
+        buildBalanceSheet('2025-12', 500, 100),
+        buildBalanceSheet('2026-08', 600, 150),
+      ]);
+      listPortfoliosMock.mockResolvedValue([]);
+      listDebtPaymentsMock.mockResolvedValue([]);
+      getFinancialPeriodMock.mockResolvedValue(buildPeriod('CLOSED'));
+
+      const result = await getDashboardOverviewUseCase.execute({
+        householdId: 'household-1',
+        auth,
+      });
+
+      expect(result.anchor?.ytdBaseline).toBeNull();
+    });
+  });
 });

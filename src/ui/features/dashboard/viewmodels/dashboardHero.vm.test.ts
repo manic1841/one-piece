@@ -17,11 +17,12 @@ const buildSeries = () => {
   return points;
 };
 
-const buildOverview = (): DashboardOverview => ({
+const buildOverview = (ytdBaseline?: { yearMonth: string; netWorth: number } | null): DashboardOverview => ({
   anchor: {
     yearMonth: '2026-08',
     netWorth: 2100000,
     netWorthSeries: buildSeries(),
+    ytdBaseline: ytdBaseline === undefined ? { yearMonth: '2026-01', netWorth: 1000000 } : ytdBaseline,
   },
   pulse: null,
 });
@@ -57,5 +58,30 @@ describe('mapDashboardOverviewToHeroVM trend geometry', () => {
     expect(vm.trend.xLabels).toHaveLength(0);
     expect(vm.trend.yLabels).toHaveLength(0);
     expect(vm.trend.endPoint).toBeUndefined();
+  });
+});
+
+describe('mapDashboardOverviewToHeroVM ytd change', () => {
+  it('formats signed percentage with YTD suffix and signed absolute amount', () => {
+    const vm = mapDashboardOverviewToHeroVM(buildOverview({ yearMonth: '2026-01', netWorth: 2000000 }));
+
+    expect(vm.ytd).not.toBeNull();
+    expect(vm.ytd?.percentText).toBe('+5.0% YTD');
+    expect(vm.ytd?.amountText).toBe('+$100,000');
+  });
+
+  it('formats negative ytd change without a double sign', () => {
+    const vm = mapDashboardOverviewToHeroVM(buildOverview({ yearMonth: '2026-01', netWorth: 2200000 }));
+
+    expect(vm.ytd?.percentText).toBe('-4.5% YTD');
+    expect(vm.ytd?.amountText).toBe('-$100,000');
+  });
+
+  it('renders an em-dash when no baseline exists', () => {
+    const vm = mapDashboardOverviewToHeroVM(buildOverview(null));
+
+    expect(vm.ytd).not.toBeNull();
+    expect(vm.ytd?.percentText).toBe('—');
+    expect(vm.ytd?.amountText).toBeNull();
   });
 });

@@ -21,6 +21,10 @@ export interface DashboardAnchor {
   netWorth: number;
   assets: number;
   liabilities: number;
+  ytdBaseline: {
+    yearMonth: string;
+    netWorth: number;
+  } | null;
   netWorthSeries: DashboardNetWorthPoint[];
 }
 
@@ -206,9 +210,36 @@ export class GetDashboardOverviewUseCase {
       netWorth: netAssetsByMonth.get(anchorReport.yearMonth) ?? 0,
       assets: anchorReport.data.assets.total,
       liabilities: anchorReport.data.liabilities.total,
+      ytdBaseline: resolveYtdBaseline(anchorYear, anchorMonth, balanceSheets),
       netWorthSeries,
     };
   }
 }
+
+const resolveYtdBaseline = (
+  anchorYear: number,
+  anchorMonth: number,
+  balanceSheets: BalanceSheetReport[],
+): DashboardAnchor['ytdBaseline'] => {
+  const sameYearEarlier = balanceSheets.filter((report) => {
+    const [year, month] = report.yearMonth.split('-').map(Number);
+    return year === anchorYear && month < anchorMonth;
+  });
+  if (sameYearEarlier.length === 0) {
+    return null;
+  }
+
+  const january = sameYearEarlier.find((report) => report.yearMonth.endsWith('-01'));
+  const baselineReport =
+    january ??
+    sameYearEarlier.reduce((earliest, report) =>
+      toMonthCode(report.yearMonth) < toMonthCode(earliest.yearMonth) ? report : earliest,
+    );
+
+  return {
+    yearMonth: baselineReport.yearMonth,
+    netWorth: baselineReport.data.assets.total - baselineReport.data.liabilities.total,
+  };
+};
 
 export const getDashboardOverviewUseCase = new GetDashboardOverviewUseCase();

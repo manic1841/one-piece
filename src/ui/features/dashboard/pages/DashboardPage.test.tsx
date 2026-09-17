@@ -55,6 +55,7 @@ describe('DashboardPage stat row', () => {
         netWorth: 450,
         assets: 600,
         liabilities: 150,
+        ytdBaseline: { yearMonth: '2026-01', netWorth: 400 },
         netWorthSeries: [
           { year: 2026, month: 8, netAssets: 450 },
         ],
@@ -74,5 +75,33 @@ describe('DashboardPage stat row', () => {
 
     expect(screen.getByTestId('stat-totalLiabilities').textContent).toContain('$150');
     expect(screen.getByTestId('stat-nextMonthDebtDue').textContent).toContain('$420');
+  });
+});
+
+describe('DashboardPage NET WORTH hero ytd line', () => {
+  it('renders signed percentage with YTD suffix and signed amount', async () => {
+    mockGetOverview.mockResolvedValue({
+      anchor: {
+        yearMonth: '2026-08',
+        netWorth: 450,
+        assets: 600,
+        liabilities: 150,
+        ytdBaseline: { yearMonth: '2026-01', netWorth: 400 },
+        netWorthSeries: [
+          { year: 2026, month: 8, netAssets: 450 },
+        ],
+      },
+      pulse: null,
+    });
+
+    render(
+      <MemoryRouter>
+        <DashboardPage />
+      </MemoryRouter>,
+    );
+
+    const ytd = await screen.findByTestId('hero-ytd');
+    expect(ytd.textContent).toContain('+12.5% YTD');
+    expect(ytd.textContent).toContain('+$50');
   });
 });
