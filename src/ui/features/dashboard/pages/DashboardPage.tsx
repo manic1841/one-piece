@@ -4,10 +4,12 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/infra/contexts/useAuth';
 import { useDashboardOverview } from '@/ui/features/dashboard/hooks/useDashboardOverview';
 import { useDashboardCloseStatus } from '@/ui/features/dashboard/hooks/useDashboardCloseStatus';
+import { useDashboardRecentTransactions } from '@/ui/features/dashboard/hooks/useDashboardRecentTransactions';
 import { DASHBOARD_PULSE_LABELS } from '@/ui/constants/dashboard/pulseLabels';
 import { DASHBOARD_CLOSE_LABELS } from '@/ui/constants/dashboard/monthlyCloseStatus';
+import { DASHBOARD_RECENT_LABELS } from '@/ui/constants/dashboard/recentTransactionsLabels';
 import { StatusGlyph } from '@/ui/components/StatusGlyph';
-import { ChevronRight } from 'lucide-react';
+import { ChevronRight, Receipt } from 'lucide-react';
 
 const Dashboard: React.FC = () => {
   const { userProfile } = useAuth();
@@ -16,6 +18,8 @@ const Dashboard: React.FC = () => {
   const { heroVM, pulseVM, loading, error } = useDashboardOverview(householdId);
   const { vm: closeStatusVM, loading: closeStatusLoading, error: closeStatusError } =
     useDashboardCloseStatus(householdId);
+  const { vm: recentVM, loading: recentLoading, error: recentError } =
+    useDashboardRecentTransactions(householdId);
 
   return (
     <div className="space-y-6">
@@ -62,6 +66,50 @@ const Dashboard: React.FC = () => {
           </>
         )}
       </section>
+      {pulseVM.metrics.length > 0 || loading || error ? (
+        <section className="rounded-lg border border-border bg-elevated p-6 md:p-8">
+          <p className="text-xs font-medium tracking-widest text-muted-foreground">
+            {DASHBOARD_PULSE_LABELS.SECTION_TITLE}
+          </p>
+          {loading ? (
+            <div className="mt-5 grid grid-cols-2 gap-6 md:grid-cols-4">
+              <div className="h-16 animate-pulse rounded bg-muted" />
+              <div className="h-16 animate-pulse rounded bg-muted" />
+              <div className="h-16 animate-pulse rounded bg-muted" />
+              <div className="h-16 animate-pulse rounded bg-muted" />
+            </div>
+          ) : error ? (
+            <p className="mt-5 text-sm text-negative">{error}</p>
+          ) : (
+            <dl className="mt-5 grid grid-cols-2 gap-6 md:grid-cols-4">
+              {pulseVM.metrics.map((metric) => (
+                <div key={metric.key}>
+                  <dt className="text-xs font-medium text-muted-foreground">{metric.label}</dt>
+                  <dd
+                    className={`mt-2 font-mono text-xl tabular-nums text-foreground ${metric.valueClassName}`}
+                  >
+                    {metric.valueText}
+                  </dd>
+                  {metric.detailText != null && (
+                    <dd className="mt-1 font-mono text-xs text-muted-foreground">
+                      {metric.detailText}
+                    </dd>
+                  )}
+                </div>
+              ))}
+            </dl>
+          )}
+        </section>
+      ) : (
+        <section className="rounded-lg border border-border bg-elevated p-6 md:p-8">
+          <p className="text-xs font-medium tracking-widest text-muted-foreground">
+            {DASHBOARD_PULSE_LABELS.SECTION_TITLE}
+          </p>
+          <p className="mt-5 text-sm text-muted-foreground">
+            {DASHBOARD_PULSE_LABELS.EMPTY_HINT}
+          </p>
+        </section>
+      )}
       <button
         type="button"
         onClick={() => navigate('/close')}
@@ -90,30 +138,57 @@ const Dashboard: React.FC = () => {
           </p>
         )}
       </button>
-      {pulseVM.metrics.length > 0 && (
-        <section className="rounded-lg border border-border bg-elevated p-6 md:p-8">
+      <section className="rounded-lg border border-border bg-elevated p-6 md:p-8">
+        <div className="flex items-center gap-2">
+          <Receipt className="h-3.5 w-3.5 text-muted-foreground" aria-hidden="true" />
           <p className="text-xs font-medium tracking-widest text-muted-foreground">
-            {DASHBOARD_PULSE_LABELS.SECTION_TITLE}
+            {DASHBOARD_RECENT_LABELS.SECTION_TITLE}
           </p>
-          <dl className="mt-5 grid grid-cols-2 gap-6 md:grid-cols-4">
-            {pulseVM.metrics.map((metric) => (
-              <div key={metric.key}>
-                <dt className="text-xs font-medium text-muted-foreground">{metric.label}</dt>
-                <dd
-                  className={`mt-2 font-mono text-xl tabular-nums text-foreground ${metric.valueClassName}`}
+        </div>
+        {recentLoading ? (
+          <div className="mt-5 space-y-3">
+            <div className="h-12 animate-pulse rounded bg-muted" />
+            <div className="h-12 animate-pulse rounded bg-muted" />
+            <div className="h-12 animate-pulse rounded bg-muted" />
+          </div>
+        ) : recentError ? (
+          <p className="mt-5 text-sm text-negative">{recentError}</p>
+        ) : recentVM.items.length === 0 ? (
+          <p className="mt-5 text-sm text-muted-foreground">
+            {DASHBOARD_RECENT_LABELS.ENTRY_HINT}
+          </p>
+        ) : (
+          <ul className="mt-3 divide-y divide-border">
+            {recentVM.items.map((item) => (
+              <li key={item.id}>
+                <button
+                  type="button"
+                  onClick={() => navigate('/transactions')}
+                  className="flex w-full cursor-pointer items-center justify-between gap-4 py-3 text-left transition-colors hover:bg-muted/50"
                 >
-                  {metric.valueText}
-                </dd>
-                {metric.detailText != null && (
-                  <dd className="mt-1 font-mono text-xs text-muted-foreground">
-                    {metric.detailText}
-                  </dd>
-                )}
-              </div>
+                  <span className="min-w-0 flex-1 truncate text-sm text-foreground">
+                    {item.displayTitle}
+                  </span>
+                  <span className="flex shrink-0 items-center gap-3">
+                    <span className="font-mono text-sm tabular-nums text-muted-foreground">
+                      {item.dateText}
+                    </span>
+                    <span
+                      className={`font-mono text-sm tabular-nums ${
+                        item.isPositive ? 'text-positive' : 'text-negative'
+                      }`}
+                    >
+                      {item.isPositive ? '+' : '-'}
+                      {item.amountText}
+                    </span>
+                    <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" aria-hidden="true" />
+                  </span>
+                </button>
+              </li>
             ))}
-          </dl>
-        </section>
-      )}
+          </ul>
+        )}
+      </section>
     </div>
   );
 };
