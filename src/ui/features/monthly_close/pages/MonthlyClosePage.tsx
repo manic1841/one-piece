@@ -39,6 +39,7 @@ import type { CloseStageEvidence } from '../viewmodels/monthlyClose.vm';
 import { CloseStageEvidenceList } from '../components/CloseStageEvidenceList';
 import { CloseStageInputs } from '../components/CloseStageInputs';
 import { CloseStageList } from '../components/CloseStageList';
+import { CloseStageRail } from '../components/CloseStageRail';
 
 interface MonthlyClosePageProps {
   householdId?: string;
@@ -281,15 +282,23 @@ export const MonthlyClosePage: React.FC<MonthlyClosePageProps> = ({ householdId:
                 </span>
               </div>
               <p className="text-xs text-muted-foreground">{MONTHLY_CLOSE_LABELS.STAGE_GUIDANCE}</p>
-              <CloseStageList
-                stages={pageVM.stages}
-                confirmingStageId={confirmingStageId}
-                isClosed={pageVM.isClosed}
-                isPaused={pageVM.isPaused}
-                onConfirmStage={(stageId) => void handleConfirmStage(stageId as CloseStageId)}
-                renderEvidence={renderEvidence}
-                renderInputs={renderInputs}
-              />
+              <div className="hidden md:block">
+                <CloseStageRail
+                  stages={pageVM.stages}
+                  isClosed={pageVM.isClosed}
+                />
+              </div>
+              <div className="md:hidden">
+                <CloseStageList
+                  stages={pageVM.stages}
+                  confirmingStageId={confirmingStageId}
+                  isClosed={pageVM.isClosed}
+                  isPaused={pageVM.isPaused}
+                  onConfirmStage={(stageId) => void handleConfirmStage(stageId as CloseStageId)}
+                  renderEvidence={renderEvidence}
+                  renderInputs={renderInputs}
+                />
+              </div>
             </>
           )}
         </>
