@@ -2,7 +2,7 @@
 
 ## Global shell
 System Header: Brand + Household/User Context + Search/Command + User Avatar + System Status.
-Main navigation is Pixel Pet.
+Main navigation is Pixel Pet. Implemented 2026-09-18 (#119): no bottom nav bar; the header Search control opens the Quick Access palette, and Ctrl/Cmd+K toggles it globally (see ADR-0055).
 
 ## Dashboard
 Reading path:

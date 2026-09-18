@@ -5,6 +5,18 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import Layout from './Layout';
 import { getNavigatorItems } from './navigation';
 
+class ResizeObserverStub {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+}
+
+vi.stubGlobal('ResizeObserver', ResizeObserverStub);
+
+if (typeof Element !== 'undefined' && !Element.prototype.scrollIntoView) {
+  Element.prototype.scrollIntoView = () => {};
+}
+
 const mockLogout = vi.hoisted(() => vi.fn().mockResolvedValue(undefined));
 
 vi.mock('@/infra/contexts/useAuth', () => ({
@@ -24,6 +36,20 @@ vi.mock('@/application/household/use_cases/getHouseholdUseCase', () => ({
   getHouseholdUseCase: {
     execute: vi.fn().mockResolvedValue({ id: 'household-1', name: 'Test Household' }),
   },
+}));
+
+vi.mock('@/application/dashboard/use_cases/getDashboardOverviewUseCase', () => ({
+  getDashboardOverviewUseCase: { execute: vi.fn().mockResolvedValue(null) },
+}));
+
+vi.mock('@/application/monthly_close/use_cases/financialPeriodAccessUseCases', () => ({
+  GetFinancialPeriodUseCase: vi.fn(function () {
+    return { execute: vi.fn().mockResolvedValue(null) };
+  }),
+}));
+
+vi.mock('./usePetReaction', () => ({
+  usePetReaction: () => 'idle',
 }));
 
 vi.mock('@/ui/features/household/components/HouseholdSwitcher', () => ({
@@ -129,13 +155,54 @@ describe('Layout system status bar', () => {
     await waitFor(() => expect(mockLogout).toHaveBeenCalledTimes(1));
   });
 
-  it('keeps search present but inert', () => {
+  it('opens the quick access palette from the header search trigger', async () => {
     renderLayout();
 
-    const searchButton = screen.getByRole('button', { name: /search/i });
-    expect(searchButton).toBeDisabled();
+    fireEvent.click(screen.getByRole('button', { name: /search/i }));
 
-    fireEvent.click(searchButton);
+    expect(await screen.findByRole('dialog', { name: /quick access/i })).toBeInTheDocument();
+  });
+
+  it('opens the quick access palette with Ctrl+K and closes it with Escape', async () => {
+    renderLayout();
+
+    fireEvent.keyDown(window, { key: 'k', ctrlKey: true });
+    const dialog = await screen.findByRole('dialog', { name: /quick access/i });
+
+    fireEvent.keyDown(document, { key: 'Escape' });
+
+    await waitFor(() => expect(dialog).not.toBeInTheDocument());
+  });
+
+  it('does not open the quick access palette for plain k', async () => {
+    renderLayout();
+
+    fireEvent.keyDown(window, { key: 'k' });
+
+    expect(screen.queryByRole('dialog', { name: /quick access/i })).not.toBeInTheDocument();
+  });
+
+  it('lists a command for every route and navigates on select', async () => {
+    renderLayout({ withPageMarker: true });
+
+    fireEvent.keyDown(window, { key: 'k', metaKey: true });
+    await screen.findByRole('dialog', { name: /quick access/i });
+
+    const optionCount = screen.getAllByRole('option').length;
+    expect(optionCount).toBe(getNavigatorItems().length + 2);
+
+    fireEvent.click(screen.getByRole('option', { name: /retirement/i }));
+
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog', { name: /quick access/i })).not.toBeInTheDocument();
+    });
+    expect(screen.getByTestId('page-marker').dataset.page).toBe('/retirement');
+  });
+
+  it('enables the header search button', () => {
+    renderLayout();
+
+    expect(screen.getByRole('button', { name: /search/i })).toBeEnabled();
   });
 });
 
@@ -162,16 +229,18 @@ describe('Layout primary navigation', () => {
     expect(screen.queryByRole('complementary')).not.toBeInTheDocument();
   });
 
-  it('keeps mobile primary tabs and the More sheet working', async () => {
+  it('retires the mobile bottom nav: no bottom navigation landmark remains', () => {
     renderLayout();
 
-    const nav = screen.getAllByRole('navigation')[0];
-    expect(nav.textContent).toContain('Dashboard');
-    expect(nav.textContent).not.toContain('Transactions');
+    const navs = screen.queryAllByRole('navigation');
+    expect(navs).toHaveLength(0);
+    expect(screen.queryByRole('button', { name: /more/i })).not.toBeInTheDocument();
+  });
 
-    fireEvent.click(screen.getByRole('button', { name: /more/i }));
-    expect(await screen.findByRole('dialog')).toBeInTheDocument();
-    expect(screen.getAllByText('Transactions').length).toBeGreaterThan(0);
+  it('keeps the pet button as the sole floating navigator affordance', () => {
+    renderLayout();
+
+    expect(screen.getByRole('button', { name: /pixel pet/i })).toBeInTheDocument();
   });
 });
 
@@ -278,12 +347,27 @@ describe('Layout pixel pet and navigator', () => {
     expect(screen.queryByTestId('navigator-sheet')).not.toBeInTheDocument();
   });
 
-  it('exposes the navigator on mobile as a bottom sheet without regressing the bottom navigation', async () => {
-    renderLayout();
+  it('highlights the current page with the accent state in the navigator', () => {
+    renderLayout({ initialRoute: '/close' });
 
-    const nav = screen.getAllByRole('navigation')[0];
-    expect(nav.textContent).toContain('Dashboard');
-    expect(nav.textContent).not.toContain('Transactions');
+    const pet = screen.getByRole('button', { name: /pixel pet/i });
+    fireEvent.pointerDown(pet);
+    fireEvent.click(pet);
+
+    const currentLink = screen
+      .getByTestId('navigator')
+      .querySelector('a[href="/close"]') as HTMLAnchorElement | null;
+    expect(currentLink).not.toBeNull();
+    expect(currentLink!.className).toContain('text-primary');
+
+    const otherLink = screen
+      .getByTestId('navigator')
+      .querySelector('a[href="/debt"]') as HTMLAnchorElement | null;
+    expect(otherLink!.className).not.toContain('text-primary');
+  });
+
+  it('exposes the navigator on mobile as a bottom sheet', async () => {
+    renderLayout();
 
     const pet = screen.getByRole('button', { name: /pixel pet/i });
     fireEvent.pointerDown(pet);

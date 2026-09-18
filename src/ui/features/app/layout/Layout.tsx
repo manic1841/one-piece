@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 
-import clsx from 'clsx';
-import { MoreHorizontal, Search, Settings, UserRound } from 'lucide-react';
+import { Search, Settings, UserRound } from 'lucide-react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 
 import { useAuth } from '@/infra/contexts/useAuth';
@@ -13,25 +12,20 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/ui/components/ui/dropdown-menu';
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from '@/ui/components/ui/sheet';
 import HouseholdSwitcher from '@/ui/features/household/components/HouseholdSwitcher';
 
-import { getPrimaryNavItems, getSecondaryNavItems } from './navigation';
+import CommandPalette from './CommandPalette';
 import PixelPet from './PixelPet';
 import SiteFooter from './SiteFooter';
 import { APP_BRAND } from './brand';
 import { useHouseholdGuard } from './useHouseholdGuard';
+import { usePetReaction } from './usePetReaction';
 
 const Layout: React.FC = () => {
   const { userProfile, logout } = useAuth();
   const navigate = useNavigate();
   const { familyName, loadingHousehold } = useHouseholdGuard();
+  const petReaction = usePetReaction(userProfile?.householdId);
   const [today, setToday] = useState(() => new Date());
 
   useEffect(() => {
@@ -60,7 +54,19 @@ const Layout: React.FC = () => {
     }
   };
 
-  const [moreOpen, setMoreOpen] = useState(false);
+  const [paletteOpen, setPaletteOpen] = useState(false);
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key.toLowerCase() === 'k' && (event.ctrlKey || event.metaKey)) {
+        event.preventDefault();
+        setPaletteOpen((prev) => !prev);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   const todayText = new Intl.DateTimeFormat(undefined, {
     year: 'numeric',
@@ -103,7 +109,7 @@ const Layout: React.FC = () => {
               variant="ghost"
               size="icon"
               aria-label="Search"
-              disabled
+              onClick={() => setPaletteOpen(true)}
               className="hidden sm:inline-flex text-muted-foreground"
             >
               <Search size={18} />
@@ -144,7 +150,7 @@ const Layout: React.FC = () => {
         </div>
       </header>
 
-      <main className="flex-1 pb-20 md:pb-0">
+      <main className="flex-1">
         <div className="max-w-7xl mx-auto p-4 md:p-8">
           <Outlet />
         </div>
@@ -152,64 +158,8 @@ const Layout: React.FC = () => {
 
       <SiteFooter />
 
-      {/* Mobile Bottom Navigation */}
-      <nav className="material-chrome md:hidden fixed bottom-0 left-0 right-0 bg-background/75 backdrop-blur-xl backdrop-saturate-150 px-2 py-2 flex justify-around items-center z-50">
-        {getPrimaryNavItems().map(({ to, icon: Icon, label }) => (
-          <NavLink
-            key={to}
-            to={to}
-            className={({ isActive }) =>
-              clsx(
-                'flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition-[color,background-color] duration-fast ease-out-quint active:scale-[0.95]',
-                isActive
-                  ? 'text-primary bg-primary/10'
-                  : 'text-muted-foreground hover:text-foreground',
-              )
-            }
-          >
-            <Icon size={24} />
-            <span className="text-xs font-medium">{label}</span>
-          </NavLink>
-        ))}
-        <Sheet open={moreOpen} onOpenChange={setMoreOpen}>
-          <SheetTrigger asChild>
-            <button
-              type="button"
-              className="flex flex-col items-center gap-1 px-3 py-2 rounded-lg text-muted-foreground hover:text-foreground transition-[color] duration-fast ease-out-quint active:scale-[0.95]"
-            >
-              <MoreHorizontal size={24} />
-              <span className="text-xs font-medium">More</span>
-            </button>
-          </SheetTrigger>
-          <SheetContent side="bottom">
-            <SheetHeader>
-              <SheetTitle>More</SheetTitle>
-            </SheetHeader>
-            <div className="flex flex-col gap-1 pb-4">
-              {getSecondaryNavItems().map(({ to, icon: Icon, label }) => (
-                <NavLink
-                  key={to}
-                  to={to}
-                  onClick={() => setMoreOpen(false)}
-                  className={({ isActive }) =>
-                    clsx(
-                      'flex items-center gap-3 px-4 py-3 rounded-lg transition-[color,background-color] duration-fast ease-out-quint active:scale-[0.98]',
-                      isActive
-                        ? 'text-primary bg-primary/10'
-                        : 'text-muted-foreground hover:bg-accent hover:text-foreground',
-                    )
-                  }
-                >
-                  <Icon size={20} />
-                  <span className="font-medium">{label}</span>
-                </NavLink>
-              ))}
-            </div>
-          </SheetContent>
-        </Sheet>
-      </nav>
-
-      <PixelPet />
+      <PixelPet reaction={petReaction} />
+      <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} />
     </div>
   );
 };

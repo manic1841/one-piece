@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 
+import clsx from 'clsx';
 import { NavLink } from 'react-router-dom';
 
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/ui/components/ui/sheet';
@@ -14,6 +15,9 @@ type PixelPetProps = {
 
 const NAVIGATOR_LINK_CLASS =
   'flex flex-col items-center gap-1 rounded-lg px-2 py-3 text-muted-foreground transition-[color,background-color,transform] duration-fast ease-out-quint hover:bg-accent hover:text-foreground active:scale-[0.97]';
+
+const navigatorLinkClassName = ({ isActive }: { isActive: boolean }) =>
+  isActive ? clsx(NAVIGATOR_LINK_CLASS, 'text-primary bg-primary/10') : NAVIGATOR_LINK_CLASS;
 
 const PixelPet: React.FC<PixelPetProps> = ({ reaction = 'idle' }) => {
   const [open, setOpen] = useState(false);
@@ -58,7 +62,12 @@ const PixelPet: React.FC<PixelPetProps> = ({ reaction = 'idle' }) => {
             className="grid grid-cols-2 md:grid-cols-4 gap-2 md:w-72"
           >
             {getNavigatorItems().map(({ to, icon: Icon, label }) => (
-              <NavLink key={to} to={to} onClick={() => setOpen(false)} className={NAVIGATOR_LINK_CLASS}>
+              <NavLink
+                key={to}
+                to={to}
+                onClick={() => setOpen(false)}
+                className={navigatorLinkClassName}
+              >
                 <Icon size={18} />
                 <span className="text-xs font-medium text-center leading-tight">{label}</span>
               </NavLink>
@@ -86,7 +95,12 @@ const PixelPet: React.FC<PixelPetProps> = ({ reaction = 'idle' }) => {
             </SheetHeader>
             <div className="grid grid-cols-2 gap-2 pb-4">
               {getNavigatorItems().map(({ to, icon: Icon, label }) => (
-                <NavLink key={to} to={to} onClick={() => setOpen(false)} className={NAVIGATOR_LINK_CLASS}>
+                <NavLink
+                  key={to}
+                  to={to}
+                  onClick={() => setOpen(false)}
+                  className={navigatorLinkClassName}
+                >
                   <Icon size={18} />
                   <span className="text-xs font-medium text-center leading-tight">{label}</span>
                 </NavLink>

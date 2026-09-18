@@ -1,7 +1,7 @@
 # 01 — Information Architecture
 
 ## Primary navigation
-The main navigator is owned by **Pixel Pet**, not the header.
+The main navigator is owned by **Pixel Pet**, not the header. Implemented 2026-09-18 (#119): the mobile bottom nav and More sheet are retired; Pixel Pet is the single main navigator on all viewports (see ADR-0055).
 
 Navigator items:
 - Transaction
@@ -72,7 +72,7 @@ ONE PIECE
 
 ## Navigation behavior
 - List rows are clickable and lead to Detail.
-- Pixel Pet opens the main navigator.
-- Ctrl/Cmd+K opens Quick Access / Command Palette.
+- Pixel Pet opens the main navigator; the current page uses the accent state inside the navigator.
+- Ctrl/Cmd+K opens Quick Access / Command Palette. Implemented 2026-09-18 (#119) with the cmdk wrapper (zero new dependencies); entries are all 10 route commands, including Dashboard and Settings — Quick Access is independent of the navigator's 8-item list.
 - Contextual search/filter is used inside data modules; there is no global full-text search requirement.
-- Mobile uses a Bottom Sheet for Pixel Pet navigation.
+- Mobile uses a Bottom Sheet for Pixel Pet navigation. There is no bottom nav bar.
