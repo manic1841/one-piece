@@ -16,6 +16,7 @@ vi.mock('@/application/report/use_cases/getReportPersistenceStateUseCase');
 vi.mock('@/application/settlement/use_cases/checkSettlementCompletenessUseCase');
 vi.mock('@/application/settlement/use_cases/settleDebtAccountsUseCase');
 vi.mock('@/application/settlement/use_cases/settleProjectsUseCase');
+vi.mock('@/application/monthly_close/use_cases/validateMonthTransactionsUseCase');
 vi.mock('@/application/monthly_close/use_cases/financialPeriodAccessUseCases', () => {
   const getFinancialPeriodUseCase = { execute: vi.fn() };
   const saveFinancialPeriodUseCase = { execute: vi.fn().mockResolvedValue(undefined) };
@@ -45,6 +46,7 @@ import { getReportPersistenceStateUseCase } from '@/application/report/use_cases
 import { checkSettlementCompletenessUseCase } from '@/application/settlement/use_cases/checkSettlementCompletenessUseCase';
 import { settleDebtAccountsUseCase } from '@/application/settlement/use_cases/settleDebtAccountsUseCase';
 import { settleProjectsUseCase } from '@/application/settlement/use_cases/settleProjectsUseCase';
+import { validateMonthTransactionsUseCase } from '@/application/monthly_close/use_cases/validateMonthTransactionsUseCase';
 import { type FinancialPeriod, initialStageStates } from '@/domains/financial_period/schemas';
 import { type AuthContext } from '@/application/types';
 
@@ -162,6 +164,32 @@ describe('MonthlyCloseWorkflowUseCase.confirmStage', () => {
     expect(saveFinancialPeriodUseCase.execute).not.toHaveBeenCalled();
   });
 
+  it('batch-validates the month transactions at the validation stage', async () => {
+    vi.mocked(validateMonthTransactionsUseCase.execute).mockResolvedValue({
+      yearMonth: '2026-09',
+      checkedCount: 3,
+      issues: [],
+    });
+
+    await useCase.confirmStage({ ...REQUEST_BASE, stageId: 'TRANSACTION_VALIDATION' });
+
+    expect(validateMonthTransactionsUseCase.execute).toHaveBeenCalledWith({
+      householdId: 'household-1',
+      year: 2026,
+      month: 9,
+      auth,
+    });
+    expect(saveFinancialPeriodUseCase.execute).toHaveBeenCalledWith(
+      expect.objectContaining({
+        period: expect.objectContaining({
+          stages: expect.objectContaining({
+            TRANSACTION_VALIDATION: expect.objectContaining({ status: 'COMPLETED' }),
+          }),
+        }),
+      }),
+    );
+  });
+
   it('creates buy and sell transactions for securities trades', async () => {
     await useCase.confirmStage({
       ...REQUEST_BASE,
@@ -192,7 +220,10 @@ describe('MonthlyCloseWorkflowUseCase.confirmStage', () => {
     await expect(
       useCase.confirmStage({ ...REQUEST_BASE, stageId: 'SECURITIES_TRADE' }),
     ).rejects.toEqual(
-      new MonthlyCloseCommandError(MonthlyCloseCommandErrorCode.STAGE_INPUT_REQUIRED, 'at least one securities trade is required'),
+      new MonthlyCloseCommandError(
+        MonthlyCloseCommandErrorCode.STAGE_INPUT_REQUIRED,
+        'at least one securities trade or financing entry is required',
+      ),
     );
   });
 

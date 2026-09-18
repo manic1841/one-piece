@@ -2,6 +2,7 @@ import { CLOSE_STAGE_IDS, type CloseStageId } from '@/domains/financial_period/s
 
 export const CLOSE_STAGE_LABELS: Record<CloseStageId, string> = {
   ACCOUNT_BALANCE: '銀行帳戶餘額',
+  TRANSACTION_VALIDATION: '交易驗證',
   SECURITIES_TRADE: '證券買入／賣出',
   PORTFOLIO_CASH_FLOW: 'Portfolio 金流',
   PROJECT_SETTLEMENT: '專案結算',
@@ -22,6 +23,8 @@ export const MONTHLY_CLOSE_LABELS = {
   START: '開始關帳',
   BUY: '買入',
   SELL: '賣出',
+  SHAREHOLDER_FINANCING: '股東融資',
+  DIVIDEND_PAYOUT: '發放分紅',
   DEPOSIT: '存入',
   WITHDRAW: '領出',
   STARTED: '關帳進行中',
@@ -52,6 +55,7 @@ export const MONTHLY_CLOSE_LABELS = {
   PERSISTED: '已產生',
   NOT_PERSISTED: '尚未產生',
   ZERO_ACTIVITY: '零活動',
+  TRANSACTION_ISSUES: '交易驗證問題',
   ADJUSTMENT: '現金流調整',
   REPORTS_PERSISTENCE: '報表產生狀態',
 } as const;

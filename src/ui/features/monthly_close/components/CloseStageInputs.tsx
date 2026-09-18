@@ -7,20 +7,34 @@ import { Label } from '@/ui/components/ui/label';
 import type {
   AccountBalanceInput,
   DebtRepaymentInput,
+  FinancingInput,
   SecuritiesTradeInput,
 } from '@/application/monthly_close/use_cases/monthlyCloseWorkflowUseCase';
 
+/** Mid-month date inside the closing period; close-input events must land in the closed month. */
+const closeMonthDate = (yearMonth: string): Date => new Date(Number(yearMonth.slice(0, 4)), Number(yearMonth.slice(5, 7)) - 1, 15);
+
 export interface CloseStageInputsProps {
   stageId: string;
+  /** The closing period (YYYY-MM); close-input transactions must be dated inside it. */
+  yearMonth: string;
   accounts: { id: string; name: string }[];
   portfolios: { id: string; name: string }[];
   debtAccounts: { id: string; name: string; currentBalance: number }[];
   accountBalances: AccountBalanceInput[];
   securities: { buys: SecuritiesTradeInput[]; sells: SecuritiesTradeInput[] };
+  financing: {
+    shareholderFinancing: FinancingInput[];
+    dividendPayout: FinancingInput[];
+  };
   portfolioCashFlows: Record<string, { deposits: number; withdrawals: number }>;
   repayments: DebtRepaymentInput[];
   onAccountBalancesChange: (inputs: AccountBalanceInput[]) => void;
   onSecuritiesChange: (inputs: { buys: SecuritiesTradeInput[]; sells: SecuritiesTradeInput[] }) => void;
+  onFinancingChange: (inputs: {
+    shareholderFinancing: FinancingInput[];
+    dividendPayout: FinancingInput[];
+  }) => void;
   onPortfolioCashFlowsChange: (inputs: Record<string, { deposits: number; withdrawals: number }>) => void;
   onRepaymentsChange: (inputs: DebtRepaymentInput[]) => void;
   disabled: boolean;
@@ -28,15 +42,18 @@ export interface CloseStageInputsProps {
 
 export const CloseStageInputs: React.FC<CloseStageInputsProps> = ({
   stageId,
+  yearMonth,
   accounts,
   portfolios,
   debtAccounts,
   accountBalances,
   securities,
+  financing,
   portfolioCashFlows,
   repayments,
   onAccountBalancesChange,
   onSecuritiesChange,
+  onFinancingChange,
   onPortfolioCashFlowsChange,
   onRepaymentsChange,
   disabled,
@@ -89,7 +106,29 @@ export const CloseStageInputs: React.FC<CloseStageInputsProps> = ({
                 if (Number.isNaN(amount)) return;
                 onSecuritiesChange({
                   ...securities,
-                  [side]: amount > 0 ? [{ amount, date: new Date() }] : [],
+                  [side]: amount > 0 ? [{ amount, date: closeMonthDate(yearMonth) }] : [],
+                });
+              }}
+            />
+          </div>
+        ))}
+        {(['shareholderFinancing', 'dividendPayout'] as const).map((kind) => (
+          <div key={kind} className="flex items-center gap-3">
+            <Label className="w-32 shrink-0 text-xs">
+              {kind === 'shareholderFinancing' ? MONTHLY_CLOSE_LABELS.SHAREHOLDER_FINANCING : MONTHLY_CLOSE_LABELS.DIVIDEND_PAYOUT}
+            </Label>
+            <Input
+              type="number"
+              inputMode="decimal"
+              disabled={disabled}
+              placeholder="0"
+              value={financing[kind][0]?.amount ?? ''}
+              onChange={(event) => {
+                const amount = Number(event.target.value);
+                if (Number.isNaN(amount)) return;
+                onFinancingChange({
+                  ...financing,
+                  [kind]: amount > 0 ? [{ amount, date: closeMonthDate(yearMonth) }] : [],
                 });
               }}
             />
@@ -158,7 +197,7 @@ export const CloseStageInputs: React.FC<CloseStageInputsProps> = ({
                 const totalPayment = Number(event.target.value);
                 const next = repayments.filter((item) => item.debtAccountId !== debtAccount.id);
                 if (!Number.isNaN(totalPayment) && totalPayment > 0) {
-                  next.push({ debtAccountId: debtAccount.id, totalPayment, date: new Date() });
+                  next.push({ debtAccountId: debtAccount.id, totalPayment, date: closeMonthDate(yearMonth) });
                 }
                 onRepaymentsChange(next);
               }}

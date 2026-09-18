@@ -174,7 +174,7 @@ firestore
        ├─ financialPeriods/{yearMonth}    # 財務期間狀態 (ADR-0050/0052)；docId = YYYY-MM，開始關帳才建檔，無紀錄 = OPEN
        │    ├─ yearMonth: string          # 財務期間鍵 (YYYY-MM)
        │    ├─ status: "OPEN" | "IN_PROGRESS" | "NEEDS_REVIEW" | "CLOSED"
-       │    ├─ stages: map<stageId, { status, confirmedBy?, confirmedAt? }>   # 各階段狀態 (ADR-0052 八階段)
+       │    ├─ stages: map<stageId, { status, confirmedBy?, confirmedAt? }>   # 各階段狀態 (ADR-0052 九階段)
        │    ├─ reviewSourceStageId?: string # NEEDS_REVIEW 時的來源階段
        │    ├─ createdBy: string
        │    └─ updatedAt: Timestamp

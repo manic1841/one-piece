@@ -83,7 +83,18 @@ export const mapAnomaliesToEvidence = (
   anomalies: CompletenessActivity[],
 ): CloseStageEvidence => ({
   kind: 'COMPLETENESS_ANOMALIES',
+  transactionIssues: [],
   zeroActivityNames: anomalies.map((activity) => activity.name),
+  cashFlowAdjustments: 0,
+  reportsPersisted: null,
+});
+
+export const mapTransactionIssuesToEvidence = (
+  issues: { transactionId: string; description: string; reason: string }[],
+): CloseStageEvidence => ({
+  kind: 'TRANSACTION_VALIDATION',
+  transactionIssues: issues,
+  zeroActivityNames: [],
   cashFlowAdjustments: 0,
   reportsPersisted: null,
 });
@@ -92,6 +103,7 @@ export const mapAdjustmentCountToEvidence = (
   adjustments: number,
 ): CloseStageEvidence => ({
   kind: 'CASH_FLOW_ADJUSTMENTS',
+  transactionIssues: [],
   zeroActivityNames: [],
   cashFlowAdjustments: adjustments,
   reportsPersisted: null,
@@ -101,6 +113,7 @@ export const mapPersistenceToEvidence = (
   reportsPersisted: boolean,
 ): CloseStageEvidence => ({
   kind: 'REPORT_PERSISTENCE',
+  transactionIssues: [],
   zeroActivityNames: [],
   cashFlowAdjustments: 0,
   reportsPersisted,
@@ -108,6 +121,7 @@ export const mapPersistenceToEvidence = (
 
 export const NO_EVIDENCE: CloseStageEvidence = {
   kind: 'NONE',
+  transactionIssues: [],
   zeroActivityNames: [],
   cashFlowAdjustments: 0,
   reportsPersisted: null,

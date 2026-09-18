@@ -18,6 +18,21 @@ export const CloseStageEvidenceList: React.FC<CloseStageEvidenceListProps> = ({ 
 
   return (
     <div className="space-y-2">
+      {evidence.kind === 'TRANSACTION_VALIDATION' && evidence.transactionIssues.length > 0 && (
+        <div className="flex items-start gap-2 rounded-lg border border-warning/20 bg-warning/5 p-3">
+          <AlertCircle size={14} className="mt-0.5 shrink-0 text-warning" />
+          <div className="space-y-1">
+            <p className="text-xs font-semibold text-foreground">{MONTHLY_CLOSE_LABELS.TRANSACTION_ISSUES}</p>
+            {evidence.transactionIssues.map((issue) => (
+              <p key={`${issue.transactionId}-${issue.reason}`} className="text-xs text-muted-foreground">
+                {issue.description ? `${issue.description}：` : ''}
+                {issue.reason}
+              </p>
+            ))}
+          </div>
+        </div>
+      )}
+
       {evidence.zeroActivityNames.length > 0 && (
         <div className="flex items-start gap-2 rounded-lg border border-warning/20 bg-warning/5 p-3">
           <AlertCircle size={14} className="mt-0.5 shrink-0 text-warning" />

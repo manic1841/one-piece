@@ -3,7 +3,8 @@ import { z } from 'zod';
 import { type CloseStageId, type FinancialPeriod } from '@/domains/financial_period/schemas';
 
 export interface CloseStageEvidence {
-  kind: 'COMPLETENESS_ANOMALIES' | 'CASH_FLOW_ADJUSTMENTS' | 'REPORT_PERSISTENCE' | 'NONE';
+  kind: 'TRANSACTION_VALIDATION' | 'COMPLETENESS_ANOMALIES' | 'CASH_FLOW_ADJUSTMENTS' | 'REPORT_PERSISTENCE' | 'NONE';
+  transactionIssues: { transactionId: string; description: string; reason: string }[];
   zeroActivityNames: string[];
   cashFlowAdjustments: number;
   reportsPersisted: boolean | null;

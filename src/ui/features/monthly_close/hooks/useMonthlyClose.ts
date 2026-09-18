@@ -12,6 +12,7 @@ import {
   checkSettlementCompletenessUseCase,
   type CompletenessActivity,
 } from '@/application/settlement/use_cases/checkSettlementCompletenessUseCase';
+import { validateMonthTransactionsUseCase } from '@/application/monthly_close/use_cases/validateMonthTransactionsUseCase';
 import { getReportPersistenceStateUseCase } from '@/application/report/use_cases/getReportPersistenceStateUseCase';
 import { previewFinancialReportsWorkflow } from '@/application/report/use_cases/previewFinancialReportsWorkflow';
 import {
@@ -44,6 +45,9 @@ export const useMonthlyClose = ({ householdId, userEmail }: UseMonthlyCloseParam
   const [isStarting, setIsStarting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [anomalies, setAnomalies] = useState<CompletenessActivity[]>([]);
+  const [transactionIssues, setTransactionIssues] = useState<
+    { transactionId: string; description: string; reason: string }[]
+  >([]);
   const [cashFlowAdjustment, setCashFlowAdjustment] = useState<number | null>(null);
   const [reportsPersisted, setReportsPersisted] = useState<boolean | null>(null);
 
@@ -58,6 +62,7 @@ export const useMonthlyClose = ({ householdId, userEmail }: UseMonthlyCloseParam
       setPeriod(null);
       setError(null);
       setAnomalies([]);
+      setTransactionIssues([]);
       setCashFlowAdjustment(null);
       setReportsPersisted(null);
     },
@@ -120,6 +125,14 @@ export const useMonthlyClose = ({ householdId, userEmail }: UseMonthlyCloseParam
       });
       setAnomalies(completeness.anomalies);
 
+      const validation = await validateMonthTransactionsUseCase.execute({
+        householdId,
+        year,
+        month,
+        auth,
+      });
+      setTransactionIssues(validation.issues);
+
       const persistence = await getReportPersistenceStateUseCase.execute({
         householdId,
         yearMonth: selectedYearMonth,
@@ -162,6 +175,7 @@ export const useMonthlyClose = ({ householdId, userEmail }: UseMonthlyCloseParam
     isStarting,
     error,
     anomalies,
+    transactionIssues,
     cashFlowAdjustment,
     reportsPersisted,
     selectYearMonth,

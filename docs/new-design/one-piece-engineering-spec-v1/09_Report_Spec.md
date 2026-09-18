@@ -59,6 +59,17 @@ Record:
 
 The system must not auto-create an Adjustment transaction.
 
+> **S3 conformance note (2026-09-18):** The `Decision: PENDING | ACCEPT | REVIEW`
+field is NOT adopted (S3 decision, issue #118). The three recorded values exist
+as report-level data: `actualBalance` (account snapshots), `endingBalance`
+(ledger-derived calculation), and `adjustment` (difference) on the cash flow
+report, surfaced as a reconciliation alert in the UI. Equity reconciliation on
+the balance sheet exposes an `adjustment` group (ADR-0020). Reconciliation is
+report-level only; users judge and fix differences at the source layer
+(ADR-0051). The ban on auto-creating Adjustment transactions is already
+satisfied: `adjustment` is a computed value and is never written as a
+transaction.
+
 ## Project Snapshot
 Read-optimization result, not a formal financial statement.
 Includes:

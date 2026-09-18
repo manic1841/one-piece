@@ -44,7 +44,7 @@ describe('mapPeriodToPageVM', () => {
 
     expect(vm.isStarted).toBe(false);
     expect(vm.status).toBe('NONE');
-    expect(vm.totalCount).toBe(8);
+    expect(vm.totalCount).toBe(9);
     expect(vm.stages).toHaveLength(0);
   });
 
@@ -59,8 +59,9 @@ describe('mapPeriodToPageVM', () => {
 
     const vm = mapPeriodToPageVM(period, '2026-09');
 
-    expect(vm.stages).toHaveLength(8);
+    expect(vm.stages).toHaveLength(9);
     expect(vm.stages[0].stageId).toBe('ACCOUNT_BALANCE');
+    expect(vm.stages[1].stageId).toBe('TRANSACTION_VALIDATION');
     expect(vm.stages[0].isCompleted).toBe(true);
     expect(vm.stages[0].confirmedAtText).toContain('2026-09-16');
     expect(vm.completedCount).toBe(2);

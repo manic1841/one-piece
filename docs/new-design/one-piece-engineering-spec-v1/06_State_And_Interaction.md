@@ -1,5 +1,7 @@
 # 06 — State & Interaction
 
+> **S3 conformance note (2026-09-18):** Full downstream invalidation is implemented as revalidation-on-evidence-refresh: the monthly close page refreshes stage evidence (including transaction validation issues) when the period state changes; a validation failure now surfaces as a load error instead of failing silently. Stage input dating: securities, financing, and debt repayment entries are dated inside the closing period (YYYY-MM), satisfying the close-input boundary (ADR-0052).
+
 > **S1 conformance note (2026-09-18):** The implemented lifecycle is OPEN → IN_PROGRESS → NEEDS_REVIEW → CLOSED (`FinancialPeriodStatus`), where NEEDS_REVIEW is an enum value carrying `reviewSourceStageId`, matching the spec's "flag" intent but persisted as a status. Step states: stage records persist PENDING|COMPLETED only; the five-glyph step states below are a UI rendering concern (StatusGlyph already implements active/verified/waiting/review/error). The only implemented NEEDS_REVIEW source is the Completeness Check zero-activity anomaly (ADR-0052); the sources listed below are aspirational until S3 decides otherwise. Backward editing and downstream invalidation are partially implemented (reviewSourceStageId + revalidation path); full invalidation semantics are S3 scope.
 
 ## Monthly Close lifecycle

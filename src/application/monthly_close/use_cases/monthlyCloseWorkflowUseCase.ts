@@ -1,20 +1,20 @@
-import { batchRecordSnapshotsUseCase } from '@/application/account/use_cases/batchRecordSnapshotsUseCase';
-import { createDebtPaymentUseCase } from '@/application/debt/use_cases/createDebtPaymentUseCase';
 import { householdPermissionService } from '@/application/household/householdPermissionService';
-import { createTransactionUseCase } from '@/application/ledger/use_cases/createTransactionUseCase';
 import { MonthlyCloseCommandError, MonthlyCloseCommandErrorCode } from '@/application/monthly_close/errors';
 import {
   GetFinancialPeriodUseCase,
   SaveFinancialPeriodUseCase,
 } from '@/application/monthly_close/use_cases/financialPeriodAccessUseCases';
-import { createPortfolioSnapshotUseCase } from '@/application/portfolio/use_cases/createPortfolioSnapshotUseCase';
-import { listPortfolioSnapshotsUseCase } from '@/application/portfolio/use_cases/listPortfolioSnapshotsUseCase';
-import { listPortfoliosUseCase } from '@/application/portfolio/use_cases/listPortfoliosUseCase';
-import { generateFinancialReportsUseCase } from '@/application/report/use_cases/generateFinancialReportsUseCase';
-import { getReportPersistenceStateUseCase } from '@/application/report/use_cases/getReportPersistenceStateUseCase';
+import {
+  CheckCloseReadinessUseCase,
+  RunFinancialReportsUseCase,
+} from '@/application/monthly_close/use_cases/financialReportsWorkflowUseCases';
+import { CreateInvestmentFinancingTransactionsUseCase } from '@/application/monthly_close/use_cases/createInvestmentFinancingTransactionsUseCase';
+import { RecordDebtRepaymentsUseCase } from '@/application/monthly_close/use_cases/recordDebtRepaymentsUseCase';
+import { RecordMonthSnapshotsUseCase } from '@/application/monthly_close/use_cases/recordMonthSnapshotsUseCase';
+import { RecordPortfolioCashFlowsUseCase } from '@/application/monthly_close/use_cases/recordPortfolioCashFlowsUseCase';
 import { checkSettlementCompletenessUseCase } from '@/application/settlement/use_cases/checkSettlementCompletenessUseCase';
-import { settleDebtAccountsUseCase } from '@/application/settlement/use_cases/settleDebtAccountsUseCase';
 import { settleProjectsUseCase } from '@/application/settlement/use_cases/settleProjectsUseCase';
+import { validateMonthTransactionsUseCase } from '@/application/monthly_close/use_cases/validateMonthTransactionsUseCase';
 import { type AuthContext } from '@/application/types';
 import {
   type CloseStageId,
@@ -23,51 +23,34 @@ import {
   initialStageStates,
 } from '@/domains/financial_period/schemas';
 import {
+  type MonthlyCloseConfirmRequest,
+  type MonthlyCloseStartRequest,
+} from '@/application/monthly_close/use_cases/monthlyCloseRequests';
+import {
   closePeriodInState,
   confirmStageInState,
   markNeedsReviewInState,
 } from '@/domains/financial_period/stateMachine';
 
-export interface AccountBalanceInput {
-  accountId: string;
-  amount: number;
-}
-
-export interface SecuritiesTradeInput {
-  amount: number;
-  date: Date;
-  description?: string;
-}
-
-export interface DebtRepaymentInput {
-  debtAccountId: string;
-  totalPayment: number;
-  date: Date;
-  description?: string;
-  projectId?: string | null;
-}
-
-export interface MonthlyCloseStartRequest {
-  householdId: string;
-  yearMonth: string;
-  userEmail: string;
-  auth: AuthContext;
-}
-
-export interface MonthlyCloseConfirmRequest extends MonthlyCloseStartRequest {
-  stageId: CloseStageId;
-  accountBalances?: AccountBalanceInput[];
-  securities?: {
-    buys: SecuritiesTradeInput[];
-    sells: SecuritiesTradeInput[];
-  };
-  portfolioCashFlows?: Record<string, { deposits: number; withdrawals: number }>;
-  repayments?: DebtRepaymentInput[];
-}
+export type {
+  AccountBalanceInput,
+  DebtRepaymentInput,
+  FinancingInput,
+  InvestmentFinancingInput,
+  MonthlyCloseConfirmRequest,
+  MonthlyCloseStartRequest,
+  SecuritiesTradeInput,
+} from '@/application/monthly_close/use_cases/monthlyCloseRequests';
 
 export class MonthlyCloseWorkflowUseCase {
   private readonly getPeriod = new GetFinancialPeriodUseCase();
   private readonly savePeriod = new SaveFinancialPeriodUseCase();
+  private readonly createInvestmentFinancing = new CreateInvestmentFinancingTransactionsUseCase();
+  private readonly recordMonthSnapshots = new RecordMonthSnapshotsUseCase();
+  private readonly recordPortfolioCashFlows = new RecordPortfolioCashFlowsUseCase();
+  private readonly recordDebtRepayments = new RecordDebtRepaymentsUseCase();
+  private readonly runFinancialReports = new RunFinancialReportsUseCase();
+  private readonly checkCloseReadiness = new CheckCloseReadinessUseCase();
 
   async start(request: MonthlyCloseStartRequest): Promise<FinancialPeriod> {
     const { householdId, yearMonth, userEmail, auth } = request;
@@ -220,67 +203,56 @@ export class MonthlyCloseWorkflowUseCase {
 
     switch (stageId) {
       case 'ACCOUNT_BALANCE': {
-        const balances = request.accountBalances ?? [];
-        if (balances.length === 0) {
-          throw new MonthlyCloseCommandError(
-            MonthlyCloseCommandErrorCode.STAGE_INPUT_REQUIRED,
-            'at least one account balance is required',
-          );
-        }
-        await batchRecordSnapshotsUseCase.execute({
+        await this.recordMonthSnapshots.execute({
           householdId,
-          snapshots: balances.map((input) => ({
-            accountId: input.accountId,
-            data: {
-              accountId: input.accountId,
-              year: this.yearOf(yearMonth),
-              month: this.monthOf(yearMonth),
-              amount: input.amount,
-            },
-          })),
+          year: this.yearOf(yearMonth),
+          month: this.monthOf(yearMonth),
+          accountBalances: request.accountBalances ?? [],
           userEmail,
+          auth,
+        });
+        return;
+      }
+      case 'TRANSACTION_VALIDATION': {
+        await validateMonthTransactionsUseCase.execute({
+          householdId,
+          year: this.yearOf(yearMonth),
+          month: this.monthOf(yearMonth),
           auth,
         });
         return;
       }
       case 'SECURITIES_TRADE': {
         const securities = request.securities;
-        if (!securities || (securities.buys.length === 0 && securities.sells.length === 0)) {
+        const financing = request.financing;
+        const hasSecurities = Boolean(securities && (securities.buys.length > 0 || securities.sells.length > 0));
+        const hasFinancing = Boolean(
+          financing && (financing.shareholderFinancing.length > 0 || financing.dividendPayout.length > 0),
+        );
+        if (!hasSecurities && !hasFinancing) {
           throw new MonthlyCloseCommandError(
             MonthlyCloseCommandErrorCode.STAGE_INPUT_REQUIRED,
-            'at least one securities trade is required',
+            'at least one securities trade or financing entry is required',
           );
         }
-        for (const buy of securities.buys) {
-          await this.createSecuritiesTransaction(householdId, userEmail, 'SECURITY_BUY', buy);
-        }
-        for (const sell of securities.sells) {
-          await this.createSecuritiesTransaction(householdId, userEmail, 'SECURITY_SELL', sell);
-        }
+        await this.createInvestmentFinancing.execute({
+          householdId,
+          userEmail,
+          auth,
+          securities,
+          financing,
+        });
         return;
       }
       case 'PORTFOLIO_CASH_FLOW': {
-        const portfolios = await listPortfoliosUseCase.execute({ householdId, auth });
-        const cashFlows = request.portfolioCashFlows ?? {};
-        for (const portfolio of portfolios) {
-          const existingSnapshots = await listPortfolioSnapshotsUseCase.execute({
-            householdId,
-            portfolioId: portfolio.id,
-            year: this.yearOf(yearMonth),
-            month: this.monthOf(yearMonth),
-          });
-          if (existingSnapshots.length > 0) continue;
-
-          await createPortfolioSnapshotUseCase.execute({
-            householdId,
-            portfolioId: portfolio.id,
-            year: this.yearOf(yearMonth),
-            month: this.monthOf(yearMonth),
-            cashFlow: cashFlows[portfolio.id] ?? { deposits: 0, withdrawals: 0 },
-            userEmail,
-            auth,
-          });
-        }
+        await this.recordPortfolioCashFlows.execute({
+          householdId,
+          year: this.yearOf(yearMonth),
+          month: this.monthOf(yearMonth),
+          portfolioCashFlows: request.portfolioCashFlows ?? {},
+          userEmail,
+          auth,
+        });
         return;
       }
       case 'PROJECT_SETTLEMENT': {
@@ -288,27 +260,20 @@ export class MonthlyCloseWorkflowUseCase {
         return;
       }
       case 'DEBT_REPAYMENT': {
-        for (const repayment of request.repayments ?? []) {
-          await createDebtPaymentUseCase.execute({
-            householdId,
-            userEmail,
-            auth,
-            debtAccountId: repayment.debtAccountId,
-            idempotencyKey: `monthly-close:${yearMonth}:${repayment.debtAccountId}:${repayment.totalPayment}:${repayment.date.toISOString()}`,
-            totalPayment: repayment.totalPayment,
-            date: repayment.date,
-            description: repayment.description,
-            projectId: repayment.projectId,
-          });
-        }
-        await settleDebtAccountsUseCase.execute({ householdId, yearMonth, userEmail, auth });
+        await this.recordDebtRepayments.execute({
+          householdId,
+          yearMonth,
+          repayments: request.repayments ?? [],
+          userEmail,
+          auth,
+        });
         return;
       }
       case 'COMPLETENESS_CHECK': {
         return;
       }
       case 'FINANCIAL_REPORTS': {
-        await generateFinancialReportsUseCase.execute({
+        await this.runFinancialReports.execute({
           householdId,
           auth,
           year: this.yearOf(yearMonth),
@@ -317,49 +282,10 @@ export class MonthlyCloseWorkflowUseCase {
         return;
       }
       case 'CLOSE_PERIOD': {
-        const persistence = await getReportPersistenceStateUseCase.execute({
-          householdId,
-          yearMonth,
-        });
-        if (!persistence.isPersisted) {
-          throw new MonthlyCloseCommandError(
-            MonthlyCloseCommandErrorCode.REPORTS_NOT_PERSISTED,
-            'all three reports must be persisted before closing',
-          );
-        }
+        await this.checkCloseReadiness.execute({ householdId, yearMonth });
         return;
       }
     }
-  }
-
-  private async createSecuritiesTransaction(
-    householdId: string,
-    userEmail: string,
-    intent: 'SECURITY_BUY' | 'SECURITY_SELL',
-    trade: SecuritiesTradeInput,
-  ): Promise<void> {
-    const [debitCode, creditCode] =
-      intent === 'SECURITY_BUY'
-        ? ['asset:investment', 'asset:cash']
-        : ['asset:cash', 'asset:investment'];
-    await createTransactionUseCase.execute({
-      householdId,
-      userEmail,
-      data: {
-        date: trade.date,
-        description: trade.description,
-        intent,
-        intentType: 'INVESTMENT',
-        amount: trade.amount,
-        projectId: null,
-        allocationId: null,
-        createdBy: userEmail,
-        entries: [
-          { ledgerCode: debitCode, debit: trade.amount, credit: 0 },
-          { ledgerCode: creditCode, debit: 0, credit: trade.amount },
-        ],
-      },
-    });
   }
 
   private yearOf(yearMonth: string): number {

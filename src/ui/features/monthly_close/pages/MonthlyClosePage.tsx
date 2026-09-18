@@ -17,6 +17,7 @@ import {
 import type {
   AccountBalanceInput,
   DebtRepaymentInput,
+  FinancingInput,
   SecuritiesTradeInput,
 } from '@/application/monthly_close/use_cases/monthlyCloseWorkflowUseCase';
 import type { Account } from '@/domains/account/schemas';
@@ -31,6 +32,7 @@ import {
   mapAdjustmentCountToEvidence,
   mapAnomaliesToEvidence,
   mapPersistenceToEvidence,
+  mapTransactionIssuesToEvidence,
   NO_EVIDENCE,
 } from '../mappers/monthlyClose.mappers';
 import type { CloseStageEvidence } from '../viewmodels/monthlyClose.vm';
@@ -60,6 +62,7 @@ export const MonthlyClosePage: React.FC<MonthlyClosePageProps> = ({ householdId:
     isStarting,
     error,
     anomalies,
+    transactionIssues,
     cashFlowAdjustment,
     reportsPersisted,
     selectYearMonth,
@@ -76,6 +79,10 @@ export const MonthlyClosePage: React.FC<MonthlyClosePageProps> = ({ householdId:
     buys: SecuritiesTradeInput[];
     sells: SecuritiesTradeInput[];
   }>({ buys: [], sells: [] });
+  const [financing, setFinancing] = useState<{
+    shareholderFinancing: FinancingInput[];
+    dividendPayout: FinancingInput[];
+  }>({ shareholderFinancing: [], dividendPayout: [] });
   const [portfolioCashFlows, setPortfolioCashFlows] = useState<
     Record<string, { deposits: number; withdrawals: number }>
   >({});
@@ -109,6 +116,9 @@ export const MonthlyClosePage: React.FC<MonthlyClosePageProps> = ({ householdId:
   }, [householdId, selectedYearMonth, refreshStageEvidence]);
 
   const stageEvidence = (stageId: string): CloseStageEvidence => {
+    if (stageId === 'TRANSACTION_VALIDATION') {
+      return mapTransactionIssuesToEvidence(transactionIssues);
+    }
     if (stageId === 'COMPLETENESS_CHECK') {
       return mapAnomaliesToEvidence(anomalies);
     }
@@ -132,6 +142,7 @@ export const MonthlyClosePage: React.FC<MonthlyClosePageProps> = ({ householdId:
       stageId,
       accountBalances: stageId === 'ACCOUNT_BALANCE' ? accountBalances : undefined,
       securities: stageId === 'SECURITIES_TRADE' ? securities : undefined,
+      financing: stageId === 'SECURITIES_TRADE' ? financing : undefined,
       portfolioCashFlows: stageId === 'PORTFOLIO_CASH_FLOW' ? portfolioCashFlows : undefined,
       repayments: stageId === 'DEBT_REPAYMENT' ? repayments : undefined,
     });
@@ -158,6 +169,7 @@ export const MonthlyClosePage: React.FC<MonthlyClosePageProps> = ({ householdId:
         </p>
         <CloseStageInputs
           stageId={stageId}
+          yearMonth={selectedYearMonth}
           accounts={accounts.map((account) => ({ id: account.id, name: account.name }))}
           portfolios={portfolios.map((portfolio) => ({ id: portfolio.id, name: portfolio.name }))}
           debtAccounts={debtAccounts.map((debtAccount) => ({
@@ -167,10 +179,12 @@ export const MonthlyClosePage: React.FC<MonthlyClosePageProps> = ({ householdId:
           }))}
           accountBalances={accountBalances}
           securities={securities}
+          financing={financing}
           portfolioCashFlows={portfolioCashFlows}
           repayments={repayments}
           onAccountBalancesChange={setAccountBalances}
           onSecuritiesChange={setSecurities}
+          onFinancingChange={setFinancing}
           onPortfolioCashFlowsChange={setPortfolioCashFlows}
           onRepaymentsChange={setRepayments}
           disabled={confirmingStageId !== null}

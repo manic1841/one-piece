@@ -177,6 +177,10 @@ describe('monthlyCloseWorkflowUseCase — emulator integration', () => {
     expect(accountSnapshot.exists()).toBe(true);
     expect(accountSnapshot.data()?.amount).toBe(amount);
 
+    // TRANSACTION_VALIDATION batch-checks the month's transactions and
+    // completes without creating or modifying data (spec 05 stage 02).
+    await confirmStage('TRANSACTION_VALIDATION', {});
+
     // SECURITIES_TRADE creates a SECURITY_BUY (INVESTMENT intentType) transaction.
     const buyDate = new Date(2026, 2, 10);
     await confirmStage('SECURITIES_TRADE', {

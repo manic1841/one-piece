@@ -51,7 +51,7 @@ describe('financial period persistence (Firestore Emulator)', () => {
       confirmedAt,
     });
     expect(period?.stages.CLOSE_PERIOD).toEqual({ status: 'PENDING' });
-    expect(Object.keys(period?.stages ?? {})).toHaveLength(8);
+    expect(Object.keys(period?.stages ?? {})).toHaveLength(9);
   });
 
   it('overwrites the period record on re-save (upsert by yearMonth)', async () => {
