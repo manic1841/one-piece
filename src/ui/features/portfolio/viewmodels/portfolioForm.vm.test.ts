@@ -11,8 +11,8 @@ describe('portfolioForm.vm', () => {
   it('parses and maps portfolio form to domain input', () => {
     const vm = parsePortfolioFormVM({
       name: 'Retirement',
-      description: 'Long term',
-      accountIds: ['a1', 'a2'],
+      securitiesAccountId: 'a1',
+      bankAccountId: 'a2',
       isActive: true,
       order: 1,
     });
@@ -21,8 +21,8 @@ describe('portfolioForm.vm', () => {
 
     expect(domain).toEqual({
       name: 'Retirement',
-      description: 'Long term',
-      accountIds: ['a1', 'a2'],
+      securitiesAccountId: 'a1',
+      bankAccountId: 'a2',
       isActive: true,
       order: 1,
     });

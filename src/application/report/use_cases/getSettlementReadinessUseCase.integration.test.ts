@@ -55,8 +55,8 @@ const seedPortfolio = async (
   await setDoc(doc(db, 'households', householdId, 'portfolios', portfolioId), {
     id: portfolioId,
     name: `Portfolio ${portfolioId}`,
-    description: '',
-    accountIds: [],
+    securitiesAccountId: 'acc-1',
+    bankAccountId: 'acc-2',
     isActive,
     order: 0,
     createdAt: serverTimestamp(),

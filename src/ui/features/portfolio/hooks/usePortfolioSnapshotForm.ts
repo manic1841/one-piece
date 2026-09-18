@@ -40,8 +40,9 @@ export const usePortfolioSnapshotForm = (
     let ignore = false;
     const fetchAccounts = async () => {
       await run(async () => {
+        const linkedAccountIds = [portfolio.securitiesAccountId, portfolio.bankAccountId];
         const loadedAccounts: Account[] = [];
-        for (const accountId of portfolio.accountIds) {
+        for (const accountId of linkedAccountIds) {
           const account = await getAccountUseCase.execute({ householdId, accountId, auth });
           if (account) loadedAccounts.push(account);
         }
@@ -52,7 +53,7 @@ export const usePortfolioSnapshotForm = (
     return () => {
       ignore = true;
     };
-  }, [householdId, portfolio.accountIds, run, auth]);
+  }, [householdId, portfolio.securitiesAccountId, portfolio.bankAccountId, run, auth]);
 
   // Load snapshots whenever year/month or accounts list changes
   useEffect(() => {

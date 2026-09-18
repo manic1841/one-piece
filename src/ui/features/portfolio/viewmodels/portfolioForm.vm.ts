@@ -4,8 +4,8 @@ import { type Portfolio, type PortfolioCreate } from '@/domains/portfolio/types/
 
 export const PortfolioFormVMSchema = z.object({
   name: z.string().trim().min(1, '投資組合名稱不能為空'),
-  description: z.string().optional(),
-  accountIds: z.array(z.string().min(1)).default([]),
+  securitiesAccountId: z.string().min(1, '請選擇證券帳戶'),
+  bankAccountId: z.string().min(1, '請選擇銀行帳戶'),
   isActive: z.boolean(),
   order: z.number().int().min(0, '排序不能小於 0'),
 });
@@ -15,8 +15,8 @@ export type PortfolioFormVM = z.infer<typeof PortfolioFormVMSchema>;
 export const createDefaultPortfolioFormVM = (): PortfolioFormVM => {
   return {
     name: '',
-    description: '',
-    accountIds: [],
+    securitiesAccountId: '',
+    bankAccountId: '',
     isActive: true,
     order: 0,
   };
@@ -26,8 +26,8 @@ export const mapPortfolioToFormVM = (portfolio?: Portfolio): PortfolioFormVM => 
   if (!portfolio) return createDefaultPortfolioFormVM();
   return {
     name: portfolio.name,
-    description: portfolio.description || '',
-    accountIds: portfolio.accountIds,
+    securitiesAccountId: portfolio.securitiesAccountId,
+    bankAccountId: portfolio.bankAccountId,
     isActive: portfolio.isActive,
     order: portfolio.order || 0,
   };
@@ -40,8 +40,8 @@ export const parsePortfolioFormVM = (input: unknown): PortfolioFormVM => {
 export const mapPortfolioVMToDomain = (vm: PortfolioFormVM): PortfolioCreate => {
   return {
     name: vm.name,
-    description: vm.description,
-    accountIds: vm.accountIds,
+    securitiesAccountId: vm.securitiesAccountId,
+    bankAccountId: vm.bankAccountId,
     isActive: vm.isActive,
     order: vm.order,
   };

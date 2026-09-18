@@ -30,11 +30,11 @@ export const PortfolioCashFlowSchema = z.object({
   withdrawals: z.number(),
 });
 
-// Portfolio Create Schema
+// Portfolio Create Schema (spec 11: exactly one securities account, one bank account)
 export const PortfolioCreateSchema = z.object({
   name: z.string(),
-  description: z.string().optional(),
-  accountIds: z.array(z.string()),
+  securitiesAccountId: z.string(),
+  bankAccountId: z.string(),
   isActive: z.boolean().default(true),
   order: z.number().default(0),
 });

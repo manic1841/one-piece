@@ -103,9 +103,6 @@ export const PortfolioItem: React.FC<PortfolioItemProps> = ({
         <p className="text-xs text-muted-foreground mt-1">
           {viewModel.accountCount} linked accounts
         </p>
-        {viewModel.description && (
-          <p className="text-xs text-muted-foreground mt-2 line-clamp-2">{viewModel.description}</p>
-        )}
       </CardContent>
     </Card>
   );

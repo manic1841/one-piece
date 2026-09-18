@@ -85,7 +85,6 @@ const PortfolioDetail: React.FC<PortfolioDetailProps> = ({ householdId, userEmai
         </Button>
         <div>
           <h2 className="text-2xl font-bold tracking-tight">{viewModel.name}</h2>
-          <p className="text-sm text-muted-foreground">{viewModel.description}</p>
         </div>
         <div className="ml-auto">
           <Button onClick={() => setIsSnapshotOpen(true)}>

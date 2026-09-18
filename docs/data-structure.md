@@ -64,9 +64,15 @@ firestore
      # - 停用帳戶不再出現在記帳表單/月底結算輸入列表
      # - snapshots 子集合為歷史記錄，停用不影響既有資料
 
-       ├─ portfolios/{portfolioId}       # 投資組合 (Investment Tracking)
+       ├─ portfolios/{portfolioId}       # 投資組合 (Investment Tracking, ADR-0054)
        │    ├─ name: string
+       │    ├─ securitiesAccountId: string  # 恰好一個證券帳戶（類別須為 securities）
+       │    ├─ bankAccountId: string        # 恰好一個銀行/現金帳戶；建立後連結不可變更
        │    ├─ isActive: boolean
+       │    │
+       │    # 規則（spec 11）：
+       │    # - 每個來源帳戶至多屬於一個 portfolio（create 時由 use case 驗證）
+       │    # - accountIds[]/description 為舊欄位，讀取時由 schema strip，遷移腳本 scripts/admin/migrate-portfolio-links.ts
        │    │
        │    └─ snapshots/{snapshotId}    # Subcollection: 每月持倉快照
        │         ├─ year: number

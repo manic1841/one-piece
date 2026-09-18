@@ -34,11 +34,11 @@ let projectId = '';
 
 const nextHouseholdId = () => `household-close-flow-${householdSeq}`;
 
-const seedAccount = async (id: string) => {
+const seedAccount = async (id: string, category: string = 'cash') => {
   await setDoc(doc(db, 'households', householdId, 'accounts', id), {
     id,
     name: `Account ${id}`,
-    category: 'cash',
+    category,
     currency: 'TWD',
     order: 0,
     isActive: true,
@@ -71,9 +71,16 @@ describe('monthlyCloseWorkflowUseCase — emulator integration', () => {
     householdId = nextHouseholdId();
 
     await seedAccount('acc-1');
+    await seedAccount('acc-securities', 'securities');
     await createPortfolioUseCase.execute({
       householdId: householdId,
-      portfolio: { name: 'Brokerage', description: '', accountIds: [], isActive: true, order: 0 },
+      portfolio: {
+        name: 'Brokerage',
+        securitiesAccountId: 'acc-securities',
+        bankAccountId: 'acc-1',
+        isActive: true,
+        order: 0,
+      },
       userEmail: 'user@example.com',
       auth,
     });
@@ -157,8 +164,13 @@ describe('monthlyCloseWorkflowUseCase — emulator integration', () => {
     expect(Object.keys(period?.stages ?? {})).toHaveLength(CLOSE_STAGE_IDS.length);
     expect(Object.values(period?.stages ?? {}).every((stage) => stage.status === 'PENDING')).toBe(true);
 
-    // ACCOUNT_BALANCE records a snapshot for the seeded account.
-    await confirmStage('ACCOUNT_BALANCE', { accountBalances: [{ accountId: 'acc-1', amount }] });
+    // ACCOUNT_BALANCE records snapshots for the seeded accounts.
+    await confirmStage('ACCOUNT_BALANCE', {
+      accountBalances: [
+        { accountId: 'acc-1', amount },
+        { accountId: 'acc-securities', amount },
+      ],
+    });
     const accountSnapshot = await getDoc(
       doc(db, 'households', householdId, 'accounts', 'acc-1', 'snapshots', yearMonth),
     );

@@ -293,8 +293,8 @@ describe('GetDashboardOverviewUseCase', () => {
     ]);
     getFinancialPeriodMock.mockResolvedValue(buildPeriod('CLOSED'));
     listPortfoliosMock.mockResolvedValue([
-      { id: 'portfolio-1', createdBy: '', createdAt: new Date(), updatedBy: '', updatedAt: new Date(), name: 'P1', accountIds: [], isActive: true, order: 0 },
-      { id: 'portfolio-2', createdBy: '', createdAt: new Date(), updatedBy: '', updatedAt: new Date(), name: 'P2', accountIds: [], isActive: true, order: 1 },
+      { id: 'portfolio-1', createdBy: '', createdAt: new Date(), updatedBy: '', updatedAt: new Date(), name: 'P1', securitiesAccountId: 'acc-1', bankAccountId: 'acc-2', isActive: true, order: 0 },
+      { id: 'portfolio-2', createdBy: '', createdAt: new Date(), updatedBy: '', updatedAt: new Date(), name: 'P2', securitiesAccountId: 'acc-3', bankAccountId: 'acc-4', isActive: true, order: 1 },
     ]);
     listPortfolioSnapshotsMock.mockImplementation((request: {
       portfolioId: string;

@@ -70,8 +70,8 @@ const createAccount = (id: string, isActive = true): Account => ({
 const createPortfolio = (id: string, isActive: boolean): Portfolio => ({
   id,
   name: `Portfolio ${id}`,
-  description: `${id} description`,
-  accountIds: [],
+  securitiesAccountId: 'acc-1',
+  bankAccountId: 'acc-2',
   isActive,
   order: 0,
   createdBy: 'u1',

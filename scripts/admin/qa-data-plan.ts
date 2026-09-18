@@ -235,7 +235,8 @@ const buildStaticDocs = (b: Builder) => {
   emit(b, PortfolioSchema, hh(identity, 'portfolios'), 'pf_core', {
     id: 'pf_core',
     name: '核心投資組合',
-    accountIds: ['acc_securities'],
+    securitiesAccountId: 'acc_securities',
+    bankAccountId: 'acc_cash',
     isActive: true,
     order: 1,
     ...audit(identity),

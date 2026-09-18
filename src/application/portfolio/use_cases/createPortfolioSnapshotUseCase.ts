@@ -43,7 +43,7 @@ export class CreatePortfolioSnapshotUseCase {
     const accountSnapshots = new Map<string, AccountSnapshot | null>();
     const accounts = [];
 
-    for (const accountId of portfolio.accountIds) {
+    for (const accountId of [portfolio.securitiesAccountId, portfolio.bankAccountId]) {
       const account = await getAccountUseCase.execute({ householdId, accountId, auth });
       if (!account) continue;
 

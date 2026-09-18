@@ -7,8 +7,8 @@ describe('portfolioDisplay.vm', () => {
     const portfolio = {
       id: 'p1',
       name: 'Main Portfolio',
-      description: 'Long term holdings',
-      accountIds: ['a1', 'a2'],
+      securitiesAccountId: 'a1',
+      bankAccountId: 'a2',
       isActive: true,
       order: 2,
       createdAt: new Date(),
@@ -47,8 +47,8 @@ describe('portfolioDisplay.vm', () => {
     const portfolio = {
       id: 'p1',
       name: 'Main Portfolio',
-      description: undefined,
-      accountIds: ['a1'],
+      securitiesAccountId: 'a1',
+      bankAccountId: 'a2',
       isActive: true,
       order: 0,
       createdAt: new Date(),

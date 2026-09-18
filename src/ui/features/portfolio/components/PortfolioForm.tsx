@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 
 import { type Account } from '@/domains/account/types/account';
+import { AccountCategory } from '@/domains/account/types/categories';
 import { type Portfolio } from '@/domains/portfolio/types';
 import { Button } from '@/ui/components/ui/button';
 import { Checkbox } from '@/ui/components/ui/checkbox';
@@ -13,7 +14,6 @@ import {
 } from '@/ui/components/ui/dialog';
 import { Input } from '@/ui/components/ui/input';
 import { Label } from '@/ui/components/ui/label';
-import { Textarea } from '@/ui/components/ui/textarea';
 import { useAccounts } from '@/ui/features/account/hooks/useAccounts';
 import {
   type PortfolioFormVM,
@@ -43,8 +43,8 @@ const PortfolioForm: React.FC<PortfolioFormProps> = ({
   const initialData = mapPortfolioToFormVM(portfolio);
 
   const [newName, setNewName] = useState(initialData.name);
-  const [newDescription, setNewDescription] = useState(initialData.description);
-  const [selectedAccountIds, setSelectedAccountIds] = useState<string[]>(initialData.accountIds);
+  const [securitiesAccountId, setSecuritiesAccountId] = useState(initialData.securitiesAccountId);
+  const [bankAccountId, setBankAccountId] = useState(initialData.bankAccountId);
   const [isActive, setIsActive] = useState(initialData.isActive);
   const [initialOrder, setInitialOrder] = useState(initialData.order);
   const [loading, setLoading] = useState(false);
@@ -67,8 +67,8 @@ const PortfolioForm: React.FC<PortfolioFormProps> = ({
     if (isOpen) {
       const data = mapPortfolioToFormVM(portfolio);
       setNewName(data.name);
-      setNewDescription(data.description || '');
-      setSelectedAccountIds(data.accountIds);
+      setSecuritiesAccountId(data.securitiesAccountId);
+      setBankAccountId(data.bankAccountId);
       setIsActive(data.isActive);
       setInitialOrder(data.order);
     }
@@ -82,15 +82,15 @@ const PortfolioForm: React.FC<PortfolioFormProps> = ({
     try {
       const vm = parsePortfolioFormVM({
         name: newName,
-        description: newDescription || undefined,
-        accountIds: selectedAccountIds,
+        securitiesAccountId,
+        bankAccountId,
         isActive,
         order: initialOrder,
       });
       await onSubmit(vm);
       setNewName('');
-      setNewDescription('');
-      setSelectedAccountIds([]);
+      setSecuritiesAccountId('');
+      setBankAccountId('');
       onClose();
     } catch (error) {
       console.error('Failed to submit portfolio form:', error);
@@ -99,11 +99,13 @@ const PortfolioForm: React.FC<PortfolioFormProps> = ({
     }
   };
 
-  const toggleAccountSelection = (accountId: string) => {
-    setSelectedAccountIds((prev) =>
-      prev.includes(accountId) ? prev.filter((id) => id !== accountId) : [...prev, accountId],
-    );
-  };
+  const securitiesAccounts = availableAccounts.filter(
+    (account) => account.category === AccountCategory.SECURITIES,
+  );
+  const bankAccounts = availableAccounts.filter(
+    (account) =>
+      account.category === AccountCategory.BANK || account.category === AccountCategory.CASH,
+  );
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -123,13 +125,38 @@ const PortfolioForm: React.FC<PortfolioFormProps> = ({
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="description">Description (Optional)</Label>
-            <Textarea
-              id="description"
-              value={newDescription}
-              onChange={(e) => setNewDescription(e.target.value)}
-              placeholder="Describe the purpose of this portfolio"
-            />
+            <Label htmlFor="securities-account">Securities Account</Label>
+            <select
+              id="securities-account"
+              className="w-full h-10 px-3 py-2 bg-background border border-input rounded-md text-sm"
+              value={securitiesAccountId}
+              onChange={(e) => setSecuritiesAccountId(e.target.value)}
+              required
+            >
+              <option value="">Select securities account</option>
+              {securitiesAccounts.map((account) => (
+                <option key={account.id} value={account.id}>
+                  {account.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="bank-account">Bank Account</Label>
+            <select
+              id="bank-account"
+              className="w-full h-10 px-3 py-2 bg-background border border-input rounded-md text-sm"
+              value={bankAccountId}
+              onChange={(e) => setBankAccountId(e.target.value)}
+              required
+            >
+              <option value="">Select bank account</option>
+              {bankAccounts.map((account) => (
+                <option key={account.id} value={account.id}>
+                  {account.name} ({account.category})
+                </option>
+              ))}
+            </select>
           </div>
           <div className="flex items-center space-x-2">
             <Checkbox
@@ -141,29 +168,9 @@ const PortfolioForm: React.FC<PortfolioFormProps> = ({
               Active
             </Label>
           </div>
-          <div className="space-y-2">
-            <Label>Linked Accounts</Label>
-            <div className="border rounded-md p-3 max-h-[200px] overflow-y-auto space-y-2">
-              {availableAccounts.map((account) => (
-                <div key={account.id} className="flex items-center space-x-2">
-                  <Checkbox
-                    id={`acc-${account.id}`}
-                    checked={selectedAccountIds.includes(account.id)}
-                    onCheckedChange={() => toggleAccountSelection(account.id)}
-                  />
-                  <Label
-                    htmlFor={`acc-${account.id}`}
-                    className="text-sm font-normal cursor-pointer"
-                  >
-                    {account.name} ({account.category})
-                  </Label>
-                </div>
-              ))}
-              {availableAccounts.length === 0 && (
-                <div className="text-sm text-muted-foreground">No accounts available.</div>
-              )}
-            </div>
-          </div>
+          {portfolio && (
+            <p className="text-xs text-muted-foreground">帳戶連結建立後不可變更</p>
+          )}
           <DialogFooter>
             <Button type="button" variant="outline" onClick={onClose}>
               Cancel
