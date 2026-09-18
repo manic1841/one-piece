@@ -1,5 +1,7 @@
 # 08 — Component Design
 
+Implementation status (2026-09-18, grilling converged): gallery v2 audit confirmed StatusGlyph and shell components aligned; gaps ticketed as S8 — in-app **ConfirmDialog** replacing all `window.confirm` call sites (15), button-style **Period/Date Picker** replacing input-based YearMonthPicker (9), and primitive form alignment (badge 4px-radius mono (4), alert action slots (32), button `text` variant (6), progress surface track + accent fill (5)). PageHeader crumb + bottom border (34) and accordion primitive (31) land with S7 (#122).
+
 ## Visual system
 Recorded 2026-09-18 (#119, #115) as a spec-value -> app-token mapping; the app's HSL semantic tokens are authoritative and roles are equivalent even where names differ.
 
