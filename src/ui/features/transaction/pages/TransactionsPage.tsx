@@ -139,7 +139,6 @@ const Transactions: React.FC = () => {
     .map((project) => ({
       id: project.id,
       name: project.name,
-      icon: project.icon,
     }));
 
   return (

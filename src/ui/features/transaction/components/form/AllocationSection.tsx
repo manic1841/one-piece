@@ -81,7 +81,6 @@ export const AllocationSection: React.FC<AllocationSectionProps> = ({
           <option value="">選擇專案加入分配</option>
           {availableProjects.map((project) => (
             <option key={project.id} value={project.id}>
-              {project.icon ? `${project.icon} ` : ''}
               {project.name}
             </option>
           ))}
@@ -130,7 +129,6 @@ export const AllocationSection: React.FC<AllocationSectionProps> = ({
               >
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
-                    <span className="text-lg">{project.icon}</span>
                     <span className="text-sm font-medium">{project.name}</span>
                   </div>
                 </div>

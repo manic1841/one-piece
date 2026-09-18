@@ -100,17 +100,8 @@ const ProjectSettings: React.FC<ProjectSettingsProps> = ({ householdId, onBack }
                     </Button>
                   </div>
                   <div className="flex items-center gap-3">
-                    <span
-                      className="w-10 h-10 flex items-center justify-center rounded-lg text-lg"
-                      style={{ backgroundColor: project.color }}
-                    >
-                      {project.icon}
-                    </span>
                     <div>
                       <p className="font-semibold">{project.name}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {project.description || 'No description'}
-                      </p>
                     </div>
                   </div>
                 </div>

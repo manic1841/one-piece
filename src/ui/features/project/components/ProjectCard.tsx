@@ -20,17 +20,8 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({ householdId, project, 
       className="hover:shadow-md transition-all cursor-pointer hover:border-primary/20"
     >
       <CardHeader className="flex flex-row items-center gap-3 space-y-0 pb-2">
-        <span
-          className="w-12 h-12 flex items-center justify-center rounded-xl text-xl"
-          style={{ backgroundColor: project.color }}
-        >
-          {project.icon}
-        </span>
         <div>
           <CardTitle className="text-base font-semibold">{project.name}</CardTitle>
-          {project.description && (
-            <p className="text-sm text-muted-foreground mt-1">{project.description}</p>
-          )}
         </div>
       </CardHeader>
       <CardContent>

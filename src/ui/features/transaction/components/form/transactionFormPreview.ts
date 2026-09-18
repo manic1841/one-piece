@@ -24,7 +24,7 @@ const parsePercentage = (value: string) => {
 const findProjectLabel = (projects: TransactionFormProjectOption[], projectId?: string) => {
   if (!projectId) return '';
   const project = projects.find((item) => item.id === projectId);
-  return project ? `${project.icon ? `${project.icon} ` : ''}${project.name}` : '';
+  return project ? `${project.name}` : '';
 };
 
 const findCategoryLabel = (categories: TransactionFormCategoryOption[], ledgerCode?: string) => {

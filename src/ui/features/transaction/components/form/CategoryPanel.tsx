@@ -25,7 +25,7 @@ type CategoryPanelProps = {
 const toProjectOptions = (projects: TransactionFormProjectOption[]) =>
   projects.map((project) => ({
     value: project.id,
-    label: `${project.icon ? `${project.icon} ` : ''}${project.name}`,
+    label: `${project.name}`,
   }));
 
 export function CategoryPanel({

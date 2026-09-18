@@ -98,7 +98,6 @@ export const AllocationTemplateSettings = () => {
                   <option value="">Select project</option>
                   {availableProjects.map((project) => (
                     <option key={project.id} value={project.id}>
-                      {project.icon ? `${project.icon} ` : ''}
                       {project.name}
                     </option>
                   ))}
@@ -132,7 +131,6 @@ export const AllocationTemplateSettings = () => {
                         className="flex items-center gap-2 rounded-md border p-2"
                       >
                         <div className="min-w-0 flex-1 text-sm font-medium">
-                          {project.icon ? `${project.icon} ` : ''}
                           {project.name}
                         </div>
                         <Input

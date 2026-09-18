@@ -67,12 +67,6 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ householdId, proj
         <div className="flex-1">
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-3">
-              <span
-                className="w-12 h-12 flex items-center justify-center rounded-xl text-xl"
-                style={{ backgroundColor: project.color }}
-              >
-                {project.icon}
-              </span>
               <div>
                 <h1 className="text-2xl font-bold text-foreground">{project.name}</h1>
                 <div className="flex items-center gap-4 mt-2">
