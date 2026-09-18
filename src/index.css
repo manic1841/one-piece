@@ -28,6 +28,7 @@
     --negative: 0 78% 62%;
     --warning: 38 92% 56%;
     --border: 213 15% 17%;
+    --border-strong: 213 14% 27%;
     --input: 213 15% 17%;
     --ring: 213 15% 45%;
     --radius: 0.25rem;
@@ -43,6 +44,7 @@
   * {
     @apply border-border;
   }
+
   body {
     @apply bg-background text-foreground font-sans;
     -webkit-tap-highlight-color: transparent;
@@ -51,6 +53,7 @@
 
 @layer base {
   @media (prefers-reduced-motion: reduce) {
+
     *,
     *::before,
     *::after {

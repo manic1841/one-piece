@@ -5,6 +5,7 @@ import { Calendar } from 'lucide-react';
 import { type DebtAccount } from '@/domains/debt/schemas';
 import { type Transaction } from '@/domains/ledger/schemas';
 import { useAuth } from '@/infra/contexts/useAuth';
+import { useConfirm } from '@/ui/features/app/confirm/ConfirmDialog';
 import { Badge } from '@/ui/components/ui/badge';
 import { Button } from '@/ui/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/ui/components/ui/card';
@@ -292,8 +293,13 @@ export default function DebtListPage() {
     onCancel: closeDialog,
   });
 
+  const { confirm } = useConfirm();
+
   const handleRemove = async (id: string) => {
-    if (!window.confirm('確定要停用或刪除這筆貸款嗎？')) return;
+    const confirmed = await confirm({
+      title: 'Disable or delete this loan?',
+    });
+    if (!confirmed) return;
     setRemovingId(id);
     const result = await removeDebtAccount(id);
     setRemovingId(null);

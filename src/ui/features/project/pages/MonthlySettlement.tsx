@@ -77,8 +77,6 @@ const MonthlySettlement: React.FC<MonthlySettlementProps> = ({
               month={month}
               onYearChange={(y) => setYear(parseInt(y) || 0)}
               onMonthChange={(m) => setMonth(parseInt(m) || 1)}
-              yearLabel="結算年份"
-              monthLabel="結算月份"
             />
             <SettlementCompletenessGate
               anomalies={pendingAnomalies}

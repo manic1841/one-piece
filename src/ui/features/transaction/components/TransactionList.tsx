@@ -81,33 +81,43 @@ export const TransactionList: React.FC<TransactionListProps> = ({
       <div className="rounded-xl border border-border bg-card p-3 shadow-sm">
         <div className="flex flex-col gap-3 md:flex-row md:flex-wrap md:items-end">
           <div className="w-full md:min-w-56 md:max-w-64 md:flex-1">
-            <label className="mb-1 block text-xs font-semibold text-muted-foreground">開始日期</label>
+            <label className="mb-1 block font-mono text-[10px] tracking-widest text-muted-foreground">
+              FROM
+            </label>
             <Input
               type="date"
               value={fromDate}
               onChange={(event) => setFromDate(event.target.value)}
+              className="font-mono"
             />
           </div>
           <div className="w-full md:min-w-56 md:max-w-64 md:flex-1">
-            <label className="mb-1 block text-xs font-semibold text-muted-foreground">結束日期</label>
-            <Input type="date" value={toDate} onChange={(event) => setToDate(event.target.value)} />
+            <label className="mb-1 block font-mono text-[10px] tracking-widest text-muted-foreground">
+              TO
+            </label>
+            <Input
+              type="date"
+              value={toDate}
+              onChange={(event) => setToDate(event.target.value)}
+              className="font-mono"
+            />
           </div>
           <Button
             type="button"
             variant="outline"
-            className="w-full md:w-auto"
+            className="w-full font-mono md:w-auto"
             onClick={() => void handleApplyDateRange()}
           >
-            查詢日期區間
+            APPLY
           </Button>
           <Button
             type="button"
-            variant="ghost"
-            className="w-full md:w-auto"
+            variant="text"
+            className="w-full font-mono md:w-auto"
             disabled={!fromDate && !toDate}
             onClick={() => void handleClearDateRange()}
           >
-            清除日期篩選
+            CLEAR
           </Button>
         </div>
         {dateRangeError ? <p className="mt-2 text-xs text-destructive">{dateRangeError}</p> : null}

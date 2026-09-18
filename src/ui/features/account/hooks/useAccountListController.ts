@@ -11,10 +11,12 @@ import { useAccountCmds } from '@/ui/features/account/hooks/useAccountCmds';
 import { useAccountExport } from '@/ui/features/account/hooks/useAccountExport';
 import { useAccounts } from '@/ui/features/account/hooks/useAccounts';
 import { useAuthContext } from '@/ui/hooks/useAuthContext';
+import { useConfirm } from '@/ui/features/app/confirm/ConfirmDialog';
 
 export function useAccountListController() {
   const { userProfile } = useAuth();
   const auth = useAuthContext();
+  const { confirm } = useConfirm();
   const householdId = userProfile?.householdId || '';
 
   const { fetchAccountsWithSnapshots, loading: loadingAccounts } = useAccounts();
@@ -192,9 +194,13 @@ export function useAccountListController() {
         });
 
         if (warning.hasReferences) {
-          const confirmed = window.confirm(
-            `提醒：此帳戶本月有 ${warning.referenceCount} 筆交易可能引用，停用後將不再出現在記帳與月底結算選單。是否仍要停用？`,
-          );
+          const confirmed = await confirm({
+            title: 'Disable this account?',
+            context: `It has ${warning.referenceCount} transactions this month.`,
+            consequence: 'Disabled accounts no longer appear in bookkeeping or month-end settlement menus.',
+            confirmLabel: 'DISABLE',
+            cancelLabel: 'Cancel',
+          });
           if (!confirmed) return;
         }
       }
@@ -207,7 +213,7 @@ export function useAccountListController() {
       }
       await loadAccounts();
     },
-    [householdId, auth, updateAccount, loadAccounts],
+    [householdId, auth, confirm, updateAccount, loadAccounts],
   );
 
   return {

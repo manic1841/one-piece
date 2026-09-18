@@ -2,6 +2,7 @@ import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import { Toaster } from 'sonner';
 
 import { AuthProvider } from '@/infra/contexts/AuthProvider';
+import { ConfirmDialogProvider } from '@/ui/features/app/confirm/ConfirmDialog';
 import Accounts from '@/ui/features/account/pages/AccountsPage';
 import Layout from '@/ui/features/app/layout/Layout';
 import ProtectedRoute from '@/ui/features/app/router/ProtectedRoute';
@@ -23,6 +24,7 @@ import Transactions from '@/ui/features/transaction/pages/TransactionsPage';
 function App() {
   return (
     <AuthProvider>
+      <ConfirmDialogProvider>
       <Toaster
         toastOptions={{
           classNames: {
@@ -65,6 +67,7 @@ function App() {
           </Route>
         </Routes>
       </BrowserRouter>
+      </ConfirmDialogProvider>
     </AuthProvider>
   );
 }

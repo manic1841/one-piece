@@ -3,6 +3,7 @@ import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import Layout from './Layout';
+import { ConfirmDialogProvider } from '@/ui/features/app/confirm/ConfirmDialog';
 import { getNavigatorItems } from './navigation';
 
 class ResizeObserverStub {
@@ -63,17 +64,19 @@ function PageMarker() {
 
 function renderLayout({ initialRoute = '/', withPageMarker = false } = {}) {
   return render(
-    <MemoryRouter initialEntries={[initialRoute]}>
-      {withPageMarker ? (
-        <Routes>
-          <Route element={<Layout />}>
-            <Route path="*" element={<PageMarker />} />
-          </Route>
-        </Routes>
-      ) : (
-        <Layout />
-      )}
-    </MemoryRouter>,
+    <ConfirmDialogProvider>
+      <MemoryRouter initialEntries={[initialRoute]}>
+        {withPageMarker ? (
+          <Routes>
+            <Route element={<Layout />}>
+              <Route path="*" element={<PageMarker />} />
+            </Route>
+          </Routes>
+        ) : (
+          <Layout />
+        )}
+      </MemoryRouter>
+    </ConfirmDialogProvider>,
   );
 }
 
@@ -151,8 +154,6 @@ describe('Layout system status bar', () => {
   });
 
   it('opens the avatar menu exposing logout and logs out from it', async () => {
-    vi.spyOn(window, 'confirm').mockReturnValue(true);
-
     renderLayout();
 
     const avatarButton = screen.getByRole('button', { name: /avatar/i });
@@ -161,6 +162,8 @@ describe('Layout system status bar', () => {
     const logoutItem = await screen.findByRole('menuitem', { name: /logout/i });
     fireEvent.pointerDown(logoutItem);
     fireEvent.click(logoutItem);
+
+    fireEvent.click(await screen.findByRole('button', { name: 'LOG OUT' }));
 
     await waitFor(() => expect(mockLogout).toHaveBeenCalledTimes(1));
   });

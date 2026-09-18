@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { useParams } from 'react-router-dom';
 
 import { useAuth } from '@/infra/contexts/useAuth';
-import { Alert, AlertDescription, AlertTitle } from '@/ui/components/ui/alert';
+import { Alert, AlertDescription } from '@/ui/components/ui/alert';
 import { Button } from '@/ui/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/ui/components/ui/tabs';
 import AssumptionsForm from '@/ui/features/retirement/components/AssumptionsForm';
@@ -73,11 +73,10 @@ const RetirementPlanForm: React.FC = () => {
   return (
     <div className="space-y-6">
       {staleIncomeSyncBanner && (
-        <Alert className="border-warning/20 bg-warning/5">
-          <AlertTitle>收入樣本年度可更新</AlertTitle>
+        <Alert className="border-warning/40 bg-warning/5">
           <AlertDescription className="flex items-center justify-between gap-3">
             <span>
-              {staleIncomeSyncBanner.staleCount} 筆收入資料仍使用舊年度，建議更新至{' '}
+              收入樣本年度可更新：{staleIncomeSyncBanner.staleCount} 筆收入資料仍使用舊年度，建議更新至{' '}
               {staleIncomeSyncBanner.targetSampleYear} 年。
             </span>
             <div className="flex items-center gap-2">

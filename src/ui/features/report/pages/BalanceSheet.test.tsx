@@ -93,7 +93,7 @@ describe('BalanceSheetPage', () => {
     expect(screen.getByText('資產合計')).toBeInTheDocument();
     expect(screen.getAllByText('$10,000').length).toBeGreaterThan(0);
     expect(
-      screen.getByText('調整項目偏大，請確認是否有漏記交易，或帳戶結算金額是否正確。'),
+      screen.getByText(/注意：調整項目偏大/),
     ).toBeInTheDocument();
   });
 });

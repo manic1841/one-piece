@@ -11,6 +11,7 @@ import {
 import { useAccountCmds } from '@/ui/features/account/hooks/useAccountCmds';
 import { useAccountSnapshots } from '@/ui/features/account/hooks/useAccountSnapshots';
 import { useAuth } from '@/infra/contexts/useAuth';
+import { useConfirm } from '@/ui/features/app/confirm/ConfirmDialog';
 
 import { AccountSnapshotTable } from './AccountSnapshotTable';
 import AccountSnapshotEditor from '../../pages/AccountSnapshotEditor';
@@ -33,8 +34,13 @@ export const AccountHistoryDialog: React.FC<AccountHistoryDialogProps> = ({
 
   const [editingSnapshot, setEditingSnapshot] = useState<AccountSnapshot | null>(null);
 
+  const { confirm } = useConfirm();
+
   const handleDelete = async (snapshotId: string) => {
-    if (window.confirm('確定要刪除這筆歷史結算紀錄嗎？')) {
+    const confirmed = await confirm({
+      title: 'Delete this settlement record?',
+    });
+    if (confirmed) {
       await deleteSnapshot(account.id, snapshotId);
       reload();
     }

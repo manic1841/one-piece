@@ -9,7 +9,7 @@ import {
   Wallet,
 } from 'lucide-react';
 
-import { Alert, AlertDescription, AlertTitle } from '@/ui/components/ui/alert';
+import { Alert, AlertDescription } from '@/ui/components/ui/alert';
 import { Card, CardContent } from '@/ui/components/ui/card';
 import { REPORT_VIEW_TITLES } from '@/ui/constants/report/reportViewLabels';
 import { useCashFlow } from '@/ui/features/report/hooks/useCashFlow';
@@ -247,12 +247,11 @@ const CashFlowStatement: React.FC<CashFlowStatementProps> = ({
           {data.adjustment !== 0 && (
             <Alert
               variant="destructive"
-              className="bg-warning/5 border-warning/20 text-warning"
+              className="border-warning/40 bg-warning/5 text-warning"
             >
               <AlertTriangle className="h-4 w-4 text-warning" />
-              <AlertTitle>對帳差異提醒</AlertTitle>
               <AlertDescription>
-                期末現金（計算值：{data.endingBalanceText}）與帳戶實際餘額（
+                對帳差異提醒：期末現金（計算值：{data.endingBalanceText}）與帳戶實際餘額（
                 {data.actualBalanceText}）存在差異， 金額為{' '}
                 <span className="font-bold underline">{data.adjustmentText}</span>。
                 請確認是否有漏記交易，或帳戶結算金額是否有誤。

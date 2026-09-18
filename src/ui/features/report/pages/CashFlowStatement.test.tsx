@@ -73,7 +73,7 @@ describe('CashFlowStatementPage', () => {
 
     expect(screen.getByText('淨現金變動')).toBeInTheDocument();
     expect(screen.getByText('$1,000')).toBeInTheDocument();
-    expect(screen.getByText('對帳差異提醒')).toBeInTheDocument();
+    expect(screen.getByText(/對帳差異提醒：期末現金/)).toBeInTheDocument();
     expect(screen.getByText('+$500')).toBeInTheDocument();
     expect(screen.getByText('-$300')).toBeInTheDocument();
   });

@@ -26,17 +26,17 @@ describe('TransactionList date filter row', () => {
       <TransactionList items={[baseItem()]} loading={false} onDateRangeSearch={vi.fn()} />,
     );
 
-    const row = screen.getByText('開始日期').closest('div')!.parentElement!;
+    const row = screen.getByText('FROM').closest('div')!.parentElement!;
     expect(row.className).toContain('flex-col');
     expect(row.className).toContain('md:flex-row');
     expect(row.className).toContain('md:flex-wrap');
 
-    const startDateField = screen.getByText('開始日期').closest('div')!;
+    const startDateField = screen.getByText('FROM').closest('div')!;
     expect(startDateField.className).toContain('w-full');
     expect(startDateField.className).toContain('md:min-w-56');
     expect(startDateField.className).not.toMatch(/(^|\s)md:w-56(\s|$)/);
 
-    const searchButton = screen.getByRole('button', { name: '查詢日期區間' });
+    const searchButton = screen.getByRole('button', { name: 'APPLY' });
     expect(searchButton.className).toContain('md:w-auto');
   });
 });

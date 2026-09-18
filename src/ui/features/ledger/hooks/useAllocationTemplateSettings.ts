@@ -7,6 +7,7 @@ import { type AllocationTemplate } from '@/domains/allocation/templateSchemas';
 import { useAuth } from '@/infra/contexts/useAuth';
 import { useProjects } from '@/ui/features/project/hooks/useProjects';
 import { useLoadingTask } from '@/ui/hooks/useLoadingTask';
+import { useConfirm } from '@/ui/features/app/confirm/ConfirmDialog';
 
 export interface TemplateDraftItem {
   projectId: string;
@@ -159,10 +160,12 @@ export const useAllocationTemplateSettings = () => {
     userEmail,
   ]);
 
+  const { confirm } = useConfirm();
+
   const deleteTemplate = useCallback(async () => {
     if (!householdId || !selectedTemplateId) return;
 
-    const ok = window.confirm('Delete this allocation template?');
+    const ok = await confirm('Delete this allocation template?');
     if (!ok) return;
 
     await run(() =>
@@ -174,7 +177,7 @@ export const useAllocationTemplateSettings = () => {
 
     resetForm();
     await loadTemplates();
-  }, [householdId, loadTemplates, resetForm, run, selectedTemplateId]);
+  }, [householdId, confirm, loadTemplates, resetForm, run, selectedTemplateId]);
 
   return {
     loading,

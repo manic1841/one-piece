@@ -8,6 +8,7 @@ import type {
   RetirementPlanCreate,
 } from '@/domains/retirement/types';
 import { logger } from '@/utils/logger';
+import { useConfirm } from '@/ui/features/app/confirm/ConfirmDialog';
 
 interface UseRetirementExpenseActionsParams {
   id: string | undefined;
@@ -73,15 +74,20 @@ export const useRetirementExpenseActions = ({
     [id, plan, handleUpdatePlan],
   );
 
+  const { confirm } = useConfirm();
+
   const handleDeleteExpense = useCallback(
     async (expenseId: string) => {
       if (!id || !plan) return;
-      if (!window.confirm('Are you sure you want to delete this expense category?')) return;
+      const confirmed = await confirm(
+        'Are you sure you want to delete this expense category?',
+      );
+      if (!confirmed) return;
       await handleUpdatePlan({
         expenses: removeById(plan.expenses, expenseId),
       });
     },
-    [id, plan, handleUpdatePlan],
+    [id, plan, confirm, handleUpdatePlan],
   );
 
   const handleImportDebtRepayments = useCallback(async () => {

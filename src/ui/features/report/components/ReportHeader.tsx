@@ -251,7 +251,6 @@ export const ReportHeader: React.FC<ReportHeaderProps> = ({
                     mode="year"
                     year={currentDate.getFullYear()}
                     onYearChange={handleYearChange}
-                    yearLabel="年份"
                     className="grid grid-cols-1 gap-4"
                   />
                 )}

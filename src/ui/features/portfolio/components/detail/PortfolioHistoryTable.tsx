@@ -15,6 +15,8 @@ import {
 import { type PortfolioSnapshot } from '@/domains/portfolio/types/portfolio';
 import { formatCurrency, formatPercentage, formatYearMonth } from '@/ui/utils';
 
+import { useConfirm } from '@/ui/features/app/confirm/ConfirmDialog';
+
 interface PortfolioHistoryTableProps {
   snapshots: PortfolioSnapshot[];
   onDelete?: (snapshotId: string) => Promise<void>;
@@ -24,8 +26,13 @@ export const PortfolioHistoryTable: React.FC<PortfolioHistoryTableProps> = ({
   snapshots,
   onDelete,
 }) => {
+  const { confirm } = useConfirm();
+
   const handleDelete = async (snapshotId: string, dateStr: string) => {
-    if (window.confirm(`Are you sure you want to delete the snapshot for ${dateStr}?`)) {
+    const confirmed = await confirm({
+      title: `Delete the snapshot for ${dateStr}?`,
+    });
+    if (confirmed) {
       try {
         if (onDelete) {
           await onDelete(snapshotId);

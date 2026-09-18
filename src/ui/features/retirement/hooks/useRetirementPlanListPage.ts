@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { type RetirementPlan, type RetirementPlanCreate } from '@/domains/retirement/types';
 import { useRetirementPlanCmds } from '@/ui/features/retirement/hooks/useRetirementPlanCmds';
 import { useRetirementPlans } from '@/ui/features/retirement/hooks/useRetirementPlans';
+import { useConfirm } from '@/ui/features/app/confirm/ConfirmDialog';
 import { mapRetirementPlanToListItemVM } from '@/ui/features/retirement/viewmodels/retirementDisplay.vm';
 
 export const useRetirementPlanListPage = (householdId?: string, email?: string) => {
@@ -13,6 +14,7 @@ export const useRetirementPlanListPage = (householdId?: string, email?: string) 
   const [mutating, setMutating] = useState(false);
   const { listPlans, loading, error } = useRetirementPlans(householdId);
   const { createPlan, deletePlan, duplicatePlan } = useRetirementPlanCmds(householdId, email);
+  const { confirm } = useConfirm();
 
   const fetchPlans = useCallback(async () => {
     const data = await listPlans();
@@ -61,7 +63,8 @@ export const useRetirementPlanListPage = (householdId?: string, email?: string) 
   };
 
   const handleDeletePlan = async (id: string) => {
-    if (!window.confirm('Are you sure you want to delete this plan?')) return;
+    const confirmed = await confirm('Are you sure you want to delete this plan?');
+    if (!confirmed) return;
     try {
       await deletePlan(id);
       await fetchPlans();

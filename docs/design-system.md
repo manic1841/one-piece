@@ -30,6 +30,7 @@
 - `primary` 維持 `hsl(222.2 47.4% 11.2%)` 原值；`chart-1..5` 維持現狀，僅將硬編碼 hex 對齊 token（見任務三）。
 - 基底沿用現有 `background`/`card` 層級，不更換色相；層級改由材質（2.3）而非色差承擔。
 - 新增金額語意 token `positive`（收入/資產）與 `negative`（支出/負債警示），定義於 `src/index.css` 並註冊進 `tailwind.config.js`；全站金額一律經此 token 呈現，`destructive` 維持紅系並僅用於不可逆動作。
+- 新增 `border-strong` token（比 `border` 亮一階），定義於 `src/index.css` 並註冊進 `tailwind.config.js`；`badge`/`alert` 等需要可見邊界的元件改用它，避免深色底上邊界消失。
 - 本輪僅維護淺色主題；`.dark` 色板為已知死代碼（無任何切換機制生效），保留不動，主題切換屬未來分支，屆時一次處理色板配對與切換機制。
 
 ### 2.2 動態（Motion）
@@ -72,7 +73,8 @@ Token（定義於 `tailwind.config.js`，全部走 CSS 變數）：
 
 ### 2.4 字體排印
 
-- 使用系統字體堆疊（含 `'Noto Sans TC'` 以覆蓋繁中），不引入 webfont；系統字體已內建光學尺寸與字距表。
+- 正文使用系統字體堆疊（含 `'Noto Sans TC'` 以覆蓋繁中）；`src/index.css` 另引入 `@fontsource-variable/inter`（拉丁正文）與 `@fontsource-variable/jetbrains-mono`（等寬）。
+- `font-mono`（JetBrains Mono）為正式的資料樣式：金額、日期、代碼、badge、座標軸與標籤性 UI（FROM/TO/APPLY 等）一律使用；段落正文維持系統字體，不以等寬呈現長文。
 - Tracking 隨尺寸變化，定義於 Tailwind `letterSpacing`：display `-0.02em`、heading `-0.01em`、body `0`、caption `0.01em`。
 - Leading 與尺寸反比：標題 `leading-tight`、內文 `leading-relaxed`。
 - 間距一律用 `rem`/`em`，尊重使用者瀏覽器字體大小設定。
@@ -83,13 +85,22 @@ Token（定義於 `tailwind.config.js`，全部走 CSS 變數）：
 | 原則 | 本專案的落實 |
 | --- | --- |
 | Purpose | 不裝飾性圖表、不無意義動畫；每個 token 都有對應使用場景 |
-| Agency | 破壞性動作（刪除、還原備份）才用確認對話；登出等日常動作不阻擋 |
+| Agency | 不可逆動作（刪除、還原備份）用確認對話；可逆動作（停用、登出）不阻擋主流程 |
 | Responsibility | 金額色訊一致（收入/支出/負債），避免誤讀財務狀態 |
 | Familiarity | 關閉一律在對話框右上；sheet 進出同側；同類操作同位置 |
 | Flexibility | 淺/深主題、RWD 斷點契約、reduced-motion/transparency 全覆蓋 |
 | Simplicity | 每頁先呈現最常用的路徑，進階選項一層之後 |
 | Craft | token 化、easing 鏡像、press 回饋、scroll-edge 處理 |
 | Delight | 七項做對後的結果：介面安靜、回應即時、材質有層次 |
+
+### 2.6 元件模式
+
+- `badge`：小圓角 + `border-strong` 可見邊界 + `font-mono text-[11px]`，棄用 rounded-full 藥丸；`destructive` 變體以 `border-negative/40 text-negative` 呈現。
+- `alert`：單列模式——`role="alert"` 容器 + 狀態 glyph + `AlertDescription` + 文字動作按鈕（`button-variants` 的 `text` variant）；不再提供 `AlertTitle` 標題槽。
+- `button`：新增 `text` variant（透明底、透明邊界、tertiary 動作），與 `outline`/`ghost` 互補。
+- `progress`：`bg-muted` 實心軌道 + `bg-accent` 填充，保留 `role="progressbar"`。
+- `YearMonthPicker`：按鈕式（`MON YYYY ▾` outline 按鈕）+ Popover 內雙 Select；選擇僅暫存在 picker 內部（draft state），按 APPLY 才 commit，Escape/外點取消。
+- 確認對話：以 promise-based `useConfirm()`（`ConfirmDialogProvider` 全站掛載）取代 `window.confirm`；結構為 Title → Context → Consequence → Actions（outline Cancel + destructive 確認）。字串輸入預設 destructive "DELETE"（不可逆刪除）；可逆動作必須傳結構化 options 並使用非 destructive 標籤（如 "DISABLE"）。
 
 ## 3. 分階段實作計畫
 

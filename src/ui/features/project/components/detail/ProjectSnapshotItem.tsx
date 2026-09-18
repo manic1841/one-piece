@@ -2,6 +2,7 @@ import React from 'react';
 
 import { Calculator, Trash2 } from 'lucide-react';
 
+import { useConfirm } from '@/ui/features/app/confirm/ConfirmDialog';
 import { Button } from '@/ui/components/ui/button';
 import { type ProjectSnapshotItemVM } from '@/ui/features/project/viewmodels/projectDetail.vm';
 
@@ -11,9 +12,13 @@ interface ProjectSnapshotItemProps {
 }
 
 export const ProjectSnapshotItem: React.FC<ProjectSnapshotItemProps> = ({ item, onDelete }) => {
+  const { confirm } = useConfirm();
   const handleDelete = async () => {
     if (!onDelete || !item.id) return;
-    if (window.confirm(`確定要刪除 ${item.year}年${item.month}月的結算紀錄嗎？`)) {
+    const confirmed = await confirm({
+      title: `Delete the ${item.year}/${String(item.month).padStart(2, '0')} settlement record?`,
+    });
+    if (confirmed) {
       await onDelete(item.id);
     }
   };

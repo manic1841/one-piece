@@ -11,6 +11,7 @@ import type { RetirementPlan, RetirementPlanCreate } from '@/domains/retirement/
 import { useRetirementPlanCmds } from '@/ui/features/retirement/hooks/useRetirementPlanCmds';
 import { useRetirementPlans } from '@/ui/features/retirement/hooks/useRetirementPlans';
 import { logger } from '@/utils/logger';
+import { useConfirm } from '@/ui/features/app/confirm/ConfirmDialog';
 
 interface UseRetirementPlanCoreParams {
   id: string | undefined;
@@ -31,6 +32,7 @@ export const useRetirementPlanCore = ({
   userEmail,
 }: UseRetirementPlanCoreParams) => {
   const navigate = useNavigate();
+  const { confirm } = useConfirm();
   const [plan, setPlan] = useState<RetirementPlan | null>(null);
   const [isEditingName, setIsEditingName] = useState(false);
   const [editedName, setEditedName] = useState('');
@@ -117,14 +119,16 @@ export const useRetirementPlanCore = ({
   }, [id, plan, updatePlan, loadPlan]);
 
   const handleDelete = useCallback(async () => {
-    if (!id || !window.confirm('Delete this plan?')) return;
+    if (!id) return;
+    const confirmed = await confirm('Delete this plan?');
+    if (!confirmed) return;
     try {
       await deletePlan(id);
       navigate('/retirement');
     } catch (error) {
       console.error('Failed to delete plan', error);
     }
-  }, [id, deletePlan, navigate]);
+  }, [id, confirm, deletePlan, navigate]);
 
   const handleSaveName = useCallback(async () => {
     if (!id || !plan || !editedName.trim()) return;

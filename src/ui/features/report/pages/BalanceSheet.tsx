@@ -2,7 +2,7 @@ import React from 'react';
 
 import { AlertTriangle } from 'lucide-react';
 
-import { Alert, AlertDescription, AlertTitle } from '@/ui/components/ui/alert';
+import { Alert, AlertDescription } from '@/ui/components/ui/alert';
 import { Card, CardContent } from '@/ui/components/ui/card';
 import { REPORT_VIEW_TITLES } from '@/ui/constants/report/reportViewLabels';
 import { useBalanceSheet } from '@/ui/features/report/hooks/useBalanceSheet';
@@ -113,12 +113,11 @@ const BalanceSheetPage: React.FC<BalanceSheetPageProps> = ({
         {showWarning && (
           <Alert
             variant="destructive"
-            className="bg-warning/5 border-warning/20 text-warning"
+            className="border-warning/40 bg-warning/5 text-warning"
           >
             <AlertTriangle className="h-4 w-4 text-warning" />
-            <AlertTitle>注意</AlertTitle>
             <AlertDescription>
-              調整項目偏大，請確認是否有漏記交易，或帳戶結算金額是否正確。
+              注意：調整項目偏大，請確認是否有漏記交易，或帳戶結算金額是否正確。
             </AlertDescription>
           </Alert>
         )}

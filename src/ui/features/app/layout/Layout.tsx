@@ -4,6 +4,7 @@ import { Search, Settings, UserRound } from 'lucide-react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 
 import { useAuth } from '@/infra/contexts/useAuth';
+import { useConfirm } from '@/ui/features/app/confirm/ConfirmDialog';
 import { StatusGlyph } from '@/ui/components/StatusGlyph';
 import { Button } from '@/ui/components/ui/button';
 import {
@@ -43,8 +44,17 @@ const Layout: React.FC = () => {
     return () => window.clearTimeout(timerId);
   }, []);
 
+  const { confirm } = useConfirm();
+
   const handleLogout = async () => {
-    if (window.confirm('Are you sure you want to logout?')) {
+    const confirmed = await confirm({
+      title: 'Log out?',
+      context: 'You will need to sign in again to continue tracking your finances.',
+      consequence: 'Any unsaved local state will be lost.',
+      confirmLabel: 'LOG OUT',
+      cancelLabel: 'Cancel',
+    });
+    if (confirmed) {
       try {
         await logout();
         navigate('/login');

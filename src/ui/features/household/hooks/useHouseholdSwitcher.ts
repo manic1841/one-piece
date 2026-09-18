@@ -7,6 +7,7 @@ import { leaveHouseholdUseCase } from '@/application/household/use_cases/leaveHo
 import { switchHouseholdUseCase } from '@/application/household/use_cases/switchHouseholdUseCase';
 import { type Household } from '@/domains/household/schemas';
 import { useAuth } from '@/infra/contexts/useAuth';
+import { useConfirm } from '@/ui/features/app/confirm/ConfirmDialog';
 
 export function useHouseholdSwitcher(
   currentHouseholdId: string | undefined,
@@ -50,10 +51,17 @@ export function useHouseholdSwitcher(
     }
   };
 
+  const { confirm } = useConfirm();
+
   const handleLeaveHousehold = async () => {
     if (!currentUser) return;
 
-    if (window.confirm('Are you sure you want to leave this household?')) {
+    const confirmed = await confirm({
+      title: 'Leave this household?',
+      consequence: 'You will be returned to onboarding to join or create another household.',
+      confirmLabel: 'LEAVE',
+    });
+    if (confirmed) {
       try {
         await leaveHouseholdUseCase.execute({ uid: currentUser.uid });
         await refreshProfile();

@@ -3,6 +3,7 @@ import React, { useMemo, useState } from 'react';
 import { Plus, Search } from 'lucide-react';
 
 import { useAuth } from '@/infra/contexts/useAuth';
+import { useConfirm } from '@/ui/features/app/confirm/ConfirmDialog';
 import { Button } from '@/ui/components/ui/button';
 import { Input } from '@/ui/components/ui/input';
 import { getIntentTypeLabel } from '@/ui/constants/transaction';
@@ -29,8 +30,14 @@ const Transactions: React.FC = () => {
   const { projects } = useProjects(userProfile?.householdId);
   const { getLabel } = useLedgerCodes();
 
+  const { confirm } = useConfirm();
+
   const handleDelete = async (transaction: TransactionListItemVM) => {
-    if (window.confirm('確定要刪除這筆交易嗎？相關的分攤資料也將一併刪除。')) {
+    const confirmed = await confirm({
+      title: 'Delete this transaction?',
+      context: 'Related allocation data will be removed as well.',
+    });
+    if (confirmed) {
       await deleteTransaction(transaction.id);
     }
   };
