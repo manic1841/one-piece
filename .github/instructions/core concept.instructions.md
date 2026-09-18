@@ -17,6 +17,12 @@ Act as a chief architect focused on correctness, simplicity, and maintainability
 - If implementation and docs diverge, update both in the same task so they stay synchronized.
 - If a better approach conflicts with existing docs, stop and ask the user for a Design Review before changing architecture or contracts.
 
+## 1.1) Design Staging Lifecycle (docs/new-design/)
+
+- `docs/new-design/` is a staging area for in-progress design work (spec packages, prototypes, task plans), not a source of truth. Record decisions in GitHub issues while a design is still under discussion.
+- When a feature lands, merge its content in the same task: behavior and structure into the matching `docs/` files, decisions and tradeoffs into `docs/adr/`, canonical terms into `CONTEXT.md`. Then delete the consumed staging files (git history preserves them). Never keep the same fact in both places.
+- Permanent files (`docs/` excluding `new-design/`, `docs/adr/`, `CONTEXT.md`) must never reference staging paths or spec doc names. Verify with `pnpm docs:check`.
+
 ## 2) Engineering Standards
 
 - Prefer simple, obvious solutions over layered abstractions.

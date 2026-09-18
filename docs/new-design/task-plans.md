@@ -35,6 +35,8 @@ Phase 9  Integration / Polish / E2E
 Phase 0 audit 已完成（現有快照/債務同步/報表生成/完整性檢查/監看清單皆已存在）。決策：
 
 > **文件歸屬原則**：本資料夾（docs/new-design/）是設計討論期的暫置文件。Redesign 落地後，spec/ui 的內容應拆解併入 docs/ 底下的正式文件（architecture.md、data-structure.md、transaction-flow.md、financial_report.md 等），資料夾本身退役或僅保留實作計畫。docs/adr/ 是專案永久決策紀錄，不引用任何 spec 代號。
+>
+> **修訂（2026-09-18）**：此原則已移至永久文件——docs/development-guide.md §3 維護建議，並由 `pnpm docs:check` 機械式檢查正式文件不得引用本資料夾。本資料夾退役時可整個刪除，原則不會跟著消失。
 
 > **修訂（2026-09-17，Grilling 三輪後；取代同日稍早「Phase 8 維持最後」的決策）**
 >
