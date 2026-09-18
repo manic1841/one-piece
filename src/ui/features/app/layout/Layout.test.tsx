@@ -136,8 +136,18 @@ describe('Layout system status bar', () => {
 
     expect(settingsButton.className).not.toContain('hidden');
     expect(avatarButton.className).not.toContain('hidden');
-    expect(searchButton.className).toContain('hidden');
+    expect(searchButton.className).not.toContain('hidden');
     expect(switcher.parentElement?.className).toContain('hidden');
+  });
+
+  it('keeps the palette trigger reachable on mobile', async () => {
+    renderLayout();
+
+    const searchButton = screen.getByRole('button', { name: /search/i });
+    expect(searchButton.className).not.toContain('hidden');
+
+    fireEvent.click(searchButton);
+    expect(await screen.findByRole('dialog', { name: /quick access/i })).toBeInTheDocument();
   });
 
   it('opens the avatar menu exposing logout and logs out from it', async () => {

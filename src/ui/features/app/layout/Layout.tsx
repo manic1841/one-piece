@@ -110,7 +110,7 @@ const Layout: React.FC = () => {
               size="icon"
               aria-label="Search"
               onClick={() => setPaletteOpen(true)}
-              className="hidden sm:inline-flex text-muted-foreground"
+              className="text-muted-foreground"
             >
               <Search size={18} />
             </Button>

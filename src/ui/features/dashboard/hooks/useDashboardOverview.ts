@@ -6,8 +6,6 @@ import { useAuthContext } from '@/ui/hooks/useAuthContext';
 
 import { mapDashboardOverviewToHeroVM } from '../viewmodels/dashboardHero.vm';
 import { type DashboardHeroVM } from '../viewmodels/dashboardHero.vm';
-import { mapDashboardOverviewToPulseVM } from '../viewmodels/dashboardPulse.vm';
-import { type DashboardPulseVM } from '../viewmodels/dashboardPulse.vm';
 
 export function useDashboardOverview(householdId: string | undefined) {
   const auth = useAuthContext();
@@ -41,12 +39,10 @@ export function useDashboardOverview(householdId: string | undefined) {
   }, [loadData]);
 
   const heroVM: DashboardHeroVM = mapDashboardOverviewToHeroVM(overview);
-  const pulseVM: DashboardPulseVM = mapDashboardOverviewToPulseVM(overview);
 
   return {
     overview,
     heroVM,
-    pulseVM,
     loading,
     error,
     reload: loadData,

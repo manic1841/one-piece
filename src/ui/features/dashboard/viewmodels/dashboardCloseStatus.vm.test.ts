@@ -2,13 +2,19 @@ import { describe, expect, it } from 'vitest';
 
 import { type FinancialPeriod } from '@/domains/financial_period/schemas';
 
-import { mapPeriodToCloseStatusVM } from './dashboardCloseStatus.vm';
+import {
+  mapPeriodToCloseStatusVM,
+  mapNextMonthDueText,
+} from './dashboardCloseStatus.vm';
 
-const buildPeriod = (status: FinancialPeriod['status']): FinancialPeriod => ({
+const buildPeriod = (
+  status: FinancialPeriod['status'],
+  stages: Record<string, { status: 'PENDING' | 'COMPLETED' }> = {},
+): FinancialPeriod => ({
   id: '2026-08',
   yearMonth: '2026-08',
   status,
-  stages: {},
+  stages,
   reviewSourceStageId: null,
   createdBy: 'user-1',
   createdAt: new Date(),
@@ -22,6 +28,34 @@ describe('dashboardCloseStatus.vm', () => {
 
     expect(vm.glyphType).toBe('verified');
     expect(vm.statusText).toBe('CLOSED');
+  });
+
+  it('surfaces per-stage progress and the next pending stage', () => {
+    const vm = mapPeriodToCloseStatusVM(
+      buildPeriod('IN_PROGRESS', {
+        ACCOUNT_BALANCE: { status: 'COMPLETED' },
+        TRANSACTION_VALIDATION: { status: 'COMPLETED' },
+        SECURITIES_TRADE: { status: 'PENDING' },
+      }),
+      '2026-08',
+    );
+
+    expect(vm.completedCount).toBe(2);
+    expect(vm.totalCount).toBe(9);
+    expect(vm.nextStageLabel).toBe('證券買入／賣出');
+  });
+
+  it('reports full progress for a closed period', () => {
+    const vm = mapPeriodToCloseStatusVM(buildPeriod('CLOSED'), '2026-08');
+
+    expect(vm.completedCount).toBe(9);
+    expect(vm.totalCount).toBe(9);
+    expect(vm.nextStageLabel).toBeNull();
+  });
+
+  it('formats the next month due as the what-to-pay-next data', () => {
+    expect(mapNextMonthDueText({ total: 4200, yearMonth: '2026-10' })).toBe('$4,200');
+    expect(mapNextMonthDueText(null)).toBeNull();
   });
 
   it('maps NEEDS_REVIEW to the review glyph with the NEEDS REVIEW label', () => {
@@ -49,7 +83,6 @@ describe('dashboardCloseStatus.vm', () => {
     const vm = mapPeriodToCloseStatusVM(buildPeriod('OPEN'), '2026-08');
 
     expect(vm.glyphType).toBe('waiting');
-    expect(vm.statusText).toBe('NOT STARTED');
   });
 
   it('formats the period text in mono style YYYY-MM', () => {

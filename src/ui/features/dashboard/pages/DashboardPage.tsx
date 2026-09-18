@@ -6,37 +6,27 @@ import { useDashboardOverview } from '@/ui/features/dashboard/hooks/useDashboard
 import { useDashboardCloseStatus } from '@/ui/features/dashboard/hooks/useDashboardCloseStatus';
 import { useDashboardRecentTransactions } from '@/ui/features/dashboard/hooks/useDashboardRecentTransactions';
 import { useDashboardStatRow } from '@/ui/features/dashboard/hooks/useDashboardStatRow';
-import { DASHBOARD_PULSE_LABELS } from '@/ui/constants/dashboard/pulseLabels';
-import { DASHBOARD_CLOSE_LABELS } from '@/ui/constants/dashboard/monthlyCloseStatus';
 import { DASHBOARD_RECENT_LABELS } from '@/ui/constants/dashboard/recentTransactionsLabels';
 import { mapDashboardOverviewToStatRowVM } from '@/ui/features/dashboard/viewmodels/dashboardStatRow.vm';
-import { StatusGlyph } from '@/ui/components/StatusGlyph';
+import { AssetsLiabilitiesBlock } from '@/ui/features/dashboard/components/AssetsLiabilitiesBlock';
+import { CashFlowChartBlock } from '@/ui/features/dashboard/components/CashFlowChartBlock';
+import { MonthlyCloseCard } from '@/ui/features/dashboard/components/MonthlyCloseCard';
 import { HeroYtd } from '@/ui/features/dashboard/components/HeroYtd';
-import { ChevronRight } from 'lucide-react';
-
-const resolveLoaded = <T,>(
-  loading: boolean,
-  error: string | null,
-  value: T | null,
-): T | null => (loading || error ? null : value);
 
 const Dashboard: React.FC = () => {
   const { userProfile } = useAuth();
   const navigate = useNavigate();
   const householdId = userProfile?.householdId;
-  const { overview, heroVM, pulseVM, loading, error } = useDashboardOverview(householdId);
-  const { nextMonthDue, loading: statRowLoading, error: statRowError } =
-    useDashboardStatRow(householdId);
-  const statRowVM = mapDashboardOverviewToStatRowVM(
-    resolveLoaded(loading, error, overview),
-    resolveLoaded(statRowLoading, statRowError, nextMonthDue),
-  );
+  const { overview, heroVM, loading, error } = useDashboardOverview(householdId);
+  const { nextMonthDue, loading: statRowLoading } = useDashboardStatRow(householdId);
+  const statRowVM = mapDashboardOverviewToStatRowVM(overview);
   const { vm: closeStatusVM, loading: closeStatusLoading, error: closeStatusError } =
     useDashboardCloseStatus(householdId);
   const { vm: recentVM, loading: recentLoading, error: recentError } =
     useDashboardRecentTransactions(householdId);
 
   const trendVisible = heroVM.hasAnchor && heroVM.trend.path != null;
+  const anchor = overview?.anchor ?? null;
 
   return (
     <div className="space-y-6">
@@ -51,6 +41,7 @@ const Dashboard: React.FC = () => {
           WebkitMaskImage: 'radial-gradient(ellipse 80% 60% at 50% 0%, black 40%, transparent 100%)',
         }}
       />
+
       <section className="grid grid-cols-1 gap-6 md:grid-cols-3">
         <div className="hidden md:flex md:flex-col md:justify-center">
           <p className="font-mono text-sm leading-relaxed text-muted-foreground">
@@ -75,188 +66,134 @@ const Dashboard: React.FC = () => {
               {heroVM.anchorPeriodText}
             </p>
           )}
-          {heroVM.hasAnchor && (
-            <HeroYtd ytd={heroVM.ytd} />
-          )}
+          {heroVM.hasAnchor && <HeroYtd ytd={heroVM.ytd} />}
           {!loading && !error && !heroVM.hasAnchor && (
             <p className="mt-4 text-sm text-muted-foreground">完成本月關帳後顯示淨資產</p>
           )}
         </div>
       </section>
 
-      <section className="grid grid-cols-1 gap-4 md:grid-cols-3">
-        {statRowVM.metrics.map((metric) => (
-          <div
-            key={metric.key}
-            data-testid={`stat-${metric.key}`}
-            className="rounded-lg border border-border bg-elevated/30 backdrop-blur-sm p-5"
-          >
-            <p className="text-xs font-medium tracking-widest text-muted-foreground">
-              {metric.label}
-            </p>
-            {(statRowLoading || loading) ? (
-              <div className="mt-3 h-7 w-24 animate-pulse rounded bg-muted" />
-            ) : (
-              <p className="mt-2 font-mono text-2xl tabular-nums text-foreground">
-                {metric.valueText}
-              </p>
-            )}
-            {metric.detailText != null && !statRowLoading && !loading && (
-              <p className="mt-1 font-mono text-[10px] tracking-widest text-muted-foreground">
-                {metric.detailText}
-              </p>
-            )}
-          </div>
-        ))}
-      </section>
-
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <section className="rounded-lg border border-border bg-elevated/30 backdrop-blur-sm p-6 lg:col-span-2">
-          <p className="text-xs font-medium tracking-widest text-muted-foreground">
-            NET WORTH TREND
-          </p>
-          {loading ? (
-            <div className="mt-5 h-52 animate-pulse rounded bg-muted" />
-          ) : trendVisible ? (
-            <div className="mt-5">
-              <div className="relative">
-                <svg
-                  className="h-52 w-full"
-                  viewBox="0 0 720 220"
-                  preserveAspectRatio="none"
-                  aria-hidden="true"
-                >
-                  {heroVM.trend.yLabels.map((label) => (
-                    <line
-                      key={label.text}
-                      x1="64"
-                      x2="712"
-                      y1={label.y}
-                      y2={label.y}
-                      stroke="hsl(var(--border))"
-                      strokeWidth="1"
-                    />
-                  ))}
-                  <path d={heroVM.trend.areaPath} fill="hsl(var(--chart-3))" opacity="0.12" />
-                  <path
-                    d={heroVM.trend.path}
-                    fill="none"
-                    stroke="hsl(var(--chart-3))"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
+      <section className="rounded-lg border border-border bg-elevated/30 backdrop-blur-sm p-6">
+        <p className="text-xs font-medium tracking-widest text-muted-foreground">
+          NET WORTH TREND
+        </p>
+        {loading ? (
+          <div className="mt-5 h-52 animate-pulse rounded bg-muted" />
+        ) : trendVisible ? (
+          <div className="mt-5">
+            <div className="relative">
+              <svg
+                className="h-52 w-full"
+                viewBox="0 0 720 220"
+                preserveAspectRatio="none"
+                aria-hidden="true"
+              >
+                {heroVM.trend.yLabels.map((label) => (
+                  <line
+                    key={label.text}
+                    x1="64"
+                    x2="712"
+                    y1={label.y}
+                    y2={label.y}
+                    stroke="hsl(var(--border))"
+                    strokeWidth="1"
                   />
-                  {heroVM.trend.endPoint && (
-                    <circle
-                      cx={heroVM.trend.endPoint.x}
-                      cy={heroVM.trend.endPoint.y}
-                      r="4"
-                      fill="hsl(var(--chart-3))"
-                    />
-                  )}
-                </svg>
-                <div aria-hidden="true" className="pointer-events-none absolute inset-0">
-                  {heroVM.trend.yLabels.map((label) => (
-                    <span
-                      key={label.text}
-                      className="absolute left-0 -translate-y-1/2 font-mono text-[10px] tabular-nums text-muted-foreground"
-                      style={{ top: `${(label.y / 220) * 100}%` }}
-                    >
-                      {label.text}
-                    </span>
-                  ))}
-                </div>
-              </div>
-              <div className="relative mt-2 h-4">
-                {heroVM.trend.xLabels.map((label, index) => (
+                ))}
+                <path d={heroVM.trend.areaPath} fill="hsl(var(--chart-3))" opacity="0.12" />
+                <path
+                  d={heroVM.trend.path}
+                  fill="none"
+                  stroke="hsl(var(--chart-3))"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+                {heroVM.trend.endPoint && (
+                  <circle
+                    cx={heroVM.trend.endPoint.x}
+                    cy={heroVM.trend.endPoint.y}
+                    r="4"
+                    fill="hsl(var(--chart-3))"
+                  />
+                )}
+              </svg>
+              <div aria-hidden="true" className="pointer-events-none absolute inset-0">
+                {heroVM.trend.yLabels.map((label) => (
                   <span
                     key={label.text}
-                    className="absolute whitespace-nowrap font-mono text-[10px] tabular-nums text-muted-foreground"
-                    style={{
-                      left: `${(label.x / 720) * 100}%`,
-                      transform:
-                        index === 0
-                          ? 'none'
-                          : index === heroVM.trend.xLabels.length - 1
-                            ? 'translateX(-100%)'
-                            : 'translateX(-50%)',
-                    }}
+                    className="absolute left-0 -translate-y-1/2 font-mono text-[10px] tabular-nums text-muted-foreground"
+                    style={{ top: `${(label.y / 220) * 100}%` }}
                   >
                     {label.text}
                   </span>
                 ))}
               </div>
             </div>
-          ) : (
-            <p className="mt-5 text-sm text-muted-foreground">完成本月關帳後顯示趨勢</p>
-          )}
-        </section>
-
-        <div className="space-y-6">
-          <section className="rounded-lg border border-border bg-elevated/30 backdrop-blur-sm p-6">
-            <p className="text-xs font-medium tracking-widest text-muted-foreground">
-              {DASHBOARD_PULSE_LABELS.SECTION_TITLE}
-            </p>
-            {loading ? (
-              <div className="mt-5 space-y-4">
-                <div className="h-8 animate-pulse rounded bg-muted" />
-                <div className="h-8 animate-pulse rounded bg-muted" />
-                <div className="h-8 animate-pulse rounded bg-muted" />
-              </div>
-            ) : error ? (
-              <p className="mt-5 text-sm text-negative">{error}</p>
-            ) : pulseVM.metrics.length === 0 ? (
-              <p className="mt-5 text-sm text-muted-foreground">
-                {DASHBOARD_PULSE_LABELS.EMPTY_HINT}
-              </p>
-            ) : (
-              <dl className="mt-4 space-y-3">
-                {pulseVM.metrics.map((metric) => (
-                  <div key={metric.key} className="flex items-baseline justify-between gap-4">
-                    <dt className="text-xs font-medium tracking-wider text-muted-foreground">
-                      {metric.label}
-                    </dt>
-                    <dd
-                      className={`font-mono text-sm tabular-nums ${metric.valueClassName || 'text-foreground'}`}
-                    >
-                      {metric.valueText}
-                    </dd>
-                  </div>
-                ))}
-              </dl>
-            )}
-          </section>
-
-          <button
-            type="button"
-            onClick={() => navigate('/close')}
-            className="block w-full cursor-pointer rounded-lg border border-border bg-elevated/30 backdrop-blur-sm p-6 text-left transition-colors hover:bg-elevated/50"
-          >
-            <div className="flex items-center justify-between gap-4">
-              <p className="text-xs font-medium tracking-widest text-muted-foreground">
-                {DASHBOARD_CLOSE_LABELS.SECTION_TITLE}
-              </p>
-              <ChevronRight className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+            <div className="relative mt-2 h-4">
+              {heroVM.trend.xLabels.map((label, index) => (
+                <span
+                  key={label.text}
+                  className="absolute whitespace-nowrap font-mono text-[10px] tabular-nums text-muted-foreground"
+                  style={{
+                    left: `${(label.x / 720) * 100}%`,
+                    transform:
+                      index === 0
+                        ? 'none'
+                        : index === heroVM.trend.xLabels.length - 1
+                          ? 'translateX(-100%)'
+                          : 'translateX(-50%)',
+                  }}
+                >
+                  {label.text}
+                </span>
+              ))}
             </div>
-            {closeStatusLoading ? (
-              <div className="mt-4 h-6 w-40 animate-pulse rounded bg-muted" />
-            ) : closeStatusError ? (
-              <p className="mt-4 text-sm text-negative">{closeStatusError}</p>
-            ) : closeStatusVM ? (
-              <div className="mt-4 flex items-center gap-3">
-                <p className="font-mono text-lg tabular-nums text-foreground">
-                  {closeStatusVM.periodText}
-                </p>
-                <StatusGlyph type={closeStatusVM.glyphType} label={closeStatusVM.statusText} />
-              </div>
-            ) : (
-              <p className="mt-4 text-sm text-muted-foreground">
-                {DASHBOARD_CLOSE_LABELS.ENTRY_HINT}
+          </div>
+        ) : (
+          <p className="mt-5 text-sm text-muted-foreground">完成本月關帳後顯示趨勢</p>
+        )}
+      </section>
+
+      <section className="space-y-3">
+        <p className="text-xs font-medium tracking-widest text-muted-foreground">
+          {statRowVM.sectionTitle}
+        </p>
+        <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-5">
+          {statRowVM.metrics.map((metric, index) => (
+            <div
+              key={metric.key}
+              data-testid={`stat-${metric.key}`}
+              className={
+                index === statRowVM.metrics.length - 1
+                  ? 'col-span-2 rounded-lg border border-border bg-elevated/30 backdrop-blur-sm p-5 md:col-span-1'
+                  : 'rounded-lg border border-border bg-elevated/30 backdrop-blur-sm p-5'
+              }
+            >
+              <p className="text-xs font-medium tracking-widest text-muted-foreground">
+                {metric.label}
               </p>
-            )}
-          </button>
+              {loading ? (
+                <div className="mt-3 h-7 w-24 animate-pulse rounded bg-muted" />
+              ) : (
+                <p
+                  className={`mt-2 font-mono text-2xl tabular-nums ${metric.valueClassName || 'text-foreground'}`}
+                >
+                  {metric.valueText}
+                </p>
+              )}
+              {metric.detailText != null && !loading && (
+                <p className="mt-1 font-mono text-[10px] tracking-widest text-muted-foreground">
+                  {metric.detailText}
+                </p>
+              )}
+            </div>
+          ))}
         </div>
-      </div>
+      </section>
+
+      <AssetsLiabilitiesBlock composition={anchor?.composition ?? null} loading={loading} />
+
+      <CashFlowChartBlock series={overview?.cashFlowSeries ?? []} loading={loading} />
 
       <section className="rounded-lg border border-border bg-elevated/30 backdrop-blur-sm p-6">
         <p className="text-xs font-medium tracking-widest text-muted-foreground">
@@ -303,6 +240,14 @@ const Dashboard: React.FC = () => {
           </ul>
         )}
       </section>
+
+      <MonthlyCloseCard
+        vm={closeStatusVM}
+        loading={closeStatusLoading}
+        error={closeStatusError}
+        nextMonthDue={nextMonthDue}
+        nextMonthDueLoading={statRowLoading}
+      />
     </div>
   );
 };

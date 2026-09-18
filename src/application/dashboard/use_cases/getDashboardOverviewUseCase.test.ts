@@ -435,4 +435,53 @@ describe('GetDashboardOverviewUseCase', () => {
       expect(result.anchor?.ytdBaseline).toBeNull();
     });
   });
+
+  describe('balance sheet composition and cash flow series', () => {
+    it('surfaces the anchor composition and a 12-month cash flow series', async () => {
+      listReportsMock.mockResolvedValue([
+        buildBalanceSheet('2026-07', 500, 120),
+        buildCashFlow('2026-07', 3200),
+        buildBalanceSheet('2026-08', 600, 150),
+        buildCashFlow('2026-08', -12300),
+      ]);
+      listPortfoliosMock.mockResolvedValue([]);
+      listDebtPaymentsMock.mockResolvedValue([]);
+      getFinancialPeriodMock.mockResolvedValue(buildPeriod('CLOSED'));
+
+      const result = await getDashboardOverviewUseCase.execute({
+        householdId: 'household-1',
+        auth,
+      });
+
+      expect(result.anchor?.composition).toEqual({
+        assets: [
+          { key: 'cash', label: '現金與銀行', amount: 600 },
+          { key: 'investment', label: '投資資產', amount: 0 },
+          { key: 'property', label: '不動產', amount: 0 },
+        ],
+        liabilities: [{ key: 'loan', label: '貸款', amount: 150 }],
+      });
+      expect(result.cashFlowSeries).toHaveLength(12);
+      expect(result.cashFlowSeries[0]).toMatchObject({
+        year: 2025,
+        month: 9,
+        netCashFlow: null,
+      });
+      expect(result.cashFlowSeries[9]).toMatchObject({
+        year: 2026,
+        month: 6,
+        netCashFlow: null,
+      });
+      expect(result.cashFlowSeries[10]).toMatchObject({
+        year: 2026,
+        month: 7,
+        netCashFlow: 3200,
+      });
+      expect(result.cashFlowSeries[11]).toMatchObject({
+        year: 2026,
+        month: 8,
+        netCashFlow: -12300,
+      });
+    });
+  });
 });

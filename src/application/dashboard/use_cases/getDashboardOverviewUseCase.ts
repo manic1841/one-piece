@@ -16,11 +16,29 @@ export interface DashboardNetWorthPoint {
   netAssets: number | null;
 }
 
+export interface DashboardCompositionItem {
+  key: string;
+  label: string;
+  amount: number;
+}
+
+export interface DashboardComposition {
+  assets: DashboardCompositionItem[];
+  liabilities: DashboardCompositionItem[];
+}
+
+export interface DashboardCashFlowPoint {
+  year: number;
+  month: number;
+  netCashFlow: number | null;
+}
+
 export interface DashboardAnchor {
   yearMonth: string;
   netWorth: number;
   assets: number;
   liabilities: number;
+  composition: DashboardComposition;
   ytdBaseline: {
     yearMonth: string;
     netWorth: number;
@@ -39,6 +57,7 @@ export interface DashboardPulse {
 export interface DashboardOverview {
   anchor: DashboardAnchor | null;
   pulse: DashboardPulse | null;
+  cashFlowSeries: DashboardCashFlowPoint[];
 }
 
 export interface GetDashboardOverviewRequest {
@@ -82,6 +101,15 @@ const buildMonthWindow = (yearMonth: string): { start: Date; end: Date } => {
   };
 };
 
+const buildTwelveMonthSlots = (anchorYearMonth: string): { year: number; month: number }[] => {
+  const [anchorYear, anchorMonth] = anchorYearMonth.split('-').map(Number);
+  const slots: { year: number; month: number }[] = [];
+  for (let offset = -(SERIES_LENGTH - 1); offset <= 0; offset++) {
+    slots.push(shiftMonth(anchorYear, anchorMonth, offset));
+  }
+  return slots;
+};
+
 const sumDebtPayments = (transactions: Transaction[]): number =>
   transactions.reduce((sum, transaction) => sum + (transaction.amount ?? 0), 0);
 
@@ -113,10 +141,11 @@ export class GetDashboardOverviewUseCase {
       return {
         anchor: this.buildAnchor(report, balanceSheets),
         pulse,
+        cashFlowSeries: this.buildCashFlowSeries(report.yearMonth, reports),
       };
     }
 
-    return { anchor: null, pulse: null };
+    return { anchor: null, pulse: null, cashFlowSeries: [] };
   }
 
   private async buildPulse(
@@ -195,24 +224,49 @@ export class GetDashboardOverviewUseCase {
     );
 
     const [anchorYear, anchorMonth] = anchorReport.yearMonth.split('-').map(Number);
-    const netWorthSeries: DashboardNetWorthPoint[] = [];
-    for (let offset = -(SERIES_LENGTH - 1); offset <= 0; offset++) {
-      const { year, month } = shiftMonth(anchorYear, anchorMonth, offset);
-      netWorthSeries.push({
-        year,
-        month,
-        netAssets: netAssetsByMonth.get(toYearMonth({ year, month })) ?? null,
-      });
-    }
+    const netWorthSeries: DashboardNetWorthPoint[] = buildTwelveMonthSlots(
+      anchorReport.yearMonth,
+    ).map(({ year, month }) => ({
+      year,
+      month,
+      netAssets: netAssetsByMonth.get(toYearMonth({ year, month })) ?? null,
+    }));
 
     return {
       yearMonth: anchorReport.yearMonth,
       netWorth: netAssetsByMonth.get(anchorReport.yearMonth) ?? 0,
       assets: anchorReport.data.assets.total,
       liabilities: anchorReport.data.liabilities.total,
+      composition: {
+        assets: Object.entries(anchorReport.data.assets.groups).map(([key, group]) => ({
+          key,
+          label: group.label,
+          amount: group.total,
+        })),
+        liabilities: Object.entries(anchorReport.data.liabilities.groups).map(([key, group]) => ({
+          key,
+          label: group.label,
+          amount: group.total,
+        })),
+      },
       ytdBaseline: resolveYtdBaseline(anchorYear, anchorMonth, balanceSheets),
       netWorthSeries,
     };
+  }
+
+  private buildCashFlowSeries(
+    anchorYearMonth: string,
+    reports: FinancialReport[],
+  ): DashboardCashFlowPoint[] {
+    const netCashFlowByMonth = new Map(
+      reports.filter(isCashFlow).map((report) => [report.yearMonth, report.data.netCashChange]),
+    );
+
+    return buildTwelveMonthSlots(anchorYearMonth).map(({ year, month }) => ({
+      year,
+      month,
+      netCashFlow: netCashFlowByMonth.get(toYearMonth({ year, month })) ?? null,
+    }));
   }
 }
 
