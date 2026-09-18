@@ -49,6 +49,9 @@ reports/
 - intent
 - type
 - amount
+
+> **S2 conformance note (2026-09-18)**: allocations are a separate Firestore collection, not embedded in transactions. Per ADR-0011, an allocation references its transaction via sourceTransactionId and reallocation replaces the existing allocation.
+
 - allocations[]
 - projectId? (for direct single-project Investment/Financing)
 - note

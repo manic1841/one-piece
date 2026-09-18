@@ -47,6 +47,9 @@ Master loan terms:
 - Start Date
 - End Date
 - Grace Period (months)
+
+> **S2 conformance note (2026-09-18)**: per ADR-0017, grace period is derived from Start/End dates at calculation time (end-exclusive boundary), not stored as a debt master field. The implemented debt schema has no grace-months field; the "Grace period defaults to interest-only" line below is a UI preview behavior, not persisted state.
+
 - Project optional
 
 Monthly record:

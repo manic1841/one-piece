@@ -61,6 +61,9 @@ Automation should handle normal cases; human attention is reserved for exception
 2. Users select human-readable Intent Types; the system determines Debit/Credit Ledger Codes.
 3. Ledger Code supports system-defined second-level codes and user-defined third-level codes.
 4. Transfer and Adjustment intents are removed.
+
+> **S2 conformance note (2026-09-18)**: "removed" means not offered in the daily UI entry. Per ADR-0042, transfer is paused but remains a legal historical event type: settlement reads transfers and reports keep the adjustment field.
+
 5. Investment and Financing are Transaction Intent Types created from Monthly Close, not separate Transaction entities.
 6. Investment/Financing transactions can optionally link one Project; Income/Expense can optionally use Project Allocation.
 7. Account Balance is not directly linked to Transactions/Ledger.

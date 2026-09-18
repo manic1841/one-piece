@@ -12,6 +12,9 @@ Core fields:
 
 No Account field.
 No direct Ledger Code field.
+
+> **S2 conformance note (2026-09-18)**: "No Transfer / No Adjustment" applies to the daily entry UI only. Per ADR-0042, transfer is paused but remains a legal historical event type; settlement and reports still read transfers and adjustment fields.
+
 No Transfer.
 No Adjustment.
 Investment and Financing are not created from the normal Transactions page.
