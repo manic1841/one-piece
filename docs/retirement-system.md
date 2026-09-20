@@ -111,6 +111,7 @@ Repository 與 Use Case 的規則集中在下表，本文不再複述決策理�
 - 債務匯入結果以 `sourceDebtAccountId` 對齊：
   - 已存在相同 `sourceDebtAccountId`：更新既有項目（保留原 id）
   - 不存在：新增項目
+- 退休詳情頁為單頁 Scenario Workspace（2026-09-20 #120）：投影輸出（Overview / Results、Projected Net Worth、Cash Flow Projection）在上，假設與輸入（Scenario Assumptions、Income、Living Expenses、Life Events）在下；無 Tabs，各區塊為可收合 section（共用 accordion primitive），全 viewport 適用。
 
 ## 7. 驗證重點
 

@@ -6,6 +6,7 @@ import {
   type RetirementIncomeSource,
   type RetirementOneTimeEvent,
 } from '@/domains/retirement/types';
+import { RetirementWorkspaceTermLabels } from '@/ui/constants/retirement/retirementWorkspaceLabels';
 import { Button } from '@/ui/components/ui/button';
 import { type RetirementEventItemVM } from '@/ui/features/retirement/viewmodels/retirementDisplay.vm';
 
@@ -31,12 +32,14 @@ export const EventTabContent: React.FC<EventTabContentProps> = ({
   return (
     <div className="rounded-lg border p-6">
       <div className="flex justify-between items-center mb-4">
-        <h3 className="text-lg font-semibold">Phased Events ({eventItems.length})</h3>
+        <h3 className="text-lg font-semibold">
+          {RetirementWorkspaceTermLabels.retirementEvents} ({eventItems.length})
+        </h3>
         <EventDialog onSave={handleAddEvent} currentYear={currentYear} incomes={incomes} />
       </div>
       {eventItems.length === 0 ? (
         <p className="text-muted-foreground">
-          No phased events defined yet. Click Add Event to get started.
+          No life events defined yet. Click Add Event to get started.
         </p>
       ) : (
         <div className="space-y-2">

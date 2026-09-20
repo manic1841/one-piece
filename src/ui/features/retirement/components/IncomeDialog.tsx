@@ -103,7 +103,9 @@ export default function IncomeDialog({
       </DialogTrigger>
       <DialogContent aria-describedby={undefined} className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>{initialData ? 'Edit Income Source' : 'Add Income Source'}</DialogTitle>
+          <DialogTitle>
+            {initialData ? 'Edit Income Stream' : 'Add Income Stream'}
+          </DialogTitle>
           <DialogDescription>
             {initialData ? 'Update the details of this income source.' : 'Add a new income source.'}
           </DialogDescription>

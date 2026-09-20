@@ -3,6 +3,7 @@ import React from 'react';
 import { Pencil, Trash2 } from 'lucide-react';
 
 import { type RetirementIncomeSource } from '@/domains/retirement/types';
+import { RetirementWorkspaceTermLabels } from '@/ui/constants/retirement/retirementWorkspaceLabels';
 import { Badge } from '@/ui/components/ui/badge';
 import { Button } from '@/ui/components/ui/button';
 import { type RetirementIncomeItemVM } from '@/ui/features/retirement/viewmodels/retirementDisplay.vm';
@@ -31,7 +32,9 @@ export const IncomeTabContent: React.FC<IncomeTabContentProps> = ({
   return (
     <div className="rounded-lg border p-6 space-y-6">
       <div className="flex justify-between items-center mb-4">
-        <h3 className="text-lg font-semibold">Income Sources</h3>
+        <h3 className="text-lg font-semibold">
+          {RetirementWorkspaceTermLabels.incomeStreams} ({incomeItems.length})
+        </h3>
         <div className="flex items-center gap-2">
           <Button variant="outline" onClick={handleImportIncomeFromTransactions}>
             匯入上一完整年度收入
@@ -90,7 +93,7 @@ export const IncomeTabContent: React.FC<IncomeTabContentProps> = ({
         ))}
         {incomeItems.length === 0 && (
           <div className="text-center py-8 text-muted-foreground border-2 border-dashed rounded-lg">
-            No income sources added yet.
+            No income streams added yet.
           </div>
         )}
       </div>

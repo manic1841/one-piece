@@ -6,6 +6,7 @@ import {
   type RetirementExpenseCategory,
   type RetirementIncomeSource,
 } from '@/domains/retirement/types';
+import { RetirementWorkspaceTermLabels } from '@/ui/constants/retirement/retirementWorkspaceLabels';
 import { Button } from '@/ui/components/ui/button';
 import { type RetirementExpenseItemVM } from '@/ui/features/retirement/viewmodels/retirementDisplay.vm';
 
@@ -33,7 +34,9 @@ export const ExpenseTabContent: React.FC<ExpenseTabContentProps> = ({
   return (
     <div className="rounded-lg border p-6">
       <div className="flex justify-between items-center mb-4">
-        <h3 className="text-lg font-semibold">Expense Categories ({expenseItems.length})</h3>
+        <h3 className="text-lg font-semibold">
+          {RetirementWorkspaceTermLabels.expenseCategories} ({expenseItems.length})
+        </h3>
         <div className="flex items-center gap-2">
           <Button variant="outline" onClick={handleImportDebtRepayments}>
             匯入債務還款
@@ -47,7 +50,7 @@ export const ExpenseTabContent: React.FC<ExpenseTabContentProps> = ({
       </div>
       {expenseItems.length === 0 ? (
         <p className="text-muted-foreground">
-          No expenses defined yet. Click Add Expense to get started.
+          No expense categories defined yet. Click Add Expense to get started.
         </p>
       ) : (
         <div className="space-y-2">

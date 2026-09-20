@@ -126,6 +126,9 @@ snapshots 與三份財務報表)。腳本可重複執行(upsert,非 append)。
 - 需要 production build 的 QA 頁面時,使用 `pnpm preview`(或開發中的
   `pnpm dev`),兩者皆有 SPA fallback;以一般靜態伺服器直接伺服 `dist/`
   缺少 fallback,深層連結(如 `/transactions`)會 404。
+- 更多的除錯案例(REST 種子文件 schema 靜默吞錯、session 注入儲存層、
+  listen channel quirk、種子資料掛錯家戶等)索引於
+  [QA FAQ](./qa-faq.md)。
 
 ## E2E 測試(瀏覽器)
 

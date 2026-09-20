@@ -4,8 +4,14 @@ import { useParams } from 'react-router-dom';
 
 import { useAuth } from '@/infra/contexts/useAuth';
 import { Alert, AlertDescription } from '@/ui/components/ui/alert';
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@/ui/components/ui/accordion';
 import { Button } from '@/ui/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/ui/components/ui/tabs';
+import { RetirementWorkspaceSectionLabels } from '@/ui/constants/retirement/retirementWorkspaceLabels';
 import AssumptionsForm from '@/ui/features/retirement/components/AssumptionsForm';
 import { EventTabContent } from '@/ui/features/retirement/components/detail/EventTabContent';
 import { ExpenseTabContent } from '@/ui/features/retirement/components/detail/ExpenseTabContent';
@@ -52,21 +58,13 @@ const RetirementPlanForm: React.FC = () => {
     handleImportIncomeFromTransactions,
   } = useRetirementPlanDetailPage(id, userProfile?.householdId, userProfile?.email);
 
-  const [activeTab, setActiveTab] = useState('assumptions');
+  const [expandedSections, setExpandedSections] = useState<string[]>(['overview']);
 
   if (loading) {
     return <div className="p-8">Loading...</div>;
   }
 
-  if (!plan) {
-    return <div className="p-8">Plan not found</div>;
-  }
-
-  if (!headerVM) {
-    return <div className="p-8">Plan not found</div>;
-  }
-
-  if (!assumptionsVM) {
+  if (!plan || !headerVM || !assumptionsVM) {
     return <div className="p-8">Plan not found</div>;
   }
 
@@ -104,62 +102,88 @@ const RetirementPlanForm: React.FC = () => {
         handleDelete={handleDelete}
       />
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-5">
-          <TabsTrigger value="assumptions">Assumptions</TabsTrigger>
-          <TabsTrigger value="income">Income</TabsTrigger>
-          <TabsTrigger value="expenses">Expenses</TabsTrigger>
-          <TabsTrigger value="events">Events</TabsTrigger>
-          <TabsTrigger value="results">Results</TabsTrigger>
-        </TabsList>
+      <Accordion
+        type="multiple"
+        value={expandedSections}
+        onValueChange={setExpandedSections}
+        className="w-full"
+      >
+        <AccordionItem value="overview">
+          <AccordionTrigger>{RetirementWorkspaceSectionLabels.overview}</AccordionTrigger>
+          <AccordionContent>
+            <ProjectionResultsContent projectionVM={projectionVM} />
+          </AccordionContent>
+        </AccordionItem>
 
-        <TabsContent value="assumptions" className="space-y-4">
-          <AssumptionsForm
-            assumptions={assumptionsVM}
-            onSave={handleUpdatePlan}
-            retirementTransition={plan.retirementTransition}
-          />
-        </TabsContent>
+        <AccordionItem value="netWorth">
+          <AccordionTrigger>{RetirementWorkspaceSectionLabels.netWorth}</AccordionTrigger>
+          <AccordionContent>
+            <ProjectionResultsContent projectionVM={projectionVM} />
+          </AccordionContent>
+        </AccordionItem>
 
-        <TabsContent value="income" className="space-y-6">
-          <IncomeTabContent
-            currentYear={plan.currentYear}
-            incomeItems={incomeItems}
-            handleAddIncome={handleAddIncome}
-            handleUpdateIncome={handleUpdateIncome}
-            handleDeleteIncome={handleDeleteIncome}
-            handleImportIncomeFromTransactions={handleImportIncomeFromTransactions}
-            householdId={userProfile?.householdId || ''}
-          />
-        </TabsContent>
+        <AccordionItem value="cashFlow">
+          <AccordionTrigger>{RetirementWorkspaceSectionLabels.cashFlow}</AccordionTrigger>
+          <AccordionContent>
+            <ProjectionResultsContent projectionVM={projectionVM} />
+          </AccordionContent>
+        </AccordionItem>
 
-        <TabsContent value="expenses" className="space-y-4">
-          <ExpenseTabContent
-            currentYear={plan.currentYear}
-            expenseItems={expenseItems}
-            incomes={plan.incomes}
-            handleAddExpense={handleAddExpense}
-            handleUpdateExpense={handleUpdateExpense}
-            handleDeleteExpense={handleDeleteExpense}
-            handleImportDebtRepayments={handleImportDebtRepayments}
-          />
-        </TabsContent>
+        <AccordionItem value="assumptions">
+          <AccordionTrigger>{RetirementWorkspaceSectionLabels.assumptions}</AccordionTrigger>
+          <AccordionContent>
+            <AssumptionsForm
+              assumptions={assumptionsVM}
+              onSave={handleUpdatePlan}
+              retirementTransition={plan.retirementTransition}
+            />
+          </AccordionContent>
+        </AccordionItem>
 
-        <TabsContent value="events" className="space-y-4">
-          <EventTabContent
-            currentYear={plan.currentYear}
-            incomes={plan.incomes}
-            eventItems={eventItems}
-            handleAddEvent={handleAddEvent}
-            handleUpdateEvent={handleUpdateEvent}
-            handleDeleteEvent={handleDeleteEvent}
-          />
-        </TabsContent>
+        <AccordionItem value="income">
+          <AccordionTrigger>{RetirementWorkspaceSectionLabels.income}</AccordionTrigger>
+          <AccordionContent>
+            <IncomeTabContent
+              currentYear={plan.currentYear}
+              incomeItems={incomeItems}
+              handleAddIncome={handleAddIncome}
+              handleUpdateIncome={handleUpdateIncome}
+              handleDeleteIncome={handleDeleteIncome}
+              handleImportIncomeFromTransactions={handleImportIncomeFromTransactions}
+              householdId={userProfile?.householdId || ''}
+            />
+          </AccordionContent>
+        </AccordionItem>
 
-        <TabsContent value="results" className="space-y-4">
-          <ProjectionResultsContent projectionVM={projectionVM} />
-        </TabsContent>
-      </Tabs>
+        <AccordionItem value="expenses">
+          <AccordionTrigger>{RetirementWorkspaceSectionLabels.expenses}</AccordionTrigger>
+          <AccordionContent>
+            <ExpenseTabContent
+              currentYear={plan.currentYear}
+              expenseItems={expenseItems}
+              incomes={plan.incomes}
+              handleAddExpense={handleAddExpense}
+              handleUpdateExpense={handleUpdateExpense}
+              handleDeleteExpense={handleDeleteExpense}
+              handleImportDebtRepayments={handleImportDebtRepayments}
+            />
+          </AccordionContent>
+        </AccordionItem>
+
+        <AccordionItem value="events">
+          <AccordionTrigger>{RetirementWorkspaceSectionLabels.events}</AccordionTrigger>
+          <AccordionContent>
+            <EventTabContent
+              currentYear={plan.currentYear}
+              incomes={plan.incomes}
+              eventItems={eventItems}
+              handleAddEvent={handleAddEvent}
+              handleUpdateEvent={handleUpdateEvent}
+              handleDeleteEvent={handleDeleteEvent}
+            />
+          </AccordionContent>
+        </AccordionItem>
+      </Accordion>
     </div>
   );
 };
