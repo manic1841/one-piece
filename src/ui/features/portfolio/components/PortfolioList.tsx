@@ -4,10 +4,18 @@ import { ListOrdered, Plus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 import { type Portfolio, type PortfolioSnapshot } from '@/domains/portfolio/types/portfolio';
-import { useAuth } from '@/infra/contexts/useAuth';
+import { useAuthContext } from '@/ui/hooks/useAuthContext';
+import { useAccounts } from '@/ui/features/account/hooks/useAccounts';
 import { PageHeader } from '@/ui/components/PageHeader';
 import { Button } from '@/ui/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/ui/card';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/ui/components/ui/table';
 import { usePortfolioCmds } from '@/ui/features/portfolio/hooks/usePortfolioCmds';
 import { usePortfolios } from '@/ui/features/portfolio/hooks/usePortfolios';
 import {
@@ -17,29 +25,59 @@ import {
 import { formatCurrency, formatPercentage, formatYearMonth } from '@/ui/utils';
 
 import PortfolioForm from './PortfolioForm';
-import { PortfolioItem } from './PortfolioItem';
 
 interface PortfolioListProps {
   householdId: string;
 }
 
+interface PortfolioRowVM {
+  id: string;
+  name: string;
+  securitiesName: string;
+  bankName: string;
+  valueText: string;
+  returnRate: number | null;
+  asOfText: string | null;
+  isActive: boolean;
+}
+
 const PortfolioList: React.FC<PortfolioListProps> = ({ householdId }) => {
   const navigate = useNavigate();
-  const { userProfile } = useAuth();
-  const { portfolios, latestSnapshots, toListItemVM, loading, reload } = usePortfolios(householdId);
+  const auth = useAuthContext();
+  const { portfolios, latestSnapshots, reload } = usePortfolios(householdId);
+  const { fetchAccounts } = useAccounts();
   const { createPortfolio, updatePortfolio, reorderPortfolios } = usePortfolioCmds(
     householdId,
-    userProfile?.email || '',
+    auth.email || '',
     reload,
   );
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isReorderMode, setIsReorderMode] = useState(false);
   const [editingPortfolio, setEditingPortfolio] = useState<Portfolio | null>(null);
   const [localPortfolios, setLocalPortfolios] = useState(portfolios);
+  const [accountNames, setAccountNames] = useState<Map<string, string>>(new Map());
 
   useEffect(() => {
     setLocalPortfolios(portfolios);
   }, [portfolios]);
+
+  useEffect(() => {
+    let ignore = false;
+    const load = async () => {
+      const accounts = await fetchAccounts(householdId, auth, { includeInactive: true });
+      if (!ignore) {
+        const names = new Map<string, string>();
+        for (const account of accounts) {
+          names.set(account.id, account.name);
+        }
+        setAccountNames(names);
+      }
+    };
+    void load();
+    return () => {
+      ignore = true;
+    };
+  }, [householdId, fetchAccounts, auth]);
 
   const overview = useMemo(() => {
     const snapshots: PortfolioSnapshot[] = localPortfolios
@@ -53,7 +91,6 @@ const PortfolioList: React.FC<PortfolioListProps> = ({ householdId }) => {
     );
     const totalInvested = totalValue - totalCumulativeGain;
     const totalReturnRate = totalInvested > 0 ? (totalCumulativeGain / totalInvested) * 100 : 0;
-    const monthlyGain = snapshots.reduce((sum, snapshot) => sum + snapshot.performance.gain, 0);
 
     const latestPeriod = snapshots.reduce<{ year: number; month: number } | null>(
       (latest, snapshot) => {
@@ -73,32 +110,13 @@ const PortfolioList: React.FC<PortfolioListProps> = ({ householdId }) => {
 
     return {
       totalValue,
-      totalInvested,
-      totalCumulativeGain,
       totalReturnRate,
-      monthlyGain,
       snapshotsCount: snapshots.length,
       latestPeriodLabel: latestPeriod
         ? formatYearMonth(latestPeriod.year, latestPeriod.month)
         : null,
     };
   }, [localPortfolios, latestSnapshots]);
-
-  const movePortfolioUp = (id: string) => {
-    const index = localPortfolios.findIndex((p) => p.id === id);
-    if (index <= 0) return;
-    const newList = [...localPortfolios];
-    [newList[index - 1], newList[index]] = [newList[index], newList[index - 1]];
-    setLocalPortfolios(newList);
-  };
-
-  const movePortfolioDown = (id: string) => {
-    const index = localPortfolios.findIndex((p) => p.id === id);
-    if (index < 0 || index >= localPortfolios.length - 1) return;
-    const newList = [...localPortfolios];
-    [newList[index], newList[index + 1]] = [newList[index + 1], newList[index]];
-    setLocalPortfolios(newList);
-  };
 
   const saveOrder = async () => {
     const orders = localPortfolios.map((p, index) => ({
@@ -120,124 +138,118 @@ const PortfolioList: React.FC<PortfolioListProps> = ({ householdId }) => {
     setEditingPortfolio(null);
   };
 
-  if (loading) return <div>Loading portfolios...</div>;
+  const rows: PortfolioRowVM[] = localPortfolios
+    .slice()
+    .sort((a, b) => (a.order || 0) - (b.order || 0))
+    .map((portfolio) => {
+      const snapshot = latestSnapshots.get(portfolio.id);
+      return {
+        id: portfolio.id,
+        name: portfolio.name,
+        securitiesName: accountNames.get(portfolio.securitiesAccountId) ?? '—',
+        bankName: accountNames.get(portfolio.bankAccountId) ?? '—',
+        valueText: formatCurrency(snapshot?.totalValue ?? 0),
+        returnRate: snapshot ? snapshot.performance.cumulativeReturnRate : null,
+        asOfText: snapshot ? formatYearMonth(snapshot.year, snapshot.month) : null,
+        isActive: portfolio.isActive !== false,
+      };
+    });
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <PageHeader
         title="投資組合"
-        description="追蹤各投資組合的市場價值與績效表現。"
+        description="分析投資表現：一個證券帳戶連結一個銀行帳戶"
         actions={
           isReorderMode ? (
-            <>
-              <Button onClick={saveOrder} variant="default">
-                Save Order
-              </Button>
+            <div className="flex gap-2">
+              <Button onClick={saveOrder}>儲存順序</Button>
               <Button
+                variant="ghost"
                 onClick={() => {
                   setIsReorderMode(false);
                   setLocalPortfolios(portfolios);
                 }}
-                variant="ghost"
               >
-                Cancel
+                取消
               </Button>
-            </>
+            </div>
           ) : (
-            <>
-              <Button onClick={() => setIsReorderMode(true)} variant="outline">
-                <ListOrdered className="mr-2 h-4 w-4" /> Reorder
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={() => setIsReorderMode(true)}
+                className="gap-2"
+                disabled={portfolios.length < 2}
+              >
+                <ListOrdered size={18} />
+                排序
               </Button>
-              <Button onClick={() => setIsCreateOpen(true)}>
-                <Plus className="mr-2 h-4 w-4" /> New Portfolio
+              <Button onClick={() => setIsCreateOpen(true)} className="gap-2">
+                <Plus size={18} />
+                新增組合
               </Button>
-            </>
+            </div>
           )
         }
       />
 
-      <Card className="border-positive/20 bg-positive/5">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-lg">Overview</CardTitle>
-          <CardDescription>
-            {`Coverage ${overview.snapshotsCount}/${localPortfolios.length} portfolios`}
-            {overview.latestPeriodLabel ? ` · As of ${overview.latestPeriodLabel}` : ''}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-            <div className="rounded-lg border bg-card/80 p-4">
-              <p className="text-xs text-muted-foreground">Total Market Value</p>
-              <p className="mt-1 text-2xl font-semibold tracking-tight">
-                {formatCurrency(overview.totalValue)}
-              </p>
-            </div>
-            <div className="rounded-lg border bg-card/80 p-4">
-              <p className="text-xs text-muted-foreground">Total Invested</p>
-              <p className="mt-1 text-2xl font-semibold tracking-tight">
-                {formatCurrency(overview.totalInvested)}
-              </p>
-            </div>
-            <div className="rounded-lg border bg-card/80 p-4">
-              <p className="text-xs text-muted-foreground">Cumulative Gain</p>
-              <p
-                className={`mt-1 text-2xl font-semibold tracking-tight ${
-                  overview.totalCumulativeGain >= 0 ? 'text-positive' : 'text-negative'
-                }`}
-              >
-                {formatCurrency(overview.totalCumulativeGain)}
-              </p>
-            </div>
-            <div className="rounded-lg border bg-card/80 p-4">
-              <p className="text-xs text-muted-foreground">Overall Return</p>
-              <p
-                className={`mt-1 text-2xl font-semibold tracking-tight ${
-                  overview.totalReturnRate >= 0 ? 'text-positive' : 'text-negative'
-                }`}
-              >
-                {formatPercentage(overview.totalReturnRate, 2)}
-              </p>
-              <p
-                className={`mt-1 text-xs ${
-                  overview.monthlyGain >= 0 ? 'text-positive' : 'text-negative'
-                }`}
-              >
-                {`This month: ${formatCurrency(overview.monthlyGain)}`}
-              </p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {localPortfolios.map((portfolio) => (
-          <PortfolioItem
-            key={portfolio.id}
-            viewModel={toListItemVM(portfolio)}
-            onClick={(id) => navigate(`/portfolios/${id}`)}
-            onEdit={() => setEditingPortfolio(portfolio)}
-            isReorderMode={isReorderMode}
-            onMoveUp={movePortfolioUp}
-            onMoveDown={movePortfolioDown}
-          />
-        ))}
-        {portfolios.length === 0 && (
-          <div className="col-span-full text-center py-10 text-muted-foreground">
-            No portfolios found. Create one to start tracking your investments.
-          </div>
-        )}
+      <div className="flex items-baseline justify-between">
+        <p className="font-mono text-[11px] tracking-widest text-muted-foreground uppercase">
+          TOTAL PORTFOLIO VALUE
+        </p>
+        <p className="font-mono text-2xl tabular-nums text-foreground">
+          {formatCurrency(overview.totalValue)}
+        </p>
       </div>
 
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Name</TableHead>
+            <TableHead>Securities</TableHead>
+            <TableHead>Bank</TableHead>
+            <TableHead className="text-right">Portfolio Value</TableHead>
+            <TableHead className="text-right">Return</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {rows.map((row) => (
+            <TableRow
+              key={row.id}
+              onClick={() => !isReorderMode && navigate(`/portfolios/${row.id}`)}
+              className={isReorderMode ? '' : 'cursor-pointer'}
+              data-testid={`portfolio-row-${row.id}`}
+            >
+              <TableCell className={row.isActive ? '' : 'text-muted-foreground'}>
+                {row.name}
+              </TableCell>
+              <TableCell className="text-muted-foreground">{row.securitiesName}</TableCell>
+              <TableCell className="text-muted-foreground">{row.bankName}</TableCell>
+              <TableCell className="text-right font-mono tabular-nums">{row.valueText}</TableCell>
+              <TableCell className="text-right font-mono tabular-nums">
+                {row.returnRate === null ? '—' : formatPercentage(row.returnRate)}
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+
       <PortfolioForm
-        isOpen={isCreateOpen || !!editingPortfolio}
-        onClose={() => {
-          setIsCreateOpen(false);
-          setEditingPortfolio(null);
-        }}
-        onSubmit={editingPortfolio ? handleEditSubmit : handleCreateSubmit}
+        isOpen={isCreateOpen}
+        onClose={() => setIsCreateOpen(false)}
+        onSubmit={handleCreateSubmit}
         householdId={householdId}
-        portfolio={editingPortfolio || undefined}
       />
+      {editingPortfolio && (
+        <PortfolioForm
+          isOpen={!!editingPortfolio}
+          onClose={() => setEditingPortfolio(null)}
+          onSubmit={handleEditSubmit}
+          householdId={householdId}
+          portfolio={editingPortfolio}
+        />
+      )}
     </div>
   );
 };

@@ -1,17 +1,34 @@
+import React, { useEffect, useState } from 'react';
+
 import { Calendar, Plus, Settings } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 import { useAuth } from '@/infra/contexts/useAuth';
 import { Button } from '@/ui/components/ui/button';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/ui/components/ui/table';
 import { PageHeader } from '@/ui/components/PageHeader';
-import ProjectDetailView from '@/ui/features/project/components/ProjectDetailView';
 import ProjectForm from '@/ui/features/project/components/ProjectForm';
-import { ProjectGrid } from '@/ui/features/project/components/ProjectGrid';
 import { useProjectPage } from '@/ui/features/project/hooks/useProjectPage';
-import MonthlySettlement from '@/ui/features/project/pages/MonthlySettlement';
-import ProjectSettings from '@/ui/features/project/pages/ProjectSettings';
+import { useProjectQueries } from '@/ui/features/project/hooks/useProjects';
+import { formatCurrency } from '@/ui/utils';
+import MonthlySettlement from './MonthlySettlement';
+import ProjectSettings from './ProjectSettings';
+
+interface ProjectTotals {
+  income: number;
+  expense: number;
+}
 
 const Projects: React.FC = () => {
   const { userProfile } = useAuth();
+  const navigate = useNavigate();
 
   const {
     loading,
@@ -19,8 +36,6 @@ const Projects: React.FC = () => {
     reload,
     create,
     update,
-    editClick,
-    deleteClick,
     editing,
     isFormOpen,
     openForm,
@@ -28,16 +43,36 @@ const Projects: React.FC = () => {
     isMonthlySettlementView,
     openMonthlySettlement,
     closeMonthlySettlement,
-    selectedProject,
-    selectProject,
-    unselectProject,
-    isReorderMode,
-    moveProjectUp,
-    moveProjectDown,
     isSettingsOpen,
     openSettings,
     closeSettings,
   } = useProjectPage(userProfile?.householdId);
+
+  const { getProjectSnapshots } = useProjectQueries(userProfile?.householdId || '');
+
+  const [snapshotTotals, setSnapshotTotals] = useState<Map<string, ProjectTotals>>(new Map());
+
+  useEffect(() => {
+    let ignore = false;
+    const load = async () => {
+      if (!userProfile?.householdId || projects.length === 0) return;
+      const results = await Promise.all(
+        projects.map(async (project) => {
+          const snapshots = await getProjectSnapshots(project.id);
+          const income = (snapshots || []).reduce((sum, s) => sum + s.income, 0);
+          const expense = (snapshots || []).reduce((sum, s) => sum + s.expense, 0);
+          return [project.id, { income, expense }] as const;
+        }),
+      );
+      if (!ignore) {
+        setSnapshotTotals(new Map(results));
+      }
+    };
+    void load();
+    return () => {
+      ignore = true;
+    };
+  }, [projects, userProfile?.householdId, getProjectSnapshots]);
 
   if (loading) {
     return (
@@ -48,23 +83,10 @@ const Projects: React.FC = () => {
     );
   }
 
-  // Detail view for selected project
-  if (selectedProject) {
-    return (
-      <ProjectDetailView
-        householdId={userProfile?.householdId}
-        project={selectedProject}
-        onBack={unselectProject}
-      />
-    );
-  }
-
-  // Settings view
   if (isSettingsOpen) {
     return <ProjectSettings householdId={userProfile?.householdId || ''} onBack={closeSettings} />;
   }
 
-  // Monthly Settlement view
   if (isMonthlySettlementView) {
     return (
       <MonthlySettlement
@@ -77,9 +99,8 @@ const Projects: React.FC = () => {
     );
   }
 
-  // List view
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <PageHeader
         title="專案管理"
         description="管理專案餘額、月度結算與排序。"
@@ -101,19 +122,52 @@ const Projects: React.FC = () => {
         }
       />
 
-      <ProjectGrid
-        householdId={userProfile?.householdId}
-        projects={projects}
-        loading={loading}
-        onSelect={selectProject}
-        onEdit={editClick}
-        onDelete={deleteClick}
-        isReorderMode={isReorderMode}
-        onMoveUp={moveProjectUp}
-        onMoveDown={moveProjectDown}
-      />
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Name</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead className="text-right">Income</TableHead>
+            <TableHead className="text-right">Expense</TableHead>
+            <TableHead className="text-right">Net Cash Flow</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {projects.map((project) => {
+            const totals = snapshotTotals.get(project.id) ?? { income: 0, expense: 0 };
+            const net = totals.income - totals.expense;
+            return (
+              <TableRow
+                key={project.id}
+                data-testid={`project-row-${project.id}`}
+                onClick={() => navigate(`/projects/${project.id}`)}
+                className="cursor-pointer"
+              >
+                <TableCell className={project.isActive ? '' : 'text-muted-foreground'}>
+                  {project.name}
+                </TableCell>
+                <TableCell>
+                  <span className={project.isActive ? 'text-positive' : 'text-muted-foreground'}>
+                    {project.isActive ? '進行中' : '停用'}
+                  </span>
+                </TableCell>
+                <TableCell className="text-right font-mono tabular-nums">
+                  {formatCurrency(totals.income)}
+                </TableCell>
+                <TableCell className="text-right font-mono tabular-nums">
+                  {formatCurrency(totals.expense)}
+                </TableCell>
+                <TableCell
+                  className={`text-right font-mono tabular-nums ${net >= 0 ? 'text-positive' : 'text-negative'}`}
+                >
+                  {formatCurrency(net)}
+                </TableCell>
+              </TableRow>
+            );
+          })}
+        </TableBody>
+      </Table>
 
-      {/* Create Project Modal */}
       <ProjectForm
         isOpen={isFormOpen}
         onClose={closeForm}

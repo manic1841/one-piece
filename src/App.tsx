@@ -4,6 +4,7 @@ import { Toaster } from 'sonner';
 import { AuthProvider } from '@/infra/contexts/AuthProvider';
 import { ConfirmDialogProvider } from '@/ui/features/app/confirm/ConfirmDialog';
 import Accounts from '@/ui/features/account/pages/AccountsPage';
+import AccountDetailPage from '@/ui/features/account/pages/AccountDetailPage';
 import Layout from '@/ui/features/app/layout/Layout';
 import ProtectedRoute from '@/ui/features/app/router/ProtectedRoute';
 import AccessDenied from '@/ui/features/auth/pages/AccessDeniedPage';
@@ -11,10 +12,12 @@ import Login from '@/ui/features/auth/pages/LoginPage';
 import Onboarding from '@/ui/features/auth/pages/OnboardingPage';
 import Dashboard from '@/ui/features/dashboard/pages/DashboardPage';
 import DebtListPage from '@/ui/features/debt/pages/DebtListPage';
+import DebtDetailPage from '@/ui/features/debt/pages/DebtDetailPage';
 import MonthlyClosePage from '@/ui/features/monthly_close/pages/MonthlyClosePage';
 import PortfolioDetailPage from '@/ui/features/portfolio/pages/PortfolioDetailPage';
 import PortfoliosPage from '@/ui/features/portfolio/pages/PortfoliosPage';
 import ProjectsPage from '@/ui/features/project/pages/ProjectsPage';
+import ProjectDetailPage from '@/ui/features/project/pages/ProjectDetailPage';
 import Reports from '@/ui/features/report/pages/ReportsPage';
 import RetirementPlanForm from '@/ui/features/retirement/pages/RetirementPlanForm';
 import RetirementPlanList from '@/ui/features/retirement/pages/RetirementPlanList';
@@ -56,13 +59,16 @@ function App() {
             <Route path="close" element={<MonthlyClosePage />} />
             <Route path="transactions" element={<Transactions />} />
             <Route path="projects" element={<ProjectsPage />} />
+            <Route path="projects/:id" element={<ProjectDetailPage />} />
             <Route path="accounts" element={<Accounts />} />
+            <Route path="accounts/:id" element={<AccountDetailPage />} />
             <Route path="portfolios" element={<PortfoliosPage />} />
             <Route path="portfolios/:id" element={<PortfolioDetailPage />} />
             <Route path="reports" element={<Reports />} />
             <Route path="retirement" element={<RetirementPlanList />} />
             <Route path="retirement/:id" element={<RetirementPlanForm />} />
             <Route path="debt" element={<DebtListPage />} />
+            <Route path="debt/:id" element={<DebtDetailPage />} />
             <Route path="settings" element={<Settings />} />
           </Route>
         </Routes>

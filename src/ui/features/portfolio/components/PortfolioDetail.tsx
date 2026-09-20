@@ -1,14 +1,31 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
-import { ArrowLeft, Plus } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { Plus, Trash2 } from 'lucide-react';
 import { ZodError } from 'zod';
 
 import { type PortfolioSnapshot } from '@/domains/portfolio/types/portfolio';
+import { useAccounts } from '@/ui/features/account/hooks/useAccounts';
+import { useAuthContext } from '@/ui/hooks/useAuthContext';
+import { PageHeader } from '@/ui/components/PageHeader';
+import { Badge } from '@/ui/components/ui/badge';
 import { Button } from '@/ui/components/ui/button';
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@/ui/components/ui/accordion';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/ui/components/ui/table';
 import { usePortfolioCmds } from '@/ui/features/portfolio/hooks/usePortfolioCmds';
 import {
-  usePortfolioDetailView,
   usePortfolioQueries,
   usePortfolios,
 } from '@/ui/features/portfolio/hooks/usePortfolios';
@@ -16,19 +33,104 @@ import {
   type PortfolioSnapshotFormVM,
   mapPortfolioSnapshotVMToDomain,
 } from '@/ui/features/portfolio/viewmodels/portfolioForm.vm';
+import { formatCurrency, formatPercentage, formatYearMonth } from '@/ui/utils';
 
 import PortfolioSnapshotForm from './PortfolioSnapshotForm';
-import { PortfolioHistoryTable } from './detail/PortfolioHistoryTable';
-import { PortfolioPerformanceCards } from './detail/PortfolioPerformanceCards';
 
 interface PortfolioDetailProps {
   householdId: string;
   userEmail: string;
 }
 
+const MONTH_NAMES = [
+  'JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN',
+  'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC',
+];
+
+const TREND_WIDTH = 720;
+const TREND_HEIGHT = 180;
+const TREND_PADDING_X = 8;
+const TREND_PADDING_TOP = 12;
+const TREND_PADDING_BOTTOM = 24;
+
+interface TrendGeometry {
+  path: string | undefined;
+  xLabels: { x: number; text: string }[];
+  yLabels: { y: number; text: string }[];
+}
+
+const formatTrendValue = (value: number): string => {
+  if (Math.abs(value) >= 1000000) {
+    return `${(value / 1000000).toFixed(1)}M`;
+  }
+  if (Math.abs(value) >= 1000) {
+    return `${Math.round(value / 1000)}K`;
+  }
+  return `${Math.round(value)}`;
+};
+
+const buildTrendGeometry = (series: { year: number; month: number; value: number }[]): TrendGeometry => {
+  const present = series.slice().sort((a, b) => a.year - b.year || a.month - b.month);
+  if (present.length === 0) {
+    return { path: undefined, xLabels: [], yLabels: [] };
+  }
+
+  const values = present.map((item) => item.value);
+  const rawMin = Math.min(...values);
+  const rawMax = Math.max(...values);
+  const rawSpan = rawMax - rawMin;
+  const yMin = rawSpan === 0 ? rawMin * 0.9 : rawMin - rawSpan * 0.1;
+  const yMax = rawSpan === 0 ? rawMax * 1.1 : rawMax + rawSpan * 0.1;
+  const ySpan = yMax - yMin;
+  const innerWidth = TREND_WIDTH - TREND_PADDING_X * 2;
+  const innerHeight = TREND_HEIGHT - TREND_PADDING_TOP - TREND_PADDING_BOTTOM;
+
+  const points = present.map((item, index) => {
+    const xRatio = present.length === 1 ? 1 : index / (present.length - 1);
+    const yRatio = ySpan === 0 ? 0.5 : (item.value - yMin) / ySpan;
+    return {
+      x: TREND_PADDING_X + xRatio * innerWidth,
+      y: TREND_PADDING_TOP + (1 - yRatio) * innerHeight,
+    };
+  });
+
+  const path = points
+    .map((point, index) => `${index === 0 ? 'M' : 'L'}${point.x.toFixed(1)} ${point.y.toFixed(1)}`)
+    .join(' ');
+
+  const xLabelStep = Math.max(1, Math.ceil(present.length / 3));
+  const xLabels: { x: number; text: string }[] = [];
+  for (let index = 0; index < present.length; index += 1) {
+    const isLast = index === present.length - 1;
+    if (!isLast && index % xLabelStep !== 0) continue;
+    xLabels.push({
+      x: points[index].x,
+      text: `${MONTH_NAMES[present[index].month - 1]} ${present[index].year}`,
+    });
+  }
+
+  const yLabels = [0, 1, 2, 3].map((step) => {
+    const value = yMin + (ySpan * step) / 3;
+    return {
+      y: TREND_PADDING_TOP + (1 - step / 3) * innerHeight,
+      text: formatTrendValue(value),
+    };
+  });
+
+  return { path, xLabels, yLabels };
+};
+
+const SectionTitle: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+  <p className="font-mono text-[11px] tracking-widest text-muted-foreground uppercase">
+    {children}
+  </p>
+);
+
 const PortfolioDetail: React.FC<PortfolioDetailProps> = ({ householdId, userEmail }) => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const auth = useAuthContext();
+  const { fetchAccounts } = useAccounts();
   const { portfolios, reload, loading: listLoading } = usePortfolios(householdId);
   const { getSnapshots, loading: queryLoading } = usePortfolioQueries(householdId);
   const { createSnapshot, deleteSnapshot } = usePortfolioCmds(householdId, userEmail, reload);
@@ -36,6 +138,8 @@ const PortfolioDetail: React.FC<PortfolioDetailProps> = ({ householdId, userEmai
   const portfolio = portfolios.find((p) => p.id === id);
   const [snapshots, setSnapshots] = useState<PortfolioSnapshot[]>([]);
   const [loadingSnapshots, setLoadingSnapshots] = useState(false);
+  const [accountNames, setAccountNames] = useState<Map<string, string>>(new Map());
+  const [isSnapshotOpen, setIsSnapshotOpen] = useState(false);
 
   const refreshSnapshots = useCallback(async () => {
     if (!id) return;
@@ -55,10 +159,61 @@ const PortfolioDetail: React.FC<PortfolioDetailProps> = ({ householdId, userEmai
     refreshSnapshots();
   }, [refreshSnapshots, reload]);
 
-  const loading = listLoading || queryLoading || loadingSnapshots;
-  const viewModel = usePortfolioDetailView(portfolio, snapshots);
+  useEffect(() => {
+    let ignore = false;
+    const load = async () => {
+      const accounts = await fetchAccounts(householdId, auth, { includeInactive: true });
+      if (!ignore) {
+        const names = new Map<string, string>();
+        for (const account of accounts) {
+          names.set(account.id, account.name);
+        }
+        setAccountNames(names);
+      }
+    };
+    void load();
+    return () => {
+      ignore = true;
+    };
+  }, [householdId, fetchAccounts, auth]);
 
-  const [isSnapshotOpen, setIsSnapshotOpen] = useState(false);
+  const latestSnapshot = snapshots.length > 0 ? snapshots[0] : null;
+
+  const breakdown = useMemo(() => {
+    const openingValue = latestSnapshot?.performance.openingValue ?? 0;
+    const closingValue = latestSnapshot?.performance.closingValue ?? 0;
+    const deposits = latestSnapshot?.cashFlow.deposits ?? 0;
+    const withdrawals = latestSnapshot?.cashFlow.withdrawals ?? 0;
+    const investmentCashFlow = deposits - withdrawals;
+    const calculatedReturn = closingValue - openingValue - investmentCashFlow;
+    const investedBase = closingValue - investmentCashFlow - calculatedReturn;
+    const returnRate = investedBase > 0 ? (calculatedReturn / investedBase) * 100 : 0;
+
+    return {
+      openingValue,
+      closingValue,
+      deposits,
+      withdrawals,
+      investmentCashFlow,
+      calculatedReturn,
+      returnRate,
+    };
+  }, [latestSnapshot]);
+
+  const trend = useMemo(
+    () =>
+      buildTrendGeometry(
+        snapshots
+          .slice()
+          .reverse()
+          .map((snapshot) => ({
+            year: snapshot.year,
+            month: snapshot.month,
+            value: snapshot.totalValue,
+          })),
+      ),
+    [snapshots],
+  );
 
   const handleCreateSnapshot = async (vm: PortfolioSnapshotFormVM) => {
     if (!id) return;
@@ -69,42 +224,219 @@ const PortfolioDetail: React.FC<PortfolioDetailProps> = ({ householdId, userEmai
       if (error instanceof ZodError) {
         throw new Error(error.issues[0]?.message || 'Invalid snapshot form data');
       }
-      console.error('Failed to create snapshot:', error);
-      throw error; // Re-throw to be caught by form
+      throw error;
     }
   };
 
-  if (loading) return <div>Loading...</div>;
-  if (!portfolio || !viewModel) return <div>Portfolio not found</div>;
+  const handleDeleteSnapshot = async (snapshotId: string) => {
+    if (!id) return;
+    await deleteSnapshot(id, snapshotId);
+    await refreshSnapshots();
+  };
+
+  if (listLoading || queryLoading || loadingSnapshots) return <div>Loading...</div>;
+  if (!portfolio) return <div>Portfolio not found</div>;
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center space-x-4">
-        <Button variant="ghost" size="icon" onClick={() => navigate('/portfolios')}>
-          <ArrowLeft className="h-4 w-4" />
-        </Button>
-        <div>
-          <h2 className="text-2xl font-bold tracking-tight">{viewModel.name}</h2>
-        </div>
-        <div className="ml-auto">
-          <Button onClick={() => setIsSnapshotOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" /> Record Snapshot
+    <div className="space-y-8 pb-20">
+      <PageHeader
+        title={portfolio.name}
+        description="一個證券帳戶連結一個銀行帳戶"
+        crumb="PORTFOLIOS"
+        onBack={() => navigate('/portfolios')}
+        badge={
+          <Badge variant="outline" className="font-mono">
+            {formatYearMonth(latestSnapshot?.year ?? new Date().getFullYear(), latestSnapshot?.month ?? new Date().getMonth() + 1)}
+          </Badge>
+        }
+        actions={
+          <Button onClick={() => setIsSnapshotOpen(true)} className="gap-2">
+            <Plus size={18} />
+            關帳快照
           </Button>
-        </div>
-      </div>
-
-      {/* Performance Summary Cards */}
-      <PortfolioPerformanceCards latestSnapshot={viewModel.latestSnapshot} />
-
-      {/* Snapshots History Table */}
-      <PortfolioHistoryTable
-        snapshots={viewModel.history}
-        onDelete={async (snapshotId) => {
-          if (!id) return;
-          await deleteSnapshot(id, snapshotId);
-          await refreshSnapshots();
-        }}
+        }
       />
+
+      <section className="space-y-3">
+        <SectionTitle>PORTFOLIO VALUE</SectionTitle>
+        <div className="flex items-baseline justify-between">
+          <p className="font-mono text-3xl tabular-nums text-foreground">
+            {formatCurrency(latestSnapshot?.totalValue ?? 0)}
+          </p>
+          {latestSnapshot && (
+            <p className="font-mono text-xs tabular-nums text-muted-foreground">
+              {MONTH_NAMES[latestSnapshot.month - 1]} {latestSnapshot.year}
+            </p>
+          )}
+        </div>
+      </section>
+
+      <section className="space-y-3">
+        <SectionTitle>VALUE BREAKDOWN</SectionTitle>
+        <div className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm md:grid-cols-4">
+          <div>
+            <p className="text-xs text-muted-foreground">Securities</p>
+            <p className="font-medium font-mono tabular-nums">
+              {accountNames.get(portfolio.securitiesAccountId) ?? '—'}
+            </p>
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground">Bank</p>
+            <p className="font-medium font-mono tabular-nums">
+              {accountNames.get(portfolio.bankAccountId) ?? '—'}
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section className="space-y-3">
+        <SectionTitle>RETURN</SectionTitle>
+        <div className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm md:grid-cols-4">
+          <div>
+            <p className="text-xs text-muted-foreground">Monthly</p>
+            <p className="font-mono tabular-nums">
+              {latestSnapshot ? formatPercentage(latestSnapshot.performance.returnRate, 2) : '—'}
+            </p>
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground">Cumulative</p>
+            <p className="font-mono tabular-nums">
+              {latestSnapshot
+                ? formatPercentage(latestSnapshot.performance.cumulativeReturnRate, 2)
+                : '—'}
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section className="space-y-3">
+        <SectionTitle>12M PORTFOLIO VALUE</SectionTitle>
+        {trend.path ? (
+          <div className="relative" data-testid="portfolio-trend-chart">
+            <svg
+              className="h-44 w-full"
+              viewBox={`0 0 ${TREND_WIDTH} ${TREND_HEIGHT}`}
+              preserveAspectRatio="none"
+              aria-hidden="true"
+            >
+              {trend.yLabels.map((label) => (
+                <line
+                  key={label.text}
+                  x1={TREND_PADDING_X}
+                  x2={TREND_WIDTH - TREND_PADDING_X}
+                  y1={label.y}
+                  y2={label.y}
+                  stroke="hsl(var(--border))"
+                  strokeWidth="1"
+                />
+              ))}
+              <path
+                d={trend.path}
+                fill="none"
+                stroke="hsl(var(--chart-1))"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+            <div className="relative mt-2 h-4">
+              {trend.xLabels.map((label) => (
+                <span
+                  key={label.text}
+                  className="absolute whitespace-nowrap font-mono text-[10px] tabular-nums text-muted-foreground"
+                  style={{ left: `${(label.x / TREND_WIDTH) * 100}%` }}
+                >
+                  {label.text}
+                </span>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <p className="text-sm text-muted-foreground">尚無快照資料</p>
+        )}
+      </section>
+
+      <section className="space-y-3">
+        <SectionTitle>MONTHLY PERFORMANCE</SectionTitle>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Date</TableHead>
+              <TableHead className="text-right">Total Value</TableHead>
+              <TableHead className="text-right">Return</TableHead>
+              <TableHead className="text-right">Cumulative %</TableHead>
+              <TableHead className="text-right">Net Flow</TableHead>
+              <TableHead className="w-12"></TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {snapshots.map((snapshot) => (
+              <TableRow key={snapshot.id}>
+                <TableCell className="font-mono text-[12px]">
+                  {MONTH_NAMES[snapshot.month - 1]} {snapshot.year}
+                </TableCell>
+                <TableCell className="text-right font-mono tabular-nums">
+                  {formatCurrency(snapshot.totalValue)}
+                </TableCell>
+                <TableCell className="text-right font-mono tabular-nums">
+                  {formatPercentage(snapshot.performance.returnRate, 2)}
+                </TableCell>
+                <TableCell className="text-right font-mono tabular-nums">
+                  {formatPercentage(snapshot.performance.cumulativeReturnRate, 2)}
+                </TableCell>
+                <TableCell className="text-right font-mono tabular-nums">
+                  {formatCurrency(snapshot.performance.netCashFlow)}
+                </TableCell>
+                <TableCell>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 text-destructive hover:text-destructive"
+                    onClick={() => void handleDeleteSnapshot(snapshot.id)}
+                    aria-label="刪除快照"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </section>
+
+      <Accordion type="single" collapsible>
+        <AccordionItem value="return-calculation">
+          <AccordionTrigger>RETURN CALCULATION</AccordionTrigger>
+          <AccordionContent>
+            <div className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm md:grid-cols-3">
+              <div>
+                <p className="text-xs text-muted-foreground">Previous Portfolio Value</p>
+                <p className="font-mono tabular-nums">{formatCurrency(breakdown.openingValue)}</p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Current Portfolio Value</p>
+                <p className="font-mono tabular-nums">{formatCurrency(breakdown.closingValue)}</p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Investment Cash Flow</p>
+                <p className="font-mono tabular-nums">{formatCurrency(breakdown.investmentCashFlow)}</p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Non-investment Cash Flow</p>
+                <p className="font-mono tabular-nums">$0</p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Calculated Return</p>
+                <p className="font-mono tabular-nums">{formatCurrency(breakdown.calculatedReturn)}</p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Return Rate</p>
+                <p className="font-mono tabular-nums">{formatPercentage(breakdown.returnRate, 2)}</p>
+              </div>
+            </div>
+          </AccordionContent>
+        </AccordionItem>
+      </Accordion>
 
       {portfolio && (
         <PortfolioSnapshotForm

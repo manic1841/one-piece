@@ -63,12 +63,12 @@ const Transactions: React.FC = () => {
   const handleEdit = async (transaction: TransactionListItemVM) => {
     const target = transactions.find((item) => item.id === transaction.id);
     if (!target) {
-      window.alert('找不到要編輯的交易資料。');
+      await confirm({ title: '找不到要編輯的交易資料。' });
       return;
     }
 
     if (target.intentType === 'TRANSFER') {
-      window.alert('目前不支援編輯專案轉帳交易。');
+      await confirm({ title: '目前不支援編輯專案轉帳交易。' });
       return;
     }
 

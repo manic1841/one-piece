@@ -42,6 +42,15 @@ const findPrimaryEntry = (transaction: LedgerTransaction, intentType: string) =>
   );
 };
 
+export type TransactionListEntryVM = {
+  ledgerCode: string;
+  ledgerLabel: string;
+  debit: number;
+  credit: number;
+  accountId?: string;
+  hasInvestmentDetail: boolean;
+};
+
 export type TransactionListItemVM = {
   id: string;
   intentType: string;
@@ -56,6 +65,7 @@ export type TransactionListItemVM = {
   isPositive: boolean;
   hasCashLedger: boolean;
   projectName?: string;
+  entries: TransactionListEntryVM[];
 };
 
 export const mapTransactionToListItemVM = (
@@ -91,6 +101,19 @@ export const mapTransactionToListItemVM = (
   const sortTimestamp = date.getTime();
   const isPositive = signedAmount >= 0;
 
+  const entries: TransactionListEntryVM[] = transaction.entries.map(
+    (entry: JournalEntryLine) => ({
+      ledgerCode: entry.ledgerCode,
+      ledgerLabel: options?.getLedgerLabel
+        ? options.getLedgerLabel(entry.ledgerCode)
+        : entry.ledgerCode,
+      debit: entry.debit,
+      credit: entry.credit,
+      accountId: entry.accountId,
+      hasInvestmentDetail: Boolean(entry.investmentDetail),
+    }),
+  );
+
   return {
     id: transaction.id,
     intentType,
@@ -105,5 +128,6 @@ export const mapTransactionToListItemVM = (
     isPositive,
     hasCashLedger,
     projectName: options?.projectName,
+    entries,
   };
 };

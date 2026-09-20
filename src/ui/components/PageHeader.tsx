@@ -7,6 +7,7 @@ import { Button } from '@/ui/components/ui/button';
 interface PageHeaderProps {
   title: React.ReactNode;
   description?: React.ReactNode;
+  crumb?: React.ReactNode;
   badge?: React.ReactNode;
   meta?: React.ReactNode;
   actions?: React.ReactNode;
@@ -16,13 +17,14 @@ interface PageHeaderProps {
 export const PageHeader: React.FC<PageHeaderProps> = ({
   title,
   description,
+  crumb,
   badge,
   meta,
   actions,
   onBack,
 }) => {
   return (
-    <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+    <div className="flex flex-col gap-4 border-b border-border pb-6 sm:flex-row sm:items-start sm:justify-between">
       <div className="flex items-center gap-2 min-w-0">
         {onBack && (
           <Button variant="ghost" size="icon" onClick={onBack} className="shrink-0">
@@ -30,6 +32,11 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
           </Button>
         )}
         <div className="min-w-0">
+          {crumb && (
+            <p className="font-mono text-[10px] tracking-widest text-muted-foreground uppercase">
+              {crumb}
+            </p>
+          )}
           <div className="flex items-center gap-2.5 flex-wrap">
             <h1 className="text-2xl font-bold text-foreground tracking-heading">{title}</h1>
             {badge}

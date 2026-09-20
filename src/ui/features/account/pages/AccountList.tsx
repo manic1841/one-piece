@@ -1,60 +1,147 @@
-import React from 'react';
+import React, { useMemo, useState } from 'react';
 
-import { Download, Landmark, ListOrdered, Plus, Upload } from 'lucide-react';
+import { Download, Plus, Upload } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
+import { type AccountWithSnapshot } from '@/domains/account/types/account';
+import { AccountCategory } from '@/domains/account/types/categories';
 import { Button } from '@/ui/components/ui/button';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/ui/components/ui/table';
 import { PageHeader } from '@/ui/components/PageHeader';
-import { useAccountListController } from '@/ui/features/account/hooks/useAccountListController';
+import { formatCurrency } from '@/ui/utils';
 
-import { AccountHistoryDialog } from '../components/detail/AccountHistoryDialog';
-import { AccountCard } from '../components/list/AccountCard';
+import { useAccountListController } from '../hooks/useAccountListController';
 import AccountForm from './AccountForm';
-import AccountSnapshotEditor from './AccountSnapshotEditor';
+
+const CATEGORY_ORDER: AccountCategory[] = [
+  AccountCategory.CASH,
+  AccountCategory.BANK,
+  AccountCategory.SECURITIES,
+];
+
+const SECTION_TITLES: Partial<Record<AccountCategory, string>> = {
+  [AccountCategory.CASH]: 'CASH',
+  [AccountCategory.BANK]: 'BANK',
+  [AccountCategory.SECURITIES]: 'SECURITIES',
+};
+
+interface AccountRowVM {
+  id: string;
+  name: string;
+  currency: string;
+  balanceText: string;
+  asOfText: string;
+  isActive: boolean;
+}
+
+const formatPeriod = (snapshot: AccountWithSnapshot['snapshot']): string => {
+  if (!snapshot) return '—';
+  return `${snapshot.year}-${snapshot.month.toString().padStart(2, '0')}`;
+};
+
+const toRowVM = (account: AccountWithSnapshot): AccountRowVM => ({
+  id: account.id,
+  name: account.name,
+  currency: account.currency,
+  balanceText: formatCurrency(account.snapshot?.amount ?? 0),
+  asOfText: formatPeriod(account.snapshot),
+  isActive: account.isActive !== false,
+});
+
+const AccountSection: React.FC<{
+  title: string;
+  rows: AccountRowVM[];
+  onSelect: (id: string) => void;
+}> = ({ title, rows, onSelect }) => (
+  <section className="space-y-3">
+    <p className="font-mono text-[11px] tracking-widest text-muted-foreground uppercase">{title}</p>
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead>Account</TableHead>
+          <TableHead className="text-right">Ending Balance</TableHead>
+          <TableHead className="text-right">As of</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {rows.map((row) => (
+          <TableRow
+            key={row.id}
+            onClick={() => onSelect(row.id)}
+            className="cursor-pointer"
+            data-testid={`account-row-${row.id}`}
+          >
+            <TableCell className={row.isActive ? '' : 'text-muted-foreground'}>
+              {row.name}
+              <span className="ml-2 font-mono text-[10px] text-muted-foreground">
+                {row.currency}
+              </span>
+            </TableCell>
+            <TableCell className="text-right font-mono tabular-nums">{row.balanceText}</TableCell>
+            <TableCell className="text-right font-mono text-[11px] tabular-nums text-muted-foreground">
+              {row.asOfText}
+            </TableCell>
+          </TableRow>
+        ))}
+      </TableBody>
+    </Table>
+  </section>
+);
 
 const AccountList: React.FC = () => {
+  const navigate = useNavigate();
   const {
     accounts,
     localAccounts,
     loadingAccounts,
     showForm,
     setShowForm,
-    isReorderMode,
-    setIsReorderMode,
-    draggedAccountId,
-    dragOverAccountId,
     editingAccount,
     setEditingAccount,
-    snapshotAccountId,
-    setSnapshotAccountId,
-    historyAccountId,
-    setHistoryAccountId,
     fileInputRef,
     importing,
-    togglingAccountId,
     exportToCSV,
     handleCreate,
     handleUpdate,
     handleImport,
-    handleDragStart,
-    handleDragEnter,
-    handleDrop,
-    handleDragEnd,
-    saveOrder,
-    cancelReorderMode,
-    closeSnapshotEditor,
-    closeHistoryDialog,
-    handleToggleActive,
   } = useAccountListController();
 
-  const [showInactive, setShowInactive] = React.useState(false);
+  const [showInactive, setShowInactive] = useState(false);
 
-  const activeAccounts = localAccounts.filter((account) => account.isActive !== false);
-  const inactiveAccounts = localAccounts.filter((account) => account.isActive === false);
-  const visibleAccounts = isReorderMode
-    ? localAccounts
-    : showInactive
-      ? [...activeAccounts, ...inactiveAccounts]
-      : activeAccounts;
+  const visibleAccounts = useMemo(() => {
+    return localAccounts
+      .filter((account) => showInactive || account.isActive !== false)
+      .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+  }, [localAccounts, showInactive]);
+
+  const grouped = useMemo(() => {
+    const map = new Map<AccountCategory, AccountRowVM[]>();
+    for (const category of CATEGORY_ORDER) {
+      map.set(category, []);
+    }
+    for (const account of visibleAccounts) {
+      const rows = map.get(account.category);
+      if (rows) {
+        rows.push(toRowVM(account));
+      }
+    }
+    return map;
+  }, [visibleAccounts]);
+
+  const totalBalance = useMemo(
+    () =>
+      visibleAccounts
+        .filter((account) => account.isActive !== false)
+        .reduce((sum, account) => sum + (account.snapshot?.amount ?? 0), 0),
+    [visibleAccounts],
+  );
 
   if (showForm || editingAccount) {
     return (
@@ -72,134 +159,83 @@ const AccountList: React.FC = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <PageHeader
         title="帳戶管理"
-        description={
-          isReorderMode ? '拖拉卡片調整順序，完成後儲存變更' : '管理您的銀行、券商與現金帳戶'
-        }
+        description="管理您的銀行、券商與現金帳戶"
         meta={
-          !isReorderMode && (
-            <div className="mt-2 flex items-center gap-3 text-xs text-muted-foreground">
-              <span>啟用中 {activeAccounts.length} 筆</span>
-              <button
-                type="button"
-                className="underline underline-offset-2 hover:text-foreground"
-                onClick={() => setShowInactive((prev) => !prev)}
-              >
-                {showInactive ? '隱藏停用帳戶' : `顯示停用帳戶 (${inactiveAccounts.length})`}
-              </button>
-            </div>
-          )
+          <div className="mt-2 flex items-center gap-3 text-xs text-muted-foreground">
+            <span>啟用中 {visibleAccounts.filter((a) => a.isActive !== false).length} 筆</span>
+            <button
+              type="button"
+              className="underline underline-offset-2 hover:text-foreground"
+              onClick={() => setShowInactive((prev) => !prev)}
+            >
+              {showInactive ? '隱藏停用帳戶' : '顯示停用帳戶'}
+            </button>
+          </div>
         }
         actions={
           <div className="flex gap-2">
-            {isReorderMode ? (
-              <>
-                <Button onClick={saveOrder}>儲存順序</Button>
-                <Button variant="ghost" onClick={cancelReorderMode}>
-                  取消
-                </Button>
-              </>
-            ) : (
-              <>
-                <input
-                  type="file"
-                  ref={fileInputRef}
-                  onChange={handleImport}
-                  accept=".csv"
-                  className="hidden"
-                />
-                <Button variant="outline" onClick={exportToCSV} className="gap-2">
-                  <Download size={18} />
-                  匯出
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => fileInputRef.current?.click()}
-                  className="gap-2"
-                  disabled={importing}
-                >
-                  <Upload size={18} />
-                  {importing ? '匯入中...' : '匯入'}
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => setIsReorderMode(true)}
-                  className="gap-2"
-                  disabled={localAccounts.length < 2}
-                >
-                  <ListOrdered size={18} />
-                  排序
-                </Button>
-                <Button onClick={() => setShowForm(true)} className="gap-2">
-                  <Plus size={18} />
-                  新增帳戶
-                </Button>
-              </>
-            )}
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleImport}
+              accept=".csv"
+              className="hidden"
+            />
+            <Button variant="outline" onClick={exportToCSV} className="gap-2">
+              <Download size={18} />
+              匯出
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => fileInputRef.current?.click()}
+              className="gap-2"
+              disabled={importing}
+            >
+              <Upload size={18} />
+              {importing ? '匯入中...' : '匯入'}
+            </Button>
+            <Button onClick={() => setShowForm(true)} className="gap-2">
+              <Plus size={18} />
+              新增帳戶
+            </Button>
           </div>
         }
       />
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {visibleAccounts.map((account) => (
-          <AccountCard
-            key={account.id}
-            account={account}
-            isReorderMode={isReorderMode}
-            isDragging={draggedAccountId === account.id}
-            isDragOver={dragOverAccountId === account.id}
-            toggling={togglingAccountId === account.id}
-            onEdit={setEditingAccount}
-            onToggleActive={handleToggleActive}
-            onDragStart={handleDragStart}
-            onDragEnter={handleDragEnter}
-            onDrop={handleDrop}
-            onDragEnd={handleDragEnd}
-            onOpenSnapshot={setSnapshotAccountId}
-            onOpenHistory={setHistoryAccountId}
-          />
-        ))}
+      <div className="flex items-baseline justify-between">
+        <p className="font-mono text-[11px] tracking-widest text-muted-foreground uppercase">
+          TOTAL BALANCE
+        </p>
+        <p className="font-mono text-2xl tabular-nums text-foreground">
+          {formatCurrency(totalBalance)}
+        </p>
       </div>
 
-      {!loadingAccounts &&
-        activeAccounts.length === 0 &&
-        inactiveAccounts.length > 0 &&
-        !showInactive && (
-          <div className="rounded-xl border border-border bg-muted px-4 py-3 text-sm text-muted-foreground">
-            目前沒有啟用中的帳戶。可點擊「顯示停用帳戶」後重新啟用。
-          </div>
-        )}
-
       {!loadingAccounts && accounts.length === 0 && (
-        <div className="text-center py-20 bg-muted rounded-lg border-2 border-dashed border-border">
-          <div className="text-muted-foreground mb-4 flex justify-center">
-            <Landmark size={48} strokeWidth={1} />
-          </div>
-          <h3 className="text-lg font-medium text-foreground">目前沒有帳戶</h3>
-          <p className="text-muted-foreground mt-1">點擊「新增帳戶」按鈕開始管理您的資產</p>
+        <div className="rounded border border-dashed border-border bg-muted px-4 py-12 text-center">
+          <h3 className="font-medium text-foreground">目前沒有帳戶</h3>
+          <p className="mt-1 text-sm text-muted-foreground">點擊「新增帳戶」按鈕開始管理您的資產</p>
           <Button onClick={() => setShowForm(true)} variant="outline" className="mt-6">
             新增我的第一個帳戶
           </Button>
         </div>
       )}
 
-      {snapshotAccountId && (
-        <AccountSnapshotEditor
-          account={localAccounts.find((a) => a.id === snapshotAccountId)!}
-          isOpen={true}
-          onClose={closeSnapshotEditor}
-        />
-      )}
-
-      {historyAccountId && (
-        <AccountHistoryDialog
-          account={localAccounts.find((a) => a.id === historyAccountId)!}
-          isOpen={true}
-          onClose={closeHistoryDialog}
-        />
-      )}
+      {CATEGORY_ORDER.map((category) => {
+        const rows = grouped.get(category) ?? [];
+        if (rows.length === 0) return null;
+        return (
+          <AccountSection
+            key={category}
+            title={SECTION_TITLES[category] ?? 'OTHER'}
+            rows={rows}
+            onSelect={(id) => navigate(`/accounts/${id}`)}
+          />
+        );
+      })}
     </div>
   );
 };

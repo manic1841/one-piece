@@ -2,6 +2,8 @@
 
 Conformance (2026-09-18): prototype v1 and this spec agree — list pages are **tables**, not cards. The current card-based implementation of Accounts / Portfolio / Debt / Projects / Transactions diverges from both documents and is to be rebuilt per this spec, with presentation matching prototype v1 (tables, page structure, click-through detail pages). Presentation form follows prototype v1; fields and functionality follow this spec. Ticketed as S7.
 
+Conformance (2026-09-20, #122): rebuild landed on `feature/apple-design`. Accounts / Debt / Projects lists are spec tables with clickable rows and click-through detail routes (`/accounts/:id`, `/debt/:id`, `/projects/:id`); Transactions is a Date/Intent/Amount/Project table with a collapsible ACCOUNTING DETAILS accordion per row; Portfolio list is a Name/Securities/Bank/Portfolio Value/Return table. Detail pages follow the reading paths above (Accounts: Basic Info → Ending Balance → 12M Trend → 12M History → Holdings; Debt adds Outstanding Balance/Loan Information/Recent Payments; Portfolio adds Return Calculation accordion). Known divergences from the old card UI, pending owner confirmation on #122: portfolio reorder UI and projects per-row edit/delete were removed from the list surface; accounts surface dialogs (snapshot editor, history) replaced by detail pages; project income/expense aggregates come from project snapshots.
+
 ## Global shell
 System Header: Brand + Household/User Context + Search/Command + User Avatar + System Status.
 Main navigation is Pixel Pet. Implemented 2026-09-18 (#119): no bottom nav bar; the header Search control opens the Quick Access palette, and Ctrl/Cmd+K toggles it globally (see ADR-0055).

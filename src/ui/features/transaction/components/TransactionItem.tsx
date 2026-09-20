@@ -3,10 +3,22 @@ import React from 'react';
 import { Pencil, Trash2 } from 'lucide-react';
 
 import { Button } from '@/ui/components/ui/button';
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@/ui/components/ui/accordion';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/ui/components/ui/table';
 import { type TransactionListItemVM } from '@/ui/features/transaction/viewmodels/transaction-list.vm';
 import { cn } from '@/ui/utils/cn';
-
-import { TransactionIcon } from './TransactionIcon';
 
 interface TransactionItemProps {
   transaction: TransactionListItemVM;
@@ -14,14 +26,8 @@ interface TransactionItemProps {
   onDelete?: (transaction: TransactionListItemVM) => void;
 }
 
-export const TransactionItem: React.FC<TransactionItemProps> = ({
-  transaction,
-  onEdit,
-  onDelete,
-}) => {
+export const TransactionItem: React.FC<TransactionItemProps> = ({ transaction, onEdit, onDelete }) => {
   const {
-    intentType,
-    categoryKey,
     displayTitle,
     projectName,
     categoryLabel,
@@ -29,69 +35,47 @@ export const TransactionItem: React.FC<TransactionItemProps> = ({
     hasCashLedger,
     isPositive,
     amountText,
+    entries,
   } = transaction;
   const amountColor = isPositive ? 'text-positive' : 'text-negative';
-  const bgAlpha = isPositive ? 'hover:bg-positive/5' : 'hover:bg-negative/5';
+  const detailEntries = entries ?? [];
 
   return (
-    <div className={cn('group p-4 transition-all duration-200', bgAlpha)}>
-      <div className="flex items-center justify-between gap-4">
-        <div className="flex items-center gap-4 flex-1 min-w-0">
-          <div
-            className={cn(
-              'w-12 h-12 rounded-lg flex items-center justify-center shrink-0 shadow-sm transition-transform group-hover:scale-105',
-              isPositive ? 'bg-positive/15 text-positive' : 'bg-negative/15 text-negative',
-            )}
-          >
-            <TransactionIcon category={categoryKey} intentType={intentType} size={22} />
-          </div>
-
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-0.5">
-              <h4 className="font-semibold text-foreground truncate">{displayTitle}</h4>
-              {projectName && (
-                <span className="shrink-0 text-[10px] font-bold px-2 py-0.5 bg-accent text-muted-foreground rounded-md uppercase tracking-wider">
-                  {projectName}
-                </span>
-              )}
-            </div>
-
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <span className="font-medium text-muted-foreground">{categoryLabel}</span>
-              <span className="w-1 h-1 rounded-full bg-muted" />
-              <span>{dateText}</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-6">
-          <div className="text-right whitespace-nowrap">
-            <p
-              className={cn(
-                'text-lg font-bold tracking-tight tabular-nums',
-                hasCashLedger ? amountColor : 'text-warning',
-              )}
-            >
-              {isPositive ? '+' : '-'}
-              {amountText}
-            </p>
-            {!hasCashLedger && (
-              <p className="text-[9px] font-bold text-warning uppercase tracking-tighter">
-                No Cash Entry
-              </p>
-            )}
-          </div>
-
-          <div className="flex gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
+    <div className="border-b border-border last:border-b-0">
+      <TableRow data-testid={`transaction-row-${transaction.id}`} className="align-top">
+        <TableCell className="font-mono text-[12px] tabular-nums whitespace-nowrap">
+          {dateText}
+        </TableCell>
+        <TableCell>
+          <span className="block font-medium">{displayTitle}</span>
+          <span className="text-[11px] text-muted-foreground">{categoryLabel}</span>
+        </TableCell>
+        <TableCell
+          className={cn(
+            'text-right font-mono tabular-nums whitespace-nowrap',
+            hasCashLedger ? amountColor : 'text-warning',
+          )}
+        >
+          {isPositive ? '+' : '-'}
+          {amountText}
+          {!hasCashLedger && (
+            <span className="block text-[9px] font-bold uppercase tracking-tighter">
+              No Cash Entry
+            </span>
+          )}
+        </TableCell>
+        <TableCell className="text-muted-foreground">{projectName ?? '—'}</TableCell>
+        <TableCell>
+          <span className="flex justify-end gap-1">
             {onEdit && (
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={() => onEdit(transaction)}
                 aria-label="編輯交易"
-                className="h-9 w-9 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-xl"
+                className="h-8 w-8 text-muted-foreground hover:text-primary"
               >
-                <Pencil size={16} />
+                <Pencil size={15} />
               </Button>
             )}
             {onDelete && (
@@ -100,14 +84,47 @@ export const TransactionItem: React.FC<TransactionItemProps> = ({
                 size="icon"
                 onClick={() => onDelete(transaction)}
                 aria-label="刪除交易"
-                className="h-9 w-9 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-xl"
+                className="h-8 w-8 text-muted-foreground hover:text-destructive"
               >
-                <Trash2 size={16} />
+                <Trash2 size={15} />
               </Button>
             )}
-          </div>
-        </div>
-      </div>
+          </span>
+        </TableCell>
+      </TableRow>
+      <Accordion type="single" collapsible className="border-t border-border/50">
+        <AccordionItem value="accounting-details" className="border-b-0">
+          <AccordionTrigger className="px-4">ACCOUNTING DETAILS</AccordionTrigger>
+          <AccordionContent className="px-4">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Ledger Code</TableHead>
+                  <TableHead className="text-right">Debit</TableHead>
+                  <TableHead className="text-right">Credit</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {detailEntries.map((entry, index) => (
+                  <TableRow key={`${entry.ledgerCode}-${index}`}>
+                    <TableCell className="font-mono text-[12px]">{entry.ledgerLabel}</TableCell>
+                    <TableCell className="text-right font-mono tabular-nums">
+                      {entry.debit > 0 ? formatAmount(entry.debit) : '—'}
+                    </TableCell>
+                    <TableCell className="text-right font-mono tabular-nums">
+                      {entry.credit > 0 ? formatAmount(entry.credit) : '—'}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </AccordionContent>
+        </AccordionItem>
+      </Accordion>
     </div>
   );
 };
+
+function formatAmount(value: number): string {
+  return `$${value.toLocaleString('en-US', { maximumFractionDigits: 0 })}`;
+}

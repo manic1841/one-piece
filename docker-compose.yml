@@ -34,6 +34,10 @@ services:
       - '4000'
       - '8080'
       - '9099'
+    ports:
+      - '4000:4000'
+      - '8080:8080'
+      - '9099:9099'
     volumes:
       - firebase_data:/firebase
 

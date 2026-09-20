@@ -3,6 +3,13 @@ import React from 'react';
 import { Button } from '@/ui/components/ui/button';
 import { Card, CardContent } from '@/ui/components/ui/card';
 import { Input } from '@/ui/components/ui/input';
+import {
+  Table,
+  TableBody,
+  TableHeader,
+  TableRow,
+  TableHead,
+} from '@/ui/components/ui/table';
 import { type TransactionListItemVM } from '@/ui/features/transaction/viewmodels/transaction-list.vm';
 
 import { TransactionItem } from './TransactionItem';
@@ -140,11 +147,27 @@ export const TransactionList: React.FC<TransactionListProps> = ({
             </span>
           </div>
           <div className="bg-card rounded-lg shadow-sm border border-border overflow-hidden divide-y divide-border">
-            {transactions.map((item) => (
-              <div key={item.id}>
-                <TransactionItem transaction={item} onEdit={onEdit} onDelete={onDelete} />
-              </div>
-            ))}
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Intent</TableHead>
+                  <TableHead className="text-right">Amount</TableHead>
+                  <TableHead>Project</TableHead>
+                  <TableHead className="w-24"></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {transactions.map((item) => (
+                  <TransactionItem
+                    key={item.id}
+                    transaction={item}
+                    onEdit={onEdit}
+                    onDelete={onDelete}
+                  />
+                ))}
+              </TableBody>
+            </Table>
           </div>
         </section>
       ))}
