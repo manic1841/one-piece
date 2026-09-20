@@ -163,7 +163,7 @@ const SettingsUI: React.FC<SettingsUIProps> = (props) => {
 
       {isAdmin && (
         <section className="space-y-4">
-          <div className="bg-elevated rounded-xl border border-border shadow-sm p-4 text-foreground">
+          <div className="bg-elevated rounded-lg border border-border p-4 text-foreground">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-card/20 rounded-full flex items-center justify-center">
                 <ShieldAlert size={20} />

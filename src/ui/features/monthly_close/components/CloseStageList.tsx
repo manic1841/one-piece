@@ -34,7 +34,7 @@ export const CloseStageList: React.FC<CloseStageListProps> = ({
         const canConfirm = !isClosed && !stage.isCompleted;
 
         return (
-          <Card key={stage.stageId} className="rounded-lg border-border/60 shadow-sm">
+          <Card key={stage.stageId} className="rounded-lg border-border/60">
             <CardContent className="space-y-4 p-5">
               <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
@@ -43,7 +43,7 @@ export const CloseStageList: React.FC<CloseStageListProps> = ({
                     label={getCloseStageLabel(stage.stageId as never)}
                   />
                   {isReviewSource && (
-                    <span className="rounded-full border border-warning/30 bg-warning/10 px-2 py-0.5 text-[10px] font-semibold text-warning">
+                    <span className="rounded-sm border border-warning/30 bg-warning/10 px-2 py-0.5 text-[10px] font-semibold text-warning">
                       {MONTHLY_CLOSE_LABELS.PAUSED}
                     </span>
                   )}

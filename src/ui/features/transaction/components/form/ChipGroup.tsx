@@ -32,7 +32,7 @@ export function ChipGroup({ options, value, onChange, tone }: ChipGroupProps) {
             type="button"
             onClick={() => onChange(option.value)}
             className={cn(
-              'rounded-full border px-3 py-1.5 text-sm font-medium transition-colors',
+              'rounded-sm border px-3 py-1.5 text-sm font-medium transition-colors',
               selected ? activeClass[tone] : toneClass[tone],
             )}
           >

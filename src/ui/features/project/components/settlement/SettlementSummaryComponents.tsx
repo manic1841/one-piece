@@ -50,8 +50,8 @@ export function NoSummaryCard({
     debtWarnings.length > 0;
 
   return (
-    <div className="bg-warning/5 border border-warning/20 rounded-lg p-8 flex flex-col md:flex-row items-center gap-6 shadow-sm min-h-[280px]">
-      <div className="bg-warning/10 p-4 rounded-lg text-warning shadow-inner">
+    <div className="bg-warning/5 border border-warning/20 rounded-lg p-8 flex flex-col md:flex-row items-center gap-6 min-h-[280px]">
+      <div className="bg-warning/10 p-4 rounded-lg text-warning">
         {isLoading ? (
           <Loader2 size={32} strokeWidth={2.5} className="animate-spin" />
         ) : (
@@ -86,7 +86,7 @@ export function NoSummaryCard({
         <Button
           variant="default"
           onClick={onGoToSettlement}
-          className="bg-primary text-primary-foreground hover:bg-primary/90 border-0 shadow-lg shrink-0 gap-2 h-12 px-6 rounded-xl font-bold"
+          className="shrink-0 gap-2 h-12 px-6 rounded-md font-bold"
         >
           立刻前往結算 <ArrowRight size={18} />
         </Button>
@@ -194,7 +194,7 @@ export function ReportStatusSection({
 }) {
   return (
     <div className="flex flex-col md:flex-row items-stretch gap-6">
-      <div className="flex-1 bg-card border border-border/60 rounded-lg p-8 space-y-6 shadow-sm">
+      <div className="flex-1 bg-card border border-border/60 rounded-lg p-8 space-y-6">
         <div className="space-y-3">
           <div className="flex items-center gap-2.5">
             <div className="bg-accent p-2 rounded-lg text-foreground">
@@ -220,7 +220,7 @@ export function ReportStatusSection({
 
 function ErrorAlert({ message }: { message: string }) {
   return (
-    <div className="flex items-center gap-3 text-sm font-bold text-negative bg-negative/5 p-4 rounded-xl border border-negative/20 animate-in shake duration-500">
+    <div className="flex items-center gap-3 text-sm font-bold text-negative bg-negative/5 p-4 rounded-lg border border-negative/20 animate-in shake duration-500">
       <AlertCircle size={18} className="shrink-0" />
       {message}
     </div>
@@ -272,7 +272,7 @@ function StatCard({
 }) {
   return (
     <div
-      className={`${bgClass} border border-border rounded-lg p-5 space-y-2 transition-all hover:shadow-md hover:translate-y-[-2px]`}
+      className={`${bgClass} border border-border rounded-lg p-5 space-y-2 transition-all hover:translate-y-[-2px]`}
     >
       <div className="flex items-center gap-2">
         {icon}
@@ -296,7 +296,7 @@ function ReportStatusItem({
 }) {
   return (
     <div
-      className={`flex flex-col gap-1 p-4 rounded-xl border transition-all ${isDone ? 'bg-muted border-border shadow-sm' : 'bg-card border-dashed border-border opacity-50'}`}
+      className={`flex flex-col gap-1 p-4 rounded-lg border transition-all ${isDone ? 'bg-muted border-border' : 'bg-card border-dashed border-border opacity-50'}`}
     >
       <span className="text-xs font-black text-foreground tracking-tight">{label}</span>
       <span className="text-[10px] font-bold text-muted-foreground">

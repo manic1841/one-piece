@@ -159,7 +159,6 @@ const Transactions: React.FC = () => {
               resetEditState();
               setIsFormOpen(true);
             }}
-            className="gap-2 shadow-sm"
           >
             <Plus className="w-4 h-4" />
             新增交易
@@ -167,7 +166,7 @@ const Transactions: React.FC = () => {
         }
       />
 
-      <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between bg-card p-4 rounded-xl border border-border shadow-sm">
+      <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between pb-4 border-b border-border">
         <div className="relative w-full md:w-96">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
@@ -177,21 +176,22 @@ const Transactions: React.FC = () => {
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
-        <div className="flex gap-2 overflow-x-auto w-full md:w-auto pb-1 md:pb-0">
+        <div className="flex gap-1 overflow-x-auto w-full md:w-auto">
           {[
             { id: 'ALL', label: '全部' },
             { id: 'EXPENSE', label: getIntentTypeLabel('EXPENSE') },
             { id: 'INCOME', label: getIntentTypeLabel('INCOME') },
             { id: 'INVESTMENT', label: getIntentTypeLabel('INVESTMENT') },
+            { id: 'FINANCING', label: getIntentTypeLabel('FINANCING') },
           ].map((type) => (
             <button
               key={type.id}
               onClick={() => setFilterType(type.id)}
               className={cn(
-                'px-4 py-1.5 rounded-full text-sm font-medium transition-all whitespace-nowrap',
+                'px-3 py-2 text-sm whitespace-nowrap transition-colors duration-fast active:scale-[0.97]',
                 filterType === type.id
-                  ? 'bg-primary text-primary-foreground shadow-md'
-                  : 'bg-muted text-muted-foreground hover:bg-muted',
+                  ? 'text-foreground font-semibold border-b-2 border-primary'
+                  : 'text-muted-foreground hover:text-foreground',
               )}
             >
               {type.label}

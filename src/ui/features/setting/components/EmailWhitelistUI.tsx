@@ -88,7 +88,7 @@ const EmailWhitelistUI: React.FC<EmailWhitelistUIProps> = ({
             <CardTitle>Email Whitelist</CardTitle>
             <CardDescription>Only whitelisted users can access this application</CardDescription>
           </div>
-          <div className="px-3 py-1 bg-primary/15 text-primary rounded-full text-sm font-medium">
+          <div className="px-3 py-1 bg-primary/15 text-primary rounded text-sm font-medium">
             {whitelist.length} {whitelist.length === 1 ? 'user' : 'users'}
           </div>
         </div>

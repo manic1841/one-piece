@@ -45,7 +45,7 @@ export function DebtPaymentHistory({ debtAccountId, getHistory }: DebtPaymentHis
   }
 
   return (
-    <div className="mt-4 overflow-hidden rounded-xl border border-border bg-muted/50">
+    <div className="mt-4 overflow-hidden rounded-lg border border-border bg-muted/50">
       <table className="w-full text-left text-sm">
         <thead className="bg-muted/50 text-muted-foreground">
           <tr>

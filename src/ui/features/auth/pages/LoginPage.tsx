@@ -71,7 +71,7 @@ const Login: React.FC = () => {
               variant="default"
               onClick={handleGoogleLogin}
               disabled={loading}
-              className="w-full h-12 text-lg font-semibold shadow-md hover:shadow-lg transition-all duration-200"
+              className="w-full h-12 text-lg font-semibold transition-all duration-200"
             >
               <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
                 <path

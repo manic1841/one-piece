@@ -48,7 +48,7 @@ const BalanceSheetPage: React.FC<BalanceSheetPageProps> = ({
           <h4 className="font-semibold text-foreground">{group.label}</h4>
           <span className="font-bold text-foreground">{group.totalText}</span>
         </div>
-        <div className="bg-card rounded-xl border border-border overflow-hidden">
+        <div className="bg-card rounded-lg border border-border overflow-hidden">
           {group.items.map((item) => (
             <div
               key={item.code}
@@ -104,7 +104,7 @@ const BalanceSheetPage: React.FC<BalanceSheetPageProps> = ({
             </div>
           )}
 
-          <div className="flex justify-between items-center py-4 px-4 bg-primary text-primary-foreground rounded-xl">
+          <div className="flex justify-between items-center py-4 px-4 bg-primary text-primary-foreground rounded-lg">
             <span className="font-bold">期末權益 (Total Equity)</span>
             <span className="text-xl font-bold">{equity.totalText}</span>
           </div>

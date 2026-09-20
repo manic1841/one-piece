@@ -66,7 +66,7 @@ const AccountForm: React.FC<AccountFormProps> = ({ initialData, onSubmit, onCanc
   }, [initialData, form]);
 
   return (
-    <div className="bg-card rounded-xl shadow-sm border border-border overflow-hidden">
+    <div className="bg-card rounded-lg border border-border overflow-hidden">
       <div className="px-6 py-4 border-b border-border flex justify-between items-center bg-muted/50">
         <h3 className="text-lg font-semibold text-foreground">
           {initialData ? '編輯帳戶' : '新增帳戶'}

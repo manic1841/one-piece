@@ -17,7 +17,7 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({ householdId, project, 
   return (
     <Card
       onClick={onClick}
-      className="hover:shadow-md transition-all cursor-pointer hover:border-primary/20"
+      className="transition-all cursor-pointer hover:border-primary/20"
     >
       <CardHeader className="flex flex-row items-center gap-3 space-y-0 pb-2">
         <div>

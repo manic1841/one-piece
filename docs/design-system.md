@@ -71,6 +71,13 @@ Token（定義於 `tailwind.config.js`，全部走 CSS 變數）：
 - 透明層之上不再疊透明層；popover 疊在 sidebar 上時改用 L3 實心材質。
 - 深色主題下提高半透明層的不透明度（視覺上的玻璃在暗處需更厚），確保文字對比。
 
+### 2.3.1 半徑與陰影收斂
+
+- `rounded-lg`（`--radius` = 0.25rem）為容器預設半徑；`rounded-xl` 已全站移除。`rounded-md`/`rounded-sm` 用於按鈕與小型 chip，`rounded` 用於 inline badge。
+- `rounded-full` 僅保留本質圓形元素：avatar、switch、spinner、狀態點、資料膠囊（progress 軌道）；pill / badge / icon button 類一律方角。
+- 陰影預設不使用；僅浮出層保留（dialog、sheet、dropdown、popover、select、toast、command palette、switch knob、L1 浮動 chrome）。Card base 無陰影，hover 不升起陰影。
+- Summary / Metric / Section / History / Table / Workflow 表面不強制 Card，改以 Typography / Divider / Whitespace 分層；Card 保留給 distinct module、interactive module、alert、special state。
+
 ### 2.4 字體排印
 
 - 正文使用系統字體堆疊（含 `'Noto Sans TC'` 以覆蓋繁中）；`src/index.css` 另引入 `@fontsource-variable/inter`（拉丁正文）與 `@fontsource-variable/jetbrains-mono`（等寬）。

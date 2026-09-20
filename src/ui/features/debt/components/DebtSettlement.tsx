@@ -54,12 +54,12 @@ export const DebtSettlement: React.FC<DebtSettlementProps> = ({
 
     return (
       <div className="space-y-5 py-2">
-        <div className="p-4 bg-muted border border-border rounded-xl space-y-2">
+        <div className="p-4 bg-muted border border-border rounded-lg space-y-2">
           <p className="text-sm font-semibold text-foreground">{preview.yearMonth} 債務結算預覽</p>
           <p className="text-xs text-muted-foreground">請確認每個債務帳戶當月還款紀錄與快照建立狀態。</p>
         </div>
 
-        <div className="max-h-64 overflow-auto border border-border rounded-xl">
+        <div className="max-h-64 overflow-auto border border-border rounded-lg">
           <table className="w-full text-sm">
             <thead className="bg-muted text-muted-foreground sticky top-0">
               <tr>
@@ -154,7 +154,7 @@ export const DebtSettlement: React.FC<DebtSettlementProps> = ({
   return (
     <div className="space-y-6 py-2">
       <div className="space-y-4">
-        <div className="p-4 bg-primary/10 border border-primary/20 rounded-xl">
+        <div className="p-4 bg-primary/10 border border-primary/20 rounded-lg">
           <p className="text-xs text-primary leading-relaxed">
             結算功能會為所有債務帳戶建立該月份的快照 (Snapshot)。
             如果該月有還款紀錄，快照將包含還款後的餘額；若無還款，則以目前餘額作為月底結算值。

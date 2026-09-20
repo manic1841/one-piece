@@ -144,7 +144,7 @@ export const AccountSnapshotTable: React.FC<AccountSnapshotTableProps> = ({
                       {isExpanded && hasHoldings && (
                         <TableRow className="bg-muted/50 border-t-0">
                           <TableCell colSpan={5} className="py-0 pb-4">
-                            <div className="ml-7 border rounded-lg bg-card overflow-hidden shadow-sm">
+                            <div className="ml-7 border rounded-lg bg-card overflow-hidden">
                               <Table>
                                 <TableHeader className="bg-muted">
                                   <TableRow className="hover:bg-transparent">

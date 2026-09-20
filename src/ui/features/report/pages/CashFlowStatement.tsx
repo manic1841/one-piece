@@ -60,7 +60,7 @@ const CashFlowStatement: React.FC<CashFlowStatementProps> = ({
     return (
       <div
         key={id}
-        className="bg-card rounded-xl border border-border overflow-hidden mb-4"
+        className="bg-card rounded-lg border border-border overflow-hidden mb-4"
       >
         <button
           onClick={() => toggleSection(id)}

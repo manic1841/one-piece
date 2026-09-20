@@ -33,7 +33,7 @@ export function DynamicCategorySelector({
   const options = allLedgerCodes.filter((c) => c.code.startsWith(prefix));
 
   return (
-    <div className="space-y-2 mt-4 p-3 bg-muted rounded-xl border border-border">
+    <div className="space-y-2 mt-4 p-3 bg-muted rounded-lg border border-border">
       <Label className="text-xs text-muted-foreground uppercase tracking-wider font-bold">
         屬性 / 詳細類別
       </Label>

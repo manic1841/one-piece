@@ -130,7 +130,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
 
         <form onSubmit={handleSubmit} className="space-y-5">
           {error ? (
-            <div className="rounded-xl border border-negative/20 bg-negative/10 px-4 py-3 text-sm text-negative">
+            <div className="rounded-lg border border-negative/20 bg-negative/10 px-4 py-3 text-sm text-negative">
               {error}
             </div>
           ) : null}
@@ -139,7 +139,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
             value={activeTab}
             onValueChange={(value) => setActiveTab(value as TransactionFormTab)}
           >
-            <TabsList className="grid h-auto w-full grid-cols-3 gap-2 rounded-xl p-2 md:grid-cols-5">
+            <TabsList className="grid h-auto w-full grid-cols-3 gap-2 rounded-lg p-2 md:grid-cols-5">
               <TabsTrigger value="EXPENSE" className="gap-1">
                 <ReceiptText className="h-3.5 w-3.5" />
                 {getIntentTypeLabel('EXPENSE')}
@@ -224,7 +224,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
                   {getIntentTypeLabel(preview.intentType)}
                 </Badge>
                 {previewDetails.map((detail) => (
-                  <span key={detail} className="rounded-full border border-foreground/10 px-3 py-1">
+                  <span key={detail} className="rounded border border-foreground/10 px-3 py-1">
                     {detail}
                   </span>
                 ))}

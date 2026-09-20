@@ -42,13 +42,13 @@ export default function RetirementPlanList() {
         {planItems.map((plan) => (
           <Card
             key={plan.id}
-            className="cursor-pointer hover:shadow-md transition-shadow"
+            className="cursor-pointer transition-shadow"
             onClick={() => navigate(`/retirement/${plan.id}`)}
           >
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">{plan.name}</CardTitle>
               {plan.isActive && (
-                <span className="inline-flex items-center rounded-full bg-positive/10 px-2 py-1 text-xs font-medium text-positive ring-1 ring-inset ring-positive/20">
+                <span className="inline-flex items-center rounded bg-positive/10 px-2 py-1 text-xs font-medium text-positive ring-1 ring-inset ring-positive/20">
                   Active
                 </span>
               )}

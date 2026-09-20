@@ -109,7 +109,7 @@ export const ReportHeader: React.FC<ReportHeaderProps> = ({
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={onBack} className="rounded-full">
+          <Button variant="ghost" size="icon" onClick={onBack}>
             <ArrowLeft size={24} />
           </Button>
           <div>
@@ -215,7 +215,7 @@ export const ReportHeader: React.FC<ReportHeaderProps> = ({
             <PopoverTrigger asChild>
               <Button
                 variant="outline"
-                className="bg-card border-border shadow-sm hover:bg-muted px-4 h-11 rounded-xl flex items-center gap-3 transition-all active:scale-95"
+                className="bg-card border-border hover:bg-muted px-4 h-11 rounded-lg flex items-center gap-3 transition-all active:scale-95"
               >
                 <div className="bg-accent p-1.5 rounded-lg text-foreground">
                   <Calendar size={18} />
@@ -228,7 +228,7 @@ export const ReportHeader: React.FC<ReportHeaderProps> = ({
               </Button>
             </PopoverTrigger>
             <PopoverContent
-              className="w-80 p-6 rounded-lg shadow-2xl border-border"
+              className="w-80 p-6 rounded-lg shadow-lg border-border"
               align="end"
             >
               <div className="space-y-4">
@@ -267,9 +267,9 @@ export const ReportHeader: React.FC<ReportHeaderProps> = ({
             key={tab.id}
             onClick={() => onViewChange(tab.id)}
             className={cn(
-              'flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-black transition-all',
+              'flex items-center gap-2 px-6 py-2.5 rounded-lg text-sm font-black transition-all',
               currentView === tab.id
-                ? 'bg-card text-foreground shadow-md shadow-border/50 translate-y-[-1px]'
+                ? 'bg-card text-foreground'
                 : 'text-muted-foreground hover:text-foreground hover:bg-card/50',
             )}
           >

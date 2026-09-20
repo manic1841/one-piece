@@ -57,13 +57,13 @@ const Reports: React.FC = () => {
   return (
     <div className="relative space-y-12 max-w-5xl mx-auto pb-20">
       {/* Background decoration */}
-      <div className="absolute top-[-10%] right-[-10%] w-[40%] h-[40%] bg-foreground/5 blur-[120px] rounded-full -z-10 animate-pulse" />
+      <div className="absolute top-[-10%] right-[-10%] w-[40%] h-[40%] bg-foreground/5 blur-[120px] rounded-lg -z-10 animate-pulse" />
 
       <PageHeader
         title="財務報表中心"
         description="即時追蹤損益狀況，深度分析資產分佈與現金流。"
         badge={
-          <span className="text-xs bg-primary/10 text-primary px-2.5 py-1 rounded-full font-bold uppercase tracking-caption">
+          <span className="text-xs bg-primary/10 text-primary px-2.5 py-1 rounded border font-mono text-[11px] font-bold uppercase tracking-caption">
             Standard
           </span>
         }
@@ -129,14 +129,14 @@ function ReportLinkCard({
   return (
     <Card
       onClick={onClick}
-      className={`group bg-card ${border} hover:shadow-xl hover:shadow-border/50 transition-all duration-300 cursor-pointer overflow-hidden rounded-lg border-0 ring-1 ring-border`}
+      className={`group bg-card ${border} transition-all duration-300 cursor-pointer overflow-hidden rounded-lg border-0 ring-1 ring-border`}
     >
       <CardContent className="p-0">
         <div
           className={`p-8 flex justify-between items-center ${iconColor} bg-card/40 backdrop-blur-sm`}
         >
           {icon}
-          <div className="bg-card p-2 rounded-full shadow-sm group-hover:translate-x-1 transition-transform">
+          <div className="bg-card p-2 rounded group-hover:translate-x-1 transition-transform">
             <ChevronRight size={20} />
           </div>
         </div>

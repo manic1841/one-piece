@@ -64,7 +64,7 @@ export function IncomePanel({
           placeholder="例如：薪資、獎金、退款回補"
         />
       </div>
-      <label className="flex items-start gap-3 rounded-xl border border-positive/20 bg-positive/10 px-4 py-3 text-sm text-positive">
+      <label className="flex items-start gap-3 rounded-lg border border-positive/20 bg-positive/10 px-4 py-3 text-sm text-positive">
         <Checkbox
           checked={state.triggerAllocation}
           onCheckedChange={(checked) =>

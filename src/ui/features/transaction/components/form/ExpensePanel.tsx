@@ -79,7 +79,7 @@ export function ExpensePanel({
           placeholder="補充這筆支出的脈絡"
         />
       </div>
-      <label className="flex items-start gap-3 rounded-xl border border-negative/20 bg-negative/10 px-4 py-3 text-sm text-negative">
+      <label className="flex items-start gap-3 rounded-lg border border-negative/20 bg-negative/10 px-4 py-3 text-sm text-negative">
         <Checkbox
           checked={state.triggerAllocation}
           onCheckedChange={(checked) =>

@@ -136,7 +136,7 @@ const MemberManagementUI: React.FC<MemberManagementUIProps> = ({
                       </p>
                     </div>
                     {uid === currentUser?.uid && (
-                      <span className="text-[10px] px-2 py-0.5 bg-muted text-muted-foreground rounded-full">
+                      <span className="text-[10px] px-2 py-0.5 bg-muted text-muted-foreground rounded">
                         You
                       </span>
                     )}

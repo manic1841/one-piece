@@ -101,7 +101,7 @@ export const LedgerCodeSettings = () => {
                   <h3 className="text-xs font-black uppercase tracking-widest text-muted-foreground px-1 border-l-2 border-primary pl-3">
                     {type} Categories
                   </h3>
-                  <div className="border rounded-xl overflow-hidden divide-y bg-card">
+                  <div className="border rounded-lg overflow-hidden divide-y bg-card">
                     {items.length === 0 && (
                       <div className="p-8 text-center text-muted-foreground text-sm italic">
                         No categories defined for this type.
