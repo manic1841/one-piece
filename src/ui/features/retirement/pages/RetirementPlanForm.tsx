@@ -111,21 +111,21 @@ const RetirementPlanForm: React.FC = () => {
         <AccordionItem value="overview">
           <AccordionTrigger>{RetirementWorkspaceSectionLabels.overview}</AccordionTrigger>
           <AccordionContent>
-            <ProjectionResultsContent projectionVM={projectionVM} />
+            <ProjectionResultsContent projectionVM={projectionVM} section="overview" />
           </AccordionContent>
         </AccordionItem>
 
         <AccordionItem value="netWorth">
           <AccordionTrigger>{RetirementWorkspaceSectionLabels.netWorth}</AccordionTrigger>
           <AccordionContent>
-            <ProjectionResultsContent projectionVM={projectionVM} />
+            <ProjectionResultsContent projectionVM={projectionVM} section="netWorth" />
           </AccordionContent>
         </AccordionItem>
 
         <AccordionItem value="cashFlow">
           <AccordionTrigger>{RetirementWorkspaceSectionLabels.cashFlow}</AccordionTrigger>
           <AccordionContent>
-            <ProjectionResultsContent projectionVM={projectionVM} />
+            <ProjectionResultsContent projectionVM={projectionVM} section="cashFlow" />
           </AccordionContent>
         </AccordionItem>
 
