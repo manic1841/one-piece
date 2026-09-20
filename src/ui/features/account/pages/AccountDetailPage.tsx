@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 
 import { useParams } from 'react-router-dom';
 
-import { type AccountWithSnapshot } from '@/domains/account/types/account';
+import { type AccountSnapshot, type AccountWithSnapshot } from '@/domains/account/types/account';
 import { AccountCategoryLabels } from '@/ui/constants/account/label';
 import { Badge } from '@/ui/components/ui/badge';
 import {
@@ -16,6 +16,7 @@ import {
 import { PageHeader } from '@/ui/components/PageHeader';
 import { useAuth } from '@/infra/contexts/useAuth';
 import { getAccountsWithSnapshotsUseCase } from '@/application/account/use_cases/getAccountsWithSnapshotsUseCase';
+import { getAccountHistoryUseCase } from '@/application/account/use_cases/getAccountHistoryUseCase';
 import { formatCurrency, formatDate } from '@/ui/utils';
 
 interface AccountDetailPageProps {
@@ -141,6 +142,7 @@ const AccountDetailPage: React.FC<AccountDetailPageProps> = ({ account }) => {
 
   const [fetchedAccount, setFetchedAccount] = useState<AccountWithSnapshot | null>(null);
   const [loading, setLoading] = useState(true);
+  const [history, setHistory] = useState<AccountSnapshot[]>([]);
 
   const activeAccount = account ?? fetchedAccount;
 
@@ -175,20 +177,46 @@ const AccountDetailPage: React.FC<AccountDetailPageProps> = ({ account }) => {
     };
   }, [account, householdId, id, userProfile]);
 
-  const trend = useMemo(
-    () => buildTrendGeometry([activeAccount?.snapshot ?? null]),
-    [activeAccount?.snapshot],
-  );
+  useEffect(() => {
+    let ignore = false;
+    const loadHistory = async () => {
+      if (!householdId || !id) {
+        return;
+      }
+      try {
+        const snapshots = await getAccountHistoryUseCase.execute({
+          householdId,
+          accountId: id,
+          auth: {
+            uid: userProfile?.uid ?? '',
+            email: userProfile?.email,
+          },
+        });
+        if (!ignore) setHistory(snapshots);
+      } catch {
+        if (!ignore) setHistory([]);
+      }
+    };
+    void loadHistory();
+    return () => {
+      ignore = true;
+    };
+  }, [householdId, id, userProfile]);
 
-  const history = useMemo(
-    () => (activeAccount?.snapshot ? [activeAccount.snapshot] : []),
-    [activeAccount?.snapshot],
+  const trend = useMemo(
+    () => buildTrendGeometry(history),
+    [history],
   );
 
   const holdings = useMemo(() => {
     const snapshotHoldings = activeAccount?.snapshot?.holdings ?? [];
     return snapshotHoldings.map((holding, index) => toHoldingRowVM(holding, index));
   }, [activeAccount?.snapshot]);
+
+  const historyRows = useMemo(
+    () => history.slice().reverse(),
+    [history],
+  );
 
   const isActive = activeAccount?.isActive !== false;
 
@@ -295,7 +323,7 @@ const AccountDetailPage: React.FC<AccountDetailPageProps> = ({ account }) => {
 
       <section className="space-y-3">
         <SectionTitle>12M HISTORY</SectionTitle>
-        {history.length === 0 ? (
+        {historyRows.length === 0 ? (
           <p className="text-sm text-muted-foreground">目前尚無結算紀錄</p>
         ) : (
           <Table>
@@ -306,13 +334,13 @@ const AccountDetailPage: React.FC<AccountDetailPageProps> = ({ account }) => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {history.map((snapshot) => (
-                <TableRow key={snapshot!.id}>
+              {historyRows.map((snapshot) => (
+                <TableRow key={snapshot.id}>
                   <TableCell className="font-mono text-[12px]">
-                    {MONTH_NAMES[snapshot!.month - 1]} {snapshot!.year}
+                    {MONTH_NAMES[snapshot.month - 1]} {snapshot.year}
                   </TableCell>
                   <TableCell className="text-right font-mono tabular-nums">
-                    {formatCurrency(snapshot!.amount)}
+                    {formatCurrency(snapshot.amount)}
                   </TableCell>
                 </TableRow>
               ))}
