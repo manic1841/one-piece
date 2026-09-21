@@ -50,10 +50,11 @@ AccountDetailPage `:232` currency、PortfolioDetail `:216` date、WatchListSetti
 
 #131 經用戶確認（Badge 狀態欄）。不重開。
 
-### 6. PortfolioDetailPage 無 PageHeader（§1/§12）— accepted, medium
+### 6. PortfolioDetailPage 無 PageHeader（§1/§12）— resolved 2026-09-21
 
 **File:** `src/ui/features/portfolio/pages/PortfolioDetailPage.tsx`（0 個 PageHeader 引用，使用 PortfolioDetail 元件內建 header）
 §1 Page Shell 統一 header；其他 detail 頁（Account / Debt / Project）皆已 PageHeader + back + header actions。之前「detail header 不遷移」是 Apple-design redesign 範圍邊界，Standard 現在涵蓋它 → 合規落差。PortfolioDetail 複雜且有既有測試，遷移需小心。**裁決：遷移至 PageHeader（含 back + header actions）。**
+**已修正（#137，2026-09-21，@ 5064822）**：遷移至 shared PageHeader（back + Edit header action），與其他 detail 頁一致。
 
 ### 7. YearlyDetails 橫向捲動表格（§28）— fix, medium — resolved 2026-09-21
 
@@ -62,7 +63,7 @@ AccountDetailPage `:232` currency、PortfolioDetail `:216` date、WatchListSetti
 **已修正（#138，2026-09-21）**：mobile compact row 顯示 Year + Savings（收盤淨資產）+ 展開，其餘欄位在 reveal 區，閱讀順序與桌面一致；`overflow-x-auto` 移除；md+ 維持 table。
 （TransactionsPage `:179` 的 `overflow-x-auto` 是 chip-group 捲動條，非 data table，記錄即可。）
 
-### 8. Mobile compact-row 覆蓋薄弱（§28/§38）— runtime verification — verified 2026-09-21
+### 8. Mobile compact-row 覆蓋薄弱（§28/§38）— runtime verification — resolved 2026-09-21
 
 僅 4 檔使用 `md:hidden` / `hidden md:` / `sm:hidden`（PixelPet、DashboardPage、RetirementPlanList、MonthlyClosePage）。Account / Debt / Transactions / Portfolios / Projects 列表表格在 mobile 的實際行為無法由靜態掃描確認。
 **Fix:** runtime 驗證 task — 390px viewport DOM 檢查（每個 list table 是否 overflow / squash / 退化 compact rows）。
@@ -73,17 +74,22 @@ AccountDetailPage `:232` currency、PortfolioDetail `:216` date、WatchListSetti
 - **Transactions（/transactions）— fail（最嚴重）**。按月分組 21 張 5-col 表（Date / Intent / Amount / Project / actions），每張 table 689px vs wrapper 342px（~2x 超寬），wrapper 橫向捲動；1127 個 element 橫向超出文件層。另發現 HTML 有效性錯誤：`TransactionItem` 在 `<tbody>` 內 render `<div>` wrapper（React DOM validateDOMNesting 錯誤）。
 - **Portfolios（/portfolios）— fail**。5-col 表（Name / Securities / Bank / Portfolio Value / Return）table 403px vs wrapper 358px，wrapper 橫向捲動；7 個 element 超出（僅 table 內部，文件層 overflowX = 0）。
 - **Projects（/projects）— fail（含 header）**。5-col 表（Name / Status / Income / Expense / Net Cash Flow）table 433px vs wrapper 343px，wrapper 橫向捲動；且文件層 overflowX = 44px：header 三顆文字按鈕（Settings / Settlement / New Project）無法 wrap，把 main 撐出 390px。
+
 **裁決：4 頁 fail（Debt / Transactions / Portfolios / Projects），follow-up issues 已開。** 共同模式：5-col 資料表在 390px 以 `overflow-x-auto` wrapper 捲動，未提供 compact-row 退化（§28 不以橫向捲動為主要解法）。裁決原則：**mobile layout 依資料密度決定，不是全部 List 統一改 Card** — AccountList 記錄為合規（3 欄 + 分組是可行模式，作為 mobile list benchmark），其餘 4 頁針對實際問題退化 compact rows。追蹤：P0 umbrella #147（Debt #141 / Transactions redesign #142 / Portfolios #143 / Projects list #144）；獨立 task：Transactions div-in-tbody DOM 修正 #145（implementation bug，獨立修）、Projects header 溢出 #146（移除 Settings + 允許 wrap）。
+
+**已修正（#141-#146，2026-09-21）**：DebtList（066384d）、Portfolios（5e0b8af）、Projects（5831df2）退化為 mobile compact rows（`md:hidden`）+ 桌面 table 不變；Transactions 每月 compact row 重設計（fa00c1a）+ div-in-tbody 修正（723dedb）；Projects header 移除 Settings、允許 wrap、Settings 移入 overflow menu（a33738e）。
+**複驗通過（#147，2026-09-21，@ a3d0b95）**：五頁 390px overflowX 全部 = 0；compact rows 只出現在 4 個高密度表格，AccountList 維持 3-col 分組表 benchmark；桌面 table 欄位全部不變。`/transactions` 僅剩的 `overflow-x-auto` 是 intent-type 分段控制，343px 內容 vs 343px viewport 無溢出，非捲動依賴。
 
 ### 9. Dashboard Close / Recent 順序 vs §25 — resolved 2026-09-21
 
 現況 = hero → stat row → Trend → Snapshot → Details → Close → Recent。
 **裁決：修訂 Standard。** §25 已更新為 Close → Recent（workflow 入口時間敏感優先於系統日誌），與實作一致，記錄為合規。
 
-### 10. Mobile 導覽主導權（§29/§30）— accepted, high
+### 10. Mobile 導覽主導權（§29/§30）— resolved 2026-09-21
 
 現況 mobile = 既有 bottom nav + More sheet 為主要導覽，Pixel Pet 為額外入口（#10 修訂決策）。
 **裁決：Pet 為主。** bottom nav + More sheet 退場，Pixel Pet + bottom sheet 為 mobile 唯一導覽入口。Standard §29 已加退場條件（Pet + sheet 覆蓋全部既有目的地與 More 功能後才移除）。Phase 8 收尾範圍。
+**已修正（#140，2026-09-21，@ a3d0b95）**：Pet navigator 涵蓋全部 10 個目的地（先前排除 `/` 與 `/settings`，皆已納入），退場條件滿足；bottom nav + More sheet 已由 f82b5d5 退場（ADR-0055）。390px 實測 sheet 導覽無斷點。
 
 ---
 
@@ -96,12 +102,12 @@ AccountDetailPage `:232` currency、PortfolioDetail `:216` date、WatchListSetti
 | 3 | Debt status badges ×2 | §16 | low-medium | resolved：已修正（#136，StatusGlyph + text） |
 | 4 | Neutral badges ×4 | §17 | low | record-only |
 | 5 | RetirementPlanList badge | — | low | record-only |
-| 6 | PortfolioDetailPage 無 PageHeader | §1/§12 | medium | task：遷移 PageHeader |
+| 6 | PortfolioDetailPage 無 PageHeader | §1/§12 | medium | resolved：已修正（#137，遷移 PageHeader） |
 | 7 | YearlyDetails mobile 橫向表格 | §28 | medium | resolved：已修正（#138） |
-| 8 | Mobile compact-row 覆蓋 | §28/§38 | medium | resolved：已驗證（#139，4 頁 fail → umbrella #147：Debt #141 / Transactions #142 / Portfolios #143 / Projects #144；DOM #145、header #146 獨立） |
+| 8 | Mobile compact-row 覆蓋 | §28/§38 | medium | resolved：已修正（#141-#146）+ 複驗通過（#147，五頁 overflowX = 0） |
 | 9 | Dashboard Close/Recent 順序 | §25 | low | resolved：§25 已修訂（Close → Recent） |
-| 10 | Mobile 導覽主導權 | §29/§30 | high | task：Pet 為主，bottom nav 退場（Phase 8） |
+| 10 | Mobile 導覽主導權 | §29/§30 | high | resolved：已修正（#140，Pet navigator 全 10 目的地） |
 
-已定案：1 個修正 task（7）、2 個已裁決的 task（6 / 10）、1 個 runtime 驗證（8，4 頁 fail → umbrella #147 + 獨立 task #145 / #146）、2 組記錄項（4 / 5）。
-**下一步：** 開 GitHub issues 追蹤（6 / 7 / 10）；8 的 follow-up 已開（#141-#146，密度決定 mobile layout，Account 為 benchmark）。
+已定案：全部 10 個 finding 完成（7 個已修正、1 個複驗通過、2 組記錄項維持現狀）。
+**下一步：** 無 — 6 / 7 / 8 / 10 全部落地並關閉（#135-#147）；Standard 與實作一致。
 **延伸盤點：** List/Detail header 與動作一致性另見 `page-review-list-detail.md`（同日，L1-L6 落差清單）。
