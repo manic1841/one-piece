@@ -120,7 +120,7 @@ const Projects: React.FC = () => {
         }
       />
 
-      <Table>
+      <Table className="hidden md:table">
         <TableHeader>
           <TableRow>
             <TableHead>Name</TableHead>
@@ -165,6 +165,45 @@ const Projects: React.FC = () => {
           })}
         </TableBody>
       </Table>
+
+      <div className="space-y-2 md:hidden">
+        {projects.map((project) => {
+          const totals = snapshotTotals.get(project.id) ?? { income: 0, expense: 0 };
+          const net = totals.income - totals.expense;
+          return (
+            <div
+              key={project.id}
+              data-testid={`project-row-mobile-${project.id}`}
+              onClick={() => navigate(`/projects/${project.id}`)}
+              className="cursor-pointer rounded-md border p-3 md:hidden"
+            >
+              <div className="flex items-center justify-between gap-2">
+                <span
+                  className={`flex min-w-0 items-center gap-2 text-sm font-medium ${project.isActive ? '' : 'text-muted-foreground'}`}
+                >
+                  <span
+                    className={`text-[10px] leading-none ${project.isActive ? 'text-positive' : 'text-muted-foreground'}`}
+                  >
+                    {project.isActive ? '●' : '⊘'}
+                  </span>
+                  <span className="truncate">{project.name}</span>
+                </span>
+                <span
+                  className={`ml-auto font-mono text-sm tabular-nums ${net >= 0 ? 'text-positive' : 'text-negative'}`}
+                >
+                  {formatCurrency(net)}
+                </span>
+              </div>
+              <div className="mt-1.5 flex items-center justify-between gap-2 text-xs text-muted-foreground">
+                <span className="whitespace-nowrap">
+                  {`Income ${formatCurrency(totals.income)} · Expense ${formatCurrency(totals.expense)}`}
+                </span>
+                <span className="whitespace-nowrap">{project.isActive ? '進行中' : '停用'}</span>
+              </div>
+            </div>
+          );
+        })}
+      </div>
 
       <ProjectForm isOpen={isFormOpen} onClose={closeForm} onSubmit={create} />
     </div>
