@@ -218,7 +218,7 @@ describe('Layout system status bar', () => {
     await screen.findByRole('dialog', { name: /quick access/i });
 
     const optionCount = screen.getAllByRole('option').length;
-    expect(optionCount).toBe(getNavigatorItems().length + 2);
+    expect(optionCount).toBe(getNavigatorItems().length);
 
     fireEvent.click(screen.getByRole('option', { name: /retirement/i }));
 
@@ -309,7 +309,7 @@ describe('Layout pixel pet and navigator', () => {
     expect(screen.getByTestId('pet-face')).toBeInTheDocument();
   });
 
-  it('opens the navigator as a floating panel with the eight secondary destinations in a 2x4 grid', () => {
+  it('opens the navigator as a floating panel with all ten destinations in a 2x5 grid', () => {
     renderLayout();
 
     const pet = screen.getByRole('button', { name: /pixel pet/i });
@@ -324,11 +324,10 @@ describe('Layout pixel pet and navigator', () => {
     expect(grid.className).toContain('md:grid-cols-4');
 
     const items = Array.from(grid.querySelectorAll('a'));
-    expect(items).toHaveLength(8);
+    expect(items).toHaveLength(10);
     expect(items.map((item) => item.getAttribute('href'))).toEqual(
       getNavigatorItems().map((item) => item.to),
     );
-    expect(items.map((item) => item.getAttribute('href'))).not.toContain('/');
   });
 
   it('keeps the navigator open after the pointer leaves the pet, and closes it on outside click', () => {
