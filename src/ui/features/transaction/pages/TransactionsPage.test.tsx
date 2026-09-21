@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { type LedgerTransaction } from '@/domains/ledger/schemas';
@@ -105,7 +105,7 @@ describe('TransactionsPage copy', () => {
     });
     render(<TransactionsPage />);
 
-    fireEvent.click(screen.getByRole('button', { name: '編輯交易' }));
+    fireEvent.click(within(screen.getByTestId('transaction-row-tx-transfer')).getByRole('button', { name: '編輯交易' }));
 
     expect(confirm).toHaveBeenCalledWith({ title: '目前不支援編輯此交易。' });
   });
@@ -142,12 +142,12 @@ describe('TransactionsPage system filter', () => {
 
     render(<TransactionsPage />);
 
-    expect(screen.getByText('Expense transaction')).toBeInTheDocument();
-    expect(screen.getByText('Shareholder financing')).toBeInTheDocument();
+    expect(screen.getAllByText('Expense transaction').length).toBe(2);
+    expect(screen.getAllByText('Shareholder financing').length).toBe(2);
 
     fireEvent.click(screen.getByRole('button', { name: '融資' }));
     expect(screen.queryByText('Expense transaction')).not.toBeInTheDocument();
-    expect(screen.getByText('Shareholder financing')).toBeInTheDocument();
+    expect(screen.getAllByText('Shareholder financing').length).toBe(2);
 
     const activeButton = screen.getByRole('button', { name: '融資' });
     expect(activeButton.className).toContain('border-b');

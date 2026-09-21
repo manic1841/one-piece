@@ -6,7 +6,7 @@ import { Input } from '@/ui/components/ui/input';
 import { Table, TableBody, TableHead, TableHeader, TableRow } from '@/ui/components/ui/table';
 import { type TransactionListItemVM } from '@/ui/features/transaction/viewmodels/transaction-list.vm';
 
-import { TransactionItem } from './TransactionItem';
+import { TransactionItem, TransactionItemMobile } from './TransactionItem';
 
 interface TransactionListProps {
   items: TransactionListItemVM[];
@@ -142,8 +142,18 @@ export const TransactionList: React.FC<TransactionListProps> = ({
               {transactions.length} 筆交易
             </span>
           </div>
-          <div className="bg-card rounded-lg border border-border overflow-hidden divide-y divide-border">
-            <Table>
+          <div className="space-y-2 md:hidden">
+            {transactions.map((item) => (
+              <TransactionItemMobile
+                key={item.id}
+                transaction={item}
+                onEdit={onEdit}
+                onDelete={onDelete}
+              />
+            ))}
+          </div>
+          <div className="hidden bg-card rounded-lg border border-border overflow-hidden divide-y divide-border md:block">
+            <Table className="hidden md:table">
               <TableHeader>
                 <TableRow>
                   <TableHead>Date</TableHead>
