@@ -55,10 +55,11 @@ AccountDetailPage `:232` currency、PortfolioDetail `:216` date、WatchListSetti
 **File:** `src/ui/features/portfolio/pages/PortfolioDetailPage.tsx`（0 個 PageHeader 引用，使用 PortfolioDetail 元件內建 header）
 §1 Page Shell 統一 header；其他 detail 頁（Account / Debt / Project）皆已 PageHeader + back + header actions。之前「detail header 不遷移」是 Apple-design redesign 範圍邊界，Standard 現在涵蓋它 → 合規落差。PortfolioDetail 複雜且有既有測試，遷移需小心。**裁決：遷移至 PageHeader（含 back + header actions）。**
 
-### 7. YearlyDetails 橫向捲動表格（§28）— fix, medium
+### 7. YearlyDetails 橫向捲動表格（§28）— fix, medium — resolved 2026-09-21
 
 **File:** `src/ui/features/retirement/components/projection/YearlyDetails.tsx:41`（`overflow-x-auto` 包展開年表格）
 §28 不使用 horizontal scroll 作為主要解法。**Fix:** mobile 為 compact rows（Year + Closing Net Worth + accordion 展開其餘欄位），md+ 維持 table。多欄 metrics 需設計取捨。
+**已修正（#138，2026-09-21）**：mobile compact row 顯示 Year + Savings（收盤淨資產）+ 展開，其餘欄位在 reveal 區，閱讀順序與桌面一致；`overflow-x-auto` 移除；md+ 維持 table。
 （TransactionsPage `:179` 的 `overflow-x-auto` 是 chip-group 捲動條，非 data table，記錄即可。）
 
 ### 8. Mobile compact-row 覆蓋薄弱（§28/§38）— runtime verification

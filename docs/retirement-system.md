@@ -106,6 +106,7 @@ Repository 與 Use Case 的規則集中在下表，本文不再複述決策理�
   - 圖表中 `Savings` 使用柱狀圖並綁定右側縱軸。
   - 明細表可逐年展開，查看當年每一筆收入明細與支出明細。
   - 明細表額外顯示 `投資收益` 欄位（與 `收入` 分開）。
+  - Mobile（<md）不使用橫向捲動表格（issue #138）：每年為 compact row，Year 與 Savings（收盤淨資產）固定顯示，其餘欄位（Age、Status、Income、Expense、投資收益、Net）與收支明細在展開區，閱讀順序與桌面一致；md+ 維持系統表格。
 - 收入匯入結果以 `incomeCategory` 對齊：
   - 已存在相同 `incomeCategory`：更新既有項目（保留原 id）
   - 不存在：新增項目
