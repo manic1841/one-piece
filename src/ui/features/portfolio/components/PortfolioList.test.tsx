@@ -100,7 +100,7 @@ describe('PortfolioList table', () => {
     expect(screen.getByText('Bank')).toBeInTheDocument();
     expect(screen.getByText('Portfolio Value')).toBeInTheDocument();
     expect(screen.getByText('Return')).toBeInTheDocument();
-    expect(screen.getByText('Main Portfolio')).toBeInTheDocument();
+    expect(screen.getAllByText('Main Portfolio').length).toBe(2);
     expect(await screen.findByText('Brokerage')).toBeInTheDocument();
     expect(await screen.findByText('Investment Bank')).toBeInTheDocument();
   });
@@ -122,7 +122,62 @@ describe('PortfolioList table', () => {
       </MemoryRouter>,
     );
 
-    fireEvent.click(screen.getByText('Main Portfolio'));
+    fireEvent.click(screen.getByTestId('portfolio-row-p1'));
     expect(navigate).toHaveBeenCalledWith('/portfolios/p1');
+  });
+
+  it('renders mobile compact rows with name + value + return and account metadata', async () => {
+    mockUsePortfolios.mockReturnValue(controllerBase);
+    mockUseAccounts.mockReturnValue({
+      fetchAccounts: vi.fn().mockResolvedValue([
+        { id: 's1', name: 'Brokerage', category: 'securities', currency: 'TWD' },
+        { id: 'b1', name: 'Investment Bank', category: 'bank', currency: 'TWD' },
+      ]),
+      fetchAccountsWithSnapshots: vi.fn(),
+      loading: false,
+      error: null,
+    });
+    const navigate = vi.fn();
+    mockUseNavigate.mockReturnValue(navigate);
+
+    render(
+      <MemoryRouter>
+        <PortfolioList householdId="h1" />
+      </MemoryRouter>,
+    );
+
+    const compactRow = await screen.findByTestId('portfolio-row-mobile-p1');
+    expect(compactRow.className).toContain('md:hidden');
+    expect(compactRow.textContent).toContain('Main Portfolio');
+    expect(compactRow.textContent).toContain('2,480,000');
+    expect(compactRow.textContent).toContain('12.4%');
+    expect(await screen.findByText('Brokerage')).toBeInTheDocument();
+    expect(await screen.findByText('Investment Bank')).toBeInTheDocument();
+
+    fireEvent.click(compactRow);
+    expect(navigate).toHaveBeenCalledWith('/portfolios/p1');
+  });
+
+  it('keeps the desktop table hidden on mobile with no overflow-x-auto', () => {
+    mockUsePortfolios.mockReturnValue(controllerBase);
+    mockUseAccounts.mockReturnValue({
+      fetchAccounts: vi.fn().mockResolvedValue([]),
+      fetchAccountsWithSnapshots: vi.fn(),
+      loading: false,
+      error: null,
+    });
+    mockUseNavigate.mockReturnValue(vi.fn());
+
+    const { container } = render(
+      <MemoryRouter>
+        <PortfolioList householdId="h1" />
+      </MemoryRouter>,
+    );
+
+    const table = container.querySelector('table');
+    expect(table).not.toBeNull();
+    expect(table!.className).toContain('hidden');
+    expect(table!.className).toContain('md:table');
+    expect(container.querySelector('.overflow-x-auto')).toBeNull();
   });
 });

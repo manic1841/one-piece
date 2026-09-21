@@ -196,7 +196,7 @@ const PortfolioList: React.FC<PortfolioListProps> = ({ householdId }) => {
         </p>
       </div>
 
-      <Table>
+      <Table className="hidden md:table">
         <TableHeader>
           <TableRow>
             <TableHead>Name</TableHead>
@@ -227,6 +227,35 @@ const PortfolioList: React.FC<PortfolioListProps> = ({ householdId }) => {
           ))}
         </TableBody>
       </Table>
+
+      <div className="space-y-2 md:hidden">
+        {rows.map((row) => (
+          <div
+            key={row.id}
+            data-testid={`portfolio-row-mobile-${row.id}`}
+            onClick={() => !isReorderMode && navigate(`/portfolios/${row.id}`)}
+            className={`cursor-pointer rounded-md border p-3 md:hidden ${row.isActive ? 'bg-card/50' : 'bg-transparent'}`}
+          >
+            <div className="flex items-center justify-between gap-2">
+              <span className={`min-w-0 truncate text-sm font-medium ${row.isActive ? '' : 'text-muted-foreground'}`}>
+                {row.name}
+              </span>
+              <span className="ml-auto font-mono text-sm tabular-nums">{row.valueText}</span>
+              <span
+                className={`font-mono text-sm tabular-nums ${row.returnRate !== null && row.returnRate < 0 ? 'text-negative' : 'text-positive'}`}
+              >
+                {row.returnRate === null ? '—' : formatPercentage(row.returnRate)}
+              </span>
+            </div>
+            <div className="mt-1.5 flex items-center gap-2 text-xs text-muted-foreground">
+              <span className="truncate">
+                {row.securitiesName} · {row.bankName}
+              </span>
+              {row.asOfText && <span className="ml-auto whitespace-nowrap">{row.asOfText}</span>}
+            </div>
+          </div>
+        ))}
+      </div>
 
       <PortfolioForm
         isOpen={isCreateOpen}
