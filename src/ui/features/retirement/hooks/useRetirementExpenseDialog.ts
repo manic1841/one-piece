@@ -47,18 +47,27 @@ export function useRetirementExpenseDialog({
   });
 
   // Expense-specific fields
-  const [endYear, setEndYear] = useState<string>(initialForm.endYear || '2100');
+  const [endYear, setEndYear] = useState<string>(initialForm.endYear || '');
   const [retirementMultiplier, setRetirementMultiplier] = useState<number>(
     initialForm.retirementMultiplier,
   );
 
-  // Sync expense-specific fields when opening
+  // Sync all fields from domain data when the dialog opens. The shared hook
+  // cannot prefill from domain data (it reads baseAmount, while the domain
+  // model carries currentAnnual), so this sync owns every field.
   useEffect(() => {
     if (open) {
       const form = buildRetirementExpenseFormVM(initialData, currentYear);
+      setName(form.name);
+      setAmount(form.currentAnnual);
+      setStartYear(form.startYear);
+      setGrowthRate(form.growthRate);
       setEndYear(form.endYear || '');
       setRetirementMultiplier(form.retirementMultiplier);
     }
+    // The shared hook's setters are recreated each render; the sync must only
+    // re-run when the dialog opens or the edited item changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, initialData, currentYear]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -66,6 +75,7 @@ export function useRetirementExpenseDialog({
     setLoading(true);
 
     try {
+      // Empty growth input = plan inflation (unset), explicit 0 = no growth.
       const vm = RetirementExpenseFormVMSchema.parse({
         name,
         sourceDebtAccountId: initialForm.sourceDebtAccountId,
@@ -75,7 +85,7 @@ export function useRetirementExpenseDialog({
         calculatedFrom: initialForm.calculatedFrom,
         expenseCategory: initialForm.expenseCategory,
         currentAnnual: amount,
-        growthRate: growthRate === 0 ? 0 : growthRate,
+        ...(growthRate === undefined ? {} : { growthRate }),
         retirementMultiplier,
         startYear,
         endYear,

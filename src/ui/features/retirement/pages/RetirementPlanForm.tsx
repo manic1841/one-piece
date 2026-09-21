@@ -168,6 +168,7 @@ const RetirementPlanForm: React.FC = () => {
           <AccordionContent>
             <ExpenseTabContent
               currentYear={plan.currentYear}
+              planInflationRate={plan.inflationRate}
               expenseItems={expenseItems}
               handleAddExpense={handleAddExpense}
               handleUpdateExpense={handleUpdateExpense}

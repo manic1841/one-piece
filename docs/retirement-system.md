@@ -98,7 +98,8 @@ Repository 與 Use Case 的規則集中在下表，本文不再複述決策理�
 - 計畫清單頁提供「Duplicate」按鈕，可快速建立計畫副本。
 - 事件頁為分段編輯：可新增多個 phase，每段設定 Start/End Year 與金額（必填），Growth Rate 留空代表隨計畫通膨。
 - 收入頁每筆收入只有一組金額欄位：目前年金額（匯入時唯讀帶入）與退休年金額（可編輯）。
-- 支出頁每筆支出以目前年支出（一般支出可編輯；Debt 匯入值為系統推導唯讀）、通膨/成長率（%）與退休後費用比例（%）編輯。
+- 支出對話框以 Duration 顯示期間：未設定 End Year 即 Lifelong，設定後顯示 Until {endYear}；Debt Payment 的 End Year 保留在主表單。Start/End Year 收進 Advanced 展開區（Start Year 預設當前年度，無 2100 預設值）。
+- 支出成長率預設跟隨計畫通膨並顯示「Using plan inflation: {rate}%」，Advanced 展開後才能輸入明確成長率（留空 = 計畫通膨，0 = 明確 0%）；目前年支出一般支出可編輯，Debt 匯入值為系統推導唯讀，退休後費用比例（%）維持必填。
 - Projection Results：
   - 圖表中 `Savings` 使用柱狀圖並綁定右側縱軸。
   - 明細表可逐年展開，查看當年每一筆收入明細與支出明細。

@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -223,5 +223,18 @@ describe('RetirementPlanForm - Scenario Workspace', () => {
     );
 
     expect(screen.queryByText(/收入樣本年度可更新/)).not.toBeInTheDocument();
+  });
+
+  it('shows plan inflation as the growth default when the expense dialog opens', () => {
+    render(
+      <MemoryRouter>
+        <RetirementPlanForm />
+      </MemoryRouter>,
+    );
+
+    fireEvent.click(screen.getByText(/living expenses/i));
+    fireEvent.click(screen.getByRole('button', { name: /add expense/i }));
+
+    expect(screen.getByText('Using plan inflation: 2%')).toBeInTheDocument();
   });
 });

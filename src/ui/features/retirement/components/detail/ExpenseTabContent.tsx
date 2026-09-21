@@ -11,6 +11,7 @@ import RetirementExpenseDialog from '../ExpenseDialog';
 
 interface ExpenseTabContentProps {
   currentYear: number;
+  planInflationRate: number;
   expenseItems: Array<{ domain: RetirementExpenseCategory; vm: RetirementExpenseItemVM }>;
   handleAddExpense: (data: Omit<RetirementExpenseCategory, 'id'>) => Promise<void>;
   handleUpdateExpense: (id: string, data: Omit<RetirementExpenseCategory, 'id'>) => Promise<void>;
@@ -21,6 +22,7 @@ interface ExpenseTabContentProps {
 
 export const ExpenseTabContent: React.FC<ExpenseTabContentProps> = ({
   currentYear,
+  planInflationRate,
   expenseItems,
   handleAddExpense,
   handleUpdateExpense,
@@ -41,7 +43,11 @@ export const ExpenseTabContent: React.FC<ExpenseTabContentProps> = ({
           <Button variant="outline" onClick={handleImportFromLedger}>
             Import from Ledger
           </Button>
-          <RetirementExpenseDialog onSave={handleAddExpense} currentYear={currentYear} />
+          <RetirementExpenseDialog
+            onSave={handleAddExpense}
+            currentYear={currentYear}
+            planInflationRate={planInflationRate}
+          />
         </div>
       </div>
       {expenseItems.length === 0 ? (
@@ -88,6 +94,7 @@ export const ExpenseTabContent: React.FC<ExpenseTabContentProps> = ({
                     <RetirementExpenseDialog
                       onSave={(updates) => handleUpdateExpense(domain.id, updates)}
                       currentYear={currentYear}
+                      planInflationRate={planInflationRate}
                       initialData={domain}
                       trigger={
                         <Button variant="ghost" size="icon">
