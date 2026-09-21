@@ -1,12 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
-import { useNavigate, useParams } from 'react-router-dom';
-
-import { type PortfolioSnapshot } from '@/domains/portfolio/types/portfolio';
+import { type Portfolio, type PortfolioSnapshot } from '@/domains/portfolio/types/portfolio';
 import { useAccounts } from '@/ui/features/account/hooks/useAccounts';
 import { useAuthContext } from '@/ui/hooks/useAuthContext';
-import { PageHeader } from '@/ui/components/PageHeader';
-import { Badge } from '@/ui/components/ui/badge';
 import {
   Accordion,
   AccordionContent,
@@ -21,14 +17,12 @@ import {
   TableHeader,
   TableRow,
 } from '@/ui/components/ui/table';
-import {
-  usePortfolioQueries,
-  usePortfolios,
-} from '@/ui/features/portfolio/hooks/usePortfolios';
-import { formatCurrency, formatPercentage, formatYearMonth } from '@/ui/utils';
+import { usePortfolioQueries } from '@/ui/features/portfolio/hooks/usePortfolios';
+import { formatCurrency, formatPercentage } from '@/ui/utils';
 
 interface PortfolioDetailProps {
   householdId: string;
+  portfolio: Portfolio;
 }
 
 const MONTH_NAMES = [
@@ -115,36 +109,32 @@ const SectionTitle: React.FC<{ children: React.ReactNode }> = ({ children }) => 
   </p>
 );
 
-const PortfolioDetail: React.FC<PortfolioDetailProps> = ({ householdId }) => {
-  const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
-  const auth = useAuthContext();
+const PortfolioDetail: React.FC<PortfolioDetailProps> = ({ householdId, portfolio }) => {
   const { fetchAccounts } = useAccounts();
-  const { portfolios, reload, loading: listLoading } = usePortfolios(householdId);
+  const auth = useAuthContext();
   const { getSnapshots, loading: queryLoading } = usePortfolioQueries(householdId);
 
-  const portfolio = portfolios.find((p) => p.id === id);
   const [snapshots, setSnapshots] = useState<PortfolioSnapshot[]>([]);
   const [loadingSnapshots, setLoadingSnapshots] = useState(false);
   const [accountNames, setAccountNames] = useState<Map<string, string>>(new Map());
 
   const refreshSnapshots = useCallback(async () => {
-    if (!id) return;
+    if (!portfolio.id) return;
 
     setLoadingSnapshots(true);
     try {
-      const res = await getSnapshots(id);
+      const res = await getSnapshots(portfolio.id);
       if (res) {
         setSnapshots(res);
       }
     } finally {
       setLoadingSnapshots(false);
     }
-  }, [id, getSnapshots]);
+  }, [portfolio.id, getSnapshots]);
 
   React.useEffect(() => {
     refreshSnapshots();
-  }, [refreshSnapshots, reload]);
+  }, [refreshSnapshots]);
 
   useEffect(() => {
     let ignore = false;
@@ -202,23 +192,10 @@ const PortfolioDetail: React.FC<PortfolioDetailProps> = ({ householdId }) => {
     [snapshots],
   );
 
-  if (listLoading || queryLoading || loadingSnapshots) return <div>Loading...</div>;
-  if (!portfolio) return <div>Portfolio not found</div>;
+  if (queryLoading || loadingSnapshots) return <div>Loading...</div>;
 
   return (
-    <div className="space-y-8 pb-20">
-      <PageHeader
-        title={portfolio.name}
-        description="一個證券帳戶連結一個銀行帳戶"
-        crumb="PORTFOLIOS"
-        onBack={() => navigate('/portfolios')}
-        badge={
-          <Badge variant="outline" className="font-mono">
-            {formatYearMonth(latestSnapshot?.year ?? new Date().getFullYear(), latestSnapshot?.month ?? new Date().getMonth() + 1)}
-          </Badge>
-        }
-      />
-
+    <div className="space-y-8">
       <section className="space-y-3">
         <SectionTitle>PORTFOLIO VALUE</SectionTitle>
         <div className="flex items-baseline justify-between">
@@ -232,7 +209,6 @@ const PortfolioDetail: React.FC<PortfolioDetailProps> = ({ householdId }) => {
           )}
         </div>
       </section>
-
       <section className="space-y-3">
         <SectionTitle>VALUE BREAKDOWN</SectionTitle>
         <div className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm md:grid-cols-4">
@@ -250,7 +226,6 @@ const PortfolioDetail: React.FC<PortfolioDetailProps> = ({ householdId }) => {
           </div>
         </div>
       </section>
-
       <section className="space-y-3">
         <SectionTitle>RETURN</SectionTitle>
         <div className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm md:grid-cols-4">
@@ -270,7 +245,6 @@ const PortfolioDetail: React.FC<PortfolioDetailProps> = ({ householdId }) => {
           </div>
         </div>
       </section>
-
       <section className="space-y-3">
         <SectionTitle>12M PORTFOLIO VALUE</SectionTitle>
         {trend.path ? (
@@ -281,43 +255,42 @@ const PortfolioDetail: React.FC<PortfolioDetailProps> = ({ householdId }) => {
               preserveAspectRatio="none"
               aria-hidden="true"
             >
-              {trend.yLabels.map((label) => (
-                <line
-                  key={label.text}
-                  x1={TREND_PADDING_X}
-                  x2={TREND_WIDTH - TREND_PADDING_X}
-                  y1={label.y}
-                  y2={label.y}
-                  stroke="hsl(var(--border))"
-                  strokeWidth="1"
-                />
-              ))}
-              <path
-                d={trend.path}
-                fill="none"
-                stroke="hsl(var(--chart-1))"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
+            {trend.yLabels.map((label) => (
+              <line
+                key={label.text}
+                x1={TREND_PADDING_X}
+                x2={TREND_WIDTH - TREND_PADDING_X}
+                y1={label.y}
+                y2={label.y}
+                stroke="hsl(var(--border))"
+                strokeWidth="1"
               />
-            </svg>
-            <div className="relative mt-2 h-4">
-              {trend.xLabels.map((label) => (
-                <span
-                  key={label.text}
-                  className="absolute whitespace-nowrap font-mono text-[10px] tabular-nums text-muted-foreground"
-                  style={{ left: `${(label.x / TREND_WIDTH) * 100}%` }}
-                >
-                  {label.text}
-                </span>
-              ))}
-            </div>
+            ))}
+            <path
+              d={trend.path}
+              fill="none"
+              stroke="hsl(var(--chart-1))"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+          <div className="relative mt-2 h-4">
+            {trend.xLabels.map((label) => (
+              <span
+                key={label.text}
+                className="absolute whitespace-nowrap font-mono text-[10px] tabular-nums text-muted-foreground"
+                style={{ left: `${(label.x / TREND_WIDTH) * 100}%` }}
+              >
+                {label.text}
+              </span>
+            ))}
+          </div>
           </div>
         ) : (
           <p className="text-sm text-muted-foreground">尚無快照資料</p>
         )}
       </section>
-
       <section className="space-y-3">
         <SectionTitle>MONTHLY PERFORMANCE</SectionTitle>
         <Table>
@@ -353,7 +326,6 @@ const PortfolioDetail: React.FC<PortfolioDetailProps> = ({ householdId }) => {
           </TableBody>
         </Table>
       </section>
-
       <Accordion type="single" collapsible>
         <AccordionItem value="return-calculation">
           <AccordionTrigger>RETURN CALCULATION</AccordionTrigger>

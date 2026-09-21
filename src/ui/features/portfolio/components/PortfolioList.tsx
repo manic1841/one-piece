@@ -3,7 +3,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { ListOrdered, Plus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
-import { type Portfolio, type PortfolioSnapshot } from '@/domains/portfolio/types/portfolio';
+import { type PortfolioSnapshot } from '@/domains/portfolio/types/portfolio';
 import { useAuthContext } from '@/ui/hooks/useAuthContext';
 import { useAccounts } from '@/ui/features/account/hooks/useAccounts';
 import { PageHeader } from '@/ui/components/PageHeader';
@@ -46,14 +46,13 @@ const PortfolioList: React.FC<PortfolioListProps> = ({ householdId }) => {
   const auth = useAuthContext();
   const { portfolios, latestSnapshots, reload } = usePortfolios(householdId);
   const { fetchAccounts } = useAccounts();
-  const { createPortfolio, updatePortfolio, reorderPortfolios } = usePortfolioCmds(
+  const { createPortfolio, reorderPortfolios } = usePortfolioCmds(
     householdId,
     auth.email || '',
     reload,
   );
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isReorderMode, setIsReorderMode] = useState(false);
-  const [editingPortfolio, setEditingPortfolio] = useState<Portfolio | null>(null);
   const [localPortfolios, setLocalPortfolios] = useState(portfolios);
   const [accountNames, setAccountNames] = useState<Map<string, string>>(new Map());
 
@@ -130,12 +129,6 @@ const PortfolioList: React.FC<PortfolioListProps> = ({ householdId }) => {
 
   const handleCreateSubmit = async (vm: PortfolioFormVM) => {
     await createPortfolio(mapPortfolioVMToDomain(vm));
-  };
-
-  const handleEditSubmit = async (vm: PortfolioFormVM) => {
-    if (!editingPortfolio) return;
-    await updatePortfolio(editingPortfolio.id, mapPortfolioVMToDomain(vm));
-    setEditingPortfolio(null);
   };
 
   const rows: PortfolioRowVM[] = localPortfolios
@@ -241,15 +234,6 @@ const PortfolioList: React.FC<PortfolioListProps> = ({ householdId }) => {
         onSubmit={handleCreateSubmit}
         householdId={householdId}
       />
-      {editingPortfolio && (
-        <PortfolioForm
-          isOpen={!!editingPortfolio}
-          onClose={() => setEditingPortfolio(null)}
-          onSubmit={handleEditSubmit}
-          householdId={householdId}
-          portfolio={editingPortfolio}
-        />
-      )}
     </div>
   );
 };

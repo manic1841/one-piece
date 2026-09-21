@@ -96,7 +96,7 @@ const renderDetail = () => {
     error: null,
   } as never);
 
-  return render(<PortfolioDetail householdId="h1" />);
+  return render(<PortfolioDetail householdId="h1" portfolio={portfolio} />);
 };
 
 describe('PortfolioDetail surfaces', () => {

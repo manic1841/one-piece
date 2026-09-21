@@ -146,7 +146,7 @@ Token（定義於 `tailwind.config.js`，全部走 CSS 變數）：
 3. Transactions：表格密度與可掃描性優先（欄位對齊、金額右對齊、tabular-nums）。
 4. 其餘頁面（accounts、portfolios、projects、debt、retirement、reports、settings）套用同一標頭與間距節奏。
 
-> 完成記錄（任務四）：新增共用 `src/ui/components/PageHeader.tsx`（title + description + badge/meta + actions 靠右，可選返回鈕），8 個列表/功能頁遷移完成：Reports、PortfolioList、Transactions、AccountList、DebtList、Projects、Settings、RetirementPlanList。金額加入 `tabular-nums`：DebtListPage SummaryCards、TransactionItem、PortfolioHistoryTable totalValue。Dashboard 清除註解掉的 UnsettledStatsCardUI 死碼與未用 import（格線結構不變）。刻意保留項：含返回鈕/圖示/下拉/編輯狀態的詳情頁標頭（ProjectDetailView、PortfolioDetail、RetirementPlanHeader、MonthlySettlement、ProjectSettings、ReportHeader）維持原樣，待未來單獨評估。驗證：`tsc -b`、`eslint`（12 個觸及檔）、95 檔 437 測試全綠；桌面 1440 DOM 走查 8 頁 + Dashboard 通過（統一標頭、無水平溢出、無覆蓋層遮擋）。截圖工具限制：整合瀏覽器截圖與 CDP 視窗覆蓋互相衝突（視窗鎖 ~224px 或空白輸出），以程式化 DOM 驗證替代視覺截圖。
+> 完成記錄（任務四）：新增共用 `src/ui/components/PageHeader.tsx`（title + description + badge/meta + actions 靠右，可選返回鈕），8 個列表/功能頁遷移完成：Reports、PortfolioList、Transactions、AccountList、DebtList、Projects、Settings、RetirementPlanList。金額加入 `tabular-nums`：DebtListPage SummaryCards、TransactionItem、PortfolioHistoryTable totalValue。Dashboard 清除註解掉的 UnsettledStatsCardUI 死碼與未用 import（格線結構不變）。刻意保留項：含返回鈕/圖示/下拉/編輯狀態的詳情頁標頭（ProjectDetailView、PortfolioDetail、RetirementPlanHeader、MonthlySettlement、ProjectSettings、ReportHeader）維持原樣，待未來單獨評估（PortfolioDetail 其後已遷移至共用 PageHeader，見 ADR-0058）。驗證：`tsc -b`、`eslint`（12 個觸及檔）、95 檔 437 測試全綠；桌面 1440 DOM 走查 8 頁 + Dashboard 通過（統一標頭、無水平溢出、無覆蓋層遮擋）。截圖工具限制：整合瀏覽器截圖與 CDP 視窗覆蓋互相衝突（視窗鎖 ~224px 或空白輸出），以程式化 DOM 驗證替代視覺截圖。
 
 ### 任務五：驗收（Phase 5）
 

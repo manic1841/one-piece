@@ -95,3 +95,4 @@ AccountDetailPage `:232` currency、PortfolioDetail `:216` date、WatchListSetti
 
 已定案：1 個修正 task（7）、2 個已裁決的 task（6 / 10）、1 個 runtime 驗證（8）、2 組記錄項（4 / 5）。
 **下一步：** 開 GitHub issues 追蹤（6 / 7 / 8 / 10）。
+**延伸盤點：** List/Detail header 與動作一致性另見 `page-review-list-detail.md`（同日，L1-L6 落差清單）。
