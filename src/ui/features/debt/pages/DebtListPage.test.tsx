@@ -83,7 +83,7 @@ describe('DebtListPage table', () => {
     expect(screen.getByText('Outstanding Balance')).toBeInTheDocument();
     expect(screen.getByText('Monthly Payment')).toBeInTheDocument();
     expect(screen.getByText('As of')).toBeInTheDocument();
-    expect(screen.getByText('Mortgage A')).toBeInTheDocument();
+    expect(screen.getAllByText('Mortgage A').length).toBe(2);
   });
 
   it('does not render persistent edit or delete actions in list rows', () => {
@@ -117,7 +117,7 @@ describe('DebtListPage table', () => {
       </MemoryRouter>,
     );
 
-    fireEvent.click(screen.getByText('Mortgage A'));
+    fireEvent.click(screen.getByTestId('debt-row-d1'));
     expect(navigate).toHaveBeenCalledWith('/debt/d1');
   });
 
@@ -136,11 +136,65 @@ describe('DebtListPage table', () => {
       </MemoryRouter>,
     );
 
-    const status = screen.getByText(DEBT_STATUS_GRACE_PERIOD_LABEL).closest('span')!
-      .parentElement!;
-    expect(status.textContent).toContain('!');
-    expect(status.querySelector('.text-warning')).not.toBeNull();
-    const nameCell = screen.getByText('Mortgage A').closest('td')!;
-    expect(nameCell.querySelector('span.bg-destructive')).toBeNull();
+    const status = screen.getAllByText(DEBT_STATUS_GRACE_PERIOD_LABEL).map((label) =>
+      label.closest('span')!.parentElement!,
+    );
+    expect(status.length).toBe(2);
+    status.forEach((glyph) => {
+      expect(glyph.textContent).toContain('!');
+      expect(glyph.querySelector('.text-warning')).not.toBeNull();
+    });
+    const nameCells = screen
+      .getAllByText('Mortgage A')
+      .map((name) => name.closest('td'))
+      .filter((cell): cell is HTMLElement => cell !== null);
+    expect(nameCells.length).toBeGreaterThanOrEqual(1);
+    nameCells.forEach((cell) => {
+      expect(cell.querySelector('span.bg-destructive')).toBeNull();
+    });
+  });
+
+  it('renders mobile compact rows with name + outstanding, type/monthly/as-of metadata', () => {
+    mockUseDebtPage.mockReturnValue(controllerBase);
+    mockUseDebtAccountCmds.mockReturnValue({ removeDebtAccount: vi.fn() } as never);
+    mockUseConfirm.mockReturnValue({ confirm: vi.fn().mockResolvedValue(false) } as never);
+    const navigate = vi.fn();
+    mockUseNavigate.mockReturnValue(navigate);
+
+    render(
+      <MemoryRouter>
+        <DebtListPage />
+      </MemoryRouter>,
+    );
+
+    const compactRow = screen.getByTestId('debt-row-mobile-d1');
+    expect(compactRow.className).toContain('md:hidden');
+    expect(compactRow.textContent).toContain('Mortgage A');
+    expect(compactRow.textContent).toContain('4,800,000');
+    expect(compactRow.textContent).toContain('房貸');
+    expect(compactRow.textContent).toContain('25,000');
+    expect(compactRow.textContent).toContain('截至');
+
+    fireEvent.click(compactRow);
+    expect(navigate).toHaveBeenCalledWith('/debt/d1');
+  });
+
+  it('keeps the desktop table hidden on mobile with md:hidden table + mobile list', () => {
+    mockUseDebtPage.mockReturnValue(controllerBase);
+    mockUseDebtAccountCmds.mockReturnValue({ removeDebtAccount: vi.fn() } as never);
+    mockUseConfirm.mockReturnValue({ confirm: vi.fn().mockResolvedValue(false) } as never);
+    mockUseNavigate.mockReturnValue(vi.fn());
+
+    const { container } = render(
+      <MemoryRouter>
+        <DebtListPage />
+      </MemoryRouter>,
+    );
+
+    const table = container.querySelector('table');
+    expect(table).not.toBeNull();
+    expect(table!.className).toContain('hidden');
+    expect(table!.className).toContain('md:table');
+    expect(container.querySelector('.overflow-x-auto')).toBeNull();
   });
 });

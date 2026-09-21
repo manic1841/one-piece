@@ -125,49 +125,86 @@ export default function DebtListPage() {
               </CardContent>
             </Card>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Loan Name</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead className="text-right">Outstanding Balance</TableHead>
-                  <TableHead className="text-right">Monthly Payment</TableHead>
-                  <TableHead className="text-right">As of</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
+            <>
+              <div className="space-y-2 md:hidden">
                 {visibleAccounts.map((account) => {
                   const isSettled = !account.isActive;
                   return (
-                    <TableRow
+                    <div
                       key={account.id}
-                      data-testid={`debt-row-${account.id}`}
+                      data-testid={`debt-row-mobile-${account.id}`}
                       onClick={() => navigate(`/debt/${account.id}`)}
-                      className="cursor-pointer"
+                      className={`cursor-pointer rounded-md border p-3 md:hidden ${
+                        isSettled ? 'bg-transparent' : 'bg-card/50'
+                      }`}
                     >
-                      <TableCell className={isSettled ? 'text-muted-foreground' : ''}>
-                        <span className="flex items-center gap-2">
-                          {account.name}
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="flex min-w-0 items-center gap-2 text-sm font-medium">
+                          <span className="truncate">{account.name}</span>
                           {account.inGracePeriod && (
                             <StatusGlyph type="review" label={DEBT_STATUS_GRACE_PERIOD_LABEL} />
                           )}
                         </span>
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">{account.typeLabel}</TableCell>
-                      <TableCell className="text-right font-mono tabular-nums">
-                        {formatCurrency(account.currentBalance)}
-                      </TableCell>
-                      <TableCell className="text-right font-mono tabular-nums">
-                        {formatCurrency(account.monthlyDueAmount)}
-                      </TableCell>
-                      <TableCell className="text-right font-mono text-[11px] tabular-nums text-muted-foreground">
-                        {account.updatedAt ? formatDate(account.updatedAt) : '—'}
-                      </TableCell>
-                    </TableRow>
+                        <span className="ml-auto font-mono text-sm tabular-nums">
+                          {formatCurrency(account.currentBalance)}
+                        </span>
+                      </div>
+                      <div className="mt-1.5 flex items-center justify-between gap-2 text-xs text-muted-foreground">
+                        <span className="truncate">
+                          {account.typeLabel} · 截至 {account.updatedAt ? formatDate(account.updatedAt) : '—'}
+                        </span>
+                        <span className="font-mono tabular-nums whitespace-nowrap">
+                          {formatCurrency(account.monthlyDueAmount)}/月
+                        </span>
+                      </div>
+                    </div>
                   );
                 })}
-              </TableBody>
-            </Table>
+              </div>
+              <Table className="hidden md:table">
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Loan Name</TableHead>
+                    <TableHead>Type</TableHead>
+                    <TableHead className="text-right">Outstanding Balance</TableHead>
+                    <TableHead className="text-right">Monthly Payment</TableHead>
+                    <TableHead className="text-right">As of</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {visibleAccounts.map((account) => {
+                    const isSettled = !account.isActive;
+                    return (
+                      <TableRow
+                        key={account.id}
+                        data-testid={`debt-row-${account.id}`}
+                        onClick={() => navigate(`/debt/${account.id}`)}
+                        className="cursor-pointer"
+                      >
+                        <TableCell className={isSettled ? 'text-muted-foreground' : ''}>
+                          <span className="flex items-center gap-2">
+                            {account.name}
+                            {account.inGracePeriod && (
+                              <StatusGlyph type="review" label={DEBT_STATUS_GRACE_PERIOD_LABEL} />
+                            )}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">{account.typeLabel}</TableCell>
+                        <TableCell className="text-right font-mono tabular-nums">
+                          {formatCurrency(account.currentBalance)}
+                        </TableCell>
+                        <TableCell className="text-right font-mono tabular-nums">
+                          {formatCurrency(account.monthlyDueAmount)}
+                        </TableCell>
+                        <TableCell className="text-right font-mono text-[11px] tabular-nums text-muted-foreground">
+                          {account.updatedAt ? formatDate(account.updatedAt) : '—'}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </>
           )}
         </>
       )}
