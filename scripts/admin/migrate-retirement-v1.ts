@@ -1,6 +1,6 @@
 /**
  * One-time migration: retirement plan docs from legacy modes to v1 flat fields
- * (issue #127 Q10).
+ * (issue #127 Q10), plus linked-year resolution (issue #132).
  *
  * Legacy -> v1 transforms per document:
  * - Incomes (standalone + subcollection incomeStreams):
@@ -9,6 +9,10 @@
  *   - baseAmount -> currentAnnual; FIXED income keeps its level after
  *     retirement (retirementAnnual = baseAmount).
  *   - incomeCalculationMode is removed (v1 has no income modes).
+ * - Linked year modes (startYearMode/endYearMode = LINKED_TO_RETIREMENT,
+ *   issue #132): resolved into concrete startYear/endYear =
+ *   birthYear + retirementAge; mode fields are left in place. A lifelong
+ *   stream's end year stays unbounded. Reports how many streams resolved.
  * - Expenses (standalone + subcollection expenseCategories):
  *   - SALARY_PERCENTAGE expense: flatten to a fixed currentAnnual =
  *     baselineSalary * percentage (or fallbackAmount), drop salaryPercentage,
@@ -37,7 +41,13 @@
  * Run BEFORE the new app code reads plans: the new schema requires
  * currentAnnual, so legacy plan docs fail schema parse at read time.
  */
-import admin from 'firebase-admin';
+import admin, { type DocumentReference } from 'firebase-admin';
+
+import {
+  resolveLinkedIncomeYears,
+  type LinkableIncomeDoc,
+  type LinkedYearPatch,
+} from './retirement-linked-years';
 
 import { applyEmulatorEnv } from './emulator-env';
 
@@ -63,6 +73,9 @@ interface LegacyIncome {
   endYear?: number;
   baseAmount: number;
   growthRate?: number;
+  startYearMode?: string;
+  endYearMode?: string;
+  lifelong?: boolean;
 }
 
 interface LegacyExpense {
@@ -261,10 +274,70 @@ const flattenEventPhases = (
     return doc;
   });
 
+/**
+ * Applies linked-year patches onto embedded plan incomes before the plan doc
+ * write (the plan doc stores incomes inline for legacy plans).
+ */
+const applyEmbeddedPatches = (incomes: Unknowns[], patches: LinkedYearPatch[]): Unknowns[] =>
+  incomes.map((income) => {
+    const patch = patches.find((p) => p.id === (income as LinkableIncomeDoc).id);
+    return patch ? { ...income, ...patch } : income;
+  });
+
+/**
+ * Writes resolved startYear/endYear onto income stream docs after the legacy
+ * flattening. Separate updates keep the linked-year fix independent: a stream
+ * already flattened by a previous run still gets its linked years resolved.
+ */
+const applyLinkedYearPatches = async (
+  planRef: DocumentReference,
+  patches: LinkedYearPatch[],
+): Promise<void> => {
+  for (const patch of patches) {
+    const update: Unknowns = {};
+    if (patch.startYear !== undefined) update.startYear = patch.startYear;
+    if (patch.endYear !== undefined) update.endYear = patch.endYear;
+    if (Object.keys(update).length > 0) {
+      await planRef.update(update);
+    }
+  }
+};
+
+interface MigratedPlanWrite {
+  data: Unknowns;
+  flatPlanIncomes: Unknowns[];
+  flatPlanExpenses: Unknowns[];
+  events: Unknowns[];
+  linkedEmbeddedPatches: LinkedYearPatch[];
+  linkedSubcollectionPatches: LinkedYearPatch[];
+  incomeDocs: Array<{ snap: { ref: { path: string; update: (data: Unknowns) => Promise<void> } }; data: LegacyIncome }>;
+  expenseDocs: Array<{ snap: { ref: { path: string; update: (data: Unknowns) => Promise<void> } }; data: LegacyExpense }>;
+  incomesForBaseline: LegacyIncome[];
+  plan: LegacyPlan;
+  notes: string[];
+}
+
+const writeMigratedPlan = async (
+  planSnap: { ref: DocumentReference },
+  write: MigratedPlanWrite,
+): Promise<void> => {
+  const planDoc: Unknowns = { ...write.data };
+  planDoc.incomes = applyEmbeddedPatches(write.flatPlanIncomes, write.linkedEmbeddedPatches);
+  planDoc.expenses = write.flatPlanExpenses;
+  planDoc.events = write.events;
+  strip(planDoc, ['currentSavings', 'salaryGrowthRate', 'importSettings', 'retirementTransition']);
+  await planSnap.ref.update(planDoc);
+
+  await migrateIncomeDocs(write.incomeDocs, write.notes);
+  await migrateExpenseDocs(write.expenseDocs, write.incomesForBaseline, write.plan, write.notes);
+  await applyLinkedYearPatches(planSnap.ref, write.linkedSubcollectionPatches);
+};
+
 const migrate = async (): Promise<void> => {
   const householdSnaps = await db.collection('households').get();
   let migrated = 0;
   let skipped = 0;
+  let streamsResolved = 0;
 
   for (const household of householdSnaps.docs) {
     const planSnaps = await household.ref.collection('retirement_plans').get();
@@ -279,11 +352,13 @@ const migrate = async (): Promise<void> => {
       ]);
       const incomeDocs = incomeSnaps.docs.map((snap) => ({
         snap,
-        data: snap.data() as unknown as LegacyIncome,
+        // Firestore doc IDs live on the snapshot, not the doc data; inject
+        // them so patch application and DERIVED lookups see the id.
+        data: { ...snap.data(), id: snap.id } as unknown as LegacyIncome,
       }));
       const expenseDocs = expenseSnaps.docs.map((snap) => ({
         snap,
-        data: snap.data() as unknown as LegacyExpense,
+        data: { ...snap.data(), id: snap.id } as unknown as LegacyExpense,
       }));
 
       const planHasLegacy =
@@ -330,19 +405,38 @@ const migrate = async (): Promise<void> => {
         return doc;
       });
 
+      // Linked year modes resolve to the plan's retirement year before the
+      // legacy flattening so patches ride the same update calls. Subcollection
+      // patches go through separate updates so a stream already flattened by
+      // a previous run still gets its linked years resolved.
+      const retirementYear = plan.birthYear + plan.retirementAge;
+      const linkedEmbedded = resolveLinkedIncomeYears(
+        (plan.incomes ?? []) as LinkableIncomeDoc[],
+        retirementYear,
+      );
+      const linkedSubcollection = resolveLinkedIncomeYears(
+        incomeDocs.map(({ data }) => data as LinkableIncomeDoc),
+        retirementYear,
+      );
+      const resolvedCount = linkedEmbedded.resolvedCount + linkedSubcollection.resolvedCount;
+      streamsResolved += resolvedCount;
+
       if (dryRun) {
-        console.log(`[dry-run] ${planSnap.ref.path}`);
+        logDryRunPlan(planSnap.ref.path, resolvedCount, retirementYear);
       } else {
-        const planDoc: Unknowns = { ...(data) };
-        planDoc.incomes = flatPlanIncomes;
-        planDoc.expenses = flatPlanExpenses;
-        planDoc.events = events;
-        strip(planDoc, ['currentSavings', 'salaryGrowthRate', 'importSettings', 'retirementTransition']);
-        await planSnap.ref.update(planDoc);
-
-        await migrateIncomeDocs(incomeDocs, notes);
-        await migrateExpenseDocs(expenseDocs, incomesForBaseline, plan, notes);
-
+        await writeMigratedPlan(planSnap, {
+          data,
+          flatPlanIncomes,
+          flatPlanExpenses,
+          events,
+          linkedEmbeddedPatches: linkedEmbedded.patches,
+          linkedSubcollectionPatches: linkedSubcollection.patches,
+          incomeDocs,
+          expenseDocs,
+          incomesForBaseline,
+          plan,
+          notes,
+        });
         console.log(`[migrated] ${planSnap.ref.path}`);
       }
 
@@ -354,7 +448,19 @@ const migrate = async (): Promise<void> => {
     }
   }
 
-  console.log(`Done: ${migrated} migrated, ${skipped} skipped${dryRun ? ' (dry-run)' : ''}.`);
+  console.log(
+    `Done: ${migrated} migrated, ${skipped} skipped, ${streamsResolved} income stream(s) with linked years resolved${dryRun ? ' (dry-run)' : ''}.`,
+  );
+};
+
+/**
+ * Logs the per-plan dry-run summary including linked-year resolution.
+ */
+const logDryRunPlan = (planPath: string, resolvedCount: number, retirementYear: number): void => {
+  console.log(`[dry-run] ${planPath}`);
+  if (resolvedCount > 0) {
+    console.log(`  - linked years resolved for ${resolvedCount} stream(s) -> ${retirementYear}`);
+  }
 };
 
 migrate().catch((error) => {

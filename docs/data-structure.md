@@ -97,7 +97,9 @@ firestore
       │         ├─ retirementAnnual?: number        # 退休年金額；缺省時以 currentAnnual 調整後水準沿用
       │         ├─ growthRate?: number              # 年成長率（%），缺省 = 計畫通膨率
       │         ├─ startYear: number                 # startYearMode=MANUAL 時有效
+      │         │    # LINKED_TO_RETIREMENT 由遷移腳本解析為退休年並寫入
       │         ├─ endYear?: number                  # endYearMode=MANUAL 且 lifelong=false 時有效
+      │         │    # LINKED 由遷移寫入；lifelong 終身流不寫 endYear
       │         │
       │         │
       │         ├─ calculatedFrom: object
