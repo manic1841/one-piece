@@ -31,13 +31,11 @@ const createPlan = (): RetirementPlan => ({
     {
       id: 'income-1',
       name: 'Salary',
-      importedFrom: 'manual',
-      incomeCalculationMode: 'FIXED',
       incomeCategory: 'salary:charles',
       type: RetirementIncomeType.SALARY,
       startYear: 2026,
       endYear: 2060,
-      baseAmount: 120000,
+      currentAnnual: 120000,
       growthRate: 2,
     },
   ],
@@ -68,13 +66,11 @@ describe('mergeImportedIncomeSourcesUseCase', () => {
       {
         id: 'imported-x',
         name: 'Salary Updated',
-        importedFrom: 'transactionEntries',
-        incomeCalculationMode: 'IMPORTED',
         incomeCategory: 'salary:charles',
         type: RetirementIncomeType.SALARY,
         startYear: 2026,
         endYear: 2060,
-        baseAmount: 150000,
+        currentAnnual: 150000,
         growthRate: 1,
       },
     ];
@@ -88,7 +84,7 @@ describe('mergeImportedIncomeSourcesUseCase', () => {
     expect(result.incomes).toHaveLength(1);
     expect(result.incomes[0].id).toBe('income-1');
     expect(result.incomes[0].name).toBe('Salary Updated');
-    expect(result.incomes[0].baseAmount).toBe(150000);
+    expect(result.incomes[0].currentAnnual).toBe(150000);
   });
 
   it('appends incomes when category does not exist', () => {
@@ -98,13 +94,11 @@ describe('mergeImportedIncomeSourcesUseCase', () => {
       {
         id: 'imported-y',
         name: 'Bonus',
-        importedFrom: 'transactionEntries',
-        incomeCalculationMode: 'IMPORTED',
         incomeCategory: 'bonus:charles',
         type: RetirementIncomeType.BONUS,
         startYear: 2026,
         endYear: 2060,
-        baseAmount: 20000,
+        currentAnnual: 20000,
         growthRate: 0,
       },
     ];

@@ -77,7 +77,10 @@ export const mapRetirementIncomeToVM = (
 ): RetirementIncomeItemVM => ({
   id: income.id,
   name: income.name,
-  amountText: `${formatCurrency(income.currentAnnual)}/yr`,
+  amountText:
+    income.currentAnnual != null
+      ? `${formatCurrency(income.currentAnnual)}/yr`
+      : '—',
   growthText: income.growthRate != null ? `${income.growthRate}% growth` : 'Inflation',
   periodText: income.lifelong
     ? `${income.startYear} - 終身`

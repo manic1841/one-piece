@@ -153,12 +153,12 @@ const RetirementPlanForm: React.FC = () => {
           <AccordionContent>
             <IncomeTabContent
               currentYear={plan.currentYear}
+              planInflationRate={plan.inflationRate}
               incomeItems={incomeItems}
               handleAddIncome={handleAddIncome}
               handleUpdateIncome={handleUpdateIncome}
               handleDeleteIncome={handleDeleteIncome}
               handleImportIncomeFromTransactions={handleImportIncomeFromTransactions}
-              householdId={userProfile?.householdId || ''}
             />
           </AccordionContent>
         </AccordionItem>

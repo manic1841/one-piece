@@ -35,9 +35,6 @@ const createPlan = (): RetirementPlan => ({
     {
       id: 'income-imported',
       name: 'Salary',
-      importedFrom: 'transactionEntries',
-      incomeCalculationMode: 'IMPORTED',
-      autoUpdate: true,
       calculatedFrom: {
         ledgerCode: 'income:salary:charles',
         sampleYear: 2024,
@@ -47,20 +44,15 @@ const createPlan = (): RetirementPlan => ({
         importedAt: '2025-01-01T00:00:00.000Z',
       },
       incomeCategory: 'salary:charles',
-      derivedFrom: undefined,
       type: RetirementIncomeType.SALARY,
       startYear: 2026,
       endYear: 2060,
       currentAnnual: 120000,
       growthRate: 2,
-      note: undefined,
     },
     {
       id: 'income-manual',
       name: 'Pension',
-      importedFrom: 'manual',
-      incomeCalculationMode: 'FIXED',
-      autoUpdate: false,
       type: RetirementIncomeType.PENSION,
       startYear: 2030,
       endYear: 2080,
@@ -164,5 +156,40 @@ describe('syncImportedIncomeSourcesUseCase', () => {
     expect(result.staleCount).toBe(0);
     expect(result.incomes[0]).toEqual(plan.incomes[0]);
     expect(transactionRepository.listByDateRange).not.toHaveBeenCalled();
+  });
+
+  it('syncs every stream with import statistics behind the plan-level switch (v2 #133)', async () => {
+    // v2: no importedFrom/autoUpdate income flags. A stream with import
+    // statistics is a sync target; a scenario-only stream is not.
+    vi.mocked(transactionRepository.listByDateRange).mockResolvedValue([
+      {
+        id: 'tx-1',
+        entries: [{ ledgerCode: 'income:salary:charles', credit: 36000, debit: 0 }],
+      },
+    ] as never);
+
+    const plan = createPlan();
+    // Make the second stream a scenario-only stream without import stats.
+    plan.incomes[1] = {
+      ...plan.incomes[1],
+      calculatedFrom: undefined,
+    } as RetirementPlan['incomes'][number];
+
+    const result = await syncImportedIncomeSourcesUseCase.execute({
+      householdId: 'household-1',
+      plan,
+      today: new Date('2026-04-06T00:00:00.000Z'),
+    });
+
+    expect(result.hasChanges).toBe(true);
+    expect(result.staleCount).toBe(1);
+    expect(transactionRepository.listByDateRange).toHaveBeenCalledTimes(1);
+
+    const imported = result.incomes.find((income) => income.id === 'income-imported');
+    expect(imported?.calculatedFrom?.sampleYear).toBe(2025);
+    expect(imported?.currentAnnual).toBe(36000);
+
+    const manual = result.incomes.find((income) => income.id === 'income-manual');
+    expect(manual).toEqual(plan.incomes[1]);
   });
 });

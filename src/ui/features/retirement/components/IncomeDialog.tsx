@@ -1,4 +1,5 @@
-import { Plus } from 'lucide-react';
+import { ChevronDown, Plus } from 'lucide-react';
+import { useState } from 'react';
 
 import { type RetirementIncomeSource } from '@/domains/retirement/types';
 import { Button } from '@/ui/components/ui/button';
@@ -20,38 +21,35 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/ui/components/ui/select';
+import { Switch } from '@/ui/components/ui/switch';
+import { RetirementIncomeDialogLabels } from '@/ui/constants/retirement/incomeDialogLabels';
+import { RetirementIncomeTypeOptions } from '@/ui/constants/retirement/retirementLabel';
 
 import { useRetirementIncomeDialog } from '../hooks/useRetirementIncomeDialog';
-import { FixedModeSection } from './income/FixedModeSection';
-import { ImportedModeSection } from './income/ImportedModeSection';
-import { IncomeFormSharedFields } from './income/IncomeFormSharedFields';
 
 interface IncomeDialogProps {
   onSave: (income: Omit<RetirementIncomeSource, 'id'>) => Promise<void>;
   currentYear: number;
+  planInflationRate: number;
   initialData?: RetirementIncomeSource;
   trigger?: React.ReactNode;
-  householdId: string;
 }
 
 export default function IncomeDialog({
   onSave,
   currentYear,
+  planInflationRate,
   initialData,
   trigger,
-  householdId,
 }: IncomeDialogProps) {
   const {
     open,
     setOpen,
     loading,
-    calculating,
     name,
     setName,
     type,
     setType,
-    amount,
-    setAmount,
     growthRate,
     setGrowthRate,
     retirementAnnual,
@@ -60,34 +58,26 @@ export default function IncomeDialog({
     setStartYear,
     endYear,
     setEndYear,
-    startYearMode,
-    setStartYearMode,
-    endYearMode,
-    setEndYearMode,
     lifelong,
     setLifelong,
-    autoUpdate,
-    setAutoUpdate,
-    importedFrom,
-    setImportedFrom,
-    ledgerCode,
-    setLedgerCode,
-    sampleYear,
-    setSampleYear,
     submitError,
     handleSubmit,
-    handleCalculateImported,
+    currentAnnual,
   } = useRetirementIncomeDialog({
     initialData,
     currentYear,
     onSave,
-    householdId,
   });
 
-  const isImported = importedFrom === 'transactionEntries';
+  const [advancedOpen, setAdvancedOpen] = useState(false);
+
+  const handleOpenChange = (value: boolean) => {
+    if (value) setAdvancedOpen(false);
+    setOpen(value);
+  };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         {trigger || (
           <Button>
@@ -118,66 +108,155 @@ export default function IncomeDialog({
             />
           </div>
 
-          {/* Row 2: Source Mode */}
+          {/* Row 2: Type */}
           <div className="grid gap-2">
-            <Label htmlFor="mode">Source</Label>
+            <Label htmlFor="type">{RetirementIncomeDialogLabels.type}</Label>
             <Select
-              value={importedFrom}
-              onValueChange={(v: 'manual' | 'transactionEntries') => setImportedFrom(v)}
+              value={type}
+              onValueChange={(v: RetirementIncomeSource['type']) => setType(v)}
             >
               <SelectTrigger>
-                <SelectValue placeholder="Select source..." />
+                <SelectValue placeholder="Select type..." />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="manual">Manual</SelectItem>
-                <SelectItem value="transactionEntries">Imported (from Ledger)</SelectItem>
+                {RetirementIncomeTypeOptions.map((opt) => (
+                  <SelectItem key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
 
-          {/* Mode-specific sections */}
-          {!isImported && (
-            <FixedModeSection type={type} setType={setType} amount={amount} setAmount={setAmount} />
+          {/* Current Annual: system-derived from the ledger import */}
+          <div className="grid gap-2">
+            <Label htmlFor="currentAnnual">{RetirementIncomeDialogLabels.currentAnnual}</Label>
+            {currentAnnual == null ? (
+              <div className="rounded-md border bg-muted px-3 py-2 text-sm text-muted-foreground">
+                {RetirementIncomeDialogLabels.noCurrentAnnualMarker}
+              </div>
+            ) : (
+              <Input
+                id="currentAnnual"
+                type="number"
+                value={currentAnnual}
+                readOnly
+              />
+            )}
+          </div>
+          {currentAnnual == null && (
+            <p className="text-xs text-muted-foreground">
+              {RetirementIncomeDialogLabels.importHint}
+            </p>
           )}
 
-          {isImported && (
-            <ImportedModeSection
-              ledgerCode={ledgerCode}
-              setLedgerCode={setLedgerCode}
-              sampleYear={sampleYear}
-              setSampleYear={setSampleYear}
-              autoUpdate={autoUpdate}
-              setAutoUpdate={setAutoUpdate}
-              amount={amount}
-              type={type}
-              setType={setType}
-              calculating={calculating}
-              onCalculate={handleCalculateImported}
+          {/* Retirement Annual: user assumption */}
+          <div className="grid gap-2">
+            <Label htmlFor="retirementAnnual">
+              {RetirementIncomeDialogLabels.retirementAnnual}
+            </Label>
+            <Input
+              id="retirementAnnual"
+              type="number"
+              min="0"
+              step="1"
+              value={retirementAnnual ?? ''}
+              onChange={(e) =>
+                setRetirementAnnual(e.target.value === '' ? undefined : Number(e.target.value))
+              }
+              placeholder="0 for no retirement income"
             />
-          )}
+          </div>
 
-          {/* Shared fields */}
-          <IncomeFormSharedFields
-            type={type}
-            growthRate={growthRate}
-            setGrowthRate={setGrowthRate}
-            retirementAnnual={retirementAnnual}
-            setRetirementAnnual={setRetirementAnnual}
-            startYear={startYear}
-            setStartYear={setStartYear}
-            startYearMode={startYearMode}
-            setStartYearMode={setStartYearMode}
-            endYear={endYear}
-            setEndYear={setEndYear}
-            endYearMode={endYearMode}
-            setEndYearMode={setEndYearMode}
-            lifelong={lifelong}
-            setLifelong={setLifelong}
-          />
+          {/* Growth: plan inflation default, explicit rate in Advanced */}
+          <div className="grid gap-2">
+            <Label>{RetirementIncomeDialogLabels.growth}</Label>
+            <div className="rounded-md border px-3 py-2 text-sm">
+              {growthRate == null
+                ? RetirementIncomeDialogLabels.usingPlanInflation(planInflationRate)
+                : RetirementIncomeDialogLabels.growthPercent(growthRate)}
+            </div>
+          </div>
+
+          {/* Duration readout */}
+          <div className="grid gap-2">
+            <Label>{RetirementIncomeDialogLabels.duration}</Label>
+            <div className="rounded-md border px-3 py-2 text-sm">
+              {lifelong || !endYear
+                ? RetirementIncomeDialogLabels.lifelong
+                : RetirementIncomeDialogLabels.until(endYear)}
+            </div>
+          </div>
+
+          {/* Lifelong toggle */}
+          <div className="flex items-center justify-between rounded-md border px-3 py-2">
+            <Label htmlFor="lifelong">{RetirementIncomeDialogLabels.lifelongLabel}</Label>
+            <Switch id="lifelong" checked={lifelong} onCheckedChange={setLifelong} />
+          </div>
+
+          {/* Advanced: growth rate + start/end years */}
+          <div className="grid gap-2">
+            <button
+              type="button"
+              className="flex items-center justify-between rounded-md border px-3 py-2 text-sm font-medium"
+              onClick={() => setAdvancedOpen((prev) => !prev)}
+              aria-expanded={advancedOpen}
+            >
+              {RetirementIncomeDialogLabels.advanced}
+              <ChevronDown
+                className={`h-4 w-4 transition-transform ${advancedOpen ? 'rotate-180' : ''}`}
+              />
+            </button>
+            {advancedOpen && (
+              <div className="grid gap-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="growth">Growth Rate (%)</Label>
+                  <Input
+                    id="growth"
+                    type="number"
+                    step="0.1"
+                    value={growthRate ?? ''}
+                    onChange={(e) =>
+                      setGrowthRate(e.target.value === '' ? undefined : Number(e.target.value))
+                    }
+                    placeholder={
+                      planInflationRate != null
+                        ? `Plan inflation ${planInflationRate}%`
+                        : 'Plan inflation'
+                    }
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="startYear">Start Year</Label>
+                    <Input
+                      id="startYear"
+                      type="number"
+                      value={startYear}
+                      onChange={(e) => setStartYear(Number(e.target.value))}
+                      required
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="endYear">End Year (Optional)</Label>
+                    <Input
+                      id="endYear"
+                      type="number"
+                      value={endYear}
+                      onChange={(e) =>
+                        setEndYear(e.target.value === '' ? '' : Number(e.target.value))
+                      }
+                      placeholder={RetirementIncomeDialogLabels.lifelongPlaceholder}
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
 
           {submitError && <p className="text-sm text-destructive">{submitError}</p>}
           <DialogFooter>
-            <Button type="submit" disabled={loading || calculating}>
+            <Button type="submit" disabled={loading}>
               {loading ? 'Saving...' : initialData ? 'Save Changes' : 'Add Income'}
             </Button>
           </DialogFooter>

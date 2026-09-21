@@ -93,8 +93,7 @@ describe('ImportRetirementIncomeUseCase (Firestore Emulator)', () => {
     expect(source.calculatedFrom.totalAmount).toBe(110000);
     expect(source.calculatedFrom.sampleCount).toBe(2);
     expect(source.calculatedFrom.monthlyAverage).toBeCloseTo(110000 / 12);
-    expect(source.baseAmount).toBe(110000);
-    expect(source.incomeCalculationMode).toBe('IMPORTED');
+    expect(source.currentAnnual).toBe(110000);
   });
 
   it('returns empty array when no income entries exist', async () => {

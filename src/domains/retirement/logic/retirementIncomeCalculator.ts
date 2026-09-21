@@ -30,7 +30,8 @@ export function calculateYearlyIncome(
 
   const growth = resolveGrowthRate(income.growthRate, planInflationRate);
   const yearsFromSample = Math.max(0, year - sampleYear);
-  return income.currentAnnual * Math.pow(1 + growth / 100, yearsFromSample);
+  // null currentAnnual = scenario-only stream: no pre-retirement contribution.
+  return (income.currentAnnual ?? 0) * Math.pow(1 + growth / 100, yearsFromSample);
 }
 
 /**
@@ -80,25 +81,19 @@ export function calculateTotalYearlyIncome(
 }
 
 /**
- * Filters active income sources for a given year.
+ * Filters active income sources for a given year. Stream start/end years are
+ * authoritative since linked year modes were removed (issue #133).
  */
 export function filterActiveIncomes(
   incomes: RetirementIncomeSource[],
   year: number,
-  retirementYear?: number,
   projectionEndYear?: number,
 ): RetirementIncomeSource[] {
   return incomes.filter((income) => {
-    const effectiveStartYear =
-      income.startYearMode === 'LINKED_TO_RETIREMENT' && typeof retirementYear === 'number'
-        ? retirementYear
-        : income.startYear;
     const effectiveEndYear = income.lifelong
       ? (projectionEndYear ?? Number.MAX_SAFE_INTEGER)
-      : income.endYearMode === 'LINKED_TO_RETIREMENT' && typeof retirementYear === 'number'
-        ? retirementYear
-        : (income.endYear ?? Number.MAX_SAFE_INTEGER);
+      : (income.endYear ?? Number.MAX_SAFE_INTEGER);
 
-    return year >= effectiveStartYear && year <= effectiveEndYear;
+    return year >= income.startYear && year <= effectiveEndYear;
   });
 }

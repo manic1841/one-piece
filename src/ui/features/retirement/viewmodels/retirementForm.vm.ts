@@ -11,8 +11,6 @@ const currentYear = () => new Date().getFullYear();
 
 export const RetirementIncomeFormVMSchema = z.object({
   name: z.string().min(1),
-  importedFrom: z.enum(['manual', 'transactionEntries']),
-  autoUpdate: z.boolean().default(false),
   calculatedFrom: z
     .object({
       ledgerCode: z.string().optional(),
@@ -25,10 +23,8 @@ export const RetirementIncomeFormVMSchema = z.object({
     .optional(),
   incomeCategory: z.string().optional(),
   type: z.enum(['salary', 'bonus', 'pension', 'rent', 'other']),
-  startYearMode: z.enum(['MANUAL', 'LINKED_TO_RETIREMENT']).default('MANUAL'),
-  endYearMode: z.enum(['MANUAL', 'LINKED_TO_RETIREMENT']).default('MANUAL'),
   lifelong: z.boolean().default(false),
-  currentAnnual: z.number().finite(),
+  currentAnnual: z.number().finite().nullable(),
   retirementAnnual: z.number().finite().optional(),
   growthRate: z.number().finite().optional(),
   startYear: z.number().int(),
@@ -45,13 +41,9 @@ export const buildRetirementIncomeFormVM = (
   if (!domain) {
     return {
       name: '',
-      importedFrom: 'manual',
-      autoUpdate: false,
       type: 'salary',
-      startYearMode: 'MANUAL',
-      endYearMode: 'MANUAL',
       lifelong: false,
-      currentAnnual: 0,
+      currentAnnual: null,
       startYear: year,
       endYear: year + 20,
     };
@@ -59,13 +51,9 @@ export const buildRetirementIncomeFormVM = (
 
   return {
     name: domain.name,
-    importedFrom: domain.importedFrom,
-    autoUpdate: domain.autoUpdate ?? false,
     calculatedFrom: domain.calculatedFrom,
     incomeCategory: domain.incomeCategory,
     type: domain.type,
-    startYearMode: domain.startYearMode ?? 'MANUAL',
-    endYearMode: domain.endYearMode ?? 'MANUAL',
     lifelong: domain.lifelong ?? false,
     currentAnnual: domain.currentAnnual,
     retirementAnnual: domain.retirementAnnual,
@@ -80,13 +68,9 @@ export const mapRetirementIncomeVMToDomain = (
   vm: RetirementIncomeFormVM,
 ): Omit<RetirementIncomeSource, 'id'> => ({
   name: vm.name,
-  importedFrom: vm.importedFrom,
-  autoUpdate: vm.autoUpdate,
   ...(vm.calculatedFrom && { calculatedFrom: vm.calculatedFrom }),
   ...(vm.incomeCategory && { incomeCategory: vm.incomeCategory }),
   type: vm.type,
-  startYearMode: vm.startYearMode,
-  endYearMode: vm.endYearMode,
   lifelong: vm.lifelong,
   currentAnnual: vm.currentAnnual,
   ...(vm.retirementAnnual !== undefined && { retirementAnnual: vm.retirementAnnual }),

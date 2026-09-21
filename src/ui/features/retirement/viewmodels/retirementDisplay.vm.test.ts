@@ -109,10 +109,6 @@ describe('retirementDisplay.vm', () => {
     const income = mapRetirementIncomeToVM({
       id: 'i1',
       name: 'Salary',
-      importedFrom: 'manual',
-      autoUpdate: false,
-      startYearMode: 'MANUAL',
-      endYearMode: 'MANUAL',
       lifelong: false,
       type: 'salary',
       currentAnnual: 120000,
@@ -209,10 +205,6 @@ describe('retirementDisplay.vm', () => {
         {
           id: 'salary-1',
           name: 'Salary',
-          importedFrom: 'transactionEntries',
-          autoUpdate: false,
-          startYearMode: 'MANUAL',
-          endYearMode: 'MANUAL',
           lifelong: false,
           type: 'salary',
           currentAnnual: 1200000,

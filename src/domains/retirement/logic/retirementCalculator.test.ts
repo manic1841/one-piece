@@ -27,10 +27,6 @@ describe('retirementCalculator', () => {
         id: 'income1',
         name: 'Salary',
         type: 'salary',
-        importedFrom: 'transactionEntries',
-        autoUpdate: false,
-        startYearMode: 'MANUAL',
-        endYearMode: 'MANUAL',
         lifelong: false,
         startYear: 2025,
         endYear: 2054, // Until retirement
@@ -212,22 +208,20 @@ describe('retirementCalculator', () => {
     expect(summary.minSavings).toBeLessThan(0);
   });
 
-  it('should apply linked retirement year and lifelong pension behaviors', () => {
+  it('should apply concrete years and lifelong pension behaviors (v2: linked modes removed)', () => {
     const salaryAndPensionPlan = {
       ...mockPlan,
       retirementAge: 60,
       incomes: [
         {
-          id: 'salary-linked',
-          name: 'Salary Linked',
+          id: 'salary-concrete',
+          name: 'Salary',
           type: 'salary',
-          importedFrom: 'manual',
-          autoUpdate: false,
-          startYearMode: 'MANUAL',
-          endYearMode: 'LINKED_TO_RETIREMENT',
           lifelong: false,
           startYear: 2025,
-          endYear: 2099,
+          // Migration (#132) wrote the retirement year (1995 + 60 = 2055) for
+          // linked end modes; a concrete end at 2055 projects identically.
+          endYear: 2055,
           currentAnnual: 1_000_000,
           growthRate: 0,
         },
@@ -235,10 +229,6 @@ describe('retirementCalculator', () => {
           id: 'pension-gap-lifelong',
           name: 'Pension',
           type: 'pension',
-          importedFrom: 'manual',
-          autoUpdate: false,
-          startYearMode: 'MANUAL',
-          endYearMode: 'MANUAL',
           lifelong: true,
           startYear: 2060,
           currentAnnual: 200_000,

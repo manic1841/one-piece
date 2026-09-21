@@ -3,14 +3,12 @@ import { z } from 'zod';
 import {
   RetirementExpenseCategorySchema,
   RetirementExpenseType as RetirementExpenseTypeEnum,
-  RetirementIncomeImportSource as RetirementIncomeImportSourceEnum,
   RetirementIncomeSourceSchema,
   RetirementIncomeType as RetirementIncomeTypeEnum,
   RetirementOneTimeEventSchema,
   RetirementPlanCreateSchema,
   RetirementPlanSchema,
   RetirementProjectionYearSchema,
-  RetirementYearLinkMode as RetirementYearLinkModeEnum,
 } from './schemas';
 
 export type RetirementPlan = z.infer<typeof RetirementPlanSchema>;
@@ -22,12 +20,6 @@ export type RetirementProjectionYear = z.infer<typeof RetirementProjectionYearSc
 
 export type RetirementIncomeType = RetirementIncomeTypeEnum;
 export const RetirementIncomeType = RetirementIncomeTypeEnum;
-
-export type RetirementIncomeImportSource = RetirementIncomeImportSourceEnum;
-export const RetirementIncomeImportSource = RetirementIncomeImportSourceEnum;
-
-export type RetirementYearLinkMode = RetirementYearLinkModeEnum;
-export const RetirementYearLinkMode = RetirementYearLinkModeEnum;
 
 export type RetirementExpenseType = RetirementExpenseTypeEnum;
 export const RetirementExpenseType = RetirementExpenseTypeEnum;

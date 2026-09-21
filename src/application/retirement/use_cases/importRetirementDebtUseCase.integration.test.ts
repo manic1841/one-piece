@@ -118,11 +118,10 @@ describe('ImportRetirementDebtUseCase (Firestore Emulator)', () => {
     const expense = result[0] as RetirementExpenseCategory;
     expect(expense.type).toBe('debt_payment');
     expect(expense.sourceDebtAccountId).toBeDefined();
-    expect(expense.baseAmount).toBe(60000); // monthlyPayment * 12 = 5000 * 12
+    expect(expense.currentAnnual).toBe(60000); // monthlyPayment * 12 = 5000 * 12
     expect(expense.calculatedFrom.totalPaid).toBe(15000); // 3 * 5000
     expect(expense.calculatedFrom.interestPaid).toBe(2700); // 1000 + 900 + 800
     expect(expense.calculatedFrom.sampleCount).toBe(3);
-    expect(expense.calculationMode).toBe('FIXED');
     expect(expense.growthRate).toBe(0);
   });
 

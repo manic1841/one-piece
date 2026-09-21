@@ -55,12 +55,8 @@ export function calculateIncomeSourceSuggestions(
     incomeSources.push({
       id: crypto.randomUUID(),
       name: toIncomeStreamName(key),
-      importedFrom: 'transactionEntries',
-      autoUpdate: true,
       incomeCategory: key,
       type: mapCategoryToRetirementIncomeType(key),
-      startYearMode: 'MANUAL',
-      endYearMode: 'MANUAL',
       lifelong: false,
       calculatedFrom: {
         ledgerCode: key,
@@ -78,25 +74,4 @@ export function calculateIncomeSourceSuggestions(
   });
 
   return incomeSources;
-}
-
-/**
- * Pure logic to calculate metadata for a specific income import.
- */
-export function calculateIncomeImportMetadata(
-  validIncomes: PlannedIncome[],
-): RetirementIncomeSource['calculatedFrom'] | null {
-  if (validIncomes.length === 0) return null;
-
-  const totalAmount = validIncomes.reduce((sum, pi) => sum + pi.amount, 0);
-  const sampleYear = validIncomes[0]?.date.getFullYear() ?? new Date().getFullYear() - 1;
-  const monthlyAverage = totalAmount / 12;
-
-  return {
-    sampleYear,
-    totalAmount,
-    monthlyAverage,
-    sampleCount: validIncomes.length,
-    importedAt: new Date().toISOString(),
-  };
 }

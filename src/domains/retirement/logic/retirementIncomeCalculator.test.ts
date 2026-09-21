@@ -18,10 +18,6 @@ describe('retirementIncomeCalculator', () => {
     id: 'salary-1',
     name: 'Monthly Salary',
     type: 'salary',
-    importedFrom: 'manual',
-    autoUpdate: false,
-    startYearMode: 'MANUAL',
-    endYearMode: 'MANUAL',
     lifelong: false,
     currentAnnual: 48_000,
     growthRate: 3,
@@ -33,7 +29,6 @@ describe('retirementIncomeCalculator', () => {
     ...salary,
     id: 'imported-1',
     name: 'Imported Salary',
-    importedFrom: 'transactionEntries',
     currentAnnual: 60_000,
     calculatedFrom: {
       ledgerCode: 'income:salary',
@@ -188,22 +183,58 @@ describe('retirementIncomeCalculator', () => {
       expect(active.map((income) => income.id)).not.toContain('early');
     });
 
-    it('honors linked retirement year and lifelong settings', () => {
+    it('honors concrete years and lifelong settings (v2: no linked year modes)', () => {
       const linkedPension: RetirementIncomeSource = {
         ...salary,
         id: 'pension-linked',
         type: 'pension',
-        startYearMode: 'LINKED_TO_RETIREMENT',
-        endYearMode: 'MANUAL',
         lifelong: true,
-        startYear: 2030,
+        startYear: 2055,
+        endYear: undefined,
       };
 
-      const activeAtRetirement = filterActiveIncomes([linkedPension], 2055, 2055, 2080);
+      const activeAtRetirement = filterActiveIncomes([linkedPension], 2055, 2080);
       expect(activeAtRetirement).toHaveLength(1);
 
-      const beforeRetirement = filterActiveIncomes([linkedPension], 2054, 2055, 2080);
+      const beforeRetirement = filterActiveIncomes([linkedPension], 2054, 2080);
       expect(beforeRetirement).toHaveLength(0);
+    });
+
+    it('uses concrete start/end years directly (v2: no linked year modes)', () => {
+      // Migration (#132) already resolved linked years into concrete years.
+      const pension: RetirementIncomeSource = {
+        ...salary,
+        id: 'pension',
+        type: 'pension',
+        lifelong: true,
+        startYear: 2055,
+        endYear: undefined,
+      };
+
+      const activeAtRetirement = filterActiveIncomes([pension], 2055, 2080);
+      expect(activeAtRetirement).toHaveLength(1);
+
+      const beforeRetirement = filterActiveIncomes([pension], 2054, 2080);
+      expect(beforeRetirement).toHaveLength(0);
+    });
+  });
+
+  describe('null currentAnnual (issue #133)', () => {
+    it('contributes 0 in working years for a scenario-only stream', () => {
+      const scenarioOnly: RetirementIncomeSource = {
+        ...salary,
+        id: 'scenario-1',
+        currentAnnual: null,
+      };
+
+      const result = calculateYearlyIncome(
+        scenarioOnly,
+        2026,
+        RETIREMENT_YEAR,
+        INFLATION,
+        SAMPLE_YEAR,
+      );
+      expect(result).toBe(0);
     });
   });
 });

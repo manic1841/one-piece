@@ -22,7 +22,7 @@
 
 路徑：`households/{householdId}/retirement_plans/{planId}/incomeStreams/{incomeStreamId}`
 
-收入流以會計科目、收入類型、目前/退休兩個金額欄位、年份連動設定與來源統計描述；v1 不再有計算模式（見 [ADR-0057](adr/0057-retirement-v1-flat-amount-fields.md)）。分錄來源、樣本年度與過期更新見 [ADR-0023](adr/0023-retirement-income-from-entries-only.md) 至 [ADR-0025](adr/0025-retirement-sample-window-auto-shift.md)。欄位詳見 [data-structure.md](data-structure.md)。
+收入流以會計科目、收入類型、目前/退休兩個金額欄位與來源統計描述；v1 不再有計算模式（見 [ADR-0057](adr/0057-retirement-v1-flat-amount-fields.md)），v2 再移除 `importedFrom` / `autoUpdate` / `startYearMode` / `endYearMode`（見 issue #133）：`currentAnnual` 為 `number | null`（null = 情境專用流，退休前貢獻 0），年份連動由遷移腳本解析為具體年份。分錄來源、樣本年度與過期更新見 [ADR-0023](adr/0023-retirement-income-from-entries-only.md) 至 [ADR-0025](adr/0025-retirement-sample-window-auto-shift.md)。欄位詳見 [data-structure.md](data-structure.md)。
 
 ### 2.3 支出類別子集合
 
@@ -52,7 +52,7 @@
 
 輸出欄位與 metadata 對應見 [data-structure.md](data-structure.md)；決策約束以 [ADR-0023](adr/0023-retirement-income-from-entries-only.md) 與 [ADR-0024](adr/0024-retirement-income-import-annualized.md) 為準。
 
-過期偵測與批次更新依 [ADR-0025](adr/0025-retirement-sample-window-auto-shift.md) 執行：頁面顯示 banner，使用者確認後才批次更新；`autoUpdate=false` 的收入流不納入自動更新。
+過期偵測與批次更新依 [ADR-0025](adr/0025-retirement-sample-window-auto-shift.md) 執行：頁面顯示 banner，使用者確認後才批次更新。v2 收入層級的 `autoUpdate` 旗標已移除（issue #133）：計畫層級 Auto Update 是唯一開關，同步目標為帶有匯入統計（`calculatedFrom.ledgerCode` + `sampleYear`）的收入流。
 
 ## 3.5 期初餘額與重算流程
 
@@ -93,12 +93,13 @@ Repository 與 Use Case 的規則集中在下表，本文不再複述決策理�
 
 ## 6. UI 操作
 
-- 收入頁面提供「匯入上一完整年度收入」按鈕。
+- 收入頁面提供「Import from Ledger」按鈕（上一完整年度匯入行為不變）。
 - 支出頁面提供「匯入債務還款」與「Import from Ledger」按鈕。
 - 計畫清單頁以系統表格呈現：欄位為 Name、Retirement Age、Final Net Worth、Status；點擊列進入計畫詳情，Duplicate 為列尾圖示動作，New Plan 留在頁首；未重新計算的計畫 Final Net Worth 顯示「—」（無 fallback 值）。
 - Projection 摘要為快取：Recalculate 時重新推導 netWorthAtRetirement（退休年期初淨資產）與 finalNetWorth（投影期末淨資產），不使用遷移腳本。
 - 事件頁為分段編輯：可新增多個 phase，每段設定 Start/End Year 與金額（必填），Growth Rate 留空代表隨計畫通膨。
-- 收入頁每筆收入只有一組金額欄位：目前年金額（匯入時唯讀帶入）與退休年金額（可編輯）。
+- 收入頁每筆收入只有一組金額欄位：目前年金額（匯入時唯讀帶入；null = 情境專用流，顯示「—」帶 Import from Ledger 提示，退休前貢獻 0）與退休年金額（可編輯）。
+- 收入對話框為 v2 形狀（issue #133）：Type、唯讀 Current Annual、可編輯 Retirement Annual、Growth（Advanced 展開明確成長率）、Start/End Year 與 Lifelong 收進 Advanced；無 Source 選擇器、Ledger Code、Sample Year、收入層級 Auto Update、試算預覽與連動退休年 Badge（計畫層級 Auto Update 是唯一開關）。
 - 支出對話框以 Duration 顯示期間：未設定 End Year 即 Lifelong，設定後顯示 Until {endYear}；Debt Payment 的 End Year 保留在主表單。Start/End Year 收進 Advanced 展開區（Start Year 預設當前年度，無 2100 預設值）。
 - 支出成長率預設跟隨計畫通膨並顯示「Using plan inflation: {rate}%」，Advanced 展開後才能輸入明確成長率（留空 = 計畫通膨，0 = 明確 0%）；目前年支出一般支出可編輯，Debt 匯入值為系統推導唯讀，退休後費用比例（%）維持必填。
 - Projection Results：

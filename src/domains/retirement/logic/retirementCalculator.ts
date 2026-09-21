@@ -26,19 +26,16 @@ interface YearlyFlowDetails {
 }
 
 function resolveIncomeWindow(
-  plan: RetirementPlan,
   income: RetirementPlan['incomes'][number],
   projectionEndYear: number,
 ): { effectiveStartYear: number; effectiveEndYear: number } {
-  const retirementYear = plan.birthYear + plan.retirementAge;
-  const effectiveStartYear =
-    income.startYearMode === 'LINKED_TO_RETIREMENT' ? retirementYear : income.startYear;
+  // Migration (#132) already resolved LINKED_TO_RETIREMENT year modes into
+  // concrete years; the stream's start/end years are authoritative now.
+  const effectiveStartYear = income.startYear;
 
   const effectiveEndYear = income.lifelong
     ? projectionEndYear
-    : income.endYearMode === 'LINKED_TO_RETIREMENT'
-      ? retirementYear
-      : (income.endYear ?? effectiveStartYear);
+    : (income.endYear ?? effectiveStartYear);
 
   return {
     effectiveStartYear,
@@ -68,7 +65,6 @@ function calculateYearlyFlowDetails(plan: RetirementPlan, year: number): YearlyF
   const sampleYear = resolveSampleYear(plan);
   const activeIncomes = plan.incomes.filter((income) => {
     const { effectiveStartYear, effectiveEndYear } = resolveIncomeWindow(
-      plan,
       income,
       projectionEndYear,
     );

@@ -109,9 +109,8 @@ const incomeFixture = (id: string) => ({
   name: id,
   type: 'salary',
   startYear: 2026,
-  baseAmount: 1000,
+  currentAnnual: 1000,
   growthRate: 0,
-  autoUpdate: false,
   lifelong: true,
 });
 
@@ -119,8 +118,7 @@ const expenseFixture = (id: string) => ({
   id,
   name: id,
   type: 'general',
-  calculationMode: 'FIXED',
-  baseAmount: 1000,
+  currentAnnual: 1000,
   growthRate: 0,
   retirementMultiplier: 1,
   startYear: 2026,

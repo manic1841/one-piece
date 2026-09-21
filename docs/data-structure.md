@@ -88,18 +88,15 @@ firestore
       │    │
       │    ├─ incomeStreams/{incomeStreamId}   # 由交易分錄推導的收入流
       │         ├─ name: string
-      │         ├─ importedFrom: "manual" | "transactionEntries"
       │         ├─ incomeCategory: string       # e.g. "income:salary:charles"
       │         ├─ type: "salary" | "bonus" | "pension" | "rent" | "other"
       │         │
-      │         │  # --- 金額設定（v1：無計算模式）---
-      │         ├─ currentAnnual: number            # 目前年金額（匯自完整年度實際資料）
+      │         │  # --- 金額設定（v2：無計算模式、無連動年份模式）---
+      │         ├─ currentAnnual: number | null    # 匯自完整年度實際資料（唯讀）；null = 情境專用流，退休前貢獻 0
       │         ├─ retirementAnnual?: number        # 退休年金額；缺省時以 currentAnnual 調整後水準沿用
       │         ├─ growthRate?: number              # 年成長率（%），缺省 = 計畫通膨率
-      │         ├─ startYear: number                 # startYearMode=MANUAL 時有效
-      │         │    # LINKED_TO_RETIREMENT 由遷移腳本解析為退休年並寫入
-      │         ├─ endYear?: number                  # endYearMode=MANUAL 且 lifelong=false 時有效
-      │         │    # LINKED 由遷移寫入；lifelong 終身流不寫 endYear
+      │         ├─ startYear: number                 # 具體年份（v2 無 startYearMode；連動由遷移解析寫入）
+      │         ├─ endYear?: number                  # 具體年份（v2 無 endYearMode；lifelong 終身流不寫 endYear）
       │         │
       │         │
       │         ├─ calculatedFrom: object
@@ -109,7 +106,6 @@ firestore
       │         │    ├─ monthlyAverage: number
       │         │    ├─ sampleCount: number
       │         │    └─ importedAt: string      # ISO datetime
-      │         ├─ autoUpdate: boolean           # true = 允許系統偵測 sampleYear 過期並提示更新
       │         └─ note?: string       │
        │    └─ expenseCategories/{expenseCategoryId}  # 退休支出類別（含債務匯入）
        │         ├─ name: string

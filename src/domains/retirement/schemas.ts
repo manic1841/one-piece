@@ -14,22 +14,6 @@ export const RetirementIncomeType = {
 
 export type RetirementIncomeType = (typeof RetirementIncomeType)[keyof typeof RetirementIncomeType];
 
-export const RetirementIncomeImportSource = {
-  MANUAL: 'manual',
-  TRANSACTION_ENTRIES: 'transactionEntries',
-} as const;
-
-export type RetirementIncomeImportSource =
-  (typeof RetirementIncomeImportSource)[keyof typeof RetirementIncomeImportSource];
-
-export const RetirementYearLinkMode = {
-  MANUAL: 'MANUAL',
-  LINKED_TO_RETIREMENT: 'LINKED_TO_RETIREMENT',
-} as const;
-
-export type RetirementYearLinkMode =
-  (typeof RetirementYearLinkMode)[keyof typeof RetirementYearLinkMode];
-
 export const RetirementExpenseType = {
   GENERAL: 'general',
   DEBT_PAYMENT: 'debt_payment',
@@ -47,7 +31,6 @@ export const RetirementIncomeSourceSchema = z
   .object({
     id: z.string(),
     name: z.string(),
-    importedFrom: z.enum(RetirementIncomeImportSource).default(RetirementIncomeImportSource.MANUAL),
     calculatedFrom: z
       .object({
         ledgerCode: z.string().optional(),
@@ -58,16 +41,15 @@ export const RetirementIncomeSourceSchema = z
         importedAt: z.string(),
       })
       .optional(),
-    autoUpdate: z.boolean().default(false),
     incomeCategory: z.string().optional(),
     type: z.enum(RetirementIncomeType),
-    startYearMode: z.enum(RetirementYearLinkMode).default(RetirementYearLinkMode.MANUAL),
-    endYearMode: z.enum(RetirementYearLinkMode).default(RetirementYearLinkMode.MANUAL),
     lifelong: z.boolean().default(false),
     startYear: z.number(),
     endYear: z.number().optional(),
-    // What the household earns today (last full year's actual, read-only import).
-    currentAnnual: z.number(),
+    // What the household earns today. A number is system-derived from the
+    // ledger import; null = scenario-only stream with no pre-retirement
+    // contribution (issue #133).
+    currentAnnual: z.number().nullable(),
     // User's assumption for the retirement level; effective from the retirement
     // year (or the stream's start year when it starts after retirement).
     retirementAnnual: z.number().optional(),
@@ -75,14 +57,10 @@ export const RetirementIncomeSourceSchema = z
     note: z.string().optional(),
   })
   .superRefine((income, ctx) => {
-    if (
-      !income.lifelong &&
-      income.endYearMode === RetirementYearLinkMode.MANUAL &&
-      typeof income.endYear !== 'number'
-    ) {
+    if (!income.lifelong && typeof income.endYear !== 'number') {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message: 'endYear is required when lifelong is false and endYearMode is MANUAL',
+        message: 'endYear is required when lifelong is false',
       });
     }
 

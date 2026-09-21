@@ -51,8 +51,6 @@ const createPlan = (): RetirementPlan => ({
     {
       id: 'income-1',
       name: 'Salary',
-      importedFrom: 'transactionEntries',
-      incomeCalculationMode: 'FIXED',
       type: RetirementIncomeType.SALARY,
       startYear: 2026,
       endYear: 2060,

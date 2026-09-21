@@ -1,0 +1,16 @@
+export const RetirementIncomeDialogLabels = {
+  type: 'Type',
+  currentAnnual: 'Current Annual ($)',
+  noCurrentAnnualMarker: '—',
+  importHint: 'Import from Ledger to populate.',
+  retirementAnnual: 'Retirement Annual (from retirement year)',
+  growth: 'Growth',
+  usingPlanInflation: (rate: number) => `Using plan inflation: ${rate}%`,
+  growthPercent: (rate: number) => `${rate}% growth`,
+  duration: 'Duration',
+  lifelong: 'Lifelong',
+  until: (endYear: number) => `Until ${endYear}`,
+  lifelongLabel: 'Lifelong',
+  advanced: 'Advanced',
+  lifelongPlaceholder: 'Lifelong',
+} as const;

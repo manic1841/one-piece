@@ -4,32 +4,6 @@ import { ZodError } from 'zod';
 
 import type { RetirementIncomeSource } from '@/domains/retirement/types';
 
-interface LedgerEntry {
-  ledgerCode: string;
-  credit?: number | null;
-  debit?: number | null;
-}
-
-interface TransactionWithEntries {
-  entries: LedgerEntry[];
-}
-
-function sumLedgerCodeAmounts(
-  transactions: TransactionWithEntries[],
-  ledgerCode: string,
-): { totalAmount: number; sampleCount: number } {
-  let totalAmount = 0;
-  let sampleCount = 0;
-  for (const transaction of transactions) {
-    for (const entry of transaction.entries) {
-      if (entry.ledgerCode === ledgerCode) {
-        totalAmount += (entry.credit || 0) - (entry.debit || 0);
-        sampleCount += 1;
-      }
-    }
-  }
-  return { totalAmount, sampleCount };
-}
 import {
   RetirementIncomeFormVMSchema,
   buildRetirementIncomeFormVM,
@@ -42,14 +16,12 @@ interface UseRetirementIncomeDialogOptions {
   initialData?: RetirementIncomeSource;
   currentYear: number;
   onSave: (income: Omit<RetirementIncomeSource, 'id'>) => Promise<void>;
-  householdId: string;
 }
 
 export function useRetirementIncomeDialog({
   initialData,
   currentYear,
   onSave,
-  householdId,
 }: UseRetirementIncomeDialogOptions) {
   // Initialize with mapper
   const initialForm = buildRetirementIncomeFormVM(initialData, currentYear);
@@ -62,8 +34,6 @@ export function useRetirementIncomeDialog({
     setLoading,
     name,
     setName,
-    amount,
-    setAmount,
     growthRate,
     setGrowthRate,
     startYear,
@@ -78,108 +48,24 @@ export function useRetirementIncomeDialog({
 
   // Income-specific fields
   const [type, setType] = useState<RetirementIncomeSource['type']>(initialForm.type);
-  const [endYear, setEndYear] = useState<number>(initialForm.endYear ?? currentYear + 20);
-  const [startYearMode, setStartYearMode] = useState<'MANUAL' | 'LINKED_TO_RETIREMENT'>(
-    initialForm.startYearMode,
-  );
-  const [endYearMode, setEndYearMode] = useState<'MANUAL' | 'LINKED_TO_RETIREMENT'>(
-    initialForm.endYearMode,
-  );
+  const [endYear, setEndYear] = useState<number | ''>(initialForm.endYear ?? '');
   const [lifelong, setLifelong] = useState<boolean>(initialForm.lifelong);
-  const [autoUpdate, setAutoUpdate] = useState<boolean>(initialForm.autoUpdate);
-  const [incomeCategory, setIncomeCategory] = useState<string | undefined>(
-    initialForm.incomeCategory,
-  );
-  const [importedFrom, setImportedFrom] = useState<'manual' | 'transactionEntries'>(
-    initialForm.importedFrom,
-  );
   const [retirementAnnual, setRetirementAnnual] = useState<number | undefined>(
     initialForm.retirementAnnual,
   );
-  const [ledgerCode, setLedgerCode] = useState<string>(
-    initialForm.calculatedFrom?.ledgerCode ?? '',
-  );
-  const [sampleYear, setSampleYear] = useState<number>(
-    initialForm.calculatedFrom?.sampleYear ?? currentYear - 1,
-  );
   const [submitError, setSubmitError] = useState<string | null>(null);
-  const [calculating, setCalculating] = useState(false);
 
-  // Sync income-specific fields when opening
+  // Sync income-specific fields when opening.
   useEffect(() => {
     if (open) {
-      setSubmitError(null);
       const form = buildRetirementIncomeFormVM(initialData, currentYear);
       setType(form.type);
-      setEndYear(form.endYear ?? currentYear + 20);
-      setStartYearMode(form.startYearMode);
-      setEndYearMode(form.endYearMode);
+      setEndYear(form.endYear ?? '');
       setLifelong(form.lifelong);
-      setAutoUpdate(form.autoUpdate);
-      setIncomeCategory(form.incomeCategory);
-      setImportedFrom(form.importedFrom);
       setRetirementAnnual(form.retirementAnnual);
-      setLedgerCode(form.calculatedFrom?.ledgerCode ?? '');
-      setSampleYear(form.calculatedFrom?.sampleYear ?? currentYear - 1);
+      setSubmitError(null);
     }
   }, [open, initialData, currentYear]);
-
-  // Calculate for IMPORTED mode: fetch transactions from ledger
-  const handleCalculateImported = async () => {
-    try {
-      setCalculating(true);
-      setSubmitError(null);
-
-      const normalizedLedgerCode = ledgerCode.trim();
-      if (!normalizedLedgerCode) {
-        throw new Error('Ledger Code is required.');
-      }
-      if (!normalizedLedgerCode.startsWith('income:')) {
-        throw new Error('Ledger Code must start with income:.');
-      }
-      if (!Number.isInteger(sampleYear) || sampleYear < 1970) {
-        throw new Error('Sample year is invalid.');
-      }
-
-      // Import dynamically to avoid circular dependencies
-      const { transactionRepository } = await import('@/infra/repositories/transactionRepository');
-      const { where } = await import('firebase/firestore');
-
-      // Query transactions for the given ledger code within the date range
-      const startDate = new Date(sampleYear, 0, 1);
-      const endDate = new Date(sampleYear + 1, 0, 1);
-
-      const transactions = await transactionRepository.list(
-        [householdId],
-        [
-          where('date', '>=', startDate),
-          where('date', '<', endDate),
-          where('ledgerCodes', 'array-contains', normalizedLedgerCode),
-        ],
-      );
-
-      // Sum the amounts for this ledger code across all transactions
-      // For income ledger codes, sum the credit amounts
-      const { totalAmount, sampleCount } = sumLedgerCodeAmounts(
-        transactions,
-        normalizedLedgerCode,
-      );
-
-      setAmount(Math.round(totalAmount));
-      if (sampleCount === 0) {
-        setSubmitError(`No entries found for ${normalizedLedgerCode} in ${sampleYear}.`);
-      }
-    } catch (error) {
-      if (error instanceof Error) {
-        setSubmitError(error.message);
-      } else {
-        setSubmitError('Failed to calculate amount from ledger.');
-      }
-      console.error('Calculation error:', error);
-    } finally {
-      setCalculating(false);
-    }
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -187,50 +73,20 @@ export function useRetirementIncomeDialog({
     setSubmitError(null);
 
     try {
-      const isImported = importedFrom === 'transactionEntries';
-      const normalizedLedgerCode = ledgerCode.trim();
-
-      if (isImported) {
-        if (!normalizedLedgerCode) {
-          throw new Error('Ledger Code is required for imported income.');
-        }
-        if (!normalizedLedgerCode.startsWith('income:')) {
-          throw new Error('Ledger Code must start with income:.');
-        }
-        if (!Number.isInteger(sampleYear) || sampleYear < 1970) {
-          throw new Error('Sample year is invalid.');
-        }
-      }
-
-      const calculatedFrom = isImported
-        ? {
-            ledgerCode: normalizedLedgerCode,
-            sampleYear,
-            totalAmount: amount,
-            monthlyAverage: amount / 12,
-            sampleCount: 12,
-            importedAt: new Date().toISOString(),
-          }
-        : undefined;
-
-      const effectiveEndYear =
-        lifelong || endYearMode === 'LINKED_TO_RETIREMENT' ? undefined : endYear;
-
+      // Import provenance (calculatedFrom/incomeCategory) passes through
+      // untouched: edits never destroy the ledger link (issue #133).
       const vm = RetirementIncomeFormVMSchema.parse({
         name,
         type,
-        autoUpdate: isImported ? autoUpdate : false,
-        currentAnnual: amount,
+        currentAnnual: initialForm.currentAnnual,
         retirementAnnual,
         growthRate,
-        startYearMode,
-        endYearMode,
         lifelong,
         startYear,
-        endYear: effectiveEndYear,
-        importedFrom: isImported ? 'transactionEntries' : 'manual',
-        calculatedFrom,
-        incomeCategory: isImported ? normalizedLedgerCode : incomeCategory,
+        endYear: lifelong || endYear === '' ? undefined : endYear,
+        calculatedFrom: initialForm.calculatedFrom,
+        incomeCategory: initialForm.incomeCategory,
+        note: initialForm.note,
       });
       const domainData = mapRetirementIncomeVMToDomain(vm);
       await onSave(domainData);
@@ -258,8 +114,8 @@ export function useRetirementIncomeDialog({
     setName,
     type,
     setType,
-    amount,
-    setAmount,
+    // Read-only passthrough from the domain: edits never touch the import.
+    currentAnnual: initialForm.currentAnnual,
     growthRate,
     setGrowthRate,
     retirementAnnual,
@@ -268,27 +124,9 @@ export function useRetirementIncomeDialog({
     setStartYear,
     endYear,
     setEndYear,
-    startYearMode,
-    setStartYearMode,
-    endYearMode,
-    setEndYearMode,
     lifelong,
     setLifelong,
-    autoUpdate,
-    setAutoUpdate,
-    importedFrom,
-    setImportedFrom,
-    incomeCategory,
-    setIncomeCategory,
-    ledgerCode,
-    setLedgerCode,
-    sampleYear,
-    setSampleYear,
     submitError,
-    calculating,
-
-    // Handlers
     handleSubmit,
-    handleCalculateImported,
   };
 }
