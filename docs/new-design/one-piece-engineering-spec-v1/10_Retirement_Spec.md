@@ -15,16 +15,16 @@ Read-only, never an editable form:
 No closed period → empty state with a pointer to Monthly Close; projection is blocked. No manual input field, no fallback value.
 
 ### Income
-Baseline from the previous full year's actual income, imported as read-only `currentAnnual`. User assumptions:
+Baseline from the previous full year's actual income, imported as read-only `currentAnnual` (`number | null`): `null` for scenario-only streams created without a ledger source — UI shows `—`, never editable, pre-retirement contribution is 0; a number is always system-derived from the ledger import. User assumptions:
 - `retirementAnnual` (effective from the retirement year)
 - growth, defaulting to plan inflation; explicit `0` (no growth) must be distinguishable from unset
-- `startYear` / `endYear` / lifelong as today
+- `startYear` / `endYear` / lifelong; year link modes (`startYearMode` / `endYearMode`) are removed and migration resolves linked years into actual years
 
-`FIXED / IMPORTED / DERIVED` calculation modes are removed from model and UI; derived income (e.g. bonus = salary × multiplier) is flattened into an independent stream at import time.
+`FIXED / IMPORTED / DERIVED` calculation modes are removed from model and UI; derived income (e.g. bonus = salary × multiplier) is flattened into an independent stream at import time. Income-level `importedFrom` / `autoUpdate` flags are removed; plan-level Auto Update syncs every imported stream (identified by `calculatedFrom`) behind the single plan switch.
 
 ### Living Expenses
 Imported from the previous full year's ledger via a `LedgerCode → ExpenseCategory` mapping (mapping to be added). Per category:
-- `currentAnnual` (read-only import)
+- `currentAnnual` is editable for normal living expenses; debt-payment imported values are system-derived/read-only.
 - `retirementMultiplier` (post-retirement level)
 - growth, defaulting to plan inflation
 - optional `startYear` / `endYear` (general expense: unset = lifelong; debt payment import fills `endYear`)
@@ -52,7 +52,7 @@ Life Event
 - Investment Return Rate
 
 ## Outputs
-- Projected Net Worth
+- Projected Net Worth: list page surfaces Final Net Worth = `summary.finalNetWorth` (projection-end closing balance at life expectancy); `savingsAtRetirement` is renamed `netWorthAtRetirement` (retirement-year opening net worth) across code/VM/glossary; plans not yet recalculated show `—` (no fallback)
 - Cash Flow Projection
 - Scenario result
 
