@@ -102,9 +102,6 @@ describe('useRetirementPlanDetailPage', () => {
   const handleRecalculate = vi.fn();
   const handleDelete = vi.fn();
   const handleSaveName = vi.fn();
-  const handleCancelEditName = vi.fn();
-  const setEditedName = vi.fn();
-  const setIsEditingName = vi.fn();
 
   const handleAddExpense = vi.fn();
   const handleUpdateExpense = vi.fn();
@@ -130,16 +127,11 @@ describe('useRetirementPlanDetailPage', () => {
       assets: 200000,
       liabilities: 100000,
     },
-    isEditingName: false,
-    editedName: '',
-    setEditedName,
-    setIsEditingName,
     handleUpdatePlan,
     handleToggleAutoUpdate,
     handleRecalculate,
     handleDelete,
     handleSaveName,
-    handleCancelEditName,
     importIncomeData: vi.fn().mockResolvedValue([]),
     importDebtData: vi.fn().mockResolvedValue([]),
     importExpenseDataFromLedger: vi.fn().mockResolvedValue([]),
@@ -196,7 +188,6 @@ describe('useRetirementPlanDetailPage', () => {
     expect(result.current.handleRecalculate).toBe(handleRecalculate);
     expect(result.current.handleDelete).toBe(handleDelete);
     expect(result.current.handleSaveName).toBe(handleSaveName);
-    expect(result.current.handleCancelEditName).toBe(handleCancelEditName);
 
     expect(result.current.handleAddExpense).toBe(handleAddExpense);
     expect(result.current.handleUpdateExpense).toBe(handleUpdateExpense);
@@ -230,6 +221,5 @@ describe('useRetirementPlanDetailPage', () => {
     expect(result.current.expenseItems).toHaveLength(1);
     expect(result.current.eventItems).toHaveLength(1);
     expect(result.current.projectionVM).toBeTruthy();
-    expect(result.current.isEditingName).toBe(false);
   });
 });

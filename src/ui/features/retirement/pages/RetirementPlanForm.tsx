@@ -36,9 +36,6 @@ const RetirementPlanForm: React.FC = () => {
     projectionVM,
     netWorthSource,
     loading,
-    isEditingName,
-    editedName,
-    setEditedName,
     staleIncomeSyncBanner,
     handleApplyStaleIncomeSync,
     handleDismissStaleIncomeSync,
@@ -54,7 +51,6 @@ const RetirementPlanForm: React.FC = () => {
     handleDeleteEvent,
     handleDelete,
     handleSaveName,
-    handleCancelEditName,
     handleAddIncome,
     handleUpdateIncome,
     handleDeleteIncome,
@@ -95,11 +91,7 @@ const RetirementPlanForm: React.FC = () => {
 
       <RetirementPlanHeader
         header={headerVM}
-        isEditingName={isEditingName}
-        editedName={editedName}
-        setEditedName={setEditedName}
         handleSaveName={handleSaveName}
-        handleCancelEditName={handleCancelEditName}
         handleRecalculate={handleRecalculate}
         handleToggleAutoUpdate={handleToggleAutoUpdate}
       />

@@ -38,8 +38,6 @@ export const useRetirementPlanCore = ({
   const { confirm } = useConfirm();
   const auth = useAuthContext();
   const [plan, setPlan] = useState<RetirementPlan | null>(null);
-  const [isEditingName, setIsEditingName] = useState(false);
-  const [editedName, setEditedName] = useState('');
   const [staleIncomeSyncBanner, setStaleIncomeSyncBanner] =
     useState<StaleIncomeSyncBannerState | null>(null);
   const [netWorthSource, setNetWorthSource] = useState<StartingNetWorthSource | null>(null);
@@ -56,7 +54,6 @@ export const useRetirementPlanCore = ({
     const data = await getPlan(id);
     if (data) {
       setPlan(data);
-      setEditedName(data.name);
     }
   }, [id, householdId, getPlan]);
 
@@ -154,18 +151,15 @@ export const useRetirementPlanCore = ({
     }
   }, [id, confirm, deletePlan, navigate]);
 
-  const handleSaveName = useCallback(async () => {
-    if (!id || !plan || !editedName.trim()) return;
-    await handleUpdatePlan({
-      name: editedName.trim(),
-    });
-    setIsEditingName(false);
-  }, [id, plan, editedName, handleUpdatePlan]);
-
-  const handleCancelEditName = useCallback(() => {
-    setEditedName(plan?.name || '');
-    setIsEditingName(false);
-  }, [plan?.name]);
+  const handleSaveName = useCallback(
+    async (name: string) => {
+      if (!id || !plan || !name.trim()) return;
+      await handleUpdatePlan({
+        name: name.trim(),
+      });
+    },
+    [id, plan, handleUpdatePlan],
+  );
 
   const syncAutoUpdatedImportedIncomes = useCallback(async () => {
     if (!id || !plan || !householdId || !plan.autoUpdate || autoSyncingRef.current) {
@@ -221,10 +215,6 @@ export const useRetirementPlanCore = ({
     loading: planLoading,
     error: planError,
     netWorthSource,
-    isEditingName,
-    editedName,
-    setEditedName,
-    setIsEditingName,
     staleIncomeSyncBanner,
     handleApplyStaleIncomeSync,
     handleDismissStaleIncomeSync,
@@ -233,7 +223,6 @@ export const useRetirementPlanCore = ({
     handleRecalculate,
     handleDelete,
     handleSaveName,
-    handleCancelEditName,
     importIncomeData,
     importDebtData,
     importExpenseDataFromLedger,

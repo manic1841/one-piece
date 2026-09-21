@@ -12,7 +12,6 @@ export interface ProjectArgs {
 
 export const useProjectPage = (householdId?: string) => {
   const { projects, loading, error, reload } = useProjects(householdId || '');
-  const [editing, setEditing] = useState<Project | undefined>(undefined);
   const [isSettlementDialogOpen, setIsSettlementDialogOpen] = useState(false);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedProject, setSelectedProject] = useState<Project | undefined>(undefined);
@@ -35,10 +34,9 @@ export const useProjectPage = (householdId?: string) => {
     setIsFormOpen(false);
   };
 
-  // update project
+  // update project (Settings deactivate toggle)
   const update = async ({ id, project }: { id: string; project: Partial<ProjectCreate> }) => {
     await updateProject(id, project);
-    setEditing(undefined);
     setIsFormOpen(false);
     reload();
   };
@@ -60,7 +58,6 @@ export const useProjectPage = (householdId?: string) => {
   // close form
   const closeForm = () => {
     setIsFormOpen(false);
-    setEditing(undefined);
   };
 
   // open settlement dialog
@@ -115,7 +112,6 @@ export const useProjectPage = (householdId?: string) => {
     reload,
     create,
     update,
-    editing,
     isFormOpen,
     openForm,
     closeForm,

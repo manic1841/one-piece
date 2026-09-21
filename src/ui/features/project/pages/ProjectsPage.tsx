@@ -35,8 +35,6 @@ const Projects: React.FC = () => {
     projects,
     reload,
     create,
-    update,
-    editing,
     isFormOpen,
     openForm,
     closeForm,
@@ -168,12 +166,7 @@ const Projects: React.FC = () => {
         </TableBody>
       </Table>
 
-      <ProjectForm
-        isOpen={isFormOpen}
-        onClose={closeForm}
-        onSubmit={editing ? update : create}
-        initialData={editing}
-      />
+      <ProjectForm isOpen={isFormOpen} onClose={closeForm} onSubmit={create} />
     </div>
   );
 };

@@ -1,10 +1,10 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { X } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 
-import { type Account, type AccountCreate } from '@/domains/account/types/account';
+import { type AccountCreate } from '@/domains/account/types/account';
 import { AccountCategory, CurrencyType } from '@/domains/account/types/categories';
 import { Button } from '@/ui/components/ui/button';
 import {
@@ -32,13 +32,12 @@ import {
 } from '../viewmodels/account.vm';
 
 interface AccountFormProps {
-  initialData?: Account | null;
   onSubmit: (data: AccountCreate) => Promise<void>;
   onCancel: () => void;
   loading?: boolean;
 }
 
-const AccountForm: React.FC<AccountFormProps> = ({ initialData, onSubmit, onCancel, loading }) => {
+const AccountForm: React.FC<AccountFormProps> = ({ onSubmit, onCancel, loading }) => {
   const form = useForm<AccountFormVM>({
     resolver: zodResolver(AccountFormSchema),
     defaultValues: {
@@ -54,23 +53,10 @@ const AccountForm: React.FC<AccountFormProps> = ({ initialData, onSubmit, onCanc
     await onSubmit(domainData);
   };
 
-  useEffect(() => {
-    if (initialData) {
-      form.reset({
-        name: initialData.name,
-        category: initialData.category,
-        currency: initialData.currency,
-        order: initialData.order,
-      });
-    }
-  }, [initialData, form]);
-
   return (
     <div className="bg-card rounded-lg border border-border overflow-hidden">
       <div className="px-6 py-4 border-b border-border flex justify-between items-center bg-muted/50">
-        <h3 className="text-lg font-semibold text-foreground">
-          {initialData ? '編輯帳戶' : '新增帳戶'}
-        </h3>
+        <h3 className="text-lg font-semibold text-foreground">新增帳戶</h3>
         <Button
           variant="ghost"
           size="icon"
@@ -184,7 +170,7 @@ const AccountForm: React.FC<AccountFormProps> = ({ initialData, onSubmit, onCanc
               取消
             </Button>
             <Button type="submit" disabled={loading}>
-              {initialData ? '儲存變更' : '建立帳戶'}
+              建立帳戶
             </Button>
           </div>
         </form>

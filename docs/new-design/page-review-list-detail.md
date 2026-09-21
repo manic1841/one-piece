@@ -57,6 +57,7 @@ Detail 無任何編輯/管理入口；List 的編輯狀態永不開啟。
 **File:** `src/ui/features/project/hooks/useProjectPage.ts`（`editClick`/`deleteClick` 已 exposed，但 ProjectsPage 未 destructure）
 **裁決：開 GitHub issue 追蹤，與 L2 同 issue。
 **裁決（2026-09-21，已實作）：** `editClick`/`deleteClick` 已自 `useProjectPage` 移除（含 ProjectsPage.test stub 清理）。
+**後續死碼清除（2026-09-21）：** `editing` state（`editClick` 移除後永不 non-null）與 ProjectsPage 表單的 `editing ? update : create` 分支一併移除；`ProjectForm.initialData`/`title` props 移除。`update` 保留給 ProjectSettings 的停用切換（Q2 裁決）。
 
 ### L3d. AccountList 編輯入口死碼 — record-only, low
 
@@ -64,6 +65,13 @@ Detail 無任何編輯/管理入口；List 的編輯狀態永不開啟。
 `editingAccount` state + in-page AccountForm 分支的編輯路徑永不觸發，屬死碼。
 **裁決：開 GitHub issue 追蹤，與 L2 同 issue。
 **裁決（2026-09-21，已實作）：** `editingAccount`/`handleUpdate` 死碼已移除（含 AccountList.test stub 清理）。
+**後續死碼清除（2026-09-21）：** `AccountForm.initialData` props + reset effect 移除（帳戶編輯路徑已不存在）。
+
+### L3e. RetirementPlanHeader name state machine 死碼 — fixed 2026-09-21
+
+**File:** `src/ui/features/retirement/hooks/useRetirementPlanCore.ts`（`isEditingName`/`editedName` state + `handleCancelEditName`，`setIsEditingName(true)` 無任何呼叫路徑）
+RetirementPlanHeader 遷移至 `InlineEditableTitle` 後，舊 Input 分支的 state machine 無入口，且 `handleSaveName` 讀取的 `editedName` 只在 load 時同步，rename 會存回舊名（行為 bug）。
+**裁決（2026-09-21，已實作）：** state machine 換成參數式 `handleSaveName(name)`，header 直接轉發 `InlineEditableTitle` 的新名稱；hook return 移除 `isEditingName`/`editedName`/`setEditedName`/`setIsEditingName`/`handleCancelEditName`（detail-page hook identity 測試同步更新）。
 
 ### L4. RetirementPlanHeader 不走 PageHeader — fix, medium
 
@@ -96,6 +104,7 @@ AccountList 停用帳戶以 text-muted-foreground 呈現（無 glyph）；Debt �
 | L2+L3c | ProjectDetailPage 無 edit/delete 入口（editClick 死碼） | §1/§12 | medium | fix + issue | resolved |
 | L3+L3b | PortfolioDetail 無 edit 入口（setEditingPortfolio 死碼） | §1/§12 | medium | fix + issue | resolved |
 | L3d | AccountList 編輯入口死碼 | §2 | low | record-only | resolved |
+| L3e | RetirementPlanHeader name state machine 死碼 + rename 存回舊名 | §2 | medium | fix | resolved |
 | L4 | RetirementPlanHeader 不走 PageHeader，Delete 位置 | §1/§12 | medium | fix | resolved |
 | L5 | zh/en 兩層慣例 | — | — | record-only（合規） | — |
 | L6 | Status 表達不一致（Debt 為標竿） | §16 | low | fix | resolved |
