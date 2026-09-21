@@ -1,8 +1,9 @@
 import { fireEvent, render, screen } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { type LedgerTransaction } from '@/domains/ledger/schemas';
 import { getIntentTypeLabel } from '@/ui/constants/transaction';
+import { useConfirm } from '@/ui/features/app/confirm/ConfirmDialog';
 import { useTransactions } from '@/ui/features/transaction/hooks/useTransactions';
 
 vi.mock('@/infra/contexts/useAuth', () => ({
@@ -37,9 +38,9 @@ vi.mock('@/ui/features/ledger/hooks/useLedgerCodes', () => ({
   }),
 }));
 
-vi.mock('@/ui/features/app/confirm/ConfirmDialog', () => ({
-  useConfirm: () => ({ confirm: vi.fn().mockResolvedValue(true) }),
-}));
+vi.mock('@/ui/features/app/confirm/ConfirmDialog');
+
+const mockUseConfirm = vi.mocked(useConfirm);
 
 import TransactionsPage from './TransactionsPage';
 
@@ -70,6 +71,45 @@ const controllerBase = {
 };
 
 const mockUseTransactions = vi.mocked(useTransactions);
+
+describe('TransactionsPage copy', () => {
+  beforeEach(() => {
+    mockUseConfirm.mockReturnValue({ confirm: vi.fn().mockResolvedValue(true) });
+  });
+
+  it('renders the transfer-free page description', () => {
+    mockUseTransactions.mockReturnValue(controllerBase);
+    render(<TransactionsPage />);
+
+    expect(screen.getByText('檢視與管理所有交易紀錄。')).toBeInTheDocument();
+    expect(screen.queryByText(/轉帳/)).not.toBeInTheDocument();
+  });
+
+  it('shows a generic edit-confirmation dialog for transfer transactions', async () => {
+    const confirm = vi.fn().mockResolvedValue(true);
+    mockUseConfirm.mockReturnValue({ confirm });
+    mockUseTransactions.mockReturnValue({
+      ...controllerBase,
+      transactions: [
+        transaction({
+          id: 'tx-transfer',
+          description: 'Internal transfer',
+          intentType: 'TRANSFER',
+          intent: 'TRANSFER_GENERIC',
+          entries: [
+            { ledgerCode: 'asset:cash', debit: 300, credit: 0 },
+            { ledgerCode: 'asset:bank', debit: 0, credit: 300 },
+          ],
+        }),
+      ],
+    });
+    render(<TransactionsPage />);
+
+    fireEvent.click(screen.getByRole('button', { name: '編輯交易' }));
+
+    expect(confirm).toHaveBeenCalledWith({ title: '目前不支援編輯此交易。' });
+  });
+});
 
 describe('TransactionsPage system filter', () => {
   it('renders ALL/EXPENSE/INCOME/INVESTMENT/FINANCING options regardless of data', () => {

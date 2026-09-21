@@ -68,7 +68,7 @@ const Transactions: React.FC = () => {
     }
 
     if (target.intentType === 'TRANSFER') {
-      await confirm({ title: '目前不支援編輯專案轉帳交易。' });
+      await confirm({ title: '目前不支援編輯此交易。' });
       return;
     }
 
@@ -152,7 +152,7 @@ const Transactions: React.FC = () => {
     <div className="space-y-6">
       <PageHeader
         title="交易"
-        description="檢視與管理所有收支、轉帳與還款紀錄。"
+        description="檢視與管理所有交易紀錄。"
         actions={
           <Button
             onClick={() => {
