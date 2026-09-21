@@ -5,7 +5,8 @@ import { useNavigate } from 'react-router-dom';
 
 import { type DebtAccount } from '@/domains/debt/schemas';
 import { useAuth } from '@/infra/contexts/useAuth';
-import { Badge } from '@/ui/components/ui/badge';
+import { StatusGlyph } from '@/ui/components/StatusGlyph';
+import { DEBT_STATUS_GRACE_PERIOD_LABEL } from '@/ui/constants/debtStatusLabels';
 import { Button } from '@/ui/components/ui/button';
 import { Card, CardContent } from '@/ui/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/ui/components/ui/dialog';
@@ -148,9 +149,7 @@ export default function DebtListPage() {
                         <span className="flex items-center gap-2">
                           {account.name}
                           {account.inGracePeriod && (
-                            <Badge variant="destructive" className="text-[10px]">
-                              寬限期
-                            </Badge>
+                            <StatusGlyph type="review" label={DEBT_STATUS_GRACE_PERIOD_LABEL} />
                           )}
                         </span>
                       </TableCell>

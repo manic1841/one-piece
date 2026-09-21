@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { DEBT_STATUS_SETTLED_LABEL } from '@/ui/constants/debtStatusLabels';
 import { type DebtAccount } from '@/domains/debt/schemas';
 import { useAuth } from '@/infra/contexts/useAuth';
 import { debtSnapshotRepository } from '@/infra/repositories/debtSnapshotRepository';
@@ -135,5 +136,15 @@ describe('DebtDetailPage header actions', () => {
     fireEvent.click(deleteButton);
 
     await waitFor(() => expect(removeDebtAccount).toHaveBeenCalledWith('d1'));
+  });
+
+  it('renders the settled status as a glyph + text status, not a badge', async () => {
+    renderDetail(buildAccount({ isActive: false }));
+
+    const status = await screen.findByText(DEBT_STATUS_SETTLED_LABEL);
+    const glyphWrap = status.closest('span')!.parentElement!;
+    expect(glyphWrap.textContent).toContain('✓');
+    expect(glyphWrap.querySelector('.text-positive')).not.toBeNull();
+    expect(glyphWrap.className).not.toMatch(/rounded-|(^|\s)border(-|\s)/);
   });
 });

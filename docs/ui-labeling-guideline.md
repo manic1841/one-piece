@@ -57,6 +57,7 @@ Managed display labels cover:
 - Transaction labels: `intentType`, `intent`, `ledgerCode` (via `displayLabels.ts`)
 - Account category labels (via `src/ui/constants/account/label.ts` `AccountCategoryLabels`)
 - Report view titles: 損益表 / 資產負債表 / 現金流量表 (via `src/ui/constants/report/reportViewLabels.ts`)
+- Debt status labels: 已結清 / 寬限期 (via `src/ui/constants/debtStatusLabels.ts`)
 
 Free-form UI chrome (button text, error messages, subtitles, descriptive copy) is out of scope.
 

@@ -2,6 +2,7 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter, useNavigate } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 
+import { DEBT_STATUS_GRACE_PERIOD_LABEL } from '@/ui/constants/debtStatusLabels';
 import { useDebtPage } from '@/ui/features/debt/hooks/useDebtPage';
 import { useDebtAccountCmds } from '@/ui/features/debt/hooks/useDebtAccountCmds';
 import { useConfirm } from '@/ui/features/app/confirm/ConfirmDialog';
@@ -118,5 +119,28 @@ describe('DebtListPage table', () => {
 
     fireEvent.click(screen.getByText('Mortgage A'));
     expect(navigate).toHaveBeenCalledWith('/debt/d1');
+  });
+
+  it('renders the grace period status as a glyph + text status, not a colored badge', () => {
+    mockUseDebtPage.mockReturnValue({
+      ...controllerBase,
+      debtAccountViews: [buildDebtVM({ inGracePeriod: true })],
+    });
+    mockUseDebtAccountCmds.mockReturnValue({ removeDebtAccount: vi.fn() } as never);
+    mockUseConfirm.mockReturnValue({ confirm: vi.fn().mockResolvedValue(false) } as never);
+    mockUseNavigate.mockReturnValue(vi.fn());
+
+    render(
+      <MemoryRouter>
+        <DebtListPage />
+      </MemoryRouter>,
+    );
+
+    const status = screen.getByText(DEBT_STATUS_GRACE_PERIOD_LABEL).closest('span')!
+      .parentElement!;
+    expect(status.textContent).toContain('!');
+    expect(status.querySelector('.text-warning')).not.toBeNull();
+    const nameCell = screen.getByText('Mortgage A').closest('td')!;
+    expect(nameCell.querySelector('span.bg-destructive')).toBeNull();
   });
 });

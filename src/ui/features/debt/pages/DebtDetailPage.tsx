@@ -10,7 +10,8 @@ import {
 import { debtSnapshotRepository } from '@/infra/repositories/debtSnapshotRepository';
 import { listDebtAccountsUseCase } from '@/application/debt/use_cases/listDebtAccountsUseCase';
 import { PageHeader } from '@/ui/components/PageHeader';
-import { Badge } from '@/ui/components/ui/badge';
+import { StatusGlyph } from '@/ui/components/StatusGlyph';
+import { DEBT_STATUS_SETTLED_LABEL } from '@/ui/constants/debtStatusLabels';
 import { Button } from '@/ui/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/ui/components/ui/dialog';
 import { useAuth } from '@/infra/contexts/useAuth';
@@ -221,9 +222,7 @@ export default function DebtDetailPage({ account }: DebtDetailPageProps) {
         onBack={() => navigate('/debt')}
         badge={
           !activeAccount.isActive ? (
-            <Badge variant="outline" className="font-mono">
-              已結清
-            </Badge>
+            <StatusGlyph type="verified" label={DEBT_STATUS_SETTLED_LABEL} />
           ) : undefined
         }
         actions={

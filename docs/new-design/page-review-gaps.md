@@ -34,12 +34,12 @@ ACCOUNTING DETAILS accordion 表頭寫 `Ledger Code`，儲存格卻 render `entr
 **File:** `src/ui/features/transaction/components/TransactionItem.tsx`（aria-label 編輯交易 / 刪除交易）
 **裁決：維持現狀。** Standard §12 已加例外：無 detail 頁的資料允許 row 端 ghost icon action（icon-only、低干擾）。記錄為合規。
 
-### 3. Debt status badges（§16）— fix, low-medium
+### 3. Debt status badges（§16）— resolved 2026-09-21
 
 - `src/ui/features/debt/pages/DebtDetailPage.tsx:224` — `<Badge variant="outline">已結清</Badge>`
 - `src/ui/features/debt/pages/DebtListPage.tsx:151` — `<Badge variant="destructive">寬限期</Badge>`
 
-§16 Status 用 icon + text（StatusGlyph ✓ / ○ / ! / ×），不用彩色 badge。**Fix:** 換成 StatusGlyph + text（已結清 = ✓ positive、寬限期 = ! warning）；`src/ui/components/StatusGlyph.tsx` 已存在。影響僅 debt 兩頁。
+§16 Status 用 icon + text（StatusGlyph ✓ / ○ / ! / ×），不用彩色 badge。**裁決：已修正（#136）。** 兩頁換成 StatusGlyph + text（已結清 = `DEBT_STATUS_SETTLED_LABEL` ✓ verified/positive、寬限期 = `DEBT_STATUS_GRACE_PERIOD_LABEL` ! review/warning，labels 走 `src/ui/constants/debtStatusLabels.ts`）；兩頁無 Badge import 殘留。
 （RetirementPlanList 狀態 Badge 是 #131 經用戶確認，不重開。）
 
 ### 4. Neutral / data-type badges 4 處（§17 borderline）— record-only
@@ -84,7 +84,7 @@ AccountDetailPage `:232` currency、PortfolioDetail `:216` date、WatchListSetti
 | - | ------- | ---- | ---- | ---- |
 | 1 | TransactionItem Ledger Code 表頭 | §39 | low | resolved：已修正（#135，constants-layer 顯示標籤） |
 | 2 | Row-level Edit/Delete | §12/§39 | medium | resolved：維持現狀（§12 例外已定案） |
-| 3 | Debt status badges ×2 | §16 | low-medium | fix |
+| 3 | Debt status badges ×2 | §16 | low-medium | resolved：已修正（#136，StatusGlyph + text） |
 | 4 | Neutral badges ×4 | §17 | low | record-only |
 | 5 | RetirementPlanList badge | — | low | record-only |
 | 6 | PortfolioDetailPage 無 PageHeader | §1/§12 | medium | task：遷移 PageHeader |
@@ -93,5 +93,5 @@ AccountDetailPage `:232` currency、PortfolioDetail `:216` date、WatchListSetti
 | 9 | Dashboard Close/Recent 順序 | §25 | low | resolved：§25 已修訂（Close → Recent） |
 | 10 | Mobile 導覽主導權 | §29/§30 | high | task：Pet 為主，bottom nav 退場（Phase 8） |
 
-已定案：2 個修正 task（3 / 7）、2 個已裁決的 task（6 / 10）、1 個 runtime 驗證（8）、2 組記錄項（4 / 5）。
-**下一步：** 開 GitHub issues 追蹤（3 / 6 / 7 / 8 / 10）。
+已定案：1 個修正 task（7）、2 個已裁決的 task（6 / 10）、1 個 runtime 驗證（8）、2 組記錄項（4 / 5）。
+**下一步：** 開 GitHub issues 追蹤（6 / 7 / 8 / 10）。
