@@ -95,7 +95,8 @@ Repository 與 Use Case 的規則集中在下表，本文不再複述決策理�
 
 - 收入頁面提供「匯入上一完整年度收入」按鈕。
 - 支出頁面提供「匯入債務還款」與「Import from Ledger」按鈕。
-- 計畫清單頁提供「Duplicate」按鈕，可快速建立計畫副本。
+- 計畫清單頁提供「Duplicate」按鈕，可快速建立計畫副本；卡片顯示 Final Net Worth（投影期末淨資產），未重新計算的計畫顯示「—」（無 fallback 值）。
+- Projection 摘要為快取：Recalculate 時重新推導 netWorthAtRetirement（退休年期初淨資產）與 finalNetWorth（投影期末淨資產），不使用遷移腳本。
 - 事件頁為分段編輯：可新增多個 phase，每段設定 Start/End Year 與金額（必填），Growth Rate 留空代表隨計畫通膨。
 - 收入頁每筆收入只有一組金額欄位：目前年金額（匯入時唯讀帶入）與退休年金額（可編輯）。
 - 支出對話框以 Duration 顯示期間：未設定 End Year 即 Lifelong，設定後顯示 Until {endYear}；Debt Payment 的 End Year 保留在主表單。Start/End Year 收進 Advanced 展開區（Start Year 預設當前年度，無 2100 預設值）。

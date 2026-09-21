@@ -67,14 +67,12 @@ export default function RetirementPlanList() {
                   <AlertTriangle className="mr-2 h-4 w-4" />
                   {plan.bankruptcyText}
                 </div>
-                {plan.projectedSavingsText && (
-                  <div className="mt-2 pt-2 border-t">
-                    <div className="text-xs text-muted-foreground">Projected Savings</div>
-                    <div className="text-lg font-bold text-positive">
-                      {plan.projectedSavingsText}
-                    </div>
+                <div className="mt-2 pt-2 border-t">
+                  <div className="text-xs text-muted-foreground">Final Net Worth</div>
+                  <div className="text-lg font-bold text-positive">
+                    {plan.finalNetWorthText}
                   </div>
-                )}
+                </div>
                 <div className="pt-3" onClick={(event) => event.stopPropagation()}>
                   <Button
                     type="button"

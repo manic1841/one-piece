@@ -194,13 +194,15 @@ export const RetirementPlanCreateSchema = z.object({
   expenses: z.array(RetirementExpenseCategorySchema).default([]),
   events: z.array(RetirementOneTimeEventSchema).default([]),
 
-  // Cached Results
+  // Cached Results. The two net-worth fields are optional so plans cached
+  // before the rename still parse; Recalculate re-derives them (issue #130).
   summary: z
     .object({
       retirementYear: z.number(),
       startingNetWorth: z.number(),
       anchorYearMonth: z.string(),
-      savingsAtRetirement: z.number(),
+      netWorthAtRetirement: z.number().optional(),
+      finalNetWorth: z.number().optional(),
       minSavings: z.number(),
       minSavingsYear: z.number(),
       isBankrupt: z.boolean(),

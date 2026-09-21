@@ -45,7 +45,8 @@ describe('retirementDisplay.vm', () => {
         retirementYear: 2050,
         startingNetWorth: 100000,
         anchorYearMonth: '2025-12',
-        savingsAtRetirement: 500000,
+        netWorthAtRetirement: 500000,
+        finalNetWorth: 300000,
         minSavings: 100000,
         minSavingsYear: 2050,
         isBankrupt: false,
@@ -54,8 +55,32 @@ describe('retirementDisplay.vm', () => {
     }));
 
     expect(vm.retireYear).toBe(2050);
-    expect(vm.projectedSavingsText).toContain('500,000');
+    expect(vm.finalNetWorthText).toContain('300,000');
     expect(vm.bankruptcyText).toBe('No Bankruptcy');
+  });
+
+  it('maps plan list item vm with em dash when summary is absent', () => {
+    const vm = mapRetirementPlanToListItemVM(makePlan({ summary: undefined }));
+
+    expect(vm.finalNetWorthText).toBe('—');
+    expect(vm.bankruptcyText).toBe('No Bankruptcy');
+  });
+
+  it('maps plan list item vm with em dash for a stale summary without finalNetWorth', () => {
+    const vm = mapRetirementPlanToListItemVM(makePlan({
+      summary: {
+        retirementYear: 2050,
+        startingNetWorth: 100000,
+        anchorYearMonth: '2025-12',
+        savingsAtRetirement: 500000,
+        minSavings: 100000,
+        minSavingsYear: 2050,
+        isBankrupt: false,
+        lastCalculatedAt: new Date('2026-01-02'),
+      },
+    }));
+
+    expect(vm.finalNetWorthText).toBe('—');
   });
 
   it('maps plan header vm', () => {

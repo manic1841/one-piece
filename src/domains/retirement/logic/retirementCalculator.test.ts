@@ -180,7 +180,8 @@ describe('retirementCalculator', () => {
     expect(summary.retirementYear).toBe(2055);
     expect(summary.startingNetWorth).toBe(STARTING_NW);
     expect(summary.anchorYearMonth).toBe('2024-12');
-    expect(summary.savingsAtRetirement).toBeGreaterThan(0);
+    expect(summary.netWorthAtRetirement).toBeGreaterThan(0);
+    expect(summary.finalNetWorth).toBe(projection[projection.length - 1].closingBalance);
     expect(summary.isBankrupt).toBe(false);
   });
 

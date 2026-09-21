@@ -17,7 +17,7 @@ export interface RetirementPlanListItemVM {
   retireYear: number;
   returnRateText: string;
   bankruptcyText: string;
-  projectedSavingsText?: string;
+  finalNetWorthText: string;
 }
 
 export interface RetirementPlanHeaderVM {
@@ -61,7 +61,9 @@ export const mapRetirementPlanToListItemVM = (plan: RetirementPlan): RetirementP
   retireYear: plan.birthYear + plan.retirementAge,
   returnRateText: `${plan.investmentReturnRate}% Return`,
   bankruptcyText: plan.summary?.isBankrupt ? 'Bankrupt Risk' : 'No Bankruptcy',
-  projectedSavingsText: plan.summary ? formatCurrency(plan.summary.savingsAtRetirement) : undefined,
+  finalNetWorthText: plan.summary?.finalNetWorth != null
+    ? formatCurrency(plan.summary.finalNetWorth)
+    : '—',
 });
 
 export interface RetirementIncomeItemVM {
