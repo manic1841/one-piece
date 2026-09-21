@@ -13,17 +13,13 @@ import { PageHeader } from '@/ui/components/PageHeader';
 import { Badge } from '@/ui/components/ui/badge';
 import { Button } from '@/ui/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/ui/components/ui/dialog';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/ui/components/ui/table';
 import { useAuth } from '@/infra/contexts/useAuth';
 import { useConfirm } from '@/ui/features/app/confirm/ConfirmDialog';
 import { DebtAccountForm } from '@/ui/features/debt/components/DebtAccountForm';
+import { DebtPaymentsTable, type PaymentHistoryRow } from '@/ui/features/debt/components/detail/DebtPaymentsTable';
+import { DebtSnapshotTable } from '@/ui/features/debt/components/detail/DebtSnapshotTable';
+import { DebtTrendChart } from '@/ui/features/debt/components/detail/DebtTrendChart';
+import { buildTrendGeometry } from '@/ui/features/debt/components/detail/debtTrendGeometry';
 import { useDebtAccountCmds } from '@/ui/features/debt/hooks/useDebtAccountCmds';
 import { useDebtAccountFormViewModel } from '@/ui/features/debt/viewmodels/useDebtAccountFormViewModel';
 import { useProjects } from '@/ui/features/project/hooks/useProjects';
@@ -33,100 +29,11 @@ interface DebtDetailPageProps {
   account?: DebtAccount;
 }
 
-const MONTH_NAMES = [
-  'JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN',
-  'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC',
-];
-
-const TREND_WIDTH = 720;
-const TREND_HEIGHT = 180;
-const TREND_PADDING_X = 8;
-const TREND_PADDING_TOP = 12;
-const TREND_PADDING_BOTTOM = 24;
-
-interface TrendGeometry {
-  path: string | undefined;
-  xLabels: { x: number; text: string }[];
-  yLabels: { y: number; text: string }[];
-}
-
-const formatTrendValue = (value: number): string => {
-  if (Math.abs(value) >= 1000000) {
-    return `${(value / 1000000).toFixed(1)}M`;
-  }
-  if (Math.abs(value) >= 1000) {
-    return `${Math.round(value / 1000)}K`;
-  }
-  return `${Math.round(value)}`;
-};
-
-const buildTrendGeometry = (
-  series: { year: number; month: number; value: number }[],
-): TrendGeometry => {
-  const present = series.slice().sort((a, b) => a.year - b.year || a.month - b.month);
-  if (present.length === 0) {
-    return { path: undefined, xLabels: [], yLabels: [] };
-  }
-
-  const values = present.map((item) => item.value);
-  const rawMin = Math.min(...values);
-  const rawMax = Math.max(...values);
-  const rawSpan = rawMax - rawMin;
-  const yMin = rawSpan === 0 ? rawMin * 0.9 : rawMin - rawSpan * 0.1;
-  const yMax = rawSpan === 0 ? rawMax * 1.1 : rawMax + rawSpan * 0.1;
-  const ySpan = yMax - yMin;
-  const innerWidth = TREND_WIDTH - TREND_PADDING_X * 2;
-  const innerHeight = TREND_HEIGHT - TREND_PADDING_TOP - TREND_PADDING_BOTTOM;
-
-  const points = present.map((item, index) => {
-    const xRatio = present.length === 1 ? 1 : index / (present.length - 1);
-    const yRatio = ySpan === 0 ? 0.5 : (item.value - yMin) / ySpan;
-    return {
-      x: TREND_PADDING_X + xRatio * innerWidth,
-      y: TREND_PADDING_TOP + (1 - yRatio) * innerHeight,
-    };
-  });
-
-  const path = points
-    .map((point, index) => `${index === 0 ? 'M' : 'L'}${point.x.toFixed(1)} ${point.y.toFixed(1)}`)
-    .join(' ');
-
-  const xLabelStep = Math.max(1, Math.ceil(present.length / 3));
-  const xLabels: { x: number; text: string }[] = [];
-  for (let index = 0; index < present.length; index += 1) {
-    const isLast = index === present.length - 1;
-    if (!isLast && index % xLabelStep !== 0) continue;
-    xLabels.push({
-      x: points[index].x,
-      text: `${MONTH_NAMES[present[index].month - 1]} ${present[index].year}`,
-    });
-  }
-
-  const yLabels = [0, 1, 2, 3].map((step) => {
-    const value = yMin + (ySpan * step) / 3;
-    return {
-      y: TREND_PADDING_TOP + (1 - step / 3) * innerHeight,
-      text: formatTrendValue(value),
-    };
-  });
-
-  return { path, xLabels, yLabels };
-};
-
 const SectionTitle: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <p className="font-mono text-[11px] tracking-widest text-muted-foreground uppercase">
     {children}
   </p>
 );
-
-interface PaymentHistoryRow {
-  id: string;
-  dateText: string;
-  descriptionText: string;
-  principalText: string;
-  interestText: string;
-  totalText: string;
-}
 
 export default function DebtDetailPage({ account }: DebtDetailPageProps) {
   const { id } = useParams<{ id: string }>();
@@ -381,123 +288,17 @@ export default function DebtDetailPage({ account }: DebtDetailPageProps) {
 
       <section className="space-y-3">
         <SectionTitle>12M TREND</SectionTitle>
-        {trend.path ? (
-          <div className="relative" data-testid="debt-trend-chart">
-            <svg
-              className="h-44 w-full"
-              viewBox={`0 0 ${TREND_WIDTH} ${TREND_HEIGHT}`}
-              preserveAspectRatio="none"
-              aria-hidden="true"
-            >
-              {trend.yLabels.map((label) => (
-                <line
-                  key={label.text}
-                  x1={TREND_PADDING_X}
-                  x2={TREND_WIDTH - TREND_PADDING_X}
-                  y1={label.y}
-                  y2={label.y}
-                  stroke="hsl(var(--border))"
-                  strokeWidth="1"
-                />
-              ))}
-              <path
-                d={trend.path}
-                fill="none"
-                stroke="hsl(var(--chart-1))"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-            <div className="relative mt-2 h-4">
-              {trend.xLabels.map((label) => (
-                <span
-                  key={label.text}
-                  className="absolute whitespace-nowrap font-mono text-[10px] tabular-nums text-muted-foreground"
-                  style={{ left: `${(label.x / TREND_WIDTH) * 100}%` }}
-                >
-                  {label.text}
-                </span>
-              ))}
-            </div>
-          </div>
-        ) : (
-          <p className="text-sm text-muted-foreground">尚無月度結算資料</p>
-        )}
+        <DebtTrendChart trend={trend} />
       </section>
 
       <section className="space-y-3">
         <SectionTitle>12M HISTORY</SectionTitle>
-        {snapshots.length === 0 ? (
-          <p className="text-sm text-muted-foreground">目前尚無月度資料</p>
-        ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Month</TableHead>
-                <TableHead className="text-right">Opening</TableHead>
-                <TableHead className="text-right">Principal</TableHead>
-                <TableHead className="text-right">Interest</TableHead>
-                <TableHead className="text-right">Closing</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {snapshots.map((snapshot) => (
-                <TableRow key={snapshot.id}>
-                  <TableCell className="font-mono text-[12px]">{snapshot.yearMonth}</TableCell>
-                  <TableCell className="text-right font-mono tabular-nums">
-                    {formatCurrency(snapshot.openingBalance)}
-                  </TableCell>
-                  <TableCell className="text-right font-mono tabular-nums">
-                    {formatCurrency(snapshot.principalPaid)}
-                  </TableCell>
-                  <TableCell className="text-right font-mono tabular-nums">
-                    {formatCurrency(snapshot.interestPaid)}
-                  </TableCell>
-                  <TableCell className="text-right font-mono tabular-nums">
-                    {formatCurrency(snapshot.closingBalance)}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        )}
+        <DebtSnapshotTable snapshots={snapshots} />
       </section>
 
       <section className="space-y-3">
         <SectionTitle>RECENT PAYMENTS</SectionTitle>
-        {history.length === 0 ? (
-          <p className="text-sm text-muted-foreground">目前尚無還款紀錄</p>
-        ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Date</TableHead>
-                <TableHead>Description</TableHead>
-                <TableHead className="text-right">Principal</TableHead>
-                <TableHead className="text-right">Interest</TableHead>
-                <TableHead className="text-right">Total</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {history.map((item) => (
-                <TableRow key={item.id}>
-                  <TableCell className="font-mono text-[12px]">{item.dateText}</TableCell>
-                  <TableCell className="text-muted-foreground">{item.descriptionText}</TableCell>
-                  <TableCell className="text-right font-mono tabular-nums">
-                    {item.principalText}
-                  </TableCell>
-                  <TableCell className="text-right font-mono tabular-nums">
-                    {item.interestText}
-                  </TableCell>
-                  <TableCell className="text-right font-mono tabular-nums">
-                    {item.totalText}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        )}
+        <DebtPaymentsTable history={history} />
       </section>
 
       <section className="space-y-3 border-t border-border pt-6">
