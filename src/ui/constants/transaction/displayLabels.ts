@@ -66,6 +66,8 @@ const LEDGER_PREFIX_LABELS: Array<{ prefix: string; label: string }> = [
   { prefix: 'income:other', label: '其他收入' },
 ];
 
+export const ACCOUNTING_DETAILS_ENTRY_LABEL = '會計科目';
+
 export const getIntentTypeLabel = (intentType?: string | null): string => {
   if (!intentType) return '';
   return INTENT_TYPE_LABELS[intentType] ?? intentType;

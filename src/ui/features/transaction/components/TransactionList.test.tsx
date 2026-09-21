@@ -1,6 +1,7 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
+import { ACCOUNTING_DETAILS_ENTRY_LABEL } from '@/ui/constants/transaction/displayLabels';
 import { type TransactionListItemVM } from '../viewmodels/transaction-list.vm';
 import { TransactionList } from './TransactionList';
 
@@ -17,6 +18,7 @@ const baseItem = (overrides: Partial<TransactionListItemVM> = {}): TransactionLi
   amountText: '-100',
   isPositive: false,
   hasCashLedger: true,
+  entries: [],
   ...overrides,
 });
 
@@ -38,5 +40,35 @@ describe('TransactionList date filter row', () => {
 
     const searchButton = screen.getByRole('button', { name: 'APPLY' });
     expect(searchButton.className).toContain('md:w-auto');
+  });
+});
+
+describe('TransactionItem accounting details header', () => {
+  it('renders the constants-layer entry label, never the Ledger Code term', () => {
+    render(
+      <TransactionList
+        items={[
+          baseItem({
+            entries: [
+              {
+                ledgerCode: 'expense:food',
+                ledgerLabel: '餐飲',
+                debit: 100,
+                credit: 0,
+                hasInvestmentDetail: false,
+              },
+            ],
+          }),
+        ]}
+        loading={false}
+        onDateRangeSearch={vi.fn()}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'ACCOUNTING DETAILS' }));
+    const header = screen.getByRole('columnheader', { name: ACCOUNTING_DETAILS_ENTRY_LABEL });
+    expect(header).toBeVisible();
+    expect(within(header.closest('tr')!).queryByText(/Ledger Code/i)).toBeNull();
+    expect(screen.getByText('餐飲')).toBeVisible();
   });
 });

@@ -17,6 +17,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/ui/components/ui/table';
+import { ACCOUNTING_DETAILS_ENTRY_LABEL } from '@/ui/constants/transaction/displayLabels';
 import { type TransactionListItemVM } from '@/ui/features/transaction/viewmodels/transaction-list.vm';
 import { cn } from '@/ui/utils/cn';
 
@@ -99,7 +100,7 @@ export const TransactionItem: React.FC<TransactionItemProps> = ({ transaction, o
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Ledger Code</TableHead>
+                  <TableHead>{ACCOUNTING_DETAILS_ENTRY_LABEL}</TableHead>
                   <TableHead className="text-right">Debit</TableHead>
                   <TableHead className="text-right">Credit</TableHead>
                 </TableRow>
