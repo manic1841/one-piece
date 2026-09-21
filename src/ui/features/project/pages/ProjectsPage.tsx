@@ -4,6 +4,7 @@ import { Calendar, MoreHorizontal, Plus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 import { useAuth } from '@/infra/contexts/useAuth';
+import CompactRow from '@/ui/components/CompactRow';
 import { Button } from '@/ui/components/ui/button';
 import {
   DropdownMenu,
@@ -183,11 +184,11 @@ const Projects: React.FC = () => {
           const totals = snapshotTotals.get(project.id) ?? { income: 0, expense: 0 };
           const net = totals.income - totals.expense;
           return (
-            <div
+            <CompactRow
               key={project.id}
-              data-testid={`project-row-mobile-${project.id}`}
+              testId={`project-row-mobile-${project.id}`}
               onClick={() => navigate(`/projects/${project.id}`)}
-              className="cursor-pointer rounded-md border p-3 md:hidden"
+              className="cursor-pointer"
             >
               <div className="flex items-center justify-between gap-2">
                 <span
@@ -212,7 +213,7 @@ const Projects: React.FC = () => {
                 </span>
                 <span className="whitespace-nowrap">{project.isActive ? '進行中' : '停用'}</span>
               </div>
-            </div>
+            </CompactRow>
           );
         })}
       </div>

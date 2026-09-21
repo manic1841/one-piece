@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import { type PortfolioSnapshot } from '@/domains/portfolio/types/portfolio';
 import { useAuthContext } from '@/ui/hooks/useAuthContext';
 import { useAccounts } from '@/ui/features/account/hooks/useAccounts';
+import CompactRow from '@/ui/components/CompactRow';
 import { PageHeader } from '@/ui/components/PageHeader';
 import { Button } from '@/ui/components/ui/button';
 import {
@@ -23,6 +24,7 @@ import {
   mapPortfolioVMToDomain,
 } from '@/ui/features/portfolio/viewmodels/portfolioForm.vm';
 import { formatCurrency, formatPercentage, formatYearMonth } from '@/ui/utils';
+import { cn } from '@/ui/utils/cn';
 
 import PortfolioForm from './PortfolioForm';
 
@@ -230,11 +232,14 @@ const PortfolioList: React.FC<PortfolioListProps> = ({ householdId }) => {
 
       <div className="space-y-2 md:hidden">
         {rows.map((row) => (
-          <div
+          <CompactRow
             key={row.id}
-            data-testid={`portfolio-row-mobile-${row.id}`}
+            testId={`portfolio-row-mobile-${row.id}`}
             onClick={() => !isReorderMode && navigate(`/portfolios/${row.id}`)}
-            className={`cursor-pointer rounded-md border p-3 md:hidden ${row.isActive ? 'bg-card/50' : 'bg-transparent'}`}
+            className={cn(
+              'cursor-pointer',
+              row.isActive ? 'bg-card/50' : 'bg-transparent',
+            )}
           >
             <div className="flex items-center justify-between gap-2">
               <span className={`min-w-0 truncate text-sm font-medium ${row.isActive ? '' : 'text-muted-foreground'}`}>
@@ -253,7 +258,7 @@ const PortfolioList: React.FC<PortfolioListProps> = ({ householdId }) => {
               </span>
               {row.asOfText && <span className="ml-auto whitespace-nowrap">{row.asOfText}</span>}
             </div>
-          </div>
+          </CompactRow>
         ))}
       </div>
 

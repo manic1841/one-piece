@@ -4,7 +4,12 @@ import { Button } from '@/ui/components/ui/button';
 import { Card, CardContent } from '@/ui/components/ui/card';
 import { Input } from '@/ui/components/ui/input';
 import { Table, TableBody, TableHead, TableHeader, TableRow } from '@/ui/components/ui/table';
+import {
+  MONTH_HEADER_TRACKING_LABEL,
+  TRANSACTION_COUNT_SUFFIX,
+} from '@/ui/constants/transaction/displayLabels';
 import { type TransactionListItemVM } from '@/ui/features/transaction/viewmodels/transaction-list.vm';
+import { cn } from '@/ui/utils/cn';
 
 import { TransactionItem, TransactionItemMobile } from './TransactionItem';
 
@@ -135,11 +140,16 @@ export const TransactionList: React.FC<TransactionListProps> = ({
       {groupedItems.map(([month, transactions]) => (
         <section key={month} className="relative">
           <div className="sticky top-0 z-10 bg-muted/80 backdrop-blur-sm pt-2 pb-3 mb-2 -mx-4 px-4 flex items-center justify-between border-b border-border/50">
-            <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-[0.2em]">
+            <h3
+              className={cn(
+                'text-xs font-bold text-muted-foreground uppercase',
+                MONTH_HEADER_TRACKING_LABEL,
+              )}
+            >
               {month}
             </h3>
             <span className="text-[10px] text-muted-foreground font-medium">
-              {transactions.length} 筆交易
+              {transactions.length} {TRANSACTION_COUNT_SUFFIX}
             </span>
           </div>
           <div className="space-y-2 md:hidden">

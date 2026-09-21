@@ -34,7 +34,6 @@ const PortfolioDetailPage: React.FC = () => {
   };
 
   const latestSnapshot = latestSnapshots.get(portfolio.id);
-  const now = new Date();
 
   return (
     <div className="space-y-8 pb-20">
@@ -44,12 +43,11 @@ const PortfolioDetailPage: React.FC = () => {
         crumb="PORTFOLIOS"
         onBack={() => navigate('/portfolios')}
         badge={
-          <Badge variant="outline" className="font-mono">
-            {formatYearMonth(
-              latestSnapshot?.year ?? now.getFullYear(),
-              latestSnapshot?.month ?? now.getMonth() + 1,
-            )}
-          </Badge>
+          latestSnapshot ? (
+            <Badge variant="outline" className="font-mono">
+              {formatYearMonth(latestSnapshot.year, latestSnapshot.month)}
+            </Badge>
+          ) : undefined
         }
       />
 

@@ -67,6 +67,10 @@ const LEDGER_PREFIX_LABELS: Array<{ prefix: string; label: string }> = [
 ];
 
 export const ACCOUNTING_DETAILS_ENTRY_LABEL = '會計科目';
+export const NO_CASH_ENTRY_LABEL = 'NO CASH ENTRY';
+export const TRACKING_LABEL = 'tracking-widest';
+export const TRANSACTION_COUNT_SUFFIX = '筆交易';
+export const MONTH_HEADER_TRACKING_LABEL = 'tracking-heading';
 
 export const getIntentTypeLabel = (intentType?: string | null): string => {
   if (!intentType) return '';

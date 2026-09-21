@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import Layout from './Layout';
 import { ConfirmDialogProvider } from '@/ui/features/app/confirm/ConfirmDialog';
-import { getNavigatorItems } from './navigation';
+import { NAV_ITEMS } from './navigation';
 
 class ResizeObserverStub {
   observe() {}
@@ -218,7 +218,7 @@ describe('Layout system status bar', () => {
     await screen.findByRole('dialog', { name: /quick access/i });
 
     const optionCount = screen.getAllByRole('option').length;
-    expect(optionCount).toBe(getNavigatorItems().length);
+    expect(optionCount).toBe(NAV_ITEMS.length);
 
     fireEvent.click(screen.getByRole('option', { name: /retirement/i }));
 
@@ -326,7 +326,7 @@ describe('Layout pixel pet and navigator', () => {
     const items = Array.from(grid.querySelectorAll('a'));
     expect(items).toHaveLength(10);
     expect(items.map((item) => item.getAttribute('href'))).toEqual(
-      getNavigatorItems().map((item) => item.to),
+      NAV_ITEMS.map((item) => item.to),
     );
   });
 

@@ -29,7 +29,3 @@ export const NAV_ITEMS: NavItem[] = [
   { to: '/debt', icon: Wallet, label: 'Debt' },
   { to: '/settings', icon: Settings, label: 'Settings' },
 ];
-
-export function getNavigatorItems(): NavItem[] {
-  return NAV_ITEMS;
-}

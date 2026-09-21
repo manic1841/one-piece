@@ -2,6 +2,7 @@ import React from 'react';
 
 import { Pencil, Trash2 } from 'lucide-react';
 
+import CompactRow from '@/ui/components/CompactRow';
 import { Button } from '@/ui/components/ui/button';
 import {
   Accordion,
@@ -17,10 +18,16 @@ import {
   TableHeader,
   TableRow,
 } from '@/ui/components/ui/table';
-import { ACCOUNTING_DETAILS_ENTRY_LABEL } from '@/ui/constants/transaction/displayLabels';
+import {
+  ACCOUNTING_DETAILS_ENTRY_LABEL,
+  NO_CASH_ENTRY_LABEL,
+  TRACKING_LABEL,
+} from '@/ui/constants/transaction/displayLabels';
 import { type TransactionListItemVM } from '@/ui/features/transaction/viewmodels/transaction-list.vm';
+import { formatCurrency } from '@/ui/utils';
 import { cn } from '@/ui/utils/cn';
 
+// Must match TransactionList's desktop column count: the accordion spans all of them.
 const ACCORDION_ROW_COL_SPAN = 5;
 
 interface TransactionItemProps {
@@ -133,8 +140,8 @@ export const TransactionItem: React.FC<TransactionItemProps> = ({ transaction, o
           {isPositive ? '+' : '-'}
           {amountText}
           {!hasCashLedger && (
-            <span className="block text-[9px] font-bold uppercase tracking-tighter">
-              No Cash Entry
+            <span className={cn('block font-bold uppercase', TRACKING_LABEL)}>
+              {NO_CASH_ENTRY_LABEL}
             </span>
           )}
         </TableCell>
@@ -164,9 +171,9 @@ export const TransactionItemMobile: React.FC<TransactionItemProps> = ({
   const amountColor = isPositive ? 'text-positive' : 'text-negative';
 
   return (
-    <div
-      data-testid={`transaction-row-mobile-${transaction.id}`}
-      className="rounded-md border p-3 md:hidden"
+    <CompactRow
+      testId={`transaction-row-mobile-${transaction.id}`}
+      className="bg-card/50"
     >
       <div className="flex items-center justify-between gap-2">
         <span className="flex min-w-0 items-baseline gap-2">
@@ -191,16 +198,16 @@ export const TransactionItemMobile: React.FC<TransactionItemProps> = ({
       <div className="mt-1 flex items-center gap-2 text-[11px] text-muted-foreground">
         <span className="truncate">{categoryLabel}</span>
         {!hasCashLedger && (
-          <span className="font-bold uppercase tracking-tighter text-warning">No Cash Entry</span>
+          <span className={cn('font-bold uppercase', TRACKING_LABEL)}>{NO_CASH_ENTRY_LABEL}</span>
         )}
       </div>
       <div className="mt-2 border-t pt-1">
         <AccountingDetailsAccordion transaction={transaction} />
       </div>
-    </div>
+    </CompactRow>
   );
 };
 
 function formatAmount(value: number): string {
-  return `$${value.toLocaleString('en-US', { maximumFractionDigits: 0 })}`;
+  return formatCurrency(value);
 }

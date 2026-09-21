@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 
 import { type DebtAccount } from '@/domains/debt/schemas';
 import { useAuth } from '@/infra/contexts/useAuth';
+import CompactRow from '@/ui/components/CompactRow';
 import { StatusGlyph } from '@/ui/components/StatusGlyph';
 import { DEBT_STATUS_GRACE_PERIOD_LABEL } from '@/ui/constants/debtStatusLabels';
 import { Button } from '@/ui/components/ui/button';
@@ -20,6 +21,7 @@ import {
 } from '@/ui/components/ui/table';
 import { PageHeader } from '@/ui/components/PageHeader';
 import { formatCurrency, formatDate } from '@/ui/utils';
+import { cn } from '@/ui/utils/cn';
 import { DebtAccountForm } from '@/ui/features/debt/components/DebtAccountForm';
 import { DebtSettlement } from '@/ui/features/debt/components/DebtSettlement';
 import { useDebtPage } from '@/ui/features/debt/hooks/useDebtPage';
@@ -130,13 +132,14 @@ export default function DebtListPage() {
                 {visibleAccounts.map((account) => {
                   const isSettled = !account.isActive;
                   return (
-                    <div
+                    <CompactRow
                       key={account.id}
-                      data-testid={`debt-row-mobile-${account.id}`}
+                      testId={`debt-row-mobile-${account.id}`}
                       onClick={() => navigate(`/debt/${account.id}`)}
-                      className={`cursor-pointer rounded-md border p-3 md:hidden ${
-                        isSettled ? 'bg-transparent' : 'bg-card/50'
-                      }`}
+                      className={cn(
+                        'cursor-pointer',
+                        isSettled ? 'bg-transparent' : 'bg-card/50',
+                      )}
                     >
                       <div className="flex items-center justify-between gap-2">
                         <span className="flex min-w-0 items-center gap-2 text-sm font-medium">
@@ -157,7 +160,7 @@ export default function DebtListPage() {
                           {formatCurrency(account.monthlyDueAmount)}/月
                         </span>
                       </div>
-                    </div>
+                    </CompactRow>
                   );
                 })}
               </div>

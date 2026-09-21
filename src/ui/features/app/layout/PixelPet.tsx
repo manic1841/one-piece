@@ -5,7 +5,7 @@ import { NavLink } from 'react-router-dom';
 
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/ui/components/ui/sheet';
 
-import { getNavigatorItems } from './navigation';
+import { NAV_ITEMS } from './navigation';
 import { PET_FACES, PET_REACTIONS, type PetReaction } from './petReaction';
 import { useIsDesktop } from './useIsDesktop';
 
@@ -61,7 +61,7 @@ const PixelPet: React.FC<PixelPetProps> = ({ reaction = 'idle' }) => {
             data-navigator-grid
             className="grid grid-cols-2 md:grid-cols-4 gap-2 md:w-72"
           >
-            {getNavigatorItems().map(({ to, icon: Icon, label }) => (
+            {NAV_ITEMS.map(({ to, icon: Icon, label }) => (
               <NavLink
                 key={to}
                 to={to}
@@ -94,7 +94,7 @@ const PixelPet: React.FC<PixelPetProps> = ({ reaction = 'idle' }) => {
               <SheetTitle>Navigator</SheetTitle>
             </SheetHeader>
             <div className="grid grid-cols-2 gap-2 pb-4">
-              {getNavigatorItems().map(({ to, icon: Icon, label }) => (
+              {NAV_ITEMS.map(({ to, icon: Icon, label }) => (
                 <NavLink
                   key={to}
                   to={to}
