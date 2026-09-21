@@ -73,7 +73,7 @@ AccountDetailPage `:232` currency、PortfolioDetail `:216` date、WatchListSetti
 - **Transactions（/transactions）— fail（最嚴重）**。按月分組 21 張 5-col 表（Date / Intent / Amount / Project / actions），每張 table 689px vs wrapper 342px（~2x 超寬），wrapper 橫向捲動；1127 個 element 橫向超出文件層。另發現 HTML 有效性錯誤：`TransactionItem` 在 `<tbody>` 內 render `<div>` wrapper（React DOM validateDOMNesting 錯誤）。
 - **Portfolios（/portfolios）— fail**。5-col 表（Name / Securities / Bank / Portfolio Value / Return）table 403px vs wrapper 358px，wrapper 橫向捲動；7 個 element 超出（僅 table 內部，文件層 overflowX = 0）。
 - **Projects（/projects）— fail（含 header）**。5-col 表（Name / Status / Income / Expense / Net Cash Flow）table 433px vs wrapper 343px，wrapper 橫向捲動；且文件層 overflowX = 44px：header 三顆文字按鈕（Settings / Settlement / New Project）無法 wrap，把 main 撐出 390px。
-**裁決：4 頁 fail（Debt / Transactions / Portfolios / Projects），follow-up issues 已開。** 共同模式：5-col 資料表在 390px 以 `overflow-x-auto` wrapper 捲動，未提供 compact-row 退化（§28 不以橫向捲動為主要解法）。Transactions 另有 DOM nesting 修正需一併處理。AccountList 記錄為合規（3 欄 + 分組是可行模式）。
+**裁決：4 頁 fail（Debt / Transactions / Portfolios / Projects），follow-up issues 已開。** 共同模式：5-col 資料表在 390px 以 `overflow-x-auto` wrapper 捲動，未提供 compact-row 退化（§28 不以橫向捲動為主要解法）。裁決原則：**mobile layout 依資料密度決定，不是全部 List 統一改 Card** — AccountList 記錄為合規（3 欄 + 分組是可行模式，作為 mobile list benchmark），其餘 4 頁針對實際問題退化 compact rows。追蹤：P0 umbrella #147（Debt #141 / Transactions redesign #142 / Portfolios #143 / Projects list #144）；獨立 task：Transactions div-in-tbody DOM 修正 #145（implementation bug，獨立修）、Projects header 溢出 #146（移除 Settings + 允許 wrap）。
 
 ### 9. Dashboard Close / Recent 順序 vs §25 — resolved 2026-09-21
 
@@ -98,10 +98,10 @@ AccountDetailPage `:232` currency、PortfolioDetail `:216` date、WatchListSetti
 | 5 | RetirementPlanList badge | — | low | record-only |
 | 6 | PortfolioDetailPage 無 PageHeader | §1/§12 | medium | task：遷移 PageHeader |
 | 7 | YearlyDetails mobile 橫向表格 | §28 | medium | resolved：已修正（#138） |
-| 8 | Mobile compact-row 覆蓋 | §28/§38 | medium | resolved：已驗證（#139，4 頁 fail 已開 follow-up：Debt / Transactions / Portfolios / Projects） |
+| 8 | Mobile compact-row 覆蓋 | §28/§38 | medium | resolved：已驗證（#139，4 頁 fail → umbrella #147：Debt #141 / Transactions #142 / Portfolios #143 / Projects #144；DOM #145、header #146 獨立） |
 | 9 | Dashboard Close/Recent 順序 | §25 | low | resolved：§25 已修訂（Close → Recent） |
 | 10 | Mobile 導覽主導權 | §29/§30 | high | task：Pet 為主，bottom nav 退場（Phase 8） |
 
-已定案：1 個修正 task（7）、2 個已裁決的 task（6 / 10）、1 個 runtime 驗證（8，4 頁 fail → follow-up issues）、2 組記錄項（4 / 5）。
-**下一步：** 開 GitHub issues 追蹤（6 / 7 / 10）；8 的 follow-up 已開（Debt / Transactions / Portfolios / Projects 四頁 mobile compact rows）。
+已定案：1 個修正 task（7）、2 個已裁決的 task（6 / 10）、1 個 runtime 驗證（8，4 頁 fail → umbrella #147 + 獨立 task #145 / #146）、2 組記錄項（4 / 5）。
+**下一步：** 開 GitHub issues 追蹤（6 / 7 / 10）；8 的 follow-up 已開（#141-#146，密度決定 mobile layout，Account 為 benchmark）。
 **延伸盤點：** List/Detail header 與動作一致性另見 `page-review-list-detail.md`（同日，L1-L6 落差清單）。
