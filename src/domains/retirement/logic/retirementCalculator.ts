@@ -46,18 +46,26 @@ function resolveIncomeWindow(
   };
 }
 
+export function resolveSampleYear(plan: RetirementPlan): number {
+  const sampleYears = plan.incomes
+    .map((income) => income.calculatedFrom?.sampleYear)
+    .filter((year): year is number => typeof year === 'number');
+  return sampleYears.length > 0 ? Math.max(...sampleYears) : plan.currentYear;
+}
+
 /**
  * Shared logic for calculating financial flows for a specific year.
  */
 function calculateYearlyFlowDetails(plan: RetirementPlan, year: number): YearlyFlowDetails {
   const age = year - plan.birthYear;
+  const retirementYear = plan.birthYear + plan.retirementAge;
   const isRetired = age >= plan.retirementAge;
   const incomeBreakdown: Array<{ name: string; amount: number }> = [];
   const expenseBreakdown: Array<{ name: string; amount: number }> = [];
 
-  // 1. Calculate Income — build per-income map for SALARY_PERCENTAGE expense linking
   const currentAge = plan.currentYear - plan.birthYear;
   const projectionEndYear = plan.currentYear + (plan.lifeExpectancy - currentAge);
+  const sampleYear = resolveSampleYear(plan);
   const activeIncomes = plan.incomes.filter((income) => {
     const { effectiveStartYear, effectiveEndYear } = resolveIncomeWindow(
       plan,
@@ -67,9 +75,14 @@ function calculateYearlyFlowDetails(plan: RetirementPlan, year: number): YearlyF
     return year >= effectiveStartYear && year <= effectiveEndYear;
   });
 
-  const yearlyIncomeMap = calculateYearlyIncomes(activeIncomes, year, plan.currentYear);
+  const yearlyIncomeMap = calculateYearlyIncomes(
+    activeIncomes,
+    year,
+    retirementYear,
+    plan.inflationRate,
+    sampleYear,
+  );
   let totalIncome = 0;
-  let totalSalary = 0;
   activeIncomes.forEach((income) => {
     const amount = yearlyIncomeMap.get(income.id) ?? 0;
     if (amount <= 0) {
@@ -78,16 +91,12 @@ function calculateYearlyFlowDetails(plan: RetirementPlan, year: number): YearlyF
 
     totalIncome += amount;
     incomeBreakdown.push({ name: income.name, amount });
-
-    if (income.type === 'salary') {
-      totalSalary += amount;
-    }
   });
 
-  // 2. Calculate Expenses (income map must be built first)
+  // 2. Calculate Expenses
   let totalExpense = 0;
   plan.expenses.forEach((expense) => {
-    const amount = calculateYearlyExpense(expense, year, plan, yearlyIncomeMap, totalSalary);
+    const amount = calculateYearlyExpense(expense, year, plan, sampleYear);
     totalExpense += amount;
     if (amount > 0) {
       expenseBreakdown.push({ name: expense.name, amount });
@@ -104,12 +113,7 @@ function calculateYearlyFlowDetails(plan: RetirementPlan, year: number): YearlyF
     let hasEventInYear = false;
     let eventYearAmount = 0;
     phases.forEach((phase) => {
-      const phaseAmount = calculateRetirementEventPhaseAmount(
-        phase,
-        year,
-        yearlyIncomeMap,
-        totalSalary,
-      );
+      const phaseAmount = calculateRetirementEventPhaseAmount(phase, year, plan.inflationRate);
 
       if (phaseAmount <= 0) {
         return;
@@ -148,11 +152,16 @@ function calculateYearlyFlowDetails(plan: RetirementPlan, year: number): YearlyF
 }
 
 /**
- * Calculates the retirement projection for a given plan.
+ * Calculates the retirement projection for a given plan. The starting balance
+ * is injected by the caller (latest closed period's net worth, issue #127 Q1)
+ * — the plan does not store it.
  */
-export const calculateRetirementProjection = (plan: RetirementPlan): RetirementProjectionYear[] => {
+export const calculateRetirementProjection = (
+  plan: RetirementPlan,
+  startingNetWorth: number,
+): RetirementProjectionYear[] => {
   const projection: RetirementProjectionYear[] = [];
-  let currentSavings = plan.currentSavings;
+  let balance = startingNetWorth;
   const startYear = plan.currentYear;
   const currentAge = startYear - plan.birthYear;
   const endYear = startYear + (plan.lifeExpectancy - currentAge);
@@ -162,13 +171,13 @@ export const calculateRetirementProjection = (plan: RetirementPlan): RetirementP
     const flows = calculateYearlyFlowDetails(plan, year);
 
     // 4. Investment Income (on opening balance)
-    const investmentIncome = currentSavings * (plan.investmentReturnRate / 100);
+    const investmentIncome = balance * (plan.investmentReturnRate / 100);
 
     // 5. Net Cash Flow
     const netCashFlow = flows.totalIncome - flows.totalExpense;
 
     // 6. Closing Balance
-    const openingBalance = currentSavings;
+    const openingBalance = balance;
     const closingBalance =
       openingBalance + netCashFlow + investmentIncome + flows.oneTimeIncome - flows.oneTimeExpense;
 
@@ -189,8 +198,8 @@ export const calculateRetirementProjection = (plan: RetirementPlan): RetirementP
       events: flows.yearEvents,
     });
 
-    // Update savings for next year
-    currentSavings = closingBalance;
+    // Update balance for next year
+    balance = closingBalance;
   }
 
   return projection;
@@ -199,7 +208,11 @@ export const calculateRetirementProjection = (plan: RetirementPlan): RetirementP
 /**
  * Calculates a summary projection for a specific target year.
  */
-export function getYearlyProjection(plan: RetirementPlan, targetYear: number): YearlyProjection {
+export function getYearlyProjection(
+  plan: RetirementPlan,
+  targetYear: number,
+  startingNetWorth: number,
+): YearlyProjection {
   if (targetYear < plan.currentYear) {
     return {
       year: targetYear,
@@ -209,17 +222,16 @@ export function getYearlyProjection(plan: RetirementPlan, targetYear: number): Y
     };
   }
 
-  let currentSavings = plan.currentSavings;
+  let balance = startingNetWorth;
   let finalIncome = 0;
   let finalExpense = 0;
 
   for (let year = plan.currentYear; year <= targetYear; year++) {
     const flows = calculateYearlyFlowDetails(plan, year);
-    const investmentIncome = currentSavings * (plan.investmentReturnRate / 100);
+    const investmentIncome = balance * (plan.investmentReturnRate / 100);
     const netCashFlow = flows.totalIncome - flows.totalExpense;
 
-    currentSavings =
-      currentSavings + netCashFlow + investmentIncome + flows.oneTimeIncome - flows.oneTimeExpense;
+    balance = balance + netCashFlow + investmentIncome + flows.oneTimeIncome - flows.oneTimeExpense;
 
     if (year === targetYear) {
       finalIncome = flows.totalIncome;
@@ -229,7 +241,7 @@ export function getYearlyProjection(plan: RetirementPlan, targetYear: number): Y
 
   return {
     year: targetYear,
-    projectedAssets: currentSavings,
+    projectedAssets: balance,
     projectedIncome: finalIncome,
     projectedExpense: finalExpense,
   };
@@ -241,6 +253,8 @@ export function getYearlyProjection(plan: RetirementPlan, targetYear: number): Y
 export const calculateProjectionSummary = (
   projection: RetirementProjectionYear[],
   plan: RetirementPlan,
+  startingNetWorth: number,
+  anchorYearMonth: string,
 ) => {
   const retirementYearIndex = projection.findIndex((p) => p.isRetired);
   const retirementProjection = retirementYearIndex >= 0 ? projection[retirementYearIndex] : null;
@@ -261,6 +275,8 @@ export const calculateProjectionSummary = (
 
   return {
     retirementYear: plan.birthYear + plan.retirementAge,
+    startingNetWorth,
+    anchorYearMonth,
     savingsAtRetirement: retirementProjection ? retirementProjection.openingBalance : 0,
     minSavings,
     minSavingsYear,

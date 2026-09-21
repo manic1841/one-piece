@@ -22,7 +22,6 @@ import {
 } from '@/ui/components/ui/select';
 
 import { useRetirementIncomeDialog } from '../hooks/useRetirementIncomeDialog';
-import { DerivedModeSection } from './income/DerivedModeSection';
 import { FixedModeSection } from './income/FixedModeSection';
 import { ImportedModeSection } from './income/ImportedModeSection';
 import { IncomeFormSharedFields } from './income/IncomeFormSharedFields';
@@ -32,7 +31,6 @@ interface IncomeDialogProps {
   currentYear: number;
   initialData?: RetirementIncomeSource;
   trigger?: React.ReactNode;
-  availableIncomes?: RetirementIncomeSource[];
   householdId: string;
 }
 
@@ -41,7 +39,6 @@ export default function IncomeDialog({
   currentYear,
   initialData,
   trigger,
-  availableIncomes = [],
   householdId,
 }: IncomeDialogProps) {
   const {
@@ -57,6 +54,8 @@ export default function IncomeDialog({
     setAmount,
     growthRate,
     setGrowthRate,
+    retirementAnnual,
+    setRetirementAnnual,
     startYear,
     setStartYear,
     endYear,
@@ -69,12 +68,8 @@ export default function IncomeDialog({
     setLifelong,
     autoUpdate,
     setAutoUpdate,
-    incomeCalculationMode,
-    setIncomeCalculationMode,
-    baseIncomeId,
-    setBaseIncomeId,
-    multiplier,
-    setMultiplier,
+    importedFrom,
+    setImportedFrom,
     ledgerCode,
     setLedgerCode,
     sampleYear,
@@ -82,14 +77,14 @@ export default function IncomeDialog({
     submitError,
     handleSubmit,
     handleCalculateImported,
-    handleCalculateDerived,
   } = useRetirementIncomeDialog({
     initialData,
     currentYear,
     onSave,
     householdId,
-    availableIncomes,
   });
+
+  const isImported = importedFrom === 'transactionEntries';
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -123,30 +118,29 @@ export default function IncomeDialog({
             />
           </div>
 
-          {/* Row 2: Income Calculation Mode */}
+          {/* Row 2: Source Mode */}
           <div className="grid gap-2">
-            <Label htmlFor="mode">Income Calculation Mode</Label>
+            <Label htmlFor="mode">Source</Label>
             <Select
-              value={incomeCalculationMode}
-              onValueChange={(v: 'FIXED' | 'IMPORTED' | 'DERIVED') => setIncomeCalculationMode(v)}
+              value={importedFrom}
+              onValueChange={(v: 'manual' | 'transactionEntries') => setImportedFrom(v)}
             >
               <SelectTrigger>
-                <SelectValue placeholder="Select mode..." />
+                <SelectValue placeholder="Select source..." />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="FIXED">Manual</SelectItem>
-                <SelectItem value="IMPORTED">Imported (from Ledger)</SelectItem>
-                <SelectItem value="DERIVED">Derived (from other income)</SelectItem>
+                <SelectItem value="manual">Manual</SelectItem>
+                <SelectItem value="transactionEntries">Imported (from Ledger)</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
           {/* Mode-specific sections */}
-          {incomeCalculationMode === 'FIXED' && (
+          {!isImported && (
             <FixedModeSection type={type} setType={setType} amount={amount} setAmount={setAmount} />
           )}
 
-          {incomeCalculationMode === 'IMPORTED' && (
+          {isImported && (
             <ImportedModeSection
               ledgerCode={ledgerCode}
               setLedgerCode={setLedgerCode}
@@ -162,25 +156,13 @@ export default function IncomeDialog({
             />
           )}
 
-          {incomeCalculationMode === 'DERIVED' && (
-            <DerivedModeSection
-              baseIncomeId={baseIncomeId}
-              setBaseIncomeId={setBaseIncomeId}
-              multiplier={multiplier}
-              setMultiplier={setMultiplier}
-              amount={amount}
-              calculating={calculating}
-              onCalculate={handleCalculateDerived}
-              availableIncomes={availableIncomes}
-              initialDataId={initialData?.id}
-            />
-          )}
-
           {/* Shared fields */}
           <IncomeFormSharedFields
             type={type}
             growthRate={growthRate}
             setGrowthRate={setGrowthRate}
+            retirementAnnual={retirementAnnual}
+            setRetirementAnnual={setRetirementAnnual}
             startYear={startYear}
             setStartYear={setStartYear}
             startYearMode={startYearMode}

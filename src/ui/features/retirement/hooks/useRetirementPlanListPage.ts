@@ -40,8 +40,6 @@ export const useRetirementPlanListPage = (householdId?: string, email?: string) 
       birthYear: new Date().getFullYear() - 30, // Default age 30
       retirementAge: 60,
       lifeExpectancy: 85,
-      currentSavings: 0,
-      salaryGrowthRate: 3,
       inflationRate: 2,
       investmentReturnRate: 5,
       incomes: [],

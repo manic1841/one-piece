@@ -9,129 +9,188 @@ import {
 import type { RetirementIncomeSource } from '@/domains/retirement/types';
 
 describe('retirementIncomeCalculator', () => {
-  const baseIncome: RetirementIncomeSource = {
+  // Sample year anchor: 2023. currentAnnual reflects 2023 actuals.
+  const SAMPLE_YEAR = 2023;
+  const RETIREMENT_YEAR = 2045;
+  const INFLATION = 2;
+
+  const salary: RetirementIncomeSource = {
     id: 'salary-1',
     name: 'Monthly Salary',
     type: 'salary',
     importedFrom: 'manual',
-    incomeCalculationMode: 'FIXED',
-    baseAmount: 48000,
+    autoUpdate: false,
+    startYearMode: 'MANUAL',
+    endYearMode: 'MANUAL',
+    lifelong: false,
+    currentAnnual: 48_000,
     growthRate: 3,
     startYear: 2025,
     endYear: 2030,
   };
 
-  const derivedIncome: RetirementIncomeSource = {
-    id: 'bonus-1',
-    name: 'Year-end Bonus',
-    type: 'bonus',
-    importedFrom: 'manual',
-    incomeCalculationMode: 'DERIVED',
-    baseAmount: 0,
-    growthRate: 0,
-    startYear: 2025,
-    endYear: 2030,
-    derivedFrom: {
-      baseIncomeId: 'salary-1',
-      multiplier: 1.67,
-    },
-  };
-
-  const chainedDerivedIncome: RetirementIncomeSource = {
-    id: 'allowance-1',
-    name: 'Allowance',
-    type: 'other',
-    importedFrom: 'manual',
-    incomeCalculationMode: 'DERIVED',
-    baseAmount: 0,
-    growthRate: 0,
-    startYear: 2025,
-    endYear: 2030,
-    derivedFrom: {
-      baseIncomeId: 'bonus-1',
-      multiplier: 0.5,
+  const importedSalary: RetirementIncomeSource = {
+    ...salary,
+    id: 'imported-1',
+    name: 'Imported Salary',
+    importedFrom: 'transactionEntries',
+    currentAnnual: 60_000,
+    calculatedFrom: {
+      ledgerCode: 'income:salary',
+      sampleYear: SAMPLE_YEAR,
+      totalAmount: 60_000,
+      monthlyAverage: 5_000,
+      sampleCount: 12,
+      importedAt: '2024-01-01T00:00:00.000Z',
     },
   };
 
   describe('calculateYearlyIncome', () => {
-    it('should calculate fixed income with growth rate', () => {
-      const year0 = calculateYearlyIncome(baseIncome, 0);
-      expect(year0).toBeCloseTo(48000, 0);
+    it('compounds currentAnnual from the sample year for working years', () => {
+      const atSample = calculateYearlyIncome(
+        salary,
+        SAMPLE_YEAR,
+        RETIREMENT_YEAR,
+        INFLATION,
+        SAMPLE_YEAR,
+      );
+      expect(atSample).toBeCloseTo(48_000, 0);
 
-      const year1 = calculateYearlyIncome(baseIncome, 1);
-      expect(year1).toBeCloseTo(48000 * 1.03, 0);
-
-      const year2 = calculateYearlyIncome(baseIncome, 2);
-      expect(year2).toBeCloseTo(48000 * 1.03 * 1.03, 0);
+      const twoYearsLater = calculateYearlyIncome(
+        salary,
+        SAMPLE_YEAR + 2,
+        RETIREMENT_YEAR,
+        INFLATION,
+        SAMPLE_YEAR,
+      );
+      expect(twoYearsLater).toBeCloseTo(48_000 * 1.03 * 1.03, 0);
     });
 
-    it('should calculate derived income as base * multiplier', () => {
-      const baseYearlyIncomes = new Map([['salary-1', 48000]]);
-      const derived = calculateYearlyIncome(derivedIncome, 0, baseYearlyIncomes);
-      expect(derived).toBeCloseTo(48000 * 1.67, 0);
+    it('falls back to plan inflation when growthRate is unset', () => {
+      const noGrowth: RetirementIncomeSource = { ...salary, growthRate: undefined };
+      const result = calculateYearlyIncome(
+        noGrowth,
+        SAMPLE_YEAR + 1,
+        RETIREMENT_YEAR,
+        INFLATION,
+        SAMPLE_YEAR,
+      );
+      expect(result).toBeCloseTo(48_000 * 1.02, 0);
+    });
+
+    it('uses retirementAnnual anchored at retirement year from retirement onward', () => {
+      const withRetirement: RetirementIncomeSource = { ...salary, retirementAnnual: 30_000 };
+      const atRetirement = calculateYearlyIncome(
+        withRetirement,
+        RETIREMENT_YEAR,
+        RETIREMENT_YEAR,
+        INFLATION,
+        SAMPLE_YEAR,
+      );
+      expect(atRetirement).toBeCloseTo(30_000, 0);
+
+      const fiveYearsAfter = calculateYearlyIncome(
+        withRetirement,
+        RETIREMENT_YEAR + 5,
+        RETIREMENT_YEAR,
+        INFLATION,
+        SAMPLE_YEAR,
+      );
+      // growthRate 3% compounding from the retirement anchor
+      expect(fiveYearsAfter).toBeCloseTo(30_000 * Math.pow(1.03, 5), 0);
+    });
+
+    it('continues the current level in retirement when retirementAnnual is unset', () => {
+      const atRetirement = calculateYearlyIncome(
+        salary,
+        RETIREMENT_YEAR,
+        RETIREMENT_YEAR,
+        INFLATION,
+        SAMPLE_YEAR,
+      );
+      const expected = 48_000 * Math.pow(1.03, RETIREMENT_YEAR - SAMPLE_YEAR);
+      expect(atRetirement).toBeCloseTo(expected, 0);
+    });
+
+    it('anchors retirementAnnual at startYear for streams starting at/after retirement', () => {
+      const latePension: RetirementIncomeSource = {
+        ...salary,
+        id: 'pension-late',
+        type: 'pension',
+        currentAnnual: 0,
+        growthRate: undefined,
+        startYear: 2050,
+        endYear: undefined,
+        lifelong: true,
+        retirementAnnual: 20_000,
+      };
+      const atStart = calculateYearlyIncome(
+        latePension,
+        2050,
+        RETIREMENT_YEAR,
+        INFLATION,
+        SAMPLE_YEAR,
+      );
+      expect(atStart).toBeCloseTo(20_000, 0);
+
+      const fiveYearsIn = calculateYearlyIncome(
+        latePension,
+        2055,
+        RETIREMENT_YEAR,
+        INFLATION,
+        SAMPLE_YEAR,
+      );
+      // no growthRate: falls back to plan inflation 2%
+      expect(fiveYearsIn).toBeCloseTo(20_000 * Math.pow(1.02, 5), 0);
     });
   });
 
   describe('calculateYearlyIncomes', () => {
-    it('should calculate all incomes in dependency order', () => {
-      const incomes = [baseIncome, derivedIncome];
-      const result = calculateYearlyIncomes(incomes, 2025, 2025);
-
-      expect(result.get('salary-1')).toBeCloseTo(48000, 0);
-      expect(result.get('bonus-1')).toBeCloseTo(48000 * 1.67, 0);
-    });
-
-    it('should apply growth rate to derived base income correctly', () => {
-      const incomes = [baseIncome, derivedIncome];
-      const result = calculateYearlyIncomes(incomes, 2026, 2025);
-
-      // Salary year 1: 48000 * 1.03
-      expect(result.get('salary-1')).toBeCloseTo(48000 * 1.03, 0);
-      // Bonus year 1: (48000 * 1.03) * 1.67
-      expect(result.get('bonus-1')).toBeCloseTo(48000 * 1.03 * 1.67, 0);
-    });
-
-    it('should support multi-layer derived dependencies (A->B->C)', () => {
-      const incomes = [baseIncome, derivedIncome, chainedDerivedIncome];
-      const result = calculateYearlyIncomes(incomes, 2025, 2025);
-
-      const bonus = 48000 * 1.67;
-      expect(result.get('bonus-1')).toBeCloseTo(bonus, 0);
-      expect(result.get('allowance-1')).toBeCloseTo(bonus * 0.5, 0);
+    it('builds a map for all income sources', () => {
+      const result = calculateYearlyIncomes(
+        [salary, importedSalary],
+        SAMPLE_YEAR,
+        RETIREMENT_YEAR,
+        INFLATION,
+        SAMPLE_YEAR,
+      );
+      expect(result.get('salary-1')).toBeCloseTo(48_000, 0);
+      expect(result.get('imported-1')).toBeCloseTo(60_000, 0);
     });
   });
 
   describe('calculateTotalYearlyIncome', () => {
-    it('should sum all active incomes', () => {
-      const incomes = [baseIncome, derivedIncome];
-      const total = calculateTotalYearlyIncome(incomes, 2025, 2025);
-
-      const expected = 48000 + 48000 * 1.67;
-      expect(total).toBeCloseTo(expected, 0);
+    it('sums all income sources for the year', () => {
+      const total = calculateTotalYearlyIncome(
+        [salary, importedSalary],
+        SAMPLE_YEAR,
+        RETIREMENT_YEAR,
+        INFLATION,
+        SAMPLE_YEAR,
+      );
+      expect(total).toBeCloseTo(108_000, 0);
     });
   });
 
   describe('filterActiveIncomes', () => {
-    it('should filter incomes by active year range', () => {
+    it('filters incomes by active year range', () => {
       const earlyIncome: RetirementIncomeSource = {
-        ...baseIncome,
+        ...salary,
         id: 'early',
         startYear: 2020,
         endYear: 2024,
       };
 
-      const incomes = [baseIncome, earlyIncome, derivedIncome];
-      const active = filterActiveIncomes(incomes, 2025);
-
+      const active = filterActiveIncomes([salary, earlyIncome, importedSalary], 2025);
       expect(active).toHaveLength(2);
-      expect(active.map((i) => i.id)).toContain('salary-1');
-      expect(active.map((i) => i.id)).toContain('bonus-1');
-      expect(active.map((i) => i.id)).not.toContain('early');
+      expect(active.map((income) => income.id)).toContain('salary-1');
+      expect(active.map((income) => income.id)).toContain('imported-1');
+      expect(active.map((income) => income.id)).not.toContain('early');
     });
 
-    it('should honor linked retirement year and lifelong settings', () => {
+    it('honors linked retirement year and lifelong settings', () => {
       const linkedPension: RetirementIncomeSource = {
-        ...baseIncome,
+        ...salary,
         id: 'pension-linked',
         type: 'pension',
         startYearMode: 'LINKED_TO_RETIREMENT',

@@ -1,3 +1,6 @@
+import { useCallback } from 'react';
+
+import { mergeImportedExpensesUseCase } from '@/application/retirement/use_cases/mergeImportedExpensesUseCase';
 import { calculatePlanProjection } from '@/domains/retirement/logic/retirementPlanProjection';
 import { useRetirementEventActions } from '@/ui/features/retirement/hooks/useRetirementEventActions';
 import { useRetirementExpenseActions } from '@/ui/features/retirement/hooks/useRetirementExpenseActions';
@@ -21,6 +24,7 @@ export const useRetirementPlanDetailPage = (
     plan,
     loading,
     error,
+    netWorthSource,
     isEditingName,
     editedName,
     setEditedName,
@@ -36,6 +40,7 @@ export const useRetirementPlanDetailPage = (
     handleCancelEditName,
     importIncomeData,
     importDebtData,
+    importExpenseDataFromLedger,
   } = useRetirementPlanCore({ id, householdId, userEmail });
 
   const { handleAddExpense, handleUpdateExpense, handleDeleteExpense, handleImportDebtRepayments } =
@@ -45,6 +50,17 @@ export const useRetirementPlanDetailPage = (
       importDebtData,
       handleUpdatePlan,
     });
+
+  const handleImportExpensesFromLedger = useCallback(async () => {
+    if (!plan) return;
+    const imported = await importExpenseDataFromLedger();
+    if (imported.length === 0) return;
+
+    const mergeResult = mergeImportedExpensesUseCase.execute({ plan, importedExpenses: imported });
+    if (!mergeResult.hasChanges) return;
+
+    await handleUpdatePlan({ expenses: mergeResult.expenses });
+  }, [plan, importExpenseDataFromLedger, handleUpdatePlan]);
 
   const { handleAddEvent, handleUpdateEvent, handleDeleteEvent } = useRetirementEventActions({
     id,
@@ -64,10 +80,20 @@ export const useRetirementPlanDetailPage = (
     handleUpdatePlan,
   });
 
+  const projectionVM =
+    plan && netWorthSource && 'startingNetWorth' in netWorthSource
+      ? mapRetirementProjectionToVM(
+          calculatePlanProjection(plan, netWorthSource.startingNetWorth),
+          plan.birthYear + plan.retirementAge,
+          plan,
+        )
+      : null;
+
   return {
     plan,
     headerVM: plan ? mapRetirementPlanToHeaderVM(plan) : null,
     assumptionsVM: plan ? mapRetirementPlanToAssumptionsDisplayVM(plan) : null,
+    netWorthSource,
     incomeItems: plan
       ? plan.incomes.map((income) => ({ domain: income, vm: mapRetirementIncomeToVM(income) }))
       : [],
@@ -77,13 +103,7 @@ export const useRetirementPlanDetailPage = (
     eventItems: plan
       ? plan.events.map((event) => ({ domain: event, vm: mapRetirementEventToVM(event) }))
       : [],
-    projectionVM: plan
-      ? mapRetirementProjectionToVM(
-          calculatePlanProjection(plan),
-          plan.birthYear + plan.retirementAge,
-          plan,
-        )
-      : null,
+    projectionVM,
     loading,
     error,
     isEditingName,
@@ -110,5 +130,6 @@ export const useRetirementPlanDetailPage = (
     handleUpdateIncome,
     handleDeleteIncome,
     handleImportIncomeFromTransactions,
+    handleImportExpensesFromLedger,
   };
 };

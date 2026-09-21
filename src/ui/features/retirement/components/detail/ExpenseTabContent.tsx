@@ -2,12 +2,9 @@ import React from 'react';
 
 import { Pencil, Trash2 } from 'lucide-react';
 
-import {
-  type RetirementExpenseCategory,
-  type RetirementIncomeSource,
-} from '@/domains/retirement/types';
-import { RetirementWorkspaceTermLabels } from '@/ui/constants/retirement/retirementWorkspaceLabels';
+import type { RetirementExpenseCategory } from '@/domains/retirement/types';
 import { Button } from '@/ui/components/ui/button';
+import { RetirementWorkspaceTermLabels } from '@/ui/constants/retirement/retirementWorkspaceLabels';
 import { type RetirementExpenseItemVM } from '@/ui/features/retirement/viewmodels/retirementDisplay.vm';
 
 import RetirementExpenseDialog from '../ExpenseDialog';
@@ -15,21 +12,21 @@ import RetirementExpenseDialog from '../ExpenseDialog';
 interface ExpenseTabContentProps {
   currentYear: number;
   expenseItems: Array<{ domain: RetirementExpenseCategory; vm: RetirementExpenseItemVM }>;
-  incomes: RetirementIncomeSource[];
   handleAddExpense: (data: Omit<RetirementExpenseCategory, 'id'>) => Promise<void>;
   handleUpdateExpense: (id: string, data: Omit<RetirementExpenseCategory, 'id'>) => Promise<void>;
   handleDeleteExpense: (id: string) => Promise<void>;
   handleImportDebtRepayments: () => Promise<void>;
+  handleImportFromLedger: () => Promise<void>;
 }
 
 export const ExpenseTabContent: React.FC<ExpenseTabContentProps> = ({
   currentYear,
   expenseItems,
-  incomes,
   handleAddExpense,
   handleUpdateExpense,
   handleDeleteExpense,
   handleImportDebtRepayments,
+  handleImportFromLedger,
 }) => {
   return (
     <div className="rounded-lg border p-6">
@@ -41,11 +38,10 @@ export const ExpenseTabContent: React.FC<ExpenseTabContentProps> = ({
           <Button variant="outline" onClick={handleImportDebtRepayments}>
             匯入債務還款
           </Button>
-          <RetirementExpenseDialog
-            onSave={handleAddExpense}
-            currentYear={currentYear}
-            incomes={incomes}
-          />
+          <Button variant="outline" onClick={handleImportFromLedger}>
+            Import from Ledger
+          </Button>
+          <RetirementExpenseDialog onSave={handleAddExpense} currentYear={currentYear} />
         </div>
       </div>
       {expenseItems.length === 0 ? (
@@ -93,7 +89,6 @@ export const ExpenseTabContent: React.FC<ExpenseTabContentProps> = ({
                       onSave={(updates) => handleUpdateExpense(domain.id, updates)}
                       currentYear={currentYear}
                       initialData={domain}
-                      incomes={incomes}
                       trigger={
                         <Button variant="ghost" size="icon">
                           <Pencil className="h-4 w-4" />

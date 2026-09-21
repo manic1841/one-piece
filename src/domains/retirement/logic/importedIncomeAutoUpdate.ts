@@ -14,7 +14,6 @@ export const isImportedIncomeSyncTarget = (
 ): income is ImportedIncomeSyncTarget => {
   return (
     income.importedFrom === 'transactionEntries' &&
-    income.incomeCalculationMode === 'IMPORTED' &&
     income.autoUpdate === true &&
     !!income.calculatedFrom?.ledgerCode &&
     typeof income.calculatedFrom?.sampleYear === 'number'

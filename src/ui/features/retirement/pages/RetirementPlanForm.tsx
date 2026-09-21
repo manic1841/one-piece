@@ -13,6 +13,7 @@ import {
 import { Button } from '@/ui/components/ui/button';
 import { RetirementWorkspaceSectionLabels } from '@/ui/constants/retirement/retirementWorkspaceLabels';
 import AssumptionsForm from '@/ui/features/retirement/components/AssumptionsForm';
+import { CurrentFinancialState } from '@/ui/features/retirement/components/detail/CurrentFinancialState';
 import { EventTabContent } from '@/ui/features/retirement/components/detail/EventTabContent';
 import { ExpenseTabContent } from '@/ui/features/retirement/components/detail/ExpenseTabContent';
 import { IncomeTabContent } from '@/ui/features/retirement/components/detail/IncomeTabContent';
@@ -31,6 +32,7 @@ const RetirementPlanForm: React.FC = () => {
     expenseItems,
     eventItems,
     projectionVM,
+    netWorthSource,
     loading,
     isEditingName,
     editedName,
@@ -56,6 +58,7 @@ const RetirementPlanForm: React.FC = () => {
     handleUpdateIncome,
     handleDeleteIncome,
     handleImportIncomeFromTransactions,
+    handleImportExpensesFromLedger,
   } = useRetirementPlanDetailPage(id, userProfile?.householdId, userProfile?.email);
 
   const [expandedSections, setExpandedSections] = useState<string[]>(['overview']);
@@ -115,6 +118,15 @@ const RetirementPlanForm: React.FC = () => {
           </AccordionContent>
         </AccordionItem>
 
+        <AccordionItem value="currentFinancialState">
+          <AccordionTrigger>
+            {RetirementWorkspaceSectionLabels.currentFinancialState}
+          </AccordionTrigger>
+          <AccordionContent>
+            <CurrentFinancialState netWorthSource={netWorthSource} />
+          </AccordionContent>
+        </AccordionItem>
+
         <AccordionItem value="netWorth">
           <AccordionTrigger>{RetirementWorkspaceSectionLabels.netWorth}</AccordionTrigger>
           <AccordionContent>
@@ -132,11 +144,7 @@ const RetirementPlanForm: React.FC = () => {
         <AccordionItem value="assumptions">
           <AccordionTrigger>{RetirementWorkspaceSectionLabels.assumptions}</AccordionTrigger>
           <AccordionContent>
-            <AssumptionsForm
-              assumptions={assumptionsVM}
-              onSave={handleUpdatePlan}
-              retirementTransition={plan.retirementTransition}
-            />
+            <AssumptionsForm assumptions={assumptionsVM} onSave={handleUpdatePlan} />
           </AccordionContent>
         </AccordionItem>
 
@@ -161,11 +169,11 @@ const RetirementPlanForm: React.FC = () => {
             <ExpenseTabContent
               currentYear={plan.currentYear}
               expenseItems={expenseItems}
-              incomes={plan.incomes}
               handleAddExpense={handleAddExpense}
               handleUpdateExpense={handleUpdateExpense}
               handleDeleteExpense={handleDeleteExpense}
               handleImportDebtRepayments={handleImportDebtRepayments}
+              handleImportFromLedger={handleImportExpensesFromLedger}
             />
           </AccordionContent>
         </AccordionItem>
@@ -175,7 +183,6 @@ const RetirementPlanForm: React.FC = () => {
           <AccordionContent>
             <EventTabContent
               currentYear={plan.currentYear}
-              incomes={plan.incomes}
               eventItems={eventItems}
               handleAddEvent={handleAddEvent}
               handleUpdateEvent={handleUpdateEvent}

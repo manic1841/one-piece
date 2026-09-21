@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 
-import { CalculationMode } from '@/domains/retirement/types';
 import type { RetirementOneTimeEvent } from '@/domains/retirement/types';
 import {
   type RetirementEventFormVM,
@@ -83,11 +82,7 @@ export function useRetirementEventDialog({
         name: `Phase ${prev.length + 1}`,
         startYear: String(currentYear),
         endYear: String(currentYear),
-        mode: CalculationMode.FIXED,
         amount: '',
-        growthRate: '0',
-        percentage: '0',
-        linkedIncomeId: '',
       },
     ]);
   };

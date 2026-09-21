@@ -22,8 +22,7 @@ describe('retirementPlanLogic', () => {
 
       const salary = result.find((r) => r.incomeCategory === 'income:salary:charles');
       expect(salary).toBeDefined();
-      // (100000 / 12) * 12 = 100000
-      expect(salary?.baseAmount).toBe(100000);
+      expect(salary?.currentAnnual).toBe(100000);
       expect(salary?.calculatedFrom?.sampleCount).toBe(2);
       expect(salary?.calculatedFrom?.ledgerCode).toBe('income:salary:charles');
       expect(salary?.importedFrom).toBe('transactionEntries');

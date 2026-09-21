@@ -91,23 +91,13 @@ firestore
       │         ├─ importedFrom: "manual" | "transactionEntries"
       │         ├─ incomeCategory: string       # e.g. "income:salary:charles"
       │         ├─ type: "salary" | "bonus" | "pension" | "rent" | "other"
-      │         ├─ incomeCalculationMode: "FIXED" | "IMPORTED" | "DERIVED"
       │         │
-      │         │  # --- 年份連動設定 ---
-      │         ├─ startYearMode: "MANUAL" | "LINKED_TO_RETIREMENT"
-      │         ├─ endYearMode: "MANUAL" | "LINKED_TO_RETIREMENT"
-      │         ├─ lifelong: boolean                 # true = 忽略 endYear，計算至模型終止年（pension 用）
-      │         │
-      │         │  # --- 金額設定 ---
-      │         ├─ baseAmount: number                # 年化金額
-      │         ├─ growthRate: number                # 年成長率（%），pension 通常設 0 或通膨率
+      │         │  # --- 金額設定（v1：無計算模式）---
+      │         ├─ currentAnnual: number            # 目前年金額（匯自完整年度實際資料）
+      │         ├─ retirementAnnual?: number        # 退休年金額；缺省時以 currentAnnual 調整後水準沿用
+      │         ├─ growthRate?: number              # 年成長率（%），缺省 = 計畫通膨率
       │         ├─ startYear: number                 # startYearMode=MANUAL 時有效
       │         ├─ endYear?: number                  # endYearMode=MANUAL 且 lifelong=false 時有效
-      │         │
-      │         │  # --- DERIVED 模式專用 ---
-      │         ├─ derivedFrom?: object              # incomeCalculationMode=DERIVED 時必填
-      │         │    ├─ baseIncomeId: string         # 參考的基礎收入 id
-      │         │    └─ multiplier: number           # 倍數，e.g. 1.67 代表 2 個月獎金
       │         │
       │         │
       │         ├─ calculatedFrom: object
@@ -125,13 +115,12 @@ firestore
        │         ├─ sourceDebtAccountId?: string
        │         ├─ includesPrincipal: boolean
        │         ├─ interestOnly: boolean
-       │         ├─ calculationMode: "FIXED" | "SALARY_PERCENTAGE"
-      │         ├─ salaryPercentageRetirementMode?: "MANUAL_FALLBACK" | "INFLATION_BASED"
-       │         ├─ baseAmount: number
-       │         ├─ growthRate: number
-       │         ├─ retirementMultiplier: number
+       │         ├─ expenseCategory?: string       # 匯入來源科目；"Import from Ledger" merge 對齊鍵
+       │         ├─ currentAnnual: number          # 目前年支出（匯自完整年度實際資料；v1 攤平為固定金額）
+       │         ├─ growthRate?: number            # 年成長率（%），缺省 = 計畫通膨率
+       │         ├─ retirementMultiplier: number   # 退休後水準（factor 0-1），IMMEDIATE 適用
        │         ├─ startYear: number
-       │         ├─ endYear?: number | null
+       │         ├─ endYear?: number | null        # general: 缺省 = 終身；債務匯入填 endYear
        │         ├─ calculatedFrom?: object
        │         │    ├─ debtAccountId?: string
        │         │    ├─ sampleStartYearMonth?: string

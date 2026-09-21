@@ -2,11 +2,7 @@ import { startOfMonth, subMonths } from 'date-fns';
 
 import { type AuthContext } from '@/application/types';
 import { householdPermissionService } from '@/application/household/householdPermissionService';
-import {
-  type RetirementExpenseCategory,
-  RetirementExpenseType,
-  SalaryPercentageRetirementMode,
-} from '@/domains/retirement/types';
+import { type RetirementExpenseCategory, RetirementExpenseType } from '@/domains/retirement/types';
 import { debtAccountRepository } from '@/infra/repositories/debtAccountRepository';
 import { debtSnapshotRepository } from '@/infra/repositories/debtSnapshotRepository';
 
@@ -73,9 +69,7 @@ export class ImportRetirementDebtUseCase {
             sampleCount: snapshots.length,
             importedAt: new Date().toISOString(),
           },
-          calculationMode: 'FIXED',
-          salaryPercentageRetirementMode: SalaryPercentageRetirementMode.MANUAL_FALLBACK,
-          baseAmount: Math.round(account.monthlyPayment * 12),
+          currentAnnual: Math.round(account.monthlyPayment * 12),
           growthRate: 0,
           retirementMultiplier: 1,
           startYear: account.startDate.getFullYear(),

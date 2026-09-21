@@ -2,19 +2,15 @@ import React from 'react';
 
 import { Pencil, Trash2 } from 'lucide-react';
 
-import {
-  type RetirementIncomeSource,
-  type RetirementOneTimeEvent,
-} from '@/domains/retirement/types';
-import { RetirementWorkspaceTermLabels } from '@/ui/constants/retirement/retirementWorkspaceLabels';
+import type { RetirementOneTimeEvent } from '@/domains/retirement/types';
 import { Button } from '@/ui/components/ui/button';
+import { RetirementWorkspaceTermLabels } from '@/ui/constants/retirement/retirementWorkspaceLabels';
 import { type RetirementEventItemVM } from '@/ui/features/retirement/viewmodels/retirementDisplay.vm';
 
 import EventDialog from '../EventDialog';
 
 interface EventTabContentProps {
   currentYear: number;
-  incomes: RetirementIncomeSource[];
   eventItems: Array<{ domain: RetirementOneTimeEvent; vm: RetirementEventItemVM }>;
   handleAddEvent: (data: Omit<RetirementOneTimeEvent, 'id'>) => Promise<void>;
   handleUpdateEvent: (id: string, data: Omit<RetirementOneTimeEvent, 'id'>) => Promise<void>;
@@ -23,7 +19,6 @@ interface EventTabContentProps {
 
 export const EventTabContent: React.FC<EventTabContentProps> = ({
   currentYear,
-  incomes,
   eventItems,
   handleAddEvent,
   handleUpdateEvent,
@@ -35,7 +30,7 @@ export const EventTabContent: React.FC<EventTabContentProps> = ({
         <h3 className="text-lg font-semibold">
           {RetirementWorkspaceTermLabels.retirementEvents} ({eventItems.length})
         </h3>
-        <EventDialog onSave={handleAddEvent} currentYear={currentYear} incomes={incomes} />
+        <EventDialog onSave={handleAddEvent} currentYear={currentYear} />
       </div>
       {eventItems.length === 0 ? (
         <p className="text-muted-foreground">
@@ -61,7 +56,6 @@ export const EventTabContent: React.FC<EventTabContentProps> = ({
                       onSave={(updates) => handleUpdateEvent(domain.id, updates)}
                       currentYear={currentYear}
                       initialData={domain}
-                      incomes={incomes}
                       trigger={
                         <Button variant="ghost" size="icon">
                           <Pencil className="h-4 w-4" />

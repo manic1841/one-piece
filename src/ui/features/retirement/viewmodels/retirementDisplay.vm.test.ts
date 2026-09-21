@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { type RetirementProjection } from '@/domains/retirement/logic/retirementPlanProjection';
+import type { RetirementProjection } from '@/domains/retirement/logic/retirementPlanProjection';
 
 import {
   mapRetirementEventToVM,
@@ -12,34 +12,46 @@ import {
   mapRetirementProjectionToVM,
 } from './retirementDisplay.vm';
 
+const SAMPLE_YEAR = 2023;
+
+function makePlan(overrides: Record<string, unknown> = {}) {
+  return {
+    id: 'p1',
+    name: 'Plan A',
+    householdId: 'h1',
+    isActive: true,
+    autoUpdate: false,
+    currentYear: 2026,
+    birthYear: 1990,
+    retirementAge: 60,
+    lifeExpectancy: 85,
+    inflationRate: 2,
+    investmentReturnRate: 5,
+    incomes: [],
+    expenses: [],
+    events: [],
+    createdAt: new Date('2026-01-01'),
+    updatedAt: new Date('2026-01-02'),
+    createdBy: 'u1',
+    updatedBy: 'u1',
+    ...overrides,
+  } as Parameters<typeof mapRetirementProjectionToVM>[2] & Record<string, unknown>;
+}
+
 describe('retirementDisplay.vm', () => {
   it('maps plan list item vm', () => {
-    const vm = mapRetirementPlanToListItemVM({
-      id: 'p1',
-      name: 'Plan A',
-      householdId: 'h1',
-      isActive: true,
-      autoUpdate: false,
-      currentYear: 2026,
-      birthYear: 1990,
-      retirementAge: 60,
-      lifeExpectancy: 85,
-      currentSavings: 100000,
-      salaryGrowthRate: 3,
-      inflationRate: 2,
-      investmentReturnRate: 5,
-      incomes: [],
-      expenses: [],
-      events: [],
+    const vm = mapRetirementPlanToListItemVM(makePlan({
       summary: {
+        retirementYear: 2050,
+        startingNetWorth: 100000,
+        anchorYearMonth: '2025-12',
         savingsAtRetirement: 500000,
-        savingsAtDeath: 100000,
+        minSavings: 100000,
+        minSavingsYear: 2050,
         isBankrupt: false,
+        lastCalculatedAt: new Date('2026-01-02'),
       },
-      createdAt: new Date('2026-01-01'),
-      updatedAt: new Date('2026-01-02'),
-      createdBy: 'u1',
-    });
+    }));
 
     expect(vm.retireYear).toBe(2050);
     expect(vm.projectedSavingsText).toContain('500,000');
@@ -47,27 +59,7 @@ describe('retirementDisplay.vm', () => {
   });
 
   it('maps plan header vm', () => {
-    const vm = mapRetirementPlanToHeaderVM({
-      id: 'p1',
-      name: 'Plan A',
-      householdId: 'h1',
-      isActive: true,
-      autoUpdate: true,
-      currentYear: 2026,
-      birthYear: 1990,
-      retirementAge: 60,
-      lifeExpectancy: 85,
-      currentSavings: 100000,
-      salaryGrowthRate: 3,
-      inflationRate: 2,
-      investmentReturnRate: 5,
-      incomes: [],
-      expenses: [],
-      events: [],
-      createdAt: new Date('2026-01-01'),
-      updatedAt: new Date('2026-01-02'),
-      createdBy: 'u1',
-    });
+    const vm = mapRetirementPlanToHeaderVM(makePlan({ autoUpdate: true }));
 
     expect(vm.name).toBe('Plan A');
     expect(vm.autoUpdate).toBe(true);
@@ -75,30 +67,11 @@ describe('retirementDisplay.vm', () => {
   });
 
   it('maps plan assumptions display vm', () => {
-    const vm = mapRetirementPlanToAssumptionsDisplayVM({
-      id: 'p1',
-      name: 'Plan A',
-      householdId: 'h1',
-      isActive: true,
-      autoUpdate: true,
-      currentYear: 2026,
-      birthYear: 1990,
-      retirementAge: 60,
-      lifeExpectancy: 85,
-      currentSavings: 100000,
-      salaryGrowthRate: 3,
-      inflationRate: 2,
-      investmentReturnRate: 5,
-      incomes: [],
-      expenses: [],
-      events: [],
-      createdAt: new Date('2026-01-01'),
-      updatedAt: new Date('2026-01-02'),
-      createdBy: 'u1',
-    });
+    const vm = mapRetirementPlanToAssumptionsDisplayVM(makePlan({ autoUpdate: true }));
 
     expect(vm.currentYear).toBe(2026);
-    expect(vm.currentSavingsText).toContain('100,000');
+    expect(vm.inflationRate).toBe(2);
+    expect(vm.investmentReturnRate).toBe(5);
   });
 
   it('maps income/expense/event display items', () => {
@@ -106,8 +79,12 @@ describe('retirementDisplay.vm', () => {
       id: 'i1',
       name: 'Salary',
       importedFrom: 'manual',
+      autoUpdate: false,
+      startYearMode: 'MANUAL',
+      endYearMode: 'MANUAL',
+      lifelong: false,
       type: 'salary',
-      baseAmount: 120000,
+      currentAnnual: 120000,
       growthRate: 3,
       startYear: 2026,
       endYear: 2045,
@@ -117,7 +94,10 @@ describe('retirementDisplay.vm', () => {
     const expense = mapRetirementExpenseToVM({
       id: 'e1',
       name: 'Housing',
-      baseAmount: 36000,
+      type: 'general',
+      includesPrincipal: false,
+      interestOnly: false,
+      currentAnnual: 36000,
       growthRate: 2,
       retirementMultiplier: 0.8,
       startYear: 2026,
@@ -176,7 +156,7 @@ describe('retirementDisplay.vm', () => {
     expect(vm.yearlyDetails[0].expenseItems[0]?.name).toBe('Living');
   });
 
-  it('includes both debt and salary-percentage living expense in retirement-year breakdown', () => {
+  it('includes debt and fixed living expenses in retirement-year breakdown', () => {
     const mockProjection: RetirementProjection[] = [
       {
         year: 2050,
@@ -193,30 +173,29 @@ describe('retirementDisplay.vm', () => {
       },
     ];
 
-    const vm = mapRetirementProjectionToVM(mockProjection, 2050, {
-      id: 'p1',
-      name: 'Plan A',
-      householdId: 'h1',
-      isActive: true,
-      autoUpdate: false,
-      currentYear: 2026,
-      birthYear: 1990,
-      retirementAge: 60,
-      lifeExpectancy: 85,
-      currentSavings: 100000,
-      salaryGrowthRate: 3,
-      inflationRate: 2,
-      investmentReturnRate: 5,
+    const vm = mapRetirementProjectionToVM(mockProjection, 2050, makePlan({
       incomes: [
         {
           id: 'salary-1',
           name: 'Salary',
-          importedFrom: 'manual',
+          importedFrom: 'transactionEntries',
+          autoUpdate: false,
+          startYearMode: 'MANUAL',
+          endYearMode: 'MANUAL',
+          lifelong: false,
           type: 'salary',
-          baseAmount: 1200000,
+          currentAnnual: 1200000,
           growthRate: 0,
           startYear: 2026,
           endYear: 2050,
+          calculatedFrom: {
+            ledgerCode: 'income:salary',
+            sampleYear: SAMPLE_YEAR,
+            totalAmount: 1200000,
+            monthlyAverage: 100000,
+            sampleCount: 12,
+            importedAt: '2024-01-01T00:00:00.000Z',
+          },
         },
       ],
       expenses: [
@@ -226,9 +205,7 @@ describe('retirementDisplay.vm', () => {
           type: 'debt_payment',
           includesPrincipal: true,
           interestOnly: false,
-          calculationMode: 'FIXED',
-          salaryPercentageRetirementMode: 'MANUAL_FALLBACK',
-          baseAmount: 300000,
+          currentAnnual: 300000,
           growthRate: 0,
           retirementMultiplier: 1,
           startYear: 2026,
@@ -240,22 +217,14 @@ describe('retirementDisplay.vm', () => {
           type: 'general',
           includesPrincipal: false,
           interestOnly: false,
-          calculationMode: 'SALARY_PERCENTAGE',
-          salaryPercentageRetirementMode: 'INFLATION_BASED',
-          salaryPercentage: 0.3,
-          baseAmount: 0,
+          currentAnnual: 200000,
           growthRate: 2,
           retirementMultiplier: 1,
           startYear: 2026,
           endYear: null,
-          linkedIncomeId: 'salary-1',
         },
       ],
-      events: [],
-      createdAt: new Date('2026-01-01'),
-      updatedAt: new Date('2026-01-02'),
-      createdBy: 'u1',
-    });
+    }));
 
     expect(vm.expenseBreakdownChartData).not.toBeNull();
     expect(vm.expenseBreakdownChartData?.map((item) => item.name).sort()).toEqual([

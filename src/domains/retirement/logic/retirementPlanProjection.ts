@@ -16,9 +16,12 @@ export type RetirementProjection = {
   isBankrupt: boolean;
 };
 
-export function calculatePlanProjection(plan: RetirementPlan): RetirementProjection[] {
-  const fullProjection = calculateRetirementProjection(plan);
-  let everBankrupt = plan.currentSavings < 0;
+export function calculatePlanProjection(
+  plan: RetirementPlan,
+  startingNetWorth: number,
+): RetirementProjection[] {
+  const fullProjection = calculateRetirementProjection(plan, startingNetWorth);
+  let everBankrupt = startingNetWorth < 0;
 
   return fullProjection.map((p) => {
     everBankrupt = everBankrupt || p.closingBalance < 0;

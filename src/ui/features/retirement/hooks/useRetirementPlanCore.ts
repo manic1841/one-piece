@@ -2,6 +2,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { useNavigate } from 'react-router-dom';
 
+import { getStartingNetWorthUseCase } from '@/application/retirement/use_cases/getStartingNetWorthUseCase';
+import type { StartingNetWorthSource } from '@/application/retirement/use_cases/getStartingNetWorthUseCase';
 import { syncImportedIncomeSourcesUseCase } from '@/application/retirement/use_cases/syncImportedIncomeSourcesUseCase';
 import {
   calculateProjectionSummary,
@@ -10,6 +12,7 @@ import {
 import type { RetirementPlan, RetirementPlanCreate } from '@/domains/retirement/types';
 import { useRetirementPlanCmds } from '@/ui/features/retirement/hooks/useRetirementPlanCmds';
 import { useRetirementPlans } from '@/ui/features/retirement/hooks/useRetirementPlans';
+import { useAuthContext } from '@/ui/hooks/useAuthContext';
 import { logger } from '@/utils/logger';
 import { useConfirm } from '@/ui/features/app/confirm/ConfirmDialog';
 
@@ -33,15 +36,18 @@ export const useRetirementPlanCore = ({
 }: UseRetirementPlanCoreParams) => {
   const navigate = useNavigate();
   const { confirm } = useConfirm();
+  const auth = useAuthContext();
   const [plan, setPlan] = useState<RetirementPlan | null>(null);
   const [isEditingName, setIsEditingName] = useState(false);
   const [editedName, setEditedName] = useState('');
   const [staleIncomeSyncBanner, setStaleIncomeSyncBanner] =
     useState<StaleIncomeSyncBannerState | null>(null);
+  const [netWorthSource, setNetWorthSource] = useState<StartingNetWorthSource | null>(null);
   const autoSyncingRef = useRef(false);
 
   const { getPlan, loading: planLoading, error: planError } = useRetirementPlans(householdId);
-  const { updatePlan, deletePlan, importIncomeData, importDebtData } = useRetirementPlanCmds(householdId, userEmail);
+  const { updatePlan, deletePlan, importIncomeData, importDebtData, importExpenseDataFromLedger } =
+    useRetirementPlanCmds(householdId, userEmail);
 
   const loadPlanToken = plan?.updatedAt?.getTime();
 
@@ -57,9 +63,13 @@ export const useRetirementPlanCore = ({
   useEffect(() => {
     const init = async () => {
       await loadPlan();
+      if (householdId) {
+        const source = await getStartingNetWorthUseCase.execute({ householdId, auth });
+        setNetWorthSource(source);
+      }
     };
     void init();
-  }, [loadPlan, loadPlanToken]);
+  }, [loadPlan, loadPlanToken, householdId, auth]);
 
   const handleUpdatePlan = useCallback(
     async (updates: Partial<RetirementPlanCreate>) => {
@@ -101,10 +111,24 @@ export const useRetirementPlanCore = ({
   }, [id, plan, handleUpdatePlan]);
 
   const handleRecalculate = useCallback(async () => {
-    if (!id || !plan) return;
+    if (!id || !plan || !householdId) return;
     try {
-      const projection = calculateRetirementProjection(plan);
-      const summary = calculateProjectionSummary(projection, plan);
+      const source = await getStartingNetWorthUseCase.execute({ householdId, auth });
+      if ('reason' in source) {
+        logger.warn(
+          'No closed period; projection not recalculated',
+          'retirement/useRetirementPlanCore',
+          { planId: id },
+        );
+        return;
+      }
+      const projection = calculateRetirementProjection(plan, source.startingNetWorth);
+      const summary = calculateProjectionSummary(
+        projection,
+        plan,
+        source.startingNetWorth,
+        source.anchorYearMonth,
+      );
 
       await updatePlan(id, {
         summary: {
@@ -116,7 +140,7 @@ export const useRetirementPlanCore = ({
     } catch (error) {
       console.error('Failed to recalculate', error);
     }
-  }, [id, plan, updatePlan, loadPlan]);
+  }, [id, plan, householdId, auth, updatePlan, loadPlan]);
 
   const handleDelete = useCallback(async () => {
     if (!id) return;
@@ -196,6 +220,7 @@ export const useRetirementPlanCore = ({
     plan,
     loading: planLoading,
     error: planError,
+    netWorthSource,
     isEditingName,
     editedName,
     setEditedName,
@@ -211,5 +236,6 @@ export const useRetirementPlanCore = ({
     handleCancelEditName,
     importIncomeData,
     importDebtData,
+    importExpenseDataFromLedger,
   };
 };

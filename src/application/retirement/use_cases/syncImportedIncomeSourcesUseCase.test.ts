@@ -29,8 +29,6 @@ const createPlan = (): RetirementPlan => ({
   birthYear: 1985,
   retirementAge: 60,
   lifeExpectancy: 85,
-  currentSavings: 0,
-  salaryGrowthRate: 3,
   inflationRate: 2,
   investmentReturnRate: 5,
   incomes: [
@@ -53,7 +51,7 @@ const createPlan = (): RetirementPlan => ({
       type: RetirementIncomeType.SALARY,
       startYear: 2026,
       endYear: 2060,
-      baseAmount: 120000,
+      currentAnnual: 120000,
       growthRate: 2,
       note: undefined,
     },
@@ -66,7 +64,7 @@ const createPlan = (): RetirementPlan => ({
       type: RetirementIncomeType.PENSION,
       startYear: 2030,
       endYear: 2080,
-      baseAmount: 30000,
+      currentAnnual: 30000,
       growthRate: 1,
     },
   ],
@@ -87,7 +85,7 @@ const createPlan = (): RetirementPlan => ({
     },
   ],
   events: [],
-});
+} as RetirementPlan);
 
 describe('syncImportedIncomeSourcesUseCase', () => {
   beforeEach(() => {
@@ -142,7 +140,7 @@ describe('syncImportedIncomeSourcesUseCase', () => {
     expect(imported?.calculatedFrom?.sampleCount).toBe(2);
     expect(imported?.calculatedFrom?.totalAmount).toBe(36000);
     expect(imported?.calculatedFrom?.monthlyAverage).toBe(3000);
-    expect(imported?.baseAmount).toBe(36000);
+    expect(imported?.currentAnnual).toBe(36000);
     expect(imported?.note).toContain('Auto-updated using 2025 full-year transactions');
 
     const manual = result.incomes.find((income) => income.id === 'income-manual');

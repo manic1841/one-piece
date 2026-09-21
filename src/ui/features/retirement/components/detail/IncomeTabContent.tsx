@@ -42,7 +42,6 @@ export const IncomeTabContent: React.FC<IncomeTabContentProps> = ({
           <RetirementIncomeDialog
             onSave={handleAddIncome}
             currentYear={currentYear}
-            availableIncomes={incomeItems.map((item) => item.domain)}
             householdId={householdId}
           />
         </div>
@@ -77,7 +76,6 @@ export const IncomeTabContent: React.FC<IncomeTabContentProps> = ({
                     <Pencil className="h-4 w-4" />
                   </Button>
                 }
-                availableIncomes={incomeItems.map((item) => item.domain)}
                 householdId={householdId}
               />
               <Button

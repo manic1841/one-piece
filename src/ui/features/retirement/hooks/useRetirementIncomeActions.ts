@@ -62,7 +62,7 @@ export const useRetirementIncomeActions = ({
 
     const imported = await importIncomeData();
     const importedIncomes = imported.filter(
-      (item) => typeof item.baseAmount === 'number' && item.incomeCategory,
+      (item) => typeof item.currentAnnual === 'number' && item.incomeCategory,
     );
 
     if (importedIncomes.length === 0) {

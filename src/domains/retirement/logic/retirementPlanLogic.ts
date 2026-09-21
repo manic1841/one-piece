@@ -56,7 +56,6 @@ export function calculateIncomeSourceSuggestions(
       id: crypto.randomUUID(),
       name: toIncomeStreamName(key),
       importedFrom: 'transactionEntries',
-      incomeCalculationMode: 'IMPORTED',
       autoUpdate: true,
       incomeCategory: key,
       type: mapCategoryToRetirementIncomeType(key),
@@ -73,8 +72,7 @@ export function calculateIncomeSourceSuggestions(
       },
       startYear: currentYear,
       endYear: currentYear + 20,
-      baseAmount: Math.round(annualAmount),
-      growthRate: 3,
+      currentAnnual: Math.round(annualAmount),
       note: `Based on ${sampleYear} full-year income entries (${value.count} samples)`,
     });
   });

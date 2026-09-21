@@ -3,7 +3,7 @@ import { useState } from 'react';
 interface BaseFormData {
   name: string;
   baseAmount: number;
-  growthRate: number;
+  growthRate: number | undefined;
   startYear: number;
 }
 
@@ -24,8 +24,8 @@ export function useRetirementDialogForm<T extends BaseFormData>({
   // Common form fields - initialize with initialData or defaults
   const [name, setName] = useState(initialData?.name || defaultValues.name || '');
   const [amount, setAmount] = useState(initialData?.baseAmount || defaultValues.baseAmount || 0);
-  const [growthRate, setGrowthRate] = useState(
-    initialData?.growthRate ?? defaultValues.growthRate ?? 2,
+  const [growthRate, setGrowthRate] = useState<number | undefined>(
+    initialData?.growthRate ?? defaultValues.growthRate,
   );
   const [startYear, setStartYear] = useState(
     initialData?.startYear || defaultValues.startYear || currentYear,
@@ -34,7 +34,7 @@ export function useRetirementDialogForm<T extends BaseFormData>({
   const resetForm = () => {
     setName(initialData?.name || defaultValues.name || '');
     setAmount(initialData?.baseAmount || defaultValues.baseAmount || 0);
-    setGrowthRate(initialData?.growthRate ?? defaultValues.growthRate ?? 2);
+    setGrowthRate(initialData?.growthRate ?? defaultValues.growthRate);
     setStartYear(initialData?.startYear || defaultValues.startYear || currentYear);
   };
 

@@ -43,7 +43,6 @@ interface UseRetirementIncomeDialogOptions {
   currentYear: number;
   onSave: (income: Omit<RetirementIncomeSource, 'id'>) => Promise<void>;
   householdId: string;
-  availableIncomes?: RetirementIncomeSource[];
 }
 
 export function useRetirementIncomeDialog({
@@ -51,7 +50,6 @@ export function useRetirementIncomeDialog({
   currentYear,
   onSave,
   householdId,
-  availableIncomes = [],
 }: UseRetirementIncomeDialogOptions) {
   // Initialize with mapper
   const initialForm = buildRetirementIncomeFormVM(initialData, currentYear);
@@ -92,11 +90,12 @@ export function useRetirementIncomeDialog({
   const [incomeCategory, setIncomeCategory] = useState<string | undefined>(
     initialForm.incomeCategory,
   );
-  const [incomeCalculationMode, setIncomeCalculationMode] = useState<
-    'FIXED' | 'IMPORTED' | 'DERIVED'
-  >(initialForm.incomeCalculationMode ?? 'FIXED');
-  const [baseIncomeId, setBaseIncomeId] = useState<string | undefined>(initialForm.baseIncomeId);
-  const [multiplier, setMultiplier] = useState<number>(initialForm.multiplier ?? 1);
+  const [importedFrom, setImportedFrom] = useState<'manual' | 'transactionEntries'>(
+    initialForm.importedFrom,
+  );
+  const [retirementAnnual, setRetirementAnnual] = useState<number | undefined>(
+    initialForm.retirementAnnual,
+  );
   const [ledgerCode, setLedgerCode] = useState<string>(
     initialForm.calculatedFrom?.ledgerCode ?? '',
   );
@@ -118,9 +117,8 @@ export function useRetirementIncomeDialog({
       setLifelong(form.lifelong);
       setAutoUpdate(form.autoUpdate);
       setIncomeCategory(form.incomeCategory);
-      setIncomeCalculationMode(form.incomeCalculationMode ?? 'FIXED');
-      setBaseIncomeId(form.baseIncomeId);
-      setMultiplier(form.multiplier ?? 1);
+      setImportedFrom(form.importedFrom);
+      setRetirementAnnual(form.retirementAnnual);
       setLedgerCode(form.calculatedFrom?.ledgerCode ?? '');
       setSampleYear(form.calculatedFrom?.sampleYear ?? currentYear - 1);
     }
@@ -183,42 +181,13 @@ export function useRetirementIncomeDialog({
     }
   };
 
-  // Calculate for DERIVED mode: use base income × multiplier
-  const handleCalculateDerived = async () => {
-    try {
-      setCalculating(true);
-      setSubmitError(null);
-
-      if (!baseIncomeId) {
-        throw new Error('Base Income Source is required.');
-      }
-
-      const baseIncome = availableIncomes.find((inc) => inc.id === baseIncomeId);
-      if (!baseIncome) {
-        throw new Error('Base income source not found.');
-      }
-
-      const calculatedAmount = baseIncome.baseAmount * multiplier;
-      setAmount(calculatedAmount);
-    } catch (error) {
-      if (error instanceof Error) {
-        setSubmitError(error.message);
-      } else {
-        setSubmitError('Failed to calculate derived amount.');
-      }
-      console.error('Calculation error:', error);
-    } finally {
-      setCalculating(false);
-    }
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setSubmitError(null);
 
     try {
-      const isImported = incomeCalculationMode === 'IMPORTED';
+      const isImported = importedFrom === 'transactionEntries';
       const normalizedLedgerCode = ledgerCode.trim();
 
       if (isImported) {
@@ -251,7 +220,8 @@ export function useRetirementIncomeDialog({
         name,
         type,
         autoUpdate: isImported ? autoUpdate : false,
-        baseAmount: amount,
+        currentAnnual: amount,
+        retirementAnnual,
         growthRate,
         startYearMode,
         endYearMode,
@@ -259,11 +229,8 @@ export function useRetirementIncomeDialog({
         startYear,
         endYear: effectiveEndYear,
         importedFrom: isImported ? 'transactionEntries' : 'manual',
-        incomeCalculationMode,
         calculatedFrom,
         incomeCategory: isImported ? normalizedLedgerCode : incomeCategory,
-        baseIncomeId,
-        multiplier,
       });
       const domainData = mapRetirementIncomeVMToDomain(vm);
       await onSave(domainData);
@@ -295,6 +262,8 @@ export function useRetirementIncomeDialog({
     setAmount,
     growthRate,
     setGrowthRate,
+    retirementAnnual,
+    setRetirementAnnual,
     startYear,
     setStartYear,
     endYear,
@@ -307,12 +276,10 @@ export function useRetirementIncomeDialog({
     setLifelong,
     autoUpdate,
     setAutoUpdate,
-    incomeCalculationMode,
-    setIncomeCalculationMode,
-    baseIncomeId,
-    setBaseIncomeId,
-    multiplier,
-    setMultiplier,
+    importedFrom,
+    setImportedFrom,
+    incomeCategory,
+    setIncomeCategory,
     ledgerCode,
     setLedgerCode,
     sampleYear,
@@ -323,6 +290,5 @@ export function useRetirementIncomeDialog({
     // Handlers
     handleSubmit,
     handleCalculateImported,
-    handleCalculateDerived,
   };
 }

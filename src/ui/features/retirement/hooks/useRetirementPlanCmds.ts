@@ -4,6 +4,7 @@ import { createRetirementPlanUseCase } from '@/application/retirement/use_cases/
 import { deleteRetirementPlanUseCase } from '@/application/retirement/use_cases/deleteRetirementPlanUseCase';
 import { duplicateRetirementPlanUseCase } from '@/application/retirement/use_cases/duplicateRetirementPlanUseCase';
 import { importRetirementDebtUseCase } from '@/application/retirement/use_cases/importRetirementDebtUseCase';
+import { importRetirementExpensesUseCase } from '@/application/retirement/use_cases/importRetirementExpensesUseCase';
 import { importRetirementIncomeUseCase } from '@/application/retirement/use_cases/importRetirementIncomeUseCase';
 import { updateRetirementPlanUseCase } from '@/application/retirement/use_cases/updateRetirementPlanUseCase';
 import {
@@ -110,6 +111,14 @@ export function useRetirementPlanCmds(
     [householdId, auth, run],
   );
 
+  const importExpenseDataFromLedger = useCallback(async (): Promise<RetirementExpenseCategory[]> => {
+    if (!householdId) return [];
+    const result = await run(async () => {
+      return importRetirementExpensesUseCase.execute({ householdId, auth });
+    });
+    return result || [];
+  }, [householdId, auth, run]);
+
   return {
     createPlan,
     updatePlan,
@@ -117,6 +126,7 @@ export function useRetirementPlanCmds(
     duplicatePlan,
     importIncomeData,
     importDebtData,
+    importExpenseDataFromLedger,
     loading,
     error,
   };

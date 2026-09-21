@@ -1,7 +1,5 @@
 import { describe, expect, it } from 'vitest';
 
-import { CalculationMode } from '@/domains/retirement/types';
-
 import {
   RetirementAssumptionsFormVMSchema,
   buildRetirementEventFormVM,
@@ -22,11 +20,11 @@ describe('retirementForm.vm', () => {
       ...vm,
       name: 'Salary',
       type: 'salary',
-      baseAmount: 120000,
+      currentAnnual: 120000,
     });
 
     expect(domain.name).toBe('Salary');
-    expect(domain.baseAmount).toBe(120000);
+    expect(domain.currentAnnual).toBe(120000);
   });
 
   it('builds and maps expense form vm', () => {
@@ -57,11 +55,7 @@ describe('retirementForm.vm', () => {
           name: 'Phase 1',
           startYear: '2030',
           endYear: '2030',
-          mode: CalculationMode.FIXED,
           amount: '10000',
-          growthRate: '0',
-          percentage: '0',
-          linkedIncomeId: '',
         },
       ],
     });
@@ -76,8 +70,6 @@ describe('retirementForm.vm', () => {
       birthYear: 1990,
       retirementAge: 60,
       lifeExpectancy: 85,
-      currentSavings: 100000,
-      salaryGrowthRate: 3,
       inflationRate: 2,
       investmentReturnRate: 5,
     });

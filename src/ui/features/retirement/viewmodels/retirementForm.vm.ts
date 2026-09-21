@@ -1,10 +1,6 @@
 import { z } from 'zod';
 
-import {
-  CalculationMode,
-  RetirementExpenseType,
-  SalaryPercentageRetirementMode,
-} from '@/domains/retirement/schemas';
+import { RetirementExpenseType } from '@/domains/retirement/schemas';
 import {
   type RetirementExpenseCategory,
   type RetirementIncomeSource,
@@ -16,7 +12,6 @@ const currentYear = () => new Date().getFullYear();
 export const RetirementIncomeFormVMSchema = z.object({
   name: z.string().min(1),
   importedFrom: z.enum(['manual', 'transactionEntries']),
-  incomeCalculationMode: z.enum(['FIXED', 'IMPORTED', 'DERIVED']).default('FIXED'),
   autoUpdate: z.boolean().default(false),
   calculatedFrom: z
     .object({
@@ -29,14 +24,13 @@ export const RetirementIncomeFormVMSchema = z.object({
     })
     .optional(),
   incomeCategory: z.string().optional(),
-  baseIncomeId: z.string().optional(),
-  multiplier: z.number().positive().optional(),
   type: z.enum(['salary', 'bonus', 'pension', 'rent', 'other']),
   startYearMode: z.enum(['MANUAL', 'LINKED_TO_RETIREMENT']).default('MANUAL'),
   endYearMode: z.enum(['MANUAL', 'LINKED_TO_RETIREMENT']).default('MANUAL'),
   lifelong: z.boolean().default(false),
-  baseAmount: z.number().finite(),
-  growthRate: z.number().finite(),
+  currentAnnual: z.number().finite(),
+  retirementAnnual: z.number().finite().optional(),
+  growthRate: z.number().finite().optional(),
   startYear: z.number().int(),
   endYear: z.number().int().optional(),
   note: z.string().optional(),
@@ -52,35 +46,29 @@ export const buildRetirementIncomeFormVM = (
     return {
       name: '',
       importedFrom: 'manual',
-      incomeCalculationMode: 'FIXED',
       autoUpdate: false,
       type: 'salary',
       startYearMode: 'MANUAL',
       endYearMode: 'MANUAL',
       lifelong: false,
-      baseAmount: 0,
-      growthRate: 3,
+      currentAnnual: 0,
       startYear: year,
       endYear: year + 20,
-      baseIncomeId: undefined,
-      multiplier: 1,
     };
   }
 
   return {
     name: domain.name,
     importedFrom: domain.importedFrom,
-    incomeCalculationMode: domain.incomeCalculationMode ?? 'FIXED',
     autoUpdate: domain.autoUpdate ?? false,
     calculatedFrom: domain.calculatedFrom,
     incomeCategory: domain.incomeCategory,
-    baseIncomeId: domain.derivedFrom?.baseIncomeId,
-    multiplier: domain.derivedFrom?.multiplier ?? 1,
     type: domain.type,
     startYearMode: domain.startYearMode ?? 'MANUAL',
     endYearMode: domain.endYearMode ?? 'MANUAL',
     lifelong: domain.lifelong ?? false,
-    baseAmount: domain.baseAmount,
+    currentAnnual: domain.currentAnnual,
+    retirementAnnual: domain.retirementAnnual,
     growthRate: domain.growthRate,
     startYear: domain.startYear,
     endYear: domain.endYear,
@@ -90,31 +78,23 @@ export const buildRetirementIncomeFormVM = (
 
 export const mapRetirementIncomeVMToDomain = (
   vm: RetirementIncomeFormVM,
-): Omit<RetirementIncomeSource, 'id'> => {
-  const derivedFrom =
-    vm.incomeCalculationMode === 'DERIVED' && vm.baseIncomeId
-      ? { baseIncomeId: vm.baseIncomeId, multiplier: vm.multiplier ?? 1 }
-      : undefined;
-
-  return {
-    name: vm.name,
-    importedFrom: vm.importedFrom,
-    incomeCalculationMode: vm.incomeCalculationMode,
-    autoUpdate: vm.autoUpdate,
-    ...(vm.calculatedFrom && { calculatedFrom: vm.calculatedFrom }),
-    ...(vm.incomeCategory && { incomeCategory: vm.incomeCategory }),
-    ...(derivedFrom && { derivedFrom }),
-    type: vm.type,
-    startYearMode: vm.startYearMode,
-    endYearMode: vm.endYearMode,
-    lifelong: vm.lifelong,
-    baseAmount: vm.baseAmount,
-    growthRate: vm.growthRate,
-    startYear: vm.startYear,
-    ...(typeof vm.endYear === 'number' && { endYear: vm.endYear }),
-    ...(vm.note && { note: vm.note }),
-  };
-};
+): Omit<RetirementIncomeSource, 'id'> => ({
+  name: vm.name,
+  importedFrom: vm.importedFrom,
+  autoUpdate: vm.autoUpdate,
+  ...(vm.calculatedFrom && { calculatedFrom: vm.calculatedFrom }),
+  ...(vm.incomeCategory && { incomeCategory: vm.incomeCategory }),
+  type: vm.type,
+  startYearMode: vm.startYearMode,
+  endYearMode: vm.endYearMode,
+  lifelong: vm.lifelong,
+  currentAnnual: vm.currentAnnual,
+  ...(vm.retirementAnnual !== undefined && { retirementAnnual: vm.retirementAnnual }),
+  ...(vm.growthRate !== undefined && { growthRate: vm.growthRate }),
+  startYear: vm.startYear,
+  ...(typeof vm.endYear === 'number' && { endYear: vm.endYear }),
+  ...(vm.note && { note: vm.note }),
+});
 
 export const RetirementExpenseFormVMSchema = z.object({
   name: z.string().min(1),
@@ -133,18 +113,10 @@ export const RetirementExpenseFormVMSchema = z.object({
       importedAt: z.string().optional(),
     })
     .optional(),
-  calculationMode: z.enum(CalculationMode).default(CalculationMode.FIXED),
-  // FIXED mode
-  baseAmount: z.number().finite(),
-  growthRate: z.number().finite(),
+  expenseCategory: z.string().optional(),
+  currentAnnual: z.number().finite(),
+  growthRate: z.number().finite().optional(),
   retirementMultiplier: z.number().finite(), // stored as 0–100 in the form
-  // SALARY_PERCENTAGE mode
-  salaryPercentage: z.number().min(0).max(100).optional(), // stored as 0–100 in the form
-  salaryPercentageRetirementMode: z
-    .nativeEnum(SalaryPercentageRetirementMode)
-    .default(SalaryPercentageRetirementMode.MANUAL_FALLBACK),
-  linkedIncomeId: z.string().optional(),
-  fallbackAmount: z.number().finite().optional(),
   startYear: z.number().int(),
   endYear: z.string().optional(),
   note: z.string().optional(),
@@ -158,26 +130,17 @@ export const buildRetirementExpenseFormVM = (
 ): RetirementExpenseFormVM => {
   if (!domain) {
     return {
-      name: '',
-      calculationMode: CalculationMode.FIXED,
-      baseAmount: 0,
-      growthRate: 2,
+      currentAnnual: 0,
+      growthRate: undefined,
       retirementMultiplier: 70,
-      salaryPercentage: 35,
-      salaryPercentageRetirementMode: SalaryPercentageRetirementMode.MANUAL_FALLBACK,
-      fallbackAmount: 0,
       startYear: year,
       endYear: '',
       type: RetirementExpenseType.GENERAL,
       includesPrincipal: false,
       interestOnly: false,
+      name: '',
     };
   }
-
-  // Infer mode from legacy percentOfSalary if calculationMode absent
-  const mode =
-    domain.calculationMode ??
-    ((domain.percentOfSalary ?? 0) > 0 ? CalculationMode.SALARY_PERCENTAGE : CalculationMode.FIXED);
 
   return {
     name: domain.name,
@@ -186,18 +149,10 @@ export const buildRetirementExpenseFormVM = (
     includesPrincipal: domain.includesPrincipal ?? false,
     interestOnly: domain.interestOnly ?? false,
     calculatedFrom: domain.calculatedFrom,
-    calculationMode: mode,
-    baseAmount: domain.baseAmount,
+    expenseCategory: domain.expenseCategory,
+    currentAnnual: domain.currentAnnual,
     growthRate: domain.growthRate,
     retirementMultiplier: domain.retirementMultiplier * 100,
-    salaryPercentage:
-      domain.salaryPercentage != null
-        ? domain.salaryPercentage * 100
-        : (domain.percentOfSalary ?? 0),
-    salaryPercentageRetirementMode:
-      domain.salaryPercentageRetirementMode ?? SalaryPercentageRetirementMode.MANUAL_FALLBACK,
-    linkedIncomeId: domain.linkedIncomeId,
-    fallbackAmount: domain.fallbackAmount ?? 0,
     startYear: domain.startYear,
     endYear: domain.endYear?.toString() || '',
     note: domain.note,
@@ -206,38 +161,21 @@ export const buildRetirementExpenseFormVM = (
 
 export const mapRetirementExpenseVMToDomain = (
   vm: RetirementExpenseFormVM,
-): Omit<RetirementExpenseCategory, 'id'> => {
-  const isPercentage = vm.calculationMode === CalculationMode.SALARY_PERCENTAGE;
-  const manualFallbackAmount =
-    isPercentage &&
-    vm.salaryPercentageRetirementMode === SalaryPercentageRetirementMode.MANUAL_FALLBACK &&
-    (vm.fallbackAmount ?? 0) > 0
-      ? vm.fallbackAmount
-      : undefined;
-
-  return {
-    name: vm.name,
-    ...(vm.sourceDebtAccountId && { sourceDebtAccountId: vm.sourceDebtAccountId }),
-    type: vm.type,
-    includesPrincipal: vm.includesPrincipal,
-    interestOnly: vm.interestOnly,
-    ...(vm.calculatedFrom && { calculatedFrom: vm.calculatedFrom }),
-    calculationMode: vm.calculationMode,
-    salaryPercentageRetirementMode: isPercentage
-      ? vm.salaryPercentageRetirementMode
-      : SalaryPercentageRetirementMode.MANUAL_FALLBACK,
-    baseAmount: vm.baseAmount,
-    growthRate: vm.growthRate,
-    retirementMultiplier: vm.retirementMultiplier / 100,
-    salaryPercentage: isPercentage ? (vm.salaryPercentage ?? 35) / 100 : undefined,
-    // Preserve explicit "all salary" selection by clearing linkedIncomeId on save.
-    linkedIncomeId: isPercentage ? (vm.linkedIncomeId ?? undefined) : undefined,
-    fallbackAmount: manualFallbackAmount,
-    startYear: vm.startYear,
-    endYear: vm.endYear ? parseInt(vm.endYear, 10) : null,
-    ...(vm.note && { note: vm.note }),
-  };
-};
+): Omit<RetirementExpenseCategory, 'id'> => ({
+  name: vm.name,
+  ...(vm.sourceDebtAccountId && { sourceDebtAccountId: vm.sourceDebtAccountId }),
+  type: vm.type,
+  includesPrincipal: vm.includesPrincipal,
+  interestOnly: vm.interestOnly,
+  ...(vm.calculatedFrom && { calculatedFrom: vm.calculatedFrom }),
+  ...(vm.expenseCategory && { expenseCategory: vm.expenseCategory }),
+  currentAnnual: vm.currentAnnual,
+  ...(vm.growthRate !== undefined && { growthRate: vm.growthRate }),
+  retirementMultiplier: vm.retirementMultiplier / 100,
+  startYear: vm.startYear,
+  endYear: vm.endYear ? parseInt(vm.endYear, 10) : null,
+  ...(vm.note && { note: vm.note }),
+});
 
 export const RetirementEventFormVMSchema = z.object({
   name: z.string().min(1),
@@ -248,11 +186,8 @@ export const RetirementEventFormVMSchema = z.object({
         name: z.string().min(1),
         startYear: z.string().min(1),
         endYear: z.string().min(1),
-        mode: z.enum(CalculationMode),
-        amount: z.string().optional(),
+        amount: z.string().min(1),
         growthRate: z.string().optional(),
-        percentage: z.string().optional(),
-        linkedIncomeId: z.string().optional(),
       }),
     )
     .min(1),
@@ -274,11 +209,7 @@ export const buildRetirementEventFormVM = (
           name: 'Phase 1',
           startYear: year.toString(),
           endYear: year.toString(),
-          mode: CalculationMode.FIXED,
           amount: '',
-          growthRate: '0',
-          percentage: '0',
-          linkedIncomeId: '',
         },
       ],
       note: '',
@@ -291,22 +222,15 @@ export const buildRetirementEventFormVM = (
           name: phase.name,
           startYear: phase.startYear.toString(),
           endYear: phase.endYear.toString(),
-          mode: phase.mode,
           amount: phase.amount != null ? String(phase.amount) : '',
-          growthRate: phase.growthRate != null ? String(phase.growthRate) : '0',
-          percentage: phase.percentage != null ? String(phase.percentage * 100) : '0',
-          linkedIncomeId: phase.linkedIncomeId || '',
+          growthRate: phase.growthRate != null ? String(phase.growthRate) : '',
         }))
       : [
           {
             name: domain.name,
             startYear: String(domain.year ?? year),
             endYear: String(domain.year ?? year),
-            mode: CalculationMode.FIXED,
             amount: String(domain.amount ?? 0),
-            growthRate: '0',
-            percentage: '0',
-            linkedIncomeId: '',
           },
         ];
 
@@ -323,24 +247,12 @@ export const mapRetirementEventVMToDomain = (
 ): Omit<RetirementOneTimeEvent, 'id'> => ({
   name: vm.name,
   type: vm.type,
-  calculationMode: vm.phases[0]?.mode ?? CalculationMode.FIXED,
   phases: vm.phases.map((phase) => ({
     name: phase.name,
     startYear: parseInt(phase.startYear, 10),
     endYear: parseInt(phase.endYear, 10),
-    mode: phase.mode,
-    ...(phase.mode === CalculationMode.FIXED && phase.amount
-      ? { amount: parseFloat(phase.amount) }
-      : {}),
-    ...(phase.mode === CalculationMode.FIXED && phase.growthRate
-      ? { growthRate: parseFloat(phase.growthRate) }
-      : {}),
-    ...(phase.mode === CalculationMode.SALARY_PERCENTAGE && phase.percentage
-      ? { percentage: parseFloat(phase.percentage) / 100 }
-      : {}),
-    ...(phase.mode === CalculationMode.SALARY_PERCENTAGE && phase.linkedIncomeId
-      ? { linkedIncomeId: phase.linkedIncomeId }
-      : {}),
+    amount: parseFloat(phase.amount),
+    ...(phase.growthRate ? { growthRate: parseFloat(phase.growthRate) } : {}),
   })),
   ...(vm.note && { note: vm.note }),
 });
@@ -350,8 +262,6 @@ export const RetirementAssumptionsFormVMSchema = z.object({
   birthYear: z.number().int(),
   retirementAge: z.number().int().positive(),
   lifeExpectancy: z.number().int().positive(),
-  currentSavings: z.number().finite(),
-  salaryGrowthRate: z.number().finite(),
   inflationRate: z.number().finite(),
   investmentReturnRate: z.number().finite(),
 });

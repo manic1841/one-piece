@@ -1,77 +1,55 @@
 import type { RetirementIncomeSource } from '@/domains/retirement/types';
 
+import { resolveGrowthRate } from './resolveGrowthRate';
+
 /**
  * Calculates the annual income for a given income source in a specific year.
- * Handles three calculation modes:
- * - FIXED: Base amount with growth rate applied
- * - IMPORTED: Base amount with growth rate applied
- * - DERIVED: Calculated from another income with multiplier
+ *
+ * Working years (before retirement): the stream compounds from its
+ * `currentAnnual` anchored at the sample year, using `resolveGrowthRate`.
+ * Retirement years (and any year from the stream's start when it starts at or
+ * after retirement): use `retirementAnnual` when set, else the current level
+ * continues — the user assumption only kicks in from the retirement year.
  */
 export function calculateYearlyIncome(
   income: RetirementIncomeSource,
-  yearsFromBase: number = 0,
-  derivedIncomes?: Map<string, number>,
+  year: number,
+  retirementYear: number,
+  planInflationRate: number,
+  sampleYear: number,
 ): number {
-  const mode = income.incomeCalculationMode ?? 'FIXED';
+  const usesRetirementAmount =
+    year >= retirementYear || income.startYear >= retirementYear;
 
-  if (mode === 'DERIVED' && income.derivedFrom) {
-    const baseIncomeAmount = derivedIncomes?.get(income.derivedFrom.baseIncomeId) ?? 0;
-    return baseIncomeAmount * income.derivedFrom.multiplier;
+  if (usesRetirementAmount && income.retirementAnnual !== undefined) {
+    const anchorYear = income.startYear >= retirementYear ? income.startYear : retirementYear;
+    const growth = resolveGrowthRate(income.growthRate, planInflationRate);
+    const yearsFromAnchor = Math.max(0, year - anchorYear);
+    return income.retirementAnnual * Math.pow(1 + growth / 100, yearsFromAnchor);
   }
 
-  // FIXED and IMPORTED modes: apply growth rate
-  const growthFactor = Math.pow(1 + income.growthRate / 100, yearsFromBase);
-  return income.baseAmount * growthFactor;
+  const growth = resolveGrowthRate(income.growthRate, planInflationRate);
+  const yearsFromSample = Math.max(0, year - sampleYear);
+  return income.currentAnnual * Math.pow(1 + growth / 100, yearsFromSample);
 }
 
 /**
  * Builds a map of yearly income amounts for all income sources in a given year.
- * Handles dependency ordering to ensure derived incomes are calculated after their bases.
  */
 export function calculateYearlyIncomes(
   incomes: RetirementIncomeSource[],
   year: number,
-  baseYear: number = new Date().getFullYear(),
+  retirementYear: number,
+  planInflationRate: number,
+  sampleYear: number,
 ): Map<string, number> {
   const result = new Map<string, number>();
-  const yearsFromBase = year - baseYear;
-  const byId = new Map(incomes.map((income) => [income.id, income]));
-  const visited = new Set<string>();
-  const inStack = new Set<string>();
-
-  const computeIncome = (income: RetirementIncomeSource): number => {
-    if (visited.has(income.id)) {
-      return result.get(income.id) ?? 0;
-    }
-
-    const mode = income.incomeCalculationMode ?? 'FIXED';
-    if (mode !== 'DERIVED' || !income.derivedFrom) {
-      const amount = calculateYearlyIncome(income, yearsFromBase);
-      visited.add(income.id);
-      result.set(income.id, amount);
-      return amount;
-    }
-
-    if (inStack.has(income.id)) {
-      visited.add(income.id);
-      result.set(income.id, 0);
-      return 0;
-    }
-
-    inStack.add(income.id);
-    const baseIncome = byId.get(income.derivedFrom.baseIncomeId);
-    const baseAmount = baseIncome ? computeIncome(baseIncome) : 0;
-    const amount = baseAmount * income.derivedFrom.multiplier;
-    inStack.delete(income.id);
-    visited.add(income.id);
-    result.set(income.id, amount);
-    return amount;
-  };
 
   for (const income of incomes) {
-    if (!visited.has(income.id)) {
-      computeIncome(income);
-    }
+    result.set(
+      income.id,
+      calculateYearlyIncome(income, year, retirementYear, planInflationRate, sampleYear),
+    );
   }
 
   return result;
@@ -83,9 +61,17 @@ export function calculateYearlyIncomes(
 export function calculateTotalYearlyIncome(
   incomes: RetirementIncomeSource[],
   year: number,
-  baseYear: number = new Date().getFullYear(),
+  retirementYear: number,
+  planInflationRate: number,
+  sampleYear: number,
 ): number {
-  const yearlyIncomes = calculateYearlyIncomes(incomes, year, baseYear);
+  const yearlyIncomes = calculateYearlyIncomes(
+    incomes,
+    year,
+    retirementYear,
+    planInflationRate,
+    sampleYear,
+  );
   let total = 0;
   for (const amount of yearlyIncomes.values()) {
     total += amount;
@@ -115,14 +101,4 @@ export function filterActiveIncomes(
 
     return year >= effectiveStartYear && year <= effectiveEndYear;
   });
-}
-
-/**
- * Finds income source by ID (utility for derived income lookups).
- */
-export function findIncomeById(
-  incomes: RetirementIncomeSource[],
-  incomeId: string,
-): RetirementIncomeSource | undefined {
-  return incomes.find((income) => income.id === incomeId);
 }

@@ -1,5 +1,6 @@
 export const RetirementWorkspaceSectionLabels = {
   overview: 'OVERVIEW / RESULTS',
+  currentFinancialState: 'CURRENT FINANCIAL STATE',
   netWorth: 'PROJECTED NET WORTH',
   cashFlow: 'CASH FLOW PROJECTION',
   assumptions: 'SCENARIO ASSUMPTIONS',

@@ -43,14 +43,11 @@ export class DuplicateRetirementPlanUseCase {
         birthYear: sourcePlan.birthYear,
         retirementAge: sourcePlan.retirementAge,
         lifeExpectancy: sourcePlan.lifeExpectancy,
-        currentSavings: sourcePlan.currentSavings,
-        salaryGrowthRate: sourcePlan.salaryGrowthRate,
         inflationRate: sourcePlan.inflationRate,
         investmentReturnRate: sourcePlan.investmentReturnRate,
         incomes: sourcePlan.incomes,
         expenses: sourcePlan.expenses,
         events: sourcePlan.events,
-        retirementTransition: sourcePlan.retirementTransition,
         summary: sourcePlan.summary,
       };
 

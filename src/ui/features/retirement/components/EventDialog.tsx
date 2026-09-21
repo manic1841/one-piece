@@ -1,10 +1,8 @@
-import { Plus, Trash2 } from 'lucide-react';
+import { ChevronDown, Plus, Trash2 } from 'lucide-react';
 
-import {
-  CalculationMode,
-  type RetirementIncomeSource,
-  type RetirementOneTimeEvent,
-} from '@/domains/retirement/types';
+import React, { useState } from 'react';
+
+import type { RetirementOneTimeEvent } from '@/domains/retirement/types';
 import { Button } from '@/ui/components/ui/button';
 import {
   Dialog,
@@ -31,7 +29,6 @@ interface EventDialogProps {
   currentYear: number;
   initialData?: RetirementOneTimeEvent;
   trigger?: React.ReactNode;
-  incomes?: RetirementIncomeSource[];
 }
 
 export default function EventDialog({
@@ -39,7 +36,6 @@ export default function EventDialog({
   currentYear,
   initialData,
   trigger,
-  incomes = [],
 }: EventDialogProps) {
   const {
     isOpen,
@@ -61,6 +57,20 @@ export default function EventDialog({
     currentYear,
     onSave,
   });
+
+  const [expandedGrowth, setExpandedGrowth] = useState<Set<number>>(new Set());
+
+  const toggleGrowth = (index: number) => {
+    setExpandedGrowth((prev) => {
+      const next = new Set(prev);
+      if (next.has(index)) {
+        next.delete(index);
+      } else {
+        next.add(index);
+      }
+      return next;
+    });
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -158,88 +168,43 @@ export default function EventDialog({
                     </div>
                   </div>
 
-                  <div>
-                    <Label>Mode</Label>
-                    <Select
-                      value={phase.mode}
-                      onValueChange={(
-                        value: (typeof CalculationMode)[keyof typeof CalculationMode],
-                      ) => handleUpdatePhase(index, { mode: value })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value={CalculationMode.FIXED}>Fixed amount</SelectItem>
-                        <SelectItem value={CalculationMode.SALARY_PERCENTAGE}>
-                          Salary percentage
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  {phase.mode === CalculationMode.FIXED ? (
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <Label>Amount</Label>
-                        <Input
-                          type="number"
-                          min="0"
-                          step="0.01"
-                          value={phase.amount || ''}
-                          onChange={(e) => handleUpdatePhase(index, { amount: e.target.value })}
-                          required
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <Label>Amount</Label>
+                      <Input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={phase.amount}
+                        onChange={(e) => handleUpdatePhase(index, { amount: e.target.value })}
+                        required
+                      />
+                    </div>
+                    <div>
+                      <button
+                        type="button"
+                        onClick={() => toggleGrowth(index)}
+                        className="flex w-full items-center justify-between rounded-md border px-3 py-2 text-sm font-medium hover:bg-muted/50"
+                      >
+                        Growth Rate
+                        <ChevronDown
+                          className={`h-4 w-4 transition-transform ${
+                            expandedGrowth.has(index) ? 'rotate-180' : ''
+                          }`}
                         />
-                      </div>
-                      <div>
-                        <Label>Growth Rate (%)</Label>
+                      </button>
+                      {expandedGrowth.has(index) && (
                         <Input
                           type="number"
                           step="0.01"
-                          value={phase.growthRate || '0'}
+                          value={phase.growthRate || ''}
+                          placeholder="Inflation"
+                          className="mt-2"
                           onChange={(e) => handleUpdatePhase(index, { growthRate: e.target.value })}
                         />
-                      </div>
+                      )}
                     </div>
-                  ) : (
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <Label>Salary %</Label>
-                        <Input
-                          type="number"
-                          min="0"
-                          max="100"
-                          step="0.01"
-                          value={phase.percentage || '0'}
-                          onChange={(e) => handleUpdatePhase(index, { percentage: e.target.value })}
-                          required
-                        />
-                      </div>
-                      <div>
-                        <Label>Linked Income (optional)</Label>
-                        <Select
-                          value={phase.linkedIncomeId || '__all_salary__'}
-                          onValueChange={(value) =>
-                            handleUpdatePhase(index, {
-                              linkedIncomeId: value === '__all_salary__' ? '' : value,
-                            })
-                          }
-                        >
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="__all_salary__">All salary income</SelectItem>
-                            {incomes.map((income) => (
-                              <SelectItem key={income.id} value={income.id}>
-                                {income.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-                  )}
+                  </div>
                 </div>
               ))}
             </div>

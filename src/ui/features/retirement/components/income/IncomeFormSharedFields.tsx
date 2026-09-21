@@ -12,8 +12,10 @@ import { Switch } from '@/ui/components/ui/switch';
 
 interface IncomeFormSharedFieldsProps {
   type: RetirementIncomeSource['type'];
-  growthRate: number;
-  setGrowthRate: (rate: number) => void;
+  growthRate: number | undefined;
+  setGrowthRate: (rate: number | undefined) => void;
+  retirementAnnual: number | undefined;
+  setRetirementAnnual: (amount: number | undefined) => void;
   startYear: number;
   setStartYear: (year: number) => void;
   startYearMode: 'MANUAL' | 'LINKED_TO_RETIREMENT';
@@ -30,6 +32,8 @@ export const IncomeFormSharedFields: React.FC<IncomeFormSharedFieldsProps> = ({
   type,
   growthRate,
   setGrowthRate,
+  retirementAnnual,
+  setRetirementAnnual,
   startYear,
   setStartYear,
   startYearMode,
@@ -53,9 +57,23 @@ export const IncomeFormSharedFields: React.FC<IncomeFormSharedFieldsProps> = ({
             id="growth"
             type="number"
             step="0.1"
-            value={growthRate}
-            onChange={(e) => setGrowthRate(Number(e.target.value))}
-            required
+            value={growthRate ?? ''}
+            onChange={(e) => setGrowthRate(e.target.value === '' ? undefined : Number(e.target.value))}
+            placeholder="Inflation"
+          />
+        </div>
+        <div className="grid gap-2">
+          <Label htmlFor="retirementAnnual">Retirement Annual (from retirement year)</Label>
+          <Input
+            id="retirementAnnual"
+            type="number"
+            min="0"
+            step="1"
+            value={retirementAnnual ?? ''}
+            onChange={(e) =>
+              setRetirementAnnual(e.target.value === '' ? undefined : Number(e.target.value))
+            }
+            placeholder={type === 'pension' ? 'Lifelong amount' : '0 for no retirement income'}
           />
         </div>
       </div>
