@@ -62,10 +62,18 @@ AccountDetailPage `:232` currency、PortfolioDetail `:216` date、WatchListSetti
 **已修正（#138，2026-09-21）**：mobile compact row 顯示 Year + Savings（收盤淨資產）+ 展開，其餘欄位在 reveal 區，閱讀順序與桌面一致；`overflow-x-auto` 移除；md+ 維持 table。
 （TransactionsPage `:179` 的 `overflow-x-auto` 是 chip-group 捲動條，非 data table，記錄即可。）
 
-### 8. Mobile compact-row 覆蓋薄弱（§28/§38）— runtime verification
+### 8. Mobile compact-row 覆蓋薄弱（§28/§38）— runtime verification — verified 2026-09-21
 
 僅 4 檔使用 `md:hidden` / `hidden md:` / `sm:hidden`（PixelPet、DashboardPage、RetirementPlanList、MonthlyClosePage）。Account / Debt / Transactions / Portfolios / Projects 列表表格在 mobile 的實際行為無法由靜態掃描確認。
 **Fix:** runtime 驗證 task — 390px viewport DOM 檢查（每個 list table 是否 overflow / squash / 退化 compact rows）。
+**已驗證（#139，2026-09-21）**：390px viewport DOM 檢查（feature/apple-design @ d19dbeb，QA emulator 資料集，`overflowX` = `documentElement.scrollWidth - clientWidth`、squash = table width vs wrapper clientWidth、退化 = 無 `md:hidden` compact rows）。五頁結果：
+
+- **AccountList（/accounts）— pass**。3-col 表（Account / Ending Balance / As of），table width = wrapper width = 343px、無 clipping、無 overflow。分類（CASH / SECURITIES）分組 + 3 欄在 390px 剛好可讀。
+- **DebtList（/debt）— fail**。5-col 表（Loan Name / Type / Outstanding Balance / Monthly Payment / As of）table 408px vs wrapper 358px，wrapper 橫向捲動（可觸及但未退化 compact rows）；無 clipping 進文件層。
+- **Transactions（/transactions）— fail（最嚴重）**。按月分組 21 張 5-col 表（Date / Intent / Amount / Project / actions），每張 table 689px vs wrapper 342px（~2x 超寬），wrapper 橫向捲動；1127 個 element 橫向超出文件層。另發現 HTML 有效性錯誤：`TransactionItem` 在 `<tbody>` 內 render `<div>` wrapper（React DOM validateDOMNesting 錯誤）。
+- **Portfolios（/portfolios）— fail**。5-col 表（Name / Securities / Bank / Portfolio Value / Return）table 403px vs wrapper 358px，wrapper 橫向捲動；7 個 element 超出（僅 table 內部，文件層 overflowX = 0）。
+- **Projects（/projects）— fail（含 header）**。5-col 表（Name / Status / Income / Expense / Net Cash Flow）table 433px vs wrapper 343px，wrapper 橫向捲動；且文件層 overflowX = 44px：header 三顆文字按鈕（Settings / Settlement / New Project）無法 wrap，把 main 撐出 390px。
+**裁決：4 頁 fail（Debt / Transactions / Portfolios / Projects），follow-up issues 已開。** 共同模式：5-col 資料表在 390px 以 `overflow-x-auto` wrapper 捲動，未提供 compact-row 退化（§28 不以橫向捲動為主要解法）。Transactions 另有 DOM nesting 修正需一併處理。AccountList 記錄為合規（3 欄 + 分組是可行模式）。
 
 ### 9. Dashboard Close / Recent 順序 vs §25 — resolved 2026-09-21
 
@@ -89,11 +97,11 @@ AccountDetailPage `:232` currency、PortfolioDetail `:216` date、WatchListSetti
 | 4 | Neutral badges ×4 | §17 | low | record-only |
 | 5 | RetirementPlanList badge | — | low | record-only |
 | 6 | PortfolioDetailPage 無 PageHeader | §1/§12 | medium | task：遷移 PageHeader |
-| 7 | YearlyDetails mobile 橫向表格 | §28 | medium | fix |
-| 8 | Mobile compact-row 覆蓋 | §28/§38 | medium | runtime 驗證 task |
+| 7 | YearlyDetails mobile 橫向表格 | §28 | medium | resolved：已修正（#138） |
+| 8 | Mobile compact-row 覆蓋 | §28/§38 | medium | resolved：已驗證（#139，4 頁 fail 已開 follow-up：Debt / Transactions / Portfolios / Projects） |
 | 9 | Dashboard Close/Recent 順序 | §25 | low | resolved：§25 已修訂（Close → Recent） |
 | 10 | Mobile 導覽主導權 | §29/§30 | high | task：Pet 為主，bottom nav 退場（Phase 8） |
 
-已定案：1 個修正 task（7）、2 個已裁決的 task（6 / 10）、1 個 runtime 驗證（8）、2 組記錄項（4 / 5）。
-**下一步：** 開 GitHub issues 追蹤（6 / 7 / 8 / 10）。
+已定案：1 個修正 task（7）、2 個已裁決的 task（6 / 10）、1 個 runtime 驗證（8，4 頁 fail → follow-up issues）、2 組記錄項（4 / 5）。
+**下一步：** 開 GitHub issues 追蹤（6 / 7 / 10）；8 的 follow-up 已開（Debt / Transactions / Portfolios / Projects 四頁 mobile compact rows）。
 **延伸盤點：** List/Detail header 與動作一致性另見 `page-review-list-detail.md`（同日，L1-L6 落差清單）。

@@ -25,6 +25,10 @@ if (!admin.apps.length) {
 }
 
 const db = admin.firestore();
+// The seed plan intentionally carries explicit undefined values for optional
+// schema fields (e.g. incomeCategory); batch.set rejects them unless the
+// Firestore instance is configured to ignore undefined.
+db.settings({ ignoreUndefinedProperties: true });
 
 const assertQaInitRan = async (): Promise<string> => {
   const householdSnap = await db.collection('households').doc(QA_HOUSEHOLD_ID).get();
