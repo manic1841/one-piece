@@ -14,9 +14,8 @@ export interface RetirementPlanListItemVM {
   id: string;
   name: string;
   isActive: boolean;
-  retireYear: number;
-  returnRateText: string;
-  bankruptcyText: string;
+  retirementAge: number;
+  statusText: string;
   finalNetWorthText: string;
 }
 
@@ -58,9 +57,8 @@ export const mapRetirementPlanToListItemVM = (plan: RetirementPlan): RetirementP
   id: plan.id,
   name: plan.name,
   isActive: plan.isActive,
-  retireYear: plan.birthYear + plan.retirementAge,
-  returnRateText: `${plan.investmentReturnRate}% Return`,
-  bankruptcyText: plan.summary?.isBankrupt ? 'Bankrupt Risk' : 'No Bankruptcy',
+  retirementAge: plan.retirementAge,
+  statusText: plan.isActive ? 'Active' : 'Inactive',
   finalNetWorthText: plan.summary?.finalNetWorth != null
     ? formatCurrency(plan.summary.finalNetWorth)
     : '—',

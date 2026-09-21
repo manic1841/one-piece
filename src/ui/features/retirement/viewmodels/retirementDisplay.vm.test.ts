@@ -54,16 +54,22 @@ describe('retirementDisplay.vm', () => {
       },
     }));
 
-    expect(vm.retireYear).toBe(2050);
+    expect(vm.retirementAge).toBe(60);
+    expect(vm.statusText).toBe('Active');
     expect(vm.finalNetWorthText).toContain('300,000');
-    expect(vm.bankruptcyText).toBe('No Bankruptcy');
   });
 
   it('maps plan list item vm with em dash when summary is absent', () => {
     const vm = mapRetirementPlanToListItemVM(makePlan({ summary: undefined }));
 
     expect(vm.finalNetWorthText).toBe('—');
-    expect(vm.bankruptcyText).toBe('No Bankruptcy');
+    expect(vm.statusText).toBe('Active');
+  });
+
+  it('maps plan list item vm status to Inactive when the plan is not active', () => {
+    const vm = mapRetirementPlanToListItemVM(makePlan({ isActive: false }));
+
+    expect(vm.statusText).toBe('Inactive');
   });
 
   it('maps plan list item vm with em dash for a stale summary without finalNetWorth', () => {
