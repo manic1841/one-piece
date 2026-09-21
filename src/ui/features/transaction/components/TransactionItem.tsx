@@ -21,6 +21,8 @@ import { ACCOUNTING_DETAILS_ENTRY_LABEL } from '@/ui/constants/transaction/displ
 import { type TransactionListItemVM } from '@/ui/features/transaction/viewmodels/transaction-list.vm';
 import { cn } from '@/ui/utils/cn';
 
+const ACCORDION_ROW_COL_SPAN = 5;
+
 interface TransactionItemProps {
   transaction: TransactionListItemVM;
   onEdit?: (transaction: TransactionListItemVM) => void;
@@ -42,7 +44,7 @@ export const TransactionItem: React.FC<TransactionItemProps> = ({ transaction, o
   const detailEntries = entries ?? [];
 
   return (
-    <div className="border-b border-border last:border-b-0">
+    <>
       <TableRow data-testid={`transaction-row-${transaction.id}`} className="align-top">
         <TableCell className="font-mono text-[12px] tabular-nums whitespace-nowrap">
           {dateText}
@@ -93,36 +95,40 @@ export const TransactionItem: React.FC<TransactionItemProps> = ({ transaction, o
           </span>
         </TableCell>
       </TableRow>
-      <Accordion type="single" collapsible className="border-t border-border/50">
-        <AccordionItem value="accounting-details" className="border-b-0">
-          <AccordionTrigger className="px-4">ACCOUNTING DETAILS</AccordionTrigger>
-          <AccordionContent className="px-4">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>{ACCOUNTING_DETAILS_ENTRY_LABEL}</TableHead>
-                  <TableHead className="text-right">Debit</TableHead>
-                  <TableHead className="text-right">Credit</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {detailEntries.map((entry, index) => (
-                  <TableRow key={`${entry.ledgerCode}-${index}`}>
-                    <TableCell className="font-mono text-[12px]">{entry.ledgerLabel}</TableCell>
-                    <TableCell className="text-right font-mono tabular-nums">
-                      {entry.debit > 0 ? formatAmount(entry.debit) : '—'}
-                    </TableCell>
-                    <TableCell className="text-right font-mono tabular-nums">
-                      {entry.credit > 0 ? formatAmount(entry.credit) : '—'}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </AccordionContent>
-        </AccordionItem>
-      </Accordion>
-    </div>
+      <TableRow className="hover:bg-transparent">
+        <TableCell colSpan={ACCORDION_ROW_COL_SPAN} className="p-0">
+          <Accordion type="single" collapsible className="border-t border-border/50">
+            <AccordionItem value="accounting-details" className="border-b-0">
+              <AccordionTrigger className="px-4">ACCOUNTING DETAILS</AccordionTrigger>
+              <AccordionContent className="px-4">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>{ACCOUNTING_DETAILS_ENTRY_LABEL}</TableHead>
+                      <TableHead className="text-right">Debit</TableHead>
+                      <TableHead className="text-right">Credit</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {detailEntries.map((entry, index) => (
+                      <TableRow key={`${entry.ledgerCode}-${index}`}>
+                        <TableCell className="font-mono text-[12px]">{entry.ledgerLabel}</TableCell>
+                        <TableCell className="text-right font-mono tabular-nums">
+                          {entry.debit > 0 ? formatAmount(entry.debit) : '—'}
+                        </TableCell>
+                        <TableCell className="text-right font-mono tabular-nums">
+                          {entry.credit > 0 ? formatAmount(entry.credit) : '—'}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </AccordionContent>
+            </AccordionItem>
+          </Accordion>
+        </TableCell>
+      </TableRow>
+    </>
   );
 };
 

@@ -72,3 +72,47 @@ describe('TransactionItem accounting details header', () => {
     expect(screen.getByText('餐飲')).toBeVisible();
   });
 });
+
+describe('TransactionItem table structure', () => {
+  it('renders only legal table rows inside tbody: no div between tbody and tr', () => {
+    const { container } = render(
+      <TransactionList items={[baseItem()]} loading={false} onDateRangeSearch={vi.fn()} />,
+    );
+
+    const tbody = container.querySelector('tbody')!;
+    expect(tbody).not.toBeNull();
+
+    Array.from(tbody.children).forEach((child) => {
+      expect(child.tagName).toBe('TR');
+    });
+
+    const directTrs = Array.from(tbody.children) as HTMLElement[];
+    expect(directTrs.length).toBeGreaterThanOrEqual(2);
+    expect(directTrs.some((tr) => tr.getAttribute('data-testid') === 'transaction-row-tx-1')).toBe(
+      true,
+    );
+  });
+
+  it('renders the transaction row and its accounting details as separate tr elements', () => {
+    render(
+      <TransactionList
+        items={[baseItem({ displayTitle: 'Test transaction' })]}
+        loading={false}
+        onDateRangeSearch={vi.fn()}
+      />,
+    );
+
+    const rows = screen.getAllByRole('row');
+    expect(rows.length).toBeGreaterThanOrEqual(2);
+
+    const transactionRow = screen.getByTestId('transaction-row-tx-1');
+    expect(transactionRow.tagName).toBe('TR');
+    expect(transactionRow.textContent).toContain('Test transaction');
+    expect(transactionRow.textContent).not.toContain('ACCOUNTING DETAILS');
+
+    const detailsTrigger = screen.getByRole('button', { name: 'ACCOUNTING DETAILS' });
+    const detailsRow = detailsTrigger.closest('tr')!;
+    expect(detailsRow).not.toBe(transactionRow);
+    expect(detailsRow.textContent).not.toContain('Test transaction');
+  });
+});
