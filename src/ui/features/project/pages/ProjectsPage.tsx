@@ -1,10 +1,16 @@
 import React, { useEffect, useState } from 'react';
 
-import { Calendar, Plus, Settings } from 'lucide-react';
+import { Calendar, MoreHorizontal, Plus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 import { useAuth } from '@/infra/contexts/useAuth';
 import { Button } from '@/ui/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/ui/components/ui/dropdown-menu';
 import {
   Table,
   TableBody,
@@ -103,11 +109,7 @@ const Projects: React.FC = () => {
         title="專案管理"
         description="管理專案餘額、月度結算與排序。"
         actions={
-          <div className="flex gap-3">
-            <Button onClick={openSettings} variant="outline" className="gap-2">
-              <Settings size={18} />
-              Settings
-            </Button>
+          <div className="flex flex-wrap gap-3">
             <Button onClick={openMonthlySettlement} variant="outline" className="gap-2">
               <Calendar size={16} />
               Settlement
@@ -116,6 +118,16 @@ const Projects: React.FC = () => {
               <Plus size={16} />
               New Project
             </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" aria-label="更多專案操作" className="h-9 w-9">
+                  <MoreHorizontal size={18} />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onSelect={openSettings}>Settings</DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         }
       />

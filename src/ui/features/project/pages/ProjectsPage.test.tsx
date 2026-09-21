@@ -187,4 +187,50 @@ describe('ProjectsPage table', () => {
     expect(desktopTable!.className).toContain('md:table');
     expect(container.querySelector('.overflow-x-auto')).toBeNull();
   });
+
+  it('drops Settings from header actions, keeps Settlement + New Project in a wrapping row', () => {
+    mockUseProjectPage.mockReturnValue(controllerBase as never);
+    mockUseProjectQueries.mockReturnValue({
+      getProjectBalance: vi.fn(),
+      getProjectRecords: vi.fn(),
+      getProjectSnapshots: vi.fn().mockResolvedValue([]),
+    });
+    mockUseNavigate.mockReturnValue(vi.fn());
+
+    render(
+      <MemoryRouter>
+        <ProjectsPage />
+      </MemoryRouter>,
+    );
+
+    expect(screen.queryByRole('button', { name: 'Settings' })).toBeNull();
+    expect(screen.getByRole('button', { name: /Settlement/i })).not.toBeNull();
+    expect(screen.getByRole('button', { name: /New Project/i })).not.toBeNull();
+
+    const actionsRow = screen.getByRole('button', { name: /Settlement/i }).closest('div')!
+      .parentElement!;
+    expect(actionsRow.className).toContain('flex-wrap');
+  });
+
+  it('keeps project settings reachable via the overflow menu', async () => {
+    mockUseProjectPage.mockReturnValue(controllerBase as never);
+    mockUseProjectQueries.mockReturnValue({
+      getProjectBalance: vi.fn(),
+      getProjectRecords: vi.fn(),
+      getProjectSnapshots: vi.fn().mockResolvedValue([]),
+    });
+    mockUseNavigate.mockReturnValue(vi.fn());
+
+    render(
+      <MemoryRouter>
+        <ProjectsPage />
+      </MemoryRouter>,
+    );
+
+    const trigger = screen.getByRole('button', { name: '更多專案操作' });
+    fireEvent.pointerDown(trigger, { button: 0, ctrlKey: false });
+    fireEvent.click(trigger);
+    expect(await screen.findByRole('menuitem', { name: 'Settings' })).not.toBeNull();
+    expect(screen.getByText('Settings')).not.toBeNull();
+  });
 });
