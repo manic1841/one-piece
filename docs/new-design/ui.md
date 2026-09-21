@@ -1,5 +1,12 @@
 好，那我們進入 **FINANCE.OS Design System v1**。這一層定下來後，後面的頁面就不需要每次重新討論風格。
 
+> **修訂（2026-09-21，Visual Consistency Standard）**
+>
+> - 新增 [visual-consistency.md](visual-consistency.md)：全站 40 節 Visual Consistency Standard（Page Shell、Page Width、spacing scale、Section/Card/Border/Radius/Shadow、Financial Number hierarchy、Table/List→Detail/Action hierarchy、Status/State Color、Empty State、Loading、Form/Advanced/Accordion/Drawer、Workflow/Dashboard/Retirement/Reports、Mobile/Mobile Navigation/Pixel Pet/Header/Search、Charts、Data Density、互動一致性、Destructive/Toast、Responsive、Anti-Patterns、最終 Review Checklist）。
+> - 本階段**不處理 Primary Color**（`#5CC8C0` 留到最終 Visual Polish）；semantic color 規則（Positive/Warning/Negative/Neutral、彩色只表達 State 不表達 Data Type）先固定於該文件第 17 節。
+> - 與本文件既有規則的關係：typography（Inter / JetBrains Mono 分工）與 radius 4px 上限沿用 Phase 1 決策，Standard 將其擴展為 spacing scale、Financial Number 四級層級與 shadow 白名單；衝突時以 Standard 為準。
+> - 工程師 Review 與頁面驗收直接使用該文件第 40 節 checklist 與末尾三條判斷標準。
+
 > **修訂（2026-09-16，與既有程式碼對照後）**
 >
 > - 本設計系統以 `990def2`（Apple-style 整理）的 **token 架構為基礎**：semantic 色（positive/negative/destructive/chart-1..5）、duration/ease token、層級紀律全部沿用；更換的是色板值（暗色優先）、字體（Inter + JetBrains Mono）與 radius（4px 上限 8px）。這正是那次整理的目的 — 色系已可從 `src/index.css` 變數一處更換，核心達成；殘留的 108 處 amber/indigo/purple/sky 硬編碼（25 檔）與 4 檔 `dark:` slate 補丁於 Phase 1 清掃。
