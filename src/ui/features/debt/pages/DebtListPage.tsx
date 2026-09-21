@@ -5,7 +5,6 @@ import { useNavigate } from 'react-router-dom';
 
 import { type DebtAccount } from '@/domains/debt/schemas';
 import { useAuth } from '@/infra/contexts/useAuth';
-import { useConfirm } from '@/ui/features/app/confirm/ConfirmDialog';
 import { Badge } from '@/ui/components/ui/badge';
 import { Button } from '@/ui/components/ui/button';
 import { Card, CardContent } from '@/ui/components/ui/card';
@@ -22,9 +21,7 @@ import { PageHeader } from '@/ui/components/PageHeader';
 import { formatCurrency, formatDate } from '@/ui/utils';
 import { DebtAccountForm } from '@/ui/features/debt/components/DebtAccountForm';
 import { DebtSettlement } from '@/ui/features/debt/components/DebtSettlement';
-import { useDebtAccountCmds } from '@/ui/features/debt/hooks/useDebtAccountCmds';
 import { useDebtPage } from '@/ui/features/debt/hooks/useDebtPage';
-import { type DebtAccountDisplayVM } from '@/ui/features/debt/viewmodels/debtDisplay.vm';
 import { useDebtAccountFormViewModel } from '@/ui/features/debt/viewmodels/useDebtAccountFormViewModel';
 
 type DialogMode = 'create' | 'edit';
@@ -43,22 +40,14 @@ export default function DebtListPage() {
     reload,
   } = useDebtPage(householdId);
 
-  const { removeDebtAccount } = useDebtAccountCmds(householdId);
-
   const [dialogMode, setDialogMode] = useState<DialogMode | null>(null);
   const [editTarget, setEditTarget] = useState<DebtAccount | null>(null);
-  const [removingId, setRemovingId] = useState<string | null>(null);
   const [isSettlementOpen, setIsSettlementOpen] = useState(false);
   const [showSettled, setShowSettled] = useState(false);
 
   const openCreate = () => {
     setEditTarget(null);
     setDialogMode('create');
-  };
-
-  const openEdit = (account: DebtAccountDisplayVM) => {
-    setEditTarget(account);
-    setDialogMode('edit');
   };
 
   const closeDialog = () => {
@@ -77,19 +66,6 @@ export default function DebtListPage() {
     },
     onCancel: closeDialog,
   });
-
-  const { confirm } = useConfirm();
-
-  const handleRemove = async (id: string) => {
-    const confirmed = await confirm({
-      title: 'Disable or delete this loan?',
-    });
-    if (!confirmed) return;
-    setRemovingId(id);
-    const result = await removeDebtAccount(id);
-    setRemovingId(null);
-    if (result) reload();
-  };
 
   const visibleAccounts = debtAccountViews
     .filter((a) => (showSettled ? true : a.isActive))
@@ -156,7 +132,6 @@ export default function DebtListPage() {
                   <TableHead className="text-right">Outstanding Balance</TableHead>
                   <TableHead className="text-right">Monthly Payment</TableHead>
                   <TableHead className="text-right">As of</TableHead>
-                  <TableHead className="w-24"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -188,36 +163,6 @@ export default function DebtListPage() {
                       </TableCell>
                       <TableCell className="text-right font-mono text-[11px] tabular-nums text-muted-foreground">
                         {account.updatedAt ? formatDate(account.updatedAt) : '—'}
-                      </TableCell>
-                      <TableCell>
-                        <span
-                          className="flex justify-end gap-1"
-                          onClick={(event) => event.stopPropagation()}
-                        >
-                          {!isSettled && (
-                            <>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-7 w-7"
-                                title="編輯"
-                                onClick={() => openEdit(account)}
-                              >
-                                ✏️
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-7 w-7 text-destructive hover:text-destructive"
-                                title="停用/刪除"
-                                disabled={removingId === account.id}
-                                onClick={() => void handleRemove(account.id)}
-                              >
-                                🗑
-                              </Button>
-                            </>
-                          )}
-                        </span>
                       </TableCell>
                     </TableRow>
                   );

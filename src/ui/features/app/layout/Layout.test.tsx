@@ -120,24 +120,40 @@ describe('Layout system status bar', () => {
     expect(dateText).toContain('2026');
   });
 
-  it('groups household switcher, search, settings, and avatar on the header', async () => {
+  it('groups household switcher, search, and avatar on the header', async () => {
     renderLayout();
 
     expect(await screen.findByTestId('household-switcher')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /search/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /settings/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /avatar/i })).toBeInTheDocument();
   });
 
-  it('keeps settings, avatar, and logout reachable when the desktop-only controls are hidden', async () => {
+  it('exposes Settings in the avatar menu and navigates to the settings route', async () => {
+    renderLayout({ withPageMarker: true });
+
+    const avatarButton = screen.getByRole('button', { name: /avatar/i });
+    fireEvent.pointerDown(avatarButton);
+    fireEvent.click(avatarButton);
+
+    fireEvent.pointerDown(await screen.findByRole('menuitem', { name: 'Settings' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Settings' }));
+
+    await waitFor(() => expect(screen.getByTestId('page-marker').dataset.page).toBe('/settings'));
+  });
+
+  it('does not render a standalone Settings icon button on the header', () => {
     renderLayout();
 
-    const settingsButton = screen.getByRole('button', { name: /settings/i });
+    expect(screen.queryByRole('button', { name: /settings/i })).not.toBeInTheDocument();
+  });
+
+  it('keeps avatar and search reachable when the desktop-only controls are hidden', async () => {
+    renderLayout();
+
     const avatarButton = screen.getByRole('button', { name: /avatar/i });
     const searchButton = screen.getByRole('button', { name: /search/i });
     const switcher = await screen.findByTestId('household-switcher');
 
-    expect(settingsButton.className).not.toContain('hidden');
     expect(avatarButton.className).not.toContain('hidden');
     expect(searchButton.className).not.toContain('hidden');
     expect(switcher.parentElement?.className).toContain('hidden');
@@ -228,12 +244,16 @@ describe('Layout primary navigation', () => {
     expect(screen.getByTestId('page-marker').dataset.page).toBe('/');
   });
 
-  it('navigates to settings from the settings control', () => {
+  it('navigates to settings from the avatar menu', async () => {
     renderLayout({ withPageMarker: true });
 
-    fireEvent.click(screen.getByRole('button', { name: /settings/i }));
+    const avatarButton = screen.getByRole('button', { name: /avatar/i });
+    fireEvent.pointerDown(avatarButton);
+    fireEvent.click(avatarButton);
+    fireEvent.pointerDown(await screen.findByRole('menuitem', { name: 'Settings' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Settings' }));
 
-    expect(screen.getByTestId('page-marker').dataset.page).toBe('/settings');
+    await waitFor(() => expect(screen.getByTestId('page-marker').dataset.page).toBe('/settings'));
   });
 
   it('renders the desktop sidebar removed: no complementary landmark remains', () => {

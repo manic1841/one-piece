@@ -131,6 +131,12 @@ Use Case
 header 不含主導航;Ctrl/Cmd+K 指令面板為 Quick Access,條目涵蓋全部路由,與
 Navigator 的 8 項清單獨立。
 
+四檔工作流視窗（Monthly Close、Portfolio Detail、Debt、Header）的視覺權重與操作
+位置契約見 [ADR-0056](adr/0056-workflow-first-surfaces.md):pipeline 為頁面主要層
+級,mobile 步驟列去 Card,確認動作顯示 `CONTINUE →`;Portfolio Detail 無快照管理入
+口;Debt 列表列無常駐 Edit / Delete,動作在詳情 header;Header 無獨立 Settings 鈕
+,Settings 在 Avatar menu。
+
 以下為四檔視窗的手動 QA 清單,項目均為可觀察行為,作為版面變更的驗收面:
 
 ### 360px(手機直式)

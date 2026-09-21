@@ -1,7 +1,6 @@
 import React from 'react';
 
 import { Button } from '@/ui/components/ui/button';
-import { Card, CardContent } from '@/ui/components/ui/card';
 import { getCloseStageLabel, MONTHLY_CLOSE_LABELS } from '@/ui/constants/monthlyClose';
 import { StatusGlyph } from '@/ui/components/StatusGlyph';
 
@@ -26,16 +25,24 @@ export const CloseStageList: React.FC<CloseStageListProps> = ({
   renderEvidence,
   renderInputs,
 }) => {
+  const currentStageId = isClosed
+    ? null
+    : (stages.find((stage) => !stage.isCompleted)?.stageId ?? null);
+
   return (
-    <div className="space-y-3">
-      {stages.map((stage) => {
+    <ol className="space-y-0" aria-label="Close workflow pipeline">
+      {stages.map((stage, index) => {
         const isConfirming = confirmingStageId === stage.stageId;
         const isReviewSource = stage.isReviewSource && isPaused;
         const canConfirm = !isClosed && !stage.isCompleted;
+        const isCurrent = stage.stageId === currentStageId;
 
         return (
-          <Card key={stage.stageId} className="rounded-lg border-border/60">
-            <CardContent className="space-y-4 p-5">
+          <li
+            key={stage.stageId}
+            className={index === 0 ? '' : 'mt-5 border-t border-border/60 pt-5'}
+          >
+            <div className="space-y-4">
               <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
                   <StatusGlyph
@@ -47,6 +54,14 @@ export const CloseStageList: React.FC<CloseStageListProps> = ({
                       {MONTHLY_CLOSE_LABELS.PAUSED}
                     </span>
                   )}
+                  {isCurrent && (
+                    <span
+                      data-testid="close-list-current"
+                      className="text-[10px] font-semibold tracking-wider text-foreground"
+                    >
+                      CURRENT STEP
+                    </span>
+                  )}
                 </div>
                 {canConfirm && (
                   <Button
@@ -55,7 +70,7 @@ export const CloseStageList: React.FC<CloseStageListProps> = ({
                     onClick={() => onConfirmStage(stage.stageId)}
                     className="active:scale-[0.97]"
                   >
-                    {isConfirming ? MONTHLY_CLOSE_LABELS.LOADING : MONTHLY_CLOSE_LABELS.CONFIRM}
+                    {isConfirming ? MONTHLY_CLOSE_LABELS.LOADING : MONTHLY_CLOSE_LABELS.CONTINUE}
                   </Button>
                 )}
                 {stage.isCompleted && (
@@ -74,10 +89,10 @@ export const CloseStageList: React.FC<CloseStageListProps> = ({
                 </div>
                 {renderInputs(stage.stageId)}
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </li>
         );
       })}
-    </div>
+    </ol>
   );
 };

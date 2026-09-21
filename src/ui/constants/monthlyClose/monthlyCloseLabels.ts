@@ -28,7 +28,7 @@ export const MONTHLY_CLOSE_LABELS = {
   DEPOSIT: '存入',
   WITHDRAW: '領出',
   STARTED: '關帳進行中',
-  CONFIRM: '確認此階段',
+  CONTINUE: 'CONTINUE →',
   RECONFIRM: '階段已完成',
   RESOLVE_REVIEW: '審閱完畢，繼續關帳',
   FINALIZED: '本期已完成關帳',

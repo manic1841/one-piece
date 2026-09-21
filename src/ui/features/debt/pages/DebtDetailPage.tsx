@@ -1,5 +1,6 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
+import { Pencil, Power, Trash2 } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 
 import {
@@ -10,6 +11,8 @@ import { debtSnapshotRepository } from '@/infra/repositories/debtSnapshotReposit
 import { listDebtAccountsUseCase } from '@/application/debt/use_cases/listDebtAccountsUseCase';
 import { PageHeader } from '@/ui/components/PageHeader';
 import { Badge } from '@/ui/components/ui/badge';
+import { Button } from '@/ui/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/ui/components/ui/dialog';
 import {
   Table,
   TableBody,
@@ -19,6 +22,11 @@ import {
   TableRow,
 } from '@/ui/components/ui/table';
 import { useAuth } from '@/infra/contexts/useAuth';
+import { useConfirm } from '@/ui/features/app/confirm/ConfirmDialog';
+import { DebtAccountForm } from '@/ui/features/debt/components/DebtAccountForm';
+import { useDebtAccountCmds } from '@/ui/features/debt/hooks/useDebtAccountCmds';
+import { useDebtAccountFormViewModel } from '@/ui/features/debt/viewmodels/useDebtAccountFormViewModel';
+import { useProjects } from '@/ui/features/project/hooks/useProjects';
 import { formatCurrency, formatDate } from '@/ui/utils';
 
 interface DebtDetailPageProps {
@@ -125,6 +133,10 @@ export default function DebtDetailPage({ account }: DebtDetailPageProps) {
   const navigate = useNavigate();
   const { userProfile } = useAuth();
   const householdId = userProfile?.householdId ?? '';
+  const { confirm } = useConfirm();
+  const { updateDebtAccount, removeDebtAccount } = useDebtAccountCmds(householdId);
+  const { projects } = useProjects(householdId);
+  const [isEditOpen, setIsEditOpen] = useState(false);
 
   const [fetchedAccount, setFetchedAccount] = useState<DebtAccount | null>(null);
   const [snapshots, setSnapshots] = useState<DebtSnapshot[]>([]);
@@ -133,6 +145,57 @@ export default function DebtDetailPage({ account }: DebtDetailPageProps) {
 
   const activeAccount = account ?? fetchedAccount;
 
+  const fetchAccount = useCallback(async () => {
+    if (account || !householdId) return;
+    const accounts = await listDebtAccountsUseCase.execute({
+      householdId,
+      includeInactive: true,
+    });
+    setFetchedAccount(accounts.find((a) => a.id === id) ?? null);
+  }, [account, householdId, id]);
+
+  const formVm = useDebtAccountFormViewModel({
+    householdId,
+    initialAccount: activeAccount ?? undefined,
+    projects,
+    submitLabel: '儲存',
+    onSubmitSuccess: () => {
+      setIsEditOpen(false);
+      void fetchAccount();
+    },
+    onCancel: () => setIsEditOpen(false),
+  });
+
+  const handleDisable = async () => {
+    if (!activeAccount) return;
+    const confirmed = await confirm({
+      title: 'Disable this loan?',
+      context: 'It will be hidden from the debt list and excluded from totals.',
+      consequence: 'You can re-enable it later from the edit dialog.',
+      confirmLabel: 'DISABLE',
+    });
+    if (!confirmed) return;
+    await updateDebtAccount(activeAccount.id, { isActive: false });
+    await fetchAccount();
+  };
+
+  const handleDelete = async () => {
+    if (!activeAccount) return;
+    const confirmed = await confirm({
+      title: 'Delete this loan?',
+      consequence: 'This action cannot be undone.',
+    });
+    if (!confirmed) return;
+    await removeDebtAccount(activeAccount.id);
+    navigate('/debt');
+  };
+
+  const handleEnable = async () => {
+    if (!activeAccount) return;
+    await updateDebtAccount(activeAccount.id, { isActive: true });
+    await fetchAccount();
+  };
+
   useEffect(() => {
     let ignore = false;
     const load = async () => {
@@ -140,12 +203,8 @@ export default function DebtDetailPage({ account }: DebtDetailPageProps) {
         setLoading(false);
         return;
       }
-      const accounts = await listDebtAccountsUseCase.execute({
-        householdId,
-        includeInactive: true,
-      });
+      await fetchAccount();
       if (!ignore) {
-        setFetchedAccount(accounts.find((a) => a.id === id) ?? null);
         setLoading(false);
       }
     };
@@ -153,7 +212,7 @@ export default function DebtDetailPage({ account }: DebtDetailPageProps) {
     return () => {
       ignore = true;
     };
-  }, [account, householdId, id]);
+  }, [account, householdId, id, fetchAccount]);
 
   useEffect(() => {
     let ignore = false;
@@ -259,6 +318,26 @@ export default function DebtDetailPage({ account }: DebtDetailPageProps) {
               已結清
             </Badge>
           ) : undefined
+        }
+        actions={
+          <div className="flex gap-2">
+            {!activeAccount.isActive ? (
+              <Button variant="outline" onClick={() => void handleEnable()}>
+                啟用貸款
+              </Button>
+            ) : (
+              <Button variant="outline" onClick={() => setIsEditOpen(true)}>
+                <Pencil size={16} />
+                編輯貸款
+              </Button>
+            )}
+            {activeAccount.isActive && (
+              <Button variant="outline" onClick={() => void handleDisable()}>
+                <Power size={16} />
+                停用貸款
+              </Button>
+            )}
+          </div>
         }
       />
 
@@ -420,6 +499,31 @@ export default function DebtDetailPage({ account }: DebtDetailPageProps) {
           </Table>
         )}
       </section>
+
+      <section className="space-y-3 border-t border-border pt-6">
+        <SectionTitle>DANGER ZONE</SectionTitle>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+          onClick={() => void handleDelete()}
+        >
+          <Trash2 size={14} />
+          刪除貸款
+        </Button>
+      </section>
+
+      <Dialog open={isEditOpen} onOpenChange={(open) => !open && setIsEditOpen(false)}>
+        <DialogContent
+          className="max-w-2xl max-h-[90vh] overflow-y-auto"
+          aria-describedby={undefined}
+        >
+          <DialogHeader>
+            <DialogTitle>編輯貸款</DialogTitle>
+          </DialogHeader>
+          <DebtAccountForm vm={formVm} />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

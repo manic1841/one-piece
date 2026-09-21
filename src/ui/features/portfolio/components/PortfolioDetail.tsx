@@ -1,15 +1,12 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { useNavigate, useParams } from 'react-router-dom';
-import { Plus, Trash2 } from 'lucide-react';
-import { ZodError } from 'zod';
 
 import { type PortfolioSnapshot } from '@/domains/portfolio/types/portfolio';
 import { useAccounts } from '@/ui/features/account/hooks/useAccounts';
 import { useAuthContext } from '@/ui/hooks/useAuthContext';
 import { PageHeader } from '@/ui/components/PageHeader';
 import { Badge } from '@/ui/components/ui/badge';
-import { Button } from '@/ui/components/ui/button';
 import {
   Accordion,
   AccordionContent,
@@ -24,22 +21,14 @@ import {
   TableHeader,
   TableRow,
 } from '@/ui/components/ui/table';
-import { usePortfolioCmds } from '@/ui/features/portfolio/hooks/usePortfolioCmds';
 import {
   usePortfolioQueries,
   usePortfolios,
 } from '@/ui/features/portfolio/hooks/usePortfolios';
-import {
-  type PortfolioSnapshotFormVM,
-  mapPortfolioSnapshotVMToDomain,
-} from '@/ui/features/portfolio/viewmodels/portfolioForm.vm';
 import { formatCurrency, formatPercentage, formatYearMonth } from '@/ui/utils';
-
-import PortfolioSnapshotForm from './PortfolioSnapshotForm';
 
 interface PortfolioDetailProps {
   householdId: string;
-  userEmail: string;
 }
 
 const MONTH_NAMES = [
@@ -126,20 +115,18 @@ const SectionTitle: React.FC<{ children: React.ReactNode }> = ({ children }) => 
   </p>
 );
 
-const PortfolioDetail: React.FC<PortfolioDetailProps> = ({ householdId, userEmail }) => {
+const PortfolioDetail: React.FC<PortfolioDetailProps> = ({ householdId }) => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const auth = useAuthContext();
   const { fetchAccounts } = useAccounts();
   const { portfolios, reload, loading: listLoading } = usePortfolios(householdId);
   const { getSnapshots, loading: queryLoading } = usePortfolioQueries(householdId);
-  const { createSnapshot, deleteSnapshot } = usePortfolioCmds(householdId, userEmail, reload);
 
   const portfolio = portfolios.find((p) => p.id === id);
   const [snapshots, setSnapshots] = useState<PortfolioSnapshot[]>([]);
   const [loadingSnapshots, setLoadingSnapshots] = useState(false);
   const [accountNames, setAccountNames] = useState<Map<string, string>>(new Map());
-  const [isSnapshotOpen, setIsSnapshotOpen] = useState(false);
 
   const refreshSnapshots = useCallback(async () => {
     if (!id) return;
@@ -215,25 +202,6 @@ const PortfolioDetail: React.FC<PortfolioDetailProps> = ({ householdId, userEmai
     [snapshots],
   );
 
-  const handleCreateSnapshot = async (vm: PortfolioSnapshotFormVM) => {
-    if (!id) return;
-    try {
-      await createSnapshot(id, vm.year, vm.month, mapPortfolioSnapshotVMToDomain(vm));
-      await refreshSnapshots();
-    } catch (error) {
-      if (error instanceof ZodError) {
-        throw new Error(error.issues[0]?.message || 'Invalid snapshot form data');
-      }
-      throw error;
-    }
-  };
-
-  const handleDeleteSnapshot = async (snapshotId: string) => {
-    if (!id) return;
-    await deleteSnapshot(id, snapshotId);
-    await refreshSnapshots();
-  };
-
   if (listLoading || queryLoading || loadingSnapshots) return <div>Loading...</div>;
   if (!portfolio) return <div>Portfolio not found</div>;
 
@@ -248,12 +216,6 @@ const PortfolioDetail: React.FC<PortfolioDetailProps> = ({ householdId, userEmai
           <Badge variant="outline" className="font-mono">
             {formatYearMonth(latestSnapshot?.year ?? new Date().getFullYear(), latestSnapshot?.month ?? new Date().getMonth() + 1)}
           </Badge>
-        }
-        actions={
-          <Button onClick={() => setIsSnapshotOpen(true)} className="gap-2">
-            <Plus size={18} />
-            關帳快照
-          </Button>
         }
       />
 
@@ -366,7 +328,6 @@ const PortfolioDetail: React.FC<PortfolioDetailProps> = ({ householdId, userEmai
               <TableHead className="text-right">Return</TableHead>
               <TableHead className="text-right">Cumulative %</TableHead>
               <TableHead className="text-right">Net Flow</TableHead>
-              <TableHead className="w-12"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -386,17 +347,6 @@ const PortfolioDetail: React.FC<PortfolioDetailProps> = ({ householdId, userEmai
                 </TableCell>
                 <TableCell className="text-right font-mono tabular-nums">
                   {formatCurrency(snapshot.performance.netCashFlow)}
-                </TableCell>
-                <TableCell>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-7 w-7 text-destructive hover:text-destructive"
-                    onClick={() => void handleDeleteSnapshot(snapshot.id)}
-                    aria-label="刪除快照"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
                 </TableCell>
               </TableRow>
             ))}
@@ -437,16 +387,6 @@ const PortfolioDetail: React.FC<PortfolioDetailProps> = ({ householdId, userEmai
           </AccordionContent>
         </AccordionItem>
       </Accordion>
-
-      {portfolio && (
-        <PortfolioSnapshotForm
-          isOpen={isSnapshotOpen}
-          onClose={() => setIsSnapshotOpen(false)}
-          onSubmit={handleCreateSnapshot}
-          portfolio={portfolio}
-          householdId={householdId}
-        />
-      )}
     </div>
   );
 };

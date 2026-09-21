@@ -85,6 +85,24 @@ describe('DebtListPage table', () => {
     expect(screen.getByText('Mortgage A')).toBeInTheDocument();
   });
 
+  it('does not render persistent edit or delete actions in list rows', () => {
+    mockUseDebtPage.mockReturnValue(controllerBase);
+    mockUseDebtAccountCmds.mockReturnValue({ removeDebtAccount: vi.fn() } as never);
+    mockUseConfirm.mockReturnValue({ confirm: vi.fn().mockResolvedValue(false) } as never);
+    mockUseNavigate.mockReturnValue(vi.fn());
+
+    render(
+      <MemoryRouter>
+        <DebtListPage />
+      </MemoryRouter>,
+    );
+
+    expect(screen.queryByTitle('編輯')).not.toBeInTheDocument();
+    expect(screen.queryByTitle('停用/刪除')).not.toBeInTheDocument();
+    expect(screen.queryByText('✏️')).not.toBeInTheDocument();
+    expect(screen.queryByText('🗑')).not.toBeInTheDocument();
+  });
+
   it('navigates to the debt detail page on row click', () => {
     mockUseDebtPage.mockReturnValue(controllerBase);
     mockUseDebtAccountCmds.mockReturnValue({ removeDebtAccount: vi.fn() } as never);

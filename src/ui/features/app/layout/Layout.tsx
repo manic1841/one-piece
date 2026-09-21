@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 
-import { Search, Settings, UserRound } from 'lucide-react';
+import { LogOut, Search, Settings, UserRound } from 'lucide-react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 
 import { useAuth } from '@/infra/contexts/useAuth';
@@ -124,15 +124,6 @@ const Layout: React.FC = () => {
             >
               <Search size={18} />
             </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              aria-label="Settings"
-              onClick={() => navigate('/settings')}
-              className="text-muted-foreground hover:bg-accent hover:text-foreground"
-            >
-              <Settings size={18} />
-            </Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" aria-label="Avatar" className="shrink-0">
@@ -149,9 +140,17 @@ const Layout: React.FC = () => {
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuItem
+                  onClick={() => navigate('/settings')}
+                  className="text-muted-foreground hover:bg-accent hover:text-foreground"
+                >
+                  <Settings size={16} />
+                  Settings
+                </DropdownMenuItem>
+                <DropdownMenuItem
                   onClick={handleLogout}
                   className="text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
                 >
+                  <LogOut size={16} />
                   Logout
                 </DropdownMenuItem>
               </DropdownMenuContent>
