@@ -21,7 +21,7 @@ export const useProjectPage = (householdId?: string) => {
   const [isReorderMode, setIsReorderMode] = useState(false);
   const [localProjects, setLocalProjects] = useState<Project[]>([]);
 
-  const { createProject, updateProject, deleteProject, reorderProjects } = useProjectCmds(
+  const { createProject, updateProject, reorderProjects } = useProjectCmds(
     householdId || '',
   );
 
@@ -41,22 +41,6 @@ export const useProjectPage = (householdId?: string) => {
     setEditing(undefined);
     setIsFormOpen(false);
     reload();
-  };
-
-  // edit project
-  const editClick = (project: Project) => {
-    setEditing(project);
-    setIsFormOpen(true);
-  };
-
-  // delete project
-  const deleteClick = (project: Project) => {
-    if (
-      !confirm(`Are you sure you want to delete "${project.name}"? This action cannot be undone.`)
-    ) {
-      return;
-    }
-    deleteProject(project.id);
   };
 
   // select project
@@ -131,8 +115,6 @@ export const useProjectPage = (householdId?: string) => {
     reload,
     create,
     update,
-    editClick,
-    deleteClick,
     editing,
     isFormOpen,
     openForm,

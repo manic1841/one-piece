@@ -513,6 +513,15 @@ Action 優先放 Detail。
 
 > **例外（2026-09-21 定案）**：無 detail 頁的資料（如 Transaction）允許 row 端 ghost icon action（Edit / Delete），條件是低干擾（icon-only、muted 色、hover 才浮現語意）；不適用於有 detail 頁的資料。
 
+### Edit 表達方式（2026-09-21 定案）
+
+Detail 頁的編輯入口依欄位複雜度二選一：
+
+- **單一 metadata 欄位**（名稱）→ `InlineEditableTitle` inline edit，掛在 PageHeader title slot。適用：Project / Portfolio / Retirement plan 名稱。
+- **多欄位 configuration** → Edit Form（dialog 或 detail 區塊）。適用：Debt / Account。
+
+Rule：`PageHeader` 不知道「怎麼編輯名稱」——`title` 接受 ReactNode，由頁面自行傳入 `<InlineEditableTitle value={...} onSave={...} />`；儲存走既有 update command，成功後頁面自行 refetch/同步 state。
+
 ---
 
 # 13. Action Hierarchy

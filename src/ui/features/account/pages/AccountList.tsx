@@ -103,13 +103,10 @@ const AccountList: React.FC = () => {
     loadingAccounts,
     showForm,
     setShowForm,
-    editingAccount,
-    setEditingAccount,
     fileInputRef,
     importing,
     exportToCSV,
     handleCreate,
-    handleUpdate,
     handleImport,
   } = useAccountListController();
 
@@ -143,15 +140,13 @@ const AccountList: React.FC = () => {
     [visibleAccounts],
   );
 
-  if (showForm || editingAccount) {
+  if (showForm) {
     return (
       <div className="max-w-2xl mx-auto py-8">
         <AccountForm
-          initialData={editingAccount}
-          onSubmit={editingAccount ? handleUpdate : handleCreate}
+          onSubmit={handleCreate}
           onCancel={() => {
             setShowForm(false);
-            setEditingAccount(null);
           }}
         />
       </div>

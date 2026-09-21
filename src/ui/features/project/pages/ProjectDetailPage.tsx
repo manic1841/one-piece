@@ -5,7 +5,9 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { type Project } from '@/domains/project/schemas';
 import { listDebtAccountsUseCase } from '@/application/debt/use_cases/listDebtAccountsUseCase';
 import { useAuthContext } from '@/ui/hooks/useAuthContext';
+import { InlineEditableTitle } from '@/ui/components/InlineEditableTitle';
 import { PageHeader } from '@/ui/components/PageHeader';
+import { StatusGlyph } from '@/ui/components/StatusGlyph';
 import { Button } from '@/ui/components/ui/button';
 import { YearMonthPicker } from '@/ui/components/YearMonthPicker';
 import {
@@ -21,6 +23,7 @@ import {
   type ProjectRecordItemVM,
   type ProjectSnapshotItemVM,
 } from '@/ui/features/project/viewmodels/projectDetail.vm';
+import { useProjectCmds } from '@/ui/features/project/hooks/useProjectCmds';
 import { useProjectDetailView } from '@/ui/features/project/hooks/useProjectDetailView';
 import { formatCurrency } from '@/ui/utils';
 
@@ -70,7 +73,8 @@ export default function ProjectDetailPage({ project }: ProjectDetailPageProps) {
   } = useProjectDetailView(householdId, id || '');
 
   const [projectDebt, setProjectDebt] = React.useState<{ id: string; name: string; balanceText: string }[]>([]);
-  const [fetchedProject] = useState<Project | null>(null);
+  const [fetchedProject, setFetchedProject] = useState<Project | null>(null);
+  const { updateProject } = useProjectCmds(householdId);
 
   React.useEffect(() => {
     let ignore = false;
@@ -100,6 +104,34 @@ export default function ProjectDetailPage({ project }: ProjectDetailPageProps) {
 
   const activeProject = project ?? fetchedProject;
 
+  React.useEffect(() => {
+    let ignore = false;
+    const load = async () => {
+      if (project || !householdId || !id) return;
+      try {
+        const { getProjectUseCase } = await import(
+          '@/application/project/use_cases/getProjectUseCase'
+        );
+        const data = await getProjectUseCase.execute({ householdId, projectId: id });
+        if (!ignore) {
+          setFetchedProject(data);
+        }
+      } catch {
+        if (!ignore) setFetchedProject(null);
+      }
+    };
+    void load();
+    return () => {
+      ignore = true;
+    };
+  }, [project, householdId, id]);
+
+  const handleRename = async (name: string) => {
+    if (!activeProject) return;
+    await updateProject(activeProject.id, { name });
+    setFetchedProject((prev) => (prev && prev.id === activeProject.id ? { ...prev, name } : prev));
+  };
+
   const records = useMemo(
     () => items.filter((item): item is ProjectRecordItemVM => item.type === ProjectDetailItemType.RECORD),
     [items],
@@ -119,17 +151,19 @@ export default function ProjectDetailPage({ project }: ProjectDetailPageProps) {
     return { income, expense, net, balanceText: formatCurrency(currentSnapshot?.closingBalance ?? net) };
   }, [records, currentSnapshot]);
 
-  if (!id) return <div>Project not found</div>;
+  if (!id || !activeProject) return <div>Project not found</div>;
 
   return (
     <div className="space-y-8 pb-20">
       <PageHeader
-        title={activeProject?.name ?? '專案'}
+        title={
+          <InlineEditableTitle value={activeProject.name} onSave={handleRename} />
+        }
         crumb="PROJECTS"
         onBack={() => navigate('/projects')}
         badge={
-          activeProject && !activeProject.isActive ? (
-            <span className="font-mono text-[11px] text-muted-foreground">停用</span>
+          !activeProject.isActive ? (
+            <StatusGlyph type="inactive" />
           ) : undefined
         }
         actions={

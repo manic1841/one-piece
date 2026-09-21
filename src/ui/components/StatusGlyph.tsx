@@ -1,6 +1,12 @@
 import { cn } from '@/ui/utils/cn';
 
-export type StatusGlyphType = 'active' | 'verified' | 'waiting' | 'review' | 'error';
+export type StatusGlyphType =
+  | 'active'
+  | 'verified'
+  | 'waiting'
+  | 'review'
+  | 'error'
+  | 'inactive';
 
 type StatusGlyphProps = {
   type: StatusGlyphType;
@@ -14,6 +20,7 @@ const glyphMap: Record<StatusGlyphType, string> = {
   waiting: '○',
   review: '!',
   error: '×',
+  inactive: '⊘',
 };
 
 const defaultLabelMap: Record<StatusGlyphType, string> = {
@@ -22,6 +29,7 @@ const defaultLabelMap: Record<StatusGlyphType, string> = {
   waiting: 'WAITING',
   review: 'REVIEW',
   error: 'ERROR',
+  inactive: 'INACTIVE',
 };
 
 const colorMap: Record<StatusGlyphType, string> = {
@@ -30,6 +38,7 @@ const colorMap: Record<StatusGlyphType, string> = {
   waiting: 'text-muted-foreground',
   review: 'text-warning',
   error: 'text-negative',
+  inactive: 'text-muted-foreground',
 };
 
 export function StatusGlyph({ type, label, className }: StatusGlyphProps) {

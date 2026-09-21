@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 
-import { useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 
 import { type AccountSnapshot, type AccountWithSnapshot } from '@/domains/account/types/account';
 import { AccountCategoryLabels } from '@/ui/constants/account/label';
@@ -137,6 +137,7 @@ const SectionTitle: React.FC<{ children: React.ReactNode }> = ({ children }) => 
 
 const AccountDetailPage: React.FC<AccountDetailPageProps> = ({ account }) => {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const { userProfile } = useAuth();
   const householdId = userProfile?.householdId ?? '';
 
@@ -228,6 +229,7 @@ const AccountDetailPage: React.FC<AccountDetailPageProps> = ({ account }) => {
       <PageHeader
         title={activeAccount.name}
         crumb={`ACCOUNTS / ${AccountCategoryLabels[activeAccount.category].toUpperCase()}`}
+        onBack={() => navigate('/accounts')}
         badge={
           <Badge variant="outline" className="font-mono">
             {activeAccount.currency}

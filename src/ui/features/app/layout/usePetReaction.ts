@@ -9,6 +9,7 @@ const REACTION_BY_GLYPH: Record<StatusGlyphType, PetReaction> = {
   active: 'nod',
   waiting: 'idle',
   error: 'idle',
+  inactive: 'idle',
 };
 
 export function usePetReaction(householdId: string | undefined): PetReaction {

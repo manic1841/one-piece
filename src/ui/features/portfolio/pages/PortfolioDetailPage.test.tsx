@@ -151,37 +151,29 @@ describe('PortfolioDetailPage header', () => {
     expect(navigate).toHaveBeenCalledWith('/portfolios');
   });
 
-  it('exposes Edit in the header actions slot and opens the dialog prefilled', async () => {
+  it('exposes the inline name editor in the header title slot', async () => {
     renderPage();
     await screen.findByText('PORTFOLIO VALUE');
 
-    fireEvent.click(screen.getByRole('button', { name: '編輯組合' }));
+    expect(screen.getByRole('button', { name: 'Edit name' })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Edit name' }));
 
-    expect(await screen.findByText('Edit Portfolio')).toBeInTheDocument();
-    expect((screen.getByLabelText('Name') as HTMLInputElement).value).toBe('Main Portfolio');
-    expect((screen.getByLabelText('Securities Account') as HTMLSelectElement).value).toBe('s1');
-    expect((screen.getByLabelText('Bank Account') as HTMLSelectElement).value).toBe('b1');
+    const input = screen.getByLabelText('Rename') as HTMLInputElement;
+    expect(input.value).toBe('Main Portfolio');
   });
 
-  it('submits the edit through the update portfolio command and closes the dialog', async () => {
+  it('submits the rename through the update portfolio command', async () => {
     const updatePortfolio = vi.fn().mockResolvedValue(undefined);
     renderPage({ updatePortfolio });
     await screen.findByText('PORTFOLIO VALUE');
 
-    fireEvent.click(screen.getByRole('button', { name: '編輯組合' }));
-    fireEvent.click(await screen.findByRole('button', { name: 'Save Changes' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Edit name' }));
+    const input = screen.getByLabelText('Rename');
+    fireEvent.change(input, { target: { value: 'Growth Fund' } });
+    fireEvent.keyDown(input, { key: 'Enter' });
 
     await waitFor(() => {
-      expect(updatePortfolio).toHaveBeenCalledWith('p1', {
-        name: 'Main Portfolio',
-        securitiesAccountId: 's1',
-        bankAccountId: 'b1',
-        isActive: true,
-        order: 0,
-      });
-    });
-    await waitFor(() => {
-      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+      expect(updatePortfolio).toHaveBeenCalledWith('p1', { name: 'Growth Fund' });
     });
   });
 });

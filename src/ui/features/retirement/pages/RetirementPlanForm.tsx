@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 
+import { Trash2 } from 'lucide-react';
+
 import { useParams } from 'react-router-dom';
 
 import { useAuth } from '@/infra/contexts/useAuth';
@@ -37,7 +39,6 @@ const RetirementPlanForm: React.FC = () => {
     isEditingName,
     editedName,
     setEditedName,
-    setIsEditingName,
     staleIncomeSyncBanner,
     handleApplyStaleIncomeSync,
     handleDismissStaleIncomeSync,
@@ -97,12 +98,10 @@ const RetirementPlanForm: React.FC = () => {
         isEditingName={isEditingName}
         editedName={editedName}
         setEditedName={setEditedName}
-        setIsEditingName={setIsEditingName}
         handleSaveName={handleSaveName}
         handleCancelEditName={handleCancelEditName}
         handleRecalculate={handleRecalculate}
         handleToggleAutoUpdate={handleToggleAutoUpdate}
-        handleDelete={handleDelete}
       />
 
       <Accordion
@@ -192,7 +191,20 @@ const RetirementPlanForm: React.FC = () => {
           </AccordionContent>
         </AccordionItem>
       </Accordion>
-    </div>
+      <section className="space-y-3 border-t border-border pt-6">
+        <p className="font-mono text-[11px] tracking-widest text-muted-foreground uppercase">
+          DANGER ZONE
+        </p>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+          onClick={() => void handleDelete()}
+        >
+          <Trash2 size={14} />
+          Delete plan
+        </Button>
+      </section>    </div>
   );
 };
 

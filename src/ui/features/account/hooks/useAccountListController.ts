@@ -29,7 +29,6 @@ export function useAccountListController() {
   const [isReorderMode, setIsReorderMode] = useState(false);
   const [draggedAccountId, setDraggedAccountId] = useState<string | null>(null);
   const [dragOverAccountId, setDragOverAccountId] = useState<string | null>(null);
-  const [editingAccount, setEditingAccount] = useState<Account | null>(null);
   const [snapshotAccountId, setSnapshotAccountId] = useState<string | null>(null);
   const [historyAccountId, setHistoryAccountId] = useState<string | null>(null);
   const [importing, setImporting] = useState(false);
@@ -63,17 +62,6 @@ export function useAccountListController() {
       await loadAccounts();
     },
     [createAccount, loadAccounts],
-  );
-
-  const handleUpdate = useCallback(
-    async (data: AccountCreate) => {
-      if (!editingAccount) return;
-
-      await updateAccount(editingAccount.id, data);
-      setEditingAccount(null);
-      await loadAccounts();
-    },
-    [editingAccount, updateAccount, loadAccounts],
   );
 
   const handleImport = useCallback(
@@ -226,8 +214,6 @@ export function useAccountListController() {
     setIsReorderMode,
     draggedAccountId,
     dragOverAccountId,
-    editingAccount,
-    setEditingAccount,
     snapshotAccountId,
     setSnapshotAccountId,
     historyAccountId,
@@ -237,7 +223,6 @@ export function useAccountListController() {
     togglingAccountId,
     exportToCSV,
     handleCreate,
-    handleUpdate,
     handleImport,
     handleDragStart,
     handleDragEnter,

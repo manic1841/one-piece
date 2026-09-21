@@ -40,8 +40,6 @@ const controllerBase = {
   reload: vi.fn(),
   create: vi.fn(),
   update: vi.fn(),
-  editClick: vi.fn(),
-  deleteClick: vi.fn(),
   editing: undefined,
   isFormOpen: false,
   openForm: vi.fn(),

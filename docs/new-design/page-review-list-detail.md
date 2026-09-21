@@ -28,6 +28,7 @@ List 表格欄位結構與數字欄位（`font-mono tabular-nums`、右對齊）
 **File:** `src/ui/features/account/pages/AccountDetailPage.tsx`（PageHeader 無 `onBack`、無 `actions`）
 §1 Page Shell 統一 header；Debt/Project/Portfolio detail 皆有 onBack。帳戶 detail 需返回列表才能換選其他帳戶。
 **Fix:** PageHeader 加 `onBack={() => navigate('/accounts')}`；header actions 依 §12 評估：帳戶無 detail-layer 的編輯表單（AccountForm 僅在 List 頁 in-page swap），故 detail header 暫不掛 actions，先補返回導覽。
+**裁決（2026-09-21，已實作）：** `onBack` 已補上；header 不掛 actions 維持。
 
 ### L2. ProjectDetailPage 無編輯/刪除入口 — fix, medium
 
@@ -35,6 +36,7 @@ List 表格欄位結構與數字欄位（`font-mono tabular-nums`、右對齊）
 **File:** `src/ui/features/project/pages/ProjectDetailPage.tsx`（header 僅 YearMonthPicker）
 ProjectsPage 只有 create-form 入口；`useProjectPage` 的 `editClick`/`deleteClick` 已實作並 exposed，但 ProjectsPage 未 destructure，屬死碼（見 L3c）。
 **Fix:** 二選一：ProjectsPage row 端 ghost edit/delete（§12 例外，比照 TransactionItem），或 ProjectDetailPage header actions 掛 edit dialog。開 issue 追蹤（與 L3c 同 issue）。
+**裁決（2026-09-21，已實作）：** Project 採 detail header inline rename（`InlineEditableTitle`）；`deleteProject` 隨死碼移除（DeleteProjectUseCase 不清 linked debts / settlement snapshots，Project 只有 deactivate 語意）；`editClick`/`deleteClick` 死碼自 `useProjectPage` 移除。
 
 ### L3. PortfolioDetail 無編輯入口 — fix, medium
 
@@ -42,28 +44,33 @@ ProjectsPage 只有 create-form 入口；`useProjectPage` 的 `editClick`/`delet
 **File:** `src/ui/features/portfolio/components/PortfolioList.tsx`（`setEditingPortfolio` 死碼，見 L3b）
 Detail 無任何編輯/管理入口；List 的編輯狀態永不開啟。
 **Fix:** 二選一：移除 PortfolioList 死碼並接上 row 端 ghost edit（§12 例外，比照 TransactionItem），或 PortfolioDetail header 掛「編輯組合」outline button（PortfolioForm in dialog）＋死碼一併移除。開 issue 追蹤。
+**裁決（2026-09-21，已實作）：** Portfolio 採 detail header inline rename（`InlineEditableTitle`），名稱外欄位（securities/bank）唯讀不移除；dead code 一併清除。
 
 ### L3b. PortfolioList 死碼 — record-only, low
 
 **File:** `src/ui/features/portfolio/components/PortfolioList.tsx`（`setEditingPortfolio` 從未設為 non-null）
 `editingPortfolio` state + 對應 PortfolioForm 分支永不 render，屬死碼，§2 過度工程清掃對象。若 L3 選 detail-header 方案，死碼可一併移除。
+**裁決（2026-09-21，已實作）：** 死碼已隨 L3 inline rename 方案移除。
 
 ### L3c. Project editClick/deleteClick 死碼 — record-only, low
 
 **File:** `src/ui/features/project/hooks/useProjectPage.ts`（`editClick`/`deleteClick` 已 exposed，但 ProjectsPage 未 destructure）
 **裁決：開 GitHub issue 追蹤，與 L2 同 issue。
+**裁決（2026-09-21，已實作）：** `editClick`/`deleteClick` 已自 `useProjectPage` 移除（含 ProjectsPage.test stub 清理）。
 
 ### L3d. AccountList 編輯入口死碼 — record-only, low
 
 **File:** `src/ui/features/account/hooks/useAccountListController.ts`（`setEditingAccount` 只在 `handleUpdate` 完成後設 null，從未開啟編輯表單）
 `editingAccount` state + in-page AccountForm 分支的編輯路徑永不觸發，屬死碼。
 **裁決：開 GitHub issue 追蹤，與 L2 同 issue。
+**裁決（2026-09-21，已實作）：** `editingAccount`/`handleUpdate` 死碼已移除（含 AccountList.test stub 清理）。
 
 ### L4. RetirementPlanHeader 不走 PageHeader — fix, medium
 
 **File:** `src/ui/features/retirement/components/detail/RetirementPlanHeader.tsx`（自製 header，h1 text-3xl）
 §1 Page Shell 統一 header；RetirementPlanForm 是唯一的 form-as-detail 頁，header 結構（back + title + description + actions）與 PageHeader 對齊但自製：`text-3xl` 違反 `text-2xl`、無 crumb、Delete 在 header 而非 DANGER ZONE。
 **Fix:** 遷移至 PageHeader（text-2xl + crumb RETIREMENT + onBack）；Delete 移出 header → 頁面尾端 danger zone（比照 DebtDetailPage），Auto-Update/Recalculate 留 header actions；測試斷言 `text-3xl` 歸零。
+**裁決（2026-09-21，已實作）：** 已遷移至 PageHeader（crumb RETIREMENT、onBack `/retirement`、text-2xl、`InlineEditableTitle` 於 title slot）；Auto-Update toggle + Recalculate 留 header actions；Delete 移至 `RetirementPlanForm` 尾端 DANGER ZONE（ghost destructive，confirm → deletePlan → navigate `/retirement` 不變）。
 
 ### L5. 頁面標題 zh/en 兩層慣例 — record-only
 
@@ -73,6 +80,7 @@ List 頁主標題 zh（帳戶管理/債務管理/專案管理/投資組合/交�
 
 AccountList 停用帳戶以 text-muted-foreground 呈現（無 glyph）；Debt 用 StatusGlyph（已結清 ✓）；Project 用 text-positive（進行中）；PortfolioList 無狀態欄；RetirementPlanList 用 Badge（#131 已裁決不重開）。Debt 是 §16 標竿（StatusGlyph + text）。
 **Fix:** AccountList 停用列 = StatusGlyph + text（`text-muted-foreground` 語意）；Project 進行中/停用 = StatusGlyph verified / muted；PortfolioList 視需要加狀態欄。低風險，可與其他 fix 同 task。
+**裁決（2026-09-21，已實作）：** `StatusGlyph` 新增 `inactive`（⊘，text-muted-foreground）；ProjectDetailPage 停用專案 = `StatusGlyph type="inactive"`；AccountList 停用列維持 muted 語意（⊘ 語意一致）。
 
 ### L6b. RetirementPlanList status Badge — record-only
 
@@ -82,15 +90,15 @@ AccountList 停用帳戶以 text-muted-foreground 呈現（無 glyph）；Debt �
 
 ## 摘要
 
-| # | Finding | Rule | Risk | Type |
-| - | ------- | ---- | ---- | ---- |
-| L1 | AccountDetailPage 無 onBack/actions | §1 | medium | fix |
-| L2+L3c | ProjectDetailPage 無 edit/delete 入口（editClick 死碼） | §1/§12 | medium | fix + issue |
-| L3+L3b | PortfolioDetail 無 edit 入口（setEditingPortfolio 死碼） | §1/§12 | medium | fix + issue |
-| L3d | AccountList 編輯入口死碼 | §2 | low | record-only |
-| L4 | RetirementPlanHeader 不走 PageHeader，Delete 位置 | §1/§12 | medium | fix |
-| L5 | zh/en 兩層慣例 | — | — | record-only（合規） |
-| L6 | Status 表達不一致（Debt 為標竿） | §16 | low | fix |
-| L6b | RetirementPlanList Badge | — | low | record-only |
+| # | Finding | Rule | Risk | Type | Status |
+| - | ------- | ---- | ---- | ---- | ------ |
+| L1 | AccountDetailPage 無 onBack/actions | §1 | medium | fix | resolved |
+| L2+L3c | ProjectDetailPage 無 edit/delete 入口（editClick 死碼） | §1/§12 | medium | fix + issue | resolved |
+| L3+L3b | PortfolioDetail 無 edit 入口（setEditingPortfolio 死碼） | §1/§12 | medium | fix + issue | resolved |
+| L3d | AccountList 編輯入口死碼 | §2 | low | record-only | resolved |
+| L4 | RetirementPlanHeader 不走 PageHeader，Delete 位置 | §1/§12 | medium | fix | resolved |
+| L5 | zh/en 兩層慣例 | — | — | record-only（合規） | — |
+| L6 | Status 表達不一致（Debt 為標竿） | §16 | low | fix | resolved |
+| L6b | RetirementPlanList Badge | — | low | record-only | — |
 
-**下一步：** 開 GitHub issues 追蹤 L1 / L2+L3c / L3+L3b / L4 / L6；L3d 可併入 L2+L3c 或 L3 死碼清掃。
+**下一步：** 全數實作完成（2026-09-21）。L5/L6b 為合規紀錄，維持現狀；#134 頂層 spec 的 #137 checkbox 由人工勾選。
