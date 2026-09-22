@@ -121,6 +121,23 @@ describe('DebtListPage table', () => {
     expect(navigate).toHaveBeenCalledWith('/debt/d1');
   });
 
+  it('removes the settlement entry: only 新增貸款 stays in header actions', () => {
+    mockUseDebtPage.mockReturnValue(controllerBase);
+    mockUseDebtAccountCmds.mockReturnValue({ removeDebtAccount: vi.fn() } as never);
+    mockUseConfirm.mockReturnValue({ confirm: vi.fn().mockResolvedValue(false) } as never);
+    mockUseNavigate.mockReturnValue(vi.fn());
+
+    render(
+      <MemoryRouter>
+        <DebtListPage />
+      </MemoryRouter>,
+    );
+
+    expect(screen.queryByRole('button', { name: /月度結算/ })).toBeNull();
+    expect(screen.queryByText('債務月度結算')).toBeNull();
+    expect(screen.getByRole('button', { name: /新增貸款/ })).toBeInTheDocument();
+  });
+
   it('renders the settled filter as a compact text toggle next to the total outstanding summary', () => {
     mockUseDebtPage.mockReturnValue(controllerBase);
     mockUseDebtAccountCmds.mockReturnValue({ removeDebtAccount: vi.fn() } as never);

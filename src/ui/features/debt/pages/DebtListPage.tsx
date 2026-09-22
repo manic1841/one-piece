@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-import { Calendar, Plus } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 import { type DebtAccount } from '@/domains/debt/schemas';
@@ -23,7 +23,6 @@ import { PageHeader } from '@/ui/components/PageHeader';
 import { formatCurrency, formatDate } from '@/ui/utils';
 import { cn } from '@/ui/utils/cn';
 import { DebtAccountForm } from '@/ui/features/debt/components/DebtAccountForm';
-import { DebtSettlement } from '@/ui/features/debt/components/DebtSettlement';
 import { useDebtPage } from '@/ui/features/debt/hooks/useDebtPage';
 import { useDebtAccountFormViewModel } from '@/ui/features/debt/viewmodels/useDebtAccountFormViewModel';
 
@@ -45,7 +44,6 @@ export default function DebtListPage() {
 
   const [dialogMode, setDialogMode] = useState<DialogMode | null>(null);
   const [editTarget, setEditTarget] = useState<DebtAccount | null>(null);
-  const [isSettlementOpen, setIsSettlementOpen] = useState(false);
   const [showSettled, setShowSettled] = useState(false);
 
   const openCreate = () => {
@@ -85,10 +83,6 @@ export default function DebtListPage() {
         description="追蹤所有貸款與還款進度"
         actions={
           <div className="flex gap-2">
-            <Button variant="outline" className="gap-2" onClick={() => setIsSettlementOpen(true)}>
-              <Calendar size={16} />
-              月度結算
-            </Button>
             <Button onClick={openCreate} className="gap-2">
               <Plus size={18} />
               新增貸款
@@ -223,20 +217,6 @@ export default function DebtListPage() {
             <DialogTitle>{dialogMode === 'create' ? '新增貸款' : '編輯貸款'}</DialogTitle>
           </DialogHeader>
           <DebtAccountForm vm={formVm} />
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={isSettlementOpen} onOpenChange={setIsSettlementOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>債務月度結算</DialogTitle>
-          </DialogHeader>
-          <DebtSettlement
-            householdId={householdId}
-            userEmail={userProfile?.email || ''}
-            onSuccess={() => reload()}
-            onCancel={() => setIsSettlementOpen(false)}
-          />
         </DialogContent>
       </Dialog>
     </div>

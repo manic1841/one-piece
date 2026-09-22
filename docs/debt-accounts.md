@@ -332,25 +332,17 @@ DebtAccount.closedAt = today
 
 備註：本金在會計上不是損益費用，但退休現金流模型可依需求納入現金流出；需以上述旗標清楚標記。
 
-## 7. 債務月結算預覽與警訊
+## 7. 債務月結算與警訊
 
-`DebtSettlement` 採用「先預覽、再確認」流程：
+債務月結算僅能透過月度關帳流程（`/close` 的 `DEBT_REPAYMENT` 階段）執行，不再有獨立的結算對話框入口。`DEBT_REPAYMENT` 階段確認時一次完成兩件事：
 
-1. 使用者選擇 `year` / `month` 後，先執行預覽。
-2. 系統逐一檢查啟用中的 `DebtAccount`：
-
-- 當月是否有 `DEBT_PAYMENT` 還款紀錄。
-- 當月是否已存在 `Debt Snapshot`。
-
-3. 預覽畫面顯示每個帳戶的：
-
-- 還款筆數與還款總額。
-- 快照是否已存在、或本次結算是否會建立快照。
+1. 依輸入建立還款交易（`createDebtPaymentUseCase`，含冪等鍵）。
+2. 執行 `settleDebtAccountsUseCase`，為當月尚無 `Debt Snapshot` 的啟用中 `DebtAccount` 建立快照（已存在的快照不會重複建立）。
 
 ### 無還款警訊規則
 
-- 若某些帳戶在該月沒有還款紀錄，系統必須顯示警訊。
-- 這不是阻擋條件：使用者勾選「仍要繼續結算」後，仍可執行結算。
+- 若某些帳戶在該月沒有還款紀錄，Completeness Check 階段會標記為零活動異常，暫停關帳流程（`NEEDS_REVIEW`）。
+- 這不是永久阻擋：使用者確認檢視後重新確認 `COMPLETENESS_CHECK` 階段即可繼續。
 - 結算時，無還款帳戶會建立「零還款快照」：
   - `principalPaid = 0`
   - `interestPaid = 0`
