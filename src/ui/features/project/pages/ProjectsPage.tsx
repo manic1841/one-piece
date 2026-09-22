@@ -23,7 +23,6 @@ import { useProjectPage } from '@/ui/features/project/hooks/useProjectPage';
 import { useProjectQueries } from '@/ui/features/project/hooks/useProjects';
 import { formatCurrency } from '@/ui/utils';
 import { cn } from '@/ui/utils/cn';
-import MonthlySettlement from './MonthlySettlement';
 
 interface ProjectTotals {
   income: number;
@@ -144,13 +143,10 @@ const Projects: React.FC = () => {
   const {
     loading,
     projects,
-    reload,
     create,
     isFormOpen,
     openForm,
     closeForm,
-    isMonthlySettlementView,
-    closeMonthlySettlement,
     showInactive,
     toggleShowInactive,
     handleReorder,
@@ -214,18 +210,6 @@ const Projects: React.FC = () => {
         <h1 className="text-2xl font-bold text-foreground">Projects</h1>
         <div className="text-muted-foreground">Loading...</div>
       </div>
-    );
-  }
-
-  if (isMonthlySettlementView) {
-    return (
-      <MonthlySettlement
-        householdId={userProfile?.householdId || ''}
-        userEmail={userProfile?.email || ''}
-        projects={projects.filter((p) => p.isActive)}
-        onBack={closeMonthlySettlement}
-        onSuccess={reload}
-      />
     );
   }
 

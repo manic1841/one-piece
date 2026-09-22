@@ -64,19 +64,9 @@ const controllerBase = {
   isFormOpen: false,
   openForm: vi.fn(),
   closeForm: vi.fn(),
-  isSettlementDialogOpen: false,
-  openSettleDialog: vi.fn(),
-  closeSettleDialog: vi.fn(),
-  selectedProject: undefined,
-  setSelectedProject: vi.fn(),
-  selectProject: vi.fn(),
-  unselectProject: vi.fn(),
   handleReorder: vi.fn(),
   showInactive: false,
   toggleShowInactive: vi.fn(),
-  isMonthlySettlementView: false,
-  openMonthlySettlement: vi.fn(),
-  closeMonthlySettlement: vi.fn(),
 };
 
 describe('ProjectsPage table', () => {

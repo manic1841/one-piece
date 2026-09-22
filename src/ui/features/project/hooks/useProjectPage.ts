@@ -12,10 +12,7 @@ export interface ProjectArgs {
 
 export const useProjectPage = (householdId?: string) => {
   const { projects, loading, error, reload } = useProjects(householdId || '');
-  const [isSettlementDialogOpen, setIsSettlementDialogOpen] = useState(false);
   const [isFormOpen, setIsFormOpen] = useState(false);
-  const [selectedProject, setSelectedProject] = useState<Project | undefined>(undefined);
-  const [isMonthlySettlementView, setIsMonthlySettlementView] = useState(false);
   const [showInactive, setShowInactive] = useState(false);
   const [localProjects, setLocalProjects] = useState<Project[]>([]);
 
@@ -40,15 +37,6 @@ export const useProjectPage = (householdId?: string) => {
     reload();
   };
 
-  // select project
-  const selectProject = (project: Project | undefined) => {
-    setSelectedProject(project);
-  };
-
-  const unselectProject = () => {
-    setSelectedProject(undefined);
-  };
-
   // open form
   const openForm = () => {
     setIsFormOpen(true);
@@ -57,16 +45,6 @@ export const useProjectPage = (householdId?: string) => {
   // close form
   const closeForm = () => {
     setIsFormOpen(false);
-  };
-
-  // open settlement dialog
-  const openSettleDialog = () => {
-    setIsSettlementDialogOpen(true);
-  };
-
-  // close settlement dialog
-  const closeSettleDialog = () => {
-    setIsSettlementDialogOpen(false);
   };
 
   const handleReorder = useCallback(
@@ -97,18 +75,8 @@ export const useProjectPage = (householdId?: string) => {
     isFormOpen,
     openForm,
     closeForm,
-    isSettlementDialogOpen,
-    openSettleDialog,
-    closeSettleDialog,
-    selectedProject,
-    setSelectedProject,
-    selectProject,
-    unselectProject,
     handleReorder,
     showInactive,
     toggleShowInactive: () => setShowInactive((prev) => !prev),
-    isMonthlySettlementView,
-    openMonthlySettlement: () => setIsMonthlySettlementView(true),
-    closeMonthlySettlement: () => setIsMonthlySettlementView(false),
   };
 };
