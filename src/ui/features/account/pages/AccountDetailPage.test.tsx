@@ -43,7 +43,7 @@ const baseAccount = buildAccount({
     createdAt: new Date('2026-09-01'),
     updatedAt: new Date('2026-09-01'),
     holdings: [
-      { symbol: '2330', name: 'TSMC', quantity: 10, cost: 620000, marketValue: 710000, leverage: 1 },
+      { symbol: '2330', name: 'TSMC', cost: 620000, marketValue: 710000, leverage: 1 },
     ],
   },
 });

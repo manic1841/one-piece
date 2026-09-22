@@ -11,7 +11,7 @@ vi.mock('@/ui/features/account/hooks/useAccountCmds', () => ({
   useAccountCmds: vi.fn(),
 }));
 
-vi.mock('@/ui/features/account/hooks/useExchangeRate', () => ({
+vi.mock('@/ui/hooks/useExchangeRate', () => ({
   useExchangeRate: vi.fn(),
 }));
 
@@ -21,7 +21,7 @@ describe('AccountSnapshotEditor', () => {
 
     const { useAuth } = await import('@/infra/contexts/useAuth');
     const { useAccountCmds } = await import('@/ui/features/account/hooks/useAccountCmds');
-    const { useExchangeRate } = await import('@/ui/features/account/hooks/useExchangeRate');
+    const { useExchangeRate } = await import('@/ui/hooks/useExchangeRate');
 
     vi.mocked(useAuth).mockReturnValue({
       userProfile: { householdId: 'household-1' },
@@ -120,7 +120,6 @@ describe('AccountSnapshotEditor', () => {
         {
           symbol: 'AAPL',
           name: 'Apple Inc.',
-          quantity: 10,
           cost: 150,
           marketValue: 1200,
         },
@@ -186,7 +185,7 @@ describe('AccountSnapshotEditor', () => {
       holdings: [],
     };
 
-    const { useExchangeRate } = await import('@/ui/features/account/hooks/useExchangeRate');
+    const { useExchangeRate } = await import('@/ui/hooks/useExchangeRate');
     vi.mocked(useExchangeRate).mockReturnValue({
       getRate: vi.fn().mockResolvedValue(undefined),
       loading: false,

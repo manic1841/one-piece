@@ -157,7 +157,6 @@ const buildSnapshot = (
             holdings: holdings.map((h) => ({
               symbol: 'STK',
               name: 'Stock',
-              quantity: 1,
               cost: 0,
               marketValue: h.marketValue,
               leverage: h.leverage,

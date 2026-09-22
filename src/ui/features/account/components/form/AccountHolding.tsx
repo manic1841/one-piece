@@ -60,15 +60,6 @@ export const AccountHolding: React.FC<AccountHoldingProps> = ({
                 className="h-8 text-xs"
               />
             </div>
-            <div className="sm:col-span-1 col-span-2">
-              <Label className="text-xs">Qty</Label>
-              <Input
-                type="number"
-                value={holding.quantity}
-                onChange={(e) => onUpdateHolding(index, 'quantity', e.target.value)}
-                className="h-8 text-xs px-1"
-              />
-            </div>
             <div className="sm:col-span-3 col-span-6">
               <Label className="text-xs">Cost</Label>
               <Input

@@ -3,11 +3,10 @@ import { z } from 'zod';
 import { AccountCategory, CurrencyType } from '@/domains/account/types/categories';
 import { BaseSchema } from '@/shared/schemas/base';
 
-// Holding Schema
+// Holding Schema: market-value only; quantity is not recorded (ADR-0060)
 export const HoldingSchema = z.object({
   symbol: z.string(),
   name: z.string(),
-  quantity: z.number(),
   cost: z.number(),
   marketValue: z.number(),
   leverage: z.number().optional(),

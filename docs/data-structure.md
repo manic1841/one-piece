@@ -57,7 +57,7 @@ firestore
        │         ├─ amount: number       # 總餘額 (折合本位幣)
        │         ├─ originalAmount: number # 原始幣別金額
        │         ├─ exchangeRate: number
-       │         ├─ holdings: array      # 證券持倉詳情 (symbol, quantity, cost, etc.)
+       │         ├─ holdings: array      # 證券持倉詳情 (symbol, cost, marketValue, leverage; ADR-0060 市值制，不記錄數量)
        │         └─ createdAt: Timestamp
 
      # Account 停用規則：

@@ -5,7 +5,6 @@ import { Input } from '@/ui/components/ui/input';
 import { Label } from '@/ui/components/ui/label';
 
 import type {
-  AccountBalanceInput,
   DebtRepaymentInput,
   FinancingInput,
   SecuritiesTradeInput,
@@ -18,10 +17,8 @@ export interface CloseStageInputsProps {
   stageId: string;
   /** The closing period (YYYY-MM); close-input transactions must be dated inside it. */
   yearMonth: string;
-  accounts: { id: string; name: string }[];
   portfolios: { id: string; name: string }[];
   debtAccounts: { id: string; name: string; currentBalance: number }[];
-  accountBalances: AccountBalanceInput[];
   securities: { buys: SecuritiesTradeInput[]; sells: SecuritiesTradeInput[] };
   financing: {
     shareholderFinancing: FinancingInput[];
@@ -29,7 +26,6 @@ export interface CloseStageInputsProps {
   };
   portfolioCashFlows: Record<string, { deposits: number; withdrawals: number }>;
   repayments: DebtRepaymentInput[];
-  onAccountBalancesChange: (inputs: AccountBalanceInput[]) => void;
   onSecuritiesChange: (inputs: { buys: SecuritiesTradeInput[]; sells: SecuritiesTradeInput[] }) => void;
   onFinancingChange: (inputs: {
     shareholderFinancing: FinancingInput[];
@@ -43,50 +39,18 @@ export interface CloseStageInputsProps {
 export const CloseStageInputs: React.FC<CloseStageInputsProps> = ({
   stageId,
   yearMonth,
-  accounts,
   portfolios,
   debtAccounts,
-  accountBalances,
   securities,
   financing,
   portfolioCashFlows,
   repayments,
-  onAccountBalancesChange,
   onSecuritiesChange,
   onFinancingChange,
   onPortfolioCashFlowsChange,
   onRepaymentsChange,
   disabled,
 }) => {
-  if (stageId === 'ACCOUNT_BALANCE') {
-    return (
-      <div className="space-y-3">
-        {accounts.map((account) => (
-          <div key={account.id} className="flex items-center gap-3">
-            <Label className="w-32 shrink-0 truncate text-xs">{account.name}</Label>
-            <Input
-              type="number"
-              inputMode="decimal"
-              disabled={disabled}
-              value={accountBalances.find((item) => item.accountId === account.id)?.amount ?? ''}
-              onChange={(event) => {
-                const amount = event.target.value === '' ? undefined : Number(event.target.value);
-                const next = accountBalances.filter((item) => item.accountId !== account.id);
-                if (amount !== undefined && !Number.isNaN(amount)) {
-                  next.push({ accountId: account.id, amount });
-                }
-                onAccountBalancesChange(next);
-              }}
-            />
-          </div>
-        ))}
-        {accounts.length === 0 && (
-          <p className="text-xs text-muted-foreground">{MONTHLY_CLOSE_LABELS.NO_EVIDENCE}</p>
-        )}
-      </div>
-    );
-  }
-
   if (stageId === 'SECURITIES_TRADE') {
     return (
       <div className="space-y-3">

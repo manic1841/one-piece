@@ -64,8 +64,8 @@ describe('accountSnapshotEditor.vm', () => {
       originalAmount: 0,
       exchangeRate: 32,
       holdings: [
-        { symbol: 'AAA', name: 'A', quantity: 1, cost: 10, marketValue: 100, leverage: 1 },
-        { symbol: 'BBB', name: 'B', quantity: 1, cost: 20, marketValue: 200, leverage: 1 },
+        { symbol: 'AAA', name: 'A', cost: 10, marketValue: 100, leverage: 1 },
+        { symbol: 'BBB', name: 'B', cost: 20, marketValue: 200, leverage: 1 },
       ],
     };
 
@@ -111,11 +111,10 @@ describe('accountSnapshotEditor.vm', () => {
     const next = applyImportedHoldings(
       vm,
       [
-        { symbol: 'AAPL', name: 'Apple', quantity: 1, cost: 100, marketValue: 120, leverage: 1 },
+        { symbol: 'AAPL', name: 'Apple', cost: 100, marketValue: 120, leverage: 1 },
         {
           symbol: 'MSFT',
           name: 'Microsoft',
-          quantity: 1,
           cost: 200,
           marketValue: 210,
           leverage: 1,

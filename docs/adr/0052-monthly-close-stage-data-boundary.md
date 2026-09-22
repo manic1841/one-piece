@@ -32,3 +32,44 @@ Monthly Close 的階段模型（M1）定為八個階段：銀行帳戶餘額 →
 - 階段命名用「Ledger」：撞 CONTEXT.md 避免詞（Transaction 為 canonical），改用 TRANSACTION_VALIDATION，拒絕。
 - 股東往來標記為後續擴充、不加關帳入口：家庭場景罕見，但 UI/UX 規格明確要求關帳時能建立 FINANCING intent 交易，採用擴充投資與融資輸入，拒絕維持現狀。
 - 債務還款改為每筆逐一確認寫入：動 workflow API 與 UI，且冪等鍵已保證批次安全；採用 UI 內審核 + 單一 confirm 寫入（同 calculator 預覽），拒絕。
+
+## S2 修訂（2026-09-22，Account Balance UI/UX 對照）
+
+銀行帳戶餘額階段（顯示名改為帳戶餘額，涵蓋現金／銀行／外幣／證券）重構為依
+Account Type 分區的資料確認工作區：
+
+- TWD 現金／銀行：前期餘額（read-only，取上月快照）＋期末餘額（editable）。
+- 外幣：外幣金額＋匯率（皆 editable）＋取得匯率按鈕（共用 useExchangeRate，
+  失敗時 inline 錯誤訊息、手動輸入為 fallback），TWD 價值由系統計算
+  （外幣金額 × 匯率），不可做成 input。
+- 證券：Holdings 表作為輸入（inline 新增／刪除／修改），市值由系統計算
+  （Σ holding marketValue）；匯入上月持倉按鈕複製上月 holdings 為當月起始資料
+  （無上月持倉時 disabled）。非 TWD 證券帳戶加匯率（editable）＋TWD 價值列，
+  `amount = Σ holding marketValue × 匯率`（TWD 價值由 computeSectionInput 衍生）。
+- 每帳戶 ○ WAITING / ✓ VERIFIED 為純 UI 衍生狀態，由階段完成狀態推導，不持久化。
+- 所有必要輸入直接呈現在 Page 內（單一 Current Step 工作區），不使用 Dialog。
+
+申請層 DTO 放寬：`AccountBalanceInput` 由 `{ accountId, amount }` 擴為加
+`originalAmount?` / `exchangeRate?` / `holdings?` optional 欄位。Firestore schema、
+domain schema 與既有計算語意全部不動：非 TWD `amount = 原幣金額 × 匯率`、有持倉
+`amount = Σ holding marketValue`（既有 accountSnapshotEditor.vm 語意），persisted
+`amount` 仍為折合 TWD 數字。UI 預覽與提交走同一條計算路徑（accountBalance.vm 的
+computeSectionInput），不在 UI 層自建第二條計算。確認動作維持單段式冪等（輸入隨
+確認一次提交）；inline 驗證：TWD 需期末餘額、外幣需金額＋匯率、證券允許空持倉
+（未完成階段 inline 提示、完成後不顯示）。數值輸入以 `Number.parseFloat` 轉型
+（同 accountSnapshotEditor.vm 的 toNumber 模式），字串不得直接寫入 number 欄位。
+
+持倉模型修訂：從 `HoldingSchema` 移除 `quantity`，持倉以市值為記錄單位，詳見
+[ADR-0060](0060-holdings-market-value-only.md)。
+
+## S2 Considered Options（2026-09-22）
+
+- 維持只送 `amount`：外幣換算與 Holdings 只在畫面上算給看不落庫，下個月證券沒有
+  上月持倉可匯入、同一批快照因寫入來源不同而完整度不一致，拒絕。
+- 另開新的確認路徑攜帶外幣／持倉資料：多一條寫入路徑寫同一批快照，拒絕。
+- 持久化 per-account 狀態：動 schema 且階段級 PENDING/COMPLETED 已足夠，採用
+  UI 衍生狀態，拒絕。
+- 外幣與證券必要欄位放 Dialog：欄位本身是 Account Balance 階段的必要輸入資料，
+  放 Dialog 會讓使用者無法在同一個 Current Step 完成確認，拒絕。
+- Market Value 讓使用者另外輸入：會造成 Holdings Value ≠ Market Value 的資料
+  不一致，採用系統計算，拒絕。

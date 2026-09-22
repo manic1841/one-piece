@@ -21,7 +21,7 @@ import { useAccountCmds } from '@/ui/features/account/hooks/useAccountCmds';
 
 import { AccountAmount } from '../components/form/AccountAmount';
 import { AccountHolding } from '../components/form/AccountHolding';
-import { useExchangeRate } from '../hooks/useExchangeRate';
+import { useExchangeRate } from '@/ui/hooks/useExchangeRate';
 import {
   AccountSnapshotFormSchema,
   mapAccountSnapshotVMToDomain,

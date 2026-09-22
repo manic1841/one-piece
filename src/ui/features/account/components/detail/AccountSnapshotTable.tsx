@@ -151,9 +151,6 @@ export const AccountSnapshotTable: React.FC<AccountSnapshotTableProps> = ({
                                     <TableHead className="h-8 text-[10px] font-bold uppercase">
                                       Symbol
                                     </TableHead>
-                                    <TableHead className="h-8 text-[10px] font-bold uppercase">
-                                      Qty
-                                    </TableHead>
                                     <TableHead className="h-8 text-[10px] font-bold uppercase text-right">
                                       Cost
                                     </TableHead>
@@ -177,9 +174,6 @@ export const AccountSnapshotTable: React.FC<AccountSnapshotTableProps> = ({
                                           <div className="text-[10px] text-muted-foreground">
                                             {holding.name}
                                           </div>
-                                        </TableCell>
-                                        <TableCell className="py-1 text-xs">
-                                          {holding.quantity}
                                         </TableCell>
                                         <TableCell className="py-1 text-xs text-right">
                                           {formatCurrency(holding.cost)}

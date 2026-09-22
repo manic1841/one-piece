@@ -84,7 +84,7 @@ export const addHoldingToForm = (
 ): AccountSnapshotEditorFormVM => {
   return {
     ...prev,
-    holdings: [...prev.holdings, { symbol: '', name: '', quantity: 0, cost: 0, marketValue: 0 }],
+    holdings: [...prev.holdings, { symbol: '', name: '', cost: 0, marketValue: 0 }],
   };
 };
 
@@ -133,9 +133,7 @@ export const updateHoldingInForm = (
   },
 ): AccountSnapshotEditorFormVM => {
   const holdings = [...prev.holdings];
-  const nextValue = ['quantity', 'cost', 'marketValue', 'leverage'].includes(field)
-    ? toNumber(value)
-    : value;
+  const nextValue = ['cost', 'marketValue', 'leverage'].includes(field) ? toNumber(value) : value;
 
   holdings[index] = {
     ...holdings[index],

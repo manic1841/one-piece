@@ -1,7 +1,7 @@
 import { CLOSE_STAGE_IDS, type CloseStageId } from '@/domains/financial_period/schemas';
 
 export const CLOSE_STAGE_LABELS: Record<CloseStageId, string> = {
-  ACCOUNT_BALANCE: '銀行帳戶餘額',
+  ACCOUNT_BALANCE: '帳戶餘額',
   TRANSACTION_VALIDATION: '交易驗證',
   SECURITIES_TRADE: '證券買入／賣出',
   PORTFOLIO_CASH_FLOW: 'Portfolio 金流',

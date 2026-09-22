@@ -154,6 +154,59 @@ describe('MonthlyCloseWorkflowUseCase.confirmStage', () => {
     );
   });
 
+  it('passes foreign-currency details and holdings into the snapshots', async () => {
+    await useCase.confirmStage({
+      ...REQUEST_BASE,
+      stageId: 'ACCOUNT_BALANCE',
+      accountBalances: [
+        {
+          accountId: 'account-usd',
+          amount: 375000,
+          originalAmount: 12000,
+          exchangeRate: 31.25,
+        },
+        {
+          accountId: 'account-sec',
+          amount: 1680000,
+          holdings: [
+            { symbol: '2330', name: 'TSMC', cost: 620000, marketValue: 710000, leverage: 1 },
+          ],
+        },
+      ],
+    });
+
+    expect(batchRecordSnapshotsUseCase.execute).toHaveBeenCalledWith({
+      householdId: 'household-1',
+      snapshots: [
+        {
+          accountId: 'account-usd',
+          data: {
+            accountId: 'account-usd',
+            year: 2026,
+            month: 9,
+            amount: 375000,
+            originalAmount: 12000,
+            exchangeRate: 31.25,
+          },
+        },
+        {
+          accountId: 'account-sec',
+          data: {
+            accountId: 'account-sec',
+            year: 2026,
+            month: 9,
+            amount: 1680000,
+            holdings: [
+              { symbol: '2330', name: 'TSMC', cost: 620000, marketValue: 710000, leverage: 1 },
+            ],
+          },
+        },
+      ],
+      userEmail: 'user@test.com',
+      auth,
+    });
+  });
+
   it('rejects account balance confirmation without balances', async () => {
     await expect(
       useCase.confirmStage({ ...REQUEST_BASE, stageId: 'ACCOUNT_BALANCE' }),

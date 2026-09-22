@@ -36,8 +36,7 @@ export const AccountSnapshotList: React.FC<AccountSnapshotListProps> = ({
                   <div className="mt-2 pl-3 border-l-2 border-border space-y-1">
                     {snapshot.holdings.map((h: Holding, idx: number) => (
                       <div key={idx} className="text-[11px] text-muted-foreground">
-                        {h.name} ({h.symbol}): {h.quantity} @{' '}
-                        {(h.marketValue / h.quantity).toLocaleString()} ={' '}
+                        {h.name} ({h.symbol}) ={' '}
                         <span className="font-medium">
                           {h.marketValue.toLocaleString()} {currency}
                         </span>

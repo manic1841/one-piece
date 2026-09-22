@@ -7,6 +7,9 @@ import { Card, CardContent } from '@/ui/components/ui/card';
 import { StatusGlyph } from '@/ui/components/StatusGlyph';
 import { MONTHLY_CLOSE_LABELS } from '@/ui/constants/monthlyClose';
 import {
+  getPreviousSnapshotUseCase,
+} from '@/application/account/use_cases/getPreviousSnapshotUseCase';
+import {
   getAccountsUseCase,
 } from '@/application/account/use_cases/getAccountsUseCase';
 import {
@@ -22,6 +25,7 @@ import type {
   SecuritiesTradeInput,
 } from '@/application/monthly_close/use_cases/monthlyCloseWorkflowUseCase';
 import type { Account } from '@/domains/account/schemas';
+import type { AccountSnapshot } from '@/domains/account/types/account';
 import type { Portfolio } from '@/domains/portfolio/schemas';
 import type { DebtAccount } from '@/domains/debt/schemas';
 import type { CloseStageId } from '@/domains/financial_period/schemas';
@@ -39,6 +43,7 @@ import {
 import type { CloseStageEvidence } from '../viewmodels/monthlyClose.vm';
 import { CloseStageEvidenceList } from '../components/CloseStageEvidenceList';
 import { CloseStageInputs } from '../components/CloseStageInputs';
+import { CloseAccountBalanceInputs } from '../components/CloseAccountBalanceInputs';
 import { CloseWorkspace } from '../components/CloseWorkspace';
 
 interface MonthlyClosePageProps {
@@ -137,6 +142,7 @@ export const MonthlyClosePage: React.FC<MonthlyClosePageProps> = ({ householdId:
   const [portfolios, setPortfolios] = useState<Portfolio[]>([]);
   const [debtAccounts, setDebtAccounts] = useState<DebtAccount[]>([]);
   const [accountBalances, setAccountBalances] = useState<AccountBalanceInput[]>([]);
+  const [accountSnapshots, setAccountSnapshots] = useState<Map<string, AccountSnapshot>>(new Map());
   const [securities, setSecurities] = useState<{
     buys: SecuritiesTradeInput[];
     sells: SecuritiesTradeInput[];
@@ -171,6 +177,37 @@ export const MonthlyClosePage: React.FC<MonthlyClosePageProps> = ({ householdId:
       cancelled = true;
     };
   }, [auth, householdId]);
+
+  useEffect(() => {
+    if (!householdId || !selectedYearMonth) return;
+    let cancelled = false;
+
+    const loadAccountSnapshots = async () => {
+      const entries = await Promise.all(
+        accounts.map(async (account) => {
+          const snapshot = await getPreviousSnapshotUseCase.execute({
+            householdId,
+            accountId: account.id,
+            year: Number(selectedYearMonth.slice(0, 4)),
+            month: Number(selectedYearMonth.slice(5, 7)),
+            auth,
+          });
+          return [account.id, snapshot] as const;
+        }),
+      );
+      if (cancelled) return;
+      const map = new Map<string, AccountSnapshot>();
+      for (const [accountId, snapshot] of entries) {
+        if (snapshot) map.set(accountId, snapshot);
+      }
+      setAccountSnapshots(map);
+    };
+
+    void loadAccountSnapshots();
+    return () => {
+      cancelled = true;
+    };
+  }, [accounts, auth, householdId, selectedYearMonth]);
 
   useEffect(() => {
     if (!householdId || !selectedYearMonth) return;
@@ -227,28 +264,38 @@ export const MonthlyClosePage: React.FC<MonthlyClosePageProps> = ({ householdId:
         <p className="mb-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
           {MONTHLY_CLOSE_LABELS.INPUTS_LABEL}
         </p>
-        <CloseStageInputs
-          stageId={stageId}
-          yearMonth={selectedYearMonth}
-          accounts={accounts.map((account) => ({ id: account.id, name: account.name }))}
-          portfolios={portfolios.map((portfolio) => ({ id: portfolio.id, name: portfolio.name }))}
-          debtAccounts={debtAccounts.map((debtAccount) => ({
-            id: debtAccount.id,
-            name: debtAccount.name,
-            currentBalance: debtAccount.currentBalance,
-          }))}
-          accountBalances={accountBalances}
-          securities={securities}
-          financing={financing}
-          portfolioCashFlows={portfolioCashFlows}
-          repayments={repayments}
-          onAccountBalancesChange={setAccountBalances}
-          onSecuritiesChange={setSecurities}
-          onFinancingChange={setFinancing}
-          onPortfolioCashFlowsChange={setPortfolioCashFlows}
-          onRepaymentsChange={setRepayments}
-          disabled={confirmingStageId !== null}
-        />
+        {stageId === 'ACCOUNT_BALANCE' ? (
+          <CloseAccountBalanceInputs
+            accounts={accounts}
+            snapshots={accountSnapshots}
+            inputs={accountBalances}
+            stageCompleted={
+              pageVM.stages.find((stage) => stage.stageId === 'ACCOUNT_BALANCE')?.isCompleted ??
+              false
+            }
+            onInputsChange={setAccountBalances}
+          />
+        ) : (
+          <CloseStageInputs
+            stageId={stageId}
+            yearMonth={selectedYearMonth}
+            portfolios={portfolios.map((portfolio) => ({ id: portfolio.id, name: portfolio.name }))}
+            debtAccounts={debtAccounts.map((debtAccount) => ({
+              id: debtAccount.id,
+              name: debtAccount.name,
+              currentBalance: debtAccount.currentBalance,
+            }))}
+            securities={securities}
+            financing={financing}
+            portfolioCashFlows={portfolioCashFlows}
+            repayments={repayments}
+            onSecuritiesChange={setSecurities}
+            onFinancingChange={setFinancing}
+            onPortfolioCashFlowsChange={setPortfolioCashFlows}
+            onRepaymentsChange={setRepayments}
+            disabled={confirmingStageId !== null}
+          />
+        )}
       </div>
     );
   };

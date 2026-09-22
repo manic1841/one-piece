@@ -594,7 +594,7 @@ const buildPortfolioSnapshotDocs = (b: Builder) => {
           category: 'securities',
           value: closingValue,
           holdings: [
-            { symbol: '0050', name: '元大台灣50', quantity: 400, cost: 50, marketValue: closingValue },
+            { symbol: '0050', name: '元大台灣50', cost: 50, marketValue: closingValue },
           ],
         },
       ],
