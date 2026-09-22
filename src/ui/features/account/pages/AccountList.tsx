@@ -14,8 +14,11 @@ import {
   TableHeader,
   TableRow,
 } from '@/ui/components/ui/table';
+import { SortableListScope, GripHandle } from '@/ui/components/sortable/SortableListScope';
+import { useSortableRow } from '@/ui/components/sortable/useSortableList';
 import { PageHeader } from '@/ui/components/PageHeader';
 import { formatCurrency } from '@/ui/utils';
+import { cn } from '@/ui/utils/cn';
 
 import { useAccountListController } from '../hooks/useAccountListController';
 import AccountForm from './AccountForm';
@@ -55,43 +58,74 @@ const toRowVM = (account: AccountWithSnapshot): AccountRowVM => ({
   isActive: account.isActive !== false,
 });
 
+interface SortableAccountRowProps {
+  row: AccountRowVM;
+  onSelect: (id: string) => void;
+}
+
+const SortableAccountRow: React.FC<SortableAccountRowProps> = ({ row, onSelect }) => {
+  const { setNodeRef, setActivatorNodeRef, attributes, listeners, rowStyle, isDragging } =
+    useSortableRow(row.id);
+
+  return (
+    <TableRow
+      ref={setNodeRef}
+      onClick={() => onSelect(row.id)}
+      className={cn('cursor-pointer', isDragging && 'opacity-50')}
+      style={rowStyle}
+      data-testid={`account-row-${row.id}`}
+    >
+      <TableCell className="w-10 pr-0">
+        <GripHandle
+          label={`Reorder ${row.name}`}
+          testId={`account-grip-${row.id}`}
+          attributes={attributes}
+          listeners={listeners}
+          activatorRef={setActivatorNodeRef}
+          className={row.isActive ? '' : 'opacity-60'}
+        />
+      </TableCell>
+      <TableCell className={row.isActive ? '' : 'text-muted-foreground'}>
+        {row.name}
+        <span className="ml-2 font-mono text-[10px] text-muted-foreground">
+          {row.currency}
+        </span>
+      </TableCell>
+      <TableCell className="text-right font-mono tabular-nums">{row.balanceText}</TableCell>
+      <TableCell className="text-right font-mono text-[11px] tabular-nums text-muted-foreground">
+        {row.asOfText}
+      </TableCell>
+    </TableRow>
+  );
+};
+
 const AccountSection: React.FC<{
   title: string;
   rows: AccountRowVM[];
   onSelect: (id: string) => void;
-}> = ({ title, rows, onSelect }) => (
+  onReorder: (next: AccountRowVM[]) => void;
+}> = ({ title, rows, onSelect, onReorder }) => (
   <section className="space-y-3">
     <p className="font-mono text-[11px] tracking-widest text-muted-foreground uppercase">{title}</p>
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead>Account</TableHead>
-          <TableHead className="text-right">Ending Balance</TableHead>
-          <TableHead className="text-right">As of</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {rows.map((row) => (
-          <TableRow
-            key={row.id}
-            onClick={() => onSelect(row.id)}
-            className="cursor-pointer"
-            data-testid={`account-row-${row.id}`}
-          >
-            <TableCell className={row.isActive ? '' : 'text-muted-foreground'}>
-              {row.name}
-              <span className="ml-2 font-mono text-[10px] text-muted-foreground">
-                {row.currency}
-              </span>
-            </TableCell>
-            <TableCell className="text-right font-mono tabular-nums">{row.balanceText}</TableCell>
-            <TableCell className="text-right font-mono text-[11px] tabular-nums text-muted-foreground">
-              {row.asOfText}
-            </TableCell>
+    {/* DndContext renders aria-live divs, so it must wrap the table
+        rather than sit inside tbody (invalid HTML). */}
+    <SortableListScope items={rows} onReorder={onReorder}>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead className="w-10" />
+            <TableHead>Account</TableHead>
+            <TableHead className="text-right">Ending Balance</TableHead>
+            <TableHead className="text-right">As of</TableHead>
           </TableRow>
-        ))}
-      </TableBody>
-    </Table>
+        </TableHeader>
+        <TableBody>
+          {rows.map((row) => (
+            <SortableAccountRow key={row.id} row={row} onSelect={onSelect} />
+          ))}
+        </TableBody>
+      </Table>
+    </SortableListScope>
   </section>
 );
 
@@ -104,6 +138,7 @@ const AccountList: React.FC = () => {
     showForm,
     setShowForm,
     handleCreate,
+    handleReorder,
   } = useAccountListController();
 
   const [showInactive, setShowInactive] = useState(false);
@@ -113,6 +148,11 @@ const AccountList: React.FC = () => {
       .filter((account) => showInactive || account.isActive !== false)
       .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
   }, [localAccounts, showInactive]);
+
+  const orderedBase = useMemo(
+    () => [...localAccounts].sort((a, b) => (a.order ?? 0) - (b.order ?? 0)),
+    [localAccounts],
+  );
 
   const grouped = useMemo(() => {
     const map = new Map<AccountCategory, AccountRowVM[]>();
@@ -204,6 +244,17 @@ const AccountList: React.FC = () => {
             title={SECTION_TITLES[category] ?? 'OTHER'}
             rows={rows}
             onSelect={(id) => navigate(`/accounts/${id}`)}
+            onReorder={(orderedRows) => {
+              const sectionIds = new Set(rows.map((row) => row.id));
+              let sectionCursor = 0;
+              const reordered = orderedBase.map((account) => {
+                if (!sectionIds.has(account.id)) return account;
+                const row = orderedRows[sectionCursor++];
+                const match = orderedBase.find((item) => item.id === row.id);
+                return match ?? account;
+              });
+              handleReorder(reordered);
+            }}
           />
         );
       })}

@@ -20,9 +20,6 @@ export function useAccountListController() {
   const [accounts, setAccounts] = useState<AccountWithSnapshot[]>([]);
   const [localAccounts, setLocalAccounts] = useState<AccountWithSnapshot[]>([]);
   const [showForm, setShowForm] = useState(false);
-  const [isReorderMode, setIsReorderMode] = useState(false);
-  const [draggedAccountId, setDraggedAccountId] = useState<string | null>(null);
-  const [dragOverAccountId, setDragOverAccountId] = useState<string | null>(null);
   const [snapshotAccountId, setSnapshotAccountId] = useState<string | null>(null);
   const [historyAccountId, setHistoryAccountId] = useState<string | null>(null);
 
@@ -54,69 +51,23 @@ export function useAccountListController() {
     [createAccount, loadAccounts],
   );
 
-  const moveAccount = useCallback((sourceId: string, targetId: string) => {
-    if (sourceId === targetId) return;
+  const handleReorder = useCallback(
+    (ordered: AccountWithSnapshot[]) => {
+      const baseIds = new Set(localAccounts.map((account) => account.id));
+      if (
+        ordered.length !== localAccounts.length ||
+        !ordered.every((account) => baseIds.has(account.id))
+      ) {
+        return;
+      }
 
-    setLocalAccounts((prev) => {
-      const sourceIndex = prev.findIndex((account) => account.id === sourceId);
-      const targetIndex = prev.findIndex((account) => account.id === targetId);
-
-      if (sourceIndex < 0 || targetIndex < 0) return prev;
-
-      const next = [...prev];
-      const [movedAccount] = next.splice(sourceIndex, 1);
-      next.splice(targetIndex, 0, movedAccount);
-      return next;
-    });
-  }, []);
-
-  const handleDragStart = useCallback((id: string) => {
-    setDraggedAccountId(id);
-    setDragOverAccountId(id);
-  }, []);
-
-  const handleDragEnter = useCallback(
-    (id: string) => {
-      if (!draggedAccountId || draggedAccountId === id) return;
-      setDragOverAccountId(id);
+      setLocalAccounts(ordered);
+      void reorderAccounts(
+        ordered.map((account, index) => ({ id: account.id, order: index })),
+      ).then(() => loadAccounts());
     },
-    [draggedAccountId],
+    [localAccounts, reorderAccounts, loadAccounts],
   );
-
-  const handleDrop = useCallback(
-    (id: string) => {
-      if (!draggedAccountId) return;
-      moveAccount(draggedAccountId, id);
-      setDraggedAccountId(null);
-      setDragOverAccountId(null);
-    },
-    [draggedAccountId, moveAccount],
-  );
-
-  const handleDragEnd = useCallback(() => {
-    setDraggedAccountId(null);
-    setDragOverAccountId(null);
-  }, []);
-
-  const saveOrder = useCallback(async () => {
-    const accountOrders = localAccounts.map((account, index) => ({
-      id: account.id,
-      order: index,
-    }));
-
-    await reorderAccounts(accountOrders);
-    setIsReorderMode(false);
-    setDraggedAccountId(null);
-    setDragOverAccountId(null);
-    await loadAccounts();
-  }, [localAccounts, reorderAccounts, loadAccounts]);
-
-  const cancelReorderMode = useCallback(() => {
-    setIsReorderMode(false);
-    setLocalAccounts(accounts);
-    setDraggedAccountId(null);
-    setDragOverAccountId(null);
-  }, [accounts]);
 
   const closeSnapshotEditor = useCallback(async () => {
     setSnapshotAccountId(null);
@@ -134,21 +85,12 @@ export function useAccountListController() {
     loadingAccounts,
     showForm,
     setShowForm,
-    isReorderMode,
-    setIsReorderMode,
-    draggedAccountId,
-    dragOverAccountId,
     snapshotAccountId,
     setSnapshotAccountId,
     historyAccountId,
     setHistoryAccountId,
     handleCreate,
-    handleDragStart,
-    handleDragEnter,
-    handleDrop,
-    handleDragEnd,
-    saveOrder,
-    cancelReorderMode,
+    handleReorder,
     closeSnapshotEditor,
     closeHistoryDialog,
   };

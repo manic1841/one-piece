@@ -12,7 +12,7 @@
 
 | Domain | List 頁 | Detail 頁 | List Header 動作 | Detail Header 動作 | 一致性 |
 | ------ | ------- | --------- | ---------------- | ------------------ | ------ |
-| Account | AccountList（PageHeader：title + meta 顯示停用 toggle） | AccountDetailPage | 匯出 CSV / 匯入 / 新增帳戶（outline/outline/primary） | 無 actions、無 onBack（badge = currency Badge） | **落差**：Detail 無返回導覽 |
+| Account | AccountList（PageHeader：title + meta 顯示停用 toggle）；拖曳 grip 排序已由清單列內提供（issue #153，ADR-0059 模式） | AccountDetailPage | 新增帳戶（primary） | 無 actions、無 onBack（badge = currency Badge） | **落差**：Detail 無返回導覽 |
 | Debt | DebtListPage | DebtDetailPage | 月度結算 / 顯示已結清 toggle / 新增貸款 | 編輯貸款 / 啟用-停用貸款（outline） | **一致**：onBack + crumb + badge(已結清 StatusGlyph) |
 | Project | ProjectsPage | ProjectDetailPage | Settings / Settlement / New Project | YearMonthPicker + 本月（ghost） | **落差**：Detail 無編輯/刪除入口（editClick 死碼） |
 | Portfolio | PortfolioList | PortfolioDetail | 新增組合（primary）；拖曳 grip 排序已改由清單列內提供（ADR-0059） | 無 actions、badge = 月份 Badge | **落差**：Detail 無編輯入口（setEditingPortfolio 死碼） |
