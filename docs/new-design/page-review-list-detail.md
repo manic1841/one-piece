@@ -112,4 +112,24 @@ AccountList 停用帳戶以 text-muted-foreground 呈現（無 glyph）；Debt �
 | L6 | Status 表達不一致（Debt 為標竿） | §16 | low | fix | resolved |
 | L6b | RetirementPlanList Badge | — | low | record-only | — |
 
-**下一步：** 全數實作完成（2026-09-21）。L5/L6b 為合規紀錄，維持現狀；#134 頂層 spec 的 #137 checkbox 由人工勾選。
+**下一步：** 全數實作完成（2026-09-21）。L5/L6b 為合規紀錄，維持現狀；#134
+頂層 spec 的 #137 checkbox 由人工勾選。
+
+## 2026-09-22 裁決紀錄（Q1-Q14，grilling session）
+
+本 session（#149-#157 全數落地）對 §12/§13 的裁決，已同步進 visual-consistency.md：
+
+- **Q1** Detail owns deactivate（lifecycle 控制屬 Detail header，§12 Lifecycle）。
+- **Q2** order kept via direct drag in lists（§12 Reorder，ADR-0059 模式）。
+- **Q3** hierarchy stays, placement is the new dimension（§13 三層保留，新增 placement 維度：List/Detail/Workflow header + Danger Zone）。
+- **Q4/Q8** settled toggle moves to content，成為 view filter（Debt 已結清 toggle 移至內容區總計旁）。
+- **Q5** no label-language change（zh/en 兩層慣例維持，L5 紀錄不變）。
+- **Q6** close workflow must create snapshots（DEBT_REPAYMENT 確認建立 transactions + snapshots，補功能遺漏）。
+- **Q7/Q12** CSV backup removed（household JSON backup remains）。
+- **Q9** dnd-kit selected（shared sortable pattern 基礎，#152）。
+- **Q10** account toggle on detail page（帳戶 lifecycle toggle 掛 Detail header）。
+- **Q11** unified short wording 顯示停用/隱藏停用，Project default-hidden（比照 Account 的 meta 區 wording/placement）。
+- **Q13** no new stage — DEBT_REPAYMENT confirm creates transactions + snapshots in one confirmation；debt settlement dialog removed（close flow 是唯一入口）。
+- **Q14** lifecycle toggle in detail body next to status（與狀態顯示成對）。
+
+後續落地對照：#149 account header + filter、#150 detail lifecycle、#151 debt filter、#152/#153/#154 drag reorder、#155 close snapshots、#156 project header + filter + Settings 刪除、#157 debt settlement dialog 刪除。設計合約閉環原則：**Action Hierarchy defines priority; List / Detail defines placement.**

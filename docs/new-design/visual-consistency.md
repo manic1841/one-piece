@@ -533,11 +533,23 @@ Rule：`PageHeader` 不知道「怎麼編輯名稱」——`title` 接受 ReactN
   `useConfirm()`（DISABLE 標籤）。切換走既有 update command，成功後狀態即時反映。
 - List 只呈現狀態（glyph/muted），不提供切換。
 
+### 責任切分（2026-09-22 定案）
+
+List 與 Detail 的責任邊界：
+
+- **List** = Browse / Filter / Create / Reorder：檢視清單、內容區 filter
+  （顯示停用/顯示已結清 toggle 屬 view filter，非資料變更）、create 入口、
+  拖曳排序（ADR-0059 模式）。view filter 與搜尋放在 List 內容區，不放 header。
+- **Detail** = 該實體的管理動作：Edit（inline rename 或 Edit Form）、
+  Activate/Deactivate、Danger Zone（刪除）。
+- **Workflow**（如 /close）= 該工作流的主要動作：Confirm、Close Period。
+
 ---
 
 # 13. Action Hierarchy
 
-全站最多維持三層：
+全站最多維持三層。**Hierarchy 只定義優先序，不定義位置**——位置由 §12 的
+責任切分決定（List / Detail / Workflow header）。
 
 ### Primary
 
@@ -547,6 +559,7 @@ Rule：`PageHeader` 不知道「怎麼編輯名稱」——`title` 接受 ReactN
 [ SAVE ]
 [ CONFIRM ]
 [ CLOSE PERIOD ]
+[ NEW ]（domain create：新增帳戶/新增貸款/New Project/New Plan/新增交易/新增組合）
 ```
 
 ### Secondary
@@ -556,6 +569,7 @@ Rule：`PageHeader` 不知道「怎麼編輯名稱」——`title` 接受 ReactN
 ```
 [ EDIT ]
 [ IMPORT ]
+[ DEACTIVATE ]（啟用/停用切換，可逆，outline variant）
 ```
 
 ### Tertiary
@@ -577,6 +591,18 @@ More
 ```
 
 一個 context 通常只需要 **一個 primary action**。
+
+### 位置規則（2026-09-22 定案）
+
+- **List Header** = create action only（New/新增 {domain}）；結算/設定等
+  流程入口屬於各自的工作流頁面，不在 List header。
+- **Detail Header** = 該實體的管理動作（Edit、Activate/Deactivate），緊鄰
+  狀態顯示。
+- **Workflow Header** = 該工作流的主要動作（Confirm、Close Period）。
+- Destructive actions（Delete/移除）放在頁面尾端 Danger Zone，永不升級到
+  header。
+
+> **Closing principle：Action Hierarchy defines priority; List / Detail defines placement.**
 
 ---
 
