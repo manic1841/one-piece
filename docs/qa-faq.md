@@ -38,13 +38,13 @@
 
 ## 3. 容器內 localhost 不通 → 誤判 emulator 掛了
 
-**症狀**:從容器內對 `localhost:8080` 的 REST 探測全部 ECONNREFUSED,以為 emulator 掛了。
+**症狀**:從容器內對 `localhost:8080` 的 REST 探測全部 ECONNREFUSED,以為 emulator 掛了。2026-09-22 實例:對 `localhost:8080/9099/4000` 逐一探測全部失敗,結論寫成「emulator 已停止」,但同一時間 `pnpm qa:seed` 正常結束。
 
-**根因**:Docker dev stack 內,容器只能透過 service hostname `firebase` 連 emulator(`firebase:8080` / `firebase:9099`);`localhost` 在容器內指容器自己。瀏覽器端(跑在 host)則一律用 `localhost:8080/9099`。同一個資源在兩個位置的正確位址不同。
+**根因**:本工作區可能是 dev-container(透過 docker compose 建立)。容器內 `localhost` 指容器自己,emulator 只能透過 service hostname `firebase` 連(`firebase:8080` / `firebase:9099`);瀏覽器端(跑在 host)才用 `localhost:8080/9099`。所以在 localhost 找不到 emulator 時,先假設是容器環境的位址差異,不是 emulator 停了。
 
-**判別法**:在容器內用 `firebase:8080`,在瀏覽器/DevTools 用 `localhost:8080`。兩邊都失敗才懷疑 emulator 本身。整合測試的環境變數設定見 `docs/testing.md`。
+**判別法**:在容器內用 `firebase:8080`,在瀏覽器/DevTools 用 `localhost:8080`。更快的旁證:admin 腳本(如 `pnpm qa:seed`)能連線成功就代表 emulator 活著。兩邊都失敗才懷疑 emulator 本身。整合測試的環境變數設定見 `docs/testing.md`。
 
-**記錄自**:#124(2026-09-20)。
+**記錄自**:#124(2026-09-20);2026-09-22(/close 開始關帳驗證)補充實例。
 
 ## 4. Listen channel 400/ERR_ABORTED 是環境 quirk
 

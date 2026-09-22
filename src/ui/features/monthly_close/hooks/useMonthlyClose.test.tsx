@@ -13,6 +13,7 @@ vi.mock('@/ui/hooks/useAuthContext', () => ({
 
 import { monthlyCloseWorkflowUseCase } from '@/application/monthly_close/use_cases/monthlyCloseWorkflowUseCase';
 import { initialStageStates } from '@/domains/financial_period/schemas';
+import { formatYearMonth } from '@/ui/utils';
 
 import { useMonthlyClose } from './useMonthlyClose';
 
@@ -118,6 +119,18 @@ describe('useMonthlyClose', () => {
     });
 
     expect(result.current.period).toBeNull();
+    expect(result.current.pageVM.isStarted).toBe(false);
+  });
+
+  it('defaults the selected period to the current month', () => {
+    const { result } = renderHook(() =>
+      useMonthlyClose({ householdId: 'household-1', userEmail: 'user@test.com' }),
+    );
+
+    const now = new Date();
+    expect(result.current.selectedYearMonth).toBe(
+      formatYearMonth(now.getFullYear(), now.getMonth() + 1),
+    );
     expect(result.current.pageVM.isStarted).toBe(false);
   });
 });

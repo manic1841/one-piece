@@ -8,7 +8,7 @@ import type {
   CloseStageItemVM,
   MonthlyClosePageVM,
 } from '../viewmodels/monthlyClose.vm';
-import type { FinancialPeriod } from '@/domains/financial_period/schemas';
+import type { CloseStageId, FinancialPeriod } from '@/domains/financial_period/schemas';
 import type { CompletenessActivity } from '@/application/settlement/use_cases/checkSettlementCompletenessUseCase';
 
 const STATUS_TEXT_MAP: Record<string, string> = {
@@ -40,15 +40,31 @@ export const mapPeriodToPageVM = (
     };
   }
 
-  const stages: CloseStageItemVM[] = CLOSE_STAGE_ORDER.map((stageId) => {
+  const confirmedAtOf = (stageId: CloseStageId): Date | null => {
+    const at = period.stages[stageId]?.confirmedAt;
+    return at instanceof Date ? at : null;
+  };
+
+  const stages: CloseStageItemVM[] = CLOSE_STAGE_ORDER.map((stageId, index) => {
     const stageState = period.stages[stageId];
     const isCompleted = stageState?.status === 'COMPLETED';
+    // Derived staleness: a completed stage confirmed before a later completed
+    // stage needs reconfirmation after upstream data changes. No stored state.
+    const stageConfirmedAt = confirmedAtOf(stageId);
+    const isStale =
+      isCompleted &&
+      stageConfirmedAt !== null &&
+      CLOSE_STAGE_ORDER.slice(index + 1).some((laterId) => {
+        const laterAt = confirmedAtOf(laterId);
+        return laterAt !== null && laterAt < stageConfirmedAt;
+      });
     return {
       stageId,
       label: CLOSE_STAGE_LABELS[stageId],
       status: isCompleted ? 'COMPLETED' : 'PENDING',
       isCompleted,
       isReviewSource: period.reviewSourceStageId === stageId,
+      isStale,
       confirmedByText: stageState?.confirmedBy ?? null,
       confirmedAtText:
         stageState?.confirmedAt instanceof Date

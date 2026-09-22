@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
 
+import { ClosePipeline } from '@/ui/features/monthly_close/components/ClosePipeline';
 import { YearMonthPicker } from '@/ui/components/YearMonthPicker';
 import { Button } from '@/ui/components/ui/button';
 import { Card, CardContent } from '@/ui/components/ui/card';
 import { StatusGlyph } from '@/ui/components/StatusGlyph';
-import { getCloseStageLabel, MONTHLY_CLOSE_LABELS } from '@/ui/constants/monthlyClose';
+import { MONTHLY_CLOSE_LABELS } from '@/ui/constants/monthlyClose';
 import {
   getAccountsUseCase,
 } from '@/application/account/use_cases/getAccountsUseCase';
@@ -38,17 +39,54 @@ import {
 import type { CloseStageEvidence } from '../viewmodels/monthlyClose.vm';
 import { CloseStageEvidenceList } from '../components/CloseStageEvidenceList';
 import { CloseStageInputs } from '../components/CloseStageInputs';
-import { CloseStageList } from '../components/CloseStageList';
-import { CloseStageRail } from '../components/CloseStageRail';
+import { CloseWorkspace } from '../components/CloseWorkspace';
 
 interface MonthlyClosePageProps {
   householdId?: string;
   userEmail?: string;
 }
 
-const currentYearMonth = (): string => {
-  const now = new Date();
-  return `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}`;
+interface DisplayedStageTarget {
+  isClosed: boolean;
+  isPaused: boolean;
+  reviewSourceStageId: CloseStageId | null;
+  viewingStageId: CloseStageId | null;
+  currentStageId: CloseStageId | null;
+}
+
+const resolveDisplayedStageId = ({
+  isClosed,
+  isPaused,
+  reviewSourceStageId,
+  viewingStageId,
+  currentStageId,
+}: DisplayedStageTarget): CloseStageId | null => {
+  if (isClosed) return null;
+  if (isPaused) return reviewSourceStageId ?? currentStageId;
+  return viewingStageId ?? currentStageId;
+};
+
+const padStep = (value: number): string => value.toString().padStart(2, '0');
+
+const resolvePositionText = (
+  stages: { stageId: CloseStageId }[],
+  currentStageId: CloseStageId | null,
+  isClosed: boolean,
+  totalCount: number,
+): string => {
+  const position = isClosed
+    ? totalCount
+    : (stages.findIndex((stage) => stage.stageId === currentStageId) + 1);
+  return `${padStep(Math.max(position, 1))} / ${padStep(totalCount)}`;
+};
+
+const resolveStepText = (
+  stages: { stageId: CloseStageId; label: string }[],
+  displayedStageId: CloseStageId | null,
+): string | null => {
+  const index = stages.findIndex((stage) => stage.stageId === displayedStageId);
+  if (index === -1) return null;
+  return `${padStep(index + 1)} ${stages[index].label}`;
 };
 
 export const MonthlyClosePage: React.FC<MonthlyClosePageProps> = ({ householdId: householdIdProp, userEmail: userEmailProp }) => {
@@ -71,6 +109,29 @@ export const MonthlyClosePage: React.FC<MonthlyClosePageProps> = ({ householdId:
     confirmStage,
     refreshStageEvidence,
   } = useMonthlyClose({ householdId, userEmail });
+
+  const [viewingStageId, setViewingStageId] = useState<CloseStageId | null>(null);
+
+  const currentStageId = pageVM.isClosed
+    ? null
+    : (pageVM.stages.find((stage) => !stage.isCompleted)?.stageId ?? null);
+  const displayedStageId = resolveDisplayedStageId({
+    isClosed: pageVM.isClosed,
+    isPaused: pageVM.isPaused,
+    reviewSourceStageId: pageVM.reviewSourceStageId,
+    viewingStageId,
+    currentStageId,
+  });
+  const displayedStage = pageVM.stages.find((stage) => stage.stageId === displayedStageId) ?? null;
+  const isReviewing = displayedStageId !== null && displayedStageId !== currentStageId;
+
+  const positionText = resolvePositionText(
+    pageVM.stages,
+    currentStageId,
+    pageVM.isClosed,
+    pageVM.totalCount,
+  );
+  const displayedStepText = resolveStepText(pageVM.stages, displayedStageId);
 
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [portfolios, setPortfolios] = useState<Portfolio[]>([]);
@@ -116,26 +177,23 @@ export const MonthlyClosePage: React.FC<MonthlyClosePageProps> = ({ householdId:
     void refreshStageEvidence();
   }, [householdId, selectedYearMonth, refreshStageEvidence]);
 
-  const stageEvidence = (stageId: string): CloseStageEvidence => {
-    if (stageId === 'TRANSACTION_VALIDATION') {
-      return mapTransactionIssuesToEvidence(transactionIssues);
+  const evidenceFor = (stageId: string): CloseStageEvidence => {
+    switch (stageId) {
+      case 'TRANSACTION_VALIDATION':
+        return mapTransactionIssuesToEvidence(transactionIssues);
+      case 'COMPLETENESS_CHECK':
+        return mapAnomaliesToEvidence(anomalies);
+      case 'FINANCIAL_REPORTS':
+        return cashFlowAdjustment !== null
+          ? mapAdjustmentCountToEvidence(cashFlowAdjustment)
+          : NO_EVIDENCE;
+      case 'CLOSE_PERIOD':
+        return reportsPersisted !== null
+          ? mapPersistenceToEvidence(reportsPersisted)
+          : NO_EVIDENCE;
+      default:
+        return NO_EVIDENCE;
     }
-    if (stageId === 'COMPLETENESS_CHECK') {
-      return mapAnomaliesToEvidence(anomalies);
-    }
-    if (stageId === 'FINANCIAL_REPORTS') {
-      if (cashFlowAdjustment !== null) {
-        return mapAdjustmentCountToEvidence(cashFlowAdjustment);
-      }
-      return NO_EVIDENCE;
-    }
-    if (stageId === 'CLOSE_PERIOD') {
-      if (reportsPersisted !== null) {
-        return mapPersistenceToEvidence(reportsPersisted);
-      }
-      return NO_EVIDENCE;
-    }
-    return NO_EVIDENCE;
   };
 
   const handleConfirmStage = async (stageId: CloseStageId) => {
@@ -151,16 +209,17 @@ export const MonthlyClosePage: React.FC<MonthlyClosePageProps> = ({ householdId:
   };
 
   const renderEvidence = (stageId: string) => (
-    <CloseStageEvidenceList evidence={stageEvidence(stageId)} />
+    <CloseStageEvidenceList evidence={evidenceFor(stageId)} />
   );
 
   const renderInputs = (stageId: string) => {
-    if (
-      stageId !== 'ACCOUNT_BALANCE' &&
-      stageId !== 'SECURITIES_TRADE' &&
-      stageId !== 'PORTFOLIO_CASH_FLOW' &&
-      stageId !== 'DEBT_REPAYMENT'
-    ) {
+    const hasInputs: boolean = (
+      stageId === 'ACCOUNT_BALANCE' ||
+      stageId === 'SECURITIES_TRADE' ||
+      stageId === 'PORTFOLIO_CASH_FLOW' ||
+      stageId === 'DEBT_REPAYMENT'
+    );
+    if (!hasInputs) {
       return null;
     }
     return (
@@ -216,13 +275,13 @@ export const MonthlyClosePage: React.FC<MonthlyClosePageProps> = ({ householdId:
             <div className="flex items-center gap-3">
               <YearMonthPicker
                 mode="year-month"
-                year={selectedYearMonth.slice(0, 4) || currentYearMonth().slice(0, 4)}
-                month={selectedYearMonth.slice(5, 7) || currentYearMonth().slice(5, 7)}
+                year={selectedYearMonth.slice(0, 4)}
+                month={selectedYearMonth.slice(5, 7)}
                 onYearChange={(y) =>
-                  selectYearMonth(`${y}-${selectedYearMonth.slice(5, 7) || currentYearMonth().slice(5, 7)}`)
+                  selectYearMonth(`${y}-${selectedYearMonth.slice(5, 7)}`)
                 }
                 onMonthChange={(m) =>
-                  selectYearMonth(`${selectedYearMonth.slice(0, 4) || currentYearMonth().slice(0, 4)}-${m.padStart(2, '0')}`)
+                  selectYearMonth(`${selectedYearMonth.slice(0, 4)}-${m.padStart(2, '0')}`)
                 }
               />
               <Button
@@ -255,7 +314,7 @@ export const MonthlyClosePage: React.FC<MonthlyClosePageProps> = ({ householdId:
               <div className="flex items-center gap-2">
                 <StatusGlyph type="review" label={MONTHLY_CLOSE_LABELS.NEEDS_REVIEW} />
                 <p className="text-sm text-foreground">
-                  {MONTHLY_CLOSE_LABELS.PAUSED}：{getCloseStageLabel(pageVM.reviewSourceStageId)}
+                  {MONTHLY_CLOSE_LABELS.PAUSED}：{pageVM.reviewSourceLabel}
                 </p>
               </div>
             </div>
@@ -268,38 +327,34 @@ export const MonthlyClosePage: React.FC<MonthlyClosePageProps> = ({ householdId:
               </CardContent>
             </Card>
           ) : (
-            <>
-              <div className="flex items-center justify-between gap-4">
-                <div className="flex items-center gap-2">
-                  <StatusGlyph
-                    type={pageVM.isClosed ? 'verified' : pageVM.isPaused ? 'review' : 'active'}
-                    label={pageVM.statusText}
-                  />
-                  <span className="text-xs text-muted-foreground">{pageVM.periodText}</span>
-                </div>
-                <span className="text-xs text-muted-foreground">
-                  {MONTHLY_CLOSE_LABELS.PROGRESS_LABEL}: {pageVM.completedCount}/{pageVM.totalCount}
-                </span>
-              </div>
-              <p className="text-xs text-muted-foreground">{MONTHLY_CLOSE_LABELS.STAGE_GUIDANCE}</p>
-              <div className="hidden md:block">
-                <CloseStageRail
-                  stages={pageVM.stages}
+            <div className="space-y-5">
+              <ClosePipeline
+                stages={pageVM.stages}
+                currentStageId={currentStageId}
+                viewingStageId={displayedStageId}
+                isClosed={pageVM.isClosed}
+                isPaused={pageVM.isPaused}
+                statusText={pageVM.statusText}
+                positionText={positionText}
+                onSelectStage={(stageId) => setViewingStageId(stageId as CloseStageId)}
+              />
+
+              {displayedStage && (
+                <CloseWorkspace
+                  stage={displayedStage}
+                  stepText={displayedStepText ?? positionText}
+                  isReviewing={isReviewing}
+                  statusText={pageVM.statusText}
+                  progressText={positionText}
+                  confirming={confirmingStageId === displayedStage.stageId}
                   isClosed={pageVM.isClosed}
+                  evidence={renderEvidence(displayedStage.stageId)}
+                  inputs={renderInputs(displayedStage.stageId)}
+                  onConfirm={() => void handleConfirmStage(displayedStage.stageId)}
+                  onBackToCurrent={() => setViewingStageId(null)}
                 />
-              </div>
-              <div className="md:hidden">
-                <CloseStageList
-                  stages={pageVM.stages}
-                  confirmingStageId={confirmingStageId}
-                  isClosed={pageVM.isClosed}
-                  isPaused={pageVM.isPaused}
-                  onConfirmStage={(stageId) => void handleConfirmStage(stageId as CloseStageId)}
-                  renderEvidence={renderEvidence}
-                  renderInputs={renderInputs}
-                />
-              </div>
-            </>
+              )}
+            </div>
           )}
         </>
       )}

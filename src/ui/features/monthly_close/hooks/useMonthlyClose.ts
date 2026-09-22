@@ -21,6 +21,7 @@ import {
 } from '@/domains/financial_period/schemas';
 import { logger } from '@/utils/logger';
 import { useAuthContext } from '@/ui/hooks/useAuthContext';
+import { formatYearMonth } from '@/ui/utils';
 import { MONTHLY_CLOSE_LABELS } from '@/ui/constants/monthlyClose';
 
 import { mapPeriodToPageVM } from '../mappers/monthlyClose.mappers';
@@ -39,7 +40,7 @@ const errorText = (err: unknown, fallback: string): string => {
 
 export const useMonthlyClose = ({ householdId, userEmail }: UseMonthlyCloseParams) => {
   const auth = useAuthContext();
-  const [selectedYearMonth, setSelectedYearMonth] = useState<string>('');
+  const [selectedYearMonth, setSelectedYearMonth] = useState<string>(() => formatYearMonth(new Date().getFullYear(), new Date().getMonth() + 1));
   const [period, setPeriod] = useState<FinancialPeriod | null>(null);
   const [confirmingStageId, setConfirmingStageId] = useState<CloseStageId | null>(null);
   const [isStarting, setIsStarting] = useState(false);

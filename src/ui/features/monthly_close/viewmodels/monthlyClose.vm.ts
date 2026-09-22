@@ -16,6 +16,7 @@ export interface CloseStageItemVM {
   status: 'PENDING' | 'COMPLETED';
   isCompleted: boolean;
   isReviewSource: boolean;
+  isStale: boolean;
   confirmedByText: string | null;
   confirmedAtText: string | null;
 }
