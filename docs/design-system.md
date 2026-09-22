@@ -108,6 +108,7 @@ Token（定義於 `tailwind.config.js`，全部走 CSS 變數）：
 - `progress`：`bg-muted` 實心軌道 + `bg-accent` 填充，保留 `role="progressbar"`。
 - `YearMonthPicker`：按鈕式（`MON YYYY ▾` outline 按鈕）+ Popover 內雙 Select；選擇僅暫存在 picker 內部（draft state），按 APPLY 才 commit，Escape/外點取消。
 - 確認對話：以 promise-based `useConfirm()`（`ConfirmDialogProvider` 全站掛載）取代 `window.confirm`；結構為 Title → Context → Consequence → Actions（outline Cancel + destructive 確認）。字串輸入預設 destructive "DELETE"（不可逆刪除）；可逆動作必須傳結構化 options 並使用非 destructive 標籤（如 "DISABLE"）。
+- `sortable-list`：共用 `src/ui/components/sortable/` 模式（issue #152）——`GripHandle` activator button（h-8 w-8、`touch-none`、focus ring、`active:scale-[0.97]`）+ 三感應器（Pointer distance 8px、Touch delay 180ms、Keyboard sortableKeyboardCoordinates）；僅 grip 可拖曳，row click 導覽不受干擾；DndContext 放在 Table 外層（aria-live div 不可成為 tbody 子元素）。細節見 ADR-0059。
 
 ## 3. 分階段實作計畫
 

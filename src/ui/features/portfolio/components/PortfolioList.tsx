@@ -1,32 +1,31 @@
 import React, { useEffect, useMemo, useState } from 'react';
 
-import { ListOrdered, Plus } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 import { type PortfolioSnapshot } from '@/domains/portfolio/types/portfolio';
 import { useAuthContext } from '@/ui/hooks/useAuthContext';
 import { useAccounts } from '@/ui/features/account/hooks/useAccounts';
-import CompactRow from '@/ui/components/CompactRow';
 import { PageHeader } from '@/ui/components/PageHeader';
 import { Button } from '@/ui/components/ui/button';
 import {
   Table,
   TableBody,
-  TableCell,
   TableHead,
   TableHeader,
   TableRow,
 } from '@/ui/components/ui/table';
+import { SortableListScope } from '@/ui/components/sortable/SortableListScope';
 import { usePortfolioCmds } from '@/ui/features/portfolio/hooks/usePortfolioCmds';
 import { usePortfolios } from '@/ui/features/portfolio/hooks/usePortfolios';
 import {
   type PortfolioFormVM,
   mapPortfolioVMToDomain,
 } from '@/ui/features/portfolio/viewmodels/portfolioForm.vm';
-import { formatCurrency, formatPercentage, formatYearMonth } from '@/ui/utils';
-import { cn } from '@/ui/utils/cn';
+import { formatCurrency, formatYearMonth } from '@/ui/utils';
 
 import PortfolioForm from './PortfolioForm';
+import { SortableCompactRow, SortableTableRow } from './SortablePortfolioRows';
 
 interface PortfolioListProps {
   householdId: string;
@@ -54,8 +53,8 @@ const PortfolioList: React.FC<PortfolioListProps> = ({ householdId }) => {
     reload,
   );
   const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const [isReorderMode, setIsReorderMode] = useState(false);
   const [localPortfolios, setLocalPortfolios] = useState(portfolios);
+  const [localRows, setLocalRows] = useState<PortfolioRowVM[]>([]);
   const [accountNames, setAccountNames] = useState<Map<string, string>>(new Map());
 
   useEffect(() => {
@@ -119,21 +118,18 @@ const PortfolioList: React.FC<PortfolioListProps> = ({ householdId }) => {
     };
   }, [localPortfolios, latestSnapshots]);
 
-  const saveOrder = async () => {
-    const orders = localPortfolios.map((p, index) => ({
-      id: p.id,
-      order: index,
-    }));
-    await reorderPortfolios(orders);
-    setIsReorderMode(false);
-    reload();
+  const handleReorder = (ordered: PortfolioRowVM[]) => {
+    setLocalRows(ordered);
+    void reorderPortfolios(
+      ordered.map((p, index) => ({ id: p.id, order: index })),
+    ).then(() => reload());
   };
 
   const handleCreateSubmit = async (vm: PortfolioFormVM) => {
     await createPortfolio(mapPortfolioVMToDomain(vm));
   };
 
-  const rows: PortfolioRowVM[] = localPortfolios
+  const baseRows: PortfolioRowVM[] = localPortfolios
     .slice()
     .sort((a, b) => (a.order || 0) - (b.order || 0))
     .map((portfolio) => {
@@ -150,42 +146,22 @@ const PortfolioList: React.FC<PortfolioListProps> = ({ householdId }) => {
       };
     });
 
+  const rowOrder = new Set(localRows.map((r) => r.id));
+  const rows: PortfolioRowVM[] =
+    localRows.length === baseRows.length && baseRows.every((r) => rowOrder.has(r.id))
+      ? localRows
+      : baseRows;
+
   return (
     <div className="space-y-8">
       <PageHeader
         title="投資組合"
         description="分析投資表現：一個證券帳戶連結一個銀行帳戶"
         actions={
-          isReorderMode ? (
-            <div className="flex gap-2">
-              <Button onClick={saveOrder}>儲存順序</Button>
-              <Button
-                variant="ghost"
-                onClick={() => {
-                  setIsReorderMode(false);
-                  setLocalPortfolios(portfolios);
-                }}
-              >
-                取消
-              </Button>
-            </div>
-          ) : (
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                onClick={() => setIsReorderMode(true)}
-                className="gap-2"
-                disabled={portfolios.length < 2}
-              >
-                <ListOrdered size={18} />
-                排序
-              </Button>
-              <Button onClick={() => setIsCreateOpen(true)} className="gap-2">
-                <Plus size={18} />
-                新增組合
-              </Button>
-            </div>
-          )
+          <Button onClick={() => setIsCreateOpen(true)} className="gap-2">
+            <Plus size={18} />
+            新增組合
+          </Button>
         }
       />
 
@@ -198,69 +174,35 @@ const PortfolioList: React.FC<PortfolioListProps> = ({ householdId }) => {
         </p>
       </div>
 
-      <Table className="hidden md:table">
-        <TableHeader>
-          <TableRow>
-            <TableHead>Name</TableHead>
-            <TableHead>Securities</TableHead>
-            <TableHead>Bank</TableHead>
-            <TableHead className="text-right">Portfolio Value</TableHead>
-            <TableHead className="text-right">Return</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {rows.map((row) => (
-            <TableRow
-              key={row.id}
-              onClick={() => !isReorderMode && navigate(`/portfolios/${row.id}`)}
-              className={isReorderMode ? '' : 'cursor-pointer'}
-              data-testid={`portfolio-row-${row.id}`}
-            >
-              <TableCell className={row.isActive ? '' : 'text-muted-foreground'}>
-                {row.name}
-              </TableCell>
-              <TableCell className="text-muted-foreground">{row.securitiesName}</TableCell>
-              <TableCell className="text-muted-foreground">{row.bankName}</TableCell>
-              <TableCell className="text-right font-mono tabular-nums">{row.valueText}</TableCell>
-              <TableCell className="text-right font-mono tabular-nums">
-                {row.returnRate === null ? '—' : formatPercentage(row.returnRate)}
-              </TableCell>
+      {/* DndContext renders aria-live divs, so it must wrap the table
+          rather than sit inside tbody (invalid HTML). */}
+      <SortableListScope items={rows} onReorder={handleReorder}>
+        <Table className="hidden md:table">
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-10" />
+              <TableHead>Name</TableHead>
+              <TableHead>Securities</TableHead>
+              <TableHead>Bank</TableHead>
+              <TableHead className="text-right">Portfolio Value</TableHead>
+              <TableHead className="text-right">Return</TableHead>
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+          </TableHeader>
+          <TableBody>
+            {rows.map((row) => (
+              <SortableTableRow key={row.id} row={row} onNavigate={navigate} />
+            ))}
+          </TableBody>
+        </Table>
+      </SortableListScope>
 
-      <div className="space-y-2 md:hidden">
-        {rows.map((row) => (
-          <CompactRow
-            key={row.id}
-            testId={`portfolio-row-mobile-${row.id}`}
-            onClick={() => !isReorderMode && navigate(`/portfolios/${row.id}`)}
-            className={cn(
-              'cursor-pointer',
-              row.isActive ? 'bg-card/50' : 'bg-transparent',
-            )}
-          >
-            <div className="flex items-center justify-between gap-2">
-              <span className={`min-w-0 truncate text-sm font-medium ${row.isActive ? '' : 'text-muted-foreground'}`}>
-                {row.name}
-              </span>
-              <span className="ml-auto font-mono text-sm tabular-nums">{row.valueText}</span>
-              <span
-                className={`font-mono text-sm tabular-nums ${row.returnRate !== null && row.returnRate < 0 ? 'text-negative' : 'text-positive'}`}
-              >
-                {row.returnRate === null ? '—' : formatPercentage(row.returnRate)}
-              </span>
-            </div>
-            <div className="mt-1.5 flex items-center gap-2 text-xs text-muted-foreground">
-              <span className="truncate">
-                {row.securitiesName} · {row.bankName}
-              </span>
-              {row.asOfText && <span className="ml-auto whitespace-nowrap">{row.asOfText}</span>}
-            </div>
-          </CompactRow>
-        ))}
-      </div>
+      <SortableListScope items={rows} onReorder={handleReorder}>
+        <div className="space-y-2 md:hidden">
+          {rows.map((row) => (
+            <SortableCompactRow key={row.id} row={row} onNavigate={navigate} />
+          ))}
+        </div>
+      </SortableListScope>
 
       <PortfolioForm
         isOpen={isCreateOpen}

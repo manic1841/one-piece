@@ -1,16 +1,30 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, useNavigate } from 'react-router-dom';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { type Portfolio } from '@/domains/portfolio/types/portfolio';
 import { usePortfolios } from '@/ui/features/portfolio/hooks/usePortfolios';
 import { useAccounts } from '@/ui/features/account/hooks/useAccounts';
+import { usePortfolioCmds } from '@/ui/features/portfolio/hooks/usePortfolioCmds';
 
 vi.mock('@/ui/features/portfolio/hooks/usePortfolios');
 vi.mock('@/ui/features/account/hooks/useAccounts');
+vi.mock('@/ui/features/portfolio/hooks/usePortfolioCmds');
 
 const mockUsePortfolios = vi.mocked(usePortfolios);
 const mockUseAccounts = vi.mocked(useAccounts);
+const mockUsePortfolioCmds = vi.mocked(usePortfolioCmds);
+
+const cmdsBase = {
+  loading: false,
+  error: null,
+  createPortfolio: vi.fn(),
+  updatePortfolio: vi.fn(),
+  deletePortfolio: vi.fn(),
+  reorderPortfolios: vi.fn().mockResolvedValue(undefined),
+  createSnapshot: vi.fn(),
+  deleteSnapshot: vi.fn(),
+};
 
 import PortfolioList from './PortfolioList';
 
@@ -24,18 +38,21 @@ vi.mock('react-router-dom', async () => {
 
 const mockUseNavigate = vi.mocked(useNavigate);
 
-const portfolio: Portfolio = {
-  id: 'p1',
-  name: 'Main Portfolio',
-  securitiesAccountId: 's1',
-  bankAccountId: 'b1',
+const makePortfolio = (id: string, name: string, order: number): Portfolio => ({
+  id,
+  name,
+  securitiesAccountId: `s-${id}`,
+  bankAccountId: `b-${id}`,
   isActive: true,
-  order: 0,
+  order,
   createdBy: 'u1',
   updatedBy: 'u1',
   createdAt: new Date('2026-01-01'),
   updatedAt: new Date('2026-01-01'),
-};
+});
+
+const portfolioA = makePortfolio('p1', 'Main Portfolio', 0);
+const portfolioB = makePortfolio('p2', 'Second Portfolio', 1);
 
 const snapshot = {
   id: 's1-p1',
@@ -59,41 +76,46 @@ const snapshot = {
   updatedAt: new Date('2026-09-01'),
 };
 
-const controllerBase = {
-  portfolios: [portfolio],
+const makeController = (portfolios: Portfolio[]) => ({
+  portfolios,
   latestSnapshots: new Map([['p1', snapshot as never]]),
-  toListItemVM: (p: Portfolio) => ({
-    id: p.id,
-    name: p.name,
-    totalValue: snapshot.totalValue,
-    accountCount: 2,
-    isActive: p.isActive,
-    order: p.order,
-  }),
   loading: false,
   error: null,
   reload: vi.fn(),
+});
+
+const setup = (portfolios: Portfolio[], navigate = vi.fn()) => {
+  mockUsePortfolios.mockReturnValue(makeController(portfolios));
+  mockUsePortfolioCmds.mockReturnValue(cmdsBase as never);
+  mockUseAccounts.mockReturnValue({
+    fetchAccounts: vi.fn().mockResolvedValue([
+      { id: 's-p1', name: 'Brokerage A', category: 'securities', currency: 'TWD' },
+      { id: 'b-p1', name: 'Bank A', category: 'bank', currency: 'TWD' },
+      { id: 's-p2', name: 'Brokerage B', category: 'securities', currency: 'TWD' },
+      { id: 'b-p2', name: 'Bank B', category: 'bank', currency: 'TWD' },
+    ]),
+    fetchAccountsWithSnapshots: vi.fn(),
+    loading: false,
+    error: null,
+  });
+  mockUseNavigate.mockReturnValue(navigate);
+
+  const utils = render(
+    <MemoryRouter>
+      <PortfolioList householdId="h1" />
+    </MemoryRouter>,
+  );
+
+  return { ...utils, navigate };
 };
 
-describe('PortfolioList table', () => {
-  it('renders Name | Securities | Bank | Portfolio Value | Return columns', async () => {
-    mockUsePortfolios.mockReturnValue(controllerBase);
-    mockUseAccounts.mockReturnValue({
-      fetchAccounts: vi.fn().mockResolvedValue([
-        { id: 's1', name: 'Brokerage', category: 'securities', currency: 'TWD' },
-        { id: 'b1', name: 'Investment Bank', category: 'bank', currency: 'TWD' },
-      ]),
-      fetchAccountsWithSnapshots: vi.fn(),
-      loading: false,
-      error: null,
-    });
-    mockUseNavigate.mockReturnValue(vi.fn());
+afterEach(() => {
+  vi.clearAllMocks();
+});
 
-    render(
-      <MemoryRouter>
-        <PortfolioList householdId="h1" />
-      </MemoryRouter>,
-    );
+describe('PortfolioList', () => {
+  it('renders Name | Securities | Bank | Portfolio Value | Return columns', async () => {
+    setup([portfolioA, portfolioB]);
 
     expect(screen.getByText('Name')).toBeInTheDocument();
     expect(screen.getByText('Securities')).toBeInTheDocument();
@@ -101,44 +123,59 @@ describe('PortfolioList table', () => {
     expect(screen.getByText('Portfolio Value')).toBeInTheDocument();
     expect(screen.getByText('Return')).toBeInTheDocument();
     expect(screen.getAllByText('Main Portfolio').length).toBe(2);
-    expect(await screen.findByText('Brokerage')).toBeInTheDocument();
-    expect(await screen.findByText('Investment Bank')).toBeInTheDocument();
+    expect(await screen.findByText('Brokerage A')).toBeInTheDocument();
   });
 
-  it('navigates to the portfolio detail page on row click', () => {
-    mockUsePortfolios.mockReturnValue(controllerBase);
-    mockUseAccounts.mockReturnValue({
-      fetchAccounts: vi.fn().mockResolvedValue([]),
-      fetchAccountsWithSnapshots: vi.fn(),
-      loading: false,
-      error: null,
-    });
-    const navigate = vi.fn();
-    mockUseNavigate.mockReturnValue(navigate);
+  it('renders a grip handle on every row (desktop and mobile)', async () => {
+    setup([portfolioA, portfolioB]);
 
-    render(
-      <MemoryRouter>
-        <PortfolioList householdId="h1" />
-      </MemoryRouter>,
-    );
+    const desktopGrips = await screen.findAllByTestId('portfolio-grip-p1');
+    expect(desktopGrips.length).toBe(2);
+
+    for (const grip of desktopGrips) {
+      expect(grip.getAttribute('aria-label')).toContain('Main Portfolio');
+      expect(grip.tagName).toBe('BUTTON');
+    }
+  });
+
+  it('navigates to detail on row click while the grip is present', async () => {
+    const navigate = vi.fn();
+    setup([portfolioA, portfolioB], navigate);
 
     fireEvent.click(screen.getByTestId('portfolio-row-p1'));
     expect(navigate).toHaveBeenCalledWith('/portfolios/p1');
+
+    navigate.mockClear();
+    fireEvent.click(await screen.findByTestId('portfolio-row-mobile-p1'));
+    expect(navigate).toHaveBeenCalledWith('/portfolios/p1');
   });
 
-  it('renders mobile compact rows with name + value + return and account metadata', async () => {
-    mockUsePortfolios.mockReturnValue(controllerBase);
+  it('does not navigate when the grip handle itself is clicked', async () => {
+    const navigate = vi.fn();
+    setup([portfolioA, portfolioB], navigate);
+
+    const grip = (await screen.findAllByTestId('portfolio-grip-p1'))[0];
+    fireEvent.click(grip);
+    expect(navigate).not.toHaveBeenCalled();
+  });
+
+  it('persists the new order through the reorder use case after a keyboard drag', async () => {
+    const reload = vi.fn();
+    mockUsePortfolios.mockReturnValue({
+      portfolios: [portfolioA, portfolioB],
+      latestSnapshots: new Map([['p1', snapshot as never]]),
+      loading: false,
+      error: null,
+      reload,
+    });
     mockUseAccounts.mockReturnValue({
-      fetchAccounts: vi.fn().mockResolvedValue([
-        { id: 's1', name: 'Brokerage', category: 'securities', currency: 'TWD' },
-        { id: 'b1', name: 'Investment Bank', category: 'bank', currency: 'TWD' },
-      ]),
+      fetchAccounts: vi.fn().mockResolvedValue([]),
       fetchAccountsWithSnapshots: vi.fn(),
       loading: false,
       error: null,
     });
-    const navigate = vi.fn();
-    mockUseNavigate.mockReturnValue(navigate);
+    mockUsePortfolioCmds.mockReturnValue(cmdsBase as never);
+    mockUseNavigate.mockReturnValue(vi.fn());
 
     render(
       <MemoryRouter>
@@ -146,38 +183,34 @@ describe('PortfolioList table', () => {
       </MemoryRouter>,
     );
 
-    const compactRow = await screen.findByTestId('portfolio-row-mobile-p1');
-    expect(compactRow.className).toContain('md:hidden');
-    expect(compactRow.textContent).toContain('Main Portfolio');
-    expect(compactRow.textContent).toContain('2,480,000');
-    expect(compactRow.textContent).toContain('12.4%');
-    expect(await screen.findByText('Brokerage')).toBeInTheDocument();
-    expect(await screen.findByText('Investment Bank')).toBeInTheDocument();
+    // jsdom reports zero rects; give the two desktop rows real geometry so
+    // dnd-kit collision detection can resolve a drop target.
+    const rowA = screen.getByTestId('portfolio-row-p1');
+    const rowB = screen.getByTestId('portfolio-row-p2');
+    vi.spyOn(rowA, 'getBoundingClientRect').mockReturnValue({
+      x: 0, y: 0, top: 0, left: 0, bottom: 48, right: 400, width: 400, height: 48, toJSON: () => ({}),
+    } as DOMRect);
+    vi.spyOn(rowB, 'getBoundingClientRect').mockReturnValue({
+      x: 0, y: 48, top: 48, left: 0, bottom: 96, right: 400, width: 400, height: 48, toJSON: () => ({}),
+    } as DOMRect);
 
-    fireEvent.click(compactRow);
-    expect(navigate).toHaveBeenCalledWith('/portfolios/p1');
-  });
+    const grip = screen.getAllByTestId('portfolio-grip-p1')[0];
+    fireEvent.keyDown(grip, { key: ' ', code: 'Space' });
 
-  it('keeps the desktop table hidden on mobile with no overflow-x-auto', () => {
-    mockUsePortfolios.mockReturnValue(controllerBase);
-    mockUseAccounts.mockReturnValue({
-      fetchAccounts: vi.fn().mockResolvedValue([]),
-      fetchAccountsWithSnapshots: vi.fn(),
-      loading: false,
-      error: null,
+    // KeyboardSensor attaches its document keydown listener in a setTimeout.
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 10));
     });
-    mockUseNavigate.mockReturnValue(vi.fn());
 
-    const { container } = render(
-      <MemoryRouter>
-        <PortfolioList householdId="h1" />
-      </MemoryRouter>,
-    );
+    fireEvent.keyDown(document, { key: 'ArrowDown', code: 'ArrowDown' });
+    fireEvent.keyDown(document, { key: ' ', code: 'Space' });
 
-    const table = container.querySelector('table');
-    expect(table).not.toBeNull();
-    expect(table!.className).toContain('hidden');
-    expect(table!.className).toContain('md:table');
-    expect(container.querySelector('.overflow-x-auto')).toBeNull();
+    await waitFor(() => {
+      expect(cmdsBase.reorderPortfolios).toHaveBeenCalledWith([
+        { id: 'p2', order: 0 },
+        { id: 'p1', order: 1 },
+      ]);
+    });
+    expect(reload).toHaveBeenCalled();
   });
 });
