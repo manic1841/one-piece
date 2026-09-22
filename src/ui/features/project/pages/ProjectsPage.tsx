@@ -1,18 +1,12 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 
-import { Calendar, MoreHorizontal, Plus } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 import { type Project } from '@/domains/project/schemas';
 import { useAuth } from '@/infra/contexts/useAuth';
 import CompactRow from '@/ui/components/CompactRow';
 import { Button } from '@/ui/components/ui/button';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/ui/components/ui/dropdown-menu';
 import {
   Table,
   TableBody,
@@ -30,7 +24,6 @@ import { useProjectQueries } from '@/ui/features/project/hooks/useProjects';
 import { formatCurrency } from '@/ui/utils';
 import { cn } from '@/ui/utils/cn';
 import MonthlySettlement from './MonthlySettlement';
-import ProjectSettings from './ProjectSettings';
 
 interface ProjectTotals {
   income: number;
@@ -157,11 +150,9 @@ const Projects: React.FC = () => {
     openForm,
     closeForm,
     isMonthlySettlementView,
-    openMonthlySettlement,
     closeMonthlySettlement,
-    isSettingsOpen,
-    openSettings,
-    closeSettings,
+    showInactive,
+    toggleShowInactive,
     handleReorder,
   } = useProjectPage(userProfile?.householdId);
 
@@ -191,7 +182,12 @@ const Projects: React.FC = () => {
     };
   }, [projects, userProfile?.householdId, getProjectSnapshots]);
 
-  const rows: ProjectRowVM[] = projects.map((project) => {
+  const visibleProjects = useMemo(
+    () => projects.filter((project) => showInactive || project.isActive),
+    [projects, showInactive],
+  );
+
+  const rows: ProjectRowVM[] = visibleProjects.map((project) => {
     const totals = snapshotTotals.get(project.id) ?? { income: 0, expense: 0 };
     const net = totals.income - totals.expense;
     return {
@@ -221,10 +217,6 @@ const Projects: React.FC = () => {
     );
   }
 
-  if (isSettingsOpen) {
-    return <ProjectSettings householdId={userProfile?.householdId || ''} onBack={closeSettings} />;
-  }
-
   if (isMonthlySettlementView) {
     return (
       <MonthlySettlement
@@ -241,27 +233,25 @@ const Projects: React.FC = () => {
     <div className="space-y-8">
       <PageHeader
         title="專案管理"
-        description="管理專案餘額、月度結算與排序。"
+        description="管理專案餘額與排序。"
+        meta={
+          <div className="mt-2 flex items-center gap-3 text-xs text-muted-foreground">
+            <span>進行中 {projects.filter((p) => p.isActive).length} 筆</span>
+            <button
+              type="button"
+              className="underline underline-offset-2 transition-[color,background-color,transform] duration-fast ease-out-quint hover:text-foreground active:scale-[0.97]"
+              onClick={toggleShowInactive}
+            >
+              {showInactive ? '隱藏停用' : '顯示停用'}
+            </button>
+          </div>
+        }
         actions={
           <div className="flex flex-wrap gap-3">
-            <Button onClick={openMonthlySettlement} variant="outline" className="gap-2">
-              <Calendar size={16} />
-              Settlement
-            </Button>
             <Button onClick={openForm} className="gap-2">
               <Plus size={16} />
               New Project
             </Button>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" aria-label="更多專案操作" className="h-9 w-9">
-                  <MoreHorizontal size={18} />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onSelect={openSettings}>Settings</DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
           </div>
         }
       />

@@ -14,7 +14,7 @@
 | ------ | ------- | --------- | ---------------- | ------------------ | ------ |
 | Account | AccountList（PageHeader：title + meta 顯示停用 toggle）；拖曳 grip 排序已由清單列內提供（issue #153，ADR-0059 模式） | AccountDetailPage | 新增帳戶（primary） | 無 actions、無 onBack（badge = currency Badge） | **落差**：Detail 無返回導覽 |
 | Debt | DebtListPage | DebtDetailPage | 月度結算 / 顯示已結清 toggle / 新增貸款 | 編輯貸款 / 啟用-停用貸款（outline） | **一致**：onBack + crumb + badge(已結清 StatusGlyph) |
-| Project | ProjectsPage | ProjectDetailPage | Settlement / New Project / 溢出選單 Settings；拖曳 grip 排序已由清單列內提供（ADR-0059 模式，Settings 頁箭頭排序與 save-order 流程已移除） | YearMonthPicker + 本月（ghost） | **落差**：Detail 無編輯/刪除入口 |
+| Project | ProjectsPage | ProjectDetailPage | New Project（primary，flex-wrap）＋ meta 區顯示停用/隱藏停用 filter（比照 Account）；拖曳 grip 排序已由清單列內提供（ADR-0059 模式，Settings 頁已刪除、Settlement 入口已移除） | YearMonthPicker + 本月（ghost） | **落差**：Detail 無編輯/刪除入口 |
 | Portfolio | PortfolioList | PortfolioDetail | 新增組合（primary）；拖曳 grip 排序已改由清單列內提供（ADR-0059） | 無 actions、badge = 月份 Badge | **落差**：Detail 無編輯入口（setEditingPortfolio 死碼） |
 | Transaction | TransactionsPage | 無 detail 頁 | 新增交易（primary） | — | **一致**：無 detail 頁，row 端 ghost edit/delete 已獲 §12 例外 |
 | Retirement | RetirementPlanList | RetirementPlanForm（form-as-detail） | New Plan（primary） | inline name edit + Auto-Update / Recalculate / Delete | **落差**：自製 header 不走 PageHeader，Delete 在 header 而非 danger zone |

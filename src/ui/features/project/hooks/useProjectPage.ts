@@ -15,8 +15,8 @@ export const useProjectPage = (householdId?: string) => {
   const [isSettlementDialogOpen, setIsSettlementDialogOpen] = useState(false);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedProject, setSelectedProject] = useState<Project | undefined>(undefined);
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isMonthlySettlementView, setIsMonthlySettlementView] = useState(false);
+  const [showInactive, setShowInactive] = useState(false);
   const [localProjects, setLocalProjects] = useState<Project[]>([]);
 
   const { createProject, updateProject, reorderProjects } = useProjectCmds(
@@ -33,7 +33,7 @@ export const useProjectPage = (householdId?: string) => {
     setIsFormOpen(false);
   };
 
-  // update project (Settings deactivate toggle)
+  // update project
   const update = async ({ id, project }: { id: string; project: Partial<ProjectCreate> }) => {
     await updateProject(id, project);
     setIsFormOpen(false);
@@ -105,9 +105,8 @@ export const useProjectPage = (householdId?: string) => {
     selectProject,
     unselectProject,
     handleReorder,
-    isSettingsOpen,
-    openSettings: () => setIsSettingsOpen(true),
-    closeSettings: () => setIsSettingsOpen(false),
+    showInactive,
+    toggleShowInactive: () => setShowInactive((prev) => !prev),
     isMonthlySettlementView,
     openMonthlySettlement: () => setIsMonthlySettlementView(true),
     closeMonthlySettlement: () => setIsMonthlySettlementView(false),

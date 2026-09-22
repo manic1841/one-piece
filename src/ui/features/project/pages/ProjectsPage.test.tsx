@@ -72,9 +72,8 @@ const controllerBase = {
   selectProject: vi.fn(),
   unselectProject: vi.fn(),
   handleReorder: vi.fn(),
-  isSettingsOpen: false,
-  openSettings: vi.fn(),
-  closeSettings: vi.fn(),
+  showInactive: false,
+  toggleShowInactive: vi.fn(),
   isMonthlySettlementView: false,
   openMonthlySettlement: vi.fn(),
   closeMonthlySettlement: vi.fn(),
@@ -183,7 +182,7 @@ describe('ProjectsPage table', () => {
     expect(container.querySelector('.overflow-x-auto')).toBeNull();
   });
 
-  it('drops Settings from header actions, keeps Settlement + New Project in a wrapping row', () => {
+  it('shows only New Project in header actions with a flex-wrap guard', () => {
     mockUseProjectPage.mockReturnValue(controllerBase as never);
     mockUseProjectQueries.mockReturnValue({
       getProjectBalance: vi.fn(),
@@ -198,17 +197,30 @@ describe('ProjectsPage table', () => {
       </MemoryRouter>,
     );
 
-    expect(screen.queryByRole('button', { name: 'Settings' })).toBeNull();
-    expect(screen.getByRole('button', { name: /Settlement/i })).not.toBeNull();
+    expect(screen.queryByRole('button', { name: /Settlement/i })).toBeNull();
+    expect(screen.queryByRole('button', { name: '更多專案操作' })).toBeNull();
+    expect(screen.queryByText('Settings')).toBeNull();
     expect(screen.getByRole('button', { name: /New Project/i })).not.toBeNull();
 
-    const actionsRow = screen.getByRole('button', { name: /Settlement/i }).closest('div')!
+    const actionsRow = screen.getByRole('button', { name: /New Project/i }).closest('div')!
       .parentElement!;
     expect(actionsRow.className).toContain('flex-wrap');
   });
 
-  it('keeps project settings reachable via the overflow menu', async () => {
-    mockUseProjectPage.mockReturnValue(controllerBase as never);
+  it('hides inactive projects by default and shows them after toggling the filter', async () => {
+    const inactive = { ...project, id: 'pr2', name: 'Garage Build', isActive: false } as never;
+    mockUseProjectPage.mockReturnValue({
+      ...controllerBase,
+      projects: [project, inactive],
+      toggleShowInactive: vi.fn(() => {
+        mockUseProjectPage.mockReturnValue({
+          ...controllerBase,
+          projects: [project, inactive],
+          showInactive: true,
+        });
+        rerender();
+      }),
+    } as never);
     mockUseProjectQueries.mockReturnValue({
       getProjectBalance: vi.fn(),
       getProjectRecords: vi.fn(),
@@ -216,17 +228,25 @@ describe('ProjectsPage table', () => {
     });
     mockUseNavigate.mockReturnValue(vi.fn());
 
-    render(
+    const view = render(
       <MemoryRouter>
         <ProjectsPage />
       </MemoryRouter>,
     );
+    const rerender = () =>
+      view.rerender(
+        <MemoryRouter>
+          <ProjectsPage />
+        </MemoryRouter>,
+      );
 
-    const trigger = screen.getByRole('button', { name: '更多專案操作' });
-    fireEvent.pointerDown(trigger, { button: 0, ctrlKey: false });
-    fireEvent.click(trigger);
-    expect(await screen.findByRole('menuitem', { name: 'Settings' })).not.toBeNull();
-    expect(screen.getByText('Settings')).not.toBeNull();
+    expect(screen.queryByText('Garage Build')).toBeNull();
+    expect(screen.getByRole('button', { name: '顯示停用' })).not.toBeNull();
+
+    fireEvent.click(screen.getByRole('button', { name: '顯示停用' }));
+
+    expect(await screen.findAllByText('Garage Build').then((nodes) => nodes.length)).toBe(2);
+    expect(screen.getByRole('button', { name: '隱藏停用' })).not.toBeNull();
   });
 });
 
