@@ -13,12 +13,14 @@
 7. [bash 腳本 CRLF 行尾 → pipefail 解析失敗](#7-bash-腳本-crlf-行尾--pipefail-解析失敗)
 8. [Fetch 攔截裝太晚 → 抓不到 early request](#8-fetch-攔截裝太晚--抓不到-early-request)
 9. [命名相近的標籤讓斷言誤判](#9-命名相近的標籤讓斷言誤判)
+10. [長跑 dev server 的 vite deps cache 過期 → App 不 mount](#10-長跑-dev-server-的-vite-deps-cache-過期--app-不-mount)
+11. [拖曳排序 handle 可見不等於 drop 可完成](#11-拖曳排序-handle-可見不等於-drop-可完成)
 
 ## 1. REST-seeded 文件缺 base 欄位 → 頁面靜默吞錯
 
 **症狀**:資料確定寫進 emulator(REST GET 看得到),頁面卻顯示空狀態或「Account not found」,console 沒有明顯錯誤。
 
-**根因**:App 讀取路徑對每份文件跑 Zod schema 驗證。REST 手工種子文件若缺 `id`/`createdBy`/`updatedBy`/`createdAt`/`updatedAt` 等 base 欄位(或型別不對,例如 REST 要 `integerValue: "123"` 字串形式),`parse` 拋錯後被 repository 層吞掉,UI 落入 fallback 狀態。真正的錯誤訊息不會浮上來。
+**根因**:App 讀取路徑對每份文件跑 Zod schema 驗證。REST 手工種子文件若缺 `id`/`createdBy`/`updatedBy`/`createdAt`/`updatedAt` 等 base 欄位(或型別不對,例如 REST 要 `integerValue: "123"` 字串形式;日期欄位要 `timestampValue`,寫成 `stringValue` 會在 `baseRepository` 的 `.toDate()` crash),`parse` 拋錯後被 repository 層吞掉,UI 落入 fallback 狀態。真正的錯誤訊息不會浮上來。
 
 **判別法**:先用 REST `runQuery`/`get` 確認資料存在,再逐一比對 App schema 的必填欄位與型別。懷疑時把文件修到 schema 完全相容再重載。
 
@@ -97,5 +99,25 @@
 **根因**:display labels 來自 constants layer,常數是大寫;而且巢狀標題會讓子字串匹配到多個節點。
 
 **判別法**:查詢一律 case-insensitive(`/overview \/ results/i`),長標題加錨(`/^income$/i`),並避免把同一個元素拿去 `compareDocumentPosition` 自己(會回 0,干擾順序斷言)。
+
+## 10. 長跑 dev server 的 vite deps cache 過期 → App 不 mount
+
+**症狀**:headless 瀏覽器開 dev server 頁面,`#root` 一直空的,console 只有 `Failed to load resource: 404` 加 `net::ERR_ABORTED` 指向 `/@vite/client`;直接在瀏覽器裡 `import('/node_modules/.vite/deps/<某 dep>.js?v=…')` 回 `Failed to fetch dynamically imported module`,但該 dep 與其 chunks 用 curl 都是 HTTP 200、內容正常。看起來像 app/router 程式碼壞了。
+
+**根因**:dev server 從很久以前(加上新依賴之前)一直跑著,`pnpm add` 改了 lockfile 使其 dep cache 失效,但長跑的 server 不會自行 re-optimize,開始回 404 `/@vite/client`;首屏載入失敗一次後,瀏覽器 module map 把該 URL 的失敗快取起來,事後的 re-import 直接回快取的錯誤、根本沒有網路請求(Playwright response 攔截是空的的原因)。磁碟上的 `node_modules/.vite/deps/_metadata.json` 反而可能是新的(另一個 server/進程 re-optimize 過),時間戳查不出問題。
+
+**判別法**:懷疑順序是「重啟 dev server」而不是讀 app 程式碼。port 衝突時用 `ss -tlnp` 找真的空閒的 port;多個殭屍 vite 進程可能佔著 5174-5177。啟動時帶上 app 需要的 `VITE_*` 環境變數,否則頁面會停在另一種狀態,又是一層誤導。
+
+**記錄自**:#152(2026-09-22,Portfolio drag 390px 瀏覽器驗證)。
+
+## 11. 拖曳排序 handle 可見不等於 drop 可完成
+
+**症狀**:dnd-kit 拖曳排序的驗證全綠——grip handle 在 390px 可見、尺寸/`touch-action`/aria-label 都對、jsdom 鍵盤排序測試也過——但手機上長按拖曳放開後清單順序不變,reorder 沒有發生。
+
+**根因**:三層。(1) 可見性檢查不會量到 drop 鏈路:dnd-kit 的 droppable 只透過 `nodeRef.current` 取得 rect,節點沒掛上 ref 時 rect 永遠是 null,`closestCenter` 解析不出 `over` 目標,`onDragEnd` 收到 `over: null`,reorder 靜默不觸發(錯誤被契約吃掉:missing/identical over 一律回 null 不猜測)。(2) 自動化瞬間 `down→up` 因 activation constraint(Pointer distance / Touch delay+tolerance)被判定為 click,不會啟動拖曳;驗證腳本必須模擬 real gesture(先 hover、down、分步 move、up)。(3) jsdom 鍵盤排序:`sortableKeyboardCoordinates` 依賴 droppable 的 `getBoundingClientRect`(jsdom 全 0,必須 mock),keydown event 需要 `code` 屬性(`'Space'`/`'ArrowDown'`),且 keyboard sensor 在 `setTimeout` 內才 attach document listener,發第一次 keydown 前要 yield。
+
+**判別法**:驗收拖曳排序要用「實際 drop 後順序改變」當驗收訊號,不能只驗 handle 存在/可見;手機路徑在 headless 用 real gesture 走一次,或 `fireEvent` 鍵盤三步加 rect mock。handle 可見性檢查通過不代表 AC 滿足。
+
+**記錄自**:#152(2026-09-22,code review Spec 軸發現;真實 Playwright 觸控拖放驗證修復)。
 
 **記錄自**:#120(2026-09-20)。
