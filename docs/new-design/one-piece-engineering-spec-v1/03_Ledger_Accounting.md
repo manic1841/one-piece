@@ -54,7 +54,7 @@ Example:
 
 Do not allow arbitrary top-level prefixes from users.
 
-> **S2 conformance note（2026-09-18）**：28 個系統碼已逐項比對與實作 `LEDGER_CODES` 一致。三層碼的 domain 契約已支援（`CustomLedgerCodeCreateSchema.code` 自由字串、REAL_ESTATE_BUY/SELL 已有 `debitUserSelect + allowedDebitPrefix: 'asset:property'`），缺的是建立三層碼的 UI 入口（`LedgerCodeSettings` 目前只能建二層碼），排 S4 UI/IA session 一併驗證選單的 allowedPrefix 過濾。
+> **S2 conformance note（2026-09-18）**：28 個系統碼已逐項比對與實作 `LEDGER_CODES` 一致。三層碼的 domain 契約已支援（`CustomLedgerCodeCreateSchema.code` 自由字串、REAL_ESTATE_BUY/SELL 已有 `debitUserSelect + allowedDebitPrefix: 'asset:property'`），缺的是建立三層碼的 UI 入口（`LedgerCodeSettings` 目前只能建二層碼）。選單的 allowedPrefix 過濾已由 `DynamicCategorySelector` 實作驗證。三層碼 UI 入口目前不處理，追蹤於 GitHub issue #159（needs-triage，待討論：是否開放自建、表單形式、選單深度）。
 
 ## Intent mapping
 Each Intent Mapping defines:
