@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, useNavigate } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -61,7 +61,6 @@ const controllerBase = {
   reload: vi.fn(),
   create: vi.fn(),
   update: vi.fn(),
-  editing: undefined,
   isFormOpen: false,
   openForm: vi.fn(),
   closeForm: vi.fn(),
@@ -72,11 +71,7 @@ const controllerBase = {
   setSelectedProject: vi.fn(),
   selectProject: vi.fn(),
   unselectProject: vi.fn(),
-  isReorderMode: false,
-  toggleReorderMode: vi.fn(),
-  moveProjectUp: vi.fn(),
-  moveProjectDown: vi.fn(),
-  saveOrder: vi.fn(),
+  handleReorder: vi.fn(),
   isSettingsOpen: false,
   openSettings: vi.fn(),
   closeSettings: vi.fn(),
@@ -232,5 +227,114 @@ describe('ProjectsPage table', () => {
     fireEvent.click(trigger);
     expect(await screen.findByRole('menuitem', { name: 'Settings' })).not.toBeNull();
     expect(screen.getByText('Settings')).not.toBeNull();
+  });
+});
+
+describe('ProjectsPage drag reorder', () => {
+  const projectA: Project = { ...project, id: 'pr1', order: 0 } as never;
+  const projectB: Project = { ...project, id: 'pr2', name: 'Garage Build', order: 1 } as never;
+
+  const setupDrag = (projects: Project[]) => {
+    const navigate = vi.fn();
+    mockUseAuth.mockReturnValue(authProfile as never);
+    mockUseProjectPage.mockReturnValue({
+      ...controllerBase,
+      projects,
+    } as never);
+    mockUseProjectQueries.mockReturnValue({
+      getProjectBalance: vi.fn(),
+      getProjectRecords: vi.fn(),
+      getProjectSnapshots: vi.fn().mockResolvedValue([]),
+    });
+    mockUseNavigate.mockReturnValue(navigate);
+
+    render(
+      <MemoryRouter>
+        <ProjectsPage />
+      </MemoryRouter>,
+    );
+
+    return navigate;
+  };
+
+  it('renders a grip handle on every row (desktop and mobile)', async () => {
+    setupDrag([projectA, projectB]);
+
+    const gripsA = await screen.findAllByTestId('project-grip-pr1');
+    expect(gripsA).toHaveLength(2);
+    for (const grip of gripsA) {
+      expect(grip.tagName).toBe('BUTTON');
+      expect(grip.getAttribute('aria-label')).toContain('Kitchen Remodel');
+    }
+
+    const gripsB = await screen.findAllByTestId('project-grip-pr2');
+    expect(gripsB).toHaveLength(2);
+    expect(gripsB[0].getAttribute('aria-label')).toContain('Garage Build');
+  });
+
+  it('navigates on row click while the grip is present', async () => {
+    const navigate = setupDrag([projectA]);
+
+    fireEvent.click(await screen.findByTestId('project-row-pr1'));
+    expect(navigate).toHaveBeenCalledWith('/projects/pr1');
+  });
+
+  it('does not navigate when the grip handle is clicked', async () => {
+    setupDrag([projectA]);
+
+    const grips = await screen.findAllByTestId('project-grip-pr1');
+    fireEvent.click(grips[0]);
+    expect(mockUseProjectPage().handleReorder as unknown as ReturnType<typeof vi.fn>).not.toHaveBeenCalled();
+  });
+
+  it('persists the new order through the controller after a keyboard drag', async () => {
+    const handleReorder = vi.fn();
+    mockUseAuth.mockReturnValue(authProfile as never);
+    mockUseProjectPage.mockReturnValue({
+      ...controllerBase,
+      projects: [projectA, projectB],
+      handleReorder,
+    } as never);
+    mockUseProjectQueries.mockReturnValue({
+      getProjectBalance: vi.fn(),
+      getProjectRecords: vi.fn(),
+      getProjectSnapshots: vi.fn().mockResolvedValue([]),
+    });
+    mockUseNavigate.mockReturnValue(vi.fn());
+
+    render(
+      <MemoryRouter>
+        <ProjectsPage />
+      </MemoryRouter>,
+    );
+
+    const rowA = await screen.findByTestId('project-row-pr1');
+    const rowB = await screen.findByTestId('project-row-pr2');
+
+    // jsdom reports zero rects; give the rows real geometry so dnd-kit
+    // collision detection can resolve a drop target.
+    vi.spyOn(rowA, 'getBoundingClientRect').mockReturnValue({
+      x: 0, y: 0, top: 0, left: 0, bottom: 48, right: 400, width: 400, height: 48, toJSON: () => ({}),
+    } as DOMRect);
+    vi.spyOn(rowB, 'getBoundingClientRect').mockReturnValue({
+      x: 0, y: 48, top: 48, left: 0, bottom: 96, right: 400, width: 400, height: 48, toJSON: () => ({}),
+    } as DOMRect);
+
+    const grip = screen.getAllByTestId('project-grip-pr1')[0];
+    fireEvent.keyDown(grip, { key: ' ', code: 'Space' });
+
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 10));
+    });
+
+    fireEvent.keyDown(document, { key: 'ArrowDown', code: 'ArrowDown' });
+    fireEvent.keyDown(document, { key: ' ', code: 'Space' });
+
+    await waitFor(() => {
+      expect(handleReorder).toHaveBeenCalledWith([
+        expect.objectContaining({ id: 'pr2' }),
+        expect.objectContaining({ id: 'pr1' }),
+      ]);
+    });
   });
 });

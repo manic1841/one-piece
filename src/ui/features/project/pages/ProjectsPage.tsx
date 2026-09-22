@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { Calendar, MoreHorizontal, Plus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
+import { type Project } from '@/domains/project/schemas';
 import { useAuth } from '@/infra/contexts/useAuth';
 import CompactRow from '@/ui/components/CompactRow';
 import { Button } from '@/ui/components/ui/button';
@@ -21,10 +22,13 @@ import {
   TableRow,
 } from '@/ui/components/ui/table';
 import { PageHeader } from '@/ui/components/PageHeader';
+import { GripHandle, SortableListScope } from '@/ui/components/sortable/SortableListScope';
+import { useSortableRow } from '@/ui/components/sortable/useSortableList';
 import ProjectForm from '@/ui/features/project/components/ProjectForm';
 import { useProjectPage } from '@/ui/features/project/hooks/useProjectPage';
 import { useProjectQueries } from '@/ui/features/project/hooks/useProjects';
 import { formatCurrency } from '@/ui/utils';
+import { cn } from '@/ui/utils/cn';
 import MonthlySettlement from './MonthlySettlement';
 import ProjectSettings from './ProjectSettings';
 
@@ -32,6 +36,113 @@ interface ProjectTotals {
   income: number;
   expense: number;
 }
+
+interface ProjectRowVM {
+  id: string;
+  name: string;
+  isActive: boolean;
+  income: number;
+  expense: number;
+  net: number;
+}
+
+const SortableProjectRow: React.FC<{
+  row: ProjectRowVM;
+  onNavigate: (path: string) => void;
+}> = ({ row, onNavigate }) => {
+  const { setNodeRef, setActivatorNodeRef, attributes, listeners, rowStyle, isDragging } =
+    useSortableRow(row.id);
+
+  return (
+    <TableRow
+      ref={setNodeRef}
+      data-testid={`project-row-${row.id}`}
+      onClick={() => onNavigate(`/projects/${row.id}`)}
+      className={cn('cursor-pointer', isDragging && 'opacity-50')}
+      style={rowStyle}
+    >
+      <TableCell className="w-10 pr-0">
+        <GripHandle
+          label={`Reorder ${row.name}`}
+          testId={`project-grip-${row.id}`}
+          attributes={attributes}
+          listeners={listeners}
+          activatorRef={setActivatorNodeRef}
+          className={row.isActive ? '' : 'opacity-60'}
+        />
+      </TableCell>
+      <TableCell className={row.isActive ? '' : 'text-muted-foreground'}>
+        {row.name}
+      </TableCell>
+      <TableCell>
+        <span className={row.isActive ? 'text-positive' : 'text-muted-foreground'}>
+          {row.isActive ? '進行中' : '停用'}
+        </span>
+      </TableCell>
+      <TableCell className="text-right font-mono tabular-nums">
+        {formatCurrency(row.income)}
+      </TableCell>
+      <TableCell className="text-right font-mono tabular-nums">
+        {formatCurrency(row.expense)}
+      </TableCell>
+      <TableCell
+        className={`text-right font-mono tabular-nums ${row.net >= 0 ? 'text-positive' : 'text-negative'}`}
+      >
+        {formatCurrency(row.net)}
+      </TableCell>
+    </TableRow>
+  );
+};
+
+const SortableProjectCompactRow: React.FC<{
+  row: ProjectRowVM;
+  onNavigate: (path: string) => void;
+}> = ({ row, onNavigate }) => {
+  const { setNodeRef, setActivatorNodeRef, attributes, listeners, rowStyle, isDragging } =
+    useSortableRow(row.id);
+
+  return (
+    <CompactRow
+      ref={setNodeRef}
+      testId={`project-row-mobile-${row.id}`}
+      onClick={() => onNavigate(`/projects/${row.id}`)}
+      className={cn('cursor-pointer', isDragging ? 'opacity-50' : row.isActive ? 'bg-card/50' : 'bg-transparent')}
+      style={rowStyle}
+    >
+      <div className="flex items-center justify-between gap-2">
+        <GripHandle
+          label={`Reorder ${row.name}`}
+          testId={`project-grip-${row.id}`}
+          attributes={attributes}
+          listeners={listeners}
+          activatorRef={setActivatorNodeRef}
+          className="-ml-1 mr-1"
+        />
+        <span
+          className={`flex min-w-0 items-center gap-2 text-sm font-medium ${row.isActive ? '' : 'text-muted-foreground'}`}
+        >
+          <span
+            className={`text-[10px] leading-none ${row.isActive ? 'text-positive' : 'text-muted-foreground'}`}
+          >
+            {row.isActive ? '●' : '⊘'}
+          </span>
+          <span className="truncate">{row.name}</span>
+        </span>
+        <span
+          className={`ml-auto font-mono text-sm tabular-nums ${row.net >= 0 ? 'text-positive' : 'text-negative'}`}
+        >
+          {formatCurrency(row.net)}
+        </span>
+      </div>
+      <div className="mt-1.5 flex items-center justify-between gap-2 text-xs text-muted-foreground">
+        <span className="whitespace-nowrap">
+          {`Income ${formatCurrency(row.income)} · Expense ${formatCurrency(row.expense)}`}
+        </span>
+        <span className="whitespace-nowrap">{row.isActive ? '進行中' : '停用'}</span>
+      </div>
+    </CompactRow>
+  );
+};
 
 const Projects: React.FC = () => {
   const { userProfile } = useAuth();
@@ -51,6 +162,7 @@ const Projects: React.FC = () => {
     isSettingsOpen,
     openSettings,
     closeSettings,
+    handleReorder,
   } = useProjectPage(userProfile?.householdId);
 
   const { getProjectSnapshots } = useProjectQueries(userProfile?.householdId || '');
@@ -78,6 +190,27 @@ const Projects: React.FC = () => {
       ignore = true;
     };
   }, [projects, userProfile?.householdId, getProjectSnapshots]);
+
+  const rows: ProjectRowVM[] = projects.map((project) => {
+    const totals = snapshotTotals.get(project.id) ?? { income: 0, expense: 0 };
+    const net = totals.income - totals.expense;
+    return {
+      id: project.id,
+      name: project.name,
+      isActive: project.isActive,
+      income: totals.income,
+      expense: totals.expense,
+      net,
+    };
+  });
+
+  const handleRowsReorder = (orderedRows: ProjectRowVM[]) => {
+    const projectById = new Map(projects.map((project) => [project.id, project]));
+    const ordered = orderedRows
+      .map((row) => projectById.get(row.id))
+      .filter((project): project is Project => project !== undefined);
+    handleReorder(ordered);
+  };
 
   if (loading) {
     return (
@@ -133,90 +266,35 @@ const Projects: React.FC = () => {
         }
       />
 
-      <Table className="hidden md:table">
-        <TableHeader>
-          <TableRow>
-            <TableHead>Name</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead className="text-right">Income</TableHead>
-            <TableHead className="text-right">Expense</TableHead>
-            <TableHead className="text-right">Net Cash Flow</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {projects.map((project) => {
-            const totals = snapshotTotals.get(project.id) ?? { income: 0, expense: 0 };
-            const net = totals.income - totals.expense;
-            return (
-              <TableRow
-                key={project.id}
-                data-testid={`project-row-${project.id}`}
-                onClick={() => navigate(`/projects/${project.id}`)}
-                className="cursor-pointer"
-              >
-                <TableCell className={project.isActive ? '' : 'text-muted-foreground'}>
-                  {project.name}
-                </TableCell>
-                <TableCell>
-                  <span className={project.isActive ? 'text-positive' : 'text-muted-foreground'}>
-                    {project.isActive ? '進行中' : '停用'}
-                  </span>
-                </TableCell>
-                <TableCell className="text-right font-mono tabular-nums">
-                  {formatCurrency(totals.income)}
-                </TableCell>
-                <TableCell className="text-right font-mono tabular-nums">
-                  {formatCurrency(totals.expense)}
-                </TableCell>
-                <TableCell
-                  className={`text-right font-mono tabular-nums ${net >= 0 ? 'text-positive' : 'text-negative'}`}
-                >
-                  {formatCurrency(net)}
-                </TableCell>
-              </TableRow>
-            );
-          })}
-        </TableBody>
-      </Table>
+      {/* DndContext renders aria-live divs, so it must wrap the table
+          rather than sit inside tbody (invalid HTML). */}
+      <SortableListScope items={rows} onReorder={handleRowsReorder}>
+        <Table className="hidden md:table">
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-10" />
+              <TableHead>Name</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead className="text-right">Income</TableHead>
+              <TableHead className="text-right">Expense</TableHead>
+              <TableHead className="text-right">Net Cash Flow</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {rows.map((row) => (
+              <SortableProjectRow key={row.id} row={row} onNavigate={navigate} />
+            ))}
+          </TableBody>
+        </Table>
+      </SortableListScope>
 
-      <div className="space-y-2 md:hidden">
-        {projects.map((project) => {
-          const totals = snapshotTotals.get(project.id) ?? { income: 0, expense: 0 };
-          const net = totals.income - totals.expense;
-          return (
-            <CompactRow
-              key={project.id}
-              testId={`project-row-mobile-${project.id}`}
-              onClick={() => navigate(`/projects/${project.id}`)}
-              className="cursor-pointer"
-            >
-              <div className="flex items-center justify-between gap-2">
-                <span
-                  className={`flex min-w-0 items-center gap-2 text-sm font-medium ${project.isActive ? '' : 'text-muted-foreground'}`}
-                >
-                  <span
-                    className={`text-[10px] leading-none ${project.isActive ? 'text-positive' : 'text-muted-foreground'}`}
-                  >
-                    {project.isActive ? '●' : '⊘'}
-                  </span>
-                  <span className="truncate">{project.name}</span>
-                </span>
-                <span
-                  className={`ml-auto font-mono text-sm tabular-nums ${net >= 0 ? 'text-positive' : 'text-negative'}`}
-                >
-                  {formatCurrency(net)}
-                </span>
-              </div>
-              <div className="mt-1.5 flex items-center justify-between gap-2 text-xs text-muted-foreground">
-                <span className="whitespace-nowrap">
-                  {`Income ${formatCurrency(totals.income)} · Expense ${formatCurrency(totals.expense)}`}
-                </span>
-                <span className="whitespace-nowrap">{project.isActive ? '進行中' : '停用'}</span>
-              </div>
-            </CompactRow>
-          );
-        })}
-      </div>
+      <SortableListScope items={rows} onReorder={handleRowsReorder}>
+        <div className="space-y-2 md:hidden">
+          {rows.map((row) => (
+            <SortableProjectCompactRow key={row.id} row={row} onNavigate={navigate} />
+          ))}
+        </div>
+      </SortableListScope>
 
       <ProjectForm isOpen={isFormOpen} onClose={closeForm} onSubmit={create} />
     </div>

@@ -1,6 +1,6 @@
 import React from 'react';
 
-import { ArrowDown, ArrowLeft, ArrowUp, Save } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 
 import { type Project } from '@/domains/project/schemas';
 import { Button } from '@/ui/components/ui/button';
@@ -8,7 +8,6 @@ import { Card, CardContent } from '@/ui/components/ui/card';
 import { Label } from '@/ui/components/ui/label';
 import { Switch } from '@/ui/components/ui/switch';
 import { useProjectPage } from '@/ui/features/project/hooks/useProjectPage';
-import { logger } from '@/utils/logger';
 
 interface ProjectSettingsProps {
   householdId: string;
@@ -16,24 +15,7 @@ interface ProjectSettingsProps {
 }
 
 const ProjectSettings: React.FC<ProjectSettingsProps> = ({ householdId, onBack }) => {
-  const { projects, loading, moveProjectUp, moveProjectDown, saveOrder, update } =
-    useProjectPage(householdId);
-
-  const [saving, setSaving] = React.useState(false);
-  const [saveError, setSaveError] = React.useState<string | null>(null);
-
-  const handleSaveOrder = async () => {
-    setSaving(true);
-    setSaveError(null);
-    try {
-      await saveOrder();
-    } catch (error) {
-      logger.error('Failed to save project order', 'ProjectSettings', { error });
-      setSaveError(error instanceof Error ? error.message : 'Failed to save project order.');
-    } finally {
-      setSaving(false);
-    }
-  };
+  const { projects, loading, update } = useProjectPage(householdId);
 
   const handleToggleActive = async (project: Project, active: boolean) => {
     await update({
@@ -57,52 +39,21 @@ const ProjectSettings: React.FC<ProjectSettingsProps> = ({ householdId, onBack }
         </Button>
         <div className="flex-1">
           <h1 className="text-2xl font-bold text-foreground">Project Settings</h1>
-          <p className="text-muted-foreground">Manage project order and status</p>
+          <p className="text-muted-foreground">Manage project status</p>
         </div>
-        <Button variant="default" className="gap-2" onClick={handleSaveOrder} disabled={saving}>
-          <Save size={18} />
-          {saving ? 'Saving...' : 'Save Order'}
-        </Button>
       </div>
 
       <Card>
         <CardContent className="p-4">
-          {saveError && (
-            <div className="mb-4 rounded-lg border border-negative/20 bg-negative/10 px-3 py-2 text-sm font-medium text-negative">
-              {saveError}
-            </div>
-          )}
           <div className="space-y-4">
-            {projects.map((project, index) => (
+            {projects.map((project) => (
               <div
                 key={project.id}
                 className="flex items-center justify-between p-4 bg-muted/30 rounded-lg hover:bg-muted/50 transition-colors"
               >
-                <div className="flex items-center gap-4">
-                  <div className="flex flex-col gap-1">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8"
-                      disabled={index === 0}
-                      onClick={() => moveProjectUp(project.id)}
-                    >
-                      <ArrowUp size={16} />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8"
-                      disabled={index === projects.length - 1}
-                      onClick={() => moveProjectDown(project.id)}
-                    >
-                      <ArrowDown size={16} />
-                    </Button>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <div>
-                      <p className="font-semibold">{project.name}</p>
-                    </div>
+                <div className="flex items-center gap-3">
+                  <div>
+                    <p className="font-semibold">{project.name}</p>
                   </div>
                 </div>
 
