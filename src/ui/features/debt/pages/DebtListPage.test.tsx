@@ -121,6 +121,28 @@ describe('DebtListPage table', () => {
     expect(navigate).toHaveBeenCalledWith('/debt/d1');
   });
 
+  it('renders the settled filter as a compact text toggle next to the total outstanding summary', () => {
+    mockUseDebtPage.mockReturnValue(controllerBase);
+    mockUseDebtAccountCmds.mockReturnValue({ removeDebtAccount: vi.fn() } as never);
+    mockUseConfirm.mockReturnValue({ confirm: vi.fn().mockResolvedValue(false) } as never);
+    mockUseNavigate.mockReturnValue(vi.fn());
+
+    render(
+      <MemoryRouter>
+        <DebtListPage />
+      </MemoryRouter>,
+    );
+
+    const toggle = screen.getByRole('button', { name: '顯示已結清' });
+    expect(toggle.hasAttribute('title')).toBe(false);
+
+    const summary = screen.getByText('TOTAL OUTSTANDING').parentElement!;
+    expect(summary.contains(toggle)).toBe(true);
+
+    fireEvent.click(toggle);
+    expect(screen.getByRole('button', { name: '隱藏已結清' })).toBeInTheDocument();
+  });
+
   it('renders the grace period status as a glyph + text status, not a colored badge', () => {
     mockUseDebtPage.mockReturnValue({
       ...controllerBase,
@@ -152,6 +174,41 @@ describe('DebtListPage table', () => {
     nameCells.forEach((cell) => {
       expect(cell.querySelector('span.bg-destructive')).toBeNull();
     });
+  });
+
+  it('hides settled loans by default and reveals them via the toggle without changing data', () => {
+    mockUseDebtPage.mockReturnValue({
+      ...controllerBase,
+      debtAccountViews: [
+        buildDebtVM({ id: 'd1', name: 'Active Loan', isActive: true }),
+        buildDebtVM({ id: 'd2', name: 'Settled Loan', isActive: false, currentBalance: 0 }),
+      ],
+      totalDebt: 4800000,
+    });
+    mockUseDebtAccountCmds.mockReturnValue({ removeDebtAccount: vi.fn() } as never);
+    mockUseConfirm.mockReturnValue({ confirm: vi.fn().mockResolvedValue(false) } as never);
+    const navigate = vi.fn();
+    mockUseNavigate.mockReturnValue(navigate);
+
+    render(
+      <MemoryRouter>
+        <DebtListPage />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByText('TOTAL OUTSTANDING')).toBeInTheDocument();
+    expect(screen.queryAllByText('Settled Loan')).toHaveLength(0);
+
+    fireEvent.click(screen.getByRole('button', { name: '顯示已結清' }));
+
+    expect(screen.getAllByText('Settled Loan')).toHaveLength(2);
+    expect(screen.getByRole('button', { name: '隱藏已結清' })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId('debt-row-d2'));
+    expect(navigate).toHaveBeenCalledWith('/debt/d2');
+
+    fireEvent.click(screen.getByRole('button', { name: '隱藏已結清' }));
+    expect(screen.queryAllByText('Settled Loan')).toHaveLength(0);
   });
 
   it('renders mobile compact rows with name + outstanding, type/monthly/as-of metadata', () => {

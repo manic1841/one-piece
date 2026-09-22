@@ -159,7 +159,7 @@ const AccountList: React.FC = () => {
             <span>啟用中 {visibleAccounts.filter((a) => a.isActive !== false).length} 筆</span>
             <button
               type="button"
-              className="underline underline-offset-2 hover:text-foreground"
+              className="underline underline-offset-2 transition-[color,background-color,transform] duration-fast ease-out-quint hover:text-foreground active:scale-[0.97]"
               onClick={() => setShowInactive((prev) => !prev)}
             >
               {showInactive ? '隱藏停用' : '顯示停用'}

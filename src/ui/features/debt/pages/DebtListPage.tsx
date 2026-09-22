@@ -89,13 +89,6 @@ export default function DebtListPage() {
               <Calendar size={16} />
               月度結算
             </Button>
-            <Button
-              variant="outline"
-              onClick={() => setShowSettled((s) => !s)}
-              title={showSettled ? '隱藏已結清帳戶' : '顯示已結清帳戶'}
-            >
-              {showSettled ? '隱藏已結清' : '顯示已結清'}
-            </Button>
             <Button onClick={openCreate} className="gap-2">
               <Plus size={18} />
               新增貸款
@@ -112,9 +105,18 @@ export default function DebtListPage() {
       {!loading && (
         <>
           <div className="flex items-baseline justify-between">
-            <p className="font-mono text-[11px] tracking-widest text-muted-foreground uppercase">
-              TOTAL OUTSTANDING
-            </p>
+            <div className="flex items-baseline gap-3 text-xs text-muted-foreground">
+              <p className="font-mono text-[11px] tracking-widest text-muted-foreground uppercase">
+                TOTAL OUTSTANDING
+              </p>
+              <button
+                type="button"
+                className="underline underline-offset-2 transition-[color,background-color,transform] duration-fast ease-out-quint hover:text-foreground active:scale-[0.97]"
+                onClick={() => setShowSettled((prev) => !prev)}
+              >
+                {showSettled ? '隱藏已結清' : '顯示已結清'}
+              </button>
+            </div>
             <p className="font-mono text-2xl tabular-nums text-destructive">
               {formatCurrency(totalDebt)}
             </p>
