@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 import { checkAccountMonthlyUsageUseCase } from '@/application/account/use_cases/checkAccountMonthlyUsageUseCase';
 import {
@@ -8,7 +8,6 @@ import {
 } from '@/domains/account/types/account';
 import { useAuth } from '@/infra/contexts/useAuth';
 import { useAccountCmds } from '@/ui/features/account/hooks/useAccountCmds';
-import { useAccountExport } from '@/ui/features/account/hooks/useAccountExport';
 import { useAccounts } from '@/ui/features/account/hooks/useAccounts';
 import { useAuthContext } from '@/ui/hooks/useAuthContext';
 import { useConfirm } from '@/ui/features/app/confirm/ConfirmDialog';
@@ -21,7 +20,6 @@ export function useAccountListController() {
 
   const { fetchAccountsWithSnapshots, loading: loadingAccounts } = useAccounts();
   const { createAccount, reorderAccounts, updateAccount } = useAccountCmds(householdId);
-  const { exportToCSV, importFromCSV } = useAccountExport();
 
   const [accounts, setAccounts] = useState<AccountWithSnapshot[]>([]);
   const [localAccounts, setLocalAccounts] = useState<AccountWithSnapshot[]>([]);
@@ -31,10 +29,7 @@ export function useAccountListController() {
   const [dragOverAccountId, setDragOverAccountId] = useState<string | null>(null);
   const [snapshotAccountId, setSnapshotAccountId] = useState<string | null>(null);
   const [historyAccountId, setHistoryAccountId] = useState<string | null>(null);
-  const [importing, setImporting] = useState(false);
   const [togglingAccountId, setTogglingAccountId] = useState<string | null>(null);
-
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const loadAccounts = useCallback(async () => {
     if (!householdId) return;
@@ -62,34 +57,6 @@ export function useAccountListController() {
       await loadAccounts();
     },
     [createAccount, loadAccounts],
-  );
-
-  const handleImport = useCallback(
-    async (e: React.ChangeEvent<HTMLInputElement>) => {
-      const file = e.target.files?.[0];
-      if (!file) return;
-
-      setImporting(true);
-      const result = await importFromCSV(file);
-      setImporting(false);
-
-      if (result.errors.length > 0) {
-        alert(
-          `匯入完成。成功: ${result.success}, 失敗: ${result.failed}\n\n錯誤資訊:\n${result.errors.join('\n')}`,
-        );
-      } else {
-        alert(`匯入成功！共 ${result.success} 筆紀錄`);
-      }
-
-      if (result.success > 0) {
-        await loadAccounts();
-      }
-
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
-    },
-    [importFromCSV, loadAccounts],
   );
 
   const moveAccount = useCallback((sourceId: string, targetId: string) => {
@@ -218,12 +185,8 @@ export function useAccountListController() {
     setSnapshotAccountId,
     historyAccountId,
     setHistoryAccountId,
-    fileInputRef,
-    importing,
     togglingAccountId,
-    exportToCSV,
     handleCreate,
-    handleImport,
     handleDragStart,
     handleDragEnter,
     handleDrop,

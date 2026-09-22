@@ -45,12 +45,8 @@ const controllerBase = {
   setSnapshotAccountId: vi.fn(),
   historyAccountId: null as string | null,
   setHistoryAccountId: vi.fn(),
-  fileInputRef: { current: null },
-  importing: false,
   togglingAccountId: null as string | null,
-  exportToCSV: vi.fn(),
   handleCreate: vi.fn(),
-  handleImport: vi.fn(),
   handleDragStart: vi.fn(),
   handleDragEnter: vi.fn(),
   handleDrop: vi.fn(),
@@ -61,6 +57,46 @@ const controllerBase = {
   closeHistoryDialog: vi.fn(),
   handleToggleActive: vi.fn(),
 };
+
+describe('AccountList header actions', () => {
+  it('keeps only the create action in the header with no CSV export or import', () => {
+    mockUseAccountListController.mockReturnValue(controllerBase);
+
+    render(<AccountList />);
+
+    expect(screen.getByRole('button', { name: /新增帳戶/ })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '匯出' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /匯入/ })).not.toBeInTheDocument();
+    expect(document.querySelector('input[type="file"]')).not.toBeInTheDocument();
+  });
+
+  it('renders the show-inactive toggle with the unified 顯示停用 / 隱藏停用 wording', () => {
+    mockUseAccountListController.mockReturnValue(controllerBase);
+
+    render(<AccountList />);
+
+    const toggle = screen.getByRole('button', { name: '顯示停用' });
+    expect(toggle).toBeInTheDocument();
+
+    fireEvent.click(toggle);
+    expect(screen.getByRole('button', { name: '隱藏停用' })).toBeInTheDocument();
+  });
+
+  it('keeps inactive accounts hidden by default', () => {
+    mockUseAccountListController.mockReturnValue({
+      ...controllerBase,
+      localAccounts: [
+        account({ id: 'b1', name: 'Main Bank', category: 'bank' }),
+        account({ id: 'old', name: 'Old Bank', category: 'bank', isActive: false }),
+      ],
+    });
+
+    render(<AccountList />);
+
+    expect(screen.getByText('Main Bank')).toBeInTheDocument();
+    expect(screen.queryByText('Old Bank')).not.toBeInTheDocument();
+  });
+});
 
 describe('AccountList grouped tables', () => {
   it('renders CASH/BANK/SECURITIES sections with Account | Ending Balance | As of columns', () => {

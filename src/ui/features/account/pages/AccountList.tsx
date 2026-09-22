@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 
-import { Download, Plus, Upload } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 import { type AccountWithSnapshot } from '@/domains/account/types/account';
@@ -103,11 +103,7 @@ const AccountList: React.FC = () => {
     loadingAccounts,
     showForm,
     setShowForm,
-    fileInputRef,
-    importing,
-    exportToCSV,
     handleCreate,
-    handleImport,
   } = useAccountListController();
 
   const [showInactive, setShowInactive] = useState(false);
@@ -166,32 +162,12 @@ const AccountList: React.FC = () => {
               className="underline underline-offset-2 hover:text-foreground"
               onClick={() => setShowInactive((prev) => !prev)}
             >
-              {showInactive ? '隱藏停用帳戶' : '顯示停用帳戶'}
+              {showInactive ? '隱藏停用' : '顯示停用'}
             </button>
           </div>
         }
         actions={
           <div className="flex gap-2">
-            <input
-              type="file"
-              ref={fileInputRef}
-              onChange={handleImport}
-              accept=".csv"
-              className="hidden"
-            />
-            <Button variant="outline" onClick={exportToCSV} className="gap-2">
-              <Download size={18} />
-              匯出
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => fileInputRef.current?.click()}
-              className="gap-2"
-              disabled={importing}
-            >
-              <Upload size={18} />
-              {importing ? '匯入中...' : '匯入'}
-            </Button>
             <Button onClick={() => setShowForm(true)} className="gap-2">
               <Plus size={18} />
               新增帳戶
