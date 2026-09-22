@@ -246,6 +246,20 @@ describe('monthlyCloseWorkflowUseCase — emulator integration', () => {
     expect(zeroPaymentSnapshot.data()?.principalPaid).toBe(0);
     expect(zeroPaymentSnapshot.data()?.interestPaid).toBe(0);
 
+    // One DEBT_REPAYMENT confirmation wrote both artifacts together: the
+    // repayment transaction above and the zero-payment snapshot for the
+    // watched loan with no repayment (issue #155).
+
+    // Idempotency: re-confirming is refused and does not duplicate the
+    // repayment transaction (stage guard blocks side effects).
+    await expect(confirmStage('DEBT_REPAYMENT', { repayments: [] })).rejects.toMatchObject({
+      code: 'STAGE_ALREADY_COMPLETED',
+    });
+    const debtPaymentCount = (await getDocsFromServer(
+      collection(db, 'households', householdId, 'transactions'),
+    )).docs.filter((docSnapshot) => docSnapshot.data().intentType === 'DEBT_PAYMENT').length;
+    expect(debtPaymentCount).toBe(1);
+
     // COMPLETENESS_CHECK pauses on the watched debt with zero activity. The
     // stage stays PENDING; re-confirming it is the resolution path (ADR-0052).
     await confirmStage('COMPLETENESS_CHECK', {});
