@@ -106,7 +106,7 @@
 
 **根因**:dev server 從很久以前(加上新依賴之前)一直跑著,`pnpm add` 改了 lockfile 使其 dep cache 失效,但長跑的 server 不會自行 re-optimize,開始回 404 `/@vite/client`;首屏載入失敗一次後,瀏覽器 module map 把該 URL 的失敗快取起來,事後的 re-import 直接回快取的錯誤、根本沒有網路請求(Playwright response 攔截是空的的原因)。磁碟上的 `node_modules/.vite/deps/_metadata.json` 反而可能是新的(另一個 server/進程 re-optimize 過),時間戳查不出問題。
 
-**判別法**:懷疑順序是「重啟 dev server」而不是讀 app 程式碼。port 衝突時用 `ss -tlnp` 找真的空閒的 port;多個殭屍 vite 進程可能佔著 5174-5177。啟動時帶上 app 需要的 `VITE_*` 環境變數,否則頁面會停在另一種狀態,又是一層誤導。
+**判別法**:懷疑順序是「重啟 dev server」而不是讀 app 程式碼。port 衝突時用 `ss -tlnp` 找真的空閒的 port;多個殭屍 vite 進程可能佔著 5174-5177。啟動時帶上 app 需要的 `VITE_*` 環境變數,否則頁面會停在另一種狀態,又是一層誤導。`vitest` 單元/整合測試不經過 dev server(jsdom/node 自行 transform、不連 5173),長跑 server 不影響測試;dev container 的長跑 server 即 docker-compose `app` 啟動的 5173,只有改 lockfile(`pnpm add`)後才需要重啟。
 
 **記錄自**:#152(2026-09-22,Portfolio drag 390px 瀏覽器驗證)。
 
