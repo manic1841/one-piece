@@ -46,6 +46,7 @@ export function useAccountCmds(householdId: string) {
           userEmail: auth.email || '',
           auth,
         });
+        return true;
       });
     },
     [householdId, auth, run],

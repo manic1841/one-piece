@@ -522,6 +522,17 @@ Detail 頁的編輯入口依欄位複雜度二選一：
 
 Rule：`PageHeader` 不知道「怎麼編輯名稱」——`title` 接受 ReactNode，由頁面自行傳入 `<InlineEditableTitle value={...} onSave={...} />`；儲存走既有 update command，成功後頁面自行 refetch/同步 state。
 
+### Lifecycle 控制（2026-09-22 定案）
+
+啟用/停用（activate/deactivate）屬 Detail 責任，不放在 List 列內：
+
+- 掛在 PageHeader actions，緊鄰狀態顯示（badge/meta），讓狀態與改變狀態的動作成對。
+- 標籤依狀態二選一：active 顯示「停用 {domain}」、inactive 顯示「啟用 {domain}」
+  （停用帳戶/啟用帳戶、停用 Project/啟用 Project、停用貸款/啟用貸款）。
+- 可逆動作用 outline variant；停用帳戶若當月有交易，先走 monthly-usage 檢查 +
+  `useConfirm()`（DISABLE 標籤）。切換走既有 update command，成功後狀態即時反映。
+- List 只呈現狀態（glyph/muted），不提供切換。
+
 ---
 
 # 13. Action Hierarchy

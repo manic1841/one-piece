@@ -1,10 +1,11 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 
+import { Power } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 
 import { type Project } from '@/domains/project/schemas';
 import { listDebtAccountsUseCase } from '@/application/debt/use_cases/listDebtAccountsUseCase';
-import { useAuthContext } from '@/ui/hooks/useAuthContext';
+import { useAuth } from '@/infra/contexts/useAuth';
 import { InlineEditableTitle } from '@/ui/components/InlineEditableTitle';
 import { PageHeader } from '@/ui/components/PageHeader';
 import { StatusGlyph } from '@/ui/components/StatusGlyph';
@@ -62,8 +63,8 @@ const toExpenseBreakdown = (
 export default function ProjectDetailPage({ project }: ProjectDetailPageProps) {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const auth = useAuthContext();
-  const householdId = (auth as { householdId?: string }).householdId ?? '';
+  const { userProfile } = useAuth();
+  const householdId = userProfile?.householdId ?? '';
 
   const {
     items,
@@ -74,6 +75,7 @@ export default function ProjectDetailPage({ project }: ProjectDetailPageProps) {
 
   const [projectDebt, setProjectDebt] = React.useState<{ id: string; name: string; balanceText: string }[]>([]);
   const [fetchedProject, setFetchedProject] = useState<Project | null>(null);
+  const [statusOverride, setStatusOverride] = useState<boolean | null>(null);
   const { updateProject } = useProjectCmds(householdId);
 
   React.useEffect(() => {
@@ -132,6 +134,28 @@ export default function ProjectDetailPage({ project }: ProjectDetailPageProps) {
     setFetchedProject((prev) => (prev && prev.id === activeProject.id ? { ...prev, name } : prev));
   };
 
+  const isActive = statusOverride ?? (activeProject?.isActive !== false);
+
+  const handleToggleActive = async () => {
+    if (!activeProject) return;
+    const nextActive = !isActive;
+
+    const updated = await updateProject(activeProject.id, { isActive: nextActive });
+    if (updated === undefined) return;
+    setStatusOverride(nextActive);
+    if (!project) {
+      const { getProjectUseCase } = await import(
+        '@/application/project/use_cases/getProjectUseCase'
+      );
+      const data = await getProjectUseCase.execute({ householdId, projectId: activeProject.id });
+      if (data) setFetchedProject(data);
+    }
+  };
+
+  useEffect(() => {
+    setStatusOverride(null);
+  }, [id]);
+
   const records = useMemo(
     () => items.filter((item): item is ProjectRecordItemVM => item.type === ProjectDetailItemType.RECORD),
     [items],
@@ -162,12 +186,22 @@ export default function ProjectDetailPage({ project }: ProjectDetailPageProps) {
         crumb="PROJECTS"
         onBack={() => navigate('/projects')}
         badge={
-          !activeProject.isActive ? (
+          !isActive ? (
             <StatusGlyph type="inactive" />
           ) : undefined
         }
         actions={
           <div className="flex items-center gap-2">
+            {isActive ? (
+              <Button variant="outline" onClick={() => void handleToggleActive()}>
+                <Power size={16} />
+                停用 Project
+              </Button>
+            ) : (
+              <Button variant="outline" onClick={() => void handleToggleActive()}>
+                啟用 Project
+              </Button>
+            )}
             <YearMonthPicker
               year={selectedYearMonth === 'current' ? String(new Date().getFullYear()) : selectedYearMonth.split('-')[0]}
               month={selectedYearMonth === 'current' ? String(new Date().getMonth() + 1) : selectedYearMonth.split('-')[1]}

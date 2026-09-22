@@ -1,8 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 
-import { checkAccountMonthlyUsageUseCase } from '@/application/account/use_cases/checkAccountMonthlyUsageUseCase';
 import {
-  type Account,
   type AccountCreate,
   type AccountWithSnapshot,
 } from '@/domains/account/types/account';
@@ -10,16 +8,14 @@ import { useAuth } from '@/infra/contexts/useAuth';
 import { useAccountCmds } from '@/ui/features/account/hooks/useAccountCmds';
 import { useAccounts } from '@/ui/features/account/hooks/useAccounts';
 import { useAuthContext } from '@/ui/hooks/useAuthContext';
-import { useConfirm } from '@/ui/features/app/confirm/ConfirmDialog';
 
 export function useAccountListController() {
   const { userProfile } = useAuth();
   const auth = useAuthContext();
-  const { confirm } = useConfirm();
   const householdId = userProfile?.householdId || '';
 
   const { fetchAccountsWithSnapshots, loading: loadingAccounts } = useAccounts();
-  const { createAccount, reorderAccounts, updateAccount } = useAccountCmds(householdId);
+  const { createAccount, reorderAccounts } = useAccountCmds(householdId);
 
   const [accounts, setAccounts] = useState<AccountWithSnapshot[]>([]);
   const [localAccounts, setLocalAccounts] = useState<AccountWithSnapshot[]>([]);
@@ -29,7 +25,6 @@ export function useAccountListController() {
   const [dragOverAccountId, setDragOverAccountId] = useState<string | null>(null);
   const [snapshotAccountId, setSnapshotAccountId] = useState<string | null>(null);
   const [historyAccountId, setHistoryAccountId] = useState<string | null>(null);
-  const [togglingAccountId, setTogglingAccountId] = useState<string | null>(null);
 
   const loadAccounts = useCallback(async () => {
     if (!householdId) return;
@@ -133,44 +128,6 @@ export function useAccountListController() {
     await loadAccounts();
   }, [loadAccounts]);
 
-  const handleToggleActive = useCallback(
-    async (account: Account) => {
-      const nextActive = !(account.isActive !== false);
-
-      if (!nextActive) {
-        const now = new Date();
-        const warning = await checkAccountMonthlyUsageUseCase.execute({
-          householdId,
-          accountId: account.id,
-          accountCategory: account.category,
-          year: now.getFullYear(),
-          month: now.getMonth() + 1,
-          auth,
-        });
-
-        if (warning.hasReferences) {
-          const confirmed = await confirm({
-            title: 'Disable this account?',
-            context: `It has ${warning.referenceCount} transactions this month.`,
-            consequence: 'Disabled accounts no longer appear in bookkeeping or month-end settlement menus.',
-            confirmLabel: 'DISABLE',
-            cancelLabel: 'Cancel',
-          });
-          if (!confirmed) return;
-        }
-      }
-
-      setTogglingAccountId(account.id);
-      try {
-        await updateAccount(account.id, { isActive: nextActive });
-      } finally {
-        setTogglingAccountId(null);
-      }
-      await loadAccounts();
-    },
-    [householdId, auth, confirm, updateAccount, loadAccounts],
-  );
-
   return {
     accounts,
     localAccounts,
@@ -185,7 +142,6 @@ export function useAccountListController() {
     setSnapshotAccountId,
     historyAccountId,
     setHistoryAccountId,
-    togglingAccountId,
     handleCreate,
     handleDragStart,
     handleDragEnter,
@@ -195,6 +151,5 @@ export function useAccountListController() {
     cancelReorderMode,
     closeSnapshotEditor,
     closeHistoryDialog,
-    handleToggleActive,
   };
 }

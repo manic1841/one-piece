@@ -1,10 +1,12 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
+import { Power } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 
 import { type AccountSnapshot, type AccountWithSnapshot } from '@/domains/account/types/account';
 import { AccountCategoryLabels } from '@/ui/constants/account/label';
 import { Badge } from '@/ui/components/ui/badge';
+import { Button } from '@/ui/components/ui/button';
 import {
   Table,
   TableBody,
@@ -17,94 +19,19 @@ import { PageHeader } from '@/ui/components/PageHeader';
 import { useAuth } from '@/infra/contexts/useAuth';
 import { getAccountsWithSnapshotsUseCase } from '@/application/account/use_cases/getAccountsWithSnapshotsUseCase';
 import { getAccountHistoryUseCase } from '@/application/account/use_cases/getAccountHistoryUseCase';
+import { checkAccountMonthlyUsageUseCase } from '@/application/account/use_cases/checkAccountMonthlyUsageUseCase';
+import { useConfirm } from '@/ui/features/app/confirm/ConfirmDialog';
+import { useAccountCmds } from '@/ui/features/account/hooks/useAccountCmds';
+import {
+  MONTH_NAMES,
+  buildTrendGeometry,
+} from '@/ui/features/account/components/detail/accountTrendGeometry';
+import AccountTrendChart from '@/ui/features/account/components/detail/AccountTrendChart';
 import { formatCurrency, formatDate } from '@/ui/utils';
 
 interface AccountDetailPageProps {
   account?: AccountWithSnapshot;
 }
-
-const MONTH_NAMES = [
-  'JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN',
-  'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC',
-];
-
-const TREND_WIDTH = 720;
-const TREND_HEIGHT = 180;
-const TREND_PADDING_X = 8;
-const TREND_PADDING_TOP = 12;
-const TREND_PADDING_BOTTOM = 24;
-
-interface TrendGeometry {
-  path: string | undefined;
-  points: { x: number; y: number }[];
-  xLabels: { x: number; text: string }[];
-  yLabels: { y: number; text: string }[];
-}
-
-const formatTrendValue = (value: number): string => {
-  if (Math.abs(value) >= 1000000) {
-    return `${(value / 1000000).toFixed(1)}M`;
-  }
-  if (Math.abs(value) >= 1000) {
-    return `${Math.round(value / 1000)}K`;
-  }
-  return `${Math.round(value)}`;
-};
-
-const buildTrendGeometry = (snapshots: AccountWithSnapshot['snapshot'][]): TrendGeometry => {
-  const present = snapshots
-    .filter((snapshot): snapshot is NonNullable<typeof snapshot> => snapshot !== null)
-    .slice()
-    .sort((a, b) => a.year - b.year || a.month - b.month);
-
-  if (present.length === 0) {
-    return { path: undefined, points: [], xLabels: [], yLabels: [] };
-  }
-
-  const values = present.map((snapshot) => snapshot.amount);
-  const rawMin = Math.min(...values);
-  const rawMax = Math.max(...values);
-  const rawSpan = rawMax - rawMin;
-  const yMin = rawSpan === 0 ? rawMin * 0.9 : rawMin - rawSpan * 0.1;
-  const yMax = rawSpan === 0 ? rawMax * 1.1 : rawMax + rawSpan * 0.1;
-  const ySpan = yMax - yMin;
-  const innerWidth = TREND_WIDTH - TREND_PADDING_X * 2;
-  const innerHeight = TREND_HEIGHT - TREND_PADDING_TOP - TREND_PADDING_BOTTOM;
-
-  const points = present.map((snapshot, index) => {
-    const xRatio = present.length === 1 ? 1 : index / (present.length - 1);
-    const yRatio = ySpan === 0 ? 0.5 : (snapshot.amount - yMin) / ySpan;
-    return {
-      x: TREND_PADDING_X + xRatio * innerWidth,
-      y: TREND_PADDING_TOP + (1 - yRatio) * innerHeight,
-    };
-  });
-
-  const path = points
-    .map((point, index) => `${index === 0 ? 'M' : 'L'}${point.x.toFixed(1)} ${point.y.toFixed(1)}`)
-    .join(' ');
-
-  const xLabelStep = Math.max(1, Math.ceil(present.length / 3));
-  const xLabels: { x: number; text: string }[] = [];
-  for (let index = 0; index < present.length; index += 1) {
-    const isLast = index === present.length - 1;
-    if (!isLast && index % xLabelStep !== 0) continue;
-    xLabels.push({
-      x: points[index].x,
-      text: `${MONTH_NAMES[present[index].month - 1]} ${present[index].year}`,
-    });
-  }
-
-  const yLabels = [0, 1, 2, 3].map((step) => {
-    const value = yMin + (ySpan * step) / 3;
-    return {
-      y: TREND_PADDING_TOP + (1 - step / 3) * innerHeight,
-      text: formatTrendValue(value),
-    };
-  });
-
-  return { path, points, xLabels, yLabels };
-};
 
 interface HoldingRowVM {
   id: string;
@@ -140,12 +67,33 @@ const AccountDetailPage: React.FC<AccountDetailPageProps> = ({ account }) => {
   const navigate = useNavigate();
   const { userProfile } = useAuth();
   const householdId = userProfile?.householdId ?? '';
+  const { confirm } = useConfirm();
+  const { updateAccount } = useAccountCmds(householdId);
 
   const [fetchedAccount, setFetchedAccount] = useState<AccountWithSnapshot | null>(null);
   const [loading, setLoading] = useState(true);
   const [history, setHistory] = useState<AccountSnapshot[]>([]);
+  const [statusOverride, setStatusOverride] = useState<boolean | null>(null);
 
   const activeAccount = account ?? fetchedAccount;
+  const activeId = activeAccount?.id ?? null;
+
+  const refetchAccount = useCallback(async () => {
+    if (account || !householdId) return;
+    try {
+      const accounts = await getAccountsWithSnapshotsUseCase.execute({
+        householdId,
+        auth: {
+          uid: userProfile?.uid ?? '',
+          email: userProfile?.email,
+        },
+        includeInactive: true,
+      });
+      setFetchedAccount(accounts.find((a) => a.id === id) ?? null);
+    } catch {
+      setFetchedAccount(null);
+    }
+  }, [account, householdId, id, userProfile]);
 
   useEffect(() => {
     let ignore = false;
@@ -205,9 +153,16 @@ const AccountDetailPage: React.FC<AccountDetailPageProps> = ({ account }) => {
   }, [householdId, id, userProfile]);
 
   const trend = useMemo(
-    () => buildTrendGeometry(history),
+    () =>
+      buildTrendGeometry(
+        history.map((snapshot) => ({ year: snapshot.year, month: snapshot.month, value: snapshot.amount })),
+      ),
     [history],
   );
+
+  useEffect(() => {
+    setStatusOverride(null);
+  }, [activeId]);
 
   const holdings = useMemo(() => {
     const snapshotHoldings = activeAccount?.snapshot?.holdings ?? [];
@@ -219,10 +174,49 @@ const AccountDetailPage: React.FC<AccountDetailPageProps> = ({ account }) => {
     [history],
   );
 
-  const isActive = activeAccount?.isActive !== false;
+  const isActive = statusOverride ?? activeAccount?.isActive !== false;
 
   if (loading) return <div>Loading...</div>;
   if (!activeAccount) return <div>Account not found</div>;
+
+  const handleToggleActive = async () => {
+    const nextActive = !isActive;
+
+    if (!nextActive) {
+      const now = new Date();
+      const warning = await checkAccountMonthlyUsageUseCase.execute({
+        householdId,
+        accountId: activeAccount.id,
+        accountCategory: activeAccount.category,
+        year: now.getFullYear(),
+        month: now.getMonth() + 1,
+        auth: {
+          uid: userProfile?.uid ?? '',
+          email: userProfile?.email,
+        },
+      });
+
+      if (warning.hasReferences) {
+        const confirmed = await confirm({
+          title: 'Disable this account?',
+          context: `It has ${warning.referenceCount} transactions this month.`,
+          consequence: 'Disabled accounts no longer appear in bookkeeping or month-end settlement menus.',
+          confirmLabel: 'DISABLE',
+          cancelLabel: 'Cancel',
+        });
+        if (!confirmed) return;
+      }
+    }
+
+    const updated = await updateAccount(activeAccount.id, { isActive: nextActive });
+    if (updated === undefined) {
+      return;
+    }
+    setStatusOverride(nextActive);
+    if (!account) {
+      await refetchAccount();
+    }
+  };
 
   return (
     <div className="space-y-8 pb-20">
@@ -236,6 +230,20 @@ const AccountDetailPage: React.FC<AccountDetailPageProps> = ({ account }) => {
           </Badge>
         }
         meta={!isActive && <p className="mt-1 text-xs text-muted-foreground">停用帳戶</p>}
+        actions={
+          <div className="flex gap-2">
+            {isActive ? (
+              <Button variant="outline" onClick={() => void handleToggleActive()}>
+                <Power size={16} />
+                停用帳戶
+              </Button>
+            ) : (
+              <Button variant="outline" onClick={() => void handleToggleActive()}>
+                啟用帳戶
+              </Button>
+            )}
+          </div>
+        }
       />
 
       <section className="space-y-3">
@@ -279,45 +287,7 @@ const AccountDetailPage: React.FC<AccountDetailPageProps> = ({ account }) => {
       <section className="space-y-3">
         <SectionTitle>12M TREND</SectionTitle>
         {trend.path ? (
-          <div className="relative" data-testid="account-trend-chart">
-            <svg
-              className="h-44 w-full"
-              viewBox={`0 0 ${TREND_WIDTH} ${TREND_HEIGHT}`}
-              preserveAspectRatio="none"
-              aria-hidden="true"
-            >
-              {trend.yLabels.map((label) => (
-                <line
-                  key={label.text}
-                  x1={TREND_PADDING_X}
-                  x2={TREND_WIDTH - TREND_PADDING_X}
-                  y1={label.y}
-                  y2={label.y}
-                  stroke="hsl(var(--border))"
-                  strokeWidth="1"
-                />
-              ))}
-              <path
-                d={trend.path}
-                fill="none"
-                stroke="hsl(var(--chart-1))"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-            <div className="relative mt-2 h-4">
-              {trend.xLabels.map((label) => (
-                <span
-                  key={label.text}
-                  className="absolute whitespace-nowrap font-mono text-[10px] tabular-nums text-muted-foreground"
-                  style={{ left: `${(label.x / TREND_WIDTH) * 100}%` }}
-                >
-                  {label.text}
-                </span>
-              ))}
-            </div>
-          </div>
+          <AccountTrendChart trend={trend} />
         ) : (
           <p className="text-sm text-muted-foreground">尚無結算資料，完成本月關帳後顯示趨勢</p>
         )}

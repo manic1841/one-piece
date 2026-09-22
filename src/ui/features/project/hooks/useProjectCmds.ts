@@ -44,13 +44,14 @@ export function useProjectCmds(householdId: string) {
   const updateProject = useCallback(
     async (projectId: string, updates: Partial<Project>) => {
       return run(async () => {
-        return updateProjectUseCase.execute({
+        await updateProjectUseCase.execute({
           householdId,
           projectId,
           updates,
           userEmail: auth.email || '',
           auth,
         });
+        return true;
       });
     },
     [householdId, auth, run],

@@ -29,6 +29,8 @@ List 表格欄位結構與數字欄位（`font-mono tabular-nums`、右對齊）
 §1 Page Shell 統一 header；Debt/Project/Portfolio detail 皆有 onBack。帳戶 detail 需返回列表才能換選其他帳戶。
 **Fix:** PageHeader 加 `onBack={() => navigate('/accounts')}`；header actions 依 §12 評估：帳戶無 detail-layer 的編輯表單（AccountForm 僅在 List 頁 in-page swap），故 detail header 暫不掛 actions，先補返回導覽。
 **裁決（2026-09-21，已實作）：** `onBack` 已補上；header 不掛 actions 維持。
+**後續更新（2026-09-22，issue #150）：** header actions 現掛 停用帳戶/啟用帳戶
+lifecycle 切換（Detail 責任，§12 Lifecycle 控制）。
 
 ### L2. ProjectDetailPage 無編輯/刪除入口 — fix, medium
 

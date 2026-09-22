@@ -45,7 +45,6 @@ const controllerBase = {
   setSnapshotAccountId: vi.fn(),
   historyAccountId: null as string | null,
   setHistoryAccountId: vi.fn(),
-  togglingAccountId: null as string | null,
   handleCreate: vi.fn(),
   handleDragStart: vi.fn(),
   handleDragEnter: vi.fn(),
@@ -55,7 +54,6 @@ const controllerBase = {
   cancelReorderMode: vi.fn(),
   closeSnapshotEditor: vi.fn(),
   closeHistoryDialog: vi.fn(),
-  handleToggleActive: vi.fn(),
 };
 
 describe('AccountList header actions', () => {
