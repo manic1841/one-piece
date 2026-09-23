@@ -23,8 +23,9 @@ Navigation/More Sheet — superseded by Pixel Pet main navigator」，但實作�
    Dashboard 是 home context，不是 Navigator 項目。
 2. **收編既有入口**:刪除行動 bottom nav 與 More sheet;行動版經 Pixel Pet 現有
    的 Navigator sheet 導航（Mobile bottom sheet 行為，詳見
-   [UI 架構文件](../ui/ui-layer-architecture.md)）。目的地清單
-   繼續以 `navigation.ts` 的單一 `NAV_ITEMS` 為來源。
+   [UI 架構文件](../ui/ui-layer-architecture.md)）。Navigator 清單為 **8 項**——
+   `NAV_ITEMS` 扣除 Dashboard 與 Settings（見下方修訂）；路由清單仍以
+   `navigation.ts` 為單一來源，但 Navigator 與 Quick Access 取用的**集合不同**。
 3. **Quick Access 不受 Navigator 限制**:Ctrl/Cmd+K 指令面板條目為全部 10 條路由
    指令（含 Dashboard 與 Settings），與 Navigator 的 8 項清單互相獨立。
 4. **Pet 反應是全域資料驅動**:Layout 層 hook 讀最近財務期間狀態，映射 CLOSED ->
@@ -35,7 +36,30 @@ Navigation/More Sheet — superseded by Pixel Pet main navigator」，但實作�
 ## 影響
 
 - 超越 ADR-0044 的決策 3（行動導航 4+1 分組）:bottom nav 移除後，4+1 分組不再是
-  契約;`NAV_ITEMS` 的 `group` 欄位對 Navigator 不再有意義，Quick Access 與
-  Navigator 各自取用。
+  契約;`NAV_ITEMS` 昔日供 bottom nav 使用的 `group` 欄位已移除，Quick Access 與
+  Navigator 取用同一份路由清單的不同子集。
 - ADR-0044 的其他決策（單一 md 斷點、平板沿用桌面殼、表格橫向捲動政策）不受影響。
 - 驗收清單對應 [UI 架構文件](../ui/ui-layer-architecture.md) 的「導航所有權」章節。
+
+## 修訂（2026-09-23，釐清 Navigator 取用範圍）
+
+決策 2 原先寫「目的地清單繼續以 `navigation.ts` 的單一 `NAV_ITEMS` 為來源」。但
+`NAV_ITEMS` 是**全站路由清單**（現為 10 項，含 Dashboard 與 Settings），這句與決策
+1「Dashboard 不是 Navigator 項目」及決策 3「Navigator 的 8 項清單」互相矛盾。實作
+依決策 2 的字面渲染全部 `NAV_ITEMS`，Navigator 因此出現 10 項。
+
+**本 ADR 的決策不變**（Navigator 8 項、Dashboard 為 home context）；本次只釐清取用
+範圍，非新決策:
+
+- **Navigator＝8 項**:`NAV_ITEMS` 扣除 `/`（Dashboard）與 `/settings`（Settings）。
+  Dashboard 由 header 品牌 ONE PIECE 承擔、Settings 由 Avatar menu 承擔，兩者皆非
+  Navigator 項目（決策 1）。
+- **Quick Access＝全部路由指令**:Ctrl/Cmd+K 涵蓋含 Dashboard 與 Settings 在內的全部
+  路由，與 Navigator 清單互相獨立（決策 3）。
+- **非同一集合**:兩表面共用 `navigation.ts` 作路由的單一來源，但取用不同子集;「以
+  `NAV_ITEMS` 為來源」不得解讀為「Navigator 渲染全部 `NAV_ITEMS`」。
+- **實作與文件一致化**:依本契約修正實作（Navigator 8 項、Quick Access 10 條，含
+  對應測試），見 issue #175;呈現層描述以
+  [UI 架構文件](../ui/ui-layer-architecture.md) 的導航所有權契約為準。
+- **未新開 ADR**:這是同一份導航所有權契約的範圍釐清，另開 ADR 會產生兩份描述同一
+  契約的文件。
