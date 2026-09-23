@@ -2,7 +2,7 @@
 
 > 依據：Apple《Designing Fluid Interfaces》(WWDC 2018)、《The Details of UI Typography》(WWDC 2020)、《Principles of Great Design》(WWDC 2026) 的 web 平台轉譯。
 >
-> **邊界宣告**：本文件管**設計 token 與元件表面**（色彩、材質、動態、字體排印、元件尺寸與狀態契約）。**頁面層級的佈局、間距、資料密度與互動標準**屬 [`visual-standards.md`](visual-standards.md)，兩份文件權威不重疊。
+> **邊界宣告**：本文件管**設計 token 與元件表面**（色彩、材質、動態、字體排印、元件尺寸與狀態契約、spacing 級距）。**頁面層級的佈局、間距用途、資料密度與互動標準**屬 [`visual-standards.md`](visual-standards.md)，兩份文件權威不重疊。
 
 本文件是設計 token 與元件表面契約的唯一真相來源。實作以本文件為準；若與 `ui-layer-architecture.md` 的分層規則衝突，以分層規則為準——呈現層契約不涉入資料流、ViewModel/Hook 職責邊界與 display label API。
 
@@ -84,7 +84,18 @@ Token（定義於 `tailwind.config.js`，全部走 CSS 變數）：
 - 間距一律用 `rem`/`em`，尊重使用者瀏覽器字體大小設定。
 - 頁面標題使用重量（`font-semibold`/`font-bold`）建立層級，不以加大尺寸為唯一手段。
 
-## 5. 八原則對照
+## 5. 間距級距
+
+全站使用單一 spacing scale，對應 Tailwind 預設 spacing（一律以 `rem` 表達，對應 4px 網格）：
+
+```text
+0.25 · 0.5 · 0.75 · 1 · 1.5 · 2 · 3 · 4   (rem)
+  4  ·  8  ·  12  · 16 · 24 · 32 · 48 · 64   (px)
+```
+
+> 各級距的**使用場景與禁止事項**屬頁面層級決策，見 [`visual-standards.md`](visual-standards.md) 的「間距」節；本節只定義級距本身。
+
+## 6. 八原則對照
 
 | 原則 | 本專案的落實 |
 | --- | --- |
@@ -97,7 +108,7 @@ Token（定義於 `tailwind.config.js`，全部走 CSS 變數）：
 | Craft | token 化、easing 鏡像、press 回饋、scroll-edge 處理 |
 | Delight | 七項做對後的結果：介面安靜、回應即時、材質有層次 |
 
-## 6. 元件模式
+## 7. 元件模式
 
 - `badge`：小圓角 + `border-strong` 可見邊界 + `font-mono text-[11px]`，棄用 rounded-full 藥丸；`destructive` 變體以 `border-negative/40 text-negative` 呈現。
 - `alert`：單列模式——`role="alert"` 容器 + 狀態 glyph + `AlertDescription` + 文字動作按鈕（`button-variants` 的 `text` variant）；不再提供 `AlertTitle` 標題槽。

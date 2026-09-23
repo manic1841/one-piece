@@ -48,6 +48,10 @@
   - 設計 token 與元件表面契約：色彩、動態、材質層級、字體排印與元件尺寸/狀態。
   - 元件與 token 改動的驗收標準。
 
+- **[頁面視覺標準 (Visual Standards)](/docs/ui/visual-standards.md)**
+  - 頁面層級契約：Page Shell、頁寬、間距用途、空/載入/錯誤狀態、工作流與 Dashboard 版面、資料密度、互動一致性與 review checklist。
+  - 頁面佈局與互動改動的驗收標準。
+
 - **[UI 架構 (UI Layer Architecture)](/docs/ui/ui-layer-architecture.md)**
   - UI 分層結構、依賴方向、導航所有權與 RWD 斷點契約。
   - 共用元件歸屬規則與各層職責邊界。
