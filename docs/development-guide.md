@@ -24,10 +24,12 @@
 - 在 `src/application/{domain_name}/use_cases/` 建立單一職責的操作。
 - 複雜的校驗邏輯應放進 **Domain Service**。
 
-### 第四步：建立應用控制器 (Application Hook)
+### 第四步：建立控制器 (Controller Hook)
 
 - 在 `src/ui/features/{feature_name}/hooks/` 建立 Hook。
-- Hook 職責：管理 UI 狀態、注入 `AuthContext`、呼叫 Use Case。
+- Hook 職責：管理 UI 狀態（含表單狀態）、注入 `AuthContext`、呼叫 Use Case。
+- 讀寫分離：寫入放 Command（`*Cmds`），讀取放 Query 或 Controller；`*Cmds` 內不得出現讀取。
+- 層級與可觸碰清單見 [`ui/ui-layer-architecture.md`](ui/ui-layer-architecture.md)。
 
 ### 第五步：建立 UI Form ViewModel 與 Mapper (UI Layer)
 
@@ -38,12 +40,13 @@
 ### 第六步：實作 UI 組件
 
 - 呼叫 Hook 並渲染畫面。
+- Component 與 Page（Surface）不得 import `@/domains`、`@/application`、`@/infra`，**連型別也不行**；需要 domain 形狀時由 ViewModel 轉出（ADR-0062）。
 - 提交路徑必須經過 `Schema.parse -> Mapper -> UseCase`。
 
 ## 2. 代碼風格要求
 
 - **不要直接呼叫 Repository**: 除非是極其簡單的讀取，否則應透過 Use Case 排列組合業務邏輯。
-- **編排規則**: 不要讓 Hook 呼叫超過一個以上的 Use Case。
+- **編排規則**: 單一使用者操作不得編排多個 Use Case——多步流程屬 Workflow（如月度關帳），住在 application 層。一個 Hook 檔提供多個 Use Case 作為操作選單不算編排，是允許的。
 - **嚴格型別**: 正式程式碼絕對禁止使用 `any`。測試檔為了建立 mock 或 fixture，已由 ESLint 測試檔規則放寬 `no-explicit-any`；能使用 `unknown`、具體型別或 typed helper 時仍應優先使用。
 - **單一職責**: 一個 Use Case 文件只做一件事（例如：`recordTransactionUseCase.ts` 只負責記錄交易）。
 - **表單一致性**: 表單資料必須先映射到 ViewModel，再由 mapper 轉換成 domain 型別。

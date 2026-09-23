@@ -79,7 +79,9 @@ Free-form UI chrome (button text, error messages, subtitles, descriptive copy) i
 ## Ledger Code Enumeration
 
 - The single seam for "all ledger codes of a household" is `listAllLedgerCodesUseCase` (`src/application/ledger/use_cases/listAllLedgerCodesUseCase.ts`): system defaults from the `LEDGER_CODES` constant merged with household custom codes (`households/{id}/ledgerCodes`, ADR-0009).
-- UI code must not enumerate `LEDGER_CODES` directly for pickers or lists that should include custom codes; call the use case (via `useLedgerCodes` where a React hook fits) and pass `getUnifiedLedgerCodeLabel` as `labelResolver`.
+- UI code must not enumerate `LEDGER_CODES` directly to build an option list (picker, filter, select) for a set that should include custom codes; call the use case (via `useLedgerCodes` where a React hook fits) and pass `getUnifiedLedgerCodeLabel` as `labelResolver`.
+- Referencing code constants for *label resolution or semantics* is a different thing and is not banned: e.g. a ViewModel matching a transaction's code against `LEDGER_CODES`/`LEDGER_PREFIX` to pick a display label or classify a row. This is allowed in the **ViewModel** and **constants** tiers, and forbidden in **Surface**, which may not import `@/domains` at all.
+- No `*_LABEL` map may be imported from `@/domains` by any UI tier; display text comes from `constants` (see ADR-0062 and the Display Label entry in `CONTEXT.md`).
 
 ## Notes
 

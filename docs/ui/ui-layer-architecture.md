@@ -15,28 +15,61 @@ ui
 │   └─ [feature-name]/
 │       ├─ pages/      # Route entry points
 │       ├─ components/ # Feature-specific UI components
-│       ├─ hooks/      # Interaction orchestration (Application Services)
+│       ├─ hooks/      # Controllers, Queries and Commands
 │       ├─ viewmodels/ # UI-specific data representations
-│       └─ mappers/    # Domain -> ViewModel transformation
+│       └─ mappers/    # Domain/Application -> ViewModel transformation
 ├─ components/         # Shared Design System components (Stateless, Pure)
-├─ hooks/              # Shared UI utility hooks (useDebounce, etc.)
-├─ state/              # UI Global State (Zustand/Context - Session/UI only)
+├─ hooks/              # Shared UI hooks (application controllers and mechanisms)
+├─ constants/          # Display labels: the only source of data-value display text
 ├─ utils/              # Presentation helpers (Formatting, etc.)
-└─ styles/             # Global themes and CSS
+└─ assets/             # Static UI assets
 ```
 
 ---
 
-## 2. Frontend Layer Dependency Rules
+## 2. UI Tiers and Dependency Rules
 
-Dependencies must flow **inwards**. The UI layer is the outermost shell.
+The five tiers and the direction they may call. A tier may not import what is not listed.
+Decision record: [ADR-0062](../adr/0062-ui-tier-separation-and-surface-import-ban.md).
 
-1.  **UI -> Application (Hooks)**: UI components only talk to Hooks. Never call a Use Case or Repository directly from a component.
-2.  **UI -> Domain (Types)**: UI can use Domain types for reference, but should prefer ViewModels for display.
-3.  **UI -> Domain (Pure Functions)**: Hooks may call domain pure functions directly for state derivation that requires no persistence (e.g. `aggregateTrendPoints`, retirement `planMutations`). This is the prescribed alternative to pass-through application classes. Persistence-affecting operations must still go through a Use Case.
-4.  **UI -X-> Infrastructure**: The UI layer must never know about Firestore, API clients, or external storage details.
-5.  **Feature Isolation**: Features should be self-contained. Shared components belong in `src/ui/components`, not cross-referenced between features.
-6.  **Shared Component Reuse**: Before creating a new shared component, extend an existing one in `src/ui/components` when it covers the use case. Create a new shared component only when nothing existing can be extended, and migrate existing duplicate implementations in the same task.
+| Tier | Directories | May import | Must never import |
+| --- | --- | --- | --- |
+| **Surface** | `features/*/pages`, `features/*/components`, `components` | UI components, Controllers, ViewModels, `constants`, `utils` | `@/domains`, `@/application`, `@/infra` — **including types** |
+| **ViewModel** | `features/*/viewmodels`, `features/*/mappers` | domain types/values/pure functions, application **types** | application behavior (use cases, workflows), `@/infra` |
+| **Controller** | `features/*/hooks`, `hooks` | use cases / workflows, domain, ViewModels, `constants`, `utils`, the `useAuth` context reader | repositories, Firestore, API clients, storage |
+| **Display Labels** | `constants` | `constants` itself | domain values and logic |
+| **Presentation Helper** | `utils` | pure formatting/styling functions | anything with business or data semantics |
+
+Call direction is one-way: `Surface → Controller → (Query | Command) → Use Case`. ViewModel is the **only bridge**
+between domain/application shapes and components.
+
+1.  **Surface -> Controller**: a component/page talks only to Controllers. Never call a Use Case or Repository from a
+    component. Pages are Surface, so the same rule applies to them.
+2.  **Surface -X-> Domain / Application**: Surface must not import `@/domains` or `@/application`, **not even for a
+    type**. When a component needs a domain-shaped value, the feature's ViewModel maps it or re-exports the type
+    (`export type { Holding }`); the component imports from the ViewModel.
+3.  **ViewModel -> Domain**: ViewModels may import domain types, domain values (enums, option sets) and domain pure
+    functions — that mapping *is* their job.
+4.  **ViewModel -> Application (types only)**: ViewModels may import an application **type** as a mapper input
+    (e.g. `mapDashboardOverviewToHeroVM(overview: DashboardOverview)`), but must never call an application use case or
+    workflow.
+5.  **Controller -> Application**: Controllers are the only tier that may call use cases and workflows. Non-persisting
+    domain pure functions may also be called here for state derivation.
+6.  **Controller -X-> Infrastructure**: controllers, like all UI code, must not import repositories, Firestore, API
+    clients or storage details. The **only** infra import any UI file may make is `useAuth`
+    (`@/infra/contexts/useAuth`), which is a Firebase-free React context reader. Controllers should prefer
+    `useAuthContext()` (see §4).
+7.  **Display Labels are the only source of labels**: data-value display text comes from `constants`. No `*_LABEL`
+    map may be imported from `@/domains` by any UI tier.
+8.  **Feature Isolation (components)**: shared components belong in `src/ui/components`; feature **components** must
+    not be imported across features. ViewModels are exempt — a ViewModel may be imported by another feature when a
+    second consumer genuinely needs the same projection.
+9.  **Shared Component Reuse**: before creating a new shared component, extend an existing one in `src/ui/components`
+    when it covers the use case. Create a new shared component only when nothing existing can be extended, and migrate
+    existing duplicate implementations in the same task.
+10. **Infrastructure -X-> UI**: infra must never import from `src/ui`. Failure states that must gate the whole app are
+    surfaced as **data** on the context, and the UI decides how to render them (`AuthGate` renders `AppFallback` from
+    `initError`/`loading`, see §5.1).
 
 ---
 
@@ -58,25 +91,45 @@ ViewModels (VM) are the **Projected State** of the domain for a specific UI view
 - **Form First-Class**: Every form must define a dedicated Form VM schema (Zod) in `features/[feature]/viewmodels`.
 - **Mapping Boundary**: Component and Hook must not construct domain payloads inline. Use `mapXxxVMToDomain` mapper functions.
 - **No Domain Leakage in Render**: Do not parse numeric/date strings or derive accounting/business rules inside React render.
+- **Sole Bridge**: ViewModel is the only path by which a component receives domain- or application-shaped data. When a
+  component needs such a shape, the ViewModel maps it into a VM shape or re-exports the type (`export type { Holding }`),
+  and the component imports it from the ViewModel — never from `@/domains` or `@/application`.
+- **Types In, Behavior Out**: ViewModels may import application **types** as mapper inputs; calling a use case or
+  workflow from a ViewModel is forbidden (that belongs to Controllers).
+- **Throwaway Shapes**: Identity is by import path, not by shape. `Omit<DomainThing, 'id'>` and structurally identical
+  shapes are legitimate; do not rewrite a domain type into a duplicate shape just to avoid the name.
 
 ---
 
-## 4. Hook Design Specification (Application Controllers)
+## 4. Controller Design (Hooks)
 
-In React, Hooks in the `features/hooks` folder act as **Application Controllers**. They bridge the gap between React's lifecycle and the pure logic of Use Cases.
+Hooks in `features/*/hooks` (and shared `hooks/`) are **Controllers**. They bridge React's lifecycle and the pure logic
+of Use Cases. Two responsibilities plus one mechanism — there is no third layer:
 
-### Responsibilities:
+| Kind | What it is | May contain |
+| --- | --- | --- |
+| **Controller** | One per page/dialog. Owns local UI state (dialog open, selection, draft) and composes Query and Command hooks. | use case calls via the hooks it composes, local state, form state |
+| **Query** | One per resource. Read-only. | read use cases |
+| **Command** | One per resource, named `*Cmds` when it exists as a distinct bundle. Write-only. | write use cases |
+| **`useLoadingTask`** | A **mechanism**, not a tier. Used *by* Query/Command hooks, exactly like `useState`. | — |
 
-- **Orchestration**: Coordinate between multiple Use Cases if necessary.
-- **State Management**: Managing `loading`, `error`, and local submission states.
-- **Context Integration**: Injecting `AuthContext`, `QueryClient`, or local UI stores.
+Rules:
 
-### Rules:
-
-- **No Business Logic**: If you're calculating interest rates in a hook, you're doing it wrong. Move it to a Domain Service.
-- **Return Intent**: Don't just return data; return actions (e.g., `onSave`, `onCancel`).
-- **Atomic Operations**: Each hook should focus on a specific interaction flow.
+- **No business logic**: if you're calculating interest rates in a hook, you're doing it wrong. Move it to a Domain Service.
+- **Return Intent**: don't just return data; return actions (e.g., `onSave`, `onCancel`).
+- **Atomic Operations**: each hook focuses on a specific interaction flow.
+- **No Hidden Workflow**: a single user action must not orchestrate multiple use cases. Multi-step orchestration is a
+  Workflow use case (e.g. the monthly-close workflow) and lives in the application layer. A hook *file* may expose
+  several use cases as a menu of operations; that is not orchestration.
+- **Command Purity**: a `*Cmds` hook contains writes only. Reads live in a Query hook or the Controller, so that "calling
+  Cmds means state changes" stays true.
+- **Split on Demand**: keep read and write in one hook until a second consumer needs only one side. Do not split for
+  symmetry.
+- **Form State Is Controller State**: form state (`useForm`, hand-rolled field state, zod parsing) belongs in a hook,
+  not in a page. `useForm` and `zodResolver` may be used, but the `useForm` call site is a Controller, not Surface.
 - **Validation Gate**: Hook submit paths must validate Form VM via schema before calling Use Cases.
+- **Loading State**: prefer `useLoadingTask` for simple load/error flows. A hook that needs cancellation or typed errors
+  may implement its own state, and must then do so explicitly.
 - **Retry Identity**: For a financial command that requires an idempotency key,
   create one key for the user's action, keep it in the hook while retries are
   possible, and clear it only after a successful result. Build the retry
@@ -85,8 +138,9 @@ In React, Hooks in the `features/hooks` folder act as **Application Controllers*
   `useAuthContext()` (`@/ui/hooks/useAuthContext`), never by hand-assembling
   `{ uid, isGlobalAdmin }` literals from `useAuth()`. Direct `useAuth()` use is
   reserved for concerns the auth context does not carry (e.g. `userProfile`,
-  `refreshProfile`, sign-in UI). Never fabricate a fake auth object (empty uid,
-  forced `isGlobalAdmin: true`) to bypass permission checks.
+  `refreshProfile`, sign-in UI), and is allowed only inside a Controller — never in
+  Surface. Never fabricate a fake auth object (empty uid, forced `isGlobalAdmin: true`)
+  to bypass permission checks.
 
 ---
 
@@ -99,13 +153,13 @@ Domain Entity (Domain)
  ↓
 Use Case (Application)
  ↓
-Feature Hook (Application Controller)
+Controller (UI Hook)
  ↓
 Mapper (UI Conversion)
  ↓
 ViewModel (UI State)
  ↓
-React Component (Presentation)
+React Component (Surface)
 ```
 
 ### Form Submit Data Flow (Mandatory)
@@ -119,6 +173,13 @@ Mapper (mapXxxVMToDomain)
  ↓
 Use Case
 ```
+
+### 5.1 全 app 失敗畫面的資料方向
+
+啟動期不可回復的失敗（如認證後端不可達）由 infra **以資料形式**放上 context（`initError`、`loading`），
+不自行 render UI。`AuthGate`（`features/app`，Surface）讀取這些欄位，決定顯示 `AppFallback` 或 children；
+`Toaster` 掛在 gate 外側，作為 system-level notification surface，載入期間仍可顯示通知。
+infra 不得 import `src/ui/**`（見 §2 規則 10）。
 
 ## 6. RWD 斷點契約
 

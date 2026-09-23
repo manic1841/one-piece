@@ -44,13 +44,16 @@ Workflow 與 use case 的分工如下：
 
 | DDD 層級                         | React 對應                              | 說明                                              |
 | ------------------------------ | ------------------------------------- | ----------------------------------------------- |
-| Application Controller (Adapter)| **UI Feature Hook**                   | 負責注入 Context、管理 Loading/Error、呼叫 Use Case  |
+| Controller (Adapter)           | **UI Controller Hook**                | 負責注入 Context、管理 Loading/Error、呼叫 Use Case  |
 | Use Case                       | Atomic Use Case Module/Class          | 單一職責的業務編排 (Pure TS)                       |
 | Domain Service                 | Pure JS / TS function / class         | 核心業務邏輯，不依賴 React 或外部狀態                 |
 | Repository / Infrastructure    | BaseRepository / API Client           | 外部資源存取                                      |
 
 ### 典型 React 調用鏈 (Typical Flow)
-`Component` -> `Application Hook` -> `Use Case` -> `Domain Service` / `Repository`
+`Surface (Component/Page)` -> `Controller Hook` -> `Use Case` -> `Domain Service` / `Repository`
+
+層級、可觸碰清單與呼叫方向以 [`ui/ui-layer-architecture.md`](ui/ui-layer-architecture.md) 為準；
+本節只做 DDD 與 React 的術語對應。
 
 ---
 
@@ -114,8 +117,8 @@ async function executeCreation() {
 `UI (Presentation + Hooks) -> Application (Use Cases) -> Domain <- Infrastructure`
 
 - **Domain** 是核心，純粹的 JS/TS。
-- **UI Hooks** Orchestrate Domain & Infrastructure.
-- **Infrastructure** Implements Domain interfaces.
+- **UI Controller Hooks** orchestrate Domain & Application. Surface 不得觸碰 domain/application（連型別也不行）。
+- **Infrastructure** Implements Domain interfaces；且不得 import UI（見 ADR-0062）。
 - **Shared** 只能被依賴，不能依賴其他層層（除了基礎工具包）。
 
 ---
@@ -131,7 +134,7 @@ async function executeCreation() {
 4. **最後在 UI Hook 調用 Application Layer**。
 
 ### 避免的陷阱 (Anti-patterns)：
-- **不要讓 Hook 直接調用 Repository**：這會導致權限校驗遺漏與業務邏輯洩漏。
+- **不要讓 Hook 直接調用 Repository**：這會導致權限校驗遺漏與業務邏輯洩漏（既有違規見實作 issue 的盤點）。
 - **不要在 Application Service 寫複雜計算**：應封裝進 Domain Service 或 Entity 方法中。
 - **不要在 Repository 寫業務校驗**：Repository 只負責搬運資料。
 
