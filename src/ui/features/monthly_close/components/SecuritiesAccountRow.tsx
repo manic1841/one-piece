@@ -5,18 +5,33 @@ import { Plus, Trash2 } from 'lucide-react';
 import type { AccountBalanceInput } from '@/application/monthly_close/use_cases/monthlyCloseWorkflowUseCase';
 import type { Account, Holding } from '@/domains/account/types/account';
 
+import {
+  DataTable,
+  DataTableColGroup,
+  DataTableHeadCell,
+  DataTableHeadRow,
+  DataTableCell,
+  DataTableRow,
+  DataTableScrollArea,
+  MobileDataList,
+  MobileDataRow,
+  NumberInput,
+  TableBody,
+  TableHeader,
+  dataTableLabelClass,
+} from '@/ui/components/data-table';
+import { Button } from '@/ui/components/ui/button';
 import { Input } from '@/ui/components/ui/input';
 import { Label } from '@/ui/components/ui/label';
-import { Button } from '@/ui/components/ui/button';
 import { StatusGlyph } from '@/ui/components/StatusGlyph';
 import { formatCurrency } from '@/ui/utils';
 
 import { computeSectionInput } from '../viewmodels/accountBalance.vm';
 
-const sectionLabelClass =
-  'text-[10px] font-semibold uppercase tracking-widest text-muted-foreground';
+/** 欄寬契約：總和必須等於 100（Symbol/Name/Cost/Value/Leverage 均分 + actions 7%）。 */
+const SECURITIES_COLUMN_WIDTHS = [18.6, 18.6, 18.6, 18.6, 18.6, 7] as const;
 
-const numericColumns = ['Cost', 'Value', 'Leverage'];
+const textInputClass = 'h-8 rounded-none border-border bg-muted px-2.5 text-xs';
 
 const toNumber = (value: string): number => {
   const parsed = Number.parseFloat(value);
@@ -95,75 +110,74 @@ export const SecuritiesAccountRow: React.FC<SecuritiesAccountRowProps> = ({
         <p className="text-xs text-muted-foreground">尚無持倉，市值為 0。</p>
       ) : (
         <>
-          <div className="hidden overflow-x-auto md:block">
-            <table className="w-full text-sm">
-              <thead>
-                <tr>
-                  {['Symbol', 'Name', 'Cost', 'Value', 'Leverage'].map((label) => (
-                    <th
-                      key={label}
-                      className={`py-1 font-semibold ${
-                        numericColumns.includes(label) ? 'text-right' : 'text-left'
-                      }`}
-                    >
-                      {label}
-                    </th>
-                  ))}
-                  <th className="py-1" aria-label="actions" />
-                </tr>
-              </thead>
-              <tbody>
+          <DataTableScrollArea>
+            <DataTable>
+              <DataTableColGroup widths={SECURITIES_COLUMN_WIDTHS} />
+              <TableHeader>
+                <DataTableHeadRow>
+                  <DataTableHeadCell className="pl-3">Symbol</DataTableHeadCell>
+                  <DataTableHeadCell className="pl-3">Name</DataTableHeadCell>
+                  <DataTableHeadCell align="number" className="pl-3">
+                    Cost
+                  </DataTableHeadCell>
+                  <DataTableHeadCell align="number" className="pl-3">
+                    Value
+                  </DataTableHeadCell>
+                  <DataTableHeadCell align="number" className="pl-3">
+                    Leverage
+                  </DataTableHeadCell>
+                  <DataTableHeadCell aria-label="actions" />
+                </DataTableHeadRow>
+              </TableHeader>
+              <TableBody>
                 {holdings.map((holding, index) => (
-                  <tr key={index} className="border-t border-border/60">
-                    <td className="py-1 pr-2">
+                  <DataTableRow key={index}>
+                    <DataTableCell className="pl-3">
                       <Input
                         aria-label={`Symbol ${index + 1}`}
-                        className="h-8 w-24 text-xs"
+                        className={textInputClass}
                         value={holding.symbol}
                         onChange={(event) => updateHolding(index, 'symbol', event.target.value)}
                       />
-                    </td>
-                    <td className="py-1 pr-2">
+                    </DataTableCell>
+                    <DataTableCell className="pl-3">
                       <Input
                         aria-label={`Name ${index + 1}`}
-                        className="h-8 w-36 text-xs"
+                        className={textInputClass}
                         value={holding.name}
                         onChange={(event) => updateHolding(index, 'name', event.target.value)}
                       />
-                    </td>
-                    <td className="py-1 pr-2">
-                      <Input
+                    </DataTableCell>
+                    <DataTableCell className="pl-3">
+                      <NumberInput
                         aria-label={`Cost ${index + 1}`}
-                        type="number"
-                        inputMode="decimal"
-                        className="ml-auto h-8 w-28 text-right font-mono text-xs tabular-nums"
+                        compact
+                        className="w-full"
                         value={holding.cost}
                         onChange={(event) => updateHolding(index, 'cost', event.target.value)}
                       />
-                    </td>
-                    <td className="py-1 pr-2">
-                      <Input
+                    </DataTableCell>
+                    <DataTableCell className="pl-3">
+                      <NumberInput
                         aria-label={`Value ${index + 1}`}
-                        type="number"
-                        inputMode="decimal"
-                        className="ml-auto h-8 w-28 text-right font-mono text-xs tabular-nums"
+                        compact
+                        className="w-full"
                         value={holding.marketValue}
                         onChange={(event) => updateHolding(index, 'marketValue', event.target.value)}
                       />
-                    </td>
-                    <td className="py-1 pr-2">
-                      <Input
+                    </DataTableCell>
+                    <DataTableCell className="pl-3">
+                      <NumberInput
                         aria-label={`Leverage ${index + 1}`}
-                        type="number"
-                        inputMode="decimal"
+                        compact
                         step="0.01"
-                        className="ml-auto h-8 w-20 text-right font-mono text-xs tabular-nums"
                         placeholder="1"
+                        className="w-full"
                         value={holding.leverage ?? ''}
                         onChange={(event) => updateHolding(index, 'leverage', event.target.value)}
                       />
-                    </td>
-                    <td className="py-1 text-right">
+                    </DataTableCell>
+                    <DataTableCell className="text-right">
                       <Button
                         type="button"
                         variant="ghost"
@@ -173,16 +187,16 @@ export const SecuritiesAccountRow: React.FC<SecuritiesAccountRowProps> = ({
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
-                    </td>
-                  </tr>
+                    </DataTableCell>
+                  </DataTableRow>
                 ))}
-              </tbody>
-            </table>
-          </div>
+              </TableBody>
+            </DataTable>
+          </DataTableScrollArea>
 
-          <div className="space-y-3 md:hidden">
+          <MobileDataList>
             {holdings.map((holding, index) => (
-              <div key={index} className="space-y-2 border-t border-border/60 pt-2">
+              <MobileDataRow key={index} className="space-y-2 border-border/60">
                 <div className="flex items-center justify-between">
                   <p className="text-sm font-medium">
                     {holding.symbol || `持倉 ${index + 1}`} · {holding.name}
@@ -199,44 +213,38 @@ export const SecuritiesAccountRow: React.FC<SecuritiesAccountRowProps> = ({
                 </div>
                 <div className="grid grid-cols-3 gap-2">
                   <div>
-                    <p className={sectionLabelClass}>Cost</p>
-                    <Input
+                    <p className={dataTableLabelClass}>Cost</p>
+                    <NumberInput
                       aria-label={`Cost ${index + 1}`}
-                      type="number"
-                      inputMode="decimal"
-                      className="h-8 text-right font-mono text-xs tabular-nums"
+                      compact
                       value={holding.cost}
                       onChange={(event) => updateHolding(index, 'cost', event.target.value)}
                     />
                   </div>
                   <div>
-                    <p className={sectionLabelClass}>Value</p>
-                    <Input
+                    <p className={dataTableLabelClass}>Value</p>
+                    <NumberInput
                       aria-label={`Value ${index + 1}`}
-                      type="number"
-                      inputMode="decimal"
-                      className="h-8 text-right font-mono text-xs tabular-nums"
+                      compact
                       value={holding.marketValue}
                       onChange={(event) => updateHolding(index, 'marketValue', event.target.value)}
                     />
                   </div>
                   <div>
-                    <p className={sectionLabelClass}>Leverage</p>
-                    <Input
+                    <p className={dataTableLabelClass}>Leverage</p>
+                    <NumberInput
                       aria-label={`Leverage ${index + 1}`}
-                      type="number"
-                      inputMode="decimal"
+                      compact
                       step="0.01"
-                      className="h-8 text-right font-mono text-xs tabular-nums"
                       placeholder="1"
                       value={holding.leverage ?? ''}
                       onChange={(event) => updateHolding(index, 'leverage', event.target.value)}
                     />
                   </div>
                 </div>
-              </div>
+              </MobileDataRow>
             ))}
-          </div>
+          </MobileDataList>
         </>
       )}
 
@@ -244,8 +252,8 @@ export const SecuritiesAccountRow: React.FC<SecuritiesAccountRowProps> = ({
         <Button type="button" variant="ghost" size="sm" onClick={addHolding}>
           <Plus className="mr-1 h-4 w-4" /> 新增持倉
         </Button>
-        <div>
-          <p className={`${sectionLabelClass} text-right`}>市值</p>
+        <div className="text-right">
+          <p className={dataTableLabelClass}>市值</p>
           <p className="font-mono text-sm font-medium tabular-nums text-foreground">
             {formatCurrency(holdingsSum)}
           </p>
@@ -253,18 +261,16 @@ export const SecuritiesAccountRow: React.FC<SecuritiesAccountRowProps> = ({
       </div>
 
       {isForeign && (
-        <div className="flex items-center justify-between gap-4 border-t border-border/60 pt-3 md:justify-end">
-          <div className="space-y-1">
-            <p className={sectionLabelClass}>匯率</p>
+        <div className="flex items-start justify-between gap-4 border-t border-border/60 pt-3 md:justify-end md:gap-6">
+          <div className="space-y-1 md:text-right">
+            <p className={dataTableLabelClass}>匯率</p>
             <Label htmlFor={`sec-rate-${entry.account.id}`} className="sr-only">
               匯率 {entry.account.name}
             </Label>
-            <Input
+            <NumberInput
               id={`sec-rate-${entry.account.id}`}
-              type="number"
-              inputMode="decimal"
               step="0.0001"
-              className="w-28 text-right font-mono tabular-nums"
+              className="w-28 md:ml-auto"
               value={input?.exchangeRate ?? ''}
               onChange={(event) =>
                 onRateChange(
@@ -274,8 +280,8 @@ export const SecuritiesAccountRow: React.FC<SecuritiesAccountRowProps> = ({
               }
             />
           </div>
-          <div>
-            <p className={`${sectionLabelClass} text-right`}>TWD 價值</p>
+          <div className="text-right">
+            <p className={dataTableLabelClass}>TWD 價值</p>
             <p
               data-testid={`twd-value-${entry.account.id}`}
               className="font-mono text-sm font-medium tabular-nums text-foreground"

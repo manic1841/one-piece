@@ -39,12 +39,22 @@ const TableFooter = React.forwardRef<
 ));
 TableFooter.displayName = 'TableFooter';
 
-const TableRow = React.forwardRef<HTMLTableRowElement, React.HTMLAttributes<HTMLTableRowElement>>(
-  ({ className, ...props }, ref) => (
+export interface TableRowProps extends React.HTMLAttributes<HTMLTableRowElement> {
+  /**
+   * 明示整列可點擊：只有這種列會有 hover 底色與 pointer cursor。
+   * 不可點擊的列不得用 hover 假裝可點擊（ADR-0061、design-system.md 的 hover 契約）。
+   */
+  interactive?: boolean;
+}
+
+const TableRow = React.forwardRef<HTMLTableRowElement, TableRowProps>(
+  ({ className, interactive = false, ...props }, ref) => (
     <tr
       ref={ref}
+      data-interactive={interactive ? '' : undefined}
       className={cn(
-        'border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted',
+        'border-b transition-colors data-[state=selected]:bg-muted',
+        interactive && 'cursor-pointer hover:bg-muted/50',
         className,
       )}
       {...props}

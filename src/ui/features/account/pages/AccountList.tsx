@@ -71,6 +71,7 @@ const SortableAccountRow: React.FC<SortableAccountRowProps> = ({ row, onSelect }
     <TableRow
       ref={setNodeRef}
       onClick={() => onSelect(row.id)}
+      interactive
       className={cn('cursor-pointer', isDragging && 'opacity-50')}
       style={rowStyle}
       data-testid={`account-row-${row.id}`}

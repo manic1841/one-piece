@@ -31,6 +31,7 @@ const SortableTableRow: React.FC<SortableTableRowProps> = ({ row, onNavigate }) 
     <TableRow
       ref={setNodeRef}
       onClick={() => onNavigate(`/portfolios/${row.id}`)}
+      interactive
       className={cn('cursor-pointer', isDragging && 'opacity-50')}
       style={rowStyle}
       data-testid={`portfolio-row-${row.id}`}

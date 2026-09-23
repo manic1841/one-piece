@@ -84,23 +84,25 @@ describe('CloseAccountBalanceInputs', () => {
     });
 
     expect(screen.getByText('現金 / 銀行')).toBeInTheDocument();
-    expect(screen.getAllByText('前期餘額').length).toBe(2);
-    expect(screen.getByText('$50,000')).toBeInTheDocument();
-    expect(screen.getByLabelText('期末餘額 現金帳戶')).toHaveValue(52000);
-    expect(screen.getAllByText('WAITING').length).toBe(2);
+    expect(screen.getAllByText('前期餘額').length).toBe(3);
+    expect(screen.getAllByText('$50,000').length).toBeGreaterThan(0);
+    expect(screen.getAllByLabelText('期末餘額 現金帳戶')[0]).toHaveValue(52000);
+    expect(screen.getAllByText('WAITING').length).toBe(4);
   });
 
   it('shows an em dash when the previous-month snapshot is missing', () => {
     renderSections();
 
-    expect(screen.getByText('—')).toBeInTheDocument();
+    expect(screen.getAllByText('—').length).toBeGreaterThan(0);
   });
 
   it('submits a TWD ending balance edit as the account input', () => {
     const onInputsChange = vi.fn<(inputs: AccountBalanceInput[]) => void>();
     renderSections({ onInputsChange });
 
-    fireEvent.change(screen.getByLabelText('期末餘額 現金帳戶'), { target: { value: '52000' } });
+       fireEvent.change(screen.getAllByLabelText('期末餘額 現金帳戶')[0], {
+      target: { value: '52000' },
+    });
 
     expect(onInputsChange).toHaveBeenCalledWith([input({ accountId: 'cash-1', amount: 52000 })]);
   });
@@ -124,16 +126,16 @@ describe('CloseAccountBalanceInputs', () => {
     });
 
     expect(screen.getByText('外幣')).toBeInTheDocument();
-    expect(screen.getByText('前期餘額')).toBeInTheDocument();
-    expect(screen.getByText('10,000 USD')).toBeInTheDocument();
-    expect(screen.getByLabelText('外幣金額 USD Account')).toHaveValue(12000);
-    expect(screen.getByLabelText('匯率 USD Account')).toBeInTheDocument();
-    const twdValue = screen.getByText('TWD 價值').parentElement?.textContent ?? '';
+    expect(screen.getAllByText('前期餘額').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('10,000 USD').length).toBeGreaterThan(0);
+    expect(screen.getAllByLabelText('外幣金額 USD Account')[0]).toHaveValue(12000);
+    expect(screen.getAllByLabelText('匯率 USD Account').length).toBe(2);
+        const twdValue = screen.getAllByTestId('twd-value-usd-1')[0].textContent ?? '';
     expect(twdValue).toContain('$375,000');
     expect(screen.queryByLabelText('TWD 價值')).toBeNull();
   });
 
-  it('fetches the exchange rate from the foreign section and keeps manual input as fallback', async () => {
+  it('auto-fetches the exchange rate on mount and keeps manual input as fallback', async () => {
     const { useExchangeRate } = await import('@/ui/hooks/useExchangeRate');
     const getRate = vi.fn().mockResolvedValue(31.4);
     vi.mocked(useExchangeRate).mockReturnValue({
@@ -148,14 +150,31 @@ describe('CloseAccountBalanceInputs', () => {
       onInputsChange,
     });
 
-    fireEvent.click(screen.getByRole('button', { name: '取得匯率' }));
-
     await waitFor(() => {
       expect(onInputsChange).toHaveBeenCalledWith(
         [input({ accountId: 'usd-1', amount: 0, exchangeRate: 31.4 })],
       );
     });
     expect(getRate).toHaveBeenCalledWith('USD', 'TWD');
+  });
+
+  it('does not overwrite an existing exchange rate on mount', async () => {
+    const { useExchangeRate } = await import('@/ui/hooks/useExchangeRate');
+    const getRate = vi.fn().mockResolvedValue(31.4);
+    vi.mocked(useExchangeRate).mockReturnValue({
+      getRate,
+      loading: false,
+      error: null,
+    } as never);
+
+    renderSections({
+      accounts: [account({ id: 'usd-1', name: 'USD Account', currency: 'USD' })],
+      inputs: [input({ accountId: 'usd-1', amount: 375000, originalAmount: 12000, exchangeRate: 31.25 })],
+    });
+
+    await waitFor(() => {
+      expect(getRate).not.toHaveBeenCalled();
+    });
   });
 
   it('renders securities accounts with a holdings table and an import button', () => {
@@ -238,21 +257,21 @@ describe('CloseAccountBalanceInputs', () => {
     expect(screen.getAllByText('VERIFIED').length).toBeGreaterThan(0);
   });
 
-  it('shows an inline required hint for a TWD account without an ending balance', () => {
+  it('does not render an inline required hint for a TWD account without an ending balance', () => {
     renderSections();
 
-    expect(screen.getByText('需期末餘額')).toBeInTheDocument();
+    expect(screen.queryByText('需期末餘額')).toBeNull();
   });
 
-  it('shows an inline required hint for a foreign account without amount and rate', () => {
+  it('does not render an inline required hint for a foreign account without amount and rate', () => {
     renderSections({
       accounts: [account({ id: 'usd-1', name: 'USD Account', currency: 'USD' })],
     });
 
-    expect(screen.getByText('需金額與匯率')).toBeInTheDocument();
+    expect(screen.queryByText('需金額與匯率')).toBeNull();
   });
 
-  it('clears the required hint once the inputs are present', () => {
+  it('does not render a required hint once the inputs are present', () => {
     renderSections({
       inputs: [input({ accountId: 'cash-1', amount: 52000 })],
     });

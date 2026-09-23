@@ -80,6 +80,7 @@ export default function RetirementPlanList() {
                   key={plan.id}
                   data-testid={`retirement-plan-row-${plan.id}`}
                   onClick={() => navigate(`/retirement/${plan.id}`)}
+                  interactive
                   className="cursor-pointer"
                 >
                   <TableCell className="font-medium">{plan.name}</TableCell>

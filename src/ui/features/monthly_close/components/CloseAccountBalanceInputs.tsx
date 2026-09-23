@@ -1,13 +1,28 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 
 import type { AccountBalanceInput } from '@/application/monthly_close/use_cases/monthlyCloseWorkflowUseCase';
 import type { Account, AccountSnapshot, Holding } from '@/domains/account/types/account';
 import { type CurrencyCode } from '@/domains/exchange_rate/types';
 
-import { Button } from '@/ui/components/ui/button';
-import { Input } from '@/ui/components/ui/input';
+import {
+  DataTable,
+  DataTableColGroup,
+  DataTableHeadCell,
+  DataTableHeadRow,
+  DataTableCell,
+  DataTableRow,
+  DataTableScrollArea,
+  MobileDataField,
+  MobileDataList,
+  MobileDataRow,
+  NumberCell,
+  NumberInput,
+  TableBody,
+  TableHeader,
+} from '@/ui/components/data-table';
 import { Label } from '@/ui/components/ui/label';
 import { StatusGlyph } from '@/ui/components/StatusGlyph';
+import { MONTHLY_CLOSE_LABELS } from '@/ui/constants/monthlyClose';
 import { useExchangeRate } from '@/ui/hooks/useExchangeRate';
 import { formatCurrency } from '@/ui/utils';
 
@@ -26,8 +41,27 @@ const SECTION_LABELS: Record<AccountBalanceSectionKind, string> = {
   securities: '證券',
 };
 
-const sectionLabelClass =
-  'text-[10px] font-semibold uppercase tracking-widest text-muted-foreground';
+const sectionTitleClass =
+  'text-[13px] font-semibold uppercase tracking-[0.08em] text-foreground';
+
+const sectionNoteClass =
+  'text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground';
+
+/**
+ * 欄寬契約：總和必須等於 100（由 `DataTableColGroup` 在 dev 時守住）。
+ * 同頁多表共用同一組常數以保持跨表同軸。
+ */
+const TWD_COLUMN_WIDTHS = [14, 22, 50, 14] as const;
+const FOREIGN_COLUMN_WIDTHS = [14, 22, 22, 8, 20, 14] as const;
+
+/** 期末餘額欄與狀態欄之間的間距。 */
+const statusCellClass = 'pl-12';
+
+const SECTION_NOTES: Record<AccountBalanceSectionKind, string> = {
+  twd: 'Ending balance at period end',
+  foreign: 'TWD value is calculated automatically',
+  securities: 'Market value is calculated from holdings',
+};
 
 const amountText = (value: number, currency: string): string =>
   currency === 'TWD' ? formatCurrency(value) : `${value.toLocaleString('en-US')} ${currency}`;
@@ -50,45 +84,48 @@ interface TwdAccountRowProps {
 }
 
 const TwdAccountRow: React.FC<TwdAccountRowProps> = ({ entry, input, onAmountChange }) => {
-  const missingBalance = input === undefined || input.amount === 0;
-
   return (
-    <div className="space-y-2 md:grid md:grid-cols-[minmax(8rem,1fr)_auto_auto] md:items-end md:gap-4">
-      <div className="text-sm font-medium text-foreground">{entry.account.name}</div>
-      <div className="md:text-right">
-        <p className={sectionLabelClass}>前期餘額</p>
-        <p className="font-mono text-sm tabular-nums text-muted-foreground">
-          {entry.previousBalance === null ? '—' : formatCurrency(entry.previousBalance)}
-        </p>
-      </div>
-      <div className="space-y-1">
-        <p className={sectionLabelClass}>期末餘額</p>
-        <Label htmlFor={`ending-${entry.account.id}`} className="sr-only">
-          期末餘額 {entry.account.name}
-        </Label>
-        <Input
-          id={`ending-${entry.account.id}`}
-          type="number"
-          inputMode="decimal"
-          className="w-36 text-right font-mono tabular-nums"
-          value={input?.amount ?? ''}
-          onChange={(event) =>
-            onAmountChange(
-              entry.account.id,
-              event.target.value === '' ? undefined : Number(event.target.value),
-            )
-          }
-        />
-        {!entry.verified && missingBalance && (
-          <p className="text-xs text-muted-foreground">需期末餘額</p>
-        )}
-      </div>
-      <div className="flex items-center justify-end md:col-start-4">
+    <DataTableRow>
+      <DataTableCell>
+        <span className="text-sm font-medium text-foreground">{entry.account.name}</span>
+        <span className="ml-[7px] font-mono text-[11px] text-muted-foreground">TWD</span>
+      </DataTableCell>
+      <NumberCell value={entry.previousBalance} format={formatCurrency} />
+      <DataTableCell>
+        <div className="flex justify-end">
+          <Label htmlFor={`ending-${entry.account.id}`} className="sr-only">
+            期末餘額 {entry.account.name}
+          </Label>
+          <NumberInput
+            id={`ending-${entry.account.id}`}
+            className="w-full max-w-[220px]"
+            value={input?.amount ?? ''}
+            onChange={(event) =>
+              onAmountChange(
+                entry.account.id,
+                event.target.value === '' ? undefined : Number(event.target.value),
+              )
+            }
+          />
+        </div>
+      </DataTableCell>
+      <DataTableCell className={statusCellClass}>
         <EntryStatus verified={entry.verified} />
-      </div>
-    </div>
+      </DataTableCell>
+    </DataTableRow>
   );
 };
+
+const TwdTableHead: React.FC = () => (
+  <TableHeader>
+    <DataTableHeadRow>
+      <DataTableHeadCell>帳戶</DataTableHeadCell>
+      <DataTableHeadCell align="number">前期餘額</DataTableHeadCell>
+      <DataTableHeadCell align="number">期末餘額</DataTableHeadCell>
+      <DataTableHeadCell className="pl-12">狀態</DataTableHeadCell>
+    </DataTableHeadRow>
+  </TableHeader>
+);
 
 interface ForeignAccountRowProps {
   entry: {
@@ -102,16 +139,12 @@ interface ForeignAccountRowProps {
     field: 'originalAmount' | 'exchangeRate',
     value: number | undefined,
   ) => void;
-  onFetchRate: (accountId: string, currency: string) => void;
-  fetchingRate: boolean;
 }
 
 const ForeignAccountRow: React.FC<ForeignAccountRowProps> = ({
   entry,
   input,
   onDetailChange,
-  onFetchRate,
-  fetchingRate,
 }) => {
   const originalAmount = input?.originalAmount ?? 0;
   const exchangeRate = input?.exchangeRate ?? 0;
@@ -121,41 +154,27 @@ const ForeignAccountRow: React.FC<ForeignAccountRowProps> = ({
   );
 
   return (
-    <div className="space-y-2">
-      <div className="flex items-center justify-between">
-        <div className="text-sm font-medium text-foreground">{entry.account.name}</div>
-        <div className="flex items-center gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            disabled={fetchingRate || entry.verified}
-            onClick={() => onFetchRate(entry.account.id, entry.account.currency)}
-          >
-            取得匯率
-          </Button>
-          <EntryStatus verified={entry.verified} />
+    <DataTableRow>
+      <DataTableCell>
+        <div className="flex items-baseline">
+          <span className="text-sm font-medium text-foreground">{entry.account.name}</span>
+          <span className="ml-[7px] font-mono text-[11px] text-muted-foreground">
+            {entry.account.currency}
+          </span>
         </div>
-      </div>
-      <div className="grid gap-3 md:grid-cols-4 md:items-end">
-        <div>
-          <p className={sectionLabelClass}>前期餘額</p>
-          <p className="font-mono text-sm tabular-nums text-muted-foreground">
-            {entry.previousBalance === null
-              ? '—'
-              : amountText(entry.previousBalance, entry.account.currency)}
-          </p>
-        </div>
-        <div className="space-y-1">
-          <p className={sectionLabelClass}>外幣金額</p>
+      </DataTableCell>
+      <NumberCell
+        value={entry.previousBalance}
+        format={(value) => amountText(value, entry.account.currency)}
+      />
+      <DataTableCell>
+        <div className="flex justify-end">
           <Label htmlFor={`foreign-${entry.account.id}`} className="sr-only">
             外幣金額 {entry.account.name}
           </Label>
-          <Input
+          <NumberInput
             id={`foreign-${entry.account.id}`}
-            type="number"
-            inputMode="decimal"
-            className="text-right font-mono tabular-nums"
+            className="w-full max-w-[150px]"
             value={input?.originalAmount ?? ''}
             onChange={(event) =>
               onDetailChange(
@@ -166,17 +185,16 @@ const ForeignAccountRow: React.FC<ForeignAccountRowProps> = ({
             }
           />
         </div>
-        <div className="space-y-1">
-          <p className={sectionLabelClass}>匯率</p>
+      </DataTableCell>
+      <DataTableCell>
+        <div className="flex justify-end">
           <Label htmlFor={`rate-${entry.account.id}`} className="sr-only">
             匯率 {entry.account.name}
           </Label>
-          <Input
+          <NumberInput
             id={`rate-${entry.account.id}`}
-            type="number"
-            inputMode="decimal"
             step="0.0001"
-            className="text-right font-mono tabular-nums"
+            className="w-full max-w-[110px]"
             value={input?.exchangeRate ?? ''}
             onChange={(event) =>
               onDetailChange(
@@ -187,22 +205,29 @@ const ForeignAccountRow: React.FC<ForeignAccountRowProps> = ({
             }
           />
         </div>
-        <div>
-          <p className={sectionLabelClass}>TWD 價值</p>
-          <p
-            data-testid={`twd-value-${entry.account.id}`}
-            className="font-mono text-sm font-medium tabular-nums text-foreground"
-          >
-            {formatCurrency(twdValue)}
-          </p>
-          {!entry.verified && (originalAmount === 0 || exchangeRate === 0) && (
-            <p className="text-xs text-muted-foreground">需金額與匯率</p>
-          )}
-        </div>
-      </div>
-    </div>
+      </DataTableCell>
+      <DataTableCell align="number" className="font-medium text-foreground">
+        <span data-testid={`twd-value-${entry.account.id}`}>{formatCurrency(twdValue)}</span>
+      </DataTableCell>
+      <DataTableCell className={statusCellClass}>
+        <EntryStatus verified={entry.verified} />
+      </DataTableCell>
+    </DataTableRow>
   );
 };
+
+const ForeignTableHead: React.FC = () => (
+  <TableHeader>
+    <DataTableHeadRow>
+      <DataTableHeadCell>帳戶</DataTableHeadCell>
+      <DataTableHeadCell align="number">前期餘額</DataTableHeadCell>
+      <DataTableHeadCell align="number">外幣金額</DataTableHeadCell>
+      <DataTableHeadCell align="number">匯率</DataTableHeadCell>
+      <DataTableHeadCell align="number">TWD 價值</DataTableHeadCell>
+      <DataTableHeadCell className="pl-12">狀態</DataTableHeadCell>
+    </DataTableHeadRow>
+  </TableHeader>
+);
 
 interface CloseAccountBalanceInputsProps {
   accounts: Account[];
@@ -227,7 +252,7 @@ export const CloseAccountBalanceInputs: React.FC<CloseAccountBalanceInputsProps>
   stageCompleted,
   onInputsChange,
 }) => {
-  const { getRate, loading: fetchingRate } = useExchangeRate();
+  const { getRate } = useExchangeRate();
   const [rateError, setRateError] = useState<string | null>(null);
 
   const findInput = (accountId: string): AccountBalanceInput | undefined =>
@@ -261,7 +286,7 @@ export const CloseAccountBalanceInputs: React.FC<CloseAccountBalanceInputsProps>
     value: number | undefined,
   ): void => {
     if (value === undefined) return;
-    patchInput(accountId, { [field]: value });
+    patchInput(accountId, { [field]: field === 'exchangeRate' ? Number(value.toFixed(4)) : value });
   };
 
   const onHoldingsChange = (accountId: string, holdings: Holding[]): void => {
@@ -272,44 +297,180 @@ export const CloseAccountBalanceInputs: React.FC<CloseAccountBalanceInputsProps>
     patchInput(accountId, { exchangeRate: value });
   };
 
-  const onFetchRate = async (accountId: string, currency: string): Promise<void> => {
-    if (currency === 'TWD') return;
-    setRateError(null);
-    const rate = await getRate(currency as CurrencyCode, 'TWD');
-    if (rate === undefined) {
-      setRateError('取得匯率失敗，請稍後再試或手動輸入匯率');
-      return;
+  const foreignAccounts = accounts.filter((account) => account.currency !== 'TWD');
+
+  useEffect(() => {
+    let cancelled = false;
+    for (const account of foreignAccounts) {
+      if (findInput(account.id)?.exchangeRate !== undefined) continue;
+      void (async () => {
+        const rate = await getRate(account.currency as CurrencyCode, 'TWD');
+        if (cancelled || rate === undefined) {
+          if (!cancelled && rate === undefined) setRateError('取得匯率失敗，請稍後再試或手動輸入匯率');
+          return;
+        }
+        if (findInput(account.id)?.exchangeRate !== undefined) return;
+        patchInput(account.id, { exchangeRate: Number(rate.toFixed(4)) });
+      })();
     }
-    patchInput(accountId, { exchangeRate: rate });
-  };
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [foreignAccounts.map((account) => account.id + account.currency).join(',')]);
 
   const sections = buildAccountBalanceSections({ accounts, snapshots, stageCompleted });
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-0">
       {sections.map((section) => (
-        <section key={section.kind} className="space-y-3">
-          <p className={sectionLabelClass}>{SECTION_LABELS[section.kind]}</p>
-          {section.kind === 'twd' &&
-            section.accounts.map((entry) => (
-              <TwdAccountRow
-                key={entry.account.id}
-                entry={entry}
-                input={findInput(entry.account.id)}
-                onAmountChange={onTwdAmountChange}
-              />
-            ))}
-          {section.kind === 'foreign' &&
-            section.accounts.map((entry) => (
-              <ForeignAccountRow
-                key={entry.account.id}
-                entry={entry}
-                input={findInput(entry.account.id)}
-                onDetailChange={onForeignDetailChange}
-                onFetchRate={onFetchRate}
-                fetchingRate={fetchingRate}
-              />
-            ))}
+        <section key={section.kind} className="space-y-4 border-b border-border pb-[30px] pt-[30px] first:pt-0 last:border-b-0 last:pb-0">
+          <div className="flex items-baseline justify-between">
+            <p className={sectionTitleClass}>{SECTION_LABELS[section.kind]}</p>
+            <p className={sectionNoteClass}>{SECTION_NOTES[section.kind]}</p>
+          </div>
+          {section.kind === 'twd' && section.accounts.length > 0 && (
+            <DataTableScrollArea>
+              <DataTable>
+                <DataTableColGroup widths={TWD_COLUMN_WIDTHS} />
+                <TwdTableHead />
+                <TableBody>
+                  {section.accounts.map((entry) => (
+                    <TwdAccountRow
+                      key={entry.account.id}
+                      entry={entry}
+                      input={findInput(entry.account.id)}
+                      onAmountChange={onTwdAmountChange}
+                    />
+                  ))}
+                </TableBody>
+              </DataTable>
+            </DataTableScrollArea>
+          )}
+          {section.kind === 'twd' && section.accounts.length > 0 && (
+            <MobileDataList>
+              {section.accounts.map((entry) => (
+                <MobileDataRow key={entry.account.id}>
+                  <p className="text-sm font-medium text-foreground">
+                    {entry.account.name}
+                    <span className="ml-[7px] font-mono text-[11px] text-muted-foreground">TWD</span>
+                  </p>
+                  <MobileDataField label="前期餘額">
+                    <p className="font-mono text-sm tabular-nums text-foreground">
+                      {entry.previousBalance === null
+                        ? '—'
+                        : formatCurrency(entry.previousBalance)}
+                    </p>
+                  </MobileDataField>
+                  <MobileDataField label="期末餘額">
+                    <NumberInput
+                      aria-label={`期末餘額 ${entry.account.name}`}
+                      className="w-[150px] max-w-full"
+                      value={findInput(entry.account.id)?.amount ?? ''}
+                      onChange={(event) =>
+                        onTwdAmountChange(
+                          entry.account.id,
+                          event.target.value === '' ? undefined : Number(event.target.value),
+                        )
+                      }
+                    />
+                  </MobileDataField>
+                  <div className="flex items-center justify-end">
+                    <EntryStatus verified={entry.verified} />
+                  </div>
+                </MobileDataRow>
+              ))}
+            </MobileDataList>
+          )}
+          {section.kind === 'foreign' && section.accounts.length > 0 && (
+            <DataTableScrollArea>
+              <DataTable>
+                <DataTableColGroup widths={FOREIGN_COLUMN_WIDTHS} />
+                <ForeignTableHead />
+                <TableBody>
+                  {section.accounts.map((entry) => (
+                    <ForeignAccountRow
+                      key={entry.account.id}
+                      entry={entry}
+                      input={findInput(entry.account.id)}
+                      onDetailChange={onForeignDetailChange}
+                    />
+                  ))}
+                </TableBody>
+              </DataTable>
+            </DataTableScrollArea>
+          )}
+          {section.kind === 'foreign' && section.accounts.length > 0 && (
+            <MobileDataList>
+              {section.accounts.map((entry) => (
+                <MobileDataRow key={entry.account.id}>
+                  <p className="text-sm font-medium text-foreground">
+                    {entry.account.name}
+                    <span className="ml-[7px] font-mono text-[11px] text-muted-foreground">
+                      {entry.account.currency}
+                    </span>
+                  </p>
+                  <MobileDataField label="前期餘額">
+                    <p className="font-mono text-sm tabular-nums text-foreground">
+                      {entry.previousBalance === null
+                        ? '—'
+                        : amountText(entry.previousBalance, entry.account.currency)}
+                    </p>
+                  </MobileDataField>
+                  <MobileDataField label="外幣金額">
+                    <NumberInput
+                      aria-label={`外幣金額 ${entry.account.name}`}
+                      className="w-[150px] max-w-full"
+                      value={findInput(entry.account.id)?.originalAmount ?? ''}
+                      onChange={(event) =>
+                        onForeignDetailChange(
+                          entry.account.id,
+                          'originalAmount',
+                          event.target.value === '' ? undefined : Number(event.target.value),
+                        )
+                      }
+                    />
+                  </MobileDataField>
+                  <MobileDataField label="匯率">
+                    <NumberInput
+                      aria-label={`匯率 ${entry.account.name}`}
+                      step="0.0001"
+                      className="w-[150px] max-w-full"
+                      value={findInput(entry.account.id)?.exchangeRate ?? ''}
+                      onChange={(event) =>
+                        onForeignDetailChange(
+                          entry.account.id,
+                          'exchangeRate',
+                          event.target.value === '' ? undefined : Number(event.target.value),
+                        )
+                      }
+                    />
+                  </MobileDataField>
+                  <MobileDataField label="TWD 價值">
+                    <p
+                      data-testid={`twd-value-${entry.account.id}`}
+                      className="font-mono text-sm font-medium tabular-nums text-foreground"
+                    >
+                      {formatCurrency(
+                        computeSectionInput(
+                          {
+                            accountId: entry.account.id,
+                            amount: 0,
+                            originalAmount: findInput(entry.account.id)?.originalAmount ?? 0,
+                            exchangeRate: findInput(entry.account.id)?.exchangeRate ?? 0,
+                          },
+                          'foreign',
+                        ),
+                      )}
+                    </p>
+                  </MobileDataField>
+                  <div className="flex items-center justify-end">
+                    <EntryStatus verified={entry.verified} />
+                  </div>
+                </MobileDataRow>
+              ))}
+            </MobileDataList>
+          )}
           {section.kind === 'securities' &&
             section.accounts.map((entry) => (
               <SecuritiesAccountRow
@@ -324,7 +485,9 @@ export const CloseAccountBalanceInputs: React.FC<CloseAccountBalanceInputsProps>
         </section>
       ))}
       {rateError && <p className="text-xs text-destructive">{rateError}</p>}
-      {accounts.length === 0 && <p className="text-xs text-muted-foreground">尚無階段證據。</p>}
+      {accounts.length === 0 && (
+        <p className="text-xs text-muted-foreground">{MONTHLY_CLOSE_LABELS.NO_DATA}</p>
+      )}
     </div>
   );
 };

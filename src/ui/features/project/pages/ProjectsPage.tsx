@@ -50,6 +50,7 @@ const SortableProjectRow: React.FC<{
       ref={setNodeRef}
       data-testid={`project-row-${row.id}`}
       onClick={() => onNavigate(`/projects/${row.id}`)}
+      interactive
       className={cn('cursor-pointer', isDragging && 'opacity-50')}
       style={rowStyle}
     >

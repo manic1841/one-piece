@@ -147,7 +147,7 @@ export const AccountSnapshotTable: React.FC<AccountSnapshotTableProps> = ({
                             <div className="ml-7 border rounded-lg bg-card overflow-hidden">
                               <Table>
                                 <TableHeader className="bg-muted">
-                                  <TableRow className="hover:bg-transparent">
+                                  <TableRow>
                                     <TableHead className="h-8 text-[10px] font-bold uppercase">
                                       Symbol
                                     </TableHead>
@@ -168,7 +168,7 @@ export const AccountSnapshotTable: React.FC<AccountSnapshotTableProps> = ({
                                     const gainPercent =
                                       holding.cost !== 0 ? (gain / holding.cost) * 100 : 0;
                                     return (
-                                      <TableRow key={idx} className="hover:bg-muted/50">
+                                      <TableRow key={idx}>
                                         <TableCell className="py-2 py-1 text-xs">
                                           <div className="font-bold">{holding.symbol}</div>
                                           <div className="text-[10px] text-muted-foreground">

@@ -152,7 +152,7 @@ export const TransactionItem: React.FC<TransactionItemProps> = ({ transaction, o
           </span>
         </TableCell>
       </TableRow>
-      <TableRow className="hover:bg-transparent">
+      <TableRow>
         <TableCell colSpan={ACCORDION_ROW_COL_SPAN} className="p-0">
           <AccountingDetailsAccordion transaction={transaction} />
         </TableCell>

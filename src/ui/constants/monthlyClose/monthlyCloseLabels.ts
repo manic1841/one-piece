@@ -48,6 +48,7 @@ export const MONTHLY_CLOSE_LABELS = {
   PERIOD_LABEL: '關帳期間',
   EVIDENCE_LABEL: '階段證據',
   INPUTS_LABEL: '階段輸入',
+  NO_DATA: '-',
   NO_EVIDENCE: '尚無階段證據。',
   STAGE_GUIDANCE: '階段順序僅為引導，可依需求調整確認順序。',
   LOADING: '載入中...',

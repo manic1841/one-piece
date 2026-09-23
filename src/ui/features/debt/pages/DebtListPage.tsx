@@ -178,6 +178,7 @@ export default function DebtListPage() {
                         key={account.id}
                         data-testid={`debt-row-${account.id}`}
                         onClick={() => navigate(`/debt/${account.id}`)}
+                        interactive
                         className="cursor-pointer"
                       >
                         <TableCell className={isSettled ? 'text-muted-foreground' : ''}>
