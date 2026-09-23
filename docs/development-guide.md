@@ -136,6 +136,25 @@ VITE_PORT=5174 docker compose up --build
 - Firestore Emulator: `localhost:8080`
 - Auth Emulator: `localhost:9099`
 
+### 瀏覽器如何連到 emulator
+
+Compose 只發佈 app 的 port（`5173`）；emulator 的 `8080`/`9099` 只在 compose 網路內，且瀏覽器解析不到 `firebase` 這個 service hostname。因此前端預設**不直連 emulator**，而是走 Vite dev server 的同源 proxy（設定在 `vite.config.ts`，路徑常數在 `src/infra/emulatorEndpoints.ts`）：
+
+| 前端請求 | 轉發目標 |
+| --- | --- |
+| `/__emulator/firestore/*` | `http://firebase:8080/*` |
+| `/identitytoolkit.googleapis.com/*`、`/securetoken.googleapis.com/*`、`/www.googleapis.com/*` | `http://firebase:9099/*` |
+
+Auth 之所以用「假 API host」前綴而非自己的路徑前綴，是因為 `connectAuthEmulator` 會強制把 URL 路徑換成 `/`；Firestore 則是 channel base URL 直接由 `host:port` 字串串接，所以路徑前綴可以放在 host 裡。細節見 `src/infra/emulatorEndpoints.ts` 的註解。
+
+若瀏覽器本身就在 compose 網路內（可解析 `firebase`），可略過 proxy：
+
+```bash
+VITE_FIREBASE_EMULATOR_HOST=firebase docker compose up --build
+```
+
+Proxy 的上游可用 `FIRESTORE_EMULATOR_HOST` / `FIREBASE_AUTH_EMULATOR_HOST` 覆寫（兩者都接受有無 scheme 的寫法）。
+
 在 container 中執行驗證命令：
 
 ```bash

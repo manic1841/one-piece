@@ -89,9 +89,7 @@ const renderAuthProvider = async () => {
 describe('AuthProvider profile initialization', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-  });
-
-  it('creates a profile on first login when none exists', async () => {
+  });  it('creates a profile on first login when none exists', async () => {
     const user = mockUser();
 
     vi.mocked(getUserProfileUseCase.execute)
@@ -184,5 +182,35 @@ describe('AuthProvider profile initialization', () => {
     // not skipped due to a stale null closure value.
     expect(createdDuringCallback).toBe(true);
     expect(getProbeValue()?.userProfile).toMatchObject({ uid: 'user-1' });
+  });
+});
+
+describe('AuthProvider initialization failure', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('shows a visible fallback instead of waiting forever when auth never responds', async () => {
+    vi.useFakeTimers();
+    try {
+      const { AuthProvider } = await import('@/infra/contexts/AuthProvider');
+      const { screen } = await import('@testing-library/react');
+
+      // onAuthStateChanged registers a callback but never fires it, which is what
+      // happens when the backend is unreachable (emulator down, no network).
+      render(React.createElement(AuthProvider, null, React.createElement('div', null, 'app')));
+
+      // Nothing rendered while loading: the app must not mount half-initialized.
+      expect(screen.queryByText('app')).toBeNull();
+
+      await act(async () => {
+        vi.advanceTimersByTime(10_000);
+      });
+
+      expect(screen.getByText('Cannot reach the backend')).toBeInTheDocument();
+      expect(screen.queryByText('app')).toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

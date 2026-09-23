@@ -3,7 +3,17 @@ import react from '@vitejs/plugin-react';
 import path from 'path';
 import { defineConfig } from 'vitest/config';
 
+import {
+  AUTH_PROXY_PREFIXES,
+  DEFAULT_AUTH_EMULATOR_TARGET,
+  DEFAULT_FIRESTORE_EMULATOR_TARGET,
+  FIRESTORE_PROXY_PATH,
+} from './src/infra/emulatorEndpoints';
 import packageJson from './package.json';
+
+/** Strip a scheme so both `firebase:8080` and `http://firebase:8080` work as proxy targets. */
+const normalizeTarget = (value: string | undefined, fallback: string): string =>
+  `http://${(value ?? fallback).replace(/^https?:\/\//, '')}`;
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -20,6 +30,36 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
+    },
+  },
+  server: {
+    // Forward the emulator to the app origin so a host-side browser only needs the
+    // app port (see src/infra/emulatorEndpoints.ts). Only relevant in dev.
+    proxy: {
+      [FIRESTORE_PROXY_PATH]: {
+        target: normalizeTarget(
+          process.env.FIRESTORE_EMULATOR_HOST,
+          DEFAULT_FIRESTORE_EMULATOR_TARGET,
+        ),
+        changeOrigin: true,
+        ws: true,
+        rewrite: (requestPath) => requestPath.replace(FIRESTORE_PROXY_PATH, ''),
+      },
+      // Auth keeps no path prefix of its own: the SDK builds requests against the
+      // fake API hosts below, so each is forwarded verbatim to the auth emulator.
+      ...Object.fromEntries(
+        AUTH_PROXY_PREFIXES.map((prefix) => [
+          prefix,
+          {
+            target: normalizeTarget(
+              process.env.FIREBASE_AUTH_EMULATOR_HOST,
+              DEFAULT_AUTH_EMULATOR_TARGET,
+            ),
+            changeOrigin: true,
+            ws: true,
+          },
+        ]),
+      ),
     },
   },
   build: {

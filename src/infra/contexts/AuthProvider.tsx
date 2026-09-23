@@ -7,12 +7,20 @@ import { getUserProfileUseCase } from '@/application/user/use_cases/getUserProfi
 import { type UserProfile } from '@/domains/user/schemas';
 import { auth, googleProvider } from '@/firebase';
 import { AuthContext, type AuthContextType } from '@/infra/contexts/AuthContext';
+import { AppFallback } from '@/ui/components/AppFallback';
+
+/**
+ * `onAuthStateChanged` 在後端不可達時永遠不會回呼，`loading` 若只依賴它便會無限等待
+ * （畫面全空）。超過此時間仍未取得第一次回呼即視為初始化失敗。
+ */
+const AUTH_INIT_TIMEOUT_MS = 10_000;
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [initError, setInitError] = useState<string | null>(null);
 
   const getDisplayName = (user: User): string => {
     if (user.displayName && user.displayName.trim() !== '') {
@@ -52,7 +60,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      setInitError('The app could not reach the authentication backend.');
+      console.error(`[AuthProvider] No auth state after ${AUTH_INIT_TIMEOUT_MS}ms.`);
+    }, AUTH_INIT_TIMEOUT_MS);
+
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      window.clearTimeout(timeoutId);
+      setInitError(null);
       setCurrentUser(user);
       if (user) {
         // Fetch custom claims to check for admin role
@@ -66,7 +81,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setLoading(false);
     });
 
-    return unsubscribe;
+    return () => {
+      window.clearTimeout(timeoutId);
+      unsubscribe();
+    };
   }, [fetchUserProfile]);
 
   const refreshProfile = async () => {
@@ -92,10 +110,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     userProfile,
     isAdmin,
     loading,
+    initError,
     logout,
     loginWithGoogle,
     refreshProfile,
   };
+
+  if (initError) {
+    return (
+      <AppFallback
+        title="Cannot reach the backend"
+        description={initError}
+        hint="Local dev: is the Firebase emulator running? See docs/qa-faq.md."
+      />
+    );
+  }
 
   return <AuthContext.Provider value={value}>{!loading && children}</AuthContext.Provider>;
 };

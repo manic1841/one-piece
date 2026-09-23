@@ -7,6 +7,7 @@
 1. [REST-seeded 文件缺 base 欄位 → 頁面靜默吞錯](#1-rest-seeded-文件缺-base-欄位--頁面靜默吞錯)
 2. [Auth session 注入寫錯儲存層 → 一切正常卻看不到資料](#2-auth-session-注入寫錯儲存層--一切正常卻看不到資料)
 3. [容器內 localhost 不通 → 誤判 emulator 掛了](#3-容器內-localhost-不通--誤判-emulator-掛了)
+    - [整頁空白(emulator 未啟動 / 後端不可達)](#31-整頁空白emulator-未啟動--後端不可達)
 4. [Listen channel 400/ERR_ABORTED 是環境 quirk](#4-listen-channel-400err_aborted-是環境-quirk)
 5. [種子資料掛錯家戶 → App 正確地查不到](#5-種子資料掛錯家戶--app-正確地查不到)
 6. [pnpm 互動提示被 pipe 吞掉 → 看起來像 hang](#6-pnpm-互動提示被-pipe-吞掉--看起來像-hang)
@@ -40,11 +41,23 @@
 
 **症狀**:從容器內對 `localhost:8080` 的 REST 探測全部 ECONNREFUSED,以為 emulator 掛了。2026-09-22 實例:對 `localhost:8080/9099/4000` 逐一探測全部失敗,結論寫成「emulator 已停止」,但同一時間 `pnpm qa:seed` 正常結束。
 
-**根因**:本工作區可能是 dev-container(透過 docker compose 建立)。容器內 `localhost` 指容器自己,emulator 只能透過 service hostname `firebase` 連(`firebase:8080` / `firebase:9099`);瀏覽器端(跑在 host)才用 `localhost:8080/9099`。所以在 localhost 找不到 emulator 時,先假設是容器環境的位址差異,不是 emulator 停了。
+**根因**:本工作區可能是 dev-container(透過 docker compose 建立)。容器內 `localhost` 指容器自己,emulator 只能透過 service hostname `firebase` 連(`firebase:8080` / `firebase:9099`)。前端已改走 Vite 同源 proxy(見 `docs/development-guide.md` 的「瀏覽器如何連到 emulator」),所以瀏覽器端不再需要 `localhost:8080/9099`;那兩個 port 通常也沒有發佈到 host。
 
-**判別法**:在容器內用 `firebase:8080`,在瀏覽器/DevTools 用 `localhost:8080`。更快的旁證:admin 腳本(如 `pnpm qa:seed`)能連線成功就代表 emulator 活著。兩邊都失敗才懷疑 emulator 本身。整合測試的環境變數設定見 `docs/testing.md`。
+**判別法**:容器內(`pnpm qa:seed`、`curl firebase:8080`)用 `firebase:8080`;瀏覽器端看 DevTools 請求是否走同源路徑(`/__emulator/firestore/...`、`/identitytoolkit.googleapis.com/...`),不要去探 `localhost:8080`。admin 腳本(如 `pnpm qa:seed`)能連線成功就代表 emulator 活著。兩邊都失敗才懷疑 emulator 本身。整合測試的環境變數設定見 `docs/testing.md`。
 
-**記錄自**:#124(2026-09-20);2026-09-22(/close 開始關帳驗證)補充實例。
+**記錄自**:#124(2026-09-20);2026-09-22(/close 開始關帳驗證)補充實例;2026-09-23 前端改同源 proxy 後改寫判別法。
+
+## 3.1 整頁空白(emulator 未啟動 / 後端不可達)
+
+**症狀**:頁面完全空白,`#root` 內沒有任何節點;DevTools console 出現 `auth/network-request-failed`,或畫面顯示「Cannot reach the backend」。
+
+**根因**:兩層。第一層:Auth 初始化失敗時 `onAuthStateChanged` **永遠不會回呼**,而 `AuthProvider` 原本只在 `loading === false` 時渲染 children,於是停在永久等待,連 Loading 畫面都沒有。第二層:render 期未捕捉的錯誤沒有 error boundary,React 會卸載整棵樹留下空白。
+
+**現在的防護**:`ErrorBoundary`(`src/ui/components/ErrorBoundary.tsx`,掛在 `main.tsx`)攔 render 錯誤;`AuthProvider` 對 auth 初始化設 10 秒逾時,失敗改顯示共用的 `AppFallback`(可見訊息 + Reload)。任何讓 app 進不去的失敗都必須留下可見訊息,不得是 silent failure。
+
+**判別法**:看到「Cannot reach the backend」就是 emulator 沒起或 proxy 上游不對——先確認 emulator 容器狀態,再用容器內 `curl firebase:8080` 區分「emulator 掛了」與「proxy 設定錯」。看到「Something went wrong」則是真的 render 錯誤,訊息即原因。
+
+**記錄自**:2026-09-23(/close 全白畫面排查)。
 
 ## 4. Listen channel 400/ERR_ABORTED 是環境 quirk
 
