@@ -9,6 +9,8 @@ import {
 } from '@/ui/components/ui/select';
 import { type LedgerCodeItem } from '@/ui/features/ledger/hooks/useLedgerCodes';
 
+import { buildUserSelectOptions } from './userSelectOptions';
+
 type DynamicCategorySelectorProps = {
   intent: string | null;
   ledgerCode: string | null;
@@ -23,14 +25,9 @@ export function DynamicCategorySelector({
   onChange,
 }: DynamicCategorySelectorProps) {
   const mapping = DEFAULT_INTENT_MAPPINGS.find((m) => m.intent === intent);
-  const showSelector = mapping?.debitUserSelect || mapping?.creditUserSelect;
-  const prefix = mapping?.debitUserSelect
-    ? mapping.allowedDebitPrefix
-    : mapping?.allowedCreditPrefix;
+  const options = buildUserSelectOptions(mapping, allLedgerCodes);
 
-  if (!showSelector || !prefix) return null;
-
-  const options = allLedgerCodes.filter((c) => c.code.startsWith(prefix));
+  if (!options) return null;
 
   return (
     <div className="space-y-2 mt-4 p-3 bg-muted rounded-lg border border-border">

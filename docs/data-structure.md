@@ -196,12 +196,21 @@ firestore
             └─ generatedAt: Timestamp
 
        ├─ ledgerCodes/{code}             # 自訂會計科目（isCustom: true）
-       │    ├─ code: string              # e.g. "liability:mortgage"
+       │    ├─ code: string              # e.g. "liability:mortgage"、"asset:property:taipei"
        │    ├─ label: string             # e.g. "房貸"
-       │    ├─ type: LedgerType
+       │    ├─ type: LedgerType          # = code 的第一段，不可由呼叫端自報
        │    ├─ isCustom: true
+       │    ├─ isActive: boolean
        │    ├─ createdBy: string
        │    └─ createdAt: Timestamp
+       │
+       │    # 建立規則（ADR-0009）；建立後 code 不可變更，生命週期只有啟用／停用，沒有刪除。
+       │    # - code 形狀為 type:category 或 type:category:detail，僅小寫英數字與底線；
+       │    #   最多細分到明細科目，明細科目之下不可再分。
+       │    # - type 限 asset | liability | equity | income | expense。
+       │    # - 明細科目的 parent 必須是既有的 category，且必須啟用中。
+       │    # - 停用 category 前必須先停用其明細科目；已被分錄引用的科目不得停用
+       │    #   （以 transactions.ledgerCodes 判斷）。
 
        └─ debtAccounts/{debtAccountId}  # 債務帳戶
             ├─ name: string             # e.g. 玉山房貸

@@ -1,5 +1,6 @@
 import { z } from 'zod';
 
+import { LEDGER_CODE_PATTERN } from '@/domains/ledger/ledgerCodeRules';
 import { IntentType } from '@/domains/ledger/constants';
 import { BaseSchema } from '@/shared/schemas/base';
 
@@ -9,7 +10,13 @@ export const LedgerType = z.enum(['asset', 'liability', 'income', 'expense', 'eq
 export type LedgerType = z.infer<typeof LedgerType>;
 
 export const CustomLedgerCodeCreateSchema = z.object({
-  code: z.string(), // e.g. "asset:property:taipei"
+  // `type:category` or `type:category:detail` (ADR-0009).
+  code: z
+    .string()
+    .regex(
+      LEDGER_CODE_PATTERN,
+      'LedgerCode 格式須為 type:category 或 type:category:detail（小寫英數字與底線）',
+    ),
   label: z.string(), // e.g. "台北房產"
   type: LedgerType,
   isCustom: z.literal(true),
@@ -18,7 +25,12 @@ export const CustomLedgerCodeCreateSchema = z.object({
 });
 export type CustomLedgerCodeCreate = z.infer<typeof CustomLedgerCodeCreateSchema>;
 
-export const CustomLedgerCodeSchema = BaseSchema.extend(CustomLedgerCodeCreateSchema.shape);
+// Persisted codes keep a lax `code` on purpose: the strict pattern gates creation,
+// while reading must still tolerate codes created before the pattern existed.
+export const CustomLedgerCodeSchema = BaseSchema.extend({
+  ...CustomLedgerCodeCreateSchema.shape,
+  code: z.string(),
+});
 export type CustomLedgerCode = z.infer<typeof CustomLedgerCodeSchema>;
 
 export const IntentMappingCreateSchema = z.object({
@@ -29,6 +41,10 @@ export const IntentMappingCreateSchema = z.object({
   creditUserSelect: z.boolean().optional(),
   allowedDebitPrefix: z.string().optional(),
   allowedCreditPrefix: z.string().optional(),
+  // When set, the selectable set is the mapping's own code plus the household's
+  // custom codes of that type — system codes are reached through their own intent.
+  debitCustomOnly: z.boolean().optional(),
+  creditCustomOnly: z.boolean().optional(),
 });
 export type IntentMappingCreate = z.infer<typeof IntentMappingCreateSchema>;
 

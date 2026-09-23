@@ -11,17 +11,17 @@ describe('LedgerCodeSettings', () => {
   it('submits the add form through the hook', async () => {
     const handleAdd = vi.fn().mockResolvedValue(undefined);
     const setNewType = vi.fn();
-    const setNewCategory = vi.fn();
+    const setNewCode = vi.fn();
     const setNewLabel = vi.fn();
     const { useLedgerCodeSettings } = await import('../hooks/useLedgerCodeSettings');
 
     vi.mocked(useLedgerCodeSettings).mockReturnValue({
-      groupedCodes: { asset: [], liability: [], income: [], expense: [] },
+      groupedRows: { asset: [], liability: [], income: [], expense: [] },
       loading: false,
       newLabel: '',
       setNewLabel,
-      newCategory: '',
-      setNewCategory,
+      newCode: '',
+      setNewCode,
       newType: 'expense',
       setNewType,
       editingCode: null,
@@ -38,7 +38,7 @@ describe('LedgerCodeSettings', () => {
 
     const { container } = render(<LedgerCodeSettings />);
 
-    fireEvent.change(screen.getByPlaceholderText('e.g. travel'), {
+    fireEvent.change(screen.getByPlaceholderText('property 或 property:taipei'), {
       target: { value: 'travel' },
     });
     fireEvent.change(screen.getByPlaceholderText('e.g. 差旅費'), {
@@ -46,7 +46,7 @@ describe('LedgerCodeSettings', () => {
     });
     fireEvent.submit(container.querySelector('form') as HTMLFormElement);
 
-    expect(setNewCategory).toHaveBeenCalledWith('travel');
+    expect(setNewCode).toHaveBeenCalledWith('travel');
     expect(setNewLabel).toHaveBeenCalledWith('差旅費');
     expect(handleAdd).toHaveBeenCalledTimes(1);
   });
@@ -59,25 +59,28 @@ describe('LedgerCodeSettings', () => {
     const { useLedgerCodeSettings } = await import('../hooks/useLedgerCodeSettings');
 
     vi.mocked(useLedgerCodeSettings).mockReturnValue({
-      groupedCodes: {
+      groupedRows: {
         asset: [],
         liability: [],
         income: [],
         expense: [
           {
-            code: 'expense:travel',
-            label: '差旅費',
-            type: 'expense',
-            isCustom: true,
-            isActive: true,
+            item: {
+              code: 'expense:travel',
+              label: '差旅費',
+              type: 'expense',
+              isCustom: true,
+              isActive: true,
+            },
+            isDetail: false,
           },
         ],
       },
       loading: false,
       newLabel: '',
       setNewLabel: vi.fn(),
-      newCategory: '',
-      setNewCategory: vi.fn(),
+      newCode: '',
+      setNewCode: vi.fn(),
       newType: 'expense',
       setNewType: vi.fn(),
       editingCode: 'expense:travel',
@@ -112,5 +115,63 @@ describe('LedgerCodeSettings', () => {
       isActive: true,
     });
     expect(screen.getByText('更新失敗')).toBeTruthy();
+  });
+
+  it('shows details under their parent label and offers no delete control', async () => {
+    const { useLedgerCodeSettings } = await import('../hooks/useLedgerCodeSettings');
+
+    vi.mocked(useLedgerCodeSettings).mockReturnValue({
+      groupedRows: {
+        asset: [
+          {
+            item: {
+              code: 'asset:property',
+              label: '不動產',
+              type: 'asset',
+              isCustom: true,
+              isActive: true,
+            },
+            isDetail: false,
+          },
+          {
+            item: {
+              code: 'asset:property:taipei',
+              label: '台北房產',
+              type: 'asset',
+              isCustom: true,
+              isActive: true,
+            },
+            isDetail: true,
+            parentLabel: '不動產',
+          },
+        ],
+        liability: [],
+        income: [],
+        expense: [],
+      },
+      loading: false,
+      newLabel: '',
+      setNewLabel: vi.fn(),
+      newCode: '',
+      setNewCode: vi.fn(),
+      newType: 'asset',
+      setNewType: vi.fn(),
+      editingCode: null,
+      editValue: '',
+      setEditValue: vi.fn(),
+      isSubmitting: false,
+      error: '',
+      handleAdd: vi.fn(),
+      handleToggleActive: vi.fn(),
+      startEdit: vi.fn(),
+      cancelEdit: vi.fn(),
+      saveEdit: vi.fn(),
+    });
+
+    const { container } = render(<LedgerCodeSettings />);
+
+    expect(screen.getByText('不動產 › 台北房產')).toBeTruthy();
+    expect(screen.getByText('asset:property:taipei')).toBeTruthy();
+    expect(container.querySelectorAll('svg.lucide-trash2')).toHaveLength(0);
   });
 });

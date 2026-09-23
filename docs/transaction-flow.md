@@ -25,6 +25,11 @@ We replaced it with `TransactionForm` and a direct `IntentMapping` flow. This av
 
 IntentType 的分類與映射規則不在本文件重述，請以 [ADR-0010](adr/0010-intenttype-three-tier.md)、[ADR-0014](adr/0014-debt-payment-intenttype.md) 與 [ADR-0022](adr/0022-intent-userselect-flag.md) 為準。
 
+意圖讓使用者挑選科目時（`debitUserSelect` / `creditUserSelect`），可選集合由 mapping 決定，兩種模式互斥：
+
+- `allowedDebitPrefix` / `allowedCreditPrefix`：列出該前綴底下的全部科目，等同「這個 category 底下的明細科目」（不動產、薪資、獎金）。
+- `debitCustomOnly` / `creditCustomOnly`：只列該 mapping 自己的預設科目，加上使用者自建的科目（其他支出、其他收入）。系統科目由各自的意圖負責，不在這裡重複出現。
+
 目前 UI 的實作限制如下：`LIABILITY_BORROW` 由建立 `DebtAccount` 的流程產生，不從 `TransactionForm` 輸入；`TRANSFER` 目前暫停實作（[ADR-0042](adr/0042-pause-project-transfer-feature.md)）；`DEBT_PAYMENT` 不再從表單輸入，僅能透過月度關帳流程（`/close` 的 DEBT_REPAYMENT 階段）錄入；編輯流程暫不支援 `TRANSFER`，以避免尚未具備專用更新流程時產生部分副作用。
 
 `DEBT_PAYMENT` 的付款規則、atomicity、retry 與 operation record 以

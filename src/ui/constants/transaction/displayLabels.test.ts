@@ -53,6 +53,7 @@ describe('displayLabels pinning', () => {
       HOUSING: '家居',
       RENT: '房租',
       MORTGAGE_INTEREST: '房貸利息',
+      LOAN_INTEREST: '借貸利息',
       INSURANCE: '保險',
       TAX: '稅金',
       OTHER_EXPENSE: '其他支出',

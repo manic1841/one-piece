@@ -85,7 +85,7 @@ describe('useLedgerCodeSettings', () => {
 
     act(() => {
       result.current.setNewType('expense');
-      result.current.setNewCategory('food');
+      result.current.setNewCode('food');
       result.current.setNewLabel('重複餐飲');
     });
 
@@ -105,7 +105,7 @@ describe('useLedgerCodeSettings', () => {
 
     act(() => {
       result.current.setNewType('expense');
-      result.current.setNewCategory('travel');
+      result.current.setNewCode('travel');
       result.current.setNewLabel('差旅費');
     });
 
@@ -121,23 +121,112 @@ describe('useLedgerCodeSettings', () => {
         email: 'user@example.com',
         isGlobalAdmin: false,
       },
-      data: {
-        code: 'expense:travel',
-        label: '差旅費',
-        type: 'expense',
-        isCustom: true,
-        isActive: true,
-        createdBy: 'user@example.com',
-      },
+      code: 'expense:travel',
+      label: '差旅費',
     });
     expect(refresh).toHaveBeenCalledTimes(1);
-    expect(result.current.newCategory).toBe('');
+    expect(result.current.newCode).toBe('');
     expect(result.current.newLabel).toBe('');
     expect(result.current.error).toBe('');
   });
 
+  it('creates a detail code under an existing category', async () => {
+    const { useLedgerCodes } = await import('./useLedgerCodes');
+    const { createCustomLedgerCodeUseCase } = await import(
+      '../../../../application/ledger/use_cases/createCustomLedgerCodeUseCase'
+    );
+
+    vi.mocked(useLedgerCodes).mockReturnValue({
+      codes: [
+        {
+          code: 'asset:property',
+          label: '不動產',
+          type: 'asset',
+          isCustom: false,
+          isActive: true,
+        },
+      ],
+      loading: false,
+      refresh,
+      getLabel: vi.fn(),
+    });
+
+    const { result } = renderHook(() => useLedgerCodeSettings());
+
+    act(() => {
+      result.current.setNewType('asset');
+      result.current.setNewCode('property:taipei');
+      result.current.setNewLabel('台北房產');
+    });
+
+    await act(async () => {
+      await result.current.handleAdd();
+    });
+
+    expect(createCustomLedgerCodeUseCase.execute).toHaveBeenCalledWith(
+      expect.objectContaining({ code: 'asset:property:taipei', label: '台北房產' }),
+    );
+  });
+
+  it('rejects a detail code whose parent does not exist and lists the usable categories', async () => {
+    const { useLedgerCodes } = await import('./useLedgerCodes');
+    const { createCustomLedgerCodeUseCase } = await import(
+      '../../../../application/ledger/use_cases/createCustomLedgerCodeUseCase'
+    );
+
+    vi.mocked(useLedgerCodes).mockReturnValue({
+      codes: [
+        {
+          code: 'asset:cash',
+          label: '現金與銀行存款',
+          type: 'asset',
+          isCustom: false,
+          isActive: true,
+        },
+      ],
+      loading: false,
+      refresh,
+      getLabel: vi.fn(),
+    });
+
+    const { result } = renderHook(() => useLedgerCodeSettings());
+
+    act(() => {
+      result.current.setNewType('asset');
+      result.current.setNewCode('property:taipei');
+      result.current.setNewLabel('台北房產');
+    });
+
+    await act(async () => {
+      await result.current.handleAdd();
+    });
+
+    expect(result.current.error).toContain('父科目 asset:property 不存在');
+    expect(result.current.error).toContain('asset:cash');
+    expect(createCustomLedgerCodeUseCase.execute).not.toHaveBeenCalled();
+  });
+
+  it('rejects a code that does not match the code shape', async () => {
+    const { result } = renderHook(() => useLedgerCodeSettings());
+    const { createCustomLedgerCodeUseCase } = await import(
+      '../../../../application/ledger/use_cases/createCustomLedgerCodeUseCase'
+    );
+
+    act(() => {
+      result.current.setNewType('expense');
+      result.current.setNewCode('My Stuff');
+      result.current.setNewLabel('亂七八糟');
+    });
+
+    await act(async () => {
+      await result.current.handleAdd();
+    });
+
+    expect(result.current.error).toContain('科目代碼格式不正確');
+    expect(createCustomLedgerCodeUseCase.execute).not.toHaveBeenCalled();
+  });
+
   it('does not deactivate a custom code that is already in use', async () => {
-    const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => undefined);
     const { result } = renderHook(() => useLedgerCodeSettings());
     const { checkLedgerCodeInUseUseCase } = await import(
       '../../../../application/ledger/use_cases/checkLedgerCodeInUseUseCase'
@@ -166,9 +255,53 @@ describe('useLedgerCodeSettings', () => {
       },
     });
     expect(updateCustomLedgerCodeUseCase.execute).not.toHaveBeenCalled();
-    expect(alertSpy).toHaveBeenCalledWith('該科目已在交易中使用，無法停用。');
+    expect(result.current.error).toBe('該科目已在交易中使用，無法停用。');
+  });
 
-    alertSpy.mockRestore();
+  it('refuses to deactivate a category that still has active details', async () => {
+    const { useLedgerCodes } = await import('./useLedgerCodes');
+    const { checkLedgerCodeInUseUseCase } = await import(
+      '../../../../application/ledger/use_cases/checkLedgerCodeInUseUseCase'
+    );
+    const { updateCustomLedgerCodeUseCase } = await import(
+      '../../../../application/ledger/use_cases/updateCustomLedgerCodeUseCase'
+    );
+
+    vi.mocked(useLedgerCodes).mockReturnValue({
+      codes: [
+        {
+          code: 'asset:property',
+          label: '不動產',
+          type: 'asset',
+          isCustom: true,
+          isActive: true,
+        },
+        {
+          code: 'asset:property:taipei',
+          label: '台北房產',
+          type: 'asset',
+          isCustom: true,
+          isActive: true,
+        },
+      ],
+      loading: false,
+      refresh,
+      getLabel: vi.fn(),
+    });
+
+    const { result } = renderHook(() => useLedgerCodeSettings());
+
+    await act(async () => {
+      await result.current.handleToggleActive({
+        code: 'asset:property',
+        isActive: true,
+        isCustom: true,
+      });
+    });
+
+    expect(result.current.error).toContain('請先停用它們');
+    expect(checkLedgerCodeInUseUseCase.execute).not.toHaveBeenCalled();
+    expect(updateCustomLedgerCodeUseCase.execute).not.toHaveBeenCalled();
   });
 
   it('saves edited label and clears editing state', async () => {
