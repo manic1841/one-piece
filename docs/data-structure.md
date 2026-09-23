@@ -70,7 +70,7 @@ firestore
        │    ├─ bankAccountId: string        # 恰好一個銀行/現金帳戶；建立後連結不可變更
        │    ├─ isActive: boolean
        │    │
-       │    # 規則（spec 11）：
+       │    # 規則（ADR-0054）：
        │    # - 每個來源帳戶至多屬於一個 portfolio（create 時由 use case 驗證）
        │    # - accountIds[]/description 為舊欄位，讀取時由 schema strip，遷移腳本 scripts/admin/migrate-portfolio-links.ts
        │    │

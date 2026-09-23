@@ -52,7 +52,7 @@
 ## 3. 維護建議
 
 - **先更新 ADR**: 若修改的是架構或業務取捨，先新增或修訂 `docs/adr/` 中的決策，再同步更新 `docs/` 下的結構與流程參考；不要在兩處重新定義同一規則。
-- **設計暫置文件生命周期**: 設計討論期的暫置文件（spec 套件、原型、實作計畫）不是事實來源。功能落地時在同一個 task 內把行為/結構併入對應正式文件、取捨決策併入或修訂 ADR、術語更新 `CONTEXT.md`，然後刪除已整合的暫置檔案（git 歷史保留）；同一事實不得留在兩處。正式文件不得引用暫置路徑或 spec 檔名，執行 `pnpm docs:check` 驗證。
+- **設計暫置文件生命周期**: 設計討論期的暫置文件（spec 套件、原型、實作計畫）不是事實來源。功能落地時在同一個 task 內把行為/結構併入對應正式文件、取捨決策併入或修訂 ADR、術語更新 `CONTEXT.md`，然後刪除已整合的暫置檔案（git 歷史保留）；同一事實不得留在兩處。正式文件不得引用暫置路徑或 spec 檔名（含「spec 加編號」這類間接寫法），`pnpm docs:check` 會擋下並指出位置，CI 與 pre-commit 皆執行。
 - **原型捕獲準則**: 原型是為回答一個問題而生的可丟棄產物，不是例行產物，只在「問題需要跑起來才知道答案」時建立；建立流程與兩種形態（logic / UI）見 `.agents/skills/prototype/`。問題得解後依該 skill 規則 6 捕獲：驗證過的決策併入正式程式碼；原型本身作為 primary source commit 到一條 throwaway 分支（自 `main` 切出、永不併回 `main`，且須推到 `origin`，否則 pointer 指向一個別人不存在的 ref）；在**實作 issue** 留下指向該分支的 context pointer，並記下 verdict 與它解決的問題；`main` 只保留已驗證的決策。ADR 只記錄決策，不引用原型或暫置路徑。捕獲時內容不得改動。
 - **一份 spec 一條原型分支**: 同一份 spec 的原型只有一個。即使當初因故拆成多個 HTML 檔，所有檔案仍屬同一份原型、放同一條 `prototype/<spec>` 分支，不按檔數拆成多條。
 - **維護結構參考**: 如果修改了資料結構，更新 `docs/data-structure.md` 的欄位清單與 ADR 連結。
@@ -69,13 +69,13 @@
 - `pnpm exec tsc -b`: 依 root solution 執行完整 build graph 型別檢查（正式程式碼）。
 - `pnpm lint`: 執行唯讀 ESLint 檢查。
 - `pnpm lint:fix`: 明確執行 ESLint 自動修正。
+- `pnpm docs:check`: 驗證正式文件（`docs/`，排除暫置區，再加上根目錄 `CONTEXT.md`、`AGENTS.md`）不引用暫置資料夾、spec 套件名、暫置檔名，以及「spec 加編號」的間接寫法；實際攔阻樣式見 `scripts/check-doc-references.sh`。`prototype/<name>` 分支指標不在攔阻範圍。
 
 ## 4.1 CI/CD 流程
 
 GitHub Actions 位於 `.github/workflows/`：
 
-- **CI**（`test.yml`）：對 main/develop 的 push 與 PR 觸發。依序執行 lint、
-  `tsc -b`、unit tests、Firestore Emulator integration tests。Node 版本以 `.nvmrc`
+- **CI**（`test.yml`）：對 main/develop 的 push 與 PR 觸發。依序執行 `pnpm lint`、`pnpm docs:check`、`tsc -b`、unit tests、Firestore Emulator integration tests。Node 版本以 `.nvmrc`
   為單一真相來源；依賴以 `--frozen-lockfile` 安裝並快取 pnpm store。同一分支的新
   push 會取消舊的執行（concurrency），整體逾時 20 分鐘。
 - **Deploy to Firebase Hosting on PR**（`firebase-hosting-pull-request.yml`）：
