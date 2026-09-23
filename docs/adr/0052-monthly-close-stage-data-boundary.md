@@ -59,19 +59,16 @@ computeSectionInput），不在 UI 層自建第二條計算。確認動作維持
 （未完成階段 inline 提示、完成後不顯示）。數值輸入以 `Number.parseFloat` 轉型
 （同 accountSnapshotEditor.vm 的 toNumber 模式），字串不得直接寫入 number 欄位。
 
-## S3 修訂（2026-09-23，Account Balance prototype 對照）
+## S3 修訂（2026-09-23，Account Balance 排版）
 
-Account Balance 階段的 UI 排版與文字已依 prototype 對齊（排版對照與 Playwright
-量測細節記錄於設計暫置區的 account step 對齊紀錄，落地後併入 design-system 文件），
-本階段 ADR 相關的變更：
+Account Balance 階段的 UI 排版與文字定案如下，本階段 ADR 相關的變更：
 
 - **移除 inline 必填提示**：S2 定義的「TWD 需期末餘額、外幣需金額＋匯率」inline
-  提示已移除。prototype 中無此元素；缺漏輸入改由 WAITING 狀態 glyph（○ WAITING /
+  提示已移除；缺漏輸入改由 WAITING 狀態 glyph（○ WAITING /
   ✓ VERIFIED，S2 已定義）單獨承擔。計算欄（TWD 價值）在缺漏輸入時顯示 $0，不阻擋
   確認；提交邊界不變（確認動作冪等建立該階段資料，不為未輸入的帳戶偽造零值）。
 - **外幣 row 改五欄佈局**：Account（名稱＋幣別）佔獨立欄，前期餘額／外幣金額／
-  匯率／TWD 價值數字欄標籤與數字同軸右對齊（md 以上生效）；欄寬比例
-  1.3/.8/1/.9/1（prototype minmax 的 rem 版）。
+  匯率／TWD 價值數字欄標籤與數字同軸右對齊（md 以上生效）；欄寬比例 1.3/.8/1/.9/1。
 - **現金／銀行改共用表頭的真表格**：`TwdTableHead`（帳戶／前期餘額／期末餘額／
   狀態）一條 thead，列內不再重複欄位標籤；列高 54px（垂直內距後由
   [ADR-0061](0061-data-table-package-over-primitives.md) 調整為 9px、右側 pr-12px）；md 以下
@@ -88,12 +85,12 @@ Account Balance 階段的 UI 排版與文字已依 prototype 對齊（排版對�
 
 ### S3 Considered Options（2026-09-23）
 
-- 保留 inline 必填提示：prototype 無此元素，且 WAITING glyph 已表達缺漏狀態，雙重
-  提示違反 prototype 的安靜排版方向，移除，拒絕保留。
+- 保留 inline 必填提示：WAITING glyph 已表達缺漏狀態，雙重提示多餘，且與本階段
+  的安靜排版方向相違，移除，拒絕保留。
 - 缺漏輸入時阻擋確認按鈕：違反單段式冪等確認的提交邊界（確認時不為未輸入帳戶
   偽造零值，但不阻擋使用者對已輸入部分先行確認），拒絕。
-- 現金／銀行維持 grid＋每列重複欄位標籤：與 prototype 的共用表頭結構不符，且
-  thead 底線貫穿的效果只有真表格能原樣重現，拒絕。
+- 現金／銀行維持 grid＋每列重複欄位標籤：共用表頭才是 thead 底線貫穿效果的唯一
+  重現方式（grid 做不到），拒絕。
 - 期間顯示合併進 `YearMonthPicker`（readonly mode）：picker 為全站共用元件
   （9 個呼叫點），行為已寫入 design-system；只為月度關帳加展示模式會讓全部呼叫點
   共同承擔單一頁面需求，改以獨立 `PeriodBadge` 展示元件承擔，拒絕合併。

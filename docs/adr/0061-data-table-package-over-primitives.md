@@ -49,13 +49,12 @@ feature 內以 module-local class 常數手寫原生 `<table>`。後者才是已
    規格已明文定義，且已是複製貼上的受害者。
 6. **mobile grouped card 共用元件**。桌表與行動卡是同一份資料的兩種表示，欄位順序
    必須一致，這是唯一能保證的方法。
-7. **row height 以 54px 為準**（prototype 實測），`visual-consistency.md` §11 與
-   `08_Component_Design.md` 的 48px 為無原型依據的概述句，已修正。§11 不再另立
-   標準，改指向 `design-system.md` 的 `data-table` 段。
+7. **row height 以 54px 為準**。既有文件中的 48px 為無量測依據的概述句，已修正；
+   列高標準不另立，改指向 `design-system.md` 的 `data-table` 段。
 8. **垂直內距納入列高預算**：`h-[54px]` 只是最小列高，而列內最高的內容是 34px
-   數字輸入框，所以 cell 垂直內距由 prototype 的 13px 降為 9px（34 + 9×2 + 1px
-   分隔線 = 53px，仍由最小列高補滿 54px）。13px 會讓輸入列實測撐到 61px，與
-   54px 契約矛盾；因為純文字列本來就由最小列高撐滿，降低內距對它們沒有視覺影響，
+   數字輸入框，所以 cell 垂直內距定為 9px（34 + 9×2 + 1px
+   分隔線 = 53px，仍由最小列高補滿 54px）。先前候選的 13px 會讓輸入列實測撐到
+   61px，與 54px 契約矛盾；因為純文字列本來就由最小列高撐滿，降低內距對它們沒有視覺影響，
    改動只落在輸入密集的列。此契約由 `data-table.test.tsx` 的 row height contract
    守住（以 `numberInputClass` 的實際高度計算預算）。
 
