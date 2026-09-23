@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process';
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -12,6 +12,9 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
  * and assert the guard exits non-zero AND reports the offending location, then
  * assert a clean fixture (and the real repo) go green. This proves the regex
  * extension works, not merely that the rule text changed.
+ *
+ * Issue #172 additionally retires the staging folder, so the guard also fails
+ * when the folder itself is recreated — covered by the last test.
  */
 const repoRoot = path.resolve(__dirname, '../..');
 const scriptPath = path.join(repoRoot, 'scripts/check-doc-references.sh');
@@ -103,5 +106,23 @@ describe('docs:check staging-reference guard (issue #164)', () => {
 
     writeFileSync(filePath, '乾淨內容\n', 'utf8');
     expect(runGuard([filePath]).status).toBe(0);
+  });
+
+  it('fails when the retired staging folder is recreated, and recovers once removed', () => {
+    const stagingDir = path.join(repoRoot, 'docs', 'new-design');
+    // Non-recursive mkdir throws if the folder already exists, so a pre-existing
+    // directory is never silently deleted by the cleanup below.
+    expect(existsSync(stagingDir)).toBe(false);
+
+    mkdirSync(stagingDir);
+    try {
+      const result = runGuard([]);
+      expect(result.status).toBe(1);
+      expect(result.output).toContain('the design staging area must not exist');
+    } finally {
+      rmSync(stagingDir, { recursive: true, force: true });
+    }
+
+    expect(runGuard([]).status).toBe(0);
   });
 });

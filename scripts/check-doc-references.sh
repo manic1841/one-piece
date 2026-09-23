@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
-# Fails if a permanent doc references the design staging area.
+# Fails if a permanent doc references the design staging area, or if the retired
+# staging area has been recreated.
 #
-# Permanent docs are everything under docs/ except the staging folder itself, plus
-# the root-level docs that ship as source of truth (CONTEXT.md, AGENTS.md).
+# Permanent docs are everything under docs/, plus the root-level docs that ship as
+# source of truth (CONTEXT.md, AGENTS.md).
 #
 # Blocked references (filename level, so a deleted staging file cannot leave a dead
 # link behind):
@@ -12,6 +13,10 @@
 #     NN_Title.md spec files
 #   - indirect staging citations ("spec 11", "spec v1", ...)
 #
+# The design staging area is retired (issue #172): the repo must not carry a
+# staging folder at all, so its re-creation fails the check even when no permanent
+# doc points at it.
+#
 # `prototype/` is intentionally NOT matched: prototype branches are a legitimate,
 # permanent pointer (see development-guide 原型捕獲準則).
 #
@@ -19,6 +24,14 @@
 #   No arguments  -> scan the repo's permanent docs (CI / pre-commit path).
 #   Explicit paths -> scan those paths only (used by the negative-test guard test).
 set -euo pipefail
+
+# The staging area was retired, so it must not exist in any form.
+for staging in docs/new-design docs/new_design; do
+  if [ -e "$staging" ]; then
+    echo "docs:check: the design staging area must not exist: $staging" >&2
+    exit 1
+  fi
+done
 
 if [ "$#" -gt 0 ]; then
   targets=("$@")
@@ -35,7 +48,7 @@ done
 
 pattern='new[-_]design|one-piece-engineering-spec|visual-consistency\.md|page-review-|task-plans\.md|[0-9]{2}_[A-Za-z][A-Za-z0-9_]*\.md|spec[ 　]?[0-9]{1,2}([^0-9]|$)|spec[ 　]?v[0-9]'
 
-raw=$(grep -rniHE "$pattern" "${targets[@]}" --exclude-dir=new-design --exclude-dir=new_design || true)
+raw=$(grep -rniHE "$pattern" "${targets[@]}" || true)
 
 # A `prototype/<name>` pointer is legitimate, so blank out those tokens before
 # deciding: a prototype branch may legitimately be named after the spec package

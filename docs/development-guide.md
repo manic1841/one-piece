@@ -56,7 +56,7 @@
 
 - **先更新 ADR**: 若修改的是架構或業務取捨，先新增或修訂 `docs/adr/` 中的決策，再同步更新 `docs/` 下的結構與流程參考；不要在兩處重新定義同一規則。
 - **ADR 數值衝突裁決**: 當多份 ADR 對同一事實給出不同數值時（例如列高、頁寬），以**最新且具實測依據的 ADR** 為準，並在同一個 task 內修掉舊 ADR 的 stale 敘述，不讓兩個數字並存。衝突不會自己消失，只會累積。
-- **設計暫置文件生命周期**: 設計討論期的暫置文件（spec 套件、原型、實作計畫）不是事實來源。功能落地時在同一個 task 內把行為/結構併入對應正式文件、取捨決策併入或修訂 ADR、術語更新 `CONTEXT.md`，然後刪除已整合的暫置檔案（git 歷史保留）；同一事實不得留在兩處。正式文件不得引用暫置路徑或 spec 檔名（含「spec 加編號」這類間接寫法），`pnpm docs:check` 會擋下並指出位置，CI 與 pre-commit 皆執行。
+- **設計暫置不在版控內**: 設計討論期的暫置內容（spec 套件、原型、實作計畫）不是事實來源；討論階段把決策記在 GitHub issue，原型以 throwaway 分支承載（見下）。功能落地時在同一個 task 內把行為/結構併入對應正式文件、取捨決策併入或修訂 ADR、術語更新 `CONTEXT.md`，然後刪除已整合的暫置檔案（git 歷史保留）；同一事實不得留在兩處。**repo 內不留任何設計暫置資料夾**——已退役的暫置資料夾不得重建。正式文件不得引用暫置路徑或 spec 檔名（含「spec 加編號」這類間接寫法），`pnpm docs:check` 會擋下並指出位置，並在該資料夾重現時直接失敗；CI 與 pre-commit 皆執行。
 - **原型捕獲準則**: 原型是為回答一個問題而生的可丟棄產物，不是例行產物，只在「問題需要跑起來才知道答案」時建立；建立流程與兩種形態（logic / UI）見 `.agents/skills/prototype/`。問題得解後依該 skill 規則 6 捕獲：驗證過的決策併入正式程式碼；原型本身作為 primary source commit 到一條 throwaway 分支（自 `main` 切出、永不併回 `main`，且須推到 `origin`，否則 pointer 指向一個別人不存在的 ref）；在**實作 issue** 留下指向該分支的 context pointer，並記下 verdict 與它解決的問題；`main` 只保留已驗證的決策。ADR 只記錄決策，不引用原型或暫置路徑。捕獲時內容不得改動。
 - **一份 spec 一條原型分支**: 同一份 spec 的原型只有一個。即使當初因故拆成多個 HTML 檔，所有檔案仍屬同一份原型、放同一條 `prototype/<spec>` 分支，不按檔數拆成多條。
 - **維護結構參考**: 如果修改了資料結構，更新 `docs/data-structure.md` 的欄位清單與 ADR 連結。
@@ -144,7 +144,7 @@ AI agent 修改或建立任何 UI 時，**必須**遵守：
 - `pnpm exec tsc -b`: 依 root solution 執行完整 build graph 型別檢查（正式程式碼）。
 - `pnpm lint`: 執行唯讀 ESLint 檢查。
 - `pnpm lint:fix`: 明確執行 ESLint 自動修正。
-- `pnpm docs:check`: 驗證正式文件（`docs/`，排除暫置區，再加上根目錄 `CONTEXT.md`、`AGENTS.md`）不引用暫置資料夾、spec 套件名、暫置檔名，以及「spec 加編號」的間接寫法；實際攔阻樣式見 `scripts/check-doc-references.sh`。`prototype/<name>` 分支指標不在攔阻範圍。
+- `pnpm docs:check`: 驗證正式文件（`docs/`，加上根目錄 `CONTEXT.md`、`AGENTS.md`）不引用暫置路徑、spec 套件名、暫置檔名，以及「spec 加編號」的間接寫法，並斷言已退役的設計暫置資料夾不存在；實際攔阻樣式見 `scripts/check-doc-references.sh`。`prototype/<name>` 分支指標不在攔阻範圍。
 
 ## 7.1 CI/CD 流程
 
