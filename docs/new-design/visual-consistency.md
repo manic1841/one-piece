@@ -452,26 +452,7 @@ $1,250,000
 
 # 11. Tables
 
-所有 Data Table 遵循同一標準。
-
-```
-Account                 Ending Balance       As of
-────────────────────────────────────────────────────
-Main Bank               $1,250,000           Sep 2026 →
-Investment              $2,840,000           Sep 2026 →
-```
-
-### 標準
-
-- Header muted
-- Row height 約 48px
-- Numeric right aligned
-- Financial number monospace
-- subtle divider
-- 不使用厚重 border
-- 不使用 zebra striping
-- hover 有微弱 feedback
-- row 可點擊 → 整列 clickable
+> 本節已整合進正式文件 `docs/design-system.md` 的 `data-table` 段（權威來源）。Data Table 的結構、header、對齊、列高（54px）、hover 契約、colgroup、mobile 表示法一律以該段為準，本節不再另立標準。
 
 ---
 

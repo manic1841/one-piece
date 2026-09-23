@@ -26,7 +26,7 @@ Recorded 2026-09-18 (#119, #115) as a spec-value -> app-token mapping; the app's
 ## Component inventory
 1. Financial Number — full values, semantic change, mono numerics
 2. Metric Group — grid + whitespace + dividers; no decorative card grid
-3. Data Table — subtle dividers, 48px rows, numeric right alignment, clickable rows
+3. Data Table — subtle dividers, 54px rows, numeric right alignment, clickable rows
 4. Status/Badge — icon + text; semantic symbols
 5. Section/Module/Card — sections have no border by default; modules/cards only for distinct boundaries
 6. Button — primary accent, secondary border, tertiary text, radius 4
