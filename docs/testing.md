@@ -130,6 +130,34 @@ snapshots 與三份財務報表)。腳本可重複執行(upsert,非 append)。
   listen channel quirk、種子資料掛錯家戶等)索引於
   [QA FAQ](./qa-faq.md)。
 
+## 應用邊界與測試 seam
+
+### 月度關帳應用邊界
+
+月度關帳的對外測試邊界是**月度關帳 use case 的整合測試**:
+
+`src/application/monthly_close/use_cases/monthlyCloseWorkflowUseCase.integration.test.ts`
+
+測試在 Firebase Emulator 上驅動 `monthlyCloseWorkflowUseCase`
+(`MonthlyCloseWorkflowUseCase`) 的 `start` 與 `confirmStage`,只從 use case
+邊界觀察整個流程,不穿透斷言內部步驟:
+
+- `start` 後期間進入 IN_PROGRESS,並可觀察目前階段。
+- `confirmStage` 逐階段推進 workflow 狀態;階段順序僅為 UI 引導,系統不強制
+  (見 [ADR-0052](adr/0052-monthly-close-stage-data-boundary.md))。
+- 對帳差異或缺漏必填輸入產生 review-required 狀態,阻止期間被錯誤關閉。
+- FINANCIAL_REPORTS 階段產生三份報表後,期間才可關閉。
+- 關閉後期間狀態為 CLOSED,Dashboard 的關帳狀態反映新狀態。
+
+此邊界只暴露對外可觀察的財務狀態變化,文件不使用設計討論期的暫稱。
+
+### 不新增高層測試 seam
+
+除上述月度關帳應用邊界外,**不新增其他跨模組的高層測試 seam**。理由:現有
+unit / integration / E2E 三層已足以覆蓋對外行為;多一條 seam 就多一層要同步
+維護的抽象,卻不增加可觀察行為的覆蓋。只有在單一應用邊界經實作驗證仍無法暴露
+所需外部行為時,才新增 seam。
+
 ## E2E 測試(瀏覽器)
 
 目前尚未導入 E2E 測試。E2E 是最後一層信心來源:在 complex hook 的 loading/error/retry/cancellation/
