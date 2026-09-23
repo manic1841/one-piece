@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ONE PIECE — Monthly Close / Account Balance</title>
+<style>
+:root{
+  --bg:#0b0f10;
+  --panel:#101617;
+  --panel2:#0d1314;
+  --line:#263033;
+  --line2:#344043;
+  --text:#e7eeee;
+  --muted:#899696;
+  --dim:#5f6d6e;
+  --accent:#5cc8c0;
+  --positive:#7bd49b;
+  --warning:#e5b96b;
+  --negative:#e47777;
+  --mono:"SFMono-Regular","Cascadia Code","Roboto Mono",Consolas,monospace;
+  --sans:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+}
+*{box-sizing:border-box}
+body{
+  margin:0;background:var(--bg);color:var(--text);font-family:var(--sans);
+  font-size:14px;line-height:1.45;
+}
+button,input{font:inherit}
+button{cursor:pointer}
+.header{
+  height:56px;border-bottom:1px solid var(--line);
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 28px;
+}
+.brand{font-weight:700;letter-spacing:.08em}
+.header-right{display:flex;gap:24px;align-items:center;color:var(--muted);font-size:12px}
+.status{display:flex;align-items:center;gap:7px}
+.status-dot{width:7px;height:7px;border-radius:50%;background:var(--positive)}
+.avatar{
+  width:28px;height:28px;border:1px solid var(--line2);border-radius:50%;
+  display:grid;place-items:center;font-size:11px;color:var(--text)
+}
+.page{max-width:1280px;margin:0 auto;padding:42px 48px 80px}
+.page-head{
+  display:flex;justify-content:space-between;align-items:flex-end;
+  padding-bottom:28px;border-bottom:1px solid var(--line);
+}
+.eyebrow{font-size:11px;color:var(--muted);letter-spacing:.12em;text-transform:uppercase}
+h1{margin:5px 0 0;font-size:30px;font-weight:500;letter-spacing:-.025em}
+.period{
+  font-family:var(--mono);font-size:13px;color:var(--text);
+  border:1px solid var(--line2);padding:8px 12px;background:var(--panel2)
+}
+.workflow-row{
+  height:58px;border-bottom:1px solid var(--line);
+  display:flex;align-items:center;justify-content:space-between;
+}
+.progress-meta{display:flex;align-items:center;gap:16px;font-family:var(--mono);font-size:12px}
+.progress-state{color:var(--accent)}
+.progress-step{color:var(--muted)}
+.workflow-toggle{
+  background:none;border:0;color:var(--muted);font-size:11px;
+  letter-spacing:.08em;text-transform:uppercase;padding:8px 0;
+}
+.workflow-toggle:hover{color:var(--text)}
+.workflow{
+  display:none;border-bottom:1px solid var(--line);
+  padding:16px 0 20px;grid-template-columns:repeat(9,1fr);gap:7px;
+}
+.workflow.open{display:grid}
+.step{
+  min-height:58px;border:1px solid var(--line);padding:9px 10px;
+  color:var(--dim);background:var(--panel2);font-size:11px;
+}
+.step.done{color:var(--positive)}
+.step.current{border-color:var(--accent);color:var(--text)}
+.step-num{font-family:var(--mono);display:block;margin-bottom:5px;color:inherit}
+.current-step{padding-top:34px}
+.step-head{
+  display:flex;justify-content:space-between;align-items:flex-end;
+  padding-bottom:18px;border-bottom:1px solid var(--line);
+}
+.step-title{font-size:22px;font-weight:500}
+.step-sub{color:var(--muted);font-size:12px;margin-top:4px}
+.step-counter{font-family:var(--mono);font-size:13px;color:var(--muted)}
+.section{padding:30px 0;border-bottom:1px solid var(--line)}
+.section-title{
+  display:flex;align-items:baseline;justify-content:space-between;
+  margin-bottom:16px;
+}
+.section-title h2{font-size:13px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;margin:0}
+.section-note{font-size:11px;color:var(--dim)}
+.table{
+  width:100%;border-collapse:collapse;table-layout:fixed;
+}
+.table th{
+  color:var(--muted);font-size:10px;font-weight:500;
+  letter-spacing:.08em;text-transform:uppercase;
+  padding:0 12px 9px;border-bottom:1px solid var(--line);
+  vertical-align:bottom;
+}
+.table td{
+  padding:13px 12px;border-bottom:1px solid var(--line);
+  vertical-align:middle;height:54px;
+}
+.table th:first-child,.table td:first-child{padding-left:0}
+.table th:last-child,.table td:last-child{padding-right:0}
+.text-left{text-align:left}
+.number{text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums}
+.input-wrap{display:flex;justify-content:flex-end}
+.input{
+  width:150px;height:34px;border:1px solid var(--line2);background:#0a0e0f;
+  color:var(--text);padding:0 10px;text-align:right;
+  font-family:var(--mono);font-variant-numeric:tabular-nums;outline:none;
+}
+.input:focus{border-color:var(--accent)}
+.field-number{
+  text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums;
+}
+.status-text{color:var(--muted);font-size:11px;text-align:left}
+.status-ok{color:var(--positive)}
+.foreign-grid{
+  display:grid;
+  grid-template-columns:minmax(190px,1.3fr) minmax(120px,.8fr) minmax(160px,1fr) minmax(145px,.9fr) minmax(160px,1fr);
+  column-gap:28px;align-items:end;
+}
+.foreign-head{
+  color:var(--muted);font-size:10px;font-weight:500;
+  letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px;
+}
+.foreign-head.number-label{text-align:right}
+.foreign-value{
+  min-height:34px;display:flex;align-items:center;
+  font-family:var(--mono);font-variant-numeric:tabular-nums;
+  justify-content:flex-end;
+}
+.foreign-input{
+  width:100%;height:34px;border:1px solid var(--line2);background:#0a0e0f;
+  color:var(--text);padding:0 10px;text-align:right;
+  font-family:var(--mono);font-variant-numeric:tabular-nums;
+}
+.foreign-input:focus{outline:none;border-color:var(--accent)}
+.account-name{font-weight:500}
+.currency{font-size:11px;color:var(--dim);font-family:var(--mono);margin-left:7px}
+.securities-table th:nth-child(1){width:18%}
+.securities-table th:nth-child(2){width:30%}
+.securities-table th:nth-child(3),
+.securities-table th:nth-child(4),
+.securities-table th:nth-child(5){width:17.3%}
+.select,.mini-input{
+  height:32px;background:#0a0e0f;border:1px solid var(--line2);color:var(--text);
+  padding:0 9px;width:100%;text-align:right;font-family:var(--mono)
+}
+.action{
+  display:flex;justify-content:flex-end;align-items:center;padding-top:26px;gap:12px
+}
+.secondary{
+  height:38px;padding:0 16px;border:1px solid var(--line2);background:transparent;color:var(--muted)
+}
+.primary{
+  height:38px;padding:0 18px;border:1px solid var(--accent);
+  background:var(--accent);color:#071010;font-weight:600
+}
+.primary:hover{filter:brightness(1.05)}
+.footer-note{padding-top:14px;color:var(--dim);font-size:11px}
+@media(max-width:900px){
+  .page{padding:28px 20px 60px}
+  .header{padding:0 18px}
+  .workflow.open{grid-template-columns:repeat(3,1fr)}
+  .foreign-grid{grid-template-columns:1fr 1fr;row-gap:20px}
+  .foreign-grid .account-cell{grid-column:1/-1}
+  .foreign-head.number-label{text-align:left}
+  .foreign-value{justify-content:flex-start}
+  .foreign-input{text-align:right}
+}
+@media(max-width:620px){
+  .header-right .household{display:none}
+  .page-head{align-items:flex-start;gap:18px;flex-direction:column}
+  h1{font-size:25px}
+  .workflow-row{height:auto;padding:14px 0}
+  .workflow.open{grid-template-columns:1fr}
+  .current-step{padding-top:24px}
+  .step-head{align-items:flex-start}
+  .step-counter{padding-top:5px}
+  .table,.table tbody,.table tr,.table td{display:block;width:100%}
+  .table thead{display:none}
+  .table tr{padding:13px 0;border-bottom:1px solid var(--line)}
+  .table td{height:auto;border:0;padding:4px 0;display:flex;justify-content:space-between;gap:18px}
+  .table td:first-child,.table td:last-child{padding-left:0;padding-right:0}
+  .table td::before{content:attr(data-label);color:var(--muted);font-size:10px;letter-spacing:.06em;text-transform:uppercase}
+  .table td:first-child{display:block;padding-bottom:7px}
+  .table td:first-child::before{display:none}
+  .input-wrap{justify-content:flex-end;flex:1}
+  .input{max-width:180px;width:100%}
+  .foreign-grid{grid-template-columns:1fr;row-gap:15px}
+  .foreign-grid .account-cell{grid-column:auto}
+  .foreign-head.number-label{text-align:left}
+  .foreign-value{justify-content:flex-start}
+  .action{justify-content:stretch}
+  .secondary,.primary{flex:1}
+}
+</style>
+</head>
+<body>
+<header class="header">
+  <div class="brand">ONE PIECE</div>
+  <div class="header-right">
+    <div class="household">HOUSEHOLD / Celine</div>
+    <div class="status"><span class="status-dot"></span>SYSTEM OK</div>
+    <div class="avatar">CY</div>
+  </div>
+</header>
+
+<main class="page">
+  <div class="page-head">
+    <div>
+      <div class="eyebrow">Monthly Close</div>
+      <h1>September 2026</h1>
+    </div>
+    <div class="period">PERIOD / 2026-09</div>
+  </div>
+
+  <div class="workflow-row">
+    <div class="progress-meta">
+      <span class="progress-state">IN PROGRESS</span>
+      <span class="progress-step">01 / 09</span>
+      <span class="progress-step">ACCOUNT BALANCE</span>
+    </div>
+    <button class="workflow-toggle" onclick="toggleWorkflow()">SHOW WORKFLOW ＋</button>
+  </div>
+
+  <div id="workflow" class="workflow">
+    <div class="step current"><span class="step-num">01</span>Account Balance</div>
+    <div class="step"><span class="step-num">02</span>Transaction Validation</div>
+    <div class="step"><span class="step-num">03</span>Security Buy / Sell</div>
+    <div class="step"><span class="step-num">04</span>Portfolio Cash Flow</div>
+    <div class="step"><span class="step-num">05</span>Project Settlement</div>
+    <div class="step"><span class="step-num">06</span>Debt Repayment</div>
+    <div class="step"><span class="step-num">07</span>Completeness Check</div>
+    <div class="step"><span class="step-num">08</span>Financial Reports</div>
+    <div class="step"><span class="step-num">09</span>Close Period</div>
+  </div>
+
+  <section class="current-step">
+    <div class="step-head">
+      <div>
+        <div class="eyebrow">Current Step</div>
+        <div class="step-title">01 Account Balance</div>
+        <div class="step-sub">Confirm month-end balances for all cash, bank, foreign currency, and securities accounts.</div>
+      </div>
+      <div class="step-counter">01 / 09</div>
+    </div>
+
+    <section class="section">
+      <div class="section-title">
+        <h2>Cash / Bank</h2>
+        <span class="section-note">Ending balance at period end</span>
+      </div>
+      <table class="table">
+        <thead>
+          <tr>
+            <th class="text-left">Account</th>
+            <th class="number">Previous</th>
+            <th class="number">Ending Balance</th>
+            <th class="text-left">Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td data-label="Account"><span class="account-name">Daily Bank</span><span class="currency">TWD</span></td>
+            <td data-label="Previous" class="number">125,000</td>
+            <td data-label="Ending Balance">
+              <div class="input-wrap"><input class="input" value="130,000"></div>
+            </td>
+            <td data-label="Status" class="status-text status-ok">READY</td>
+          </tr>
+          <tr>
+            <td data-label="Account"><span class="account-name">Savings</span><span class="currency">TWD</span></td>
+            <td data-label="Previous" class="number">80,000</td>
+            <td data-label="Ending Balance">
+              <div class="input-wrap"><input class="input" value="82,500"></div>
+            </td>
+            <td data-label="Status" class="status-text status-ok">READY</td>
+          </tr>
+          <tr>
+            <td data-label="Account"><span class="account-name">Cash</span><span class="currency">TWD</span></td>
+            <td data-label="Previous" class="number">15,000</td>
+            <td data-label="Ending Balance">
+              <div class="input-wrap"><input class="input" value="12,800"></div>
+            </td>
+            <td data-label="Status" class="status-text status-ok">READY</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="section">
+      <div class="section-title">
+        <h2>Foreign Currency</h2>
+        <span class="section-note">TWD value is calculated automatically</span>
+      </div>
+
+      <div class="foreign-grid">
+        <div class="account-cell">
+          <div class="foreign-head">Account</div>
+          <div class="foreign-value" style="justify-content:flex-start"><span class="account-name">USD Account</span><span class="currency">USD</span></div>
+        </div>
+        <div>
+          <div class="foreign-head number-label">Previous</div>
+          <div class="foreign-value">3,200</div>
+        </div>
+        <div>
+          <div class="foreign-head number-label">Foreign Amount</div>
+          <input class="foreign-input" value="3,500">
+        </div>
+        <div>
+          <div class="foreign-head number-label">Exchange Rate</div>
+          <input class="foreign-input" value="31.25">
+        </div>
+        <div>
+          <div class="foreign-head number-label">TWD Value</div>
+          <div class="foreign-value">109,375</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-title">
+        <h2>Securities Holdings</h2>
+        <span class="section-note">Market value is calculated from holdings</span>
+      </div>
+      <table class="table securities-table">
+        <thead>
+          <tr>
+            <th class="text-left">Symbol</th>
+            <th class="text-left">Name</th>
+            <th class="number">Cost</th>
+            <th class="number">Value</th>
+            <th class="number">Leverage</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td data-label="Symbol"><span class="account-name">2330</span></td>
+            <td data-label="Name">TSMC</td>
+            <td data-label="Cost" class="number">420,000</td>
+            <td data-label="Value" class="number">498,000</td>
+            <td data-label="Leverage" class="number">0%</td>
+          </tr>
+          <tr>
+            <td data-label="Symbol"><span class="account-name">0050</span></td>
+            <td data-label="Name">Taiwan 50 ETF</td>
+            <td data-label="Cost" class="number">180,000</td>
+            <td data-label="Value" class="number">196,500</td>
+            <td data-label="Leverage" class="number">0%</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <div class="action">
+      <button class="secondary">SAVE DRAFT</button>
+      <button class="primary">CONFIRM &amp; CONTINUE →</button>
+    </div>
+    <div class="footer-note">Numeric field labels and values are right-aligned. Text fields remain left-aligned.</div>
+  </section>
+</main>
+
+<script>
+function toggleWorkflow(){
+  const w=document.getElementById('workflow');
+  const b=document.querySelector('.workflow-toggle');
+  w.classList.toggle('open');
+  b.textContent=w.classList.contains('open')?'HIDE WORKFLOW −':'SHOW WORKFLOW ＋';
+}
+</script>

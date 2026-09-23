@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ONE PIECE — Component Gallery</title>
+<style>
+  :root{
+    --bg:#090b0e;
+    --surface:#0b0e12;
+    --surface-2:#10141a;
+    --surface-3:#151a21;
+    --border:#20262e;
+    --border-strong:#303844;
+    --text:#f2f4f7;
+    --muted:#8b95a3;
+    --dim:#5f6977;
+    --accent:#5CC8C0;
+    --positive:#5fd19a;
+    --warning:#e6b45f;
+    --negative:#e46d78;
+    --font:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    --mono:"JetBrains Mono","SFMono-Regular",Consolas,"Liberation Mono",monospace;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:var(--font);line-height:1.45}
+  button,input,select{font:inherit}
+  .topbar{
+    height:64px;border-bottom:1px solid var(--border);background:var(--surface);
+    display:flex;align-items:center;justify-content:space-between;padding:0 32px;
+    position:sticky;top:0;z-index:10;
+  }
+  .brand{font-weight:700;letter-spacing:.14em;font-size:14px}
+  .system{font:12px var(--mono);color:var(--positive);letter-spacing:.04em}
+  .layout{max-width:1280px;margin:0 auto;padding:48px 32px 96px}
+  .intro{padding-bottom:48px;border-bottom:1px solid var(--border)}
+  .eyebrow,.label,.section-title{font:11px var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+  h1{font-size:36px;letter-spacing:-.03em;margin:10px 0 12px}
+  .intro p{max-width:720px;color:var(--muted);margin:0}
+  section{padding:48px 0;border-bottom:1px solid var(--border)}
+  .section-head{display:flex;justify-content:space-between;align-items:end;margin-bottom:24px;gap:24px}
+  .section-head h2{font-size:18px;margin:4px 0 0;letter-spacing:-.01em}
+  .grid{display:grid;gap:24px}
+  .g2{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .g3{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .g4{grid-template-columns:repeat(4,minmax(0,1fr))}
+  .module{border:1px solid var(--border);background:var(--surface);border-radius:4px;padding:20px}
+  .module-title{font:11px var(--mono);letter-spacing:.1em;color:var(--muted);margin-bottom:18px}
+  .number{font-family:var(--mono);font-variant-numeric:tabular-nums;letter-spacing:-.035em}
+  .number.hero{font-size:42px}
+  .number.large{font-size:28px}
+  .number.default{font-size:18px}
+  .change{font:12px var(--mono);margin-top:8px}
+  .positive{color:var(--positive)} .warning{color:var(--warning)} .negative{color:var(--negative)}
+  .muted{color:var(--muted)} .dim{color:var(--dim)}
+  .metric-grid{display:grid;grid-template-columns:repeat(4,1fr)}
+  .metric{padding:8px 20px 4px;border-right:1px solid var(--border)}
+  .metric:first-child{padding-left:0}.metric:last-child{border-right:0;padding-right:0}
+  .metric .value{font:22px var(--mono);margin-top:8px}
+  .metric .change{font-size:11px}
+  .divider{height:1px;background:var(--border);margin:20px 0}
+  table{width:100%;border-collapse:collapse}
+  th{font:10px var(--mono);color:var(--muted);letter-spacing:.08em;text-align:left;padding:0 12px 12px;border-bottom:1px solid var(--border)}
+  td{height:48px;padding:0 12px;border-bottom:1px solid var(--border);font-size:13px}
+  th:first-child,td:first-child{padding-left:0}
+  td.num,th.num{text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums}
+  tr:hover td{background:rgba(255,255,255,.025)}
+  .status{display:inline-flex;align-items:center;gap:7px;font:12px var(--mono)}
+  .status.verified{color:var(--positive)} .status.active{color:var(--accent)}
+  .status.waiting{color:var(--muted)} .status.review{color:var(--warning)} .status.error{color:var(--negative)}
+  .badge{display:inline-flex;padding:4px 7px;border:1px solid var(--border-strong);border-radius:4px;color:var(--muted);font:11px var(--mono)}
+  .actions{display:flex;gap:8px;flex-wrap:wrap}
+  .btn{height:36px;padding:0 14px;border-radius:4px;border:1px solid var(--border-strong);background:transparent;color:var(--text);cursor:pointer}
+  .btn:hover{background:var(--surface-3)}
+  .btn.primary{background:var(--accent);border-color:var(--accent);color:#090b0e}
+  .btn.danger{border-color:var(--negative);color:var(--negative)}
+  .btn.text{border-color:transparent;padding-left:4px;padding-right:4px}
+  .icon-btn{width:36px;height:36px;border:1px solid transparent;border-radius:4px;background:transparent;color:var(--muted);cursor:pointer}
+  .icon-btn:hover{background:var(--surface-3);color:var(--text)}
+  .field{display:flex;flex-direction:column;gap:7px}
+  .input,.select{height:36px;width:100%;padding:0 11px;border:1px solid var(--border-strong);border-radius:4px;background:transparent;color:var(--text);outline:none}
+  .input:focus,.select:focus{border-color:var(--accent)}
+  .financial-input{font-family:var(--mono);text-align:right;font-variant-numeric:tabular-nums}
+  .error-input{border-color:var(--negative)}
+  .field-error{font-size:11px;color:var(--negative)}
+  .select{appearance:auto}
+  .date-row{display:flex;gap:12px}
+  .date-row .field{flex:1}
+  .empty{text-align:center;padding:36px 16px}
+  .empty-icon{font:24px var(--mono);color:var(--dim);margin-bottom:12px}
+  .empty-title{font:11px var(--mono);letter-spacing:.1em}
+  .empty p{font-size:12px;color:var(--muted);margin:8px auto 18px;max-width:340px}
+  .skeleton{height:18px;background:var(--surface-3);border-radius:2px;position:relative;overflow:hidden}
+  .skeleton + .skeleton{margin-top:10px}
+  .skeleton::after{content:"";position:absolute;inset:0;transform:translateX(-100%);background:linear-gradient(90deg,transparent,rgba(255,255,255,.035),transparent);animation:load 1.6s infinite}
+  @keyframes load{100%{transform:translateX(100%)}}
+  .cli-progress{
+    padding:14px 0 2px;
+    font:12px var(--mono);
+    color:var(--text);
+  }
+  .cli-line{
+    display:flex;
+    gap:9px;
+    align-items:center;
+    line-height:1.8;
+  }
+  .cli-prompt{color:var(--accent)}
+  .cli-bar{
+    display:flex;
+    align-items:center;
+    gap:6px;
+    margin:5px 0;
+    white-space:nowrap;
+  }
+  .cli-fill{
+    color:var(--accent);
+    letter-spacing:-.08em;
+  }
+  .cli-percent{
+    color:var(--text);
+    margin-left:3px;
+  }
+  .cli-muted{color:var(--muted)}
+  .toast{display:flex;align-items:center;justify-content:space-between;gap:20px;border:1px solid var(--border);background:var(--surface-2);border-radius:4px;padding:12px 14px}
+  .tooltip-demo{position:relative;display:inline-flex}
+  .tooltip-demo .tip{position:absolute;bottom:calc(100% + 8px);left:50%;transform:translateX(-50%);white-space:nowrap;background:var(--surface-2);border:1px solid var(--border-strong);border-radius:4px;padding:6px 8px;font-size:12px;color:var(--text);opacity:0;pointer-events:none}
+  .tooltip-demo:hover .tip{opacity:1}
+  .pipeline{display:flex;align-items:center;gap:0}
+  .step{flex:1;position:relative;padding-right:24px}
+  .step:not(:last-child)::after{content:"";position:absolute;top:7px;left:20px;right:4px;height:1px;background:var(--border-strong)}
+  .step .dot{position:relative;z-index:1;width:14px;height:14px;background:var(--surface);border:1px solid var(--border-strong);display:block;border-radius:50%;margin-bottom:9px}
+  .step.done .dot{background:var(--positive);border-color:var(--positive)}
+  .step.current .dot{background:var(--accent);border-color:var(--accent)}
+  .step .name{font:10px var(--mono);color:var(--muted);letter-spacing:.06em}
+  .drawer-demo{display:grid;grid-template-columns:1fr 360px;border:1px solid var(--border);min-height:300px;background:var(--surface)}
+  .drawer-main{padding:20px}
+  .drawer{border-left:1px solid var(--border);padding:20px;background:var(--surface-2)}
+  .detail-row{padding:12px 0;border-bottom:1px solid var(--border)}
+  .detail-row .v{font:14px var(--mono);margin-top:4px}
+  .modal-demo{max-width:520px;border:1px solid var(--border-strong);border-radius:4px;background:var(--surface-2);padding:24px}
+  .modal-demo h3{margin:0 0 8px;font-size:18px}
+  .modal-demo p{color:var(--muted);font-size:13px;margin:0 0 22px}
+  .activity-row{display:grid;grid-template-columns:90px 1fr auto;align-items:center;min-height:64px;border-bottom:1px solid var(--border);gap:16px}
+  .activity-date{font:11px var(--mono);color:var(--muted)}
+  .activity-main{font-size:13px}
+  .activity-meta{font:11px var(--mono);color:var(--dim);margin-top:3px}
+  .activity-amount{font:13px var(--mono);font-variant-numeric:tabular-nums;text-align:right}
+
+  .pet{width:48px;height:48px;border-radius:50%;border:1px solid var(--accent);background:var(--surface-2);color:var(--accent);font-size:20px}.command-input{height:40px;border:1px solid var(--border-strong);border-radius:4px;padding:10px 12px;color:var(--muted);font:12px var(--mono)}
+  .footer-note{color:var(--dim);font:11px var(--mono);padding-top:24px}
+  @media(max-width:900px){
+    .g4,.metric-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+    .metric:nth-child(2){border-right:0}
+    .metric:nth-child(n+3){margin-top:20px;padding-top:20px;border-top:1px solid var(--border)}
+    .g3{grid-template-columns:1fr}
+  }
+  @media(max-width:650px){
+    .topbar{padding:0 16px}.layout{padding:32px 16px 64px}
+    h1{font-size:28px}.g2,.g4{grid-template-columns:1fr}
+    .drawer-demo{grid-template-columns:1fr}.drawer{border-left:0;border-top:1px solid var(--border)}
+    .date-row{flex-direction:column}.pipeline{overflow:auto}.step{min-width:150px}
+  }
+
+  .avatar{width:32px;height:32px;border:1px solid var(--border-strong);border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font:11px var(--mono);color:var(--text)}
+  .avatar.small{width:24px;height:24px;font-size:9px}.switcher{height:36px;padding:0 10px;border:1px solid var(--border-strong);border-radius:4px;background:transparent;color:var(--text);display:inline-flex;align-items:center;gap:9px;font:11px var(--mono);cursor:pointer}.switcher.compact{font-size:10px}.chevron{color:var(--muted)}
+  .settings-row{display:flex;justify-content:space-between;align-items:center}.toggle{width:32px;height:18px;border:1px solid var(--border-strong);border-radius:10px;display:flex;align-items:center;padding:2px}.toggle span{width:12px;height:12px;border-radius:50%;background:var(--muted)}.toggle.on{border-color:var(--accent);justify-content:flex-end}.toggle.on span{background:var(--accent)}
+  .selection-list{display:grid;gap:14px}.selection-list label{display:flex;align-items:center;gap:10px;font-size:13px}.checkbox{width:18px;height:18px;border:1px solid var(--border-strong);border-radius:4px;display:inline-flex;align-items:center;justify-content:center;font:12px var(--mono);color:var(--bg)}.checkbox.checked,.checkbox.indeterminate{background:var(--accent);border-color:var(--accent)}
+  .radio{width:18px;height:18px;border:1px solid var(--border-strong);border-radius:50%;display:inline-flex;align-items:center;justify-content:center}.radio.selected{border-color:var(--accent)}.radio.selected span{width:8px;height:8px;background:var(--accent);border-radius:50%}
+  .accordion{border-top:1px solid var(--border);border-bottom:1px solid var(--border)}.accordion-row{min-height:48px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);font:11px var(--mono);color:var(--muted)}.accordion-row:last-child{border-bottom:0}.accordion-body{padding:0 16px 8px;background:var(--surface)}
+  .alert{display:flex;align-items:center;gap:16px;padding:12px 14px;border:1px solid var(--warning);background:var(--surface-2);border-radius:4px;font-size:13px}.alert .btn{margin-left:auto}
+  .page-header{display:flex;justify-content:space-between;align-items:flex-end;gap:24px;padding-bottom:24px;border-bottom:1px solid var(--border)}.page-title{font-size:28px;font-weight:650;letter-spacing:-.025em}.page-title.small-title{font-size:22px;margin-top:4px}.page-desc{color:var(--muted);font-size:13px;margin-top:6px}.crumb{font:10px var(--mono);letter-spacing:.08em;color:var(--muted)}.page-header.nested{margin-top:20px}
+  .toolbar{min-height:40px;display:flex;align-items:center;justify-content:space-between;gap:16px;border-bottom:1px solid var(--border);padding:8px 0}.toolbar .actions{margin-right:auto}
+  .nav-demo{height:64px;border:1px solid var(--border);background:var(--surface);display:flex;align-items:center;gap:24px;padding:0 20px;overflow:hidden}.nav-links{display:flex;align-items:center;gap:20px;flex:1;white-space:nowrap;font-size:12px}.nav-links span{height:64px;display:flex;align-items:center;color:var(--muted);border-bottom:2px solid transparent}.nav-links span.active{color:var(--accent);border-bottom-color:var(--accent)}.nav-actions{display:flex;align-items:center;gap:8px}.nav-actions .avatar{margin-left:4px}
+  .mobile-demo{max-width:420px;height:260px;border:1px solid var(--border);background:var(--surface);position:relative}.mobile-content{padding:24px}.mobile-bottom{position:absolute;left:0;right:0;bottom:0;height:64px;border-top:1px solid var(--border);display:grid;grid-template-columns:repeat(5,1fr);background:var(--surface);padding-bottom:env(safe-area-inset-bottom)}.mobile-bottom span{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;color:var(--muted);font-size:14px}.mobile-bottom span.active{color:var(--accent)}.mobile-bottom small{font:9px var(--mono)}.more-sheet{max-width:520px}.more-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;border:1px solid var(--border);background:var(--border)}.more-grid span{padding:18px 12px;background:var(--surface-2);font:10px var(--mono);color:var(--muted)}
+  .icon-gallery{display:flex;align-items:center;gap:22px;flex-wrap:wrap}.icon-gallery>div{display:flex;align-items:center;gap:7px;font:10px var(--mono);color:var(--muted)}.icon-btn.xs{width:28px;height:28px;font-size:12px}.icon-btn.lg{width:40px;height:40px;font-size:18px}.icon-btn.xl{width:44px;height:44px;font-size:20px}
+
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">ONE PIECE</div>
+  <div class="system">● SYSTEM ONLINE</div>
+</header>
+
+<main class="layout">
+  <div class="intro">
+    <div class="eyebrow">DESIGN SYSTEM / COMPONENT GALLERY</div>
+    <h1>ONE PIECE Components</h1>
+    <p>Engineering-first household financial operating system. Dark-first, data-driven, low decoration, semantic color, and structure over cardization.</p>
+  </div>
+
+  <section>
+    <div class="section-head"><div><div class="section-title">01 / Financial Number</div><h2>Readable first, explainable when needed.</h2></div></div>
+    <div class="grid g3">
+      <div class="module"><div class="label">NET WORTH</div><div class="number hero">$4,812,430</div><div class="change positive">+8.42% YTD &nbsp; +$374,210</div></div>
+      <div class="module"><div class="label">PORTFOLIO RETURN</div><div class="number large">+12.42%</div><div class="change positive">YTD</div></div>
+      <div class="module"><div class="label">MISSING DATA</div><div class="number default">$ —</div><div class="change muted">No report available</div></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head"><div><div class="section-title">02 / Metric Group</div><h2>Peer-level financial metrics.</h2></div></div>
+    <div class="metric-grid">
+      <div class="metric"><div class="label">TOTAL ASSETS</div><div class="value">$5,420,000</div><div class="change positive">+6.8% YTD</div></div>
+      <div class="metric"><div class="label">TOTAL LIABILITIES</div><div class="value">$598,680</div><div class="change muted">-1.2% YTD</div></div>
+      <div class="metric"><div class="label">MONTHLY CASH FLOW</div><div class="value positive">+$36,000</div><div class="change positive">+22.4% MoM</div></div>
+      <div class="metric"><div class="label">PORTFOLIO RETURN</div><div class="value positive">+12.4%</div><div class="change muted">YTD</div></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head"><div><div class="section-title">03 / Data Table</div><h2>Structured data, not a card wall.</h2></div></div>
+    <div class="module">
+      <div class="module-title">TRANSACTIONS</div>
+      <table>
+        <thead><tr><th>DATE</th><th>DESCRIPTION</th><th>ACCOUNT</th><th>CATEGORY</th><th class="num">AMOUNT</th></tr></thead>
+        <tbody>
+          <tr><td>SEP 16</td><td>Dividend Received</td><td>Brokerage</td><td>Investment</td><td class="num positive">+$8,420</td></tr>
+          <tr><td>SEP 15</td><td>ETF Purchase</td><td>Brokerage</td><td>Investment</td><td class="num negative">-$20,000</td></tr>
+          <tr><td>SEP 14</td><td>Salary</td><td>Main Bank</td><td>Income</td><td class="num positive">+$85,000</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head"><div><div class="section-title">04 / Status & Badge</div><h2>State is not the same as value.</h2></div></div>
+    <div class="grid g2">
+      <div class="module">
+        <div class="module-title">STATUS</div>
+        <div class="actions">
+          <span class="status verified">✓ VERIFIED</span>
+          <span class="status active">● ACTIVE</span>
+          <span class="status waiting">○ WAITING</span>
+          <span class="status review">! REVIEW</span>
+          <span class="status error">× ERROR</span>
+        </div>
+      </div>
+      <div class="module">
+        <div class="module-title">BADGE</div>
+        <div class="actions"><span class="badge">ETF</span><span class="badge">BROKERAGE</span><span class="badge">PROJECT</span><span class="badge">TAX</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head"><div><div class="section-title">05 / Section & Module</div><h2>Section defines structure. Module defines boundaries.</h2></div></div>
+    <div class="grid g2">
+      <div>
+        <div class="label">12M NET WORTH</div><div class="divider"></div>
+        <div class="module" style="height:150px;display:flex;align-items:end;gap:8px">
+          <div style="height:38%;width:7%;background:var(--surface-3)"></div><div style="height:48%;width:7%;background:var(--surface-3)"></div><div style="height:45%;width:7%;background:var(--surface-3)"></div><div style="height:62%;width:7%;background:var(--surface-3)"></div><div style="height:58%;width:7%;background:var(--surface-3)"></div><div style="height:70%;width:7%;background:var(--surface-3)"></div><div style="height:67%;width:7%;background:var(--surface-3)"></div><div style="height:82%;width:7%;background:var(--accent)"></div>
+        </div>
+      </div>
+      <div class="module"><div class="module-title">MONTHLY CLOSE</div><div class="status verified">✓ ACCOUNTS &nbsp; 3/3</div><div class="divider"></div><div class="status verified">✓ LEDGER &nbsp; 128 ENTRIES</div><div class="divider"></div><div class="status waiting">○ REPORTS &nbsp; WAITING</div><div style="margin-top:18px"><button class="btn text">VIEW CLOSE →</button></div></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head"><div><div class="section-title">06 / Button & Action</div><h2>Visible, but never dominant.</h2></div></div>
+    <div class="grid g2">
+      <div class="module"><div class="module-title">HIERARCHY</div><div class="actions"><button class="btn primary">CLOSE PERIOD</button><button class="btn">Cancel</button><button class="btn text">View details →</button></div></div>
+      <div class="module"><div class="module-title">ICON BUTTON</div><div class="actions"><button class="icon-btn">+</button><button class="icon-btn">⋮</button><button class="icon-btn">⚙</button><button class="icon-btn">×</button></div></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head"><div><div class="section-title">07 / Input & Form Field</div><h2>Data entry as a system tool.</h2></div></div>
+    <div class="grid g3">
+      <div class="field"><div class="label">ACCOUNT NAME</div><input class="input" value="Main Bank Account"></div>
+      <div class="field"><div class="label">AMOUNT</div><input class="input financial-input" value="$125,420"></div>
+      <div class="field"><div class="label">ENDING BALANCE *</div><input class="input financial-input error-input" value="$124,200"><div class="field-error">! Balance does not match ledger</div></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head"><div><div class="section-title">08 / Select & Dropdown</div><h2>Contextual selection with low visual weight.</h2></div></div>
+    <div class="grid g3">
+      <div class="field"><div class="label">ACCOUNT</div><select class="select"><option>Main Bank</option><option>Brokerage</option><option>Credit Card</option></select></div>
+      <div class="field"><div class="label">CATEGORY</div><select class="select"><option>Investment</option><option>Income</option><option>Expense</option></select></div>
+      <div class="field"><div class="label">PROJECT</div><select class="select"><option>Retirement</option><option>Home</option><option>Wedding</option></select></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head"><div><div class="section-title">09 / Date & Period Picker</div><h2>Time controls belong to their context.</h2></div></div>
+    <div class="grid g2">
+      <div class="module">
+        <div class="module-title">REPORT PERIOD</div>
+        <div class="actions"><button class="btn">SEP 2026 ▾</button></div>
+      </div>
+      <div class="module">
+        <div class="module-title">TRANSACTION DATE</div>
+        <div class="actions"><button class="btn">SEP 18, 2026 ▾</button></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head"><div><div class="section-title">10 / Modal & Dialog</div><h2>Important actions get focused confirmation.</h2></div></div>
+    <div class="modal-demo">
+      <h3>Close Sep 2026?</h3>
+      <p>All transactions have been reviewed. Reports are ready to be finalized.</p>
+      <div class="actions"><button class="btn">Cancel</button><button class="btn primary">CLOSE PERIOD</button></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head"><div><div class="section-title">11 / Toast</div><h2>Immediate feedback without interrupting workflow.</h2></div></div>
+    <div class="toast"><span><span class="positive">✓</span> TRANSACTION SAVED</span><button class="btn text">UNDO</button></div>
+  </section>
+
+  <section>
+    <div class="section-head"><div><div class="section-title">12 / Tooltip</div><h2>Explain only when needed.</h2></div></div>
+    <div class="module" style="min-height:110px;display:flex;align-items:center;justify-content:center">
+      <div class="tooltip-demo"><button class="icon-btn">?</button><div class="tip">Calculated from Jan 1 – Sep 18, 2026</div></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head"><div><div class="section-title">13 / Empty State</div><h2>Guide the next action without illustration-heavy onboarding.</h2></div></div>
+    <div class="module empty">
+      <div class="empty-icon">○</div>
+      <div class="empty-title">NO TRANSACTIONS</div>
+      <p>No transactions have been recorded for this period.</p>
+      <button class="btn primary">ADD TRANSACTION</button>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head"><div><div class="section-title">14 / Loading & Skeleton</div><h2>Keep the system usable while data is loading.</h2></div></div>
+    <div class="grid g2">
+      <div class="module"><div class="module-title">FINANCIAL NUMBER</div><div class="skeleton" style="width:65%;height:32px"></div><div class="skeleton" style="width:35%"></div></div>
+      <div class="module">
+        <div class="module-title">GENERATING REPORTS</div>
+        <div class="cli-progress">
+          <div class="cli-line">
+            <span class="cli-prompt">$</span>
+            <span>generate-reports --period SEP-2026</span>
+          </div>
+          <div class="cli-bar">
+            <span>[</span><span class="cli-fill">████████████░░░░░░░░</span><span>]</span>
+            <span class="cli-percent">62%</span>
+          </div>
+          <div class="cli-line cli-muted">→ Generating September financial statements...</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head"><div><div class="section-title">15 / Confirmation</div><h2>Title → Context → Consequence → Actions.</h2></div></div>
+    <div class="grid g2">
+      <div class="module">
+        <div class="module-title">DESTRUCTIVE CONFIRMATION</div>
+        <div style="font-size:18px;margin-bottom:8px">Delete transaction?</div>
+        <div class="muted" style="font-size:13px;margin-bottom:18px">This action cannot be undone.</div>
+        <div class="actions"><button class="btn">Cancel</button><button class="btn danger">DELETE</button></div>
+      </div>
+      <div class="module">
+        <div class="module-title">CLOSE PERIOD</div>
+        <div class="status verified">✓ 5/5 STEPS COMPLETED</div>
+        <div class="muted" style="font-size:13px;margin:12px 0 18px">No unresolved exceptions.</div>
+        <button class="btn primary">CLOSE PERIOD</button>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head"><div><div class="section-title">16 / Drawer & Detail Panel</div><h2>Inspect and edit without leaving context.</h2></div></div>
+    <div class="drawer-demo">
+      <div class="drawer-main">
+        <div class="module-title">TRANSACTIONS</div>
+        <table>
+          <tbody>
+            <tr><td>SEP 18</td><td>Salary</td><td class="num positive">+$85,000</td></tr>
+            <tr><td>SEP 17</td><td>ETF Purchase</td><td class="num negative">-$20,000</td></tr>
+            <tr><td>SEP 16</td><td>Dividend</td><td class="num positive">+$8,420</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <aside class="drawer">
+        <div style="display:flex;justify-content:space-between"><div class="module-title">TRANSACTION</div><button class="icon-btn">×</button></div>
+        <div class="detail-row"><div class="label">DATE</div><div class="v">SEP 17, 2026</div></div>
+        <div class="detail-row"><div class="label">ACCOUNT</div><div class="v">Brokerage</div></div>
+        <div class="detail-row"><div class="label">AMOUNT</div><div class="v negative">-$20,000</div></div>
+        <div class="detail-row"><div class="label">CATEGORY</div><div class="v">Investment</div></div>
+        <div class="actions" style="margin-top:18px"><button class="btn">Edit</button><button class="btn danger">Delete</button></div>
+      </aside>
+    </div>
+  </section>
+
+
+  <section>
+    <div class="section-head"><div><div class="section-title">25 / Activity List</div><h2>Recent context without becoming a transaction table.</h2></div></div>
+    <div class="module">
+      <div class="module-title">RECENT ACTIVITY</div>
+      <div class="activity-row"><div class="activity-date">SEP 18</div><div class="activity-main"><div>Salary Received</div><div class="activity-meta">Main Bank</div></div><div class="activity-amount positive">+$85,000</div></div>
+      <div class="activity-row"><div class="activity-date">SEP 17</div><div class="activity-main"><div>ETF Purchase</div><div class="activity-meta">Brokerage</div></div><div class="activity-amount negative">-$20,000</div></div>
+      <div class="activity-row"><div class="activity-date">SEP 16</div><div class="activity-main"><div>Dividend Received</div><div class="activity-meta">Brokerage</div></div><div class="activity-amount positive">+$8,420</div></div>
+      <div style="margin-top:16px"><button class="btn text">VIEW ALL →</button></div>
+    </div>
+    <div class="module" style="margin-top:16px">
+      <div class="empty" style="padding:24px 16px"><div class="empty-icon">○</div><div class="empty-title">NO RECENT ACTIVITY</div><p>No transactions recorded recently.</p><button class="btn primary">ADD TRANSACTION</button></div>
+    </div>
+  </section>
+
+
+
+  <section>
+    <div class="section-head"><div><div class="section-title">26 / Avatar & User Menu</div><h2>Identity stays separate from household context.</h2></div></div>
+    <div class="module"><div class="actions" style="align-items:center">
+      <div class="avatar">CY</div><button class="btn">Settings</button><button class="btn text">↪ Log out</button>
+    </div></div>
+  </section>
+
+  <section>
+    <div class="section-head"><div><div class="section-title">27 / Household Switcher</div><h2>Household scope is independent from the user profile.</h2></div></div>
+    <div class="module"><button class="switcher"><span class="avatar small">OP</span><span>OUR HOUSEHOLD</span><span class="chevron">⌄</span></button></div>
+  </section>
+
+  <section>
+    <div class="section-head"><div><div class="section-title">28 / Toggle / Switch</div><h2>Settings use switches; data selection uses checkboxes.</h2></div></div>
+    <div class="module settings-row"><span>Automatic reconciliation</span><span class="toggle on"><span></span></span></div>
+    <div class="module settings-row" style="margin-top:12px"><span>Notifications</span><span class="toggle"><span></span></span></div>
+  </section>
+
+  <section>
+    <div class="section-head"><div><div class="section-title">29 / Checkbox / Selection</div><h2>Select data without implying a system setting.</h2></div></div>
+    <div class="module selection-list">
+      <label><span class="checkbox checked">✓</span> ETF Purchase</label>
+      <label><span class="checkbox"></span> Dividend Received</label>
+      <label><span class="checkbox indeterminate">−</span> Salary Received</label>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head"><div><div class="section-title">30 / Radio / Single Selection</div><h2>One selection from a mutually exclusive set.</h2></div></div>
+    <div class="module selection-list">
+      <label><span class="radio selected"><span></span></span> Monthly</label>
+      <label><span class="radio"><span></span></span> Quarterly</label>
+      <label><span class="radio"><span></span></span> Yearly</label>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head"><div><div class="section-title">31 / Accordion / Collapsible Section</div><h2>Progressive disclosure for secondary detail.</h2></div></div>
+    <div class="accordion">
+      <div class="accordion-row"><span>ACCOUNT DETAILS</span><span>⌄</span></div>
+      <div class="accordion-body"><div class="detail-row"><div class="label">ACCOUNT TYPE</div><div class="v">BROKERAGE</div></div><div class="detail-row"><div class="label">CURRENCY</div><div class="v">TWD</div></div></div>
+      <div class="accordion-row"><span>RECONCILIATION HISTORY</span><span>›</span></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head"><div><div class="section-title">32 / Alert / Inline Message</div><h2>Exceptions are visible where action is required.</h2></div></div>
+    <div class="alert warning"><span class="status review">! REVIEW</span><span>Brokerage ending balance differs from ledger by $1,240.</span><button class="btn text">Review →</button></div>
+  </section>
+
+  <section>
+    <div class="section-head"><div><div class="section-title">33 / Divider</div><h2>Structure through spacing and a restrained rule.</h2></div></div>
+    <div class="module"><div class="label">ASSETS</div><div class="number large">$5,420,000</div><div class="divider"></div><div class="label">LIABILITIES</div><div class="number large">$598,680</div></div>
+  </section>
+
+  <section>
+    <div class="section-head"><div><div class="section-title">34 / Page Header</div><h2>Context first, then the primary page action.</h2></div></div>
+    <div class="page-header"><div><div class="page-title">TRANSACTIONS</div><div class="page-desc">Track and review household financial activity.</div></div><button class="btn primary">+ ADD TRANSACTION</button></div>
+    <div class="page-header nested"><div><div class="crumb">ACCOUNTS / BROKERAGE</div><div class="page-title small-title">BROKERAGE</div></div><button class="btn">EDIT</button></div>
+  </section>
+
+  <section>
+    <div class="section-head"><div><div class="section-title">35 / Page Toolbar / Action Group</div><h2>Actions stay separate from data-view controls.</h2></div></div>
+    <div class="toolbar"><div class="actions"><button class="btn">EXPORT</button><button class="btn">IMPORT</button></div><button class="btn primary">+ ADD TRANSACTION</button></div>
+    <div class="toolbar" style="margin-top:12px"><div class="label">5 SELECTED</div><div class="actions"><button class="btn">EDIT</button><button class="btn danger">DELETE</button></div><button class="btn text">CLEAR</button></div>
+  </section>
+
+  <section>
+    <div class="section-head"><div><div class="section-title">36 / Navigation / Header</div><h2>System status bar, not a traditional sidebar.</h2></div></div>
+    <div class="nav-demo"><div class="brand">ONE PIECE</div><div class="nav-links"><span>Overview</span><span class="active">Accounts</span><span>Portfolio</span><span>Debt</span><span>Reports</span><span>Retirement</span><span>Transactions</span><span>Projects</span></div><div class="nav-actions"><button class="switcher compact">HOUSEHOLD ⌄</button><button class="icon-btn">⌕</button><button class="icon-btn">⚙</button><div class="avatar">CY</div></div></div>
+  </section>
+
+    <section>
+    <div class="section-head"><div><div class="section-title">38 / Icon System</div><h2>Consistent outline icons with semantic color.</h2></div></div>
+    <div class="module icon-gallery">
+      <div><button class="icon-btn xs">⌕</button><span>12 / XS</span></div>
+      <div><button class="icon-btn">⚙</button><span>16 / SM</span></div>
+      <div><button class="icon-btn lg">＋</button><span>20 / MD</span></div>
+      <div><button class="icon-btn xl">⌄</button><span>24 / LG</span></div>
+      <div><span class="status verified">✓ VERIFIED</span></div><div><span class="status review">! REVIEW</span></div><div><span class="status error">× ERROR</span></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head"><div><div class="section-title">39 / Pixel Pet Navigator</div><h2>Main navigation lives in Pixel Pet.</h2></div></div>
+    <div class="module"><div class="module-title">NAVIGATOR</div><div class="more-grid"><span class="active">TRANSACTION</span><span>CLOSE</span><span>ACCOUNT</span><span>PORTFOLIO</span><span>DEBT</span><span>PROJECT</span><span>REPORT</span><span>RETIREMENT</span></div><div style="margin-top:20px"><button class="pet">●</button></div></div>
+  </section>
+
+  <section>
+    <div class="section-head"><div><div class="section-title">40 / Household Context / User Context</div><h2>Financial scope and personal identity stay separate.</h2></div></div>
+    <div class="grid g2"><div class="module"><div class="module-title">HOUSEHOLD</div><button class="switcher">HOME HOUSEHOLD <span class="chevron">⌄</span></button></div><div class="module"><div class="module-title">USER</div><div style="display:flex;align-items:center;gap:12px"><span class="avatar">CY</span><span>Celine Yang</span></div></div></div>
+  </section>
+
+  <section>
+    <div class="section-head"><div><div class="section-title">41 / System Status</div><h2>System health, not application activity.</h2></div></div>
+    <div class="module"><span class="status verified">● SYSTEM ONLINE</span><span class="status review" style="margin-left:24px">! DEGRADED</span><span class="status error" style="margin-left:24px">× OFFLINE</span></div>
+  </section>
+
+  <section>
+    <div class="section-head"><div><div class="section-title">42 / Household Switcher</div><h2>Financial context switcher with create flow.</h2></div></div>
+    <div class="module"><div class="module-title">HOUSEHOLDS</div><div class="selection-list"><div>✓ HOME HOUSEHOLD</div><div>TRAVEL HOUSEHOLD</div><button class="btn secondary">+ Create Household</button></div></div>
+  </section>
+
+  <section>
+    <div class="section-head"><div><div class="section-title">43 / User Avatar / User Menu</div><h2>Identity actions stay intentionally minimal.</h2></div></div>
+    <div class="grid g2"><div class="module" style="display:flex;align-items:center;gap:12px"><span class="avatar">CY</span><span>Click avatar</span></div><div class="module"><div class="module-title">USER MENU</div><strong>CY</strong><div style="margin-top:4px;color:var(--muted)">Celine Yang</div><div class="divider"></div><div>⚙ Settings</div><div style="margin-top:14px">↪ Log out</div></div></div>
+  </section>
+
+  <section>
+    <div class="section-head"><div><div class="section-title">44 / Search / Command Access</div><h2>Contextual search + command, not global full-text search.</h2></div></div>
+    <div class="grid g2"><div class="module"><div class="module-title">COMMAND PALETTE · CTRL / ⌘ K</div><div class="command-input">⌕ Search or run a command...</div><div class="divider"></div><div class="label">NAVIGATION</div><div style="padding:10px 0">→ Open Portfolio</div><div style="padding:10px 0">→ Open Monthly Close</div><div class="label" style="margin-top:12px">ACTIONS</div><div style="padding:10px 0">+ Add Transaction</div><div style="padding:10px 0">+ Create Project</div></div><div class="module"><div class="module-title">CONTEXTUAL SEARCH</div><div class="command-input">⌕ Search current data...</div><div style="margin-top:14px;color:var(--muted);font-size:13px">Search only indexed fields within the current context. Use filters for Transactions and other data-heavy views.</div></div></div>
+  </section>
+
+  <div class="footer-note">ONE PIECE / Component Gallery · Static reference · Component decisions through 44</div>
+</main>
+</body>
+</html>
