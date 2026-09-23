@@ -38,7 +38,8 @@ Navigation/More Sheet — superseded by Pixel Pet main navigator」，但實作�
 - 超越 ADR-0044 的決策 3（行動導航 4+1 分組）:bottom nav 移除後，4+1 分組不再是
   契約;`NAV_ITEMS` 昔日供 bottom nav 使用的 `group` 欄位已移除，Quick Access 與
   Navigator 取用同一份路由清單的不同子集。
-- ADR-0044 的其他決策（單一 md 斷點、平板沿用桌面殼、表格橫向捲動政策）不受影響。
+- ADR-0044 的單一 `md` 斷點決策不受影響;其桌面殼與表格捲動政策已於 2026-09-23
+  與實作一致化(見 [ADR-0044](0044-rwd-breakpoint-contract.md))。
 - 驗收清單對應 [UI 架構文件](../ui/ui-layer-architecture.md) 的「導航所有權」章節。
 
 ## 修訂（2026-09-23，釐清 Navigator 取用範圍）
