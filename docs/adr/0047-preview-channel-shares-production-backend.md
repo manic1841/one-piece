@@ -7,7 +7,7 @@
 ## 背景與動機
 
 兩個 Hosting 部署 workflow 都以 `on: workflow_run` 觸發(見
-[開發指南](../development-guide.md) 4.1 節),CI 綠燈後才部署。這帶來一個必須先承認
+[開發指南](../development-guide.md) 7.1 節),CI 綠燈後才部署。這帶來一個必須先承認
 的事實:Firebase Hosting 的 preview channel 只隔離**前端靜態內容**,不隔離後端。
 
 Firebase 文件原話:preview URL 下 "your web app interacts with your real backend
