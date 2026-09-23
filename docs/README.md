@@ -53,7 +53,8 @@
   - 頁面佈局與互動改動的驗收標準。
 
 - **[UI 架構 (UI Layer Architecture)](/docs/ui/ui-layer-architecture.md)**
-  - UI 分層結構、依賴方向、導航所有權與 RWD 斷點契約。
+  - UI 分層結構、依賴方向、導航／Header 契約與 RWD 斷點契約。
+  - List / Detail / Workflow 責任切分與動作位置（Action Hierarchy）。
   - 共用元件歸屬規則與各層職責邊界。
 
 - **[UI 標籤指南 (UI Labeling Guideline)](/docs/ui/ui-labeling-guideline.md)**

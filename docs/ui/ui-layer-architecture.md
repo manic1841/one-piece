@@ -2,6 +2,8 @@
 
 This project follows a strict separation of concerns using Domain-Driven Design (DDD) and Clean Architecture principles. The UI layer focuses solely on **presentation** and **interaction orchestration**. If you find business logic here, you've failed.
 
+> **涵蓋範圍**:本文件是 UI 分層與表面契約的唯一真相來源——分層結構與依賴方向、ViewModel/Hook 職責、導航／Header 契約、RWD 斷點,以及 List / Detail / Workflow 的責任切分與動作位置。設計 token 與元件表面屬 [`design-system.md`](design-system.md);頁面層級佈局與互動標準屬 [`visual-standards.md`](visual-standards.md)。三份文件權威不重疊。
+
 ## 1. Directory Structure
 
 The `src/ui` directory is organized by **Feature/Page** to reflect user workflows, not just data models.
@@ -128,14 +130,39 @@ Use Case
 
 主導航在所有斷點由 Pixel Pet 獨家擁有(見 [ADR-0055](../adr/0055-pixel-pet-single-navigator-ownership.md))。
 行動 bottom nav 與 More sheet 已收編;行動版經 Pixel Pet 的 Navigator sheet 導航。
+退場以「Pet + sheet 覆蓋 bottom nav 全部目的地與 More sheet 功能、不留斷點」為條件,已達成。
 header 不含主導航;Ctrl/Cmd+K 指令面板為 Quick Access,條目涵蓋全部路由,與
-Navigator 的 8 項清單獨立。
+Navigator 清單互相獨立。
 
 四檔工作流視窗（Monthly Close、Portfolio Detail、Debt、Header）的視覺權重與操作
 位置契約見 [ADR-0056](../adr/0056-workflow-first-surfaces.md):pipeline 為頁面主要層
 級,mobile 步驟列去 Card,確認動作顯示 `CONTINUE →`;Portfolio Detail 無快照管理入
 口;Debt 列表列無常駐 Edit / Delete,動作在詳情 header;Header 無獨立 Settings 鈕
 ,Settings 在 Avatar menu。
+
+## 6.2 Navigator 互動契約
+
+Pixel Pet 是唯一主導航,不使用傳統 bottom nav 作為主 Navigator(所有權見 §6.1)。
+
+- **定位**:桌機固定右下角;行動版為 bottom sheet。
+- **桌機**:click pet 展開 Navigator overlay(floating panel);hover 只做輕微反應,滑鼠移開 overlay **不**立即關閉(避免誤觸),由點擊外部或再點 pet 關閉。
+- **行動版**:tap pet 開啟 Navigator bottom sheet;再 tap pet 或 Close 關閉;不使用 hover。
+- **目的地**:清單內容、Dashboard 的 home 語意與 Quick Access 的獨立性見 [ADR-0055](../adr/0055-pixel-pet-single-navigator-ownership.md) 與 `CONTEXT.md` 的 Pixel Pet;本節只定互動行為,不重述。
+- **動畫**:panel／Sheet 進出場走 [`design-system.md`](design-system.md) 的動態 token。
+- **Phase 8 圖像**:以正式 pixel-art mascot 替換 placeholder 圖像,僅換圖,不改本互動契約。
+- **寵物反應**:`idle / happy / nod / alert` 為最近財務期間狀態的資料驅動顯示,不做情境式 context 管線;映射契約見 [ADR-0055](../adr/0055-pixel-pet-single-navigator-ownership.md) 與 `CONTEXT.md` 的 Pixel Pet,本節不重述。
+
+## 6.3 Header 責任
+
+Global Header(sticky 系統狀態列)只負責:
+
+- 品牌 ONE PIECE(點擊回 Dashboard)。
+- Household switcher。
+- Search / Command(Quick Access,見 §6.1)。
+- System Status(靜態 `● SYSTEM ONLINE`)與今日日期。
+- User(Avatar menu:Settings、Log out)。
+
+不得放入:主導航(見 §6.1)、大量 shortcuts、Period selector、domain actions。Settings 收在 Avatar menu,header 無獨立 Settings 鈕(亦見 [ADR-0056](../adr/0056-workflow-first-surfaces.md))。Header 為 L1 浮動 chrome,材質契約見 [`design-system.md`](design-system.md)。
 
 以下為四檔視窗的手動 QA 清單,項目均為可觀察行為,作為版面變更的驗收面:
 
@@ -164,6 +191,59 @@ Navigator 的 8 項清單獨立。
 - 版面與 1024px 一致;`max-w-7xl` 容器置中,兩側留白對稱。
 - 任何斷點皆不得出現整頁水平捲軸。
 
-## 7. Linus's Final Word on UI
+## 7. 動作位置與 List / Detail 責任切分
+
+可查看 Detail 的資料以整列點擊進入 Detail,並依 List / Detail / Workflow 的責任邊界決定動作落點。**Action Hierarchy 只定義優先序;List / Detail 決定位置。**
+
+### 7.1 責任切分
+
+- **List** = Browse / Filter / Create / Reorder:檢視清單、內容區 filter(顯示停用／顯示已結清 toggle 屬 view filter,非資料變更)、create 入口、拖曳排序(見 [ADR-0059](../adr/0059-dnd-kit-shared-sortable.md))。view filter 與搜尋放在 List 內容區,不放 header。
+- **Detail** = 該實體的管理動作:Edit(inline rename 或 Edit Form)、Activate/Deactivate、Danger Zone(刪除)。
+- **Workflow**(如 `/close`)= 該工作流的主要動作:Confirm、Close Period。
+
+### 7.2 List → Detail
+
+可查看 Detail 的資料遵循 `Row → Click → Detail`,不在每列散落 `[View] [Edit] [Delete]`。
+
+例外:無 Detail 頁的資料(如 Transaction)允許 row 端 ghost icon action(icon-only、muted 色、hover 才浮現語意),**不**適用於有 Detail 頁的資料。`data-table` 的列內動作與 pointer event priority 為權威,見 [`design-system.md`](design-system.md) 的 `data-table` 段。
+
+### 7.3 Edit 表達方式
+
+Detail 的編輯入口依欄位複雜度二選一:
+
+- **單一 metadata 欄位**(名稱)→ `InlineEditableTitle` inline edit,掛在 PageHeader title slot。適用:Project / Portfolio / Retirement plan 名稱。
+- **多欄位 configuration** → Edit Form(dialog 或 detail 區塊)。適用:Debt / Account。
+
+`PageHeader` 不知道「怎麼編輯名稱」——`title` 接受 `ReactNode`,由頁面自行傳入 `<InlineEditableTitle value={...} onSave={...} />`;儲存走既有 update command,成功後頁面自行 refetch／同步 state。
+
+### 7.4 Lifecycle 控制
+
+啟用／停用(activate/deactivate)屬 Detail 責任,不放在 List 列內:
+
+- 掛在 PageHeader actions,緊鄰狀態顯示(badge/meta),讓狀態與改變狀態的動作成對。
+- 標籤依狀態二選一:active 顯示「停用 {domain}」、inactive 顯示「啟用 {domain}」。
+- 可逆動作用 outline variant;停用帳戶若當月有交易,先走 monthly-usage 檢查 + `useConfirm()`(DISABLE 標籤)。切換走既有 update command,成功後狀態即時反映。
+- List 只呈現狀態(glyph/muted),不提供切換。
+
+### 7.5 Action Hierarchy(優先序)
+
+全站最多三層:
+
+- **Primary**:主要完成動作(`SAVE` / `CONFIRM` / `CLOSE PERIOD` / domain create:`NEW`——新增帳戶／新增貸款／New Project／New Plan／新增交易／新增組合)。
+- **Secondary**:次要動作(`EDIT` / `IMPORT` / `DEACTIVATE`,可逆,outline variant)。
+- **Tertiary**:低干擾(`View details →` / `More`)。
+
+一個 context 通常只需要一個 primary action;不要在同一區域堆疊多個 primary。
+
+### 7.6 位置規則
+
+- **List Header** = create action only(`New` / 新增 {domain});結算／設定等流程入口屬各自工作流頁面,不在 List header。
+- **Detail Header** = 該實體的管理動作(Edit、Activate/Deactivate),緊鄰狀態顯示。
+- **Workflow Header** = 該工作流的主要動作(Confirm、Close Period)。
+- **Destructive**(Delete／移除)放頁面尾端 Danger Zone,永不升級到 header。
+
+> **Closing principle:Action Hierarchy defines priority; List / Detail defines placement.**
+
+## 8. Linus's Final Word on UI
 
 Don't over-engineer with 50 levels of abstraction just because some blog post told you so. If a component is simple, keep it simple. But if you start leaking business logic into a "Button Click" handler, I will find you.
