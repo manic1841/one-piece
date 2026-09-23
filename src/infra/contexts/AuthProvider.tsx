@@ -6,8 +6,11 @@ import { createUserProfileUseCase } from '@/application/user/use_cases/createUse
 import { getUserProfileUseCase } from '@/application/user/use_cases/getUserProfileUseCase';
 import { type UserProfile } from '@/domains/user/schemas';
 import { auth, googleProvider } from '@/firebase';
-import { AuthContext, type AuthContextType } from '@/infra/contexts/AuthContext';
-import { AppFallback } from '@/ui/components/AppFallback';
+import {
+  AuthContext,
+  type AuthContextType,
+  type AuthInitErrorCode,
+} from '@/infra/contexts/AuthContext';
 
 /**
  * `onAuthStateChanged` 在後端不可達時永遠不會回呼，`loading` 若只依賴它便會無限等待
@@ -15,12 +18,18 @@ import { AppFallback } from '@/ui/components/AppFallback';
  */
 const AUTH_INIT_TIMEOUT_MS = 10_000;
 
+/**
+ * 逾時時放上 context 的錯誤碼。這裡只放**資料**，不 render UI：顯示文字由 UI 決定
+ * （`AuthGate` + `constants`，見 docs/ui/ui-layer-architecture.md §5.1、ADR-0062 規則 10）。
+ */
+const AUTH_INIT_TIMEOUT_ERROR: AuthInitErrorCode = 'auth-backend-unreachable';
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [initError, setInitError] = useState<string | null>(null);
+  const [initError, setInitError] = useState<AuthInitErrorCode | null>(null);
 
   const getDisplayName = (user: User): string => {
     if (user.displayName && user.displayName.trim() !== '') {
@@ -61,7 +70,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
-      setInitError('The app could not reach the authentication backend.');
+      setInitError(AUTH_INIT_TIMEOUT_ERROR);
       console.error(`[AuthProvider] No auth state after ${AUTH_INIT_TIMEOUT_MS}ms.`);
     }, AUTH_INIT_TIMEOUT_MS);
 
@@ -116,15 +125,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     refreshProfile,
   };
 
-  if (initError) {
-    return (
-      <AppFallback
-        title="Cannot reach the backend"
-        description={initError}
-        hint="Local dev: is the Firebase emulator running? See docs/qa-faq.md."
-      />
-    );
-  }
-
-  return <AuthContext.Provider value={value}>{!loading && children}</AuthContext.Provider>;
+  // 永遠掛載 provider：失敗與載入狀態都是**資料**，由 UI 端（`AuthGate`）決定要
+  // 顯示失敗畫面、等待，或放行 children。infra 不得 import `src/ui/**`。
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

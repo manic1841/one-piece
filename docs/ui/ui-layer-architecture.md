@@ -66,9 +66,9 @@ between domain/application shapes and components.
 5.  **Controller -> Application**: Controllers are the only tier that may call use cases and workflows. Non-persisting
     domain pure functions may also be called here for state derivation.
 6.  **Controller -X-> Infrastructure**: controllers, like all UI code, must not import repositories, Firestore, API
-    clients or storage details. The **only** infra import any UI file may make is `useAuth`
-    (`@/infra/contexts/useAuth`), which is a Firebase-free React context reader. Controllers should prefer
-    `useAuthContext()` (see §4).
+    clients or storage details. The only infra import UI may make is `useAuth` (`@/infra/contexts/useAuth`), a
+    Firebase-free React context reader, and **only Controllers may import it** — Surface reaches auth state
+    exclusively through a Controller. Controllers should prefer `useAuthContext()` (see §4).
 7.  **Display Labels are the only source of labels**: data-value display text comes from `constants`. No `*_LABEL`
     map may be imported from `@/domains` by any UI tier.
 8.  **Feature Isolation (components)**: shared components belong in `src/ui/components`; feature **components** must
@@ -186,8 +186,18 @@ Use Case
 
 ### 5.1 全 app 失敗畫面的資料方向
 
-啟動期不可回復的失敗（如認證後端不可達）由 infra **以資料形式**放上 context（`initError`、`loading`），
-不自行 render UI。`AuthGate`（`features/app`，Surface）讀取這些欄位，決定顯示 `AppFallback` 或 children；
+啟動期不可回復的失敗（如認證後端不可達）由 infra **以資料形式**放上 auth context，不自行 render UI。
+資料分兩段，職責各在一層：
+
+- **infra 只給錯誤碼**：`initError: AuthInitErrorCode | null`（值域宣告於 `src/infra/contexts/AuthContext.ts`）
+  與 `loading`。infra 不含任何顯示文字。
+- **文案住 `constants`**：`ui/constants/app/startupFailure.ts` 的 `STARTUP_FAILURE_COPY` 是唯一的「錯誤碼 → 文字」
+  來源（依規則 7）。`StartupFailureCode` 刻意與 `AuthInitErrorCode` 同構而不共用型別——`constants` 不得 import
+  `@/infra`——兩邊的鍵由 `startupFailure.test.ts` 釘住。
+- **Controller 查表**：`features/app/hooks/useAuthGate.ts` 是 gate 唯一讀取 auth 的層（規則 6）。
+- **Surface render**：`AuthGate`（`features/app`）依查表結果 render `AppFallback`、等待，或放行 children。
+
+`AuthGate` 掛在路由樹之外，`/login`、`/access-denied` 等不在 `ProtectedRoute` 底下的路由同樣受同一個失敗畫面保護。
 `Toaster` 掛在 gate 外側，作為 system-level notification surface，載入期間仍可顯示通知。
 infra 不得 import `src/ui/**`（見 §2 規則 10）。
 

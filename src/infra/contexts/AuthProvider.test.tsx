@@ -1,4 +1,4 @@
-import { act, render, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import React from 'react';
 import type { User } from 'firebase/auth';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -185,30 +185,74 @@ describe('AuthProvider profile initialization', () => {
   });
 });
 
+/**
+ * Renders AuthProvider with a probe child and a `app` marker child, without ever
+ * firing the auth callback (the backend-unreachable case). Returns a ref holding
+ * the latest context value.
+ */
+const renderProviderWithProbe = async () => {
+  vi.mocked(onAuthStateChanged).mockImplementation(() => () => {});
+
+  const { AuthProvider } = await import('@/infra/contexts/AuthProvider');
+  const { AuthContext } = await import('@/infra/contexts/AuthContext');
+  type AuthContextType = import('@/infra/contexts/AuthContext').AuthContextType;
+
+  const probeRef: { current: AuthContextType | null } = { current: null };
+  const Probe = React.memo(function Probe() {
+    const value = React.useContext(AuthContext);
+    React.useEffect(() => {
+      probeRef.current = value;
+    }, [value]);
+    return null;
+  });
+
+  render(
+    React.createElement(
+      AuthProvider,
+      null,
+      React.createElement('div', null, 'app'),
+      React.createElement(Probe),
+    ),
+  );
+
+  return probeRef;
+};
+
 describe('AuthProvider initialization failure', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it('shows a visible fallback instead of waiting forever when auth never responds', async () => {
+  it('always mounts the provider and its children, never returning early', async () => {
     vi.useFakeTimers();
     try {
-      const { AuthProvider } = await import('@/infra/contexts/AuthProvider');
-      const { screen } = await import('@testing-library/react');
+      const probeRef = await renderProviderWithProbe();
 
+      // The provider is the only thing infra may decide here: children mount and
+      // the failure state travels as data. Rendering the failure screen is the
+      // UI's job (AuthGate).
+      expect(screen.getByText('app')).toBeInTheDocument();
+      expect(probeRef.current?.loading).toBe(true);
+      expect(probeRef.current?.initError).toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('surfaces an unreachable backend as an error code on the context', async () => {
+    vi.useFakeTimers();
+    try {
       // onAuthStateChanged registers a callback but never fires it, which is what
       // happens when the backend is unreachable (emulator down, no network).
-      render(React.createElement(AuthProvider, null, React.createElement('div', null, 'app')));
-
-      // Nothing rendered while loading: the app must not mount half-initialized.
-      expect(screen.queryByText('app')).toBeNull();
+      const probeRef = await renderProviderWithProbe();
 
       await act(async () => {
         vi.advanceTimersByTime(10_000);
       });
 
-      expect(screen.getByText('Cannot reach the backend')).toBeInTheDocument();
-      expect(screen.queryByText('app')).toBeNull();
+      expect(probeRef.current?.initError).toBe('auth-backend-unreachable');
+      // Children stay mounted so the UI gate can render the failure screen.
+      expect(screen.getByText('app')).toBeInTheDocument();
     } finally {
       vi.useRealTimers();
     }

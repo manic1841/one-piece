@@ -2,6 +2,7 @@ import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import { Toaster } from 'sonner';
 
 import { AuthProvider } from '@/infra/contexts/AuthProvider';
+import { AuthGate } from '@/ui/features/app/AuthGate';
 import { ConfirmDialogProvider } from '@/ui/features/app/confirm/ConfirmDialog';
 import Accounts from '@/ui/features/account/pages/AccountsPage';
 import AccountDetailPage from '@/ui/features/account/pages/AccountDetailPage';
@@ -27,7 +28,6 @@ import Transactions from '@/ui/features/transaction/pages/TransactionsPage';
 function App() {
   return (
     <AuthProvider>
-      <ConfirmDialogProvider>
       <Toaster
         toastOptions={{
           classNames: {
@@ -35,45 +35,48 @@ function App() {
           },
         }}
       />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/login" element={<Login />} />
-          <Route path="/access-denied" element={<AccessDenied />} />
-          <Route
-            path="/onboarding"
-            element={
-              <ProtectedRoute>
-                <Onboarding />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/"
-            element={
-              <ProtectedRoute requireHousehold>
-                <Layout />
-              </ProtectedRoute>
-            }
-          >
-            <Route index element={<Dashboard />} />
-            <Route path="close" element={<MonthlyClosePage />} />
-            <Route path="transactions" element={<Transactions />} />
-            <Route path="projects" element={<ProjectsPage />} />
-            <Route path="projects/:id" element={<ProjectDetailPage />} />
-            <Route path="accounts" element={<Accounts />} />
-            <Route path="accounts/:id" element={<AccountDetailPage />} />
-            <Route path="portfolios" element={<PortfoliosPage />} />
-            <Route path="portfolios/:id" element={<PortfolioDetailPage />} />
-            <Route path="reports" element={<Reports />} />
-            <Route path="retirement" element={<RetirementPlanList />} />
-            <Route path="retirement/:id" element={<RetirementPlanForm />} />
-            <Route path="debt" element={<DebtListPage />} />
-            <Route path="debt/:id" element={<DebtDetailPage />} />
-            <Route path="settings" element={<Settings />} />
-          </Route>
-        </Routes>
-      </BrowserRouter>
-      </ConfirmDialogProvider>
+      <AuthGate>
+        <ConfirmDialogProvider>
+          <BrowserRouter>
+            <Routes>
+              <Route path="/login" element={<Login />} />
+              <Route path="/access-denied" element={<AccessDenied />} />
+              <Route
+                path="/onboarding"
+                element={
+                  <ProtectedRoute>
+                    <Onboarding />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/"
+                element={
+                  <ProtectedRoute requireHousehold>
+                    <Layout />
+                  </ProtectedRoute>
+                }
+              >
+                <Route index element={<Dashboard />} />
+                <Route path="close" element={<MonthlyClosePage />} />
+                <Route path="transactions" element={<Transactions />} />
+                <Route path="projects" element={<ProjectsPage />} />
+                <Route path="projects/:id" element={<ProjectDetailPage />} />
+                <Route path="accounts" element={<Accounts />} />
+                <Route path="accounts/:id" element={<AccountDetailPage />} />
+                <Route path="portfolios" element={<PortfoliosPage />} />
+                <Route path="portfolios/:id" element={<PortfolioDetailPage />} />
+                <Route path="reports" element={<Reports />} />
+                <Route path="retirement" element={<RetirementPlanList />} />
+                <Route path="retirement/:id" element={<RetirementPlanForm />} />
+                <Route path="debt" element={<DebtListPage />} />
+                <Route path="debt/:id" element={<DebtDetailPage />} />
+                <Route path="settings" element={<Settings />} />
+              </Route>
+            </Routes>
+          </BrowserRouter>
+        </ConfirmDialogProvider>
+      </AuthGate>
     </AuthProvider>
   );
 }
