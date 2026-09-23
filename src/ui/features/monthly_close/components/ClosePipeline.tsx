@@ -59,11 +59,11 @@ export const ClosePipeline: React.FC<ClosePipelineProps> = ({
   const [isExpanded, setIsExpanded] = useState(false);
 
   return (
-    <div className="space-y-3">
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
+    <div className="space-y-0">
+      <div className="flex h-[58px] items-center justify-between gap-3 border-b border-border">
+        <div className="flex items-center gap-4">
           <StatusGlyph type={headerGlyphType(isClosed, isPaused)} label={statusText} />
-          <span className="text-xs font-semibold tracking-widest text-foreground">
+          <span className="font-mono text-xs tabular-nums text-accent-foreground">
             {positionText}
           </span>
         </div>
@@ -74,8 +74,8 @@ export const ClosePipeline: React.FC<ClosePipelineProps> = ({
           aria-controls="close-pipeline-stages"
           data-testid="close-pipeline-toggle"
           className={cn(
-            'inline-flex h-8 shrink-0 items-center gap-1.5 rounded border border-border/60 px-2.5 text-[10px] font-bold tracking-widest text-muted-foreground transition-colors',
-            'hover:bg-elevated/60 hover:text-foreground',
+            'inline-flex h-8 shrink-0 items-center gap-1.5 border-0 bg-transparent px-0 text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground transition-colors',
+            'hover:text-foreground',
             'focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring',
           )}
         >
@@ -94,7 +94,7 @@ export const ClosePipeline: React.FC<ClosePipelineProps> = ({
         <ol
           id="close-pipeline-stages"
           aria-label="Close workflow pipeline"
-          className="flex flex-col gap-1 border-t border-border/60 pt-3 md:flex-row md:flex-wrap md:items-start md:gap-x-2 md:gap-y-0"
+          className="grid grid-cols-1 gap-[7px] border-b border-border py-4 md:grid-cols-9 md:gap-[7px]"
         >
           {stages.map((stage, index) => {
             const status = stageStatus(stage, currentStageId, isClosed, isPaused);
@@ -108,14 +108,14 @@ export const ClosePipeline: React.FC<ClosePipelineProps> = ({
             const clickable = !disabled && !isViewing;
 
             return (
-              <li key={stage.stageId} className="md:flex md:min-w-0 md:shrink-0">
+              <li key={stage.stageId} className="flex min-w-0">
                 <button
                   type="button"
                   disabled={!clickable}
                   onClick={() => onSelectStage(stage.stageId)}
                   aria-current={status === 'CURRENT' ? 'step' : undefined}
                   className={cn(
-                    'group flex h-11 w-full items-center gap-2 rounded px-2 text-left text-xs transition-colors md:w-auto',
+                    'group flex h-11 w-full items-center gap-2 rounded px-2 text-left text-xs transition-colors',
                     'focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring',
                     isViewing
                       ? 'bg-elevated text-foreground'
@@ -126,7 +126,7 @@ export const ClosePipeline: React.FC<ClosePipelineProps> = ({
                     !clickable && 'cursor-not-allowed',
                   )}
                 >
-                  <StatusGlyph type={glyphTypeMap[status]} className="shrink-0" />
+                  <StatusGlyph type={glyphTypeMap[status]} label="" className="shrink-0" />
                   <span className="whitespace-nowrap font-semibold tracking-widest opacity-60">
                     {stepNumber(index)}
                   </span>

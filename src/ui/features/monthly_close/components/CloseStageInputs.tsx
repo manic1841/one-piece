@@ -139,7 +139,7 @@ export const CloseStageInputs: React.FC<CloseStageInputsProps> = ({
           </div>
         ))}
         {portfolios.length === 0 && (
-          <p className="text-xs text-muted-foreground">{MONTHLY_CLOSE_LABELS.NO_EVIDENCE}</p>
+          <p className="text-xs text-muted-foreground">{MONTHLY_CLOSE_LABELS.NO_DATA}</p>
         )}
       </div>
     );
@@ -169,7 +169,7 @@ export const CloseStageInputs: React.FC<CloseStageInputsProps> = ({
           </div>
         ))}
         {debtAccounts.length === 0 && (
-          <p className="text-xs text-muted-foreground">{MONTHLY_CLOSE_LABELS.NO_EVIDENCE}</p>
+          <p className="text-xs text-muted-foreground">{MONTHLY_CLOSE_LABELS.NO_DATA}</p>
         )}
       </div>
     );

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 
 import { ClosePipeline } from '@/ui/features/monthly_close/components/ClosePipeline';
 import { YearMonthPicker } from '@/ui/components/YearMonthPicker';
+import { PeriodBadge } from '@/ui/components/PeriodBadge';
 import { Button } from '@/ui/components/ui/button';
 import { Card, CardContent } from '@/ui/components/ui/card';
 import { StatusGlyph } from '@/ui/components/StatusGlyph';
@@ -260,7 +261,7 @@ export const MonthlyClosePage: React.FC<MonthlyClosePageProps> = ({ householdId:
       return null;
     }
     return (
-      <div>
+      <div className="border-t border-border pt-4">
         <p className="mb-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
           {MONTHLY_CLOSE_LABELS.INPUTS_LABEL}
         </p>
@@ -310,34 +311,43 @@ export const MonthlyClosePage: React.FC<MonthlyClosePageProps> = ({ householdId:
         </Card>
       ) : (
         <>
-          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-            <div className="space-y-0.5">
-              <h1 className="text-2xl font-bold tracking-tight text-foreground">
+          <div className="flex flex-col gap-4 border-b border-border pb-7 md:flex-row md:items-end md:justify-between">
+            <div className="space-y-1">
+              <p className="text-[11px] uppercase tracking-[0.12em] text-muted-foreground">
                 {MONTHLY_CLOSE_LABELS.PAGE_TITLE}
-              </h1>
-              <p className="text-xs font-medium text-muted-foreground">
-                {MONTHLY_CLOSE_LABELS.PAGE_SUBTITLE}
               </p>
+              <h1 className="text-[30px] font-medium leading-tight text-foreground">
+                {selectedYearMonth.slice(0, 4)} 年 {Number(selectedYearMonth.slice(5, 7))} 月
+              </h1>
             </div>
             <div className="flex items-center gap-3">
-              <YearMonthPicker
-                mode="year-month"
-                year={selectedYearMonth.slice(0, 4)}
-                month={selectedYearMonth.slice(5, 7)}
-                onYearChange={(y) =>
-                  selectYearMonth(`${y}-${selectedYearMonth.slice(5, 7)}`)
-                }
-                onMonthChange={(m) =>
-                  selectYearMonth(`${selectedYearMonth.slice(0, 4)}-${m.padStart(2, '0')}`)
-                }
-              />
-              <Button
-                onClick={() => void start().then(() => void refreshStageEvidence())}
-                disabled={isStarting || pageVM.isStarted || !selectedYearMonth}
-                className="active:scale-[0.97]"
-              >
-                {isStarting ? MONTHLY_CLOSE_LABELS.LOADING : MONTHLY_CLOSE_LABELS.START}
-              </Button>
+              {pageVM.isStarted ? (
+                <PeriodBadge
+                  label={MONTHLY_CLOSE_LABELS.PERIOD_LABEL}
+                  period={selectedYearMonth}
+                />
+              ) : (
+                <>
+                  <YearMonthPicker
+                    mode="year-month"
+                    year={selectedYearMonth.slice(0, 4)}
+                    month={selectedYearMonth.slice(5, 7)}
+                    onYearChange={(y) =>
+                      selectYearMonth(`${y}-${selectedYearMonth.slice(5, 7)}`)
+                    }
+                    onMonthChange={(m) =>
+                      selectYearMonth(`${selectedYearMonth.slice(0, 4)}-${m.padStart(2, '0')}`)
+                    }
+                  />
+                  <Button
+                    onClick={() => void start().then(() => void refreshStageEvidence())}
+                    disabled={isStarting || pageVM.isStarted || !selectedYearMonth}
+                    className="active:scale-[0.97]"
+                  >
+                    {isStarting ? MONTHLY_CLOSE_LABELS.LOADING : MONTHLY_CLOSE_LABELS.START}
+                  </Button>
+                </>
+              )}
             </div>
           </div>
 
@@ -391,7 +401,6 @@ export const MonthlyClosePage: React.FC<MonthlyClosePageProps> = ({ householdId:
                   stage={displayedStage}
                   stepText={displayedStepText ?? positionText}
                   isReviewing={isReviewing}
-                  statusText={pageVM.statusText}
                   progressText={positionText}
                   confirming={confirmingStageId === displayedStage.stageId}
                   isClosed={pageVM.isClosed}

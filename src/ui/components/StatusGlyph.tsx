@@ -45,7 +45,9 @@ export function StatusGlyph({ type, label, className }: StatusGlyphProps) {
   return (
     <span className={cn('inline-flex items-center gap-1.5 text-xs font-medium', className)}>
       <span className={cn('text-[10px] leading-none', colorMap[type])}>{glyphMap[type]}</span>
-      <span className="text-muted-foreground">{label ?? defaultLabelMap[type]}</span>
+      {(label ?? defaultLabelMap[type]) !== '' && (
+        <span className="text-muted-foreground">{label ?? defaultLabelMap[type]}</span>
+      )}
     </span>
   );
 }

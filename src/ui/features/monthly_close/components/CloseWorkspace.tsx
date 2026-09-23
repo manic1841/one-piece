@@ -1,7 +1,6 @@
 import React from 'react';
 
 import { Button } from '@/ui/components/ui/button';
-import { StatusGlyph } from '@/ui/components/StatusGlyph';
 import { MONTHLY_CLOSE_LABELS } from '@/ui/constants/monthlyClose';
 
 import type { CloseStageItemVM } from '../viewmodels/monthlyClose.vm';
@@ -10,7 +9,6 @@ interface CloseWorkspaceProps {
   stage: CloseStageItemVM;
   stepText: string;
   isReviewing: boolean;
-  statusText: string;
   progressText: string;
   confirming: boolean;
   isClosed: boolean;
@@ -20,21 +18,10 @@ interface CloseWorkspaceProps {
   onBackToCurrent: () => void;
 }
 
-const headerGlyph = (isReviewing: boolean, isCompleted: boolean) =>
-  isReviewing ? 'review' : isCompleted ? 'verified' : 'active';
-
-const headerLabel = (isReviewing: boolean, isCompleted: boolean) =>
-  isReviewing
-    ? MONTHLY_CLOSE_LABELS.REVIEWING
-    : isCompleted
-      ? MONTHLY_CLOSE_LABELS.RECONFIRM
-      : undefined;
-
 export const CloseWorkspace: React.FC<CloseWorkspaceProps> = ({
   stage,
   stepText,
   isReviewing,
-  statusText,
   progressText,
   confirming,
   isClosed,
@@ -50,16 +37,19 @@ export const CloseWorkspace: React.FC<CloseWorkspaceProps> = ({
       : MONTHLY_CLOSE_LABELS.CONTINUE;
 
   return (
-    <section className="space-y-4 border-t border-border/60 pt-5">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
-          <StatusGlyph
-            type={headerGlyph(isReviewing, stage.isCompleted)}
-            label={headerLabel(isReviewing, stage.isCompleted) ?? statusText}
-          />
-          <h2 className="text-base font-semibold text-foreground">{stepText}</h2>
+    <section className="space-y-4 pt-8">
+      <div className="flex flex-wrap items-end justify-between gap-3 border-b border-border pb-4">
+        <div className="space-y-1">
+          <p className="text-[11px] uppercase tracking-[0.12em] text-muted-foreground">
+            當前步驟
+          </p>
+          <div className="flex items-center gap-2">
+            <h2 className="text-[22px] font-medium leading-tight text-foreground">{stepText}</h2>
+          </div>
         </div>
-        <span className="text-xs tracking-widest text-muted-foreground">{progressText}</span>
+        <span className="font-mono text-[13px] tabular-nums text-muted-foreground">
+          {progressText}
+        </span>
       </div>
 
       {stage.confirmedAtText && (
@@ -77,17 +67,22 @@ export const CloseWorkspace: React.FC<CloseWorkspaceProps> = ({
       </div>
 
       {!isClosed && (
-        <div className="flex items-center justify-end gap-3 border-t border-border/60 pt-4">
+        <div className="flex items-center justify-end gap-3 border-t border-border pt-[26px]">
           <Button
             size="sm"
             disabled={confirming}
             onClick={onConfirm}
-            className="active:scale-[0.97]"
+            className="h-[38px] px-[18px] active:scale-[0.97]"
           >
             {actionLabel}
           </Button>
           {isReviewing && (
-            <Button size="sm" variant="ghost" onClick={onBackToCurrent}>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={onBackToCurrent}
+              className="h-[38px] px-4"
+            >
               {MONTHLY_CLOSE_LABELS.BACK_TO_CURRENT}
             </Button>
           )}

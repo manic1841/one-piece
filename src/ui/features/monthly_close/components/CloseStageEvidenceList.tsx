@@ -13,7 +13,7 @@ interface CloseStageEvidenceListProps {
 
 export const CloseStageEvidenceList: React.FC<CloseStageEvidenceListProps> = ({ evidence }) => {
   if (evidence.kind === 'NONE') {
-    return <p className="text-xs text-muted-foreground">{MONTHLY_CLOSE_LABELS.NO_EVIDENCE}</p>;
+    return <p className="text-xs text-muted-foreground">{MONTHLY_CLOSE_LABELS.NO_DATA}</p>;
   }
 
   return (
