@@ -121,7 +121,7 @@ Final Net Worth 是投影期末（life expectancy 年）的淨資產，回答「
 啟用表示一個帳戶、債務或退休計畫仍參與目前的業務操作；停用表示保留歷史意義但不再作為目前操作的預設對象。
 
 ## Pixel Pet
-Pixel Pet 是主導航的唯一所有者:桌機經右下角固定按鈕展開 Navigator,行動版經 Navigator sheet 導航,header 不含主導航。Dashboard 是 home context,不是 Navigator 項目;Ctrl/Cmd+K 指令面板是 Quick Access,條目涵蓋全部路由,與 Navigator 清單互相獨立。寵物反應是最近財務期間狀態的資料驅動顯示,不是 assistant。
+Pixel Pet 是主導航的唯一所有者:桌機經右下角固定按鈕展開 Navigator,行動版經 Navigator sheet 導航,header 不含主導航。Navigator 清單為 8 項(`NAV_ITEMS` 扣除 Dashboard 與 Settings);Dashboard 是 home context、由 header 品牌 ONE PIECE 承擔,Settings 由 Avatar menu 承擔,兩者皆非 Navigator 項目。Ctrl/Cmd+K 指令面板是 Quick Access,涵蓋含 Dashboard 與 Settings 在內的全部 10 條路由,與 Navigator 清單互相獨立。寵物反應是最近財務期間狀態的資料驅動顯示,不是 assistant。
 
 ## Display Label
 顯示標籤是由 constants 層單一來源提供、對應資料值（如 IntentType、LedgerCode、帳戶類別）的顯示文字。UI 只能經由標籤 API 取得，不得在元件內硬編碼資料標籤。避免詞：Ui Label、寫死文字。

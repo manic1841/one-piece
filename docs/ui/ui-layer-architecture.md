@@ -192,8 +192,10 @@ infra 不得 import `src/ui/**`（見 §2 規則 10）。
 主導航在所有斷點由 Pixel Pet 獨家擁有(見 [ADR-0055](../adr/0055-pixel-pet-single-navigator-ownership.md))。
 行動 bottom nav 與 More sheet 已收編;行動版經 Pixel Pet 的 Navigator sheet 導航。
 退場以「Pet + sheet 覆蓋 bottom nav 全部目的地與 More sheet 功能、不留斷點」為條件,已達成。
-header 不含主導航;Ctrl/Cmd+K 指令面板為 Quick Access,條目涵蓋全部路由,與
-Navigator 清單互相獨立。
+header 不含主導航;Navigator 清單為 **8 項**——`NAV_ITEMS` 扣除 Dashboard 與
+Settings,Dashboard 由 header 品牌承擔、Settings 由 Avatar menu 承擔;Ctrl/Cmd+K 指
+令面板為 Quick Access,涵蓋含 Dashboard 與 Settings 在內的全部 **10 條**路由,與
+Navigator 清單互相獨立(見 [ADR-0055](../adr/0055-pixel-pet-single-navigator-ownership.md))。
 
 四檔工作流視窗（Monthly Close、Portfolio Detail、Debt、Header）的視覺權重與操作
 位置契約見 [ADR-0056](../adr/0056-workflow-first-surfaces.md):pipeline 為頁面主要層
@@ -238,7 +240,7 @@ Global Header(sticky 系統狀態列)只負責:
 ### 768px(平板直式)
 
 - 固定側欄出現,寬 224px;內容區起點與側欄右緣對齊,無遮蓋、無異常留白。
-- 側欄導航項目全部可見可點,無換行截斷;同一清單由 Pixel Pet Navigator 共用。
+- 主導航由 Pixel Pet Navigator 承擔,以 8 個目的地呈現(`NAV_ITEMS` 扣除 Dashboard 與 Settings),完整可點、無換行截斷。
 - 內容區無水平捲軸;交易列表日期篩選列允許折行,所有控制項完整可見。
 - 頂部列與底部導航隱藏。
 

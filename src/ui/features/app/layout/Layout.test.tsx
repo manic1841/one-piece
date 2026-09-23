@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import Layout from './Layout';
 import { ConfirmDialogProvider } from '@/ui/features/app/confirm/ConfirmDialog';
-import { NAV_ITEMS } from './navigation';
+import { NAV_ITEMS, NAVIGATOR_ITEMS } from './navigation';
 
 class ResizeObserverStub {
   observe() {}
@@ -219,6 +219,9 @@ describe('Layout system status bar', () => {
 
     const optionCount = screen.getAllByRole('option').length;
     expect(optionCount).toBe(NAV_ITEMS.length);
+    expect(optionCount).toBe(10);
+    expect(screen.getByRole('option', { name: /dashboard/i })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: /settings/i })).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('option', { name: /retirement/i }));
 
@@ -309,7 +312,7 @@ describe('Layout pixel pet and navigator', () => {
     expect(screen.getByTestId('pet-face')).toBeInTheDocument();
   });
 
-  it('opens the navigator as a floating panel with all ten destinations in a 2x5 grid', () => {
+  it('opens the navigator as a floating panel listing the eight navigator destinations', () => {
     renderLayout();
 
     const pet = screen.getByRole('button', { name: /pixel pet/i });
@@ -324,10 +327,12 @@ describe('Layout pixel pet and navigator', () => {
     expect(grid.className).toContain('md:grid-cols-4');
 
     const items = Array.from(grid.querySelectorAll('a'));
-    expect(items).toHaveLength(10);
+    expect(items).toHaveLength(8);
     expect(items.map((item) => item.getAttribute('href'))).toEqual(
-      NAV_ITEMS.map((item) => item.to),
+      NAVIGATOR_ITEMS.map((item) => item.to),
     );
+    expect(items.map((item) => item.getAttribute('href'))).not.toContain('/');
+    expect(items.map((item) => item.getAttribute('href'))).not.toContain('/settings');
   });
 
   it('keeps the navigator open after the pointer leaves the pet, and closes it on outside click', () => {
@@ -406,6 +411,12 @@ describe('Layout pixel pet and navigator', () => {
     fireEvent.click(pet);
 
     const sheet = await screen.findByTestId('navigator-sheet');
+
+    const sheetItems = Array.from(sheet.querySelectorAll('a'));
+    expect(sheetItems).toHaveLength(8);
+    expect(sheetItems.map((item) => item.getAttribute('href'))).toEqual(
+      NAVIGATOR_ITEMS.map((item) => item.to),
+    );
 
     const firstLink = sheet.querySelector('a');
     expect(firstLink).not.toBeNull();
