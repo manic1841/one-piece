@@ -1,7 +1,7 @@
 /**
  * Data table 樣式契約（單一真相來源）。
  *
- * 值對應 `docs/design-system.md` 的 `data-table` 段與 ADR-0061：
+ * 值對應 `docs/ui/design-system.md` 的 `data-table` 段與 ADR-0061：
  * table-fixed + border-collapse、header 10px/500/uppercase/0.08em、
  * 資料列 54px、cell padding 9px 12px、數字欄右對齊 mono tabular-nums。
  *

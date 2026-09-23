@@ -13,7 +13,7 @@ Monthly Close 確認冪等產生（ADR-0012 recomputable cache、ADR-0052 單段
 立）；Debt 列表列內有常駐 Edit（emoji）與合併「停用/刪除」鈕，而列表列已可點入
 詳情；Header 有獨立 Settings 圖示鈕，與 Avatar 下拉（僅 Logout）並存。
 
-workflow-first surfaces 的方向（對齊 `docs/design-system.md` 的表面規範）：pipeline
+workflow-first surfaces 的方向（對齊 `docs/ui/design-system.md` 的表面規範）：pipeline
 是頁面的主要層級，工作區集中，破壞性與低頻操作移到詳情。本 ADR 將四個視窗的收斂
 結果定為契約。
 

@@ -1,9 +1,10 @@
-# 設計系統：Apple Design 重設計規劃
+# 設計系統 (Design System)
 
-> 分支：`feature/apple-design`
 > 依據：Apple《Designing Fluid Interfaces》(WWDC 2018)、《The Details of UI Typography》(WWDC 2020)、《Principles of Great Design》(WWDC 2026) 的 web 平台轉譯。
+>
+> **邊界宣告**：本文件管**設計 token 與元件表面**（色彩、材質、動態、字體排印、元件尺寸與狀態契約）。**頁面層級的佈局、間距、資料密度與互動標準**屬 [`visual-standards.md`](visual-standards.md)，兩份文件權威不重疊。
 
-本文件是 `feature/apple-design` 分支的施工圖與後續設計的唯一真相來源。實作以本文件為準；若與 `docs/ui-layer-architecture.md` 的分層規則衝突，以分層規則為準——本次重設計只動呈現層，不改變資料流、ViewModel/Hook 職責邊界與 display label API。
+本文件是設計 token 與元件表面契約的唯一真相來源。實作以本文件為準；若與 `ui-layer-architecture.md` 的分層規則衝突，以分層規則為準——呈現層契約不涉入資料流、ViewModel/Hook 職責邊界與 display label API。
 
 ---
 

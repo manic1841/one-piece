@@ -452,7 +452,7 @@ $1,250,000
 
 # 11. Tables
 
-> 本節已整合進正式文件 `docs/design-system.md` 的 `data-table` 段（權威來源）。Data Table 的結構、header、對齊、列高（54px）、hover 契約、colgroup、mobile 表示法一律以該段為準，本節不再另立標準。
+> 本節已整合進正式文件 `docs/ui/design-system.md` 的 `data-table` 段（權威來源）。Data Table 的結構、header、對齊、列高（54px）、hover 契約、colgroup、mobile 表示法一律以該段為準，本節不再另立標準。
 
 ---
 

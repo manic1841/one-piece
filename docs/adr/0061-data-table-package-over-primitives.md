@@ -2,7 +2,7 @@
 
 **日期：** 2026-09-23
 **狀態：** 已實作
-**對應 spec：** `docs/design-system.md`（`data-table` 段）
+**對應 spec：** `docs/ui/design-system.md`（`data-table` 段）
 
 ## Context
 
@@ -29,7 +29,7 @@ feature 內以 module-local class 常數手寫原生 `<table>`。後者才是已
 1. **`ui/table.tsx` 保留為 structural primitive 層，不刪除**。它與新套件不是同層
    競品：套件的 parts 就是由這組 primitive 組成。刪掉只會讓套件自己重寫一份或被迫
    再輸出，且會立刻破壞尚未遷移的 16 個消費端與 3 個原生 `<table>`——等於強制一次
-   全改，與「逐一遷移」的節奏衝突。分層遵循 `ui-layer-architecture.md` 規則 6
+   全改，與「逐一遷移」的節奏衝突。分層遵循 `docs/ui/ui-layer-architecture.md` 規則 6
    （先擴充既有共用元件）。唯一改動 primitive 的地方：**移除 `TableRow` 預設
    hover**。
 2. **樣式與契約層集中在 `src/ui/components/data-table/`**（比照 `sortable/`，
@@ -50,7 +50,7 @@ feature 內以 module-local class 常數手寫原生 `<table>`。後者才是已
 6. **mobile grouped card 共用元件**。桌表與行動卡是同一份資料的兩種表示，欄位順序
    必須一致，這是唯一能保證的方法。
 7. **row height 以 54px 為準**。既有文件中的 48px 為無量測依據的概述句，已修正；
-   列高標準不另立，改指向 `design-system.md` 的 `data-table` 段。
+   列高標準不另立，改指向 `docs/ui/design-system.md` 的 `data-table` 段。
 8. **垂直內距納入列高預算**：`h-[54px]` 只是最小列高，而列內最高的內容是 34px
    數字輸入框，所以 cell 垂直內距定為 9px（34 + 9×2 + 1px
    分隔線 = 53px，仍由最小列高補滿 54px）。先前候選的 13px 會讓輸入列實測撐到
@@ -82,4 +82,4 @@ feature 內以 module-local class 常數手寫原生 `<table>`。後者才是已
   `interactive`）。
 - 修改 `src/ui/features/monthly_close/components/CloseAccountBalanceInputs.tsx`、
   `SecuritiesAccountRow.tsx`（改由套件驅動）。
-- cell 垂直內距 13px → 9px（決策 8），`design-system.md` 同步。
+- cell 垂直內距 13px → 9px（決策 8），`docs/ui/design-system.md` 同步。

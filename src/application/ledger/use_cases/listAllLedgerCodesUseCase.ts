@@ -25,7 +25,7 @@ export interface ListAllLedgerCodesRequest {
  * the LEDGER_CODES constant plus household-defined custom codes from Firestore.
  * Labels come from the injected resolver (custom codes fall back to it only
  * when they carry no stored label), keeping this module free of UI wording
- * per docs/ui-labeling-guideline.md.
+ * per docs/ui/ui-labeling-guideline.md.
  */
 export class ListAllLedgerCodesUseCase {
   async execute(request: ListAllLedgerCodesRequest): Promise<LedgerCodeEntry[]> {

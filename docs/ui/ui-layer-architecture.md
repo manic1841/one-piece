@@ -120,19 +120,19 @@ Use Case
 
 ## 6. RWD 斷點契約
 
-斷點決策見 [ADR-0044](adr/0044-rwd-breakpoint-contract.md)。`md`(768px)是行動殼
+斷點決策見 [ADR-0044](../adr/0044-rwd-breakpoint-contract.md)。`md`(768px)是行動殼
 與桌面殼的唯一切換點;平板沿用桌面殼,側欄 768-1023px 為 224px,1024px 起恢復
 256px。
 
 ## 6.1 導航所有權契約
 
-主導航在所有斷點由 Pixel Pet 獨家擁有(見 [ADR-0055](adr/0055-pixel-pet-single-navigator-ownership.md))。
+主導航在所有斷點由 Pixel Pet 獨家擁有(見 [ADR-0055](../adr/0055-pixel-pet-single-navigator-ownership.md))。
 行動 bottom nav 與 More sheet 已收編;行動版經 Pixel Pet 的 Navigator sheet 導航。
 header 不含主導航;Ctrl/Cmd+K 指令面板為 Quick Access,條目涵蓋全部路由,與
 Navigator 的 8 項清單獨立。
 
 四檔工作流視窗（Monthly Close、Portfolio Detail、Debt、Header）的視覺權重與操作
-位置契約見 [ADR-0056](adr/0056-workflow-first-surfaces.md):pipeline 為頁面主要層
+位置契約見 [ADR-0056](../adr/0056-workflow-first-surfaces.md):pipeline 為頁面主要層
 級,mobile 步驟列去 Card,確認動作顯示 `CONTINUE →`;Portfolio Detail 無快照管理入
 口;Debt 列表列無常駐 Edit / Delete,動作在詳情 header;Header 無獨立 Settings 鈕
 ,Settings 在 Avatar menu。

@@ -42,7 +42,7 @@ TableFooter.displayName = 'TableFooter';
 export interface TableRowProps extends React.HTMLAttributes<HTMLTableRowElement> {
   /**
    * 明示整列可點擊：只有這種列會有 hover 底色與 pointer cursor。
-   * 不可點擊的列不得用 hover 假裝可點擊（ADR-0061、design-system.md 的 hover 契約）。
+   * 不可點擊的列不得用 hover 假裝可點擊（ADR-0061、docs/ui/design-system.md 的 hover 契約）。
    */
   interactive?: boolean;
 }

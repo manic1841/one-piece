@@ -11,7 +11,7 @@
 | --- | --- |
 | 原型（prototype HTML） | 表格欄位明確分 `text-left` / `number`（`text-align:right` + mono）；數字欄位標籤 `.number-label` 右對齊；文字欄位保持左對齊 |
 | 現行實作 | 大致已遵循「數字右對齊 + font-mono + tabular-nums」，但缺少**數字欄位標籤右對齊**，且個別欄位寬度/對齊不一致 |
-| 全站標準 `docs/design-system.md`（`data-table` 段） | 數字右對齊、monospace、不顯示無意義 `.00`；表格 numeric right aligned、header muted、row height 54px、subtle divider |
+| 全站標準 `docs/ui/design-system.md`（`data-table` 段） | 數字右對齊、monospace、不顯示無意義 `.00`；表格 numeric right aligned、header muted、row height 54px、subtle divider |
 
 ## 1. 原型對齊規格（逐區塊）
 

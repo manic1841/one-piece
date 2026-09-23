@@ -1,7 +1,7 @@
 # Data Table 全域套件 — 規格差異與對齊紀錄
 
 > 用途：盤點 data table 規格的三個來源與實際實作之間的差異，作為建立全域 data table 套件的依據。
-> 狀態：**已實作（2026-09-23）**。套件與決策已折進正式文件（`docs/design-system.md` 的 `data-table` 段、ADR-0061）；本檔保留作為對齊過程紀錄，內容已無正式文件未涵蓋的事實。
+> 狀態：**已實作（2026-09-23）**。套件與決策已折進正式文件（`docs/ui/design-system.md` 的 `data-table` 段、ADR-0061）；本檔保留作為對齊過程紀錄，內容已無正式文件未涵蓋的事實。
 > 決策紀錄見第 5 節。
 
 ---
@@ -10,7 +10,7 @@
 
 | 來源 | 性質 | 表格相關內容 |
 | --- | --- | --- |
-| `docs/design-system.md` → `data-table` 段 | 正式文件（權威） | 全站表格共通原則，2026-09-23 定案 |
+| `docs/ui/design-system.md` → `data-table` 段 | 正式文件（權威） | 全站表格共通原則，2026-09-23 定案 |
 | `docs/new-design/visual-consistency.md` §11 Tables | staging | header muted、row ~48px、numeric right aligned、mono、subtle divider、無 zebra、hover 微弱 feedback、row 可點擊 |
 | `docs/new-design/one-piece-engineering-spec-v1/08_Component_Design.md` | staging | component inventory #3 Data Table（subtle dividers, 48px rows, numeric right alignment, clickable rows） |
 | `docs/new-design/monthly-close-account-step-prototype.html` | staging（原型） | 實際 CSS 值：`table-layout:fixed`、th 10px/500/.08em/uppercase/`padding:0 12px 9px`/`border-bottom`/`vertical-align:bottom`、td `13px 12px`/`height:54px`/`vertical-align:middle`、首尾欄 padding 歸零、`.number` 右對齊 + mono + tabular-nums、input 150×34、證券表 18/30/17.3/17.3/17.3%、**無列 hover 規則** |
@@ -98,11 +98,11 @@
 | 反問 1 | `ui/table.tsx` **保留為結構 primitive 層**（不刪除）；套件為其上的樣式與契約層，並再輸出 primitive。唯一改動：移除 `TableRow` 預設 hover |
 | 反問 2 | 文件整合**先做表格範圍**（只動 `visual-consistency.md` §11 與 `08_Component_Design.md` 的 Data Table 相關句），不做 staging 全量整合；完成後才開發套件 |
 
-### Hover 契約（已寫入 `docs/design-system.md`）
+### Hover 契約（已寫入 `docs/ui/design-system.md`）
 
 > **僅整列可點擊的列**提供 `hover:bg-muted/50`。hover 底色是「這列可點擊」的 subtle feedback 契約，不是表格的預設裝飾——不可點擊的列（純資料列、編輯中的輸入列、展開中的子列）一律不得有 hover 底色。列內可互動元素（ghost icon action、grip handle）的 hover 由該元素自身承擔，不擴散成整列底色。
 
-### Pointer event priority（已寫入 `docs/design-system.md`）
+### Pointer event priority（已寫入 `docs/ui/design-system.md`）
 
 互動列同時具備「整列導覽」與「列內 grip 拖曳」兩種輸入時，優先序必須明文：
 
@@ -132,7 +132,7 @@
 
 ### 6.1 文件
 
-- `docs/design-system.md`：`data-table` 段補「通則」與「Pointer event priority」；Hover 條目改為「僅整列可點擊的列」。
+- `docs/ui/design-system.md`：`data-table` 段補「通則」與「Pointer event priority」；Hover 條目改為「僅整列可點擊的列」。
 - `docs/adr/0061-data-table-package-over-primitives.md`：新增（分層決策、API 形狀、54px、pointer priority）。
 - `docs/new-design/visual-consistency.md` §11：內容移除，改為指向正式文件（保留節號以免破壞其他 staging 文件的 §12/§13 交叉引用）。
 - `docs/new-design/one-piece-engineering-spec-v1/08_Component_Design.md`：Data Table 48px → 54px。
@@ -161,8 +161,8 @@
 
 ## 7. 相關文件
 
-- `docs/design-system.md`（`data-table` 段，權威）
-- `docs/ui-layer-architecture.md`（共用元件歸屬規則）
+- `docs/ui/design-system.md`（`data-table` 段，權威）
+- `docs/ui/ui-layer-architecture.md`（共用元件歸屬規則）
 - `docs/adr/0059-dnd-kit-shared-sortable.md`（共用模式放 `src/ui/components/<name>/` 的先例）
 - `docs/new-design/monthly-close-account-step-alignment.md`（首個合格實作的逐輪對齊紀錄）
 - `docs/new-design/monthly-close-account-step-prototype.html`（原型 CSS 值來源）
