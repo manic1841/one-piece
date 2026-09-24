@@ -256,6 +256,11 @@ const onSubmit = form.handleSubmit((vm) => {
 
 - **`mode: 'onTouched'`**: a field reports its error after first blur, then updates on change; the form does not
   interrupt while the user is typing a field they have not left. Forms do not pick their own mode.
+- **RHF Owns Editable State Only**: RHF owns the user-editable field state. **Derived and computed state stays in the
+  Controller hook, outside RHF** — calculator output (e.g. a derived monthly payment), create/edit-mode synchronization,
+  cross-field `superRefine` in the schema (a field valid alone + another valid alone does not mean the pair is valid),
+  tab/navigation state, previews and projections. Do not push derived values into `watch()` + `setValue()` just to keep
+  them in the form; the form holds what the user typed, the hook derives the rest. UI components never know these rules.
 - **Values are strings at the field boundary**: inputs are native and RHF-free, so every field value is a string; the
   Form VM schema coerces to `number`/`Date` at the schema boundary. Do not blanket-replace `z.number()` with
   `z.coerce.number()` — empty input must mean "missing", not `0`; use the named coercion helpers where the empty/NaN
