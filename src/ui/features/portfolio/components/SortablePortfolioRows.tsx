@@ -3,7 +3,7 @@ import React from 'react';
 import { TableCell, TableRow } from '@/ui/components/ui/table';
 import CompactRow from '@/ui/components/CompactRow';
 import { GripHandle } from '@/ui/components/sortable/SortableListScope';
-import { useSortableRow } from '@/ui/components/sortable/useSortableList';
+import { useSortableRow } from '@/ui/hooks/useSortableList';
 import { formatPercentage } from '@/ui/utils';
 import { cn } from '@/ui/utils/cn';
 

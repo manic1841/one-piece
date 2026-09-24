@@ -15,7 +15,7 @@ import {
   TableRow,
 } from '@/ui/components/ui/table';
 import { SortableListScope, GripHandle } from '@/ui/components/sortable/SortableListScope';
-import { useSortableRow } from '@/ui/components/sortable/useSortableList';
+import { useSortableRow } from '@/ui/hooks/useSortableList';
 import { PageHeader } from '@/ui/components/PageHeader';
 import { formatCurrency } from '@/ui/utils';
 import { cn } from '@/ui/utils/cn';

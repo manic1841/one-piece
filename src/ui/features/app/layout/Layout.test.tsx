@@ -49,7 +49,7 @@ vi.mock('@/application/monthly_close/use_cases/financialPeriodAccessUseCases', (
   }),
 }));
 
-vi.mock('./usePetReaction', () => ({
+vi.mock('../hooks/usePetReaction', () => ({
   usePetReaction: () => 'idle',
 }));
 

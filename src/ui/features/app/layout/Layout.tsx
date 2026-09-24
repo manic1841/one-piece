@@ -19,8 +19,8 @@ import CommandPalette from './CommandPalette';
 import PixelPet from './PixelPet';
 import SiteFooter from './SiteFooter';
 import { APP_BRAND } from './brand';
-import { useHouseholdGuard } from './useHouseholdGuard';
-import { usePetReaction } from './usePetReaction';
+import { useHouseholdGuard } from '../hooks/useHouseholdGuard';
+import { usePetReaction } from '../hooks/usePetReaction';
 
 const Layout: React.FC = () => {
   const { userProfile, logout } = useAuthState();

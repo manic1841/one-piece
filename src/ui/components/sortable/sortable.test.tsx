@@ -1,7 +1,7 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
-import { reorderFromDragEnd } from './useSortableList';
+import { reorderFromDragEnd } from '@/ui/hooks/useSortableList';
 import { GripHandle } from './SortableListScope';
 
 describe('reorderFromDragEnd', () => {

@@ -17,7 +17,7 @@ import {
 } from '@/ui/components/ui/table';
 import { PageHeader } from '@/ui/components/PageHeader';
 import { GripHandle, SortableListScope } from '@/ui/components/sortable/SortableListScope';
-import { useSortableRow } from '@/ui/components/sortable/useSortableList';
+import { useSortableRow } from '@/ui/hooks/useSortableList';
 import ProjectForm from '@/ui/features/project/components/ProjectForm';
 import { useProjectPage } from '@/ui/features/project/hooks/useProjectPage';
 import { useProjectQueries } from '@/ui/features/project/hooks/useProjects';

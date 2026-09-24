@@ -6,7 +6,7 @@ import { GripVertical } from 'lucide-react';
 
 import { cn } from '@/ui/utils/cn';
 
-import { reorderFromDragEnd, useSortableListSensors } from './useSortableList';
+import { reorderFromDragEnd, useSortableListSensors } from '@/ui/hooks/useSortableList';
 
 interface SortableListScopeProps<T extends { id: string }> {
   items: T[];
