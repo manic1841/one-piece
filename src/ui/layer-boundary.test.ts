@@ -86,7 +86,6 @@ const FEATURE_TIER_OFFSET = 2;
 const SURFACE_ALLOWLIST = new Set([
   // Still direct-imports `firebase/firestore`; removing that is issue #179's scope, not #177's.
   'src/ui/features/auth/pages/LoginPage.tsx',
-  'src/ui/features/monthly_close/pages/MonthlyClosePage.tsx',
   'src/ui/features/transaction/components/form/userSelectOptions.ts',
 ]);
 

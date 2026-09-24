@@ -2,6 +2,8 @@ import { z } from 'zod';
 
 import { type CloseStageId, type FinancialPeriod } from '@/domains/financial_period/schemas';
 
+export type { CloseStageId };
+
 export type {
   DebtRepaymentInput,
   FinancingInput,
@@ -48,3 +50,47 @@ export const monthlyCloseInputSchema = z.object({
 });
 
 export type MonthlyCloseInput = z.infer<typeof monthlyCloseInputSchema>;
+
+export interface DisplayedStageTarget {
+  isClosed: boolean;
+  isPaused: boolean;
+  reviewSourceStageId: CloseStageId | null;
+  viewingStageId: CloseStageId | null;
+  currentStageId: CloseStageId | null;
+}
+
+const padStep = (value: number): string => value.toString().padStart(2, '0');
+
+/** The stage the workspace should show: the reviewed one when paused, else the viewed or current one. */
+export const resolveDisplayedStageId = ({
+  isClosed,
+  isPaused,
+  reviewSourceStageId,
+  viewingStageId,
+  currentStageId,
+}: DisplayedStageTarget): CloseStageId | null => {
+  if (isClosed) return null;
+  if (isPaused) return reviewSourceStageId ?? currentStageId;
+  return viewingStageId ?? currentStageId;
+};
+
+export const resolvePositionText = (
+  stages: { stageId: CloseStageId }[],
+  currentStageId: CloseStageId | null,
+  isClosed: boolean,
+  totalCount: number,
+): string => {
+  const position = isClosed
+    ? totalCount
+    : stages.findIndex((stage) => stage.stageId === currentStageId) + 1;
+  return `${padStep(Math.max(position, 1))} / ${padStep(totalCount)}`;
+};
+
+export const resolveStepText = (
+  stages: { stageId: CloseStageId; label: string }[],
+  displayedStageId: CloseStageId | null,
+): string | null => {
+  const index = stages.findIndex((stage) => stage.stageId === displayedStageId);
+  if (index === -1) return null;
+  return `${padStep(index + 1)} ${stages[index].label}`;
+};
