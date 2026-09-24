@@ -64,9 +64,9 @@ describe('debtDisplay.vm', () => {
     );
 
     expect(vm.descriptionText).toBe('房貸 A 2026-05 還款');
-    expect(vm.principalText).toBe('$1,100');
-    expect(vm.interestText).toBe('$100');
-    expect(vm.totalText).toBe('$1,200');
+    expect(vm.principalText).toBe('NT$1,100');
+    expect(vm.interestText).toBe('NT$100');
+    expect(vm.totalText).toBe('NT$1,200');
   });
 
   it('falls back to the default description when the transaction has none', () => {

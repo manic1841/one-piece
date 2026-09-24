@@ -25,16 +25,13 @@ import {
 } from '@/ui/components/ui/select';
 import { DebtTypeOptions } from '@/ui/constants/debt/label';
 import { type DebtAccountFormViewModel } from '@/ui/features/debt/viewmodels/useDebtAccountFormViewModel';
+import { formatCurrency } from '@/ui/utils';
 
 interface DebtAccountFormProps {
   vm: DebtAccountFormViewModel;
 }
 
 const NO_PROJECT = '__none__';
-
-function formatCurrency(n: number) {
-  return n.toLocaleString('zh-TW', { maximumFractionDigits: 0 });
-}
 
 /**
  * Project picker. Radix Select forbids the empty string, so the "no project"
@@ -221,7 +218,7 @@ export function DebtAccountForm({ vm }: DebtAccountFormProps) {
                 <div className="flex items-center justify-between">
                   <span>總利息：</span>
                   <strong className="font-semibold">
-                    ${formatCurrency(calcResult.totalInterest)}
+                    {formatCurrency(calcResult.totalInterest)}
                   </strong>
                 </div>
               </div>
@@ -240,7 +237,7 @@ export function DebtAccountForm({ vm }: DebtAccountFormProps) {
                 <div className="flex items-center justify-between">
                   <span>寬限期每月應付（利息）：</span>
                   <strong className="font-semibold">
-                    ${formatCurrency(calcResult.graceMonthlyPayment ?? 0)}
+                    {formatCurrency(calcResult.graceMonthlyPayment ?? 0)}
                   </strong>
                 </div>
                 <hr className="my-1" />
@@ -251,13 +248,13 @@ export function DebtAccountForm({ vm }: DebtAccountFormProps) {
                 <div className="flex items-center justify-between">
                   <span>正式還款每月應付：</span>
                   <strong className="font-semibold text-destructive">
-                    ${formatCurrency(calcResult.monthlyPayment)}
+                    {formatCurrency(calcResult.monthlyPayment)}
                   </strong>
                 </div>
                 <div className="flex items-center justify-between">
                   <span>總利息：</span>
                   <strong className="font-semibold">
-                    ${formatCurrency(calcResult.totalInterest)}
+                    {formatCurrency(calcResult.totalInterest)}
                   </strong>
                 </div>
               </div>

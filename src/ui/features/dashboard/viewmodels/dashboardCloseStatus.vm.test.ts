@@ -54,7 +54,7 @@ describe('dashboardCloseStatus.vm', () => {
   });
 
   it('formats the next month due as the what-to-pay-next data', () => {
-    expect(mapNextMonthDueText({ total: 4200, yearMonth: '2026-10' })).toBe('$4,200');
+    expect(mapNextMonthDueText({ total: 4200, yearMonth: '2026-10' })).toBe('NT$4,200');
     expect(mapNextMonthDueText(null)).toBeNull();
   });
 

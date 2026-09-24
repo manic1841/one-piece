@@ -148,8 +148,8 @@ describe('ProjectsPage table', () => {
     const compactRow = await screen.findByTestId('project-row-mobile-pr1');
     expect(compactRow.className).toContain('md:hidden');
     expect(compactRow.textContent).toContain('Kitchen Remodel');
-    await screen.findByText('Income $150,000 · Expense $90,000');
-    expect(compactRow.textContent).toContain('$60,000');
+    await screen.findByText('Income NT$150,000 · Expense NT$90,000');
+    expect(compactRow.textContent).toContain('NT$60,000');
 
     fireEvent.click(compactRow);
     expect(navigate).toHaveBeenCalledWith('/projects/pr1');

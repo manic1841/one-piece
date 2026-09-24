@@ -27,6 +27,7 @@ import {
   type TransactionFormProjectOption,
   type TransactionFormTab,
 } from '@/ui/features/transaction/types/transaction';
+import { formatCurrency } from '@/ui/utils';
 
 interface TransactionFormProps {
   isOpen: boolean;
@@ -212,7 +213,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
                     {detail}
                   </span>
                 ))}
-                <span className="ml-auto font-semibold">NT$ {preview.amount.toLocaleString()}</span>
+                <span className="ml-auto font-semibold">{formatCurrency(preview.amount)}</span>
               </div>
             </div>
           ) : null}

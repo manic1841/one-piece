@@ -48,9 +48,9 @@ describe('dashboardStatRow.vm', () => {
       'investmentLeverage',
     ]);
     expect(vm.metrics.map((metric) => metric.valueText)).toEqual([
-      '$600',
-      '$150',
-      '-$12,300',
+      'NT$600',
+      'NT$150',
+      '-NT$12,300',
       '3.91%',
       '1.20x',
     ]);

@@ -46,7 +46,7 @@ describe('dashboardCashFlowChart.vm', () => {
     ]);
 
     expect(vm.latest).toMatchObject({ label: 'AUG 2026', value: -12300 });
-    expect(vm.latestText).toBe('-$12,300');
+    expect(vm.latestText).toBe('-NT$12,300');
     expect(vm.hasData).toBe(true);
   });
 });

@@ -21,34 +21,34 @@ describe('CashFlowStatementPage', () => {
         operating: {
           label: '營業活動',
           total: 200,
-          totalText: '$200',
-          inflowItems: [{ code: 'income:salary', label: '薪資', amount: 500, amountText: '$500' }],
-          outflowItems: [{ code: 'expense:food', label: '餐飲', amount: 300, amountText: '$300' }],
+          totalText: 'NT$200',
+          inflowItems: [{ code: 'income:salary', label: '薪資', amount: 500, amountText: 'NT$500' }],
+          outflowItems: [{ code: 'expense:food', label: '餐飲', amount: 300, amountText: 'NT$300' }],
         },
         investing: {
           label: '投資活動',
           total: -100,
-          totalText: '$-100',
+          totalText: '-NT$100',
           inflowItems: [],
-          outflowItems: [{ code: 'asset:buy', label: '買進', amount: 100, amountText: '$100' }],
+          outflowItems: [{ code: 'asset:buy', label: '買進', amount: 100, amountText: 'NT$100' }],
         },
         financing: {
           label: '融資活動',
           total: 0,
-          totalText: '$0',
+          totalText: 'NT$0',
           inflowItems: [],
           outflowItems: [],
         },
         netCashChange: 100,
-        netCashChangeText: '$100',
+        netCashChangeText: 'NT$100',
         beginningBalance: 1000,
-        beginningBalanceText: '$1,000',
+        beginningBalanceText: 'NT$1,000',
         endingBalance: 1100,
-        endingBalanceText: '$1,100',
+        endingBalanceText: 'NT$1,100',
         actualBalance: 900,
-        actualBalanceText: '$900',
+        actualBalanceText: 'NT$900',
         adjustment: -200,
-        adjustmentText: '$-200',
+        adjustmentText: '-NT$200',
       },
       loading: false,
       error: null,
@@ -72,9 +72,9 @@ describe('CashFlowStatementPage', () => {
     );
 
     expect(screen.getByText('淨現金變動')).toBeInTheDocument();
-    expect(screen.getByText('$1,000')).toBeInTheDocument();
+    expect(screen.getByText('NT$1,000')).toBeInTheDocument();
     expect(screen.getByText(/對帳差異提醒：期末現金/)).toBeInTheDocument();
-    expect(screen.getByText('+$500')).toBeInTheDocument();
-    expect(screen.getByText('-$300')).toBeInTheDocument();
+    expect(screen.getByText('+NT$500')).toBeInTheDocument();
+    expect(screen.getByText('-NT$300')).toBeInTheDocument();
   });
 });

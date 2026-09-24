@@ -86,7 +86,7 @@ describe('CloseAccountBalanceInputs', () => {
 
     expect(screen.getByText('現金 / 銀行')).toBeInTheDocument();
     expect(screen.getAllByText('前期餘額').length).toBe(3);
-    expect(screen.getAllByText('$50,000').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('NT$50,000').length).toBeGreaterThan(0);
     expect(screen.getAllByLabelText('期末餘額 現金帳戶')[0]).toHaveValue(52000);
     expect(screen.getAllByText('WAITING').length).toBe(4);
   });
@@ -128,11 +128,11 @@ describe('CloseAccountBalanceInputs', () => {
 
     expect(screen.getByText('外幣')).toBeInTheDocument();
     expect(screen.getAllByText('前期餘額').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('10,000 USD').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('US$10,000').length).toBeGreaterThan(0);
     expect(screen.getAllByLabelText('外幣金額 USD Account')[0]).toHaveValue(12000);
     expect(screen.getAllByLabelText('匯率 USD Account').length).toBe(2);
         const twdValue = screen.getAllByTestId('twd-value-usd-1')[0].textContent ?? '';
-    expect(twdValue).toContain('$375,000');
+    expect(twdValue).toContain('NT$375,000');
     expect(screen.queryByLabelText('TWD 價值')).toBeNull();
   });
 
@@ -212,7 +212,7 @@ describe('CloseAccountBalanceInputs', () => {
     expect(screen.getByRole('button', { name: '匯入上月持倉' })).toBeEnabled();
     expect(screen.getByText('Symbol')).toBeInTheDocument();
     expect(screen.getByText('市值')).toBeInTheDocument();
-    expect(screen.getByText('$1,270,000')).toBeInTheDocument();
+    expect(screen.getByText('NT$1,270,000')).toBeInTheDocument();
   });
 
   it('disables the import button when previous holdings are missing', () => {
@@ -251,7 +251,7 @@ describe('CloseAccountBalanceInputs', () => {
 
     expect(screen.getByLabelText('匯率 USD Brokerage')).toHaveValue(31.25);
     const twdValue = screen.getByText('TWD 價值').parentElement?.textContent ?? '';
-    expect(twdValue).toContain('$12,812,500');
+    expect(twdValue).toContain('NT$12,812,500');
   });
 
   it('marks all accounts verified after the stage is completed', () => {

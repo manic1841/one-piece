@@ -17,12 +17,15 @@ import { formatCurrency, formatDate } from '@/ui/utils';
 
 interface AccountSnapshotTableProps {
   snapshots: AccountSnapshot[];
+  /** Owning account's currency; balances render symbol-first for TWD, code-suffix otherwise. */
+  currency?: string;
   onEdit: (snapshot: AccountSnapshot) => void;
   onDelete: (snapshotId: string) => void;
 }
 
 export const AccountSnapshotTable: React.FC<AccountSnapshotTableProps> = ({
   snapshots,
+  currency,
   onEdit,
   onDelete,
 }) => {
@@ -99,7 +102,7 @@ export const AccountSnapshotTable: React.FC<AccountSnapshotTableProps> = ({
                           </div>
                         </TableCell>
                         <TableCell className="text-right font-medium">
-                          {formatCurrency(snapshot.originalAmount || snapshot.amount)}
+                          {formatCurrency(snapshot.originalAmount || snapshot.amount, currency)}
                         </TableCell>
                         <TableCell className="text-right">
                           {previousSnapshot ? (

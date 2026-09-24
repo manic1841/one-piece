@@ -66,9 +66,6 @@ const SECTION_NOTES: Record<AccountBalanceSectionKind, string> = {
   securities: 'Market value is calculated from holdings',
 };
 
-const amountText = (value: number, currency: string): string =>
-  currency === 'TWD' ? formatCurrency(value) : `${value.toLocaleString('en-US')} ${currency}`;
-
 const EntryStatus: React.FC<{ verified: boolean }> = ({ verified }) =>
   verified ? (
     <StatusGlyph type="verified" label="VERIFIED" />
@@ -168,7 +165,7 @@ const ForeignAccountRow: React.FC<ForeignAccountRowProps> = ({
       </DataTableCell>
       <NumberCell
         value={entry.previousBalance}
-        format={(value) => amountText(value, entry.account.currency)}
+        format={(value) => formatCurrency(value, entry.account.currency)}
       />
       <DataTableCell>
         <div className="flex justify-end">
@@ -417,7 +414,7 @@ export const CloseAccountBalanceInputs: React.FC<CloseAccountBalanceInputsProps>
                     <p className="font-mono text-sm tabular-nums text-foreground">
                       {entry.previousBalance === null
                         ? '—'
-                        : amountText(entry.previousBalance, entry.account.currency)}
+                        : formatCurrency(entry.previousBalance, entry.account.currency)}
                     </p>
                   </MobileDataField>
                   <MobileDataField label="外幣金額">

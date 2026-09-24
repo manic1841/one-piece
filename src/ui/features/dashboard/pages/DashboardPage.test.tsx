@@ -88,12 +88,12 @@ describe('DashboardPage financial snapshot row', () => {
     );
 
     const assets = await screen.findByTestId('stat-totalAssets');
-    expect(assets.textContent).toContain('$600');
+    expect(assets.textContent).toContain('NT$600');
     expect(assets.textContent).toContain('總資產');
     expect(assets.textContent).toContain('ANCHORED 2026-08');
 
-    expect(screen.getByTestId('stat-totalLiabilities').textContent).toContain('$150');
-    expect(screen.getByTestId('stat-monthlyCashFlow').textContent).toContain('-$12,300');
+    expect(screen.getByTestId('stat-totalLiabilities').textContent).toContain('NT$150');
+    expect(screen.getByTestId('stat-monthlyCashFlow').textContent).toContain('-NT$12,300');
     expect(screen.getByTestId('stat-portfolioReturn').textContent).toContain('3.91%');
     expect(screen.getByTestId('stat-investmentLeverage').textContent).toContain('1.20x');
   });
@@ -111,7 +111,7 @@ describe('DashboardPage NET WORTH hero ytd line', () => {
 
     const ytd = await screen.findByTestId('hero-ytd');
     expect(ytd.textContent).toContain('+12.5% YTD');
-    expect(ytd.textContent).toContain('+$50');
+    expect(ytd.textContent).toContain('+NT$50');
   });
 });
 
@@ -147,7 +147,7 @@ describe('DashboardPage monthly cash flow chart', () => {
 
     const chart = await screen.findByTestId('cashflow-chart');
     expect(chart.textContent).toContain('AUG 2026');
-    expect(chart.textContent).toContain('-$12,300');
+    expect(chart.textContent).toContain('-NT$12,300');
   });
 });
 
@@ -163,7 +163,7 @@ describe('DashboardPage monthly close card', () => {
 
     const card = await screen.findByTestId('monthly-close-card');
     expect(card.textContent).toContain('下月應付');
-    expect(card.textContent).toContain('$420');
+    expect(card.textContent).toContain('NT$420');
     expect(screen.getByTestId('close-progress')).toBeInTheDocument();
   });
 });

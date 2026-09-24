@@ -25,7 +25,7 @@ export const AccountCategorySectionTitles: Partial<Record<AccountCategory, strin
 
 export const CurrencyLabels = {
   [CurrencyType.TWD]: 'TWD (NT$)',
-  [CurrencyType.USD]: 'USD ($)',
+  [CurrencyType.USD]: 'USD (US$)',
   [CurrencyType.EUR]: 'EUR (€)',
   [CurrencyType.JPY]: 'JPY (¥)',
 } as const;

@@ -62,6 +62,7 @@ export const AccountHistoryDialog: React.FC<AccountHistoryDialogProps> = ({
           <div className="mt-4">
             <AccountSnapshotTable
               snapshots={snapshots}
+              currency={account.currency}
               onEdit={handleEdit}
               onDelete={handleDelete}
             />
