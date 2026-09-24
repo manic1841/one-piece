@@ -84,7 +84,6 @@ const FEATURE_TIER_OFFSET = 2;
  * The rule is set equality in both directions, so a stale entry fails the suite too.
  */
 const SURFACE_ALLOWLIST = new Set([
-  'src/ui/features/account/pages/AccountDetailPage.tsx',
   // Still direct-imports `firebase/firestore`; removing that is issue #179's scope, not #177's.
   'src/ui/features/auth/pages/LoginPage.tsx',
   'src/ui/features/monthly_close/pages/MonthlyClosePage.tsx',

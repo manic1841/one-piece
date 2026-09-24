@@ -1,9 +1,8 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React from 'react';
 
 import { Power } from 'lucide-react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 
-import { type AccountSnapshot, type AccountWithSnapshot } from '@/domains/account/types/account';
 import { AccountCategoryLabels } from '@/ui/constants/account/label';
 import { Badge } from '@/ui/components/ui/badge';
 import { Button } from '@/ui/components/ui/button';
@@ -16,45 +15,17 @@ import {
   TableRow,
 } from '@/ui/components/ui/table';
 import { PageHeader } from '@/ui/components/PageHeader';
-import { useAuthState } from '@/ui/contexts/useAuthState';
-import { getAccountsWithSnapshotsUseCase } from '@/application/account/use_cases/getAccountsWithSnapshotsUseCase';
-import { getAccountHistoryUseCase } from '@/application/account/use_cases/getAccountHistoryUseCase';
-import { checkAccountMonthlyUsageUseCase } from '@/application/account/use_cases/checkAccountMonthlyUsageUseCase';
-import { useConfirm } from '@/ui/features/app/confirm/ConfirmDialog';
-import { useAccountCmds } from '@/ui/features/account/hooks/useAccountCmds';
 import {
   MONTH_NAMES,
-  buildTrendGeometry,
 } from '@/ui/features/account/components/detail/accountTrendGeometry';
 import AccountTrendChart from '@/ui/features/account/components/detail/AccountTrendChart';
+import { useAccountDetailPage } from '@/ui/features/account/hooks/useAccountDetailPage';
+import { type AccountWithSnapshot } from '@/ui/features/account/viewmodels/account.vm';
 import { formatCurrency, formatDate } from '@/ui/utils';
 
 interface AccountDetailPageProps {
   account?: AccountWithSnapshot;
 }
-
-interface HoldingRowVM {
-  id: string;
-  symbol: string;
-  name: string;
-  costText: string;
-  valueText: string;
-  leverageText: string;
-}
-
-const toHoldingRowVM = (
-  holding: NonNullable<AccountWithSnapshot['snapshot']>['holdings'] extends (infer H)[] | undefined
-    ? H
-    : never,
-  index: number,
-): HoldingRowVM => ({
-  id: `${holding.symbol}-${index}`,
-  symbol: holding.symbol,
-  name: holding.name,
-  costText: formatCurrency(holding.cost),
-  valueText: formatCurrency(holding.marketValue),
-  leverageText: `${(holding.leverage ?? 1).toFixed(2)}x`,
-});
 
 const SectionTitle: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <p className="font-mono text-[11px] tracking-widest text-muted-foreground uppercase">
@@ -63,160 +34,12 @@ const SectionTitle: React.FC<{ children: React.ReactNode }> = ({ children }) => 
 );
 
 const AccountDetailPage: React.FC<AccountDetailPageProps> = ({ account }) => {
-  const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { userProfile } = useAuthState();
-  const householdId = userProfile?.householdId ?? '';
-  const { confirm } = useConfirm();
-  const { updateAccount } = useAccountCmds(householdId);
-
-  const [fetchedAccount, setFetchedAccount] = useState<AccountWithSnapshot | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [history, setHistory] = useState<AccountSnapshot[]>([]);
-  const [statusOverride, setStatusOverride] = useState<boolean | null>(null);
-
-  const activeAccount = account ?? fetchedAccount;
-  const activeId = activeAccount?.id ?? null;
-
-  const refetchAccount = useCallback(async () => {
-    if (account || !householdId) return;
-    try {
-      const accounts = await getAccountsWithSnapshotsUseCase.execute({
-        householdId,
-        auth: {
-          uid: userProfile?.uid ?? '',
-          email: userProfile?.email,
-        },
-        includeInactive: true,
-      });
-      setFetchedAccount(accounts.find((a) => a.id === id) ?? null);
-    } catch {
-      setFetchedAccount(null);
-    }
-  }, [account, householdId, id, userProfile]);
-
-  useEffect(() => {
-    let ignore = false;
-    const load = async () => {
-      if (account || !householdId) {
-        setLoading(false);
-        return;
-      }
-      try {
-        const accounts = await getAccountsWithSnapshotsUseCase.execute({
-          householdId,
-          auth: {
-            uid: userProfile?.uid ?? '',
-            email: userProfile?.email,
-          },
-          includeInactive: true,
-        });
-        if (!ignore) {
-          setFetchedAccount(accounts.find((a) => a.id === id) ?? null);
-        }
-      } catch {
-        if (!ignore) setFetchedAccount(null);
-      } finally {
-        if (!ignore) setLoading(false);
-      }
-    };
-    void load();
-    return () => {
-      ignore = true;
-    };
-  }, [account, householdId, id, userProfile]);
-
-  useEffect(() => {
-    let ignore = false;
-    const loadHistory = async () => {
-      if (!householdId || !id) {
-        return;
-      }
-      try {
-        const snapshots = await getAccountHistoryUseCase.execute({
-          householdId,
-          accountId: id,
-          auth: {
-            uid: userProfile?.uid ?? '',
-            email: userProfile?.email,
-          },
-        });
-        if (!ignore) setHistory(snapshots);
-      } catch {
-        if (!ignore) setHistory([]);
-      }
-    };
-    void loadHistory();
-    return () => {
-      ignore = true;
-    };
-  }, [householdId, id, userProfile]);
-
-  const trend = useMemo(
-    () =>
-      buildTrendGeometry(
-        history.map((snapshot) => ({ year: snapshot.year, month: snapshot.month, value: snapshot.amount })),
-      ),
-    [history],
-  );
-
-  useEffect(() => {
-    setStatusOverride(null);
-  }, [activeId]);
-
-  const holdings = useMemo(() => {
-    const snapshotHoldings = activeAccount?.snapshot?.holdings ?? [];
-    return snapshotHoldings.map((holding, index) => toHoldingRowVM(holding, index));
-  }, [activeAccount?.snapshot]);
-
-  const historyRows = useMemo(
-    () => history.slice().reverse(),
-    [history],
-  );
-
-  const isActive = statusOverride ?? activeAccount?.isActive !== false;
+  const { activeAccount, loading, isActive, trend, holdings, historyRows, handleToggleActive } =
+    useAccountDetailPage({ account });
 
   if (loading) return <div>Loading...</div>;
   if (!activeAccount) return <div>Account not found</div>;
-
-  const handleToggleActive = async () => {
-    const nextActive = !isActive;
-
-    if (!nextActive) {
-      const now = new Date();
-      const warning = await checkAccountMonthlyUsageUseCase.execute({
-        householdId,
-        accountId: activeAccount.id,
-        accountCategory: activeAccount.category,
-        year: now.getFullYear(),
-        month: now.getMonth() + 1,
-        auth: {
-          uid: userProfile?.uid ?? '',
-          email: userProfile?.email,
-        },
-      });
-
-      if (warning.hasReferences) {
-        const confirmed = await confirm({
-          title: 'Disable this account?',
-          context: `It has ${warning.referenceCount} transactions this month.`,
-          consequence: 'Disabled accounts no longer appear in bookkeeping or month-end settlement menus.',
-          confirmLabel: 'DISABLE',
-          cancelLabel: 'Cancel',
-        });
-        if (!confirmed) return;
-      }
-    }
-
-    const updated = await updateAccount(activeAccount.id, { isActive: nextActive });
-    if (updated === undefined) {
-      return;
-    }
-    setStatusOverride(nextActive);
-    if (!account) {
-      await refetchAccount();
-    }
-  };
 
   return (
     <div className="space-y-8 pb-20">
