@@ -5,12 +5,17 @@ vi.mock('@/ui/contexts/useAuthState', () => ({
   useAuthState: vi.fn(),
 }));
 
+vi.mock('@/ui/hooks/useAuthIdentity', () => ({
+  useAuthIdentity: vi.fn(),
+}));
+
 vi.mock('@/application/auth/use_cases/authorizeRouteAccessUseCase', () => ({
   authorizeRouteAccessUseCase: { execute: vi.fn() },
 }));
 
 import { authorizeRouteAccessUseCase } from '@/application/auth/use_cases/authorizeRouteAccessUseCase';
 import { useAuthState } from '@/ui/contexts/useAuthState';
+import { useAuthIdentity } from '@/ui/hooks/useAuthIdentity';
 
 import { useRouteAuthorization } from './useRouteAuthorization';
 
@@ -29,14 +34,17 @@ const authState = (overrides: Partial<AuthState> = {}): AuthState =>
     ...overrides,
   }) as AuthState;
 
+const identity = { uid: 'user-1', email: 'user@example.com', isGlobalAdmin: false };
+
 describe('useRouteAuthorization', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(useAuthState).mockReturnValue(authState());
-    vi.mocked(authorizeRouteAccessUseCase.execute).mockResolvedValue({ outcome: 'allow' });
+    vi.mocked(useAuthIdentity).mockReturnValue(identity);
+    vi.mocked(authorizeRouteAccessUseCase.execute).mockResolvedValue('allow');
   });
 
-  it('reports pending while auth is still initialising and asks nothing of the use case', () => {
+  it('reports pending while auth is still initialising and asks nothing of the workflow', () => {
     vi.mocked(useAuthState).mockReturnValue(authState({ loading: true }));
 
     const { result } = renderHook(() => useRouteAuthorization(false));
@@ -46,7 +54,7 @@ describe('useRouteAuthorization', () => {
   });
 
   it('reports unauthenticated when nobody is signed in', () => {
-    vi.mocked(useAuthState).mockReturnValue(authState({ user: null, userProfile: null }));
+    vi.mocked(useAuthIdentity).mockReturnValue({ uid: '', email: '' });
 
     const { result } = renderHook(() => useRouteAuthorization(false));
 
@@ -54,16 +62,14 @@ describe('useRouteAuthorization', () => {
     expect(authorizeRouteAccessUseCase.execute).not.toHaveBeenCalled();
   });
 
-  it('delegates to the workflow with the profile household and surfaces its decision', async () => {
-    vi.mocked(authorizeRouteAccessUseCase.execute).mockResolvedValue({ outcome: 'onboarding' });
+  it('delegates to the workflow with the identity and profile household', async () => {
+    vi.mocked(authorizeRouteAccessUseCase.execute).mockResolvedValue('onboarding');
 
     const { result } = renderHook(() => useRouteAuthorization(true));
 
     await waitFor(() => expect(result.current.outcome).toBe('onboarding'));
     expect(authorizeRouteAccessUseCase.execute).toHaveBeenCalledWith({
-      email: 'user@example.com',
-      uid: 'user-1',
-      isAdmin: false,
+      auth: identity,
       householdId: 'household-1',
       requireHousehold: true,
     });

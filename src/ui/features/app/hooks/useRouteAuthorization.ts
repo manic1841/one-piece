@@ -5,6 +5,7 @@ import {
   type RouteAccessOutcome,
 } from '@/application/auth/use_cases/authorizeRouteAccessUseCase';
 import { useAuthState } from '@/ui/contexts/useAuthState';
+import { useAuthIdentity } from '@/ui/hooks/useAuthIdentity';
 
 /**
  * Everything the route guard can be showing. `pending` and `unauthenticated` are session
@@ -23,31 +24,28 @@ interface ResolvedDecision {
  * Surface 只負責把結果映射成導向（見 docs/ui/ui-layer-architecture.md §4「No Hidden
  * Workflow」，issue #185）。
  *
- * Session 狀態（載入中、未登入）在 render 期推導而非存進 state；effect 只負責非同步的
- * 授權查詢。
+ * 身分投影走 `useAuthIdentity()`（§4「Auth Assembly」）；`useAuthState()` 只用來讀身分
+ * 不攜帶的 session 與 profile。Session 狀態在 render 期推導而非存進 state，effect 只負責
+ * 非同步的授權查詢。
  */
 export function useRouteAuthorization(requireHousehold: boolean): { outcome: RouteAccessState } {
-  const { user, userProfile, isAdmin, loading } = useAuthState();
+  const auth = useAuthIdentity();
+  const { userProfile, loading } = useAuthState();
   const householdId = userProfile?.householdId ?? null;
+
   const [resolved, setResolved] = useState<ResolvedDecision | null>(null);
 
-  const requestKey = [user?.uid ?? '', isAdmin, householdId ?? '', requireHousehold].join('|');
+  const requestKey = [auth.uid, auth.isGlobalAdmin, householdId ?? '', requireHousehold].join('|');
 
   useEffect(() => {
-    if (loading || !user) return;
+    if (loading || !auth.uid) return;
 
     let cancelled = false;
 
     void authorizeRouteAccessUseCase
-      .execute({
-        email: user.email,
-        uid: user.uid,
-        isAdmin,
-        householdId,
-        requireHousehold,
-      })
-      .then((decision) => {
-        if (!cancelled) setResolved({ key: requestKey, outcome: decision.outcome });
+      .execute({ auth, householdId, requireHousehold })
+      .then((outcome) => {
+        if (!cancelled) setResolved({ key: requestKey, outcome });
       })
       .catch((error) => {
         // Fail closed: an unusable authorization check must not let anyone through.
@@ -58,10 +56,10 @@ export function useRouteAuthorization(requireHousehold: boolean): { outcome: Rou
     return () => {
       cancelled = true;
     };
-  }, [user, isAdmin, householdId, loading, requireHousehold, requestKey]);
+  }, [auth, householdId, loading, requireHousehold, requestKey]);
 
   if (loading) return { outcome: 'pending' };
-  if (!user) return { outcome: 'unauthenticated' };
+  if (!auth.uid) return { outcome: 'unauthenticated' };
   if (resolved?.key === requestKey) return { outcome: resolved.outcome };
 
   return { outcome: 'pending' };

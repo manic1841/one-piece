@@ -1,4 +1,5 @@
 import { householdPermissionService } from '@/application/household/householdPermissionService';
+import { type AuthContext } from '@/application/types';
 
 import { isUserAuthorizedUseCase } from './isUserAuthorizedUseCase';
 
@@ -6,17 +7,11 @@ import { isUserAuthorizedUseCase } from './isUserAuthorizedUseCase';
 export type RouteAccessOutcome = 'allow' | 'access-denied' | 'onboarding';
 
 export interface AuthorizeRouteAccessRequest {
-  /** The signed-in user's email, or null when the identity provider gave none. */
-  email: string | null;
-  uid: string;
-  isAdmin: boolean;
+  /** The acting identity, as projected by `useAuthIdentity()`. */
+  auth: AuthContext;
   /** The household carried by the user's profile; null before onboarding. */
   householdId: string | null;
   requireHousehold: boolean;
-}
-
-export interface RouteAccessDecision {
-  outcome: RouteAccessOutcome;
 }
 
 /**
@@ -29,21 +24,25 @@ export interface RouteAccessDecision {
  * the UI context already carries (see ADR-0062), not an authorization decision.
  */
 export class AuthorizeRouteAccessUseCase {
-  async execute(request: AuthorizeRouteAccessRequest): Promise<RouteAccessDecision> {
-    const { email, uid, isAdmin, householdId, requireHousehold } = request;
+  async execute(request: AuthorizeRouteAccessRequest): Promise<RouteAccessOutcome> {
+    const { auth, householdId, requireHousehold } = request;
+    const isGlobalAdmin = auth.isGlobalAdmin ?? false;
 
-    // A global admin bypasses both layers, matching `assertReadPermission`'s early return.
-    if (isAdmin) return { outcome: 'allow' };
+    // A global admin bypasses the whitelist, matching `assertReadPermission`'s early return.
+    const isAuthorized =
+      isGlobalAdmin || (await isUserAuthorizedUseCase.execute({ email: auth.email ?? null }));
+    if (!isAuthorized) return 'access-denied';
 
-    const isAuthorized = await isUserAuthorizedUseCase.execute({ email });
-    if (!isAuthorized) return { outcome: 'access-denied' };
+    if (!requireHousehold) return 'allow';
 
-    if (!requireHousehold) return { outcome: 'allow' };
+    // Having no household at all is a routing concern, not a permission one: nobody has anywhere
+    // to land, admin included, so this is checked before the admin membership bypass.
+    if (!householdId) return 'onboarding';
 
-    if (!householdId) return { outcome: 'onboarding' };
+    if (isGlobalAdmin) return 'allow';
 
-    const isMember = await householdPermissionService.isUserMember(householdId, uid);
-    return { outcome: isMember ? 'allow' : 'onboarding' };
+    const isMember = await householdPermissionService.isUserMember(householdId, auth.uid);
+    return isMember ? 'allow' : 'onboarding';
   }
 }
 
