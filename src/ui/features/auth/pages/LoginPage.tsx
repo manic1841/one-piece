@@ -1,9 +1,7 @@
 import React, { useState } from 'react';
 
-import { doc, getDoc } from 'firebase/firestore';
 import { useLocation, useNavigate } from 'react-router-dom';
 
-import { db } from '@/firebase';
 import { useAuthState } from '@/ui/contexts/useAuthState';
 import { Button } from '@/ui/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/ui/card';
@@ -26,26 +24,6 @@ const Login: React.FC = () => {
     } catch (err) {
       setError('Failed to log in with Google');
       console.error(err);
-    }
-    setLoading(false);
-  };
-
-  const testConnection = async () => {
-    setLoading(true);
-    setError('');
-    try {
-      await getDoc(doc(db, 'test_connection', 'ping'));
-      alert('Firebase Connection Successful! (Read succeeded)');
-    } catch (err) {
-      const error = err as { code?: string; message?: string };
-      if (error.code === 'permission-denied') {
-        alert(
-          'Firebase Connection Successful! (Reached Firestore, but permission denied as expected)',
-        );
-      } else {
-        console.error(err);
-        setError('Connection Failed: ' + (error.message || 'Unknown error'));
-      }
     }
     setLoading(false);
   };
@@ -93,17 +71,6 @@ const Login: React.FC = () => {
               </svg>
               Sign in with Google
             </Button>
-
-            <div className="pt-4 border-t">
-              <Button
-                variant="ghost"
-                onClick={testConnection}
-                disabled={loading}
-                className="w-full text-xs text-muted-foreground hover:bg-transparent hover:text-foreground"
-              >
-                Test Firebase Connection
-              </Button>
-            </div>
           </div>
         </CardContent>
       </Card>

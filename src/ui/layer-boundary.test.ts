@@ -83,11 +83,7 @@ const FEATURE_TIER_OFFSET = 2;
  * Existing Surface violations (issue #179). One entry per file; **fix a file → delete its entry**.
  * The rule is set equality in both directions, so a stale entry fails the suite too.
  */
-const SURFACE_ALLOWLIST = new Set([
-  // Still direct-imports `firebase/firestore`; removing that is issue #179's scope, not #177's.
-  'src/ui/features/auth/pages/LoginPage.tsx',
-  'src/ui/features/transaction/components/form/userSelectOptions.ts',
-]);
+const SURFACE_ALLOWLIST = new Set<string>([]);
 
 const collectSourceFiles = (dir: string): string[] => {
   return readdirSync(dir).flatMap((entry) => {

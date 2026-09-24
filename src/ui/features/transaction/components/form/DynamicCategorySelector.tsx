@@ -7,9 +7,8 @@ import {
   SelectValue,
 } from '@/ui/components/ui/select';
 import { DEFAULT_INTENT_MAPPINGS } from '@/ui/features/transaction/viewmodels/transaction.vm';
+import { buildUserSelectOptions } from '@/ui/features/transaction/viewmodels/userSelectOptions';
 import { type LedgerCodeItem } from '@/ui/features/ledger/hooks/useLedgerCodes';
-
-import { buildUserSelectOptions } from './userSelectOptions';
 
 type DynamicCategorySelectorProps = {
   intent: string | null;
