@@ -1,25 +1,27 @@
-import { Label } from '@/ui/components/ui/label';
-import { Textarea } from '@/ui/components/ui/textarea';
+import {
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+  TextArea,
+} from '@/ui/components/form';
 import { type LedgerCodeItem } from '@/ui/features/ledger/hooks/useLedgerCodes';
 import {
-  type FinancingFormState,
-  type InvestmentFormState,
   type TransactionFormCategoryOption,
   type TransactionFormProjectOption,
 } from '@/ui/features/transaction/types/transaction';
 
 import { AmountDateFields } from './AmountDateFields';
-import { ChipGroup } from './ChipGroup';
+import { type ChipGroupTone, FormChipGroup } from './ChipGroup';
 import { DynamicCategorySelector } from './DynamicCategorySelector';
 
 type CategoryPanelProps = {
   title: string;
-  tone: 'expense' | 'income' | 'neutral';
-  state: InvestmentFormState | FinancingFormState;
+  tone: ChipGroupTone;
   categories: TransactionFormCategoryOption[];
   projects: TransactionFormProjectOption[];
   allLedgerCodes: LedgerCodeItem[];
-  onChange: (next: InvestmentFormState | FinancingFormState) => void;
 };
 
 const toProjectOptions = (projects: TransactionFormProjectOption[]) =>
@@ -31,58 +33,40 @@ const toProjectOptions = (projects: TransactionFormProjectOption[]) =>
 export function CategoryPanel({
   title,
   tone,
-  state,
   categories,
   projects,
   allLedgerCodes,
-  onChange,
 }: CategoryPanelProps) {
   return (
     <div className="space-y-5 rounded-lg border border-border bg-card p-5">
       <p className="text-sm font-medium text-foreground">{title}</p>
-      <AmountDateFields
-        amountId={`${title}-amount`}
-        dateId={`${title}-date`}
-        amount={state.amount}
-        date={state.date}
-        onAmountChange={(amount) => onChange({ ...state, amount })}
-        onDateChange={(date) => onChange({ ...state, date })}
-      />
-      <div className="space-y-2">
-        <Label>專案</Label>
-        <ChipGroup
-          options={toProjectOptions(projects)}
-          value={state.projectId}
-          onChange={(projectId) => onChange({ ...state, projectId })}
-          tone="neutral"
-        />
-      </div>
-      <div className="space-y-2">
-        <Label>類別</Label>
-        <ChipGroup
-          options={categories}
-          value={state.intent}
-          onChange={(intent) => onChange({ ...state, intent })}
-          tone={tone}
-        />
-      </div>
+      <AmountDateFields />
+      <FormField name="projectId">
+        <FormItem>
+          <FormLabel>專案</FormLabel>
+          <FormChipGroup options={toProjectOptions(projects)} tone="neutral" />
+          <FormMessage />
+        </FormItem>
+      </FormField>
+      <FormField name="intent">
+        <FormItem>
+          <FormLabel>類別</FormLabel>
+          <FormChipGroup options={categories} tone={tone} />
+          <FormMessage />
+        </FormItem>
+      </FormField>
 
-      <DynamicCategorySelector
-        intent={state.intent}
-        ledgerCode={state.ledgerCode}
-        allLedgerCodes={allLedgerCodes}
-        onChange={(ledgerCode) => onChange({ ...state, ledgerCode })}
-      />
+      <DynamicCategorySelector allLedgerCodes={allLedgerCodes} />
 
-      <div className="space-y-2">
-        <Label htmlFor={`${title}-description`}>說明</Label>
-        <Textarea
-          id={`${title}-description`}
-          value={state.description}
-          onChange={(event) => onChange({ ...state, description: event.target.value })}
-          placeholder="補充這筆交易的背景"
-        />
-      </div>
+      <FormField name="description">
+        <FormItem>
+          <FormLabel>說明</FormLabel>
+          <FormControl>
+            <TextArea placeholder="補充這筆交易的背景" />
+          </FormControl>
+          <FormMessage />
+        </FormItem>
+      </FormField>
     </div>
   );
 }

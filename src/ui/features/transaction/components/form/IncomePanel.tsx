@@ -1,93 +1,64 @@
-import { Checkbox } from '@/ui/components/ui/checkbox';
-import { Label } from '@/ui/components/ui/label';
-import { Textarea } from '@/ui/components/ui/textarea';
+import { useFormContext, useWatch } from 'react-hook-form';
+
+import {
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+  TextArea,
+} from '@/ui/components/form';
 import { type LedgerCodeItem } from '@/ui/features/ledger/hooks/useLedgerCodes';
 import {
-  type IncomeFormState,
   type TransactionFormCategoryOption,
   type TransactionFormProjectOption,
 } from '@/ui/features/transaction/types/transaction';
 
 import { AllocationSection } from './AllocationSection';
 import { AmountDateFields } from './AmountDateFields';
-import { ChipGroup } from './ChipGroup';
+import { FormChipGroup } from './ChipGroup';
 import { DynamicCategorySelector } from './DynamicCategorySelector';
+import { TransactionAllocationToggle } from './TransactionAllocationToggle';
 
 type IncomePanelProps = {
-  state: IncomeFormState;
   categories: TransactionFormCategoryOption[];
   projects: TransactionFormProjectOption[];
   allLedgerCodes: LedgerCodeItem[];
-  onChange: (next: IncomeFormState) => void;
 };
 
-export function IncomePanel({
-  state,
-  categories,
-  projects,
-  allLedgerCodes,
-  onChange,
-}: IncomePanelProps) {
+export function IncomePanel({ categories, projects, allLedgerCodes }: IncomePanelProps) {
+  const { control } = useFormContext();
+  const triggerAllocation = useWatch({ control, name: 'triggerAllocation' });
+
   return (
     <div className="space-y-5 rounded-lg border border-border bg-card p-5">
-      <AmountDateFields
-        amountId="income-amount"
-        dateId="income-date"
-        amount={state.amount}
-        date={state.date}
-        onAmountChange={(amount) => onChange({ ...state, amount })}
-        onDateChange={(date) => onChange({ ...state, date })}
-      />
-      <div className="space-y-2">
-        <Label>收入類別</Label>
-        <ChipGroup
-          options={categories}
-          value={state.intent}
-          onChange={(intent) => onChange({ ...state, intent })}
-          tone="income"
-        />
-      </div>
+      <AmountDateFields />
+      <FormField name="intent">
+        <FormItem>
+          <FormLabel>收入類別</FormLabel>
+          <FormChipGroup options={categories} tone="income" />
+          <FormMessage />
+        </FormItem>
+      </FormField>
 
-      <DynamicCategorySelector
-        intent={state.intent}
-        ledgerCode={state.ledgerCode}
-        allLedgerCodes={allLedgerCodes}
-        onChange={(ledgerCode) => onChange({ ...state, ledgerCode })}
-      />
+      <DynamicCategorySelector allLedgerCodes={allLedgerCodes} />
 
-      <div className="space-y-2">
-        <Label htmlFor="income-description">說明</Label>
-        <Textarea
-          id="income-description"
-          value={state.description}
-          onChange={(event) => onChange({ ...state, description: event.target.value })}
-          placeholder="例如：薪資、獎金、退款回補"
-        />
-      </div>
-      <label className="flex items-start gap-3 rounded-lg border border-positive/20 bg-positive/10 px-4 py-3 text-sm text-positive">
-        <Checkbox
-          checked={state.triggerAllocation}
-          onCheckedChange={(checked) =>
-            onChange({
-              ...state,
-              triggerAllocation: checked === true,
-              allocationItems: checked === true ? state.allocationItems : [],
-            })
-          }
-          className="mt-0.5 border-positive"
-        />
-        <span>收入分配</span>
-      </label>
+      <FormField name="description">
+        <FormItem>
+          <FormLabel>說明</FormLabel>
+          <FormControl>
+            <TextArea placeholder="例如：薪資、獎金、退款回補" />
+          </FormControl>
+          <FormMessage />
+        </FormItem>
+      </FormField>
 
-      {state.triggerAllocation ? (
-        <AllocationSection
-          projects={projects}
-          allocations={state.allocationItems}
-          amount={state.amount}
-          title="收入分配"
-          tone="income"
-          onAllocationsChange={(allocationItems) => onChange({ ...state, allocationItems })}
-        />
+      <FormField name="triggerAllocation">
+        <TransactionAllocationToggle tone="income" label="收入分配" />
+      </FormField>
+
+      {triggerAllocation ? (
+        <AllocationSection projects={projects} title="收入分配" tone="income" />
       ) : null}
     </div>
   );

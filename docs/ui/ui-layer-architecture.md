@@ -274,6 +274,12 @@ const onSubmit = form.handleSubmit((vm) => {
 - **Repeaters bind by indexed path**: a repeated row group keeps its array in RHF (`useFieldArray`); each row binds
   `FormField name={`rows.${index}.field`}` through the same glue as a top-level field, and the React key is the row's
   `id`. No extra array/repeater contract is needed in the suite.
+- **One form per tab, never one form per dialog**: a dialog split into mutually exclusive panels (tabs) gives each panel
+  its own `useForm` and its own provider, so no panel's schema can be poisoned by another's fields. The selected tab is
+  Controller state (plain `useState`), never a form field — making it a field would force every panel into one schema.
+  The active tab's schema is both that form's resolver and the source of the derived preview (`safeParse` of the tab's
+  watched values), so the preview cannot drift from what submit accepts. Switching tabs must not remount the dialog, or
+  the inactive panels lose their values.
 
 ---
 

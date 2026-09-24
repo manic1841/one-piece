@@ -1,25 +1,9 @@
 import { getIntentTypeLabel, getUnifiedLedgerCodeLabel } from '@/ui/constants/transaction';
 import {
-  type AdvancedFormState,
-  type ExpenseFormState,
-  type FinancingFormState,
-  type IncomeFormState,
-  type InvestmentFormState,
   type TransactionFormCategoryOption,
   type TransactionFormOutput,
   type TransactionFormProjectOption,
-  type TransactionFormTab,
 } from '@/ui/features/transaction/types/transaction';
-
-const parseAmount = (amount: string) => {
-  const parsed = Number.parseFloat(amount);
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
-};
-
-const parsePercentage = (value: string) => {
-  const parsed = Number.parseFloat(value);
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
-};
 
 const findProjectLabel = (projects: TransactionFormProjectOption[], projectId?: string) => {
   if (!projectId) return '';
@@ -32,146 +16,11 @@ const findCategoryLabel = (categories: TransactionFormCategoryOption[], ledgerCo
   return categories.find((item) => item.value === ledgerCode)?.label ?? ledgerCode;
 };
 
-const previewExpense = (expense: ExpenseFormState): TransactionFormOutput | null => {
-  const amount = parseAmount(expense.amount);
-  if (!amount || !expense.date) return null;
-
-  const allocationItems = expense.allocationItems
-    .map((item) => {
-      const percentage = parsePercentage(item.percentage);
-      if (!percentage) {
-        return null;
-      }
-
-      return {
-        projectId: item.projectId,
-        percentage,
-      };
-    })
-    .filter((item): item is { projectId: string; percentage: number } => item !== null);
-
-  const totalPercentage = allocationItems.reduce((sum, item) => sum + item.percentage, 0);
-
-  if (
-    expense.triggerAllocation &&
-    (allocationItems.length === 0 || Math.abs(totalPercentage - 100) > 0.01)
-  ) {
-    return null;
-  }
-
-  return {
-    intentType: 'EXPENSE',
-    intent: expense.intent || undefined,
-    date: expense.date,
-    amount,
-    projectId: expense.projectId || undefined,
-    ledgerCode: expense.ledgerCode || undefined,
-    description: expense.description || undefined,
-    triggerAllocation: expense.triggerAllocation,
-    allocationItems: expense.triggerAllocation ? allocationItems : undefined,
-    allocationDirection: expense.triggerAllocation ? 'EXPENSE' : undefined,
-  };
-};
-
-const previewIncome = (income: IncomeFormState): TransactionFormOutput | null => {
-  const amount = parseAmount(income.amount);
-  if (!amount || !income.date) return null;
-
-  const allocationItems = income.allocationItems
-    .map((item) => {
-      const percentage = parsePercentage(item.percentage);
-      if (!percentage) {
-        return null;
-      }
-
-      return {
-        projectId: item.projectId,
-        percentage,
-      };
-    })
-    .filter((item): item is { projectId: string; percentage: number } => item !== null);
-
-  const totalPercentage = allocationItems.reduce((sum, item) => sum + item.percentage, 0);
-
-  if (
-    income.triggerAllocation &&
-    (allocationItems.length === 0 || Math.abs(totalPercentage - 100) > 0.01)
-  ) {
-    return null;
-  }
-
-  return {
-    intentType: 'INCOME',
-    intent: income.intent || undefined,
-    date: income.date,
-    amount,
-    ledgerCode: income.ledgerCode || undefined,
-    description: income.description || undefined,
-    triggerAllocation: income.triggerAllocation,
-    allocationItems: income.triggerAllocation ? allocationItems : undefined,
-    allocationDirection: income.triggerAllocation ? 'INCOME' : undefined,
-  };
-};
-
-const previewCategory = (
-  intentType: 'INVESTMENT' | 'FINANCING',
-  state: InvestmentFormState | FinancingFormState,
-): TransactionFormOutput | null => {
-  const amount = parseAmount(state.amount);
-  if (!amount || !state.date) return null;
-
-  return {
-    intentType,
-    intent: state.intent || undefined,
-    date: state.date,
-    amount,
-    projectId: state.projectId || undefined,
-    ledgerCode: state.ledgerCode || undefined,
-    description: state.description || undefined,
-  };
-};
-
-const previewAdvanced = (advanced: AdvancedFormState): TransactionFormOutput | null => {
-  const amount = parseAmount(advanced.amount);
-  if (!amount || !advanced.date || !advanced.ledgerCode) return null;
-
-  return {
-    intentType: advanced.intentType,
-    intent: advanced.intent || undefined,
-    date: advanced.date,
-    amount,
-    projectId: advanced.projectId || undefined,
-    ledgerCode: advanced.ledgerCode || undefined,
-    description: advanced.description || undefined,
-  };
-};
-
-export const buildPreview = (input: {
-  activeTab: TransactionFormTab;
-  expense: ExpenseFormState;
-  income: IncomeFormState;
-  investment: InvestmentFormState;
-  financing: FinancingFormState;
-  advanced: AdvancedFormState;
-}): TransactionFormOutput | null => {
-  const {
-    activeTab,
-    expense,
-    income,
-    investment,
-    financing,
-    advanced,
-  } = input;
-
-  if (activeTab === 'EXPENSE') return previewExpense(expense);
-  if (activeTab === 'INCOME') return previewIncome(income);
-  if (activeTab === 'INVESTMENT') return previewCategory('INVESTMENT', investment);
-  if (activeTab === 'FINANCING') return previewCategory('FINANCING', financing);
-  if (activeTab === 'ADVANCED') return previewAdvanced(advanced);
-
-  return null;
-};
-
+/**
+ * Turns the derived preview payload into the display chips shown above the
+ * footer. Pure presentation — the preview itself comes from the active tab's
+ * schema (see `transactionForm.vm.ts`), not from here.
+ */
 export const buildPreviewDetails = (input: {
   preview: TransactionFormOutput | null;
   projects: TransactionFormProjectOption[];

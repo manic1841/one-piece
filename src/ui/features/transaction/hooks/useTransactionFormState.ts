@@ -1,139 +1,56 @@
 import { useEffect, useMemo, useState } from 'react';
 
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useForm, useWatch } from 'react-hook-form';
+import { type z } from 'zod';
+
+import { buildPreviewDetails } from '@/ui/features/transaction/components/form/transactionFormPreview';
+import { type AllocationItemInput } from '@/ui/features/transaction/types/allocation';
 import {
-  buildPreview,
-  buildPreviewDetails,
-} from '@/ui/features/transaction/components/form/transactionFormPreview';
-import {
-  type AllocationDraftItem,
-  type AllocationItemInput,
-} from '@/ui/features/transaction/types/allocation';
-import {
-  type AdvancedFormState,
-  type ExpenseFormState,
-  type FinancingFormState,
-  type IncomeFormState,
-  type InvestmentFormState,
   type TransactionFormCategoryOption,
   type TransactionFormOutput,
   type TransactionFormProjectOption,
   type TransactionFormTab,
 } from '@/ui/features/transaction/types/transaction';
-
-const createExpenseState = (): ExpenseFormState => ({
-  amount: '',
-  date: new Date().toISOString().slice(0, 10),
-  projectId: null,
-  intent: null,
-  ledgerCode: null,
-  description: '',
-  triggerAllocation: false,
-  allocationItems: [],
-});
-
-const createIncomeState = (): IncomeFormState => ({
-  amount: '',
-  date: new Date().toISOString().slice(0, 10),
-  intent: null,
-  ledgerCode: null,
-  description: '',
-  triggerAllocation: false,
-  allocationItems: [],
-});
-
-const createInvestmentState = (): InvestmentFormState => ({
-  amount: '',
-  date: new Date().toISOString().slice(0, 10),
-  projectId: null,
-  intent: null,
-  ledgerCode: null,
-  description: '',
-});
-
-const createFinancingState = (): FinancingFormState => ({
-  amount: '',
-  date: new Date().toISOString().slice(0, 10),
-  projectId: null,
-  intent: null,
-  ledgerCode: null,
-  description: '',
-});
-
-const createAdvancedState = (): AdvancedFormState => ({
-  amount: '',
-  date: new Date().toISOString().slice(0, 10),
-  intentType: 'MANUAL',
-  projectId: null,
-  intent: null,
-  ledgerCode: null,
-  description: '',
-});
-
-const toDraftAllocationItems = (items?: AllocationItemInput[]): AllocationDraftItem[] =>
-  (items ?? []).map((item) => ({
-    projectId: item.projectId,
-    percentage: item.percentage.toString(),
-  }));
+import {
+  type TransactionAdvancedFormInput,
+  TransactionAdvancedFormSchema,
+  type TransactionExpenseFormInput,
+  TransactionExpenseFormSchema,
+  type TransactionFinancingFormInput,
+  TransactionFinancingFormSchema,
+  type TransactionIncomeFormInput,
+  TransactionIncomeFormSchema,
+  type TransactionInvestmentFormInput,
+  TransactionInvestmentFormSchema,
+  createTransactionAdvancedFormValues,
+  createTransactionExpenseFormValues,
+  createTransactionFinancingFormValues,
+  createTransactionIncomeFormValues,
+  createTransactionInvestmentFormValues,
+} from '@/ui/features/transaction/viewmodels/transactionForm.vm';
 
 const mapIntentTypeToTab = (
-  intentType: TransactionFormOutput['intentType'],
+  intentType?: TransactionFormOutput['intentType'] | null,
 ): TransactionFormTab => {
   if (intentType === 'MANUAL') return 'ADVANCED';
-  return intentType;
+  if (intentType === 'INCOME' || intentType === 'INVESTMENT' || intentType === 'FINANCING') {
+    return intentType;
+  }
+  return 'EXPENSE';
 };
 
-const toExpenseState = (output: TransactionFormOutput): ExpenseFormState => ({
-  amount: output.amount.toString(),
-  date: output.date,
-  projectId: output.projectId ?? null,
-  intent: output.intent ?? null,
-  ledgerCode: output.ledgerCode ?? null,
-  description: output.description ?? '',
-  triggerAllocation: Boolean(output.triggerAllocation),
-  allocationItems: toDraftAllocationItems(output.allocationItems),
-});
-
-const toIncomeState = (output: TransactionFormOutput): IncomeFormState => ({
-  amount: output.amount.toString(),
-  date: output.date,
-  intent: output.intent ?? null,
-  ledgerCode: output.ledgerCode ?? null,
-  description: output.description ?? '',
-  triggerAllocation: Boolean(output.triggerAllocation),
-  allocationItems: toDraftAllocationItems(output.allocationItems),
-});
-
-const toInvestmentState = (output: TransactionFormOutput): InvestmentFormState => ({
-  amount: output.amount.toString(),
-  date: output.date,
-  projectId: output.projectId ?? null,
-  intent: output.intent ?? null,
-  ledgerCode: output.ledgerCode ?? null,
-  description: output.description ?? '',
-});
-
-const toFinancingState = (output: TransactionFormOutput): FinancingFormState => ({
-  amount: output.amount.toString(),
-  date: output.date,
-  projectId: output.projectId ?? null,
-  intent: output.intent ?? null,
-  ledgerCode: output.ledgerCode ?? null,
-  description: output.description ?? '',
-});
-
-const toAdvancedState = (output: TransactionFormOutput): AdvancedFormState => ({
-  amount: output.amount.toString(),
-  date: output.date,
-  intentType: 'MANUAL',
-  projectId: output.projectId ?? null,
-  intent: output.intent ?? null,
-  ledgerCode: output.ledgerCode ?? null,
-  description: output.description ?? '',
-});
+const parseOutput = (
+  schema: z.ZodType<TransactionFormOutput>,
+  values: unknown,
+): TransactionFormOutput | null => {
+  const result = schema.safeParse(values);
+  return result.success ? result.data : null;
+};
 
 interface UseTransactionFormStateParams {
-  isOpen: boolean;
   initialOutput?: TransactionFormOutput | null;
+  onSubmit: (output: TransactionFormOutput) => void | Promise<void>;
   projects: TransactionFormProjectOption[];
   expenseCategories: TransactionFormCategoryOption[];
   incomeCategories: TransactionFormCategoryOption[];
@@ -143,9 +60,19 @@ interface UseTransactionFormStateParams {
   loadIncomeAllocationTemplate?: (ledgerCode: string) => Promise<AllocationItemInput[] | null>;
 }
 
+/**
+ * Controller for the transaction dialog.
+ *
+ * The dialog composes one transaction across five tab panels, so there is one
+ * RHF form per panel — never one giant form for every tab. The selected tab is
+ * hook state, not a form field. Each form's schema coerces the string field
+ * values into the numeric `TransactionFormOutput`, which is handed to
+ * `onSubmit`; the numeric VM parse inside `useTransactionForm` stays the
+ * authoritative gate.
+ */
 export const useTransactionFormState = ({
-  isOpen,
   initialOutput,
+  onSubmit,
   projects,
   expenseCategories,
   incomeCategories,
@@ -154,120 +81,79 @@ export const useTransactionFormState = ({
   advancedCategories,
   loadIncomeAllocationTemplate,
 }: UseTransactionFormStateParams) => {
-  const [activeTab, setActiveTab] = useState<TransactionFormTab>('EXPENSE');
-  const [expense, setExpense] = useState<ExpenseFormState>(createExpenseState);
-  const [income, setIncome] = useState<IncomeFormState>(createIncomeState);
-  const [investment, setInvestment] = useState<InvestmentFormState>(createInvestmentState);
-  const [financing, setFinancing] = useState<FinancingFormState>(createFinancingState);
-  const [advanced, setAdvanced] = useState<AdvancedFormState>(createAdvancedState);
+  // The dialog is mounted on open, so defaults are seeded once from the edited
+  // transaction; there is no reset-on-open effect. Only the tab that the edited
+  // transaction belongs to is prefilled — the other panels start blank, since a
+  // transaction only ever edits through one of them.
+  const [defaultValues] = useState(() => {
+    const output = initialOutput ?? null;
+    const tab = mapIntentTypeToTab(output?.intentType);
 
-  const resetAll = () => {
-    setActiveTab('EXPENSE');
-    setExpense(createExpenseState());
-    setIncome(createIncomeState());
-    setInvestment(createInvestmentState());
-    setFinancing(createFinancingState());
-    setAdvanced(createAdvancedState());
-  };
-
-  const hydrateFromInitialOutput = (output: TransactionFormOutput) => {
-    const tab = mapIntentTypeToTab(output.intentType);
-    setActiveTab(tab);
-
-    if (tab === 'EXPENSE') {
-      setExpense(toExpenseState(output));
-      return;
-    }
-
-    if (tab === 'INCOME') {
-      setIncome(toIncomeState(output));
-      return;
-    }
-
-    if (tab === 'INVESTMENT') {
-      setInvestment(toInvestmentState(output));
-      return;
-    }
-
-    if (tab === 'FINANCING') {
-      setFinancing(toFinancingState(output));
-      return;
-    }
-
-    setAdvanced(toAdvancedState(output));
-  };
-
-  useEffect(() => {
-    if (!isOpen) return;
-
-    const initialize = async () => {
-      resetAll();
-      if (initialOutput) {
-        hydrateFromInitialOutput(initialOutput);
-      }
+    return {
+      expense: createTransactionExpenseFormValues(tab === 'EXPENSE' ? output : null),
+      income: createTransactionIncomeFormValues(tab === 'INCOME' ? output : null),
+      investment: createTransactionInvestmentFormValues(tab === 'INVESTMENT' ? output : null),
+      financing: createTransactionFinancingFormValues(tab === 'FINANCING' ? output : null),
+      advanced: createTransactionAdvancedFormValues(tab === 'ADVANCED' ? output : null),
     };
+  });
 
-    void initialize();
-  }, [isOpen, initialOutput]);
-
-  useEffect(() => {
-    if (!isOpen) return;
-    if (activeTab !== 'INCOME') return;
-
-    const ledgerCode = income.ledgerCode;
-    if (!ledgerCode) {
-      const clearIncomeAllocation = async () => {
-        setIncome((prev) => ({ ...prev, triggerAllocation: false, allocationItems: [] }));
-      };
-
-      void clearIncomeAllocation();
-      return;
-    }
-
-    let cancelled = false;
-
-    const applyTemplate = async () => {
-      const templateItems = (await loadIncomeAllocationTemplate?.(ledgerCode)) ?? null;
-      if (cancelled) return;
-
-      const projectIds = new Set(projects.map((project) => project.id));
-      const nextItems = (templateItems ?? [])
-        .filter((item) => projectIds.has(item.projectId))
-        .map((item) => ({
-          projectId: item.projectId,
-          percentage: item.percentage.toString(),
-        }));
-
-      setIncome((prev) => {
-        if (prev.ledgerCode !== ledgerCode) return prev;
-
-        return {
-          ...prev,
-          triggerAllocation: nextItems.length > 0,
-          allocationItems: nextItems,
-        };
-      });
-    };
-
-    void applyTemplate();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [activeTab, income.ledgerCode, isOpen, loadIncomeAllocationTemplate, projects]);
-
-  const preview = useMemo(
-    () =>
-      buildPreview({
-        activeTab,
-        expense,
-        income,
-        investment,
-        financing,
-        advanced,
-      }),
-    [activeTab, advanced, expense, financing, income, investment],
+  const [activeTab, setActiveTab] = useState<TransactionFormTab>(() =>
+    mapIntentTypeToTab(initialOutput?.intentType),
   );
+
+  const expenseForm = useForm<TransactionExpenseFormInput, unknown, TransactionFormOutput>({
+    resolver: zodResolver(TransactionExpenseFormSchema),
+    mode: 'onTouched',
+    defaultValues: defaultValues.expense,
+  });
+
+  const incomeForm = useForm<TransactionIncomeFormInput, unknown, TransactionFormOutput>({
+    resolver: zodResolver(TransactionIncomeFormSchema),
+    mode: 'onTouched',
+    defaultValues: defaultValues.income,
+  });
+
+  const investmentForm = useForm<TransactionInvestmentFormInput, unknown, TransactionFormOutput>({
+    resolver: zodResolver(TransactionInvestmentFormSchema),
+    mode: 'onTouched',
+    defaultValues: defaultValues.investment,
+  });
+
+  const financingForm = useForm<TransactionFinancingFormInput, unknown, TransactionFormOutput>({
+    resolver: zodResolver(TransactionFinancingFormSchema),
+    mode: 'onTouched',
+    defaultValues: defaultValues.financing,
+  });
+
+  const advancedForm = useForm<TransactionAdvancedFormInput, unknown, TransactionFormOutput>({
+    resolver: zodResolver(TransactionAdvancedFormSchema),
+    mode: 'onTouched',
+    defaultValues: defaultValues.advanced,
+  });
+
+  const expenseValues = useWatch({ control: expenseForm.control });
+  const incomeValues = useWatch({ control: incomeForm.control });
+  const investmentValues = useWatch({ control: investmentForm.control });
+  const financingValues = useWatch({ control: financingForm.control });
+  const advancedValues = useWatch({ control: advancedForm.control });
+
+  // Derived preview: the active tab's values run through the same schema the
+  // resolver uses. It is never stored in RHF.
+  const preview = useMemo(() => {
+    switch (activeTab) {
+      case 'EXPENSE':
+        return parseOutput(TransactionExpenseFormSchema, expenseValues);
+      case 'INCOME':
+        return parseOutput(TransactionIncomeFormSchema, incomeValues);
+      case 'INVESTMENT':
+        return parseOutput(TransactionInvestmentFormSchema, investmentValues);
+      case 'FINANCING':
+        return parseOutput(TransactionFinancingFormSchema, financingValues);
+      case 'ADVANCED':
+        return parseOutput(TransactionAdvancedFormSchema, advancedValues);
+    }
+  }, [activeTab, expenseValues, incomeValues, investmentValues, financingValues, advancedValues]);
 
   const previewDetails = useMemo(
     () =>
@@ -291,29 +177,86 @@ export const useTransactionFormState = ({
     ],
   );
 
+  const incomeLedgerCode = useWatch({ control: incomeForm.control, name: 'ledgerCode' });
+
+  // Selecting an income ledger code pulls its saved allocation template into the
+  // draft. The write-back is async, so it is not a synchronous set-state-in-effect.
+  useEffect(() => {
+    if (activeTab !== 'INCOME') return;
+
+    if (!incomeLedgerCode) {
+      const clearIncomeAllocation = async () => {
+        incomeForm.setValue('triggerAllocation', false);
+        incomeForm.setValue('allocationItems', []);
+      };
+
+      void clearIncomeAllocation();
+      return;
+    }
+
+    let cancelled = false;
+
+    const applyTemplate = async () => {
+      const templateItems = (await loadIncomeAllocationTemplate?.(incomeLedgerCode)) ?? null;
+      if (cancelled) return;
+      if (incomeForm.getValues('ledgerCode') !== incomeLedgerCode) return;
+
+      const projectIds = new Set(projects.map((project) => project.id));
+      const nextItems = (templateItems ?? [])
+        .filter((item) => projectIds.has(item.projectId))
+        .map((item) => ({
+          projectId: item.projectId,
+          percentage: item.percentage.toString(),
+        }));
+
+      incomeForm.setValue('triggerAllocation', nextItems.length > 0);
+      incomeForm.setValue('allocationItems', nextItems);
+    };
+
+    void applyTemplate();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activeTab, incomeForm, incomeLedgerCode, loadIncomeAllocationTemplate, projects]);
+
+  // Each panel submits through its own form; the explicit schema parse inside is
+  // the tab-level gate before the numeric VM gate runs.
+  const submitByTab: Record<TransactionFormTab, () => Promise<void>> = useMemo(
+    () => ({
+      EXPENSE: expenseForm.handleSubmit(() =>
+        onSubmit(TransactionExpenseFormSchema.parse(expenseForm.getValues())),
+      ),
+      INCOME: incomeForm.handleSubmit(() =>
+        onSubmit(TransactionIncomeFormSchema.parse(incomeForm.getValues())),
+      ),
+      INVESTMENT: investmentForm.handleSubmit(() =>
+        onSubmit(TransactionInvestmentFormSchema.parse(investmentForm.getValues())),
+      ),
+      FINANCING: financingForm.handleSubmit(() =>
+        onSubmit(TransactionFinancingFormSchema.parse(financingForm.getValues())),
+      ),
+      ADVANCED: advancedForm.handleSubmit(() =>
+        onSubmit(TransactionAdvancedFormSchema.parse(advancedForm.getValues())),
+      ),
+    }),
+    [advancedForm, expenseForm, financingForm, incomeForm, investmentForm, onSubmit],
+  );
+
+  const submit = () => {
+    void submitByTab[activeTab]();
+  };
+
   return {
-    state: {
-      activeTab,
-      expense,
-      income,
-      investment,
-      financing,
-      advanced,
-    },
-    setters: {
-      setActiveTab,
-      setExpense,
-      setIncome,
-      setInvestment,
-      setFinancing,
-      setAdvanced,
-    },
-    derived: {
-      preview,
-      previewDetails,
-    },
-    actions: {
-      resetAll,
-    },
+    activeTab,
+    setActiveTab,
+    expenseForm,
+    incomeForm,
+    investmentForm,
+    financingForm,
+    advancedForm,
+    preview,
+    previewDetails,
+    submit,
   };
 };

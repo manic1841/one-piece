@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { optionalNumber, requiredNumber } from './coerce';
+import { optionalNumber, optionalText, requiredNumber } from './coerce';
 
 describe('requiredNumber', () => {
   it('coerces a numeric string to a number', () => {
@@ -45,5 +45,16 @@ describe('optionalNumber', () => {
 
   it('still rejects a non-numeric non-blank value', () => {
     expect(optionalNumber().safeParse('abc').success).toBe(false);
+  });
+});
+
+describe('optionalText', () => {
+  it('treats an empty input as missing, not an empty string', () => {
+    expect(optionalText().parse('')).toBeUndefined();
+  });
+
+  it('keeps a provided value, including surrounding whitespace', () => {
+    expect(optionalText().parse('Lunch')).toBe('Lunch');
+    expect(optionalText().parse('  Lunch  ')).toBe('  Lunch  ');
   });
 });

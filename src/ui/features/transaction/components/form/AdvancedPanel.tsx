@@ -1,26 +1,21 @@
-import { Label } from '@/ui/components/ui/label';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/ui/components/ui/select';
-import { Textarea } from '@/ui/components/ui/textarea';
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+  SelectField,
+  TextArea,
+} from '@/ui/components/form';
 import { type LedgerCodeItem } from '@/ui/features/ledger/hooks/useLedgerCodes';
-import {
-  type AdvancedFormState,
-  type TransactionFormProjectOption,
-} from '@/ui/features/transaction/types/transaction';
+import { type TransactionFormProjectOption } from '@/ui/features/transaction/types/transaction';
 
 import { AmountDateFields } from './AmountDateFields';
-import { ChipGroup } from './ChipGroup';
+import { FormChipGroup } from './ChipGroup';
 
 type AdvancedPanelProps = {
-  state: AdvancedFormState;
   projects: TransactionFormProjectOption[];
   allLedgerCodes: LedgerCodeItem[];
-  onChange: (next: AdvancedFormState) => void;
 };
 
 const toProjectOptions = (projects: TransactionFormProjectOption[]) =>
@@ -29,74 +24,54 @@ const toProjectOptions = (projects: TransactionFormProjectOption[]) =>
     label: `${project.name}`,
   }));
 
-export function AdvancedPanel({ state, projects, allLedgerCodes, onChange }: AdvancedPanelProps) {
+const INTENT_TYPE_OPTIONS = [{ value: 'MANUAL', label: 'MANUAL' }];
+
+export function AdvancedPanel({ projects, allLedgerCodes }: AdvancedPanelProps) {
   return (
     <div className="space-y-5 rounded-lg border border-border bg-card p-5">
-      <AmountDateFields
-        amountId="advanced-amount"
-        dateId="advanced-date"
-        amount={state.amount}
-        date={state.date}
-        onAmountChange={(amount) => onChange({ ...state, amount })}
-        onDateChange={(date) => onChange({ ...state, date })}
-      />
+      <AmountDateFields />
       <div className="grid gap-4 md:grid-cols-2">
-        <div className="space-y-2">
-          <Label>Intent Type</Label>
-          <Select
-            value={state.intentType}
-            onValueChange={(intentType) =>
-              onChange({
-                ...state,
-                intentType: intentType as AdvancedFormState['intentType'],
-              })
-            }
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="選擇進階意圖" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="MANUAL">MANUAL</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="space-y-2">
-          <Label>專案 (選填)</Label>
-          <ChipGroup
-            options={toProjectOptions(projects)}
-            value={state.projectId}
-            onChange={(projectId) => onChange({ ...state, projectId })}
-            tone="neutral"
-          />
-        </div>
+        <FormField name="intentType">
+          <FormItem>
+            <FormLabel>Intent Type</FormLabel>
+            <FormControl>
+              <SelectField options={INTENT_TYPE_OPTIONS} placeholder="選擇進階意圖" />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        </FormField>
+        <FormField name="projectId">
+          <FormItem>
+            <FormLabel>專案 (選填)</FormLabel>
+            <FormChipGroup options={toProjectOptions(projects)} tone="neutral" />
+            <FormMessage />
+          </FormItem>
+        </FormField>
       </div>
-      <div className="space-y-2">
-        <Label>科目 / 類別</Label>
-        <Select
-          value={state.ledgerCode ?? undefined}
-          onValueChange={(ledgerCode) => onChange({ ...state, ledgerCode })}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="選擇會計科目..." />
-          </SelectTrigger>
-          <SelectContent>
-            {allLedgerCodes.map((opt) => (
-              <SelectItem key={opt.code} value={opt.code}>
-                {opt.label} ({opt.code})
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-      <div className="space-y-2">
-        <Label htmlFor="advanced-description">說明</Label>
-        <Textarea
-          id="advanced-description"
-          value={state.description}
-          onChange={(event) => onChange({ ...state, description: event.target.value })}
-          placeholder="補充分錄背景"
-        />
-      </div>
+      <FormField name="ledgerCode">
+        <FormItem>
+          <FormLabel required>科目 / 類別</FormLabel>
+          <FormControl>
+            <SelectField
+              options={allLedgerCodes.map((option) => ({
+                value: option.code,
+                label: `${option.label} (${option.code})`,
+              }))}
+              placeholder="選擇會計科目..."
+            />
+          </FormControl>
+          <FormMessage />
+        </FormItem>
+      </FormField>
+      <FormField name="description">
+        <FormItem>
+          <FormLabel>說明</FormLabel>
+          <FormControl>
+            <TextArea placeholder="補充分錄背景" />
+          </FormControl>
+          <FormMessage />
+        </FormItem>
+      </FormField>
     </div>
   );
 }

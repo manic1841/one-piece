@@ -30,3 +30,11 @@ export const optionalNumber = (message = '請輸入有效數字') =>
     .refine((value) => value === '' || Number.isFinite(Number(value)), { error: message })
     .transform((value) => (value === '' ? undefined : Number(value)))
     .optional();
+
+/**
+ * Text that may be absent. An empty input becomes `undefined` (missing), not
+ * `''`, so downstream `??`/`||` fallbacks and optional payload fields behave the
+ * same as when the caller omitted the key. Whitespace is preserved.
+ */
+export const optionalText = () =>
+  z.string().transform((value) => (value === '' ? undefined : value));

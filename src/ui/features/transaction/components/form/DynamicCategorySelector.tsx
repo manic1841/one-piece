@@ -1,50 +1,50 @@
-import { Label } from '@/ui/components/ui/label';
+import { useFormContext, useWatch } from 'react-hook-form';
+
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/ui/components/ui/select';
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+  SelectField,
+} from '@/ui/components/form';
+import { type LedgerCodeItem } from '@/ui/features/ledger/hooks/useLedgerCodes';
 import { DEFAULT_INTENT_MAPPINGS } from '@/ui/features/transaction/viewmodels/transaction.vm';
 import { buildUserSelectOptions } from '@/ui/features/transaction/viewmodels/userSelectOptions';
-import { type LedgerCodeItem } from '@/ui/features/ledger/hooks/useLedgerCodes';
 
 type DynamicCategorySelectorProps = {
-  intent: string | null;
-  ledgerCode: string | null;
   allLedgerCodes: LedgerCodeItem[];
-  onChange: (ledgerCode: string) => void;
 };
 
-export function DynamicCategorySelector({
-  intent,
-  ledgerCode,
-  allLedgerCodes,
-  onChange,
-}: DynamicCategorySelectorProps) {
+/**
+ * Renders the user-selectable detail codes for the currently chosen category.
+ * It reads `intent` and binds `ledgerCode`, both through the surrounding form
+ * context, so it disappears when the category has no user-selectable options.
+ */
+export function DynamicCategorySelector({ allLedgerCodes }: DynamicCategorySelectorProps) {
+  const { control } = useFormContext();
+  const intent = useWatch({ control, name: 'intent' });
+
   const mapping = DEFAULT_INTENT_MAPPINGS.find((m) => m.intent === intent);
   const options = buildUserSelectOptions(mapping, allLedgerCodes);
 
   if (!options) return null;
 
   return (
-    <div className="space-y-2 mt-4 p-3 bg-muted rounded-lg border border-border">
-      <Label className="text-xs text-muted-foreground uppercase tracking-wider font-bold">
-        屬性 / 詳細類別
-      </Label>
-      <Select value={ledgerCode ?? undefined} onValueChange={onChange}>
-        <SelectTrigger className="bg-card">
-          <SelectValue placeholder="選擇具體項目..." />
-        </SelectTrigger>
-        <SelectContent>
-          {options.map((opt) => (
-            <SelectItem key={opt.code} value={opt.code}>
-              {opt.label}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-    </div>
+    <FormField name="ledgerCode">
+      <FormItem className="mt-4 rounded-lg border border-border bg-muted p-3">
+        <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+          屬性 / 詳細類別
+        </FormLabel>
+        <FormControl>
+          <SelectField
+            options={options.map((option) => ({ value: option.code, label: option.label }))}
+            placeholder="選擇具體項目..."
+            className="bg-card"
+          />
+        </FormControl>
+        <FormMessage />
+      </FormItem>
+    </FormField>
   );
 }
