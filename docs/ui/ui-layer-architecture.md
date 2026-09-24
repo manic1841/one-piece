@@ -85,7 +85,12 @@ between domain/application shapes and components.
     `initError`/`loading`, see §5.1).
 11. **Composition Root**: `src/App.tsx` is the only file outside `src/ui` allowed to straddle layers — it injects the
     infra auth gateway into the UI provider. Everything else at the top of `src/` is subject to the same bans as
-    Surface. Enforced by `src/ui/layer-boundary.test.ts`.
+    Surface.
+
+**Violations are managed by an allowlist that only shrinks.** `src/ui/layer-boundary.test.ts` scans `src/ui/**` and
+top-level `src/` imports, resolves each specifier to a path, and validates the rules above. Existing violations are
+listed in an allowlist, and the test requires **set equality in both directions** — fixing a file means deleting its
+entry, and a stale entry fails just the same.
 
 ---
 
@@ -197,6 +202,8 @@ Use Case
 啟動期不可回復的失敗（如認證後端不可達）由 infra **以資料形式**回報，不自行 render UI。
 資料分兩段，職責各在一層：
 
+- **埠由 domain 宣告**：`AuthUser`（`{ uid, email }`）與 `AuthGateway` 契約住 `src/domains/auth`；infra 只實作
+  gateway，Firebase 型別全部關在那一個檔內。UI 因此完全不必知道 Firebase 型別。
 - **infra 只給錯誤碼**：`AuthInitErrorCode | null` 經 `AuthGateway` 的訂閱回呼送上來。值域是**單一宣告**
   （`src/domains/auth/authInitError.ts`），infra 與 UI 都由此 import；infra 不含任何顯示文字。
 - **文案住 `constants`**：`ui/constants/app/startupFailure.ts` 的 `STARTUP_FAILURE_COPY` 是唯一的「錯誤碼 → 文字」
