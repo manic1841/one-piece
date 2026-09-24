@@ -12,6 +12,8 @@ import {
 } from '@/domains/financial_period/schemas';
 import { type NextMonthDebtDueResult } from '@/application/debt/use_cases/getNextMonthDebtDueUseCase';
 
+export type { NextMonthDebtDueResult };
+
 export interface DashboardCloseStatusVM {
   periodText: string;
   glyphType: StatusGlyphType;

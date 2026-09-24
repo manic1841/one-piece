@@ -2,8 +2,7 @@ import React from 'react';
 
 import { Plus, Trash2 } from 'lucide-react';
 
-import type { AccountBalanceInput } from '@/application/monthly_close/use_cases/monthlyCloseWorkflowUseCase';
-import type { Account, Holding } from '@/domains/account/types/account';
+import type { Account, AccountBalanceInput, Holding } from '../viewmodels/accountBalance.vm';
 
 import {
   DataTable,

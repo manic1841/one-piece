@@ -2,6 +2,8 @@ import { formatCurrency } from '@/ui/utils';
 
 import type { DashboardCashFlowPoint } from '@/application/dashboard/use_cases/getDashboardOverviewUseCase';
 
+export type { DashboardCashFlowPoint };
+
 export interface DashboardCashFlowChartPointVM {
   label: string;
   value: number | null;

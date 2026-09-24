@@ -6,8 +6,10 @@ import { mapNextMonthDueText } from '@/ui/features/dashboard/viewmodels/dashboar
 import { StatusGlyph } from '@/ui/components/StatusGlyph';
 import { ChevronRight } from 'lucide-react';
 
-import type { NextMonthDebtDueResult } from '@/application/debt/use_cases/getNextMonthDebtDueUseCase';
-import type { DashboardCloseStatusVM } from '@/ui/features/dashboard/viewmodels/dashboardCloseStatus.vm';
+import type {
+  DashboardCloseStatusVM,
+  NextMonthDebtDueResult,
+} from '@/ui/features/dashboard/viewmodels/dashboardCloseStatus.vm';
 
 interface MonthlyCloseCardProps {
   vm: DashboardCloseStatusVM | null;

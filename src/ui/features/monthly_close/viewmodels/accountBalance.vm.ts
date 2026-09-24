@@ -1,5 +1,8 @@
 import type { AccountBalanceInput } from '@/application/monthly_close/use_cases/monthlyCloseWorkflowUseCase';
 import type { Account, AccountSnapshot, Holding } from '@/domains/account/types/account';
+import type { CurrencyCode } from '@/domains/exchange_rate/types';
+
+export type { Account, AccountSnapshot, AccountBalanceInput, CurrencyCode, Holding };
 
 export type AccountBalanceSectionKind = 'twd' | 'foreign' | 'securities';
 
@@ -90,5 +93,3 @@ export const upsertSectionInput = (
   }
   return [...inputs.filter((item) => item.accountId !== next.accountId), { ...base }];
 };
-
-export type { Holding };

@@ -1,9 +1,12 @@
 import React, { useEffect, useState } from 'react';
 
-import type { AccountBalanceInput } from '@/application/monthly_close/use_cases/monthlyCloseWorkflowUseCase';
-import type { Account, AccountSnapshot, Holding } from '@/domains/account/types/account';
-import { type CurrencyCode } from '@/domains/exchange_rate/types';
-
+import type {
+  Account,
+  AccountBalanceInput,
+  AccountSnapshot,
+  CurrencyCode,
+  Holding,
+} from '../viewmodels/accountBalance.vm';
 import {
   DataTable,
   DataTableColGroup,

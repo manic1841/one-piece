@@ -1,8 +1,7 @@
 import React from 'react';
 
 import { DASHBOARD_AL_LABELS } from '@/ui/constants/dashboard/assetsLiabilitiesLabels';
-
-import type { DashboardComposition } from '@/application/dashboard/use_cases/getDashboardOverviewUseCase';
+import type { DashboardComposition } from '@/ui/features/dashboard/viewmodels/dashboardHero.vm';
 
 const ASSET_BAR_CLASS: Record<string, string> = {
   cash: 'bg-chart-1',

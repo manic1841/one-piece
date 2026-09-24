@@ -2,6 +2,8 @@ import { formatCurrency, formatYearMonth } from '@/ui/utils';
 
 import type { DashboardOverview, DashboardNetWorthPoint } from '@/application/dashboard/use_cases/getDashboardOverviewUseCase';
 
+export type { DashboardComposition } from '@/application/dashboard/use_cases/getDashboardOverviewUseCase';
+
 export interface NetWorthSparklinePointVM {
   x: number;
   y: number;

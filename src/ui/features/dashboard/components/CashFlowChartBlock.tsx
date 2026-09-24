@@ -2,8 +2,7 @@ import React from 'react';
 
 import { DASHBOARD_CASHFLOW_LABELS } from '@/ui/constants/dashboard/cashFlowLabels';
 import { mapCashFlowSeriesToChartVM } from '@/ui/features/dashboard/viewmodels/dashboardCashFlowChart.vm';
-
-import type { DashboardCashFlowPoint } from '@/application/dashboard/use_cases/getDashboardOverviewUseCase';
+import type { DashboardCashFlowPoint } from '@/ui/features/dashboard/viewmodels/dashboardCashFlowChart.vm';
 
 const CHART_WIDTH = 640;
 const CHART_HEIGHT = 140;

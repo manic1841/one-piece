@@ -2,6 +2,12 @@ import { z } from 'zod';
 
 import { type CloseStageId, type FinancialPeriod } from '@/domains/financial_period/schemas';
 
+export type {
+  DebtRepaymentInput,
+  FinancingInput,
+  SecuritiesTradeInput,
+} from '@/application/monthly_close/use_cases/monthlyCloseWorkflowUseCase';
+
 export interface CloseStageEvidence {
   kind: 'TRANSACTION_VALIDATION' | 'COMPLETENESS_ANOMALIES' | 'CASH_FLOW_ADJUSTMENTS' | 'REPORT_PERSISTENCE' | 'NONE';
   transactionIssues: { transactionId: string; description: string; reason: string }[];

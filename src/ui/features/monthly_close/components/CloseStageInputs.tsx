@@ -1,6 +1,8 @@
 import React from 'react';
 
-import { MONTHLY_CLOSE_LABELS } from '@/ui/constants/monthlyClose';
+import {
+  MONTHLY_CLOSE_LABELS,
+} from '@/ui/constants/monthlyClose';
 import { Input } from '@/ui/components/ui/input';
 import { Label } from '@/ui/components/ui/label';
 
@@ -8,7 +10,7 @@ import type {
   DebtRepaymentInput,
   FinancingInput,
   SecuritiesTradeInput,
-} from '@/application/monthly_close/use_cases/monthlyCloseWorkflowUseCase';
+} from '../viewmodels/monthlyClose.vm';
 
 /** Mid-month date inside the closing period; close-input events must land in the closed month. */
 const closeMonthDate = (yearMonth: string): Date => new Date(Number(yearMonth.slice(0, 4)), Number(yearMonth.slice(5, 7)) - 1, 15);

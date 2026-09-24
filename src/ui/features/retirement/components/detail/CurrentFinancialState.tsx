@@ -2,7 +2,7 @@ import React from 'react';
 
 import { Link } from 'react-router-dom';
 
-import { type StartingNetWorthSource } from '@/application/retirement/use_cases/getStartingNetWorthUseCase';
+import { type StartingNetWorthSource } from '@/ui/features/retirement/viewmodels/retirementDisplay.vm';
 import { Button } from '@/ui/components/ui/button';
 import { formatCurrency } from '@/ui/utils';
 

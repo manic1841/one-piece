@@ -10,6 +10,8 @@ import {
 } from '@/domains/retirement/types';
 import { formatCurrency } from '@/ui/utils';
 
+export type { StartingNetWorthSource } from '@/application/retirement/use_cases/getStartingNetWorthUseCase';
+
 export interface RetirementPlanListItemVM {
   id: string;
   name: string;
