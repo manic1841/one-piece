@@ -87,10 +87,10 @@ between domain/application shapes and components.
     infra auth gateway into the UI provider. Everything else at the top of `src/` is subject to the same bans as
     Surface.
 
-**Violations are managed by an allowlist that only shrinks.** `src/ui/layer-boundary.test.ts` scans `src/ui/**` and
-top-level `src/` imports, resolves each specifier to a path, and validates the rules above. Existing violations are
-listed in an allowlist, and the test requires **set equality in both directions** — fixing a file means deleting its
-entry, and a stale entry fails just the same.
+**The Surface import ban has no exception.** `src/ui/layer-boundary.test.ts` scans `src/ui/**` and top-level `src/`
+imports, resolves each specifier to a path, and validates the rules above. Surface violations were graduated down
+through an allowlist that only ever shrank; it reached zero in issue #179 and the allowlist was deleted with it, so
+the check is now absolute.
 
 **What the test does not enforce.** The test covers the *import* dimension only — which module a file may reach. The
 rest of the tier contract (who owns state, where a `useForm` call site lives, whether a page orchestrates use cases)

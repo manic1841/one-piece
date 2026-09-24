@@ -27,7 +27,7 @@ feature 的 ViewModel。規範性細節（層級表、目錄、依賴方向、�
 
 ## Consequences
 
-- 既有違規以 allowlist 管理並逐步清空；遷移追蹤於對應的實作 issue，清單不進本 ADR。
+- 遷移是漸進的：既有違規曾以只減不增的 allowlist 管理，於 issue #179 清空後連同 allowlist 一起移除。
 - 規範性細節以 `docs/ui/ui-layer-architecture.md` 為唯一來源，本 ADR 不重述。
 
 ## Revisit When

@@ -79,12 +79,6 @@ const BEHAVIOUR_ROOTS = [path.join(SRC_DIR, 'application'), path.join(SRC_DIR, '
 /** `features/<name>/<tier>/…` — how far `<tier>` sits past the `features` segment. */
 const FEATURE_TIER_OFFSET = 2;
 
-/**
- * Existing Surface violations (issue #179). One entry per file; **fix a file → delete its entry**.
- * The rule is set equality in both directions, so a stale entry fails the suite too.
- */
-const SURFACE_ALLOWLIST = new Set<string>([]);
-
 const collectSourceFiles = (dir: string): string[] => {
   return readdirSync(dir).flatMap((entry) => {
     const entryPath = path.join(dir, entry);
@@ -195,16 +189,8 @@ describe('UI layer boundary contract (issue #178, ADR-0062)', () => {
     expect(resolveSpecifier('react', file)).toBeNull();
   });
 
-  it('introduces no new Surface → domain / application / infra imports', () => {
-    const unexpected = new Set([...surfaceViolations].filter((file) => !SURFACE_ALLOWLIST.has(file)));
-    expect(unexpected, report('New Surface violations', unexpected)).toEqual(new Set());
-  });
-
-  it('keeps no stale allowlist entry (fix a file → delete its entry)', () => {
-    const stale = new Set([...SURFACE_ALLOWLIST].filter((file) => !surfaceViolations.has(file)));
-    expect(stale, report('Stale allowlist entries (file is clean — remove its entry)', stale)).toEqual(
-      new Set(),
-    );
+  it('keeps Surface off domain, application, infra and the Firebase SDK', () => {
+    expect(surfaceViolations, report('Surface violations', surfaceViolations)).toEqual(new Set());
   });
 
   it('keeps Controllers off repositories, Firestore and infra (no exception)', () => {
