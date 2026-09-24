@@ -2,9 +2,9 @@ import { useEffect, useState } from 'react';
 
 import { Calendar, ReceiptText } from 'lucide-react';
 
-import { type Transaction } from '@/domains/ledger/schemas';
 import {
   type DebtPaymentHistoryItemVM,
+  type Transaction,
   mapDebtPaymentTransactionToHistoryVM,
 } from '@/ui/features/debt/viewmodels/debtDisplay.vm';
 

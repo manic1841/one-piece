@@ -84,36 +84,12 @@ const FEATURE_TIER_OFFSET = 2;
  * The rule is set equality in both directions, so a stale entry fails the suite too.
  */
 const SURFACE_ALLOWLIST = new Set([
-  'src/ui/features/account/components/detail/AccountHistoryDialog.tsx',
-  'src/ui/features/account/components/detail/AccountSnapshotTable.tsx',
-  'src/ui/features/account/components/form/AccountHolding.tsx',
   'src/ui/features/account/pages/AccountDetailPage.tsx',
   // Still direct-imports `firebase/firestore`; removing that is issue #179's scope, not #177's.
   'src/ui/features/auth/pages/LoginPage.tsx',
-  'src/ui/features/debt/components/DebtPaymentHistory.tsx',
-  'src/ui/features/debt/components/detail/DebtSnapshotTable.tsx',
   'src/ui/features/debt/pages/DebtDetailPage.tsx',
-  'src/ui/features/debt/pages/DebtListPage.tsx',
   'src/ui/features/monthly_close/pages/MonthlyClosePage.tsx',
-  'src/ui/features/portfolio/components/PortfolioDetail.tsx',
-  'src/ui/features/portfolio/components/PortfolioList.tsx',
-  'src/ui/features/portfolio/components/PortfolioSnapshotForm.tsx',
-  'src/ui/features/portfolio/components/detail/PortfolioHistoryTable.tsx',
-  'src/ui/features/portfolio/components/detail/PortfolioPerformanceCards.tsx',
-  'src/ui/features/portfolio/components/snapshot/AccountSnapshotList.tsx',
-  'src/ui/features/portfolio/components/snapshot/PerformancePreview.tsx',
-  'src/ui/features/project/components/ProjectForm.tsx',
   'src/ui/features/project/pages/ProjectDetailPage.tsx',
-  'src/ui/features/project/pages/ProjectsPage.tsx',
-  'src/ui/features/retirement/components/AssumptionsForm.tsx',
-  'src/ui/features/retirement/components/EventDialog.tsx',
-  'src/ui/features/retirement/components/ExpenseDialog.tsx',
-  'src/ui/features/retirement/components/IncomeDialog.tsx',
-  'src/ui/features/retirement/components/detail/EventTabContent.tsx',
-  'src/ui/features/retirement/components/detail/ExpenseTabContent.tsx',
-  'src/ui/features/retirement/components/detail/IncomeTabContent.tsx',
-  'src/ui/features/setting/components/SettingsUI.tsx',
-  'src/ui/features/transaction/components/form/TransactionForm.tsx',
   'src/ui/features/transaction/components/form/userSelectOptions.ts',
 ]);
 

@@ -3,7 +3,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Plus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
-import { type PortfolioSnapshot } from '@/domains/portfolio/types/portfolio';
+import { type PortfolioSnapshot } from '@/ui/features/portfolio/viewmodels/portfolioDisplay.vm';
 import { useAuthIdentity } from '@/ui/hooks/useAuthIdentity';
 import { useAccounts } from '@/ui/features/account/hooks/useAccounts';
 import { PageHeader } from '@/ui/components/PageHeader';

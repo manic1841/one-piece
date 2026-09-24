@@ -5,7 +5,15 @@ import {
   type RetirementExpenseCategory,
   type RetirementIncomeSource,
   type RetirementOneTimeEvent,
+  type RetirementPlanCreate,
 } from '@/domains/retirement/types';
+
+export type {
+  RetirementExpenseCategory,
+  RetirementIncomeSource,
+  RetirementOneTimeEvent,
+  RetirementPlanCreate,
+};
 
 const currentYear = () => new Date().getFullYear();
 

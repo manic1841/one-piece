@@ -7,7 +7,7 @@ import {
   SlidersHorizontal,
 } from 'lucide-react';
 
-import { type DebtAccount } from '@/domains/debt/schemas';
+import { type DebtAccount } from '@/ui/features/transaction/viewmodels/transaction.vm';
 import { Badge } from '@/ui/components/ui/badge';
 import { Button } from '@/ui/components/ui/button';
 import {

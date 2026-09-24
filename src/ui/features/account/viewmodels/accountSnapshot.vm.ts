@@ -3,6 +3,8 @@ import { z } from 'zod';
 import { HoldingSchema } from '@/domains/account/types/account';
 import { type AccountSnapshotCreate } from '@/domains/account/types/account';
 
+export type { AccountSnapshot, Holding } from '@/domains/account/types/account';
+
 export const AccountSnapshotFormSchema = z.object({
   year: z.number().int().min(2000, '年份需介於 2000 到 2100').max(2100, '年份需介於 2000 到 2100'),
   month: z.number().int().min(1, '月份需介於 1 到 12').max(12, '月份需介於 1 到 12'),

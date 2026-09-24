@@ -1,6 +1,8 @@
 import { type Portfolio, type PortfolioSnapshot } from '@/domains/portfolio/types/portfolio';
 import { formatYearMonth } from '@/ui/utils';
 
+export type { Portfolio, PortfolioSnapshot };
+
 export interface PortfolioListItemVM {
   id: string;
   name: string;

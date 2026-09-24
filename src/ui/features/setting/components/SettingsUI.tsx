@@ -2,7 +2,7 @@ import React from 'react';
 
 import { Database, Download, ShieldAlert } from 'lucide-react';
 
-import { type Household } from '@/domains/household/schemas';
+import { type Household } from '@/ui/features/setting/viewmodels/setting.vm';
 import { PageHeader } from '@/ui/components/PageHeader';
 import { Button } from '@/ui/components/ui/button';
 import { Card, CardContent } from '@/ui/components/ui/card';

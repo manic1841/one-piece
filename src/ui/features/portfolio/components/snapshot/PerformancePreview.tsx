@@ -1,6 +1,6 @@
 import React from 'react';
 
-import { type PortfolioSnapshotCreate } from '@/domains/portfolio/types/portfolio';
+import { type PortfolioSnapshotCreate } from '@/ui/features/portfolio/viewmodels/portfolioForm.vm';
 import { Label } from '@/ui/components/ui/label';
 
 interface PerformancePreviewProps {

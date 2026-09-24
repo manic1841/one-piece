@@ -1,7 +1,6 @@
 import { ChevronDown, Plus } from 'lucide-react';
 import { useState } from 'react';
 
-import { type RetirementIncomeSource } from '@/domains/retirement/types';
 import { Button } from '@/ui/components/ui/button';
 import {
   Dialog,
@@ -14,6 +13,7 @@ import {
 } from '@/ui/components/ui/dialog';
 import { Input } from '@/ui/components/ui/input';
 import { Label } from '@/ui/components/ui/label';
+import type { RetirementIncomeSource } from '@/ui/features/retirement/viewmodels/retirementForm.vm';
 import {
   Select,
   SelectContent,

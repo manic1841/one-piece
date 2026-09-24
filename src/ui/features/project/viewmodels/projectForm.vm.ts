@@ -1,6 +1,8 @@
 import { z } from 'zod';
 
-import { type ProjectCreate } from '@/domains/project/schemas';
+import { type Project, type ProjectCreate } from '@/domains/project/schemas';
+
+export type { Project };
 
 export const ProjectFormSchema = z.object({
   name: z.string().min(1, '專案名稱不能為空'),

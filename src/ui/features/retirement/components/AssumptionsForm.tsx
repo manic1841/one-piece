@@ -1,12 +1,12 @@
 import { useState } from 'react';
 
-import type { RetirementPlanCreate } from '@/domains/retirement/types';
 import { Button } from '@/ui/components/ui/button';
 import { Input } from '@/ui/components/ui/input';
 import { Label } from '@/ui/components/ui/label';
 import { type RetirementAssumptionsDisplayVM } from '@/ui/features/retirement/viewmodels/retirementDisplay.vm';
 import {
   type RetirementAssumptionsFormVM,
+  type RetirementPlanCreate,
   RetirementAssumptionsFormVMSchema,
 } from '@/ui/features/retirement/viewmodels/retirementForm.vm';
 

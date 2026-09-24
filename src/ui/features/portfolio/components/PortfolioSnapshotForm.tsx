@@ -1,6 +1,5 @@
 import React from 'react';
 
-import { type Portfolio } from '@/domains/portfolio/types';
 import { Button } from '@/ui/components/ui/button';
 import {
   Dialog,
@@ -9,7 +8,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/ui/components/ui/dialog';
-import { type PortfolioSnapshotFormVM } from '@/ui/features/portfolio/viewmodels/portfolioForm.vm';
+import {
+  type Portfolio,
+  type PortfolioSnapshotFormVM,
+} from '@/ui/features/portfolio/viewmodels/portfolioForm.vm';
 
 import { usePortfolioSnapshotForm } from '../hooks/usePortfolioSnapshotForm';
 import { AccountSnapshotList } from './snapshot/AccountSnapshotList';

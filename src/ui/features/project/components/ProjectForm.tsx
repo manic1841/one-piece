@@ -1,6 +1,6 @@
 import React from 'react';
 
-import { type Project } from '@/domains/project/schemas';
+import { type Project } from '@/ui/features/project/viewmodels/projectForm.vm';
 import { Button } from '@/ui/components/ui/button';
 import {
   Dialog,

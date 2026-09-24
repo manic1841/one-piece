@@ -2,10 +2,12 @@ import React from 'react';
 
 import { Pencil, Trash2 } from 'lucide-react';
 
-import { type RetirementIncomeSource } from '@/domains/retirement/types';
 import { RetirementWorkspaceTermLabels } from '@/ui/constants/retirement/retirementWorkspaceLabels';
 import { Button } from '@/ui/components/ui/button';
-import { type RetirementIncomeItemVM } from '@/ui/features/retirement/viewmodels/retirementDisplay.vm';
+import {
+  type RetirementIncomeItemVM,
+  type RetirementIncomeSource,
+} from '@/ui/features/retirement/viewmodels/retirementDisplay.vm';
 
 import RetirementIncomeDialog from '../IncomeDialog';
 

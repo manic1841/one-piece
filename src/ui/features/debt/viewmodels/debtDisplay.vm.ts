@@ -2,11 +2,11 @@ import {
   calculateGraceMonthlyPayment,
   isInGracePeriod,
 } from '@/domains/debt/debtPaymentCalculator';
-import { type DebtAccount, type DebtType } from '@/domains/debt/schemas';
+import { type DebtAccount, type DebtSnapshot, type DebtType } from '@/domains/debt/schemas';
 import { type Transaction } from '@/domains/ledger/schemas';
 import { DebtTypeLabels } from '@/ui/constants/debt/label';
 
-export type { DebtType };
+export type { DebtAccount, DebtSnapshot, DebtType, Transaction };
 
 const formatYmd = (date: Date): string => {
   const year = date.getFullYear();

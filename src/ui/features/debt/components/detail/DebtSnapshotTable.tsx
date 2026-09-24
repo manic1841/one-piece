@@ -8,7 +8,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/ui/components/ui/table';
-import { type DebtSnapshot } from '@/domains/debt/schemas';
+import { type DebtSnapshot } from '@/ui/features/debt/viewmodels/debtDisplay.vm';
 import { formatCurrency } from '@/ui/utils';
 
 interface DebtSnapshotTableProps {

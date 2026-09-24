@@ -1,7 +1,6 @@
 import { ChevronDown, Plus } from 'lucide-react';
 import { useState } from 'react';
 
-import type { RetirementExpenseCategory } from '@/domains/retirement/types';
 import { Button } from '@/ui/components/ui/button';
 import {
   Dialog,
@@ -15,6 +14,7 @@ import {
 import { Input } from '@/ui/components/ui/input';
 import { Label } from '@/ui/components/ui/label';
 import { RetirementExpenseDialogLabels } from '@/ui/constants/retirement/expenseDialogLabels';
+import type { RetirementExpenseCategory } from '@/ui/features/retirement/viewmodels/retirementForm.vm';
 
 import { useRetirementExpenseDialog } from '../hooks/useRetirementExpenseDialog';
 

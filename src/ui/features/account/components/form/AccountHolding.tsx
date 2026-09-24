@@ -2,7 +2,7 @@ import React from 'react';
 
 import { Plus, Trash2 } from 'lucide-react';
 
-import type { Holding } from '@/domains/account/types/account';
+import type { Holding } from '@/ui/features/account/viewmodels/accountSnapshot.vm';
 import { Button } from '@/ui/components/ui/button';
 import { Input } from '@/ui/components/ui/input';
 import { Label } from '@/ui/components/ui/label';

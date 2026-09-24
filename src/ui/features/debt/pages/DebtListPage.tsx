@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { Plus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
-import { type DebtAccount } from '@/domains/debt/schemas';
+import { type DebtAccount } from '@/ui/features/debt/viewmodels/debtDisplay.vm';
 import { useAuthState } from '@/ui/contexts/useAuthState';
 import CompactRow from '@/ui/components/CompactRow';
 import { StatusGlyph } from '@/ui/components/StatusGlyph';

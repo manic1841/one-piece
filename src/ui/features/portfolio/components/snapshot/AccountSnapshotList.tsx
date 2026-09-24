@@ -1,6 +1,10 @@
 import React from 'react';
 
-import { type Account, type AccountSnapshot, type Holding } from '@/domains/account/types/account';
+import {
+  type Account,
+  type AccountSnapshot,
+  type Holding,
+} from '@/ui/features/portfolio/viewmodels/portfolioForm.vm';
 
 interface AccountSnapshotListProps {
   accounts: Account[];

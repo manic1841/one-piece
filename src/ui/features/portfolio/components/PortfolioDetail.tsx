@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
-import { type Portfolio, type PortfolioSnapshot } from '@/domains/portfolio/types/portfolio';
+import { type Portfolio, type PortfolioSnapshot } from '@/ui/features/portfolio/viewmodels/portfolioDisplay.vm';
 import { useAccounts } from '@/ui/features/account/hooks/useAccounts';
 import { useAuthIdentity } from '@/ui/hooks/useAuthIdentity';
 import {

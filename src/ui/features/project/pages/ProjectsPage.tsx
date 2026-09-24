@@ -3,7 +3,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Plus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
-import { type Project } from '@/domains/project/schemas';
+import { type Project } from '@/ui/features/project/viewmodels/projectForm.vm';
 import { useAuthState } from '@/ui/contexts/useAuthState';
 import CompactRow from '@/ui/components/CompactRow';
 import { Button } from '@/ui/components/ui/button';

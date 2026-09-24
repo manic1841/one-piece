@@ -3,8 +3,12 @@ import { z } from 'zod';
 import { type Portfolio, type PortfolioCreate } from '@/domains/portfolio/types/portfolio';
 
 export { AccountCategory } from '@/domains/account/types/categories';
-export type { Account } from '@/domains/account/types/account';
-export type { Portfolio } from '@/domains/portfolio/types/portfolio';
+export type {
+  Account,
+  AccountSnapshot,
+  Holding,
+} from '@/domains/account/types/account';
+export type { Portfolio, PortfolioSnapshotCreate } from '@/domains/portfolio/types/portfolio';
 
 export const PortfolioFormVMSchema = z.object({
   name: z.string().trim().min(1, '投資組合名稱不能為空'),

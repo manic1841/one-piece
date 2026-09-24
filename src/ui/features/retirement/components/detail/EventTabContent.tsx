@@ -2,10 +2,12 @@ import React from 'react';
 
 import { Pencil, Trash2 } from 'lucide-react';
 
-import type { RetirementOneTimeEvent } from '@/domains/retirement/types';
 import { Button } from '@/ui/components/ui/button';
 import { RetirementWorkspaceTermLabels } from '@/ui/constants/retirement/retirementWorkspaceLabels';
-import { type RetirementEventItemVM } from '@/ui/features/retirement/viewmodels/retirementDisplay.vm';
+import {
+  type RetirementEventItemVM,
+  type RetirementOneTimeEvent,
+} from '@/ui/features/retirement/viewmodels/retirementDisplay.vm';
 
 import EventDialog from '../EventDialog';
 

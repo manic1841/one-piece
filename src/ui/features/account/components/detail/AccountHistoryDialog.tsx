@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 
-import { type Account } from '@/domains/account/types/account';
-import { type AccountSnapshot } from '@/domains/account/types/account';
+import { type Account, type AccountSnapshot } from '@/ui/features/account/viewmodels/account.vm';
 import {
   Dialog,
   DialogContent,
