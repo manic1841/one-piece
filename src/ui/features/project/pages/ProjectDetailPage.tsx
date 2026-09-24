@@ -1,11 +1,8 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React from 'react';
 
 import { Power } from 'lucide-react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 
-import { type Project } from '@/domains/project/schemas';
-import { listDebtAccountsUseCase } from '@/application/debt/use_cases/listDebtAccountsUseCase';
-import { useAuthState } from '@/ui/contexts/useAuthState';
 import { InlineEditableTitle } from '@/ui/components/InlineEditableTitle';
 import { PageHeader } from '@/ui/components/PageHeader';
 import { StatusGlyph } from '@/ui/components/StatusGlyph';
@@ -19,13 +16,8 @@ import {
   TableHeader,
   TableRow,
 } from '@/ui/components/ui/table';
-import {
-  ProjectDetailItemType,
-  type ProjectRecordItemVM,
-  type ProjectSnapshotItemVM,
-} from '@/ui/features/project/viewmodels/projectDetail.vm';
-import { useProjectCmds } from '@/ui/features/project/hooks/useProjectCmds';
-import { useProjectDetailView } from '@/ui/features/project/hooks/useProjectDetailView';
+import { useProjectDetailPage } from '@/ui/features/project/hooks/useProjectDetailPage';
+import { type Project } from '@/ui/features/project/viewmodels/projectForm.vm';
 import { formatCurrency } from '@/ui/utils';
 
 interface ProjectDetailPageProps {
@@ -38,144 +30,24 @@ const SectionTitle: React.FC<{ children: React.ReactNode }> = ({ children }) => 
   </p>
 );
 
-interface ExpenseBreakdownRow {
-  categoryLabel: string;
-  amountText: string;
-}
-
-const toExpenseBreakdown = (
-  items: (ProjectRecordItemVM | ProjectSnapshotItemVM)[],
-): ExpenseBreakdownRow[] => {
-  const totals = new Map<string, number>();
-  for (const item of items) {
-    if (item.type !== ProjectDetailItemType.RECORD) continue;
-    if (item.isIncome) continue;
-    totals.set(item.categoryLabel, (totals.get(item.categoryLabel) ?? 0) + item.amount);
-  }
-  return [...totals.entries()]
-    .sort((a, b) => b[1] - a[1])
-    .map(([categoryLabel, amount]) => ({
-      categoryLabel,
-      amountText: formatCurrency(amount),
-    }));
-};
-
 export default function ProjectDetailPage({ project }: ProjectDetailPageProps) {
-  const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { userProfile } = useAuthState();
-  const householdId = userProfile?.householdId ?? '';
-
   const {
-    items,
+    projectId,
+    activeProject,
+    projectDebt,
+    isActive,
+    records,
+    snapshots,
+    expenseBreakdown,
+    summary,
     selectedYearMonth,
     setSelectedYearMonth,
-    currentSnapshot,
-  } = useProjectDetailView(householdId, id || '');
+    handleRename,
+    handleToggleActive,
+  } = useProjectDetailPage({ project });
 
-  const [projectDebt, setProjectDebt] = React.useState<{ id: string; name: string; balanceText: string }[]>([]);
-  const [fetchedProject, setFetchedProject] = useState<Project | null>(null);
-  const [statusOverride, setStatusOverride] = useState<boolean | null>(null);
-  const { updateProject } = useProjectCmds(householdId);
-
-  React.useEffect(() => {
-    let ignore = false;
-    const load = async () => {
-      if (!householdId || !id) return;
-      const accounts = await listDebtAccountsUseCase.execute({
-        householdId,
-        includeInactive: true,
-      });
-      if (!ignore) {
-        setProjectDebt(
-          accounts
-            .filter((a) => a.linkedProjectId === id)
-            .map((a) => ({
-              id: a.id,
-              name: a.name,
-              balanceText: formatCurrency(a.currentBalance),
-            })),
-        );
-      }
-    };
-    void load();
-    return () => {
-      ignore = true;
-    };
-  }, [householdId, id]);
-
-  const activeProject = project ?? fetchedProject;
-
-  React.useEffect(() => {
-    let ignore = false;
-    const load = async () => {
-      if (project || !householdId || !id) return;
-      try {
-        const { getProjectUseCase } = await import(
-          '@/application/project/use_cases/getProjectUseCase'
-        );
-        const data = await getProjectUseCase.execute({ householdId, projectId: id });
-        if (!ignore) {
-          setFetchedProject(data);
-        }
-      } catch {
-        if (!ignore) setFetchedProject(null);
-      }
-    };
-    void load();
-    return () => {
-      ignore = true;
-    };
-  }, [project, householdId, id]);
-
-  const handleRename = async (name: string) => {
-    if (!activeProject) return;
-    await updateProject(activeProject.id, { name });
-    setFetchedProject((prev) => (prev && prev.id === activeProject.id ? { ...prev, name } : prev));
-  };
-
-  const isActive = statusOverride ?? (activeProject?.isActive !== false);
-
-  const handleToggleActive = async () => {
-    if (!activeProject) return;
-    const nextActive = !isActive;
-
-    const updated = await updateProject(activeProject.id, { isActive: nextActive });
-    if (updated === undefined) return;
-    setStatusOverride(nextActive);
-    if (!project) {
-      const { getProjectUseCase } = await import(
-        '@/application/project/use_cases/getProjectUseCase'
-      );
-      const data = await getProjectUseCase.execute({ householdId, projectId: activeProject.id });
-      if (data) setFetchedProject(data);
-    }
-  };
-
-  useEffect(() => {
-    setStatusOverride(null);
-  }, [id]);
-
-  const records = useMemo(
-    () => items.filter((item): item is ProjectRecordItemVM => item.type === ProjectDetailItemType.RECORD),
-    [items],
-  );
-
-  const snapshots = useMemo(
-    () => items.filter((item): item is ProjectSnapshotItemVM => item.type === ProjectDetailItemType.SNAPSHOT),
-    [items],
-  );
-
-  const expenseBreakdown = useMemo(() => toExpenseBreakdown(items), [items]);
-
-  const summary = useMemo(() => {
-    const income = records.filter((r) => r.isIncome).reduce((sum, r) => sum + r.amount, 0);
-    const expense = records.filter((r) => !r.isIncome).reduce((sum, r) => sum + r.amount, 0);
-    const net = income - expense;
-    return { income, expense, net, balanceText: formatCurrency(currentSnapshot?.closingBalance ?? net) };
-  }, [records, currentSnapshot]);
-
-  if (!id || !activeProject) return <div>Project not found</div>;
+  if (!projectId || !activeProject) return <div>Project not found</div>;
 
   return (
     <div className="space-y-8 pb-20">
