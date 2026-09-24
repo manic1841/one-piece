@@ -20,7 +20,7 @@ import {
   mapPortfolioToFormVM,
   parsePortfolioFormVM,
 } from '@/ui/features/portfolio/viewmodels/portfolioForm.vm';
-import { useAuthContext } from '@/ui/hooks/useAuthContext';
+import { useAuthIdentity } from '@/ui/hooks/useAuthIdentity';
 
 interface PortfolioFormProps {
   isOpen: boolean;
@@ -38,7 +38,7 @@ const PortfolioForm: React.FC<PortfolioFormProps> = ({
   portfolio,
 }) => {
   const { fetchAccounts } = useAccounts();
-  const auth = useAuthContext();
+  const auth = useAuthIdentity();
   const [availableAccounts, setAvailableAccounts] = useState<Account[]>([]);
   const initialData = mapPortfolioToFormVM(portfolio);
 

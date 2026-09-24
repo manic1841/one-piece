@@ -7,11 +7,11 @@ import { deletePortfolioUseCase } from '@/application/portfolio/use_cases/delete
 import { reorderPortfoliosUseCase } from '@/application/portfolio/use_cases/reorderPortfoliosUseCase';
 import { updatePortfolioUseCase } from '@/application/portfolio/use_cases/updatePortfolioUseCase';
 import { type Portfolio, type PortfolioCreate } from '@/domains/portfolio/types/portfolio';
-import { useAuthContext } from '@/ui/hooks/useAuthContext';
+import { useAuthIdentity } from '@/ui/hooks/useAuthIdentity';
 import { useLoadingTask } from '@/ui/hooks/useLoadingTask';
 
 export function usePortfolioCmds(householdId: string, email: string, onComplete?: () => void) {
-  const auth = useAuthContext();
+  const auth = useAuthIdentity();
   const { loading, error, run } = useLoadingTask();
 
   const createPortfolio = useCallback(

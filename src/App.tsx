@@ -1,8 +1,9 @@
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import { Toaster } from 'sonner';
 
-import { AuthProvider } from '@/infra/contexts/AuthProvider';
+import { AuthStateProvider } from '@/ui/contexts/AuthStateProvider';
 import { AuthGate } from '@/ui/features/app/AuthGate';
+import { firebaseAuthGateway } from '@/infra/contexts/firebaseAuthGateway';
 import { ConfirmDialogProvider } from '@/ui/features/app/confirm/ConfirmDialog';
 import Accounts from '@/ui/features/account/pages/AccountsPage';
 import AccountDetailPage from '@/ui/features/account/pages/AccountDetailPage';
@@ -27,7 +28,7 @@ import Transactions from '@/ui/features/transaction/pages/TransactionsPage';
 
 function App() {
   return (
-    <AuthProvider>
+    <AuthStateProvider gateway={firebaseAuthGateway}>
       <Toaster
         toastOptions={{
           classNames: {
@@ -77,7 +78,7 @@ function App() {
           </BrowserRouter>
         </ConfirmDialogProvider>
       </AuthGate>
-    </AuthProvider>
+    </AuthStateProvider>
   );
 }
 

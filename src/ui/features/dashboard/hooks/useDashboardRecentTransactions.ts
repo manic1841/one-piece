@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { listRecentTransactionsUseCase } from '@/application/ledger/use_cases/listRecentTransactionsUseCase';
 import { type Transaction } from '@/domains/ledger/schemas';
 import { DASHBOARD_RECENT_LABELS } from '@/ui/constants/dashboard/recentTransactionsLabels';
-import { useAuthContext } from '@/ui/hooks/useAuthContext';
+import { useAuthIdentity } from '@/ui/hooks/useAuthIdentity';
 import { mapTransactionToListItemVM } from '@/ui/features/transaction/viewmodels/transaction-list.vm';
 
 import { type DashboardRecentVM } from '../viewmodels/dashboardRecent.vm';
@@ -13,7 +13,7 @@ const RECENT_TRANSACTION_LIMIT = 8;
 const buildEmptyVm = (): DashboardRecentVM => ({ items: [] });
 
 export function useDashboardRecentTransactions(householdId: string | undefined) {
-  const auth = useAuthContext();
+  const auth = useAuthIdentity();
   const [vm, setVm] = useState<DashboardRecentVM>(buildEmptyVm);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);

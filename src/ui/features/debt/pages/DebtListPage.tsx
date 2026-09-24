@@ -4,7 +4,7 @@ import { Plus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 import { type DebtAccount } from '@/domains/debt/schemas';
-import { useAuth } from '@/infra/contexts/useAuth';
+import { useAuthState } from '@/ui/contexts/useAuthState';
 import CompactRow from '@/ui/components/CompactRow';
 import { StatusGlyph } from '@/ui/components/StatusGlyph';
 import { DEBT_STATUS_GRACE_PERIOD_LABEL } from '@/ui/constants/debtStatusLabels';
@@ -29,7 +29,7 @@ import { useDebtAccountFormViewModel } from '@/ui/features/debt/viewmodels/useDe
 type DialogMode = 'create' | 'edit';
 
 export default function DebtListPage() {
-  const { userProfile } = useAuth();
+  const { userProfile } = useAuthState();
   const householdId = userProfile?.householdId ?? '';
   const navigate = useNavigate();
 

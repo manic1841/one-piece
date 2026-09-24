@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { type Portfolio, type PortfolioSnapshot } from '@/domains/portfolio/types/portfolio';
 import { useAccounts } from '@/ui/features/account/hooks/useAccounts';
-import { useAuthContext } from '@/ui/hooks/useAuthContext';
+import { useAuthIdentity } from '@/ui/hooks/useAuthIdentity';
 import {
   Accordion,
   AccordionContent,
@@ -111,7 +111,7 @@ const SectionTitle: React.FC<{ children: React.ReactNode }> = ({ children }) => 
 
 const PortfolioDetail: React.FC<PortfolioDetailProps> = ({ householdId, portfolio }) => {
   const { fetchAccounts } = useAccounts();
-  const auth = useAuthContext();
+  const auth = useAuthIdentity();
   const { getSnapshots, loading: queryLoading } = usePortfolioQueries(householdId);
 
   const [snapshots, setSnapshots] = useState<PortfolioSnapshot[]>([]);

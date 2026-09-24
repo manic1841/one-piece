@@ -1,15 +1,15 @@
 import { render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { useAuth } from '@/infra/contexts/useAuth';
+import { useAuthState } from '@/ui/contexts/useAuthState';
 
-vi.mock('@/infra/contexts/useAuth');
+vi.mock('@/ui/contexts/useAuthState');
 
 import { AuthGate } from './AuthGate';
 
-const mockAuthState = (overrides: Partial<ReturnType<typeof useAuth>> = {}) => {
-  vi.mocked(useAuth).mockReturnValue({
-    currentUser: null,
+const mockAuthState = (overrides: Partial<ReturnType<typeof useAuthState>> = {}) => {
+  vi.mocked(useAuthState).mockReturnValue({
+    user: null,
     userProfile: null,
     isAdmin: false,
     loading: false,

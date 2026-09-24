@@ -4,7 +4,7 @@ import { format } from 'date-fns';
 
 import { getStoredReportUseCase } from '@/application/report/use_cases/getStoredReportUseCase';
 import { type BalanceSheetData } from '@/domains/report/schemas';
-import { useAuthContext } from '@/ui/hooks/useAuthContext';
+import { useAuthIdentity } from '@/ui/hooks/useAuthIdentity';
 import {
   type BalanceSheetVM,
   mapBalanceSheetToVM,
@@ -21,7 +21,7 @@ export function useBalanceSheet(
   const [data, setData] = useState<BalanceSheetVM | null>(null);
   const [internalDate, setInternalDate] = useState<Date>(new Date());
   const { loading, error, run } = useLoadingTask();
-  const auth = useAuthContext();
+  const auth = useAuthIdentity();
 
   const currentDate = controlledDate || internalDate;
 

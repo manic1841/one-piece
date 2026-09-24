@@ -10,9 +10,9 @@ import {
   type LedgerCodeCandidate,
   type LedgerCodeViolation,
 } from '@/domains/ledger/ledgerCodeRules';
-import { useAuth } from '@/infra/contexts/useAuth';
+import { useAuthState } from '@/ui/contexts/useAuthState';
 import { type LedgerCodeItem, useLedgerCodes } from '@/ui/features/ledger/hooks/useLedgerCodes';
-import { useAuthContext } from '@/ui/hooks/useAuthContext';
+import { useAuthIdentity } from '@/ui/hooks/useAuthIdentity';
 export { type LedgerCodeItem };
 
 export interface LedgerCodeRow {
@@ -87,10 +87,10 @@ const buildGroupedRows = (codes: LedgerCodeItem[]): GroupedLedgerCodeRows => {
 };
 
 export function useLedgerCodeSettings() {
-  const { userProfile, currentUser } = useAuth();
+  const { userProfile, user } = useAuthState();
   const householdId = userProfile?.householdId;
-  const userEmail = currentUser?.email;
-  const auth = useAuthContext();
+  const userEmail = user?.email;
+  const auth = useAuthIdentity();
 
   const { codes, loading, refresh } = useLedgerCodes(true);
   const [newLabel, setNewLabel] = useState('');

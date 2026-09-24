@@ -14,11 +14,11 @@ import {
   type AccountSnapshot,
   type AccountSnapshotCreate,
 } from '@/domains/account/types';
-import { useAuthContext } from '@/ui/hooks/useAuthContext';
+import { useAuthIdentity } from '@/ui/hooks/useAuthIdentity';
 import { useLoadingTask } from '@/ui/hooks/useLoadingTask';
 
 export function useAccountCmds(householdId: string) {
-  const auth = useAuthContext();
+  const auth = useAuthIdentity();
 
   const { loading, error, run } = useLoadingTask();
 

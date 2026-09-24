@@ -1,4 +1,4 @@
-import { useAuth } from '@/infra/contexts/useAuth';
+import { useAuthState } from '@/ui/contexts/useAuthState';
 import {
   STARTUP_FAILURE_COPY,
   type StartupFailureCopy,
@@ -16,7 +16,7 @@ export interface AuthGateState {
  * （見 docs/ui/ui-layer-architecture.md §5.1）。
  */
 export function useAuthGate(): AuthGateState {
-  const { initError, loading } = useAuth();
+  const { initError, loading } = useAuthState();
 
   return {
     startupFailure: initError ? STARTUP_FAILURE_COPY[initError] : null,

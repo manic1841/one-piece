@@ -5,7 +5,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 
 import { type Project } from '@/domains/project/schemas';
 import { listDebtAccountsUseCase } from '@/application/debt/use_cases/listDebtAccountsUseCase';
-import { useAuth } from '@/infra/contexts/useAuth';
+import { useAuthState } from '@/ui/contexts/useAuthState';
 import { InlineEditableTitle } from '@/ui/components/InlineEditableTitle';
 import { PageHeader } from '@/ui/components/PageHeader';
 import { StatusGlyph } from '@/ui/components/StatusGlyph';
@@ -63,7 +63,7 @@ const toExpenseBreakdown = (
 export default function ProjectDetailPage({ project }: ProjectDetailPageProps) {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { userProfile } = useAuth();
+  const { userProfile } = useAuthState();
   const householdId = userProfile?.householdId ?? '';
 
   const {

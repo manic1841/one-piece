@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 
 import { Plus, Search } from 'lucide-react';
 
-import { useAuth } from '@/infra/contexts/useAuth';
+import { useAuthState } from '@/ui/contexts/useAuthState';
 import { useConfirm } from '@/ui/features/app/confirm/ConfirmDialog';
 import { Button } from '@/ui/components/ui/button';
 import { Input } from '@/ui/components/ui/input';
@@ -24,7 +24,7 @@ import { cn } from '@/ui/utils/cn';
 import { TransactionForm } from '../components/form/TransactionForm';
 
 const Transactions: React.FC = () => {
-  const { userProfile } = useAuth();
+  const { userProfile } = useAuthState();
   const { transactions, loading, reload, deleteTransaction, getTransactionAllocation } =
     useTransactions(userProfile?.householdId);
   const { projects } = useProjects(userProfile?.householdId);

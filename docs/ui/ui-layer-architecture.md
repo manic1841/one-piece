@@ -11,11 +11,13 @@ The `src/ui` directory is organized by **Feature/Page** to reflect user workflow
 ```text
 ui
 ├─ app/                # Global initialization (Router, Providers, Layout)
+├─ contexts/           # UI-owned React contexts and their providers (Controller tier)
 ├─ features/           # Core UI logic organized by user workflow
 │   └─ [feature-name]/
 │       ├─ pages/      # Route entry points
 │       ├─ components/ # Feature-specific UI components
 │       ├─ hooks/      # Controllers, Queries and Commands
+│       ├─ contexts/   # Feature-local React contexts (Controller tier)
 │       ├─ viewmodels/ # UI-specific data representations
 │       ├─ types/      # Feature-local UI types (ViewModel tier)
 │       ├─ mappers/    # Domain/Application -> ViewModel transformation
@@ -38,7 +40,7 @@ Decision record: [ADR-0062](../adr/0062-ui-tier-separation-and-surface-import-ba
 | --- | --- | --- | --- |
 | **Surface** | everything under `src/ui` not listed in another tier | UI components, Controllers, ViewModels, `constants`, `utils` | `@/domains`, `@/application`, `@/infra` — **including types** |
 | **ViewModel** | `features/*/viewmodels`, `features/*/mappers`, `features/*/types` | domain types/values/pure functions, application **types** | application behavior (use cases, workflows), `@/infra` |
-| **Controller** | `features/*/hooks`, `hooks` | use cases / workflows, domain, ViewModels, `constants`, `utils`, the `useAuth` context reader | repositories, Firestore, API clients, storage |
+| **Controller** | `features/*/hooks`, `hooks`, `contexts`, `features/*/contexts` | use cases / workflows, domain, ViewModels, `constants`, `utils`, other Controller mechanisms | repositories, Firestore, API clients, storage, `@/infra` |
 | **Display Labels** | `constants` | same import scope as ViewModel | `@/application`, `@/infra`, domain behavior |
 | **Presentation Helper** | `utils`, `features/*/utils` | pure formatting/styling functions | anything with business or data semantics |
 
@@ -66,9 +68,10 @@ between domain/application shapes and components.
 5.  **Controller -> Application**: Controllers are the only tier that may call use cases and workflows. Non-persisting
     domain pure functions may also be called here for state derivation.
 6.  **Controller -X-> Infrastructure**: controllers, like all UI code, must not import repositories, Firestore, API
-    clients or storage details. The only infra import UI may make is `useAuth` (`@/infra/contexts/useAuth`), a
-    Firebase-free React context reader, and **only Controllers may import it** — Surface reaches auth state
-    exclusively through a Controller. Controllers should prefer `useAuthContext()` (see §4).
+    clients or storage details. **There is no exception.** The auth state context is UI-owned
+    (`src/ui/contexts`, issue #177): `src/App.tsx` — the composition root — injects the infra gateway
+    implementation into it, so no UI file needs `@/infra`. Controllers reach auth state through
+    `useAuthState()`, or through `useAuthIdentity()` for the `{ uid, email, isGlobalAdmin }` shape.
 7.  **Display Labels are the only source of labels**: data-value display text comes from `constants`. No `*_LABEL`
     map may be imported from `@/domains` by any UI tier.
 8.  **Feature Isolation (components)**: shared components belong in `src/ui/components`; feature **components** must
@@ -78,8 +81,11 @@ between domain/application shapes and components.
     when it covers the use case. Create a new shared component only when nothing existing can be extended, and migrate
     existing duplicate implementations in the same task.
 10. **Infrastructure -X-> UI**: infra must never import from `src/ui`. Failure states that must gate the whole app are
-    surfaced as **data** on the context, and the UI decides how to render them (`AuthGate` renders `AppFallback` from
+    surfaced as **data** by the gateway, and the UI decides how to render them (`AuthGate` renders `AppFallback` from
     `initError`/`loading`, see §5.1).
+11. **Composition Root**: `src/App.tsx` is the only file outside `src/ui` allowed to straddle layers — it injects the
+    infra auth gateway into the UI provider. Everything else at the top of `src/` is subject to the same bans as
+    Surface. Enforced by `src/ui/layer-boundary.test.ts`.
 
 ---
 
@@ -145,9 +151,9 @@ Rules:
   possible, and clear it only after a successful result. Build the retry
   signature from the same canonical operation inputs as the command fingerprint.
 - **Auth Assembly**: Hooks must obtain the `AuthContext` passed to Use Cases via
-  `useAuthContext()` (`@/ui/hooks/useAuthContext`), never by hand-assembling
-  `{ uid, isGlobalAdmin }` literals from `useAuth()`. Direct `useAuth()` use is
-  reserved for concerns the auth context does not carry (e.g. `userProfile`,
+  `useAuthIdentity()` (`@/ui/hooks/useAuthIdentity`), never by hand-assembling
+  `{ uid, isGlobalAdmin }` literals from `useAuthState()`. Direct `useAuthState()` use is
+  reserved for concerns the auth identity does not carry (e.g. `userProfile`,
   `refreshProfile`, sign-in UI), and is allowed only inside a Controller — never in
   Surface. Never fabricate a fake auth object (empty uid, forced `isGlobalAdmin: true`)
   to bypass permission checks.
@@ -186,14 +192,15 @@ Use Case
 
 ### 5.1 全 app 失敗畫面的資料方向
 
-啟動期不可回復的失敗（如認證後端不可達）由 infra **以資料形式**放上 auth context，不自行 render UI。
+啟動期不可回復的失敗（如認證後端不可達）由 infra **以資料形式**回報，不自行 render UI。
 資料分兩段，職責各在一層：
 
-- **infra 只給錯誤碼**：`initError: AuthInitErrorCode | null`（值域宣告於 `src/infra/contexts/AuthContext.ts`）
-  與 `loading`。infra 不含任何顯示文字。
+- **infra 只給錯誤碼**：`AuthInitErrorCode | null` 經 `AuthGateway` 的訂閱回呼送上來。值域是**單一宣告**
+  （`src/domains/auth/authInitError.ts`），infra 與 UI 都由此 import；infra 不含任何顯示文字。
 - **文案住 `constants`**：`ui/constants/app/startupFailure.ts` 的 `STARTUP_FAILURE_COPY` 是唯一的「錯誤碼 → 文字」
-  來源（依規則 7）。`StartupFailureCode` 刻意與 `AuthInitErrorCode` 同構而不共用型別——`constants` 不得 import
-  `@/infra`——兩邊的鍵由 `startupFailure.test.ts` 釘住。
+  來源（依規則 7）。鍵的完整性由 `Record<AuthInitErrorCode, …>` 在 `tsc` 時保證。
+- **UI provider 聚合**：`ui/contexts/AuthStateProvider.tsx` 把 gateway 的觀測值組成 `AuthState`。
+  失敗時 `loading` 保持 true（初始化從未落定），因此該狀態讀作「仍在初始化，而且失敗了」。
 - **Controller 查表**：`features/app/hooks/useAuthGate.ts` 是 gate 唯一讀取 auth 的層（規則 6）。
 - **Surface render**：`AuthGate`（`features/app`）依查表結果 render `AppFallback`、等待，或放行 children。
 

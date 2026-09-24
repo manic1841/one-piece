@@ -4,7 +4,7 @@ import { Trash2 } from 'lucide-react';
 
 import { useParams } from 'react-router-dom';
 
-import { useAuth } from '@/infra/contexts/useAuth';
+import { useAuthState } from '@/ui/contexts/useAuthState';
 import { Alert, AlertDescription } from '@/ui/components/ui/alert';
 import {
   Accordion,
@@ -25,7 +25,7 @@ import { useRetirementPlanDetailPage } from '@/ui/features/retirement/hooks/useR
 
 const RetirementPlanForm: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const { userProfile } = useAuth();
+  const { userProfile } = useAuthState();
   const {
     plan,
     headerVM,

@@ -5,7 +5,7 @@ import { listDebtPaymentsUseCase } from '@/application/debt/use_cases/listDebtPa
 import { listProjectsUseCase } from '@/application/project/use_cases/listProjectsUseCase';
 import { type DebtAccount } from '@/domains/debt/schemas';
 import { type Project } from '@/domains/project/schemas';
-import { useAuthContext } from '@/ui/hooks/useAuthContext';
+import { useAuthIdentity } from '@/ui/hooks/useAuthIdentity';
 import {
   type DebtAccountDisplayVM,
   mapDebtAccountToDisplayVM,
@@ -13,7 +13,7 @@ import {
 import { useLoadingTask } from '@/ui/hooks/useLoadingTask';
 
 export function useDebtPage(householdId: string) {
-  const auth = useAuthContext();
+  const auth = useAuthIdentity();
 
   const [debtAccounts, setDebtAccounts] = useState<DebtAccount[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);

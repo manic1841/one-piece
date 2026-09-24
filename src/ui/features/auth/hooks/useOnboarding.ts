@@ -3,19 +3,19 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import { onboardUserUseCase } from '@/application/household/use_cases/onboardUserUseCase';
-import { useAuth } from '@/infra/contexts/useAuth';
+import { useAuthState } from '@/ui/contexts/useAuthState';
 
 export const useOnboarding = () => {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const { currentUser, userProfile, isAdmin, logout, refreshProfile } = useAuth();
+  const { user, userProfile, isAdmin, logout, refreshProfile } = useAuthState();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!currentUser || !currentUser.email || !userProfile) return;
+    if (!user || !user.email || !userProfile) return;
 
     if (!input.trim()) {
       setError('Please enter a household name or ID');
@@ -29,7 +29,7 @@ export const useOnboarding = () => {
       await onboardUserUseCase.execute({
         input,
         userProfile,
-        userEmail: currentUser.email,
+        userEmail: user.email,
         isAdmin: !!isAdmin,
       });
 

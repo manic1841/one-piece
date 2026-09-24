@@ -87,7 +87,7 @@ caller bypassed the permission check that every other `fetchAccounts`
 call site performs.
 
 **Resolution:** The component now passes the real `AuthContext` from
-`useAuthContext()`, so `getAccountsUseCase` enforces
+`useAuthIdentity()`, so `getAccountsUseCase` enforces
 `assertReadPermission` for this call site like everywhere else.
 
 ### Indirect auth: delegation chains

@@ -10,14 +10,14 @@ import {
   mapPortfolioToListItemVM,
 } from '@/ui/features/portfolio/viewmodels/portfolioDisplay.vm';
 import { useLoadingTask } from '@/ui/hooks/useLoadingTask';
-import { useAuthContext } from '@/ui/hooks/useAuthContext';
+import { useAuthIdentity } from '@/ui/hooks/useAuthIdentity';
 
 export function usePortfolios(householdId: string) {
   const [portfolios, setPortfolios] = useState<Portfolio[]>([]);
   const [latestSnapshots, setLatestSnapshots] = useState<Map<string, PortfolioSnapshot>>(new Map());
   const { loading, error, run } = useLoadingTask();
 
-  const auth = useAuthContext();
+  const auth = useAuthIdentity();
 
   const load = useCallback(async () => {
     if (!householdId) return;
@@ -67,7 +67,7 @@ export function usePortfolioDetailView(
 
 export function usePortfolioQueries(householdId: string) {
   const { loading, error, run } = useLoadingTask();
-  const auth = useAuthContext();
+  const auth = useAuthIdentity();
 
   const getSnapshots = useCallback(
     async (portfolioId: string, year?: number, month?: number) => {

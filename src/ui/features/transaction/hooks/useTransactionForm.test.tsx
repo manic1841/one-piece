@@ -3,9 +3,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { useTransactionForm } from './useTransactionForm';
 
-vi.mock('@/infra/contexts/useAuth', () => ({
-  useAuth: () => ({
-    currentUser: { uid: 'user-1', email: 'user@example.com' },
+vi.mock('@/ui/contexts/useAuthState', () => ({
+  useAuthState: () => ({
+    user: { uid: 'user-1', email: 'user@example.com' },
     userProfile: { email: 'user@example.com', householdId: 'household-1' },
     isAdmin: true,
   }),

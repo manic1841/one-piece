@@ -5,11 +5,11 @@ import { listDebtAccountsUseCase } from '@/application/debt/use_cases/listDebtAc
 import { removeDebtAccountUseCase } from '@/application/debt/use_cases/removeDebtAccountUseCase';
 import { updateDebtAccountUseCase } from '@/application/debt/use_cases/updateDebtAccountUseCase';
 import { type DebtAccount, type DebtAccountCreate } from '@/domains/debt/schemas';
-import { useAuthContext } from '@/ui/hooks/useAuthContext';
+import { useAuthIdentity } from '@/ui/hooks/useAuthIdentity';
 import { useLoadingTask } from '@/ui/hooks/useLoadingTask';
 
 export function useDebtAccountCmds(householdId: string) {
-  const auth = useAuthContext();
+  const auth = useAuthIdentity();
 
   const { loading, error, run } = useLoadingTask();
 

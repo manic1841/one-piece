@@ -32,9 +32,9 @@ vi.mock('@/application/report/use_cases/generateFinancialReportsUseCase', () => 
   },
 }));
 
-vi.mock('@/infra/contexts/useAuth', () => ({
-  useAuth: () => ({
-    currentUser: { uid: 'user-1', email: 'user@example.com' },
+vi.mock('@/ui/contexts/useAuthState', () => ({
+  useAuthState: () => ({
+    user: { uid: 'user-1', email: 'user@example.com' },
     isAdmin: false,
   }),
 }));

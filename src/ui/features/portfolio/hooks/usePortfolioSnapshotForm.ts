@@ -12,7 +12,7 @@ import {
   mapPortfolioSnapshotInputsToVM,
 } from '@/ui/features/portfolio/viewmodels/portfolioForm.vm';
 import { useLoadingTask } from '@/ui/hooks/useLoadingTask';
-import { useAuthContext } from '@/ui/hooks/useAuthContext';
+import { useAuthIdentity } from '@/ui/hooks/useAuthIdentity';
 
 export const usePortfolioSnapshotForm = (
   householdId: string,
@@ -20,7 +20,7 @@ export const usePortfolioSnapshotForm = (
   onClose: () => void,
   onSubmit: (data: PortfolioSnapshotFormVM) => Promise<void>,
 ) => {
-  const auth = useAuthContext();
+  const auth = useAuthIdentity();
 
   const initialData = createDefaultPortfolioSnapshotFormVM();
   const [year, setYear] = useState(initialData.year);

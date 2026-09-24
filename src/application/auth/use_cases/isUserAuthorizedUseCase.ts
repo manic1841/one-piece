@@ -1,3 +1,4 @@
+import { isEmailWhitelisted } from '@/domains/auth/whitelistRules';
 import { accessControlRepository } from '@/infra/repositories/accessControlRepository';
 
 export interface IsUserAuthorizedRequest {
@@ -12,7 +13,8 @@ export class IsUserAuthorizedUseCase {
     const whitelist = await accessControlRepository.getWhitelist();
     if (!whitelist) return false;
 
-    return whitelist.emails.includes(email.toLowerCase().trim());
+    // 比對規則住 domain（純函式），本 use case 只負責讀取白名單。
+    return isEmailWhitelisted(whitelist.emails, email);
   }
 }
 

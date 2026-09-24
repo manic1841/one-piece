@@ -30,8 +30,8 @@ import type { AccountSnapshot } from '@/domains/account/types/account';
 import type { Portfolio } from '@/domains/portfolio/schemas';
 import type { DebtAccount } from '@/domains/debt/schemas';
 import type { CloseStageId } from '@/domains/financial_period/schemas';
-import { useAuthContext } from '@/ui/hooks/useAuthContext';
-import { useAuth } from '@/infra/contexts/useAuth';
+import { useAuthIdentity } from '@/ui/hooks/useAuthIdentity';
+import { useAuthState } from '@/ui/contexts/useAuthState';
 
 import { useMonthlyClose } from '../hooks/useMonthlyClose';
 import {
@@ -96,10 +96,10 @@ const resolveStepText = (
 };
 
 export const MonthlyClosePage: React.FC<MonthlyClosePageProps> = ({ householdId: householdIdProp, userEmail: userEmailProp }) => {
-  const { userProfile } = useAuth();
+  const { userProfile } = useAuthState();
   const householdId = householdIdProp ?? userProfile?.householdId ?? '';
   const userEmail = userEmailProp ?? userProfile?.email ?? '';
-  const auth = useAuthContext();
+  const auth = useAuthIdentity();
   const {
     pageVM,
     selectedYearMonth,

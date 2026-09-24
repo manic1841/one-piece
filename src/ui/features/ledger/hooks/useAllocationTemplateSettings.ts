@@ -4,7 +4,7 @@ import { deleteAllocationTemplateUseCase } from '@/application/ledger/use_cases/
 import { listAllocationTemplatesUseCase } from '@/application/ledger/use_cases/listAllocationTemplatesUseCase';
 import { saveAllocationTemplateUseCase } from '@/application/ledger/use_cases/saveAllocationTemplateUseCase';
 import { type AllocationTemplate } from '@/domains/allocation/templateSchemas';
-import { useAuth } from '@/infra/contexts/useAuth';
+import { useAuthState } from '@/ui/contexts/useAuthState';
 import { useProjects } from '@/ui/features/project/hooks/useProjects';
 import { useLoadingTask } from '@/ui/hooks/useLoadingTask';
 import { useConfirm } from '@/ui/features/app/confirm/ConfirmDialog';
@@ -15,9 +15,9 @@ export interface TemplateDraftItem {
 }
 
 export const useAllocationTemplateSettings = () => {
-  const { userProfile, currentUser } = useAuth();
+  const { userProfile, user } = useAuthState();
   const householdId = userProfile?.householdId ?? '';
-  const userEmail = userProfile?.email ?? currentUser?.email ?? '';
+  const userEmail = userProfile?.email ?? user?.email ?? '';
 
   const { projects } = useProjects(householdId);
   const activeProjects = useMemo(() => projects.filter((project) => project.isActive), [projects]);

@@ -3,11 +3,11 @@ import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { type Project } from '@/domains/project/schemas';
-import { useAuth } from '@/infra/contexts/useAuth';
+import { useAuthState } from '@/ui/contexts/useAuthState';
 import { useProjectCmds } from '@/ui/features/project/hooks/useProjectCmds';
 import { useProjectDetailView } from '@/ui/features/project/hooks/useProjectDetailView';
 
-vi.mock('@/infra/contexts/useAuth');
+vi.mock('@/ui/contexts/useAuthState');
 vi.mock('@/ui/features/project/hooks/useProjectCmds');
 vi.mock('@/ui/features/project/hooks/useProjectDetailView');
 vi.mock('@/application/debt/use_cases/listDebtAccountsUseCase', () => ({
@@ -23,7 +23,7 @@ vi.mock('react-router-dom', async () => {
   };
 });
 
-const mockUseAuth = vi.mocked(useAuth);
+const mockUseAuth = vi.mocked(useAuthState);
 const mockUseProjectCmds = vi.mocked(useProjectCmds);
 const mockUseProjectDetailView = vi.mocked(useProjectDetailView);
 

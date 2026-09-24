@@ -6,8 +6,8 @@ import { getIntentTypeLabel } from '@/ui/constants/transaction';
 import { useConfirm } from '@/ui/features/app/confirm/ConfirmDialog';
 import { useTransactions } from '@/ui/features/transaction/hooks/useTransactions';
 
-vi.mock('@/infra/contexts/useAuth', () => ({
-  useAuth: () => ({ userProfile: { householdId: 'hh-1' } }),
+vi.mock('@/ui/contexts/useAuthState', () => ({
+  useAuthState: () => ({ userProfile: { householdId: 'hh-1' } }),
 }));
 
 vi.mock('@/ui/features/transaction/hooks/useTransactions');

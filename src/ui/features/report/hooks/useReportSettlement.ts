@@ -4,10 +4,10 @@ import { getSettlementReadinessUseCase } from '@/application/report/use_cases/ge
 import { previewFinancialReportsWorkflow } from '@/application/report/use_cases/previewFinancialReportsWorkflow';
 import { previewDebtSettlementsUseCase } from '@/application/settlement/use_cases/previewDebtSettlementsUseCase';
 import { getUnifiedLedgerCodeLabel } from '@/ui/constants/transaction';
-import { useAuthContext } from '@/ui/hooks/useAuthContext';
+import { useAuthIdentity } from '@/ui/hooks/useAuthIdentity';
 
 export const useReportSettlement = (householdId: string) => {
-  const auth = useAuthContext();
+  const auth = useAuthIdentity();
 
   const [year, setYear] = useState(new Date().getFullYear());
   const [month, setMonth] = useState(new Date().getMonth() + 1);

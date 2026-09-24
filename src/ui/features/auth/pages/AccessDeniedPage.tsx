@@ -3,12 +3,12 @@ import React from 'react';
 import { ShieldOff } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
-import { useAuth } from '@/infra/contexts/useAuth';
+import { useAuthState } from '@/ui/contexts/useAuthState';
 import { Button } from '@/ui/components/ui/button';
 import { Card, CardContent } from '@/ui/components/ui/card';
 
 const AccessDenied: React.FC = () => {
-  const { logout } = useAuth();
+  const { logout } = useAuthState();
   const navigate = useNavigate();
 
   const handleLogout = async () => {

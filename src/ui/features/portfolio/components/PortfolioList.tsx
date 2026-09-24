@@ -4,7 +4,7 @@ import { Plus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 import { type PortfolioSnapshot } from '@/domains/portfolio/types/portfolio';
-import { useAuthContext } from '@/ui/hooks/useAuthContext';
+import { useAuthIdentity } from '@/ui/hooks/useAuthIdentity';
 import { useAccounts } from '@/ui/features/account/hooks/useAccounts';
 import { PageHeader } from '@/ui/components/PageHeader';
 import { Button } from '@/ui/components/ui/button';
@@ -44,7 +44,7 @@ interface PortfolioRowVM {
 
 const PortfolioList: React.FC<PortfolioListProps> = ({ householdId }) => {
   const navigate = useNavigate();
-  const auth = useAuthContext();
+  const auth = useAuthIdentity();
   const { portfolios, latestSnapshots, reload } = usePortfolios(householdId);
   const { fetchAccounts } = useAccounts();
   const { createPortfolio, reorderPortfolios } = usePortfolioCmds(

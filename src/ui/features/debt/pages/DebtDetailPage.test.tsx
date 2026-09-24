@@ -4,13 +4,13 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { DEBT_STATUS_SETTLED_LABEL } from '@/ui/constants/debtStatusLabels';
 import { type DebtAccount } from '@/domains/debt/schemas';
-import { useAuth } from '@/infra/contexts/useAuth';
+import { useAuthState } from '@/ui/contexts/useAuthState';
 import { debtSnapshotRepository } from '@/infra/repositories/debtSnapshotRepository';
 import { listDebtAccountsUseCase } from '@/application/debt/use_cases/listDebtAccountsUseCase';
 import { useConfirm } from '@/ui/features/app/confirm/ConfirmDialog';
 import { useDebtAccountCmds } from '@/ui/features/debt/hooks/useDebtAccountCmds';
 
-vi.mock('@/infra/contexts/useAuth');
+vi.mock('@/ui/contexts/useAuthState');
 vi.mock('@/infra/repositories/debtSnapshotRepository', () => ({
   debtSnapshotRepository: {
     listByYearMonthRange: vi.fn().mockResolvedValue([]),
@@ -33,7 +33,7 @@ vi.mock('react-router-dom', async () => {
   };
 });
 
-const mockUseAuth = vi.mocked(useAuth);
+const mockUseAuth = vi.mocked(useAuthState);
 const mockUseConfirm = vi.mocked(useConfirm);
 const mockUseDebtAccountCmds = vi.mocked(useDebtAccountCmds);
 

@@ -9,8 +9,8 @@ import {
   type RetirementProjectionYearDetailVM,
 } from '@/ui/features/retirement/viewmodels/retirementDisplay.vm';
 
-vi.mock('@/infra/contexts/useAuth', () => ({
-  useAuth: () => ({
+vi.mock('@/ui/contexts/useAuthState', () => ({
+  useAuthState: () => ({
     userProfile: {
       uid: 'user-1',
       email: 'user@example.com',

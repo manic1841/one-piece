@@ -2,7 +2,7 @@ import React from 'react';
 
 import { useNavigate, useParams } from 'react-router-dom';
 
-import { useAuth } from '@/infra/contexts/useAuth';
+import { useAuthState } from '@/ui/contexts/useAuthState';
 import { InlineEditableTitle } from '@/ui/components/InlineEditableTitle';
 import { PageHeader } from '@/ui/components/PageHeader';
 import { Badge } from '@/ui/components/ui/badge';
@@ -12,7 +12,7 @@ import { usePortfolios } from '@/ui/features/portfolio/hooks/usePortfolios';
 import { formatYearMonth } from '@/ui/utils';
 
 const PortfolioDetailPage: React.FC = () => {
-  const { userProfile } = useAuth();
+  const { userProfile } = useAuthState();
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const householdId = userProfile?.householdId ?? '';

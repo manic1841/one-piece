@@ -3,10 +3,10 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import { getHouseholdUseCase } from '@/application/household/use_cases/getHouseholdUseCase';
-import { useAuth } from '@/infra/contexts/useAuth';
+import { useAuthState } from '@/ui/contexts/useAuthState';
 
 export function useHouseholdGuard(): { familyName: string; loadingHousehold: boolean } {
-  const { userProfile } = useAuth();
+  const { userProfile } = useAuthState();
   const navigate = useNavigate();
   const [familyName, setFamilyName] = useState<string>('');
   const [loadingHousehold, setLoadingHousehold] = useState(true);

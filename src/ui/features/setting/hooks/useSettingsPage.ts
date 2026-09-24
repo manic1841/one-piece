@@ -5,16 +5,16 @@ import { getHouseholdUseCase } from '@/application/household/use_cases/getHouseh
 import { importHouseholdBackupUseCase } from '@/application/household/use_cases/importHouseholdBackupUseCase';
 import { RoleEnum } from '@/domains/household/role';
 import { type Household } from '@/domains/household/schemas';
-import { useAuth } from '@/infra/contexts/useAuth';
+import { useAuthState } from '@/ui/contexts/useAuthState';
 import { useGetUserProfile } from '@/ui/features/setting/hooks/useGetUserProfile';
 import { useHousehold } from '@/ui/features/setting/hooks/useHousehold';
 import { useWatchListPickerData } from '@/ui/features/setting/hooks/useWatchListPickerData';
 import { useWhitelist } from '@/ui/features/setting/hooks/useWhitelist';
-import { useAuthContext } from '@/ui/hooks/useAuthContext';
+import { useAuthIdentity } from '@/ui/hooks/useAuthIdentity';
 
 export const useSettingsPage = () => {
-  const { currentUser, userProfile, isAdmin } = useAuth();
-  const authContext = useAuthContext();
+  const { user, userProfile, isAdmin } = useAuthState();
+  const authContext = useAuthIdentity();
 
   const [loading, setLoading] = useState(true);
 
@@ -65,8 +65,8 @@ export const useSettingsPage = () => {
         const data = await getHouseholdUseCase.execute({ householdId: userProfile.householdId });
         setHousehold(data);
 
-        if (data && currentUser) {
-          setHouseholdRole(data.members[currentUser.uid]?.role || null);
+        if (data && user) {
+          setHouseholdRole(data.members[user.uid]?.role || null);
 
           // Fetch profiles for all members
           const profiles: Record<string, { email: string; displayName: string }> = {};
@@ -87,7 +87,7 @@ export const useSettingsPage = () => {
         console.error('Error fetching household:', err);
       }
     }
-  }, [userProfile?.householdId, currentUser, getUserProfile]);
+  }, [userProfile?.householdId, user, getUserProfile]);
 
   const refreshWhitelist = useCallback(async () => {
     if (!isAdmin) return;
@@ -101,10 +101,10 @@ export const useSettingsPage = () => {
       await Promise.all([fetchHouseholdData(), refreshWhitelist()]);
       setLoading(false);
     };
-    if (currentUser) {
+    if (user) {
       init();
     }
-  }, [currentUser, fetchHouseholdData, refreshWhitelist]);
+  }, [user, fetchHouseholdData, refreshWhitelist]);
 
   // --- Actions ---
   const addWhitelistEmail = async (email: string) => {
@@ -217,7 +217,7 @@ export const useSettingsPage = () => {
 
   return {
     // State
-    currentUser,
+    currentUid: user?.uid ?? '',
     userProfile,
     isAdmin,
     loading,

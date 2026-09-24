@@ -1,23 +1,14 @@
-import { describe, expect, expectTypeOf, it } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
-import { AUTH_INIT_ERROR_CODES } from '@/infra/contexts/AuthContext';
-
-import { STARTUP_FAILURE_COPY, type StartupFailureCode } from './startupFailure';
+import { STARTUP_FAILURE_COPY } from './startupFailure';
 
 /**
- * `constants` 不得 import `@/infra`（ADR-0062），所以兩份錯誤碼值域是各自宣告的。
- * 這裡把它們釘在一起：infra 新增一個碼而 UI 沒有對應文案時，這個測試會失敗。
- * （本檔是測試，不屬 production 的 constants tier。）
+ * 錯誤碼的值域是單一宣告（`@/domains/auth/authInitError`），因此不需要再釘「兩份 union 相等」
+ * （issue #177 定案 Q10 移除了那條 parity 斷言）。型別層級的完整性由
+ * `Record<AuthInitErrorCode, StartupFailureCopy>` 在 `tsc` 時保證；這裡守的是
+ * 文案本身不得為空。
  */
 describe('startupFailure labels', () => {
-  it('keeps the UI code union identical to the infra code union', () => {
-    expectTypeOf<StartupFailureCode>().toEqualTypeOf<(typeof AUTH_INIT_ERROR_CODES)[number]>();
-
-    expect([...Object.keys(STARTUP_FAILURE_COPY)].sort()).toEqual(
-      [...AUTH_INIT_ERROR_CODES].sort(),
-    );
-  });
-
   it('provides a title and description for every code', () => {
     for (const [code, copy] of Object.entries(STARTUP_FAILURE_COPY)) {
       expect(copy.title, `${code} title`).toBeTruthy();

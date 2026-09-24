@@ -12,10 +12,14 @@ import { describe, expect, it } from 'vitest';
  *     Surface is the **fail-closed default**: membership is decided by directory, not file
  *     role, so any file under `src/ui` that is not inside a listed non-Surface directory is
  *     Surface. A new directory is Surface until the tier table names it.
- *  2. Controller (`hooks`) must not import repositories / Firestore / infra — the only infra
- *     import a Controller may make is the Firebase-free `useAuth` context reader.
+ *  2. Controller (`hooks`, `contexts`) must not import repositories, Firestore or infra. There is
+ *     **no exception any more**: the Firebase-free auth context reader that used to live in
+ *     `src/infra` is now UI-owned (`src/ui/contexts`, see issue #177), so nothing in `src/ui`
+ *     needs `@/infra` at all.
  *  3. Display Labels (`constants`) may read domain values and types, but must not reach
  *     `@/application` or `@/infra` (its import scope equals ViewModel's, minus behaviour).
+ *  4. Composition root: exactly one file outside the UI tree may straddle layers (`src/App.tsx`,
+ *     which injects the infra auth gateway into the UI provider). Anything else is a violation.
  *
  * Sources are asserted at text level (as in `design-contract.test.ts`), but every specifier is
  * **resolved to a path** first so alias and relative spellings are judged identically.
@@ -36,22 +40,31 @@ const SPECIFIER_PATTERN = /(?:from|import|require)\s*\(?\s*['"]([^'"]+)['"]/g;
  */
 const NON_SURFACE_DIRS = [
   path.join(UI_DIR, 'hooks'), // Controller
+  path.join(UI_DIR, 'contexts'), // Controller (auth state context + provider)
   path.join(UI_DIR, 'constants'), // Display Labels
   path.join(UI_DIR, 'utils'), // Presentation Helper
   path.join(UI_DIR, 'assets'),
 ];
 
 /** Tiers nested inside a feature, e.g. `features/<name>/hooks`. */
-const NON_SURFACE_FEATURE_DIRS = ['hooks', 'viewmodels', 'mappers', 'types', 'utils'];
+const NON_SURFACE_FEATURE_DIRS = ['hooks', 'contexts', 'viewmodels', 'mappers', 'types', 'utils'];
 
 /**
- * The only infra import any UI file may make (ADR-0062 §2 rule 6). Controllers use it; Surface
- * never can, so the Surface rule needs no exception for it.
+ * The Firebase SDK is infrastructure too, so no UI tier may reach it directly, and no UI tier
+ * needs `@/infra` at all: the auth gateway is injected from the composition root (issue #177).
  */
-const CONTROLLER_INFRA_ALLOWED_PATH = path.join(SRC_DIR, 'infra', 'contexts', 'useAuth');
-
-/** The Firebase SDK is infrastructure too, so no UI tier may reach it directly. */
 const FIREBASE_SPECIFIER_PATTERN = /^firebase(\/|$)/;
+const INFRA_ROOT = path.join(SRC_DIR, 'infra');
+
+/**
+ * Files outside the UI tree that are allowed to straddle layers. There is exactly one: the
+ * composition root, which wires the infra auth gateway into the UI-owned provider.
+ * The rule is set equality in both directions, so a stale entry fails too.
+ */
+const COMPOSITION_ROOT_ALLOWLIST = new Set(['src/App.tsx']);
+
+/** The layer roots a `src/` top-level file might straddle. */
+const LAYER_ROOTS = ['ui', 'domains', 'application', 'infra'].map((name) => path.join(SRC_DIR, name));
 
 /** Importing any of these roots is reaching out of the UI tree. */
 const FORBIDDEN_ROOTS = [
@@ -85,12 +98,11 @@ const SURFACE_ALLOWLIST = new Set([
   'src/ui/features/account/pages/AccountForm.tsx',
   'src/ui/features/account/pages/AccountList.tsx',
   'src/ui/features/account/pages/AccountSnapshotEditor.tsx',
-  'src/ui/features/auth/pages/AccessDeniedPage.tsx',
+  // Still direct-imports `firebase/firestore`; removing that is issue #179's scope, not #177's.
   'src/ui/features/auth/pages/LoginPage.tsx',
   'src/ui/features/dashboard/components/AssetsLiabilitiesBlock.tsx',
   'src/ui/features/dashboard/components/CashFlowChartBlock.tsx',
   'src/ui/features/dashboard/components/MonthlyCloseCard.tsx',
-  'src/ui/features/dashboard/pages/DashboardPage.tsx',
   'src/ui/features/debt/components/DebtAccountForm.tsx',
   'src/ui/features/debt/components/DebtPaymentHistory.tsx',
   'src/ui/features/debt/components/detail/DebtSnapshotTable.tsx',
@@ -109,12 +121,9 @@ const SURFACE_ALLOWLIST = new Set([
   'src/ui/features/portfolio/components/detail/PortfolioPerformanceCards.tsx',
   'src/ui/features/portfolio/components/snapshot/AccountSnapshotList.tsx',
   'src/ui/features/portfolio/components/snapshot/PerformancePreview.tsx',
-  'src/ui/features/portfolio/pages/PortfolioDetailPage.tsx',
-  'src/ui/features/portfolio/pages/PortfoliosPage.tsx',
   'src/ui/features/project/components/ProjectForm.tsx',
   'src/ui/features/project/pages/ProjectDetailPage.tsx',
   'src/ui/features/project/pages/ProjectsPage.tsx',
-  'src/ui/features/report/pages/ReportsPage.tsx',
   'src/ui/features/retirement/components/AssumptionsForm.tsx',
   'src/ui/features/retirement/components/EventDialog.tsx',
   'src/ui/features/retirement/components/ExpenseDialog.tsx',
@@ -123,15 +132,12 @@ const SURFACE_ALLOWLIST = new Set([
   'src/ui/features/retirement/components/detail/EventTabContent.tsx',
   'src/ui/features/retirement/components/detail/ExpenseTabContent.tsx',
   'src/ui/features/retirement/components/detail/IncomeTabContent.tsx',
-  'src/ui/features/retirement/pages/RetirementPlanForm.tsx',
-  'src/ui/features/retirement/pages/RetirementPlanList.tsx',
   'src/ui/features/setting/components/MemberManagementUI.tsx',
   'src/ui/features/setting/components/SettingsUI.tsx',
   'src/ui/features/setting/components/WatchListSettings.tsx',
   'src/ui/features/transaction/components/form/DynamicCategorySelector.tsx',
   'src/ui/features/transaction/components/form/TransactionForm.tsx',
   'src/ui/features/transaction/components/form/userSelectOptions.ts',
-  'src/ui/features/transaction/pages/TransactionsPage.tsx',
 ]);
 
 const collectSourceFiles = (dir: string): string[] => {
@@ -188,14 +194,13 @@ const surfaceViolationsOf = (filePath: string): string[] =>
       FIREBASE_SPECIFIER_PATTERN.test(specifier) || resolvesUnderAny(specifier, filePath, FORBIDDEN_ROOTS),
   );
 
-/** Rule 2: does this Controller reach a repository, Firestore, or infra other than `useAuth`? */
+/** Rule 2: does this Controller reach a repository, Firestore, or any infra at all? */
 const controllerViolationsOf = (filePath: string): string[] =>
-  specifiersOf(filePath).filter((specifier) => {
-    if (FIREBASE_SPECIFIER_PATTERN.test(specifier)) return true;
-    const resolved = resolveSpecifier(specifier, filePath);
-    if (resolved === null || resolved === CONTROLLER_INFRA_ALLOWED_PATH) return false;
-    return isInside(resolved, path.join(SRC_DIR, 'infra'));
-  });
+  specifiersOf(filePath).filter(
+    (specifier) =>
+      FIREBASE_SPECIFIER_PATTERN.test(specifier) ||
+      resolvesUnderAny(specifier, filePath, [INFRA_ROOT]),
+  );
 
 /** Rule 3: does this Display Labels file reach application or infra? */
 const displayLabelViolationsOf = (filePath: string): string[] =>
@@ -223,6 +228,23 @@ describe('UI layer boundary contract (issue #178, ADR-0062)', () => {
     surfaceFiles.filter((file) => surfaceViolationsOf(file).length > 0).map(toRepoRelative),
   );
 
+  /** Top-level `src/*.ts(x)` files — the only layer-external place a straddle could hide. */
+  const topLevelSourceFiles = readdirSync(SRC_DIR)
+    .filter((entry) => SOURCE_FILE_PATTERN.test(entry) && !TEST_FILE_PATTERN.test(entry))
+    .map((entry) => path.join(SRC_DIR, entry));
+
+  const layerRootsTouchedBy = (file: string): string[] =>
+    LAYER_ROOTS.filter((root) =>
+      specifiersOf(file).some((specifier) => {
+        const resolved = resolveSpecifier(specifier, file);
+        return resolved !== null && isInside(resolved, root);
+      }),
+    );
+
+  const straddlingFiles = new Set(
+    topLevelSourceFiles.filter((file) => layerRootsTouchedBy(file).length > 1).map(toRepoRelative),
+  );
+
   it('discovers UI source files', () => {
     expect(sourceFiles.length).toBeGreaterThan(200);
     expect(surfaceFiles.length).toBeGreaterThan(100);
@@ -248,7 +270,7 @@ describe('UI layer boundary contract (issue #178, ADR-0062)', () => {
     );
   });
 
-  it('keeps Controllers off repositories, Firestore and infra (only useAuth is allowed)', () => {
+  it('keeps Controllers off repositories, Firestore and infra (no exception)', () => {
     const violations = new Set(
       controllerFiles
         .filter((file) => controllerViolationsOf(file).length > 0)
@@ -256,6 +278,42 @@ describe('UI layer boundary contract (issue #178, ADR-0062)', () => {
     );
     expect(controllerFiles.length).toBeGreaterThan(50);
     expect(violations, report('Controller violations', violations)).toEqual(new Set());
+  });
+
+  it('keeps every non-Surface UI tier off @/infra entirely', () => {
+    // The auth gateway is injected at the composition root, so no UI tier needs `@/infra`.
+    // Surface is handled separately above (its remaining infra import is an allowlisted #179 case).
+    const nonSurfaceFiles = sourceFiles.filter(isNonSurface);
+    const offenders = new Set(
+      nonSurfaceFiles
+        .filter((file) =>
+          specifiersOf(file).some(
+            (specifier) =>
+              FIREBASE_SPECIFIER_PATTERN.test(specifier) ||
+              resolvesUnderAny(specifier, file, [INFRA_ROOT]),
+          ),
+        )
+        .map(toRepoRelative),
+    );
+    expect(nonSurfaceFiles.length).toBeGreaterThan(60);
+    expect(offenders, report('Non-Surface files importing infra', offenders)).toEqual(new Set());
+  });
+
+  it('confines cross-layer wiring to the composition root', () => {
+    const unexpected = new Set(
+      [...straddlingFiles].filter((file) => !COMPOSITION_ROOT_ALLOWLIST.has(file)),
+    );
+    expect(
+      unexpected,
+      report('Files straddling layers outside the composition root', unexpected),
+    ).toEqual(new Set());
+  });
+
+  it('keeps no stale composition-root entry', () => {
+    const stale = new Set(
+      [...COMPOSITION_ROOT_ALLOWLIST].filter((file) => !straddlingFiles.has(file)),
+    );
+    expect(stale, report('Stale composition-root entries', stale)).toEqual(new Set());
   });
 
   it('keeps Display Labels off application and infra', () => {

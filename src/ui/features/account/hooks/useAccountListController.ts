@@ -4,14 +4,14 @@ import {
   type AccountCreate,
   type AccountWithSnapshot,
 } from '@/domains/account/types/account';
-import { useAuth } from '@/infra/contexts/useAuth';
+import { useAuthState } from '@/ui/contexts/useAuthState';
 import { useAccountCmds } from '@/ui/features/account/hooks/useAccountCmds';
 import { useAccounts } from '@/ui/features/account/hooks/useAccounts';
-import { useAuthContext } from '@/ui/hooks/useAuthContext';
+import { useAuthIdentity } from '@/ui/hooks/useAuthIdentity';
 
 export function useAccountListController() {
-  const { userProfile } = useAuth();
-  const auth = useAuthContext();
+  const { userProfile } = useAuthState();
+  const auth = useAuthIdentity();
   const householdId = userProfile?.householdId || '';
 
   const { fetchAccountsWithSnapshots, loading: loadingAccounts } = useAccounts();

@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 
-import { type User } from 'firebase/auth';
 import { Mail, Plus, ShieldCheck, User as UserIcon, X } from 'lucide-react';
 
 import { RoleEnum } from '@/domains/household/role';
@@ -19,7 +18,8 @@ interface MemberManagementUIProps {
   onAdd: (email: string, role: string) => Promise<void>;
   onRemove: (uid: string) => Promise<void>;
   onUpdateRole: (uid: string, newRole: string) => Promise<void>;
-  currentUser: User | null;
+  /** 目前登入者的 uid——本元件只需要做自我列比對，不需要整個身分物件。 */
+  currentUid: string;
 }
 
 const MemberManagementUI: React.FC<MemberManagementUIProps> = ({
@@ -31,7 +31,7 @@ const MemberManagementUI: React.FC<MemberManagementUIProps> = ({
   onAdd,
   onRemove,
   onUpdateRole,
-  currentUser,
+  currentUid,
 }) => {
   const [email, setEmail] = useState('');
   const [role, setRole] = useState<string>(RoleEnum.MEMBER);
@@ -135,7 +135,7 @@ const MemberManagementUI: React.FC<MemberManagementUIProps> = ({
                         {memberProfiles[uid]?.email || uid}
                       </p>
                     </div>
-                    {uid === currentUser?.uid && (
+                    {uid === currentUid && (
                       <span className="text-[10px] px-2 py-0.5 bg-muted text-muted-foreground rounded">
                         You
                       </span>
@@ -146,7 +146,7 @@ const MemberManagementUI: React.FC<MemberManagementUIProps> = ({
                     <select
                       className="h-8 px-2 py-1 bg-transparent border border-input rounded-md text-xs focus:outline-none focus:ring-1 focus:ring-ring"
                       value={member.role}
-                      disabled={uid === currentUser?.uid || loading}
+                      disabled={uid === currentUid || loading}
                       onChange={(e) => onUpdateRole(uid, e.target.value)}
                     >
                       <option value={RoleEnum.OWNER}>Owner</option>
@@ -159,7 +159,7 @@ const MemberManagementUI: React.FC<MemberManagementUIProps> = ({
                       variant="ghost"
                       size="icon"
                       className="h-8 w-8 text-destructive hover:bg-destructive/10"
-                      disabled={uid === currentUser?.uid || loading}
+                      disabled={uid === currentUid || loading}
                       onClick={() => onRemove(uid)}
                     >
                       <X size={16} />

@@ -16,7 +16,7 @@ import {
   TableRow,
 } from '@/ui/components/ui/table';
 import { PageHeader } from '@/ui/components/PageHeader';
-import { useAuth } from '@/infra/contexts/useAuth';
+import { useAuthState } from '@/ui/contexts/useAuthState';
 import { getAccountsWithSnapshotsUseCase } from '@/application/account/use_cases/getAccountsWithSnapshotsUseCase';
 import { getAccountHistoryUseCase } from '@/application/account/use_cases/getAccountHistoryUseCase';
 import { checkAccountMonthlyUsageUseCase } from '@/application/account/use_cases/checkAccountMonthlyUsageUseCase';
@@ -65,7 +65,7 @@ const SectionTitle: React.FC<{ children: React.ReactNode }> = ({ children }) => 
 const AccountDetailPage: React.FC<AccountDetailPageProps> = ({ account }) => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { userProfile } = useAuth();
+  const { userProfile } = useAuthState();
   const householdId = userProfile?.householdId ?? '';
   const { confirm } = useConfirm();
   const { updateAccount } = useAccountCmds(householdId);

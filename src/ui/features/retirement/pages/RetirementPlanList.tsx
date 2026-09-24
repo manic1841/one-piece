@@ -1,7 +1,7 @@
 import { Copy, Plus, TrendingUp } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
-import { useAuth } from '@/infra/contexts/useAuth';
+import { useAuthState } from '@/ui/contexts/useAuthState';
 import { PageHeader } from '@/ui/components/PageHeader';
 import { Badge } from '@/ui/components/ui/badge';
 import { Button } from '@/ui/components/ui/button';
@@ -17,7 +17,7 @@ import {
 import { useRetirementPlanListPage } from '@/ui/features/retirement/hooks/useRetirementPlanListPage';
 
 export default function RetirementPlanList() {
-  const { userProfile } = useAuth();
+  const { userProfile } = useAuthState();
   const navigate = useNavigate();
   const { planItems, loading, error, mutating, createPlan, duplicatePlan } =
     useRetirementPlanListPage(userProfile?.householdId, userProfile?.email);

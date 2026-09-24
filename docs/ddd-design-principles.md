@@ -63,7 +63,7 @@ Workflow 與 use case 的分工如下：
 ```typescript
 export function useUpdateUser() {
   const [loading, setLoading] = useState(false);
-  const { authContext } = useAuth(); // 注入權限上下文
+  const authContext = useAuthIdentity(); // 注入權限上下文（身分投影）
 
   const execute = async (uid: string, data: any) => {
     setLoading(true);

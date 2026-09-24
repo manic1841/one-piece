@@ -10,7 +10,7 @@ import {
 } from '@/ui/features/portfolio/hooks/usePortfolios';
 
 vi.mock('@/ui/features/account/hooks/useAccounts');
-vi.mock('@/ui/hooks/useAuthContext');
+vi.mock('@/ui/hooks/useAuthIdentity');
 vi.mock('@/ui/features/portfolio/hooks/usePortfolioCmds');
 vi.mock('@/ui/features/portfolio/hooks/usePortfolios');
 vi.mock('react-router-dom', async () => {

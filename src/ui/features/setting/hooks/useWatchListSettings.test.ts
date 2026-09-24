@@ -10,20 +10,20 @@ vi.mock('@/application/watch_list/use_cases/addWatchListTargetUseCase', () => ({
 vi.mock('@/application/watch_list/use_cases/removeWatchListTargetUseCase', () => ({
   removeWatchListTargetUseCase: { execute: vi.fn() },
 }));
-vi.mock('@/infra/contexts/useAuth', () => ({
-  useAuth: vi.fn(),
+vi.mock('@/ui/contexts/useAuthState', () => ({
+  useAuthState: vi.fn(),
 }));
 
 import { addWatchListTargetUseCase } from '@/application/watch_list/use_cases/addWatchListTargetUseCase';
 import { listWatchListUseCase } from '@/application/watch_list/use_cases/listWatchListUseCase';
 import { removeWatchListTargetUseCase } from '@/application/watch_list/use_cases/removeWatchListTargetUseCase';
-import { useAuth } from '@/infra/contexts/useAuth';
+import { useAuthState } from '@/ui/contexts/useAuthState';
 
 import { useWatchListSettings } from './useWatchListSettings';
 
-vi.mocked(useAuth).mockReturnValue({
+vi.mocked(useAuthState).mockReturnValue({
   userProfile: { householdId: 'household-1' },
-} as ReturnType<typeof useAuth>);
+} as ReturnType<typeof useAuthState>);
 
 describe('useWatchListSettings', () => {
   beforeEach(() => {
@@ -94,7 +94,7 @@ describe('useWatchListSettings', () => {
   });
 
   it('does nothing without a household id', async () => {
-    vi.mocked(useAuth).mockReturnValue({ userProfile: undefined } as ReturnType<typeof useAuth>);
+    vi.mocked(useAuthState).mockReturnValue({ userProfile: undefined } as ReturnType<typeof useAuthState>);
     const { result } = renderHook(() => useWatchListSettings());
     await waitFor(() => expect(result.current.loading).toBe(false));
 

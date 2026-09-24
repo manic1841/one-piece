@@ -10,7 +10,7 @@ import {
 } from '@/ui/components/ui/dialog';
 import { useAccountCmds } from '@/ui/features/account/hooks/useAccountCmds';
 import { useAccountSnapshots } from '@/ui/features/account/hooks/useAccountSnapshots';
-import { useAuth } from '@/infra/contexts/useAuth';
+import { useAuthState } from '@/ui/contexts/useAuthState';
 import { useConfirm } from '@/ui/features/app/confirm/ConfirmDialog';
 
 import { AccountSnapshotTable } from './AccountSnapshotTable';
@@ -27,7 +27,7 @@ export const AccountHistoryDialog: React.FC<AccountHistoryDialogProps> = ({
   isOpen,
   onClose,
 }) => {
-  const { userProfile } = useAuth();
+  const { userProfile } = useAuthState();
   const householdId = userProfile?.householdId || '';
   const { snapshots, reload } = useAccountSnapshots(householdId, account.id);
   const { deleteSnapshot } = useAccountCmds(householdId);

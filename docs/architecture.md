@@ -27,13 +27,16 @@
 - **工具**: 繼承 `src/repositories/baseRepository.ts` 進行標準 CRUD。
 - **外部 API 介接**: 匯率由 `external/exchangeRateApiClient.ts` 直接從 CORS 開放的每日匯率源取得（免 key、免後端代理，詳見 [ADR-0049](adr/0049-cors-open-exchange-rate-source.md)）；跨匯率換算由 `GetLatestRateUseCase` 以 USD 基準匯率推導，並保留 1 小時記憶體快取。
 
-### 📂 Presentation (呈現層) - `src/ui/features/`, `src/ui/components/`
+### 📂 Presentation (呈現層) - `src/ui/`
 
 - **職責**: UI 渲染與使用者互動。
 - **內容**:
-  - `features/[feature-name]/hooks/`: **應用控制器 (Application Controller)**。React 進入點，負責銜接 UI 與核心邏輯。
+  - `features/[feature-name]/hooks/`: **控制器 (Controller)**。React 進入點，負責銜接 UI 與核心邏輯。
+  - `contexts/`: UI 自有的 React context 與 provider（Controller 範圍，例如認證狀態）。
   - `components/`: React 組件。
-- **規則**: Component 只調用 feature Hook (Application Controller)，不直接觸碰業務邏輯或資料庫。
+- **規則**: Component 只調用 feature Hook (Controller)，不直接觸碰業務邏輯或資料庫。
+  層級、可觸碰清單與呼叫方向以 [`ui/ui-layer-architecture.md`](ui/ui-layer-architecture.md) 為準；
+  UI 不得 import `@/domains`、`@/application`、`@/infra`（跨層實作由 `src/App.tsx` 這個 composition root 注入）。
 
 ## 2. 資料流 (Data Flow)
 

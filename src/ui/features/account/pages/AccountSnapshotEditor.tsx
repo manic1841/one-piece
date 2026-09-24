@@ -7,7 +7,7 @@ import type { Holding } from '@/domains/account/schemas';
 import { type Account, type AccountSnapshot } from '@/domains/account/types/account';
 import { AccountCategory } from '@/domains/account/types/categories';
 import type { CurrencyCode } from '@/domains/exchange_rate/types';
-import { useAuth } from '@/infra/contexts/useAuth';
+import { useAuthState } from '@/ui/contexts/useAuthState';
 import { YearMonthPicker } from '@/ui/components/YearMonthPicker';
 import { Button } from '@/ui/components/ui/button';
 import {
@@ -49,7 +49,7 @@ const AccountSnapshotEditor: React.FC<AccountSnapshotEditorProps> = ({
   snapshot,
   onClose,
 }) => {
-  const { userProfile } = useAuth();
+  const { userProfile } = useAuthState();
   const householdId = userProfile?.householdId || '';
   const { recordSnapshot, getPreviousSnapshot, loading } = useAccountCmds(householdId);
   const { getRate, loading: fetchingRate } = useExchangeRate();

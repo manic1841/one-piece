@@ -2,13 +2,13 @@ import { useCallback, useEffect, useState } from 'react';
 
 import { getDashboardOverviewUseCase } from '@/application/dashboard/use_cases/getDashboardOverviewUseCase';
 import { type DashboardOverview } from '@/application/dashboard/use_cases/getDashboardOverviewUseCase';
-import { useAuthContext } from '@/ui/hooks/useAuthContext';
+import { useAuthIdentity } from '@/ui/hooks/useAuthIdentity';
 
 import { mapDashboardOverviewToHeroVM } from '../viewmodels/dashboardHero.vm';
 import { type DashboardHeroVM } from '../viewmodels/dashboardHero.vm';
 
 export function useDashboardOverview(householdId: string | undefined) {
-  const auth = useAuthContext();
+  const auth = useAuthIdentity();
   const [overview, setOverview] = useState<DashboardOverview | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);

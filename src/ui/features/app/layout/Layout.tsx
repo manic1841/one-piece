@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { LogOut, Search, Settings, UserRound } from 'lucide-react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 
-import { useAuth } from '@/infra/contexts/useAuth';
+import { useAuthState } from '@/ui/contexts/useAuthState';
 import { useConfirm } from '@/ui/features/app/confirm/ConfirmDialog';
 import { StatusGlyph } from '@/ui/components/StatusGlyph';
 import { Button } from '@/ui/components/ui/button';
@@ -23,7 +23,7 @@ import { useHouseholdGuard } from './useHouseholdGuard';
 import { usePetReaction } from './usePetReaction';
 
 const Layout: React.FC = () => {
-  const { userProfile, logout } = useAuth();
+  const { userProfile, logout } = useAuthState();
   const navigate = useNavigate();
   const { familyName, loadingHousehold } = useHouseholdGuard();
   const petReaction = usePetReaction(userProfile?.householdId);

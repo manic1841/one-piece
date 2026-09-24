@@ -12,7 +12,7 @@ import {
 import type { RetirementPlan, RetirementPlanCreate } from '@/domains/retirement/types';
 import { useRetirementPlanCmds } from '@/ui/features/retirement/hooks/useRetirementPlanCmds';
 import { useRetirementPlans } from '@/ui/features/retirement/hooks/useRetirementPlans';
-import { useAuthContext } from '@/ui/hooks/useAuthContext';
+import { useAuthIdentity } from '@/ui/hooks/useAuthIdentity';
 import { logger } from '@/utils/logger';
 import { useConfirm } from '@/ui/features/app/confirm/ConfirmDialog';
 
@@ -36,7 +36,7 @@ export const useRetirementPlanCore = ({
 }: UseRetirementPlanCoreParams) => {
   const navigate = useNavigate();
   const { confirm } = useConfirm();
-  const auth = useAuthContext();
+  const auth = useAuthIdentity();
   const [plan, setPlan] = useState<RetirementPlan | null>(null);
   const [staleIncomeSyncBanner, setStaleIncomeSyncBanner] =
     useState<StaleIncomeSyncBannerState | null>(null);

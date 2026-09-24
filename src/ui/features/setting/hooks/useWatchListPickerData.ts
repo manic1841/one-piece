@@ -5,9 +5,9 @@ import { listAllLedgerCodesUseCase } from '@/application/ledger/use_cases/listAl
 import { listProjectsUseCase } from '@/application/project/use_cases/listProjectsUseCase';
 import { type DebtAccount } from '@/domains/debt/schemas';
 import { type Project } from '@/domains/project/schemas';
-import { useAuth } from '@/infra/contexts/useAuth';
+import { useAuthState } from '@/ui/contexts/useAuthState';
 import { getUnifiedLedgerCodeLabel } from '@/ui/constants/transaction';
-import { useAuthContext } from '@/ui/hooks/useAuthContext';
+import { useAuthIdentity } from '@/ui/hooks/useAuthIdentity';
 import { useLoadingTask } from '@/ui/hooks/useLoadingTask';
 
 export interface WatchListPickerData {
@@ -17,8 +17,8 @@ export interface WatchListPickerData {
 }
 
 export function useWatchListPickerData(): WatchListPickerData {
-  const { userProfile } = useAuth();
-  const auth = useAuthContext();
+  const { userProfile } = useAuthState();
+  const auth = useAuthIdentity();
   const householdId = userProfile?.householdId;
   const [pickerData, setPickerData] = useState<WatchListPickerData>({
     projects: [],

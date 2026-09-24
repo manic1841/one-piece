@@ -1,6 +1,5 @@
 import React from 'react';
 
-import { type User } from 'firebase/auth';
 import { Database, Download, ShieldAlert } from 'lucide-react';
 
 import { type Household } from '@/domains/household/schemas';
@@ -44,7 +43,7 @@ interface SettingsUIProps {
   addHouseholdMember: (email: string, role: string) => Promise<void>;
   removeHouseholdMember: (uid: string) => Promise<void>;
   updateMemberRole: (uid: string, newRole: string) => Promise<void>;
-  currentUser: User | null;
+  currentUid: string;
   backupLoading: boolean;
   backupError: string;
   backupSuccess: string;
@@ -77,7 +76,7 @@ const SettingsUI: React.FC<SettingsUIProps> = (props) => {
     addHouseholdMember,
     removeHouseholdMember,
     updateMemberRole,
-    currentUser,
+    currentUid,
     backupLoading,
     backupError,
     backupSuccess,
@@ -196,7 +195,7 @@ const SettingsUI: React.FC<SettingsUIProps> = (props) => {
             onAdd={addHouseholdMember}
             onRemove={removeHouseholdMember}
             onUpdateRole={updateMemberRole}
-            currentUser={currentUser}
+            currentUid={currentUid}
           />
 
           <WatchListSettings pickerOptions={watchListPickerOptions} />

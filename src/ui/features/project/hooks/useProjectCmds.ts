@@ -13,7 +13,7 @@ import {
   type ProjectSnapshot,
   type ProjectSnapshotCreate,
 } from '@/domains/project/schemas';
-import { useAuthContext } from '@/ui/hooks/useAuthContext';
+import { useAuthIdentity } from '@/ui/hooks/useAuthIdentity';
 import { useLoadingTask } from '@/ui/hooks/useLoadingTask';
 
 export interface DeleteProjectSnapshotRequest {
@@ -23,7 +23,7 @@ export interface DeleteProjectSnapshotRequest {
 }
 
 export function useProjectCmds(householdId: string) {
-  const auth = useAuthContext();
+  const auth = useAuthIdentity();
 
   const { loading, error, run } = useLoadingTask();
 

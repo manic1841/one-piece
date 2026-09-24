@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
 
 import { listAllLedgerCodesUseCase } from '@/application/ledger/use_cases/listAllLedgerCodesUseCase';
-import { useAuth } from '@/infra/contexts/useAuth';
+import { useAuthState } from '@/ui/contexts/useAuthState';
 import { getUnifiedLedgerCodeLabel } from '@/ui/constants/transaction';
-import { useAuthContext } from '@/ui/hooks/useAuthContext';
+import { useAuthIdentity } from '@/ui/hooks/useAuthIdentity';
 
 export interface LedgerCodeItem {
   code: string;
@@ -14,8 +14,8 @@ export interface LedgerCodeItem {
 }
 
 export const useLedgerCodes = (includeInactive = false) => {
-  const { userProfile } = useAuth();
-  const auth = useAuthContext();
+  const { userProfile } = useAuthState();
+  const auth = useAuthIdentity();
   const householdId = userProfile?.householdId;
   const [codes, setCodes] = useState<LedgerCodeItem[]>([]);
   const [loading, setLoading] = useState(true);

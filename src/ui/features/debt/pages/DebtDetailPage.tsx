@@ -14,7 +14,7 @@ import { StatusGlyph } from '@/ui/components/StatusGlyph';
 import { DEBT_STATUS_SETTLED_LABEL } from '@/ui/constants/debtStatusLabels';
 import { Button } from '@/ui/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/ui/components/ui/dialog';
-import { useAuth } from '@/infra/contexts/useAuth';
+import { useAuthState } from '@/ui/contexts/useAuthState';
 import { useConfirm } from '@/ui/features/app/confirm/ConfirmDialog';
 import { DebtAccountForm } from '@/ui/features/debt/components/DebtAccountForm';
 import { DebtPaymentsTable, type PaymentHistoryRow } from '@/ui/features/debt/components/detail/DebtPaymentsTable';
@@ -39,7 +39,7 @@ const SectionTitle: React.FC<{ children: React.ReactNode }> = ({ children }) => 
 export default function DebtDetailPage({ account }: DebtDetailPageProps) {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { userProfile } = useAuth();
+  const { userProfile } = useAuthState();
   const householdId = userProfile?.householdId ?? '';
   const { confirm } = useConfirm();
   const { updateDebtAccount, removeDebtAccount } = useDebtAccountCmds(householdId);

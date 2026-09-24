@@ -7,8 +7,8 @@ vi.mock('@/application/monthly_close/use_cases/monthlyCloseWorkflowUseCase', () 
     confirmStage: vi.fn(),
   },
 }));
-vi.mock('@/ui/hooks/useAuthContext', () => ({
-  useAuthContext: () => ({ uid: 'user-1', email: 'user@test.com', isGlobalAdmin: false }),
+vi.mock('@/ui/hooks/useAuthIdentity', () => ({
+  useAuthIdentity: () => ({ uid: 'user-1', email: 'user@test.com', isGlobalAdmin: false }),
 }));
 
 import { monthlyCloseWorkflowUseCase } from '@/application/monthly_close/use_cases/monthlyCloseWorkflowUseCase';

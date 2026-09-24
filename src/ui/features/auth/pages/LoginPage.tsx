@@ -4,7 +4,7 @@ import { doc, getDoc } from 'firebase/firestore';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 import { db } from '@/firebase';
-import { useAuth } from '@/infra/contexts/useAuth';
+import { useAuthState } from '@/ui/contexts/useAuthState';
 import { Button } from '@/ui/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/ui/card';
 
@@ -12,7 +12,7 @@ const Login: React.FC = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const { loginWithGoogle } = useAuth();
+  const { loginWithGoogle } = useAuthState();
   const navigate = useNavigate();
   const location = useLocation();
   const from = location.state?.from?.pathname || '/';

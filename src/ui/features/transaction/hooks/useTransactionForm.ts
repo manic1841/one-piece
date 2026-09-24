@@ -10,10 +10,10 @@ import { upsertIncomeAllocationTemplateUseCase } from '@/application/ledger/use_
 import { IntentType } from '@/domains/ledger/constants';
 import { DEFAULT_INTENT_MAPPINGS } from '@/domains/ledger/intentMapping';
 import { normalizeDescription } from '@/domains/operation/fingerprint';
-import { useAuth } from '@/infra/contexts/useAuth';
+import { useAuthState } from '@/ui/contexts/useAuthState';
 import { getIntentLabel } from '@/ui/constants/transaction';
 import { useLedgerCodes } from '@/ui/features/ledger/hooks/useLedgerCodes';
-import { useAuthContext } from '@/ui/hooks/useAuthContext';
+import { useAuthIdentity } from '@/ui/hooks/useAuthIdentity';
 import { type AllocationItemInput } from '@/ui/features/transaction/types/allocation';
 import {
   type TransactionFormCategoryOption,
@@ -84,8 +84,8 @@ export const useTransactionForm = (
   onClose: () => void,
   onSuccess?: () => void,
 ) => {
-  const { userProfile } = useAuth();
-  const auth = useAuthContext();
+  const { userProfile } = useAuthState();
+  const auth = useAuthIdentity();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const incomeTemplateCacheRef = useRef<Map<string, AllocationItemInput[] | null>>(new Map());

@@ -2,13 +2,13 @@ import { useCallback } from 'react';
 
 import { type RetirementPlan } from '@/domains/retirement/types';
 import { useLoadingTask } from '@/ui/hooks/useLoadingTask';
-import { useAuthContext } from '@/ui/hooks/useAuthContext';
+import { useAuthIdentity } from '@/ui/hooks/useAuthIdentity';
 
 import { getRetirementPlanUseCase } from '../../../../application/retirement/use_cases/getRetirementPlanUseCase';
 import { listRetirementPlansUseCase } from '../../../../application/retirement/use_cases/listRetirementPlansUseCase';
 
 export function useRetirementPlans(householdId: string | undefined) {
-  const auth = useAuthContext();
+  const auth = useAuthIdentity();
   const { loading, error, run } = useLoadingTask();
 
   const listPlans = useCallback(async (): Promise<RetirementPlan[]> => {

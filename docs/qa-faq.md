@@ -51,9 +51,9 @@
 
 **症狀**:頁面完全空白,`#root` 內沒有任何節點;DevTools console 出現 `auth/network-request-failed`,或畫面顯示「Cannot reach the backend」。
 
-**根因**:兩層。第一層:Auth 初始化失敗時 `onAuthStateChanged` **永遠不會回呼**,而 `AuthProvider` 原本只在 `loading === false` 時渲染 children,於是停在永久等待,連 Loading 畫面都沒有。第二層:render 期未捕捉的錯誤沒有 error boundary,React 會卸載整棵樹留下空白。
+**根因**:兩層。第一層:Auth 初始化失敗時 `onAuthStateChanged` **永遠不會回呼**,而 UI 的 gate 原本只在 `loading === false` 時渲染 children,於是停在永久等待,連 Loading 畫面都沒有。第二層:render 期未捕捉的錯誤沒有 error boundary,React 會卸載整棵樹留下空白。
 
-**現在的防護**:`ErrorBoundary`(`src/ui/components/ErrorBoundary.tsx`,掛在 `main.tsx`)攔 render 錯誤;`AuthProvider` 對 auth 初始化設 10 秒逾時,失敗時只把錯誤碼(`initError`)放上 auth context,由 `AuthGate`(`src/ui/features/app/AuthGate.tsx`)顯示共用的 `AppFallback`(可見訊息 + Reload)。任何讓 app 進不去的失敗都必須留下可見訊息,不得是 silent failure。
+**現在的防護**:`ErrorBoundary`(`src/ui/components/ErrorBoundary.tsx`,掛在 `main.tsx`)攔 render 錯誤;認證閘道(`src/infra/contexts/firebaseAuthGateway.ts`)對 auth 初始化設 10 秒逾時,失敗時只把錯誤碼經 `AuthGateway` 回報(不 render UI),由 `AuthStateProvider`(`src/ui/contexts/AuthStateProvider.tsx`)放上 UI 自有的 auth 狀態,再經 `AuthGate`(`src/ui/features/app/AuthGate.tsx`)顯示共用的 `AppFallback`(可見訊息 + Reload)。任何讓 app 進不去的失敗都必須留下可見訊息,不得是 silent failure。
 
 **判別法**:看到「Cannot reach the backend」就是 emulator 沒起或 proxy 上游不對——先確認 emulator 容器狀態,再用容器內 `curl firebase:8080` 區分「emulator 掛了」與「proxy 設定錯」。看到「Something went wrong」則是真的 render 錯誤,訊息即原因。
 

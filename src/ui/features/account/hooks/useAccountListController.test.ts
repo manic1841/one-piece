@@ -3,8 +3,8 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { useAccountListController } from './useAccountListController';
 
-vi.mock('@/infra/contexts/useAuth', () => ({
-  useAuth: () => ({
+vi.mock('@/ui/contexts/useAuthState', () => ({
+  useAuthState: () => ({
     userProfile: {
       uid: 'user-1',
       email: 'user@example.com',

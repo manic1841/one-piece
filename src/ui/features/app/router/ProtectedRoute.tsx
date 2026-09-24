@@ -4,7 +4,7 @@ import { Navigate, useLocation } from 'react-router-dom';
 
 import { isUserAuthorizedUseCase } from '@/application/auth/use_cases/isUserAuthorizedUseCase';
 import { householdPermissionService } from '@/application/household/householdPermissionService';
-import { useAuth } from '@/infra/contexts/useAuth';
+import { useAuthState } from '@/ui/contexts/useAuthState';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -12,7 +12,7 @@ interface ProtectedRouteProps {
 }
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, requireHousehold = false }) => {
-  const { currentUser, userProfile, loading, isAdmin } = useAuth();
+  const { user, userProfile, loading, isAdmin } = useAuthState();
   const location = useLocation();
   const [isAuthorized, setIsAuthorized] = useState<boolean | null>(isAdmin);
   const [isMemberOfHousehold, setIsMemberOfHousehold] = useState<boolean | null>(null);
@@ -20,7 +20,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, requireHouseh
 
   useEffect(() => {
     const checkAuthorization = async () => {
-      if (!currentUser) {
+      if (!user) {
         setCheckingAuth(false);
         return;
       }
@@ -28,7 +28,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, requireHouseh
       try {
         // Whitelist check
         if (!isAdmin) {
-          const authorized = await isUserAuthorizedUseCase.execute({ email: currentUser.email });
+          const authorized = await isUserAuthorizedUseCase.execute({ email: user.email });
           setIsAuthorized(authorized);
         }
 
@@ -37,7 +37,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, requireHouseh
           try {
             await householdPermissionService.assertReadPermission(
               userProfile.householdId,
-              currentUser.uid,
+              user.uid,
               isAdmin,
             );
             setIsMemberOfHousehold(true);
@@ -49,7 +49,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, requireHouseh
         }
       } catch (error) {
         console.error(
-          `[ProtectedRoute] Authorization check failed for user ${currentUser.uid} with email ${currentUser.email}:`,
+          `[ProtectedRoute] Authorization check failed for user ${user.uid} with email ${user.email}:`,
           error,
         );
         setIsAuthorized(false);
@@ -59,7 +59,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, requireHouseh
       }
     };
     checkAuthorization();
-  }, [currentUser, isAdmin, requireHousehold, userProfile?.householdId]);
+  }, [user, isAdmin, requireHousehold, userProfile?.householdId]);
 
   if (loading || checkingAuth) {
     return (
@@ -69,7 +69,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, requireHouseh
     );
   }
 
-  if (!currentUser) {
+  if (!user) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 

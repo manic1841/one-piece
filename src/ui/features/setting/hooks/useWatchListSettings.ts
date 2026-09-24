@@ -4,12 +4,12 @@ import { addWatchListTargetUseCase } from '@/application/watch_list/use_cases/ad
 import { listWatchListUseCase } from '@/application/watch_list/use_cases/listWatchListUseCase';
 import { removeWatchListTargetUseCase } from '@/application/watch_list/use_cases/removeWatchListTargetUseCase';
 import { type WatchListTarget, type WatchListTargetType } from '@/domains/watch_list/schemas';
-import { useAuth } from '@/infra/contexts/useAuth';
-import { useAuthContext } from '@/ui/hooks/useAuthContext';
+import { useAuthState } from '@/ui/contexts/useAuthState';
+import { useAuthIdentity } from '@/ui/hooks/useAuthIdentity';
 
 export function useWatchListSettings() {
-  const { userProfile } = useAuth();
-  const auth = useAuthContext();
+  const { userProfile } = useAuthState();
+  const auth = useAuthIdentity();
   const householdId = userProfile?.householdId;
 
   const [targets, setTargets] = useState<WatchListTarget[]>([]);

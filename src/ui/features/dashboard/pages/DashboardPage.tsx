@@ -1,7 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 
-import { useAuth } from '@/infra/contexts/useAuth';
+import { useAuthState } from '@/ui/contexts/useAuthState';
 import { useDashboardOverview } from '@/ui/features/dashboard/hooks/useDashboardOverview';
 import { useDashboardCloseStatus } from '@/ui/features/dashboard/hooks/useDashboardCloseStatus';
 import { useDashboardRecentTransactions } from '@/ui/features/dashboard/hooks/useDashboardRecentTransactions';
@@ -14,7 +14,7 @@ import { MonthlyCloseCard } from '@/ui/features/dashboard/components/MonthlyClos
 import { HeroYtd } from '@/ui/features/dashboard/components/HeroYtd';
 
 const Dashboard: React.FC = () => {
-  const { userProfile } = useAuth();
+  const { userProfile } = useAuthState();
   const navigate = useNavigate();
   const householdId = userProfile?.householdId;
   const { overview, heroVM, loading, error } = useDashboardOverview(householdId);

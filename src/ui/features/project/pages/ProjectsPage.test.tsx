@@ -2,20 +2,20 @@ import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter, useNavigate } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 
-import { useAuth } from '@/infra/contexts/useAuth';
+import { useAuthState } from '@/ui/contexts/useAuthState';
 import { useProjectPage } from '@/ui/features/project/hooks/useProjectPage';
 import { useProjectQueries } from '@/ui/features/project/hooks/useProjects';
 import { type Project } from '@/domains/project/schemas';
 
 vi.mock('@/ui/features/project/hooks/useProjectPage');
 vi.mock('@/ui/features/project/hooks/useProjects');
-vi.mock('@/infra/contexts/useAuth', async () => {
-  const actual = await vi.importActual<typeof import('@/infra/contexts/useAuth')>(
-    '@/infra/contexts/useAuth',
+vi.mock('@/ui/contexts/useAuthState', async () => {
+  const actual = await vi.importActual<typeof import('@/ui/contexts/useAuthState')>(
+    '@/ui/contexts/useAuthState',
   );
   return {
     ...actual,
-    useAuth: vi.fn(),
+    useAuthState: vi.fn(),
   };
 });
 vi.mock('react-router-dom', async () => {
@@ -29,12 +29,12 @@ vi.mock('react-router-dom', async () => {
 const mockUseProjectPage = vi.mocked(useProjectPage);
 const mockUseProjectQueries = vi.mocked(useProjectQueries);
 const mockUseNavigate = vi.mocked(useNavigate);
-const mockUseAuth = vi.mocked(useAuth);
+const mockUseAuth = vi.mocked(useAuthState);
 
 import ProjectsPage from './ProjectsPage';
 
 const authProfile = {
-  currentUser: { uid: 'u1', email: 'u1@onepiece.test' } as never,
+  user: { uid: 'u1', email: 'u1@onepiece.test' } as never,
   userProfile: { householdId: 'h1', email: 'u1@onepiece.test' } as never,
   isAdmin: false,
   loading: false,

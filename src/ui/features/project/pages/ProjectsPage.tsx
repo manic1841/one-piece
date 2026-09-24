@@ -4,7 +4,7 @@ import { Plus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 import { type Project } from '@/domains/project/schemas';
-import { useAuth } from '@/infra/contexts/useAuth';
+import { useAuthState } from '@/ui/contexts/useAuthState';
 import CompactRow from '@/ui/components/CompactRow';
 import { Button } from '@/ui/components/ui/button';
 import {
@@ -138,7 +138,7 @@ const SortableProjectCompactRow: React.FC<{
 };
 
 const Projects: React.FC = () => {
-  const { userProfile } = useAuth();
+  const { userProfile } = useAuthState();
   const navigate = useNavigate();
 
   const {

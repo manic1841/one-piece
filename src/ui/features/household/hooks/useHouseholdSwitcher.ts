@@ -6,7 +6,7 @@ import { getHouseholdsByUserUseCase } from '@/application/household/use_cases/ge
 import { leaveHouseholdUseCase } from '@/application/household/use_cases/leaveHouseholdUseCase';
 import { switchHouseholdUseCase } from '@/application/household/use_cases/switchHouseholdUseCase';
 import { type Household } from '@/domains/household/schemas';
-import { useAuth } from '@/infra/contexts/useAuth';
+import { useAuthState } from '@/ui/contexts/useAuthState';
 import { useConfirm } from '@/ui/features/app/confirm/ConfirmDialog';
 
 export function useHouseholdSwitcher(
@@ -14,18 +14,18 @@ export function useHouseholdSwitcher(
   isOpen: boolean,
   setIsOpen: (open: boolean) => void,
 ) {
-  const { currentUser, refreshProfile } = useAuth();
+  const { user, refreshProfile } = useAuthState();
   const navigate = useNavigate();
   const [households, setHouseholds] = useState<Household[]>([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     const fetchHouseholds = async () => {
-      if (!currentUser || !isOpen) return;
+      if (!user || !isOpen) return;
 
       setLoading(true);
       try {
-        const userHouseholds = await getHouseholdsByUserUseCase.execute({ uid: currentUser.uid });
+        const userHouseholds = await getHouseholdsByUserUseCase.execute({ uid: user.uid });
         setHouseholds(userHouseholds);
       } catch (error) {
         console.error('Error fetching households:', error);
@@ -35,13 +35,13 @@ export function useHouseholdSwitcher(
     };
 
     fetchHouseholds();
-  }, [currentUser, isOpen]);
+  }, [user, isOpen]);
 
   const handleSwitchHousehold = async (householdId: string) => {
-    if (!currentUser || householdId === currentHouseholdId) return;
+    if (!user || householdId === currentHouseholdId) return;
 
     try {
-      await switchHouseholdUseCase.execute({ uid: currentUser.uid, householdId });
+      await switchHouseholdUseCase.execute({ uid: user.uid, householdId });
       await refreshProfile();
       navigate('/');
       setIsOpen(false);
@@ -54,7 +54,7 @@ export function useHouseholdSwitcher(
   const { confirm } = useConfirm();
 
   const handleLeaveHousehold = async () => {
-    if (!currentUser) return;
+    if (!user) return;
 
     const confirmed = await confirm({
       title: 'Leave this household?',
@@ -63,7 +63,7 @@ export function useHouseholdSwitcher(
     });
     if (confirmed) {
       try {
-        await leaveHouseholdUseCase.execute({ uid: currentUser.uid });
+        await leaveHouseholdUseCase.execute({ uid: user.uid });
         await refreshProfile();
         navigate('/onboarding');
         setIsOpen(false);

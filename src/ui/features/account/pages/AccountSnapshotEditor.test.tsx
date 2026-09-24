@@ -3,8 +3,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import AccountSnapshotEditor from '@/ui/features/account/pages/AccountSnapshotEditor';
 
-vi.mock('@/infra/contexts/useAuth', () => ({
-  useAuth: vi.fn(),
+vi.mock('@/ui/contexts/useAuthState', () => ({
+  useAuthState: vi.fn(),
 }));
 
 vi.mock('@/ui/features/account/hooks/useAccountCmds', () => ({
@@ -19,11 +19,11 @@ describe('AccountSnapshotEditor', () => {
   beforeEach(async () => {
     vi.clearAllMocks();
 
-    const { useAuth } = await import('@/infra/contexts/useAuth');
+    const { useAuthState } = await import('@/ui/contexts/useAuthState');
     const { useAccountCmds } = await import('@/ui/features/account/hooks/useAccountCmds');
     const { useExchangeRate } = await import('@/ui/hooks/useExchangeRate');
 
-    vi.mocked(useAuth).mockReturnValue({
+    vi.mocked(useAuthState).mockReturnValue({
       userProfile: { householdId: 'household-1' },
     } as never);
 

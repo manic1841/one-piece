@@ -8,7 +8,7 @@ import {
   type IncomeStatementVM,
   mapIncomeStatementToVM,
 } from '@/ui/features/report/viewmodels/reportDisplay.vm';
-import { useAuthContext } from '@/ui/hooks/useAuthContext';
+import { useAuthIdentity } from '@/ui/hooks/useAuthIdentity';
 import { useLoadingTask } from '@/ui/hooks/useLoadingTask';
 
 type ReportMode = 'MONTHLY' | 'YEARLY';
@@ -21,7 +21,7 @@ export function useIncomeStatement(
   const [data, setData] = useState<IncomeStatementVM | null>(null);
   const [internalDate, setInternalDate] = useState<Date>(new Date());
   const { loading, error, run } = useLoadingTask();
-  const auth = useAuthContext();
+  const auth = useAuthIdentity();
 
   const currentDate = controlledDate || internalDate;
 

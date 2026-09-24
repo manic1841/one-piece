@@ -3,7 +3,7 @@ import { MemoryRouter, useNavigate } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 
 import { type Portfolio } from '@/domains/portfolio/types/portfolio';
-import { useAuth } from '@/infra/contexts/useAuth';
+import { useAuthState } from '@/ui/contexts/useAuthState';
 import { useAccounts } from '@/ui/features/account/hooks/useAccounts';
 import { usePortfolioCmds } from '@/ui/features/portfolio/hooks/usePortfolioCmds';
 import {
@@ -11,8 +11,8 @@ import {
   usePortfolios,
 } from '@/ui/features/portfolio/hooks/usePortfolios';
 
-vi.mock('@/infra/contexts/useAuth');
-vi.mock('@/ui/hooks/useAuthContext');
+vi.mock('@/ui/contexts/useAuthState');
+vi.mock('@/ui/hooks/useAuthIdentity');
 vi.mock('@/ui/features/account/hooks/useAccounts');
 vi.mock('@/ui/features/portfolio/hooks/usePortfolioCmds');
 vi.mock('@/ui/features/portfolio/hooks/usePortfolios');
@@ -25,7 +25,7 @@ vi.mock('react-router-dom', async () => {
   };
 });
 
-const mockUseAuth = vi.mocked(useAuth);
+const mockUseAuth = vi.mocked(useAuthState);
 const mockUseNavigate = vi.mocked(useNavigate);
 const mockUsePortfolios = vi.mocked(usePortfolios);
 const mockUsePortfolioQueries = vi.mocked(usePortfolioQueries);

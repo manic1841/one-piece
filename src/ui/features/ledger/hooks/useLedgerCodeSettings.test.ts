@@ -3,8 +3,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { useLedgerCodeSettings } from './useLedgerCodeSettings';
 
-vi.mock('@/infra/contexts/useAuth', () => ({
-  useAuth: vi.fn(),
+vi.mock('@/ui/contexts/useAuthState', () => ({
+  useAuthState: vi.fn(),
 }));
 
 vi.mock('@/ui/features/ledger/hooks/useLedgerCodes', () => ({
@@ -35,7 +35,7 @@ describe('useLedgerCodeSettings', () => {
   beforeEach(async () => {
     vi.clearAllMocks();
 
-    const { useAuth } = await import('../../../../infra/contexts/useAuth');
+    const { useAuthState } = await import('../../../../ui/contexts/useAuthState');
     const { useLedgerCodes } = await import('./useLedgerCodes');
     const { createCustomLedgerCodeUseCase } = await import(
       '../../../../application/ledger/use_cases/createCustomLedgerCodeUseCase'
@@ -47,9 +47,9 @@ describe('useLedgerCodeSettings', () => {
       '../../../../application/ledger/use_cases/checkLedgerCodeInUseUseCase'
     );
 
-    vi.mocked(useAuth).mockReturnValue({
+    vi.mocked(useAuthState).mockReturnValue({
       userProfile: { householdId: 'household-1' },
-      currentUser: { uid: 'user-1', email: 'user@example.com' },
+      user: { uid: 'user-1', email: 'user@example.com' },
       isAdmin: false,
       loading: false,
       logout: vi.fn(),

@@ -3,10 +3,10 @@ import { useCallback, useState } from 'react';
 import { addWhitelistEmailUseCase } from '@/application/auth/use_cases/addWhitelistEmailUseCase';
 import { getWhitelistUseCase } from '@/application/auth/use_cases/getWhitelistUseCase';
 import { removeWhitelistEmailUseCase } from '@/application/auth/use_cases/removeWhitelistEmailUseCase';
-import { useAuth } from '@/infra/contexts/useAuth';
+import { useAuthState } from '@/ui/contexts/useAuthState';
 
 export function useWhitelist() {
-  const { isAdmin } = useAuth();
+  const { isAdmin } = useAuthState();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 

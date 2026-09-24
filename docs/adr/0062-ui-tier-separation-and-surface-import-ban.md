@@ -36,7 +36,10 @@
    分層表前一律視為 Surface，不會默默被豁免。
 2. **ViewModel**（`features/*/viewmodels`、`features/*/mappers`、`features/*/types`）：domain ↔ component 的**唯一橋樑**。
    可 import domain 的型別、值域與純函式，也可 import application 的**型別**，但**不得呼叫 use case 或 workflow 的行為**。
-3. **Controller**（`features/*/hooks`、`hooks`）：唯一可呼叫 use case / workflow 的層。不得 import repository。
+3. **Controller**（`features/*/hooks`、`hooks`、`contexts`、`features/*/contexts`）：唯一可呼叫 use case / workflow 的層。
+   不得 import repository，**也不得 import `@/infra`——沒有任何例外**。React context 是 Controller 範圍內的
+   **機制**（比照 `useLoadingTask` 的定位），不是第六個層級：它持有狀態並呼叫 use case，但與所有 UI 檔案一樣
+   碰不到 infra 實作。
 4. **Display Labels**（`constants`）：資料值 → 顯示文字的唯一來源。其 **import 範圍刻意等同 ViewModel**——label map
    的本質是「值 → 文字」映射，拿 domain 列舉值與型別是正當輸入；要禁的是把 domain **行為**搬進來。
 5. **Presentation Helper**（`utils`、`features/*/utils`）：純格式與樣式函式。
@@ -49,17 +52,26 @@
   且會禁止 `Omit<Domain, 'id'>`、`export type { Holding }` 這類有價值的轉出寫法。改採 import 路徑規則。
 - **禁止 ViewModel import application 型別**。否決理由：VM 的職責就是翻譯層，型別耦合是它的本分；要禁的是
   把行為搬進來。禁令若涵蓋型別，mapper 就得為每個來源重寫一份同構的影子型別，兩邊必然漂移。
+- **讓 infra 的 provider 直接 import UI 的 context**。否決理由：這會把 infra → UI 依賴加回來，抵銷
+  「infra 不得 import UI」這條不變式；要的是依賴反轉，不是把箭頭反向。
+- **新增 `src/shared/` 作為跨層契約層**。否決理由：`shared` 在文件中沒有角色定義、也沒有守門，卻已有 18 個
+  importer；跨層契約放 domain 更安全——domain 本來就負責定義 Contracts，且既有分層已被測試覆蓋。
 
-同時新增一條**架構不變式**：**infra 不得 import UI**。`AuthProvider` 的 `AppFallback` render 移除，
-判斷移至 UI 端的 gate。
+同時新增三條**架構不變式**：
 
-### 修正（同日）
+- **infra 不得 import UI**。需要 gating 的失敗狀態以**資料**回報，顯示判斷留在 UI 端。
+- **UI 不得 import `@/infra`**——任何層級、連型別也不行。需要 infra 能力時，由 domain 宣告埠、infra 實作埠、
+  composition root 注入。
+- **`src/App.tsx` 是唯一的 composition root**：唯一允許跨層的檔案（同時 import infra 與 UI）。其餘 `src/` 頂層
+  檔與 Surface 受同一套禁令。
 
-原文第 4 級寫「Display Labels 不得 import domain **值與邏輯**」，但 `constants` 的職責**正是**消費 domain 列舉值
-來產生顯示文字，該句與自身分層矛盾。修正：**Display Labels 的 import 範圍等同 ViewModel**——可 import domain
-型別、值域與純函式，但不得將 domain 行為帶入；「標籤唯一來源」的不變式仍由規則 7 與 `CONTEXT.md` 承擔。
-另補齊分層表中原本缺漏的目錄歸屬，並明文化 **Surface 為 fail-closed 預設**；目錄與層級的對應細節以
-`docs/ui/ui-layer-architecture.md` §2 為準，本節不重複。以上皆為釐清，非改變宗旨。
+第一個套用這組規則的是認證狀態：`domain/auth` 宣告 `AuthUser`（`{ uid, email }`）與 `AuthGateway` 契約，
+infra 只實作 gateway（Firebase 全部關在那一個檔內），`App.tsx` 把實作注入 UI 自有的 `AuthStateProvider`。
+UI 因此完全不必知道 Firebase 型別，`useAuth` 例外隨之消滅。伴隨的兩個劃分一併定案：
+
+- `AuthUser`（身分，同步）與 `UserProfile`（家庭紀錄，非同步）是**兩個獨立可為 null 的物件**——登入狀態無法由
+  domain 推導，只能由 infra 觀測、UI 呈現。
+- 權限的主體分屬不同模組：app 層白名單與使用者的認證身分屬 `auth`；家庭角色屬 `household`。
 
 ## 影響
 
@@ -71,9 +83,8 @@
   `docs/ui/ui-labeling-guideline.md`（釐清「列舉代碼」與「引用代碼常數」的差別）。
 - 需遷移的既有違規：36 個 feature component 檔、18 個 page 檔，以及 `AuthProvider` 的反向依賴。
   盤點與批次清單記錄在對應的實作 issue，不進永久文件。
-- 未定案而另案處理：`useAuth` 的最終歸屬（現行以「infra 的 React context 讀取器」身分列為明文例外；
-  目標是 UI 自有 `AuthUser` context，使 UI 完全不必知道 Firebase 型別）。
-- 契約目前仍靠人工與 review 維持；尚未有可執行測試。可行的落地方式是照 `design-contract.test.ts` 的
-  allowlist 先例，以測試掃描 `src/ui/**` 的 import 並讓清單逐步歸零。
+- 契約由 `src/ui/layer-boundary.test.ts` 執行：掃描 `src/ui/**` 與 `src/` 頂層檔的 import 並解析成路徑，
+  逐條驗證上列規則。既有違規以 allowlist 列出並**要求雙向集合相等**——修好一個檔案就得刪掉它的條目，
+  過期條目同樣會讓測試失敗，因此清單只會縮小。
 - **重新檢視的條件**：若出現「component 必須直接消費 use case 回傳值」的真實需求，代表 ViewModel 這層的
   邊界劃錯了，應先檢討邊界而不是放寬規則。
