@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 
 import { Calendar, ChevronDown, ChevronRight, Pencil, Trash2, TrendingUp } from 'lucide-react';
 
-import { type AccountSnapshot } from '@/domains/account/schemas';
+import { type AccountSnapshot } from '@/domains/account/types/account';
 import { Button } from '@/ui/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/ui/components/ui/card';
 import {

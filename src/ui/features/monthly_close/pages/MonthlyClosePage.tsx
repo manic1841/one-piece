@@ -25,8 +25,7 @@ import type {
   FinancingInput,
   SecuritiesTradeInput,
 } from '@/application/monthly_close/use_cases/monthlyCloseWorkflowUseCase';
-import type { Account } from '@/domains/account/schemas';
-import type { AccountSnapshot } from '@/domains/account/types/account';
+import type { Account, AccountSnapshot } from '@/domains/account/types/account';
 import type { Portfolio } from '@/domains/portfolio/schemas';
 import type { DebtAccount } from '@/domains/debt/schemas';
 import type { CloseStageId } from '@/domains/financial_period/schemas';

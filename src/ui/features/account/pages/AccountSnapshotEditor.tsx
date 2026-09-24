@@ -3,8 +3,11 @@ import React, { useState } from 'react';
 import { Save, Upload } from 'lucide-react';
 import { z } from 'zod';
 
-import type { Holding } from '@/domains/account/schemas';
-import { type Account, type AccountSnapshot } from '@/domains/account/types/account';
+import {
+  type Account,
+  type AccountSnapshot,
+  type Holding,
+} from '@/domains/account/types/account';
 import { AccountCategory } from '@/domains/account/types/categories';
 import type { CurrencyCode } from '@/domains/exchange_rate/types';
 import { useAuthState } from '@/ui/contexts/useAuthState';

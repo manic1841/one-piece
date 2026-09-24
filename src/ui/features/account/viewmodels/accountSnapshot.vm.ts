@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { HoldingSchema } from '@/domains/account/schemas';
+import { HoldingSchema } from '@/domains/account/types/account';
 import { type AccountSnapshotCreate } from '@/domains/account/types/account';
 
 export const AccountSnapshotFormSchema = z.object({

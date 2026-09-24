@@ -1,4 +1,4 @@
-import type { Holding } from '@/domains/account/schemas';
+import type { Holding } from '@/domains/account/types/account';
 import { type AccountSnapshot } from '@/domains/account/types/account';
 
 export interface AccountSnapshotEditorFormVM {

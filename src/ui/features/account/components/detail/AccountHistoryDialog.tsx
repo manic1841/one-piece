@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 
 import { type Account } from '@/domains/account/types/account';
-import { type AccountSnapshot } from '@/domains/account/schemas';
+import { type AccountSnapshot } from '@/domains/account/types/account';
 import {
   Dialog,
   DialogContent,
