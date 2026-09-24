@@ -133,7 +133,7 @@ Pixel Pet 是主導航的唯一所有者:桌機經右下角固定按鈕展開 Na
 顯示標籤是由 constants 層單一來源提供、對應資料值（如 IntentType、LedgerCode、帳戶類別）的顯示文字。UI 只能經由標籤 API 取得，不得在元件內硬編碼資料標籤。避免詞：Ui Label、寫死文字。
 
 ## Surface
-Surface 是 UI 中直接 render 畫面的一層：feature 的 pages 與 components，以及共用的 components；它只消費 Controller 與 ViewModel。避免詞：view、screen。
+Surface 是 UI 中直接 render 畫面的一層：feature 的 pages 與 components，以及共用的 components。它只消費 Controller 與 ViewModel，不編排 use case；可持有純呈現狀態（dialog 開關、選取、view filter），但不持有資料的載入或寫入邏輯。避免詞：view、screen。
 
 ## ViewModel
 ViewModel 是 UI 專屬的投影狀態，是 domain 或 application 形狀進入元件的唯一橋樑。它只做映射與型別轉出，不含行為。避免詞：DTO、state。

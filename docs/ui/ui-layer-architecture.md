@@ -92,6 +92,12 @@ top-level `src/` imports, resolves each specifier to a path, and validates the r
 listed in an allowlist, and the test requires **set equality in both directions** — fixing a file means deleting its
 entry, and a stale entry fails just the same.
 
+**What the test does not enforce.** The test covers the *import* dimension only — which module a file may reach. The
+rest of the tier contract (who owns state, where a `useForm` call site lives, whether a page orchestrates use cases)
+is **enforced by review, not by a test**. A file with clean imports can still violate its tier; do not read a green
+boundary test as a green tier contract. Static checks for these dimensions were deliberately rejected — they cannot be
+expressed without false positives, and a rule that cannot be checked statically should not be faked into one.
+
 ---
 
 ## 3. ViewModel Design Specification
@@ -129,13 +135,17 @@ of Use Cases. Two responsibilities plus one mechanism — there is no third laye
 
 | Kind | What it is | May contain |
 | --- | --- | --- |
-| **Controller** | One per page/dialog. Owns local UI state (dialog open, selection, draft) and composes Query and Command hooks. | use case calls via the hooks it composes, local state, form state |
+| **Controller** | One per page/dialog. Owns data orchestration and the loading state that belongs to it, and composes Query and Command hooks. | use case calls via the hooks it composes, local state, form state |
 | **Query** | One per resource. Read-only. | read use cases |
 | **Command** | One per resource, named `*Cmds` when it exists as a distinct bundle. Write-only. | write use cases |
 | **`useLoadingTask`** | A **mechanism**, not a tier. Used *by* Query/Command hooks, exactly like `useState`. | — |
 
 Rules:
 
+- **Presentation State Stays Put**: a page or component may hold its own **presentation state** — dialog open/closed,
+  selection, view filters — without moving it into a Controller. What must not live in Surface is *data* orchestration:
+  calling a use case, or owning the loading/error state of a fetch. Split on that line: orchestration goes to the
+  Controller, presentation stays in the render layer.
 - **No business logic**: if you're calculating interest rates in a hook, you're doing it wrong. Move it to a Domain Service.
 - **Return Intent**: don't just return data; return actions (e.g., `onSave`, `onCancel`).
 - **Atomic Operations**: each hook focuses on a specific interaction flow.
