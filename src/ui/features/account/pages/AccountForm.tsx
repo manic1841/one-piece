@@ -4,8 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { X } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 
-import { type AccountCreate } from '@/domains/account/types/account';
-import { AccountCategory, CurrencyType } from '@/domains/account/types/categories';
+import { AccountCategoryOptions, CurrencyOptions } from '@/ui/constants/account/label';
 import { Button } from '@/ui/components/ui/button';
 import {
   Form,
@@ -23,10 +22,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/ui/components/ui/select';
-import { AccountCategoryLabels } from '@/ui/constants/account/label';
-
 import {
+  AccountCategory,
+  CurrencyType,
   AccountFormSchema,
+  type AccountCreate,
   type AccountFormVM,
   mapAccountVMToDomain,
 } from '../viewmodels/account.vm';
@@ -101,15 +101,11 @@ const AccountForm: React.FC<AccountFormProps> = ({ onSubmit, onCancel, loading }
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value={AccountCategory.BANK}>
-                        {AccountCategoryLabels[AccountCategory.BANK]}
-                      </SelectItem>
-                      <SelectItem value={AccountCategory.SECURITIES}>
-                        {AccountCategoryLabels[AccountCategory.SECURITIES]}
-                      </SelectItem>
-                      <SelectItem value={AccountCategory.CASH}>
-                        {AccountCategoryLabels[AccountCategory.CASH]}
-                      </SelectItem>
+                      {AccountCategoryOptions.map(({ value, label }) => (
+                        <SelectItem key={value} value={value}>
+                          {label}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -134,9 +130,9 @@ const AccountForm: React.FC<AccountFormProps> = ({ onSubmit, onCancel, loading }
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {Object.values(CurrencyType).map((curr) => (
-                        <SelectItem key={curr} value={curr}>
-                          {curr}
+                      {CurrencyOptions.map(({ value, label }) => (
+                        <SelectItem key={value} value={value}>
+                          {label}
                         </SelectItem>
                       ))}
                     </SelectContent>

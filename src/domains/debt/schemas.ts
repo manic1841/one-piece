@@ -22,12 +22,6 @@ export const DEBT_TYPE_LEDGER_CODE: Record<DebtType, string> = {
   loan: LEDGER_CODES.LIABILITY_LOAN,
 };
 
-/** Human-readable labels for each debt type */
-export const DEBT_TYPE_LABEL: Record<DebtType, string> = {
-  mortgage: '房貸',
-  loan: '信貸',
-};
-
 export const DebtAccountCreateSchema = z.object({
   name: z.string().min(1),
   type: DebtType,

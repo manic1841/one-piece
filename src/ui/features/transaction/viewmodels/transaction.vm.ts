@@ -4,6 +4,8 @@ import { type Allocation } from '@/domains/allocation/schemas';
 import { DEFAULT_INTENT_MAPPINGS } from '@/domains/ledger/intentMapping';
 import { type Transaction, type TransactionCreate } from '@/domains/ledger/schemas';
 
+export { DEFAULT_INTENT_MAPPINGS };
+
 import { type TransactionFormOutput } from '../types/transaction';
 
 const TransactionIntentTypeSchema = z.enum([

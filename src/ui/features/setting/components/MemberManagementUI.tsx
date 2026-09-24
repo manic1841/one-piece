@@ -2,12 +2,14 @@ import React, { useState } from 'react';
 
 import { Mail, Plus, ShieldCheck, User as UserIcon, X } from 'lucide-react';
 
-import { RoleEnum } from '@/domains/household/role';
-import { type Household } from '@/domains/household/schemas';
 import { Button } from '@/ui/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/ui/card';
 import { Input } from '@/ui/components/ui/input';
 import { Label } from '@/ui/components/ui/label';
+import {
+  RoleEnum,
+  type Household,
+} from '@/ui/features/setting/viewmodels/setting.vm';
 
 interface MemberManagementUIProps {
   household: Household | null;

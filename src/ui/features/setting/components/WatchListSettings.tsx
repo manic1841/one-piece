@@ -2,18 +2,18 @@ import { useState } from 'react';
 
 import { Eye, Plus, X } from 'lucide-react';
 
-import { type Project } from '@/domains/project/schemas';
-import {
-  WATCH_LIST_TARGET_TYPES,
-  type WatchListTarget,
-  type WatchListTargetType,
-} from '@/domains/watch_list/schemas';
 import { Badge } from '@/ui/components/ui/badge';
 import { Button } from '@/ui/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/ui/card';
 import { WATCH_LIST_LABELS, getWatchListTargetTypeLabel } from '@/ui/constants/watchListLabels';
 import { type WatchListPickerData } from '@/ui/features/setting/hooks/useWatchListPickerData';
 import { useWatchListSettings } from '@/ui/features/setting/hooks/useWatchListSettings';
+import {
+  WATCH_LIST_TARGET_TYPES,
+  type Project,
+  type WatchListTarget,
+  type WatchListTargetType,
+} from '@/ui/features/setting/viewmodels/setting.vm';
 
 interface WatchListSettingsProps {
   pickerOptions?: WatchListPickerData;

@@ -4,12 +4,12 @@ import { Save, Upload } from 'lucide-react';
 import { z } from 'zod';
 
 import {
+  AccountCategory,
   type Account,
   type AccountSnapshot,
+  type CurrencyCode,
   type Holding,
-} from '@/domains/account/types/account';
-import { AccountCategory } from '@/domains/account/types/categories';
-import type { CurrencyCode } from '@/domains/exchange_rate/types';
+} from '@/ui/features/account/viewmodels/account.vm';
 import { useAuthState } from '@/ui/contexts/useAuthState';
 import { YearMonthPicker } from '@/ui/components/YearMonthPicker';
 import { Button } from '@/ui/components/ui/button';

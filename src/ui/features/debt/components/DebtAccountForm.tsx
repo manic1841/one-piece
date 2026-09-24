@@ -1,6 +1,6 @@
 import React from 'react';
 
-import { DEBT_TYPE_LABEL, type DebtType } from '@/domains/debt/schemas';
+import { DebtTypeOptions } from '@/ui/constants/debt/label';
 import { Button } from '@/ui/components/ui/button';
 import { Input } from '@/ui/components/ui/input';
 import { Label } from '@/ui/components/ui/label';
@@ -12,6 +12,7 @@ import {
   SelectValue,
 } from '@/ui/components/ui/select';
 import { Textarea } from '@/ui/components/ui/textarea';
+import { type DebtType } from '@/ui/features/debt/viewmodels/debtAccountForm.vm';
 import { type DebtAccountFormViewModel } from '@/ui/features/debt/viewmodels/useDebtAccountFormViewModel';
 
 interface DebtAccountFormProps {
@@ -71,7 +72,7 @@ export function DebtAccountForm({ vm }: DebtAccountFormProps) {
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            {(Object.entries(DEBT_TYPE_LABEL) as [DebtType, string][]).map(([value, label]) => (
+            {DebtTypeOptions.map(({ value, label }) => (
               <SelectItem key={value} value={value}>
                 {label}
               </SelectItem>

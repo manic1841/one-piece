@@ -3,9 +3,12 @@ import React, { useMemo, useState } from 'react';
 import { Plus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
-import { type AccountWithSnapshot } from '@/domains/account/types/account';
-import { AccountCategory } from '@/domains/account/types/categories';
 import { Button } from '@/ui/components/ui/button';
+import { AccountCategorySectionTitles } from '@/ui/constants/account/label';
+import {
+  AccountCategory,
+  type AccountWithSnapshot,
+} from '@/ui/features/account/viewmodels/account.vm';
 import {
   Table,
   TableBody,
@@ -29,11 +32,7 @@ const CATEGORY_ORDER: AccountCategory[] = [
   AccountCategory.SECURITIES,
 ];
 
-const SECTION_TITLES: Partial<Record<AccountCategory, string>> = {
-  [AccountCategory.CASH]: 'CASH',
-  [AccountCategory.BANK]: 'BANK',
-  [AccountCategory.SECURITIES]: 'SECURITIES',
-};
+const SECTION_TITLES = AccountCategorySectionTitles;
 
 interface AccountRowVM {
   id: string;

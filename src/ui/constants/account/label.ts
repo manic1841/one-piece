@@ -12,6 +12,17 @@ export const AccountCategoryOptions = Object.values(AccountCategory).map((key) =
   label: AccountCategoryLabels[key],
 }));
 
+/**
+ * Section headings on the account list, one group per category. Deliberately
+ * English (a visual grouping style, not a data label), and deliberately partial:
+ * only the three categories the list groups by today.
+ */
+export const AccountCategorySectionTitles: Partial<Record<AccountCategory, string>> = {
+  [AccountCategory.CASH]: 'CASH',
+  [AccountCategory.BANK]: 'BANK',
+  [AccountCategory.SECURITIES]: 'SECURITIES',
+};
+
 export const CurrencyLabels = {
   [CurrencyType.TWD]: 'TWD (NT$)',
   [CurrencyType.USD]: 'USD ($)',

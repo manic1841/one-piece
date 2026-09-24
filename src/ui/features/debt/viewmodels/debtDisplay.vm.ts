@@ -2,8 +2,11 @@ import {
   calculateGraceMonthlyPayment,
   isInGracePeriod,
 } from '@/domains/debt/debtPaymentCalculator';
-import { DEBT_TYPE_LABEL, type DebtAccount, type DebtType } from '@/domains/debt/schemas';
+import { type DebtAccount, type DebtType } from '@/domains/debt/schemas';
 import { type Transaction } from '@/domains/ledger/schemas';
+import { DebtTypeLabels } from '@/ui/constants/debt/label';
+
+export type { DebtType };
 
 const formatYmd = (date: Date): string => {
   const year = date.getFullYear();
@@ -92,7 +95,7 @@ export const mapDebtAccountToDisplayVM = (
           )
         : 0,
     projectName,
-    typeLabel: DEBT_TYPE_LABEL[account.type as DebtType],
+    typeLabel: DebtTypeLabels[account.type as DebtType],
     inGracePeriod,
     graceEndYearMonthText:
       account.graceEndDate && inGracePeriod ? formatYearMonth(account.graceEndDate) : '',

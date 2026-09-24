@@ -1,12 +1,12 @@
 import { Edit2, Plus, Power, Shield } from 'lucide-react';
 
-import { LEDGER_PREFIX } from '@/domains/ledger/constants/ledgerCodes';
 import { Badge } from '@/ui/components/ui/badge';
 import { Button } from '@/ui/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/ui/card';
 import { Input } from '@/ui/components/ui/input';
 import { Label } from '@/ui/components/ui/label';
 import { useLedgerCodeSettings } from '@/ui/features/setting/hooks/useLedgerCodeSettings';
+import { LEDGER_PREFIX } from '@/ui/features/setting/viewmodels/setting.vm';
 
 export const LedgerCodeSettings = () => {
   const {

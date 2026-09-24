@@ -2,6 +2,8 @@ import { z } from 'zod';
 
 import { type DebtAccountCreate, DebtType, RepaymentType } from '@/domains/debt/schemas';
 
+export type { DebtType };
+
 export const DebtAccountFormVMSchema = z
   .object({
     name: z.string().min(1, '必填'),

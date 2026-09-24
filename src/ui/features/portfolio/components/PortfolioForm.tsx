@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react';
 
-import { type Account } from '@/domains/account/types/account';
-import { AccountCategory } from '@/domains/account/types/categories';
-import { type Portfolio } from '@/domains/portfolio/types';
+import {
+  AccountCategory,
+  type Account,
+  type Portfolio,
+} from '@/ui/features/portfolio/viewmodels/portfolioForm.vm';
 import { Button } from '@/ui/components/ui/button';
 import { Checkbox } from '@/ui/components/ui/checkbox';
 import {

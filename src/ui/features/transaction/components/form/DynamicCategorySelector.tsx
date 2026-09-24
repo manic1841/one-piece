@@ -1,4 +1,3 @@
-import { DEFAULT_INTENT_MAPPINGS } from '@/domains/ledger/intentMapping';
 import { Label } from '@/ui/components/ui/label';
 import {
   Select,
@@ -7,6 +6,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/ui/components/ui/select';
+import { DEFAULT_INTENT_MAPPINGS } from '@/ui/features/transaction/viewmodels/transaction.vm';
 import { type LedgerCodeItem } from '@/ui/features/ledger/hooks/useLedgerCodes';
 
 import { buildUserSelectOptions } from './userSelectOptions';
