@@ -64,7 +64,8 @@ const PortfolioList: React.FC<PortfolioListProps> = ({ householdId }) => {
   useEffect(() => {
     let ignore = false;
     const load = async () => {
-      const accounts = await fetchAccounts(householdId, auth, { includeInactive: true });
+      const result = await fetchAccounts(householdId, auth, { includeInactive: true });
+      const accounts = result.ok ? result.value : [];
       if (!ignore) {
         const names = new Map<string, string>();
         for (const account of accounts) {

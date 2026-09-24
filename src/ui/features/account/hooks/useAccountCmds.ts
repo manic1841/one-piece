@@ -3,8 +3,6 @@ import { useCallback } from 'react';
 import { createAccountUseCase } from '@/application/account/use_cases/createAccountUseCase';
 import { deleteAccountSnapshotUseCase } from '@/application/account/use_cases/deleteAccountSnapshotUseCase';
 import { deleteAccountUseCase } from '@/application/account/use_cases/deleteAccountUseCase';
-import { getPreviousSnapshotUseCase } from '@/application/account/use_cases/getPreviousSnapshotUseCase';
-import { getTotalAssetsUseCase } from '@/application/account/use_cases/getTotalAssetsUseCase';
 import { recordAccountSnapshotUseCase } from '@/application/account/use_cases/recordAccountSnapshotUseCase';
 import { reorderAccountsUseCase } from '@/application/account/use_cases/reorderAccountsUseCase';
 import { updateAccountSnapshotUseCase } from '@/application/account/use_cases/updateAccountSnapshotUseCase';
@@ -124,26 +122,6 @@ export function useAccountCmds(householdId: string) {
     [householdId, auth, run],
   );
 
-  const getTotalBalance = useCallback(async (): Promise<number> => {
-    return await getTotalAssetsUseCase.execute({
-      householdId,
-      auth,
-    });
-  }, [householdId, auth]);
-
-  const getPreviousSnapshot = useCallback(
-    async (accountId: string, year: number, month: number): Promise<AccountSnapshot | null> => {
-      return await getPreviousSnapshotUseCase.execute({
-        householdId,
-        accountId,
-        year,
-        month,
-        auth,
-      });
-    },
-    [householdId, auth],
-  );
-
   return {
     createAccount,
     updateAccount,
@@ -152,8 +130,6 @@ export function useAccountCmds(householdId: string) {
     updateSnapshot,
     deleteSnapshot,
     reorderAccounts,
-    getTotalBalance,
-    getPreviousSnapshot,
     loading,
     error,
   };

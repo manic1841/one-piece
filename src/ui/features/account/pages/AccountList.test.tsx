@@ -55,9 +55,10 @@ const snapshot = { amount: 1800000, year: 2026, month: 9 };
 
 const accountsBase = {
   fetchAccounts: vi.fn(),
-  fetchAccountsWithSnapshots: vi.fn().mockResolvedValue([]),
+  fetchAccountsWithSnapshots: vi.fn().mockResolvedValue({ ok: true, value: [] }),
   loading: false,
   error: null,
+  errorMessage: null,
 };
 
 const cmdsBase = {
@@ -68,10 +69,9 @@ const cmdsBase = {
   updateSnapshot: vi.fn().mockResolvedValue(undefined),
   deleteSnapshot: vi.fn().mockResolvedValue(undefined),
   reorderAccounts: vi.fn().mockResolvedValue(undefined),
-  getTotalBalance: vi.fn().mockResolvedValue(0),
-  getPreviousSnapshot: vi.fn().mockResolvedValue(null),
   loading: false,
   error: null,
+  errorMessage: null,
 };
 
 const renderList = () =>
@@ -114,10 +114,13 @@ describe('AccountList header actions', () => {
   it('keeps inactive accounts hidden by default', async () => {
     mockUseAccounts.mockReturnValue({
       ...accountsBase,
-      fetchAccountsWithSnapshots: vi.fn().mockResolvedValue([
-        account({ id: 'b1', name: 'Main Bank', category: 'bank' }),
-        account({ id: 'old', name: 'Old Bank', category: 'bank', isActive: false }),
-      ]),
+      fetchAccountsWithSnapshots: vi.fn().mockResolvedValue({
+        ok: true,
+        value: [
+          account({ id: 'b1', name: 'Main Bank', category: 'bank' }),
+          account({ id: 'old', name: 'Old Bank', category: 'bank', isActive: false }),
+        ],
+      }),
     });
     mockUseAccountCmds.mockReturnValue(cmdsBase as never);
 
@@ -136,11 +139,24 @@ describe('AccountList grouped tables', () => {
   it('renders CASH/BANK/SECURITIES sections with Account | Ending Balance | As of columns', async () => {
     mockUseAccounts.mockReturnValue({
       ...accountsBase,
-      fetchAccountsWithSnapshots: vi.fn().mockResolvedValue([
-        account({ id: 'c1', name: 'Wallet', category: 'cash', snapshot: { ...snapshot } as never }),
-        account({ id: 'b1', name: 'Main Bank', category: 'bank', snapshot: { ...snapshot } as never }),
-        account({ id: 's1', name: 'Brokerage', category: 'securities', snapshot: { ...snapshot } as never }),
-      ]),
+      fetchAccountsWithSnapshots: vi.fn().mockResolvedValue({
+        ok: true,
+        value: [
+          account({ id: 'c1', name: 'Wallet', category: 'cash', snapshot: { ...snapshot } as never }),
+          account({
+            id: 'b1',
+            name: 'Main Bank',
+            category: 'bank',
+            snapshot: { ...snapshot } as never,
+          }),
+          account({
+            id: 's1',
+            name: 'Brokerage',
+            category: 'securities',
+            snapshot: { ...snapshot } as never,
+          }),
+        ],
+      }),
     });
     mockUseAccountCmds.mockReturnValue(cmdsBase as never);
 
@@ -172,7 +188,7 @@ describe('AccountList drag reorder', () => {
   const setup = (accounts: AccountWithSnapshot[]) => {
     mockUseAccounts.mockReturnValue({
       ...accountsBase,
-      fetchAccountsWithSnapshots: vi.fn().mockResolvedValue(accounts),
+      fetchAccountsWithSnapshots: vi.fn().mockResolvedValue({ ok: true, value: accounts }),
     });
     mockUseAccountCmds.mockReturnValue(cmdsBase as never);
     mockUseNavigate.mockReturnValue(navigate);

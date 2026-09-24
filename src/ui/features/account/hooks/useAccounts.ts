@@ -4,22 +4,21 @@ import { getAccountsUseCase } from '@/application/account/use_cases/getAccountsU
 import { getAccountsWithSnapshotsUseCase } from '@/application/account/use_cases/getAccountsWithSnapshotsUseCase';
 import { type AuthContext } from '@/application/types';
 import { type Account, type AccountWithSnapshot } from '@/domains/account/types';
-import { useLoadingTask } from '@/ui/hooks/useLoadingTask';
+import { type LoadingTaskResult, useLoadingTask } from '@/ui/hooks/useLoadingTask';
 
 export function useAccounts() {
-  const { loading, error, run } = useLoadingTask();
+  const { loading, error, errorMessage, run } = useLoadingTask();
 
   const fetchAccounts = useCallback(
     async (
       householdId: string,
       auth: AuthContext,
       options?: { includeInactive?: boolean },
-    ): Promise<Account[]> => {
+    ): Promise<LoadingTaskResult<Account[]>> => {
       const includeInactive = options?.includeInactive ?? false;
-      const result = await run(async () => {
+      return run(async () => {
         return await getAccountsUseCase.execute({ householdId, auth, includeInactive });
       });
-      return result ?? [];
     },
     [run],
   );
@@ -29,19 +28,18 @@ export function useAccounts() {
       householdId: string,
       auth: AuthContext,
       options?: { includeInactive?: boolean },
-    ): Promise<AccountWithSnapshot[]> => {
+    ): Promise<LoadingTaskResult<AccountWithSnapshot[]>> => {
       const includeInactive = options?.includeInactive ?? false;
-      const result = await run(async () => {
+      return run(async () => {
         return await getAccountsWithSnapshotsUseCase.execute({
           householdId,
           auth,
           includeInactive,
         });
       });
-      return result ?? [];
     },
     [run],
   );
 
-  return { fetchAccounts, fetchAccountsWithSnapshots, loading, error };
+  return { fetchAccounts, fetchAccountsWithSnapshots, loading, error, errorMessage };
 }

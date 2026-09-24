@@ -38,7 +38,7 @@ export default function DebtListPage() {
     projects,
     totalDebt,
     loading,
-    error,
+    errorMessage,
     reload,
   } = useDebtPage(householdId);
 
@@ -92,8 +92,10 @@ export default function DebtListPage() {
       />
 
       {loading && <p className="text-muted-foreground">載入中…</p>}
-      {error && (
-        <div className="text-sm text-destructive bg-destructive/10 p-3 rounded-md">{error}</div>
+      {errorMessage && (
+        <div className="text-sm text-destructive bg-destructive/10 p-3 rounded-md">
+          {errorMessage}
+        </div>
       )}
 
       {!loading && (

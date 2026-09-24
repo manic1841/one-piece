@@ -21,6 +21,7 @@ import {
   DialogTitle,
 } from '@/ui/components/ui/dialog';
 import { useAccountCmds } from '@/ui/features/account/hooks/useAccountCmds';
+import { useAccountSnapshotQueries } from '@/ui/features/account/hooks/useAccountSnapshotQueries';
 
 import { AccountAmount } from '../components/form/AccountAmount';
 import { AccountHolding } from '../components/form/AccountHolding';
@@ -54,7 +55,8 @@ const AccountSnapshotEditor: React.FC<AccountSnapshotEditorProps> = ({
 }) => {
   const { userProfile } = useAuthState();
   const householdId = userProfile?.householdId || '';
-  const { recordSnapshot, getPreviousSnapshot, loading } = useAccountCmds(householdId);
+  const { recordSnapshot, loading } = useAccountCmds(householdId);
+  const { getPreviousSnapshot } = useAccountSnapshotQueries(householdId);
   const { getRate, loading: fetchingRate } = useExchangeRate();
 
   const isSecurities = account.category === AccountCategory.SECURITIES;
@@ -78,11 +80,11 @@ const AccountSnapshotEditor: React.FC<AccountSnapshotEditorProps> = ({
     if (account.currency === 'TWD') return;
     setError(null);
     const rate = await getRate(account.currency as CurrencyCode, 'TWD');
-    if (rate === undefined) {
+    if (!rate.ok) {
       setError('取得匯率失敗，請稍後再試或手動輸入匯率');
       return;
     }
-    handleDisplayChange('exchangeRate', rate);
+    handleDisplayChange('exchangeRate', rate.value);
   };
 
   const handleAddHolding = () => {

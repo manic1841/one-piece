@@ -79,10 +79,13 @@ describe('ProjectsPage table', () => {
     mockUseProjectQueries.mockReturnValue({
       getProjectBalance: vi.fn(),
       getProjectRecords: vi.fn(),
-      getProjectSnapshots: vi.fn().mockResolvedValue([
-        { id: 's1', year: 2026, month: 8, openingBalance: 0, income: 100000, expense: 60000, closingBalance: 40000 },
-        { id: 's2', year: 2026, month: 9, openingBalance: 40000, income: 50000, expense: 30000, closingBalance: 60000 },
-      ]),
+      getProjectSnapshots: vi.fn().mockResolvedValue({
+        ok: true,
+        value: [
+          { id: 's1', year: 2026, month: 8, openingBalance: 0, income: 100000, expense: 60000, closingBalance: 40000 },
+          { id: 's2', year: 2026, month: 9, openingBalance: 40000, income: 50000, expense: 30000, closingBalance: 60000 },
+        ],
+      }),
     });
     mockUseNavigate.mockReturnValue(vi.fn());
 
@@ -105,7 +108,7 @@ describe('ProjectsPage table', () => {
     mockUseProjectQueries.mockReturnValue({
       getProjectBalance: vi.fn(),
       getProjectRecords: vi.fn(),
-      getProjectSnapshots: vi.fn().mockResolvedValue([]),
+      getProjectSnapshots: vi.fn().mockResolvedValue({ ok: true, value: [] }),
     });
     const navigate = vi.fn();
     mockUseNavigate.mockReturnValue(navigate);
@@ -125,10 +128,13 @@ describe('ProjectsPage table', () => {
     mockUseProjectQueries.mockReturnValue({
       getProjectBalance: vi.fn(),
       getProjectRecords: vi.fn(),
-      getProjectSnapshots: vi.fn().mockResolvedValue([
-        { id: 's1', year: 2026, month: 8, openingBalance: 0, income: 100000, expense: 60000, closingBalance: 40000 },
-        { id: 's2', year: 2026, month: 9, openingBalance: 40000, income: 50000, expense: 30000, closingBalance: 60000 },
-      ]),
+      getProjectSnapshots: vi.fn().mockResolvedValue({
+        ok: true,
+        value: [
+          { id: 's1', year: 2026, month: 8, openingBalance: 0, income: 100000, expense: 60000, closingBalance: 40000 },
+          { id: 's2', year: 2026, month: 9, openingBalance: 40000, income: 50000, expense: 30000, closingBalance: 60000 },
+        ],
+      }),
     });
     const navigate = vi.fn();
     mockUseNavigate.mockReturnValue(navigate);
@@ -154,7 +160,7 @@ describe('ProjectsPage table', () => {
     mockUseProjectQueries.mockReturnValue({
       getProjectBalance: vi.fn(),
       getProjectRecords: vi.fn(),
-      getProjectSnapshots: vi.fn().mockResolvedValue([]),
+      getProjectSnapshots: vi.fn().mockResolvedValue({ ok: true, value: [] }),
     });
     mockUseNavigate.mockReturnValue(vi.fn());
 
@@ -177,7 +183,7 @@ describe('ProjectsPage table', () => {
     mockUseProjectQueries.mockReturnValue({
       getProjectBalance: vi.fn(),
       getProjectRecords: vi.fn(),
-      getProjectSnapshots: vi.fn().mockResolvedValue([]),
+      getProjectSnapshots: vi.fn().mockResolvedValue({ ok: true, value: [] }),
     });
     mockUseNavigate.mockReturnValue(vi.fn());
 
@@ -214,7 +220,7 @@ describe('ProjectsPage table', () => {
     mockUseProjectQueries.mockReturnValue({
       getProjectBalance: vi.fn(),
       getProjectRecords: vi.fn(),
-      getProjectSnapshots: vi.fn().mockResolvedValue([]),
+      getProjectSnapshots: vi.fn().mockResolvedValue({ ok: true, value: [] }),
     });
     mockUseNavigate.mockReturnValue(vi.fn());
 
@@ -254,7 +260,7 @@ describe('ProjectsPage drag reorder', () => {
     mockUseProjectQueries.mockReturnValue({
       getProjectBalance: vi.fn(),
       getProjectRecords: vi.fn(),
-      getProjectSnapshots: vi.fn().mockResolvedValue([]),
+      getProjectSnapshots: vi.fn().mockResolvedValue({ ok: true, value: [] }),
     });
     mockUseNavigate.mockReturnValue(navigate);
 
@@ -308,7 +314,7 @@ describe('ProjectsPage drag reorder', () => {
     mockUseProjectQueries.mockReturnValue({
       getProjectBalance: vi.fn(),
       getProjectRecords: vi.fn(),
-      getProjectSnapshots: vi.fn().mockResolvedValue([]),
+      getProjectSnapshots: vi.fn().mockResolvedValue({ ok: true, value: [] }),
     });
     mockUseNavigate.mockReturnValue(vi.fn());
 

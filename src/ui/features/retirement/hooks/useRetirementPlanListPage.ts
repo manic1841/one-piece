@@ -17,8 +17,8 @@ export const useRetirementPlanListPage = (householdId?: string, email?: string) 
   const { confirm } = useConfirm();
 
   const fetchPlans = useCallback(async () => {
-    const data = await listPlans();
-    setPlans(data || []);
+    const result = await listPlans();
+    setPlans(result.ok ? result.value : []);
   }, [listPlans]);
 
   useEffect(() => {
@@ -49,9 +49,9 @@ export const useRetirementPlanListPage = (householdId?: string, email?: string) 
 
     try {
       setMutating(true);
-      const id = await createPlan(newPlan);
-      if (id) {
-        navigate(`/retirement/${id}`);
+      const created = await createPlan(newPlan);
+      if (created.ok) {
+        navigate(`/retirement/${created.value}`);
       }
     } catch (err) {
       console.error('Failed to create plan', err);
@@ -75,9 +75,9 @@ export const useRetirementPlanListPage = (householdId?: string, email?: string) 
     if (!householdId || !email || mutating) return;
     try {
       setMutating(true);
-      const duplicatedId = await duplicatePlan(id);
-      if (duplicatedId) {
-        navigate(`/retirement/${duplicatedId}`);
+      const duplicated = await duplicatePlan(id);
+      if (duplicated.ok) {
+        navigate(`/retirement/${duplicated.value}`);
       }
       await fetchPlans();
     } catch (err) {

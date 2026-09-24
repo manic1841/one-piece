@@ -26,11 +26,12 @@ export function useAccountListController() {
   const loadAccounts = useCallback(async () => {
     if (!householdId) return;
 
-    const data = await fetchAccountsWithSnapshots(
+    const result = await fetchAccountsWithSnapshots(
       householdId,
       auth,
       { includeInactive: true },
     );
+    const data = result.ok ? result.value : [];
     setAccounts(data);
     setLocalAccounts(data);
   }, [householdId, fetchAccountsWithSnapshots, auth]);

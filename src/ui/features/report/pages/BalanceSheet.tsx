@@ -33,11 +33,10 @@ const BalanceSheetPage: React.FC<BalanceSheetPageProps> = ({
   reportMode,
   onReportModeChange,
 }) => {
-  const { data, loading, error } = useBalanceSheet(householdId, currentDate, reportMode);
+  const { data, loading, errorMessage } = useBalanceSheet(householdId, currentDate, reportMode);
 
-  if (error) {
-    const errorMsg = String(error);
-    return <div className="p-8 text-center text-destructive">Error loading report: {errorMsg}</div>;
+  if (errorMessage) {
+    return <div className="p-8 text-center text-destructive">Error loading report: {errorMessage}</div>;
   }
 
   const renderGroup = (group: BalanceSheetGroupVM) => {

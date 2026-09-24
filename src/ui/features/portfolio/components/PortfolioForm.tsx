@@ -54,12 +54,12 @@ const PortfolioForm: React.FC<PortfolioFormProps> = ({
   useEffect(() => {
     const loadAccounts = async () => {
       if (!householdId) return;
-      const data = await fetchAccounts(
+      const result = await fetchAccounts(
         householdId,
         auth,
         { includeInactive: true },
       );
-      setAvailableAccounts(data);
+      setAvailableAccounts(result.ok ? result.value : []);
     };
     loadAccounts();
   }, [householdId, fetchAccounts, auth]);

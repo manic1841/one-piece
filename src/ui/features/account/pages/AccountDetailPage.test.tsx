@@ -53,7 +53,7 @@ describe('AccountDetailPage lifecycle actions', () => {
     vi.clearAllMocks();
     mockUseConfirm.mockReturnValue({ confirm: vi.fn().mockResolvedValue(true) } as never);
     mockUseAccountCmds.mockReturnValue({
-      updateAccount: vi.fn().mockResolvedValue(true),
+      updateAccount: vi.fn().mockResolvedValue({ ok: true, value: true }),
     } as never);
     vi.mocked(checkAccountMonthlyUsageUseCase.execute).mockResolvedValue({
       hasReferences: false,
@@ -87,7 +87,7 @@ describe('AccountDetailPage lifecycle actions', () => {
   });
 
   it('deactivates without a dialog when the account has no current-month usage and reflects the new state', async () => {
-    const updateAccount = vi.fn().mockResolvedValue(true);
+    const updateAccount = vi.fn().mockResolvedValue({ ok: true, value: true });
     mockUseAccountCmds.mockReturnValue({ updateAccount } as never);
     render(
       <MemoryRouter>
@@ -110,7 +110,7 @@ describe('AccountDetailPage lifecycle actions', () => {
   });
 
   it('opens the confirmation dialog before deactivating an account with current-month usage', async () => {
-    const updateAccount = vi.fn().mockResolvedValue(true);
+    const updateAccount = vi.fn().mockResolvedValue({ ok: true, value: true });
     mockUseAccountCmds.mockReturnValue({ updateAccount } as never);
     const confirm = vi.fn().mockResolvedValue(false);
     mockUseConfirm.mockReturnValue({ confirm } as never);
@@ -138,7 +138,7 @@ describe('AccountDetailPage lifecycle actions', () => {
   });
 
   it('updates the account when the confirmation is accepted', async () => {
-    const updateAccount = vi.fn().mockResolvedValue(true);
+    const updateAccount = vi.fn().mockResolvedValue({ ok: true, value: true });
     mockUseAccountCmds.mockReturnValue({ updateAccount } as never);
     const confirm = vi.fn().mockResolvedValue(true);
     mockUseConfirm.mockReturnValue({ confirm } as never);
@@ -159,7 +159,7 @@ describe('AccountDetailPage lifecycle actions', () => {
   });
 
   it('activates an inactive account without the monthly-usage guard', async () => {
-    const updateAccount = vi.fn().mockResolvedValue(true);
+    const updateAccount = vi.fn().mockResolvedValue({ ok: true, value: true });
     mockUseAccountCmds.mockReturnValue({ updateAccount } as never);
     render(
       <MemoryRouter>
@@ -171,6 +171,25 @@ describe('AccountDetailPage lifecycle actions', () => {
 
     await waitFor(() => expect(updateAccount).toHaveBeenCalledWith('acc-1', { isActive: true }));
     expect(vi.mocked(checkAccountMonthlyUsageUseCase.execute)).not.toHaveBeenCalled();
+  });
+
+  it('does not reflect the new state when the update fails', async () => {
+    const updateAccount = vi.fn().mockResolvedValue({
+      ok: false,
+      kind: 'failed',
+      error: new Error('boom'),
+    });
+    mockUseAccountCmds.mockReturnValue({ updateAccount } as never);
+    render(
+      <MemoryRouter>
+        <AccountDetailPage account={buildAccount({ isActive: false })} />
+      </MemoryRouter>,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: '啟用帳戶' }));
+
+    await waitFor(() => expect(updateAccount).toHaveBeenCalledWith('acc-1', { isActive: true }));
+    expect(await screen.findByRole('button', { name: '啟用帳戶' })).toBeInTheDocument();
   });
 });
 

@@ -22,7 +22,7 @@ export const useAllocationTemplateSettings = () => {
   const { projects } = useProjects(householdId);
   const activeProjects = useMemo(() => projects.filter((project) => project.isActive), [projects]);
 
-  const { run, loading, error } = useLoadingTask();
+  const { run, loading, errorMessage } = useLoadingTask();
 
   const [templates, setTemplates] = useState<AllocationTemplate[]>([]);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
@@ -46,12 +46,10 @@ export const useAllocationTemplateSettings = () => {
     if (!householdId) return [];
 
     const result = await run(() => listAllocationTemplatesUseCase.execute({ householdId }));
-    if (result) {
-      setTemplates(result);
-      return result;
-    }
+    if (!result.ok) return [];
 
-    return [];
+    setTemplates(result.value);
+    return result.value;
   }, [householdId, run]);
 
   useEffect(() => {
@@ -117,7 +115,7 @@ export const useAllocationTemplateSettings = () => {
       }))
       .filter((item) => Number.isFinite(item.percentage) && item.percentage > 0);
 
-    const templateId = await run(() =>
+    const saved = await run(() =>
       saveAllocationTemplateUseCase.execute({
         householdId,
         userEmail,
@@ -131,8 +129,9 @@ export const useAllocationTemplateSettings = () => {
       }),
     );
 
-    if (!templateId) return;
+    if (!saved.ok || !saved.value) return;
 
+    const templateId = saved.value;
     const latestTemplates = await loadTemplates();
     const latest = latestTemplates.find((template) => template.id === templateId);
     if (!latest) return;
@@ -181,7 +180,7 @@ export const useAllocationTemplateSettings = () => {
 
   return {
     loading,
-    error: error ?? '',
+    error: errorMessage ?? '',
     templates,
     selectedTemplate,
     activeProjects,

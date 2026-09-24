@@ -124,8 +124,8 @@ export const useProjectDetailPage = ({ project }: UseProjectDetailPageArgs) => {
     if (!activeProject) return;
     const nextActive = !isActive;
 
-    const updated = await updateProject(activeProject.id, { isActive: nextActive });
-    if (updated === undefined) return;
+    const result = await updateProject(activeProject.id, { isActive: nextActive });
+    if (!result.ok) return;
     setStatusOverride(nextActive);
     if (!project) {
       await refreshProject(activeProject.id);

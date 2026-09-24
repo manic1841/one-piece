@@ -9,6 +9,7 @@ import {
   type BalanceSheetVM,
   mapBalanceSheetToVM,
 } from '@/ui/features/report/viewmodels/reportDisplay.vm';
+import { getErrorMessage } from '@/ui/hooks/getErrorMessage';
 import { useLoadingTask } from '@/ui/hooks/useLoadingTask';
 
 type ReportMode = 'MONTHLY' | 'YEARLY';
@@ -57,6 +58,7 @@ export function useBalanceSheet(
     data,
     loading,
     error,
+    errorMessage: error !== null ? getErrorMessage(error) : null,
     currentDate,
     setCurrentDate: setInternalDate,
     nextMonth,

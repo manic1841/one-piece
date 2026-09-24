@@ -163,9 +163,10 @@ const Projects: React.FC = () => {
       if (!userProfile?.householdId || projects.length === 0) return;
       const results = await Promise.all(
         projects.map(async (project) => {
-          const snapshots = await getProjectSnapshots(project.id);
-          const income = (snapshots || []).reduce((sum, s) => sum + s.income, 0);
-          const expense = (snapshots || []).reduce((sum, s) => sum + s.expense, 0);
+          const snapshotsResult = await getProjectSnapshots(project.id);
+          const snapshots = snapshotsResult.ok ? snapshotsResult.value : [];
+          const income = snapshots.reduce((sum, s) => sum + s.income, 0);
+          const expense = snapshots.reduce((sum, s) => sum + s.expense, 0);
           return [project.id, { income, expense }] as const;
         }),
       );

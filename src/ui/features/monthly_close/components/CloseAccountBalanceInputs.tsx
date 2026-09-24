@@ -308,12 +308,12 @@ export const CloseAccountBalanceInputs: React.FC<CloseAccountBalanceInputsProps>
       if (findInput(account.id)?.exchangeRate !== undefined) continue;
       void (async () => {
         const rate = await getRate(account.currency as CurrencyCode, 'TWD');
-        if (cancelled || rate === undefined) {
-          if (!cancelled && rate === undefined) setRateError('取得匯率失敗，請稍後再試或手動輸入匯率');
+        if (cancelled || !rate.ok) {
+          if (!cancelled && !rate.ok) setRateError('取得匯率失敗，請稍後再試或手動輸入匯率');
           return;
         }
         if (findInput(account.id)?.exchangeRate !== undefined) return;
-        patchInput(account.id, { exchangeRate: Number(rate.toFixed(4)) });
+        patchInput(account.id, { exchangeRate: Number(rate.value.toFixed(4)) });
       })();
     }
     return () => {

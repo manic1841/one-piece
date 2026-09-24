@@ -4,6 +4,9 @@ import { useNavigate } from 'react-router-dom';
 
 import { getStartingNetWorthUseCase } from '@/application/retirement/use_cases/getStartingNetWorthUseCase';
 import type { StartingNetWorthSource } from '@/application/retirement/use_cases/getStartingNetWorthUseCase';
+import { importRetirementDebtUseCase } from '@/application/retirement/use_cases/importRetirementDebtUseCase';
+import { importRetirementExpensesUseCase } from '@/application/retirement/use_cases/importRetirementExpensesUseCase';
+import { importRetirementIncomeUseCase } from '@/application/retirement/use_cases/importRetirementIncomeUseCase';
 import { syncImportedIncomeSourcesUseCase } from '@/application/retirement/use_cases/syncImportedIncomeSourcesUseCase';
 import {
   calculateProjectionSummary,
@@ -44,16 +47,31 @@ export const useRetirementPlanCore = ({
   const autoSyncingRef = useRef(false);
 
   const { getPlan, loading: planLoading, error: planError } = useRetirementPlans(householdId);
-  const { updatePlan, deletePlan, importIncomeData, importDebtData, importExpenseDataFromLedger } =
-    useRetirementPlanCmds(householdId, userEmail);
+  const { updatePlan, deletePlan } = useRetirementPlanCmds(householdId, userEmail);
+
+  // Read-only ledger imports: reads belong here in the Controller, not in `*Cmds`.
+  const importIncomeData = useCallback(async () => {
+    if (!householdId) return [];
+    return importRetirementIncomeUseCase.execute({ householdId, auth });
+  }, [householdId, auth]);
+
+  const importDebtData = useCallback(async () => {
+    if (!householdId) return [];
+    return importRetirementDebtUseCase.execute({ householdId, auth });
+  }, [householdId, auth]);
+
+  const importExpenseDataFromLedger = useCallback(async () => {
+    if (!householdId) return [];
+    return importRetirementExpensesUseCase.execute({ householdId, auth });
+  }, [householdId, auth]);
 
   const loadPlanToken = plan?.updatedAt?.getTime();
 
   const loadPlan = useCallback(async () => {
     if (!id || !householdId) return;
-    const data = await getPlan(id);
-    if (data) {
-      setPlan(data);
+    const result = await getPlan(id);
+    if (result.ok && result.value) {
+      setPlan(result.value);
     }
   }, [id, householdId, getPlan]);
 

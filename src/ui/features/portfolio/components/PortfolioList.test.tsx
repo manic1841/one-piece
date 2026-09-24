@@ -88,12 +88,15 @@ const setup = (portfolios: Portfolio[], navigate = vi.fn()) => {
   mockUsePortfolios.mockReturnValue(makeController(portfolios));
   mockUsePortfolioCmds.mockReturnValue(cmdsBase as never);
   mockUseAccounts.mockReturnValue({
-    fetchAccounts: vi.fn().mockResolvedValue([
-      { id: 's-p1', name: 'Brokerage A', category: 'securities', currency: 'TWD' },
-      { id: 'b-p1', name: 'Bank A', category: 'bank', currency: 'TWD' },
-      { id: 's-p2', name: 'Brokerage B', category: 'securities', currency: 'TWD' },
-      { id: 'b-p2', name: 'Bank B', category: 'bank', currency: 'TWD' },
-    ]),
+    fetchAccounts: vi.fn().mockResolvedValue({
+      ok: true,
+      value: [
+        { id: 's-p1', name: 'Brokerage A', category: 'securities', currency: 'TWD' },
+        { id: 'b-p1', name: 'Bank A', category: 'bank', currency: 'TWD' },
+        { id: 's-p2', name: 'Brokerage B', category: 'securities', currency: 'TWD' },
+        { id: 'b-p2', name: 'Bank B', category: 'bank', currency: 'TWD' },
+      ],
+    }),
     fetchAccountsWithSnapshots: vi.fn(),
     loading: false,
     error: null,
@@ -169,10 +172,11 @@ describe('PortfolioList', () => {
       reload,
     });
     mockUseAccounts.mockReturnValue({
-      fetchAccounts: vi.fn().mockResolvedValue([]),
+      fetchAccounts: vi.fn().mockResolvedValue({ ok: true, value: [] }),
       fetchAccountsWithSnapshots: vi.fn(),
       loading: false,
       error: null,
+      errorMessage: null,
     });
     mockUsePortfolioCmds.mockReturnValue(cmdsBase as never);
     mockUseNavigate.mockReturnValue(vi.fn());

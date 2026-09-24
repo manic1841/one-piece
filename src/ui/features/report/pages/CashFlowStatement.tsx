@@ -37,16 +37,17 @@ const CashFlowStatement: React.FC<CashFlowStatementProps> = ({
   reportMode,
   onReportModeChange,
 }) => {
-  const { data, loading, error } = useCashFlow(householdId, currentDate, reportMode);
+  const { data, loading, errorMessage } = useCashFlow(householdId, currentDate, reportMode);
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
     operating: true,
     investing: false,
     financing: false,
   });
 
-  if (error) {
-    const errorMsg = error instanceof Error ? error.message : String(error);
-    return <div className="p-8 text-center text-destructive">Error loading report: {errorMsg}</div>;
+  if (errorMessage) {
+    return (
+      <div className="p-8 text-center text-destructive">Error loading report: {errorMessage}</div>
+    );
   }
 
   const toggleSection = (section: string) => {

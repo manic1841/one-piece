@@ -60,7 +60,7 @@ describe('ProjectDetailPage lifecycle actions', () => {
       },
     } as never);
     mockUseProjectCmds.mockReturnValue({
-      updateProject: vi.fn().mockResolvedValue(true),
+      updateProject: vi.fn().mockResolvedValue({ ok: true, value: true }),
     } as never);
     mockUseProjectDetailView.mockReturnValue({
       items: [],
@@ -88,7 +88,7 @@ describe('ProjectDetailPage lifecycle actions', () => {
   });
 
   it('deactivates via the existing update command and reflects the new state', async () => {
-    const updateProject = vi.fn().mockResolvedValue(true);
+    const updateProject = vi.fn().mockResolvedValue({ ok: true, value: true });
     mockUseProjectCmds.mockReturnValue({ updateProject } as never);
 
     renderDetail(buildProject());
@@ -100,7 +100,7 @@ describe('ProjectDetailPage lifecycle actions', () => {
   });
 
   it('activates an inactive project via the existing update command', async () => {
-    const updateProject = vi.fn().mockResolvedValue(true);
+    const updateProject = vi.fn().mockResolvedValue({ ok: true, value: true });
     mockUseProjectCmds.mockReturnValue({ updateProject } as never);
 
     renderDetail(buildProject({ isActive: false }));

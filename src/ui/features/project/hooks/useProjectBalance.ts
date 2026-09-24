@@ -10,10 +10,10 @@ export const useProjectBalance = (householdId?: string, projectId?: string) => {
     const fetchBalance = async () => {
       if (!projectId) return;
 
-      const data = await getProjectBalance(projectId);
-      if (data) {
-        setBalance(data.balance || 0);
-        setMonthInfo({ year: data.year, month: data.month });
+      const result = await getProjectBalance(projectId);
+      if (result.ok && result.value) {
+        setBalance(result.value.balance || 0);
+        setMonthInfo({ year: result.value.year, month: result.value.month });
       }
     };
     fetchBalance();

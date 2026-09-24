@@ -138,7 +138,7 @@ of Use Cases. Two responsibilities plus one mechanism — there is no third laye
 | **Controller** | One per page/dialog. Owns data orchestration and the loading state that belongs to it, and composes Query and Command hooks. | use case calls via the hooks it composes, local state, form state |
 | **Query** | One per resource. Read-only. | read use cases |
 | **Command** | One per resource, named `*Cmds` when it exists as a distinct bundle. Write-only. | write use cases |
-| **`useLoadingTask`** | A **mechanism**, not a tier. Used *by* Query/Command hooks, exactly like `useState`. | — |
+| **`useLoadingTask`** | A **mechanism**, not a tier. Used *by* Query/Command hooks, exactly like `useState`. It owns the loading state, the failure value, and the ability to abandon a run, so a hook that needs cancellation or a typed failure no longer has a reason to hand-roll either. Superseding a previous run — passing a signal so the older run cannot write back — is the consumer's job. | — |
 
 Rules:
 
@@ -159,8 +159,21 @@ Rules:
 - **Form State Is Controller State**: form state (`useForm`, hand-rolled field state, zod parsing) belongs in a hook,
   not in a page. `useForm` and `zodResolver` may be used, but the `useForm` call site is a Controller, not Surface.
 - **Validation Gate**: Hook submit paths must validate Form VM via schema before calling Use Cases.
-- **Loading State**: prefer `useLoadingTask` for simple load/error flows. A hook that needs cancellation or typed errors
-  may implement its own state, and must then do so explicitly.
+- **Loading State**: use `useLoadingTask` for load/error flows. Cancellation and typed failures are carried by the
+  mechanism, so they are no longer grounds for hand-rolling. A hook that tracks a **specific command in flight**
+  (`isStarting`, `saving`, `isSubmitting`) holds an action flag, not loading state — that is a different concern, and
+  self-rolling it is a deliberate choice rather than a workaround for a gap in the mechanism. A hook that keeps its own
+  loading or error state must be able to say which of these it is.
+- **Abandonment Is Local**: abandoning a run discards **the mechanism's own write-back** — the failure value it would
+  have stored and the result it would have returned. It never cancels the underlying request, because repositories
+  (Firestore) are not cancellable; a run abandoned after the request was issued has an unknown outcome, and its
+  consumers must not report it as a failure. A task that writes state *itself* is outside this guarantee: put the
+  write-back after `run` returns, so an abandoned run is caught by the `aborted` arm instead of landing as stale state.
+- **Supersede On Rapid Deps**: a hook whose dependencies change faster than a request completes (paging months, typing a
+  filter) must hold the in-flight `AbortController` and abort it before starting the replacement run; otherwise the older
+  response can land last and win. Pass its signal as `run`'s `signal` option.
+- **Error Wording Stays With The Consumer**: the mechanism carries the failure value, not the copy. A hook that wants a
+  specific user-facing message maps it from the failure value itself; the mechanism never invents wording.
 - **Retry Identity**: For a financial command that requires an idempotency key,
   create one key for the user's action, keep it in the hook while retries are
   possible, and clear it only after a successful result. Build the retry

@@ -75,7 +75,7 @@ const renderDetail = () => {
     reload: vi.fn(),
   } as never);
   mockUsePortfolioQueries.mockReturnValue({
-    getSnapshots: vi.fn().mockResolvedValue([snapshot]),
+    getSnapshots: vi.fn().mockResolvedValue({ ok: true, value: [snapshot] }),
     loading: false,
     error: null,
   } as never);
@@ -88,12 +88,14 @@ const renderDetail = () => {
     deleteSnapshot: vi.fn(),
     loading: false,
     error: null,
+    errorMessage: null,
   } as never);
   mockUseAccounts.mockReturnValue({
-    fetchAccounts: vi.fn().mockResolvedValue([]),
+    fetchAccounts: vi.fn().mockResolvedValue({ ok: true, value: [] }),
     fetchAccountsWithSnapshots: vi.fn(),
     loading: false,
     error: null,
+    errorMessage: null,
   } as never);
 
   return render(<PortfolioDetail householdId="h1" portfolio={portfolio} />);

@@ -162,8 +162,8 @@ export const useAccountDetailPage = ({ account }: UseAccountDetailPageArgs) => {
       }
     }
 
-    const updated = await updateAccount(activeAccount.id, { isActive: nextActive });
-    if (updated === undefined) {
+    const result = await updateAccount(activeAccount.id, { isActive: nextActive });
+    if (!result.ok) {
       return;
     }
     setStatusOverride(nextActive);

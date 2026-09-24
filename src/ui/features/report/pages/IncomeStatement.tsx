@@ -28,7 +28,7 @@ const IncomeStatementPage: React.FC<IncomeStatementPageProps> = ({
   reportMode,
   onReportModeChange,
 }) => {
-  const { data, loading, error } = useIncomeStatement(householdId, currentDate, reportMode);
+  const { data, loading, errorMessage } = useIncomeStatement(householdId, currentDate, reportMode);
   const [expandedCodes, setExpandedCodes] = useState<Set<string>>(new Set());
 
   const toggleExpand = (code: string) => {
@@ -81,9 +81,8 @@ const IncomeStatementPage: React.FC<IncomeStatementPageProps> = ({
     );
   };
 
-  if (error) {
-    const errorMsg = typeof error === 'string' ? error : String(error);
-    return <div className="p-8 text-center text-destructive">Error loading report: {errorMsg}</div>;
+  if (errorMessage) {
+    return <div className="p-8 text-center text-destructive">Error loading report: {errorMessage}</div>;
   }
 
   return (

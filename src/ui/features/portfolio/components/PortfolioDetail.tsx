@@ -124,8 +124,8 @@ const PortfolioDetail: React.FC<PortfolioDetailProps> = ({ householdId, portfoli
     setLoadingSnapshots(true);
     try {
       const res = await getSnapshots(portfolio.id);
-      if (res) {
-        setSnapshots(res);
+      if (res.ok) {
+        setSnapshots(res.value);
       }
     } finally {
       setLoadingSnapshots(false);
@@ -139,7 +139,8 @@ const PortfolioDetail: React.FC<PortfolioDetailProps> = ({ householdId, portfoli
   useEffect(() => {
     let ignore = false;
     const load = async () => {
-      const accounts = await fetchAccounts(householdId, auth, { includeInactive: true });
+      const accountsResult = await fetchAccounts(householdId, auth, { includeInactive: true });
+      const accounts = accountsResult.ok ? accountsResult.value : [];
       if (!ignore) {
         const names = new Map<string, string>();
         for (const account of accounts) {

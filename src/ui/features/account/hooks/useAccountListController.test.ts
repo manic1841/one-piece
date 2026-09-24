@@ -26,6 +26,7 @@ vi.mock('@/ui/features/account/hooks/useAccounts', () => ({
     fetchAccountsWithSnapshots,
     loading: false,
     error: null,
+    errorMessage: null,
   }),
 }));
 
@@ -35,6 +36,7 @@ vi.mock('@/ui/features/account/hooks/useAccountCmds', () => ({
     reorderAccounts,
     loading: false,
     error: null,
+    errorMessage: null,
   }),
 }));
 
@@ -60,7 +62,7 @@ const accountsFixture = [
 
 describe('useAccountListController', () => {
   it('exposes only the load/create/reorder surface with no dead drag state machine', async () => {
-    fetchAccountsWithSnapshots.mockResolvedValue(accountsFixture);
+    fetchAccountsWithSnapshots.mockResolvedValue({ ok: true, value: accountsFixture });
 
     const { result } = renderHook(() => useAccountListController());
 
@@ -99,7 +101,7 @@ describe('useAccountListController', () => {
   it('handleReorder reorders localAccounts and persists the full order sequence', async () => {
     let committed = accountsFixture;
 
-    fetchAccountsWithSnapshots.mockImplementation(() => Promise.resolve(committed));
+    fetchAccountsWithSnapshots.mockImplementation(() => Promise.resolve({ ok: true, value: committed }));
     reorderAccounts.mockImplementation(async (orders) => {
       committed = orders.map((entry) =>
         accountsFixture.find((account) => account.id === entry.id)!,

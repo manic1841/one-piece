@@ -17,7 +17,7 @@ export function useDebtPage(householdId: string) {
 
   const [debtAccounts, setDebtAccounts] = useState<DebtAccount[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
-  const { loading, error, run } = useLoadingTask();
+  const { loading, error, errorMessage, run } = useLoadingTask();
 
   const loadData = useCallback(async () => {
     if (!householdId) return;
@@ -77,6 +77,7 @@ export function useDebtPage(householdId: string) {
   return {
     loading,
     error,
+    errorMessage,
     debtAccountViews,
     projects,
     totalDebt,

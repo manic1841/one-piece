@@ -11,6 +11,7 @@ import {
   createDefaultPortfolioSnapshotFormVM,
   mapPortfolioSnapshotInputsToVM,
 } from '@/ui/features/portfolio/viewmodels/portfolioForm.vm';
+import { getErrorMessage } from '@/ui/hooks/getErrorMessage';
 import { useLoadingTask } from '@/ui/hooks/useLoadingTask';
 import { useAuthIdentity } from '@/ui/hooks/useAuthIdentity';
 
@@ -169,7 +170,7 @@ export const usePortfolioSnapshotForm = (
     withdrawals,
     setWithdrawals,
     loading,
-    error: submitError || (taskError ? 'Error loading data' : ''),
+    error: submitError || (taskError !== null ? getErrorMessage(taskError, 'Error loading data') : ''),
     accounts,
     accountSnapshots,
     totalValue: preview.totalValue,

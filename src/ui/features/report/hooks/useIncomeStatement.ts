@@ -8,6 +8,7 @@ import {
   type IncomeStatementVM,
   mapIncomeStatementToVM,
 } from '@/ui/features/report/viewmodels/reportDisplay.vm';
+import { getErrorMessage } from '@/ui/hooks/getErrorMessage';
 import { useAuthIdentity } from '@/ui/hooks/useAuthIdentity';
 import { useLoadingTask } from '@/ui/hooks/useLoadingTask';
 
@@ -57,6 +58,7 @@ export function useIncomeStatement(
     data,
     loading,
     error,
+    errorMessage: error !== null ? getErrorMessage(error) : null,
     currentDate,
     setCurrentDate: setInternalDate,
     nextMonth,

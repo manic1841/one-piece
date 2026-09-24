@@ -17,12 +17,15 @@ const Dashboard: React.FC = () => {
   const { userProfile } = useAuthState();
   const navigate = useNavigate();
   const householdId = userProfile?.householdId;
-  const { overview, heroVM, loading, error } = useDashboardOverview(householdId);
+  const { overview, heroVM, loading, errorMessage: error } = useDashboardOverview(householdId);
   const { nextMonthDue, loading: statRowLoading } = useDashboardStatRow(householdId);
   const statRowVM = mapDashboardOverviewToStatRowVM(overview);
-  const { vm: closeStatusVM, loading: closeStatusLoading, error: closeStatusError } =
-    useDashboardCloseStatus(householdId);
-  const { vm: recentVM, loading: recentLoading, error: recentError } =
+  const {
+    vm: closeStatusVM,
+    loading: closeStatusLoading,
+    errorMessage: closeStatusError,
+  } = useDashboardCloseStatus(householdId);
+  const { vm: recentVM, loading: recentLoading, errorMessage: recentError } =
     useDashboardRecentTransactions(householdId);
 
   const trendVisible = heroVM.hasAnchor && heroVM.trend.path != null;

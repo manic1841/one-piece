@@ -14,9 +14,10 @@ vi.mock('@/ui/hooks/useExchangeRate', () => ({
 beforeEach(async () => {
   const { useExchangeRate } = await import('@/ui/hooks/useExchangeRate');
   vi.mocked(useExchangeRate).mockReturnValue({
-    getRate: vi.fn().mockResolvedValue(undefined),
+    getRate: vi.fn().mockResolvedValue({ ok: false, kind: 'failed', error: new Error('no rate') }),
     loading: false,
     error: null,
+    errorMessage: null,
   } as never);
 });
 
@@ -137,11 +138,12 @@ describe('CloseAccountBalanceInputs', () => {
 
   it('auto-fetches the exchange rate on mount and keeps manual input as fallback', async () => {
     const { useExchangeRate } = await import('@/ui/hooks/useExchangeRate');
-    const getRate = vi.fn().mockResolvedValue(31.4);
+    const getRate = vi.fn().mockResolvedValue({ ok: true, value: 31.4 });
     vi.mocked(useExchangeRate).mockReturnValue({
       getRate,
       loading: false,
       error: null,
+      errorMessage: null,
     } as never);
 
     const onInputsChange = vi.fn<(inputs: AccountBalanceInput[]) => void>();
@@ -160,11 +162,12 @@ describe('CloseAccountBalanceInputs', () => {
 
   it('does not overwrite an existing exchange rate on mount', async () => {
     const { useExchangeRate } = await import('@/ui/hooks/useExchangeRate');
-    const getRate = vi.fn().mockResolvedValue(31.4);
+    const getRate = vi.fn().mockResolvedValue({ ok: true, value: 31.4 });
     vi.mocked(useExchangeRate).mockReturnValue({
       getRate,
       loading: false,
       error: null,
+      errorMessage: null,
     } as never);
 
     renderSections({
@@ -222,11 +225,12 @@ describe('CloseAccountBalanceInputs', () => {
 
   it('shows exchange rate and calculated TWD value for non-TWD securities accounts', async () => {
     const { useExchangeRate } = await import('@/ui/hooks/useExchangeRate');
-    const getRate = vi.fn().mockResolvedValue(31.4);
+    const getRate = vi.fn().mockResolvedValue({ ok: true, value: 31.4 });
     vi.mocked(useExchangeRate).mockReturnValue({
       getRate,
       loading: false,
       error: null,
+      errorMessage: null,
     } as never);
 
     renderSections({

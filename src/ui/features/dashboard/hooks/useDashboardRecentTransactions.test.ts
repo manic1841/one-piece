@@ -64,7 +64,10 @@ describe('useDashboardRecentTransactions', () => {
 
     const { result } = renderHook(() => useDashboardRecentTransactions('household-1'));
 
-    await waitFor(() => expect(result.current.error).toBe(DASHBOARD_RECENT_LABELS.LOAD_ERROR));
+    await waitFor(() =>
+      expect(result.current.errorMessage).toBe(DASHBOARD_RECENT_LABELS.LOAD_ERROR),
+    );
+    expect(result.current.error).toBeInstanceOf(Error);
     expect(result.current.loading).toBe(false);
     expect(result.current.vm.items).toHaveLength(0);
   });
