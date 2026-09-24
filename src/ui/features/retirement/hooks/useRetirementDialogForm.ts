@@ -1,69 +1,62 @@
 import { useState } from 'react';
 
-interface BaseFormData {
-  name: string;
-  baseAmount: number;
-  growthRate: number | undefined;
-  startYear: number;
+interface UseRetirementDialogFormOptions {
+  /**
+   * Re-seeds the form fields when the dialog opens. Called from the open
+   * handler, never from an effect: the reset is a user action, not a reaction
+   * to state (see `react-hooks/set-state-in-effect`).
+   */
+  resetOnOpen: () => void;
 }
 
-interface UseRetirementDialogFormOptions<T extends BaseFormData> {
-  initialData?: Partial<T>;
-  currentYear: number;
-  defaultValues?: Partial<T>;
-}
-
-export function useRetirementDialogForm<T extends BaseFormData>({
-  initialData,
-  currentYear,
-  defaultValues = {},
-}: UseRetirementDialogFormOptions<T>) {
+/**
+ * Shared shell for the retirement entry dialogs: the open/loading flags plus
+ * the "opening the dialog reseeds the form" rule.
+ *
+ * Field state itself belongs to each dialog's Controller (ADR-0064) — this hook
+ * owns nothing the form owns, so it stays free of RHF.
+ */
+export function useRetirementDialogForm({ resetOnOpen }: UseRetirementDialogFormOptions) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  // Common form fields - initialize with initialData or defaults
-  const [name, setName] = useState(initialData?.name || defaultValues.name || '');
-  const [amount, setAmount] = useState(initialData?.baseAmount || defaultValues.baseAmount || 0);
-  const [growthRate, setGrowthRate] = useState<number | undefined>(
-    initialData?.growthRate ?? defaultValues.growthRate,
-  );
-  const [startYear, setStartYear] = useState(
-    initialData?.startYear || defaultValues.startYear || currentYear,
-  );
-
-  const resetForm = () => {
-    setName(initialData?.name || defaultValues.name || '');
-    setAmount(initialData?.baseAmount || defaultValues.baseAmount || 0);
-    setGrowthRate(initialData?.growthRate ?? defaultValues.growthRate);
-    setStartYear(initialData?.startYear || defaultValues.startYear || currentYear);
-  };
-
-  // Wrapper for setOpen that resets form when opening
   const handleSetOpen = (value: boolean) => {
-    if (value) {
-      resetForm();
-    }
+    if (value) resetOnOpen();
     setOpen(value);
   };
 
-  return {
-    // Dialog state
-    open,
-    setOpen: handleSetOpen,
-    loading,
-    setLoading,
-
-    // Common form fields
-    name,
-    setName,
-    amount,
-    setAmount,
-    growthRate,
-    setGrowthRate,
-    startYear,
-    setStartYear,
-
-    // Utilities
-    resetForm,
-  };
+  return { open, setOpen: handleSetOpen, loading, setLoading };
 }
+
+export interface RetirementGrowthLabels {
+  usingPlanInflation: (rate: number) => string;
+  growthPercent: (rate: number) => string;
+}
+
+export interface RetirementDurationLabels {
+  lifelong: string;
+  until: (endYear: string) => string;
+}
+
+/**
+ * Derived readout: how the entry's growth will behave. A blank input means
+ * "follow plan inflation", an explicit `0` means no growth. The form only holds
+ * what the user typed — the readout is derived, never an RHF field.
+ */
+export const deriveRetirementGrowthText = (
+  growthRate: string | number | undefined,
+  planInflationRate: number,
+  labels: RetirementGrowthLabels,
+): string =>
+  growthRate === '' || growthRate === undefined
+    ? labels.usingPlanInflation(planInflationRate)
+    : labels.growthPercent(Number(growthRate));
+
+/** Derived readout: how long the entry lasts. See {@link deriveRetirementGrowthText}. */
+export const deriveRetirementDurationText = (
+  { lifelong, endYear }: { lifelong?: boolean; endYear?: string | number },
+  labels: RetirementDurationLabels,
+): string =>
+  lifelong || endYear === '' || endYear === undefined
+    ? labels.lifelong
+    : labels.until(String(endYear));

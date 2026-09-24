@@ -8,4 +8,6 @@ export const RetirementExpenseDialogLabels = {
   advanced: 'Advanced',
   debtDerivedHint: 'System-derived from debt repayment import.',
   lifelongPlaceholder: 'Lifelong',
+  retirementYearPreview: (amount: number) =>
+    `退休第一年支出約 ${Math.round(amount).toLocaleString()} /yr (估算)`,
 } as const;

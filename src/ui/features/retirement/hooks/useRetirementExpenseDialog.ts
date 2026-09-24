@@ -1,99 +1,94 @@
-import { useEffect, useState } from 'react';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { type UseFormReturn, useForm, useWatch } from 'react-hook-form';
 
+import { RetirementExpenseType } from '@/domains/retirement/schemas';
 import type { RetirementExpenseCategory } from '@/domains/retirement/types';
+import { RetirementExpenseDialogLabels } from '@/ui/constants/retirement/expenseDialogLabels';
 import {
+  type RetirementExpenseFormInput,
+  type RetirementExpenseFormVM,
   RetirementExpenseFormVMSchema,
-  buildRetirementExpenseFormVM,
+  buildRetirementExpenseFormInput,
   mapRetirementExpenseVMToDomain,
 } from '@/ui/features/retirement/viewmodels/retirementForm.vm';
 import { logger } from '@/utils/logger';
 
-import { useRetirementDialogForm } from './useRetirementDialogForm';
+import {
+  deriveRetirementDurationText,
+  deriveRetirementGrowthText,
+  useRetirementDialogForm,
+} from './useRetirementDialogForm';
 
 interface UseRetirementExpenseDialogOptions {
   initialData?: RetirementExpenseCategory;
   currentYear: number;
+  planInflationRate: number;
   onSave: (expense: Omit<RetirementExpenseCategory, 'id'>) => Promise<void>;
 }
 
+export interface RetirementExpenseDialogHook {
+  open: boolean;
+  setOpen: (value: boolean) => void;
+  loading: boolean;
+  /** The RHF form; the component binds fields through it. */
+  form: UseFormReturn<RetirementExpenseFormInput, unknown, RetirementExpenseFormVM>;
+  /** Debt-derived category: its annual is imported and read-only. */
+  isDebtPayment: boolean;
+  /** Derived readouts (previews), not RHF fields. */
+  growthText: string;
+  durationText: string;
+  retirementYearPreview: string;
+  handleSubmit: (event: React.FormEvent) => void;
+}
+
+/**
+ * Controller for the expense dialog (ADR-0064). RHF owns the editable fields;
+ * the retirement-year preview and the growth/duration readouts are derived here,
+ * outside RHF. Submit runs the authoritative `Schema.parse` gate.
+ */
 export function useRetirementExpenseDialog({
   initialData,
   currentYear,
+  planInflationRate,
   onSave,
-}: UseRetirementExpenseDialogOptions) {
-  // Initialize with mapper
-  const initialForm = buildRetirementExpenseFormVM(initialData, currentYear);
+}: UseRetirementExpenseDialogOptions): RetirementExpenseDialogHook {
+  const initialForm = buildRetirementExpenseFormInput(initialData, currentYear);
 
-  // Base fields from shared hook
-  const {
-    open,
-    setOpen,
-    loading,
-    setLoading,
-    name,
-    setName,
-    amount,
-    setAmount,
-    growthRate,
-    setGrowthRate,
-    startYear,
-    setStartYear,
-  } = useRetirementDialogForm({
-    initialData,
-    currentYear,
-    defaultValues: {
-      growthRate: initialForm.growthRate,
-    },
+  const form = useForm<RetirementExpenseFormInput, unknown, RetirementExpenseFormVM>({
+    resolver: zodResolver(RetirementExpenseFormVMSchema),
+    mode: 'onTouched',
+    defaultValues: initialForm,
   });
 
-  // Expense-specific fields
-  const [endYear, setEndYear] = useState<string>(initialForm.endYear || '');
-  const [retirementMultiplier, setRetirementMultiplier] = useState<number>(
-    initialForm.retirementMultiplier,
+  const { open, setOpen, loading, setLoading } = useRetirementDialogForm({
+    resetOnOpen: () => form.reset(buildRetirementExpenseFormInput(initialData, currentYear)),
+  });
+
+  const watched = useWatch({ control: form.control });
+  const values = (watched ?? initialForm) as RetirementExpenseFormInput;
+
+  const isDebtPayment = initialData?.type === RetirementExpenseType.DEBT_PAYMENT;
+
+  // Derived readouts (previews): the form holds what the user typed, the shared
+  // base derives the display value. None of these are RHF fields.
+  const durationText = deriveRetirementDurationText(values, RetirementExpenseDialogLabels);
+  const growthText = deriveRetirementGrowthText(
+    values.growthRate,
+    planInflationRate,
+    RetirementExpenseDialogLabels,
   );
 
-  // Sync all fields from domain data when the dialog opens. The shared hook
-  // cannot prefill from domain data (it reads baseAmount, while the domain
-  // model carries currentAnnual), so this sync owns every field.
-  useEffect(() => {
-    if (open) {
-      const form = buildRetirementExpenseFormVM(initialData, currentYear);
-      setName(form.name);
-      setAmount(form.currentAnnual);
-      setStartYear(form.startYear);
-      setGrowthRate(form.growthRate);
-      setEndYear(form.endYear || '');
-      setRetirementMultiplier(form.retirementMultiplier);
-    }
-    // The shared hook's setters are recreated each render; the sync must only
-    // re-run when the dialog opens or the edited item changes.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, initialData, currentYear]);
+  const retirementYearPreview = RetirementExpenseDialogLabels.retirementYearPreview(
+    (Number(values.currentAnnual) || 0) * ((Number(values.retirementMultiplier) || 0) / 100),
+  );
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const onSubmit = form.handleSubmit(async () => {
     setLoading(true);
 
     try {
-      // Empty growth input = plan inflation (unset), explicit 0 = no growth.
-      const vm = RetirementExpenseFormVMSchema.parse({
-        name,
-        sourceDebtAccountId: initialForm.sourceDebtAccountId,
-        type: initialForm.type,
-        includesPrincipal: initialForm.includesPrincipal,
-        interestOnly: initialForm.interestOnly,
-        calculatedFrom: initialForm.calculatedFrom,
-        expenseCategory: initialForm.expenseCategory,
-        currentAnnual: amount,
-        ...(growthRate === undefined ? {} : { growthRate }),
-        retirementMultiplier,
-        startYear,
-        endYear,
-      });
-
-      const domainData = mapRetirementExpenseVMToDomain(vm);
-
-      await onSave(domainData);
+      // The resolver only drives field display; this parse is the gate.
+      const vm = RetirementExpenseFormVMSchema.parse(form.getValues());
+      await onSave(mapRetirementExpenseVMToDomain(vm));
       setOpen(false);
     } catch (error) {
       logger.error('Expense save failed', 'retirement/useRetirementExpenseDialog', {
@@ -103,27 +98,22 @@ export function useRetirementExpenseDialog({
     } finally {
       setLoading(false);
     }
+  });
+
+  const handleSubmit = (event: React.FormEvent) => {
+    event.preventDefault();
+    void onSubmit();
   };
 
   return {
-    // State
     open,
     setOpen,
     loading,
-    name,
-    setName,
-    amount,
-    setAmount,
-    growthRate,
-    setGrowthRate,
-    startYear,
-    setStartYear,
-    endYear,
-    setEndYear,
-    retirementMultiplier,
-    setRetirementMultiplier,
-
-    // Handlers
+    form,
+    isDebtPayment,
+    growthText,
+    durationText,
+    retirementYearPreview,
     handleSubmit,
   };
 }

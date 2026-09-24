@@ -41,9 +41,7 @@ function openExpenseDialog({ initialData, planInflationRate, onSave }: OpenOptio
 }
 
 function submitDialog() {
-  fireEvent.click(
-    within(screen.getByRole('dialog')).getByRole('button', { name: /add expense/i }),
-  );
+  fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: /add expense/i }));
 }
 
 describe('ExpenseDialog', () => {
@@ -54,7 +52,7 @@ describe('ExpenseDialog', () => {
     expect(screen.getByText('Lifelong')).toBeInTheDocument();
     expect(screen.queryByDisplayValue('2100')).not.toBeInTheDocument();
 
-    fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Groceries' } });
+    fireEvent.change(screen.getByLabelText(/^Name/), { target: { value: 'Groceries' } });
     fireEvent.change(screen.getByLabelText(/current annual/i), { target: { value: '48000' } });
     submitDialog();
 
@@ -87,7 +85,7 @@ describe('ExpenseDialog', () => {
 
     fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Advanced' }));
     fireEvent.change(screen.getByLabelText(/growth rate/i), { target: { value: '0' } });
-    fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Groceries' } });
+    fireEvent.change(screen.getByLabelText(/^Name/), { target: { value: 'Groceries' } });
     fireEvent.change(screen.getByLabelText(/current annual/i), { target: { value: '48000' } });
     submitDialog();
 
@@ -103,7 +101,7 @@ describe('ExpenseDialog', () => {
 
     fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Advanced' }));
     fireEvent.change(screen.getByLabelText(/growth rate/i), { target: { value: '3.5' } });
-    fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Groceries' } });
+    fireEvent.change(screen.getByLabelText(/^Name/), { target: { value: 'Groceries' } });
     fireEvent.change(screen.getByLabelText(/current annual/i), { target: { value: '48000' } });
     submitDialog();
 
@@ -125,7 +123,7 @@ describe('ExpenseDialog', () => {
     const dialog = screen.getByRole('dialog');
     expect(screen.getByLabelText(/current annual/i)).toHaveAttribute('readonly');
     expect(screen.getByText(/system-derived/i)).toBeInTheDocument();
-    expect(within(dialog).getByLabelText('End Year')).toBeInTheDocument();
+    expect(within(dialog).getByLabelText(/^End Year/)).toBeInTheDocument();
     expect(within(dialog).getByRole('button', { name: 'Advanced' })).toBeInTheDocument();
   });
 
@@ -134,5 +132,30 @@ describe('ExpenseDialog', () => {
 
     expect(screen.getByLabelText(/current annual/i)).toHaveValue(96000);
     expect(screen.getByText('Until 2045')).toBeInTheDocument();
+  });
+
+  it('derives the retirement-year preview from the form values', () => {
+    openExpenseDialog();
+
+    expect(screen.getByText(/退休第一年支出約 0 \/yr/)).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText(/current annual/i), { target: { value: '48000' } });
+
+    expect(screen.getByText(/退休第一年支出約 33[,.]600 \/yr/)).toBeInTheDocument();
+  });
+
+  it('blocks saving a debt-payment category without an end year', async () => {
+    const onSave = vi.fn().mockResolvedValue(undefined);
+    openExpenseDialog({
+      onSave,
+      initialData: expenseFixture({ type: 'debt_payment', sourceDebtAccountId: 'debt-1' }),
+    });
+
+    fireEvent.click(
+      within(screen.getByRole('dialog')).getByRole('button', { name: /save changes/i }),
+    );
+
+    expect(await screen.findByText('請輸入結束年度')).toBeInTheDocument();
+    expect(onSave).not.toHaveBeenCalled();
   });
 });

@@ -265,6 +265,15 @@ const onSubmit = form.handleSubmit((vm) => {
   Form VM schema coerces to `number`/`Date` at the schema boundary. Do not blanket-replace `z.number()` with
   `z.coerce.number()` — empty input must mean "missing", not `0`; use the named coercion helpers where the empty/NaN
   semantics matter.
+- **Forms are `noValidate`; required-ness is marked, not browser-enforced**: the `<form>` sets `noValidate` so the
+  resolver and the explicit parse own validation — a native constraint bubble would preempt them and skip `FormMessage`.
+  Required fields carry `FormLabel required` (the `*` marker) instead of a `required` attribute.
+- **Non-editable provenance rides through the form values**: import-derived fields an edit must not destroy (e.g.
+  `calculatedFrom`, `incomeCategory`, a read-only `currentAnnual`) are seeded into the form values and validated by the
+  gate, but are not bound to any input. They are carried data, not derived state, which is why they may sit in RHF.
+- **Repeaters bind by indexed path**: a repeated row group keeps its array in RHF (`useFieldArray`); each row binds
+  `FormField name={`rows.${index}.field`}` through the same glue as a top-level field, and the React key is the row's
+  `id`. No extra array/repeater contract is needed in the suite.
 
 ---
 

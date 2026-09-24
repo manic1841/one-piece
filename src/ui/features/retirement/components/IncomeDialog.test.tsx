@@ -5,9 +5,7 @@ import { type RetirementIncomeSource } from '@/domains/retirement/types';
 
 import IncomeDialog from './IncomeDialog';
 
-function incomeFixture(
-  overrides: Partial<RetirementIncomeSource> = {},
-): RetirementIncomeSource {
+function incomeFixture(overrides: Partial<RetirementIncomeSource> = {}): RetirementIncomeSource {
   return {
     id: 'income-1',
     name: 'Salary',
@@ -99,7 +97,7 @@ describe('IncomeDialog v2 (issue #133)', () => {
 
     fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Advanced' }));
     fireEvent.change(screen.getByLabelText(/growth rate/i), { target: { value: '3.5' } });
-    fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Bonus' } });
+    fireEvent.change(screen.getByLabelText(/^Name/), { target: { value: 'Bonus' } });
     submitDialog();
 
     await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));
@@ -121,7 +119,7 @@ describe('IncomeDialog v2 (issue #133)', () => {
     const onSave = vi.fn().mockResolvedValue(undefined);
     openIncomeDialog({ onSave, planInflationRate: 2 });
 
-    fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Pension' } });
+    fireEvent.change(screen.getByLabelText(/^Name/), { target: { value: 'Pension' } });
     const dialog = within(screen.getByRole('dialog'));
     fireEvent.click(dialog.getByRole('switch', { name: 'Lifelong' }));
     submitDialog();

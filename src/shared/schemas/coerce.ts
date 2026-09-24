@@ -28,4 +28,5 @@ export const optionalNumber = (message = '請輸入有效數字') =>
     .union([z.string(), z.number()])
     .transform(trim)
     .refine((value) => value === '' || Number.isFinite(Number(value)), { error: message })
-    .transform((value) => (value === '' ? undefined : Number(value)));
+    .transform((value) => (value === '' ? undefined : Number(value)))
+    .optional();

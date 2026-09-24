@@ -9,7 +9,7 @@ export const RetirementIncomeDialogLabels = {
   growthPercent: (rate: number) => `${rate}% growth`,
   duration: 'Duration',
   lifelong: 'Lifelong',
-  until: (endYear: number) => `Until ${endYear}`,
+  until: (endYear: string) => `Until ${endYear}`,
   lifelongLabel: 'Lifelong',
   advanced: 'Advanced',
   lifelongPlaceholder: 'Lifelong',

@@ -34,6 +34,10 @@ describe('optionalNumber', () => {
     expect(optionalNumber().parse('   ')).toBeUndefined();
   });
 
+  it('accepts an absent value', () => {
+    expect(optionalNumber().parse(undefined)).toBeUndefined();
+  });
+
   it('coerces a provided value', () => {
     expect(optionalNumber().parse('0')).toBe(0);
     expect(optionalNumber().parse('12.5')).toBe(12.5);
