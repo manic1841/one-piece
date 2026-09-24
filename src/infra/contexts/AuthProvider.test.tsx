@@ -14,21 +14,21 @@ vi.mock('@/firebase', () => ({
   googleProvider: {},
 }));
 
-vi.mock('@/application/user/use_cases/getUserProfileUseCase', () => ({
+vi.mock('@/application/auth/use_cases/getUserProfileUseCase', () => ({
   getUserProfileUseCase: {
     execute: vi.fn(),
   },
 }));
 
-vi.mock('@/application/user/use_cases/createUserProfileUseCase', () => ({
+vi.mock('@/application/auth/use_cases/createUserProfileUseCase', () => ({
   createUserProfileUseCase: {
     execute: vi.fn(),
   },
 }));
 
 import { onAuthStateChanged } from 'firebase/auth';
-import { getUserProfileUseCase } from '@/application/user/use_cases/getUserProfileUseCase';
-import { createUserProfileUseCase } from '@/application/user/use_cases/createUserProfileUseCase';
+import { getUserProfileUseCase } from '@/application/auth/use_cases/getUserProfileUseCase';
+import { createUserProfileUseCase } from '@/application/auth/use_cases/createUserProfileUseCase';
 
 const mockUser = (overrides: Partial<User> = {}): User =>
   ({

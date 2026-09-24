@@ -1,5 +1,5 @@
 import { getHouseholdUseCase } from './getHouseholdUseCase';
-import { updateUserProfileUseCase } from '@/application/user/use_cases/updateUserProfileUseCase';
+import { updateUserProfileUseCase } from '@/application/auth/use_cases/updateUserProfileUseCase';
 
 export interface SwitchHouseholdRequest {
   uid: string;

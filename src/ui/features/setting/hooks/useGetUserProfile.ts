@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
-import { getUserProfileUseCase } from '@/application/user/use_cases/getUserProfileUseCase';
-import { type UserProfile } from '@/domains/user/types';
+import { getUserProfileUseCase } from '@/application/auth/use_cases/getUserProfileUseCase';
+import { type UserProfile } from '@/domains/auth/user/types';
 
 export function useGetUserProfile() {
   const [loading, setLoading] = useState(false);

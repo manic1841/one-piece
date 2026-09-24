@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 
 import { Navigate, useLocation } from 'react-router-dom';
 
-import { isUserAuthorizedUseCase } from '@/application/access_control/use_cases/isUserAuthorizedUseCase';
+import { isUserAuthorizedUseCase } from '@/application/auth/use_cases/isUserAuthorizedUseCase';
 import { householdPermissionService } from '@/application/household/householdPermissionService';
 import { useAuth } from '@/infra/contexts/useAuth';
 

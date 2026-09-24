@@ -1,5 +1,5 @@
 import { userRepository } from '@/infra/repositories/userRepository';
-import { type UserProfile } from '@/domains/user/types';
+import { type UserProfile } from '@/domains/auth/user/types';
 
 export interface GetUserProfileRequest {
   uid: string;

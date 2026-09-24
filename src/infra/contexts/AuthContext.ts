@@ -2,7 +2,7 @@ import { createContext } from 'react';
 
 import { type User } from 'firebase/auth';
 
-import { type UserProfile } from '@/domains/user/schemas';
+import { type UserProfile } from '@/domains/auth/user/schemas';
 
 /**
  * 啟動期不可回復失敗的錯誤碼。infra 只給碼，顯示文字由 UI 決定

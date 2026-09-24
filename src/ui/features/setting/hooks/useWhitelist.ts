@@ -1,8 +1,8 @@
 import { useCallback, useState } from 'react';
 
-import { addWhitelistEmailUseCase } from '@/application/access_control/use_cases/addWhitelistEmailUseCase';
-import { getWhitelistUseCase } from '@/application/access_control/use_cases/getWhitelistUseCase';
-import { removeWhitelistEmailUseCase } from '@/application/access_control/use_cases/removeWhitelistEmailUseCase';
+import { addWhitelistEmailUseCase } from '@/application/auth/use_cases/addWhitelistEmailUseCase';
+import { getWhitelistUseCase } from '@/application/auth/use_cases/getWhitelistUseCase';
+import { removeWhitelistEmailUseCase } from '@/application/auth/use_cases/removeWhitelistEmailUseCase';
 import { useAuth } from '@/infra/contexts/useAuth';
 
 export function useWhitelist() {

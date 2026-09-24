@@ -3,7 +3,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { exportHouseholdBackupUseCase } from '@/application/household/use_cases/exportHouseholdBackupUseCase';
 import { getHouseholdUseCase } from '@/application/household/use_cases/getHouseholdUseCase';
 import { importHouseholdBackupUseCase } from '@/application/household/use_cases/importHouseholdBackupUseCase';
-import { RoleEnum } from '@/domains/auth/role';
+import { RoleEnum } from '@/domains/household/role';
 import { type Household } from '@/domains/household/schemas';
 import { useAuth } from '@/infra/contexts/useAuth';
 import { useGetUserProfile } from '@/ui/features/setting/hooks/useGetUserProfile';

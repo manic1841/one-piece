@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { type User } from 'firebase/auth';
 import { Mail, Plus, ShieldCheck, User as UserIcon, X } from 'lucide-react';
 
-import { RoleEnum } from '@/domains/auth/role';
+import { RoleEnum } from '@/domains/household/role';
 import { type Household } from '@/domains/household/schemas';
 import { Button } from '@/ui/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/ui/card';

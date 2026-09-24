@@ -1,5 +1,5 @@
 import { accessControlRepository } from '@/infra/repositories/accessControlRepository';
-import { type AccessControlWhitelist } from '@/domains/access_control/types';
+import { type AccessControlWhitelist } from '@/domains/auth/whitelist/types';
 
 export class GetWhitelistUseCase {
   async execute(): Promise<AccessControlWhitelist | null> {

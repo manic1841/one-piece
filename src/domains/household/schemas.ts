@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { RoleEnum } from '@/domains/auth/role';
+import { RoleEnum } from '@/domains/household/role';
 import { BaseSchema } from '@/shared/schemas/base';
 
 export const HouseholdCreateSchema = z.object({

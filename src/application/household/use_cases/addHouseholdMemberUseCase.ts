@@ -1,4 +1,4 @@
-import { getUserByEmailUseCase } from '@/application/user/use_cases/getUserByEmailUseCase';
+import { getUserByEmailUseCase } from '@/application/auth/use_cases/getUserByEmailUseCase';
 
 import { getHouseholdUseCase } from './getHouseholdUseCase';
 import { updateHouseholdUseCase } from './updateHouseholdUseCase';

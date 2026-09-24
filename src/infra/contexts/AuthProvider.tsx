@@ -2,9 +2,9 @@ import React, { useCallback, useEffect, useState } from 'react';
 
 import { type User, onAuthStateChanged, signInWithPopup, signOut } from 'firebase/auth';
 
-import { createUserProfileUseCase } from '@/application/user/use_cases/createUserProfileUseCase';
-import { getUserProfileUseCase } from '@/application/user/use_cases/getUserProfileUseCase';
-import { type UserProfile } from '@/domains/user/schemas';
+import { createUserProfileUseCase } from '@/application/auth/use_cases/createUserProfileUseCase';
+import { getUserProfileUseCase } from '@/application/auth/use_cases/getUserProfileUseCase';
+import { type UserProfile } from '@/domains/auth/user/schemas';
 import { auth, googleProvider } from '@/firebase';
 import {
   AuthContext,

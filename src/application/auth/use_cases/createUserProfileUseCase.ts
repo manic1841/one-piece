@@ -1,5 +1,5 @@
 import { userRepository } from '@/infra/repositories/userRepository';
-import { type UserProfileCreate } from '@/domains/user/types';
+import { type UserProfileCreate } from '@/domains/auth/user/types';
 
 export interface CreateUserProfileRequest {
   profile: UserProfileCreate;
