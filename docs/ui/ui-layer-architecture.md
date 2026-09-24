@@ -138,7 +138,7 @@ of Use Cases. Two responsibilities plus one mechanism — there is no third laye
 | **Controller** | One per page/dialog. Owns data orchestration and the loading state that belongs to it, and composes Query and Command hooks. | use case calls via the hooks it composes, local state, form state |
 | **Query** | One per resource. Read-only. | read use cases |
 | **Command** | One per resource, named `*Cmds` when it exists as a distinct bundle. Write-only. | write use cases |
-| **`useLoadingTask`** | A **mechanism**, not a tier. Used *by* Query/Command hooks, exactly like `useState`. It owns the loading state, the failure value, and the ability to abandon a run, so a hook that needs cancellation or a typed failure no longer has a reason to hand-roll either. Superseding a previous run — passing a signal so the older run cannot write back — is the consumer's job. Optional `initiallyLoading` seeds the loading state for a hook whose first paint precedes its first run. | — |
+| **`useLoadingTask`** | A **mechanism**, not a tier. Used *by* Query/Command hooks, exactly like `useState`. It owns the loading state, the failure value, the write-back of a run's outcome, and the ability to abandon a run, so a hook that needs cancellation or a typed failure no longer has a reason to hand-roll either. Superseding a previous run — passing a signal so the older run cannot write back — is the consumer's job. Optional `initiallyLoading` seeds the loading state for a hook whose first paint precedes its first run. | — |
 
 Rules:
 
@@ -184,8 +184,21 @@ Rules:
 - **Abandonment Is Local**: abandoning a run discards **the mechanism's own write-back** — the failure value it would
   have stored and the result it would have returned. It never cancels the underlying request, because repositories
   (Firestore) are not cancellable; a run abandoned after the request was issued has an unknown outcome, and its
-  consumers must not report it as a failure. A task that writes state *itself* is outside this guarantee: put the
-  write-back after `run` returns, so an abandoned run is caught by the `aborted` arm instead of landing as stale state.
+  consumers must not report it as a failure.
+- **Write-Back Through `writeBack`**: state derived from a run is written by the run, not after it. Pass
+  `run(task, { writeBack })`; the mechanism calls it with the run's non-abandoned outcome — `{ ok: true, value }` or
+  `{ ok: false, error }` — and a consumer must **not** call `setState` in its own continuation after `await run(...)`.
+  That trailing shape is indistinguishable, to a reader and to `react-hooks/set-state-in-effect`, from a synchronous
+  write inside the effect. The callback's type omits the `aborted` arm, so an abandoned run cannot write back: the
+  guarantee is in the type, not in the consumer's discipline. Two consequences follow. `writeBack` runs *after*
+  `loading` drops, so a throwing `writeBack` cannot strand the loading state; and it sits outside the mechanism's
+  failure handling, so its own throw propagates rather than being reported as the task's failure. `writeBack` is **not**
+  a substitute for `signal`: without a signal an older run is never abandoned, so it completes and writes its stale
+  value back — superseding still needs the signal (see Supersede On Rapid Deps).
+- **Write-Back Is Lint-Invisible**: routing a write-back through `writeBack` moves it out of `set-state-in-effect`'s
+  sight, because the analyzer cannot follow a callback reference. That is precisely why the correct cancellation shape
+  used to be flagged while the racy one was not. The guarantee therefore lives in the mechanism's type and tests, not in
+  the linter — so a write-back added to a task body *itself* (rather than to `writeBack`) must be caught in review.
 - **Supersede On Rapid Deps**: a hook whose dependencies change faster than a request completes (paging months, typing a
   filter) must hold the in-flight `AbortController` and abort it before starting the replacement run; otherwise the older
   response can land last and win. Pass its signal as `run`'s `signal` option.

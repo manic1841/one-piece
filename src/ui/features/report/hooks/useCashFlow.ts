@@ -36,28 +36,25 @@ export function useCashFlow(
     const controller = new AbortController();
     inFlightRef.current = controller;
 
-    const result = await run(
-      async () => {
-        return getStoredReportUseCase.execute({
+    await run(
+      async () =>
+        getStoredReportUseCase.execute({
           householdId,
           yearMonth,
           kind: 'cashFlow',
           auth,
-        });
+        }),
+      {
+        signal: controller.signal,
+        writeBack: (result) =>
+          setData(
+            result.ok && result.value ? mapCashFlowToVM(result.value as CashFlowData) : null,
+          ),
       },
-      { signal: controller.signal },
     );
-
-    if (!result.ok && result.kind === 'aborted') return;
-
-    setData(result.ok && result.value ? mapCashFlowToVM(result.value as CashFlowData) : null);
   }, [householdId, yearMonth, auth, run]);
 
   useEffect(() => {
-    // The analyzer cannot see through the awaited write-back in `fetchReport` and
-    // reports this as a synchronous setState; the write-back lands in a promise
-    // continuation, not in the effect body.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     void fetchReport();
   }, [fetchReport]);
 

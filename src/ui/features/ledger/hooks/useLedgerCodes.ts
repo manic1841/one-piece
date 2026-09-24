@@ -24,30 +24,29 @@ export const useLedgerCodes = (includeInactive = false) => {
   const fetchCodes = useCallback(async () => {
     // The no-household guard belongs inside the task: `initiallyLoading` is
     // released by *initiating* a run, so every path must initiate one.
-    const result = await run(async () =>
-      householdId
-        ? listAllLedgerCodesUseCase.execute({
-            householdId,
-            includeInactive,
-            auth,
-            labelResolver: getUnifiedLedgerCodeLabel,
-          })
-        : [],
+    await run(
+      async () =>
+        householdId
+          ? listAllLedgerCodesUseCase.execute({
+              householdId,
+              includeInactive,
+              auth,
+              labelResolver: getUnifiedLedgerCodeLabel,
+            })
+          : [],
+      {
+        writeBack: (result) => {
+          if (result.ok) {
+            setCodes(result.value);
+          } else {
+            console.error('Error fetching ledger codes:', result.error);
+          }
+        },
+      },
     );
-
-    if (!result.ok && result.kind === 'aborted') return;
-    if (result.ok) {
-      setCodes(result.value);
-    } else {
-      console.error('Error fetching ledger codes:', result.error);
-    }
   }, [auth, householdId, includeInactive, run]);
 
   useEffect(() => {
-    // The analyzer cannot see through the awaited write-back in `fetchCodes`
-    // and reports this as a synchronous setState; the write-back lands in a
-    // promise continuation, not in the effect body. See issue #186.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     void fetchCodes();
   }, [fetchCodes]);
 

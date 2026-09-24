@@ -71,21 +71,19 @@ export const useAccountDetailPage = ({ account }: UseAccountDetailPageArgs) => {
   const loadAccount = useCallback(async () => {
     // The guard belongs inside the task: `initiallyLoading` is released by
     // *initiating* a run, so every path must initiate one.
-    const result = await run(async () =>
-      account || !householdId
-        ? null
-        : getAccountsWithSnapshotsUseCase.execute({ householdId, auth, includeInactive: true }),
+    await run(
+      async () =>
+        account || !householdId
+          ? null
+          : getAccountsWithSnapshotsUseCase.execute({ householdId, auth, includeInactive: true }),
+      {
+        writeBack: (result) =>
+          setFetchedAccount(result.ok ? (result.value?.find((a) => a.id === id) ?? null) : null),
+      },
     );
-
-    if (!result.ok && result.kind === 'aborted') return;
-    setFetchedAccount(result.ok ? (result.value?.find((a) => a.id === id) ?? null) : null);
   }, [account, householdId, id, auth, run]);
 
   useEffect(() => {
-    // The analyzer cannot see through the awaited write-back in `loadAccount`
-    // and reports this as a synchronous setState; the write-back lands in a
-    // promise continuation, not in the effect body. See issue #186.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     void loadAccount();
   }, [loadAccount]);
 

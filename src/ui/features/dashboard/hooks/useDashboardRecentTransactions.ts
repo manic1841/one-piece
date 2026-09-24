@@ -21,26 +21,25 @@ export function useDashboardRecentTransactions(householdId: string | undefined) 
   const loadData = useCallback(async () => {
     if (!householdId) return;
 
-    const result = await run(async () => {
-      return listRecentTransactionsUseCase.execute({
-        householdId,
-        limit: RECENT_TRANSACTION_LIMIT,
-        auth,
-      });
-    });
-
-    setVm(
-      result.ok
-        ? { items: result.value.map((transaction) => mapTransactionToListItemVM(transaction)) }
-        : buildEmptyVm(),
+    await run(
+      async () =>
+        listRecentTransactionsUseCase.execute({
+          householdId,
+          limit: RECENT_TRANSACTION_LIMIT,
+          auth,
+        }),
+      {
+        writeBack: (result) =>
+          setVm(
+            result.ok
+              ? { items: result.value.map((transaction) => mapTransactionToListItemVM(transaction)) }
+              : buildEmptyVm(),
+          ),
+      },
     );
   }, [householdId, auth, run]);
 
   useEffect(() => {
-    // The analyzer cannot see through the awaited write-back in `loadData` and
-    // reports this as a synchronous setState; the write-back lands in a promise
-    // continuation, not in the effect body.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     void loadData();
   }, [loadData]);
 

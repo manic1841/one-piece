@@ -25,20 +25,18 @@ export function useHouseholdSwitcher(
   const loadHouseholds = useCallback(async () => {
     if (!uid || !isOpen) return;
 
-    const result = await run(async () => getHouseholdsByUserUseCase.execute({ uid }));
-    if (!result.ok && result.kind === 'aborted') return;
-    if (result.ok) {
-      setHouseholds(result.value);
-    } else {
-      console.error('Error fetching households:', result.error);
-    }
+    await run(async () => getHouseholdsByUserUseCase.execute({ uid }), {
+      writeBack: (result) => {
+        if (result.ok) {
+          setHouseholds(result.value);
+        } else {
+          console.error('Error fetching households:', result.error);
+        }
+      },
+    });
   }, [uid, isOpen, run]);
 
   useEffect(() => {
-    // The analyzer cannot see through the awaited write-back in `loadHouseholds`
-    // and reports this as a synchronous setState; the write-back lands in a
-    // promise continuation, not in the effect body. See issue #186.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     void loadHouseholds();
   }, [loadHouseholds]);
 

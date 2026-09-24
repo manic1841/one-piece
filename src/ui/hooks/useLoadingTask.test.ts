@@ -344,3 +344,113 @@ describe('useLoadingTask initial loading', () => {
     expect(result.current.loading).toBe(false);
   });
 });
+
+describe('useLoadingTask write-back', () => {
+  it('hands the outcome to writeBack and still returns it', async () => {
+    const { result } = renderHook(() => useLoadingTask());
+    const seen: unknown[] = [];
+
+    let outcome: unknown;
+    await act(async () => {
+      outcome = await result.current.run(async () => 42, {
+        writeBack: (r) => seen.push(r),
+      });
+    });
+
+    expect(seen).toEqual([{ ok: true, value: 42 }]);
+    expect(outcome).toEqual({ ok: true, value: 42 });
+  });
+
+  it('hands a failed run to writeBack with the original thrown value', async () => {
+    const { result } = renderHook(() => useLoadingTask());
+    const failure = new TypeError('offline');
+    const seen: unknown[] = [];
+
+    await act(async () => {
+      await result.current.run(
+        async () => {
+          throw failure;
+        },
+        { writeBack: (r) => seen.push(r) },
+      );
+    });
+
+    expect(seen).toEqual([{ ok: false, error: failure }]);
+    expect(result.current.error).toBe(failure);
+  });
+
+  it('does not write back a run the caller abandons', async () => {
+    const { result } = renderHook(() => useLoadingTask());
+    const caller = new AbortController();
+    const gate = deferred<string>();
+    const writeBack = vi.fn();
+
+    await act(async () => {
+      const pending = result.current.run(() => gate.promise, {
+        signal: caller.signal,
+        writeBack,
+      });
+      caller.abort();
+      gate.resolve('ignored');
+      expect(await pending).toEqual({ ok: false, kind: 'aborted' });
+    });
+
+    expect(writeBack).not.toHaveBeenCalled();
+  });
+
+  it('does not write back a run abandoned by unmount', async () => {
+    const { result, unmount } = renderHook(() => useLoadingTask());
+    const gate = deferred<string>();
+    const writeBack = vi.fn();
+
+    let pending!: Promise<unknown>;
+    act(() => {
+      pending = result.current.run(() => gate.promise, { writeBack });
+    });
+    await waitFor(() => expect(result.current.loading).toBe(true));
+
+    unmount();
+    gate.resolve('ignored');
+
+    await expect(pending).resolves.toEqual({ ok: false, kind: 'aborted' });
+    expect(writeBack).not.toHaveBeenCalled();
+  });
+
+  it('does not write back a run whose signal is already aborted', async () => {
+    const { result } = renderHook(() => useLoadingTask());
+    const caller = new AbortController();
+    caller.abort();
+    const writeBack = vi.fn();
+
+    let outcome: unknown;
+    await act(async () => {
+      outcome = await result.current.run(async () => 'never', {
+        signal: caller.signal,
+        writeBack,
+      });
+    });
+
+    expect(outcome).toEqual({ ok: false, kind: 'aborted' });
+    expect(writeBack).not.toHaveBeenCalled();
+  });
+
+  it('lets a throwing writeBack propagate without stranding loading', async () => {
+    const { result } = renderHook(() => useLoadingTask());
+    const bug = new Error('writeBack bug');
+
+    await act(async () => {
+      await expect(
+        result.current.run(async () => 1, {
+          writeBack: () => {
+            throw bug;
+          },
+        }),
+      ).rejects.toThrow(bug);
+    });
+
+    // The write-back is the caller's own bug, not the task's failure: the error
+    // channel stays clean, and `loading` has already dropped.
+    expect(result.current.loading).toBe(false);
+    expect(result.current.error).toBeNull();
+  });
+});

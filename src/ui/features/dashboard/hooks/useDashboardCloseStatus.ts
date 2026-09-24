@@ -23,17 +23,13 @@ export function useDashboardCloseStatus(householdId: string | undefined) {
     if (!householdId) return;
 
     const yearMonth = getPreviousYearMonth();
-    const result = await run(async () => {
-      return new GetFinancialPeriodUseCase().execute({ householdId, yearMonth });
+    await run(async () => new GetFinancialPeriodUseCase().execute({ householdId, yearMonth }), {
+      writeBack: (result) =>
+        setVm(result.ok ? mapPeriodToCloseStatusVM(result.value, yearMonth) : null),
     });
-    setVm(result.ok ? mapPeriodToCloseStatusVM(result.value, yearMonth) : null);
   }, [householdId, run]);
 
   useEffect(() => {
-    // The analyzer cannot see through the awaited write-back in `loadData` and
-    // reports this as a synchronous setState; the write-back lands in a promise
-    // continuation, not in the effect body.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     void loadData();
   }, [loadData]);
 

@@ -46,7 +46,7 @@ export const useReportSettlement = (householdId: string) => {
     const controller = new AbortController();
     inFlightRef.current = controller;
 
-    const result = await run(
+    await run(
       async () => {
         try {
           return await getSettlementStatusWorkflow.execute({
@@ -65,49 +65,52 @@ export const useReportSettlement = (householdId: string) => {
           throw new Error(LOAD_ERROR);
         }
       },
-      { signal: controller.signal },
+      {
+        signal: controller.signal,
+        // A failed run writes nothing here; the surface shows the canned message
+        // from the mechanism's error channel instead.
+        writeBack: (result) => {
+          if (!result.ok) return;
+
+          const { debtPreview, readiness, reports } = result.value;
+          setDebtNoRepaymentWarningNames(debtPreview.missingRepaymentAccountNames);
+
+          if (!readiness.isReady) {
+            setUnsettledProjectNames(readiness.unsettledProjects.map((project) => project.name));
+            setUnsettledAccountNames(readiness.unsettledAccounts.map((account) => account.name));
+            setUnsettledPortfolioNames(
+              readiness.unsettledPortfolios.map((portfolio) => portfolio.name),
+            );
+            setUnsettledDebtNames(readiness.unsettledDebts.map((debt) => debt.name));
+            setSummary(null);
+            setReportsGenerated(false);
+            return;
+          }
+
+          setUnsettledProjectNames([]);
+          setUnsettledAccountNames([]);
+          setUnsettledPortfolioNames([]);
+          setUnsettledDebtNames([]);
+
+          // The workflow only computes the preview once readiness says the month
+          // is settled, so there is nothing to write back when it is absent.
+          if (!reports) return;
+
+          setSummary({
+            totalRevenue: reports.incomeStatement.incomeTotal,
+            totalExpense: reports.incomeStatement.expenseTotal,
+            netIncome: reports.incomeStatement.netIncome,
+            netWorth: reports.balanceSheet.assets.total - reports.balanceSheet.liabilities.total,
+          });
+
+          setReportsGenerated(reports.isPersisted);
+          setReportTimestamps(reports.timestamps);
+        },
+      },
     );
-
-    if (!result.ok) return;
-
-    const { debtPreview, readiness, reports } = result.value;
-    setDebtNoRepaymentWarningNames(debtPreview.missingRepaymentAccountNames);
-
-    if (!readiness.isReady) {
-      setUnsettledProjectNames(readiness.unsettledProjects.map((project) => project.name));
-      setUnsettledAccountNames(readiness.unsettledAccounts.map((account) => account.name));
-      setUnsettledPortfolioNames(readiness.unsettledPortfolios.map((portfolio) => portfolio.name));
-      setUnsettledDebtNames(readiness.unsettledDebts.map((debt) => debt.name));
-      setSummary(null);
-      setReportsGenerated(false);
-      return;
-    }
-
-    setUnsettledProjectNames([]);
-    setUnsettledAccountNames([]);
-    setUnsettledPortfolioNames([]);
-    setUnsettledDebtNames([]);
-
-    // The workflow only computes the preview once readiness says the month is
-    // settled, so there is nothing to write back when it is absent.
-    if (!reports) return;
-
-    setSummary({
-      totalRevenue: reports.incomeStatement.incomeTotal,
-      totalExpense: reports.incomeStatement.expenseTotal,
-      netIncome: reports.incomeStatement.netIncome,
-      netWorth: reports.balanceSheet.assets.total - reports.balanceSheet.liabilities.total,
-    });
-
-    setReportsGenerated(reports.isPersisted);
-    setReportTimestamps(reports.timestamps);
   }, [householdId, year, month, auth, resolveReportLabel, run]);
 
   useEffect(() => {
-    // The analyzer cannot see through the awaited write-back in `loadStatus`
-    // and reports this as a synchronous setState; the write-back lands in a
-    // promise continuation, not in the effect body. See issue #186.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     void loadStatus();
   }, [loadStatus]);
 
