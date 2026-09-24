@@ -1,7 +1,7 @@
 # 退休計畫寫入的原子邊界
 
 **狀態：** 已接受
-**規範來源：** [retirement-system.md](../retirement-system.md) §5；[ddd-design-principles.md](../ddd-design-principles.md) §4
+**規範來源：** [retirement-system.md](../retirement-system.md) §5；[ddd-design-principles.md](../ddd-design-principles.md) §3
 
 退休計畫的 create/update/delete/duplicate 會觸及主文件、`incomeStreams`/`expenseCategories` 子集合與 active fan-out，但原本拆成多個獨立 commit：`createPlan` 依序建立主文件與兩個子集合 batch、`updatePlan` 依序更新主文件與兩個子集合、`setOnlyActivePlan` 讀取全部計畫後單獨 batch commit、`deletePlan` 依序刪除兩個子集合與主文件。任一步驟失敗會留下殘缺子集合或孤兒主文件；併發啟用兩個計畫可能同時留下多筆 active，違反 [ADR-0036](0036-single-active-retirement-plan.md)。
 

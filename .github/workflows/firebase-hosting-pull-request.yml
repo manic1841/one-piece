@@ -14,6 +14,16 @@ on:
 # and no repoToken. The preview URL goes to the job summary instead.
 permissions:
   contents: read
+# Why this workflow is shaped this way:
+# - Under workflow_run this YAML and the secrets always come from the default
+#   branch (main); only the deployed code comes from workflow_run.head_sha.
+#   Consequences: workflow changes take effect only after merging to main, and
+#   CI green is the only defense against untrusted code (workflow_run runs
+#   carry secrets).
+# - The payload has no pull_request, so the Firebase action cannot comment on
+#   the PR or create a Deploy Preview check run, and its auto-derived channel
+#   id would be an empty string failing the deploy with HTTP 400. Hence the
+#   explicit channel id below and the URL written to the job summary.
 jobs:
   build_and_preview:
     name: Build and Deploy to Firebase Hosting Preview Channel

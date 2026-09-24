@@ -13,6 +13,16 @@ on:
 # comment and check run, and workflow_run never carries pull_request.
 permissions:
   contents: read
+# Why this workflow is shaped this way:
+# - Live only accepts push to main. `pull_request` also fires on open and every
+#   push, so letting it write live would ship PRs that never merge; it also
+#   checks out refs/pull/N/merge, a simulated merge of content that never
+#   existed on main.
+# - Under workflow_run this YAML and the secrets always come from the default
+#   branch (main); only the deployed code comes from workflow_run.head_sha.
+#   Consequences: workflow changes take effect only after merging to main, and
+#   CI green is the only defense against untrusted code (workflow_run runs
+#   carry secrets).
 jobs:
   build_and_deploy:
     if: >

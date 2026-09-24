@@ -1,44 +1,8 @@
 # One-Piece DDD Design Principles
 
-Based on modern DDD practices and adjusted for our project's scale, these principles define the boundaries and dependency rules for our architecture.
+分層與資料流契約以 [`architecture.md`](architecture.md) 為唯一來源；本文件只補 DDD 術語與 React 的對應、程式碼範例，以及事務與原子性契約。
 
-## 1. 層級職責 (Layer Responsibilities)
-
-### 📂 Domain Layer (領域層) - `src/domains/`
-- **Core Entities & Aggregates**: 業務資料的單一事實來源。
-- **Domain Services**: 處理跨多個 Entity 的純業務邏輯（不涉及外部 IO）。
-- **Contracts**: 定義 Repository 介面（雖然在當前專案中簡化為直接使用 `infra` 實作，但邏輯上屬於外部依賴）。
-- **Rules**: 絕對不依賴於 Application 或 Infrastructure 層。
-
-### 📂 Application Layer (應用層) - `src/application/`
-- **Use Cases**: Atomic operations (`src/application/[domain]/use_cases/`).
-- **Application Services**: Complex business orchestration.
-- **Orchestration**: Responsible for:
-    - **Transaction control** (Passing Firestore `Transaction` objects)
-    - **Cross-domain orchestration**
-- **Rules**: 不應包含核心業務邏輯。**絕對保持純粹 (Pure TS/JS)，不依賴於任何 UI 框架。**
-
-### Workflow Pattern (編排型 Workflow)
-
-當一個流程需要協調多個 use case 時，可建立 Workflow（如 `previewFinancialReportsWorkflow`）。
-Workflow 與 use case 的分工如下：
-
-- **Workflow 只負責組織**：決定 use case 的呼叫順序、傳遞資料、組合結果。
-- **Workflow 不得直接依賴**：repository、domain 計算函數、firebase SDK。
-  需要資料讀取或領域計算時，必須呼叫負責的 use case。
-- **Use case 擁有邏輯**：資料讀取（如 `fetchReportDataUseCase`）、
-  領域計算（呼叫 domain pure function）、權限檢查（如 persistence state 檢查）
-  都屬於 use case 的職責。
-- Workflow 可以執行入口的權限把關（auth check），因為它是該流程的入口。
-
-### 📂 Infrastructure Layer (基礎層) - `src/infra/`
-- **Concrete Implementations**: 具體的資料庫操作 (Firestore Repositories)、外接 API。
-- **Persistence Schemas**: 與資料庫存儲結構對應的 Schema。
-- **Rules**: 依賴 Domain (為了實作介面/使用領域模型)。
-
----
-
-## 2. React 中各層級對應 (React Layer Mapping)
+## 1. React 中各層級對應 (React Layer Mapping)
 
 在 React 專案中，傳統 DDD 層級與前端開發習慣的對應關係如下：
 
@@ -57,7 +21,7 @@ Workflow 與 use case 的分工如下：
 
 ---
 
-## 3. 程式碼範例 (Code Examples)
+## 2. 程式碼範例 (Code Examples)
 
 ### Application Hook (Controller)
 ```typescript
@@ -94,7 +58,7 @@ export class UpdateUserUseCase {
 
 ---
 
-## 4. 事務與原子性 (Transaction / UoW)
+## 3. 事務與原子性 (Transaction / UoW)
 
 前端雖然沒有 SQL 級別的 Transaction，但應在 Hook 內部實作「原子性」操作或 Rollback 模式。
 
@@ -215,37 +179,7 @@ partial update，也不引入 idempotency key——重試同一 desired state �
 
 ---
 
-## 5. 依賴方向 (Dependency Direction)
-
-**規則：所有依賴必須指向「內層」（領域層）。**
-
-`UI (Presentation + Hooks) -> Application (Use Cases) -> Domain <- Infrastructure`
-
-- **Domain** 是核心，純粹的 JS/TS。
-- **UI Controller Hooks** orchestrate Domain & Application. Surface 不得觸碰 domain/application（連型別也不行）。
-- **Infrastructure** Implements Domain interfaces；且不得 import UI（見 ADR-0062）。
-- **Shared** 只能被依賴，不能依賴其他層層（除了基礎工具包）。
-
----
-
-## 6. 實作指南 (Implementation Guidelines)
-
-### 當你需要新增一個功能時：
-1. **先在 Domain 定義資料結構與核心邏輯**。
-2. **在 Application 設定 Use Case 或 Service**：
-    - 在這裡處理「驗證權限」（通常呼叫 `householdApplicationService.assertWritePermission`）。
-    - 在這裡決定「存儲流程」。
-3. **在 Infrastructure 實作 Repository** (若尚未存在)。
-4. **最後在 UI Hook 調用 Application Layer**。
-
-### 避免的陷阱 (Anti-patterns)：
-- **不要讓 Hook 直接調用 Repository**：這會導致權限校驗遺漏與業務邏輯洩漏（既有違規見實作 issue 的盤點）。
-- **不要在 Application Service 寫複雜計算**：應封裝進 Domain Service 或 Entity 方法中。
-- **不要在 Repository 寫業務校驗**：Repository 只負責搬運資料。
-
----
-
-## 7. Linus Torvalds 的提醒
+## 4. Linus Torvalds 的提醒
 > "Good code doesn't need comments, it needs a structure so obvious that you feel like an idiot for not writing it that way initially."
 - 保持層級簡約。
 - 如果一個 Use Case 只有 3 行 code 且沒有複雜編排，直接在 Application Service 寫一個 method 即可，不要過度設計。

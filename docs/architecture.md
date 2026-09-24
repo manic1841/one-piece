@@ -10,7 +10,7 @@
 
 - **職責**: 定義業務實體、值對象與核心邏輯。
 - **內容**: `types.ts`, `schemas.ts` (Zod), `mappers.ts`。
-- **規則**: 不依賴外部框架或基礎設施。
+- **規則**: 不依賴外部框架或基礎設施；**絕對不依賴於 Application 或 Infrastructure 層。**
 
 ### 📂 Application (應用層) - `src/application/`
 
@@ -18,13 +18,18 @@
 - **內容**:
   - `use_cases/`: 原子級業務操作，封裝單一職責邏輯（如：`createUserUseCase.ts`）。
   - **Permission Services**: 專門處理複雜權限校驗的應用服務（如：`HouseholdPermissionService`）。
-- **規則**: 這裡負責事務控制與業務流程。**絕對禁止在此層級使用 React Hooks 或依賴任何 UI 框架。**
+- **規則**: 負責事務控制與業務流程，不應包含核心業務邏輯（複雜校驗放 Domain Service）。**絕對保持純粹 (Pure TS/JS)，禁止 React Hooks 或任何 UI 框架依賴。**
 - 應用層**可以**直接使用 `runTransaction` 與 Firestore query constraints：transaction 在 use case 內部建立並關閉，不跨越層邊界傳遞（見 [ADR-0043](adr/0043-accept-firestore-dependency-in-application.md)）。這讓 use case 能自行負責原子性，不需額外抽象層。
+
+### Workflow Pattern (編排型 Workflow)
+
+當一個流程需要協調多個 use case 時，建立 Workflow（如 `PreviewFinancialReportsWorkflow`、`MonthlyCloseWorkflowUseCase`）。Workflow 只負責組織：決定 use case 的呼叫順序、傳遞資料、組合結果；不得直接依賴 repository 或 domain 計算函數，需要資料或計算時一律呼叫負責的 use case。入口的權限把關（auth check）是例外，屬於 workflow 的本職。
 
 ### 📂 Infrastructure (基礎設施層) - `src/infra/`
 
 - **職責**: 實作資料持久化 (Firestore)、外部 API 介接。
 - **內容**: `repositories/`, `schemas/` (與資料庫對應的實體), `external/` (第三方 API client)。
+- **規則**: 依賴 Domain（實作介面、使用領域模型）；不得 import UI（見 [ADR-0062](adr/0062-ui-tier-separation-and-surface-import-ban.md)）。Repository 只負責搬運資料，業務校驗放 Domain Service 或 Use Case。
 - **工具**: 繼承 `src/repositories/baseRepository.ts` 進行標準 CRUD。
 - **外部 API 介接**: 匯率由 `external/exchangeRateApiClient.ts` 直接從 CORS 開放的每日匯率源取得（免 key、免後端代理，詳見 [ADR-0049](adr/0049-cors-open-exchange-rate-source.md)）；跨匯率換算由 `GetLatestRateUseCase` 以 USD 基準匯率推導，並保留 1 小時記憶體快取。
 
@@ -39,6 +44,13 @@
   層級、可觸碰清單與呼叫方向以 [`ui/ui-layer-architecture.md`](ui/ui-layer-architecture.md) 為準；
   UI 不得 import `@/domains`、`@/application`、`@/infra`，也不得 import `firebase/firestore`
   （跨層實作由 `src/App.tsx` 這個 composition root 注入）。
+
+### 📂 Shared - `src/shared/`
+
+- **職責**: 基礎工具包（共用常數、base schema）。
+- **規則**: 只能被其他層依賴，不能依賴任何其他層。
+
+**依賴方向**：所有依賴指向內層——`UI -> Application -> Domain <- Infrastructure`。
 
 ## 2. 資料流 (Data Flow)
 
