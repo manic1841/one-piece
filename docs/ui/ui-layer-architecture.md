@@ -154,9 +154,11 @@ Rules:
   `useAuthIdentity()` (`@/ui/hooks/useAuthIdentity`), never by hand-assembling
   `{ uid, isGlobalAdmin }` literals from `useAuthState()`. Direct `useAuthState()` use is
   reserved for concerns the auth identity does not carry (e.g. `userProfile`,
-  `refreshProfile`, sign-in UI), and is allowed only inside a Controller — never in
-  Surface. Never fabricate a fake auth object (empty uid, forced `isGlobalAdmin: true`)
-  to bypass permission checks.
+  `refreshProfile`, sign-in UI). What is banned is **fabricating** an auth object: hand-rolling
+  the literal, or faking one (empty uid, forced `isGlobalAdmin: true`) to bypass permission
+  checks. Never do either, in any tier. Reading a read-only field (`userProfile`, `isAdmin`,
+  `loading`) is not fabrication and is allowed in Surface as well — the ban targets the
+  behaviour, not the file location.
 
 ---
 
