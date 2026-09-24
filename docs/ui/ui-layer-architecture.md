@@ -170,7 +170,10 @@ Rules:
   symmetry.
 - **Form State Is Controller State**: form state (`useForm`, hand-rolled field state, zod parsing) belongs in a hook,
   not in a page. `useForm` and `zodResolver` may be used, but the `useForm` call site is a Controller, not Surface.
-- **Validation Gate**: Hook submit paths must validate Form VM via schema before calling Use Cases.
+- **One Form Convention**: every form uses react-hook-form as its state mechanism (ADR-0064). Hand-rolled field state
+  is legacy and is being migrated feature-by-feature; no new form may hand-roll it.
+- **Validation Gate**: Hook submit paths must validate Form VM via schema before calling Use Cases. The resolver is a
+  field-level **display** mechanism, not the gate: the authoritative `Schema.parse` still runs in the submit handler.
 - **Loading State**: `useLoadingTask` is the **default** for a hook's promise-driven loading and failure state — reach
   for it instead of hand-rolling the same counter, the same error slot and the same abandonment guard. It is the
   default, not a mandate: **it does not apply to state that is not a promise's loading or failure.** Those are not
@@ -230,6 +233,34 @@ Rules:
   `loading`) is not fabrication and is allowed in Surface as well — the ban targets the
   behaviour, not the file location.
 
+### RHF Form Controller (Mandatory)
+
+Every form's `useForm` call lives in a feature hook (the Controller); the Surface only renders. `FormItem` groups a
+field, `FormControl` injects the RHF binding into an RHF-free input (see `design-system.md` §7), and the resolver runs
+field-level validation for display only.
+
+```ts
+// features/[feature]/hooks/useXxxForm.ts  — Controller
+const form = useForm<XxxFormVM>({
+  resolver: zodResolver(XxxFormSchema),
+  mode: 'onTouched',                        // field-level display; not the gate
+  defaultValues,
+});
+
+const onSubmit = form.handleSubmit((vm) => {
+  const parsed = XxxFormSchema.parse(vm);   // authoritative gate
+  const domain = mapXxxVMToDomain(parsed);
+  return save(domain);                      // Use Case
+});
+```
+
+- **`mode: 'onTouched'`**: a field reports its error after first blur, then updates on change; the form does not
+  interrupt while the user is typing a field they have not left. Forms do not pick their own mode.
+- **Values are strings at the field boundary**: inputs are native and RHF-free, so every field value is a string; the
+  Form VM schema coerces to `number`/`Date` at the schema boundary. Do not blanket-replace `z.number()` with
+  `z.coerce.number()` — empty input must mean "missing", not `0`; use the named coercion helpers where the empty/NaN
+  semantics matter.
+
 ---
 
 ## 5. Typical Data Flow
@@ -253,9 +284,9 @@ React Component (Surface)
 ### Form Submit Data Flow (Mandatory)
 
 ```text
-React Component (Form State)
+Form State (Controller hook; RHF)
  ↓
-Form ViewModel (Zod Schema)
+Form ViewModel (Zod Schema) — resolver for field display, explicit parse as the gate
  ↓
 Mapper (mapXxxVMToDomain)
  ↓

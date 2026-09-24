@@ -132,3 +132,13 @@ Token（定義於 `tailwind.config.js`，全部走 CSS 變數）：
     - **Card 包裹**：Table 不預設用 Card；Card 只在「需要明確包住一個獨立操作／狀態／資訊模組」時使用（snapshot history 等獨立模組可用，編輯中的 stage 表格不用）。
     - **列內動作**：有 detail 頁的資料整列可點擊走 List → Detail，不用 Actions 欄；無 detail 頁允許 row 端 ghost icon action（icon-only、muted、hover 語意）。
     - **Pointer event priority**：整列導覽與列內拖曳（grip）並存時，優先序為「點擊/輕觸列的普通區域 → 導覽 Detail；在 grip 上點擊/拖曳 → 拖曳排序，且不觸發導覽」。grip 的互動必須 stop propagation 並抑制拖曳結束後的一次 click，但**不得因此關閉整列的導覽能力**；reorder mode 期間整列導覽維持有效。三種禁止的實作缺陷：點 grip 同時開啟 Detail、drag 結束才觸發 row click、reorder mode 直接停用 row click。
+- `form`：全站表單共通原則（2026-09-24 定案）。首個合格實作為 account 表單（`AccountForm` 與 `AccountSnapshotEditor`）；其餘表單逐一遷移，不批次套用。表單狀態與驗證時機的規則（RHF、`useForm` 呼叫點、submit gate）見 `ui-layer-architecture.md` §4，此段只規範元件表面。
+    - **欄位群組**：`FormItem` 是唯一決定 label / control / error 垂直佈局的地方（`space-y-2`）。欄位不得自行決定 label 或 error 的位置與間距。
+    - **元件解耦**：輸入欄位（`TextInput`、`NumberInput`、`CurrencyInput`、`DateInput`…）是 RHF-free 的受控元件，唯一 value contract 為 string。RHF 的接線集中於 `FormControl`，欄位本身不得 import RHF。理由見 ADR-0065。
+    - **注入契約**：`FormControl` 以 `cloneElement` 注入 `value / onChange / onBlur / name / ref / error（boolean）/ aria-invalid / aria-describedby / id`。`error` 供視覺、`aria-*` 供無障礙，兩者缺一不可；欄位元件必須轉發 `ref` 至原生元素。
+    - **Required**：必填欄位在 `FormLabel` 尾端加 `*`（`text-destructive`），不寫「必填」文字。
+    - **Error**：一律顯示在 control 下方，只顯示第一筆錯誤（`FormMessage`）；欄位錯誤時 `FormLabel` 轉 `text-destructive`。
+    - **Disabled**：使用 native `disabled`，統一 `opacity-50` 且不可 focus（由 input primitives 的 `disabled:` 樣式承擔，不另行手寫）。
+    - **幾何**：表單輸入框與 data-table 數字輸入共用高度（34px）與數字處理（右對齊 mono `tabular-nums`、移除原生 spinner）；但 surface 各自保留——form 用 `rounded-md` + `border-input` + `bg-background`（即 `ui/input` 的樣式），table 維持 `rounded-none` + `bg-muted`。共用的只有幾何與數字處理，不是整體外觀。
+    - **Mobile**：輸入框聚焦時字級須 ≥ 16px（`text-base`，桌面 `md:text-sm`），避免 iOS Safari 聚焦自動縮放。
+    - **單一貨幣符號來源留待獨立決策**：`CurrencyInput` 不內建貨幣符號，`prefix` 由呼叫端提供；`formatCurrency` 的 USD/TWD 分歧另案處理。
