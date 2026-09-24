@@ -19,6 +19,7 @@ import { SortableListScope } from '@/ui/components/sortable/SortableListScope';
 import { usePortfolioCmds } from '@/ui/features/portfolio/hooks/usePortfolioCmds';
 import { usePortfolios } from '@/ui/features/portfolio/hooks/usePortfolios';
 import {
+  type Account,
   type PortfolioFormVM,
   mapPortfolioVMToDomain,
 } from '@/ui/features/portfolio/viewmodels/portfolioForm.vm';
@@ -55,7 +56,7 @@ const PortfolioList: React.FC<PortfolioListProps> = ({ householdId }) => {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [localPortfolios, setLocalPortfolios] = useState(portfolios);
   const [localRows, setLocalRows] = useState<PortfolioRowVM[]>([]);
-  const [accountNames, setAccountNames] = useState<Map<string, string>>(new Map());
+  const [accounts, setAccounts] = useState<Account[]>([]);
 
   useEffect(() => {
     setLocalPortfolios(portfolios);
@@ -65,20 +66,21 @@ const PortfolioList: React.FC<PortfolioListProps> = ({ householdId }) => {
     let ignore = false;
     const load = async () => {
       const result = await fetchAccounts(householdId, auth, { includeInactive: true });
-      const accounts = result.ok ? result.value : [];
-      if (!ignore) {
-        const names = new Map<string, string>();
-        for (const account of accounts) {
-          names.set(account.id, account.name);
-        }
-        setAccountNames(names);
-      }
+      if (!ignore) setAccounts(result.ok ? result.value : []);
     };
     void load();
     return () => {
       ignore = true;
     };
   }, [householdId, fetchAccounts, auth]);
+
+  const accountNames = useMemo(() => {
+    const names = new Map<string, string>();
+    for (const account of accounts) {
+      names.set(account.id, account.name);
+    }
+    return names;
+  }, [accounts]);
 
   const overview = useMemo(() => {
     const snapshots: PortfolioSnapshot[] = localPortfolios
@@ -209,7 +211,7 @@ const PortfolioList: React.FC<PortfolioListProps> = ({ householdId }) => {
         isOpen={isCreateOpen}
         onClose={() => setIsCreateOpen(false)}
         onSubmit={handleCreateSubmit}
-        householdId={householdId}
+        accounts={accounts}
       />
     </div>
   );

@@ -22,7 +22,6 @@ const ROUNDED_FULL_ALLOWED = new Set([
   'features/auth/pages/AccessDeniedPage.tsx',
   'features/dashboard/components/AssetsLiabilitiesBlock.tsx',
   'features/dashboard/components/MonthlyCloseCard.tsx',
-  'features/portfolio/components/snapshot/PerformancePreview.tsx',
   'features/project/components/detail/ProjectSnapshotItem.tsx',
   'features/report/pages/BalanceSheet.tsx',
   'features/report/pages/CashFlowStatement.tsx',

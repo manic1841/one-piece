@@ -1,15 +1,15 @@
 import { describe, expect, it } from 'vitest';
 
 import {
-  mapPortfolioSnapshotVMToDomain,
+  PortfolioFormSchema,
+  createDefaultPortfolioFormVM,
+  mapPortfolioToFormVM,
   mapPortfolioVMToDomain,
-  parsePortfolioFormVM,
-  parsePortfolioSnapshotFormVM,
 } from './portfolioForm.vm';
 
 describe('portfolioForm.vm', () => {
   it('parses and maps portfolio form to domain input', () => {
-    const vm = parsePortfolioFormVM({
+    const vm = PortfolioFormSchema.parse({
       name: 'Retirement',
       securitiesAccountId: 'a1',
       bankAccountId: 'a2',
@@ -28,18 +28,71 @@ describe('portfolioForm.vm', () => {
     });
   });
 
-  it('parses and maps snapshot form to cashflow payload', () => {
-    const vm = parsePortfolioSnapshotFormVM({
-      year: 2026,
-      month: 3,
-      deposits: 1000,
-      withdrawals: 200,
+  it('trims the name and rejects a blank one', () => {
+    const parsed = PortfolioFormSchema.parse({
+      name: '  Retirement  ',
+      securitiesAccountId: 'a1',
+      bankAccountId: 'a2',
+      isActive: true,
+      order: 0,
     });
 
-    const domain = mapPortfolioSnapshotVMToDomain(vm);
+    expect(parsed.name).toBe('Retirement');
+    expect(
+      PortfolioFormSchema.safeParse({
+        name: '   ',
+        securitiesAccountId: 'a1',
+        bankAccountId: 'a2',
+        isActive: true,
+        order: 0,
+      }).success,
+    ).toBe(false);
+  });
 
-    expect(vm.year).toBe(2026);
-    expect(vm.month).toBe(3);
-    expect(domain).toEqual({ deposits: 1000, withdrawals: 200 });
+  it('requires both account links', () => {
+    const result = PortfolioFormSchema.safeParse({
+      name: 'Retirement',
+      securitiesAccountId: '',
+      bankAccountId: '',
+      isActive: true,
+      order: 0,
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.error?.issues.map((issue) => issue.message)).toEqual([
+      '請選擇證券帳戶',
+      '請選擇銀行帳戶',
+    ]);
+  });
+
+  it('defaults to an active portfolio with no links', () => {
+    expect(createDefaultPortfolioFormVM()).toEqual({
+      name: '',
+      securitiesAccountId: '',
+      bankAccountId: '',
+      isActive: true,
+      order: 0,
+    });
+
+    expect(mapPortfolioToFormVM()).toEqual(createDefaultPortfolioFormVM());
+  });
+
+  it('hydrates an edited portfolio without collapsing a zero order', () => {
+    expect(
+      mapPortfolioToFormVM({
+        id: 'p1',
+        name: 'Retirement',
+        securitiesAccountId: 'a1',
+        bankAccountId: 'a2',
+        isActive: false,
+        order: 0,
+      }),
+    ).toEqual({
+      name: 'Retirement',
+      securitiesAccountId: 'a1',
+      bankAccountId: 'a2',
+      isActive: false,
+      order: 0,
+    });
   });
 });

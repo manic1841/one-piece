@@ -428,7 +428,7 @@ Detail 的編輯入口依欄位複雜度二選一:
 
 `PageHeader` 不知道「怎麼編輯名稱」——`title` 接受 `ReactNode`,由頁面自行傳入 `<InlineEditableTitle value={...} onSave={...} />`;儲存走既有 update command,成功後頁面自行 refetch／同步 state。
 
-**詳細頁的 header 由 page 層擁有**:每個 detail 頁面自行渲染共用 `PageHeader`(title + 描述 + crumb + back 鈕 + header actions),detail 元件只渲染資料 sections。`PortfolioDetailPage` 屬此形:header actions 放「編輯組合」(lucide Pencil),開啟 `PortfolioForm` edit dialog;列表頁不再有 edit dialog。取捨理由見 [ADR-0058](../adr/0058-portfolio-detail-header-migration.md)。
+**詳細頁的 header 由 page 層擁有**:每個 detail 頁面自行渲染共用 `PageHeader`(title + 描述 + crumb + back 鈕 + header actions),detail 元件只渲染資料 sections。`PortfolioDetailPage` 屬此形:名稱走 `InlineEditableTitle`(見上),detail 元件只渲染資料 sections;`PortfolioForm` 只由列表頁的「新增組合」開啟(create)。取捨理由見 [ADR-0058](../adr/0058-portfolio-detail-header-migration.md)。
 
 ### 7.4 Lifecycle 控制
 
