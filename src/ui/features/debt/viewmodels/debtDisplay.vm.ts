@@ -1,9 +1,12 @@
 import {
   calculateGraceMonthlyPayment,
   isInGracePeriod,
+  parseDebtPaymentEntries,
 } from '@/domains/debt/debtPaymentCalculator';
 import { type DebtAccount, type DebtSnapshot, type DebtType } from '@/domains/debt/schemas';
+import { type Transaction } from '@/domains/ledger/schemas';
 import { DebtTypeLabels } from '@/ui/constants/debt/label';
+import { formatCurrency, formatDate } from '@/ui/utils';
 
 export type { DebtAccount, DebtSnapshot, DebtType };
 
@@ -72,5 +75,38 @@ export const mapDebtAccountToDisplayVM = (
     monthlyDueAmount: inGracePeriod
       ? calculateGraceMonthlyPayment(account.currentBalance, account.interestRate)
       : account.monthlyPayment,
+  };
+};
+
+export interface DebtPaymentHistoryItemVM {
+  id: string;
+  dateText: string;
+  descriptionText: string;
+  principalText: string;
+  interestText: string;
+  totalText: string;
+}
+
+/**
+ * One repayment history row for the debt detail table. The principal/interest
+ * split is read back out of the transaction's entries by the domain's
+ * `parseDebtPaymentEntries` (the inverse of `buildDebtPaymentEntries`), so the
+ * rule has a single home and the table never re-derives it inline.
+ */
+export const mapDebtPaymentTransactionToHistoryVM = (
+  transaction: Transaction,
+  options?: { linkedLedgerCode?: string | null },
+): DebtPaymentHistoryItemVM => {
+  const split = parseDebtPaymentEntries(transaction.entries, options);
+
+  return {
+    id: transaction.id,
+    dateText: formatDate(transaction.date),
+    // `description` is the field that carries the payment note; the previous
+    // code read a non-existent `note` and so always showed the fallback.
+    descriptionText: transaction.description?.trim() || '還款',
+    principalText: formatCurrency(split.principal),
+    interestText: formatCurrency(split.interest),
+    totalText: formatCurrency(split.total),
   };
 };

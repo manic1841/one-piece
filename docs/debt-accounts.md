@@ -170,6 +170,11 @@ Cr. asset:cash          totalPayment
 // closingBalance = openingBalance - principal
 ```
 
+明細頁的還款表格**由分錄反向解析**得出本金與利息（`parseDebtPaymentEntries()`，
+`buildDebtPaymentEntries()` 的逆向），不是讀取快照。快照的
+`principalPaid`／`interestPaid` 與分錄同源（都來自 `calculateDebtPayment()`），但快照
+以月份為粒度累加，分錄則是逐筆；兩者不是同一份資料，也不得互相取代。
+
 ### UI 上的寬限期標示
 
 **DebtListPage 卡片**：
@@ -192,6 +197,7 @@ Cr. asset:cash          totalPayment
 | `calculateGraceMonthlyPayment()` | `src/domains/debt/debtPaymentCalculator.ts`    | 計算寬限期利息                                 |
 | `calculateLoan()`                | `src/ui/features/debt/utils/loanCalculator.ts` | 試算時包含 `graceEndDate` 參數                 |
 | `buildDebtPaymentEntries()`      | `src/domains/debt/debtPaymentCalculator.ts`    | 建立分錄時檢查寬限期                           |
+| `parseDebtPaymentEntries()`      | `src/domains/debt/debtPaymentCalculator.ts`    | 由 `DEBT_PAYMENT` 分錄讀回本金／利息（上述的逆向） |
 
 ### 記帳完整性檢查中的債務語意
 

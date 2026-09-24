@@ -8,18 +8,10 @@ import {
   TableHeader,
   TableRow,
 } from '@/ui/components/ui/table';
-
-export interface PaymentHistoryRow {
-  id: string;
-  dateText: string;
-  descriptionText: string;
-  principalText: string;
-  interestText: string;
-  totalText: string;
-}
+import { type DebtPaymentHistoryItemVM } from '@/ui/features/debt/viewmodels/debtDisplay.vm';
 
 interface DebtPaymentsTableProps {
-  history: PaymentHistoryRow[];
+  history: DebtPaymentHistoryItemVM[];
 }
 
 export const DebtPaymentsTable: React.FC<DebtPaymentsTableProps> = ({ history }) => {

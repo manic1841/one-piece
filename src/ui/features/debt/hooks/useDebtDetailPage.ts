@@ -7,13 +7,15 @@ import { type DebtAccount } from '@/domains/debt/schemas';
 import { useAuthState } from '@/ui/contexts/useAuthState';
 import { useConfirm } from '@/ui/features/app/confirm/ConfirmDialog';
 import { buildTrendGeometry } from '@/ui/features/debt/components/detail/debtTrendGeometry';
-import { type PaymentHistoryRow } from '@/ui/features/debt/components/detail/DebtPaymentsTable';
 import { useDebtAccountCmds } from '@/ui/features/debt/hooks/useDebtAccountCmds';
 import { useDebtSnapshots } from '@/ui/features/debt/hooks/useDebtSnapshots';
+import {
+  mapDebtPaymentTransactionToHistoryVM,
+  type DebtPaymentHistoryItemVM,
+} from '@/ui/features/debt/viewmodels/debtDisplay.vm';
 import { useDebtAccountFormViewModel } from '@/ui/features/debt/viewmodels/useDebtAccountFormViewModel';
 import { useProjects } from '@/ui/features/project/hooks/useProjects';
 import { useLoadingTask } from '@/ui/hooks/useLoadingTask';
-import { formatCurrency, formatDate } from '@/ui/utils';
 
 interface UseDebtDetailPageArgs {
   /** Detail pages of the debt list pass the already-loaded row; the route passes nothing. */
@@ -35,35 +37,48 @@ export const useDebtDetailPage = ({ account }: UseDebtDetailPageArgs) => {
 
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [fetchedAccount, setFetchedAccount] = useState<DebtAccount | null>(null);
-  const [history, setHistory] = useState<PaymentHistoryRow[]>([]);
+  const [history, setHistory] = useState<DebtPaymentHistoryItemVM[]>([]);
   const { loading, run } = useLoadingTask({ initiallyLoading: true });
 
   const activeAccount = account ?? fetchedAccount;
   const { snapshots } = useDebtSnapshots(householdId, id ?? '');
 
-  const fetchAccount = useCallback(async () => {
-    if (account || !householdId) return;
+  const fetchAccountRow = useCallback(async () => {
     const accounts = await listDebtAccountsUseCase.execute({
       householdId,
       includeInactive: true,
     });
-    setFetchedAccount(accounts.find((a) => a.id === id) ?? null);
-  }, [account, householdId, id]);
+    return accounts.find((a) => a.id === id) ?? null;
+  }, [householdId, id]);
 
   const loadAccount = useCallback(async () => {
     // The guard belongs inside the task: `initiallyLoading` is released by
     // *initiating* a run, so every path must initiate one.
-    const result = await run(async () => {
-      if (account || !householdId) return;
-      await fetchAccount();
-    });
+    await run(
+      async () => (account || !householdId ? null : fetchAccountRow()),
+      {
+        // A guard path means "there is no loan here", which is the same outcome
+        // as a failed fetch. Leaving a previously fetched loan on screen would
+        // show one household's debt after that household is gone.
+        writeBack: (result) => setFetchedAccount(result.ok ? result.value : null),
+      },
+    );
+  }, [account, householdId, fetchAccountRow, run]);
 
-    if (!result.ok && result.kind === 'aborted') return;
-    // A guard path means "there is no loan here", which is the same outcome as
-    // a failed fetch. Leaving a previously fetched loan on screen would show one
-    // household's debt after that household is gone.
-    if (!result.ok || account || !householdId) setFetchedAccount(null);
-  }, [account, householdId, fetchAccount, run]);
+  // Reload after a command. It deliberately bypasses the task: the page gates on
+  // `loading` (`DebtDetailPage` renders "Loading..." while it is true), so
+  // refetching through `run` would blank a page that already has its loan. Being
+  // outside the task it also sits outside the mechanism's failure channel, so a
+  // failed refetch reports itself to the console instead of vanishing.
+  const refetchAccount = useCallback(async () => {
+    if (account || !householdId) return;
+    try {
+      setFetchedAccount(await fetchAccountRow());
+    } catch (caught) {
+      console.error('Error reloading debt account:', caught);
+      setFetchedAccount(null);
+    }
+  }, [account, householdId, fetchAccountRow]);
 
   useEffect(() => {
     void loadAccount();
@@ -87,23 +102,11 @@ export const useDebtDetailPage = ({ account }: UseDebtDetailPageArgs) => {
         });
         if (!mounted) return;
         setHistory(
-          transactions.map((transaction) => {
-            const principal =
-              transaction.entries.find((entry) => entry.ledgerCode.startsWith('liability:'))?.debit ||
-              0;
-            const interest =
-              transaction.entries.find((entry) => entry.ledgerCode === 'expense:interest')?.debit ||
-              0;
-            const total = transaction.entries.reduce((sum, entry) => sum + (entry.debit || 0), 0);
-            return {
-              id: transaction.id,
-              dateText: formatDate(transaction.date),
-              descriptionText: (transaction as { note?: string }).note || '還款',
-              principalText: formatCurrency(principal),
-              interestText: formatCurrency(interest),
-              totalText: formatCurrency(total),
-            };
-          }),
+          transactions.map((transaction) =>
+            mapDebtPaymentTransactionToHistoryVM(transaction, {
+              linkedLedgerCode: activeAccount.linkedLedgerCode,
+            }),
+          ),
         );
       } catch {
         if (mounted) setHistory([]);
@@ -138,8 +141,8 @@ export const useDebtDetailPage = ({ account }: UseDebtDetailPageArgs) => {
     });
     if (!confirmed) return;
     await updateDebtAccount(activeAccount.id, { isActive: false });
-    await fetchAccount();
-  }, [activeAccount, confirm, fetchAccount, updateDebtAccount]);
+    await refetchAccount();
+  }, [activeAccount, confirm, refetchAccount, updateDebtAccount]);
 
   const handleDelete = useCallback(async () => {
     if (!activeAccount) return;
@@ -155,8 +158,8 @@ export const useDebtDetailPage = ({ account }: UseDebtDetailPageArgs) => {
   const handleEnable = useCallback(async () => {
     if (!activeAccount) return;
     await updateDebtAccount(activeAccount.id, { isActive: true });
-    await fetchAccount();
-  }, [activeAccount, fetchAccount, updateDebtAccount]);
+    await refetchAccount();
+  }, [activeAccount, refetchAccount, updateDebtAccount]);
 
   const formVm = useDebtAccountFormViewModel({
     householdId,
@@ -165,7 +168,7 @@ export const useDebtDetailPage = ({ account }: UseDebtDetailPageArgs) => {
     submitLabel: '儲存',
     onSubmitSuccess: () => {
       setIsEditOpen(false);
-      void fetchAccount();
+      void refetchAccount();
     },
     onCancel: () => setIsEditOpen(false),
   });

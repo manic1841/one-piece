@@ -245,6 +245,52 @@ export function buildDebtPaymentEntries(
   return entries.filter((e) => e.debit > 0 || e.credit > 0);
 }
 
+export interface DebtPaymentEntrySplit {
+  /** Principal repaid — the debit booked against the loan's liability code. */
+  principal: number;
+  /** Interest paid — the debit booked against `expense:interest`. */
+  interest: number;
+  /** Everything this transaction debited (principal + interest + any other debit). */
+  total: number;
+}
+
+export interface ParseDebtPaymentEntriesOptions {
+  /** The loan's current liability ledger code, matched first and exactly. */
+  linkedLedgerCode?: string | null;
+}
+
+/**
+ * Read the principal/interest split back out of a DEBT_PAYMENT transaction's
+ * entries — the inverse of `buildDebtPaymentEntries`.
+ *
+ * The liability debit is matched by `linkedLedgerCode` first, exactly, and falls
+ * back to the `liability:` prefix: a loan's code can be edited, and a repayment
+ * booked before the edit still carries the old code. Matching only the prefix
+ * would pick the first of two liability lines; matching only the current code
+ * would report 0 principal for the pre-edit repayments. Both wrong answers are
+ * worse than the fallback.
+ *
+ * A grace-period repayment has no liability line at all, so principal is 0 and
+ * the interest debit carries the whole payment — which is the correct split.
+ */
+export function parseDebtPaymentEntries(
+  entries: JournalEntryLine[],
+  options?: ParseDebtPaymentEntriesOptions,
+): DebtPaymentEntrySplit {
+  const linkedLedgerCode = options?.linkedLedgerCode ?? null;
+
+  const liabilityEntry =
+    (linkedLedgerCode
+      ? entries.find((entry) => entry.ledgerCode === linkedLedgerCode)
+      : undefined) ?? entries.find((entry) => entry.ledgerCode.startsWith('liability:'));
+
+  return {
+    principal: liabilityEntry?.debit ?? 0,
+    interest: entries.find((entry) => entry.ledgerCode === 'expense:interest')?.debit ?? 0,
+    total: entries.reduce((sum, entry) => sum + entry.debit, 0),
+  };
+}
+
 /**
  * Validates that the journal entries are balanced (debits = credits).
  * Throws if unbalanced.

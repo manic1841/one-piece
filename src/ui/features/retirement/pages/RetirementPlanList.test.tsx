@@ -57,12 +57,12 @@ function controllerFixture(
     loading: false,
     error: null,
     mutating: false,
-    createPlan: vi.fn().mockResolvedValue('plan-2'),
+    createPlan: vi.fn().mockResolvedValue(undefined),
     deletePlan: vi.fn().mockResolvedValue(undefined),
-    duplicatePlan: vi.fn().mockResolvedValue('plan-3'),
+    duplicatePlan: vi.fn().mockResolvedValue(undefined),
     reload: vi.fn().mockResolvedValue(undefined),
     ...overrides,
-  } as ReturnType<typeof useRetirementPlanListPage>;
+  };
 }
 
 function renderList() {
@@ -114,7 +114,7 @@ describe('RetirementPlanList table', () => {
   });
 
   it('keeps New Plan in the header and demotes duplicate to a row-end icon action', () => {
-    const duplicatePlan = vi.fn().mockResolvedValue('plan-3');
+    const duplicatePlan = vi.fn().mockResolvedValue(undefined);
     mockUseRetirementPlanListPage.mockReturnValue(
       controllerFixture({ duplicatePlan }),
     );
@@ -139,7 +139,7 @@ describe('RetirementPlanList table', () => {
     const navigate = vi.fn();
     mockUseNavigate.mockReturnValue(navigate);
     mockUseRetirementPlanListPage.mockReturnValue(
-      controllerFixture({ duplicatePlan: vi.fn().mockResolvedValue('plan-3') }),
+      controllerFixture({ duplicatePlan: vi.fn().mockResolvedValue(undefined) }),
     );
 
     renderList();

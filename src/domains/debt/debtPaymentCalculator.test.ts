@@ -6,6 +6,7 @@ import {
   buildDebtPaymentEntries,
   calculateDebtPayment,
   isLoanActiveInMonth,
+  parseDebtPaymentEntries,
 } from './debtPaymentCalculator';
 
 const startDate = new Date('2026-01-01T00:00:00');
@@ -184,5 +185,111 @@ describe('isLoanActiveInMonth', () => {
     expect(
       isLoanActiveInMonth(new Date('2026-01-15'), new Date('2026-08-31'), new Date('2026-09-01')),
     ).toBe(false);
+  });
+});
+
+describe('parseDebtPaymentEntries', () => {
+  it('round-trips a normal repayment built by buildDebtPaymentEntries', () => {
+    const calculation = calculateDebtPayment({
+      currentBalance: 10000,
+      interestRate: 12,
+      totalPayment: 1200,
+      paymentDate: new Date('2026-05-15T00:00:00'),
+      startDate,
+      graceEndDate: null,
+    });
+    const entries = buildDebtPaymentEntries('liability:loan', calculation, 1200);
+
+    expect(parseDebtPaymentEntries(entries, { linkedLedgerCode: 'liability:loan' })).toEqual({
+      principal: 1100,
+      interest: 100,
+      total: 1200,
+    });
+  });
+
+  it('round-trips a grace-period repayment as principal 0', () => {
+    const calculation = calculateDebtPayment({
+      currentBalance: 10000,
+      interestRate: 12,
+      totalPayment: 100,
+      paymentDate: new Date('2026-03-15T00:00:00'),
+      startDate,
+      graceEndDate,
+    });
+    const entries = buildDebtPaymentEntries('liability:loan', calculation, 100);
+
+    expect(parseDebtPaymentEntries(entries, { linkedLedgerCode: 'liability:loan' })).toEqual({
+      principal: 0,
+      interest: 100,
+      total: 100,
+    });
+  });
+
+  it('round-trips a zero-interest repayment with no interest line', () => {
+    const calculation = calculateDebtPayment({
+      currentBalance: 10000,
+      interestRate: 0,
+      totalPayment: 1200,
+      paymentDate: new Date('2026-05-15T00:00:00'),
+      startDate,
+      graceEndDate: null,
+    });
+    const entries = buildDebtPaymentEntries('liability:loan', calculation, 1200);
+
+    expect(parseDebtPaymentEntries(entries, { linkedLedgerCode: 'liability:loan' })).toEqual({
+      principal: 1200,
+      interest: 0,
+      total: 1200,
+    });
+  });
+
+  it('falls back to the liability prefix when the loan code has since changed', () => {
+    // Booked before the account's code was edited from `liability:old` to
+    // `liability:new`; matching only the current code would report 0 principal.
+    const entries = [
+      { ledgerCode: 'liability:old', debit: 1100, credit: 0 },
+      { ledgerCode: 'expense:interest', debit: 100, credit: 0 },
+      { ledgerCode: 'asset:cash', debit: 0, credit: 1200 },
+    ];
+
+    expect(parseDebtPaymentEntries(entries, { linkedLedgerCode: 'liability:new' })).toEqual({
+      principal: 1100,
+      interest: 100,
+      total: 1200,
+    });
+  });
+
+  it('prefers the exact liability code when two liability lines share a transaction', () => {
+    const entries = [
+      { ledgerCode: 'liability:other', debit: 700, credit: 0 },
+      { ledgerCode: 'liability:loan', debit: 400, credit: 0 },
+      { ledgerCode: 'expense:interest', debit: 100, credit: 0 },
+      { ledgerCode: 'asset:cash', debit: 0, credit: 1200 },
+    ];
+
+    expect(parseDebtPaymentEntries(entries, { linkedLedgerCode: 'liability:loan' })).toEqual({
+      principal: 400,
+      interest: 100,
+      total: 1200,
+    });
+  });
+
+  it('counts every debit in the total, not just principal and interest', () => {
+    const entries = [
+      { ledgerCode: 'liability:loan', debit: 1000, credit: 0 },
+      { ledgerCode: 'expense:interest', debit: 100, credit: 0 },
+      { ledgerCode: 'expense:fee', debit: 50, credit: 0 },
+      { ledgerCode: 'asset:cash', debit: 0, credit: 1150 },
+    ];
+
+    expect(parseDebtPaymentEntries(entries, { linkedLedgerCode: 'liability:loan' })).toEqual({
+      principal: 1000,
+      interest: 100,
+      total: 1150,
+    });
+  });
+
+  it('returns zeroes for entries with no debt lines', () => {
+    expect(parseDebtPaymentEntries([])).toEqual({ principal: 0, interest: 0, total: 0 });
   });
 });

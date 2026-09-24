@@ -37,6 +37,15 @@ export const useReportSettlement = (householdId: string) => {
     return resolved === code ? fallbackLabel || code : resolved;
   }, []);
 
+  // "This month has no figures to show." Both the unsettled month and an absent
+  // report preview mean the same thing, so they share one reset rather than each
+  // clearing a different subset.
+  const clearReportFigures = useCallback(() => {
+    setSummary(null);
+    setReportsGenerated(false);
+    setReportTimestamps({});
+  }, []);
+
   const loadStatus = useCallback(async () => {
     if (!householdId) return;
 
@@ -82,8 +91,7 @@ export const useReportSettlement = (householdId: string) => {
               readiness.unsettledPortfolios.map((portfolio) => portfolio.name),
             );
             setUnsettledDebtNames(readiness.unsettledDebts.map((debt) => debt.name));
-            setSummary(null);
-            setReportsGenerated(false);
+            clearReportFigures();
             return;
           }
 
@@ -93,8 +101,14 @@ export const useReportSettlement = (householdId: string) => {
           setUnsettledDebtNames([]);
 
           // The workflow only computes the preview once readiness says the month
-          // is settled, so there is nothing to write back when it is absent.
-          if (!reports) return;
+          // is settled, so an absent preview means there is nothing to show. Past
+          // the readiness check it should be unreachable; clearing rather than
+          // silently returning keeps a broken contract from leaving the previous
+          // month's figures on screen.
+          if (!reports) {
+            clearReportFigures();
+            return;
+          }
 
           setSummary({
             totalRevenue: reports.incomeStatement.incomeTotal,
@@ -108,7 +122,7 @@ export const useReportSettlement = (householdId: string) => {
         },
       },
     );
-  }, [householdId, year, month, auth, resolveReportLabel, run]);
+  }, [householdId, year, month, auth, resolveReportLabel, run, clearReportFigures]);
 
   useEffect(() => {
     void loadStatus();
