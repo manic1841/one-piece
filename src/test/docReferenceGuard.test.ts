@@ -125,4 +125,23 @@ describe('docs:check staging-reference guard (issue #164)', () => {
 
     expect(runGuard([]).status).toBe(0);
   });
+
+  it('fails when a parallel docs directory exists, and recovers once removed', () => {
+    const parallelDir = path.join(repoRoot, 'docs_v2');
+    // Non-recursive mkdir throws if the folder already exists, so a pre-existing
+    // directory is never silently deleted by the cleanup below.
+    expect(existsSync(parallelDir)).toBe(false);
+
+    mkdirSync(parallelDir);
+    try {
+      const result = runGuard([]);
+      expect(result.status).toBe(1);
+      expect(result.output).toContain('a parallel docs directory must not exist');
+      expect(result.output).toContain('docs_v2');
+    } finally {
+      rmSync(parallelDir, { recursive: true, force: true });
+    }
+
+    expect(runGuard([]).status).toBe(0);
+  });
 });

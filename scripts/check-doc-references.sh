@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Fails if a permanent doc references the design staging area, or if the retired
-# staging area has been recreated.
+# Fails if a permanent doc references the design staging area, if a parallel
+# docs directory exists, or if the retired staging area has been recreated.
 #
 # Permanent docs are everything under docs/, plus the root-level docs that ship as
 # source of truth (CONTEXT.md, AGENTS.md).
@@ -24,6 +24,16 @@
 #   No arguments  -> scan the repo's permanent docs (CI / pre-commit path).
 #   Explicit paths -> scan those paths only (used by the negative-test guard test).
 set -euo pipefail
+
+# The docs tree is the single source of truth. A parallel docs directory
+# (docs_v2, docs-new, docs_old, ...) would create a second source of truth, so
+# any top-level directory whose name starts with `docs` fails the check. This
+# generalizes the retired design staging area (issue #172), which was one
+# instance of the same shape; the named path below stays as a regression guard.
+while IFS= read -r parallel; do
+  echo "docs:check: a parallel docs directory must not exist: ${parallel#./}" >&2
+  exit 1
+done < <(find . -maxdepth 1 -type d -name 'docs*' ! -name 'docs' 2>/dev/null)
 
 # The staging area was retired, so it must not exist in any form.
 for staging in docs/new-design docs/new_design; do

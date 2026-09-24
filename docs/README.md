@@ -15,8 +15,8 @@
   - 複式簿記與管理會計的資料關聯。
 
 - **[架構決策紀錄 (ADR)](/docs/adr/)**
-  - 架構與業務取捨的唯一決策來源。
-  - 各功能文件只保留流程、結構索引與操作說明，遇到規則差異時以 ADR 為準。
+  - 架構與業務取捨的唯一決策來源,只記錄「當初為什麼這樣決定」。
+  - 規範細節（欄位、enum、公式、數值、驗收清單）以各主題文件為準;ADR 只留 `規範來源` 指標。
 
 ### 財務與領域
 
@@ -61,10 +61,22 @@
   - 前端顯示標籤（`intentType`、`intent`、`ledgerCode`）的唯一來源。
   - 交易列表、表單預覽與報表的標籤解析規則。
 
+### Agent 合約
+
+- **[Issue Tracker (issue-tracker.md)](/docs/agents/issue-tracker.md)**
+  - Issue 與 spec 的來源:GitHub issues,以 `gh` CLI 操作。
+
+- **[Triage Labels (triage-labels.md)](/docs/agents/triage-labels.md)**
+  - 五個 canonical triage label 與 skill 通用角色的對照。
+
+- **[Domain Docs (domain.md)](/docs/agents/domain.md)**
+  - Agent 探索 codebase 前該讀哪些 domain 文件(`CONTEXT.md`、`docs/adr/`)。
+
 ## 🛠️ 維護原則
 
 > "Bad code is bad code regardless of comments. Refactor first." - _Linus Torvalds_
 
+- **文件分工依目的決定**: 每份文件只回答一個問題,每條事實只有一個家;詳細矩陣與「新增文件前的三個測試」見 development-guide §3。
 - **保持簡潔**: 不要過度封裝，優先考慮效能與可讀性。
 - **文件即時性**: 代碼異動時，務必同步更新相關文件，以免誤導後續接手者。
 - **設計暫置不在版控內**: 設計討論期的暫置內容不是事實來源；決策記在 GitHub issue、原型放 throwaway 分支，功能落地後併入正式文件與 ADR 並刪除，repo 內不留暫置資料夾。完整規則見 development-guide §3 維護建議。
