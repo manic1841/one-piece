@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 import { type AccountCreate, type Holding } from '@/domains/account/types/account';
 import { AccountCategory, CurrencyType } from '@/domains/account/types/categories';
+import { optionalNumber } from '@/shared/schemas/coerce';
 import { formatCurrency } from '@/ui/utils';
 
 export { AccountCategory, CurrencyType };
@@ -18,17 +19,18 @@ export const AccountFormSchema = z.object({
   name: z.string().min(1, '帳戶名稱不能為空'),
   category: z.enum(AccountCategory),
   currency: z.enum(CurrencyType),
-  order: z.number().int(),
+  order: optionalNumber('請輸入顯示順序'),
 });
 
-export type AccountFormVM = z.infer<typeof AccountFormSchema>;
+export type AccountFormInput = z.input<typeof AccountFormSchema>;
+export type AccountFormVM = z.output<typeof AccountFormSchema>;
 
 export const mapAccountVMToDomain = (vm: AccountFormVM): AccountCreate => {
   return {
     name: vm.name,
     category: vm.category,
     currency: vm.currency,
-    order: vm.order,
+    order: vm.order ?? 0,
   };
 };
 

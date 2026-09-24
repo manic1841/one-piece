@@ -1,11 +1,7 @@
 import React from 'react';
 
-import { zodResolver } from '@hookform/resolvers/zod';
 import { X } from 'lucide-react';
-import { useForm } from 'react-hook-form';
 
-import { AccountCategoryOptions, CurrencyOptions } from '@/ui/constants/account/label';
-import { Button } from '@/ui/components/ui/button';
 import {
   Form,
   FormControl,
@@ -13,23 +9,15 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from '@/ui/components/ui/form';
-import { Input } from '@/ui/components/ui/input';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/ui/components/ui/select';
-import {
-  AccountCategory,
-  CurrencyType,
-  AccountFormSchema,
-  type AccountCreate,
-  type AccountFormVM,
-  mapAccountVMToDomain,
-} from '../viewmodels/account.vm';
+  NumberInput,
+  SelectField,
+  TextInput,
+} from '@/ui/components/form';
+import { Button } from '@/ui/components/ui/button';
+import { AccountCategoryOptions, CurrencyOptions } from '@/ui/constants/account/label';
+
+import { useAccountForm } from '../hooks/useAccountForm';
+import type { AccountCreate } from '../viewmodels/account.vm';
 
 interface AccountFormProps {
   onSubmit: (data: AccountCreate) => Promise<void>;
@@ -38,20 +26,7 @@ interface AccountFormProps {
 }
 
 const AccountForm: React.FC<AccountFormProps> = ({ onSubmit, onCancel, loading }) => {
-  const form = useForm<AccountFormVM>({
-    resolver: zodResolver(AccountFormSchema),
-    defaultValues: {
-      name: '',
-      category: AccountCategory.BANK,
-      currency: CurrencyType.TWD,
-      order: 0,
-    },
-  });
-
-  const handleFormSubmit = async (data: AccountFormVM) => {
-    const domainData = mapAccountVMToDomain(data);
-    await onSubmit(domainData);
-  };
+  const { form, submit } = useAccountForm(onSubmit);
 
   return (
     <div className="bg-card rounded-lg border border-border overflow-hidden">
@@ -68,98 +43,48 @@ const AccountForm: React.FC<AccountFormProps> = ({ onSubmit, onCancel, loading }
       </div>
 
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(handleFormSubmit)} className="p-6 space-y-4">
-          <FormField
-            control={form.control}
-            name="name"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>帳戶名稱</FormLabel>
-                <FormControl>
-                  <Input placeholder="例如：台銀、中信、富邦" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+        <form onSubmit={submit} className="p-6 space-y-4">
+          <FormField name="name">
+            <FormItem>
+              <FormLabel required>帳戶名稱</FormLabel>
+              <FormControl>
+                <TextInput placeholder="例如：台銀、中信、富邦" />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          </FormField>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <FormField
-              control={form.control}
-              name="category"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>帳戶類別</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                    value={field.value}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="選擇類別" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {AccountCategoryOptions.map(({ value, label }) => (
-                        <SelectItem key={value} value={value}>
-                          {label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="currency"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>幣別</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                    value={field.value}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="選擇幣別" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {CurrencyOptions.map(({ value, label }) => (
-                        <SelectItem key={value} value={value}>
-                          {label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
-
-          <FormField
-            control={form.control}
-            name="order"
-            render={({ field }) => (
+            <FormField name="category">
               <FormItem>
-                <FormLabel>顯示順序</FormLabel>
+                <FormLabel required>帳戶類別</FormLabel>
                 <FormControl>
-                  <Input
-                    type="number"
-                    {...field}
-                    onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
-                  />
+                  <SelectField options={AccountCategoryOptions} placeholder="選擇類別" />
                 </FormControl>
                 <FormMessage />
               </FormItem>
-            )}
-          />
+            </FormField>
+
+            <FormField name="currency">
+              <FormItem>
+                <FormLabel required>幣別</FormLabel>
+                <FormControl>
+                  <SelectField options={CurrencyOptions} placeholder="選擇幣別" />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            </FormField>
+          </div>
+
+          <FormField name="order">
+            <FormItem>
+              <FormLabel>顯示順序</FormLabel>
+              <FormControl>
+                <NumberInput />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          </FormField>
 
           <div className="pt-4 flex justify-end gap-3">
             <Button type="button" variant="outline" onClick={onCancel}>

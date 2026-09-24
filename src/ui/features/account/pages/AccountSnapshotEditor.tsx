@@ -1,16 +1,7 @@
-import React, { useState } from 'react';
+import React from 'react';
 
 import { Save, Upload } from 'lucide-react';
-import { z } from 'zod';
 
-import {
-  AccountCategory,
-  type Account,
-  type AccountSnapshot,
-  type CurrencyCode,
-  type Holding,
-} from '@/ui/features/account/viewmodels/account.vm';
-import { useAuthState } from '@/ui/contexts/useAuthState';
 import { YearMonthPicker } from '@/ui/components/YearMonthPicker';
 import { Button } from '@/ui/components/ui/button';
 import {
@@ -20,25 +11,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/ui/components/ui/dialog';
-import { useAccountCmds } from '@/ui/features/account/hooks/useAccountCmds';
-import { useAccountSnapshotQueries } from '@/ui/features/account/hooks/useAccountSnapshotQueries';
+import type { Account, AccountSnapshot } from '@/ui/features/account/viewmodels/account.vm';
 
 import { AccountAmount } from '../components/form/AccountAmount';
 import { AccountHolding } from '../components/form/AccountHolding';
-import { useExchangeRate } from '@/ui/hooks/useExchangeRate';
-import {
-  AccountSnapshotFormSchema,
-  mapAccountSnapshotVMToDomain,
-} from '../viewmodels/accountSnapshot.vm';
-import {
-  type AccountSnapshotEditorFormVM,
-  addHoldingToForm,
-  applyDisplayFieldChange,
-  applyImportedHoldings,
-  createSnapshotEditorFormVM,
-  removeHoldingFromForm,
-  updateHoldingInForm,
-} from '../viewmodels/accountSnapshotEditor.vm';
+import { useAccountSnapshotEditorForm } from '../hooks/useAccountSnapshotEditorForm';
 
 interface AccountSnapshotEditorProps {
   account: Account;
@@ -53,104 +30,21 @@ const AccountSnapshotEditor: React.FC<AccountSnapshotEditorProps> = ({
   snapshot,
   onClose,
 }) => {
-  const { userProfile } = useAuthState();
-  const householdId = userProfile?.householdId || '';
-  const { recordSnapshot, loading } = useAccountCmds(householdId);
-  const { getPreviousSnapshot } = useAccountSnapshotQueries(householdId);
-  const { getRate, loading: fetchingRate } = useExchangeRate();
-
-  const isSecurities = account.category === AccountCategory.SECURITIES;
-
-  const [formData, setFormData] = useState<AccountSnapshotEditorFormVM>(
-    createSnapshotEditorFormVM(snapshot),
-  );
-  const [error, setError] = useState<string | null>(null);
-  const [importingHoldings, setImportingHoldings] = useState(false);
-
-  const handleDisplayChange = (field: keyof typeof formData, value: number) => {
-    setFormData((prev) =>
-      applyDisplayFieldChange(prev, field, value, {
-        isSecurities,
-        currency: account.currency,
-      }),
-    );
-  };
-
-  const handleFetchRate = async () => {
-    if (account.currency === 'TWD') return;
-    setError(null);
-    const rate = await getRate(account.currency as CurrencyCode, 'TWD');
-    if (!rate.ok) {
-      setError('取得匯率失敗，請稍後再試或手動輸入匯率');
-      return;
-    }
-    handleDisplayChange('exchangeRate', rate.value);
-  };
-
-  const handleAddHolding = () => {
-    setFormData((prev) => addHoldingToForm(prev));
-  };
-
-  const handleRemoveHolding = (index: number) => {
-    setFormData((prev) =>
-      removeHoldingFromForm(prev, index, {
-        isSecurities,
-        currency: account.currency,
-      }),
-    );
-  };
-
-  const handleUpdateHolding = (index: number, field: keyof Holding, value: string | number) => {
-    setFormData((prev) =>
-      updateHoldingInForm(prev, index, field, value, {
-        isSecurities,
-        currency: account.currency,
-      }),
-    );
-  };
-
-  const handleImportPreviousHoldings = async () => {
-    if (!isSecurities) return;
-
-    try {
-      setError(null);
-      setImportingHoldings(true);
-
-      const previousSnapshot = await getPreviousSnapshot(account.id, formData.year, formData.month);
-      if (!previousSnapshot?.holdings || previousSnapshot.holdings.length === 0) {
-        setError('上個月沒有可導入的持倉資料');
-        return;
-      }
-
-      setFormData((prev) =>
-        applyImportedHoldings(prev, previousSnapshot.holdings || [], {
-          isSecurities,
-          currency: account.currency,
-        }),
-      );
-    } catch {
-      setError('導入上月持倉失敗，請稍後再試');
-    } finally {
-      setImportingHoldings(false);
-    }
-  };
-
-  const onSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      setError(null);
-      const validatedData = AccountSnapshotFormSchema.parse(formData);
-      const domainData = mapAccountSnapshotVMToDomain(account.id, validatedData);
-      await recordSnapshot(account.id, domainData);
-      onClose();
-    } catch (err) {
-      if (err instanceof z.ZodError) {
-        setError(err.issues[0]?.message || '請檢查輸入資料是否正確');
-      } else {
-        setError('請檢查輸入資料是否正確');
-      }
-    }
-  };
+  const {
+    formData,
+    error,
+    loading,
+    importingHoldings,
+    fetchingRate,
+    isSecurities,
+    handleDisplayChange,
+    handleFetchRate,
+    handleAddHolding,
+    handleRemoveHolding,
+    handleUpdateHolding,
+    handleImportPreviousHoldings,
+    submit,
+  } = useAccountSnapshotEditorForm({ account, snapshot, onSaved: onClose });
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -164,9 +58,11 @@ const AccountSnapshotEditor: React.FC<AccountSnapshotEditorProps> = ({
           </DialogTitle>
         </DialogHeader>
 
-        {error && <div className="p-3 bg-destructive/15 text-destructive rounded-md text-sm">{error}</div>}
+        {error && (
+          <div className="p-3 bg-destructive/15 text-destructive rounded-md text-sm">{error}</div>
+        )}
 
-        <form onSubmit={onSubmit} className="space-y-6">
+        <form onSubmit={submit} className="space-y-6">
           <YearMonthPicker
             year={formData.year}
             month={formData.month}
