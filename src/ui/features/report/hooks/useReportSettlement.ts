@@ -1,10 +1,11 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
-import { getSettlementReadinessUseCase } from '@/application/report/use_cases/getSettlementReadinessUseCase';
-import { previewFinancialReportsWorkflow } from '@/application/report/use_cases/previewFinancialReportsWorkflow';
-import { previewDebtSettlementsUseCase } from '@/application/settlement/use_cases/previewDebtSettlementsUseCase';
+import { getSettlementStatusWorkflow } from '@/application/report/use_cases/getSettlementStatusWorkflow';
 import { getUnifiedLedgerCodeLabel } from '@/ui/constants/transaction';
 import { useAuthIdentity } from '@/ui/hooks/useAuthIdentity';
+import { useLoadingTask } from '@/ui/hooks/useLoadingTask';
+
+const LOAD_ERROR = '無法載入結算狀態，請稍後再試。';
 
 export const useReportSettlement = (householdId: string) => {
   const auth = useAuthIdentity();
@@ -23,8 +24,8 @@ export const useReportSettlement = (householdId: string) => {
     balanceSheet?: string;
     cashFlow?: string;
   }>({});
-  const [error, setError] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+  const { loading: isLoading, errorMessage, run } = useLoadingTask();
+  const inFlightRef = useRef<AbortController | null>(null);
   const [unsettledProjectNames, setUnsettledProjectNames] = useState<string[]>([]);
   const [unsettledAccountNames, setUnsettledAccountNames] = useState<string[]>([]);
   const [unsettledPortfolioNames, setUnsettledPortfolioNames] = useState<string[]>([]);
@@ -38,73 +39,77 @@ export const useReportSettlement = (householdId: string) => {
 
   const loadStatus = useCallback(async () => {
     if (!householdId) return;
-    setIsLoading(true);
-    setError('');
 
-    try {
-      const debtPreview = await previewDebtSettlementsUseCase.execute({
-        householdId,
-        year,
-        month,
-        auth,
-      });
-      setDebtNoRepaymentWarningNames(debtPreview.missingRepaymentAccountNames);
+    // Paging months faster than the workflow completes supersedes the previous
+    // load; without this the slower, older month could land last and win.
+    inFlightRef.current?.abort();
+    const controller = new AbortController();
+    inFlightRef.current = controller;
 
-      // Check whether all active entities are settled for this month.
-      const readiness = await getSettlementReadinessUseCase.execute({
-        householdId,
-        auth,
-        year,
-        month,
-      });
+    const result = await run(
+      async () => {
+        try {
+          return await getSettlementStatusWorkflow.execute({
+            householdId,
+            auth,
+            year,
+            month,
+            labelResolver: resolveReportLabel,
+          });
+        } catch (caught) {
+          // The surface shows a canned message, so the copy is decided here and
+          // the mechanism only carries the value (see ui-layer-architecture:
+          // Error Wording Stays With The Consumer). The raw cause is logged so it
+          // is not lost.
+          console.error('Error loading report settlement status:', caught);
+          throw new Error(LOAD_ERROR);
+        }
+      },
+      { signal: controller.signal },
+    );
 
-      if (!readiness.isReady) {
-        setUnsettledProjectNames(readiness.unsettledProjects.map((project) => project.name));
-        setUnsettledAccountNames(readiness.unsettledAccounts.map((account) => account.name));
-        setUnsettledPortfolioNames(
-          readiness.unsettledPortfolios.map((portfolio) => portfolio.name),
-        );
-        setUnsettledDebtNames(readiness.unsettledDebts.map((debt) => debt.name));
-        setSummary(null);
-        setReportsGenerated(false);
-        setIsLoading(false);
-        return;
-      }
+    if (!result.ok) return;
 
-      setUnsettledProjectNames([]);
-      setUnsettledAccountNames([]);
-      setUnsettledPortfolioNames([]);
-      setUnsettledDebtNames([]);
+    const { debtPreview, readiness, reports } = result.value;
+    setDebtNoRepaymentWarningNames(debtPreview.missingRepaymentAccountNames);
 
-      // 2. Load financial preview (calculation + persistence state)
-      const preview = await previewFinancialReportsWorkflow.execute({
-        householdId,
-        auth,
-        year,
-        month,
-        labelResolver: resolveReportLabel,
-      });
-
-      setSummary({
-        totalRevenue: preview.incomeStatement.incomeTotal,
-        totalExpense: preview.incomeStatement.expenseTotal,
-        netIncome: preview.incomeStatement.netIncome,
-        netWorth: preview.balanceSheet.assets.total - preview.balanceSheet.liabilities.total,
-      });
-
-      setReportsGenerated(preview.isPersisted);
-      setReportTimestamps(preview.timestamps);
-    } catch (err) {
-      console.error('Error loading report settlement status:', err);
-      setError('無法載入結算狀態，請稍後再試。');
-    } finally {
-      setIsLoading(false);
+    if (!readiness.isReady) {
+      setUnsettledProjectNames(readiness.unsettledProjects.map((project) => project.name));
+      setUnsettledAccountNames(readiness.unsettledAccounts.map((account) => account.name));
+      setUnsettledPortfolioNames(readiness.unsettledPortfolios.map((portfolio) => portfolio.name));
+      setUnsettledDebtNames(readiness.unsettledDebts.map((debt) => debt.name));
+      setSummary(null);
+      setReportsGenerated(false);
+      return;
     }
-  }, [householdId, year, month, auth, resolveReportLabel]);
+
+    setUnsettledProjectNames([]);
+    setUnsettledAccountNames([]);
+    setUnsettledPortfolioNames([]);
+    setUnsettledDebtNames([]);
+
+    // The workflow only computes the preview once readiness says the month is
+    // settled, so there is nothing to write back when it is absent.
+    if (!reports) return;
+
+    setSummary({
+      totalRevenue: reports.incomeStatement.incomeTotal,
+      totalExpense: reports.incomeStatement.expenseTotal,
+      netIncome: reports.incomeStatement.netIncome,
+      netWorth: reports.balanceSheet.assets.total - reports.balanceSheet.liabilities.total,
+    });
+
+    setReportsGenerated(reports.isPersisted);
+    setReportTimestamps(reports.timestamps);
+  }, [householdId, year, month, auth, resolveReportLabel, run]);
 
   useEffect(() => {
-    loadStatus();
-  }, [householdId, year, month, loadStatus]);
+    // The analyzer cannot see through the awaited write-back in `loadStatus`
+    // and reports this as a synchronous setState; the write-back lands in a
+    // promise continuation, not in the effect body. See issue #186.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void loadStatus();
+  }, [loadStatus]);
 
   return {
     year,
@@ -114,7 +119,7 @@ export const useReportSettlement = (householdId: string) => {
     summary,
     reportsGenerated,
     reportTimestamps,
-    error,
+    error: errorMessage ?? '',
     isLoading,
     unsettledProjectNames,
     unsettledAccountNames,

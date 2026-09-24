@@ -94,7 +94,7 @@ const renderPage = (overrides: { updatePortfolio?: ReturnType<typeof vi.fn> } = 
     reload: vi.fn(),
   } as never);
   mockUsePortfolioQueries.mockReturnValue({
-    getSnapshots: vi.fn().mockResolvedValue([snapshot]),
+    getSnapshots: vi.fn().mockResolvedValue({ ok: true, value: [snapshot] }),
     loading: false,
     error: null,
   } as never);
@@ -109,10 +109,13 @@ const renderPage = (overrides: { updatePortfolio?: ReturnType<typeof vi.fn> } = 
     error: null,
   } as never);
   mockUseAccounts.mockReturnValue({
-    fetchAccounts: vi.fn().mockResolvedValue([
-      { id: 's1', name: 'Brokerage', category: 'securities', currency: 'TWD' },
-      { id: 'b1', name: 'Investment Bank', category: 'bank', currency: 'TWD' },
-    ]),
+    fetchAccounts: vi.fn().mockResolvedValue({
+      ok: true,
+      value: [
+        { id: 's1', name: 'Brokerage', category: 'securities', currency: 'TWD' },
+        { id: 'b1', name: 'Investment Bank', category: 'bank', currency: 'TWD' },
+      ],
+    }),
     fetchAccountsWithSnapshots: vi.fn(),
     loading: false,
     error: null,

@@ -4,6 +4,7 @@ import { listAllLedgerCodesUseCase } from '@/application/ledger/use_cases/listAl
 import { useAuthState } from '@/ui/contexts/useAuthState';
 import { getUnifiedLedgerCodeLabel } from '@/ui/constants/transaction';
 import { useAuthIdentity } from '@/ui/hooks/useAuthIdentity';
+import { useLoadingTask } from '@/ui/hooks/useLoadingTask';
 
 export interface LedgerCodeItem {
   code: string;
@@ -18,32 +19,36 @@ export const useLedgerCodes = (includeInactive = false) => {
   const auth = useAuthIdentity();
   const householdId = userProfile?.householdId;
   const [codes, setCodes] = useState<LedgerCodeItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { loading, run } = useLoadingTask({ initiallyLoading: true });
 
   const fetchCodes = useCallback(async () => {
-    if (!householdId) {
-      setLoading(false);
-      return;
-    }
+    // The no-household guard belongs inside the task: `initiallyLoading` is
+    // released by *initiating* a run, so every path must initiate one.
+    const result = await run(async () =>
+      householdId
+        ? listAllLedgerCodesUseCase.execute({
+            householdId,
+            includeInactive,
+            auth,
+            labelResolver: getUnifiedLedgerCodeLabel,
+          })
+        : [],
+    );
 
-    setLoading(true);
-    try {
-      const entries = await listAllLedgerCodesUseCase.execute({
-        householdId,
-        includeInactive,
-        auth,
-        labelResolver: getUnifiedLedgerCodeLabel,
-      });
-      setCodes(entries);
-    } catch (error) {
-      console.error('Error fetching ledger codes:', error);
-    } finally {
-      setLoading(false);
+    if (!result.ok && result.kind === 'aborted') return;
+    if (result.ok) {
+      setCodes(result.value);
+    } else {
+      console.error('Error fetching ledger codes:', result.error);
     }
-  }, [auth, householdId, includeInactive]);
+  }, [auth, householdId, includeInactive, run]);
 
   useEffect(() => {
-    fetchCodes();
+    // The analyzer cannot see through the awaited write-back in `fetchCodes`
+    // and reports this as a synchronous setState; the write-back lands in a
+    // promise continuation, not in the effect body. See issue #186.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void fetchCodes();
   }, [fetchCodes]);
 
   const getLabel = useCallback(

@@ -14,6 +14,7 @@ import {
   toHoldingRowVM,
 } from '@/ui/features/account/viewmodels/account.vm';
 import { useConfirm } from '@/ui/features/app/confirm/ConfirmDialog';
+import { useLoadingTask } from '@/ui/hooks/useLoadingTask';
 
 interface UseAccountDetailPageArgs {
   /** The list page passes the already-loaded row; the route passes nothing. */
@@ -32,12 +33,21 @@ export const useAccountDetailPage = ({ account }: UseAccountDetailPageArgs) => {
   const { updateAccount } = useAccountCmds(householdId);
 
   const [fetchedAccount, setFetchedAccount] = useState<AccountWithSnapshot | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { loading, run } = useLoadingTask({ initiallyLoading: true });
   const [history, setHistory] = useState<AccountSnapshot[]>([]);
   const [statusOverride, setStatusOverride] = useState<boolean | null>(null);
 
   const activeAccount = account ?? fetchedAccount;
   const activeId = activeAccount?.id ?? null;
+
+  // Adjusting state during render, not in an effect: the override is local to the
+  // account it was set for, and React's documented pattern for it avoids the
+  // extra render an effect would cost.
+  const [overrideForId, setOverrideForId] = useState(activeId);
+  if (overrideForId !== activeId) {
+    setOverrideForId(activeId);
+    setStatusOverride(null);
+  }
 
   const auth = useMemo(
     () => ({ uid: userProfile?.uid ?? '', email: userProfile?.email }),
@@ -58,33 +68,26 @@ export const useAccountDetailPage = ({ account }: UseAccountDetailPageArgs) => {
     }
   }, [account, householdId, id, auth]);
 
+  const loadAccount = useCallback(async () => {
+    // The guard belongs inside the task: `initiallyLoading` is released by
+    // *initiating* a run, so every path must initiate one.
+    const result = await run(async () =>
+      account || !householdId
+        ? null
+        : getAccountsWithSnapshotsUseCase.execute({ householdId, auth, includeInactive: true }),
+    );
+
+    if (!result.ok && result.kind === 'aborted') return;
+    setFetchedAccount(result.ok ? (result.value?.find((a) => a.id === id) ?? null) : null);
+  }, [account, householdId, id, auth, run]);
+
   useEffect(() => {
-    let ignore = false;
-    const load = async () => {
-      if (account || !householdId) {
-        setLoading(false);
-        return;
-      }
-      try {
-        const accounts = await getAccountsWithSnapshotsUseCase.execute({
-          householdId,
-          auth,
-          includeInactive: true,
-        });
-        if (!ignore) {
-          setFetchedAccount(accounts.find((a) => a.id === id) ?? null);
-        }
-      } catch {
-        if (!ignore) setFetchedAccount(null);
-      } finally {
-        if (!ignore) setLoading(false);
-      }
-    };
-    void load();
-    return () => {
-      ignore = true;
-    };
-  }, [account, householdId, id, auth]);
+    // The analyzer cannot see through the awaited write-back in `loadAccount`
+    // and reports this as a synchronous setState; the write-back lands in a
+    // promise continuation, not in the effect body. See issue #186.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void loadAccount();
+  }, [loadAccount]);
 
   useEffect(() => {
     let ignore = false;
@@ -108,10 +111,6 @@ export const useAccountDetailPage = ({ account }: UseAccountDetailPageArgs) => {
       ignore = true;
     };
   }, [householdId, id, auth]);
-
-  useEffect(() => {
-    setStatusOverride(null);
-  }, [activeId]);
 
   const trend = useMemo(
     () =>

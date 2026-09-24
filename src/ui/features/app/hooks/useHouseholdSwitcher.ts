@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 import { useNavigate } from 'react-router-dom';
 
@@ -8,6 +8,7 @@ import { switchHouseholdUseCase } from '@/application/household/use_cases/switch
 import { type Household } from '@/domains/household/schemas';
 import { useAuthState } from '@/ui/contexts/useAuthState';
 import { useConfirm } from '@/ui/features/app/confirm/ConfirmDialog';
+import { useLoadingTask } from '@/ui/hooks/useLoadingTask';
 
 export function useHouseholdSwitcher(
   currentHouseholdId: string | undefined,
@@ -17,25 +18,29 @@ export function useHouseholdSwitcher(
   const { user, refreshProfile } = useAuthState();
   const navigate = useNavigate();
   const [households, setHouseholds] = useState<Household[]>([]);
-  const [loading, setLoading] = useState(false);
+  const { loading, run } = useLoadingTask();
+
+  const uid = user?.uid;
+
+  const loadHouseholds = useCallback(async () => {
+    if (!uid || !isOpen) return;
+
+    const result = await run(async () => getHouseholdsByUserUseCase.execute({ uid }));
+    if (!result.ok && result.kind === 'aborted') return;
+    if (result.ok) {
+      setHouseholds(result.value);
+    } else {
+      console.error('Error fetching households:', result.error);
+    }
+  }, [uid, isOpen, run]);
 
   useEffect(() => {
-    const fetchHouseholds = async () => {
-      if (!user || !isOpen) return;
-
-      setLoading(true);
-      try {
-        const userHouseholds = await getHouseholdsByUserUseCase.execute({ uid: user.uid });
-        setHouseholds(userHouseholds);
-      } catch (error) {
-        console.error('Error fetching households:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchHouseholds();
-  }, [user, isOpen]);
+    // The analyzer cannot see through the awaited write-back in `loadHouseholds`
+    // and reports this as a synchronous setState; the write-back lands in a
+    // promise continuation, not in the effect body. See issue #186.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void loadHouseholds();
+  }, [loadHouseholds]);
 
   const handleSwitchHousehold = async (householdId: string) => {
     if (!user || householdId === currentHouseholdId) return;

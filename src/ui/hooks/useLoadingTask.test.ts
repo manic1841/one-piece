@@ -268,3 +268,79 @@ describe('useLoadingTask cancellation', () => {
     expect(outcome).toEqual({ ok: true, value: 'kept' });
   });
 });
+
+describe('useLoadingTask initial loading', () => {
+  it('starts loading when asked to', () => {
+    const { result } = renderHook(() => useLoadingTask({ initiallyLoading: true }));
+
+    expect(result.current.loading).toBe(true);
+    expect(result.current.error).toBeNull();
+  });
+
+  it('stays loading across the hand-off from the seed to the first run', async () => {
+    const { result } = renderHook(() => useLoadingTask({ initiallyLoading: true }));
+    const gate = deferred<string>();
+    // Observed from the first render through the run: the seed and the run's
+    // own count must overlap, or the first paint flickers to "not loading".
+    const seen: boolean[] = [];
+    seen.push(result.current.loading);
+
+    let pending!: Promise<unknown>;
+    act(() => {
+      pending = result.current.run(() => gate.promise);
+    });
+    seen.push(result.current.loading);
+
+    await act(async () => {
+      gate.resolve('loaded');
+      await pending;
+    });
+
+    expect(seen).toEqual([true, true]);
+    expect(result.current.loading).toBe(false);
+  });
+
+  it('releases the seed when the run fails', async () => {
+    const { result } = renderHook(() => useLoadingTask({ initiallyLoading: true }));
+
+    await act(async () => {
+      await result.current.run(async () => {
+        throw new Error('offline');
+      });
+    });
+
+    expect(result.current.loading).toBe(false);
+    expect(result.current.errorMessage).toBe('offline');
+  });
+
+  it('releases the seed even when the run is abandoned before it starts', async () => {
+    const { result } = renderHook(() => useLoadingTask({ initiallyLoading: true }));
+    const caller = new AbortController();
+    caller.abort();
+    let taskRan = false;
+
+    let outcome: unknown;
+    await act(async () => {
+      outcome = await result.current.run(
+        async () => {
+          taskRan = true;
+          return 'never';
+        },
+        { signal: caller.signal },
+      );
+    });
+
+    expect(outcome).toEqual({ ok: false, kind: 'aborted' });
+    expect(taskRan).toBe(false);
+    // Releasing the seed on the call — not on the task settling — is what makes
+    // this option safe: a hook that abandons its very first run still ends up
+    // with a `loading` that can drop.
+    expect(result.current.loading).toBe(false);
+  });
+
+  it('does not start loading unless asked to', () => {
+    const { result } = renderHook(() => useLoadingTask({}));
+
+    expect(result.current.loading).toBe(false);
+  });
+});

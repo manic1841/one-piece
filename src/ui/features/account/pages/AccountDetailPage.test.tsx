@@ -62,26 +62,26 @@ describe('AccountDetailPage lifecycle actions', () => {
     });
   });
 
-  it('shows the 停用帳戶 action for an active account with no 停用 meta', () => {
+  it('shows the 停用帳戶 action for an active account with no 停用 meta', async () => {
     render(
       <MemoryRouter>
         <AccountDetailPage account={baseAccount} />
       </MemoryRouter>,
     );
 
-    expect(screen.getByRole('button', { name: '停用帳戶' })).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: '停用帳戶' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: '啟用帳戶' })).not.toBeInTheDocument();
     expect(screen.queryByText('停用帳戶', { selector: 'p' })).toBeNull();
   });
 
-  it('shows the 啟用帳戶 action and 停用帳戶 status for an inactive account', () => {
+  it('shows the 啟用帳戶 action and 停用帳戶 status for an inactive account', async () => {
     render(
       <MemoryRouter>
         <AccountDetailPage account={buildAccount({ isActive: false })} />
       </MemoryRouter>,
     );
 
-    expect(screen.getByRole('button', { name: '啟用帳戶' })).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: '啟用帳戶' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: '停用帳戶' })).not.toBeInTheDocument();
     expect(screen.getByText('停用帳戶')).toBeInTheDocument();
   });
@@ -95,7 +95,7 @@ describe('AccountDetailPage lifecycle actions', () => {
       </MemoryRouter>,
     );
 
-    fireEvent.click(screen.getByRole('button', { name: '停用帳戶' }));
+    fireEvent.click(await screen.findByRole('button', { name: '停用帳戶' }));
 
     await waitFor(() => expect(updateAccount).toHaveBeenCalledWith('acc-1', { isActive: false }));
     expect(vi.mocked(checkAccountMonthlyUsageUseCase.execute)).toHaveBeenCalledWith(
@@ -125,7 +125,7 @@ describe('AccountDetailPage lifecycle actions', () => {
       </MemoryRouter>,
     );
 
-    fireEvent.click(screen.getByRole('button', { name: '停用帳戶' }));
+    fireEvent.click(await screen.findByRole('button', { name: '停用帳戶' }));
 
     await waitFor(() => expect(confirm).toHaveBeenCalledTimes(1));
     expect(confirm).toHaveBeenCalledWith(
@@ -153,7 +153,7 @@ describe('AccountDetailPage lifecycle actions', () => {
       </MemoryRouter>,
     );
 
-    fireEvent.click(screen.getByRole('button', { name: '停用帳戶' }));
+    fireEvent.click(await screen.findByRole('button', { name: '停用帳戶' }));
 
     await waitFor(() => expect(updateAccount).toHaveBeenCalledWith('acc-1', { isActive: false }));
   });
@@ -167,7 +167,7 @@ describe('AccountDetailPage lifecycle actions', () => {
       </MemoryRouter>,
     );
 
-    fireEvent.click(screen.getByRole('button', { name: '啟用帳戶' }));
+    fireEvent.click(await screen.findByRole('button', { name: '啟用帳戶' }));
 
     await waitFor(() => expect(updateAccount).toHaveBeenCalledWith('acc-1', { isActive: true }));
     expect(vi.mocked(checkAccountMonthlyUsageUseCase.execute)).not.toHaveBeenCalled();
@@ -186,7 +186,7 @@ describe('AccountDetailPage lifecycle actions', () => {
       </MemoryRouter>,
     );
 
-    fireEvent.click(screen.getByRole('button', { name: '啟用帳戶' }));
+    fireEvent.click(await screen.findByRole('button', { name: '啟用帳戶' }));
 
     await waitFor(() => expect(updateAccount).toHaveBeenCalledWith('acc-1', { isActive: true }));
     expect(await screen.findByRole('button', { name: '啟用帳戶' })).toBeInTheDocument();
@@ -194,21 +194,21 @@ describe('AccountDetailPage lifecycle actions', () => {
 });
 
 describe('AccountDetailPage', () => {
-  it('renders the five spec sections for a securities account', () => {
+  it('renders the five spec sections for a securities account', async () => {
     render(
       <MemoryRouter>
         <AccountDetailPage account={baseAccount} />
       </MemoryRouter>,
     );
 
-    expect(screen.getByText('BASIC INFO')).toBeInTheDocument();
+    expect(await screen.findByText('BASIC INFO')).toBeInTheDocument();
     expect(screen.getByText('ENDING BALANCE')).toBeInTheDocument();
     expect(screen.getByText('12M TREND')).toBeInTheDocument();
     expect(screen.getByText('12M HISTORY')).toBeInTheDocument();
     expect(screen.getByText('HOLDINGS')).toBeInTheDocument();
   });
 
-  it('hides the holdings section for non-securities accounts', () => {
+  it('hides the holdings section for non-securities accounts', async () => {
     render(
       <MemoryRouter>
         <AccountDetailPage
@@ -217,7 +217,7 @@ describe('AccountDetailPage', () => {
       </MemoryRouter>,
     );
 
-    expect(screen.getByText('BASIC INFO')).toBeInTheDocument();
+    expect(await screen.findByText('BASIC INFO')).toBeInTheDocument();
     expect(screen.queryByText('HOLDINGS')).toBeNull();
   });
 });

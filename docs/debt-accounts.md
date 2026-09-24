@@ -369,5 +369,5 @@ DebtAccount.closedAt = today
 | Use Cases                  | `src/application/debt/use_cases/`                                               |
 | LedgerCode Init            | `src/application/ledger/use_cases/initDebtLedgerCodesUseCase.ts`                |
 | Hooks                      | `src/ui/features/debt/hooks/`                                                   |
-| Components                 | `src/ui/features/debt/components/DebtAccountForm.tsx`, `DebtPaymentHistory.tsx` |
+| Components                 | `src/ui/features/debt/components/DebtAccountForm.tsx` |
 | Page                       | `src/ui/features/debt/pages/DebtListPage.tsx`                                   |

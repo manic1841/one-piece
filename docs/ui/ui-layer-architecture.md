@@ -138,7 +138,7 @@ of Use Cases. Two responsibilities plus one mechanism — there is no third laye
 | **Controller** | One per page/dialog. Owns data orchestration and the loading state that belongs to it, and composes Query and Command hooks. | use case calls via the hooks it composes, local state, form state |
 | **Query** | One per resource. Read-only. | read use cases |
 | **Command** | One per resource, named `*Cmds` when it exists as a distinct bundle. Write-only. | write use cases |
-| **`useLoadingTask`** | A **mechanism**, not a tier. Used *by* Query/Command hooks, exactly like `useState`. It owns the loading state, the failure value, and the ability to abandon a run, so a hook that needs cancellation or a typed failure no longer has a reason to hand-roll either. Superseding a previous run — passing a signal so the older run cannot write back — is the consumer's job. | — |
+| **`useLoadingTask`** | A **mechanism**, not a tier. Used *by* Query/Command hooks, exactly like `useState`. It owns the loading state, the failure value, and the ability to abandon a run, so a hook that needs cancellation or a typed failure no longer has a reason to hand-roll either. Superseding a previous run — passing a signal so the older run cannot write back — is the consumer's job. Optional `initiallyLoading` seeds the loading state for a hook whose first paint precedes its first run. | — |
 
 Rules:
 
@@ -159,11 +159,28 @@ Rules:
 - **Form State Is Controller State**: form state (`useForm`, hand-rolled field state, zod parsing) belongs in a hook,
   not in a page. `useForm` and `zodResolver` may be used, but the `useForm` call site is a Controller, not Surface.
 - **Validation Gate**: Hook submit paths must validate Form VM via schema before calling Use Cases.
-- **Loading State**: use `useLoadingTask` for load/error flows. Cancellation and typed failures are carried by the
-  mechanism, so they are no longer grounds for hand-rolling. A hook that tracks a **specific command in flight**
-  (`isStarting`, `saving`, `isSubmitting`) holds an action flag, not loading state — that is a different concern, and
-  self-rolling it is a deliberate choice rather than a workaround for a gap in the mechanism. A hook that keeps its own
-  loading or error state must be able to say which of these it is.
+- **Loading State**: `useLoadingTask` is the **default** for a hook's promise-driven loading and failure state — reach
+  for it instead of hand-rolling the same counter, the same error slot and the same abandonment guard. It is the
+  default, not a mandate: **it does not apply to state that is not a promise's loading or failure.** Those are not
+  exceptions to the rule, they are outside its scope:
+  - **Action flags** — `isSubmitting` / `saving` / `isStarting` say *which* command is in flight, not "something is
+    loading". Several commands may share one flag or each need its own, and a single counter cannot attribute a failure
+    or a spinner to the right action.
+  - **Route and boot gates** — the flag decides which route renders (or that we redirect) and its lifetime spans
+    `navigate()`; it is a boot phase, not a task lifetime. A **first-paint gate** (`useState(true)`) is the same idea:
+    the first render happens before any task exists, so there is nothing for the mechanism to be loading yet.
+  - **Typed error channels** — field errors (`z.ZodError` → a per-field map), typed codes, or a failure raised
+    *synchronously* before any `await`. The mechanism carries one `unknown` value; it cannot be a field map or a code
+    union the consumer switches on, and a value that never came from a promise is not its business.
+  - **Non-promise sources** — a subscription drives the state; there is no task to wrap and no signal to abort.
+  - **Controller-owned feedback** — a Controller may deliberately let its read and its writes share one loading/error
+    channel, so the whole section reports as one unit. That is a Controller's prerogative; it is not a reason to split
+    a surface's feedback in two.
+  - **The hook must always initiate a run.** `useLoadingTask({ initiallyLoading: true })` starts in the loading state so
+    a first paint can gate on it, and it releases that seed when a `run` is *initiated*. A hook that asks for the seed
+    and then skips `run` strands `loading` at `true` forever, so the "nothing to fetch" branches belong *inside* the
+    task, not in front of it.
+  - A hook that keeps its own loading or error state should be able to point at one of the above.
 - **Abandonment Is Local**: abandoning a run discards **the mechanism's own write-back** — the failure value it would
   have stored and the result it would have returned. It never cancels the underlying request, because repositories
   (Firestore) are not cancellable; a run abandoned after the request was issued has an unknown outcome, and its

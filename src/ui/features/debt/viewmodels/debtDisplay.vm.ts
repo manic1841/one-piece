@@ -3,17 +3,9 @@ import {
   isInGracePeriod,
 } from '@/domains/debt/debtPaymentCalculator';
 import { type DebtAccount, type DebtSnapshot, type DebtType } from '@/domains/debt/schemas';
-import { type Transaction } from '@/domains/ledger/schemas';
 import { DebtTypeLabels } from '@/ui/constants/debt/label';
 
-export type { DebtAccount, DebtSnapshot, DebtType, Transaction };
-
-const formatYmd = (date: Date): string => {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
-};
+export type { DebtAccount, DebtSnapshot, DebtType };
 
 const formatYearMonth = (date: Date | null): string => {
   if (!date) return '—';
@@ -41,19 +33,6 @@ const estimatePayoffDate = (account: DebtAccount): Date | null => {
   return date;
 };
 
-const getPrincipalInterest = (
-  transaction: Transaction,
-): {
-  principal: number;
-  interest: number;
-} => {
-  const principal =
-    transaction.entries.find((entry) => entry.ledgerCode.startsWith('liability:'))?.debit || 0;
-  const interest =
-    transaction.entries.find((entry) => entry.ledgerCode === 'expense:interest')?.debit || 0;
-
-  return { principal, interest };
-};
 
 export interface DebtAccountDisplayVM extends DebtAccount {
   payoffDate: Date | null;
@@ -63,15 +42,6 @@ export interface DebtAccountDisplayVM extends DebtAccount {
   inGracePeriod: boolean;
   graceEndYearMonthText: string;
   monthlyDueAmount: number;
-}
-
-export interface DebtPaymentHistoryItemVM {
-  id: string;
-  dateText: string;
-  descriptionText: string;
-  principalText: string;
-  interestText: string;
-  totalText: string;
 }
 
 export const mapDebtAccountToDisplayVM = (
@@ -102,20 +72,5 @@ export const mapDebtAccountToDisplayVM = (
     monthlyDueAmount: inGracePeriod
       ? calculateGraceMonthlyPayment(account.currentBalance, account.interestRate)
       : account.monthlyPayment,
-  };
-};
-
-export const mapDebtPaymentTransactionToHistoryVM = (
-  transaction: Transaction,
-): DebtPaymentHistoryItemVM => {
-  const split = getPrincipalInterest(transaction);
-
-  return {
-    id: transaction.id,
-    dateText: formatYmd(transaction.date),
-    descriptionText: transaction.description || '—',
-    principalText: `$${split.principal.toLocaleString()}`,
-    interestText: `$${split.interest.toLocaleString()}`,
-    totalText: `$${(transaction.amount || 0).toLocaleString()}`,
   };
 };

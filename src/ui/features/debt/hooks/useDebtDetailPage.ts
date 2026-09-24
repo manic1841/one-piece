@@ -12,6 +12,7 @@ import { useDebtAccountCmds } from '@/ui/features/debt/hooks/useDebtAccountCmds'
 import { useDebtSnapshots } from '@/ui/features/debt/hooks/useDebtSnapshots';
 import { useDebtAccountFormViewModel } from '@/ui/features/debt/viewmodels/useDebtAccountFormViewModel';
 import { useProjects } from '@/ui/features/project/hooks/useProjects';
+import { useLoadingTask } from '@/ui/hooks/useLoadingTask';
 import { formatCurrency, formatDate } from '@/ui/utils';
 
 interface UseDebtDetailPageArgs {
@@ -35,7 +36,7 @@ export const useDebtDetailPage = ({ account }: UseDebtDetailPageArgs) => {
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [fetchedAccount, setFetchedAccount] = useState<DebtAccount | null>(null);
   const [history, setHistory] = useState<PaymentHistoryRow[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { loading, run } = useLoadingTask({ initiallyLoading: true });
 
   const activeAccount = account ?? fetchedAccount;
   const { snapshots } = useDebtSnapshots(householdId, id ?? '');
@@ -49,23 +50,24 @@ export const useDebtDetailPage = ({ account }: UseDebtDetailPageArgs) => {
     setFetchedAccount(accounts.find((a) => a.id === id) ?? null);
   }, [account, householdId, id]);
 
-  useEffect(() => {
-    let ignore = false;
-    const load = async () => {
-      if (account || !householdId) {
-        setLoading(false);
-        return;
-      }
+  const loadAccount = useCallback(async () => {
+    // The guard belongs inside the task: `initiallyLoading` is released by
+    // *initiating* a run, so every path must initiate one.
+    const result = await run(async () => {
+      if (account || !householdId) return;
       await fetchAccount();
-      if (!ignore) {
-        setLoading(false);
-      }
-    };
-    void load();
-    return () => {
-      ignore = true;
-    };
-  }, [account, householdId, id, fetchAccount]);
+    });
+
+    if (!result.ok && result.kind === 'aborted') return;
+    // A guard path means "there is no loan here", which is the same outcome as
+    // a failed fetch. Leaving a previously fetched loan on screen would show one
+    // household's debt after that household is gone.
+    if (!result.ok || account || !householdId) setFetchedAccount(null);
+  }, [account, householdId, fetchAccount, run]);
+
+  useEffect(() => {
+    void loadAccount();
+  }, [loadAccount]);
 
   useEffect(() => {
     let mounted = true;
