@@ -62,7 +62,7 @@ phase 形狀與驗證：
 4. 依 `ledgerCode` 分組後加總 `(credit - debit)`
 5. 計算年化金額並建立對應 `incomeStream`
 
-輸出欄位與 metadata 對應見 [data-structure.md](data-structure.md)；決策約束以 [ADR-0023](adr/0023-retirement-income-from-entries-only.md) 與 [ADR-0024](adr/0024-retirement-income-import-annualized.md) 為準。
+輸出欄位與 metadata 對應見 [data-structure.md](data-structure.md)；相關取捨理由見 [ADR-0023](adr/0023-retirement-income-from-entries-only.md) 與 [ADR-0024](adr/0024-retirement-income-import-annualized.md)。
 
 過期偵測與批次更新依 [ADR-0025](adr/0025-retirement-sample-window-auto-shift.md) 執行：頁面顯示 banner，使用者確認後才批次更新。v2 收入層級的 `autoUpdate` 旗標已移除（issue #133）：計畫層級 Auto Update 是唯一開關，同步目標為帶有匯入統計（`calculatedFrom.ledgerCode` + `sampleYear`）的收入流。
 
@@ -86,13 +86,13 @@ phase 形狀與驗證：
 4. 讀取最近 12 個月 DebtSnapshot，彙總 `totalPaid` 與 `interestPaid`
 5. 建立固定支出項目並寫入 `expenseCategories`
 
-`includesPrincipal` 與 `interestOnly` 的計算規則以 [ADR-0033](adr/0033-debt-expense-principal-interest-mode.md) 為準。
+`includesPrincipal` 與 `interestOnly` 的計算規則見本節上方；取捨理由見 [ADR-0033](adr/0033-debt-expense-principal-interest-mode.md)。
 
 ## 5. Repository 行為
 
 存放庫與 Use Case 的規則集中在下表，取捨理由見各自 ADR：
 
-| 行為                          | 規則                                                                                                    | 權威 ADR                                                   |
+| 行為                          | 規則                                                                                                    | 取捨理由                                                   |
 | ----------------------------- | ------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
 | 摘要查詢避免 N+1              | `getPlanSummaries` 只讀計畫主文件的快取摘要，與 `getPlan` 分開，不為每個計畫讀子集合                    | [ADR-0029](adr/0029-plan-summaries-avoid-n-plus-1.md)      |
 | income/expense 子集合整批替換 | 整批替換而非逐筆 diff                                                                                   | [ADR-0030](adr/0030-retirement-update-batch-replace.md)    |

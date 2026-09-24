@@ -1,6 +1,9 @@
 # 財務期間狀態為唯一持久化的關帳工作流狀態
 
-產品規格要求可觀察、可暫停的月度關帳工作流（OPEN / IN_PROGRESS / NEEDS_REVIEW / CLOSED 與各階段狀態），而 ADR-0018 就緒判定設計為衍生值（僅檢查快照存在性、不儲存、不檢查順序）。決定新增極簡的財務期間狀態紀錄（僅工作流狀態與各階段狀態，鍵為既有 YYYY-MM 財務期間），不複製任何快照資料；快照架構、就緒判定與手動輸入設計全部維持 ADR-0018 原樣。取捨：新增一張持久化狀態文件換取 NEEDS_REVIEW 與 CLOSED 的可觀察性；就緒（isReady）仍是衍生計算，工作流狀態只描述關帳進度，兩者並存不互斥。
+**狀態：** 已接受
+**規範來源：** [monthly-close.md](../monthly-close.md)；[data-structure.md](../data-structure.md)
+
+產品規格要求可觀察、可暫停的月度關帳工作流（OPEN / IN_PROGRESS / NEEDS_REVIEW / CLOSED 與各階段狀態），而 [ADR-0018](0018-manual-financial-report-generation.md) 就緒判定設計為衍生值（僅檢查快照存在性、不儲存、不檢查順序）。決定新增極簡的財務期間狀態紀錄（僅工作流狀態與各階段狀態，鍵為既有 YYYY-MM 財務期間），不複製任何快照資料；快照架構、就緒判定與手動輸入設計全部維持 ADR-0018 原樣。取捨：新增一張持久化狀態文件換取 NEEDS_REVIEW 與 CLOSED 的可觀察性；就緒（isReady）仍是衍生計算，工作流狀態只描述關帳進度，兩者並存不互斥。
 
 ## Considered Options
 

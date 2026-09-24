@@ -1,10 +1,6 @@
 # Holdings 只記市值不記數量：market-value-only 持倉模型
 
-## Status
-
-Accepted (2026-09-22)
-
-**狀態：** 已接受(2026-09-22)
+**狀態：** 已接受（2026-09-22）
 **規範來源：** [data-structure.md](../data-structure.md)（accounts snapshot holdings）；[CONTEXT.md](../../CONTEXT.md)（Holdings）
 
 Monthly Close 的 Account Balance 重構前，證券持倉要求使用者輸入持有數量。規格明確表示使用者不想記錄數量，而數量欄位造成兩個問題：使用者被迫輸入一個不想紀錄的數字，不輸入則落 0（屬於靜默 fallback）；Portfolio 頁以市值除以數量推導單位價，數量為 0 時推導即失敗，或顯示誤導性的單位價。

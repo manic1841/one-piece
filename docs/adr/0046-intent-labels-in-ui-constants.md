@@ -1,7 +1,7 @@
 # Intent display labels live in UI constants, not domain mapping
 
 **Status:** Accepted
-**Source of truth:** [ui-labeling-guideline.md](../ui/ui-labeling-guideline.md)
+**規範來源：** [ui-labeling-guideline.md](../ui/ui-labeling-guideline.md)
 
 <!-- 本檔原文為英文，保留英語撰寫。-->
 

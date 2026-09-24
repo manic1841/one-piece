@@ -5,7 +5,7 @@
 債務帳戶（DebtAccount）追蹤家庭的負債部位，如房貸、車貸、個人信貸。
 提供每月還款試算、還清進度追蹤、與 Project 的關聯。
 
-本文件保留債務功能的表單、試算與操作流程；債務還款意圖、派生餘額、建立時同步入帳與寬限期狀態的決策，以 [ADR-0014](adr/0014-debt-payment-intenttype.md) 至 [ADR-0017](adr/0017-grace-period-derived-not-stored.md) 為準。退休匯入規則以 [ADR-0032](adr/0032-debt-import-active-only.md) 與 [ADR-0033](adr/0033-debt-expense-principal-interest-mode.md) 為準。
+本文件是債務功能的表單、試算、衍生規則與操作流程的規範來源；相關取捨理由見 [ADR-0014](adr/0014-debt-payment-intenttype.md) 至 [ADR-0017](adr/0017-grace-period-derived-not-stored.md)（還款意圖、派生餘額、建立時同步入帳、寬限期狀態）與 [ADR-0032](adr/0032-debt-import-active-only.md)、[ADR-0033](adr/0033-debt-expense-principal-interest-mode.md)（退休匯入）。
 
 ---
 
@@ -110,9 +110,8 @@ graceEndDate: Date | null  // 寬限期結束日期，null 表示無寬限期
 ### 判斷邏輯
 
 寬限期定義為：`startDate ≤ paymentDate < graceEndDate`。起始日包含，結束日不
-包含；付款日等於 `graceEndDate` 時走正常還款。完整決策以
-[ADR-0017](adr/0017-grace-period-derived-not-stored.md) 與
-[ADR-0038](adr/0038-command-atomicity-and-retry-policy.md) 為準。
+包含；付款日等於 `graceEndDate` 時走正常還款。取捨理由見
+[ADR-0017](adr/0017-grace-period-derived-not-stored.md)。
 
 實作於 `src/domains/debt/debtPaymentCalculator.ts`：
 

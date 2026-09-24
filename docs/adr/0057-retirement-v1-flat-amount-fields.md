@@ -1,12 +1,7 @@
 # Retirement v1 平坦金額欄位：currentAnnual / retirementAnnual / 固定支出
 
-## Status
-
-Accepted (2026-09-20)
-
+**狀態：** 已接受（2026-09-20）
 **規範來源：** [retirement-system.md](../retirement-system.md)；[data-structure.md](../data-structure.md)
-
-## Context
 
 Retirement v1 規格（issue #127）實作前，退休計畫的輸入以「計算模式」描述：收入流有三態（FIXED / IMPORTED / DERIVED）、支出類別有雙模式（FIXED 或依連動收入乘以百分比）、事件 phase 各自宣告模式，DERIVED 收入還有依賴圖。期初餘額另存一份手動輸入的存款數字。
 
@@ -16,13 +11,7 @@ Retirement v1 規格（issue #127）實作前，退休計畫的輸入以「計�
 2. 依賴圖與收入連結讓計算順序互相牽制（先收入後支出、先基礎後派生），投影期初餘額又有兩條路徑。
 3. 舊文件在新 schema 下讀取即失敗，需要一次性遷移。
 
-## Decision
-
-收入流改以兩個金額欄位描述——今日水準（觀察值）與使用者假設的退休後水準；收入不再有計算模式，退休後水準缺省時以今日水準調整後沿用。
-
-DERIVED 與 SALARY_PERCENTAGE 在匯入或遷移時攤平為固定金額，不再儲存依賴關係；維護倍數關係的責任回到使用者（修改基礎收入不會自動帶動獎金）。事件 phase 改為固定金額加上選擇性成長率，成長率缺省回落計畫通膨率。
-
-期初餘額不再另存：投影期初單一取自最近已關帳期間的資產負債表淨資產，與 Dashboard 錨定一致（ADR-0053），無已關帳期間時無法重算。
+因此**收入流改以兩個金額欄位描述**——今日水準（觀察值）與使用者假設的退休後水準；收入不再有計算模式，退休後水準缺省時以今日水準調整後沿用。DERIVED 與 SALARY_PERCENTAGE 在匯入或遷移時攤平為固定金額，不再儲存依賴關係；維護倍數關係的責任回到使用者（修改基礎收入不會自動帶動獎金）。事件 phase 改為固定金額加上選擇性成長率，成長率缺省回落計畫通膨率。期初餘額不再另存：投影期初單一取自最近已關帳期間的資產負債表淨資產，與 Dashboard 錨定一致（[ADR-0053](0053-dashboard-report-anchored.md)），無已關帳期間時無法重算。
 
 ## Alternatives Considered
 
