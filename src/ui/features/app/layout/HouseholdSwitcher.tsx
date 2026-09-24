@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { ChevronDown, Home, LogOut as LogOutIcon } from 'lucide-react';
 import { Button } from '@/ui/components/ui/button';
-import { useHouseholdSwitcher } from '@/ui/features/household/hooks/useHouseholdSwitcher';
+import { useHouseholdSwitcher } from '@/ui/features/app/hooks/useHouseholdSwitcher';
 import {
   DropdownMenu,
   DropdownMenuContent,

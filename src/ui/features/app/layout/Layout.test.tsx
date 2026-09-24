@@ -53,7 +53,7 @@ vi.mock('../hooks/usePetReaction', () => ({
   usePetReaction: () => 'idle',
 }));
 
-vi.mock('@/ui/features/household/components/HouseholdSwitcher', () => ({
+vi.mock('./HouseholdSwitcher', () => ({
   default: () => <div data-testid="household-switcher" />,
 }));
 

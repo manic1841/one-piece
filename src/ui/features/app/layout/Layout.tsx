@@ -13,9 +13,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/ui/components/ui/dropdown-menu';
-import HouseholdSwitcher from '@/ui/features/household/components/HouseholdSwitcher';
-
 import CommandPalette from './CommandPalette';
+import HouseholdSwitcher from './HouseholdSwitcher';
 import PixelPet from './PixelPet';
 import SiteFooter from './SiteFooter';
 import { APP_BRAND } from './brand';

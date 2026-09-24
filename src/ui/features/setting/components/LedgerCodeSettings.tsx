@@ -6,7 +6,7 @@ import { Button } from '@/ui/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/ui/card';
 import { Input } from '@/ui/components/ui/input';
 import { Label } from '@/ui/components/ui/label';
-import { useLedgerCodeSettings } from '@/ui/features/ledger/hooks/useLedgerCodeSettings';
+import { useLedgerCodeSettings } from '@/ui/features/setting/hooks/useLedgerCodeSettings';
 
 export const LedgerCodeSettings = () => {
   const {

@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { LedgerCodeSettings } from './LedgerCodeSettings';
 
-vi.mock('@/ui/features/ledger/hooks/useLedgerCodeSettings', () => ({
+vi.mock('@/ui/features/setting/hooks/useLedgerCodeSettings', () => ({
   useLedgerCodeSettings: vi.fn(),
 }));
 

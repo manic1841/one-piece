@@ -41,7 +41,7 @@ vi.mock('@/application/debt/use_cases/getNextMonthDebtDueUseCase', () => ({
   },
 }));
 
-vi.mock('@/ui/features/household/components/HouseholdSwitcher', () => ({
+vi.mock('@/ui/features/app/layout/HouseholdSwitcher', () => ({
   default: () => <div data-testid="household-switcher" />,
 }));
 

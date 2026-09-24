@@ -36,7 +36,7 @@ describe('useLedgerCodeSettings', () => {
     vi.clearAllMocks();
 
     const { useAuthState } = await import('../../../../ui/contexts/useAuthState');
-    const { useLedgerCodes } = await import('./useLedgerCodes');
+    const { useLedgerCodes } = await import('@/ui/features/ledger/hooks/useLedgerCodes');
     const { createCustomLedgerCodeUseCase } = await import(
       '../../../../application/ledger/use_cases/createCustomLedgerCodeUseCase'
     );
@@ -131,7 +131,7 @@ describe('useLedgerCodeSettings', () => {
   });
 
   it('creates a detail code under an existing category', async () => {
-    const { useLedgerCodes } = await import('./useLedgerCodes');
+    const { useLedgerCodes } = await import('@/ui/features/ledger/hooks/useLedgerCodes');
     const { createCustomLedgerCodeUseCase } = await import(
       '../../../../application/ledger/use_cases/createCustomLedgerCodeUseCase'
     );
@@ -169,7 +169,7 @@ describe('useLedgerCodeSettings', () => {
   });
 
   it('rejects a detail code whose parent does not exist and lists the usable categories', async () => {
-    const { useLedgerCodes } = await import('./useLedgerCodes');
+    const { useLedgerCodes } = await import('@/ui/features/ledger/hooks/useLedgerCodes');
     const { createCustomLedgerCodeUseCase } = await import(
       '../../../../application/ledger/use_cases/createCustomLedgerCodeUseCase'
     );
@@ -259,7 +259,7 @@ describe('useLedgerCodeSettings', () => {
   });
 
   it('refuses to deactivate a category that still has active details', async () => {
-    const { useLedgerCodes } = await import('./useLedgerCodes');
+    const { useLedgerCodes } = await import('@/ui/features/ledger/hooks/useLedgerCodes');
     const { checkLedgerCodeInUseUseCase } = await import(
       '../../../../application/ledger/use_cases/checkLedgerCodeInUseUseCase'
     );

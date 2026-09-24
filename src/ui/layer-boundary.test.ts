@@ -101,7 +101,7 @@ const SURFACE_ALLOWLIST = new Set([
   'src/ui/features/debt/components/detail/DebtSnapshotTable.tsx',
   'src/ui/features/debt/pages/DebtDetailPage.tsx',
   'src/ui/features/debt/pages/DebtListPage.tsx',
-  'src/ui/features/ledger/components/LedgerCodeSettings.tsx',
+  'src/ui/features/setting/components/LedgerCodeSettings.tsx',
   'src/ui/features/monthly_close/components/CloseAccountBalanceInputs.tsx',
   'src/ui/features/monthly_close/components/CloseStageInputs.tsx',
   'src/ui/features/monthly_close/components/SecuritiesAccountRow.tsx',

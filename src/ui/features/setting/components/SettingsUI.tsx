@@ -14,11 +14,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/ui/components/ui/dialog';
-import { AllocationTemplateSettings } from '@/ui/features/ledger/components/AllocationTemplateSettings';
-import { LedgerCodeSettings } from '@/ui/features/ledger/components/LedgerCodeSettings';
 import { type WatchListPickerData } from '@/ui/features/setting/hooks/useWatchListPickerData';
 
+import { AllocationTemplateSettings } from './AllocationTemplateSettings';
 import EmailWhitelistUI from './EmailWhitelistUI';
+import { LedgerCodeSettings } from './LedgerCodeSettings';
 import MemberManagementUI from './MemberManagementUI';
 import WatchListSettings from './WatchListSettings';
 

@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/
 import { Checkbox } from '@/ui/components/ui/checkbox';
 import { Input } from '@/ui/components/ui/input';
 import { Label } from '@/ui/components/ui/label';
-import { useAllocationTemplateSettings } from '@/ui/features/ledger/hooks/useAllocationTemplateSettings';
+import { useAllocationTemplateSettings } from '@/ui/features/setting/hooks/useAllocationTemplateSettings';
 
 export const AllocationTemplateSettings = () => {
   const {
