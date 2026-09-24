@@ -1,36 +1,32 @@
 import React from 'react';
 
-import { Input } from '@/ui/components/ui/input';
-import { Label } from '@/ui/components/ui/label';
-import { type ProjectFormVM } from '@/ui/features/project/viewmodels/projectForm.vm';
+import {
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+  TextInput,
+} from '@/ui/components/form';
 
-interface ProjectFormFieldsProps {
-  formData: ProjectFormVM;
-  onChange: (data: Partial<ProjectFormVM>) => void;
-  disabled?: boolean;
-}
-
-export const ProjectFormFields: React.FC<ProjectFormFieldsProps> = ({
-  formData,
-  onChange,
-  disabled = false,
-}) => {
+/**
+ * The project form body. Reads its binding from the surrounding `<Form>`
+ * context (see `useProjectForm`), so it takes no props of its own.
+ */
+export const ProjectFormFields: React.FC = () => {
   return (
     <div className="space-y-4">
       <h3 className="text-sm font-semibold text-muted-foreground">基本資料</h3>
 
-      <div className="space-y-2">
-        <Label htmlFor="project-name">名稱 *</Label>
-        <Input
-          id="project-name"
-          type="text"
-          required
-          value={formData.name || ''}
-          onChange={(e) => onChange({ name: e.target.value })}
-          placeholder="例如：生活費、房租"
-          disabled={disabled}
-        />
-      </div>
+      <FormField name="name">
+        <FormItem>
+          <FormLabel required>名稱</FormLabel>
+          <FormControl>
+            <TextInput placeholder="例如：生活費、房租" />
+          </FormControl>
+          <FormMessage />
+        </FormItem>
+      </FormField>
     </div>
   );
 };

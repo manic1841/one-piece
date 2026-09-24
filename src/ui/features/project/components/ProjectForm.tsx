@@ -1,6 +1,6 @@
 import React from 'react';
 
-import { type Project } from '@/ui/features/project/viewmodels/projectForm.vm';
+import { Form } from '@/ui/components/form';
 import { Button } from '@/ui/components/ui/button';
 import {
   Dialog,
@@ -10,8 +10,9 @@ import {
   DialogTitle,
 } from '@/ui/components/ui/dialog';
 import { ProjectFormFields } from '@/ui/features/project/components/form/ProjectFormFields';
-import { useProjectFormContent } from '@/ui/features/project/hooks/useProjectFormContent';
+import { useProjectForm } from '@/ui/features/project/hooks/useProjectForm';
 import { type ProjectArgs } from '@/ui/features/project/hooks/useProjectPage';
+import { type Project } from '@/ui/features/project/viewmodels/projectForm.vm';
 
 interface ProjectFormProps {
   isOpen: boolean;
@@ -28,15 +29,12 @@ const ProjectForm: React.FC<ProjectFormProps> = ({
   initialData,
   title,
 }) => {
-  const {
-    loading,
-    error,
-    formData,
-    updateFormData,
-    save,
-  } = useProjectFormContent(initialData, onSubmit, onClose, isOpen);
-
-  if (!formData) return null;
+  const { form, submit, error, isSubmitting } = useProjectForm(
+    initialData,
+    onSubmit,
+    onClose,
+    isOpen,
+  );
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -47,24 +45,28 @@ const ProjectForm: React.FC<ProjectFormProps> = ({
         <DialogHeader>
           <DialogTitle>{title || (initialData?.id ? 'Edit Project' : 'New Project')}</DialogTitle>
         </DialogHeader>
-        <form onSubmit={save} className="space-y-6 py-4">
-          {/* Error Message */}
-          {error && (
-            <div className="text-sm text-destructive bg-destructive/10 p-3 rounded-md">{error}</div>
-          )}
+        <Form {...form}>
+          <form onSubmit={submit} className="space-y-6 py-4">
+            {/* Error Message */}
+            {error && (
+              <div className="text-sm text-destructive bg-destructive/10 p-3 rounded-md">
+                {error}
+              </div>
+            )}
 
-          {/* Basic Information */}
-          <ProjectFormFields formData={formData} onChange={updateFormData} disabled={loading} />
+            {/* Basic Information */}
+            <ProjectFormFields />
 
-          <DialogFooter>
-            <Button variant="outline" onClick={onClose} disabled={loading} type="button">
-              取消
-            </Button>
-            <Button type="submit" disabled={loading}>
-              {loading ? '儲存中...' : '儲存'}
-            </Button>
-          </DialogFooter>
-        </form>
+            <DialogFooter>
+              <Button variant="outline" onClick={onClose} disabled={isSubmitting} type="button">
+                取消
+              </Button>
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting ? '儲存中...' : '儲存'}
+              </Button>
+            </DialogFooter>
+          </form>
+        </Form>
       </DialogContent>
     </Dialog>
   );
