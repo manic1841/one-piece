@@ -2,84 +2,25 @@
 
 **日期：** 2026-09-23
 **狀態：** 已實作
-**對應 spec：** `docs/ui/design-system.md`（`data-table` 段）
+**規範來源：** [design-system.md](../ui/design-system.md)（`data-table` 段）
 
-## Context
+全站表格共用兩套寫法：多數檔案直接消費結構性的 `ui/table.tsx`（shadcn 骨架，僅結構無樣式），monthly close 的 account step 則完全不用它，改在 feature 內以 module-local class 常數手寫原生 `<table>`。後者才是已定案的 `data-table` 規格的合格實作，但規則散在兩個檔案裡且已經分歧——同一份 class 常數出現兩個不同的值，另一份則逐字重複。規格要求「同頁多表格共用欄寬常數以保持跨表同軸」，散落的常數讓這件事做不到。
 
-全站表格共用兩套寫法：16 個檔案直接消費 `src/ui/components/ui/table.tsx`（shadcn
-骨架，僅結構無樣式），monthly close 的 account step 則完全不用它，改在
-feature 內以 module-local class 常數手寫原生 `<table>`。後者才是已定案的
-`data-table` 規格（54px 列高、header 10px/uppercase/0.08em、數字欄右對齊 mono、
-首尾欄 padding、hover 僅可點擊列）的「合格實作」，但這些規則散在
-`CloseAccountBalanceInputs.tsx` 與 `SecuritiesAccountRow.tsx` 兩個檔案裡，且已
-經分歧：`sectionLabelClass` 兩份值不同（`tracking-[0.08em]` vs
-`tracking-widest`）、`numberInputClass` 逐字重複。規格要求「同頁多表格共用欄寬
-常數以保持跨表同軸」，散落的常數讓這件事做不到。
+同時規格要求「僅整列可點擊的列有 hover」，但 primitive 的 row 對所有列強制 hover，導致兩個消費端必須硬覆寫。規則以慣例而非機制存在，就一定會被違反。選擇點因此是：建共用套件時，既有的 primitive table 要被取代刪除，還是在其上再加一層。
 
-同時規格要求「僅整列可點擊的列有 hover」，但 `TableRow` 對所有列強制
-`hover:bg-muted/50`，導致兩個消費端必須用 `hover:bg-transparent` 硬覆寫
-（`AccountSnapshotTable.tsx:150`、`TransactionItem.tsx:155`）。規則以慣例而非
-機制存在，就一定會被違反。
+## Considered Options
 
-選擇點：建一套共用 data table 套件時，既有的 `ui/table.tsx` 是要被取代刪除，
-還是在其上再加一層。
-
-## Decision
-
-1. **`ui/table.tsx` 保留為 structural primitive 層，不刪除**。它與新套件不是同層
-   競品：套件的 parts 就是由這組 primitive 組成。刪掉只會讓套件自己重寫一份或被迫
-   再輸出，且會立刻破壞尚未遷移的 16 個消費端與 3 個原生 `<table>`——等於強制一次
-   全改，與「逐一遷移」的節奏衝突。分層遵循 `docs/ui/ui-layer-architecture.md` 規則 6
-   （先擴充既有共用元件）。唯一改動 primitive 的地方：**移除 `TableRow` 預設
-   hover**。
-2. **樣式與契約層集中在 `src/ui/components/data-table/`**（比照 `sortable/`，
-   ADR-0059 先例）：`DataTable`、`DataTableColGroup`、`DataTableHeadCell`、
-   `DataTableCell`、`NumberCell`、`NumberInput`、`MobileDataRow`，外加
-   `styles.ts`（class 常數逃生口，供無法用通用 cell 表達的內容，如「帳戶名 + 幣別
-   標籤」）與 `index.ts` barrel 再輸出 primitive。命名用 `data-table` 而非
-   `table`，避免與 `ui/table` 在 import 路徑上語意重疊。
-3. **公開 API 為可組合 parts，不做宣告式 `columns` API**。首個合格實作是輸入密集、
-   分區塊（現金/外幣/證券）、含巢狀子表與 status glyph 的表格；宣告式 API 會立刻
-   需要自訂 cell render、群組列、巢狀表三種逃生口，等於糖衣底下仍是 parts，卻多一
-   層契約要維護。等第 3、4 個消費端遷移、樣式收斂後再評估是否加宣告式外層。
-4. **`interactive` 為 `TableRow` 的明示 boolean prop，不自動偵測 `onClick`**。
-   明示可 grep、可斷言、可型別強制；隱式會讓「這列可不可點擊」變成要讀 JS 才知道
-   的事，而這正是 hover 契約要回答的問題。
-5. **數字輸入框納入套件**（34px、右對齊 mono、`tabular-nums`、無原生 spinner）。
-   規格已明文定義，且已是複製貼上的受害者。
-6. **mobile grouped card 共用元件**。桌表與行動卡是同一份資料的兩種表示，欄位順序
-   必須一致，這是唯一能保證的方法。
-7. **row height 以 54px 為準**。既有文件中的 48px 為無量測依據的概述句，已修正；
-   列高標準不另立，改指向 `docs/ui/design-system.md` 的 `data-table` 段。
-8. **垂直內距納入列高預算**：`h-[54px]` 只是最小列高，而列內最高的內容是 34px
-   數字輸入框，所以 cell 垂直內距定為 9px（34 + 9×2 + 1px
-   分隔線 = 53px，仍由最小列高補滿 54px）。先前候選的 13px 會讓輸入列實測撐到
-   61px，與 54px 契約矛盾；因為純文字列本來就由最小列高撐滿，降低內距對它們沒有視覺影響，
-   改動只落在輸入密集的列。此契約由 `data-table.test.tsx` 的 row height contract
-   守住（以 `numberInputClass` 的實際高度計算預算）。
+- **刪除 `ui/table.tsx`，套件自成一層**：它與新套件不是同層競品，套件的 parts 就是由這組 primitive 組成；刪掉只會讓套件重寫一份，且立刻破壞尚未遷移的消費端，等於強制一次全改。拒絕。
+- **宣告式 `columns` API**：首個合格實作是輸入密集、分區塊、含巢狀子表與 status glyph 的表格，宣告式 API 會立刻需要自訂 cell render、群組列與巢狀表三種逃生口，等於糖衣底下仍是 parts，卻多一層契約要維護。拒絕，等消費端遷移與樣式收斂後再評估。
+- **自動偵測 `onClick` 決定列是否可互動**：會讓「這列可不可點擊」變成要讀 JS 才知道的事，而這正是 hover 契約要回答的問題。改為明示 boolean prop。拒絕。
+- **列高標準另立一份**：既有文件中的較小數值為無量測依據的概述句，列高標準改指向設計系統，不另行定義。拒絕另立。
 
 ## Consequences
 
-- 新程式碼只有一個 import 入口（`@/ui/components/data-table`），primitive 由 barrel
-  再輸出；既有 16 個消費端維持原 import 路徑，遷移節奏不受影響。
-- 「僅可點擊列有 hover」由 `interactive` prop 強制，`hover:bg-transparent` 覆寫
-  消失；`AccountSnapshotTable` / `TransactionItem` 的硬覆寫可移除。
-- **Pointer event priority 成為明文契約**：整列導覽與 grip 拖曳並存時，grip 的互動
-  必須 stop propagation 並抑制拖曳結束後的一次 click，但不得關閉整列導覽；reorder
-  mode 期間導覽維持有效（與 ADR-0059 決策 3、5 一致）。禁制三種缺陷：點 grip 同時
-  開 Detail、drag 結束才觸發 row click、reorder mode 直接停用 row click。
-- `DataTableColGroup` 在 dev 時斷言欄寬總和 ≈ 100，守住規格裡「瀏覽器會等比壓縮
-  超寬表格、破壞跨表對齊」的坑；欄寬本身仍是頁面專屬事實，不塞進套件。
-- 本次只把 monthly close account step 改成套件驅動（作為套件驗證），其餘 16 個消費
-  端由使用者自行逐一遷移。
+- 新程式碼只有一個 import 入口，primitive 由 barrel 再輸出；既有消費端維持原 import 路徑，遷移節奏不受影響。
+- 「僅可點擊列有 hover」由明示 prop 強制，消費端的硬覆寫可移除。
+- **Pointer event priority 成為明文契約**：整列導覽與 grip 拖曳並存時，grip 的互動必須 stop propagation 並抑制拖曳結束後的一次 click，但不得關閉整列導覽；reorder mode 期間導覽維持有效（與 ADR-0059 一致）。禁制三種缺陷：點 grip 同時開 Detail、drag 結束才觸發 row click、reorder mode 直接停用 row click。
+- 欄寬總和在 dev 時被斷言，守住「瀏覽器會等比壓縮超寬表格、破壞跨表對齊」的坑；欄寬本身仍是頁面專屬事實，不塞進套件。
+- cell 垂直內距納入列高預算，列高數值以設計系統為準；此契約由測試守住。
+- 本次只把 monthly close account step 改成套件驅動（作為套件驗證），其餘消費端由使用者自行逐一遷移。
 - `CONTEXT.md` 不動——Data Table 是 UI 呈現概念，不是財務領域術語。
-
-## 影響
-
-- 新增 `src/ui/components/data-table/`（parts + `styles.ts` + barrel +
-  `data-table.test.tsx`）。
-- 修改 `src/ui/components/ui/table.tsx`（移除 `TableRow` 預設 hover，新增
-  `interactive`）。
-- 修改 `src/ui/features/monthly_close/components/CloseAccountBalanceInputs.tsx`、
-  `SecuritiesAccountRow.tsx`（改由套件驅動）。
-- cell 垂直內距 13px → 9px（決策 8），`docs/ui/design-system.md` 同步。

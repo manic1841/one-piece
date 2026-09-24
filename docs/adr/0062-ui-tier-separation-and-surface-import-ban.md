@@ -2,7 +2,7 @@
 
 **日期：** 2026-09-23
 **狀態：** 已接受
-**對應 spec：** `docs/ui/ui-layer-architecture.md`
+**規範來源：** [ui-layer-architecture.md](../ui/ui-layer-architecture.md) §2（層級表、目錄、依賴方向、不變式以該文件為唯一來源）
 
 舊有依賴規則散落三份文件且彼此不一致，其中 `ui-layer-architecture.md` 允許「UI 使用 Domain types 作參考」，
 未區分 component 與 hook；實測後發現該命題對 component 成立、對 hook 不成立（hook 的職責就是呼叫 use case）。
