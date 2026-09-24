@@ -80,13 +80,6 @@ const BEHAVIOUR_ROOTS = [path.join(SRC_DIR, 'application'), path.join(SRC_DIR, '
 const FEATURE_TIER_OFFSET = 2;
 
 /**
- * `features/app/**` is Surface by the fail-closed rule, but its 3 violating files are fixed by
- * issue #184, not here. Until then the whole directory is a **coverage-pending exception**.
- * DELETE THIS when #184 lands: the exception is guarded against rotting (see the test below).
- */
-const COVERAGE_PENDING_DIR = path.join(UI_DIR, 'features', 'app');
-
-/**
  * Existing Surface violations (issue #179). One entry per file; **fix a file → delete its entry**.
  * The rule is set equality in both directions, so a stale entry fails the suite too.
  */
@@ -212,17 +205,9 @@ const report = (label: string, files: Set<string>): string =>
 describe('UI layer boundary contract (issue #178, ADR-0062)', () => {
   const sourceFiles = collectSourceFiles(UI_DIR);
 
-  const surfaceFiles = sourceFiles.filter((file) => !isNonSurface(file) && !isInside(file, COVERAGE_PENDING_DIR));
+  const surfaceFiles = sourceFiles.filter((file) => !isNonSurface(file));
   const controllerFiles = sourceFiles.filter(isController);
   const displayLabelFiles = sourceFiles.filter((file) => isInside(file, path.join(UI_DIR, 'constants')));
-  /**
-   * Only Surface-tier files under the coverage-pending directory. Counting non-Surface tiers here
-   * would mask rot: issue #184 relocates `useHouseholdGuard.ts` into `features/app/hooks/`, where
-   * its `@/application` import is legitimate and would keep this guard green forever.
-   */
-  const coveragePendingFiles = sourceFiles.filter(
-    (file) => isInside(file, COVERAGE_PENDING_DIR) && !isNonSurface(file),
-  );
 
   const surfaceViolations = new Set(
     surfaceFiles.filter((file) => surfaceViolationsOf(file).length > 0).map(toRepoRelative),
@@ -324,13 +309,5 @@ describe('UI layer boundary contract (issue #178, ADR-0062)', () => {
     );
     expect(displayLabelFiles.length).toBeGreaterThan(5);
     expect(violations, report('Display Labels violations', violations)).toEqual(new Set());
-  });
-
-  it('keeps the features/app coverage-pending exception alive (remove it once #184 lands)', () => {
-    const pending = coveragePendingFiles.filter((file) => surfaceViolationsOf(file).length > 0);
-    expect(
-      pending.length,
-      'features/app/** is clean — delete COVERAGE_PENDING_DIR and let the scan cover it (issue #184).',
-    ).toBeGreaterThan(0);
   });
 });
