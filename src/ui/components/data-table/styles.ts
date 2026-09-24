@@ -43,9 +43,8 @@ export const dataTableCellNumberClass =
 export const dataTableLabelClass =
   'text-[10px] font-medium uppercase tracking-[0.08em] text-muted-foreground';
 
-/** 移除 number input 的原生增減 spinner。 */
-export const numberInputSpinnerClass =
-  '[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none';
+/** 移除 number input 的原生增減 spinner（來源：`ui/input-styles`，與 form 套件共用）。 */
+export { numberInputSpinnerClass } from '@/ui/components/ui/input-styles';
 
 /** 數字輸入框基準樣式（34px、直角、右對齊等寬）。 */
 export const numberInputClass =
