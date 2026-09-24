@@ -5,16 +5,15 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { DEBT_STATUS_SETTLED_LABEL } from '@/ui/constants/debtStatusLabels';
 import { type DebtAccount } from '@/domains/debt/schemas';
 import { useAuthState } from '@/ui/contexts/useAuthState';
-import { debtSnapshotRepository } from '@/infra/repositories/debtSnapshotRepository';
 import { listDebtAccountsUseCase } from '@/application/debt/use_cases/listDebtAccountsUseCase';
+import { listDebtSnapshotsUseCase } from '@/application/debt/use_cases/listDebtSnapshotsUseCase';
 import { useConfirm } from '@/ui/features/app/confirm/ConfirmDialog';
 import { useDebtAccountCmds } from '@/ui/features/debt/hooks/useDebtAccountCmds';
 
 vi.mock('@/ui/contexts/useAuthState');
-vi.mock('@/infra/repositories/debtSnapshotRepository', () => ({
-  debtSnapshotRepository: {
-    listByYearMonthRange: vi.fn().mockResolvedValue([]),
-    hasSnapshots: vi.fn().mockResolvedValue(false),
+vi.mock('@/application/debt/use_cases/listDebtSnapshotsUseCase', () => ({
+  listDebtSnapshotsUseCase: {
+    execute: vi.fn().mockResolvedValue([]),
   },
 }));
 vi.mock('@/application/debt/use_cases/listDebtAccountsUseCase');
@@ -65,7 +64,7 @@ const buildAccount = (overrides: Partial<DebtAccount> = {}): DebtAccount => ({
 
 const renderDetail = (account: DebtAccount) => {
   vi.mocked(listDebtAccountsUseCase.execute).mockResolvedValue([account]);
-  vi.mocked(debtSnapshotRepository.listByYearMonthRange).mockResolvedValue([]);
+  vi.mocked(listDebtSnapshotsUseCase.execute).mockResolvedValue([]);
 
   return render(
     <MemoryRouter>
