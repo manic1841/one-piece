@@ -67,7 +67,7 @@
 投資組合是用來觀察投資持倉與價值變化的管理視圖。它描述投資部位，不取代實體帳戶或會計科目。
 
 ## Holdings
-持倉是證券帳戶在快照中記錄的標的部位，以標的代號、名稱、成本、市值與槓桿描述。持倉以市值為記錄單位，不記錄持有數量；市值由使用者輸入並凍結進快照，沒有獨立觀察來源，不構成對帳依據（見 ADR-0051）。避免詞：Qty、股數、庫存。
+持倉是證券帳戶在快照中記錄的標的部位。持倉以市值為記錄單位，不記錄持有數量；市值由使用者輸入並凍結進快照，沒有獨立觀察來源，不構成對帳依據（見 ADR-0051）。避免詞：Qty、股數、庫存。
 
 ## Import Previous Holdings
 匯入上月持倉是將上一個財務期間的證券持倉複製為當期起始資料的匯入行為。匯入只複製持倉，不產生交易，也不改變任何餘額；匯入後的當期持倉由使用者自行修改。避免詞：同步、複製上月餘額。
@@ -127,16 +127,4 @@ Final Net Worth 是投影期末（life expectancy 年）的淨資產，回答「
 啟用表示一個帳戶、債務或退休計畫仍參與目前的業務操作；停用表示保留歷史意義但不再作為目前操作的預設對象。
 
 ## Pixel Pet
-Pixel Pet 是主導航的唯一所有者:桌機經右下角固定按鈕展開 Navigator,行動版經 Navigator sheet 導航,header 不含主導航。Navigator 清單為 8 項(`NAV_ITEMS` 扣除 Dashboard 與 Settings);Dashboard 是 home context、由 header 品牌 ONE PIECE 承擔,Settings 由 Avatar menu 承擔,兩者皆非 Navigator 項目。Ctrl/Cmd+K 指令面板是 Quick Access,涵蓋含 Dashboard 與 Settings 在內的全部 10 條路由,與 Navigator 清單互相獨立。寵物反應是最近財務期間狀態的資料驅動顯示,不是 assistant。
-
-## Display Label
-顯示標籤是由 constants 層單一來源提供、對應資料值（如 IntentType、LedgerCode、帳戶類別）的顯示文字。UI 只能經由標籤 API 取得，不得在元件內硬編碼資料標籤。避免詞：Ui Label、寫死文字。
-
-## Surface
-Surface 是 UI 中直接 render 畫面的一層：feature 的 pages 與 components，以及共用的 components。它只消費 Controller 與 ViewModel，不編排 use case；可持有純呈現狀態（dialog 開關、選取、view filter），但不持有資料的載入或寫入邏輯。避免詞：view、screen。
-
-## ViewModel
-ViewModel 是 UI 專屬的投影狀態，是 domain 或 application 形狀進入元件的唯一橋樑。它只做映射與型別轉出，不含行為。避免詞：DTO、state。
-
-## Controller
-Controller 是 UI 中唯一可呼叫 use case 的層，負責彙整 Query 與 Command，並持有畫面區域狀態。避免詞：service、provider。
+Pixel Pet 是主導航的唯一所有者；寵物反應是最近財務期間狀態的資料驅動顯示，不是 assistant。導航與互動契約見 `docs/ui/ui-layer-architecture.md`。

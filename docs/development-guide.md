@@ -219,6 +219,11 @@ live 只認 push main：`pull_request` 在 PR 開啟與每次 push 時都會觸�
 [ADR 0047](adr/0047-preview-channel-shares-production-backend.md)：preview 僅供視覺確認，
 不在上面錄入資料；需要可寫入的環境請用本機 Firebase Emulator。
 
+不為 preview 另開 Firebase project（單一家庭使用，設定同步成本高於隔離效益）。Hosting
+配額是 **project 層級**而非 channel 層級（免費額度 10 GB 儲存與 10 GB/月傳輸）；channel
+數量本身不計費，但每個 channel 的 release 會佔用儲存，必要時在 console 設定各 channel 的
+「releases to keep」上限。
+
 各測試層級的完整說明(模擬器環境變數、security rules 測試、E2E 規劃)見
 [測試指南](testing.md)。
 

@@ -2,7 +2,7 @@
 
 本文描述退休系統的核心資料模型、收入導入流程、計算流程與維護規則。
 
-本文件是退休功能的流程與實作參考，不重新定義資料模型的決策約束。收入來源與匯入窗口見 [ADR-0023](adr/0023-retirement-income-from-entries-only.md) 至 [ADR-0025](adr/0025-retirement-sample-window-auto-shift.md)；子集合、Repository 行為、事件與計畫生命週期見 [ADR-0026](adr/0026-retirement-plan-subcollections.md) 至 [ADR-0037](adr/0037-retirement-plan-duplicate-inactive.md)；v1 平坦金額欄位（currentAnnual / retirementAnnual / 固定支出）與計算模式退役見 [ADR-0057](adr/0057-retirement-v1-flat-amount-fields.md)。欄位清單見 [data-structure.md](data-structure.md)。
+本文件是退休系統資料模型、流程與存放庫行為的規範來源。收入來源與匯入窗口的取捨理由見 [ADR-0023](adr/0023-retirement-income-from-entries-only.md) 至 [ADR-0025](adr/0025-retirement-sample-window-auto-shift.md)；子集合、存放庫行為、事件與計畫生命週期見 [ADR-0026](adr/0026-retirement-plan-subcollections.md) 至 [ADR-0037](adr/0037-retirement-plan-duplicate-inactive.md)；v1 平坦金額欄位（currentAnnual / retirementAnnual / 固定支出）與計算模式退役見 [ADR-0057](adr/0057-retirement-v1-flat-amount-fields.md)。欄位清單見 [data-structure.md](data-structure.md)。
 
 ## 1. 系統目標
 
@@ -16,7 +16,11 @@
 
 路徑：`households/{householdId}/retirement_plans/{planId}`
 
-主文件保留假設參數、事件、快取摘要與 `isActive`。收入與支出類別由子集合管理；其結構見 [ADR-0026](adr/0026-retirement-plan-subcollections.md)，同一 household 的 active 唯一性見 [ADR-0036](adr/0036-single-active-retirement-plan.md)，複製後的啟用狀態見 [ADR-0037](adr/0037-retirement-plan-duplicate-inactive.md)。
+主文件保留假設參數、事件、快取摘要與 `isActive`。收入與支出類別由子集合管理；其結構見 [ADR-0026](adr/0026-retirement-plan-subcollections.md)。
+
+- **同一 household 僅允許一筆 `isActive=true`**，由 `setOnlyActivePlan` 原子切換（[ADR-0036](adr/0036-single-active-retirement-plan.md)）。
+- **複製計畫**：完整複製子集合與事件，但新計畫預設 `isActive=false`，不昨接釋放原 active（[ADR-0037](adr/0037-retirement-plan-duplicate-inactive.md)）。
+- 計畫不存在時操作回傳 `PLAN_NOT_FOUND`。
 
 ### 2.2 收入流子集合
 
@@ -32,7 +36,15 @@
 
 ### 2.4 事件模型（分段設定）
 
-事件支援 `phases[]` 以描述不同人生階段的固定金額與選擇性年成長率；phase 不再宣告計算模式或百分比。phase 欄位與驗證見 [ADR-0034](adr/0034-event-phases-segmented.md)；舊版 `year` + `amount` 的讀取相容性見 [ADR-0035](adr/0035-legacy-single-event-compatibility.md)。
+事件支援 `phases[]` 以描述不同人生階段的固定金額與選擇性年成長率；phase 不再宣告計算模式或百分比。
+
+phase 形狀與驗證：
+
+- 欄位：`name`、`startYear`、`endYear`、`amount`（必填）、`growthRate?`（缺省 = 計畫通膨率）。
+- 驗證規則：`endYear >= startYear`；`amount` 必填。違反時 schema 直接拒絞。
+- **舊版相容**：帶 `year` + `amount` 而無 `phases` 的舊事件，讀取時視為單段 phase（`startYear = endYear = year`）（[ADR-0035](adr/0035-legacy-single-event-compatibility.md)）；新寫入一律使用 `phases[]`。
+
+取捨理由見 [ADR-0034](adr/0034-event-phases-segmented.md) 與 [ADR-0035](adr/0035-legacy-single-event-compatibility.md)。
 
 ## 3. 收入導入流程
 
@@ -56,7 +68,7 @@
 
 ## 3.5 期初餘額與重算流程
 
-- 投影期初餘額不是手動輸入的獨立資料：取自最近已關帳期間的 BALANCE_SHEET 報表淨資產（資產總計 − 負債總計），單一計算路徑與 Dashboard 錨定一致（見 [ADR-0053](adr/0053-dashboard-report-anchored.md) 與 [ADR-0057](adr/0057-retirement-v1-flat-amount-fields.md)）。
+- 投影期初餘額不是手動輸入的獨立資料：取自最近已關帳期間的 BALANCE_SHEET 報表淨資產（資產總計 − 負債總計），與 Dashboard 錨定共用同一條計算路徑（見 [financial_report.md](financial_report.md) 第 4 節；取捨理由見 [ADR-0053](adr/0053-dashboard-report-anchored.md) 與 [ADR-0057](adr/0057-retirement-v1-flat-amount-fields.md)）。
 - 解析錨點：依 `yearMonth` 排序 persisted reports，取最新且期間狀態為 CLOSED 的月份；無已關帳期間時無法重算，必須先完成月度關帳。
 - 期初淨資產與錨定月份存入 summary（`startingNetWorth` / `anchorYearMonth`），讓輸出可標注來源期間。
 
@@ -78,16 +90,16 @@
 
 ## 5. Repository 行為
 
-Repository 與 Use Case 的規則集中在下表，本文不再複述決策理由：
+存放庫與 Use Case 的規則集中在下表，取捨理由見各自 ADR：
 
-| 行為                          | 權威 ADR                                                   |
-| ----------------------------- | ---------------------------------------------------------- |
-| 摘要查詢避免 N+1              | [ADR-0029](adr/0029-plan-summaries-avoid-n-plus-1.md)      |
-| income/expense 子集合整批替換 | [ADR-0030](adr/0030-retirement-update-batch-replace.md)    |
-| 刪除順序（歷史；已原子化）    | [ADR-0031](adr/0031-retirement-delete-order.md)            |
-| active plan 唯一性            | [ADR-0036](adr/0036-single-active-retirement-plan.md)      |
-| 複製後預設非啟用              | [ADR-0037](adr/0037-retirement-plan-duplicate-inactive.md) |
-| 寫入原子邊界、上限與併發      | [ADR-0040](adr/0040-retirement-plan-atomic-writes.md)      |
+| 行為                          | 規則                                                                                                    | 權威 ADR                                                   |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
+| 摘要查詢避免 N+1              | `getPlanSummaries` 只讀計畫主文件的快取摘要，與 `getPlan` 分開，不為每個計畫讀子集合                    | [ADR-0029](adr/0029-plan-summaries-avoid-n-plus-1.md)      |
+| income/expense 子集合整批替換 | 整批替換而非逐筆 diff                                                                                   | [ADR-0030](adr/0030-retirement-update-batch-replace.md)    |
+| 刪除順序（歷史；已原子化）    | 子集合先行、主文件最後                                                                                  | [ADR-0031](adr/0031-retirement-delete-order.md)            |
+| active plan 唯一性            | 同一 household 至多一筆 `isActive=true`                                                                 | [ADR-0036](adr/0036-single-active-retirement-plan.md)      |
+| 複製後預設非啟用              | 新計畫 `isActive=false`                                                                                 | [ADR-0037](adr/0037-retirement-plan-duplicate-inactive.md) |
+| 寫入原子邊界、上限與併發      | create/update/delete/duplicate 全在單一 transaction 內；preflight（schema 驗證）在 transaction 外先做；單次寫入上限 400 筆，超過回 `PLAN_TOO_LARGE`；transaction 失敗回 `TRANSACTION_FAILED` | [ADR-0040](adr/0040-retirement-plan-atomic-writes.md)      |
 
 目前對應的主要操作包括 `getPlan/getPlans`、`getPlanSummaries`、`createPlan`、`updatePlan`、`deletePlan`、`setOnlyActivePlan` 與 `DuplicateRetirementPlanUseCase`；create/update/delete/duplicate 的寫入一律走 [ADR-0040](adr/0040-retirement-plan-atomic-writes.md) 的單一 transaction 邊界。
 

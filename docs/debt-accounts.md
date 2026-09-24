@@ -247,7 +247,14 @@ DebtAccount.closedAt = today
 
 ## 5.7. DEBT_PAYMENT 後的結清偵測
 
-`currentBalance` 的來源與派生規則見 [ADR-0015](adr/0015-debt-account-balance-derived.md)。
+`currentBalance` 是派生值，不是獨立的數字：
+
+```
+currentBalance = LIABILITY_BORROW 的 credit 金額
+               − Σ（所有 DEBT_PAYMENT 分錄中 liability code 的 debit 加總）
+```
+
+DebtSnapshot 同樣可從分錄重算，不另存獨立來源。取捨理由見 [ADR-0015](adr/0015-debt-account-balance-derived.md)。
 
 每次 `DEBT_PAYMENT` 建立成功後，流程為：
 

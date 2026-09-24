@@ -130,15 +130,26 @@ $ generate-reports --period SEP-2026
 
 ## 工作流 (Workflow)
 
-Monthly Close 是全站最重要的 workflow UI。其階段模型、資料建立邊界與確認語意是 ADR 契約，不在本節重述：
+Monthly Close 是全站最重要的 workflow UI。其階段模型、資料建立邊界與確認語意見 [monthly-close.md](../monthly-close.md)，不在本節重述：
 
-- 階段資料建立邊界與 9 階段模型：[ADR-0052](../adr/0052-monthly-close-stage-data-boundary.md)。
+- 階段資料建立邊界與 9 階段模型：[monthly-close.md](../monthly-close.md)；取捨理由見 [ADR-0052](../adr/0052-monthly-close-stage-data-boundary.md)。
 - workflow-first 表面收斂（pipeline / workspace 分工）：[ADR-0056](../adr/0056-workflow-first-surfaces.md)。
 
 本節只定頁面層級的呈現標準：
 
-- 現行階段共 **9 個**（取代早期 6 階段草案），顯示順序與標籤以 `monthlyCloseLabels.ts` 的 `CLOSE_STAGE_LABELS` 為準：帳戶餘額 → 交易驗證 → 證券買入／賣出 → Portfolio 金流 → 專案結算 → 債務還款 → Completeness Check → Financial Reports → Close Period。此順序僅為 UI 引導，系統不強制。
+- 階段顯示順序與標籤以 `monthlyCloseLabels.ts` 的 `CLOSE_STAGE_LABELS` 為準。
 - Pipeline 回答「**Where am I?**」（進度），Current Step 回答「**What do I do?**」（當前動作），Exception 回答「**What needs attention?**」（需注意項目）。
+
+### 帳戶餘額階段排版 (Account Balance)
+
+帳戶餘額階段依 Account Type 分區（現金／銀行／外幣／證券），所有必要輸入直接呈現在 Page 內（單一 Current Step 工作區），不使用 Dialog：
+
+- **缺漏輸入不做 inline 必填提示**，由 WAITING 狀態 glyph（○ WAITING / ✓ VERIFIED）單獨承擔；計算欄（TWD 價值）在缺漏輸入時顯示 $0，不阻擋確認。
+- **外幣 row 五欄佈局**：Account（名稱＋幣別）佔獨立欄，前期餘額／外幣金額／匯率／TWD 價值數字欄標籤與數字同軸右對齊（md 以上生效）；欄寬比例 1.3/.8/1/.9/1。
+- **現金／銀行共用表頭的真表格**：`TwdTableHead`（帳戶／前期餘額／期末餘額／狀態）一條 thead，列內不重複欄位標籤；列高 54px（見 `data-table` 的 9px 垂直內距、右側 pr-12px）；md 以下維持卡片列（label 左、值右）。期末餘額輸入框 150×34 直角、無原生 spinner；期末餘額與狀態欄之間以 pl-12 間隔（th 與 td 同步）。
+- **證券表 `table-fixed`**：欄寬由 thead 定義（actions 欄另計），數字欄 header 與輸入框右緣同軸；row 高度 ~48px 標準級距。
+- **文字層級**：區塊標題（現金／銀行等）13px/600 亮色＋右側附註小字；欄位標籤 10px/500/.08em；帳戶名稱旁幣別 11px mono；前期餘額數字用預設文字色。
+- **取得匯率按鈕在 Account 欄**（單一實體）；inline 錯誤訊息保留，屬操作錯誤回饋而非必填提示。
 
 ## Dashboard 版面
 

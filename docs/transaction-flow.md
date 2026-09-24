@@ -6,7 +6,7 @@ The legacy `RecordForm` was a convoluted mess tied to a deprecated `plannedIncom
 
 We replaced it with `TransactionForm` and a direct `IntentMapping` flow. This avoids complex conditional logic on the client and strictly defines the debits and credits from a single user intent.
 
-本文件描述目前的 UI 與 Use Case 呼叫流程，不重新定義財務模型。分錄架構、IntentType 分層、Allocation 與 user-select 科目的決策分別以 [ADR-0005](adr/0005-journal-entry-architecture.md)、[ADR-0010](adr/0010-intenttype-three-tier.md)、[ADR-0011](adr/0011-allocation-separate-collection.md)、[ADR-0022](adr/0022-intent-userselect-flag.md) 為準；債務還款另見 [ADR-0014](adr/0014-debt-payment-intenttype.md)。
+本文件是交易流程、IntentType 映射與 Allocation 操作細節的規範來源。決策的取捨理由見 [ADR-0005](adr/0005-journal-entry-architecture.md)、[ADR-0010](adr/0010-intenttype-three-tier.md)、[ADR-0011](adr/0011-allocation-separate-collection.md)、[ADR-0022](adr/0022-intent-userselect-flag.md)；債務還款另見 [ADR-0014](adr/0014-debt-payment-intenttype.md)。
 
 ## Core Flow
 
@@ -17,13 +17,19 @@ We replaced it with `TransactionForm` and a direct `IntentMapping` flow. This av
 5. **Allocation Trigger**: The income/expense form emits `triggerAllocation` plus allocation items. On create, the UI controller sends the normalized Transaction and Allocation payload to the dedicated composite command, which atomically creates the Transaction, deterministic Allocation, source `allocationId` link, and operation result. Reallocation-only actions use `replaceAllocationUseCase`, which changes only the Allocation desired state and source link atomically; the existing financial Transaction is not recreated or deleted. On edit, `updateTransactionUseCase` uses the same replacement helper while updating the other editable Transaction fields.
 6. **Income Allocation Template Prefill**: When an income `ledgerCode` is selected, the UI controller queries `allocationTemplates` by exact `ledgerCode`; if not found, it falls back to `isDefault == true`; if still not found, allocation stays blank.
 7. **Template Persistence**: After an income allocation is successfully created, the same allocation percentages are upserted into `allocationTemplates` for that `ledgerCode` as a convenience template. Historical allocations are not mutated.
-8. **Project Selection Rule**: `projectId` is optional for regular entries (expense, income, investment, financing, manual). Only historical `TRANSFER` transactions carry `fromProjectId` and `toProjectId`; the form no longer creates them ([ADR-0042](adr/0042-pause-project-transfer-feature.md)).
+8. **Project Selection Rule**: `projectId` is optional for regular entries (expense, income, investment, financing, manual). Only historical `TRANSFER` transactions carry `fromProjectId` and `toProjectId`; the form no longer creates them ([ADR-0042](adr/0042-pause-project-transfer-feature.md)). 歷史 TRANSFER 交易對某個專案的方向判定：`toProjectId === projectId` 為流入，`fromProjectId === projectId` 為流出。
 9. **Debt Payment Retry Rule**: `DEBT_PAYMENT` is an append-only financial command. The caller creates one idempotency key per user action and reuses it for retries; the Transaction, DebtSnapshot, DebtAccount balance cache, and household operation record commit in one Firestore transaction. A same-key replay returns the original result, while a different payload returns `IDEMPOTENCY_CONFLICT`.
 10. **Debt Payment Entry Point**: The form no longer offers a `DEBT_PAYMENT` tab or panel, and repayments are recorded only through the monthly close workflow (`/close` DEBT_REPAYMENT stage via `monthlyCloseWorkflowUseCase`, which also settles fully-repaid debt accounts). The settlement-prompt dialog in the transaction feature is removed with it.
 
 ## Intent Type Notes
 
-IntentType 的分類與映射規則不在本文件重述，請以 [ADR-0010](adr/0010-intenttype-three-tier.md)、[ADR-0014](adr/0014-debt-payment-intenttype.md) 與 [ADR-0022](adr/0022-intent-userselect-flag.md) 為準。
+IntentType 分三層：
+
+- **日常事件**（`EXPENSE`、`INCOME`）：最常用的進出，表單直接提供。
+- **特殊事件**（固定業務意圖，如 `ASSET_PURCHASE`、`LIABILITY_BORROW`、`LIABILITY_PAYMENT`、`DEBT_PAYMENT`、`TRANSFER`）：情境明確，由專屬流程帶入必要欄位。
+- **不規則事件**（`MANUAL`）：以上都不適用時的手動分錄。
+
+每個意圖對應一組固定的借貸分錄，寫入時由映射展開；報表一律從分錄的 LedgerCode 計算，不從意圖直接推導（ADR-0005）。
 
 意圖讓使用者挑選科目時（`debitUserSelect` / `creditUserSelect`），可選集合由 mapping 決定，兩種模式互斥：
 
@@ -37,11 +43,10 @@ IntentType 的分類與映射規則不在本文件重述，請以 [ADR-0010](adr
 
 ## Allocation Rules (Income / Expense)
 
-Allocation 的資料邊界與獨立集合決策見 [ADR-0011](adr/0011-allocation-separate-collection.md)，以下只保留表單與交易流程的操作細節。
+Allocation 的資料邊界與獨立集合決策見 [ADR-0011](adr/0011-allocation-separate-collection.md)，欄位結構見 [data-structure.md](data-structure.md)，以下只保留表單與交易流程的操作細節。
 
 - Allocation is supported on both `INCOME` and `EXPENSE` submissions.
 - When `triggerAllocation` is enabled, users must provide project allocation percentages totaling 100%.
-- Allocation record uses `sourceTransactionId`, `yearMonth` (`YYYY-MM`), and `direction` (`INCOME` or `EXPENSE`) derived from the source transaction.
 - A newly created Allocation uses its source Transaction ID as its deterministic document ID; the composite create command uses a caller-generated idempotency key separately for retry identity.
 - Project detail records must include allocation-derived entries, even when the source transaction has no `projectId`.
 - `AllocationTemplate` is UI assistance data only. Editing templates does not modify existing `allocations` records.

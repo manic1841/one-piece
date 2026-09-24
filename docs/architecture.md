@@ -2,7 +2,7 @@
 
 本專案採用領域驅動設計 (Domain-Driven Design, DDD) 的簡化版本，旨在分離業務邏輯、資料存取與 UI 呈現。
 
-本文件說明目前的分層與資料流；不可逆的架構取捨以 [ADR](adr/) 為準。若本文件與 ADR 不一致，應先修正本文件的導引內容。
+本文件是分層與資料流契約的規範來源。不可逆的架構取捨理由見 [ADR](adr/)。
 
 ## 1. 分層結構 (Layers)
 
@@ -19,6 +19,7 @@
   - `use_cases/`: 原子級業務操作，封裝單一職責邏輯（如：`createUserUseCase.ts`）。
   - **Permission Services**: 專門處理複雜權限校驗的應用服務（如：`HouseholdPermissionService`）。
 - **規則**: 這裡負責事務控制與業務流程。**絕對禁止在此層級使用 React Hooks 或依賴任何 UI 框架。**
+- 應用層**可以**直接使用 `runTransaction` 與 Firestore query constraints：transaction 在 use case 內部建立並關閉，不跨越層邊界傳遞（見 [ADR-0043](adr/0043-accept-firestore-dependency-in-application.md)）。這讓 use case 能自行負責原子性，不需額外抽象層。
 
 ### 📂 Infrastructure (基礎設施層) - `src/infra/`
 
@@ -36,7 +37,8 @@
   - `components/`: React 組件。
 - **規則**: Component 只調用 feature Hook (Controller)，不直接觸碰業務邏輯或資料庫。
   層級、可觸碰清單與呼叫方向以 [`ui/ui-layer-architecture.md`](ui/ui-layer-architecture.md) 為準；
-  UI 不得 import `@/domains`、`@/application`、`@/infra`（跨層實作由 `src/App.tsx` 這個 composition root 注入）。
+  UI 不得 import `@/domains`、`@/application`、`@/infra`，也不得 import `firebase/firestore`
+  （跨層實作由 `src/App.tsx` 這個 composition root 注入）。
 
 ## 2. 資料流 (Data Flow)
 
@@ -47,6 +49,6 @@
 
 ## 3. 重要約定 (Conventions)
 
-- **意圖導向 (Intent-based)**: 財務操作的分錄架構與 IntentType 分層詳見 [ADR-0005](adr/0005-journal-entry-architecture.md) 與 [ADR-0010](adr/0010-intenttype-three-tier.md)；實際輸入流程見 [transaction-flow.md](transaction-flow.md)。
-- **Project 與會計科目**: 兩者的責任邊界與餘額計算詳見 [ADR-0006](adr/0006-project-legercode-separation.md)。
-- **快照與快取 (Snapshots)**: ProjectSnapshot 與報表快照的來源及產生時機詳見 [ADR-0012](adr/0012-project-snapshot-cache.md) 與 [ADR-0018](adr/0018-manual-financial-report-generation.md)。本文件不另行定義快照規則。
+- **意圖導向 (Intent-based)**: 財務操作的分錄架構與 IntentType 分層見 [transaction-flow.md](transaction-flow.md)；取捨理由見 [ADR-0005](adr/0005-journal-entry-architecture.md) 與 [ADR-0010](adr/0010-intenttype-three-tier.md)。
+- **Project 與會計科目**: 兩者的責任邊界與餘額計算見 [data-structure.md](data-structure.md)；取捨理由見 [ADR-0006](adr/0006-project-legercode-separation.md)。
+- **快照與快取 (Snapshots)**: ProjectSnapshot 與報表快照的來源及產生時機見 [data-structure.md](data-structure.md)；取捨理由見 [ADR-0012](adr/0012-project-snapshot-cache.md) 與 [ADR-0018](adr/0018-manual-financial-report-generation.md)。

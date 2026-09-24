@@ -10,6 +10,11 @@ Define a single source of truth for frontend display labels, especially for:
 
 This avoids divergent wording such as "薪水/薪資" or "生活/生活費" across transaction list, form preview, and reports.
 
+## Terminology
+
+**Display Label（顯示標籤）** 是由 `constants` 層單一來源提供、對應資料值（如 IntentType、LedgerCode、帳戶類別）
+的顯示文字。UI 只能經由標籤 API 取得，不得在元件內硬編碼資料標籤。避免詞：Ui Label、寫死文字。
+
 ## Source of Truth
 
 Frontend must resolve transaction-related labels through:
@@ -81,7 +86,7 @@ Free-form UI chrome (button text, error messages, subtitles, descriptive copy) i
 - The single seam for "all ledger codes of a household" is `listAllLedgerCodesUseCase` (`src/application/ledger/use_cases/listAllLedgerCodesUseCase.ts`): system defaults from the `LEDGER_CODES` constant merged with household custom codes (`households/{id}/ledgerCodes`, ADR-0009).
 - UI code must not enumerate `LEDGER_CODES` directly to build an option list (picker, filter, select) for a set that should include custom codes; call the use case (via `useLedgerCodes` where a React hook fits) and pass `getUnifiedLedgerCodeLabel` as `labelResolver`.
 - Referencing code constants for *label resolution or semantics* is a different thing and is not banned: e.g. a ViewModel matching a transaction's code against `LEDGER_CODES`/`LEDGER_PREFIX` to pick a display label or classify a row. This is allowed in the **ViewModel** and **constants** tiers, and forbidden in **Surface**, which may not import `@/domains` at all.
-- No `*_LABEL` map may be imported from `@/domains` by any UI tier; display text comes from `constants` (see ADR-0062 and the Display Label entry in `CONTEXT.md`).
+- No `*_LABEL` map may be imported from `@/domains` by any UI tier; display text comes from `constants` (see ADR-0062 and 上方 Terminology).
 
 ## Notes
 
