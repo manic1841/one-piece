@@ -68,10 +68,20 @@ describe('confirmStageInState', () => {
     ).toThrow(FinancialPeriodStateError);
   });
 
-  it('rejects re-confirming a completed stage', () => {
-    const confirmed = confirmStageInState(basePeriod(), 'ACCOUNT_BALANCE', 'user-1', new Date());
-    expect(() => confirmStageInState(confirmed, 'ACCOUNT_BALANCE', 'user-1', new Date())).toThrow(
+  it('rejects re-confirming a completed non-reconfirmable stage', () => {
+    const confirmed = confirmStageInState(basePeriod(), 'DEBT_REPAYMENT', 'user-1', new Date());
+    expect(() => confirmStageInState(confirmed, 'DEBT_REPAYMENT', 'user-1', new Date())).toThrow(
       FinancialPeriodStateError,
+    );
+  });
+
+  it('allows re-confirming a completed reconfirmable stage', () => {
+    const confirmed = confirmStageInState(basePeriod(), 'ACCOUNT_BALANCE', 'user-1', new Date());
+    const next = confirmStageInState(confirmed, 'ACCOUNT_BALANCE', 'user-2', new Date());
+
+    expect(next.stages.ACCOUNT_BALANCE?.confirmedBy).toBe('user-2');
+    expect(confirmStageInState(confirmed, 'PORTFOLIO_CASH_FLOW', 'user-2', new Date()).status).toBe(
+      'IN_PROGRESS',
     );
   });
 

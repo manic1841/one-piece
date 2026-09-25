@@ -18,6 +18,7 @@ import { MONTHLY_CLOSE_LABELS } from '@/ui/constants/monthlyClose';
 import { useAuthState } from '@/ui/contexts/useAuthState';
 import { useConfirm } from '@/ui/features/app/confirm/useConfirm';
 import { useMonthlyClose } from '@/ui/features/monthly_close/hooks/useMonthlyClose';
+import { usePortfolioSnapshotPrefill } from '@/ui/features/monthly_close/hooks/usePortfolioSnapshotPrefill';
 import { useSnapshotBalancePrefill } from '@/ui/features/monthly_close/hooks/useSnapshotBalancePrefill';
 import { useTradeDrawer } from '@/ui/features/monthly_close/hooks/useTradeDrawer';
 import { useTradeDrawerForm } from '@/ui/features/monthly_close/hooks/useTradeDrawerForm';
@@ -155,6 +156,12 @@ export const useMonthlyClosePage = ({
     accounts,
     auth,
     setAccountBalances,
+  });
+  const portfolioSnapshots = usePortfolioSnapshotPrefill({
+    householdId,
+    selectedYearMonth,
+    portfolios,
+    auth,
   });
 
   // SECURITIES_TRADE prefill: the month's existing investment and financing
@@ -325,6 +332,7 @@ export const useMonthlyClosePage = ({
     displayedStepText,
     accounts,
     accountSnapshots,
+    portfolioSnapshots,
     portfolios,
     debtAccounts,
     accountBalances,

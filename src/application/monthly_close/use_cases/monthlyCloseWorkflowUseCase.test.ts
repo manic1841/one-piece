@@ -499,7 +499,7 @@ describe('MonthlyCloseWorkflowUseCase.confirmStage', () => {
     expect(createTransactionUseCase.execute).toHaveBeenCalledTimes(1);
   });
 
-  it('creates zero cash-flow snapshots only for portfolios without a month snapshot', async () => {
+  it('rewrites the month snapshot for portfolios that already hold one', async () => {
     vi.mocked(listPortfoliosUseCase.execute).mockResolvedValue([
       { id: 'portfolio-1' },
       { id: 'portfolio-2' },
@@ -511,16 +511,19 @@ describe('MonthlyCloseWorkflowUseCase.confirmStage', () => {
     await useCase.confirmStage({
       ...REQUEST_BASE,
       stageId: 'PORTFOLIO_CASH_FLOW',
-      portfolioCashFlows: { 'portfolio-2': { deposits: 300, withdrawals: 100 } },
+      portfolioCashFlows: {
+        'portfolio-1': { deposits: 500, withdrawals: 200 },
+        'portfolio-2': { deposits: 300, withdrawals: 100 },
+      },
     });
 
-    expect(createPortfolioSnapshotUseCase.execute).toHaveBeenCalledTimes(1);
+    expect(createPortfolioSnapshotUseCase.execute).toHaveBeenCalledTimes(2);
     expect(createPortfolioSnapshotUseCase.execute).toHaveBeenCalledWith({
       householdId: 'household-1',
-      portfolioId: 'portfolio-2',
+      portfolioId: 'portfolio-1',
       year: 2026,
       month: 9,
-      cashFlow: { deposits: 300, withdrawals: 100 },
+      cashFlow: { deposits: 500, withdrawals: 200 },
       userEmail: 'user@test.com',
       auth,
     });

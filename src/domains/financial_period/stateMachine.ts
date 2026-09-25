@@ -41,7 +41,7 @@ export const confirmStageInState = (
     throw new FinancialPeriodStateError('STAGE_NOT_FOUND', `unknown stage: ${stageId}`);
   }
   const current = period.stages[stageId];
-  if (current?.status === 'COMPLETED') {
+  if (current?.status === 'COMPLETED' && !isReconfirmableStage(stageId)) {
     throw new FinancialPeriodStateError('STAGE_ALREADY_COMPLETED', `stage completed: ${stageId}`);
   }
 
@@ -98,7 +98,9 @@ export const isStageCompleted = (period: FinancialPeriod, stageId: CloseStageId)
 
 /** Re-confirmable stages (ADR-0052/§5): same-key idempotent overwrite is safe. */
 export const isReconfirmableStage = (stageId: CloseStageId): boolean =>
-  stageId === 'ACCOUNT_BALANCE' || stageId === 'SECURITIES_TRADE';
+  stageId === 'ACCOUNT_BALANCE' ||
+  stageId === 'SECURITIES_TRADE' ||
+  stageId === 'PORTFOLIO_CASH_FLOW';
 
 export const closePeriodInState = (
   period: FinancialPeriod,

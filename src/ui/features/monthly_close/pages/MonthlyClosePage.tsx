@@ -44,6 +44,7 @@ export const MonthlyClosePage: React.FC<MonthlyClosePageProps> = ({
     displayedStepText,
     accounts,
     accountSnapshots,
+    portfolioSnapshots,
     portfolios,
     debtAccounts,
     accountBalances,
@@ -168,6 +169,7 @@ export const MonthlyClosePage: React.FC<MonthlyClosePageProps> = ({
               currentBalance: debtAccount.currentBalance,
             }))}
             portfolioCashFlows={portfolioCashFlows}
+            portfolioSnapshots={portfolioSnapshots}
             repayments={repayments}
             onPortfolioCashFlowsChange={setPortfolioCashFlows}
             onRepaymentsChange={setRepayments}

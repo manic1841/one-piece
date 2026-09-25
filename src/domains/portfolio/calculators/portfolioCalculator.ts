@@ -31,23 +31,15 @@ export function calculatePortfolioSnapshot(
   // 2. Calculate current total value
   const totalValue = mappedAccounts.reduce((sum, acc) => sum + acc.value, 0);
 
-  // 3. Calculate performance metrics
+  // 3. Calculate performance metrics via the shared single-period derivation
   const openingValue = prevSnapshot?.totalValue || 0;
   const closingValue = totalValue;
-
-  // Net Cash Flow = Deposits - Withdrawals
-  const netCashFlow = cashFlow.deposits - cashFlow.withdrawals;
-
-  // Gain = Closing Value - Opening Value - Net Cash Flow
-  const gain = closingValue - openingValue - netCashFlow;
-
-  // Return Rate = Gain / (Opening Value + (Net Cash Flow / 2))
-  // We use Modified Dietz approximation or simple return
-  let returnRate = 0;
-  const adjustedBase = openingValue + netCashFlow / 2;
-  if (adjustedBase > 0) {
-    returnRate = (gain / adjustedBase) * 100;
-  }
+  const { netCashFlow, gain, returnRate } = calculatePortfolioPeriodPerformance({
+    openingValue,
+    closingValue,
+    deposits: cashFlow.deposits,
+    withdrawals: cashFlow.withdrawals,
+  });
 
   // Cumulative metrics
   let cumulativeGain = gain;
@@ -76,5 +68,53 @@ export function calculatePortfolioSnapshot(
       cumulativeGain,
       cumulativeReturnRate,
     },
+  };
+}
+
+export interface PortfolioTotalPerformance {
+  gain: number;
+  returnRate: number;
+}
+
+export interface PortfolioPeriodPerformance {
+  netCashFlow: number;
+  gain: number;
+  returnRate: number;
+}
+
+/**
+ * Single-period derivation shared by the snapshot write path and the close UI:
+ * gain nets out cash flow in/out, return rate uses the modified-dietz base.
+ */
+export function calculatePortfolioPeriodPerformance(params: {
+  openingValue: number;
+  closingValue: number;
+  deposits: number;
+  withdrawals: number;
+}): PortfolioPeriodPerformance {
+  const netCashFlow = params.deposits - params.withdrawals;
+  const gain = params.closingValue - params.openingValue - netCashFlow;
+  const adjustedBase = params.openingValue + netCashFlow / 2;
+  return {
+    netCashFlow,
+    gain,
+    returnRate: adjustedBase > 0 ? (gain / adjustedBase) * 100 : 0,
+  };
+}
+
+// Total applies the single-period modified-dietz path to the aggregate layer:
+// the whole household is treated as one virtual portfolio.
+export function calculatePortfolioTotal(
+  snapshots: Pick<PortfolioSnapshotCreate, 'performance'>[],
+): PortfolioTotalPerformance {
+  let totalGain = 0;
+  let totalBase = 0;
+  for (const snapshot of snapshots) {
+    totalGain += snapshot.performance.gain;
+    totalBase += snapshot.performance.openingValue + snapshot.performance.netCashFlow / 2;
+  }
+  return {
+    gain: totalGain,
+    returnRate: totalBase > 0 ? (totalGain / totalBase) * 100 : 0,
   };
 }
