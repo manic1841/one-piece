@@ -1,15 +1,27 @@
-import { initializeApp, deleteApp, type FirebaseApp } from 'firebase/app';
+import { type FirebaseApp, deleteApp, initializeApp } from 'firebase/app';
 import {
   collection,
   connectFirestoreEmulator,
   doc,
   getDocs,
   getFirestore,
-  setDoc,
   serverTimestamp,
+  setDoc,
   terminate,
 } from 'firebase/firestore';
-import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+import {
+  RETIREMENT_PLAN_TRANSACTION_WRITE_LIMIT,
+  RetirementPlanCommandErrorCode,
+} from '@/domains/retirement/retirementPlanErrors';
+import { emulatorProjectId, firestoreEmulator } from '@/test/emulatorEnv';
+import { resetMockDb } from '@/test/mocks/firebase';
+
+import { createRetirementPlanUseCase } from './createRetirementPlanUseCase';
+import { deleteRetirementPlanUseCase } from './deleteRetirementPlanUseCase';
+import { duplicateRetirementPlanUseCase } from './duplicateRetirementPlanUseCase';
+import { updateRetirementPlanUseCase } from './updateRetirementPlanUseCase';
 
 // Mock toggle: when true, writeChildrenInTransaction throws to simulate a
 // child-write failure inside the Firestore transaction. The mock factory
@@ -17,7 +29,8 @@ import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
 let shouldFailChildWrite = false;
 
 vi.mock('@/infra/repositories/retirementSubcollectionHelpers', async (importActual) => {
-  const actual = await importActual<typeof import('@/infra/repositories/retirementSubcollectionHelpers')>();
+  const actual =
+    await importActual<typeof import('@/infra/repositories/retirementSubcollectionHelpers')>();
   return {
     ...actual,
     writeChildrenInTransaction: (...args: Parameters<typeof actual.writeChildrenInTransaction>) => {
@@ -28,17 +41,6 @@ vi.mock('@/infra/repositories/retirementSubcollectionHelpers', async (importActu
     },
   };
 });
-
-import {
-  RetirementPlanCommandErrorCode,
-  RETIREMENT_PLAN_TRANSACTION_WRITE_LIMIT,
-} from '@/domains/retirement/retirementPlanErrors';
-import { createRetirementPlanUseCase } from './createRetirementPlanUseCase';
-import { deleteRetirementPlanUseCase } from './deleteRetirementPlanUseCase';
-import { duplicateRetirementPlanUseCase } from './duplicateRetirementPlanUseCase';
-import { updateRetirementPlanUseCase } from './updateRetirementPlanUseCase';
-import { emulatorProjectId, firestoreEmulator } from '@/test/emulatorEnv';
-import { resetMockDb } from '@/test/mocks/firebase';
 
 const auth = { uid: 'user-1', isGlobalAdmin: true };
 const userEmail = 'user@example.com';
@@ -54,7 +56,9 @@ const makeReaderDb = () => {
   return getFirestore(app);
 };
 
-const readFresh = async <T>(read: (db: ReturnType<typeof getFirestore>) => Promise<T>): Promise<T> => {
+const readFresh = async <T>(
+  read: (db: ReturnType<typeof getFirestore>) => Promise<T>,
+): Promise<T> => {
   const db = makeReaderDb();
   try {
     return await read(db);
@@ -66,25 +70,14 @@ const readFresh = async <T>(read: (db: ReturnType<typeof getFirestore>) => Promi
 const planDoc = (db: ReturnType<typeof getFirestore>, householdId: string, planId: string) =>
   doc(db, 'households', householdId, 'retirement_plans', planId);
 
-const incomeStreams = (
-  db: ReturnType<typeof getFirestore>,
-  householdId: string,
-  planId: string,
-) => collection(db, 'households', householdId, 'retirement_plans', planId, 'incomeStreams');
+const incomeStreams = (db: ReturnType<typeof getFirestore>, householdId: string, planId: string) =>
+  collection(db, 'households', householdId, 'retirement_plans', planId, 'incomeStreams');
 
 const expenseCategories = (
   db: ReturnType<typeof getFirestore>,
   householdId: string,
   planId: string,
-) =>
-  collection(
-    db,
-    'households',
-    householdId,
-    'retirement_plans',
-    planId,
-    'expenseCategories',
-  );
+) => collection(db, 'households', householdId, 'retirement_plans', planId, 'expenseCategories');
 
 const basePlan = (overrides: Record<string, unknown> = {}) => ({
   name: 'Plan',
@@ -187,9 +180,7 @@ describe('Retirement plan atomic writes with Firestore Emulator', () => {
     });
 
     const planData = await readFresh(async (db) => {
-      const snapshot = await getDocs(
-        collection(db, 'households', householdId, 'retirement_plans'),
-      );
+      const snapshot = await getDocs(collection(db, 'households', householdId, 'retirement_plans'));
       const plan = snapshot.docs.find((docSnapshot) => docSnapshot.id === planId);
       const incomes = await getDocs(
         collection(db, 'households', householdId, 'retirement_plans', planId, 'incomeStreams'),
@@ -232,9 +223,7 @@ describe('Retirement plan atomic writes with Firestore Emulator', () => {
     }
 
     const state = await readFresh(async (db) => {
-      const snapshot = await getDocs(
-        collection(db, 'households', householdId, 'retirement_plans'),
-      );
+      const snapshot = await getDocs(collection(db, 'households', householdId, 'retirement_plans'));
       return {
         planCount: snapshot.docs.length,
         oldActive: snapshot.docs.find((docSnapshot) => docSnapshot.id === 'plan-old')?.data()
@@ -269,9 +258,7 @@ describe('Retirement plan atomic writes with Firestore Emulator', () => {
     ]);
 
     const activeIds = await readFresh(async (db) => {
-      const snapshot = await getDocs(
-        collection(db, 'households', householdId, 'retirement_plans'),
-      );
+      const snapshot = await getDocs(collection(db, 'households', householdId, 'retirement_plans'));
       return snapshot.docs
         .filter((docSnapshot) => docSnapshot.data().isActive)
         .map((docSnapshot) => docSnapshot.id);
@@ -295,9 +282,7 @@ describe('Retirement plan atomic writes with Firestore Emulator', () => {
     });
 
     const state = await readFresh(async (db) => {
-      const plan = await getDocs(
-        collection(db, 'households', householdId, 'retirement_plans'),
-      );
+      const plan = await getDocs(collection(db, 'households', householdId, 'retirement_plans'));
       const incomes = await getDocs(
         collection(db, 'households', householdId, 'retirement_plans', 'plan-1', 'incomeStreams'),
       );
@@ -324,9 +309,7 @@ describe('Retirement plan atomic writes with Firestore Emulator', () => {
     });
 
     const activeCount = await readFresh(async (db) => {
-      const snapshot = await getDocs(
-        collection(db, 'households', householdId, 'retirement_plans'),
-      );
+      const snapshot = await getDocs(collection(db, 'households', householdId, 'retirement_plans'));
       return snapshot.docs.filter((docSnapshot) => docSnapshot.data().isActive).length;
     });
 
@@ -359,9 +342,7 @@ describe('Retirement plan atomic writes with Firestore Emulator', () => {
     });
 
     const state = await readFresh(async (db) => {
-      const snapshot = await getDocs(
-        collection(db, 'households', householdId, 'retirement_plans'),
-      );
+      const snapshot = await getDocs(collection(db, 'households', householdId, 'retirement_plans'));
       const copy = snapshot.docs.find((docSnapshot) => docSnapshot.id === copyId);
       const copyIncomes = await getDocs(
         collection(db, 'households', householdId, 'retirement_plans', copyId, 'incomeStreams'),

@@ -3,6 +3,7 @@ import react from '@vitejs/plugin-react';
 import path from 'path';
 import { defineConfig } from 'vitest/config';
 
+import packageJson from './package.json';
 import {
   AUTH_PROXY_PREFIXES,
   DEFAULT_AUTH_EMULATOR_TARGET,
@@ -10,7 +11,6 @@ import {
   EMULATOR_AUTH_HANDLER_PREFIX,
   FIRESTORE_PROXY_PATH,
 } from './src/infra/emulatorEndpoints';
-import packageJson from './package.json';
 
 /** Strip a scheme so both `firebase:8080` and `http://firebase:8080` work as proxy targets. */
 const normalizeTarget = (value: string | undefined, fallback: string): string =>

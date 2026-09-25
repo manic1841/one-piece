@@ -2,18 +2,17 @@ import { useCallback, useRef, useState } from 'react';
 
 import { z } from 'zod';
 
-import { createTransactionWithAllocationUseCase } from '@/application/ledger/use_cases/createTransactionWithAllocationUseCase';
 import { createTransactionUseCase } from '@/application/ledger/use_cases/createTransactionUseCase';
+import { createTransactionWithAllocationUseCase } from '@/application/ledger/use_cases/createTransactionWithAllocationUseCase';
 import { getIncomeAllocationTemplateUseCase } from '@/application/ledger/use_cases/getIncomeAllocationTemplateUseCase';
 import { updateTransactionUseCase } from '@/application/ledger/use_cases/updateTransactionUseCase';
 import { upsertIncomeAllocationTemplateUseCase } from '@/application/ledger/use_cases/upsertIncomeAllocationTemplateUseCase';
 import { IntentType } from '@/domains/ledger/constants';
 import { DEFAULT_INTENT_MAPPINGS } from '@/domains/ledger/intentMapping';
 import { normalizeDescription } from '@/domains/operation/fingerprint';
-import { useAuthState } from '@/ui/contexts/useAuthState';
 import { getIntentLabel } from '@/ui/constants/transaction';
+import { useAuthState } from '@/ui/contexts/useAuthState';
 import { useLedgerCodes } from '@/ui/features/ledger/hooks/useLedgerCodes';
-import { useAuthIdentity } from '@/ui/hooks/useAuthIdentity';
 import { type AllocationItemInput } from '@/ui/features/transaction/types/allocation';
 import {
   type TransactionFormCategoryOption,
@@ -21,11 +20,12 @@ import {
 } from '@/ui/features/transaction/types/transaction';
 import {
   type TransactionFormVM,
-  mapTransactionVMToAllocationInput,
   mapTransactionVMToAllocationData,
+  mapTransactionVMToAllocationInput,
   mapTransactionVMToDomain,
   parseTransactionFormVM,
 } from '@/ui/features/transaction/viewmodels/transaction.vm';
+import { useAuthIdentity } from '@/ui/hooks/useAuthIdentity';
 import { logger } from '@/utils/logger';
 
 const expenseCategories: TransactionFormCategoryOption[] = [

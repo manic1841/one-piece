@@ -259,10 +259,13 @@ describe('useLoadingTask cancellation', () => {
 
     let outcome: unknown;
     await act(async () => {
-      outcome = await result.current.run(async (signal) => {
-        expect(signal.aborted).toBe(false);
-        return 'kept';
-      }, { signal: caller.signal });
+      outcome = await result.current.run(
+        async (signal) => {
+          expect(signal.aborted).toBe(false);
+          return 'kept';
+        },
+        { signal: caller.signal },
+      );
     });
 
     expect(outcome).toEqual({ ok: true, value: 'kept' });

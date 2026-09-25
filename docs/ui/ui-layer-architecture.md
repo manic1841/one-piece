@@ -36,19 +36,19 @@ ui
 The five tiers and the direction they may call. A tier may not import what is not listed.
 Decision record: [ADR-0062](../adr/0062-ui-tier-separation-and-surface-import-ban.md).
 
-| Tier | Directories | May import | Must never import |
-| --- | --- | --- | --- |
-| **Surface** | everything under `src/ui` not listed in another tier | UI components, Controllers, ViewModels, `constants`, `utils` | `@/domains`, `@/application`, `@/infra` — **including types** |
-| **ViewModel** | `features/*/viewmodels`, `features/*/mappers`, `features/*/types` | domain types/values/pure functions, application **types** | application behavior (use cases, workflows), `@/infra` |
-| **Controller** | `features/*/hooks`, `hooks`, `contexts`, `features/*/contexts` | use cases / workflows, domain, ViewModels, `constants`, `utils`, other Controller mechanisms | repositories, Firestore, API clients, storage, `@/infra` |
-| **Display Labels** | `constants` | same import scope as ViewModel | `@/application`, `@/infra`, domain behavior |
-| **Presentation Helper** | `utils`, `features/*/utils` | pure formatting/styling functions | anything with business or data semantics |
+| Tier                    | Directories                                                       | May import                                                                                   | Must never import                                             |
+| ----------------------- | ----------------------------------------------------------------- | -------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
+| **Surface**             | everything under `src/ui` not listed in another tier              | UI components, Controllers, ViewModels, `constants`, `utils`                                 | `@/domains`, `@/application`, `@/infra` — **including types** |
+| **ViewModel**           | `features/*/viewmodels`, `features/*/mappers`, `features/*/types` | domain types/values/pure functions, application **types**                                    | application behavior (use cases, workflows), `@/infra`        |
+| **Controller**          | `features/*/hooks`, `hooks`, `contexts`, `features/*/contexts`    | use cases / workflows, domain, ViewModels, `constants`, `utils`, other Controller mechanisms | repositories, Firestore, API clients, storage, `@/infra`      |
+| **Display Labels**      | `constants`                                                       | same import scope as ViewModel                                                               | `@/application`, `@/infra`, domain behavior                   |
+| **Presentation Helper** | `utils`, `features/*/utils`                                       | pure formatting/styling functions                                                            | anything with business or data semantics                      |
 
 **Surface is the fail-closed default.** Membership in a tier is decided by directory, not by file role: any file under
 `src/ui` that is not inside one of the directories listed for a non-Surface tier is Surface. A new directory is therefore
 Surface until the tier table names it — never silently exempt.
 
-**Display Labels is a ViewModel-tier import scope.** Its *responsibility* is unique (the only source of data-value
+**Display Labels is a ViewModel-tier import scope.** Its _responsibility_ is unique (the only source of data-value
 display text, see rule 7 and [`ui-labeling-guideline.md`](ui-labeling-guideline.md)), but what it may import is deliberately identical to ViewModel: label maps
 consume domain values and types as mapping input. It must not acquire domain behavior.
 
@@ -61,7 +61,7 @@ between domain/application shapes and components.
     type**. When a component needs a domain-shaped value, the feature's ViewModel maps it or re-exports the type
     (`export type { Holding }`); the component imports from the ViewModel.
 3.  **ViewModel -> Domain**: ViewModels may import domain types, domain values (enums, option sets) and domain pure
-    functions — that mapping *is* their job.
+    functions — that mapping _is_ their job.
 4.  **ViewModel -> Application (types only)**: ViewModels may import an application **type** as a mapper input
     (e.g. `mapDashboardOverviewToHeroVM(overview: DashboardOverview)`), but must never call an application use case or
     workflow.
@@ -92,7 +92,7 @@ imports, resolves each specifier to a path, and validates the rules above. Surfa
 through an allowlist that only ever shrank; it reached zero in issue #179 and the allowlist was deleted with it, so
 the check is now absolute.
 
-**What the test does not enforce.** The test covers the *import* dimension only — which module a file may reach. The
+**What the test does not enforce.** The test covers the _import_ dimension only — which module a file may reach. The
 rest of the tier contract (who owns state, where a `useForm` call site lives, whether a page orchestrates use cases)
 is **enforced by review, not by a test**. A file with clean imports can still violate its tier; do not read a green
 boundary test as a green tier contract. Static checks for these dimensions were deliberately rejected — they cannot be
@@ -145,24 +145,24 @@ ViewModels (VM) are the **Projected State** of the domain for a specific UI view
 Hooks in `features/*/hooks` (and shared `hooks/`) are **Controllers**. They bridge React's lifecycle and the pure logic
 of Use Cases. Two responsibilities plus one mechanism — there is no third layer:
 
-| Kind | What it is | May contain |
-| --- | --- | --- |
-| **Controller** | One per page/dialog. Owns data orchestration and the loading state that belongs to it, and composes Query and Command hooks. | use case calls via the hooks it composes, local state, form state |
-| **Query** | One per resource. Read-only. | read use cases |
-| **Command** | One per resource, named `*Cmds` when it exists as a distinct bundle. Write-only. | write use cases |
-| **`useLoadingTask`** | A **mechanism**, not a tier. Used *by* Query/Command hooks, exactly like `useState`. It owns the loading state, the failure value, the write-back of a run's outcome, and the ability to abandon a run, so a hook that needs cancellation or a typed failure no longer has a reason to hand-roll either. Superseding a previous run — passing a signal so the older run cannot write back — is the consumer's job. Optional `initiallyLoading` seeds the loading state for a hook whose first paint precedes its first run. | — |
+| Kind                 | What it is                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  | May contain                                                       |
+| -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| **Controller**       | One per page/dialog. Owns data orchestration and the loading state that belongs to it, and composes Query and Command hooks.                                                                                                                                                                                                                                                                                                                                                                                                | use case calls via the hooks it composes, local state, form state |
+| **Query**            | One per resource. Read-only.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                | read use cases                                                    |
+| **Command**          | One per resource, named `*Cmds` when it exists as a distinct bundle. Write-only.                                                                                                                                                                                                                                                                                                                                                                                                                                            | write use cases                                                   |
+| **`useLoadingTask`** | A **mechanism**, not a tier. Used _by_ Query/Command hooks, exactly like `useState`. It owns the loading state, the failure value, the write-back of a run's outcome, and the ability to abandon a run, so a hook that needs cancellation or a typed failure no longer has a reason to hand-roll either. Superseding a previous run — passing a signal so the older run cannot write back — is the consumer's job. Optional `initiallyLoading` seeds the loading state for a hook whose first paint precedes its first run. | —                                                                 |
 
 Rules:
 
 - **Presentation State Stays Put**: a page or component may hold its own **presentation state** — dialog open/closed,
-  selection, view filters — without moving it into a Controller. What must not live in Surface is *data* orchestration:
+  selection, view filters — without moving it into a Controller. What must not live in Surface is _data_ orchestration:
   calling a use case, or owning the loading/error state of a fetch. Split on that line: orchestration goes to the
   Controller, presentation stays in the render layer.
 - **No business logic**: if you're calculating interest rates in a hook, you're doing it wrong. Move it to a Domain Service.
 - **Return Intent**: don't just return data; return actions (e.g., `onSave`, `onCancel`).
 - **Atomic Operations**: each hook focuses on a specific interaction flow.
 - **No Hidden Workflow**: a single user action must not orchestrate multiple use cases. Multi-step orchestration is a
-  Workflow use case (e.g. the monthly-close workflow) and lives in the application layer. A hook *file* may expose
+  Workflow use case (e.g. the monthly-close workflow) and lives in the application layer. A hook _file_ may expose
   several use cases as a menu of operations; that is not orchestration.
 - **Command Purity**: a `*Cmds` hook contains writes only. Reads live in a Query hook or the Controller, so that "calling
   Cmds means state changes" stays true.
@@ -178,22 +178,22 @@ Rules:
   for it instead of hand-rolling the same counter, the same error slot and the same abandonment guard. It is the
   default, not a mandate: **it does not apply to state that is not a promise's loading or failure.** Those are not
   exceptions to the rule, they are outside its scope:
-  - **Action flags** — `isSubmitting` / `saving` / `isStarting` say *which* command is in flight, not "something is
+  - **Action flags** — `isSubmitting` / `saving` / `isStarting` say _which_ command is in flight, not "something is
     loading". Several commands may share one flag or each need its own, and a single counter cannot attribute a failure
     or a spinner to the right action.
   - **Route and boot gates** — the flag decides which route renders (or that we redirect) and its lifetime spans
     `navigate()`; it is a boot phase, not a task lifetime. A **first-paint gate** (`useState(true)`) is the same idea:
     the first render happens before any task exists, so there is nothing for the mechanism to be loading yet.
   - **Typed error channels** — field errors (`z.ZodError` → a per-field map), typed codes, or a failure raised
-    *synchronously* before any `await`. The mechanism carries one `unknown` value; it cannot be a field map or a code
+    _synchronously_ before any `await`. The mechanism carries one `unknown` value; it cannot be a field map or a code
     union the consumer switches on, and a value that never came from a promise is not its business.
   - **Non-promise sources** — a subscription drives the state; there is no task to wrap and no signal to abort.
   - **Controller-owned feedback** — a Controller may deliberately let its read and its writes share one loading/error
     channel, so the whole section reports as one unit. That is a Controller's prerogative; it is not a reason to split
     a surface's feedback in two.
   - **The hook must always initiate a run.** `useLoadingTask({ initiallyLoading: true })` starts in the loading state so
-    a first paint can gate on it, and it releases that seed when a `run` is *initiated*. A hook that asks for the seed
-    and then skips `run` strands `loading` at `true` forever, so the "nothing to fetch" branches belong *inside* the
+    a first paint can gate on it, and it releases that seed when a `run` is _initiated_. A hook that asks for the seed
+    and then skips `run` strands `loading` at `true` forever, so the "nothing to fetch" branches belong _inside_ the
     task, not in front of it.
   - A hook that keeps its own loading or error state should be able to point at one of the above.
 - **Abandonment Is Local**: abandoning a run discards **the mechanism's own write-back** — the failure value it would
@@ -205,7 +205,7 @@ Rules:
   `{ ok: false, error }` — and a consumer must **not** call `setState` in its own continuation after `await run(...)`.
   That trailing shape is indistinguishable, to a reader and to `react-hooks/set-state-in-effect`, from a synchronous
   write inside the effect. The callback's type omits the `aborted` arm, so an abandoned run cannot write back: the
-  guarantee is in the type, not in the consumer's discipline. Two consequences follow. `writeBack` runs *after*
+  guarantee is in the type, not in the consumer's discipline. Two consequences follow. `writeBack` runs _after_
   `loading` drops, so a throwing `writeBack` cannot strand the loading state; and it sits outside the mechanism's
   failure handling, so its own throw propagates rather than being reported as the task's failure. `writeBack` is **not**
   a substitute for `signal`: without a signal an older run is never abandoned, so it completes and writes its stale
@@ -213,7 +213,7 @@ Rules:
 - **Write-Back Is Lint-Invisible**: routing a write-back through `writeBack` moves it out of `set-state-in-effect`'s
   sight, because the analyzer cannot follow a callback reference. That is precisely why the correct cancellation shape
   used to be flagged while the racy one was not. The guarantee therefore lives in the mechanism's type and tests, not in
-  the linter — so a write-back added to a task body *itself* (rather than to `writeBack`) must be caught in review.
+  the linter — so a write-back added to a task body _itself_ (rather than to `writeBack`) must be caught in review.
 - **Supersede On Rapid Deps**: a hook whose dependencies change faster than a request completes (paging months, typing a
   filter) must hold the in-flight `AbortController` and abort it before starting the replacement run; otherwise the older
   response can land last and win. Pass its signal as `run`'s `signal` option.
@@ -243,14 +243,14 @@ field-level validation for display only.
 // features/[feature]/hooks/useXxxForm.ts  — Controller
 const form = useForm<XxxFormVM>({
   resolver: zodResolver(XxxFormSchema),
-  mode: 'onTouched',                        // field-level display; not the gate
+  mode: 'onTouched', // field-level display; not the gate
   defaultValues,
 });
 
 const onSubmit = form.handleSubmit((vm) => {
-  const parsed = XxxFormSchema.parse(vm);   // authoritative gate
+  const parsed = XxxFormSchema.parse(vm); // authoritative gate
   const domain = mapXxxVMToDomain(parsed);
-  return save(domain);                      // Use Case
+  return save(domain); // Use Case
 });
 ```
 

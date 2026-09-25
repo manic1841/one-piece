@@ -48,10 +48,7 @@ describe('WatchListSettings', () => {
     const removeTarget = vi.fn().mockResolvedValue(undefined);
     const { useWatchListSettings } = await import('../hooks/useWatchListSettings');
     vi.mocked(useWatchListSettings).mockReturnValue({
-      targets: [
-        makeTarget('PROJECT', 'p1', '媽媽專案'),
-        makeTarget('DEBT_ACCOUNT', 'd1', '房貸'),
-      ],
+      targets: [makeTarget('PROJECT', 'p1', '媽媽專案'), makeTarget('DEBT_ACCOUNT', 'd1', '房貸')],
       loading: false,
       saving: false,
       error: '',

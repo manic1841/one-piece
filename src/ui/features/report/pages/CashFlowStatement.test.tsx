@@ -22,8 +22,12 @@ describe('CashFlowStatementPage', () => {
           label: '營業活動',
           total: 200,
           totalText: 'NT$200',
-          inflowItems: [{ code: 'income:salary', label: '薪資', amount: 500, amountText: 'NT$500' }],
-          outflowItems: [{ code: 'expense:food', label: '餐飲', amount: 300, amountText: 'NT$300' }],
+          inflowItems: [
+            { code: 'income:salary', label: '薪資', amount: 500, amountText: 'NT$500' },
+          ],
+          outflowItems: [
+            { code: 'expense:food', label: '餐飲', amount: 300, amountText: 'NT$300' },
+          ],
         },
         investing: {
           label: '投資活動',

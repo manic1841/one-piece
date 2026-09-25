@@ -206,7 +206,9 @@ describe('AccountSnapshotEditor', () => {
 
     const { useExchangeRate } = await import('@/ui/hooks/useExchangeRate');
     vi.mocked(useExchangeRate).mockReturnValue({
-      getRate: vi.fn().mockResolvedValue({ ok: false, kind: 'failed', error: new Error('no rate') }),
+      getRate: vi
+        .fn()
+        .mockResolvedValue({ ok: false, kind: 'failed', error: new Error('no rate') }),
       loading: false,
       error: null,
       errorMessage: null,

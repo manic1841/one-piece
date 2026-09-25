@@ -1,5 +1,5 @@
-import { type AuthUser } from './identity';
 import { type AuthInitErrorCode } from './authInitError';
+import { type AuthUser } from './identity';
 
 /**
  * infra 觀測到的一次認證狀態。**這是 infra 的產出，不是 UI 的狀態**：

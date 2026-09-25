@@ -5,9 +5,9 @@ import { AlertCircle, Calendar, FileBarChart2, HelpCircle, RefreshCw } from 'luc
 import { YearMonthPicker } from '@/ui/components/YearMonthPicker';
 import { Button } from '@/ui/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/ui/components/ui/card';
-import { SettlementSummary } from './settlement/SettlementSummary';
 
 import { useReportSettlement } from '../hooks/useReportSettlement';
+import { SettlementSummary } from './settlement/SettlementSummary';
 
 interface ReportSettlementProps {
   householdId: string;

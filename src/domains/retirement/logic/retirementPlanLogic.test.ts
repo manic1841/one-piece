@@ -1,9 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import {
-  type PlannedIncome,
-  calculateIncomeSourceSuggestions,
-} from './retirementPlanLogic';
+import { type PlannedIncome, calculateIncomeSourceSuggestions } from './retirementPlanLogic';
 
 describe('retirementPlanLogic', () => {
   describe('calculateIncomeSourceSuggestions', () => {

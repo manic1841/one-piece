@@ -144,74 +144,79 @@ export function YearlyDetails({ projection }: RetirementProjectionProps) {
             })}
           </div>
           <div className="hidden md:block">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b text-muted-foreground">
-                <th className="py-2 pr-3 text-left font-medium">Year</th>
-                {YearlyFieldLabels.map((label) => (
-                  <th
-                    key={label}
-                    className={`py-2 pr-3 font-medium ${
-                      label === 'Age' || label === 'Status' ? 'text-left' : 'text-right'
-                    }`}
-                  >
-                    {label}
-                  </th>
-                ))}
-                <th className="py-2 text-right font-medium">Savings</th>
-                <th className="py-2 text-center font-medium">明細</th>
-              </tr>
-            </thead>
-            <tbody>
-              {projection.yearlyDetails.map((row) => {
-                const isExpanded = !!expandedYears[row.year];
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b text-muted-foreground">
+                  <th className="py-2 pr-3 text-left font-medium">Year</th>
+                  {YearlyFieldLabels.map((label) => (
+                    <th
+                      key={label}
+                      className={`py-2 pr-3 font-medium ${
+                        label === 'Age' || label === 'Status' ? 'text-left' : 'text-right'
+                      }`}
+                    >
+                      {label}
+                    </th>
+                  ))}
+                  <th className="py-2 text-right font-medium">Savings</th>
+                  <th className="py-2 text-center font-medium">明細</th>
+                </tr>
+              </thead>
+              <tbody>
+                {projection.yearlyDetails.map((row) => {
+                  const isExpanded = !!expandedYears[row.year];
 
-                return (
-                  <Fragment key={row.year}>
-                    <tr className={`border-b ${row.isRetired ? 'bg-warning/5' : 'bg-transparent'}`}>
-                      <td className="py-2 pr-3 tabular-nums">{row.year}</td>
-                      <td className="py-2 pr-3 tabular-nums">{row.age}</td>
-                      <td className="py-2 pr-3">
-                        <span
-                          className={`inline-flex rounded px-2 py-0.5 text-xs font-medium ${
-                            row.isRetired
-                              ? 'bg-warning/10 text-warning'
-                              : 'bg-muted text-muted-foreground'
-                          }`}
-                        >
-                          {row.statusText}
-                        </span>
-                      </td>
-                      <td className="py-2 pr-3 text-right tabular-nums">{row.incomeText}</td>
-                      <td className="py-2 pr-3 text-right tabular-nums">{row.expenseText}</td>
-                      <td className="py-2 pr-3 text-right tabular-nums">
-                        {row.investmentReturnText}
-                      </td>
-                      <td className="py-2 pr-3 text-right tabular-nums">{row.netCashFlowText}</td>
-                      <td className="py-2 pr-3 text-right tabular-nums">{row.savingsText}</td>
-                      <td className="py-2 text-center">
-                        <button
-                          type="button"
-                          onClick={() => toggleYearDetails(row.year)}
-                          aria-expanded={isExpanded}
-                          className="inline-flex items-center rounded px-2 py-1 text-xs font-medium text-primary hover:bg-primary/10"
-                        >
-                          {isExpanded ? '收合' : '展開'}
-                        </button>
-                      </td>
-                    </tr>
-                    {isExpanded && (
-                      <tr key={`${row.year}-detail`} className="border-b last:border-0 bg-muted/20">
-                        <td colSpan={9} className="px-3 py-3">
-                          <YearBreakdownPanels row={row} />
+                  return (
+                    <Fragment key={row.year}>
+                      <tr
+                        className={`border-b ${row.isRetired ? 'bg-warning/5' : 'bg-transparent'}`}
+                      >
+                        <td className="py-2 pr-3 tabular-nums">{row.year}</td>
+                        <td className="py-2 pr-3 tabular-nums">{row.age}</td>
+                        <td className="py-2 pr-3">
+                          <span
+                            className={`inline-flex rounded px-2 py-0.5 text-xs font-medium ${
+                              row.isRetired
+                                ? 'bg-warning/10 text-warning'
+                                : 'bg-muted text-muted-foreground'
+                            }`}
+                          >
+                            {row.statusText}
+                          </span>
+                        </td>
+                        <td className="py-2 pr-3 text-right tabular-nums">{row.incomeText}</td>
+                        <td className="py-2 pr-3 text-right tabular-nums">{row.expenseText}</td>
+                        <td className="py-2 pr-3 text-right tabular-nums">
+                          {row.investmentReturnText}
+                        </td>
+                        <td className="py-2 pr-3 text-right tabular-nums">{row.netCashFlowText}</td>
+                        <td className="py-2 pr-3 text-right tabular-nums">{row.savingsText}</td>
+                        <td className="py-2 text-center">
+                          <button
+                            type="button"
+                            onClick={() => toggleYearDetails(row.year)}
+                            aria-expanded={isExpanded}
+                            className="inline-flex items-center rounded px-2 py-1 text-xs font-medium text-primary hover:bg-primary/10"
+                          >
+                            {isExpanded ? '收合' : '展開'}
+                          </button>
                         </td>
                       </tr>
-                    )}
-                  </Fragment>
-                );
-              })}
-            </tbody>
-          </table>
+                      {isExpanded && (
+                        <tr
+                          key={`${row.year}-detail`}
+                          className="border-b last:border-0 bg-muted/20"
+                        >
+                          <td colSpan={9} className="px-3 py-3">
+                            <YearBreakdownPanels row={row} />
+                          </td>
+                        </tr>
+                      )}
+                    </Fragment>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
         </div>
       )}

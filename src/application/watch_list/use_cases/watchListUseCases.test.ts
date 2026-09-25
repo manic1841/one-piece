@@ -70,18 +70,19 @@ describe('addWatchListTargetUseCase', () => {
 
     const target = { targetType: 'PROJECT' as const, targetId: 'p1', name: '媽媽專案' };
 
-    await addWatchListTargetUseCase.execute({ householdId, auth, userEmail: auth.email ?? '', target });
+    await addWatchListTargetUseCase.execute({
+      householdId,
+      auth,
+      userEmail: auth.email ?? '',
+      target,
+    });
 
     expect(householdPermissionService.assertWritePermission).toHaveBeenCalledWith(
       householdId,
       auth.uid,
       auth.isGlobalAdmin,
     );
-    expect(watchListRepository.addTarget).toHaveBeenCalledWith(
-      householdId,
-      target,
-      auth.email,
-    );
+    expect(watchListRepository.addTarget).toHaveBeenCalledWith(householdId, target, auth.email);
   });
 
   it('propagates repository errors (no silent failure)', async () => {

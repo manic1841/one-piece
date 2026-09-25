@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
-import { previewBalanceSheetUseCase } from './previewBalanceSheetUseCase';
-import { type ReportDataBundle } from './fetchReportDataUseCase';
 import { type IncomeStatementData } from '@/domains/report/schemas';
+
+import { type ReportDataBundle } from './fetchReportDataUseCase';
+import { previewBalanceSheetUseCase } from './previewBalanceSheetUseCase';
 
 const baseIncome: IncomeStatementData = {
   yearMonth: '2025-06',

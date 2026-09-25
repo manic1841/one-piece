@@ -1,9 +1,6 @@
 import { runTransaction } from 'firebase/firestore';
 
-import {
-  DebtPaymentCommandError,
-  DebtPaymentCommandErrorCode,
-} from '@/application/debt/errors';
+import { DebtPaymentCommandError, DebtPaymentCommandErrorCode } from '@/application/debt/errors';
 import { householdPermissionService } from '@/application/household/householdPermissionService';
 import { type AuthContext } from '@/application/types';
 import {
@@ -12,14 +9,14 @@ import {
   calculateDebtPayment,
 } from '@/domains/debt/debtPaymentCalculator';
 import {
-  createDebtPaymentFingerprint,
   DEBT_PAYMENT_FINGERPRINT_VERSION,
   DEBT_PAYMENT_OPERATION_TYPE,
+  createDebtPaymentFingerprint,
 } from '@/domains/operation/fingerprint';
 import { type OperationResultReference } from '@/domains/operation/schemas';
+import { db } from '@/firebase';
 import { debtAccountRepository } from '@/infra/repositories/debtAccountRepository';
 import { debtSnapshotRepository } from '@/infra/repositories/debtSnapshotRepository';
-import { db } from '@/firebase';
 import { operationRepository } from '@/infra/repositories/operationRepository';
 import { transactionRepository } from '@/infra/repositories/transactionRepository';
 
@@ -146,7 +143,9 @@ export class CreateDebtPaymentUseCase {
       assertEntriesBalanced(entries);
 
       const openingBalance =
-        currentSnapshot?.openingBalance ?? previousSnapshot?.closingBalance ?? account.currentBalance;
+        currentSnapshot?.openingBalance ??
+        previousSnapshot?.closingBalance ??
+        account.currentBalance;
       const principalPaid = (currentSnapshot?.principalPaid ?? 0) + calculation.principal;
       const closingBalance = openingBalance - principalPaid;
       const defaultDesc = `${account.name} ${yearMonth} 還款`;

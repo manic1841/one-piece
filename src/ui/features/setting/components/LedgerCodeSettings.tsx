@@ -85,7 +85,8 @@ export const LedgerCodeSettings = () => {
                 />
                 <p className="text-[10px] text-muted-foreground leading-snug">
                   <span className="font-mono">category</span> 建立科目；
-                  <span className="font-mono">category:detail</span> 在既有 category 底下建立明細科目。
+                  <span className="font-mono">category:detail</span> 在既有 category
+                  底下建立明細科目。
                 </p>
               </div>
               <div className="space-y-2">

@@ -10,8 +10,8 @@ import { buildTrendGeometry } from '@/ui/features/debt/components/detail/debtTre
 import { useDebtAccountCmds } from '@/ui/features/debt/hooks/useDebtAccountCmds';
 import { useDebtSnapshots } from '@/ui/features/debt/hooks/useDebtSnapshots';
 import {
-  mapDebtPaymentTransactionToHistoryVM,
   type DebtPaymentHistoryItemVM,
+  mapDebtPaymentTransactionToHistoryVM,
 } from '@/ui/features/debt/viewmodels/debtDisplay.vm';
 import { useDebtAccountFormViewModel } from '@/ui/features/debt/viewmodels/useDebtAccountFormViewModel';
 import { useProjects } from '@/ui/features/project/hooks/useProjects';
@@ -54,15 +54,12 @@ export const useDebtDetailPage = ({ account }: UseDebtDetailPageArgs) => {
   const loadAccount = useCallback(async () => {
     // The guard belongs inside the task: `initiallyLoading` is released by
     // *initiating* a run, so every path must initiate one.
-    await run(
-      async () => (account || !householdId ? null : fetchAccountRow()),
-      {
-        // A guard path means "there is no loan here", which is the same outcome
-        // as a failed fetch. Leaving a previously fetched loan on screen would
-        // show one household's debt after that household is gone.
-        writeBack: (result) => setFetchedAccount(result.ok ? result.value : null),
-      },
-    );
+    await run(async () => (account || !householdId ? null : fetchAccountRow()), {
+      // A guard path means "there is no loan here", which is the same outcome
+      // as a failed fetch. Leaving a previously fetched loan on screen would
+      // show one household's debt after that household is gone.
+      writeBack: (result) => setFetchedAccount(result.ok ? result.value : null),
+    });
   }, [account, householdId, fetchAccountRow, run]);
 
   // Reload after a command. It deliberately bypasses the task: the page gates on

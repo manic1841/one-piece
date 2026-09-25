@@ -36,7 +36,6 @@ const estimatePayoffDate = (account: DebtAccount): Date | null => {
   return date;
 };
 
-
 export interface DebtAccountDisplayVM extends DebtAccount {
   payoffDate: Date | null;
   repaidPercent: number;

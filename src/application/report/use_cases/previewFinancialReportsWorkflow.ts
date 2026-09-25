@@ -1,16 +1,16 @@
+import { householdPermissionService } from '@/application/household/householdPermissionService';
 import { type AuthContext } from '@/application/types';
+import { type ReportLabelResolver } from '@/domains/report/reportCalculations';
 import {
   type BalanceSheetData,
   type CashFlowData,
   type IncomeStatementData,
 } from '@/domains/report/schemas';
-import { type ReportLabelResolver } from '@/domains/report/reportCalculations';
-import { householdPermissionService } from '@/application/household/householdPermissionService';
 
 import { fetchReportDataUseCase } from './fetchReportDataUseCase';
 import {
-  getReportPersistenceStateUseCase,
   type ReportPersistenceState,
+  getReportPersistenceStateUseCase,
 } from './getReportPersistenceStateUseCase';
 import { previewBalanceSheetUseCase } from './previewBalanceSheetUseCase';
 import { previewCashFlowUseCase } from './previewCashFlowUseCase';
@@ -35,9 +35,7 @@ export interface PreviewFinancialReportsResult {
 }
 
 export class PreviewFinancialReportsWorkflow {
-  async execute(
-    request: PreviewFinancialReportsRequest,
-  ): Promise<PreviewFinancialReportsResult> {
+  async execute(request: PreviewFinancialReportsRequest): Promise<PreviewFinancialReportsResult> {
     const { householdId, auth, year, month, labelResolver } = request;
     const yearMonth = `${year}-${month.toString().padStart(2, '0')}`;
 

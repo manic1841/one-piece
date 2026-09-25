@@ -6,8 +6,8 @@ import { getStoredReportUseCase } from '@/application/report/use_cases/getStored
 import { type CashFlowData } from '@/domains/report/schemas';
 import { type CashFlowVM, mapCashFlowToVM } from '@/ui/features/report/viewmodels/reportDisplay.vm';
 import { getErrorMessage } from '@/ui/hooks/getErrorMessage';
-import { useLoadingTask } from '@/ui/hooks/useLoadingTask';
 import { useAuthIdentity } from '@/ui/hooks/useAuthIdentity';
+import { useLoadingTask } from '@/ui/hooks/useLoadingTask';
 
 type ReportMode = 'MONTHLY' | 'YEARLY';
 
@@ -47,9 +47,7 @@ export function useCashFlow(
       {
         signal: controller.signal,
         writeBack: (result) =>
-          setData(
-            result.ok && result.value ? mapCashFlowToVM(result.value as CashFlowData) : null,
-          ),
+          setData(result.ok && result.value ? mapCashFlowToVM(result.value as CashFlowData) : null),
       },
     );
   }, [householdId, yearMonth, auth, run]);

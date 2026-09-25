@@ -5,9 +5,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useRetirementPlanListPage } from '@/ui/features/retirement/hooks/useRetirementPlanListPage';
 import { type RetirementPlanListItemVM } from '@/ui/features/retirement/viewmodels/retirementDisplay.vm';
 
-vi.mock('@/ui/features/retirement/hooks/useRetirementPlanListPage');
-
 import RetirementPlanList from './RetirementPlanList';
+
+vi.mock('@/ui/features/retirement/hooks/useRetirementPlanListPage');
 
 vi.mock('react-router-dom', async () => {
   const actual = await vi.importActual<typeof import('react-router-dom')>('react-router-dom');
@@ -115,9 +115,7 @@ describe('RetirementPlanList table', () => {
 
   it('keeps New Plan in the header and demotes duplicate to a row-end icon action', () => {
     const duplicatePlan = vi.fn().mockResolvedValue(undefined);
-    mockUseRetirementPlanListPage.mockReturnValue(
-      controllerFixture({ duplicatePlan }),
-    );
+    mockUseRetirementPlanListPage.mockReturnValue(controllerFixture({ duplicatePlan }));
 
     renderList();
 
@@ -127,7 +125,9 @@ describe('RetirementPlanList table', () => {
       newPlanButton.compareDocumentPosition(screen.getByRole('table')) &
         Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
-    expect(screen.queryByRole('button', { name: 'Duplicate', exact: true })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Duplicate', exact: true }),
+    ).not.toBeInTheDocument();
 
     const duplicateAction = screen.getByRole('button', { name: 'Duplicate plan' });
     expect(duplicateAction.textContent).toBe('');

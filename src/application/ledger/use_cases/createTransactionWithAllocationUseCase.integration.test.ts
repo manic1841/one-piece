@@ -1,10 +1,11 @@
 import { collection, getDocsFromServer } from 'firebase/firestore';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { createTransactionWithAllocationUseCase } from './createTransactionWithAllocationUseCase';
-import { db, resetMockDb } from '@/test/mocks/firebase';
 import { allocationRepository } from '@/infra/repositories/allocationRepository';
 import { operationRepository } from '@/infra/repositories/operationRepository';
+import { db, resetMockDb } from '@/test/mocks/firebase';
+
+import { createTransactionWithAllocationUseCase } from './createTransactionWithAllocationUseCase';
 
 const request = (overrides: { householdId?: string; idempotencyKey?: string } = {}) => ({
   householdId: overrides.householdId ?? 'household-1',

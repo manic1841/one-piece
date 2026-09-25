@@ -29,6 +29,7 @@ pnpm qa:init
 
   `grant-admin.js`、`list-users.js`、`check-role.js` 連線正式 Firebase
   後端,不使用這些模擬器環境變數。
+
 - 印出的 localStorage 注入片段在 Firebase JS SDK v12 可能不足以登入:SDK
   以 IndexedDB(`firebaseLocalStorageDb`)為主要 session 來源,localStorage
   僅為 fallback。詳細說明見 [docs/testing.md](../../docs/testing.md) 的

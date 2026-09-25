@@ -3,12 +3,9 @@ import React, { useMemo, useState } from 'react';
 import { Plus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
+import { PageHeader } from '@/ui/components/PageHeader';
+import { GripHandle, SortableListScope } from '@/ui/components/sortable/SortableListScope';
 import { Button } from '@/ui/components/ui/button';
-import { AccountCategorySectionTitles } from '@/ui/constants/account/label';
-import {
-  AccountCategory,
-  type AccountWithSnapshot,
-} from '@/ui/features/account/viewmodels/account.vm';
 import {
   Table,
   TableBody,
@@ -17,9 +14,12 @@ import {
   TableHeader,
   TableRow,
 } from '@/ui/components/ui/table';
-import { SortableListScope, GripHandle } from '@/ui/components/sortable/SortableListScope';
+import { AccountCategorySectionTitles } from '@/ui/constants/account/label';
+import {
+  AccountCategory,
+  type AccountWithSnapshot,
+} from '@/ui/features/account/viewmodels/account.vm';
 import { useSortableRow } from '@/ui/hooks/useSortableList';
-import { PageHeader } from '@/ui/components/PageHeader';
 import { formatCurrency } from '@/ui/utils';
 import { cn } from '@/ui/utils/cn';
 
@@ -87,9 +87,7 @@ const SortableAccountRow: React.FC<SortableAccountRowProps> = ({ row, onSelect }
       </TableCell>
       <TableCell className={row.isActive ? '' : 'text-muted-foreground'}>
         {row.name}
-        <span className="ml-2 font-mono text-[10px] text-muted-foreground">
-          {row.currency}
-        </span>
+        <span className="ml-2 font-mono text-[10px] text-muted-foreground">{row.currency}</span>
       </TableCell>
       <TableCell className="text-right font-mono tabular-nums">{row.balanceText}</TableCell>
       <TableCell className="text-right font-mono text-[11px] tabular-nums text-muted-foreground">

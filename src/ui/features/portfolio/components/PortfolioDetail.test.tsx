@@ -4,10 +4,9 @@ import { describe, expect, it, vi } from 'vitest';
 import { type Portfolio } from '@/domains/portfolio/types/portfolio';
 import { useAccounts } from '@/ui/features/account/hooks/useAccounts';
 import { usePortfolioCmds } from '@/ui/features/portfolio/hooks/usePortfolioCmds';
-import {
-  usePortfolioQueries,
-  usePortfolios,
-} from '@/ui/features/portfolio/hooks/usePortfolios';
+import { usePortfolioQueries, usePortfolios } from '@/ui/features/portfolio/hooks/usePortfolios';
+
+import PortfolioDetail from './PortfolioDetail';
 
 vi.mock('@/ui/features/account/hooks/useAccounts');
 vi.mock('@/ui/hooks/useAuthIdentity');
@@ -26,8 +25,6 @@ const mockUsePortfolios = vi.mocked(usePortfolios);
 const mockUsePortfolioQueries = vi.mocked(usePortfolioQueries);
 const mockUsePortfolioCmds = vi.mocked(usePortfolioCmds);
 const mockUseAccounts = vi.mocked(useAccounts);
-
-import PortfolioDetail from './PortfolioDetail';
 
 const portfolio: Portfolio = {
   id: 'p1',

@@ -27,7 +27,10 @@ export class GetNextMonthDebtDueUseCase {
 
     const accounts = await listDebtAccountsUseCase.execute({ householdId: request.householdId });
 
-    const total = accounts.reduce((sum, account) => sum + getEffectiveMonthlyDue(account, nextMonth), 0);
+    const total = accounts.reduce(
+      (sum, account) => sum + getEffectiveMonthlyDue(account, nextMonth),
+      0,
+    );
 
     return {
       total,

@@ -2,13 +2,15 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { DEBT_STATUS_SETTLED_LABEL } from '@/ui/constants/debtStatusLabels';
-import { type DebtAccount } from '@/domains/debt/schemas';
-import { useAuthState } from '@/ui/contexts/useAuthState';
 import { listDebtAccountsUseCase } from '@/application/debt/use_cases/listDebtAccountsUseCase';
 import { listDebtSnapshotsUseCase } from '@/application/debt/use_cases/listDebtSnapshotsUseCase';
+import { type DebtAccount } from '@/domains/debt/schemas';
+import { DEBT_STATUS_SETTLED_LABEL } from '@/ui/constants/debtStatusLabels';
+import { useAuthState } from '@/ui/contexts/useAuthState';
 import { useConfirm } from '@/ui/features/app/confirm/useConfirm';
 import { useDebtAccountCmds } from '@/ui/features/debt/hooks/useDebtAccountCmds';
+
+import DebtDetailPage from './DebtDetailPage';
 
 vi.mock('@/ui/contexts/useAuthState');
 vi.mock('@/application/debt/use_cases/listDebtSnapshotsUseCase', () => ({
@@ -36,31 +38,30 @@ const mockUseAuth = vi.mocked(useAuthState);
 const mockUseConfirm = vi.mocked(useConfirm);
 const mockUseDebtAccountCmds = vi.mocked(useDebtAccountCmds);
 
-import DebtDetailPage from './DebtDetailPage';
-
-const buildAccount = (overrides: Partial<DebtAccount> = {}): DebtAccount => ({
-  id: 'd1',
-  name: 'Mortgage A',
-  type: 'mortgage',
-  repaymentType: 'equal_payment',
-  originalAmount: 5000000,
-  currentBalance: 4800000,
-  interestRate: 2.1,
-  startDate: new Date('2024-01-01'),
-  endDate: new Date('2044-01-01'),
-  graceEndDate: null,
-  monthlyPayment: 25000,
-  linkedLedgerCode: 'liability:mortgage',
-  linkedProjectId: null,
-  note: undefined,
-  isActive: true,
-  closedAt: null,
-  createdBy: 'u1',
-  createdAt: new Date('2024-01-01'),
-  updatedBy: 'u1',
-  updatedAt: new Date('2026-09-01'),
-  ...overrides,
-} as DebtAccount);
+const buildAccount = (overrides: Partial<DebtAccount> = {}): DebtAccount =>
+  ({
+    id: 'd1',
+    name: 'Mortgage A',
+    type: 'mortgage',
+    repaymentType: 'equal_payment',
+    originalAmount: 5000000,
+    currentBalance: 4800000,
+    interestRate: 2.1,
+    startDate: new Date('2024-01-01'),
+    endDate: new Date('2044-01-01'),
+    graceEndDate: null,
+    monthlyPayment: 25000,
+    linkedLedgerCode: 'liability:mortgage',
+    linkedProjectId: null,
+    note: undefined,
+    isActive: true,
+    closedAt: null,
+    createdBy: 'u1',
+    createdAt: new Date('2024-01-01'),
+    updatedBy: 'u1',
+    updatedAt: new Date('2026-09-01'),
+    ...overrides,
+  }) as DebtAccount;
 
 const renderDetail = (account: DebtAccount) => {
   vi.mocked(listDebtAccountsUseCase.execute).mockResolvedValue([account]);

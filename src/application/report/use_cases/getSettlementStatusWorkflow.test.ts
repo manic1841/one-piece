@@ -2,10 +2,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { type AuthContext } from '@/application/types';
 
-import { getSettlementReadinessUseCase } from './getSettlementReadinessUseCase';
 import { previewDebtSettlementsUseCase } from '../../settlement/use_cases/previewDebtSettlementsUseCase';
-import { previewFinancialReportsWorkflow } from './previewFinancialReportsWorkflow';
+import { getSettlementReadinessUseCase } from './getSettlementReadinessUseCase';
 import { getSettlementStatusWorkflow } from './getSettlementStatusWorkflow';
+import { previewFinancialReportsWorkflow } from './previewFinancialReportsWorkflow';
 
 vi.mock('./getSettlementReadinessUseCase', () => ({
   getSettlementReadinessUseCase: { execute: vi.fn() },

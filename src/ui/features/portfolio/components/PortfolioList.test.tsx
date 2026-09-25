@@ -3,9 +3,11 @@ import { MemoryRouter, useNavigate } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { type Portfolio } from '@/domains/portfolio/types/portfolio';
-import { usePortfolios } from '@/ui/features/portfolio/hooks/usePortfolios';
 import { useAccounts } from '@/ui/features/account/hooks/useAccounts';
 import { usePortfolioCmds } from '@/ui/features/portfolio/hooks/usePortfolioCmds';
+import { usePortfolios } from '@/ui/features/portfolio/hooks/usePortfolios';
+
+import PortfolioList from './PortfolioList';
 
 vi.mock('@/ui/features/portfolio/hooks/usePortfolios');
 vi.mock('@/ui/features/account/hooks/useAccounts');
@@ -25,8 +27,6 @@ const cmdsBase = {
   createSnapshot: vi.fn(),
   deleteSnapshot: vi.fn(),
 };
-
-import PortfolioList from './PortfolioList';
 
 vi.mock('react-router-dom', async () => {
   const actual = await vi.importActual<typeof import('react-router-dom')>('react-router-dom');
@@ -192,10 +192,26 @@ describe('PortfolioList', () => {
     const rowA = screen.getByTestId('portfolio-row-p1');
     const rowB = screen.getByTestId('portfolio-row-p2');
     vi.spyOn(rowA, 'getBoundingClientRect').mockReturnValue({
-      x: 0, y: 0, top: 0, left: 0, bottom: 48, right: 400, width: 400, height: 48, toJSON: () => ({}),
+      x: 0,
+      y: 0,
+      top: 0,
+      left: 0,
+      bottom: 48,
+      right: 400,
+      width: 400,
+      height: 48,
+      toJSON: () => ({}),
     } as DOMRect);
     vi.spyOn(rowB, 'getBoundingClientRect').mockReturnValue({
-      x: 0, y: 48, top: 48, left: 0, bottom: 96, right: 400, width: 400, height: 48, toJSON: () => ({}),
+      x: 0,
+      y: 48,
+      top: 48,
+      left: 0,
+      bottom: 96,
+      right: 400,
+      width: 400,
+      height: 48,
+      toJSON: () => ({}),
     } as DOMRect);
 
     const grip = screen.getAllByTestId('portfolio-grip-p1')[0];

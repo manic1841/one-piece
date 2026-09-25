@@ -12,7 +12,7 @@ interface CalculatePortfolioSnapshotParams {
 }
 
 export function calculatePortfolioSnapshot(
-  params: CalculatePortfolioSnapshotParams
+  params: CalculatePortfolioSnapshotParams,
 ): PortfolioSnapshotCreate {
   const { year, month, accounts, accountSnapshots, prevSnapshot, cashFlow } = params;
 
@@ -34,10 +34,10 @@ export function calculatePortfolioSnapshot(
   // 3. Calculate performance metrics
   const openingValue = prevSnapshot?.totalValue || 0;
   const closingValue = totalValue;
-  
+
   // Net Cash Flow = Deposits - Withdrawals
   const netCashFlow = cashFlow.deposits - cashFlow.withdrawals;
-  
+
   // Gain = Closing Value - Opening Value - Net Cash Flow
   const gain = closingValue - openingValue - netCashFlow;
 

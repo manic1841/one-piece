@@ -1,6 +1,7 @@
+import { type AuthContext } from '@/application/types';
+
 import { getAccountsUseCase } from './getAccountsUseCase';
 import { getLatestSnapshotUseCase } from './getLatestSnapshotUseCase';
-import { type AuthContext } from '@/application/types';
 
 export interface GetTotalAssetsRequest {
   householdId: string;

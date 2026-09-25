@@ -3,13 +3,13 @@ import React from 'react';
 import { Pencil, Trash2 } from 'lucide-react';
 
 import CompactRow from '@/ui/components/CompactRow';
-import { Button } from '@/ui/components/ui/button';
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
 } from '@/ui/components/ui/accordion';
+import { Button } from '@/ui/components/ui/button';
 import {
   Table,
   TableBody,
@@ -109,7 +109,11 @@ function RowActions({
   );
 }
 
-export const TransactionItem: React.FC<TransactionItemProps> = ({ transaction, onEdit, onDelete }) => {
+export const TransactionItem: React.FC<TransactionItemProps> = ({
+  transaction,
+  onEdit,
+  onDelete,
+}) => {
   const {
     displayTitle,
     projectName,
@@ -171,10 +175,7 @@ export const TransactionItemMobile: React.FC<TransactionItemProps> = ({
   const amountColor = isPositive ? 'text-positive' : 'text-negative';
 
   return (
-    <CompactRow
-      testId={`transaction-row-mobile-${transaction.id}`}
-      className="bg-card/50"
-    >
+    <CompactRow testId={`transaction-row-mobile-${transaction.id}`} className="bg-card/50">
       <div className="flex items-center justify-between gap-2">
         <span className="flex min-w-0 items-baseline gap-2">
           <span className="font-mono text-[11px] tabular-nums text-muted-foreground whitespace-nowrap">

@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
-  createDebtPaymentFingerprint,
   DEBT_PAYMENT_FINGERPRINT_VERSION,
   DEBT_PAYMENT_OPERATION_TYPE,
+  createDebtPaymentFingerprint,
 } from '@/domains/operation/fingerprint';
 
 vi.mock('firebase/firestore', async (importOriginal) => {
@@ -89,7 +89,7 @@ describe('CreateDebtPaymentUseCase', () => {
     const { operationRepository } = await import('@/infra/repositories/operationRepository');
     const { transactionRepository } = await import('@/infra/repositories/transactionRepository');
 
-  vi.mocked(householdPermissionService.assertWritePermission).mockResolvedValue(undefined);
+    vi.mocked(householdPermissionService.assertWritePermission).mockResolvedValue(undefined);
     vi.mocked(debtAccountRepository.get).mockResolvedValue(account);
     vi.mocked(debtSnapshotRepository.getSnapshot).mockResolvedValue(null);
     vi.mocked(operationRepository.getByKey).mockResolvedValue(null);

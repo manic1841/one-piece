@@ -1,6 +1,6 @@
-import { portfolioSnapshotRepository } from '@/infra/repositories/portfolioSnapshotRepository';
 import { householdPermissionService } from '@/application/household/householdPermissionService';
 import { type AuthContext } from '@/application/types';
+import { portfolioSnapshotRepository } from '@/infra/repositories/portfolioSnapshotRepository';
 
 export interface DeletePortfolioSnapshotRequest {
   householdId: string;
@@ -12,7 +12,11 @@ export interface DeletePortfolioSnapshotRequest {
 export class DeletePortfolioSnapshotUseCase {
   async execute(request: DeletePortfolioSnapshotRequest): Promise<void> {
     const { householdId, portfolioId, snapshotId, auth } = request;
-    await householdPermissionService.assertWritePermission(householdId, auth.uid, auth.isGlobalAdmin);
+    await householdPermissionService.assertWritePermission(
+      householdId,
+      auth.uid,
+      auth.isGlobalAdmin,
+    );
     return portfolioSnapshotRepository.delete([householdId, portfolioId, snapshotId]);
   }
 }

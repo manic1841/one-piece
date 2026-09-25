@@ -13,11 +13,11 @@ import {
   calculateRetirementProjection,
 } from '@/domains/retirement/logic/retirementCalculator';
 import type { RetirementPlan, RetirementPlanCreate } from '@/domains/retirement/types';
+import { useConfirm } from '@/ui/features/app/confirm/useConfirm';
 import { useRetirementPlanCmds } from '@/ui/features/retirement/hooks/useRetirementPlanCmds';
 import { useRetirementPlans } from '@/ui/features/retirement/hooks/useRetirementPlans';
 import { useAuthIdentity } from '@/ui/hooks/useAuthIdentity';
 import { logger } from '@/utils/logger';
-import { useConfirm } from '@/ui/features/app/confirm/useConfirm';
 
 interface UseRetirementPlanCoreParams {
   id: string | undefined;

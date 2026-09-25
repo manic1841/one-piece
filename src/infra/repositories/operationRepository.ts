@@ -8,8 +8,8 @@ import {
 } from 'firebase/firestore';
 
 import {
-  OperationRecordSchema,
   type OperationRecord,
+  OperationRecordSchema,
   type OperationResultReference,
 } from '@/domains/operation/schemas';
 import { db } from '@/firebase';

@@ -130,9 +130,7 @@ export const AllocationTemplateSettings = () => {
                         key={item.projectId}
                         className="flex items-center gap-2 rounded-md border p-2"
                       >
-                        <div className="min-w-0 flex-1 text-sm font-medium">
-                          {project.name}
-                        </div>
+                        <div className="min-w-0 flex-1 text-sm font-medium">{project.name}</div>
                         <Input
                           type="number"
                           min="0"

@@ -1,10 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
-import { previewCashFlowUseCase } from './previewCashFlowUseCase';
-import { type ReportDataBundle } from './fetchReportDataUseCase';
 import { type Account } from '@/domains/account/types/account';
 
-const account = (id: string, category: string): Account => ({ id, category } as Account);
+import { type ReportDataBundle } from './fetchReportDataUseCase';
+import { previewCashFlowUseCase } from './previewCashFlowUseCase';
+
+const account = (id: string, category: string): Account => ({ id, category }) as Account;
 
 const bundle = (overrides: Partial<ReportDataBundle>): ReportDataBundle => ({
   yearMonth: '2025-06',

@@ -1,6 +1,9 @@
 import { z } from 'zod';
 
-export const CurrencyCodeSchema = z.string().length(3).transform(val => val.toUpperCase());
+export const CurrencyCodeSchema = z
+  .string()
+  .length(3)
+  .transform((val) => val.toUpperCase());
 
 export const ExchangeRateSchema = z.object({
   from: CurrencyCodeSchema,

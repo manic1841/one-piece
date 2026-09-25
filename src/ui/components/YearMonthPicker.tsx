@@ -3,11 +3,7 @@ import React, { useCallback, useState } from 'react';
 import { ChevronDown } from 'lucide-react';
 
 import { Button } from '@/ui/components/ui/button';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/ui/components/ui/popover';
+import { Popover, PopoverContent, PopoverTrigger } from '@/ui/components/ui/popover';
 import {
   Select,
   SelectContent,
@@ -71,7 +67,15 @@ export const YearMonthPicker: React.FC<YearMonthPickerProps> = ({
     setDraftYear(null);
     setDraftMonth(null);
     setOpen(false);
-  }, [effectiveMonth, effectiveYear, isYearOnly, onMonthChange, onYearChange, resolvedMonth, resolvedYear]);
+  }, [
+    effectiveMonth,
+    effectiveYear,
+    isYearOnly,
+    onMonthChange,
+    onYearChange,
+    resolvedMonth,
+    resolvedYear,
+  ]);
 
   const handleOpenChange = (nextOpen: boolean) => {
     if (!nextOpen) {

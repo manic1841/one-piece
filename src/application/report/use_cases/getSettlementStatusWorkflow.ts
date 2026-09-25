@@ -3,7 +3,10 @@ import { previewDebtSettlementsUseCase } from '@/application/settlement/use_case
 import { type AuthContext } from '@/application/types';
 import { type ReportLabelResolver } from '@/domains/report/reportCalculations';
 
-import { type SettlementReadiness, getSettlementReadinessUseCase } from './getSettlementReadinessUseCase';
+import {
+  type SettlementReadiness,
+  getSettlementReadinessUseCase,
+} from './getSettlementReadinessUseCase';
 import {
   type PreviewFinancialReportsResult,
   previewFinancialReportsWorkflow,

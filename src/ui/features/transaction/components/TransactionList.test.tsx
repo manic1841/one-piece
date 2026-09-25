@@ -2,6 +2,7 @@ import { fireEvent, render, screen, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
 import { ACCOUNTING_DETAILS_ENTRY_LABEL } from '@/ui/constants/transaction/displayLabels';
+
 import { type TransactionListItemVM } from '../viewmodels/transaction-list.vm';
 import { TransactionList } from './TransactionList';
 
@@ -24,9 +25,7 @@ const baseItem = (overrides: Partial<TransactionListItemVM> = {}): TransactionLi
 
 describe('TransactionList date filter row', () => {
   it('wraps and sizes controls by content from md up, so the row cannot overflow 768px', () => {
-    render(
-      <TransactionList items={[baseItem()]} loading={false} onDateRangeSearch={vi.fn()} />,
-    );
+    render(<TransactionList items={[baseItem()]} loading={false} onDateRangeSearch={vi.fn()} />);
 
     const row = screen.getByText('FROM').closest('div')!.parentElement!;
     expect(row.className).toContain('flex-col');

@@ -1,10 +1,17 @@
-import { act, renderHook, waitFor } from '@testing-library/react';
 import { type ReactNode } from 'react';
+
+import { act, renderHook, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { getHouseholdsByUserUseCase } from '@/application/household/use_cases/getHouseholdsByUserUseCase';
 import { RoleEnum } from '@/domains/household/role';
 import { type Household } from '@/domains/household/schemas';
+import { type AuthState } from '@/ui/contexts/AuthStateContext';
+import { useAuthState } from '@/ui/contexts/useAuthState';
+import { useConfirm } from '@/ui/features/app/confirm/useConfirm';
+
+import { useHouseholdSwitcher } from './useHouseholdSwitcher';
 
 vi.mock('@/ui/contexts/useAuthState', () => ({
   useAuthState: vi.fn(),
@@ -25,13 +32,6 @@ vi.mock('@/application/household/use_cases/leaveHouseholdUseCase', () => ({
 vi.mock('@/ui/features/app/confirm/useConfirm', () => ({
   useConfirm: vi.fn(),
 }));
-
-import { getHouseholdsByUserUseCase } from '@/application/household/use_cases/getHouseholdsByUserUseCase';
-import { type AuthState } from '@/ui/contexts/AuthStateContext';
-import { useAuthState } from '@/ui/contexts/useAuthState';
-import { useConfirm } from '@/ui/features/app/confirm/useConfirm';
-
-import { useHouseholdSwitcher } from './useHouseholdSwitcher';
 
 const executeMock = vi.mocked(getHouseholdsByUserUseCase.execute);
 
@@ -58,9 +58,7 @@ const household = (id: string, name: string): Household => ({
   updatedAt: new Date('2026-01-01'),
 });
 
-const wrapper = ({ children }: { children: ReactNode }) => (
-  <MemoryRouter>{children}</MemoryRouter>
-);
+const wrapper = ({ children }: { children: ReactNode }) => <MemoryRouter>{children}</MemoryRouter>;
 
 const renderSwitcher = (isOpen: boolean) =>
   renderHook(({ open }: { open: boolean }) => useHouseholdSwitcher('household-1', open, vi.fn()), {

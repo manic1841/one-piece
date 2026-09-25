@@ -4,10 +4,7 @@ import { calculateEquityTotal } from './equityUtils';
 import { ReportType } from './schemas';
 import { type BalanceSheetData, type FinancialReport } from './types';
 
-const buildBalanceSheet = (
-  assetsTotal: number,
-  liabilitiesTotal: number,
-): BalanceSheetData => ({
+const buildBalanceSheet = (assetsTotal: number, liabilitiesTotal: number): BalanceSheetData => ({
   yearMonth: '2026-08',
   assets: { total: assetsTotal, groups: {} },
   liabilities: { total: liabilitiesTotal, groups: {} },

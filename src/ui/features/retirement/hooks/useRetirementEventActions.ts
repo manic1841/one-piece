@@ -1,12 +1,12 @@
 import { useCallback } from 'react';
 
 import { appendById, removeById, upsertById } from '@/domains/retirement/planMutations';
-import { useConfirm } from '@/ui/features/app/confirm/useConfirm';
 import type {
   RetirementOneTimeEvent,
   RetirementPlan,
   RetirementPlanCreate,
 } from '@/domains/retirement/types';
+import { useConfirm } from '@/ui/features/app/confirm/useConfirm';
 
 interface UseRetirementEventActionsParams {
   id: string | undefined;

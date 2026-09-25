@@ -1,4 +1,5 @@
 import React from 'react';
+
 import AccountList from './AccountList';
 
 const Accounts: React.FC = () => {

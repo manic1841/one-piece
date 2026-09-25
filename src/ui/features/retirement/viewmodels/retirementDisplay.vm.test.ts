@@ -40,19 +40,21 @@ function makePlan(overrides: Record<string, unknown> = {}) {
 
 describe('retirementDisplay.vm', () => {
   it('maps plan list item vm', () => {
-    const vm = mapRetirementPlanToListItemVM(makePlan({
-      summary: {
-        retirementYear: 2050,
-        startingNetWorth: 100000,
-        anchorYearMonth: '2025-12',
-        netWorthAtRetirement: 500000,
-        finalNetWorth: 300000,
-        minSavings: 100000,
-        minSavingsYear: 2050,
-        isBankrupt: false,
-        lastCalculatedAt: new Date('2026-01-02'),
-      },
-    }));
+    const vm = mapRetirementPlanToListItemVM(
+      makePlan({
+        summary: {
+          retirementYear: 2050,
+          startingNetWorth: 100000,
+          anchorYearMonth: '2025-12',
+          netWorthAtRetirement: 500000,
+          finalNetWorth: 300000,
+          minSavings: 100000,
+          minSavingsYear: 2050,
+          isBankrupt: false,
+          lastCalculatedAt: new Date('2026-01-02'),
+        },
+      }),
+    );
 
     expect(vm.retirementAge).toBe(60);
     expect(vm.statusText).toBe('Active');
@@ -73,18 +75,20 @@ describe('retirementDisplay.vm', () => {
   });
 
   it('maps plan list item vm with em dash for a stale summary without finalNetWorth', () => {
-    const vm = mapRetirementPlanToListItemVM(makePlan({
-      summary: {
-        retirementYear: 2050,
-        startingNetWorth: 100000,
-        anchorYearMonth: '2025-12',
-        savingsAtRetirement: 500000,
-        minSavings: 100000,
-        minSavingsYear: 2050,
-        isBankrupt: false,
-        lastCalculatedAt: new Date('2026-01-02'),
-      },
-    }));
+    const vm = mapRetirementPlanToListItemVM(
+      makePlan({
+        summary: {
+          retirementYear: 2050,
+          startingNetWorth: 100000,
+          anchorYearMonth: '2025-12',
+          savingsAtRetirement: 500000,
+          minSavings: 100000,
+          minSavingsYear: 2050,
+          isBankrupt: false,
+          lastCalculatedAt: new Date('2026-01-02'),
+        },
+      }),
+    );
 
     expect(vm.finalNetWorthText).toBe('—');
   });
@@ -200,54 +204,58 @@ describe('retirementDisplay.vm', () => {
       },
     ];
 
-    const vm = mapRetirementProjectionToVM(mockProjection, 2050, makePlan({
-      incomes: [
-        {
-          id: 'salary-1',
-          name: 'Salary',
-          lifelong: false,
-          type: 'salary',
-          currentAnnual: 1200000,
-          growthRate: 0,
-          startYear: 2026,
-          endYear: 2050,
-          calculatedFrom: {
-            ledgerCode: 'income:salary',
-            sampleYear: SAMPLE_YEAR,
-            totalAmount: 1200000,
-            monthlyAverage: 100000,
-            sampleCount: 12,
-            importedAt: '2024-01-01T00:00:00.000Z',
+    const vm = mapRetirementProjectionToVM(
+      mockProjection,
+      2050,
+      makePlan({
+        incomes: [
+          {
+            id: 'salary-1',
+            name: 'Salary',
+            lifelong: false,
+            type: 'salary',
+            currentAnnual: 1200000,
+            growthRate: 0,
+            startYear: 2026,
+            endYear: 2050,
+            calculatedFrom: {
+              ledgerCode: 'income:salary',
+              sampleYear: SAMPLE_YEAR,
+              totalAmount: 1200000,
+              monthlyAverage: 100000,
+              sampleCount: 12,
+              importedAt: '2024-01-01T00:00:00.000Z',
+            },
           },
-        },
-      ],
-      expenses: [
-        {
-          id: 'debt-1',
-          name: 'Mortgage',
-          type: 'debt_payment',
-          includesPrincipal: true,
-          interestOnly: false,
-          currentAnnual: 300000,
-          growthRate: 0,
-          retirementMultiplier: 1,
-          startYear: 2026,
-          endYear: null,
-        },
-        {
-          id: 'living-1',
-          name: 'Living',
-          type: 'general',
-          includesPrincipal: false,
-          interestOnly: false,
-          currentAnnual: 200000,
-          growthRate: 2,
-          retirementMultiplier: 1,
-          startYear: 2026,
-          endYear: null,
-        },
-      ],
-    }));
+        ],
+        expenses: [
+          {
+            id: 'debt-1',
+            name: 'Mortgage',
+            type: 'debt_payment',
+            includesPrincipal: true,
+            interestOnly: false,
+            currentAnnual: 300000,
+            growthRate: 0,
+            retirementMultiplier: 1,
+            startYear: 2026,
+            endYear: null,
+          },
+          {
+            id: 'living-1',
+            name: 'Living',
+            type: 'general',
+            includesPrincipal: false,
+            interestOnly: false,
+            currentAnnual: 200000,
+            growthRate: 2,
+            retirementMultiplier: 1,
+            startYear: 2026,
+            endYear: null,
+          },
+        ],
+      }),
+    );
 
     expect(vm.expenseBreakdownChartData).not.toBeNull();
     expect(vm.expenseBreakdownChartData?.map((item) => item.name).sort()).toEqual([

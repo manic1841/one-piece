@@ -1,22 +1,22 @@
-import { runTransaction, type Transaction as FirestoreTransaction } from 'firebase/firestore';
+import { type Transaction as FirestoreTransaction, runTransaction } from 'firebase/firestore';
+import { z } from 'zod';
 
+import { householdPermissionService } from '@/application/household/householdPermissionService';
 import {
   AllocationReplacementCommandError,
   AllocationReplacementCommandErrorCode,
 } from '@/application/ledger/allocationReplacementErrors';
-import { householdPermissionService } from '@/application/household/householdPermissionService';
 import { type AuthContext } from '@/application/types';
 import {
-  AllocationCreateSchema,
   type Allocation,
   type AllocationCreate,
+  AllocationCreateSchema,
 } from '@/domains/allocation/schemas';
 import { type Transaction } from '@/domains/ledger/schemas';
 import { LedgerValidator } from '@/domains/ledger/validator';
 import { db } from '@/firebase';
 import { allocationRepository } from '@/infra/repositories/allocationRepository';
 import { transactionRepository } from '@/infra/repositories/transactionRepository';
-import { z } from 'zod';
 
 export const AllocationReplacementInputSchema = z.object({
   transactionDate: z.date(),
@@ -43,9 +43,7 @@ export interface ReplaceAllocationRequest {
 const toYearMonth = (date: Date): string =>
   `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
 
-export const validateAllocationReplacementInput = (
-  input: unknown,
-): AllocationReplacementInput => {
+export const validateAllocationReplacementInput = (input: unknown): AllocationReplacementInput => {
   const parsed = AllocationReplacementInputSchema.safeParse(input);
   if (!parsed.success) {
     throw new AllocationReplacementCommandError(
@@ -151,13 +149,7 @@ export const replaceCurrentAllocationInTransaction = async ({
       tx,
     );
   } else {
-    await allocationRepository.create(
-      [householdId],
-      allocationData,
-      userEmail,
-      tx,
-      transactionId,
-    );
+    await allocationRepository.create([householdId], allocationData, userEmail, tx, transactionId);
   }
 
   for (const currentAllocation of allocations) {
@@ -179,10 +171,7 @@ const assertSourceMatchesAllocation = (
   transaction: Transaction,
   allocation: AllocationReplacementInput,
 ): void => {
-  if (
-    transaction.intentType !== 'INCOME' &&
-    transaction.intentType !== 'EXPENSE'
-  ) {
+  if (transaction.intentType !== 'INCOME' && transaction.intentType !== 'EXPENSE') {
     throw new AllocationReplacementCommandError(
       AllocationReplacementCommandErrorCode.UNSUPPORTED_INTENT_TYPE,
       'allocation is only supported for INCOME or EXPENSE transactions',
@@ -234,10 +223,7 @@ export class ReplaceAllocationUseCase {
       );
 
       await runTransaction(db, async (tx) => {
-        const sourceTransaction = await transactionRepository.get(
-          [householdId, transactionId],
-          tx,
-        );
+        const sourceTransaction = await transactionRepository.get([householdId, transactionId], tx);
         if (!sourceTransaction) {
           throw new AllocationReplacementCommandError(
             AllocationReplacementCommandErrorCode.TRANSACTION_NOT_FOUND,
@@ -247,15 +233,17 @@ export class ReplaceAllocationUseCase {
 
         assertSourceMatchesAllocation(sourceTransaction, allocation);
 
-        const existingAllocations = (await allocationRepository.getByIds(
-          householdId,
-          [
-            transactionId,
-            ...candidateAllocations.map((candidate) => candidate.id),
-            sourceTransaction.allocationId ?? '',
-          ],
-          tx,
-        )).filter(
+        const existingAllocations = (
+          await allocationRepository.getByIds(
+            householdId,
+            [
+              transactionId,
+              ...candidateAllocations.map((candidate) => candidate.id),
+              sourceTransaction.allocationId ?? '',
+            ],
+            tx,
+          )
+        ).filter(
           (currentAllocation) =>
             currentAllocation.sourceTransactionId === transactionId ||
             currentAllocation.id === sourceTransaction.allocationId,

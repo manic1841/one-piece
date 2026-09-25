@@ -1,10 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
-import { mapDashboardOverviewToStatRowVM } from './dashboardStatRow.vm';
 import {
   type DashboardOverview,
   type DashboardPulse,
 } from '@/application/dashboard/use_cases/getDashboardOverviewUseCase';
+
+import { mapDashboardOverviewToStatRowVM } from './dashboardStatRow.vm';
 
 const buildOverview = (
   anchor: Partial<NonNullable<DashboardOverview['anchor']>> | null,

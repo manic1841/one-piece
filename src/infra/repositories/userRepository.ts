@@ -1,9 +1,9 @@
 import { collection, doc } from 'firebase/firestore';
 
+import { UserProfileSchema } from '@/domains/auth/user/schemas';
+import { type UserProfile } from '@/domains/auth/user/types';
 import { db } from '@/firebase';
 import { BaseRepository } from '@/infra/repositories/baseRepository';
-import { type UserProfile } from '@/domains/auth/user/types';
-import { UserProfileSchema } from '@/domains/auth/user/schemas';
 
 class UserRepository extends BaseRepository<UserProfile, [string?]> {
   private readonly collectionName = 'users';

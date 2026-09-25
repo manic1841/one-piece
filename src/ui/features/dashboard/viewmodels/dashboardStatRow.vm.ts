@@ -1,7 +1,6 @@
+import type { DashboardOverview } from '@/application/dashboard/use_cases/getDashboardOverviewUseCase';
 import { DASHBOARD_STAT_ROW_LABELS } from '@/ui/constants/dashboard/statRowLabels';
 import { formatCurrency, formatPercentage } from '@/ui/utils';
-
-import type { DashboardOverview } from '@/application/dashboard/use_cases/getDashboardOverviewUseCase';
 
 export interface DashboardStatMetricVM {
   key: string;
@@ -36,9 +35,7 @@ export const mapDashboardOverviewToStatRowVM = (
     key: 'totalAssets',
     label: DASHBOARD_STAT_ROW_LABELS.TOTAL_ASSETS,
     valueText: anchor ? formatCurrency(anchor.assets) : '—',
-    detailText: anchor
-      ? `${DASHBOARD_STAT_ROW_LABELS.ANCHOR_PREFIX} ${anchor.yearMonth}`
-      : null,
+    detailText: anchor ? `${DASHBOARD_STAT_ROW_LABELS.ANCHOR_PREFIX} ${anchor.yearMonth}` : null,
     valueClassName: '',
   };
 

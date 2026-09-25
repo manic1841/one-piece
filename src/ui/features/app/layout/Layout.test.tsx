@@ -2,9 +2,10 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import Layout from './Layout';
 import { ConfirmDialogProvider } from '@/ui/features/app/confirm/ConfirmDialog';
-import { NAV_ITEMS, NAVIGATOR_ITEMS } from './navigation';
+
+import Layout from './Layout';
+import { NAVIGATOR_ITEMS, NAV_ITEMS } from './navigation';
 
 class ResizeObserverStub {
   observe() {}

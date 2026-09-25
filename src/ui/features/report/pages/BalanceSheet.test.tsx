@@ -55,7 +55,12 @@ describe('BalanceSheetPage', () => {
               total: 6500,
               totalText: 'NT$6,500',
               items: [
-                { code: 'equity:retained', label: '保留盈餘', amount: 6500, amountText: 'NT$6,500' },
+                {
+                  code: 'equity:retained',
+                  label: '保留盈餘',
+                  amount: 6500,
+                  amountText: 'NT$6,500',
+                },
               ],
             },
             adjustment: {
@@ -92,8 +97,6 @@ describe('BalanceSheetPage', () => {
 
     expect(screen.getByText('資產合計')).toBeInTheDocument();
     expect(screen.getAllByText('NT$10,000').length).toBeGreaterThan(0);
-    expect(
-      screen.getByText(/注意：調整項目偏大/),
-    ).toBeInTheDocument();
+    expect(screen.getByText(/注意：調整項目偏大/)).toBeInTheDocument();
   });
 });

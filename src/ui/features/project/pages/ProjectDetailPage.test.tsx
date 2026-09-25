@@ -7,6 +7,8 @@ import { useAuthState } from '@/ui/contexts/useAuthState';
 import { useProjectCmds } from '@/ui/features/project/hooks/useProjectCmds';
 import { useProjectDetailView } from '@/ui/features/project/hooks/useProjectDetailView';
 
+import ProjectDetailPage from './ProjectDetailPage';
+
 vi.mock('@/ui/contexts/useAuthState');
 vi.mock('@/ui/features/project/hooks/useProjectCmds');
 vi.mock('@/ui/features/project/hooks/useProjectDetailView');
@@ -26,8 +28,6 @@ vi.mock('react-router-dom', async () => {
 const mockUseAuth = vi.mocked(useAuthState);
 const mockUseProjectCmds = vi.mocked(useProjectCmds);
 const mockUseProjectDetailView = vi.mocked(useProjectDetailView);
-
-import ProjectDetailPage from './ProjectDetailPage';
 
 const buildProject = (overrides: Partial<Project> = {}): Project => ({
   id: 'p1',

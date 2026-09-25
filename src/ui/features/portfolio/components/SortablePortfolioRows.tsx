@@ -1,8 +1,8 @@
 import React from 'react';
 
-import { TableCell, TableRow } from '@/ui/components/ui/table';
 import CompactRow from '@/ui/components/CompactRow';
 import { GripHandle } from '@/ui/components/sortable/SortableListScope';
+import { TableCell, TableRow } from '@/ui/components/ui/table';
 import { useSortableRow } from '@/ui/hooks/useSortableList';
 import { formatPercentage } from '@/ui/utils';
 import { cn } from '@/ui/utils/cn';
@@ -46,9 +46,7 @@ const SortableTableRow: React.FC<SortableTableRowProps> = ({ row, onNavigate }) 
           className={row.isActive ? '' : 'opacity-60'}
         />
       </TableCell>
-      <TableCell className={row.isActive ? '' : 'text-muted-foreground'}>
-        {row.name}
-      </TableCell>
+      <TableCell className={row.isActive ? '' : 'text-muted-foreground'}>{row.name}</TableCell>
       <TableCell className="text-muted-foreground">{row.securitiesName}</TableCell>
       <TableCell className="text-muted-foreground">{row.bankName}</TableCell>
       <TableCell className="text-right font-mono tabular-nums">{row.valueText}</TableCell>
@@ -88,7 +86,9 @@ const SortableCompactRow: React.FC<SortableCompactRowProps> = ({ row, onNavigate
           activatorRef={setActivatorNodeRef}
           className="-ml-1 mr-1"
         />
-        <span className={`min-w-0 truncate text-sm font-medium ${row.isActive ? '' : 'text-muted-foreground'}`}>
+        <span
+          className={`min-w-0 truncate text-sm font-medium ${row.isActive ? '' : 'text-muted-foreground'}`}
+        >
           {row.name}
         </span>
         <span className="ml-auto font-mono text-sm tabular-nums">{row.valueText}</span>

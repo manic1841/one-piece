@@ -14,25 +14,22 @@ import {
 } from '@/domains/retirement/schemas';
 
 import {
-  audit,
-  auditShape,
-  emit,
-  hh,
+  type Builder,
   MORTGAGE_ID,
   MORTGAGE_PAYMENT,
   QA_SEED_FIXED_NOW,
   SALARY_AMOUNT,
   SALARY_TOTAL_2025,
   SAMPLE_YEAR,
-  type Builder,
+  audit,
+  auditShape,
+  emit,
+  hh,
 } from './shared';
 
 const PLAN_ID = 'plan_qa_retirement';
 
-export const buildRetirementDocs = (
-  b: Builder,
-  mortgage: { interestTotal: number },
-) => {
+export const buildRetirementDocs = (b: Builder, mortgage: { interestTotal: number }) => {
   const { identity } = b;
   const importedAt = QA_SEED_FIXED_NOW.toISOString();
 
@@ -133,9 +130,7 @@ export const buildRetirementDocs = (
         id: 'evt_renovation',
         type: 'expense',
         name: '房屋修繕',
-        phases: [
-          { name: '一次修繕', startYear: 2028, endYear: 2028, amount: 800_000 },
-        ],
+        phases: [{ name: '一次修繕', startYear: 2028, endYear: 2028, amount: 800_000 }],
       },
     ],
     ...audit(identity),
@@ -161,11 +156,23 @@ export const buildRetirementDocs = (
   for (const income of incomes) {
     const doc = { ...income, ...audit(identity) };
     withAudit.parse(doc);
-    emit(b, z.record(z.string(), z.unknown()), hh(identity, 'retirement_plans', PLAN_ID, 'incomeStreams'), income.id, doc);
+    emit(
+      b,
+      z.record(z.string(), z.unknown()),
+      hh(identity, 'retirement_plans', PLAN_ID, 'incomeStreams'),
+      income.id,
+      doc,
+    );
   }
   for (const expense of expenses) {
     const doc = { ...expense, ...audit(identity) };
     withAudit.parse(doc);
-    emit(b, z.record(z.string(), z.unknown()), hh(identity, 'retirement_plans', PLAN_ID, 'expenseCategories'), expense.id, doc);
+    emit(
+      b,
+      z.record(z.string(), z.unknown()),
+      hh(identity, 'retirement_plans', PLAN_ID, 'expenseCategories'),
+      expense.id,
+      doc,
+    );
   }
 };

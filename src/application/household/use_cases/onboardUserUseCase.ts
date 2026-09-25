@@ -1,8 +1,9 @@
+import { updateUserProfileUseCase } from '@/application/auth/use_cases/updateUserProfileUseCase';
+import { type UserProfile } from '@/domains/auth/user/types';
+import { isMissingHouseholdError } from '@/domains/household/errors';
+
 import { createHouseholdUseCase } from './createHouseholdUseCase';
 import { joinHouseholdUseCase } from './joinHouseholdUseCase';
-import { updateUserProfileUseCase } from '@/application/auth/use_cases/updateUserProfileUseCase';
-import { isMissingHouseholdError } from '@/domains/household/errors';
-import { type UserProfile } from '@/domains/auth/user/types';
 
 export interface OnboardUserRequest {
   input: string;

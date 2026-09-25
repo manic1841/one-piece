@@ -1,10 +1,7 @@
 import { type User, onAuthStateChanged, signInWithPopup, signOut } from 'firebase/auth';
 
+import { type AuthGateway, type AuthGatewaySnapshot } from '@/domains/auth/authGateway';
 import { AUTH_BACKEND_UNREACHABLE } from '@/domains/auth/authInitError';
-import {
-  type AuthGateway,
-  type AuthGatewaySnapshot,
-} from '@/domains/auth/authGateway';
 import { type AuthUser } from '@/domains/auth/identity';
 import { auth, googleProvider } from '@/firebase';
 

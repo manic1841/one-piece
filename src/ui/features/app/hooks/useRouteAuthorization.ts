@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 
 import {
-  authorizeRouteAccessUseCase,
   type RouteAccessOutcome,
+  authorizeRouteAccessUseCase,
 } from '@/application/auth/use_cases/authorizeRouteAccessUseCase';
 import { useAuthState } from '@/ui/contexts/useAuthState';
 import { useAuthIdentity } from '@/ui/hooks/useAuthIdentity';

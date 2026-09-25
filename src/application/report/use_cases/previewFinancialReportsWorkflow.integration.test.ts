@@ -27,21 +27,18 @@ const seedAccountSnapshot = async (
   yearMonth: string,
   amount: number,
 ) => {
-  await setDoc(
-    doc(db, 'households', householdId, 'accounts', accountId, 'snapshots', yearMonth),
-    {
-      id: yearMonth,
-      accountId,
-      year: Number(yearMonth.split('-')[0]),
-      month: Number(yearMonth.split('-')[1]),
-      amount,
-      holdings: [],
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-      createdBy: 'user@example.com',
-      updatedBy: 'user@example.com',
-    },
-  );
+  await setDoc(doc(db, 'households', householdId, 'accounts', accountId, 'snapshots', yearMonth), {
+    id: yearMonth,
+    accountId,
+    year: Number(yearMonth.split('-')[0]),
+    month: Number(yearMonth.split('-')[1]),
+    amount,
+    holdings: [],
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+    createdBy: 'user@example.com',
+    updatedBy: 'user@example.com',
+  });
 };
 
 const seedTransaction = async (

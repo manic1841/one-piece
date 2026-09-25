@@ -1,6 +1,8 @@
+import type {
+  DashboardNetWorthPoint,
+  DashboardOverview,
+} from '@/application/dashboard/use_cases/getDashboardOverviewUseCase';
 import { formatCurrency, formatYearMonth } from '@/ui/utils';
-
-import type { DashboardOverview, DashboardNetWorthPoint } from '@/application/dashboard/use_cases/getDashboardOverviewUseCase';
 
 export type { DashboardComposition } from '@/application/dashboard/use_cases/getDashboardOverviewUseCase';
 
@@ -44,8 +46,18 @@ const TREND_PADDING_BOTTOM = 24;
 const TREND_Y_LABEL_COUNT = 4;
 
 const MONTH_NAMES = [
-  'JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN',
-  'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC',
+  'JAN',
+  'FEB',
+  'MAR',
+  'APR',
+  'MAY',
+  'JUN',
+  'JUL',
+  'AUG',
+  'SEP',
+  'OCT',
+  'NOV',
+  'DEC',
 ];
 
 const formatTrendValue = (value: number): string => {
@@ -111,7 +123,13 @@ export const mapDashboardOverviewToHeroVM = (
       netWorthText: '—',
       ytd: null,
       sparkline: { points: [], path: undefined, areaPath: undefined },
-      trend: { path: undefined, areaPath: undefined, endPoint: undefined, xLabels: [], yLabels: [] },
+      trend: {
+        path: undefined,
+        areaPath: undefined,
+        endPoint: undefined,
+        xLabels: [],
+        yLabels: [],
+      },
     };
   }
 
@@ -128,10 +146,7 @@ export const mapDashboardOverviewToHeroVM = (
   };
 };
 
-const buildYtdVM = (
-  netWorth: number,
-  baselineNetWorth: number | null,
-): DashboardHeroVM['ytd'] => {
+const buildYtdVM = (netWorth: number, baselineNetWorth: number | null): DashboardHeroVM['ytd'] => {
   if (baselineNetWorth === null) {
     return { percentText: '—', amountText: null, direction: 'positive' };
   }

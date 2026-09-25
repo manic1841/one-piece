@@ -32,9 +32,7 @@ describe('getStockGainLossUseCase', () => {
   });
 
   it('uses point read (getSnapshot) with deterministic yearMonth ID, not a collection query', async () => {
-    vi.mocked(portfolioRepository.list).mockResolvedValue([
-      { id: 'port-1' } as never,
-    ]);
+    vi.mocked(portfolioRepository.list).mockResolvedValue([{ id: 'port-1' } as never]);
 
     await getStockGainLossUseCase.execute({
       householdId: 'household-1',

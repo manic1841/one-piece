@@ -4,11 +4,11 @@ import {
   FileText,
   Folder,
   LayoutDashboard,
+  type LucideIcon,
   Receipt,
   Settings,
   TrendingUp,
   Wallet,
-  type LucideIcon,
 } from 'lucide-react';
 
 export interface NavItem {
@@ -42,6 +42,4 @@ export const NAV_ITEMS: NavItem[] = [
  * Access (Ctrl/Cmd+K) lists all of `NAV_ITEMS` independently (ADR-0055
  * decisions 2 and 3).
  */
-export const NAVIGATOR_ITEMS: NavItem[] = NAV_ITEMS.filter(
-  (item) => !item.excludeFromNavigator,
-);
+export const NAVIGATOR_ITEMS: NavItem[] = NAV_ITEMS.filter((item) => !item.excludeFromNavigator);

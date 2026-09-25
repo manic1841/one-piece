@@ -1,8 +1,9 @@
-import { describe, expect, it, vi, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+import { type AccountSnapshot } from '@/domains/account/types/account';
 
 import { getAccountHistoryUseCase } from './getAccountHistoryUseCase';
 import { getAccountSnapshotsUseCase } from './getAccountSnapshotsUseCase';
-import { type AccountSnapshot } from '@/domains/account/types/account';
 
 vi.mock('./getAccountSnapshotsUseCase', () => ({
   getAccountSnapshotsUseCase: {

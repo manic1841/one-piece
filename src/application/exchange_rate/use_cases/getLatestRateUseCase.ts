@@ -1,5 +1,5 @@
-import { exchangeRateApiClient } from '@/infra/external/exchangeRateApiClient';
 import { type CurrencyCode } from '@/domains/exchange_rate/types';
+import { exchangeRateApiClient } from '@/infra/external/exchangeRateApiClient';
 
 interface GetLatestRateRequest {
   from: CurrencyCode;

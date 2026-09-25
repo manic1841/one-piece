@@ -86,10 +86,10 @@ class ProjectRepository extends BaseRepository<Project, [string, string?]> {
     userEmail: string,
   ): Promise<void> {
     const snapshotId = projectSnapshotRepository.buildId(snapshot.year, snapshot.month);
-    
+
     // Upsert mechanism: check if exists
     const existing = await projectSnapshotRepository.get([householdId, projectId, snapshotId]);
-    
+
     if (existing) {
       await projectSnapshotRepository.update(
         [householdId, projectId, snapshotId],
@@ -102,7 +102,7 @@ class ProjectRepository extends BaseRepository<Project, [string, string?]> {
         snapshot,
         userEmail,
         undefined,
-        snapshotId
+        snapshotId,
       );
     }
   }

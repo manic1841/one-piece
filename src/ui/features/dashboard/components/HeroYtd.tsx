@@ -9,16 +9,11 @@ export function HeroYtd({ ytd }: HeroYtdProps) {
     return null;
   }
   return (
-    <p
-      data-testid="hero-ytd"
-      className="mt-2 font-mono text-sm tabular-nums text-muted-foreground"
-    >
+    <p data-testid="hero-ytd" className="mt-2 font-mono text-sm tabular-nums text-muted-foreground">
       {ytd.percentText}
       {ytd.amountText != null && (
         <span
-          className={
-            ytd.direction === 'negative' ? 'ml-2 text-negative' : 'ml-2 text-positive'
-          }
+          className={ytd.direction === 'negative' ? 'ml-2 text-negative' : 'ml-2 text-positive'}
         >
           {ytd.amountText}
         </span>

@@ -11,7 +11,14 @@ interface CompactRowProps {
   ref?: React.Ref<HTMLDivElement>;
 }
 
-const CompactRow: React.FC<CompactRowProps> = ({ children, onClick, className, testId, style, ref }) => (
+const CompactRow: React.FC<CompactRowProps> = ({
+  children,
+  onClick,
+  className,
+  testId,
+  style,
+  ref,
+}) => (
   <div
     ref={ref}
     data-testid={testId}

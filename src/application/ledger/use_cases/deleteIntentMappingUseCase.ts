@@ -1,6 +1,6 @@
-import { intentMappingRepository } from '@/infra/repositories/intentMappingRepository';
 import { householdPermissionService } from '@/application/household/householdPermissionService';
 import { type AuthContext } from '@/application/types';
+import { intentMappingRepository } from '@/infra/repositories/intentMappingRepository';
 
 export interface DeleteIntentMappingRequest {
   householdId: string;

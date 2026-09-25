@@ -1,12 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { householdPermissionService } from '@/application/household/householdPermissionService';
 import {
   RetirementPlanCommandError,
   RetirementPlanCommandErrorCode,
 } from '@/domains/retirement/retirementPlanErrors';
-import { updateRetirementPlanUseCase } from './updateRetirementPlanUseCase';
-import { householdPermissionService } from '@/application/household/householdPermissionService';
 import { retirementRepository } from '@/infra/repositories/retirementRepository';
+
+import { updateRetirementPlanUseCase } from './updateRetirementPlanUseCase';
 
 vi.mock('@/application/household/householdPermissionService', () => ({
   householdPermissionService: {

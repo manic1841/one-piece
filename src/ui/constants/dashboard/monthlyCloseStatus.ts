@@ -1,6 +1,6 @@
 import { type FinancialPeriodStatus } from '@/domains/financial_period/schemas';
-import { MONTHLY_CLOSE_LABELS } from '@/ui/constants/monthlyClose';
 import { type StatusGlyphType } from '@/ui/components/StatusGlyph';
+import { MONTHLY_CLOSE_LABELS } from '@/ui/constants/monthlyClose';
 
 export const DASHBOARD_CLOSE_LABELS = {
   SECTION_TITLE: 'MONTHLY CLOSE',

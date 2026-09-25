@@ -8,7 +8,7 @@
  */
 import { describe, expect, it } from 'vitest';
 
-import { buildQaSeedPlan, type SeedDoc } from '../../scripts/qa/plan';
+import { type SeedDoc, buildQaSeedPlan } from '../../scripts/qa/plan';
 
 const IDENTITY = { uid: 'uid-qa', email: 'qa@onepiece.test', householdId: 'qa_household' };
 
@@ -120,7 +120,9 @@ describe('QA seed plan builder', () => {
         'SECURITIES_TRADE',
         'TRANSACTION_VALIDATION',
       ]);
-      expect(Object.values(stages).every((s) => s.status === 'PENDING' || s.status === 'COMPLETED')).toBe(true);
+      expect(
+        Object.values(stages).every((s) => s.status === 'PENDING' || s.status === 'COMPLETED'),
+      ).toBe(true);
     }
 
     const active = byId.get('2026-09')!.data.stages as Record<string, { status: string }>;

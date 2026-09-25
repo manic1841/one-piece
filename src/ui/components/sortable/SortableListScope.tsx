@@ -1,12 +1,17 @@
 import React from 'react';
 
-import { closestCenter, DndContext, type DragEndEvent, type DraggableAttributes, type DraggableSyntheticListeners } from '@dnd-kit/core';
+import {
+  DndContext,
+  type DragEndEvent,
+  type DraggableAttributes,
+  type DraggableSyntheticListeners,
+  closestCenter,
+} from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { GripVertical } from 'lucide-react';
 
-import { cn } from '@/ui/utils/cn';
-
 import { reorderFromDragEnd, useSortableListSensors } from '@/ui/hooks/useSortableList';
+import { cn } from '@/ui/utils/cn';
 
 interface SortableListScopeProps<T extends { id: string }> {
   items: T[];
@@ -34,10 +39,7 @@ export function SortableListScope<T extends { id: string }>({
 
   return (
     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-      <SortableContext
-        items={items.map((item) => item.id)}
-        strategy={verticalListSortingStrategy}
-      >
+      <SortableContext items={items.map((item) => item.id)} strategy={verticalListSortingStrategy}>
         {children}
       </SortableContext>
     </DndContext>

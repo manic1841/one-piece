@@ -6,8 +6,8 @@ import { useNavigate } from 'react-router-dom';
 import { InlineEditableTitle } from '@/ui/components/InlineEditableTitle';
 import { PageHeader } from '@/ui/components/PageHeader';
 import { StatusGlyph } from '@/ui/components/StatusGlyph';
-import { Button } from '@/ui/components/ui/button';
 import { YearMonthPicker } from '@/ui/components/YearMonthPicker';
+import { Button } from '@/ui/components/ui/button';
 import {
   Table,
   TableBody,
@@ -52,16 +52,10 @@ export default function ProjectDetailPage({ project }: ProjectDetailPageProps) {
   return (
     <div className="space-y-8 pb-20">
       <PageHeader
-        title={
-          <InlineEditableTitle value={activeProject.name} onSave={handleRename} />
-        }
+        title={<InlineEditableTitle value={activeProject.name} onSave={handleRename} />}
         crumb="PROJECTS"
         onBack={() => navigate('/projects')}
-        badge={
-          !isActive ? (
-            <StatusGlyph type="inactive" />
-          ) : undefined
-        }
+        badge={!isActive ? <StatusGlyph type="inactive" /> : undefined}
         actions={
           <div className="flex items-center gap-2">
             {isActive ? (
@@ -75,14 +69,28 @@ export default function ProjectDetailPage({ project }: ProjectDetailPageProps) {
               </Button>
             )}
             <YearMonthPicker
-              year={selectedYearMonth === 'current' ? String(new Date().getFullYear()) : selectedYearMonth.split('-')[0]}
-              month={selectedYearMonth === 'current' ? String(new Date().getMonth() + 1) : selectedYearMonth.split('-')[1]}
+              year={
+                selectedYearMonth === 'current'
+                  ? String(new Date().getFullYear())
+                  : selectedYearMonth.split('-')[0]
+              }
+              month={
+                selectedYearMonth === 'current'
+                  ? String(new Date().getMonth() + 1)
+                  : selectedYearMonth.split('-')[1]
+              }
               onYearChange={(year) => {
-                const month = selectedYearMonth === 'current' ? String(new Date().getMonth() + 1) : selectedYearMonth.split('-')[1];
+                const month =
+                  selectedYearMonth === 'current'
+                    ? String(new Date().getMonth() + 1)
+                    : selectedYearMonth.split('-')[1];
                 setSelectedYearMonth(`${year}-${month}`);
               }}
               onMonthChange={(month) => {
-                const year = selectedYearMonth === 'current' ? String(new Date().getFullYear()) : selectedYearMonth.split('-')[0];
+                const year =
+                  selectedYearMonth === 'current'
+                    ? String(new Date().getFullYear())
+                    : selectedYearMonth.split('-')[0];
                 setSelectedYearMonth(`${year}-${month}`);
               }}
             />
@@ -104,7 +112,9 @@ export default function ProjectDetailPage({ project }: ProjectDetailPageProps) {
           </div>
           <div>
             <p className="text-xs text-muted-foreground">Expense</p>
-            <p className="font-mono tabular-nums text-negative">{formatCurrency(summary.expense)}</p>
+            <p className="font-mono tabular-nums text-negative">
+              {formatCurrency(summary.expense)}
+            </p>
           </div>
           <div>
             <p className="text-xs text-muted-foreground">Net Cash Flow</p>

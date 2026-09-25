@@ -1,6 +1,6 @@
 import { householdPermissionService } from '@/application/household/householdPermissionService';
 import { type AuthContext } from '@/application/types';
-import { type DebtAccountCreate, DEBT_TYPE_LEDGER_CODE } from '@/domains/debt/schemas';
+import { DEBT_TYPE_LEDGER_CODE, type DebtAccountCreate } from '@/domains/debt/schemas';
 import { debtAccountRepository } from '@/infra/repositories/debtAccountRepository';
 
 export interface UpdateDebtAccountRequest {
@@ -14,7 +14,11 @@ export interface UpdateDebtAccountRequest {
 export class UpdateDebtAccountUseCase {
   async execute(request: UpdateDebtAccountRequest): Promise<void> {
     const { householdId, debtAccountId, data, userEmail, auth } = request;
-    await householdPermissionService.assertWritePermission(householdId, auth.uid, auth.isGlobalAdmin);
+    await householdPermissionService.assertWritePermission(
+      householdId,
+      auth.uid,
+      auth.isGlobalAdmin,
+    );
 
     // Re-derive linkedLedgerCode if type is being updated
     const updates: Partial<DebtAccountCreate> = { ...data };

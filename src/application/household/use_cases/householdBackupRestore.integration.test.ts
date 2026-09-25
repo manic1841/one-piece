@@ -1,16 +1,9 @@
-import {
-  collection,
-  doc,
-  getDoc,
-  getDocs,
-  setDoc,
-  writeBatch,
-} from 'firebase/firestore';
+import { collection, doc, getDoc, getDocs, setDoc, writeBatch } from 'firebase/firestore';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { exportHouseholdBackupUseCase } from '@/application/household/use_cases/exportHouseholdBackupUseCase';
-import { importHouseholdBackupUseCase } from '@/application/household/use_cases/importHouseholdBackupUseCase';
 import type { HouseholdBackupPayload } from '@/application/household/use_cases/exportHouseholdBackupUseCase';
+import { importHouseholdBackupUseCase } from '@/application/household/use_cases/importHouseholdBackupUseCase';
 import type { AuthContext } from '@/application/types';
 import { db, resetMockDb } from '@/test/mocks/firebase';
 
@@ -101,10 +94,7 @@ async function seedNestedSnapshots(
 ) {
   for (let i = 0; i < snapshotCount; i++) {
     await setDoc(
-      doc(
-        db,
-        `households/${householdId}/${parentCollection}/${parentId}/snapshots/snap-${i}`,
-      ),
+      doc(db, `households/${householdId}/${parentCollection}/${parentId}/snapshots/snap-${i}`),
       withBase(`snap-${i}`, {
         accountId: parentId,
         year: 2025,
@@ -196,20 +186,32 @@ describe('household backup/restore round-trip (Firestore Emulator)', () => {
     expect(restored.collections.projects).toHaveLength(1);
 
     // Account snapshots survived the round-trip
-    const acc1 = restored.collections.accounts.find((a) => (a.account as { id: string }).id === 'acc-1');
+    const acc1 = restored.collections.accounts.find(
+      (a) => (a.account as { id: string }).id === 'acc-1',
+    );
     expect(acc1?.snapshots).toHaveLength(2);
 
     // Verify field-level equality (logical data, not just counts)
-    const origAcc1 = original.collections.accounts.find((a) => (a.account as { id: string }).id === 'acc-1');
+    const origAcc1 = original.collections.accounts.find(
+      (a) => (a.account as { id: string }).id === 'acc-1',
+    );
     expect(acc1?.account).toEqual(origAcc1?.account);
     expect(acc1?.snapshots).toEqual(origAcc1?.snapshots);
 
-    const origTx1 = original.collections.transactions.find((t) => (t as { id: string }).id === 'tx-1');
-    const restTx1 = restored.collections.transactions.find((t) => (t as { id: string }).id === 'tx-1');
+    const origTx1 = original.collections.transactions.find(
+      (t) => (t as { id: string }).id === 'tx-1',
+    );
+    const restTx1 = restored.collections.transactions.find(
+      (t) => (t as { id: string }).id === 'tx-1',
+    );
     expect(restTx1).toEqual(origTx1);
 
-    const origProj = original.collections.projects.find((p) => (p.project as { id: string }).id === 'proj-1');
-    const restProj = restored.collections.projects.find((p) => (p.project as { id: string }).id === 'proj-1');
+    const origProj = original.collections.projects.find(
+      (p) => (p.project as { id: string }).id === 'proj-1',
+    );
+    const restProj = restored.collections.projects.find(
+      (p) => (p.project as { id: string }).id === 'proj-1',
+    );
     expect(restProj?.project).toEqual(origProj?.project);
   });
 
@@ -220,10 +222,22 @@ describe('household backup/restore round-trip (Firestore Emulator)', () => {
 
     const cases: Array<{ label: string; payload: unknown }> = [
       { label: 'null', payload: null },
-      { label: 'wrong schemaVersion', payload: { schemaVersion: 99, householdId: hid, household: {}, collections: {} } },
-      { label: 'missing household', payload: { schemaVersion: 1, householdId: hid, collections: {} } },
-      { label: 'missing collections', payload: { schemaVersion: 1, householdId: hid, household: {} } },
-      { label: 'mismatched householdId', payload: { schemaVersion: 1, householdId: 'other', household: {}, collections: {} } },
+      {
+        label: 'wrong schemaVersion',
+        payload: { schemaVersion: 99, householdId: hid, household: {}, collections: {} },
+      },
+      {
+        label: 'missing household',
+        payload: { schemaVersion: 1, householdId: hid, collections: {} },
+      },
+      {
+        label: 'missing collections',
+        payload: { schemaVersion: 1, householdId: hid, household: {} },
+      },
+      {
+        label: 'mismatched householdId',
+        payload: { schemaVersion: 1, householdId: 'other', household: {}, collections: {} },
+      },
     ];
 
     for (const { label, payload } of cases) {

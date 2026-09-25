@@ -46,10 +46,7 @@ const IncomeStatementPage: React.FC<IncomeStatementPageProps> = ({
     const isExpanded = expandedCodes.has(item.code);
 
     return (
-      <div
-        key={item.code}
-        className="border-b last:border-0 border-border"
-      >
+      <div key={item.code} className="border-b last:border-0 border-border">
         <div
           className={`flex items-center justify-between py-3 px-2 hover:bg-muted transition-colors cursor-pointer ${depth > 0 ? 'bg-muted/50' : ''}`}
           onClick={() => hasSubItems && toggleExpand(item.code)}
@@ -64,9 +61,7 @@ const IncomeStatementPage: React.FC<IncomeStatementPageProps> = ({
             ) : (
               <div className="w-4" />
             )}
-            <span
-              className={`${depth === 0 ? 'font-medium' : 'text-muted-foreground'}`}
-            >
+            <span className={`${depth === 0 ? 'font-medium' : 'text-muted-foreground'}`}>
               {item.label}
             </span>
           </div>
@@ -82,7 +77,9 @@ const IncomeStatementPage: React.FC<IncomeStatementPageProps> = ({
   };
 
   if (errorMessage) {
-    return <div className="p-8 text-center text-destructive">Error loading report: {errorMessage}</div>;
+    return (
+      <div className="p-8 text-center text-destructive">Error loading report: {errorMessage}</div>
+    );
   }
 
   return (
@@ -109,22 +106,14 @@ const IncomeStatementPage: React.FC<IncomeStatementPageProps> = ({
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Card className="bg-positive/5 border-positive/20">
               <CardContent className="pt-6">
-                <p className="text-sm font-medium text-positive mb-1">
-                  收入合計
-                </p>
-                <p className="text-2xl font-bold text-positive">
-                  {data.incomeTotalText}
-                </p>
+                <p className="text-sm font-medium text-positive mb-1">收入合計</p>
+                <p className="text-2xl font-bold text-positive">{data.incomeTotalText}</p>
               </CardContent>
             </Card>
             <Card className="bg-negative/5 border-negative/20">
               <CardContent className="pt-6">
-                <p className="text-sm font-medium text-negative mb-1">
-                  支出合計
-                </p>
-                <p className="text-2xl font-bold text-negative">
-                  {data.expenseTotalText}
-                </p>
+                <p className="text-sm font-medium text-negative mb-1">支出合計</p>
+                <p className="text-2xl font-bold text-negative">{data.expenseTotalText}</p>
               </CardContent>
             </Card>
             <Card className="bg-muted">

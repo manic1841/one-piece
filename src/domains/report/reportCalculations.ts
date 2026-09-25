@@ -1,7 +1,7 @@
 import { LEDGER_CODES, LEDGER_PREFIX } from '@/domains/ledger/constants';
 import { type JournalEntryLine } from '@/domains/ledger/schemas';
 
-import { categorizeLedgerEntry, type CashFlowGroups } from './cashFlowUtils';
+import { type CashFlowGroups, categorizeLedgerEntry } from './cashFlowUtils';
 import {
   type BalanceSheetData,
   type BalanceSheetItem,
@@ -44,7 +44,7 @@ export function calculateIncomeStatement(input: IncomeStatementInput): IncomeSta
   }
 
   const resolveLabel = (code: string, fallback?: string) =>
-    labelResolver ? labelResolver(code, fallback) : fallback ?? code;
+    labelResolver ? labelResolver(code, fallback) : (fallback ?? code);
 
   const mapToItems = (map: Map<string, number>): IncomeStatementItem[] =>
     Array.from(map.entries())
@@ -121,7 +121,7 @@ export function calculateBalanceSheet(input: BalanceSheetInput): BalanceSheetDat
   } = input;
 
   const resolveLabel = (code: string, fallback?: string) =>
-    labelResolver ? labelResolver(code, fallback) : fallback ?? code;
+    labelResolver ? labelResolver(code, fallback) : (fallback ?? code);
 
   const accountSnapshotMap = new Map(accountSnapshots.map((s) => [s.accountId, s.amount]));
 
@@ -252,7 +252,7 @@ export function calculateCashFlow(input: CashFlowInput): CashFlowData {
   const { yearMonth, entries, beginningBalance, actualBalance, labelResolver } = input;
 
   const resolveLabel = (code: string, fallback?: string) =>
-    labelResolver ? labelResolver(code, fallback) : fallback ?? code;
+    labelResolver ? labelResolver(code, fallback) : (fallback ?? code);
 
   const groups: CashFlowGroups = {
     operating: { inflow: new Map(), outflow: new Map() },
@@ -312,6 +312,8 @@ export function calculateLiquidBalance(
 ): number {
   const snapshotMap = new Map(snapshots.map((s) => [s.accountId, s.amount]));
   return accounts
-    .filter((account) => (LIQUID_ACCOUNT_CATEGORIES as readonly string[]).includes(account.category))
+    .filter((account) =>
+      (LIQUID_ACCOUNT_CATEGORIES as readonly string[]).includes(account.category),
+    )
     .reduce((total, account) => total + (snapshotMap.get(account.id) || 0), 0);
 }

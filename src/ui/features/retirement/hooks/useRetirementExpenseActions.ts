@@ -50,9 +50,7 @@ export const useRetirementExpenseActions = ({
   const handleDeleteExpense = useCallback(
     async (expenseId: string) => {
       if (!id || !plan) return;
-      const confirmed = await confirm(
-        'Are you sure you want to delete this expense category?',
-      );
+      const confirmed = await confirm('Are you sure you want to delete this expense category?');
       if (!confirmed) return;
       await handleUpdatePlan({
         expenses: removeById(plan.expenses, expenseId),
@@ -66,7 +64,8 @@ export const useRetirementExpenseActions = ({
 
     const imported = await importDebtData();
     const importedExpenses = imported.filter(
-      (item) => typeof item.currentAnnual === 'number' && typeof item.sourceDebtAccountId === 'string',
+      (item) =>
+        typeof item.currentAnnual === 'number' && typeof item.sourceDebtAccountId === 'string',
     );
 
     if (importedExpenses.length === 0) {

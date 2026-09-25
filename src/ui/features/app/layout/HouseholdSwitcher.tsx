@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
+
 import { ChevronDown, Home, LogOut as LogOutIcon } from 'lucide-react';
+
 import { Button } from '@/ui/components/ui/button';
-import { useHouseholdSwitcher } from '@/ui/features/app/hooks/useHouseholdSwitcher';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -10,6 +11,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/ui/components/ui/dropdown-menu';
+import { useHouseholdSwitcher } from '@/ui/features/app/hooks/useHouseholdSwitcher';
 
 interface HouseholdSwitcherProps {
   currentHouseholdId?: string;
@@ -23,8 +25,11 @@ const HouseholdSwitcher: React.FC<HouseholdSwitcherProps> = ({
   compact = false,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
-  const { households, loading, handleSwitchHousehold, handleLeaveHousehold } =
-    useHouseholdSwitcher(currentHouseholdId, isOpen, setIsOpen);
+  const { households, loading, handleSwitchHousehold, handleLeaveHousehold } = useHouseholdSwitcher(
+    currentHouseholdId,
+    isOpen,
+    setIsOpen,
+  );
 
   if (compact) {
     return (
@@ -71,7 +76,9 @@ const HouseholdSwitcher: React.FC<HouseholdSwitcherProps> = ({
     <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" className="w-full justify-between px-2 h-auto py-2">
-          <span className="text-sm text-muted-foreground font-medium truncate">{currentHouseholdName}</span>
+          <span className="text-sm text-muted-foreground font-medium truncate">
+            {currentHouseholdName}
+          </span>
           <ChevronDown size={16} className="text-muted-foreground flex-shrink-0 ml-2" />
         </Button>
       </DropdownMenuTrigger>

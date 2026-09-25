@@ -4,10 +4,12 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { type RetirementPlan } from '@/domains/retirement/types';
 import {
-  type RetirementProjectionVM,
   type RetirementProjectionPointVM,
+  type RetirementProjectionVM,
   type RetirementProjectionYearDetailVM,
 } from '@/ui/features/retirement/viewmodels/retirementDisplay.vm';
+
+import RetirementPlanForm from './RetirementPlanForm';
 
 vi.mock('@/ui/contexts/useAuthState', () => ({
   useAuthState: () => ({
@@ -141,8 +143,6 @@ function projectionFixture(): RetirementProjectionVM {
     expenseBreakdownChartData: [{ name: '生活支出', value: 60000, type: 'fixed' }],
   };
 }
-
-import RetirementPlanForm from './RetirementPlanForm';
 
 describe('RetirementPlanForm - Scenario Workspace', () => {
   beforeEach(() => {

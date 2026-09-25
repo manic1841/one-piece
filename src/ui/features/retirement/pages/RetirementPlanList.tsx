@@ -1,7 +1,6 @@
 import { Copy, Plus, TrendingUp } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
-import { useAuthState } from '@/ui/contexts/useAuthState';
 import { PageHeader } from '@/ui/components/PageHeader';
 import { Badge } from '@/ui/components/ui/badge';
 import { Button } from '@/ui/components/ui/button';
@@ -14,6 +13,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/ui/components/ui/table';
+import { useAuthState } from '@/ui/contexts/useAuthState';
 import { useRetirementPlanListPage } from '@/ui/features/retirement/hooks/useRetirementPlanListPage';
 
 export default function RetirementPlanList() {
@@ -99,9 +99,7 @@ export default function RetirementPlanList() {
                   <TableCell>
                     <Badge
                       variant="outline"
-                      className={
-                        plan.isActive ? 'text-positive' : 'text-muted-foreground'
-                      }
+                      className={plan.isActive ? 'text-positive' : 'text-muted-foreground'}
                     >
                       {plan.statusText}
                     </Badge>

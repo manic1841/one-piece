@@ -3,9 +3,9 @@ import React from 'react';
 import { ShieldOff } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
-import { useAuthState } from '@/ui/contexts/useAuthState';
 import { Button } from '@/ui/components/ui/button';
 import { Card, CardContent } from '@/ui/components/ui/card';
+import { useAuthState } from '@/ui/contexts/useAuthState';
 
 const AccessDenied: React.FC = () => {
   const { logout } = useAuthState();

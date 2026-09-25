@@ -5,34 +5,38 @@
 import {
   CLOSE_STAGE_IDS,
   CLOSE_STAGE_IDS_SET,
-  FinancialPeriodSchema,
   type CloseStageId,
   type CloseStageState,
+  FinancialPeriodSchema,
 } from '@/domains/financial_period/schemas';
-import { FinancialReportSchema, ReportType } from '@/domains/report/schemas';
+import type { JournalEntryLine } from '@/domains/ledger/schemas';
 import {
+  type BalanceSheetData,
   calculateBalanceSheet,
   calculateCashFlow,
   calculateIncomeStatement,
-  type BalanceSheetData,
 } from '@/domains/report/reportCalculations';
-import type { JournalEntryLine } from '@/domains/ledger/schemas';
+import { FinancialReportSchema, ReportType } from '@/domains/report/schemas';
 
 import {
+  type Builder,
+  type InternalTxn,
+  MORTGAGE_ID,
+  REPORT_MONTHS,
   audit,
   cashThrough,
   emit,
   hh,
-  MORTGAGE_ID,
   marketValueAt,
-  REPORT_MONTHS,
   ym,
-  type Builder,
-  type InternalTxn,
 } from './shared';
 import { STATIC_ACCOUNTS } from './staticDocs';
 
-export const buildReportDocs = (b: Builder, txns: InternalTxn[], mortgageClosing: Record<string, number>) => {
+export const buildReportDocs = (
+  b: Builder,
+  txns: InternalTxn[],
+  mortgageClosing: Record<string, number>,
+) => {
   const { identity } = b;
   const sorted = [...txns].sort((a, c) => a.date.getTime() - c.date.getTime());
 
@@ -48,7 +52,10 @@ export const buildReportDocs = (b: Builder, txns: InternalTxn[], mortgageClosing
 
   let prevBalanceSheet: BalanceSheetData | null = null;
   for (const target of REPORT_MONTHS) {
-    const incomeStatement = calculateIncomeStatement({ yearMonth: target, entries: entriesIn(target) });
+    const incomeStatement = calculateIncomeStatement({
+      yearMonth: target,
+      entries: entriesIn(target),
+    });
 
     const balanceSheet = calculateBalanceSheet({
       yearMonth: target,
@@ -62,7 +69,9 @@ export const buildReportDocs = (b: Builder, txns: InternalTxn[], mortgageClosing
         { accountId: 'acc_securities', amount: marketValueAt(target) },
       ],
       debtSnapshots: [{ debtId: MORTGAGE_ID, closingBalance: mortgageClosing[target] ?? 0 }],
-      portfolioSnapshots: [{ portfolioId: 'pf_core', gain: marketValueAt(target) - marketValueAt('2026-06') }],
+      portfolioSnapshots: [
+        { portfolioId: 'pf_core', gain: marketValueAt(target) - marketValueAt('2026-06') },
+      ],
       prevBalanceSheet,
       incomeStatement,
     });
@@ -101,10 +110,8 @@ export const buildReportDocs = (b: Builder, txns: InternalTxn[], mortgageClosing
 export const buildMonthlyCloseDocs = (b: Builder) => {
   const { identity } = b;
 
-  const stageState = (
-    status: 'PENDING' | 'COMPLETED',
-    confirmedAt?: Date,
-  ): CloseStageState => (confirmedAt ? { status, confirmedBy: identity.email, confirmedAt } : { status });
+  const stageState = (status: 'PENDING' | 'COMPLETED', confirmedAt?: Date): CloseStageState =>
+    confirmedAt ? { status, confirmedBy: identity.email, confirmedAt } : { status };
 
   const completedStages = (throughIndex: number, at: Date) =>
     Object.fromEntries(
@@ -131,11 +138,24 @@ export const buildMonthlyCloseDocs = (b: Builder) => {
   };
 
   // Paused on the Completeness Check zero-activity anomaly.
-  emitPeriod('2026-06', 'NEEDS_REVIEW', completedStages(5, new Date(2026, 5, 28)), 'COMPLETENESS_CHECK');
+  emitPeriod(
+    '2026-06',
+    'NEEDS_REVIEW',
+    completedStages(5, new Date(2026, 5, 28)),
+    'COMPLETENESS_CHECK',
+  );
 
   // Finalized months: the reopen dialog and cascade demotion (ADR-0066) targets.
-  emitPeriod('2026-07', 'CLOSED', completedStages(CLOSE_STAGE_IDS.length - 1, new Date(2026, 6, 31)));
-  emitPeriod('2026-08', 'CLOSED', completedStages(CLOSE_STAGE_IDS.length - 1, new Date(2026, 7, 31)));
+  emitPeriod(
+    '2026-07',
+    'CLOSED',
+    completedStages(CLOSE_STAGE_IDS.length - 1, new Date(2026, 6, 31)),
+  );
+  emitPeriod(
+    '2026-08',
+    'CLOSED',
+    completedStages(CLOSE_STAGE_IDS.length - 1, new Date(2026, 7, 31)),
+  );
 
   // Active close: first five stages confirmed, validation evidence pending.
   emitPeriod('2026-09', 'IN_PROGRESS', completedStages(4, new Date(2026, 8, 12)));

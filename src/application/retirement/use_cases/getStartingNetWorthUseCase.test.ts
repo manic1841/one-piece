@@ -1,8 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { listReportsUseCase } from '@/application/report/use_cases/listReportsUseCase';
 import { type AuthContext } from '@/application/types';
 import { ReportType } from '@/domains/report/schemas';
 import { type FinancialReport } from '@/domains/report/types';
+import { financialPeriodRepository } from '@/infra/repositories/financialPeriodRepository';
 
 import { getStartingNetWorthUseCase } from './getStartingNetWorthUseCase';
 
@@ -23,9 +25,6 @@ vi.mock('@/infra/repositories/financialPeriodRepository', () => ({
     getPeriod: vi.fn(),
   },
 }));
-
-import { listReportsUseCase } from '@/application/report/use_cases/listReportsUseCase';
-import { financialPeriodRepository } from '@/infra/repositories/financialPeriodRepository';
 
 const auth: AuthContext = { uid: 'u1', isGlobalAdmin: false };
 
@@ -56,12 +55,14 @@ describe('getStartingNetWorthUseCase', () => {
       buildReport('2026-07', 400_000, 100_000),
       buildReport('2026-08', 500_000, 120_000),
     ]);
-    vi.mocked(financialPeriodRepository.getPeriod).mockImplementation(async (_householdId, yearMonth) => {
-      if (yearMonth === '2026-07' || yearMonth === '2026-08') {
-        return { status: 'CLOSED' } as never;
-      }
-      return null;
-    });
+    vi.mocked(financialPeriodRepository.getPeriod).mockImplementation(
+      async (_householdId, yearMonth) => {
+        if (yearMonth === '2026-07' || yearMonth === '2026-08') {
+          return { status: 'CLOSED' } as never;
+        }
+        return null;
+      },
+    );
 
     const result = await getStartingNetWorthUseCase.execute({
       householdId: 'household-1',
@@ -82,12 +83,14 @@ describe('getStartingNetWorthUseCase', () => {
       buildReport('2026-08', 500_000, 120_000),
       buildReport('2026-07', 400_000, 100_000),
     ]);
-    vi.mocked(financialPeriodRepository.getPeriod).mockImplementation(async (_householdId, yearMonth) => {
-      if (yearMonth === '2026-07') {
-        return { status: 'CLOSED' } as never;
-      }
-      return { status: 'OPEN' } as never;
-    });
+    vi.mocked(financialPeriodRepository.getPeriod).mockImplementation(
+      async (_householdId, yearMonth) => {
+        if (yearMonth === '2026-07') {
+          return { status: 'CLOSED' } as never;
+        }
+        return { status: 'OPEN' } as never;
+      },
+    );
 
     const result = await getStartingNetWorthUseCase.execute({
       householdId: 'household-1',

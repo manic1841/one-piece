@@ -11,12 +11,7 @@ const mappingFor = (intent: string) => {
   return mapping;
 };
 
-const code = (
-  value: string,
-  type: string,
-  isCustom = false,
-  isActive = true,
-): LedgerCodeItem => ({
+const code = (value: string, type: string, isCustom = false, isActive = true): LedgerCodeItem => ({
   code: value,
   label: value,
   type,

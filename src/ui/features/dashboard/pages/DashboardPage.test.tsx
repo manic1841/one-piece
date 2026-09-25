@@ -2,6 +2,8 @@ import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 
+import DashboardPage from './DashboardPage';
+
 const mockGetOverview = vi.hoisted(() => vi.fn());
 
 vi.mock('@/ui/contexts/useAuthState', () => ({
@@ -44,8 +46,6 @@ vi.mock('@/application/debt/use_cases/getNextMonthDebtDueUseCase', () => ({
 vi.mock('@/ui/features/app/layout/HouseholdSwitcher', () => ({
   default: () => <div data-testid="household-switcher" />,
 }));
-
-import DashboardPage from './DashboardPage';
 
 const buildOverview = () => ({
   anchor: {
@@ -182,7 +182,9 @@ describe('DashboardPage reading path order', () => {
 
     const container = document.body;
     const order = (container.textContent ?? '')
-      .split(/(NET WORTH TREND|NET WORTH|FINANCIAL SNAPSHOT|ASSETS & LIABILITIES|MONTHLY CASH FLOW|RECENT TRANSACTIONS|MONTHLY CLOSE)/)
+      .split(
+        /(NET WORTH TREND|NET WORTH|FINANCIAL SNAPSHOT|ASSETS & LIABILITIES|MONTHLY CASH FLOW|RECENT TRANSACTIONS|MONTHLY CLOSE)/,
+      )
       .filter((part) =>
         [
           'NET WORTH',

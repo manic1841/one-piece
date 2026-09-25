@@ -2,10 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { type FinancialPeriod } from '@/domains/financial_period/schemas';
 
-import {
-  mapPeriodToCloseStatusVM,
-  mapNextMonthDueText,
-} from './dashboardCloseStatus.vm';
+import { mapNextMonthDueText, mapPeriodToCloseStatusVM } from './dashboardCloseStatus.vm';
 
 const buildPeriod = (
   status: FinancialPeriod['status'],

@@ -51,8 +51,18 @@ class RetirementRepository extends BaseRepository<RetirementPlan, [string, strin
     const enriched = await Promise.all(
       plans.map(async (plan) => ({
         ...plan,
-        incomes: await listIncomeStreams(this.db, this.convertTimestampToDate.bind(this), householdId, plan.id),
-        expenses: await listExpenseCategories(this.db, this.convertTimestampToDate.bind(this), householdId, plan.id),
+        incomes: await listIncomeStreams(
+          this.db,
+          this.convertTimestampToDate.bind(this),
+          householdId,
+          plan.id,
+        ),
+        expenses: await listExpenseCategories(
+          this.db,
+          this.convertTimestampToDate.bind(this),
+          householdId,
+          plan.id,
+        ),
       })),
     );
     return enriched;
@@ -70,8 +80,22 @@ class RetirementRepository extends BaseRepository<RetirementPlan, [string, strin
   ): Promise<number> {
     const ref =
       collectionName === 'incomes'
-        ? collection(this.db, 'households', householdId, this.collectionName, planId, 'incomeStreams')
-        : collection(this.db, 'households', householdId, this.collectionName, planId, 'expenseCategories');
+        ? collection(
+            this.db,
+            'households',
+            householdId,
+            this.collectionName,
+            planId,
+            'incomeStreams',
+          )
+        : collection(
+            this.db,
+            'households',
+            householdId,
+            this.collectionName,
+            planId,
+            'expenseCategories',
+          );
     const snapshot = await getDocs(ref);
     return snapshot.docs.length;
   }
@@ -99,8 +123,14 @@ class RetirementRepository extends BaseRepository<RetirementPlan, [string, strin
         } as RetirementPlan),
       );
       writeChildrenInTransaction(
-        this.db, this.convertDateToTimestamp.bind(this),
-        householdId, planId, userEmail, incomes, expenses, tx,
+        this.db,
+        this.convertDateToTimestamp.bind(this),
+        householdId,
+        planId,
+        userEmail,
+        incomes,
+        expenses,
+        tx,
       );
 
       for (const activePlan of existingPlans) {
@@ -128,8 +158,22 @@ class RetirementRepository extends BaseRepository<RetirementPlan, [string, strin
 
     // Preflight outside the transaction: getDocs inside runTransaction poisons
     // the read set on this SDK version and silently drops later writes.
-    const incomeRef = collection(this.db, 'households', householdId, this.collectionName, planId, 'incomeStreams');
-    const expenseRef = collection(this.db, 'households', householdId, this.collectionName, planId, 'expenseCategories');
+    const incomeRef = collection(
+      this.db,
+      'households',
+      householdId,
+      this.collectionName,
+      planId,
+      'incomeStreams',
+    );
+    const expenseRef = collection(
+      this.db,
+      'households',
+      householdId,
+      this.collectionName,
+      planId,
+      'expenseCategories',
+    );
     const staleIncomeDocs = incomes ? await getDocs(incomeRef) : null;
     const staleExpenseDocs = expenses ? await getDocs(expenseRef) : null;
 
@@ -166,8 +210,14 @@ class RetirementRepository extends BaseRepository<RetirementPlan, [string, strin
         }
       }
       writeChildrenInTransaction(
-        this.db, this.convertDateToTimestamp.bind(this),
-        householdId, planId, userEmail, incomes ?? [], expenses ?? [], tx,
+        this.db,
+        this.convertDateToTimestamp.bind(this),
+        householdId,
+        planId,
+        userEmail,
+        incomes ?? [],
+        expenses ?? [],
+        tx,
       );
 
       if (updates.isActive === true) {
@@ -183,15 +233,26 @@ class RetirementRepository extends BaseRepository<RetirementPlan, [string, strin
     });
   }
 
-  async deletePlanAtomically(input: {
-    householdId: string;
-    planId: string;
-  }): Promise<void> {
+  async deletePlanAtomically(input: { householdId: string; planId: string }): Promise<void> {
     const { householdId, planId } = input;
 
     // Preflight outside the transaction (see updatePlanAtomically note).
-    const incomeRef = collection(this.db, 'households', householdId, this.collectionName, planId, 'incomeStreams');
-    const expenseRef = collection(this.db, 'households', householdId, this.collectionName, planId, 'expenseCategories');
+    const incomeRef = collection(
+      this.db,
+      'households',
+      householdId,
+      this.collectionName,
+      planId,
+      'incomeStreams',
+    );
+    const expenseRef = collection(
+      this.db,
+      'households',
+      householdId,
+      this.collectionName,
+      planId,
+      'expenseCategories',
+    );
     const incomeDocs = await getDocs(incomeRef);
     const expenseDocs = await getDocs(expenseRef);
 
@@ -218,8 +279,18 @@ class RetirementRepository extends BaseRepository<RetirementPlan, [string, strin
     const plan = await this.get([householdId, id]);
     if (!plan) return null;
 
-    const incomes = await listIncomeStreams(this.db, this.convertTimestampToDate.bind(this), householdId, id);
-    const expenses = await listExpenseCategories(this.db, this.convertTimestampToDate.bind(this), householdId, id);
+    const incomes = await listIncomeStreams(
+      this.db,
+      this.convertTimestampToDate.bind(this),
+      householdId,
+      id,
+    );
+    const expenses = await listExpenseCategories(
+      this.db,
+      this.convertTimestampToDate.bind(this),
+      householdId,
+      id,
+    );
     return {
       ...plan,
       incomes,
@@ -239,10 +310,24 @@ class RetirementRepository extends BaseRepository<RetirementPlan, [string, strin
       userEmail,
     );
     if (incomes.length > 0) {
-      await replaceIncomeStreams(this.db, this.convertDateToTimestamp.bind(this), householdId, planId, userEmail, incomes);
+      await replaceIncomeStreams(
+        this.db,
+        this.convertDateToTimestamp.bind(this),
+        householdId,
+        planId,
+        userEmail,
+        incomes,
+      );
     }
     if (expenses.length > 0) {
-      await replaceExpenseCategories(this.db, this.convertDateToTimestamp.bind(this), householdId, planId, userEmail, expenses);
+      await replaceExpenseCategories(
+        this.db,
+        this.convertDateToTimestamp.bind(this),
+        householdId,
+        planId,
+        userEmail,
+        expenses,
+      );
     }
     return planId;
   }
@@ -303,8 +388,12 @@ class RetirementRepository extends BaseRepository<RetirementPlan, [string, strin
 
     if (incomes) {
       await replaceIncomeStreams(
-        this.db, this.convertDateToTimestamp.bind(this),
-        householdId, id, userEmail, incomes as RetirementIncomeSource[],
+        this.db,
+        this.convertDateToTimestamp.bind(this),
+        householdId,
+        id,
+        userEmail,
+        incomes as RetirementIncomeSource[],
       );
       logger.debug(
         'retirementRepository.replaceIncomeStreams completed',
@@ -318,8 +407,12 @@ class RetirementRepository extends BaseRepository<RetirementPlan, [string, strin
     }
     if (expenses) {
       await replaceExpenseCategories(
-        this.db, this.convertDateToTimestamp.bind(this),
-        householdId, id, userEmail, expenses as RetirementExpenseCategory[],
+        this.db,
+        this.convertDateToTimestamp.bind(this),
+        householdId,
+        id,
+        userEmail,
+        expenses as RetirementExpenseCategory[],
       );
       logger.debug(
         'retirementRepository.replaceExpenseCategories completed',
@@ -339,8 +432,22 @@ class RetirementRepository extends BaseRepository<RetirementPlan, [string, strin
   }
 
   async deletePlan(householdId: string, id: string): Promise<void> {
-    const incomeRef = collection(this.db, 'households', householdId, this.collectionName, id, 'incomeStreams');
-    const expenseRef = collection(this.db, 'households', householdId, this.collectionName, id, 'expenseCategories');
+    const incomeRef = collection(
+      this.db,
+      'households',
+      householdId,
+      this.collectionName,
+      id,
+      'incomeStreams',
+    );
+    const expenseRef = collection(
+      this.db,
+      'households',
+      householdId,
+      this.collectionName,
+      id,
+      'expenseCategories',
+    );
     const incomeStreamDocs = await getDocs(incomeRef);
     const expenseCategoryDocs = await getDocs(expenseRef);
     await Promise.all(incomeStreamDocs.docs.map((incomeDoc) => deleteDoc(incomeDoc.ref)));

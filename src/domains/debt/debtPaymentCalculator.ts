@@ -12,10 +12,7 @@ export type DebtPaymentErrorCode = (typeof DebtPaymentErrorCode)[keyof typeof De
 export class DebtPaymentError extends Error {
   readonly code: DebtPaymentErrorCode;
 
-  constructor(
-    code: DebtPaymentErrorCode,
-    message: string,
-  ) {
+  constructor(code: DebtPaymentErrorCode, message: string) {
     super(`${code}: ${message}`);
     this.code = code;
     this.name = 'DebtPaymentError';
@@ -104,10 +101,9 @@ export function getEffectiveMonthlyDue(account: DebtAccount, referenceDate: Date
   return account.monthlyPayment;
 }
 
-export function calculateDebtPayment(
-  input: DebtPaymentCalculationInput,
-): DebtPaymentCalculation {
-  const { currentBalance, interestRate, totalPayment, paymentDate, startDate, graceEndDate } = input;
+export function calculateDebtPayment(input: DebtPaymentCalculationInput): DebtPaymentCalculation {
+  const { currentBalance, interestRate, totalPayment, paymentDate, startDate, graceEndDate } =
+    input;
 
   if (!Number.isFinite(totalPayment) || totalPayment <= 0) {
     throw new DebtPaymentError(

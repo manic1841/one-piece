@@ -27,9 +27,7 @@ export const RetirementPlanHeader: React.FC<RetirementPlanHeaderProps> = ({
     <PageHeader
       crumb="RETIREMENT"
       onBack={() => navigate('/retirement')}
-      title={
-        <InlineEditableTitle value={header.name} onSave={handleSaveName} />
-      }
+      title={<InlineEditableTitle value={header.name} onSave={handleSaveName} />}
       description={header.retirementSummaryText}
       actions={
         <div className="flex gap-2">

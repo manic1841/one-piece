@@ -29,7 +29,5 @@ export type WatchListTarget = z.infer<typeof WatchListTargetSchema>;
  * in one collection without colliding. Ledger codes contain ':' themselves, so
  * ':' is the only safe separator here.
  */
-export const buildWatchListDocId = (
-  targetType: WatchListTargetType,
-  targetId: string,
-): string => `${targetType}:${targetId}`;
+export const buildWatchListDocId = (targetType: WatchListTargetType, targetId: string): string =>
+  `${targetType}:${targetId}`;

@@ -1,17 +1,13 @@
-import {
-  collection,
-  doc,
-  getDocFromServer,
-  getDocsFromServer,
-} from 'firebase/firestore';
+import { collection, doc, getDocFromServer, getDocsFromServer } from 'firebase/firestore';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { replaceAllocationUseCase } from './replaceAllocationUseCase';
 import { type AllocationCreate } from '@/domains/allocation/schemas';
 import { type TransactionCreate } from '@/domains/ledger/schemas';
 import { allocationRepository } from '@/infra/repositories/allocationRepository';
 import { transactionRepository } from '@/infra/repositories/transactionRepository';
 import { db, resetMockDb } from '@/test/mocks/firebase';
+
+import { replaceAllocationUseCase } from './replaceAllocationUseCase';
 
 const date = new Date('2026-09-02T00:00:00');
 

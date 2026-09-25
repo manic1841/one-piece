@@ -1,10 +1,10 @@
 import React from 'react';
 
 import {
-  type TrendGeometry,
   TREND_HEIGHT,
   TREND_PADDING_X,
   TREND_WIDTH,
+  type TrendGeometry,
 } from './debtTrendGeometry';
 
 interface DebtTrendChartProps {

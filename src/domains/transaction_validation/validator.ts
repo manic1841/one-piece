@@ -30,7 +30,11 @@ const validateTransaction = (transaction: Transaction): string | null => {
     return '意圖映射不存在';
   }
 
-  if (transaction.amount === undefined || !Number.isFinite(transaction.amount) || transaction.amount < 0) {
+  if (
+    transaction.amount === undefined ||
+    !Number.isFinite(transaction.amount) ||
+    transaction.amount < 0
+  ) {
     return '金額無效';
   }
 

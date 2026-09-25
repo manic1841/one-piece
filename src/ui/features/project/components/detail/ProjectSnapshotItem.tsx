@@ -2,8 +2,8 @@ import React from 'react';
 
 import { Calculator, Trash2 } from 'lucide-react';
 
-import { useConfirm } from '@/ui/features/app/confirm/useConfirm';
 import { Button } from '@/ui/components/ui/button';
+import { useConfirm } from '@/ui/features/app/confirm/useConfirm';
 import { type ProjectSnapshotItemVM } from '@/ui/features/project/viewmodels/projectDetail.vm';
 
 interface ProjectSnapshotItemProps {

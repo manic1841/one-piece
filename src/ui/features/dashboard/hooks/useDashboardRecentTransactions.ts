@@ -2,9 +2,9 @@ import { useCallback, useEffect, useState } from 'react';
 
 import { listRecentTransactionsUseCase } from '@/application/ledger/use_cases/listRecentTransactionsUseCase';
 import { DASHBOARD_RECENT_LABELS } from '@/ui/constants/dashboard/recentTransactionsLabels';
-import { useLoadingTask } from '@/ui/hooks/useLoadingTask';
-import { useAuthIdentity } from '@/ui/hooks/useAuthIdentity';
 import { mapTransactionToListItemVM } from '@/ui/features/transaction/viewmodels/transaction-list.vm';
+import { useAuthIdentity } from '@/ui/hooks/useAuthIdentity';
+import { useLoadingTask } from '@/ui/hooks/useLoadingTask';
 
 import { type DashboardRecentVM } from '../viewmodels/dashboardRecent.vm';
 
@@ -32,7 +32,9 @@ export function useDashboardRecentTransactions(householdId: string | undefined) 
         writeBack: (result) =>
           setVm(
             result.ok
-              ? { items: result.value.map((transaction) => mapTransactionToListItemVM(transaction)) }
+              ? {
+                  items: result.value.map((transaction) => mapTransactionToListItemVM(transaction)),
+                }
               : buildEmptyVm(),
           ),
       },

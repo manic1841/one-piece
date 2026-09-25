@@ -3,8 +3,6 @@ import React, { useEffect, useState } from 'react';
 import { LogOut, Search, Settings, UserRound } from 'lucide-react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 
-import { useAuthState } from '@/ui/contexts/useAuthState';
-import { useConfirm } from '@/ui/features/app/confirm/useConfirm';
 import { StatusGlyph } from '@/ui/components/StatusGlyph';
 import { Button } from '@/ui/components/ui/button';
 import {
@@ -13,13 +11,16 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/ui/components/ui/dropdown-menu';
+import { useAuthState } from '@/ui/contexts/useAuthState';
+import { useConfirm } from '@/ui/features/app/confirm/useConfirm';
+
+import { useHouseholdGuard } from '../hooks/useHouseholdGuard';
+import { usePetReaction } from '../hooks/usePetReaction';
 import CommandPalette from './CommandPalette';
 import HouseholdSwitcher from './HouseholdSwitcher';
 import PixelPet from './PixelPet';
 import SiteFooter from './SiteFooter';
 import { APP_BRAND } from './brand';
-import { useHouseholdGuard } from '../hooks/useHouseholdGuard';
-import { usePetReaction } from '../hooks/usePetReaction';
 
 const Layout: React.FC = () => {
   const { userProfile, logout } = useAuthState();

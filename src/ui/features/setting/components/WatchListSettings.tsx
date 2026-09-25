@@ -9,8 +9,8 @@ import { WATCH_LIST_LABELS, getWatchListTargetTypeLabel } from '@/ui/constants/w
 import { type WatchListPickerData } from '@/ui/features/setting/hooks/useWatchListPickerData';
 import { useWatchListSettings } from '@/ui/features/setting/hooks/useWatchListSettings';
 import {
-  WATCH_LIST_TARGET_TYPES,
   type Project,
+  WATCH_LIST_TARGET_TYPES,
   type WatchListTarget,
   type WatchListTargetType,
 } from '@/ui/features/setting/viewmodels/setting.vm';

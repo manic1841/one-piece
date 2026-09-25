@@ -1,7 +1,7 @@
 import { where } from 'firebase/firestore';
 
-import { userRepository } from '@/infra/repositories/userRepository';
 import { type UserProfile } from '@/domains/auth/user/types';
+import { userRepository } from '@/infra/repositories/userRepository';
 
 export interface GetUserByEmailRequest {
   email: string;

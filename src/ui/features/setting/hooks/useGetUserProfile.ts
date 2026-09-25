@@ -1,4 +1,5 @@
-import { useState, useCallback } from 'react';
+import { useCallback, useState } from 'react';
+
 import { getUserProfileUseCase } from '@/application/auth/use_cases/getUserProfileUseCase';
 import { type UserProfile } from '@/domains/auth/user/types';
 

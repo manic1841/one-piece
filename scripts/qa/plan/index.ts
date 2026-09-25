@@ -6,20 +6,21 @@
  * Builders are pure and mutually independent: they never import each
  * other, and the orchestrator owns the mutable journal state.
  */
-import { buildMortgageDocs, buildAccountSnapshotDocs } from './accountDocs';
+import { AllocationSchema } from '@/domains/allocation/schemas';
+
+import { buildAccountSnapshotDocs, buildMortgageDocs } from './accountDocs';
+import { buildPortfolioSnapshotDocs, buildProjectSnapshotDocs } from './projectDocs';
 import { buildMonthlyCloseDocs, buildReportDocs } from './reportDocs';
-import { buildProjectSnapshotDocs, buildPortfolioSnapshotDocs } from './projectDocs';
 import { buildRetirementDocs } from './retirementDocs';
-import { buildStaticDocs } from './staticDocs';
-import { buildSalaryDocs, buildExpenseAndSpecialDocs } from './transactionDocs';
 import {
-  inSeedWindow,
   type AllocationJournal,
   type InternalTxn,
   type QaSeedIdentity,
   type SeedDoc,
+  inSeedWindow,
 } from './shared';
-import { AllocationSchema } from '@/domains/allocation/schemas';
+import { buildStaticDocs } from './staticDocs';
+import { buildExpenseAndSpecialDocs, buildSalaryDocs } from './transactionDocs';
 
 export type { QaSeedIdentity, SeedDoc } from './shared';
 export { buildQaSeedPlan };

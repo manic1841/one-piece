@@ -35,25 +35,22 @@ async function seedDebtAccount(
   accountId: string,
   overrides: Record<string, unknown> = {},
 ) {
-  await setDoc(
-    doc(db, `households/${householdId}/debtAccounts/${accountId}`),
-    {
-      ...baseFields,
-      id: accountId,
-      name: `Debt ${accountId}`,
-      type: 'loan',
-      repaymentType: 'equal_payment',
-      originalAmount: 100000,
-      currentBalance: 80000,
-      interestRate: 5,
-      startDate: new Date(2023, 0, 1),
-      endDate: new Date(2028, 0, 1),
-      monthlyPayment: 5000,
-      linkedLedgerCode: 'liability:loan',
-      isActive: true,
-      ...overrides,
-    },
-  );
+  await setDoc(doc(db, `households/${householdId}/debtAccounts/${accountId}`), {
+    ...baseFields,
+    id: accountId,
+    name: `Debt ${accountId}`,
+    type: 'loan',
+    repaymentType: 'equal_payment',
+    originalAmount: 100000,
+    currentBalance: 80000,
+    interestRate: 5,
+    startDate: new Date(2023, 0, 1),
+    endDate: new Date(2028, 0, 1),
+    monthlyPayment: 5000,
+    linkedLedgerCode: 'liability:loan',
+    isActive: true,
+    ...overrides,
+  });
 }
 
 async function seedDebtSnapshot(
@@ -64,10 +61,7 @@ async function seedDebtSnapshot(
   interestPaid: number,
 ) {
   await setDoc(
-    doc(
-      db,
-      `households/${householdId}/debtAccounts/${accountId}/snapshots/${yearMonth}`,
-    ),
+    doc(db, `households/${householdId}/debtAccounts/${accountId}/snapshots/${yearMonth}`),
     {
       ...baseFields,
       id: yearMonth,

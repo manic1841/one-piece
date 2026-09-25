@@ -73,11 +73,7 @@ export function useProjectCmds(householdId: string) {
   );
 
   const updateSnapshot = useCallback(
-    async (
-      projectId: string,
-      snapshotId: string,
-      updates: Partial<ProjectSnapshot>,
-    ) => {
+    async (projectId: string, snapshotId: string, updates: Partial<ProjectSnapshot>) => {
       return run(async () => {
         return updateProjectSnapshotUseCase.execute({
           householdId,

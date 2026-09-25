@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 
 import { Calendar, ChevronDown, ChevronRight, Pencil, Trash2, TrendingUp } from 'lucide-react';
 
-import { type AccountSnapshot } from '@/ui/features/account/viewmodels/account.vm';
 import { Button } from '@/ui/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/ui/components/ui/card';
 import {
@@ -13,6 +12,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/ui/components/ui/table';
+import { type AccountSnapshot } from '@/ui/features/account/viewmodels/account.vm';
 import { formatCurrency, formatDate } from '@/ui/utils';
 
 interface AccountSnapshotTableProps {

@@ -2,11 +2,11 @@ import React from 'react';
 
 import { LogOut } from 'lucide-react';
 
-import { useOnboarding } from '@/ui/features/auth/hooks/useOnboarding';
 import { Button } from '@/ui/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/ui/card';
 import { Input } from '@/ui/components/ui/input';
 import { Label } from '@/ui/components/ui/label';
+import { useOnboarding } from '@/ui/features/auth/hooks/useOnboarding';
 
 const Onboarding: React.FC = () => {
   const { input, setInput, loading, error, handleSubmit, handleLogout } = useOnboarding();

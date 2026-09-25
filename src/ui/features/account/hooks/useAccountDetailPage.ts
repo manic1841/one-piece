@@ -9,10 +9,7 @@ import { type AccountSnapshot, type AccountWithSnapshot } from '@/domains/accoun
 import { useAuthState } from '@/ui/contexts/useAuthState';
 import { buildTrendGeometry } from '@/ui/features/account/components/detail/accountTrendGeometry';
 import { useAccountCmds } from '@/ui/features/account/hooks/useAccountCmds';
-import {
-  type HoldingRowVM,
-  toHoldingRowVM,
-} from '@/ui/features/account/viewmodels/account.vm';
+import { type HoldingRowVM, toHoldingRowVM } from '@/ui/features/account/viewmodels/account.vm';
 import { useConfirm } from '@/ui/features/app/confirm/useConfirm';
 import { useLoadingTask } from '@/ui/hooks/useLoadingTask';
 

@@ -3,7 +3,7 @@ import React from 'react';
 import { Power } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
-import { AccountCategoryLabels } from '@/ui/constants/account/label';
+import { PageHeader } from '@/ui/components/PageHeader';
 import { Badge } from '@/ui/components/ui/badge';
 import { Button } from '@/ui/components/ui/button';
 import {
@@ -14,11 +14,9 @@ import {
   TableHeader,
   TableRow,
 } from '@/ui/components/ui/table';
-import { PageHeader } from '@/ui/components/PageHeader';
-import {
-  MONTH_NAMES,
-} from '@/ui/features/account/components/detail/accountTrendGeometry';
+import { AccountCategoryLabels } from '@/ui/constants/account/label';
 import AccountTrendChart from '@/ui/features/account/components/detail/AccountTrendChart';
+import { MONTH_NAMES } from '@/ui/features/account/components/detail/accountTrendGeometry';
 import { useAccountDetailPage } from '@/ui/features/account/hooks/useAccountDetailPage';
 import { type AccountWithSnapshot } from '@/ui/features/account/viewmodels/account.vm';
 import { formatCurrency, formatDate } from '@/ui/utils';

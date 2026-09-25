@@ -1,11 +1,11 @@
 import React from 'react';
+
+import { ChevronRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
+import { StatusGlyph } from '@/ui/components/StatusGlyph';
 import { DASHBOARD_CLOSE_LABELS } from '@/ui/constants/dashboard/monthlyCloseStatus';
 import { mapNextMonthDueText } from '@/ui/features/dashboard/viewmodels/dashboardCloseStatus.vm';
-import { StatusGlyph } from '@/ui/components/StatusGlyph';
-import { ChevronRight } from 'lucide-react';
-
 import type {
   DashboardCloseStatusVM,
   NextMonthDebtDueResult,

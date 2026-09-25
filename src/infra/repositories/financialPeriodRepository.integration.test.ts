@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import { financialPeriodRepository } from '@/infra/repositories/financialPeriodRepository';
 import { initialStageStates } from '@/domains/financial_period/schemas';
+import { financialPeriodRepository } from '@/infra/repositories/financialPeriodRepository';
 import { resetMockDb } from '@/test/mocks/firebase';
 
 // resetMockDb deletes server-side via REST, but the shared long-lived SDK

@@ -3,9 +3,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { useAuthState } from '@/ui/contexts/useAuthState';
 
-vi.mock('@/ui/contexts/useAuthState');
-
 import { AuthGate } from './AuthGate';
+
+vi.mock('@/ui/contexts/useAuthState');
 
 const mockAuthState = (overrides: Partial<ReturnType<typeof useAuthState>> = {}) => {
   vi.mocked(useAuthState).mockReturnValue({

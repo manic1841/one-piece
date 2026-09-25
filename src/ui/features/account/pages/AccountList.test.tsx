@@ -3,8 +3,10 @@ import { MemoryRouter, useNavigate } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { type AccountWithSnapshot } from '@/domains/account/types/account';
-import { useAccounts } from '@/ui/features/account/hooks/useAccounts';
 import { useAccountCmds } from '@/ui/features/account/hooks/useAccountCmds';
+import { useAccounts } from '@/ui/features/account/hooks/useAccounts';
+
+import AccountList from './AccountList';
 
 const navigate = vi.fn();
 
@@ -29,8 +31,6 @@ vi.mock('@/ui/contexts/useAuthState', () => ({
     logout: vi.fn().mockResolvedValue(undefined),
   }),
 }));
-
-import AccountList from './AccountList';
 
 const mockUseAccounts = vi.mocked(useAccounts);
 const mockUseAccountCmds = vi.mocked(useAccountCmds);
@@ -142,7 +142,12 @@ describe('AccountList grouped tables', () => {
       fetchAccountsWithSnapshots: vi.fn().mockResolvedValue({
         ok: true,
         value: [
-          account({ id: 'c1', name: 'Wallet', category: 'cash', snapshot: { ...snapshot } as never }),
+          account({
+            id: 'c1',
+            name: 'Wallet',
+            category: 'cash',
+            snapshot: { ...snapshot } as never,
+          }),
           account({
             id: 'b1',
             name: 'Main Bank',
@@ -233,10 +238,26 @@ describe('AccountList drag reorder', () => {
     // jsdom reports zero rects; give the two rows real geometry so
     // dnd-kit collision detection can resolve a drop target.
     vi.spyOn(rowA, 'getBoundingClientRect').mockReturnValue({
-      x: 0, y: 0, top: 0, left: 0, bottom: 48, right: 400, width: 400, height: 48, toJSON: () => ({}),
+      x: 0,
+      y: 0,
+      top: 0,
+      left: 0,
+      bottom: 48,
+      right: 400,
+      width: 400,
+      height: 48,
+      toJSON: () => ({}),
     } as DOMRect);
     vi.spyOn(rowB, 'getBoundingClientRect').mockReturnValue({
-      x: 0, y: 48, top: 48, left: 0, bottom: 96, right: 400, width: 400, height: 48, toJSON: () => ({}),
+      x: 0,
+      y: 48,
+      top: 48,
+      left: 0,
+      bottom: 96,
+      right: 400,
+      width: 400,
+      height: 48,
+      toJSON: () => ({}),
     } as DOMRect);
 
     const grip = screen.getByTestId('account-grip-b1');
@@ -267,10 +288,26 @@ describe('AccountList drag reorder', () => {
     const rowB = await screen.findByTestId('account-row-b2');
 
     vi.spyOn(rowA, 'getBoundingClientRect').mockReturnValue({
-      x: 0, y: 0, top: 0, left: 0, bottom: 48, right: 400, width: 400, height: 48, toJSON: () => ({}),
+      x: 0,
+      y: 0,
+      top: 0,
+      left: 0,
+      bottom: 48,
+      right: 400,
+      width: 400,
+      height: 48,
+      toJSON: () => ({}),
     } as DOMRect);
     vi.spyOn(rowB, 'getBoundingClientRect').mockReturnValue({
-      x: 0, y: 48, top: 48, left: 0, bottom: 96, right: 400, width: 400, height: 48, toJSON: () => ({}),
+      x: 0,
+      y: 48,
+      top: 48,
+      left: 0,
+      bottom: 96,
+      right: 400,
+      width: 400,
+      height: 48,
+      toJSON: () => ({}),
     } as DOMRect);
 
     const grip = screen.getByTestId('account-grip-b1');

@@ -1,12 +1,12 @@
-import { vi, describe, it, expect, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import {
-  getDashboardOverviewUseCase,
-  type DashboardOverview,
-} from './getDashboardOverviewUseCase';
-import { type FinancialReport } from '@/domains/report/schemas';
-import { type PortfolioSnapshot } from '@/domains/portfolio/schemas';
+import { householdPermissionService } from '@/application/household/householdPermissionService';
 import { type Transaction } from '@/domains/ledger/schemas';
+import { type PortfolioSnapshot } from '@/domains/portfolio/schemas';
+import { type FinancialReport } from '@/domains/report/schemas';
+import { ReportType } from '@/domains/report/schemas';
+
+import { type DashboardOverview, getDashboardOverviewUseCase } from './getDashboardOverviewUseCase';
 
 vi.mock('@/application/household/householdPermissionService', () => ({
   householdPermissionService: {
@@ -50,9 +50,6 @@ vi.mock('@/infra/repositories/transactionRepository', () => ({
     listDebtPaymentsByDateRange: (...args: unknown[]) => listDebtPaymentsMock(...args),
   },
 }));
-
-import { householdPermissionService } from '@/application/household/householdPermissionService';
-import { ReportType } from '@/domains/report/schemas';
 
 const auth = { uid: 'user-1', isGlobalAdmin: false };
 
@@ -205,9 +202,7 @@ describe('GetDashboardOverviewUseCase', () => {
     ]);
     listPortfoliosMock.mockResolvedValue([]);
     listDebtPaymentsMock.mockResolvedValue([]);
-    getFinancialPeriodMock.mockImplementation(() =>
-      Promise.resolve(buildPeriod('CLOSED')),
-    );
+    getFinancialPeriodMock.mockImplementation(() => Promise.resolve(buildPeriod('CLOSED')));
 
     const result: DashboardOverview = await getDashboardOverviewUseCase.execute({
       householdId: 'household-1',
@@ -258,7 +253,11 @@ describe('GetDashboardOverviewUseCase', () => {
       month: 12,
       netAssets: 200,
     });
-    expect(result.anchor?.netWorthSeries[0]).toMatchObject({ year: 2025, month: 1, netAssets: null });
+    expect(result.anchor?.netWorthSeries[0]).toMatchObject({
+      year: 2025,
+      month: 1,
+      netAssets: null,
+    });
   });
 
   it('returns no anchor when no balance sheet month is closed', async () => {
@@ -292,26 +291,42 @@ describe('GetDashboardOverviewUseCase', () => {
     ]);
     getFinancialPeriodMock.mockResolvedValue(buildPeriod('CLOSED'));
     listPortfoliosMock.mockResolvedValue([
-      { id: 'portfolio-1', createdBy: '', createdAt: new Date(), updatedBy: '', updatedAt: new Date(), name: 'P1', securitiesAccountId: 'acc-1', bankAccountId: 'acc-2', isActive: true, order: 0 },
-      { id: 'portfolio-2', createdBy: '', createdAt: new Date(), updatedBy: '', updatedAt: new Date(), name: 'P2', securitiesAccountId: 'acc-3', bankAccountId: 'acc-4', isActive: true, order: 1 },
+      {
+        id: 'portfolio-1',
+        createdBy: '',
+        createdAt: new Date(),
+        updatedBy: '',
+        updatedAt: new Date(),
+        name: 'P1',
+        securitiesAccountId: 'acc-1',
+        bankAccountId: 'acc-2',
+        isActive: true,
+        order: 0,
+      },
+      {
+        id: 'portfolio-2',
+        createdBy: '',
+        createdAt: new Date(),
+        updatedBy: '',
+        updatedAt: new Date(),
+        name: 'P2',
+        securitiesAccountId: 'acc-3',
+        bankAccountId: 'acc-4',
+        isActive: true,
+        order: 1,
+      },
     ]);
-    listPortfolioSnapshotsMock.mockImplementation((request: {
-      portfolioId: string;
-      year?: number;
-      month?: number;
-    }) => {
-      if (
-        request.year !== 2026 ||
-        request.month !== 8 ||
-        request.portfolioId !== 'portfolio-1'
-      ) {
-        return Promise.resolve([]);
-      }
-      return Promise.resolve([
-        buildSnapshot('portfolio-1', 5000, 100000),
-        buildSnapshot('portfolio-1', 3000, 90000, [{ marketValue: 20000, leverage: 2 }]),
-      ]);
-    });
+    listPortfolioSnapshotsMock.mockImplementation(
+      (request: { portfolioId: string; year?: number; month?: number }) => {
+        if (request.year !== 2026 || request.month !== 8 || request.portfolioId !== 'portfolio-1') {
+          return Promise.resolve([]);
+        }
+        return Promise.resolve([
+          buildSnapshot('portfolio-1', 5000, 100000),
+          buildSnapshot('portfolio-1', 3000, 90000, [{ marketValue: 20000, leverage: 2 }]),
+        ]);
+      },
+    );
     listDebtPaymentsMock.mockResolvedValue([buildDebtPayment(9000), buildDebtPayment(4500)]);
 
     const result = await getDashboardOverviewUseCase.execute({

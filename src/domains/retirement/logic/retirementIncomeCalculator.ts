@@ -18,8 +18,7 @@ export function calculateYearlyIncome(
   planInflationRate: number,
   sampleYear: number,
 ): number {
-  const usesRetirementAmount =
-    year >= retirementYear || income.startYear >= retirementYear;
+  const usesRetirementAmount = year >= retirementYear || income.startYear >= retirementYear;
 
   if (usesRetirementAmount && income.retirementAnnual !== undefined) {
     const anchorYear = income.startYear >= retirementYear ? income.startYear : retirementYear;

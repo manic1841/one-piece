@@ -12,7 +12,11 @@ export class ListWatchListUseCase {
   async execute(request: ListWatchListRequest): Promise<WatchListTarget[]> {
     const { householdId, auth } = request;
 
-    await householdPermissionService.assertReadPermission(householdId, auth.uid, auth.isGlobalAdmin);
+    await householdPermissionService.assertReadPermission(
+      householdId,
+      auth.uid,
+      auth.isGlobalAdmin,
+    );
 
     return watchListRepository.listTargets(householdId);
   }

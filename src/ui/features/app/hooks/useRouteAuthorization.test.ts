@@ -1,6 +1,12 @@
 import { renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { authorizeRouteAccessUseCase } from '@/application/auth/use_cases/authorizeRouteAccessUseCase';
+import { useAuthState } from '@/ui/contexts/useAuthState';
+import { useAuthIdentity } from '@/ui/hooks/useAuthIdentity';
+
+import { useRouteAuthorization } from './useRouteAuthorization';
+
 vi.mock('@/ui/contexts/useAuthState', () => ({
   useAuthState: vi.fn(),
 }));
@@ -12,12 +18,6 @@ vi.mock('@/ui/hooks/useAuthIdentity', () => ({
 vi.mock('@/application/auth/use_cases/authorizeRouteAccessUseCase', () => ({
   authorizeRouteAccessUseCase: { execute: vi.fn() },
 }));
-
-import { authorizeRouteAccessUseCase } from '@/application/auth/use_cases/authorizeRouteAccessUseCase';
-import { useAuthState } from '@/ui/contexts/useAuthState';
-import { useAuthIdentity } from '@/ui/hooks/useAuthIdentity';
-
-import { useRouteAuthorization } from './useRouteAuthorization';
 
 type AuthState = ReturnType<typeof useAuthState>;
 

@@ -44,4 +44,3 @@ function calculateDebtPaymentExpense(
 
   return currentLevel;
 }
-

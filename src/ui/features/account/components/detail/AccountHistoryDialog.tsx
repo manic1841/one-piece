@@ -1,19 +1,14 @@
 import React, { useState } from 'react';
 
-import { type Account, type AccountSnapshot } from '@/ui/features/account/viewmodels/account.vm';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/ui/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/ui/components/ui/dialog';
+import { useAuthState } from '@/ui/contexts/useAuthState';
 import { useAccountCmds } from '@/ui/features/account/hooks/useAccountCmds';
 import { useAccountSnapshots } from '@/ui/features/account/hooks/useAccountSnapshots';
-import { useAuthState } from '@/ui/contexts/useAuthState';
+import { type Account, type AccountSnapshot } from '@/ui/features/account/viewmodels/account.vm';
 import { useConfirm } from '@/ui/features/app/confirm/useConfirm';
 
-import { AccountSnapshotTable } from './AccountSnapshotTable';
 import AccountSnapshotEditor from '../../pages/AccountSnapshotEditor';
+import { AccountSnapshotTable } from './AccountSnapshotTable';
 
 interface AccountHistoryDialogProps {
   account: Account;

@@ -3,10 +3,12 @@ import { MemoryRouter, useNavigate } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 
 import { DEBT_STATUS_GRACE_PERIOD_LABEL } from '@/ui/constants/debtStatusLabels';
-import { useDebtPage } from '@/ui/features/debt/hooks/useDebtPage';
-import { useDebtAccountCmds } from '@/ui/features/debt/hooks/useDebtAccountCmds';
 import { useConfirm } from '@/ui/features/app/confirm/useConfirm';
+import { useDebtAccountCmds } from '@/ui/features/debt/hooks/useDebtAccountCmds';
+import { useDebtPage } from '@/ui/features/debt/hooks/useDebtPage';
 import { type DebtAccountDisplayVM } from '@/ui/features/debt/viewmodels/debtDisplay.vm';
+
+import DebtListPage from './DebtListPage';
 
 vi.mock('@/ui/features/debt/hooks/useDebtPage');
 vi.mock('@/ui/features/debt/hooks/useDebtAccountCmds');
@@ -24,35 +26,34 @@ const mockUseDebtAccountCmds = vi.mocked(useDebtAccountCmds);
 const mockUseConfirm = vi.mocked(useConfirm);
 const mockUseNavigate = vi.mocked(useNavigate);
 
-import DebtListPage from './DebtListPage';
-
-const buildDebtVM = (overrides: Partial<DebtAccountDisplayVM> = {}): DebtAccountDisplayVM => ({
-  id: 'd1',
-  name: 'Mortgage A',
-  type: 'mortgage',
-  originalAmount: 5000000,
-  currentBalance: 4800000,
-  interestRate: 2.1,
-  monthlyPayment: 25000,
-  startDate: new Date('2024-01-01'),
-  endDate: new Date('2044-01-01'),
-  isActive: true,
-  linkedProjectId: null,
-  closedAt: null,
-  graceEndDate: null,
-  payoffDate: new Date('2044-01-01'),
-  repaidPercent: 4,
-  projectName: null,
-  typeLabel: '房貸',
-  inGracePeriod: false,
-  graceEndYearMonthText: '',
-  monthlyDueAmount: 25000,
-  createdBy: 'u1',
-  updatedBy: 'u1',
-  createdAt: new Date('2024-01-01'),
-  updatedAt: new Date('2026-09-01'),
-  ...overrides,
-} as DebtAccountDisplayVM);
+const buildDebtVM = (overrides: Partial<DebtAccountDisplayVM> = {}): DebtAccountDisplayVM =>
+  ({
+    id: 'd1',
+    name: 'Mortgage A',
+    type: 'mortgage',
+    originalAmount: 5000000,
+    currentBalance: 4800000,
+    interestRate: 2.1,
+    monthlyPayment: 25000,
+    startDate: new Date('2024-01-01'),
+    endDate: new Date('2044-01-01'),
+    isActive: true,
+    linkedProjectId: null,
+    closedAt: null,
+    graceEndDate: null,
+    payoffDate: new Date('2044-01-01'),
+    repaidPercent: 4,
+    projectName: null,
+    typeLabel: '房貸',
+    inGracePeriod: false,
+    graceEndYearMonthText: '',
+    monthlyDueAmount: 25000,
+    createdBy: 'u1',
+    updatedBy: 'u1',
+    createdAt: new Date('2024-01-01'),
+    updatedAt: new Date('2026-09-01'),
+    ...overrides,
+  }) as DebtAccountDisplayVM;
 
 const controllerBase = {
   loading: false,
@@ -175,9 +176,9 @@ describe('DebtListPage table', () => {
       </MemoryRouter>,
     );
 
-    const status = screen.getAllByText(DEBT_STATUS_GRACE_PERIOD_LABEL).map((label) =>
-      label.closest('span')!.parentElement!,
-    );
+    const status = screen
+      .getAllByText(DEBT_STATUS_GRACE_PERIOD_LABEL)
+      .map((label) => label.closest('span')!.parentElement!);
     expect(status.length).toBe(2);
     status.forEach((glyph) => {
       expect(glyph.textContent).toContain('!');

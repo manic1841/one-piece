@@ -5,9 +5,9 @@ import { useNavigate } from 'react-router-dom';
 
 import { PageHeader } from '@/ui/components/PageHeader';
 import { StatusGlyph } from '@/ui/components/StatusGlyph';
-import { DEBT_STATUS_SETTLED_LABEL } from '@/ui/constants/debtStatusLabels';
 import { Button } from '@/ui/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/ui/components/ui/dialog';
+import { DEBT_STATUS_SETTLED_LABEL } from '@/ui/constants/debtStatusLabels';
 import { DebtAccountForm } from '@/ui/features/debt/components/DebtAccountForm';
 import { DebtPaymentsTable } from '@/ui/features/debt/components/detail/DebtPaymentsTable';
 import { DebtSnapshotTable } from '@/ui/features/debt/components/detail/DebtSnapshotTable';
@@ -96,9 +96,7 @@ export default function DebtDetailPage({ account }: DebtDetailPageProps) {
         <div className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm md:grid-cols-4">
           <div>
             <p className="text-xs text-muted-foreground">Original</p>
-            <p className="font-mono tabular-nums">
-              {formatCurrency(activeAccount.originalAmount)}
-            </p>
+            <p className="font-mono tabular-nums">{formatCurrency(activeAccount.originalAmount)}</p>
           </div>
           <div>
             <p className="text-xs text-muted-foreground">Monthly Payment</p>

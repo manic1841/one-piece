@@ -8,10 +8,7 @@ export function useExchangeRate() {
   const { loading, error, errorMessage, run } = useLoadingTask();
 
   const getRate = useCallback(
-    async (
-      from: CurrencyCode,
-      to: CurrencyCode = 'TWD',
-    ): Promise<LoadingTaskResult<number>> => {
+    async (from: CurrencyCode, to: CurrencyCode = 'TWD'): Promise<LoadingTaskResult<number>> => {
       return run(async () => {
         return getLatestRateUseCase.execute({ from, to });
       });

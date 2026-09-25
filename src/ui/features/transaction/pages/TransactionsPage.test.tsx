@@ -6,6 +6,8 @@ import { getIntentTypeLabel } from '@/ui/constants/transaction';
 import { useConfirm } from '@/ui/features/app/confirm/useConfirm';
 import { useTransactions } from '@/ui/features/transaction/hooks/useTransactions';
 
+import TransactionsPage from './TransactionsPage';
+
 vi.mock('@/ui/contexts/useAuthState', () => ({
   useAuthState: () => ({ userProfile: { householdId: 'hh-1' } }),
 }));
@@ -41,8 +43,6 @@ vi.mock('@/ui/features/ledger/hooks/useLedgerCodes', () => ({
 vi.mock('@/ui/features/app/confirm/useConfirm');
 
 const mockUseConfirm = vi.mocked(useConfirm);
-
-import TransactionsPage from './TransactionsPage';
 
 const transaction = (overrides: Partial<LedgerTransaction> = {}): LedgerTransaction => ({
   id: 'tx-1',
@@ -105,7 +105,11 @@ describe('TransactionsPage copy', () => {
     });
     render(<TransactionsPage />);
 
-    fireEvent.click(within(screen.getByTestId('transaction-row-tx-transfer')).getByRole('button', { name: '編輯交易' }));
+    fireEvent.click(
+      within(screen.getByTestId('transaction-row-tx-transfer')).getByRole('button', {
+        name: '編輯交易',
+      }),
+    );
 
     expect(confirm).toHaveBeenCalledWith({ title: '目前不支援編輯此交易。' });
   });

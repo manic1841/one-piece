@@ -2,9 +2,9 @@ import React from 'react';
 
 import {
   NoSummaryCard,
+  ReportStatusSection,
   type SummaryData,
   SummaryStatsGrid,
-  ReportStatusSection,
 } from './SettlementSummaryComponents';
 
 interface SettlementSummaryProps {

@@ -6,7 +6,7 @@ import { type AuthInitErrorCode } from '@/domains/auth/authInitError';
 import { type AuthUser } from '@/domains/auth/identity';
 import { type UserProfile } from '@/domains/auth/user/types';
 
-import { AuthStateContext, type AuthState } from './AuthStateContext';
+import { type AuthState, AuthStateContext } from './AuthStateContext';
 
 interface AuthStateProviderProps {
   gateway: AuthGateway;

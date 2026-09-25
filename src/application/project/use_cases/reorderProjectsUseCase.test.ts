@@ -1,9 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ReorderCommandErrorCode } from '@/application/common/reorderErrors';
-import { reorderProjectsUseCase } from './reorderProjectsUseCase';
 import { householdPermissionService } from '@/application/household/householdPermissionService';
 import { projectRepository } from '@/infra/repositories/projectRepository';
+
+import { reorderProjectsUseCase } from './reorderProjectsUseCase';
 
 vi.mock('firebase/firestore', async (importOriginal) => {
   const actual = await importOriginal<typeof import('firebase/firestore')>();

@@ -17,7 +17,10 @@ export const DataTableHeadCell: React.FC<DataTableHeadCellProps> = ({
   ...props
 }) => (
   <th
-    className={cn(align === 'number' ? dataTableHeadNumberClass : dataTableHeadTextClass, className)}
+    className={cn(
+      align === 'number' ? dataTableHeadNumberClass : dataTableHeadTextClass,
+      className,
+    )}
     {...props}
   />
 );

@@ -68,11 +68,7 @@ describe('repository persistence boundaries (Firestore Emulator)', () => {
 
     // listByProject with sinceDate filter (server-side composite query)
     const sinceDate = new Date('2025-07-01');
-    const results = await transactionRepository.listByProject(
-      HOUSEHOLD,
-      'project-A',
-      sinceDate,
-    );
+    const results = await transactionRepository.listByProject(HOUSEHOLD, 'project-A', sinceDate);
 
     // Should return only tx2 (project-A, date >= July 1), ordered desc
     expect(results).toHaveLength(1);

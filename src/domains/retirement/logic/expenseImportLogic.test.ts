@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { RetirementExpenseType } from '@/domains/retirement/types';
 
-import { groupExpenseSuggestions, type PlannedExpense } from './expenseImportLogic';
+import { type PlannedExpense, groupExpenseSuggestions } from './expenseImportLogic';
 
 describe('groupExpenseSuggestions', () => {
   it('groups entries by ledger code and rounds the annual total', () => {

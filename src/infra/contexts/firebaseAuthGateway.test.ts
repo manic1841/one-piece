@@ -1,6 +1,11 @@
 import { onAuthStateChanged, signInWithPopup, signOut } from 'firebase/auth';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { type AuthGatewaySnapshot } from '@/domains/auth/authGateway';
+import { auth } from '@/firebase';
+
+import { firebaseAuthGateway } from './firebaseAuthGateway';
+
 vi.mock('firebase/auth', () => ({
   onAuthStateChanged: vi.fn(),
   signInWithPopup: vi.fn(),
@@ -11,11 +16,6 @@ vi.mock('@/firebase', () => ({
   auth: {},
   googleProvider: {},
 }));
-
-import { type AuthGatewaySnapshot } from '@/domains/auth/authGateway';
-import { auth } from '@/firebase';
-
-import { firebaseAuthGateway } from './firebaseAuthGateway';
 
 const AUTH_INIT_TIMEOUT_MS = 10_000;
 

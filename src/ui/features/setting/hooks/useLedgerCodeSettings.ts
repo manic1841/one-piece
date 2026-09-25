@@ -4,15 +4,16 @@ import { checkLedgerCodeInUseUseCase } from '@/application/ledger/use_cases/chec
 import { createCustomLedgerCodeUseCase } from '@/application/ledger/use_cases/createCustomLedgerCodeUseCase';
 import { updateCustomLedgerCodeUseCase } from '@/application/ledger/use_cases/updateCustomLedgerCodeUseCase';
 import {
+  type LedgerCodeCandidate,
+  type LedgerCodeViolation,
   depthTwoCodesOfType,
   parseLedgerCode,
   validateNewLedgerCode,
-  type LedgerCodeCandidate,
-  type LedgerCodeViolation,
 } from '@/domains/ledger/ledgerCodeRules';
 import { useAuthState } from '@/ui/contexts/useAuthState';
 import { type LedgerCodeItem, useLedgerCodes } from '@/ui/features/ledger/hooks/useLedgerCodes';
 import { useAuthIdentity } from '@/ui/hooks/useAuthIdentity';
+
 export { type LedgerCodeItem };
 
 export interface LedgerCodeRow {
@@ -107,7 +108,6 @@ export function useLedgerCodeSettings() {
   );
 
   const groupedRows = useMemo(() => buildGroupedRows(codes), [codes]);
-
 
   const handleAdd = async () => {
     if (!householdId || !userEmail) return;

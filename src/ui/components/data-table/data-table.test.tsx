@@ -1,5 +1,4 @@
 import { render, screen } from '@testing-library/react';
-
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { TableBody, TableHeader } from '@/ui/components/ui/table';
@@ -7,8 +6,6 @@ import { TableBody, TableHeader } from '@/ui/components/ui/table';
 import {
   DataTable,
   DataTableCell,
-  dataTableCellNumberClass,
-  dataTableCellTextClass,
   DataTableColGroup,
   DataTableHeadCell,
   DataTableRow,
@@ -17,6 +14,8 @@ import {
   MobileDataRow,
   NumberCell,
   NumberInput,
+  dataTableCellNumberClass,
+  dataTableCellTextClass,
   numberInputClass,
 } from './index';
 
@@ -25,8 +24,7 @@ afterEach(() => {
 });
 
 /** 從 class 常數取出 `h-[NNpx]` / `py-[NNpx]` 的像素值。 */
-const px = (className: string, pattern: RegExp): number =>
-  Number(className.match(pattern)?.[1]);
+const px = (className: string, pattern: RegExp): number => Number(className.match(pattern)?.[1]);
 
 describe('row height contract', () => {
   it('keeps the 54px row height even when a cell holds a 34px input', () => {

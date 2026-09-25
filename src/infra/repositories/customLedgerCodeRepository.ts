@@ -1,4 +1,4 @@
-import { collection, doc, where, limit, getDocs, query } from 'firebase/firestore';
+import { collection, doc, getDocs, limit, query, where } from 'firebase/firestore';
 
 import {
   type CustomLedgerCode,
@@ -53,17 +53,13 @@ class CustomLedgerCodeRepository extends BaseRepository<CustomLedgerCode, [strin
     return this.list([householdId], [where('isActive', '==', true)]);
   }
 
-  /** 
+  /**
    * Checks if a ledger code is already referenced in any transaction.
    * Leverages the denormalized `ledgerCodes` array in the transaction document.
    */
   async isCodeInUse(householdId: string, ledgerCode: string): Promise<boolean> {
     const transactionsRef = collection(this.db, 'households', householdId, 'transactions');
-    const q = query(
-      transactionsRef,
-      where('ledgerCodes', 'array-contains', ledgerCode),
-      limit(1)
-    );
+    const q = query(transactionsRef, where('ledgerCodes', 'array-contains', ledgerCode), limit(1));
     const snap = await getDocs(q);
     return !snap.empty;
   }

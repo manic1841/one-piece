@@ -1,18 +1,19 @@
 import { describe, expect, it } from 'vitest';
 
+import { type JournalEntryLine } from '@/domains/ledger/schemas';
+
 import {
   calculateBalanceSheet,
   calculateCashFlow,
   calculateIncomeStatement,
   calculateLiquidBalance,
 } from './reportCalculations';
-import { type JournalEntryLine } from '@/domains/ledger/schemas';
 
-const entry = (
-  ledgerCode: string,
-  debit: number,
-  credit: number,
-): JournalEntryLine => ({ ledgerCode, debit, credit });
+const entry = (ledgerCode: string, debit: number, credit: number): JournalEntryLine => ({
+  ledgerCode,
+  debit,
+  credit,
+});
 
 describe('calculateIncomeStatement', () => {
   it('aggregates income credits and expense debits into sorted items', () => {
@@ -166,11 +167,11 @@ describe('calculateCashFlow', () => {
     expect(result.operating.total).toBe(5000 - 800);
     expect(result.investing.total).toBe(-2000);
     expect(result.financing.total).toBe(3000);
-    expect(result.netCashChange).toBe(4200 + (-2000) + 3000);
+    expect(result.netCashChange).toBe(4200 + -2000 + 3000);
     expect(result.beginningBalance).toBe(10000);
-    expect(result.endingBalance).toBe(10000 + 4200 + (-2000) + 3000);
+    expect(result.endingBalance).toBe(10000 + 4200 + -2000 + 3000);
     expect(result.actualBalance).toBe(15200);
-    expect(result.adjustment).toBe(15200 - (10000 + 4200 + (-2000) + 3000));
+    expect(result.adjustment).toBe(15200 - (10000 + 4200 + -2000 + 3000));
   });
 
   it('handles empty entries with zero change', () => {
@@ -219,10 +220,7 @@ describe('calculateLiquidBalance', () => {
   });
 
   it('treats missing snapshots as zero', () => {
-    const result = calculateLiquidBalance(
-      [{ id: 'a1', category: 'bank' }],
-      [],
-    );
+    const result = calculateLiquidBalance([{ id: 'a1', category: 'bank' }], []);
 
     expect(result).toBe(0);
   });

@@ -1,9 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 
-import {
-  type AccountCreate,
-  type AccountWithSnapshot,
-} from '@/domains/account/types/account';
+import { type AccountCreate, type AccountWithSnapshot } from '@/domains/account/types/account';
 import { useAuthState } from '@/ui/contexts/useAuthState';
 import { useAccountCmds } from '@/ui/features/account/hooks/useAccountCmds';
 import { useAccounts } from '@/ui/features/account/hooks/useAccounts';
@@ -26,11 +23,7 @@ export function useAccountListController() {
   const loadAccounts = useCallback(async () => {
     if (!householdId) return;
 
-    const result = await fetchAccountsWithSnapshots(
-      householdId,
-      auth,
-      { includeInactive: true },
-    );
+    const result = await fetchAccountsWithSnapshots(householdId, auth, { includeInactive: true });
     const data = result.ok ? result.value : [];
     setAccounts(data);
     setLocalAccounts(data);

@@ -14,7 +14,11 @@ export class RemoveWatchListTargetUseCase {
   async execute(request: RemoveWatchListTargetRequest): Promise<void> {
     const { householdId, auth, targetType, targetId } = request;
 
-    await householdPermissionService.assertWritePermission(householdId, auth.uid, auth.isGlobalAdmin);
+    await householdPermissionService.assertWritePermission(
+      householdId,
+      auth.uid,
+      auth.isGlobalAdmin,
+    );
 
     await watchListRepository.removeTarget(householdId, targetType, targetId);
   }

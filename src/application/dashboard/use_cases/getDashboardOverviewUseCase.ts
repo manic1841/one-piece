@@ -1,14 +1,14 @@
 import { householdPermissionService } from '@/application/household/householdPermissionService';
 import { GetFinancialPeriodUseCase } from '@/application/monthly_close/use_cases/financialPeriodAccessUseCases';
-import { listReportsUseCase } from '@/application/report/use_cases/listReportsUseCase';
-import { listPortfoliosUseCase } from '@/application/portfolio/use_cases/listPortfoliosUseCase';
 import { listPortfolioSnapshotsUseCase } from '@/application/portfolio/use_cases/listPortfolioSnapshotsUseCase';
-import { transactionRepository } from '@/infra/repositories/transactionRepository';
+import { listPortfoliosUseCase } from '@/application/portfolio/use_cases/listPortfoliosUseCase';
+import { listReportsUseCase } from '@/application/report/use_cases/listReportsUseCase';
 import { type AuthContext } from '@/application/types';
+import { type Transaction } from '@/domains/ledger/schemas';
+import { type PortfolioSnapshot } from '@/domains/portfolio/types/portfolio';
 import { ReportType } from '@/domains/report/schemas';
 import { type FinancialReport } from '@/domains/report/schemas';
-import { type PortfolioSnapshot } from '@/domains/portfolio/types/portfolio';
-import { type Transaction } from '@/domains/ledger/schemas';
+import { transactionRepository } from '@/infra/repositories/transactionRepository';
 
 export interface DashboardNetWorthPoint {
   year: number;

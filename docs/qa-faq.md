@@ -7,7 +7,7 @@
 1. [REST-seeded 文件缺 base 欄位 → 頁面靜默吞錯](#1-rest-seeded-文件缺-base-欄位--頁面靜默吞錯)
 2. [Auth session 注入寫錯儲存層 → 一切正常卻看不到資料](#2-auth-session-注入寫錯儲存層--一切正常卻看不到資料)
 3. [容器內 localhost 不通 → 誤判 emulator 掛了](#3-容器內-localhost-不通--誤判-emulator-掛了)
-    - [整頁空白(emulator 未啟動 / 後端不可達)](#31-整頁空白emulator-未啟動--後端不可達)
+   - [整頁空白(emulator 未啟動 / 後端不可達)](#31-整頁空白emulator-未啟動--後端不可達)
 4. [Listen channel 400/ERR_ABORTED 是環境 quirk](#4-listen-channel-400err_aborted-是環境-quirk)
 5. [種子資料掛錯家戶 → App 正確地查不到](#5-種子資料掛錯家戶--app-正確地查不到)
 6. [pnpm 互動提示被 pipe 吞掉 → 看起來像 hang](#6-pnpm-互動提示被-pipe-吞掉--看起來像-hang)

@@ -2,8 +2,8 @@ import { useCallback, useEffect, useState } from 'react';
 
 import { getDashboardOverviewUseCase } from '@/application/dashboard/use_cases/getDashboardOverviewUseCase';
 import { type DashboardOverview } from '@/application/dashboard/use_cases/getDashboardOverviewUseCase';
-import { useLoadingTask } from '@/ui/hooks/useLoadingTask';
 import { useAuthIdentity } from '@/ui/hooks/useAuthIdentity';
+import { useLoadingTask } from '@/ui/hooks/useLoadingTask';
 
 import { mapDashboardOverviewToHeroVM } from '../viewmodels/dashboardHero.vm';
 import { type DashboardHeroVM } from '../viewmodels/dashboardHero.vm';

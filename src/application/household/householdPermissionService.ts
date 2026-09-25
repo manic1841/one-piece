@@ -1,5 +1,6 @@
-import { getHouseholdUseCase } from './use_cases/getHouseholdUseCase';
 import { RoleEnum } from '@/domains/household/role';
+
+import { getHouseholdUseCase } from './use_cases/getHouseholdUseCase';
 
 export class HouseholdPermissionService {
   async isUserMember(householdId: string, uid: string): Promise<boolean> {

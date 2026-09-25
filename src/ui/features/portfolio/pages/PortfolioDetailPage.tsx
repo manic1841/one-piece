@@ -2,10 +2,10 @@ import React from 'react';
 
 import { useNavigate, useParams } from 'react-router-dom';
 
-import { useAuthState } from '@/ui/contexts/useAuthState';
 import { InlineEditableTitle } from '@/ui/components/InlineEditableTitle';
 import { PageHeader } from '@/ui/components/PageHeader';
 import { Badge } from '@/ui/components/ui/badge';
+import { useAuthState } from '@/ui/contexts/useAuthState';
 import PortfolioDetail from '@/ui/features/portfolio/components/PortfolioDetail';
 import { usePortfolioCmds } from '@/ui/features/portfolio/hooks/usePortfolioCmds';
 import { usePortfolios } from '@/ui/features/portfolio/hooks/usePortfolios';

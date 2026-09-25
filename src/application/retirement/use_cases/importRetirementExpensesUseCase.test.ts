@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { type AuthContext } from '@/application/types';
 import { LEDGER_PREFIX } from '@/domains/ledger/constants/ledgerCodes';
+import { transactionRepository } from '@/infra/repositories/transactionRepository';
 
 import { ImportRetirementExpensesUseCase } from './importRetirementExpensesUseCase';
 
@@ -17,11 +18,11 @@ vi.mock('@/infra/repositories/transactionRepository', () => ({
   },
 }));
 
-import { transactionRepository } from '@/infra/repositories/transactionRepository';
-
 const auth: AuthContext = { uid: 'u1', isGlobalAdmin: false };
 
-const buildTransaction = (entries: Array<{ ledgerCode: string; debit?: number; credit?: number }>) => ({
+const buildTransaction = (
+  entries: Array<{ ledgerCode: string; debit?: number; credit?: number }>,
+) => ({
   id: 'tx-1',
   entries,
 });

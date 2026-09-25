@@ -64,10 +64,7 @@ function calculateYearlyFlowDetails(plan: RetirementPlan, year: number): YearlyF
   const projectionEndYear = plan.currentYear + (plan.lifeExpectancy - currentAge);
   const sampleYear = resolveSampleYear(plan);
   const activeIncomes = plan.incomes.filter((income) => {
-    const { effectiveStartYear, effectiveEndYear } = resolveIncomeWindow(
-      income,
-      projectionEndYear,
-    );
+    const { effectiveStartYear, effectiveEndYear } = resolveIncomeWindow(income, projectionEndYear);
     return year >= effectiveStartYear && year <= effectiveEndYear;
   });
 

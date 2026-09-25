@@ -1,16 +1,17 @@
-import { act, render, screen, waitFor } from '@testing-library/react';
 import React from 'react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('@/application/auth/use_cases/ensureUserProfileUseCase', () => ({
-  ensureUserProfileUseCase: { execute: vi.fn() },
-}));
+import { act, render, screen, waitFor } from '@testing-library/react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ensureUserProfileUseCase } from '@/application/auth/use_cases/ensureUserProfileUseCase';
 import { type AuthGateway, type AuthGatewaySnapshot } from '@/domains/auth/authGateway';
 
-import { AuthStateContext, type AuthState } from './AuthStateContext';
+import { type AuthState, AuthStateContext } from './AuthStateContext';
 import { AuthStateProvider } from './AuthStateProvider';
+
+vi.mock('@/application/auth/use_cases/ensureUserProfileUseCase', () => ({
+  ensureUserProfileUseCase: { execute: vi.fn() },
+}));
 
 /**
  * A fake gateway: the UI provider must be testable without any Firebase (issue #177 Q23).

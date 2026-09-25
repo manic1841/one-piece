@@ -35,8 +35,10 @@ export const useProjectDetailPage = ({ project }: UseProjectDetailPageArgs) => {
   const { userProfile } = useAuthState();
   const householdId = userProfile?.householdId ?? '';
 
-  const { items, selectedYearMonth, setSelectedYearMonth, currentSnapshot } =
-    useProjectDetailView(householdId, id || '');
+  const { items, selectedYearMonth, setSelectedYearMonth, currentSnapshot } = useProjectDetailView(
+    householdId,
+    id || '',
+  );
 
   const { updateProject } = useProjectCmds(householdId);
 
@@ -100,7 +102,9 @@ export const useProjectDetailPage = ({ project }: UseProjectDetailPageArgs) => {
 
   const refreshProject = useCallback(
     async (projectId: string) => {
-      const { getProjectUseCase } = await import('@/application/project/use_cases/getProjectUseCase');
+      const { getProjectUseCase } = await import(
+        '@/application/project/use_cases/getProjectUseCase'
+      );
       const data = await getProjectUseCase.execute({ householdId, projectId });
       if (data) setFetchedProject(data);
     },

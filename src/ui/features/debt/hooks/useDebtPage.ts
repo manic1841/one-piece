@@ -5,11 +5,11 @@ import { listDebtPaymentsUseCase } from '@/application/debt/use_cases/listDebtPa
 import { listProjectsUseCase } from '@/application/project/use_cases/listProjectsUseCase';
 import { type DebtAccount } from '@/domains/debt/schemas';
 import { type Project } from '@/domains/project/schemas';
-import { useAuthIdentity } from '@/ui/hooks/useAuthIdentity';
 import {
   type DebtAccountDisplayVM,
   mapDebtAccountToDisplayVM,
 } from '@/ui/features/debt/viewmodels/debtDisplay.vm';
+import { useAuthIdentity } from '@/ui/hooks/useAuthIdentity';
 import { useLoadingTask } from '@/ui/hooks/useLoadingTask';
 
 export function useDebtPage(householdId: string) {

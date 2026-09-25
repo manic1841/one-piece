@@ -1,15 +1,18 @@
 import { householdPermissionService } from '@/application/household/householdPermissionService';
 import { type AuthContext } from '@/application/types';
+import { type ReportLabelResolver } from '@/domains/report/reportCalculations';
 import {
   type BalanceSheetData,
   type CashFlowData,
   type IncomeStatementData,
   ReportType,
 } from '@/domains/report/schemas';
-import { type ReportLabelResolver } from '@/domains/report/reportCalculations';
 import { reportRepository } from '@/infra/repositories/reportRepository';
 
-import { type SettlementReadiness, getSettlementReadinessUseCase } from './getSettlementReadinessUseCase';
+import {
+  type SettlementReadiness,
+  getSettlementReadinessUseCase,
+} from './getSettlementReadinessUseCase';
 import {
   type PreviewFinancialReportsResult,
   previewFinancialReportsWorkflow,
@@ -41,9 +44,7 @@ export class SettlementNotReadyError extends Error {
 }
 
 export class GenerateFinancialReportsUseCase {
-  async execute(
-    request: GenerateFinancialReportsRequest,
-  ): Promise<GenerateFinancialReportsResult> {
+  async execute(request: GenerateFinancialReportsRequest): Promise<GenerateFinancialReportsResult> {
     const { householdId, auth, year, month, labelResolver } = request;
 
     await householdPermissionService.assertWritePermission(

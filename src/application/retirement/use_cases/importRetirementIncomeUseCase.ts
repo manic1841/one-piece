@@ -1,5 +1,5 @@
-import { type AuthContext } from '@/application/types';
 import { householdPermissionService } from '@/application/household/householdPermissionService';
+import { type AuthContext } from '@/application/types';
 import {
   type PlannedIncome,
   calculateIncomeSourceSuggestions,
@@ -13,9 +13,7 @@ interface ImportRetirementIncomeRequest {
 }
 
 export class ImportRetirementIncomeUseCase {
-  async execute(
-    request: ImportRetirementIncomeRequest,
-  ): Promise<RetirementIncomeSource[]> {
+  async execute(request: ImportRetirementIncomeRequest): Promise<RetirementIncomeSource[]> {
     const { householdId, auth } = request;
 
     await householdPermissionService.assertReadPermission(

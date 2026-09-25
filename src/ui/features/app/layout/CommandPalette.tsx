@@ -11,7 +11,6 @@ import {
   CommandItem,
   CommandList,
 } from '@/ui/components/ui/command';
-
 import {
   QUICK_ACCESS_HINT,
   QUICK_ACCESS_LABEL,

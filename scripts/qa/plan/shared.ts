@@ -9,8 +9,8 @@
 import { z } from 'zod';
 
 import type { AllocationItem } from '@/domains/allocation/schemas';
-import type { JournalEntryLine } from '@/domains/ledger/schemas';
 import { LEDGER_CODES } from '@/domains/ledger/constants';
+import type { JournalEntryLine } from '@/domains/ledger/schemas';
 
 export interface QaSeedIdentity {
   uid: string;

@@ -38,9 +38,7 @@ export const DebtPaymentsTable: React.FC<DebtPaymentsTableProps> = ({ history })
             <TableCell className="text-right font-mono tabular-nums">
               {item.principalText}
             </TableCell>
-            <TableCell className="text-right font-mono tabular-nums">
-              {item.interestText}
-            </TableCell>
+            <TableCell className="text-right font-mono tabular-nums">{item.interestText}</TableCell>
             <TableCell className="text-right font-mono tabular-nums">{item.totalText}</TableCell>
           </TableRow>
         ))}

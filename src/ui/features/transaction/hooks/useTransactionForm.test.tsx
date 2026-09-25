@@ -90,9 +90,7 @@ describe('useTransactionForm allocation submission', () => {
       .mockReturnValueOnce('allocation-key-1')
       .mockReturnValueOnce('allocation-key-2');
 
-    const { result } = renderHook(() =>
-      useTransactionForm('household-1', vi.fn(), vi.fn()),
-    );
+    const { result } = renderHook(() => useTransactionForm('household-1', vi.fn(), vi.fn()));
 
     await act(async () => {
       await result.current.handleSubmit(output);
@@ -118,9 +116,7 @@ describe('useTransactionForm allocation submission', () => {
     const { createTransactionUseCase } = await import(
       '@/application/ledger/use_cases/createTransactionUseCase'
     );
-    const { result } = renderHook(() =>
-      useTransactionForm('household-1', vi.fn(), vi.fn()),
-    );
+    const { result } = renderHook(() => useTransactionForm('household-1', vi.fn(), vi.fn()));
 
     await act(async () => {
       await result.current.handleSubmit({

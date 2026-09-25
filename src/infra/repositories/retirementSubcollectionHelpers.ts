@@ -1,9 +1,9 @@
 import {
+  type Firestore,
+  type Transaction,
   collection,
   doc,
   getDocs,
-  type Firestore,
-  type Transaction,
   writeBatch,
 } from 'firebase/firestore';
 
@@ -49,19 +49,8 @@ function getIncomeStreamsCollectionRef(db: Firestore, householdId: string, planI
   return collection(db, 'households', householdId, 'retirement_plans', planId, 'incomeStreams');
 }
 
-function getExpenseCategoriesCollectionRef(
-  db: Firestore,
-  householdId: string,
-  planId: string,
-) {
-  return collection(
-    db,
-    'households',
-    householdId,
-    'retirement_plans',
-    planId,
-    'expenseCategories',
-  );
+function getExpenseCategoriesCollectionRef(db: Firestore, householdId: string, planId: string) {
+  return collection(db, 'households', householdId, 'retirement_plans', planId, 'expenseCategories');
 }
 
 // --- Subcollection read helpers ---

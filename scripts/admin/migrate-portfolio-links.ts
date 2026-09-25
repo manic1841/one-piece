@@ -12,11 +12,11 @@
  */
 import admin from 'firebase-admin';
 
-import { applyEmulatorEnv } from '../shared/emulator-env';
 import {
   AccountCategory,
   type AccountCategory as AccountCategoryType,
 } from '../../src/domains/account/types/categories';
+import { applyEmulatorEnv } from '../shared/emulator-env';
 
 const dryRun = process.argv.includes('--dry-run');
 

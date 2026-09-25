@@ -1,5 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { createUserProfileUseCase } from './createUserProfileUseCase';
+import { deriveDisplayName, ensureUserProfileUseCase } from './ensureUserProfileUseCase';
+import { getUserProfileUseCase } from './getUserProfileUseCase';
+
 vi.mock('./getUserProfileUseCase', () => ({
   getUserProfileUseCase: { execute: vi.fn() },
 }));
@@ -7,10 +11,6 @@ vi.mock('./getUserProfileUseCase', () => ({
 vi.mock('./createUserProfileUseCase', () => ({
   createUserProfileUseCase: { execute: vi.fn() },
 }));
-
-import { createUserProfileUseCase } from './createUserProfileUseCase';
-import { deriveDisplayName, ensureUserProfileUseCase } from './ensureUserProfileUseCase';
-import { getUserProfileUseCase } from './getUserProfileUseCase';
 
 const existingProfile = {
   id: 'user-1',

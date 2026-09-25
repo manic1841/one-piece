@@ -3,10 +3,10 @@ import React, { useState } from 'react';
 import { ArrowRight, ChevronRight, FileText, TrendingUp, Wallet } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
-import { useAuthState } from '@/ui/contexts/useAuthState';
-import { Card, CardContent } from '@/ui/components/ui/card';
 import { PageHeader } from '@/ui/components/PageHeader';
+import { Card, CardContent } from '@/ui/components/ui/card';
 import { REPORT_VIEW_TITLES } from '@/ui/constants/report/reportViewLabels';
+import { useAuthState } from '@/ui/contexts/useAuthState';
 
 import { ReportSettlement } from '../components/ReportSettlement';
 import BalanceSheetPage from './BalanceSheet';

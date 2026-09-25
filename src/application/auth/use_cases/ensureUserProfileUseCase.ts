@@ -1,4 +1,5 @@
-import { type UserProfileCreate, type UserProfile } from '@/domains/auth/user/types';
+import { type UserProfile, type UserProfileCreate } from '@/domains/auth/user/types';
+
 import { createUserProfileUseCase } from './createUserProfileUseCase';
 import { getUserProfileUseCase } from './getUserProfileUseCase';
 

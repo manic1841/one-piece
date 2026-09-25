@@ -90,8 +90,7 @@ describe('YearlyDetails', () => {
     const expenseHeading = scoped.getByText('支出明細');
     expect(
       Boolean(
-        incomeHeading.compareDocumentPosition(expenseHeading) &
-          Node.DOCUMENT_POSITION_FOLLOWING,
+        incomeHeading.compareDocumentPosition(expenseHeading) & Node.DOCUMENT_POSITION_FOLLOWING,
       ),
     ).toBe(true);
   });

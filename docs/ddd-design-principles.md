@@ -6,14 +6,15 @@
 
 在 React 專案中，傳統 DDD 層級與前端開發習慣的對應關係如下：
 
-| DDD 層級                         | React 對應                              | 說明                                              |
-| ------------------------------ | ------------------------------------- | ----------------------------------------------- |
-| Controller (Adapter)           | **UI Controller Hook**                | 負責注入 Context、管理 Loading/Error、呼叫 Use Case  |
-| Use Case                       | Atomic Use Case Module/Class          | 單一職責的業務編排 (Pure TS)                       |
-| Domain Service                 | Pure JS / TS function / class         | 核心業務邏輯，不依賴 React 或外部狀態                 |
-| Repository / Infrastructure    | BaseRepository / API Client           | 外部資源存取                                      |
+| DDD 層級                    | React 對應                    | 說明                                                |
+| --------------------------- | ----------------------------- | --------------------------------------------------- |
+| Controller (Adapter)        | **UI Controller Hook**        | 負責注入 Context、管理 Loading/Error、呼叫 Use Case |
+| Use Case                    | Atomic Use Case Module/Class  | 單一職責的業務編排 (Pure TS)                        |
+| Domain Service              | Pure JS / TS function / class | 核心業務邏輯，不依賴 React 或外部狀態               |
+| Repository / Infrastructure | BaseRepository / API Client   | 外部資源存取                                        |
 
 ### 典型 React 調用鏈 (Typical Flow)
+
 `Surface (Component/Page)` -> `Controller Hook` -> `Use Case` -> `Domain Service` / `Repository`
 
 層級、可觸碰清單與呼叫方向以 [`ui/ui-layer-architecture.md`](ui/ui-layer-architecture.md) 為準；
@@ -24,6 +25,7 @@
 ## 2. 程式碼範例 (Code Examples)
 
 ### Application Hook (Controller)
+
 ```typescript
 export function useUpdateUser() {
   const [loading, setLoading] = useState(false);
@@ -43,13 +45,14 @@ export function useUpdateUser() {
 ```
 
 ### Use Case (Atomic Orchestrator)
+
 ```typescript
 export class UpdateUserUseCase {
-  async execute(request: { uid: string, data: any, auth: AuthContext }) {
+  async execute(request: { uid: string; data: any; auth: AuthContext }) {
     const { uid, data, auth } = request;
     // 1. 權限校驗 (使用 Permission Service)
     await userPermissionService.assertUpdate(auth, uid);
-    
+
     // 2. 業務邏輯與存儲
     await userRepository.update(uid, data);
   }
@@ -180,6 +183,8 @@ partial update，也不引入 idempotency key——重試同一 desired state �
 ---
 
 ## 4. Linus Torvalds 的提醒
+
 > "Good code doesn't need comments, it needs a structure so obvious that you feel like an idiot for not writing it that way initially."
+
 - 保持層級簡約。
 - 如果一個 Use Case 只有 3 行 code 且沒有複雜編排，直接在 Application Service 寫一個 method 即可，不要過度設計。

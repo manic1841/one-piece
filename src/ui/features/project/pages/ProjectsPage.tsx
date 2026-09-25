@@ -3,9 +3,9 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Plus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
-import { type Project } from '@/ui/features/project/viewmodels/projectForm.vm';
-import { useAuthState } from '@/ui/contexts/useAuthState';
 import CompactRow from '@/ui/components/CompactRow';
+import { PageHeader } from '@/ui/components/PageHeader';
+import { GripHandle, SortableListScope } from '@/ui/components/sortable/SortableListScope';
 import { Button } from '@/ui/components/ui/button';
 import {
   Table,
@@ -15,12 +15,12 @@ import {
   TableHeader,
   TableRow,
 } from '@/ui/components/ui/table';
-import { PageHeader } from '@/ui/components/PageHeader';
-import { GripHandle, SortableListScope } from '@/ui/components/sortable/SortableListScope';
-import { useSortableRow } from '@/ui/hooks/useSortableList';
+import { useAuthState } from '@/ui/contexts/useAuthState';
 import ProjectForm from '@/ui/features/project/components/ProjectForm';
 import { useProjectPage } from '@/ui/features/project/hooks/useProjectPage';
 import { useProjectQueries } from '@/ui/features/project/hooks/useProjects';
+import { type Project } from '@/ui/features/project/viewmodels/projectForm.vm';
+import { useSortableRow } from '@/ui/hooks/useSortableList';
 import { formatCurrency } from '@/ui/utils';
 import { cn } from '@/ui/utils/cn';
 
@@ -64,9 +64,7 @@ const SortableProjectRow: React.FC<{
           className={row.isActive ? '' : 'opacity-60'}
         />
       </TableCell>
-      <TableCell className={row.isActive ? '' : 'text-muted-foreground'}>
-        {row.name}
-      </TableCell>
+      <TableCell className={row.isActive ? '' : 'text-muted-foreground'}>{row.name}</TableCell>
       <TableCell>
         <span className={row.isActive ? 'text-positive' : 'text-muted-foreground'}>
           {row.isActive ? '進行中' : '停用'}
@@ -99,7 +97,10 @@ const SortableProjectCompactRow: React.FC<{
       ref={setNodeRef}
       testId={`project-row-mobile-${row.id}`}
       onClick={() => onNavigate(`/projects/${row.id}`)}
-      className={cn('cursor-pointer', isDragging ? 'opacity-50' : row.isActive ? 'bg-card/50' : 'bg-transparent')}
+      className={cn(
+        'cursor-pointer',
+        isDragging ? 'opacity-50' : row.isActive ? 'bg-card/50' : 'bg-transparent',
+      )}
       style={rowStyle}
     >
       <div className="flex items-center justify-between gap-2">

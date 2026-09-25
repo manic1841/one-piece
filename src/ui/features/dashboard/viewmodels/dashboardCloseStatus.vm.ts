@@ -1,3 +1,6 @@
+import { type NextMonthDebtDueResult } from '@/application/debt/use_cases/getNextMonthDebtDueUseCase';
+import { type CloseStageId, type FinancialPeriod } from '@/domains/financial_period/schemas';
+import { type StatusGlyphType } from '@/ui/components/StatusGlyph';
 import {
   DASHBOARD_CLOSE_NO_RECORD,
   DASHBOARD_CLOSE_STATUS_GLYPHS,
@@ -5,12 +8,6 @@ import {
 } from '@/ui/constants/dashboard/monthlyCloseStatus';
 import { CLOSE_STAGE_LABELS, CLOSE_STAGE_ORDER } from '@/ui/constants/monthlyClose';
 import { formatCurrency, formatYearMonth } from '@/ui/utils';
-import { type StatusGlyphType } from '@/ui/components/StatusGlyph';
-import {
-  type CloseStageId,
-  type FinancialPeriod,
-} from '@/domains/financial_period/schemas';
-import { type NextMonthDebtDueResult } from '@/application/debt/use_cases/getNextMonthDebtDueUseCase';
 
 export type { NextMonthDebtDueResult };
 
@@ -56,9 +53,7 @@ export const mapPeriodToCloseStatusVM = (
   };
 };
 
-export const mapNextMonthDueText = (
-  nextMonthDue: NextMonthDebtDueResult | null,
-): string | null => {
+export const mapNextMonthDueText = (nextMonthDue: NextMonthDebtDueResult | null): string | null => {
   if (!nextMonthDue) {
     return null;
   }

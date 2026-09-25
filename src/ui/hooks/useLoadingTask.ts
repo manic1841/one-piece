@@ -19,9 +19,7 @@ export type LoadingTaskResult<T> =
  * `aborted` arm: an abandoned run never calls `writeBack`, and the type makes
  * that unrepresentable rather than merely documented.
  */
-export type LoadingTaskWriteBackResult<T> =
-  | { ok: true; value: T }
-  | { ok: false; error: unknown };
+export type LoadingTaskWriteBackResult<T> = { ok: true; value: T } | { ok: false; error: unknown };
 
 export interface LoadingTaskOptions<T> {
   signal?: AbortSignal;

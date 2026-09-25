@@ -227,10 +227,7 @@ export const ReportHeader: React.FC<ReportHeaderProps> = ({
                 </span>
               </Button>
             </PopoverTrigger>
-            <PopoverContent
-              className="w-80 p-6 rounded-lg shadow-lg border-border"
-              align="end"
-            >
+            <PopoverContent className="w-80 p-6 rounded-lg shadow-lg border-border" align="end">
               <div className="space-y-4">
                 <div className="flex items-center gap-2 mb-2">
                   <Calendar size={16} className="text-muted-foreground" />

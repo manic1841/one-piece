@@ -1,6 +1,5 @@
-import { formatCurrency } from '@/ui/utils';
-
 import type { DashboardCashFlowPoint } from '@/application/dashboard/use_cases/getDashboardOverviewUseCase';
+import { formatCurrency } from '@/ui/utils';
 
 export type { DashboardCashFlowPoint };
 
@@ -27,8 +26,18 @@ const PADDING_TOP = 10;
 const PADDING_BOTTOM = 22;
 
 const MONTH_NAMES = [
-  'JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN',
-  'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC',
+  'JAN',
+  'FEB',
+  'MAR',
+  'APR',
+  'MAY',
+  'JUN',
+  'JUL',
+  'AUG',
+  'SEP',
+  'OCT',
+  'NOV',
+  'DEC',
 ];
 
 export const mapCashFlowSeriesToChartVM = (
@@ -36,8 +45,9 @@ export const mapCashFlowSeriesToChartVM = (
 ): DashboardCashFlowChartVM => {
   const present = series
     .map((point, monthIndex) => ({ ...point, monthIndex }))
-    .filter((point): point is DashboardCashFlowPoint & { monthIndex: number; netCashFlow: number } =>
-      point.netCashFlow !== null,
+    .filter(
+      (point): point is DashboardCashFlowPoint & { monthIndex: number; netCashFlow: number } =>
+        point.netCashFlow !== null,
     );
 
   const zeroY = PADDING_TOP + (CHART_HEIGHT - PADDING_TOP - PADDING_BOTTOM) / 2;

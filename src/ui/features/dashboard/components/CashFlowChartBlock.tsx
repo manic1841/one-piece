@@ -86,7 +86,9 @@ export const CashFlowChartBlock: React.FC<CashFlowChartBlockProps> = ({ series, 
               );
             })}
           </div>
-          <p className="mt-2 font-mono text-sm tabular-nums text-foreground">{chartVM.latestText}</p>
+          <p className="mt-2 font-mono text-sm tabular-nums text-foreground">
+            {chartVM.latestText}
+          </p>
         </div>
       )}
     </section>

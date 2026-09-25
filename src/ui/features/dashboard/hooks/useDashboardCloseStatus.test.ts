@@ -1,6 +1,8 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { useDashboardCloseStatus } from './useDashboardCloseStatus';
+
 vi.mock('@/application/monthly_close/use_cases/financialPeriodAccessUseCases', () => ({
   GetFinancialPeriodUseCase: vi.fn(function () {
     return {
@@ -10,8 +12,6 @@ vi.mock('@/application/monthly_close/use_cases/financialPeriodAccessUseCases', (
 }));
 
 const getFinancialPeriodMock = vi.fn();
-
-import { useDashboardCloseStatus } from './useDashboardCloseStatus';
 
 const buildPeriod = (status: 'OPEN' | 'IN_PROGRESS' | 'NEEDS_REVIEW' | 'CLOSED') => ({
   id: '2026-08',

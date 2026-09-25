@@ -15,7 +15,7 @@
 import admin from 'firebase-admin';
 
 import { applyEmulatorEnv } from '../shared/emulator-env';
-import { buildQaSeedPlan, type SeedDoc } from './plan';
+import { type SeedDoc, buildQaSeedPlan } from './plan';
 import { QA_EMAIL, QA_HOUSEHOLD_ID } from './qa-identity';
 
 const emulator = applyEmulatorEnv();

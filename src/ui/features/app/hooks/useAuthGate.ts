@@ -1,8 +1,5 @@
+import { STARTUP_FAILURE_COPY, type StartupFailureCopy } from '@/ui/constants/app/startupFailure';
 import { useAuthState } from '@/ui/contexts/useAuthState';
-import {
-  STARTUP_FAILURE_COPY,
-  type StartupFailureCopy,
-} from '@/ui/constants/app/startupFailure';
 
 export interface AuthGateState {
   /** 非 null 表示啟動期不可回復的失敗，Surface 應顯示失敗畫面而非永久等待。 */

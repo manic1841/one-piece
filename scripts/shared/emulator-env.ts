@@ -64,7 +64,9 @@ export const resolveEmulatorEnv = (
  * Resolves targets, applies them to process.env for firebase-admin,
  * and prints what was resolved (and whether a value was defaulted).
  */
-export const applyEmulatorEnv = (log: (...args: unknown[]) => void = console.log): EmulatorTargets => {
+export const applyEmulatorEnv = (
+  log: (...args: unknown[]) => void = console.log,
+): EmulatorTargets => {
   const targets = resolveEmulatorEnv();
   const source = (value: string | undefined) => (value ? 'from env' : 'defaulted');
 

@@ -166,12 +166,7 @@ describe('retirementCalculator', () => {
 
   it('should calculate summary correctly', () => {
     const projection = calculateRetirementProjection(mockPlan, STARTING_NW);
-    const summary = calculateProjectionSummary(
-      projection,
-      mockPlan,
-      STARTING_NW,
-      '2024-12',
-    );
+    const summary = calculateProjectionSummary(projection, mockPlan, STARTING_NW, '2024-12');
 
     expect(summary.retirementYear).toBe(2055);
     expect(summary.startingNetWorth).toBe(STARTING_NW);

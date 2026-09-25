@@ -1,4 +1,4 @@
-import { readdirSync, readFileSync, statSync } from 'node:fs';
+import { readFileSync, readdirSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 
@@ -64,7 +64,9 @@ const INFRA_ROOT = path.join(SRC_DIR, 'infra');
 const COMPOSITION_ROOT_ALLOWLIST = new Set(['src/App.tsx']);
 
 /** The layer roots a `src/` top-level file might straddle. */
-const LAYER_ROOTS = ['ui', 'domains', 'application', 'infra'].map((name) => path.join(SRC_DIR, name));
+const LAYER_ROOTS = ['ui', 'domains', 'application', 'infra'].map((name) =>
+  path.join(SRC_DIR, name),
+);
 
 /** Importing any of these roots is reaching out of the UI tree. */
 const FORBIDDEN_ROOTS = [
@@ -88,7 +90,8 @@ const collectSourceFiles = (dir: string): string[] => {
   });
 };
 
-const toRepoRelative = (filePath: string): string => path.relative(REPO_ROOT, filePath).split(path.sep).join('/');
+const toRepoRelative = (filePath: string): string =>
+  path.relative(REPO_ROOT, filePath).split(path.sep).join('/');
 
 const isInside = (filePath: string, dir: string): boolean =>
   filePath === dir || filePath.startsWith(`${dir}${path.sep}`);
@@ -130,7 +133,8 @@ const resolvesUnderAny = (specifier: string, fromFile: string, roots: string[]):
 const surfaceViolationsOf = (filePath: string): string[] =>
   specifiersOf(filePath).filter(
     (specifier) =>
-      FIREBASE_SPECIFIER_PATTERN.test(specifier) || resolvesUnderAny(specifier, filePath, FORBIDDEN_ROOTS),
+      FIREBASE_SPECIFIER_PATTERN.test(specifier) ||
+      resolvesUnderAny(specifier, filePath, FORBIDDEN_ROOTS),
   );
 
 /** Rule 2: does this Controller reach a repository, Firestore, or any infra at all? */
@@ -143,17 +147,24 @@ const controllerViolationsOf = (filePath: string): string[] =>
 
 /** Rule 3: does this Display Labels file reach application or infra? */
 const displayLabelViolationsOf = (filePath: string): string[] =>
-  specifiersOf(filePath).filter((specifier) => resolvesUnderAny(specifier, filePath, BEHAVIOUR_ROOTS));
+  specifiersOf(filePath).filter((specifier) =>
+    resolvesUnderAny(specifier, filePath, BEHAVIOUR_ROOTS),
+  );
 
 const report = (label: string, files: Set<string>): string =>
-  `\n${label}:\n${[...files].sort().map((file) => `  - ${file}`).join('\n')}\n`;
+  `\n${label}:\n${[...files]
+    .sort()
+    .map((file) => `  - ${file}`)
+    .join('\n')}\n`;
 
 describe('UI layer boundary contract (issue #178, ADR-0062)', () => {
   const sourceFiles = collectSourceFiles(UI_DIR);
 
   const surfaceFiles = sourceFiles.filter((file) => !isNonSurface(file));
   const controllerFiles = sourceFiles.filter(isController);
-  const displayLabelFiles = sourceFiles.filter((file) => isInside(file, path.join(UI_DIR, 'constants')));
+  const displayLabelFiles = sourceFiles.filter((file) =>
+    isInside(file, path.join(UI_DIR, 'constants')),
+  );
 
   const surfaceViolations = new Set(
     surfaceFiles.filter((file) => surfaceViolationsOf(file).length > 0).map(toRepoRelative),
@@ -185,7 +196,9 @@ describe('UI layer boundary contract (issue #178, ADR-0062)', () => {
     // Tracer for the resolver: a relative hop and its alias must land on one path.
     const file = path.join(UI_DIR, 'features', 'app', 'layout', 'Layout.tsx');
     expect(resolveSpecifier('@/domains/x', file)).toBe(path.join(SRC_DIR, 'domains', 'x'));
-    expect(resolveSpecifier('../../../../domains/x', file)).toBe(path.join(SRC_DIR, 'domains', 'x'));
+    expect(resolveSpecifier('../../../../domains/x', file)).toBe(
+      path.join(SRC_DIR, 'domains', 'x'),
+    );
     expect(resolveSpecifier('react', file)).toBeNull();
   });
 

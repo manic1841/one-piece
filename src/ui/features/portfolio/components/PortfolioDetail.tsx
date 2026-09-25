@@ -1,8 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
-import { type Portfolio, type PortfolioSnapshot } from '@/ui/features/portfolio/viewmodels/portfolioDisplay.vm';
-import { useAccounts } from '@/ui/features/account/hooks/useAccounts';
-import { useAuthIdentity } from '@/ui/hooks/useAuthIdentity';
 import {
   Accordion,
   AccordionContent,
@@ -17,7 +14,13 @@ import {
   TableHeader,
   TableRow,
 } from '@/ui/components/ui/table';
+import { useAccounts } from '@/ui/features/account/hooks/useAccounts';
 import { usePortfolioQueries } from '@/ui/features/portfolio/hooks/usePortfolios';
+import {
+  type Portfolio,
+  type PortfolioSnapshot,
+} from '@/ui/features/portfolio/viewmodels/portfolioDisplay.vm';
+import { useAuthIdentity } from '@/ui/hooks/useAuthIdentity';
 import { formatCurrency, formatPercentage } from '@/ui/utils';
 
 interface PortfolioDetailProps {
@@ -26,8 +29,18 @@ interface PortfolioDetailProps {
 }
 
 const MONTH_NAMES = [
-  'JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN',
-  'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC',
+  'JAN',
+  'FEB',
+  'MAR',
+  'APR',
+  'MAY',
+  'JUN',
+  'JUL',
+  'AUG',
+  'SEP',
+  'OCT',
+  'NOV',
+  'DEC',
 ];
 
 const TREND_WIDTH = 720;
@@ -52,7 +65,9 @@ const formatTrendValue = (value: number): string => {
   return `${Math.round(value)}`;
 };
 
-const buildTrendGeometry = (series: { year: number; month: number; value: number }[]): TrendGeometry => {
+const buildTrendGeometry = (
+  series: { year: number; month: number; value: number }[],
+): TrendGeometry => {
   const present = series.slice().sort((a, b) => a.year - b.year || a.month - b.month);
   if (present.length === 0) {
     return { path: undefined, xLabels: [], yLabels: [] };
@@ -256,37 +271,37 @@ const PortfolioDetail: React.FC<PortfolioDetailProps> = ({ householdId, portfoli
               preserveAspectRatio="none"
               aria-hidden="true"
             >
-            {trend.yLabels.map((label) => (
-              <line
-                key={label.text}
-                x1={TREND_PADDING_X}
-                x2={TREND_WIDTH - TREND_PADDING_X}
-                y1={label.y}
-                y2={label.y}
-                stroke="hsl(var(--border))"
-                strokeWidth="1"
+              {trend.yLabels.map((label) => (
+                <line
+                  key={label.text}
+                  x1={TREND_PADDING_X}
+                  x2={TREND_WIDTH - TREND_PADDING_X}
+                  y1={label.y}
+                  y2={label.y}
+                  stroke="hsl(var(--border))"
+                  strokeWidth="1"
+                />
+              ))}
+              <path
+                d={trend.path}
+                fill="none"
+                stroke="hsl(var(--chart-1))"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
               />
-            ))}
-            <path
-              d={trend.path}
-              fill="none"
-              stroke="hsl(var(--chart-1))"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-          <div className="relative mt-2 h-4">
-            {trend.xLabels.map((label) => (
-              <span
-                key={label.text}
-                className="absolute whitespace-nowrap font-mono text-[10px] tabular-nums text-muted-foreground"
-                style={{ left: `${(label.x / TREND_WIDTH) * 100}%` }}
-              >
-                {label.text}
-              </span>
-            ))}
-          </div>
+            </svg>
+            <div className="relative mt-2 h-4">
+              {trend.xLabels.map((label) => (
+                <span
+                  key={label.text}
+                  className="absolute whitespace-nowrap font-mono text-[10px] tabular-nums text-muted-foreground"
+                  style={{ left: `${(label.x / TREND_WIDTH) * 100}%` }}
+                >
+                  {label.text}
+                </span>
+              ))}
+            </div>
           </div>
         ) : (
           <p className="text-sm text-muted-foreground">尚無快照資料</p>
@@ -342,7 +357,9 @@ const PortfolioDetail: React.FC<PortfolioDetailProps> = ({ householdId, portfoli
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">Investment Cash Flow</p>
-                <p className="font-mono tabular-nums">{formatCurrency(breakdown.investmentCashFlow)}</p>
+                <p className="font-mono tabular-nums">
+                  {formatCurrency(breakdown.investmentCashFlow)}
+                </p>
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">Non-investment Cash Flow</p>
@@ -350,11 +367,15 @@ const PortfolioDetail: React.FC<PortfolioDetailProps> = ({ householdId, portfoli
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">Calculated Return</p>
-                <p className="font-mono tabular-nums">{formatCurrency(breakdown.calculatedReturn)}</p>
+                <p className="font-mono tabular-nums">
+                  {formatCurrency(breakdown.calculatedReturn)}
+                </p>
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">Return Rate</p>
-                <p className="font-mono tabular-nums">{formatPercentage(breakdown.returnRate, 2)}</p>
+                <p className="font-mono tabular-nums">
+                  {formatPercentage(breakdown.returnRate, 2)}
+                </p>
               </div>
             </div>
           </AccordionContent>

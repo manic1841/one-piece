@@ -6,10 +6,9 @@ import { type Portfolio } from '@/domains/portfolio/types/portfolio';
 import { useAuthState } from '@/ui/contexts/useAuthState';
 import { useAccounts } from '@/ui/features/account/hooks/useAccounts';
 import { usePortfolioCmds } from '@/ui/features/portfolio/hooks/usePortfolioCmds';
-import {
-  usePortfolioQueries,
-  usePortfolios,
-} from '@/ui/features/portfolio/hooks/usePortfolios';
+import { usePortfolioQueries, usePortfolios } from '@/ui/features/portfolio/hooks/usePortfolios';
+
+import PortfolioDetailPage from './PortfolioDetailPage';
 
 vi.mock('@/ui/contexts/useAuthState');
 vi.mock('@/ui/hooks/useAuthIdentity');
@@ -39,8 +38,6 @@ class ResizeObserverStub {
 }
 
 vi.stubGlobal('ResizeObserver', ResizeObserverStub);
-
-import PortfolioDetailPage from './PortfolioDetailPage';
 
 const portfolio: Portfolio = {
   id: 'p1',

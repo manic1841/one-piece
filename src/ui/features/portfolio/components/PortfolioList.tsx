@@ -3,26 +3,20 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Plus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
-import { type PortfolioSnapshot } from '@/ui/features/portfolio/viewmodels/portfolioDisplay.vm';
-import { useAuthIdentity } from '@/ui/hooks/useAuthIdentity';
-import { useAccounts } from '@/ui/features/account/hooks/useAccounts';
 import { PageHeader } from '@/ui/components/PageHeader';
-import { Button } from '@/ui/components/ui/button';
-import {
-  Table,
-  TableBody,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/ui/components/ui/table';
 import { SortableListScope } from '@/ui/components/sortable/SortableListScope';
+import { Button } from '@/ui/components/ui/button';
+import { Table, TableBody, TableHead, TableHeader, TableRow } from '@/ui/components/ui/table';
+import { useAccounts } from '@/ui/features/account/hooks/useAccounts';
 import { usePortfolioCmds } from '@/ui/features/portfolio/hooks/usePortfolioCmds';
 import { usePortfolios } from '@/ui/features/portfolio/hooks/usePortfolios';
+import { type PortfolioSnapshot } from '@/ui/features/portfolio/viewmodels/portfolioDisplay.vm';
 import {
   type Account,
   type PortfolioFormVM,
   mapPortfolioVMToDomain,
 } from '@/ui/features/portfolio/viewmodels/portfolioForm.vm';
+import { useAuthIdentity } from '@/ui/hooks/useAuthIdentity';
 import { formatCurrency, formatYearMonth } from '@/ui/utils';
 
 import PortfolioForm from './PortfolioForm';
@@ -123,9 +117,9 @@ const PortfolioList: React.FC<PortfolioListProps> = ({ householdId }) => {
 
   const handleReorder = (ordered: PortfolioRowVM[]) => {
     setLocalRows(ordered);
-    void reorderPortfolios(
-      ordered.map((p, index) => ({ id: p.id, order: index })),
-    ).then(() => reload());
+    void reorderPortfolios(ordered.map((p, index) => ({ id: p.id, order: index }))).then(() =>
+      reload(),
+    );
   };
 
   const handleCreateSubmit = async (vm: PortfolioFormVM) => {

@@ -38,22 +38,19 @@ async function seedTransaction(
   date: Date,
   entries: Array<{ ledgerCode: string; debit: number; credit: number }>,
 ) {
-  await setDoc(
-    doc(db, `households/${householdId}/transactions/${txId}`),
-    {
-      ...baseFields,
-      id: txId,
-      date,
-      description: `Transaction ${txId}`,
-      entries: entries.map((e) => ({
-        ledgerCode: e.ledgerCode,
-        debit: e.debit,
-        credit: e.credit,
-      })),
-      ledgerCodes: entries.map((e) => e.ledgerCode),
-      createdBy: 'admin-uid',
-    },
-  );
+  await setDoc(doc(db, `households/${householdId}/transactions/${txId}`), {
+    ...baseFields,
+    id: txId,
+    date,
+    description: `Transaction ${txId}`,
+    entries: entries.map((e) => ({
+      ledgerCode: e.ledgerCode,
+      debit: e.debit,
+      credit: e.credit,
+    })),
+    ledgerCodes: entries.map((e) => e.ledgerCode),
+    createdBy: 'admin-uid',
+  });
 }
 
 describe('ImportRetirementIncomeUseCase (Firestore Emulator)', () => {

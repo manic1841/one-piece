@@ -2,7 +2,12 @@ import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { type StoredReportData } from '@/application/report/use_cases/getStoredReportUseCase';
+import { getStoredReportUseCase } from '@/application/report/use_cases/getStoredReportUseCase';
 import { type CashFlowData } from '@/domains/report/schemas';
+import { type AuthState } from '@/ui/contexts/AuthStateContext';
+import { useAuthState } from '@/ui/contexts/useAuthState';
+
+import { useCashFlow } from './useCashFlow';
 
 vi.mock('@/ui/contexts/useAuthState', () => ({
   useAuthState: vi.fn(),
@@ -11,12 +16,6 @@ vi.mock('@/ui/contexts/useAuthState', () => ({
 vi.mock('@/application/report/use_cases/getStoredReportUseCase', () => ({
   getStoredReportUseCase: { execute: vi.fn() },
 }));
-
-import { getStoredReportUseCase } from '@/application/report/use_cases/getStoredReportUseCase';
-import { type AuthState } from '@/ui/contexts/AuthStateContext';
-import { useAuthState } from '@/ui/contexts/useAuthState';
-
-import { useCashFlow } from './useCashFlow';
 
 const executeMock = vi.mocked(getStoredReportUseCase.execute);
 

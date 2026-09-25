@@ -4,25 +4,26 @@ import { type Transaction } from '@/domains/ledger/schemas';
 
 import { validateMonthTransactions } from './validator';
 
-const baseTransaction = (overrides: Partial<Transaction> = {}): Transaction => ({
-  id: 'tx-1',
-  date: new Date('2026-09-02'),
-  intentType: 'EXPENSE',
-  intent: 'FOOD',
-  amount: 100,
-  projectId: null,
-  allocationId: null,
-  debtAccountId: null,
-  createdBy: 'user@test.com',
-  entries: [
-    { ledgerCode: 'expense:food', debit: 100, credit: 0 },
-    { ledgerCode: 'asset:cash', debit: 0, credit: 100 },
-  ],
-  createdAt: new Date(),
-  updatedAt: new Date(),
-  createdByAt: new Date(),
-  ...overrides,
-} as Transaction);
+const baseTransaction = (overrides: Partial<Transaction> = {}): Transaction =>
+  ({
+    id: 'tx-1',
+    date: new Date('2026-09-02'),
+    intentType: 'EXPENSE',
+    intent: 'FOOD',
+    amount: 100,
+    projectId: null,
+    allocationId: null,
+    debtAccountId: null,
+    createdBy: 'user@test.com',
+    entries: [
+      { ledgerCode: 'expense:food', debit: 100, credit: 0 },
+      { ledgerCode: 'asset:cash', debit: 0, credit: 100 },
+    ],
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    createdByAt: new Date(),
+    ...overrides,
+  }) as Transaction;
 
 describe('validateMonthTransactions', () => {
   it('returns no issues for valid transactions', () => {

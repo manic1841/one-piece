@@ -2,10 +2,12 @@ import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter, useNavigate } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 
+import { type Project } from '@/domains/project/schemas';
 import { useAuthState } from '@/ui/contexts/useAuthState';
 import { useProjectPage } from '@/ui/features/project/hooks/useProjectPage';
 import { useProjectQueries } from '@/ui/features/project/hooks/useProjects';
-import { type Project } from '@/domains/project/schemas';
+
+import ProjectsPage from './ProjectsPage';
 
 vi.mock('@/ui/features/project/hooks/useProjectPage');
 vi.mock('@/ui/features/project/hooks/useProjects');
@@ -30,8 +32,6 @@ const mockUseProjectPage = vi.mocked(useProjectPage);
 const mockUseProjectQueries = vi.mocked(useProjectQueries);
 const mockUseNavigate = vi.mocked(useNavigate);
 const mockUseAuth = vi.mocked(useAuthState);
-
-import ProjectsPage from './ProjectsPage';
 
 const authProfile = {
   user: { uid: 'u1', email: 'u1@onepiece.test' } as never,
@@ -82,8 +82,24 @@ describe('ProjectsPage table', () => {
       getProjectSnapshots: vi.fn().mockResolvedValue({
         ok: true,
         value: [
-          { id: 's1', year: 2026, month: 8, openingBalance: 0, income: 100000, expense: 60000, closingBalance: 40000 },
-          { id: 's2', year: 2026, month: 9, openingBalance: 40000, income: 50000, expense: 30000, closingBalance: 60000 },
+          {
+            id: 's1',
+            year: 2026,
+            month: 8,
+            openingBalance: 0,
+            income: 100000,
+            expense: 60000,
+            closingBalance: 40000,
+          },
+          {
+            id: 's2',
+            year: 2026,
+            month: 9,
+            openingBalance: 40000,
+            income: 50000,
+            expense: 30000,
+            closingBalance: 60000,
+          },
         ],
       }),
     });
@@ -131,8 +147,24 @@ describe('ProjectsPage table', () => {
       getProjectSnapshots: vi.fn().mockResolvedValue({
         ok: true,
         value: [
-          { id: 's1', year: 2026, month: 8, openingBalance: 0, income: 100000, expense: 60000, closingBalance: 40000 },
-          { id: 's2', year: 2026, month: 9, openingBalance: 40000, income: 50000, expense: 30000, closingBalance: 60000 },
+          {
+            id: 's1',
+            year: 2026,
+            month: 8,
+            openingBalance: 0,
+            income: 100000,
+            expense: 60000,
+            closingBalance: 40000,
+          },
+          {
+            id: 's2',
+            year: 2026,
+            month: 9,
+            openingBalance: 40000,
+            income: 50000,
+            expense: 30000,
+            closingBalance: 60000,
+          },
         ],
       }),
     });
@@ -198,8 +230,9 @@ describe('ProjectsPage table', () => {
     expect(screen.queryByText('Settings')).toBeNull();
     expect(screen.getByRole('button', { name: /New Project/i })).not.toBeNull();
 
-    const actionsRow = screen.getByRole('button', { name: /New Project/i }).closest('div')!
-      .parentElement!;
+    const actionsRow = screen
+      .getByRole('button', { name: /New Project/i })
+      .closest('div')!.parentElement!;
     expect(actionsRow.className).toContain('flex-wrap');
   });
 
@@ -300,7 +333,9 @@ describe('ProjectsPage drag reorder', () => {
 
     const grips = await screen.findAllByTestId('project-grip-pr1');
     fireEvent.click(grips[0]);
-    expect(mockUseProjectPage().handleReorder as unknown as ReturnType<typeof vi.fn>).not.toHaveBeenCalled();
+    expect(
+      mockUseProjectPage().handleReorder as unknown as ReturnType<typeof vi.fn>,
+    ).not.toHaveBeenCalled();
   });
 
   it('persists the new order through the controller after a keyboard drag', async () => {
@@ -330,10 +365,26 @@ describe('ProjectsPage drag reorder', () => {
     // jsdom reports zero rects; give the rows real geometry so dnd-kit
     // collision detection can resolve a drop target.
     vi.spyOn(rowA, 'getBoundingClientRect').mockReturnValue({
-      x: 0, y: 0, top: 0, left: 0, bottom: 48, right: 400, width: 400, height: 48, toJSON: () => ({}),
+      x: 0,
+      y: 0,
+      top: 0,
+      left: 0,
+      bottom: 48,
+      right: 400,
+      width: 400,
+      height: 48,
+      toJSON: () => ({}),
     } as DOMRect);
     vi.spyOn(rowB, 'getBoundingClientRect').mockReturnValue({
-      x: 0, y: 48, top: 48, left: 0, bottom: 96, right: 400, width: 400, height: 48, toJSON: () => ({}),
+      x: 0,
+      y: 48,
+      top: 48,
+      left: 0,
+      bottom: 96,
+      right: 400,
+      width: 400,
+      height: 48,
+      toJSON: () => ({}),
     } as DOMRect);
 
     const grip = screen.getAllByTestId('project-grip-pr1')[0];

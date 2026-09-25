@@ -5,9 +5,9 @@ import { listAllocationTemplatesUseCase } from '@/application/ledger/use_cases/l
 import { saveAllocationTemplateUseCase } from '@/application/ledger/use_cases/saveAllocationTemplateUseCase';
 import { type AllocationTemplate } from '@/domains/allocation/templateSchemas';
 import { useAuthState } from '@/ui/contexts/useAuthState';
+import { useConfirm } from '@/ui/features/app/confirm/useConfirm';
 import { useProjects } from '@/ui/features/project/hooks/useProjects';
 import { useLoadingTask } from '@/ui/hooks/useLoadingTask';
-import { useConfirm } from '@/ui/features/app/confirm/useConfirm';
 
 export interface TemplateDraftItem {
   projectId: string;

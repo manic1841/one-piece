@@ -1,7 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { listDebtSnapshotsUseCase } from './listDebtSnapshotsUseCase';
 import { type DebtSnapshot } from '@/domains/debt/schemas';
+
+import { listDebtSnapshotsUseCase } from './listDebtSnapshotsUseCase';
 
 vi.mock('@/infra/repositories/debtSnapshotRepository', () => ({
   debtSnapshotRepository: {
@@ -23,9 +24,7 @@ describe('listDebtSnapshotsUseCase', () => {
   });
 
   it('reads the requested month range for the given debt account', async () => {
-    const { debtSnapshotRepository } = await import(
-      '@/infra/repositories/debtSnapshotRepository'
-    );
+    const { debtSnapshotRepository } = await import('@/infra/repositories/debtSnapshotRepository');
     vi.mocked(debtSnapshotRepository.listByYearMonthRange).mockResolvedValue([]);
 
     const result = await listDebtSnapshotsUseCase.execute({
@@ -46,9 +45,7 @@ describe('listDebtSnapshotsUseCase', () => {
   });
 
   it('returns the snapshots the repository provided', async () => {
-    const { debtSnapshotRepository } = await import(
-      '@/infra/repositories/debtSnapshotRepository'
-    );
+    const { debtSnapshotRepository } = await import('@/infra/repositories/debtSnapshotRepository');
     const snapshots = [{ yearMonth: '2026-09' }] as unknown as DebtSnapshot[];
     vi.mocked(debtSnapshotRepository.listByYearMonthRange).mockResolvedValue(snapshots);
 
@@ -67,9 +64,7 @@ describe('listDebtSnapshotsUseCase', () => {
     const { householdPermissionService } = await import(
       '@/application/household/householdPermissionService'
     );
-    const { debtSnapshotRepository } = await import(
-      '@/infra/repositories/debtSnapshotRepository'
-    );
+    const { debtSnapshotRepository } = await import('@/infra/repositories/debtSnapshotRepository');
 
     await listDebtSnapshotsUseCase.execute({
       householdId: 'household-1',
@@ -91,9 +86,7 @@ describe('listDebtSnapshotsUseCase', () => {
     const { householdPermissionService } = await import(
       '@/application/household/householdPermissionService'
     );
-    const { debtSnapshotRepository } = await import(
-      '@/infra/repositories/debtSnapshotRepository'
-    );
+    const { debtSnapshotRepository } = await import('@/infra/repositories/debtSnapshotRepository');
     vi.mocked(householdPermissionService.assertReadPermission).mockRejectedValueOnce(
       new Error('Permission denied'),
     );

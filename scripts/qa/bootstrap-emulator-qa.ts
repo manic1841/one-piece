@@ -71,7 +71,9 @@ const ensureHousehold = async (uid: string): Promise<void> => {
     const missing = Object.entries(requiredFields).filter(([key]) => data?.[key] === undefined);
     if (missing.length > 0) {
       await householdRef.set(Object.fromEntries(missing), { merge: true });
-      console.log(`Household patched with missing fields: ${missing.map(([key]) => key).join(', ')}`);
+      console.log(
+        `Household patched with missing fields: ${missing.map(([key]) => key).join(', ')}`,
+      );
     }
     console.log(`Household exists: ${QA_HOUSEHOLD_ID}`);
     return;
@@ -108,7 +110,9 @@ const ensureUserProfile = async (uid: string): Promise<void> => {
     }
     if (missing.length > 0) {
       await userRef.set(Object.fromEntries(missing), { merge: true });
-      console.log(`User profile patched with missing fields: ${missing.map(([key]) => key).join(', ')}`);
+      console.log(
+        `User profile patched with missing fields: ${missing.map(([key]) => key).join(', ')}`,
+      );
     }
     if (data?.householdId === QA_HOUSEHOLD_ID && missing.length === 0) {
       console.log('User profile linked to qa_household');

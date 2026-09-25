@@ -162,9 +162,6 @@ describe('listProjectRecordsUseCase', () => {
     });
 
     expect(transactionRepository.getByIds).toHaveBeenCalledTimes(1);
-    expect(transactionRepository.getByIds).toHaveBeenCalledWith(
-      'household-1',
-      ['tx-1'],
-    );
+    expect(transactionRepository.getByIds).toHaveBeenCalledWith('household-1', ['tx-1']);
   });
 });

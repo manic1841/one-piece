@@ -5,25 +5,22 @@
  * drawdown, transfer, manual adjustment) live here so builders stay
  * independent (see docs/qa-seed-data.md §3).
  */
-import { AllocationSchema, type AllocationItem } from '@/domains/allocation/schemas';
+import { type AllocationItem, AllocationSchema } from '@/domains/allocation/schemas';
 import { IntentType, LEDGER_CODES } from '@/domains/ledger/constants';
-import {
-  TransactionSchema,
-  type JournalEntryLine,
-} from '@/domains/ledger/schemas';
+import { type JournalEntryLine, TransactionSchema } from '@/domains/ledger/schemas';
 
 import {
+  type Builder,
+  type InternalTxn,
+  SALARY_AMOUNT,
+  SEED_WINDOW_END,
+  SEED_WINDOW_START,
   audit,
   emit,
   entryLedgerCodes,
   hh,
   monthRange,
-  SEED_WINDOW_START,
-  SEED_WINDOW_END,
-  SALARY_AMOUNT,
   ym,
-  type Builder,
-  type InternalTxn,
 } from './shared';
 
 export const buildSalaryDocs = (b: Builder, txns: InternalTxn[]) => {
@@ -32,10 +29,22 @@ export const buildSalaryDocs = (b: Builder, txns: InternalTxn[]) => {
     const id = `txn_salary_${ym(year, month)}`;
     const date = new Date(year, month - 1, 5);
     const entries: JournalEntryLine[] = [
-      { ledgerCode: LEDGER_CODES.ASSET_CASH, accountId: 'acc_cash', debit: SALARY_AMOUNT, credit: 0 },
+      {
+        ledgerCode: LEDGER_CODES.ASSET_CASH,
+        accountId: 'acc_cash',
+        debit: SALARY_AMOUNT,
+        credit: 0,
+      },
       { ledgerCode: LEDGER_CODES.INCOME_SALARY, debit: 0, credit: SALARY_AMOUNT },
     ];
-    txns.push({ id, yearMonth: ym(year, month), date, intentType: IntentType.INCOME, amount: SALARY_AMOUNT, entries });
+    txns.push({
+      id,
+      yearMonth: ym(year, month),
+      date,
+      intentType: IntentType.INCOME,
+      amount: SALARY_AMOUNT,
+      entries,
+    });
 
     emit(b, TransactionSchema, hh(identity, 'transactions'), id, {
       id,
@@ -70,24 +79,150 @@ export const buildSalaryDocs = (b: Builder, txns: InternalTxn[]) => {
   }
 };
 
-const EXPENSE_SPECS: { ymKey: string; day: number; desc: string; project: string; ledger: string; amount: number }[] = [
-  { ymKey: '2026-04', day: 8, desc: '超市採買', project: 'proj_daily', ledger: LEDGER_CODES.EXPENSE_FOOD, amount: 1_800 },
-  { ymKey: '2026-04', day: 12, desc: '捷運儲值', project: 'proj_daily', ledger: LEDGER_CODES.EXPENSE_TRANSPORTATION, amount: 600 },
-  { ymKey: '2026-04', day: 20, desc: '飼料', project: 'proj_pet', ledger: 'expense:pets', amount: 1_200 },
-  { ymKey: '2026-05', day: 8, desc: '超市採買', project: 'proj_daily', ledger: LEDGER_CODES.EXPENSE_FOOD, amount: 1_800 },
-  { ymKey: '2026-05', day: 12, desc: '捷運儲值', project: 'proj_daily', ledger: LEDGER_CODES.EXPENSE_TRANSPORTATION, amount: 600 },
-  { ymKey: '2026-05', day: 18, desc: '電影票', project: 'proj_leisure', ledger: LEDGER_CODES.EXPENSE_ENTERTAINMENT, amount: 900 },
-  { ymKey: '2026-06', day: 8, desc: '超市採買', project: 'proj_daily', ledger: LEDGER_CODES.EXPENSE_FOOD, amount: 1_800 },
-  { ymKey: '2026-06', day: 12, desc: '捷運儲值', project: 'proj_daily', ledger: LEDGER_CODES.EXPENSE_TRANSPORTATION, amount: 600 },
-  { ymKey: '2026-06', day: 22, desc: '獸醫門診', project: 'proj_pet', ledger: 'expense:pets', amount: 3_500 },
-  { ymKey: '2026-07', day: 8, desc: '超市採買', project: 'proj_daily', ledger: LEDGER_CODES.EXPENSE_FOOD, amount: 1_800 },
-  { ymKey: '2026-07', day: 12, desc: '捷運儲值', project: 'proj_daily', ledger: LEDGER_CODES.EXPENSE_TRANSPORTATION, amount: 600 },
-  { ymKey: '2026-07', day: 26, desc: '演唱會', project: 'proj_leisure', ledger: LEDGER_CODES.EXPENSE_ENTERTAINMENT, amount: 2_400 },
-  { ymKey: '2026-08', day: 8, desc: '超市採買', project: 'proj_daily', ledger: LEDGER_CODES.EXPENSE_FOOD, amount: 1_800 },
-  { ymKey: '2026-08', day: 12, desc: '捷運儲值', project: 'proj_daily', ledger: LEDGER_CODES.EXPENSE_TRANSPORTATION, amount: 600 },
-  { ymKey: '2026-08', day: 15, desc: '零用錢支出', project: 'proj_allowance', ledger: LEDGER_CODES.EXPENSE_OTHER, amount: 3_000 },
-  { ymKey: '2026-09', day: 8, desc: '超市採買', project: 'proj_daily', ledger: LEDGER_CODES.EXPENSE_FOOD, amount: 1_800 },
-  { ymKey: '2026-09', day: 12, desc: '捷運儲值', project: 'proj_daily', ledger: LEDGER_CODES.EXPENSE_TRANSPORTATION, amount: 600 },
+const EXPENSE_SPECS: {
+  ymKey: string;
+  day: number;
+  desc: string;
+  project: string;
+  ledger: string;
+  amount: number;
+}[] = [
+  {
+    ymKey: '2026-04',
+    day: 8,
+    desc: '超市採買',
+    project: 'proj_daily',
+    ledger: LEDGER_CODES.EXPENSE_FOOD,
+    amount: 1_800,
+  },
+  {
+    ymKey: '2026-04',
+    day: 12,
+    desc: '捷運儲值',
+    project: 'proj_daily',
+    ledger: LEDGER_CODES.EXPENSE_TRANSPORTATION,
+    amount: 600,
+  },
+  {
+    ymKey: '2026-04',
+    day: 20,
+    desc: '飼料',
+    project: 'proj_pet',
+    ledger: 'expense:pets',
+    amount: 1_200,
+  },
+  {
+    ymKey: '2026-05',
+    day: 8,
+    desc: '超市採買',
+    project: 'proj_daily',
+    ledger: LEDGER_CODES.EXPENSE_FOOD,
+    amount: 1_800,
+  },
+  {
+    ymKey: '2026-05',
+    day: 12,
+    desc: '捷運儲值',
+    project: 'proj_daily',
+    ledger: LEDGER_CODES.EXPENSE_TRANSPORTATION,
+    amount: 600,
+  },
+  {
+    ymKey: '2026-05',
+    day: 18,
+    desc: '電影票',
+    project: 'proj_leisure',
+    ledger: LEDGER_CODES.EXPENSE_ENTERTAINMENT,
+    amount: 900,
+  },
+  {
+    ymKey: '2026-06',
+    day: 8,
+    desc: '超市採買',
+    project: 'proj_daily',
+    ledger: LEDGER_CODES.EXPENSE_FOOD,
+    amount: 1_800,
+  },
+  {
+    ymKey: '2026-06',
+    day: 12,
+    desc: '捷運儲值',
+    project: 'proj_daily',
+    ledger: LEDGER_CODES.EXPENSE_TRANSPORTATION,
+    amount: 600,
+  },
+  {
+    ymKey: '2026-06',
+    day: 22,
+    desc: '獸醫門診',
+    project: 'proj_pet',
+    ledger: 'expense:pets',
+    amount: 3_500,
+  },
+  {
+    ymKey: '2026-07',
+    day: 8,
+    desc: '超市採買',
+    project: 'proj_daily',
+    ledger: LEDGER_CODES.EXPENSE_FOOD,
+    amount: 1_800,
+  },
+  {
+    ymKey: '2026-07',
+    day: 12,
+    desc: '捷運儲值',
+    project: 'proj_daily',
+    ledger: LEDGER_CODES.EXPENSE_TRANSPORTATION,
+    amount: 600,
+  },
+  {
+    ymKey: '2026-07',
+    day: 26,
+    desc: '演唱會',
+    project: 'proj_leisure',
+    ledger: LEDGER_CODES.EXPENSE_ENTERTAINMENT,
+    amount: 2_400,
+  },
+  {
+    ymKey: '2026-08',
+    day: 8,
+    desc: '超市採買',
+    project: 'proj_daily',
+    ledger: LEDGER_CODES.EXPENSE_FOOD,
+    amount: 1_800,
+  },
+  {
+    ymKey: '2026-08',
+    day: 12,
+    desc: '捷運儲值',
+    project: 'proj_daily',
+    ledger: LEDGER_CODES.EXPENSE_TRANSPORTATION,
+    amount: 600,
+  },
+  {
+    ymKey: '2026-08',
+    day: 15,
+    desc: '零用錢支出',
+    project: 'proj_allowance',
+    ledger: LEDGER_CODES.EXPENSE_OTHER,
+    amount: 3_000,
+  },
+  {
+    ymKey: '2026-09',
+    day: 8,
+    desc: '超市採買',
+    project: 'proj_daily',
+    ledger: LEDGER_CODES.EXPENSE_FOOD,
+    amount: 1_800,
+  },
+  {
+    ymKey: '2026-09',
+    day: 12,
+    desc: '捷運儲值',
+    project: 'proj_daily',
+    ledger: LEDGER_CODES.EXPENSE_TRANSPORTATION,
+    amount: 600,
+  },
 ];
 
 export const buildExpenseAndSpecialDocs = (b: Builder, txns: InternalTxn[]) => {
@@ -100,7 +235,12 @@ export const buildExpenseAndSpecialDocs = (b: Builder, txns: InternalTxn[]) => {
     amount: number,
     description: string,
     entries: JournalEntryLine[],
-    extra: { projectId?: string; fromProjectId?: string; toProjectId?: string; debtAccountId?: string } = {},
+    extra: {
+      projectId?: string;
+      fromProjectId?: string;
+      toProjectId?: string;
+      debtAccountId?: string;
+    } = {},
   ) => {
     txns.push({
       id,
@@ -144,17 +284,10 @@ export const buildExpenseAndSpecialDocs = (b: Builder, txns: InternalTxn[]) => {
   );
 
   // Securities purchase funded by cash.
-  addTxn(
-    'txn_invest_2026_03',
-    new Date(2026, 2, 15),
-    IntentType.INVESTMENT,
-    20_000,
-    '買進 0050',
-    [
-      { ledgerCode: LEDGER_CODES.ASSET_INVESTMENT, debit: 20_000, credit: 0 },
-      { ledgerCode: LEDGER_CODES.ASSET_CASH, accountId: 'acc_cash', debit: 0, credit: 20_000 },
-    ],
-  );
+  addTxn('txn_invest_2026_03', new Date(2026, 2, 15), IntentType.INVESTMENT, 20_000, '買進 0050', [
+    { ledgerCode: LEDGER_CODES.ASSET_INVESTMENT, debit: 20_000, credit: 0 },
+    { ledgerCode: LEDGER_CODES.ASSET_CASH, accountId: 'acc_cash', debit: 0, credit: 20_000 },
+  ]);
 
   // Historical project transfer: implementation paused (ADR-0042), legal legacy data.
   addTxn(
@@ -171,17 +304,10 @@ export const buildExpenseAndSpecialDocs = (b: Builder, txns: InternalTxn[]) => {
   );
 
   // Manual journal entry: cash count adjustment.
-  addTxn(
-    'txn_manual_2026_05',
-    new Date(2026, 4, 20),
-    IntentType.MANUAL,
-    200,
-    '現金盤點調整',
-    [
-      { ledgerCode: LEDGER_CODES.ASSET_CASH, accountId: 'acc_cash', debit: 200, credit: 0 },
-      { ledgerCode: LEDGER_CODES.INCOME_REFUND, debit: 0, credit: 200 },
-    ],
-  );
+  addTxn('txn_manual_2026_05', new Date(2026, 4, 20), IntentType.MANUAL, 200, '現金盤點調整', [
+    { ledgerCode: LEDGER_CODES.ASSET_CASH, accountId: 'acc_cash', debit: 200, credit: 0 },
+    { ledgerCode: LEDGER_CODES.INCOME_REFUND, debit: 0, credit: 200 },
+  ]);
 
   EXPENSE_SPECS.forEach((spec) => {
     const [y, m] = spec.ymKey.split('-').map(Number);
@@ -193,7 +319,12 @@ export const buildExpenseAndSpecialDocs = (b: Builder, txns: InternalTxn[]) => {
       spec.desc,
       [
         { ledgerCode: spec.ledger, debit: spec.amount, credit: 0 },
-        { ledgerCode: LEDGER_CODES.ASSET_CASH, accountId: 'acc_cash', debit: 0, credit: spec.amount },
+        {
+          ledgerCode: LEDGER_CODES.ASSET_CASH,
+          accountId: 'acc_cash',
+          debit: 0,
+          credit: spec.amount,
+        },
       ],
       { projectId: spec.project },
     );

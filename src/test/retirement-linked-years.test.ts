@@ -10,8 +10,8 @@
 import { describe, expect, it } from 'vitest';
 
 import {
-  resolveLinkedIncomeYears,
   type LinkableIncomeDoc,
+  resolveLinkedIncomeYears,
 } from '../../scripts/admin/retirement-linked-years';
 
 const salary = (overrides: Partial<LinkableIncomeDoc> = {}): LinkableIncomeDoc => ({
@@ -51,7 +51,14 @@ describe('resolveLinkedIncomeYears', () => {
 
   it('writes retirement year into endYear for a linked non-lifelong end', () => {
     const result = resolveLinkedIncomeYears(
-      [salary({ id: 'bonus', type: 'bonus', endYearMode: 'LINKED_TO_RETIREMENT', endYear: undefined })],
+      [
+        salary({
+          id: 'bonus',
+          type: 'bonus',
+          endYearMode: 'LINKED_TO_RETIREMENT',
+          endYear: undefined,
+        }),
+      ],
       2040,
     );
 

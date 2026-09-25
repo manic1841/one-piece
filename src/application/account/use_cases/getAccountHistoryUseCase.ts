@@ -1,6 +1,7 @@
-import { getAccountSnapshotsUseCase } from './getAccountSnapshotsUseCase';
-import { type AccountSnapshot } from '@/domains/account/types/account';
 import { type AuthContext } from '@/application/types';
+import { type AccountSnapshot } from '@/domains/account/types/account';
+
+import { getAccountSnapshotsUseCase } from './getAccountSnapshotsUseCase';
 
 export interface GetAccountHistoryRequest {
   householdId: string;
@@ -24,9 +25,7 @@ export class GetAccountHistoryUseCase {
       auth,
     });
 
-    const sorted = snapshots
-      .slice()
-      .sort((a, b) => toMonthIndex(a) - toMonthIndex(b));
+    const sorted = snapshots.slice().sort((a, b) => toMonthIndex(a) - toMonthIndex(b));
 
     const windowLength = limit ?? DEFAULT_HISTORY_LENGTH;
     return sorted.slice(Math.max(0, sorted.length - windowLength));

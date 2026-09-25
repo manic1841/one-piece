@@ -15,8 +15,7 @@ export const isImportedIncomeSyncTarget = (
   income: RetirementIncomeSource,
 ): income is ImportedIncomeSyncTarget => {
   return (
-    !!income.calculatedFrom?.ledgerCode &&
-    typeof income.calculatedFrom?.sampleYear === 'number'
+    !!income.calculatedFrom?.ledgerCode && typeof income.calculatedFrom?.sampleYear === 'number'
   );
 };
 

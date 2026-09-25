@@ -122,6 +122,7 @@ Monthly close 種子寫入四個期間狀態形狀(見
   FIREBASE_PROJECT_ID=demo-project \
   pnpm qa:init
   ```
+
 - Firebase JS SDK v12 的登入 session 以 IndexedDB
   (`firebaseLocalStorageDb` 的 `firebaseLocalStorage` store)為主要來源,
   localStorage 只是 fallback。只注入 localStorage 片段可能不會生效;注入

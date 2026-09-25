@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+
 import { useProjectQueries } from './useProjects';
 
 export const useProjectBalance = (householdId?: string, projectId?: string) => {

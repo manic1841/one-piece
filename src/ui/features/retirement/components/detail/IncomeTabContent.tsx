@@ -2,8 +2,8 @@ import React from 'react';
 
 import { Pencil, Trash2 } from 'lucide-react';
 
-import { RetirementWorkspaceTermLabels } from '@/ui/constants/retirement/retirementWorkspaceLabels';
 import { Button } from '@/ui/components/ui/button';
+import { RetirementWorkspaceTermLabels } from '@/ui/constants/retirement/retirementWorkspaceLabels';
 import {
   type RetirementIncomeItemVM,
   type RetirementIncomeSource,
@@ -60,9 +60,7 @@ export const IncomeTabContent: React.FC<IncomeTabContentProps> = ({
                 <div className="text-sm text-muted-foreground">
                   {vm.amountText} {vm.growthText} {vm.periodText}
                 </div>
-                {domain.lifelong && (
-                  <div className="mt-1 text-xs text-muted-foreground">終身</div>
-                )}
+                {domain.lifelong && <div className="mt-1 text-xs text-muted-foreground">終身</div>}
               </div>
               <div className="flex items-center gap-2">
                 <RetirementIncomeDialog

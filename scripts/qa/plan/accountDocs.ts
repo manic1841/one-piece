@@ -6,31 +6,28 @@
  */
 import { AccountSnapshotSchema } from '@/domains/account/types/account';
 import {
-  DebtAccountSchema,
-  DebtSnapshotSchema,
-} from '@/domains/debt/schemas';
-import {
   buildDebtPaymentEntries,
   calculateDebtPayment,
 } from '@/domains/debt/debtPaymentCalculator';
+import { DebtAccountSchema, DebtSnapshotSchema } from '@/domains/debt/schemas';
 import { LEDGER_CODES } from '@/domains/ledger/constants';
 import { TransactionSchema } from '@/domains/ledger/schemas';
 
 import {
+  type Builder,
+  type InternalTxn,
+  MORTGAGE_ID,
+  MORTGAGE_PAYMENT,
+  MORTGAGE_PRINCIPAL,
+  MORTGAGE_RATE,
   audit,
   cashThrough,
   emit,
   entryLedgerCodes,
   hh,
-  MORTGAGE_ID,
-  MORTGAGE_PAYMENT,
-  MORTGAGE_PRINCIPAL,
-  MORTGAGE_RATE,
   marketValueAt,
   securitiesSnapshotMonths,
   ym,
-  type Builder,
-  type InternalTxn,
 } from './shared';
 
 export interface MortgageResult {
@@ -56,7 +53,11 @@ export const buildMortgageDocs = (b: Builder, txns: InternalTxn[]): MortgageResu
       graceEndDate: null,
     });
     interestTotal += calculation.interest;
-    const entries = buildDebtPaymentEntries(LEDGER_CODES.LIABILITY_MORTGAGE, calculation, MORTGAGE_PAYMENT);
+    const entries = buildDebtPaymentEntries(
+      LEDGER_CODES.LIABILITY_MORTGAGE,
+      calculation,
+      MORTGAGE_PAYMENT,
+    );
     const id = `txn_debtpay_${ym(2026, month)}`;
     txns.push({
       id,
@@ -84,16 +85,22 @@ export const buildMortgageDocs = (b: Builder, txns: InternalTxn[]): MortgageResu
     const openingBalance = balance;
     balance -= calculation.principal;
     closingByMonth[ym(2026, month)] = balance;
-    emit(b, DebtSnapshotSchema, hh(identity, 'debtAccounts', MORTGAGE_ID, 'snapshots'), ym(2026, month), {
-      id: ym(2026, month),
-      yearMonth: ym(2026, month),
-      openingBalance,
-      principalPaid: calculation.principal,
-      interestPaid: calculation.interest,
-      totalPaid: MORTGAGE_PAYMENT,
-      closingBalance: balance,
-      ...audit(identity),
-    });
+    emit(
+      b,
+      DebtSnapshotSchema,
+      hh(identity, 'debtAccounts', MORTGAGE_ID, 'snapshots'),
+      ym(2026, month),
+      {
+        id: ym(2026, month),
+        yearMonth: ym(2026, month),
+        openingBalance,
+        principalPaid: calculation.principal,
+        interestPaid: calculation.interest,
+        totalPaid: MORTGAGE_PAYMENT,
+        closingBalance: balance,
+        ...audit(identity),
+      },
+    );
   }
 
   // DebtAccount.currentBalance stays consistent with derived balance
@@ -131,13 +138,19 @@ export const buildAccountSnapshotDocs = (b: Builder, txns: InternalTxn[]) => {
       amount: cashThrough(txns, target),
       ...audit(identity),
     });
-    emit(b, AccountSnapshotSchema, hh(identity, 'accounts', 'acc_securities', 'snapshots'), target, {
-      id: target,
-      accountId: 'acc_securities',
-      year: y,
-      month: m,
-      amount: marketValueAt(target),
-      ...audit(identity),
-    });
+    emit(
+      b,
+      AccountSnapshotSchema,
+      hh(identity, 'accounts', 'acc_securities', 'snapshots'),
+      target,
+      {
+        id: target,
+        accountId: 'acc_securities',
+        year: y,
+        month: m,
+        amount: marketValueAt(target),
+        ...audit(identity),
+      },
+    );
   }
 };

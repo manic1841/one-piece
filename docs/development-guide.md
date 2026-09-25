@@ -68,14 +68,14 @@
 
 判斷一份文件該不該存在、內容該放哪，看它**回答什麼問題**，不看它叫什麼名字。每個問題只有一個地方負責回答。
 
-| 文件 | 回答什麼問題 | 不放什麼 |
-| --- | --- | --- |
-| `CONTEXT.md` | 這個詞在我們的系統裡精確指什麼？ | 實作細節、任何「為什麼」、架構與 UI 詞彙 |
-| `docs/adr/` | 這個決定當初為什麼這樣下？ | 欄位清單、enum 全集、錯誤碼表、驗收清單、class 名 |
-| 主題文件（`architecture`、`data-structure`、`financial_report`、`retirement-system`、`debt-accounts`、`transaction-flow`、`monthly-close`、`ddd-design-principles`、`ui/*`） | 現在的規則與資料長怎樣？ | 決策理由 |
-| `docs/agents/*` | AI agent 在這個 repo 該怎麼運作？ | 給人讀的架構知識 |
-| `development-guide`、`testing`、`qa-faq` | 我要怎麼做、怎麼跑、踩過什麼坑？ | 架構解釋 |
-| `README.md` | 這是什麼、我要怎麼跑起來？ | 架構決策、domain 定義、長篇說明（README 是路標，不是內容本身） |
+| 文件                                                                                                                                                                         | 回答什麼問題                      | 不放什麼                                                       |
+| ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------- | -------------------------------------------------------------- |
+| `CONTEXT.md`                                                                                                                                                                 | 這個詞在我們的系統裡精確指什麼？  | 實作細節、任何「為什麼」、架構與 UI 詞彙                       |
+| `docs/adr/`                                                                                                                                                                  | 這個決定當初為什麼這樣下？        | 欄位清單、enum 全集、錯誤碼表、驗收清單、class 名              |
+| 主題文件（`architecture`、`data-structure`、`financial_report`、`retirement-system`、`debt-accounts`、`transaction-flow`、`monthly-close`、`ddd-design-principles`、`ui/*`） | 現在的規則與資料長怎樣？          | 決策理由                                                       |
+| `docs/agents/*`                                                                                                                                                              | AI agent 在這個 repo 該怎麼運作？ | 給人讀的架構知識                                               |
+| `development-guide`、`testing`、`qa-faq`                                                                                                                                     | 我要怎麼做、怎麼跑、踩過什麼坑？  | 架構解釋                                                       |
+| `README.md`                                                                                                                                                                  | 這是什麼、我要怎麼跑起來？        | 架構決策、domain 定義、長篇說明（README 是路標，不是內容本身） |
 
 UI 與架構詞彙的 glossary 住在 `docs/ui/ui-layer-architecture.md`，不進 `CONTEXT.md`。
 
@@ -237,9 +237,9 @@ VITE_PORT=5174 docker compose up --build
 
 Compose 只發佈 app 的 port（`5173`）；emulator 的 `8080`/`9099` 只在 compose 網路內，且瀏覽器解析不到 `firebase` 這個 service hostname。因此前端預設**不直連 emulator**，而是走 Vite dev server 的同源 proxy（設定在 `vite.config.ts`，路徑常數在 `src/infra/emulatorEndpoints.ts`）：
 
-| 前端請求 | 轉發目標 |
-| --- | --- |
-| `/__emulator/firestore/*` | `http://firebase:8080/*` |
+| 前端請求                                                                                      | 轉發目標                 |
+| --------------------------------------------------------------------------------------------- | ------------------------ |
+| `/__emulator/firestore/*`                                                                     | `http://firebase:8080/*` |
 | `/identitytoolkit.googleapis.com/*`、`/securetoken.googleapis.com/*`、`/www.googleapis.com/*` | `http://firebase:9099/*` |
 
 Auth 之所以用「假 API host」前綴而非自己的路徑前綴，是因為 `connectAuthEmulator` 會強制把 URL 路徑換成 `/`；Firestore 則是 channel base URL 直接由 `host:port` 字串串接，所以路徑前綴可以放在 host 裡。細節見 `src/infra/emulatorEndpoints.ts` 的註解。

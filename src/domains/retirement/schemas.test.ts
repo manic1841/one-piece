@@ -1,9 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import {
-  RetirementIncomeSourceSchema,
-  RetirementPlanSchema,
-} from './schemas';
+import { RetirementIncomeSourceSchema, RetirementPlanSchema } from './schemas';
 
 const importedStreamFixture = {
   id: 'inc-1',

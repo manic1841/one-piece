@@ -1,6 +1,10 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { DASHBOARD_RECENT_LABELS } from '@/ui/constants/dashboard/recentTransactionsLabels';
+
+import { useDashboardRecentTransactions } from './useDashboardRecentTransactions';
+
 vi.mock('@/application/ledger/use_cases/listRecentTransactionsUseCase', () => ({
   listRecentTransactionsUseCase: {
     execute: (...args: unknown[]) => executeMock(...args),
@@ -8,9 +12,6 @@ vi.mock('@/application/ledger/use_cases/listRecentTransactionsUseCase', () => ({
 }));
 
 const executeMock = vi.fn();
-
-import { useDashboardRecentTransactions } from './useDashboardRecentTransactions';
-import { DASHBOARD_RECENT_LABELS } from '@/ui/constants/dashboard/recentTransactionsLabels';
 
 const buildTransaction = (id: string, day: number) => ({
   id,
@@ -32,10 +33,7 @@ describe('useDashboardRecentTransactions', () => {
   });
 
   it('loads the latest 8 transactions and maps them through the list item model', async () => {
-    executeMock.mockResolvedValue([
-      buildTransaction('tx-2', 12),
-      buildTransaction('tx-1', 5),
-    ]);
+    executeMock.mockResolvedValue([buildTransaction('tx-2', 12), buildTransaction('tx-1', 5)]);
 
     const { result } = renderHook(() => useDashboardRecentTransactions('household-1'));
 

@@ -17,12 +17,15 @@ const buildSeries = () => {
   return points;
 };
 
-const buildOverview = (ytdBaseline?: { yearMonth: string; netWorth: number } | null): DashboardOverview => ({
+const buildOverview = (
+  ytdBaseline?: { yearMonth: string; netWorth: number } | null,
+): DashboardOverview => ({
   anchor: {
     yearMonth: '2026-08',
     netWorth: 2100000,
     netWorthSeries: buildSeries(),
-    ytdBaseline: ytdBaseline === undefined ? { yearMonth: '2026-01', netWorth: 1000000 } : ytdBaseline,
+    ytdBaseline:
+      ytdBaseline === undefined ? { yearMonth: '2026-01', netWorth: 1000000 } : ytdBaseline,
   },
   pulse: null,
 });
@@ -63,7 +66,9 @@ describe('mapDashboardOverviewToHeroVM trend geometry', () => {
 
 describe('mapDashboardOverviewToHeroVM ytd change', () => {
   it('formats signed percentage with YTD suffix and signed absolute amount', () => {
-    const vm = mapDashboardOverviewToHeroVM(buildOverview({ yearMonth: '2026-01', netWorth: 2000000 }));
+    const vm = mapDashboardOverviewToHeroVM(
+      buildOverview({ yearMonth: '2026-01', netWorth: 2000000 }),
+    );
 
     expect(vm.ytd).not.toBeNull();
     expect(vm.ytd?.percentText).toBe('+5.0% YTD');
@@ -71,7 +76,9 @@ describe('mapDashboardOverviewToHeroVM ytd change', () => {
   });
 
   it('formats negative ytd change without a double sign', () => {
-    const vm = mapDashboardOverviewToHeroVM(buildOverview({ yearMonth: '2026-01', netWorth: 2200000 }));
+    const vm = mapDashboardOverviewToHeroVM(
+      buildOverview({ yearMonth: '2026-01', netWorth: 2200000 }),
+    );
 
     expect(vm.ytd?.percentText).toBe('-4.5% YTD');
     expect(vm.ytd?.amountText).toBe('-NT$100,000');

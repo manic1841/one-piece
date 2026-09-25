@@ -3,11 +3,9 @@ import { useState } from 'react';
 import { Plus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
-import { type DebtAccount } from '@/ui/features/debt/viewmodels/debtDisplay.vm';
-import { useAuthState } from '@/ui/contexts/useAuthState';
 import CompactRow from '@/ui/components/CompactRow';
+import { PageHeader } from '@/ui/components/PageHeader';
 import { StatusGlyph } from '@/ui/components/StatusGlyph';
-import { DEBT_STATUS_GRACE_PERIOD_LABEL } from '@/ui/constants/debtStatusLabels';
 import { Button } from '@/ui/components/ui/button';
 import { Card, CardContent } from '@/ui/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/ui/components/ui/dialog';
@@ -19,12 +17,14 @@ import {
   TableHeader,
   TableRow,
 } from '@/ui/components/ui/table';
-import { PageHeader } from '@/ui/components/PageHeader';
-import { formatCurrency, formatDate } from '@/ui/utils';
-import { cn } from '@/ui/utils/cn';
+import { DEBT_STATUS_GRACE_PERIOD_LABEL } from '@/ui/constants/debtStatusLabels';
+import { useAuthState } from '@/ui/contexts/useAuthState';
 import { DebtAccountForm } from '@/ui/features/debt/components/DebtAccountForm';
 import { useDebtPage } from '@/ui/features/debt/hooks/useDebtPage';
+import { type DebtAccount } from '@/ui/features/debt/viewmodels/debtDisplay.vm';
 import { useDebtAccountFormViewModel } from '@/ui/features/debt/viewmodels/useDebtAccountFormViewModel';
+import { formatCurrency, formatDate } from '@/ui/utils';
+import { cn } from '@/ui/utils/cn';
 
 type DialogMode = 'create' | 'edit';
 
@@ -33,14 +33,8 @@ export default function DebtListPage() {
   const householdId = userProfile?.householdId ?? '';
   const navigate = useNavigate();
 
-  const {
-    debtAccountViews,
-    projects,
-    totalDebt,
-    loading,
-    errorMessage,
-    reload,
-  } = useDebtPage(householdId);
+  const { debtAccountViews, projects, totalDebt, loading, errorMessage, reload } =
+    useDebtPage(householdId);
 
   const [dialogMode, setDialogMode] = useState<DialogMode | null>(null);
   const [editTarget, setEditTarget] = useState<DebtAccount | null>(null);
@@ -134,10 +128,7 @@ export default function DebtListPage() {
                       key={account.id}
                       testId={`debt-row-mobile-${account.id}`}
                       onClick={() => navigate(`/debt/${account.id}`)}
-                      className={cn(
-                        'cursor-pointer',
-                        isSettled ? 'bg-transparent' : 'bg-card/50',
-                      )}
+                      className={cn('cursor-pointer', isSettled ? 'bg-transparent' : 'bg-card/50')}
                     >
                       <div className="flex items-center justify-between gap-2">
                         <span className="flex min-w-0 items-center gap-2 text-sm font-medium">
@@ -152,7 +143,8 @@ export default function DebtListPage() {
                       </div>
                       <div className="mt-1.5 flex items-center justify-between gap-2 text-xs text-muted-foreground">
                         <span className="truncate">
-                          {account.typeLabel} · 截至 {account.updatedAt ? formatDate(account.updatedAt) : '—'}
+                          {account.typeLabel} · 截至{' '}
+                          {account.updatedAt ? formatDate(account.updatedAt) : '—'}
                         </span>
                         <span className="font-mono tabular-nums whitespace-nowrap">
                           {formatCurrency(account.monthlyDueAmount)}/月

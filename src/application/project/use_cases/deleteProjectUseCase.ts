@@ -1,6 +1,6 @@
-import { projectRepository } from '@/infra/repositories/projectRepository';
 import { householdPermissionService } from '@/application/household/householdPermissionService';
 import { type AuthContext } from '@/application/types';
+import { projectRepository } from '@/infra/repositories/projectRepository';
 
 export interface DeleteProjectRequest {
   householdId: string;
@@ -11,7 +11,11 @@ export interface DeleteProjectRequest {
 export class DeleteProjectUseCase {
   async execute(request: DeleteProjectRequest): Promise<void> {
     const { householdId, projectId, auth } = request;
-    await householdPermissionService.assertWritePermission(householdId, auth.uid, auth.isGlobalAdmin);
+    await householdPermissionService.assertWritePermission(
+      householdId,
+      auth.uid,
+      auth.isGlobalAdmin,
+    );
     return projectRepository.delete([householdId, projectId]);
   }
 }

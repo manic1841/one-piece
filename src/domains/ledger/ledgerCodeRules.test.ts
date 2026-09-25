@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
-import { CustomLedgerCodeCreateSchema, CustomLedgerCodeSchema } from './schemas';
 import {
+  type LedgerCodeCandidate,
   depthTwoCodesOfType,
   parseLedgerCode,
   validateNewLedgerCode,
-  type LedgerCodeCandidate,
 } from './ledgerCodeRules';
+import { CustomLedgerCodeCreateSchema, CustomLedgerCodeSchema } from './schemas';
 
 const candidates: LedgerCodeCandidate[] = [
   { code: 'asset:cash', type: 'asset', isActive: true },
@@ -122,9 +122,9 @@ describe('ledger code schema', () => {
   };
 
   it('accepts category and detail codes on creation', () => {
-    expect(CustomLedgerCodeCreateSchema.safeParse({ ...base, code: 'expense:travel' }).success).toBe(
-      true,
-    );
+    expect(
+      CustomLedgerCodeCreateSchema.safeParse({ ...base, code: 'expense:travel' }).success,
+    ).toBe(true);
     expect(
       CustomLedgerCodeCreateSchema.safeParse({ ...base, code: 'expense:travel:train' }).success,
     ).toBe(true);
@@ -135,9 +135,9 @@ describe('ledger code schema', () => {
       CustomLedgerCodeCreateSchema.safeParse({ ...base, code: 'expense:travel:train:rail' })
         .success,
     ).toBe(false);
-    expect(CustomLedgerCodeCreateSchema.safeParse({ ...base, code: 'Expense:Travel' }).success).toBe(
-      false,
-    );
+    expect(
+      CustomLedgerCodeCreateSchema.safeParse({ ...base, code: 'Expense:Travel' }).success,
+    ).toBe(false);
   });
 
   it('keeps reading tolerant of codes created before the pattern existed', () => {

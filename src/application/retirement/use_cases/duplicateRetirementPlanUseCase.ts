@@ -1,9 +1,9 @@
+import { householdPermissionService } from '@/application/household/householdPermissionService';
+import { type AuthContext } from '@/application/types';
 import {
   RetirementPlanCommandError,
   RetirementPlanCommandErrorCode,
 } from '@/domains/retirement/retirementPlanErrors';
-import { type AuthContext } from '@/application/types';
-import { householdPermissionService } from '@/application/household/householdPermissionService';
 import { type RetirementPlanCreate } from '@/domains/retirement/types';
 import { retirementRepository } from '@/infra/repositories/retirementRepository';
 
@@ -60,8 +60,7 @@ export class DuplicateRetirementPlanUseCase {
     } catch (error: unknown) {
       if (error instanceof RetirementPlanCommandError) throw error;
 
-      const message =
-        error instanceof Error ? error.message : 'unknown transaction failure';
+      const message = error instanceof Error ? error.message : 'unknown transaction failure';
       throw new RetirementPlanCommandError(
         RetirementPlanCommandErrorCode.TRANSACTION_FAILED,
         message,

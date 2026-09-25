@@ -34,8 +34,7 @@ export interface LinkedYearResolution {
   resolvedCount: number;
 }
 
-const isLinked = (mode: string | undefined): boolean =>
-  mode === LINKED_TO_RETIREMENT;
+const isLinked = (mode: string | undefined): boolean => mode === LINKED_TO_RETIREMENT;
 
 /**
  * Resolves LINKED_TO_RETIREMENT start/end years into the retirement year

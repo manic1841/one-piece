@@ -2,13 +2,13 @@ import { render, screen } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('@/ui/features/app/hooks/useRouteAuthorization', () => ({
-  useRouteAuthorization: vi.fn(),
-}));
-
 import { useRouteAuthorization } from '@/ui/features/app/hooks/useRouteAuthorization';
 
 import ProtectedRoute from './ProtectedRoute';
+
+vi.mock('@/ui/features/app/hooks/useRouteAuthorization', () => ({
+  useRouteAuthorization: vi.fn(),
+}));
 
 const renderAt = (outcome: string) => {
   vi.mocked(useRouteAuthorization).mockReturnValue({

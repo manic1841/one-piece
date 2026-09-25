@@ -1,17 +1,18 @@
 import React from 'react';
+
 import { useNavigate } from 'react-router-dom';
 
-import { useAuthState } from '@/ui/contexts/useAuthState';
-import { useDashboardOverview } from '@/ui/features/dashboard/hooks/useDashboardOverview';
-import { useDashboardCloseStatus } from '@/ui/features/dashboard/hooks/useDashboardCloseStatus';
-import { useDashboardRecentTransactions } from '@/ui/features/dashboard/hooks/useDashboardRecentTransactions';
-import { useDashboardStatRow } from '@/ui/features/dashboard/hooks/useDashboardStatRow';
 import { DASHBOARD_RECENT_LABELS } from '@/ui/constants/dashboard/recentTransactionsLabels';
-import { mapDashboardOverviewToStatRowVM } from '@/ui/features/dashboard/viewmodels/dashboardStatRow.vm';
+import { useAuthState } from '@/ui/contexts/useAuthState';
 import { AssetsLiabilitiesBlock } from '@/ui/features/dashboard/components/AssetsLiabilitiesBlock';
 import { CashFlowChartBlock } from '@/ui/features/dashboard/components/CashFlowChartBlock';
-import { MonthlyCloseCard } from '@/ui/features/dashboard/components/MonthlyCloseCard';
 import { HeroYtd } from '@/ui/features/dashboard/components/HeroYtd';
+import { MonthlyCloseCard } from '@/ui/features/dashboard/components/MonthlyCloseCard';
+import { useDashboardCloseStatus } from '@/ui/features/dashboard/hooks/useDashboardCloseStatus';
+import { useDashboardOverview } from '@/ui/features/dashboard/hooks/useDashboardOverview';
+import { useDashboardRecentTransactions } from '@/ui/features/dashboard/hooks/useDashboardRecentTransactions';
+import { useDashboardStatRow } from '@/ui/features/dashboard/hooks/useDashboardStatRow';
+import { mapDashboardOverviewToStatRowVM } from '@/ui/features/dashboard/viewmodels/dashboardStatRow.vm';
 
 const Dashboard: React.FC = () => {
   const { userProfile } = useAuthState();
@@ -25,8 +26,11 @@ const Dashboard: React.FC = () => {
     loading: closeStatusLoading,
     errorMessage: closeStatusError,
   } = useDashboardCloseStatus(householdId);
-  const { vm: recentVM, loading: recentLoading, errorMessage: recentError } =
-    useDashboardRecentTransactions(householdId);
+  const {
+    vm: recentVM,
+    loading: recentLoading,
+    errorMessage: recentError,
+  } = useDashboardRecentTransactions(householdId);
 
   const trendVisible = heroVM.hasAnchor && heroVM.trend.path != null;
   const anchor = overview?.anchor ?? null;
@@ -41,7 +45,8 @@ const Dashboard: React.FC = () => {
             'linear-gradient(hsl(var(--border)) 1px, transparent 1px), linear-gradient(90deg, hsl(var(--border)) 1px, transparent 1px)',
           backgroundSize: '40px 40px',
           maskImage: 'radial-gradient(ellipse 80% 60% at 50% 0%, black 40%, transparent 100%)',
-          WebkitMaskImage: 'radial-gradient(ellipse 80% 60% at 50% 0%, black 40%, transparent 100%)',
+          WebkitMaskImage:
+            'radial-gradient(ellipse 80% 60% at 50% 0%, black 40%, transparent 100%)',
         }}
       />
 
@@ -77,9 +82,7 @@ const Dashboard: React.FC = () => {
       </section>
 
       <section className="rounded-lg border border-border bg-elevated/30 backdrop-blur-sm p-6">
-        <p className="text-xs font-medium tracking-widest text-muted-foreground">
-          NET WORTH TREND
-        </p>
+        <p className="text-xs font-medium tracking-widest text-muted-foreground">NET WORTH TREND</p>
         {loading ? (
           <div className="mt-5 h-52 animate-pulse rounded bg-muted" />
         ) : trendVisible ? (
@@ -211,9 +214,7 @@ const Dashboard: React.FC = () => {
         ) : recentError ? (
           <p className="mt-5 text-sm text-negative">{recentError}</p>
         ) : recentVM.items.length === 0 ? (
-          <p className="mt-5 text-sm text-muted-foreground">
-            {DASHBOARD_RECENT_LABELS.ENTRY_HINT}
-          </p>
+          <p className="mt-5 text-sm text-muted-foreground">{DASHBOARD_RECENT_LABELS.ENTRY_HINT}</p>
         ) : (
           <ul className="mt-3 divide-y divide-border">
             {recentVM.items.map((item) => (

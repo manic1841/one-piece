@@ -25,14 +25,14 @@
 
 依賴是單向管線，builder 之間互不 import；跨 builder 的可變狀態（交易 journal）由 orchestrator 持有傳遞。
 
-| 順序 | Builder | 產出 | 邊界 |
-| --- | --- | --- | --- |
-| 1 | `staticDocs` | projects、accounts、ledgerCodes、intent_mappings、allocationTemplates、portfolio、已結清信貸 | 全域設定文件；其他 builder 以 ID 引用 |
-| 2 | `transactionDocs` | 薪水交易+分配（窗口全期）、支出流、房貸撥款、投資、轉帳、手動分錄 | 寫 INCOME/EXPENSE/TRANSFER 等一般交易與全部 Allocation；跨 domain 交易留在這裡 |
-| 3 | `accountDocs` | 房貸還款交易、DebtSnapshots、DebtAccount、cash/securities AccountSnapshots | 也寫 DEBT_PAYMENT 交易；債務餘額經 debt payment calculator 推導（ADR-0015） |
-| 4 | `projectDocs` | Project settlement snapshots、Portfolio snapshots | opening balances 從首月鏈結（ADR-0012）；僅報表月份持久化 |
-| 5 | `retirementDocs` | 退休計畫（無子集合）＋ incomeStreams/expenseCategories | 薪資導入讀 2025 樣本；房貸導入讀種子還款 |
-| 6 | `reportDocs` | 三份財務報表 × 報表月份、關帳期間矩陣 | 報表經純 calculators 推導，hybrid equity 語意見 ADR-0019 |
+| 順序 | Builder           | 產出                                                                                         | 邊界                                                                           |
+| ---- | ----------------- | -------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| 1    | `staticDocs`      | projects、accounts、ledgerCodes、intent_mappings、allocationTemplates、portfolio、已結清信貸 | 全域設定文件；其他 builder 以 ID 引用                                          |
+| 2    | `transactionDocs` | 薪水交易+分配（窗口全期）、支出流、房貸撥款、投資、轉帳、手動分錄                            | 寫 INCOME/EXPENSE/TRANSFER 等一般交易與全部 Allocation；跨 domain 交易留在這裡 |
+| 3    | `accountDocs`     | 房貸還款交易、DebtSnapshots、DebtAccount、cash/securities AccountSnapshots                   | 也寫 DEBT_PAYMENT 交易；債務餘額經 debt payment calculator 推導（ADR-0015）    |
+| 4    | `projectDocs`     | Project settlement snapshots、Portfolio snapshots                                            | opening balances 從首月鏈結（ADR-0012）；僅報表月份持久化                      |
+| 5    | `retirementDocs`  | 退休計畫（無子集合）＋ incomeStreams/expenseCategories                                       | 薪資導入讀 2025 樣本；房貸導入讀種子還款                                       |
+| 6    | `reportDocs`      | 三份財務報表 × 報表月份、關帳期間矩陣                                                        | 報表經純 calculators 推導，hybrid equity 語意見 ADR-0019                       |
 
 orchestrator 為 `scripts/qa/plan/index.ts`，`buildQaSeedPlan` 是唯一對外入口（seam test 直接 import 它）。
 
@@ -40,12 +40,12 @@ orchestrator 為 `scripts/qa/plan/index.ts`，`buildQaSeedPlan` 是唯一對外�
 
 **規範來源**：期間狀態語意見 [monthly-close.md](monthly-close.md) §2；本節只定義種子覆蓋哪些形狀。
 
-| 期間 | 狀態 | 形狀 |
-| --- | --- | --- |
+| 期間      | 狀態         | 形狀                                                                                            |
+| --------- | ------------ | ----------------------------------------------------------------------------------------------- |
 | `2026-06` | NEEDS_REVIEW | 前六階段 COMPLETED；Completeness Check 零活動暫停（`reviewSourceStageId = COMPLETENESS_CHECK`） |
-| `2026-07` | CLOSED | 九階段全 COMPLETED 帶 `confirmedBy`/`confirmedAt`；重開與 ADR-0066 連鎖降級的 E2E 目標 |
-| `2026-08` | CLOSED | 同上 |
-| `2026-09` | IN_PROGRESS | 前五階段 COMPLETED |
+| `2026-07` | CLOSED       | 九階段全 COMPLETED 帶 `confirmedBy`/`confirmedAt`；重開與 ADR-0066 連鎖降級的 E2E 目標          |
+| `2026-08` | CLOSED       | 同上                                                                                            |
+| `2026-09` | IN_PROGRESS  | 前五階段 COMPLETED                                                                              |
 
 `2026-05` 及更早不寫入紀錄（無紀錄 = 尚未開始關帳）。`operation` 集合不 seed（runtime 重試記錄）。
 

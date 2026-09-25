@@ -16,7 +16,8 @@ vi.mock('@/ui/contexts/useAuthState', () => ({
 
 const fetchAccountsWithSnapshots = vi.fn();
 const { reorderAccounts } = vi.hoisted(() => ({
-  reorderAccounts: vi.fn<(orders: Array<{ id: string; order: number }>) => Promise<void>>()
+  reorderAccounts: vi
+    .fn<(orders: Array<{ id: string; order: number }>) => Promise<void>>()
     .mockResolvedValue(undefined),
 }));
 
@@ -101,10 +102,12 @@ describe('useAccountListController', () => {
   it('handleReorder reorders localAccounts and persists the full order sequence', async () => {
     let committed = accountsFixture;
 
-    fetchAccountsWithSnapshots.mockImplementation(() => Promise.resolve({ ok: true, value: committed }));
+    fetchAccountsWithSnapshots.mockImplementation(() =>
+      Promise.resolve({ ok: true, value: committed }),
+    );
     reorderAccounts.mockImplementation(async (orders) => {
-      committed = orders.map((entry) =>
-        accountsFixture.find((account) => account.id === entry.id)!,
+      committed = orders.map(
+        (entry) => accountsFixture.find((account) => account.id === entry.id)!,
       );
     });
 
@@ -115,11 +118,7 @@ describe('useAccountListController', () => {
     });
 
     await act(async () => {
-      result.current.handleReorder([
-        accountsFixture[2],
-        accountsFixture[0],
-        accountsFixture[1],
-      ]);
+      result.current.handleReorder([accountsFixture[2], accountsFixture[0], accountsFixture[1]]);
     });
 
     expect(reorderAccounts).toHaveBeenCalledWith([

@@ -1,4 +1,5 @@
 # 資產負債表採混合制,權益直接推算
+
 **狀態：** 已接受
 **規範來源：** [financial_report.md](../financial_report.md) §2
 系統資產來源混合兩種性質:entries 計算(固定資產 asset:property\* 累積值)與 Snapshot 人工輸入(銀行帳戶 AccountSnapshot、投資市值 PortfolioSnapshot)。Snapshot 不經過 entries,因此無法透過複式簿記確保資產 = 負債 + 權益。解法是權益不從 entries 計算,改為「資產合計 − 負債合計」直接推算,確保報表永遠平衡,並將權益細項拆為期初權益、本期淨利、融資淨額、調整項目四個來源。取捨是「調整項目」理論上應接近零,偏大時代表資料有誤,但系統本身無法自動定位問題出在哪一筆。

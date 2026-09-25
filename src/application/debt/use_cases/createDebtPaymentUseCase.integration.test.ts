@@ -1,15 +1,16 @@
 import { doc, getDoc } from 'firebase/firestore';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { createDebtAccountUseCase } from './createDebtAccountUseCase';
-import {
-  createDebtPaymentUseCase,
-  type CreateDebtPaymentRequest,
-} from './createDebtPaymentUseCase';
-import { db, resetMockDb } from '@/test/mocks/firebase';
 import { debtSnapshotRepository } from '@/infra/repositories/debtSnapshotRepository';
 import { operationRepository } from '@/infra/repositories/operationRepository';
 import { transactionRepository } from '@/infra/repositories/transactionRepository';
+import { db, resetMockDb } from '@/test/mocks/firebase';
+
+import { createDebtAccountUseCase } from './createDebtAccountUseCase';
+import {
+  type CreateDebtPaymentRequest,
+  createDebtPaymentUseCase,
+} from './createDebtPaymentUseCase';
 
 const accountData = {
   name: '房貸 A',
@@ -52,15 +53,7 @@ const accountRef = (debtAccountId: string) =>
   doc(db, 'households', 'household-1', 'debtAccounts', debtAccountId);
 
 const snapshotRef = (debtAccountId: string, yearMonth: string) =>
-  doc(
-    db,
-    'households',
-    'household-1',
-    'debtAccounts',
-    debtAccountId,
-    'snapshots',
-    yearMonth,
-  );
+  doc(db, 'households', 'household-1', 'debtAccounts', debtAccountId, 'snapshots', yearMonth);
 
 const transactionRef = (transactionId: string) =>
   doc(db, 'households', 'household-1', 'transactions', transactionId);

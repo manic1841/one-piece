@@ -2,10 +2,12 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { type AccountWithSnapshot } from '@/domains/account/types/account';
 import { checkAccountMonthlyUsageUseCase } from '@/application/account/use_cases/checkAccountMonthlyUsageUseCase';
-import { useConfirm } from '@/ui/features/app/confirm/useConfirm';
+import { type AccountWithSnapshot } from '@/domains/account/types/account';
 import { useAccountCmds } from '@/ui/features/account/hooks/useAccountCmds';
+import { useConfirm } from '@/ui/features/app/confirm/useConfirm';
+
+import AccountDetailPage from './AccountDetailPage';
 
 vi.mock('@/application/account/use_cases/checkAccountMonthlyUsageUseCase');
 vi.mock('@/ui/features/account/hooks/useAccountCmds');
@@ -13,8 +15,6 @@ vi.mock('@/ui/features/app/confirm/useConfirm');
 
 const mockUseConfirm = vi.mocked(useConfirm);
 const mockUseAccountCmds = vi.mocked(useAccountCmds);
-
-import AccountDetailPage from './AccountDetailPage';
 
 const buildAccount = (overrides: Partial<AccountWithSnapshot> = {}): AccountWithSnapshot => ({
   id: 'acc-1',
@@ -42,9 +42,7 @@ const baseAccount = buildAccount({
     updatedBy: 'u1',
     createdAt: new Date('2026-09-01'),
     updatedAt: new Date('2026-09-01'),
-    holdings: [
-      { symbol: '2330', name: 'TSMC', cost: 620000, marketValue: 710000, leverage: 1 },
-    ],
+    holdings: [{ symbol: '2330', name: 'TSMC', cost: 620000, marketValue: 710000, leverage: 1 }],
   },
 });
 
@@ -101,10 +99,12 @@ describe('AccountDetailPage lifecycle actions', () => {
     expect(vi.mocked(checkAccountMonthlyUsageUseCase.execute)).toHaveBeenCalledWith(
       expect.objectContaining({ accountId: 'acc-1', accountCategory: 'securities' }),
     );
-    expect(mockUseConfirm.mock.results.every((call) => {
-      const value = call.value as { confirm?: unknown } | undefined;
-      return !value || !value.confirm || vi.mocked(value.confirm).mock.calls.length === 0;
-    })).toBe(true);
+    expect(
+      mockUseConfirm.mock.results.every((call) => {
+        const value = call.value as { confirm?: unknown } | undefined;
+        return !value || !value.confirm || vi.mocked(value.confirm).mock.calls.length === 0;
+      }),
+    ).toBe(true);
     expect(await screen.findByRole('button', { name: '啟用帳戶' })).toBeInTheDocument();
     expect(screen.getByText('停用帳戶')).toBeInTheDocument();
   });
@@ -211,9 +211,7 @@ describe('AccountDetailPage', () => {
   it('hides the holdings section for non-securities accounts', async () => {
     render(
       <MemoryRouter>
-        <AccountDetailPage
-          account={buildAccount({ category: 'bank', snapshot: null })}
-        />
+        <AccountDetailPage account={buildAccount({ category: 'bank', snapshot: null })} />
       </MemoryRouter>,
     );
 

@@ -57,10 +57,7 @@ const PixelPet: React.FC<PixelPetProps> = ({ reaction = 'idle' }) => {
           <p className="text-xs font-medium text-muted-foreground tracking-heading mb-3">
             NAVIGATOR
           </p>
-          <div
-            data-navigator-grid
-            className="grid grid-cols-2 md:grid-cols-4 gap-2 md:w-72"
-          >
+          <div data-navigator-grid className="grid grid-cols-2 md:grid-cols-4 gap-2 md:w-72">
             {NAVIGATOR_ITEMS.map(({ to, icon: Icon, label }) => (
               <NavLink
                 key={to}

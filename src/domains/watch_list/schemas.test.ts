@@ -28,12 +28,8 @@ describe('watch list schemas', () => {
   });
 
   it('rejects an empty target id or name', () => {
-    expect(() =>
-      WatchListTargetCreateSchema.parse({ ...baseCreate, targetId: '' }),
-    ).toThrow();
-    expect(() =>
-      WatchListTargetCreateSchema.parse({ ...baseCreate, name: '' }),
-    ).toThrow();
+    expect(() => WatchListTargetCreateSchema.parse({ ...baseCreate, targetId: '' })).toThrow();
+    expect(() => WatchListTargetCreateSchema.parse({ ...baseCreate, name: '' })).toThrow();
   });
 
   it('extends BaseSchema with id and audit fields', () => {
@@ -52,9 +48,7 @@ describe('watch list schemas', () => {
 
   it('builds a namespaced doc id per target type', () => {
     expect(buildWatchListDocId('PROJECT', 'project-1')).toBe('PROJECT:project-1');
-    expect(buildWatchListDocId('LEDGER_CODE', 'expense:travel')).toBe(
-      'LEDGER_CODE:expense:travel',
-    );
+    expect(buildWatchListDocId('LEDGER_CODE', 'expense:travel')).toBe('LEDGER_CODE:expense:travel');
   });
 
   it('keeps ledger code schema importable (guard against circular domain imports)', () => {

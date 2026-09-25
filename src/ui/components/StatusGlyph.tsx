@@ -1,12 +1,6 @@
 import { cn } from '@/ui/utils/cn';
 
-export type StatusGlyphType =
-  | 'active'
-  | 'verified'
-  | 'waiting'
-  | 'review'
-  | 'error'
-  | 'inactive';
+export type StatusGlyphType = 'active' | 'verified' | 'waiting' | 'review' | 'error' | 'inactive';
 
 type StatusGlyphProps = {
   type: StatusGlyphType;

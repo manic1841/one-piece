@@ -1,5 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { householdPermissionService } from '@/application/household/householdPermissionService';
+import { type AuthContext } from '@/application/types';
+
+import { authorizeRouteAccessUseCase } from './authorizeRouteAccessUseCase';
+import { isUserAuthorizedUseCase } from './isUserAuthorizedUseCase';
+
 vi.mock('./isUserAuthorizedUseCase', () => ({
   isUserAuthorizedUseCase: { execute: vi.fn() },
 }));
@@ -7,12 +13,6 @@ vi.mock('./isUserAuthorizedUseCase', () => ({
 vi.mock('@/application/household/householdPermissionService', () => ({
   householdPermissionService: { isUserMember: vi.fn() },
 }));
-
-import { householdPermissionService } from '@/application/household/householdPermissionService';
-import { type AuthContext } from '@/application/types';
-
-import { authorizeRouteAccessUseCase } from './authorizeRouteAccessUseCase';
-import { isUserAuthorizedUseCase } from './isUserAuthorizedUseCase';
 
 const member: AuthContext = { uid: 'user-1', email: 'user@example.com', isGlobalAdmin: false };
 

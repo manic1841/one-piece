@@ -1,6 +1,6 @@
 import { useContext } from 'react';
 
-import { AuthStateContext, type AuthState } from './AuthStateContext';
+import { type AuthState, AuthStateContext } from './AuthStateContext';
 
 /**
  * 讀取完整的 UI 認證狀態。只有 Controller 層得呼叫

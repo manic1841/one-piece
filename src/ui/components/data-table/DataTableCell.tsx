@@ -4,8 +4,7 @@ import { cn } from '@/ui/utils/cn';
 
 import { dataTableCellNumberClass, dataTableCellTextClass } from './styles';
 
-interface DataTableCellProps
-  extends Omit<React.TdHTMLAttributes<HTMLTableCellElement>, 'align'> {
+interface DataTableCellProps extends Omit<React.TdHTMLAttributes<HTMLTableCellElement>, 'align'> {
   /** `number` 施加右對齊 + 等寬 + 等寬數字。 */
   align?: 'text' | 'number';
 }
@@ -17,7 +16,10 @@ export const DataTableCell: React.FC<DataTableCellProps> = ({
   ...props
 }) => (
   <td
-    className={cn(align === 'number' ? dataTableCellNumberClass : dataTableCellTextClass, className)}
+    className={cn(
+      align === 'number' ? dataTableCellNumberClass : dataTableCellTextClass,
+      className,
+    )}
     {...props}
   />
 );

@@ -36,7 +36,9 @@ const BalanceSheetPage: React.FC<BalanceSheetPageProps> = ({
   const { data, loading, errorMessage } = useBalanceSheet(householdId, currentDate, reportMode);
 
   if (errorMessage) {
-    return <div className="p-8 text-center text-destructive">Error loading report: {errorMessage}</div>;
+    return (
+      <div className="p-8 text-center text-destructive">Error loading report: {errorMessage}</div>
+    );
   }
 
   const renderGroup = (group: BalanceSheetGroupVM) => {
@@ -54,9 +56,7 @@ const BalanceSheetPage: React.FC<BalanceSheetPageProps> = ({
               className="flex justify-between items-center py-3 px-4 border-b last:border-0 border-border hover:bg-muted transition-colors"
             >
               <span className="text-muted-foreground">{item.label}</span>
-              <span className="font-mono text-foreground">
-                {item.amountText}
-              </span>
+              <span className="font-mono text-foreground">{item.amountText}</span>
             </div>
           ))}
         </div>
@@ -110,10 +110,7 @@ const BalanceSheetPage: React.FC<BalanceSheetPageProps> = ({
         </div>
 
         {showWarning && (
-          <Alert
-            variant="destructive"
-            className="border-warning/40 bg-warning/5 text-warning"
-          >
+          <Alert variant="destructive" className="border-warning/40 bg-warning/5 text-warning">
             <AlertTriangle className="h-4 w-4 text-warning" />
             <AlertDescription>
               注意：調整項目偏大，請確認是否有漏記交易，或帳戶結算金額是否正確。
@@ -148,28 +145,22 @@ const BalanceSheetPage: React.FC<BalanceSheetPageProps> = ({
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Card className="bg-primary/5 border-primary/20">
               <CardContent className="pt-6">
-                <p className="text-sm font-medium text-primary mb-1">
-                  資產合計
-                </p>
-                <p className="text-2xl font-bold text-primary">
-                  {data.assets.totalText}
-                </p>
+                <p className="text-sm font-medium text-primary mb-1">資產合計</p>
+                <p className="text-2xl font-bold text-primary">{data.assets.totalText}</p>
               </CardContent>
             </Card>
             <Card className="bg-negative/5 border-negative/20">
               <CardContent className="pt-6">
-                <p className="text-sm font-medium text-negative mb-1">
-                  負債合計
-                </p>
-                <p className="text-2xl font-bold text-negative">
-                  {data.liabilities.totalText}
-                </p>
+                <p className="text-sm font-medium text-negative mb-1">負債合計</p>
+                <p className="text-2xl font-bold text-negative">{data.liabilities.totalText}</p>
               </CardContent>
             </Card>
             <Card className="bg-primary">
               <CardContent className="pt-6">
                 <p className="text-sm font-medium text-muted-foreground mb-1">淨資產 (Equity)</p>
-                <p className="text-2xl font-bold text-primary-foreground">{data.equity.totalText}</p>
+                <p className="text-2xl font-bold text-primary-foreground">
+                  {data.equity.totalText}
+                </p>
               </CardContent>
             </Card>
           </div>

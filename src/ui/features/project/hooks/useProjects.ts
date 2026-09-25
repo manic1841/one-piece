@@ -6,8 +6,8 @@ import { listProjectRecordsUseCase } from '@/application/project/use_cases/listP
 import { listProjectSnapshotsUseCase } from '@/application/project/use_cases/listProjectSnapshotsUseCase';
 import { listProjectsUseCase } from '@/application/project/use_cases/listProjectsUseCase';
 import { type Project, type ProjectWithSnapshot } from '@/domains/project/schemas';
-import { useLoadingTask } from '@/ui/hooks/useLoadingTask';
 import { useAuthIdentity } from '@/ui/hooks/useAuthIdentity';
+import { useLoadingTask } from '@/ui/hooks/useLoadingTask';
 
 export function useProjects(householdId?: string) {
   const [projects, setProjects] = useState<Project[]>([]);

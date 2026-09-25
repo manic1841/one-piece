@@ -101,18 +101,16 @@ export const mapTransactionToListItemVM = (
   const sortTimestamp = date.getTime();
   const isPositive = signedAmount >= 0;
 
-  const entries: TransactionListEntryVM[] = transaction.entries.map(
-    (entry: JournalEntryLine) => ({
-      ledgerCode: entry.ledgerCode,
-      ledgerLabel: options?.getLedgerLabel
-        ? options.getLedgerLabel(entry.ledgerCode)
-        : entry.ledgerCode,
-      debit: entry.debit,
-      credit: entry.credit,
-      accountId: entry.accountId,
-      hasInvestmentDetail: Boolean(entry.investmentDetail),
-    }),
-  );
+  const entries: TransactionListEntryVM[] = transaction.entries.map((entry: JournalEntryLine) => ({
+    ledgerCode: entry.ledgerCode,
+    ledgerLabel: options?.getLedgerLabel
+      ? options.getLedgerLabel(entry.ledgerCode)
+      : entry.ledgerCode,
+    debit: entry.debit,
+    credit: entry.credit,
+    accountId: entry.accountId,
+    hasInvestmentDetail: Boolean(entry.investmentDetail),
+  }));
 
   return {
     id: transaction.id,

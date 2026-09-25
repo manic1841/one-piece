@@ -1,5 +1,5 @@
-import { type AuthContext } from '@/application/types';
 import { householdPermissionService } from '@/application/household/householdPermissionService';
+import { type AuthContext } from '@/application/types';
 import { type RetirementPlan } from '@/domains/retirement/types';
 import { retirementRepository } from '@/infra/repositories/retirementRepository';
 

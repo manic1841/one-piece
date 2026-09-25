@@ -1,8 +1,8 @@
-import { type AuthContext } from '@/application/types';
 import { householdPermissionService } from '@/application/household/householdPermissionService';
+import { type AuthContext } from '@/application/types';
+import { LEDGER_PREFIX } from '@/domains/ledger/constants/ledgerCodes';
 import { groupExpenseSuggestions } from '@/domains/retirement/logic/expenseImportLogic';
 import type { RetirementExpenseCategory } from '@/domains/retirement/types';
-import { LEDGER_PREFIX } from '@/domains/ledger/constants/ledgerCodes';
 import { transactionRepository } from '@/infra/repositories/transactionRepository';
 
 interface ImportRetirementExpensesRequest {
@@ -11,9 +11,7 @@ interface ImportRetirementExpensesRequest {
 }
 
 export class ImportRetirementExpensesUseCase {
-  async execute(
-    request: ImportRetirementExpensesRequest,
-  ): Promise<RetirementExpenseCategory[]> {
+  async execute(request: ImportRetirementExpensesRequest): Promise<RetirementExpenseCategory[]> {
     const { householdId, auth } = request;
 
     await householdPermissionService.assertReadPermission(

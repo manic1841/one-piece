@@ -31,65 +31,66 @@ vi.mock('./useRetirementEventActions', () => ({
 
 const SAMPLE_YEAR = 2023;
 
-const createPlan = (): RetirementPlan => ({
-  id: 'plan-1',
-  householdId: 'household-1',
-  name: 'Test Plan',
-  isActive: true,
-  autoUpdate: false,
-  createdBy: 'u1',
-  updatedBy: 'u1',
-  createdAt: new Date('2026-01-01T00:00:00.000Z'),
-  updatedAt: new Date('2026-01-01T00:00:00.000Z'),
-  currentYear: 2026,
-  birthYear: 1985,
-  retirementAge: 60,
-  lifeExpectancy: 85,
-  inflationRate: 2,
-  investmentReturnRate: 5,
-  incomes: [
-    {
-      id: 'income-1',
-      name: 'Salary',
-      type: RetirementIncomeType.SALARY,
-      startYear: 2026,
-      endYear: 2060,
-      currentAnnual: 120000,
-      growthRate: 2,
-      calculatedFrom: {
-        ledgerCode: 'income:salary',
-        sampleYear: SAMPLE_YEAR,
-        totalAmount: 120000,
-        monthlyAverage: 10000,
-        sampleCount: 12,
-        importedAt: '2024-01-01T00:00:00.000Z',
+const createPlan = (): RetirementPlan =>
+  ({
+    id: 'plan-1',
+    householdId: 'household-1',
+    name: 'Test Plan',
+    isActive: true,
+    autoUpdate: false,
+    createdBy: 'u1',
+    updatedBy: 'u1',
+    createdAt: new Date('2026-01-01T00:00:00.000Z'),
+    updatedAt: new Date('2026-01-01T00:00:00.000Z'),
+    currentYear: 2026,
+    birthYear: 1985,
+    retirementAge: 60,
+    lifeExpectancy: 85,
+    inflationRate: 2,
+    investmentReturnRate: 5,
+    incomes: [
+      {
+        id: 'income-1',
+        name: 'Salary',
+        type: RetirementIncomeType.SALARY,
+        startYear: 2026,
+        endYear: 2060,
+        currentAnnual: 120000,
+        growthRate: 2,
+        calculatedFrom: {
+          ledgerCode: 'income:salary',
+          sampleYear: SAMPLE_YEAR,
+          totalAmount: 120000,
+          monthlyAverage: 10000,
+          sampleCount: 12,
+          importedAt: '2024-01-01T00:00:00.000Z',
+        },
       },
-    },
-  ],
-  expenses: [
-    {
-      id: 'expense-1',
-      name: 'Living',
-      type: RetirementExpenseType.GENERAL,
-      includesPrincipal: false,
-      interestOnly: false,
-      currentAnnual: 50000,
-      growthRate: 2,
-      retirementMultiplier: 1,
-      startYear: 2026,
-      endYear: null,
-    },
-  ],
-  events: [
-    {
-      id: 'event-1',
-      year: 2035,
-      type: 'expense',
-      amount: 150000,
-      name: 'Car',
-    },
-  ],
-} as RetirementPlan);
+    ],
+    expenses: [
+      {
+        id: 'expense-1',
+        name: 'Living',
+        type: RetirementExpenseType.GENERAL,
+        includesPrincipal: false,
+        interestOnly: false,
+        currentAnnual: 50000,
+        growthRate: 2,
+        retirementMultiplier: 1,
+        startYear: 2026,
+        endYear: null,
+      },
+    ],
+    events: [
+      {
+        id: 'event-1',
+        year: 2035,
+        type: 'expense',
+        amount: 150000,
+        name: 'Car',
+      },
+    ],
+  }) as RetirementPlan;
 
 describe('useRetirementPlanDetailPage', () => {
   const mockedCore = vi.mocked(useRetirementPlanCore);

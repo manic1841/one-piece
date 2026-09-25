@@ -43,13 +43,12 @@
  */
 import admin, { type DocumentReference } from 'firebase-admin';
 
+import { applyEmulatorEnv } from '../shared/emulator-env';
 import {
-  resolveLinkedIncomeYears,
   type LinkableIncomeDoc,
   type LinkedYearPatch,
+  resolveLinkedIncomeYears,
 } from './retirement-linked-years';
-
-import { applyEmulatorEnv } from '../shared/emulator-env';
 
 const dryRun = process.argv.includes('--dry-run');
 
@@ -128,26 +127,38 @@ const strip = (doc: Unknowns, keys: string[]): Unknowns => {
 };
 
 const migrateIncomeDocs = async (
-  incomeDocs: Array<{ snap: { ref: { path: string; update: (data: Unknowns) => Promise<void> } }; data: LegacyIncome }>,
+  incomeDocs: Array<{
+    snap: { ref: { path: string; update: (data: Unknowns) => Promise<void> } };
+    data: LegacyIncome;
+  }>,
   notes: string[],
 ): Promise<void> => {
   for (const { snap, data: income } of incomeDocs) {
     if (income.baseAmount === undefined) continue;
-    const { incomes: [flat], notes: incomeNotes } = flattenIncomes([income]);
+    const {
+      incomes: [flat],
+      notes: incomeNotes,
+    } = flattenIncomes([income]);
     await snap.ref.update(flat);
     notes.push(...incomeNotes.map((note) => `${snap.ref.path}: ${note}`));
   }
 };
 
 const migrateExpenseDocs = async (
-  expenseDocs: Array<{ snap: { ref: { path: string; update: (data: Unknowns) => Promise<void> } }; data: LegacyExpense }>,
+  expenseDocs: Array<{
+    snap: { ref: { path: string; update: (data: Unknowns) => Promise<void> } };
+    data: LegacyExpense;
+  }>,
   incomesForBaseline: LegacyIncome[],
   plan: LegacyPlan,
   notes: string[],
 ): Promise<void> => {
   for (const { snap, data: expense } of expenseDocs) {
     if (expense.calculationMode === undefined && (expense.percentOfSalary ?? 0) <= 0) continue;
-    const { expenses: [flat], notes: expenseNotes } = flattenExpenses([expense], incomesForBaseline, plan);
+    const {
+      expenses: [flat],
+      notes: expenseNotes,
+    } = flattenExpenses([expense], incomesForBaseline, plan);
     await snap.ref.update(flat);
     notes.push(...expenseNotes.map((note) => `${snap.ref.path}: ${note}`));
   }
@@ -165,7 +176,9 @@ const flattenIncomes = (incomes: LegacyIncome[]): { incomes: Unknowns[]; notes: 
     if (mode === 'DERIVED' && legacy.derivedFrom) {
       const base = byId.get(legacy.derivedFrom.baseIncomeId);
       if (!base) {
-        console.warn(`[warn] income ${legacy.id}: DERIVED base ${legacy.derivedFrom.baseIncomeId} not found; keeping baseAmount`);
+        console.warn(
+          `[warn] income ${legacy.id}: DERIVED base ${legacy.derivedFrom.baseIncomeId} not found; keeping baseAmount`,
+        );
         notes.push(`income ${legacy.id}: derived base missing, kept baseAmount as currentAnnual`);
       } else {
         legacy.baseAmount = Math.round(base.baseAmount * legacy.derivedFrom.multiplier);
@@ -228,9 +241,21 @@ const flattenExpenses = (
 
     if (mode === 'SALARY_PERCENTAGE' || (legacy.percentOfSalary ?? 0) > 0) {
       const baseline = baselineSalaryFor(legacy, incomes, plan);
-      doc.currentAnnual = Math.round(baseline > 0 ? baseline * salaryPercentage : (legacy.fallbackAmount ?? legacy.baseAmount ?? 0));
-      notes.push(`expense ${legacy.id}: SALARY_PERCENTAGE flattened to currentAnnual=${doc.currentAnnual}`);
-      strip(doc, ['salaryPercentage', 'salaryPercentageRetirementMode', 'linkedIncomeId', 'fallbackAmount', 'percentOfSalary']);
+      doc.currentAnnual = Math.round(
+        baseline > 0
+          ? baseline * salaryPercentage
+          : (legacy.fallbackAmount ?? legacy.baseAmount ?? 0),
+      );
+      notes.push(
+        `expense ${legacy.id}: SALARY_PERCENTAGE flattened to currentAnnual=${doc.currentAnnual}`,
+      );
+      strip(doc, [
+        'salaryPercentage',
+        'salaryPercentageRetirementMode',
+        'linkedIncomeId',
+        'fallbackAmount',
+        'percentOfSalary',
+      ]);
     } else {
       doc.currentAnnual = legacy.currentAnnual ?? legacy.baseAmount ?? 0;
     }
@@ -310,8 +335,14 @@ interface MigratedPlanWrite {
   events: Unknowns[];
   linkedEmbeddedPatches: LinkedYearPatch[];
   linkedSubcollectionPatches: LinkedYearPatch[];
-  incomeDocs: Array<{ snap: { ref: { path: string; update: (data: Unknowns) => Promise<void> } }; data: LegacyIncome }>;
-  expenseDocs: Array<{ snap: { ref: { path: string; update: (data: Unknowns) => Promise<void> } }; data: LegacyExpense }>;
+  incomeDocs: Array<{
+    snap: { ref: { path: string; update: (data: Unknowns) => Promise<void> } };
+    data: LegacyIncome;
+  }>;
+  expenseDocs: Array<{
+    snap: { ref: { path: string; update: (data: Unknowns) => Promise<void> } };
+    data: LegacyExpense;
+  }>;
   incomesForBaseline: LegacyIncome[];
   plan: LegacyPlan;
   notes: string[];
@@ -364,8 +395,12 @@ const migrate = async (): Promise<void> => {
       const planHasLegacy =
         (plan.incomes ?? []).some((income) => income.baseAmount !== undefined) ||
         (plan.expenses ?? []).some((expense) => expense.calculationMode !== undefined);
-      const incomesHaveLegacy = incomeDocs.some(({ data: income }) => income.baseAmount !== undefined);
-      const expensesHaveLegacy = expenseDocs.some(({ data: expense }) => expense.calculationMode !== undefined);
+      const incomesHaveLegacy = incomeDocs.some(
+        ({ data: income }) => income.baseAmount !== undefined,
+      );
+      const expensesHaveLegacy = expenseDocs.some(
+        ({ data: expense }) => expense.calculationMode !== undefined,
+      );
 
       if (!planHasLegacy && !incomesHaveLegacy && !expensesHaveLegacy) {
         skipped += 1;
@@ -374,11 +409,12 @@ const migrate = async (): Promise<void> => {
 
       // Baseline salary for percentage flattening uses the subcollection
       // incomes when present (the app's read source), else the embedded ones.
-      const incomesForBaseline = incomeDocs.length > 0
-        ? incomeDocs.map(({ data }) => data)
-        : (plan.incomes ?? []);
+      const incomesForBaseline =
+        incomeDocs.length > 0 ? incomeDocs.map(({ data }) => data) : (plan.incomes ?? []);
 
-      const { incomes: flatPlanIncomes, notes: planIncomeNotes } = flattenIncomes(plan.incomes ?? []);
+      const { incomes: flatPlanIncomes, notes: planIncomeNotes } = flattenIncomes(
+        plan.incomes ?? [],
+      );
       const { expenses: flatPlanExpenses, notes: planExpenseNotes } = flattenExpenses(
         plan.expenses ?? [],
         incomesForBaseline,
@@ -389,7 +425,9 @@ const migrate = async (): Promise<void> => {
       const yearlyIncomeAt = (incomeId: string | undefined, year: number): number => {
         const income = incomesForBaseline.find((item) => item.id === incomeId);
         if (!income) return 0;
-        return income.baseAmount * Math.pow(1 + (income.growthRate ?? 0) / 100, year - plan.currentYear);
+        return (
+          income.baseAmount * Math.pow(1 + (income.growthRate ?? 0) / 100, year - plan.currentYear)
+        );
       };
       const totalSalaryAt = (year: number): number =>
         incomesForBaseline
@@ -399,7 +437,13 @@ const migrate = async (): Promise<void> => {
       const events = (plan.events ?? []).map((event) => {
         const doc: Unknowns = { ...event };
         if (event.phases && event.phases.length > 0) {
-          doc.phases = flattenEventPhases(event.phases, incomesForBaseline, plan, yearlyIncomeAt, totalSalaryAt);
+          doc.phases = flattenEventPhases(
+            event.phases,
+            incomesForBaseline,
+            plan,
+            yearlyIncomeAt,
+            totalSalaryAt,
+          );
         }
         strip(doc, ['calculationMode']);
         return doc;

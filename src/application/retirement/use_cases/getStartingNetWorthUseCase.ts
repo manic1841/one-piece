@@ -30,7 +30,11 @@ export const getStartingNetWorthUseCase = {
     auth: AuthContext;
   }): Promise<StartingNetWorthSource> {
     const { householdId, auth } = request;
-    await householdPermissionService.assertReadPermission(householdId, auth.uid, auth.isGlobalAdmin);
+    await householdPermissionService.assertReadPermission(
+      householdId,
+      auth.uid,
+      auth.isGlobalAdmin,
+    );
 
     const reports = await listReportsUseCase.execute({ householdId, auth });
     const balanceSheets = reports

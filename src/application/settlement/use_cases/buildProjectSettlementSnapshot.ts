@@ -1,7 +1,7 @@
-import { calculateProjectSettlementSnapshot } from '@/domains/project/calculators/projectSettlementCalculator';
 import { type Allocation } from '@/domains/allocation/schemas';
-import { type ProjectSnapshotCreate } from '@/domains/project/schemas';
 import { type Transaction } from '@/domains/ledger/schemas';
+import { calculateProjectSettlementSnapshot } from '@/domains/project/calculators/projectSettlementCalculator';
+import { type ProjectSnapshotCreate } from '@/domains/project/schemas';
 import { allocationRepository } from '@/infra/repositories/allocationRepository';
 import { projectRepository } from '@/infra/repositories/projectRepository';
 import { transactionRepository } from '@/infra/repositories/transactionRepository';

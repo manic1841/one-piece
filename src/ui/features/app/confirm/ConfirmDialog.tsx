@@ -1,5 +1,6 @@
 import React, { useCallback, useMemo, useRef, useState } from 'react';
 
+import { Button } from '@/ui/components/ui/button';
 import {
   Dialog,
   DialogContent,
@@ -8,13 +9,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/ui/components/ui/dialog';
-import { Button } from '@/ui/components/ui/button';
 
 import {
+  type ConfirmOptions,
   DEFAULT_CANCEL_LABEL,
   DEFAULT_CONFIRM_LABEL,
   resolveConfirmOptions,
-  type ConfirmOptions,
 } from './resolveConfirmOptions';
 import { ConfirmContext } from './useConfirm';
 
@@ -51,9 +51,7 @@ export const ConfirmDialogProvider: React.FC<{ children: React.ReactNode }> = ({
         <DialogContent className="max-w-md" aria-describedby={undefined}>
           <DialogHeader>
             <DialogTitle>{options?.title}</DialogTitle>
-            {options?.context && (
-              <DialogDescription>{options.context}</DialogDescription>
-            )}
+            {options?.context && <DialogDescription>{options.context}</DialogDescription>}
           </DialogHeader>
           {options?.consequence && (
             <p className="text-sm text-muted-foreground">{options.consequence}</p>

@@ -5,21 +5,15 @@
  * part of the global setup (see docs/qa-seed-data.md §3).
  */
 import { AccountSchema } from '@/domains/account/types/account';
-import {
-  AccountCategory,
-  CurrencyType,
-} from '@/domains/account/types/categories';
+import { AccountCategory, CurrencyType } from '@/domains/account/types/categories';
 import { AllocationTemplateSchema } from '@/domains/allocation/templateSchemas';
 import { DebtAccountSchema } from '@/domains/debt/schemas';
 import { LEDGER_CODES } from '@/domains/ledger/constants';
-import {
-  CustomLedgerCodeSchema,
-  IntentMappingSchema,
-} from '@/domains/ledger/schemas';
-import { ProjectSchema } from '@/domains/project/schemas';
+import { CustomLedgerCodeSchema, IntentMappingSchema } from '@/domains/ledger/schemas';
 import { PortfolioSchema } from '@/domains/portfolio/schemas';
+import { ProjectSchema } from '@/domains/project/schemas';
 
-import { audit, emit, hh, type Builder } from './shared';
+import { type Builder, audit, emit, hh } from './shared';
 
 export const STATIC_PROJECT_IDS = [
   'proj_daily',

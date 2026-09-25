@@ -2,9 +2,9 @@ import React, { useState } from 'react';
 
 import { useLocation, useNavigate } from 'react-router-dom';
 
-import { useAuthState } from '@/ui/contexts/useAuthState';
 import { Button } from '@/ui/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/ui/card';
+import { useAuthState } from '@/ui/contexts/useAuthState';
 
 const Login: React.FC = () => {
   const [error, setError] = useState('');

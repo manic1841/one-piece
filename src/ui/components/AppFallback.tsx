@@ -16,12 +16,7 @@ interface AppFallbackProps {
  * （見 docs/qa-faq.md）。任何讓 app 無法進入的失敗都必須留下可見訊息與重試路徑，
  * 不得是 silent failure。
  */
-export const AppFallback: React.FC<AppFallbackProps> = ({
-  title,
-  description,
-  hint,
-  onRetry,
-}) => (
+export const AppFallback: React.FC<AppFallbackProps> = ({ title, description, hint, onRetry }) => (
   <div className="flex min-h-screen items-center justify-center bg-background px-6">
     <div className="w-full max-w-md space-y-3 text-center">
       <h1 className="text-lg font-semibold text-foreground">{title}</h1>

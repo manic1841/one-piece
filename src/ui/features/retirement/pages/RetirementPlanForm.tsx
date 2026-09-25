@@ -1,19 +1,18 @@
 import React, { useState } from 'react';
 
 import { Trash2 } from 'lucide-react';
-
 import { useParams } from 'react-router-dom';
 
-import { useAuthState } from '@/ui/contexts/useAuthState';
-import { Alert, AlertDescription } from '@/ui/components/ui/alert';
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
 } from '@/ui/components/ui/accordion';
+import { Alert, AlertDescription } from '@/ui/components/ui/alert';
 import { Button } from '@/ui/components/ui/button';
 import { RetirementWorkspaceSectionLabels } from '@/ui/constants/retirement/retirementWorkspaceLabels';
+import { useAuthState } from '@/ui/contexts/useAuthState';
 import AssumptionsForm from '@/ui/features/retirement/components/AssumptionsForm';
 import { CurrentFinancialState } from '@/ui/features/retirement/components/detail/CurrentFinancialState';
 import { EventTabContent } from '@/ui/features/retirement/components/detail/EventTabContent';
@@ -74,8 +73,8 @@ const RetirementPlanForm: React.FC = () => {
         <Alert className="border-warning/40 bg-warning/5">
           <AlertDescription className="flex items-center justify-between gap-3">
             <span>
-              收入樣本年度可更新：{staleIncomeSyncBanner.staleCount} 筆收入資料仍使用舊年度，建議更新至{' '}
-              {staleIncomeSyncBanner.targetSampleYear} 年。
+              收入樣本年度可更新：{staleIncomeSyncBanner.staleCount}{' '}
+              筆收入資料仍使用舊年度，建議更新至 {staleIncomeSyncBanner.targetSampleYear} 年。
             </span>
             <div className="flex items-center gap-2">
               <Button size="sm" onClick={handleApplyStaleIncomeSync}>
@@ -88,14 +87,12 @@ const RetirementPlanForm: React.FC = () => {
           </AlertDescription>
         </Alert>
       )}
-
       <RetirementPlanHeader
         header={headerVM}
         handleSaveName={handleSaveName}
         handleRecalculate={handleRecalculate}
         handleToggleAutoUpdate={handleToggleAutoUpdate}
       />
-
       <Accordion
         type="multiple"
         value={expandedSections}
@@ -196,7 +193,8 @@ const RetirementPlanForm: React.FC = () => {
           <Trash2 size={14} />
           Delete plan
         </Button>
-      </section>    </div>
+      </section>{' '}
+    </div>
   );
 };
 

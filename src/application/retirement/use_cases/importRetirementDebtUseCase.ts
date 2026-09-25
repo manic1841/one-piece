@@ -1,7 +1,7 @@
 import { startOfMonth, subMonths } from 'date-fns';
 
-import { type AuthContext } from '@/application/types';
 import { householdPermissionService } from '@/application/household/householdPermissionService';
+import { type AuthContext } from '@/application/types';
 import { type RetirementExpenseCategory, RetirementExpenseType } from '@/domains/retirement/types';
 import { debtAccountRepository } from '@/infra/repositories/debtAccountRepository';
 import { debtSnapshotRepository } from '@/infra/repositories/debtSnapshotRepository';
@@ -18,9 +18,7 @@ const toYearMonth = (date: Date): string =>
 const DEBT_SNAPSHOT_WINDOW_MONTHS = 12;
 
 export class ImportRetirementDebtUseCase {
-  async execute(
-    request: ImportRetirementDebtRequest,
-  ): Promise<RetirementExpenseCategory[]> {
+  async execute(request: ImportRetirementDebtRequest): Promise<RetirementExpenseCategory[]> {
     const { householdId, auth } = request;
 
     await householdPermissionService.assertReadPermission(

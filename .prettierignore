@@ -1,0 +1,3 @@
+# Dependency artifacts managed by their own tools, not prettier
+pnpm-lock.yaml
+skills-lock.json

@@ -6,11 +6,7 @@ import { db, resetMockDb } from '@/test/mocks/firebase';
 
 const auth = { uid: 'user-1', email: 'user@example.com', isGlobalAdmin: true };
 
-const seedAccount = async (
-  householdId: string,
-  accountId: string,
-  isActive: boolean,
-) => {
+const seedAccount = async (householdId: string, accountId: string, isActive: boolean) => {
   await setDoc(doc(db, 'households', householdId, 'accounts', accountId), {
     id: accountId,
     name: `Account ${accountId}`,
@@ -25,33 +21,22 @@ const seedAccount = async (
   });
 };
 
-const seedAccountSnapshot = async (
-  householdId: string,
-  accountId: string,
-  yearMonth: string,
-) => {
-  await setDoc(
-    doc(db, 'households', householdId, 'accounts', accountId, 'snapshots', yearMonth),
-    {
-      id: yearMonth,
-      accountId,
-      year: Number(yearMonth.split('-')[0]),
-      month: Number(yearMonth.split('-')[1]),
-      amount: 1000,
-      holdings: [],
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-      createdBy: 'user@example.com',
-      updatedBy: 'user@example.com',
-    },
-  );
+const seedAccountSnapshot = async (householdId: string, accountId: string, yearMonth: string) => {
+  await setDoc(doc(db, 'households', householdId, 'accounts', accountId, 'snapshots', yearMonth), {
+    id: yearMonth,
+    accountId,
+    year: Number(yearMonth.split('-')[0]),
+    month: Number(yearMonth.split('-')[1]),
+    amount: 1000,
+    holdings: [],
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+    createdBy: 'user@example.com',
+    updatedBy: 'user@example.com',
+  });
 };
 
-const seedPortfolio = async (
-  householdId: string,
-  portfolioId: string,
-  isActive: boolean,
-) => {
+const seedPortfolio = async (householdId: string, portfolioId: string, isActive: boolean) => {
   await setDoc(doc(db, 'households', householdId, 'portfolios', portfolioId), {
     id: portfolioId,
     name: `Portfolio ${portfolioId}`,
@@ -97,11 +82,7 @@ const seedPortfolioSnapshot = async (
   );
 };
 
-const seedProject = async (
-  householdId: string,
-  projectId: string,
-  isActive: boolean,
-) => {
+const seedProject = async (householdId: string, projectId: string, isActive: boolean) => {
   await setDoc(doc(db, 'households', householdId, 'projects', projectId), {
     id: projectId,
     name: `Project ${projectId}`,
@@ -118,34 +99,23 @@ const seedProject = async (
   });
 };
 
-const seedProjectSnapshot = async (
-  householdId: string,
-  projectId: string,
-  yearMonth: string,
-) => {
-  await setDoc(
-    doc(db, 'households', householdId, 'projects', projectId, 'snapshots', yearMonth),
-    {
-      id: yearMonth,
-      year: Number(yearMonth.split('-')[0]),
-      month: Number(yearMonth.split('-')[1]),
-      openingBalance: 0,
-      income: 0,
-      expense: 0,
-      closingBalance: 0,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-      createdBy: 'user@example.com',
-      updatedBy: 'user@example.com',
-    },
-  );
+const seedProjectSnapshot = async (householdId: string, projectId: string, yearMonth: string) => {
+  await setDoc(doc(db, 'households', householdId, 'projects', projectId, 'snapshots', yearMonth), {
+    id: yearMonth,
+    year: Number(yearMonth.split('-')[0]),
+    month: Number(yearMonth.split('-')[1]),
+    openingBalance: 0,
+    income: 0,
+    expense: 0,
+    closingBalance: 0,
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+    createdBy: 'user@example.com',
+    updatedBy: 'user@example.com',
+  });
 };
 
-const seedDebtAccount = async (
-  householdId: string,
-  debtAccountId: string,
-  isActive: boolean,
-) => {
+const seedDebtAccount = async (householdId: string, debtAccountId: string, isActive: boolean) => {
   await setDoc(doc(db, 'households', householdId, 'debtAccounts', debtAccountId), {
     id: debtAccountId,
     name: `Debt ${debtAccountId}`,
@@ -168,11 +138,7 @@ const seedDebtAccount = async (
   });
 };
 
-const seedDebtSnapshot = async (
-  householdId: string,
-  debtAccountId: string,
-  yearMonth: string,
-) => {
+const seedDebtSnapshot = async (householdId: string, debtAccountId: string, yearMonth: string) => {
   await setDoc(
     doc(db, 'households', householdId, 'debtAccounts', debtAccountId, 'snapshots', yearMonth),
     {

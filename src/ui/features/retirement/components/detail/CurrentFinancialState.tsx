@@ -2,17 +2,15 @@ import React from 'react';
 
 import { Link } from 'react-router-dom';
 
-import { type StartingNetWorthSource } from '@/ui/features/retirement/viewmodels/retirementDisplay.vm';
 import { Button } from '@/ui/components/ui/button';
+import { type StartingNetWorthSource } from '@/ui/features/retirement/viewmodels/retirementDisplay.vm';
 import { formatCurrency } from '@/ui/utils';
 
 interface CurrentFinancialStateProps {
   netWorthSource: StartingNetWorthSource | null;
 }
 
-export const CurrentFinancialState: React.FC<CurrentFinancialStateProps> = ({
-  netWorthSource,
-}) => {
+export const CurrentFinancialState: React.FC<CurrentFinancialStateProps> = ({ netWorthSource }) => {
   if (!netWorthSource || 'reason' in netWorthSource) {
     return (
       <div className="rounded-lg border p-6">
@@ -40,9 +38,7 @@ export const CurrentFinancialState: React.FC<CurrentFinancialStateProps> = ({
         </div>
         <div className="rounded-lg border p-4">
           <p className="text-sm text-muted-foreground">期初淨資產</p>
-          <p className="text-xl font-semibold">
-            {formatCurrency(netWorthSource.startingNetWorth)}
-          </p>
+          <p className="text-xl font-semibold">{formatCurrency(netWorthSource.startingNetWorth)}</p>
         </div>
       </div>
     </div>

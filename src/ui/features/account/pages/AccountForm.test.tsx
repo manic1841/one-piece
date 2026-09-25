@@ -1,8 +1,8 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
-import AccountForm from './AccountForm';
 import { AccountCategory, CurrencyType } from '../viewmodels/account.vm';
+import AccountForm from './AccountForm';
 
 describe('AccountForm', () => {
   it('submits mapped domain data through the form suite fields', async () => {

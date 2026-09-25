@@ -23,11 +23,12 @@ export const parseEmulatorAddress = (address: string, defaultPort: number): Emul
   };
 };
 
-const runtimeEnv = (
-  globalThis as typeof globalThis & {
-    process?: { env?: Record<string, string | undefined> };
-  }
-).process?.env ?? {};
+const runtimeEnv =
+  (
+    globalThis as typeof globalThis & {
+      process?: { env?: Record<string, string | undefined> };
+    }
+  ).process?.env ?? {};
 
 export const firestoreEmulator = parseEmulatorAddress(
   runtimeEnv.FIRESTORE_EMULATOR_HOST ?? '127.0.0.1:8080',

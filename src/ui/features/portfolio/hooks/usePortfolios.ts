@@ -9,8 +9,8 @@ import {
   mapPortfolioToDetailVM,
   mapPortfolioToListItemVM,
 } from '@/ui/features/portfolio/viewmodels/portfolioDisplay.vm';
-import { useLoadingTask } from '@/ui/hooks/useLoadingTask';
 import { useAuthIdentity } from '@/ui/hooks/useAuthIdentity';
+import { useLoadingTask } from '@/ui/hooks/useLoadingTask';
 
 export function usePortfolios(householdId: string) {
   const [portfolios, setPortfolios] = useState<Portfolio[]>([]);

@@ -14,15 +14,15 @@
  *   owner      – signed in, whitelisted, household owner
  *   global     – signed in, global admin (role: 'admin')
  */
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
 import {
+  type RulesTestEnvironment,
   assertFails,
   assertSucceeds,
   initializeTestEnvironment,
-  type RulesTestEnvironment,
 } from '@firebase/rules-unit-testing';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { afterAll, beforeAll, beforeEach, describe, it } from 'vitest';
 
 import { emulatorProjectId, firestoreEmulator } from './emulatorEnv';
@@ -77,31 +77,28 @@ afterAll(async () => {
   await testEnv?.cleanup();
   // Restore permissive rules so other integration tests are unaffected.
   // The Firestore emulator persists loaded rules across requests.
-  await fetch(
-    `${firestoreEmulator.baseUrl}/emulator/v1/projects/${PROJECT_ID}:securityRules`,
-    {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        rules: {
-          files: [
-            {
-              content: [
-                'rules_version = \'2\';',
-                'service cloud.firestore {',
-                '  match /databases/{database}/documents {',
-                '    match /{document=**} {',
-                '      allow read, write: if true;',
-                '    }',
-                '  }',
-                '}',
-              ].join('\n'),
-            },
-          ],
-        },
-      }),
-    },
-  );
+  await fetch(`${firestoreEmulator.baseUrl}/emulator/v1/projects/${PROJECT_ID}:securityRules`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      rules: {
+        files: [
+          {
+            content: [
+              "rules_version = '2';",
+              'service cloud.firestore {',
+              '  match /databases/{database}/documents {',
+              '    match /{document=**} {',
+              '      allow read, write: if true;',
+              '    }',
+              '  }',
+              '}',
+            ].join('\n'),
+          },
+        ],
+      },
+    }),
+  });
 });
 
 beforeEach(async () => {
@@ -123,7 +120,9 @@ describe('Firestore security rules authorization matrix', () => {
 
     it('denied write on household subcollections', async () => {
       const db = testEnv.unauthenticatedContext().firestore();
-      await assertFails(setDoc(doc(db, `households/${HOUSEHOLD_ID}/transactions/tx1`), { name: 'x' }));
+      await assertFails(
+        setDoc(doc(db, `households/${HOUSEHOLD_ID}/transactions/tx1`), { name: 'x' }),
+      );
     });
 
     it('denied write on watch list (anonymous)', async () => {
@@ -161,7 +160,9 @@ describe('Firestore security rules authorization matrix', () => {
 
     it('denied write on household subcollections (not an admin)', async () => {
       const db = testEnv.authenticatedContext('non-member-uid', TOKENS.nonMember).firestore();
-      await assertFails(setDoc(doc(db, `households/${HOUSEHOLD_ID}/transactions/tx1`), { name: 'x' }));
+      await assertFails(
+        setDoc(doc(db, `households/${HOUSEHOLD_ID}/transactions/tx1`), { name: 'x' }),
+      );
     });
 
     it('denied write on watch list (not a member)', async () => {
@@ -187,7 +188,9 @@ describe('Firestore security rules authorization matrix', () => {
 
     it('denied update on household main doc (not an admin of this household)', async () => {
       const db = testEnv.authenticatedContext('non-member-uid', TOKENS.nonMember).firestore();
-      await assertFails(setDoc(doc(db, `households/${HOUSEHOLD_ID}`), { name: 'x' }, { merge: true }));
+      await assertFails(
+        setDoc(doc(db, `households/${HOUSEHOLD_ID}`), { name: 'x' }, { merge: true }),
+      );
     });
 
     it('allowed read on access_control (isSystemUser)', async () => {
@@ -197,7 +200,9 @@ describe('Firestore security rules authorization matrix', () => {
 
     it('denied write on access_control (not global admin)', async () => {
       const db = testEnv.authenticatedContext('non-member-uid', TOKENS.nonMember).firestore();
-      await assertFails(setDoc(doc(db, 'access_control/whitelist'), { emails: [] }, { merge: true }));
+      await assertFails(
+        setDoc(doc(db, 'access_control/whitelist'), { emails: [] }, { merge: true }),
+      );
     });
 
     it('allowed read on users (isSystemUser)', async () => {
@@ -219,7 +224,9 @@ describe('Firestore security rules authorization matrix', () => {
 
     it('denied write on household subcollections (member is not admin)', async () => {
       const db = testEnv.authenticatedContext('member-uid', TOKENS.member).firestore();
-      await assertFails(setDoc(doc(db, `households/${HOUSEHOLD_ID}/transactions/tx1`), { name: 'x' }));
+      await assertFails(
+        setDoc(doc(db, `households/${HOUSEHOLD_ID}/transactions/tx1`), { name: 'x' }),
+      );
     });
 
     it('allowed read on watch list (household member)', async () => {
@@ -245,7 +252,9 @@ describe('Firestore security rules authorization matrix', () => {
 
     it('denied update on household main doc (member is not admin)', async () => {
       const db = testEnv.authenticatedContext('member-uid', TOKENS.member).firestore();
-      await assertFails(setDoc(doc(db, `households/${HOUSEHOLD_ID}`), { name: 'Hacked' }, { merge: true }));
+      await assertFails(
+        setDoc(doc(db, `households/${HOUSEHOLD_ID}`), { name: 'Hacked' }, { merge: true }),
+      );
     });
 
     it('denied create on households (requires global admin)', async () => {
@@ -260,7 +269,9 @@ describe('Firestore security rules authorization matrix', () => {
 
     it('denied write on access_control (not global admin)', async () => {
       const db = testEnv.authenticatedContext('member-uid', TOKENS.member).firestore();
-      await assertFails(setDoc(doc(db, 'access_control/whitelist'), { emails: [] }, { merge: true }));
+      await assertFails(
+        setDoc(doc(db, 'access_control/whitelist'), { emails: [] }, { merge: true }),
+      );
     });
 
     it('allowed read on users (isSystemUser)', async () => {
@@ -287,7 +298,9 @@ describe('Firestore security rules authorization matrix', () => {
 
     it('allowed write on household subcollections', async () => {
       const db = testEnv.authenticatedContext('admin-uid', TOKENS.admin).firestore();
-      await assertSucceeds(setDoc(doc(db, `households/${HOUSEHOLD_ID}/transactions/tx1`), { name: 'x' }));
+      await assertSucceeds(
+        setDoc(doc(db, `households/${HOUSEHOLD_ID}/transactions/tx1`), { name: 'x' }),
+      );
     });
 
     it('allowed write on watch list (household admin)', async () => {
@@ -313,7 +326,9 @@ describe('Firestore security rules authorization matrix', () => {
 
     it('allowed update on household main doc (isHouseholdAdmin)', async () => {
       const db = testEnv.authenticatedContext('admin-uid', TOKENS.admin).firestore();
-      await assertSucceeds(setDoc(doc(db, `households/${HOUSEHOLD_ID}`), { name: 'Updated' }, { merge: true }));
+      await assertSucceeds(
+        setDoc(doc(db, `households/${HOUSEHOLD_ID}`), { name: 'Updated' }, { merge: true }),
+      );
     });
 
     it('allowed read on access_control (isSystemUser)', async () => {
@@ -323,7 +338,9 @@ describe('Firestore security rules authorization matrix', () => {
 
     it('denied write on access_control (not global admin)', async () => {
       const db = testEnv.authenticatedContext('admin-uid', TOKENS.admin).firestore();
-      await assertFails(setDoc(doc(db, 'access_control/whitelist'), { emails: [] }, { merge: true }));
+      await assertFails(
+        setDoc(doc(db, 'access_control/whitelist'), { emails: [] }, { merge: true }),
+      );
     });
   });
 
@@ -335,7 +352,9 @@ describe('Firestore security rules authorization matrix', () => {
 
     it('allowed write on household subcollections', async () => {
       const db = testEnv.authenticatedContext('owner-uid', TOKENS.owner).firestore();
-      await assertSucceeds(setDoc(doc(db, `households/${HOUSEHOLD_ID}/transactions/tx1`), { name: 'x' }));
+      await assertSucceeds(
+        setDoc(doc(db, `households/${HOUSEHOLD_ID}/transactions/tx1`), { name: 'x' }),
+      );
     });
 
     it('allowed write on watch list (household owner)', async () => {
@@ -356,7 +375,9 @@ describe('Firestore security rules authorization matrix', () => {
 
     it('allowed update on household main doc (isHouseholdAdmin)', async () => {
       const db = testEnv.authenticatedContext('owner-uid', TOKENS.owner).firestore();
-      await assertSucceeds(setDoc(doc(db, `households/${HOUSEHOLD_ID}`), { name: 'Updated' }, { merge: true }));
+      await assertSucceeds(
+        setDoc(doc(db, `households/${HOUSEHOLD_ID}`), { name: 'Updated' }, { merge: true }),
+      );
     });
 
     it('allowed read on access_control (isSystemUser)', async () => {
@@ -373,7 +394,9 @@ describe('Firestore security rules authorization matrix', () => {
 
     it('allowed write on household subcollections', async () => {
       const db = testEnv.authenticatedContext('g-admin', TOKENS.globalAdmin).firestore();
-      await assertSucceeds(setDoc(doc(db, `households/${HOUSEHOLD_ID}/transactions/tx1`), { name: 'x' }));
+      await assertSucceeds(
+        setDoc(doc(db, `households/${HOUSEHOLD_ID}/transactions/tx1`), { name: 'x' }),
+      );
     });
 
     it('allowed read on household main doc', async () => {
@@ -393,7 +416,9 @@ describe('Firestore security rules authorization matrix', () => {
 
     it('allowed write on access_control', async () => {
       const db = testEnv.authenticatedContext('g-admin', TOKENS.globalAdmin).firestore();
-      await assertSucceeds(setDoc(doc(db, 'access_control/whitelist'), { emails: [] }, { merge: true }));
+      await assertSucceeds(
+        setDoc(doc(db, 'access_control/whitelist'), { emails: [] }, { merge: true }),
+      );
     });
   });
 });

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import { previewIncomeStatementUseCase } from './previewIncomeStatementUseCase';
 import { type ReportDataBundle } from './fetchReportDataUseCase';
+import { previewIncomeStatementUseCase } from './previewIncomeStatementUseCase';
 
 const emptyBundle: ReportDataBundle = {
   yearMonth: '2025-06',

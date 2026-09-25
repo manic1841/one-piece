@@ -34,4 +34,3 @@ feature 的 ViewModel。規範性細節（層級表、目錄、依賴方向、�
 
 若出現「component 必須直接消費 use case 回傳值」的真實需求，代表 ViewModel 這層的邊界劃錯了，
 應先檢討邊界而不是放寬規則。
-

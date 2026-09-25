@@ -1,10 +1,7 @@
 import { householdPermissionService } from '@/application/household/householdPermissionService';
 import { type AuthContext } from '@/application/types';
 import { LEDGER_CODES } from '@/domains/ledger/constants/ledgerCodes';
-import {
-  validateNewLedgerCode,
-  type LedgerCodeCandidate,
-} from '@/domains/ledger/ledgerCodeRules';
+import { type LedgerCodeCandidate, validateNewLedgerCode } from '@/domains/ledger/ledgerCodeRules';
 import { type CustomLedgerCodeCreate } from '@/domains/ledger/schemas';
 import { customLedgerCodeRepository } from '@/infra/repositories/customLedgerCodeRepository';
 

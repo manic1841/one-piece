@@ -1,17 +1,17 @@
 import { householdPermissionService } from '@/application/household/householdPermissionService';
 import { type AuthContext } from '@/application/types';
 import {
-  type BalanceSheetData,
-  type CashFlowData,
-  type IncomeStatementData,
-  ReportType,
-} from '@/domains/report/schemas';
-import {
   aggregateBalanceSheetSnapshots,
   aggregateCashFlowSnapshots,
   aggregateIncomeStatementSnapshots,
   buildYearMonthKeys,
 } from '@/domains/report/reportSnapshotAggregation';
+import {
+  type BalanceSheetData,
+  type CashFlowData,
+  type IncomeStatementData,
+  ReportType,
+} from '@/domains/report/schemas';
 import { reportRepository } from '@/infra/repositories/reportRepository';
 
 export type StoredReportKind = 'incomeStatement' | 'balanceSheet' | 'cashFlow';

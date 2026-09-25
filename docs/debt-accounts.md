@@ -189,13 +189,13 @@ Cr. asset:cash          totalPayment
 
 ### 相關函數
 
-| 函數                             | 位置                                           | 目的                                           |
-| -------------------------------- | ---------------------------------------------- | ---------------------------------------------- |
-| `isInGracePeriod()`              | `src/domains/debt/debtPaymentCalculator.ts`    | 判斷是否在寬限期                               |
-| `isLoanActiveInMonth()`          | `src/domains/debt/debtPaymentCalculator.ts`    | 判斷借款期間是否涵蓋某月份（記帳完整性檢查用） |
-| `calculateGraceMonthlyPayment()` | `src/domains/debt/debtPaymentCalculator.ts`    | 計算寬限期利息                                 |
-| `calculateLoan()`                | `src/ui/features/debt/utils/loanCalculator.ts` | 試算時包含 `graceEndDate` 參數                 |
-| `buildDebtPaymentEntries()`      | `src/domains/debt/debtPaymentCalculator.ts`    | 建立分錄時檢查寬限期                           |
+| 函數                             | 位置                                           | 目的                                               |
+| -------------------------------- | ---------------------------------------------- | -------------------------------------------------- |
+| `isInGracePeriod()`              | `src/domains/debt/debtPaymentCalculator.ts`    | 判斷是否在寬限期                                   |
+| `isLoanActiveInMonth()`          | `src/domains/debt/debtPaymentCalculator.ts`    | 判斷借款期間是否涵蓋某月份（記帳完整性檢查用）     |
+| `calculateGraceMonthlyPayment()` | `src/domains/debt/debtPaymentCalculator.ts`    | 計算寬限期利息                                     |
+| `calculateLoan()`                | `src/ui/features/debt/utils/loanCalculator.ts` | 試算時包含 `graceEndDate` 參數                     |
+| `buildDebtPaymentEntries()`      | `src/domains/debt/debtPaymentCalculator.ts`    | 建立分錄時檢查寬限期                               |
 | `parseDebtPaymentEntries()`      | `src/domains/debt/debtPaymentCalculator.ts`    | 由 `DEBT_PAYMENT` 分錄讀回本金／利息（上述的逆向） |
 
 ### 記帳完整性檢查中的債務語意
@@ -371,15 +371,15 @@ DebtAccount.closedAt = today
 
 ## 8. 相關檔案
 
-| 層                         | 路徑                                                                            |
-| -------------------------- | ------------------------------------------------------------------------------- |
-| Domain                     | `src/domains/debt/schemas.ts`                                                   |
-| Utility                    | `src/ui/features/debt/utils/loanCalculator.ts`                                  |
-| Calculator (Split & Grace) | `src/domains/debt/debtPaymentCalculator.ts`                                     |
-| Repository                 | `src/infra/repositories/debtAccountRepository.ts`                               |
-| Repository (Snapshot)      | `src/infra/repositories/debtSnapshotRepository.ts`                              |
-| Use Cases                  | `src/application/debt/use_cases/`                                               |
-| LedgerCode Init            | `src/application/ledger/use_cases/initDebtLedgerCodesUseCase.ts`                |
-| Hooks                      | `src/ui/features/debt/hooks/`                                                   |
-| Components                 | `src/ui/features/debt/components/DebtAccountForm.tsx` |
-| Page                       | `src/ui/features/debt/pages/DebtListPage.tsx`                                   |
+| 層                         | 路徑                                                             |
+| -------------------------- | ---------------------------------------------------------------- |
+| Domain                     | `src/domains/debt/schemas.ts`                                    |
+| Utility                    | `src/ui/features/debt/utils/loanCalculator.ts`                   |
+| Calculator (Split & Grace) | `src/domains/debt/debtPaymentCalculator.ts`                      |
+| Repository                 | `src/infra/repositories/debtAccountRepository.ts`                |
+| Repository (Snapshot)      | `src/infra/repositories/debtSnapshotRepository.ts`               |
+| Use Cases                  | `src/application/debt/use_cases/`                                |
+| LedgerCode Init            | `src/application/ledger/use_cases/initDebtLedgerCodesUseCase.ts` |
+| Hooks                      | `src/ui/features/debt/hooks/`                                    |
+| Components                 | `src/ui/features/debt/components/DebtAccountForm.tsx`            |
+| Page                       | `src/ui/features/debt/pages/DebtListPage.tsx`                    |

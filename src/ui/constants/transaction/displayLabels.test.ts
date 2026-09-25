@@ -32,7 +32,8 @@ describe('displayLabels pinning', () => {
 
   it('covers every domain intent mapping with a display label', () => {
     const unlabeled = DEFAULT_INTENT_MAPPINGS.filter(
-      (mapping) => !getIntentLabel(mapping.intent) || getIntentLabel(mapping.intent) === mapping.intent,
+      (mapping) =>
+        !getIntentLabel(mapping.intent) || getIntentLabel(mapping.intent) === mapping.intent,
     );
 
     expect(unlabeled.map((mapping) => mapping.intent)).toEqual([]);

@@ -85,7 +85,12 @@ describe('expenseEngine', () => {
       const atStart = calculateYearlyExpense(expense, expense.startYear, basePlan, SAMPLE_YEAR);
       expect(atStart).toBeCloseTo(100_000 * Math.pow(1.02, expense.startYear - SAMPLE_YEAR), 0);
 
-      const twoYearsLater = calculateYearlyExpense(expense, expense.startYear + 2, basePlan, SAMPLE_YEAR);
+      const twoYearsLater = calculateYearlyExpense(
+        expense,
+        expense.startYear + 2,
+        basePlan,
+        SAMPLE_YEAR,
+      );
       expect(twoYearsLater).toBeCloseTo(
         100_000 * Math.pow(1.02, expense.startYear + 2 - SAMPLE_YEAR),
         0,
@@ -99,7 +104,11 @@ describe('expenseEngine', () => {
     });
 
     it('applies the retirement multiplier immediately in the retirement year', () => {
-      const expense = generalExpense({ currentAnnual: 100_000, growthRate: 0, retirementMultiplier: 0.7 });
+      const expense = generalExpense({
+        currentAnnual: 100_000,
+        growthRate: 0,
+        retirementMultiplier: 0.7,
+      });
 
       const lastWorkingYear = calculateYearlyExpense(expense, 2044, basePlan, SAMPLE_YEAR);
       expect(lastWorkingYear).toBeCloseTo(100_000, 0);
@@ -120,7 +129,10 @@ describe('expenseEngine', () => {
     describe('debt_payment', () => {
       it('uses the compounded current level like a general expense', () => {
         const expense = debtPaymentExpense({ currentAnnual: 240_000, growthRate: 0 });
-        expect(calculateYearlyExpense(expense, 2030, basePlan, SAMPLE_YEAR)).toBeCloseTo(240_000, 0);
+        expect(calculateYearlyExpense(expense, 2030, basePlan, SAMPLE_YEAR)).toBeCloseTo(
+          240_000,
+          0,
+        );
       });
 
       it('interest-only uses the sampled monthly interest annualized', () => {
@@ -132,12 +144,18 @@ describe('expenseEngine', () => {
             sampleCount: 12,
           },
         });
-        expect(calculateYearlyExpense(expense, 2030, basePlan, SAMPLE_YEAR)).toBeCloseTo(120_000, 0);
+        expect(calculateYearlyExpense(expense, 2030, basePlan, SAMPLE_YEAR)).toBeCloseTo(
+          120_000,
+          0,
+        );
       });
 
       it('ignores the retirement multiplier', () => {
         const expense = debtPaymentExpense({ retirementMultiplier: 0.5, growthRate: 0 });
-        expect(calculateYearlyExpense(expense, 2035, basePlan, SAMPLE_YEAR)).toBeCloseTo(240_000, 0);
+        expect(calculateYearlyExpense(expense, 2035, basePlan, SAMPLE_YEAR)).toBeCloseTo(
+          240_000,
+          0,
+        );
       });
     });
   });

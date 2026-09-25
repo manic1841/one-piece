@@ -2,7 +2,6 @@ import React from 'react';
 
 import { Database, Download, ShieldAlert } from 'lucide-react';
 
-import { type Household } from '@/ui/features/setting/viewmodels/setting.vm';
 import { PageHeader } from '@/ui/components/PageHeader';
 import { Button } from '@/ui/components/ui/button';
 import { Card, CardContent } from '@/ui/components/ui/card';
@@ -15,6 +14,7 @@ import {
   DialogTitle,
 } from '@/ui/components/ui/dialog';
 import { type WatchListPickerData } from '@/ui/features/setting/hooks/useWatchListPickerData';
+import { type Household } from '@/ui/features/setting/viewmodels/setting.vm';
 
 import { AllocationTemplateSettings } from './AllocationTemplateSettings';
 import EmailWhitelistUI from './EmailWhitelistUI';

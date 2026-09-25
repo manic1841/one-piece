@@ -12,10 +12,9 @@ import {
   TableHeader,
   TableRow,
 } from '@/ui/components/ui/table';
+import { useConfirm } from '@/ui/features/app/confirm/useConfirm';
 import { type PortfolioSnapshot } from '@/ui/features/portfolio/viewmodels/portfolioDisplay.vm';
 import { formatCurrency, formatPercentage, formatYearMonth } from '@/ui/utils';
-
-import { useConfirm } from '@/ui/features/app/confirm/useConfirm';
 
 interface PortfolioHistoryTableProps {
   snapshots: PortfolioSnapshot[];

@@ -92,13 +92,13 @@ phase 形狀與驗證：
 
 存放庫與 Use Case 的規則集中在下表，取捨理由見各自 ADR：
 
-| 行為                          | 規則                                                                                                    | 取捨理由                                                   |
-| ----------------------------- | ------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
-| 摘要查詢避免 N+1              | `getPlanSummaries` 只讀計畫主文件的快取摘要，與 `getPlan` 分開，不為每個計畫讀子集合                    | [ADR-0029](adr/0029-plan-summaries-avoid-n-plus-1.md)      |
-| income/expense 子集合整批替換 | 整批替換而非逐筆 diff                                                                                   | [ADR-0030](adr/0030-retirement-update-batch-replace.md)    |
-| 刪除順序（歷史；已原子化）    | 子集合先行、主文件最後                                                                                  | [ADR-0031](adr/0031-retirement-delete-order.md)            |
-| active plan 唯一性            | 同一 household 至多一筆 `isActive=true`                                                                 | [ADR-0036](adr/0036-single-active-retirement-plan.md)      |
-| 複製後預設非啟用              | 新計畫 `isActive=false`                                                                                 | [ADR-0037](adr/0037-retirement-plan-duplicate-inactive.md) |
+| 行為                          | 規則                                                                                                                                                                                         | 取捨理由                                                   |
+| ----------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
+| 摘要查詢避免 N+1              | `getPlanSummaries` 只讀計畫主文件的快取摘要，與 `getPlan` 分開，不為每個計畫讀子集合                                                                                                         | [ADR-0029](adr/0029-plan-summaries-avoid-n-plus-1.md)      |
+| income/expense 子集合整批替換 | 整批替換而非逐筆 diff                                                                                                                                                                        | [ADR-0030](adr/0030-retirement-update-batch-replace.md)    |
+| 刪除順序（歷史；已原子化）    | 子集合先行、主文件最後                                                                                                                                                                       | [ADR-0031](adr/0031-retirement-delete-order.md)            |
+| active plan 唯一性            | 同一 household 至多一筆 `isActive=true`                                                                                                                                                      | [ADR-0036](adr/0036-single-active-retirement-plan.md)      |
+| 複製後預設非啟用              | 新計畫 `isActive=false`                                                                                                                                                                      | [ADR-0037](adr/0037-retirement-plan-duplicate-inactive.md) |
 | 寫入原子邊界、上限與併發      | create/update/delete/duplicate 全在單一 transaction 內；preflight（schema 驗證）在 transaction 外先做；單次寫入上限 400 筆，超過回 `PLAN_TOO_LARGE`；transaction 失敗回 `TRANSACTION_FAILED` | [ADR-0040](adr/0040-retirement-plan-atomic-writes.md)      |
 
 目前對應的主要操作包括 `getPlan/getPlans`、`getPlanSummaries`、`createPlan`、`updatePlan`、`deletePlan`、`setOnlyActivePlan` 與 `DuplicateRetirementPlanUseCase`；create/update/delete/duplicate 的寫入一律走 [ADR-0040](adr/0040-retirement-plan-atomic-writes.md) 的單一 transaction 邊界。

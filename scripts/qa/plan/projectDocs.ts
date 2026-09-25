@@ -3,24 +3,24 @@
  * first month even though only report-month snapshots are persisted) and
  * portfolio snapshots for the report months.
  */
+import { PortfolioSnapshotSchema } from '@/domains/portfolio/schemas';
 import { calculateProjectSettlementSnapshot } from '@/domains/project/calculators/projectSettlementCalculator';
 import { ProjectSnapshotSchema } from '@/domains/project/schemas';
-import { PortfolioSnapshotSchema } from '@/domains/portfolio/schemas';
 
 import {
+  type AllocationJournal,
+  type Builder,
+  type InternalTxn,
+  REPORT_MONTHS,
+  SEED_WINDOW_END,
+  SEED_WINDOW_START,
   audit,
   emit,
   hh,
   marketValueAt,
   monthRange,
-  REPORT_MONTHS,
   securitiesSnapshotMonths,
-  SEED_WINDOW_START,
-  SEED_WINDOW_END,
   ym,
-  type AllocationJournal,
-  type Builder,
-  type InternalTxn,
 } from './shared';
 import { STATIC_PROJECT_IDS } from './staticDocs';
 
@@ -44,8 +44,12 @@ export const buildProjectSnapshotDocs = (
         projectId,
         openingBalance: opening,
         allocations: allocations.filter((a) => a.yearMonth === target),
-        transfers: sorted.filter((t) => t.yearMonth === target && (t.fromProjectId || t.toProjectId)),
-        projectTransactions: sorted.filter((t) => t.yearMonth === target && t.projectId === projectId),
+        transfers: sorted.filter(
+          (t) => t.yearMonth === target && (t.fromProjectId || t.toProjectId),
+        ),
+        projectTransactions: sorted.filter(
+          (t) => t.yearMonth === target && t.projectId === projectId,
+        ),
       });
       opening = snap.closingBalance;
       if (REPORT_MONTHS.includes(target)) {
@@ -80,9 +84,7 @@ export const buildPortfolioSnapshotDocs = (b: Builder) => {
             accountName: '券商帳戶',
             category: 'securities',
             value: closingValue,
-            holdings: [
-              { symbol: '0050', name: '元大台灣50', cost: 50, marketValue: closingValue },
-            ],
+            holdings: [{ symbol: '0050', name: '元大台灣50', cost: 50, marketValue: closingValue }],
           },
         ],
         totalValue: closingValue,

@@ -67,16 +67,16 @@ Page Header 規則：
 
 級距本身（`4 · 8 · 12 · 16 · 24 · 32 · 48 · 64`）定義在 [`design-system.md`](design-system.md) 的「間距級距」節；本節只定使用場景與禁止事項。
 
-| 級距 | 用途 |
-| ----- | ---- |
-| 4px   | icon / text 微間距 |
-| 8px   | label → input、icon → text |
-| 12px  | table / compact row |
-| 16px  | component internal padding |
-| 24px  | section internal spacing |
-| 32px  | section separation |
-| 48px  | major section separation |
-| 64px  | page-level breathing room |
+| 級距 | 用途                       |
+| ---- | -------------------------- |
+| 4px  | icon / text 微間距         |
+| 8px  | label → input、icon → text |
+| 12px | table / compact row        |
+| 16px | component internal padding |
+| 24px | section internal spacing   |
+| 32px | section separation         |
+| 48px | major section separation   |
+| 64px | page-level breathing room  |
 
 **禁止**：級距外的任意值（`13px`、`18px`、`22px`、`27px`、`37px`…）不得大量出現，除非有特殊 layout 原因。目標是讓整個系統有**可預測的節奏**。
 

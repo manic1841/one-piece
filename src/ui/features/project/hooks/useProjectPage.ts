@@ -16,9 +16,7 @@ export const useProjectPage = (householdId?: string) => {
   const [showInactive, setShowInactive] = useState(false);
   const [localProjects, setLocalProjects] = useState<Project[]>([]);
 
-  const { createProject, updateProject, reorderProjects } = useProjectCmds(
-    householdId || '',
-  );
+  const { createProject, updateProject, reorderProjects } = useProjectCmds(householdId || '');
 
   useEffect(() => {
     setLocalProjects(projects);

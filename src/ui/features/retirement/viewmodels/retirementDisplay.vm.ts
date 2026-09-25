@@ -1,7 +1,7 @@
 import { calculateYearlyExpense } from '@/domains/retirement/logic/expenseEngine';
+import { resolveSampleYear } from '@/domains/retirement/logic/retirementCalculator';
 import { normalizeRetirementEventPhases } from '@/domains/retirement/logic/retirementEventPhases';
 import { type RetirementProjection } from '@/domains/retirement/logic/retirementPlanProjection';
-import { resolveSampleYear } from '@/domains/retirement/logic/retirementCalculator';
 import {
   type RetirementExpenseCategory,
   type RetirementIncomeSource,
@@ -10,11 +10,7 @@ import {
 } from '@/domains/retirement/types';
 import { formatCurrency } from '@/ui/utils';
 
-export type {
-  RetirementExpenseCategory,
-  RetirementIncomeSource,
-  RetirementOneTimeEvent,
-};
+export type { RetirementExpenseCategory, RetirementIncomeSource, RetirementOneTimeEvent };
 
 export type { StartingNetWorthSource } from '@/application/retirement/use_cases/getStartingNetWorthUseCase';
 
@@ -67,9 +63,8 @@ export const mapRetirementPlanToListItemVM = (plan: RetirementPlan): RetirementP
   isActive: plan.isActive,
   retirementAge: plan.retirementAge,
   statusText: plan.isActive ? 'Active' : 'Inactive',
-  finalNetWorthText: plan.summary?.finalNetWorth != null
-    ? formatCurrency(plan.summary.finalNetWorth)
-    : '—',
+  finalNetWorthText:
+    plan.summary?.finalNetWorth != null ? formatCurrency(plan.summary.finalNetWorth) : '—',
 });
 
 export interface RetirementIncomeItemVM {
@@ -85,10 +80,7 @@ export const mapRetirementIncomeToVM = (
 ): RetirementIncomeItemVM => ({
   id: income.id,
   name: income.name,
-  amountText:
-    income.currentAnnual != null
-      ? `${formatCurrency(income.currentAnnual)}/yr`
-      : '—',
+  amountText: income.currentAnnual != null ? `${formatCurrency(income.currentAnnual)}/yr` : '—',
   growthText: income.growthRate != null ? `${income.growthRate}% growth` : 'Inflation',
   periodText: income.lifelong
     ? `${income.startYear} - 終身`

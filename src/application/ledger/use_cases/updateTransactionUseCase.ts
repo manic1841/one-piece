@@ -1,18 +1,19 @@
 import { runTransaction } from 'firebase/firestore';
 
+import { householdPermissionService } from '@/application/household/householdPermissionService';
 import {
   AllocationReplacementCommandError,
   AllocationReplacementCommandErrorCode,
 } from '@/application/ledger/allocationReplacementErrors';
-import { householdPermissionService } from '@/application/household/householdPermissionService';
 import { type AuthContext } from '@/application/types';
 import { type TransactionCreate } from '@/domains/ledger/schemas';
 import { db } from '@/firebase';
 import { allocationRepository } from '@/infra/repositories/allocationRepository';
 import { transactionRepository } from '@/infra/repositories/transactionRepository';
+
 import {
-  replaceCurrentAllocationInTransaction,
   type AllocationReplacementInput,
+  replaceCurrentAllocationInTransaction,
   validateAllocationReplacementInput,
 } from './replaceAllocationUseCase';
 
@@ -62,15 +63,17 @@ export class UpdateTransactionUseCase {
         throw new Error('Transaction not found.');
       }
 
-      const existingAllocations = (await allocationRepository.getByIds(
-        householdId,
-        [
-          transactionId,
-          ...candidateAllocations.map((candidate) => candidate.id),
-          existing.allocationId ?? '',
-        ],
-        tx,
-      )).filter(
+      const existingAllocations = (
+        await allocationRepository.getByIds(
+          householdId,
+          [
+            transactionId,
+            ...candidateAllocations.map((candidate) => candidate.id),
+            existing.allocationId ?? '',
+          ],
+          tx,
+        )
+      ).filter(
         (currentAllocation) =>
           currentAllocation.sourceTransactionId === transactionId ||
           currentAllocation.id === existing.allocationId,

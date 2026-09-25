@@ -1,6 +1,7 @@
-import { getAccountSnapshotsUseCase } from './getAccountSnapshotsUseCase';
-import { type AccountSnapshot } from '@/domains/account/types/account';
 import { type AuthContext } from '@/application/types';
+import { type AccountSnapshot } from '@/domains/account/types/account';
+
+import { getAccountSnapshotsUseCase } from './getAccountSnapshotsUseCase';
 
 export interface GetPreviousSnapshotRequest {
   householdId: string;
