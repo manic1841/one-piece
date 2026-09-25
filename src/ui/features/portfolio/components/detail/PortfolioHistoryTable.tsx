@@ -15,7 +15,7 @@ import {
 import { type PortfolioSnapshot } from '@/ui/features/portfolio/viewmodels/portfolioDisplay.vm';
 import { formatCurrency, formatPercentage, formatYearMonth } from '@/ui/utils';
 
-import { useConfirm } from '@/ui/features/app/confirm/ConfirmDialog';
+import { useConfirm } from '@/ui/features/app/confirm/useConfirm';
 
 interface PortfolioHistoryTableProps {
   snapshots: PortfolioSnapshot[];

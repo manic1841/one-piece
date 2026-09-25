@@ -7,7 +7,7 @@ import { leaveHouseholdUseCase } from '@/application/household/use_cases/leaveHo
 import { switchHouseholdUseCase } from '@/application/household/use_cases/switchHouseholdUseCase';
 import { type Household } from '@/domains/household/schemas';
 import { useAuthState } from '@/ui/contexts/useAuthState';
-import { useConfirm } from '@/ui/features/app/confirm/ConfirmDialog';
+import { useConfirm } from '@/ui/features/app/confirm/useConfirm';
 import { useLoadingTask } from '@/ui/hooks/useLoadingTask';
 
 export function useHouseholdSwitcher(

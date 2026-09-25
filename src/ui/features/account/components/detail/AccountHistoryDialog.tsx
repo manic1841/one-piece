@@ -10,7 +10,7 @@ import {
 import { useAccountCmds } from '@/ui/features/account/hooks/useAccountCmds';
 import { useAccountSnapshots } from '@/ui/features/account/hooks/useAccountSnapshots';
 import { useAuthState } from '@/ui/contexts/useAuthState';
-import { useConfirm } from '@/ui/features/app/confirm/ConfirmDialog';
+import { useConfirm } from '@/ui/features/app/confirm/useConfirm';
 
 import { AccountSnapshotTable } from './AccountSnapshotTable';
 import AccountSnapshotEditor from '../../pages/AccountSnapshotEditor';

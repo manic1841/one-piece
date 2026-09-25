@@ -43,6 +43,7 @@ export const MONTHLY_CLOSE_LABELS = {
   REOPENED_CONTEXT: '已關帳的期間重新開啟後，財務報表與關帳決定會被撤回，需重新產生報表並重新關帳。',
   REOPENED_CONSEQUENCE: '此期間之後所有已關帳的期間也會改為待審閱（NEEDS REVIEW）。',
   REOPEN_CONFIRM: '重新開啟',
+  CANCEL: '取消',
   REOPENED_BANNER: '前期關帳已重新開啟，此期間需重新審閱並重新關帳',
   CASCADE_BANNER: '此期間已改為待審閱：前期關帳已重新開啟',
   SHOW_WORKFLOW: 'SHOW WORKFLOW',

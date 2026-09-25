@@ -3,11 +3,9 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { act } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 
-import {
-  ConfirmDialogProvider,
-  resolveConfirmOptions,
-  useConfirm,
-} from './ConfirmDialog';
+import { ConfirmDialogProvider } from './ConfirmDialog';
+import { resolveConfirmOptions } from './resolveConfirmOptions';
+import { useConfirm } from './useConfirm';
 
 const buttonLabel = 'Delete transaction?';
 

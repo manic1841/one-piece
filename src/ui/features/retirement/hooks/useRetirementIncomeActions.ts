@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
 
 import { appendById, removeById, upsertById } from '@/domains/retirement/planMutations';
-import { useConfirm } from '@/ui/features/app/confirm/ConfirmDialog';
+import { useConfirm } from '@/ui/features/app/confirm/useConfirm';
 import { mergeImportedIncomeSourcesUseCase } from '@/application/retirement/use_cases/mergeImportedIncomeSourcesUseCase';
 import type {
   RetirementIncomeSource,

@@ -7,7 +7,7 @@ import { type AllocationTemplate } from '@/domains/allocation/templateSchemas';
 import { useAuthState } from '@/ui/contexts/useAuthState';
 import { useProjects } from '@/ui/features/project/hooks/useProjects';
 import { useLoadingTask } from '@/ui/hooks/useLoadingTask';
-import { useConfirm } from '@/ui/features/app/confirm/ConfirmDialog';
+import { useConfirm } from '@/ui/features/app/confirm/useConfirm';
 
 export interface TemplateDraftItem {
   projectId: string;

@@ -3,7 +3,7 @@ import React, { useMemo, useState } from 'react';
 import { Plus, Search } from 'lucide-react';
 
 import { useAuthState } from '@/ui/contexts/useAuthState';
-import { useConfirm } from '@/ui/features/app/confirm/ConfirmDialog';
+import { useConfirm } from '@/ui/features/app/confirm/useConfirm';
 import { Button } from '@/ui/components/ui/button';
 import { Input } from '@/ui/components/ui/input';
 import { getIntentTypeLabel } from '@/ui/constants/transaction';

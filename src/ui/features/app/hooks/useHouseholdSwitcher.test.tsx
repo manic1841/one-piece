@@ -22,14 +22,14 @@ vi.mock('@/application/household/use_cases/leaveHouseholdUseCase', () => ({
   leaveHouseholdUseCase: { execute: vi.fn() },
 }));
 
-vi.mock('@/ui/features/app/confirm/ConfirmDialog', () => ({
+vi.mock('@/ui/features/app/confirm/useConfirm', () => ({
   useConfirm: vi.fn(),
 }));
 
 import { getHouseholdsByUserUseCase } from '@/application/household/use_cases/getHouseholdsByUserUseCase';
 import { type AuthState } from '@/ui/contexts/AuthStateContext';
 import { useAuthState } from '@/ui/contexts/useAuthState';
-import { useConfirm } from '@/ui/features/app/confirm/ConfirmDialog';
+import { useConfirm } from '@/ui/features/app/confirm/useConfirm';
 
 import { useHouseholdSwitcher } from './useHouseholdSwitcher';
 

@@ -4,12 +4,12 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { type AccountWithSnapshot } from '@/domains/account/types/account';
 import { checkAccountMonthlyUsageUseCase } from '@/application/account/use_cases/checkAccountMonthlyUsageUseCase';
-import { useConfirm } from '@/ui/features/app/confirm/ConfirmDialog';
+import { useConfirm } from '@/ui/features/app/confirm/useConfirm';
 import { useAccountCmds } from '@/ui/features/account/hooks/useAccountCmds';
 
 vi.mock('@/application/account/use_cases/checkAccountMonthlyUsageUseCase');
 vi.mock('@/ui/features/account/hooks/useAccountCmds');
-vi.mock('@/ui/features/app/confirm/ConfirmDialog');
+vi.mock('@/ui/features/app/confirm/useConfirm');
 
 const mockUseConfirm = vi.mocked(useConfirm);
 const mockUseAccountCmds = vi.mocked(useAccountCmds);

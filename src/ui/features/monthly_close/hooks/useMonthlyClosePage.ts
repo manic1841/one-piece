@@ -232,7 +232,7 @@ export const useMonthlyClosePage = ({
 
   const handleConfirmStage = useCallback(
     async (stageId: CloseStageId) => {
-      await confirmStage({
+      const result = await confirmStage({
         stageId,
         accountBalances: stageId === 'ACCOUNT_BALANCE' ? accountBalances : undefined,
         securities: stageId === 'SECURITIES_TRADE' ? securities : undefined,
@@ -240,6 +240,9 @@ export const useMonthlyClosePage = ({
         portfolioCashFlows: stageId === 'PORTFOLIO_CASH_FLOW' ? portfolioCashFlows : undefined,
         repayments: stageId === 'DEBT_REPAYMENT' ? repayments : undefined,
       });
+      if (result) {
+        setViewingStageId(null);
+      }
       await refreshStageEvidence();
     },
     [

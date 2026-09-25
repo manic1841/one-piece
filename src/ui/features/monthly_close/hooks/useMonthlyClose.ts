@@ -113,8 +113,8 @@ export const useMonthlyClose = ({ householdId, userEmail }: UseMonthlyCloseParam
   }, [auth, householdId, selectedYearMonth, userEmail]);
 
   const confirmStage = useCallback(
-    async (request: Omit<MonthlyCloseConfirmRequest, 'householdId' | 'yearMonth' | 'userEmail' | 'auth'>) => {
-      if (!householdId || !selectedYearMonth) return;
+    async (request: Omit<MonthlyCloseConfirmRequest, 'householdId' | 'yearMonth' | 'userEmail' | 'auth'>): Promise<FinancialPeriod | null> => {
+      if (!householdId || !selectedYearMonth) return null;
       setConfirmingStageId(request.stageId);
       setError(null);
       try {
@@ -126,8 +126,10 @@ export const useMonthlyClose = ({ householdId, userEmail }: UseMonthlyCloseParam
           ...request,
         });
         setPeriod(result);
+        return result;
       } catch (err) {
         setError(errorText(err, MONTHLY_CLOSE_LABELS.CONFIRM_ERROR));
+        return null;
       } finally {
         setConfirmingStageId(null);
       }

@@ -15,6 +15,7 @@ import {
   MobileDataList,
   MobileDataRow,
   NumberInput,
+  parseOptionalAmount,
   TableBody,
   TableHeader,
   dataTableLabelClass,
@@ -264,12 +265,7 @@ export const SecuritiesAccountRow: React.FC<SecuritiesAccountRowProps> = ({
               step="0.0001"
               className="w-28 md:ml-auto"
               value={input?.exchangeRate ?? ''}
-              onChange={(event) =>
-                onRateChange(
-                  entry.account.id,
-                  event.target.value === '' ? undefined : Number(event.target.value),
-                )
-              }
+              onChange={(event) => onRateChange(entry.account.id, parseOptionalAmount(event.target.value))}
             />
           </div>
           <div className="text-right">

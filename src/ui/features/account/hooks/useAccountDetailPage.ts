@@ -13,7 +13,7 @@ import {
   type HoldingRowVM,
   toHoldingRowVM,
 } from '@/ui/features/account/viewmodels/account.vm';
-import { useConfirm } from '@/ui/features/app/confirm/ConfirmDialog';
+import { useConfirm } from '@/ui/features/app/confirm/useConfirm';
 import { useLoadingTask } from '@/ui/hooks/useLoadingTask';
 
 interface UseAccountDetailPageArgs {

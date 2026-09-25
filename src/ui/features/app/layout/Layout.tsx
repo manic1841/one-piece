@@ -4,7 +4,7 @@ import { LogOut, Search, Settings, UserRound } from 'lucide-react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 
 import { useAuthState } from '@/ui/contexts/useAuthState';
-import { useConfirm } from '@/ui/features/app/confirm/ConfirmDialog';
+import { useConfirm } from '@/ui/features/app/confirm/useConfirm';
 import { StatusGlyph } from '@/ui/components/StatusGlyph';
 import { Button } from '@/ui/components/ui/button';
 import {

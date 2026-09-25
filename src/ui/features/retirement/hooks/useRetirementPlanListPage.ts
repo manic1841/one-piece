@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { type RetirementPlan, type RetirementPlanCreate } from '@/domains/retirement/types';
 import { useRetirementPlanCmds } from '@/ui/features/retirement/hooks/useRetirementPlanCmds';
 import { useRetirementPlans } from '@/ui/features/retirement/hooks/useRetirementPlans';
-import { useConfirm } from '@/ui/features/app/confirm/ConfirmDialog';
+import { useConfirm } from '@/ui/features/app/confirm/useConfirm';
 import { mapRetirementPlanToListItemVM } from '@/ui/features/retirement/viewmodels/retirementDisplay.vm';
 
 export const useRetirementPlanListPage = (householdId?: string, email?: string) => {

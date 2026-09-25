@@ -64,6 +64,34 @@ const confirmStage = (stageId: CloseStageId, input: ConfirmStageInput = {}) =>
     ...input,
   });
 
+const expectDebtRepaymentArtifacts = async () => {
+  const repaymentTransaction = await findTransactionByIntent('DEBT_PAYMENT');
+  expect(repaymentTransaction).not.toBeNull();
+  expect(repaymentTransaction?.debtAccountId).toBe(loanId);
+  expect(repaymentTransaction?.amount).toBe(35_000);
+
+  const loanSnapshot = await getDoc(
+    doc(db, 'households', householdId, 'debtAccounts', loanId, 'snapshots', yearMonth),
+  );
+  expect(loanSnapshot.exists()).toBe(true);
+  expect(loanSnapshot.data()?.totalPaid).toBe(35_000);
+
+  const loanAccount = await getDoc(doc(db, 'households', householdId, 'debtAccounts', loanId));
+  // CreateDebtAccount seeds currentBalance from originalAmount (the borrow
+  // disbursement), so the loan closes from 1,200,000 minus this month's
+  // principal share of the 35,000 payment.
+  const monthlyInterest = roundAmount(1_200_000 * (2.1 / 100 / 12));
+  expect(loanAccount.data()?.currentBalance).toBe(1_200_000 - (35_000 - monthlyInterest));
+
+  const zeroPaymentSnapshot = await getDoc(
+    doc(db, 'households', householdId, 'debtAccounts', zeroPaymentLoanId, 'snapshots', yearMonth),
+  );
+  expect(zeroPaymentSnapshot.exists()).toBe(true);
+  expect(zeroPaymentSnapshot.data()?.totalPaid).toBe(0);
+  expect(zeroPaymentSnapshot.data()?.principalPaid).toBe(0);
+  expect(zeroPaymentSnapshot.data()?.interestPaid).toBe(0);
+};
+
 describe('monthlyCloseWorkflowUseCase — emulator integration', () => {
   beforeEach(async () => {
     await resetMockDb();
@@ -242,28 +270,7 @@ describe('monthlyCloseWorkflowUseCase — emulator integration', () => {
         },
       ],
     });
-    const repaymentTransaction = await findTransactionByIntent('DEBT_PAYMENT');
-    expect(repaymentTransaction).not.toBeNull();
-    expect(repaymentTransaction?.debtAccountId).toBe(loanId);
-    expect(repaymentTransaction?.amount).toBe(35_000);
-    const loanSnapshot = await getDoc(
-      doc(db, 'households', householdId, 'debtAccounts', loanId, 'snapshots', yearMonth),
-    );
-    expect(loanSnapshot.exists()).toBe(true);
-    expect(loanSnapshot.data()?.totalPaid).toBe(35_000);
-    const loanAccount = await getDoc(doc(db, 'households', householdId, 'debtAccounts', loanId));
-    // CreateDebtAccount seeds currentBalance from originalAmount (the borrow
-    // disbursement), so the loan closes from 1,200,000 minus this month's
-    // principal share of the 35,000 payment.
-    const monthlyInterest = roundAmount(1_200_000 * (2.1 / 100 / 12));
-    expect(loanAccount.data()?.currentBalance).toBe(1_200_000 - (35_000 - monthlyInterest));
-    const zeroPaymentSnapshot = await getDoc(
-      doc(db, 'households', householdId, 'debtAccounts', zeroPaymentLoanId, 'snapshots', yearMonth),
-    );
-    expect(zeroPaymentSnapshot.exists()).toBe(true);
-    expect(zeroPaymentSnapshot.data()?.totalPaid).toBe(0);
-    expect(zeroPaymentSnapshot.data()?.principalPaid).toBe(0);
-    expect(zeroPaymentSnapshot.data()?.interestPaid).toBe(0);
+    await expectDebtRepaymentArtifacts();
 
     // One DEBT_REPAYMENT confirmation wrote both artifacts together: the
     // repayment transaction above and the zero-payment snapshot for the

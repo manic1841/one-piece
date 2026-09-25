@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { type LedgerTransaction } from '@/domains/ledger/schemas';
 import { getIntentTypeLabel } from '@/ui/constants/transaction';
-import { useConfirm } from '@/ui/features/app/confirm/ConfirmDialog';
+import { useConfirm } from '@/ui/features/app/confirm/useConfirm';
 import { useTransactions } from '@/ui/features/transaction/hooks/useTransactions';
 
 vi.mock('@/ui/contexts/useAuthState', () => ({
@@ -38,7 +38,7 @@ vi.mock('@/ui/features/ledger/hooks/useLedgerCodes', () => ({
   }),
 }));
 
-vi.mock('@/ui/features/app/confirm/ConfirmDialog');
+vi.mock('@/ui/features/app/confirm/useConfirm');
 
 const mockUseConfirm = vi.mocked(useConfirm);
 

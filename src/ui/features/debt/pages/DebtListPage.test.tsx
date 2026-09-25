@@ -5,12 +5,12 @@ import { describe, expect, it, vi } from 'vitest';
 import { DEBT_STATUS_GRACE_PERIOD_LABEL } from '@/ui/constants/debtStatusLabels';
 import { useDebtPage } from '@/ui/features/debt/hooks/useDebtPage';
 import { useDebtAccountCmds } from '@/ui/features/debt/hooks/useDebtAccountCmds';
-import { useConfirm } from '@/ui/features/app/confirm/ConfirmDialog';
+import { useConfirm } from '@/ui/features/app/confirm/useConfirm';
 import { type DebtAccountDisplayVM } from '@/ui/features/debt/viewmodels/debtDisplay.vm';
 
 vi.mock('@/ui/features/debt/hooks/useDebtPage');
 vi.mock('@/ui/features/debt/hooks/useDebtAccountCmds');
-vi.mock('@/ui/features/app/confirm/ConfirmDialog');
+vi.mock('@/ui/features/app/confirm/useConfirm');
 vi.mock('react-router-dom', async () => {
   const actual = await vi.importActual<typeof import('react-router-dom')>('react-router-dom');
   return {

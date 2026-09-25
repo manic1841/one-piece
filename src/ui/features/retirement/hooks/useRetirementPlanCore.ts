@@ -17,7 +17,7 @@ import { useRetirementPlanCmds } from '@/ui/features/retirement/hooks/useRetirem
 import { useRetirementPlans } from '@/ui/features/retirement/hooks/useRetirementPlans';
 import { useAuthIdentity } from '@/ui/hooks/useAuthIdentity';
 import { logger } from '@/utils/logger';
-import { useConfirm } from '@/ui/features/app/confirm/ConfirmDialog';
+import { useConfirm } from '@/ui/features/app/confirm/useConfirm';
 
 interface UseRetirementPlanCoreParams {
   id: string | undefined;

@@ -1,6 +1,6 @@
 import React from 'react';
 
-import { useConfirm } from '@/ui/features/app/confirm/ConfirmDialog';
+import { useConfirm } from '@/ui/features/app/confirm/useConfirm';
 import { ClosePipeline } from '@/ui/features/monthly_close/components/ClosePipeline';
 import { YearMonthPicker } from '@/ui/components/YearMonthPicker';
 import { PeriodBadge } from '@/ui/components/PeriodBadge';
@@ -77,7 +77,7 @@ export const MonthlyClosePage: React.FC<MonthlyClosePageProps> = ({ householdId:
       context: MONTHLY_CLOSE_LABELS.REOPENED_CONTEXT,
       consequence: MONTHLY_CLOSE_LABELS.REOPENED_CONSEQUENCE,
       confirmLabel: MONTHLY_CLOSE_LABELS.REOPEN_CONFIRM,
-      cancelLabel: '取消',
+      cancelLabel: MONTHLY_CLOSE_LABELS.CANCEL,
     });
     if (confirmed) {
       await reopen();
