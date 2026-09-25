@@ -18,7 +18,7 @@
 
 主文件保留假設參數、事件、快取摘要與 `isActive`。收入與支出類別由子集合管理；其結構見 [ADR-0026](adr/0026-retirement-plan-subcollections.md)。
 
-- **同一 household 僅允許一筆 `isActive=true`**，由 `setOnlyActivePlan` 原子切換（[ADR-0036](adr/0036-single-active-retirement-plan.md)）。
+- **同一 household 僅允許一筆 `isActive=true`**，由 create/update transaction 內的 active fan-out 原子維護（[ADR-0036](adr/0036-single-active-retirement-plan.md)、[ADR-0040](adr/0040-retirement-plan-atomic-writes.md)）。
 - **複製計畫**：完整複製子集合與事件，但新計畫預設 `isActive=false`，不昨接釋放原 active（[ADR-0037](adr/0037-retirement-plan-duplicate-inactive.md)）。
 - 計畫不存在時操作回傳 `PLAN_NOT_FOUND`。
 
@@ -101,7 +101,7 @@ phase 形狀與驗證：
 | 複製後預設非啟用              | 新計畫 `isActive=false`                                                                                                                                                                      | [ADR-0037](adr/0037-retirement-plan-duplicate-inactive.md) |
 | 寫入原子邊界、上限與併發      | create/update/delete/duplicate 全在單一 transaction 內；preflight（schema 驗證）在 transaction 外先做；單次寫入上限 400 筆，超過回 `PLAN_TOO_LARGE`；transaction 失敗回 `TRANSACTION_FAILED` | [ADR-0040](adr/0040-retirement-plan-atomic-writes.md)      |
 
-目前對應的主要操作包括 `getPlan/getPlans`、`getPlanSummaries`、`createPlan`、`updatePlan`、`deletePlan`、`setOnlyActivePlan` 與 `DuplicateRetirementPlanUseCase`；create/update/delete/duplicate 的寫入一律走 [ADR-0040](adr/0040-retirement-plan-atomic-writes.md) 的單一 transaction 邊界。
+目前對應的主要操作包括 `getPlan/getPlans`、`getPlanSummaries`、`countChildren`、`createPlanAtomically`、`updatePlanAtomically`、`deletePlanAtomically` 與 `DuplicateRetirementPlanUseCase`；create/update/delete/duplicate 的寫入一律走 [ADR-0040](adr/0040-retirement-plan-atomic-writes.md) 的單一 transaction 邊界。
 
 ## 6. UI 操作
 

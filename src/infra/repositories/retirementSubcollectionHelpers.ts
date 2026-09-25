@@ -1,11 +1,4 @@
-import {
-  type Firestore,
-  type Transaction,
-  collection,
-  doc,
-  getDocs,
-  writeBatch,
-} from 'firebase/firestore';
+import { type Firestore, type Transaction, collection, doc, getDocs } from 'firebase/firestore';
 
 import {
   RetirementExpenseCategorySchema,
@@ -82,76 +75,6 @@ export async function listExpenseCategories(
   });
 
   return expenses;
-}
-
-// --- Subcollection write helpers (batch-based, non-transactional) ---
-
-export async function replaceIncomeStreams(
-  db: Firestore,
-  convertDateToTimestamp: DateConverter,
-  householdId: string,
-  planId: string,
-  userEmail: string,
-  incomes: RetirementIncomeSource[],
-): Promise<void> {
-  const collectionRef = getIncomeStreamsCollectionRef(db, householdId, planId);
-  const existingDocs = await getDocs(collectionRef);
-  const batch = writeBatch(db);
-
-  for (const incomeDoc of existingDocs.docs) {
-    batch.delete(incomeDoc.ref);
-  }
-
-  const now = new Date();
-  for (const income of incomes) {
-    const docRef = doc(collectionRef, income.id);
-    const converted = convertDateToTimestamp(income) as Record<string, unknown>;
-    const payload = stripUndefinedDeep({
-      ...converted,
-      id: income.id,
-      createdAt: converted.createdAt ?? now,
-      updatedAt: now,
-      createdBy: userEmail,
-      updatedBy: userEmail,
-    });
-    batch.set(docRef, payload);
-  }
-
-  await batch.commit();
-}
-
-export async function replaceExpenseCategories(
-  db: Firestore,
-  convertDateToTimestamp: DateConverter,
-  householdId: string,
-  planId: string,
-  userEmail: string,
-  expenses: RetirementExpenseCategory[],
-): Promise<void> {
-  const collectionRef = getExpenseCategoriesCollectionRef(db, householdId, planId);
-  const existingDocs = await getDocs(collectionRef);
-  const batch = writeBatch(db);
-
-  for (const expenseDoc of existingDocs.docs) {
-    batch.delete(expenseDoc.ref);
-  }
-
-  const now = new Date();
-  for (const expense of expenses) {
-    const docRef = doc(collectionRef, expense.id);
-    const converted = convertDateToTimestamp(expense) as Record<string, unknown>;
-    const payload = stripUndefinedDeep({
-      ...converted,
-      id: expense.id,
-      createdAt: converted.createdAt ?? now,
-      updatedAt: now,
-      createdBy: userEmail,
-      updatedBy: userEmail,
-    });
-    batch.set(docRef, payload);
-  }
-
-  await batch.commit();
 }
 
 // --- Transaction-scoped children writer ---
