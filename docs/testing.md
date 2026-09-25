@@ -6,6 +6,7 @@
 
 | 層級     | 指令                    | 需要模擬器 | 說明                                             |
 | -------- | ----------------------- | ---------- | ------------------------------------------------ |
+| 格式     | `pnpm format`           | 否         | Prettier 自動排版（寫入型，commit 前執行）       |
 | 單元測試 | `pnpm test`             | 否         | jsdom 環境,驗證 domain、use case 與 UI 元件行為  |
 | 覆蓋率   | `pnpm test:coverage`    | 否         | 單元測試範圍的 text/JSON/HTML 報告               |
 | 整合測試 | `pnpm test:integration` | 是         | 對 Firebase Emulator 驗證持久化與 security rules |

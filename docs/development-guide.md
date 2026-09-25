@@ -51,6 +51,7 @@
 - **單一職責**: 一個 Use Case 文件只做一件事（例如：`recordTransactionUseCase.ts` 只負責記錄交易）。
 - **表單一致性**: 表單資料必須先映射到 ViewModel，再由 mapper 轉換成 domain 型別。
 - **驗證一致性**: 所有新表單路徑統一採用 Zod schema，禁止分散式手寫驗證。
+- **格式一致性**: 正式程式碼與 Markdown 文件以 Prettier 為格式單一真相來源（設定在 `.prettierrc`：單引號、尾逗號、printWidth 100、`@trivago` import 排序）；依賴產物（`pnpm-lock.yaml`、`skills-lock.json`）不在格式範圍（見 `.prettierignore`），lockfile 格式只能由 pnpm 管理。
 
 ## 3. 維護建議
 
@@ -176,13 +177,16 @@ AI agent 修改或建立任何 UI 時，**必須**遵守：
 - `pnpm exec tsc -b`: 依 root solution 執行完整 build graph 型別檢查（正式程式碼）。
 - `pnpm lint`: 執行唯讀 ESLint 檢查。
 - `pnpm lint:fix`: 明確執行 ESLint 自動修正。
+- `pnpm format`: 執行 Prettier 自動排版（寫入型驗證步驟，commit 前執行）。
 - `pnpm docs:check`: 驗證正式文件（`docs/`，加上根目錄 `CONTEXT.md`、`AGENTS.md`）不引用暫置路徑、spec 套件名、暫置檔名，以及「spec 加編號」的間接寫法，並斷言已退役的設計暫置資料夾不存在；實際攔阻樣式見 `scripts/check-doc-references.sh`。`prototype/<name>` 分支指標不在攔阻範圍。
+
+驗證收尾順序：`pnpm format` → `pnpm lint` → typecheck → tests → `pnpm docs:check`。format 放最前面，避免排版差異淹沒實質 diff。
 
 ## 7.1 CI/CD 流程
 
 GitHub Actions 位於 `.github/workflows/`：
 
-- **CI**（`test.yml`）：對 main/develop 的 push 與 PR 觸發。依序執行 `pnpm lint`、`pnpm docs:check`、`tsc -b`、unit tests、Firestore Emulator integration tests。Node 版本以 `.nvmrc`
+- **CI**（`test.yml`）：對 main/develop 的 push 與 PR 觸發。依序執行 `pnpm lint`、`pnpm docs:check`、`tsc -b`、unit tests、Firestore Emulator integration tests。CI 未含 format check——格式一致性由 `pnpm format` 在 commit 前承擔（見 §7 驗證命令）。Node 版本以 `.nvmrc`
   為單一真相來源；依賴以 `--frozen-lockfile` 安裝並快取 pnpm store。同一分支的新
   push 會取消舊的執行（concurrency），整體逾時 20 分鐘。
 - **Deploy to Firebase Hosting on PR**（`firebase-hosting-pull-request.yml`）：
