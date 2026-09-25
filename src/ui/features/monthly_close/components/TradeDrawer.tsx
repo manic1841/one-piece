@@ -70,6 +70,7 @@ export const TradeDrawer: React.FC<TradeDrawerProps> = ({
     <Sheet open={open}>
       <SheetContent
         side="bottom"
+        aria-describedby={undefined}
         className="rounded-t-2xl sm:max-w-md sm:rounded-none sm:inset-y-0 sm:right-0 sm:left-auto sm:h-full sm:rounded-l-2xl"
       >
         <SheetHeader>
@@ -141,13 +142,12 @@ export const TradeDrawer: React.FC<TradeDrawerProps> = ({
                 <FormLabel className={fieldLabelClass}>{MONTHLY_CLOSE_LABELS.PROJECT}</FormLabel>
                 <FormControl>
                   <SelectField
-                    options={[
-                      { value: '', label: '—' },
-                      ...portfolios.map((portfolio) => ({
-                        value: portfolio.id,
-                        label: portfolio.name,
-                      })),
-                    ]}
+                    options={portfolios.map((portfolio) => ({
+                      value: portfolio.id,
+                      label: portfolio.name,
+                    }))}
+                    noneLabel={MONTHLY_CLOSE_LABELS.NO_PROJECT}
+                    placeholder={MONTHLY_CLOSE_LABELS.NO_PROJECT}
                     disabled={submitting}
                   />
                 </FormControl>

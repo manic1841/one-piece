@@ -136,6 +136,7 @@ Token（定義於 `tailwind.config.js`，全部走 CSS 變數）：
   - **欄位群組**：`FormItem` 是唯一決定 label / control / error 垂直佈局的地方（`space-y-2`）。欄位不得自行決定 label 或 error 的位置與間距。
   - **元件解耦**：輸入欄位（`TextInput`、`NumberInput`、`CurrencyInput`、`DateInput`…）是 RHF-free 的受控元件，唯一 value contract 為 string。RHF 的接線集中於 `FormControl`，欄位本身不得 import RHF。理由見 ADR-0065。
   - **注入契約**：`FormControl` 以 `cloneElement` 注入 `value / onChange / onBlur / name / ref / error（boolean）/ aria-invalid / aria-describedby / id`。`error` 供視覺、`aria-*` 供無障礙，兩者缺一不可；欄位元件必須轉發 `ref` 至原生元素。
+  - **Select 無值列**：Radix Select 禁止空字串作為 item value（空字串語意是「清除選擇、顯示 placeholder」）。optional select 的「無值」列以 `noneLabel` 表示（sentinel item value 內部承擔，欄位 value contract 仍為 string，選擇「無值」列時 emit `''`）；option 不得自帶 `value: ''`。
   - **Required**：必填欄位在 `FormLabel` 尾端加 `*`（`text-destructive`），不寫「必填」文字。
   - **Error**：一律顯示在 control 下方，只顯示第一筆錯誤（`FormMessage`）；欄位錯誤時 `FormLabel` 轉 `text-destructive`。
   - **Disabled**：使用 native `disabled`，統一 `opacity-50` 且不可 focus（由 input primitives 的 `disabled:` 樣式承擔，不另行手寫）。

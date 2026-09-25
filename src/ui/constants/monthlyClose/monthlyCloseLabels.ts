@@ -34,6 +34,7 @@ export const MONTHLY_CLOSE_LABELS = {
   AMOUNT: 'Amount',
   DESCRIPTION: 'Description',
   PROJECT: 'Project',
+  NO_PROJECT: '— 無 —',
   DRAWER_CANCEL: 'CANCEL',
   DRAWER_ADD: 'ADD',
   DRAWER_DELETE: 'DELETE',

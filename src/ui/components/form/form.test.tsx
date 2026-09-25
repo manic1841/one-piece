@@ -1,7 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { useForm } from 'react-hook-form';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeAll, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 
 import {
@@ -18,6 +18,12 @@ import {
 } from './index';
 
 describe('field components are RHF-free', () => {
+  beforeAll(() => {
+    Element.prototype.scrollIntoView = Element.prototype.scrollIntoView ?? (() => {});
+    Element.prototype.hasPointerCapture = Element.prototype.hasPointerCapture ?? (() => false);
+    Element.prototype.setPointerCapture = Element.prototype.setPointerCapture ?? (() => {});
+    Element.prototype.releasePointerCapture = Element.prototype.releasePointerCapture ?? (() => {});
+  });
   it('renders TextInput standalone and emits the value, not the event', () => {
     const onChange = vi.fn();
     render(<TextInput value="" onChange={onChange} />);
@@ -63,6 +69,40 @@ describe('field components are RHF-free', () => {
     );
     expect(screen.getByRole('combobox')).toBeInTheDocument();
     expect(screen.getByText('選擇')).toBeInTheDocument();
+  });
+
+  it('renders a noneLabel row for the empty value without emitting an empty Radix item', async () => {
+    const onChange = vi.fn();
+    render(
+      <SelectField
+        options={[
+          { value: 'p1', label: 'Project A' },
+          { value: 'p2', label: 'Project B' },
+        ]}
+        value="p1"
+        onChange={onChange}
+        placeholder="— 無 —"
+        noneLabel="— 無 —"
+      />,
+    );
+    expect(screen.getByRole('combobox')).toBeInTheDocument();
+
+    const trigger = screen.getByRole('combobox');
+    trigger.focus();
+    fireEvent.click(trigger);
+    await waitFor(() => expect(trigger).toHaveAttribute('data-state', 'open'));
+    const option = await screen.findByRole('option', { name: '— 無 —' });
+    fireEvent.click(option);
+
+    await waitFor(() => expect(onChange).toHaveBeenCalledWith(''));
+  });
+
+  it('fails fast in DEV when an option carries an empty value without noneLabel', () => {
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+    expect(() => render(<SelectField options={[{ value: '', label: '—' }]} />)).toThrow(
+      /noneLabel/,
+    );
+    consoleError.mockRestore();
   });
 });
 
