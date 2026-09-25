@@ -39,7 +39,8 @@ const bootstrapAuth = async (): Promise<string> => {
 };
 
 const ensureWhitelist = async (): Promise<void> => {
-  const whitelistRef = db.collection('system').doc('whitelist');
+  // Must match accessControlRepository's collection/doc (access_control/whitelist).
+  const whitelistRef = db.collection('access_control').doc('whitelist');
   const snap = await whitelistRef.get();
   const emails = (snap.data()?.emails as string[] | undefined) ?? [];
   if (emails.includes(QA_EMAIL)) {
@@ -53,46 +54,75 @@ const ensureWhitelist = async (): Promise<void> => {
 const ensureHousehold = async (uid: string): Promise<void> => {
   const householdRef = db.collection('households').doc(QA_HOUSEHOLD_ID);
   const snap = await householdRef.get();
-  if (!snap.exists) {
-    await householdRef.set({
-      name: 'QA Family',
-      memberUids: [uid],
-      memberEmails: [QA_EMAIL],
-      createdAt: new Date(),
-      createdBy: uid,
-    });
-    console.log(`Household created: ${QA_HOUSEHOLD_ID}`);
-    return;
-  }
-  const data = snap.data() as { memberUids?: string[] } | undefined;
-  if (data?.memberUids?.includes(uid)) {
+  const now = new Date();
+  const requiredFields = {
+    id: QA_HOUSEHOLD_ID,
+    updatedBy: uid,
+    updatedAt: now,
+    members: {
+      [uid]: {
+        role: 'owner',
+        joinedAt: now,
+      },
+    },
+  };
+  if (snap.exists) {
+    const data = snap.data() as Record<string, unknown> | undefined;
+    const missing = Object.entries(requiredFields).filter(([key]) => data?.[key] === undefined);
+    if (missing.length > 0) {
+      await householdRef.set(Object.fromEntries(missing), { merge: true });
+      console.log(`Household patched with missing fields: ${missing.map(([key]) => key).join(', ')}`);
+    }
     console.log(`Household exists: ${QA_HOUSEHOLD_ID}`);
     return;
   }
-  await householdRef.set({ memberUids: [uid] }, { merge: true });
-  console.log(`Household relinked to uid: ${QA_HOUSEHOLD_ID}`);
+
+  await householdRef.set({
+    name: 'QA Family',
+    memberUids: [uid],
+    ...requiredFields,
+    createdBy: uid,
+    createdAt: now,
+  });
+  console.log(`Household created: ${QA_HOUSEHOLD_ID}`);
 };
 
 const ensureUserProfile = async (uid: string): Promise<void> => {
   const userRef = db.collection('users').doc(uid);
   const snap = await userRef.get();
+  const now = new Date();
+  const requiredFields = {
+    uid,
+    id: uid,
+    createdBy: uid,
+    updatedBy: uid,
+    createdAt: now,
+    updatedAt: now,
+  };
   if (snap.exists) {
-    const data = snap.data() as { householdId?: string } | undefined;
-    if (data?.householdId === QA_HOUSEHOLD_ID) {
-      console.log('User profile linked to qa_household');
-      return;
+    const data = snap.data() as Record<string, unknown> | undefined;
+    const missing = Object.entries(requiredFields).filter(([key]) => data?.[key] === undefined);
+    if (data?.householdId !== QA_HOUSEHOLD_ID) {
+      await userRef.set({ householdId: QA_HOUSEHOLD_ID }, { merge: true });
+      console.log('User profile relinked to qa_household');
     }
+    if (missing.length > 0) {
+      await userRef.set(Object.fromEntries(missing), { merge: true });
+      console.log(`User profile patched with missing fields: ${missing.map(([key]) => key).join(', ')}`);
+    }
+    if (data?.householdId === QA_HOUSEHOLD_ID && missing.length === 0) {
+      console.log('User profile linked to qa_household');
+    }
+    return;
   }
-  await userRef.set(
-    {
-      email: QA_EMAIL,
-      displayName: QA_DISPLAY_NAME,
-      householdId: QA_HOUSEHOLD_ID,
-      updatedAt: new Date(),
-    },
-    { merge: true },
-  );
-  console.log('User profile linked to qa_household');
+
+  await userRef.set({
+    email: QA_EMAIL,
+    displayName: QA_DISPLAY_NAME,
+    householdId: QA_HOUSEHOLD_ID,
+    ...requiredFields,
+  });
+  console.log('User profile created with household link');
 };
 
 const printSessionRecipe = (uid: string): void => {
