@@ -32,6 +32,10 @@
   - 期間狀態、九階段模型、各階段的資料建立邊界與關帳完成條件。
   - 帳戶餘額階段的輸入與計算語意。
 
+- **[QA Seed 資料設計 (QA Seed Data)](/docs/qa-seed-data.md)**
+  - `qa:seed` 種子資料集的設計架構：固定窗口、組裝管線、各 builder 的資料邊界與關帳期間矩陣。
+  - 種子資料改動的規範來源。
+
 ### 開發與維護
 
 - **[開發指南 (Development Guide)](/docs/development-guide.md)**

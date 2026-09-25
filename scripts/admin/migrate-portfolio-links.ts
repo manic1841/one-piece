@@ -12,7 +12,7 @@
  */
 import admin from 'firebase-admin';
 
-import { applyEmulatorEnv } from './emulator-env';
+import { applyEmulatorEnv } from '../shared/emulator-env';
 import {
   AccountCategory,
   type AccountCategory as AccountCategoryType,

@@ -1,21 +1,21 @@
 /**
  * QA data seeder.
  *
- * Writes the deterministic QA financial dataset built by qa-data-plan.ts
- * to the Firestore emulator. Idempotent: fixed doc IDs make re-runs
- * converge to the same state (upserts, not appends).
+ * Writes the deterministic QA financial dataset built by the plan builders
+ * (scripts/qa/plan) to the Firestore emulator. Idempotent: fixed doc IDs
+ * make re-runs converge to the same state (upserts, not appends).
  *
  * Boundary: depends on firebase-admin for I/O and on src/domains for
- * schema validation via the pure plan builder. The plan builder itself
- * has no firebase imports.
+ * schema validation via the pure plan builders. The builders have no
+ * firebase imports.
  *
  * Prerequisite: run `pnpm qa:init` first so the QA auth user, whitelist,
  * household, and user profile exist.
  */
 import admin from 'firebase-admin';
 
-import { applyEmulatorEnv } from './emulator-env';
-import { buildQaSeedPlan, type SeedDoc } from './qa-data-plan';
+import { applyEmulatorEnv } from '../shared/emulator-env';
+import { buildQaSeedPlan, type SeedDoc } from './plan';
 import { QA_EMAIL, QA_HOUSEHOLD_ID } from './qa-identity';
 
 const emulator = applyEmulatorEnv();
@@ -49,7 +49,7 @@ const assertQaInitRan = async (): Promise<string> => {
 };
 
 // Recursively convert JS Date instances to Firestore Timestamps so the
-// admin SDK accepts them. Plan builder emits Dates (zod schema contracts);
+// admin SDK accepts them. Plan builders emit Dates (zod schema contracts);
 // admin SDK rejects raw Dates in nested objects.
 const convertDatesToTimestamps = (value: unknown): unknown => {
   if (value instanceof Date) return admin.firestore.Timestamp.fromDate(value);

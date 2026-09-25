@@ -33,7 +33,7 @@
 
 **根因**:兩層錯位。第一層,Firebase JS SDK v12 的 session 以 **IndexedDB**(`firebaseLocalStorageDb` 的 `firebaseLocalStorage` store,`fbase_key` 為 `firebase:authUser:<apiKey>:[DEFAULT]`)為主要來源,localStorage 只是 fallback——只寫 localStorage 根本不會被讀。第二層,手工構造的 session 物件若缺 SDK v12 要求的欄位,reload 後 `_fromJSON` 拋 `auth/internal-error`,頁面空白,看起來像資料層壞了。
 
-**判別法**:用 `indexedDB.databases()` + 直接讀 `firebaseLocalStorage` store 確認實際登入的 uid/email;比對種子資料所在 household 與該 user 的 household 是否一致。要取得合法 session 時,以 Identity Toolkit REST API 對 Auth emulator 呼叫 `signInWithPassword`(見 `scripts/admin/qa-identity.ts` 的 `QA_EMAIL` / `QA_PASSWORD`),不要手工拼 token。損毀的 entry 直接刪掉走正常登入流程。
+**判別法**:用 `indexedDB.databases()` + 直接讀 `firebaseLocalStorage` store 確認實際登入的 uid/email;比對種子資料所在 household 與該 user 的 household 是否一致。要取得合法 session 時,以 Identity Toolkit REST API 對 Auth emulator 呼叫 `signInWithPassword`(見 `scripts/qa/qa-identity.ts` 的 `QA_EMAIL` / `QA_PASSWORD`),不要手工拼 token。損毀的 entry 直接刪掉走正常登入流程。
 
 **記錄自**:#120(2026-09-20,Scenario Workspace 瀏覽器驗證;「已登入卻看不到計畫」的實際原因是 IndexedDB 裡登入的是另一個測試帳號)。
 

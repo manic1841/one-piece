@@ -27,10 +27,7 @@ firestore
 
        ├─ projects/{projectId}       # 專案帳戶 (Management Accounting)
        │    ├─ name: string
-       │    ├─ color: string
-       │    ├─ icon: string
-       │    ├─ description: string
-       │    ├─ isPersonal: boolean    # 零用錢標記
+       │    ├─ order: number           # 系統排序（reorder transactions）
        │    ├─ isActive: boolean
        │    ├─ createdAt: Timestamp
        │    └─ updatedAt: Timestamp

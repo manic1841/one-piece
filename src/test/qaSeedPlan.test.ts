@@ -1,14 +1,14 @@
 /**
- * Seam tests for the pure QA seed plan builder (scripts/admin/qa-data-plan).
+ * Seam tests for the pure QA seed plan builders (scripts/qa/plan).
  *
- * The builder is the pre-agreed seam: it turns the QA fixture spec into a
- * deterministic list of Firestore documents without touching Firestore.
- * Expected values below are independent worked examples, not recomputations
- * of the builder's own arithmetic.
+ * The plan orchestrator is the pre-agreed seam: it turns the QA fixture
+ * spec into a deterministic list of Firestore documents without touching
+ * Firestore. Expected values below are independent worked examples, not
+ * recomputations of the builders' own arithmetic.
  */
 import { describe, expect, it } from 'vitest';
 
-import { buildQaSeedPlan, type SeedDoc } from '../../scripts/admin/qa-data-plan';
+import { buildQaSeedPlan, type SeedDoc } from '../../scripts/qa/plan';
 
 const IDENTITY = { uid: 'uid-qa', email: 'qa@onepiece.test', householdId: 'qa_household' };
 
@@ -50,6 +50,23 @@ describe('QA seed plan builder', () => {
     }
   });
 
+  it('keeps every emitted transaction doc inside the fixed seed window', () => {
+    const docs = buildQaSeedPlan(IDENTITY);
+    const transactions = docsUnder(docs, '/transactions');
+    expect(transactions.length).toBeGreaterThan(0);
+    // Covers every emit path, including DEBT_PAYMENT transactions from the
+    // mortgage builder that the journal-only window assertion cannot see.
+    for (const txn of transactions) {
+      const date = txn.data.date as Date | undefined;
+      expect(date, `missing date on ${txn.id}`).toBeInstanceOf(Date);
+      const yearMonth = `${date!.getFullYear()}-${String(date!.getMonth() + 1).padStart(2, '0')}`;
+      expect(
+        yearMonth >= '2025-01' && yearMonth <= '2026-09',
+        `${txn.id}(${yearMonth}) outside 2025-01..2026-09`,
+      ).toBe(true);
+    }
+  });
+
   it('denormalizes ledgerCodes to exactly the set of entry ledger codes', () => {
     const docs = buildQaSeedPlan(IDENTITY);
     for (const txn of docsUnder(docs, '/transactions')) {
@@ -75,5 +92,39 @@ describe('QA seed plan builder', () => {
       expect(items.reduce((sum, i) => sum + i.amount, 0)).toBe(60000);
       expect(items.reduce((sum, i) => sum + i.percentage, 0)).toBe(100);
     }
+  });
+
+  it('seeds the four-shape monthly close matrix', () => {
+    const docs = buildQaSeedPlan(IDENTITY);
+    const periods = docsUnder(docs, '/financialPeriods');
+    // 2026-06 paused, 2026-07/08 closed, 2026-09 active; nothing earlier.
+    expect(periods.map((p) => p.id).sort()).toEqual(['2026-06', '2026-07', '2026-08', '2026-09']);
+
+    const byId = new Map(periods.map((p) => [p.id, p]));
+    expect(byId.get('2026-06')!.data.status).toBe('NEEDS_REVIEW');
+    expect(byId.get('2026-06')!.data.reviewSourceStageId).toBe('COMPLETENESS_CHECK');
+    expect(byId.get('2026-07')!.data.status).toBe('CLOSED');
+    expect(byId.get('2026-08')!.data.status).toBe('CLOSED');
+    expect(byId.get('2026-09')!.data.status).toBe('IN_PROGRESS');
+
+    for (const period of periods) {
+      const stages = period.data.stages as Record<string, { status: string; confirmedBy?: string }>;
+      expect(Object.keys(stages).sort()).toEqual([
+        'ACCOUNT_BALANCE',
+        'CLOSE_PERIOD',
+        'COMPLETENESS_CHECK',
+        'DEBT_REPAYMENT',
+        'FINANCIAL_REPORTS',
+        'PORTFOLIO_CASH_FLOW',
+        'PROJECT_SETTLEMENT',
+        'SECURITIES_TRADE',
+        'TRANSACTION_VALIDATION',
+      ]);
+      expect(Object.values(stages).every((s) => s.status === 'PENDING' || s.status === 'COMPLETED')).toBe(true);
+    }
+
+    const active = byId.get('2026-09')!.data.stages as Record<string, { status: string }>;
+    expect(active.ACCOUNT_BALANCE.status).toBe('COMPLETED');
+    expect(active.CLOSE_PERIOD.status).toBe('PENDING');
   });
 });

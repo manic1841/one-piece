@@ -1,6 +1,6 @@
 import admin from 'firebase-admin';
 
-import { applyEmulatorEnv } from './emulator-env';
+import { applyEmulatorEnv } from '../shared/emulator-env';
 
 // Resolve emulator targets from env vars (defaults to localhost) before SDK init.
 const emulator = applyEmulatorEnv();

@@ -1,5 +1,8 @@
 # Admin scripts
 
+本目錄是 Firebase 營運與一次性維護腳本；emulator QA 腳本已搬到
+[`scripts/qa/`](../qa/)（`qa:init` / `qa:seed`）。
+
 ## Emulator QA bootstrap
 
 瀏覽器 QA 前的環境準備:建立測試帳號、whitelist、household、user profile,並印出可直接貼入 DevTools 的 localStorage session 注入片段。
@@ -41,14 +44,8 @@ pnpm qa:seed
 ```
 
 前置條件:已執行 `pnpm qa:init`(seed 腳本會驗證 household 存在)。
-
-- 資料集由純 plan builder([`qa-data-plan.ts`](qa-data-plan.ts))在記憶體
-  組裝,snapshots 與報表經純 domain calculator 推導,寫入前每份文件過
-  zod schema 驗證。
-- 固定 doc ID,可重複執行(upsert)。
-- 資料窗口:2025-01～2026-09(薪資)、2026-04～2026-09(日常支出)、
-  2026-01 房貸借款 + 每月還款;報表涵蓋 2026-07～2026-09 三期。
-- `operation` 集合不 seed(runtime 重試記錄)。
+資料集的設計架構(固定窗口、組裝管線、各 builder 的資料邊界)見
+[docs/qa-seed-data.md](../../docs/qa-seed-data.md)。
 
 ## 安裝 Firebase Admin SDK
 

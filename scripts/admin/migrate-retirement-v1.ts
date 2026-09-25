@@ -49,7 +49,7 @@ import {
   type LinkedYearPatch,
 } from './retirement-linked-years';
 
-import { applyEmulatorEnv } from './emulator-env';
+import { applyEmulatorEnv } from '../shared/emulator-env';
 
 const dryRun = process.argv.includes('--dry-run');
 
