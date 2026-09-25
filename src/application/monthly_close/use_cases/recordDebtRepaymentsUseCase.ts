@@ -12,9 +12,10 @@ export interface RecordDebtRepaymentsRequest {
 }
 
 /**
- * DEBT_REPAYMENT stage action (spec 05 stage 03): submits the repayments array
- * with idempotency keys (changed amount = new idempotency key = new
- * transaction), then settles debt accounts.
+ * DEBT_REPAYMENT stage action: submits every active debt (including 0-amount
+ * rows, which clear that month's record) with idempotency keys keyed by period
+ * × account, then settles debt accounts. Reconfirming with a changed payload
+ * re-books the month's record inside the same atomic boundary.
  */
 export class RecordDebtRepaymentsUseCase {
   async execute(request: RecordDebtRepaymentsRequest): Promise<void> {
@@ -26,7 +27,7 @@ export class RecordDebtRepaymentsUseCase {
         userEmail,
         auth,
         debtAccountId: repayment.debtAccountId,
-        idempotencyKey: `monthly-close:${yearMonth}:${repayment.debtAccountId}:${repayment.totalPayment}:${repayment.date.toISOString()}`,
+        idempotencyKey: `monthly-close:${yearMonth}:${repayment.debtAccountId}`,
         totalPayment: repayment.totalPayment,
         date: repayment.date,
         description: repayment.description,

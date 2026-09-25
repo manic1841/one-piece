@@ -107,4 +107,12 @@ export const MONTHLY_CLOSE_LABELS = {
   TRANSACTION_ISSUES: '交易驗證問題',
   ADJUSTMENT: '現金流調整',
   REPORTS_PERSISTENCE: '報表產生狀態',
+  INTEREST_RATE: '年利率',
+  PREVIOUS_BALANCE: '期初餘額',
+  TOTAL_PAYMENT: '總繳款',
+  PRINCIPAL: '本金',
+  INTEREST: '利息',
+  MONTHLY_DUE: '應繳',
+  CLOSING_BALANCE: '期末餘額',
+  DEBT_TOTAL: '債務合計',
 } as const;

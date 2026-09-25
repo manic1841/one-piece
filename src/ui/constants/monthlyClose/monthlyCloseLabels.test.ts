@@ -26,4 +26,15 @@ describe('monthlyCloseLabels', () => {
     expect(MONTHLY_CLOSE_LABELS.FINALIZED).toBeTruthy();
     expect(MONTHLY_CLOSE_LABELS.PAUSED).toBeTruthy();
   });
+
+  it('provides the debt repayment stage labels', () => {
+    expect(MONTHLY_CLOSE_LABELS.INTEREST_RATE).toBe('年利率');
+    expect(MONTHLY_CLOSE_LABELS.PREVIOUS_BALANCE).toBe('期初餘額');
+    expect(MONTHLY_CLOSE_LABELS.TOTAL_PAYMENT).toBe('總繳款');
+    expect(MONTHLY_CLOSE_LABELS.PRINCIPAL).toBe('本金');
+    expect(MONTHLY_CLOSE_LABELS.INTEREST).toBe('利息');
+    expect(MONTHLY_CLOSE_LABELS.MONTHLY_DUE).toBe('應繳');
+    expect(MONTHLY_CLOSE_LABELS.CLOSING_BALANCE).toBe('期末餘額');
+    expect(MONTHLY_CLOSE_LABELS.DEBT_TOTAL).toBe('債務合計');
+  });
 });

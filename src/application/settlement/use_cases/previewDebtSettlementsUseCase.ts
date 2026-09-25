@@ -14,12 +14,23 @@ export interface PreviewDebtSettlementsRequest {
 export interface DebtSettlementPreviewItem {
   debtAccountId: string;
   debtAccountName: string;
+  /** Balance the month's payment books against. Order (spec 195): the
+   * current snapshot's frozen opening balance, then the previous snapshot's
+   * closing balance, then the account's current balance. */
   openingBalance: number;
   hasRepaymentRecord: boolean;
   repaymentCount: number;
   repaymentAmount: number;
   hasSnapshot: boolean;
   willCreateSnapshot: boolean;
+  /** Frozen snapshot values, present only when a snapshot already exists. */
+  snapshotValues?: {
+    openingBalance: number;
+    principalPaid: number;
+    interestPaid: number;
+    totalPaid: number;
+    closingBalance: number;
+  };
 }
 
 export interface PreviewDebtSettlementsResult {
@@ -68,18 +79,35 @@ export class PreviewDebtSettlementsUseCase {
           account.id,
           yearMonth,
         );
+        const previousSnapshot = snapshot
+          ? null
+          : await debtSnapshotRepository.getSnapshot(
+              householdId,
+              account.id,
+              getPrevYearMonth(yearMonth),
+            );
         const stats = repaymentStats.get(account.id) || { count: 0, amount: 0 };
         const hasRepaymentRecord = stats.count > 0;
 
         return {
           debtAccountId: account.id,
           debtAccountName: account.name,
-          openingBalance: account.currentBalance,
+          openingBalance:
+            snapshot?.openingBalance ?? previousSnapshot?.closingBalance ?? account.currentBalance,
           hasRepaymentRecord,
           repaymentCount: stats.count,
           repaymentAmount: stats.amount,
           hasSnapshot: snapshot !== null,
           willCreateSnapshot: snapshot === null,
+          snapshotValues: snapshot
+            ? {
+                openingBalance: snapshot.openingBalance,
+                principalPaid: snapshot.principalPaid,
+                interestPaid: snapshot.interestPaid,
+                totalPaid: snapshot.totalPaid,
+                closingBalance: snapshot.closingBalance,
+              }
+            : undefined,
         };
       }),
     );
@@ -100,3 +128,9 @@ export class PreviewDebtSettlementsUseCase {
 }
 
 export const previewDebtSettlementsUseCase = new PreviewDebtSettlementsUseCase();
+
+function getPrevYearMonth(yearMonth: string): string {
+  const [year, month] = yearMonth.split('-').map(Number);
+  const date = new Date(year, month - 2, 1);
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+}

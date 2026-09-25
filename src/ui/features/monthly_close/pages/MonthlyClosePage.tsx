@@ -46,7 +46,7 @@ export const MonthlyClosePage: React.FC<MonthlyClosePageProps> = ({
     accountSnapshots,
     portfolioSnapshots,
     portfolios,
-    debtAccounts,
+    debtSectionMetas,
     accountBalances,
     setAccountBalances,
     securities,
@@ -163,10 +163,12 @@ export const MonthlyClosePage: React.FC<MonthlyClosePageProps> = ({
             stageId={stageId}
             yearMonth={selectedYearMonth}
             portfolios={portfolios.map((portfolio) => ({ id: portfolio.id, name: portfolio.name }))}
-            debtAccounts={debtAccounts.map((debtAccount) => ({
-              id: debtAccount.id,
-              name: debtAccount.name,
-              currentBalance: debtAccount.currentBalance,
+            debtAccounts={debtSectionMetas.map((meta) => ({
+              debtAccountId: meta.debtAccountId,
+              debtAccountName: meta.debtAccountName,
+              interestRate: meta.interestRate,
+              openingBalance: meta.openingBalance,
+              monthlyDue: meta.monthlyDue,
             }))}
             portfolioCashFlows={portfolioCashFlows}
             portfolioSnapshots={portfolioSnapshots}

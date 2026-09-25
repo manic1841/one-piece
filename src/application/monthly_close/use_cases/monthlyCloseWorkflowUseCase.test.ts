@@ -564,7 +564,7 @@ describe('MonthlyCloseWorkflowUseCase.confirmStage', () => {
       userEmail: 'user@test.com',
       auth,
       debtAccountId: 'debt-1',
-      idempotencyKey: 'monthly-close:2026-09:debt-1:1000:2026-09-05T10:00:00.000Z',
+      idempotencyKey: 'monthly-close:2026-09:debt-1',
       totalPayment: 1000,
       date: new Date('2026-09-05T10:00:00Z'),
       description: undefined,
@@ -585,27 +585,23 @@ describe('MonthlyCloseWorkflowUseCase.confirmStage', () => {
     expect(settleDebtAccountsUseCase.execute).toHaveBeenCalledTimes(1);
   });
 
-  it('does not double-create repayment transactions when the stage is re-confirmed', async () => {
+  it('re-books the month record when the debt stage is re-confirmed', async () => {
     vi.mocked(getFinancialPeriodUseCase.execute).mockResolvedValue(
       completeStage(basePeriod(), 'DEBT_REPAYMENT'),
     );
 
-    await expect(
-      useCase.confirmStage({
-        ...REQUEST_BASE,
-        stageId: 'DEBT_REPAYMENT',
-        repayments: [
-          { debtAccountId: 'debt-1', totalPayment: 1000, date: new Date('2026-09-05T10:00:00Z') },
-        ],
-      }),
-    ).rejects.toEqual(
-      new MonthlyCloseCommandError(
-        MonthlyCloseCommandErrorCode.STAGE_ALREADY_COMPLETED,
-        'stage already confirmed',
-      ),
-    );
-    expect(createDebtPaymentUseCase.execute).not.toHaveBeenCalled();
-    expect(settleDebtAccountsUseCase.execute).not.toHaveBeenCalled();
+    const period = await useCase.confirmStage({
+      ...REQUEST_BASE,
+      stageId: 'DEBT_REPAYMENT',
+      repayments: [
+        { debtAccountId: 'debt-1', totalPayment: 1000, date: new Date('2026-09-05T10:00:00Z') },
+      ],
+    });
+
+    expect(period.stages.DEBT_REPAYMENT.status).toBe('COMPLETED');
+    expect(period.stages.DEBT_REPAYMENT.confirmedBy).toBe('user@test.com');
+    expect(createDebtPaymentUseCase.execute).toHaveBeenCalledTimes(1);
+    expect(settleDebtAccountsUseCase.execute).toHaveBeenCalledTimes(1);
   });
 
   it('runs the project settlement flow', async () => {
@@ -769,28 +765,23 @@ describe('MonthlyCloseWorkflowUseCase.confirmStage', () => {
     expect(period.stages.ACCOUNT_BALANCE.confirmedAt).toBeInstanceOf(Date);
   });
 
-  it('rejects re-confirming a completed transaction stage', async () => {
+  it('re-books the month record when a completed debt stage reconfirms', async () => {
     vi.mocked(getFinancialPeriodUseCase.execute).mockResolvedValue(
       completeStage(basePeriod(), 'DEBT_REPAYMENT'),
     );
 
-    await expect(
-      useCase.confirmStage({
-        ...REQUEST_BASE,
-        stageId: 'DEBT_REPAYMENT',
-        repayments: [
-          { debtAccountId: 'debt-1', totalPayment: 1000, date: new Date('2026-09-05T10:00:00Z') },
-        ],
-      }),
-    ).rejects.toEqual(
-      new MonthlyCloseCommandError(
-        MonthlyCloseCommandErrorCode.STAGE_ALREADY_COMPLETED,
-        'stage already confirmed',
-      ),
-    );
-    expect(createDebtPaymentUseCase.execute).not.toHaveBeenCalled();
-    expect(settleDebtAccountsUseCase.execute).not.toHaveBeenCalled();
-    expect(saveFinancialPeriodUseCase.execute).not.toHaveBeenCalled();
+    const period = await useCase.confirmStage({
+      ...REQUEST_BASE,
+      stageId: 'DEBT_REPAYMENT',
+      repayments: [
+        { debtAccountId: 'debt-1', totalPayment: 1000, date: new Date('2026-09-05T10:00:00Z') },
+      ],
+    });
+
+    expect(period.stages.DEBT_REPAYMENT.status).toBe('COMPLETED');
+    expect(createDebtPaymentUseCase.execute).toHaveBeenCalledTimes(1);
+    expect(settleDebtAccountsUseCase.execute).toHaveBeenCalledTimes(1);
+    expect(saveFinancialPeriodUseCase.execute).toHaveBeenCalledTimes(1);
   });
 
   it('rejects confirmation on a closed period', async () => {

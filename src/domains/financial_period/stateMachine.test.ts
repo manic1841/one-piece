@@ -68,11 +68,12 @@ describe('confirmStageInState', () => {
     ).toThrow(FinancialPeriodStateError);
   });
 
-  it('rejects re-confirming a completed non-reconfirmable stage', () => {
+  it('allows re-confirming a completed debt stage in state', () => {
     const confirmed = confirmStageInState(basePeriod(), 'DEBT_REPAYMENT', 'user-1', new Date());
-    expect(() => confirmStageInState(confirmed, 'DEBT_REPAYMENT', 'user-1', new Date())).toThrow(
-      FinancialPeriodStateError,
-    );
+    const next = confirmStageInState(confirmed, 'DEBT_REPAYMENT', 'user-2', new Date());
+
+    expect(next.stages.DEBT_REPAYMENT?.confirmedBy).toBe('user-2');
+    expect(next.status).toBe('IN_PROGRESS');
   });
 
   it('allows re-confirming a completed reconfirmable stage', () => {

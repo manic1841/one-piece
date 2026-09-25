@@ -142,17 +142,37 @@ describe('calculateDebtPayment', () => {
     expect(result).toMatchObject({ principal: 1100, interest: 100, inGracePeriod: false });
   });
 
-  it('rejects a grace-period payment above applicable interest', () => {
+  it('books an above-interest grace-period payment as early principal repayment', () => {
+    const result = calculateDebtPayment({
+      currentBalance: 10000,
+      interestRate: 12,
+      totalPayment: 2100,
+      paymentDate: new Date('2026-03-15T00:00:00'),
+      startDate,
+      graceEndDate,
+    });
+
+    expect(result).toMatchObject({ principal: 2000, interest: 100, inGracePeriod: true });
+    expect(result.warning).toBeUndefined();
+    const entries = buildDebtPaymentEntries('liability:loan', result, 2100);
+    expect(entries).toEqual([
+      { ledgerCode: 'liability:loan', debit: 2000, credit: 0 },
+      { ledgerCode: 'expense:interest', debit: 100, credit: 0 },
+      { ledgerCode: 'asset:cash', debit: 0, credit: 2100 },
+    ]);
+  });
+
+  it('rejects a grace-period payment whose principal exceeds the remaining balance', () => {
     expect(() =>
       calculateDebtPayment({
-        currentBalance: 10000,
+        currentBalance: 1000,
         interestRate: 12,
-        totalPayment: 101,
+        totalPayment: 1100,
         paymentDate: new Date('2026-03-15T00:00:00'),
         startDate,
         graceEndDate,
       }),
-    ).toThrowError('GRACE_PERIOD_PAYMENT_EXCEEDS_INTEREST');
+    ).toThrowError('PAYMENT_EXCEEDS_PRINCIPAL');
   });
 });
 

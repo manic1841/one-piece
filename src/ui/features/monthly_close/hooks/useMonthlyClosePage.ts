@@ -5,7 +5,6 @@ import { listDebtAccountsUseCase } from '@/application/debt/use_cases/listDebtAc
 import { getMonthInvestmentFinancingUseCase } from '@/application/monthly_close/use_cases/getMonthInvestmentFinancingUseCase';
 import {
   type AccountBalanceInput,
-  type DebtRepaymentInput,
   type FinancingInput,
   type SecuritiesTradeInput,
 } from '@/application/monthly_close/use_cases/monthlyCloseWorkflowUseCase';
@@ -17,6 +16,7 @@ import { type Portfolio } from '@/domains/portfolio/schemas';
 import { MONTHLY_CLOSE_LABELS } from '@/ui/constants/monthlyClose';
 import { useAuthState } from '@/ui/contexts/useAuthState';
 import { useConfirm } from '@/ui/features/app/confirm/useConfirm';
+import { useDebtRepaymentPrefill } from '@/ui/features/monthly_close/hooks/useDebtRepaymentPrefill';
 import { useMonthlyClose } from '@/ui/features/monthly_close/hooks/useMonthlyClose';
 import { usePortfolioSnapshotPrefill } from '@/ui/features/monthly_close/hooks/usePortfolioSnapshotPrefill';
 import { useSnapshotBalancePrefill } from '@/ui/features/monthly_close/hooks/useSnapshotBalancePrefill';
@@ -107,7 +107,13 @@ export const useMonthlyClosePage = ({
   const [portfolioCashFlows, setPortfolioCashFlows] = useState<
     Record<string, { deposits: number; withdrawals: number }>
   >({});
-  const [repayments, setRepayments] = useState<DebtRepaymentInput[]>([]);
+  const debtPrefill = useDebtRepaymentPrefill({
+    householdId,
+    selectedYearMonth,
+    debtAccounts,
+    auth,
+  });
+  const { repayments, setRepayments } = debtPrefill;
 
   // Stage inputs are submitted with the selected month's confirmation, so a
   // month switch must retire them; the next month's tables then prefill.
@@ -119,7 +125,6 @@ export const useMonthlyClosePage = ({
       setFinancing({ shareholderFinancing: [], dividendPayout: [] });
       setRemovedTransactionIds([]);
       setPortfolioCashFlows({});
-      setRepayments([]);
     },
     [selectYearMonth],
   );
@@ -335,6 +340,7 @@ export const useMonthlyClosePage = ({
     portfolioSnapshots,
     portfolios,
     debtAccounts,
+    debtSectionMetas: debtPrefill.debtSectionMetas,
     accountBalances,
     setAccountBalances,
     securities,

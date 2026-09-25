@@ -1,11 +1,17 @@
 import React from 'react';
 
-import { Input } from '@/ui/components/ui/input';
+import { NumberInput, parseOptionalAmount } from '@/ui/components/data-table';
 import { Label } from '@/ui/components/ui/label';
 import { MONTHLY_CLOSE_LABELS } from '@/ui/constants/monthlyClose';
 import { formatCurrency, formatPercentage } from '@/ui/utils';
 import { cn } from '@/ui/utils/cn';
 
+import { closeMonthDate } from '../hooks/useDebtRepaymentPrefill';
+import {
+  type DebtSectionMetaVM,
+  buildDebtPaymentSections,
+  buildDebtPaymentTotal,
+} from '../viewmodels/debtPayment.vm';
 import type { DebtRepaymentInput } from '../viewmodels/monthlyClose.vm';
 import type { PortfolioSnapshot } from '../viewmodels/portfolioCashFlow.vm';
 import {
@@ -14,16 +20,13 @@ import {
 } from '../viewmodels/portfolioCashFlow.vm';
 import { PortfolioCashFlowAccordion, PortfolioCashFlowSection } from './PortfolioCashFlowSection';
 
-/** Mid-month date inside the closing period; close-input events must land in the closed month. */
-const closeMonthDate = (yearMonth: string): Date =>
-  new Date(Number(yearMonth.slice(0, 4)), Number(yearMonth.slice(5, 7)) - 1, 15);
-
 export interface CloseStageInputsProps {
   stageId: string;
   /** The closing period (YYYY-MM); close-input transactions must be dated inside it. */
   yearMonth: string;
   portfolios: { id: string; name: string }[];
-  debtAccounts: { id: string; name: string; currentBalance: number }[];
+  /** Read-only debt inputs: rate, opening balance, and system-calculated display data. */
+  debtAccounts: DebtSectionMetaVM[];
   portfolioCashFlows: Record<string, { deposits: number; withdrawals: number }>;
   /** Month-scoped portfolio snapshots for display; missing entries render null balances. */
   portfolioSnapshots: Map<string, PortfolioSnapshot | null>;
@@ -151,37 +154,124 @@ export const CloseStageInputs: React.FC<CloseStageInputsProps> = ({
   }
 
   if (stageId === 'DEBT_REPAYMENT') {
+    if (debtAccounts.length === 0) {
+      return <p className="text-xs text-muted-foreground">{MONTHLY_CLOSE_LABELS.NO_DATA}</p>;
+    }
+
+    const sections = buildDebtPaymentSections({ debtAccounts, repayments });
+    const total = buildDebtPaymentTotal(sections);
+
+    const handleTotalPaymentChange = (debtAccountId: string, value: number) => {
+      const next = repayments.filter((item) => item.debtAccountId !== debtAccountId);
+      next.push({
+        debtAccountId,
+        totalPayment: value,
+        date: closeMonthDate(yearMonth),
+      });
+      onRepaymentsChange(next);
+    };
+
     return (
-      <div className="space-y-3">
-        {debtAccounts.map((debtAccount) => (
-          <div key={debtAccount.id} className="flex items-center gap-3">
-            <Label className="w-32 shrink-0 truncate text-xs">{debtAccount.name}</Label>
-            <Input
-              type="number"
-              inputMode="decimal"
-              disabled={disabled}
-              placeholder="0"
-              value={
-                repayments.find((item) => item.debtAccountId === debtAccount.id)?.totalPayment ?? ''
-              }
-              onChange={(event) => {
-                const totalPayment = Number(event.target.value);
-                const next = repayments.filter((item) => item.debtAccountId !== debtAccount.id);
-                if (!Number.isNaN(totalPayment) && totalPayment > 0) {
-                  next.push({
-                    debtAccountId: debtAccount.id,
-                    totalPayment,
-                    date: closeMonthDate(yearMonth),
-                  });
-                }
-                onRepaymentsChange(next);
-              }}
-            />
-          </div>
+      <div className="space-y-6">
+        {sections.map((section, index) => (
+          <React.Fragment key={section.debtAccountId}>
+            <div className="space-y-4">
+              <p className="text-sm font-medium text-foreground">{section.debtAccountName}</p>
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div>
+                  <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+                    {MONTHLY_CLOSE_LABELS.INTEREST_RATE}
+                  </p>
+                  <p className="font-mono text-sm tabular-nums text-foreground">
+                    {section.interestRate}%
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+                    {MONTHLY_CLOSE_LABELS.PREVIOUS_BALANCE}
+                  </p>
+                  <p className="font-mono text-sm tabular-nums text-foreground">
+                    {formatCurrency(section.openingBalance)}
+                  </p>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+                  {MONTHLY_CLOSE_LABELS.TOTAL_PAYMENT}
+                </Label>
+                <NumberInput
+                  disabled={disabled}
+                  placeholder="0"
+                  aria-label={`${MONTHLY_CLOSE_LABELS.TOTAL_PAYMENT} ${section.debtAccountName}`}
+                  value={section.totalPayment > 0 ? section.totalPayment.toString() : ''}
+                  onChange={(event) =>
+                    handleTotalPaymentChange(
+                      section.debtAccountId,
+                      parseOptionalAmount(event.target.value) ?? 0,
+                    )
+                  }
+                />
+                {section.warning && <p className="text-[10px] text-warning">{section.warning}</p>}
+                {section.blockedReason && (
+                  <p className="text-[10px] text-negative" role="alert">
+                    {section.blockedReason}
+                  </p>
+                )}
+              </div>
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
+                <div>
+                  <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+                    {MONTHLY_CLOSE_LABELS.INTEREST}
+                  </p>
+                  <p className="font-mono text-sm tabular-nums text-foreground">
+                    {formatCurrency(section.interest)}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+                    {MONTHLY_CLOSE_LABELS.PRINCIPAL}
+                  </p>
+                  <p className="font-mono text-sm tabular-nums text-foreground">
+                    {formatCurrency(section.principal)}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+                    {MONTHLY_CLOSE_LABELS.MONTHLY_DUE}
+                  </p>
+                  <p className="font-mono text-sm tabular-nums text-muted-foreground">
+                    {formatCurrency(section.monthlyDue)}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+                    {MONTHLY_CLOSE_LABELS.CLOSING_BALANCE}
+                  </p>
+                  <p className="font-mono text-sm tabular-nums text-foreground">
+                    {formatCurrency(section.closingBalance)}
+                  </p>
+                </div>
+              </div>
+            </div>
+            {index < sections.length - 1 && <div className="border-t border-border" />}
+          </React.Fragment>
         ))}
-        {debtAccounts.length === 0 && (
-          <p className="text-xs text-muted-foreground">{MONTHLY_CLOSE_LABELS.NO_DATA}</p>
-        )}
+        <div className="flex items-center justify-between gap-3 border-t border-border pt-4">
+          <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+            {MONTHLY_CLOSE_LABELS.DEBT_TOTAL}
+          </p>
+          <div className="flex items-center gap-4">
+            <p className="font-mono text-sm tabular-nums text-foreground">
+              {formatCurrency(total.principal)}
+            </p>
+            <p className="font-mono text-sm tabular-nums text-foreground">
+              {formatCurrency(total.interest)}
+            </p>
+            <p className="font-mono text-sm tabular-nums text-foreground">
+              {formatCurrency(total.total)}
+            </p>
+          </div>
+        </div>
       </div>
     );
   }

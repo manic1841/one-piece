@@ -145,34 +145,31 @@ monthlyPayment      = originalAmount / normalMonths 的等額還款    // 寬限
 
 ### 還款邏輯 (DEBT_PAYMENT)
 
-**寬限期間**（判斷邏輯於 `buildDebtPaymentEntries`）：
+拆分由 `calculateDebtPayment()` 統一決定，寬限期不是特例分支：
 
 ```
-// 只記錄利息，本金不動
-Dr. expense:interest     interest
-Cr. asset:cash           totalPayment
+實繳 ≤ 應計利息（currentBalance × rate/100/12，扣同月已計利息）:
+  Dr. expense:interest     payment（利息全額）
+  Cr. asset:cash           totalPayment
+  // closingBalance = openingBalance（本金不動），附未覆蓋利息的 warning
 
-// 注：closingBalance = openingBalance（本金不減少）
-
-寬限期間的 ordinary `DEBT_PAYMENT` 不接受高於適用利息的金額；這不代表可以
-透過一般還款流程提前償還本金。低於適用利息的正付款可記錄為實際支付的利息，
-並附上未覆蓋利息的 warning。
+實繳 > 應計利息:
+  Dr. {linkedLedgerCode}  principal（payment − applicable interest）
+  Dr. expense:interest    applicable interest
+  Cr. asset:cash          totalPayment
+  // closingBalance = openingBalance − principal
 ```
 
-**寬限期後**（正常還款）：
-
-```
-Dr. {linkedLedgerCode}  principal
-Dr. expense:interest    interest
-Cr. asset:cash          totalPayment
-
-// closingBalance = openingBalance - principal
-```
+寬限期內的付款照同一條路徑拆分：照實繳利息記錄時本金不動；超繳的部分
+記為提前還本（early principal repayment），分錄含負債行、讀回如正常還款。
+取捨理由見 ADR-0052 修訂與新增的「移除寬限期繳款上限」決策。
 
 明細頁的還款表格**由分錄反向解析**得出本金與利息（`parseDebtPaymentEntries()`，
 `buildDebtPaymentEntries()` 的逆向），不是讀取快照。快照的
 `principalPaid`／`interestPaid` 與分錄同源（都來自 `calculateDebtPayment()`），但快照
 以月份為粒度累加，分錄則是逐筆；兩者不是同一份資料，也不得互相取代。
+principal 為 0 的還款（利息-only，含照實繳利息的寬限期付款）沒有負債行；
+寬限期超繳有負債行、讀回如正常還款。
 
 ### UI 上的寬限期標示
 
@@ -195,7 +192,7 @@ Cr. asset:cash          totalPayment
 | `isLoanActiveInMonth()`          | `src/domains/debt/debtPaymentCalculator.ts`    | 判斷借款期間是否涵蓋某月份（記帳完整性檢查用）     |
 | `calculateGraceMonthlyPayment()` | `src/domains/debt/debtPaymentCalculator.ts`    | 計算寬限期利息                                     |
 | `calculateLoan()`                | `src/ui/features/debt/utils/loanCalculator.ts` | 試算時包含 `graceEndDate` 參數                     |
-| `buildDebtPaymentEntries()`      | `src/domains/debt/debtPaymentCalculator.ts`    | 建立分錄時檢查寬限期                               |
+| `buildDebtPaymentEntries()`      | `src/domains/debt/debtPaymentCalculator.ts`    | 由本金是否 > 0 決定分錄（寬限期不是特例）          |
 | `parseDebtPaymentEntries()`      | `src/domains/debt/debtPaymentCalculator.ts`    | 由 `DEBT_PAYMENT` 分錄讀回本金／利息（上述的逆向） |
 
 ### 記帳完整性檢查中的債務語意

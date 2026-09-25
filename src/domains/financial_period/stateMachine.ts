@@ -96,11 +96,14 @@ export const markNeedsReviewInState = (
 export const isStageCompleted = (period: FinancialPeriod, stageId: CloseStageId): boolean =>
   period.stages[stageId]?.status === 'COMPLETED';
 
-/** Re-confirmable stages (ADR-0052/§5): same-key idempotent overwrite is safe. */
+/** Re-confirmable stages (ADR-0052/§5): same-key idempotent overwrite is safe.
+ * DEBT_REPAYMENT is included: the month's record is keyed by period × account
+ * and a re-confirmation replaces it inside one atomic boundary. */
 export const isReconfirmableStage = (stageId: CloseStageId): boolean =>
   stageId === 'ACCOUNT_BALANCE' ||
   stageId === 'SECURITIES_TRADE' ||
-  stageId === 'PORTFOLIO_CASH_FLOW';
+  stageId === 'PORTFOLIO_CASH_FLOW' ||
+  stageId === 'DEBT_REPAYMENT';
 
 export const closePeriodInState = (
   period: FinancialPeriod,

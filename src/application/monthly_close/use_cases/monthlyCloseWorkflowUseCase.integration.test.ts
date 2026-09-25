@@ -1,10 +1,15 @@
+import { deleteApp, initializeApp } from 'firebase/app';
 import {
   collection,
+  connectFirestoreEmulator,
   doc,
   getDoc,
   getDocsFromServer,
+  getFirestore,
+  query,
   serverTimestamp,
   setDoc,
+  where,
 } from 'firebase/firestore';
 
 import { createDebtAccountUseCase } from '@/application/debt/use_cases/createDebtAccountUseCase';
@@ -24,6 +29,7 @@ import { ReportType } from '@/domains/report/schemas';
 import { financialPeriodRepository } from '@/infra/repositories/financialPeriodRepository';
 import { projectRepository } from '@/infra/repositories/projectRepository';
 import { reportRepository } from '@/infra/repositories/reportRepository';
+import { transactionRepository } from '@/infra/repositories/transactionRepository';
 import { db, resetMockDb } from '@/test/mocks/firebase';
 
 const auth = { uid: 'user-1', email: 'user@example.com', isGlobalAdmin: true };
@@ -291,15 +297,147 @@ describe('monthlyCloseWorkflowUseCase — emulator integration', () => {
     // repayment transaction above and the zero-payment snapshot for the
     // watched loan with no repayment (issue #155).
 
-    // Idempotency: re-confirming is refused and does not duplicate the
-    // repayment transaction (stage guard blocks side effects).
-    await expect(confirmStage('DEBT_REPAYMENT', { repayments: [] })).rejects.toMatchObject({
-      code: 'STAGE_ALREADY_COMPLETED',
+    // Capture the booked transaction id before re-confirming.
+    const firstBookings = await transactionRepository.listDebtPaymentsByDateRange(
+      householdId,
+      new Date(2026, 2, 1),
+      new Date(2026, 3, 1),
+    );
+    expect(firstBookings).toHaveLength(1);
+    const previousTransactionId = firstBookings[0]!.id;
+
+    // Re-confirming the debt stage re-books the month's record (ADR-0067):
+    // the same period × account key with a changed payload deletes the
+    // previous transaction and re-derives the snapshot and balance inside
+    // one atomic boundary; the zero-payment snapshot is untouched.
+    await confirmStage('DEBT_REPAYMENT', {
+      repayments: [
+        {
+          debtAccountId: loanId,
+          totalPayment: 36_000,
+          date: new Date(2026, 2, 5),
+          projectId: null,
+        },
+      ],
     });
-    const debtPaymentCount = (
-      await getDocsFromServer(collection(db, 'households', householdId, 'transactions'))
-    ).docs.filter((docSnapshot) => docSnapshot.data().intentType === 'DEBT_PAYMENT').length;
-    expect(debtPaymentCount).toBe(1);
+    // Fresh reader instance: the long-lived shared instance serves stale
+    // local snapshots after transaction deletes on this SDK version.
+    let rebookedTransactionId = '';
+    const readerApp = initializeApp({ projectId: 'demo-project' }, 'debt-rebook-reader');
+    const readerDb = getFirestore(readerApp);
+    connectFirestoreEmulator(readerDb, 'firebase', 8080);
+    try {
+      const rebookedTransactions = await getDocsFromServer(
+        query(
+          collection(readerDb, 'households', householdId, 'transactions'),
+          where('intentType', '==', 'DEBT_PAYMENT'),
+          where('date', '>=', new Date(2026, 2, 1)),
+          where('date', '<', new Date(2026, 3, 1)),
+        ),
+      );
+      expect(rebookedTransactions.docs).toHaveLength(1);
+      expect(rebookedTransactions.docs[0]!.id).not.toBe(previousTransactionId);
+      expect(rebookedTransactions.docs[0]!.data().amount).toBe(36_000);
+      rebookedTransactionId = rebookedTransactions.docs[0]!.id;
+      const rebookedSnapshot = await getDoc(
+        doc(readerDb, 'households', householdId, 'debtAccounts', loanId, 'snapshots', yearMonth),
+      );
+      expect(rebookedSnapshot.data()?.totalPaid).toBe(36_000);
+    } finally {
+      await deleteApp(readerApp);
+    }
+
+    // Same payload: the same period × account key with an unchanged fingerprint
+    // returns the stored result without re-booking anything.
+    await confirmStage('DEBT_REPAYMENT', {
+      repayments: [
+        {
+          debtAccountId: loanId,
+          totalPayment: 36_000,
+          date: new Date(2026, 2, 5),
+          projectId: null,
+        },
+      ],
+    });
+    const samePayloadReaderApp = initializeApp(
+      { projectId: 'demo-project' },
+      'debt-same-payload-reader',
+    );
+    const samePayloadReaderDb = getFirestore(samePayloadReaderApp);
+    connectFirestoreEmulator(samePayloadReaderDb, 'firebase', 8080);
+    try {
+      const samePayloadTransactions = await getDocsFromServer(
+        query(
+          collection(samePayloadReaderDb, 'households', householdId, 'transactions'),
+          where('intentType', '==', 'DEBT_PAYMENT'),
+          where('date', '>=', new Date(2026, 2, 1)),
+          where('date', '<', new Date(2026, 3, 1)),
+        ),
+      );
+      expect(samePayloadTransactions.docs).toHaveLength(1);
+      expect(samePayloadTransactions.docs[0]!.id).toBe(rebookedTransactionId);
+      const samePayloadSnapshot = await getDoc(
+        doc(
+          samePayloadReaderDb,
+          'households',
+          householdId,
+          'debtAccounts',
+          loanId,
+          'snapshots',
+          yearMonth,
+        ),
+      );
+      expect(samePayloadSnapshot.data()?.totalPaid).toBe(36_000);
+    } finally {
+      await deleteApp(samePayloadReaderApp);
+    }
+
+    // Zero amount: the cleared month deletes the repayment transaction and
+    // covers the snapshot with zeros (the balance returns to its opening).
+    await confirmStage('DEBT_REPAYMENT', {
+      repayments: [
+        {
+          debtAccountId: loanId,
+          totalPayment: 0,
+          date: new Date(2026, 2, 5),
+          projectId: null,
+        },
+      ],
+    });
+    const clearedReaderApp = initializeApp({ projectId: 'demo-project' }, 'debt-cleared-reader');
+    const clearedReaderDb = getFirestore(clearedReaderApp);
+    connectFirestoreEmulator(clearedReaderDb, 'firebase', 8080);
+    try {
+      const clearedTransactions = await getDocsFromServer(
+        query(
+          collection(clearedReaderDb, 'households', householdId, 'transactions'),
+          where('intentType', '==', 'DEBT_PAYMENT'),
+          where('date', '>=', new Date(2026, 2, 1)),
+          where('date', '<', new Date(2026, 3, 1)),
+        ),
+      );
+      expect(clearedTransactions.docs).toHaveLength(0);
+      const clearedSnapshot = await getDoc(
+        doc(
+          clearedReaderDb,
+          'households',
+          householdId,
+          'debtAccounts',
+          loanId,
+          'snapshots',
+          yearMonth,
+        ),
+      );
+      expect(clearedSnapshot.data()?.totalPaid).toBe(0);
+      expect(clearedSnapshot.data()?.principalPaid).toBe(0);
+      expect(clearedSnapshot.data()?.interestPaid).toBe(0);
+      const clearedAccount = await getDoc(
+        doc(clearedReaderDb, 'households', householdId, 'debtAccounts', loanId),
+      );
+      expect(clearedAccount.data()?.currentBalance).toBe(1_200_000);
+    } finally {
+      await deleteApp(clearedReaderApp);
+    }
 
     // COMPLETENESS_CHECK pauses on the watched debt with zero activity. The
     // stage stays PENDING; re-confirming it is the resolution path (ADR-0052).

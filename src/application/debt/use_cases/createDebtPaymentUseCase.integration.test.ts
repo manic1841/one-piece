@@ -100,13 +100,15 @@ describe('CreateDebtPaymentUseCase with Firestore Emulator', () => {
     );
     const debtSnapshot = await getDoc(snapshotRef(debtAccountId, '2026-05'));
 
-    expect(secondResult).toMatchObject({ principal: 911, interest: 89, newBalance: 7989 });
+    // The month's schedule interest charges once; the second payment books
+    // entirely as principal.
+    expect(secondResult).toMatchObject({ principal: 1000, interest: 0, newBalance: 7900 });
     expect(debtSnapshot.data()).toMatchObject({
       openingBalance: 10000,
-      principalPaid: 2011,
-      interestPaid: 189,
+      principalPaid: 2100,
+      interestPaid: 100,
       totalPaid: 2200,
-      closingBalance: 7989,
+      closingBalance: 7900,
     });
   });
 
@@ -204,29 +206,73 @@ describe('CreateDebtPaymentUseCase with Firestore Emulator', () => {
     expect(operation).toMatchObject({
       operationType: 'DEBT_PAYMENT',
       idempotencyKey: 'replay-key',
-      fingerprintVersion: 1,
+      fingerprintVersion: 2,
       status: 'SUCCEEDED',
       createdByUid: 'user-1',
       resultReference: expect.objectContaining({ transactionId: firstResult.transactionId }),
     });
   });
 
-  it('rejects reuse of a key with a different payload without changing the original operation', async () => {
+  it('re-books the month record when a different payload reconfirms the same key', async () => {
     const debtAccountId = await createAccount();
-    const key = 'conflict-key';
+    const key = 'reconfirm-key';
 
     const firstResult = await createDebtPaymentUseCase.execute(
       paymentRequest(debtAccountId, { idempotencyKey: key }),
     );
-    await expect(
-      createDebtPaymentUseCase.execute(
-        paymentRequest(debtAccountId, { idempotencyKey: key, totalPayment: 1000 }),
-      ),
-    ).rejects.toMatchObject({ code: 'IDEMPOTENCY_CONFLICT' });
-    const payments = await transactionRepository.listByDebtAccount('household-1', debtAccountId);
+    const secondResult = await createDebtPaymentUseCase.execute(
+      paymentRequest(debtAccountId, { idempotencyKey: key, totalPayment: 1000 }),
+    );
+    const [debtSnapshot, payments] = await Promise.all([
+      getDoc(snapshotRef(debtAccountId, '2026-05')),
+      transactionRepository.listByDebtAccount('household-1', debtAccountId),
+    ]);
 
+    expect(secondResult).toMatchObject({ principal: 900, interest: 100, newBalance: 9100 });
+    expect(debtSnapshot.data()).toMatchObject({
+      openingBalance: 10000,
+      principalPaid: 900,
+      interestPaid: 100,
+      totalPaid: 1000,
+      closingBalance: 9100,
+    });
     expect(payments).toHaveLength(1);
-    expect(payments[0]?.id).toBe(firstResult.transactionId);
+    expect(payments[0]?.id).toBe(secondResult.transactionId);
+    expect(payments[0]?.id).not.toBe(firstResult.transactionId);
+  });
+
+  it('clears the month record when a zero-amount payload reconfirms the same key', async () => {
+    const debtAccountId = await createAccount();
+    const key = 'clear-key';
+
+    const firstResult = await createDebtPaymentUseCase.execute(
+      paymentRequest(debtAccountId, { idempotencyKey: key }),
+    );
+    const secondResult = await createDebtPaymentUseCase.execute(
+      paymentRequest(debtAccountId, { idempotencyKey: key, totalPayment: 0 }),
+    );
+    const [debtSnapshot, accountSnapshot, payments] = await Promise.all([
+      getDoc(snapshotRef(debtAccountId, '2026-05')),
+      getDoc(accountRef(debtAccountId)),
+      transactionRepository.listByDebtAccount('household-1', debtAccountId),
+    ]);
+
+    expect(secondResult).toEqual({
+      transactionId: null,
+      principal: 0,
+      interest: 0,
+      newBalance: 10000,
+    });
+    expect(debtSnapshot.data()).toMatchObject({
+      openingBalance: 10000,
+      principalPaid: 0,
+      interestPaid: 0,
+      totalPaid: 0,
+      closingBalance: 10000,
+    });
+    expect(accountSnapshot.data()).toMatchObject({ currentBalance: 10000 });
+    expect(payments).toHaveLength(0);
+    expect(firstResult.transactionId).toBeTruthy();
   });
 
   it('keeps different idempotency keys independent for identical visible fields', async () => {

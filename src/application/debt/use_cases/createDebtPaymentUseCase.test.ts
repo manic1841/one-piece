@@ -44,6 +44,7 @@ vi.mock('@/infra/repositories/operationRepository', () => ({
 vi.mock('@/infra/repositories/transactionRepository', () => ({
   transactionRepository: {
     create: vi.fn(),
+    delete: vi.fn(),
   },
 }));
 
@@ -97,6 +98,7 @@ describe('CreateDebtPaymentUseCase', () => {
     vi.mocked(debtSnapshotRepository.upsertSnapshot).mockResolvedValue(undefined);
     vi.mocked(debtAccountRepository.updateDebtAccount).mockResolvedValue(undefined);
     vi.mocked(transactionRepository.create).mockResolvedValue('tx-1');
+    vi.mocked(transactionRepository.delete).mockResolvedValue(undefined);
   });
 
   it('rejects before loading the account when permission is denied', async () => {
@@ -204,6 +206,7 @@ describe('CreateDebtPaymentUseCase', () => {
       paymentDate: request.date,
       description: request.description,
       explicitProjectId: request.projectId,
+      openingBalance: account.currentBalance,
     });
 
     vi.mocked(operationRepository.getByKey).mockResolvedValue({
@@ -236,10 +239,10 @@ describe('CreateDebtPaymentUseCase', () => {
     expect(transactionRepository.create).not.toHaveBeenCalled();
   });
 
-  it('rejects a different payload for an existing idempotency key before loading the account', async () => {
+  it('re-books the month record when a different payload reconfirms the same key', async () => {
     const { createDebtPaymentUseCase } = await import('./createDebtPaymentUseCase');
-    const { debtAccountRepository } = await import('@/infra/repositories/debtAccountRepository');
     const { operationRepository } = await import('@/infra/repositories/operationRepository');
+    const { transactionRepository } = await import('@/infra/repositories/transactionRepository');
 
     vi.mocked(operationRepository.getByKey).mockResolvedValue({
       id: 'operation-1',
@@ -248,16 +251,24 @@ describe('CreateDebtPaymentUseCase', () => {
       fingerprintVersion: DEBT_PAYMENT_FINGERPRINT_VERSION,
       payloadFingerprint: 'original-fingerprint',
       status: 'SUCCEEDED',
-      resultReference: null,
+      resultReference: {
+        debtAccountId: request.debtAccountId,
+        yearMonth: '2026-05',
+        transactionId: 'tx-original',
+        principal: 1000,
+        interest: 100,
+        newBalance: 9000,
+      },
       createdAt: new Date('2026-05-15T00:00:00'),
       updatedAt: new Date('2026-05-15T00:00:00'),
       completedAt: new Date('2026-05-15T00:00:00'),
       createdByUid: 'user-1',
     });
 
-    await expect(
-      createDebtPaymentUseCase.execute({ ...request, totalPayment: 1300 }),
-    ).rejects.toMatchObject({ code: 'IDEMPOTENCY_CONFLICT' });
-    expect(debtAccountRepository.get).not.toHaveBeenCalled();
+    await createDebtPaymentUseCase.execute({ ...request, totalPayment: 1300 });
+
+    expect(transactionRepository.delete).toHaveBeenCalledWith(['household-1', 'tx-original'], {});
+    expect(transactionRepository.create).toHaveBeenCalledTimes(1);
+    expect(operationRepository.createSucceeded).toHaveBeenCalledTimes(1);
   });
 });

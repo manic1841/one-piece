@@ -90,12 +90,15 @@ conflict 時，不得留下部分 source、snapshot、balance 或成功的 opera
 1. **Idempotent command**：同一請求執行多次，結果與執行一次相同，重試直接重新執行。
    只適用於「設定相同 desired state」的操作（例如 reorder），不適用於新增一筆事件。
 2. **Deterministically retry-safe command**：業務資源有穩定且可重建的 identity。
-   重試會讀取該 identity；payload 相同回傳既有結果，payload 不同則拒絕，不得覆蓋原資料。
+   重試會讀取該 identity；payload 相同回傳既有結果，payload 不同則拒絕，不得覆蓋
+   原資料。
 3. **Atomic desired-state command**：更新多個代表同一 desired state 的 durable records。
    所有必要的讀取與寫入必須在同一個 Firestore transaction 內完成，失敗時一起回滾。
 4. **Explicitly non-repeatable command**：每次成功執行都會新增不可重複的 source event，
    或產生不可逆的財務效果。必須要求 caller 產生的 idempotency key，並以 operation
-   record 將 key、payload 與結果綁在同一個原子操作中。`DEBT_PAYMENT` 屬於此類。
+   record 將 key、payload 與結果綁在同一個原子操作中。`DEBT_PAYMENT` 屬於此類；
+   其「月內重新確認可覆蓋當月紀錄」屬於使用者重新確認的功能語意（重試情境之外），
+   見 `docs/monthly-close.md` §4 與 ADR-0067。
 
 Command 不得只因使用 deterministic document ID 就宣稱 retry-safe；例如同月
 DebtSnapshot 的 upsert 是累加操作，仍需保護其對應的 source Transaction。
@@ -136,15 +139,18 @@ context、token、email 或不必要的個資；時間欄位由 server timestamp
 同一 household、operation type 與 key 的行為固定如下：
 
 - 相同 payload fingerprint 且已有 `SUCCEEDED`：回傳原本的 result reference，不新增
-  source record、不重寫 snapshot，也不再次改變 balance。
-- 不同 payload fingerprint：回傳穩定的 `IDEMPOTENCY_CONFLICT` application error。
+  source record、不重寫 snapshot，也不再次改變 balance。這是重試情境：同一使用者意圖
+  因網路等問題重複發送。
+- 不同 payload fingerprint：代表新的使用者意圖，不是重試。`DEBT_PAYMENT` 的月內重新
+  確認屬功能語意，覆蓋當月紀錄（見 `docs/monthly-close.md` §4、ADR-0067）；其他
+  command 回傳穩定的 `IDEMPOTENCY_CONFLICT` application error。
 - `IN_PROGRESS`：由 Firestore transaction contention/重試處理；呼叫端不得另建 operation。
 - `FAILED` 或 command 在 validation、permission、missing resource 階段失敗：不得留下
   `SUCCEEDED` record；對 atomic financial command，失敗的 operation record 與 source
   records 必須同時回滾。
 
 `DEBT_PAYMENT` 使用 operation type `DEBT_PAYMENT`，要求非空且由 caller 產生的
-idempotency key。其 fingerprint version 1 只包含會影響 operation 的輸入：
+idempotency key。其 fingerprint version 2 只包含會影響 operation 的輸入：
 
 ```text
 operationType
@@ -154,13 +160,16 @@ totalPayment
 canonicalPaymentDate
 normalizedDescription
 explicitProjectId
+openingBalance
 ```
 
 `canonicalPaymentDate` 是正規化後的付款日；`normalizedDescription` 是去除僅影響呈現的
 多餘空白後的說明；`explicitProjectId` 只記錄 caller 明確提供的 project identity，不把
-從 DebtAccount fallback 的 project 寫入 fingerprint。Generated document IDs、execution
-timestamps、authentication context、email 與 stored balance 都排除在 fingerprint 外。
-版本升級時建立新的 fingerprint version，不能靜默改變既有 key 的解讀。
+從 DebtAccount fallback 的 project 寫入 fingerprint；`openingBalance` 綁定計算基準
+（ADR-0068），使後期重確認沿當前餘額鏈重算而非重放過期結果。Generated document IDs、
+execution timestamps、authentication context、email 與 stored balance（`openingBalance`
+除外）都排除在 fingerprint 外。版本升級時建立新的 fingerprint version，不能靜默改變
+既有 key 的解讀。
 
 ### Reorder 契約（atomic desired-state 的實例）
 

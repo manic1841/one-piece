@@ -40,6 +40,7 @@ export interface InvestmentFinancingInput {
 
 export interface DebtRepaymentInput {
   debtAccountId: string;
+  /** 0 clears the month's record (no repayment). */
   totalPayment: number;
   date: Date;
   description?: string;
