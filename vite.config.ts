@@ -7,6 +7,7 @@ import {
   AUTH_PROXY_PREFIXES,
   DEFAULT_AUTH_EMULATOR_TARGET,
   DEFAULT_FIRESTORE_EMULATOR_TARGET,
+  EMULATOR_AUTH_HANDLER_PREFIX,
   FIRESTORE_PROXY_PATH,
 } from './src/infra/emulatorEndpoints';
 import packageJson from './package.json';
@@ -60,6 +61,16 @@ export default defineConfig({
           },
         ]),
       ),
+      // signInWithPopup in emulator mode opens `<origin>/emulator/auth/handler`;
+      // without forwarding it, Vite's SPA fallback serves index.html into the
+      // popup (blank window).
+      [EMULATOR_AUTH_HANDLER_PREFIX]: {
+        target: normalizeTarget(
+          process.env.FIREBASE_AUTH_EMULATOR_HOST,
+          DEFAULT_AUTH_EMULATOR_TARGET,
+        ),
+        changeOrigin: true,
+      },
     },
   },
   build: {

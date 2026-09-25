@@ -27,6 +27,13 @@ export const AUTH_PROXY_PREFIXES = [
   '/www.googleapis.com',
 ] as const;
 
+/**
+ * Auth SDK 在 emulator 模式下 `signInWithPopup` 開啟的 widget 路徑
+ * （SDK 的 `EMULATOR_WIDGET_PATH`：`emulator/auth/handler`）。不加轉發會被
+ * Vite 的 SPA fallback 吃掉，popup 載到 index.html 變黑畫面。
+ */
+export const EMULATOR_AUTH_HANDLER_PREFIX = '/emulator/auth';
+
 /** Proxy 目標的預設值；可用 FIRESTORE_EMULATOR_HOST / FIREBASE_AUTH_EMULATOR_HOST 覆寫。 */
 export const DEFAULT_FIRESTORE_EMULATOR_TARGET = 'firebase:8080';
 export const DEFAULT_AUTH_EMULATOR_TARGET = 'firebase:9099';
