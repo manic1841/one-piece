@@ -13,7 +13,12 @@ export type {
 export { isCascadeDemoted, isReopenablePeriod } from '@/domains/financial_period/stateMachine';
 
 export interface CloseStageEvidence {
-  kind: 'TRANSACTION_VALIDATION' | 'COMPLETENESS_ANOMALIES' | 'CASH_FLOW_ADJUSTMENTS' | 'REPORT_PERSISTENCE' | 'NONE';
+  kind:
+    | 'TRANSACTION_VALIDATION'
+    | 'COMPLETENESS_ANOMALIES'
+    | 'CASH_FLOW_ADJUSTMENTS'
+    | 'REPORT_PERSISTENCE'
+    | 'NONE';
   transactionIssues: { transactionId: string; description: string; reason: string }[];
   zeroActivityNames: string[];
   cashFlowAdjustments: number;

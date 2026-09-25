@@ -23,7 +23,9 @@ const account = (overrides: Partial<Account> & { id: string; name: string }): Ac
     ...overrides,
   }) as Account;
 
-const snapshot = (overrides: Partial<AccountSnapshot> & { id: string; accountId: string }): AccountSnapshot =>
+const snapshot = (
+  overrides: Partial<AccountSnapshot> & { id: string; accountId: string },
+): AccountSnapshot =>
   ({
     year: 2026,
     month: 8,
@@ -35,7 +37,9 @@ const snapshot = (overrides: Partial<AccountSnapshot> & { id: string; accountId:
     ...overrides,
   }) as AccountSnapshot;
 
-const input = (overrides: Partial<AccountBalanceInput> & { accountId: string }): AccountBalanceInput => ({
+const input = (
+  overrides: Partial<AccountBalanceInput> & { accountId: string },
+): AccountBalanceInput => ({
   amount: 0,
   ...overrides,
 });

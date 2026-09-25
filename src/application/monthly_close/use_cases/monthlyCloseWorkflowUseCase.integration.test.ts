@@ -1,16 +1,23 @@
-import { collection, doc, getDoc, getDocsFromServer, serverTimestamp, setDoc } from 'firebase/firestore';
+import {
+  collection,
+  doc,
+  getDoc,
+  getDocsFromServer,
+  serverTimestamp,
+  setDoc,
+} from 'firebase/firestore';
 
 import { createDebtAccountUseCase } from '@/application/debt/use_cases/createDebtAccountUseCase';
+import {
+  type MonthlyCloseConfirmRequest,
+  type MonthlyCloseStartRequest,
+  monthlyCloseWorkflowUseCase,
+} from '@/application/monthly_close/use_cases/monthlyCloseWorkflowUseCase';
 import { createPortfolioUseCase } from '@/application/portfolio/use_cases/createPortfolioUseCase';
 import { listPortfoliosUseCase } from '@/application/portfolio/use_cases/listPortfoliosUseCase';
 import { createProjectUseCase } from '@/application/project/use_cases/createProjectUseCase';
-import {
-  monthlyCloseWorkflowUseCase,
-  type MonthlyCloseConfirmRequest,
-  type MonthlyCloseStartRequest,
-} from '@/application/monthly_close/use_cases/monthlyCloseWorkflowUseCase';
-import { addWatchListTargetUseCase } from '@/application/watch_list/use_cases/addWatchListTargetUseCase';
 import { getReportPersistenceStateUseCase } from '@/application/report/use_cases/getReportPersistenceStateUseCase';
+import { addWatchListTargetUseCase } from '@/application/watch_list/use_cases/addWatchListTargetUseCase';
 import type { CloseStageId } from '@/domains/financial_period/schemas';
 import { CLOSE_STAGE_IDS } from '@/domains/financial_period/schemas';
 import { ReportType } from '@/domains/report/schemas';
@@ -169,7 +176,11 @@ describe('monthlyCloseWorkflowUseCase — emulator integration', () => {
 
     await addWatchListTargetUseCase.execute({
       householdId: householdId,
-      target: { targetType: 'DEBT_ACCOUNT', targetId: zeroPaymentLoanId, name: 'Loan with no payment' },
+      target: {
+        targetType: 'DEBT_ACCOUNT',
+        targetId: zeroPaymentLoanId,
+        name: 'Loan with no payment',
+      },
       userEmail: 'user@example.com',
       auth,
     });
@@ -190,7 +201,9 @@ describe('monthlyCloseWorkflowUseCase — emulator integration', () => {
     expect(period).not.toBeNull();
     expect(period?.status).toBe('IN_PROGRESS');
     expect(Object.keys(period?.stages ?? {})).toHaveLength(CLOSE_STAGE_IDS.length);
-    expect(Object.values(period?.stages ?? {}).every((stage) => stage.status === 'PENDING')).toBe(true);
+    expect(Object.values(period?.stages ?? {}).every((stage) => stage.status === 'PENDING')).toBe(
+      true,
+    );
 
     // ACCOUNT_BALANCE records snapshots for the seeded accounts.
     await confirmStage('ACCOUNT_BALANCE', {
@@ -219,9 +232,11 @@ describe('monthlyCloseWorkflowUseCase — emulator integration', () => {
     expect(rewrittenSnapshot.exists()).toBe(true);
     expect(rewrittenSnapshot.data()?.amount).toBe(99_000);
     expect(
-      (await getDocsFromServer(
-        collection(db, 'households', householdId, 'accounts', 'acc-1', 'snapshots'),
-      )).docs.length,
+      (
+        await getDocsFromServer(
+          collection(db, 'households', householdId, 'accounts', 'acc-1', 'snapshots'),
+        )
+      ).docs.length,
     ).toBe(1);
 
     // TRANSACTION_VALIDATION batch-checks the month's transactions and
@@ -281,9 +296,9 @@ describe('monthlyCloseWorkflowUseCase — emulator integration', () => {
     await expect(confirmStage('DEBT_REPAYMENT', { repayments: [] })).rejects.toMatchObject({
       code: 'STAGE_ALREADY_COMPLETED',
     });
-    const debtPaymentCount = (await getDocsFromServer(
-      collection(db, 'households', householdId, 'transactions'),
-    )).docs.filter((docSnapshot) => docSnapshot.data().intentType === 'DEBT_PAYMENT').length;
+    const debtPaymentCount = (
+      await getDocsFromServer(collection(db, 'households', householdId, 'transactions'))
+    ).docs.filter((docSnapshot) => docSnapshot.data().intentType === 'DEBT_PAYMENT').length;
     expect(debtPaymentCount).toBe(1);
 
     // COMPLETENESS_CHECK pauses on the watched debt with zero activity. The
@@ -340,25 +355,22 @@ describe('monthlyCloseWorkflowUseCase — emulator integration', () => {
 
   it('reopens a closed period and demotes later closed periods (ADR-0066)', async () => {
     const seedClosedPeriod = async (closedYearMonth: string) => {
-      await setDoc(
-        doc(db, 'households', householdId, 'financialPeriods', closedYearMonth),
-        {
-          id: closedYearMonth,
-          yearMonth: closedYearMonth,
-          status: 'CLOSED',
-          stages: Object.fromEntries(
-            CLOSE_STAGE_IDS.map((stageId) => [
-              stageId,
-              { status: 'COMPLETED', confirmedBy: 'user@example.com' },
-            ]),
-          ),
-          reviewSourceStageId: null,
-          createdAt: serverTimestamp(),
-          updatedAt: serverTimestamp(),
-          createdBy: 'user@example.com',
-          updatedBy: 'user@example.com',
-        },
-      );
+      await setDoc(doc(db, 'households', householdId, 'financialPeriods', closedYearMonth), {
+        id: closedYearMonth,
+        yearMonth: closedYearMonth,
+        status: 'CLOSED',
+        stages: Object.fromEntries(
+          CLOSE_STAGE_IDS.map((stageId) => [
+            stageId,
+            { status: 'COMPLETED', confirmedBy: 'user@example.com' },
+          ]),
+        ),
+        reviewSourceStageId: null,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+        createdBy: 'user@example.com',
+        updatedBy: 'user@example.com',
+      });
     };
     await seedClosedPeriod('2026-03');
     await seedClosedPeriod('2026-04');
@@ -401,6 +413,7 @@ const findTransactionByIntent = async (intentOrIntentTypeCode: string) => {
   return snapshot.docs
     .map((docSnapshot) => docSnapshot.data())
     .find(
-      (data) => data.intentType === intentOrIntentTypeCode || data.intent === intentOrIntentTypeCode,
+      (data) =>
+        data.intentType === intentOrIntentTypeCode || data.intent === intentOrIntentTypeCode,
     );
 };

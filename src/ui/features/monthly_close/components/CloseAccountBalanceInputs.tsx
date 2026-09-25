@@ -1,5 +1,24 @@
 import React, { useEffect, useState } from 'react';
 
+import {
+  DataTable,
+  DataTableCell,
+  DataTableColGroup,
+  DataTableHeadCell,
+  DataTableHeadRow,
+  DataTableRow,
+  DataTableScrollArea,
+  NumberCell,
+  NumberInput,
+  TableBody,
+  TableHeader,
+  parseOptionalAmount,
+} from '@/ui/components/data-table';
+import { Label } from '@/ui/components/ui/label';
+import { MONTHLY_CLOSE_LABELS } from '@/ui/constants/monthlyClose';
+import { useExchangeRate } from '@/ui/hooks/useExchangeRate';
+import { formatCurrency } from '@/ui/utils';
+
 import type {
   Account,
   AccountBalanceInput,
@@ -8,34 +27,14 @@ import type {
   Holding,
 } from '../viewmodels/accountBalance.vm';
 import {
-  DataTable,
-  DataTableColGroup,
-  DataTableHeadCell,
-  DataTableHeadRow,
-  DataTableCell,
-  DataTableRow,
-  DataTableScrollArea,
-  NumberCell,
-  NumberInput,
-  parseOptionalAmount,
-  TableBody,
-  TableHeader,
-} from '@/ui/components/data-table';
-import { Label } from '@/ui/components/ui/label';
-import { MONTHLY_CLOSE_LABELS } from '@/ui/constants/monthlyClose';
-import { useExchangeRate } from '@/ui/hooks/useExchangeRate';
-import { formatCurrency } from '@/ui/utils';
-
-import {
+  type AccountBalanceSectionKind,
   buildAccountBalanceSections,
   computeSectionInput,
   upsertSectionInput,
-  type AccountBalanceSectionKind,
 } from '../viewmodels/accountBalance.vm';
-
-import { SecuritiesAccountRow } from './SecuritiesAccountRow';
-import { ForeignMobileList, TwdMobileList } from './CloseAccountBalanceMobileLists';
 import { AccountNameCell } from './AccountNameCell';
+import { ForeignMobileList, TwdMobileList } from './CloseAccountBalanceMobileLists';
+import { SecuritiesAccountRow } from './SecuritiesAccountRow';
 
 const SECTION_LABELS: Record<AccountBalanceSectionKind, string> = {
   twd: '現金 / 銀行',
@@ -43,8 +42,7 @@ const SECTION_LABELS: Record<AccountBalanceSectionKind, string> = {
   securities: '證券',
 };
 
-const sectionTitleClass =
-  'text-[13px] font-semibold uppercase tracking-[0.08em] text-foreground';
+const sectionTitleClass = 'text-[13px] font-semibold uppercase tracking-[0.08em] text-foreground';
 
 const sectionNoteClass =
   'text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground';
@@ -120,11 +118,7 @@ interface ForeignAccountRowProps {
   ) => void;
 }
 
-const ForeignAccountRow: React.FC<ForeignAccountRowProps> = ({
-  entry,
-  input,
-  onDetailChange,
-}) => {
+const ForeignAccountRow: React.FC<ForeignAccountRowProps> = ({ entry, input, onDetailChange }) => {
   const originalAmount = input?.originalAmount ?? 0;
   const exchangeRate = input?.exchangeRate ?? 0;
   const twdValue = computeSectionInput(
@@ -153,7 +147,11 @@ const ForeignAccountRow: React.FC<ForeignAccountRowProps> = ({
             className="w-full max-w-[150px]"
             value={input?.originalAmount ?? ''}
             onChange={(event) =>
-              onDetailChange(entry.account.id, 'originalAmount', parseOptionalAmount(event.target.value))
+              onDetailChange(
+                entry.account.id,
+                'originalAmount',
+                parseOptionalAmount(event.target.value),
+              )
             }
           />
         </div>
@@ -169,7 +167,11 @@ const ForeignAccountRow: React.FC<ForeignAccountRowProps> = ({
             className="w-full max-w-[110px]"
             value={input?.exchangeRate ?? ''}
             onChange={(event) =>
-              onDetailChange(entry.account.id, 'exchangeRate', parseOptionalAmount(event.target.value))
+              onDetailChange(
+                entry.account.id,
+                'exchangeRate',
+                parseOptionalAmount(event.target.value),
+              )
             }
           />
         </div>
@@ -286,7 +288,10 @@ export const CloseAccountBalanceInputs: React.FC<CloseAccountBalanceInputsProps>
   return (
     <div className="space-y-0">
       {sections.map((section) => (
-        <section key={section.kind} className="space-y-4 border-b border-border pb-[30px] pt-[30px] first:pt-0 last:border-b-0 last:pb-0">
+        <section
+          key={section.kind}
+          className="space-y-4 border-b border-border pb-[30px] pt-[30px] first:pt-0 last:border-b-0 last:pb-0"
+        >
           <div className="flex items-baseline justify-between">
             <p className={sectionTitleClass}>{SECTION_LABELS[section.kind]}</p>
             <p className={sectionNoteClass}>{SECTION_NOTES[section.kind]}</p>

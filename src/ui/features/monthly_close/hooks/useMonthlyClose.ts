@@ -1,28 +1,23 @@
 import { useCallback, useMemo, useState } from 'react';
 
-import { MonthlyCloseCommandError } from '@/application/monthly_close/errors';
+import {
+  MonthlyCloseCommandError,
+  MonthlyCloseCommandErrorCode,
+} from '@/application/monthly_close/errors';
 import { monthlyCloseWorkflowUseCase } from '@/application/monthly_close/use_cases/monthlyCloseWorkflowUseCase';
-import {
-  type AccountBalanceInput,
-  type DebtRepaymentInput,
-  type MonthlyCloseConfirmRequest,
-  type SecuritiesTradeInput,
-} from '@/application/monthly_close/use_cases/monthlyCloseWorkflowUseCase';
-import {
-  checkSettlementCompletenessUseCase,
-  type CompletenessActivity,
-} from '@/application/settlement/use_cases/checkSettlementCompletenessUseCase';
+import { type MonthlyCloseConfirmRequest } from '@/application/monthly_close/use_cases/monthlyCloseWorkflowUseCase';
 import { validateMonthTransactionsUseCase } from '@/application/monthly_close/use_cases/validateMonthTransactionsUseCase';
 import { getReportPersistenceStateUseCase } from '@/application/report/use_cases/getReportPersistenceStateUseCase';
 import { previewFinancialReportsWorkflow } from '@/application/report/use_cases/previewFinancialReportsWorkflow';
 import {
-  type CloseStageId,
-  type FinancialPeriod,
-} from '@/domains/financial_period/schemas';
-import { logger } from '@/utils/logger';
+  type CompletenessActivity,
+  checkSettlementCompletenessUseCase,
+} from '@/application/settlement/use_cases/checkSettlementCompletenessUseCase';
+import { type CloseStageId, type FinancialPeriod } from '@/domains/financial_period/schemas';
+import { MONTHLY_CLOSE_LABELS } from '@/ui/constants/monthlyClose';
 import { useAuthIdentity } from '@/ui/hooks/useAuthIdentity';
 import { formatYearMonth } from '@/ui/utils';
-import { MONTHLY_CLOSE_LABELS } from '@/ui/constants/monthlyClose';
+import { logger } from '@/utils/logger';
 
 import { mapPeriodToPageVM } from '../mappers/monthlyClose.mappers';
 import type { MonthlyClosePageVM } from '../viewmodels/monthlyClose.vm';
@@ -33,6 +28,9 @@ interface UseMonthlyCloseParams {
 }
 const errorText = (err: unknown, fallback: string): string => {
   if (err instanceof MonthlyCloseCommandError) {
+    if (err.code === MonthlyCloseCommandErrorCode.STAGE_ALREADY_COMPLETED) {
+      return MONTHLY_CLOSE_LABELS.STAGE_ALREADY_COMPLETED_ERROR;
+    }
     return `${fallback}（${err.code}）`;
   }
   return fallback;
@@ -40,7 +38,9 @@ const errorText = (err: unknown, fallback: string): string => {
 
 export const useMonthlyClose = ({ householdId, userEmail }: UseMonthlyCloseParams) => {
   const auth = useAuthIdentity();
-  const [selectedYearMonth, setSelectedYearMonth] = useState<string>(() => formatYearMonth(new Date().getFullYear(), new Date().getMonth() + 1));
+  const [selectedYearMonth, setSelectedYearMonth] = useState<string>(() =>
+    formatYearMonth(new Date().getFullYear(), new Date().getMonth() + 1),
+  );
   const [period, setPeriod] = useState<FinancialPeriod | null>(null);
   const [confirmingStageId, setConfirmingStageId] = useState<CloseStageId | null>(null);
   const [isStarting, setIsStarting] = useState(false);
@@ -57,18 +57,15 @@ export const useMonthlyClose = ({ householdId, userEmail }: UseMonthlyCloseParam
     [period, selectedYearMonth],
   );
 
-  const selectYearMonth = useCallback(
-    (yearMonth: string) => {
-      setSelectedYearMonth(yearMonth);
-      setPeriod(null);
-      setError(null);
-      setAnomalies([]);
-      setTransactionIssues([]);
-      setCashFlowAdjustment(null);
-      setReportsPersisted(null);
-    },
-    [],
-  );
+  const selectYearMonth = useCallback((yearMonth: string) => {
+    setSelectedYearMonth(yearMonth);
+    setPeriod(null);
+    setError(null);
+    setAnomalies([]);
+    setTransactionIssues([]);
+    setCashFlowAdjustment(null);
+    setReportsPersisted(null);
+  }, []);
 
   const start = useCallback(async (): Promise<FinancialPeriod | null> => {
     if (!householdId || !selectedYearMonth) return null;
@@ -113,7 +110,9 @@ export const useMonthlyClose = ({ householdId, userEmail }: UseMonthlyCloseParam
   }, [auth, householdId, selectedYearMonth, userEmail]);
 
   const confirmStage = useCallback(
-    async (request: Omit<MonthlyCloseConfirmRequest, 'householdId' | 'yearMonth' | 'userEmail' | 'auth'>): Promise<FinancialPeriod | null> => {
+    async (
+      request: Omit<MonthlyCloseConfirmRequest, 'householdId' | 'yearMonth' | 'userEmail' | 'auth'>,
+    ): Promise<FinancialPeriod | null> => {
       if (!householdId || !selectedYearMonth) return null;
       setConfirmingStageId(request.stageId);
       setError(null);
@@ -210,14 +209,4 @@ export const useMonthlyClose = ({ householdId, userEmail }: UseMonthlyCloseParam
     confirmStage,
     refreshStageEvidence,
   };
-};
-
-export type MonthlyCloseStageInputs = {
-  accountBalances?: AccountBalanceInput[];
-  securities?: {
-    buys: SecuritiesTradeInput[];
-    sells: SecuritiesTradeInput[];
-  };
-  portfolioCashFlows?: Record<string, { deposits: number; withdrawals: number }>;
-  repayments?: DebtRepaymentInput[];
 };

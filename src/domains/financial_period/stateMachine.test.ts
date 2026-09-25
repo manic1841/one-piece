@@ -1,18 +1,15 @@
 import { describe, expect, it } from 'vitest';
 
+import { type FinancialPeriod, initialStageStates } from './schemas';
 import {
-  completedStageCount,
   closePeriodInState,
+  completedStageCount,
   confirmStageInState,
   isStageCompleted,
   markNeedsReviewInState,
   resolvePeriodStatus,
 } from './stateMachine';
 import { FinancialPeriodStateError } from './stateMachine';
-import {
-  type FinancialPeriod,
-  initialStageStates,
-} from './schemas';
 
 const basePeriod = (overrides: Partial<FinancialPeriod> = {}): FinancialPeriod => ({
   id: '2026-09',
@@ -39,7 +36,12 @@ describe('resolvePeriodStatus', () => {
 describe('confirmStageInState', () => {
   it('marks the stage completed and returns IN_PROGRESS', () => {
     const confirmedAt = new Date('2026-10-03T10:00:00Z');
-    const next = confirmStageInState(basePeriod({ status: 'NEEDS_REVIEW' }), 'ACCOUNT_BALANCE', 'user-1', confirmedAt);
+    const next = confirmStageInState(
+      basePeriod({ status: 'NEEDS_REVIEW' }),
+      'ACCOUNT_BALANCE',
+      'user-1',
+      confirmedAt,
+    );
 
     expect(next.status).toBe('IN_PROGRESS');
     expect(next.reviewSourceStageId).toBeNull();
@@ -61,9 +63,9 @@ describe('confirmStageInState', () => {
   });
 
   it('rejects an unknown stage', () => {
-    expect(() => confirmStageInState(basePeriod(), 'NOT_A_STAGE' as never, 'user-1', new Date())).toThrow(
-      FinancialPeriodStateError,
-    );
+    expect(() =>
+      confirmStageInState(basePeriod(), 'NOT_A_STAGE' as never, 'user-1', new Date()),
+    ).toThrow(FinancialPeriodStateError);
   });
 
   it('rejects re-confirming a completed stage', () => {
@@ -74,9 +76,14 @@ describe('confirmStageInState', () => {
   });
 
   it('rejects confirming a stage on a CLOSED period', () => {
-    expect(() => confirmStageInState(basePeriod({ status: 'CLOSED' }), 'ACCOUNT_BALANCE', 'user-1', new Date())).toThrow(
-      FinancialPeriodStateError,
-    );
+    expect(() =>
+      confirmStageInState(
+        basePeriod({ status: 'CLOSED' }),
+        'ACCOUNT_BALANCE',
+        'user-1',
+        new Date(),
+      ),
+    ).toThrow(FinancialPeriodStateError);
   });
 });
 
@@ -89,9 +96,9 @@ describe('markNeedsReviewInState', () => {
   });
 
   it('rejects review marking on a CLOSED period', () => {
-    expect(() => markNeedsReviewInState(basePeriod({ status: 'CLOSED' }), 'COMPLETENESS_CHECK')).toThrow(
-      FinancialPeriodStateError,
-    );
+    expect(() =>
+      markNeedsReviewInState(basePeriod({ status: 'CLOSED' }), 'COMPLETENESS_CHECK'),
+    ).toThrow(FinancialPeriodStateError);
   });
 
   it('rejects an unknown review source stage', () => {
@@ -103,7 +110,9 @@ describe('markNeedsReviewInState', () => {
 
 describe('closePeriodInState', () => {
   it('requires Close Period stage completed', () => {
-    expect(() => closePeriodInState(basePeriod(), 'user-1', new Date())).toThrow(FinancialPeriodStateError);
+    expect(() => closePeriodInState(basePeriod(), 'user-1', new Date())).toThrow(
+      FinancialPeriodStateError,
+    );
   });
 
   it('finalizes the period as CLOSED when Close Period is confirmed', () => {
@@ -131,6 +140,8 @@ describe('closePeriodInState', () => {
     const confirmed = confirmStageInState(basePeriod(), 'CLOSE_PERIOD', 'user-1', new Date());
     const closed = closePeriodInState(confirmed, 'user-1', new Date());
 
-    expect(() => closePeriodInState(closed, 'user-1', new Date())).toThrow(FinancialPeriodStateError);
+    expect(() => closePeriodInState(closed, 'user-1', new Date())).toThrow(
+      FinancialPeriodStateError,
+    );
   });
 });

@@ -1,16 +1,17 @@
+import type { CompletenessActivity } from '@/application/settlement/use_cases/checkSettlementCompletenessUseCase';
+import type { CloseStageId, FinancialPeriod } from '@/domains/financial_period/schemas';
+import { isCascadeDemoted } from '@/domains/financial_period/stateMachine';
 import {
   CLOSE_STAGE_LABELS,
   CLOSE_STAGE_ORDER,
   MONTHLY_CLOSE_LABELS,
 } from '@/ui/constants/monthlyClose';
+
 import type {
   CloseStageEvidence,
   CloseStageItemVM,
   MonthlyClosePageVM,
 } from '../viewmodels/monthlyClose.vm';
-import type { CloseStageId, FinancialPeriod } from '@/domains/financial_period/schemas';
-import { isCascadeDemoted } from '@/domains/financial_period/stateMachine';
-import type { CompletenessActivity } from '@/application/settlement/use_cases/checkSettlementCompletenessUseCase';
 
 const STATUS_TEXT_MAP: Record<string, string> = {
   OPEN: MONTHLY_CLOSE_LABELS.OPEN,
@@ -89,8 +90,8 @@ export const mapPeriodToPageVM = (
     isStarted: true,
     reviewSourceStageId: period.reviewSourceStageId ?? null,
     reviewSourceLabel: period.reviewSourceStageId
-      ? CLOSE_STAGE_LABELS[period.reviewSourceStageId as keyof typeof CLOSE_STAGE_LABELS] ??
-        period.reviewSourceStageId
+      ? (CLOSE_STAGE_LABELS[period.reviewSourceStageId as keyof typeof CLOSE_STAGE_LABELS] ??
+        period.reviewSourceStageId)
       : null,
     stages,
     completedCount,
@@ -98,9 +99,7 @@ export const mapPeriodToPageVM = (
   };
 };
 
-export const mapAnomaliesToEvidence = (
-  anomalies: CompletenessActivity[],
-): CloseStageEvidence => ({
+export const mapAnomaliesToEvidence = (anomalies: CompletenessActivity[]): CloseStageEvidence => ({
   kind: 'COMPLETENESS_ANOMALIES',
   transactionIssues: [],
   zeroActivityNames: anomalies.map((activity) => activity.name),
@@ -118,9 +117,7 @@ export const mapTransactionIssuesToEvidence = (
   reportsPersisted: null,
 });
 
-export const mapAdjustmentCountToEvidence = (
-  adjustments: number,
-): CloseStageEvidence => ({
+export const mapAdjustmentCountToEvidence = (adjustments: number): CloseStageEvidence => ({
   kind: 'CASH_FLOW_ADJUSTMENTS',
   transactionIssues: [],
   zeroActivityNames: [],
@@ -128,9 +125,7 @@ export const mapAdjustmentCountToEvidence = (
   reportsPersisted: null,
 });
 
-export const mapPersistenceToEvidence = (
-  reportsPersisted: boolean,
-): CloseStageEvidence => ({
+export const mapPersistenceToEvidence = (reportsPersisted: boolean): CloseStageEvidence => ({
   kind: 'REPORT_PERSISTENCE',
   transactionIssues: [],
   zeroActivityNames: [],

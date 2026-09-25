@@ -1,8 +1,11 @@
 import { householdPermissionService } from '@/application/household/householdPermissionService';
 import { type AuthContext } from '@/application/types';
-import { type TransactionValidationIssue, type TransactionValidationResult } from '@/domains/transaction_validation/validator';
-import { validateMonthTransactions } from '@/domains/transaction_validation/validator';
 import { type Transaction } from '@/domains/ledger/schemas';
+import {
+  type TransactionValidationIssue,
+  type TransactionValidationResult,
+} from '@/domains/transaction_validation/validator';
+import { validateMonthTransactions } from '@/domains/transaction_validation/validator';
 import { allocationRepository } from '@/infra/repositories/allocationRepository';
 import { projectRepository } from '@/infra/repositories/projectRepository';
 import { transactionRepository } from '@/infra/repositories/transactionRepository';
@@ -25,9 +28,15 @@ export interface ValidateMonthTransactionsUseCaseResult extends TransactionValid
  * evidence only; it never creates or modifies data.
  */
 export class ValidateMonthTransactionsUseCase {
-  async execute(request: ValidateMonthTransactionsRequest): Promise<ValidateMonthTransactionsUseCaseResult> {
+  async execute(
+    request: ValidateMonthTransactionsRequest,
+  ): Promise<ValidateMonthTransactionsUseCaseResult> {
     const { householdId, year, month, auth } = request;
-    await householdPermissionService.assertReadPermission(householdId, auth.uid, auth.isGlobalAdmin);
+    await householdPermissionService.assertReadPermission(
+      householdId,
+      auth.uid,
+      auth.isGlobalAdmin,
+    );
 
     const yearMonth = `${year}-${String(month).padStart(2, '0')}`;
     const monthStart = new Date(year, month - 1, 1);

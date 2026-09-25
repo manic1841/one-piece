@@ -40,9 +40,7 @@ export const CloseWorkspace: React.FC<CloseWorkspaceProps> = ({
     <section className="space-y-4 pt-8">
       <div className="flex flex-wrap items-end justify-between gap-3 border-b border-border pb-4">
         <div className="space-y-1">
-          <p className="text-[11px] uppercase tracking-[0.12em] text-muted-foreground">
-            當前步驟
-          </p>
+          <p className="text-[11px] uppercase tracking-[0.12em] text-muted-foreground">當前步驟</p>
           <div className="flex items-center gap-2">
             <h2 className="text-[22px] font-medium leading-tight text-foreground">{stepText}</h2>
           </div>
@@ -77,12 +75,7 @@ export const CloseWorkspace: React.FC<CloseWorkspaceProps> = ({
             {actionLabel}
           </Button>
           {isReviewing && (
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={onBackToCurrent}
-              className="h-[38px] px-4"
-            >
+            <Button size="sm" variant="ghost" onClick={onBackToCurrent} className="h-[38px] px-4">
               {MONTHLY_CLOSE_LABELS.BACK_TO_CURRENT}
             </Button>
           )}

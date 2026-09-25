@@ -1,27 +1,33 @@
 import React from 'react';
 
-import { useConfirm } from '@/ui/features/app/confirm/useConfirm';
-import { ClosePipeline } from '@/ui/features/monthly_close/components/ClosePipeline';
-import { YearMonthPicker } from '@/ui/components/YearMonthPicker';
 import { PeriodBadge } from '@/ui/components/PeriodBadge';
+import { StatusGlyph } from '@/ui/components/StatusGlyph';
+import { YearMonthPicker } from '@/ui/components/YearMonthPicker';
 import { Button } from '@/ui/components/ui/button';
 import { Card, CardContent } from '@/ui/components/ui/card';
-import { StatusGlyph } from '@/ui/components/StatusGlyph';
 import { MONTHLY_CLOSE_LABELS } from '@/ui/constants/monthlyClose';
+import { useConfirm } from '@/ui/features/app/confirm/useConfirm';
+import { ClosePipeline } from '@/ui/features/monthly_close/components/ClosePipeline';
 
-import { useMonthlyClosePage } from '../hooks/useMonthlyClosePage';
-import { type CloseStageId, isReopenablePeriod } from '../viewmodels/monthlyClose.vm';
+import { CloseAccountBalanceInputs } from '../components/CloseAccountBalanceInputs';
 import { CloseStageEvidenceList } from '../components/CloseStageEvidenceList';
 import { CloseStageInputs } from '../components/CloseStageInputs';
-import { CloseAccountBalanceInputs } from '../components/CloseAccountBalanceInputs';
 import { CloseWorkspace } from '../components/CloseWorkspace';
+import { TradeDrawer } from '../components/TradeDrawer';
+import { TradeTable } from '../components/TradeTable';
+import { type TradeSide } from '../components/TradeTable';
+import { useMonthlyClosePage } from '../hooks/useMonthlyClosePage';
+import { type CloseStageId, isReopenablePeriod } from '../viewmodels/monthlyClose.vm';
 
 interface MonthlyClosePageProps {
   householdId?: string;
   userEmail?: string;
 }
 
-export const MonthlyClosePage: React.FC<MonthlyClosePageProps> = ({ householdId: householdIdProp, userEmail: userEmailProp }) => {
+export const MonthlyClosePage: React.FC<MonthlyClosePageProps> = ({
+  householdId: householdIdProp,
+  userEmail: userEmailProp,
+}) => {
   const {
     householdId,
     pageVM,
@@ -43,9 +49,7 @@ export const MonthlyClosePage: React.FC<MonthlyClosePageProps> = ({ householdId:
     accountBalances,
     setAccountBalances,
     securities,
-    setSecurities,
     financing,
-    setFinancing,
     portfolioCashFlows,
     setPortfolioCashFlows,
     repayments,
@@ -54,15 +58,24 @@ export const MonthlyClosePage: React.FC<MonthlyClosePageProps> = ({ householdId:
     start,
     reopen,
     evidenceFor,
-    handleConfirmStage,
+    handleConfirmStageWithWarning,
     refreshStageEvidence,
+    drawer,
+    drawerForm,
   } = useMonthlyClosePage({ householdId: householdIdProp, userEmail: userEmailProp });
 
   const { confirm } = useConfirm();
 
-  // Read-only states keep the picker and start button visible and enabled so
-  // the reopen dialog stays reachable without a page reload; only active
-  // closes show the period badge and retire the start button.
+  const TRADE_SIDES: readonly TradeSide[] = ['BUY', 'SELL'];
+  const sideLabels: Record<TradeSide, string> = {
+    BUY: MONTHLY_CLOSE_LABELS.BUY,
+    SELL: MONTHLY_CLOSE_LABELS.SELL,
+  };
+  const financingSideLabels: Record<TradeSide, string> = {
+    BUY: MONTHLY_CLOSE_LABELS.SHAREHOLDER_FINANCING,
+    SELL: MONTHLY_CLOSE_LABELS.DIVIDEND_PAYOUT,
+  };
+
   const isReadOnlyPeriod = pageVM.isClosed || pageVM.isCascadeDemoted;
   const showPeriodBadge = pageVM.isStarted && !isReadOnlyPeriod;
 
@@ -73,7 +86,10 @@ export const MonthlyClosePage: React.FC<MonthlyClosePageProps> = ({ householdId:
     if (!isReopenablePeriod(result)) return;
 
     const confirmed = await confirm({
-      title: result.status === 'CLOSED' ? MONTHLY_CLOSE_LABELS.REOPENED_TITLE : MONTHLY_CLOSE_LABELS.REOPENED_BANNER,
+      title:
+        result.status === 'CLOSED'
+          ? MONTHLY_CLOSE_LABELS.REOPENED_TITLE
+          : MONTHLY_CLOSE_LABELS.REOPENED_BANNER,
       context: MONTHLY_CLOSE_LABELS.REOPENED_CONTEXT,
       consequence: MONTHLY_CLOSE_LABELS.REOPENED_CONSEQUENCE,
       confirmLabel: MONTHLY_CLOSE_LABELS.REOPEN_CONFIRM,
@@ -90,15 +106,15 @@ export const MonthlyClosePage: React.FC<MonthlyClosePageProps> = ({ householdId:
   );
 
   const renderInputs = (stageId: string) => {
-    const hasInputs: boolean = (
+    const hasInputs: boolean =
       stageId === 'ACCOUNT_BALANCE' ||
       stageId === 'SECURITIES_TRADE' ||
       stageId === 'PORTFOLIO_CASH_FLOW' ||
-      stageId === 'DEBT_REPAYMENT'
-    );
+      stageId === 'DEBT_REPAYMENT';
     if (!hasInputs) {
       return null;
     }
+    const disabled = confirmingStageId !== null;
     return (
       <div className="border-t border-border pt-4">
         <p className="mb-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
@@ -111,6 +127,36 @@ export const MonthlyClosePage: React.FC<MonthlyClosePageProps> = ({ householdId:
             inputs={accountBalances}
             onInputsChange={setAccountBalances}
           />
+        ) : stageId === 'SECURITIES_TRADE' ? (
+          <div className="space-y-6">
+            <TradeTable
+              title={MONTHLY_CLOSE_LABELS.SECURITIES_TRANSACTIONS}
+              sideLabels={sideLabels}
+              rows={drawer
+                .toTradeRows(securities.buys, 'BUY')
+                .concat(drawer.toTradeRows(securities.sells, 'SELL'))}
+              projectIdName={(projectId) =>
+                portfolios.find((portfolio) => portfolio.id === projectId)?.name ?? null
+              }
+              onAdd={() => drawer.open('SECURITIES', 'ADD')}
+              onRowClick={(row) => drawer.open('SECURITIES', 'EDIT', row)}
+              disabled={disabled}
+            />
+            <TradeTable
+              title={MONTHLY_CLOSE_LABELS.FINANCING_RECORDS}
+              sideLabels={financingSideLabels}
+              netLabel={MONTHLY_CLOSE_LABELS.NET_FINANCING_CASH_FLOW}
+              rows={drawer
+                .toTradeRows(financing.shareholderFinancing, 'BUY')
+                .concat(drawer.toTradeRows(financing.dividendPayout, 'SELL'))}
+              projectIdName={(projectId) =>
+                portfolios.find((portfolio) => portfolio.id === projectId)?.name ?? null
+              }
+              onAdd={() => drawer.open('FINANCING', 'ADD')}
+              onRowClick={(row) => drawer.open('FINANCING', 'EDIT', row)}
+              disabled={disabled}
+            />
+          </div>
         ) : (
           <CloseStageInputs
             stageId={stageId}
@@ -121,15 +167,11 @@ export const MonthlyClosePage: React.FC<MonthlyClosePageProps> = ({ householdId:
               name: debtAccount.name,
               currentBalance: debtAccount.currentBalance,
             }))}
-            securities={securities}
-            financing={financing}
             portfolioCashFlows={portfolioCashFlows}
             repayments={repayments}
-            onSecuritiesChange={setSecurities}
-            onFinancingChange={setFinancing}
             onPortfolioCashFlowsChange={setPortfolioCashFlows}
             onRepaymentsChange={setRepayments}
-            disabled={confirmingStageId !== null}
+            disabled={disabled}
           />
         )}
       </div>
@@ -157,26 +199,23 @@ export const MonthlyClosePage: React.FC<MonthlyClosePageProps> = ({ householdId:
             </div>
             <div className="flex items-center gap-3">
               {showPeriodBadge ? (
-                <PeriodBadge
-                  label={MONTHLY_CLOSE_LABELS.PERIOD_LABEL}
-                  period={selectedYearMonth}
-                />
+                <PeriodBadge label={MONTHLY_CLOSE_LABELS.PERIOD_LABEL} period={selectedYearMonth} />
               ) : (
                 <>
                   <YearMonthPicker
                     mode="year-month"
                     year={selectedYearMonth.slice(0, 4)}
                     month={selectedYearMonth.slice(5, 7)}
-                    onYearChange={(y) =>
-                      selectYearMonth(`${y}-${selectedYearMonth.slice(5, 7)}`)
-                    }
+                    onYearChange={(y) => selectYearMonth(`${y}-${selectedYearMonth.slice(5, 7)}`)}
                     onMonthChange={(m) =>
                       selectYearMonth(`${selectedYearMonth.slice(0, 4)}-${m.padStart(2, '0')}`)
                     }
                   />
                   <Button
                     onClick={() => void handleStart()}
-                    disabled={isStarting || (pageVM.isStarted && !isReadOnlyPeriod) || !selectedYearMonth}
+                    disabled={
+                      isStarting || (pageVM.isStarted && !isReadOnlyPeriod) || !selectedYearMonth
+                    }
                     className="active:scale-[0.97]"
                   >
                     {isStarting ? MONTHLY_CLOSE_LABELS.LOADING : MONTHLY_CLOSE_LABELS.START}
@@ -196,7 +235,9 @@ export const MonthlyClosePage: React.FC<MonthlyClosePageProps> = ({ householdId:
             <div className="rounded-lg border border-positive/30 bg-positive/10 px-4 py-3">
               <div className="flex items-center gap-2">
                 <StatusGlyph type="verified" label={MONTHLY_CLOSE_LABELS.FINALIZED_SUBTITLE} />
-                <p className="text-sm font-bold text-foreground">{MONTHLY_CLOSE_LABELS.FINALIZED}</p>
+                <p className="text-sm font-bold text-foreground">
+                  {MONTHLY_CLOSE_LABELS.FINALIZED}
+                </p>
               </div>
             </div>
           )}
@@ -224,7 +265,9 @@ export const MonthlyClosePage: React.FC<MonthlyClosePageProps> = ({ householdId:
           {!pageVM.isStarted ? (
             <Card className="rounded-lg border-border/60">
               <CardContent className="p-8 text-center">
-                <p className="text-sm text-muted-foreground">{MONTHLY_CLOSE_LABELS.SELECT_PERIOD}</p>
+                <p className="text-sm text-muted-foreground">
+                  {MONTHLY_CLOSE_LABELS.SELECT_PERIOD}
+                </p>
               </CardContent>
             </Card>
           ) : (
@@ -250,12 +293,34 @@ export const MonthlyClosePage: React.FC<MonthlyClosePageProps> = ({ householdId:
                   isClosed={pageVM.isClosed}
                   evidence={renderEvidence(displayedStage.stageId)}
                   inputs={renderInputs(displayedStage.stageId)}
-                  onConfirm={() => void handleConfirmStage(displayedStage.stageId)}
+                  onConfirm={() => void handleConfirmStageWithWarning(displayedStage.stageId)}
                   onBackToCurrent={() => setViewingStageId(null)}
                 />
               )}
             </div>
           )}
+
+          <TradeDrawer
+            open={drawer.state.kind !== null}
+            sides={TRADE_SIDES}
+            sideLabels={drawer.state.kind === 'FINANCING' ? financingSideLabels : sideLabels}
+            title={
+              drawer.state.kind === 'FINANCING'
+                ? drawer.state.mode === 'ADD'
+                  ? MONTHLY_CLOSE_LABELS.ADD_FINANCING_TRANSACTION
+                  : MONTHLY_CLOSE_LABELS.EDIT_TRANSACTION
+                : drawer.state.mode === 'ADD'
+                  ? MONTHLY_CLOSE_LABELS.ADD_SECURITIES_TRANSACTION
+                  : MONTHLY_CLOSE_LABELS.EDIT_TRANSACTION
+            }
+            form={drawerForm.form}
+            portfolios={portfolios.map((portfolio) => ({ id: portfolio.id, name: portfolio.name }))}
+            canDelete
+            submitting={confirmingStageId !== null}
+            onConfirm={drawerForm.submit}
+            onCancel={drawer.close}
+            onDelete={drawer.deleteRow}
+          />
         </>
       )}
     </div>

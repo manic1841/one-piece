@@ -1,5 +1,4 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { AccountBalanceInput } from '@/application/monthly_close/use_cases/monthlyCloseWorkflowUseCase';
@@ -34,7 +33,9 @@ const account = (overrides: Partial<Account> & { id: string; name: string }): Ac
     ...overrides,
   }) as Account;
 
-const snapshot = (overrides: Partial<AccountSnapshot> & { id: string; accountId: string }): AccountSnapshot =>
+const snapshot = (
+  overrides: Partial<AccountSnapshot> & { id: string; accountId: string },
+): AccountSnapshot =>
   ({
     year: 2026,
     month: 8,
@@ -46,7 +47,9 @@ const snapshot = (overrides: Partial<AccountSnapshot> & { id: string; accountId:
     ...overrides,
   }) as AccountSnapshot;
 
-const input = (overrides: Partial<AccountBalanceInput> & { accountId: string }): AccountBalanceInput => ({
+const input = (
+  overrides: Partial<AccountBalanceInput> & { accountId: string },
+): AccountBalanceInput => ({
   amount: 0,
   ...overrides,
 });
@@ -100,7 +103,7 @@ describe('CloseAccountBalanceInputs', () => {
     const onInputsChange = vi.fn<(inputs: AccountBalanceInput[]) => void>();
     renderSections({ onInputsChange });
 
-       fireEvent.change(screen.getAllByLabelText('期末餘額 現金帳戶')[0], {
+    fireEvent.change(screen.getAllByLabelText('期末餘額 現金帳戶')[0], {
       target: { value: '52000' },
     });
 
@@ -122,7 +125,9 @@ describe('CloseAccountBalanceInputs', () => {
           }),
         ],
       ]),
-      inputs: [input({ accountId: 'usd-1', amount: 375000, originalAmount: 12000, exchangeRate: 31.25 })],
+      inputs: [
+        input({ accountId: 'usd-1', amount: 375000, originalAmount: 12000, exchangeRate: 31.25 }),
+      ],
     });
 
     expect(screen.getByText('外幣')).toBeInTheDocument();
@@ -130,7 +135,7 @@ describe('CloseAccountBalanceInputs', () => {
     expect(screen.getAllByText('US$10,000').length).toBeGreaterThan(0);
     expect(screen.getAllByLabelText('外幣金額 USD Account')[0]).toHaveValue(12000);
     expect(screen.getAllByLabelText('匯率 USD Account').length).toBe(2);
-        const twdValue = screen.getAllByTestId('twd-value-usd-1')[0].textContent ?? '';
+    const twdValue = screen.getAllByTestId('twd-value-usd-1')[0].textContent ?? '';
     expect(twdValue).toContain('NT$375,000');
     expect(screen.queryByLabelText('TWD 價值')).toBeNull();
   });
@@ -152,9 +157,9 @@ describe('CloseAccountBalanceInputs', () => {
     });
 
     await waitFor(() => {
-      expect(onInputsChange).toHaveBeenCalledWith(
-        [input({ accountId: 'usd-1', amount: 0, exchangeRate: 31.4 })],
-      );
+      expect(onInputsChange).toHaveBeenCalledWith([
+        input({ accountId: 'usd-1', amount: 0, exchangeRate: 31.4 }),
+      ]);
     });
     expect(getRate).toHaveBeenCalledWith('USD', 'TWD');
   });
@@ -171,7 +176,9 @@ describe('CloseAccountBalanceInputs', () => {
 
     renderSections({
       accounts: [account({ id: 'usd-1', name: 'USD Account', currency: 'USD' })],
-      inputs: [input({ accountId: 'usd-1', amount: 375000, originalAmount: 12000, exchangeRate: 31.25 })],
+      inputs: [
+        input({ accountId: 'usd-1', amount: 375000, originalAmount: 12000, exchangeRate: 31.25 }),
+      ],
     });
 
     await waitFor(() => {

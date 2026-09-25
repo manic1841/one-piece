@@ -1,5 +1,32 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { batchRecordSnapshotsUseCase } from '@/application/account/use_cases/batchRecordSnapshotsUseCase';
+import { createDebtPaymentUseCase } from '@/application/debt/use_cases/createDebtPaymentUseCase';
+import { createTransactionUseCase } from '@/application/ledger/use_cases/createTransactionUseCase';
+import { deleteTransactionUseCase } from '@/application/ledger/use_cases/deleteTransactionUseCase';
+import { updateTransactionUseCase } from '@/application/ledger/use_cases/updateTransactionUseCase';
+import {
+  MonthlyCloseCommandError,
+  MonthlyCloseCommandErrorCode,
+} from '@/application/monthly_close/errors';
+import {
+  getFinancialPeriodUseCase,
+  listFinancialPeriodsUseCase,
+  saveFinancialPeriodUseCase,
+} from '@/application/monthly_close/use_cases/financialPeriodAccessUseCases';
+import { MonthlyCloseWorkflowUseCase } from '@/application/monthly_close/use_cases/monthlyCloseWorkflowUseCase';
+import { validateMonthTransactionsUseCase } from '@/application/monthly_close/use_cases/validateMonthTransactionsUseCase';
+import { createPortfolioSnapshotUseCase } from '@/application/portfolio/use_cases/createPortfolioSnapshotUseCase';
+import { listPortfolioSnapshotsUseCase } from '@/application/portfolio/use_cases/listPortfolioSnapshotsUseCase';
+import { listPortfoliosUseCase } from '@/application/portfolio/use_cases/listPortfoliosUseCase';
+import { generateFinancialReportsUseCase } from '@/application/report/use_cases/generateFinancialReportsUseCase';
+import { getReportPersistenceStateUseCase } from '@/application/report/use_cases/getReportPersistenceStateUseCase';
+import { checkSettlementCompletenessUseCase } from '@/application/settlement/use_cases/checkSettlementCompletenessUseCase';
+import { settleDebtAccountsUseCase } from '@/application/settlement/use_cases/settleDebtAccountsUseCase';
+import { settleProjectsUseCase } from '@/application/settlement/use_cases/settleProjectsUseCase';
+import { type AuthContext } from '@/application/types';
+import { type FinancialPeriod, initialStageStates } from '@/domains/financial_period/schemas';
+
 vi.mock('@/application/account/use_cases/batchRecordSnapshotsUseCase');
 vi.mock('@/application/debt/use_cases/createDebtPaymentUseCase');
 vi.mock('@/application/household/householdPermissionService', () => ({
@@ -8,6 +35,8 @@ vi.mock('@/application/household/householdPermissionService', () => ({
   },
 }));
 vi.mock('@/application/ledger/use_cases/createTransactionUseCase');
+vi.mock('@/application/ledger/use_cases/deleteTransactionUseCase');
+vi.mock('@/application/ledger/use_cases/updateTransactionUseCase');
 vi.mock('@/application/portfolio/use_cases/createPortfolioSnapshotUseCase');
 vi.mock('@/application/portfolio/use_cases/listPortfolioSnapshotsUseCase');
 vi.mock('@/application/portfolio/use_cases/listPortfoliosUseCase');
@@ -39,24 +68,6 @@ vi.mock('@/application/monthly_close/use_cases/financialPeriodAccessUseCases', (
     listFinancialPeriodsUseCase,
   };
 });
-
-import { batchRecordSnapshotsUseCase } from '@/application/account/use_cases/batchRecordSnapshotsUseCase';
-import { createDebtPaymentUseCase } from '@/application/debt/use_cases/createDebtPaymentUseCase';
-import { createTransactionUseCase } from '@/application/ledger/use_cases/createTransactionUseCase';
-import { MonthlyCloseCommandError, MonthlyCloseCommandErrorCode } from '@/application/monthly_close/errors';
-import { getFinancialPeriodUseCase, listFinancialPeriodsUseCase, saveFinancialPeriodUseCase } from '@/application/monthly_close/use_cases/financialPeriodAccessUseCases';
-import { MonthlyCloseWorkflowUseCase } from '@/application/monthly_close/use_cases/monthlyCloseWorkflowUseCase';
-import { createPortfolioSnapshotUseCase } from '@/application/portfolio/use_cases/createPortfolioSnapshotUseCase';
-import { listPortfolioSnapshotsUseCase } from '@/application/portfolio/use_cases/listPortfolioSnapshotsUseCase';
-import { listPortfoliosUseCase } from '@/application/portfolio/use_cases/listPortfoliosUseCase';
-import { generateFinancialReportsUseCase } from '@/application/report/use_cases/generateFinancialReportsUseCase';
-import { getReportPersistenceStateUseCase } from '@/application/report/use_cases/getReportPersistenceStateUseCase';
-import { checkSettlementCompletenessUseCase } from '@/application/settlement/use_cases/checkSettlementCompletenessUseCase';
-import { settleDebtAccountsUseCase } from '@/application/settlement/use_cases/settleDebtAccountsUseCase';
-import { settleProjectsUseCase } from '@/application/settlement/use_cases/settleProjectsUseCase';
-import { validateMonthTransactionsUseCase } from '@/application/monthly_close/use_cases/validateMonthTransactionsUseCase';
-import { type FinancialPeriod, initialStageStates } from '@/domains/financial_period/schemas';
-import { type AuthContext } from '@/application/types';
 
 vi.mocked(getFinancialPeriodUseCase.execute).mockReset();
 vi.mocked(saveFinancialPeriodUseCase.execute).mockClear();
@@ -158,7 +169,13 @@ describe('MonthlyCloseWorkflowUseCase.reopen', () => {
 
   it('keeps earlier completed stages and only resets the last two', async () => {
     let period = basePeriod({ status: 'CLOSED' });
-    for (const stageId of ['ACCOUNT_BALANCE', 'TRANSACTION_VALIDATION', 'DEBT_REPAYMENT', 'FINANCIAL_REPORTS', 'CLOSE_PERIOD'] as const) {
+    for (const stageId of [
+      'ACCOUNT_BALANCE',
+      'TRANSACTION_VALIDATION',
+      'DEBT_REPAYMENT',
+      'FINANCIAL_REPORTS',
+      'CLOSE_PERIOD',
+    ] as const) {
       period = completeStage(period, stageId);
     }
     vi.mocked(getFinancialPeriodUseCase.execute).mockResolvedValue(period);
@@ -227,9 +244,21 @@ describe('MonthlyCloseWorkflowUseCase.reopen', () => {
       reviewSourceStageId: null,
       stages: {
         ...initialStageStates(),
-        ACCOUNT_BALANCE: { status: 'COMPLETED', confirmedBy: 'user@test.com', confirmedAt: new Date() },
-        FINANCIAL_REPORTS: { status: 'COMPLETED', confirmedBy: 'user@test.com', confirmedAt: new Date() },
-        CLOSE_PERIOD: { status: 'COMPLETED', confirmedBy: 'user@test.com', confirmedAt: new Date() },
+        ACCOUNT_BALANCE: {
+          status: 'COMPLETED',
+          confirmedBy: 'user@test.com',
+          confirmedAt: new Date(),
+        },
+        FINANCIAL_REPORTS: {
+          status: 'COMPLETED',
+          confirmedBy: 'user@test.com',
+          confirmedAt: new Date(),
+        },
+        CLOSE_PERIOD: {
+          status: 'COMPLETED',
+          confirmedBy: 'user@test.com',
+          confirmedAt: new Date(),
+        },
       },
     });
     vi.mocked(getFinancialPeriodUseCase.execute).mockResolvedValue(demoted);
@@ -279,7 +308,12 @@ describe('MonthlyCloseWorkflowUseCase.confirmStage', () => {
 
     expect(batchRecordSnapshotsUseCase.execute).toHaveBeenCalledWith({
       householdId: 'household-1',
-      snapshots: [{ accountId: 'account-1', data: { accountId: 'account-1', year: 2026, month: 9, amount: 1000 } }],
+      snapshots: [
+        {
+          accountId: 'account-1',
+          data: { accountId: 'account-1', year: 2026, month: 9, amount: 1000 },
+        },
+      ],
       userEmail: 'user@test.com',
       auth,
     });
@@ -351,7 +385,10 @@ describe('MonthlyCloseWorkflowUseCase.confirmStage', () => {
     await expect(
       useCase.confirmStage({ ...REQUEST_BASE, stageId: 'ACCOUNT_BALANCE' }),
     ).rejects.toEqual(
-      new MonthlyCloseCommandError(MonthlyCloseCommandErrorCode.STAGE_INPUT_REQUIRED, 'at least one account balance is required'),
+      new MonthlyCloseCommandError(
+        MonthlyCloseCommandErrorCode.STAGE_INPUT_REQUIRED,
+        'at least one account balance is required',
+      ),
     );
     expect(batchRecordSnapshotsUseCase.execute).not.toHaveBeenCalled();
     expect(saveFinancialPeriodUseCase.execute).not.toHaveBeenCalled();
@@ -407,17 +444,59 @@ describe('MonthlyCloseWorkflowUseCase.confirmStage', () => {
         ],
       }),
     });
+    expect(updateTransactionUseCase.execute).not.toHaveBeenCalled();
+    expect(deleteTransactionUseCase.execute).not.toHaveBeenCalled();
   });
 
-  it('rejects securities confirmation without trades', async () => {
-    await expect(
-      useCase.confirmStage({ ...REQUEST_BASE, stageId: 'SECURITIES_TRADE' }),
-    ).rejects.toEqual(
-      new MonthlyCloseCommandError(
-        MonthlyCloseCommandErrorCode.STAGE_INPUT_REQUIRED,
-        'at least one securities trade or financing entry is required',
-      ),
+  it('diff-merges loaded rows on re-confirm instead of duplicating', async () => {
+    await useCase.confirmStage({
+      ...REQUEST_BASE,
+      stageId: 'SECURITIES_TRADE',
+      securities: {
+        buys: [
+          {
+            transactionId: 'tx-1',
+            amount: 6000,
+            date: new Date('2026-09-02'),
+            description: 'updated',
+          },
+          { amount: 1000, date: new Date('2026-09-05') },
+        ],
+        sells: [],
+      },
+      financing: { shareholderFinancing: [], dividendPayout: [] },
+      removedTransactionIds: ['tx-9'],
+    });
+
+    expect(updateTransactionUseCase.execute).toHaveBeenCalledTimes(1);
+    expect(updateTransactionUseCase.execute).toHaveBeenCalledWith(
+      expect.objectContaining({
+        householdId: 'household-1',
+        transactionId: 'tx-1',
+        data: expect.objectContaining({ amount: 6000, intent: 'SECURITY_BUY' }),
+      }),
     );
+    expect(createTransactionUseCase.execute).toHaveBeenCalledTimes(1);
+    expect(deleteTransactionUseCase.execute).toHaveBeenCalledWith({
+      householdId: 'household-1',
+      transactionId: 'tx-9',
+      auth,
+    });
+  });
+
+  it('allows re-confirming the securities stage after it is completed', async () => {
+    vi.mocked(getFinancialPeriodUseCase.execute).mockResolvedValue(
+      completeStage(basePeriod(), 'SECURITIES_TRADE'),
+    );
+
+    const period = await useCase.confirmStage({
+      ...REQUEST_BASE,
+      stageId: 'SECURITIES_TRADE',
+      securities: { buys: [{ amount: 3000, date: new Date('2026-09-08') }], sells: [] },
+    });
+
+    expect(period.stages.SECURITIES_TRADE?.status).toBe('COMPLETED');
+    expect(createTransactionUseCase.execute).toHaveBeenCalledTimes(1);
   });
 
   it('creates zero cash-flow snapshots only for portfolios without a month snapshot', async () => {
@@ -517,7 +596,10 @@ describe('MonthlyCloseWorkflowUseCase.confirmStage', () => {
         ],
       }),
     ).rejects.toEqual(
-      new MonthlyCloseCommandError(MonthlyCloseCommandErrorCode.STAGE_ALREADY_COMPLETED, 'stage already confirmed'),
+      new MonthlyCloseCommandError(
+        MonthlyCloseCommandErrorCode.STAGE_ALREADY_COMPLETED,
+        'stage already confirmed',
+      ),
     );
     expect(createDebtPaymentUseCase.execute).not.toHaveBeenCalled();
     expect(settleDebtAccountsUseCase.execute).not.toHaveBeenCalled();
@@ -547,7 +629,10 @@ describe('MonthlyCloseWorkflowUseCase.confirmStage', () => {
     expect(period.reviewSourceStageId).toBe('COMPLETENESS_CHECK');
     expect(saveFinancialPeriodUseCase.execute).toHaveBeenCalledWith(
       expect.objectContaining({
-        period: expect.objectContaining({ status: 'NEEDS_REVIEW', reviewSourceStageId: 'COMPLETENESS_CHECK' }),
+        period: expect.objectContaining({
+          status: 'NEEDS_REVIEW',
+          reviewSourceStageId: 'COMPLETENESS_CHECK',
+        }),
       }),
     );
   });
@@ -596,24 +681,36 @@ describe('MonthlyCloseWorkflowUseCase.confirmStage', () => {
     await expect(
       useCase.confirmStage({ ...REQUEST_BASE, stageId: 'FINANCIAL_REPORTS' }),
     ).rejects.toEqual(
-      new MonthlyCloseCommandError(MonthlyCloseCommandErrorCode.NEEDS_REVIEW_BLOCKED, 'resolve the review before confirming this stage'),
+      new MonthlyCloseCommandError(
+        MonthlyCloseCommandErrorCode.NEEDS_REVIEW_BLOCKED,
+        'resolve the review before confirming this stage',
+      ),
     );
     expect(generateFinancialReportsUseCase.execute).not.toHaveBeenCalled();
   });
 
   it('rejects close when reports are not persisted', async () => {
-    vi.mocked(getReportPersistenceStateUseCase.execute).mockResolvedValue({ isPersisted: false, timestamps: {} } as any);
+    vi.mocked(getReportPersistenceStateUseCase.execute).mockResolvedValue({
+      isPersisted: false,
+      timestamps: {},
+    } as any);
 
     await expect(
       useCase.confirmStage({ ...REQUEST_BASE, stageId: 'CLOSE_PERIOD' }),
     ).rejects.toEqual(
-      new MonthlyCloseCommandError(MonthlyCloseCommandErrorCode.REPORTS_NOT_PERSISTED, 'all three reports must be persisted before closing'),
+      new MonthlyCloseCommandError(
+        MonthlyCloseCommandErrorCode.REPORTS_NOT_PERSISTED,
+        'all three reports must be persisted before closing',
+      ),
     );
     expect(saveFinancialPeriodUseCase.execute).not.toHaveBeenCalled();
   });
 
   it('closes the period when reports are persisted', async () => {
-    vi.mocked(getReportPersistenceStateUseCase.execute).mockResolvedValue({ isPersisted: true, timestamps: {} } as any);
+    vi.mocked(getReportPersistenceStateUseCase.execute).mockResolvedValue({
+      isPersisted: true,
+      timestamps: {},
+    } as any);
     vi.mocked(getFinancialPeriodUseCase.execute).mockResolvedValue(
       completeStage(basePeriod(), 'FINANCIAL_REPORTS'),
     );
@@ -634,7 +731,10 @@ describe('MonthlyCloseWorkflowUseCase.confirmStage', () => {
     await expect(
       useCase.confirmStage({ ...REQUEST_BASE, stageId: 'CLOSE_PERIOD' }),
     ).rejects.toEqual(
-      new MonthlyCloseCommandError(MonthlyCloseCommandErrorCode.NEEDS_REVIEW_BLOCKED, 'resolve the review before confirming this stage'),
+      new MonthlyCloseCommandError(
+        MonthlyCloseCommandErrorCode.NEEDS_REVIEW_BLOCKED,
+        'resolve the review before confirming this stage',
+      ),
     );
     expect(getReportPersistenceStateUseCase.execute).not.toHaveBeenCalled();
   });
@@ -652,7 +752,12 @@ describe('MonthlyCloseWorkflowUseCase.confirmStage', () => {
 
     expect(batchRecordSnapshotsUseCase.execute).toHaveBeenCalledWith({
       householdId: 'household-1',
-      snapshots: [{ accountId: 'account-1', data: { accountId: 'account-1', year: 2026, month: 9, amount: 1000 } }],
+      snapshots: [
+        {
+          accountId: 'account-1',
+          data: { accountId: 'account-1', year: 2026, month: 9, amount: 1000 },
+        },
+      ],
       userEmail: 'user@test.com',
       auth,
     });
@@ -675,7 +780,10 @@ describe('MonthlyCloseWorkflowUseCase.confirmStage', () => {
         ],
       }),
     ).rejects.toEqual(
-      new MonthlyCloseCommandError(MonthlyCloseCommandErrorCode.STAGE_ALREADY_COMPLETED, 'stage already confirmed'),
+      new MonthlyCloseCommandError(
+        MonthlyCloseCommandErrorCode.STAGE_ALREADY_COMPLETED,
+        'stage already confirmed',
+      ),
     );
     expect(createDebtPaymentUseCase.execute).not.toHaveBeenCalled();
     expect(settleDebtAccountsUseCase.execute).not.toHaveBeenCalled();
@@ -710,19 +818,46 @@ describe('MonthlyCloseWorkflowUseCase.confirmStage', () => {
     vi.mocked(getFinancialPeriodUseCase.execute).mockResolvedValue(null);
 
     await expect(
-      useCase.confirmStage({ ...REQUEST_BASE, stageId: 'ACCOUNT_BALANCE', accountBalances: [{ accountId: 'account-1', amount: 1 }] }),
+      useCase.confirmStage({
+        ...REQUEST_BASE,
+        stageId: 'ACCOUNT_BALANCE',
+        accountBalances: [{ accountId: 'account-1', amount: 1 }],
+      }),
     ).rejects.toEqual(
-      new MonthlyCloseCommandError(MonthlyCloseCommandErrorCode.PERIOD_NOT_STARTED, 'start the closing workflow before confirming stages'),
+      new MonthlyCloseCommandError(
+        MonthlyCloseCommandErrorCode.PERIOD_NOT_STARTED,
+        'start the closing workflow before confirming stages',
+      ),
     );
   });
 
   it('rejects confirmation by a non-member', async () => {
-    const { householdPermissionService } = await import('@/application/household/householdPermissionService');
-    vi.mocked(householdPermissionService.assertReadPermission).mockRejectedValueOnce(new Error('forbidden'));
+    const { householdPermissionService } = await import(
+      '@/application/household/householdPermissionService'
+    );
+    vi.mocked(householdPermissionService.assertReadPermission).mockRejectedValueOnce(
+      new Error('forbidden'),
+    );
 
     await expect(
-      useCase.confirmStage({ ...REQUEST_BASE, stageId: 'ACCOUNT_BALANCE', accountBalances: [{ accountId: 'a', amount: 1 }] }),
+      useCase.confirmStage({
+        ...REQUEST_BASE,
+        stageId: 'ACCOUNT_BALANCE',
+        accountBalances: [{ accountId: 'a', amount: 1 }],
+      }),
     ).rejects.toThrow('forbidden');
     expect(batchRecordSnapshotsUseCase.execute).not.toHaveBeenCalled();
+  });
+
+  it('confirms the securities stage with zero rows instead of rejecting', async () => {
+    const period = await useCase.confirmStage({
+      ...REQUEST_BASE,
+      stageId: 'SECURITIES_TRADE',
+    });
+
+    expect(period.stages.SECURITIES_TRADE?.status).toBe('COMPLETED');
+    expect(createTransactionUseCase.execute).not.toHaveBeenCalled();
+    expect(updateTransactionUseCase.execute).not.toHaveBeenCalled();
+    expect(deleteTransactionUseCase.execute).not.toHaveBeenCalled();
   });
 });

@@ -1,9 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
 
 import { getAccountsUseCase } from '@/application/account/use_cases/getAccountsUseCase';
-import { getAccountSnapshotsUseCase } from '@/application/account/use_cases/getAccountSnapshotsUseCase';
-import { getPreviousSnapshotUseCase } from '@/application/account/use_cases/getPreviousSnapshotUseCase';
 import { listDebtAccountsUseCase } from '@/application/debt/use_cases/listDebtAccountsUseCase';
+import { getMonthInvestmentFinancingUseCase } from '@/application/monthly_close/use_cases/getMonthInvestmentFinancingUseCase';
 import {
   type AccountBalanceInput,
   type DebtRepaymentInput,
@@ -11,19 +10,23 @@ import {
   type SecuritiesTradeInput,
 } from '@/application/monthly_close/use_cases/monthlyCloseWorkflowUseCase';
 import { listPortfoliosUseCase } from '@/application/portfolio/use_cases/listPortfoliosUseCase';
-import { type Account, type AccountSnapshot } from '@/domains/account/types/account';
+import { type Account } from '@/domains/account/types/account';
 import { type DebtAccount } from '@/domains/debt/schemas';
 import { type CloseStageId } from '@/domains/financial_period/schemas';
 import { type Portfolio } from '@/domains/portfolio/schemas';
+import { MONTHLY_CLOSE_LABELS } from '@/ui/constants/monthlyClose';
 import { useAuthState } from '@/ui/contexts/useAuthState';
-import { useAuthIdentity } from '@/ui/hooks/useAuthIdentity';
+import { useConfirm } from '@/ui/features/app/confirm/useConfirm';
 import { useMonthlyClose } from '@/ui/features/monthly_close/hooks/useMonthlyClose';
+import { useSnapshotBalancePrefill } from '@/ui/features/monthly_close/hooks/useSnapshotBalancePrefill';
+import { useTradeDrawer } from '@/ui/features/monthly_close/hooks/useTradeDrawer';
+import { useTradeDrawerForm } from '@/ui/features/monthly_close/hooks/useTradeDrawerForm';
 import {
+  NO_EVIDENCE,
   mapAdjustmentCountToEvidence,
   mapAnomaliesToEvidence,
   mapPersistenceToEvidence,
   mapTransactionIssuesToEvidence,
-  NO_EVIDENCE,
 } from '@/ui/features/monthly_close/mappers/monthlyClose.mappers';
 import {
   type CloseStageEvidence,
@@ -31,6 +34,7 @@ import {
   resolvePositionText,
   resolveStepText,
 } from '@/ui/features/monthly_close/viewmodels/monthlyClose.vm';
+import { useAuthIdentity } from '@/ui/hooks/useAuthIdentity';
 
 interface UseMonthlyClosePageArgs {
   householdId?: string;
@@ -42,6 +46,20 @@ interface UseMonthlyClosePageArgs {
  * stage inputs need, every stage input in progress, and the derived stage
  * selection. The page keeps only layout and rendering.
  */
+const toTradeRow = (transaction: {
+  id: string;
+  amount?: number | null;
+  date: Date;
+  description?: string | null;
+  projectId?: string | null;
+}) => ({
+  transactionId: transaction.id,
+  amount: transaction.amount ?? 0,
+  date: transaction.date,
+  description: transaction.description ?? undefined,
+  projectId: transaction.projectId,
+});
+
 export const useMonthlyClosePage = ({
   householdId: householdIdProp,
   userEmail: userEmailProp,
@@ -50,6 +68,7 @@ export const useMonthlyClosePage = ({
   const householdId = householdIdProp ?? userProfile?.householdId ?? '';
   const userEmail = userEmailProp ?? userProfile?.email ?? '';
   const auth = useAuthIdentity();
+  const { confirm: confirmDialog } = useConfirm();
 
   const {
     pageVM,
@@ -72,7 +91,6 @@ export const useMonthlyClosePage = ({
   const [portfolios, setPortfolios] = useState<Portfolio[]>([]);
   const [debtAccounts, setDebtAccounts] = useState<DebtAccount[]>([]);
   const [accountBalances, setAccountBalances] = useState<AccountBalanceInput[]>([]);
-  const [accountSnapshots, setAccountSnapshots] = useState<Map<string, AccountSnapshot>>(new Map());
   const [securities, setSecurities] = useState<{
     buys: SecuritiesTradeInput[];
     sells: SecuritiesTradeInput[];
@@ -81,19 +99,24 @@ export const useMonthlyClosePage = ({
     shareholderFinancing: FinancingInput[];
     dividendPayout: FinancingInput[];
   }>({ shareholderFinancing: [], dividendPayout: [] });
+  const [removedTransactionIds, setRemovedTransactionIds] = useState<string[]>([]);
+  // Bumped after a successful SECURITIES_TRADE confirm so the month-transaction
+  // prefill re-runs and local rows pick up their Firestore document IDs.
+  const [tradeRefreshKey, setTradeRefreshKey] = useState(0);
   const [portfolioCashFlows, setPortfolioCashFlows] = useState<
     Record<string, { deposits: number; withdrawals: number }>
   >({});
   const [repayments, setRepayments] = useState<DebtRepaymentInput[]>([]);
 
   // Stage inputs are submitted with the selected month's confirmation, so a
-  // month switch must retire them; the next month's snapshots then prefill.
+  // month switch must retire them; the next month's tables then prefill.
   const handleSelectYearMonth = useCallback(
     (yearMonth: string) => {
       selectYearMonth(yearMonth);
       setAccountBalances([]);
       setSecurities({ buys: [], sells: [] });
       setFinancing({ shareholderFinancing: [], dividendPayout: [] });
+      setRemovedTransactionIds([]);
       setPortfolioCashFlows({});
       setRepayments([]);
     },
@@ -124,63 +147,46 @@ export const useMonthlyClosePage = ({
 
   useEffect(() => {
     if (!householdId || !selectedYearMonth) return;
+    void refreshStageEvidence();
+  }, [householdId, selectedYearMonth, refreshStageEvidence]);
+  const accountSnapshots = useSnapshotBalancePrefill({
+    householdId,
+    selectedYearMonth,
+    accounts,
+    auth,
+    setAccountBalances,
+  });
+
+  // SECURITIES_TRADE prefill: the month's existing investment and financing
+  // transactions become editable rows carrying their transaction IDs, so the
+  // confirmation diff-merges instead of duplicating (ADR-0052 revision).
+  useEffect(() => {
+    if (!householdId || !selectedYearMonth) return;
     let cancelled = false;
 
-    const loadAccountSnapshots = async () => {
-      const year = Number(selectedYearMonth.slice(0, 4));
-      const month = Number(selectedYearMonth.slice(5, 7));
-      const entries = await Promise.all(
-        accounts.map(async (account) => {
-          const [currentSnapshot, previousSnapshot] = await Promise.all([
-            getAccountSnapshotsUseCase.execute({
-              householdId,
-              accountId: account.id,
-              year,
-              month,
-              auth,
-            }),
-            getPreviousSnapshotUseCase.execute({
-              householdId,
-              accountId: account.id,
-              year,
-              month,
-              auth,
-            }),
-          ]);
-          return [account.id, currentSnapshot[0] ?? null, previousSnapshot] as const;
-        }),
-      );
-      if (cancelled) return;
-      const previousMap = new Map<string, AccountSnapshot>();
-      for (const [accountId, , previousSnapshot] of entries) {
-        if (previousSnapshot) previousMap.set(accountId, previousSnapshot);
-      }
-      setAccountSnapshots(previousMap);
-      // Prefill ending balances from the month's own snapshots (re-entering a
-      // started close or viewing a seeded period). Only fills accounts the
-      // user has not typed into; never overwrites in-progress input.
-      setAccountBalances((current) => {
-        if (current.length > 0) return current;
-        const prefilled: AccountBalanceInput[] = [];
-        for (const [accountId, currentSnapshot] of entries) {
-          if (!currentSnapshot) continue;
-          prefilled.push({
-            accountId,
-            amount: currentSnapshot.amount,
-            ...(currentSnapshot.originalAmount !== undefined ? { originalAmount: currentSnapshot.originalAmount } : {}),
-            ...(currentSnapshot.exchangeRate !== undefined ? { exchangeRate: currentSnapshot.exchangeRate } : {}),
-            ...(currentSnapshot.holdings !== undefined ? { holdings: currentSnapshot.holdings } : {}),
-          });
-        }
-        return prefilled;
+    const loadMonthTransactions = async () => {
+      const rows = await getMonthInvestmentFinancingUseCase.execute({
+        householdId,
+        year: Number(selectedYearMonth.slice(0, 4)),
+        month: Number(selectedYearMonth.slice(5, 7)),
       });
+      if (cancelled) return;
+      setSecurities({
+        buys: rows.buys.map(toTradeRow),
+        sells: rows.sells.map(toTradeRow),
+      });
+      setFinancing({
+        shareholderFinancing: rows.shareholderFinancing.map(toTradeRow),
+        dividendPayout: rows.dividendPayout.map(toTradeRow),
+      });
+      setRemovedTransactionIds([]);
     };
 
-    void loadAccountSnapshots();
+    void loadMonthTransactions();
     return () => {
       cancelled = true;
     };
-  }, [accounts, auth, householdId, selectedYearMonth]);
+  }, [householdId, selectedYearMonth, tradeRefreshKey]);
 
   useEffect(() => {
     if (!householdId || !selectedYearMonth) return;
@@ -237,11 +243,15 @@ export const useMonthlyClosePage = ({
         accountBalances: stageId === 'ACCOUNT_BALANCE' ? accountBalances : undefined,
         securities: stageId === 'SECURITIES_TRADE' ? securities : undefined,
         financing: stageId === 'SECURITIES_TRADE' ? financing : undefined,
+        removedTransactionIds: stageId === 'SECURITIES_TRADE' ? removedTransactionIds : undefined,
         portfolioCashFlows: stageId === 'PORTFOLIO_CASH_FLOW' ? portfolioCashFlows : undefined,
         repayments: stageId === 'DEBT_REPAYMENT' ? repayments : undefined,
       });
       if (result) {
         setViewingStageId(null);
+      }
+      if (stageId === 'SECURITIES_TRADE') {
+        setTradeRefreshKey((key) => key + 1);
       }
       await refreshStageEvidence();
     },
@@ -251,10 +261,52 @@ export const useMonthlyClosePage = ({
       financing,
       portfolioCashFlows,
       refreshStageEvidence,
+      removedTransactionIds,
       repayments,
       securities,
     ],
   );
+
+  const handleConfirmStageWithWarning = useCallback(
+    async (stageId: CloseStageId) => {
+      const hasSecurities = securities.buys.length > 0 || securities.sells.length > 0;
+      const hasFinancing =
+        financing.shareholderFinancing.length > 0 || financing.dividendPayout.length > 0;
+      const needsWarning = stageId === 'SECURITIES_TRADE' && !hasSecurities && !hasFinancing;
+      if (needsWarning) {
+        const confirmed = await confirmDialog({
+          title: MONTHLY_CLOSE_LABELS.EMPTY_STAGE_WARNING_TITLE,
+          context: MONTHLY_CLOSE_LABELS.EMPTY_STAGE_WARNING_CONTEXT,
+          consequence: MONTHLY_CLOSE_LABELS.EMPTY_STAGE_WARNING_CONSEQUENCE,
+          confirmLabel: MONTHLY_CLOSE_LABELS.RECONFIRM_ACTION,
+          cancelLabel: MONTHLY_CLOSE_LABELS.CANCEL,
+        });
+        if (!confirmed) return;
+      }
+      await handleConfirmStage(stageId);
+    },
+    [confirmDialog, financing, handleConfirmStage, securities],
+  );
+
+  const drawer = useTradeDrawer({
+    securities,
+    financing,
+    setSecurities,
+    setFinancing,
+    removedTransactionIds,
+    setRemovedTransactionIds,
+    closeMonth: new Date(
+      Number(selectedYearMonth.slice(0, 4)),
+      Number(selectedYearMonth.slice(5, 7)) - 1,
+      15,
+    ),
+  });
+
+  const drawerForm = useTradeDrawerForm({
+    isOpen: drawer.state.kind !== null,
+    editRow: drawer.findRow(drawer.state.targetId),
+    onDraftConfirm: drawer.confirmDraft,
+  });
 
   return {
     householdId,
@@ -281,6 +333,8 @@ export const useMonthlyClosePage = ({
     setSecurities,
     financing,
     setFinancing,
+    removedTransactionIds,
+    setRemovedTransactionIds,
     portfolioCashFlows,
     setPortfolioCashFlows,
     repayments,
@@ -291,6 +345,9 @@ export const useMonthlyClosePage = ({
     refreshStageEvidence,
     evidenceFor,
     handleConfirmStage,
+    handleConfirmStageWithWarning,
+    drawer,
+    drawerForm,
   };
 };
 

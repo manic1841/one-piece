@@ -2,9 +2,9 @@ import React, { useState } from 'react';
 
 import { ChevronDown, ChevronUp } from 'lucide-react';
 
-import { cn } from '@/ui/utils/cn';
 import { StatusGlyph } from '@/ui/components/StatusGlyph';
-import { getCloseStageLabel, MONTHLY_CLOSE_LABELS } from '@/ui/constants/monthlyClose';
+import { MONTHLY_CLOSE_LABELS, getCloseStageLabel } from '@/ui/constants/monthlyClose';
+import { cn } from '@/ui/utils/cn';
 
 import type { CloseStageItemVM } from '../viewmodels/monthlyClose.vm';
 
@@ -21,8 +21,7 @@ interface ClosePipelineProps {
   onSelectStage: (stageId: string) => void;
 }
 
-const stepNumber = (index: number): string =>
-  (index + 1).toString().padStart(2, '0');
+const stepNumber = (index: number): string => (index + 1).toString().padStart(2, '0');
 
 const stageStatus = (
   stage: CloseStageItemVM,
@@ -36,12 +35,13 @@ const stageStatus = (
   return stage.isCompleted ? 'COMPLETED' : 'WAITING';
 };
 
-const glyphTypeMap: Record<ClosePipelineStageStatus, 'active' | 'verified' | 'waiting' | 'review'> = {
-  CURRENT: 'active',
-  COMPLETED: 'verified',
-  WAITING: 'waiting',
-  REVIEW: 'review',
-};
+const glyphTypeMap: Record<ClosePipelineStageStatus, 'active' | 'verified' | 'waiting' | 'review'> =
+  {
+    CURRENT: 'active',
+    COMPLETED: 'verified',
+    WAITING: 'waiting',
+    REVIEW: 'review',
+  };
 
 const headerGlyphType = (isClosed: boolean, isPaused: boolean): 'active' | 'verified' | 'review' =>
   isClosed ? 'verified' : isPaused ? 'review' : 'active';
@@ -79,9 +79,7 @@ export const ClosePipeline: React.FC<ClosePipelineProps> = ({
             'focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring',
           )}
         >
-          {isExpanded
-            ? MONTHLY_CLOSE_LABELS.HIDE_WORKFLOW
-            : MONTHLY_CLOSE_LABELS.SHOW_WORKFLOW}
+          {isExpanded ? MONTHLY_CLOSE_LABELS.HIDE_WORKFLOW : MONTHLY_CLOSE_LABELS.SHOW_WORKFLOW}
           {isExpanded ? (
             <ChevronUp className="h-3.5 w-3.5" />
           ) : (
@@ -103,7 +101,7 @@ export const ClosePipeline: React.FC<ClosePipelineProps> = ({
             const isBeforeCurrent =
               status === 'WAITING' && completedIndex !== -1 && index < completedIndex;
 
-            const disabled = isClosed || status === 'WAITING' && !isBeforeCurrent;
+            const disabled = isClosed || (status === 'WAITING' && !isBeforeCurrent);
 
             const clickable = !disabled && !isViewing;
 
@@ -130,9 +128,7 @@ export const ClosePipeline: React.FC<ClosePipelineProps> = ({
                   <span className="whitespace-nowrap font-semibold tracking-widest opacity-60">
                     {stepNumber(index)}
                   </span>
-                  <span className="truncate font-medium">
-                    {getCloseStageLabel(stage.stageId)}
-                  </span>
+                  <span className="truncate font-medium">{getCloseStageLabel(stage.stageId)}</span>
                   {stage.isStale && status !== 'WAITING' && (
                     <span
                       data-testid="close-pipeline-stale"

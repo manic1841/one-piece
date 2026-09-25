@@ -1,6 +1,7 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 
 import { CLOSE_STAGE_ORDER } from '@/ui/constants/monthlyClose';
+
 import type { CloseStageItemVM } from '../viewmodels/monthlyClose.vm';
 import { ClosePipeline } from './ClosePipeline';
 

@@ -1,6 +1,12 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { monthlyCloseWorkflowUseCase } from '@/application/monthly_close/use_cases/monthlyCloseWorkflowUseCase';
+import { initialStageStates } from '@/domains/financial_period/schemas';
+import { formatYearMonth } from '@/ui/utils';
+
+import { useMonthlyClose } from './useMonthlyClose';
+
 vi.mock('@/application/monthly_close/use_cases/monthlyCloseWorkflowUseCase', () => ({
   monthlyCloseWorkflowUseCase: {
     start: vi.fn(),
@@ -10,12 +16,6 @@ vi.mock('@/application/monthly_close/use_cases/monthlyCloseWorkflowUseCase', () 
 vi.mock('@/ui/hooks/useAuthIdentity', () => ({
   useAuthIdentity: () => ({ uid: 'user-1', email: 'user@test.com', isGlobalAdmin: false }),
 }));
-
-import { monthlyCloseWorkflowUseCase } from '@/application/monthly_close/use_cases/monthlyCloseWorkflowUseCase';
-import { initialStageStates } from '@/domains/financial_period/schemas';
-import { formatYearMonth } from '@/ui/utils';
-
-import { useMonthlyClose } from './useMonthlyClose';
 
 const period = () => ({
   yearMonth: '2026-09',

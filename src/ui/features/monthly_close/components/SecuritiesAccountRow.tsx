@@ -2,29 +2,28 @@ import React from 'react';
 
 import { Plus, Trash2 } from 'lucide-react';
 
-import type { Account, AccountBalanceInput, Holding } from '../viewmodels/accountBalance.vm';
-
 import {
   DataTable,
+  DataTableCell,
   DataTableColGroup,
   DataTableHeadCell,
   DataTableHeadRow,
-  DataTableCell,
   DataTableRow,
   DataTableScrollArea,
   MobileDataList,
   MobileDataRow,
   NumberInput,
-  parseOptionalAmount,
   TableBody,
   TableHeader,
   dataTableLabelClass,
+  parseOptionalAmount,
 } from '@/ui/components/data-table';
 import { Button } from '@/ui/components/ui/button';
 import { Input } from '@/ui/components/ui/input';
 import { Label } from '@/ui/components/ui/label';
 import { formatCurrency } from '@/ui/utils';
 
+import type { Account, AccountBalanceInput, Holding } from '../viewmodels/accountBalance.vm';
 import { computeSectionInput } from '../viewmodels/accountBalance.vm';
 
 /** 欄寬契約：總和必須等於 100（Symbol/Name/Cost/Value/Leverage 均分 + actions 7%）。 */
@@ -156,7 +155,9 @@ export const SecuritiesAccountRow: React.FC<SecuritiesAccountRowProps> = ({
                         compact
                         className="w-full"
                         value={holding.marketValue}
-                        onChange={(event) => updateHolding(index, 'marketValue', event.target.value)}
+                        onChange={(event) =>
+                          updateHolding(index, 'marketValue', event.target.value)
+                        }
                       />
                     </DataTableCell>
                     <DataTableCell className="pl-3">
@@ -265,7 +266,9 @@ export const SecuritiesAccountRow: React.FC<SecuritiesAccountRowProps> = ({
               step="0.0001"
               className="w-28 md:ml-auto"
               value={input?.exchangeRate ?? ''}
-              onChange={(event) => onRateChange(entry.account.id, parseOptionalAmount(event.target.value))}
+              onChange={(event) =>
+                onRateChange(entry.account.id, parseOptionalAmount(event.target.value))
+              }
             />
           </div>
           <div className="text-right">

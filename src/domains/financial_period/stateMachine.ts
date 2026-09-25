@@ -1,9 +1,9 @@
 import {
+  CLOSE_STAGE_IDS_SET,
   type CloseStageId,
   type CloseStageState,
   type FinancialPeriod,
   type FinancialPeriodStatus,
-  CLOSE_STAGE_IDS_SET,
 } from './schemas';
 
 export class FinancialPeriodStateError extends Error {
@@ -22,9 +22,8 @@ export class FinancialPeriodStateError extends Error {
   }
 }
 
-export const resolvePeriodStatus = (
-  existing: FinancialPeriod | null,
-): FinancialPeriodStatus => existing?.status ?? 'OPEN';
+export const resolvePeriodStatus = (existing: FinancialPeriod | null): FinancialPeriodStatus =>
+  existing?.status ?? 'OPEN';
 
 export const confirmStageInState = (
   period: FinancialPeriod,
@@ -33,7 +32,10 @@ export const confirmStageInState = (
   confirmedAt: Date,
 ): FinancialPeriod => {
   if (period.status === 'CLOSED') {
-    throw new FinancialPeriodStateError('PERIOD_CLOSED', 'cannot confirm a stage on a closed period');
+    throw new FinancialPeriodStateError(
+      'PERIOD_CLOSED',
+      'cannot confirm a stage on a closed period',
+    );
   }
   if (!CLOSE_STAGE_IDS_SET.has(stageId)) {
     throw new FinancialPeriodStateError('STAGE_NOT_FOUND', `unknown stage: ${stageId}`);
@@ -59,7 +61,10 @@ export const reconfirmStageInState = (
   confirmedAt: Date,
 ): FinancialPeriod => {
   if (period.status === 'CLOSED') {
-    throw new FinancialPeriodStateError('PERIOD_CLOSED', 'cannot confirm a stage on a closed period');
+    throw new FinancialPeriodStateError(
+      'PERIOD_CLOSED',
+      'cannot confirm a stage on a closed period',
+    );
   }
   if (!CLOSE_STAGE_IDS_SET.has(stageId)) {
     throw new FinancialPeriodStateError('STAGE_NOT_FOUND', `unknown stage: ${stageId}`);
@@ -93,7 +98,7 @@ export const isStageCompleted = (period: FinancialPeriod, stageId: CloseStageId)
 
 /** Re-confirmable stages (ADR-0052/§5): same-key idempotent overwrite is safe. */
 export const isReconfirmableStage = (stageId: CloseStageId): boolean =>
-  stageId === 'ACCOUNT_BALANCE';
+  stageId === 'ACCOUNT_BALANCE' || stageId === 'SECURITIES_TRADE';
 
 export const closePeriodInState = (
   period: FinancialPeriod,
@@ -172,7 +177,10 @@ export const reopenPeriodInState = (period: FinancialPeriod): FinancialPeriod =>
  */
 export const supersedeClosedPeriodInState = (period: FinancialPeriod): FinancialPeriod => {
   if (period.status !== 'CLOSED') {
-    throw new FinancialPeriodStateError('PERIOD_NOT_REOPENABLE', 'only a closed period can be superseded');
+    throw new FinancialPeriodStateError(
+      'PERIOD_NOT_REOPENABLE',
+      'only a closed period can be superseded',
+    );
   }
 
   return {

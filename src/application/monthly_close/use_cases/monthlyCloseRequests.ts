@@ -1,6 +1,6 @@
 import { type AuthContext } from '@/application/types';
-import { type CloseStageId } from '@/domains/financial_period/schemas';
 import { type Holding } from '@/domains/account/types/account';
+import { type CloseStageId } from '@/domains/financial_period/schemas';
 
 export interface AccountBalanceInput {
   accountId: string;
@@ -14,18 +14,22 @@ export interface AccountBalanceInput {
   holdings?: Holding[];
 }
 
-export interface SecuritiesTradeInput {
-  amount: number;
-  date: Date;
-  description?: string;
-}
-
-export interface FinancingInput {
+/**
+ * One row type for both securities and financing close trades; the submit side
+ * (`SecuritiesTradeInput` / `FinancingInput`) names the bucket it lands in.
+ */
+export interface CloseTradeInput {
   amount: number;
   date: Date;
   description?: string;
   projectId?: string | null;
+  /** Transaction doc ID when the row was loaded from Firestore; undefined for new rows. */
+  transactionId?: string;
 }
+
+export type SecuritiesTradeInput = CloseTradeInput;
+
+export type FinancingInput = CloseTradeInput;
 
 export interface InvestmentFinancingInput {
   financing: {
@@ -59,4 +63,6 @@ export interface MonthlyCloseConfirmRequest extends MonthlyCloseStartRequest {
   financing?: InvestmentFinancingInput['financing'];
   portfolioCashFlows?: Record<string, { deposits: number; withdrawals: number }>;
   repayments?: DebtRepaymentInput[];
+  /** SECURITIES_TRADE reconfirm: transaction doc IDs loaded earlier but removed from the rows. */
+  removedTransactionIds?: string[];
 }

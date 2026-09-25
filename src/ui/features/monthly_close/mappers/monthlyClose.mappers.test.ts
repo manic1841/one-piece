@@ -1,19 +1,14 @@
 import { describe, expect, it } from 'vitest';
 
-import {
-  type CompletenessActivity,
-} from '@/application/settlement/use_cases/checkSettlementCompletenessUseCase';
-import {
-  type FinancialPeriod,
-  initialStageStates,
-} from '@/domains/financial_period/schemas';
+import { type CompletenessActivity } from '@/application/settlement/use_cases/checkSettlementCompletenessUseCase';
+import { type FinancialPeriod, initialStageStates } from '@/domains/financial_period/schemas';
 
 import {
+  NO_EVIDENCE,
   mapAdjustmentCountToEvidence,
   mapAnomaliesToEvidence,
   mapPeriodToPageVM,
   mapPersistenceToEvidence,
-  NO_EVIDENCE,
 } from './monthlyClose.mappers';
 
 const authPeriod = (overrides: Partial<FinancialPeriod> = {}): FinancialPeriod => ({

@@ -37,10 +37,11 @@ export type CloseStageState = z.infer<typeof CloseStageStateSchema>;
 export const FinancialPeriodCreateSchema = z.object({
   yearMonth: z.string().regex(/^\d{4}-\d{2}$/),
   status: FinancialPeriodStatus,
-  stages: z.record(z.string(), CloseStageStateSchema).refine(
-    (stages) => Object.keys(stages).every((stageId) => CLOSE_STAGE_IDS_SET.has(stageId)),
-    { message: 'stages contain unknown stage IDs' },
-  ),
+  stages: z
+    .record(z.string(), CloseStageStateSchema)
+    .refine((stages) => Object.keys(stages).every((stageId) => CLOSE_STAGE_IDS_SET.has(stageId)), {
+      message: 'stages contain unknown stage IDs',
+    }),
   reviewSourceStageId: z.enum(CLOSE_STAGE_IDS).nullable().optional(),
 });
 export type FinancialPeriodCreate = z.infer<typeof FinancialPeriodCreateSchema>;

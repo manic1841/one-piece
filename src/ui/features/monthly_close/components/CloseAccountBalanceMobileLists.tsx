@@ -1,6 +1,5 @@
 import React from 'react';
 
-import type { AccountBalanceEntryVM, AccountBalanceInput } from '../viewmodels/accountBalance.vm';
 import {
   MobileDataField,
   MobileDataList,
@@ -10,9 +9,9 @@ import {
 } from '@/ui/components/data-table';
 import { formatCurrency } from '@/ui/utils';
 
-import { AccountNameCell } from './AccountNameCell';
-
+import type { AccountBalanceEntryVM, AccountBalanceInput } from '../viewmodels/accountBalance.vm';
 import { computeSectionInput } from '../viewmodels/accountBalance.vm';
+import { AccountNameCell } from './AccountNameCell';
 
 interface TwdMobileListProps {
   accounts: AccountBalanceEntryVM[];
@@ -20,7 +19,11 @@ interface TwdMobileListProps {
   onAmountChange: (accountId: string, amount: number | undefined) => void;
 }
 
-export const TwdMobileList: React.FC<TwdMobileListProps> = ({ accounts, findInput, onAmountChange }) => (
+export const TwdMobileList: React.FC<TwdMobileListProps> = ({
+  accounts,
+  findInput,
+  onAmountChange,
+}) => (
   <MobileDataList>
     {accounts.map((entry) => (
       <MobileDataRow key={entry.account.id}>
@@ -37,7 +40,9 @@ export const TwdMobileList: React.FC<TwdMobileListProps> = ({ accounts, findInpu
             aria-label={`期末餘額 ${entry.account.name}`}
             className="w-[150px] max-w-full"
             value={findInput(entry.account.id)?.amount ?? ''}
-            onChange={(event) => onAmountChange(entry.account.id, parseOptionalAmount(event.target.value))}
+            onChange={(event) =>
+              onAmountChange(entry.account.id, parseOptionalAmount(event.target.value))
+            }
           />
         </MobileDataField>
       </MobileDataRow>
@@ -55,7 +60,11 @@ interface ForeignMobileListProps {
   ) => void;
 }
 
-export const ForeignMobileList: React.FC<ForeignMobileListProps> = ({ accounts, findInput, onDetailChange }) => (
+export const ForeignMobileList: React.FC<ForeignMobileListProps> = ({
+  accounts,
+  findInput,
+  onDetailChange,
+}) => (
   <MobileDataList>
     {accounts.map((entry) => (
       <MobileDataRow key={entry.account.id}>
@@ -75,7 +84,11 @@ export const ForeignMobileList: React.FC<ForeignMobileListProps> = ({ accounts, 
             className="w-[150px] max-w-full"
             value={findInput(entry.account.id)?.originalAmount ?? ''}
             onChange={(event) =>
-              onDetailChange(entry.account.id, 'originalAmount', parseOptionalAmount(event.target.value))
+              onDetailChange(
+                entry.account.id,
+                'originalAmount',
+                parseOptionalAmount(event.target.value),
+              )
             }
           />
         </MobileDataField>
@@ -86,7 +99,11 @@ export const ForeignMobileList: React.FC<ForeignMobileListProps> = ({ accounts, 
             className="w-[150px] max-w-full"
             value={findInput(entry.account.id)?.exchangeRate ?? ''}
             onChange={(event) =>
-              onDetailChange(entry.account.id, 'exchangeRate', parseOptionalAmount(event.target.value))
+              onDetailChange(
+                entry.account.id,
+                'exchangeRate',
+                parseOptionalAmount(event.target.value),
+              )
             }
           />
         </MobileDataField>

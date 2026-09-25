@@ -1,5 +1,8 @@
 import { householdPermissionService } from '@/application/household/householdPermissionService';
-import { MonthlyCloseCommandError, MonthlyCloseCommandErrorCode } from '@/application/monthly_close/errors';
+import {
+  MonthlyCloseCommandError,
+  MonthlyCloseCommandErrorCode,
+} from '@/application/monthly_close/errors';
 import {
   GetFinancialPeriodUseCase,
   ListFinancialPeriodsUseCase,
@@ -9,13 +12,17 @@ import {
   CheckCloseReadinessUseCase,
   RunFinancialReportsUseCase,
 } from '@/application/monthly_close/use_cases/financialReportsWorkflowUseCases';
-import { CreateInvestmentFinancingTransactionsUseCase } from '@/application/monthly_close/use_cases/createInvestmentFinancingTransactionsUseCase';
+import {
+  type MonthlyCloseConfirmRequest,
+  type MonthlyCloseStartRequest,
+} from '@/application/monthly_close/use_cases/monthlyCloseRequests';
 import { RecordDebtRepaymentsUseCase } from '@/application/monthly_close/use_cases/recordDebtRepaymentsUseCase';
 import { RecordMonthSnapshotsUseCase } from '@/application/monthly_close/use_cases/recordMonthSnapshotsUseCase';
 import { RecordPortfolioCashFlowsUseCase } from '@/application/monthly_close/use_cases/recordPortfolioCashFlowsUseCase';
+import { SyncInvestmentFinancingTransactionsUseCase } from '@/application/monthly_close/use_cases/syncInvestmentFinancingTransactionsUseCase';
+import { validateMonthTransactionsUseCase } from '@/application/monthly_close/use_cases/validateMonthTransactionsUseCase';
 import { checkSettlementCompletenessUseCase } from '@/application/settlement/use_cases/checkSettlementCompletenessUseCase';
 import { settleProjectsUseCase } from '@/application/settlement/use_cases/settleProjectsUseCase';
-import { validateMonthTransactionsUseCase } from '@/application/monthly_close/use_cases/validateMonthTransactionsUseCase';
 import { type AuthContext } from '@/application/types';
 import {
   type CloseStageId,
@@ -24,17 +31,13 @@ import {
   initialStageStates,
 } from '@/domains/financial_period/schemas';
 import {
-  type MonthlyCloseConfirmRequest,
-  type MonthlyCloseStartRequest,
-} from '@/application/monthly_close/use_cases/monthlyCloseRequests';
-import {
   closePeriodInState,
   confirmStageInState,
   isReconfirmableStage,
   isReopenablePeriod,
   markNeedsReviewInState,
-  reopenPeriodInState,
   reconfirmStageInState,
+  reopenPeriodInState,
   supersedeClosedPeriodInState,
 } from '@/domains/financial_period/stateMachine';
 
@@ -52,7 +55,7 @@ export class MonthlyCloseWorkflowUseCase {
   private readonly getPeriod = new GetFinancialPeriodUseCase();
   private readonly savePeriod = new SaveFinancialPeriodUseCase();
   private readonly listPeriods = new ListFinancialPeriodsUseCase();
-  private readonly createInvestmentFinancing = new CreateInvestmentFinancingTransactionsUseCase();
+  private readonly syncInvestmentFinancing = new SyncInvestmentFinancingTransactionsUseCase();
   private readonly recordMonthSnapshots = new RecordMonthSnapshotsUseCase();
   private readonly recordPortfolioCashFlows = new RecordPortfolioCashFlowsUseCase();
   private readonly recordDebtRepayments = new RecordDebtRepaymentsUseCase();
@@ -151,14 +154,24 @@ export class MonthlyCloseWorkflowUseCase {
 
     this.assertStageConfirmable(current, stageId);
 
-    if (current.status === 'NEEDS_REVIEW' && current.reviewSourceStageId === 'COMPLETENESS_CHECK' && stageId === 'COMPLETENESS_CHECK') {
+    if (
+      current.status === 'NEEDS_REVIEW' &&
+      current.reviewSourceStageId === 'COMPLETENESS_CHECK' &&
+      stageId === 'COMPLETENESS_CHECK'
+    ) {
       // ADR-0052: resolving the review means completing the stage confirmation,
       // which returns the workflow to IN_PROGRESS without re-running the check.
       return this.completeConfirm(current, stageId, userEmail, householdId);
     }
 
     if (stageId === 'COMPLETENESS_CHECK') {
-      const paused = await this.runCompletenessCheck(householdId, yearMonth, auth, current, userEmail);
+      const paused = await this.runCompletenessCheck(
+        householdId,
+        yearMonth,
+        auth,
+        current,
+        userEmail,
+      );
       if (paused) return paused;
     }
 
@@ -182,7 +195,8 @@ export class MonthlyCloseWorkflowUseCase {
     userEmail: string,
     householdId: string,
   ): Promise<FinancialPeriod> {
-    const isReconfirm = isReconfirmableStage(stageId) && current.stages[stageId]?.status === 'COMPLETED';
+    const isReconfirm =
+      isReconfirmableStage(stageId) && current.stages[stageId]?.status === 'COMPLETED';
     let period = isReconfirm
       ? reconfirmStageInState(current, stageId, userEmail, new Date())
       : confirmStageInState(current, stageId, userEmail, new Date());
@@ -214,7 +228,10 @@ export class MonthlyCloseWorkflowUseCase {
    */
   private assertStageConfirmable(period: FinancialPeriod, stageId: CloseStageId): void {
     if (period.status === 'CLOSED') {
-      throw new MonthlyCloseCommandError(MonthlyCloseCommandErrorCode.PERIOD_CLOSED, 'period is closed');
+      throw new MonthlyCloseCommandError(
+        MonthlyCloseCommandErrorCode.PERIOD_CLOSED,
+        'period is closed',
+      );
     }
     if (period.stages[stageId]?.status === 'COMPLETED' && !isReconfirmableStage(stageId)) {
       throw new MonthlyCloseCommandError(
@@ -284,22 +301,13 @@ export class MonthlyCloseWorkflowUseCase {
       case 'SECURITIES_TRADE': {
         const securities = request.securities;
         const financing = request.financing;
-        const hasSecurities = Boolean(securities && (securities.buys.length > 0 || securities.sells.length > 0));
-        const hasFinancing = Boolean(
-          financing && (financing.shareholderFinancing.length > 0 || financing.dividendPayout.length > 0),
-        );
-        if (!hasSecurities && !hasFinancing) {
-          throw new MonthlyCloseCommandError(
-            MonthlyCloseCommandErrorCode.STAGE_INPUT_REQUIRED,
-            'at least one securities trade or financing entry is required',
-          );
-        }
-        await this.createInvestmentFinancing.execute({
+        await this.syncInvestmentFinancing.execute({
           householdId,
           userEmail,
           auth,
-          securities,
-          financing,
+          securities: securities ?? { buys: [], sells: [] },
+          financing: financing ?? { shareholderFinancing: [], dividendPayout: [] },
+          removedTransactionIds: request.removedTransactionIds,
         });
         return;
       }
@@ -356,7 +364,11 @@ export class MonthlyCloseWorkflowUseCase {
   }
 
   private async assertMember(householdId: string, auth: AuthContext): Promise<void> {
-    await householdPermissionService.assertReadPermission(householdId, auth.uid, auth.isGlobalAdmin);
+    await householdPermissionService.assertReadPermission(
+      householdId,
+      auth.uid,
+      auth.isGlobalAdmin,
+    );
   }
 }
 
