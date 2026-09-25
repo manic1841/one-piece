@@ -6,7 +6,7 @@ import {
 } from '@/domains/financial_period/schemas';
 import { db } from '@/firebase';
 import { BaseRepository } from '@/infra/repositories/baseRepository';
-import { collection, doc } from 'firebase/firestore';
+import { collection, doc, writeBatch } from 'firebase/firestore';
 
 /**
  * FinancialPeriodRepository
@@ -33,12 +33,41 @@ class FinancialPeriodRepository extends BaseRepository<FinancialPeriod, [string,
     return this.get([householdId, buildFinancialPeriodDocId(yearMonth)]);
   }
 
+  async listAll(householdId: string): Promise<FinancialPeriod[]> {
+    return this.list([householdId]);
+  }
+
   async savePeriod(
     householdId: string,
     period: FinancialPeriodCreate,
     userEmail: string,
   ): Promise<void> {
     await this.set([householdId, buildFinancialPeriodDocId(period.yearMonth)], period, userEmail);
+  }
+
+  /** Single-batch upsert (ADR-0066): the reopen commit is all-or-nothing. */
+  async savePeriods(
+    householdId: string,
+    periods: FinancialPeriodCreate[],
+    userEmail: string,
+  ): Promise<void> {
+    if (periods.length === 0) return;
+    const batch = writeBatch(this.db);
+    for (const period of periods) {
+      const docRef = this.getDocRef(householdId, buildFinancialPeriodDocId(period.yearMonth));
+      const sanitized = this.sanitize(period as FinancialPeriod) as FinancialPeriod;
+      batch.set(
+        docRef,
+        this.convertToFirestore({
+          ...sanitized,
+          id: docRef.id,
+          createdBy: userEmail,
+          updatedBy: userEmail,
+        } as FinancialPeriod),
+        { merge: true },
+      );
+    }
+    await batch.commit();
   }
 }
 

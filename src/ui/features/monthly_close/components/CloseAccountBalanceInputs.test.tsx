@@ -56,7 +56,6 @@ const renderSections = (
     accounts?: Account[];
     snapshots?: Map<string, AccountSnapshot>;
     inputs?: AccountBalanceInput[];
-    stageCompleted?: boolean;
     onInputsChange?: (inputs: AccountBalanceInput[]) => void;
   } = {},
 ) => {
@@ -65,7 +64,6 @@ const renderSections = (
       accounts={overrides.accounts ?? [account({ id: 'cash-1', name: '現金帳戶' })]}
       snapshots={overrides.snapshots ?? new Map()}
       inputs={overrides.inputs ?? []}
-      stageCompleted={overrides.stageCompleted ?? false}
       onInputsChange={overrides.onInputsChange ?? (() => {})}
     />,
   );
@@ -88,7 +86,8 @@ describe('CloseAccountBalanceInputs', () => {
     expect(screen.getAllByText('前期餘額').length).toBe(3);
     expect(screen.getAllByText('NT$50,000').length).toBeGreaterThan(0);
     expect(screen.getAllByLabelText('期末餘額 現金帳戶')[0]).toHaveValue(52000);
-    expect(screen.getAllByText('WAITING').length).toBe(4);
+    expect(screen.queryByText('WAITING')).toBeNull();
+    expect(screen.queryByText('狀態')).toBeNull();
   });
 
   it('shows an em dash when the previous-month snapshot is missing', () => {
@@ -254,11 +253,14 @@ describe('CloseAccountBalanceInputs', () => {
     expect(twdValue).toContain('NT$12,812,500');
   });
 
-  it('marks all accounts verified after the stage is completed', () => {
-    renderSections({ stageCompleted: true });
+  it('keeps inputs editable after the stage is completed', () => {
+    renderSections({
+      inputs: [input({ accountId: 'cash-1', amount: 52000 })],
+    });
 
+    expect(screen.getAllByLabelText('期末餘額 現金帳戶')[0]).toBeEnabled();
+    expect(screen.queryByText('VERIFIED')).toBeNull();
     expect(screen.queryByText('WAITING')).toBeNull();
-    expect(screen.getAllByText('VERIFIED').length).toBeGreaterThan(0);
   });
 
   it('does not render an inline required hint for a TWD account without an ending balance', () => {

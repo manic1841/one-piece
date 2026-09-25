@@ -17,9 +17,26 @@ export class GetFinancialPeriodUseCase {
   }
 }
 
+export interface ListFinancialPeriodsRequest {
+  householdId: string;
+}
+
+export class ListFinancialPeriodsUseCase {
+  async execute(request: ListFinancialPeriodsRequest) {
+    const { householdId } = request;
+    return financialPeriodRepository.listAll(householdId);
+  }
+}
+
 export interface SaveFinancialPeriodRequest {
   householdId: string;
   period: FinancialPeriodCreate;
+  userEmail: string;
+}
+
+export interface SaveFinancialPeriodsRequest {
+  householdId: string;
+  periods: FinancialPeriodCreate[];
   userEmail: string;
 }
 
@@ -27,5 +44,10 @@ export class SaveFinancialPeriodUseCase {
   async execute(request: SaveFinancialPeriodRequest): Promise<void> {
     const { householdId, period, userEmail } = request;
     await financialPeriodRepository.savePeriod(householdId, period, userEmail);
+  }
+
+  async saveAll(request: SaveFinancialPeriodsRequest): Promise<void> {
+    const { householdId, periods, userEmail } = request;
+    await financialPeriodRepository.savePeriods(householdId, periods, userEmail);
   }
 }

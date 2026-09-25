@@ -162,7 +162,7 @@ firestore
        │    ├─ yearMonth: string          # 財務期間鍵 (YYYY-MM)
        │    ├─ status: "OPEN" | "IN_PROGRESS" | "NEEDS_REVIEW" | "CLOSED"
        │    ├─ stages: map<stageId, { status, confirmedBy?, confirmedAt? }>   # 各階段狀態 (ADR-0052 九階段)
-       │    ├─ reviewSourceStageId?: string # NEEDS_REVIEW 時的來源階段
+       │    ├─ reviewSourceStageId?: string # NEEDS_REVIEW 時的來源階段；null = 前期關帳重開的連鎖降級 (ADR-0066)
        │    ├─ createdBy: string
        │    └─ updatedAt: Timestamp
        ├─ transactions/{transactionId}   # 原始交易記錄 (Source Documents)

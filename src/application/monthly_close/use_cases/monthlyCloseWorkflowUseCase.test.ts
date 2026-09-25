@@ -19,7 +19,11 @@ vi.mock('@/application/settlement/use_cases/settleProjectsUseCase');
 vi.mock('@/application/monthly_close/use_cases/validateMonthTransactionsUseCase');
 vi.mock('@/application/monthly_close/use_cases/financialPeriodAccessUseCases', () => {
   const getFinancialPeriodUseCase = { execute: vi.fn() };
-  const saveFinancialPeriodUseCase = { execute: vi.fn().mockResolvedValue(undefined) };
+  const saveFinancialPeriodUseCase = {
+    execute: vi.fn().mockResolvedValue(undefined),
+    saveAll: vi.fn().mockResolvedValue(undefined),
+  };
+  const listFinancialPeriodsUseCase = { execute: vi.fn().mockResolvedValue([]) };
   return {
     GetFinancialPeriodUseCase: vi.fn().mockImplementation(function () {
       return getFinancialPeriodUseCase;
@@ -27,8 +31,12 @@ vi.mock('@/application/monthly_close/use_cases/financialPeriodAccessUseCases', (
     SaveFinancialPeriodUseCase: vi.fn().mockImplementation(function () {
       return saveFinancialPeriodUseCase;
     }),
+    ListFinancialPeriodsUseCase: vi.fn().mockImplementation(function () {
+      return listFinancialPeriodsUseCase;
+    }),
     getFinancialPeriodUseCase,
     saveFinancialPeriodUseCase,
+    listFinancialPeriodsUseCase,
   };
 });
 
@@ -36,7 +44,7 @@ import { batchRecordSnapshotsUseCase } from '@/application/account/use_cases/bat
 import { createDebtPaymentUseCase } from '@/application/debt/use_cases/createDebtPaymentUseCase';
 import { createTransactionUseCase } from '@/application/ledger/use_cases/createTransactionUseCase';
 import { MonthlyCloseCommandError, MonthlyCloseCommandErrorCode } from '@/application/monthly_close/errors';
-import { getFinancialPeriodUseCase, saveFinancialPeriodUseCase } from '@/application/monthly_close/use_cases/financialPeriodAccessUseCases';
+import { getFinancialPeriodUseCase, listFinancialPeriodsUseCase, saveFinancialPeriodUseCase } from '@/application/monthly_close/use_cases/financialPeriodAccessUseCases';
 import { MonthlyCloseWorkflowUseCase } from '@/application/monthly_close/use_cases/monthlyCloseWorkflowUseCase';
 import { createPortfolioSnapshotUseCase } from '@/application/portfolio/use_cases/createPortfolioSnapshotUseCase';
 import { listPortfolioSnapshotsUseCase } from '@/application/portfolio/use_cases/listPortfolioSnapshotsUseCase';
@@ -117,6 +125,138 @@ describe('MonthlyCloseWorkflowUseCase.start', () => {
 
     expect(period).toBe(existing);
     expect(saveFinancialPeriodUseCase.execute).not.toHaveBeenCalled();
+  });
+});
+
+describe('MonthlyCloseWorkflowUseCase.reopen', () => {
+  let useCase: MonthlyCloseWorkflowUseCase;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(saveFinancialPeriodUseCase.execute).mockResolvedValue(undefined);
+    useCase = new MonthlyCloseWorkflowUseCase();
+  });
+
+  it('reopens a closed period and resets Financial Reports and Close Period', async () => {
+    const closed = completeStage(basePeriod({ status: 'CLOSED' }), 'CLOSE_PERIOD');
+    vi.mocked(getFinancialPeriodUseCase.execute).mockResolvedValue(closed);
+    vi.mocked(listFinancialPeriodsUseCase.execute).mockResolvedValue([]);
+
+    const reopened = await useCase.reopen(REQUEST_BASE);
+
+    expect(reopened.status).toBe('IN_PROGRESS');
+    expect(reopened.reviewSourceStageId).toBeNull();
+    expect(reopened.stages.FINANCIAL_REPORTS?.status).toBe('PENDING');
+    expect(reopened.stages.CLOSE_PERIOD?.status).toBe('PENDING');
+    expect(reopened.stages.ACCOUNT_BALANCE?.status).toBe('PENDING');
+    expect(saveFinancialPeriodUseCase.saveAll).toHaveBeenCalledWith(
+      expect.objectContaining({
+        periods: [expect.objectContaining({ status: 'IN_PROGRESS' })],
+      }),
+    );
+  });
+
+  it('keeps earlier completed stages and only resets the last two', async () => {
+    let period = basePeriod({ status: 'CLOSED' });
+    for (const stageId of ['ACCOUNT_BALANCE', 'TRANSACTION_VALIDATION', 'DEBT_REPAYMENT', 'FINANCIAL_REPORTS', 'CLOSE_PERIOD'] as const) {
+      period = completeStage(period, stageId);
+    }
+    vi.mocked(getFinancialPeriodUseCase.execute).mockResolvedValue(period);
+    vi.mocked(listFinancialPeriodsUseCase.execute).mockResolvedValue([]);
+
+    const reopened = await useCase.reopen(REQUEST_BASE);
+
+    expect(reopened.stages.ACCOUNT_BALANCE?.status).toBe('COMPLETED');
+    expect(reopened.stages.TRANSACTION_VALIDATION?.status).toBe('COMPLETED');
+    expect(reopened.stages.DEBT_REPAYMENT?.status).toBe('COMPLETED');
+    expect(reopened.stages.FINANCIAL_REPORTS?.status).toBe('PENDING');
+    expect(reopened.stages.CLOSE_PERIOD?.status).toBe('PENDING');
+  });
+
+  it('demotes later CLOSED periods to NEEDS_REVIEW with null review source', async () => {
+    const closed = completeStage(basePeriod({ status: 'CLOSED' }), 'CLOSE_PERIOD');
+    const laterClosed = completeStage(
+      basePeriod({ status: 'CLOSED', yearMonth: '2026-10', id: '2026-10' }),
+      'CLOSE_PERIOD',
+    );
+    const laterOpen = basePeriod({ yearMonth: '2026-11', id: '2026-11' });
+    vi.mocked(getFinancialPeriodUseCase.execute).mockResolvedValue(closed);
+    vi.mocked(listFinancialPeriodsUseCase.execute).mockResolvedValue([laterOpen, laterClosed]);
+
+    await useCase.reopen(REQUEST_BASE);
+
+    expect(saveFinancialPeriodUseCase.saveAll).toHaveBeenCalledTimes(1);
+    expect(saveFinancialPeriodUseCase.saveAll).toHaveBeenCalledWith({
+      householdId: 'household-1',
+      periods: [
+        expect.objectContaining({ status: 'IN_PROGRESS' }),
+        expect.objectContaining({
+          yearMonth: '2026-10',
+          status: 'NEEDS_REVIEW',
+          reviewSourceStageId: null,
+        }),
+      ],
+      userEmail: 'user@test.com',
+    });
+  });
+
+  it('does not demote cascade-demoted or in-progress periods', async () => {
+    const closed = completeStage(basePeriod({ status: 'CLOSED' }), 'CLOSE_PERIOD');
+    const cascadeDemoted = basePeriod({
+      status: 'NEEDS_REVIEW',
+      yearMonth: '2026-10',
+      id: '2026-10',
+      reviewSourceStageId: null,
+    });
+    const inProgress = basePeriod({ yearMonth: '2026-11', id: '2026-11' });
+    vi.mocked(getFinancialPeriodUseCase.execute).mockResolvedValue(closed);
+    vi.mocked(listFinancialPeriodsUseCase.execute).mockResolvedValue([cascadeDemoted, inProgress]);
+
+    await useCase.reopen(REQUEST_BASE);
+
+    expect(saveFinancialPeriodUseCase.saveAll).toHaveBeenCalledWith({
+      householdId: 'household-1',
+      periods: [expect.objectContaining({ status: 'IN_PROGRESS' })],
+      userEmail: 'user@test.com',
+    });
+  });
+
+  it('reopens a cascade-demoted period through the same recovery path', async () => {
+    const demoted = basePeriod({
+      status: 'NEEDS_REVIEW',
+      reviewSourceStageId: null,
+      stages: {
+        ...initialStageStates(),
+        ACCOUNT_BALANCE: { status: 'COMPLETED', confirmedBy: 'user@test.com', confirmedAt: new Date() },
+        FINANCIAL_REPORTS: { status: 'COMPLETED', confirmedBy: 'user@test.com', confirmedAt: new Date() },
+        CLOSE_PERIOD: { status: 'COMPLETED', confirmedBy: 'user@test.com', confirmedAt: new Date() },
+      },
+    });
+    vi.mocked(getFinancialPeriodUseCase.execute).mockResolvedValue(demoted);
+    vi.mocked(listFinancialPeriodsUseCase.execute).mockResolvedValue([]);
+
+    const reopened = await useCase.reopen(REQUEST_BASE);
+
+    expect(reopened.status).toBe('IN_PROGRESS');
+    expect(reopened.stages.FINANCIAL_REPORTS?.status).toBe('PENDING');
+    expect(reopened.stages.CLOSE_PERIOD?.status).toBe('PENDING');
+    expect(reopened.stages.ACCOUNT_BALANCE?.status).toBe('COMPLETED');
+  });
+
+  it('rejects reopening a period that has not started', async () => {
+    vi.mocked(getFinancialPeriodUseCase.execute).mockResolvedValue(null);
+
+    await expect(useCase.reopen(REQUEST_BASE)).rejects.toMatchObject({
+      code: MonthlyCloseCommandErrorCode.PERIOD_NOT_STARTED,
+    });
+  });
+
+  it('rejects reopening an in-progress period', async () => {
+    vi.mocked(getFinancialPeriodUseCase.execute).mockResolvedValue(basePeriod());
+
+    await expect(useCase.reopen(REQUEST_BASE)).rejects.toMatchObject({
+      code: MonthlyCloseCommandErrorCode.PERIOD_NOT_REOPENABLE,
+    });
   });
 });
 
@@ -499,21 +639,46 @@ describe('MonthlyCloseWorkflowUseCase.confirmStage', () => {
     expect(getReportPersistenceStateUseCase.execute).not.toHaveBeenCalled();
   });
 
-  it('rejects confirming a stage twice', async () => {
+  it('re-confirms the account balance stage as an idempotent snapshot upsert', async () => {
     vi.mocked(getFinancialPeriodUseCase.execute).mockResolvedValue(
       completeStage(basePeriod(), 'ACCOUNT_BALANCE'),
+    );
+
+    const period = await useCase.confirmStage({
+      ...REQUEST_BASE,
+      stageId: 'ACCOUNT_BALANCE',
+      accountBalances: [{ accountId: 'account-1', amount: 1000 }],
+    });
+
+    expect(batchRecordSnapshotsUseCase.execute).toHaveBeenCalledWith({
+      householdId: 'household-1',
+      snapshots: [{ accountId: 'account-1', data: { accountId: 'account-1', year: 2026, month: 9, amount: 1000 } }],
+      userEmail: 'user@test.com',
+      auth,
+    });
+    expect(period.status).toBe('IN_PROGRESS');
+    expect(period.stages.ACCOUNT_BALANCE.status).toBe('COMPLETED');
+    expect(period.stages.ACCOUNT_BALANCE.confirmedAt).toBeInstanceOf(Date);
+  });
+
+  it('rejects re-confirming a completed transaction stage', async () => {
+    vi.mocked(getFinancialPeriodUseCase.execute).mockResolvedValue(
+      completeStage(basePeriod(), 'DEBT_REPAYMENT'),
     );
 
     await expect(
       useCase.confirmStage({
         ...REQUEST_BASE,
-        stageId: 'ACCOUNT_BALANCE',
-        accountBalances: [{ accountId: 'account-1', amount: 1000 }],
+        stageId: 'DEBT_REPAYMENT',
+        repayments: [
+          { debtAccountId: 'debt-1', totalPayment: 1000, date: new Date('2026-09-05T10:00:00Z') },
+        ],
       }),
     ).rejects.toEqual(
       new MonthlyCloseCommandError(MonthlyCloseCommandErrorCode.STAGE_ALREADY_COMPLETED, 'stage already confirmed'),
     );
-    expect(batchRecordSnapshotsUseCase.execute).not.toHaveBeenCalled();
+    expect(createDebtPaymentUseCase.execute).not.toHaveBeenCalled();
+    expect(settleDebtAccountsUseCase.execute).not.toHaveBeenCalled();
     expect(saveFinancialPeriodUseCase.execute).not.toHaveBeenCalled();
   });
 

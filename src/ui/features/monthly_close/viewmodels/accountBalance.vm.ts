@@ -10,8 +10,6 @@ export interface AccountBalanceEntryVM {
   account: Account;
   /** Previous-month observation; foreign accounts expose the foreign amount. */
   previousBalance: number | null;
-  /** Per-account status derived from the stage state; never persisted. */
-  verified: boolean;
   /** Previous-month holdings exist to copy as this month's starting data. */
   canImportPrevious: boolean;
 }
@@ -24,7 +22,6 @@ export interface AccountBalanceSectionVM {
 interface BuildSectionsParams {
   accounts: Account[];
   snapshots: Map<string, AccountSnapshot>;
-  stageCompleted: boolean;
 }
 
 const sectionKindOf = (account: Account): AccountBalanceSectionKind => {
@@ -38,7 +35,6 @@ const SECTION_ORDER: readonly AccountBalanceSectionKind[] = ['twd', 'foreign', '
 export const buildAccountBalanceSections = ({
   accounts,
   snapshots,
-  stageCompleted,
 }: BuildSectionsParams): AccountBalanceSectionVM[] => {
   const entriesByKind = new Map<AccountBalanceSectionKind, AccountBalanceEntryVM[]>(
     SECTION_ORDER.map((kind) => [kind, []]),
@@ -54,7 +50,6 @@ export const buildAccountBalanceSections = ({
           ? (previous.originalAmount ?? previous.amount)
           : previous.amount
         : null,
-      verified: stageCompleted,
       canImportPrevious: (previous?.holdings?.length ?? 0) > 0,
     });
   }

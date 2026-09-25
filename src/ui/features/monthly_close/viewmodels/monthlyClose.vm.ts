@@ -10,6 +10,8 @@ export type {
   SecuritiesTradeInput,
 } from '@/application/monthly_close/use_cases/monthlyCloseWorkflowUseCase';
 
+export { isCascadeDemoted, isReopenablePeriod } from '@/domains/financial_period/stateMachine';
+
 export interface CloseStageEvidence {
   kind: 'TRANSACTION_VALIDATION' | 'COMPLETENESS_ANOMALIES' | 'CASH_FLOW_ADJUSTMENTS' | 'REPORT_PERSISTENCE' | 'NONE';
   transactionIssues: { transactionId: string; description: string; reason: string }[];
@@ -36,6 +38,7 @@ export interface MonthlyClosePageVM {
   statusText: string;
   isPaused: boolean;
   isClosed: boolean;
+  isCascadeDemoted: boolean;
   isActive: boolean;
   isStarted: boolean;
   reviewSourceStageId: CloseStageId | null;

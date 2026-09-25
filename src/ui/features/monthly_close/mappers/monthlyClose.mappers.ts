@@ -9,6 +9,7 @@ import type {
   MonthlyClosePageVM,
 } from '../viewmodels/monthlyClose.vm';
 import type { CloseStageId, FinancialPeriod } from '@/domains/financial_period/schemas';
+import { isCascadeDemoted } from '@/domains/financial_period/stateMachine';
 import type { CompletenessActivity } from '@/application/settlement/use_cases/checkSettlementCompletenessUseCase';
 
 const STATUS_TEXT_MAP: Record<string, string> = {
@@ -30,6 +31,7 @@ export const mapPeriodToPageVM = (
       statusText: MONTHLY_CLOSE_LABELS.OPEN,
       isPaused: false,
       isClosed: false,
+      isCascadeDemoted: false,
       isActive: false,
       isStarted: false,
       reviewSourceStageId: null,
@@ -82,6 +84,7 @@ export const mapPeriodToPageVM = (
     statusText: STATUS_TEXT_MAP[period.status] ?? period.status,
     isPaused: period.status === 'NEEDS_REVIEW',
     isClosed: period.status === 'CLOSED',
+    isCascadeDemoted: isCascadeDemoted(period),
     isActive: period.status === 'IN_PROGRESS' || period.status === 'NEEDS_REVIEW',
     isStarted: true,
     reviewSourceStageId: period.reviewSourceStageId ?? null,

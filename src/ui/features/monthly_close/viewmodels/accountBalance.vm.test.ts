@@ -103,7 +103,6 @@ describe('buildAccountBalanceSections', () => {
       snapshots: new Map([
         ['cash-1', snapshot({ id: '2026-08', accountId: 'cash-1', amount: 52000 })],
       ]),
-      stageCompleted: false,
     });
 
     expect(sections[0].accounts[0].previousBalance).toBe(52000);
@@ -124,7 +123,6 @@ describe('buildAccountBalanceSections', () => {
           }),
         ],
       ]),
-      stageCompleted: false,
     });
 
     expect(sections[0].accounts[0].previousBalance).toBe(10000);
@@ -134,18 +132,9 @@ describe('buildAccountBalanceSections', () => {
     const sections = buildAccountBalanceSections({
       accounts: [account({ id: 'cash-1', name: '現金帳戶' })],
       snapshots: new Map(),
-      stageCompleted: false,
     });
 
-    expect(sections[0].accounts[0].verified).toBe(false);
-
-    const verified = buildAccountBalanceSections({
-      accounts: [account({ id: 'cash-1', name: '現金帳戶' })],
-      snapshots: new Map(),
-      stageCompleted: true,
-    });
-
-    expect(verified[0].accounts[0].verified).toBe(true);
+    expect(sections[0].accounts[0].canImportPrevious).toBe(false);
   });
 
   it('flags import availability from previous-month holdings for securities', () => {
@@ -168,7 +157,6 @@ describe('buildAccountBalanceSections', () => {
         ],
         ['sec-2', snapshot({ id: '2026-08', accountId: 'sec-2', amount: 0 })],
       ]),
-      stageCompleted: false,
     });
 
     expect(sections[0].accounts[0].canImportPrevious).toBe(true);

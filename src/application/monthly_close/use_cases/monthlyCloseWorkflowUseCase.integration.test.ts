@@ -177,6 +177,25 @@ describe('monthlyCloseWorkflowUseCase — emulator integration', () => {
     expect(accountSnapshot.exists()).toBe(true);
     expect(accountSnapshot.data()?.amount).toBe(amount);
 
+    // Re-confirming the stage rewrites the month snapshots by period key
+    // instead of refusing (the observation was corrected).
+    await confirmStage('ACCOUNT_BALANCE', {
+      accountBalances: [
+        { accountId: 'acc-1', amount: 99_000 },
+        { accountId: 'acc-securities', amount },
+      ],
+    });
+    const rewrittenSnapshot = await getDoc(
+      doc(db, 'households', householdId, 'accounts', 'acc-1', 'snapshots', yearMonth),
+    );
+    expect(rewrittenSnapshot.exists()).toBe(true);
+    expect(rewrittenSnapshot.data()?.amount).toBe(99_000);
+    expect(
+      (await getDocsFromServer(
+        collection(db, 'households', householdId, 'accounts', 'acc-1', 'snapshots'),
+      )).docs.length,
+    ).toBe(1);
+
     // TRANSACTION_VALIDATION batch-checks the month's transactions and
     // completes without creating or modifying data (spec 05 stage 02).
     await confirmStage('TRANSACTION_VALIDATION', {});
@@ -310,6 +329,61 @@ describe('monthlyCloseWorkflowUseCase — emulator integration', () => {
     expect(
       CLOSE_STAGE_IDS.every((stageId) => period?.stages[stageId]?.status === 'COMPLETED'),
     ).toBe(true);
+  });
+
+  it('reopens a closed period and demotes later closed periods (ADR-0066)', async () => {
+    const seedClosedPeriod = async (closedYearMonth: string) => {
+      await setDoc(
+        doc(db, 'households', householdId, 'financialPeriods', closedYearMonth),
+        {
+          id: closedYearMonth,
+          yearMonth: closedYearMonth,
+          status: 'CLOSED',
+          stages: Object.fromEntries(
+            CLOSE_STAGE_IDS.map((stageId) => [
+              stageId,
+              { status: 'COMPLETED', confirmedBy: 'user@example.com' },
+            ]),
+          ),
+          reviewSourceStageId: null,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+          createdBy: 'user@example.com',
+          updatedBy: 'user@example.com',
+        },
+      );
+    };
+    await seedClosedPeriod('2026-03');
+    await seedClosedPeriod('2026-04');
+
+    const reopened = await monthlyCloseWorkflowUseCase.reopen({
+      householdId: householdId,
+      yearMonth: '2026-03',
+      userEmail: 'user@example.com',
+      auth,
+    });
+
+    expect(reopened.status).toBe('IN_PROGRESS');
+    expect(reopened.stages.FINANCIAL_REPORTS?.status).toBe('PENDING');
+    expect(reopened.stages.CLOSE_PERIOD?.status).toBe('PENDING');
+    const reopenedPersisted = await financialPeriodRepository.getPeriod(householdId, '2026-03');
+    expect(reopenedPersisted?.status).toBe('IN_PROGRESS');
+
+    const cascade = await financialPeriodRepository.getPeriod(householdId, '2026-04');
+    expect(cascade?.status).toBe('NEEDS_REVIEW');
+    expect(cascade?.reviewSourceStageId).toBeNull();
+    expect(cascade?.stages.FINANCIAL_REPORTS?.status).toBe('COMPLETED');
+
+    // Recovery: the demoted period reopens through the same path.
+    const recovered = await monthlyCloseWorkflowUseCase.reopen({
+      householdId: householdId,
+      yearMonth: '2026-04',
+      userEmail: 'user@example.com',
+      auth,
+    });
+    expect(recovered.status).toBe('IN_PROGRESS');
+    expect(recovered.stages.FINANCIAL_REPORTS?.status).toBe('PENDING');
+    expect(recovered.stages.CLOSE_PERIOD?.status).toBe('PENDING');
   });
 });
 

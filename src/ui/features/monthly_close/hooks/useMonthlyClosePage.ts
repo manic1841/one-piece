@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 
 import { getAccountsUseCase } from '@/application/account/use_cases/getAccountsUseCase';
+import { getAccountSnapshotsUseCase } from '@/application/account/use_cases/getAccountSnapshotsUseCase';
 import { getPreviousSnapshotUseCase } from '@/application/account/use_cases/getPreviousSnapshotUseCase';
 import { listDebtAccountsUseCase } from '@/application/debt/use_cases/listDebtAccountsUseCase';
 import {
@@ -62,12 +63,11 @@ export const useMonthlyClosePage = ({
     reportsPersisted,
     selectYearMonth,
     start,
+    reopen,
     confirmStage,
     refreshStageEvidence,
   } = useMonthlyClose({ householdId, userEmail });
-
   const [viewingStageId, setViewingStageId] = useState<CloseStageId | null>(null);
-
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [portfolios, setPortfolios] = useState<Portfolio[]>([]);
   const [debtAccounts, setDebtAccounts] = useState<DebtAccount[]>([]);
@@ -85,6 +85,20 @@ export const useMonthlyClosePage = ({
     Record<string, { deposits: number; withdrawals: number }>
   >({});
   const [repayments, setRepayments] = useState<DebtRepaymentInput[]>([]);
+
+  // Stage inputs are submitted with the selected month's confirmation, so a
+  // month switch must retire them; the next month's snapshots then prefill.
+  const handleSelectYearMonth = useCallback(
+    (yearMonth: string) => {
+      selectYearMonth(yearMonth);
+      setAccountBalances([]);
+      setSecurities({ buys: [], sells: [] });
+      setFinancing({ shareholderFinancing: [], dividendPayout: [] });
+      setPortfolioCashFlows({});
+      setRepayments([]);
+    },
+    [selectYearMonth],
+  );
 
   useEffect(() => {
     if (!householdId) return;
@@ -113,24 +127,53 @@ export const useMonthlyClosePage = ({
     let cancelled = false;
 
     const loadAccountSnapshots = async () => {
+      const year = Number(selectedYearMonth.slice(0, 4));
+      const month = Number(selectedYearMonth.slice(5, 7));
       const entries = await Promise.all(
         accounts.map(async (account) => {
-          const snapshot = await getPreviousSnapshotUseCase.execute({
-            householdId,
-            accountId: account.id,
-            year: Number(selectedYearMonth.slice(0, 4)),
-            month: Number(selectedYearMonth.slice(5, 7)),
-            auth,
-          });
-          return [account.id, snapshot] as const;
+          const [currentSnapshot, previousSnapshot] = await Promise.all([
+            getAccountSnapshotsUseCase.execute({
+              householdId,
+              accountId: account.id,
+              year,
+              month,
+              auth,
+            }),
+            getPreviousSnapshotUseCase.execute({
+              householdId,
+              accountId: account.id,
+              year,
+              month,
+              auth,
+            }),
+          ]);
+          return [account.id, currentSnapshot[0] ?? null, previousSnapshot] as const;
         }),
       );
       if (cancelled) return;
-      const map = new Map<string, AccountSnapshot>();
-      for (const [accountId, snapshot] of entries) {
-        if (snapshot) map.set(accountId, snapshot);
+      const previousMap = new Map<string, AccountSnapshot>();
+      for (const [accountId, , previousSnapshot] of entries) {
+        if (previousSnapshot) previousMap.set(accountId, previousSnapshot);
       }
-      setAccountSnapshots(map);
+      setAccountSnapshots(previousMap);
+      // Prefill ending balances from the month's own snapshots (re-entering a
+      // started close or viewing a seeded period). Only fills accounts the
+      // user has not typed into; never overwrites in-progress input.
+      setAccountBalances((current) => {
+        if (current.length > 0) return current;
+        const prefilled: AccountBalanceInput[] = [];
+        for (const [accountId, currentSnapshot] of entries) {
+          if (!currentSnapshot) continue;
+          prefilled.push({
+            accountId,
+            amount: currentSnapshot.amount,
+            ...(currentSnapshot.originalAmount !== undefined ? { originalAmount: currentSnapshot.originalAmount } : {}),
+            ...(currentSnapshot.exchangeRate !== undefined ? { exchangeRate: currentSnapshot.exchangeRate } : {}),
+            ...(currentSnapshot.holdings !== undefined ? { holdings: currentSnapshot.holdings } : {}),
+          });
+        }
+        return prefilled;
+      });
     };
 
     void loadAccountSnapshots();
@@ -239,11 +282,12 @@ export const useMonthlyClosePage = ({
     setPortfolioCashFlows,
     repayments,
     setRepayments,
-    selectYearMonth,
+    selectYearMonth: handleSelectYearMonth,
     start,
+    reopen,
+    refreshStageEvidence,
     evidenceFor,
     handleConfirmStage,
-    refreshStageEvidence,
   };
 };
 

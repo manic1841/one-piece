@@ -2,7 +2,7 @@
 
 本文件說明月度關帳工作流的現況：期間狀態、階段模型、每個階段的資料建立邊界，以及關帳的完成條件。
 
-詞彙定義見 [`CONTEXT.md`](../CONTEXT.md)（Monthly Close、Financial Period、Transaction Validation、Completeness Check、Watch List）；決策理由見 ADR-0050、ADR-0052、ADR-0053。
+詞彙定義見 [`CONTEXT.md`](../CONTEXT.md)（Monthly Close、Financial Period、Transaction Validation、Completeness Check、Watch List）；決策理由見 ADR-0050、ADR-0052、ADR-0053、ADR-0066。
 
 ## 1. 入口
 
@@ -16,13 +16,15 @@
 | --- | --- |
 | `OPEN` | 關帳已開啟，尚未完成任何階段 |
 | `IN_PROGRESS` | 階段推進中 |
-| `NEEDS_REVIEW` | 待使用者確認，工作流暫停 |
+| `NEEDS_REVIEW` | 待使用者確認，工作流暫停。兩種來源：Completeness Check 的零活動異常（`reviewSourceStageId = COMPLETENESS_CHECK`），或前期關帳被重新開啟的連鎖降級（`reviewSourceStageId = null`） |
 | `CLOSED` | 該期間的報表已產生且狀態已定案 |
 
 - 沒有狀態紀錄代表該期間**尚未開始關帳**，不代表期間不存在。
 - 狀態紀錄在開始關帳時誕生。
 - 就緒判定（`isReady`）仍是衍生計算，只檢查四種實體快照是否全部存在；工作流狀態與它並存、不互斥，也不取代它。
-- `NEEDS_REVIEW` 的唯一觸發來源是 Completeness Check 的零活動異常；使用者完成該階段確認後自動回到 `IN_PROGRESS`。
+- Completeness Check 的零活動異常會暫停工作流；使用者完成該階段確認後自動回到 `IN_PROGRESS`。
+- **重新開啟（reopen）**：已關帳期間可透過確認視窗重新開啟，狀態改回 `IN_PROGRESS`，Financial Reports 與 Close Period 重設為 `PENDING`（報表重新產生、重新關帳），其他已完成階段保留；連鎖降級的期間也走同一條重開路徑。重開後 Dashboard 錨定的「最近已關帳月份」暫時退回上一個已關帳月份。
+- **連鎖降級（reopen cascade）**：重開某期間時，該期間之後所有 `CLOSED` 期間自動改為 `NEEDS_REVIEW`（`reviewSourceStageId = null`），因為它們的定案可能基於修正前的歷史；`IN_PROGRESS` 與 `OPEN` 的期間不受影響。被降級的期間**不會**在前月重新關帳後自動回復，恢復必須由使用者逐期手動重開。辨識記號是 `reviewSourceStageId = null`（Completeness Check 的暫停一定帶 `COMPLETENESS_CHECK`），不需要新 schema 值。
 - 現金差異維持報表層級的警告（見 [`financial_report.md`](financial_report.md)），**不暫停**工作流。
 
 ## 3. 階段模型
@@ -80,9 +82,11 @@
 - **外幣**：外幣金額＋匯率（皆可編輯）＋取得匯率按鈕，台幣價值由系統計算，不可做成 input。
 - **證券**：Holdings 表作為輸入（可 inline 新增／刪除／修改），市值由系統計算；可匯入上月持倉作為當月起始資料（無上月持倉時停用）；非台幣證券帳戶另加匯率，台幣價值由系統計算。
 
+重新進入已開啟的期間時，期末餘額欄位從**當月快照 prefill**（該月快照存在時）：快照值帶入可編輯欄位作為初始值，使用者已輸入的值不被覆蓋。帳戶餘額階段**允許重新確認**：確認動作對快照是同鍵（期間 × 帳戶）冪等覆蓋，用於修正觀察值，不產生重複文件；重新確認只更新階段的確認時間戳，不回退工作流狀態。其他交易類階段（證券買入／賣出、債務還款）維持「已完成即拒絕重新確認」，避免重複入帳。帳戶列不顯示 per-account 狀態欄；階段完成與否由 pipeline 與確認時間戳表達。
+
 計算語意：非台幣帳戶 `amount = 原幣金額 × 匯率`；有持倉的帳戶 `amount = Σ holding marketValue`（非台幣再乘匯率）。持久化的 `amount` 一律是折合台幣的數字。UI 預覽與提交走同一條計算路徑，不在 UI 層自建第二條計算。
 
-每個帳戶的 `○ WAITING` / `✓ VERIFIED` 是**由階段完成狀態推導的純 UI 狀態，不持久化**。
+每個帳戶的 `○ WAITING` / `✓ VERIFIED` per-account 狀態已移除，不呈現也不持久化；階段完成由 pipeline 表達。
 
 申請層的 `AccountBalanceInput` 由 `{ accountId, amount }` 擴充為加上 `originalAmount?` / `exchangeRate?` / `holdings?` 三個選填欄位；Firestore schema、domain schema 與既有計算語意不變。
 
@@ -93,4 +97,4 @@
 - 資料結構：`data-structure.md` 的 `financialPeriods` 章節
 - 報表計算與 Dashboard 錨定：`financial_report.md`
 - 呈現層契約：`ui/visual-standards.md`、`ui/design-system.md`、`ui/ui-layer-architecture.md`
-- 決策理由：ADR-0050（狀態持久化）、ADR-0052（階段資料邊界）、ADR-0053（Dashboard 錨定）
+- 決策理由：ADR-0050（狀態持久化）、ADR-0052（階段資料邊界）、ADR-0053（Dashboard 錨定）、ADR-0066（重開與連鎖降級）

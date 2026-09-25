@@ -24,7 +24,6 @@ import {
   TableHeader,
 } from '@/ui/components/data-table';
 import { Label } from '@/ui/components/ui/label';
-import { StatusGlyph } from '@/ui/components/StatusGlyph';
 import { MONTHLY_CLOSE_LABELS } from '@/ui/constants/monthlyClose';
 import { useExchangeRate } from '@/ui/hooks/useExchangeRate';
 import { formatCurrency } from '@/ui/utils';
@@ -54,11 +53,8 @@ const sectionNoteClass =
  * 欄寬契約：總和必須等於 100（由 `DataTableColGroup` 在 dev 時守住）。
  * 同頁多表共用同一組常數以保持跨表同軸。
  */
-const TWD_COLUMN_WIDTHS = [14, 22, 50, 14] as const;
-const FOREIGN_COLUMN_WIDTHS = [14, 22, 22, 8, 20, 14] as const;
-
-/** 期末餘額欄與狀態欄之間的間距。 */
-const statusCellClass = 'pl-12';
+const TWD_COLUMN_WIDTHS = [14, 22, 64] as const;
+const FOREIGN_COLUMN_WIDTHS = [14, 22, 22, 8, 34] as const;
 
 const SECTION_NOTES: Record<AccountBalanceSectionKind, string> = {
   twd: 'Ending balance at period end',
@@ -66,18 +62,10 @@ const SECTION_NOTES: Record<AccountBalanceSectionKind, string> = {
   securities: 'Market value is calculated from holdings',
 };
 
-const EntryStatus: React.FC<{ verified: boolean }> = ({ verified }) =>
-  verified ? (
-    <StatusGlyph type="verified" label="VERIFIED" />
-  ) : (
-    <StatusGlyph type="waiting" label="WAITING" />
-  );
-
 interface TwdAccountRowProps {
   entry: {
     account: Account;
     previousBalance: number | null;
-    verified: boolean;
   };
   input: AccountBalanceInput | undefined;
   onAmountChange: (accountId: string, amount: number | undefined) => void;
@@ -109,9 +97,6 @@ const TwdAccountRow: React.FC<TwdAccountRowProps> = ({ entry, input, onAmountCha
           />
         </div>
       </DataTableCell>
-      <DataTableCell className={statusCellClass}>
-        <EntryStatus verified={entry.verified} />
-      </DataTableCell>
     </DataTableRow>
   );
 };
@@ -122,7 +107,6 @@ const TwdTableHead: React.FC = () => (
       <DataTableHeadCell>帳戶</DataTableHeadCell>
       <DataTableHeadCell align="number">前期餘額</DataTableHeadCell>
       <DataTableHeadCell align="number">期末餘額</DataTableHeadCell>
-      <DataTableHeadCell className="pl-12">狀態</DataTableHeadCell>
     </DataTableHeadRow>
   </TableHeader>
 );
@@ -131,7 +115,6 @@ interface ForeignAccountRowProps {
   entry: {
     account: Account;
     previousBalance: number | null;
-    verified: boolean;
   };
   input: AccountBalanceInput | undefined;
   onDetailChange: (
@@ -209,9 +192,6 @@ const ForeignAccountRow: React.FC<ForeignAccountRowProps> = ({
       <DataTableCell align="number" className="font-medium text-foreground">
         <span data-testid={`twd-value-${entry.account.id}`}>{formatCurrency(twdValue)}</span>
       </DataTableCell>
-      <DataTableCell className={statusCellClass}>
-        <EntryStatus verified={entry.verified} />
-      </DataTableCell>
     </DataTableRow>
   );
 };
@@ -224,7 +204,6 @@ const ForeignTableHead: React.FC = () => (
       <DataTableHeadCell align="number">外幣金額</DataTableHeadCell>
       <DataTableHeadCell align="number">匯率</DataTableHeadCell>
       <DataTableHeadCell align="number">TWD 價值</DataTableHeadCell>
-      <DataTableHeadCell className="pl-12">狀態</DataTableHeadCell>
     </DataTableHeadRow>
   </TableHeader>
 );
@@ -233,7 +212,6 @@ interface CloseAccountBalanceInputsProps {
   accounts: Account[];
   snapshots: Map<string, AccountSnapshot>;
   inputs: AccountBalanceInput[];
-  stageCompleted: boolean;
   onInputsChange: (inputs: AccountBalanceInput[]) => void;
 }
 
@@ -249,7 +227,6 @@ export const CloseAccountBalanceInputs: React.FC<CloseAccountBalanceInputsProps>
   accounts,
   snapshots,
   inputs,
-  stageCompleted,
   onInputsChange,
 }) => {
   const { getRate } = useExchangeRate();
@@ -319,7 +296,7 @@ export const CloseAccountBalanceInputs: React.FC<CloseAccountBalanceInputsProps>
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [foreignAccounts.map((account) => account.id + account.currency).join(',')]);
 
-  const sections = buildAccountBalanceSections({ accounts, snapshots, stageCompleted });
+  const sections = buildAccountBalanceSections({ accounts, snapshots });
 
   return (
     <div className="space-y-0">
@@ -375,9 +352,6 @@ export const CloseAccountBalanceInputs: React.FC<CloseAccountBalanceInputsProps>
                       }
                     />
                   </MobileDataField>
-                  <div className="flex items-center justify-end">
-                    <EntryStatus verified={entry.verified} />
-                  </div>
                 </MobileDataRow>
               ))}
             </MobileDataList>
@@ -464,9 +438,6 @@ export const CloseAccountBalanceInputs: React.FC<CloseAccountBalanceInputsProps>
                       )}
                     </p>
                   </MobileDataField>
-                  <div className="flex items-center justify-end">
-                    <EntryStatus verified={entry.verified} />
-                  </div>
                 </MobileDataRow>
               ))}
             </MobileDataList>

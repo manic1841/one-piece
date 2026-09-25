@@ -1,5 +1,6 @@
 import React from 'react';
 
+import { useConfirm } from '@/ui/features/app/confirm/ConfirmDialog';
 import { ClosePipeline } from '@/ui/features/monthly_close/components/ClosePipeline';
 import { YearMonthPicker } from '@/ui/components/YearMonthPicker';
 import { PeriodBadge } from '@/ui/components/PeriodBadge';
@@ -9,7 +10,7 @@ import { StatusGlyph } from '@/ui/components/StatusGlyph';
 import { MONTHLY_CLOSE_LABELS } from '@/ui/constants/monthlyClose';
 
 import { useMonthlyClosePage } from '../hooks/useMonthlyClosePage';
-import { type CloseStageId } from '../viewmodels/monthlyClose.vm';
+import { type CloseStageId, isReopenablePeriod } from '../viewmodels/monthlyClose.vm';
 import { CloseStageEvidenceList } from '../components/CloseStageEvidenceList';
 import { CloseStageInputs } from '../components/CloseStageInputs';
 import { CloseAccountBalanceInputs } from '../components/CloseAccountBalanceInputs';
@@ -51,10 +52,38 @@ export const MonthlyClosePage: React.FC<MonthlyClosePageProps> = ({ householdId:
     setRepayments,
     selectYearMonth,
     start,
+    reopen,
     evidenceFor,
     handleConfirmStage,
     refreshStageEvidence,
   } = useMonthlyClosePage({ householdId: householdIdProp, userEmail: userEmailProp });
+
+  const { confirm } = useConfirm();
+
+  // Read-only states keep the picker and start button visible and enabled so
+  // the reopen dialog stays reachable without a page reload; only active
+  // closes show the period badge and retire the start button.
+  const isReadOnlyPeriod = pageVM.isClosed || pageVM.isCascadeDemoted;
+  const showPeriodBadge = pageVM.isStarted && !isReadOnlyPeriod;
+
+  const handleStart = async () => {
+    const result = await start();
+    await refreshStageEvidence();
+    if (!result) return;
+    if (!isReopenablePeriod(result)) return;
+
+    const confirmed = await confirm({
+      title: result.status === 'CLOSED' ? MONTHLY_CLOSE_LABELS.REOPENED_TITLE : MONTHLY_CLOSE_LABELS.REOPENED_BANNER,
+      context: MONTHLY_CLOSE_LABELS.REOPENED_CONTEXT,
+      consequence: MONTHLY_CLOSE_LABELS.REOPENED_CONSEQUENCE,
+      confirmLabel: MONTHLY_CLOSE_LABELS.REOPEN_CONFIRM,
+      cancelLabel: '取消',
+    });
+    if (confirmed) {
+      await reopen();
+      await refreshStageEvidence();
+    }
+  };
 
   const renderEvidence = (stageId: string) => (
     <CloseStageEvidenceList evidence={evidenceFor(stageId)} />
@@ -80,10 +109,6 @@ export const MonthlyClosePage: React.FC<MonthlyClosePageProps> = ({ householdId:
             accounts={accounts}
             snapshots={accountSnapshots}
             inputs={accountBalances}
-            stageCompleted={
-              pageVM.stages.find((stage) => stage.stageId === 'ACCOUNT_BALANCE')?.isCompleted ??
-              false
-            }
             onInputsChange={setAccountBalances}
           />
         ) : (
@@ -131,7 +156,7 @@ export const MonthlyClosePage: React.FC<MonthlyClosePageProps> = ({ householdId:
               </h1>
             </div>
             <div className="flex items-center gap-3">
-              {pageVM.isStarted ? (
+              {showPeriodBadge ? (
                 <PeriodBadge
                   label={MONTHLY_CLOSE_LABELS.PERIOD_LABEL}
                   period={selectedYearMonth}
@@ -150,8 +175,8 @@ export const MonthlyClosePage: React.FC<MonthlyClosePageProps> = ({ householdId:
                     }
                   />
                   <Button
-                    onClick={() => void start().then(() => void refreshStageEvidence())}
-                    disabled={isStarting || pageVM.isStarted || !selectedYearMonth}
+                    onClick={() => void handleStart()}
+                    disabled={isStarting || (pageVM.isStarted && !isReadOnlyPeriod) || !selectedYearMonth}
                     className="active:scale-[0.97]"
                   >
                     {isStarting ? MONTHLY_CLOSE_LABELS.LOADING : MONTHLY_CLOSE_LABELS.START}
@@ -172,6 +197,15 @@ export const MonthlyClosePage: React.FC<MonthlyClosePageProps> = ({ householdId:
               <div className="flex items-center gap-2">
                 <StatusGlyph type="verified" label={MONTHLY_CLOSE_LABELS.FINALIZED_SUBTITLE} />
                 <p className="text-sm font-bold text-foreground">{MONTHLY_CLOSE_LABELS.FINALIZED}</p>
+              </div>
+            </div>
+          )}
+
+          {pageVM.isCascadeDemoted && pageVM.isStarted && (
+            <div className="rounded-lg border border-warning/30 bg-warning/5 px-4 py-3">
+              <div className="flex items-center gap-2">
+                <StatusGlyph type="review" label={MONTHLY_CLOSE_LABELS.NEEDS_REVIEW} />
+                <p className="text-sm text-foreground">{MONTHLY_CLOSE_LABELS.CASCADE_BANNER}</p>
               </div>
             </div>
           )}

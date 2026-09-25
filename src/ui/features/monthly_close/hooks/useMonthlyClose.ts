@@ -70,8 +70,8 @@ export const useMonthlyClose = ({ householdId, userEmail }: UseMonthlyCloseParam
     [],
   );
 
-  const start = useCallback(async () => {
-    if (!householdId || !selectedYearMonth) return;
+  const start = useCallback(async (): Promise<FinancialPeriod | null> => {
+    if (!householdId || !selectedYearMonth) return null;
     setIsStarting(true);
     setError(null);
     try {
@@ -82,8 +82,31 @@ export const useMonthlyClose = ({ householdId, userEmail }: UseMonthlyCloseParam
         auth,
       });
       setPeriod(result);
+      return result;
     } catch (err) {
       setError(errorText(err, MONTHLY_CLOSE_LABELS.START_ERROR));
+      return null;
+    } finally {
+      setIsStarting(false);
+    }
+  }, [auth, householdId, selectedYearMonth, userEmail]);
+
+  const reopen = useCallback(async () => {
+    if (!householdId || !selectedYearMonth) return null;
+    setIsStarting(true);
+    setError(null);
+    try {
+      const result = await monthlyCloseWorkflowUseCase.reopen({
+        householdId,
+        yearMonth: selectedYearMonth,
+        userEmail,
+        auth,
+      });
+      setPeriod(result);
+      return result;
+    } catch (err) {
+      setError(errorText(err, MONTHLY_CLOSE_LABELS.REOPEN_ERROR));
+      return null;
     } finally {
       setIsStarting(false);
     }
@@ -181,6 +204,7 @@ export const useMonthlyClose = ({ householdId, userEmail }: UseMonthlyCloseParam
     reportsPersisted,
     selectYearMonth,
     start,
+    reopen,
     confirmStage,
     refreshStageEvidence,
   };

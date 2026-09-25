@@ -2,6 +2,7 @@ import { householdPermissionService } from '@/application/household/householdPer
 import { MonthlyCloseCommandError, MonthlyCloseCommandErrorCode } from '@/application/monthly_close/errors';
 import {
   GetFinancialPeriodUseCase,
+  ListFinancialPeriodsUseCase,
   SaveFinancialPeriodUseCase,
 } from '@/application/monthly_close/use_cases/financialPeriodAccessUseCases';
 import {
@@ -29,7 +30,12 @@ import {
 import {
   closePeriodInState,
   confirmStageInState,
+  isReconfirmableStage,
+  isReopenablePeriod,
   markNeedsReviewInState,
+  reopenPeriodInState,
+  reconfirmStageInState,
+  supersedeClosedPeriodInState,
 } from '@/domains/financial_period/stateMachine';
 
 export type {
@@ -45,6 +51,7 @@ export type {
 export class MonthlyCloseWorkflowUseCase {
   private readonly getPeriod = new GetFinancialPeriodUseCase();
   private readonly savePeriod = new SaveFinancialPeriodUseCase();
+  private readonly listPeriods = new ListFinancialPeriodsUseCase();
   private readonly createInvestmentFinancing = new CreateInvestmentFinancingTransactionsUseCase();
   private readonly recordMonthSnapshots = new RecordMonthSnapshotsUseCase();
   private readonly recordPortfolioCashFlows = new RecordPortfolioCashFlowsUseCase();
@@ -74,6 +81,55 @@ export class MonthlyCloseWorkflowUseCase {
       updatedBy: userEmail,
       updatedAt: new Date(),
     };
+  }
+
+  /**
+   * Reopen (ADR-0066): a closed or cascade-demoted period's finalize decision
+   * is withdrawn, its Financial Reports and Close Period stages reset to
+   * PENDING, and later closed periods are demoted to NEEDS_REVIEW because they
+   * may rest on pre-correction history. Guards run before any side effect.
+   */
+  async reopen(request: MonthlyCloseStartRequest): Promise<FinancialPeriod> {
+    const { householdId, yearMonth, userEmail, auth } = request;
+    await this.assertMember(householdId, auth);
+
+    const current = await this.getPeriod.execute({ householdId, yearMonth });
+    if (!current) {
+      throw new MonthlyCloseCommandError(
+        MonthlyCloseCommandErrorCode.PERIOD_NOT_STARTED,
+        'nothing to reopen: the period has not started closing',
+      );
+    }
+    if (!isReopenablePeriod(current)) {
+      throw new MonthlyCloseCommandError(
+        MonthlyCloseCommandErrorCode.PERIOD_NOT_REOPENABLE,
+        'only a closed or cascade-demoted period can be reopened',
+      );
+    }
+
+    const reopened = reopenPeriodInState(current);
+    const demoted = await this.supersedeLaterClosedPeriods(householdId, yearMonth);
+
+    // One batch commit (ADR-0066): the reopen and its cascade are all-or-nothing.
+    await this.savePeriod.saveAll({
+      householdId,
+      periods: [reopened, ...demoted].map((period) => this.toPeriodCreate(period)),
+      userEmail,
+    });
+
+    return reopened;
+  }
+
+  /** Cascade (ADR-0066): only CLOSED periods after the reopened one; manual recovery. */
+  private async supersedeLaterClosedPeriods(
+    householdId: string,
+    reopenedYearMonth: string,
+  ): Promise<FinancialPeriod[]> {
+    const periods = await this.listPeriods.execute({ householdId });
+    return periods
+      .filter((period) => period.yearMonth > reopenedYearMonth && period.status === 'CLOSED')
+      .sort((a, b) => a.yearMonth.localeCompare(b.yearMonth))
+      .map((period) => supersedeClosedPeriodInState(period));
   }
 
   /**
@@ -126,7 +182,10 @@ export class MonthlyCloseWorkflowUseCase {
     userEmail: string,
     householdId: string,
   ): Promise<FinancialPeriod> {
-    let period = confirmStageInState(current, stageId, userEmail, new Date());
+    const isReconfirm = isReconfirmableStage(stageId) && current.stages[stageId]?.status === 'COMPLETED';
+    let period = isReconfirm
+      ? reconfirmStageInState(current, stageId, userEmail, new Date())
+      : confirmStageInState(current, stageId, userEmail, new Date());
 
     if (stageId === 'CLOSE_PERIOD') {
       period = closePeriodInState(period, userEmail, new Date());
@@ -157,7 +216,7 @@ export class MonthlyCloseWorkflowUseCase {
     if (period.status === 'CLOSED') {
       throw new MonthlyCloseCommandError(MonthlyCloseCommandErrorCode.PERIOD_CLOSED, 'period is closed');
     }
-    if (period.stages[stageId]?.status === 'COMPLETED') {
+    if (period.stages[stageId]?.status === 'COMPLETED' && !isReconfirmableStage(stageId)) {
       throw new MonthlyCloseCommandError(
         MonthlyCloseCommandErrorCode.STAGE_ALREADY_COMPLETED,
         'stage already confirmed',

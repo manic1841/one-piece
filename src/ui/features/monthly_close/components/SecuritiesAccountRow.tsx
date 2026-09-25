@@ -22,7 +22,6 @@ import {
 import { Button } from '@/ui/components/ui/button';
 import { Input } from '@/ui/components/ui/input';
 import { Label } from '@/ui/components/ui/label';
-import { StatusGlyph } from '@/ui/components/StatusGlyph';
 import { formatCurrency } from '@/ui/utils';
 
 import { computeSectionInput } from '../viewmodels/accountBalance.vm';
@@ -40,7 +39,6 @@ const toNumber = (value: string): number => {
 interface SecuritiesAccountRowProps {
   entry: {
     account: Account;
-    verified: boolean;
     canImportPrevious: boolean;
   };
   input: AccountBalanceInput | undefined;
@@ -60,7 +58,7 @@ export const SecuritiesAccountRow: React.FC<SecuritiesAccountRowProps> = ({
   const isForeign = entry.account.currency !== 'TWD';
   const holdingsSum = holdings.reduce((sum, holding) => sum + (holding.marketValue || 0), 0);
   const twdValue = input ? computeSectionInput(input, 'securities') : 0;
-  const canImport = !entry.verified && previousHoldings.length > 0;
+  const canImport = entry.canImportPrevious && previousHoldings.length > 0;
 
   const updateHolding = (index: number, field: keyof Holding, value: string): void => {
     const numeric = ['cost', 'marketValue', 'leverage'].includes(field);
@@ -88,11 +86,6 @@ export const SecuritiesAccountRow: React.FC<SecuritiesAccountRowProps> = ({
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="text-sm font-medium text-foreground">{entry.account.name}</div>
         <div className="flex items-center gap-3">
-          {entry.verified ? (
-            <StatusGlyph type="verified" label="VERIFIED" />
-          ) : (
-            <StatusGlyph type="waiting" label="WAITING" />
-          )}
           <Button
             type="button"
             variant="outline"
