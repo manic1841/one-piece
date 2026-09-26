@@ -8,6 +8,7 @@ import type {
 } from '../viewmodels/accountBalance.vm';
 import { type DebtSectionMetaVM } from '../viewmodels/debtPayment.vm';
 import type {
+  CloseStageItemVM,
   DebtRepaymentInput,
   FinancingInput,
   SecuritiesTradeInput,
@@ -17,6 +18,7 @@ import { CloseFinancialReports } from './CloseFinancialReports';
 import { CloseReadinessCheck } from './CloseReadinessCheck';
 import { CloseStageInputsSection } from './CloseStageInputsSection';
 import { CloseSummaryPanel } from './CloseSummaryPanel';
+import { CloseWorkspace } from './CloseWorkspace';
 
 type StageInputId =
   | 'ACCOUNT_BALANCE'
@@ -42,6 +44,14 @@ interface CloseStagePanelsProps {
   readinessVM: ReadinessVM | null;
   closeSummaryVM: CloseSummaryVM | null;
   reportsPersisted: boolean | null;
+  /** The displayed stage's pipeline VM: workspace frame header and confirm-at text. */
+  stage: CloseStageItemVM | null;
+  stepText: string;
+  isReviewing: boolean;
+  progressText: string;
+  isClosed: boolean;
+  /** The displayed stage's evidence list; workspace stages render it above the inputs. */
+  evidence: React.ReactNode;
   accounts: Account[];
   accountSnapshots: Map<string, AccountSnapshot>;
   portfolioSnapshots: Map<string, PortfolioSnapshot | null>;
@@ -73,6 +83,12 @@ export const CloseStagePanels: React.FC<CloseStagePanelsProps> = ({
   readinessVM,
   closeSummaryVM,
   reportsPersisted,
+  stage,
+  stepText,
+  isReviewing,
+  progressText,
+  isClosed,
+  evidence,
   accounts,
   accountSnapshots,
   portfolioSnapshots,
@@ -93,60 +109,79 @@ export const CloseStagePanels: React.FC<CloseStagePanelsProps> = ({
   onGoToStage,
   onClosePeriod,
 }) => {
-  if (displayedStageId === 'COMPLETENESS_CHECK' && readinessVM) {
-    return (
-      <CloseReadinessCheck
-        readiness={readinessVM}
-        onConfirm={() => onConfirmStage('COMPLETENESS_CHECK')}
-        onGoToStage={onGoToStage}
-        confirming={confirmingStageId === displayedStageId}
-      />
-    );
+  // Workspace stages (1-6) share the CloseWorkspace frame; special stages
+  // dispatch to their own panel. TRANSACTION_VALIDATION and PROJECT_SETTLEMENT
+  // are workspace stages without inputs (evidence only).
+  if (!stage) {
+    if (displayedStageId === 'COMPLETENESS_CHECK' && readinessVM) {
+      return (
+        <CloseReadinessCheck
+          readiness={readinessVM}
+          onConfirm={() => onConfirmStage('COMPLETENESS_CHECK')}
+          onGoToStage={onGoToStage}
+          confirming={confirmingStageId === displayedStageId}
+        />
+      );
+    }
+    if (displayedStageId === 'CLOSE_PERIOD' && closeSummaryVM) {
+      return (
+        <CloseSummaryPanel
+          summary={closeSummaryVM}
+          onClose={onClosePeriod}
+          confirming={confirmingStageId === displayedStageId}
+        />
+      );
+    }
+    if (displayedStageId === 'FINANCIAL_REPORTS') {
+      return (
+        <CloseFinancialReports
+          householdId={householdId}
+          year={Number(selectedYearMonth.slice(0, 4))}
+          month={Number(selectedYearMonth.slice(5, 7))}
+          onContinue={onContinue}
+          onGenerate={onGenerate}
+          onBack={onBack}
+          confirming={confirmingStageId === displayedStageId}
+          isGenerated={reportsPersisted ?? false}
+        />
+      );
+    }
+    return null;
   }
-  if (displayedStageId === 'CLOSE_PERIOD' && closeSummaryVM) {
-    return (
-      <CloseSummaryPanel
-        summary={closeSummaryVM}
-        onClose={onClosePeriod}
-        confirming={confirmingStageId === displayedStageId}
-      />
-    );
-  }
-  if (displayedStageId === 'FINANCIAL_REPORTS') {
-    return (
-      <CloseFinancialReports
-        householdId={householdId}
-        year={Number(selectedYearMonth.slice(0, 4))}
-        month={Number(selectedYearMonth.slice(5, 7))}
-        onContinue={onContinue}
-        onGenerate={onGenerate}
-        onBack={onBack}
-        confirming={confirmingStageId === displayedStageId}
-        isGenerated={reportsPersisted ?? false}
-      />
-    );
-  }
-  if (isStageWithInputs(displayedStageId)) {
-    return (
-      <CloseStageInputsSection
-        stageId={displayedStageId}
-        yearMonth={selectedYearMonth}
-        disabled={confirmingStageId !== null}
-        accounts={accounts}
-        accountSnapshots={accountSnapshots}
-        accountBalances={accountBalances}
-        setAccountBalances={setAccountBalances}
-        securities={securities}
-        financing={financing}
-        portfolios={portfolios}
-        debtSectionMetas={debtSectionMetas}
-        portfolioCashFlows={portfolioCashFlows}
-        setPortfolioCashFlows={setPortfolioCashFlows}
-        portfolioSnapshots={portfolioSnapshots}
-        repayments={repayments}
-        setRepayments={setRepayments}
-      />
-    );
-  }
-  return null;
+
+  const workspaceInputs = isStageWithInputs(displayedStageId) ? (
+    <CloseStageInputsSection
+      stageId={displayedStageId}
+      yearMonth={selectedYearMonth}
+      disabled={confirmingStageId !== null}
+      accounts={accounts}
+      accountSnapshots={accountSnapshots}
+      accountBalances={accountBalances}
+      setAccountBalances={setAccountBalances}
+      securities={securities}
+      financing={financing}
+      portfolios={portfolios}
+      debtSectionMetas={debtSectionMetas}
+      portfolioCashFlows={portfolioCashFlows}
+      setPortfolioCashFlows={setPortfolioCashFlows}
+      portfolioSnapshots={portfolioSnapshots}
+      repayments={repayments}
+      setRepayments={setRepayments}
+    />
+  ) : null;
+
+  return (
+    <CloseWorkspace
+      stage={stage}
+      stepText={stepText}
+      isReviewing={isReviewing}
+      progressText={progressText}
+      confirming={confirmingStageId === displayedStageId}
+      isClosed={isClosed}
+      evidence={evidence}
+      inputs={workspaceInputs}
+      onConfirm={() => onConfirmStage(displayedStageId)}
+      onBackToCurrent={onBack}
+    />
+  );
 };

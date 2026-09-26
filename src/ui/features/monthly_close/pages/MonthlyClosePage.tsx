@@ -8,10 +8,10 @@ import { Card, CardContent } from '@/ui/components/ui/card';
 import { MONTHLY_CLOSE_LABELS } from '@/ui/constants/monthlyClose';
 import { useConfirm } from '@/ui/features/app/confirm/useConfirm';
 import { ClosePipeline } from '@/ui/features/monthly_close/components/ClosePipeline';
+import { CloseStageEvidenceList } from '@/ui/features/monthly_close/components/CloseStageEvidenceList';
 import { CloseStagePanels } from '@/ui/features/monthly_close/components/CloseStagePanels';
+import { CloseTradeDrawerSection } from '@/ui/features/monthly_close/components/CloseTradeDrawerSection';
 
-import { TradeDrawer } from '../components/TradeDrawer';
-import { type TradeSide } from '../components/TradeTable';
 import { useMonthlyClosePage } from '../hooks/useMonthlyClosePage';
 import { type CloseStageId, isReopenablePeriod } from '../viewmodels/monthlyClose.vm';
 
@@ -35,6 +35,8 @@ export const MonthlyClosePage: React.FC<MonthlyClosePageProps> = ({
     currentStageId,
     displayedStageId,
     displayedStage,
+    isReviewing,
+    displayedStepText,
     positionText,
     reportsPersisted,
     accounts,
@@ -53,27 +55,18 @@ export const MonthlyClosePage: React.FC<MonthlyClosePageProps> = ({
     selectYearMonth,
     start,
     reopen,
-    handleConfirmStageWithWarning,
+    refreshStageEvidence,
+    evidenceFor,
+    handleConfirmStage,
     readinessVM,
     closeSummaryVM,
     handleGoToStage,
     handleClosePeriod,
-    refreshStageEvidence,
     drawer,
     drawerForm,
   } = useMonthlyClosePage({ householdId: householdIdProp, userEmail: userEmailProp });
 
   const { confirm } = useConfirm();
-
-  const TRADE_SIDES: readonly TradeSide[] = ['BUY', 'SELL'];
-  const sideLabels: Record<TradeSide, string> = {
-    BUY: MONTHLY_CLOSE_LABELS.BUY,
-    SELL: MONTHLY_CLOSE_LABELS.SELL,
-  };
-  const financingSideLabels: Record<TradeSide, string> = {
-    BUY: MONTHLY_CLOSE_LABELS.SHAREHOLDER_FINANCING,
-    SELL: MONTHLY_CLOSE_LABELS.DIVIDEND_PAYOUT,
-  };
 
   const isReadOnlyPeriod = pageVM.isClosed || pageVM.isCascadeDemoted;
   const showPeriodBadge = pageVM.isStarted && !isReadOnlyPeriod;
@@ -214,6 +207,14 @@ export const MonthlyClosePage: React.FC<MonthlyClosePageProps> = ({
                   readinessVM={readinessVM}
                   closeSummaryVM={closeSummaryVM}
                   reportsPersisted={reportsPersisted}
+                  stage={displayedStage}
+                  stepText={displayedStepText ?? positionText}
+                  isReviewing={isReviewing}
+                  progressText={positionText}
+                  isClosed={pageVM.isClosed}
+                  evidence={
+                    <CloseStageEvidenceList evidence={evidenceFor(displayedStage.stageId)} />
+                  }
                   accounts={accounts}
                   accountSnapshots={accountSnapshots}
                   portfolioSnapshots={portfolioSnapshots}
@@ -231,11 +232,9 @@ export const MonthlyClosePage: React.FC<MonthlyClosePageProps> = ({
                   repayments={repayments}
                   setRepayments={setRepayments}
                   onContinue={() => setViewingStageId('CLOSE_PERIOD')}
-                  onGenerate={() => void handleConfirmStageWithWarning('FINANCIAL_REPORTS')}
+                  onGenerate={() => void handleConfirmStage('FINANCIAL_REPORTS')}
                   onBack={() => setViewingStageId(null)}
-                  onConfirmStage={(stageId) =>
-                    void handleConfirmStageWithWarning(stageId as CloseStageId)
-                  }
+                  onConfirmStage={(stageId) => void handleConfirmStage(stageId as CloseStageId)}
                   onGoToStage={handleGoToStage}
                   onClosePeriod={() => void handleClosePeriod()}
                 />
@@ -243,22 +242,11 @@ export const MonthlyClosePage: React.FC<MonthlyClosePageProps> = ({
             </div>
           )}
 
-          <TradeDrawer
-            open={drawer.state.kind !== null}
-            sides={TRADE_SIDES}
-            sideLabels={drawer.state.kind === 'FINANCING' ? financingSideLabels : sideLabels}
-            title={
-              drawer.state.kind === 'FINANCING'
-                ? drawer.state.mode === 'ADD'
-                  ? MONTHLY_CLOSE_LABELS.ADD_FINANCING_TRANSACTION
-                  : MONTHLY_CLOSE_LABELS.EDIT_TRANSACTION
-                : drawer.state.mode === 'ADD'
-                  ? MONTHLY_CLOSE_LABELS.ADD_SECURITIES_TRANSACTION
-                  : MONTHLY_CLOSE_LABELS.EDIT_TRANSACTION
-            }
+          <CloseTradeDrawerSection
+            kind={drawer.state.kind}
+            mode={drawer.state.mode}
             form={drawerForm.form}
             portfolios={portfolios.map((portfolio) => ({ id: portfolio.id, name: portfolio.name }))}
-            canDelete
             submitting={confirmingStageId !== null}
             onConfirm={drawerForm.submit}
             onCancel={drawer.close}
