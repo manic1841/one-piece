@@ -8,16 +8,9 @@ import { Card, CardContent } from '@/ui/components/ui/card';
 import { MONTHLY_CLOSE_LABELS } from '@/ui/constants/monthlyClose';
 import { useConfirm } from '@/ui/features/app/confirm/useConfirm';
 import { ClosePipeline } from '@/ui/features/monthly_close/components/ClosePipeline';
+import { CloseStagePanels } from '@/ui/features/monthly_close/components/CloseStagePanels';
 
-import { CloseAccountBalanceInputs } from '../components/CloseAccountBalanceInputs';
-import { CloseFinancialReports } from '../components/CloseFinancialReports';
-import { CloseReadinessCheck } from '../components/CloseReadinessCheck';
-import { CloseStageEvidenceList } from '../components/CloseStageEvidenceList';
-import { CloseStageInputs } from '../components/CloseStageInputs';
-import { CloseSummaryPanel } from '../components/CloseSummaryPanel';
-import { CloseWorkspace } from '../components/CloseWorkspace';
 import { TradeDrawer } from '../components/TradeDrawer';
-import { TradeTable } from '../components/TradeTable';
 import { type TradeSide } from '../components/TradeTable';
 import { useMonthlyClosePage } from '../hooks/useMonthlyClosePage';
 import { type CloseStageId, isReopenablePeriod } from '../viewmodels/monthlyClose.vm';
@@ -42,9 +35,7 @@ export const MonthlyClosePage: React.FC<MonthlyClosePageProps> = ({
     currentStageId,
     displayedStageId,
     displayedStage,
-    isReviewing,
     positionText,
-    displayedStepText,
     reportsPersisted,
     accounts,
     accountSnapshots,
@@ -62,7 +53,6 @@ export const MonthlyClosePage: React.FC<MonthlyClosePageProps> = ({
     selectYearMonth,
     start,
     reopen,
-    evidenceFor,
     handleConfirmStageWithWarning,
     readinessVM,
     closeSummaryVM,
@@ -108,86 +98,6 @@ export const MonthlyClosePage: React.FC<MonthlyClosePageProps> = ({
       await reopen();
       await refreshStageEvidence();
     }
-  };
-
-  const renderEvidence = (stageId: string) => (
-    <CloseStageEvidenceList evidence={evidenceFor(stageId)} />
-  );
-
-  const renderInputs = (stageId: string) => {
-    const hasInputs: boolean =
-      stageId === 'ACCOUNT_BALANCE' ||
-      stageId === 'SECURITIES_TRADE' ||
-      stageId === 'PORTFOLIO_CASH_FLOW' ||
-      stageId === 'DEBT_REPAYMENT';
-    if (!hasInputs) {
-      return null;
-    }
-    const disabled = confirmingStageId !== null;
-    return (
-      <div className="border-t border-border pt-4">
-        <p className="mb-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-          {MONTHLY_CLOSE_LABELS.INPUTS_LABEL}
-        </p>
-        {stageId === 'ACCOUNT_BALANCE' ? (
-          <CloseAccountBalanceInputs
-            accounts={accounts}
-            snapshots={accountSnapshots}
-            inputs={accountBalances}
-            onInputsChange={setAccountBalances}
-          />
-        ) : stageId === 'SECURITIES_TRADE' ? (
-          <div className="space-y-6">
-            <TradeTable
-              title={MONTHLY_CLOSE_LABELS.SECURITIES_TRANSACTIONS}
-              sideLabels={sideLabels}
-              rows={drawer
-                .toTradeRows(securities.buys, 'BUY')
-                .concat(drawer.toTradeRows(securities.sells, 'SELL'))}
-              projectIdName={(projectId) =>
-                portfolios.find((portfolio) => portfolio.id === projectId)?.name ?? null
-              }
-              onAdd={() => drawer.open('SECURITIES', 'ADD')}
-              onRowClick={(row) => drawer.open('SECURITIES', 'EDIT', row)}
-              disabled={disabled}
-            />
-            <TradeTable
-              title={MONTHLY_CLOSE_LABELS.FINANCING_RECORDS}
-              sideLabels={financingSideLabels}
-              netLabel={MONTHLY_CLOSE_LABELS.NET_FINANCING_CASH_FLOW}
-              rows={drawer
-                .toTradeRows(financing.shareholderFinancing, 'BUY')
-                .concat(drawer.toTradeRows(financing.dividendPayout, 'SELL'))}
-              projectIdName={(projectId) =>
-                portfolios.find((portfolio) => portfolio.id === projectId)?.name ?? null
-              }
-              onAdd={() => drawer.open('FINANCING', 'ADD')}
-              onRowClick={(row) => drawer.open('FINANCING', 'EDIT', row)}
-              disabled={disabled}
-            />
-          </div>
-        ) : (
-          <CloseStageInputs
-            stageId={stageId}
-            yearMonth={selectedYearMonth}
-            portfolios={portfolios.map((portfolio) => ({ id: portfolio.id, name: portfolio.name }))}
-            debtAccounts={debtSectionMetas.map((meta) => ({
-              debtAccountId: meta.debtAccountId,
-              debtAccountName: meta.debtAccountName,
-              interestRate: meta.interestRate,
-              openingBalance: meta.openingBalance,
-              monthlyDue: meta.monthlyDue,
-            }))}
-            portfolioCashFlows={portfolioCashFlows}
-            portfolioSnapshots={portfolioSnapshots}
-            repayments={repayments}
-            onPortfolioCashFlowsChange={setPortfolioCashFlows}
-            onRepaymentsChange={setRepayments}
-            disabled={disabled}
-          />
-        )}
-      </div>
-    );
   };
 
   return (
@@ -295,45 +205,41 @@ export const MonthlyClosePage: React.FC<MonthlyClosePageProps> = ({
                 onSelectStage={(stageId) => setViewingStageId(stageId as CloseStageId)}
               />
 
-              {displayedStage &&
-                (displayedStage.stageId === 'COMPLETENESS_CHECK' && readinessVM ? (
-                  <CloseReadinessCheck
-                    readiness={readinessVM}
-                    onConfirm={() => void handleConfirmStageWithWarning('COMPLETENESS_CHECK')}
-                    onGoToStage={handleGoToStage}
-                    confirming={confirmingStageId === displayedStage.stageId}
-                  />
-                ) : displayedStage.stageId === 'CLOSE_PERIOD' && closeSummaryVM ? (
-                  <CloseSummaryPanel
-                    summary={closeSummaryVM}
-                    onClose={() => void handleClosePeriod()}
-                    confirming={confirmingStageId === displayedStage.stageId}
-                  />
-                ) : displayedStage.stageId === 'FINANCIAL_REPORTS' ? (
-                  <CloseFinancialReports
-                    householdId={householdId}
-                    year={Number(selectedYearMonth.slice(0, 4))}
-                    month={Number(selectedYearMonth.slice(5, 7))}
-                    onContinue={() => setViewingStageId('CLOSE_PERIOD')}
-                    onGenerate={() => void handleConfirmStageWithWarning('FINANCIAL_REPORTS')}
-                    onBack={() => setViewingStageId(null)}
-                    confirming={confirmingStageId === displayedStage.stageId}
-                    isGenerated={displayedStage.isCompleted && (reportsPersisted ?? false)}
-                  />
-                ) : (
-                  <CloseWorkspace
-                    stage={displayedStage}
-                    stepText={displayedStepText ?? positionText}
-                    isReviewing={isReviewing}
-                    progressText={positionText}
-                    confirming={confirmingStageId === displayedStage.stageId}
-                    isClosed={pageVM.isClosed}
-                    evidence={renderEvidence(displayedStage.stageId)}
-                    inputs={renderInputs(displayedStage.stageId)}
-                    onConfirm={() => void handleConfirmStageWithWarning(displayedStage.stageId)}
-                    onBackToCurrent={() => setViewingStageId(null)}
-                  />
-                ))}
+              {displayedStage && (
+                <CloseStagePanels
+                  displayedStageId={displayedStage.stageId}
+                  householdId={householdId}
+                  selectedYearMonth={selectedYearMonth}
+                  confirmingStageId={confirmingStageId}
+                  readinessVM={readinessVM}
+                  closeSummaryVM={closeSummaryVM}
+                  reportsPersisted={reportsPersisted}
+                  accounts={accounts}
+                  accountSnapshots={accountSnapshots}
+                  portfolioSnapshots={portfolioSnapshots}
+                  portfolios={portfolios.map((portfolio) => ({
+                    id: portfolio.id,
+                    name: portfolio.name,
+                  }))}
+                  debtSectionMetas={debtSectionMetas}
+                  accountBalances={accountBalances}
+                  setAccountBalances={setAccountBalances}
+                  securities={securities}
+                  financing={financing}
+                  portfolioCashFlows={portfolioCashFlows}
+                  setPortfolioCashFlows={setPortfolioCashFlows}
+                  repayments={repayments}
+                  setRepayments={setRepayments}
+                  onContinue={() => setViewingStageId('CLOSE_PERIOD')}
+                  onGenerate={() => void handleConfirmStageWithWarning('FINANCIAL_REPORTS')}
+                  onBack={() => setViewingStageId(null)}
+                  onConfirmStage={(stageId) =>
+                    void handleConfirmStageWithWarning(stageId as CloseStageId)
+                  }
+                  onGoToStage={handleGoToStage}
+                  onClosePeriod={() => void handleClosePeriod()}
+                />
+              )}
             </div>
           )}
 

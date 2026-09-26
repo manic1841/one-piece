@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 import { getAccountsUseCase } from '@/application/account/use_cases/getAccountsUseCase';
 import { listDebtAccountsUseCase } from '@/application/debt/use_cases/listDebtAccountsUseCase';
@@ -8,16 +8,15 @@ import {
   type FinancingInput,
   type SecuritiesTradeInput,
 } from '@/application/monthly_close/use_cases/monthlyCloseWorkflowUseCase';
-import { validateMonthTransactionsUseCase } from '@/application/monthly_close/use_cases/validateMonthTransactionsUseCase';
 import { listPortfoliosUseCase } from '@/application/portfolio/use_cases/listPortfoliosUseCase';
 import { type Account } from '@/domains/account/types/account';
 import { type DebtAccount } from '@/domains/debt/schemas';
 import { type CloseStageId } from '@/domains/financial_period/schemas';
 import { type Portfolio } from '@/domains/portfolio/schemas';
 import { MONTHLY_CLOSE_LABELS } from '@/ui/constants/monthlyClose';
-import { REPORT_VIEW_TITLES } from '@/ui/constants/report/reportViewLabels';
 import { useAuthState } from '@/ui/contexts/useAuthState';
 import { useConfirm } from '@/ui/features/app/confirm/useConfirm';
+import { useCloseSummaryVM } from '@/ui/features/monthly_close/hooks/useCloseSummaryVM';
 import { useDebtRepaymentPrefill } from '@/ui/features/monthly_close/hooks/useDebtRepaymentPrefill';
 import { useMonthlyClose } from '@/ui/features/monthly_close/hooks/useMonthlyClose';
 import { usePortfolioSnapshotPrefill } from '@/ui/features/monthly_close/hooks/usePortfolioSnapshotPrefill';
@@ -25,19 +24,8 @@ import { useReportLabelResolver } from '@/ui/features/monthly_close/hooks/useRep
 import { useSnapshotBalancePrefill } from '@/ui/features/monthly_close/hooks/useSnapshotBalancePrefill';
 import { useTradeDrawer } from '@/ui/features/monthly_close/hooks/useTradeDrawer';
 import { useTradeDrawerForm } from '@/ui/features/monthly_close/hooks/useTradeDrawerForm';
+import { resolveEvidenceForStage } from '@/ui/features/monthly_close/mappers/monthlyClose.mappers';
 import {
-  mapCloseSummary,
-  mapReadinessVM,
-} from '@/ui/features/monthly_close/mappers/closeSummary.mappers';
-import {
-  NO_EVIDENCE,
-  mapAdjustmentCountToEvidence,
-  mapAnomaliesToEvidence,
-  mapPersistenceToEvidence,
-  mapTransactionIssuesToEvidence,
-} from '@/ui/features/monthly_close/mappers/monthlyClose.mappers';
-import {
-  type CloseStageEvidence,
   resolveDisplayedStageId,
   resolvePositionText,
   resolveStepText,
@@ -237,24 +225,13 @@ export const useMonthlyClosePage = ({
   const displayedStepText = resolveStepText(pageVM.stages, displayedStageId);
 
   const evidenceFor = useCallback(
-    (stageId: string): CloseStageEvidence => {
-      switch (stageId) {
-        case 'TRANSACTION_VALIDATION':
-          return mapTransactionIssuesToEvidence(transactionIssues);
-        case 'COMPLETENESS_CHECK':
-          return mapAnomaliesToEvidence(anomalies);
-        case 'FINANCIAL_REPORTS':
-          return cashFlowAdjustment !== null
-            ? mapAdjustmentCountToEvidence(cashFlowAdjustment)
-            : NO_EVIDENCE;
-        case 'CLOSE_PERIOD':
-          return reportsPersisted !== null
-            ? mapPersistenceToEvidence(reportsPersisted)
-            : NO_EVIDENCE;
-        default:
-          return NO_EVIDENCE;
-      }
-    },
+    (stageId: string) =>
+      resolveEvidenceForStage(stageId, {
+        anomalies,
+        transactionIssues,
+        cashFlowAdjustment,
+        reportsPersisted,
+      }),
     [anomalies, cashFlowAdjustment, reportsPersisted, transactionIssues],
   );
 
@@ -332,85 +309,18 @@ export const useMonthlyClosePage = ({
     onDraftConfirm: drawer.confirmDraft,
   });
 
-  const zeroActivityNames = anomalies.map((activity) => activity.name);
-  const [checkedCount, setCheckedCount] = useState(0);
-
-  // Checked count rides the same refresh as the stage evidence, so Step 7's
-  // N/M count never goes stale after a mid-close securities re-confirm.
-  useEffect(() => {
-    if (!householdId || !selectedYearMonth) return;
-    const refresh = async () => {
-      const result = await validateMonthTransactionsUseCase.execute({
-        householdId,
-        year: Number(selectedYearMonth.slice(0, 4)),
-        month: Number(selectedYearMonth.slice(5, 7)),
-        auth,
-      });
-      setCheckedCount(result.checkedCount);
-    };
-    void refresh();
-  }, [auth, householdId, refreshStageEvidence, selectedYearMonth]);
-
-  const readinessVM = useMemo(() => {
-    if (!readiness) return null;
-    return mapReadinessVM({
-      totalAccounts: readiness.totalAccounts,
-      confirmedAccounts: readiness.totalAccounts - readiness.unsettledAccounts.length,
-      totalTransactions: checkedCount,
-      transactionIssues,
-      totalSecurities: securities.buys.length + securities.sells.length,
-      totalPortfolios: readiness.totalPortfolios,
-      confirmedPortfolios: readiness.totalPortfolios - readiness.unsettledPortfolios.length,
-      totalProjects: readiness.totalProjects,
-      confirmedProjects: readiness.totalProjects - readiness.unsettledProjects.length,
-      totalDebts: readiness.totalDebts,
-      confirmedDebts: readiness.totalDebts - readiness.unsettledDebts.length,
-      zeroActivityNames,
-      anomalies: [],
-    });
-  }, [
-    checkedCount,
+  const { readinessVM, financialResult, closeSummaryVM } = useCloseSummaryVM({
+    householdId,
+    selectedYearMonth,
     readiness,
-    securities.buys.length,
-    securities.sells.length,
+    reportBundle,
     transactionIssues,
-    zeroActivityNames,
-  ]);
-
-  const financialResult = useMemo(
-    () => ({
-      totalAssets: reportBundle?.balanceSheet.assets.total ?? null,
-      totalLiabilities: reportBundle?.balanceSheet.liabilities.total ?? null,
-      equity: reportBundle?.balanceSheet.equity.total ?? null,
-      netIncome: reportBundle?.incomeStatement.netIncome ?? null,
-      netCashFlow: reportBundle?.cashFlow.netCashChange ?? null,
-    }),
-    [reportBundle],
-  );
-
-  const reportResults = useMemo(
-    () =>
-      (['INCOME_STATEMENT', 'BALANCE_SHEET', 'CASH_FLOW'] as const).map((viewId) => ({
-        title: REPORT_VIEW_TITLES[viewId],
-        isGenerated: reportsPersisted ?? false,
-      })),
-    [reportsPersisted],
-  );
-
-  const closeSummaryVM = useMemo(
-    () =>
-      mapCloseSummary({
-        stages: pageVM.stages.map((stage) => ({
-          stageId: stage.stageId,
-          label: stage.label,
-          isCompleted: stage.isCompleted,
-          dataText: null,
-        })),
-        financialResult,
-        reports: reportResults,
-      }),
-    [financialResult, pageVM.stages, reportResults],
-  );
+    securities,
+    anomalies,
+    pageVM,
+    reportsPersisted,
+    refreshStageEvidence,
+  });
 
   const handleGoToStage = useCallback((stageId: string) => {
     setViewingStageId(stageId as CloseStageId);
