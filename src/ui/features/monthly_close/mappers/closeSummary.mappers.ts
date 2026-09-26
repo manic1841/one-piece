@@ -35,7 +35,7 @@ export interface ReadinessInput {
   totalAccounts: number;
   confirmedAccounts: number;
   totalTransactions: number;
-  transactionIssues: { transactionId: string; description: string; reason: string }[];
+  transactionIssues: { description: string; reason: string }[];
   totalSecurities: number;
   totalPortfolios: number;
   confirmedPortfolios: number;
@@ -82,7 +82,6 @@ export interface CloseSummaryVM {
 }
 
 export interface CloseSummaryInput {
-  yearMonth: string;
   stages: {
     stageId: CloseStageId;
     label: string;
@@ -106,8 +105,56 @@ const snapshotCheck = (
   countText: `${confirmed} / ${total}`,
 });
 
+interface SnapshotExceptionRule {
+  stageId: ReadinessCheckId;
+  confirmed: number;
+  total: number;
+  detail: (missing: number) => string;
+}
+
+const buildSnapshotExceptions = (
+  input: ReadinessInput,
+): { checks: ReadinessCheckVM[]; exceptions: ReadinessExceptionVM[] } => {
+  const rules: SnapshotExceptionRule[] = [
+    {
+      stageId: 'ACCOUNT_BALANCE',
+      confirmed: input.confirmedAccounts,
+      total: input.totalAccounts,
+      detail: (missing) => `${missing} 個帳戶尚未確認餘額`,
+    },
+    {
+      stageId: 'PORTFOLIO_CASH_FLOW',
+      confirmed: input.confirmedPortfolios,
+      total: input.totalPortfolios,
+      detail: (missing) => `${missing} 個 Portfolio 尚未確認金流`,
+    },
+    {
+      stageId: 'PROJECT_SETTLEMENT',
+      confirmed: input.confirmedProjects,
+      total: input.totalProjects,
+      detail: (missing) => `${missing} 個專案尚未結算`,
+    },
+    {
+      stageId: 'DEBT_REPAYMENT',
+      confirmed: input.confirmedDebts,
+      total: input.totalDebts,
+      detail: (missing) => `${missing} 筆債務尚未確認還款`,
+    },
+  ];
+
+  const checks = rules.map((rule) => snapshotCheck(rule.stageId, rule.confirmed, rule.total));
+  const exceptions = rules
+    .filter((rule) => rule.confirmed < rule.total)
+    .map((rule) => ({
+      label: CLOSE_STAGE_LABELS[rule.stageId],
+      detail: rule.detail(rule.total - rule.confirmed),
+      stageId: rule.stageId,
+    }));
+  return { checks, exceptions };
+};
+
 export const mapReadinessVM = (input: ReadinessInput): ReadinessVM => {
-  const exceptions: ReadinessExceptionVM[] = [];
+  const { checks: snapshotChecks, exceptions: snapshotExceptions } = buildSnapshotExceptions(input);
 
   // Securities allow an empty confirm (ADR-0052): the check reports the
   // record count and always passes; the empty-stage warning stays a
@@ -120,7 +167,7 @@ export const mapReadinessVM = (input: ReadinessInput): ReadinessVM => {
   };
 
   const checks: ReadinessCheckVM[] = [
-    snapshotCheck('ACCOUNT_BALANCE', input.confirmedAccounts, input.totalAccounts),
+    snapshotChecks[0],
     {
       id: 'TRANSACTION_VALIDATION',
       label: CLOSE_STAGE_LABELS.TRANSACTION_VALIDATION,
@@ -128,70 +175,32 @@ export const mapReadinessVM = (input: ReadinessInput): ReadinessVM => {
       countText: `${input.totalTransactions}`,
     },
     securitiesCheck,
-    snapshotCheck('PORTFOLIO_CASH_FLOW', input.confirmedPortfolios, input.totalPortfolios),
-    snapshotCheck('PROJECT_SETTLEMENT', input.confirmedProjects, input.totalProjects),
-    snapshotCheck('DEBT_REPAYMENT', input.confirmedDebts, input.totalDebts),
+    ...snapshotChecks.slice(1),
   ];
 
-  if (input.confirmedAccounts < input.totalAccounts) {
-    exceptions.push({
-      label: CLOSE_STAGE_LABELS.ACCOUNT_BALANCE,
-      detail: `${input.totalAccounts - input.confirmedAccounts} 個帳戶尚未確認餘額`,
-      stageId: 'ACCOUNT_BALANCE',
-    });
-  }
-  for (const issue of input.transactionIssues) {
-    exceptions.push({
-      label: CLOSE_STAGE_LABELS.TRANSACTION_VALIDATION,
-      detail: issue.description ? `${issue.description}：${issue.reason}` : issue.reason,
-      stageId: 'TRANSACTION_VALIDATION',
-    });
-  }
-  if (!securitiesCheck.passed) {
-    exceptions.push({
-      label: CLOSE_STAGE_LABELS.SECURITIES_TRADE,
-      detail: '尚未有任何證券或融資紀錄',
-      stageId: 'SECURITIES_TRADE',
-    });
-  }
-  if (input.confirmedPortfolios < input.totalPortfolios) {
-    exceptions.push({
-      label: CLOSE_STAGE_LABELS.PORTFOLIO_CASH_FLOW,
-      detail: `${input.totalPortfolios - input.confirmedPortfolios} 個 Portfolio 尚未確認金流`,
-      stageId: 'PORTFOLIO_CASH_FLOW',
-    });
-  }
-  if (input.confirmedProjects < input.totalProjects) {
-    exceptions.push({
-      label: CLOSE_STAGE_LABELS.PROJECT_SETTLEMENT,
-      detail: `${input.totalProjects - input.confirmedProjects} 個專案尚未結算`,
-      stageId: 'PROJECT_SETTLEMENT',
-    });
-  }
-  if (input.confirmedDebts < input.totalDebts) {
-    exceptions.push({
-      label: CLOSE_STAGE_LABELS.DEBT_REPAYMENT,
-      detail: `${input.totalDebts - input.confirmedDebts} 筆債務尚未確認還款`,
-      stageId: 'DEBT_REPAYMENT',
-    });
-  }
-  for (const name of input.zeroActivityNames) {
-    exceptions.push({
-      label: MONTHLY_CLOSE_LABELS.ZERO_ACTIVITY,
-      detail: name,
-      stageId: 'COMPLETENESS_CHECK',
-    });
-  }
-  for (const name of input.anomalies) {
-    exceptions.push({
-      label: MONTHLY_CLOSE_LABELS.ZERO_ACTIVITY,
-      detail: name,
-      stageId: 'COMPLETENESS_CHECK',
-    });
-  }
+  const transactionExceptions: ReadinessExceptionVM[] = input.transactionIssues.map((issue) => ({
+    label: CLOSE_STAGE_LABELS.TRANSACTION_VALIDATION,
+    detail: issue.description ? `${issue.description}：${issue.reason}` : issue.reason,
+    stageId: 'TRANSACTION_VALIDATION',
+  }));
 
   // Zero-activity alerts pause the workflow as NEEDS_REVIEW (ADR-0050); the
   // paused stage's own confirmation is the resolution action, not a blocker.
+  const zeroActivityExceptions: ReadinessExceptionVM[] = [
+    ...input.zeroActivityNames,
+    ...input.anomalies,
+  ].map((name) => ({
+    label: MONTHLY_CLOSE_LABELS.ZERO_ACTIVITY,
+    detail: name,
+    stageId: 'COMPLETENESS_CHECK',
+  }));
+
+  const exceptions: ReadinessExceptionVM[] = [
+    ...snapshotExceptions,
+    ...transactionExceptions,
+    ...zeroActivityExceptions,
+  ];
+
   const hasBlockingExceptions = exceptions.some(
     (exception) => exception.stageId !== 'COMPLETENESS_CHECK',
   );

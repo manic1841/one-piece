@@ -150,5 +150,3 @@ export const CloseSummaryPanel: React.FC<CloseSummaryPanelProps> = ({
     </section>
   );
 };
-
-export default CloseSummaryPanel;

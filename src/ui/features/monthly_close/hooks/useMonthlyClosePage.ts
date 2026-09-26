@@ -400,7 +400,6 @@ export const useMonthlyClosePage = ({
   const closeSummaryVM = useMemo(
     () =>
       mapCloseSummary({
-        yearMonth: selectedYearMonth,
         stages: pageVM.stages.map((stage) => ({
           stageId: stage.stageId,
           label: stage.label,
@@ -410,7 +409,7 @@ export const useMonthlyClosePage = ({
         financialResult,
         reports: reportResults,
       }),
-    [financialResult, pageVM.stages, reportResults, selectedYearMonth],
+    [financialResult, pageVM.stages, reportResults],
   );
 
   const handleGoToStage = useCallback((stageId: string) => {

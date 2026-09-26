@@ -4,11 +4,11 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { CLOSE_ACTIVITY_STATUS, type CloseSummaryVM } from '../mappers/closeSummary.mappers';
 import { CloseSummaryPanel } from './CloseSummaryPanel';
 
+const { confirmMock } = vi.hoisted(() => ({ confirmMock: vi.fn() }));
+
 vi.mock('@/ui/features/app/confirm/useConfirm', () => ({
   useConfirm: () => ({ confirm: confirmMock }),
 }));
-
-const confirmMock = vi.fn();
 
 const summaryVM: CloseSummaryVM = {
   activity: [

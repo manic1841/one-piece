@@ -98,5 +98,3 @@ export const CloseReadinessCheck: React.FC<CloseReadinessCheckProps> = ({
     </section>
   );
 };
-
-export default CloseReadinessCheck;

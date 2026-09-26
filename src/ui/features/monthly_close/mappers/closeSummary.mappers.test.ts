@@ -51,7 +51,7 @@ describe('mapReadinessVM', () => {
     const vm = mapReadinessVM({
       ...readinessInput,
       totalTransactions: 128,
-      transactionIssues: [{ transactionId: 't1', description: '餐飲', reason: '分配不存在' }],
+      transactionIssues: [{ description: '餐飲', reason: '分配不存在' }],
     });
 
     const transactionCheck = vm.checks.find((check) => check.label === '交易驗證');
@@ -94,7 +94,6 @@ describe('mapReadinessVM', () => {
 });
 
 const summaryInput = {
-  yearMonth: '2026-09',
   stages: [
     { stageId: 'ACCOUNT_BALANCE', label: '帳戶餘額', isCompleted: true, dataText: '3 個帳戶' },
     {
