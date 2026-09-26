@@ -1,6 +1,7 @@
 import { type AuthContext } from '@/application/types';
 import { type Holding } from '@/domains/account/types/account';
 import { type CloseStageId } from '@/domains/financial_period/schemas';
+import { type ReportLabelResolver } from '@/domains/report/reportCalculations';
 
 export interface AccountBalanceInput {
   accountId: string;
@@ -66,4 +67,6 @@ export interface MonthlyCloseConfirmRequest extends MonthlyCloseStartRequest {
   repayments?: DebtRepaymentInput[];
   /** SECURITIES_TRADE reconfirm: transaction doc IDs loaded earlier but removed from the rows. */
   removedTransactionIds?: string[];
+  /** Report display labels: static catalog first, then household custom codes. */
+  labelResolver?: ReportLabelResolver;
 }

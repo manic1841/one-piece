@@ -345,6 +345,7 @@ export class MonthlyCloseWorkflowUseCase {
           auth,
           year: this.yearOf(yearMonth),
           month: this.monthOf(yearMonth),
+          labelResolver: request.labelResolver,
         });
         return;
       }

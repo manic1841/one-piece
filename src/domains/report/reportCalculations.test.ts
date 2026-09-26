@@ -46,6 +46,44 @@ describe('calculateIncomeStatement', () => {
     expect(result.incomeItems[0].label).toBe('LABEL:income:salary');
   });
 
+  it('rolls detail codes into their parent category row with subItems', () => {
+    const entries = [
+      entry('income:salary:charles', 0, 3000),
+      entry('income:salary:jane', 0, 2000),
+      entry('income:bonus', 0, 1000),
+    ];
+
+    const result = calculateIncomeStatement({ yearMonth: '2026-03', entries });
+
+    expect(result.incomeItems).toHaveLength(2);
+    const salary = result.incomeItems.find((item) => item.code === 'income:salary');
+    expect(salary?.amount).toBe(5000);
+    expect(salary?.subItems?.map((sub) => sub.code)).toEqual([
+      'income:salary:charles',
+      'income:salary:jane',
+    ]);
+    expect(salary?.subItems?.[0].amount).toBe(3000);
+    expect(result.incomeTotal).toBe(6000);
+  });
+
+  it('keeps detail labels under nested subItems', () => {
+    const entries = [entry('income:salary:charles', 0, 3000)];
+    const result = calculateIncomeStatement({
+      yearMonth: '2026-03',
+      entries,
+      labelResolver: (code, fallback) =>
+        code === 'income:salary'
+          ? '薪資'
+          : code === 'income:salary:charles'
+            ? 'Charles'
+            : (fallback ?? code),
+    });
+
+    const salary = result.incomeItems[0];
+    expect(salary.label).toBe('薪資');
+    expect(salary.subItems?.[0].label).toBe('薪資 › Charles');
+  });
+
   it('returns zero totals when there are no entries', () => {
     const result = calculateIncomeStatement({ yearMonth: '2026-03', entries: [] });
 
@@ -133,8 +171,45 @@ describe('calculateBalanceSheet', () => {
 
     const result = calculateBalanceSheet({ ...baseInput, monthlyEntries });
 
-    // debit - credit = 0 - 10000 = -10000, negated = 10000
     expect(result.equity.groups.capital.total).toBe(10000);
+    expect(result.equity.groups.capital.items[0]?.code).toBe('equity:capital');
+  });
+
+  it('normalizes capital detail amounts to positive (credit side is capital)', () => {
+    const monthlyEntries = [
+      entry('equity:capital', 0, 6000),
+      entry('equity:capital:addition', 0, 4000),
+    ];
+
+    const result = calculateBalanceSheet({ ...baseInput, monthlyEntries });
+
+    expect(result.equity.groups.capital.total).toBe(10000);
+    expect(
+      result.equity.groups.capital.items.every((item) => item.amount > 0),
+    ).toBe(true);
+    expect(result.equity.groups.capital.items[0].code).toBe('equity:capital');
+    expect(result.equity.groups.capital.items[0].subItems?.map((sub) => sub.code)).toEqual([
+      'equity:capital:addition',
+    ]);
+  });
+
+  it('rolls balance-sheet ledger-code sections into parent category with subItems', () => {
+    const entries = [
+      entry('asset:property:house', 800000, 0),
+      entry('asset:property:land', 200000, 0),
+    ];
+
+    const result = calculateBalanceSheet({ ...baseInput, entries });
+
+    const propertyGroup = result.assets.groups.property;
+    expect(propertyGroup.total).toBe(1000000);
+    expect(propertyGroup.items).toHaveLength(1);
+    expect(propertyGroup.items[0].code).toBe('asset:property');
+    expect(propertyGroup.items[0].amount).toBe(1000000);
+    expect(propertyGroup.items[0].subItems?.map((sub) => sub.code)).toEqual([
+      'asset:property:house',
+      'asset:property:land',
+    ]);
   });
 
   it('computes adjustment as residual', () => {
@@ -198,6 +273,50 @@ describe('calculateCashFlow', () => {
     });
 
     expect(result.operating.inflowItems[0].label).toBe('L:income:salary');
+  });
+
+  it('rolls cash flow ledger-code rows into parent category with subItems', () => {
+    const entries = [
+      entry('expense:food:groceries', 600, 0),
+      entry('expense:food:restaurant', 400, 0),
+      entry('expense:rent', 2000, 0),
+    ];
+
+    const result = calculateCashFlow({
+      yearMonth: '2026-03',
+      entries,
+      beginningBalance: 10000,
+      actualBalance: 7000,
+    });
+
+    const food = result.operating.outflowItems.find((item) => item.code === 'expense:food');
+    expect(food?.amount).toBe(1000);
+    expect(food?.subItems?.map((sub) => sub.code)).toEqual([
+      'expense:food:groceries',
+      'expense:food:restaurant',
+    ]);
+    expect(result.operating.outflowItems.some((item) => item.code === 'expense:rent')).toBe(
+      true,
+    );
+    expect(
+      result.operating.outflowItems.some((item) => item.code === 'expense:food:groceries'),
+    ).toBe(false);
+  });
+
+  it('labels nested subItems from the resolver fallback', () => {
+    const entries = [entry('expense:travel:train', 500, 0)];
+    const result = calculateCashFlow({
+      yearMonth: '2026-03',
+      entries,
+      beginningBalance: 0,
+      actualBalance: 500,
+      labelResolver: (code, fallback) => fallback ?? code,
+    });
+
+    const travel = result.operating.outflowItems[0];
+    expect(travel.code).toBe('expense:travel');
+    expect(travel.label).toBe('expense:travel');
+    expect(travel.subItems?.[0].label).toBe('expense:travel › train');
   });
 });
 

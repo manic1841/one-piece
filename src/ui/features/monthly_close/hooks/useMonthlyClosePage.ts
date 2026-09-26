@@ -19,6 +19,7 @@ import { useConfirm } from '@/ui/features/app/confirm/useConfirm';
 import { useDebtRepaymentPrefill } from '@/ui/features/monthly_close/hooks/useDebtRepaymentPrefill';
 import { useMonthlyClose } from '@/ui/features/monthly_close/hooks/useMonthlyClose';
 import { usePortfolioSnapshotPrefill } from '@/ui/features/monthly_close/hooks/usePortfolioSnapshotPrefill';
+import { useReportLabelResolver } from '@/ui/features/monthly_close/hooks/useReportLabelResolver';
 import { useSnapshotBalancePrefill } from '@/ui/features/monthly_close/hooks/useSnapshotBalancePrefill';
 import { useTradeDrawer } from '@/ui/features/monthly_close/hooks/useTradeDrawer';
 import { useTradeDrawerForm } from '@/ui/features/monthly_close/hooks/useTradeDrawerForm';
@@ -114,6 +115,7 @@ export const useMonthlyClosePage = ({
     auth,
   });
   const { repayments, setRepayments } = debtPrefill;
+  const reportLabelResolver = useReportLabelResolver(householdId);
 
   // Stage inputs are submitted with the selected month's confirmation, so a
   // month switch must retire them; the next month's tables then prefill.
@@ -258,8 +260,9 @@ export const useMonthlyClosePage = ({
         removedTransactionIds: stageId === 'SECURITIES_TRADE' ? removedTransactionIds : undefined,
         portfolioCashFlows: stageId === 'PORTFOLIO_CASH_FLOW' ? portfolioCashFlows : undefined,
         repayments: stageId === 'DEBT_REPAYMENT' ? repayments : undefined,
+        labelResolver: stageId === 'FINANCIAL_REPORTS' ? reportLabelResolver : undefined,
       });
-      if (result) {
+      if (result && stageId !== 'FINANCIAL_REPORTS') {
         setViewingStageId(null);
       }
       if (stageId === 'SECURITIES_TRADE') {
@@ -275,6 +278,7 @@ export const useMonthlyClosePage = ({
       refreshStageEvidence,
       removedTransactionIds,
       repayments,
+      reportLabelResolver,
       securities,
     ],
   );
@@ -338,6 +342,7 @@ export const useMonthlyClosePage = ({
     accounts,
     accountSnapshots,
     portfolioSnapshots,
+    reportsPersisted,
     portfolios,
     debtAccounts,
     debtSectionMetas: debtPrefill.debtSectionMetas,

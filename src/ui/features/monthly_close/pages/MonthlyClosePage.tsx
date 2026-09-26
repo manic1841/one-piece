@@ -10,6 +10,7 @@ import { useConfirm } from '@/ui/features/app/confirm/useConfirm';
 import { ClosePipeline } from '@/ui/features/monthly_close/components/ClosePipeline';
 
 import { CloseAccountBalanceInputs } from '../components/CloseAccountBalanceInputs';
+import { CloseFinancialReports } from '../components/CloseFinancialReports';
 import { CloseStageEvidenceList } from '../components/CloseStageEvidenceList';
 import { CloseStageInputs } from '../components/CloseStageInputs';
 import { CloseWorkspace } from '../components/CloseWorkspace';
@@ -42,6 +43,7 @@ export const MonthlyClosePage: React.FC<MonthlyClosePageProps> = ({
     isReviewing,
     positionText,
     displayedStepText,
+    reportsPersisted,
     accounts,
     accountSnapshots,
     portfolioSnapshots,
@@ -287,20 +289,32 @@ export const MonthlyClosePage: React.FC<MonthlyClosePageProps> = ({
                 onSelectStage={(stageId) => setViewingStageId(stageId as CloseStageId)}
               />
 
-              {displayedStage && (
-                <CloseWorkspace
-                  stage={displayedStage}
-                  stepText={displayedStepText ?? positionText}
-                  isReviewing={isReviewing}
-                  progressText={positionText}
-                  confirming={confirmingStageId === displayedStage.stageId}
-                  isClosed={pageVM.isClosed}
-                  evidence={renderEvidence(displayedStage.stageId)}
-                  inputs={renderInputs(displayedStage.stageId)}
-                  onConfirm={() => void handleConfirmStageWithWarning(displayedStage.stageId)}
-                  onBackToCurrent={() => setViewingStageId(null)}
-                />
-              )}
+              {displayedStage &&
+                (displayedStage.stageId === 'FINANCIAL_REPORTS' ? (
+                  <CloseFinancialReports
+                    householdId={householdId}
+                    year={Number(selectedYearMonth.slice(0, 4))}
+                    month={Number(selectedYearMonth.slice(5, 7))}
+                    onContinue={() => setViewingStageId('CLOSE_PERIOD')}
+                    onGenerate={() => void handleConfirmStageWithWarning('FINANCIAL_REPORTS')}
+                    onBack={() => setViewingStageId(null)}
+                    confirming={confirmingStageId === displayedStage.stageId}
+                    isGenerated={displayedStage.isCompleted && (reportsPersisted ?? false)}
+                  />
+                ) : (
+                  <CloseWorkspace
+                    stage={displayedStage}
+                    stepText={displayedStepText ?? positionText}
+                    isReviewing={isReviewing}
+                    progressText={positionText}
+                    confirming={confirmingStageId === displayedStage.stageId}
+                    isClosed={pageVM.isClosed}
+                    evidence={renderEvidence(displayedStage.stageId)}
+                    inputs={renderInputs(displayedStage.stageId)}
+                    onConfirm={() => void handleConfirmStageWithWarning(displayedStage.stageId)}
+                    onBackToCurrent={() => setViewingStageId(null)}
+                  />
+                ))}
             </div>
           )}
 

@@ -5,12 +5,14 @@ import {
 import { generateFinancialReportsUseCase } from '@/application/report/use_cases/generateFinancialReportsUseCase';
 import { getReportPersistenceStateUseCase } from '@/application/report/use_cases/getReportPersistenceStateUseCase';
 import { type AuthContext } from '@/application/types';
+import { type ReportLabelResolver } from '@/domains/report/reportCalculations';
 
 export interface RunFinancialReportsRequest {
   householdId: string;
   year: number;
   month: number;
   auth: AuthContext;
+  labelResolver?: ReportLabelResolver;
 }
 
 /**
@@ -19,8 +21,8 @@ export interface RunFinancialReportsRequest {
  */
 export class RunFinancialReportsUseCase {
   async execute(request: RunFinancialReportsRequest): Promise<void> {
-    const { householdId, auth, year, month } = request;
-    await generateFinancialReportsUseCase.execute({ householdId, auth, year, month });
+    const { householdId, auth, year, month, labelResolver } = request;
+    await generateFinancialReportsUseCase.execute({ householdId, auth, year, month, labelResolver });
   }
 }
 

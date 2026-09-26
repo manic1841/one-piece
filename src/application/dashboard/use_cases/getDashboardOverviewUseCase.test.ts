@@ -88,7 +88,7 @@ const buildBalanceSheet = (
         openingEquity: { label: '期初餘額', total: 0, items: [] },
         netIncome: { label: '本期淨利', total: 0, items: [] },
         capital: { label: '資本', total: 0, items: [] },
-        stock_gain: { label: '股票損益', total: 0, items: [] },
+        stock_gain: { label: '股票報酬', total: 0, items: [] },
         adjustment: { label: '調整', total: 0, items: [] },
       },
     },
