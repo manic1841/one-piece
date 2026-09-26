@@ -9,7 +9,18 @@ vi.mock('@/application/report/use_cases/previewFinancialReportsWorkflow', () => 
   previewFinancialReportsWorkflow: { execute: vi.fn() },
 }));
 vi.mock('@/application/report/use_cases/getSettlementReadinessUseCase', () => ({
-  getSettlementReadinessUseCase: { execute: vi.fn().mockResolvedValue({ isReady: true, unsettledProjects: [], unsettledAccounts: [], unsettledPortfolios: [], unsettledDebts: [], totalUnsettled: 0, year: 2026, month: 3 }) },
+  getSettlementReadinessUseCase: {
+    execute: vi.fn().mockResolvedValue({
+      isReady: true,
+      unsettledProjects: [],
+      unsettledAccounts: [],
+      unsettledPortfolios: [],
+      unsettledDebts: [],
+      totalUnsettled: 0,
+      year: 2026,
+      month: 3,
+    }),
+  },
 }));
 vi.mock('@/application/ledger/use_cases/listAllLedgerCodesUseCase', () => ({
   listAllLedgerCodesUseCase: { execute: vi.fn().mockResolvedValue([]) },
@@ -64,7 +75,12 @@ const buildPreview = (overrides?: {
   },
   cashFlow: {
     yearMonth: '2026-03',
-    operating: { label: '營業活動', total: 20000, inflowItems: [{ code: 'income:salary', label: '薪資', amount: 50000 }], outflowItems: [{ code: 'expense:food', label: '餐飲', amount: 30000 }] },
+    operating: {
+      label: '營業活動',
+      total: 20000,
+      inflowItems: [{ code: 'income:salary', label: '薪資', amount: 50000 }],
+      outflowItems: [{ code: 'expense:food', label: '餐飲', amount: 30000 }],
+    },
     investing: { label: '投資活動', total: 0, inflowItems: [], outflowItems: [] },
     financing: { label: '融資活動', total: 0, inflowItems: [], outflowItems: [] },
     netCashChange: 20000,

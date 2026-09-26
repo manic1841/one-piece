@@ -11,8 +11,10 @@ import { ClosePipeline } from '@/ui/features/monthly_close/components/ClosePipel
 
 import { CloseAccountBalanceInputs } from '../components/CloseAccountBalanceInputs';
 import { CloseFinancialReports } from '../components/CloseFinancialReports';
+import { CloseReadinessCheck } from '../components/CloseReadinessCheck';
 import { CloseStageEvidenceList } from '../components/CloseStageEvidenceList';
 import { CloseStageInputs } from '../components/CloseStageInputs';
+import { CloseSummaryPanel } from '../components/CloseSummaryPanel';
 import { CloseWorkspace } from '../components/CloseWorkspace';
 import { TradeDrawer } from '../components/TradeDrawer';
 import { TradeTable } from '../components/TradeTable';
@@ -62,6 +64,10 @@ export const MonthlyClosePage: React.FC<MonthlyClosePageProps> = ({
     reopen,
     evidenceFor,
     handleConfirmStageWithWarning,
+    readinessVM,
+    closeSummaryVM,
+    handleGoToStage,
+    handleClosePeriod,
     refreshStageEvidence,
     drawer,
     drawerForm,
@@ -290,7 +296,20 @@ export const MonthlyClosePage: React.FC<MonthlyClosePageProps> = ({
               />
 
               {displayedStage &&
-                (displayedStage.stageId === 'FINANCIAL_REPORTS' ? (
+                (displayedStage.stageId === 'COMPLETENESS_CHECK' && readinessVM ? (
+                  <CloseReadinessCheck
+                    readiness={readinessVM}
+                    onConfirm={() => void handleConfirmStageWithWarning('COMPLETENESS_CHECK')}
+                    onGoToStage={handleGoToStage}
+                    confirming={confirmingStageId === displayedStage.stageId}
+                  />
+                ) : displayedStage.stageId === 'CLOSE_PERIOD' && closeSummaryVM ? (
+                  <CloseSummaryPanel
+                    summary={closeSummaryVM}
+                    onClose={() => void handleClosePeriod()}
+                    confirming={confirmingStageId === displayedStage.stageId}
+                  />
+                ) : displayedStage.stageId === 'FINANCIAL_REPORTS' ? (
                   <CloseFinancialReports
                     householdId={householdId}
                     year={Number(selectedYearMonth.slice(0, 4))}

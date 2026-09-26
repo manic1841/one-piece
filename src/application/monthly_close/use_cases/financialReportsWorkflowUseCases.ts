@@ -22,7 +22,13 @@ export interface RunFinancialReportsRequest {
 export class RunFinancialReportsUseCase {
   async execute(request: RunFinancialReportsRequest): Promise<void> {
     const { householdId, auth, year, month, labelResolver } = request;
-    await generateFinancialReportsUseCase.execute({ householdId, auth, year, month, labelResolver });
+    await generateFinancialReportsUseCase.execute({
+      householdId,
+      auth,
+      year,
+      month,
+      labelResolver,
+    });
   }
 }
 

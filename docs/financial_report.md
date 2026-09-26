@@ -7,6 +7,9 @@ One-Piece 結合了「管理會計 (Projects)」與「財務會計 (Accounts)」
 ## 0. 報表產生前置檢查
 
 - 正式報表的產生入口為「月度關帳」流程（`/close` 的 FINANCIAL_REPORTS 階段，由 `monthlyCloseWorkflowUseCase` 呼叫 `generateFinancialReportsUseCase`）；財務結算中心僅顯示報表產生狀態，不再提供產生按鈕。
+- 產生前檢查分兩層：
+  - **就緒檢查（Step 7，Completeness Check 階段）**：報表產生前，把各類別月結算完成度、交易驗證與零活動警示彙整為整體就緒狀態，讓使用者先確認資料能否產生正確報表；缺漏項目以深連結導回對應階段修正。
+  - **產生階段（Step 8，Financial Reports 階段）**：預覽報表 → 確認 → 產生；產生按鈕在缺報表類別時保持 disabled 作為最後一道防線。
 - 產生正式報表前，會先檢查以下「啟用中」資產負債來源是否都有該月份結算快照：
   - 專案 (`Project Snapshot`)
   - 帳戶 (`Account Snapshot`)

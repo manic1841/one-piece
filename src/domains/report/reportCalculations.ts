@@ -28,7 +28,10 @@ type ReportSubItem = { code: string; label: string; amount: number };
 const composeNestedLabel = (parentLabel: string, detailLabel: string) =>
   `${parentLabel} › ${detailLabel}`;
 
-const rollUpTotals = (totals: Map<string, number>, resolveLabel: (code: string, fallback?: string) => string) => {
+const rollUpTotals = (
+  totals: Map<string, number>,
+  resolveLabel: (code: string, fallback?: string) => string,
+) => {
   type Node = { amount: number; subItems: ReportSubItem[] };
   const parents = new Map<string, Node>();
   for (const [code, amount] of totals.entries()) {
@@ -200,7 +203,8 @@ export function calculateBalanceSheet(input: BalanceSheetInput): BalanceSheetDat
             code: prefix,
             label: resolveLabel(prefix, prefix),
             amount: total,
-            subItems: subItems.length > 0 ? subItems.sort((a, b) => b.amount - a.amount) : undefined,
+            subItems:
+              subItems.length > 0 ? subItems.sort((a, b) => b.amount - a.amount) : undefined,
           },
         ]
       : [];
@@ -255,7 +259,8 @@ export function calculateBalanceSheet(input: BalanceSheetInput): BalanceSheetDat
             code: prefix,
             label: resolveLabel(prefix, prefix),
             amount: total,
-            subItems: subItems.length > 0 ? subItems.sort((a, b) => b.amount - a.amount) : undefined,
+            subItems:
+              subItems.length > 0 ? subItems.sort((a, b) => b.amount - a.amount) : undefined,
           },
         ]
       : [];

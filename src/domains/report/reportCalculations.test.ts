@@ -184,9 +184,7 @@ describe('calculateBalanceSheet', () => {
     const result = calculateBalanceSheet({ ...baseInput, monthlyEntries });
 
     expect(result.equity.groups.capital.total).toBe(10000);
-    expect(
-      result.equity.groups.capital.items.every((item) => item.amount > 0),
-    ).toBe(true);
+    expect(result.equity.groups.capital.items.every((item) => item.amount > 0)).toBe(true);
     expect(result.equity.groups.capital.items[0].code).toBe('equity:capital');
     expect(result.equity.groups.capital.items[0].subItems?.map((sub) => sub.code)).toEqual([
       'equity:capital:addition',
@@ -295,9 +293,7 @@ describe('calculateCashFlow', () => {
       'expense:food:groceries',
       'expense:food:restaurant',
     ]);
-    expect(result.operating.outflowItems.some((item) => item.code === 'expense:rent')).toBe(
-      true,
-    );
+    expect(result.operating.outflowItems.some((item) => item.code === 'expense:rent')).toBe(true);
     expect(
       result.operating.outflowItems.some((item) => item.code === 'expense:food:groceries'),
     ).toBe(false);

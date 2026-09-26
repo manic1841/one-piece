@@ -2,9 +2,6 @@ import React, { useState } from 'react';
 
 import { AlertTriangle } from 'lucide-react';
 
-import { Alert, AlertDescription } from '@/ui/components/ui/alert';
-import { Button } from '@/ui/components/ui/button';
-
 import {
   DataTable,
   DataTableCell,
@@ -17,23 +14,24 @@ import {
   TableBody,
   TableHeader,
 } from '@/ui/components/data-table';
+import { Alert, AlertDescription } from '@/ui/components/ui/alert';
+import { Button } from '@/ui/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/ui/components/ui/tabs';
 import { MONTHLY_CLOSE_LABELS } from '@/ui/constants/monthlyClose';
 import { REPORT_VIEW_TITLES } from '@/ui/constants/report/reportViewLabels';
+import { formatCurrency } from '@/ui/utils';
+
 import {
   type BalanceSheetData,
   type BalanceSheetGroup,
   type CashFlowData,
   type IncomeStatementData,
 } from '../hooks/useCloseFinancialReports';
-import { formatCurrency } from '@/ui/utils';
-
 import { useCloseFinancialReports } from '../hooks/useCloseFinancialReports';
 
 const STATEMENT_COLUMN_WIDTHS = [22, 14, 64] as const;
 
-const statementTitleClass =
-  'text-[13px] font-semibold uppercase tracking-[0.08em] text-foreground';
+const statementTitleClass = 'text-[13px] font-semibold uppercase tracking-[0.08em] text-foreground';
 
 interface StatementRowItem {
   code: string;
@@ -58,7 +56,10 @@ const StatementRow: React.FC<{ item: StatementRowItem }> = ({ item }) => {
 
   return (
     <>
-      <DataTableRow interactive={hasSubItems} onClick={() => hasSubItems && setIsExpanded(!isExpanded)}>
+      <DataTableRow
+        interactive={hasSubItems}
+        onClick={() => hasSubItems && setIsExpanded(!isExpanded)}
+      >
         <DataTableCell>
           <span className={hasSubItems ? 'font-medium text-foreground' : 'text-muted-foreground'}>
             {item.label}
@@ -139,7 +140,10 @@ const BalanceGroupSection: React.FC<{ group: BalanceSheetGroup; calculated?: boo
 }) => {
   if (group.total === 0 && group.items.length === 0 && !calculated) return null;
   return (
-    <section className="space-y-3 border-b border-border pb-4 last:border-b-0" data-testid="close-balance-group">
+    <section
+      className="space-y-3 border-b border-border pb-4 last:border-b-0"
+      data-testid="close-balance-group"
+    >
       <div className="flex items-baseline justify-between">
         <p className={statementTitleClass}>{group.label}</p>
         <p className="font-mono text-sm tabular-nums text-foreground">
@@ -298,7 +302,9 @@ export const CloseFinancialReports: React.FC<CloseFinancialReportsProps> = ({
           </p>
         </div>
         <span className="font-mono text-[13px] tabular-nums text-muted-foreground">
-          {isGenerated ? MONTHLY_CLOSE_LABELS.REPORTS_GENERATED : MONTHLY_CLOSE_LABELS.FINANCIAL_REPORTS_TITLE}
+          {isGenerated
+            ? MONTHLY_CLOSE_LABELS.REPORTS_GENERATED
+            : MONTHLY_CLOSE_LABELS.FINANCIAL_REPORTS_TITLE}
         </span>
       </div>
 
@@ -330,15 +336,28 @@ export const CloseFinancialReports: React.FC<CloseFinancialReportsProps> = ({
           data-testid="reports-generated-panel"
           className="space-y-2 rounded-lg border border-positive/30 bg-positive/10 px-4 py-3"
         >
-          <p className="text-sm font-bold text-foreground">{MONTHLY_CLOSE_LABELS.REPORTS_GENERATED}</p>
+          <p className="text-sm font-bold text-foreground">
+            {MONTHLY_CLOSE_LABELS.REPORTS_GENERATED}
+          </p>
           <p className="text-xs text-muted-foreground">
             {MONTHLY_CLOSE_LABELS.GENERATED_AT}
-            {timestamps.incomeStatement ? ` ｜ ${REPORT_VIEW_TITLES.INCOME_STATEMENT} ${timestamps.incomeStatement}` : ''}
-            {timestamps.balanceSheet ? ` ｜ ${REPORT_VIEW_TITLES.BALANCE_SHEET} ${timestamps.balanceSheet}` : ''}
-            {timestamps.cashFlow ? ` ｜ ${REPORT_VIEW_TITLES.CASH_FLOW} ${timestamps.cashFlow}` : ''}
+            {timestamps.incomeStatement
+              ? ` ｜ ${REPORT_VIEW_TITLES.INCOME_STATEMENT} ${timestamps.incomeStatement}`
+              : ''}
+            {timestamps.balanceSheet
+              ? ` ｜ ${REPORT_VIEW_TITLES.BALANCE_SHEET} ${timestamps.balanceSheet}`
+              : ''}
+            {timestamps.cashFlow
+              ? ` ｜ ${REPORT_VIEW_TITLES.CASH_FLOW} ${timestamps.cashFlow}`
+              : ''}
           </p>
           <div className="flex justify-end">
-            <Button variant="link" size="sm" onClick={onContinue} className="h-auto p-0 text-xs font-semibold uppercase tracking-[0.08em]">
+            <Button
+              variant="link"
+              size="sm"
+              onClick={onContinue}
+              className="h-auto p-0 text-xs font-semibold uppercase tracking-[0.08em]"
+            >
               {MONTHLY_CLOSE_LABELS.CONTINUE}
             </Button>
           </div>
@@ -346,27 +365,45 @@ export const CloseFinancialReports: React.FC<CloseFinancialReportsProps> = ({
       )}
 
       {hasAnyData && (
-        <Tabs value={view} onValueChange={(value) => setView(value as typeof view)} className="space-y-4">
+        <Tabs
+          value={view}
+          onValueChange={(value) => setView(value as typeof view)}
+          className="space-y-4"
+        >
           <TabsList className="hidden md:inline-flex">
-            {(Object.keys(REPORT_VIEW_TITLES) as Array<keyof typeof REPORT_VIEW_TITLES>).map((viewId) => (
-              <TabsTrigger key={viewId} value={viewId}>
-                {REPORT_VIEW_TITLES[viewId]}
-              </TabsTrigger>
-            ))}
+            {(Object.keys(REPORT_VIEW_TITLES) as Array<keyof typeof REPORT_VIEW_TITLES>).map(
+              (viewId) => (
+                <TabsTrigger key={viewId} value={viewId}>
+                  {REPORT_VIEW_TITLES[viewId]}
+                </TabsTrigger>
+              ),
+            )}
           </TabsList>
-          <TabsContent forceMount value="INCOME_STATEMENT" className="md:hidden md:data-[state=active]:block">
+          <TabsContent
+            forceMount
+            value="INCOME_STATEMENT"
+            className="md:hidden md:data-[state=active]:block"
+          >
             <div className="md:hidden">
               <p className={statementTitleClass}>{REPORT_VIEW_TITLES.INCOME_STATEMENT}</p>
             </div>
             <IncomeStatementView data={incomeStatement} />
           </TabsContent>
-          <TabsContent forceMount value="BALANCE_SHEET" className="md:hidden md:data-[state=active]:block">
+          <TabsContent
+            forceMount
+            value="BALANCE_SHEET"
+            className="md:hidden md:data-[state=active]:block"
+          >
             <div className="md:hidden">
               <p className={statementTitleClass}>{REPORT_VIEW_TITLES.BALANCE_SHEET}</p>
             </div>
             <BalanceSheetView data={balanceSheet} />
           </TabsContent>
-          <TabsContent forceMount value="CASH_FLOW" className="md:hidden md:data-[state=active]:block">
+          <TabsContent
+            forceMount
+            value="CASH_FLOW"
+            className="md:hidden md:data-[state=active]:block"
+          >
             <div className="md:hidden">
               <p className={statementTitleClass}>{REPORT_VIEW_TITLES.CASH_FLOW}</p>
             </div>
@@ -398,7 +435,9 @@ export const CloseFinancialReports: React.FC<CloseFinancialReportsProps> = ({
             disabled={confirming || showReadinessGate || isLoading}
             className="h-[38px] px-[18px] text-xs font-semibold uppercase tracking-[0.08em]"
           >
-            {confirming || isLoading ? MONTHLY_CLOSE_LABELS.LOADING : MONTHLY_CLOSE_LABELS.GENERATE_REPORTS}
+            {confirming || isLoading
+              ? MONTHLY_CLOSE_LABELS.LOADING
+              : MONTHLY_CLOSE_LABELS.GENERATE_REPORTS}
           </Button>
         )}
       </div>
