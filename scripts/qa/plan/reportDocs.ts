@@ -20,11 +20,13 @@ import { FinancialReportSchema, ReportType } from '@/domains/report/schemas';
 
 import {
   type Builder,
+  CAR_LOAN_ID,
   type InternalTxn,
   MORTGAGE_ID,
   REPORT_MONTHS,
   audit,
   cashThrough,
+  cashThroughFor,
   emit,
   hh,
   marketValueAt,
@@ -36,6 +38,7 @@ export const buildReportDocs = (
   b: Builder,
   txns: InternalTxn[],
   mortgageClosing: Record<string, number>,
+  carClosing: Record<string, number>,
 ) => {
   const { identity } = b;
   const sorted = [...txns].sort((a, c) => a.date.getTime() - c.date.getTime());
@@ -63,12 +66,19 @@ export const buildReportDocs = (
       monthlyEntries: entriesIn(target),
       accounts: STATIC_ACCOUNTS,
       portfolios: [{ id: 'pf_core', name: '核心投資組合' }],
-      debtAccounts: [{ id: MORTGAGE_ID, name: '玉山房貸' }],
-      accountSnapshots: [
-        { accountId: 'acc_cash', amount: cashThrough(sorted, target) },
-        { accountId: 'acc_securities', amount: marketValueAt(target) },
+      debtAccounts: [
+        { id: MORTGAGE_ID, name: '玉山房貸' },
+        { id: CAR_LOAN_ID, name: '車貸' },
       ],
-      debtSnapshots: [{ debtId: MORTGAGE_ID, closingBalance: mortgageClosing[target] ?? 0 }],
+      accountSnapshots: STATIC_ACCOUNTS.map(({ id }) => ({
+        accountId: id,
+        amount:
+          id === 'acc_securities' ? marketValueAt(target) : cashThroughFor(sorted, id, target),
+      })),
+      debtSnapshots: [
+        { debtId: MORTGAGE_ID, closingBalance: mortgageClosing[target] ?? 0 },
+        { debtId: CAR_LOAN_ID, closingBalance: carClosing[target] ?? 0 },
+      ],
       portfolioSnapshots: [
         { portfolioId: 'pf_core', gain: marketValueAt(target) - marketValueAt('2026-06') },
       ],

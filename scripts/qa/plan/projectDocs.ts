@@ -11,12 +11,14 @@ import {
   type AllocationJournal,
   type Builder,
   type InternalTxn,
+  PORTFOLIO_BASE_VALUE,
   REPORT_MONTHS,
   SEED_WINDOW_END,
   SEED_WINDOW_START,
   audit,
   emit,
   hh,
+  holdingsAt,
   marketValueAt,
   monthRange,
   securitiesSnapshotMonths,
@@ -63,16 +65,24 @@ export const buildProjectSnapshotDocs = (
   }
 };
 
-export const buildPortfolioSnapshotDocs = (b: Builder) => {
+export const buildPortfolioSnapshotDocs = (b: Builder, txns: InternalTxn[]) => {
   const { identity } = b;
+  const sorted = [...txns].sort((a, c) => a.date.getTime() - c.date.getTime());
+  const monthlyCashFlow = (target: string) => {
+    const yearMonth = target;
+    return sorted
+      .filter((t) => t.yearMonth === yearMonth && t.intentType === 'INVESTMENT')
+      .reduce((sum, t) => sum + (t.amount ?? 0), 0);
+  };
   let cumulativeGain = 0;
-  let prevValue = marketValueAt('2026-06');
+  let prevValue = PORTFOLIO_BASE_VALUE;
   securitiesSnapshotMonths()
     .filter((target) => REPORT_MONTHS.includes(target))
     .forEach((target) => {
       const [y, m] = target.split('-').map(Number);
       const closingValue = marketValueAt(target);
-      const gain = closingValue - prevValue;
+      const deposits = monthlyCashFlow(target);
+      const gain = closingValue - prevValue - deposits;
       cumulativeGain += gain;
       emit(b, PortfolioSnapshotSchema, hh(identity, 'portfolios', 'pf_core', 'snapshots'), target, {
         id: target,
@@ -84,19 +94,19 @@ export const buildPortfolioSnapshotDocs = (b: Builder) => {
             accountName: '券商帳戶',
             category: 'securities',
             value: closingValue,
-            holdings: [{ symbol: '0050', name: '元大台灣50', cost: 50, marketValue: closingValue }],
+            holdings: holdingsAt(target),
           },
         ],
         totalValue: closingValue,
-        cashFlow: { deposits: 0, withdrawals: 0 },
+        cashFlow: { deposits, withdrawals: 0 },
         performance: {
           openingValue: prevValue,
           closingValue,
-          netCashFlow: 0,
+          netCashFlow: deposits,
           gain,
           returnRate: Number(((gain / prevValue) * 100).toFixed(2)),
           cumulativeGain,
-          cumulativeReturnRate: Number(((cumulativeGain / 20_000) * 100).toFixed(2)),
+          cumulativeReturnRate: Number(((cumulativeGain / PORTFOLIO_BASE_VALUE) * 100).toFixed(2)),
         },
         ...audit(identity),
       });

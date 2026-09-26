@@ -16,7 +16,11 @@ const docsUnder = (docs: SeedDoc[], suffix: string) =>
   docs.filter((doc) => doc.collectionPath.endsWith(suffix));
 
 const salaryTxns = (docs: SeedDoc[]) =>
-  docsUnder(docs, '/transactions').filter((d) => d.data.intentType === 'INCOME');
+  docsUnder(docs, '/transactions').filter(
+    (d) =>
+      d.data.intentType === 'INCOME' &&
+      (d.data.entries as { ledgerCode: string }[]).some((e) => e.ledgerCode === 'income:salary'),
+  );
 
 describe('QA seed plan builder', () => {
   it('is deterministic across calls', () => {
@@ -35,6 +39,9 @@ describe('QA seed plan builder', () => {
     for (const salary of salaries) {
       const entries = salary.data.entries as { debit: number; credit: number }[];
       expect(entries.reduce((sum, e) => sum + e.credit, 0)).toBe(60000);
+      // Salary lands in the Taishin payroll account (issue #198 Q1).
+      const cashEntry = entries.find((e) => e.ledgerCode === 'asset:cash');
+      expect(cashEntry?.accountId).toBe('acc_bank_main');
     }
   });
 
@@ -88,7 +95,7 @@ describe('QA seed plan builder', () => {
       expect(allocation, `allocation for ${salary.id}`).toBeDefined();
       expect(allocation!.data.sourceTransactionId).toBe(salary.id);
       const items = allocation!.data.items as { amount: number; percentage: number }[];
-      // 60/25/15 split of 60,000: 36,000 + 15,000 + 9,000.
+      // 50/25/10/8/7 split of 60,000 (issue #198 Q5).
       expect(items.reduce((sum, i) => sum + i.amount, 0)).toBe(60000);
       expect(items.reduce((sum, i) => sum + i.percentage, 0)).toBe(100);
     }
@@ -128,5 +135,145 @@ describe('QA seed plan builder', () => {
     const active = byId.get('2026-09')!.data.stages as Record<string, { status: string }>;
     expect(active.ACCOUNT_BALANCE.status).toBe('COMPLETED');
     expect(active.CLOSE_PERIOD.status).toBe('PENDING');
+  });
+
+  it('seeds the multi-account story (issue #198): 5 accounts, snapshots 2026-01..09', () => {
+    const docs = buildQaSeedPlan(IDENTITY);
+    const accounts = docsUnder(docs, '/accounts').filter((d) => !d.id.includes('/'));
+    // 現金 + 台新薪轉 + 玉山數位 + 玉山外幣 + 券商.
+    expect(accounts.map((a) => a.id).sort()).toEqual([
+      'acc_bank_foreign',
+      'acc_bank_main',
+      'acc_bank_savings',
+      'acc_cash',
+      'acc_securities',
+    ]);
+    const foreign = accounts.find((a) => a.id === 'acc_bank_foreign')!;
+    expect(foreign.data.currency).toBe('USD');
+    expect(foreign.data.category).toBe('bank');
+
+    const snapshotDocs = docsUnder(docs, '/snapshots');
+    for (const accountId of [
+      'acc_cash',
+      'acc_bank_main',
+      'acc_bank_savings',
+      'acc_bank_foreign',
+      'acc_securities',
+    ]) {
+      const months = snapshotDocs
+        .filter((s) => s.data.accountId === accountId)
+        .map((s) => s.id)
+        .sort();
+      expect(months, accountId).toEqual([
+        '2026-01',
+        '2026-02',
+        '2026-03',
+        '2026-04',
+        '2026-05',
+        '2026-06',
+        '2026-07',
+        '2026-08',
+        '2026-09',
+      ]);
+    }
+  });
+
+  it('derives each cash account snapshot from its own entries (reconciled chains)', () => {
+    const docs = buildQaSeedPlan(IDENTITY);
+    const snapshotDocs = docsUnder(docs, '/snapshots');
+    for (const accountId of ['acc_cash', 'acc_bank_main', 'acc_bank_savings', 'acc_bank_foreign']) {
+      const latest = snapshotDocs.find((s) => s.data.accountId === accountId && s.id === '2026-09');
+      expect(latest, accountId).toBeDefined();
+      expect((latest!.data.amount as number) >= 0).toBe(true);
+    }
+    // Foreign account freezes the remittance rate: 1,800 USD × 31.2 = 56,160.
+    const foreign = snapshotDocs.find((s) => s.data.accountId === 'acc_bank_foreign')!;
+    expect(foreign.data.originalAmount).toBe(1800);
+    expect(foreign.data.exchangeRate).toBe(31.2);
+    expect(foreign.data.amount).toBe(56160);
+  });
+
+  it('seeds nine months of leveraged brokerage holdings summing to the account snapshot', () => {
+    const docs = buildQaSeedPlan(IDENTITY);
+    const snapshotDocs = docsUnder(docs, '/snapshots');
+    for (const month of [
+      '2026-01',
+      '2026-02',
+      '2026-03',
+      '2026-04',
+      '2026-05',
+      '2026-06',
+      '2026-07',
+      '2026-08',
+      '2026-09',
+    ]) {
+      const securities = snapshotDocs.find(
+        (s) => s.data.accountId === 'acc_securities' && s.id === month,
+      );
+      expect(securities, month).toBeDefined();
+      const holdings = securities!.data.holdings as {
+        symbol: string;
+        marketValue: number;
+        leverage: number;
+      }[];
+      expect(holdings.length).toBeGreaterThan(0);
+      expect(
+        holdings.reduce((sum, h) => sum + h.marketValue, 0),
+        `${month} holdings vs snapshot`,
+      ).toBe(securities!.data.amount);
+      // Different leverage levels across the portfolio (issue #198 Q4).
+      expect(holdings.some((h) => h.leverage === 1)).toBe(true);
+      if (month >= '2026-05') expect(holdings.some((h) => h.leverage === 2)).toBe(true);
+    }
+  });
+
+  it('seeds the car loan lifecycle: drawdown, purchase, five payments (issue #198 Q6)', () => {
+    const docs = buildQaSeedPlan(IDENTITY);
+    const txns = docsUnder(docs, '/transactions');
+    const borrow = txns.find((t) => t.id === 'txn_borrow_car');
+    expect(borrow).toBeDefined();
+    expect(borrow!.data.amount).toBe(450000);
+    expect(borrow!.data.debtAccountId).toBe('debt_car_loan');
+    const purchase = txns.find((t) => t.id === 'txn_purchase_car');
+    expect(purchase!.data.amount).toBe(450000);
+
+    const payments = txns
+      .filter((t) => t.data.debtAccountId === 'debt_car_loan')
+      .filter((t) => (t.data.intentType as string) === 'DEBT_PAYMENT');
+    expect(payments.map((t) => t.id).sort()).toEqual([
+      'txn_cardebtpay_2026-05',
+      'txn_cardebtpay_2026-06',
+      'txn_cardebtpay_2026-07',
+      'txn_cardebtpay_2026-08',
+      'txn_cardebtpay_2026-09',
+    ]);
+
+    const snapshots = docsUnder(docs, '/debtAccounts/debt_car_loan/snapshots');
+    expect(snapshots).toHaveLength(5);
+    const closing = snapshots.find((s) => s.id === '2026-09')!;
+    expect((closing.data.closingBalance as number) > 0).toBe(true);
+    // Balance chain: closing = 450,000 minus the seeded principal repayments.
+    const principalPaid = snapshots.reduce((sum, s) => sum + (s.data.principalPaid as number), 0);
+    expect(closing.data.closingBalance).toBeCloseTo(450000 - principalPaid, 2);
+  });
+
+  it('tags every asset:cash entry with a seeded physical account (no untagged cash legs)', () => {
+    const docs = buildQaSeedPlan(IDENTITY);
+    const seededAccounts = new Set([
+      'acc_cash',
+      'acc_bank_main',
+      'acc_bank_savings',
+      'acc_bank_foreign',
+      'acc_securities',
+    ]);
+    for (const txn of docsUnder(docs, '/transactions')) {
+      for (const entry of txn.data.entries as { ledgerCode: string; accountId?: string }[]) {
+        if (entry.ledgerCode === 'asset:cash') {
+          expect(seededAccounts.has(entry.accountId ?? ''), `${txn.id} untagged asset:cash`).toBe(
+            true,
+          );
+        }
+      }
+    }
   });
 });

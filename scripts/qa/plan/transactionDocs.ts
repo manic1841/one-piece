@@ -9,8 +9,16 @@ import { type AllocationItem, AllocationSchema } from '@/domains/allocation/sche
 import { IntentType, LEDGER_CODES } from '@/domains/ledger/constants';
 import { type JournalEntryLine, TransactionSchema } from '@/domains/ledger/schemas';
 
+import { EXPENSE_SPECS } from './expenseSpecs';
 import {
+  ACC_BANK_FOREIGN,
+  ACC_BANK_MAIN,
+  ACC_BANK_SAVINGS,
+  ACC_CASH,
   type Builder,
+  CAR_LOAN_ID,
+  CAR_LOAN_PRINCIPAL,
+  CAR_PURCHASE_AMOUNT,
   type InternalTxn,
   SALARY_AMOUNT,
   SEED_WINDOW_END,
@@ -20,6 +28,7 @@ import {
   entryLedgerCodes,
   hh,
   monthRange,
+  usdTwdAmount,
   ym,
 } from './shared';
 
@@ -31,7 +40,7 @@ export const buildSalaryDocs = (b: Builder, txns: InternalTxn[]) => {
     const entries: JournalEntryLine[] = [
       {
         ledgerCode: LEDGER_CODES.ASSET_CASH,
-        accountId: 'acc_cash',
+        accountId: ACC_BANK_MAIN,
         debit: SALARY_AMOUNT,
         credit: 0,
       },
@@ -60,9 +69,11 @@ export const buildSalaryDocs = (b: Builder, txns: InternalTxn[]) => {
     });
 
     const items: AllocationItem[] = [
-      { projectId: 'proj_daily', percentage: 60, amount: 36_000 },
+      { projectId: 'proj_daily', percentage: 50, amount: 30_000 },
       { projectId: 'proj_housing', percentage: 25, amount: 15_000 },
-      { projectId: 'proj_leisure', percentage: 15, amount: 9_000 },
+      { projectId: 'proj_leisure', percentage: 10, amount: 6_000 },
+      { projectId: 'proj_travel', percentage: 8, amount: 4_800 },
+      { projectId: 'proj_education', percentage: 7, amount: 4_200 },
     ];
     emit(b, AllocationSchema, hh(identity, 'allocations'), id, {
       id,
@@ -78,152 +89,6 @@ export const buildSalaryDocs = (b: Builder, txns: InternalTxn[]) => {
     });
   }
 };
-
-const EXPENSE_SPECS: {
-  ymKey: string;
-  day: number;
-  desc: string;
-  project: string;
-  ledger: string;
-  amount: number;
-}[] = [
-  {
-    ymKey: '2026-04',
-    day: 8,
-    desc: '超市採買',
-    project: 'proj_daily',
-    ledger: LEDGER_CODES.EXPENSE_FOOD,
-    amount: 1_800,
-  },
-  {
-    ymKey: '2026-04',
-    day: 12,
-    desc: '捷運儲值',
-    project: 'proj_daily',
-    ledger: LEDGER_CODES.EXPENSE_TRANSPORTATION,
-    amount: 600,
-  },
-  {
-    ymKey: '2026-04',
-    day: 20,
-    desc: '飼料',
-    project: 'proj_pet',
-    ledger: 'expense:pets',
-    amount: 1_200,
-  },
-  {
-    ymKey: '2026-05',
-    day: 8,
-    desc: '超市採買',
-    project: 'proj_daily',
-    ledger: LEDGER_CODES.EXPENSE_FOOD,
-    amount: 1_800,
-  },
-  {
-    ymKey: '2026-05',
-    day: 12,
-    desc: '捷運儲值',
-    project: 'proj_daily',
-    ledger: LEDGER_CODES.EXPENSE_TRANSPORTATION,
-    amount: 600,
-  },
-  {
-    ymKey: '2026-05',
-    day: 18,
-    desc: '電影票',
-    project: 'proj_leisure',
-    ledger: LEDGER_CODES.EXPENSE_ENTERTAINMENT,
-    amount: 900,
-  },
-  {
-    ymKey: '2026-06',
-    day: 8,
-    desc: '超市採買',
-    project: 'proj_daily',
-    ledger: LEDGER_CODES.EXPENSE_FOOD,
-    amount: 1_800,
-  },
-  {
-    ymKey: '2026-06',
-    day: 12,
-    desc: '捷運儲值',
-    project: 'proj_daily',
-    ledger: LEDGER_CODES.EXPENSE_TRANSPORTATION,
-    amount: 600,
-  },
-  {
-    ymKey: '2026-06',
-    day: 22,
-    desc: '獸醫門診',
-    project: 'proj_pet',
-    ledger: 'expense:pets',
-    amount: 3_500,
-  },
-  {
-    ymKey: '2026-07',
-    day: 8,
-    desc: '超市採買',
-    project: 'proj_daily',
-    ledger: LEDGER_CODES.EXPENSE_FOOD,
-    amount: 1_800,
-  },
-  {
-    ymKey: '2026-07',
-    day: 12,
-    desc: '捷運儲值',
-    project: 'proj_daily',
-    ledger: LEDGER_CODES.EXPENSE_TRANSPORTATION,
-    amount: 600,
-  },
-  {
-    ymKey: '2026-07',
-    day: 26,
-    desc: '演唱會',
-    project: 'proj_leisure',
-    ledger: LEDGER_CODES.EXPENSE_ENTERTAINMENT,
-    amount: 2_400,
-  },
-  {
-    ymKey: '2026-08',
-    day: 8,
-    desc: '超市採買',
-    project: 'proj_daily',
-    ledger: LEDGER_CODES.EXPENSE_FOOD,
-    amount: 1_800,
-  },
-  {
-    ymKey: '2026-08',
-    day: 12,
-    desc: '捷運儲值',
-    project: 'proj_daily',
-    ledger: LEDGER_CODES.EXPENSE_TRANSPORTATION,
-    amount: 600,
-  },
-  {
-    ymKey: '2026-08',
-    day: 15,
-    desc: '零用錢支出',
-    project: 'proj_allowance',
-    ledger: LEDGER_CODES.EXPENSE_OTHER,
-    amount: 3_000,
-  },
-  {
-    ymKey: '2026-09',
-    day: 8,
-    desc: '超市採買',
-    project: 'proj_daily',
-    ledger: LEDGER_CODES.EXPENSE_FOOD,
-    amount: 1_800,
-  },
-  {
-    ymKey: '2026-09',
-    day: 12,
-    desc: '捷運儲值',
-    project: 'proj_daily',
-    ledger: LEDGER_CODES.EXPENSE_TRANSPORTATION,
-    amount: 600,
-  },
-];
 
 export const buildExpenseAndSpecialDocs = (b: Builder, txns: InternalTxn[]) => {
   const { identity } = b;
@@ -283,11 +148,66 @@ export const buildExpenseAndSpecialDocs = (b: Builder, txns: InternalTxn[]) => {
     ],
   );
 
-  // Securities purchase funded by cash.
+  // Securities purchases funded from the Taishin payroll account: the 0050
+  // add-on in March plus the leveraged/new positions in May and June.
   addTxn('txn_invest_2026_03', new Date(2026, 2, 15), IntentType.INVESTMENT, 20_000, '買進 0050', [
     { ledgerCode: LEDGER_CODES.ASSET_INVESTMENT, debit: 20_000, credit: 0 },
-    { ledgerCode: LEDGER_CODES.ASSET_CASH, accountId: 'acc_cash', debit: 0, credit: 20_000 },
+    { ledgerCode: LEDGER_CODES.ASSET_CASH, accountId: ACC_BANK_MAIN, debit: 0, credit: 20_000 },
   ]);
+
+  addTxn(
+    'txn_invest_2026_05',
+    new Date(2026, 4, 8),
+    IntentType.INVESTMENT,
+    8_000,
+    '買進 00675L（2x 槓桿）',
+    [
+      { ledgerCode: LEDGER_CODES.ASSET_INVESTMENT, debit: 8_000, credit: 0 },
+      { ledgerCode: LEDGER_CODES.ASSET_CASH, accountId: ACC_BANK_MAIN, debit: 0, credit: 8_000 },
+    ],
+  );
+
+  addTxn('txn_invest_2026_06', new Date(2026, 5, 15), IntentType.INVESTMENT, 10_000, '買進 00878', [
+    { ledgerCode: LEDGER_CODES.ASSET_INVESTMENT, debit: 10_000, credit: 0 },
+    { ledgerCode: LEDGER_CODES.ASSET_CASH, accountId: ACC_BANK_MAIN, debit: 0, credit: 10_000 },
+  ]);
+
+  // Car loan drawdown: cash vs loan liability (same shape as the mortgage borrow).
+  addTxn(
+    'txn_borrow_car',
+    new Date(2026, 3, 10),
+    IntentType.FINANCING,
+    CAR_LOAN_PRINCIPAL,
+    '車貸撥款－購車',
+    [
+      {
+        ledgerCode: LEDGER_CODES.ASSET_CASH,
+        accountId: ACC_BANK_MAIN,
+        debit: CAR_LOAN_PRINCIPAL,
+        credit: 0,
+      },
+      { ledgerCode: LEDGER_CODES.LIABILITY_LOAN, debit: 0, credit: CAR_LOAN_PRINCIPAL },
+    ],
+    { debtAccountId: CAR_LOAN_ID },
+  );
+
+  // Vehicle purchase: the drawn-down cash buys the car (family expense).
+  addTxn(
+    'txn_purchase_car',
+    new Date(2026, 3, 15),
+    IntentType.EXPENSE,
+    CAR_PURCHASE_AMOUNT,
+    '購車',
+    [
+      { ledgerCode: LEDGER_CODES.EXPENSE_VEHICLE, debit: CAR_PURCHASE_AMOUNT, credit: 0 },
+      {
+        ledgerCode: LEDGER_CODES.ASSET_CASH,
+        accountId: ACC_BANK_MAIN,
+        debit: 0,
+        credit: CAR_PURCHASE_AMOUNT,
+      },
+    ],
+  );
 
   // Historical project transfer: implementation paused (ADR-0042), legal legacy data.
   addTxn(
@@ -297,17 +217,53 @@ export const buildExpenseAndSpecialDocs = (b: Builder, txns: InternalTxn[]) => {
     5_000,
     '專案撥款：休閒 → 日常（歷史資料）',
     [
-      { ledgerCode: LEDGER_CODES.ASSET_CASH, debit: 5_000, credit: 0 },
-      { ledgerCode: LEDGER_CODES.ASSET_CASH, debit: 0, credit: 5_000 },
+      { ledgerCode: LEDGER_CODES.ASSET_CASH, accountId: ACC_CASH, debit: 5_000, credit: 0 },
+      { ledgerCode: LEDGER_CODES.ASSET_CASH, accountId: ACC_CASH, debit: 0, credit: 5_000 },
     ],
     { fromProjectId: 'proj_leisure', toProjectId: 'proj_daily' },
   );
 
   // Manual journal entry: cash count adjustment.
   addTxn('txn_manual_2026_05', new Date(2026, 4, 20), IntentType.MANUAL, 200, '現金盤點調整', [
-    { ledgerCode: LEDGER_CODES.ASSET_CASH, accountId: 'acc_cash', debit: 200, credit: 0 },
+    { ledgerCode: LEDGER_CODES.ASSET_CASH, accountId: ACC_CASH, debit: 200, credit: 0 },
     { ledgerCode: LEDGER_CODES.INCOME_REFUND, debit: 0, credit: 200 },
   ]);
+
+  // 2026 money-flow story (issue #198 Q1/Q8): salary lands in the Taishin
+  // payroll account, daily expenses split between card and cash, and no money
+  // ever moves between the household's own accounts. Savings (YuShan digital)
+  // and the foreign-currency account only receive external events.
+
+  // Lunar New Year red envelopes: the cash account's opening funding.
+  addTxn('txn_redenvelope_2026_02', new Date(2026, 1, 12), IntentType.INCOME, 30_000, '過年紅包', [
+    { ledgerCode: LEDGER_CODES.ASSET_CASH, accountId: ACC_CASH, debit: 30_000, credit: 0 },
+    { ledgerCode: LEDGER_CODES.INCOME_OTHER, debit: 0, credit: 30_000 },
+  ]);
+
+  // Year-end bonus: parked in the YuShan digital account, never touched.
+  addTxn('txn_bonus_2026_01', new Date(2026, 0, 20), IntentType.INCOME, 120_000, '年終獎金', [
+    { ledgerCode: LEDGER_CODES.ASSET_CASH, accountId: ACC_BANK_SAVINGS, debit: 120_000, credit: 0 },
+    { ledgerCode: LEDGER_CODES.INCOME_BONUS, debit: 0, credit: 120_000 },
+  ]);
+
+  // Overseas friends & family remittance: the foreign account's only event,
+  // landed in January so every snapshot freezes the same rate (issue #198 Q3/Q8).
+  addTxn(
+    'txn_fx_in_2026_01',
+    new Date(2026, 0, 6),
+    IntentType.INCOME,
+    usdTwdAmount(),
+    '海外親友匯款 USD 1,800 @ 31.2',
+    [
+      {
+        ledgerCode: LEDGER_CODES.ASSET_CASH,
+        accountId: ACC_BANK_FOREIGN,
+        debit: usdTwdAmount(),
+        credit: 0,
+      },
+      { ledgerCode: LEDGER_CODES.INCOME_OTHER, debit: 0, credit: usdTwdAmount() },
+    ],
+  );
 
   EXPENSE_SPECS.forEach((spec) => {
     const [y, m] = spec.ymKey.split('-').map(Number);
@@ -321,7 +277,7 @@ export const buildExpenseAndSpecialDocs = (b: Builder, txns: InternalTxn[]) => {
         { ledgerCode: spec.ledger, debit: spec.amount, credit: 0 },
         {
           ledgerCode: LEDGER_CODES.ASSET_CASH,
-          accountId: 'acc_cash',
+          accountId: spec.account,
           debit: 0,
           credit: spec.amount,
         },

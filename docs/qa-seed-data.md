@@ -17,24 +17,27 @@
 
 - 窗口固定 **2025-01 ～ 2026-09**：所有交易（transaction journal）必須落在窗口內，orchestrator 以 `assertJournalInsideSeedWindow` 守護，越界即 loud fail。
 - 資料密度不均勻是設計決策，不是缺陷：
-  - **2025**：每月薪水（21 筆薪水交易中的 12 筆）＋同 ID 分配，支撐退休收入流的 `sampleYear=2025` 導入。
-  - **2026**：日常支出流（2026-04 起）、房貸撥款（2026-01）與每月還款（2026-02 起）、投資與轉帳、帳戶快照、財務報表與關帳期間。
+  - **2025**：每月薪水（24 筆薪水交易中的 12 筆）＋同 ID 分配，支撐退休收入流的`sampleYear=2025` 導入。
+  - **2026**：多帳戶資金流（issue #198）——月薪入台新薪轉戶、日常支出分流（刷卡走薪轉戶、現金支出走現金帳戶）、年終獎金停玉山數位帳戶、海外親友匯款 USD 1,800 @ 31.2 停玉山外幣帳戶、房貸與車貸還款、投資（含槓桿 ETF）、帳戶快照、財務報表與關帳期間。
+- 帳戶之間不安排任何內部資金移動事件（提領、儲蓄轉入、換匯都不種，issue #198 Q8）；各帳戶只靠外部事件進出。Transaction 文件本身不記錄 accountId；帳戶資訊只存在 `entries[].accountId`，各帳戶快照由對應分錄推導。
 - 報表月份固定 `2026-07` ～ `2026-09` 三期。
 
 ## 3. 組裝管線與資料邊界
 
 依賴是單向管線，builder 之間互不 import；跨 builder 的可變狀態（交易 journal）由 orchestrator 持有傳遞。
 
-| 順序 | Builder           | 產出                                                                                         | 邊界                                                                           |
-| ---- | ----------------- | -------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
-| 1    | `staticDocs`      | projects、accounts、ledgerCodes、intent_mappings、allocationTemplates、portfolio、已結清信貸 | 全域設定文件；其他 builder 以 ID 引用                                          |
-| 2    | `transactionDocs` | 薪水交易+分配（窗口全期）、支出流、房貸撥款、投資、轉帳、手動分錄                            | 寫 INCOME/EXPENSE/TRANSFER 等一般交易與全部 Allocation；跨 domain 交易留在這裡 |
-| 3    | `accountDocs`     | 房貸還款交易、DebtSnapshots、DebtAccount、cash/securities AccountSnapshots                   | 也寫 DEBT_PAYMENT 交易；債務餘額經 debt payment calculator 推導（ADR-0015）    |
-| 4    | `projectDocs`     | Project settlement snapshots、Portfolio snapshots                                            | opening balances 從首月鏈結（ADR-0012）；僅報表月份持久化                      |
-| 5    | `retirementDocs`  | 退休計畫（無子集合）＋ incomeStreams/expenseCategories                                       | 薪資導入讀 2025 樣本；房貸導入讀種子還款                                       |
-| 6    | `reportDocs`      | 三份財務報表 × 報表月份、關帳期間矩陣                                                        | 報表經純 calculators 推導，hybrid equity 語意見 ADR-0019                       |
+| 順序 | Builder           | 產出                                                                                                                   | 邊界                                                                                     |
+| ---- | ----------------- | ---------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| 1    | `staticDocs`      | 8 專案、5 帳戶、ledgerCodes、intent_mappings、allocationTemplates、portfolio、已結清信貸                               | 全域設定文件；其他 builder 以 ID 引用                                                    |
+| 2    | `transactionDocs` | 薪水交易+分配（窗口全期）、支出流、房貸/車貸撥款與購車、投資（含槓桿 ETF）、外部收入（紅包/獎金/匯款）、轉帳、手動分錄 | 寫 INCOME/EXPENSE/TRANSFER/FINANCING 等一般交易與全部 Allocation；跨 domain 交易留在這裡 |
+| 3    | `accountDocs`     | 房貸/車貸還款交易、DebtSnapshots、DebtAccount、五帳戶 AccountSnapshots（含持股槓桿與外幣凍結匯率）                     | 也寫 DEBT_PAYMENT 交易；債務餘額經 debt payment calculator 推導（ADR-0015）              |
+| 4    | `projectDocs`     | Project settlement snapshots、Portfolio snapshots（含槓桿持股、月度申購現金流）                                        | opening balances 從首月鏈結（ADR-0012）；僅報表月份持久化                                |
+| 5    | `retirementDocs`  | 退休計畫（無子集合）＋ incomeStreams/expenseCategories                                                                 | 薪資導入讀 2025 樣本；房貸導入讀種子還款                                                 |
+| 6    | `reportDocs`      | 三份財務報表 × 報表月份、關帳期間矩陣                                                                                  | 報表經純 calculators 推導，hybrid equity 語意見 ADR-0019                                 |
 
-orchestrator 為 `scripts/qa/plan/index.ts`，`buildQaSeedPlan` 是唯一對外入口（seam test 直接 import 它）。
+orchestrator 為 `scripts/qa/plan/index.ts`，`buildQaSeedPlan` 是唯一對外入口
+（seam test 直接 import 它）。支出流的逐筆規格是純資料檔
+`scripts/qa/plan/expenseSpecs.ts`，由 `transactionDocs` 消費；其他 builder 之間互不 import。
 
 ## 4. 關帳期間矩陣
 
@@ -51,4 +54,4 @@ orchestrator 為 `scripts/qa/plan/index.ts`，`buildQaSeedPlan` 是唯一對外�
 
 ## 5. 測試
 
-Seam tests 在 [src/test/qaSeedPlan.test.ts](../src/test/qaSeedPlan.test.ts)：組合順序與跨 builder 一致性（確定性、薪水↔分配雙向連結、journal 平衡、所有 Transaction 文件落在窗口內）由 composed seam 守護；per-builder 文件數與鍵存在性不另測（emit 的 zod 驗證已即時守護 schema 漂移）。窗口不變式由 orchestrator 的 `assertJournalInsideSeedWindow` 在 seed 時守護。
+Seam tests 在 [src/test/qaSeedPlan.test.ts](../src/test/qaSeedPlan.test.ts)：組合順序與跨 builder 一致性（確定性、薪水↔分配雙向連結、journal 平衡、所有 Transaction 文件落在窗口內、所有 `asset:cash` 分錄必帶種子 accountId、五帳戶九個月快照、槓桿持股與市值的乘積關係、車貸生命週期）由 composed seam 守護；per-builder 文件數與鍵存在性不另測（emit 的 zod 驗證已即時守護 schema 漂移）。窗口不變式由 orchestrator 的 `assertJournalInsideSeedWindow` 在 seed 時守護。

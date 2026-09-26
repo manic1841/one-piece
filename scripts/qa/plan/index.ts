@@ -8,7 +8,7 @@
  */
 import { AllocationSchema } from '@/domains/allocation/schemas';
 
-import { buildAccountSnapshotDocs, buildMortgageDocs } from './accountDocs';
+import { buildAccountSnapshotDocs, buildCarLoanDocs, buildMortgageDocs } from './accountDocs';
 import { buildPortfolioSnapshotDocs, buildProjectSnapshotDocs } from './projectDocs';
 import { buildMonthlyCloseDocs, buildReportDocs } from './reportDocs';
 import { buildRetirementDocs } from './retirementDocs';
@@ -41,11 +41,12 @@ const buildQaSeedPlan = (identity: QaSeedIdentity): SeedDoc[] => {
   buildSalaryDocs(b, txns);
   buildExpenseAndSpecialDocs(b, txns);
   const mortgage = buildMortgageDocs(b, txns);
+  const carLoan = buildCarLoanDocs(b, txns);
   buildAccountSnapshotDocs(b, txns);
   buildProjectSnapshotDocs(b, txns, collectAllocations(b.docs));
-  buildPortfolioSnapshotDocs(b);
+  buildPortfolioSnapshotDocs(b, txns);
   buildRetirementDocs(b, mortgage);
-  buildReportDocs(b, txns, mortgage.closingByMonth);
+  buildReportDocs(b, txns, mortgage.closingByMonth, carLoan.closingByMonth);
   buildMonthlyCloseDocs(b);
 
   assertJournalInsideSeedWindow(txns);

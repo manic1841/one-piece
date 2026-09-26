@@ -13,7 +13,18 @@ import { CustomLedgerCodeSchema, IntentMappingSchema } from '@/domains/ledger/sc
 import { PortfolioSchema } from '@/domains/portfolio/schemas';
 import { ProjectSchema } from '@/domains/project/schemas';
 
-import { type Builder, audit, emit, hh } from './shared';
+import {
+  ACC_BANK_FOREIGN,
+  ACC_BANK_MAIN,
+  ACC_BANK_SAVINGS,
+  ACC_CASH,
+  ACC_SECURITIES,
+  type Builder,
+  FOREIGN_CURRENCY,
+  audit,
+  emit,
+  hh,
+} from './shared';
 
 export const STATIC_PROJECT_IDS = [
   'proj_daily',
@@ -21,12 +32,37 @@ export const STATIC_PROJECT_IDS = [
   'proj_leisure',
   'proj_pet',
   'proj_allowance',
+  'proj_travel',
+  'proj_education',
   'proj_legacy',
 ];
 
 export const STATIC_ACCOUNTS = [
-  { id: 'acc_cash', name: '現金帳戶', category: AccountCategory.CASH },
-  { id: 'acc_securities', name: '券商帳戶', category: AccountCategory.SECURITIES },
+  { id: ACC_CASH, name: '現金帳戶', category: AccountCategory.CASH, currency: CurrencyType.TWD },
+  {
+    id: ACC_BANK_MAIN,
+    name: '台新薪轉戶',
+    category: AccountCategory.BANK,
+    currency: CurrencyType.TWD,
+  },
+  {
+    id: ACC_BANK_SAVINGS,
+    name: '玉山數位帳戶',
+    category: AccountCategory.BANK,
+    currency: CurrencyType.TWD,
+  },
+  {
+    id: ACC_BANK_FOREIGN,
+    name: '玉山外幣帳戶',
+    category: AccountCategory.BANK,
+    currency: FOREIGN_CURRENCY,
+  },
+  {
+    id: ACC_SECURITIES,
+    name: '券商帳戶',
+    category: AccountCategory.SECURITIES,
+    currency: CurrencyType.TWD,
+  },
 ];
 
 export const buildStaticDocs = (b: Builder) => {
@@ -38,6 +74,8 @@ export const buildStaticDocs = (b: Builder) => {
     { id: 'proj_leisure', name: '休閒娛樂', isActive: true },
     { id: 'proj_pet', name: '毛孩開銷', isActive: true },
     { id: 'proj_allowance', name: '零用錢', isActive: true },
+    { id: 'proj_travel', name: '旅遊基金', isActive: true },
+    { id: 'proj_education', name: '教育基金', isActive: true },
     { id: 'proj_legacy', name: '已停用專案', isActive: false },
   ];
   projects.forEach((p, index) => {
@@ -56,7 +94,7 @@ export const buildStaticDocs = (b: Builder) => {
       id: a.id,
       name: a.name,
       category: a.category,
-      currency: CurrencyType.TWD,
+      currency: a.currency,
       order: index + 1,
       isActive: true,
       ...audit(identity),
@@ -88,9 +126,11 @@ export const buildStaticDocs = (b: Builder) => {
     ledgerCode: LEDGER_CODES.INCOME_SALARY,
     isDefault: true,
     items: [
-      { projectId: 'proj_daily', percentage: 60 },
+      { projectId: 'proj_daily', percentage: 50 },
       { projectId: 'proj_housing', percentage: 25 },
-      { projectId: 'proj_leisure', percentage: 15 },
+      { projectId: 'proj_leisure', percentage: 10 },
+      { projectId: 'proj_travel', percentage: 8 },
+      { projectId: 'proj_education', percentage: 7 },
     ],
     ...audit(identity),
   });
@@ -99,7 +139,7 @@ export const buildStaticDocs = (b: Builder) => {
     id: 'pf_core',
     name: '核心投資組合',
     securitiesAccountId: 'acc_securities',
-    bankAccountId: 'acc_cash',
+    bankAccountId: 'acc_bank_main',
     isActive: true,
     order: 1,
     ...audit(identity),
