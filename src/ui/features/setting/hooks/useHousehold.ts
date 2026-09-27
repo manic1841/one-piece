@@ -7,7 +7,7 @@ import { removeHouseholdMemberUseCase } from '@/application/household/use_cases/
 import { switchHouseholdUseCase } from '@/application/household/use_cases/switchHouseholdUseCase';
 import { updateHouseholdMemberRoleUseCase } from '@/application/household/use_cases/updateHouseholdMemberRoleUseCase';
 import { type AuthContext } from '@/application/types';
-import { type UserProfile } from '@/domains/user/types';
+import { type UserProfile } from '@/domains/auth/user/types';
 
 export function useHousehold() {
   const [loading, setLoading] = useState(false);

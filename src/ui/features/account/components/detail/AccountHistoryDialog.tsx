@@ -1,19 +1,14 @@
 import React, { useState } from 'react';
 
-import { type Account } from '@/domains/account/types/account';
-import { type AccountSnapshot } from '@/domains/account/schemas';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/ui/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/ui/components/ui/dialog';
+import { useAuthState } from '@/ui/contexts/useAuthState';
 import { useAccountCmds } from '@/ui/features/account/hooks/useAccountCmds';
 import { useAccountSnapshots } from '@/ui/features/account/hooks/useAccountSnapshots';
-import { useAuth } from '@/infra/contexts/useAuth';
+import { type Account, type AccountSnapshot } from '@/ui/features/account/viewmodels/account.vm';
+import { useConfirm } from '@/ui/features/app/confirm/useConfirm';
 
-import { AccountSnapshotTable } from './AccountSnapshotTable';
 import AccountSnapshotEditor from '../../pages/AccountSnapshotEditor';
+import { AccountSnapshotTable } from './AccountSnapshotTable';
 
 interface AccountHistoryDialogProps {
   account: Account;
@@ -26,15 +21,20 @@ export const AccountHistoryDialog: React.FC<AccountHistoryDialogProps> = ({
   isOpen,
   onClose,
 }) => {
-  const { userProfile } = useAuth();
+  const { userProfile } = useAuthState();
   const householdId = userProfile?.householdId || '';
   const { snapshots, reload } = useAccountSnapshots(householdId, account.id);
   const { deleteSnapshot } = useAccountCmds(householdId);
 
   const [editingSnapshot, setEditingSnapshot] = useState<AccountSnapshot | null>(null);
 
+  const { confirm } = useConfirm();
+
   const handleDelete = async (snapshotId: string) => {
-    if (window.confirm('確定要刪除這筆歷史結算紀錄嗎？')) {
+    const confirmed = await confirm({
+      title: 'Delete this settlement record?',
+    });
+    if (confirmed) {
       await deleteSnapshot(account.id, snapshotId);
       reload();
     }
@@ -57,6 +57,7 @@ export const AccountHistoryDialog: React.FC<AccountHistoryDialogProps> = ({
           <div className="mt-4">
             <AccountSnapshotTable
               snapshots={snapshots}
+              currency={account.currency}
               onEdit={handleEdit}
               onDelete={handleDelete}
             />

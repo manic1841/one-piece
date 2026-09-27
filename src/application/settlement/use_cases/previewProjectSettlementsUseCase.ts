@@ -2,7 +2,10 @@ import { householdPermissionService } from '@/application/household/householdPer
 import { type AuthContext } from '@/application/types';
 import { type ProjectSnapshotCreate } from '@/domains/project/schemas';
 
-import { buildProjectSettlementSnapshot, loadPeriodWideData } from './buildProjectSettlementSnapshot';
+import {
+  buildProjectSettlementSnapshot,
+  loadPeriodWideData,
+} from './buildProjectSettlementSnapshot';
 
 export interface PreviewProjectSettlementsRequest {
   householdId: string;

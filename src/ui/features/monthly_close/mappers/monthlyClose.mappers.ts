@@ -1,0 +1,169 @@
+import type { CompletenessActivity } from '@/application/settlement/use_cases/checkSettlementCompletenessUseCase';
+import type { CloseStageId, FinancialPeriod } from '@/domains/financial_period/schemas';
+import { isCascadeDemoted } from '@/domains/financial_period/stateMachine';
+import {
+  CLOSE_STAGE_LABELS,
+  CLOSE_STAGE_ORDER,
+  MONTHLY_CLOSE_LABELS,
+} from '@/ui/constants/monthlyClose';
+
+import type {
+  CloseStageEvidence,
+  CloseStageItemVM,
+  MonthlyClosePageVM,
+} from '../viewmodels/monthlyClose.vm';
+
+const STATUS_TEXT_MAP: Record<string, string> = {
+  OPEN: MONTHLY_CLOSE_LABELS.OPEN,
+  IN_PROGRESS: MONTHLY_CLOSE_LABELS.IN_PROGRESS,
+  NEEDS_REVIEW: MONTHLY_CLOSE_LABELS.NEEDS_REVIEW,
+  CLOSED: MONTHLY_CLOSE_LABELS.CLOSED,
+};
+
+export const mapPeriodToPageVM = (
+  period: FinancialPeriod | null,
+  yearMonth: string,
+): MonthlyClosePageVM => {
+  if (!period) {
+    return {
+      periodLabel: MONTHLY_CLOSE_LABELS.PERIOD_LABEL,
+      periodText: yearMonth,
+      status: 'NONE',
+      statusText: MONTHLY_CLOSE_LABELS.OPEN,
+      isPaused: false,
+      isClosed: false,
+      isCascadeDemoted: false,
+      isActive: false,
+      isStarted: false,
+      reviewSourceStageId: null,
+      reviewSourceLabel: null,
+      stages: [],
+      completedCount: 0,
+      totalCount: CLOSE_STAGE_ORDER.length,
+    };
+  }
+
+  const confirmedAtOf = (stageId: CloseStageId): Date | null => {
+    const at = period.stages[stageId]?.confirmedAt;
+    return at instanceof Date ? at : null;
+  };
+
+  const stages: CloseStageItemVM[] = CLOSE_STAGE_ORDER.map((stageId, index) => {
+    const stageState = period.stages[stageId];
+    const isCompleted = stageState?.status === 'COMPLETED';
+    // Derived staleness: a completed stage confirmed before a later completed
+    // stage needs reconfirmation after upstream data changes. No stored state.
+    const stageConfirmedAt = confirmedAtOf(stageId);
+    const isStale =
+      isCompleted &&
+      stageConfirmedAt !== null &&
+      CLOSE_STAGE_ORDER.slice(index + 1).some((laterId) => {
+        const laterAt = confirmedAtOf(laterId);
+        return laterAt !== null && laterAt < stageConfirmedAt;
+      });
+    return {
+      stageId,
+      label: CLOSE_STAGE_LABELS[stageId],
+      status: isCompleted ? 'COMPLETED' : 'PENDING',
+      isCompleted,
+      isReviewSource: period.reviewSourceStageId === stageId,
+      isStale,
+      confirmedByText: stageState?.confirmedBy ?? null,
+      confirmedAtText:
+        stageState?.confirmedAt instanceof Date
+          ? stageState.confirmedAt.toISOString().slice(0, 16).replace('T', ' ')
+          : null,
+    };
+  });
+
+  const completedCount = stages.filter((stage) => stage.isCompleted).length;
+
+  return {
+    periodLabel: MONTHLY_CLOSE_LABELS.PERIOD_LABEL,
+    periodText: period.yearMonth,
+    status: period.status,
+    statusText: STATUS_TEXT_MAP[period.status] ?? period.status,
+    isPaused: period.status === 'NEEDS_REVIEW',
+    isClosed: period.status === 'CLOSED',
+    isCascadeDemoted: isCascadeDemoted(period),
+    isActive: period.status === 'IN_PROGRESS' || period.status === 'NEEDS_REVIEW',
+    isStarted: true,
+    reviewSourceStageId: period.reviewSourceStageId ?? null,
+    reviewSourceLabel: period.reviewSourceStageId
+      ? (CLOSE_STAGE_LABELS[period.reviewSourceStageId as keyof typeof CLOSE_STAGE_LABELS] ??
+        period.reviewSourceStageId)
+      : null,
+    stages,
+    completedCount,
+    totalCount: CLOSE_STAGE_ORDER.length,
+  };
+};
+
+export const mapAnomaliesToEvidence = (anomalies: CompletenessActivity[]): CloseStageEvidence => ({
+  kind: 'COMPLETENESS_ANOMALIES',
+  transactionIssues: [],
+  zeroActivityNames: anomalies.map((activity) => activity.name),
+  cashFlowAdjustments: 0,
+  reportsPersisted: null,
+});
+
+export const mapTransactionIssuesToEvidence = (
+  issues: { transactionId: string; description: string; reason: string }[],
+): CloseStageEvidence => ({
+  kind: 'TRANSACTION_VALIDATION',
+  transactionIssues: issues,
+  zeroActivityNames: [],
+  cashFlowAdjustments: 0,
+  reportsPersisted: null,
+});
+
+export const mapAdjustmentCountToEvidence = (adjustments: number): CloseStageEvidence => ({
+  kind: 'CASH_FLOW_ADJUSTMENTS',
+  transactionIssues: [],
+  zeroActivityNames: [],
+  cashFlowAdjustments: adjustments,
+  reportsPersisted: null,
+});
+
+export const mapPersistenceToEvidence = (reportsPersisted: boolean): CloseStageEvidence => ({
+  kind: 'REPORT_PERSISTENCE',
+  transactionIssues: [],
+  zeroActivityNames: [],
+  cashFlowAdjustments: 0,
+  reportsPersisted,
+});
+
+export const NO_EVIDENCE: CloseStageEvidence = {
+  kind: 'NONE',
+  transactionIssues: [],
+  zeroActivityNames: [],
+  cashFlowAdjustments: 0,
+  reportsPersisted: null,
+};
+
+export const resolveEvidenceForStage = (
+  stageId: string,
+  inputs: {
+    anomalies: CompletenessActivity[];
+    transactionIssues: { transactionId: string; description: string; reason: string }[];
+    cashFlowAdjustment: number | null;
+    reportsPersisted: boolean | null;
+  },
+): CloseStageEvidence => {
+  switch (stageId) {
+    case 'TRANSACTION_VALIDATION':
+      return mapTransactionIssuesToEvidence(inputs.transactionIssues);
+    case 'COMPLETENESS_CHECK':
+      return mapAnomaliesToEvidence(inputs.anomalies);
+    case 'FINANCIAL_REPORTS':
+      return inputs.cashFlowAdjustment !== null
+        ? mapAdjustmentCountToEvidence(inputs.cashFlowAdjustment)
+        : NO_EVIDENCE;
+    case 'CLOSE_PERIOD':
+      return inputs.reportsPersisted !== null
+        ? mapPersistenceToEvidence(inputs.reportsPersisted)
+        : NO_EVIDENCE;
+    default:
+      return NO_EVIDENCE;
+  }
+};

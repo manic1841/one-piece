@@ -1,27 +1,11 @@
 import '@testing-library/jest-dom/vitest';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
 import { YearMonthPicker } from './YearMonthPicker';
 
-vi.mock('@/ui/components/ui/select', () => ({
-  Select: ({ value, onValueChange, children }: any) => (
-    <select
-      data-testid="month-select"
-      value={value}
-      onChange={(e) => onValueChange?.(e.target.value)}
-    >
-      {children}
-    </select>
-  ),
-  SelectTrigger: ({ id, children }: any) => <>{children || <span id={id} />}</>,
-  SelectValue: () => null,
-  SelectContent: ({ children }: any) => <>{children}</>,
-  SelectItem: ({ value, children }: any) => <option value={value}>{children}</option>,
-}));
-
 describe('YearMonthPicker', () => {
-  it('renders year and month controls in year-month mode', () => {
+  it('renders a button-style trigger in year-month mode', () => {
     const onYearChange = vi.fn();
     const onMonthChange = vi.fn();
 
@@ -34,29 +18,19 @@ describe('YearMonthPicker', () => {
       />,
     );
 
-    expect(screen.getByLabelText('年')).toBeInTheDocument();
-    expect(screen.getByText('月')).toBeInTheDocument();
-
-    fireEvent.change(screen.getByLabelText('年'), { target: { value: '2027' } });
-    expect(onYearChange).toHaveBeenCalledWith('2027');
-
-    fireEvent.change(screen.getByTestId('month-select'), { target: { value: '5' } });
-    expect(onMonthChange).toHaveBeenCalledWith('5');
+    const trigger = screen.getByRole('button');
+    expect(trigger).toHaveTextContent('MAR 2026');
+    expect(trigger).toHaveAttribute('aria-haspopup');
+    expect(screen.queryByLabelText('年')).not.toBeInTheDocument();
   });
 
-  it('renders only year control in year mode', () => {
+  it('renders a year-only trigger in year mode', () => {
     const onYearChange = vi.fn();
 
-    const { container } = render(
-      <YearMonthPicker mode="year" year={2026} onYearChange={onYearChange} yearLabel="年份" />,
-    );
+    render(<YearMonthPicker mode="year" year={2026} onYearChange={onYearChange} />);
 
-    expect(screen.getByLabelText('年份')).toBeInTheDocument();
-    expect(screen.queryByText('月')).not.toBeInTheDocument();
-    expect(screen.queryByTestId('month-select')).not.toBeInTheDocument();
-    expect(container.firstChild).toHaveClass('grid-cols-1');
-
-    fireEvent.change(screen.getByLabelText('年份'), { target: { value: '2028' } });
-    expect(onYearChange).toHaveBeenCalledWith('2028');
+    const trigger = screen.getByRole('button');
+    expect(trigger).toHaveTextContent('2026');
+    expect(trigger).toHaveAttribute('aria-haspopup');
   });
 });

@@ -154,7 +154,7 @@ export function aggregateBalanceSheetSnapshots(
             amount: v.amount,
           })),
         },
-        stock_gain: { label: '股票損益', total: stockGainTotal, items: [] },
+        stock_gain: { label: '股票報酬', total: stockGainTotal, items: [] },
         adjustment: { label: '調整', total: adjustmentTotal, items: [] },
       },
     },

@@ -1,16 +1,14 @@
 import {
   calculateGraceMonthlyPayment,
   isInGracePeriod,
+  parseDebtPaymentEntries,
 } from '@/domains/debt/debtPaymentCalculator';
-import { DEBT_TYPE_LABEL, type DebtAccount, type DebtType } from '@/domains/debt/schemas';
+import { type DebtAccount, type DebtSnapshot, type DebtType } from '@/domains/debt/schemas';
 import { type Transaction } from '@/domains/ledger/schemas';
+import { DebtTypeLabels } from '@/ui/constants/debt/label';
+import { formatCurrency, formatDate } from '@/ui/utils';
 
-const formatYmd = (date: Date): string => {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
-};
+export type { DebtAccount, DebtSnapshot, DebtType };
 
 const formatYearMonth = (date: Date | null): string => {
   if (!date) return '—';
@@ -38,20 +36,6 @@ const estimatePayoffDate = (account: DebtAccount): Date | null => {
   return date;
 };
 
-const getPrincipalInterest = (
-  transaction: Transaction,
-): {
-  principal: number;
-  interest: number;
-} => {
-  const principal =
-    transaction.entries.find((entry) => entry.ledgerCode.startsWith('liability:'))?.debit || 0;
-  const interest =
-    transaction.entries.find((entry) => entry.ledgerCode === 'expense:interest')?.debit || 0;
-
-  return { principal, interest };
-};
-
 export interface DebtAccountDisplayVM extends DebtAccount {
   payoffDate: Date | null;
   repaidPercent: number;
@@ -60,15 +44,6 @@ export interface DebtAccountDisplayVM extends DebtAccount {
   inGracePeriod: boolean;
   graceEndYearMonthText: string;
   monthlyDueAmount: number;
-}
-
-export interface DebtPaymentHistoryItemVM {
-  id: string;
-  dateText: string;
-  descriptionText: string;
-  principalText: string;
-  interestText: string;
-  totalText: string;
 }
 
 export const mapDebtAccountToDisplayVM = (
@@ -92,7 +67,7 @@ export const mapDebtAccountToDisplayVM = (
           )
         : 0,
     projectName,
-    typeLabel: DEBT_TYPE_LABEL[account.type as DebtType],
+    typeLabel: DebtTypeLabels[account.type as DebtType],
     inGracePeriod,
     graceEndYearMonthText:
       account.graceEndDate && inGracePeriod ? formatYearMonth(account.graceEndDate) : '',
@@ -102,17 +77,35 @@ export const mapDebtAccountToDisplayVM = (
   };
 };
 
+export interface DebtPaymentHistoryItemVM {
+  id: string;
+  dateText: string;
+  descriptionText: string;
+  principalText: string;
+  interestText: string;
+  totalText: string;
+}
+
+/**
+ * One repayment history row for the debt detail table. The principal/interest
+ * split is read back out of the transaction's entries by the domain's
+ * `parseDebtPaymentEntries` (the inverse of `buildDebtPaymentEntries`), so the
+ * rule has a single home and the table never re-derives it inline.
+ */
 export const mapDebtPaymentTransactionToHistoryVM = (
   transaction: Transaction,
+  options?: { linkedLedgerCode?: string | null },
 ): DebtPaymentHistoryItemVM => {
-  const split = getPrincipalInterest(transaction);
+  const split = parseDebtPaymentEntries(transaction.entries, options);
 
   return {
     id: transaction.id,
-    dateText: formatYmd(transaction.date),
-    descriptionText: transaction.description || '—',
-    principalText: `$${split.principal.toLocaleString()}`,
-    interestText: `$${split.interest.toLocaleString()}`,
-    totalText: `$${(transaction.amount || 0).toLocaleString()}`,
+    dateText: formatDate(transaction.date),
+    // `description` is the field that carries the payment note; the previous
+    // code read a non-existent `note` and so always showed the fallback.
+    descriptionText: transaction.description?.trim() || '還款',
+    principalText: formatCurrency(split.principal),
+    interestText: formatCurrency(split.interest),
+    totalText: formatCurrency(split.total),
   };
 };

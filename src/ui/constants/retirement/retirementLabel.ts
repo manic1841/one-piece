@@ -1,4 +1,4 @@
-import { RetirementIncomeImportSource, RetirementIncomeType } from '@/domains/retirement/types';
+import { RetirementIncomeType } from '@/domains/retirement/types';
 
 export const RetirementIncomeTypeLabel = {
   [RetirementIncomeType.SALARY]: '薪資',
@@ -14,8 +14,3 @@ export const RetirementIncomeTypeOptions = Object.entries(RetirementIncomeTypeLa
     label: value,
   }),
 );
-
-export const RetirementIncomeImportSourceLabel = {
-  [RetirementIncomeImportSource.MANUAL]: '手動',
-  [RetirementIncomeImportSource.TRANSACTION_ENTRIES]: '從交易分錄匯入',
-};

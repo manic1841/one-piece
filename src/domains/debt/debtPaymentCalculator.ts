@@ -1,9 +1,9 @@
+import { type DebtAccount } from '@/domains/debt/schemas';
 import { type JournalEntryLine } from '@/domains/ledger/schemas';
 
 export const DebtPaymentErrorCode = {
   INVALID_PAYMENT: 'INVALID_PAYMENT',
   PAYMENT_EXCEEDS_PRINCIPAL: 'PAYMENT_EXCEEDS_PRINCIPAL',
-  GRACE_PERIOD_PAYMENT_EXCEEDS_INTEREST: 'GRACE_PERIOD_PAYMENT_EXCEEDS_INTEREST',
 } as const;
 
 export type DebtPaymentErrorCode = (typeof DebtPaymentErrorCode)[keyof typeof DebtPaymentErrorCode];
@@ -11,10 +11,7 @@ export type DebtPaymentErrorCode = (typeof DebtPaymentErrorCode)[keyof typeof De
 export class DebtPaymentError extends Error {
   readonly code: DebtPaymentErrorCode;
 
-  constructor(
-    code: DebtPaymentErrorCode,
-    message: string,
-  ) {
+  constructor(code: DebtPaymentErrorCode, message: string) {
     super(`${code}: ${message}`);
     this.code = code;
     this.name = 'DebtPaymentError';
@@ -34,6 +31,10 @@ export interface DebtPaymentCalculationInput {
   paymentDate: Date;
   startDate: Date;
   graceEndDate?: Date | null;
+  /** Interest already booked for this month. The loan schedule charges a
+   * month's interest once; same-month payments only draw from what is left of
+   * that charge, so everything beyond it books as principal. */
+  interestAlreadyPaidThisMonth?: number;
 }
 
 export interface DebtPaymentCalculation extends DebtPaymentSplit {
@@ -96,10 +97,27 @@ export function calculateGraceMonthlyPayment(
   return calculateMonthlyInterest(currentBalance, interestRate);
 }
 
-export function calculateDebtPayment(
-  input: DebtPaymentCalculationInput,
-): DebtPaymentCalculation {
-  const { currentBalance, interestRate, totalPayment, paymentDate, startDate, graceEndDate } = input;
+export function getEffectiveMonthlyDue(account: DebtAccount, referenceDate: Date): number {
+  if (isInGracePeriod(account.startDate, referenceDate, account.graceEndDate)) {
+    return calculateGraceMonthlyPayment(account.currentBalance, account.interestRate);
+  }
+  return account.monthlyPayment;
+}
+
+export function getEffectiveMonthlyDueForBalance(
+  account: DebtAccount,
+  balance: number,
+  referenceDate: Date,
+): number {
+  if (isInGracePeriod(account.startDate, referenceDate, account.graceEndDate)) {
+    return calculateGraceMonthlyPayment(balance, account.interestRate);
+  }
+  return account.monthlyPayment;
+}
+
+export function calculateDebtPayment(input: DebtPaymentCalculationInput): DebtPaymentCalculation {
+  const { currentBalance, interestRate, totalPayment, paymentDate, startDate, graceEndDate } =
+    input;
 
   if (!Number.isFinite(totalPayment) || totalPayment <= 0) {
     throw new DebtPaymentError(
@@ -128,16 +146,13 @@ export function calculateDebtPayment(
     );
   }
 
-  const applicableInterest = calculateMonthlyInterest(currentBalance, interestRate);
+  const monthlyInterest = calculateMonthlyInterest(currentBalance, interestRate);
+  const alreadyPaid = roundAmount(input.interestAlreadyPaidThisMonth ?? 0);
+  const applicableInterest = Math.max(0, monthlyInterest - alreadyPaid);
   const inGracePeriod = isInGracePeriod(startDate, paymentDate, graceEndDate);
 
-  if (inGracePeriod && payment > applicableInterest) {
-    throw new DebtPaymentError(
-      DebtPaymentErrorCode.GRACE_PERIOD_PAYMENT_EXCEEDS_INTEREST,
-      `grace-period payment cannot exceed applicable interest (${applicableInterest})`,
-    );
-  }
-
+  // Unified split: within the grace period an above-interest payment books the
+  // excess as principal (early repayment); the balance reduces as recorded.
   if (payment <= applicableInterest) {
     return {
       principal: 0,
@@ -151,7 +166,7 @@ export function calculateDebtPayment(
   }
 
   const principal = roundAmount(payment - applicableInterest);
-  if (!inGracePeriod && principal > currentBalance) {
+  if (principal > currentBalance) {
     throw new DebtPaymentError(
       DebtPaymentErrorCode.PAYMENT_EXCEEDS_PRINCIPAL,
       `calculated principal (${principal}) exceeds remaining principal (${currentBalance})`,
@@ -195,17 +210,17 @@ export function calculateSplit(
 /**
  * Build the journal entry lines for a DEBT_PAYMENT transaction.
  *
- * Supports two scenarios:
+ * The split is decided by whether principal is positive:
  *
- * 1. Normal repayment (no grace period or after grace period):
+ * 1. Principal > 0 (normal repayment, or an above-interest grace-period
+ *    payment booked as early principal repayment):
  *    - Dr. {linkedLedgerCode}  principal
  *    - Dr. expense:interest    interest
  *    - Cr. asset:cash          totalPayment
  *
- * 2. Grace period (within grace period, interest-only):
+ * 2. Principal = 0 (interest-only payment):
  *    - Dr. expense:interest    interest
- *    - Cr. asset:cash          totalPayment (same as interest)
- *    - Note: Principal remains 0, no liability reduction
+ *    - Cr. asset:cash          totalPayment
  *
  * @param linkedLedgerCode The liability ledger code (e.g., 'liability:mortgage')
  * @param calculation Validated principal/interest split and grace-period state
@@ -217,16 +232,7 @@ export function buildDebtPaymentEntries(
   calculation: DebtPaymentCalculation,
   totalPayment: number,
 ): JournalEntryLine[] {
-  const { principal, interest, inGracePeriod } = calculation;
-
-  if (inGracePeriod) {
-    const entries: JournalEntryLine[] = [
-      { ledgerCode: 'expense:interest', debit: interest, credit: 0 },
-      { ledgerCode: 'asset:cash', debit: 0, credit: totalPayment },
-    ];
-
-    return entries.filter((e) => e.debit > 0 || e.credit > 0);
-  }
+  const { principal, interest } = calculation;
 
   const entries: JournalEntryLine[] = [
     { ledgerCode: linkedLedgerCode, debit: principal, credit: 0 },
@@ -235,6 +241,54 @@ export function buildDebtPaymentEntries(
   ];
 
   return entries.filter((e) => e.debit > 0 || e.credit > 0);
+}
+
+export interface DebtPaymentEntrySplit {
+  /** Principal repaid — the debit booked against the loan's liability code. */
+  principal: number;
+  /** Interest paid — the debit booked against `expense:interest`. */
+  interest: number;
+  /** Everything this transaction debited (principal + interest + any other debit). */
+  total: number;
+}
+
+export interface ParseDebtPaymentEntriesOptions {
+  /** The loan's current liability ledger code, matched first and exactly. */
+  linkedLedgerCode?: string | null;
+}
+
+/**
+ * Read the principal/interest split back out of a DEBT_PAYMENT transaction's
+ * entries — the inverse of `buildDebtPaymentEntries`.
+ *
+ * The liability debit is matched by `linkedLedgerCode` first, exactly, and falls
+ * back to the `liability:` prefix: a loan's code can be edited, and a repayment
+ * booked before the edit still carries the old code. Matching only the prefix
+ * would pick the first of two liability lines; matching only the current code
+ * would report 0 principal for the pre-edit repayments. Both wrong answers are
+ * worse than the fallback.
+ *
+ * A grace-period repayment has no liability line at all, so principal is 0 and
+ * the interest debit carries the whole payment — which is the correct split.
+ * An above-interest grace-period payment has a liability line and reads back
+ * like any normal repayment.
+ */
+export function parseDebtPaymentEntries(
+  entries: JournalEntryLine[],
+  options?: ParseDebtPaymentEntriesOptions,
+): DebtPaymentEntrySplit {
+  const linkedLedgerCode = options?.linkedLedgerCode ?? null;
+
+  const liabilityEntry =
+    (linkedLedgerCode
+      ? entries.find((entry) => entry.ledgerCode === linkedLedgerCode)
+      : undefined) ?? entries.find((entry) => entry.ledgerCode.startsWith('liability:'));
+
+  return {
+    principal: liabilityEntry?.debit ?? 0,
+    interest: entries.find((entry) => entry.ledgerCode === 'expense:interest')?.debit ?? 0,
+    total: entries.reduce((sum, entry) => sum + entry.debit, 0),
+  };
 }
 
 /**

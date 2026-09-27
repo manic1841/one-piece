@@ -1,5 +1,5 @@
 import { type AuthContext } from '@/application/types';
-import { RoleEnum } from '@/domains/auth/role';
+import { RoleEnum } from '@/domains/household/role';
 import { accountRepository } from '@/infra/repositories/accountRepository';
 import { accountSnapshotRepository } from '@/infra/repositories/accountSnapshotRepository';
 import { allocationRepository } from '@/infra/repositories/allocationRepository';

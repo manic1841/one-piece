@@ -1,10 +1,10 @@
 import React from 'react';
 
-import { useAuth } from '@/infra/contexts/useAuth';
+import { useAuthState } from '@/ui/contexts/useAuthState';
 import PortfolioList from '@/ui/features/portfolio/components/PortfolioList';
 
 const Portfolios: React.FC = () => {
-  const { userProfile } = useAuth();
+  const { userProfile } = useAuthState();
 
   if (!userProfile?.householdId) {
     return <div>Loading...</div>;

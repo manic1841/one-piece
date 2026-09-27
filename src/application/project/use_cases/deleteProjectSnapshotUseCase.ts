@@ -1,6 +1,6 @@
-import { projectSnapshotRepository } from '@/infra/repositories/projectSnapshotRepository';
 import { householdPermissionService } from '@/application/household/householdPermissionService';
 import { type AuthContext } from '@/application/types';
+import { projectSnapshotRepository } from '@/infra/repositories/projectSnapshotRepository';
 
 export interface DeleteProjectSnapshotRequest {
   householdId: string;
@@ -12,7 +12,11 @@ export interface DeleteProjectSnapshotRequest {
 export class DeleteProjectSnapshotUseCase {
   async execute(request: DeleteProjectSnapshotRequest): Promise<void> {
     const { householdId, projectId, snapshotId, auth } = request;
-    await householdPermissionService.assertWritePermission(householdId, auth.uid, auth.isGlobalAdmin);
+    await householdPermissionService.assertWritePermission(
+      householdId,
+      auth.uid,
+      auth.isGlobalAdmin,
+    );
     return projectSnapshotRepository.delete([householdId, projectId, snapshotId]);
   }
 }

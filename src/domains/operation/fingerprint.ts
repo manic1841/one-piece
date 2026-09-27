@@ -1,5 +1,5 @@
 export const DEBT_PAYMENT_OPERATION_TYPE = 'DEBT_PAYMENT';
-export const DEBT_PAYMENT_FINGERPRINT_VERSION = 1;
+export const DEBT_PAYMENT_FINGERPRINT_VERSION = 2;
 export const TRANSACTION_WITH_ALLOCATION_OPERATION_TYPE = 'TRANSACTION_WITH_ALLOCATION';
 export const TRANSACTION_WITH_ALLOCATION_FINGERPRINT_VERSION = 1;
 
@@ -11,6 +11,10 @@ export interface DebtPaymentFingerprintInput {
   paymentDate: Date;
   description?: string;
   explicitProjectId?: string | null;
+  /** Opening balance the payment books against, so a later-month reconfirm
+   * re-books against the current balance chain instead of replaying a stale
+   * result. */
+  openingBalance?: number;
 }
 
 export interface TransactionWithAllocationFingerprintInput {
@@ -64,6 +68,7 @@ const toCanonicalPayload = (input: DebtPaymentFingerprintInput) => ({
   canonicalPaymentDate: toCanonicalPaymentDate(input.paymentDate),
   normalizedDescription: normalizeDescription(input.description),
   explicitProjectId: input.explicitProjectId ?? null,
+  openingBalance: input.openingBalance ?? null,
 });
 
 export async function createDebtPaymentFingerprint(

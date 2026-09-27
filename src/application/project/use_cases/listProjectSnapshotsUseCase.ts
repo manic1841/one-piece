@@ -1,4 +1,5 @@
-import { orderBy, limit as firestoreLimit, type QueryConstraint } from 'firebase/firestore';
+import { type QueryConstraint, limit as firestoreLimit, orderBy } from 'firebase/firestore';
+
 import { type ProjectSnapshot } from '@/domains/project/schemas';
 import { projectSnapshotRepository } from '@/infra/repositories/projectSnapshotRepository';
 
@@ -16,12 +17,12 @@ export class ListProjectSnapshotsUseCase {
       const snap = await projectSnapshotRepository.get([householdId, projectId, yearMonth]);
       return snap ? [snap] : [];
     }
-    
+
     const constraints: QueryConstraint[] = [orderBy('year', 'desc'), orderBy('month', 'desc')];
     if (maxLimit) {
       constraints.push(firestoreLimit(maxLimit));
     }
-    
+
     return projectSnapshotRepository.list([householdId, projectId], constraints);
   }
 }

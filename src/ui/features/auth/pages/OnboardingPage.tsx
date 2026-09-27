@@ -2,17 +2,17 @@ import React from 'react';
 
 import { LogOut } from 'lucide-react';
 
-import { useOnboarding } from '@/ui/features/auth/hooks/useOnboarding';
 import { Button } from '@/ui/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/ui/card';
 import { Input } from '@/ui/components/ui/input';
 import { Label } from '@/ui/components/ui/label';
+import { useOnboarding } from '@/ui/features/auth/hooks/useOnboarding';
 
 const Onboarding: React.FC = () => {
   const { input, setInput, loading, error, handleSubmit, handleLogout } = useOnboarding();
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
+    <div className="min-h-screen bg-muted flex flex-col items-center justify-center p-4">
       <Card className="w-full max-w-md">
         <CardHeader>
           <div className="flex justify-between items-center">

@@ -1,0 +1,15 @@
+import { type UserProfileCreate } from '@/domains/auth/user/types';
+import { userRepository } from '@/infra/repositories/userRepository';
+
+export interface CreateUserProfileRequest {
+  profile: UserProfileCreate;
+}
+
+export class CreateUserProfileUseCase {
+  async execute(request: CreateUserProfileRequest): Promise<string> {
+    const { profile } = request;
+    return await userRepository.create([], profile, 'system', undefined, profile.uid);
+  }
+}
+
+export const createUserProfileUseCase = new CreateUserProfileUseCase();

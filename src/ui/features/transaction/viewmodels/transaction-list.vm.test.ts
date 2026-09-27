@@ -61,7 +61,7 @@ describe('transaction-list.vm', () => {
     expect(vm.monthKey).toBe('2026-03');
     expect(vm.sortTimestamp).toBe(new Date('2026-03-15T00:00:00.000Z').getTime());
     expect(vm.signedAmount).toBe(-1200);
-    expect(vm.amountText).toBe('$1,200');
+    expect(vm.amountText).toBe('NT$1,200');
     expect(vm.isPositive).toBe(false);
     expect(vm.hasCashLedger).toBe(true);
   });
@@ -85,7 +85,7 @@ describe('transaction-list.vm', () => {
     expect(vm.categoryKey).toBe('salary');
     expect(vm.categoryLabel).toBe('薪資');
     expect(vm.signedAmount).toBe(3500);
-    expect(vm.amountText).toBe('$3,500');
+    expect(vm.amountText).toBe('NT$3,500');
     expect(vm.isPositive).toBe(true);
     expect(vm.hasCashLedger).toBe(false);
   });

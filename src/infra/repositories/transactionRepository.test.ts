@@ -30,9 +30,7 @@ describe('transactionRepository.getByIds — chunking', () => {
 
   it('chunks IDs by 30 (Firestore in limit)', async () => {
     const ids = Array.from({ length: 65 }, (_, i) => `tx-${i}`);
-    const listSpy = vi
-      .spyOn(transactionRepository, 'list')
-      .mockResolvedValue([]);
+    const listSpy = vi.spyOn(transactionRepository, 'list').mockResolvedValue([]);
 
     await transactionRepository.getByIds('household-1', ids);
 
@@ -42,9 +40,7 @@ describe('transactionRepository.getByIds — chunking', () => {
 
   it('uses a single query for 30 or fewer IDs', async () => {
     const ids = Array.from({ length: 30 }, (_, i) => `tx-${i}`);
-    const listSpy = vi
-      .spyOn(transactionRepository, 'list')
-      .mockResolvedValue([]);
+    const listSpy = vi.spyOn(transactionRepository, 'list').mockResolvedValue([]);
 
     await transactionRepository.getByIds('household-1', ids);
 

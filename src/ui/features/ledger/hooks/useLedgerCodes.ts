@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
 
 import { listAllLedgerCodesUseCase } from '@/application/ledger/use_cases/listAllLedgerCodesUseCase';
-import { useAuth } from '@/infra/contexts/useAuth';
 import { getUnifiedLedgerCodeLabel } from '@/ui/constants/transaction';
-import { useAuthContext } from '@/ui/hooks/useAuthContext';
+import { useAuthState } from '@/ui/contexts/useAuthState';
+import { useAuthIdentity } from '@/ui/hooks/useAuthIdentity';
+import { useLoadingTask } from '@/ui/hooks/useLoadingTask';
 
 export interface LedgerCodeItem {
   code: string;
@@ -14,36 +15,39 @@ export interface LedgerCodeItem {
 }
 
 export const useLedgerCodes = (includeInactive = false) => {
-  const { userProfile } = useAuth();
-  const auth = useAuthContext();
+  const { userProfile } = useAuthState();
+  const auth = useAuthIdentity();
   const householdId = userProfile?.householdId;
   const [codes, setCodes] = useState<LedgerCodeItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { loading, run } = useLoadingTask({ initiallyLoading: true });
 
   const fetchCodes = useCallback(async () => {
-    if (!householdId) {
-      setLoading(false);
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const entries = await listAllLedgerCodesUseCase.execute({
-        householdId,
-        includeInactive,
-        auth,
-        labelResolver: getUnifiedLedgerCodeLabel,
-      });
-      setCodes(entries);
-    } catch (error) {
-      console.error('Error fetching ledger codes:', error);
-    } finally {
-      setLoading(false);
-    }
-  }, [auth, householdId, includeInactive]);
+    // The no-household guard belongs inside the task: `initiallyLoading` is
+    // released by *initiating* a run, so every path must initiate one.
+    await run(
+      async () =>
+        householdId
+          ? listAllLedgerCodesUseCase.execute({
+              householdId,
+              includeInactive,
+              auth,
+              labelResolver: getUnifiedLedgerCodeLabel,
+            })
+          : [],
+      {
+        writeBack: (result) => {
+          if (result.ok) {
+            setCodes(result.value);
+          } else {
+            console.error('Error fetching ledger codes:', result.error);
+          }
+        },
+      },
+    );
+  }, [auth, householdId, includeInactive, run]);
 
   useEffect(() => {
-    fetchCodes();
+    void fetchCodes();
   }, [fetchCodes]);
 
   const getLabel = useCallback(

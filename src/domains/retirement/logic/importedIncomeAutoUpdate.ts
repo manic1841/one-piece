@@ -9,15 +9,13 @@ export type ImportedIncomeSyncTarget = RetirementIncomeSource & {
 
 export const getLastFullYear = (today: Date): number => today.getFullYear() - 1;
 
+// Plan-level Auto Update is the single switch; the sync targets are streams
+// that carry import statistics (issue #133).
 export const isImportedIncomeSyncTarget = (
   income: RetirementIncomeSource,
 ): income is ImportedIncomeSyncTarget => {
   return (
-    income.importedFrom === 'transactionEntries' &&
-    income.incomeCalculationMode === 'IMPORTED' &&
-    income.autoUpdate === true &&
-    !!income.calculatedFrom?.ledgerCode &&
-    typeof income.calculatedFrom?.sampleYear === 'number'
+    !!income.calculatedFrom?.ledgerCode && typeof income.calculatedFrom?.sampleYear === 'number'
   );
 };
 

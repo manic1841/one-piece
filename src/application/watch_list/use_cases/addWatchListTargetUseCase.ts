@@ -14,7 +14,11 @@ export class AddWatchListTargetUseCase {
   async execute(request: AddWatchListTargetRequest): Promise<void> {
     const { householdId, auth, userEmail, target } = request;
 
-    await householdPermissionService.assertWritePermission(householdId, auth.uid, auth.isGlobalAdmin);
+    await householdPermissionService.assertWritePermission(
+      householdId,
+      auth.uid,
+      auth.isGlobalAdmin,
+    );
 
     await watchListRepository.addTarget(householdId, target, userEmail);
   }

@@ -2,10 +2,10 @@ import React from 'react';
 
 import { Plus, Trash2 } from 'lucide-react';
 
-import type { Holding } from '@/domains/account/schemas';
 import { Button } from '@/ui/components/ui/button';
 import { Input } from '@/ui/components/ui/input';
 import { Label } from '@/ui/components/ui/label';
+import type { Holding } from '@/ui/features/account/viewmodels/accountSnapshot.vm';
 import type { AccountSnapshotFormVM } from '@/ui/features/account/viewmodels/accountSnapshot.vm';
 
 interface AccountHoldingProps {
@@ -22,7 +22,7 @@ export const AccountHolding: React.FC<AccountHoldingProps> = ({
   onUpdateHolding,
 }) => {
   return (
-    <div className="space-y-3 border rounded-md p-4 bg-slate-50">
+    <div className="space-y-3 border rounded-md p-4 bg-muted">
       <div className="flex justify-between items-center">
         <Label>Holdings</Label>
         <Button type="button" variant="outline" size="sm" onClick={onAddHolding}>
@@ -58,15 +58,6 @@ export const AccountHolding: React.FC<AccountHoldingProps> = ({
                 onChange={(e) => onUpdateHolding(index, 'name', e.target.value)}
                 placeholder="Apple Inc."
                 className="h-8 text-xs"
-              />
-            </div>
-            <div className="sm:col-span-1 col-span-2">
-              <Label className="text-xs">Qty</Label>
-              <Input
-                type="number"
-                value={holding.quantity}
-                onChange={(e) => onUpdateHolding(index, 'quantity', e.target.value)}
-                className="h-8 text-xs px-1"
               />
             </div>
             <div className="sm:col-span-3 col-span-6">

@@ -1,69 +1,186 @@
-import React from 'react';
+import React, { useMemo, useState } from 'react';
 
-import { Download, Landmark, ListOrdered, Plus, Upload } from 'lucide-react';
+import { Plus } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
+import { PageHeader } from '@/ui/components/PageHeader';
+import { GripHandle, SortableListScope } from '@/ui/components/sortable/SortableListScope';
 import { Button } from '@/ui/components/ui/button';
-import { useAccountListController } from '@/ui/features/account/hooks/useAccountListController';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/ui/components/ui/table';
+import { AccountCategorySectionTitles } from '@/ui/constants/account/label';
+import {
+  AccountCategory,
+  type AccountWithSnapshot,
+} from '@/ui/features/account/viewmodels/account.vm';
+import { useSortableRow } from '@/ui/hooks/useSortableList';
+import { formatCurrency } from '@/ui/utils';
+import { cn } from '@/ui/utils/cn';
 
-import { AccountHistoryDialog } from '../components/detail/AccountHistoryDialog';
-import { AccountCard } from '../components/list/AccountCard';
+import { useAccountListController } from '../hooks/useAccountListController';
 import AccountForm from './AccountForm';
-import AccountSnapshotEditor from './AccountSnapshotEditor';
+
+const CATEGORY_ORDER: AccountCategory[] = [
+  AccountCategory.CASH,
+  AccountCategory.BANK,
+  AccountCategory.SECURITIES,
+];
+
+const SECTION_TITLES = AccountCategorySectionTitles;
+
+interface AccountRowVM {
+  id: string;
+  name: string;
+  currency: string;
+  balanceText: string;
+  asOfText: string;
+  isActive: boolean;
+}
+
+const formatPeriod = (snapshot: AccountWithSnapshot['snapshot']): string => {
+  if (!snapshot) return '—';
+  return `${snapshot.year}-${snapshot.month.toString().padStart(2, '0')}`;
+};
+
+const toRowVM = (account: AccountWithSnapshot): AccountRowVM => ({
+  id: account.id,
+  name: account.name,
+  currency: account.currency,
+  balanceText: formatCurrency(account.snapshot?.amount ?? 0),
+  asOfText: formatPeriod(account.snapshot),
+  isActive: account.isActive !== false,
+});
+
+interface SortableAccountRowProps {
+  row: AccountRowVM;
+  onSelect: (id: string) => void;
+}
+
+const SortableAccountRow: React.FC<SortableAccountRowProps> = ({ row, onSelect }) => {
+  const { setNodeRef, setActivatorNodeRef, attributes, listeners, rowStyle, isDragging } =
+    useSortableRow(row.id);
+
+  return (
+    <TableRow
+      ref={setNodeRef}
+      onClick={() => onSelect(row.id)}
+      interactive
+      className={cn('cursor-pointer', isDragging && 'opacity-50')}
+      style={rowStyle}
+      data-testid={`account-row-${row.id}`}
+    >
+      <TableCell className="w-10 pr-0">
+        <GripHandle
+          label={`Reorder ${row.name}`}
+          testId={`account-grip-${row.id}`}
+          attributes={attributes}
+          listeners={listeners}
+          activatorRef={setActivatorNodeRef}
+          className={row.isActive ? '' : 'opacity-60'}
+        />
+      </TableCell>
+      <TableCell className={row.isActive ? '' : 'text-muted-foreground'}>
+        {row.name}
+        <span className="ml-2 font-mono text-[10px] text-muted-foreground">{row.currency}</span>
+      </TableCell>
+      <TableCell className="text-right font-mono tabular-nums">{row.balanceText}</TableCell>
+      <TableCell className="text-right font-mono text-[11px] tabular-nums text-muted-foreground">
+        {row.asOfText}
+      </TableCell>
+    </TableRow>
+  );
+};
+
+const AccountSection: React.FC<{
+  title: string;
+  rows: AccountRowVM[];
+  onSelect: (id: string) => void;
+  onReorder: (next: AccountRowVM[]) => void;
+}> = ({ title, rows, onSelect, onReorder }) => (
+  <section className="space-y-3">
+    <p className="font-mono text-[11px] tracking-widest text-muted-foreground uppercase">{title}</p>
+    {/* DndContext renders aria-live divs, so it must wrap the table
+        rather than sit inside tbody (invalid HTML). */}
+    <SortableListScope items={rows} onReorder={onReorder}>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead className="w-10" />
+            <TableHead>Account</TableHead>
+            <TableHead className="text-right">Ending Balance</TableHead>
+            <TableHead className="text-right">As of</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {rows.map((row) => (
+            <SortableAccountRow key={row.id} row={row} onSelect={onSelect} />
+          ))}
+        </TableBody>
+      </Table>
+    </SortableListScope>
+  </section>
+);
 
 const AccountList: React.FC = () => {
+  const navigate = useNavigate();
   const {
     accounts,
     localAccounts,
     loadingAccounts,
     showForm,
     setShowForm,
-    isReorderMode,
-    setIsReorderMode,
-    draggedAccountId,
-    dragOverAccountId,
-    editingAccount,
-    setEditingAccount,
-    snapshotAccountId,
-    setSnapshotAccountId,
-    historyAccountId,
-    setHistoryAccountId,
-    fileInputRef,
-    importing,
-    togglingAccountId,
-    exportToCSV,
     handleCreate,
-    handleUpdate,
-    handleImport,
-    handleDragStart,
-    handleDragEnter,
-    handleDrop,
-    handleDragEnd,
-    saveOrder,
-    cancelReorderMode,
-    closeSnapshotEditor,
-    closeHistoryDialog,
-    handleToggleActive,
+    handleReorder,
   } = useAccountListController();
 
-  const [showInactive, setShowInactive] = React.useState(false);
+  const [showInactive, setShowInactive] = useState(false);
 
-  const activeAccounts = localAccounts.filter((account) => account.isActive !== false);
-  const inactiveAccounts = localAccounts.filter((account) => account.isActive === false);
-  const visibleAccounts = isReorderMode
-    ? localAccounts
-    : showInactive
-      ? [...activeAccounts, ...inactiveAccounts]
-      : activeAccounts;
+  const visibleAccounts = useMemo(() => {
+    return localAccounts
+      .filter((account) => showInactive || account.isActive !== false)
+      .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+  }, [localAccounts, showInactive]);
 
-  if (showForm || editingAccount) {
+  const orderedBase = useMemo(
+    () => [...localAccounts].sort((a, b) => (a.order ?? 0) - (b.order ?? 0)),
+    [localAccounts],
+  );
+
+  const grouped = useMemo(() => {
+    const map = new Map<AccountCategory, AccountRowVM[]>();
+    for (const category of CATEGORY_ORDER) {
+      map.set(category, []);
+    }
+    for (const account of visibleAccounts) {
+      const rows = map.get(account.category);
+      if (rows) {
+        rows.push(toRowVM(account));
+      }
+    }
+    return map;
+  }, [visibleAccounts]);
+
+  const totalBalance = useMemo(
+    () =>
+      visibleAccounts
+        .filter((account) => account.isActive !== false)
+        .reduce((sum, account) => sum + (account.snapshot?.amount ?? 0), 0),
+    [visibleAccounts],
+  );
+
+  if (showForm) {
     return (
       <div className="max-w-2xl mx-auto py-8">
         <AccountForm
-          initialData={editingAccount}
-          onSubmit={editingAccount ? handleUpdate : handleCreate}
+          onSubmit={handleCreate}
           onCancel={() => {
             setShowForm(false);
-            setEditingAccount(null);
           }}
         />
       </div>
@@ -71,132 +188,74 @@ const AccountList: React.FC = () => {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900">帳戶管理</h2>
-          <p className="text-gray-500">
-            {isReorderMode ? '拖拉卡片調整順序，完成後儲存變更' : '管理您的銀行、券商與現金帳戶'}
-          </p>
-          {!isReorderMode && (
-            <div className="mt-2 flex items-center gap-3 text-xs text-slate-500">
-              <span>啟用中 {activeAccounts.length} 筆</span>
-              <button
-                type="button"
-                className="underline underline-offset-2 hover:text-slate-700"
-                onClick={() => setShowInactive((prev) => !prev)}
-              >
-                {showInactive ? '隱藏停用帳戶' : `顯示停用帳戶 (${inactiveAccounts.length})`}
-              </button>
-            </div>
-          )}
-        </div>
-        <div className="flex gap-2">
-          {isReorderMode ? (
-            <>
-              <Button onClick={saveOrder}>儲存順序</Button>
-              <Button variant="ghost" onClick={cancelReorderMode}>
-                取消
-              </Button>
-            </>
-          ) : (
-            <>
-              <input
-                type="file"
-                ref={fileInputRef}
-                onChange={handleImport}
-                accept=".csv"
-                className="hidden"
-              />
-              <Button variant="outline" onClick={exportToCSV} className="gap-2">
-                <Download size={18} />
-                匯出
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => fileInputRef.current?.click()}
-                className="gap-2"
-                disabled={importing}
-              >
-                <Upload size={18} />
-                {importing ? '匯入中...' : '匯入'}
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => setIsReorderMode(true)}
-                className="gap-2"
-                disabled={localAccounts.length < 2}
-              >
-                <ListOrdered size={18} />
-                排序
-              </Button>
-              <Button onClick={() => setShowForm(true)} className="gap-2">
-                <Plus size={18} />
-                新增帳戶
-              </Button>
-            </>
-          )}
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {visibleAccounts.map((account) => (
-          <AccountCard
-            key={account.id}
-            account={account}
-            isReorderMode={isReorderMode}
-            isDragging={draggedAccountId === account.id}
-            isDragOver={dragOverAccountId === account.id}
-            toggling={togglingAccountId === account.id}
-            onEdit={setEditingAccount}
-            onToggleActive={handleToggleActive}
-            onDragStart={handleDragStart}
-            onDragEnter={handleDragEnter}
-            onDrop={handleDrop}
-            onDragEnd={handleDragEnd}
-            onOpenSnapshot={setSnapshotAccountId}
-            onOpenHistory={setHistoryAccountId}
-          />
-        ))}
-      </div>
-
-      {!loadingAccounts &&
-        activeAccounts.length === 0 &&
-        inactiveAccounts.length > 0 &&
-        !showInactive && (
-          <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
-            目前沒有啟用中的帳戶。可點擊「顯示停用帳戶」後重新啟用。
+    <div className="space-y-8">
+      <PageHeader
+        title="帳戶管理"
+        description="管理您的銀行、券商與現金帳戶"
+        meta={
+          <div className="mt-2 flex items-center gap-3 text-xs text-muted-foreground">
+            <span>啟用中 {visibleAccounts.filter((a) => a.isActive !== false).length} 筆</span>
+            <button
+              type="button"
+              className="underline underline-offset-2 transition-[color,background-color,transform] duration-fast ease-out-quint hover:text-foreground active:scale-[0.97]"
+              onClick={() => setShowInactive((prev) => !prev)}
+            >
+              {showInactive ? '隱藏停用' : '顯示停用'}
+            </button>
           </div>
-        )}
+        }
+        actions={
+          <div className="flex gap-2">
+            <Button onClick={() => setShowForm(true)} className="gap-2">
+              <Plus size={18} />
+              新增帳戶
+            </Button>
+          </div>
+        }
+      />
+
+      <div className="flex items-baseline justify-between">
+        <p className="font-mono text-[11px] tracking-widest text-muted-foreground uppercase">
+          TOTAL BALANCE
+        </p>
+        <p className="font-mono text-2xl tabular-nums text-foreground">
+          {formatCurrency(totalBalance)}
+        </p>
+      </div>
 
       {!loadingAccounts && accounts.length === 0 && (
-        <div className="text-center py-20 bg-gray-50 rounded-2xl border-2 border-dashed border-gray-200">
-          <div className="text-gray-400 mb-4 flex justify-center">
-            <Landmark size={48} strokeWidth={1} />
-          </div>
-          <h3 className="text-lg font-medium text-gray-900">目前沒有帳戶</h3>
-          <p className="text-gray-500 mt-1">點擊「新增帳戶」按鈕開始管理您的資產</p>
+        <div className="rounded border border-dashed border-border bg-muted px-4 py-12 text-center">
+          <h3 className="font-medium text-foreground">目前沒有帳戶</h3>
+          <p className="mt-1 text-sm text-muted-foreground">點擊「新增帳戶」按鈕開始管理您的資產</p>
           <Button onClick={() => setShowForm(true)} variant="outline" className="mt-6">
             新增我的第一個帳戶
           </Button>
         </div>
       )}
 
-      {snapshotAccountId && (
-        <AccountSnapshotEditor
-          account={localAccounts.find((a) => a.id === snapshotAccountId)!}
-          isOpen={true}
-          onClose={closeSnapshotEditor}
-        />
-      )}
-
-      {historyAccountId && (
-        <AccountHistoryDialog
-          account={localAccounts.find((a) => a.id === historyAccountId)!}
-          isOpen={true}
-          onClose={closeHistoryDialog}
-        />
-      )}
+      {CATEGORY_ORDER.map((category) => {
+        const rows = grouped.get(category) ?? [];
+        if (rows.length === 0) return null;
+        return (
+          <AccountSection
+            key={category}
+            title={SECTION_TITLES[category] ?? 'OTHER'}
+            rows={rows}
+            onSelect={(id) => navigate(`/accounts/${id}`)}
+            onReorder={(orderedRows) => {
+              const sectionIds = new Set(rows.map((row) => row.id));
+              let sectionCursor = 0;
+              const reordered = orderedBase.map((account) => {
+                if (!sectionIds.has(account.id)) return account;
+                const row = orderedRows[sectionCursor++];
+                const match = orderedBase.find((item) => item.id === row.id);
+                return match ?? account;
+              });
+              handleReorder(reordered);
+            }}
+          />
+        );
+      })}
     </div>
   );
 };

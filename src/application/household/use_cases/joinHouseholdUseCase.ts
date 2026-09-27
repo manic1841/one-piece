@@ -1,5 +1,5 @@
-import { updateUserProfileUseCase } from '@/application/user/use_cases/updateUserProfileUseCase';
-import { type UserProfile } from '@/domains/user/types';
+import { updateUserProfileUseCase } from '@/application/auth/use_cases/updateUserProfileUseCase';
+import { type UserProfile } from '@/domains/auth/user/types';
 import { HouseholdNotFoundError, InvalidHouseholdInputError } from '@/domains/household/errors';
 
 import { getHouseholdByNameUseCase } from './getHouseholdByNameUseCase';

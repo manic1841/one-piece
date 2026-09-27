@@ -1,9 +1,26 @@
 import { describe, expect, it } from 'vitest';
 
+import { type Transaction } from '@/domains/ledger/schemas';
 import {
   mapDebtAccountToDisplayVM,
   mapDebtPaymentTransactionToHistoryVM,
 } from '@/ui/features/debt/viewmodels/debtDisplay.vm';
+
+const buildTransaction = (overrides: Partial<Transaction> = {}): Transaction => ({
+  id: 'tx-1',
+  date: new Date('2026-05-15T00:00:00'),
+  createdBy: 'u',
+  createdAt: new Date('2026-05-15T00:00:00'),
+  updatedBy: 'u',
+  updatedAt: new Date('2026-05-15T00:00:00'),
+  intentType: 'DEBT_PAYMENT',
+  entries: [
+    { ledgerCode: 'liability:mortgage', debit: 1100, credit: 0 },
+    { ledgerCode: 'expense:interest', debit: 100, credit: 0 },
+    { ledgerCode: 'asset:cash', debit: 0, credit: 1200 },
+  ],
+  ...overrides,
+});
 
 describe('debtDisplay.vm', () => {
   it('maps debt account to display vm with computed fields', () => {
@@ -40,32 +57,21 @@ describe('debtDisplay.vm', () => {
     expect(vm.payoffDate).not.toBeNull();
   });
 
-  it('maps debt payment transaction to history vm', () => {
-    const vm = mapDebtPaymentTransactionToHistoryVM({
-      id: 'tx-1',
-      date: new Date('2026-03-15'),
-      description: '房貸還款',
-      intentType: 'DEBT_PAYMENT',
-      amount: 32000,
-      debtAccountId: 'debt-1',
-      projectId: null,
-      allocationId: null,
-      createdBy: 'u',
-      updatedBy: 'u',
-      createdAt: new Date('2026-03-15'),
-      updatedAt: new Date('2026-03-15'),
-      ledgerCodes: ['liability:mortgage', 'expense:interest', 'asset:cash'],
-      entries: [
-        { ledgerCode: 'liability:mortgage', debit: 30000, credit: 0 },
-        { ledgerCode: 'expense:interest', debit: 2000, credit: 0 },
-        { ledgerCode: 'asset:cash', debit: 0, credit: 32000 },
-      ],
-    } as never);
+  it('maps a repayment transaction to a history row using its description', () => {
+    const vm = mapDebtPaymentTransactionToHistoryVM(
+      buildTransaction({ description: '房貸 A 2026-05 還款' }),
+      { linkedLedgerCode: 'liability:mortgage' },
+    );
 
-    expect(vm.dateText).toBe('2026-03-15');
-    expect(vm.descriptionText).toBe('房貸還款');
-    expect(vm.principalText).toBe('$30,000');
-    expect(vm.interestText).toBe('$2,000');
-    expect(vm.totalText).toBe('$32,000');
+    expect(vm.descriptionText).toBe('房貸 A 2026-05 還款');
+    expect(vm.principalText).toBe('NT$1,100');
+    expect(vm.interestText).toBe('NT$100');
+    expect(vm.totalText).toBe('NT$1,200');
+  });
+
+  it('falls back to the default description when the transaction has none', () => {
+    const vm = mapDebtPaymentTransactionToHistoryVM(buildTransaction());
+
+    expect(vm.descriptionText).toBe('還款');
   });
 });

@@ -75,9 +75,7 @@ const transactionWithAllocationInput = {
 
 describe('createTransactionWithAllocationFingerprint', () => {
   it('normalizes description and time within the same calendar date', async () => {
-    const first = await createTransactionWithAllocationFingerprint(
-      transactionWithAllocationInput,
-    );
+    const first = await createTransactionWithAllocationFingerprint(transactionWithAllocationInput);
     const second = await createTransactionWithAllocationFingerprint({
       ...transactionWithAllocationInput,
       transaction: {
@@ -91,9 +89,7 @@ describe('createTransactionWithAllocationFingerprint', () => {
   });
 
   it('changes when an operation-affecting transaction or allocation input changes', async () => {
-    const base = await createTransactionWithAllocationFingerprint(
-      transactionWithAllocationInput,
-    );
+    const base = await createTransactionWithAllocationFingerprint(transactionWithAllocationInput);
     const changed = await Promise.all([
       createTransactionWithAllocationFingerprint({
         ...transactionWithAllocationInput,

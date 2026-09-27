@@ -1,11 +1,11 @@
-import {
-  RetirementPlanCommandError,
-  RetirementPlanCommandErrorCode,
-  RETIREMENT_PLAN_TRANSACTION_WRITE_LIMIT,
-  estimateRetirementPlanWriteCount,
-} from '@/domains/retirement/retirementPlanErrors';
 import { householdPermissionService } from '@/application/household/householdPermissionService';
 import { type AuthContext } from '@/application/types';
+import {
+  RETIREMENT_PLAN_TRANSACTION_WRITE_LIMIT,
+  RetirementPlanCommandError,
+  RetirementPlanCommandErrorCode,
+  estimateRetirementPlanWriteCount,
+} from '@/domains/retirement/retirementPlanErrors';
 import { retirementRepository } from '@/infra/repositories/retirementRepository';
 
 interface DeleteRetirementPlanRequest {
@@ -43,8 +43,7 @@ export class DeleteRetirementPlanUseCase {
     } catch (error: unknown) {
       if (error instanceof RetirementPlanCommandError) throw error;
 
-      const message =
-        error instanceof Error ? error.message : 'unknown transaction failure';
+      const message = error instanceof Error ? error.message : 'unknown transaction failure';
       throw new RetirementPlanCommandError(
         RetirementPlanCommandErrorCode.TRANSACTION_FAILED,
         message,

@@ -63,12 +63,12 @@ class SyncImportedIncomeSourcesUseCase {
           .reduce((sum, entry) => sum + (entry.credit || 0) - (entry.debit || 0), 0);
 
         const monthlyAverage = totalAmount / 12;
-        const nextBaseAmount = totalAmount > 0 ? totalAmount : income.baseAmount;
+        const nextCurrentAnnual = totalAmount > 0 ? totalAmount : income.currentAnnual;
 
         hasChanges = true;
         return {
           ...income,
-          baseAmount: nextBaseAmount,
+          currentAnnual: nextCurrentAnnual,
           calculatedFrom: {
             ...income.calculatedFrom,
             sampleYear: targetSampleYear,

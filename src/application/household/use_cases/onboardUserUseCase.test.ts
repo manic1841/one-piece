@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { type UserProfile } from '@/domains/auth/user/types';
 import { HouseholdNotFoundError, InvalidHouseholdInputError } from '@/domains/household/errors';
-import { type UserProfile } from '@/domains/user/types';
 
 vi.mock('./joinHouseholdUseCase', () => ({
   joinHouseholdUseCase: {
@@ -15,7 +15,7 @@ vi.mock('./createHouseholdUseCase', () => ({
   },
 }));
 
-vi.mock('@/application/user/use_cases/updateUserProfileUseCase', () => ({
+vi.mock('@/application/auth/use_cases/updateUserProfileUseCase', () => ({
   updateUserProfileUseCase: {
     execute: vi.fn(),
   },
@@ -96,12 +96,10 @@ describe('OnboardUserUseCase', () => {
     const { joinHouseholdUseCase } = await import('./joinHouseholdUseCase');
     const { createHouseholdUseCase } = await import('./createHouseholdUseCase');
     const { updateUserProfileUseCase } = await import(
-      '@/application/user/use_cases/updateUserProfileUseCase'
+      '@/application/auth/use_cases/updateUserProfileUseCase'
     );
 
-    vi.mocked(joinHouseholdUseCase.execute).mockRejectedValue(
-      new HouseholdNotFoundError(),
-    );
+    vi.mocked(joinHouseholdUseCase.execute).mockRejectedValue(new HouseholdNotFoundError());
     vi.mocked(createHouseholdUseCase.execute).mockResolvedValue('new-household-id');
 
     await onboardUserUseCase.execute({
@@ -136,9 +134,7 @@ describe('OnboardUserUseCase', () => {
     const { joinHouseholdUseCase } = await import('./joinHouseholdUseCase');
     const { createHouseholdUseCase } = await import('./createHouseholdUseCase');
 
-    vi.mocked(joinHouseholdUseCase.execute).mockRejectedValue(
-      new InvalidHouseholdInputError(),
-    );
+    vi.mocked(joinHouseholdUseCase.execute).mockRejectedValue(new InvalidHouseholdInputError());
     vi.mocked(createHouseholdUseCase.execute).mockResolvedValue('new-household-id');
 
     await onboardUserUseCase.execute({

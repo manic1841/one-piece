@@ -1,38 +1,35 @@
 import { describe, expect, it } from 'vitest';
 
-import { NAV_ITEMS, getPrimaryNavItems, getSecondaryNavItems } from './navigation';
+import { NAVIGATOR_ITEMS, NAV_ITEMS } from './navigation';
 
 describe('navigation', () => {
-  it('derives four primary tabs and one secondary group from a single list', () => {
-    expect(getPrimaryNavItems()).toHaveLength(4);
-    expect(getSecondaryNavItems()).toHaveLength(5);
-    expect(getPrimaryNavItems().length + getSecondaryNavItems().length).toBe(NAV_ITEMS.length);
-  });
-
-  it('keeps Dashboard, Projects, Accounts and Reports as primary tabs', () => {
-    expect(getPrimaryNavItems().map((item) => item.to)).toEqual([
+  it('keeps the single source list of every app destination', () => {
+    expect(NAV_ITEMS.map((item) => item.to)).toEqual([
       '/',
       '/projects',
       '/accounts',
       '/reports',
-    ]);
-  });
-
-  it('collects Transactions, Retirement, Portfolios, Debt and Settings in the more sheet', () => {
-    expect(getSecondaryNavItems().map((item) => item.to)).toEqual([
+      '/close',
       '/transactions',
       '/retirement',
       '/portfolios',
       '/debt',
       '/settings',
     ]);
+    expect(NAV_ITEMS).toHaveLength(10);
   });
 
-  it('does not duplicate a destination across primary and secondary groups', () => {
-    const primary = new Set(getPrimaryNavItems().map((item) => item.to));
-    const secondary = new Set(getSecondaryNavItems().map((item) => item.to));
-    const overlap = [...primary].filter((to) => secondary.has(to));
-
-    expect(overlap).toEqual([]);
+  it('derives the navigator list as every destination except Dashboard and Settings', () => {
+    expect(NAVIGATOR_ITEMS.map((item) => item.to)).toEqual([
+      '/projects',
+      '/accounts',
+      '/reports',
+      '/close',
+      '/transactions',
+      '/retirement',
+      '/portfolios',
+      '/debt',
+    ]);
+    expect(NAVIGATOR_ITEMS).toHaveLength(8);
   });
 });

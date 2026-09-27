@@ -16,6 +16,10 @@ export interface SettlementReadiness {
   year: number;
   month: number;
   isReady: boolean;
+  totalAccounts: number;
+  totalPortfolios: number;
+  totalDebts: number;
+  totalProjects: number;
   unsettledAccounts: Account[];
   unsettledPortfolios: Portfolio[];
   unsettledDebts: DebtAccount[];
@@ -113,6 +117,10 @@ export class GetSettlementReadinessUseCase {
       year,
       month,
       isReady: totalUnsettled === 0,
+      totalAccounts: activeAccounts.length,
+      totalPortfolios: activePortfolios.length,
+      totalDebts: activeDebts.length,
+      totalProjects: activeProjects.length,
       unsettledAccounts,
       unsettledPortfolios,
       unsettledDebts,

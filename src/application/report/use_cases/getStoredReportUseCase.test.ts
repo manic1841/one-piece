@@ -2,10 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { reportRepository } from '@/infra/repositories/reportRepository';
 
-import {
-  type StoredReportKind,
-  getStoredReportUseCase,
-} from './getStoredReportUseCase';
+import { type StoredReportKind, getStoredReportUseCase } from './getStoredReportUseCase';
 
 vi.mock('@/infra/repositories/reportRepository', () => ({
   reportRepository: { getReport: vi.fn() },

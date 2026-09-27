@@ -49,7 +49,21 @@ describe('previewDebtSettlementsUseCase', () => {
 
     vi.mocked(debtSnapshotRepository.getSnapshot)
       .mockResolvedValueOnce(null)
-      .mockResolvedValueOnce({ yearMonth: '2026-03' } as never);
+      .mockResolvedValueOnce({
+        yearMonth: '2026-03',
+        openingBalance: 320000,
+        principalPaid: 8000,
+        interestPaid: 2000,
+        totalPaid: 10000,
+        closingBalance: 300000,
+      } as never);
+    // debt-1 has no current snapshot, so the previous month is read for its opening balance.
+    vi.mocked(debtSnapshotRepository.getSnapshot).mockImplementation(async (...args) => {
+      const yearMonth = args[2] as string | undefined;
+      if (yearMonth === '2026-02')
+        return { yearMonth: '2026-02', closingBalance: 4_950_000 } as never;
+      return null;
+    });
 
     const result = await previewDebtSettlementsUseCase.execute({
       householdId: 'household-1',
@@ -65,22 +79,32 @@ describe('previewDebtSettlementsUseCase', () => {
       {
         debtAccountId: 'debt-1',
         debtAccountName: 'Mortgage',
-        openingBalance: 5000000,
+        openingBalance: 4_950_000,
         hasRepaymentRecord: true,
         repaymentCount: 2,
         repaymentAmount: 60000,
         hasSnapshot: false,
         willCreateSnapshot: true,
+        snapshotValues: undefined,
       },
       {
         debtAccountId: 'debt-2',
         debtAccountName: 'Car Loan',
-        openingBalance: 300000,
+        // A current snapshot exists, so the opening balance is the snapshot's
+        // frozen opening value (spec 195 fallback order), not the closing one.
+        openingBalance: 320000,
         hasRepaymentRecord: false,
         repaymentCount: 0,
         repaymentAmount: 0,
         hasSnapshot: true,
         willCreateSnapshot: false,
+        snapshotValues: {
+          openingBalance: 320000,
+          principalPaid: 8000,
+          interestPaid: 2000,
+          totalPaid: 10000,
+          closingBalance: 300000,
+        },
       },
     ]);
   });

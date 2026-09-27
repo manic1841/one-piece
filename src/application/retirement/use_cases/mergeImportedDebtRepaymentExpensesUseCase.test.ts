@@ -31,12 +31,10 @@ const createPlan = (): RetirementPlan => ({
     {
       id: 'income-1',
       name: 'Salary',
-      importedFrom: 'manual',
-      incomeCalculationMode: 'FIXED',
       type: RetirementIncomeType.SALARY,
       startYear: 2026,
       endYear: 2060,
-      baseAmount: 120000,
+      currentAnnual: 120000,
       growthRate: 2,
     },
   ],
@@ -48,8 +46,7 @@ const createPlan = (): RetirementPlan => ({
       type: RetirementExpenseType.DEBT_PAYMENT,
       includesPrincipal: true,
       interestOnly: false,
-      calculationMode: 'FIXED',
-      baseAmount: 12000,
+      currentAnnual: 12000,
       growthRate: 0,
       retirementMultiplier: 1,
       startYear: 2026,
@@ -72,8 +69,7 @@ describe('mergeImportedDebtRepaymentExpensesUseCase', () => {
         type: RetirementExpenseType.DEBT_PAYMENT,
         includesPrincipal: true,
         interestOnly: false,
-        calculationMode: 'FIXED',
-        baseAmount: 18000,
+        currentAnnual: 18000,
         growthRate: 0,
         retirementMultiplier: 1,
         startYear: 2026,
@@ -91,7 +87,7 @@ describe('mergeImportedDebtRepaymentExpensesUseCase', () => {
     expect(result.expenses).toHaveLength(1);
     expect(result.expenses[0].id).toBe('expense-debt-1');
     expect(result.expenses[0].name).toBe('Card A 還款 (Updated)');
-    expect(result.expenses[0].baseAmount).toBe(18000);
+    expect(result.expenses[0].currentAnnual).toBe(18000);
   });
 
   it('appends expenses when debt account does not exist', () => {
@@ -105,8 +101,7 @@ describe('mergeImportedDebtRepaymentExpensesUseCase', () => {
         type: RetirementExpenseType.DEBT_PAYMENT,
         includesPrincipal: true,
         interestOnly: false,
-        calculationMode: 'FIXED',
-        baseAmount: 24000,
+        currentAnnual: 24000,
         growthRate: 0,
         retirementMultiplier: 1,
         startYear: 2026,

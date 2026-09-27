@@ -1,24 +1,15 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
 
-import { type DebtAccount, type DebtType } from '@/domains/debt/schemas';
-import { type LoanCalcResult, calculateLoan } from '@/ui/features/debt/utils/loanCalculator';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { type UseFormReturn, useForm, useWatch } from 'react-hook-form';
 
-export interface DebtFormValues {
-  name: string;
-  type: DebtType;
-  repaymentType: 'equal_payment';
-  originalAmount: string;
-  currentBalance: string;
-  interestRate: string;
-  startDate: string; // ISO date string YYYY-MM-DD
-  endDate: string;
-  graceEndDate: string; // ISO date string YYYY-MM-DD or empty if no grace period
-  disbursementDate: string; // ISO date string YYYY-MM-DD
-  disbursementDescription: string;
-  monthlyPayment: string;
-  linkedProjectId: string;
-  note: string;
-}
+import { type DebtAccount } from '@/domains/debt/schemas';
+
+import { type LoanCalcResult, calculateLoan } from '../utils/loanCalculator';
+import { type DebtAccountFormVM, DebtAccountFormVMSchema } from '../viewmodels/debtAccountForm.vm';
+
+/** Field values are strings (native inputs); the schema coerces at its boundary. */
+export type DebtFormValues = DebtAccountFormVM;
 
 const emptyForm: DebtFormValues = {
   name: '',
@@ -77,98 +68,102 @@ function tryCalc(values: DebtFormValues): LoanCalcResult | null {
 }
 
 export interface DebtAccountFormHook {
+  /** The RHF form; the component binds fields through it. */
+  form: UseFormReturn<DebtFormValues>;
   values: DebtFormValues;
   calcResult: LoanCalcResult | null;
   isManualPayment: boolean;
   isCreateMode: boolean;
-  errors: Partial<Record<keyof DebtFormValues, string>>;
-  setField: (field: keyof DebtFormValues, value: string) => void;
   setValidationErrors: (next: Partial<Record<keyof DebtFormValues, string>>) => void;
   resetCalc: () => void;
 }
 
+/**
+ * Controller for the debt form (ADR-0064).
+ *
+ * RHF owns the **editable** field state only. Everything derived stays here, out
+ * of RHF: the loan calculator's `monthlyPayment`/previews (`calcResult`), the
+ * manual-override flag, and the create-mode synchronization of
+ * `disbursementDate` / `currentBalance`. Cross-field validation stays in the
+ * schema's `superRefine`; the viewmodel's `parseDebtAccountFormVM` remains the
+ * authoritative submit gate.
+ */
 export function useDebtAccountForm(initialAccount?: DebtAccount): DebtAccountFormHook {
   const isCreateMode = !initialAccount;
-  const [values, setValues] = useState<DebtFormValues>(
-    initialAccount ? toFormValues(initialAccount) : emptyForm,
-  );
-  const [isManualPayment, setIsManualPayment] = useState(false);
-  const [errors, setErrors] = useState<Partial<Record<keyof DebtFormValues, string>>>({});
 
-  // Sync state when initialAccount changes (e.g. switching between edit targets or create/edit mode)
+  const form = useForm<DebtFormValues>({
+    resolver: zodResolver(DebtAccountFormVMSchema),
+    mode: 'onTouched',
+    defaultValues: initialAccount ? toFormValues(initialAccount) : emptyForm,
+  });
+  const { control, setValue, getValues, setError } = form;
+
+  // Reset when the edit target or mode changes.
   useEffect(() => {
-    setValues(initialAccount ? toFormValues(initialAccount) : emptyForm);
-    setIsManualPayment(false);
-    setErrors({});
-  }, [initialAccount]);
+    form.reset(initialAccount ? toFormValues(initialAccount) : emptyForm);
+  }, [initialAccount, form]);
 
-  // In create mode, disbursement date defaults to start date unless user has changed it.
-  useEffect(() => {
-    if (!isCreateMode) return;
-    setValues((prev) => {
-      const shouldSyncDisbursementDate =
-        !prev.disbursementDate || prev.disbursementDate === prev.startDate;
-      if (!shouldSyncDisbursementDate) return prev;
-      return {
-        ...prev,
-        disbursementDate: prev.startDate,
-      };
-    });
-  }, [values.startDate, isCreateMode]);
+  const watched = useWatch({ control });
+  const values = (watched ?? emptyForm) as DebtFormValues;
+  const { startDate, originalAmount, monthlyPayment } = values;
 
-  // In create mode, current balance must start at original amount.
+  // In create mode, disbursement date follows the start date until the user changes it.
   useEffect(() => {
     if (!isCreateMode) return;
-    setValues((prev) => {
-      if (prev.currentBalance === prev.originalAmount) return prev;
-      return {
-        ...prev,
-        currentBalance: prev.originalAmount,
-      };
-    });
-  }, [values.originalAmount, isCreateMode]);
-
-  // Derived calc result (recalculated whenever trigger fields change, unless isManualPayment)
-  const calcResult = tryCalc(values);
-
-  // Auto-fill monthlyPayment when calc triggers change and user hasn't manually overridden
-  const prevCalcRef = useRef<number | null>(null);
-  useEffect(() => {
-    if (isManualPayment) return;
-    if (!calcResult) return;
-    if (prevCalcRef.current === calcResult.monthlyPayment) return;
-    prevCalcRef.current = calcResult.monthlyPayment;
-    setValues((v) => ({ ...v, monthlyPayment: String(calcResult.monthlyPayment) }));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [calcResult?.monthlyPayment, isManualPayment]);
-
-  const setField = useCallback((field: keyof DebtFormValues, value: string) => {
-    setValues((v) => ({ ...v, [field]: value }));
-    setErrors((e) => ({ ...e, [field]: undefined }));
-
-    // If user edits monthlyPayment directly, mark as manual
-    if (field === 'monthlyPayment') {
-      setIsManualPayment(true);
+    const disbursement = getValues('disbursementDate');
+    if (!disbursement || disbursement === startDate) {
+      setValue('disbursementDate', startDate);
     }
-  }, []);
+  }, [startDate, isCreateMode, getValues, setValue]);
 
-  /** Resets the manual override flag and re-applies calculated value */
+  // In create mode, current balance must start at the original amount.
+  useEffect(() => {
+    if (!isCreateMode) return;
+    if (getValues('currentBalance') !== originalAmount) {
+      setValue('currentBalance', originalAmount);
+    }
+  }, [originalAmount, isCreateMode, getValues, setValue]);
+
+  // Derived calc result (recalculated whenever the input fields change).
+  const calcResult = useMemo(() => tryCalc(values), [values]);
+
+  // A payment the calculator would not have produced is a manual override.
+  const isManualPayment =
+    calcResult !== null &&
+    monthlyPayment !== '' &&
+    Number(monthlyPayment) !== calcResult.monthlyPayment;
+
+  // Auto-fill monthlyPayment from the calculator unless the user overrode it.
+  useEffect(() => {
+    if (isManualPayment || !calcResult) return;
+    const next = String(calcResult.monthlyPayment);
+    if (getValues('monthlyPayment') !== next) {
+      setValue('monthlyPayment', next);
+    }
+  }, [calcResult, isManualPayment, getValues, setValue]);
+
+  /** Drops the manual override and re-applies the calculated value. */
   const resetCalc = useCallback(() => {
-    setIsManualPayment(false);
-    prevCalcRef.current = null; // force effect to re-apply
-  }, []);
+    if (calcResult)
+      setValue('monthlyPayment', String(calcResult.monthlyPayment), { shouldDirty: true });
+  }, [calcResult, setValue]);
 
-  const setValidationErrors = useCallback((next: Partial<Record<keyof DebtFormValues, string>>) => {
-    setErrors(next);
-  }, []);
+  /** Writes mapped Zod errors back into RHF so `FormMessage` renders them. */
+  const setValidationErrors = useCallback(
+    (next: Partial<Record<keyof DebtFormValues, string>>) => {
+      for (const [field, message] of Object.entries(next)) {
+        if (message) setError(field as keyof DebtFormValues, { message });
+      }
+    },
+    [setError],
+  );
 
   return {
+    form,
     values,
     calcResult,
     isManualPayment,
     isCreateMode,
-    errors,
-    setField,
     setValidationErrors,
     resetCalc,
   };

@@ -1,31 +1,32 @@
 import { useCallback } from 'react';
 
+import { getRetirementPlanUseCase } from '@/application/retirement/use_cases/getRetirementPlanUseCase';
+import { listRetirementPlansUseCase } from '@/application/retirement/use_cases/listRetirementPlansUseCase';
 import { type RetirementPlan } from '@/domains/retirement/types';
-import { useLoadingTask } from '@/ui/hooks/useLoadingTask';
-import { useAuthContext } from '@/ui/hooks/useAuthContext';
-
-import { getRetirementPlanUseCase } from '../../../../application/retirement/use_cases/getRetirementPlanUseCase';
-import { listRetirementPlansUseCase } from '../../../../application/retirement/use_cases/listRetirementPlansUseCase';
+import { useAuthIdentity } from '@/ui/hooks/useAuthIdentity';
+import { type LoadingTaskResult, useLoadingTask } from '@/ui/hooks/useLoadingTask';
 
 export function useRetirementPlans(householdId: string | undefined) {
-  const auth = useAuthContext();
-  const { loading, error, run } = useLoadingTask();
+  const auth = useAuthIdentity();
+  const { loading, error, errorMessage, run } = useLoadingTask();
 
-  const listPlans = useCallback(async (): Promise<RetirementPlan[]> => {
-    if (!householdId) return [];
-    const result = await run(async () => {
+  const listPlans = useCallback(async (): Promise<LoadingTaskResult<RetirementPlan[]>> => {
+    if (!householdId) {
+      return { ok: true, value: [] };
+    }
+    return run(async () => {
       return listRetirementPlansUseCase.execute({ householdId, auth });
     });
-    return result || [];
   }, [householdId, auth, run]);
 
   const getPlan = useCallback(
-    async (planId: string): Promise<RetirementPlan | null> => {
-      if (!householdId) return null;
-      const result = await run(async () => {
+    async (planId: string): Promise<LoadingTaskResult<RetirementPlan | null>> => {
+      if (!householdId) {
+        return { ok: true, value: null };
+      }
+      return run(async () => {
         return getRetirementPlanUseCase.execute({ householdId, planId, auth });
       });
-      return result || null;
     },
     [householdId, auth, run],
   );
@@ -35,5 +36,6 @@ export function useRetirementPlans(householdId: string | undefined) {
     getPlan,
     loading,
     error,
+    errorMessage,
   };
 }

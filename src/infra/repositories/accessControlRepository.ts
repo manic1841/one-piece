@@ -1,7 +1,7 @@
 import { collection, doc, getDoc, setDoc } from 'firebase/firestore';
 
-import { AccessControlWhitelistSchema } from '@/domains/access_control/schemas';
-import { type AccessControlWhitelist } from '@/domains/access_control/types';
+import { AccessControlWhitelistSchema } from '@/domains/auth/whitelist/schemas';
+import { type AccessControlWhitelist } from '@/domains/auth/whitelist/types';
 import { db } from '@/firebase';
 
 class AccessControlRepository {

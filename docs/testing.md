@@ -6,6 +6,7 @@
 
 | 層級     | 指令                    | 需要模擬器 | 說明                                             |
 | -------- | ----------------------- | ---------- | ------------------------------------------------ |
+| 格式     | `pnpm format`           | 否         | Prettier 自動排版（寫入型，commit 前執行）       |
 | 單元測試 | `pnpm test`             | 否         | jsdom 環境,驗證 domain、use case 與 UI 元件行為  |
 | 覆蓋率   | `pnpm test:coverage`    | 否         | 單元測試範圍的 text/JSON/HTML 報告               |
 | 整合測試 | `pnpm test:integration` | 是         | 對 Firebase Emulator 驗證持久化與 security rules |
@@ -101,6 +102,12 @@ snapshots 與三份財務報表)。腳本可重複執行(upsert,非 append)。
 資料窗口固定在 2025-01～2026-09,確保退休收入流的 sampleYear 與報表
 本期都有資料支撐。`operation` 集合不 seed(runtime 重試記錄)。
 
+Monthly close 種子寫入四個期間狀態形狀(見
+[monthly-close.md](monthly-close.md) §2):`2026-06` NEEDS_REVIEW
+(Completeness Check 零活動暫停)、`2026-07`/`2026-08` CLOSED
+(重開確認視窗與 ADR-0066 連鎖降級的目標)、`2026-09` IN_PROGRESS
+(前五階段完成)。`2026-05` 及更早不寫入紀錄(無紀錄 = 尚未開始關帳)。
+
 ### 瀏覽器 QA 環境注意事項
 
 以下為 2026-09-11 在 Docker dev stack 內做瀏覽器 QA 時實測到的限制:
@@ -116,6 +123,7 @@ snapshots 與三份財務報表)。腳本可重複執行(upsert,非 append)。
   FIREBASE_PROJECT_ID=demo-project \
   pnpm qa:init
   ```
+
 - Firebase JS SDK v12 的登入 session 以 IndexedDB
   (`firebaseLocalStorageDb` 的 `firebaseLocalStorage` store)為主要來源,
   localStorage 只是 fallback。只注入 localStorage 片段可能不會生效;注入
@@ -126,6 +134,37 @@ snapshots 與三份財務報表)。腳本可重複執行(upsert,非 append)。
 - 需要 production build 的 QA 頁面時,使用 `pnpm preview`(或開發中的
   `pnpm dev`),兩者皆有 SPA fallback;以一般靜態伺服器直接伺服 `dist/`
   缺少 fallback,深層連結(如 `/transactions`)會 404。
+- 更多的除錯案例(REST 種子文件 schema 靜默吞錯、session 注入儲存層、
+  listen channel quirk、種子資料掛錯家戶等)索引於
+  [QA FAQ](./qa-faq.md)。
+
+## 應用邊界與測試 seam
+
+### 月度關帳應用邊界
+
+月度關帳的對外測試邊界是**月度關帳 use case 的整合測試**:
+
+`src/application/monthly_close/use_cases/monthlyCloseWorkflowUseCase.integration.test.ts`
+
+測試在 Firebase Emulator 上驅動 `monthlyCloseWorkflowUseCase`
+(`MonthlyCloseWorkflowUseCase`) 的 `start` 與 `confirmStage`,只從 use case
+邊界觀察整個流程,不穿透斷言內部步驟:
+
+- `start` 後期間進入 IN_PROGRESS,並可觀察目前階段。
+- `confirmStage` 逐階段推進 workflow 狀態;階段順序僅為 UI 引導,系統不強制
+  (見 [ADR-0052](adr/0052-monthly-close-stage-data-boundary.md))。
+- 對帳差異或缺漏必填輸入產生 review-required 狀態,阻止期間被錯誤關閉。
+- FINANCIAL_REPORTS 階段產生三份報表後,期間才可關閉。
+- 關閉後期間狀態為 CLOSED,Dashboard 的關帳狀態反映新狀態。
+
+此邊界只暴露對外可觀察的財務狀態變化,文件不使用設計討論期的暫稱。
+
+### 不新增高層測試 seam
+
+除上述月度關帳應用邊界外,**不新增其他跨模組的高層測試 seam**。理由:現有
+unit / integration / E2E 三層已足以覆蓋對外行為;多一條 seam 就多一層要同步
+維護的抽象,卻不增加可觀察行為的覆蓋。只有在單一應用邊界經實作驗證仍無法暴露
+所需外部行為時,才新增 seam。
 
 ## E2E 測試(瀏覽器)
 

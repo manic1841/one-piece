@@ -118,3 +118,26 @@ export const mapSnapshotToProjectDetailVM = (snapshot: ProjectSnapshot): Project
     closingBalanceText: formatCurrency(snapshot.closingBalance),
   };
 };
+
+export interface ExpenseBreakdownRow {
+  categoryLabel: string;
+  amountText: string;
+}
+
+/** Expense totals per category, largest first. Income records are excluded. */
+export const toExpenseBreakdown = (
+  items: (ProjectRecordItemVM | ProjectSnapshotItemVM)[],
+): ExpenseBreakdownRow[] => {
+  const totals = new Map<string, number>();
+  for (const item of items) {
+    if (item.type !== ProjectDetailItemType.RECORD) continue;
+    if (item.isIncome) continue;
+    totals.set(item.categoryLabel, (totals.get(item.categoryLabel) ?? 0) + item.amount);
+  }
+  return [...totals.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .map(([categoryLabel, amount]) => ({
+      categoryLabel,
+      amountText: formatCurrency(amount),
+    }));
+};

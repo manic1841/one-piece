@@ -1,10 +1,8 @@
 import {
-  type IncomeStatementData,
-} from '@/domains/report/schemas';
-import {
   type ReportLabelResolver,
   calculateIncomeStatement,
 } from '@/domains/report/reportCalculations';
+import { type IncomeStatementData } from '@/domains/report/schemas';
 
 import { type ReportDataBundle } from './fetchReportDataUseCase';
 

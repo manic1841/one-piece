@@ -1,19 +1,16 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import {
-  RetirementPlanCommandErrorCode,
-} from '@/domains/retirement/retirementPlanErrors';
-import { createRetirementPlanUseCase } from './createRetirementPlanUseCase';
 import { householdPermissionService } from '@/application/household/householdPermissionService';
+import { RetirementPlanCommandErrorCode } from '@/domains/retirement/retirementPlanErrors';
 import { retirementRepository } from '@/infra/repositories/retirementRepository';
+
+import { createRetirementPlanUseCase } from './createRetirementPlanUseCase';
 
 vi.mock('firebase/firestore', async (importOriginal) => {
   const actual = await importOriginal<typeof import('firebase/firestore')>();
   return {
     ...actual,
-    runTransaction: vi.fn(async (_db, callback: (tx: object) => Promise<unknown>) =>
-      callback({}),
-    ),
+    runTransaction: vi.fn(async (_db, callback: (tx: object) => Promise<unknown>) => callback({})),
   };
 });
 

@@ -33,7 +33,9 @@ describe('upsertById', () => {
   });
 
   it('keeps fields the update does not mention (merge semantics)', () => {
-    const source = [{ id: 'a', name: 'keep', amount: 5, note: 'stable' } as Item & { note: string }];
+    const source = [
+      { id: 'a', name: 'keep', amount: 5, note: 'stable' } as Item & { note: string },
+    ];
 
     const result = upsertById(source, 'a', { name: 'changed', amount: 5 } as Omit<Item, 'id'>);
 

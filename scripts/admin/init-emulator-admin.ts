@@ -1,6 +1,6 @@
 import admin from 'firebase-admin';
 
-import { applyEmulatorEnv } from './emulator-env';
+import { applyEmulatorEnv } from '../shared/emulator-env';
 
 // Resolve emulator targets from env vars (defaults to localhost) before SDK init.
 const emulator = applyEmulatorEnv();
@@ -23,7 +23,12 @@ const runInit = async () => {
     user = await admin.auth().getUserByEmail(email);
     console.log(`User already exists with UID: ${user.uid}`);
   } catch (error) {
-    if (typeof error === 'object' && error !== null && 'code' in error && error.code === 'auth/user-not-found') {
+    if (
+      typeof error === 'object' &&
+      error !== null &&
+      'code' in error &&
+      error.code === 'auth/user-not-found'
+    ) {
       console.log('Creating new admin user...');
       user = await admin.auth().createUser({
         email,

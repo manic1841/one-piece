@@ -1,18 +1,16 @@
 import React, { useState } from 'react';
 
-import { doc, getDoc } from 'firebase/firestore';
 import { useLocation, useNavigate } from 'react-router-dom';
 
-import { db } from '@/firebase';
-import { useAuth } from '@/infra/contexts/useAuth';
 import { Button } from '@/ui/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/ui/card';
+import { useAuthState } from '@/ui/contexts/useAuthState';
 
 const Login: React.FC = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const { loginWithGoogle } = useAuth();
+  const { loginWithGoogle } = useAuthState();
   const navigate = useNavigate();
   const location = useLocation();
   const from = location.state?.from?.pathname || '/';
@@ -30,28 +28,8 @@ const Login: React.FC = () => {
     setLoading(false);
   };
 
-  const testConnection = async () => {
-    setLoading(true);
-    setError('');
-    try {
-      await getDoc(doc(db, 'test_connection', 'ping'));
-      alert('Firebase Connection Successful! (Read succeeded)');
-    } catch (err) {
-      const error = err as { code?: string; message?: string };
-      if (error.code === 'permission-denied') {
-        alert(
-          'Firebase Connection Successful! (Reached Firestore, but permission denied as expected)',
-        );
-      } else {
-        console.error(err);
-        setError('Connection Failed: ' + (error.message || 'Unknown error'));
-      }
-    }
-    setLoading(false);
-  };
-
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen flex items-center justify-center bg-muted py-12 px-4 sm:px-6 lg:px-8">
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1">
           <CardTitle className="text-2xl text-center font-bold">Welcome to One Piece</CardTitle>
@@ -71,7 +49,7 @@ const Login: React.FC = () => {
               variant="default"
               onClick={handleGoogleLogin}
               disabled={loading}
-              className="w-full h-12 text-lg font-semibold shadow-md hover:shadow-lg transition-all duration-200"
+              className="w-full h-12 text-lg font-semibold transition-all duration-200"
             >
               <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
                 <path
@@ -93,17 +71,6 @@ const Login: React.FC = () => {
               </svg>
               Sign in with Google
             </Button>
-
-            <div className="pt-4 border-t">
-              <Button
-                variant="ghost"
-                onClick={testConnection}
-                disabled={loading}
-                className="w-full text-xs text-muted-foreground hover:bg-transparent hover:text-foreground"
-              >
-                Test Firebase Connection
-              </Button>
-            </div>
           </div>
         </CardContent>
       </Card>

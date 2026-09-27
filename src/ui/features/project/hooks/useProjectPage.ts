@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 import { type Project, type ProjectCreate } from '@/domains/project/schemas';
 
@@ -12,18 +12,11 @@ export interface ProjectArgs {
 
 export const useProjectPage = (householdId?: string) => {
   const { projects, loading, error, reload } = useProjects(householdId || '');
-  const [editing, setEditing] = useState<Project | undefined>(undefined);
-  const [isSettlementDialogOpen, setIsSettlementDialogOpen] = useState(false);
   const [isFormOpen, setIsFormOpen] = useState(false);
-  const [selectedProject, setSelectedProject] = useState<Project | undefined>(undefined);
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [isMonthlySettlementView, setIsMonthlySettlementView] = useState(false);
-  const [isReorderMode, setIsReorderMode] = useState(false);
+  const [showInactive, setShowInactive] = useState(false);
   const [localProjects, setLocalProjects] = useState<Project[]>([]);
 
-  const { createProject, updateProject, deleteProject, reorderProjects } = useProjectCmds(
-    householdId || '',
-  );
+  const { createProject, updateProject, reorderProjects } = useProjectCmds(householdId || '');
 
   useEffect(() => {
     setLocalProjects(projects);
@@ -38,34 +31,8 @@ export const useProjectPage = (householdId?: string) => {
   // update project
   const update = async ({ id, project }: { id: string; project: Partial<ProjectCreate> }) => {
     await updateProject(id, project);
-    setEditing(undefined);
     setIsFormOpen(false);
     reload();
-  };
-
-  // edit project
-  const editClick = (project: Project) => {
-    setEditing(project);
-    setIsFormOpen(true);
-  };
-
-  // delete project
-  const deleteClick = (project: Project) => {
-    if (
-      !confirm(`Are you sure you want to delete "${project.name}"? This action cannot be undone.`)
-    ) {
-      return;
-    }
-    deleteProject(project.id);
-  };
-
-  // select project
-  const selectProject = (project: Project | undefined) => {
-    setSelectedProject(project);
-  };
-
-  const unselectProject = () => {
-    setSelectedProject(undefined);
   };
 
   // open form
@@ -76,53 +43,25 @@ export const useProjectPage = (householdId?: string) => {
   // close form
   const closeForm = () => {
     setIsFormOpen(false);
-    setEditing(undefined);
   };
 
-  // open settlement dialog
-  const openSettleDialog = () => {
-    setIsSettlementDialogOpen(true);
-  };
+  const handleReorder = useCallback(
+    (ordered: Project[]) => {
+      const baseIds = new Set(localProjects.map((project) => project.id));
+      if (
+        ordered.length !== localProjects.length ||
+        !ordered.every((project) => baseIds.has(project.id))
+      ) {
+        return;
+      }
 
-  // close settlement dialog
-  const closeSettleDialog = () => {
-    setIsSettlementDialogOpen(false);
-  };
-
-  const moveProjectUp = (projectId: string) => {
-    const index = localProjects.findIndex((p) => p.id === projectId);
-    if (index <= 0) return;
-
-    const newProjects = [...localProjects];
-    const temp = newProjects[index];
-    newProjects[index] = newProjects[index - 1];
-    newProjects[index - 1] = temp;
-    setLocalProjects(newProjects);
-  };
-
-  const moveProjectDown = (projectId: string) => {
-    const index = localProjects.findIndex((p) => p.id === projectId);
-    if (index < 0 || index >= localProjects.length - 1) return;
-
-    const newProjects = [...localProjects];
-    const temp = newProjects[index];
-    newProjects[index] = newProjects[index + 1];
-    newProjects[index + 1] = temp;
-    setLocalProjects(newProjects);
-  };
-
-  const saveOrder = async () => {
-    const orders = localProjects.map((p, index) => ({
-      id: p.id,
-      order: index,
-    }));
-    const result = await reorderProjects(orders);
-    if (result === undefined) {
-      throw new Error('Failed to save project order. Please try again.');
-    }
-    setIsReorderMode(false);
-    await reload();
-  };
+      setLocalProjects(ordered);
+      void reorderProjects(
+        ordered.map((project, index) => ({ id: project.id, order: index })),
+      ).then(() => reload());
+    },
+    [localProjects, reorderProjects, reload],
+  );
 
   return {
     loading,
@@ -131,34 +70,11 @@ export const useProjectPage = (householdId?: string) => {
     reload,
     create,
     update,
-    editClick,
-    deleteClick,
-    editing,
     isFormOpen,
     openForm,
     closeForm,
-    isSettlementDialogOpen,
-    openSettleDialog,
-    closeSettleDialog,
-    selectedProject,
-    setSelectedProject,
-    selectProject,
-    unselectProject,
-    isReorderMode,
-    toggleReorderMode: () => {
-      if (isReorderMode) {
-        setLocalProjects(projects);
-      }
-      setIsReorderMode(!isReorderMode);
-    },
-    moveProjectUp,
-    moveProjectDown,
-    saveOrder,
-    isSettingsOpen,
-    openSettings: () => setIsSettingsOpen(true),
-    closeSettings: () => setIsSettingsOpen(false),
-    isMonthlySettlementView,
-    openMonthlySettlement: () => setIsMonthlySettlementView(true),
-    closeMonthlySettlement: () => setIsMonthlySettlementView(false),
+    handleReorder,
+    showInactive,
+    toggleShowInactive: () => setShowInactive((prev) => !prev),
   };
 };

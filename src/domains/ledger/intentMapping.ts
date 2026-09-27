@@ -10,6 +10,9 @@ export interface IntentMappingInfo {
   creditUserSelect?: boolean;
   allowedDebitPrefix?: string;
   allowedCreditPrefix?: string;
+  /** Selectable set is limited to the household's custom codes of the same type. */
+  debitCustomOnly?: boolean;
+  creditCustomOnly?: boolean;
 }
 
 export const DEFAULT_INTENT_MAPPINGS: IntentMappingInfo[] = [
@@ -93,6 +96,12 @@ export const DEFAULT_INTENT_MAPPINGS: IntentMappingInfo[] = [
     creditLedgerCode: LEDGER_CODES.ASSET_CASH,
   },
   {
+    intent: 'LOAN_INTEREST',
+    type: IntentType.EXPENSE,
+    debitLedgerCode: LEDGER_CODES.EXPENSE_LOAN_INTEREST,
+    creditLedgerCode: LEDGER_CODES.ASSET_CASH,
+  },
+  {
     intent: 'INSURANCE',
     type: IntentType.EXPENSE,
     debitLedgerCode: LEDGER_CODES.EXPENSE_INSURANCE,
@@ -110,7 +119,7 @@ export const DEFAULT_INTENT_MAPPINGS: IntentMappingInfo[] = [
     debitLedgerCode: LEDGER_CODES.EXPENSE_OTHER,
     creditLedgerCode: LEDGER_CODES.ASSET_CASH,
     debitUserSelect: true,
-    allowedDebitPrefix: 'expense:',
+    debitCustomOnly: true,
   },
 
   // Incomes
@@ -148,7 +157,7 @@ export const DEFAULT_INTENT_MAPPINGS: IntentMappingInfo[] = [
     debitLedgerCode: LEDGER_CODES.ASSET_CASH,
     creditLedgerCode: LEDGER_CODES.INCOME_OTHER,
     creditUserSelect: true,
-    allowedCreditPrefix: 'income:',
+    creditCustomOnly: true,
   },
 
   // Transfers

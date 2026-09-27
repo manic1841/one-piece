@@ -1,6 +1,6 @@
 import {
-  type QueryConstraint,
   type Transaction as FirestoreTransaction,
+  type QueryConstraint,
   collection,
   doc,
   documentId,

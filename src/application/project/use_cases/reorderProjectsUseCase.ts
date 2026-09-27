@@ -1,6 +1,6 @@
 import {
-  reorderCollectionInTransaction,
   type ReorderEntry,
+  reorderCollectionInTransaction,
 } from '@/application/common/reorderCollectionInTransaction';
 import { householdPermissionService } from '@/application/household/householdPermissionService';
 import { type AuthContext } from '@/application/types';

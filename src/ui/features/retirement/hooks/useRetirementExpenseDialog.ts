@@ -1,228 +1,119 @@
-import { useCallback, useEffect, useState } from 'react';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { type UseFormReturn, useForm, useWatch } from 'react-hook-form';
 
-import { listProjectsUseCase } from '@/application/project/use_cases/listProjectsUseCase';
+import { RetirementExpenseType } from '@/domains/retirement/schemas';
+import type { RetirementExpenseCategory } from '@/domains/retirement/types';
+import { RetirementExpenseDialogLabels } from '@/ui/constants/retirement/expenseDialogLabels';
 import {
-  CalculationMode,
-  type RetirementExpenseCategory,
-  type RetirementIncomeSource,
-  SalaryPercentageRetirementMode,
-} from '@/domains/retirement/types';
-import { useAuth } from '@/infra/contexts/useAuth';
-import {
+  type RetirementExpenseFormInput,
+  type RetirementExpenseFormVM,
   RetirementExpenseFormVMSchema,
-  buildRetirementExpenseFormVM,
+  buildRetirementExpenseFormInput,
   mapRetirementExpenseVMToDomain,
 } from '@/ui/features/retirement/viewmodels/retirementForm.vm';
 import { logger } from '@/utils/logger';
 
-import { useRetirementDialogForm } from './useRetirementDialogForm';
+import {
+  deriveRetirementDurationText,
+  deriveRetirementGrowthText,
+  useRetirementDialogForm,
+} from './useRetirementDialogForm';
 
 interface UseRetirementExpenseDialogOptions {
   initialData?: RetirementExpenseCategory;
   currentYear: number;
+  planInflationRate: number;
   onSave: (expense: Omit<RetirementExpenseCategory, 'id'>) => Promise<void>;
-  /** Available income streams in the plan (used for linkedIncomeId dropdown) */
-  incomes?: RetirementIncomeSource[];
 }
 
-type Project = Awaited<ReturnType<typeof listProjectsUseCase.execute>>[number];
+export interface RetirementExpenseDialogHook {
+  open: boolean;
+  setOpen: (value: boolean) => void;
+  loading: boolean;
+  /** The RHF form; the component binds fields through it. */
+  form: UseFormReturn<RetirementExpenseFormInput, unknown, RetirementExpenseFormVM>;
+  /** Debt-derived category: its annual is imported and read-only. */
+  isDebtPayment: boolean;
+  /** Derived readouts (previews), not RHF fields. */
+  growthText: string;
+  durationText: string;
+  retirementYearPreview: string;
+  handleSubmit: (event: React.FormEvent) => void;
+}
 
+/**
+ * Controller for the expense dialog (ADR-0064). RHF owns the editable fields;
+ * the retirement-year preview and the growth/duration readouts are derived here,
+ * outside RHF. Submit runs the authoritative `Schema.parse` gate.
+ */
 export function useRetirementExpenseDialog({
   initialData,
   currentYear,
+  planInflationRate,
   onSave,
-  incomes = [],
-}: UseRetirementExpenseDialogOptions) {
-  const { userProfile } = useAuth();
-  const [projects, setProjects] = useState<Project[]>([]);
+}: UseRetirementExpenseDialogOptions): RetirementExpenseDialogHook {
+  const initialForm = buildRetirementExpenseFormInput(initialData, currentYear);
 
-  // Initialize with mapper
-  const initialForm = buildRetirementExpenseFormVM(initialData, currentYear);
-
-  // Base fields from shared hook
-  const {
-    open,
-    setOpen,
-    loading,
-    setLoading,
-    name,
-    setName,
-    amount,
-    setAmount,
-    growthRate,
-    setGrowthRate,
-    startYear,
-    setStartYear,
-  } = useRetirementDialogForm({
-    initialData,
-    currentYear,
-    defaultValues: {
-      growthRate: initialForm.growthRate,
-    },
+  const form = useForm<RetirementExpenseFormInput, unknown, RetirementExpenseFormVM>({
+    resolver: zodResolver(RetirementExpenseFormVMSchema),
+    mode: 'onTouched',
+    defaultValues: initialForm,
   });
 
-  // Expense-specific fields
-  const [endYear, setEndYear] = useState<string>(initialForm.endYear || '2100');
-  const [retirementMultiplier, setRetirementMultiplier] = useState<number>(
-    initialForm.retirementMultiplier,
-  );
-  // Dual-mode fields
-  const [calculationMode, setCalculationMode] = useState<CalculationMode>(
-    initialForm.calculationMode,
-  );
-  const [salaryPercentage, setSalaryPercentage] = useState<number>(
-    initialForm.salaryPercentage ?? 35,
-  );
-  const [salaryPercentageRetirementMode, setSalaryPercentageRetirementMode] =
-    useState<SalaryPercentageRetirementMode>(
-      initialForm.salaryPercentageRetirementMode ?? SalaryPercentageRetirementMode.MANUAL_FALLBACK,
-    );
-  const [linkedIncomeId, setLinkedIncomeId] = useState<string | undefined>(
-    initialForm.linkedIncomeId ?? undefined,
-  );
-  const [fallbackAmount, setFallbackAmount] = useState<number>(initialForm.fallbackAmount ?? 0);
+  const { open, setOpen, loading, setLoading } = useRetirementDialogForm({
+    resetOnOpen: () => form.reset(buildRetirementExpenseFormInput(initialData, currentYear)),
+  });
 
-  const loadProjects = useCallback(async () => {
-    if (!userProfile?.householdId) return;
-    try {
-      const allProjects = await listProjectsUseCase.execute({
-        householdId: userProfile.householdId,
-      });
-      setProjects(allProjects.filter((p) => p.isActive));
-    } catch (error) {
-      console.error('Failed to load projects', error);
-    }
-  }, [userProfile?.householdId]);
+  const watched = useWatch({ control: form.control });
+  const values = (watched ?? initialForm) as RetirementExpenseFormInput;
 
-  useEffect(() => {
-    if (open && userProfile?.householdId) {
-      loadProjects();
-    }
-  }, [open, userProfile?.householdId, loadProjects]);
+  const isDebtPayment = initialData?.type === RetirementExpenseType.DEBT_PAYMENT;
 
-  // Sync expense-specific fields when opening
-  useEffect(() => {
-    if (open) {
-      const form = buildRetirementExpenseFormVM(initialData, currentYear);
-      setEndYear(form.endYear || '');
-      setRetirementMultiplier(form.retirementMultiplier);
-      setCalculationMode(form.calculationMode);
-      setSalaryPercentage(form.salaryPercentage ?? 35);
-      setSalaryPercentageRetirementMode(
-        form.salaryPercentageRetirementMode ?? SalaryPercentageRetirementMode.MANUAL_FALLBACK,
-      );
-      setLinkedIncomeId(form.linkedIncomeId ?? undefined);
-      setFallbackAmount(form.fallbackAmount ?? 0);
-    }
-  }, [open, initialData, currentYear]);
+  // Derived readouts (previews): the form holds what the user typed, the shared
+  // base derives the display value. None of these are RHF fields.
+  const durationText = deriveRetirementDurationText(values, RetirementExpenseDialogLabels);
+  const growthText = deriveRetirementGrowthText(
+    values.growthRate,
+    planInflationRate,
+    RetirementExpenseDialogLabels,
+  );
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const retirementYearPreview = RetirementExpenseDialogLabels.retirementYearPreview(
+    (Number(values.currentAnnual) || 0) * ((Number(values.retirementMultiplier) || 0) / 100),
+  );
+
+  const onSubmit = form.handleSubmit(async () => {
     setLoading(true);
 
     try {
-      logger.debug('Submitting expense form', 'retirement/useRetirementExpenseDialog', {
-        mode: calculationMode,
-        name,
-        linkedIncomeId,
-        salaryPercentage,
-        salaryPercentageRetirementMode,
-        fallbackAmount,
-        startYear,
-        endYear,
-        isEditing: !!initialData,
-      });
-
-      const vm = RetirementExpenseFormVMSchema.parse({
-        name,
-        sourceDebtAccountId: initialForm.sourceDebtAccountId,
-        type: initialForm.type,
-        includesPrincipal: initialForm.includesPrincipal,
-        interestOnly: initialForm.interestOnly,
-        calculatedFrom: initialForm.calculatedFrom,
-        calculationMode,
-        baseAmount: amount,
-        growthRate,
-        retirementMultiplier,
-        salaryPercentage,
-        salaryPercentageRetirementMode,
-        linkedIncomeId: linkedIncomeId || undefined,
-        fallbackAmount:
-          salaryPercentageRetirementMode === SalaryPercentageRetirementMode.MANUAL_FALLBACK &&
-          fallbackAmount > 0
-            ? fallbackAmount
-            : undefined,
-        startYear,
-        endYear,
-      });
-
-      logger.debug('Expense form parsed', 'retirement/useRetirementExpenseDialog', {
-        mode: vm.calculationMode,
-        linkedIncomeId: vm.linkedIncomeId,
-        salaryPercentage: vm.salaryPercentage,
-        fallbackAmount: vm.fallbackAmount,
-      });
-
-      const domainData = mapRetirementExpenseVMToDomain(vm);
-
-      logger.debug('Expense domain payload mapped', 'retirement/useRetirementExpenseDialog', {
-        mode: domainData.calculationMode,
-        linkedIncomeId: domainData.linkedIncomeId,
-        salaryPercentage: domainData.salaryPercentage,
-        fallbackAmount: domainData.fallbackAmount,
-        startYear: domainData.startYear,
-        endYear: domainData.endYear,
-      });
-
-      await onSave(domainData);
-      logger.info('Expense save callback succeeded', 'retirement/useRetirementExpenseDialog', {
-        mode: domainData.calculationMode,
-        linkedIncomeId: domainData.linkedIncomeId,
-      });
+      // The resolver only drives field display; this parse is the gate.
+      const vm = RetirementExpenseFormVMSchema.parse(form.getValues());
+      await onSave(mapRetirementExpenseVMToDomain(vm));
       setOpen(false);
     } catch (error) {
       logger.error('Expense save failed', 'retirement/useRetirementExpenseDialog', {
         error: error instanceof Error ? error.message : String(error),
-        mode: calculationMode,
-        linkedIncomeId,
       });
       console.error('Failed to save expense', error);
     } finally {
       setLoading(false);
     }
+  });
+
+  const handleSubmit = (event: React.FormEvent) => {
+    event.preventDefault();
+    void onSubmit();
   };
 
   return {
-    // State
     open,
     setOpen,
     loading,
-    name,
-    setName,
-    amount,
-    setAmount,
-    growthRate,
-    setGrowthRate,
-    startYear,
-    setStartYear,
-    endYear,
-    setEndYear,
-    retirementMultiplier,
-    setRetirementMultiplier,
-    calculationMode,
-    setCalculationMode,
-    salaryPercentage,
-    setSalaryPercentage,
-    salaryPercentageRetirementMode,
-    setSalaryPercentageRetirementMode,
-    linkedIncomeId,
-    setLinkedIncomeId,
-    fallbackAmount,
-    setFallbackAmount,
-    projects,
-    incomes,
-
-    // Handlers
+    form,
+    isDebtPayment,
+    growthText,
+    durationText,
+    retirementYearPreview,
     handleSubmit,
   };
 }

@@ -4,9 +4,7 @@ vi.mock('firebase/firestore', async (importOriginal) => {
   const actual = await importOriginal<typeof import('firebase/firestore')>();
   return {
     ...actual,
-    runTransaction: vi.fn(async (_db, callback: (tx: object) => Promise<unknown>) =>
-      callback({}),
-    ),
+    runTransaction: vi.fn(async (_db, callback: (tx: object) => Promise<unknown>) => callback({})),
   };
 });
 
@@ -122,17 +120,17 @@ describe('ReplaceAllocationUseCase', () => {
     const { allocationRepository } = await import('@/infra/repositories/allocationRepository');
 
     const currentAllocation = {
-        id: 'transaction-1',
-        sourceTransactionId: 'transaction-1',
-        date: sourceTransaction.date,
-        yearMonth: '2026-09',
-        direction: 'INCOME',
-        totalAmount: 10000,
-        items: [{ projectId: 'project-old', percentage: 100, amount: 10000 }],
-        projectIds: ['project-old'],
-        createdBy: 'original@example.com',
-        createdAt: new Date('2026-09-01T00:00:00'),
-        updatedAt: new Date('2026-09-01T00:00:00'),
+      id: 'transaction-1',
+      sourceTransactionId: 'transaction-1',
+      date: sourceTransaction.date,
+      yearMonth: '2026-09',
+      direction: 'INCOME',
+      totalAmount: 10000,
+      items: [{ projectId: 'project-old', percentage: 100, amount: 10000 }],
+      projectIds: ['project-old'],
+      createdBy: 'original@example.com',
+      createdAt: new Date('2026-09-01T00:00:00'),
+      updatedAt: new Date('2026-09-01T00:00:00'),
     };
     vi.mocked(allocationRepository.listBySourceTransactionId).mockResolvedValue([
       currentAllocation,
@@ -162,21 +160,19 @@ describe('ReplaceAllocationUseCase', () => {
     const { allocationRepository } = await import('@/infra/repositories/allocationRepository');
 
     const legacyAllocation = {
-        id: 'legacy-allocation-1',
-        sourceTransactionId: 'transaction-1',
-        date: sourceTransaction.date,
-        yearMonth: '2026-09',
-        direction: 'INCOME',
-        totalAmount: 10000,
-        items: [{ projectId: 'project-old', percentage: 100, amount: 10000 }],
-        projectIds: ['project-old'],
-        createdBy: 'original@example.com',
-        createdAt: new Date('2026-09-01T00:00:00'),
-        updatedAt: new Date('2026-09-01T00:00:00'),
+      id: 'legacy-allocation-1',
+      sourceTransactionId: 'transaction-1',
+      date: sourceTransaction.date,
+      yearMonth: '2026-09',
+      direction: 'INCOME',
+      totalAmount: 10000,
+      items: [{ projectId: 'project-old', percentage: 100, amount: 10000 }],
+      projectIds: ['project-old'],
+      createdBy: 'original@example.com',
+      createdAt: new Date('2026-09-01T00:00:00'),
+      updatedAt: new Date('2026-09-01T00:00:00'),
     };
-    vi.mocked(allocationRepository.listBySourceTransactionId).mockResolvedValue([
-      legacyAllocation,
-    ]);
+    vi.mocked(allocationRepository.listBySourceTransactionId).mockResolvedValue([legacyAllocation]);
     vi.mocked(allocationRepository.getByIds).mockResolvedValue([legacyAllocation]);
 
     await replaceAllocationUseCase.execute(request);

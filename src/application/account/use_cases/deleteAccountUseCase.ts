@@ -1,6 +1,6 @@
-import { accountRepository } from '@/infra/repositories/accountRepository';
 import { householdPermissionService } from '@/application/household/householdPermissionService';
 import { type AuthContext } from '@/application/types';
+import { accountRepository } from '@/infra/repositories/accountRepository';
 
 export interface DeleteAccountRequest {
   householdId: string;

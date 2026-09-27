@@ -1,7 +1,16 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 
-import { type Account } from '@/domains/account/types/account';
-import { type Portfolio } from '@/domains/portfolio/types';
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+  SelectField,
+  TextInput,
+  useFormField,
+} from '@/ui/components/form';
 import { Button } from '@/ui/components/ui/button';
 import { Checkbox } from '@/ui/components/ui/checkbox';
 import {
@@ -11,99 +20,58 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/ui/components/ui/dialog';
-import { Input } from '@/ui/components/ui/input';
-import { Label } from '@/ui/components/ui/label';
-import { Textarea } from '@/ui/components/ui/textarea';
-import { useAccounts } from '@/ui/features/account/hooks/useAccounts';
+import { usePortfolioForm } from '@/ui/features/portfolio/hooks/usePortfolioForm';
 import {
+  type Account,
+  type Portfolio,
   type PortfolioFormVM,
-  mapPortfolioToFormVM,
-  parsePortfolioFormVM,
 } from '@/ui/features/portfolio/viewmodels/portfolioForm.vm';
-import { useAuthContext } from '@/ui/hooks/useAuthContext';
 
 interface PortfolioFormProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (data: PortfolioFormVM) => Promise<void>;
-  householdId: string;
+  accounts: Account[];
   portfolio?: Portfolio;
 }
 
+/**
+ * A Radix checkbox is not a native value/onChange input, so `FormControl` cannot
+ * inject the binding; the field is wired through `useFormField` instead.
+ */
+const ActiveField: React.FC = () => {
+  const { field } = useFormField();
+
+  return (
+    <label className="flex items-center space-x-2 cursor-pointer">
+      <Checkbox
+        checked={Boolean(field.value)}
+        onCheckedChange={(checked) => field.onChange(checked === true)}
+        onBlur={field.onBlur}
+      />
+      <span className="text-sm font-normal">Active</span>
+    </label>
+  );
+};
+
+/**
+ * Surface for the portfolio dialog (ADR-0064). It only renders: the RHF state,
+ * the account lists and the submit gate all live in `usePortfolioForm`.
+ */
 const PortfolioForm: React.FC<PortfolioFormProps> = ({
   isOpen,
   onClose,
   onSubmit,
-  householdId,
+  accounts,
   portfolio,
 }) => {
-  const { fetchAccounts } = useAccounts();
-  const auth = useAuthContext();
-  const [availableAccounts, setAvailableAccounts] = useState<Account[]>([]);
-  const initialData = mapPortfolioToFormVM(portfolio);
-
-  const [newName, setNewName] = useState(initialData.name);
-  const [newDescription, setNewDescription] = useState(initialData.description);
-  const [selectedAccountIds, setSelectedAccountIds] = useState<string[]>(initialData.accountIds);
-  const [isActive, setIsActive] = useState(initialData.isActive);
-  const [initialOrder, setInitialOrder] = useState(initialData.order);
-  const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    const loadAccounts = async () => {
-      if (!householdId) return;
-      const data = await fetchAccounts(
-        householdId,
-        auth,
-        { includeInactive: true },
-      );
-      setAvailableAccounts(data);
-    };
-    loadAccounts();
-  }, [householdId, fetchAccounts, auth]);
-
-  // Reset form when portfolio changes or modal opens
-  React.useEffect(() => {
-    if (isOpen) {
-      const data = mapPortfolioToFormVM(portfolio);
-      setNewName(data.name);
-      setNewDescription(data.description || '');
-      setSelectedAccountIds(data.accountIds);
-      setIsActive(data.isActive);
-      setInitialOrder(data.order);
-    }
-  }, [isOpen, portfolio]);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newName) return;
-
-    setLoading(true);
-    try {
-      const vm = parsePortfolioFormVM({
-        name: newName,
-        description: newDescription || undefined,
-        accountIds: selectedAccountIds,
-        isActive,
-        order: initialOrder,
-      });
-      await onSubmit(vm);
-      setNewName('');
-      setNewDescription('');
-      setSelectedAccountIds([]);
-      onClose();
-    } catch (error) {
-      console.error('Failed to submit portfolio form:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const toggleAccountSelection = (accountId: string) => {
-    setSelectedAccountIds((prev) =>
-      prev.includes(accountId) ? prev.filter((id) => id !== accountId) : [...prev, accountId],
-    );
-  };
+  const { form, submit, securitiesOptions, bankOptions, error, isSubmitting } = usePortfolioForm({
+    isOpen,
+    accounts,
+    portfolio,
+    onSubmit,
+    onClose,
+  });
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -111,68 +79,66 @@ const PortfolioForm: React.FC<PortfolioFormProps> = ({
         <DialogHeader>
           <DialogTitle>{portfolio ? 'Edit Portfolio' : 'Create Portfolio'}</DialogTitle>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4 py-4">
-          <div className="space-y-2">
-            <Label htmlFor="name">Name</Label>
-            <Input
-              id="name"
-              value={newName}
-              onChange={(e) => setNewName(e.target.value)}
-              placeholder="e.g., Retirement Fund"
-              required
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="description">Description (Optional)</Label>
-            <Textarea
-              id="description"
-              value={newDescription}
-              onChange={(e) => setNewDescription(e.target.value)}
-              placeholder="Describe the purpose of this portfolio"
-            />
-          </div>
-          <div className="flex items-center space-x-2">
-            <Checkbox
-              id="active"
-              checked={isActive}
-              onCheckedChange={(checked) => setIsActive(!!checked)}
-            />
-            <Label htmlFor="active" className="text-sm font-normal cursor-pointer">
-              Active
-            </Label>
-          </div>
-          <div className="space-y-2">
-            <Label>Linked Accounts</Label>
-            <div className="border rounded-md p-3 max-h-[200px] overflow-y-auto space-y-2">
-              {availableAccounts.map((account) => (
-                <div key={account.id} className="flex items-center space-x-2">
-                  <Checkbox
-                    id={`acc-${account.id}`}
-                    checked={selectedAccountIds.includes(account.id)}
-                    onCheckedChange={() => toggleAccountSelection(account.id)}
+        <Form {...form}>
+          <form onSubmit={submit} className="space-y-4 py-4" noValidate>
+            {error && (
+              <div className="text-sm text-destructive bg-destructive/10 p-3 rounded-md">
+                {error}
+              </div>
+            )}
+
+            <FormField name="name">
+              <FormItem>
+                <FormLabel required>Name</FormLabel>
+                <FormControl>
+                  <TextInput placeholder="e.g., Retirement Fund" />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            </FormField>
+
+            <FormField name="securitiesAccountId">
+              <FormItem>
+                <FormLabel required>Securities Account</FormLabel>
+                <FormControl>
+                  <SelectField
+                    options={securitiesOptions}
+                    placeholder="Select securities account"
                   />
-                  <Label
-                    htmlFor={`acc-${account.id}`}
-                    className="text-sm font-normal cursor-pointer"
-                  >
-                    {account.name} ({account.category})
-                  </Label>
-                </div>
-              ))}
-              {availableAccounts.length === 0 && (
-                <div className="text-sm text-muted-foreground">No accounts available.</div>
-              )}
-            </div>
-          </div>
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={onClose}>
-              Cancel
-            </Button>
-            <Button type="submit" disabled={loading}>
-              {loading ? 'Saving...' : portfolio ? 'Save Changes' : 'Create Portfolio'}
-            </Button>
-          </DialogFooter>
-        </form>
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            </FormField>
+
+            <FormField name="bankAccountId">
+              <FormItem>
+                <FormLabel required>Bank Account</FormLabel>
+                <FormControl>
+                  <SelectField options={bankOptions} placeholder="Select bank account" />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            </FormField>
+
+            <FormField name="isActive">
+              <FormItem className="space-y-0">
+                <ActiveField />
+                <FormMessage />
+              </FormItem>
+            </FormField>
+
+            {portfolio && <p className="text-xs text-muted-foreground">帳戶連結建立後不可變更</p>}
+
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={onClose} disabled={isSubmitting}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting ? 'Saving...' : portfolio ? 'Save Changes' : 'Create Portfolio'}
+              </Button>
+            </DialogFooter>
+          </form>
+        </Form>
       </DialogContent>
     </Dialog>
   );

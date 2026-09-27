@@ -1,8 +1,9 @@
-import { portfolioSnapshotRepository } from '@/infra/repositories/portfolioSnapshotRepository';
-import { householdPermissionService } from '@/application/household/householdPermissionService';
-import { type PortfolioSnapshot } from '@/domains/portfolio/types/portfolio';
-import { type AuthContext } from '@/application/types';
 import { QueryConstraint, orderBy, where } from 'firebase/firestore';
+
+import { householdPermissionService } from '@/application/household/householdPermissionService';
+import { type AuthContext } from '@/application/types';
+import { type PortfolioSnapshot } from '@/domains/portfolio/types/portfolio';
+import { portfolioSnapshotRepository } from '@/infra/repositories/portfolioSnapshotRepository';
 
 export interface ListPortfolioSnapshotsRequest {
   householdId: string;
@@ -16,7 +17,11 @@ export class ListPortfolioSnapshotsUseCase {
   async execute(request: ListPortfolioSnapshotsRequest): Promise<PortfolioSnapshot[]> {
     const { householdId, portfolioId, year, month, auth } = request;
     if (auth) {
-      await householdPermissionService.assertReadPermission(householdId, auth.uid, auth.isGlobalAdmin);
+      await householdPermissionService.assertReadPermission(
+        householdId,
+        auth.uid,
+        auth.isGlobalAdmin,
+      );
     }
     const queryConstraints: QueryConstraint[] = [];
     if (year) {

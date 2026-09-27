@@ -19,23 +19,23 @@ describe('IncomeStatementPage', () => {
       data: {
         yearMonth: '2026-03',
         incomeTotal: 1000,
-        incomeTotalText: '$1,000',
+        incomeTotalText: 'NT$1,000',
         expenseTotal: 400,
-        expenseTotalText: '$400',
+        expenseTotalText: 'NT$400',
         netIncome: 600,
-        netIncomeText: '$600',
+        netIncomeText: 'NT$600',
         incomeItems: [
           {
             code: 'income:salary',
             label: '薪資',
             amount: 1000,
-            amountText: '$1,000',
+            amountText: 'NT$1,000',
             subItems: [
               {
                 code: 'income:salary:base',
                 label: '本薪',
                 amount: 900,
-                amountText: '$900',
+                amountText: 'NT$900',
               },
             ],
           },
@@ -45,7 +45,7 @@ describe('IncomeStatementPage', () => {
             code: 'expense:food',
             label: '餐飲',
             amount: 400,
-            amountText: '$400',
+            amountText: 'NT$400',
           },
         ],
       },
@@ -71,12 +71,12 @@ describe('IncomeStatementPage', () => {
     );
 
     expect(screen.getByText('收入合計')).toBeInTheDocument();
-    expect(screen.getAllByText('$1,000').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('NT$1,000').length).toBeGreaterThan(0);
     expect(screen.queryByText('本薪')).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByText('薪資'));
 
     expect(screen.getByText('本薪')).toBeInTheDocument();
-    expect(screen.getByText('$900')).toBeInTheDocument();
+    expect(screen.getByText('NT$900')).toBeInTheDocument();
   });
 });

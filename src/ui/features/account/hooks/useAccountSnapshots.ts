@@ -2,11 +2,11 @@ import { useCallback, useEffect, useState } from 'react';
 
 import { getAccountSnapshotsUseCase } from '@/application/account/use_cases/getAccountSnapshotsUseCase';
 import { type AccountSnapshot } from '@/domains/account/types/account';
-import { useAuthContext } from '@/ui/hooks/useAuthContext';
+import { useAuthIdentity } from '@/ui/hooks/useAuthIdentity';
 import { useLoadingTask } from '@/ui/hooks/useLoadingTask';
 
 export function useAccountSnapshots(householdId: string, accountId: string) {
-  const auth = useAuthContext();
+  const auth = useAuthIdentity();
   const [snapshots, setSnapshots] = useState<AccountSnapshot[]>([]);
   const { loading, error, run } = useLoadingTask();
 

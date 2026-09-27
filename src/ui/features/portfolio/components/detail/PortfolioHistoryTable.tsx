@@ -12,7 +12,8 @@ import {
   TableHeader,
   TableRow,
 } from '@/ui/components/ui/table';
-import { type PortfolioSnapshot } from '@/domains/portfolio/types/portfolio';
+import { useConfirm } from '@/ui/features/app/confirm/useConfirm';
+import { type PortfolioSnapshot } from '@/ui/features/portfolio/viewmodels/portfolioDisplay.vm';
 import { formatCurrency, formatPercentage, formatYearMonth } from '@/ui/utils';
 
 interface PortfolioHistoryTableProps {
@@ -24,8 +25,13 @@ export const PortfolioHistoryTable: React.FC<PortfolioHistoryTableProps> = ({
   snapshots,
   onDelete,
 }) => {
+  const { confirm } = useConfirm();
+
   const handleDelete = async (snapshotId: string, dateStr: string) => {
-    if (window.confirm(`Are you sure you want to delete the snapshot for ${dateStr}?`)) {
+    const confirmed = await confirm({
+      title: `Delete the snapshot for ${dateStr}?`,
+    });
+    if (confirmed) {
       try {
         if (onDelete) {
           await onDelete(snapshotId);
@@ -63,21 +69,21 @@ export const PortfolioHistoryTable: React.FC<PortfolioHistoryTableProps> = ({
               .map((snapshot) => (
                 <TableRow key={snapshot.id}>
                   <TableCell>{formatYearMonth(snapshot.year, snapshot.month)}</TableCell>
-                  <TableCell className="text-right font-medium">
+                  <TableCell className="text-right font-medium tabular-nums">
                     {formatCurrency(snapshot.totalValue)}
                   </TableCell>
                   <TableCell
-                    className={`text-right ${snapshot.performance.gain >= 0 ? 'text-green-600' : 'text-red-600'}`}
+                    className={`text-right ${snapshot.performance.gain >= 0 ? 'text-positive' : 'text-negative'}`}
                   >
                     {formatCurrency(snapshot.performance.gain)}
                   </TableCell>
                   <TableCell
-                    className={`text-right ${snapshot.performance.returnRate >= 0 ? 'text-green-600' : 'text-red-600'}`}
+                    className={`text-right ${snapshot.performance.returnRate >= 0 ? 'text-positive' : 'text-negative'}`}
                   >
                     {formatPercentage(snapshot.performance.returnRate, 2)}
                   </TableCell>
                   <TableCell
-                    className={`text-right ${snapshot.performance.cumulativeReturnRate >= 0 ? 'text-green-600' : 'text-red-600'}`}
+                    className={`text-right ${snapshot.performance.cumulativeReturnRate >= 0 ? 'text-positive' : 'text-negative'}`}
                   >
                     {formatPercentage(snapshot.performance.cumulativeReturnRate, 2)}
                   </TableCell>

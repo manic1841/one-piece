@@ -1,12 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { householdPermissionService } from '@/application/household/householdPermissionService';
 import {
   RetirementPlanCommandError,
   RetirementPlanCommandErrorCode,
 } from '@/domains/retirement/retirementPlanErrors';
-import { deleteRetirementPlanUseCase } from './deleteRetirementPlanUseCase';
-import { householdPermissionService } from '@/application/household/householdPermissionService';
 import { retirementRepository } from '@/infra/repositories/retirementRepository';
+
+import { deleteRetirementPlanUseCase } from './deleteRetirementPlanUseCase';
 
 vi.mock('@/application/household/householdPermissionService', () => ({
   householdPermissionService: {
@@ -31,7 +32,11 @@ describe('deleteRetirementPlanUseCase', () => {
   });
 
   it('delegates to the atomic delete', async () => {
-    await deleteRetirementPlanUseCase.execute({ householdId: 'household-1', planId: 'plan-1', auth });
+    await deleteRetirementPlanUseCase.execute({
+      householdId: 'household-1',
+      planId: 'plan-1',
+      auth,
+    });
 
     expect(retirementRepository.deletePlanAtomically).toHaveBeenCalledWith({
       householdId: 'household-1',

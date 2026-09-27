@@ -109,18 +109,18 @@ export const ReportHeader: React.FC<ReportHeaderProps> = ({
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={onBack} className="rounded-full">
+          <Button variant="ghost" size="icon" onClick={onBack}>
             <ArrowLeft size={24} />
           </Button>
           <div>
-            <h1 className="text-2xl font-black text-slate-900 tracking-tight">{title}</h1>
-            <p className="text-slate-500 font-medium text-sm">{subtitle}</p>
+            <h1 className="text-2xl font-black text-foreground tracking-tight">{title}</h1>
+            <p className="text-muted-foreground font-medium text-sm">{subtitle}</p>
           </div>
         </div>
 
         <div className="flex items-center gap-3">
           {/* Mode toggle buttons */}
-          <div className="flex p-1 bg-slate-100/80 rounded-lg border border-slate-200/50 gap-1">
+          <div className="flex p-1 bg-muted/80 rounded-lg border border-border/50 gap-1">
             <Button
               type="button"
               variant={reportMode === 'MONTHLY' ? 'default' : 'ghost'}
@@ -215,26 +215,23 @@ export const ReportHeader: React.FC<ReportHeaderProps> = ({
             <PopoverTrigger asChild>
               <Button
                 variant="outline"
-                className="bg-white border-slate-200 shadow-sm hover:bg-slate-50 px-4 h-11 rounded-xl flex items-center gap-3 transition-all active:scale-95"
+                className="bg-card border-border hover:bg-muted px-4 h-11 rounded-lg flex items-center gap-3 transition-all active:scale-95"
               >
-                <div className="bg-indigo-50 p-1.5 rounded-lg text-indigo-600">
+                <div className="bg-accent p-1.5 rounded-lg text-foreground">
                   <Calendar size={18} />
                 </div>
-                <span className="font-bold text-slate-700">
+                <span className="font-bold text-foreground">
                   {reportMode === 'MONTHLY'
                     ? format(currentDate, 'yyyy 年 MM 月')
                     : format(currentDate, 'yyyy 年')}
                 </span>
               </Button>
             </PopoverTrigger>
-            <PopoverContent
-              className="w-80 p-6 rounded-2xl shadow-2xl border-slate-100"
-              align="end"
-            >
+            <PopoverContent className="w-80 p-6 rounded-lg shadow-lg border-border" align="end">
               <div className="space-y-4">
                 <div className="flex items-center gap-2 mb-2">
-                  <Calendar size={16} className="text-indigo-600" />
-                  <span className="text-sm font-black text-slate-900 uppercase tracking-wider">
+                  <Calendar size={16} className="text-muted-foreground" />
+                  <span className="text-sm font-black text-foreground uppercase tracking-wider">
                     {reportMode === 'MONTHLY' ? '選擇報表期間' : '選擇年份'}
                   </span>
                 </div>
@@ -251,7 +248,6 @@ export const ReportHeader: React.FC<ReportHeaderProps> = ({
                     mode="year"
                     year={currentDate.getFullYear()}
                     onYearChange={handleYearChange}
-                    yearLabel="年份"
                     className="grid grid-cols-1 gap-4"
                   />
                 )}
@@ -262,16 +258,16 @@ export const ReportHeader: React.FC<ReportHeaderProps> = ({
       </div>
 
       {/* Quick Switch Tabs */}
-      <div className="flex p-1 bg-slate-100/80 backdrop-blur-sm rounded-2xl border border-slate-200/50 w-fit">
+      <div className="flex p-1 bg-muted/80 backdrop-blur-sm rounded-lg border border-border/50 w-fit">
         {reportTabs.map((tab) => (
           <button
             key={tab.id}
             onClick={() => onViewChange(tab.id)}
             className={cn(
-              'flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-black transition-all',
+              'flex items-center gap-2 px-6 py-2.5 rounded-lg text-sm font-black transition-all',
               currentView === tab.id
-                ? 'bg-white text-indigo-600 shadow-md shadow-slate-200/50 translate-y-[-1px]'
-                : 'text-slate-500 hover:text-slate-700 hover:bg-white/50',
+                ? 'bg-card text-foreground'
+                : 'text-muted-foreground hover:text-foreground hover:bg-card/50',
             )}
           >
             {tab.icon}

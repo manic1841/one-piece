@@ -3,31 +3,29 @@ import { useCallback } from 'react';
 import { createRetirementPlanUseCase } from '@/application/retirement/use_cases/createRetirementPlanUseCase';
 import { deleteRetirementPlanUseCase } from '@/application/retirement/use_cases/deleteRetirementPlanUseCase';
 import { duplicateRetirementPlanUseCase } from '@/application/retirement/use_cases/duplicateRetirementPlanUseCase';
-import { importRetirementDebtUseCase } from '@/application/retirement/use_cases/importRetirementDebtUseCase';
-import { importRetirementIncomeUseCase } from '@/application/retirement/use_cases/importRetirementIncomeUseCase';
 import { updateRetirementPlanUseCase } from '@/application/retirement/use_cases/updateRetirementPlanUseCase';
-import {
-  type RetirementExpenseCategory,
-  type RetirementIncomeSource,
-  type RetirementPlanCreate,
-} from '@/domains/retirement/types';
-import { useAuthContext } from '@/ui/hooks/useAuthContext';
-import { useLoadingTask } from '@/ui/hooks/useLoadingTask';
+import { type RetirementPlanCreate } from '@/domains/retirement/types';
+import { getErrorMessage } from '@/ui/hooks/getErrorMessage';
+import { useAuthIdentity } from '@/ui/hooks/useAuthIdentity';
+import { type LoadingTaskResult, useLoadingTask } from '@/ui/hooks/useLoadingTask';
+
+const MISSING_CONTEXT_MESSAGE = 'Missing household or user context. Please refresh and try again.';
 
 export function useRetirementPlanCmds(
   householdId: string | undefined,
   userEmail: string | undefined,
 ) {
-  const auth = useAuthContext();
-  const { loading, error, run } = useLoadingTask();
+  const auth = useAuthIdentity();
+  const { loading, error, errorMessage, run } = useLoadingTask();
 
   const createPlan = useCallback(
-    async (plan: RetirementPlanCreate): Promise<string | null> => {
-      if (!householdId || !userEmail) return null;
-      const result = await run(async () => {
+    async (plan: RetirementPlanCreate): Promise<LoadingTaskResult<string>> => {
+      if (!householdId || !userEmail) {
+        return { ok: false, kind: 'failed', error: new Error(MISSING_CONTEXT_MESSAGE) };
+      }
+      return run(async () => {
         return createRetirementPlanUseCase.execute({ householdId, plan, userEmail, auth });
       });
-      return result || null;
     },
     [householdId, userEmail, auth, run],
   );
@@ -35,28 +33,27 @@ export function useRetirementPlanCmds(
   const updatePlan = useCallback(
     async (planId: string, updates: Partial<RetirementPlanCreate>): Promise<void> => {
       if (!householdId || !userEmail) {
-        throw new Error('Missing household or user context. Please refresh and try again.');
+        throw new Error(MISSING_CONTEXT_MESSAGE);
       }
 
       const result = await run(async () => {
-        try {
-          await updateRetirementPlanUseCase.execute({
-            householdId,
-            planId,
-            updates,
-            userEmail,
-            auth,
-          });
-          return { ok: true as const };
-        } catch (err) {
-          const message = err instanceof Error ? err.message : String(err);
-          return { ok: false as const, message };
-        }
+        await updateRetirementPlanUseCase.execute({
+          householdId,
+          planId,
+          updates,
+          userEmail,
+          auth,
+        });
       });
 
-      if (!result || !result.ok) {
-        const reason = result && !result.ok ? result.message : 'Unknown error';
-        throw new Error(`Failed to update retirement plan in Firestore: ${reason}`);
+      // An abandoned run has an unknown outcome: the underlying write cannot be
+      // cancelled once started, so reporting it as a failure would be a guess.
+      if (!result.ok && result.kind === 'aborted') return;
+
+      if (!result.ok) {
+        throw new Error(
+          `Failed to update retirement plan in Firestore: ${getErrorMessage(result.error)}`,
+        );
       }
     },
     [householdId, userEmail, auth, run],
@@ -73,9 +70,11 @@ export function useRetirementPlanCmds(
   );
 
   const duplicatePlan = useCallback(
-    async (sourcePlanId: string): Promise<string | null> => {
-      if (!householdId || !userEmail) return null;
-      const result = await run(async () => {
+    async (sourcePlanId: string): Promise<LoadingTaskResult<string>> => {
+      if (!householdId || !userEmail) {
+        return { ok: false, kind: 'failed', error: new Error(MISSING_CONTEXT_MESSAGE) };
+      }
+      return run(async () => {
         return duplicateRetirementPlanUseCase.execute({
           householdId,
           sourcePlanId,
@@ -83,31 +82,8 @@ export function useRetirementPlanCmds(
           auth,
         });
       });
-      return result || null;
     },
     [householdId, userEmail, auth, run],
-  );
-
-  const importIncomeData = useCallback(
-    async (): Promise<RetirementIncomeSource[]> => {
-      if (!householdId) return [];
-      const result = await run(async () => {
-        return importRetirementIncomeUseCase.execute({ householdId, auth });
-      });
-      return result || [];
-    },
-    [householdId, auth, run],
-  );
-
-  const importDebtData = useCallback(
-    async (): Promise<RetirementExpenseCategory[]> => {
-      if (!householdId) return [];
-      const result = await run(async () => {
-        return importRetirementDebtUseCase.execute({ householdId, auth });
-      });
-      return result || [];
-    },
-    [householdId, auth, run],
   );
 
   return {
@@ -115,9 +91,8 @@ export function useRetirementPlanCmds(
     updatePlan,
     deletePlan,
     duplicatePlan,
-    importIncomeData,
-    importDebtData,
     loading,
     error,
+    errorMessage,
   };
 }
