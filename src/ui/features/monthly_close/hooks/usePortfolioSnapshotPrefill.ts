@@ -31,6 +31,7 @@ export const usePortfolioSnapshotPrefill = ({
     let cancelled = false;
 
     const loadPortfolioSnapshots = async () => {
+      setPortfolioSnapshots(new Map());
       const year = Number(selectedYearMonth.slice(0, 4));
       const month = Number(selectedYearMonth.slice(5, 7));
       const entries = await Promise.all(

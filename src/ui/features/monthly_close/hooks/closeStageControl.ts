@@ -2,9 +2,13 @@ import type { MonthlyCloseConfirmRequest } from '@/application/monthly_close/use
 import type { CloseStageId } from '@/domains/financial_period/schemas';
 
 /**
- * The stage controller contract every close stage satisfies. A stage owns its
- * prefill and draft state; the page injects the shared submit (assemble request
- * → confirmStage → refresh evidence) and navigation callbacks.
+ * The stage controller contract every close stage satisfies — the strategy
+ * interface the page dispatches on. A stage owns its prefill and draft state;
+ * the page injects the shared submit (assemble request → confirmStage →
+ * refresh evidence) and navigation callbacks. Stages with no draft or no
+ * post-confirm effect return empty implementations from
+ * `useConfirmStageControl`, so orchestration reads the contract instead of
+ * branching on stage IDs.
  */
 export interface CloseStageControl {
   stageId: CloseStageId;
@@ -21,4 +25,12 @@ export interface CloseStageControl {
   confirmGate?: () => Promise<boolean>;
   /** Post-confirm side effects (prefill refresh keys, navigation resets). */
   afterConfirm: () => void;
+  /**
+   * Month switch retires the stage draft (back to `[]` / `{}` / empty rows);
+   * a no-op for stages without one. The page iterates the strategy record on
+   * month switch, so a new draft-bearing stage registers its own reset.
+   */
+  resetDraft: () => void;
+  /** Keep the stage view open after a successful confirm (FINANCIAL_REPORTS). */
+  keepsViewOnConfirm?: boolean;
 }

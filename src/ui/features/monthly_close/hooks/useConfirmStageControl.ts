@@ -1,5 +1,6 @@
 import { useCallback } from 'react';
 
+import { type CloseStageId } from '@/domains/financial_period/schemas';
 import { MONTHLY_CLOSE_LABELS } from '@/ui/constants/monthlyClose';
 
 import { type CloseStageControl } from './closeStageControl';
@@ -13,6 +14,13 @@ interface UseConfirmStageControlArgs {
   /** Ask before submitting (empty-stage warning); false aborts. */
   confirmGate?: () => Promise<boolean>;
   afterConfirm?: CloseStageControl['afterConfirm'];
+  /**
+   * Month-switch reset (back to `[]` / `{}` / empty rows); stages without a
+   * draft leave it unset and the adapter makes it a no-op.
+   */
+  resetDraft?: CloseStageControl['resetDraft'];
+  /** Keep the stage view open after a successful confirm (FINANCIAL_REPORTS). */
+  keepsViewOnConfirm?: CloseStageControl['keepsViewOnConfirm'];
 }
 
 /**
@@ -26,6 +34,8 @@ export const useConfirmStageControl = ({
   shouldBlock,
   confirmGate,
   afterConfirm,
+  resetDraft,
+  keepsViewOnConfirm,
 }: UseConfirmStageControlArgs): CloseStageControl => {
   const blocked = useCallback((): boolean => (shouldBlock ? shouldBlock() : false), [shouldBlock]);
 
@@ -36,10 +46,10 @@ export const useConfirmStageControl = ({
     shouldBlock: blocked,
     confirmGate,
     afterConfirm: afterConfirm ?? (() => undefined),
+    resetDraft: resetDraft ?? (() => undefined),
+    keepsViewOnConfirm,
   };
 };
-
-export type { CloseStageControl };
 
 export const EMPTY_STAGE_CONFIRM_OPTIONS = {
   title: MONTHLY_CLOSE_LABELS.EMPTY_STAGE_WARNING_TITLE,
@@ -49,12 +59,18 @@ export const EMPTY_STAGE_CONFIRM_OPTIONS = {
   cancelLabel: MONTHLY_CLOSE_LABELS.CANCEL,
 } as const;
 
-export const useClosePeriodStageControl = (
+/**
+ * The empty implementation for stages with no draft state of their own:
+ * `buildRequest` submits the stage ID alone, `resetDraft` is a no-op, and the
+ * confirm gate and post-confirm effect stay empty. Dispatchable through the
+ * same strategy record as every other stage.
+ */
+export const useNoOpStageControl = (
+  stageId: CloseStageId,
   confirmingStageId: string | null,
-): CloseStageControl => ({
-  stageId: 'CLOSE_PERIOD',
-  confirming: confirmingStageId === 'CLOSE_PERIOD',
-  buildRequest: () => ({ stageId: 'CLOSE_PERIOD' }),
-  shouldBlock: () => false,
-  afterConfirm: () => undefined,
-});
+): CloseStageControl =>
+  useConfirmStageControl({
+    stageId,
+    confirmingStageId,
+    buildRequest: () => ({ stageId }),
+  });
