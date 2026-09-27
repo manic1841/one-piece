@@ -96,7 +96,7 @@ const confirmStage = (stageId: CloseStageId, input: ConfirmStageInput = {}) =>
   });
 
 const expectDebtRepaymentArtifacts = async () => {
-  const repaymentTransaction = await findTransactionByIntent('DEBT_PAYMENT');
+  const repaymentTransaction = await findTransactionByIntentOrIntentType('DEBT_PAYMENT');
   expect(repaymentTransaction).not.toBeNull();
   expect(repaymentTransaction?.debtAccountId).toBe(loanId);
   expect(repaymentTransaction?.amount).toBe(35_000);
@@ -121,6 +121,48 @@ const expectDebtRepaymentArtifacts = async () => {
   expect(zeroPaymentSnapshot.data()?.totalPaid).toBe(0);
   expect(zeroPaymentSnapshot.data()?.principalPaid).toBe(0);
   expect(zeroPaymentSnapshot.data()?.interestPaid).toBe(0);
+};
+
+// Re-confirming the debt stage re-books the month's record (ADR-0067): the
+// same period × account key with a changed payload deletes the previous
+// transaction and re-derives the snapshot and balance inside one atomic
+// boundary; the watched zero-payment snapshot stays untouched. Reads go
+// through a fresh reader because the long-lived shared instance serves stale
+// local snapshots after transaction deletes on this SDK version.
+const expectRebookedDebtArtifacts = async (previousTransactionId: string) => {
+  const rebooked = await withFreshReader(async (readerDb) => {
+    const rebookedTransactions = await getDocsFromServer(
+      query(
+        collection(readerDb, 'households', householdId, 'transactions'),
+        where('intentType', '==', 'DEBT_PAYMENT'),
+        where('date', '>=', new Date(2026, 2, 1)),
+        where('date', '<', new Date(2026, 3, 1)),
+      ),
+    );
+    const rebookedSnapshot = await getDoc(
+      doc(readerDb, 'households', householdId, 'debtAccounts', loanId, 'snapshots', yearMonth),
+    );
+    const zeroPaymentSnapshot = await getDoc(
+      doc(
+        readerDb,
+        'households',
+        householdId,
+        'debtAccounts',
+        zeroPaymentLoanId,
+        'snapshots',
+        yearMonth,
+      ),
+    );
+    return { rebookedTransactions, rebookedSnapshot, zeroPaymentSnapshot };
+  });
+  expect(rebooked.rebookedTransactions.docs).toHaveLength(1);
+  expect(rebooked.rebookedTransactions.docs[0]!.id).not.toBe(previousTransactionId);
+  expect(rebooked.rebookedTransactions.docs[0]!.data().amount).toBe(36_000);
+  expect(rebooked.rebookedSnapshot.data()?.totalPaid).toBe(36_000);
+  expect(rebooked.zeroPaymentSnapshot.data()?.totalPaid).toBe(0);
+  expect(rebooked.zeroPaymentSnapshot.data()?.principalPaid).toBe(0);
+  expect(rebooked.zeroPaymentSnapshot.data()?.interestPaid).toBe(0);
+  return rebooked.rebookedTransactions.docs[0]!.id;
 };
 
 describe('monthlyCloseWorkflowUseCase — emulator integration', () => {
@@ -272,7 +314,7 @@ describe('monthlyCloseWorkflowUseCase — emulator integration', () => {
     await confirmStage('SECURITIES_TRADE', {
       securities: { buys: [{ amount, date: buyDate, description: 'VTI buy' }], sells: [] },
     });
-    const buyTransaction = await findTransactionByIntent('SECURITY_BUY');
+    const buyTransaction = await findTransactionByIntentOrIntentType('SECURITY_BUY');
     expect(buyTransaction).not.toBeNull();
     expect(buyTransaction?.amount).toBe(amount);
     expect(buyTransaction?.intentType).toBe('INVESTMENT');
@@ -324,10 +366,8 @@ describe('monthlyCloseWorkflowUseCase — emulator integration', () => {
     expect(firstBookings).toHaveLength(1);
     const previousTransactionId = firstBookings[0]!.id;
 
-    // Re-confirming the debt stage re-books the month's record (ADR-0067):
-    // the same period × account key with a changed payload deletes the
-    // previous transaction and re-derives the snapshot and balance inside
-    // one atomic boundary; the zero-payment snapshot is untouched.
+    // Re-confirming the debt stage re-books the month's record; the
+    // zero-payment snapshot for the watched loan stays untouched.
     await confirmStage('DEBT_REPAYMENT', {
       repayments: [
         {
@@ -338,27 +378,7 @@ describe('monthlyCloseWorkflowUseCase — emulator integration', () => {
         },
       ],
     });
-    // Fresh reader instance: the long-lived shared instance serves stale
-    // local snapshots after transaction deletes on this SDK version.
-    const rebooked = await withFreshReader(async (readerDb) => {
-      const rebookedTransactions = await getDocsFromServer(
-        query(
-          collection(readerDb, 'households', householdId, 'transactions'),
-          where('intentType', '==', 'DEBT_PAYMENT'),
-          where('date', '>=', new Date(2026, 2, 1)),
-          where('date', '<', new Date(2026, 3, 1)),
-        ),
-      );
-      const rebookedSnapshot = await getDoc(
-        doc(readerDb, 'households', householdId, 'debtAccounts', loanId, 'snapshots', yearMonth),
-      );
-      return { rebookedTransactions, rebookedSnapshot };
-    });
-    expect(rebooked.rebookedTransactions.docs).toHaveLength(1);
-    expect(rebooked.rebookedTransactions.docs[0]!.id).not.toBe(previousTransactionId);
-    expect(rebooked.rebookedTransactions.docs[0]!.data().amount).toBe(36_000);
-    const rebookedTransactionId = rebooked.rebookedTransactions.docs[0]!.id;
-    expect(rebooked.rebookedSnapshot.data()?.totalPaid).toBe(36_000);
+    const rebookedTransactionId = await expectRebookedDebtArtifacts(previousTransactionId);
 
     // Same payload: the same period × account key with an unchanged fingerprint
     // returns the stored result without re-booking anything.
@@ -747,7 +767,7 @@ describe('monthlyCloseWorkflowUseCase — emulator integration', () => {
       ],
     });
 
-    const repaymentTransaction = await findTransactionByIntent('DEBT_PAYMENT');
+    const repaymentTransaction = await findTransactionByIntentOrIntentType('DEBT_PAYMENT');
     expect(repaymentTransaction).not.toBeNull();
     expect(repaymentTransaction?.debtAccountId).toBe(graceLoanId);
     expect(repaymentTransaction?.amount).toBe(14_014);
@@ -777,13 +797,13 @@ describe('monthlyCloseWorkflowUseCase — emulator integration', () => {
     await confirmStage('SECURITIES_TRADE', {
       securities: { buys: [{ amount, date: new Date(2026, 2, 10) }], sells: [] },
     });
-    const before = await findTransactionByIntent('SECURITY_BUY');
+    const before = await findTransactionByIntentOrIntentType('SECURITY_BUY');
 
     // Transaction Validation batch-checks a month that actually holds
     // transactions and completes without rewriting any of them (spec 05).
     await confirmStage('TRANSACTION_VALIDATION', {});
 
-    const after = await findTransactionByIntent('SECURITY_BUY');
+    const after = await findTransactionByIntentOrIntentType('SECURITY_BUY');
     expect(after).not.toBeNull();
     expect(after?.id).toBe(before?.id);
     expect(after?.amount).toBe(before?.amount);
@@ -792,16 +812,13 @@ describe('monthlyCloseWorkflowUseCase — emulator integration', () => {
   });
 });
 
-const findTransactionByIntent = async (intentOrIntentTypeCode: string) => {
+const findTransactionByIntentOrIntentType = async (code: string) => {
   const snapshot = await getDocsFromServer(
     collection(db, 'households', householdId, 'transactions'),
   );
   return snapshot.docs
     .map((docSnapshot) => docSnapshot.data())
-    .find(
-      (data) =>
-        data.intentType === intentOrIntentTypeCode || data.intent === intentOrIntentTypeCode,
-    );
+    .find((data) => data.intentType === code || data.intent === code);
 };
 
 const findTransactionsByIntents = async (intents: string[]) => {

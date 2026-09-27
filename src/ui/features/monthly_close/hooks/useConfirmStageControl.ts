@@ -51,8 +51,6 @@ export const useConfirmStageControl = ({
   };
 };
 
-export type { CloseStageControl };
-
 export const EMPTY_STAGE_CONFIRM_OPTIONS = {
   title: MONTHLY_CLOSE_LABELS.EMPTY_STAGE_WARNING_TITLE,
   context: MONTHLY_CLOSE_LABELS.EMPTY_STAGE_WARNING_CONTEXT,
