@@ -35,3 +35,6 @@ coverage/
 
 # Local ticket records (kept locally, not stored in the repo)
 .scratch/
+
+# Household backup fixtures (real live financial data, never committed)
+examples/
