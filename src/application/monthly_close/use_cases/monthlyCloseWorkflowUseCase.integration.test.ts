@@ -30,6 +30,7 @@ import { financialPeriodRepository } from '@/infra/repositories/financialPeriodR
 import { projectRepository } from '@/infra/repositories/projectRepository';
 import { reportRepository } from '@/infra/repositories/reportRepository';
 import { transactionRepository } from '@/infra/repositories/transactionRepository';
+import { firestoreEmulator } from '@/test/emulatorEnv';
 import { db, resetMockDb } from '@/test/mocks/firebase';
 
 const auth = { uid: 'user-1', email: 'user@example.com', isGlobalAdmin: true };
@@ -325,7 +326,7 @@ describe('monthlyCloseWorkflowUseCase — emulator integration', () => {
     let rebookedTransactionId = '';
     const readerApp = initializeApp({ projectId: 'demo-project' }, 'debt-rebook-reader');
     const readerDb = getFirestore(readerApp);
-    connectFirestoreEmulator(readerDb, 'firebase', 8080);
+    connectFirestoreEmulator(readerDb, firestoreEmulator.host, firestoreEmulator.port);
     try {
       const rebookedTransactions = await getDocsFromServer(
         query(
@@ -364,7 +365,7 @@ describe('monthlyCloseWorkflowUseCase — emulator integration', () => {
       'debt-same-payload-reader',
     );
     const samePayloadReaderDb = getFirestore(samePayloadReaderApp);
-    connectFirestoreEmulator(samePayloadReaderDb, 'firebase', 8080);
+    connectFirestoreEmulator(samePayloadReaderDb, firestoreEmulator.host, firestoreEmulator.port);
     try {
       const samePayloadTransactions = await getDocsFromServer(
         query(
@@ -406,7 +407,7 @@ describe('monthlyCloseWorkflowUseCase — emulator integration', () => {
     });
     const clearedReaderApp = initializeApp({ projectId: 'demo-project' }, 'debt-cleared-reader');
     const clearedReaderDb = getFirestore(clearedReaderApp);
-    connectFirestoreEmulator(clearedReaderDb, 'firebase', 8080);
+    connectFirestoreEmulator(clearedReaderDb, firestoreEmulator.host, firestoreEmulator.port);
     try {
       const clearedTransactions = await getDocsFromServer(
         query(
