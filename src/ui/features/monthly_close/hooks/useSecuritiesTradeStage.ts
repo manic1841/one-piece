@@ -117,6 +117,11 @@ export const useSecuritiesTradeStage = ({
       removedTransactionIds,
     }),
     afterConfirm: () => setTradeRefreshKey((key) => key + 1),
+    resetDraft: () => {
+      setSecurities({ buys: [], sells: [] });
+      setFinancing({ shareholderFinancing: [], dividendPayout: [] });
+      setRemovedTransactionIds([]);
+    },
   });
 
   return {

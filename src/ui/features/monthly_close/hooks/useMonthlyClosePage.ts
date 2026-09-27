@@ -27,6 +27,8 @@ import { useAuthIdentity } from '@/ui/hooks/useAuthIdentity';
 
 import type { CloseStageControl } from './closeStageControl';
 import { useAccountBalanceStage } from './useAccountBalanceStage';
+import { useNoOpStageControl } from './useConfirmStageControl';
+import { useDebtRepaymentStage } from './useDebtRepaymentStage';
 import { useFinancialReportsStage } from './useFinancialReportsStage';
 import { usePortfolioCashFlowStage } from './usePortfolioCashFlowStage';
 import { useSecuritiesTradeStage } from './useSecuritiesTradeStage';
@@ -95,20 +97,6 @@ export const useMonthlyClosePage = ({
     auth,
   });
   const { repayments, setRepayments } = debtPrefill;
-
-  // Stage inputs are submitted with the selected month's confirmation, so a
-  // month switch must retire them; the next month's tables then prefill.
-  const handleSelectYearMonth = useCallback(
-    (yearMonth: string) => {
-      selectYearMonth(yearMonth);
-      accountBalanceStage.setBalances([]);
-      securitiesTradeStage.setSecurities({ buys: [], sells: [] });
-      securitiesTradeStage.setFinancing({ shareholderFinancing: [], dividendPayout: [] });
-      securitiesTradeStage.setRemovedTransactionIds([]);
-      portfolioCashFlowStage.setCashFlows({});
-    },
-    [accountBalanceStage, portfolioCashFlowStage, securitiesTradeStage, selectYearMonth],
-  );
 
   useEffect(() => {
     if (!householdId) return;
@@ -189,58 +177,51 @@ export const useMonthlyClosePage = ({
     [anomalies, cashFlowAdjustment, reportsPersisted, transactionIssues],
   );
 
-  // Each stage resolves to its controller, so the submit path reads the
-  // per-stage payload, gate, and post-confirm effects from one contract.
-  const stageControls = useMemo<Record<string, CloseStageControl>>(
+  // Every stage resolves through one strategy record keyed by stage ID, so the
+  // submit path reads the per-stage payload, gate, and post-confirm effects
+  // from one contract instead of branching on stage IDs.
+  const debtRepaymentStage = useDebtRepaymentStage({ confirmingStageId, repayments });
+  const transactionValidationStage = useNoOpStageControl(
+    'TRANSACTION_VALIDATION',
+    confirmingStageId,
+  );
+  const projectSettlementStage = useNoOpStageControl('PROJECT_SETTLEMENT', confirmingStageId);
+  const completenessCheckStage = useNoOpStageControl('COMPLETENESS_CHECK', confirmingStageId);
+  const closePeriodStage = useNoOpStageControl('CLOSE_PERIOD', confirmingStageId);
+  const stageControls = useMemo<Record<CloseStageId, CloseStageControl>>(
     () => ({
       ACCOUNT_BALANCE: accountBalanceStage,
       SECURITIES_TRADE: securitiesTradeStage,
       PORTFOLIO_CASH_FLOW: portfolioCashFlowStage,
       FINANCIAL_REPORTS: financialReportsStage,
-      TRANSACTION_VALIDATION: {
-        stageId: 'TRANSACTION_VALIDATION',
-        confirming: confirmingStageId === 'TRANSACTION_VALIDATION',
-        buildRequest: () => ({ stageId: 'TRANSACTION_VALIDATION' }),
-        shouldBlock: () => false,
-        afterConfirm: () => undefined,
-      },
-      PROJECT_SETTLEMENT: {
-        stageId: 'PROJECT_SETTLEMENT',
-        confirming: confirmingStageId === 'PROJECT_SETTLEMENT',
-        buildRequest: () => ({ stageId: 'PROJECT_SETTLEMENT' }),
-        shouldBlock: () => false,
-        afterConfirm: () => undefined,
-      },
-      COMPLETENESS_CHECK: {
-        stageId: 'COMPLETENESS_CHECK',
-        confirming: confirmingStageId === 'COMPLETENESS_CHECK',
-        buildRequest: () => ({ stageId: 'COMPLETENESS_CHECK' }),
-        shouldBlock: () => false,
-        afterConfirm: () => undefined,
-      },
-      CLOSE_PERIOD: {
-        stageId: 'CLOSE_PERIOD',
-        confirming: confirmingStageId === 'CLOSE_PERIOD',
-        buildRequest: () => ({ stageId: 'CLOSE_PERIOD' }),
-        shouldBlock: () => false,
-        afterConfirm: () => undefined,
-      },
-      DEBT_REPAYMENT: {
-        stageId: 'DEBT_REPAYMENT',
-        confirming: confirmingStageId === 'DEBT_REPAYMENT',
-        buildRequest: () => ({ stageId: 'DEBT_REPAYMENT', repayments }),
-        shouldBlock: () => false,
-        afterConfirm: () => undefined,
-      },
+      DEBT_REPAYMENT: debtRepaymentStage,
+      TRANSACTION_VALIDATION: transactionValidationStage,
+      PROJECT_SETTLEMENT: projectSettlementStage,
+      COMPLETENESS_CHECK: completenessCheckStage,
+      CLOSE_PERIOD: closePeriodStage,
     }),
     [
       accountBalanceStage,
-      confirmingStageId,
+      closePeriodStage,
+      completenessCheckStage,
+      debtRepaymentStage,
       financialReportsStage,
       portfolioCashFlowStage,
-      repayments,
+      projectSettlementStage,
       securitiesTradeStage,
+      transactionValidationStage,
     ],
+  );
+
+  // Stage inputs are submitted with the selected month's confirmation, so a
+  // month switch retires every stage draft through the strategy record; the
+  // next month's tables then prefill.
+  const handleSelectYearMonth = useCallback(
+    (yearMonth: string) => {
+      selectYearMonth(yearMonth);
+      for (const control of Object.values(stageControls)) control.resetDraft();
+    },
+    [selectYearMonth, stageControls],
   );
 
   const handleConfirmStage = useCallback(
@@ -250,7 +231,7 @@ export const useMonthlyClosePage = ({
       if (control.shouldBlock()) return;
       if (control.confirmGate && !(await control.confirmGate())) return;
       const result = await confirmStage(control.buildRequest());
-      if (result && stageId !== 'FINANCIAL_REPORTS') {
+      if (result && !control.keepsViewOnConfirm) {
         setViewingStageId(null);
       }
       control.afterConfirm();
@@ -297,9 +278,8 @@ export const useMonthlyClosePage = ({
   }, []);
 
   const handleClosePeriod = useCallback(async () => {
-    await confirmStage({ stageId: 'CLOSE_PERIOD' });
-    await refreshStageEvidence();
-  }, [confirmStage, refreshStageEvidence]);
+    await handleConfirmStage('CLOSE_PERIOD');
+  }, [handleConfirmStage]);
 
   return {
     householdId,

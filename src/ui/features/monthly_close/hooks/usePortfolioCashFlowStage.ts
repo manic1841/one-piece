@@ -25,6 +25,7 @@ export const usePortfolioCashFlowStage = ({
     stageId: 'PORTFOLIO_CASH_FLOW',
     confirmingStageId,
     buildRequest: () => ({ stageId: 'PORTFOLIO_CASH_FLOW', portfolioCashFlows: cashFlows }),
+    resetDraft: () => setCashFlows({}),
   });
 
   return { ...control, cashFlows, setCashFlows };

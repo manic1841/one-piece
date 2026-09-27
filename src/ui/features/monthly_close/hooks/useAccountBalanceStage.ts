@@ -25,6 +25,7 @@ export const useAccountBalanceStage = ({
     stageId: 'ACCOUNT_BALANCE',
     confirmingStageId,
     buildRequest: () => ({ stageId: 'ACCOUNT_BALANCE', accountBalances: balances }),
+    resetDraft: () => setBalances([]),
   });
 
   return { ...control, balances, setBalances };

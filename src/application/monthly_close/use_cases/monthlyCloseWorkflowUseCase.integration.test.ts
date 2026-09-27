@@ -1,5 +1,6 @@
 import { deleteApp, initializeApp } from 'firebase/app';
 import {
+  type Firestore,
   collection,
   connectFirestoreEmulator,
   doc,
@@ -47,6 +48,22 @@ let portfolioId = '';
 let projectId = '';
 
 const nextHouseholdId = () => `household-close-flow-${householdSeq}`;
+
+/**
+ * Runs a read against a fresh reader app: the long-lived shared instance
+ * serves stale local snapshots after transaction deletes on this SDK version,
+ * so server reads after a delete go through a throwaway connection.
+ */
+const withFreshReader = async <T>(read: (readerDb: Firestore) => Promise<T>): Promise<T> => {
+  const readerApp = initializeApp({ projectId: 'demo-project' }, `reader-${crypto.randomUUID()}`);
+  const readerDb = getFirestore(readerApp);
+  connectFirestoreEmulator(readerDb, firestoreEmulator.host, firestoreEmulator.port);
+  try {
+    return await read(readerDb);
+  } finally {
+    await deleteApp(readerApp);
+  }
+};
 
 const seedAccount = async (id: string, category: string = 'cash') => {
   await setDoc(doc(db, 'households', householdId, 'accounts', id), {
@@ -323,11 +340,7 @@ describe('monthlyCloseWorkflowUseCase — emulator integration', () => {
     });
     // Fresh reader instance: the long-lived shared instance serves stale
     // local snapshots after transaction deletes on this SDK version.
-    let rebookedTransactionId = '';
-    const readerApp = initializeApp({ projectId: 'demo-project' }, 'debt-rebook-reader');
-    const readerDb = getFirestore(readerApp);
-    connectFirestoreEmulator(readerDb, firestoreEmulator.host, firestoreEmulator.port);
-    try {
+    const rebooked = await withFreshReader(async (readerDb) => {
       const rebookedTransactions = await getDocsFromServer(
         query(
           collection(readerDb, 'households', householdId, 'transactions'),
@@ -336,17 +349,16 @@ describe('monthlyCloseWorkflowUseCase — emulator integration', () => {
           where('date', '<', new Date(2026, 3, 1)),
         ),
       );
-      expect(rebookedTransactions.docs).toHaveLength(1);
-      expect(rebookedTransactions.docs[0]!.id).not.toBe(previousTransactionId);
-      expect(rebookedTransactions.docs[0]!.data().amount).toBe(36_000);
-      rebookedTransactionId = rebookedTransactions.docs[0]!.id;
       const rebookedSnapshot = await getDoc(
         doc(readerDb, 'households', householdId, 'debtAccounts', loanId, 'snapshots', yearMonth),
       );
-      expect(rebookedSnapshot.data()?.totalPaid).toBe(36_000);
-    } finally {
-      await deleteApp(readerApp);
-    }
+      return { rebookedTransactions, rebookedSnapshot };
+    });
+    expect(rebooked.rebookedTransactions.docs).toHaveLength(1);
+    expect(rebooked.rebookedTransactions.docs[0]!.id).not.toBe(previousTransactionId);
+    expect(rebooked.rebookedTransactions.docs[0]!.data().amount).toBe(36_000);
+    const rebookedTransactionId = rebooked.rebookedTransactions.docs[0]!.id;
+    expect(rebooked.rebookedSnapshot.data()?.totalPaid).toBe(36_000);
 
     // Same payload: the same period × account key with an unchanged fingerprint
     // returns the stored result without re-booking anything.
@@ -360,13 +372,7 @@ describe('monthlyCloseWorkflowUseCase — emulator integration', () => {
         },
       ],
     });
-    const samePayloadReaderApp = initializeApp(
-      { projectId: 'demo-project' },
-      'debt-same-payload-reader',
-    );
-    const samePayloadReaderDb = getFirestore(samePayloadReaderApp);
-    connectFirestoreEmulator(samePayloadReaderDb, firestoreEmulator.host, firestoreEmulator.port);
-    try {
+    const samePayload = await withFreshReader(async (samePayloadReaderDb) => {
       const samePayloadTransactions = await getDocsFromServer(
         query(
           collection(samePayloadReaderDb, 'households', householdId, 'transactions'),
@@ -375,8 +381,6 @@ describe('monthlyCloseWorkflowUseCase — emulator integration', () => {
           where('date', '<', new Date(2026, 3, 1)),
         ),
       );
-      expect(samePayloadTransactions.docs).toHaveLength(1);
-      expect(samePayloadTransactions.docs[0]!.id).toBe(rebookedTransactionId);
       const samePayloadSnapshot = await getDoc(
         doc(
           samePayloadReaderDb,
@@ -388,10 +392,11 @@ describe('monthlyCloseWorkflowUseCase — emulator integration', () => {
           yearMonth,
         ),
       );
-      expect(samePayloadSnapshot.data()?.totalPaid).toBe(36_000);
-    } finally {
-      await deleteApp(samePayloadReaderApp);
-    }
+      return { samePayloadTransactions, samePayloadSnapshot };
+    });
+    expect(samePayload.samePayloadTransactions.docs).toHaveLength(1);
+    expect(samePayload.samePayloadTransactions.docs[0]!.id).toBe(rebookedTransactionId);
+    expect(samePayload.samePayloadSnapshot.data()?.totalPaid).toBe(36_000);
 
     // Zero amount: the cleared month deletes the repayment transaction and
     // covers the snapshot with zeros (the balance returns to its opening).
@@ -405,10 +410,7 @@ describe('monthlyCloseWorkflowUseCase — emulator integration', () => {
         },
       ],
     });
-    const clearedReaderApp = initializeApp({ projectId: 'demo-project' }, 'debt-cleared-reader');
-    const clearedReaderDb = getFirestore(clearedReaderApp);
-    connectFirestoreEmulator(clearedReaderDb, firestoreEmulator.host, firestoreEmulator.port);
-    try {
+    const cleared = await withFreshReader(async (clearedReaderDb) => {
       const clearedTransactions = await getDocsFromServer(
         query(
           collection(clearedReaderDb, 'households', householdId, 'transactions'),
@@ -417,7 +419,6 @@ describe('monthlyCloseWorkflowUseCase — emulator integration', () => {
           where('date', '<', new Date(2026, 3, 1)),
         ),
       );
-      expect(clearedTransactions.docs).toHaveLength(0);
       const clearedSnapshot = await getDoc(
         doc(
           clearedReaderDb,
@@ -429,16 +430,16 @@ describe('monthlyCloseWorkflowUseCase — emulator integration', () => {
           yearMonth,
         ),
       );
-      expect(clearedSnapshot.data()?.totalPaid).toBe(0);
-      expect(clearedSnapshot.data()?.principalPaid).toBe(0);
-      expect(clearedSnapshot.data()?.interestPaid).toBe(0);
       const clearedAccount = await getDoc(
         doc(clearedReaderDb, 'households', householdId, 'debtAccounts', loanId),
       );
-      expect(clearedAccount.data()?.currentBalance).toBe(1_200_000);
-    } finally {
-      await deleteApp(clearedReaderApp);
-    }
+      return { clearedTransactions, clearedSnapshot, clearedAccount };
+    });
+    expect(cleared.clearedTransactions.docs).toHaveLength(0);
+    expect(cleared.clearedSnapshot.data()?.totalPaid).toBe(0);
+    expect(cleared.clearedSnapshot.data()?.principalPaid).toBe(0);
+    expect(cleared.clearedSnapshot.data()?.interestPaid).toBe(0);
+    expect(cleared.clearedAccount.data()?.currentBalance).toBe(1_200_000);
 
     // COMPLETENESS_CHECK pauses on the watched debt with zero activity. The
     // stage stays PENDING; re-confirming it is the resolution path (ADR-0052).
@@ -543,6 +544,252 @@ describe('monthlyCloseWorkflowUseCase — emulator integration', () => {
     expect(recovered.stages.FINANCIAL_REPORTS?.status).toBe('PENDING');
     expect(recovered.stages.CLOSE_PERIOD?.status).toBe('PENDING');
   });
+
+  it('re-confirms portfolio cash flows with the booked flows instead of zero-filling', async () => {
+    await monthlyCloseWorkflowUseCase.start({
+      householdId: householdId,
+      yearMonth,
+      userEmail: 'user@example.com',
+      auth,
+    });
+
+    await confirmStage('PORTFOLIO_CASH_FLOW', {
+      portfolioCashFlows: { [portfolioId]: { deposits: amount, withdrawals: 0 } },
+    });
+
+    // Same-key overwrite with the booked flows: the snapshot is rewritten in
+    // place, not duplicated, and keeps the submitted values (the write-path
+    // half of the August re-close regression).
+    await confirmStage('PORTFOLIO_CASH_FLOW', {
+      portfolioCashFlows: { [portfolioId]: { deposits: amount, withdrawals: 5_000 } },
+    });
+    const rewritten = await getDoc(
+      doc(db, 'households', householdId, 'portfolios', portfolioId, 'snapshots', yearMonth),
+    );
+    expect(rewritten.exists()).toBe(true);
+    expect(rewritten.data()?.cashFlow).toEqual({ deposits: amount, withdrawals: 5_000 });
+
+    // Re-confirm with a missing portfolio input: zero-fill is explicit contract
+    // (ADR-0052) but the snapshot is still keyed by period, never duplicated.
+    await confirmStage('PORTFOLIO_CASH_FLOW', {});
+    const zeroFilled = await getDoc(
+      doc(db, 'households', householdId, 'portfolios', portfolioId, 'snapshots', yearMonth),
+    );
+    expect(zeroFilled.data()?.cashFlow).toEqual({ deposits: 0, withdrawals: 0 });
+    const snapshotCount = (
+      await getDocsFromServer(
+        collection(db, 'households', householdId, 'portfolios', portfolioId, 'snapshots'),
+      )
+    ).docs.length;
+    expect(snapshotCount).toBe(1);
+  });
+
+  it('diff-merges securities and financing rows across re-confirms', async () => {
+    await monthlyCloseWorkflowUseCase.start({
+      householdId: householdId,
+      yearMonth,
+      userEmail: 'user@example.com',
+      auth,
+    });
+
+    const buy = { amount: 50_000, date: new Date(2026, 2, 10), description: 'VTI buy' };
+    const sell = { amount: 20_000, date: new Date(2026, 2, 20), description: 'VTI sell' };
+    const borrow = { amount: 30_000, date: new Date(2026, 2, 12), description: 'shareholder loan' };
+    const payout = { amount: 10_000, date: new Date(2026, 2, 25), description: 'dividend' };
+
+    // First confirmation creates all four transaction kinds with
+    // intent-specific ledger entries from the intent mapping.
+    await confirmStage('SECURITIES_TRADE', {
+      securities: { buys: [buy], sells: [sell] },
+      financing: { shareholderFinancing: [borrow], dividendPayout: [payout] },
+    });
+
+    const byIntent = await findTransactionsByIntents([
+      'SECURITY_BUY',
+      'SECURITY_SELL',
+      'SHAREHOLDER_FINANCING',
+      'DIVIDEND_PAYOUT',
+    ]);
+    expect(Object.keys(byIntent).sort()).toEqual([
+      'DIVIDEND_PAYOUT',
+      'SECURITY_BUY',
+      'SECURITY_SELL',
+      'SHAREHOLDER_FINANCING',
+    ]);
+    const expectedAmounts: Record<string, number> = {
+      SECURITY_BUY: buy.amount,
+      SECURITY_SELL: sell.amount,
+      SHAREHOLDER_FINANCING: borrow.amount,
+      DIVIDEND_PAYOUT: payout.amount,
+    };
+    for (const [intent, transactions] of Object.entries(byIntent)) {
+      expect(transactions).toHaveLength(1);
+      const transaction = transactions[0];
+      expect(transaction.intentType).toBe(
+        intent === 'SECURITY_BUY' || intent === 'SECURITY_SELL' ? 'INVESTMENT' : 'FINANCING',
+      );
+      expect(transaction.amount).toBe(expectedAmounts[intent]);
+      expect(transaction.entries).toHaveLength(2);
+      expect(transaction.entries[0].debit).toBe(expectedAmounts[intent]);
+    }
+
+    // Capture document IDs from the first booking, then re-confirm with the
+    // buy edited, the sell flipped to a buy, the dividend removed, and new
+    // financing: IDs are reused (update-in-place), the flip moves the row
+    // across sides, and the removed ID is deleted.
+    const firstBuyId = byIntent.SECURITY_BUY[0].id;
+    const firstSellId = byIntent.SECURITY_SELL[0].id;
+    const firstBorrowId = byIntent.SHAREHOLDER_FINANCING[0].id;
+    const firstPayoutId = byIntent.DIVIDEND_PAYOUT[0].id;
+
+    await confirmStage('SECURITIES_TRADE', {
+      securities: {
+        buys: [
+          { transactionId: firstBuyId, amount: 60_000, date: buy.date, projectId: null },
+          { transactionId: firstSellId, amount: 25_000, date: sell.date, projectId: null },
+        ],
+        sells: [],
+      },
+      financing: {
+        shareholderFinancing: [
+          {
+            transactionId: firstBorrowId,
+            amount: borrow.amount,
+            date: borrow.date,
+            projectId: null,
+          },
+        ],
+        dividendPayout: [{ amount: 12_000, date: payout.date, projectId: null }],
+      },
+      removedTransactionIds: [firstPayoutId],
+    });
+
+    // Fresh reader instance: the long-lived shared instance serves stale
+    // local snapshots after transaction deletes on this SDK version (same
+    // workaround as the debt rebook assertions above).
+    const reconfirmed = await withFreshReader((readerDb) =>
+      readTransactionsFromReader(readerDb, [
+        'SECURITY_BUY',
+        'SECURITY_SELL',
+        'SHAREHOLDER_FINANCING',
+        'DIVIDEND_PAYOUT',
+      ]),
+    );
+    // The edited buy and the sell flipped into a buy reuse their document
+    // IDs (update-in-place); the removed dividend ID is gone and the new
+    // payout row is a fresh document.
+    expect(reconfirmed.SECURITY_BUY.map((transaction) => transaction.id).sort()).toEqual(
+      [firstBuyId, firstSellId].sort(),
+    );
+    expect(
+      reconfirmed.SECURITY_BUY.map((transaction) => transaction.amount).sort((a, b) => a - b),
+    ).toEqual([25_000, 60_000]);
+    expect(reconfirmed.SECURITY_SELL).toHaveLength(0);
+    expect(reconfirmed.SHAREHOLDER_FINANCING).toHaveLength(1);
+    expect(reconfirmed.SHAREHOLDER_FINANCING[0].id).toBe(firstBorrowId);
+    expect(reconfirmed.DIVIDEND_PAYOUT).toHaveLength(1);
+    expect(reconfirmed.DIVIDEND_PAYOUT[0].id).not.toBe(firstPayoutId);
+    expect(reconfirmed.DIVIDEND_PAYOUT[0].amount).toBe(12_000);
+  });
+
+  it('books a grace-period repayment: above-interest excess books as principal', async () => {
+    await monthlyCloseWorkflowUseCase.start({
+      householdId: householdId,
+      yearMonth,
+      userEmail: 'user@example.com',
+      auth,
+    });
+
+    const graceLoanId = await createDebtAccountUseCase.execute({
+      householdId: householdId,
+      data: {
+        name: 'Loan in grace',
+        type: 'mortgage',
+        repaymentType: 'equal_payment',
+        originalAmount: 9_500_000,
+        currentBalance: 9_490_000,
+        interestRate: 1.77,
+        startDate: new Date(2025, 10, 24),
+        endDate: new Date(2030, 10, 24),
+        graceEndDate: new Date(2030, 10, 24),
+        monthlyPayment: 50_000,
+        linkedProjectId: null,
+        isActive: true,
+      },
+      userEmail: 'user@example.com',
+      auth,
+    });
+
+    await confirmStage('ACCOUNT_BALANCE', {
+      accountBalances: [
+        { accountId: 'acc-1', amount },
+        { accountId: 'acc-securities', amount },
+      ],
+    });
+    await confirmStage('TRANSACTION_VALIDATION', {});
+    await confirmStage('SECURITIES_TRADE', {});
+    await confirmStage('PORTFOLIO_CASH_FLOW', {});
+    await confirmStage('PROJECT_SETTLEMENT', {});
+
+    // The unified split (issue #95 family): a grace-period payment above the
+    // month's interest books the excess as principal (early repayment). The
+    // opening balance derives from originalAmount, so the month interest is
+    // 9,500,000 × 1.77% / 12 = 14,012.5 and the 14,014 payment splits
+    // 1.5 principal / 14,012.5 interest.
+    await confirmStage('DEBT_REPAYMENT', {
+      repayments: [
+        {
+          debtAccountId: graceLoanId,
+          totalPayment: 14_014,
+          date: new Date(2026, 2, 5),
+          projectId: null,
+        },
+      ],
+    });
+
+    const repaymentTransaction = await findTransactionByIntent('DEBT_PAYMENT');
+    expect(repaymentTransaction).not.toBeNull();
+    expect(repaymentTransaction?.debtAccountId).toBe(graceLoanId);
+    expect(repaymentTransaction?.amount).toBe(14_014);
+
+    const graceSnapshot = await getDoc(
+      doc(db, 'households', householdId, 'debtAccounts', graceLoanId, 'snapshots', yearMonth),
+    );
+    expect(graceSnapshot.exists()).toBe(true);
+    expect(graceSnapshot.data()?.totalPaid).toBe(14_014);
+    expect(graceSnapshot.data()?.principalPaid).toBe(1.5);
+    expect(graceSnapshot.data()?.interestPaid).toBe(14_012.5);
+
+    const graceAccount = await getDoc(
+      doc(db, 'households', householdId, 'debtAccounts', graceLoanId),
+    );
+    expect(graceAccount.data()?.currentBalance).toBe(9_500_000 - 1.5);
+  });
+
+  it('validates real month transactions without modifying them', async () => {
+    await monthlyCloseWorkflowUseCase.start({
+      householdId: householdId,
+      yearMonth,
+      userEmail: 'user@example.com',
+      auth,
+    });
+
+    await confirmStage('SECURITIES_TRADE', {
+      securities: { buys: [{ amount, date: new Date(2026, 2, 10) }], sells: [] },
+    });
+    const before = await findTransactionByIntent('SECURITY_BUY');
+
+    // Transaction Validation batch-checks a month that actually holds
+    // transactions and completes without rewriting any of them (spec 05).
+    await confirmStage('TRANSACTION_VALIDATION', {});
+
+    const after = await findTransactionByIntent('SECURITY_BUY');
+    expect(after).not.toBeNull();
+    expect(after?.id).toBe(before?.id);
+    expect(after?.amount).toBe(before?.amount);
+    expect(after?.date).toEqual(before?.date);
+    expect(after?.updatedAt).toEqual(before?.updatedAt);
+  });
 });
 
 const findTransactionByIntent = async (intentOrIntentTypeCode: string) => {
@@ -555,4 +802,48 @@ const findTransactionByIntent = async (intentOrIntentTypeCode: string) => {
       (data) =>
         data.intentType === intentOrIntentTypeCode || data.intent === intentOrIntentTypeCode,
     );
+};
+
+const findTransactionsByIntents = async (intents: string[]) => {
+  const snapshot = await getDocsFromServer(
+    collection(db, 'households', householdId, 'transactions'),
+  );
+  return collectTransactionsByIntent(snapshot.docs, intents);
+};
+
+const readTransactionsFromReader = async (readerDb: Firestore, intents: string[]) => {
+  const snapshot = await getDocsFromServer(
+    collection(readerDb, 'households', householdId, 'transactions'),
+  );
+  return collectTransactionsByIntent(snapshot.docs, intents);
+};
+
+const collectTransactionsByIntent = (
+  docs: { id: string; data: () => Record<string, unknown> }[],
+  intents: string[],
+) => {
+  const byIntent: Record<
+    string,
+    {
+      id: string;
+      intent: string;
+      intentType: string;
+      amount: number;
+      entries: { ledgerCode: string; debit: number; credit: number }[];
+    }[]
+  > = {};
+  for (const intent of intents) byIntent[intent] = [];
+  for (const docSnapshot of docs) {
+    const data = docSnapshot.data();
+    if (intents.includes(data.intent as string)) {
+      byIntent[data.intent as string].push({
+        id: docSnapshot.id,
+        intent: data.intent as string,
+        intentType: data.intentType as string,
+        amount: data.amount as number,
+        entries: data.entries as { ledgerCode: string; debit: number; credit: number }[],
+      });
+    }
+  }
+  return byIntent;
 };
