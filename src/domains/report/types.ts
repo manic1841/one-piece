@@ -16,24 +16,3 @@ export type BalanceSheetData = z.infer<typeof BalanceSheetDataSchema>;
 export type CashFlowData = z.infer<typeof CashFlowDataSchema>;
 export type IncomeStatementItem = z.infer<typeof IncomeStatementItemSchema>;
 export type BalanceSheetItem = z.infer<typeof BalanceSheetItemSchema>;
-
-export const CashFlowSourceType = {
-  SYSTEM: 'SYSTEM',
-  MANUAL: 'MANUAL',
-} as const;
-
-export type CashFlowSourceType = (typeof CashFlowSourceType)[keyof typeof CashFlowSourceType];
-
-// trend.ts could be separate, but for now putting here if it's small
-export interface TrendDataPoint {
-  year: number;
-  month: number;
-  income: number | null;
-  incomeByCategory: Record<string, number>;
-  expense: number | null;
-  totalAssets: number | null;
-  liabilities: number | null;
-  netAssets: number | null;
-  investmentGain: number | null;
-  investmentReturnRate: number | null; // percentage, e.g. 5.0 = 5%
-}

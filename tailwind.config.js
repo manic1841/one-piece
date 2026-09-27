@@ -12,6 +12,10 @@ export default {
       colors: {
         background: 'hsl(var(--background))',
         foreground: 'hsl(var(--foreground))',
+        positive: 'hsl(var(--positive))',
+        negative: 'hsl(var(--negative))',
+        warning: 'hsl(var(--warning))',
+        elevated: 'hsl(var(--elevated))',
         card: {
           DEFAULT: 'hsl(var(--card))',
           foreground: 'hsl(var(--card-foreground))',
@@ -41,6 +45,7 @@ export default {
           foreground: 'hsl(var(--destructive-foreground))',
         },
         border: 'hsl(var(--border))',
+        'border-strong': 'hsl(var(--border-strong))',
         input: 'hsl(var(--input))',
         ring: 'hsl(var(--ring))',
         chart: {
@@ -50,6 +55,33 @@ export default {
           4: 'hsl(var(--chart-4))',
           5: 'hsl(var(--chart-5))',
         },
+      },
+      transitionDuration: {
+        fast: '120ms',
+        base: '240ms',
+        slow: '400ms',
+      },
+      animationDuration: {
+        fast: '120ms',
+        base: '240ms',
+        slow: '400ms',
+      },
+      transitionTimingFunction: {
+        'out-quint': 'cubic-bezier(0.22, 1, 0.36, 1)',
+        'in-quint': 'cubic-bezier(0.75, 0, 0.85, 0.4)',
+      },
+      animationTimingFunction: {
+        'out-quint': 'cubic-bezier(0.22, 1, 0.36, 1)',
+        'in-quint': 'cubic-bezier(0.75, 0, 0.85, 0.4)',
+      },
+      letterSpacing: {
+        display: '-0.02em',
+        heading: '-0.01em',
+        caption: '0.01em',
+      },
+      fontFamily: {
+        sans: ['"Inter Variable"', '"Noto Sans TC"', 'system-ui', 'sans-serif'],
+        mono: ['"JetBrains Mono Variable"', '"Noto Sans TC"', 'ui-monospace', 'monospace'],
       },
     },
   },

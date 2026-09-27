@@ -1,84 +1,39 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 
 import { Navigate, useLocation } from 'react-router-dom';
 
-import { isUserAuthorizedUseCase } from '@/application/access_control/use_cases/isUserAuthorizedUseCase';
-import { householdPermissionService } from '@/application/household/householdPermissionService';
-import { useAuth } from '@/infra/contexts/useAuth';
+import { useRouteAuthorization } from '@/ui/features/app/hooks/useRouteAuthorization';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
   requireHousehold?: boolean;
 }
 
+/**
+ * Surface 只把 Controller 的決策映射成導向，不自行編排授權（見
+ * docs/ui/ui-layer-architecture.md §4，issue #185）。
+ */
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, requireHousehold = false }) => {
-  const { currentUser, userProfile, loading, isAdmin } = useAuth();
+  const { outcome } = useRouteAuthorization(requireHousehold);
   const location = useLocation();
-  const [isAuthorized, setIsAuthorized] = useState<boolean | null>(isAdmin);
-  const [isMemberOfHousehold, setIsMemberOfHousehold] = useState<boolean | null>(null);
-  const [checkingAuth, setCheckingAuth] = useState(true);
 
-  useEffect(() => {
-    const checkAuthorization = async () => {
-      if (!currentUser) {
-        setCheckingAuth(false);
-        return;
-      }
-
-      try {
-        // Whitelist check
-        if (!isAdmin) {
-          const authorized = await isUserAuthorizedUseCase.execute({ email: currentUser.email });
-          setIsAuthorized(authorized);
-        }
-
-        // Household membership check
-        if (requireHousehold && userProfile?.householdId) {
-          try {
-            await householdPermissionService.assertReadPermission(
-              userProfile.householdId,
-              currentUser.uid,
-              isAdmin,
-            );
-            setIsMemberOfHousehold(true);
-          } catch {
-            setIsMemberOfHousehold(false);
-          }
-        } else {
-          setIsMemberOfHousehold(true);
-        }
-      } catch (error) {
-        console.error(
-          `[ProtectedRoute] Authorization check failed for user ${currentUser.uid} with email ${currentUser.email}:`,
-          error,
-        );
-        setIsAuthorized(false);
-        setIsMemberOfHousehold(false);
-      } finally {
-        setCheckingAuth(false);
-      }
-    };
-    checkAuthorization();
-  }, [currentUser, isAdmin, requireHousehold, userProfile?.householdId]);
-
-  if (loading || checkingAuth) {
+  if (outcome === 'pending') {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-gray-500">Loading...</div>
+        <div className="text-muted-foreground">Loading...</div>
       </div>
     );
   }
 
-  if (!currentUser) {
+  if (outcome === 'unauthenticated') {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  // Check whitelist authorization
-  if (isAuthorized === false) {
+  if (outcome === 'access-denied') {
     return <Navigate to="/access-denied" replace />;
   }
 
-  if (requireHousehold && (!userProfile?.householdId || isMemberOfHousehold === false)) {
+  if (outcome === 'onboarding') {
     return <Navigate to="/onboarding" replace />;
   }
 

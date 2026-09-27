@@ -1,6 +1,6 @@
 import React from 'react';
 
-import { type PortfolioSnapshot } from '@/domains/portfolio/types/portfolio';
+import { type PortfolioSnapshot } from '@/ui/features/portfolio/viewmodels/portfolioDisplay.vm';
 import { formatCurrency, formatPercentage, formatYearMonth } from '@/ui/utils';
 
 import { PerformanceCard } from './PerformanceCard';

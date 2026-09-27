@@ -1,14 +1,13 @@
 import { LEDGER_CODES, LEDGER_PREFIX } from '@/domains/ledger/constants';
 import { type JournalEntryLine } from '@/domains/ledger/schemas';
 
-import { categorizeLedgerEntry, type CashFlowGroups } from './cashFlowUtils';
+import { type CashFlowGroups, categorizeLedgerEntry } from './cashFlowUtils';
 import {
   type BalanceSheetData,
   type BalanceSheetItem,
   type CashFlowData,
   type CashFlowItem,
   type IncomeStatementData,
-  type IncomeStatementItem,
 } from './schemas';
 
 export type ReportLabelResolver = (code: string, fallbackLabel?: string) => string;
@@ -21,43 +20,73 @@ export interface IncomeStatementInput {
   labelResolver?: ReportLabelResolver;
 }
 
+type ReportSubItem = { code: string; label: string; amount: number };
+
+// Detail labels fall back to the raw detail segment (`code` minus the parent
+// prefix). Nested display labels compose "parent label › detail label" so the
+// persisted report stays directly displayable without re-resolution.
+const composeNestedLabel = (parentLabel: string, detailLabel: string) =>
+  `${parentLabel} › ${detailLabel}`;
+
+const rollUpTotals = (
+  totals: Map<string, number>,
+  resolveLabel: (code: string, fallback?: string) => string,
+) => {
+  type Node = { amount: number; subItems: ReportSubItem[] };
+  const parents = new Map<string, Node>();
+  for (const [code, amount] of totals.entries()) {
+    const [type, category, ...rest] = code.split(':');
+    const parentKey = `${type}:${category}`;
+    const node = parents.get(parentKey) ?? { amount: 0, subItems: [] };
+    node.amount += amount;
+    if (rest.length > 0) {
+      node.subItems.push({ code, label: resolveLabel(code), amount });
+    }
+    parents.set(parentKey, node);
+  }
+  return Array.from(parents.entries())
+    .map(([code, node]) => {
+      const parentLabel = resolveLabel(code);
+      const subItems = node.subItems.map((sub) => ({
+        ...sub,
+        amount: Math.abs(sub.amount),
+        label: composeNestedLabel(parentLabel, sub.label),
+      }));
+      return {
+        code,
+        label: parentLabel,
+        amount: Math.abs(node.amount),
+        subItems: subItems.length > 0 ? subItems.sort((a, b) => b.amount - a.amount) : undefined,
+      };
+    })
+    .filter((item) => item.amount > 0)
+    .sort((a, b) => b.amount - a.amount);
+};
+
 export function calculateIncomeStatement(input: IncomeStatementInput): IncomeStatementData {
   const { yearMonth, entries, labelResolver } = input;
 
-  const incomeMap = new Map<string, number>();
-  const expenseMap = new Map<string, number>();
+  const resolveLabel = (code: string, fallback?: string) =>
+    labelResolver ? labelResolver(code, fallback) : (fallback ?? code);
 
+  // Roll-up: the parent `type:category` row carries the summed amount, detail
+  // codes nest as subItems beneath it. Rows without detail codes render flat.
+  const rollUp = (totals: Map<string, number>) => rollUpTotals(totals, resolveLabel);
+
+  const incomeTotals = new Map<string, number>();
+  const expenseTotals = new Map<string, number>();
   for (const entry of entries) {
-    const fullCode = entry.ledgerCode;
-    const parts = fullCode.split(':');
+    const parts = entry.ledgerCode.split(':');
     if (parts.length < 2) continue;
-
-    const type = parts[0];
-
-    if (type === LEDGER_PREFIX.INCOME) {
-      const amount = incomeMap.get(fullCode) || 0;
-      incomeMap.set(fullCode, amount + entry.credit);
-    } else if (type === LEDGER_PREFIX.EXPENSE) {
-      const amount = expenseMap.get(fullCode) || 0;
-      expenseMap.set(fullCode, amount + entry.debit);
+    if (parts[0] === LEDGER_PREFIX.INCOME) {
+      incomeTotals.set(entry.ledgerCode, (incomeTotals.get(entry.ledgerCode) || 0) + entry.credit);
+    } else if (parts[0] === LEDGER_PREFIX.EXPENSE) {
+      expenseTotals.set(entry.ledgerCode, (expenseTotals.get(entry.ledgerCode) || 0) + entry.debit);
     }
   }
 
-  const resolveLabel = (code: string, fallback?: string) =>
-    labelResolver ? labelResolver(code, fallback) : fallback ?? code;
-
-  const mapToItems = (map: Map<string, number>): IncomeStatementItem[] =>
-    Array.from(map.entries())
-      .map(([code, amount]) => ({
-        code,
-        label: resolveLabel(code, code),
-        amount: Math.abs(amount),
-      }))
-      .filter((item) => item.amount > 0)
-      .sort((a, b) => b.amount - a.amount);
-
-  const incomeItems = mapToItems(incomeMap);
-  const expenseItems = mapToItems(expenseMap);
+  const incomeItems = rollUp(incomeTotals);
+  const expenseItems = rollUp(expenseTotals);
 
   const incomeTotal = incomeItems.reduce((sum, item) => sum + item.amount, 0);
   const expenseTotal = expenseItems.reduce((sum, item) => sum + item.amount, 0);
@@ -121,7 +150,7 @@ export function calculateBalanceSheet(input: BalanceSheetInput): BalanceSheetDat
   } = input;
 
   const resolveLabel = (code: string, fallback?: string) =>
-    labelResolver ? labelResolver(code, fallback) : fallback ?? code;
+    labelResolver ? labelResolver(code, fallback) : (fallback ?? code);
 
   const accountSnapshotMap = new Map(accountSnapshots.map((s) => [s.accountId, s.amount]));
 
@@ -153,13 +182,32 @@ export function calculateBalanceSheet(input: BalanceSheetInput): BalanceSheetDat
 
   const getCumulativeTotal = (prefix: string) => {
     let total = 0;
-    const items: BalanceSheetItem[] = [];
+    let matched = false;
+    const subItems: BalanceSheetItem[] = [];
     for (const [code, amount] of ledgerTotals.entries()) {
       if (code.startsWith(prefix)) {
+        matched = true;
         total += amount;
-        items.push({ code, label: resolveLabel(code, code), amount });
+        if (code !== prefix) {
+          subItems.push({
+            code,
+            label: resolveLabel(code, code.slice(prefix.length + 1)),
+            amount,
+          });
+        }
       }
     }
+    const items: BalanceSheetItem[] = matched
+      ? [
+          {
+            code: prefix,
+            label: resolveLabel(prefix, prefix),
+            amount: total,
+            subItems:
+              subItems.length > 0 ? subItems.sort((a, b) => b.amount - a.amount) : undefined,
+          },
+        ]
+      : [];
     return { total, items };
   };
 
@@ -189,14 +237,33 @@ export function calculateBalanceSheet(input: BalanceSheetInput): BalanceSheetDat
 
   const getCapitalTotal = (prefix: string) => {
     let total = 0;
-    const items: BalanceSheetItem[] = [];
+    let matched = false;
+    const subItems: BalanceSheetItem[] = [];
     for (const [code, amount] of monthlyLedgerTotals.entries()) {
       if (code.startsWith(prefix)) {
-        const val = -amount;
+        const val = Math.abs(amount);
+        matched = true;
         total += val;
-        items.push({ code, label: resolveLabel(code, code), amount: val });
+        if (code !== prefix) {
+          subItems.push({
+            code,
+            label: resolveLabel(code, code.slice(prefix.length + 1)),
+            amount: val,
+          });
+        }
       }
     }
+    const items: BalanceSheetItem[] = matched
+      ? [
+          {
+            code: prefix,
+            label: resolveLabel(prefix, prefix),
+            amount: total,
+            subItems:
+              subItems.length > 0 ? subItems.sort((a, b) => b.amount - a.amount) : undefined,
+          },
+        ]
+      : [];
     return { total, items };
   };
   const capital = getCapitalTotal(LEDGER_CODES.EQUITY_CAPITAL);
@@ -231,7 +298,7 @@ export function calculateBalanceSheet(input: BalanceSheetInput): BalanceSheetDat
         openingEquity: { label: '期初餘額', total: openingEquity, items: [] },
         netIncome: { label: '本期淨利', total: netIncome, items: [] },
         capital: { label: '資本', total: capital.total, items: capital.items },
-        stock_gain: { label: '股票損益', total: stockGain, items: [] },
+        stock_gain: { label: '股票報酬', total: stockGain, items: [] },
         adjustment: { label: '調整', total: adjustment, items: [] },
       },
     },
@@ -252,7 +319,7 @@ export function calculateCashFlow(input: CashFlowInput): CashFlowData {
   const { yearMonth, entries, beginningBalance, actualBalance, labelResolver } = input;
 
   const resolveLabel = (code: string, fallback?: string) =>
-    labelResolver ? labelResolver(code, fallback) : fallback ?? code;
+    labelResolver ? labelResolver(code, fallback) : (fallback ?? code);
 
   const groups: CashFlowGroups = {
     operating: { inflow: new Map(), outflow: new Map() },
@@ -264,17 +331,50 @@ export function calculateCashFlow(input: CashFlowInput): CashFlowData {
     categorizeLedgerEntry(entry, groups);
   }
 
+  // Roll-up: parent `type:category` rows carry the summed amount; detail codes
+  // nest as subItems. Detail labels fall back to the raw detail segment, then
+  // compose "parent label › detail label" for direct display.
+  const buildItems = (totals: Map<string, number>): CashFlowItem[] => {
+    type Node = { amount: number; subItems: CashFlowItem[] };
+    const parents = new Map<string, Node>();
+    for (const [code, amount] of totals.entries()) {
+      const [type, category, ...rest] = code.split(':');
+      const parentKey = `${type}:${category}`;
+      const node = parents.get(parentKey) ?? { amount: 0, subItems: [] };
+      node.amount += amount;
+      if (rest.length > 0) {
+        node.subItems.push({
+          code,
+          label: resolveLabel(code, code.slice(parentKey.length + 1)),
+          amount,
+        });
+      }
+      parents.set(parentKey, node);
+    }
+    return Array.from(parents.entries())
+      .map(([code, node]) => {
+        const parentLabel = resolveLabel(code, code);
+        const subItems = node.subItems.map((sub) => ({
+          ...sub,
+          label: composeNestedLabel(parentLabel, sub.label),
+        }));
+        return {
+          code,
+          label: parentLabel,
+          amount: node.amount,
+          subItems: subItems.length > 0 ? subItems : undefined,
+        };
+      })
+      .filter((item) => item.amount > 0)
+      .sort((a, b) => b.amount - a.amount);
+  };
+
   const buildGroup = (
     label: string,
     data: { inflow: Map<string, number>; outflow: Map<string, number> },
   ) => {
-    const inflowItems: CashFlowItem[] = Array.from(data.inflow.entries())
-      .map(([code, amount]) => ({ code, label: resolveLabel(code, code), amount }))
-      .filter((item) => item.amount > 0);
-
-    const outflowItems: CashFlowItem[] = Array.from(data.outflow.entries())
-      .map(([code, amount]) => ({ code, label: resolveLabel(code, code), amount }))
-      .filter((item) => item.amount > 0);
+    const inflowItems = buildItems(data.inflow);
+    const outflowItems = buildItems(data.outflow);
 
     const total =
       inflowItems.reduce((sum, item) => sum + item.amount, 0) -
@@ -312,6 +412,8 @@ export function calculateLiquidBalance(
 ): number {
   const snapshotMap = new Map(snapshots.map((s) => [s.accountId, s.amount]));
   return accounts
-    .filter((account) => (LIQUID_ACCOUNT_CATEGORIES as readonly string[]).includes(account.category))
+    .filter((account) =>
+      (LIQUID_ACCOUNT_CATEGORIES as readonly string[]).includes(account.category),
+    )
     .reduce((total, account) => total + (snapshotMap.get(account.id) || 0), 0);
 }

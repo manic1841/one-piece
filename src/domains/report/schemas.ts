@@ -36,13 +36,21 @@ export const ReportType = {
 export type ReportType = (typeof ReportType)[keyof typeof ReportType];
 
 // Balance Sheet
-export const BalanceSheetItemSchema = z.object({
-  code: z.string(),
-  label: z.string(),
-  amount: z.number(),
-});
+export const BalanceSheetItemSchema: z.ZodType<BalanceSheetItem> = z.lazy(() =>
+  z.object({
+    code: z.string(),
+    label: z.string(),
+    amount: z.number(),
+    subItems: z.array(BalanceSheetItemSchema).optional(),
+  }),
+);
 
-export type BalanceSheetItem = z.infer<typeof BalanceSheetItemSchema>;
+export interface BalanceSheetItem {
+  code: string;
+  label: string;
+  amount: number;
+  subItems?: BalanceSheetItem[];
+}
 
 export const BalanceSheetGroupSchema = z.object({
   label: z.string(),

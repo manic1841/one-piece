@@ -1,6 +1,7 @@
 import { doc, serverTimestamp, setDoc } from 'firebase/firestore';
 import { beforeEach, describe, expect, it } from 'vitest';
 
+import { generateFinancialReportsUseCase } from '@/application/report/use_cases/generateFinancialReportsUseCase';
 import { previewFinancialReportsWorkflow } from '@/application/report/use_cases/previewFinancialReportsWorkflow';
 import { db, resetMockDb } from '@/test/mocks/firebase';
 
@@ -27,21 +28,18 @@ const seedAccountSnapshot = async (
   yearMonth: string,
   amount: number,
 ) => {
-  await setDoc(
-    doc(db, 'households', householdId, 'accounts', accountId, 'snapshots', yearMonth),
-    {
-      id: yearMonth,
-      accountId,
-      year: Number(yearMonth.split('-')[0]),
-      month: Number(yearMonth.split('-')[1]),
-      amount,
-      holdings: [],
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-      createdBy: 'user@example.com',
-      updatedBy: 'user@example.com',
-    },
-  );
+  await setDoc(doc(db, 'households', householdId, 'accounts', accountId, 'snapshots', yearMonth), {
+    id: yearMonth,
+    accountId,
+    year: Number(yearMonth.split('-')[0]),
+    month: Number(yearMonth.split('-')[1]),
+    amount,
+    holdings: [],
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+    createdBy: 'user@example.com',
+    updatedBy: 'user@example.com',
+  });
 };
 
 const seedTransaction = async (
@@ -133,5 +131,34 @@ describe('previewFinancialReportsWorkflow — emulator integration', () => {
         month,
       }),
     ).rejects.toThrow();
+  });
+
+  it('re-previews as persisted with timestamps after the workflow generates reports', async () => {
+    await seedAccount(householdId, 'acc-1');
+    await seedAccountSnapshot(householdId, 'acc-1', yearMonth, 5000);
+
+    const before = await previewFinancialReportsWorkflow.execute({
+      householdId,
+      auth,
+      year,
+      month,
+    });
+    expect(before.isPersisted).toBe(false);
+
+    await generateFinancialReportsUseCase.execute({ householdId, auth, year, month });
+
+    const after = await previewFinancialReportsWorkflow.execute({
+      householdId,
+      auth,
+      year,
+      month,
+    });
+
+    expect(after.isPersisted).toBe(true);
+    expect(after.timestamps.incomeStatement).toBeTruthy();
+    expect(after.timestamps.balanceSheet).toBeTruthy();
+    expect(after.timestamps.cashFlow).toBeTruthy();
+    expect(after.incomeStatement.incomeTotal).toBe(before.incomeStatement.incomeTotal);
+    expect(after.balanceSheet.assets.total).toBe(before.balanceSheet.assets.total);
   });
 });

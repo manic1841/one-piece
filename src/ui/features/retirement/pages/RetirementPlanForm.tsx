@@ -1,12 +1,20 @@
 import React, { useState } from 'react';
 
+import { Trash2 } from 'lucide-react';
 import { useParams } from 'react-router-dom';
 
-import { useAuth } from '@/infra/contexts/useAuth';
-import { Alert, AlertDescription, AlertTitle } from '@/ui/components/ui/alert';
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@/ui/components/ui/accordion';
+import { Alert, AlertDescription } from '@/ui/components/ui/alert';
 import { Button } from '@/ui/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/ui/components/ui/tabs';
+import { RetirementWorkspaceSectionLabels } from '@/ui/constants/retirement/retirementWorkspaceLabels';
+import { useAuthState } from '@/ui/contexts/useAuthState';
 import AssumptionsForm from '@/ui/features/retirement/components/AssumptionsForm';
+import { CurrentFinancialState } from '@/ui/features/retirement/components/detail/CurrentFinancialState';
 import { EventTabContent } from '@/ui/features/retirement/components/detail/EventTabContent';
 import { ExpenseTabContent } from '@/ui/features/retirement/components/detail/ExpenseTabContent';
 import { IncomeTabContent } from '@/ui/features/retirement/components/detail/IncomeTabContent';
@@ -16,7 +24,7 @@ import { useRetirementPlanDetailPage } from '@/ui/features/retirement/hooks/useR
 
 const RetirementPlanForm: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const { userProfile } = useAuth();
+  const { userProfile } = useAuthState();
   const {
     plan,
     headerVM,
@@ -25,11 +33,8 @@ const RetirementPlanForm: React.FC = () => {
     expenseItems,
     eventItems,
     projectionVM,
+    netWorthSource,
     loading,
-    isEditingName,
-    editedName,
-    setEditedName,
-    setIsEditingName,
     staleIncomeSyncBanner,
     handleApplyStaleIncomeSync,
     handleDismissStaleIncomeSync,
@@ -45,40 +50,31 @@ const RetirementPlanForm: React.FC = () => {
     handleDeleteEvent,
     handleDelete,
     handleSaveName,
-    handleCancelEditName,
     handleAddIncome,
     handleUpdateIncome,
     handleDeleteIncome,
     handleImportIncomeFromTransactions,
+    handleImportExpensesFromLedger,
   } = useRetirementPlanDetailPage(id, userProfile?.householdId, userProfile?.email);
 
-  const [activeTab, setActiveTab] = useState('assumptions');
+  const [expandedSections, setExpandedSections] = useState<string[]>(['overview']);
 
   if (loading) {
     return <div className="p-8">Loading...</div>;
   }
 
-  if (!plan) {
-    return <div className="p-8">Plan not found</div>;
-  }
-
-  if (!headerVM) {
-    return <div className="p-8">Plan not found</div>;
-  }
-
-  if (!assumptionsVM) {
+  if (!plan || !headerVM || !assumptionsVM) {
     return <div className="p-8">Plan not found</div>;
   }
 
   return (
     <div className="space-y-6">
       {staleIncomeSyncBanner && (
-        <Alert className="border-amber-300 bg-amber-50">
-          <AlertTitle>收入樣本年度可更新</AlertTitle>
+        <Alert className="border-warning/40 bg-warning/5">
           <AlertDescription className="flex items-center justify-between gap-3">
             <span>
-              {staleIncomeSyncBanner.staleCount} 筆收入資料仍使用舊年度，建議更新至{' '}
-              {staleIncomeSyncBanner.targetSampleYear} 年。
+              收入樣本年度可更新：{staleIncomeSyncBanner.staleCount}{' '}
+              筆收入資料仍使用舊年度，建議更新至 {staleIncomeSyncBanner.targetSampleYear} 年。
             </span>
             <div className="flex items-center gap-2">
               <Button size="sm" onClick={handleApplyStaleIncomeSync}>
@@ -91,76 +87,113 @@ const RetirementPlanForm: React.FC = () => {
           </AlertDescription>
         </Alert>
       )}
-
       <RetirementPlanHeader
         header={headerVM}
-        isEditingName={isEditingName}
-        editedName={editedName}
-        setEditedName={setEditedName}
-        setIsEditingName={setIsEditingName}
         handleSaveName={handleSaveName}
-        handleCancelEditName={handleCancelEditName}
         handleRecalculate={handleRecalculate}
         handleToggleAutoUpdate={handleToggleAutoUpdate}
-        handleDelete={handleDelete}
       />
+      <Accordion
+        type="multiple"
+        value={expandedSections}
+        onValueChange={setExpandedSections}
+        className="w-full"
+      >
+        <AccordionItem value="overview">
+          <AccordionTrigger>{RetirementWorkspaceSectionLabels.overview}</AccordionTrigger>
+          <AccordionContent>
+            <ProjectionResultsContent projectionVM={projectionVM} section="overview" />
+          </AccordionContent>
+        </AccordionItem>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-5">
-          <TabsTrigger value="assumptions">Assumptions</TabsTrigger>
-          <TabsTrigger value="income">Income</TabsTrigger>
-          <TabsTrigger value="expenses">Expenses</TabsTrigger>
-          <TabsTrigger value="events">Events</TabsTrigger>
-          <TabsTrigger value="results">Results</TabsTrigger>
-        </TabsList>
+        <AccordionItem value="currentFinancialState">
+          <AccordionTrigger>
+            {RetirementWorkspaceSectionLabels.currentFinancialState}
+          </AccordionTrigger>
+          <AccordionContent>
+            <CurrentFinancialState netWorthSource={netWorthSource} />
+          </AccordionContent>
+        </AccordionItem>
 
-        <TabsContent value="assumptions" className="space-y-4">
-          <AssumptionsForm
-            assumptions={assumptionsVM}
-            onSave={handleUpdatePlan}
-            retirementTransition={plan.retirementTransition}
-          />
-        </TabsContent>
+        <AccordionItem value="netWorth">
+          <AccordionTrigger>{RetirementWorkspaceSectionLabels.netWorth}</AccordionTrigger>
+          <AccordionContent>
+            <ProjectionResultsContent projectionVM={projectionVM} section="netWorth" />
+          </AccordionContent>
+        </AccordionItem>
 
-        <TabsContent value="income" className="space-y-6">
-          <IncomeTabContent
-            currentYear={plan.currentYear}
-            incomeItems={incomeItems}
-            handleAddIncome={handleAddIncome}
-            handleUpdateIncome={handleUpdateIncome}
-            handleDeleteIncome={handleDeleteIncome}
-            handleImportIncomeFromTransactions={handleImportIncomeFromTransactions}
-            householdId={userProfile?.householdId || ''}
-          />
-        </TabsContent>
+        <AccordionItem value="cashFlow">
+          <AccordionTrigger>{RetirementWorkspaceSectionLabels.cashFlow}</AccordionTrigger>
+          <AccordionContent>
+            <ProjectionResultsContent projectionVM={projectionVM} section="cashFlow" />
+          </AccordionContent>
+        </AccordionItem>
 
-        <TabsContent value="expenses" className="space-y-4">
-          <ExpenseTabContent
-            currentYear={plan.currentYear}
-            expenseItems={expenseItems}
-            incomes={plan.incomes}
-            handleAddExpense={handleAddExpense}
-            handleUpdateExpense={handleUpdateExpense}
-            handleDeleteExpense={handleDeleteExpense}
-            handleImportDebtRepayments={handleImportDebtRepayments}
-          />
-        </TabsContent>
+        <AccordionItem value="assumptions">
+          <AccordionTrigger>{RetirementWorkspaceSectionLabels.assumptions}</AccordionTrigger>
+          <AccordionContent>
+            <AssumptionsForm assumptions={assumptionsVM} onSave={handleUpdatePlan} />
+          </AccordionContent>
+        </AccordionItem>
 
-        <TabsContent value="events" className="space-y-4">
-          <EventTabContent
-            currentYear={plan.currentYear}
-            incomes={plan.incomes}
-            eventItems={eventItems}
-            handleAddEvent={handleAddEvent}
-            handleUpdateEvent={handleUpdateEvent}
-            handleDeleteEvent={handleDeleteEvent}
-          />
-        </TabsContent>
+        <AccordionItem value="income">
+          <AccordionTrigger>{RetirementWorkspaceSectionLabels.income}</AccordionTrigger>
+          <AccordionContent>
+            <IncomeTabContent
+              currentYear={plan.currentYear}
+              planInflationRate={plan.inflationRate}
+              incomeItems={incomeItems}
+              handleAddIncome={handleAddIncome}
+              handleUpdateIncome={handleUpdateIncome}
+              handleDeleteIncome={handleDeleteIncome}
+              handleImportIncomeFromTransactions={handleImportIncomeFromTransactions}
+            />
+          </AccordionContent>
+        </AccordionItem>
 
-        <TabsContent value="results" className="space-y-4">
-          <ProjectionResultsContent projectionVM={projectionVM} />
-        </TabsContent>
-      </Tabs>
+        <AccordionItem value="expenses">
+          <AccordionTrigger>{RetirementWorkspaceSectionLabels.expenses}</AccordionTrigger>
+          <AccordionContent>
+            <ExpenseTabContent
+              currentYear={plan.currentYear}
+              planInflationRate={plan.inflationRate}
+              expenseItems={expenseItems}
+              handleAddExpense={handleAddExpense}
+              handleUpdateExpense={handleUpdateExpense}
+              handleDeleteExpense={handleDeleteExpense}
+              handleImportDebtRepayments={handleImportDebtRepayments}
+              handleImportFromLedger={handleImportExpensesFromLedger}
+            />
+          </AccordionContent>
+        </AccordionItem>
+
+        <AccordionItem value="events">
+          <AccordionTrigger>{RetirementWorkspaceSectionLabels.events}</AccordionTrigger>
+          <AccordionContent>
+            <EventTabContent
+              currentYear={plan.currentYear}
+              eventItems={eventItems}
+              handleAddEvent={handleAddEvent}
+              handleUpdateEvent={handleUpdateEvent}
+              handleDeleteEvent={handleDeleteEvent}
+            />
+          </AccordionContent>
+        </AccordionItem>
+      </Accordion>
+      <section className="space-y-3 border-t border-border pt-6">
+        <p className="font-mono text-[11px] tracking-widest text-muted-foreground uppercase">
+          DANGER ZONE
+        </p>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+          onClick={() => void handleDelete()}
+        >
+          <Trash2 size={14} />
+          Delete plan
+        </Button>
+      </section>{' '}
     </div>
   );
 };

@@ -112,7 +112,11 @@ describe('getProjectBalanceUseCase — server-side date filtering', () => {
     vi.mocked(transactionRepository.listTransfersByProject).mockResolvedValue([] as never);
     vi.mocked(allocationRepository.listByProject).mockResolvedValue([] as never);
 
-    const result = await getProjectBalanceUseCase.execute({ householdId: 'h1', projectId: 'p1', auth });
+    const result = await getProjectBalanceUseCase.execute({
+      householdId: 'h1',
+      projectId: 'p1',
+      auth,
+    });
 
     expect(result?.balance).toBe(1200); // 1000 base + 200 income
   });

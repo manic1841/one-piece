@@ -28,7 +28,7 @@ const IncomeStatementPage: React.FC<IncomeStatementPageProps> = ({
   reportMode,
   onReportModeChange,
 }) => {
-  const { data, loading, error } = useIncomeStatement(householdId, currentDate, reportMode);
+  const { data, loading, errorMessage } = useIncomeStatement(householdId, currentDate, reportMode);
   const [expandedCodes, setExpandedCodes] = useState<Set<string>>(new Set());
 
   const toggleExpand = (code: string) => {
@@ -46,34 +46,29 @@ const IncomeStatementPage: React.FC<IncomeStatementPageProps> = ({
     const isExpanded = expandedCodes.has(item.code);
 
     return (
-      <div
-        key={item.code}
-        className="border-b last:border-0 border-slate-100 dark:border-slate-800"
-      >
+      <div key={item.code} className="border-b last:border-0 border-border">
         <div
-          className={`flex items-center justify-between py-3 px-2 hover:bg-slate-50 dark:hover:bg-slate-900 transition-colors cursor-pointer ${depth > 0 ? 'bg-slate-50/50 dark:bg-slate-900/30' : ''}`}
+          className={`flex items-center justify-between py-3 px-2 hover:bg-muted transition-colors cursor-pointer ${depth > 0 ? 'bg-muted/50' : ''}`}
           onClick={() => hasSubItems && toggleExpand(item.code)}
         >
           <div className="flex items-center gap-2" style={{ paddingLeft: `${depth * 1.5}rem` }}>
             {hasSubItems ? (
               isExpanded ? (
-                <ChevronDown size={16} className="text-slate-400" />
+                <ChevronDown size={16} className="text-muted-foreground" />
               ) : (
-                <ChevronRight size={16} className="text-slate-400" />
+                <ChevronRight size={16} className="text-muted-foreground" />
               )
             ) : (
               <div className="w-4" />
             )}
-            <span
-              className={`${depth === 0 ? 'font-medium' : 'text-slate-600 dark:text-slate-400'}`}
-            >
+            <span className={`${depth === 0 ? 'font-medium' : 'text-muted-foreground'}`}>
               {item.label}
             </span>
           </div>
           <span className={`font-mono ${depth === 0 ? 'font-bold' : ''}`}>{item.amountText}</span>
         </div>
         {isExpanded && hasSubItems && (
-          <div className="bg-slate-50/30 dark:bg-slate-900/10">
+          <div className="bg-muted/30">
             {item.subItems!.map((sub: IncomeStatementItemVM) => renderItem(sub, depth + 1))}
           </div>
         )}
@@ -81,9 +76,10 @@ const IncomeStatementPage: React.FC<IncomeStatementPageProps> = ({
     );
   };
 
-  if (error) {
-    const errorMsg = typeof error === 'string' ? error : String(error);
-    return <div className="p-8 text-center text-red-500">Error loading report: {errorMsg}</div>;
+  if (errorMessage) {
+    return (
+      <div className="p-8 text-center text-destructive">Error loading report: {errorMessage}</div>
+    );
   }
 
   return (
@@ -108,31 +104,23 @@ const IncomeStatementPage: React.FC<IncomeStatementPageProps> = ({
         <>
           {/* Summary Cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Card className="bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-100 dark:border-emerald-900">
+            <Card className="bg-positive/5 border-positive/20">
               <CardContent className="pt-6">
-                <p className="text-sm font-medium text-emerald-600 dark:text-emerald-400 mb-1">
-                  收入合計
-                </p>
-                <p className="text-2xl font-bold text-emerald-700 dark:text-emerald-300">
-                  {data.incomeTotalText}
-                </p>
+                <p className="text-sm font-medium text-positive mb-1">收入合計</p>
+                <p className="text-2xl font-bold text-positive">{data.incomeTotalText}</p>
               </CardContent>
             </Card>
-            <Card className="bg-rose-50/50 dark:bg-rose-950/20 border-rose-100 dark:border-rose-900">
+            <Card className="bg-negative/5 border-negative/20">
               <CardContent className="pt-6">
-                <p className="text-sm font-medium text-rose-600 dark:text-rose-400 mb-1">
-                  支出合計
-                </p>
-                <p className="text-2xl font-bold text-rose-700 dark:text-rose-300">
-                  {data.expenseTotalText}
-                </p>
+                <p className="text-sm font-medium text-negative mb-1">支出合計</p>
+                <p className="text-2xl font-bold text-negative">{data.expenseTotalText}</p>
               </CardContent>
             </Card>
-            <Card className="bg-slate-50 dark:bg-slate-900">
+            <Card className="bg-muted">
               <CardContent className="pt-6">
-                <p className="text-sm font-medium text-slate-500 mb-1">淨收入</p>
+                <p className="text-sm font-medium text-muted-foreground mb-1">淨收入</p>
                 <p
-                  className={`text-2xl font-bold ${data.netIncome >= 0 ? 'text-primary' : 'text-rose-600'}`}
+                  className={`text-2xl font-bold ${data.netIncome >= 0 ? 'text-primary' : 'text-negative'}`}
                 >
                   {data.netIncomeText}
                 </p>
@@ -142,9 +130,9 @@ const IncomeStatementPage: React.FC<IncomeStatementPageProps> = ({
 
           <div className="grid grid-cols-1 gap-6">
             {/* Income Table */}
-            <Card className="overflow-hidden">
-              <CardHeader className="bg-emerald-50/50 dark:bg-emerald-950/10 border-b border-emerald-100/50">
-                <CardTitle className="text-lg flex items-center gap-2 text-emerald-700 dark:text-emerald-300">
+            <Card className="bg-positive/5 border-positive/20">
+              <CardHeader className="bg-positive/5 border-b border-positive/10">
+                <CardTitle className="text-lg flex items-center gap-2 text-positive">
                   收入 (Income)
                 </CardTitle>
               </CardHeader>
@@ -152,15 +140,15 @@ const IncomeStatementPage: React.FC<IncomeStatementPageProps> = ({
                 {data.incomeItems.length > 0 ? (
                   data.incomeItems.map((item) => renderItem(item))
                 ) : (
-                  <div className="p-8 text-center text-slate-400 italic">本月無收入資料</div>
+                  <div className="p-8 text-center text-muted-foreground italic">本月無收入資料</div>
                 )}
               </CardContent>
             </Card>
 
             {/* Expense Table */}
-            <Card className="overflow-hidden">
-              <CardHeader className="bg-rose-50/50 dark:bg-rose-950/10 border-b border-rose-100/50">
-                <CardTitle className="text-lg flex items-center gap-2 text-rose-700 dark:text-rose-300">
+            <Card className="bg-negative/5 border-negative/20">
+              <CardHeader className="bg-negative/5 border-b border-negative/10">
+                <CardTitle className="text-lg flex items-center gap-2 text-negative">
                   支出 (Expense)
                 </CardTitle>
               </CardHeader>
@@ -168,7 +156,7 @@ const IncomeStatementPage: React.FC<IncomeStatementPageProps> = ({
                 {data.expenseItems.length > 0 ? (
                   data.expenseItems.map((item) => renderItem(item))
                 ) : (
-                  <div className="p-8 text-center text-slate-400 italic">本月無支出資料</div>
+                  <div className="p-8 text-center text-muted-foreground italic">本月無支出資料</div>
                 )}
               </CardContent>
             </Card>

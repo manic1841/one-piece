@@ -1,12 +1,13 @@
 import { useCallback } from 'react';
 
-import { appendById, removeById, upsertById } from '@/domains/retirement/planMutations';
 import { mergeImportedIncomeSourcesUseCase } from '@/application/retirement/use_cases/mergeImportedIncomeSourcesUseCase';
+import { appendById, removeById, upsertById } from '@/domains/retirement/planMutations';
 import type {
   RetirementIncomeSource,
   RetirementPlan,
   RetirementPlanCreate,
 } from '@/domains/retirement/types';
+import { useConfirm } from '@/ui/features/app/confirm/useConfirm';
 
 interface UseRetirementIncomeActionsParams {
   id: string | undefined;
@@ -21,6 +22,7 @@ export const useRetirementIncomeActions = ({
   importIncomeData,
   handleUpdatePlan,
 }: UseRetirementIncomeActionsParams) => {
+  const { confirm } = useConfirm();
   const handleAddIncome = useCallback(
     async (incomeData: Omit<RetirementIncomeSource, 'id'>) => {
       if (!id || !plan) {
@@ -46,12 +48,13 @@ export const useRetirementIncomeActions = ({
   const handleDeleteIncome = useCallback(
     async (incomeId: string) => {
       if (!id || !plan) return;
-      if (!window.confirm('Are you sure you want to delete this income source?')) return;
+      const confirmed = await confirm('Are you sure you want to delete this income source?');
+      if (!confirmed) return;
       await handleUpdatePlan({
         incomes: removeById(plan.incomes, incomeId),
       });
     },
-    [id, plan, handleUpdatePlan],
+    [id, plan, confirm, handleUpdatePlan],
   );
 
   const handleImportIncomeFromTransactions = useCallback(async () => {
@@ -59,7 +62,7 @@ export const useRetirementIncomeActions = ({
 
     const imported = await importIncomeData();
     const importedIncomes = imported.filter(
-      (item) => typeof item.baseAmount === 'number' && item.incomeCategory,
+      (item) => typeof item.currentAnnual === 'number' && item.incomeCategory,
     );
 
     if (importedIncomes.length === 0) {

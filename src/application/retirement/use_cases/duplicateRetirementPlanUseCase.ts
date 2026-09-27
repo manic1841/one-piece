@@ -1,9 +1,9 @@
+import { householdPermissionService } from '@/application/household/householdPermissionService';
+import { type AuthContext } from '@/application/types';
 import {
   RetirementPlanCommandError,
   RetirementPlanCommandErrorCode,
 } from '@/domains/retirement/retirementPlanErrors';
-import { type AuthContext } from '@/application/types';
-import { householdPermissionService } from '@/application/household/householdPermissionService';
 import { type RetirementPlanCreate } from '@/domains/retirement/types';
 import { retirementRepository } from '@/infra/repositories/retirementRepository';
 
@@ -43,14 +43,11 @@ export class DuplicateRetirementPlanUseCase {
         birthYear: sourcePlan.birthYear,
         retirementAge: sourcePlan.retirementAge,
         lifeExpectancy: sourcePlan.lifeExpectancy,
-        currentSavings: sourcePlan.currentSavings,
-        salaryGrowthRate: sourcePlan.salaryGrowthRate,
         inflationRate: sourcePlan.inflationRate,
         investmentReturnRate: sourcePlan.investmentReturnRate,
         incomes: sourcePlan.incomes,
         expenses: sourcePlan.expenses,
         events: sourcePlan.events,
-        retirementTransition: sourcePlan.retirementTransition,
         summary: sourcePlan.summary,
       };
 
@@ -63,8 +60,7 @@ export class DuplicateRetirementPlanUseCase {
     } catch (error: unknown) {
       if (error instanceof RetirementPlanCommandError) throw error;
 
-      const message =
-        error instanceof Error ? error.message : 'unknown transaction failure';
+      const message = error instanceof Error ? error.message : 'unknown transaction failure';
       throw new RetirementPlanCommandError(
         RetirementPlanCommandErrorCode.TRANSACTION_FAILED,
         message,

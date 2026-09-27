@@ -13,7 +13,7 @@ import {
   type ProjectSnapshot,
   type ProjectSnapshotCreate,
 } from '@/domains/project/schemas';
-import { useAuthContext } from '@/ui/hooks/useAuthContext';
+import { useAuthIdentity } from '@/ui/hooks/useAuthIdentity';
 import { useLoadingTask } from '@/ui/hooks/useLoadingTask';
 
 export interface DeleteProjectSnapshotRequest {
@@ -23,7 +23,7 @@ export interface DeleteProjectSnapshotRequest {
 }
 
 export function useProjectCmds(householdId: string) {
-  const auth = useAuthContext();
+  const auth = useAuthIdentity();
 
   const { loading, error, run } = useLoadingTask();
 
@@ -44,13 +44,14 @@ export function useProjectCmds(householdId: string) {
   const updateProject = useCallback(
     async (projectId: string, updates: Partial<Project>) => {
       return run(async () => {
-        return updateProjectUseCase.execute({
+        await updateProjectUseCase.execute({
           householdId,
           projectId,
           updates,
           userEmail: auth.email || '',
           auth,
         });
+        return true;
       });
     },
     [householdId, auth, run],
@@ -72,11 +73,7 @@ export function useProjectCmds(householdId: string) {
   );
 
   const updateSnapshot = useCallback(
-    async (
-      projectId: string,
-      snapshotId: string,
-      updates: Partial<ProjectSnapshot>,
-    ) => {
+    async (projectId: string, snapshotId: string, updates: Partial<ProjectSnapshot>) => {
       return run(async () => {
         return updateProjectSnapshotUseCase.execute({
           householdId,

@@ -1,7 +1,7 @@
-import { portfolioRepository } from '@/infra/repositories/portfolioRepository';
 import { householdPermissionService } from '@/application/household/householdPermissionService';
-import { type Portfolio } from '@/domains/portfolio/types/portfolio';
 import { type AuthContext } from '@/application/types';
+import { type Portfolio } from '@/domains/portfolio/types/portfolio';
+import { portfolioRepository } from '@/infra/repositories/portfolioRepository';
 
 export interface GetPortfolioRequest {
   householdId: string;
@@ -12,7 +12,11 @@ export interface GetPortfolioRequest {
 export class GetPortfolioUseCase {
   async execute(request: GetPortfolioRequest): Promise<Portfolio | null> {
     const { householdId, portfolioId, auth } = request;
-    await householdPermissionService.assertReadPermission(householdId, auth.uid, auth.isGlobalAdmin);
+    await householdPermissionService.assertReadPermission(
+      householdId,
+      auth.uid,
+      auth.isGlobalAdmin,
+    );
     return portfolioRepository.get([householdId, portfolioId]);
   }
 }

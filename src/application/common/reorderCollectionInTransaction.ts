@@ -1,4 +1,4 @@
-import { doc, runTransaction, type Transaction } from 'firebase/firestore';
+import { type Transaction, doc, runTransaction } from 'firebase/firestore';
 
 import { ReorderCommandError, ReorderCommandErrorCode } from '@/application/common/reorderErrors';
 import { db } from '@/firebase';

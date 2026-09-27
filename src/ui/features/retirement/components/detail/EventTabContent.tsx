@@ -2,18 +2,17 @@ import React from 'react';
 
 import { Pencil, Trash2 } from 'lucide-react';
 
-import {
-  type RetirementIncomeSource,
-  type RetirementOneTimeEvent,
-} from '@/domains/retirement/types';
 import { Button } from '@/ui/components/ui/button';
-import { type RetirementEventItemVM } from '@/ui/features/retirement/viewmodels/retirementDisplay.vm';
+import { RetirementWorkspaceTermLabels } from '@/ui/constants/retirement/retirementWorkspaceLabels';
+import {
+  type RetirementEventItemVM,
+  type RetirementOneTimeEvent,
+} from '@/ui/features/retirement/viewmodels/retirementDisplay.vm';
 
 import EventDialog from '../EventDialog';
 
 interface EventTabContentProps {
   currentYear: number;
-  incomes: RetirementIncomeSource[];
   eventItems: Array<{ domain: RetirementOneTimeEvent; vm: RetirementEventItemVM }>;
   handleAddEvent: (data: Omit<RetirementOneTimeEvent, 'id'>) => Promise<void>;
   handleUpdateEvent: (id: string, data: Omit<RetirementOneTimeEvent, 'id'>) => Promise<void>;
@@ -22,7 +21,6 @@ interface EventTabContentProps {
 
 export const EventTabContent: React.FC<EventTabContentProps> = ({
   currentYear,
-  incomes,
   eventItems,
   handleAddEvent,
   handleUpdateEvent,
@@ -31,12 +29,14 @@ export const EventTabContent: React.FC<EventTabContentProps> = ({
   return (
     <div className="rounded-lg border p-6">
       <div className="flex justify-between items-center mb-4">
-        <h3 className="text-lg font-semibold">Phased Events ({eventItems.length})</h3>
-        <EventDialog onSave={handleAddEvent} currentYear={currentYear} incomes={incomes} />
+        <h3 className="text-lg font-semibold">
+          {RetirementWorkspaceTermLabels.retirementEvents} ({eventItems.length})
+        </h3>
+        <EventDialog onSave={handleAddEvent} currentYear={currentYear} />
       </div>
       {eventItems.length === 0 ? (
         <p className="text-muted-foreground">
-          No phased events defined yet. Click Add Event to get started.
+          No life events defined yet. Click Add Event to get started.
         </p>
       ) : (
         <div className="space-y-2">
@@ -58,7 +58,6 @@ export const EventTabContent: React.FC<EventTabContentProps> = ({
                       onSave={(updates) => handleUpdateEvent(domain.id, updates)}
                       currentYear={currentYear}
                       initialData={domain}
-                      incomes={incomes}
                       trigger={
                         <Button variant="ghost" size="icon">
                           <Pencil className="h-4 w-4" />
@@ -68,7 +67,7 @@ export const EventTabContent: React.FC<EventTabContentProps> = ({
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                      className="text-destructive hover:text-destructive hover:bg-destructive/10"
                       onClick={() => handleDeleteEvent(domain.id)}
                     >
                       <Trash2 className="h-4 w-4" />

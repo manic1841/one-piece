@@ -1,4 +1,4 @@
-import { collection, doc, getDocs, query, type Transaction, where } from 'firebase/firestore';
+import { type Transaction, collection, doc, getDocs, query, where } from 'firebase/firestore';
 
 import { type Allocation, AllocationSchema } from '@/domains/allocation/schemas';
 import { db } from '@/firebase';

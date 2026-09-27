@@ -36,7 +36,7 @@ export const ProjectDetailItem: React.FC<ProjectDetailItemProps> = ({ item, onDe
           </div>
         </div>
         <div className="text-right">
-          <p className={`font-semibold ${item.isIncome ? 'text-green-600' : 'text-red-600'}`}>
+          <p className={`font-semibold ${item.isIncome ? 'text-positive' : 'text-negative'}`}>
             {item.amountText}
           </p>
           <p className="text-xs text-muted-foreground">{item.isIncome ? 'Income' : 'Expense'}</p>

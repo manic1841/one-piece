@@ -1,10 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { householdPermissionService } from '@/application/household/householdPermissionService';
-import { removeDebtAccountUseCase } from './removeDebtAccountUseCase';
 import { debtAccountRepository } from '@/infra/repositories/debtAccountRepository';
 import { debtSnapshotRepository } from '@/infra/repositories/debtSnapshotRepository';
 import { transactionRepository } from '@/infra/repositories/transactionRepository';
+
+import { removeDebtAccountUseCase } from './removeDebtAccountUseCase';
 
 vi.mock('firebase/firestore', async (importOriginal) => {
   const actual = await importOriginal<typeof import('firebase/firestore')>();
@@ -100,7 +101,11 @@ describe('removeDebtAccountUseCase', () => {
     const result = await removeDebtAccountUseCase.execute(request);
 
     expect(result).toEqual({ strategy: 'deleted' });
-    expect(debtAccountRepository.deleteDebtAccount).toHaveBeenCalledWith('household-1', 'debt-1', expect.anything());
+    expect(debtAccountRepository.deleteDebtAccount).toHaveBeenCalledWith(
+      'household-1',
+      'debt-1',
+      expect.anything(),
+    );
     expect(debtAccountRepository.deactivateDebtAccount).not.toHaveBeenCalled();
   });
 

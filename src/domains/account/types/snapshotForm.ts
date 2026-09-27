@@ -9,7 +9,6 @@ export interface AccountSnapshotFormData {
   holdings: Array<{
     symbol: string;
     name: string;
-    quantity: string;
     cost: string;
     marketValue: string;
     leverage: string;

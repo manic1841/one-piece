@@ -1,7 +1,7 @@
-import { accountRepository } from '@/infra/repositories/accountRepository';
-import { type Account } from '@/domains/account/types/account';
 import { householdPermissionService } from '@/application/household/householdPermissionService';
 import { type AuthContext } from '@/application/types';
+import { type Account } from '@/domains/account/types/account';
+import { accountRepository } from '@/infra/repositories/accountRepository';
 
 export interface GetAccountRequest {
   householdId: string;

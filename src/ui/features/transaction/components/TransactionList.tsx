@@ -3,9 +3,15 @@ import React from 'react';
 import { Button } from '@/ui/components/ui/button';
 import { Card, CardContent } from '@/ui/components/ui/card';
 import { Input } from '@/ui/components/ui/input';
+import { Table, TableBody, TableHead, TableHeader, TableRow } from '@/ui/components/ui/table';
+import {
+  MONTH_HEADER_TRACKING_LABEL,
+  TRANSACTION_COUNT_SUFFIX,
+} from '@/ui/constants/transaction/displayLabels';
 import { type TransactionListItemVM } from '@/ui/features/transaction/viewmodels/transaction-list.vm';
+import { cn } from '@/ui/utils/cn';
 
-import { TransactionItem } from './TransactionItem';
+import { TransactionItem, TransactionItemMobile } from './TransactionItem';
 
 interface TransactionListProps {
   items: TransactionListItemVM[];
@@ -78,39 +84,49 @@ export const TransactionList: React.FC<TransactionListProps> = ({
 
   return (
     <div className="space-y-10">
-      <div className="rounded-xl border border-gray-100 bg-white p-3 shadow-sm">
+      <div className="space-y-3 pb-4 border-b border-border">
         <div className="flex flex-col gap-3 md:flex-row md:flex-wrap md:items-end">
           <div className="w-full md:min-w-56 md:max-w-64 md:flex-1">
-            <label className="mb-1 block text-xs font-semibold text-gray-500">開始日期</label>
+            <label className="mb-1 block font-mono text-[10px] tracking-widest text-muted-foreground">
+              FROM
+            </label>
             <Input
               type="date"
               value={fromDate}
               onChange={(event) => setFromDate(event.target.value)}
+              className="font-mono"
             />
           </div>
           <div className="w-full md:min-w-56 md:max-w-64 md:flex-1">
-            <label className="mb-1 block text-xs font-semibold text-gray-500">結束日期</label>
-            <Input type="date" value={toDate} onChange={(event) => setToDate(event.target.value)} />
+            <label className="mb-1 block font-mono text-[10px] tracking-widest text-muted-foreground">
+              TO
+            </label>
+            <Input
+              type="date"
+              value={toDate}
+              onChange={(event) => setToDate(event.target.value)}
+              className="font-mono"
+            />
           </div>
           <Button
             type="button"
             variant="outline"
-            className="w-full md:w-auto"
+            className="w-full font-mono md:w-auto"
             onClick={() => void handleApplyDateRange()}
           >
-            查詢日期區間
+            APPLY
           </Button>
           <Button
             type="button"
-            variant="ghost"
-            className="w-full md:w-auto"
+            variant="text"
+            className="w-full font-mono md:w-auto"
             disabled={!fromDate && !toDate}
             onClick={() => void handleClearDateRange()}
           >
-            清除日期篩選
+            CLEAR
           </Button>
         </div>
-        {dateRangeError ? <p className="mt-2 text-xs text-rose-600">{dateRangeError}</p> : null}
+        {dateRangeError ? <p className="mt-2 text-xs text-destructive">{dateRangeError}</p> : null}
       </div>
 
       {items.length === 0 ? (
@@ -123,18 +139,51 @@ export const TransactionList: React.FC<TransactionListProps> = ({
 
       {groupedItems.map(([month, transactions]) => (
         <section key={month} className="relative">
-          <div className="sticky top-0 z-10 bg-gray-50/80 backdrop-blur-sm pt-2 pb-3 mb-2 -mx-4 px-4 flex items-center justify-between border-b border-gray-100/50">
-            <h3 className="text-xs font-bold text-gray-400 uppercase tracking-[0.2em]">{month}</h3>
-            <span className="text-[10px] text-gray-300 font-medium">
-              {transactions.length} 筆交易
+          <div className="sticky top-0 z-10 bg-muted/80 backdrop-blur-sm pt-2 pb-3 mb-2 -mx-4 px-4 flex items-center justify-between border-b border-border/50">
+            <h3
+              className={cn(
+                'text-xs font-bold text-muted-foreground uppercase',
+                MONTH_HEADER_TRACKING_LABEL,
+              )}
+            >
+              {month}
+            </h3>
+            <span className="text-[10px] text-muted-foreground font-medium">
+              {transactions.length} {TRANSACTION_COUNT_SUFFIX}
             </span>
           </div>
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden divide-y divide-gray-50">
+          <div className="space-y-2 md:hidden">
             {transactions.map((item) => (
-              <div key={item.id}>
-                <TransactionItem transaction={item} onEdit={onEdit} onDelete={onDelete} />
-              </div>
+              <TransactionItemMobile
+                key={item.id}
+                transaction={item}
+                onEdit={onEdit}
+                onDelete={onDelete}
+              />
             ))}
+          </div>
+          <div className="hidden bg-card rounded-lg border border-border overflow-hidden divide-y divide-border md:block">
+            <Table className="hidden md:table">
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Intent</TableHead>
+                  <TableHead className="text-right">Amount</TableHead>
+                  <TableHead>Project</TableHead>
+                  <TableHead className="w-24"></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {transactions.map((item) => (
+                  <TransactionItem
+                    key={item.id}
+                    transaction={item}
+                    onEdit={onEdit}
+                    onDelete={onDelete}
+                  />
+                ))}
+              </TableBody>
+            </Table>
           </div>
         </section>
       ))}

@@ -2,21 +2,14 @@ import { z } from 'zod';
 
 import { BaseSchema } from '@/shared/schemas/base';
 
-import {
-  ProjectCategory,
-} from './types/categories';
-
 // [DOMAIN ENTITY]
-// IMPORTANT: Project represents a management accounting unit (e.g., a specific business project or category).
-// It is used for budgeting, allocation, and financial performance tracking.
+// Project represents a management accounting unit: a purpose or budget pool
+// tracked by allocation and settlement. Core fields are name and isActive;
+// order exists for system-managed ordering (reorder transactions).
 
 export const ProjectCreateSchema = z.object({
   name: z.string(),
-  color: z.string(),
-  icon: z.string(),
   order: z.number(),
-  description: z.string().optional(),
-  category: z.nativeEnum(ProjectCategory),
   isActive: z.boolean().default(true),
 });
 

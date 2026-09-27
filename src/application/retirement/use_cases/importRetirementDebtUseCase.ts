@@ -1,12 +1,8 @@
 import { startOfMonth, subMonths } from 'date-fns';
 
-import { type AuthContext } from '@/application/types';
 import { householdPermissionService } from '@/application/household/householdPermissionService';
-import {
-  type RetirementExpenseCategory,
-  RetirementExpenseType,
-  SalaryPercentageRetirementMode,
-} from '@/domains/retirement/types';
+import { type AuthContext } from '@/application/types';
+import { type RetirementExpenseCategory, RetirementExpenseType } from '@/domains/retirement/types';
 import { debtAccountRepository } from '@/infra/repositories/debtAccountRepository';
 import { debtSnapshotRepository } from '@/infra/repositories/debtSnapshotRepository';
 
@@ -22,9 +18,7 @@ const toYearMonth = (date: Date): string =>
 const DEBT_SNAPSHOT_WINDOW_MONTHS = 12;
 
 export class ImportRetirementDebtUseCase {
-  async execute(
-    request: ImportRetirementDebtRequest,
-  ): Promise<RetirementExpenseCategory[]> {
+  async execute(request: ImportRetirementDebtRequest): Promise<RetirementExpenseCategory[]> {
     const { householdId, auth } = request;
 
     await householdPermissionService.assertReadPermission(
@@ -73,9 +67,7 @@ export class ImportRetirementDebtUseCase {
             sampleCount: snapshots.length,
             importedAt: new Date().toISOString(),
           },
-          calculationMode: 'FIXED',
-          salaryPercentageRetirementMode: SalaryPercentageRetirementMode.MANUAL_FALLBACK,
-          baseAmount: Math.round(account.monthlyPayment * 12),
+          currentAnnual: Math.round(account.monthlyPayment * 12),
           growthRate: 0,
           retirementMultiplier: 1,
           startYear: account.startDate.getFullYear(),

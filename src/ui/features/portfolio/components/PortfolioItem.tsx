@@ -27,7 +27,7 @@ export const PortfolioItem: React.FC<PortfolioItemProps> = ({
   return (
     <Card
       className={`group cursor-pointer transition-colors relative ${
-        isReorderMode ? 'hover:bg-slate-50' : 'hover:bg-slate-50'
+        isReorderMode ? 'hover:bg-muted' : 'hover:bg-muted'
       }`}
       onClick={() => !isReorderMode && onClick(viewModel.id)}
     >
@@ -103,9 +103,6 @@ export const PortfolioItem: React.FC<PortfolioItemProps> = ({
         <p className="text-xs text-muted-foreground mt-1">
           {viewModel.accountCount} linked accounts
         </p>
-        {viewModel.description && (
-          <p className="text-xs text-muted-foreground mt-2 line-clamp-2">{viewModel.description}</p>
-        )}
       </CardContent>
     </Card>
   );

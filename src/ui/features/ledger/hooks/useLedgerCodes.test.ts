@@ -3,8 +3,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { useLedgerCodes } from './useLedgerCodes';
 
-vi.mock('@/infra/contexts/useAuth', () => ({
-  useAuth: vi.fn(),
+vi.mock('@/ui/contexts/useAuthState', () => ({
+  useAuthState: vi.fn(),
 }));
 
 vi.mock('@/application/ledger/use_cases/listAllLedgerCodesUseCase', () => ({
@@ -17,14 +17,14 @@ describe('useLedgerCodes', () => {
   beforeEach(async () => {
     vi.clearAllMocks();
 
-    const { useAuth } = await import('../../../../infra/contexts/useAuth');
+    const { useAuthState } = await import('../../../../ui/contexts/useAuthState');
     const { listAllLedgerCodesUseCase } = await import(
       '../../../../application/ledger/use_cases/listAllLedgerCodesUseCase'
     );
 
-    vi.mocked(useAuth).mockReturnValue({
+    vi.mocked(useAuthState).mockReturnValue({
       userProfile: { householdId: 'household-1' },
-      currentUser: { uid: 'user-1', email: 'user@example.com' },
+      user: { uid: 'user-1', email: 'user@example.com' },
       isAdmin: false,
       loading: false,
       logout: vi.fn(),

@@ -35,25 +35,22 @@ async function seedDebtAccount(
   accountId: string,
   overrides: Record<string, unknown> = {},
 ) {
-  await setDoc(
-    doc(db, `households/${householdId}/debtAccounts/${accountId}`),
-    {
-      ...baseFields,
-      id: accountId,
-      name: `Debt ${accountId}`,
-      type: 'loan',
-      repaymentType: 'equal_payment',
-      originalAmount: 100000,
-      currentBalance: 80000,
-      interestRate: 5,
-      startDate: new Date(2023, 0, 1),
-      endDate: new Date(2028, 0, 1),
-      monthlyPayment: 5000,
-      linkedLedgerCode: 'liability:loan',
-      isActive: true,
-      ...overrides,
-    },
-  );
+  await setDoc(doc(db, `households/${householdId}/debtAccounts/${accountId}`), {
+    ...baseFields,
+    id: accountId,
+    name: `Debt ${accountId}`,
+    type: 'loan',
+    repaymentType: 'equal_payment',
+    originalAmount: 100000,
+    currentBalance: 80000,
+    interestRate: 5,
+    startDate: new Date(2023, 0, 1),
+    endDate: new Date(2028, 0, 1),
+    monthlyPayment: 5000,
+    linkedLedgerCode: 'liability:loan',
+    isActive: true,
+    ...overrides,
+  });
 }
 
 async function seedDebtSnapshot(
@@ -64,10 +61,7 @@ async function seedDebtSnapshot(
   interestPaid: number,
 ) {
   await setDoc(
-    doc(
-      db,
-      `households/${householdId}/debtAccounts/${accountId}/snapshots/${yearMonth}`,
-    ),
+    doc(db, `households/${householdId}/debtAccounts/${accountId}/snapshots/${yearMonth}`),
     {
       ...baseFields,
       id: yearMonth,
@@ -118,11 +112,10 @@ describe('ImportRetirementDebtUseCase (Firestore Emulator)', () => {
     const expense = result[0] as RetirementExpenseCategory;
     expect(expense.type).toBe('debt_payment');
     expect(expense.sourceDebtAccountId).toBeDefined();
-    expect(expense.baseAmount).toBe(60000); // monthlyPayment * 12 = 5000 * 12
+    expect(expense.currentAnnual).toBe(60000); // monthlyPayment * 12 = 5000 * 12
     expect(expense.calculatedFrom.totalPaid).toBe(15000); // 3 * 5000
     expect(expense.calculatedFrom.interestPaid).toBe(2700); // 1000 + 900 + 800
     expect(expense.calculatedFrom.sampleCount).toBe(3);
-    expect(expense.calculationMode).toBe('FIXED');
     expect(expense.growthRate).toBe(0);
   });
 

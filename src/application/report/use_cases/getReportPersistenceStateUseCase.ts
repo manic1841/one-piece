@@ -18,9 +18,7 @@ export interface GetReportPersistenceStateRequest {
 }
 
 export class GetReportPersistenceStateUseCase {
-  async execute(
-    request: GetReportPersistenceStateRequest,
-  ): Promise<ReportPersistenceState> {
+  async execute(request: GetReportPersistenceStateRequest): Promise<ReportPersistenceState> {
     const { householdId, yearMonth } = request;
 
     const existingReports = await Promise.all([

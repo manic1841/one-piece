@@ -1,8 +1,9 @@
-import { portfolioRepository } from '@/infra/repositories/portfolioRepository';
-import { portfolioSnapshotRepository } from '@/infra/repositories/portfolioSnapshotRepository';
+import { orderBy } from 'firebase/firestore';
+
 import { householdPermissionService } from '@/application/household/householdPermissionService';
 import { type AuthContext } from '@/application/types';
-import { orderBy } from 'firebase/firestore';
+import { portfolioRepository } from '@/infra/repositories/portfolioRepository';
+import { portfolioSnapshotRepository } from '@/infra/repositories/portfolioSnapshotRepository';
 
 export interface GetStockGainLossRequest {
   householdId: string;
@@ -12,9 +13,15 @@ export interface GetStockGainLossRequest {
 }
 
 export class GetStockGainLossUseCase {
-  async execute(request: GetStockGainLossRequest): Promise<{ totalMarketValue: number; totalCost: number; totalGainLoss: number }> {
+  async execute(
+    request: GetStockGainLossRequest,
+  ): Promise<{ totalMarketValue: number; totalCost: number; totalGainLoss: number }> {
     const { householdId, year, month, auth } = request;
-    await householdPermissionService.assertReadPermission(householdId, auth.uid, auth.isGlobalAdmin);
+    await householdPermissionService.assertReadPermission(
+      householdId,
+      auth.uid,
+      auth.isGlobalAdmin,
+    );
 
     const portfolios = await portfolioRepository.list([householdId], [orderBy('order', 'asc')]);
     const yearMonth = `${year}-${month.toString().padStart(2, '0')}`;

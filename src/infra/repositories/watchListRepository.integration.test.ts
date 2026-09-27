@@ -41,9 +41,7 @@ describe('watch list persistence (Firestore Emulator)', () => {
       'LEDGER_CODE',
       'PROJECT',
     ]);
-    expect(targets.find((t) => t.targetType === 'LEDGER_CODE')?.targetId).toBe(
-      'expense:travel',
-    );
+    expect(targets.find((t) => t.targetType === 'LEDGER_CODE')?.targetId).toBe('expense:travel');
 
     await watchListRepository.removeTarget(HOUSEHOLD, 'PROJECT', 'project-1');
     const afterRemove = await watchListRepository.listTargets(HOUSEHOLD);

@@ -38,22 +38,19 @@ async function seedTransaction(
   date: Date,
   entries: Array<{ ledgerCode: string; debit: number; credit: number }>,
 ) {
-  await setDoc(
-    doc(db, `households/${householdId}/transactions/${txId}`),
-    {
-      ...baseFields,
-      id: txId,
-      date,
-      description: `Transaction ${txId}`,
-      entries: entries.map((e) => ({
-        ledgerCode: e.ledgerCode,
-        debit: e.debit,
-        credit: e.credit,
-      })),
-      ledgerCodes: entries.map((e) => e.ledgerCode),
-      createdBy: 'admin-uid',
-    },
-  );
+  await setDoc(doc(db, `households/${householdId}/transactions/${txId}`), {
+    ...baseFields,
+    id: txId,
+    date,
+    description: `Transaction ${txId}`,
+    entries: entries.map((e) => ({
+      ledgerCode: e.ledgerCode,
+      debit: e.debit,
+      credit: e.credit,
+    })),
+    ledgerCodes: entries.map((e) => e.ledgerCode),
+    createdBy: 'admin-uid',
+  });
 }
 
 describe('ImportRetirementIncomeUseCase (Firestore Emulator)', () => {
@@ -93,8 +90,7 @@ describe('ImportRetirementIncomeUseCase (Firestore Emulator)', () => {
     expect(source.calculatedFrom.totalAmount).toBe(110000);
     expect(source.calculatedFrom.sampleCount).toBe(2);
     expect(source.calculatedFrom.monthlyAverage).toBeCloseTo(110000 / 12);
-    expect(source.baseAmount).toBe(110000);
-    expect(source.incomeCalculationMode).toBe('IMPORTED');
+    expect(source.currentAnnual).toBe(110000);
   });
 
   it('returns empty array when no income entries exist', async () => {

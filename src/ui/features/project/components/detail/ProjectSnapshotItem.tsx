@@ -3,6 +3,7 @@ import React from 'react';
 import { Calculator, Trash2 } from 'lucide-react';
 
 import { Button } from '@/ui/components/ui/button';
+import { useConfirm } from '@/ui/features/app/confirm/useConfirm';
 import { type ProjectSnapshotItemVM } from '@/ui/features/project/viewmodels/projectDetail.vm';
 
 interface ProjectSnapshotItemProps {
@@ -11,9 +12,13 @@ interface ProjectSnapshotItemProps {
 }
 
 export const ProjectSnapshotItem: React.FC<ProjectSnapshotItemProps> = ({ item, onDelete }) => {
+  const { confirm } = useConfirm();
   const handleDelete = async () => {
     if (!onDelete || !item.id) return;
-    if (window.confirm(`確定要刪除 ${item.year}年${item.month}月的結算紀錄嗎？`)) {
+    const confirmed = await confirm({
+      title: `Delete the ${item.year}/${String(item.month).padStart(2, '0')} settlement record?`,
+    });
+    if (confirmed) {
       await onDelete(item.id);
     }
   };
@@ -48,11 +53,11 @@ export const ProjectSnapshotItem: React.FC<ProjectSnapshotItemProps> = ({ item, 
         </div>
         <div className="space-y-1">
           <p className="text-xs text-muted-foreground uppercase tracking-wider">本月收入</p>
-          <p className="font-semibold text-green-600">+{item.incomeText}</p>
+          <p className="font-semibold text-positive">+{item.incomeText}</p>
         </div>
         <div className="space-y-1">
           <p className="text-xs text-muted-foreground uppercase tracking-wider">本月支出</p>
-          <p className="font-semibold text-red-600">-{item.expenseText}</p>
+          <p className="font-semibold text-negative">-{item.expenseText}</p>
         </div>
         <div className="space-y-1">
           <p className="text-xs text-muted-foreground uppercase tracking-wider">期末餘額</p>

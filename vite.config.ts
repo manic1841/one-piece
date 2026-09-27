@@ -3,8 +3,24 @@ import react from '@vitejs/plugin-react';
 import path from 'path';
 import { defineConfig } from 'vitest/config';
 
+import packageJson from './package.json';
+import {
+  AUTH_PROXY_PREFIXES,
+  DEFAULT_AUTH_EMULATOR_TARGET,
+  DEFAULT_FIRESTORE_EMULATOR_TARGET,
+  EMULATOR_AUTH_HANDLER_PREFIX,
+  FIRESTORE_PROXY_PATH,
+} from './src/infra/emulatorEndpoints';
+
+/** Strip a scheme so both `firebase:8080` and `http://firebase:8080` work as proxy targets. */
+const normalizeTarget = (value: string | undefined, fallback: string): string =>
+  `http://${(value ?? fallback).replace(/^https?:\/\//, '')}`;
+
 // https://vite.dev/config/
 export default defineConfig({
+  define: {
+    __APP_VERSION__: JSON.stringify(packageJson.version),
+  },
   plugins: [
     react({
       babel: {
@@ -18,11 +34,42 @@ export default defineConfig({
     },
   },
   server: {
+    // Forward the emulator to the app origin so a host-side browser only needs the
+    // app port (see src/infra/emulatorEndpoints.ts). Only relevant in dev.
     proxy: {
-      '/rter-api': {
-        target: 'https://tw.rter.info',
+      [FIRESTORE_PROXY_PATH]: {
+        target: normalizeTarget(
+          process.env.FIRESTORE_EMULATOR_HOST,
+          DEFAULT_FIRESTORE_EMULATOR_TARGET,
+        ),
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/rter-api/, ''),
+        ws: true,
+        rewrite: (requestPath) => requestPath.replace(FIRESTORE_PROXY_PATH, ''),
+      },
+      // Auth keeps no path prefix of its own: the SDK builds requests against the
+      // fake API hosts below, so each is forwarded verbatim to the auth emulator.
+      ...Object.fromEntries(
+        AUTH_PROXY_PREFIXES.map((prefix) => [
+          prefix,
+          {
+            target: normalizeTarget(
+              process.env.FIREBASE_AUTH_EMULATOR_HOST,
+              DEFAULT_AUTH_EMULATOR_TARGET,
+            ),
+            changeOrigin: true,
+            ws: true,
+          },
+        ]),
+      ),
+      // signInWithPopup in emulator mode opens `<origin>/emulator/auth/handler`;
+      // without forwarding it, Vite's SPA fallback serves index.html into the
+      // popup (blank window).
+      [EMULATOR_AUTH_HANDLER_PREFIX]: {
+        target: normalizeTarget(
+          process.env.FIREBASE_AUTH_EMULATOR_HOST,
+          DEFAULT_AUTH_EMULATOR_TARGET,
+        ),
+        changeOrigin: true,
       },
     },
   },

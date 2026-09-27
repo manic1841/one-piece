@@ -3,12 +3,12 @@ import React from 'react';
 import { ShieldOff } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
-import { useAuth } from '@/infra/contexts/useAuth';
 import { Button } from '@/ui/components/ui/button';
 import { Card, CardContent } from '@/ui/components/ui/card';
+import { useAuthState } from '@/ui/contexts/useAuthState';
 
 const AccessDenied: React.FC = () => {
-  const { logout } = useAuth();
+  const { logout } = useAuthState();
   const navigate = useNavigate();
 
   const handleLogout = async () => {
@@ -21,11 +21,11 @@ const AccessDenied: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-muted flex items-center justify-center p-4">
       <Card className="max-w-md w-full">
         <CardContent className="p-12 text-center">
-          <div className="inline-flex items-center justify-center w-20 h-20 bg-red-100 rounded-full mb-6">
-            <ShieldOff size={40} className="text-red-600" />
+          <div className="inline-flex items-center justify-center w-20 h-20 bg-destructive/15 rounded-full mb-6">
+            <ShieldOff size={40} className="text-destructive" />
           </div>
 
           <h1 className="text-2xl font-bold text-foreground mb-3">Access Denied</h1>

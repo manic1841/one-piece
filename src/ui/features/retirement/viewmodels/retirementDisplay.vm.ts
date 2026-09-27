@@ -1,7 +1,7 @@
 import { calculateYearlyExpense } from '@/domains/retirement/logic/expenseEngine';
+import { resolveSampleYear } from '@/domains/retirement/logic/retirementCalculator';
 import { normalizeRetirementEventPhases } from '@/domains/retirement/logic/retirementEventPhases';
 import { type RetirementProjection } from '@/domains/retirement/logic/retirementPlanProjection';
-import { CalculationMode, SalaryPercentageRetirementMode } from '@/domains/retirement/schemas';
 import {
   type RetirementExpenseCategory,
   type RetirementIncomeSource,
@@ -10,14 +10,17 @@ import {
 } from '@/domains/retirement/types';
 import { formatCurrency } from '@/ui/utils';
 
+export type { RetirementExpenseCategory, RetirementIncomeSource, RetirementOneTimeEvent };
+
+export type { StartingNetWorthSource } from '@/application/retirement/use_cases/getStartingNetWorthUseCase';
+
 export interface RetirementPlanListItemVM {
   id: string;
   name: string;
   isActive: boolean;
-  retireYear: number;
-  returnRateText: string;
-  bankruptcyText: string;
-  projectedSavingsText?: string;
+  retirementAge: number;
+  statusText: string;
+  finalNetWorthText: string;
 }
 
 export interface RetirementPlanHeaderVM {
@@ -32,9 +35,6 @@ export interface RetirementAssumptionsDisplayVM {
   birthYear: number;
   retirementAge: number;
   lifeExpectancy: number;
-  currentSavings: number;
-  currentSavingsText: string;
-  salaryGrowthRate: number;
   inflationRate: number;
   investmentReturnRate: number;
 }
@@ -53,9 +53,6 @@ export const mapRetirementPlanToAssumptionsDisplayVM = (
   birthYear: plan.birthYear,
   retirementAge: plan.retirementAge,
   lifeExpectancy: plan.lifeExpectancy,
-  currentSavings: plan.currentSavings,
-  currentSavingsText: formatCurrency(plan.currentSavings),
-  salaryGrowthRate: plan.salaryGrowthRate,
   inflationRate: plan.inflationRate,
   investmentReturnRate: plan.investmentReturnRate,
 });
@@ -64,10 +61,10 @@ export const mapRetirementPlanToListItemVM = (plan: RetirementPlan): RetirementP
   id: plan.id,
   name: plan.name,
   isActive: plan.isActive,
-  retireYear: plan.birthYear + plan.retirementAge,
-  returnRateText: `${plan.investmentReturnRate}% Return`,
-  bankruptcyText: plan.summary?.isBankrupt ? 'Bankrupt Risk' : 'No Bankruptcy',
-  projectedSavingsText: plan.summary ? formatCurrency(plan.summary.savingsAtRetirement) : undefined,
+  retirementAge: plan.retirementAge,
+  statusText: plan.isActive ? 'Active' : 'Inactive',
+  finalNetWorthText:
+    plan.summary?.finalNetWorth != null ? formatCurrency(plan.summary.finalNetWorth) : '—',
 });
 
 export interface RetirementIncomeItemVM {
@@ -83,11 +80,11 @@ export const mapRetirementIncomeToVM = (
 ): RetirementIncomeItemVM => ({
   id: income.id,
   name: income.name,
-  amountText: `${formatCurrency(income.baseAmount)}/yr`,
-  growthText: `${income.growthRate}% growth`,
+  amountText: income.currentAnnual != null ? `${formatCurrency(income.currentAnnual)}/yr` : '—',
+  growthText: income.growthRate != null ? `${income.growthRate}% growth` : 'Inflation',
   periodText: income.lifelong
-    ? `${income.startYearMode === 'LINKED_TO_RETIREMENT' ? 'Retirement Year' : income.startYear} - 終身`
-    : `${income.startYearMode === 'LINKED_TO_RETIREMENT' ? 'Retirement Year' : income.startYear} - ${income.endYearMode === 'LINKED_TO_RETIREMENT' ? 'Retirement Year' : (income.endYear ?? '-')}`,
+    ? `${income.startYear} - 終身`
+    : `${income.startYear} - ${income.endYear ?? '-'}`,
 });
 
 export interface RetirementExpenseItemVM {
@@ -105,30 +102,18 @@ export interface RetirementExpenseItemVM {
 export const mapRetirementExpenseToVM = (
   expense: RetirementExpenseCategory,
 ): RetirementExpenseItemVM => {
-  const isPercentage = expense.calculationMode === CalculationMode.SALARY_PERCENTAGE;
-  const modeLabel = isPercentage ? '薪資比例' : '固定';
-  const amountText = isPercentage
-    ? `${((expense.salaryPercentage ?? 0) * 100).toFixed(0)}% of salary`
-    : `${formatCurrency(expense.baseAmount)}/yr`;
   const isDebtPayment = expense.type === 'debt_payment';
-  const retirementModeLabel = isPercentage
-    ? expense.salaryPercentageRetirementMode === SalaryPercentageRetirementMode.INFLATION_BASED
-      ? '退休後：按通膨率推估'
-      : '退休後：手動保底金額'
-    : undefined;
-  const retirementModeText =
-    isPercentage &&
-    expense.salaryPercentageRetirementMode === SalaryPercentageRetirementMode.INFLATION_BASED
-      ? 'inflation-based after retirement'
-      : `${expense.retirementMultiplier * 100}% after retirement`;
+  const amountText = `${formatCurrency(expense.currentAnnual)}/yr`;
+  const retirementModeText = `${expense.retirementMultiplier * 100}% after retirement`;
   return {
     id: expense.id,
     name: expense.name,
     amountText,
-    growthAndMultiplierText: `${expense.growthRate}% growth ${retirementModeText}`,
+    growthAndMultiplierText: `${
+      expense.growthRate != null ? `${expense.growthRate}% growth` : 'Inflation'
+    } ${retirementModeText}`,
     periodText: `${expense.startYear} - ${expense.endYear ?? 'Lifetime'}`,
-    modeLabel,
-    retirementModeLabel,
+    modeLabel: isDebtPayment ? 'debt_payment' : 'fixed',
     expenseTypeLabel: isDebtPayment ? 'debt_payment' : undefined,
     debtModeLabel: isDebtPayment
       ? expense.interestOnly
@@ -169,7 +154,7 @@ export const mapRetirementEventToVM = (event: RetirementOneTimeEvent): Retiremen
     yearText: `Year: ${minYear}${maxYear && maxYear !== minYear ? `-${maxYear}` : ''}`,
     amountText,
     typeText: event.type,
-    amountClassName: isIncome ? 'text-green-600' : 'text-red-500',
+    amountClassName: isIncome ? 'text-positive' : 'text-negative',
   };
 };
 
@@ -238,47 +223,15 @@ export const mapRetirementProjectionToVM = (
   // Build expense breakdown pie data from retirement-year expenses
   let expenseBreakdownChartData: ExpenseBreakdownSlice[] | null = null;
   if (plan) {
-    const yearlyIncomeMap = new Map<string, number>();
-    let totalSalaryIncome = 0;
-    const currentAge = plan.currentYear - plan.birthYear;
-    const projectionEndYear = plan.currentYear + (plan.lifeExpectancy - currentAge);
-
-    for (const income of plan.incomes) {
-      const effectiveStartYear =
-        income.startYearMode === 'LINKED_TO_RETIREMENT' ? retirementYear : income.startYear;
-      const effectiveEndYear = income.lifelong
-        ? projectionEndYear
-        : income.endYearMode === 'LINKED_TO_RETIREMENT'
-          ? retirementYear
-          : (income.endYear ?? effectiveStartYear);
-
-      if (retirementYear < effectiveStartYear || retirementYear > effectiveEndYear) {
-        continue;
-      }
-
-      const yearsGrowth = retirementYear - plan.currentYear;
-      const amount = income.baseAmount * Math.pow(1 + income.growthRate / 100, yearsGrowth);
-      yearlyIncomeMap.set(income.id, amount);
-
-      if (income.type === 'salary') {
-        totalSalaryIncome += amount;
-      }
-    }
+    const sampleYear = resolveSampleYear(plan);
 
     const slices: ExpenseBreakdownSlice[] = plan.expenses
       .filter(
         (e) => e.startYear <= retirementYear && (e.endYear == null || e.endYear >= retirementYear),
       )
       .map((e): ExpenseBreakdownSlice => {
-        const isVariable = e.calculationMode === CalculationMode.SALARY_PERCENTAGE;
-        const value = calculateYearlyExpense(
-          e,
-          retirementYear,
-          plan,
-          yearlyIncomeMap,
-          totalSalaryIncome,
-        );
-        return { name: e.name, value, type: isVariable ? 'variable' : 'fixed' };
+        const value = calculateYearlyExpense(e, retirementYear, plan, sampleYear);
+        return { name: e.name, value, type: 'fixed' };
       })
       .filter((s) => s.value > 0);
     if (slices.length > 0) expenseBreakdownChartData = slices;
@@ -290,7 +243,7 @@ export const mapRetirementProjectionToVM = (
     minYearText: String(minSnapshot?.year ?? '-'),
     minSavingsText: formatCurrency(minSnapshot?.savings ?? 0),
     bankruptText: bankruptSnapshot ? `是 (${bankruptSnapshot.year})` : '否',
-    bankruptClassName: bankruptSnapshot ? 'text-red-600' : 'text-green-600',
+    bankruptClassName: bankruptSnapshot ? 'text-negative' : 'text-positive',
     chartData: projection.map((item) => ({
       year: item.year,
       age: item.age,

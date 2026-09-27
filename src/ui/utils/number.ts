@@ -3,17 +3,36 @@
  */
 
 /**
- * Format a number as currency (USD) without decimal places
- * @param amount - The amount to format
- * @returns Formatted currency string (e.g., "$1,234")
+ * Currency symbols, keyed by currency code. `USD` is `US$`, never a bare `$`,
+ * so it stays distinguishable from TWD when the two appear side by side.
  */
-export const formatCurrency = (amount: number): string => {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
+const CURRENCY_SYMBOLS: Record<string, string> = {
+  TWD: 'NT$',
+  USD: 'US$',
+  EUR: '€',
+  JPY: '¥',
+};
+
+/**
+ * Format a money amount, symbol-first, without decimal places.
+ *
+ * Defaults to the base currency (TWD); pass a `CurrencyType` for a foreign
+ * amount. An unrecognised code degrades to a code suffix (`1,234 GBP`) rather
+ * than a wrong symbol.
+ *
+ * @param amount - The amount to format
+ * @param currency - Currency code (default: "TWD")
+ * @returns Formatted currency string (e.g., "NT$1,234", "-NT$200", "US$12,000")
+ */
+export const formatCurrency = (amount: number, currency: string = 'TWD'): string => {
+  const symbol = CURRENCY_SYMBOLS[currency];
+  const digits = new Intl.NumberFormat('en-US', {
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
-  }).format(amount);
+  }).format(Math.abs(amount));
+
+  if (!symbol) return `${amount < 0 ? '-' : ''}${digits} ${currency}`;
+  return `${amount < 0 ? '-' : ''}${symbol}${digits}`;
 };
 
 /**

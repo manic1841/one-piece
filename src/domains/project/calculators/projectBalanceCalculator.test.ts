@@ -39,7 +39,13 @@ describe('calculateProjectBalance', () => {
       projectId: 'project-a',
       baseBalance: 0,
       transactions: [
-        { id: 'tx-direct', amount: 300, intentType: 'INCOME', intent: 'SALARY', projectId: 'project-a' },
+        {
+          id: 'tx-direct',
+          amount: 300,
+          intentType: 'INCOME',
+          intent: 'SALARY',
+          projectId: 'project-a',
+        },
       ],
       transfers: [],
       allocations: [

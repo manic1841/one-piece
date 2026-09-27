@@ -2,18 +2,12 @@ import React, { useMemo, useState } from 'react';
 
 import { Plus, Search } from 'lucide-react';
 
-import { useAuth } from '@/infra/contexts/useAuth';
+import { PageHeader } from '@/ui/components/PageHeader';
 import { Button } from '@/ui/components/ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/ui/components/ui/dialog';
 import { Input } from '@/ui/components/ui/input';
 import { getIntentTypeLabel } from '@/ui/constants/transaction';
+import { useAuthState } from '@/ui/contexts/useAuthState';
+import { useConfirm } from '@/ui/features/app/confirm/useConfirm';
 import { useLedgerCodes } from '@/ui/features/ledger/hooks/useLedgerCodes';
 import { useProjects } from '@/ui/features/project/hooks/useProjects';
 import { TransactionList } from '@/ui/features/transaction/components/TransactionList';
@@ -30,14 +24,20 @@ import { cn } from '@/ui/utils/cn';
 import { TransactionForm } from '../components/form/TransactionForm';
 
 const Transactions: React.FC = () => {
-  const { userProfile } = useAuth();
+  const { userProfile } = useAuthState();
   const { transactions, loading, reload, deleteTransaction, getTransactionAllocation } =
     useTransactions(userProfile?.householdId);
   const { projects } = useProjects(userProfile?.householdId);
   const { getLabel } = useLedgerCodes();
 
+  const { confirm } = useConfirm();
+
   const handleDelete = async (transaction: TransactionListItemVM) => {
-    if (window.confirm('確定要刪除這筆交易嗎？相關的分攤資料也將一併刪除。')) {
+    const confirmed = await confirm({
+      title: 'Delete this transaction?',
+      context: 'Related allocation data will be removed as well.',
+    });
+    if (confirmed) {
       await deleteTransaction(transaction.id);
     }
   };
@@ -63,12 +63,12 @@ const Transactions: React.FC = () => {
   const handleEdit = async (transaction: TransactionListItemVM) => {
     const target = transactions.find((item) => item.id === transaction.id);
     if (!target) {
-      window.alert('找不到要編輯的交易資料。');
+      await confirm({ title: '找不到要編輯的交易資料。' });
       return;
     }
 
-    if (target.intentType === 'TRANSFER' || target.intentType === 'DEBT_PAYMENT') {
-      window.alert('目前不支援編輯還款與專案轉帳交易。');
+    if (target.intentType === 'TRANSFER') {
+      await confirm({ title: '目前不支援編輯此交易。' });
       return;
     }
 
@@ -90,12 +90,8 @@ const Transactions: React.FC = () => {
     investmentCategories,
     financingCategories,
     advancedCategories,
-    debtAccounts,
     allActiveLedgerCodes,
     loadIncomeAllocationTemplate,
-    settlementPrompt,
-    confirmSettlementPrompt,
-    dismissSettlementPrompt,
     loading: formSubmitting,
     error: formError,
     handleSubmit,
@@ -150,50 +146,52 @@ const Transactions: React.FC = () => {
     .map((project) => ({
       id: project.id,
       name: project.name,
-      icon: project.icon,
     }));
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-foreground">交易</h1>
-        <Button
-          onClick={() => {
-            resetEditState();
-            setIsFormOpen(true);
-          }}
-          className="gap-2 shadow-sm"
-        >
-          <Plus className="w-4 h-4" />
-          新增交易
-        </Button>
-      </div>
+      <PageHeader
+        title="交易"
+        description="檢視與管理所有交易紀錄。"
+        actions={
+          <Button
+            onClick={() => {
+              resetEditState();
+              setIsFormOpen(true);
+            }}
+          >
+            <Plus className="w-4 h-4" />
+            新增交易
+          </Button>
+        }
+      />
 
-      <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
+      <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between pb-4 border-b border-border">
         <div className="relative w-full md:w-96">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="搜尋備註或類型..."
-            className="pl-9 bg-gray-50/50 border-none focus-visible:ring-1 focus-visible:ring-gray-200"
+            className="pl-9 bg-muted/50 border-none focus-visible:ring-1 focus-visible:ring-border"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
-        <div className="flex gap-2 overflow-x-auto w-full md:w-auto pb-1 md:pb-0">
+        <div className="flex gap-1 overflow-x-auto w-full md:w-auto">
           {[
             { id: 'ALL', label: '全部' },
             { id: 'EXPENSE', label: getIntentTypeLabel('EXPENSE') },
             { id: 'INCOME', label: getIntentTypeLabel('INCOME') },
             { id: 'INVESTMENT', label: getIntentTypeLabel('INVESTMENT') },
+            { id: 'FINANCING', label: getIntentTypeLabel('FINANCING') },
           ].map((type) => (
             <button
               key={type.id}
               onClick={() => setFilterType(type.id)}
               className={cn(
-                'px-4 py-1.5 rounded-full text-sm font-medium transition-all whitespace-nowrap',
+                'px-3 py-2 text-sm whitespace-nowrap transition-colors duration-fast active:scale-[0.97]',
                 filterType === type.id
-                  ? 'bg-gray-900 text-white shadow-md'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200',
+                  ? 'text-foreground font-semibold border-b-2 border-primary'
+                  : 'text-muted-foreground hover:text-foreground',
               )}
             >
               {type.label}
@@ -228,33 +226,10 @@ const Transactions: React.FC = () => {
           investmentCategories={investmentCategories}
           financingCategories={financingCategories}
           advancedCategories={advancedCategories}
-          debtAccounts={debtAccounts}
           allActiveLedgerCodes={allActiveLedgerCodes}
           loadIncomeAllocationTemplate={loadIncomeAllocationTemplate}
         />
       )}
-
-      <Dialog
-        open={Boolean(settlementPrompt)}
-        onOpenChange={(open) => {
-          if (!open) dismissSettlementPrompt();
-        }}
-      >
-        <DialogContent className="max-w-md" aria-describedby={undefined}>
-          <DialogHeader>
-            <DialogTitle>{settlementPrompt?.debtAccountName ?? '貸款'} 已還清</DialogTitle>
-            <DialogDescription>剩餘本金已為 0，是否將此貸款標記為結清？</DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={dismissSettlementPrompt}>
-              稍後再說
-            </Button>
-            <Button type="button" onClick={confirmSettlementPrompt}>
-              確認結清
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };

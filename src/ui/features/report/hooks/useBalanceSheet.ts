@@ -4,11 +4,12 @@ import { format } from 'date-fns';
 
 import { getStoredReportUseCase } from '@/application/report/use_cases/getStoredReportUseCase';
 import { type BalanceSheetData } from '@/domains/report/schemas';
-import { useAuthContext } from '@/ui/hooks/useAuthContext';
 import {
   type BalanceSheetVM,
   mapBalanceSheetToVM,
 } from '@/ui/features/report/viewmodels/reportDisplay.vm';
+import { getErrorMessage } from '@/ui/hooks/getErrorMessage';
+import { useAuthIdentity } from '@/ui/hooks/useAuthIdentity';
 import { useLoadingTask } from '@/ui/hooks/useLoadingTask';
 
 type ReportMode = 'MONTHLY' | 'YEARLY';
@@ -21,7 +22,7 @@ export function useBalanceSheet(
   const [data, setData] = useState<BalanceSheetVM | null>(null);
   const [internalDate, setInternalDate] = useState<Date>(new Date());
   const { loading, error, run } = useLoadingTask();
-  const auth = useAuthContext();
+  const auth = useAuthIdentity();
 
   const currentDate = controlledDate || internalDate;
 
@@ -57,6 +58,7 @@ export function useBalanceSheet(
     data,
     loading,
     error,
+    errorMessage: error !== null ? getErrorMessage(error) : null,
     currentDate,
     setCurrentDate: setInternalDate,
     nextMonth,

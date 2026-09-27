@@ -1,22 +1,23 @@
-import { initializeApp, deleteApp, type FirebaseApp } from 'firebase/app';
+import { type FirebaseApp, deleteApp, initializeApp } from 'firebase/app';
 import {
   collection,
   connectFirestoreEmulator,
   doc,
   getDocs,
   getFirestore,
-  setDoc,
   serverTimestamp,
+  setDoc,
   terminate,
 } from 'firebase/firestore';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { reorderAccountsUseCase } from '@/application/account/use_cases/reorderAccountsUseCase';
-import { reorderPortfoliosUseCase } from './reorderPortfoliosUseCase';
 import { reorderProjectsUseCase } from '@/application/project/use_cases/reorderProjectsUseCase';
 import { projectRepository } from '@/infra/repositories/projectRepository';
 import { emulatorProjectId, firestoreEmulator } from '@/test/emulatorEnv';
 import { db, resetMockDb } from '@/test/mocks/firebase';
+
+import { reorderPortfoliosUseCase } from './reorderPortfoliosUseCase';
 
 const auth = { uid: 'user-1', isGlobalAdmin: true };
 const userEmail = 'user@example.com';
@@ -46,12 +47,7 @@ const readFresh = async <T>(
   }
 };
 
-const seedDoc = async (
-  householdId: string,
-  collectionName: string,
-  id: string,
-  order: number,
-) => {
+const seedDoc = async (householdId: string, collectionName: string, id: string, order: number) => {
   await setDoc(doc(db, 'households', householdId, collectionName, id), {
     id,
     order,
