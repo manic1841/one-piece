@@ -101,5 +101,5 @@ export const useDebtRepaymentPrefill = ({
     };
   }, [auth, debtAccounts, householdId, selectedYearMonth]);
 
-  return { repayments, setRepayments, debtSectionMetas };
+  return { repayments, setRepayments, debtSectionMetas, setDebtSectionMetas };
 };

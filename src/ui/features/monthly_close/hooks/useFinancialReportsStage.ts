@@ -20,4 +20,7 @@ export const useFinancialReportsStage = ({
     stageId: 'FINANCIAL_REPORTS',
     confirmingStageId,
     buildRequest: () => ({ stageId: 'FINANCIAL_REPORTS', labelResolver }),
+    // The report preview stays open so the user can read the generated
+    // reports before confirming the next stage; every other stage resets.
+    keepsViewOnConfirm: true,
   });
