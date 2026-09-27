@@ -11,6 +11,7 @@ import { useAuthState } from '@/ui/contexts/useAuthState';
 import { useCloseSummaryVM } from '@/ui/features/monthly_close/hooks/useCloseSummaryVM';
 import { useDebtRepaymentPrefill } from '@/ui/features/monthly_close/hooks/useDebtRepaymentPrefill';
 import { useMonthlyClose } from '@/ui/features/monthly_close/hooks/useMonthlyClose';
+import { usePortfolioCashFlowPrefill } from '@/ui/features/monthly_close/hooks/usePortfolioCashFlowPrefill';
 import { usePortfolioSnapshotPrefill } from '@/ui/features/monthly_close/hooks/usePortfolioSnapshotPrefill';
 import { useReportLabelResolver } from '@/ui/features/monthly_close/hooks/useReportLabelResolver';
 import { useSnapshotBalancePrefill } from '@/ui/features/monthly_close/hooks/useSnapshotBalancePrefill';
@@ -148,6 +149,12 @@ export const useMonthlyClosePage = ({
     selectedYearMonth,
     portfolios,
     auth,
+  });
+  usePortfolioCashFlowPrefill({
+    selectedYearMonth,
+    portfolios,
+    portfolioSnapshots,
+    setCashFlows: portfolioCashFlowStage.setCashFlows,
   });
 
   const currentStageId = pageVM.isClosed

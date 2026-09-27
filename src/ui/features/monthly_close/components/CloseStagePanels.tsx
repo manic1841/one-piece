@@ -36,6 +36,65 @@ const STAGE_INPUT_IDS: readonly StageInputId[] = [
 const isStageWithInputs = (stageId: string): stageId is StageInputId =>
   STAGE_INPUT_IDS.includes(stageId as StageInputId);
 
+type SpecialStageId = 'COMPLETENESS_CHECK' | 'FINANCIAL_REPORTS' | 'CLOSE_PERIOD';
+
+interface SpecialPanelContext {
+  householdId: string;
+  selectedYearMonth: string;
+  confirming: boolean;
+  readinessVM: ReadinessVM | null;
+  closeSummaryVM: CloseSummaryVM | null;
+  reportsPersisted: boolean | null;
+  onConfirmStage: (stageId: string) => void;
+  onGoToStage: (stageId: string) => void;
+  onClosePeriod: () => void;
+  onContinue: () => void;
+  onGenerate: () => void;
+  onBack: () => void;
+}
+
+// Stage-id keyed panel registry: dispatch is an explicit map, not a condition
+// chain, so a stage can never be dispatched with the wrong key. Record over
+// SpecialStageId forces an entry for every special stage. A factory returns
+// null when its data has not loaded yet (readiness VM, close summary).
+const SPECIAL_PANELS: Record<SpecialStageId, (ctx: SpecialPanelContext) => React.ReactNode> = {
+  COMPLETENESS_CHECK: ({ readinessVM, confirming, onConfirmStage, onGoToStage }) =>
+    readinessVM ? (
+      <CloseReadinessCheck
+        readiness={readinessVM}
+        onConfirm={() => onConfirmStage('COMPLETENESS_CHECK')}
+        onGoToStage={onGoToStage}
+        confirming={confirming}
+      />
+    ) : null,
+  FINANCIAL_REPORTS: ({
+    householdId,
+    selectedYearMonth,
+    confirming,
+    reportsPersisted,
+    onContinue,
+    onGenerate,
+    onBack,
+  }) => (
+    <CloseFinancialReports
+      householdId={householdId}
+      year={Number(selectedYearMonth.slice(0, 4))}
+      month={Number(selectedYearMonth.slice(5, 7))}
+      onContinue={onContinue}
+      onGenerate={onGenerate}
+      onBack={onBack}
+      confirming={confirming}
+      isGenerated={reportsPersisted ?? false}
+    />
+  ),
+  CLOSE_PERIOD: ({ closeSummaryVM, confirming, onClosePeriod }) =>
+    closeSummaryVM ? (
+      <CloseSummaryPanel summary={closeSummaryVM} onClose={onClosePeriod} confirming={confirming} />
+    ) : null,
+};
+
+const SPECIAL_STAGE_IDS = new Set<string>(Object.keys(SPECIAL_PANELS));
+
 interface CloseStagePanelsProps {
   displayedStageId: string;
   householdId: string;
@@ -110,43 +169,24 @@ export const CloseStagePanels: React.FC<CloseStagePanelsProps> = ({
   onClosePeriod,
 }) => {
   // Workspace stages (1-6) share the CloseWorkspace frame; special stages
-  // dispatch to their own panel. TRANSACTION_VALIDATION and PROJECT_SETTLEMENT
-  // are workspace stages without inputs (evidence only).
-  if (!stage) {
-    if (displayedStageId === 'COMPLETENESS_CHECK' && readinessVM) {
-      return (
-        <CloseReadinessCheck
-          readiness={readinessVM}
-          onConfirm={() => onConfirmStage('COMPLETENESS_CHECK')}
-          onGoToStage={onGoToStage}
-          confirming={confirmingStageId === displayedStageId}
-        />
-      );
-    }
-    if (displayedStageId === 'CLOSE_PERIOD' && closeSummaryVM) {
-      return (
-        <CloseSummaryPanel
-          summary={closeSummaryVM}
-          onClose={onClosePeriod}
-          confirming={confirmingStageId === displayedStageId}
-        />
-      );
-    }
-    if (displayedStageId === 'FINANCIAL_REPORTS') {
-      return (
-        <CloseFinancialReports
-          householdId={householdId}
-          year={Number(selectedYearMonth.slice(0, 4))}
-          month={Number(selectedYearMonth.slice(5, 7))}
-          onContinue={onContinue}
-          onGenerate={onGenerate}
-          onBack={onBack}
-          confirming={confirmingStageId === displayedStageId}
-          isGenerated={reportsPersisted ?? false}
-        />
-      );
-    }
-    return null;
+  // dispatch through the stage-id keyed registry. TRANSACTION_VALIDATION and
+  // PROJECT_SETTLEMENT are workspace stages without inputs (evidence only).
+  // A special stage whose data has not loaded returns null: no wrong frame.
+  if (SPECIAL_STAGE_IDS.has(displayedStageId)) {
+    return SPECIAL_PANELS[displayedStageId as SpecialStageId]({
+      householdId,
+      selectedYearMonth,
+      confirming: confirmingStageId === displayedStageId,
+      readinessVM,
+      closeSummaryVM,
+      reportsPersisted,
+      onConfirmStage,
+      onGoToStage,
+      onClosePeriod,
+      onContinue,
+      onGenerate,
+      onBack,
+    });
   }
 
   const workspaceInputs = isStageWithInputs(displayedStageId) ? (
@@ -172,7 +212,7 @@ export const CloseStagePanels: React.FC<CloseStagePanelsProps> = ({
 
   return (
     <CloseWorkspace
-      stage={stage}
+      stage={stage ?? null}
       stepText={stepText}
       isReviewing={isReviewing}
       progressText={progressText}

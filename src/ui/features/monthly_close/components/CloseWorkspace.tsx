@@ -6,7 +6,7 @@ import { MONTHLY_CLOSE_LABELS } from '@/ui/constants/monthlyClose';
 import type { CloseStageItemVM } from '../viewmodels/monthlyClose.vm';
 
 interface CloseWorkspaceProps {
-  stage: CloseStageItemVM;
+  stage: CloseStageItemVM | null;
   stepText: string;
   isReviewing: boolean;
   progressText: string;
@@ -50,7 +50,7 @@ export const CloseWorkspace: React.FC<CloseWorkspaceProps> = ({
         </span>
       </div>
 
-      {stage.confirmedAtText && (
+      {stage?.confirmedAtText && (
         <p className="text-xs text-muted-foreground">{stage.confirmedAtText}</p>
       )}
 
