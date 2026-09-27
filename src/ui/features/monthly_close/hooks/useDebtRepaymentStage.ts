@@ -6,6 +6,8 @@ import { useConfirmStageControl } from './useConfirmStageControl';
 interface UseDebtRepaymentStageArgs {
   confirmingStageId: string | null;
   repayments: DebtRepaymentInput[];
+  /** Clear the repayment draft (and its section metas) on month switch. */
+  resetRepayments: () => void;
 }
 
 /**
@@ -16,9 +18,11 @@ interface UseDebtRepaymentStageArgs {
 export const useDebtRepaymentStage = ({
   confirmingStageId,
   repayments,
+  resetRepayments,
 }: UseDebtRepaymentStageArgs): CloseStageControl =>
   useConfirmStageControl({
     stageId: 'DEBT_REPAYMENT',
     confirmingStageId,
     buildRequest: () => ({ stageId: 'DEBT_REPAYMENT', repayments }),
+    resetDraft: resetRepayments,
   });

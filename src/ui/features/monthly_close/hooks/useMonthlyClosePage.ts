@@ -96,7 +96,12 @@ export const useMonthlyClosePage = ({
     debtAccounts,
     auth,
   });
-  const { repayments, setRepayments } = debtPrefill;
+  const { repayments, setRepayments, setDebtSectionMetas } = debtPrefill;
+
+  const resetDebtDraft = useCallback(() => {
+    setRepayments([]);
+    setDebtSectionMetas([]);
+  }, [setRepayments, setDebtSectionMetas]);
 
   useEffect(() => {
     if (!householdId) return;
@@ -180,7 +185,11 @@ export const useMonthlyClosePage = ({
   // Every stage resolves through one strategy record keyed by stage ID, so the
   // submit path reads the per-stage payload, gate, and post-confirm effects
   // from one contract instead of branching on stage IDs.
-  const debtRepaymentStage = useDebtRepaymentStage({ confirmingStageId, repayments });
+  const debtRepaymentStage = useDebtRepaymentStage({
+    confirmingStageId,
+    repayments,
+    resetRepayments: resetDebtDraft,
+  });
   const transactionValidationStage = useNoOpStageControl(
     'TRANSACTION_VALIDATION',
     confirmingStageId,

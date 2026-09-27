@@ -31,7 +31,7 @@ import { financialPeriodRepository } from '@/infra/repositories/financialPeriodR
 import { projectRepository } from '@/infra/repositories/projectRepository';
 import { reportRepository } from '@/infra/repositories/reportRepository';
 import { transactionRepository } from '@/infra/repositories/transactionRepository';
-import { firestoreEmulator } from '@/test/emulatorEnv';
+import { emulatorProjectId, firestoreEmulator } from '@/test/emulatorEnv';
 import { db, resetMockDb } from '@/test/mocks/firebase';
 
 const auth = { uid: 'user-1', email: 'user@example.com', isGlobalAdmin: true };
@@ -55,7 +55,10 @@ const nextHouseholdId = () => `household-close-flow-${householdSeq}`;
  * so server reads after a delete go through a throwaway connection.
  */
 const withFreshReader = async <T>(read: (readerDb: Firestore) => Promise<T>): Promise<T> => {
-  const readerApp = initializeApp({ projectId: 'demo-project' }, `reader-${crypto.randomUUID()}`);
+  const readerApp = initializeApp(
+    { projectId: emulatorProjectId },
+    `reader-${crypto.randomUUID()}`,
+  );
   const readerDb = getFirestore(readerApp);
   connectFirestoreEmulator(readerDb, firestoreEmulator.host, firestoreEmulator.port);
   try {
