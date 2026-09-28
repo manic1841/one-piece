@@ -32,6 +32,7 @@ const renderPanel = (props?: Partial<Parameters<typeof CloseReadinessCheck>[0]>)
       onGoToStage={() => {}}
       confirming={false}
       isConfirmable={true}
+      isReadOnly={false}
       {...props}
     />,
   );

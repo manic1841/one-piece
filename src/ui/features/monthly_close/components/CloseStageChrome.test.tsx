@@ -12,6 +12,7 @@ describe('CloseStageChrome', () => {
         confirmedAtText="2026-09-27 10:00 由 user@test.com 確認"
         confirming={false}
         isConfirmable
+        isReadOnly={false}
         showActions
         onConfirm={() => undefined}
       >
@@ -34,6 +35,7 @@ describe('CloseStageChrome', () => {
         progressText="05 / 09"
         confirming
         isConfirmable
+        isReadOnly={false}
         showActions
         onConfirm={() => undefined}
       >
@@ -51,6 +53,7 @@ describe('CloseStageChrome', () => {
         progressText="05 / 09"
         confirming={false}
         isConfirmable={false}
+        isReadOnly={false}
         showActions
         onConfirm={() => undefined}
       >
@@ -71,6 +74,7 @@ describe('CloseStageChrome', () => {
         confirming={false}
         isReviewing
         isConfirmable
+        isReadOnly={false}
         showActions
         onConfirm={onConfirm}
         onBackToCurrent={onBackToCurrent}

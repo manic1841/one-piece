@@ -103,6 +103,7 @@ const renderReports = (props?: Partial<Parameters<typeof CloseFinancialReports>[
       onGenerate={() => {}}
       onBack={() => {}}
       confirming={false}
+      isConfirmable={true}
       isGenerated={false}
       {...props}
     />,

@@ -229,7 +229,7 @@ export const useCloseStepRegistry = ({
             {...chromeProps(ctx, evidence)}
             securities={ctx.securities}
             financing={ctx.financing}
-            portfolios={ctx.portfolios}
+            projects={ctx.projects}
             onOpenTradeDrawer={ctx.onOpenTradeDrawer}
             onConfirm={ctx.onConfirm}
             onBackToCurrent={ctx.onBack}

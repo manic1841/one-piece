@@ -43,6 +43,7 @@ const renderPanel = (props?: Partial<Parameters<typeof CloseSummaryPanel>[0]>) =
       onClose={() => {}}
       confirming={false}
       isConfirmable={true}
+      isReadOnly={false}
       {...props}
     />,
   );

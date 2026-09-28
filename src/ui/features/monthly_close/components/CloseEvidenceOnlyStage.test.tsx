@@ -30,6 +30,7 @@ const renderStage = (props?: Partial<Parameters<typeof CloseEvidenceOnlyStage>[0
       confirming={false}
       isReviewing={false}
       isConfirmable={true}
+      isReadOnly={false}
       evidence={noEvidence}
       onConfirm={() => {}}
       onBackToCurrent={() => {}}

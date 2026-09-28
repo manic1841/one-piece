@@ -25,7 +25,7 @@ interface CloseSecuritiesTradeStageProps {
   evidence: CloseStageEvidence;
   securities: { buys: SecuritiesTradeInput[]; sells: SecuritiesTradeInput[] };
   financing: { shareholderFinancing: FinancingInput[]; dividendPayout: FinancingInput[] };
-  portfolios: { id: string; name: string }[];
+  projects: { id: string; name: string }[];
   /** Opens the add/edit drawer for the securities or financing table. */
   onOpenTradeDrawer: (kind: 'SECURITIES' | 'FINANCING', row?: TradeTableRow) => void;
   onConfirm: () => void;
@@ -55,6 +55,11 @@ const toTradeRows = (
     date: row.date,
   }));
 
+const toSideTradeRows = (
+  buys: (SecuritiesTradeInput | FinancingInput)[],
+  sells: (SecuritiesTradeInput | FinancingInput)[],
+): TradeTableRow[] => [...toTradeRows(buys, 'BUY'), ...toTradeRows(sells, 'SELL')];
+
 /**
  * SECURITIES_TRADE step: the securities and financing TradeTables rendered
  * inside the shared chrome with the stage evidence above them.
@@ -70,13 +75,13 @@ export const CloseSecuritiesTradeStage: React.FC<CloseSecuritiesTradeStageProps>
   evidence,
   securities,
   financing,
-  portfolios,
+  projects,
   onOpenTradeDrawer,
   onConfirm,
   onBackToCurrent,
 }) => {
   const projectNameOf = (projectId: string | null | undefined) =>
-    portfolios.find((portfolio) => portfolio.id === projectId)?.name ?? null;
+    projects.find((project) => project.id === projectId)?.name ?? null;
 
   return (
     <CloseStageChrome
@@ -101,7 +106,7 @@ export const CloseSecuritiesTradeStage: React.FC<CloseSecuritiesTradeStageProps>
         <TradeTable
           title={MONTHLY_CLOSE_LABELS.SECURITIES_TRANSACTIONS}
           sideLabels={sideLabels}
-          rows={toTradeRows([...securities.buys, ...securities.sells], 'BUY')}
+          rows={toSideTradeRows(securities.buys, securities.sells)}
           projectIdName={projectNameOf}
           onAdd={() => onOpenTradeDrawer('SECURITIES')}
           onRowClick={(row) => onOpenTradeDrawer('SECURITIES', row)}
@@ -112,10 +117,7 @@ export const CloseSecuritiesTradeStage: React.FC<CloseSecuritiesTradeStageProps>
           title={MONTHLY_CLOSE_LABELS.FINANCING_RECORDS}
           sideLabels={financingSideLabels}
           netLabel={MONTHLY_CLOSE_LABELS.NET_FINANCING_CASH_FLOW}
-          rows={toTradeRows(
-            [...financing.shareholderFinancing, ...financing.dividendPayout],
-            'SELL',
-          )}
+          rows={toSideTradeRows(financing.shareholderFinancing, financing.dividendPayout)}
           projectIdName={projectNameOf}
           onAdd={() => onOpenTradeDrawer('FINANCING')}
           onRowClick={(row) => onOpenTradeDrawer('FINANCING', row)}

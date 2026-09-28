@@ -33,7 +33,7 @@ const renderStage = (props?: Partial<Parameters<typeof CloseSecuritiesTradeStage
       evidence={noEvidence}
       securities={{ buys: [], sells: [] }}
       financing={{ shareholderFinancing: [], dividendPayout: [] }}
-      portfolios={[]}
+      projects={[]}
       onOpenTradeDrawer={() => {}}
       onConfirm={() => {}}
       onBackToCurrent={() => {}}
@@ -86,5 +86,33 @@ describe('CloseSecuritiesTradeStage', () => {
 
     fireEvent.click(screen.getAllByText('買入標的')[0]);
     expect(onOpenTradeDrawer).not.toHaveBeenCalled();
+  });
+
+  it('labels securities rows by their side and resolves project names from the project list', () => {
+    renderStage({
+      securities: {
+        buys: [{ ...tradeInput, projectId: 'project-1' }],
+        sells: [{ ...tradeInput, transactionId: 'tx-2', description: '賣出標的' }],
+      },
+      projects: [{ id: 'project-1', name: '房貸專案' }],
+    });
+
+    expect(screen.getAllByText('買入').length).toBeGreaterThanOrEqual(2);
+    expect(screen.getAllByText('賣出').length).toBeGreaterThanOrEqual(2);
+    expect(screen.getByText('房貸專案')).toBeInTheDocument();
+  });
+
+  it('labels financing rows by their side', () => {
+    renderStage({
+      financing: {
+        shareholderFinancing: [{ ...tradeInput, description: '股東融資備註' }],
+        dividendPayout: [{ ...tradeInput, transactionId: 'tx-2', description: '股利發放備註' }],
+      },
+    });
+
+    expect(screen.getAllByText('股東融資備註').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('股利發放備註').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('股東融資').length).toBeGreaterThanOrEqual(2);
+    expect(screen.getAllByText('發放分紅').length).toBeGreaterThanOrEqual(2);
   });
 });
