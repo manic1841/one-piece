@@ -55,6 +55,8 @@ export const MONTHLY_CLOSE_LABELS = {
   TOTAL_RETURN: '本期合計報酬',
   EDIT_TRANSACTION: 'EDIT TRANSACTION',
   NO_TRANSACTIONS: '尚無紀錄',
+  NO_PROJECTS: '沒有專案',
+  UNSETTLED: '尚未結算',
   DEPOSIT: '存入',
   WITHDRAW: '領出',
   STARTED: '關帳進行中',

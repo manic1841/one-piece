@@ -19,6 +19,7 @@ import { CloseReadinessCheck } from './CloseReadinessCheck';
 import { CloseStageInputsSection } from './CloseStageInputsSection';
 import { CloseSummaryPanel } from './CloseSummaryPanel';
 import { CloseWorkspace } from './CloseWorkspace';
+import { type TradeTableRow } from './TradeTable';
 
 type StageInputId =
   | 'ACCOUNT_BALANCE'
@@ -132,6 +133,8 @@ interface CloseStagePanelsProps {
   onConfirmStage: (stageId: string) => void;
   onGoToStage: (stageId: string) => void;
   onClosePeriod: () => void;
+  /** Opens the securities/financing add-edit drawer (SECURITIES or FINANCING). */
+  onOpenTradeDrawer: (kind: 'SECURITIES' | 'FINANCING', row?: TradeTableRow) => void;
 }
 
 export const CloseStagePanels: React.FC<CloseStagePanelsProps> = ({
@@ -167,6 +170,7 @@ export const CloseStagePanels: React.FC<CloseStagePanelsProps> = ({
   onConfirmStage,
   onGoToStage,
   onClosePeriod,
+  onOpenTradeDrawer,
 }) => {
   // Workspace stages (1-6) share the CloseWorkspace frame; special stages
   // dispatch through the stage-id keyed registry. TRANSACTION_VALIDATION and
@@ -201,6 +205,7 @@ export const CloseStagePanels: React.FC<CloseStagePanelsProps> = ({
       securities={securities}
       financing={financing}
       portfolios={portfolios}
+      onOpenTradeDrawer={onOpenTradeDrawer}
       debtSectionMetas={debtSectionMetas}
       portfolioCashFlows={portfolioCashFlows}
       setPortfolioCashFlows={setPortfolioCashFlows}

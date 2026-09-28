@@ -11,6 +11,7 @@ import type {
   CloseStageEvidence,
   CloseStageItemVM,
   MonthlyClosePageVM,
+  ProjectSettlementEvidenceRow,
 } from '../viewmodels/monthlyClose.vm';
 
 const STATUS_TEXT_MAP: Record<string, string> = {
@@ -105,6 +106,7 @@ export const mapAnomaliesToEvidence = (anomalies: CompletenessActivity[]): Close
   zeroActivityNames: anomalies.map((activity) => activity.name),
   cashFlowAdjustments: 0,
   reportsPersisted: null,
+  projectSettlements: [],
 });
 
 export const mapTransactionIssuesToEvidence = (
@@ -115,6 +117,7 @@ export const mapTransactionIssuesToEvidence = (
   zeroActivityNames: [],
   cashFlowAdjustments: 0,
   reportsPersisted: null,
+  projectSettlements: [],
 });
 
 export const mapAdjustmentCountToEvidence = (adjustments: number): CloseStageEvidence => ({
@@ -123,6 +126,7 @@ export const mapAdjustmentCountToEvidence = (adjustments: number): CloseStageEvi
   zeroActivityNames: [],
   cashFlowAdjustments: adjustments,
   reportsPersisted: null,
+  projectSettlements: [],
 });
 
 export const mapPersistenceToEvidence = (reportsPersisted: boolean): CloseStageEvidence => ({
@@ -131,6 +135,18 @@ export const mapPersistenceToEvidence = (reportsPersisted: boolean): CloseStageE
   zeroActivityNames: [],
   cashFlowAdjustments: 0,
   reportsPersisted,
+  projectSettlements: [],
+});
+
+export const mapProjectSettlementsToEvidence = (
+  settlements: ProjectSettlementEvidenceRow[],
+): CloseStageEvidence => ({
+  kind: 'PROJECT_SETTLEMENT',
+  transactionIssues: [],
+  zeroActivityNames: [],
+  cashFlowAdjustments: 0,
+  reportsPersisted: null,
+  projectSettlements: settlements,
 });
 
 export const NO_EVIDENCE: CloseStageEvidence = {
@@ -139,6 +155,7 @@ export const NO_EVIDENCE: CloseStageEvidence = {
   zeroActivityNames: [],
   cashFlowAdjustments: 0,
   reportsPersisted: null,
+  projectSettlements: [],
 };
 
 export const resolveEvidenceForStage = (
@@ -148,6 +165,7 @@ export const resolveEvidenceForStage = (
     transactionIssues: { transactionId: string; description: string; reason: string }[];
     cashFlowAdjustment: number | null;
     reportsPersisted: boolean | null;
+    projectSettlements?: ProjectSettlementEvidenceRow[];
   },
 ): CloseStageEvidence => {
   switch (stageId) {
@@ -155,6 +173,8 @@ export const resolveEvidenceForStage = (
       return mapTransactionIssuesToEvidence(inputs.transactionIssues);
     case 'COMPLETENESS_CHECK':
       return mapAnomaliesToEvidence(inputs.anomalies);
+    case 'PROJECT_SETTLEMENT':
+      return mapProjectSettlementsToEvidence(inputs.projectSettlements ?? []);
     case 'FINANCIAL_REPORTS':
       return inputs.cashFlowAdjustment !== null
         ? mapAdjustmentCountToEvidence(inputs.cashFlowAdjustment)

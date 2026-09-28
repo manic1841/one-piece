@@ -13,7 +13,7 @@ interface CloseTradeDrawerSectionProps {
   kind: 'SECURITIES' | 'FINANCING' | null;
   mode: 'ADD' | 'EDIT';
   form: unknown;
-  portfolios: { id: string; name: string }[];
+  projects: { id: string; name: string }[];
   submitting: boolean;
   onConfirm: () => void;
   onCancel: () => void;
@@ -46,7 +46,7 @@ export const CloseTradeDrawerSection: React.FC<CloseTradeDrawerSectionProps> = (
   kind,
   mode,
   form,
-  portfolios,
+  projects,
   submitting,
   onConfirm,
   onCancel,
@@ -59,7 +59,7 @@ export const CloseTradeDrawerSection: React.FC<CloseTradeDrawerSectionProps> = (
       sideLabels={kind === 'FINANCING' ? FINANCING_SIDE_LABELS : TRADE_SIDE_LABELS}
       title={drawerTitle(kind, mode)}
       form={form as TradeDrawerProps['form']}
-      portfolios={portfolios}
+      projects={projects}
       canDelete
       submitting={submitting}
       onConfirm={onConfirm}

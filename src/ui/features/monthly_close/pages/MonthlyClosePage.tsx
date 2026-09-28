@@ -43,6 +43,7 @@ export const MonthlyClosePage: React.FC<MonthlyClosePageProps> = ({
     accountSnapshots,
     portfolioSnapshots,
     portfolios,
+    projects,
     debtSectionMetas,
     accountBalances,
     setAccountBalances,
@@ -237,6 +238,7 @@ export const MonthlyClosePage: React.FC<MonthlyClosePageProps> = ({
                   onConfirmStage={(stageId) => void handleConfirmStage(stageId as CloseStageId)}
                   onGoToStage={handleGoToStage}
                   onClosePeriod={() => void handleClosePeriod()}
+                  onOpenTradeDrawer={(kind, row) => drawer.open(kind, row ? 'EDIT' : 'ADD', row)}
                 />
               )}
             </div>
@@ -246,7 +248,7 @@ export const MonthlyClosePage: React.FC<MonthlyClosePageProps> = ({
             kind={drawer.state.kind}
             mode={drawer.state.mode}
             form={drawerForm.form}
-            portfolios={portfolios.map((portfolio) => ({ id: portfolio.id, name: portfolio.name }))}
+            projects={projects.map((project) => ({ id: project.id, name: project.name }))}
             submitting={confirmingStageId !== null}
             onConfirm={drawerForm.submit}
             onCancel={drawer.close}

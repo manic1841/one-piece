@@ -3,16 +3,19 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { getAccountsUseCase } from '@/application/account/use_cases/getAccountsUseCase';
 import { listDebtAccountsUseCase } from '@/application/debt/use_cases/listDebtAccountsUseCase';
 import { listPortfoliosUseCase } from '@/application/portfolio/use_cases/listPortfoliosUseCase';
+import { listProjectsUseCase } from '@/application/project/use_cases/listProjectsUseCase';
 import { type Account } from '@/domains/account/types/account';
 import { type DebtAccount } from '@/domains/debt/schemas';
 import { type CloseStageId } from '@/domains/financial_period/schemas';
 import { type Portfolio } from '@/domains/portfolio/schemas';
+import { type Project } from '@/domains/project/schemas';
 import { useAuthState } from '@/ui/contexts/useAuthState';
 import { useCloseSummaryVM } from '@/ui/features/monthly_close/hooks/useCloseSummaryVM';
 import { useDebtRepaymentPrefill } from '@/ui/features/monthly_close/hooks/useDebtRepaymentPrefill';
 import { useMonthlyClose } from '@/ui/features/monthly_close/hooks/useMonthlyClose';
 import { usePortfolioCashFlowPrefill } from '@/ui/features/monthly_close/hooks/usePortfolioCashFlowPrefill';
 import { usePortfolioSnapshotPrefill } from '@/ui/features/monthly_close/hooks/usePortfolioSnapshotPrefill';
+import { useProjectSettlementEvidence } from '@/ui/features/monthly_close/hooks/useProjectSettlementEvidence';
 import { useReportLabelResolver } from '@/ui/features/monthly_close/hooks/useReportLabelResolver';
 import { useSnapshotBalancePrefill } from '@/ui/features/monthly_close/hooks/useSnapshotBalancePrefill';
 import { useTradeDrawer } from '@/ui/features/monthly_close/hooks/useTradeDrawer';
@@ -75,6 +78,7 @@ export const useMonthlyClosePage = ({
   const [viewingStageId, setViewingStageId] = useState<CloseStageId | null>(null);
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [portfolios, setPortfolios] = useState<Portfolio[]>([]);
+  const [projects, setProjects] = useState<Project[]>([]);
   const [debtAccounts, setDebtAccounts] = useState<DebtAccount[]>([]);
 
   const reportLabelResolver = useReportLabelResolver(householdId);
@@ -108,14 +112,16 @@ export const useMonthlyClosePage = ({
     let cancelled = false;
 
     const loadEntities = async () => {
-      const [accountList, portfolioList, debtList] = await Promise.all([
+      const [accountList, portfolioList, projectList, debtList] = await Promise.all([
         getAccountsUseCase.execute({ householdId, auth }),
         listPortfoliosUseCase.execute({ householdId, auth }),
+        listProjectsUseCase.execute({ householdId }),
         listDebtAccountsUseCase.execute({ householdId }),
       ]);
       if (cancelled) return;
       setAccounts(accountList);
       setPortfolios(portfolioList);
+      setProjects(projectList);
       setDebtAccounts(debtList);
     };
 
@@ -143,6 +149,7 @@ export const useMonthlyClosePage = ({
     portfolios,
     auth,
   });
+  const projectSettlements = useProjectSettlementEvidence(householdId, selectedYearMonth);
   usePortfolioCashFlowPrefill({
     selectedYearMonth,
     portfolios,
@@ -178,8 +185,9 @@ export const useMonthlyClosePage = ({
         transactionIssues,
         cashFlowAdjustment,
         reportsPersisted,
+        projectSettlements,
       }),
-    [anomalies, cashFlowAdjustment, reportsPersisted, transactionIssues],
+    [anomalies, cashFlowAdjustment, projectSettlements, reportsPersisted, transactionIssues],
   );
 
   // Every stage resolves through one strategy record keyed by stage ID, so the
@@ -310,6 +318,7 @@ export const useMonthlyClosePage = ({
     portfolioSnapshots,
     reportsPersisted,
     portfolios,
+    projects,
     debtAccounts,
     debtSectionMetas: debtPrefill.debtSectionMetas,
     accountBalances: accountBalanceStage.balances,

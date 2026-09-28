@@ -13,9 +13,17 @@ export interface TransactionValidationResult {
   issues: TransactionValidationIssue[];
 }
 
-const KNOWN_LEDGER_CODES: ReadonlySet<string> = new Set(Object.values(LEDGER_CODES));
+export interface TransactionValidationContext {
+  /** Household-defined codes join the system set; custom codes are valid, not anomalies. */
+  extraLedgerCodes?: ReadonlySet<string>;
+}
 
-const validateTransaction = (transaction: Transaction): string | null => {
+const SYSTEM_LEDGER_CODES: ReadonlySet<string> = new Set(Object.values(LEDGER_CODES));
+
+const validateTransaction = (
+  transaction: Transaction,
+  extraCodes?: ReadonlySet<string>,
+): string | null => {
   if (transaction.entries.length < 2) {
     return '分錄少於兩行';
   }
@@ -39,7 +47,7 @@ const validateTransaction = (transaction: Transaction): string | null => {
   }
 
   for (const entry of transaction.entries) {
-    if (!KNOWN_LEDGER_CODES.has(entry.ledgerCode)) {
+    if (!SYSTEM_LEDGER_CODES.has(entry.ledgerCode) && !extraCodes?.has(entry.ledgerCode)) {
       return `科目無效：${entry.ledgerCode}`;
     }
   }
@@ -54,11 +62,12 @@ const validateTransaction = (transaction: Transaction): string | null => {
  */
 export const validateMonthTransactions = (
   transactions: Transaction[],
+  context?: TransactionValidationContext,
 ): TransactionValidationResult => {
   const issues: TransactionValidationIssue[] = [];
 
   for (const transaction of transactions) {
-    const reason = validateTransaction(transaction);
+    const reason = validateTransaction(transaction, context?.extraLedgerCodes);
     if (reason) {
       issues.push({
         transactionId: transaction.id,

@@ -75,6 +75,22 @@ describe('validateMonthTransactions', () => {
     expect(result.issues[0]?.reason).toBe('科目無效：expense:mystery');
   });
 
+  it('accepts household custom ledger codes passed as extra codes', () => {
+    const result = validateMonthTransactions(
+      [
+        baseTransaction({
+          entries: [
+            { ledgerCode: 'expense:custom_category', debit: 100, credit: 0 },
+            { ledgerCode: 'asset:cash', debit: 0, credit: 100 },
+          ],
+        }),
+      ],
+      { extraLedgerCodes: new Set(['expense:custom_category']) },
+    );
+
+    expect(result.issues).toEqual([]);
+  });
+
   it('flags transactions with fewer than two entries', () => {
     const result = validateMonthTransactions([
       baseTransaction({ entries: [{ ledgerCode: 'expense:food', debit: 100, credit: 0 }] }),

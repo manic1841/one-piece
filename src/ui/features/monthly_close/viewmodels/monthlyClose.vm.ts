@@ -18,11 +18,22 @@ export interface CloseStageEvidence {
     | 'COMPLETENESS_ANOMALIES'
     | 'CASH_FLOW_ADJUSTMENTS'
     | 'REPORT_PERSISTENCE'
+    | 'PROJECT_SETTLEMENT'
     | 'NONE';
   transactionIssues: { transactionId: string; description: string; reason: string }[];
   zeroActivityNames: string[];
   cashFlowAdjustments: number;
   reportsPersisted: boolean | null;
+  projectSettlements: ProjectSettlementEvidenceRow[];
+}
+
+export interface ProjectSettlementEvidenceRow {
+  projectId: string;
+  projectName: string;
+  settled: boolean;
+  income: number | null;
+  expense: number | null;
+  closingBalance: number | null;
 }
 
 export interface CloseStageItemVM {

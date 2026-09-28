@@ -49,6 +49,8 @@ interface CloseStageInputsSectionProps {
   securities: { buys: SecuritiesTradeInput[]; sells: SecuritiesTradeInput[] };
   financing: { shareholderFinancing: FinancingInput[]; dividendPayout: FinancingInput[] };
   portfolios: { id: string; name: string }[];
+  /** Opens the add/edit drawer for the securities or financing table. */
+  onOpenTradeDrawer: (kind: 'SECURITIES' | 'FINANCING', row?: TradeTableRow) => void;
   debtSectionMetas: DebtSectionMetaVM[];
   portfolioCashFlows: Record<string, { deposits: number; withdrawals: number }>;
   setPortfolioCashFlows: React.Dispatch<
@@ -80,6 +82,7 @@ export const CloseStageInputsSection: React.FC<CloseStageInputsSectionProps> = (
   securities,
   financing,
   portfolios,
+  onOpenTradeDrawer,
   debtSectionMetas,
   portfolioCashFlows,
   setPortfolioCashFlows,
@@ -108,8 +111,8 @@ export const CloseStageInputsSection: React.FC<CloseStageInputsSectionProps> = (
           sideLabels={sideLabels}
           rows={toTradeRows([...securities.buys, ...securities.sells], 'BUY')}
           projectIdName={projectNameOf}
-          onAdd={() => undefined}
-          onRowClick={() => undefined}
+          onAdd={() => onOpenTradeDrawer('SECURITIES')}
+          onRowClick={(row) => onOpenTradeDrawer('SECURITIES', row)}
           disabled={disabled}
         />
         <TradeTable
@@ -121,8 +124,8 @@ export const CloseStageInputsSection: React.FC<CloseStageInputsSectionProps> = (
             'SELL',
           )}
           projectIdName={projectNameOf}
-          onAdd={() => undefined}
-          onRowClick={() => undefined}
+          onAdd={() => onOpenTradeDrawer('FINANCING')}
+          onRowClick={(row) => onOpenTradeDrawer('FINANCING', row)}
           disabled={disabled}
         />
       </div>

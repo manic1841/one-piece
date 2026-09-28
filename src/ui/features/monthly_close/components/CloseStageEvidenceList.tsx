@@ -4,6 +4,7 @@ import { AlertCircle, Check, Eye } from 'lucide-react';
 
 import { StatusGlyph } from '@/ui/components/StatusGlyph';
 import { MONTHLY_CLOSE_LABELS } from '@/ui/constants/monthlyClose';
+import { formatCurrency } from '@/ui/utils';
 
 import type { CloseStageEvidence } from '../viewmodels/monthlyClose.vm';
 
@@ -74,6 +75,37 @@ export const CloseStageEvidenceList: React.FC<CloseStageEvidenceListProps> = ({ 
             type={evidence.reportsPersisted ? 'verified' : 'waiting'}
             label={MONTHLY_CLOSE_LABELS.REPORTS_PERSISTENCE}
           />
+        </div>
+      )}
+
+      {evidence.kind === 'PROJECT_SETTLEMENT' && (
+        <div className="space-y-1 rounded-lg border border-border/60 bg-muted/40 p-3">
+          {evidence.projectSettlements.length === 0 ? (
+            <p className="text-xs text-muted-foreground">{MONTHLY_CLOSE_LABELS.NO_PROJECTS}</p>
+          ) : (
+            evidence.projectSettlements.map((settlement) => (
+              <div
+                key={settlement.projectId}
+                className="flex items-center justify-between gap-3 text-xs"
+              >
+                <span className="flex min-w-0 items-center gap-1.5">
+                  {settlement.settled ? (
+                    <Check size={12} className="shrink-0 text-positive" />
+                  ) : (
+                    <AlertCircle size={12} className="shrink-0 text-warning" />
+                  )}
+                  <span className="truncate text-foreground">{settlement.projectName}</span>
+                </span>
+                {settlement.settled && settlement.closingBalance !== null ? (
+                  <span className="font-mono tabular-nums text-muted-foreground">
+                    {formatCurrency(settlement.closingBalance)}
+                  </span>
+                ) : (
+                  <span className="shrink-0 text-warning">{MONTHLY_CLOSE_LABELS.UNSETTLED}</span>
+                )}
+              </div>
+            ))
+          )}
         </div>
       )}
     </div>
