@@ -1,9 +1,11 @@
 import {
+  CLOSE_STAGE_IDS,
   CLOSE_STAGE_IDS_SET,
   type CloseStageId,
   type CloseStageState,
   type FinancialPeriod,
   type FinancialPeriodStatus,
+  initialStageStates,
 } from './schemas';
 
 export class FinancialPeriodStateError extends Error {
@@ -12,6 +14,7 @@ export class FinancialPeriodStateError extends Error {
     | 'PERIOD_CLOSED'
     | 'PERIOD_NOT_REOPENABLE'
     | 'STAGE_NOT_FOUND'
+    | 'STAGE_NOT_WALK_POSITION'
     | 'STAGE_ALREADY_COMPLETED'
     | 'STAGE_NOT_COMPLETED';
 
@@ -24,6 +27,26 @@ export class FinancialPeriodStateError extends Error {
 
 export const resolvePeriodStatus = (existing: FinancialPeriod | null): FinancialPeriodStatus =>
   existing?.status ?? 'OPEN';
+
+/**
+ * Walk position (ADR-0070): while paused, the only confirmable stage is the
+ * first PENDING stage in CLOSE_STAGE_IDS order; the pause clears only at the
+ * walk's terminal confirmation.
+ */
+export const resolveWalkPosition = (period: FinancialPeriod): CloseStageId | null =>
+  CLOSE_STAGE_IDS.find((stageId) => period.stages[stageId]?.status !== 'COMPLETED') ?? null;
+
+const isPausedPeriod = (period: FinancialPeriod): boolean => period.status === 'NEEDS_REVIEW';
+
+const assertWalkPosition = (period: FinancialPeriod, stageId: CloseStageId): void => {
+  const walkPosition = resolveWalkPosition(period);
+  if (stageId !== walkPosition) {
+    throw new FinancialPeriodStateError(
+      'STAGE_NOT_WALK_POSITION',
+      `while paused, only the walk position (${walkPosition ?? 'none'}) is confirmable, got: ${stageId}`,
+    );
+  }
+};
 
 export const confirmStageInState = (
   period: FinancialPeriod,
@@ -44,13 +67,26 @@ export const confirmStageInState = (
   if (current?.status === 'COMPLETED' && !isReconfirmableStage(stageId)) {
     throw new FinancialPeriodStateError('STAGE_ALREADY_COMPLETED', `stage completed: ${stageId}`);
   }
+  if (isPausedPeriod(period)) {
+    assertWalkPosition(period, stageId);
+  }
 
   const stageState: CloseStageState = { status: 'COMPLETED', confirmedBy, confirmedAt };
+  const paused = isPausedPeriod(period);
+  const resumes = !paused || period.reviewSourceStageId === stageId;
   return {
     ...period,
-    status: 'IN_PROGRESS',
-    reviewSourceStageId: null,
-    stages: { ...period.stages, [stageId]: stageState },
+    status: resumes ? 'IN_PROGRESS' : period.status,
+    reviewSourceStageId: resumes ? null : period.reviewSourceStageId,
+    stages:
+      paused && resumes
+        ? {
+            ...period.stages,
+            [stageId]: stageState,
+            FINANCIAL_REPORTS: { status: 'PENDING' },
+            CLOSE_PERIOD: { status: 'PENDING' },
+          }
+        : { ...period.stages, [stageId]: stageState },
   };
 };
 
@@ -68,6 +104,9 @@ export const reconfirmStageInState = (
   }
   if (!CLOSE_STAGE_IDS_SET.has(stageId)) {
     throw new FinancialPeriodStateError('STAGE_NOT_FOUND', `unknown stage: ${stageId}`);
+  }
+  if (isPausedPeriod(period)) {
+    assertWalkPosition(period, stageId);
   }
   const stageState: CloseStageState = { status: 'COMPLETED', confirmedBy, confirmedAt };
   return {
@@ -148,11 +187,12 @@ export const isReopenablePeriod = (period: FinancialPeriod): boolean =>
 
 /**
  * Reopen (ADR-0066): withdraw the finalize decision while keeping earlier stage
- * work. Accepts a CLOSED period or a cascade-demoted one (NEEDS_REVIEW with
- * reviewSourceStageId = null); both reopen to IN_PROGRESS with Financial
- * Reports and Close Period reset to PENDING so the reports are regenerated
- * and the period is re-closed through normal confirmation; the rest of the
- * completed stages stay as-is.
+ * work. A CLOSED period reopens to IN_PROGRESS with Financial Reports and Close
+ * Period reset to PENDING so the reports are regenerated and the period is
+ * re-closed through normal confirmation; the rest of the completed stages stay
+ * as-is. A cascade-demoted one (NEEDS_REVIEW with reviewSourceStageId = null)
+ * resets every stage to PENDING and stays NEEDS_REVIEW: the demotion means the
+ * later close may rest on pre-correction history, so recovery is a full walk.
  */
 export const reopenPeriodInState = (period: FinancialPeriod): FinancialPeriod => {
   if (!isReopenablePeriod(period)) {
@@ -160,6 +200,15 @@ export const reopenPeriodInState = (period: FinancialPeriod): FinancialPeriod =>
       'PERIOD_NOT_REOPENABLE',
       'only a closed or cascade-demoted period can be reopened',
     );
+  }
+
+  if (isCascadeDemoted(period)) {
+    return {
+      ...period,
+      status: 'NEEDS_REVIEW',
+      reviewSourceStageId: null,
+      stages: initialStageStates(),
+    };
   }
 
   return {
@@ -172,6 +221,27 @@ export const reopenPeriodInState = (period: FinancialPeriod): FinancialPeriod =>
       CLOSE_PERIOD: { status: 'PENDING' },
     },
   };
+};
+
+/**
+ * GO TO reset (ADR-0070): while paused, jumping back to a stage resets that
+ * stage and every later stage to PENDING; earlier completed stages stay as-is.
+ * The pause and its review source are preserved so recovery stays a walk.
+ */
+export const resetStagesFromInState = (
+  period: FinancialPeriod,
+  fromStageId: CloseStageId,
+): FinancialPeriod => {
+  if (!CLOSE_STAGE_IDS_SET.has(fromStageId)) {
+    throw new FinancialPeriodStateError('STAGE_NOT_FOUND', `unknown stage: ${fromStageId}`);
+  }
+
+  const fromIndex = CLOSE_STAGE_IDS.indexOf(fromStageId);
+  const stages = { ...period.stages };
+  for (const stageId of CLOSE_STAGE_IDS.slice(fromIndex)) {
+    stages[stageId] = { status: 'PENDING' };
+  }
+  return { ...period, stages };
 };
 
 /**

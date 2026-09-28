@@ -5,6 +5,8 @@ import {
 import { generateFinancialReportsUseCase } from '@/application/report/use_cases/generateFinancialReportsUseCase';
 import { getReportPersistenceStateUseCase } from '@/application/report/use_cases/getReportPersistenceStateUseCase';
 import { type AuthContext } from '@/application/types';
+import { type FinancialPeriod } from '@/domains/financial_period/schemas';
+import { isStageCompleted } from '@/domains/financial_period/stateMachine';
 import { type ReportLabelResolver } from '@/domains/report/reportCalculations';
 
 export interface RunFinancialReportsRequest {
@@ -35,15 +37,24 @@ export class RunFinancialReportsUseCase {
 export interface CheckCloseReadinessRequest {
   householdId: string;
   yearMonth: string;
+  period: FinancialPeriod;
 }
 
 /**
- * CLOSE_PERIOD stage gate (spec 05 stage 06): all three reports must be
- * persisted before the period can close.
+ * CLOSE_PERIOD stage gate (spec 05 stage 06): the FINANCIAL_REPORTS stage must
+ * be confirmed and all three reports persisted before the period can close.
+ * The stage check closes the old-report loophole: stale report files persisting
+ * from an earlier close no longer satisfy the gate after a reopen.
  */
 export class CheckCloseReadinessUseCase {
   async execute(request: CheckCloseReadinessRequest): Promise<void> {
-    const { householdId, yearMonth } = request;
+    const { householdId, yearMonth, period } = request;
+    if (!isStageCompleted(period, 'FINANCIAL_REPORTS')) {
+      throw new MonthlyCloseCommandError(
+        MonthlyCloseCommandErrorCode.REPORTS_NOT_PERSISTED,
+        'financial reports must be confirmed before closing',
+      );
+    }
     const persistence = await getReportPersistenceStateUseCase.execute({
       householdId,
       yearMonth,

@@ -66,10 +66,16 @@ interface TwdAccountRowProps {
     previousBalance: number | null;
   };
   input: AccountBalanceInput | undefined;
+  isReadOnly: boolean;
   onAmountChange: (accountId: string, amount: number | undefined) => void;
 }
 
-const TwdAccountRow: React.FC<TwdAccountRowProps> = ({ entry, input, onAmountChange }) => {
+const TwdAccountRow: React.FC<TwdAccountRowProps> = ({
+  entry,
+  input,
+  isReadOnly,
+  onAmountChange,
+}) => {
   return (
     <DataTableRow>
       <DataTableCell>
@@ -84,6 +90,7 @@ const TwdAccountRow: React.FC<TwdAccountRowProps> = ({ entry, input, onAmountCha
           <NumberInput
             id={`ending-${entry.account.id}`}
             className="w-full max-w-[220px]"
+            disabled={isReadOnly}
             value={input?.amount ?? ''}
             onChange={(event) =>
               onAmountChange(entry.account.id, parseOptionalAmount(event.target.value))
@@ -111,6 +118,7 @@ interface ForeignAccountRowProps {
     previousBalance: number | null;
   };
   input: AccountBalanceInput | undefined;
+  isReadOnly: boolean;
   onDetailChange: (
     accountId: string,
     field: 'originalAmount' | 'exchangeRate',
@@ -118,7 +126,12 @@ interface ForeignAccountRowProps {
   ) => void;
 }
 
-const ForeignAccountRow: React.FC<ForeignAccountRowProps> = ({ entry, input, onDetailChange }) => {
+const ForeignAccountRow: React.FC<ForeignAccountRowProps> = ({
+  entry,
+  input,
+  isReadOnly,
+  onDetailChange,
+}) => {
   const originalAmount = input?.originalAmount ?? 0;
   const exchangeRate = input?.exchangeRate ?? 0;
   const twdValue = computeSectionInput(
@@ -145,6 +158,7 @@ const ForeignAccountRow: React.FC<ForeignAccountRowProps> = ({ entry, input, onD
           <NumberInput
             id={`foreign-${entry.account.id}`}
             className="w-full max-w-[150px]"
+            disabled={isReadOnly}
             value={input?.originalAmount ?? ''}
             onChange={(event) =>
               onDetailChange(
@@ -165,6 +179,7 @@ const ForeignAccountRow: React.FC<ForeignAccountRowProps> = ({ entry, input, onD
             id={`rate-${entry.account.id}`}
             step="0.0001"
             className="w-full max-w-[110px]"
+            disabled={isReadOnly}
             value={input?.exchangeRate ?? ''}
             onChange={(event) =>
               onDetailChange(
@@ -199,6 +214,8 @@ interface CloseAccountBalanceInputsProps {
   accounts: Account[];
   snapshots: Map<string, AccountSnapshot>;
   inputs: AccountBalanceInput[];
+  /** Closed periods render read-only: inputs are disabled and rates stop auto-fetching. */
+  isReadOnly?: boolean;
   onInputsChange: (inputs: AccountBalanceInput[]) => void;
 }
 
@@ -214,6 +231,7 @@ export const CloseAccountBalanceInputs: React.FC<CloseAccountBalanceInputsProps>
   accounts,
   snapshots,
   inputs,
+  isReadOnly = false,
   onInputsChange,
 }) => {
   const { getRate } = useExchangeRate();
@@ -264,6 +282,7 @@ export const CloseAccountBalanceInputs: React.FC<CloseAccountBalanceInputsProps>
   const foreignAccounts = accounts.filter((account) => account.currency !== 'TWD');
 
   useEffect(() => {
+    if (isReadOnly) return;
     let cancelled = false;
     for (const account of foreignAccounts) {
       if (findInput(account.id)?.exchangeRate !== undefined) continue;
@@ -281,7 +300,7 @@ export const CloseAccountBalanceInputs: React.FC<CloseAccountBalanceInputsProps>
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [foreignAccounts.map((account) => account.id + account.currency).join(',')]);
+  }, [foreignAccounts.map((account) => account.id + account.currency).join(','), isReadOnly]);
 
   const sections = buildAccountBalanceSections({ accounts, snapshots });
 
@@ -307,6 +326,7 @@ export const CloseAccountBalanceInputs: React.FC<CloseAccountBalanceInputsProps>
                       key={entry.account.id}
                       entry={entry}
                       input={findInput(entry.account.id)}
+                      isReadOnly={isReadOnly}
                       onAmountChange={onTwdAmountChange}
                     />
                   ))}
@@ -318,6 +338,7 @@ export const CloseAccountBalanceInputs: React.FC<CloseAccountBalanceInputsProps>
             <TwdMobileList
               accounts={section.accounts}
               findInput={findInput}
+              isReadOnly={isReadOnly}
               onAmountChange={onTwdAmountChange}
             />
           )}
@@ -332,6 +353,7 @@ export const CloseAccountBalanceInputs: React.FC<CloseAccountBalanceInputsProps>
                       key={entry.account.id}
                       entry={entry}
                       input={findInput(entry.account.id)}
+                      isReadOnly={isReadOnly}
                       onDetailChange={onForeignDetailChange}
                     />
                   ))}
@@ -343,6 +365,7 @@ export const CloseAccountBalanceInputs: React.FC<CloseAccountBalanceInputsProps>
             <ForeignMobileList
               accounts={section.accounts}
               findInput={findInput}
+              isReadOnly={isReadOnly}
               onDetailChange={onForeignDetailChange}
             />
           )}
@@ -353,6 +376,7 @@ export const CloseAccountBalanceInputs: React.FC<CloseAccountBalanceInputsProps>
                 entry={entry}
                 input={findInput(entry.account.id)}
                 previousHoldings={snapshots.get(entry.account.id)?.holdings ?? []}
+                isReadOnly={isReadOnly}
                 onHoldingsChange={onHoldingsChange}
                 onRateChange={onSecuritiesRateChange}
               />

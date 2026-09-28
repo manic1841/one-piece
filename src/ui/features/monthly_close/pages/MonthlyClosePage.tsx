@@ -8,12 +8,13 @@ import { Card, CardContent } from '@/ui/components/ui/card';
 import { MONTHLY_CLOSE_LABELS } from '@/ui/constants/monthlyClose';
 import { useConfirm } from '@/ui/features/app/confirm/useConfirm';
 import { ClosePipeline } from '@/ui/features/monthly_close/components/ClosePipeline';
-import { CloseStageEvidenceList } from '@/ui/features/monthly_close/components/CloseStageEvidenceList';
-import { CloseStagePanels } from '@/ui/features/monthly_close/components/CloseStagePanels';
-import { CloseTradeDrawerSection } from '@/ui/features/monthly_close/components/CloseTradeDrawerSection';
 
 import { useMonthlyClosePage } from '../hooks/useMonthlyClosePage';
-import { type CloseStageId, isReopenablePeriod } from '../viewmodels/monthlyClose.vm';
+import {
+  type CloseStageId,
+  isReopenablePeriod,
+  resolveGoToResetRange,
+} from '../viewmodels/monthlyClose.vm';
 
 interface MonthlyClosePageProps {
   householdId?: string;
@@ -28,48 +29,46 @@ export const MonthlyClosePage: React.FC<MonthlyClosePageProps> = ({
     householdId,
     pageVM,
     selectedYearMonth,
-    confirmingStageId,
     isStarting,
     error,
     setViewingStageId,
     currentStageId,
     displayedStageId,
     displayedStage,
-    isReviewing,
-    displayedStepText,
     positionText,
-    reportsPersisted,
-    accounts,
-    accountSnapshots,
-    portfolioSnapshots,
-    portfolios,
-    debtSectionMetas,
-    accountBalances,
-    setAccountBalances,
-    securities,
-    financing,
-    portfolioCashFlows,
-    setPortfolioCashFlows,
-    repayments,
-    setRepayments,
+    stepRegistry,
+    stageContext,
+    evidenceFor,
     selectYearMonth,
     start,
     reopen,
     refreshStageEvidence,
-    evidenceFor,
-    handleConfirmStage,
-    readinessVM,
-    closeSummaryVM,
     handleGoToStage,
-    handleClosePeriod,
-    drawer,
-    drawerForm,
+    handleGoToStageWithReset,
   } = useMonthlyClosePage({ householdId: householdIdProp, userEmail: userEmailProp });
 
   const { confirm } = useConfirm();
 
   const isReadOnlyPeriod = pageVM.isClosed || pageVM.isCascadeDemoted;
   const showPeriodBadge = pageVM.isStarted && !isReadOnlyPeriod;
+
+  const handleExceptionGoToStage = async (stageId: string) => {
+    if (!pageVM.isPaused) {
+      handleGoToStage(stageId);
+      return;
+    }
+    const confirmed = await confirm({
+      title: MONTHLY_CLOSE_LABELS.GO_TO_RESET_TITLE,
+      consequence: MONTHLY_CLOSE_LABELS.GO_TO_RESET_CONSEQUENCE.replace(
+        '{range}',
+        resolveGoToResetRange(pageVM.stages, stageId as CloseStageId, pageVM.totalCount),
+      ),
+      confirmLabel: MONTHLY_CLOSE_LABELS.GO_TO_RESET_CONFIRM,
+      cancelLabel: MONTHLY_CLOSE_LABELS.CANCEL,
+    });
+    if (!confirmed) return;
+    await handleGoToStageWithReset(stageId);
+  };
 
   const handleStart = async () => {
     const result = await start();
@@ -198,60 +197,16 @@ export const MonthlyClosePage: React.FC<MonthlyClosePageProps> = ({
                 onSelectStage={(stageId) => setViewingStageId(stageId as CloseStageId)}
               />
 
-              {displayedStage && (
-                <CloseStagePanels
-                  displayedStageId={displayedStage.stageId}
-                  householdId={householdId}
-                  selectedYearMonth={selectedYearMonth}
-                  confirmingStageId={confirmingStageId}
-                  readinessVM={readinessVM}
-                  closeSummaryVM={closeSummaryVM}
-                  reportsPersisted={reportsPersisted}
-                  stage={displayedStage}
-                  stepText={displayedStepText ?? positionText}
-                  isReviewing={isReviewing}
-                  progressText={positionText}
-                  isClosed={pageVM.isClosed}
-                  evidence={
-                    <CloseStageEvidenceList evidence={evidenceFor(displayedStage.stageId)} />
-                  }
-                  accounts={accounts}
-                  accountSnapshots={accountSnapshots}
-                  portfolioSnapshots={portfolioSnapshots}
-                  portfolios={portfolios.map((portfolio) => ({
-                    id: portfolio.id,
-                    name: portfolio.name,
-                  }))}
-                  debtSectionMetas={debtSectionMetas}
-                  accountBalances={accountBalances}
-                  setAccountBalances={setAccountBalances}
-                  securities={securities}
-                  financing={financing}
-                  portfolioCashFlows={portfolioCashFlows}
-                  setPortfolioCashFlows={setPortfolioCashFlows}
-                  repayments={repayments}
-                  setRepayments={setRepayments}
-                  onContinue={() => setViewingStageId('CLOSE_PERIOD')}
-                  onGenerate={() => void handleConfirmStage('FINANCIAL_REPORTS')}
-                  onBack={() => setViewingStageId(null)}
-                  onConfirmStage={(stageId) => void handleConfirmStage(stageId as CloseStageId)}
-                  onGoToStage={handleGoToStage}
-                  onClosePeriod={() => void handleClosePeriod()}
-                />
-              )}
+              {displayedStage &&
+                stepRegistry[displayedStage.stageId]?.render(
+                  {
+                    ...stageContext,
+                    onGoToStage: (stageId) => void handleExceptionGoToStage(stageId),
+                  },
+                  evidenceFor(displayedStage.stageId),
+                )}
             </div>
           )}
-
-          <CloseTradeDrawerSection
-            kind={drawer.state.kind}
-            mode={drawer.state.mode}
-            form={drawerForm.form}
-            portfolios={portfolios.map((portfolio) => ({ id: portfolio.id, name: portfolio.name }))}
-            submitting={confirmingStageId !== null}
-            onConfirm={drawerForm.submit}
-            onCancel={drawer.close}
-            onDelete={drawer.deleteRow}
-          />
         </>
       )}
     </div>

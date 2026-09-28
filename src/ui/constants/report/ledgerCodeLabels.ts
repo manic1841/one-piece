@@ -20,8 +20,6 @@ export const LEDGER_CODE_LABELS: Record<string, string> = {
   'expense:insurance': '保險',
   'expense:social': '社交',
   'expense:interest': '利息支出',
-  'expense:loan_interest': '借貸利息',
-  'expense:mortgage_interest': '房貸利息',
   'expense:tax': '稅金',
   'expense:other': '其他支出',
 

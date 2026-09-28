@@ -1,7 +1,7 @@
 # Monthly close reopen and cascade demotion
 
 **日期：** 2026-09-24
-**狀態：** 已接受
+**狀態：** 已被 [ADR-0070](0070-pause-forces-sequential-walk.md) 部分取代（cascade reopen 段）
 **規範來源：** [monthly-close.md](../monthly-close.md) §2（`重新開啟`、`連鎖降級` 段）
 
 Reopening a closed monthly close was requested: a user may need to correct
@@ -14,12 +14,19 @@ reopening a period also demotes every later `CLOSED` period to `NEEDS_REVIEW`
 with `reviewSourceStageId = null`; those periods never auto-restore and are
 recovered by manually reopening them through the same confirm-dialog flow.
 
+**修訂（ADR-0070）：** cascade-demoted 期間的重開不再沿用「只撤回定案、保留
+已完成階段」——降級代表定案可能基於修正前的歷史，重開後全部九個階段重設為
+`PENDING` 且狀態維持 `NEEDS_REVIEW`，恢復必須走強制的順序行走（見 ADR-0070）。
+`CLOSED` 期間的重開維持本 ADR 的原始行為。
+
 Considered options: a new `REOPENED` status value (rejected — indistinguishable
 from `IN_PROGRESS` in every consumer), resetting all nine stages to `PENDING`
 (rejected — loses confirmation history and risks duplicate ledger entries from
-re-running transaction stages), and cascading to all later periods regardless
-of status (rejected — `IN_PROGRESS`/`OPEN` periods have no finalized output to
-invalidate; their Financial Reports confirmation computes from corrected data).
+re-running transaction stages; the cascade-reopen revision supersedes this for
+demoted periods, where a full walk is the point), and cascading to all later
+periods regardless of status (rejected — `IN_PROGRESS`/`OPEN` periods have no
+finalized output to invalidate; their Financial Reports confirmation computes
+from corrected data).
 
 Consequences: the reopen guard accepts both `CLOSED` and cascade-demoted
 (`NEEDS_REVIEW` with `reviewSourceStageId = null`) periods, which is the

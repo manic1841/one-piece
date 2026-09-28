@@ -34,6 +34,9 @@ const errorText = (err: unknown, fallback: string): string => {
     if (err.code === MonthlyCloseCommandErrorCode.STAGE_ALREADY_COMPLETED) {
       return MONTHLY_CLOSE_LABELS.STAGE_ALREADY_COMPLETED_ERROR;
     }
+    if (err.code === MonthlyCloseCommandErrorCode.STAGE_NOT_WALK_POSITION) {
+      return MONTHLY_CLOSE_LABELS.WALK_GUIDANCE;
+    }
     return `${fallback}（${err.code}）`;
   }
   return fallback;
@@ -143,6 +146,31 @@ export const useMonthlyClose = ({ householdId, userEmail }: UseMonthlyCloseParam
     [auth, householdId, selectedYearMonth, userEmail],
   );
 
+  const resetStagesFrom = useCallback(
+    async (fromStageId: CloseStageId): Promise<FinancialPeriod | null> => {
+      if (!householdId || !selectedYearMonth) return null;
+      setIsStarting(true);
+      setError(null);
+      try {
+        const result = await monthlyCloseWorkflowUseCase.resetStagesFrom({
+          householdId,
+          yearMonth: selectedYearMonth,
+          userEmail,
+          auth,
+          fromStageId,
+        });
+        setPeriod(result);
+        return result;
+      } catch (err) {
+        setError(errorText(err, MONTHLY_CLOSE_LABELS.CONFIRM_ERROR));
+        return null;
+      } finally {
+        setIsStarting(false);
+      }
+    },
+    [auth, householdId, selectedYearMonth, userEmail],
+  );
+
   const refreshStageEvidence = useCallback(async () => {
     if (!householdId || !selectedYearMonth) return;
     const year = Number(selectedYearMonth.slice(0, 4));
@@ -227,6 +255,7 @@ export const useMonthlyClose = ({ householdId, userEmail }: UseMonthlyCloseParam
     start,
     reopen,
     confirmStage,
+    resetStagesFrom,
     refreshStageEvidence,
   };
 };

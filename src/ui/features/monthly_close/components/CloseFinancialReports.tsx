@@ -24,6 +24,8 @@ interface CloseFinancialReportsProps {
   onGenerate: () => void;
   onBack: () => void;
   confirming: boolean;
+  /** While paused, only the walk position's confirm button is enabled (ADR-0070). */
+  isConfirmable: boolean;
   isGenerated: boolean;
 }
 
@@ -35,6 +37,7 @@ export const CloseFinancialReports: React.FC<CloseFinancialReportsProps> = ({
   onGenerate,
   onBack,
   confirming,
+  isConfirmable,
   isGenerated,
 }) => {
   const {
@@ -198,7 +201,7 @@ export const CloseFinancialReports: React.FC<CloseFinancialReportsProps> = ({
           <Button
             data-testid="generate-reports"
             onClick={onGenerate}
-            disabled={confirming || showReadinessGate || isLoading}
+            disabled={confirming || showReadinessGate || isLoading || !isConfirmable}
             className="h-[38px] px-[18px] text-xs font-semibold uppercase tracking-[0.08em]"
           >
             {confirming || isLoading

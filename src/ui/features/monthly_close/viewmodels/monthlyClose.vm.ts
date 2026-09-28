@@ -18,11 +18,22 @@ export interface CloseStageEvidence {
     | 'COMPLETENESS_ANOMALIES'
     | 'CASH_FLOW_ADJUSTMENTS'
     | 'REPORT_PERSISTENCE'
+    | 'PROJECT_SETTLEMENT'
     | 'NONE';
   transactionIssues: { transactionId: string; description: string; reason: string }[];
   zeroActivityNames: string[];
   cashFlowAdjustments: number;
   reportsPersisted: boolean | null;
+  projectSettlements: ProjectSettlementEvidenceRow[];
+}
+
+export interface ProjectSettlementEvidenceRow {
+  projectId: string;
+  projectName: string;
+  settled: boolean;
+  income: number | null;
+  expense: number | null;
+  closingBalance: number | null;
 }
 
 export interface CloseStageItemVM {
@@ -61,24 +72,23 @@ export type MonthlyCloseInput = z.infer<typeof monthlyCloseInputSchema>;
 
 export interface DisplayedStageTarget {
   isClosed: boolean;
-  isPaused: boolean;
-  reviewSourceStageId: CloseStageId | null;
   viewingStageId: CloseStageId | null;
   currentStageId: CloseStageId | null;
 }
 
 const padStep = (value: number): string => value.toString().padStart(2, '0');
 
-/** The stage the workspace should show: the reviewed one when paused, else the viewed or current one. */
+/**
+ * The stage the workspace should show: the viewed or walk-position stage.
+ * A closed period has no walk position, so it renders the read-only Close
+ * Period summary unless the user is reviewing another stage.
+ */
 export const resolveDisplayedStageId = ({
   isClosed,
-  isPaused,
-  reviewSourceStageId,
   viewingStageId,
   currentStageId,
 }: DisplayedStageTarget): CloseStageId | null => {
-  if (isClosed) return null;
-  if (isPaused) return reviewSourceStageId ?? currentStageId;
+  if (isClosed) return viewingStageId ?? 'CLOSE_PERIOD';
   return viewingStageId ?? currentStageId;
 };
 
@@ -87,9 +97,12 @@ export const resolvePositionText = (
   currentStageId: CloseStageId | null,
   isClosed: boolean,
   totalCount: number,
+  displayedStageId: CloseStageId | null = null,
 ): string => {
   const position = isClosed
-    ? totalCount
+    ? displayedStageId === null
+      ? totalCount
+      : stages.findIndex((stage) => stage.stageId === displayedStageId) + 1
     : stages.findIndex((stage) => stage.stageId === currentStageId) + 1;
   return `${padStep(Math.max(position, 1))} / ${padStep(totalCount)}`;
 };
@@ -101,4 +114,15 @@ export const resolveStepText = (
   const index = stages.findIndex((stage) => stage.stageId === displayedStageId);
   if (index === -1) return null;
   return `${padStep(index + 1)} ${stages[index].label}`;
+};
+
+/** GO TO while paused resets the target stage and everything after it (ADR-0070). */
+export const resolveGoToResetRange = (
+  stages: { stageId: CloseStageId }[],
+  targetStageId: CloseStageId,
+  totalCount: number,
+): string => {
+  const index = stages.findIndex((stage) => stage.stageId === targetStageId);
+  const fromStep = index === -1 ? 1 : index + 1;
+  return `${padStep(fromStep)}-${padStep(totalCount)}`;
 };

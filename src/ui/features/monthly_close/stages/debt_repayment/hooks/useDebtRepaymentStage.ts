@@ -5,33 +5,45 @@ import { previewDebtSettlementsUseCase } from '@/application/settlement/use_case
 import { type AuthContext } from '@/application/types';
 import { getEffectiveMonthlyDueForBalance } from '@/domains/debt/debtPaymentCalculator';
 import { type DebtAccount } from '@/domains/debt/schemas';
-import { type DebtSectionMetaVM } from '@/ui/features/monthly_close/viewmodels/debtPayment.vm';
+import type { CloseStageControl } from '@/ui/features/monthly_close/hooks/closeStageControl';
+import { useConfirmStageControl } from '@/ui/features/monthly_close/hooks/useConfirmStageControl';
+import type { DebtSectionMetaVM } from '@/ui/features/monthly_close/viewmodels/debtPayment.vm';
 
-interface UseDebtRepaymentPrefillArgs {
+export const closeMonthDate = (yearMonth: string): Date =>
+  new Date(Number(yearMonth.slice(0, 4)), Number(yearMonth.slice(5, 7)) - 1, 15);
+
+interface UseDebtRepaymentStageArgs {
   householdId: string;
   selectedYearMonth: string;
   /** Full debt documents: the monthly-due calculation reads schedule fields. */
   debtAccounts: DebtAccount[];
   auth: AuthContext;
+  confirmingStageId: string | null;
+  /** Bumped after a relevant confirm so the preview prefill re-runs. */
+  refreshKey?: number;
 }
 
-export const closeMonthDate = (yearMonth: string): Date =>
-  new Date(Number(yearMonth.slice(0, 4)), Number(yearMonth.slice(5, 7)) - 1, 15);
-
 /**
- * Prefills the debt repayment stage and loads each debt's read-only section
- * data. Every active debt gets a draft row: a month with recorded payments
- * prefills the booked amount, an unrecorded month prefills the system-calculated
+ * Stage controller for DEBT_REPAYMENT: owns the repayment draft and the
+ * preview prefill that seeds it (absorbed from useDebtRepaymentPrefill).
+ * Every active debt gets a draft row: a month with recorded payments prefills
+ * the booked amount, an unrecorded month prefills the system-calculated
  * monthly due (interest amount during the grace period) against the preview's
  * opening balance, so the due and the displayed split share one basis. Local
  * drafts are not persisted.
  */
-export const useDebtRepaymentPrefill = ({
+export const useDebtRepaymentStage = ({
   householdId,
   selectedYearMonth,
   debtAccounts,
   auth,
-}: UseDebtRepaymentPrefillArgs) => {
+  confirmingStageId,
+  refreshKey = 0,
+}: UseDebtRepaymentStageArgs): CloseStageControl & {
+  repayments: DebtRepaymentInput[];
+  setRepayments: React.Dispatch<React.SetStateAction<DebtRepaymentInput[]>>;
+  debtSectionMetas: DebtSectionMetaVM[];
+} => {
   const [repayments, setRepayments] = useState<DebtRepaymentInput[]>([]);
   const [debtSectionMetas, setDebtSectionMetas] = useState<DebtSectionMetaVM[]>([]);
 
@@ -99,7 +111,17 @@ export const useDebtRepaymentPrefill = ({
     return () => {
       cancelled = true;
     };
-  }, [auth, debtAccounts, householdId, selectedYearMonth]);
+  }, [auth, debtAccounts, householdId, selectedYearMonth, refreshKey]);
 
-  return { repayments, setRepayments, debtSectionMetas, setDebtSectionMetas };
+  const control = useConfirmStageControl({
+    stageId: 'DEBT_REPAYMENT',
+    confirmingStageId,
+    buildRequest: () => ({ stageId: 'DEBT_REPAYMENT', repayments }),
+    resetDraft: () => {
+      setRepayments([]);
+      setDebtSectionMetas([]);
+    },
+  });
+
+  return { ...control, repayments, setRepayments, debtSectionMetas };
 };
