@@ -133,7 +133,7 @@ $ generate-reports --period SEP-2026
 Monthly Close 是全站最重要的 workflow UI。其階段模型、資料建立邊界與確認語意見 [monthly-close.md](../monthly-close.md)，不在本節重述：
 
 - 階段資料建立邊界與 9 階段模型：[monthly-close.md](../monthly-close.md)；取捨理由見 [ADR-0052](../adr/0052-monthly-close-stage-data-boundary.md)。
-- workflow-first 表面收斂（pipeline / workspace 分工）：[ADR-0056](../adr/0056-workflow-first-surfaces.md)。
+- workflow-first 表面收斂（pipeline 分工、per-stage 自成一體）：[ADR-0056](../adr/0056-workflow-first-surfaces.md)（#209 修訂：9 個獨立 step 元件取代單一 workspace frame）。
 
 本節只定頁面層級的呈現標準：
 
