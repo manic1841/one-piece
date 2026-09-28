@@ -13,6 +13,8 @@ interface CloseReadinessCheckProps {
   confirming: boolean;
   /** While paused, only the walk position's confirm button is enabled (ADR-0070). */
   isConfirmable: boolean;
+  /** A closed or cascade-demoted period hides the confirm action. */
+  isReadOnly: boolean;
 }
 
 export const CloseReadinessCheck: React.FC<CloseReadinessCheckProps> = ({
@@ -21,6 +23,7 @@ export const CloseReadinessCheck: React.FC<CloseReadinessCheckProps> = ({
   onGoToStage,
   confirming,
   isConfirmable,
+  isReadOnly,
 }) => {
   return (
     <section className="space-y-4 pt-8" data-testid="close-readiness-check">
@@ -88,16 +91,18 @@ export const CloseReadinessCheck: React.FC<CloseReadinessCheckProps> = ({
         </div>
       )}
 
-      <div className="flex items-center justify-end border-t border-border pt-[26px]">
-        <Button
-          data-testid="readiness-confirm"
-          onClick={onConfirm}
-          disabled={confirming || !readiness.isReady || !isConfirmable}
-          className="h-[38px] px-[18px] text-xs font-semibold uppercase tracking-[0.08em]"
-        >
-          {confirming ? MONTHLY_CLOSE_LABELS.LOADING : MONTHLY_CLOSE_LABELS.RECONFIRM_ACTION}
-        </Button>
-      </div>
+      {!isReadOnly && (
+        <div className="flex items-center justify-end border-t border-border pt-[26px]">
+          <Button
+            data-testid="readiness-confirm"
+            onClick={onConfirm}
+            disabled={confirming || !readiness.isReady || !isConfirmable}
+            className="h-[38px] px-[18px] text-xs font-semibold uppercase tracking-[0.08em]"
+          >
+            {confirming ? MONTHLY_CLOSE_LABELS.LOADING : MONTHLY_CLOSE_LABELS.RECONFIRM_ACTION}
+          </Button>
+        </div>
+      )}
     </section>
   );
 };

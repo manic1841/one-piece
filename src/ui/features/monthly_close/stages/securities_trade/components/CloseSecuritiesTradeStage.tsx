@@ -21,6 +21,7 @@ interface CloseSecuritiesTradeStageProps {
   confirming: boolean;
   isReviewing: boolean;
   isConfirmable: boolean;
+  isReadOnly: boolean;
   evidence: CloseStageEvidence;
   securities: { buys: SecuritiesTradeInput[]; sells: SecuritiesTradeInput[] };
   financing: { shareholderFinancing: FinancingInput[]; dividendPayout: FinancingInput[] };
@@ -65,6 +66,7 @@ export const CloseSecuritiesTradeStage: React.FC<CloseSecuritiesTradeStageProps>
   confirming,
   isReviewing,
   isConfirmable,
+  isReadOnly,
   evidence,
   securities,
   financing,
@@ -84,6 +86,7 @@ export const CloseSecuritiesTradeStage: React.FC<CloseSecuritiesTradeStageProps>
       confirming={confirming}
       isReviewing={isReviewing}
       isConfirmable={isConfirmable}
+      isReadOnly={isReadOnly}
       showActions
       onConfirm={onConfirm}
       onBackToCurrent={onBackToCurrent}
@@ -102,7 +105,8 @@ export const CloseSecuritiesTradeStage: React.FC<CloseSecuritiesTradeStageProps>
           projectIdName={projectNameOf}
           onAdd={() => onOpenTradeDrawer('SECURITIES')}
           onRowClick={(row) => onOpenTradeDrawer('SECURITIES', row)}
-          disabled={confirming}
+          disabled={confirming || isReadOnly}
+          hideAdd={isReadOnly}
         />
         <TradeTable
           title={MONTHLY_CLOSE_LABELS.FINANCING_RECORDS}
@@ -115,7 +119,8 @@ export const CloseSecuritiesTradeStage: React.FC<CloseSecuritiesTradeStageProps>
           projectIdName={projectNameOf}
           onAdd={() => onOpenTradeDrawer('FINANCING')}
           onRowClick={(row) => onOpenTradeDrawer('FINANCING', row)}
-          disabled={confirming}
+          disabled={confirming || isReadOnly}
+          hideAdd={isReadOnly}
         />
       </div>
     </CloseStageChrome>

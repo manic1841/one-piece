@@ -23,6 +23,7 @@ interface ClosePortfolioCashFlowStageProps {
   confirming: boolean;
   isReviewing: boolean;
   isConfirmable: boolean;
+  isReadOnly: boolean;
   evidence: CloseStageEvidence;
   portfolios: { id: string; name: string }[];
   portfolioSnapshots: Map<string, PortfolioSnapshot | null>;
@@ -150,6 +151,7 @@ export const ClosePortfolioCashFlowStage: React.FC<ClosePortfolioCashFlowStagePr
   confirming,
   isReviewing,
   isConfirmable,
+  isReadOnly,
   evidence,
   portfolios,
   portfolioSnapshots,
@@ -165,6 +167,7 @@ export const ClosePortfolioCashFlowStage: React.FC<ClosePortfolioCashFlowStagePr
     confirming={confirming}
     isReviewing={isReviewing}
     isConfirmable={isConfirmable}
+    isReadOnly={isReadOnly}
     showActions
     onConfirm={onConfirm}
     onBackToCurrent={onBackToCurrent}
@@ -180,7 +183,7 @@ export const ClosePortfolioCashFlowStage: React.FC<ClosePortfolioCashFlowStagePr
       portfolioSnapshots={portfolioSnapshots}
       cashFlows={cashFlows}
       setCashFlows={setCashFlows}
-      disabled={confirming}
+      disabled={confirming || isReadOnly}
     />
   </CloseStageChrome>
 );

@@ -12,6 +12,7 @@ interface CloseEvidenceOnlyStageProps {
   confirming: boolean;
   isReviewing: boolean;
   isConfirmable: boolean;
+  isReadOnly: boolean;
   evidence: CloseStageEvidence;
   onConfirm: () => void;
   onBackToCurrent: () => void;
@@ -28,6 +29,7 @@ export const CloseEvidenceOnlyStage: React.FC<CloseEvidenceOnlyStageProps> = ({
   confirming,
   isReviewing,
   isConfirmable,
+  isReadOnly,
   evidence,
   onConfirm,
   onBackToCurrent,
@@ -39,6 +41,7 @@ export const CloseEvidenceOnlyStage: React.FC<CloseEvidenceOnlyStageProps> = ({
     confirming={confirming}
     isReviewing={isReviewing}
     isConfirmable={isConfirmable}
+    isReadOnly={isReadOnly}
     showActions
     onConfirm={onConfirm}
     onBackToCurrent={onBackToCurrent}

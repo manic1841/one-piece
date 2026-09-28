@@ -45,6 +45,8 @@ interface TradeTableProps {
   onAdd: () => void;
   onRowClick: (row: TradeTableRow) => void;
   disabled?: boolean;
+  /** Closed periods hide the drawer entry entirely instead of disabling it. */
+  hideAdd?: boolean;
 }
 
 const COLUMN_WIDTHS = [16, 24, 36, 24] as const;
@@ -69,6 +71,7 @@ export const TradeTable: React.FC<TradeTableProps> = ({
   onAdd,
   onRowClick,
   disabled = false,
+  hideAdd = false,
 }) => {
   const typeLabel = (side: TradeSide): string => sideLabels?.[side] ?? side;
   const buyTotal = rows
@@ -177,9 +180,11 @@ export const TradeTable: React.FC<TradeTableProps> = ({
       )}
 
       <div className="flex items-center justify-between border-t border-border/60 pt-2">
-        <Button type="button" variant="ghost" size="sm" disabled={disabled} onClick={onAdd}>
-          <Plus className="mr-1 h-4 w-4" /> {addLabel ?? MONTHLY_CLOSE_LABELS.ADD_TRANSACTION}
-        </Button>
+        {!hideAdd && (
+          <Button type="button" variant="ghost" size="sm" disabled={disabled} onClick={onAdd}>
+            <Plus className="mr-1 h-4 w-4" /> {addLabel ?? MONTHLY_CLOSE_LABELS.ADD_TRANSACTION}
+          </Button>
+        )}
         {rows.length > 0 && (
           <div className="space-y-1 text-right">
             <div className="flex items-center justify-end gap-6">

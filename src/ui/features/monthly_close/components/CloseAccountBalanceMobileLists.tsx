@@ -16,12 +16,14 @@ import { AccountNameCell } from './AccountNameCell';
 interface TwdMobileListProps {
   accounts: AccountBalanceEntryVM[];
   findInput: (accountId: string) => AccountBalanceInput | undefined;
+  isReadOnly: boolean;
   onAmountChange: (accountId: string, amount: number | undefined) => void;
 }
 
 export const TwdMobileList: React.FC<TwdMobileListProps> = ({
   accounts,
   findInput,
+  isReadOnly,
   onAmountChange,
 }) => (
   <MobileDataList>
@@ -39,6 +41,7 @@ export const TwdMobileList: React.FC<TwdMobileListProps> = ({
           <NumberInput
             aria-label={`期末餘額 ${entry.account.name}`}
             className="w-[150px] max-w-full"
+            disabled={isReadOnly}
             value={findInput(entry.account.id)?.amount ?? ''}
             onChange={(event) =>
               onAmountChange(entry.account.id, parseOptionalAmount(event.target.value))
@@ -53,6 +56,7 @@ export const TwdMobileList: React.FC<TwdMobileListProps> = ({
 interface ForeignMobileListProps {
   accounts: AccountBalanceEntryVM[];
   findInput: (accountId: string) => AccountBalanceInput | undefined;
+  isReadOnly: boolean;
   onDetailChange: (
     accountId: string,
     field: 'originalAmount' | 'exchangeRate',
@@ -63,6 +67,7 @@ interface ForeignMobileListProps {
 export const ForeignMobileList: React.FC<ForeignMobileListProps> = ({
   accounts,
   findInput,
+  isReadOnly,
   onDetailChange,
 }) => (
   <MobileDataList>
@@ -82,6 +87,7 @@ export const ForeignMobileList: React.FC<ForeignMobileListProps> = ({
           <NumberInput
             aria-label={`外幣金額 ${entry.account.name}`}
             className="w-[150px] max-w-full"
+            disabled={isReadOnly}
             value={findInput(entry.account.id)?.originalAmount ?? ''}
             onChange={(event) =>
               onDetailChange(
@@ -97,6 +103,7 @@ export const ForeignMobileList: React.FC<ForeignMobileListProps> = ({
             aria-label={`匯率 ${entry.account.name}`}
             step="0.0001"
             className="w-[150px] max-w-full"
+            disabled={isReadOnly}
             value={findInput(entry.account.id)?.exchangeRate ?? ''}
             onChange={(event) =>
               onDetailChange(

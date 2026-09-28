@@ -21,6 +21,7 @@ const renderStage = (props?: Partial<Parameters<typeof ClosePortfolioCashFlowSta
       confirming={false}
       isReviewing={false}
       isConfirmable={true}
+      isReadOnly={false}
       evidence={noEvidence}
       portfolios={[]}
       portfolioSnapshots={new Map()}
@@ -62,5 +63,16 @@ describe('ClosePortfolioCashFlowStage', () => {
       target: { value: '500' },
     });
     expect(setCashFlows).toHaveBeenCalled();
+  });
+
+  it('disables cash-flow inputs and hides the confirm bar in a read-only period', () => {
+    renderStage({
+      portfolios: [{ id: 'p-1', name: '長期持倉' }],
+      cashFlows: { 'p-1': { deposits: 500, withdrawals: 100 } },
+      isReadOnly: true,
+    });
+
+    expect(screen.getAllByLabelText(/CASH IN 長期持倉/)[0]).toBeDisabled();
+    expect(screen.queryByRole('button', { name: 'CONTINUE →' })).not.toBeInTheDocument();
   });
 });

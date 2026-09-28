@@ -18,6 +18,7 @@ interface CloseAccountBalanceStageProps {
   confirming: boolean;
   isReviewing: boolean;
   isConfirmable: boolean;
+  isReadOnly: boolean;
   evidence: CloseStageEvidence;
   accounts: Account[];
   accountSnapshots: Map<string, AccountSnapshot>;
@@ -38,6 +39,7 @@ export const CloseAccountBalanceStage: React.FC<CloseAccountBalanceStageProps> =
   confirming,
   isReviewing,
   isConfirmable,
+  isReadOnly,
   evidence,
   accounts,
   accountSnapshots,
@@ -53,6 +55,7 @@ export const CloseAccountBalanceStage: React.FC<CloseAccountBalanceStageProps> =
     confirming={confirming}
     isReviewing={isReviewing}
     isConfirmable={isConfirmable}
+    isReadOnly={isReadOnly}
     showActions
     onConfirm={onConfirm}
     onBackToCurrent={onBackToCurrent}
@@ -68,6 +71,7 @@ export const CloseAccountBalanceStage: React.FC<CloseAccountBalanceStageProps> =
       snapshots={accountSnapshots}
       inputs={balances}
       onInputsChange={setBalances}
+      isReadOnly={isReadOnly}
     />
   </CloseStageChrome>
 );

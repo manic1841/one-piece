@@ -13,6 +13,8 @@ interface CloseStageChromeProps {
   isReviewing?: boolean;
   /** While paused, only the walk position's confirm button is enabled (ADR-0070). */
   isConfirmable: boolean;
+  /** Closed periods render read-only: the action bar is hidden. */
+  isReadOnly: boolean;
   /** Closed periods hide the action bar entirely. */
   showActions: boolean;
   onConfirm: () => void;
@@ -33,6 +35,7 @@ export const CloseStageChrome: React.FC<CloseStageChromeProps> = ({
   confirming,
   isReviewing = false,
   isConfirmable,
+  isReadOnly,
   showActions,
   onConfirm,
   onBackToCurrent,
@@ -43,6 +46,8 @@ export const CloseStageChrome: React.FC<CloseStageChromeProps> = ({
     isReviewing,
     isConfirmable,
   });
+
+  const showActionBar = showActions && !isReadOnly;
 
   return (
     <section className="space-y-4 pt-8">
@@ -62,7 +67,7 @@ export const CloseStageChrome: React.FC<CloseStageChromeProps> = ({
 
       <div className="space-y-3">{children}</div>
 
-      {showActions && (
+      {showActionBar && (
         <div className="flex items-center justify-end gap-3 border-t border-border pt-[26px]">
           <Button
             size="sm"

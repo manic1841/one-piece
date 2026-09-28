@@ -22,6 +22,7 @@ interface CloseDebtRepaymentStageProps {
   confirming: boolean;
   isReviewing: boolean;
   isConfirmable: boolean;
+  isReadOnly: boolean;
   evidence: CloseStageEvidence;
   debtAccounts: DebtSectionMetaVM[];
   yearMonth: string;
@@ -42,6 +43,7 @@ export const CloseDebtRepaymentStage: React.FC<CloseDebtRepaymentStageProps> = (
   confirming,
   isReviewing,
   isConfirmable,
+  isReadOnly,
   evidence,
   debtAccounts,
   yearMonth,
@@ -71,6 +73,7 @@ export const CloseDebtRepaymentStage: React.FC<CloseDebtRepaymentStageProps> = (
       confirming={confirming}
       isReviewing={isReviewing}
       isConfirmable={isConfirmable}
+      isReadOnly={isReadOnly}
       showActions
       onConfirm={onConfirm}
       onBackToCurrent={onBackToCurrent}
@@ -112,7 +115,7 @@ export const CloseDebtRepaymentStage: React.FC<CloseDebtRepaymentStageProps> = (
                     {MONTHLY_CLOSE_LABELS.TOTAL_PAYMENT}
                   </Label>
                   <NumberInput
-                    disabled={confirming}
+                    disabled={confirming || isReadOnly}
                     placeholder="0"
                     aria-label={`${MONTHLY_CLOSE_LABELS.TOTAL_PAYMENT} ${section.debtAccountName}`}
                     value={section.totalPayment > 0 ? section.totalPayment.toString() : ''}

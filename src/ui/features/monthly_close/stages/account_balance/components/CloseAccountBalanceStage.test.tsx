@@ -21,6 +21,7 @@ const renderStage = (props?: Partial<Parameters<typeof CloseAccountBalanceStage>
       confirming={false}
       isReviewing={false}
       isConfirmable={true}
+      isReadOnly={false}
       evidence={noEvidence}
       accounts={[]}
       accountSnapshots={new Map()}
@@ -45,5 +46,11 @@ describe('CloseAccountBalanceStage', () => {
     renderStage();
 
     expect(screen.getAllByText('-').length).toBeGreaterThanOrEqual(1);
+  });
+
+  it('hides the confirm bar in a read-only period', () => {
+    renderStage({ isReadOnly: true });
+
+    expect(screen.queryByRole('button', { name: 'CONTINUE →' })).not.toBeInTheDocument();
   });
 });

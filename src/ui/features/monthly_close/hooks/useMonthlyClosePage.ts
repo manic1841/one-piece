@@ -124,13 +124,19 @@ export const useMonthlyClosePage = ({
     currentStageId,
   });
   const displayedStage = pageVM.stages.find((stage) => stage.stageId === displayedStageId) ?? null;
-  const isReviewing = displayedStageId !== null && displayedStageId !== currentStageId;
+  // Only CLOSED locks the workspace read-only. A cascade-demoted period stays
+  // NEEDS_REVIEW with a full recovery walk (ADR-0066), so its confirm buttons
+  // must stay reachable; the page-level reopen entry handles its own gating.
+  const isReadOnlyPeriod = pageVM.isClosed;
+  const isReviewing =
+    !isReadOnlyPeriod && displayedStageId !== null && displayedStageId !== currentStageId;
 
   const positionText = resolvePositionText(
     pageVM.stages,
     currentStageId,
     pageVM.isClosed,
     pageVM.totalCount,
+    displayedStageId,
   );
   const displayedStepText = resolveStepText(pageVM.stages, displayedStageId);
 
@@ -219,7 +225,10 @@ export const useMonthlyClosePage = ({
       householdId,
       selectedYearMonth,
       confirming: displayedStage ? confirmingStageId === displayedStage.stageId : false,
-      isConfirmable: displayedStage ? isWalkPositionStage(displayedStage.stageId) : false,
+      isConfirmable: displayedStage
+        ? !isReadOnlyPeriod && isWalkPositionStage(displayedStage.stageId)
+        : false,
+      isReadOnly: isReadOnlyPeriod,
       confirmedAtText: displayedStage?.confirmedAtText ?? null,
       isReviewing,
       progressText: positionText,
@@ -266,6 +275,7 @@ export const useMonthlyClosePage = ({
       handleGoToStage,
       householdId,
       reportsPersisted,
+      isReadOnlyPeriod,
       isReviewing,
       isWalkPositionStage,
       portfolios,

@@ -68,6 +68,8 @@ export interface CloseStepContext {
   confirming: boolean;
   /** While paused, only the walk position's confirm button is enabled (ADR-0070). */
   isConfirmable: boolean;
+  /** A closed or cascade-demoted period renders read-only: no confirm bar, no inputs. */
+  isReadOnly: boolean;
   confirmedAtText: string | null;
   isReviewing: boolean;
   progressText: string;
@@ -199,6 +201,7 @@ export const useCloseStepRegistry = ({
     confirming: ctx.confirming,
     isReviewing: ctx.isReviewing,
     isConfirmable: ctx.isConfirmable,
+    isReadOnly: ctx.isReadOnly,
     evidence,
   });
 
@@ -308,6 +311,7 @@ export const useCloseStepRegistry = ({
             onGoToStage={ctx.onGoToStage}
             confirming={ctx.confirming}
             isConfirmable={ctx.isConfirmable}
+            isReadOnly={ctx.isReadOnly}
           />
         ) : null,
       evidence: (inputs) => mapAnomaliesToEvidence(inputs.anomalies),
@@ -341,6 +345,7 @@ export const useCloseStepRegistry = ({
             onClose={ctx.onClosePeriod}
             confirming={ctx.confirming}
             isConfirmable={ctx.isConfirmable}
+            isReadOnly={ctx.isReadOnly}
           />
         ) : null,
       evidence: (inputs) =>

@@ -18,6 +18,8 @@ interface CloseSummaryPanelProps {
   confirming: boolean;
   /** While paused, only the walk position's confirm button is enabled (ADR-0070). */
   isConfirmable: boolean;
+  /** A closed or cascade-demoted period hides the close action. */
+  isReadOnly: boolean;
 }
 
 const financialRows: { key: keyof FinancialResultVM; label: string }[] = [
@@ -33,6 +35,7 @@ export const CloseSummaryPanel: React.FC<CloseSummaryPanelProps> = ({
   onClose,
   confirming,
   isConfirmable,
+  isReadOnly,
 }) => {
   const { confirm: confirmDialog } = useConfirm();
 
@@ -140,16 +143,18 @@ export const CloseSummaryPanel: React.FC<CloseSummaryPanelProps> = ({
         </div>
       </div>
 
-      <div className="flex items-center justify-end border-t border-border pt-[26px]">
-        <Button
-          data-testid="close-period-confirm"
-          onClick={() => void handleClose()}
-          disabled={confirming || !isConfirmable}
-          className="h-[38px] px-[18px] text-xs font-semibold uppercase tracking-[0.08em]"
-        >
-          {confirming ? MONTHLY_CLOSE_LABELS.LOADING : MONTHLY_CLOSE_LABELS.SUMMARY_CLOSE_ACTION}
-        </Button>
-      </div>
+      {!isReadOnly && (
+        <div className="flex items-center justify-end border-t border-border pt-[26px]">
+          <Button
+            data-testid="close-period-confirm"
+            onClick={() => void handleClose()}
+            disabled={confirming || !isConfirmable}
+            className="h-[38px] px-[18px] text-xs font-semibold uppercase tracking-[0.08em]"
+          >
+            {confirming ? MONTHLY_CLOSE_LABELS.LOADING : MONTHLY_CLOSE_LABELS.SUMMARY_CLOSE_ACTION}
+          </Button>
+        </div>
+      )}
     </section>
   );
 };

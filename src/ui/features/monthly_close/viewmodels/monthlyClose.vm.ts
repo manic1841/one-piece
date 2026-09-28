@@ -78,13 +78,17 @@ export interface DisplayedStageTarget {
 
 const padStep = (value: number): string => value.toString().padStart(2, '0');
 
-/** The stage the workspace should show: the viewed or walk-position stage; never the lock. */
+/**
+ * The stage the workspace should show: the viewed or walk-position stage.
+ * A closed period has no walk position, so it renders the read-only Close
+ * Period summary unless the user is reviewing another stage.
+ */
 export const resolveDisplayedStageId = ({
   isClosed,
   viewingStageId,
   currentStageId,
 }: DisplayedStageTarget): CloseStageId | null => {
-  if (isClosed) return null;
+  if (isClosed) return viewingStageId ?? 'CLOSE_PERIOD';
   return viewingStageId ?? currentStageId;
 };
 
@@ -93,9 +97,12 @@ export const resolvePositionText = (
   currentStageId: CloseStageId | null,
   isClosed: boolean,
   totalCount: number,
+  displayedStageId: CloseStageId | null = null,
 ): string => {
   const position = isClosed
-    ? totalCount
+    ? displayedStageId === null
+      ? totalCount
+      : stages.findIndex((stage) => stage.stageId === displayedStageId) + 1
     : stages.findIndex((stage) => stage.stageId === currentStageId) + 1;
   return `${padStep(Math.max(position, 1))} / ${padStep(totalCount)}`;
 };

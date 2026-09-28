@@ -22,6 +22,7 @@ import { Button } from '@/ui/components/ui/button';
 import { Input } from '@/ui/components/ui/input';
 import { Label } from '@/ui/components/ui/label';
 import { formatCurrency } from '@/ui/utils';
+import { cn } from '@/ui/utils/cn';
 
 import type { Account, AccountBalanceInput, Holding } from '../viewmodels/accountBalance.vm';
 import { computeSectionInput } from '../viewmodels/accountBalance.vm';
@@ -43,6 +44,8 @@ interface SecuritiesAccountRowProps {
   };
   input: AccountBalanceInput | undefined;
   previousHoldings: Holding[];
+  /** Closed periods render read-only: holdings become plain data and actions are hidden. */
+  isReadOnly: boolean;
   onHoldingsChange: (accountId: string, holdings: Holding[]) => void;
   onRateChange: (accountId: string, value: number | undefined) => void;
 }
@@ -51,6 +54,7 @@ export const SecuritiesAccountRow: React.FC<SecuritiesAccountRowProps> = ({
   entry,
   input,
   previousHoldings,
+  isReadOnly,
   onHoldingsChange,
   onRateChange,
 }) => {
@@ -58,7 +62,7 @@ export const SecuritiesAccountRow: React.FC<SecuritiesAccountRowProps> = ({
   const isForeign = entry.account.currency !== 'TWD';
   const holdingsSum = holdings.reduce((sum, holding) => sum + (holding.marketValue || 0), 0);
   const twdValue = input ? computeSectionInput(input, 'securities') : 0;
-  const canImport = entry.canImportPrevious && previousHoldings.length > 0;
+  const canImport = !isReadOnly && entry.canImportPrevious && previousHoldings.length > 0;
 
   const updateHolding = (index: number, field: keyof Holding, value: string): void => {
     const numeric = ['cost', 'marketValue', 'leverage'].includes(field);
@@ -118,7 +122,7 @@ export const SecuritiesAccountRow: React.FC<SecuritiesAccountRowProps> = ({
                   <DataTableHeadCell align="number" className="pl-3">
                     Leverage
                   </DataTableHeadCell>
-                  <DataTableHeadCell aria-label="actions" />
+                  {!isReadOnly && <DataTableHeadCell aria-label="actions" />}
                 </DataTableHeadRow>
               </TableHeader>
               <TableBody>
@@ -128,6 +132,7 @@ export const SecuritiesAccountRow: React.FC<SecuritiesAccountRowProps> = ({
                       <Input
                         aria-label={`Symbol ${index + 1}`}
                         className={textInputClass}
+                        disabled={isReadOnly}
                         value={holding.symbol}
                         onChange={(event) => updateHolding(index, 'symbol', event.target.value)}
                       />
@@ -136,6 +141,7 @@ export const SecuritiesAccountRow: React.FC<SecuritiesAccountRowProps> = ({
                       <Input
                         aria-label={`Name ${index + 1}`}
                         className={textInputClass}
+                        disabled={isReadOnly}
                         value={holding.name}
                         onChange={(event) => updateHolding(index, 'name', event.target.value)}
                       />
@@ -145,6 +151,7 @@ export const SecuritiesAccountRow: React.FC<SecuritiesAccountRowProps> = ({
                         aria-label={`Cost ${index + 1}`}
                         compact
                         className="w-full"
+                        disabled={isReadOnly}
                         value={holding.cost}
                         onChange={(event) => updateHolding(index, 'cost', event.target.value)}
                       />
@@ -154,6 +161,7 @@ export const SecuritiesAccountRow: React.FC<SecuritiesAccountRowProps> = ({
                         aria-label={`Value ${index + 1}`}
                         compact
                         className="w-full"
+                        disabled={isReadOnly}
                         value={holding.marketValue}
                         onChange={(event) =>
                           updateHolding(index, 'marketValue', event.target.value)
@@ -167,21 +175,24 @@ export const SecuritiesAccountRow: React.FC<SecuritiesAccountRowProps> = ({
                         step="0.01"
                         placeholder="1"
                         className="w-full"
+                        disabled={isReadOnly}
                         value={holding.leverage ?? ''}
                         onChange={(event) => updateHolding(index, 'leverage', event.target.value)}
                       />
                     </DataTableCell>
-                    <DataTableCell className="text-right">
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8"
-                        onClick={() => removeHolding(index)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </DataTableCell>
+                    {!isReadOnly && (
+                      <DataTableCell className="text-right">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => removeHolding(index)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </DataTableCell>
+                    )}
                   </DataTableRow>
                 ))}
               </TableBody>
@@ -195,15 +206,17 @@ export const SecuritiesAccountRow: React.FC<SecuritiesAccountRowProps> = ({
                   <p className="text-sm font-medium">
                     {holding.symbol || `持倉 ${index + 1}`} · {holding.name}
                   </p>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8"
-                    onClick={() => removeHolding(index)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+                  {!isReadOnly && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={() => removeHolding(index)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  )}
                 </div>
                 <div className="grid grid-cols-3 gap-2">
                   <div>
@@ -211,6 +224,7 @@ export const SecuritiesAccountRow: React.FC<SecuritiesAccountRowProps> = ({
                     <NumberInput
                       aria-label={`Cost ${index + 1}`}
                       compact
+                      disabled={isReadOnly}
                       value={holding.cost}
                       onChange={(event) => updateHolding(index, 'cost', event.target.value)}
                     />
@@ -220,6 +234,7 @@ export const SecuritiesAccountRow: React.FC<SecuritiesAccountRowProps> = ({
                     <NumberInput
                       aria-label={`Value ${index + 1}`}
                       compact
+                      disabled={isReadOnly}
                       value={holding.marketValue}
                       onChange={(event) => updateHolding(index, 'marketValue', event.target.value)}
                     />
@@ -231,6 +246,7 @@ export const SecuritiesAccountRow: React.FC<SecuritiesAccountRowProps> = ({
                       compact
                       step="0.01"
                       placeholder="1"
+                      disabled={isReadOnly}
                       value={holding.leverage ?? ''}
                       onChange={(event) => updateHolding(index, 'leverage', event.target.value)}
                     />
@@ -243,7 +259,15 @@ export const SecuritiesAccountRow: React.FC<SecuritiesAccountRowProps> = ({
       )}
 
       <div className="flex items-center justify-between">
-        <Button type="button" variant="ghost" size="sm" onClick={addHolding}>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className={cn(!isReadOnly ? undefined : 'invisible')}
+          tabIndex={isReadOnly ? -1 : 0}
+          disabled={isReadOnly}
+          onClick={addHolding}
+        >
           <Plus className="mr-1 h-4 w-4" /> 新增持倉
         </Button>
         <div className="text-right">
@@ -253,7 +277,6 @@ export const SecuritiesAccountRow: React.FC<SecuritiesAccountRowProps> = ({
           </p>
         </div>
       </div>
-
       {isForeign && (
         <div className="flex items-start justify-between gap-4 border-t border-border/60 pt-3 md:justify-end md:gap-6">
           <div className="space-y-1 md:text-right">
@@ -265,6 +288,7 @@ export const SecuritiesAccountRow: React.FC<SecuritiesAccountRowProps> = ({
               id={`sec-rate-${entry.account.id}`}
               step="0.0001"
               className="w-28 md:ml-auto"
+              disabled={isReadOnly}
               value={input?.exchangeRate ?? ''}
               onChange={(event) =>
                 onRateChange(entry.account.id, parseOptionalAmount(event.target.value))

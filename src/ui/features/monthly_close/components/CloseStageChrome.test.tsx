@@ -97,6 +97,25 @@ describe('CloseStageChrome', () => {
         confirming={false}
         isConfirmable
         showActions={false}
+        isReadOnly={false}
+        onConfirm={() => undefined}
+      >
+        <p>evidence slot</p>
+      </CloseStageChrome>,
+    );
+
+    expect(screen.queryByRole('button')).not.toBeInTheDocument();
+  });
+
+  it('hides the action bar in a read-only period even when actions are shown', () => {
+    render(
+      <CloseStageChrome
+        stepText="05 債務還款"
+        progressText="05 / 09"
+        confirming={false}
+        isConfirmable
+        showActions
+        isReadOnly
         onConfirm={() => undefined}
       >
         <p>evidence slot</p>

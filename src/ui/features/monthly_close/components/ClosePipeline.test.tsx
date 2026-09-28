@@ -77,4 +77,22 @@ describe('ClosePipeline', () => {
     expect(screen.queryByRole('list', { name: 'Close workflow pipeline' })).toBeNull();
     expect(screen.getByTestId('close-pipeline-toggle')).toHaveTextContent('SHOW WORKFLOW');
   });
+
+  it('keeps every stage clickable in a closed period so the summary stays reachable', () => {
+    const onSelectStage = vi.fn<(stageId: string) => void>();
+    const stages = CLOSE_STAGE_ORDER.map((stageId) =>
+      stage(stageId, { isCompleted: true, status: 'COMPLETED' }),
+    );
+
+    renderPipeline({ stages, isClosed: true, onSelectStage });
+
+    fireEvent.click(screen.getByTestId('close-pipeline-toggle'));
+
+    expect(screen.getByRole('button', { name: /Close Period/ })).toBeEnabled();
+    expect(screen.getByRole('button', { name: /Financial Reports/ })).toBeEnabled();
+    expect(screen.getByRole('button', { name: /帳戶餘額/ })).toBeEnabled();
+
+    fireEvent.click(screen.getByRole('button', { name: /Financial Reports/ }));
+    expect(onSelectStage).toHaveBeenCalledWith('FINANCIAL_REPORTS');
+  });
 });

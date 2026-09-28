@@ -21,6 +21,7 @@ const renderStage = (props?: Partial<Parameters<typeof CloseDebtRepaymentStage>[
       confirming={false}
       isReviewing={false}
       isConfirmable={true}
+      isReadOnly={false}
       evidence={noEvidence}
       debtAccounts={[]}
       yearMonth="2026-08"
@@ -62,5 +63,11 @@ describe('CloseDebtRepaymentStage', () => {
     expect(screen.getByText('房貸')).toBeInTheDocument();
     expect(screen.getByLabelText(/總繳款 房貸/)).toBeInTheDocument();
     expect(screen.getByText('2.1%')).toBeInTheDocument();
+  });
+
+  it('hides the confirm bar in a read-only period', () => {
+    renderStage({ isReadOnly: true });
+
+    expect(screen.queryByRole('button', { name: 'CONTINUE →' })).not.toBeInTheDocument();
   });
 });

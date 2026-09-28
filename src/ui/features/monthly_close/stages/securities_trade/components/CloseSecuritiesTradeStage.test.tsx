@@ -29,6 +29,7 @@ const renderStage = (props?: Partial<Parameters<typeof CloseSecuritiesTradeStage
       confirming={false}
       isReviewing={false}
       isConfirmable={true}
+      isReadOnly={false}
       evidence={noEvidence}
       securities={{ buys: [], sells: [] }}
       financing={{ shareholderFinancing: [], dividendPayout: [] }}
@@ -70,5 +71,20 @@ describe('CloseSecuritiesTradeStage', () => {
       'SECURITIES',
       expect.objectContaining({ transactionId: 'tx-1' }),
     );
+  });
+
+  it('hides the add entry and confirm bar in a read-only period', () => {
+    const onOpenTradeDrawer = vi.fn();
+    renderStage({
+      securities: { buys: [tradeInput], sells: [] },
+      onOpenTradeDrawer,
+      isReadOnly: true,
+    });
+
+    expect(screen.queryByRole('button', { name: '新增交易' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'CONTINUE →' })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getAllByText('買入標的')[0]);
+    expect(onOpenTradeDrawer).not.toHaveBeenCalled();
   });
 });
