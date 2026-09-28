@@ -90,15 +90,9 @@ export const DEFAULT_INTENT_MAPPINGS: IntentMappingInfo[] = [
     creditLedgerCode: LEDGER_CODES.ASSET_CASH,
   },
   {
-    intent: 'MORTGAGE_INTEREST',
+    intent: 'INTEREST',
     type: IntentType.EXPENSE,
-    debitLedgerCode: LEDGER_CODES.EXPENSE_MORTGAGE_INTEREST,
-    creditLedgerCode: LEDGER_CODES.ASSET_CASH,
-  },
-  {
-    intent: 'LOAN_INTEREST',
-    type: IntentType.EXPENSE,
-    debitLedgerCode: LEDGER_CODES.EXPENSE_LOAN_INTEREST,
+    debitLedgerCode: LEDGER_CODES.EXPENSE_INTEREST,
     creditLedgerCode: LEDGER_CODES.ASSET_CASH,
   },
   {

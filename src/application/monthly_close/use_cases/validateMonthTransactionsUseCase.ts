@@ -7,6 +7,7 @@ import {
 } from '@/domains/transaction_validation/validator';
 import { validateMonthTransactions } from '@/domains/transaction_validation/validator';
 import { allocationRepository } from '@/infra/repositories/allocationRepository';
+import { customLedgerCodeRepository } from '@/infra/repositories/customLedgerCodeRepository';
 import { projectRepository } from '@/infra/repositories/projectRepository';
 import { transactionRepository } from '@/infra/repositories/transactionRepository';
 
@@ -42,16 +43,19 @@ export class ValidateMonthTransactionsUseCase {
     const monthStart = new Date(year, month - 1, 1);
     const monthEnd = new Date(year, month, 1);
 
-    const [transactions, allocations, projects] = await Promise.all([
+    const [transactions, allocations, projects, customLedgerCodes] = await Promise.all([
       transactionRepository.listByDateRange(householdId, monthStart, monthEnd),
       allocationRepository.list([householdId]),
       projectRepository.getProjects(householdId),
+      customLedgerCodeRepository.listActive(householdId),
     ]);
 
     const allocationById = new Map(allocations.map((allocation) => [allocation.id, allocation]));
     const projectIds = new Set(projects.map((project) => project.id));
 
-    const result = validateMonthTransactions(transactions);
+    const result = validateMonthTransactions(transactions, {
+      extraLedgerCodes: new Set(customLedgerCodes.map((code) => code.code)),
+    });
     const issues = [
       ...result.issues,
       ...this.allocationIssues(transactions, allocationById),

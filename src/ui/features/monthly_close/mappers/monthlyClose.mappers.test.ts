@@ -9,6 +9,7 @@ import {
   mapAnomaliesToEvidence,
   mapPeriodToPageVM,
   mapPersistenceToEvidence,
+  mapProjectSettlementsToEvidence,
 } from './monthlyClose.mappers';
 
 const authPeriod = (overrides: Partial<FinancialPeriod> = {}): FinancialPeriod => ({
@@ -99,5 +100,30 @@ describe('evidence mappers', () => {
     expect(mapAdjustmentCountToEvidence(-120).cashFlowAdjustments).toBe(-120);
     expect(mapPersistenceToEvidence(true).reportsPersisted).toBe(true);
     expect(NO_EVIDENCE.kind).toBe('NONE');
+  });
+
+  it('maps project settlements into the settlement evidence', () => {
+    const evidence = mapProjectSettlementsToEvidence([
+      {
+        projectId: 'project-1',
+        projectName: '裝修',
+        settled: true,
+        income: 5000,
+        expense: 3000,
+        closingBalance: 2000,
+      },
+      {
+        projectId: 'project-2',
+        projectName: '旅遊',
+        settled: false,
+        income: null,
+        expense: null,
+        closingBalance: null,
+      },
+    ]);
+
+    expect(evidence.kind).toBe('PROJECT_SETTLEMENT');
+    expect(evidence.projectSettlements).toHaveLength(2);
+    expect(evidence.projectSettlements[0]?.settled).toBe(true);
   });
 });

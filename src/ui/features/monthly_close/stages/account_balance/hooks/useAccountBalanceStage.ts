@@ -5,29 +5,38 @@ import { getPreviousSnapshotUseCase } from '@/application/account/use_cases/getP
 import { type AccountBalanceInput } from '@/application/monthly_close/use_cases/monthlyCloseWorkflowUseCase';
 import { type AuthContext } from '@/application/types';
 import { type Account, type AccountSnapshot } from '@/domains/account/types/account';
+import type { CloseStageControl } from '@/ui/features/monthly_close/hooks/closeStageControl';
+import { useConfirmStageControl } from '@/ui/features/monthly_close/hooks/useConfirmStageControl';
 
-interface UseSnapshotBalancePrefillArgs {
+interface UseAccountBalanceStageArgs {
   householdId: string;
   selectedYearMonth: string;
   accounts: Account[];
   auth: AuthContext;
-  setAccountBalances: React.Dispatch<React.SetStateAction<AccountBalanceInput[]>>;
+  confirmingStageId: string | null;
+  /** Bumped after a relevant confirm so the snapshot prefill re-runs. */
+  refreshKey?: number;
 }
 
 /**
- * Loads each account's current and previous month snapshots for the selected
- * close month, exposes the previous snapshots for display, and prefills ending
- * balances from the month's own snapshots (re-entering a started close or
- * viewing a seeded period). Only fills accounts the user has not typed into;
- * never overwrites in-progress input.
+ * Stage controller for ACCOUNT_BALANCE: owns the ending-balance draft and the
+ * snapshot prefill that seeds it (absorbed from useSnapshotBalancePrefill).
+ * Exposes the previous snapshots for display; prefill only fills accounts the
+ * user has not typed into and never overwrites in-progress input.
  */
-export const useSnapshotBalancePrefill = ({
+export const useAccountBalanceStage = ({
   householdId,
   selectedYearMonth,
   accounts,
   auth,
-  setAccountBalances,
-}: UseSnapshotBalancePrefillArgs) => {
+  confirmingStageId,
+  refreshKey = 0,
+}: UseAccountBalanceStageArgs): CloseStageControl & {
+  balances: AccountBalanceInput[];
+  setBalances: React.Dispatch<React.SetStateAction<AccountBalanceInput[]>>;
+  accountSnapshots: Map<string, AccountSnapshot>;
+} => {
+  const [balances, setBalances] = useState<AccountBalanceInput[]>([]);
   const [accountSnapshots, setAccountSnapshots] = useState<Map<string, AccountSnapshot>>(new Map());
 
   useEffect(() => {
@@ -64,7 +73,7 @@ export const useSnapshotBalancePrefill = ({
         if (previousSnapshot) previousMap.set(accountId, previousSnapshot);
       }
       setAccountSnapshots(previousMap);
-      setAccountBalances((current) => {
+      setBalances((current) => {
         if (current.length > 0) return current;
         const prefilled: AccountBalanceInput[] = [];
         for (const [accountId, currentSnapshot] of entries) {
@@ -91,7 +100,14 @@ export const useSnapshotBalancePrefill = ({
     return () => {
       cancelled = true;
     };
-  }, [accounts, auth, householdId, selectedYearMonth, setAccountBalances]);
+  }, [accounts, auth, householdId, selectedYearMonth, refreshKey]);
 
-  return accountSnapshots;
+  const control = useConfirmStageControl({
+    stageId: 'ACCOUNT_BALANCE',
+    confirmingStageId,
+    buildRequest: () => ({ stageId: 'ACCOUNT_BALANCE', accountBalances: balances }),
+    resetDraft: () => setBalances([]),
+  });
+
+  return { ...control, balances, setBalances, accountSnapshots };
 };

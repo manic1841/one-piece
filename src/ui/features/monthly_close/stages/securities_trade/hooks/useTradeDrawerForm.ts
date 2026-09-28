@@ -10,7 +10,7 @@ import {
   type TradeDrawerVM,
   createEmptyTradeDrawerInput,
   mapTradeDrawerVMToDraft,
-} from '../viewmodels/tradeDrawer.vm';
+} from '../../../viewmodels/tradeDrawer.vm';
 
 interface UseTradeDrawerFormOptions {
   isOpen: boolean;

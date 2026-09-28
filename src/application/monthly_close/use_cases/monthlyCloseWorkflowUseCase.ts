@@ -14,6 +14,7 @@ import {
 } from '@/application/monthly_close/use_cases/financialReportsWorkflowUseCases';
 import {
   type MonthlyCloseConfirmRequest,
+  type MonthlyCloseResetStagesRequest,
   type MonthlyCloseStartRequest,
 } from '@/application/monthly_close/use_cases/monthlyCloseRequests';
 import { RecordDebtRepaymentsUseCase } from '@/application/monthly_close/use_cases/recordDebtRepaymentsUseCase';
@@ -38,6 +39,8 @@ import {
   markNeedsReviewInState,
   reconfirmStageInState,
   reopenPeriodInState,
+  resetStagesFromInState,
+  resolveWalkPosition,
   supersedeClosedPeriodInState,
 } from '@/domains/financial_period/stateMachine';
 
@@ -123,6 +126,39 @@ export class MonthlyCloseWorkflowUseCase {
     return reopened;
   }
 
+  /**
+   * GO TO reset (ADR-0070): while paused, jumping back to a stage resets that
+   * stage and every later stage to PENDING so the recovery is a sequential
+   * walk. Guards run before any side effect; the pause and review source are
+   * preserved.
+   */
+  async resetStagesFrom(request: MonthlyCloseResetStagesRequest): Promise<FinancialPeriod> {
+    const { householdId, yearMonth, userEmail, auth, fromStageId } = request;
+    await this.assertMember(householdId, auth);
+
+    const current = await this.getPeriod.execute({ householdId, yearMonth });
+    if (!current) {
+      throw new MonthlyCloseCommandError(
+        MonthlyCloseCommandErrorCode.PERIOD_NOT_STARTED,
+        'start the closing workflow before resetting stages',
+      );
+    }
+    if (current.status !== 'NEEDS_REVIEW') {
+      throw new MonthlyCloseCommandError(
+        MonthlyCloseCommandErrorCode.PERIOD_NOT_PAUSED,
+        'reset is only available while the period is paused for review',
+      );
+    }
+
+    const reset = resetStagesFromInState(current, fromStageId);
+    await this.savePeriod.execute({
+      householdId,
+      period: this.toPeriodCreate(reset),
+      userEmail,
+    });
+    return reset;
+  }
+
   /** Cascade (ADR-0066): only CLOSED periods after the reopened one; manual recovery. */
   private async supersedeLaterClosedPeriods(
     householdId: string,
@@ -175,16 +211,7 @@ export class MonthlyCloseWorkflowUseCase {
       if (paused) return paused;
     }
 
-    if (stageId === 'FINANCIAL_REPORTS' || stageId === 'CLOSE_PERIOD') {
-      if (current.status === 'NEEDS_REVIEW') {
-        throw new MonthlyCloseCommandError(
-          MonthlyCloseCommandErrorCode.NEEDS_REVIEW_BLOCKED,
-          'resolve the review before confirming this stage',
-        );
-      }
-    }
-
-    await this.runStageAction(yearMonth, auth, request);
+    await this.runStageAction(yearMonth, auth, request, current);
 
     return this.completeConfirm(current, stageId, userEmail, householdId);
   }
@@ -225,6 +252,8 @@ export class MonthlyCloseWorkflowUseCase {
   /**
    * Guards run before any side effect: a CLOSED period or an already-completed
    * stage must not commit data creation (issue #100 acceptance criteria).
+   * While paused, only the walk position is confirmable (ADR-0070) — the same
+   * rule the state machine enforces at commit time.
    */
   private assertStageConfirmable(period: FinancialPeriod, stageId: CloseStageId): void {
     if (period.status === 'CLOSED') {
@@ -237,6 +266,12 @@ export class MonthlyCloseWorkflowUseCase {
       throw new MonthlyCloseCommandError(
         MonthlyCloseCommandErrorCode.STAGE_ALREADY_COMPLETED,
         'stage already confirmed',
+      );
+    }
+    if (period.status === 'NEEDS_REVIEW' && stageId !== resolveWalkPosition(period)) {
+      throw new MonthlyCloseCommandError(
+        MonthlyCloseCommandErrorCode.STAGE_NOT_WALK_POSITION,
+        `while paused, only the walk position (${resolveWalkPosition(period) ?? 'none'}) is confirmable`,
       );
     }
   }
@@ -274,6 +309,7 @@ export class MonthlyCloseWorkflowUseCase {
     yearMonth: string,
     auth: AuthContext,
     request: MonthlyCloseConfirmRequest,
+    current: FinancialPeriod,
   ): Promise<void> {
     const { householdId, userEmail, stageId } = request;
 
@@ -350,7 +386,7 @@ export class MonthlyCloseWorkflowUseCase {
         return;
       }
       case 'CLOSE_PERIOD': {
-        await this.checkCloseReadiness.execute({ householdId, yearMonth });
+        await this.checkCloseReadiness.execute({ householdId, yearMonth, period: current });
         return;
       }
     }

@@ -3,38 +3,51 @@ import React from 'react';
 import { Button } from '@/ui/components/ui/button';
 import { MONTHLY_CLOSE_LABELS } from '@/ui/constants/monthlyClose';
 
-import type { CloseStageItemVM } from '../viewmodels/monthlyClose.vm';
+import { useCloseStageChrome } from '../hooks/useCloseStageChrome';
 
-interface CloseWorkspaceProps {
-  stage: CloseStageItemVM | null;
+interface CloseStageChromeProps {
   stepText: string;
-  isReviewing: boolean;
   progressText: string;
+  confirmedAtText?: string | null;
   confirming: boolean;
-  isClosed: boolean;
-  evidence: React.ReactNode;
-  inputs: React.ReactNode;
+  isReviewing?: boolean;
+  /** While paused, only the walk position's confirm button is enabled (ADR-0070). */
+  isConfirmable: boolean;
+  /** Closed periods render read-only: the action bar is hidden. */
+  isReadOnly: boolean;
+  /** Closed periods hide the action bar entirely. */
+  showActions: boolean;
   onConfirm: () => void;
-  onBackToCurrent: () => void;
+  onBackToCurrent?: () => void;
+  children: React.ReactNode;
 }
 
-export const CloseWorkspace: React.FC<CloseWorkspaceProps> = ({
-  stage,
+/**
+ * Shared chrome for every close step: the step header (current step + progress),
+ * the confirmed-at line, the evidence/content slot, and the confirm bar. One
+ * copy of the markup every step shares; each step component renders its own
+ * content into the slot.
+ */
+export const CloseStageChrome: React.FC<CloseStageChromeProps> = ({
   stepText,
-  isReviewing,
   progressText,
+  confirmedAtText,
   confirming,
-  isClosed,
-  evidence,
-  inputs,
+  isReviewing = false,
+  isConfirmable,
+  isReadOnly,
+  showActions,
   onConfirm,
   onBackToCurrent,
+  children,
 }) => {
-  const actionLabel = confirming
-    ? MONTHLY_CLOSE_LABELS.LOADING
-    : isReviewing
-      ? MONTHLY_CLOSE_LABELS.RECONFIRM_ACTION
-      : MONTHLY_CLOSE_LABELS.CONTINUE;
+  const { actionLabel, canConfirm } = useCloseStageChrome({
+    confirming,
+    isReviewing,
+    isConfirmable,
+  });
+
+  const showActionBar = showActions && !isReadOnly;
 
   return (
     <section className="space-y-4 pt-8">
@@ -50,31 +63,21 @@ export const CloseWorkspace: React.FC<CloseWorkspaceProps> = ({
         </span>
       </div>
 
-      {stage?.confirmedAtText && (
-        <p className="text-xs text-muted-foreground">{stage.confirmedAtText}</p>
-      )}
+      {confirmedAtText && <p className="text-xs text-muted-foreground">{confirmedAtText}</p>}
 
-      <div className="space-y-3">
-        <div>
-          <p className="mb-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-            {MONTHLY_CLOSE_LABELS.EVIDENCE_LABEL}
-          </p>
-          {evidence}
-        </div>
-        {inputs}
-      </div>
+      <div className="space-y-3">{children}</div>
 
-      {!isClosed && (
+      {showActionBar && (
         <div className="flex items-center justify-end gap-3 border-t border-border pt-[26px]">
           <Button
             size="sm"
-            disabled={confirming}
+            disabled={!canConfirm}
             onClick={onConfirm}
             className="h-[38px] px-[18px] active:scale-[0.97]"
           >
             {actionLabel}
           </Button>
-          {isReviewing && (
+          {isReviewing && onBackToCurrent && (
             <Button size="sm" variant="ghost" onClick={onBackToCurrent} className="h-[38px] px-4">
               {MONTHLY_CLOSE_LABELS.BACK_TO_CURRENT}
             </Button>
@@ -84,5 +87,3 @@ export const CloseWorkspace: React.FC<CloseWorkspaceProps> = ({
     </section>
   );
 };
-
-export default CloseWorkspace;

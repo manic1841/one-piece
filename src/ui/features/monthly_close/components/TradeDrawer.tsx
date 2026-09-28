@@ -36,7 +36,7 @@ export interface TradeDrawerProps {
   title: string;
   /** RHF form from useTradeDrawerForm (ADR-0064); the drawer only renders. */
   form: UseFormReturn<TradeDrawerInput, unknown, TradeDrawerVM>;
-  portfolios: { id: string; name: string }[];
+  projects: { id: string; name: string }[];
   submitting: boolean;
   /** DELETE is offered for both loaded and unsaved rows; removal is local until confirm. */
   canDelete: boolean;
@@ -59,7 +59,7 @@ export const TradeDrawer: React.FC<TradeDrawerProps> = ({
   sideLabels,
   title,
   form,
-  portfolios,
+  projects,
   submitting,
   canDelete,
   onConfirm,
@@ -142,9 +142,9 @@ export const TradeDrawer: React.FC<TradeDrawerProps> = ({
                 <FormLabel className={fieldLabelClass}>{MONTHLY_CLOSE_LABELS.PROJECT}</FormLabel>
                 <FormControl>
                   <SelectField
-                    options={portfolios.map((portfolio) => ({
-                      value: portfolio.id,
-                      label: portfolio.name,
+                    options={projects.map((project) => ({
+                      value: project.id,
+                      label: project.name,
                     }))}
                     noneLabel={MONTHLY_CLOSE_LABELS.NO_PROJECT}
                     placeholder={MONTHLY_CLOSE_LABELS.NO_PROJECT}

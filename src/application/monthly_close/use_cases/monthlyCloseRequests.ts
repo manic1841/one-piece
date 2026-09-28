@@ -70,3 +70,7 @@ export interface MonthlyCloseConfirmRequest extends MonthlyCloseStartRequest {
   /** Report display labels: static catalog first, then household custom codes. */
   labelResolver?: ReportLabelResolver;
 }
+
+export interface MonthlyCloseResetStagesRequest extends MonthlyCloseStartRequest {
+  fromStageId: CloseStageId;
+}

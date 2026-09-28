@@ -5,9 +5,9 @@ import {
   type SecuritiesTradeInput,
 } from '@/application/monthly_close/use_cases/monthlyCloseWorkflowUseCase';
 
-import { type TradeDrawerMode } from '../components/TradeDrawer';
-import { type TradeSide, type TradeTableRow } from '../components/TradeTable';
-import { type TradeDrawerSide } from '../viewmodels/tradeDrawer.vm';
+import { type TradeDrawerMode } from '../../../components/TradeDrawer';
+import { type TradeSide, type TradeTableRow } from '../../../components/TradeTable';
+import { type TradeDrawerSide } from '../../../viewmodels/tradeDrawer.vm';
 
 export type TradeDrawerKind = 'SECURITIES' | 'FINANCING';
 

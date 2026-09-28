@@ -96,12 +96,12 @@ export const ClosePipeline: React.FC<ClosePipelineProps> = ({
         >
           {stages.map((stage, index) => {
             const status = stageStatus(stage, currentStageId, isClosed, isPaused);
-            const isViewing = stage.stageId === viewingStageId && !isClosed;
+            const isViewing = stage.stageId === viewingStageId;
             const completedIndex = stages.findIndex((item) => !item.isCompleted);
             const isBeforeCurrent =
               status === 'WAITING' && completedIndex !== -1 && index < completedIndex;
 
-            const disabled = isClosed || (status === 'WAITING' && !isBeforeCurrent);
+            const disabled = !isClosed && status === 'WAITING' && !isBeforeCurrent;
 
             const clickable = !disabled && !isViewing;
 

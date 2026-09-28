@@ -17,6 +17,7 @@ ui
 │       ├─ pages/      # Route entry points
 │       ├─ components/ # Feature-specific UI components
 │       ├─ hooks/      # Controllers, Queries and Commands
+│       ├─ stages/     # Step-grouped files: stages/<step>/{hooks,components,…} counts as the tier it holds
 │       ├─ contexts/   # Feature-local React contexts (Controller tier)
 │       ├─ viewmodels/ # UI-specific data representations
 │       ├─ types/      # Feature-local UI types (ViewModel tier)
@@ -46,7 +47,9 @@ Decision record: [ADR-0062](../adr/0062-ui-tier-separation-and-surface-import-ba
 
 **Surface is the fail-closed default.** Membership in a tier is decided by directory, not by file role: any file under
 `src/ui` that is not inside one of the directories listed for a non-Surface tier is Surface. A new directory is therefore
-Surface until the tier table names it — never silently exempt.
+Surface until the tier table names it — never silently exempt. A tier segment may sit one level deeper inside a
+`stages/<step>/` group (`features/<feature>/stages/<step>/hooks/…` is Controller tier); the group folder itself is
+not a tier, so a file directly inside it stays Surface.
 
 **Display Labels is a ViewModel-tier import scope.** Its _responsibility_ is unique (the only source of data-value
 display text, see rule 7 and [`ui-labeling-guideline.md`](ui-labeling-guideline.md)), but what it may import is deliberately identical to ViewModel: label maps

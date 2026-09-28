@@ -80,6 +80,8 @@ const BEHAVIOUR_ROOTS = [path.join(SRC_DIR, 'application'), path.join(SRC_DIR, '
 
 /** `features/<name>/<tier>/…` — how far `<tier>` sits past the `features` segment. */
 const FEATURE_TIER_OFFSET = 2;
+/** `features/<name>/stages/<step>/<tier>/…` — the stage folder groups one step's files. */
+const STAGE_TIER_OFFSET = 4;
 
 const collectSourceFiles = (dir: string): string[] => {
   return readdirSync(dir).flatMap((entry) => {
@@ -108,12 +110,16 @@ const specifiersOf = (filePath: string): string[] => {
   return [...source.matchAll(SPECIFIER_PATTERN)].map((match) => match[1]);
 };
 
-/** `src/ui/features/<name>/<tier>/…` → `<tier>`; null outside a feature. */
+/** `features/<name>…/<tier>/…` → `<tier>`; null outside a feature. */
 const featureTierOf = (filePath: string): string | null => {
   const parts = filePath.split(path.sep);
   const featureIndex = parts.indexOf('features');
   if (featureIndex === -1) return null;
-  return parts[featureIndex + FEATURE_TIER_OFFSET] ?? null;
+  const tierIndex =
+    parts.indexOf('stages') === featureIndex + 2
+      ? featureIndex + STAGE_TIER_OFFSET
+      : featureIndex + FEATURE_TIER_OFFSET;
+  return parts[tierIndex] ?? null;
 };
 
 const isController = (filePath: string): boolean =>
@@ -200,6 +206,41 @@ describe('UI layer boundary contract (issue #178, ADR-0062)', () => {
       path.join(SRC_DIR, 'domains', 'x'),
     );
     expect(resolveSpecifier('react', file)).toBeNull();
+  });
+
+  it('resolves tier directories nested inside stage folders', () => {
+    // Stage folders group a step's files; the tier segment may sit deeper than one level.
+    const stageHook = path.join(
+      UI_DIR,
+      'features',
+      'monthly_close',
+      'stages',
+      'account_balance',
+      'hooks',
+      'useAccountBalanceStage.ts',
+    );
+    const stageComponent = path.join(
+      UI_DIR,
+      'features',
+      'monthly_close',
+      'stages',
+      'account_balance',
+      'components',
+      'CloseAccountBalanceStage.tsx',
+    );
+    expect(featureTierOf(stageHook)).toBe('hooks');
+    expect(featureTierOf(stageComponent)).toBe('components');
+    expect(isController(stageHook)).toBe(true);
+    expect(isNonSurface(stageHook)).toBe(true);
+    expect(isNonSurface(stageComponent)).toBe(false);
+    // A flat feature tier file is unaffected.
+    expect(
+      featureTierOf(path.join(UI_DIR, 'features', 'monthly_close', 'hooks', 'useMonthlyClose.ts')),
+    ).toBe('hooks');
+    // A stage folder's own root is not a tier: fail-closed Surface.
+    expect(
+      featureTierOf(path.join(UI_DIR, 'features', 'monthly_close', 'stages', 'account_balance')),
+    ).toBeNull();
   });
 
   it('keeps Surface off domain, application, infra and the Firebase SDK', () => {

@@ -265,3 +265,30 @@ docker compose down
 ```
 
 `pnpm test` 不需要 emulator；`pnpm test:integration` 會透過 Compose service name 連線到 Firebase Emulator。若直接在 host 執行 integration tests，helper 會使用 published localhost ports。
+
+## 10. Release 流程
+
+`develop` 是持續整合線，`main` 是 release 線；兩個保護分支都不直推，一切透過 PR。版號以 `package.json` 的 `version` 為單一真相來源（`vite.config.ts` / `vitest.config.ts` 注入，SiteFooter 顯示）。本節以 2.0.1 的實際執行為準。
+
+### 常規發版
+
+1. **Feature**：從 `develop` 切 branch（`feat/`、`fix/`）→ PR 回 `develop` → CI 綠燈 → merge。
+2. **版號 bump**：從 `develop` 切 `release/X.Y.Z`，**只改 `package.json` 的 version** → PR 回 `develop` → merge。**merge 這個 PR 的時間點就是進版時間**，git 歷史可查。
+3. **進版 main**：開 `develop` → `main` 的 PR（body 註明進版與內容來源 PR）→ merge，main 同時帶入功能與版號。
+4. **Tag + Release**：merge 後執行 `gh release create vX.Y.Z --target main --generate-notes`——tag 打在 main HEAD，changelog 自動生成。
+
+版號 bump 走獨立 release branch 而非併入 feature PR 的理由：feature review 中途變更時版號範圍不會漂移；merge commit 是明確的進版宣告；受保護分支下它也是唯一不需要特權的路徑。
+
+### Hotfix
+
+main 上線後的緊急修復（出 `2.0.2` 這類 patch）：
+
+1. 從 **`main`** 切 `hotfix/X.Y.Z`，修復 + bump 一起走一個 PR 回 `main`。
+2. merge 後執行 `gh release create vX.Y.Z --target main --generate-notes`。
+3. cherry-pick 修復回 `develop`（bump 不 pick，下次 release branch 會帶）。
+
+### 版號語意
+
+依 semver：breaking change 或大型里程碑 → major、新功能 → minor、修復 → patch。`1.1.0 → 2.0.1` 的跳躍是之前忘記 bump 的補償，不是慣例；之後按 `2.1.0` / `2.0.2` 正常遞增。
+
+CI 觸發與 Hosting 部署（preview/live channel）的閘門設計見 §7.1；push 到 `main` 時 live 部署自動執行，release 時機在其後由上述第 4 步宣告。
