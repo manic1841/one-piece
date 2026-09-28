@@ -8,7 +8,6 @@ import { Card, CardContent } from '@/ui/components/ui/card';
 import { MONTHLY_CLOSE_LABELS } from '@/ui/constants/monthlyClose';
 import { useConfirm } from '@/ui/features/app/confirm/useConfirm';
 import { ClosePipeline } from '@/ui/features/monthly_close/components/ClosePipeline';
-import { CloseStageEvidenceList } from '@/ui/features/monthly_close/components/CloseStageEvidenceList';
 import { CloseStagePanels } from '@/ui/features/monthly_close/components/CloseStagePanels';
 import { CloseTradeDrawerSection } from '@/ui/features/monthly_close/components/CloseTradeDrawerSection';
 
@@ -236,11 +235,8 @@ export const MonthlyClosePage: React.FC<MonthlyClosePageProps> = ({
                   stepText={displayedStepText ?? positionText}
                   isReviewing={isReviewing}
                   progressText={positionText}
-                  isClosed={pageVM.isClosed}
                   isConfirmable={isWalkPositionStage(displayedStage.stageId)}
-                  evidence={
-                    <CloseStageEvidenceList evidence={evidenceFor(displayedStage.stageId)} />
-                  }
+                  evidence={evidenceFor(displayedStage.stageId)}
                   accounts={accounts}
                   accountSnapshots={accountSnapshots}
                   portfolioSnapshots={portfolioSnapshots}

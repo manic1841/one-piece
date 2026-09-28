@@ -5,9 +5,7 @@ import {
 import { generateFinancialReportsUseCase } from '@/application/report/use_cases/generateFinancialReportsUseCase';
 import { getReportPersistenceStateUseCase } from '@/application/report/use_cases/getReportPersistenceStateUseCase';
 import { type AuthContext } from '@/application/types';
-import {
-  type FinancialPeriod,
-} from '@/domains/financial_period/schemas';
+import { type FinancialPeriod } from '@/domains/financial_period/schemas';
 import { isStageCompleted } from '@/domains/financial_period/stateMachine';
 import { type ReportLabelResolver } from '@/domains/report/reportCalculations';
 

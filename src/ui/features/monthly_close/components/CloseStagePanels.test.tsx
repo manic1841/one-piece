@@ -76,8 +76,14 @@ const renderPanels = (
       stepText={displayedStageId}
       isReviewing={false}
       progressText="07 / 09"
-      isClosed={false}
-      evidence={<div />}
+      evidence={{
+        kind: 'NONE',
+        transactionIssues: [],
+        zeroActivityNames: [],
+        cashFlowAdjustments: 0,
+        reportsPersisted: null,
+        projectSettlements: [],
+      }}
       accounts={[]}
       accountSnapshots={new Map()}
       portfolioSnapshots={new Map()}

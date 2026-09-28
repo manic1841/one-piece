@@ -40,12 +40,7 @@ describe('resolvePeriodStatus', () => {
 describe('confirmStageInState', () => {
   it('marks the stage completed and returns IN_PROGRESS', () => {
     const confirmedAt = new Date('2026-10-03T10:00:00Z');
-    const next = confirmStageInState(
-      basePeriod(),
-      'ACCOUNT_BALANCE',
-      'user-1',
-      confirmedAt,
-    );
+    const next = confirmStageInState(basePeriod(), 'ACCOUNT_BALANCE', 'user-1', confirmedAt);
 
     expect(next.status).toBe('IN_PROGRESS');
     expect(next.reviewSourceStageId).toBeNull();
@@ -126,8 +121,16 @@ describe('markNeedsReviewInState', () => {
 describe('resolveWalkPosition', () => {
   it('returns the first PENDING stage in CLOSE_STAGE_IDS order', () => {
     const period = basePeriod({ status: 'NEEDS_REVIEW', reviewSourceStageId: null });
-    period.stages.ACCOUNT_BALANCE = { status: 'COMPLETED', confirmedBy: 'u', confirmedAt: new Date() };
-    period.stages.TRANSACTION_VALIDATION = { status: 'COMPLETED', confirmedBy: 'u', confirmedAt: new Date() };
+    period.stages.ACCOUNT_BALANCE = {
+      status: 'COMPLETED',
+      confirmedBy: 'u',
+      confirmedAt: new Date(),
+    };
+    period.stages.TRANSACTION_VALIDATION = {
+      status: 'COMPLETED',
+      confirmedBy: 'u',
+      confirmedAt: new Date(),
+    };
 
     expect(resolveWalkPosition(period)).toBe('SECURITIES_TRADE');
   });
@@ -168,7 +171,10 @@ describe('confirmStageInState — paused-period guards', () => {
   });
 
   it('clears the pause when the review source stage is confirmed', () => {
-    const period = basePeriod({ status: 'NEEDS_REVIEW', reviewSourceStageId: 'COMPLETENESS_CHECK' });
+    const period = basePeriod({
+      status: 'NEEDS_REVIEW',
+      reviewSourceStageId: 'COMPLETENESS_CHECK',
+    });
     for (const stageId of [
       'ACCOUNT_BALANCE',
       'TRANSACTION_VALIDATION',
@@ -179,7 +185,11 @@ describe('confirmStageInState — paused-period guards', () => {
     ]) {
       period.stages[stageId] = { status: 'COMPLETED', confirmedBy: 'u', confirmedAt: new Date() };
     }
-    period.stages.FINANCIAL_REPORTS = { status: 'COMPLETED', confirmedBy: 'u', confirmedAt: new Date() };
+    period.stages.FINANCIAL_REPORTS = {
+      status: 'COMPLETED',
+      confirmedBy: 'u',
+      confirmedAt: new Date(),
+    };
 
     const next = confirmStageInState(period, 'COMPLETENESS_CHECK', 'user-1', new Date());
 
@@ -192,21 +202,35 @@ describe('confirmStageInState — paused-period guards', () => {
   });
 
   it('rejects confirming a non-walk-position stage while paused', () => {
-    const period = basePeriod({ status: 'NEEDS_REVIEW', reviewSourceStageId: 'COMPLETENESS_CHECK' });
-    period.stages.ACCOUNT_BALANCE = { status: 'COMPLETED', confirmedBy: 'u', confirmedAt: new Date() };
+    const period = basePeriod({
+      status: 'NEEDS_REVIEW',
+      reviewSourceStageId: 'COMPLETENESS_CHECK',
+    });
+    period.stages.ACCOUNT_BALANCE = {
+      status: 'COMPLETED',
+      confirmedBy: 'u',
+      confirmedAt: new Date(),
+    };
 
-    expect(() =>
-      confirmStageInState(period, 'COMPLETENESS_CHECK', 'user-1', new Date()),
-    ).toThrow(FinancialPeriodStateError);
+    expect(() => confirmStageInState(period, 'COMPLETENESS_CHECK', 'user-1', new Date())).toThrow(
+      FinancialPeriodStateError,
+    );
   });
 
   it('rejects re-confirming a completed stage while paused even when reconfirmable', () => {
-    const period = basePeriod({ status: 'NEEDS_REVIEW', reviewSourceStageId: 'COMPLETENESS_CHECK' });
-    period.stages.ACCOUNT_BALANCE = { status: 'COMPLETED', confirmedBy: 'u', confirmedAt: new Date() };
+    const period = basePeriod({
+      status: 'NEEDS_REVIEW',
+      reviewSourceStageId: 'COMPLETENESS_CHECK',
+    });
+    period.stages.ACCOUNT_BALANCE = {
+      status: 'COMPLETED',
+      confirmedBy: 'u',
+      confirmedAt: new Date(),
+    };
 
-    expect(() =>
-      confirmStageInState(period, 'ACCOUNT_BALANCE', 'user-1', new Date()),
-    ).toThrow(FinancialPeriodStateError);
+    expect(() => confirmStageInState(period, 'ACCOUNT_BALANCE', 'user-1', new Date())).toThrow(
+      FinancialPeriodStateError,
+    );
   });
 
   it('rejects confirming a stage on a closed paused walk', () => {
@@ -221,12 +245,19 @@ describe('confirmStageInState — paused-period guards', () => {
   });
 
   it('rejects reconfirming a non-walk-position stage while paused', () => {
-    const period = basePeriod({ status: 'NEEDS_REVIEW', reviewSourceStageId: 'COMPLETENESS_CHECK' });
-    period.stages.ACCOUNT_BALANCE = { status: 'COMPLETED', confirmedBy: 'u', confirmedAt: new Date() };
+    const period = basePeriod({
+      status: 'NEEDS_REVIEW',
+      reviewSourceStageId: 'COMPLETENESS_CHECK',
+    });
+    period.stages.ACCOUNT_BALANCE = {
+      status: 'COMPLETED',
+      confirmedBy: 'u',
+      confirmedAt: new Date(),
+    };
 
-    expect(() =>
-      reconfirmStageInState(period, 'ACCOUNT_BALANCE', 'user-1', new Date()),
-    ).toThrow(FinancialPeriodStateError);
+    expect(() => reconfirmStageInState(period, 'ACCOUNT_BALANCE', 'user-1', new Date())).toThrow(
+      FinancialPeriodStateError,
+    );
   });
 
   it('rejects reconfirming when paused and all stages complete', () => {
@@ -235,9 +266,9 @@ describe('confirmStageInState — paused-period guards', () => {
       period.stages[stageId] = { status: 'COMPLETED', confirmedBy: 'u', confirmedAt: new Date() };
     }
 
-    expect(() =>
-      reconfirmStageInState(period, 'ACCOUNT_BALANCE', 'user-1', new Date()),
-    ).toThrow(FinancialPeriodStateError);
+    expect(() => reconfirmStageInState(period, 'ACCOUNT_BALANCE', 'user-1', new Date())).toThrow(
+      FinancialPeriodStateError,
+    );
   });
 });
 

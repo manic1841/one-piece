@@ -311,7 +311,10 @@ describe('MonthlyCloseWorkflowUseCase.resetStagesFrom', () => {
     }
     vi.mocked(getFinancialPeriodUseCase.execute).mockResolvedValue(period);
 
-    const result = await useCase.resetStagesFrom({ ...REQUEST_BASE, fromStageId: 'SECURITIES_TRADE' });
+    const result = await useCase.resetStagesFrom({
+      ...REQUEST_BASE,
+      fromStageId: 'SECURITIES_TRADE',
+    });
 
     expect(result.status).toBe('NEEDS_REVIEW');
     expect(result.reviewSourceStageId).toBeNull();
@@ -703,7 +706,10 @@ describe('MonthlyCloseWorkflowUseCase.confirmStage', () => {
   });
 
   it('completes the stage when the review source stage is confirmed without re-running the check', async () => {
-    const period = basePeriod({ status: 'NEEDS_REVIEW', reviewSourceStageId: 'COMPLETENESS_CHECK' });
+    const period = basePeriod({
+      status: 'NEEDS_REVIEW',
+      reviewSourceStageId: 'COMPLETENESS_CHECK',
+    });
     for (const stageId of [
       'ACCOUNT_BALANCE',
       'TRANSACTION_VALIDATION',

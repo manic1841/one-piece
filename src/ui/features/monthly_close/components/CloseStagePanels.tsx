@@ -1,6 +1,10 @@
 import React from 'react';
 
 import { type CloseSummaryVM, type ReadinessVM } from '../mappers/closeSummary.mappers';
+import { CloseAccountBalanceStage } from '../stages/account_balance/components/CloseAccountBalanceStage';
+import { CloseDebtRepaymentStage } from '../stages/debt_repayment/components/CloseDebtRepaymentStage';
+import { ClosePortfolioCashFlowStage } from '../stages/portfolio_cash_flow/components/ClosePortfolioCashFlowStage';
+import { CloseSecuritiesTradeStage } from '../stages/securities_trade/components/CloseSecuritiesTradeStage';
 import type {
   Account,
   AccountBalanceInput,
@@ -13,29 +17,13 @@ import type {
   FinancingInput,
   SecuritiesTradeInput,
 } from '../viewmodels/monthlyClose.vm';
+import type { CloseStageEvidence } from '../viewmodels/monthlyClose.vm';
 import type { PortfolioSnapshot } from '../viewmodels/portfolioCashFlow.vm';
+import { CloseEvidenceOnlyStage } from './CloseEvidenceOnlyStage';
 import { CloseFinancialReports } from './CloseFinancialReports';
 import { CloseReadinessCheck } from './CloseReadinessCheck';
-import { CloseStageInputsSection } from './CloseStageInputsSection';
 import { CloseSummaryPanel } from './CloseSummaryPanel';
-import { CloseWorkspace } from './CloseWorkspace';
 import { type TradeTableRow } from './TradeTable';
-
-type StageInputId =
-  | 'ACCOUNT_BALANCE'
-  | 'SECURITIES_TRADE'
-  | 'PORTFOLIO_CASH_FLOW'
-  | 'DEBT_REPAYMENT';
-
-const STAGE_INPUT_IDS: readonly StageInputId[] = [
-  'ACCOUNT_BALANCE',
-  'SECURITIES_TRADE',
-  'PORTFOLIO_CASH_FLOW',
-  'DEBT_REPAYMENT',
-];
-
-const isStageWithInputs = (stageId: string): stageId is StageInputId =>
-  STAGE_INPUT_IDS.includes(stageId as StageInputId);
 
 type SpecialStageId = 'COMPLETENESS_CHECK' | 'FINANCIAL_REPORTS' | 'CLOSE_PERIOD';
 
@@ -119,11 +107,9 @@ interface CloseStagePanelsProps {
   stepText: string;
   isReviewing: boolean;
   progressText: string;
-  isClosed: boolean;
-  /** While paused, only the walk position's confirm button is enabled (ADR-0070). */
   isConfirmable: boolean;
   /** The displayed stage's evidence list; workspace stages render it above the inputs. */
-  evidence: React.ReactNode;
+  evidence: CloseStageEvidence;
   accounts: Account[];
   accountSnapshots: Map<string, AccountSnapshot>;
   portfolioSnapshots: Map<string, PortfolioSnapshot | null>;
@@ -161,7 +147,6 @@ export const CloseStagePanels: React.FC<CloseStagePanelsProps> = ({
   stepText,
   isReviewing,
   progressText,
-  isClosed,
   isConfirmable,
   evidence,
   accounts,
@@ -185,63 +170,115 @@ export const CloseStagePanels: React.FC<CloseStagePanelsProps> = ({
   onClosePeriod,
   onOpenTradeDrawer,
 }) => {
-  // Workspace stages (1-6) share the CloseWorkspace frame; special stages
-  // dispatch through the stage-id keyed registry. TRANSACTION_VALIDATION and
-  // PROJECT_SETTLEMENT are workspace stages without inputs (evidence only).
-  // A special stage whose data has not loaded returns null: no wrong frame.
-  if (SPECIAL_STAGE_IDS.has(displayedStageId)) {
-    return SPECIAL_PANELS[displayedStageId as SpecialStageId]({
-      householdId,
-      selectedYearMonth,
-      confirming: confirmingStageId === displayedStageId,
-      isConfirmable,
-      readinessVM,
-      closeSummaryVM,
-      reportsPersisted,
-      onConfirmStage,
-      onGoToStage,
-      onClosePeriod,
-      onContinue,
-      onGenerate,
-      onBack,
-    });
+  const confirmingDisplayed = confirmingStageId === displayedStageId;
+  const confirmDisplayed = () => onConfirmStage(displayedStageId);
+
+  switch (displayedStageId) {
+    case 'ACCOUNT_BALANCE':
+      return (
+        <CloseAccountBalanceStage
+          stepText={stepText}
+          progressText={progressText}
+          confirmedAtText={stage?.confirmedAtText ?? null}
+          confirming={confirmingDisplayed}
+          isReviewing={isReviewing}
+          isConfirmable={isConfirmable}
+          evidence={evidence}
+          accounts={accounts}
+          accountSnapshots={accountSnapshots}
+          balances={accountBalances}
+          setBalances={setAccountBalances}
+          onConfirm={confirmDisplayed}
+          onBackToCurrent={onBack}
+        />
+      );
+    case 'SECURITIES_TRADE':
+      return (
+        <CloseSecuritiesTradeStage
+          stepText={stepText}
+          progressText={progressText}
+          confirmedAtText={stage?.confirmedAtText ?? null}
+          confirming={confirmingDisplayed}
+          isReviewing={isReviewing}
+          isConfirmable={isConfirmable}
+          evidence={evidence}
+          securities={securities}
+          financing={financing}
+          portfolios={portfolios}
+          onOpenTradeDrawer={onOpenTradeDrawer}
+          onConfirm={confirmDisplayed}
+          onBackToCurrent={onBack}
+        />
+      );
+    case 'PORTFOLIO_CASH_FLOW':
+      return (
+        <ClosePortfolioCashFlowStage
+          stepText={stepText}
+          progressText={progressText}
+          confirmedAtText={stage?.confirmedAtText ?? null}
+          confirming={confirmingDisplayed}
+          isReviewing={isReviewing}
+          isConfirmable={isConfirmable}
+          evidence={evidence}
+          portfolios={portfolios}
+          portfolioSnapshots={portfolioSnapshots}
+          cashFlows={portfolioCashFlows}
+          setCashFlows={setPortfolioCashFlows}
+          onConfirm={confirmDisplayed}
+          onBackToCurrent={onBack}
+        />
+      );
+    case 'DEBT_REPAYMENT':
+      return (
+        <CloseDebtRepaymentStage
+          stepText={stepText}
+          progressText={progressText}
+          confirmedAtText={stage?.confirmedAtText ?? null}
+          confirming={confirmingDisplayed}
+          isReviewing={isReviewing}
+          isConfirmable={isConfirmable}
+          evidence={evidence}
+          debtAccounts={debtSectionMetas}
+          yearMonth={selectedYearMonth}
+          repayments={repayments}
+          setRepayments={setRepayments}
+          onConfirm={confirmDisplayed}
+          onBackToCurrent={onBack}
+        />
+      );
+    case 'TRANSACTION_VALIDATION':
+    case 'PROJECT_SETTLEMENT':
+      return (
+        <CloseEvidenceOnlyStage
+          stepText={stepText}
+          progressText={progressText}
+          confirmedAtText={stage?.confirmedAtText ?? null}
+          confirming={confirmingDisplayed}
+          isReviewing={isReviewing}
+          isConfirmable={isConfirmable}
+          evidence={evidence}
+          onConfirm={confirmDisplayed}
+          onBackToCurrent={onBack}
+        />
+      );
+    default:
+      if (SPECIAL_STAGE_IDS.has(displayedStageId)) {
+        return SPECIAL_PANELS[displayedStageId as SpecialStageId]({
+          householdId,
+          selectedYearMonth,
+          confirming: confirmingDisplayed,
+          isConfirmable,
+          readinessVM,
+          closeSummaryVM,
+          reportsPersisted,
+          onConfirmStage,
+          onGoToStage,
+          onClosePeriod,
+          onContinue,
+          onGenerate,
+          onBack,
+        });
+      }
+      return null;
   }
-
-  const workspaceInputs = isStageWithInputs(displayedStageId) ? (
-    <CloseStageInputsSection
-      stageId={displayedStageId}
-      yearMonth={selectedYearMonth}
-      disabled={confirmingStageId !== null}
-      accounts={accounts}
-      accountSnapshots={accountSnapshots}
-      accountBalances={accountBalances}
-      setAccountBalances={setAccountBalances}
-      securities={securities}
-      financing={financing}
-      portfolios={portfolios}
-      onOpenTradeDrawer={onOpenTradeDrawer}
-      debtSectionMetas={debtSectionMetas}
-      portfolioCashFlows={portfolioCashFlows}
-      setPortfolioCashFlows={setPortfolioCashFlows}
-      portfolioSnapshots={portfolioSnapshots}
-      repayments={repayments}
-      setRepayments={setRepayments}
-    />
-  ) : null;
-
-  return (
-    <CloseWorkspace
-      stage={stage ?? null}
-      stepText={stepText}
-      isReviewing={isReviewing}
-      progressText={progressText}
-      confirming={confirmingStageId === displayedStageId}
-      isClosed={isClosed}
-      isConfirmable={isConfirmable}
-      evidence={evidence}
-      inputs={workspaceInputs}
-      onConfirm={() => onConfirmStage(displayedStageId)}
-      onBackToCurrent={onBack}
-    />
-  );
 };
