@@ -72,24 +72,19 @@ export type MonthlyCloseInput = z.infer<typeof monthlyCloseInputSchema>;
 
 export interface DisplayedStageTarget {
   isClosed: boolean;
-  isPaused: boolean;
-  reviewSourceStageId: CloseStageId | null;
   viewingStageId: CloseStageId | null;
   currentStageId: CloseStageId | null;
 }
 
 const padStep = (value: number): string => value.toString().padStart(2, '0');
 
-/** The stage the workspace should show: the reviewed one when paused, else the viewed or current one. */
+/** The stage the workspace should show: the viewed or walk-position stage; never the lock. */
 export const resolveDisplayedStageId = ({
   isClosed,
-  isPaused,
-  reviewSourceStageId,
   viewingStageId,
   currentStageId,
 }: DisplayedStageTarget): CloseStageId | null => {
   if (isClosed) return null;
-  if (isPaused) return reviewSourceStageId ?? currentStageId;
   return viewingStageId ?? currentStageId;
 };
 
@@ -112,4 +107,15 @@ export const resolveStepText = (
   const index = stages.findIndex((stage) => stage.stageId === displayedStageId);
   if (index === -1) return null;
   return `${padStep(index + 1)} ${stages[index].label}`;
+};
+
+/** GO TO while paused resets the target stage and everything after it (ADR-0070). */
+export const resolveGoToResetRange = (
+  stages: { stageId: CloseStageId }[],
+  targetStageId: CloseStageId,
+  totalCount: number,
+): string => {
+  const index = stages.findIndex((stage) => stage.stageId === targetStageId);
+  const fromStep = index === -1 ? 1 : index + 1;
+  return `${padStep(fromStep)}-${padStep(totalCount)}`;
 };

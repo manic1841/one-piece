@@ -73,6 +73,7 @@ export const useMonthlyClosePage = ({
     start,
     reopen,
     confirmStage,
+    resetStagesFrom,
     refreshStageEvidence,
   } = useMonthlyClose({ householdId, userEmail });
   const [viewingStageId, setViewingStageId] = useState<CloseStageId | null>(null);
@@ -162,8 +163,6 @@ export const useMonthlyClosePage = ({
     : (pageVM.stages.find((stage) => !stage.isCompleted)?.stageId ?? null);
   const displayedStageId = resolveDisplayedStageId({
     isClosed: pageVM.isClosed,
-    isPaused: pageVM.isPaused,
-    reviewSourceStageId: pageVM.reviewSourceStageId,
     viewingStageId,
     currentStageId,
   });
@@ -290,9 +289,27 @@ export const useMonthlyClosePage = ({
     refreshStageEvidence,
   });
 
-  const handleGoToStage = useCallback((stageId: string) => {
-    setViewingStageId(stageId as CloseStageId);
-  }, []);
+  const handleGoToStage = useCallback(
+    (stageId: string) => {
+      setViewingStageId(stageId as CloseStageId);
+    },
+    [],
+  );
+
+  const handleGoToStageWithReset = useCallback(
+    async (stageId: string) => {
+      handleGoToStage(stageId);
+      await resetStagesFrom(stageId as CloseStageId);
+      await refreshStageEvidence();
+    },
+    [handleGoToStage, refreshStageEvidence, resetStagesFrom],
+  );
+
+  const isWalkPositionStage = useCallback(
+    (stageId: string) =>
+      pageVM.isPaused ? stageId === currentStageId : stageId !== null,
+    [currentStageId, pageVM.isPaused],
+  );
 
   const handleClosePeriod = useCallback(async () => {
     await handleConfirmStage('CLOSE_PERIOD');
@@ -343,6 +360,8 @@ export const useMonthlyClosePage = ({
     closeSummaryVM,
     financialResult,
     handleGoToStage,
+    handleGoToStageWithReset,
+    isWalkPositionStage,
     handleClosePeriod,
     drawer,
     drawerForm,

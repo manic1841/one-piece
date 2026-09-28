@@ -16,6 +16,8 @@ interface CloseSummaryPanelProps {
   summary: CloseSummaryVM;
   onClose: () => void;
   confirming: boolean;
+  /** While paused, only the walk position's confirm button is enabled (ADR-0070). */
+  isConfirmable: boolean;
 }
 
 const financialRows: { key: keyof FinancialResultVM; label: string }[] = [
@@ -30,6 +32,7 @@ export const CloseSummaryPanel: React.FC<CloseSummaryPanelProps> = ({
   summary,
   onClose,
   confirming,
+  isConfirmable,
 }) => {
   const { confirm: confirmDialog } = useConfirm();
 
@@ -141,7 +144,7 @@ export const CloseSummaryPanel: React.FC<CloseSummaryPanelProps> = ({
         <Button
           data-testid="close-period-confirm"
           onClick={() => void handleClose()}
-          disabled={confirming}
+          disabled={confirming || !isConfirmable}
           className="h-[38px] px-[18px] text-xs font-semibold uppercase tracking-[0.08em]"
         >
           {confirming ? MONTHLY_CLOSE_LABELS.LOADING : MONTHLY_CLOSE_LABELS.SUMMARY_CLOSE_ACTION}

@@ -31,6 +31,7 @@ const renderPanel = (props?: Partial<Parameters<typeof CloseReadinessCheck>[0]>)
       onConfirm={() => {}}
       onGoToStage={() => {}}
       confirming={false}
+      isConfirmable={true}
       {...props}
     />,
   );

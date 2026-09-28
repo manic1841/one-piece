@@ -13,7 +13,11 @@ import { CloseStagePanels } from '@/ui/features/monthly_close/components/CloseSt
 import { CloseTradeDrawerSection } from '@/ui/features/monthly_close/components/CloseTradeDrawerSection';
 
 import { useMonthlyClosePage } from '../hooks/useMonthlyClosePage';
-import { type CloseStageId, isReopenablePeriod } from '../viewmodels/monthlyClose.vm';
+import {
+  type CloseStageId,
+  isReopenablePeriod,
+  resolveGoToResetRange,
+} from '../viewmodels/monthlyClose.vm';
 
 interface MonthlyClosePageProps {
   householdId?: string;
@@ -62,6 +66,8 @@ export const MonthlyClosePage: React.FC<MonthlyClosePageProps> = ({
     readinessVM,
     closeSummaryVM,
     handleGoToStage,
+    handleGoToStageWithReset,
+    isWalkPositionStage,
     handleClosePeriod,
     drawer,
     drawerForm,
@@ -71,6 +77,24 @@ export const MonthlyClosePage: React.FC<MonthlyClosePageProps> = ({
 
   const isReadOnlyPeriod = pageVM.isClosed || pageVM.isCascadeDemoted;
   const showPeriodBadge = pageVM.isStarted && !isReadOnlyPeriod;
+
+  const handleExceptionGoToStage = async (stageId: string) => {
+    if (!pageVM.isPaused) {
+      handleGoToStage(stageId);
+      return;
+    }
+    const confirmed = await confirm({
+      title: MONTHLY_CLOSE_LABELS.GO_TO_RESET_TITLE,
+      consequence: MONTHLY_CLOSE_LABELS.GO_TO_RESET_CONSEQUENCE.replace(
+        '{range}',
+        resolveGoToResetRange(pageVM.stages, stageId as CloseStageId, pageVM.totalCount),
+      ),
+      confirmLabel: MONTHLY_CLOSE_LABELS.GO_TO_RESET_CONFIRM,
+      cancelLabel: MONTHLY_CLOSE_LABELS.CANCEL,
+    });
+    if (!confirmed) return;
+    await handleGoToStageWithReset(stageId);
+  };
 
   const handleStart = async () => {
     const result = await start();
@@ -213,6 +237,7 @@ export const MonthlyClosePage: React.FC<MonthlyClosePageProps> = ({
                   isReviewing={isReviewing}
                   progressText={positionText}
                   isClosed={pageVM.isClosed}
+                  isConfirmable={isWalkPositionStage(displayedStage.stageId)}
                   evidence={
                     <CloseStageEvidenceList evidence={evidenceFor(displayedStage.stageId)} />
                   }
@@ -236,7 +261,7 @@ export const MonthlyClosePage: React.FC<MonthlyClosePageProps> = ({
                   onGenerate={() => void handleConfirmStage('FINANCIAL_REPORTS')}
                   onBack={() => setViewingStageId(null)}
                   onConfirmStage={(stageId) => void handleConfirmStage(stageId as CloseStageId)}
-                  onGoToStage={handleGoToStage}
+                  onGoToStage={(stageId) => void handleExceptionGoToStage(stageId)}
                   onClosePeriod={() => void handleClosePeriod()}
                   onOpenTradeDrawer={(kind, row) => drawer.open(kind, row ? 'EDIT' : 'ADD', row)}
                 />

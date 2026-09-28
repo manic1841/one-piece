@@ -472,9 +472,10 @@ describe('monthlyCloseWorkflowUseCase — emulator integration', () => {
     expect(period?.reviewSourceStageId).toBe('COMPLETENESS_CHECK');
     expect(period?.stages.COMPLETENESS_CHECK.status).toBe('PENDING');
 
-    // Close Period is refused while the review is unresolved.
+    // Close Period is refused while the review is unresolved: the walk position
+    // is earlier in the pipeline (ADR-0070), so the guard rejects the jump.
     await expect(confirmStage('CLOSE_PERIOD', {})).rejects.toMatchObject({
-      code: 'NEEDS_REVIEW_BLOCKED',
+      code: 'STAGE_NOT_WALK_POSITION',
     });
 
     // Resolving the review completes the stage without re-running the check.
@@ -556,16 +557,21 @@ describe('monthlyCloseWorkflowUseCase — emulator integration', () => {
     expect(cascade?.reviewSourceStageId).toBeNull();
     expect(cascade?.stages.FINANCIAL_REPORTS?.status).toBe('COMPLETED');
 
-    // Recovery: the demoted period reopens through the same path.
+    // Recovery: the demoted period reopens through the same path. A cascade
+    // demotion means the close may rest on pre-correction history, so every
+    // stage resets to PENDING and the period stays NEEDS_REVIEW (ADR-0070):
+    // recovery is a forced sequential walk from the first stage.
     const recovered = await monthlyCloseWorkflowUseCase.reopen({
       householdId: householdId,
       yearMonth: '2026-04',
       userEmail: 'user@example.com',
       auth,
     });
-    expect(recovered.status).toBe('IN_PROGRESS');
-    expect(recovered.stages.FINANCIAL_REPORTS?.status).toBe('PENDING');
-    expect(recovered.stages.CLOSE_PERIOD?.status).toBe('PENDING');
+    expect(recovered.status).toBe('NEEDS_REVIEW');
+    expect(recovered.reviewSourceStageId).toBeNull();
+    for (const stageId of CLOSE_STAGE_IDS) {
+      expect(recovered.stages[stageId]?.status).toBe('PENDING');
+    }
   });
 
   it('re-confirms portfolio cash flows with the booked flows instead of zero-filling', async () => {

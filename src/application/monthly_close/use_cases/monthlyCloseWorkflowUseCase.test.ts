@@ -266,10 +266,11 @@ describe('MonthlyCloseWorkflowUseCase.reopen', () => {
 
     const reopened = await useCase.reopen(REQUEST_BASE);
 
-    expect(reopened.status).toBe('IN_PROGRESS');
+    expect(reopened.status).toBe('NEEDS_REVIEW');
+    expect(reopened.reviewSourceStageId).toBeNull();
     expect(reopened.stages.FINANCIAL_REPORTS?.status).toBe('PENDING');
     expect(reopened.stages.CLOSE_PERIOD?.status).toBe('PENDING');
-    expect(reopened.stages.ACCOUNT_BALANCE?.status).toBe('COMPLETED');
+    expect(reopened.stages.ACCOUNT_BALANCE?.status).toBe('PENDING');
   });
 
   it('rejects reopening a period that has not started', async () => {
@@ -286,6 +287,58 @@ describe('MonthlyCloseWorkflowUseCase.reopen', () => {
     await expect(useCase.reopen(REQUEST_BASE)).rejects.toMatchObject({
       code: MonthlyCloseCommandErrorCode.PERIOD_NOT_REOPENABLE,
     });
+  });
+});
+
+describe('MonthlyCloseWorkflowUseCase.resetStagesFrom', () => {
+  let useCase: MonthlyCloseWorkflowUseCase;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(saveFinancialPeriodUseCase.execute).mockResolvedValue(undefined);
+    vi.mocked(getFinancialPeriodUseCase.execute).mockResolvedValue(basePeriod());
+    useCase = new MonthlyCloseWorkflowUseCase();
+  });
+
+  it('resets the given stage and later stages while preserving the pause', async () => {
+    const period = basePeriod({ status: 'NEEDS_REVIEW', reviewSourceStageId: null });
+    for (const stageId of Object.keys(period.stages)) {
+      period.stages[stageId] = {
+        status: 'COMPLETED',
+        confirmedBy: 'user@test.com',
+        confirmedAt: new Date(),
+      };
+    }
+    vi.mocked(getFinancialPeriodUseCase.execute).mockResolvedValue(period);
+
+    const result = await useCase.resetStagesFrom({ ...REQUEST_BASE, fromStageId: 'SECURITIES_TRADE' });
+
+    expect(result.status).toBe('NEEDS_REVIEW');
+    expect(result.reviewSourceStageId).toBeNull();
+    expect(result.stages.ACCOUNT_BALANCE?.status).toBe('COMPLETED');
+    expect(result.stages.TRANSACTION_VALIDATION?.status).toBe('COMPLETED');
+    expect(result.stages.SECURITIES_TRADE?.status).toBe('PENDING');
+    expect(result.stages.CLOSE_PERIOD?.status).toBe('PENDING');
+    expect(saveFinancialPeriodUseCase.execute).toHaveBeenCalledWith(
+      expect.objectContaining({
+        period: expect.objectContaining({ status: 'NEEDS_REVIEW' }),
+      }),
+    );
+  });
+
+  it('rejects reset when the period is not paused', async () => {
+    await expect(
+      useCase.resetStagesFrom({ ...REQUEST_BASE, fromStageId: 'ACCOUNT_BALANCE' }),
+    ).rejects.toMatchObject({ code: MonthlyCloseCommandErrorCode.PERIOD_NOT_PAUSED });
+    expect(saveFinancialPeriodUseCase.execute).not.toHaveBeenCalled();
+  });
+
+  it('rejects reset before the period is started', async () => {
+    vi.mocked(getFinancialPeriodUseCase.execute).mockResolvedValue(null);
+
+    await expect(
+      useCase.resetStagesFrom({ ...REQUEST_BASE, fromStageId: 'ACCOUNT_BALANCE' }),
+    ).rejects.toMatchObject({ code: MonthlyCloseCommandErrorCode.PERIOD_NOT_STARTED });
   });
 });
 
@@ -650,14 +703,29 @@ describe('MonthlyCloseWorkflowUseCase.confirmStage', () => {
   });
 
   it('completes the stage when the review source stage is confirmed without re-running the check', async () => {
-    vi.mocked(getFinancialPeriodUseCase.execute).mockResolvedValue(
-      basePeriod({ status: 'NEEDS_REVIEW', reviewSourceStageId: 'COMPLETENESS_CHECK' }),
-    );
+    const period = basePeriod({ status: 'NEEDS_REVIEW', reviewSourceStageId: 'COMPLETENESS_CHECK' });
+    for (const stageId of [
+      'ACCOUNT_BALANCE',
+      'TRANSACTION_VALIDATION',
+      'SECURITIES_TRADE',
+      'PORTFOLIO_CASH_FLOW',
+      'PROJECT_SETTLEMENT',
+      'DEBT_REPAYMENT',
+    ] as const) {
+      period.stages[stageId] = {
+        status: 'COMPLETED',
+        confirmedBy: 'user@test.com',
+        confirmedAt: new Date(),
+      };
+    }
+    vi.mocked(getFinancialPeriodUseCase.execute).mockResolvedValue(period);
 
-    const period = await useCase.confirmStage({ ...REQUEST_BASE, stageId: 'COMPLETENESS_CHECK' });
+    const result = await useCase.confirmStage({ ...REQUEST_BASE, stageId: 'COMPLETENESS_CHECK' });
 
-    expect(period.status).toBe('IN_PROGRESS');
-    expect(period.reviewSourceStageId).toBeNull();
+    expect(result.status).toBe('IN_PROGRESS');
+    expect(result.reviewSourceStageId).toBeNull();
+    expect(result.stages.FINANCIAL_REPORTS?.status).toBe('PENDING');
+    expect(result.stages.CLOSE_PERIOD?.status).toBe('PENDING');
     expect(checkSettlementCompletenessUseCase.execute).not.toHaveBeenCalled();
   });
 
@@ -672,19 +740,14 @@ describe('MonthlyCloseWorkflowUseCase.confirmStage', () => {
     });
   });
 
-  it('rejects the reports stage while the period needs review', async () => {
+  it('rejects the reports stage while the period needs review before the walk position', async () => {
     vi.mocked(getFinancialPeriodUseCase.execute).mockResolvedValue(
       basePeriod({ status: 'NEEDS_REVIEW', reviewSourceStageId: 'COMPLETENESS_CHECK' }),
     );
 
     await expect(
       useCase.confirmStage({ ...REQUEST_BASE, stageId: 'FINANCIAL_REPORTS' }),
-    ).rejects.toEqual(
-      new MonthlyCloseCommandError(
-        MonthlyCloseCommandErrorCode.NEEDS_REVIEW_BLOCKED,
-        'resolve the review before confirming this stage',
-      ),
-    );
+    ).rejects.toMatchObject({ code: MonthlyCloseCommandErrorCode.STAGE_NOT_WALK_POSITION });
     expect(generateFinancialReportsUseCase.execute).not.toHaveBeenCalled();
   });
 
@@ -693,6 +756,9 @@ describe('MonthlyCloseWorkflowUseCase.confirmStage', () => {
       isPersisted: false,
       timestamps: {},
     } as any);
+    vi.mocked(getFinancialPeriodUseCase.execute).mockResolvedValue(
+      completeStage(basePeriod(), 'FINANCIAL_REPORTS'),
+    );
 
     await expect(
       useCase.confirmStage({ ...REQUEST_BASE, stageId: 'CLOSE_PERIOD' }),
@@ -700,6 +766,23 @@ describe('MonthlyCloseWorkflowUseCase.confirmStage', () => {
       new MonthlyCloseCommandError(
         MonthlyCloseCommandErrorCode.REPORTS_NOT_PERSISTED,
         'all three reports must be persisted before closing',
+      ),
+    );
+    expect(saveFinancialPeriodUseCase.execute).not.toHaveBeenCalled();
+  });
+
+  it('rejects close when the reports stage has not been confirmed', async () => {
+    vi.mocked(getReportPersistenceStateUseCase.execute).mockResolvedValue({
+      isPersisted: true,
+      timestamps: {},
+    } as any);
+
+    await expect(
+      useCase.confirmStage({ ...REQUEST_BASE, stageId: 'CLOSE_PERIOD' }),
+    ).rejects.toEqual(
+      new MonthlyCloseCommandError(
+        MonthlyCloseCommandErrorCode.REPORTS_NOT_PERSISTED,
+        'financial reports must be confirmed before closing',
       ),
     );
     expect(saveFinancialPeriodUseCase.execute).not.toHaveBeenCalled();
@@ -722,19 +805,14 @@ describe('MonthlyCloseWorkflowUseCase.confirmStage', () => {
     );
   });
 
-  it('rejects the close stage while the period needs review', async () => {
+  it('rejects the close stage while the period needs review before the walk position', async () => {
     vi.mocked(getFinancialPeriodUseCase.execute).mockResolvedValue(
       basePeriod({ status: 'NEEDS_REVIEW', reviewSourceStageId: 'COMPLETENESS_CHECK' }),
     );
 
     await expect(
       useCase.confirmStage({ ...REQUEST_BASE, stageId: 'CLOSE_PERIOD' }),
-    ).rejects.toEqual(
-      new MonthlyCloseCommandError(
-        MonthlyCloseCommandErrorCode.NEEDS_REVIEW_BLOCKED,
-        'resolve the review before confirming this stage',
-      ),
-    );
+    ).rejects.toMatchObject({ code: MonthlyCloseCommandErrorCode.STAGE_NOT_WALK_POSITION });
     expect(getReportPersistenceStateUseCase.execute).not.toHaveBeenCalled();
   });
 

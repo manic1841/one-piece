@@ -11,6 +11,8 @@ interface CloseReadinessCheckProps {
   onConfirm: () => void;
   onGoToStage: (stageId: ReadinessExceptionVM['stageId']) => void;
   confirming: boolean;
+  /** While paused, only the walk position's confirm button is enabled (ADR-0070). */
+  isConfirmable: boolean;
 }
 
 export const CloseReadinessCheck: React.FC<CloseReadinessCheckProps> = ({
@@ -18,6 +20,7 @@ export const CloseReadinessCheck: React.FC<CloseReadinessCheckProps> = ({
   onConfirm,
   onGoToStage,
   confirming,
+  isConfirmable,
 }) => {
   return (
     <section className="space-y-4 pt-8" data-testid="close-readiness-check">
@@ -89,7 +92,7 @@ export const CloseReadinessCheck: React.FC<CloseReadinessCheckProps> = ({
         <Button
           data-testid="readiness-confirm"
           onClick={onConfirm}
-          disabled={confirming || !readiness.isReady}
+          disabled={confirming || !readiness.isReady || !isConfirmable}
           className="h-[38px] px-[18px] text-xs font-semibold uppercase tracking-[0.08em]"
         >
           {confirming ? MONTHLY_CLOSE_LABELS.LOADING : MONTHLY_CLOSE_LABELS.RECONFIRM_ACTION}

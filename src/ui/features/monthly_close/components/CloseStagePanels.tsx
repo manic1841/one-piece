@@ -43,6 +43,8 @@ interface SpecialPanelContext {
   householdId: string;
   selectedYearMonth: string;
   confirming: boolean;
+  /** While paused, only the walk position's confirm button is enabled (ADR-0070). */
+  isConfirmable: boolean;
   readinessVM: ReadinessVM | null;
   closeSummaryVM: CloseSummaryVM | null;
   reportsPersisted: boolean | null;
@@ -59,19 +61,21 @@ interface SpecialPanelContext {
 // SpecialStageId forces an entry for every special stage. A factory returns
 // null when its data has not loaded yet (readiness VM, close summary).
 const SPECIAL_PANELS: Record<SpecialStageId, (ctx: SpecialPanelContext) => React.ReactNode> = {
-  COMPLETENESS_CHECK: ({ readinessVM, confirming, onConfirmStage, onGoToStage }) =>
+  COMPLETENESS_CHECK: ({ readinessVM, confirming, isConfirmable, onConfirmStage, onGoToStage }) =>
     readinessVM ? (
       <CloseReadinessCheck
         readiness={readinessVM}
         onConfirm={() => onConfirmStage('COMPLETENESS_CHECK')}
         onGoToStage={onGoToStage}
         confirming={confirming}
+        isConfirmable={isConfirmable}
       />
     ) : null,
   FINANCIAL_REPORTS: ({
     householdId,
     selectedYearMonth,
     confirming,
+    isConfirmable,
     reportsPersisted,
     onContinue,
     onGenerate,
@@ -85,12 +89,18 @@ const SPECIAL_PANELS: Record<SpecialStageId, (ctx: SpecialPanelContext) => React
       onGenerate={onGenerate}
       onBack={onBack}
       confirming={confirming}
+      isConfirmable={isConfirmable}
       isGenerated={reportsPersisted ?? false}
     />
   ),
-  CLOSE_PERIOD: ({ closeSummaryVM, confirming, onClosePeriod }) =>
+  CLOSE_PERIOD: ({ closeSummaryVM, confirming, isConfirmable, onClosePeriod }) =>
     closeSummaryVM ? (
-      <CloseSummaryPanel summary={closeSummaryVM} onClose={onClosePeriod} confirming={confirming} />
+      <CloseSummaryPanel
+        summary={closeSummaryVM}
+        onClose={onClosePeriod}
+        confirming={confirming}
+        isConfirmable={isConfirmable}
+      />
     ) : null,
 };
 
@@ -110,6 +120,8 @@ interface CloseStagePanelsProps {
   isReviewing: boolean;
   progressText: string;
   isClosed: boolean;
+  /** While paused, only the walk position's confirm button is enabled (ADR-0070). */
+  isConfirmable: boolean;
   /** The displayed stage's evidence list; workspace stages render it above the inputs. */
   evidence: React.ReactNode;
   accounts: Account[];
@@ -150,6 +162,7 @@ export const CloseStagePanels: React.FC<CloseStagePanelsProps> = ({
   isReviewing,
   progressText,
   isClosed,
+  isConfirmable,
   evidence,
   accounts,
   accountSnapshots,
@@ -181,6 +194,7 @@ export const CloseStagePanels: React.FC<CloseStagePanelsProps> = ({
       householdId,
       selectedYearMonth,
       confirming: confirmingStageId === displayedStageId,
+      isConfirmable,
       readinessVM,
       closeSummaryVM,
       reportsPersisted,
@@ -223,6 +237,7 @@ export const CloseStagePanels: React.FC<CloseStagePanelsProps> = ({
       progressText={progressText}
       confirming={confirmingStageId === displayedStageId}
       isClosed={isClosed}
+      isConfirmable={isConfirmable}
       evidence={evidence}
       inputs={workspaceInputs}
       onConfirm={() => onConfirmStage(displayedStageId)}

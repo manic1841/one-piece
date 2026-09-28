@@ -38,7 +38,13 @@ const summaryVM: CloseSummaryVM = {
 
 const renderPanel = (props?: Partial<Parameters<typeof CloseSummaryPanel>[0]>) =>
   render(
-    <CloseSummaryPanel summary={summaryVM} onClose={() => {}} confirming={false} {...props} />,
+    <CloseSummaryPanel
+      summary={summaryVM}
+      onClose={() => {}}
+      confirming={false}
+      isConfirmable={true}
+      {...props}
+    />,
   );
 
 describe('CloseSummaryPanel', () => {

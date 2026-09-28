@@ -12,6 +12,8 @@ interface CloseWorkspaceProps {
   progressText: string;
   confirming: boolean;
   isClosed: boolean;
+  /** While paused, only the walk position is confirmable (ADR-0070). */
+  isConfirmable: boolean;
   evidence: React.ReactNode;
   inputs: React.ReactNode;
   onConfirm: () => void;
@@ -25,6 +27,7 @@ export const CloseWorkspace: React.FC<CloseWorkspaceProps> = ({
   progressText,
   confirming,
   isClosed,
+  isConfirmable,
   evidence,
   inputs,
   onConfirm,
@@ -68,7 +71,7 @@ export const CloseWorkspace: React.FC<CloseWorkspaceProps> = ({
         <div className="flex items-center justify-end gap-3 border-t border-border pt-[26px]">
           <Button
             size="sm"
-            disabled={confirming}
+            disabled={confirming || !isConfirmable}
             onClick={onConfirm}
             className="h-[38px] px-[18px] active:scale-[0.97]"
           >
