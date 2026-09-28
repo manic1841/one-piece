@@ -8,8 +8,6 @@ import { Card, CardContent } from '@/ui/components/ui/card';
 import { MONTHLY_CLOSE_LABELS } from '@/ui/constants/monthlyClose';
 import { useConfirm } from '@/ui/features/app/confirm/useConfirm';
 import { ClosePipeline } from '@/ui/features/monthly_close/components/ClosePipeline';
-import { CloseStagePanels } from '@/ui/features/monthly_close/components/CloseStagePanels';
-import { CloseTradeDrawerSection } from '@/ui/features/monthly_close/components/CloseTradeDrawerSection';
 
 import { useMonthlyClosePage } from '../hooks/useMonthlyClosePage';
 import {
@@ -31,45 +29,22 @@ export const MonthlyClosePage: React.FC<MonthlyClosePageProps> = ({
     householdId,
     pageVM,
     selectedYearMonth,
-    confirmingStageId,
     isStarting,
     error,
     setViewingStageId,
     currentStageId,
     displayedStageId,
     displayedStage,
-    isReviewing,
-    displayedStepText,
     positionText,
-    reportsPersisted,
-    accounts,
-    accountSnapshots,
-    portfolioSnapshots,
-    portfolios,
-    projects,
-    debtSectionMetas,
-    accountBalances,
-    setAccountBalances,
-    securities,
-    financing,
-    portfolioCashFlows,
-    setPortfolioCashFlows,
-    repayments,
-    setRepayments,
+    stepRegistry,
+    stageContext,
+    evidenceFor,
     selectYearMonth,
     start,
     reopen,
     refreshStageEvidence,
-    evidenceFor,
-    handleConfirmStage,
-    readinessVM,
-    closeSummaryVM,
     handleGoToStage,
     handleGoToStageWithReset,
-    isWalkPositionStage,
-    handleClosePeriod,
-    drawer,
-    drawerForm,
   } = useMonthlyClosePage({ householdId: householdIdProp, userEmail: userEmailProp });
 
   const { confirm } = useConfirm();
@@ -222,59 +197,16 @@ export const MonthlyClosePage: React.FC<MonthlyClosePageProps> = ({
                 onSelectStage={(stageId) => setViewingStageId(stageId as CloseStageId)}
               />
 
-              {displayedStage && (
-                <CloseStagePanels
-                  displayedStageId={displayedStage.stageId}
-                  householdId={householdId}
-                  selectedYearMonth={selectedYearMonth}
-                  confirmingStageId={confirmingStageId}
-                  readinessVM={readinessVM}
-                  closeSummaryVM={closeSummaryVM}
-                  reportsPersisted={reportsPersisted}
-                  stage={displayedStage}
-                  stepText={displayedStepText ?? positionText}
-                  isReviewing={isReviewing}
-                  progressText={positionText}
-                  isConfirmable={isWalkPositionStage(displayedStage.stageId)}
-                  evidence={evidenceFor(displayedStage.stageId)}
-                  accounts={accounts}
-                  accountSnapshots={accountSnapshots}
-                  portfolioSnapshots={portfolioSnapshots}
-                  portfolios={portfolios.map((portfolio) => ({
-                    id: portfolio.id,
-                    name: portfolio.name,
-                  }))}
-                  debtSectionMetas={debtSectionMetas}
-                  accountBalances={accountBalances}
-                  setAccountBalances={setAccountBalances}
-                  securities={securities}
-                  financing={financing}
-                  portfolioCashFlows={portfolioCashFlows}
-                  setPortfolioCashFlows={setPortfolioCashFlows}
-                  repayments={repayments}
-                  setRepayments={setRepayments}
-                  onContinue={() => setViewingStageId('CLOSE_PERIOD')}
-                  onGenerate={() => void handleConfirmStage('FINANCIAL_REPORTS')}
-                  onBack={() => setViewingStageId(null)}
-                  onConfirmStage={(stageId) => void handleConfirmStage(stageId as CloseStageId)}
-                  onGoToStage={(stageId) => void handleExceptionGoToStage(stageId)}
-                  onClosePeriod={() => void handleClosePeriod()}
-                  onOpenTradeDrawer={(kind, row) => drawer.open(kind, row ? 'EDIT' : 'ADD', row)}
-                />
-              )}
+              {displayedStage &&
+                stepRegistry[displayedStage.stageId]?.render(
+                  {
+                    ...stageContext,
+                    onGoToStage: (stageId) => void handleExceptionGoToStage(stageId),
+                  },
+                  evidenceFor(displayedStage.stageId),
+                )}
             </div>
           )}
-
-          <CloseTradeDrawerSection
-            kind={drawer.state.kind}
-            mode={drawer.state.mode}
-            form={drawerForm.form}
-            projects={projects.map((project) => ({ id: project.id, name: project.name }))}
-            submitting={confirmingStageId !== null}
-            onConfirm={drawerForm.submit}
-            onCancel={drawer.close}
-            onDelete={drawer.deleteRow}
-          />
         </>
       )}
     </div>

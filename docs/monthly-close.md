@@ -55,6 +55,13 @@
 - 階段順序依賴在非暫停期間**僅為 UI 引導**，系統不強制；`NEEDS_REVIEW` 期間確認順序由行走規則強制（見 §2）。唯一的硬性條件是 **Close Period 需要 Financial Reports 階段已確認且三張報表已產生**。
 - 建立的是既有合法事件（快照與交易）；關帳工作流與期間狀態本身不是財務事件。
 
+### UI 組構：大一統步驟 registry
+
+- **`useCloseStepRegistry` 是唯一列出全部九個步驟的檔案**：九個 step hooks 在 hook 內無條件呼叫（rules of hooks 不依賴條件分派），回傳 `Record<CloseStageId, CloseStepDefinition>`，TypeScript 強制每個階段都有條目。新增步驟 = 一個 step hook + 一個 registry 條目。
+- **`CloseStepDefinition` 條目 = control + content factory + evidence builder**：`control` 是該階段的 stage controller（`closeStageControl` 契約，頁面只對契約分派：`buildRequest` / `shouldBlock` / `confirmGate` / `afterConfirm` / `resetDraft`）；`render(ctx, evidence)` 是 content factory，把共享 context 映射到 step 元件的窄 props，資料未載入時回傳 `null`；`evidence` 是純函式 builder，從頁面載入的原始輸入建構該階段證據。
+- **消費邊界**：page hook（`useMonthlyClosePage`）讀 registry 做「確認提交路徑」與「月切換 resetDraft 迭代」；page 元件只渲染 `registry[displayedStageId].render(stageContext, evidenceFor(stageId))`，不再認得任何 step 的內部。跨 step 共享的資料（實體清單、evidence 原始輸入、就緒狀態、報表 bundle、close summary）由 page hook 持有，以 context 傳入；單階段資料（draft、prefill、drawer）留在 step hook 內。證券買入／賣出的 add-edit drawer 是 step 自有內容，由 SECURITIES_TRADE 條目的 content factory 一併渲染，不從 page 掛載。
+- **月切換清空草稿**：頁面迭代 registry 的 control record 呼叫 `resetDraft()`；新 draft-bearing 步驟註冊自己的 reset，頁面不分支。
+
 ## 4. 各階段的資料邊界
 
 | 階段               | 確認時建立什麼                                                                                                                                                                                                                                                                                                                                                            |

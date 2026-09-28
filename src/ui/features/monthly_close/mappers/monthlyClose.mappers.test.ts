@@ -10,7 +10,6 @@ import {
   mapPeriodToPageVM,
   mapPersistenceToEvidence,
   mapProjectSettlementsToEvidence,
-  resolveEvidenceForStage,
 } from './monthlyClose.mappers';
 
 const authPeriod = (overrides: Partial<FinancialPeriod> = {}): FinancialPeriod => ({
@@ -126,27 +125,5 @@ describe('evidence mappers', () => {
     expect(evidence.kind).toBe('PROJECT_SETTLEMENT');
     expect(evidence.projectSettlements).toHaveLength(2);
     expect(evidence.projectSettlements[0]?.settled).toBe(true);
-  });
-
-  it('resolves PROJECT_SETTLEMENT evidence from stage inputs', () => {
-    const evidence = resolveEvidenceForStage('PROJECT_SETTLEMENT', {
-      anomalies: [],
-      transactionIssues: [],
-      cashFlowAdjustment: null,
-      reportsPersisted: null,
-      projectSettlements: [
-        {
-          projectId: 'project-1',
-          projectName: '裝修',
-          settled: false,
-          income: null,
-          expense: null,
-          closingBalance: null,
-        },
-      ],
-    });
-
-    expect(evidence.kind).toBe('PROJECT_SETTLEMENT');
-    expect(evidence.projectSettlements[0]?.projectName).toBe('裝修');
   });
 });

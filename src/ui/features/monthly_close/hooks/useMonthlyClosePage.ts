@@ -10,11 +10,12 @@ import { type CloseStageId } from '@/domains/financial_period/schemas';
 import { type Portfolio } from '@/domains/portfolio/schemas';
 import { type Project } from '@/domains/project/schemas';
 import { useAuthState } from '@/ui/contexts/useAuthState';
+import {
+  type CloseStepContext,
+  useCloseStepRegistry,
+} from '@/ui/features/monthly_close/hooks/useCloseStepRegistry';
 import { useCloseSummaryVM } from '@/ui/features/monthly_close/hooks/useCloseSummaryVM';
 import { useMonthlyClose } from '@/ui/features/monthly_close/hooks/useMonthlyClose';
-import { useTradeDrawer } from '@/ui/features/monthly_close/hooks/useTradeDrawer';
-import { useTradeDrawerForm } from '@/ui/features/monthly_close/hooks/useTradeDrawerForm';
-import { resolveEvidenceForStage } from '@/ui/features/monthly_close/mappers/monthlyClose.mappers';
 import {
   resolveDisplayedStageId,
   resolvePositionText,
@@ -22,14 +23,7 @@ import {
 } from '@/ui/features/monthly_close/viewmodels/monthlyClose.vm';
 import { useAuthIdentity } from '@/ui/hooks/useAuthIdentity';
 
-import { useAccountBalanceStage } from '../stages/account_balance/hooks/useAccountBalanceStage';
-import { useDebtRepaymentStage } from '../stages/debt_repayment/hooks/useDebtRepaymentStage';
-import { useFinancialReportsStage } from '../stages/financial_reports/hooks/useFinancialReportsStage';
-import { usePortfolioCashFlowStage } from '../stages/portfolio_cash_flow/hooks/usePortfolioCashFlowStage';
-import { useProjectSettlementStage } from '../stages/project_settlement/hooks/useProjectSettlementStage';
-import { useSecuritiesTradeStage } from '../stages/securities_trade/hooks/useSecuritiesTradeStage';
-import type { CloseStageControl } from './closeStageControl';
-import { useNoOpStageControl } from './useConfirmStageControl';
+import { NO_EVIDENCE } from '../mappers/monthlyClose.mappers';
 
 interface UseMonthlyClosePageArgs {
   householdId?: string;
@@ -37,11 +31,11 @@ interface UseMonthlyClosePageArgs {
 }
 
 /**
- * Owns MonthlyClosePage's data: the close workflow state, the entity lists the
- * stage inputs need, and the derived stage selection. Each stage's prefill and
- * draft state lives in its own stage controller (closeStageControl contract);
- * this hook orchestrates them behind one submit and the navigation callbacks.
- * The page keeps only layout and rendering.
+ * Owns MonthlyClosePage's workflow state: the close workflow, the entity lists
+ * the steps share, and the derived stage selection. The nine step hooks run
+ * inside the unified registry (useCloseStepRegistry), so this hook reads each
+ * stage's control, content, and evidence from the registry record instead of
+ * knowing any step's internals. The page keeps only layout and rendering.
  */
 export const useMonthlyClosePage = ({
   householdId: householdIdProp,
@@ -82,30 +76,14 @@ export const useMonthlyClosePage = ({
   const [stageRefreshKey, setStageRefreshKey] = useState(0);
   const bumpStageRefreshKey = useCallback(() => setStageRefreshKey((key) => key + 1), []);
 
-  const accountBalanceStage = useAccountBalanceStage({
+  const stepRegistry = useCloseStepRegistry({
     householdId,
     selectedYearMonth,
+    confirmingStageId,
+    stageRefreshKey,
     accounts,
-    auth,
-    confirmingStageId,
-    refreshKey: stageRefreshKey,
-  });
-  const securitiesTradeStage = useSecuritiesTradeStage({
-    householdId,
-    selectedYearMonth,
-    confirmingStageId,
-  });
-  const portfolioCashFlowStage = usePortfolioCashFlowStage({
-    householdId,
-    selectedYearMonth,
     portfolios,
-    auth,
-    confirmingStageId,
-    refreshKey: stageRefreshKey,
-  });
-  const financialReportsStage = useFinancialReportsStage({
-    householdId,
-    confirmingStageId,
+    debtAccounts,
   });
 
   useEffect(() => {
@@ -156,82 +134,34 @@ export const useMonthlyClosePage = ({
   );
   const displayedStepText = resolveStepText(pageVM.stages, displayedStageId);
 
-  // Every stage resolves through one strategy record keyed by stage ID, so the
-  // submit path reads the per-stage payload, gate, and post-confirm effects
-  // from one contract instead of branching on stage IDs.
-  const debtRepaymentStage = useDebtRepaymentStage({
-    householdId,
-    selectedYearMonth,
-    debtAccounts,
-    auth,
-    confirmingStageId,
-    refreshKey: stageRefreshKey,
-  });
-  const projectSettlementStage = useProjectSettlementStage({
-    householdId,
-    selectedYearMonth,
-    confirmingStageId,
-    refreshKey: stageRefreshKey,
-  });
-
   const evidenceFor = useCallback(
-    (stageId: string) =>
-      resolveEvidenceForStage(stageId, {
-        anomalies,
-        transactionIssues,
-        cashFlowAdjustment,
-        reportsPersisted,
-        projectSettlements: projectSettlementStage.settlements,
-      }),
-    [anomalies, cashFlowAdjustment, projectSettlementStage, reportsPersisted, transactionIssues],
-  );
-
-  const transactionValidationStage = useNoOpStageControl(
-    'TRANSACTION_VALIDATION',
-    confirmingStageId,
-  );
-  const completenessCheckStage = useNoOpStageControl('COMPLETENESS_CHECK', confirmingStageId);
-  const closePeriodStage = useNoOpStageControl('CLOSE_PERIOD', confirmingStageId);
-  const stageControls = useMemo<Record<CloseStageId, CloseStageControl>>(
-    () => ({
-      ACCOUNT_BALANCE: accountBalanceStage,
-      SECURITIES_TRADE: securitiesTradeStage,
-      PORTFOLIO_CASH_FLOW: portfolioCashFlowStage,
-      FINANCIAL_REPORTS: financialReportsStage,
-      DEBT_REPAYMENT: debtRepaymentStage,
-      TRANSACTION_VALIDATION: transactionValidationStage,
-      PROJECT_SETTLEMENT: projectSettlementStage,
-      COMPLETENESS_CHECK: completenessCheckStage,
-      CLOSE_PERIOD: closePeriodStage,
-    }),
-    [
-      accountBalanceStage,
-      closePeriodStage,
-      completenessCheckStage,
-      debtRepaymentStage,
-      financialReportsStage,
-      portfolioCashFlowStage,
-      projectSettlementStage,
-      securitiesTradeStage,
-      transactionValidationStage,
-    ],
+    (stageId: string) => {
+      const step = stepRegistry[stageId as CloseStageId];
+      if (!step) return NO_EVIDENCE;
+      return step.evidence(
+        { anomalies, transactionIssues, cashFlowAdjustment, reportsPersisted },
+        stepRegistry.PROJECT_SETTLEMENT.control.settlements,
+      );
+    },
+    [anomalies, cashFlowAdjustment, reportsPersisted, stepRegistry, transactionIssues],
   );
 
   // Stage inputs are submitted with the selected month's confirmation, so a
-  // month switch retires every stage draft through the strategy record; the
-  // next month's tables then prefill.
+  // month switch retires every stage draft through the registry; the next
+  // month's tables then prefill.
   const handleSelectYearMonth = useCallback(
     (yearMonth: string) => {
       selectYearMonth(yearMonth);
-      for (const control of Object.values(stageControls)) control.resetDraft();
+      for (const step of Object.values(stepRegistry)) step.control.resetDraft();
     },
-    [selectYearMonth, stageControls],
+    [selectYearMonth, stepRegistry],
   );
 
   const handleConfirmStage = useCallback(
     async (stageId: CloseStageId) => {
-      const control = stageControls[stageId];
-      if (!control) return;
+      const step = stepRegistry[stageId];
+      if (!step) return;
+      const { control } = step;
       if (control.shouldBlock()) return;
       if (control.confirmGate && !(await control.confirmGate())) return;
       const result = await confirmStage(control.buildRequest());
@@ -242,36 +172,20 @@ export const useMonthlyClosePage = ({
       bumpStageRefreshKey();
       await refreshStageEvidence();
     },
-    [bumpStageRefreshKey, confirmStage, refreshStageEvidence, stageControls],
+    [bumpStageRefreshKey, confirmStage, refreshStageEvidence, stepRegistry],
   );
 
-  const drawer = useTradeDrawer({
-    securities: securitiesTradeStage.securities,
-    financing: securitiesTradeStage.financing,
-    setSecurities: securitiesTradeStage.setSecurities,
-    setFinancing: securitiesTradeStage.setFinancing,
-    removedTransactionIds: securitiesTradeStage.removedTransactionIds,
-    setRemovedTransactionIds: securitiesTradeStage.setRemovedTransactionIds,
-    closeMonth: new Date(
-      Number(selectedYearMonth.slice(0, 4)),
-      Number(selectedYearMonth.slice(5, 7)) - 1,
-      15,
-    ),
-  });
+  const securitiesStage = stepRegistry.SECURITIES_TRADE;
+  const drawer = securitiesStage.control.drawer;
+  const drawerForm = securitiesStage.control.drawerForm;
 
-  const drawerForm = useTradeDrawerForm({
-    isOpen: drawer.state.kind !== null,
-    editRow: drawer.findRow(drawer.state.targetId),
-    onDraftConfirm: drawer.confirmDraft,
-  });
-
-  const { readinessVM, financialResult, closeSummaryVM } = useCloseSummaryVM({
+  const { readinessVM, closeSummaryVM } = useCloseSummaryVM({
     householdId,
     selectedYearMonth,
     readiness,
     reportBundle,
     transactionIssues,
-    securities: securitiesTradeStage.securities,
+    securities: securitiesStage.control.securities,
     anomalies,
     pageVM,
     reportsPersisted,
@@ -300,6 +214,70 @@ export const useMonthlyClosePage = ({
     await handleConfirmStage('CLOSE_PERIOD');
   }, [handleConfirmStage]);
 
+  const stageContext = useMemo<CloseStepContext>(
+    () => ({
+      householdId,
+      selectedYearMonth,
+      confirming: displayedStage ? confirmingStageId === displayedStage.stageId : false,
+      isConfirmable: displayedStage ? isWalkPositionStage(displayedStage.stageId) : false,
+      confirmedAtText: displayedStage?.confirmedAtText ?? null,
+      isReviewing,
+      progressText: positionText,
+      stepText: displayedStepText ?? positionText,
+      readinessVM,
+      closeSummaryVM,
+      reportsPersisted: reportsPersisted ?? false,
+      accounts,
+      accountSnapshots: stepRegistry.ACCOUNT_BALANCE.control.accountSnapshots,
+      portfolioSnapshots: stepRegistry.PORTFOLIO_CASH_FLOW.control.portfolioSnapshots,
+      portfolios: portfolios.map((portfolio) => ({ id: portfolio.id, name: portfolio.name })),
+      projects: projects.map((project) => ({ id: project.id, name: project.name })),
+      debtSectionMetas: stepRegistry.DEBT_REPAYMENT.control.debtSectionMetas,
+      accountBalances: stepRegistry.ACCOUNT_BALANCE.control.balances,
+      setAccountBalances: stepRegistry.ACCOUNT_BALANCE.control.setBalances,
+      securities: securitiesStage.control.securities,
+      financing: securitiesStage.control.financing,
+      portfolioCashFlows: stepRegistry.PORTFOLIO_CASH_FLOW.control.cashFlows,
+      setPortfolioCashFlows: stepRegistry.PORTFOLIO_CASH_FLOW.control.setCashFlows,
+      repayments: stepRegistry.DEBT_REPAYMENT.control.repayments,
+      setRepayments: stepRegistry.DEBT_REPAYMENT.control.setRepayments,
+      onConfirm: () => {
+        if (displayedStage) void handleConfirmStage(displayedStage.stageId);
+      },
+      onGoToStage: handleGoToStage,
+      onConfirmStage: (stageId) => void handleConfirmStage(stageId as CloseStageId),
+      onClosePeriod: () => void handleClosePeriod(),
+      onContinue: () => setViewingStageId('CLOSE_PERIOD'),
+      onGenerate: () => {
+        void handleConfirmStage('FINANCIAL_REPORTS');
+      },
+      onBack: () => setViewingStageId(null),
+      onOpenTradeDrawer: (kind, row) => drawer.open(kind, row ? 'EDIT' : 'ADD', row),
+    }),
+    [
+      accounts,
+      closeSummaryVM,
+      confirmingStageId,
+      displayedStage,
+      displayedStepText,
+      drawer,
+      handleConfirmStage,
+      handleClosePeriod,
+      handleGoToStage,
+      householdId,
+      reportsPersisted,
+      isReviewing,
+      isWalkPositionStage,
+      portfolios,
+      positionText,
+      projects,
+      readinessVM,
+      selectedYearMonth,
+      securitiesStage,
+      stepRegistry,
+    ],
+  );
+
   return {
     householdId,
     pageVM,
@@ -315,43 +293,21 @@ export const useMonthlyClosePage = ({
     isReviewing,
     positionText,
     displayedStepText,
-    accounts,
-    accountSnapshots: accountBalanceStage.accountSnapshots,
-    portfolioSnapshots: portfolioCashFlowStage.portfolioSnapshots,
-    reportsPersisted,
-    portfolios,
-    projects,
-    debtAccounts,
-    debtSectionMetas: debtRepaymentStage.debtSectionMetas,
-    accountBalances: accountBalanceStage.balances,
-    setAccountBalances: accountBalanceStage.setBalances,
-    securities: securitiesTradeStage.securities,
-    setSecurities: securitiesTradeStage.setSecurities,
-    financing: securitiesTradeStage.financing,
-    setFinancing: securitiesTradeStage.setFinancing,
-    removedTransactionIds: securitiesTradeStage.removedTransactionIds,
-    setRemovedTransactionIds: securitiesTradeStage.setRemovedTransactionIds,
-    portfolioCashFlows: portfolioCashFlowStage.cashFlows,
-    setPortfolioCashFlows: portfolioCashFlowStage.setCashFlows,
-    repayments: debtRepaymentStage.repayments,
-    setRepayments: debtRepaymentStage.setRepayments,
+    stepRegistry,
+    stageContext,
+    evidenceFor,
     selectYearMonth: handleSelectYearMonth,
     start,
     reopen,
     refreshStageEvidence,
-    evidenceFor,
     handleConfirmStage,
     readinessVM,
     closeSummaryVM,
-    financialResult,
     handleGoToStage,
     handleGoToStageWithReset,
     isWalkPositionStage,
     handleClosePeriod,
     drawer,
     drawerForm,
-    accountBalanceStage,
-    securitiesTradeStage,
-    portfolioCashFlowStage,
   };
 };

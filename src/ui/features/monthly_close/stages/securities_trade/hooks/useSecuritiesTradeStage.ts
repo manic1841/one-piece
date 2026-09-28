@@ -10,6 +10,9 @@ import {
   useConfirmStageControl,
 } from '@/ui/features/monthly_close/hooks/useConfirmStageControl';
 
+import { useTradeDrawer } from './useTradeDrawer';
+import { useTradeDrawerForm } from './useTradeDrawerForm';
+
 const toTradeRow = (transaction: {
   id: string;
   amount?: number | null;
@@ -32,9 +35,9 @@ interface UseSecuritiesTradeStageArgs {
 
 /**
  * Stage controller for SECURITIES_TRADE: owns the diff-merge draft (buys,
- * sells, financing, removed IDs), the month-transaction prefill, and the
- * empty-stage pre-confirm warning. Drafts and the trade drawer live here;
- * the page only orchestrates.
+ * sells, financing, removed IDs), the month-transaction prefill, the
+ * empty-stage pre-confirm warning, and the add-edit trade drawer with its
+ * RHF form. Drafts and the drawer live here; the page only orchestrates.
  */
 export const useSecuritiesTradeStage = ({
   householdId,
@@ -54,6 +57,11 @@ export const useSecuritiesTradeStage = ({
   >;
   removedTransactionIds: string[];
   setRemovedTransactionIds: React.Dispatch<React.SetStateAction<string[]>>;
+  /** The drawer's VM projection: state, open/close/confirm wiring, and the RHF form. */
+  drawer: ReturnType<typeof useTradeDrawer>;
+  drawerForm: ReturnType<typeof useTradeDrawerForm>;
+  /** The count of planned buys/sells the readiness check consumes (cross-stage). */
+  totalPlannedTrades: number;
 } => {
   const [securities, setSecurities] = useState<{
     buys: SecuritiesTradeInput[];
@@ -127,6 +135,26 @@ export const useSecuritiesTradeStage = ({
     },
   });
 
+  const closeMonth = new Date(
+    Number(selectedYearMonth.slice(0, 4)),
+    Number(selectedYearMonth.slice(5, 7)) - 1,
+    15,
+  );
+  const drawer = useTradeDrawer({
+    securities,
+    financing,
+    setSecurities,
+    setFinancing,
+    removedTransactionIds,
+    setRemovedTransactionIds,
+    closeMonth,
+  });
+  const drawerForm = useTradeDrawerForm({
+    isOpen: drawer.state.kind !== null,
+    editRow: drawer.findRow(drawer.state.targetId),
+    onDraftConfirm: drawer.confirmDraft,
+  });
+
   return {
     ...control,
     confirmGate,
@@ -136,5 +164,8 @@ export const useSecuritiesTradeStage = ({
     setFinancing,
     removedTransactionIds,
     setRemovedTransactionIds,
+    drawer,
+    drawerForm,
+    totalPlannedTrades: securities.buys.length + securities.sells.length,
   };
 };

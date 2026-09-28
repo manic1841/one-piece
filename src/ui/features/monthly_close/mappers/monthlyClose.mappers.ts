@@ -157,33 +157,3 @@ export const NO_EVIDENCE: CloseStageEvidence = {
   reportsPersisted: null,
   projectSettlements: [],
 };
-
-export const resolveEvidenceForStage = (
-  stageId: string,
-  inputs: {
-    anomalies: CompletenessActivity[];
-    transactionIssues: { transactionId: string; description: string; reason: string }[];
-    cashFlowAdjustment: number | null;
-    reportsPersisted: boolean | null;
-    projectSettlements?: ProjectSettlementEvidenceRow[];
-  },
-): CloseStageEvidence => {
-  switch (stageId) {
-    case 'TRANSACTION_VALIDATION':
-      return mapTransactionIssuesToEvidence(inputs.transactionIssues);
-    case 'COMPLETENESS_CHECK':
-      return mapAnomaliesToEvidence(inputs.anomalies);
-    case 'PROJECT_SETTLEMENT':
-      return mapProjectSettlementsToEvidence(inputs.projectSettlements ?? []);
-    case 'FINANCIAL_REPORTS':
-      return inputs.cashFlowAdjustment !== null
-        ? mapAdjustmentCountToEvidence(inputs.cashFlowAdjustment)
-        : NO_EVIDENCE;
-    case 'CLOSE_PERIOD':
-      return inputs.reportsPersisted !== null
-        ? mapPersistenceToEvidence(inputs.reportsPersisted)
-        : NO_EVIDENCE;
-    default:
-      return NO_EVIDENCE;
-  }
-};
