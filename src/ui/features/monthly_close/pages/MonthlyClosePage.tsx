@@ -38,19 +38,21 @@ export const MonthlyClosePage: React.FC<MonthlyClosePageProps> = ({
     positionText,
     stepRegistry,
     stageContext,
-    evidenceFor,
     selectYearMonth,
     start,
     reopen,
-    refreshStageEvidence,
+    refreshAll,
     handleGoToStage,
     handleGoToStageWithReset,
   } = useMonthlyClosePage({ householdId: householdIdProp, userEmail: userEmailProp });
 
   const { confirm } = useConfirm();
 
-  const isReadOnlyPeriod = pageVM.isClosed || pageVM.isCascadeDemoted;
-  const showPeriodBadge = pageVM.isStarted && !isReadOnlyPeriod;
+  // The picker/badge lock whenever the period can no longer be walked (closed
+  // or cascade-demoted). Distinct from the stage workspace's read-only rule,
+  // which only CLOSED triggers.
+  const isPeriodLocked = pageVM.isClosed || pageVM.isCascadeDemoted;
+  const showPeriodBadge = pageVM.isStarted && !isPeriodLocked;
 
   const handleExceptionGoToStage = async (stageId: string) => {
     if (!pageVM.isPaused) {
@@ -72,7 +74,7 @@ export const MonthlyClosePage: React.FC<MonthlyClosePageProps> = ({
 
   const handleStart = async () => {
     const result = await start();
-    await refreshStageEvidence();
+    await refreshAll();
     if (!result) return;
     if (!isReopenablePeriod(result)) return;
 
@@ -88,7 +90,7 @@ export const MonthlyClosePage: React.FC<MonthlyClosePageProps> = ({
     });
     if (confirmed) {
       await reopen();
-      await refreshStageEvidence();
+      await refreshAll();
     }
   };
 
@@ -128,7 +130,7 @@ export const MonthlyClosePage: React.FC<MonthlyClosePageProps> = ({
                   <Button
                     onClick={() => void handleStart()}
                     disabled={
-                      isStarting || (pageVM.isStarted && !isReadOnlyPeriod) || !selectedYearMonth
+                      isStarting || (pageVM.isStarted && !isPeriodLocked) || !selectedYearMonth
                     }
                     className="active:scale-[0.97]"
                   >
@@ -198,13 +200,10 @@ export const MonthlyClosePage: React.FC<MonthlyClosePageProps> = ({
               />
 
               {displayedStage &&
-                stepRegistry[displayedStage.stageId]?.render(
-                  {
-                    ...stageContext,
-                    onGoToStage: (stageId) => void handleExceptionGoToStage(stageId),
-                  },
-                  evidenceFor(displayedStage.stageId),
-                )}
+                stepRegistry[displayedStage.stageId]?.render({
+                  ...stageContext,
+                  onGoToStage: (stageId) => void handleExceptionGoToStage(stageId),
+                })}
             </div>
           )}
         </>

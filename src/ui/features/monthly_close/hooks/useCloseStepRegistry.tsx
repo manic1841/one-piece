@@ -1,13 +1,10 @@
 import React from 'react';
 
+import { type SettlementReadiness } from '@/application/report/use_cases/getSettlementReadinessUseCase';
 import { type Account } from '@/domains/account/types/account';
 import { type DebtAccount } from '@/domains/debt/schemas';
 import { type CloseStageId } from '@/domains/financial_period/schemas';
 import { type Portfolio } from '@/domains/portfolio/schemas';
-import {
-  type CloseSummaryVM,
-  type ReadinessVM,
-} from '@/ui/features/monthly_close/mappers/closeSummary.mappers';
 import {
   NO_EVIDENCE,
   mapAdjustmentCountToEvidence,
@@ -16,27 +13,15 @@ import {
   mapProjectSettlementsToEvidence,
   mapTransactionIssuesToEvidence,
 } from '@/ui/features/monthly_close/mappers/monthlyClose.mappers';
-import type {
-  AccountBalanceInput,
-  AccountSnapshot,
-} from '@/ui/features/monthly_close/viewmodels/accountBalance.vm';
-import type { DebtSectionMetaVM } from '@/ui/features/monthly_close/viewmodels/debtPayment.vm';
-import type {
-  CloseStageEvidence,
-  DebtRepaymentInput,
-  FinancingInput,
-  ProjectSettlementEvidenceRow,
-  SecuritiesTradeInput,
-} from '@/ui/features/monthly_close/viewmodels/monthlyClose.vm';
-import type { PortfolioSnapshot } from '@/ui/features/monthly_close/viewmodels/portfolioCashFlow.vm';
+import type { CloseStageEvidence } from '@/ui/features/monthly_close/viewmodels/monthlyClose.vm';
 import { useAuthIdentity } from '@/ui/hooks/useAuthIdentity';
 
 import { CloseEvidenceOnlyStage } from '../components/CloseEvidenceOnlyStage';
 import { CloseFinancialReports } from '../components/CloseFinancialReports';
 import { CloseReadinessCheck } from '../components/CloseReadinessCheck';
 import { CloseSummaryPanel } from '../components/CloseSummaryPanel';
-import type { TradeTableRow } from '../components/TradeTable';
 import { type CloseStageControl } from '../hooks/closeStageControl';
+import { useCloseSummaryVM } from '../hooks/useCloseSummaryVM';
 import { useNoOpStageControl } from '../hooks/useConfirmStageControl';
 import { CloseAccountBalanceStage } from '../stages/account_balance/components/CloseAccountBalanceStage';
 import { useAccountBalanceStage } from '../stages/account_balance/hooks/useAccountBalanceStage';
@@ -49,60 +34,41 @@ import { useProjectSettlementStage } from '../stages/project_settlement/hooks/us
 import { CloseSecuritiesTradeStage } from '../stages/securities_trade/components/CloseSecuritiesTradeStage';
 import { CloseTradeDrawerSection } from '../stages/securities_trade/components/CloseTradeDrawerSection';
 import { useSecuritiesTradeStage } from '../stages/securities_trade/hooks/useSecuritiesTradeStage';
+import { type MonthlyClosePageVM } from '../viewmodels/monthlyClose.vm';
 
-/** Raw evidence inputs the page loads once and shares by reference. */
+/** Raw evidence inputs the workflow loads once and shares by reference. */
 export interface CloseStepEvidenceInputs {
   anomalies: Parameters<typeof mapAnomaliesToEvidence>[0];
   transactionIssues: Parameters<typeof mapTransactionIssuesToEvidence>[0];
-  cashFlowAdjustment: number | null;
-  reportsPersisted: boolean | null;
 }
 
 /**
  * Shared context every content factory receives at the page-to-registry
- * boundary; the factory maps it to the step component's narrow props.
+ * boundary. It carries only chrome, navigation commands, and shared entities;
+ * every stage-owned value (drafts, prefill data, drawers, summary VMs) is read
+ * from the owning stage hook inside the registry instead of round-tripping
+ * through the page.
  */
 export interface CloseStepContext {
-  householdId: string;
-  selectedYearMonth: string;
+  /** Chrome: the frame every stage shares. */
+  stepText: string;
+  progressText: string;
+  confirmedAtText: string | null;
   confirming: boolean;
   /** While paused, only the walk position's confirm button is enabled (ADR-0070). */
   isConfirmable: boolean;
   /** A closed or cascade-demoted period renders read-only: no confirm bar, no inputs. */
   isReadOnly: boolean;
-  confirmedAtText: string | null;
   isReviewing: boolean;
-  progressText: string;
-  stepText: string;
-  readinessVM: ReadinessVM | null;
-  closeSummaryVM: CloseSummaryVM | null;
-  /** True once the month's three reports are persisted; drives report badges. */
-  reportsPersisted: boolean;
-  accounts: Account[];
-  accountSnapshots: Map<string, AccountSnapshot>;
-  portfolioSnapshots: Map<string, PortfolioSnapshot | null>;
-  portfolios: { id: string; name: string }[];
-  projects: { id: string; name: string }[];
-  debtSectionMetas: DebtSectionMetaVM[];
-  accountBalances: AccountBalanceInput[];
-  setAccountBalances: React.Dispatch<React.SetStateAction<AccountBalanceInput[]>>;
-  securities: { buys: SecuritiesTradeInput[]; sells: SecuritiesTradeInput[] };
-  financing: { shareholderFinancing: FinancingInput[]; dividendPayout: FinancingInput[] };
-  portfolioCashFlows: Record<string, { deposits: number; withdrawals: number }>;
-  setPortfolioCashFlows: React.Dispatch<
-    React.SetStateAction<Record<string, { deposits: number; withdrawals: number }>>
-  >;
-  repayments: DebtRepaymentInput[];
-  setRepayments: React.Dispatch<React.SetStateAction<DebtRepaymentInput[]>>;
+  /** Navigation commands: the page owns where the walk goes, stages only ask. */
   onConfirm: () => void;
   onGoToStage: (stageId: string) => void;
-  onConfirmStage: (stageId: string) => void;
-  onClosePeriod: () => void;
   onContinue: () => void;
-  onGenerate: () => void;
   onBack: () => void;
-  /** Opens the securities/financing add-edit drawer (SECURITIES or FINANCING). */
-  onOpenTradeDrawer: (kind: 'SECURITIES' | 'FINANCING', row?: TradeTableRow) => void;
+  /** Entities the steps share: the page loads them once, the registry hands them out. */
+  accounts: Account[];
+  portfolios: { id: string; name: string }[];
+  projects: { id: string; name: string }[];
 }
 
 /** The registry entry: control + content factory + evidence builder. */
@@ -110,40 +76,52 @@ export interface CloseStepDefinition {
   /** The stage controller the page dispatches on (closeStageControl contract). */
   control: CloseStageControl;
   /** Renders the step's content; a factory returns null when its data has not loaded. */
-  render: (ctx: CloseStepContext, evidence: CloseStageEvidence) => React.ReactNode;
-  /** Builds the stage's evidence from the page's raw inputs and settlement rows. */
-  evidence: (
-    inputs: CloseStepEvidenceInputs,
-    projectSettlements: ProjectSettlementEvidenceRow[],
-  ) => CloseStageEvidence;
+  render: (ctx: CloseStepContext) => React.ReactNode;
+  /**
+   * Builds the stage's evidence from the shared inputs and the owning stage's
+   * data. The registry is the only place allowed to read across stages.
+   */
+  evidence: () => CloseStageEvidence;
 }
 
-interface UseCloseStepRegistryArgs {
+export interface UseCloseStepRegistryArgs {
   householdId: string;
   selectedYearMonth: string;
   confirmingStageId: string | null;
-  stageRefreshKey: number;
+  refreshKey: number;
   accounts: Account[];
   portfolios: Portfolio[];
   debtAccounts: DebtAccount[];
+  /** Raw evidence inputs the workflow loaded once; evidence closures read them. */
+  evidenceInputs: CloseStepEvidenceInputs;
+  /** Step 7 readiness, owned by the workflow and read only here. */
+  readiness: SettlementReadiness | null;
+  pageVM: MonthlyClosePageVM;
+  refreshStageEvidence: () => Promise<void>;
 }
 
 /**
- * The unified step registry: the only file listing all nine close steps. It
- * calls the nine step hooks unconditionally (rules of hooks hold without
- * conditional dispatch) and returns `Record<CloseStageId, CloseStepDefinition>`
- * so TypeScript enforces every stage is registered. Adding a stage = one step
- * hook + one registry entry. The page hook consumes it for the submit path and
- * the month-switch reset; the page renders `registry[displayedStageId].render`.
+ * The unified step registry: the only file listing all nine close steps and the
+ * only place allowed to read across stages. It calls the nine step hooks
+ * unconditionally (rules of hooks hold without conditional dispatch) and returns
+ * `Record<CloseStageId, CloseStepDefinition>` so TypeScript enforces every stage
+ * is registered. Adding a stage = one step hook + one registry entry. Each
+ * definition reads its own stage hook directly and builds its evidence in a
+ * zero-arg closure; the page passes only chrome, navigation, and shared
+ * entities through `CloseStepContext`.
  */
 export const useCloseStepRegistry = ({
   householdId,
   selectedYearMonth,
   confirmingStageId,
-  stageRefreshKey,
+  refreshKey,
   accounts,
   portfolios,
   debtAccounts,
+  evidenceInputs,
+  readiness,
+  pageVM,
+  refreshStageEvidence,
 }: UseCloseStepRegistryArgs) => {
   const auth = useAuthIdentity();
   const accountBalanceStage = useAccountBalanceStage({
@@ -152,7 +130,7 @@ export const useCloseStepRegistry = ({
     accounts,
     auth,
     confirmingStageId,
-    refreshKey: stageRefreshKey,
+    refreshKey,
   });
   const securitiesTradeStage = useSecuritiesTradeStage({
     householdId,
@@ -165,7 +143,7 @@ export const useCloseStepRegistry = ({
     portfolios,
     auth,
     confirmingStageId,
-    refreshKey: stageRefreshKey,
+    refreshKey,
   });
   const debtRepaymentStage = useDebtRepaymentStage({
     householdId,
@@ -173,17 +151,18 @@ export const useCloseStepRegistry = ({
     debtAccounts,
     auth,
     confirmingStageId,
-    refreshKey: stageRefreshKey,
+    refreshKey,
   });
   const financialReportsStage = useFinancialReportsStage({
     householdId,
+    selectedYearMonth,
     confirmingStageId,
   });
   const projectSettlementStage = useProjectSettlementStage({
     householdId,
     selectedYearMonth,
     confirmingStageId,
-    refreshKey: stageRefreshKey,
+    refreshKey,
   });
   const transactionValidationStage = useNoOpStageControl(
     'TRANSACTION_VALIDATION',
@@ -192,9 +171,44 @@ export const useCloseStepRegistry = ({
   const completenessCheckStage = useNoOpStageControl('COMPLETENESS_CHECK', confirmingStageId);
   const closePeriodStage = useNoOpStageControl('CLOSE_PERIOD', confirmingStageId);
 
+  // Steps 7-8 summary VMs: built here, after the stage hooks, so COMPLETENESS_CHECK
+  // and CLOSE_PERIOD read them from this closure instead of the page copying them
+  // into CloseStepContext.
+  const { readinessVM, closeSummaryVM } = useCloseSummaryVM({
+    householdId,
+    selectedYearMonth,
+    readiness,
+    reportBundle: financialReportsStage.reportBundle,
+    transactionIssues: evidenceInputs.transactionIssues,
+    securities: securitiesTradeStage.securities,
+    anomalies: evidenceInputs.anomalies,
+    pageVM,
+    reportsPersisted: financialReportsStage.reportsPersisted,
+    refreshStageEvidence,
+  });
+
+  // Per-stage evidence closures: built from the shared inputs and the owning
+  // stage's data. CLOSE_PERIOD reads the persistence state owned by
+  // FINANCIAL_REPORTS — the one intentional cross-stage read.
+  const noEvidence = () => NO_EVIDENCE;
+  const projectSettlementEvidence = () =>
+    mapProjectSettlementsToEvidence(projectSettlementStage.settlements);
+  const transactionValidationEvidence = () =>
+    mapTransactionIssuesToEvidence(evidenceInputs.transactionIssues);
+  const completenessCheckEvidence = () => mapAnomaliesToEvidence(evidenceInputs.anomalies);
+  const financialReportsEvidence = () => {
+    const adjustment = financialReportsStage.reportBundle?.cashFlow.adjustment ?? null;
+    return adjustment !== null ? mapAdjustmentCountToEvidence(adjustment) : NO_EVIDENCE;
+  };
+  const closePeriodEvidence = () =>
+    financialReportsStage.reportsPersisted !== null
+      ? mapPersistenceToEvidence(financialReportsStage.reportsPersisted)
+      : NO_EVIDENCE;
+
   // Chrome props shared by every workspace-stage factory; each factory only
-  // adds its own content props on top.
-  const chromeProps = (ctx: CloseStepContext, evidence: CloseStageEvidence) => ({
+  // adds its own content props on top. chromeProps calls the evidence closure
+  // itself, so render factories no longer receive evidence as a second argument.
+  const chromeProps = (ctx: CloseStepContext, evidence: () => CloseStageEvidence) => ({
     stepText: ctx.stepText,
     progressText: ctx.progressText,
     confirmedAtText: ctx.confirmedAtText,
@@ -202,35 +216,37 @@ export const useCloseStepRegistry = ({
     isReviewing: ctx.isReviewing,
     isConfirmable: ctx.isConfirmable,
     isReadOnly: ctx.isReadOnly,
-    evidence,
+    evidence: evidence(),
   });
 
   return {
     ACCOUNT_BALANCE: {
       control: accountBalanceStage,
-      render: (ctx, evidence) => (
+      render: (ctx) => (
         <CloseAccountBalanceStage
-          {...chromeProps(ctx, evidence)}
+          {...chromeProps(ctx, noEvidence)}
           accounts={ctx.accounts}
-          accountSnapshots={ctx.accountSnapshots}
-          balances={ctx.accountBalances}
-          setBalances={ctx.setAccountBalances}
+          accountSnapshots={accountBalanceStage.accountSnapshots}
+          balances={accountBalanceStage.balances}
+          setBalances={accountBalanceStage.setBalances}
           onConfirm={ctx.onConfirm}
           onBackToCurrent={ctx.onBack}
         />
       ),
-      evidence: () => NO_EVIDENCE,
+      evidence: noEvidence,
     },
     SECURITIES_TRADE: {
       control: securitiesTradeStage,
-      render: (ctx, evidence) => (
+      render: (ctx) => (
         <>
           <CloseSecuritiesTradeStage
-            {...chromeProps(ctx, evidence)}
-            securities={ctx.securities}
-            financing={ctx.financing}
+            {...chromeProps(ctx, noEvidence)}
+            securities={securitiesTradeStage.securities}
+            financing={securitiesTradeStage.financing}
             projects={ctx.projects}
-            onOpenTradeDrawer={ctx.onOpenTradeDrawer}
+            onOpenTradeDrawer={(kind, row) =>
+              securitiesTradeStage.drawer.open(kind, row ? 'EDIT' : 'ADD', row)
+            }
             onConfirm={ctx.onConfirm}
             onBackToCurrent={ctx.onBack}
           />
@@ -246,112 +262,105 @@ export const useCloseStepRegistry = ({
           />
         </>
       ),
-      evidence: () => NO_EVIDENCE,
+      evidence: noEvidence,
     },
     PORTFOLIO_CASH_FLOW: {
       control: portfolioCashFlowStage,
-      render: (ctx, evidence) => (
+      render: (ctx) => (
         <ClosePortfolioCashFlowStage
-          {...chromeProps(ctx, evidence)}
+          {...chromeProps(ctx, noEvidence)}
           portfolios={ctx.portfolios}
-          portfolioSnapshots={ctx.portfolioSnapshots}
-          cashFlows={ctx.portfolioCashFlows}
-          setCashFlows={ctx.setPortfolioCashFlows}
+          portfolioSnapshots={portfolioCashFlowStage.portfolioSnapshots}
+          cashFlows={portfolioCashFlowStage.cashFlows}
+          setCashFlows={portfolioCashFlowStage.setCashFlows}
           onConfirm={ctx.onConfirm}
           onBackToCurrent={ctx.onBack}
         />
       ),
-      evidence: () => NO_EVIDENCE,
+      evidence: noEvidence,
     },
     PROJECT_SETTLEMENT: {
       control: projectSettlementStage,
-      render: (ctx, evidence) => (
+      render: (ctx) => (
         <CloseEvidenceOnlyStage
-          {...chromeProps(ctx, evidence)}
+          {...chromeProps(ctx, projectSettlementEvidence)}
           onConfirm={ctx.onConfirm}
           onBackToCurrent={ctx.onBack}
         />
       ),
-      evidence: (_inputs, projectSettlements) =>
-        mapProjectSettlementsToEvidence(projectSettlements),
+      evidence: projectSettlementEvidence,
     },
     DEBT_REPAYMENT: {
       control: debtRepaymentStage,
-      render: (ctx, evidence) => (
+      render: (ctx) => (
         <CloseDebtRepaymentStage
-          {...chromeProps(ctx, evidence)}
-          debtAccounts={ctx.debtSectionMetas}
-          yearMonth={ctx.selectedYearMonth}
-          repayments={ctx.repayments}
-          setRepayments={ctx.setRepayments}
+          {...chromeProps(ctx, noEvidence)}
+          debtAccounts={debtRepaymentStage.debtSectionMetas}
+          yearMonth={selectedYearMonth}
+          repayments={debtRepaymentStage.repayments}
+          setRepayments={debtRepaymentStage.setRepayments}
           onConfirm={ctx.onConfirm}
           onBackToCurrent={ctx.onBack}
         />
       ),
-      evidence: () => NO_EVIDENCE,
+      evidence: noEvidence,
     },
     TRANSACTION_VALIDATION: {
       control: transactionValidationStage,
-      render: (ctx, evidence) => (
+      render: (ctx) => (
         <CloseEvidenceOnlyStage
-          {...chromeProps(ctx, evidence)}
+          {...chromeProps(ctx, transactionValidationEvidence)}
           onConfirm={ctx.onConfirm}
           onBackToCurrent={ctx.onBack}
         />
       ),
-      evidence: (inputs) => mapTransactionIssuesToEvidence(inputs.transactionIssues),
+      evidence: transactionValidationEvidence,
     },
     COMPLETENESS_CHECK: {
       control: completenessCheckStage,
       render: (ctx) =>
-        ctx.readinessVM ? (
+        readinessVM ? (
           <CloseReadinessCheck
-            readiness={ctx.readinessVM}
-            onConfirm={() => ctx.onConfirmStage('COMPLETENESS_CHECK')}
+            readiness={readinessVM}
+            onConfirm={ctx.onConfirm}
             onGoToStage={ctx.onGoToStage}
             confirming={ctx.confirming}
             isConfirmable={ctx.isConfirmable}
             isReadOnly={ctx.isReadOnly}
           />
         ) : null,
-      evidence: (inputs) => mapAnomaliesToEvidence(inputs.anomalies),
+      evidence: completenessCheckEvidence,
     },
     FINANCIAL_REPORTS: {
       control: financialReportsStage,
       render: (ctx) => (
         <CloseFinancialReports
-          householdId={ctx.householdId}
-          year={Number(ctx.selectedYearMonth.slice(0, 4))}
-          month={Number(ctx.selectedYearMonth.slice(5, 7))}
+          householdId={householdId}
+          year={Number(selectedYearMonth.slice(0, 4))}
+          month={Number(selectedYearMonth.slice(5, 7))}
           onContinue={ctx.onContinue}
-          onGenerate={ctx.onGenerate}
+          onGenerate={ctx.onConfirm}
           onBack={ctx.onBack}
           confirming={ctx.confirming}
           isConfirmable={ctx.isConfirmable}
-          isGenerated={ctx.reportsPersisted}
+          isGenerated={financialReportsStage.reportsPersisted ?? false}
         />
       ),
-      evidence: (inputs) =>
-        inputs.cashFlowAdjustment !== null
-          ? mapAdjustmentCountToEvidence(inputs.cashFlowAdjustment)
-          : NO_EVIDENCE,
+      evidence: financialReportsEvidence,
     },
     CLOSE_PERIOD: {
       control: closePeriodStage,
       render: (ctx) =>
-        ctx.closeSummaryVM ? (
+        closeSummaryVM ? (
           <CloseSummaryPanel
-            summary={ctx.closeSummaryVM}
-            onClose={ctx.onClosePeriod}
+            summary={closeSummaryVM}
+            onClose={ctx.onConfirm}
             confirming={ctx.confirming}
             isConfirmable={ctx.isConfirmable}
             isReadOnly={ctx.isReadOnly}
           />
         ) : null,
-      evidence: (inputs) =>
-        inputs.reportsPersisted !== null
-          ? mapPersistenceToEvidence(inputs.reportsPersisted)
-          : NO_EVIDENCE,
+      evidence: closePeriodEvidence,
     },
   } satisfies Record<CloseStageId, CloseStepDefinition>;
 };

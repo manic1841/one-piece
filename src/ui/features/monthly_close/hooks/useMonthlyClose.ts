@@ -7,11 +7,8 @@ import {
 import { monthlyCloseWorkflowUseCase } from '@/application/monthly_close/use_cases/monthlyCloseWorkflowUseCase';
 import { type MonthlyCloseConfirmRequest } from '@/application/monthly_close/use_cases/monthlyCloseWorkflowUseCase';
 import { validateMonthTransactionsUseCase } from '@/application/monthly_close/use_cases/validateMonthTransactionsUseCase';
-import { getReportPersistenceStateUseCase } from '@/application/report/use_cases/getReportPersistenceStateUseCase';
 import { getSettlementReadinessUseCase } from '@/application/report/use_cases/getSettlementReadinessUseCase';
 import { type SettlementReadiness } from '@/application/report/use_cases/getSettlementReadinessUseCase';
-import { previewFinancialReportsWorkflow } from '@/application/report/use_cases/previewFinancialReportsWorkflow';
-import { type PreviewFinancialReportsResult } from '@/application/report/use_cases/previewFinancialReportsWorkflow';
 import {
   type CompletenessActivity,
   checkSettlementCompletenessUseCase,
@@ -55,10 +52,7 @@ export const useMonthlyClose = ({ householdId, userEmail }: UseMonthlyCloseParam
   const [transactionIssues, setTransactionIssues] = useState<
     { transactionId: string; description: string; reason: string }[]
   >([]);
-  const [cashFlowAdjustment, setCashFlowAdjustment] = useState<number | null>(null);
-  const [reportsPersisted, setReportsPersisted] = useState<boolean | null>(null);
   const [readiness, setReadiness] = useState<SettlementReadiness | null>(null);
-  const [reportBundle, setReportBundle] = useState<PreviewFinancialReportsResult | null>(null);
 
   const pageVM: MonthlyClosePageVM = useMemo(
     () => mapPeriodToPageVM(period, selectedYearMonth),
@@ -71,10 +65,7 @@ export const useMonthlyClose = ({ householdId, userEmail }: UseMonthlyCloseParam
     setError(null);
     setAnomalies([]);
     setTransactionIssues([]);
-    setCashFlowAdjustment(null);
-    setReportsPersisted(null);
     setReadiness(null);
-    setReportBundle(null);
   }, []);
 
   const start = useCallback(async (): Promise<FinancialPeriod | null> => {
@@ -193,12 +184,6 @@ export const useMonthlyClose = ({ householdId, userEmail }: UseMonthlyCloseParam
       });
       setTransactionIssues(validation.issues);
 
-      const persistence = await getReportPersistenceStateUseCase.execute({
-        householdId,
-        yearMonth: selectedYearMonth,
-      });
-      setReportsPersisted(persistence.isPersisted);
-
       const readinessResult = await getSettlementReadinessUseCase.execute({
         householdId,
         auth,
@@ -206,29 +191,6 @@ export const useMonthlyClose = ({ householdId, userEmail }: UseMonthlyCloseParam
         month,
       });
       setReadiness(readinessResult);
-
-      if (!persistence.isPersisted) {
-        setCashFlowAdjustment(null);
-        setReportBundle(null);
-        return;
-      }
-
-      try {
-        const preview = await previewFinancialReportsWorkflow.execute({
-          householdId,
-          auth,
-          year,
-          month,
-        });
-        setCashFlowAdjustment(preview.cashFlow.adjustment);
-        setReportBundle(preview);
-      } catch (previewError) {
-        logger.warn('Failed to preview cash flow adjustment', 'useMonthlyClose', {
-          previewError,
-        });
-        setCashFlowAdjustment(null);
-        setReportBundle(null);
-      }
     } catch (evidenceError) {
       logger.warn('Failed to load stage evidence', 'useMonthlyClose', {
         evidenceError,
@@ -238,7 +200,6 @@ export const useMonthlyClose = ({ householdId, userEmail }: UseMonthlyCloseParam
   }, [auth, householdId, selectedYearMonth]);
 
   return {
-    auth,
     selectedYearMonth,
     period,
     pageVM,
@@ -247,10 +208,7 @@ export const useMonthlyClose = ({ householdId, userEmail }: UseMonthlyCloseParam
     error,
     anomalies,
     transactionIssues,
-    cashFlowAdjustment,
-    reportsPersisted,
     readiness,
-    reportBundle,
     selectYearMonth,
     start,
     reopen,
