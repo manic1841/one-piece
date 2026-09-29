@@ -46,7 +46,8 @@ interface FinancialReportsData {
   preview: PreviewFinancialReportsResult;
   /** The frozen record the preview is compared against; null when the read failed. */
   persistedBundle: StoredReportsBundle | null;
-  isPersisted: boolean;
+  /** Whether all three reports are persisted; null when the read failed (unknown). */
+  isPersisted: boolean | null;
   /** The persisted reports' frozen generation times; empty when not persisted. */
   persistedTimestamps: ReportTimestampsVM;
 }
@@ -117,7 +118,9 @@ const fetchFinancialReportsData = async ({
       customLabels,
       preview,
       persistedBundle,
-      isPersisted: persistence?.isPersisted ?? false,
+      // The persistence read may fail; null keeps it distinguishable from
+      // "not persisted", so a failed read is never shown as 尚未產生 (#229).
+      isPersisted: persistence?.isPersisted ?? null,
       // The same read supplies the flag and the times, so the badge and any
       // warning cannot disagree about whether reports were persisted (#222).
       persistedTimestamps: persistence?.timestamps ?? {},
@@ -164,7 +167,7 @@ export const useFinancialReportsStage = ({
     customLabels: Map<string, string>;
     preview: PreviewFinancialReportsResult;
     persistedBundle: StoredReportsBundle | null;
-    isPersisted: boolean;
+    isPersisted: boolean | null;
     persistedTimestamps: ReportTimestampsVM;
   } | null>(null);
   const { loading: isLoading, errorMessage, run } = useLoadingTask();

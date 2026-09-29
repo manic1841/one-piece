@@ -117,7 +117,7 @@ export const useCloseSummaryVM = ({
     () =>
       (['INCOME_STATEMENT', 'BALANCE_SHEET', 'CASH_FLOW'] as const).map((viewId) => ({
         title: REPORT_VIEW_TITLES[viewId],
-        isGenerated: reportsPersisted ?? false,
+        isGenerated: reportsPersisted,
       })),
     [reportsPersisted],
   );

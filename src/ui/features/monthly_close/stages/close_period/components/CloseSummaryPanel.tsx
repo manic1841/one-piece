@@ -144,11 +144,19 @@ export const CloseSummaryPanel: React.FC<CloseSummaryPanelProps> = ({
                 >
                   <span className="text-sm text-foreground">{report.title}</span>
                   <StatusGlyph
-                    type={report.isGenerated ? 'verified' : 'waiting'}
+                    type={
+                      report.isGenerated === true
+                        ? 'verified'
+                        : report.isGenerated === null
+                          ? 'review'
+                          : 'waiting'
+                    }
                     label={
-                      report.isGenerated
+                      report.isGenerated === true
                         ? MONTHLY_CLOSE_LABELS.PERSISTED
-                        : MONTHLY_CLOSE_LABELS.NOT_PERSISTED
+                        : report.isGenerated === null
+                          ? MONTHLY_CLOSE_LABELS.PERSISTENCE_UNKNOWN
+                          : MONTHLY_CLOSE_LABELS.NOT_PERSISTED
                     }
                   />
                 </div>

@@ -77,7 +77,8 @@ export type FinancialDriftVM = Partial<Record<FinancialResultKey, DriftAmount>>;
 
 export interface ReportResultVM {
   title: string;
-  isGenerated: boolean;
+  /** null when the persistence read failed, so "unknown" is not shown as 尚未產生. */
+  isGenerated: boolean | null;
 }
 
 export interface CloseSummaryVM {
@@ -236,6 +237,6 @@ export const mapCloseSummary = (input: CloseSummaryInput): CloseSummaryVM => {
     financial: input.financialResult,
     financialDrift: input.financialDrift,
     reports: input.reports,
-    reportsGeneratedCount: input.reports.filter((report) => report.isGenerated).length,
+    reportsGeneratedCount: input.reports.filter((report) => report.isGenerated === true).length,
   };
 };

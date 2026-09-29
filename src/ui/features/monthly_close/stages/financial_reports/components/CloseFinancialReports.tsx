@@ -24,7 +24,10 @@ interface CloseFinancialReportsProps {
   timestamps: ReportTimestampsVM;
   isLoading: boolean;
   error: string | null;
-  /** null while readiness has not loaded; false disables Generate (Step 7 shows why). */
+  /**
+   * null while readiness has not loaded or its load failed; Generate needs an
+   * explicit `true`, so "not ready" and "unknown" both block (#229).
+   */
   isSettlementReady: boolean | null;
   onContinue: () => void;
   onGenerate: () => void;
@@ -40,8 +43,11 @@ interface CloseFinancialReportsProps {
    * (#222). Completion drives the generated panel and hides the action.
    */
   isStageCompleted: boolean;
-  /** Leftover persisted reports exist; the confirm action regenerates them. */
-  hasPersistedReports: boolean;
+  /**
+   * Whether all three reports are persisted. null means the persistence read
+   * failed (unknown), which is NEVER rendered as 尚未產生 (#229).
+   */
+  reportsPersisted: boolean | null;
 }
 
 /** The warning surface (amber glyph + tinted border) shared by Step 8's alerts. */
@@ -79,7 +85,7 @@ export const CloseFinancialReports: React.FC<CloseFinancialReportsProps> = ({
   isConfirmable,
   isReadOnly,
   isStageCompleted,
-  hasPersistedReports,
+  reportsPersisted,
 }) => {
   const { incomeStatement, balanceSheet, cashFlow } = reports;
 
@@ -101,10 +107,18 @@ export const CloseFinancialReports: React.FC<CloseFinancialReportsProps> = ({
   }, []);
 
   // The missing-category list belongs to Step 7; here readiness only gates the
-  // Generate action, so a not-ready period disables it without repeating why.
-  const isGenerateBlocked = isSettlementReady === false;
-  const showAdjustmentWarning = Math.abs(cashFlow?.adjustment.amount ?? 0) > 1000;
+  // Generate action. Generate requires an explicit ready (never null/unknown),
+  // loaded data, no load error, and a known persistence state — an unknown
+  // state could mean reports already exist (#229).
   const hasAnyData = incomeStatement !== null || balanceSheet !== null || cashFlow !== null;
+  const isGenerateBlocked =
+    isSettlementReady !== true ||
+    error !== null ||
+    !hasAnyData ||
+    reportsPersisted === null;
+  const showAdjustmentWarning = Math.abs(cashFlow?.adjustment.amount ?? 0) > 1000;
+  const showPersistenceUnknown =
+    !isStageCompleted && !isLoading && error === null && reportsPersisted === null;
 
   return (
     <div className="space-y-6 pt-8">
@@ -141,7 +155,7 @@ export const CloseFinancialReports: React.FC<CloseFinancialReportsProps> = ({
           pre-workflow month or a reopened period). Confirm recomputes the
           preview and overwrites them, so warn instead of claiming the stage is
           done (#222). */}
-      {!isStageCompleted && hasPersistedReports && (
+      {!isStageCompleted && reportsPersisted === true && (
         <WarningAlert>
           <p>{MONTHLY_CLOSE_LABELS.EXISTING_REPORTS_WARNING}</p>
           {formatTimestamps(timestamps) && (
@@ -151,6 +165,10 @@ export const CloseFinancialReports: React.FC<CloseFinancialReportsProps> = ({
             </p>
           )}
         </WarningAlert>
+      )}
+
+      {showPersistenceUnknown && (
+        <WarningAlert>{MONTHLY_CLOSE_LABELS.PERSISTENCE_UNKNOWN_WARNING}</WarningAlert>
       )}
 
       {isStageCompleted && (

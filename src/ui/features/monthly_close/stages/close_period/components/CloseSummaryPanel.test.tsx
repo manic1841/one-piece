@@ -129,4 +129,31 @@ describe('CloseSummaryPanel', () => {
 
     expect(screen.getByTestId('close-period-confirm')).toBeDisabled();
   });
+
+  // #229: a failed persistence read is unknown, never 尚未產生.
+  it('shows an unknown persistence state instead of 尚未產生 when the read failed', () => {
+    renderPanel({
+      summary: {
+        ...summaryVM,
+        reports: summaryVM.reports.map((report) => ({ ...report, isGenerated: null })),
+        reportsGeneratedCount: 0,
+      },
+    });
+
+    expect(screen.queryByText('尚未產生')).not.toBeInTheDocument();
+    expect(screen.getAllByText('狀態未知')).toHaveLength(3);
+  });
+
+  // #228: Step 9 surfaces a report load failure instead of a silently empty summary.
+  it('surfaces a report load failure', () => {
+    renderPanel({ loadErrorMessage: '無法載入報表預覽，請稍後再試。' });
+
+    expect(screen.getByRole('alert')).toHaveTextContent('無法載入報表預覽，請稍後再試。');
+  });
+
+  it('shows no alert while the report load succeeded', () => {
+    renderPanel();
+
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
 });

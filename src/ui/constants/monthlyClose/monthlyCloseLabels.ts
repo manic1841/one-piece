@@ -109,6 +109,7 @@ export const MONTHLY_CLOSE_LABELS = {
   NOT_READY: '未就緒',
   PERSISTED: '已產生',
   NOT_PERSISTED: '尚未產生',
+  PERSISTENCE_UNKNOWN: '狀態未知',
   ZERO_ACTIVITY: '零活動',
   TRANSACTION_ISSUES: '交易驗證問題',
   ADJUSTMENT: '現金流調整',
@@ -155,5 +156,6 @@ export const MONTHLY_CLOSE_LABELS = {
   REPORTS_GENERATED: 'REPORTS GENERATED',
   GENERATED_AT: '產生時間',
   EXISTING_REPORTS_WARNING: '此期間已有先前產生的報表；確認後將以目前預覽重新產生並覆寫。',
+  PERSISTENCE_UNKNOWN_WARNING: '無法確認報表是否已產生，暫時無法產生報表，請重新載入後再試。',
   PREVIEW_ERROR: '無法載入報表預覽。',
 } as const;

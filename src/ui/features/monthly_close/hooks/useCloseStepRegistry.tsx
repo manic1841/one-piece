@@ -358,7 +358,9 @@ export const useCloseStepRegistry = ({
           timestamps={financialReportsStage.timestamps}
           isLoading={financialReportsStage.isLoading}
           error={financialReportsStage.error}
-          isSettlementReady={completenessCheckStage.readiness?.isReady ?? null}
+          isSettlementReady={
+            isStep7Ready ? (completenessCheckStage.readiness?.isReady ?? null) : null
+          }
           onContinue={ctx.onContinue}
           onGenerate={ctx.onConfirm}
           onBack={ctx.onBack}
@@ -366,7 +368,7 @@ export const useCloseStepRegistry = ({
           isConfirmable={ctx.isConfirmable}
           isReadOnly={ctx.isReadOnly}
           isStageCompleted={isFinancialReportsCompleted}
-          hasPersistedReports={financialReportsStage.reportsPersisted ?? false}
+          reportsPersisted={financialReportsStage.reportsPersisted}
         />
       ),
       evidence: financialReportsEvidence,

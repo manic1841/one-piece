@@ -86,7 +86,7 @@ const renderReports = (props?: Partial<Props>) =>
       isConfirmable={true}
       isReadOnly={false}
       isStageCompleted={false}
-      hasPersistedReports={false}
+      reportsPersisted={false}
       {...props}
     />,
   );
@@ -179,7 +179,7 @@ describe('CloseFinancialReports', () => {
     renderReports({
       timestamps: { incomeStatement: '10:00', balanceSheet: '10:01', cashFlow: '10:02' },
       isStageCompleted: true,
-      hasPersistedReports: true,
+      reportsPersisted: true,
     });
 
     const panel = screen.getByTestId('reports-generated-panel');
@@ -196,7 +196,7 @@ describe('CloseFinancialReports', () => {
     renderReports({
       timestamps: { incomeStatement: '10:00', balanceSheet: '10:01', cashFlow: '10:02' },
       isStageCompleted: false,
-      hasPersistedReports: true,
+      reportsPersisted: true,
       onGenerate,
     });
 
@@ -210,7 +210,7 @@ describe('CloseFinancialReports', () => {
   });
 
   it('does not warn about existing reports on a first generation', () => {
-    renderReports({ isStageCompleted: false, hasPersistedReports: false });
+    renderReports({ isStageCompleted: false, reportsPersisted: false });
 
     expect(screen.queryByText(/已有先前產生的報表/)).not.toBeInTheDocument();
     expect(screen.getByTestId('generate-reports')).toBeInTheDocument();
@@ -218,7 +218,7 @@ describe('CloseFinancialReports', () => {
 
   // CLOSED read-only review never offers a confirm action (ADR-0071).
   it('hides the action entirely on a read-only period', () => {
-    renderReports({ isReadOnly: true, isStageCompleted: true, hasPersistedReports: true });
+    renderReports({ isReadOnly: true, isStageCompleted: true, reportsPersisted: true });
 
     expect(screen.queryByTestId('generate-reports')).not.toBeInTheDocument();
     expect(screen.getByTestId('reports-generated-panel')).toBeInTheDocument();
@@ -232,10 +232,35 @@ describe('CloseFinancialReports', () => {
     expect(screen.queryByText(/尚未完成所有類別的月結算/)).not.toBeInTheDocument();
   });
 
-  it('leaves generate enabled while readiness has not loaded', () => {
+  it('disables generate while readiness has not loaded or its load failed (#229)', () => {
     renderReports({ isSettlementReady: null });
 
-    expect(screen.getByTestId('generate-reports')).not.toBeDisabled();
+    expect(screen.getByTestId('generate-reports')).toBeDisabled();
+  });
+
+  it('disables generate when the report preview failed to load (#229)', () => {
+    renderReports({ error: '無法載入報表預覽，請稍後再試。' });
+
+    expect(screen.getByTestId('generate-reports')).toBeDisabled();
+  });
+
+  it('disables generate when there is no report data (#229)', () => {
+    renderReports({
+      reports: { incomeStatement: null, balanceSheet: null, cashFlow: null },
+    });
+
+    expect(screen.getByTestId('generate-reports')).toBeDisabled();
+  });
+
+  // #229: a failed persistence read must not render as 尚未產生 (which would
+  // wrongly offer Generate as if this were a first generation).
+  it('shows an unknown persistence state and blocks generate when the read failed', () => {
+    renderReports({ reportsPersisted: null });
+
+    expect(screen.queryByText('尚未產生')).not.toBeInTheDocument();
+    expect(screen.queryByText(/已有先前產生的報表/)).not.toBeInTheDocument();
+    expect(screen.getByText(/無法確認報表是否已產生/)).toBeInTheDocument();
+    expect(screen.getByTestId('generate-reports')).toBeDisabled();
   });
 
   it('disables generate while the preview is loading', () => {
