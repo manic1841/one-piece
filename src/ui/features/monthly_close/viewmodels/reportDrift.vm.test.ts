@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { DRIFT_STATUS } from '@/domains/report/reportDrift';
 
-import { type DriftStatements, combineDrift, countDriftedFigures } from './reportDrift.vm';
+import { type DriftStatements, combineDrift, hasReportDrift } from './reportDrift.vm';
 
 const amount = (
   value: number,
@@ -86,22 +86,22 @@ describe('combineDrift', () => {
   });
 });
 
-describe('countDriftedFigures', () => {
-  it('counts nothing when nothing loaded', () => {
-    expect(countDriftedFigures(emptyStatements())).toBe(0);
+describe('hasReportDrift', () => {
+  it('reports no drift when nothing loaded', () => {
+    expect(hasReportDrift(emptyStatements())).toBe(false);
   });
 
-  it('counts nothing when no figure drifted', () => {
-    const count = countDriftedFigures({
+  it('reports no drift when no figure drifted', () => {
+    const drifted = hasReportDrift({
       ...emptyStatements(),
       incomeStatement: incomeStatement({ incomeTotal: amount(50) }),
     });
 
-    expect(count).toBe(0);
+    expect(drifted).toBe(false);
   });
 
-  it('counts a changed row and its changed total', () => {
-    const count = countDriftedFigures({
+  it('reports a changed row or its changed total', () => {
+    const drifted = hasReportDrift({
       ...emptyStatements(),
       incomeStatement: incomeStatement({
         incomeItems: [item('income:salary', 12, DRIFT_STATUS.CHANGED)],
@@ -109,11 +109,11 @@ describe('countDriftedFigures', () => {
       }),
     });
 
-    expect(count).toBe(2);
+    expect(drifted).toBe(true);
   });
 
-  it('counts nested detail rows, not just their parent', () => {
-    const count = countDriftedFigures({
+  it('reports nested detail rows, not just their parent', () => {
+    const drifted = hasReportDrift({
       ...emptyStatements(),
       incomeStatement: incomeStatement({
         incomeItems: [
@@ -125,11 +125,11 @@ describe('countDriftedFigures', () => {
       }),
     });
 
-    expect(count).toBe(2);
+    expect(drifted).toBe(true);
   });
 
-  it('counts added and removed rows of a balance-sheet group', () => {
-    const count = countDriftedFigures({
+  it('reports an added or removed row of a balance-sheet group', () => {
+    const drifted = hasReportDrift({
       ...emptyStatements(),
       balanceSheet: {
         assets: {
@@ -150,11 +150,29 @@ describe('countDriftedFigures', () => {
       },
     });
 
-    expect(count).toBe(2);
+    expect(drifted).toBe(true);
   });
 
-  it('counts every drifted figure of the cash-flow tree', () => {
-    const count = countDriftedFigures({
+  it('reports a figure the screen does not draw as its own cell (期初/期末/調整數)', () => {
+    const drifted = hasReportDrift({
+      ...emptyStatements(),
+      cashFlow: {
+        operating: { label: '營業活動', total: amount(0), inflowItems: [], outflowItems: [] },
+        investing: { label: '投資活動', total: amount(0), inflowItems: [], outflowItems: [] },
+        financing: { label: '融資活動', total: amount(0), inflowItems: [], outflowItems: [] },
+        netCashChange: amount(0),
+        beginningBalance: amount(0),
+        endingBalance: amount(0),
+        actualBalance: amount(0),
+        adjustment: amount(0, 500, DRIFT_STATUS.CHANGED),
+      },
+    });
+
+    expect(drifted).toBe(true);
+  });
+
+  it('reports a drifted figure of the cash-flow tree', () => {
+    const drifted = hasReportDrift({
       ...emptyStatements(),
       cashFlow: {
         operating: {
@@ -173,6 +191,6 @@ describe('countDriftedFigures', () => {
       },
     });
 
-    expect(count).toBe(3);
+    expect(drifted).toBe(true);
   });
 });

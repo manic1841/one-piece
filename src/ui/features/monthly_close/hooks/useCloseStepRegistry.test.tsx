@@ -692,8 +692,10 @@ describe('useCloseStepRegistry', () => {
   });
 
   // #234: the close gate reads Step 8's own drift tree — a drifted child under a
-  // matching total still blocks — and names how many figures drifted.
-  it('blocks the close and names the drift count when Step 8 drifted', async () => {
+  // matching total still blocks. It states *that* the reports drifted and never
+  // names a count (see `hasReportDrift`), so the block and the warnings the user
+  // saw cannot disagree.
+  it('blocks the close when Step 8 drifted, without naming a count', async () => {
     vi.mocked(previewFinancialReportsWorkflow.execute).mockResolvedValue(
       previewWithTotals({ netIncome: 117_000 }),
     );
@@ -709,8 +711,11 @@ describe('useCloseStepRegistry', () => {
     render(<Harness />);
 
     await waitFor(() =>
-      expect(screen.getByTestId('close-drift-block')).toHaveTextContent('1 項漂移'),
+      expect(screen.getByTestId('close-drift-block')).toHaveTextContent(
+        '步驟 8 的報表與已產生報表不一致',
+      ),
     );
+    expect(screen.getByTestId('close-drift-block')).not.toHaveTextContent('項漂移');
     expect(screen.getByTestId('close-period-confirm')).toBeDisabled();
   });
 

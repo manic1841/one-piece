@@ -42,7 +42,7 @@ const renderPanel = (props?: Partial<Parameters<typeof CloseSummaryPanel>[0]>) =
   render(
     <CloseSummaryPanel
       summary={summaryVM}
-      driftCount={0}
+      hasDrift={false}
       onReviewReports={() => {}}
       onClose={() => {}}
       confirming={false}
@@ -161,17 +161,23 @@ describe('CloseSummaryPanel', () => {
 
   // #234: the backend close gate only checks that the reports are persisted, so
   // a drift appearing after Step 8 was confirmed has to be caught here.
-  it('blocks the close and names the drift count when reports drifted', () => {
-    renderPanel({ driftCount: 3 });
+  it('blocks the close when reports drifted', () => {
+    renderPanel({ hasDrift: true });
 
     expect(screen.getByTestId('close-period-confirm')).toBeDisabled();
-    expect(screen.getByRole('alert')).toHaveTextContent('步驟 8 的報表有 3 項漂移');
+    expect(screen.getByRole('alert')).toHaveTextContent('步驟 8 的報表與已產生報表不一致');
+  });
+
+  it('does not name a drift count the screen cannot justify', () => {
+    renderPanel({ hasDrift: true });
+
+    expect(screen.getByTestId('close-drift-block')).not.toHaveTextContent('項漂移');
   });
 
   it('sends the user back to Step 8 from the drift block', () => {
     const onReviewReports = vi.fn();
 
-    renderPanel({ driftCount: 1, onReviewReports });
+    renderPanel({ hasDrift: true, onReviewReports });
 
     fireEvent.click(screen.getByTestId('review-reports'));
 
@@ -179,7 +185,7 @@ describe('CloseSummaryPanel', () => {
   });
 
   it('leaves the close reachable when nothing drifted', () => {
-    renderPanel({ driftCount: 0 });
+    renderPanel({ hasDrift: false });
 
     expect(screen.getByTestId('close-period-confirm')).toBeEnabled();
     expect(screen.queryByTestId('close-drift-block')).not.toBeInTheDocument();

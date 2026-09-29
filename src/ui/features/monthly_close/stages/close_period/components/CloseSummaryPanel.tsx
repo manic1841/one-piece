@@ -19,11 +19,13 @@ interface CloseSummaryPanelProps {
   /** Set when the report data Step 9 renders failed to load (#228). */
   loadErrorMessage?: string | null;
   /**
-   * How many figures in Step 8's statements drifted from the persisted report
+   * Whether any figure in Step 8's statements drifted from the persisted report
    * (#234). Derived live by the registry from the drift tree Step 8 already
-   * renders, so the gate cannot disagree with the warnings the user saw.
+   * renders, so the gate cannot disagree with the warnings the user saw. A
+   * boolean, not a count: the tree mixes independent figures with render-time
+   * sums the screen does not draw, so no tally matches what the user can count.
    */
-  driftCount: number;
+  hasDrift: boolean;
   /** Sends the user back to Step 8 to regenerate the reports. */
   onReviewReports: () => void;
   onClose: () => void;
@@ -45,7 +47,7 @@ const financialRows: { key: keyof FinancialResultVM; label: string }[] = [
 export const CloseSummaryPanel: React.FC<CloseSummaryPanelProps> = ({
   summary,
   loadErrorMessage = null,
-  driftCount,
+  hasDrift,
   onReviewReports,
   onClose,
   confirming,
@@ -53,7 +55,6 @@ export const CloseSummaryPanel: React.FC<CloseSummaryPanelProps> = ({
   isReadOnly,
 }) => {
   const { confirm: confirmDialog } = useConfirm();
-  const hasDrift = driftCount > 0;
 
   const handleClose = async () => {
     const confirmed = await confirmDialog({
@@ -186,7 +187,7 @@ export const CloseSummaryPanel: React.FC<CloseSummaryPanelProps> = ({
           {hasDrift && (
             <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-warning/30 bg-warning/10 px-4 py-3">
               <p className="text-sm text-warning" role="alert" data-testid="close-drift-block">
-                {MONTHLY_CLOSE_LABELS.DRIFT_BLOCK_MESSAGE.replace('{count}', String(driftCount))}
+                {MONTHLY_CLOSE_LABELS.DRIFT_BLOCK_MESSAGE}
               </p>
               <Button
                 type="button"
