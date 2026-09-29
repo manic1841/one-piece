@@ -16,23 +16,29 @@ export const categorizeLedgerEntry = (
   groups: CashFlowGroups,
 ) => {
   const { ledgerCode: code, debit, credit } = entry;
-  const amount = debit - credit;
-  if (amount === 0) return;
+  // Signed amount: positive = debit, negative = credit. The normal side decides
+  // which bucket is the "primary" flow; the sign only tells us if it reverses.
+  const signed = debit - credit;
+  if (signed === 0) return;
 
   if (code.startsWith(LEDGER_PREFIX.INCOME)) {
-    if (amount < 0) addToMap(groups.operating.inflow, code, Math.abs(amount));
-    else addToMap(groups.operating.outflow, code, amount);
+    // Income is credit-normal: credit flows in, a debit reverses it out.
+    if (signed < 0) addToMap(groups.operating.inflow, code, -signed);
+    else addToMap(groups.operating.outflow, code, signed);
   } else if (code.startsWith(LEDGER_PREFIX.EXPENSE)) {
-    if (amount > 0) addToMap(groups.operating.outflow, code, amount);
-    else addToMap(groups.operating.inflow, code, Math.abs(amount));
+    // Expense is debit-normal: debit flows out, a credit reverses it in.
+    if (signed > 0) addToMap(groups.operating.outflow, code, signed);
+    else addToMap(groups.operating.inflow, code, -signed);
   } else if (
     code.startsWith(LEDGER_CODES.ASSET_INVESTMENT) ||
     code.startsWith(LEDGER_CODES.ASSET_PROPERTY)
   ) {
-    if (amount > 0) addToMap(groups.investing.outflow, code, amount);
-    else addToMap(groups.investing.inflow, code, Math.abs(amount));
+    // Asset purchase is debit-normal: debit flows out, a credit (sale) flows in.
+    if (signed > 0) addToMap(groups.investing.outflow, code, signed);
+    else addToMap(groups.investing.inflow, code, -signed);
   } else if (code.startsWith(LEDGER_PREFIX.LIABILITY) || code.startsWith(LEDGER_PREFIX.EQUITY)) {
-    if (amount < 0) addToMap(groups.financing.inflow, code, Math.abs(amount));
-    else addToMap(groups.financing.outflow, code, amount);
+    // Liability/equity are credit-normal: credit flows in, a debit flows out.
+    if (signed < 0) addToMap(groups.financing.inflow, code, -signed);
+    else addToMap(groups.financing.outflow, code, signed);
   }
 };

@@ -93,6 +93,36 @@ describe('calculateIncomeStatement', () => {
     expect(result.incomeItems).toEqual([]);
     expect(result.expenseItems).toEqual([]);
   });
+
+  it('keeps reversals and refunds negative instead of flipping them positive', () => {
+    const entries = [
+      entry('income:salary', 0, 5000),
+      entry('income:refund', 800, 0), // income reversal → negative income row
+      entry('expense:food', 1000, 0),
+      entry('expense:rebate', 0, 300), // expense refund → negative expense row
+    ];
+
+    const result = calculateIncomeStatement({ yearMonth: '2026-03', entries });
+
+    expect(result.incomeTotal).toBe(4200);
+    expect(result.expenseTotal).toBe(700);
+    expect(result.netIncome).toBe(3500);
+    expect(result.incomeItems.find((item) => item.code === 'income:refund')?.amount).toBe(-800);
+    expect(result.expenseItems.find((item) => item.code === 'expense:rebate')?.amount).toBe(-300);
+  });
+
+  it('retains negative detail amounts in subItems', () => {
+    const entries = [
+      entry('income:salary:charles', 0, 3000),
+      entry('income:salary:refund', 500, 0),
+    ];
+
+    const result = calculateIncomeStatement({ yearMonth: '2026-03', entries });
+
+    const salary = result.incomeItems.find((item) => item.code === 'income:salary');
+    expect(salary?.amount).toBe(2500);
+    expect(salary?.subItems?.find((sub) => sub.code === 'income:salary:refund')?.amount).toBe(-500);
+  });
 });
 
 describe('calculateBalanceSheet', () => {
@@ -175,7 +205,7 @@ describe('calculateBalanceSheet', () => {
     expect(result.equity.groups.capital.items[0]?.code).toBe('equity:capital');
   });
 
-  it('normalizes capital detail amounts to positive (credit side is capital)', () => {
+  it('keeps credit-normal capital detail amounts positive', () => {
     const monthlyEntries = [
       entry('equity:capital', 0, 6000),
       entry('equity:capital:addition', 0, 4000),
@@ -189,6 +219,21 @@ describe('calculateBalanceSheet', () => {
     expect(result.equity.groups.capital.items[0].subItems?.map((sub) => sub.code)).toEqual([
       'equity:capital:addition',
     ]);
+  });
+
+  it('keeps capital negative for a net-debit month (dividend exceeds injection)', () => {
+    const monthlyEntries = [
+      entry('equity:capital:injection', 0, 3000), // credit → +3000
+      entry('equity:capital:dividend', 5000, 0), // debit → -5000
+    ];
+
+    const result = calculateBalanceSheet({ ...baseInput, monthlyEntries });
+
+    const capital = result.equity.groups.capital;
+    expect(capital.total).toBe(-2000);
+    const subItems = capital.items[0]?.subItems ?? [];
+    expect(subItems.find((sub) => sub.code === 'equity:capital:injection')?.amount).toBe(3000);
+    expect(subItems.find((sub) => sub.code === 'equity:capital:dividend')?.amount).toBe(-5000);
   });
 
   it('rolls balance-sheet ledger-code sections into parent category with subItems', () => {
@@ -313,6 +358,23 @@ describe('calculateCashFlow', () => {
     expect(travel.code).toBe('expense:travel');
     expect(travel.label).toBe('expense:travel');
     expect(travel.subItems?.[0].label).toBe('expense:travel › train');
+  });
+
+  it('keeps reversal entries in their bucket after the signed-dispatch refactor', () => {
+    const entries = [
+      entry('income:salary', 500, 0), // income reversal → operating outflow
+      entry('expense:food', 0, 300), // expense refund → operating inflow
+    ];
+
+    const result = calculateCashFlow({
+      yearMonth: '2026-03',
+      entries,
+      beginningBalance: 0,
+      actualBalance: -200,
+    });
+
+    expect(result.operating.outflowItems.find((i) => i.code === 'income:salary')?.amount).toBe(500);
+    expect(result.operating.inflowItems.find((i) => i.code === 'expense:food')?.amount).toBe(300);
   });
 });
 
