@@ -4,6 +4,7 @@ import { StatusGlyph } from '@/ui/components/StatusGlyph';
 import { Button } from '@/ui/components/ui/button';
 import { MONTHLY_CLOSE_LABELS } from '@/ui/constants/monthlyClose';
 import { useConfirm } from '@/ui/features/app/confirm/useConfirm';
+import { CloseStageLoadError } from '@/ui/features/monthly_close/components/CloseStageLoadError';
 import { formatDriftDelta, isDrifted } from '@/ui/features/monthly_close/viewmodels/reportDrift.vm';
 import { cn, formatCurrency } from '@/ui/utils';
 
@@ -15,6 +16,8 @@ import {
 
 interface CloseSummaryPanelProps {
   summary: CloseSummaryVM;
+  /** Set when the report data Step 9 renders failed to load (#228). */
+  loadErrorMessage?: string | null;
   onClose: () => void;
   confirming: boolean;
   /** While paused, only the walk position's confirm button is enabled (ADR-0070). */
@@ -33,6 +36,7 @@ const financialRows: { key: keyof FinancialResultVM; label: string }[] = [
 
 export const CloseSummaryPanel: React.FC<CloseSummaryPanelProps> = ({
   summary,
+  loadErrorMessage = null,
   onClose,
   confirming,
   isConfirmable,
@@ -54,6 +58,7 @@ export const CloseSummaryPanel: React.FC<CloseSummaryPanelProps> = ({
 
   return (
     <section className="space-y-6 pt-8" data-testid="close-summary-panel">
+      <CloseStageLoadError message={loadErrorMessage} />
       <div className="flex flex-wrap items-end justify-between gap-3 border-b border-border pb-4">
         <div className="space-y-1">
           <p className="text-[11px] uppercase tracking-[0.12em] text-muted-foreground">

@@ -80,6 +80,15 @@ vi.mock('@/application/report/use_cases/getReportPersistenceStateUseCase', () =>
     execute: vi.fn().mockResolvedValue({ isPersisted: true, timestamps: {} }),
   },
 }));
+vi.mock('@/application/report/use_cases/getStoredReportsBundleUseCase', () => ({
+  getStoredReportsBundleUseCase: {
+    execute: vi.fn().mockResolvedValue({
+      incomeStatement: null,
+      balanceSheet: null,
+      cashFlow: null,
+    }),
+  },
+}));
 vi.mock('@/application/report/use_cases/getSettlementReadinessUseCase', () => ({
   getSettlementReadinessUseCase: {
     execute: vi.fn().mockResolvedValue({

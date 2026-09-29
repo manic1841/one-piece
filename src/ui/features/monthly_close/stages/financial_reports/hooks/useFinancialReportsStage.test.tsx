@@ -2,6 +2,7 @@ import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { getReportPersistenceStateUseCase } from '@/application/report/use_cases/getReportPersistenceStateUseCase';
+import { getStoredReportsBundleUseCase } from '@/application/report/use_cases/getStoredReportsBundleUseCase';
 import { previewFinancialReportsWorkflow } from '@/application/report/use_cases/previewFinancialReportsWorkflow';
 import { DRIFT_STATUS } from '@/domains/report/reportDrift';
 
@@ -20,6 +21,11 @@ vi.mock('@/application/ledger/use_cases/listAllLedgerCodesUseCase', () => ({
 vi.mock('@/application/report/use_cases/getReportPersistenceStateUseCase', () => ({
   getReportPersistenceStateUseCase: {
     execute: vi.fn().mockResolvedValue({ isPersisted: false, timestamps: {} }),
+  },
+}));
+vi.mock('@/application/report/use_cases/getStoredReportsBundleUseCase', () => ({
+  getStoredReportsBundleUseCase: {
+    execute: vi.fn().mockResolvedValue({ incomeStatement: null, balanceSheet: null, cashFlow: null }),
   },
 }));
 vi.mock('@/application/report/use_cases/previewFinancialReportsWorkflow', () => ({
@@ -72,24 +78,21 @@ const persistedBundle = (incomeTotal: number) =>
 
 interface StageProps {
   yearMonth: string;
-  persisted: ReturnType<typeof persistedBundle> | null;
   isClosed: boolean;
 }
 
 const renderStage = (initial: Partial<StageProps> = {}) =>
   renderHook(
-    ({ yearMonth, persisted, isClosed }: StageProps) =>
+    ({ yearMonth, isClosed }: StageProps) =>
       useFinancialReportsStage({
         householdId: 'household-1',
         selectedYearMonth: yearMonth,
         confirmingStageId: null,
-        persistedBundle: persisted,
         isClosed,
       }),
     {
       initialProps: {
         yearMonth: '2026-03',
-        persisted: null,
         isClosed: false,
         ...initial,
       } as StageProps,
@@ -98,17 +101,35 @@ const renderStage = (initial: Partial<StageProps> = {}) =>
 
 const mockPreview = vi.mocked(previewFinancialReportsWorkflow.execute);
 const mockPersistence = vi.mocked(getReportPersistenceStateUseCase.execute);
+const mockStoredBundle = vi.mocked(getStoredReportsBundleUseCase.execute);
 
 describe('useFinancialReportsStage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockPersistence.mockResolvedValue({ isPersisted: false, timestamps: {} });
+    mockStoredBundle.mockResolvedValue({
+      incomeStatement: null,
+      balanceSheet: null,
+      cashFlow: null,
+    });
   });
 
-  it('annotates a live preview figure against the persisted bundle CLOSE_PERIOD owns', async () => {
+  it('loads the preview and the persisted baseline once, from one call each (#228)', async () => {
     mockPreview.mockResolvedValue(buildPreview(50000));
 
-    const { result } = renderStage({ persisted: persistedBundle(40000) });
+    const { result } = renderStage();
+
+    await waitFor(() => expect(result.current.reportBundle).not.toBeNull());
+    expect(mockPreview).toHaveBeenCalledTimes(1);
+    expect(mockStoredBundle).toHaveBeenCalledTimes(1);
+    expect(result.current.reportBundle?.cashFlow.adjustment).toBe(0);
+  });
+
+  it('annotates a live preview figure against the persisted bundle it owns', async () => {
+    mockPreview.mockResolvedValue(buildPreview(50000));
+    mockStoredBundle.mockResolvedValue(persistedBundle(40000));
+
+    const { result } = renderStage();
 
     await waitFor(() =>
       expect(result.current.reports.incomeStatement?.incomeTotal).toMatchObject({
@@ -121,8 +142,9 @@ describe('useFinancialReportsStage', () => {
 
   it('renders the persisted record without drift marks when the period is closed', async () => {
     mockPreview.mockResolvedValue(buildPreview(50000));
+    mockStoredBundle.mockResolvedValue(persistedBundle(40000));
 
-    const { result } = renderStage({ persisted: persistedBundle(40000), isClosed: true });
+    const { result } = renderStage({ isClosed: true });
 
     await waitFor(() =>
       expect(result.current.reports.incomeStatement?.incomeTotal).toEqual({
@@ -148,7 +170,7 @@ describe('useFinancialReportsStage', () => {
     const { result, rerender } = renderStage();
     await waitFor(() => expect(result.current.reports.incomeStatement).not.toBeNull());
 
-    act(() => rerender({ yearMonth: '2026-04', persisted: null, isClosed: false }));
+    act(() => rerender({ yearMonth: '2026-04', isClosed: false }));
 
     expect(result.current.reports.incomeStatement).toBeNull();
   });
@@ -161,6 +183,17 @@ describe('useFinancialReportsStage', () => {
     await waitFor(() => expect(result.current.error).toBe('無法載入報表預覽，請稍後再試。'));
     expect(result.current.isLoading).toBe(false);
     expect(result.current.reports.incomeStatement).toBeNull();
+  });
+
+  it('keeps the preview when only the persisted baseline read fails', async () => {
+    mockPreview.mockResolvedValue(buildPreview(50000));
+    mockStoredBundle.mockRejectedValue(new Error('boom'));
+
+    const { result } = renderStage();
+
+    await waitFor(() => expect(result.current.reportBundle).not.toBeNull());
+    expect(result.current.persistedBundle).toBeNull();
+    expect(result.current.error).toBeNull();
   });
 
   it('keeps the previous preview on a same-month refresh failure but flags the error (#226)', async () => {

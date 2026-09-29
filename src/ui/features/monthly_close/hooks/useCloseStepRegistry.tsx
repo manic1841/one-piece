@@ -20,9 +20,9 @@ import { CloseStageLoadError } from '../components/CloseStageLoadError';
 import { type CloseStageControl } from '../hooks/closeStageControl';
 import { useCloseSummaryVM } from '../hooks/useCloseSummaryVM';
 import { CloseAccountBalanceStage } from '../stages/account_balance/components/CloseAccountBalanceStage';
+import { useNoOpStageControl } from '../hooks/useConfirmStageControl';
 import { useAccountBalanceStage } from '../stages/account_balance/hooks/useAccountBalanceStage';
 import { CloseSummaryPanel } from '../stages/close_period/components/CloseSummaryPanel';
-import { useClosePeriodStage } from '../stages/close_period/hooks/useClosePeriodStage';
 import { CloseReadinessCheck } from '../stages/completeness_check/components/CloseReadinessCheck';
 import { useCompletenessCheckStage } from '../stages/completeness_check/hooks/useCompletenessCheckStage';
 import { CloseDebtRepaymentStage } from '../stages/debt_repayment/components/CloseDebtRepaymentStage';
@@ -157,16 +157,11 @@ export const useCloseStepRegistry = ({
     selectedYearMonth,
     confirmingStageId,
   });
-  const closePeriodStage = useClosePeriodStage({
-    householdId,
-    selectedYearMonth,
-    confirmingStageId,
-  });
+  const closePeriodControl = useNoOpStageControl('CLOSE_PERIOD', confirmingStageId);
   const financialReportsStage = useFinancialReportsStage({
     householdId,
     selectedYearMonth,
     confirmingStageId,
-    persistedBundle: closePeriodStage.persistedBundle,
     isClosed: pageVM.isClosed,
   });
 
@@ -174,12 +169,14 @@ export const useCloseStepRegistry = ({
   // and CLOSE_PERIOD read them from this closure instead of the page copying them
   // into CloseStepContext. The readiness COMPLETENESS_CHECK owns is also the
   // single source Step 8's Generate gate reads across stages; CLOSE_PERIOD's
-  // five financial figures come from the preview bundle its own stage hook owns.
+  // five financial figures come from the preview bundle FINANCIAL_REPORTS owns
+  // (#228) — one load owns the preview, the persisted baseline, and the flag, so
+  // they cannot land at different times.
   const { readinessVM, closeSummaryVM } = useCloseSummaryVM({
     readiness: completenessCheckStage.readiness,
     checkedCount: transactionValidationStage.checkedCount,
-    reportBundle: closePeriodStage.reportBundle,
-    persistedBundle: closePeriodStage.persistedBundle,
+    reportBundle: financialReportsStage.reportBundle,
+    persistedBundle: financialReportsStage.persistedBundle,
     isClosed: pageVM.isClosed,
     transactionIssues: transactionValidationStage.transactionIssues,
     securities: securitiesTradeStage.securities,
@@ -199,7 +196,7 @@ export const useCloseStepRegistry = ({
     mapTransactionIssuesToEvidence(transactionValidationStage.transactionIssues);
   const completenessCheckEvidence = () => mapAnomaliesToEvidence(completenessCheckStage.anomalies);
   const financialReportsEvidence = () => {
-    const adjustment = closePeriodStage.reportBundle?.cashFlow.adjustment ?? null;
+    const adjustment = financialReportsStage.reportBundle?.cashFlow.adjustment ?? null;
     return adjustment !== null ? mapAdjustmentCountToEvidence(adjustment) : NO_EVIDENCE;
   };
   const closePeriodEvidence = () =>
@@ -375,17 +372,20 @@ export const useCloseStepRegistry = ({
       evidence: financialReportsEvidence,
     },
     CLOSE_PERIOD: {
-      control: closePeriodStage,
-      render: (ctx) =>
-        closeSummaryVM ? (
-          <CloseSummaryPanel
-            summary={closeSummaryVM}
-            onClose={ctx.onConfirm}
-            confirming={ctx.confirming}
-            isConfirmable={ctx.isConfirmable}
-            isReadOnly={ctx.isReadOnly}
-          />
-        ) : null,
+      control: closePeriodControl,
+      // Step 9 renders the summary unconditionally: mapCloseSummary always
+      // returns an object, so a null guard here was dead code. A failed report
+      // load surfaces its own copy instead (#228).
+      render: (ctx) => (
+        <CloseSummaryPanel
+          summary={closeSummaryVM}
+          loadErrorMessage={financialReportsStage.error}
+          onClose={ctx.onConfirm}
+          confirming={ctx.confirming}
+          isConfirmable={ctx.isConfirmable}
+          isReadOnly={ctx.isReadOnly}
+        />
+      ),
       evidence: closePeriodEvidence,
     },
   } satisfies Record<CloseStageId, CloseStepDefinition>;
