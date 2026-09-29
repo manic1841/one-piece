@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 
 import {
   MonthlyCloseCommandError,
@@ -46,14 +46,28 @@ export const useMonthlyClose = ({ householdId, userEmail }: UseMonthlyCloseParam
     [period, selectedYearMonth],
   );
 
-  const selectYearMonth = useCallback((yearMonth: string) => {
-    setSelectedYearMonth(yearMonth);
-    setPeriod(null);
-    setError(null);
-  }, []);
+  // Monotonic request sequence: every period-mutating call takes a ticket
+  // before awaiting and only writes back if it is still the latest. A month
+  // switch bumps it too, so a slow response for the month we just left can
+  // never overwrite the new month's period — and two same-month operations
+  // (a start racing a confirm) cannot clobber each other either.
+  const requestSeqRef = useRef(0);
+  const beginRequest = useCallback(() => (requestSeqRef.current += 1), []);
+  const isLatestRequest = useCallback((seq: number) => seq === requestSeqRef.current, []);
+
+  const selectYearMonth = useCallback(
+    (yearMonth: string) => {
+      requestSeqRef.current += 1;
+      setSelectedYearMonth(yearMonth);
+      setPeriod(null);
+      setError(null);
+    },
+    [],
+  );
 
   const start = useCallback(async (): Promise<FinancialPeriod | null> => {
     if (!householdId || !selectedYearMonth) return null;
+    const seq = beginRequest();
     setIsStarting(true);
     setError(null);
     try {
@@ -63,18 +77,21 @@ export const useMonthlyClose = ({ householdId, userEmail }: UseMonthlyCloseParam
         userEmail,
         auth,
       });
+      if (!isLatestRequest(seq)) return null;
       setPeriod(result);
       return result;
     } catch (err) {
+      if (!isLatestRequest(seq)) return null;
       setError(errorText(err, MONTHLY_CLOSE_LABELS.START_ERROR));
       return null;
     } finally {
       setIsStarting(false);
     }
-  }, [auth, householdId, selectedYearMonth, userEmail]);
+  }, [auth, beginRequest, householdId, isLatestRequest, selectedYearMonth, userEmail]);
 
   const reopen = useCallback(async () => {
     if (!householdId || !selectedYearMonth) return null;
+    const seq = beginRequest();
     setIsStarting(true);
     setError(null);
     try {
@@ -84,21 +101,24 @@ export const useMonthlyClose = ({ householdId, userEmail }: UseMonthlyCloseParam
         userEmail,
         auth,
       });
+      if (!isLatestRequest(seq)) return null;
       setPeriod(result);
       return result;
     } catch (err) {
+      if (!isLatestRequest(seq)) return null;
       setError(errorText(err, MONTHLY_CLOSE_LABELS.REOPEN_ERROR));
       return null;
     } finally {
       setIsStarting(false);
     }
-  }, [auth, householdId, selectedYearMonth, userEmail]);
+  }, [auth, beginRequest, householdId, isLatestRequest, selectedYearMonth, userEmail]);
 
   const confirmStage = useCallback(
     async (
       request: Omit<MonthlyCloseConfirmRequest, 'householdId' | 'yearMonth' | 'userEmail' | 'auth'>,
     ): Promise<FinancialPeriod | null> => {
       if (!householdId || !selectedYearMonth) return null;
+      const seq = beginRequest();
       setConfirmingStageId(request.stageId);
       setError(null);
       try {
@@ -109,21 +129,24 @@ export const useMonthlyClose = ({ householdId, userEmail }: UseMonthlyCloseParam
           auth,
           ...request,
         });
+        if (!isLatestRequest(seq)) return null;
         setPeriod(result);
         return result;
       } catch (err) {
+        if (!isLatestRequest(seq)) return null;
         setError(errorText(err, MONTHLY_CLOSE_LABELS.CONFIRM_ERROR));
         return null;
       } finally {
         setConfirmingStageId(null);
       }
     },
-    [auth, householdId, selectedYearMonth, userEmail],
+    [auth, beginRequest, householdId, isLatestRequest, selectedYearMonth, userEmail],
   );
 
   const resetStagesFrom = useCallback(
     async (fromStageId: CloseStageId): Promise<FinancialPeriod | null> => {
       if (!householdId || !selectedYearMonth) return null;
+      const seq = beginRequest();
       setIsStarting(true);
       setError(null);
       try {
@@ -134,16 +157,18 @@ export const useMonthlyClose = ({ householdId, userEmail }: UseMonthlyCloseParam
           auth,
           fromStageId,
         });
+        if (!isLatestRequest(seq)) return null;
         setPeriod(result);
         return result;
       } catch (err) {
+        if (!isLatestRequest(seq)) return null;
         setError(errorText(err, MONTHLY_CLOSE_LABELS.CONFIRM_ERROR));
         return null;
       } finally {
         setIsStarting(false);
       }
     },
-    [auth, householdId, selectedYearMonth, userEmail],
+    [auth, beginRequest, householdId, isLatestRequest, selectedYearMonth, userEmail],
   );
 
   return {
