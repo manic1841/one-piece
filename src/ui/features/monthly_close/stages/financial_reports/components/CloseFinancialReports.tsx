@@ -7,8 +7,11 @@ import { Button } from '@/ui/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/ui/components/ui/tabs';
 import { MONTHLY_CLOSE_LABELS } from '@/ui/constants/monthlyClose';
 import { REPORT_VIEW_TITLES } from '@/ui/constants/report/reportViewLabels';
+import type {
+  ReportTimestampsVM,
+  ReportViewsVM,
+} from '@/ui/features/monthly_close/viewmodels/financialReports.vm';
 
-import { useCloseFinancialReports } from '../hooks/useCloseFinancialReports';
 import {
   BalanceSheetView,
   CashFlowView,
@@ -17,46 +20,39 @@ import {
 } from './CloseFinancialReportViews';
 
 interface CloseFinancialReportsProps {
-  householdId: string;
-  year: number;
-  month: number;
+  reports: ReportViewsVM;
+  timestamps: ReportTimestampsVM;
+  isLoading: boolean;
+  error: string | null;
+  /** null while readiness has not loaded; false disables Generate (Step 7 shows why). */
+  isSettlementReady: boolean | null;
   onContinue: () => void;
   onGenerate: () => void;
   onBack: () => void;
   confirming: boolean;
   /** While paused, only the walk position's confirm button is enabled (ADR-0070). */
   isConfirmable: boolean;
-  /** A CLOSED period renders the persisted record read-only, with no drift marks. */
-  isReadOnly: boolean;
   isGenerated: boolean;
 }
 
 export const CloseFinancialReports: React.FC<CloseFinancialReportsProps> = ({
-  householdId,
-  year,
-  month,
+  reports,
+  timestamps,
+  isLoading,
+  error,
+  isSettlementReady,
   onContinue,
   onGenerate,
   onBack,
   confirming,
   isConfirmable,
-  isReadOnly,
   isGenerated,
 }) => {
-  const {
-    view,
-    setView,
-    incomeStatement,
-    balanceSheet,
-    cashFlow,
-    timestamps,
-    missingCategoryNames,
-    isLoading,
-    error,
-  } = useCloseFinancialReports({ householdId, year, month, isClosed: isReadOnly });
+  const { incomeStatement, balanceSheet, cashFlow } = reports;
 
   // Table collapse is presentation state, scoped to the displayed statement:
   // switching tabs resets every group back to expanded (default).
+  const [view, setView] = useState<keyof typeof REPORT_VIEW_TITLES>('INCOME_STATEMENT');
   const [collapsedKeys, setCollapsedKeys] = useState<ReadonlySet<string>>(() => new Set());
   const toggleCollapsed = useCallback((key: string) => {
     setCollapsedKeys((previous) => {
@@ -66,15 +62,14 @@ export const CloseFinancialReports: React.FC<CloseFinancialReportsProps> = ({
       return next;
     });
   }, []);
-  const handleViewChange = useCallback(
-    (value: string) => {
-      setView(value as typeof view);
-      setCollapsedKeys(new Set());
-    },
-    [setView],
-  );
+  const handleViewChange = useCallback((value: string) => {
+    setView(value as keyof typeof REPORT_VIEW_TITLES);
+    setCollapsedKeys(new Set());
+  }, []);
 
-  const showReadinessGate = missingCategoryNames.length > 0;
+  // The missing-category list belongs to Step 7; here readiness only gates the
+  // Generate action, so a not-ready period disables it without repeating why.
+  const isGenerateBlocked = isSettlementReady === false;
   const showAdjustmentWarning = Math.abs(cashFlow?.adjustment.amount ?? 0) > 1000;
   const hasAnyData = incomeStatement !== null || balanceSheet !== null || cashFlow !== null;
 
@@ -102,16 +97,6 @@ export const CloseFinancialReports: React.FC<CloseFinancialReportsProps> = ({
       {error && (
         <Alert variant="destructive" className="border-negative/20 bg-negative/10">
           <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      )}
-
-      {showReadinessGate && (
-        <Alert className="border-warning/30 bg-warning/5 text-foreground">
-          <AlertTriangle className="h-4 w-4 text-warning" />
-          <AlertDescription>
-            {MONTHLY_CLOSE_LABELS.READINESS_BLOCKED}
-            {missingCategoryNames.join('、')}
-          </AlertDescription>
         </Alert>
       )}
 
@@ -207,7 +192,7 @@ export const CloseFinancialReports: React.FC<CloseFinancialReportsProps> = ({
         </Tabs>
       )}
 
-      {!hasAnyData && !error && !showReadinessGate && (
+      {!hasAnyData && !error && (
         <div className="px-4 py-8 text-center text-sm text-muted-foreground">
           {MONTHLY_CLOSE_LABELS.NO_DATA}
         </div>
@@ -227,7 +212,7 @@ export const CloseFinancialReports: React.FC<CloseFinancialReportsProps> = ({
           <Button
             data-testid="generate-reports"
             onClick={onGenerate}
-            disabled={confirming || showReadinessGate || isLoading || !isConfirmable}
+            disabled={confirming || isGenerateBlocked || isLoading || !isConfirmable}
             className="h-[38px] px-[18px] text-xs font-semibold uppercase tracking-[0.08em]"
           >
             {confirming || isLoading

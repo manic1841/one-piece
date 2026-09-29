@@ -19,6 +19,11 @@ interface UseConfirmStageControlArgs {
    * draft leave it unset and the adapter makes it a no-op.
    */
   resetDraft?: CloseStageControl['resetDraft'];
+  /**
+   * Reloads the stage's own loaded data after an external change; stages that
+   * load nothing leave it unset and the adapter omits it.
+   */
+  refresh?: CloseStageControl['refresh'];
   /** Keep the stage view open after a successful confirm (FINANCIAL_REPORTS). */
   keepsViewOnConfirm?: CloseStageControl['keepsViewOnConfirm'];
 }
@@ -35,6 +40,7 @@ export const useConfirmStageControl = ({
   confirmGate,
   afterConfirm,
   resetDraft,
+  refresh,
   keepsViewOnConfirm,
 }: UseConfirmStageControlArgs): CloseStageControl => {
   const blocked = useCallback((): boolean => (shouldBlock ? shouldBlock() : false), [shouldBlock]);
@@ -47,6 +53,7 @@ export const useConfirmStageControl = ({
     confirmGate,
     afterConfirm: afterConfirm ?? (() => undefined),
     resetDraft: resetDraft ?? (() => undefined),
+    refresh,
     keepsViewOnConfirm,
   };
 };

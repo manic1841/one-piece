@@ -1,11 +1,14 @@
 import { fireEvent, render, renderHook, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { validateMonthTransactionsUseCase } from '@/application/monthly_close/use_cases/validateMonthTransactionsUseCase';
 import { listProjectSnapshotsUseCase } from '@/application/project/use_cases/listProjectSnapshotsUseCase';
 import { listProjectsUseCase } from '@/application/project/use_cases/listProjectsUseCase';
 import { getReportPersistenceStateUseCase } from '@/application/report/use_cases/getReportPersistenceStateUseCase';
+import { getSettlementReadinessUseCase } from '@/application/report/use_cases/getSettlementReadinessUseCase';
 import { getStoredReportsBundleUseCase } from '@/application/report/use_cases/getStoredReportsBundleUseCase';
 import { previewFinancialReportsWorkflow } from '@/application/report/use_cases/previewFinancialReportsWorkflow';
+import { checkSettlementCompletenessUseCase } from '@/application/settlement/use_cases/checkSettlementCompletenessUseCase';
 import { MONTHLY_CLOSE_LABELS } from '@/ui/constants/monthlyClose';
 import { mapPeriodToPageVM } from '@/ui/features/monthly_close/mappers/monthlyClose.mappers';
 
@@ -60,6 +63,14 @@ vi.mock('@/application/report/use_cases/getReportPersistenceStateUseCase', () =>
     execute: vi.fn().mockResolvedValue({ isPersisted: false, timestamps: {} }),
   },
 }));
+vi.mock('@/application/settlement/use_cases/checkSettlementCompletenessUseCase', () => ({
+  checkSettlementCompletenessUseCase: {
+    execute: vi.fn().mockResolvedValue({ yearMonth: '2026-08', activities: [], anomalies: [] }),
+  },
+}));
+vi.mock('@/application/report/use_cases/getSettlementReadinessUseCase', () => ({
+  getSettlementReadinessUseCase: { execute: vi.fn() },
+}));
 vi.mock('@/application/report/use_cases/previewFinancialReportsWorkflow', () => ({
   previewFinancialReportsWorkflow: { execute: vi.fn().mockResolvedValue(null) },
 }));
@@ -93,7 +104,7 @@ const baseContext: CloseStepContext = {
   projects: [],
 };
 
-const readinessFixture: NonNullable<UseCloseStepRegistryArgs['readiness']> = {
+const readinessFixture = {
   year: 2026,
   month: 8,
   isReady: true,
@@ -116,29 +127,79 @@ const baseArgs: UseCloseStepRegistryArgs = {
   accounts: [],
   portfolios: [],
   debtAccounts: [],
-  evidenceInputs: { anomalies: [], transactionIssues: [] },
-  readiness: null,
   pageVM: mapPeriodToPageVM(null, '2026-08'),
-  refreshStageEvidence: vi.fn().mockResolvedValue(undefined),
 };
 
 const renderRegistry = (overrides: Partial<UseCloseStepRegistryArgs> = {}) =>
   renderHook(() => useCloseStepRegistry({ ...baseArgs, ...overrides }));
 
+const emptyStatement = () => ({
+  yearMonth: '2026-08',
+  incomeTotal: 0,
+  expenseTotal: 0,
+  netIncome: 0,
+  incomeItems: [],
+  expenseItems: [],
+});
+
+const emptyCashFlow = (netCashChange = 0, adjustment = 0) => ({
+  yearMonth: '2026-08',
+  operating: { label: '營業活動', total: 0, inflowItems: [], outflowItems: [] },
+  investing: { label: '投資活動', total: 0, inflowItems: [], outflowItems: [] },
+  financing: { label: '融資活動', total: 0, inflowItems: [], outflowItems: [] },
+  netCashChange,
+  beginningBalance: 0,
+  endingBalance: 0,
+  actualBalance: 0,
+  adjustment,
+});
+
+const balanceSheetOf = (totalAssets = 0, totalLiabilities = 0, equity = 0) => ({
+  yearMonth: '2026-08',
+  assets: { total: totalAssets, groups: {} },
+  liabilities: { total: totalLiabilities, groups: {} },
+  equity: { total: equity, groups: {} },
+});
+
 const previewFixture = (adjustment: number) =>
   ({
-    incomeStatement: { netIncome: 0 },
-    balanceSheet: {
-      assets: { total: 0 },
-      liabilities: { total: 0 },
-      equity: { total: 0 },
-    },
-    cashFlow: { adjustment, netCashChange: 0 },
+    incomeStatement: emptyStatement(),
+    balanceSheet: balanceSheetOf(),
+    cashFlow: emptyCashFlow(0, adjustment),
+  }) as never;
+
+const previewWithTotals = (totals: {
+  netIncome?: number;
+  totalAssets?: number;
+  totalLiabilities?: number;
+  equity?: number;
+  netCashChange?: number;
+}) =>
+  ({
+    incomeStatement: { ...emptyStatement(), netIncome: totals.netIncome ?? 0 },
+    balanceSheet: balanceSheetOf(totals.totalAssets, totals.totalLiabilities, totals.equity),
+    cashFlow: emptyCashFlow(totals.netCashChange ?? 0),
+    isPersisted: false,
+    timestamps: {},
+  }) as never;
+
+const persistedWithTotals = (totals: {
+  netIncome?: number;
+  totalAssets?: number;
+  totalLiabilities?: number;
+  equity?: number;
+  netCashChange?: number;
+}) =>
+  ({
+    incomeStatement: { ...emptyStatement(), netIncome: totals.netIncome ?? 0 },
+    balanceSheet: balanceSheetOf(totals.totalAssets, totals.totalLiabilities, totals.equity),
+    cashFlow: emptyCashFlow(totals.netCashChange ?? 0),
   }) as never;
 
 describe('useCloseStepRegistry', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(getSettlementReadinessUseCase.execute).mockResolvedValue(readinessFixture);
   });
 
   it('registers all nine close steps', () => {
@@ -158,15 +219,19 @@ describe('useCloseStepRegistry', () => {
     ]);
   });
 
-  it('dispatches COMPLETENESS_CHECK to the readiness check via the content factory', () => {
-    const { result } = renderRegistry({ readiness: readinessFixture });
+  it('dispatches COMPLETENESS_CHECK to the readiness check via the content factory', async () => {
+    function CompletenessHarness() {
+      const registry = useCloseStepRegistry(baseArgs);
+      return <>{registry.COMPLETENESS_CHECK.render(baseContext)}</>;
+    }
 
-    render(<>{result.current.COMPLETENESS_CHECK.render(baseContext)}</>);
+    render(<CompletenessHarness />);
 
-    expect(screen.getByTestId('close-readiness-check')).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByTestId('close-readiness-check')).toBeInTheDocument());
   });
 
   it('renders nothing for COMPLETENESS_CHECK while readiness is missing', () => {
+    vi.mocked(getSettlementReadinessUseCase.execute).mockReturnValue(new Promise(() => {}));
     const { result } = renderRegistry();
 
     const { container } = render(<>{result.current.COMPLETENESS_CHECK.render(baseContext)}</>);
@@ -258,16 +323,53 @@ describe('useCloseStepRegistry', () => {
     expect(result.current.FINANCIAL_REPORTS.evidence().cashFlowAdjustments).toBe(1500);
   });
 
-  it("renders the five Step 9 financial figures from CLOSE_PERIOD's own bundle", async () => {
-    vi.mocked(previewFinancialReportsWorkflow.execute).mockResolvedValue({
-      incomeStatement: { netIncome: 117_000 },
-      balanceSheet: {
-        assets: { total: 10_500_000 },
-        liabilities: { total: 6_200_000 },
-        equity: { total: 4_300_000 },
-      },
-      cashFlow: { adjustment: 0, netCashChange: 179_000 },
+  it('derives COMPLETENESS_CHECK evidence from its own stage hook', async () => {
+    vi.mocked(checkSettlementCompletenessUseCase.execute).mockResolvedValue({
+      yearMonth: '2026-08',
+      activities: [],
+      anomalies: [
+        {
+          targetType: 'PROJECT',
+          targetId: 'project-1',
+          name: '裝修',
+          status: 'ZERO_ACTIVITY',
+          activityCount: 0,
+          activityAmount: 0,
+        },
+      ],
     } as never);
+    const { result } = renderRegistry();
+
+    await waitFor(() =>
+      expect(result.current.COMPLETENESS_CHECK.evidence().zeroActivityNames).toEqual(['裝修']),
+    );
+    expect(result.current.COMPLETENESS_CHECK.evidence().kind).toBe('COMPLETENESS_ANOMALIES');
+  });
+
+  it('derives TRANSACTION_VALIDATION evidence from its own stage hook', async () => {
+    vi.mocked(validateMonthTransactionsUseCase.execute).mockResolvedValue({
+      yearMonth: '2026-08',
+      checkedCount: 3,
+      issues: [{ transactionId: 't1', description: '餐飲', reason: '分配總和不等於 100%' }],
+    });
+    const { result } = renderRegistry();
+
+    await waitFor(() =>
+      expect(result.current.TRANSACTION_VALIDATION.evidence().transactionIssues).toHaveLength(1),
+    );
+    expect(result.current.TRANSACTION_VALIDATION.evidence().kind).toBe('TRANSACTION_VALIDATION');
+  });
+
+  it("renders the five Step 9 financial figures from CLOSE_PERIOD's own bundle", async () => {
+    vi.mocked(previewFinancialReportsWorkflow.execute).mockResolvedValue(
+      previewWithTotals({
+        netIncome: 117_000,
+        totalAssets: 10_500_000,
+        totalLiabilities: 6_200_000,
+        equity: 4_300_000,
+        netCashChange: 179_000,
+      }),
+    );
 
     function ClosePeriodHarness() {
       const registry = useCloseStepRegistry(baseArgs);
@@ -284,24 +386,24 @@ describe('useCloseStepRegistry', () => {
   });
 
   it('annotates a Step 9 figure that drifted from the persisted report while live', async () => {
-    vi.mocked(previewFinancialReportsWorkflow.execute).mockResolvedValue({
-      incomeStatement: { netIncome: 117_000 },
-      balanceSheet: {
-        assets: { total: 10_500_000 },
-        liabilities: { total: 6_200_000 },
-        equity: { total: 4_300_000 },
-      },
-      cashFlow: { adjustment: 0, netCashChange: 179_000 },
-    } as never);
-    vi.mocked(getStoredReportsBundleUseCase.execute).mockResolvedValue({
-      incomeStatement: { netIncome: 117_000 },
-      balanceSheet: {
-        assets: { total: 10_500_000 },
-        liabilities: { total: 6_200_000 },
-        equity: { total: 4_200_000 },
-      },
-      cashFlow: { netCashChange: 179_000 },
-    } as never);
+    vi.mocked(previewFinancialReportsWorkflow.execute).mockResolvedValue(
+      previewWithTotals({
+        netIncome: 117_000,
+        totalAssets: 10_500_000,
+        totalLiabilities: 6_200_000,
+        equity: 4_300_000,
+        netCashChange: 179_000,
+      }),
+    );
+    vi.mocked(getStoredReportsBundleUseCase.execute).mockResolvedValue(
+      persistedWithTotals({
+        netIncome: 117_000,
+        totalAssets: 10_500_000,
+        totalLiabilities: 6_200_000,
+        equity: 4_200_000,
+        netCashChange: 179_000,
+      }),
+    );
 
     function ClosePeriodHarness() {
       const registry = useCloseStepRegistry(baseArgs);
@@ -316,24 +418,24 @@ describe('useCloseStepRegistry', () => {
   });
 
   it('renders the persisted Step 9 record with no drift marks for a CLOSED period', async () => {
-    vi.mocked(previewFinancialReportsWorkflow.execute).mockResolvedValue({
-      incomeStatement: { netIncome: 117_000 },
-      balanceSheet: {
-        assets: { total: 10_500_000 },
-        liabilities: { total: 6_200_000 },
-        equity: { total: 4_300_000 },
-      },
-      cashFlow: { adjustment: 0, netCashChange: 179_000 },
-    } as never);
-    vi.mocked(getStoredReportsBundleUseCase.execute).mockResolvedValue({
-      incomeStatement: { netIncome: 117_000 },
-      balanceSheet: {
-        assets: { total: 10_500_000 },
-        liabilities: { total: 6_200_000 },
-        equity: { total: 4_200_000 },
-      },
-      cashFlow: { netCashChange: 179_000 },
-    } as never);
+    vi.mocked(previewFinancialReportsWorkflow.execute).mockResolvedValue(
+      previewWithTotals({
+        netIncome: 117_000,
+        totalAssets: 10_500_000,
+        totalLiabilities: 6_200_000,
+        equity: 4_300_000,
+        netCashChange: 179_000,
+      }),
+    );
+    vi.mocked(getStoredReportsBundleUseCase.execute).mockResolvedValue(
+      persistedWithTotals({
+        netIncome: 117_000,
+        totalAssets: 10_500_000,
+        totalLiabilities: 6_200_000,
+        equity: 4_200_000,
+        netCashChange: 179_000,
+      }),
+    );
 
     const closedArgs: UseCloseStepRegistryArgs = {
       ...baseArgs,

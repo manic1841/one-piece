@@ -1,51 +1,12 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { getStoredReportsBundleUseCase } from '@/application/report/use_cases/getStoredReportsBundleUseCase';
-import { previewFinancialReportsWorkflow } from '@/application/report/use_cases/previewFinancialReportsWorkflow';
+import { diffBalanceSheet, diffCashFlow, diffIncomeStatement } from '@/domains/report/reportDrift';
+import { MONTHLY_CLOSE_LABELS } from '@/ui/constants/monthlyClose';
 
 import { CloseFinancialReports } from './CloseFinancialReports';
 
-vi.mock('@/application/report/use_cases/previewFinancialReportsWorkflow', () => ({
-  previewFinancialReportsWorkflow: { execute: vi.fn() },
-}));
-vi.mock('@/application/report/use_cases/getStoredReportsBundleUseCase', () => ({
-  getStoredReportsBundleUseCase: {
-    execute: vi.fn().mockResolvedValue({
-      incomeStatement: null,
-      balanceSheet: null,
-      cashFlow: null,
-    }),
-  },
-}));
-vi.mock('@/application/report/use_cases/getSettlementReadinessUseCase', () => ({
-  getSettlementReadinessUseCase: {
-    execute: vi.fn().mockResolvedValue({
-      isReady: true,
-      unsettledProjects: [],
-      unsettledAccounts: [],
-      unsettledPortfolios: [],
-      unsettledDebts: [],
-      totalUnsettled: 0,
-      year: 2026,
-      month: 3,
-    }),
-  },
-}));
-vi.mock('@/application/ledger/use_cases/listAllLedgerCodesUseCase', () => ({
-  listAllLedgerCodesUseCase: { execute: vi.fn().mockResolvedValue([]) },
-}));
-vi.mock('@/ui/hooks/useAuthIdentity', () => ({
-  useAuthIdentity: () => ({ uid: 'user-1', email: 'user@test.com', isGlobalAdmin: false }),
-}));
-
-const mockExecute = vi.mocked(previewFinancialReportsWorkflow.execute);
-
-const buildPreview = (overrides?: {
-  isPersisted?: boolean;
-  timestamps?: { incomeStatement?: string; balanceSheet?: string; cashFlow?: string };
-  adjustment?: number;
-}) => ({
+const buildPreview = (overrides?: { adjustment?: number }) => ({
   incomeStatement: {
     yearMonth: '2026-03',
     incomeTotal: 50000,
@@ -99,22 +60,30 @@ const buildPreview = (overrides?: {
     actualBalance: 20000,
     adjustment: overrides?.adjustment ?? 0,
   },
-  isPersisted: overrides?.isPersisted ?? false,
-  timestamps: overrides?.timestamps ?? {},
 });
 
-const renderReports = (props?: Partial<Parameters<typeof CloseFinancialReports>[0]>) =>
+/** Builds the drift-annotated statements the stage hook hands the component. */
+const reportsFrom = (preview = buildPreview()) => ({
+  incomeStatement: diffIncomeStatement(preview.incomeStatement as never, null),
+  balanceSheet: diffBalanceSheet(preview.balanceSheet as never, null),
+  cashFlow: diffCashFlow(preview.cashFlow as never, null),
+});
+
+type Props = Parameters<typeof CloseFinancialReports>[0];
+
+const renderReports = (props?: Partial<Props>) =>
   render(
     <CloseFinancialReports
-      householdId="household-1"
-      year={2026}
-      month={3}
+      reports={reportsFrom()}
+      timestamps={{}}
+      isLoading={false}
+      error={null}
+      isSettlementReady={true}
       onContinue={() => {}}
       onGenerate={() => {}}
       onBack={() => {}}
       confirming={false}
       isConfirmable={true}
-      isReadOnly={false}
       isGenerated={false}
       {...props}
     />,
@@ -123,14 +92,13 @@ const renderReports = (props?: Partial<Parameters<typeof CloseFinancialReports>[
 describe('CloseFinancialReports', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockExecute.mockResolvedValue(buildPreview() as never);
   });
 
   it('renders the income statement section header, roll-up row, nested subItems and total rows', async () => {
     renderReports();
 
-    const statement = await screen.findByTestId('close-income-statement');
-    await waitFor(() => expect(statement).toHaveTextContent('薪資'));
+    const statement = screen.getByTestId('close-income-statement');
+    expect(statement).toHaveTextContent('薪資');
     expect(statement).toHaveTextContent('收入');
     expect(statement).toHaveTextContent('薪資 › Charles');
     expect(statement).toHaveTextContent('收入合計');
@@ -141,12 +109,9 @@ describe('CloseFinancialReports', () => {
     expect(screen.getByTestId('close-balance-sheet')).toHaveTextContent('主力帳戶');
   });
 
-  it('collapses and expands a statement row from the left chevron', async () => {
+  it('collapses and expands a statement row from the left chevron', () => {
     renderReports();
 
-    await waitFor(() =>
-      expect(screen.getByTestId('close-income-statement')).toHaveTextContent('薪資 › Charles'),
-    );
     const toggle = screen.getByRole('button', { name: '薪資' });
     expect(toggle).toHaveAttribute('aria-expanded', 'true');
 
@@ -158,12 +123,9 @@ describe('CloseFinancialReports', () => {
     expect(screen.getByTestId('close-income-statement')).toHaveTextContent('薪資 › Charles');
   });
 
-  it('resets collapsed groups when switching statement tabs', async () => {
+  it('resets collapsed groups when switching statement tabs', () => {
     renderReports();
 
-    await waitFor(() =>
-      expect(screen.getByTestId('close-income-statement')).toHaveTextContent('薪資 › Charles'),
-    );
     fireEvent.click(screen.getByRole('button', { name: '薪資' }));
     expect(screen.getByTestId('close-income-statement')).not.toHaveTextContent('薪資 › Charles');
 
@@ -173,20 +135,18 @@ describe('CloseFinancialReports', () => {
     expect(screen.getByTestId('close-income-statement')).toHaveTextContent('薪資 › Charles');
   });
 
-  it('switches statement tabs on desktop', async () => {
+  it('switches statement tabs on desktop', () => {
     renderReports();
 
-    await waitFor(() => expect(screen.getByTestId('close-income-statement')).toBeInTheDocument());
     fireEvent.mouseDown(screen.getByRole('tab', { name: '資產負債表' }));
     expect(screen.getByTestId('close-balance-sheet')).toBeInTheDocument();
     fireEvent.mouseDown(screen.getByRole('tab', { name: '現金流量表' }));
     expect(screen.getByTestId('close-cash-flow')).toBeInTheDocument();
   });
 
-  it('renders the balance sheet sections, group totals and the closing liabilities + equity row', async () => {
+  it('renders the balance sheet sections, group totals and the closing liabilities + equity row', () => {
     renderReports();
 
-    await waitFor(() => expect(screen.getByTestId('close-income-statement')).toBeInTheDocument());
     fireEvent.mouseDown(screen.getByRole('tab', { name: '資產負債表' }));
 
     const sheet = screen.getByTestId('close-balance-sheet');
@@ -199,10 +159,9 @@ describe('CloseFinancialReports', () => {
     expect(sheet).not.toHaveTextContent('Calculated');
   });
 
-  it('renders the cash flow hierarchy with inflow/outflow buckets and the unchanged footer', async () => {
+  it('renders the cash flow hierarchy with inflow/outflow buckets and the unchanged footer', () => {
     renderReports();
 
-    await waitFor(() => expect(screen.getByTestId('close-income-statement')).toBeInTheDocument());
     fireEvent.mouseDown(screen.getByRole('tab', { name: '現金流量表' }));
 
     const statement = screen.getByTestId('close-cash-flow');
@@ -214,88 +173,60 @@ describe('CloseFinancialReports', () => {
     expect(statement).toHaveTextContent('實際餘額');
   });
 
-  it('shows the reports generated panel with timestamps when persisted', async () => {
+  it('shows the reports generated panel with timestamps when persisted', () => {
     renderReports({
+      timestamps: { incomeStatement: '10:00', balanceSheet: '10:01', cashFlow: '10:02' },
       isGenerated: true,
     });
-    mockExecute.mockResolvedValue(
-      buildPreview({
-        isPersisted: true,
-        timestamps: { incomeStatement: '14:30', balanceSheet: '14:30', cashFlow: '14:31' },
-      }) as never,
-    );
 
-    await waitFor(() => expect(screen.getByTestId('reports-generated-panel')).toBeInTheDocument());
-    expect(screen.getByText(/損益表 14:30/)).toBeInTheDocument();
+    const panel = screen.getByTestId('reports-generated-panel');
+    expect(panel).toHaveTextContent('10:00');
+    expect(panel).toHaveTextContent('10:01');
+    expect(panel).toHaveTextContent('10:02');
     expect(screen.queryByTestId('generate-reports')).not.toBeInTheDocument();
   });
 
-  it('disables generate behind the readiness gate with missing category names', async () => {
-    const { getSettlementReadinessUseCase } = await import(
-      '@/application/report/use_cases/getSettlementReadinessUseCase'
-    );
-    vi.mocked(getSettlementReadinessUseCase.execute).mockResolvedValue({
-      year: 2026,
-      month: 3,
-      isReady: false,
-      unsettledAccounts: [{ name: '現金' } as never],
-      unsettledPortfolios: [],
-      unsettledDebts: [],
-      unsettledProjects: [],
-      totalUnsettled: 1,
-    });
+  it('disables generate while settlement is not ready, without naming the categories', () => {
+    renderReports({ isSettlementReady: false });
 
-    renderReports();
+    expect(screen.getByTestId('generate-reports')).toBeDisabled();
+    // The missing-category list is Step 7's presentation; Step 8 only gates.
+    expect(screen.queryByText(/尚未完成所有類別的月結算/)).not.toBeInTheDocument();
+  });
 
-    await waitFor(() => expect(screen.getByTestId('generate-reports')).toBeInTheDocument());
-    expect(screen.getByText(/尚未完成所有類別的月結算/)).toBeInTheDocument();
+  it('leaves generate enabled while readiness has not loaded', () => {
+    renderReports({ isSettlementReady: null });
+
+    expect(screen.getByTestId('generate-reports')).not.toBeDisabled();
+  });
+
+  it('disables generate while the preview is loading', () => {
+    renderReports({ isLoading: true });
+
     expect(screen.getByTestId('generate-reports')).toBeDisabled();
   });
 
-  it('warns when the cash flow adjustment exceeds 1000', async () => {
-    mockExecute.mockResolvedValue(buildPreview({ adjustment: 1500 }) as never);
+  it('warns when the cash flow adjustment exceeds 1000', () => {
+    renderReports({ reports: reportsFrom(buildPreview({ adjustment: 1500 })) });
 
-    renderReports();
-
-    await waitFor(() => expect(screen.getByText(/現金流調整超過 1,000/)).toBeInTheDocument());
+    expect(screen.getByText(/現金流調整超過 1,000/)).toBeInTheDocument();
   });
 
-  it('annotates a preview figure that drifted from the persisted report', async () => {
-    vi.mocked(getStoredReportsBundleUseCase.execute).mockResolvedValue({
-      incomeStatement: { ...buildPreview().incomeStatement, incomeTotal: 40000 },
-      balanceSheet: null,
-      cashFlow: null,
-    } as never);
+  it('shows the no-data note when no statement loaded and there is no error', () => {
+    renderReports({
+      reports: { incomeStatement: null, balanceSheet: null, cashFlow: null },
+    });
 
-    renderReports();
-
-    await waitFor(() => expect(screen.getByText('NT$40,000 -> NT$50,000')).toBeInTheDocument());
+    expect(screen.getByText(MONTHLY_CLOSE_LABELS.NO_DATA)).toBeInTheDocument();
   });
 
-  it('renders the persisted record with no drift marks when the period is closed', async () => {
-    vi.mocked(getStoredReportsBundleUseCase.execute).mockResolvedValue({
-      incomeStatement: { ...buildPreview().incomeStatement, incomeTotal: 40000 },
-      balanceSheet: null,
-      cashFlow: null,
-    } as never);
+  it('shows the load error instead of the no-data note', () => {
+    renderReports({
+      reports: { incomeStatement: null, balanceSheet: null, cashFlow: null },
+      error: '無法載入報表預覽，請稍後再試。',
+    });
 
-    renderReports({ isReadOnly: true, isGenerated: true });
-
-    await waitFor(() => expect(screen.getByTestId('close-income-statement')).toBeInTheDocument());
-    expect(screen.getByTestId('close-income-statement')).toHaveTextContent('NT$40,000');
-    expect(screen.queryByText(/->/)).not.toBeInTheDocument();
-  });
-
-  it('keeps comparing after a reopen, when persisted files remain', async () => {
-    // Reopened period: not CLOSED, FINANCIAL_REPORTS back to PENDING, files left behind.
-    vi.mocked(getStoredReportsBundleUseCase.execute).mockResolvedValue({
-      incomeStatement: { ...buildPreview().incomeStatement, incomeTotal: 40000 },
-      balanceSheet: null,
-      cashFlow: null,
-    } as never);
-
-    renderReports({ isGenerated: true });
-
-    await waitFor(() => expect(screen.getByText('NT$40,000 -> NT$50,000')).toBeInTheDocument());
+    expect(screen.getByText('無法載入報表預覽，請稍後再試。')).toBeInTheDocument();
+    expect(screen.queryByText(MONTHLY_CLOSE_LABELS.NO_DATA)).not.toBeInTheDocument();
   });
 });

@@ -50,15 +50,11 @@ export const useMonthlyClosePage = ({
     confirmingStageId,
     isStarting,
     error,
-    anomalies,
-    transactionIssues,
-    readiness,
     selectYearMonth,
     start,
     reopen,
     confirmStage,
     resetStagesFrom,
-    refreshStageEvidence,
   } = useMonthlyClose({ householdId, userEmail });
   const [viewingStageId, setViewingStageId] = useState<CloseStageId | null>(null);
   const [accounts, setAccounts] = useState<Account[]>([]);
@@ -79,10 +75,7 @@ export const useMonthlyClosePage = ({
     accounts,
     portfolios,
     debtAccounts,
-    evidenceInputs: { anomalies, transactionIssues },
-    readiness,
     pageVM,
-    refreshStageEvidence,
   });
 
   useEffect(() => {
@@ -109,22 +102,13 @@ export const useMonthlyClosePage = ({
     };
   }, [auth, householdId]);
 
-  useEffect(() => {
-    if (!householdId || !selectedYearMonth) return;
-    void refreshStageEvidence();
-  }, [householdId, selectedYearMonth, refreshStageEvidence]);
-
-  // One refresh entry: the workflow's evidence plus every stage that opted into
-  // `control.refresh`. Used wherever the period changed under the stages
-  // (confirm, start, reopen, go-to-with-reset), so no call site has to know
-  // which stage owns which loaded data.
+  // One refresh entry: every stage that opted into `control.refresh`. Used
+  // wherever the period changed under the stages (confirm, start, reopen,
+  // go-to-with-reset), so no call site has to know which stage owns which
+  // loaded data.
   const refreshAll = useCallback(
-    () =>
-      Promise.all([
-        refreshStageEvidence(),
-        ...Object.values(stepRegistry).map((step) => step.control.refresh?.()),
-      ]),
-    [refreshStageEvidence, stepRegistry],
+    () => Promise.all(Object.values(stepRegistry).map((step) => step.control.refresh?.())),
+    [stepRegistry],
   );
 
   const currentStageId = pageVM.isClosed

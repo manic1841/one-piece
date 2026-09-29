@@ -1,14 +1,12 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo } from 'react';
 
 import { type SecuritiesTradeInput } from '@/application/monthly_close/use_cases/monthlyCloseWorkflowUseCase';
-import { validateMonthTransactionsUseCase } from '@/application/monthly_close/use_cases/validateMonthTransactionsUseCase';
 import { type SettlementReadiness } from '@/application/report/use_cases/getSettlementReadinessUseCase';
 import { type StoredReportsBundle } from '@/application/report/use_cases/getStoredReportsBundleUseCase';
 import { type PreviewFinancialReportsResult } from '@/application/report/use_cases/previewFinancialReportsWorkflow';
 import { type CompletenessActivity } from '@/application/settlement/use_cases/checkSettlementCompletenessUseCase';
 import { type ReportTotals, diffReportTotals } from '@/domains/report/reportDrift';
 import { REPORT_VIEW_TITLES } from '@/ui/constants/report/reportViewLabels';
-import { useAuthIdentity } from '@/ui/hooks/useAuthIdentity';
 
 import {
   type FinancialDriftVM,
@@ -18,9 +16,9 @@ import {
 import { type MonthlyClosePageVM } from '../viewmodels/monthlyClose.vm';
 
 interface UseCloseSummaryVMArgs {
-  householdId: string;
-  selectedYearMonth: string;
   readiness: SettlementReadiness | null;
+  /** The validated-transaction count TRANSACTION_VALIDATION's stage hook owns. */
+  checkedCount: number;
   reportBundle: PreviewFinancialReportsResult | null;
   persistedBundle: StoredReportsBundle | null;
   /** CLOSED renders the persisted record read-only; drift is only compared while live. */
@@ -30,7 +28,6 @@ interface UseCloseSummaryVMArgs {
   anomalies: CompletenessActivity[];
   pageVM: MonthlyClosePageVM;
   reportsPersisted: boolean | null;
-  refreshStageEvidence: () => Promise<void>;
 }
 
 const EMPTY_FINANCIAL_RESULT = {
@@ -56,13 +53,12 @@ const toTotals = (
 
 /**
  * Derives the readiness and close-summary view models that Steps 7-8 render,
- * including the checked-transaction count they both consume and the five
- * financial figures' drift annotations (Report Drift).
+ * from the evidence each owning stage hook provides, plus the five financial
+ * figures' drift annotations (Report Drift).
  */
 export const useCloseSummaryVM = ({
-  householdId,
-  selectedYearMonth,
   readiness,
+  checkedCount,
   reportBundle,
   persistedBundle,
   isClosed,
@@ -71,27 +67,8 @@ export const useCloseSummaryVM = ({
   anomalies,
   pageVM,
   reportsPersisted,
-  refreshStageEvidence,
 }: UseCloseSummaryVMArgs) => {
-  const auth = useAuthIdentity();
   const zeroActivityNames = anomalies.map((activity) => activity.name);
-  const [checkedCount, setCheckedCount] = useState(0);
-
-  // Checked count rides the same refresh as the stage evidence, so Step 7's
-  // N/M count never goes stale after a mid-close securities re-confirm.
-  useEffect(() => {
-    if (!householdId || !selectedYearMonth) return;
-    const refresh = async () => {
-      const result = await validateMonthTransactionsUseCase.execute({
-        householdId,
-        year: Number(selectedYearMonth.slice(0, 4)),
-        month: Number(selectedYearMonth.slice(5, 7)),
-        auth,
-      });
-      setCheckedCount(result.checkedCount);
-    };
-    void refresh();
-  }, [auth, householdId, refreshStageEvidence, selectedYearMonth]);
 
   const readinessVM = useMemo(() => {
     if (!readiness) return null;

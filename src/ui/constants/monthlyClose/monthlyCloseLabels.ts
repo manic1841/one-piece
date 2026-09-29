@@ -136,7 +136,6 @@ export const MONTHLY_CLOSE_LABELS = {
   NET_CASH_CHANGE: '現金淨變動',
   ACTUAL_BALANCE: '實際餘額',
   ADJUSTMENT_WARNING: '現金流調整超過 1,000，請先確認再產生報表。',
-  READINESS_BLOCKED: '尚未完成所有類別的月結算：',
   READINESS_CHECK_TITLE: '就緒檢查',
   READINESS_CHECK_NOTE: '報表產生前，確認資料能否產生正確報表',
   READINESS_EXCEPTIONS: '例外項目',

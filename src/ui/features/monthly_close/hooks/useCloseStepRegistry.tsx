@@ -1,6 +1,5 @@
 import React from 'react';
 
-import { type SettlementReadiness } from '@/application/report/use_cases/getSettlementReadinessUseCase';
 import { type Account } from '@/domains/account/types/account';
 import { type DebtAccount } from '@/domains/debt/schemas';
 import { type CloseStageId } from '@/domains/financial_period/schemas';
@@ -19,12 +18,12 @@ import { useAuthIdentity } from '@/ui/hooks/useAuthIdentity';
 import { CloseEvidenceOnlyStage } from '../components/CloseEvidenceOnlyStage';
 import { type CloseStageControl } from '../hooks/closeStageControl';
 import { useCloseSummaryVM } from '../hooks/useCloseSummaryVM';
-import { useNoOpStageControl } from '../hooks/useConfirmStageControl';
 import { CloseAccountBalanceStage } from '../stages/account_balance/components/CloseAccountBalanceStage';
 import { useAccountBalanceStage } from '../stages/account_balance/hooks/useAccountBalanceStage';
 import { CloseSummaryPanel } from '../stages/close_period/components/CloseSummaryPanel';
 import { useClosePeriodStage } from '../stages/close_period/hooks/useClosePeriodStage';
 import { CloseReadinessCheck } from '../stages/completeness_check/components/CloseReadinessCheck';
+import { useCompletenessCheckStage } from '../stages/completeness_check/hooks/useCompletenessCheckStage';
 import { CloseDebtRepaymentStage } from '../stages/debt_repayment/components/CloseDebtRepaymentStage';
 import { useDebtRepaymentStage } from '../stages/debt_repayment/hooks/useDebtRepaymentStage';
 import { CloseFinancialReports } from '../stages/financial_reports/components/CloseFinancialReports';
@@ -35,13 +34,8 @@ import { useProjectSettlementStage } from '../stages/project_settlement/hooks/us
 import { CloseSecuritiesTradeStage } from '../stages/securities_trade/components/CloseSecuritiesTradeStage';
 import { CloseTradeDrawerSection } from '../stages/securities_trade/components/CloseTradeDrawerSection';
 import { useSecuritiesTradeStage } from '../stages/securities_trade/hooks/useSecuritiesTradeStage';
+import { useTransactionValidationStage } from '../stages/transaction_validation/hooks/useTransactionValidationStage';
 import { type MonthlyClosePageVM } from '../viewmodels/monthlyClose.vm';
-
-/** Raw evidence inputs the workflow loads once and shares by reference. */
-export interface CloseStepEvidenceInputs {
-  anomalies: Parameters<typeof mapAnomaliesToEvidence>[0];
-  transactionIssues: Parameters<typeof mapTransactionIssuesToEvidence>[0];
-}
 
 /**
  * Shared context every content factory receives at the page-to-registry
@@ -93,12 +87,7 @@ export interface UseCloseStepRegistryArgs {
   accounts: Account[];
   portfolios: Portfolio[];
   debtAccounts: DebtAccount[];
-  /** Raw evidence inputs the workflow loaded once; evidence closures read them. */
-  evidenceInputs: CloseStepEvidenceInputs;
-  /** Step 7 readiness, owned by the workflow and read only here. */
-  readiness: SettlementReadiness | null;
   pageVM: MonthlyClosePageVM;
-  refreshStageEvidence: () => Promise<void>;
 }
 
 /**
@@ -119,10 +108,7 @@ export const useCloseStepRegistry = ({
   accounts,
   portfolios,
   debtAccounts,
-  evidenceInputs,
-  readiness,
   pageVM,
-  refreshStageEvidence,
 }: UseCloseStepRegistryArgs) => {
   const auth = useAuthIdentity();
   const accountBalanceStage = useAccountBalanceStage({
@@ -154,57 +140,63 @@ export const useCloseStepRegistry = ({
     confirmingStageId,
     refreshKey,
   });
-  const financialReportsStage = useFinancialReportsStage({
-    householdId,
-    selectedYearMonth,
-    confirmingStageId,
-  });
   const projectSettlementStage = useProjectSettlementStage({
     householdId,
     selectedYearMonth,
     confirmingStageId,
     refreshKey,
   });
-  const transactionValidationStage = useNoOpStageControl(
-    'TRANSACTION_VALIDATION',
+  const transactionValidationStage = useTransactionValidationStage({
+    householdId,
+    selectedYearMonth,
     confirmingStageId,
-  );
-  const completenessCheckStage = useNoOpStageControl('COMPLETENESS_CHECK', confirmingStageId);
+  });
+  const completenessCheckStage = useCompletenessCheckStage({
+    householdId,
+    selectedYearMonth,
+    confirmingStageId,
+  });
   const closePeriodStage = useClosePeriodStage({
     householdId,
     selectedYearMonth,
     confirmingStageId,
   });
+  const financialReportsStage = useFinancialReportsStage({
+    householdId,
+    selectedYearMonth,
+    confirmingStageId,
+    persistedBundle: closePeriodStage.persistedBundle,
+    isClosed: pageVM.isClosed,
+  });
 
   // Steps 7-8 summary VMs: built here, after the stage hooks, so COMPLETENESS_CHECK
   // and CLOSE_PERIOD read them from this closure instead of the page copying them
-  // into CloseStepContext. CLOSE_PERIOD's five financial figures come from the
-  // preview bundle its own stage hook owns.
+  // into CloseStepContext. The readiness COMPLETENESS_CHECK owns is also the
+  // single source Step 8's Generate gate reads across stages; CLOSE_PERIOD's
+  // five financial figures come from the preview bundle its own stage hook owns.
   const { readinessVM, closeSummaryVM } = useCloseSummaryVM({
-    householdId,
-    selectedYearMonth,
-    readiness,
+    readiness: completenessCheckStage.readiness,
+    checkedCount: transactionValidationStage.checkedCount,
     reportBundle: closePeriodStage.reportBundle,
     persistedBundle: closePeriodStage.persistedBundle,
     isClosed: pageVM.isClosed,
-    transactionIssues: evidenceInputs.transactionIssues,
+    transactionIssues: transactionValidationStage.transactionIssues,
     securities: securitiesTradeStage.securities,
-    anomalies: evidenceInputs.anomalies,
+    anomalies: completenessCheckStage.anomalies,
     pageVM,
     reportsPersisted: financialReportsStage.reportsPersisted,
-    refreshStageEvidence,
   });
 
-  // Per-stage evidence closures: built from the shared inputs and the owning
-  // stage's data. CLOSE_PERIOD reads the persistence state owned by
-  // FINANCIAL_REPORTS; FINANCIAL_REPORTS reads the preview bundle owned by
-  // CLOSE_PERIOD — the intentional cross-stage reads, permitted only here.
+  // Per-stage evidence closures: built from the owning stage's data. CLOSE_PERIOD
+  // reads the persistence state owned by FINANCIAL_REPORTS; FINANCIAL_REPORTS
+  // reads the preview bundle owned by CLOSE_PERIOD — the intentional cross-stage
+  // reads, permitted only here.
   const noEvidence = () => NO_EVIDENCE;
   const projectSettlementEvidence = () =>
     mapProjectSettlementsToEvidence(projectSettlementStage.settlements);
   const transactionValidationEvidence = () =>
-    mapTransactionIssuesToEvidence(evidenceInputs.transactionIssues);
-  const completenessCheckEvidence = () => mapAnomaliesToEvidence(evidenceInputs.anomalies);
+    mapTransactionIssuesToEvidence(transactionValidationStage.transactionIssues);
+  const completenessCheckEvidence = () => mapAnomaliesToEvidence(completenessCheckStage.anomalies);
   const financialReportsEvidence = () => {
     const adjustment = closePeriodStage.reportBundle?.cashFlow.adjustment ?? null;
     return adjustment !== null ? mapAdjustmentCountToEvidence(adjustment) : NO_EVIDENCE;
@@ -344,15 +336,16 @@ export const useCloseStepRegistry = ({
       control: financialReportsStage,
       render: (ctx) => (
         <CloseFinancialReports
-          householdId={householdId}
-          year={Number(selectedYearMonth.slice(0, 4))}
-          month={Number(selectedYearMonth.slice(5, 7))}
+          reports={financialReportsStage.reports}
+          timestamps={financialReportsStage.timestamps}
+          isLoading={financialReportsStage.isLoading}
+          error={financialReportsStage.error}
+          isSettlementReady={completenessCheckStage.readiness?.isReady ?? null}
           onContinue={ctx.onContinue}
           onGenerate={ctx.onConfirm}
           onBack={ctx.onBack}
           confirming={ctx.confirming}
           isConfirmable={ctx.isConfirmable}
-          isReadOnly={ctx.isReadOnly}
           isGenerated={financialReportsStage.reportsPersisted ?? false}
         />
       ),
