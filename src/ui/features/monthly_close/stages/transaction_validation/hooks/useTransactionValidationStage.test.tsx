@@ -81,4 +81,19 @@ describe('useTransactionValidationStage', () => {
     expect(result.current.checkedCount).toBe(0);
     expect(result.current.transactionIssues).toEqual([]);
   });
+
+  it('keeps the previous evidence on a same-month refresh failure but flags the error (#226)', async () => {
+    const { result } = renderStage();
+    await waitFor(() => expect(result.current.checkedCount).toBe(4));
+
+    mockExecute.mockRejectedValue(new Error('boom'));
+    await act(() => result.current.refresh?.());
+
+    await waitFor(() =>
+      expect(result.current.errorMessage).toBe('無法載入交易驗證結果，請稍後再試。'),
+    );
+    // Stale values stay on screen by design (no flash-empty), which is exactly
+    // why consumers must gate on the error rather than on the data.
+    expect(result.current.checkedCount).toBe(4);
+  });
 });

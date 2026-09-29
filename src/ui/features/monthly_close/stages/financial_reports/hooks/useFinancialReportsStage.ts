@@ -164,8 +164,11 @@ export const useFinancialReportsStage = ({
 
     await run(() => fetchFinancialReportsData({ householdId, selectedYearMonth, auth }), {
       signal: controller.signal,
-      // A failed run writes nothing; the surface shows the canned message from
-      // the mechanism's error channel instead.
+      // A failed run writes nothing. On a month switch the new month therefore
+      // reads empty rather than the previous month's; on a same-month refresh
+      // the previous values stay on screen, so the error channel (not the data)
+      // is what marks the stage not-ready (#226) — this also keeps a stale
+      // `reportsPersisted` from being read as verified.
       writeBack: (result) => {
         if (!result.ok) return;
         setData({ yearMonth: selectedYearMonth, ...result.value });

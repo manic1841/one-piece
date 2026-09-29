@@ -31,8 +31,13 @@ const LOAD_ERROR = '無法載入結算就緒狀態，請稍後再試。';
  * Loads the month's completeness evidence: the zero-activity anomalies (the
  * only NEEDS_REVIEW source) and the settlement readiness Step 7 aggregates. A
  * read failure throws the canned message so the surface shows copy the consumer
- * owns, and the month-keyed state stays unset rather than reporting a clean
- * month we never checked.
+ * owns.
+ *
+ * Failure has two distinct shapes, and consumers must handle both: a failed
+ * month switch leaves the new month's keyed state unset (reads empty, not the
+ * previous month's), while a failed same-month refresh keeps the previous
+ * values on screen. Because stale values stay visible, consumers gate on
+ * `errorMessage` — never on the data alone (#226).
  */
 const fetchCompleteness = async ({
   householdId,
@@ -91,8 +96,10 @@ export const useCompletenessCheckStage = ({
 
     await run(() => fetchCompleteness({ householdId, selectedYearMonth, auth }), {
       signal: controller.signal,
-      // A failed run writes nothing, so the stage reports a clean month rather
-      // than the previous month's; the error channel carries the canned message.
+      // A failed run writes nothing. On a month switch the new month therefore
+      // reads empty rather than the previous month's; on a same-month refresh
+      // the previous values stay on screen, so the error channel (not the data)
+      // is what marks the stage not-ready (#226).
       writeBack: (result) => {
         if (!result.ok) return;
         setData({ yearMonth: selectedYearMonth, data: result.value });

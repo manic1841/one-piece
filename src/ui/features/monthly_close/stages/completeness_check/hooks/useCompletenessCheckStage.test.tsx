@@ -108,4 +108,19 @@ describe('useCompletenessCheckStage', () => {
     expect(result.current.readiness).toBeNull();
     expect(result.current.anomalies).toEqual([]);
   });
+
+  it('keeps the previous evidence on a same-month refresh failure but flags the error (#226)', async () => {
+    const { result } = renderStage();
+    await waitFor(() => expect(result.current.readiness).not.toBeNull());
+
+    mockReadiness.mockRejectedValue(new Error('boom'));
+    await act(() => result.current.refresh?.());
+
+    await waitFor(() =>
+      expect(result.current.errorMessage).toBe('無法載入結算就緒狀態，請稍後再試。'),
+    );
+    // Stale values stay on screen by design (no flash-empty), which is exactly
+    // why consumers must gate on the error rather than on the data.
+    expect(result.current.readiness).not.toBeNull();
+  });
 });

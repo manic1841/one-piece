@@ -162,4 +162,21 @@ describe('useFinancialReportsStage', () => {
     expect(result.current.isLoading).toBe(false);
     expect(result.current.reports.incomeStatement).toBeNull();
   });
+
+  it('keeps the previous preview on a same-month refresh failure but flags the error (#226)', async () => {
+    mockPreview.mockResolvedValue(buildPreview(50000));
+    mockPersistence.mockResolvedValue({ isPersisted: true, timestamps: {} });
+
+    const { result } = renderStage();
+    await waitFor(() => expect(result.current.reportsPersisted).toBe(true));
+
+    mockPreview.mockRejectedValue(new Error('boom'));
+    await act(() => result.current.refresh?.());
+
+    await waitFor(() => expect(result.current.error).not.toBeNull());
+    // The stale flag and preview stay on screen by design; consumers gate on the
+    // error, so a stale `reportsPersisted: true` is never read as verified.
+    expect(result.current.reportsPersisted).toBe(true);
+    expect(result.current.reports.incomeStatement).not.toBeNull();
+  });
 });

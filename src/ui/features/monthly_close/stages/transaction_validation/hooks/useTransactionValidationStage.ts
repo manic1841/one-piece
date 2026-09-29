@@ -24,8 +24,13 @@ const LOAD_ERROR = '無法載入交易驗證結果，請稍後再試。';
 /**
  * Loads the month's transaction-validation evidence (spec 05 stage 02). A read
  * failure throws the canned message so the surface shows copy the consumer
- * owns, and the month-keyed state stays unset rather than reporting "no
- * issues" for a batch we never validated.
+ * owns.
+ *
+ * Failure has two distinct shapes: a failed month switch leaves the new month's
+ * keyed state unset (reads empty, not the previous month's), while a failed
+ * same-month refresh keeps the previous values on screen. Because stale values
+ * stay visible, consumers gate on `errorMessage` — never on the data alone
+ * (#226).
  */
 const fetchValidation = async ({
   householdId,
@@ -86,8 +91,10 @@ export const useTransactionValidationStage = ({
 
     await run(() => fetchValidation({ householdId, selectedYearMonth, auth }), {
       signal: controller.signal,
-      // A failed run writes nothing, so the stage reports no issues rather than
-      // the previous month's; the error channel carries the canned message.
+      // A failed run writes nothing. On a month switch the new month therefore
+      // reads empty rather than the previous month's; on a same-month refresh
+      // the previous values stay on screen, so the error channel (not the data)
+      // is what marks the stage not-ready (#226).
       writeBack: (result) => {
         if (!result.ok) return;
         setData({ yearMonth: selectedYearMonth, data: result.value });
