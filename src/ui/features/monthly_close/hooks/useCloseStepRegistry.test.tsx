@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { listProjectSnapshotsUseCase } from '@/application/project/use_cases/listProjectSnapshotsUseCase';
 import { listProjectsUseCase } from '@/application/project/use_cases/listProjectsUseCase';
 import { getReportPersistenceStateUseCase } from '@/application/report/use_cases/getReportPersistenceStateUseCase';
+import { getStoredReportsBundleUseCase } from '@/application/report/use_cases/getStoredReportsBundleUseCase';
 import { previewFinancialReportsWorkflow } from '@/application/report/use_cases/previewFinancialReportsWorkflow';
 import { MONTHLY_CLOSE_LABELS } from '@/ui/constants/monthlyClose';
 import { mapPeriodToPageVM } from '@/ui/features/monthly_close/mappers/monthlyClose.mappers';
@@ -61,6 +62,15 @@ vi.mock('@/application/report/use_cases/getReportPersistenceStateUseCase', () =>
 }));
 vi.mock('@/application/report/use_cases/previewFinancialReportsWorkflow', () => ({
   previewFinancialReportsWorkflow: { execute: vi.fn().mockResolvedValue(null) },
+}));
+vi.mock('@/application/report/use_cases/getStoredReportsBundleUseCase', () => ({
+  getStoredReportsBundleUseCase: {
+    execute: vi.fn().mockResolvedValue({
+      incomeStatement: null,
+      balanceSheet: null,
+      cashFlow: null,
+    }),
+  },
 }));
 vi.mock('@/ui/features/app/confirm/useConfirm', () => ({
   useConfirm: () => ({ confirm: vi.fn().mockResolvedValue(true) }),
@@ -271,6 +281,73 @@ describe('useCloseStepRegistry', () => {
     expect(screen.getByText('NT$4,300,000')).toBeInTheDocument();
     expect(screen.getByText('NT$117,000')).toBeInTheDocument();
     expect(screen.getByText('NT$179,000')).toBeInTheDocument();
+  });
+
+  it('annotates a Step 9 figure that drifted from the persisted report while live', async () => {
+    vi.mocked(previewFinancialReportsWorkflow.execute).mockResolvedValue({
+      incomeStatement: { netIncome: 117_000 },
+      balanceSheet: {
+        assets: { total: 10_500_000 },
+        liabilities: { total: 6_200_000 },
+        equity: { total: 4_300_000 },
+      },
+      cashFlow: { adjustment: 0, netCashChange: 179_000 },
+    } as never);
+    vi.mocked(getStoredReportsBundleUseCase.execute).mockResolvedValue({
+      incomeStatement: { netIncome: 117_000 },
+      balanceSheet: {
+        assets: { total: 10_500_000 },
+        liabilities: { total: 6_200_000 },
+        equity: { total: 4_200_000 },
+      },
+      cashFlow: { netCashChange: 179_000 },
+    } as never);
+
+    function ClosePeriodHarness() {
+      const registry = useCloseStepRegistry(baseArgs);
+      return <>{registry.CLOSE_PERIOD.render(baseContext)}</>;
+    }
+
+    render(<ClosePeriodHarness />);
+
+    await waitFor(() =>
+      expect(screen.getByText('NT$4,200,000 -> NT$4,300,000')).toBeInTheDocument(),
+    );
+  });
+
+  it('renders the persisted Step 9 record with no drift marks for a CLOSED period', async () => {
+    vi.mocked(previewFinancialReportsWorkflow.execute).mockResolvedValue({
+      incomeStatement: { netIncome: 117_000 },
+      balanceSheet: {
+        assets: { total: 10_500_000 },
+        liabilities: { total: 6_200_000 },
+        equity: { total: 4_300_000 },
+      },
+      cashFlow: { adjustment: 0, netCashChange: 179_000 },
+    } as never);
+    vi.mocked(getStoredReportsBundleUseCase.execute).mockResolvedValue({
+      incomeStatement: { netIncome: 117_000 },
+      balanceSheet: {
+        assets: { total: 10_500_000 },
+        liabilities: { total: 6_200_000 },
+        equity: { total: 4_200_000 },
+      },
+      cashFlow: { netCashChange: 179_000 },
+    } as never);
+
+    const closedArgs: UseCloseStepRegistryArgs = {
+      ...baseArgs,
+      pageVM: { ...mapPeriodToPageVM(null, '2026-08'), isClosed: true },
+    };
+    function ClosedHarness() {
+      const registry = useCloseStepRegistry(closedArgs);
+      return <>{registry.CLOSE_PERIOD.render(baseContext)}</>;
+    }
+
+    render(<ClosedHarness />);
+
+    await waitFor(() => expect(screen.getByText('NT$4,200,000')).toBeInTheDocument());
+    expect(screen.queryByText(/->/)).not.toBeInTheDocument();
   });
 
   it('resets every stage draft through the control record', () => {

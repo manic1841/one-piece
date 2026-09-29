@@ -4,7 +4,8 @@ import { StatusGlyph } from '@/ui/components/StatusGlyph';
 import { Button } from '@/ui/components/ui/button';
 import { MONTHLY_CLOSE_LABELS } from '@/ui/constants/monthlyClose';
 import { useConfirm } from '@/ui/features/app/confirm/useConfirm';
-import { formatCurrency } from '@/ui/utils';
+import { formatDriftDelta, isDrifted } from '@/ui/features/monthly_close/viewmodels/reportDrift.vm';
+import { cn, formatCurrency } from '@/ui/utils';
 
 import {
   CLOSE_ACTIVITY_STATUS,
@@ -102,14 +103,23 @@ export const CloseSummaryPanel: React.FC<CloseSummaryPanelProps> = ({
             <div className="space-y-1">
               {financialRows.map((row) => {
                 const value = summary.financial[row.key];
+                const drift = summary.financialDrift?.[row.key];
+                const delta = drift ? formatDriftDelta(drift) : null;
                 return (
                   <div
                     key={row.key}
                     className="flex items-center justify-between rounded-lg px-3 py-2 odd:bg-muted/30"
                   >
                     <span className="text-sm text-foreground">{row.label}</span>
-                    <span className="font-mono text-[13px] tabular-nums text-muted-foreground">
-                      {value === null ? MONTHLY_CLOSE_LABELS.NO_DATA : formatCurrency(value)}
+                    <span
+                      className={cn(
+                        'font-mono text-[13px] tabular-nums',
+                        isDrifted(drift) ? 'text-warning' : 'text-muted-foreground',
+                      )}
+                    >
+                      {value === null
+                        ? MONTHLY_CLOSE_LABELS.NO_DATA
+                        : (delta ?? formatCurrency(value))}
                     </span>
                   </div>
                 );

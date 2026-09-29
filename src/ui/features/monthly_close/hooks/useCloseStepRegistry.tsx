@@ -185,6 +185,8 @@ export const useCloseStepRegistry = ({
     selectedYearMonth,
     readiness,
     reportBundle: closePeriodStage.reportBundle,
+    persistedBundle: closePeriodStage.persistedBundle,
+    isClosed: pageVM.isClosed,
     transactionIssues: evidenceInputs.transactionIssues,
     securities: securitiesTradeStage.securities,
     anomalies: evidenceInputs.anomalies,
@@ -350,6 +352,7 @@ export const useCloseStepRegistry = ({
           onBack={ctx.onBack}
           confirming={ctx.confirming}
           isConfirmable={ctx.isConfirmable}
+          isReadOnly={ctx.isReadOnly}
           isGenerated={financialReportsStage.reportsPersisted ?? false}
         />
       ),

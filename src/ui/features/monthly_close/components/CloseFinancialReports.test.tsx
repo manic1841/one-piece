@@ -1,12 +1,22 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { getStoredReportsBundleUseCase } from '@/application/report/use_cases/getStoredReportsBundleUseCase';
 import { previewFinancialReportsWorkflow } from '@/application/report/use_cases/previewFinancialReportsWorkflow';
 
 import { CloseFinancialReports } from './CloseFinancialReports';
 
 vi.mock('@/application/report/use_cases/previewFinancialReportsWorkflow', () => ({
   previewFinancialReportsWorkflow: { execute: vi.fn() },
+}));
+vi.mock('@/application/report/use_cases/getStoredReportsBundleUseCase', () => ({
+  getStoredReportsBundleUseCase: {
+    execute: vi.fn().mockResolvedValue({
+      incomeStatement: null,
+      balanceSheet: null,
+      cashFlow: null,
+    }),
+  },
 }));
 vi.mock('@/application/report/use_cases/getSettlementReadinessUseCase', () => ({
   getSettlementReadinessUseCase: {
@@ -104,6 +114,7 @@ const renderReports = (props?: Partial<Parameters<typeof CloseFinancialReports>[
       onBack={() => {}}
       confirming={false}
       isConfirmable={true}
+      isReadOnly={false}
       isGenerated={false}
       {...props}
     />,
@@ -142,7 +153,7 @@ describe('CloseFinancialReports', () => {
     await waitFor(() => expect(screen.getByTestId('close-income-statement')).toBeInTheDocument());
     fireEvent.mouseDown(screen.getByRole('tab', { name: '資產負債表' }));
 
-    expect(screen.getByText('本期淨利')).toBeInTheDocument();
+    expect(screen.getAllByText('本期淨利').length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText('Calculated').length).toBeGreaterThanOrEqual(1);
     expect(screen.queryByText('貸款')).not.toBeInTheDocument();
   });
@@ -191,5 +202,44 @@ describe('CloseFinancialReports', () => {
     renderReports();
 
     await waitFor(() => expect(screen.getByText(/現金流調整超過 1,000/)).toBeInTheDocument());
+  });
+
+  it('annotates a preview figure that drifted from the persisted report', async () => {
+    vi.mocked(getStoredReportsBundleUseCase.execute).mockResolvedValue({
+      incomeStatement: { ...buildPreview().incomeStatement, incomeTotal: 40000 },
+      balanceSheet: null,
+      cashFlow: null,
+    } as never);
+
+    renderReports();
+
+    await waitFor(() => expect(screen.getByText('NT$40,000 -> NT$50,000')).toBeInTheDocument());
+  });
+
+  it('renders the persisted record with no drift marks when the period is closed', async () => {
+    vi.mocked(getStoredReportsBundleUseCase.execute).mockResolvedValue({
+      incomeStatement: { ...buildPreview().incomeStatement, incomeTotal: 40000 },
+      balanceSheet: null,
+      cashFlow: null,
+    } as never);
+
+    renderReports({ isReadOnly: true, isGenerated: true });
+
+    await waitFor(() => expect(screen.getByTestId('close-income-statement')).toBeInTheDocument());
+    expect(screen.getByTestId('close-income-statement')).toHaveTextContent('NT$40,000');
+    expect(screen.queryByText(/->/)).not.toBeInTheDocument();
+  });
+
+  it('keeps comparing after a reopen, when persisted files remain', async () => {
+    // Reopened period: not CLOSED, FINANCIAL_REPORTS back to PENDING, files left behind.
+    vi.mocked(getStoredReportsBundleUseCase.execute).mockResolvedValue({
+      incomeStatement: { ...buildPreview().incomeStatement, incomeTotal: 40000 },
+      balanceSheet: null,
+      cashFlow: null,
+    } as never);
+
+    renderReports({ isGenerated: true });
+
+    await waitFor(() => expect(screen.getByText('NT$40,000 -> NT$50,000')).toBeInTheDocument());
   });
 });

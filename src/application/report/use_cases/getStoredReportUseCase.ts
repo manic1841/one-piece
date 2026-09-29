@@ -26,6 +26,15 @@ export interface GetStoredReportRequest {
 export type StoredReportData = IncomeStatementData | BalanceSheetData | CashFlowData;
 
 export class GetStoredReportUseCase {
+  async execute(
+    request: GetStoredReportRequest & { kind: 'incomeStatement' },
+  ): Promise<IncomeStatementData | null>;
+  async execute(
+    request: GetStoredReportRequest & { kind: 'balanceSheet' },
+  ): Promise<BalanceSheetData | null>;
+  async execute(
+    request: GetStoredReportRequest & { kind: 'cashFlow' },
+  ): Promise<CashFlowData | null>;
   async execute(request: GetStoredReportRequest): Promise<StoredReportData | null> {
     const { householdId, yearMonth, kind, auth } = request;
     await householdPermissionService.assertReadPermission(

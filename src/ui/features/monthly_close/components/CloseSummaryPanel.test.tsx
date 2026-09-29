@@ -1,6 +1,8 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { DRIFT_STATUS } from '@/domains/report/reportDrift';
+
 import { CLOSE_ACTIVITY_STATUS, type CloseSummaryVM } from '../mappers/closeSummary.mappers';
 import { CloseSummaryPanel } from './CloseSummaryPanel';
 
@@ -86,6 +88,19 @@ describe('CloseSummaryPanel', () => {
     expect(screen.getByText('損益表')).toBeInTheDocument();
     const cashFlowRow = screen.getByText('現金流量表').closest('div');
     expect(cashFlowRow?.textContent).toContain('尚未產生');
+  });
+
+  it('shows the persisted -> preview delta for a drifted figure', () => {
+    renderPanel({
+      summary: {
+        ...summaryVM,
+        financialDrift: {
+          equity: { amount: 4_300_000, previousAmount: 4_200_000, status: DRIFT_STATUS.CHANGED },
+        },
+      },
+    });
+
+    expect(screen.getByText('NT$4,200,000 -> NT$4,300,000')).toBeInTheDocument();
   });
 
   it('opens the close confirmation dialog on close click', async () => {

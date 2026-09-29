@@ -1,4 +1,5 @@
 import type { CloseStageId } from '@/domains/financial_period/schemas';
+import { type DriftAmount } from '@/domains/report/reportDrift';
 import { CLOSE_STAGE_LABELS, MONTHLY_CLOSE_LABELS } from '@/ui/constants/monthlyClose';
 
 export const READINESS_CHECK_IDS = [
@@ -69,6 +70,11 @@ export interface FinancialResultVM {
   netCashFlow: number | null;
 }
 
+export type FinancialResultKey = keyof FinancialResultVM;
+
+/** Per-figure drift annotations for a live period; absent for a CLOSED record. */
+export type FinancialDriftVM = Partial<Record<FinancialResultKey, DriftAmount>>;
+
 export interface ReportResultVM {
   title: string;
   isGenerated: boolean;
@@ -77,6 +83,7 @@ export interface ReportResultVM {
 export interface CloseSummaryVM {
   activity: CloseActivityRowVM[];
   financial: FinancialResultVM;
+  financialDrift?: FinancialDriftVM;
   reports: ReportResultVM[];
   reportsGeneratedCount: number;
 }
@@ -89,6 +96,7 @@ export interface CloseSummaryInput {
     dataText: string | null;
   }[];
   financialResult: FinancialResultVM;
+  financialDrift?: FinancialDriftVM;
   reports: ReportResultVM[];
 }
 
@@ -226,6 +234,7 @@ export const mapCloseSummary = (input: CloseSummaryInput): CloseSummaryVM => {
   return {
     activity,
     financial: input.financialResult,
+    financialDrift: input.financialDrift,
     reports: input.reports,
     reportsGeneratedCount: input.reports.filter((report) => report.isGenerated).length,
   };

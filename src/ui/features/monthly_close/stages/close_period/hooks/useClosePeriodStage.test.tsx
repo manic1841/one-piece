@@ -1,6 +1,7 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { getStoredReportsBundleUseCase } from '@/application/report/use_cases/getStoredReportsBundleUseCase';
 import { previewFinancialReportsWorkflow } from '@/application/report/use_cases/previewFinancialReportsWorkflow';
 
 import { useClosePeriodStage } from './useClosePeriodStage';
@@ -14,6 +15,9 @@ vi.mock('@/ui/hooks/useAuthIdentity', () => ({
 }));
 vi.mock('@/application/report/use_cases/previewFinancialReportsWorkflow', () => ({
   previewFinancialReportsWorkflow: { execute: vi.fn() },
+}));
+vi.mock('@/application/report/use_cases/getStoredReportsBundleUseCase', () => ({
+  getStoredReportsBundleUseCase: { execute: vi.fn() },
 }));
 
 const previewFixture = (netIncome: number) => ({ incomeStatement: { netIncome } }) as never;
@@ -33,6 +37,11 @@ describe('useClosePeriodStage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(previewFinancialReportsWorkflow.execute).mockResolvedValue(null as never);
+    vi.mocked(getStoredReportsBundleUseCase.execute).mockResolvedValue({
+      incomeStatement: null,
+      balanceSheet: null,
+      cashFlow: null,
+    });
   });
 
   it('loads the live preview bundle regardless of persistence', async () => {
@@ -45,6 +54,27 @@ describe('useClosePeriodStage', () => {
     );
     expect(previewFinancialReportsWorkflow.execute).toHaveBeenCalledWith(
       expect.objectContaining({ year: 2026, month: 8 }),
+    );
+  });
+
+  it('loads the persisted bundle for drift comparison', async () => {
+    vi.mocked(getStoredReportsBundleUseCase.execute).mockResolvedValue({
+      incomeStatement: { netIncome: 1200 },
+      balanceSheet: null,
+      cashFlow: null,
+    } as never);
+
+    const { result } = renderStage();
+
+    await waitFor(() =>
+      expect(result.current.persistedBundle).toEqual({
+        incomeStatement: { netIncome: 1200 },
+        balanceSheet: null,
+        cashFlow: null,
+      }),
+    );
+    expect(getStoredReportsBundleUseCase.execute).toHaveBeenCalledWith(
+      expect.objectContaining({ yearMonth: '2026-08' }),
     );
   });
 

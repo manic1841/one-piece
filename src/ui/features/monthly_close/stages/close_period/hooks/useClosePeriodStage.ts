@@ -1,6 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
 
 import {
+  type StoredReportsBundle,
+  getStoredReportsBundleUseCase,
+} from '@/application/report/use_cases/getStoredReportsBundleUseCase';
+import {
   type PreviewFinancialReportsResult,
   previewFinancialReportsWorkflow,
 } from '@/application/report/use_cases/previewFinancialReportsWorkflow';
@@ -41,12 +45,40 @@ const fetchReportBundle = async ({
 };
 
 /**
+ * Loads the month's persisted reports (the frozen record drift compares
+ * against). Returns null on failure so the caller leaves the month-keyed state
+ * unset rather than treating a read failure as "no persisted report".
+ */
+const fetchPersistedBundle = async ({
+  householdId,
+  selectedYearMonth,
+  auth,
+}: {
+  householdId: string;
+  selectedYearMonth: string;
+  auth: AuthContext;
+}): Promise<StoredReportsBundle | null> => {
+  try {
+    return await getStoredReportsBundleUseCase.execute({
+      householdId,
+      yearMonth: selectedYearMonth,
+      auth,
+    });
+  } catch (caught) {
+    logger.warn('Failed to load persisted reports', 'useClosePeriodStage', { caught });
+    return null;
+  }
+};
+
+/**
  * Stage controller for CLOSE_PERIOD: owns the month's report preview bundle —
- * the live, always-recomputed figures Step 9 renders. The preview is loaded
- * unconditionally, not gated on persisted reports: the close summary always
- * reflects the current entries, and persistence is only a flag owned by
- * FINANCIAL_REPORTS. `refresh` reloads it when the period changes under the
- * stage; there is no draft and no gate.
+ * the live, always-recomputed figures Step 9 renders — and the month's
+ * persisted report bundle, the frozen record Step 9 and Step 8 compare the
+ * preview against (Report Drift). The preview is loaded unconditionally, not
+ * gated on persisted reports: the close summary always reflects the current
+ * entries, and persistence is only a flag owned by FINANCIAL_REPORTS. `refresh`
+ * reloads both when the period changes under the stage; there is no draft and
+ * no gate.
  */
 export const useClosePeriodStage = ({
   householdId,
@@ -54,6 +86,7 @@ export const useClosePeriodStage = ({
   confirmingStageId,
 }: UseClosePeriodStageArgs): CloseStageControl & {
   reportBundle: PreviewFinancialReportsResult | null;
+  persistedBundle: StoredReportsBundle | null;
 } => {
   const auth = useAuthIdentity();
   // Keyed by year-month: a value loaded for a previous month reads as null
@@ -65,14 +98,24 @@ export const useClosePeriodStage = ({
   } | null>(null);
   const reportBundle = bundle?.yearMonth === selectedYearMonth ? bundle.data : null;
 
+  const [persisted, setPersisted] = useState<{
+    yearMonth: string;
+    data: StoredReportsBundle;
+  } | null>(null);
+  const persistedBundle = persisted?.yearMonth === selectedYearMonth ? persisted.data : null;
+
   useEffect(() => {
     if (!householdId || !selectedYearMonth) return;
     let cancelled = false;
 
     const load = async () => {
-      const data = await fetchReportBundle({ householdId, selectedYearMonth, auth });
-      if (cancelled || !data) return;
-      setBundle({ yearMonth: selectedYearMonth, data });
+      const [data, stored] = await Promise.all([
+        fetchReportBundle({ householdId, selectedYearMonth, auth }),
+        fetchPersistedBundle({ householdId, selectedYearMonth, auth }),
+      ]);
+      if (cancelled) return;
+      if (data) setBundle({ yearMonth: selectedYearMonth, data });
+      if (stored) setPersisted({ yearMonth: selectedYearMonth, data: stored });
     };
 
     void load();
@@ -83,12 +126,15 @@ export const useClosePeriodStage = ({
 
   const refresh = useCallback(async () => {
     if (!householdId || !selectedYearMonth) return;
-    const data = await fetchReportBundle({ householdId, selectedYearMonth, auth });
-    if (!data) return;
-    setBundle({ yearMonth: selectedYearMonth, data });
+    const [data, stored] = await Promise.all([
+      fetchReportBundle({ householdId, selectedYearMonth, auth }),
+      fetchPersistedBundle({ householdId, selectedYearMonth, auth }),
+    ]);
+    if (data) setBundle({ yearMonth: selectedYearMonth, data });
+    if (stored) setPersisted({ yearMonth: selectedYearMonth, data: stored });
   }, [auth, householdId, selectedYearMonth]);
 
   const control = useNoOpStageControl('CLOSE_PERIOD', confirmingStageId);
 
-  return { ...control, reportBundle, refresh };
+  return { ...control, reportBundle, persistedBundle, refresh };
 };

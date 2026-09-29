@@ -26,6 +26,8 @@ interface CloseFinancialReportsProps {
   confirming: boolean;
   /** While paused, only the walk position's confirm button is enabled (ADR-0070). */
   isConfirmable: boolean;
+  /** A CLOSED period renders the persisted record read-only, with no drift marks. */
+  isReadOnly: boolean;
   isGenerated: boolean;
 }
 
@@ -38,6 +40,7 @@ export const CloseFinancialReports: React.FC<CloseFinancialReportsProps> = ({
   onBack,
   confirming,
   isConfirmable,
+  isReadOnly,
   isGenerated,
 }) => {
   const {
@@ -50,10 +53,10 @@ export const CloseFinancialReports: React.FC<CloseFinancialReportsProps> = ({
     missingCategoryNames,
     isLoading,
     error,
-  } = useCloseFinancialReports({ householdId, year, month });
+  } = useCloseFinancialReports({ householdId, year, month, isClosed: isReadOnly });
 
   const showReadinessGate = missingCategoryNames.length > 0;
-  const showAdjustmentWarning = Math.abs(cashFlow?.adjustment ?? 0) > 1000;
+  const showAdjustmentWarning = Math.abs(cashFlow?.adjustment.amount ?? 0) > 1000;
   const hasAnyData = incomeStatement !== null || balanceSheet !== null || cashFlow !== null;
 
   return (

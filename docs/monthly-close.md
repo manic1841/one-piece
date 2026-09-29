@@ -60,9 +60,23 @@
 
 - **`useCloseStepRegistry` 是唯一列出全部九個步驟的檔案，也是唯一允許跨階段讀取的地方**：九個 step hooks 在 hook 內無條件呼叫（rules of hooks 不依賴條件分派），回傳 `Record<CloseStageId, CloseStepDefinition>`，TypeScript 強制每個階段都有條目。新增步驟 = 一個 step hook + 一個 registry 條目。
 - **`CloseStepDefinition` 條目 = control + content factory + evidence builder**：`control` 是該階段的 stage controller（`closeStageControl` 契約，頁面只對契約分派：`buildRequest` / `shouldBlock` / `confirmGate` / `afterConfirm` / `resetDraft` / `refresh` / `keepsViewOnConfirm`）；`render(ctx)` 是 content factory，從 registry 內的 stage hook 閉包直讀該階段資料（draft、prefill、drawer、summary VM），把頁面傳入的 chrome／navigation／entities context 映射到 step 元件的窄 props，資料未載入時回傳 `null`；`evidence()` 是零參數閉包，從 registry 收到的原始輸入（`CloseStepEvidenceInputs`）與擁有該資料的 stage hook 建構該階段證據。
-- **registry 為唯一跨階段讀取點**：`CLOSE_PERIOD` 的 evidence 與 `COMPLETENESS_CHECK`／`CLOSE_PERIOD` 的 summary VM 都在 registry 內跨讀其他 stage hook（`useCloseSummaryVM` 在九個 stage hooks 之後呼叫）；報表持久化狀態（`reportsPersisted`）由 `FINANCIAL_REPORTS` stage 擁有，即時報表 preview bundle（`reportBundle`）由 `CLOSE_PERIOD` stage 擁有，兩者都由 registry 跨讀——`CLOSE_PERIOD` 的 evidence 讀 `FINANCIAL_REPORTS` 的持久化旗標，`FINANCIAL_REPORTS` 的調整項 evidence 讀 `CLOSE_PERIOD` 的 preview bundle。preview 不受持久化 gating：`CLOSE_PERIOD` 一律載入當前分錄重算的即時預覽，關帳畫面永遠顯示即時數字，persisted 只當狀態旗標。step hook 之間不互相引用。
+- **registry 為唯一跨階段讀取點**：`CLOSE_PERIOD` 的 evidence 與 `COMPLETENESS_CHECK`／`CLOSE_PERIOD` 的 summary VM 都在 registry 內跨讀其他 stage hook（`useCloseSummaryVM` 在九個 stage hooks 之後呼叫）；報表持久化狀態（`reportsPersisted`）由 `FINANCIAL_REPORTS` stage 擁有，即時報表 preview bundle（`reportBundle`）與 persisted bundle 由 `CLOSE_PERIOD` stage 擁有，兩者都由 registry 跨讀——`CLOSE_PERIOD` 的 evidence 讀 `FINANCIAL_REPORTS` 的持久化旗標，`FINANCIAL_REPORTS` 的調整項 evidence 讀 `CLOSE_PERIOD` 的 preview bundle。preview 不受持久化 gating：`CLOSE_PERIOD` 一律載入當前分錄重算的即時預覽，關帳畫面永遠顯示即時數字，persisted 只當狀態旗標。step hook 之間不互相引用。
 - **消費邊界**：page hook（`useMonthlyClosePage`）讀 registry 做「確認提交路徑」與「月切換 resetDraft 迭代」；page 元件只渲染 `registry[displayedStageId].render(stageContext)`，不再認得任何 step 的內部，也不出現任何 stage ID 或 stage control 存取。`CloseStepContext` 只帶三類資料：**chrome**（step/progress/confirmed 文字、confirming、isConfirmable/isReadOnly/isReviewing）、**導覽指令**（onConfirm/onGoToStage/onContinue/onBack；render 只為 `displayedStage` 執行，因此每個 stage 的確認都走同一個 `onConfirm`）、**共享實體**（accounts/portfolios/projects）。workflow 只把未被 stage 吸收的原始輸入（anomalies/transactionIssues）與就緒狀態、page VM 傳入 registry；單階段資料（draft、prefill、drawer、報表持久化與 bundle）留在 step hook 內、由 registry 閉包直讀。證券買入／賣出的 add-edit drawer 是 step 自有內容，由 SECURITIES_TRADE 條目的 content factory 呼叫 `securitiesTradeStage.drawer.open` 一併渲染，不從 page 掛載。
 - **月切換清空草稿 / 單一刷新入口**：頁面迭代 registry 的 control record 呼叫 `resetDraft()` 清空草稿；`closeStageControl` 另有對稱的選用方法 `refresh()`，page hook 提供單一 `refreshAll`（workflow evidence + 所有 opt-in 的 stage refresh），在 confirm、start、reopen、go-to-with-reset 後呼叫，因此沒有任何呼叫點需要知道哪個 stage 擁有哪份已載入資料。
+
+### Report Drift（報表漂移比對）
+
+關帳畫面永遠顯示即時重算的 Report Preview；[Persisted Report](../CONTEXT.md) 只當狀態旗標兼比對基準。當期間為 `IN_PROGRESS`/`NEEDS_REVIEW` 且 persisted 報表存在時，Step 8 三張表與 Step 9 五個聚合數字會逐欄比對並標註 Report Drift：
+
+- 同欄位數字不同：金額 cell 顯示 `<persisted> -> <preview>`。
+- preview 欄位比 persisted 多／少：該列以警示色顯示 `0 -> <preview>` 或 `<persisted> -> 0`。
+- 父列只在子列集合增減時警示（`RESTRUCTURED`），避免總額變動時整棵樹亮起；葉節點直接比對、加總行（群組 total 與整表總結行）直接比對、標籤變更不比對。
+- 舊 persisted 現金流無 `subItems`（schema 修正前）時，只比對該層並抑制子列「缺席」警示。
+- 警示色沿用既有 token `--warning`，且只套用在金額 cell，不整列變色。
+
+比對邏輯是 `src/domains/report/reportDrift.ts` 的純函式（輸入 preview + persisted，輸出帶 status／delta 的標註列樹），不含 React。persisted bundle 由 `CLOSE_PERIOD` stage 與 preview bundle 一併載入並持有、由 registry 跨讀，讀取走 `getStoredReportUseCase` 既有的權限檢查。
+
+**已關帳期間**改以 persisted 報表為顯示來源（定案紀錄），不做比對、不標 drift。**reopen 後**期間回到 `IN_PROGRESS`、階段重設為 `PENDING`，但殘留的 persisted 檔案仍存在，因此畫面照常顯示 preview 並比對——顯示模式由期間狀態決定，不是單純的 `isPersisted` 旗標。
 
 ## 4. 各階段的資料邊界
 
