@@ -690,4 +690,67 @@ describe('useCloseStepRegistry', () => {
       expect(screen.getByRole('alert')).toHaveTextContent('無法載入債務還款試算，請稍後再試。'),
     );
   });
+
+  // #234: the close gate reads Step 8's own drift tree — a drifted child under a
+  // matching total still blocks — and names how many figures drifted.
+  it('blocks the close and names the drift count when Step 8 drifted', async () => {
+    vi.mocked(previewFinancialReportsWorkflow.execute).mockResolvedValue(
+      previewWithTotals({ netIncome: 117_000 }),
+    );
+    vi.mocked(getStoredReportsBundleUseCase.execute).mockResolvedValue(
+      persistedWithTotals({ netIncome: 100_000 }),
+    );
+
+    function Harness() {
+      const registry = useCloseStepRegistry(baseArgs);
+      return <>{registry.CLOSE_PERIOD.render(baseContext)}</>;
+    }
+
+    render(<Harness />);
+
+    await waitFor(() =>
+      expect(screen.getByTestId('close-drift-block')).toHaveTextContent('1 項漂移'),
+    );
+    expect(screen.getByTestId('close-period-confirm')).toBeDisabled();
+  });
+
+  it('leaves the close reachable when the preview matches the persisted report', async () => {
+    vi.mocked(previewFinancialReportsWorkflow.execute).mockResolvedValue(
+      previewWithTotals({ netIncome: 117_000 }),
+    );
+    vi.mocked(getStoredReportsBundleUseCase.execute).mockResolvedValue(
+      persistedWithTotals({ netIncome: 117_000 }),
+    );
+
+    function Harness() {
+      const registry = useCloseStepRegistry(baseArgs);
+      return <>{registry.CLOSE_PERIOD.render(baseContext)}</>;
+    }
+
+    render(<Harness />);
+
+    await waitFor(() => expect(screen.getByTestId('close-period-confirm')).toBeEnabled());
+    expect(screen.queryByTestId('close-drift-block')).not.toBeInTheDocument();
+  });
+
+  it('sends the user to Step 8 from the drift block', async () => {
+    vi.mocked(previewFinancialReportsWorkflow.execute).mockResolvedValue(
+      previewWithTotals({ netIncome: 117_000 }),
+    );
+    vi.mocked(getStoredReportsBundleUseCase.execute).mockResolvedValue(
+      persistedWithTotals({ netIncome: 100_000 }),
+    );
+    const onGoToStage = vi.fn();
+
+    function Harness() {
+      const registry = useCloseStepRegistry(baseArgs);
+      return <>{registry.CLOSE_PERIOD.render({ ...baseContext, onGoToStage })}</>;
+    }
+
+    render(<Harness />);
+
+    fireEvent.click(await screen.findByTestId('review-reports'));
+
+    expect(onGoToStage).toHaveBeenCalledWith('FINANCIAL_REPORTS');
+  });
 });

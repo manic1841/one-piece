@@ -18,6 +18,14 @@ interface CloseSummaryPanelProps {
   summary: CloseSummaryVM;
   /** Set when the report data Step 9 renders failed to load (#228). */
   loadErrorMessage?: string | null;
+  /**
+   * How many figures in Step 8's statements drifted from the persisted report
+   * (#234). Derived live by the registry from the drift tree Step 8 already
+   * renders, so the gate cannot disagree with the warnings the user saw.
+   */
+  driftCount: number;
+  /** Sends the user back to Step 8 to regenerate the reports. */
+  onReviewReports: () => void;
   onClose: () => void;
   confirming: boolean;
   /** While paused, only the walk position's confirm button is enabled (ADR-0070). */
@@ -37,12 +45,15 @@ const financialRows: { key: keyof FinancialResultVM; label: string }[] = [
 export const CloseSummaryPanel: React.FC<CloseSummaryPanelProps> = ({
   summary,
   loadErrorMessage = null,
+  driftCount,
+  onReviewReports,
   onClose,
   confirming,
   isConfirmable,
   isReadOnly,
 }) => {
   const { confirm: confirmDialog } = useConfirm();
+  const hasDrift = driftCount > 0;
 
   const handleClose = async () => {
     const confirmed = await confirmDialog({
@@ -167,15 +178,39 @@ export const CloseSummaryPanel: React.FC<CloseSummaryPanelProps> = ({
       </div>
 
       {!isReadOnly && (
-        <div className="flex items-center justify-end border-t border-border pt-[26px]">
-          <Button
-            data-testid="close-period-confirm"
-            onClick={() => void handleClose()}
-            disabled={confirming || !isConfirmable}
-            className="h-[38px] px-[18px] text-xs font-semibold uppercase tracking-[0.08em]"
-          >
-            {confirming ? MONTHLY_CLOSE_LABELS.LOADING : MONTHLY_CLOSE_LABELS.SUMMARY_CLOSE_ACTION}
-          </Button>
+        <div className="space-y-3 border-t border-border pt-[26px]">
+          {/* The backend close gate only checks that the reports are persisted,
+              so a drift that appeared after Step 8 was confirmed would be frozen
+              into the closed period. The block lives here, next to the action
+              it refuses (#234). */}
+          {hasDrift && (
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-warning/30 bg-warning/10 px-4 py-3">
+              <p className="text-sm text-warning" role="alert" data-testid="close-drift-block">
+                {MONTHLY_CLOSE_LABELS.DRIFT_BLOCK_MESSAGE.replace('{count}', String(driftCount))}
+              </p>
+              <Button
+                type="button"
+                variant="outline"
+                data-testid="review-reports"
+                onClick={onReviewReports}
+                className="h-8 shrink-0 px-3 text-xs font-semibold"
+              >
+                {MONTHLY_CLOSE_LABELS.DRIFT_BLOCK_ACTION}
+              </Button>
+            </div>
+          )}
+          <div className="flex items-center justify-end">
+            <Button
+              data-testid="close-period-confirm"
+              onClick={() => void handleClose()}
+              disabled={confirming || !isConfirmable || hasDrift}
+              className="h-[38px] px-[18px] text-xs font-semibold uppercase tracking-[0.08em]"
+            >
+              {confirming
+                ? MONTHLY_CLOSE_LABELS.LOADING
+                : MONTHLY_CLOSE_LABELS.SUMMARY_CLOSE_ACTION}
+            </Button>
+          </div>
         </div>
       )}
     </section>

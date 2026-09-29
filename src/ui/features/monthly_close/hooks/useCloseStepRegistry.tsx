@@ -37,6 +37,7 @@ import { CloseTradeDrawerSection } from '../stages/securities_trade/components/C
 import { useSecuritiesTradeStage } from '../stages/securities_trade/hooks/useSecuritiesTradeStage';
 import { useTransactionValidationStage } from '../stages/transaction_validation/hooks/useTransactionValidationStage';
 import { type MonthlyClosePageVM } from '../viewmodels/monthlyClose.vm';
+import { countDriftedFigures } from '../viewmodels/reportDrift.vm';
 
 /**
  * Shared context every content factory receives at the page-to-registry
@@ -211,6 +212,13 @@ export const useCloseStepRegistry = ({
   const step7Error = completenessCheckStage.errorMessage ?? transactionValidationStage.errorMessage;
   const isStep7Ready = step7Error === null;
 
+  // The front-end close gate (#234): a figure drifting between the live preview
+  // and the persisted report means Step 8 was confirmed and the data moved
+  // afterwards, so closing now would freeze the stale reports. Computed here
+  // because the registry is the only place allowed to read across stages; it is
+  // a pure function of the drift tree Step 8 already renders.
+  const driftCount = countDriftedFigures(financialReportsStage.reports);
+
   // Chrome props shared by every workspace-stage factory; each factory only
   // adds its own content props on top. chromeProps calls the evidence closure
   // itself, so render factories no longer receive evidence as a second argument.
@@ -380,6 +388,8 @@ export const useCloseStepRegistry = ({
         <CloseSummaryPanel
           summary={closeSummaryVM}
           loadErrorMessage={financialReportsStage.error}
+          driftCount={driftCount}
+          onReviewReports={() => ctx.onGoToStage('FINANCIAL_REPORTS')}
           onClose={ctx.onConfirm}
           confirming={ctx.confirming}
           isConfirmable={ctx.isConfirmable}
