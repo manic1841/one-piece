@@ -155,7 +155,11 @@ export const useMonthlyClosePage = ({
       if (control.shouldBlock()) return;
       if (control.confirmGate && !(await control.confirmGate())) return;
       const result = await confirmStage(control.buildRequest());
-      if (result && !control.keepsViewOnConfirm) {
+      // A failed confirm (null) writes nothing, so none of the post-confirm
+      // side effects may run: no view reset, no afterConfirm key bump, and no
+      // refresh (which would recompute the report preview for nothing).
+      if (!result) return;
+      if (!control.keepsViewOnConfirm) {
         setViewingStageId(null);
       }
       control.afterConfirm();

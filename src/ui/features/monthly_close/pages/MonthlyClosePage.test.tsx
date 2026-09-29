@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
 import { type FinancialPeriod, initialStageStates } from '@/domains/financial_period/schemas';
@@ -166,6 +166,20 @@ function cascadeDemotedPeriod(): FinancialPeriod {
   };
 }
 
+function inProgressPeriod(): FinancialPeriod {
+  return {
+    id: '2026-09',
+    yearMonth: '2026-09',
+    status: 'IN_PROGRESS',
+    stages: initialStageStates(),
+    reviewSourceStageId: null,
+    createdBy: 'user@test.com',
+    createdAt: new Date(),
+    updatedBy: 'user@test.com',
+    updatedAt: new Date(),
+  };
+}
+
 describe('MonthlyClosePage (closed period)', () => {
   it('renders the read-only Step 9 close summary as the default view', async () => {
     render(<MonthlyClosePage householdId="household-1" userEmail="user@test.com" />);
@@ -197,5 +211,65 @@ describe('MonthlyClosePage (cascade-demoted period)', () => {
     await waitFor(() => {
       expect(screen.getByRole('button', { name: 'CONTINUE →' })).toBeInTheDocument();
     });
+  });
+});
+
+// The completeness-check load is the observable side of `refreshAll`, so its
+// call count tells us whether a confirm ran the post-confirm refresh path.
+describe('MonthlyClosePage (confirm side effects)', () => {
+  const completenessCalls = async () => {
+    const mod = await import(
+      '@/application/settlement/use_cases/checkSettlementCompletenessUseCase'
+    );
+    return vi.mocked(mod.checkSettlementCompletenessUseCase.execute).mock.calls.length;
+  };
+
+  it('runs no afterConfirm, refresh-key bump or refresh when confirm fails', async () => {
+    const workflow = (
+      await import('@/application/monthly_close/use_cases/monthlyCloseWorkflowUseCase')
+    ).monthlyCloseWorkflowUseCase;
+    vi.mocked(workflow.start).mockResolvedValueOnce(inProgressPeriod());
+    vi.mocked(workflow.confirmStage).mockResolvedValueOnce(null);
+
+    render(<MonthlyClosePage householdId="household-1" userEmail="user@test.com" />);
+    fireEvent.click(screen.getByRole('button', { name: '開始關帳' }));
+
+    const confirmButton = await screen.findByRole('button', { name: 'CONTINUE →' });
+    await waitFor(async () => expect(await completenessCalls()).toBeGreaterThan(0));
+    const callsBefore = await completenessCalls();
+
+    fireEvent.click(confirmButton);
+    await waitFor(() => expect(workflow.confirmStage).toHaveBeenCalled());
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(await completenessCalls()).toBe(callsBefore);
+  });
+
+  it('refreshes stage data when confirm succeeds', async () => {
+    const workflow = (
+      await import('@/application/monthly_close/use_cases/monthlyCloseWorkflowUseCase')
+    ).monthlyCloseWorkflowUseCase;
+    const completed = inProgressPeriod();
+    completed.stages.ACCOUNT_BALANCE = {
+      status: 'COMPLETED',
+      confirmedAt: new Date('2026-09-20T10:00:00Z'),
+      confirmedBy: 'user@test.com',
+    };
+    vi.mocked(workflow.start).mockResolvedValueOnce(inProgressPeriod());
+    vi.mocked(workflow.confirmStage).mockResolvedValueOnce(completed);
+
+    render(<MonthlyClosePage householdId="household-1" userEmail="user@test.com" />);
+    fireEvent.click(screen.getByRole('button', { name: '開始關帳' }));
+
+    const confirmButton = await screen.findByRole('button', { name: 'CONTINUE →' });
+    await waitFor(async () => expect(await completenessCalls()).toBeGreaterThan(0));
+    const callsBefore = await completenessCalls();
+
+    fireEvent.click(confirmButton);
+    await waitFor(() => expect(workflow.confirmStage).toHaveBeenCalled());
+
+    await waitFor(async () => expect(await completenessCalls()).toBeGreaterThan(callsBefore));
   });
 });
