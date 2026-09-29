@@ -3,6 +3,7 @@ import React from 'react';
 import { MONTHLY_CLOSE_LABELS } from '@/ui/constants/monthlyClose';
 import { CloseStageChrome } from '@/ui/features/monthly_close/components/CloseStageChrome';
 import { CloseStageEvidenceList } from '@/ui/features/monthly_close/components/CloseStageEvidenceList';
+import { CloseStageLoadError } from '@/ui/features/monthly_close/components/CloseStageLoadError';
 import { type CloseStageEvidence } from '@/ui/features/monthly_close/viewmodels/monthlyClose.vm';
 import type { PortfolioSnapshot } from '@/ui/features/monthly_close/viewmodels/portfolioCashFlow.vm';
 import {
@@ -23,6 +24,8 @@ interface ClosePortfolioCashFlowStageProps {
   isConfirmable: boolean;
   isReadOnly: boolean;
   evidence: CloseStageEvidence;
+  /** Canned copy when the snapshot load failed; prefill is a convenience, so it does not block confirm. */
+  loadErrorMessage?: string | null;
   portfolios: { id: string; name: string }[];
   portfolioSnapshots: Map<string, PortfolioSnapshot | null>;
   cashFlows: Record<string, { deposits: number; withdrawals: number }>;
@@ -151,6 +154,7 @@ export const ClosePortfolioCashFlowStage: React.FC<ClosePortfolioCashFlowStagePr
   isConfirmable,
   isReadOnly,
   evidence,
+  loadErrorMessage = null,
   portfolios,
   portfolioSnapshots,
   cashFlows,
@@ -170,6 +174,7 @@ export const ClosePortfolioCashFlowStage: React.FC<ClosePortfolioCashFlowStagePr
     onConfirm={onConfirm}
     onBackToCurrent={onBackToCurrent}
   >
+    <CloseStageLoadError message={loadErrorMessage} />
     <div>
       <p className="mb-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
         {MONTHLY_CLOSE_LABELS.EVIDENCE_LABEL}

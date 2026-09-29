@@ -55,15 +55,12 @@ export const useMonthlyClose = ({ householdId, userEmail }: UseMonthlyCloseParam
   const beginRequest = useCallback(() => (requestSeqRef.current += 1), []);
   const isLatestRequest = useCallback((seq: number) => seq === requestSeqRef.current, []);
 
-  const selectYearMonth = useCallback(
-    (yearMonth: string) => {
-      requestSeqRef.current += 1;
-      setSelectedYearMonth(yearMonth);
-      setPeriod(null);
-      setError(null);
-    },
-    [],
-  );
+  const selectYearMonth = useCallback((yearMonth: string) => {
+    requestSeqRef.current += 1;
+    setSelectedYearMonth(yearMonth);
+    setPeriod(null);
+    setError(null);
+  }, []);
 
   const start = useCallback(async (): Promise<FinancialPeriod | null> => {
     if (!householdId || !selectedYearMonth) return null;

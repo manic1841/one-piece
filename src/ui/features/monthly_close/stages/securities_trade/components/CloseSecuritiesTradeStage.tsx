@@ -3,6 +3,7 @@ import React from 'react';
 import { MONTHLY_CLOSE_LABELS } from '@/ui/constants/monthlyClose';
 import { CloseStageChrome } from '@/ui/features/monthly_close/components/CloseStageChrome';
 import { CloseStageEvidenceList } from '@/ui/features/monthly_close/components/CloseStageEvidenceList';
+import { CloseStageLoadError } from '@/ui/features/monthly_close/components/CloseStageLoadError';
 import type {
   FinancingInput,
   SecuritiesTradeInput,
@@ -21,6 +22,8 @@ interface CloseSecuritiesTradeStageProps {
   isConfirmable: boolean;
   isReadOnly: boolean;
   evidence: CloseStageEvidence;
+  /** Canned copy when the prefill load failed; prefill is a convenience, so it does not block confirm. */
+  loadErrorMessage?: string | null;
   securities: { buys: SecuritiesTradeInput[]; sells: SecuritiesTradeInput[] };
   financing: { shareholderFinancing: FinancingInput[]; dividendPayout: FinancingInput[] };
   projects: { id: string; name: string }[];
@@ -71,6 +74,7 @@ export const CloseSecuritiesTradeStage: React.FC<CloseSecuritiesTradeStageProps>
   isConfirmable,
   isReadOnly,
   evidence,
+  loadErrorMessage = null,
   securities,
   financing,
   projects,
@@ -94,6 +98,7 @@ export const CloseSecuritiesTradeStage: React.FC<CloseSecuritiesTradeStageProps>
       onConfirm={onConfirm}
       onBackToCurrent={onBackToCurrent}
     >
+      <CloseStageLoadError message={loadErrorMessage} />
       <div>
         <p className="mb-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
           {MONTHLY_CLOSE_LABELS.EVIDENCE_LABEL}

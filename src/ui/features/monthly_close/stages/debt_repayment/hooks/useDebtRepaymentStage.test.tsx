@@ -54,11 +54,13 @@ describe('useDebtRepaymentStage', () => {
       ],
     });
 
+    const debtAccounts = [debtAccount('debt-1')];
+
     const { result } = renderHook(() =>
       useDebtRepaymentStage({
         householdId: 'household-1',
         selectedYearMonth: '2026-08',
-        debtAccounts: [debtAccount('debt-1')],
+        debtAccounts,
         auth,
         confirmingStageId: null,
       }),
@@ -89,11 +91,13 @@ describe('useDebtRepaymentStage', () => {
       ],
     });
 
+    const debtAccounts = [debtAccount('debt-1')];
+
     const { result } = renderHook(() =>
       useDebtRepaymentStage({
         householdId: 'household-1',
         selectedYearMonth: '2026-08',
-        debtAccounts: [debtAccount('debt-1')],
+        debtAccounts,
         auth,
         confirmingStageId: null,
       }),
@@ -119,11 +123,13 @@ describe('useDebtRepaymentStage', () => {
       ],
     });
 
+    const debtAccounts = [debtAccount('debt-1')];
+
     const { result } = renderHook(() =>
       useDebtRepaymentStage({
         householdId: 'household-1',
         selectedYearMonth: '2026-08',
-        debtAccounts: [debtAccount('debt-1')],
+        debtAccounts,
         auth,
         confirmingStageId: null,
       }),

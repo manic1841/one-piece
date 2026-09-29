@@ -112,10 +112,7 @@ export const CloseFinancialReports: React.FC<CloseFinancialReportsProps> = ({
   // state could mean reports already exist (#229).
   const hasAnyData = incomeStatement !== null || balanceSheet !== null || cashFlow !== null;
   const isGenerateBlocked =
-    isSettlementReady !== true ||
-    error !== null ||
-    !hasAnyData ||
-    reportsPersisted === null;
+    isSettlementReady !== true || error !== null || !hasAnyData || reportsPersisted === null;
   const showAdjustmentWarning = Math.abs(cashFlow?.adjustment.amount ?? 0) > 1000;
   const showPersistenceUnknown =
     !isStageCompleted && !isLoading && error === null && reportsPersisted === null;

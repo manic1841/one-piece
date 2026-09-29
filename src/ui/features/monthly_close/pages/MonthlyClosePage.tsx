@@ -31,6 +31,7 @@ export const MonthlyClosePage: React.FC<MonthlyClosePageProps> = ({
     selectedYearMonth,
     isStarting,
     error,
+    entitiesError,
     setViewingStageId,
     currentStageId,
     displayedStageId,
@@ -141,9 +142,9 @@ export const MonthlyClosePage: React.FC<MonthlyClosePageProps> = ({
             </div>
           </div>
 
-          {error && (
+          {(error || entitiesError) && (
             <div className="rounded-lg border border-negative/20 bg-negative/10 px-4 py-3 text-sm text-negative">
-              {error}
+              {error ?? entitiesError}
             </div>
           )}
 

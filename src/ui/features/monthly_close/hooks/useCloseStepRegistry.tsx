@@ -19,8 +19,8 @@ import { CloseEvidenceOnlyStage } from '../components/CloseEvidenceOnlyStage';
 import { CloseStageLoadError } from '../components/CloseStageLoadError';
 import { type CloseStageControl } from '../hooks/closeStageControl';
 import { useCloseSummaryVM } from '../hooks/useCloseSummaryVM';
-import { CloseAccountBalanceStage } from '../stages/account_balance/components/CloseAccountBalanceStage';
 import { useNoOpStageControl } from '../hooks/useConfirmStageControl';
+import { CloseAccountBalanceStage } from '../stages/account_balance/components/CloseAccountBalanceStage';
 import { useAccountBalanceStage } from '../stages/account_balance/hooks/useAccountBalanceStage';
 import { CloseSummaryPanel } from '../stages/close_period/components/CloseSummaryPanel';
 import { CloseReadinessCheck } from '../stages/completeness_check/components/CloseReadinessCheck';
@@ -84,7 +84,6 @@ export interface UseCloseStepRegistryArgs {
   householdId: string;
   selectedYearMonth: string;
   confirmingStageId: string | null;
-  refreshKey: number;
   accounts: Account[];
   portfolios: Portfolio[];
   debtAccounts: DebtAccount[];
@@ -105,7 +104,6 @@ export const useCloseStepRegistry = ({
   householdId,
   selectedYearMonth,
   confirmingStageId,
-  refreshKey,
   accounts,
   portfolios,
   debtAccounts,
@@ -118,7 +116,6 @@ export const useCloseStepRegistry = ({
     accounts,
     auth,
     confirmingStageId,
-    refreshKey,
   });
   const securitiesTradeStage = useSecuritiesTradeStage({
     householdId,
@@ -131,7 +128,6 @@ export const useCloseStepRegistry = ({
     portfolios,
     auth,
     confirmingStageId,
-    refreshKey,
   });
   const debtRepaymentStage = useDebtRepaymentStage({
     householdId,
@@ -139,13 +135,11 @@ export const useCloseStepRegistry = ({
     debtAccounts,
     auth,
     confirmingStageId,
-    refreshKey,
   });
   const projectSettlementStage = useProjectSettlementStage({
     householdId,
     selectedYearMonth,
     confirmingStageId,
-    refreshKey,
   });
   const transactionValidationStage = useTransactionValidationStage({
     householdId,
@@ -214,8 +208,7 @@ export const useCloseStepRegistry = ({
   // failing its load makes the readiness unknown rather than clean: a failed
   // same-month refresh keeps the previous values on screen (#226), so the error
   // flag — not the data — decides whether Step 7 may confirm.
-  const step7Error =
-    completenessCheckStage.errorMessage ?? transactionValidationStage.errorMessage;
+  const step7Error = completenessCheckStage.errorMessage ?? transactionValidationStage.errorMessage;
   const isStep7Ready = step7Error === null;
 
   // Chrome props shared by every workspace-stage factory; each factory only
@@ -238,6 +231,7 @@ export const useCloseStepRegistry = ({
       render: (ctx) => (
         <CloseAccountBalanceStage
           {...chromeProps(ctx, noEvidence)}
+          loadErrorMessage={accountBalanceStage.errorMessage}
           accounts={ctx.accounts}
           accountSnapshots={accountBalanceStage.accountSnapshots}
           balances={accountBalanceStage.balances}
@@ -254,6 +248,7 @@ export const useCloseStepRegistry = ({
         <>
           <CloseSecuritiesTradeStage
             {...chromeProps(ctx, noEvidence)}
+            loadErrorMessage={securitiesTradeStage.errorMessage}
             securities={securitiesTradeStage.securities}
             financing={securitiesTradeStage.financing}
             projects={ctx.projects}
@@ -282,6 +277,7 @@ export const useCloseStepRegistry = ({
       render: (ctx) => (
         <ClosePortfolioCashFlowStage
           {...chromeProps(ctx, noEvidence)}
+          loadErrorMessage={portfolioCashFlowStage.errorMessage}
           portfolios={ctx.portfolios}
           portfolioSnapshots={portfolioCashFlowStage.portfolioSnapshots}
           cashFlows={portfolioCashFlowStage.cashFlows}
@@ -297,6 +293,7 @@ export const useCloseStepRegistry = ({
       render: (ctx) => (
         <CloseEvidenceOnlyStage
           {...chromeProps(ctx, projectSettlementEvidence)}
+          loadErrorMessage={projectSettlementStage.errorMessage}
           onConfirm={ctx.onConfirm}
           onBackToCurrent={ctx.onBack}
         />
@@ -308,6 +305,7 @@ export const useCloseStepRegistry = ({
       render: (ctx) => (
         <CloseDebtRepaymentStage
           {...chromeProps(ctx, noEvidence)}
+          loadErrorMessage={debtRepaymentStage.errorMessage}
           debtAccounts={debtRepaymentStage.debtSectionMetas}
           yearMonth={selectedYearMonth}
           repayments={debtRepaymentStage.repayments}

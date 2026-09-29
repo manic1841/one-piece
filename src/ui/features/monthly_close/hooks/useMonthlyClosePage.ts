@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { getAccountsUseCase } from '@/application/account/use_cases/getAccountsUseCase';
 import { listDebtAccountsUseCase } from '@/application/debt/use_cases/listDebtAccountsUseCase';
@@ -22,6 +22,10 @@ import {
   resolveStepText,
 } from '@/ui/features/monthly_close/viewmodels/monthlyClose.vm';
 import { useAuthIdentity } from '@/ui/hooks/useAuthIdentity';
+import { useLoadingTask } from '@/ui/hooks/useLoadingTask';
+import { logger } from '@/utils/logger';
+
+const ENTITIES_LOAD_ERROR = '無法載入帳戶、專案與債務資料，請稍後再試。';
 
 interface UseMonthlyClosePageArgs {
   householdId?: string;
@@ -62,45 +66,58 @@ export const useMonthlyClosePage = ({
   const [projects, setProjects] = useState<Project[]>([]);
   const [debtAccounts, setDebtAccounts] = useState<DebtAccount[]>([]);
 
-  // Bumped after a relevant confirm so the stage hooks' display data and
-  // prefill re-run against the confirm's writes (staleness fix).
-  const [stageRefreshKey, setStageRefreshKey] = useState(0);
-  const bumpStageRefreshKey = useCallback(() => setStageRefreshKey((key) => key + 1), []);
-
   const stepRegistry = useCloseStepRegistry({
     householdId,
     selectedYearMonth,
     confirmingStageId,
-    refreshKey: stageRefreshKey,
     accounts,
     portfolios,
     debtAccounts,
     pageVM,
   });
 
-  useEffect(() => {
+  // The shared entity lists are loaded once for the whole page; a failed read
+  // would otherwise leave every stage silently empty, so it gets its own copy.
+  const { errorMessage: entitiesError, run: runEntities } = useLoadingTask();
+  const entitiesInFlightRef = useRef<AbortController | null>(null);
+
+  const loadEntities = useCallback(async () => {
     if (!householdId) return;
-    let cancelled = false;
+    entitiesInFlightRef.current?.abort();
+    const controller = new AbortController();
+    entitiesInFlightRef.current = controller;
 
-    const loadEntities = async () => {
-      const [accountList, portfolioList, projectList, debtList] = await Promise.all([
-        getAccountsUseCase.execute({ householdId, auth }),
-        listPortfoliosUseCase.execute({ householdId, auth }),
-        listProjectsUseCase.execute({ householdId }),
-        listDebtAccountsUseCase.execute({ householdId }),
-      ]);
-      if (cancelled) return;
-      setAccounts(accountList);
-      setPortfolios(portfolioList);
-      setProjects(projectList);
-      setDebtAccounts(debtList);
-    };
+    await runEntities(
+      async () => {
+        try {
+          return await Promise.all([
+            getAccountsUseCase.execute({ householdId, auth }),
+            listPortfoliosUseCase.execute({ householdId, auth }),
+            listProjectsUseCase.execute({ householdId }),
+            listDebtAccountsUseCase.execute({ householdId }),
+          ] as const);
+        } catch (caught) {
+          logger.warn('Failed to load shared entities', 'useMonthlyClosePage', { caught });
+          throw new Error(ENTITIES_LOAD_ERROR);
+        }
+      },
+      {
+        signal: controller.signal,
+        writeBack: (result) => {
+          if (!result.ok) return;
+          const [accountList, portfolioList, projectList, debtList] = result.value;
+          setAccounts(accountList);
+          setPortfolios(portfolioList);
+          setProjects(projectList);
+          setDebtAccounts(debtList);
+        },
+      },
+    );
+  }, [auth, householdId, runEntities]);
 
+  useEffect(() => {
     void loadEntities();
-    return () => {
-      cancelled = true;
-    };
-  }, [auth, householdId]);
+  }, [loadEntities]);
 
   // One refresh entry: every stage that opted into `control.refresh`. Used
   // wherever the period changed under the stages (confirm, start, reopen,
@@ -156,17 +173,16 @@ export const useMonthlyClosePage = ({
       if (control.confirmGate && !(await control.confirmGate())) return;
       const result = await confirmStage(control.buildRequest());
       // A failed confirm (null) writes nothing, so none of the post-confirm
-      // side effects may run: no view reset, no afterConfirm key bump, and no
-      // refresh (which would recompute the report preview for nothing).
+      // side effects may run: no view reset and no refresh (which would
+      // recompute the report preview for nothing).
       if (!result) return;
       if (!control.keepsViewOnConfirm) {
         setViewingStageId(null);
       }
       control.afterConfirm();
-      bumpStageRefreshKey();
       await refreshAll();
     },
-    [bumpStageRefreshKey, confirmStage, refreshAll, stepRegistry],
+    [confirmStage, refreshAll, stepRegistry],
   );
 
   const handleGoToStage = useCallback((stageId: string) => {
@@ -217,6 +233,7 @@ export const useMonthlyClosePage = ({
     confirmingStageId,
     isStarting,
     error,
+    entitiesError,
     viewingStageId,
     setViewingStageId,
     currentStageId,

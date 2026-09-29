@@ -144,8 +144,9 @@ describe('useMonthlyClose', () => {
   // #230: a slow response for the month the user just left must not overwrite
   // the new month's period.
   it('discards a period result whose month was left before it resolved', async () => {
-    let resolveStart: (value: Awaited<ReturnType<typeof monthlyCloseWorkflowUseCase.start>>) => void =
-      () => {};
+    let resolveStart: (
+      value: Awaited<ReturnType<typeof monthlyCloseWorkflowUseCase.start>>,
+    ) => void = () => {};
     vi.mocked(monthlyCloseWorkflowUseCase.start).mockReturnValueOnce(
       new Promise((resolve) => {
         resolveStart = resolve;

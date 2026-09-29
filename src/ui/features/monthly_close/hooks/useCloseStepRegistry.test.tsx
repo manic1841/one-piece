@@ -1,7 +1,10 @@
 import { fireEvent, render, renderHook, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { getAccountSnapshotsUseCase } from '@/application/account/use_cases/getAccountSnapshotsUseCase';
+import { getMonthInvestmentFinancingUseCase } from '@/application/monthly_close/use_cases/getMonthInvestmentFinancingUseCase';
 import { validateMonthTransactionsUseCase } from '@/application/monthly_close/use_cases/validateMonthTransactionsUseCase';
+import { listPortfolioSnapshotsUseCase } from '@/application/portfolio/use_cases/listPortfolioSnapshotsUseCase';
 import { listProjectSnapshotsUseCase } from '@/application/project/use_cases/listProjectSnapshotsUseCase';
 import { listProjectsUseCase } from '@/application/project/use_cases/listProjectsUseCase';
 import { getReportPersistenceStateUseCase } from '@/application/report/use_cases/getReportPersistenceStateUseCase';
@@ -9,6 +12,8 @@ import { getSettlementReadinessUseCase } from '@/application/report/use_cases/ge
 import { getStoredReportsBundleUseCase } from '@/application/report/use_cases/getStoredReportsBundleUseCase';
 import { previewFinancialReportsWorkflow } from '@/application/report/use_cases/previewFinancialReportsWorkflow';
 import { checkSettlementCompletenessUseCase } from '@/application/settlement/use_cases/checkSettlementCompletenessUseCase';
+import { previewDebtSettlementsUseCase } from '@/application/settlement/use_cases/previewDebtSettlementsUseCase';
+import { type Account } from '@/domains/account/types/account';
 import { MONTHLY_CLOSE_LABELS } from '@/ui/constants/monthlyClose';
 import { mapPeriodToPageVM } from '@/ui/features/monthly_close/mappers/monthlyClose.mappers';
 
@@ -130,12 +135,25 @@ const baseArgs: UseCloseStepRegistryArgs = {
   householdId: 'household-1',
   selectedYearMonth: '2026-08',
   confirmingStageId: null,
-  refreshKey: 0,
   accounts: [],
   portfolios: [],
   debtAccounts: [],
   pageVM: mapPeriodToPageVM(null, '2026-08'),
 };
+
+const account = (id: string): Account =>
+  ({
+    id,
+    name: `帳戶 ${id}`,
+    category: 'cash',
+    currency: 'TWD',
+    order: 0,
+    isActive: true,
+    createdBy: 'u1',
+    updatedBy: 'u1',
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  }) as Account;
 
 /** A live period whose only meaningful fact is the FINANCIAL_REPORTS stage state. */
 const pageVMWithReportsStage = (status: 'PENDING' | 'COMPLETED') =>
@@ -551,5 +569,125 @@ describe('useCloseStepRegistry', () => {
       expect(typeof step.control.resetDraft).toBe('function');
       step.control.resetDraft();
     }
+  });
+
+  // T11 (#235): the page refreshes stages through `control.refresh` and never
+  // asks which stage owns which data, so every stage that loads something must
+  // expose it — and it must resolve even when the load fails, or `Promise.all`
+  // in refreshAll would reject and skip the remaining stages.
+  it('exposes a non-rejecting refresh on every load-bearing stage (#235)', async () => {
+    const loadBearing = [
+      'ACCOUNT_BALANCE',
+      'SECURITIES_TRADE',
+      'PORTFOLIO_CASH_FLOW',
+      'PROJECT_SETTLEMENT',
+      'DEBT_REPAYMENT',
+      'TRANSACTION_VALIDATION',
+      'COMPLETENESS_CHECK',
+      'FINANCIAL_REPORTS',
+    ] as const;
+    vi.mocked(listProjectsUseCase.execute).mockRejectedValue(new Error('boom'));
+    vi.mocked(validateMonthTransactionsUseCase.execute).mockRejectedValue(new Error('boom'));
+
+    const { result } = renderRegistry();
+
+    for (const stageId of loadBearing) {
+      expect(typeof result.current[stageId].control.refresh).toBe('function');
+    }
+    await expect(
+      Promise.all(loadBearing.map((stageId) => result.current[stageId].control.refresh?.())),
+    ).resolves.toBeDefined();
+  });
+
+  // T7 (#231): a failed prefill load used to leave the stage rendering an empty
+  // draft that read as a clean month. Each stage now reports the failure with
+  // copy the consumer owns, and confirm stays reachable: prefill is a
+  // convenience, so a hand-typed draft still submits.
+  it('surfaces the ACCOUNT_BALANCE prefill failure without blocking confirm', async () => {
+    vi.mocked(getAccountSnapshotsUseCase.execute).mockRejectedValue(new Error('boom'));
+    const args: UseCloseStepRegistryArgs = { ...baseArgs, accounts: [account('acc-1')] };
+
+    function Harness() {
+      const registry = useCloseStepRegistry(args);
+      return <>{registry.ACCOUNT_BALANCE.render(baseContext)}</>;
+    }
+
+    render(<Harness />);
+
+    await waitFor(() =>
+      expect(screen.getByRole('alert')).toHaveTextContent('無法載入帳戶快照，請稍後再試。'),
+    );
+    // Prefill is a convenience: a hand-typed draft still submits.
+    expect(screen.getByRole('button', { name: 'CONTINUE →' })).toBeEnabled();
+  });
+
+  it('surfaces the SECURITIES_TRADE prefill failure', async () => {
+    vi.mocked(getMonthInvestmentFinancingUseCase.execute).mockRejectedValue(new Error('boom'));
+
+    function Harness() {
+      const registry = useCloseStepRegistry(baseArgs);
+      return <>{registry.SECURITIES_TRADE.render(baseContext)}</>;
+    }
+
+    render(<Harness />);
+
+    await waitFor(() =>
+      expect(screen.getByRole('alert')).toHaveTextContent(
+        '無法載入本月投資與融資交易，請稍後再試。',
+      ),
+    );
+  });
+
+  it('surfaces the PORTFOLIO_CASH_FLOW prefill failure', async () => {
+    vi.mocked(listPortfolioSnapshotsUseCase.execute).mockRejectedValue(new Error('boom'));
+    const args: UseCloseStepRegistryArgs = {
+      ...baseArgs,
+      portfolios: [{ id: 'p-1', name: '長期持倉' }] as never,
+    };
+
+    function Harness() {
+      const registry = useCloseStepRegistry(args);
+      return <>{registry.PORTFOLIO_CASH_FLOW.render(baseContext)}</>;
+    }
+
+    render(<Harness />);
+
+    await waitFor(() =>
+      expect(screen.getByRole('alert')).toHaveTextContent('無法載入 Portfolio 金流，請稍後再試。'),
+    );
+  });
+
+  it('surfaces the PROJECT_SETTLEMENT failure', async () => {
+    vi.mocked(listProjectsUseCase.execute).mockRejectedValue(new Error('boom'));
+
+    function Harness() {
+      const registry = useCloseStepRegistry(baseArgs);
+      return <>{registry.PROJECT_SETTLEMENT.render(baseContext)}</>;
+    }
+
+    render(<Harness />);
+
+    await waitFor(() =>
+      expect(screen.getByRole('alert')).toHaveTextContent('無法載入專案結算狀態，請稍後再試。'),
+    );
+  });
+
+  it('surfaces the DEBT_REPAYMENT prefill failure', async () => {
+    vi.mocked(previewDebtSettlementsUseCase.execute).mockRejectedValue(new Error('boom'));
+    const args: UseCloseStepRegistryArgs = {
+      ...baseArgs,
+      debtAccounts: [{ id: 'debt-1' }] as never,
+    };
+
+    function Harness() {
+      const registry = useCloseStepRegistry(args);
+      return <>{registry.DEBT_REPAYMENT.render(baseContext)}</>;
+    }
+
+    render(<Harness />);
+
+    await waitFor(() =>
+      expect(screen.getByRole('alert')).toHaveTextContent('無法載入債務還款試算，請稍後再試。'),
+    );
   });
 });

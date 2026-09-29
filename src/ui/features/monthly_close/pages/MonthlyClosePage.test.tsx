@@ -233,7 +233,7 @@ describe('MonthlyClosePage (confirm side effects)', () => {
     return vi.mocked(mod.checkSettlementCompletenessUseCase.execute).mock.calls.length;
   };
 
-  it('runs no afterConfirm, refresh-key bump or refresh when confirm fails', async () => {
+  it('runs no afterConfirm or refresh when confirm fails', async () => {
     const workflow = (
       await import('@/application/monthly_close/use_cases/monthlyCloseWorkflowUseCase')
     ).monthlyCloseWorkflowUseCase;
@@ -280,5 +280,20 @@ describe('MonthlyClosePage (confirm side effects)', () => {
     await waitFor(() => expect(workflow.confirmStage).toHaveBeenCalled());
 
     await waitFor(async () => expect(await completenessCalls()).toBeGreaterThan(callsBefore));
+  });
+});
+
+// T7 (#231): the shared entity lists feed every stage's dropdowns and prefill.
+// A failed read used to leave the page silently empty, so it gets its own copy.
+describe('MonthlyClosePage (shared entity load failure)', () => {
+  it('surfaces a failed entity load instead of an empty page', async () => {
+    const accounts = await import('@/application/account/use_cases/getAccountsUseCase');
+    vi.mocked(accounts.getAccountsUseCase.execute).mockRejectedValueOnce(new Error('boom'));
+
+    render(<MonthlyClosePage householdId="household-1" userEmail="user@test.com" />);
+
+    expect(
+      await screen.findByText('無法載入帳戶、專案與債務資料，請稍後再試。'),
+    ).toBeInTheDocument();
   });
 });
