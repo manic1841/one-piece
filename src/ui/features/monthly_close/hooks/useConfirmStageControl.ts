@@ -1,5 +1,3 @@
-import { useCallback } from 'react';
-
 import { type CloseStageId } from '@/domains/financial_period/schemas';
 import { MONTHLY_CLOSE_LABELS } from '@/ui/constants/monthlyClose';
 
@@ -43,7 +41,9 @@ export const useConfirmStageControl = ({
   refresh,
   keepsViewOnConfirm,
 }: UseConfirmStageControlArgs): CloseStageControl => {
-  const blocked = useCallback((): CloseStageBlock | null => shouldBlock?.() ?? null, [shouldBlock]);
+  // Normalises "no gate" to a gate that never blocks. A plain closure: nothing
+  // memoises on its identity, so wrapping it would achieve nothing (#236).
+  const blocked = (): CloseStageBlock | null => shouldBlock?.() ?? null;
 
   return {
     stageId,

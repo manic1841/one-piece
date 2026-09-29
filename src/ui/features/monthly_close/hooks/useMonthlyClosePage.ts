@@ -132,11 +132,10 @@ export const useMonthlyClosePage = ({
   // One refresh entry: every stage that opted into `control.refresh`. Used
   // wherever the period changed under the stages (confirm, start, reopen,
   // go-to-with-reset), so no call site has to know which stage owns which
-  // loaded data.
-  const refreshAll = useCallback(
-    () => Promise.all(Object.values(stepRegistry).map((step) => step.control.refresh?.())),
-    [stepRegistry],
-  );
+  // loaded data. Deliberately a plain function: the registry object is rebuilt
+  // on every render, so a `useCallback` around it would never hold (#236).
+  const refreshAll = () =>
+    Promise.all(Object.values(stepRegistry).map((step) => step.control.refresh?.()));
 
   const currentStageId = pageVM.isClosed
     ? null
@@ -169,55 +168,46 @@ export const useMonthlyClosePage = ({
   // Stage inputs are submitted with the selected month's confirmation, so a
   // month switch retires every stage draft through the registry; the next
   // month's tables then prefill.
-  const handleSelectYearMonth = useCallback(
-    (yearMonth: string) => {
-      selectYearMonth(yearMonth);
-      setBlocked(null);
-      for (const step of Object.values(stepRegistry)) step.control.resetDraft();
-    },
-    [selectYearMonth, stepRegistry],
-  );
+  const handleSelectYearMonth = (yearMonth: string) => {
+    selectYearMonth(yearMonth);
+    setBlocked(null);
+    for (const step of Object.values(stepRegistry)) step.control.resetDraft();
+  };
 
-  const handleConfirmStage = useCallback(
-    async (stageId: CloseStageId) => {
-      // The registry is a complete record, so the stage is always present.
-      const { control } = stepRegistry[stageId];
-      const block = control.shouldBlock();
-      if (block) {
-        setBlocked({ stageId, reason: block.reason });
-        return;
-      }
-      setBlocked(null);
-      if (control.confirmGate && !(await control.confirmGate())) return;
-      const result = await confirmStage(control.buildRequest());
-      // A failed confirm (null) writes nothing, so none of the post-confirm
-      // side effects may run: no view reset and no refresh (which would
-      // recompute the report preview for nothing).
-      if (!result) return;
-      if (!control.keepsViewOnConfirm) {
-        setViewingStageId(null);
-      }
-      control.afterConfirm();
-      await refreshAll();
-    },
-    [confirmStage, refreshAll, stepRegistry],
-  );
+  const handleConfirmStage = async (stageId: CloseStageId) => {
+    // The registry is a complete record, so the stage is always present.
+    const { control } = stepRegistry[stageId];
+    const block = control.shouldBlock();
+    if (block) {
+      setBlocked({ stageId, reason: block.reason });
+      return;
+    }
+    setBlocked(null);
+    if (control.confirmGate && !(await control.confirmGate())) return;
+    const result = await confirmStage(control.buildRequest());
+    // A failed confirm (null) writes nothing, so none of the post-confirm
+    // side effects may run: no view reset and no refresh (which would
+    // recompute the report preview for nothing).
+    if (!result) return;
+    if (!control.keepsViewOnConfirm) {
+      setViewingStageId(null);
+    }
+    control.afterConfirm();
+    await refreshAll();
+  };
 
   /** Show a stage without touching its state — plain navigation. */
-  const showStage = useCallback((stageId: CloseStageId) => {
+  const showStage = (stageId: CloseStageId) => {
     setViewingStageId(stageId);
-  }, []);
+  };
 
-  const handleGoToStageWithReset = useCallback(
-    async (stageId: CloseStageId) => {
-      showStage(stageId);
-      await resetStagesFrom(stageId);
-      await refreshAll();
-    },
-    [showStage, refreshAll, resetStagesFrom],
-  );
+  const handleGoToStageWithReset = async (stageId: CloseStageId) => {
+    showStage(stageId);
+    await resetStagesFrom(stageId);
+    await refreshAll();
+  };
 
-  const handleStart = useCallback(async () => {
+  const handleStart = async () => {
     const result = await start();
     await refreshAll();
     if (!result) return;
@@ -237,38 +227,28 @@ export const useMonthlyClosePage = ({
       await reopen();
       await refreshAll();
     }
-  }, [confirm, refreshAll, reopen, start]);
+  };
 
   // Going back to a stage in a paused period is a recovery walk, so it resets
   // the target stage and everything after it (ADR-0070) — behind a confirmation,
   // because that discards later confirmations.
-  const handleGoToStage = useCallback(
-    async (stageId: CloseStageId) => {
-      if (!pageVM.isPaused) {
-        showStage(stageId);
-        return;
-      }
-      const confirmed = await confirm({
-        title: MONTHLY_CLOSE_LABELS.GO_TO_RESET_TITLE,
-        consequence: MONTHLY_CLOSE_LABELS.GO_TO_RESET_CONSEQUENCE.replace(
-          '{range}',
-          resolveGoToResetRange(pageVM.stages, stageId, pageVM.totalCount),
-        ),
-        confirmLabel: MONTHLY_CLOSE_LABELS.GO_TO_RESET_CONFIRM,
-        cancelLabel: MONTHLY_CLOSE_LABELS.CANCEL,
-      });
-      if (!confirmed) return;
-      await handleGoToStageWithReset(stageId);
-    },
-    [
-      confirm,
-      handleGoToStageWithReset,
-      pageVM.isPaused,
-      pageVM.stages,
-      pageVM.totalCount,
-      showStage,
-    ],
-  );
+  const handleGoToStage = async (stageId: CloseStageId) => {
+    if (!pageVM.isPaused) {
+      showStage(stageId);
+      return;
+    }
+    const confirmed = await confirm({
+      title: MONTHLY_CLOSE_LABELS.GO_TO_RESET_TITLE,
+      consequence: MONTHLY_CLOSE_LABELS.GO_TO_RESET_CONSEQUENCE.replace(
+        '{range}',
+        resolveGoToResetRange(pageVM.stages, stageId, pageVM.totalCount),
+      ),
+      confirmLabel: MONTHLY_CLOSE_LABELS.GO_TO_RESET_CONFIRM,
+      cancelLabel: MONTHLY_CLOSE_LABELS.CANCEL,
+    });
+    if (!confirmed) return;
+    await handleGoToStageWithReset(stageId);
+  };
 
   // Only the stage the walk is standing on may be confirmed; a paused period is
   // held at the stage that raised the review.
