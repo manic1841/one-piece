@@ -2,7 +2,7 @@
 
 本文件說明月度關帳工作流的現況：期間狀態、階段模型、每個階段的資料建立邊界，以及關帳的完成條件。
 
-詞彙定義見 [`CONTEXT.md`](../CONTEXT.md)（Monthly Close、Financial Period、Transaction Validation、Completeness Check、Watch List）；決策理由見 ADR-0050、ADR-0052、ADR-0053、ADR-0066、ADR-0070。
+詞彙定義見 [`CONTEXT.md`](../CONTEXT.md)（Monthly Close、Financial Period、Transaction Validation、Completeness Check、Watch List）；決策理由見 ADR-0050、ADR-0052、ADR-0053、ADR-0066、ADR-0070、ADR-0072、ADR-0073。
 
 ## 1. 入口
 
@@ -52,6 +52,7 @@
 - **暫停期間的 GO TO 是重設語意（ADR-0070）**：`NEEDS_REVIEW` 期間點擊 GO TO 深連結會先跳出確認對話框（該步驟之後重新進入待確認、報表需重新產生），確認後該階段（含）之後全部重設為 `PENDING`，前期完成階段保留，狀態維持 `NEEDS_REVIEW`。
 - **Financial Reports 預覽後產生（Step 8）**：預覽報表 → 確認 → 產生；**Generate 按鈕在結算未就緒時 disabled 作為第二道防線**（就緒狀態跨讀 Step 7 的 COMPLETENESS_CHECK stage hook，不自行重載；未就緒的類別名稱不在此重複列出，那屬 Step 7 的呈現）。三張表以**群組列當表頭**（損益表：收入／支出；資產負債表：資產／負債／權益；現金流量表：營業活動／投資活動／融資活動），不再有欄名標題列；資料縮排成「群組 → 第二層 → 明細」，可摺疊、預設展開、chevron 在標籤左側、金額一律靠表格最右。每個群組有自己的合計列（粗體＋加粗橫線），整表最後一列為總結（損益表＝本期淨利、現金流量表＝現金淨變動、資產負債表＝負債 + 權益）；`Calculated` 標籤移除，現金流 footer 維持現況。摺疊狀態跨分頁切換不保留（切回一律重置為展開）。排版細節見 [`ui/visual-standards.md`](ui/visual-standards.md)。
 - **Financial Reports 的確認即產生（#222）**：確認一律以現行 preview 重算並覆寫三張 persisted 報表，階段轉 `COMPLETED`。persisted 已存在但階段仍 `PENDING` 時（monthly close 上線前的 legacy 期間，或 reopen 後保留的檔案）Generate 按鈕照常提供，畫面以警告標示既有報表與其產生時間；「已產生」狀態與確認鈕的可見性由**階段完成度**驅動，不是 persisted 是否存在。`COMPLETED` 時隱藏確認鈕（FINANCIAL_REPORTS 非可重確認階段），`CLOSED` 期間所有階段皆 `COMPLETED`，唯讀回看不因此出現確認操作。
+- **關帳前把關 Report Drift（ADR-0073）**：Step 8 三張報表只要有任何 drift（涵蓋畫面所有警示列與警示 cell，含僅子列增減的 `RESTRUCTURED` 列），關帳確認鈕即 disabled；同一位置以警示區塊標示漂移項數並提供「回到步驟 8」捷徑，漂移未清除前關不掉帳。判定不依賴 Step 9 的五個聚合數字——聚合相等時子列仍可能漂移。後端關帳就緒檢查不變，仍只驗「Financial Reports 已確認 + 三張 persisted 存在」。
 - **Close Period 總結後正式關帳（Step 9）**：呈現整個 Monthly Close 的關帳活動列、財務結果（完整數字，取自 CLOSE_PERIOD stage 自載的即時 preview bundle）與報表清單；關帳需經一個確認對話框，說明重開的後果（其後已關帳期間轉為 NEEDS REVIEW、恢復須逐期手動）。關帳後總結固定為唯讀的定案紀錄。
 - **`CLOSED` 期間的瀏覽規則（spec [#207](https://github.com/manic1841/one-piece/issues/207)）**：已關帳期間沒有行走位置，`displayedStageId` 預設為 `CLOSE_PERIOD`（渲染 Step 9 唯讀總結），使用者可從 pipeline 點擊任一階段回看其定案內容。唯讀語意：輸入欄位 disabled（含證券持倉與匯率）、chrome 的確認 bar、readiness/close 的確認鈕、新增／刪除動作鈕全部**隱藏**（非 disabled），add-edit drawer 因此不可達。回看進度（pipeline 的 position text）跟隨使用者檢視的階段，而非固定在行走位置。
 - 階段順序依賴在非暫停期間**僅為 UI 引導**，系統不強制；`NEEDS_REVIEW` 期間確認順序由行走規則強制（見 §2）。唯一的硬性條件是 **Close Period 需要 Financial Reports 階段已確認且三張報表已產生**。
@@ -65,7 +66,16 @@
 - **registry 為唯一跨階段讀取點**：`CLOSE_PERIOD` 的 evidence 與 `COMPLETENESS_CHECK`／`CLOSE_PERIOD` 的 summary VM 都在 registry 內跨讀其他 stage hook（`useCloseSummaryVM` 在九個 stage hooks 之後呼叫）；報表持久化狀態（`reportsPersisted`）由 `FINANCIAL_REPORTS` stage 擁有，即時報表 preview bundle（`reportBundle`）與 persisted bundle 由 `CLOSE_PERIOD` stage 擁有，兩者都由 registry 跨讀——`CLOSE_PERIOD` 的 evidence 讀 `FINANCIAL_REPORTS` 的持久化旗標，`FINANCIAL_REPORTS` 的調整項 evidence 讀 `CLOSE_PERIOD` 的 preview bundle，`FINANCIAL_REPORTS` 的 Generate 守門與 drift 基準則分別跨讀 `COMPLETENESS_CHECK` 的 readiness 與 `CLOSE_PERIOD` 的 persisted bundle。preview 不受持久化 gating：`CLOSE_PERIOD` 一律載入當前分錄重算的即時預覽，關帳畫面永遠顯示即時數字，persisted 只當狀態旗標。step hook 之間不互相引用。
 - **preview 兩份、用途不同**：`CLOSE_PERIOD` 載入的 preview **不帶** `labelResolver`（Step 9 的財務數字與 Step 8 的調整項證據只讀數字）；`FINANCIAL_REPORTS` 載入的 preview **帶** household 自訂標籤（Step 8 表格的顯示標籤，且該 resolver 隨確認送進產生路徑凍結進 persisted）。兩份不是重複，是不同用途，不合併。
 - **消費邊界**：page hook（`useMonthlyClosePage`）讀 registry 做「確認提交路徑」與「月切換 resetDraft 迭代」；page 元件只渲染 `registry[displayedStageId].render(stageContext)`，不再認得任何 step 的內部，也不出現任何 stage ID 或 stage control 存取。`CloseStepContext` 只帶三類資料：**chrome**（step/progress/confirmed 文字、confirming、isConfirmable/isReadOnly/isReviewing）、**導覽指令**（onConfirm/onGoToStage/onContinue/onBack；render 只為 `displayedStage` 執行，因此每個 stage 的確認都走同一個 `onConfirm`）、**共享實體**（accounts/portfolios/projects）。workflow 只把 page VM 與共享實體傳入 registry；單階段資料（draft、prefill、drawer、evidence、報表持久化與 bundle）留在 step hook 內、由 registry 閉包直讀。證券買入／賣出的 add-edit drawer 是 step 自有內容，由 SECURITIES_TRADE 條目的 content factory 呼叫 `securitiesTradeStage.drawer.open` 一併渲染，不從 page 掛載。
-- **月切換清空草稿 / 單一刷新入口**：頁面迭代 registry 的 control record 呼叫 `resetDraft()` 清空草稿；`closeStageControl` 另有對稱的選用方法 `refresh()`，page hook 提供單一 `refreshAll`（所有 opt-in 的 stage refresh），在 confirm、start、reopen、go-to-with-reset 後呼叫，因此沒有任何呼叫點需要知道哪個 stage 擁有哪份已載入資料。
+- **月切換清空草稿 / 單一刷新入口**：頁面迭代 registry 的 control record 呼叫 `resetDraft()` 清空草稿；`closeStageControl` 另有對稱的選用方法 `refresh()`，page hook 提供單一 `refreshAll`（所有 opt-in 的 stage refresh），在 confirm、start、reopen、go-to-with-reset 後呼叫，因此沒有任何呼叫點需要知道哪個 stage 擁有哪份已載入資料。`refresh()` 不得 reject（錯誤由該 hook 自己的 `useLoadingTask` 持有並以 `errorMessage` 呈現），`refreshAll` 因此可以單純 `Promise.all`。
+- **被拒絕的確認必須說出理由（`shouldBlock`，契約保留）**：`closeStageControl` 的選用方法 `shouldBlock()` 回傳 `{ blocked: true, reason }` 時，確認不提交，畫面在該階段的動作區旁顯示 `role="alert"` 的理由提示；理由只顯示在產生它的階段（導覽離開即不再顯示）。此擴充點**今日沒有實作者**——關帳前的 drift 把關由 Step 9 自己承擔（見 §3 的 Report Drift）；契約保留給未來「階段級拒絕」使用。
+
+### 載入失敗的語意（ADR-0072）
+
+- **載入失敗代表資料 UNKNOWN，不是 EMPTY**：失敗的階段顯示自己的罐頭錯誤訊息（`CloseStageLoadError`，文案由消費該資料的 hook 擁有），不留白——留白與「本月乾淨」在畫面上無法區分。
+- **把關一律讀 `!errorMessage && data !== null`**：讀載入資料的把關（Completeness Check 的就緒狀態、Financial Reports 的 Generate 守門、Close Period 的 drift 把關）在資料未知時皆視為未就緒。
+- **prefill 失敗不阻擋確認**：prefill 是便利，不是關卡——錯誤照常顯示，使用者手打的草稿仍可提交。
+- **同月刷新失敗保留上一輪已載入的資料**（最後已知值，不是空白）並顯示錯誤；切月失敗沒有同月已知值可留，畫面顯示錯誤與空值。「有沒有資料」因此不是把關依據。
+- **prefill 每個 `yearMonth` 只在記憶體做一次**：以 `useRef` 記住已預填的月份（換月才重新預填），不持久化；整頁重載會重跑預填（草稿本來就不持久化，見 §4）。
 
 ### Report Drift（報表漂移比對）
 
@@ -160,4 +170,4 @@
 - 資料結構：`data-structure.md` 的 `financialPeriods` 章節
 - 報表計算與 Dashboard 錨定：`financial_report.md`
 - 呈現層契約：`ui/visual-standards.md`、`ui/design-system.md`、`ui/ui-layer-architecture.md`
-- 決策理由：ADR-0050（狀態持久化）、ADR-0052（階段資料邊界）、ADR-0053（Dashboard 錨定）、ADR-0066（重開與連鎖降級）
+- 決策理由：ADR-0050（狀態持久化）、ADR-0052（階段資料邊界）、ADR-0053（Dashboard 錨定）、ADR-0066（重開與連鎖降級）、ADR-0072（載入失敗不是證據）、ADR-0073（關帳前的 drift 把關）

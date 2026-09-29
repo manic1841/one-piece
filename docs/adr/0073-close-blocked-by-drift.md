@@ -1,0 +1,29 @@
+# 關帳前把關 Report Drift：有漂移就關不掉帳
+
+**日期：** 2026-09-29
+**狀態：** 已接受
+**規範來源：** [monthly-close.md](../monthly-close.md) §3（Report Drift、關帳前的 drift 把關）；[ADR-0071](0071-close-shows-preview-with-drift.md)（關帳畫面顯示即時 preview 並標註 drift）
+
+關帳畫面顯示的是即時重算的 Report Preview 與標註好的 Report Drift（[ADR-0071](0071-close-shows-preview-with-drift.md)），但關帳本身原本只檢查「Financial Reports 已確認 + 三張報表已產生」。結果是：畫面明明警示報表已過時，使用者仍可按關帳，把一份畫面自認過時的 Persisted Report 定案，且關帳之後 drift 標註消失（`CLOSED` 顯示 persisted、不比對），落差被永久凍結。本 ADR 定調：**Step 8 三張報表只要有任何 drift，關帳就不通過**，並由前端在同一畫面表達（停用關帳鈕 + 標示漂移項數 + 「回到步驟 8」捷徑）。判定與呈現的細節見 `規範來源`。
+
+## 為什麼是「drift 標註的 superset」而不是「五個聚合數字」
+
+把關的判定必須涵蓋三張表上**所有被畫上警示色的列與金額 cell**（含只有子列增減的 `RESTRUCTURED` 列），而不是 Step 9 的五個聚合數字。理由是聚合相等不代表內容相等：子項一增一減、或父列總額不變而子列集合改變時，五個數字完全相同但報表內容已經不同（此類漏判正是先修掉 `combineDrift` 的 `previousAmount ?? amount` 錯誤的原因）。把關的判準與使用者眼睛看到的警示色一致，使用者才不會遇到「畫面有黃字卻可以關帳」或反之的錯愕。
+
+## 把關的層次
+
+- 判定是**衍生的**（每次 render 從 Step 8 的 drift 樹算），不是額外持久化的旗標：drift 本身是 preview 與 persisted 的函式，快取它只會製造第二個真相。
+- 後端的關帳就緒檢查（Financial Reports 已確認 + 三張 persisted 存在）維持不變：它守的是「有沒有報表」，本 ADR 守的是「報表是不是現況」。兩者互補，本 ADR 不要求後端重算 drift。
+- `shouldBlock` 是 `closeStageControl` 契約上既有的擴充點（階段自行拒絕確認並附理由）。本 ADR 的 drift 把關目前**不走**這條路（由 Step 9 自己的判定與畫面承擔），因此今日沒有任何階段實作 `shouldBlock`——契約保留，供未來「階段級拒絕」使用。
+
+## Considered Options
+
+- **只警告、不阻擋**：否決。關帳是定案動作，定案一份畫面已標示過時的報表，等於關帳的意義被稀釋；標註本身無法阻止落差被凍結。
+- **把 drift 檢查放進後端關帳就緒檢查**：否決。後端關帳守門沒有 preview（drift 的前提是即時重算），要做就得在後端重建一套報表比對，形成第二條計算路徑。
+- **以 Step 9 五個聚合數字判定**：否決。聚合相等時子列仍可能漂移（見上），會放行「眼睛看到警示色卻關得掉帳」的情形。
+- **把關 drift 卻仍保留 `CLOSED` 的 drift 標註**：否決。`CLOSED` 顯示 persisted 是定案紀錄（ADR-0071），此時沒有 preview 可當比對基準；把關在關帳前發生，正是為了讓定案紀錄不需要再比對。
+- **一律要求先重產報表才顯示漂移數**：否決。使用者需要先看到「漂了幾項」才能決定是否值得回頭；先隱藏資訊再要求行動會讓使用者無從判斷成本。
+
+## Revisit When
+
+後端關帳就緒檢查真的開始驗證報表與現況一致（此時前端把關退為第二道防線，如 Step 8 的 Generate 守門），或 persisted 報表改為產生後可變、`CLOSED` 也能重算時，本 ADR 的「關帳前一次性把關」前提改變。
