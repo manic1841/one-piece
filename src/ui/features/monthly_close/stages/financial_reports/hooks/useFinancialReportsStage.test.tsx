@@ -2,7 +2,6 @@ import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { getReportPersistenceStateUseCase } from '@/application/report/use_cases/getReportPersistenceStateUseCase';
-import { previewFinancialReportsWorkflow } from '@/application/report/use_cases/previewFinancialReportsWorkflow';
 
 import { useFinancialReportsStage } from './useFinancialReportsStage';
 
@@ -19,9 +18,6 @@ vi.mock('@/application/ledger/use_cases/listAllLedgerCodesUseCase', () => ({
 vi.mock('@/application/report/use_cases/getReportPersistenceStateUseCase', () => ({
   getReportPersistenceStateUseCase: { execute: vi.fn() },
 }));
-vi.mock('@/application/report/use_cases/previewFinancialReportsWorkflow', () => ({
-  previewFinancialReportsWorkflow: { execute: vi.fn() },
-}));
 
 const renderStage = (yearMonth = '2026-08') =>
   renderHook(
@@ -37,25 +33,17 @@ const renderStage = (yearMonth = '2026-08') =>
 describe('useFinancialReportsStage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(previewFinancialReportsWorkflow.execute).mockResolvedValue(null as never);
   });
 
-  it('loads persistence and the preview bundle for the selected month', async () => {
+  it('loads the persistence state for the selected month', async () => {
     vi.mocked(getReportPersistenceStateUseCase.execute).mockResolvedValue({
       isPersisted: true,
       timestamps: {},
     });
-    vi.mocked(previewFinancialReportsWorkflow.execute).mockResolvedValue({
-      cashFlow: { adjustment: 1500 },
-    } as never);
 
     const { result } = renderStage();
 
     await waitFor(() => expect(result.current.reportsPersisted).toBe(true));
-    expect(result.current.reportBundle).toEqual({ cashFlow: { adjustment: 1500 } });
-    expect(previewFinancialReportsWorkflow.execute).toHaveBeenCalledWith(
-      expect.objectContaining({ year: 2026, month: 8 }),
-    );
   });
 
   it('clears the persistence state on a month switch before the new month loads', async () => {
@@ -82,10 +70,9 @@ describe('useFinancialReportsStage', () => {
       resolveNewMonth({ isPersisted: false, timestamps: {} });
     });
     await waitFor(() => expect(result.current.reportsPersisted).toBe(false));
-    expect(result.current.reportBundle).toBeNull();
   });
 
-  it('reloads persistence and the bundle through refresh()', async () => {
+  it('reloads the persistence state through refresh()', async () => {
     vi.mocked(getReportPersistenceStateUseCase.execute).mockResolvedValue({
       isPersisted: false,
       timestamps: {},
@@ -98,16 +85,12 @@ describe('useFinancialReportsStage', () => {
       isPersisted: true,
       timestamps: {},
     });
-    vi.mocked(previewFinancialReportsWorkflow.execute).mockResolvedValue({
-      cashFlow: { adjustment: 300 },
-    } as never);
 
     await act(async () => {
       await result.current.refresh?.();
     });
 
     expect(result.current.reportsPersisted).toBe(true);
-    expect(result.current.reportBundle).toEqual({ cashFlow: { adjustment: 300 } });
     expect(getReportPersistenceStateUseCase.execute).toHaveBeenCalledTimes(2);
   });
 });

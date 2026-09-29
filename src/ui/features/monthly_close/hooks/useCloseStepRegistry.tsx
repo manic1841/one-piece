@@ -25,6 +25,7 @@ import { useCloseSummaryVM } from '../hooks/useCloseSummaryVM';
 import { useNoOpStageControl } from '../hooks/useConfirmStageControl';
 import { CloseAccountBalanceStage } from '../stages/account_balance/components/CloseAccountBalanceStage';
 import { useAccountBalanceStage } from '../stages/account_balance/hooks/useAccountBalanceStage';
+import { useClosePeriodStage } from '../stages/close_period/hooks/useClosePeriodStage';
 import { CloseDebtRepaymentStage } from '../stages/debt_repayment/components/CloseDebtRepaymentStage';
 import { useDebtRepaymentStage } from '../stages/debt_repayment/hooks/useDebtRepaymentStage';
 import { useFinancialReportsStage } from '../stages/financial_reports/hooks/useFinancialReportsStage';
@@ -169,16 +170,21 @@ export const useCloseStepRegistry = ({
     confirmingStageId,
   );
   const completenessCheckStage = useNoOpStageControl('COMPLETENESS_CHECK', confirmingStageId);
-  const closePeriodStage = useNoOpStageControl('CLOSE_PERIOD', confirmingStageId);
+  const closePeriodStage = useClosePeriodStage({
+    householdId,
+    selectedYearMonth,
+    confirmingStageId,
+  });
 
   // Steps 7-8 summary VMs: built here, after the stage hooks, so COMPLETENESS_CHECK
   // and CLOSE_PERIOD read them from this closure instead of the page copying them
-  // into CloseStepContext.
+  // into CloseStepContext. CLOSE_PERIOD's five financial figures come from the
+  // preview bundle its own stage hook owns.
   const { readinessVM, closeSummaryVM } = useCloseSummaryVM({
     householdId,
     selectedYearMonth,
     readiness,
-    reportBundle: financialReportsStage.reportBundle,
+    reportBundle: closePeriodStage.reportBundle,
     transactionIssues: evidenceInputs.transactionIssues,
     securities: securitiesTradeStage.securities,
     anomalies: evidenceInputs.anomalies,
@@ -189,7 +195,8 @@ export const useCloseStepRegistry = ({
 
   // Per-stage evidence closures: built from the shared inputs and the owning
   // stage's data. CLOSE_PERIOD reads the persistence state owned by
-  // FINANCIAL_REPORTS — the one intentional cross-stage read.
+  // FINANCIAL_REPORTS; FINANCIAL_REPORTS reads the preview bundle owned by
+  // CLOSE_PERIOD — the intentional cross-stage reads, permitted only here.
   const noEvidence = () => NO_EVIDENCE;
   const projectSettlementEvidence = () =>
     mapProjectSettlementsToEvidence(projectSettlementStage.settlements);
@@ -197,7 +204,7 @@ export const useCloseStepRegistry = ({
     mapTransactionIssuesToEvidence(evidenceInputs.transactionIssues);
   const completenessCheckEvidence = () => mapAnomaliesToEvidence(evidenceInputs.anomalies);
   const financialReportsEvidence = () => {
-    const adjustment = financialReportsStage.reportBundle?.cashFlow.adjustment ?? null;
+    const adjustment = closePeriodStage.reportBundle?.cashFlow.adjustment ?? null;
     return adjustment !== null ? mapAdjustmentCountToEvidence(adjustment) : NO_EVIDENCE;
   };
   const closePeriodEvidence = () =>

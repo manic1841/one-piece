@@ -2,11 +2,6 @@ import { useCallback, useEffect, useState } from 'react';
 
 import { listAllLedgerCodesUseCase } from '@/application/ledger/use_cases/listAllLedgerCodesUseCase';
 import { getReportPersistenceStateUseCase } from '@/application/report/use_cases/getReportPersistenceStateUseCase';
-import {
-  type PreviewFinancialReportsResult,
-  previewFinancialReportsWorkflow,
-} from '@/application/report/use_cases/previewFinancialReportsWorkflow';
-import { type AuthContext } from '@/application/types';
 import { type ReportLabelResolver } from '@/domains/report/reportCalculations';
 import { getUnifiedLedgerCodeLabel } from '@/ui/constants/transaction';
 import type { CloseStageControl } from '@/ui/features/monthly_close/hooks/closeStageControl';
@@ -20,47 +15,27 @@ interface UseFinancialReportsStageArgs {
   confirmingStageId: string | null;
 }
 
-interface ReportState {
+interface PersistenceState {
   isPersisted: boolean;
-  bundle: PreviewFinancialReportsResult | null;
 }
 
 /**
- * Loads the month's report persistence state and, when persisted, the preview
- * bundle. Returns null on failure so callers leave the month-keyed state unset
- * (which reads as null) instead of claiming the reports are absent.
+ * Loads the month's report persistence state. Returns null on failure so
+ * callers leave the month-keyed state unset (which reads as null) instead of
+ * claiming the reports are absent.
  */
-const loadReportState = async ({
+const loadPersistenceState = async ({
   householdId,
   selectedYearMonth,
-  auth,
 }: {
   householdId: string;
   selectedYearMonth: string;
-  auth: AuthContext;
-}): Promise<ReportState | null> => {
-  const year = Number(selectedYearMonth.slice(0, 4));
-  const month = Number(selectedYearMonth.slice(5, 7));
+}): Promise<PersistenceState | null> => {
   try {
-    const state = await getReportPersistenceStateUseCase.execute({
+    return await getReportPersistenceStateUseCase.execute({
       householdId,
       yearMonth: selectedYearMonth,
     });
-    if (!state.isPersisted) return { isPersisted: false, bundle: null };
-    try {
-      const preview = await previewFinancialReportsWorkflow.execute({
-        householdId,
-        auth,
-        year,
-        month,
-      });
-      return { isPersisted: true, bundle: preview };
-    } catch (previewError) {
-      logger.warn('Failed to preview financial reports', 'useFinancialReportsStage', {
-        previewError,
-      });
-      return { isPersisted: true, bundle: null };
-    }
   } catch (caught) {
     logger.warn('Failed to load report persistence state', 'useFinancialReportsStage', { caught });
     return null;
@@ -72,10 +47,10 @@ const loadReportState = async ({
  * (absorbed from useReportLabelResolver) — the static catalog resolves first
  * and household custom codes override it, so persisted reports carry directly
  * displayable labels for user-defined ledger codes. It also owns the month's
- * report persistence state and the preview bundle derived from it, which drive
- * the reports-generated badge, the registry's close-summary VM, and (read
- * across stages in the registry) CLOSE_PERIOD's evidence. `refresh` reloads
- * both after the period changes under the stage; there is no draft and no gate.
+ * report persistence state — the cross-stage fact the reports-generated badge
+ * and (read across stages in the registry) CLOSE_PERIOD's evidence consume.
+ * `refresh` reloads it after the period changes under the stage; there is no
+ * draft and no gate. The live preview bundle belongs to CLOSE_PERIOD.
  */
 export const useFinancialReportsStage = ({
   householdId,
@@ -84,25 +59,18 @@ export const useFinancialReportsStage = ({
 }: UseFinancialReportsStageArgs): CloseStageControl & {
   labelResolver: ReportLabelResolver;
   reportsPersisted: boolean | null;
-  reportBundle: PreviewFinancialReportsResult | null;
 } => {
   const auth = useAuthIdentity();
   const [customLabels, setCustomLabels] = useState<Map<string, string>>(new Map());
-  // Persistence and the preview bundle are keyed by year-month: a value loaded
-  // for a previous month reads as `null` under the current selection, so a
-  // month switch never shows the last month's badge or evidence while the new
-  // month loads.
+  // Persistence is keyed by year-month: a value loaded for a previous month
+  // reads as `null` under the current selection, so a month switch never shows
+  // the last month's badge or evidence while the new month loads.
   const [persistence, setPersistence] = useState<{
     yearMonth: string;
     isPersisted: boolean;
   } | null>(null);
-  const [bundle, setBundle] = useState<{
-    yearMonth: string;
-    data: PreviewFinancialReportsResult;
-  } | null>(null);
   const reportsPersisted =
     persistence?.yearMonth === selectedYearMonth ? persistence.isPersisted : null;
-  const reportBundle = bundle?.yearMonth === selectedYearMonth ? bundle.data : null;
 
   useEffect(() => {
     if (!householdId) return;
@@ -132,32 +100,28 @@ export const useFinancialReportsStage = ({
     };
   }, [auth, householdId]);
 
-  // Persistence state and the preview bundle travel together: no persisted
-  // reports means no bundle.
   useEffect(() => {
     if (!householdId || !selectedYearMonth) return;
     let cancelled = false;
 
     const load = async () => {
-      const result = await loadReportState({ householdId, selectedYearMonth, auth });
+      const result = await loadPersistenceState({ householdId, selectedYearMonth });
       if (cancelled || !result) return;
       setPersistence({ yearMonth: selectedYearMonth, isPersisted: result.isPersisted });
-      setBundle(result.bundle ? { yearMonth: selectedYearMonth, data: result.bundle } : null);
     };
 
     void load();
     return () => {
       cancelled = true;
     };
-  }, [auth, householdId, selectedYearMonth]);
+  }, [householdId, selectedYearMonth]);
 
   const refresh = useCallback(async () => {
     if (!householdId || !selectedYearMonth) return;
-    const result = await loadReportState({ householdId, selectedYearMonth, auth });
+    const result = await loadPersistenceState({ householdId, selectedYearMonth });
     if (!result) return;
     setPersistence({ yearMonth: selectedYearMonth, isPersisted: result.isPersisted });
-    setBundle(result.bundle ? { yearMonth: selectedYearMonth, data: result.bundle } : null);
-  }, [auth, householdId, selectedYearMonth]);
+  }, [householdId, selectedYearMonth]);
 
   const labelResolver = useCallback(
     (code: string, fallback?: string) =>
@@ -174,5 +138,5 @@ export const useFinancialReportsStage = ({
     keepsViewOnConfirm: true,
   });
 
-  return { ...control, labelResolver, reportsPersisted, reportBundle, refresh };
+  return { ...control, labelResolver, reportsPersisted, refresh };
 };

@@ -238,11 +238,7 @@ describe('useCloseStepRegistry', () => {
     expect(result.current.CLOSE_PERIOD.evidence().reportsPersisted).toBe(true);
   });
 
-  it('derives FINANCIAL_REPORTS evidence from the stage preview bundle', async () => {
-    vi.mocked(getReportPersistenceStateUseCase.execute).mockResolvedValue({
-      isPersisted: true,
-      timestamps: {},
-    });
+  it("derives FINANCIAL_REPORTS evidence from CLOSE_PERIOD's preview bundle", async () => {
     vi.mocked(previewFinancialReportsWorkflow.execute).mockResolvedValue(previewFixture(1500));
     const { result } = renderRegistry();
 
@@ -250,6 +246,31 @@ describe('useCloseStepRegistry', () => {
       expect(result.current.FINANCIAL_REPORTS.evidence().kind).toBe('CASH_FLOW_ADJUSTMENTS'),
     );
     expect(result.current.FINANCIAL_REPORTS.evidence().cashFlowAdjustments).toBe(1500);
+  });
+
+  it("renders the five Step 9 financial figures from CLOSE_PERIOD's own bundle", async () => {
+    vi.mocked(previewFinancialReportsWorkflow.execute).mockResolvedValue({
+      incomeStatement: { netIncome: 117_000 },
+      balanceSheet: {
+        assets: { total: 10_500_000 },
+        liabilities: { total: 6_200_000 },
+        equity: { total: 4_300_000 },
+      },
+      cashFlow: { adjustment: 0, netCashChange: 179_000 },
+    } as never);
+
+    function ClosePeriodHarness() {
+      const registry = useCloseStepRegistry(baseArgs);
+      return <>{registry.CLOSE_PERIOD.render(baseContext)}</>;
+    }
+
+    render(<ClosePeriodHarness />);
+
+    await waitFor(() => expect(screen.getByText('NT$10,500,000')).toBeInTheDocument());
+    expect(screen.getByText('NT$6,200,000')).toBeInTheDocument();
+    expect(screen.getByText('NT$4,300,000')).toBeInTheDocument();
+    expect(screen.getByText('NT$117,000')).toBeInTheDocument();
+    expect(screen.getByText('NT$179,000')).toBeInTheDocument();
   });
 
   it('resets every stage draft through the control record', () => {
