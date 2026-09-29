@@ -76,7 +76,7 @@ export const MONTHLY_CLOSE_LABELS = {
   NEEDS_RECONFIRM: 'NEEDS RECONFIRM',
   REOPENED_TITLE: '此期間已經關帳',
   REOPENED_CONTEXT:
-    '已關帳的期間重新開啟後，財務報表與關帳決定會被撤回，需重新產生報表並重新關帳。',
+    '已關帳的期間重新開啟後，關帳決定會被撤回；既有報表保留作為比對基準，需重新檢視並重新產生報表後才能重新關帳。',
   REOPENED_CONSEQUENCE: '此期間之後所有已關帳的期間也會改為待審閱（NEEDS REVIEW）。',
   REOPEN_CONFIRM: '重新開啟',
   CANCEL: 'CANCEL',
@@ -154,5 +154,6 @@ export const MONTHLY_CLOSE_LABELS = {
   GENERATE_REPORTS: 'GENERATE REPORTS',
   REPORTS_GENERATED: 'REPORTS GENERATED',
   GENERATED_AT: '產生時間',
+  EXISTING_REPORTS_WARNING: '此期間已有先前產生的報表；確認後將以目前預覽重新產生並覆寫。',
   PREVIEW_ERROR: '無法載入報表預覽。',
 } as const;

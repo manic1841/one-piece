@@ -44,6 +44,8 @@ interface FinancialReportsData {
   customLabels: Map<string, string>;
   preview: PreviewFinancialReportsResult;
   isPersisted: boolean;
+  /** The persisted reports' frozen generation times; empty when not persisted. */
+  persistedTimestamps: ReportTimestampsVM;
 }
 
 /**
@@ -93,7 +95,14 @@ const fetchFinancialReportsData = async ({
         }),
     ]);
 
-    return { customLabels, preview, isPersisted: persistence?.isPersisted ?? false };
+    return {
+      customLabels,
+      preview,
+      isPersisted: persistence?.isPersisted ?? false,
+      // The same read supplies the flag and the times, so the badge and any
+      // warning cannot disagree about whether reports were persisted (#222).
+      persistedTimestamps: persistence?.timestamps ?? {},
+    };
   } catch (caught) {
     logger.warn('Failed to load financial reports preview', 'useFinancialReportsStage', { caught });
     throw new Error(PREVIEW_ERROR);
@@ -135,6 +144,7 @@ export const useFinancialReportsStage = ({
     customLabels: Map<string, string>;
     preview: PreviewFinancialReportsResult;
     isPersisted: boolean;
+    persistedTimestamps: ReportTimestampsVM;
   } | null>(null);
   const { loading: isLoading, errorMessage, run } = useLoadingTask();
   // Paging months faster than the load completes supersedes the previous load;
@@ -203,7 +213,7 @@ export const useFinancialReportsStage = ({
     [isClosed, persistedBundle, preview],
   );
 
-  const timestamps = preview?.isPersisted ? preview.timestamps : {};
+  const timestamps = current?.persistedTimestamps ?? {};
 
   const control = useConfirmStageControl({
     stageId: 'FINANCIAL_REPORTS',

@@ -32,8 +32,39 @@ interface CloseFinancialReportsProps {
   confirming: boolean;
   /** While paused, only the walk position's confirm button is enabled (ADR-0070). */
   isConfirmable: boolean;
-  isGenerated: boolean;
+  /** A CLOSED period renders read-only: no confirm action at all (ADR-0071). */
+  isReadOnly: boolean;
+  /**
+   * The stage's own completion, not report persistence: a legacy month or a
+   * reopened period can carry persisted reports while the stage is PENDING
+   * (#222). Completion drives the generated panel and hides the action.
+   */
+  isStageCompleted: boolean;
+  /** Leftover persisted reports exist; the confirm action regenerates them. */
+  hasPersistedReports: boolean;
 }
+
+/** The warning surface (amber glyph + tinted border) shared by Step 8's alerts. */
+const WarningAlert: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+  <Alert className="border-warning/30 bg-warning/5 text-foreground">
+    <AlertTriangle className="h-4 w-4 text-warning" />
+    <AlertDescription>{children}</AlertDescription>
+  </Alert>
+);
+
+/**
+ * Formats the frozen generation times as ` ｜ 損益表 10:00 ｜ ...`, or an empty
+ * string when nothing is persisted. Shared by the generated panel and the
+ * existing-reports warning so both read the same evidence.
+ */
+const formatTimestamps = (timestamps: ReportTimestampsVM): string => {
+  const parts = [
+    [REPORT_VIEW_TITLES.INCOME_STATEMENT, timestamps.incomeStatement],
+    [REPORT_VIEW_TITLES.BALANCE_SHEET, timestamps.balanceSheet],
+    [REPORT_VIEW_TITLES.CASH_FLOW, timestamps.cashFlow],
+  ].flatMap(([title, time]) => (time ? [`${title} ${time}`] : []));
+  return parts.length > 0 ? ` ｜ ${parts.join(' ｜ ')}` : '';
+};
 
 export const CloseFinancialReports: React.FC<CloseFinancialReportsProps> = ({
   reports,
@@ -46,7 +77,9 @@ export const CloseFinancialReports: React.FC<CloseFinancialReportsProps> = ({
   onBack,
   confirming,
   isConfirmable,
-  isGenerated,
+  isReadOnly,
+  isStageCompleted,
+  hasPersistedReports,
 }) => {
   const { incomeStatement, balanceSheet, cashFlow } = reports;
 
@@ -88,7 +121,7 @@ export const CloseFinancialReports: React.FC<CloseFinancialReportsProps> = ({
           </p>
         </div>
         <span className="font-mono text-[13px] tabular-nums text-muted-foreground">
-          {isGenerated
+          {isStageCompleted
             ? MONTHLY_CLOSE_LABELS.REPORTS_GENERATED
             : MONTHLY_CLOSE_LABELS.FINANCIAL_REPORTS_TITLE}
         </span>
@@ -101,13 +134,26 @@ export const CloseFinancialReports: React.FC<CloseFinancialReportsProps> = ({
       )}
 
       {showAdjustmentWarning && (
-        <Alert className="border-warning/30 bg-warning/5 text-foreground">
-          <AlertTriangle className="h-4 w-4 text-warning" />
-          <AlertDescription>{MONTHLY_CLOSE_LABELS.ADJUSTMENT_WARNING}</AlertDescription>
-        </Alert>
+        <WarningAlert>{MONTHLY_CLOSE_LABELS.ADJUSTMENT_WARNING}</WarningAlert>
       )}
 
-      {isGenerated && (
+      {/* Persisted reports without a completed stage are leftover files (legacy
+          pre-workflow month or a reopened period). Confirm recomputes the
+          preview and overwrites them, so warn instead of claiming the stage is
+          done (#222). */}
+      {!isStageCompleted && hasPersistedReports && (
+        <WarningAlert>
+          <p>{MONTHLY_CLOSE_LABELS.EXISTING_REPORTS_WARNING}</p>
+          {formatTimestamps(timestamps) && (
+            <p>
+              {MONTHLY_CLOSE_LABELS.GENERATED_AT}
+              {formatTimestamps(timestamps)}
+            </p>
+          )}
+        </WarningAlert>
+      )}
+
+      {isStageCompleted && (
         <div
           data-testid="reports-generated-panel"
           className="space-y-2 rounded-lg border border-positive/30 bg-positive/10 px-4 py-3"
@@ -117,15 +163,7 @@ export const CloseFinancialReports: React.FC<CloseFinancialReportsProps> = ({
           </p>
           <p className="text-xs text-muted-foreground">
             {MONTHLY_CLOSE_LABELS.GENERATED_AT}
-            {timestamps.incomeStatement
-              ? ` ｜ ${REPORT_VIEW_TITLES.INCOME_STATEMENT} ${timestamps.incomeStatement}`
-              : ''}
-            {timestamps.balanceSheet
-              ? ` ｜ ${REPORT_VIEW_TITLES.BALANCE_SHEET} ${timestamps.balanceSheet}`
-              : ''}
-            {timestamps.cashFlow
-              ? ` ｜ ${REPORT_VIEW_TITLES.CASH_FLOW} ${timestamps.cashFlow}`
-              : ''}
+            {formatTimestamps(timestamps)}
           </p>
           <div className="flex justify-end">
             <Button
@@ -208,7 +246,7 @@ export const CloseFinancialReports: React.FC<CloseFinancialReportsProps> = ({
         >
           {MONTHLY_CLOSE_LABELS.BACK_TO_CURRENT}
         </Button>
-        {!isGenerated && (
+        {!isStageCompleted && !isReadOnly && (
           <Button
             data-testid="generate-reports"
             onClick={onGenerate}

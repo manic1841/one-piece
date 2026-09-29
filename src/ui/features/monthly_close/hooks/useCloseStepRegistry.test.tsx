@@ -137,6 +137,19 @@ const baseArgs: UseCloseStepRegistryArgs = {
   pageVM: mapPeriodToPageVM(null, '2026-08'),
 };
 
+/** A live period whose only meaningful fact is the FINANCIAL_REPORTS stage state. */
+const pageVMWithReportsStage = (status: 'PENDING' | 'COMPLETED') =>
+  mapPeriodToPageVM(
+    {
+      id: '2026-08',
+      yearMonth: '2026-08',
+      status: 'IN_PROGRESS',
+      stages: { FINANCIAL_REPORTS: { status } },
+      reviewSourceStageId: null,
+    } as never,
+    '2026-08',
+  );
+
 const renderRegistry = (overrides: Partial<UseCloseStepRegistryArgs> = {}) =>
   renderHook(() => useCloseStepRegistry({ ...baseArgs, ...overrides }));
 
@@ -260,6 +273,43 @@ describe('useCloseStepRegistry', () => {
     render(<>{result.current.FINANCIAL_REPORTS.render(baseContext)}</>);
 
     expect(screen.getAllByText(MONTHLY_CLOSE_LABELS.FINANCIAL_REPORTS_TITLE).length).toBe(2);
+  });
+
+  // Issue #222: a legacy pre-workflow month or a reopened period carries
+  // persisted reports while FINANCIAL_REPORTS is still PENDING. The action that
+  // completes the stage must stay reachable, driven by stage completion rather
+  // than report persistence.
+  it('keeps the reports action reachable when reports persist but the stage is pending', async () => {
+    vi.mocked(getReportPersistenceStateUseCase.execute).mockResolvedValue({
+      isPersisted: true,
+      timestamps: { incomeStatement: '10:00' },
+    });
+    vi.mocked(previewFinancialReportsWorkflow.execute).mockResolvedValue({
+      ...previewWithTotals({}),
+      isPersisted: true,
+      timestamps: { incomeStatement: '10:00' },
+    } as never);
+    const { result } = renderRegistry({ pageVM: pageVMWithReportsStage('PENDING') });
+
+    await waitFor(() =>
+      expect(result.current.CLOSE_PERIOD.evidence().kind).toBe('REPORT_PERSISTENCE'),
+    );
+
+    render(<>{result.current.FINANCIAL_REPORTS.render(baseContext)}</>);
+
+    expect(screen.queryByTestId('reports-generated-panel')).not.toBeInTheDocument();
+    expect(screen.getByText(/已有先前產生的報表/)).toBeInTheDocument();
+    expect(screen.getByText(/10:00/)).toBeInTheDocument();
+    expect(screen.getByTestId('generate-reports')).toBeInTheDocument();
+  });
+
+  it('replaces the reports action with the generated panel once the stage is completed', () => {
+    const { result } = renderRegistry({ pageVM: pageVMWithReportsStage('COMPLETED') });
+
+    render(<>{result.current.FINANCIAL_REPORTS.render(baseContext)}</>);
+
+    expect(screen.getByTestId('reports-generated-panel')).toBeInTheDocument();
+    expect(screen.queryByTestId('generate-reports')).not.toBeInTheDocument();
   });
 
   it('renders the shared chrome frame for a stage with inputs', () => {

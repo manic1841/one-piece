@@ -207,6 +207,12 @@ export const useCloseStepRegistry = ({
       ? mapPersistenceToEvidence(financialReportsStage.reportsPersisted)
       : NO_EVIDENCE;
 
+  // The FINANCIAL_REPORTS action is driven by the stage's own completion, not
+  // report persistence: a legacy or reopened month may carry leftover persisted
+  // reports while the stage is still PENDING (#222).
+  const isFinancialReportsCompleted =
+    pageVM.stages.find((stage) => stage.stageId === 'FINANCIAL_REPORTS')?.isCompleted ?? false;
+
   // Chrome props shared by every workspace-stage factory; each factory only
   // adds its own content props on top. chromeProps calls the evidence closure
   // itself, so render factories no longer receive evidence as a second argument.
@@ -353,7 +359,9 @@ export const useCloseStepRegistry = ({
           onBack={ctx.onBack}
           confirming={ctx.confirming}
           isConfirmable={ctx.isConfirmable}
-          isGenerated={financialReportsStage.reportsPersisted ?? false}
+          isReadOnly={ctx.isReadOnly}
+          isStageCompleted={isFinancialReportsCompleted}
+          hasPersistedReports={financialReportsStage.reportsPersisted ?? false}
         />
       ),
       evidence: financialReportsEvidence,

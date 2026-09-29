@@ -84,7 +84,9 @@ const renderReports = (props?: Partial<Props>) =>
       onBack={() => {}}
       confirming={false}
       isConfirmable={true}
-      isGenerated={false}
+      isReadOnly={false}
+      isStageCompleted={false}
+      hasPersistedReports={false}
       {...props}
     />,
   );
@@ -173,10 +175,11 @@ describe('CloseFinancialReports', () => {
     expect(statement).toHaveTextContent('實際餘額');
   });
 
-  it('shows the reports generated panel with timestamps when persisted', () => {
+  it('shows the reports generated panel with timestamps once the stage is completed', () => {
     renderReports({
       timestamps: { incomeStatement: '10:00', balanceSheet: '10:01', cashFlow: '10:02' },
-      isGenerated: true,
+      isStageCompleted: true,
+      hasPersistedReports: true,
     });
 
     const panel = screen.getByTestId('reports-generated-panel');
@@ -184,6 +187,41 @@ describe('CloseFinancialReports', () => {
     expect(panel).toHaveTextContent('10:01');
     expect(panel).toHaveTextContent('10:02');
     expect(screen.queryByTestId('generate-reports')).not.toBeInTheDocument();
+  });
+
+  // Issue #222: leftover persisted reports (legacy pre-workflow month or a
+  // reopened period) must not hide the only action that completes the stage.
+  it('offers generate and warns about existing reports when persisted but the stage is pending', () => {
+    const onGenerate = vi.fn();
+    renderReports({
+      timestamps: { incomeStatement: '10:00', balanceSheet: '10:01', cashFlow: '10:02' },
+      isStageCompleted: false,
+      hasPersistedReports: true,
+      onGenerate,
+    });
+
+    expect(screen.queryByTestId('reports-generated-panel')).not.toBeInTheDocument();
+    expect(screen.getByText(/已有先前產生的報表/)).toBeInTheDocument();
+    expect(screen.getByText(/10:00/)).toBeInTheDocument();
+
+    const button = screen.getByTestId('generate-reports');
+    fireEvent.click(button);
+    expect(onGenerate).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not warn about existing reports on a first generation', () => {
+    renderReports({ isStageCompleted: false, hasPersistedReports: false });
+
+    expect(screen.queryByText(/已有先前產生的報表/)).not.toBeInTheDocument();
+    expect(screen.getByTestId('generate-reports')).toBeInTheDocument();
+  });
+
+  // CLOSED read-only review never offers a confirm action (ADR-0071).
+  it('hides the action entirely on a read-only period', () => {
+    renderReports({ isReadOnly: true, isStageCompleted: true, hasPersistedReports: true });
+
+    expect(screen.queryByTestId('generate-reports')).not.toBeInTheDocument();
+    expect(screen.getByTestId('reports-generated-panel')).toBeInTheDocument();
   });
 
   it('disables generate while settlement is not ready, without naming the categories', () => {
