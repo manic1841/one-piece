@@ -61,6 +61,10 @@ export const useMonthlyClosePage = ({
     resetStagesFrom,
   } = useMonthlyClose({ householdId, userEmail });
   const [viewingStageId, setViewingStageId] = useState<CloseStageId | null>(null);
+  // The refusal is stored with the stage it belongs to, so navigating away
+  // retires it by derivation instead of an effect that clears it (which would
+  // be a sync setState in an effect).
+  const [blocked, setBlocked] = useState<{ stageId: CloseStageId; reason: string } | null>(null);
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [portfolios, setPortfolios] = useState<Portfolio[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
@@ -137,6 +141,9 @@ export const useMonthlyClosePage = ({
     currentStageId,
   });
   const displayedStage = pageVM.stages.find((stage) => stage.stageId === displayedStageId) ?? null;
+  // A refusal is shown only on the stage that produced it.
+  const blockedReason =
+    blocked !== null && blocked.stageId === displayedStageId ? blocked.reason : null;
   // Only CLOSED locks the workspace read-only. A cascade-demoted period stays
   // NEEDS_REVIEW with a full recovery walk (ADR-0066), so its confirm buttons
   // must stay reachable; the page-level reopen entry handles its own gating.
@@ -159,6 +166,7 @@ export const useMonthlyClosePage = ({
   const handleSelectYearMonth = useCallback(
     (yearMonth: string) => {
       selectYearMonth(yearMonth);
+      setBlocked(null);
       for (const step of Object.values(stepRegistry)) step.control.resetDraft();
     },
     [selectYearMonth, stepRegistry],
@@ -169,7 +177,12 @@ export const useMonthlyClosePage = ({
       const step = stepRegistry[stageId];
       if (!step) return;
       const { control } = step;
-      if (control.shouldBlock()) return;
+      const block = control.shouldBlock();
+      if (block) {
+        setBlocked({ stageId, reason: block.reason });
+        return;
+      }
+      setBlocked(null);
       if (control.confirmGate && !(await control.confirmGate())) return;
       const result = await confirmStage(control.buildRequest());
       // A failed confirm (null) writes nothing, so none of the post-confirm
@@ -234,6 +247,7 @@ export const useMonthlyClosePage = ({
     isStarting,
     error,
     entitiesError,
+    blockedReason,
     viewingStageId,
     setViewingStageId,
     currentStageId,

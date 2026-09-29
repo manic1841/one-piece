@@ -8,6 +8,7 @@ import { Card, CardContent } from '@/ui/components/ui/card';
 import { MONTHLY_CLOSE_LABELS } from '@/ui/constants/monthlyClose';
 import { useConfirm } from '@/ui/features/app/confirm/useConfirm';
 import { ClosePipeline } from '@/ui/features/monthly_close/components/ClosePipeline';
+import { CloseStageBlockedNotice } from '@/ui/features/monthly_close/components/CloseStageBlockedNotice';
 
 import { useMonthlyClosePage } from '../hooks/useMonthlyClosePage';
 import {
@@ -32,6 +33,7 @@ export const MonthlyClosePage: React.FC<MonthlyClosePageProps> = ({
     isStarting,
     error,
     entitiesError,
+    blockedReason,
     setViewingStageId,
     currentStageId,
     displayedStageId,
@@ -200,11 +202,17 @@ export const MonthlyClosePage: React.FC<MonthlyClosePageProps> = ({
                 onSelectStage={(stageId) => setViewingStageId(stageId as CloseStageId)}
               />
 
-              {displayedStage &&
-                stepRegistry[displayedStage.stageId]?.render({
-                  ...stageContext,
-                  onGoToStage: (stageId) => void handleExceptionGoToStage(stageId),
-                })}
+              {displayedStage && (
+                <>
+                  {/* A refused confirm must say why instead of doing nothing
+                      (#233). Sits with the stage card, next to its actions. */}
+                  <CloseStageBlockedNotice reason={blockedReason} />
+                  {stepRegistry[displayedStage.stageId]?.render({
+                    ...stageContext,
+                    onGoToStage: (stageId) => void handleExceptionGoToStage(stageId),
+                  })}
+                </>
+              )}
             </div>
           )}
         </>

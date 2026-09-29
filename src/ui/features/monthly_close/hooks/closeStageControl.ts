@@ -2,6 +2,15 @@ import type { MonthlyCloseConfirmRequest } from '@/application/monthly_close/use
 import type { CloseStageId } from '@/domains/financial_period/schemas';
 
 /**
+ * Why a stage refuses to submit right now. `blocked: true` is a literal so a
+ * falsy check cannot be mistaken for "no reason given".
+ */
+export interface CloseStageBlock {
+  blocked: true;
+  reason: string;
+}
+
+/**
  * The stage controller contract every close stage satisfies — the strategy
  * interface the page dispatches on. A stage owns its prefill and draft state;
  * the page injects the shared submit (assemble request → confirmStage →
@@ -19,8 +28,15 @@ export interface CloseStageControl {
     MonthlyCloseConfirmRequest,
     'householdId' | 'yearMonth' | 'userEmail' | 'auth'
   >;
-  /** Pre-confirm gate: return true when the stage must not submit. */
-  shouldBlock: () => boolean;
+  /**
+   * Pre-confirm gate: the reason the stage must not submit yet, or `null` to
+   * allow it. Synchronous by design, and distinct from `confirmGate`: this one
+   * means "the stage cannot submit at all", the other means "submitting is
+   * allowed but warn me first". The page shows the reason inline next to the
+   * stage, so a blocked confirm never returns into silence (#233). No stage
+   * blocks today; the seam stays so one that must can say why.
+   */
+  shouldBlock: () => CloseStageBlock | null;
   /** Ask before submitting (empty-stage warning); false aborts. */
   confirmGate?: () => Promise<boolean>;
   /** Post-confirm side effects (prefill refresh keys, navigation resets). */

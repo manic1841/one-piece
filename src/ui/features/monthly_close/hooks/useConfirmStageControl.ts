@@ -3,13 +3,13 @@ import { useCallback } from 'react';
 import { type CloseStageId } from '@/domains/financial_period/schemas';
 import { MONTHLY_CLOSE_LABELS } from '@/ui/constants/monthlyClose';
 
-import { type CloseStageControl } from './closeStageControl';
+import { type CloseStageBlock, type CloseStageControl } from './closeStageControl';
 
 interface UseConfirmStageControlArgs {
   stageId: CloseStageControl['stageId'];
   confirmingStageId: string | null;
   buildRequest: CloseStageControl['buildRequest'];
-  /** The stage's own gate; returning true blocks the submit. */
+  /** The stage's own gate; returning a block stops the submit and shows why. */
   shouldBlock?: CloseStageControl['shouldBlock'];
   /** Ask before submitting (empty-stage warning); false aborts. */
   confirmGate?: () => Promise<boolean>;
@@ -43,7 +43,7 @@ export const useConfirmStageControl = ({
   refresh,
   keepsViewOnConfirm,
 }: UseConfirmStageControlArgs): CloseStageControl => {
-  const blocked = useCallback((): boolean => (shouldBlock ? shouldBlock() : false), [shouldBlock]);
+  const blocked = useCallback((): CloseStageBlock | null => shouldBlock?.() ?? null, [shouldBlock]);
 
   return {
     stageId,
