@@ -32,9 +32,9 @@ import {
   computeSectionInput,
   upsertSectionInput,
 } from '../../../viewmodels/accountBalance.vm';
-import { SecuritiesAccountRow } from '../../securities_trade/components/SecuritiesAccountRow';
 import { AccountNameCell } from './AccountNameCell';
 import { ForeignMobileList, TwdMobileList } from './CloseAccountBalanceMobileLists';
+import { SecuritiesAccountRow } from './SecuritiesAccountRow';
 
 const SECTION_LABELS: Record<AccountBalanceSectionKind, string> = {
   twd: '現金 / 銀行',
