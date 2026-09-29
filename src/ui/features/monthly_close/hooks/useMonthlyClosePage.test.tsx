@@ -2,15 +2,19 @@ import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { monthlyCloseWorkflowUseCase } from '@/application/monthly_close/use_cases/monthlyCloseWorkflowUseCase';
-import { type CloseStageId, initialStageStates } from '@/domains/financial_period/schemas';
+import { initialStageStates } from '@/domains/financial_period/schemas';
 
 import { useMonthlyClosePage } from './useMonthlyClosePage';
 
-const { authIdentity, refreshSpy } = vi.hoisted(() => ({
+const { authIdentity, refreshSpy, confirmMock } = vi.hoisted(() => ({
   authIdentity: { uid: 'user-1', email: 'user@test.com', isGlobalAdmin: false },
   refreshSpy: vi.fn().mockResolvedValue(undefined),
+  confirmMock: vi.fn(),
 }));
 
+vi.mock('@/ui/features/app/confirm/useConfirm', () => ({
+  useConfirm: () => ({ confirm: confirmMock }),
+}));
 vi.mock('@/ui/hooks/useAuthIdentity', () => ({
   useAuthIdentity: () => authIdentity,
 }));
@@ -111,6 +115,7 @@ function periodAwaitingProjectSettlement() {
 describe('useMonthlyClosePage (blocked confirm)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    confirmMock.mockResolvedValue(false);
     vi.mocked(monthlyCloseWorkflowUseCase.start).mockResolvedValue(
       periodAwaitingProjectSettlement() as never,
     );
@@ -145,7 +150,7 @@ describe('useMonthlyClosePage (blocked confirm)', () => {
     expect(result.current.blockedReason).toBe(BLOCKED_REASON);
 
     act(() => {
-      result.current.setViewingStageId('ACCOUNT_BALANCE' as CloseStageId);
+      result.current.setViewingStageId('ACCOUNT_BALANCE');
     });
 
     expect(result.current.blockedReason).toBeNull();

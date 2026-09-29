@@ -113,7 +113,6 @@ const baseContext: CloseStepContext = {
   onBack: vi.fn(),
   accounts: [],
   portfolios: [],
-  projects: [],
 };
 
 const readinessFixture = {
@@ -137,6 +136,7 @@ const baseArgs: UseCloseStepRegistryArgs = {
   confirmingStageId: null,
   accounts: [],
   portfolios: [],
+  projects: [],
   debtAccounts: [],
   pageVM: mapPeriodToPageVM(null, '2026-08'),
 };

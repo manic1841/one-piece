@@ -59,13 +59,12 @@ export interface CloseStepContext {
   isReviewing: boolean;
   /** Navigation commands: the page owns where the walk goes, stages only ask. */
   onConfirm: () => void;
-  onGoToStage: (stageId: string) => void;
+  onGoToStage: (stageId: CloseStageId) => void;
   onContinue: () => void;
   onBack: () => void;
   /** Entities the steps share: the page loads them once, the registry hands them out. */
   accounts: Account[];
   portfolios: { id: string; name: string }[];
-  projects: { id: string; name: string }[];
 }
 
 /** The registry entry: control + content factory + evidence builder. */
@@ -87,6 +86,7 @@ export interface UseCloseStepRegistryArgs {
   confirmingStageId: string | null;
   accounts: Account[];
   portfolios: Portfolio[];
+  projects: { id: string; name: string }[];
   debtAccounts: DebtAccount[];
   pageVM: MonthlyClosePageVM;
 }
@@ -107,6 +107,7 @@ export const useCloseStepRegistry = ({
   confirmingStageId,
   accounts,
   portfolios,
+  projects,
   debtAccounts,
   pageVM,
 }: UseCloseStepRegistryArgs) => {
@@ -259,7 +260,7 @@ export const useCloseStepRegistry = ({
             loadErrorMessage={securitiesTradeStage.errorMessage}
             securities={securitiesTradeStage.securities}
             financing={securitiesTradeStage.financing}
-            projects={ctx.projects}
+            projects={projects}
             onOpenTradeDrawer={(kind, row) =>
               securitiesTradeStage.drawer.open(kind, row ? 'EDIT' : 'ADD', row)
             }
@@ -270,7 +271,7 @@ export const useCloseStepRegistry = ({
             kind={securitiesTradeStage.drawer.state.kind}
             mode={securitiesTradeStage.drawer.state.mode}
             form={securitiesTradeStage.drawerForm.form}
-            projects={ctx.projects}
+            projects={projects}
             submitting={securitiesTradeStage.confirming}
             onConfirm={securitiesTradeStage.drawerForm.submit}
             onCancel={securitiesTradeStage.drawer.close}

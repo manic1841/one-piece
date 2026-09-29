@@ -9,14 +9,18 @@ import { type DebtAccount } from '@/domains/debt/schemas';
 import { type CloseStageId } from '@/domains/financial_period/schemas';
 import { type Portfolio } from '@/domains/portfolio/schemas';
 import { type Project } from '@/domains/project/schemas';
+import { MONTHLY_CLOSE_LABELS } from '@/ui/constants/monthlyClose';
 import { useAuthState } from '@/ui/contexts/useAuthState';
+import { useConfirm } from '@/ui/features/app/confirm/useConfirm';
 import {
   type CloseStepContext,
   useCloseStepRegistry,
 } from '@/ui/features/monthly_close/hooks/useCloseStepRegistry';
 import { useMonthlyClose } from '@/ui/features/monthly_close/hooks/useMonthlyClose';
 import {
+  isReopenablePeriod,
   resolveDisplayedStageId,
+  resolveGoToResetRange,
   resolveNextStageId,
   resolvePositionText,
   resolveStepText,
@@ -76,9 +80,11 @@ export const useMonthlyClosePage = ({
     confirmingStageId,
     accounts,
     portfolios,
+    projects: projects.map((project) => ({ id: project.id, name: project.name })),
     debtAccounts,
     pageVM,
   });
+  const { confirm } = useConfirm();
 
   // The shared entity lists are loaded once for the whole page; a failed read
   // would otherwise leave every stage silently empty, so it gets its own copy.
@@ -174,9 +180,8 @@ export const useMonthlyClosePage = ({
 
   const handleConfirmStage = useCallback(
     async (stageId: CloseStageId) => {
-      const step = stepRegistry[stageId];
-      if (!step) return;
-      const { control } = step;
+      // The registry is a complete record, so the stage is always present.
+      const { control } = stepRegistry[stageId];
       const block = control.shouldBlock();
       if (block) {
         setBlocked({ stageId, reason: block.reason });
@@ -198,21 +203,77 @@ export const useMonthlyClosePage = ({
     [confirmStage, refreshAll, stepRegistry],
   );
 
-  const handleGoToStage = useCallback((stageId: string) => {
-    setViewingStageId(stageId as CloseStageId);
+  /** Show a stage without touching its state — plain navigation. */
+  const showStage = useCallback((stageId: CloseStageId) => {
+    setViewingStageId(stageId);
   }, []);
 
   const handleGoToStageWithReset = useCallback(
-    async (stageId: string) => {
-      handleGoToStage(stageId);
-      await resetStagesFrom(stageId as CloseStageId);
+    async (stageId: CloseStageId) => {
+      showStage(stageId);
+      await resetStagesFrom(stageId);
       await refreshAll();
     },
-    [handleGoToStage, refreshAll, resetStagesFrom],
+    [showStage, refreshAll, resetStagesFrom],
   );
 
-  const isWalkPositionStage = (stageId: string) =>
-    pageVM.isPaused ? stageId === currentStageId : stageId !== null;
+  const handleStart = useCallback(async () => {
+    const result = await start();
+    await refreshAll();
+    if (!result) return;
+    if (!isReopenablePeriod(result)) return;
+
+    const confirmed = await confirm({
+      title:
+        result.status === 'CLOSED'
+          ? MONTHLY_CLOSE_LABELS.REOPENED_TITLE
+          : MONTHLY_CLOSE_LABELS.REOPENED_BANNER,
+      context: MONTHLY_CLOSE_LABELS.REOPENED_CONTEXT,
+      consequence: MONTHLY_CLOSE_LABELS.REOPENED_CONSEQUENCE,
+      confirmLabel: MONTHLY_CLOSE_LABELS.REOPEN_CONFIRM,
+      cancelLabel: MONTHLY_CLOSE_LABELS.CANCEL,
+    });
+    if (confirmed) {
+      await reopen();
+      await refreshAll();
+    }
+  }, [confirm, refreshAll, reopen, start]);
+
+  // Going back to a stage in a paused period is a recovery walk, so it resets
+  // the target stage and everything after it (ADR-0070) — behind a confirmation,
+  // because that discards later confirmations.
+  const handleGoToStage = useCallback(
+    async (stageId: CloseStageId) => {
+      if (!pageVM.isPaused) {
+        showStage(stageId);
+        return;
+      }
+      const confirmed = await confirm({
+        title: MONTHLY_CLOSE_LABELS.GO_TO_RESET_TITLE,
+        consequence: MONTHLY_CLOSE_LABELS.GO_TO_RESET_CONSEQUENCE.replace(
+          '{range}',
+          resolveGoToResetRange(pageVM.stages, stageId, pageVM.totalCount),
+        ),
+        confirmLabel: MONTHLY_CLOSE_LABELS.GO_TO_RESET_CONFIRM,
+        cancelLabel: MONTHLY_CLOSE_LABELS.CANCEL,
+      });
+      if (!confirmed) return;
+      await handleGoToStageWithReset(stageId);
+    },
+    [
+      confirm,
+      handleGoToStageWithReset,
+      pageVM.isPaused,
+      pageVM.stages,
+      pageVM.totalCount,
+      showStage,
+    ],
+  );
+
+  // Only the stage the walk is standing on may be confirmed; a paused period is
+  // held at the stage that raised the review.
+  const isWalkPositionStage = (stageId: CloseStageId) =>
+    pageVM.isPaused ? stageId === currentStageId : true;
 
   const stageContext: CloseStepContext = {
     stepText: displayedStepText ?? positionText,
@@ -229,14 +290,13 @@ export const useMonthlyClosePage = ({
     onConfirm: () => {
       if (displayedStage) void handleConfirmStage(displayedStage.stageId);
     },
-    onGoToStage: handleGoToStage,
+    onGoToStage: (stageId) => void handleGoToStage(stageId),
     // Continue advances to the next stage in walk order; the page asks the
     // viewmodel for it instead of naming a stage ID here.
     onContinue: () => setViewingStageId(resolveNextStageId(displayedStageId)),
     onBack: () => setViewingStageId(null),
     accounts,
     portfolios: portfolios.map((portfolio) => ({ id: portfolio.id, name: portfolio.name })),
-    projects: projects.map((project) => ({ id: project.id, name: project.name })),
   };
 
   return {
@@ -262,9 +322,9 @@ export const useMonthlyClosePage = ({
     start,
     reopen,
     refreshAll,
+    handleStart,
     handleConfirmStage,
     handleGoToStage,
     handleGoToStageWithReset,
-    isWalkPositionStage,
   };
 };

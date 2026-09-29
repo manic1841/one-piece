@@ -6,16 +6,10 @@ import { YearMonthPicker } from '@/ui/components/YearMonthPicker';
 import { Button } from '@/ui/components/ui/button';
 import { Card, CardContent } from '@/ui/components/ui/card';
 import { MONTHLY_CLOSE_LABELS } from '@/ui/constants/monthlyClose';
-import { useConfirm } from '@/ui/features/app/confirm/useConfirm';
 import { ClosePipeline } from '@/ui/features/monthly_close/components/ClosePipeline';
 import { CloseStageBlockedNotice } from '@/ui/features/monthly_close/components/CloseStageBlockedNotice';
 
 import { useMonthlyClosePage } from '../hooks/useMonthlyClosePage';
-import {
-  type CloseStageId,
-  isReopenablePeriod,
-  resolveGoToResetRange,
-} from '../viewmodels/monthlyClose.vm';
 
 interface MonthlyClosePageProps {
   householdId?: string;
@@ -42,60 +36,14 @@ export const MonthlyClosePage: React.FC<MonthlyClosePageProps> = ({
     stepRegistry,
     stageContext,
     selectYearMonth,
-    start,
-    reopen,
-    refreshAll,
-    handleGoToStage,
-    handleGoToStageWithReset,
+    handleStart,
   } = useMonthlyClosePage({ householdId: householdIdProp, userEmail: userEmailProp });
-
-  const { confirm } = useConfirm();
 
   // The picker/badge lock whenever the period can no longer be walked (closed
   // or cascade-demoted). Distinct from the stage workspace's read-only rule,
   // which only CLOSED triggers.
   const isPeriodLocked = pageVM.isClosed || pageVM.isCascadeDemoted;
   const showPeriodBadge = pageVM.isStarted && !isPeriodLocked;
-
-  const handleExceptionGoToStage = async (stageId: string) => {
-    if (!pageVM.isPaused) {
-      handleGoToStage(stageId);
-      return;
-    }
-    const confirmed = await confirm({
-      title: MONTHLY_CLOSE_LABELS.GO_TO_RESET_TITLE,
-      consequence: MONTHLY_CLOSE_LABELS.GO_TO_RESET_CONSEQUENCE.replace(
-        '{range}',
-        resolveGoToResetRange(pageVM.stages, stageId as CloseStageId, pageVM.totalCount),
-      ),
-      confirmLabel: MONTHLY_CLOSE_LABELS.GO_TO_RESET_CONFIRM,
-      cancelLabel: MONTHLY_CLOSE_LABELS.CANCEL,
-    });
-    if (!confirmed) return;
-    await handleGoToStageWithReset(stageId);
-  };
-
-  const handleStart = async () => {
-    const result = await start();
-    await refreshAll();
-    if (!result) return;
-    if (!isReopenablePeriod(result)) return;
-
-    const confirmed = await confirm({
-      title:
-        result.status === 'CLOSED'
-          ? MONTHLY_CLOSE_LABELS.REOPENED_TITLE
-          : MONTHLY_CLOSE_LABELS.REOPENED_BANNER,
-      context: MONTHLY_CLOSE_LABELS.REOPENED_CONTEXT,
-      consequence: MONTHLY_CLOSE_LABELS.REOPENED_CONSEQUENCE,
-      confirmLabel: MONTHLY_CLOSE_LABELS.REOPEN_CONFIRM,
-      cancelLabel: MONTHLY_CLOSE_LABELS.CANCEL,
-    });
-    if (confirmed) {
-      await reopen();
-      await refreshAll();
-    }
-  };
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-top-4 duration-base">
@@ -199,7 +147,7 @@ export const MonthlyClosePage: React.FC<MonthlyClosePageProps> = ({
                 isPaused={pageVM.isPaused}
                 statusText={pageVM.statusText}
                 positionText={positionText}
-                onSelectStage={(stageId) => setViewingStageId(stageId as CloseStageId)}
+                onSelectStage={setViewingStageId}
               />
 
               {displayedStage && (
@@ -207,10 +155,12 @@ export const MonthlyClosePage: React.FC<MonthlyClosePageProps> = ({
                   {/* A refused confirm must say why instead of doing nothing
                       (#233). Sits with the stage card, next to its actions. */}
                   <CloseStageBlockedNotice reason={blockedReason} />
-                  {stepRegistry[displayedStage.stageId]?.render({
-                    ...stageContext,
-                    onGoToStage: (stageId) => void handleExceptionGoToStage(stageId),
-                  })}
+                  {/* Every stage renders through the same evidence-only shell,
+                      so React would reuse the instance across stages; the key
+                      forces a remount when the walk moves. */}
+                  <React.Fragment key={displayedStage.stageId}>
+                    {stepRegistry[displayedStage.stageId].render(stageContext)}
+                  </React.Fragment>
                 </>
               )}
             </div>

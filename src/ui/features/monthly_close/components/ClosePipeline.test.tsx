@@ -5,7 +5,10 @@ import { CLOSE_STAGE_ORDER } from '@/ui/constants/monthlyClose';
 import type { CloseStageItemVM } from '../viewmodels/monthlyClose.vm';
 import { ClosePipeline } from './ClosePipeline';
 
-const stage = (stageId: string, overrides: Partial<CloseStageItemVM> = {}): CloseStageItemVM => ({
+const stage = (
+  stageId: CloseStageId,
+  overrides: Partial<CloseStageItemVM> = {},
+): CloseStageItemVM => ({
   stageId: stageId as CloseStageItemVM['stageId'],
   label: stageId,
   status: 'PENDING',

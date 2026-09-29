@@ -1,5 +1,5 @@
 import { type NextMonthDebtDueResult } from '@/application/debt/use_cases/getNextMonthDebtDueUseCase';
-import { type CloseStageId, type FinancialPeriod } from '@/domains/financial_period/schemas';
+import { type FinancialPeriod } from '@/domains/financial_period/schemas';
 import { type StatusGlyphType } from '@/ui/components/StatusGlyph';
 import {
   DASHBOARD_CLOSE_NO_RECORD,
@@ -49,7 +49,7 @@ export const mapPeriodToCloseStatusVM = (
     statusText: DASHBOARD_CLOSE_STATUS_TEXT_MAP[period.status],
     completedCount: isClosed ? CLOSE_STAGE_ORDER.length : completedCount,
     totalCount: CLOSE_STAGE_ORDER.length,
-    nextStageLabel: nextStageId ? CLOSE_STAGE_LABELS[nextStageId as CloseStageId] : null,
+    nextStageLabel: nextStageId ? CLOSE_STAGE_LABELS[nextStageId] : null,
   };
 };
 
