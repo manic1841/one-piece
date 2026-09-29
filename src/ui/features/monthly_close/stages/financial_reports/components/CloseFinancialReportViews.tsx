@@ -24,7 +24,7 @@ import {
   combineDrift,
   formatDriftDelta,
   isDrifted,
-} from '../viewmodels/reportDrift.vm';
+} from '../../../viewmodels/reportDrift.vm';
 
 export const statementTitleClass =
   'text-[13px] font-semibold uppercase tracking-[0.08em] text-foreground';

@@ -17,17 +17,17 @@ import type { CloseStageEvidence } from '@/ui/features/monthly_close/viewmodels/
 import { useAuthIdentity } from '@/ui/hooks/useAuthIdentity';
 
 import { CloseEvidenceOnlyStage } from '../components/CloseEvidenceOnlyStage';
-import { CloseFinancialReports } from '../components/CloseFinancialReports';
-import { CloseReadinessCheck } from '../components/CloseReadinessCheck';
-import { CloseSummaryPanel } from '../components/CloseSummaryPanel';
 import { type CloseStageControl } from '../hooks/closeStageControl';
 import { useCloseSummaryVM } from '../hooks/useCloseSummaryVM';
 import { useNoOpStageControl } from '../hooks/useConfirmStageControl';
 import { CloseAccountBalanceStage } from '../stages/account_balance/components/CloseAccountBalanceStage';
 import { useAccountBalanceStage } from '../stages/account_balance/hooks/useAccountBalanceStage';
+import { CloseSummaryPanel } from '../stages/close_period/components/CloseSummaryPanel';
 import { useClosePeriodStage } from '../stages/close_period/hooks/useClosePeriodStage';
+import { CloseReadinessCheck } from '../stages/completeness_check/components/CloseReadinessCheck';
 import { CloseDebtRepaymentStage } from '../stages/debt_repayment/components/CloseDebtRepaymentStage';
 import { useDebtRepaymentStage } from '../stages/debt_repayment/hooks/useDebtRepaymentStage';
+import { CloseFinancialReports } from '../stages/financial_reports/components/CloseFinancialReports';
 import { useFinancialReportsStage } from '../stages/financial_reports/hooks/useFinancialReportsStage';
 import { ClosePortfolioCashFlowStage } from '../stages/portfolio_cash_flow/components/ClosePortfolioCashFlowStage';
 import { usePortfolioCashFlowStage } from '../stages/portfolio_cash_flow/hooks/usePortfolioCashFlowStage';

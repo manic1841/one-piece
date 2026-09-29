@@ -24,8 +24,8 @@ import { Label } from '@/ui/components/ui/label';
 import { formatCurrency } from '@/ui/utils';
 import { cn } from '@/ui/utils/cn';
 
-import type { Account, AccountBalanceInput, Holding } from '../viewmodels/accountBalance.vm';
-import { computeSectionInput } from '../viewmodels/accountBalance.vm';
+import type { Account, AccountBalanceInput, Holding } from '../../../viewmodels/accountBalance.vm';
+import { computeSectionInput } from '../../../viewmodels/accountBalance.vm';
 
 /** 欄寬契約：總和必須等於 100（Symbol/Name/Cost/Value/Leverage 均分 + actions 7%）。 */
 const SECURITIES_COLUMN_WIDTHS = [18.6, 18.6, 18.6, 18.6, 18.6, 7] as const;

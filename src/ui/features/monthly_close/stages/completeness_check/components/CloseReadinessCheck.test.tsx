@@ -1,7 +1,7 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { type ReadinessVM } from '../mappers/closeSummary.mappers';
+import { type ReadinessVM } from '../../../mappers/closeSummary.mappers';
 import { CloseReadinessCheck } from './CloseReadinessCheck';
 
 const readinessVM: ReadinessVM = {

@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { DRIFT_STATUS } from '@/domains/report/reportDrift';
 
-import { CLOSE_ACTIVITY_STATUS, type CloseSummaryVM } from '../mappers/closeSummary.mappers';
+import { CLOSE_ACTIVITY_STATUS, type CloseSummaryVM } from '../../../mappers/closeSummary.mappers';
 import { CloseSummaryPanel } from './CloseSummaryPanel';
 
 const { confirmMock } = vi.hoisted(() => ({ confirmMock: vi.fn() }));

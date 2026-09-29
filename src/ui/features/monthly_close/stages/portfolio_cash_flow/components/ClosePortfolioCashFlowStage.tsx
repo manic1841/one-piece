@@ -3,10 +3,6 @@ import React from 'react';
 import { MONTHLY_CLOSE_LABELS } from '@/ui/constants/monthlyClose';
 import { CloseStageChrome } from '@/ui/features/monthly_close/components/CloseStageChrome';
 import { CloseStageEvidenceList } from '@/ui/features/monthly_close/components/CloseStageEvidenceList';
-import {
-  PortfolioCashFlowAccordion,
-  PortfolioCashFlowSection,
-} from '@/ui/features/monthly_close/components/PortfolioCashFlowSection';
 import { type CloseStageEvidence } from '@/ui/features/monthly_close/viewmodels/monthlyClose.vm';
 import type { PortfolioSnapshot } from '@/ui/features/monthly_close/viewmodels/portfolioCashFlow.vm';
 import {
@@ -15,6 +11,8 @@ import {
 } from '@/ui/features/monthly_close/viewmodels/portfolioCashFlow.vm';
 import { formatCurrency, formatPercentage } from '@/ui/utils';
 import { cn } from '@/ui/utils/cn';
+
+import { PortfolioCashFlowAccordion, PortfolioCashFlowSection } from './PortfolioCashFlowSection';
 
 interface ClosePortfolioCashFlowStageProps {
   stepText: string;

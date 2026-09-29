@@ -1,7 +1,6 @@
 import React from 'react';
 
 import { MONTHLY_CLOSE_LABELS } from '@/ui/constants/monthlyClose';
-import { CloseAccountBalanceInputs } from '@/ui/features/monthly_close/components/CloseAccountBalanceInputs';
 import { CloseStageChrome } from '@/ui/features/monthly_close/components/CloseStageChrome';
 import { CloseStageEvidenceList } from '@/ui/features/monthly_close/components/CloseStageEvidenceList';
 import {
@@ -10,6 +9,8 @@ import {
   type AccountSnapshot,
 } from '@/ui/features/monthly_close/viewmodels/accountBalance.vm';
 import { type CloseStageEvidence } from '@/ui/features/monthly_close/viewmodels/monthlyClose.vm';
+
+import { CloseAccountBalanceInputs } from './CloseAccountBalanceInputs';
 
 interface CloseAccountBalanceStageProps {
   stepText: string;

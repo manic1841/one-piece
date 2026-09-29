@@ -3,16 +3,14 @@ import React from 'react';
 import { MONTHLY_CLOSE_LABELS } from '@/ui/constants/monthlyClose';
 import { CloseStageChrome } from '@/ui/features/monthly_close/components/CloseStageChrome';
 import { CloseStageEvidenceList } from '@/ui/features/monthly_close/components/CloseStageEvidenceList';
-import { TradeTable } from '@/ui/features/monthly_close/components/TradeTable';
-import {
-  type TradeSide,
-  type TradeTableRow,
-} from '@/ui/features/monthly_close/components/TradeTable';
 import type {
   FinancingInput,
   SecuritiesTradeInput,
 } from '@/ui/features/monthly_close/viewmodels/monthlyClose.vm';
 import { type CloseStageEvidence } from '@/ui/features/monthly_close/viewmodels/monthlyClose.vm';
+
+import { TradeTable } from './TradeTable';
+import { type TradeSide, type TradeTableRow } from './TradeTable';
 
 interface CloseSecuritiesTradeStageProps {
   stepText: string;

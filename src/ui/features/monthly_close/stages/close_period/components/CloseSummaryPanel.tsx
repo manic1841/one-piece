@@ -11,7 +11,7 @@ import {
   CLOSE_ACTIVITY_STATUS,
   type CloseSummaryVM,
   type FinancialResultVM,
-} from '../mappers/closeSummary.mappers';
+} from '../../../mappers/closeSummary.mappers';
 
 interface CloseSummaryPanelProps {
   summary: CloseSummaryVM;

@@ -4,7 +4,7 @@ import { StatusGlyph } from '@/ui/components/StatusGlyph';
 import { Button } from '@/ui/components/ui/button';
 import { MONTHLY_CLOSE_LABELS } from '@/ui/constants/monthlyClose';
 
-import { type ReadinessExceptionVM, type ReadinessVM } from '../mappers/closeSummary.mappers';
+import { type ReadinessExceptionVM, type ReadinessVM } from '../../../mappers/closeSummary.mappers';
 
 interface CloseReadinessCheckProps {
   readiness: ReadinessVM;
