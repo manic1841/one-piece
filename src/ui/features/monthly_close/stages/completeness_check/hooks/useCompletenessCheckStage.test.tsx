@@ -96,4 +96,16 @@ describe('useCompletenessCheckStage', () => {
 
     expect(result.current.readiness?.isReady).toBe(false);
   });
+
+  it('surfaces the canned message instead of reporting a clean month on failure', async () => {
+    mockReadiness.mockRejectedValue(new Error('boom'));
+
+    const { result } = renderStage();
+
+    await waitFor(() =>
+      expect(result.current.errorMessage).toBe('無法載入結算就緒狀態，請稍後再試。'),
+    );
+    expect(result.current.readiness).toBeNull();
+    expect(result.current.anomalies).toEqual([]);
+  });
 });

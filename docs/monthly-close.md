@@ -60,7 +60,7 @@
 
 - **`useCloseStepRegistry` 是唯一列出全部九個步驟的檔案，也是唯一允許跨階段讀取的地方**：九個 step hooks 在 hook 內無條件呼叫（rules of hooks 不依賴條件分派），回傳 `Record<CloseStageId, CloseStepDefinition>`，TypeScript 強制每個階段都有條目。新增步驟 = 一個 step hook + 一個 registry 條目。
 - **`CloseStepDefinition` 條目 = control + content factory + evidence builder**：`control` 是該階段的 stage controller（`closeStageControl` 契約，頁面只對契約分派：`buildRequest` / `shouldBlock` / `confirmGate` / `afterConfirm` / `resetDraft` / `refresh` / `keepsViewOnConfirm`）；`render(ctx)` 是 content factory，從 registry 內的 stage hook 閉包直讀該階段資料（draft、prefill、drawer、summary VM），把頁面傳入的 chrome／navigation／entities context 映射到 step 元件的窄 props，資料未載入時回傳 `null`；`evidence()` 是零參數閉包，從擁有該資料的 stage hook 建構該階段證據。
-- **每個階段自載 evidence**：證據型階段也擁有自己的載入——`TRANSACTION_VALIDATION` stage hook 擁有 `validateMonthTransactionsUseCase`（單次呼叫同時供給自己的 issues 與 Step 7 的 checked count）、`COMPLETENESS_CHECK` stage hook 擁有 `checkSettlementCompletenessUseCase`（anomalies）與 `getSettlementReadinessUseCase`（readiness）。兩個 hook 都以 `control.refresh` opt-in 重載，page 不再持有任何 evidence 載入或 `refreshStageEvidence`。
+- **每個階段自載 evidence**：證據型階段也擁有自己的載入——`TRANSACTION_VALIDATION` stage hook 擁有 `validateMonthTransactionsUseCase`（單次呼叫同時供給自己的 issues 與 Step 7 的 checked count）、`COMPLETENESS_CHECK` stage hook 擁有 `checkSettlementCompletenessUseCase`（anomalies）與 `getSettlementReadinessUseCase`（readiness）。兩個 hook 都以 `control.refresh` opt-in 重載，page 不再持有任何 evidence 載入或 `refreshStageEvidence`。載入走 `useLoadingTask`：失敗時該階段顯示自己的罐頭錯誤訊息（`CloseStageLoadError`），不靜默留白——留白與「本月乾淨」在畫面上無法區分。
 - **registry 為唯一跨階段讀取點**：`CLOSE_PERIOD` 的 evidence 與 `COMPLETENESS_CHECK`／`CLOSE_PERIOD` 的 summary VM 都在 registry 內跨讀其他 stage hook（`useCloseSummaryVM` 在九個 stage hooks 之後呼叫）；報表持久化狀態（`reportsPersisted`）由 `FINANCIAL_REPORTS` stage 擁有，即時報表 preview bundle（`reportBundle`）與 persisted bundle 由 `CLOSE_PERIOD` stage 擁有，兩者都由 registry 跨讀——`CLOSE_PERIOD` 的 evidence 讀 `FINANCIAL_REPORTS` 的持久化旗標，`FINANCIAL_REPORTS` 的調整項 evidence 讀 `CLOSE_PERIOD` 的 preview bundle，`FINANCIAL_REPORTS` 的 Generate 守門與 drift 基準則分別跨讀 `COMPLETENESS_CHECK` 的 readiness 與 `CLOSE_PERIOD` 的 persisted bundle。preview 不受持久化 gating：`CLOSE_PERIOD` 一律載入當前分錄重算的即時預覽，關帳畫面永遠顯示即時數字，persisted 只當狀態旗標。step hook 之間不互相引用。
 - **preview 兩份、用途不同**：`CLOSE_PERIOD` 載入的 preview **不帶** `labelResolver`（Step 9 的財務數字與 Step 8 的調整項證據只讀數字）；`FINANCIAL_REPORTS` 載入的 preview **帶** household 自訂標籤（Step 8 表格的顯示標籤，且該 resolver 隨確認送進產生路徑凍結進 persisted）。兩份不是重複，是不同用途，不合併。
 - **消費邊界**：page hook（`useMonthlyClosePage`）讀 registry 做「確認提交路徑」與「月切換 resetDraft 迭代」；page 元件只渲染 `registry[displayedStageId].render(stageContext)`，不再認得任何 step 的內部，也不出現任何 stage ID 或 stage control 存取。`CloseStepContext` 只帶三類資料：**chrome**（step/progress/confirmed 文字、confirming、isConfirmable/isReadOnly/isReviewing）、**導覽指令**（onConfirm/onGoToStage/onContinue/onBack；render 只為 `displayedStage` 執行，因此每個 stage 的確認都走同一個 `onConfirm`）、**共享實體**（accounts/portfolios/projects）。workflow 只把 page VM 與共享實體傳入 registry；單階段資料（draft、prefill、drawer、evidence、報表持久化與 bundle）留在 step hook 內、由 registry 閉包直讀。證券買入／賣出的 add-edit drawer 是 step 自有內容，由 SECURITIES_TRADE 條目的 content factory 呼叫 `securitiesTradeStage.drawer.open` 一併渲染，不從 page 掛載。
@@ -117,8 +117,10 @@
 ### 專案結算的顯示與重新確認
 
 - **確認動作**：執行結算流程建立專案快照；確認前列出所有 active 專案與其 N/M 結
-  算狀態（`getSettlementReadinessUseCase`），確認後顯示各專案的快照結果（收入、支
-  出、期末餘額，來自專案快照）。
+  算狀態（`listProjectsUseCase` + `listProjectSnapshotsUseCase`：該月快照存在即已結
+  算），確認後顯示各專案的快照結果（收入、支出、期末餘額，來自專案快照）。專案
+  結算的 N/M 與 Step 7 就緒狀態是兩份不同的讀取——就緒聚合由
+  `COMPLETENESS_CHECK` stage hook 擁有。
 - **顯示內容**：本階段沒有輸入表單，證據區列出每個 active 專案一列：結算狀態
   （已結算顯示期末餘額、未結算顯示「尚未結算」警示）。沒有 active 專案時顯示「沒
   有專案」。

@@ -69,4 +69,16 @@ describe('useTransactionValidationStage', () => {
 
     expect(result.current.checkedCount).toBe(5);
   });
+
+  it('surfaces the canned message instead of reporting a clean batch on failure', async () => {
+    mockExecute.mockRejectedValue(new Error('boom'));
+
+    const { result } = renderStage();
+
+    await waitFor(() =>
+      expect(result.current.errorMessage).toBe('無法載入交易驗證結果，請稍後再試。'),
+    );
+    expect(result.current.checkedCount).toBe(0);
+    expect(result.current.transactionIssues).toEqual([]);
+  });
 });

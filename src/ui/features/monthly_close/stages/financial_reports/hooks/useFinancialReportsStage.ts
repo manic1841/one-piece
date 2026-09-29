@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { listAllLedgerCodesUseCase } from '@/application/ledger/use_cases/listAllLedgerCodesUseCase';
 import { getReportPersistenceStateUseCase } from '@/application/report/use_cases/getReportPersistenceStateUseCase';
@@ -25,6 +25,7 @@ import type {
   ReportViewsVM,
 } from '@/ui/features/monthly_close/viewmodels/financialReports.vm';
 import { useAuthIdentity } from '@/ui/hooks/useAuthIdentity';
+import { useLoadingTask } from '@/ui/hooks/useLoadingTask';
 import { logger } from '@/utils/logger';
 
 interface UseFinancialReportsStageArgs {
@@ -51,8 +52,9 @@ interface FinancialReportsData {
  * the live preview bundle built with those labels, and the month's report
  * persistence flag. Label loading precedes the preview so a custom code's label
  * is frozen into the statements rather than falling back to the static catalog.
- * A read failure returns null so the month-keyed state stays unset rather than
- * claiming there are no figures.
+ * A label or preview failure throws the canned message: the surface shows copy
+ * the consumer owns, and the month-keyed state stays unset rather than claiming
+ * there are no figures.
  */
 const fetchFinancialReportsData = async ({
   householdId,
@@ -62,7 +64,7 @@ const fetchFinancialReportsData = async ({
   householdId: string;
   selectedYearMonth: string;
   auth: AuthContext;
-}): Promise<FinancialReportsData | null> => {
+}): Promise<FinancialReportsData> => {
   const year = Number(selectedYearMonth.slice(0, 4));
   const month = Number(selectedYearMonth.slice(5, 7));
   try {
@@ -79,8 +81,8 @@ const fetchFinancialReportsData = async ({
 
     const [preview, persistence] = await Promise.all([
       previewFinancialReportsWorkflow.execute({ householdId, auth, year, month, labelResolver }),
-      // A persistence read failure degrades to "not persisted" rather than
-      // dropping the preview we did manage to load.
+      // A deliberate degradation: a persistence read failure reads as "not
+      // persisted" rather than dropping the preview we did manage to load.
       getReportPersistenceStateUseCase
         .execute({ householdId, yearMonth: selectedYearMonth })
         .catch((caught) => {
@@ -94,7 +96,7 @@ const fetchFinancialReportsData = async ({
     return { customLabels, preview, isPersisted: persistence?.isPersisted ?? false };
   } catch (caught) {
     logger.warn('Failed to load financial reports preview', 'useFinancialReportsStage', { caught });
-    return null;
+    throw new Error(PREVIEW_ERROR);
   }
 };
 
@@ -134,43 +136,36 @@ export const useFinancialReportsStage = ({
     preview: PreviewFinancialReportsResult;
     isPersisted: boolean;
   } | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const { loading: isLoading, errorMessage, run } = useLoadingTask();
+  // Paging months faster than the load completes supersedes the previous load;
+  // without this the slower, older month could land last and win.
+  const inFlightRef = useRef<AbortController | null>(null);
 
   const current = data?.yearMonth === selectedYearMonth ? data : null;
   const customLabels = useMemo(() => current?.customLabels ?? new Map<string, string>(), [current]);
   const preview = current?.preview ?? null;
   const reportsPersisted = current?.isPersisted ?? null;
 
+  const load = useCallback(async () => {
+    if (!householdId || !selectedYearMonth) return;
+    inFlightRef.current?.abort();
+    const controller = new AbortController();
+    inFlightRef.current = controller;
+
+    await run(() => fetchFinancialReportsData({ householdId, selectedYearMonth, auth }), {
+      signal: controller.signal,
+      // A failed run writes nothing; the surface shows the canned message from
+      // the mechanism's error channel instead.
+      writeBack: (result) => {
+        if (!result.ok) return;
+        setData({ yearMonth: selectedYearMonth, ...result.value });
+      },
+    });
+  }, [auth, householdId, run, selectedYearMonth]);
+
   useEffect(() => {
-    if (!householdId || !selectedYearMonth) return;
-    let cancelled = false;
-
-    const load = async () => {
-      setIsLoading(true);
-      setError(null);
-      const result = await fetchFinancialReportsData({ householdId, selectedYearMonth, auth });
-      if (cancelled) return;
-      if (!result) {
-        setError(PREVIEW_ERROR);
-      } else {
-        setData({ yearMonth: selectedYearMonth, ...result });
-      }
-      setIsLoading(false);
-    };
-
     void load();
-    return () => {
-      cancelled = true;
-    };
-  }, [auth, householdId, selectedYearMonth]);
-
-  const refresh = useCallback(async () => {
-    if (!householdId || !selectedYearMonth) return;
-    const result = await fetchFinancialReportsData({ householdId, selectedYearMonth, auth });
-    if (!result) return;
-    setData({ yearMonth: selectedYearMonth, ...result });
-  }, [auth, householdId, selectedYearMonth]);
+  }, [load]);
 
   const labelResolver = useMemo<ReportLabelResolver>(
     () => (code, fallback) =>
@@ -214,7 +209,7 @@ export const useFinancialReportsStage = ({
     stageId: 'FINANCIAL_REPORTS',
     confirmingStageId,
     buildRequest: () => ({ stageId: 'FINANCIAL_REPORTS', labelResolver }),
-    refresh,
+    refresh: load,
     // The report preview stays open so the user can read the generated
     // reports before confirming the next stage; every other stage resets.
     keepsViewOnConfirm: true,
@@ -227,6 +222,6 @@ export const useFinancialReportsStage = ({
     reports,
     timestamps,
     isLoading,
-    error,
+    error: errorMessage,
   };
 };

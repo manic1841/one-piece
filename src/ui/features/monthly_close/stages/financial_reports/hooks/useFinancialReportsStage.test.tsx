@@ -152,4 +152,14 @@ describe('useFinancialReportsStage', () => {
 
     expect(result.current.reports.incomeStatement).toBeNull();
   });
+
+  it('surfaces the canned message and settles loading when the preview load fails', async () => {
+    mockPreview.mockRejectedValue(new Error('boom'));
+
+    const { result } = renderStage();
+
+    await waitFor(() => expect(result.current.error).toBe('無法載入報表預覽，請稍後再試。'));
+    expect(result.current.isLoading).toBe(false);
+    expect(result.current.reports.incomeStatement).toBeNull();
+  });
 });

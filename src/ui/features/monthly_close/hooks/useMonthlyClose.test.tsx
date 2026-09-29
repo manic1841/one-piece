@@ -13,8 +13,15 @@ vi.mock('@/application/monthly_close/use_cases/monthlyCloseWorkflowUseCase', () 
     confirmStage: vi.fn(),
   },
 }));
+// Hoisted and stable on purpose: the real `useAuthIdentity` is memoized, and a
+// fresh identity object per render would change every stage hook's load
+// callback identity and re-run its effect forever.
+const { authIdentity } = vi.hoisted(() => ({
+  authIdentity: { uid: 'user-1', email: 'user@test.com', isGlobalAdmin: false },
+}));
+
 vi.mock('@/ui/hooks/useAuthIdentity', () => ({
-  useAuthIdentity: () => ({ uid: 'user-1', email: 'user@test.com', isGlobalAdmin: false }),
+  useAuthIdentity: () => authIdentity,
 }));
 
 const period = () => ({

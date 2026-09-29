@@ -68,7 +68,9 @@ export const useCloseSummaryVM = ({
   pageVM,
   reportsPersisted,
 }: UseCloseSummaryVMArgs) => {
-  const zeroActivityNames = anomalies.map((activity) => activity.name);
+  // Memoized so a re-render that did not change the anomalies does not
+  // invalidate the readiness projection that reads it.
+  const zeroActivityNames = useMemo(() => anomalies.map((activity) => activity.name), [anomalies]);
 
   const readinessVM = useMemo(() => {
     if (!readiness) return null;

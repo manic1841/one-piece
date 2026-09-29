@@ -16,6 +16,7 @@ import type { CloseStageEvidence } from '@/ui/features/monthly_close/viewmodels/
 import { useAuthIdentity } from '@/ui/hooks/useAuthIdentity';
 
 import { CloseEvidenceOnlyStage } from '../components/CloseEvidenceOnlyStage';
+import { CloseStageLoadError } from '../components/CloseStageLoadError';
 import { type CloseStageControl } from '../hooks/closeStageControl';
 import { useCloseSummaryVM } from '../hooks/useCloseSummaryVM';
 import { CloseAccountBalanceStage } from '../stages/account_balance/components/CloseAccountBalanceStage';
@@ -311,6 +312,7 @@ export const useCloseStepRegistry = ({
       render: (ctx) => (
         <CloseEvidenceOnlyStage
           {...chromeProps(ctx, transactionValidationEvidence)}
+          loadErrorMessage={transactionValidationStage.errorMessage}
           onConfirm={ctx.onConfirm}
           onBackToCurrent={ctx.onBack}
         />
@@ -323,13 +325,18 @@ export const useCloseStepRegistry = ({
         readinessVM ? (
           <CloseReadinessCheck
             readiness={readinessVM}
+            errorMessage={completenessCheckStage.errorMessage}
             onConfirm={ctx.onConfirm}
             onGoToStage={ctx.onGoToStage}
             confirming={ctx.confirming}
             isConfirmable={ctx.isConfirmable}
             isReadOnly={ctx.isReadOnly}
           />
-        ) : null,
+        ) : (
+          // Step 7 needs readiness to render at all, so a failed load would
+          // otherwise leave the stage blank and look like a clean month.
+          <CloseStageLoadError message={completenessCheckStage.errorMessage} />
+        ),
       evidence: completenessCheckEvidence,
     },
     FINANCIAL_REPORTS: {
