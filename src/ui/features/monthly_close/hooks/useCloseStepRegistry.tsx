@@ -213,6 +213,14 @@ export const useCloseStepRegistry = ({
   const isFinancialReportsCompleted =
     pageVM.stages.find((stage) => stage.stageId === 'FINANCIAL_REPORTS')?.isCompleted ?? false;
 
+  // Step 7's evidence is aggregated from two owning stage hooks. Either one
+  // failing its load makes the readiness unknown rather than clean: a failed
+  // same-month refresh keeps the previous values on screen (#226), so the error
+  // flag — not the data — decides whether Step 7 may confirm.
+  const step7Error =
+    completenessCheckStage.errorMessage ?? transactionValidationStage.errorMessage;
+  const isStep7Ready = step7Error === null;
+
   // Chrome props shared by every workspace-stage factory; each factory only
   // adds its own content props on top. chromeProps calls the evidence closure
   // itself, so render factories no longer receive evidence as a second argument.
@@ -331,17 +339,17 @@ export const useCloseStepRegistry = ({
         readinessVM ? (
           <CloseReadinessCheck
             readiness={readinessVM}
-            errorMessage={completenessCheckStage.errorMessage}
+            errorMessage={step7Error}
             onConfirm={ctx.onConfirm}
             onGoToStage={ctx.onGoToStage}
             confirming={ctx.confirming}
-            isConfirmable={ctx.isConfirmable}
+            isConfirmable={ctx.isConfirmable && isStep7Ready}
             isReadOnly={ctx.isReadOnly}
           />
         ) : (
           // Step 7 needs readiness to render at all, so a failed load would
           // otherwise leave the stage blank and look like a clean month.
-          <CloseStageLoadError message={completenessCheckStage.errorMessage} />
+          <CloseStageLoadError message={step7Error} />
         ),
       evidence: completenessCheckEvidence,
     },

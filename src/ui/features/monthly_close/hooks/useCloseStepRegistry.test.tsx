@@ -259,6 +259,41 @@ describe('useCloseStepRegistry', () => {
     expect(container).toBeEmptyDOMElement();
   });
 
+  // T3 (#227): Step 7 aggregates COMPLETENESS_CHECK's readiness with
+  // TRANSACTION_VALIDATION's checked count and issues. A TRANSACTION_VALIDATION
+  // failure alone used to render as "checked 0, no issues" — indistinguishable
+  // from a clean month — with confirm still enabled.
+  it('surfaces a TRANSACTION_VALIDATION load failure in Step 7 and blocks confirm', async () => {
+    vi.mocked(validateMonthTransactionsUseCase.execute).mockRejectedValue(new Error('boom'));
+
+    function Harness() {
+      const registry = useCloseStepRegistry(baseArgs);
+      return <>{registry.COMPLETENESS_CHECK.render(baseContext)}</>;
+    }
+
+    render(<Harness />);
+
+    await waitFor(() =>
+      expect(screen.getByRole('alert')).toHaveTextContent('無法載入交易驗證結果，請稍後再試。'),
+    );
+    expect(screen.getByTestId('readiness-confirm')).toBeDisabled();
+  });
+
+  it('surfaces a COMPLETENESS_CHECK load failure in Step 7 and blocks confirm', async () => {
+    vi.mocked(getSettlementReadinessUseCase.execute).mockRejectedValue(new Error('boom'));
+
+    function Harness() {
+      const registry = useCloseStepRegistry(baseArgs);
+      return <>{registry.COMPLETENESS_CHECK.render(baseContext)}</>;
+    }
+
+    render(<Harness />);
+
+    await waitFor(() =>
+      expect(screen.getByRole('alert')).toHaveTextContent('無法載入結算就緒狀態，請稍後再試。'),
+    );
+  });
+
   it('dispatches CLOSE_PERIOD to the summary panel via the content factory', () => {
     const { result } = renderRegistry();
 
