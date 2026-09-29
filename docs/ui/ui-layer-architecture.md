@@ -30,6 +30,8 @@ ui
 └─ assets/             # Static UI assets
 ```
 
+**Stage 專屬檔案歸 `stages/<step>/`，`components/` 只放跨 stage 共用。** 一個 feature 的關帳步驟自有 hook 與元件放在 `features/<feature>/stages/<step>/{hooks,components}/`；只有被多個 step（或 page 層）共用的元件才留在 `components/`。`stages/<step>/` 內的 `hooks`／`components` 仍分別計入 Controller／Surface tier（見 §2），`<step>` 資料夾本身不是 tier。
+
 ---
 
 ## 2. UI Tiers and Dependency Rules
