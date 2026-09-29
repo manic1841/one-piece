@@ -231,7 +231,7 @@ const diffGroups = (
       label: group.label,
       total: previous
         ? diffAmount(group.total, previous.total)
-        : { amount: group.total, previousAmount: 0, status: DRIFT_STATUS.ADDED },
+        : { amount: group.total, previousAmount: null, status: DRIFT_STATUS.ADDED },
       items: diffItems(group.items, previous?.items ?? []),
     };
   }
@@ -321,7 +321,7 @@ const diffCashFlowGroup = (
   label: preview.label,
   total: persisted
     ? diffAmount(preview.total, persisted.total)
-    : { amount: preview.total, previousAmount: 0, status: DRIFT_STATUS.ADDED },
+    : { amount: preview.total, previousAmount: null, status: DRIFT_STATUS.ADDED },
   inflowItems: diffItems(preview.inflowItems, persisted?.inflowItems ?? []),
   outflowItems: diffItems(preview.outflowItems, persisted?.outflowItems ?? []),
 });

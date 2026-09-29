@@ -5,12 +5,13 @@ import {
   type DriftItem,
   annotateIncomeStatement,
   diffAmount,
+  diffBalanceSheet,
   diffCashFlow,
   diffIncomeStatement,
   diffItems,
   diffReportTotals,
 } from './reportDrift';
-import { type CashFlowData, type IncomeStatementData } from './schemas';
+import { type BalanceSheetData, type CashFlowData, type IncomeStatementData } from './schemas';
 
 const item = (code: string, amount: number, subItems?: { code: string; amount: number }[]) => ({
   code,
@@ -152,6 +153,39 @@ describe('diffItems', () => {
       status: DRIFT_STATUS.REMOVED,
     });
     expect(byCode(row.subItems!, 'expense:food:b').status).toBe(DRIFT_STATUS.REMOVED);
+  });
+});
+
+describe('diffBalanceSheet', () => {
+  const group = (label: string, total: number) => ({ label, total, items: [] });
+  const build = (groups: Record<string, ReturnType<typeof group>>): BalanceSheetData => ({
+    yearMonth: '2026-03',
+    assets: { total: 0, groups },
+    liabilities: { total: 0, groups: {} },
+    equity: { total: 0, groups: {} },
+  });
+
+  // #237: a group the persisted report never had is new, so its total carries no
+  // persisted value — `previousAmount: null`, exactly like a row-level ADDED.
+  // It used to be `0`, one shape system with two conventions for one status.
+  it('marks a preview-only group total added with no persisted value', () => {
+    const drift = diffBalanceSheet(build({ cash: group('現金', 100) }), build({}));
+
+    expect(drift.assets.groups.cash.total).toEqual({
+      amount: 100,
+      previousAmount: null,
+      status: DRIFT_STATUS.ADDED,
+    });
+  });
+
+  it('marks a persisted-only group total removed with its persisted value', () => {
+    const drift = diffBalanceSheet(build({}), build({ cash: group('現金', 70) }));
+
+    expect(drift.assets.groups.cash.total).toEqual({
+      amount: 0,
+      previousAmount: 70,
+      status: DRIFT_STATUS.REMOVED,
+    });
   });
 });
 

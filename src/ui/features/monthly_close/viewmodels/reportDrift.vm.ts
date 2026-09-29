@@ -49,6 +49,16 @@ export const formatDriftDelta = (drift: DriftAmount): string | null => {
 };
 
 /**
+ * The persisted value behind a figure. `previousAmount: null` is ambiguous on
+ * its own — it means "equal to `amount`" for UNCHANGED, and "no persisted value"
+ * for ADDED — so the status decides. Reading it as `previousAmount ?? amount`
+ * (the old combine rule) made an ADDED operand count itself as its own previous
+ * value, so a merged parent reported a persisted total it never had (#237).
+ */
+const persistedValueOf = (part: DriftAmount): number =>
+  part.status === DRIFT_STATUS.ADDED ? 0 : (part.previousAmount ?? part.amount);
+
+/**
  * Combine drift-annotated figures into their sum, for parent rows the report
  * does not persist (cash-flow inflow/outflow buckets, the balance sheet's
  * closing `負債 + 權益`). Drifted when any operand drifted, so a combined value
@@ -56,7 +66,7 @@ export const formatDriftDelta = (drift: DriftAmount): string | null => {
  */
 export const combineDrift = (parts: readonly DriftAmount[]): DriftAmount => {
   const amount = parts.reduce((sum, part) => sum + part.amount, 0);
-  const previousAmount = parts.reduce((sum, part) => sum + (part.previousAmount ?? part.amount), 0);
+  const previousAmount = parts.reduce((sum, part) => sum + persistedValueOf(part), 0);
   if (parts.every((part) => part.status === DRIFT_STATUS.UNCHANGED)) {
     return { amount, previousAmount: null, status: DRIFT_STATUS.UNCHANGED };
   }

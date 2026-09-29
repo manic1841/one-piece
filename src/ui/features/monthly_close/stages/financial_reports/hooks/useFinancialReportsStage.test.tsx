@@ -214,4 +214,26 @@ describe('useFinancialReportsStage', () => {
     expect(result.current.reportsPersisted).toBe(true);
     expect(result.current.reports.incomeStatement).not.toBeNull();
   });
+
+  // T13 (#237): a reset (go-to-stage-with-reset, or a cascade-demote) deletes
+  // the persisted reports while the period is still open. The refresh that
+  // follows must drop the flag and the timestamps, or Step 8 would keep offering
+  // the "already generated" state for files that no longer exist.
+  it('drops the persisted flag and timestamps when the reports stop being persisted', async () => {
+    mockPreview.mockResolvedValue(buildPreview(50000));
+    mockPersistence.mockResolvedValue({
+      isPersisted: true,
+      timestamps: { incomeStatement: '10:00' },
+    });
+
+    const { result } = renderStage();
+    await waitFor(() => expect(result.current.reportsPersisted).toBe(true));
+    expect(result.current.timestamps).toEqual({ incomeStatement: '10:00' });
+
+    mockPersistence.mockResolvedValue({ isPersisted: false, timestamps: {} });
+    await act(() => result.current.refresh?.());
+
+    await waitFor(() => expect(result.current.reportsPersisted).toBe(false));
+    expect(result.current.timestamps).toEqual({});
+  });
 });

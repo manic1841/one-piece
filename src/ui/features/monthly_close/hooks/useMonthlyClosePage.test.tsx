@@ -6,8 +6,9 @@ import { type CloseStageId, initialStageStates } from '@/domains/financial_perio
 
 import { useMonthlyClosePage } from './useMonthlyClosePage';
 
-const { authIdentity } = vi.hoisted(() => ({
+const { authIdentity, refreshSpy } = vi.hoisted(() => ({
   authIdentity: { uid: 'user-1', email: 'user@test.com', isGlobalAdmin: false },
+  refreshSpy: vi.fn().mockResolvedValue(undefined),
 }));
 
 vi.mock('@/ui/hooks/useAuthIdentity', () => ({
@@ -64,6 +65,7 @@ vi.mock('./useCloseStepRegistry', () => {
           : null,
       afterConfirm: vi.fn(),
       resetDraft: vi.fn(),
+      refresh: refreshSpy,
     },
     render: () => null,
     evidence: () => ({ kind: 'NONE' as const }),
@@ -162,5 +164,35 @@ describe('useMonthlyClosePage (blocked confirm)', () => {
     });
 
     expect(result.current.blockedReason).toBeNull();
+  });
+
+  // #237: `refreshAll` is the page's one refresh entry — every stage that opted
+  // in, and no call site has to know which stage owns which loaded data.
+  it('refreshes every stage after a reset-navigation', async () => {
+    const result = await renderPage();
+    refreshSpy.mockClear();
+
+    await act(async () => {
+      await result.current.handleGoToStageWithReset('ACCOUNT_BALANCE');
+    });
+
+    expect(monthlyCloseWorkflowUseCase.resetStagesFrom).toHaveBeenCalled();
+    expect(refreshSpy).toHaveBeenCalledTimes(9);
+  });
+
+  it('refreshes every stage after a successful confirm', async () => {
+    vi.mocked(monthlyCloseWorkflowUseCase.confirmStage).mockResolvedValue(
+      periodAwaitingProjectSettlement() as never,
+    );
+    const result = await renderPage();
+    refreshSpy.mockClear();
+
+    await act(async () => {
+      // A stage that does not block: the refresh path sits behind the gate.
+      await result.current.handleConfirmStage('ACCOUNT_BALANCE');
+    });
+
+    expect(monthlyCloseWorkflowUseCase.confirmStage).toHaveBeenCalled();
+    expect(refreshSpy).toHaveBeenCalledTimes(9);
   });
 });

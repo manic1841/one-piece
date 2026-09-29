@@ -8,9 +8,17 @@ import { MonthlyClosePage } from './MonthlyClosePage';
 // Hoisted and stable on purpose: the real `useAuthIdentity` is memoized, and a
 // fresh identity object per render would change every stage hook's load
 // callback identity and re-run its effect forever.
-const { authIdentity } = vi.hoisted(() => ({
+const { authIdentity, confirmMock } = vi.hoisted(() => ({
   authIdentity: { uid: 'user-1', email: 'user@test.com', isGlobalAdmin: false },
+  confirmMock: vi.fn(),
 }));
+
+beforeEach(() => {
+  // Default: the user declines every prompt. Tests that need acceptance
+  // override it per case.
+  confirmMock.mockReset();
+  confirmMock.mockResolvedValue(false);
+});
 
 vi.mock('@/ui/hooks/useAuthIdentity', () => ({
   useAuthIdentity: () => authIdentity,
@@ -141,7 +149,7 @@ vi.mock('@/application/report/use_cases/previewFinancialReportsWorkflow', () => 
   },
 }));
 vi.mock('@/ui/features/app/confirm/useConfirm', () => ({
-  useConfirm: () => ({ confirm: vi.fn().mockResolvedValue(false) }),
+  useConfirm: () => ({ confirm: confirmMock }),
 }));
 
 function closedPeriod(): FinancialPeriod {
@@ -280,6 +288,42 @@ describe('MonthlyClosePage (confirm side effects)', () => {
     await waitFor(() => expect(workflow.confirmStage).toHaveBeenCalled());
 
     await waitFor(async () => expect(await completenessCalls()).toBeGreaterThan(callsBefore));
+  });
+
+  // T13 (#237): start and reopen also land on a new period, so both must go
+  // through the same page-level `refreshAll` as a confirm does — otherwise the
+  // stages keep rendering the period that was open before.
+  it('refreshes stage data after start', async () => {
+    const workflow = (
+      await import('@/application/monthly_close/use_cases/monthlyCloseWorkflowUseCase')
+    ).monthlyCloseWorkflowUseCase;
+    vi.mocked(workflow.start).mockResolvedValueOnce(inProgressPeriod());
+
+    render(<MonthlyClosePage householdId="household-1" userEmail="user@test.com" />);
+    const before = await completenessCalls();
+
+    fireEvent.click(screen.getByRole('button', { name: '開始關帳' }));
+
+    await waitFor(async () => expect(await completenessCalls()).toBeGreaterThan(before));
+  });
+
+  it('refreshes stage data again after a confirmed reopen', async () => {
+    const workflow = (
+      await import('@/application/monthly_close/use_cases/monthlyCloseWorkflowUseCase')
+    ).monthlyCloseWorkflowUseCase;
+    // A CLOSED period offers the reopen prompt; accepting it must refresh too.
+    confirmMock.mockResolvedValue(true);
+    vi.mocked(workflow.start).mockResolvedValueOnce(closedPeriod());
+    vi.mocked(workflow.reopen).mockResolvedValueOnce(inProgressPeriod());
+
+    render(<MonthlyClosePage householdId="household-1" userEmail="user@test.com" />);
+    const before = await completenessCalls();
+    fireEvent.click(screen.getByRole('button', { name: '開始關帳' }));
+
+    await waitFor(() => expect(workflow.reopen).toHaveBeenCalled());
+    // Start refreshes once; the accepted reopen must refresh a second time, so
+    // the delta has to be more than the single round start already produced.
+    await waitFor(async () => expect(await completenessCalls()).toBeGreaterThan(before + 1));
   });
 });
 
