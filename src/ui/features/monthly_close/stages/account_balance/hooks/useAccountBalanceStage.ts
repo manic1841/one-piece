@@ -96,10 +96,14 @@ const fetchAccountSnapshots = async ({
 /**
  * Stage controller for ACCOUNT_BALANCE: owns the ending-balance draft and the
  * snapshot prefill that seeds it (absorbed from useSnapshotBalancePrefill).
- * Exposes the previous snapshots for display; prefill only fills accounts the
- * user has not typed into and never overwrites in-progress input. A load
- * failure surfaces the canned message without blocking confirm: prefill is a
- * convenience, so a draft the user typed by hand still submits.
+ * Exposes the previous snapshots for display. The draft seeds exactly once per
+ * month: seeding is keyed on `yearMonth`, not on "the draft is empty", so a
+ * user who deletes every row keeps their deletions through the next refresh,
+ * and switching month seeds the new month normally (#232). Local drafts and the
+ * seed are never persisted, so a page reload re-runs the prefill — intended
+ * (CONTEXT.md, Prefill). A load failure surfaces the canned message without
+ * blocking confirm: prefill is a convenience, so a draft the user typed by hand
+ * still submits.
  */
 export const useAccountBalanceStage = ({
   householdId,
@@ -115,6 +119,7 @@ export const useAccountBalanceStage = ({
 } => {
   const [balances, setBalances] = useState<AccountBalanceInput[]>([]);
   const [accountSnapshots, setAccountSnapshots] = useState<Map<string, AccountSnapshot>>(new Map());
+  const seededMonthRef = useRef<string | null>(null);
   const { errorMessage, run } = useLoadingTask();
   // A slow load for a month the user already left must not land last and win.
   const inFlightRef = useRef<AbortController | null>(null);
@@ -130,10 +135,9 @@ export const useAccountBalanceStage = ({
       writeBack: (result) => {
         if (!result.ok) return;
         setAccountSnapshots(result.value.previousSnapshots);
-        setBalances((current) => {
-          if (current.length > 0) return current;
-          return result.value.prefill;
-        });
+        if (seededMonthRef.current === selectedYearMonth) return;
+        setBalances(result.value.prefill);
+        seededMonthRef.current = selectedYearMonth;
       },
     });
   }, [accounts, auth, householdId, run, selectedYearMonth]);
