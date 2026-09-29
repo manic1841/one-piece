@@ -126,15 +126,51 @@ describe('CloseFinancialReports', () => {
     mockExecute.mockResolvedValue(buildPreview() as never);
   });
 
-  it('renders the income statement tab with the parent roll-up row and nested subItems', async () => {
+  it('renders the income statement section header, roll-up row, nested subItems and total rows', async () => {
     renderReports();
 
-    await waitFor(() => expect(screen.getByTestId('close-income-statement')).toBeInTheDocument());
-    expect(screen.getByTestId('close-income-statement')).toHaveTextContent('薪資');
-    expect(screen.getByTestId('close-income-statement')).toHaveTextContent('薪資 › Charles');
+    const statement = await screen.findByTestId('close-income-statement');
+    await waitFor(() => expect(statement).toHaveTextContent('薪資'));
+    expect(statement).toHaveTextContent('收入');
+    expect(statement).toHaveTextContent('薪資 › Charles');
+    expect(statement).toHaveTextContent('收入合計');
+    expect(statement).toHaveTextContent('支出合計');
+    expect(statement).toHaveTextContent('本期淨利');
     const balancePanel = screen.getByTestId('close-balance-sheet').closest('[role="tabpanel"]');
     expect(balancePanel).toHaveAttribute('data-state', 'inactive');
     expect(screen.getByTestId('close-balance-sheet')).toHaveTextContent('主力帳戶');
+  });
+
+  it('collapses and expands a statement row from the left chevron', async () => {
+    renderReports();
+
+    await waitFor(() =>
+      expect(screen.getByTestId('close-income-statement')).toHaveTextContent('薪資 › Charles'),
+    );
+    const toggle = screen.getByRole('button', { name: '薪資' });
+    expect(toggle).toHaveAttribute('aria-expanded', 'true');
+
+    fireEvent.click(toggle);
+    expect(screen.getByTestId('close-income-statement')).not.toHaveTextContent('薪資 › Charles');
+    expect(toggle).toHaveAttribute('aria-expanded', 'false');
+
+    fireEvent.click(toggle);
+    expect(screen.getByTestId('close-income-statement')).toHaveTextContent('薪資 › Charles');
+  });
+
+  it('resets collapsed groups when switching statement tabs', async () => {
+    renderReports();
+
+    await waitFor(() =>
+      expect(screen.getByTestId('close-income-statement')).toHaveTextContent('薪資 › Charles'),
+    );
+    fireEvent.click(screen.getByRole('button', { name: '薪資' }));
+    expect(screen.getByTestId('close-income-statement')).not.toHaveTextContent('薪資 › Charles');
+
+    fireEvent.mouseDown(screen.getByRole('tab', { name: '資產負債表' }));
+    fireEvent.mouseDown(screen.getByRole('tab', { name: '損益表' }));
+
+    expect(screen.getByTestId('close-income-statement')).toHaveTextContent('薪資 › Charles');
   });
 
   it('switches statement tabs on desktop', async () => {
@@ -147,15 +183,35 @@ describe('CloseFinancialReports', () => {
     expect(screen.getByTestId('close-cash-flow')).toBeInTheDocument();
   });
 
-  it('marks calculated equity groups and hides zero-total groups', async () => {
+  it('renders the balance sheet sections, group totals and the closing liabilities + equity row', async () => {
     renderReports();
 
     await waitFor(() => expect(screen.getByTestId('close-income-statement')).toBeInTheDocument());
     fireEvent.mouseDown(screen.getByRole('tab', { name: '資產負債表' }));
 
-    expect(screen.getAllByText('本期淨利').length).toBeGreaterThanOrEqual(1);
-    expect(screen.getAllByText('Calculated').length).toBeGreaterThanOrEqual(1);
-    expect(screen.queryByText('貸款')).not.toBeInTheDocument();
+    const sheet = screen.getByTestId('close-balance-sheet');
+    expect(sheet).toHaveTextContent('資產');
+    expect(sheet).toHaveTextContent('現金與銀行');
+    expect(sheet).toHaveTextContent('資產合計');
+    expect(sheet).toHaveTextContent('負債 + 權益');
+    // Zero-total, empty groups and the removed Calculated tag do not render.
+    expect(sheet).not.toHaveTextContent('貸款');
+    expect(sheet).not.toHaveTextContent('Calculated');
+  });
+
+  it('renders the cash flow hierarchy with inflow/outflow buckets and the unchanged footer', async () => {
+    renderReports();
+
+    await waitFor(() => expect(screen.getByTestId('close-income-statement')).toBeInTheDocument());
+    fireEvent.mouseDown(screen.getByRole('tab', { name: '現金流量表' }));
+
+    const statement = screen.getByTestId('close-cash-flow');
+    expect(statement).toHaveTextContent('營業活動');
+    expect(statement).toHaveTextContent('流入');
+    expect(statement).toHaveTextContent('流出');
+    expect(statement).toHaveTextContent('營業活動合計');
+    expect(statement).toHaveTextContent('現金淨變動');
+    expect(statement).toHaveTextContent('實際餘額');
   });
 
   it('shows the reports generated panel with timestamps when persisted', async () => {

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback, useState } from 'react';
 
 import { AlertTriangle } from 'lucide-react';
 
@@ -54,6 +54,25 @@ export const CloseFinancialReports: React.FC<CloseFinancialReportsProps> = ({
     isLoading,
     error,
   } = useCloseFinancialReports({ householdId, year, month, isClosed: isReadOnly });
+
+  // Table collapse is presentation state, scoped to the displayed statement:
+  // switching tabs resets every group back to expanded (default).
+  const [collapsedKeys, setCollapsedKeys] = useState<ReadonlySet<string>>(() => new Set());
+  const toggleCollapsed = useCallback((key: string) => {
+    setCollapsedKeys((previous) => {
+      const next = new Set(previous);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }, []);
+  const handleViewChange = useCallback(
+    (value: string) => {
+      setView(value as typeof view);
+      setCollapsedKeys(new Set());
+    },
+    [setView],
+  );
 
   const showReadinessGate = missingCategoryNames.length > 0;
   const showAdjustmentWarning = Math.abs(cashFlow?.adjustment.amount ?? 0) > 1000;
@@ -137,11 +156,7 @@ export const CloseFinancialReports: React.FC<CloseFinancialReportsProps> = ({
       )}
 
       {hasAnyData && (
-        <Tabs
-          value={view}
-          onValueChange={(value) => setView(value as typeof view)}
-          className="space-y-4"
-        >
+        <Tabs value={view} onValueChange={handleViewChange} className="space-y-4">
           <TabsList className="hidden md:inline-flex">
             {(Object.keys(REPORT_VIEW_TITLES) as Array<keyof typeof REPORT_VIEW_TITLES>).map(
               (viewId) => (
@@ -159,7 +174,11 @@ export const CloseFinancialReports: React.FC<CloseFinancialReportsProps> = ({
             <div className="md:hidden">
               <p className={statementTitleClass}>{REPORT_VIEW_TITLES.INCOME_STATEMENT}</p>
             </div>
-            <IncomeStatementView data={incomeStatement} />
+            <IncomeStatementView
+              data={incomeStatement}
+              collapsed={collapsedKeys}
+              onToggle={toggleCollapsed}
+            />
           </TabsContent>
           <TabsContent
             forceMount
@@ -169,7 +188,11 @@ export const CloseFinancialReports: React.FC<CloseFinancialReportsProps> = ({
             <div className="md:hidden">
               <p className={statementTitleClass}>{REPORT_VIEW_TITLES.BALANCE_SHEET}</p>
             </div>
-            <BalanceSheetView data={balanceSheet} />
+            <BalanceSheetView
+              data={balanceSheet}
+              collapsed={collapsedKeys}
+              onToggle={toggleCollapsed}
+            />
           </TabsContent>
           <TabsContent
             forceMount
@@ -179,7 +202,7 @@ export const CloseFinancialReports: React.FC<CloseFinancialReportsProps> = ({
             <div className="md:hidden">
               <p className={statementTitleClass}>{REPORT_VIEW_TITLES.CASH_FLOW}</p>
             </div>
-            <CashFlowView data={cashFlow} />
+            <CashFlowView data={cashFlow} collapsed={collapsedKeys} onToggle={toggleCollapsed} />
           </TabsContent>
         </Tabs>
       )}

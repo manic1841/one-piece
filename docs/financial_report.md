@@ -90,6 +90,11 @@ One-Piece 結合了「管理會計 (Projects)」與「財務會計 (Accounts)」
 - 系統會比對「現金流量表算出的期末現金」與「資產負債表的現金類帳戶總額」。
 - 若兩者不符，表示有交易未正確標記科目或快照數據不一致。
 
+### 計算重點
+
+- 現金流明細科目採與損益表相同的 roll-up：父科目 `type:category` 成列並加總，明細科目巢狀為其 `subItems`，標籤組成「父標籤 › 明細標籤」。
+- `CashFlowItemSchema` 與損益表 `IncomeStatementItemSchema` 一樣帶可選的 `subItems`，persisted 現金流明細層與 preview 一致、讀寫往返不丟失（詳見 [ADR-0069](adr/0069-report-layer-rollup-label-resolution.md)）。
+
 ---
 
 ## 4. Dashboard 指標錨定

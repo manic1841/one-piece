@@ -46,6 +46,31 @@ const cashFlowData = CashFlowDataSchema.parse({
   adjustment: 0,
 });
 
+describe('CashFlowDataSchema — subItems', () => {
+  it('preserves nested cash flow subItems through parse', () => {
+    const parsed = CashFlowDataSchema.parse({
+      ...cashFlowData,
+      operating: {
+        label: 'Operating',
+        total: 500,
+        inflowItems: [
+          {
+            code: 'income:salary',
+            label: 'Salary',
+            amount: 500,
+            subItems: [{ code: 'income:salary:charles', label: 'Salary › Charles', amount: 500 }],
+          },
+        ],
+        outflowItems: [],
+      },
+    });
+
+    expect(parsed.operating.inflowItems[0].subItems).toEqual([
+      { code: 'income:salary:charles', label: 'Salary › Charles', amount: 500 },
+    ]);
+  });
+});
+
 describe('FinancialReportSchema — discriminated union', () => {
   it('parses income statement report', () => {
     const result = FinancialReportSchema.parse({

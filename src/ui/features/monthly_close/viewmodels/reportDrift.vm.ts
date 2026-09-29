@@ -47,3 +47,18 @@ export const formatDriftDelta = (drift: DriftAmount): string | null => {
       return `${formatCurrency(drift.previousAmount)} -> ${formatCurrency(drift.amount)}`;
   }
 };
+
+/**
+ * Combine drift-annotated figures into their sum, for parent rows the report
+ * does not persist (cash-flow inflow/outflow buckets, the balance sheet's
+ * closing `負債 + 權益`). Drifted when any operand drifted, so a combined value
+ * that happens to match never masks a child's drift.
+ */
+export const combineDrift = (parts: readonly DriftAmount[]): DriftAmount => {
+  const amount = parts.reduce((sum, part) => sum + part.amount, 0);
+  const previousAmount = parts.reduce((sum, part) => sum + (part.previousAmount ?? part.amount), 0);
+  if (parts.every((part) => part.status === DRIFT_STATUS.UNCHANGED)) {
+    return { amount, previousAmount: null, status: DRIFT_STATUS.UNCHANGED };
+  }
+  return { amount, previousAmount, status: DRIFT_STATUS.CHANGED };
+};

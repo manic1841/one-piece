@@ -50,7 +50,7 @@
 - **專案結算是無輸入、僅證據的工作區階段**：證據區列出每個 active 專案的結算狀態；確認動作 = 執行結算流程建立專案快照。
 - **Completeness Check 是報表產生前的就緒檢查（Step 7）**：呈現六類檢查（帳戶餘額、交易驗證、證券買入／賣出、Portfolio 金流、專案結算、債務還款）的完成度與例外清單；就緒與否由確認按鈕的 disabled 狀態硬性表達，例外項目附「GO TO ○○ →」深連結導回對應階段修正。零活動警示列為例外但不阻擋——暫停機制（NEEDS REVIEW）才是它的處理路徑。
 - **暫停期間的 GO TO 是重設語意（ADR-0070）**：`NEEDS_REVIEW` 期間點擊 GO TO 深連結會先跳出確認對話框（該步驟之後重新進入待確認、報表需重新產生），確認後該階段（含）之後全部重設為 `PENDING`，前期完成階段保留，狀態維持 `NEEDS_REVIEW`。
-- **Financial Reports 預覽後產生（Step 8）**：預覽報表 → 確認 → 產生；缺報表的類別保留 Generate 按鈕 disabled 作為第二道防線。
+- **Financial Reports 預覽後產生（Step 8）**：預覽報表 → 確認 → 產生；缺報表的類別保留 Generate 按鈕 disabled 作為第二道防線。三張表以**群組列當表頭**（損益表：收入／支出；資產負債表：資產／負債／權益；現金流量表：營業活動／投資活動／融資活動），不再有欄名標題列；資料縮排成「群組 → 第二層 → 明細」，可摺疊、預設展開、chevron 在標籤左側、金額一律靠表格最右。每個群組有自己的合計列（粗體＋加粗橫線），整表最後一列為總結（損益表＝本期淨利、現金流量表＝現金淨變動、資產負債表＝負債 + 權益）；`Calculated` 標籤移除，現金流 footer 維持現況。摺疊狀態跨分頁切換不保留（切回一律重置為展開）。排版細節見 [`ui/visual-standards.md`](ui/visual-standards.md)。
 - **Close Period 總結後正式關帳（Step 9）**：呈現整個 Monthly Close 的關帳活動列、財務結果（完整數字，取自 CLOSE_PERIOD stage 自載的即時 preview bundle）與報表清單；關帳需經一個確認對話框，說明重開的後果（其後已關帳期間轉為 NEEDS REVIEW、恢復須逐期手動）。關帳後總結固定為唯讀的定案紀錄。
 - **`CLOSED` 期間的瀏覽規則（spec [#207](https://github.com/manic1841/one-piece/issues/207)）**：已關帳期間沒有行走位置，`displayedStageId` 預設為 `CLOSE_PERIOD`（渲染 Step 9 唯讀總結），使用者可從 pipeline 點擊任一階段回看其定案內容。唯讀語意：輸入欄位 disabled（含證券持倉與匯率）、chrome 的確認 bar、readiness/close 的確認鈕、新增／刪除動作鈕全部**隱藏**（非 disabled），add-edit drawer 因此不可達。回看進度（pipeline 的 position text）跟隨使用者檢視的階段，而非固定在行走位置。
 - 階段順序依賴在非暫停期間**僅為 UI 引導**，系統不強制；`NEEDS_REVIEW` 期間確認順序由行走規則強制（見 §2）。唯一的硬性條件是 **Close Period 需要 Financial Reports 階段已確認且三張報表已產生**。
