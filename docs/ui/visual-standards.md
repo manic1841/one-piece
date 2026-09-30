@@ -2,19 +2,21 @@
 
 > **邊界宣告**：本文件管**頁面層級的佈局與互動標準**——Page Shell、頁寬、間距用途、空／載入／錯誤狀態、進階設定、工作流版面、Dashboard 版面、報表版面、行動版佈局、搜尋與指令、資料密度、互動一致性、破壞性動作、通知、響應式、反模式與最終 review checklist。**設計 token 與元件表面**（色彩、材質、動態、字體排印、元件尺寸與狀態契約、spacing 級距）屬 [`design-system.md`](design-system.md)；分層、導航／Header 契約、List / Detail / Workflow 動作位置與 RWD 斷點契約屬 [`ui-layer-architecture.md`](ui-layer-architecture.md)。三份文件權威不重疊。
 
-本文件是頁面層級視覺契約的唯一真相來源。已由其他文件承載的契約（Dashboard 資料錨定、關帳階段模型等）一律以指標引用、不在本文件重述；規則差異时以該事實的歸屬文件為準。
+本文件是頁面層級視覺契約的唯一真相來源。已由其他文件承載的契約（Dashboard 資料錨定、關帳階段模型等）一律以指標引用、不在本文件重述；規則差異時以該事實的歸屬文件為準。
 
 ---
 
 ## 核心設計原則
 
-全站所有頁面遵循：
+全站所有頁面遵循以下**優先序**；當兩條原則衝突、或規則未涵蓋當前情況時，序號**小**的優先：
 
-> **Data > Decoration**
-> **Structure > Cards**
-> **Space creates hierarchy**
-> **Color communicates state**
-> **Motion has a purpose**
+1. **Data > Decoration**
+2. **Structure > Cards**
+3. **Space creates hierarchy**
+4. **Color communicates state**
+5. **Motion has a purpose**
+
+Tie-break：若一個做法同時符合與違反多條原則，以序號較小的原則勝出；仍不明確時，選**裝飾較少、新元素較少**的那一個。`development-guide` §4 的六個提問是同一判斷的展開。
 
 ONE PIECE 的視覺目標是：
 
@@ -144,12 +146,14 @@ Monthly Close 是全站最重要的 workflow UI。其階段模型、資料建立
 
 帳戶餘額階段依 Account Type 分區（現金／銀行／外幣／證券），所有必要輸入直接呈現在 Page 內（單一 Current Step 工作區），不使用 Dialog：
 
-- **缺漏輸入不做 inline 必填提示**，由 WAITING 狀態 glyph（○ WAITING / ✓ VERIFIED）單獨承擔；計算欄（TWD 價值）在缺漏輸入時顯示 $0，不阻擋確認。
-- **外幣 row 五欄佈局**：Account（名稱＋幣別）佔獨立欄，前期餘額／外幣金額／匯率／TWD 價值數字欄標籤與數字同軸右對齊（md 以上生效）；欄寬契約見 `FOREIGN_COLUMN_WIDTHS`（14/22/22/8/34，總和＝100）。
-- **現金／銀行共用表頭的真表格**：`TwdTableHead`（帳戶／前期餘額／期末餘額）一條 thead，列內不重複欄位標籤；列高 54px（見 `data-table` 的 9px 垂直內距、右側 pr-12px）；md 以下維持卡片列（label 左、值右）。期末餘額輸入框：桌面版 `max-w-[220px]`、手機版 150×34 直角、無原生 spinner。
-- **證券表 `table-fixed`**：欄寬由 thead 定義（actions 欄另計），數字欄 header 與輸入框右緣同軸；row 高度 ~48px 標準級距。
-- **文字層級**：區塊標題（現金／銀行等）13px/600 亮色＋右側附註小字；欄位標籤 10px/500/.08em；帳戶名稱旁幣別 11px mono；前期餘額數字用預設文字色。
-- **取得匯率按鈕在 Account 欄**（單一實體）；inline 錯誤訊息保留，屬操作錯誤回饋而非必填提示。
+- **缺漏輸入不做 inline 必填提示**，由狀態 glyph 單獨承擔；計算欄在缺漏輸入時顯示 0，不阻擋確認。操作錯誤仍以 inline 錯誤訊息就近呈現。
+- **外幣 row 五欄佈局**：Account（名稱＋幣別）佔獨立欄，前期餘額／外幣金額／匯率／TWD 價值等數字欄的標籤與數字同軸右對齊（桌機佈局）。
+- **現金／銀行共用表頭的真表格**：一條 thead（帳戶／前期餘額／期末餘額），列內不重複欄位標籤；行動版維持卡片列（label 左、值右）。
+- **證券表**：數字欄表頭與輸入框右緣同軸。
+
+欄寬、列高、內距與字級層級等表面規格見 [`design-system.md`](design-system.md) 的 `data-table` 與其「字體排印」節；具體欄寬常數與同軸對齊由程式碼承擔。
+
+該階段專屬的呈現決定（取得匯率按鈕的位置）屬 [`monthly-close.md`](../monthly-close.md)。
 
 ## Dashboard 版面
 
@@ -226,11 +230,10 @@ Section → Group → Detail → Deep detail → Subtotal → Terminus
 
 Step 8 三張表是一個**沒有欄名標題列的單表**，由資料本身的階層建立結構：
 
-- **報表切換為全站底線式分頁**（樣式見 [`design-system.md`](design-system.md) 的 `tabs`）：桌機才顯示，滿寬細線、`primary` 底線、標籤靠左；行動版不顯示分頁，三張表依序堆疊並各帶標題。
+- **報表切換沿用全站 tabs 分頁**（樣式見 [`design-system.md`](design-system.md) 的 `tabs`）：桌機才顯示分頁；行動版不顯示分頁，三張表依序堆疊並各帶標題。
 - **列樣式依「財務報表語意階層」**（上節）。
 - **階層以縮排表達**（級距見 [`design-system.md`](design-system.md) 的「間距級距」），可摺疊、**預設展開**、chevron 置於標籤**左側**；摺疊狀態跨分頁切換**不保留**（切回重置為展開）。
 - **金額欄一律靠表格最右**，與標籤欄兩欄配置（欄寬為程式碼常數）。
-- **三張表的 Terminus**：損益表＝本期淨利、資產負債表＝負債 + 權益、現金流量表＝現金淨變動，為各表最末一列。
 - **現金流的實際餘額為表下的 muted 註腳**（對帳性質的次要觀察值），不與現金淨變動等重。
 - **行動版沿用同一張兩欄表**（標籤換行、無水平捲動），並沿用同一套語意階層，不另做 grouped card；資產負債表的五項權益來源固定呈現（含 0），確保 breakdown 不因歸零而被隱藏。
 

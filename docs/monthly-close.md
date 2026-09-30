@@ -2,6 +2,8 @@
 
 本文件說明月度關帳工作流的現況：期間狀態、階段模型、每個階段的資料建立邊界，以及關帳的完成條件。
 
+本文件亦**擁有月度關帳工作流的呈現決定**——單一階段專屬的版面與互動選擇住在對應階段的小節。跨頁可複用的視覺契約屬 [`ui/visual-standards.md`](ui/visual-standards.md)，設計 token 與元件表面屬 [`ui/design-system.md`](ui/design-system.md)；三者權威不重疊。
+
 詞彙定義見 [`CONTEXT.md`](../CONTEXT.md)（Monthly Close、Financial Period、Transaction Validation、Completeness Check、Watch List）；決策理由見 ADR-0050、ADR-0052、ADR-0053、ADR-0066、ADR-0070、ADR-0072、ADR-0073。
 
 ## 1. 入口
@@ -50,7 +52,7 @@
 - **專案結算是無輸入、僅證據的工作區階段**：證據區列出每個 active 專案的結算狀態；確認動作 = 執行結算流程建立專案快照。
 - **Completeness Check 是報表產生前的就緒檢查（Step 7）**：呈現六類檢查（帳戶餘額、交易驗證、證券買入／賣出、Portfolio 金流、專案結算、債務還款）的完成度與例外清單；**只呈現就緒狀態，不呈現任何財務數字**（財務結果屬 Step 9，報表內容屬 Step 8）。就緒與否由確認按鈕的 disabled 狀態硬性表達，例外項目附「GO TO ○○ →」深連結導回對應階段修正。零活動警示列為例外但不阻擋——暫停機制（NEEDS REVIEW）才是它的處理路徑。
 - **暫停期間的 GO TO 是重設語意（ADR-0070）**：`NEEDS_REVIEW` 期間點擊 GO TO 深連結會先跳出確認對話框（該步驟之後重新進入待確認、報表需重新產生），確認後該階段（含）之後全部重設為 `PENDING`，前期完成階段保留，狀態維持 `NEEDS_REVIEW`。
-- **Financial Reports 預覽後產生（Step 8）**：預覽報表 → 確認 → 產生；**Generate 按鈕在結算未就緒時 disabled 作為第二道防線**（就緒狀態跨讀 Step 7 的 COMPLETENESS_CHECK stage hook，不自行重載；未就緒的類別名稱不在此重複列出，那屬 Step 7 的呈現）。三張表是**沒有欄名標題列的單表**，列樣式依**財務報表語意階層**（Section → Group → Detail → Deep detail → Subtotal → Terminus；見 [`ui/visual-standards.md`](ui/visual-standards.md) 的同名節）：Section 是各表一級區塊（損益表：收入／支出；資產負債表：資產／負債／權益；現金流量表：營業活動／投資活動／融資活動），資料縮排、可摺疊、預設展開、chevron 在標籤左側、金額一律靠表格最右。每個 Section 有自己的 Subtotal，整表最後一列為 **Terminus**（損益表＝本期淨利、現金流量表＝現金淨變動、資產負債表＝負債 + 權益），作為頁面的視覺終點；現金流量的「實際餘額」為表下的 muted 註腳，不與現金淨變動等重。摺疊狀態跨分頁切換不保留（切回一律重置為展開）。
+- **Financial Reports 預覽後產生（Step 8）**：預覽報表 → 確認 → 產生；**Generate 按鈕在結算未就緒時 disabled 作為第二道防線**（就緒狀態跨讀 Step 7 的 COMPLETENESS_CHECK stage hook，不自行重載；未就緒的類別名稱不在此重複列出，那屬 Step 7 的呈現）。三張表是**沒有欄名標題列的單表**，列樣式依**財務報表語意階層**（Section → Group → Detail → Deep detail → Subtotal → Terminus；見 [`ui/visual-standards.md`](ui/visual-standards.md) 的同名節）：Section 是各表一級區塊（損益表：收入／支出；資產負債表：資產／負債／權益；現金流量表：營業活動／投資活動／融資活動），資料縮排、可摺疊、預設展開、chevron 在標籤左側、金額一律靠表格最右。每個 Section 有自己的 Subtotal，整表最後一列為 **Terminus**，作為頁面的視覺終點；現金流量的「實際餘額」為表下的 muted 註腳，不與現金淨變動等重。摺疊狀態跨分頁切換不保留（切回一律重置為展開）。
 - **Financial Reports 的確認即產生（#222）**：確認一律以現行 preview 重算並覆寫三張 persisted 報表，階段轉 `COMPLETED`。persisted 已存在但階段仍 `PENDING` 時（monthly close 上線前的 legacy 期間，或 reopen 後保留的檔案）Generate 按鈕照常提供，畫面以警告標示既有報表與其產生時間；「已產生」狀態與確認鈕的可見性由**階段完成度**驅動，不是 persisted 是否存在。`COMPLETED` 時隱藏確認鈕（FINANCIAL_REPORTS 非可重確認階段），`CLOSED` 期間所有階段皆 `COMPLETED`，唯讀回看不因此出現確認操作。
 - **關帳前把關 Report Drift（ADR-0073）**：Step 8 三張報表只要有任何 drift（涵蓋畫面所有警示列與警示 cell，含僅子列增減的 `RESTRUCTURED` 列），關帳確認鈕即 disabled；同一位置以警示區塊說明報表與已產生報表不一致並提供「回到步驟 8」捷徑，漂移未清除前關不掉帳。警示**只表達有漂移、不報項數**（判定涵蓋推導值與畫面未繪製的項，任何計數都對不上使用者能數到的警示，理由見 ADR-0073）。判定不依賴 Step 9 的五個聚合數字——聚合相等時子列仍可能漂移。後端關帳就緒檢查不變，仍只驗「Financial Reports 已確認 + 三張 persisted 存在」。
 - **Close Period 總結後正式關帳（Step 9）**：呈現整個 Monthly Close 的關帳活動列、財務結果（完整數字，取自 FINANCIAL_REPORTS stage 自載的即時 preview bundle）與報表清單；關帳需經一個確認對話框，說明重開的後果（其後已關帳期間轉為 NEEDS REVIEW、恢復須逐期手動）。關帳後總結固定為唯讀的定案紀錄。
@@ -167,7 +169,7 @@
 該階段依 Account Type 分區，所有必要輸入直接呈現在頁面內（單一 current step 工作區），不使用 Dialog。
 
 - **現金／銀行**：前期餘額（唯讀，取上月快照）＋期末餘額（可編輯）。
-- **外幣**：外幣金額＋匯率（皆可編輯）＋取得匯率按鈕，台幣價值由系統計算，不可做成 input。
+- **外幣**：外幣金額＋匯率（皆可編輯）＋取得匯率按鈕，台幣價值由系統計算，不可做成 input。取得匯率按鈕置於 Account 欄，全階段單一實體。
 - **證券**：Holdings 表作為輸入（可 inline 新增／刪除／修改），市值由系統計算；可匯入上月持倉作為當月起始資料（無上月持倉時停用）；非台幣證券帳戶另加匯率，台幣價值由系統計算。
 
 重新進入已開啟的期間時，期末餘額欄位從**當月快照 prefill**（該月快照存在時）：快照值帶入可編輯欄位作為初始值，使用者已輸入的值不被覆蓋。帳戶餘額階段**允許重新確認**：確認動作對快照是同鍵（期間 × 帳戶）冪等覆蓋，用於修正觀察值，不產生重複文件；重新確認只更新階段的確認時間戳，不回退工作流狀態。證券買入／賣出階段同樣**允許重新確認**（diff-merge：既有列以 ID 更新、新增列建立、移除列刪除，手動交易預設不受寫入影響但會被 prefill 載入為階段列）；債務還款階段同樣**允許重新確認**（同鍵覆蓋：未變更 payload 冪等返回、變更 payload 或清零即取代當月紀錄，見 §4）。帳戶列不顯示 per-account 狀態欄；階段完成與否由 pipeline 與確認時間戳表達。
@@ -178,7 +180,7 @@
 
 申請層的 `AccountBalanceInput` 由 `{ accountId, amount }` 擴充為加上 `originalAmount?` / `exchangeRate?` / `holdings?` 三個選填欄位；Firestore schema、domain schema 與既有計算語意不變。
 
-排版契約（欄寬、列高、字級層級）見 [`ui/visual-standards.md`](ui/visual-standards.md) 與 [`ui/design-system.md`](ui/design-system.md)。
+排版契約：元件表面（欄寬、列高、字級層級）見 [`ui/design-system.md`](ui/design-system.md) 的 `data-table`；頁面層級的版面標準見 [`ui/visual-standards.md`](ui/visual-standards.md)。
 
 ## 6. 相關文件
 
