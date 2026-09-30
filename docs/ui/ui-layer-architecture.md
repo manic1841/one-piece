@@ -2,7 +2,7 @@
 
 This project follows a strict separation of concerns using Domain-Driven Design (DDD) and Clean Architecture principles. The UI layer focuses solely on **presentation** and **interaction orchestration**. If you find business logic here, you've failed.
 
-> **涵蓋範圍**:本文件是 UI 分層與表面契約的唯一真相來源——分層結構與依賴方向、ViewModel/Hook 職責、導航／Header 契約、RWD 斷點,以及 List / Detail / Workflow 的責任切分與動作位置。設計 token 與元件表面屬 [`design-system.md`](design-system.md);頁面層級佈局與互動標準屬 [`visual-standards.md`](visual-standards.md)。三份文件權威不重疊。
+> **涵蓋範圍**:本文件是 UI 分層與表面契約的唯一真相來源——分層結構與依賴方向、ViewModel/Hook 職責、導航／Header 契約、RWD 斷點,以及 List / Detail / Workflow 的責任切分與動作位置。設計 token 與元件表面屬 [`design-system.md`](design-system.md);頁面層級佈局與互動標準屬 [`visual-standards.md`](visual-standards.md);狀態義務與無障礙契約屬 [`states-and-a11y.md`](states-and-a11y.md)。四份文件權威不重疊。
 
 ## 1. Directory Structure
 
@@ -29,6 +29,8 @@ ui
 ├─ utils/              # Presentation helpers (Formatting, etc.)
 └─ assets/             # Static UI assets
 ```
+
+**Stage 專屬檔案歸 `stages/<step>/`，`components/` 只放跨 stage 共用。** 一個 feature 的關帳步驟自有 hook 與元件放在 `features/<feature>/stages/<step>/{hooks,components}/`；只有被多個 step（或 page 層）共用的元件才留在 `components/`。`stages/<step>/` 內的 `hooks`／`components` 仍分別計入 Controller／Surface tier（見 §2），`<step>` 資料夾本身不是 tier。
 
 ---
 

@@ -3,6 +3,7 @@ import React from 'react';
 import { MONTHLY_CLOSE_LABELS } from '@/ui/constants/monthlyClose';
 import { CloseStageChrome } from '@/ui/features/monthly_close/components/CloseStageChrome';
 import { CloseStageEvidenceList } from '@/ui/features/monthly_close/components/CloseStageEvidenceList';
+import { CloseStageLoadError } from '@/ui/features/monthly_close/components/CloseStageLoadError';
 import { type CloseStageEvidence } from '@/ui/features/monthly_close/viewmodels/monthlyClose.vm';
 
 interface CloseEvidenceOnlyStageProps {
@@ -14,6 +15,8 @@ interface CloseEvidenceOnlyStageProps {
   isConfirmable: boolean;
   isReadOnly: boolean;
   evidence: CloseStageEvidence;
+  /** Set when the stage's own load failed; the stage shows no evidence then. */
+  loadErrorMessage?: string | null;
   onConfirm: () => void;
   onBackToCurrent: () => void;
 }
@@ -31,6 +34,7 @@ export const CloseEvidenceOnlyStage: React.FC<CloseEvidenceOnlyStageProps> = ({
   isConfirmable,
   isReadOnly,
   evidence,
+  loadErrorMessage = null,
   onConfirm,
   onBackToCurrent,
 }) => (
@@ -47,6 +51,7 @@ export const CloseEvidenceOnlyStage: React.FC<CloseEvidenceOnlyStageProps> = ({
     onBackToCurrent={onBackToCurrent}
   >
     <CloseStageEvidenceList evidence={evidence} />
+    <CloseStageLoadError message={loadErrorMessage} />
     {evidence.kind === 'NONE' && (
       <p className="text-xs text-muted-foreground">{MONTHLY_CLOSE_LABELS.NO_DATA}</p>
     )}

@@ -49,17 +49,16 @@ const rollUpTotals = (
       const parentLabel = resolveLabel(code);
       const subItems = node.subItems.map((sub) => ({
         ...sub,
-        amount: Math.abs(sub.amount),
         label: composeNestedLabel(parentLabel, sub.label),
       }));
       return {
         code,
         label: parentLabel,
-        amount: Math.abs(node.amount),
+        amount: node.amount,
         subItems: subItems.length > 0 ? subItems.sort((a, b) => b.amount - a.amount) : undefined,
       };
     })
-    .filter((item) => item.amount > 0)
+    .filter((item) => item.amount !== 0)
     .sort((a, b) => b.amount - a.amount);
 };
 
@@ -78,10 +77,18 @@ export function calculateIncomeStatement(input: IncomeStatementInput): IncomeSta
   for (const entry of entries) {
     const parts = entry.ledgerCode.split(':');
     if (parts.length < 2) continue;
+    // Account direction comes from the normal side (income is credit-normal,
+    // expense is debit-normal); the signed value only expresses a reversal.
     if (parts[0] === LEDGER_PREFIX.INCOME) {
-      incomeTotals.set(entry.ledgerCode, (incomeTotals.get(entry.ledgerCode) || 0) + entry.credit);
+      incomeTotals.set(
+        entry.ledgerCode,
+        (incomeTotals.get(entry.ledgerCode) || 0) + (entry.credit - entry.debit),
+      );
     } else if (parts[0] === LEDGER_PREFIX.EXPENSE) {
-      expenseTotals.set(entry.ledgerCode, (expenseTotals.get(entry.ledgerCode) || 0) + entry.debit);
+      expenseTotals.set(
+        entry.ledgerCode,
+        (expenseTotals.get(entry.ledgerCode) || 0) + (entry.debit - entry.credit),
+      );
     }
   }
 
@@ -241,14 +248,16 @@ export function calculateBalanceSheet(input: BalanceSheetInput): BalanceSheetDat
     const subItems: BalanceSheetItem[] = [];
     for (const [code, amount] of monthlyLedgerTotals.entries()) {
       if (code.startsWith(prefix)) {
-        const val = Math.abs(amount);
+        // `monthlyLedgerTotals` stores `debit - credit`; capital is credit-normal,
+        // so a credit (injection) increases it and a debit (dividend) reduces it.
+        const signedAmount = -amount;
         matched = true;
-        total += val;
+        total += signedAmount;
         if (code !== prefix) {
           subItems.push({
             code,
             label: resolveLabel(code, code.slice(prefix.length + 1)),
-            amount: val,
+            amount: signedAmount,
           });
         }
       }

@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 
 import {
   MonthlyCloseCommandError,
@@ -6,21 +6,10 @@ import {
 } from '@/application/monthly_close/errors';
 import { monthlyCloseWorkflowUseCase } from '@/application/monthly_close/use_cases/monthlyCloseWorkflowUseCase';
 import { type MonthlyCloseConfirmRequest } from '@/application/monthly_close/use_cases/monthlyCloseWorkflowUseCase';
-import { validateMonthTransactionsUseCase } from '@/application/monthly_close/use_cases/validateMonthTransactionsUseCase';
-import { getReportPersistenceStateUseCase } from '@/application/report/use_cases/getReportPersistenceStateUseCase';
-import { getSettlementReadinessUseCase } from '@/application/report/use_cases/getSettlementReadinessUseCase';
-import { type SettlementReadiness } from '@/application/report/use_cases/getSettlementReadinessUseCase';
-import { previewFinancialReportsWorkflow } from '@/application/report/use_cases/previewFinancialReportsWorkflow';
-import { type PreviewFinancialReportsResult } from '@/application/report/use_cases/previewFinancialReportsWorkflow';
-import {
-  type CompletenessActivity,
-  checkSettlementCompletenessUseCase,
-} from '@/application/settlement/use_cases/checkSettlementCompletenessUseCase';
 import { type CloseStageId, type FinancialPeriod } from '@/domains/financial_period/schemas';
 import { MONTHLY_CLOSE_LABELS } from '@/ui/constants/monthlyClose';
 import { useAuthIdentity } from '@/ui/hooks/useAuthIdentity';
 import { formatYearMonth } from '@/ui/utils';
-import { logger } from '@/utils/logger';
 
 import { mapPeriodToPageVM } from '../mappers/monthlyClose.mappers';
 import type { MonthlyClosePageVM } from '../viewmodels/monthlyClose.vm';
@@ -51,34 +40,31 @@ export const useMonthlyClose = ({ householdId, userEmail }: UseMonthlyCloseParam
   const [confirmingStageId, setConfirmingStageId] = useState<CloseStageId | null>(null);
   const [isStarting, setIsStarting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [anomalies, setAnomalies] = useState<CompletenessActivity[]>([]);
-  const [transactionIssues, setTransactionIssues] = useState<
-    { transactionId: string; description: string; reason: string }[]
-  >([]);
-  const [cashFlowAdjustment, setCashFlowAdjustment] = useState<number | null>(null);
-  const [reportsPersisted, setReportsPersisted] = useState<boolean | null>(null);
-  const [readiness, setReadiness] = useState<SettlementReadiness | null>(null);
-  const [reportBundle, setReportBundle] = useState<PreviewFinancialReportsResult | null>(null);
 
   const pageVM: MonthlyClosePageVM = useMemo(
     () => mapPeriodToPageVM(period, selectedYearMonth),
     [period, selectedYearMonth],
   );
 
+  // Monotonic request sequence: every period-mutating call takes a ticket
+  // before awaiting and only writes back if it is still the latest. A month
+  // switch bumps it too, so a slow response for the month we just left can
+  // never overwrite the new month's period — and two same-month operations
+  // (a start racing a confirm) cannot clobber each other either.
+  const requestSeqRef = useRef(0);
+  const beginRequest = useCallback(() => (requestSeqRef.current += 1), []);
+  const isLatestRequest = useCallback((seq: number) => seq === requestSeqRef.current, []);
+
   const selectYearMonth = useCallback((yearMonth: string) => {
+    requestSeqRef.current += 1;
     setSelectedYearMonth(yearMonth);
     setPeriod(null);
     setError(null);
-    setAnomalies([]);
-    setTransactionIssues([]);
-    setCashFlowAdjustment(null);
-    setReportsPersisted(null);
-    setReadiness(null);
-    setReportBundle(null);
   }, []);
 
   const start = useCallback(async (): Promise<FinancialPeriod | null> => {
     if (!householdId || !selectedYearMonth) return null;
+    const seq = beginRequest();
     setIsStarting(true);
     setError(null);
     try {
@@ -88,18 +74,21 @@ export const useMonthlyClose = ({ householdId, userEmail }: UseMonthlyCloseParam
         userEmail,
         auth,
       });
+      if (!isLatestRequest(seq)) return null;
       setPeriod(result);
       return result;
     } catch (err) {
+      if (!isLatestRequest(seq)) return null;
       setError(errorText(err, MONTHLY_CLOSE_LABELS.START_ERROR));
       return null;
     } finally {
       setIsStarting(false);
     }
-  }, [auth, householdId, selectedYearMonth, userEmail]);
+  }, [auth, beginRequest, householdId, isLatestRequest, selectedYearMonth, userEmail]);
 
   const reopen = useCallback(async () => {
     if (!householdId || !selectedYearMonth) return null;
+    const seq = beginRequest();
     setIsStarting(true);
     setError(null);
     try {
@@ -109,21 +98,24 @@ export const useMonthlyClose = ({ householdId, userEmail }: UseMonthlyCloseParam
         userEmail,
         auth,
       });
+      if (!isLatestRequest(seq)) return null;
       setPeriod(result);
       return result;
     } catch (err) {
+      if (!isLatestRequest(seq)) return null;
       setError(errorText(err, MONTHLY_CLOSE_LABELS.REOPEN_ERROR));
       return null;
     } finally {
       setIsStarting(false);
     }
-  }, [auth, householdId, selectedYearMonth, userEmail]);
+  }, [auth, beginRequest, householdId, isLatestRequest, selectedYearMonth, userEmail]);
 
   const confirmStage = useCallback(
     async (
       request: Omit<MonthlyCloseConfirmRequest, 'householdId' | 'yearMonth' | 'userEmail' | 'auth'>,
     ): Promise<FinancialPeriod | null> => {
       if (!householdId || !selectedYearMonth) return null;
+      const seq = beginRequest();
       setConfirmingStageId(request.stageId);
       setError(null);
       try {
@@ -134,21 +126,24 @@ export const useMonthlyClose = ({ householdId, userEmail }: UseMonthlyCloseParam
           auth,
           ...request,
         });
+        if (!isLatestRequest(seq)) return null;
         setPeriod(result);
         return result;
       } catch (err) {
+        if (!isLatestRequest(seq)) return null;
         setError(errorText(err, MONTHLY_CLOSE_LABELS.CONFIRM_ERROR));
         return null;
       } finally {
         setConfirmingStageId(null);
       }
     },
-    [auth, householdId, selectedYearMonth, userEmail],
+    [auth, beginRequest, householdId, isLatestRequest, selectedYearMonth, userEmail],
   );
 
   const resetStagesFrom = useCallback(
     async (fromStageId: CloseStageId): Promise<FinancialPeriod | null> => {
       if (!householdId || !selectedYearMonth) return null;
+      const seq = beginRequest();
       setIsStarting(true);
       setError(null);
       try {
@@ -159,103 +154,31 @@ export const useMonthlyClose = ({ householdId, userEmail }: UseMonthlyCloseParam
           auth,
           fromStageId,
         });
+        if (!isLatestRequest(seq)) return null;
         setPeriod(result);
         return result;
       } catch (err) {
+        if (!isLatestRequest(seq)) return null;
         setError(errorText(err, MONTHLY_CLOSE_LABELS.CONFIRM_ERROR));
         return null;
       } finally {
         setIsStarting(false);
       }
     },
-    [auth, householdId, selectedYearMonth, userEmail],
+    [auth, beginRequest, householdId, isLatestRequest, selectedYearMonth, userEmail],
   );
 
-  const refreshStageEvidence = useCallback(async () => {
-    if (!householdId || !selectedYearMonth) return;
-    const year = Number(selectedYearMonth.slice(0, 4));
-    const month = Number(selectedYearMonth.slice(5, 7));
-
-    try {
-      const completeness = await checkSettlementCompletenessUseCase.execute({
-        householdId,
-        year,
-        month,
-        auth,
-      });
-      setAnomalies(completeness.anomalies);
-
-      const validation = await validateMonthTransactionsUseCase.execute({
-        householdId,
-        year,
-        month,
-        auth,
-      });
-      setTransactionIssues(validation.issues);
-
-      const persistence = await getReportPersistenceStateUseCase.execute({
-        householdId,
-        yearMonth: selectedYearMonth,
-      });
-      setReportsPersisted(persistence.isPersisted);
-
-      const readinessResult = await getSettlementReadinessUseCase.execute({
-        householdId,
-        auth,
-        year,
-        month,
-      });
-      setReadiness(readinessResult);
-
-      if (!persistence.isPersisted) {
-        setCashFlowAdjustment(null);
-        setReportBundle(null);
-        return;
-      }
-
-      try {
-        const preview = await previewFinancialReportsWorkflow.execute({
-          householdId,
-          auth,
-          year,
-          month,
-        });
-        setCashFlowAdjustment(preview.cashFlow.adjustment);
-        setReportBundle(preview);
-      } catch (previewError) {
-        logger.warn('Failed to preview cash flow adjustment', 'useMonthlyClose', {
-          previewError,
-        });
-        setCashFlowAdjustment(null);
-        setReportBundle(null);
-      }
-    } catch (evidenceError) {
-      logger.warn('Failed to load stage evidence', 'useMonthlyClose', {
-        evidenceError,
-      });
-      setError(MONTHLY_CLOSE_LABELS.LOAD_ERROR);
-    }
-  }, [auth, householdId, selectedYearMonth]);
-
   return {
-    auth,
     selectedYearMonth,
     period,
     pageVM,
     confirmingStageId,
     isStarting,
     error,
-    anomalies,
-    transactionIssues,
-    cashFlowAdjustment,
-    reportsPersisted,
-    readiness,
-    reportBundle,
     selectYearMonth,
     start,
     reopen,
     confirmStage,
     resetStagesFrom,
-    refreshStageEvidence,
   };
 };

@@ -1,3 +1,5 @@
+import { useEffect, useRef } from 'react';
+
 import { Edit2, Plus, Power, Shield } from 'lucide-react';
 
 import { Badge } from '@/ui/components/ui/badge';
@@ -29,6 +31,11 @@ export const LedgerCodeSettings = () => {
     cancelEdit,
     saveEdit,
   } = useLedgerCodeSettings();
+  const editInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (editingCode) editInputRef.current?.focus();
+  }, [editingCode]);
 
   return (
     <div className="space-y-6">
@@ -131,10 +138,10 @@ export const LedgerCodeSettings = () => {
                           {editingCode === item.code ? (
                             <div className="flex items-center gap-2">
                               <Input
+                                ref={editInputRef}
                                 value={editValue}
                                 onChange={(e) => setEditValue(e.target.value)}
                                 className="h-8 w-48 text-sm"
-                                autoFocus
                               />
                               <Button size="sm" onClick={saveEdit}>
                                 Save

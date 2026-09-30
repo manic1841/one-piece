@@ -56,9 +56,17 @@
   - 設計 token 與元件表面契約：色彩、動態、材質層級、字體排印與元件尺寸/狀態。
   - 元件與 token 改動的驗收標準。
 
+- **[共用元件目錄 (Component Catalog)](/docs/ui/component-catalog.md)**
+  - `src/ui/components/` 共用元件的用途、props、變體與**何時不要用**。
+  - 索引表由 `componentCatalog.test.ts` 驗證與檔案系統同步。
+
 - **[頁面視覺標準 (Visual Standards)](/docs/ui/visual-standards.md)**
-  - 頁面層級契約：Page Shell、頁寬、間距用途、空/載入/錯誤狀態、工作流與 Dashboard 版面、資料密度、互動一致性與 review checklist。
+  - 頁面層級契約：Page Shell、頁寬、間距用途、工作流與 Dashboard 版面、資料密度、互動一致性與 review checklist。
   - 頁面佈局與互動改動的驗收標準。
+
+- **[狀態與無障礙 (States & Accessibility)](/docs/ui/states-and-a11y.md)**
+  - 空/載入/錯誤三態的必備義務，以及 ARIA 歸屬、焦點可見性、鍵盤可及性與使用者偏好設定。
+  - 狀態與無障礙改動的驗收標準；違規由 `pnpm lint` 把關。
 
 - **[UI 架構 (UI Layer Architecture)](/docs/ui/ui-layer-architecture.md)**
   - UI 分層結構、依賴方向、導航／Header 契約與 RWD 斷點契約。

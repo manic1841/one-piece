@@ -13,8 +13,15 @@ vi.mock('@/application/monthly_close/use_cases/monthlyCloseWorkflowUseCase', () 
     confirmStage: vi.fn(),
   },
 }));
+// Hoisted and stable on purpose: the real `useAuthIdentity` is memoized, and a
+// fresh identity object per render would change every stage hook's load
+// callback identity and re-run its effect forever.
+const { authIdentity } = vi.hoisted(() => ({
+  authIdentity: { uid: 'user-1', email: 'user@test.com', isGlobalAdmin: false },
+}));
+
 vi.mock('@/ui/hooks/useAuthIdentity', () => ({
-  useAuthIdentity: () => ({ uid: 'user-1', email: 'user@test.com', isGlobalAdmin: false }),
+  useAuthIdentity: () => authIdentity,
 }));
 
 const period = () => ({
@@ -132,5 +139,45 @@ describe('useMonthlyClose', () => {
       formatYearMonth(now.getFullYear(), now.getMonth() + 1),
     );
     expect(result.current.pageVM.isStarted).toBe(false);
+  });
+
+  // #230: a slow response for the month the user just left must not overwrite
+  // the new month's period.
+  it('discards a period result whose month was left before it resolved', async () => {
+    let resolveStart: (
+      value: Awaited<ReturnType<typeof monthlyCloseWorkflowUseCase.start>>,
+    ) => void = () => {};
+    vi.mocked(monthlyCloseWorkflowUseCase.start).mockReturnValueOnce(
+      new Promise((resolve) => {
+        resolveStart = resolve;
+      }),
+    );
+
+    const { result } = renderHook(() =>
+      useMonthlyClose({ householdId: 'household-1', userEmail: 'user@test.com' }),
+    );
+
+    await act(async () => {
+      result.current.selectYearMonth('2026-08');
+    });
+
+    let startPromise: Promise<unknown> = Promise.resolve();
+    act(() => {
+      startPromise = result.current.start();
+    });
+
+    // The user leaves the month while the start is still in flight.
+    await act(async () => {
+      result.current.selectYearMonth('2026-09');
+    });
+
+    await act(async () => {
+      resolveStart(period());
+      await startPromise;
+    });
+
+    expect(result.current.period).toBeNull();
+    expect(result.current.pageVM.isStarted).toBe(false);
+    expect(result.current.selectedYearMonth).toBe('2026-09');
   });
 });

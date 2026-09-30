@@ -1,5 +1,6 @@
 import js from '@eslint/js';
 import importPlugin from 'eslint-plugin-import';
+import jsxA11y from 'eslint-plugin-jsx-a11y';
 import reactHooks from 'eslint-plugin-react-hooks';
 import reactRefresh from 'eslint-plugin-react-refresh';
 import globals from 'globals';
@@ -77,6 +78,16 @@ export default tseslint.config(
 
       // No God Objects: 一個檔案一個 class
       'max-classes-per-file': ['warn', 1],
+    },
+  },
+  {
+    files: ['**/*.{ts,tsx}'],
+    extends: [jsxA11y.flatConfigs.recommended],
+    rules: {
+      'jsx-a11y/label-has-associated-control': [
+        'error',
+        { controlComponents: ['Checkbox', 'Switch'] },
+      ],
     },
   },
   {

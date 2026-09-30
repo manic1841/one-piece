@@ -5,6 +5,7 @@ import { Label } from '@/ui/components/ui/label';
 import { MONTHLY_CLOSE_LABELS } from '@/ui/constants/monthlyClose';
 import { CloseStageChrome } from '@/ui/features/monthly_close/components/CloseStageChrome';
 import { CloseStageEvidenceList } from '@/ui/features/monthly_close/components/CloseStageEvidenceList';
+import { CloseStageLoadError } from '@/ui/features/monthly_close/components/CloseStageLoadError';
 import { closeMonthDate } from '@/ui/features/monthly_close/stages/debt_repayment/hooks/useDebtRepaymentStage';
 import { type DebtSectionMetaVM } from '@/ui/features/monthly_close/viewmodels/debtPayment.vm';
 import {
@@ -24,6 +25,8 @@ interface CloseDebtRepaymentStageProps {
   isConfirmable: boolean;
   isReadOnly: boolean;
   evidence: CloseStageEvidence;
+  /** Canned copy when the prefill load failed; it does not block confirm. */
+  loadErrorMessage?: string | null;
   debtAccounts: DebtSectionMetaVM[];
   yearMonth: string;
   repayments: DebtRepaymentInput[];
@@ -45,6 +48,7 @@ export const CloseDebtRepaymentStage: React.FC<CloseDebtRepaymentStageProps> = (
   isConfirmable,
   isReadOnly,
   evidence,
+  loadErrorMessage = null,
   debtAccounts,
   yearMonth,
   repayments,
@@ -78,6 +82,7 @@ export const CloseDebtRepaymentStage: React.FC<CloseDebtRepaymentStageProps> = (
       onConfirm={onConfirm}
       onBackToCurrent={onBackToCurrent}
     >
+      <CloseStageLoadError message={loadErrorMessage} />
       <div>
         <p className="mb-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
           {MONTHLY_CLOSE_LABELS.EVIDENCE_LABEL}

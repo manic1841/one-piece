@@ -76,25 +76,28 @@ describe('usePortfolioCashFlowStage', () => {
     ]);
     const portfolios = [portfolio('p-1')];
     const { result, rerender } = renderHook(
-      ({ month, refreshKey }: { month: string; refreshKey: number }) =>
+      ({ month }: { month: string }) =>
         usePortfolioCashFlowStage({
           householdId: 'household-1',
           selectedYearMonth: month,
           portfolios,
           auth,
           confirmingStageId: null,
-          refreshKey,
         }),
-      { initialProps: { month: '2026-08', refreshKey: 0 } },
+      { initialProps: { month: '2026-08' } },
     );
     await waitFor(() => expect(result.current.cashFlows['p-1']).toBeDefined());
     act(() => {
       result.current.setCashFlows({ 'p-1': { deposits: 9_999, withdrawals: 0 } });
     });
-    rerender({ month: '2026-08', refreshKey: 1 });
+    // #235: a same-month reload goes through the stage's own `refresh`, which is
+    // the single reload entry the page broadcasts — not a prop-driven counter.
+    await act(async () => {
+      await result.current.refresh?.();
+    });
     await waitFor(() => expect(result.current.portfolioSnapshots.get('p-1')).not.toBeNull());
     expect(result.current.cashFlows['p-1'].deposits).toBe(9_999);
-    rerender({ month: '2026-09', refreshKey: 2 });
+    rerender({ month: '2026-09' });
     await waitFor(() => expect(result.current.cashFlows['p-1'].deposits).toBe(700));
   });
 
@@ -123,5 +126,43 @@ describe('usePortfolioCashFlowStage', () => {
     expect(result.current.portfolioSnapshots.size).toBe(0);
     await waitFor(() => expect(result.current.portfolioSnapshots.size).toBe(1));
     expect(result.current.portfolioSnapshots.get('p-1')).toBeNull();
+  });
+
+  // #231: a failed prefill load used to leave an empty draft that read as a
+  // clean month. The hook reports it with copy the consumer owns; the failure
+  // never leaks a rejection, and a draft the user types by hand still submits
+  // (prefill is a convenience, not a gate).
+  it('reports a load failure without blocking a hand-typed draft or leaking a rejection', async () => {
+    vi.mocked(listPortfolioSnapshotsUseCase.execute).mockRejectedValue(new Error('boom'));
+    // Hoisted: a fresh array per render would change `load`'s identity and loop.
+    const portfolios = [portfolio('p-1')];
+
+    const { result } = renderHook(() =>
+      usePortfolioCashFlowStage({
+        householdId: 'household-1',
+        selectedYearMonth: '2026-08',
+        portfolios,
+        auth,
+        confirmingStageId: null,
+      }),
+    );
+
+    await waitFor(() =>
+      expect(result.current.errorMessage).toBe('無法載入 Portfolio 金流，請稍後再試。'),
+    );
+    expect(result.current.cashFlows).toEqual({});
+
+    act(() => {
+      result.current.setCashFlows({ 'p-1': { deposits: 5_000, withdrawals: 0 } });
+    });
+    expect(result.current.buildRequest()).toEqual({
+      stageId: 'PORTFOLIO_CASH_FLOW',
+      portfolioCashFlows: { 'p-1': { deposits: 5_000, withdrawals: 0 } },
+    });
+
+    // The failed load settles instead of escaping as an unhandled rejection.
+    await act(async () => {
+      await expect(result.current.refresh?.()).resolves.toBeUndefined();
+    });
   });
 });

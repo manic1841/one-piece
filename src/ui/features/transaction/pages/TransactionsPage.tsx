@@ -166,8 +166,8 @@ const Transactions: React.FC = () => {
         }
       />
 
-      <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between pb-4 border-b border-border">
-        <div className="relative w-full md:w-96">
+      <div className="flex flex-col md:flex-row gap-4 items-start md:items-end justify-between border-b border-border">
+        <div className="relative w-full pb-3 md:w-96">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="搜尋備註或類型..."
@@ -176,7 +176,7 @@ const Transactions: React.FC = () => {
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
-        <div className="flex gap-1 overflow-x-auto w-full md:w-auto">
+        <div className="flex w-full gap-4 md:w-auto">
           {[
             { id: 'ALL', label: '全部' },
             { id: 'EXPENSE', label: getIntentTypeLabel('EXPENSE') },
@@ -188,10 +188,10 @@ const Transactions: React.FC = () => {
               key={type.id}
               onClick={() => setFilterType(type.id)}
               className={cn(
-                'px-3 py-2 text-sm whitespace-nowrap transition-colors duration-fast active:scale-[0.97]',
+                '-mb-px whitespace-nowrap border-b-2 px-1 pb-3 pt-1 text-sm font-medium transition-colors duration-fast focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-0',
                 filterType === type.id
-                  ? 'text-foreground font-semibold border-b-2 border-primary'
-                  : 'text-muted-foreground hover:text-foreground',
+                  ? 'text-foreground font-semibold border-primary'
+                  : 'text-muted-foreground border-transparent',
               )}
             >
               {type.label}

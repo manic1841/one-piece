@@ -746,6 +746,20 @@ describe('MonthlyCloseWorkflowUseCase.confirmStage', () => {
     });
   });
 
+  // FINANCIAL_REPORTS is not reconfirmable, so once the stage is completed the
+  // UI hides its action; a direct re-confirm is refused rather than silently
+  // regenerating (#222).
+  it('rejects re-confirming the reports stage once it is completed', async () => {
+    vi.mocked(getFinancialPeriodUseCase.execute).mockResolvedValue(
+      completeStage(basePeriod(), 'FINANCIAL_REPORTS'),
+    );
+
+    await expect(
+      useCase.confirmStage({ ...REQUEST_BASE, stageId: 'FINANCIAL_REPORTS' }),
+    ).rejects.toMatchObject({ code: MonthlyCloseCommandErrorCode.STAGE_ALREADY_COMPLETED });
+    expect(generateFinancialReportsUseCase.execute).not.toHaveBeenCalled();
+  });
+
   it('rejects the reports stage while the period needs review before the walk position', async () => {
     vi.mocked(getFinancialPeriodUseCase.execute).mockResolvedValue(
       basePeriod({ status: 'NEEDS_REVIEW', reviewSourceStageId: 'COMPLETENESS_CHECK' }),

@@ -19,8 +19,6 @@ export interface CloseStageControl {
     MonthlyCloseConfirmRequest,
     'householdId' | 'yearMonth' | 'userEmail' | 'auth'
   >;
-  /** Pre-confirm gate: return true when the stage must not submit. */
-  shouldBlock: () => boolean;
   /** Ask before submitting (empty-stage warning); false aborts. */
   confirmGate?: () => Promise<boolean>;
   /** Post-confirm side effects (prefill refresh keys, navigation resets). */
@@ -31,6 +29,14 @@ export interface CloseStageControl {
    * month switch, so a new draft-bearing stage registers its own reset.
    */
   resetDraft: () => void;
+  /**
+   * Reloads the stage's own loaded data after an external change (period
+   * start/reopen/reset, or a confirm). Mirrors `resetDraft`: the page iterates
+   * the strategy record and calls it, so a stage that loads data opts in and
+   * the page never learns which stage owns what. Optional; stages that load
+   * nothing leave it unset.
+   */
+  refresh?: () => Promise<void>;
   /** Keep the stage view open after a successful confirm (FINANCIAL_REPORTS). */
   keepsViewOnConfirm?: boolean;
 }

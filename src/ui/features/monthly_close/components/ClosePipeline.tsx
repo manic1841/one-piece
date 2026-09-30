@@ -6,26 +6,26 @@ import { StatusGlyph } from '@/ui/components/StatusGlyph';
 import { MONTHLY_CLOSE_LABELS, getCloseStageLabel } from '@/ui/constants/monthlyClose';
 import { cn } from '@/ui/utils/cn';
 
-import type { CloseStageItemVM } from '../viewmodels/monthlyClose.vm';
+import type { CloseStageId, CloseStageItemVM } from '../viewmodels/monthlyClose.vm';
 
 export type ClosePipelineStageStatus = 'CURRENT' | 'COMPLETED' | 'WAITING' | 'REVIEW';
 
 interface ClosePipelineProps {
   stages: CloseStageItemVM[];
-  currentStageId: string | null;
-  viewingStageId: string | null;
+  currentStageId: CloseStageId | null;
+  viewingStageId: CloseStageId | null;
   isClosed: boolean;
   isPaused: boolean;
   statusText: string;
   positionText: string;
-  onSelectStage: (stageId: string) => void;
+  onSelectStage: (stageId: CloseStageId) => void;
 }
 
 const stepNumber = (index: number): string => (index + 1).toString().padStart(2, '0');
 
 const stageStatus = (
   stage: CloseStageItemVM,
-  currentStageId: string | null,
+  currentStageId: CloseStageId | null,
   isClosed: boolean,
   isPaused: boolean,
 ): ClosePipelineStageStatus => {

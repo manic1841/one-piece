@@ -3,11 +3,14 @@ import React from 'react';
 import { StatusGlyph } from '@/ui/components/StatusGlyph';
 import { Button } from '@/ui/components/ui/button';
 import { MONTHLY_CLOSE_LABELS } from '@/ui/constants/monthlyClose';
+import { CloseStageLoadError } from '@/ui/features/monthly_close/components/CloseStageLoadError';
 
-import { type ReadinessExceptionVM, type ReadinessVM } from '../mappers/closeSummary.mappers';
+import { type ReadinessExceptionVM, type ReadinessVM } from '../../../mappers/closeSummary.mappers';
 
 interface CloseReadinessCheckProps {
   readiness: ReadinessVM;
+  /** Set when a refresh failed while previously loaded readiness is shown. */
+  errorMessage?: string | null;
   onConfirm: () => void;
   onGoToStage: (stageId: ReadinessExceptionVM['stageId']) => void;
   confirming: boolean;
@@ -19,6 +22,7 @@ interface CloseReadinessCheckProps {
 
 export const CloseReadinessCheck: React.FC<CloseReadinessCheckProps> = ({
   readiness,
+  errorMessage = null,
   onConfirm,
   onGoToStage,
   confirming,
@@ -27,6 +31,7 @@ export const CloseReadinessCheck: React.FC<CloseReadinessCheckProps> = ({
 }) => {
   return (
     <section className="space-y-4 pt-8" data-testid="close-readiness-check">
+      <CloseStageLoadError message={errorMessage} />
       <div className="flex flex-wrap items-end justify-between gap-3 border-b border-border pb-4">
         <div className="space-y-1">
           <p className="text-[11px] uppercase tracking-[0.12em] text-muted-foreground">

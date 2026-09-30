@@ -125,7 +125,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
             value={activeTab}
             onValueChange={(value) => setActiveTab(value as TransactionFormTab)}
           >
-            <TabsList className="grid h-auto w-full grid-cols-3 gap-2 rounded-lg p-2 md:grid-cols-5">
+            <TabsList className="w-full gap-2 md:gap-6">
               <TabsTrigger value="EXPENSE" className="gap-1">
                 <ReceiptText className="h-3.5 w-3.5" />
                 {getIntentTypeLabel('EXPENSE')}

@@ -1,20 +1,22 @@
 # 頁面視覺標準 (Visual Standards)
 
-> **邊界宣告**：本文件管**頁面層級的佈局與互動標準**——Page Shell、頁寬、間距用途、空／載入／錯誤狀態、進階設定、工作流版面、Dashboard 版面、報表版面、行動版佈局、搜尋與指令、資料密度、互動一致性、破壞性動作、通知、響應式、反模式與最終 review checklist。**設計 token 與元件表面**（色彩、材質、動態、字體排印、元件尺寸與狀態契約、spacing 級距）屬 [`design-system.md`](design-system.md)；分層、導航／Header 契約、List / Detail / Workflow 動作位置與 RWD 斷點契約屬 [`ui-layer-architecture.md`](ui-layer-architecture.md)。三份文件權威不重疊。
+> **邊界宣告**：本文件管**頁面層級的佈局與互動標準**——Page Shell、頁寬、間距用途、進階設定、工作流版面、Dashboard 版面、報表版面、行動版佈局、搜尋與指令、資料密度、互動一致性、破壞性動作、通知、響應式、反模式與最終 review checklist。**設計 token 與元件表面**（色彩、材質、動態、字體排印、元件尺寸與狀態契約、spacing 級距）屬 [`design-system.md`](design-system.md)；分層、導航／Header 契約、List / Detail / Workflow 動作位置與 RWD 斷點契約屬 [`ui-layer-architecture.md`](ui-layer-architecture.md)；空／載入／錯誤三態的義務與無障礙契約屬 [`states-and-a11y.md`](states-and-a11y.md)。四份文件權威不重疊。
 
-本文件是頁面層級視覺契約的唯一真相來源。已由其他文件承載的契約（Dashboard 資料錨定、關帳階段模型等）一律以指標引用、不在本文件重述；規則差異时以該事實的歸屬文件為準。
+本文件是頁面層級視覺契約的唯一真相來源。已由其他文件承載的契約（Dashboard 資料錨定、關帳階段模型等）一律以指標引用、不在本文件重述；規則差異時以該事實的歸屬文件為準。
 
 ---
 
 ## 核心設計原則
 
-全站所有頁面遵循：
+全站所有頁面遵循以下**優先序**；當兩條原則衝突、或規則未涵蓋當前情況時，序號**小**的優先：
 
-> **Data > Decoration**
-> **Structure > Cards**
-> **Space creates hierarchy**
-> **Color communicates state**
-> **Motion has a purpose**
+1. **Data > Decoration**
+2. **Structure > Cards**
+3. **Space creates hierarchy**
+4. **Color communicates state**
+5. **Motion has a purpose**
+
+Tie-break：若一個做法同時符合與違反多條原則，以序號較小的原則勝出；仍不明確時，選**裝飾較少、新元素較少**的那一個。`development-guide` §4 的六個提問是同一判斷的展開。
 
 ONE PIECE 的視覺目標是：
 
@@ -80,43 +82,9 @@ Page Header 規則：
 
 **禁止**：級距外的任意值（`13px`、`18px`、`22px`、`27px`、`37px`…）不得大量出現，除非有特殊 layout 原因。目標是讓整個系統有**可預測的節奏**。
 
-## 空狀態 (Empty State)
+## 狀態 (States)
 
-空狀態不插圖、不做大型 Card。標準結構：
-
-```text
-○ NO DATA
-
-No accounts have been added yet.
-
-[ + ADD ACCOUNT ]
-```
-
-原則：
-
-- icon / status + 一句說明 + 一個主要 action。
-- 說明要回答三件事：缺什麼、為何重要、使用者下一步能做什麼。
-- 不要大插畫、decorative illustration、大型 Card、大量文字。
-
-## 載入狀態 (Loading)
-
-- 一般 loading：單行文字（`Loading...`）。
-- Skeleton 用於 Table / List / Detail。
-- 長時間工作使用 Terminal-style 進度——這是 ONE PIECE 的 engineering identity：
-
-```text
-$ generate-reports --period SEP-2026
-
-[████████████░░░░░░░░] 62%
-
-→ Generating September financial statements...
-```
-
-## 錯誤狀態 (Error State)
-
-- 錯誤必須 **Specific**、**Actionable**、**Close to the affected data**（靠近受影響的資料呈現，而非集中到頁首）。
-- `Negative` 色僅用於真正的錯誤或負向狀態。
-- 需要使用者解決的問題不得只用通用 toast 蓋掉——改用 inline alert 或 exception 呈現。
+空、載入、錯誤三態的必備義務——標準結構、文案要求、呈現位置與錯誤呈現方式——屬 [`states-and-a11y.md`](states-and-a11y.md)。本節不重述，也不保留摘要版本。
 
 ## 進階設定 (Advanced Settings)
 
@@ -144,12 +112,14 @@ Monthly Close 是全站最重要的 workflow UI。其階段模型、資料建立
 
 帳戶餘額階段依 Account Type 分區（現金／銀行／外幣／證券），所有必要輸入直接呈現在 Page 內（單一 Current Step 工作區），不使用 Dialog：
 
-- **缺漏輸入不做 inline 必填提示**，由 WAITING 狀態 glyph（○ WAITING / ✓ VERIFIED）單獨承擔；計算欄（TWD 價值）在缺漏輸入時顯示 $0，不阻擋確認。
-- **外幣 row 五欄佈局**：Account（名稱＋幣別）佔獨立欄，前期餘額／外幣金額／匯率／TWD 價值數字欄標籤與數字同軸右對齊（md 以上生效）；欄寬契約見 `FOREIGN_COLUMN_WIDTHS`（14/22/22/8/34，總和＝100）。
-- **現金／銀行共用表頭的真表格**：`TwdTableHead`（帳戶／前期餘額／期末餘額）一條 thead，列內不重複欄位標籤；列高 54px（見 `data-table` 的 9px 垂直內距、右側 pr-12px）；md 以下維持卡片列（label 左、值右）。期末餘額輸入框：桌面版 `max-w-[220px]`、手機版 150×34 直角、無原生 spinner。
-- **證券表 `table-fixed`**：欄寬由 thead 定義（actions 欄另計），數字欄 header 與輸入框右緣同軸；row 高度 ~48px 標準級距。
-- **文字層級**：區塊標題（現金／銀行等）13px/600 亮色＋右側附註小字；欄位標籤 10px/500/.08em；帳戶名稱旁幣別 11px mono；前期餘額數字用預設文字色。
-- **取得匯率按鈕在 Account 欄**（單一實體）；inline 錯誤訊息保留，屬操作錯誤回饋而非必填提示。
+- **缺漏輸入不做 inline 必填提示**，由狀態 glyph 單獨承擔；計算欄在缺漏輸入時顯示 0，不阻擋確認。操作錯誤仍以 inline 錯誤訊息就近呈現。
+- **外幣 row 五欄佈局**：Account（名稱＋幣別）佔獨立欄，前期餘額／外幣金額／匯率／TWD 價值等數字欄的標籤與數字同軸右對齊（桌機佈局）。
+- **現金／銀行共用表頭的真表格**：一條 thead（帳戶／前期餘額／期末餘額），列內不重複欄位標籤；行動版維持卡片列（label 左、值右）。
+- **證券表**：數字欄表頭與輸入框右緣同軸。
+
+欄寬、列高、內距與字級層級等表面規格見 [`design-system.md`](design-system.md) 的 `data-table` 與其「字體排印」節；具體欄寬常數與同軸對齊由程式碼承擔。
+
+該階段專屬的呈現決定（取得匯率按鈕的位置）屬 [`monthly-close.md`](../monthly-close.md)。
 
 ## Dashboard 版面
 
@@ -195,6 +165,43 @@ Monthly Close
  ↓
 Source Data
 ```
+
+### 財務報表語意階層 (Financial Statement Semantic Hierarchy)
+
+財務報表的列由**語意角色**決定樣式，不是由縮排深度決定。同一個角色在三張表（損益表／資產負債表／現金流量表）必須長得一樣——語意階層是報表層級的設計契約，不是單張表的排版選擇。
+
+```text
+Section → Group → Detail → Deep detail → Subtotal → Terminus
+```
+
+| 角色            | 語意                                                                               |
+| --------------- | ---------------------------------------------------------------------------------- |
+| **Section**     | 報表的一級區塊（收入／支出；資產／負債／權益；營業／投資／融資活動），代替欄名表頭 |
+| **Group**       | 第一層資料（薪資、餐飲；現金與銀行、貸款；流入、流出）                             |
+| **Detail**      | 第二層資料（`subItems`，例如「薪資 › Charles」、賬戶名）                           |
+| **Deep detail** | 第三層以下                                                                         |
+| **Subtotal**    | 每個 Section 的合計（收入合計／支出合計／各活動合計／資產合計…）                   |
+| **Terminus**    | 整表的收束點：損益表＝本期淨利；資產負債表＝負債 + 權益；現金流量表＝現金淨變動    |
+
+各角色的字級、字重、邊界與列樣式定義在 [`design-system.md`](design-system.md) 的 `data-table`。
+
+規則：
+
+- **Section 是區塊而非 Card**：只用微背景帶與一條下緣細線區隔，不加圓角、不加外框、不加重陰影。小字大寫與全站表頭語言一致，但提亮成 `foreground`，讓它高於底下資料列而非弱於資料列。
+- **Subtotal 靠線與字重建立層級**，不使用背景色（只有 Section 與 Terminus 帶微背景）。
+- **Terminus 是頁面視覺終點**：字級跳級、列高加大、最重的上緣線。財務報表維持中性語言，不用品牌色色條或彩色強調。
+- **不變式**：同一角色在三張表一致；明細不再因落在不同深度而在表間有不同大小與顏色。
+
+### 關帳報表表格階層 (Step 8 Statements)
+
+Step 8 三張表是一個**沒有欄名標題列的單表**，由資料本身的階層建立結構：
+
+- **報表切換沿用全站 tabs 分頁**（樣式見 [`design-system.md`](design-system.md) 的 `tabs`）：桌機才顯示分頁；行動版不顯示分頁，三張表依序堆疊並各帶標題。
+- **列樣式依「財務報表語意階層」**（上節）。
+- **階層以縮排表達**（級距見 [`design-system.md`](design-system.md) 的「間距級距」），可摺疊、**預設展開**、chevron 置於標籤**左側**；摺疊狀態跨分頁切換**不保留**（切回重置為展開）。
+- **金額欄一律靠表格最右**，與標籤欄兩欄配置（欄寬為程式碼常數）。
+- **現金流的實際餘額為表下的 muted 註腳**（對帳性質的次要觀察值），不與現金淨變動等重。
+- **行動版沿用同一張兩欄表**（標籤換行、無水平捲動），並沿用同一套語意階層，不另做 grouped card；資產負債表的五項權益來源固定呈現（含 0），確保 breakdown 不因歸零而被隱藏。
 
 ## 行動版佈局 (Mobile)
 
@@ -276,7 +283,7 @@ Toast 只回報：
 - Error。
 - Background operation result。
 
-不要用 Toast 傳遞重要 workflow instruction——重要問題用 inline alert 或 exception 呈現。
+- 不要用 Toast 傳遞重要 workflow instruction——重要問題的呈現方式屬 [`states-and-a11y.md`](states-and-a11y.md) 的錯誤狀態。
 
 ## 響應式原則 (Responsive)
 
@@ -306,7 +313,7 @@ Reading order 不變。斷點與導覽切換契約見 [`ui-layer-architecture.md
 - ❌ **所有數字都超大**。
 - ❌ **所有東西都置中**。
 - ❌ **Mobile horizontal scrolling table**。
-- ❌ **把 domain terminology 直接暴露給使用者**（`DERIVED`、`LEDGER CODE`、`IMPORT MODE`、`CALCULATION MODE`…），除非這是 Accounting / Developer view。
+- ❌ **把 domain terminology 直接暴露給使用者**（`DERIVED`、`LEDGER CODE`、`IMPORT MODE`、`CALCULATION MODE`、`CALCULATED`…），除非這是 Accounting / Developer view。
 
 ## 最終視覺 Review Checklist
 

@@ -2,7 +2,7 @@
 
 > 依據：Apple《Designing Fluid Interfaces》(WWDC 2018)、《The Details of UI Typography》(WWDC 2020)、《Principles of Great Design》(WWDC 2026) 的 web 平台轉譯。
 >
-> **邊界宣告**：本文件管**設計 token 與元件表面**（色彩、材質、動態、字體排印、元件尺寸與狀態契約、spacing 級距）。**頁面層級的佈局、間距用途、資料密度與互動標準**屬 [`visual-standards.md`](visual-standards.md)，兩份文件權威不重疊。
+> **邊界宣告**：本文件管**設計 token 與元件表面**（色彩、材質、動態、字體排印、元件尺寸與 hover／focus／disabled 等視覺狀態、spacing 級距）。**頁面層級的佈局、間距用途、資料密度與互動標準**屬 [`visual-standards.md`](visual-standards.md)；**分層、導航／Header 契約與 RWD 斷點**屬 [`ui-layer-architecture.md`](ui-layer-architecture.md)；**資料狀態義務與無障礙契約**屬 [`states-and-a11y.md`](states-and-a11y.md)。四份文件權威不重疊。
 
 本文件是設計 token 與元件表面契約的唯一真相來源。實作以本文件為準；若與 `ui-layer-architecture.md` 的分層規則衝突，以分層規則為準——呈現層契約不涉入資料流、ViewModel/Hook 職責邊界與 display label API。
 
@@ -19,16 +19,14 @@
 
 ### 1.1 來源色碼 provenance
 
-Phase 1 收斂時定下的四個來源色碼如下（現行 token 已有三個漂移）：
+Phase 1 收斂時定下的四個來源色碼與其對應 token 如下。此表只保留**來源依據**；現行值以 `src/index.css` 為唯一來源，不在本文件複述（複述的值必與程式碼漂移）。
 
-| 來源色碼            | 對應 token                   | 現行值（`src/index.css`） | 狀態   |
-| ------------------- | ---------------------------- | ------------------------- | ------ |
-| Primary `#E6E8EB`   | `--foreground` / `--primary` | `213 15% 91%`             | 對齊   |
-| Secondary `#7C858F` | `--muted-foreground`         | `213 12% 58%`             | 已漂移 |
-| Surface `#0A0E14`   | `--background`               | `216 33% 5%`              | 已漂移 |
-| Elevated `#0D1117`  | `--elevated`                 | `216 25% 9%`              | 已漂移 |
-
-> **4 個來源色中 3 個已與現行 token 值漂移，現行值以 `src/index.css` 為準。** 此表僅保留來源依據，不代表現行契約。
+| 來源色碼            | 對應 token                   |
+| ------------------- | ---------------------------- |
+| Primary `#E6E8EB`   | `--foreground` / `--primary` |
+| Secondary `#7C858F` | `--muted-foreground`         |
+| Surface `#0A0E14`   | `--background`               |
+| Elevated `#0D1117`  | `--elevated`                 |
 
 ## 2. 動態（Motion）
 
@@ -97,32 +95,44 @@ Token（定義於 `tailwind.config.js`，全部走 CSS 變數）：
 
 ## 6. 八原則對照
 
-| 原則           | 本專案的落實                                                                                                |
-| -------------- | ----------------------------------------------------------------------------------------------------------- |
-| Purpose        | 不裝飾性圖表、不無意義動畫；每個 token 都有對應使用場景                                                     |
-| Agency         | 不可逆動作（刪除、還原備份）用確認對話；可逆動作（停用、登出）不阻擋主流程                                  |
-| Responsibility | 金額色訊一致（收入/支出/負債），避免誤讀財務狀態                                                            |
-| Familiarity    | 關閉一律在對話框右上；sheet 進出同側；同類操作同位置                                                        |
-| Flexibility    | dark-first 色板、RWD 斷點契約（見 `ui-layer-architecture.md`）、reduced-motion/transparency/contrast 全覆蓋 |
-| Simplicity     | 每頁先呈現最常用的路徑，進階選項一層之後                                                                    |
-| Craft          | token 化、easing 鏡像、press 回饋、scroll-edge 處理                                                         |
-| Delight        | 七項做對後的結果：介面安靜、回應即時、材質有層次                                                            |
+| 原則           | 本專案的落實                                                                                                    |
+| -------------- | --------------------------------------------------------------------------------------------------------------- |
+| Purpose        | 不裝飾性圖表、不無意義動畫；每個 token 都有對應使用場景                                                         |
+| Agency         | 不可逆動作（刪除、還原備份）用確認對話；可逆動作（停用、登出）不阻擋主流程                                      |
+| Responsibility | 金額色訊一致（收入/支出/負債），避免誤讀財務狀態                                                                |
+| Familiarity    | 關閉一律在對話框右上；sheet 進出同側；同類操作同位置                                                            |
+| Flexibility    | dark-first 色板、RWD 斷點契約（見 `ui-layer-architecture.md`）、使用者偏好設定全覆蓋（見 `states-and-a11y.md`） |
+| Simplicity     | 每頁先呈現最常用的路徑，進階選項一層之後                                                                        |
+| Craft          | token 化、easing 鏡像、press 回饋、scroll-edge 處理                                                             |
+| Delight        | 七項做對後的結果：介面安靜、回應即時、材質有層次                                                                |
+
+原則衝突時的優先序與 tie-break 見 [`visual-standards.md`](visual-standards.md) 的「核心設計原則」；本節只是對照表，不重述那組順序。
 
 ## 7. 元件模式
 
+本節描述元件**如何畫**。無障礙契約（ARIA 由誰負責、焦點可見性、鍵盤可及性、使用者偏好設定）是 [`states-and-a11y.md`](states-and-a11y.md) 的職責，本節不重述。
+
 - `badge`：小圓角 + `border-strong` 可見邊界 + `font-mono text-[11px]`，棄用 rounded-full 藥丸；`destructive` 變體以 `border-negative/40 text-negative` 呈現。
-- `alert`：單列模式——`role="alert"` 容器 + 狀態 glyph + `AlertDescription` + 文字動作按鈕（`button-variants` 的 `text` variant）；不再提供 `AlertTitle` 標題槽。
+- `alert`：單列模式——狀態 glyph + `AlertDescription` + 文字動作按鈕（`button-variants` 的 `text` variant）；不再提供 `AlertTitle` 標題槽。
 - `button`：新增 `text` variant（透明底、透明邊界、tertiary 動作），與 `outline`/`ghost` 互補。
-- `progress`：`bg-muted` 實心軌道 + `bg-accent` 填充，保留 `role="progressbar"`。
+- `progress`：`bg-muted` 實心軌道 + `bg-accent` 填充。
+- `tabs`：全站統一**底線式**（取代原膠囊／segmented 樣式）。`TabsList` 無底色、無圓角、無內距，只有一條滿寬的 `border-b border-border` 細線，標籤靠左。`TabsTrigger` 無底色；active 態＝文字 `text-foreground` 且 `font-semibold`，並以 `border-b-2 border-primary` 的底線咬住細線（`-mb-px` 讓 2px 底線與 1px 細線重疊成單線）；未選中為 `text-muted-foreground` 且 hover **不提亮**（active 狀態只靠字重、字色與底線三個訊號）。移除 press 縮放；focus 為 `ring-2 ring-ring ring-offset-0`（光環貼齊觸發區）。同款底線亦可套用於語意為 filter 的篩選列——該列維持 `role=button` 並對齊相同 class token，不因此變成 tab。
 - `YearMonthPicker`：按鈕式（`MON YYYY ▾` outline 按鈕）+ Popover 內雙 Select；選擇僅暫存在 picker 內部（draft state），按 APPLY 才 commit，Escape/外點取消。
 - 確認對話：以 promise-based `useConfirm()`（`ConfirmDialogProvider` 全站掛載）取代 `window.confirm`；結構為 Title → Context → Consequence → Actions（outline Cancel + destructive 確認）。字串輸入預設 destructive "DELETE"（不可逆刪除）；可逆動作必須傳結構化 options 並使用非 destructive 標籤（如 "DISABLE"）。
-- `sortable-list`：共用 `src/ui/components/sortable/` 模式（issue #152）——`GripHandle` activator button（h-8 w-8、`touch-none`、focus ring、`active:scale-[0.97]`）+ 三感應器（Pointer distance 8px、Touch delay 180ms、Keyboard sortableKeyboardCoordinates）；僅 grip 可拖曳，row click 導覽不受干擾；DndContext 放在 Table 外層（aria-live div 不可成為 tbody 子元素）。細節見 ADR-0059。
-- `data-table`：全站表格共通原則（2026-09-23 定案）。首個合格實作為 monthly close account step；其他頁面逐一確認後遷移，不批次套用。
+- `sortable-list`：共用 `src/ui/components/sortable/` 模式——`GripHandle` activator button（h-8 w-8、`touch-none`、focus ring、`active:scale-[0.97]`）+ 三感應器（Pointer distance 8px、Touch delay 180ms、Keyboard sortableKeyboardCoordinates）；僅 grip 可拖曳，row click 導覽不受干擾；DndContext 放在 Table 外層。細節見 ADR-0059。
+- `data-table`：全站表格共通原則。
   - **通則**：所有 Data Table 遵循同一標準——表頭 muted、數字右對齊、財務數字 monospace、細分隔線；不使用厚重 border、不使用 zebra striping。可查看 Detail 的資料整列可點擊（List → Detail），不用 row 端常駐 View/Edit 按鈕。
   - **結構**：真表格 `table-fixed` + `border-collapse`；欄寬為明確 % 數且總和必須＝100（瀏覽器會等比壓縮超寬表格，破壞跨表對齊）；同頁多表格共用欄寬常數以保持跨表同軸。
   - **Header**：10px / 500 / uppercase / 0.08em / muted、row 約 40px、`pb-[9px]`、`align-bottom`、底線 `border-b border-border`；文字欄表頭左對齊、數字欄表頭右對齊（與資料同軸）。
   - **對齊**：一般文字欄左對齊；數字欄右對齊 + `font-mono` + `tabular-nums`；日期/代碼欄 mono。
   - **數字**：table 層級正常大小（`text-sm`）；不顯示無意義 `.00`；空值顯示「—」。
+  - **報表語意階層（surface）**：財務報表的列樣式由**語意角色**決定，不由縮排深度決定；角色語意與不變式見 [`visual-standards.md`](visual-standards.md) 的「財務報表語意階層」。各角色的表面規格：
+    - Section：`11px / 600 / uppercase / 0.08em / foreground`；`bg-muted/40` 微背景帶 + `border-b border-border`。
+    - Group：`13px / 500 / foreground`；金額 13px。
+    - Detail：`12px / 400 / muted-foreground`；金額 12px。
+    - Deep detail：`11px / 400 / muted-foreground`；金額 11px。
+    - Subtotal：`13px / 600 / foreground`；金額 13px / 600；`border-t border-border-strong`。
+    - Terminus：`16px / 600 / foreground`；金額 16px / 600；`border-t-2 border-foreground`、列高 64px、`bg-muted/40`。Terminus 是 `text-sm` 表格層級與一般資料列高的具名例外。
   - **Input 數字**：34px 高（子表格可 32px）、右對齊 mono、`tabular-nums`、無原生 spinner（`[appearance:textfield]` + webkit spin button `appearance-none`）、空值填「—」。
   - **列高/內距**：資料列 54px（`h-[54px]` 是**最小**列高）、td padding `9px 12px`（pr 用 `pr-3`）。垂直內距必須讓「最高的 cell 內容（34px 輸入框）＋上下內距＋1px 分隔線」≤ 54px，否則列高會被內容撐開——純文字列不受影響（本來就由最小列高撐滿）。`border-b border-border` 細分隔線、無 zebra。
   - **Vertical alignment**：th `align-bottom`、td `align-middle`。
@@ -132,7 +142,7 @@ Token（定義於 `tailwind.config.js`，全部走 CSS 變數）：
   - **Card 包裹**：Table 不預設用 Card；Card 只在「需要明確包住一個獨立操作／狀態／資訊模組」時使用（snapshot history 等獨立模組可用，編輯中的 stage 表格不用）。
   - **列內動作**：有 detail 頁的資料整列可點擊走 List → Detail，不用 Actions 欄；無 detail 頁允許 row 端 ghost icon action（icon-only、muted、hover 語意）。
   - **Pointer event priority**：整列導覽與列內拖曳（grip）並存時，優先序為「點擊/輕觸列的普通區域 → 導覽 Detail；在 grip 上點擊/拖曳 → 拖曳排序，且不觸發導覽」。grip 的互動必須 stop propagation 並抑制拖曳結束後的一次 click，但**不得因此關閉整列的導覽能力**；reorder mode 期間整列導覽維持有效。三種禁止的實作缺陷：點 grip 同時開啟 Detail、drag 結束才觸發 row click、reorder mode 直接停用 row click。
-- `form`：全站表單共通原則（2026-09-24 定案）。首個合格實作為 account 表單（`AccountForm` 與 `AccountSnapshotEditor`）；其餘表單逐一遷移，不批次套用。表單狀態與驗證時機的規則（RHF、`useForm` 呼叫點、submit gate）見 `ui-layer-architecture.md` §4，此段只規範元件表面。
+- `form`：全站表單共通原則。表單狀態與驗證時機的規則（RHF、`useForm` 呼叫點、submit gate）見 `ui-layer-architecture.md` §4，此段只規範元件表面。
   - **欄位群組**：`FormItem` 是唯一決定 label / control / error 垂直佈局的地方（`space-y-2`）。欄位不得自行決定 label 或 error 的位置與間距。
   - **元件解耦**：輸入欄位（`TextInput`、`NumberInput`、`CurrencyInput`、`DateInput`…）是 RHF-free 的受控元件，唯一 value contract 為 string。RHF 的接線集中於 `FormControl`，欄位本身不得 import RHF。理由見 ADR-0065。
   - **注入契約**：`FormControl` 以 `cloneElement` 注入 `value / onChange / onBlur / name / ref / error（boolean）/ aria-invalid / aria-describedby / id`。`error` 供視覺、`aria-*` 供無障礙，兩者缺一不可；欄位元件必須轉發 `ref` 至原生元素。

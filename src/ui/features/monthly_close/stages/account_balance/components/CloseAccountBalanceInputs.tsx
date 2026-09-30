@@ -25,13 +25,13 @@ import type {
   AccountSnapshot,
   CurrencyCode,
   Holding,
-} from '../viewmodels/accountBalance.vm';
+} from '../../../viewmodels/accountBalance.vm';
 import {
   type AccountBalanceSectionKind,
   buildAccountBalanceSections,
   computeSectionInput,
   upsertSectionInput,
-} from '../viewmodels/accountBalance.vm';
+} from '../../../viewmodels/accountBalance.vm';
 import { AccountNameCell } from './AccountNameCell';
 import { ForeignMobileList, TwdMobileList } from './CloseAccountBalanceMobileLists';
 import { SecuritiesAccountRow } from './SecuritiesAccountRow';

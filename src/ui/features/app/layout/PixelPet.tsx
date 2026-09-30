@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 
 import clsx from 'clsx';
 import { NavLink } from 'react-router-dom';
@@ -25,6 +25,15 @@ const PixelPet: React.FC<PixelPetProps> = ({ reaction = 'idle' }) => {
 
   const activeReaction = PET_REACTIONS.includes(reaction) ? reaction : 'idle';
 
+  useEffect(() => {
+    if (!open) return;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setOpen(false);
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [open]);
+
   return (
     <>
       <button
@@ -42,6 +51,7 @@ const PixelPet: React.FC<PixelPetProps> = ({ reaction = 'idle' }) => {
       {open && (
         <div
           data-testid="navigator-backdrop"
+          aria-hidden="true"
           className="fixed inset-0 z-40"
           onClick={() => setOpen(false)}
           onPointerDown={() => setOpen(false)}

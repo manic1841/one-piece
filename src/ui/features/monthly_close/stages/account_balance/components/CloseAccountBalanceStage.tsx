@@ -1,15 +1,17 @@
 import React from 'react';
 
 import { MONTHLY_CLOSE_LABELS } from '@/ui/constants/monthlyClose';
-import { CloseAccountBalanceInputs } from '@/ui/features/monthly_close/components/CloseAccountBalanceInputs';
 import { CloseStageChrome } from '@/ui/features/monthly_close/components/CloseStageChrome';
 import { CloseStageEvidenceList } from '@/ui/features/monthly_close/components/CloseStageEvidenceList';
+import { CloseStageLoadError } from '@/ui/features/monthly_close/components/CloseStageLoadError';
 import {
   type Account,
   type AccountBalanceInput,
   type AccountSnapshot,
 } from '@/ui/features/monthly_close/viewmodels/accountBalance.vm';
 import { type CloseStageEvidence } from '@/ui/features/monthly_close/viewmodels/monthlyClose.vm';
+
+import { CloseAccountBalanceInputs } from './CloseAccountBalanceInputs';
 
 interface CloseAccountBalanceStageProps {
   stepText: string;
@@ -20,6 +22,8 @@ interface CloseAccountBalanceStageProps {
   isConfirmable: boolean;
   isReadOnly: boolean;
   evidence: CloseStageEvidence;
+  /** Canned copy when the snapshot load failed; prefill is a convenience, so it does not block confirm. */
+  loadErrorMessage?: string | null;
   accounts: Account[];
   accountSnapshots: Map<string, AccountSnapshot>;
   balances: AccountBalanceInput[];
@@ -41,6 +45,7 @@ export const CloseAccountBalanceStage: React.FC<CloseAccountBalanceStageProps> =
   isConfirmable,
   isReadOnly,
   evidence,
+  loadErrorMessage = null,
   accounts,
   accountSnapshots,
   balances,
@@ -60,6 +65,7 @@ export const CloseAccountBalanceStage: React.FC<CloseAccountBalanceStageProps> =
     onConfirm={onConfirm}
     onBackToCurrent={onBackToCurrent}
   >
+    <CloseStageLoadError message={loadErrorMessage} />
     <div>
       <p className="mb-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
         {MONTHLY_CLOSE_LABELS.EVIDENCE_LABEL}

@@ -1,7 +1,7 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { type ReadinessVM } from '../mappers/closeSummary.mappers';
+import { type ReadinessVM } from '../../../mappers/closeSummary.mappers';
 import { CloseReadinessCheck } from './CloseReadinessCheck';
 
 const readinessVM: ReadinessVM = {
@@ -88,5 +88,14 @@ describe('CloseReadinessCheck', () => {
 
     expect(screen.getByText('台新銀行')).toBeInTheDocument();
     expect(screen.getByTestId('readiness-confirm')).toBeEnabled();
+  });
+
+  it('renders readiness only — no financial figures', () => {
+    // Step 7 surfaces readiness state, not report numbers; the aggregated
+    // figures belong to Steps 8-9 (see docs/monthly-close.md §3).
+    const { container } = renderPanel();
+
+    expect(container).not.toHaveTextContent(/NT\$/);
+    expect(container.querySelectorAll('[data-testid^="close-"]')).toHaveLength(1);
   });
 });

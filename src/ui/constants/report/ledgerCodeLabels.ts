@@ -33,8 +33,6 @@ export const LEDGER_CODE_LABELS: Record<string, string> = {
   'liability:mortgage': '房貸',
 
   // Equity
-  'equity:owner_investment': '股東投入資本',
-  'equity:owner_draw': '股東分紅',
   'equity:capital': '股東資本',
 
   // Income Additions

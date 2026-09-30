@@ -5,6 +5,7 @@ import {
   type BalanceSheetDataSchema,
   type BalanceSheetItemSchema,
   type CashFlowDataSchema,
+  type CashFlowItemSchema,
   type FinancialReportSchema,
   type IncomeStatementDataSchema,
   type IncomeStatementItemSchema,
@@ -16,3 +17,4 @@ export type BalanceSheetData = z.infer<typeof BalanceSheetDataSchema>;
 export type CashFlowData = z.infer<typeof CashFlowDataSchema>;
 export type IncomeStatementItem = z.infer<typeof IncomeStatementItemSchema>;
 export type BalanceSheetItem = z.infer<typeof BalanceSheetItemSchema>;
+export type CashFlowItem = z.infer<typeof CashFlowItemSchema>;

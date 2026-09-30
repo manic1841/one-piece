@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 import { type CloseStageId, type FinancialPeriod } from '@/domains/financial_period/schemas';
+import { CLOSE_STAGE_ORDER } from '@/ui/constants/monthlyClose';
 
 export type { CloseStageId };
 
@@ -90,6 +91,18 @@ export const resolveDisplayedStageId = ({
 }: DisplayedStageTarget): CloseStageId | null => {
   if (isClosed) return viewingStageId ?? 'CLOSE_PERIOD';
   return viewingStageId ?? currentStageId;
+};
+
+/**
+ * The stage that follows `stageId` in walk order, or null at the end. Lets the
+ * page advance from a stage's Continue without naming the target: the order
+ * stays in this one module, so no stage ID leaks into the page hook.
+ */
+export const resolveNextStageId = (stageId: CloseStageId | null): CloseStageId | null => {
+  if (!stageId) return null;
+  const index = CLOSE_STAGE_ORDER.indexOf(stageId);
+  if (index < 0 || index >= CLOSE_STAGE_ORDER.length - 1) return null;
+  return CLOSE_STAGE_ORDER[index + 1];
 };
 
 export const resolvePositionText = (
