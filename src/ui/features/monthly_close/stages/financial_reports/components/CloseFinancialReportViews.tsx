@@ -9,7 +9,6 @@ import {
   DataTableRow,
   NumberCell,
   TableBody,
-  dataTableLabelClass,
 } from '@/ui/components/data-table';
 import { MONTHLY_CLOSE_LABELS } from '@/ui/constants/monthlyClose';
 import { cn, formatCurrency } from '@/ui/utils';
@@ -38,8 +37,12 @@ const INDENT_STEP = 16;
  * A statement row in display order. Sections (the top-level groups that stand in
  * for the table header) carry no amount of their own — a dedicated total row
  * follows. Rows with children are collapsible with a chevron on the left.
+ *
+ * The tone is a semantic role (see `Financial Statement Semantic Hierarchy` in
+ * `docs/ui/visual-standards.md`), not a depth: the same role looks the same in
+ * every statement.
  */
-type RowTone = 'section' | 'group' | 'item' | 'detail' | 'total' | 'grandTotal';
+type RowTone = 'section' | 'group' | 'detail' | 'deepDetail' | 'subtotal' | 'terminus';
 
 interface StatementRow {
   key: string;
@@ -51,19 +54,20 @@ interface StatementRow {
 }
 
 /** A drifted amount cell: the `<persisted> -> <preview>` text in the warning colour. */
-const StatementAmountCell: React.FC<{ drift: DriftAmount }> = ({ drift }) => {
+const StatementAmountCell: React.FC<{ drift: DriftAmount; tone: RowTone }> = ({ drift, tone }) => {
+  const className = AMOUNT_TONE_CLASS[tone];
   const delta = formatDriftDelta(drift);
   if (delta === null) {
     return (
       <NumberCell
         value={drift.amount}
         format={formatCurrency}
-        className={isDrifted(drift) ? 'text-warning' : undefined}
+        className={cn(className, isDrifted(drift) && 'text-warning')}
       />
     );
   }
   return (
-    <DataTableCell align="number" className="text-warning">
+    <DataTableCell align="number" className={cn(className, 'text-warning')}>
       {delta}
     </DataTableCell>
   );
@@ -76,34 +80,52 @@ const StatementAmountText: React.FC<{ drift: DriftAmount }> = ({ drift }) => (
   </span>
 );
 
-const RowAmountCell: React.FC<{ value: DriftAmount | null }> = ({ value }) => {
+const RowAmountCell: React.FC<{ value: DriftAmount | null; tone: RowTone }> = ({ value, tone }) => {
   if (value === null) return <DataTableCell align="number" />;
-  return <StatementAmountCell drift={value} />;
+  return <StatementAmountCell drift={value} tone={tone} />;
 };
 
 const LABEL_TONE_CLASS: Record<RowTone, string> = {
-  section: dataTableLabelClass,
+  section: 'text-[11px] font-semibold uppercase tracking-[0.08em] text-foreground',
   group: 'text-[13px] font-medium text-foreground',
-  item: 'text-[13px] text-foreground',
   detail: 'text-xs text-muted-foreground',
-  total: 'text-[13px] font-semibold text-foreground',
-  grandTotal: 'text-[13px] font-bold text-foreground',
+  deepDetail: 'text-[11px] text-muted-foreground',
+  subtotal: 'text-[13px] font-semibold text-foreground',
+  terminus: 'text-base font-semibold text-foreground',
+};
+
+const AMOUNT_TONE_CLASS: Record<RowTone, string> = {
+  section: '',
+  group: 'text-[13px]',
+  detail: 'text-xs',
+  deepDetail: 'text-[11px]',
+  subtotal: 'text-[13px] font-semibold',
+  terminus: 'text-base font-semibold',
 };
 
 const ROW_TONE_CLASS: Record<RowTone, string> = {
-  section: 'border-b border-border bg-muted/30',
+  section: 'border-b border-border bg-muted/40',
   group: '',
-  item: '',
   detail: '',
-  total: 'border-t-2 border-border',
-  grandTotal: 'border-t-2 border-foreground',
+  deepDetail: '',
+  subtotal: 'border-t border-border-strong',
+  terminus: 'h-16 border-t-2 border-foreground bg-muted/40',
 };
 
 const totalRow = (key: string, label: string, amount: DriftAmount): StatementRow => ({
   key,
   label: `${label}${MONTHLY_CLOSE_LABELS.TOTAL_SUFFIX}`,
   amount,
-  tone: 'total',
+  tone: 'subtotal',
+  depth: 0,
+  children: [],
+});
+
+const terminusRow = (key: string, label: string, amount: DriftAmount): StatementRow => ({
+  key,
+  label,
+  amount,
+  tone: 'terminus',
   depth: 0,
   children: [],
 });
@@ -113,7 +135,7 @@ const itemRows = (items: DriftItem[], depth: number): StatementRow[] =>
     key: item.code,
     label: item.label,
     amount: item,
-    tone: depth <= 1 ? 'item' : 'detail',
+    tone: depth <= 1 ? 'group' : depth === 2 ? 'detail' : 'deepDetail',
     depth,
     children: item.subItems?.length ? itemRows(item.subItems, depth + 1) : [],
   }));
@@ -162,7 +184,7 @@ const StatementRowView: React.FC<{
           <span className={LABEL_TONE_CLASS[row.tone]}>{row.label}</span>
         </div>
       </DataTableCell>
-      <RowAmountCell value={row.amount} />
+      <RowAmountCell value={row.amount} tone={row.tone} />
     </DataTableRow>
   );
 };
@@ -218,14 +240,7 @@ export const IncomeStatementView: React.FC<
     });
     rows.push(totalRow('total:expense', MONTHLY_CLOSE_LABELS.EXPENSE_SECTION, data.expenseTotal));
   }
-  rows.push({
-    key: 'grand:netIncome',
-    label: MONTHLY_CLOSE_LABELS.NET_INCOME,
-    amount: data.netIncome,
-    tone: 'grandTotal',
-    depth: 0,
-    children: [],
-  });
+  rows.push(terminusRow('terminus:netIncome', MONTHLY_CLOSE_LABELS.NET_INCOME, data.netIncome));
 
   return (
     <div data-testid="close-income-statement">
@@ -314,14 +329,13 @@ const balanceSheetRows = (data: BalanceSheetDrift): StatementRow[] => {
     );
   }
 
-  rows.push({
-    key: 'grand:liabilitiesPlusEquity',
-    label: MONTHLY_CLOSE_LABELS.LIABILITIES_PLUS_EQUITY,
-    amount: combineDrift([data.liabilities.total, data.equity.total]),
-    tone: 'grandTotal',
-    depth: 0,
-    children: [],
-  });
+  rows.push(
+    terminusRow(
+      'terminus:liabilitiesPlusEquity',
+      MONTHLY_CLOSE_LABELS.LIABILITIES_PLUS_EQUITY,
+      combineDrift([data.liabilities.total, data.equity.total]),
+    ),
+  );
 
   return rows;
 };
@@ -384,6 +398,9 @@ export const CashFlowView: React.FC<StatementViewProps & { data: CashFlowDrift |
     });
     rows.push(totalRow(`total:${key}`, group.label, group.total));
   }
+  rows.push(
+    terminusRow('terminus:netCashChange', MONTHLY_CLOSE_LABELS.NET_CASH_CHANGE, data.netCashChange),
+  );
 
   return (
     <div className="space-y-6" data-testid="close-cash-flow">
@@ -393,14 +410,9 @@ export const CashFlowView: React.FC<StatementViewProps & { data: CashFlowDrift |
         collapsed={collapsed}
         onToggle={onToggle}
       />
-      <div className="flex items-baseline justify-end gap-4 border-t border-border pt-4">
-        <p className="text-sm font-semibold text-foreground">
-          {MONTHLY_CLOSE_LABELS.NET_CASH_CHANGE} <StatementAmountText drift={data.netCashChange} />
-        </p>
-        <p className="text-sm text-muted-foreground">
-          {MONTHLY_CLOSE_LABELS.ACTUAL_BALANCE} <StatementAmountText drift={data.actualBalance} />
-        </p>
-      </div>
+      <p className="text-right text-xs text-muted-foreground">
+        {MONTHLY_CLOSE_LABELS.ACTUAL_BALANCE} <StatementAmountText drift={data.actualBalance} />
+      </p>
     </div>
   );
 };
