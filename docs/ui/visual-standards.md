@@ -1,6 +1,6 @@
 # 頁面視覺標準 (Visual Standards)
 
-> **邊界宣告**：本文件管**頁面層級的佈局與互動標準**——Page Shell、頁寬、間距用途、空／載入／錯誤狀態、進階設定、工作流版面、Dashboard 版面、報表版面、行動版佈局、搜尋與指令、資料密度、互動一致性、破壞性動作、通知、響應式、反模式與最終 review checklist。**設計 token 與元件表面**（色彩、材質、動態、字體排印、元件尺寸與狀態契約、spacing 級距）屬 [`design-system.md`](design-system.md)；分層、導航／Header 契約、List / Detail / Workflow 動作位置與 RWD 斷點契約屬 [`ui-layer-architecture.md`](ui-layer-architecture.md)。三份文件權威不重疊。
+> **邊界宣告**：本文件管**頁面層級的佈局與互動標準**——Page Shell、頁寬、間距用途、進階設定、工作流版面、Dashboard 版面、報表版面、行動版佈局、搜尋與指令、資料密度、互動一致性、破壞性動作、通知、響應式、反模式與最終 review checklist。**設計 token 與元件表面**（色彩、材質、動態、字體排印、元件尺寸與狀態契約、spacing 級距）屬 [`design-system.md`](design-system.md)；分層、導航／Header 契約、List / Detail / Workflow 動作位置與 RWD 斷點契約屬 [`ui-layer-architecture.md`](ui-layer-architecture.md)；空／載入／錯誤三態的義務與無障礙契約屬 [`states-and-a11y.md`](states-and-a11y.md)。四份文件權威不重疊。
 
 本文件是頁面層級視覺契約的唯一真相來源。已由其他文件承載的契約（Dashboard 資料錨定、關帳階段模型等）一律以指標引用、不在本文件重述；規則差異時以該事實的歸屬文件為準。
 
@@ -82,43 +82,9 @@ Page Header 規則：
 
 **禁止**：級距外的任意值（`13px`、`18px`、`22px`、`27px`、`37px`…）不得大量出現，除非有特殊 layout 原因。目標是讓整個系統有**可預測的節奏**。
 
-## 空狀態 (Empty State)
+## 狀態 (States)
 
-空狀態不插圖、不做大型 Card。標準結構：
-
-```text
-○ NO DATA
-
-No accounts have been added yet.
-
-[ + ADD ACCOUNT ]
-```
-
-原則：
-
-- icon / status + 一句說明 + 一個主要 action。
-- 說明要回答三件事：缺什麼、為何重要、使用者下一步能做什麼。
-- 不要大插畫、decorative illustration、大型 Card、大量文字。
-
-## 載入狀態 (Loading)
-
-- 一般 loading：單行文字（`Loading...`）。
-- Skeleton 用於 Table / List / Detail。
-- 長時間工作使用 Terminal-style 進度——這是 ONE PIECE 的 engineering identity：
-
-```text
-$ generate-reports --period SEP-2026
-
-[████████████░░░░░░░░] 62%
-
-→ Generating September financial statements...
-```
-
-## 錯誤狀態 (Error State)
-
-- 錯誤必須 **Specific**、**Actionable**、**Close to the affected data**（靠近受影響的資料呈現，而非集中到頁首）。
-- `Negative` 色僅用於真正的錯誤或負向狀態。
-- 需要使用者解決的問題不得只用通用 toast 蓋掉——改用 inline alert 或 exception 呈現。
+空、載入、錯誤三態的必備義務——標準結構、文案要求、呈現位置與錯誤呈現方式——屬 [`states-and-a11y.md`](states-and-a11y.md)。本節不重述，也不保留摘要版本。
 
 ## 進階設定 (Advanced Settings)
 
@@ -317,7 +283,7 @@ Toast 只回報：
 - Error。
 - Background operation result。
 
-不要用 Toast 傳遞重要 workflow instruction——重要問題用 inline alert 或 exception 呈現。
+- 不要用 Toast 傳遞重要 workflow instruction——重要問題的呈現方式屬 [`states-and-a11y.md`](states-and-a11y.md) 的錯誤狀態。
 
 ## 響應式原則 (Responsive)
 

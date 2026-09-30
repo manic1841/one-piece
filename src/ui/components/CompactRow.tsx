@@ -18,16 +18,34 @@ const CompactRow: React.FC<CompactRowProps> = ({
   testId,
   style,
   ref,
-}) => (
-  <div
-    ref={ref}
-    data-testid={testId}
-    onClick={onClick}
-    style={style}
-    className={cn('rounded-md border p-3 md:hidden', className)}
-  >
-    {children}
-  </div>
-);
+}) => {
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>): void => {
+    if (!onClick) return;
+    if (event.target !== event.currentTarget) return;
+    if (event.key !== 'Enter' && event.key !== ' ') return;
+    event.preventDefault();
+    onClick();
+  };
+
+  return (
+    <div
+      ref={ref}
+      data-testid={testId}
+      onClick={onClick}
+      onKeyDown={handleKeyDown}
+      role={onClick ? 'button' : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      style={style}
+      className={cn(
+        'rounded-md border p-3 md:hidden',
+        onClick &&
+          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
+        className,
+      )}
+    >
+      {children}
+    </div>
+  );
+};
 
 export default CompactRow;

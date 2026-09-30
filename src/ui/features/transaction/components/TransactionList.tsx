@@ -31,6 +31,8 @@ export const TransactionList: React.FC<TransactionListProps> = ({
   const [fromDate, setFromDate] = React.useState('');
   const [toDate, setToDate] = React.useState('');
   const [dateRangeError, setDateRangeError] = React.useState('');
+  const fromDateInputId = React.useId();
+  const toDateInputId = React.useId();
 
   const handleApplyDateRange = async () => {
     if (fromDate && toDate && fromDate > toDate) {
@@ -87,10 +89,14 @@ export const TransactionList: React.FC<TransactionListProps> = ({
       <div className="space-y-3 pb-4 border-b border-border">
         <div className="flex flex-col gap-3 md:flex-row md:flex-wrap md:items-end">
           <div className="w-full md:min-w-56 md:max-w-64 md:flex-1">
-            <label className="mb-1 block font-mono text-[10px] tracking-widest text-muted-foreground">
+            <label
+              htmlFor={fromDateInputId}
+              className="mb-1 block font-mono text-[10px] tracking-widest text-muted-foreground"
+            >
               FROM
             </label>
             <Input
+              id={fromDateInputId}
               type="date"
               value={fromDate}
               onChange={(event) => setFromDate(event.target.value)}
@@ -98,10 +104,14 @@ export const TransactionList: React.FC<TransactionListProps> = ({
             />
           </div>
           <div className="w-full md:min-w-56 md:max-w-64 md:flex-1">
-            <label className="mb-1 block font-mono text-[10px] tracking-widest text-muted-foreground">
+            <label
+              htmlFor={toDateInputId}
+              className="mb-1 block font-mono text-[10px] tracking-widest text-muted-foreground"
+            >
               TO
             </label>
             <Input
+              id={toDateInputId}
               type="date"
               value={toDate}
               onChange={(event) => setToDate(event.target.value)}

@@ -90,7 +90,7 @@
 - **`AppFallback`** — 全 app 啟動不可恢復失敗的畫面。由 `ErrorBoundary` 與 `AuthGate` 使用。
   - Props：`title`、`description`、`hint?`、`onRetry?`（未提供時預設按鈕為重新載入）。
   - 變體：無。
-  - **不要用於**：一般頁面層的錯誤——那用 inline alert 或 exception（見 `visual-standards.md` 錯誤狀態）。
+  - **不要用於**：一般頁面層的錯誤——那用 inline alert 或 exception（見 [`states-and-a11y.md`](states-and-a11y.md) 錯誤狀態）。
   - 範例：`src/ui/features/app/AuthGate.tsx`
 
 - **`ErrorBoundary`** — class component，捕捉 render 期錯誤並渲染 `AppFallback`。

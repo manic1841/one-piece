@@ -44,29 +44,41 @@ const IncomeStatementPage: React.FC<IncomeStatementPageProps> = ({
   const renderItem = (item: IncomeStatementItemVM, depth = 0) => {
     const hasSubItems = item.subItems && item.subItems.length > 0;
     const isExpanded = expandedCodes.has(item.code);
+    const rowClass = `flex items-center justify-between py-3 px-2 ${depth > 0 ? 'bg-muted/50' : ''}`;
+    const rowContent = (
+      <>
+        <div className="flex items-center gap-2" style={{ paddingLeft: `${depth * 1.5}rem` }}>
+          {hasSubItems ? (
+            isExpanded ? (
+              <ChevronDown size={16} className="text-muted-foreground" />
+            ) : (
+              <ChevronRight size={16} className="text-muted-foreground" />
+            )
+          ) : (
+            <div className="w-4" />
+          )}
+          <span className={`${depth === 0 ? 'font-medium' : 'text-muted-foreground'}`}>
+            {item.label}
+          </span>
+        </div>
+        <span className={`font-mono ${depth === 0 ? 'font-bold' : ''}`}>{item.amountText}</span>
+      </>
+    );
 
     return (
       <div key={item.code} className="border-b last:border-0 border-border">
-        <div
-          className={`flex items-center justify-between py-3 px-2 hover:bg-muted transition-colors cursor-pointer ${depth > 0 ? 'bg-muted/50' : ''}`}
-          onClick={() => hasSubItems && toggleExpand(item.code)}
-        >
-          <div className="flex items-center gap-2" style={{ paddingLeft: `${depth * 1.5}rem` }}>
-            {hasSubItems ? (
-              isExpanded ? (
-                <ChevronDown size={16} className="text-muted-foreground" />
-              ) : (
-                <ChevronRight size={16} className="text-muted-foreground" />
-              )
-            ) : (
-              <div className="w-4" />
-            )}
-            <span className={`${depth === 0 ? 'font-medium' : 'text-muted-foreground'}`}>
-              {item.label}
-            </span>
-          </div>
-          <span className={`font-mono ${depth === 0 ? 'font-bold' : ''}`}>{item.amountText}</span>
-        </div>
+        {hasSubItems ? (
+          <button
+            type="button"
+            aria-expanded={isExpanded}
+            onClick={() => toggleExpand(item.code)}
+            className={`cursor-pointer text-left transition-colors hover:bg-muted ${rowClass}`}
+          >
+            {rowContent}
+          </button>
+        ) : (
+          <div className={rowClass}>{rowContent}</div>
+        )}
         {isExpanded && hasSubItems && (
           <div className="bg-muted/30">
             {item.subItems!.map((sub: IncomeStatementItemVM) => renderItem(sub, depth + 1))}
