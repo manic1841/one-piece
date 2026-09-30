@@ -72,6 +72,58 @@ const formatTimestamps = (timestamps: ReportTimestampsVM): string => {
   return parts.length > 0 ? ` ｜ ${parts.join(' ｜ ')}` : '';
 };
 
+interface ReportsAlertsProps {
+  error: string | null;
+  timestamps: ReportTimestampsVM;
+  showAdjustmentWarning: boolean;
+  showExistingReportsWarning: boolean;
+  showPersistenceUnknown: boolean;
+}
+
+/** The Step 8 warning surface: load error plus every pre-confirm/unknown alert. */
+const ReportsAlerts: React.FC<ReportsAlertsProps> = ({
+  error,
+  timestamps,
+  showAdjustmentWarning,
+  showExistingReportsWarning,
+  showPersistenceUnknown,
+}) => {
+  const generatedAt = formatTimestamps(timestamps);
+  return (
+    <>
+      {error && (
+        <Alert variant="destructive" className="border-negative/20 bg-negative/10">
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+
+      {showAdjustmentWarning && (
+        <WarningAlert>{MONTHLY_CLOSE_LABELS.ADJUSTMENT_WARNING}</WarningAlert>
+      )}
+
+      {/* Persisted reports without a completed stage are leftover files (legacy
+          pre-workflow month or a reopened period). Confirm recomputes the
+          preview and overwrites them, so warn instead of claiming the stage is
+          done (#222). */}
+      {showExistingReportsWarning && (
+        <WarningAlert>
+          <p>{MONTHLY_CLOSE_LABELS.EXISTING_REPORTS_WARNING}</p>
+          {generatedAt && (
+            <p>
+              {MONTHLY_CLOSE_LABELS.GENERATED_AT}
+              {generatedAt}
+            </p>
+          )}
+        </WarningAlert>
+      )}
+
+      {showPersistenceUnknown && (
+        <WarningAlert>{MONTHLY_CLOSE_LABELS.PERSISTENCE_UNKNOWN_WARNING}</WarningAlert>
+      )}
+    </>
+  );
+};
+
 export const CloseFinancialReports: React.FC<CloseFinancialReportsProps> = ({
   reports,
   timestamps,
@@ -114,6 +166,7 @@ export const CloseFinancialReports: React.FC<CloseFinancialReportsProps> = ({
   const isGenerateBlocked =
     isSettlementReady !== true || error !== null || !hasAnyData || reportsPersisted === null;
   const showAdjustmentWarning = Math.abs(cashFlow?.adjustment.amount ?? 0) > 1000;
+  const showExistingReportsWarning = !isStageCompleted && reportsPersisted === true;
   const showPersistenceUnknown =
     !isStageCompleted && !isLoading && error === null && reportsPersisted === null;
 
@@ -138,35 +191,13 @@ export const CloseFinancialReports: React.FC<CloseFinancialReportsProps> = ({
         </span>
       </div>
 
-      {error && (
-        <Alert variant="destructive" className="border-negative/20 bg-negative/10">
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      )}
-
-      {showAdjustmentWarning && (
-        <WarningAlert>{MONTHLY_CLOSE_LABELS.ADJUSTMENT_WARNING}</WarningAlert>
-      )}
-
-      {/* Persisted reports without a completed stage are leftover files (legacy
-          pre-workflow month or a reopened period). Confirm recomputes the
-          preview and overwrites them, so warn instead of claiming the stage is
-          done (#222). */}
-      {!isStageCompleted && reportsPersisted === true && (
-        <WarningAlert>
-          <p>{MONTHLY_CLOSE_LABELS.EXISTING_REPORTS_WARNING}</p>
-          {formatTimestamps(timestamps) && (
-            <p>
-              {MONTHLY_CLOSE_LABELS.GENERATED_AT}
-              {formatTimestamps(timestamps)}
-            </p>
-          )}
-        </WarningAlert>
-      )}
-
-      {showPersistenceUnknown && (
-        <WarningAlert>{MONTHLY_CLOSE_LABELS.PERSISTENCE_UNKNOWN_WARNING}</WarningAlert>
-      )}
+      <ReportsAlerts
+        error={error}
+        timestamps={timestamps}
+        showAdjustmentWarning={showAdjustmentWarning}
+        showExistingReportsWarning={showExistingReportsWarning}
+        showPersistenceUnknown={showPersistenceUnknown}
+      />
 
       {isStageCompleted && (
         <div
