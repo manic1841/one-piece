@@ -1,64 +1,76 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo } from 'react';
 
 import { type SecuritiesTradeInput } from '@/application/monthly_close/use_cases/monthlyCloseWorkflowUseCase';
-import { validateMonthTransactionsUseCase } from '@/application/monthly_close/use_cases/validateMonthTransactionsUseCase';
 import { type SettlementReadiness } from '@/application/report/use_cases/getSettlementReadinessUseCase';
+import { type StoredReportsBundle } from '@/application/report/use_cases/getStoredReportsBundleUseCase';
 import { type PreviewFinancialReportsResult } from '@/application/report/use_cases/previewFinancialReportsWorkflow';
 import { type CompletenessActivity } from '@/application/settlement/use_cases/checkSettlementCompletenessUseCase';
+import { type ReportTotals, diffReportTotals } from '@/domains/report/reportDrift';
 import { REPORT_VIEW_TITLES } from '@/ui/constants/report/reportViewLabels';
-import { useAuthIdentity } from '@/ui/hooks/useAuthIdentity';
 
-import { mapCloseSummary, mapReadinessVM } from '../mappers/closeSummary.mappers';
+import {
+  type FinancialDriftVM,
+  mapCloseSummary,
+  mapReadinessVM,
+} from '../mappers/closeSummary.mappers';
 import { type MonthlyClosePageVM } from '../viewmodels/monthlyClose.vm';
 
 interface UseCloseSummaryVMArgs {
-  householdId: string;
-  selectedYearMonth: string;
   readiness: SettlementReadiness | null;
+  /** The validated-transaction count TRANSACTION_VALIDATION's stage hook owns. */
+  checkedCount: number;
   reportBundle: PreviewFinancialReportsResult | null;
+  persistedBundle: StoredReportsBundle | null;
+  /** CLOSED renders the persisted record read-only; drift is only compared while live. */
+  isClosed: boolean;
   transactionIssues: { transactionId: string; description: string; reason: string }[];
   securities: { buys: SecuritiesTradeInput[]; sells: SecuritiesTradeInput[] };
   anomalies: CompletenessActivity[];
   pageVM: MonthlyClosePageVM;
   reportsPersisted: boolean | null;
-  refreshStageEvidence: () => Promise<void>;
 }
+
+const EMPTY_FINANCIAL_RESULT = {
+  totalAssets: null,
+  totalLiabilities: null,
+  equity: null,
+  netIncome: null,
+  netCashFlow: null,
+} as const;
+
+const toTotals = (
+  bundle: PreviewFinancialReportsResult | StoredReportsBundle | null,
+): ReportTotals | null => {
+  if (!bundle?.incomeStatement || !bundle.balanceSheet || !bundle.cashFlow) return null;
+  return {
+    totalAssets: bundle.balanceSheet.assets.total,
+    totalLiabilities: bundle.balanceSheet.liabilities.total,
+    equity: bundle.balanceSheet.equity.total,
+    netIncome: bundle.incomeStatement.netIncome,
+    netCashFlow: bundle.cashFlow.netCashChange,
+  };
+};
 
 /**
  * Derives the readiness and close-summary view models that Steps 7-8 render,
- * including the checked-transaction count they both consume.
+ * from the evidence each owning stage hook provides, plus the five financial
+ * figures' drift annotations (Report Drift).
  */
 export const useCloseSummaryVM = ({
-  householdId,
-  selectedYearMonth,
   readiness,
+  checkedCount,
   reportBundle,
+  persistedBundle,
+  isClosed,
   transactionIssues,
   securities,
   anomalies,
   pageVM,
   reportsPersisted,
-  refreshStageEvidence,
 }: UseCloseSummaryVMArgs) => {
-  const auth = useAuthIdentity();
-  const zeroActivityNames = anomalies.map((activity) => activity.name);
-  const [checkedCount, setCheckedCount] = useState(0);
-
-  // Checked count rides the same refresh as the stage evidence, so Step 7's
-  // N/M count never goes stale after a mid-close securities re-confirm.
-  useEffect(() => {
-    if (!householdId || !selectedYearMonth) return;
-    const refresh = async () => {
-      const result = await validateMonthTransactionsUseCase.execute({
-        householdId,
-        year: Number(selectedYearMonth.slice(0, 4)),
-        month: Number(selectedYearMonth.slice(5, 7)),
-        auth,
-      });
-      setCheckedCount(result.checkedCount);
-    };
-    void refresh();
-  }, [auth, householdId, refreshStageEvidence, selectedYearMonth]);
+  // Memoized so a re-render that did not change the anomalies does not
+  // invalidate the readiness projection that reads it.
+  const zeroActivityNames = useMemo(() => anomalies.map((activity) => activity.name), [anomalies]);
 
   const readinessVM = useMemo(() => {
     if (!readiness) return null;
@@ -86,22 +98,26 @@ export const useCloseSummaryVM = ({
     zeroActivityNames,
   ]);
 
-  const financialResult = useMemo(
-    () => ({
-      totalAssets: reportBundle?.balanceSheet.assets.total ?? null,
-      totalLiabilities: reportBundle?.balanceSheet.liabilities.total ?? null,
-      equity: reportBundle?.balanceSheet.equity.total ?? null,
-      netIncome: reportBundle?.incomeStatement.netIncome ?? null,
-      netCashFlow: reportBundle?.cashFlow.netCashChange ?? null,
-    }),
-    [reportBundle],
-  );
+  const previewTotals = useMemo(() => toTotals(reportBundle), [reportBundle]);
+  const persistedTotals = useMemo(() => toTotals(persistedBundle), [persistedBundle]);
+
+  const financialResult = useMemo(() => {
+    // CLOSED renders the frozen persisted record; every other status renders the
+    // live preview, so a reopened period with leftover files keeps comparing.
+    const source = isClosed ? persistedTotals : previewTotals;
+    return source ?? EMPTY_FINANCIAL_RESULT;
+  }, [isClosed, persistedTotals, previewTotals]);
+
+  const financialDrift = useMemo<FinancialDriftVM | undefined>(() => {
+    if (isClosed || !previewTotals || !persistedTotals) return undefined;
+    return diffReportTotals(previewTotals, persistedTotals);
+  }, [isClosed, persistedTotals, previewTotals]);
 
   const reportResults = useMemo(
     () =>
       (['INCOME_STATEMENT', 'BALANCE_SHEET', 'CASH_FLOW'] as const).map((viewId) => ({
         title: REPORT_VIEW_TITLES[viewId],
-        isGenerated: reportsPersisted ?? false,
+        isGenerated: reportsPersisted,
       })),
     [reportsPersisted],
   );
@@ -116,9 +132,10 @@ export const useCloseSummaryVM = ({
           dataText: null,
         })),
         financialResult,
+        financialDrift,
         reports: reportResults,
       }),
-    [financialResult, pageVM.stages, reportResults],
+    [financialDrift, financialResult, pageVM.stages, reportResults],
   );
 
   return { readinessVM, financialResult, closeSummaryVM };

@@ -1,5 +1,3 @@
-import { useCallback } from 'react';
-
 import { type CloseStageId } from '@/domains/financial_period/schemas';
 import { MONTHLY_CLOSE_LABELS } from '@/ui/constants/monthlyClose';
 
@@ -9,8 +7,6 @@ interface UseConfirmStageControlArgs {
   stageId: CloseStageControl['stageId'];
   confirmingStageId: string | null;
   buildRequest: CloseStageControl['buildRequest'];
-  /** The stage's own gate; returning true blocks the submit. */
-  shouldBlock?: CloseStageControl['shouldBlock'];
   /** Ask before submitting (empty-stage warning); false aborts. */
   confirmGate?: () => Promise<boolean>;
   afterConfirm?: CloseStageControl['afterConfirm'];
@@ -19,6 +15,11 @@ interface UseConfirmStageControlArgs {
    * draft leave it unset and the adapter makes it a no-op.
    */
   resetDraft?: CloseStageControl['resetDraft'];
+  /**
+   * Reloads the stage's own loaded data after an external change; stages that
+   * load nothing leave it unset and the adapter omits it.
+   */
+  refresh?: CloseStageControl['refresh'];
   /** Keep the stage view open after a successful confirm (FINANCIAL_REPORTS). */
   keepsViewOnConfirm?: CloseStageControl['keepsViewOnConfirm'];
 }
@@ -31,22 +32,20 @@ export const useConfirmStageControl = ({
   stageId,
   confirmingStageId,
   buildRequest,
-  shouldBlock,
   confirmGate,
   afterConfirm,
   resetDraft,
+  refresh,
   keepsViewOnConfirm,
 }: UseConfirmStageControlArgs): CloseStageControl => {
-  const blocked = useCallback((): boolean => (shouldBlock ? shouldBlock() : false), [shouldBlock]);
-
   return {
     stageId,
     confirming: confirmingStageId === stageId,
     buildRequest,
-    shouldBlock: blocked,
     confirmGate,
     afterConfirm: afterConfirm ?? (() => undefined),
     resetDraft: resetDraft ?? (() => undefined),
+    refresh,
     keepsViewOnConfirm,
   };
 };

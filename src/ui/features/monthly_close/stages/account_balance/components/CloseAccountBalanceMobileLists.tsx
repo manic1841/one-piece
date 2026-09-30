@@ -9,8 +9,11 @@ import {
 } from '@/ui/components/data-table';
 import { formatCurrency } from '@/ui/utils';
 
-import type { AccountBalanceEntryVM, AccountBalanceInput } from '../viewmodels/accountBalance.vm';
-import { computeSectionInput } from '../viewmodels/accountBalance.vm';
+import type {
+  AccountBalanceEntryVM,
+  AccountBalanceInput,
+} from '../../../viewmodels/accountBalance.vm';
+import { computeSectionInput } from '../../../viewmodels/accountBalance.vm';
 import { AccountNameCell } from './AccountNameCell';
 
 interface TwdMobileListProps {

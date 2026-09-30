@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { getMonthInvestmentFinancingUseCase } from '@/application/monthly_close/use_cases/getMonthInvestmentFinancingUseCase';
 import { type FinancingInput } from '@/application/monthly_close/use_cases/monthlyCloseRequests';
@@ -9,9 +9,13 @@ import {
   EMPTY_STAGE_CONFIRM_OPTIONS,
   useConfirmStageControl,
 } from '@/ui/features/monthly_close/hooks/useConfirmStageControl';
+import { useLoadingTask } from '@/ui/hooks/useLoadingTask';
+import { logger } from '@/utils/logger';
 
 import { useTradeDrawer } from './useTradeDrawer';
 import { useTradeDrawerForm } from './useTradeDrawerForm';
+
+const LOAD_ERROR = '無法載入本月投資與融資交易，請稍後再試。';
 
 const toTradeRow = (transaction: {
   id: string;
@@ -31,6 +35,7 @@ interface UseSecuritiesTradeStageArgs {
   householdId: string;
   selectedYearMonth: string;
   confirmingStageId: string | null;
+  enabled?: boolean;
 }
 
 /**
@@ -43,6 +48,7 @@ export const useSecuritiesTradeStage = ({
   householdId,
   selectedYearMonth,
   confirmingStageId,
+  enabled = true,
 }: UseSecuritiesTradeStageArgs): CloseStageControl & {
   securities: { buys: SecuritiesTradeInput[]; sells: SecuritiesTradeInput[] };
   setSecurities: React.Dispatch<
@@ -62,6 +68,8 @@ export const useSecuritiesTradeStage = ({
   drawerForm: ReturnType<typeof useTradeDrawerForm>;
   /** The count of planned buys/sells the readiness check consumes (cross-stage). */
   totalPlannedTrades: number;
+  /** Canned copy when the month-transaction prefill failed to load. */
+  errorMessage: string | null;
 } => {
   const [securities, setSecurities] = useState<{
     buys: SecuritiesTradeInput[];
@@ -72,41 +80,56 @@ export const useSecuritiesTradeStage = ({
     dividendPayout: FinancingInput[];
   }>({ shareholderFinancing: [], dividendPayout: [] });
   const [removedTransactionIds, setRemovedTransactionIds] = useState<string[]>([]);
-  // Bumped after a successful confirm so the month-transaction prefill re-runs
-  // and local rows pick up their Firestore document IDs.
-  const [tradeRefreshKey, setTradeRefreshKey] = useState(0);
   const { confirm: confirmDialog } = useConfirm();
+  const { errorMessage, run } = useLoadingTask();
+  const inFlightRef = useRef<AbortController | null>(null);
 
   // SECURITIES_TRADE prefill: the month's existing investment and financing
   // transactions become editable rows carrying their transaction IDs, so the
   // confirmation diff-merges instead of duplicating (ADR-0052 revision).
-  useEffect(() => {
+  // `control.refresh` re-runs it after a confirm, so local rows pick up their
+  // Firestore document IDs.
+  const load = useCallback(async () => {
     if (!householdId || !selectedYearMonth) return;
-    let cancelled = false;
+    inFlightRef.current?.abort();
+    const controller = new AbortController();
+    inFlightRef.current = controller;
 
-    const loadMonthTransactions = async () => {
-      const rows = await getMonthInvestmentFinancingUseCase.execute({
-        householdId,
-        year: Number(selectedYearMonth.slice(0, 4)),
-        month: Number(selectedYearMonth.slice(5, 7)),
-      });
-      if (cancelled) return;
-      setSecurities({
-        buys: rows.buys.map(toTradeRow),
-        sells: rows.sells.map(toTradeRow),
-      });
-      setFinancing({
-        shareholderFinancing: rows.shareholderFinancing.map(toTradeRow),
-        dividendPayout: rows.dividendPayout.map(toTradeRow),
-      });
-      setRemovedTransactionIds([]);
-    };
+    await run(
+      async () => {
+        try {
+          return await getMonthInvestmentFinancingUseCase.execute({
+            householdId,
+            year: Number(selectedYearMonth.slice(0, 4)),
+            month: Number(selectedYearMonth.slice(5, 7)),
+          });
+        } catch (caught) {
+          logger.warn('Failed to load month transactions', 'useSecuritiesTradeStage', { caught });
+          throw new Error(LOAD_ERROR);
+        }
+      },
+      {
+        signal: controller.signal,
+        writeBack: (result) => {
+          if (!result.ok) return;
+          setSecurities({
+            buys: result.value.buys.map(toTradeRow),
+            sells: result.value.sells.map(toTradeRow),
+          });
+          setFinancing({
+            shareholderFinancing: result.value.shareholderFinancing.map(toTradeRow),
+            dividendPayout: result.value.dividendPayout.map(toTradeRow),
+          });
+          setRemovedTransactionIds([]);
+        },
+      },
+    );
+  }, [householdId, run, selectedYearMonth]);
 
-    void loadMonthTransactions();
-    return () => {
-      cancelled = true;
-    };
-  }, [householdId, selectedYearMonth, tradeRefreshKey]);
+  useEffect(() => {
+    if (!enabled) return;
+    void load();
+  }, [enabled, load]);
 
   const hasSecurities = securities.buys.length > 0 || securities.sells.length > 0;
   const hasFinancing =
@@ -127,12 +150,12 @@ export const useSecuritiesTradeStage = ({
       financing,
       removedTransactionIds,
     }),
-    afterConfirm: () => setTradeRefreshKey((key) => key + 1),
     resetDraft: () => {
       setSecurities({ buys: [], sells: [] });
       setFinancing({ shareholderFinancing: [], dividendPayout: [] });
       setRemovedTransactionIds([]);
     },
+    refresh: load,
   });
 
   const closeMonth = new Date(
@@ -166,6 +189,7 @@ export const useSecuritiesTradeStage = ({
     setRemovedTransactionIds,
     drawer,
     drawerForm,
+    errorMessage,
     totalPlannedTrades: securities.buys.length + securities.sells.length,
   };
 };

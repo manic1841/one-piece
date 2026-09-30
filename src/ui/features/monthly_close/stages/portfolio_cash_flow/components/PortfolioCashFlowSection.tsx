@@ -12,7 +12,7 @@ import { MONTHLY_CLOSE_LABELS } from '@/ui/constants/monthlyClose';
 import { formatCurrency, formatPercentage } from '@/ui/utils';
 import { cn } from '@/ui/utils/cn';
 
-import type { PortfolioCashFlowSectionVM } from '../viewmodels/portfolioCashFlow.vm';
+import type { PortfolioCashFlowSectionVM } from '../../../viewmodels/portfolioCashFlow.vm';
 
 interface CashFlowInputsProps {
   section: PortfolioCashFlowSectionVM;

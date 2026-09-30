@@ -5,6 +5,7 @@ import { CLOSE_STAGE_IDS } from '@/domains/financial_period/schemas';
 import {
   resolveDisplayedStageId,
   resolveGoToResetRange,
+  resolveNextStageId,
   resolvePositionText,
   resolveStepText,
 } from './monthlyClose.vm';
@@ -112,5 +113,19 @@ describe('resolveGoToResetRange', () => {
 
   it('falls back to step 01 for an unknown stage', () => {
     expect(resolveGoToResetRange([], 'ACCOUNT_BALANCE', 9)).toBe('01-09');
+  });
+});
+
+describe('resolveNextStageId', () => {
+  it('advances from FINANCIAL_REPORTS to CLOSE_PERIOD without the page naming it', () => {
+    expect(resolveNextStageId('FINANCIAL_REPORTS')).toBe('CLOSE_PERIOD');
+  });
+
+  it('returns null at the end of the walk', () => {
+    expect(resolveNextStageId('CLOSE_PERIOD')).toBeNull();
+  });
+
+  it('returns null when there is no displayed stage', () => {
+    expect(resolveNextStageId(null)).toBeNull();
   });
 });

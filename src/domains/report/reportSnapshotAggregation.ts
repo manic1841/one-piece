@@ -30,9 +30,9 @@ function mapToIncomeStatementItems(map: Map<string, AmountEntry>): IncomeStateme
     .map(([code, value]) => ({
       code,
       label: value.label,
-      amount: Math.abs(value.amount),
+      amount: value.amount,
     }))
-    .filter((item) => item.amount > 0)
+    .filter((item) => item.amount !== 0)
     .sort((a, b) => b.amount - a.amount);
 }
 

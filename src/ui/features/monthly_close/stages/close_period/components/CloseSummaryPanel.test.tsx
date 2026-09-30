@@ -1,7 +1,9 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { CLOSE_ACTIVITY_STATUS, type CloseSummaryVM } from '../mappers/closeSummary.mappers';
+import { DRIFT_STATUS } from '@/domains/report/reportDrift';
+
+import { CLOSE_ACTIVITY_STATUS, type CloseSummaryVM } from '../../../mappers/closeSummary.mappers';
 import { CloseSummaryPanel } from './CloseSummaryPanel';
 
 const { confirmMock } = vi.hoisted(() => ({ confirmMock: vi.fn() }));
@@ -40,6 +42,8 @@ const renderPanel = (props?: Partial<Parameters<typeof CloseSummaryPanel>[0]>) =
   render(
     <CloseSummaryPanel
       summary={summaryVM}
+      hasDrift={false}
+      onReviewReports={() => {}}
       onClose={() => {}}
       confirming={false}
       isConfirmable={true}
@@ -88,6 +92,19 @@ describe('CloseSummaryPanel', () => {
     expect(cashFlowRow?.textContent).toContain('尚未產生');
   });
 
+  it('shows the persisted -> preview delta for a drifted figure', () => {
+    renderPanel({
+      summary: {
+        ...summaryVM,
+        financialDrift: {
+          equity: { amount: 4_300_000, previousAmount: 4_200_000, status: DRIFT_STATUS.CHANGED },
+        },
+      },
+    });
+
+    expect(screen.getByText('NT$4,200,000 -> NT$4,300,000')).toBeInTheDocument();
+  });
+
   it('opens the close confirmation dialog on close click', async () => {
     confirmMock.mockResolvedValue(true);
     const onClose = vi.fn();
@@ -113,5 +130,64 @@ describe('CloseSummaryPanel', () => {
     renderPanel({ confirming: true });
 
     expect(screen.getByTestId('close-period-confirm')).toBeDisabled();
+  });
+
+  // #229: a failed persistence read is unknown, never 尚未產生.
+  it('shows an unknown persistence state instead of 尚未產生 when the read failed', () => {
+    renderPanel({
+      summary: {
+        ...summaryVM,
+        reports: summaryVM.reports.map((report) => ({ ...report, isGenerated: null })),
+        reportsGeneratedCount: 0,
+      },
+    });
+
+    expect(screen.queryByText('尚未產生')).not.toBeInTheDocument();
+    expect(screen.getAllByText('狀態未知')).toHaveLength(3);
+  });
+
+  // #228: Step 9 surfaces a report load failure instead of a silently empty summary.
+  it('surfaces a report load failure', () => {
+    renderPanel({ loadErrorMessage: '無法載入報表預覽，請稍後再試。' });
+
+    expect(screen.getByRole('alert')).toHaveTextContent('無法載入報表預覽，請稍後再試。');
+  });
+
+  it('shows no alert while the report load succeeded', () => {
+    renderPanel();
+
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+
+  // #234: the backend close gate only checks that the reports are persisted, so
+  // a drift appearing after Step 8 was confirmed has to be caught here.
+  it('blocks the close when reports drifted', () => {
+    renderPanel({ hasDrift: true });
+
+    expect(screen.getByTestId('close-period-confirm')).toBeDisabled();
+    expect(screen.getByRole('alert')).toHaveTextContent('步驟 8 的報表與已產生報表不一致');
+  });
+
+  it('does not name a drift count the screen cannot justify', () => {
+    renderPanel({ hasDrift: true });
+
+    expect(screen.getByTestId('close-drift-block')).not.toHaveTextContent('項漂移');
+  });
+
+  it('sends the user back to Step 8 from the drift block', () => {
+    const onReviewReports = vi.fn();
+
+    renderPanel({ hasDrift: true, onReviewReports });
+
+    fireEvent.click(screen.getByTestId('review-reports'));
+
+    expect(onReviewReports).toHaveBeenCalledTimes(1);
+  });
+
+  it('leaves the close reachable when nothing drifted', () => {
+    renderPanel({ hasDrift: false });
+
+    expect(screen.getByTestId('close-period-confirm')).toBeEnabled();
+    expect(screen.queryByTestId('close-drift-block')).not.toBeInTheDocument();
   });
 });

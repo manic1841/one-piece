@@ -168,6 +168,35 @@ const expectRebookedDebtArtifacts = async (previousTransactionId: string) => {
   return rebooked.rebookedTransactions.docs[0]!.id;
 };
 
+/**
+ * #222 regression: reopening keeps the persisted reports (they are the drift
+ * baseline), so the reports stage returns to PENDING while the three report
+ * docs still exist. Re-running the reports stage regenerates them and the
+ * period closes again — the reopened path is not a dead end.
+ */
+const expectReopenRecloses = async () => {
+  await monthlyCloseWorkflowUseCase.reopen({
+    householdId: householdId,
+    yearMonth,
+    userEmail: 'user@example.com',
+    auth,
+  });
+  let period = await financialPeriodRepository.getPeriod(householdId, yearMonth);
+  expect(period?.status).toBe('IN_PROGRESS');
+  expect(period?.stages.FINANCIAL_REPORTS.status).toBe('PENDING');
+  await expect(
+    getReportPersistenceStateUseCase.execute({ householdId: householdId, yearMonth }),
+  ).resolves.toMatchObject({ isPersisted: true });
+
+  await confirmStage('FINANCIAL_REPORTS', {});
+  period = await financialPeriodRepository.getPeriod(householdId, yearMonth);
+  expect(period?.stages.FINANCIAL_REPORTS.status).toBe('COMPLETED');
+
+  await confirmStage('CLOSE_PERIOD', {});
+  period = await financialPeriodRepository.getPeriod(householdId, yearMonth);
+  expect(period?.status).toBe('CLOSED');
+};
+
 describe('monthlyCloseWorkflowUseCase — emulator integration', () => {
   beforeEach(async () => {
     await resetMockDb();
@@ -515,6 +544,8 @@ describe('monthlyCloseWorkflowUseCase — emulator integration', () => {
     expect(
       CLOSE_STAGE_IDS.every((stageId) => period?.stages[stageId]?.status === 'COMPLETED'),
     ).toBe(true);
+
+    await expectReopenRecloses();
   });
 
   it('reopens a closed period and demotes later closed periods (ADR-0066)', async () => {

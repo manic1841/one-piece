@@ -1,6 +1,7 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
+import { Table, TableBody, TableCell, TableRow } from '@/ui/components/ui/table';
 import { reorderFromDragEnd } from '@/ui/hooks/useSortableList';
 
 import { GripHandle } from './SortableListScope';
@@ -50,9 +51,15 @@ describe('GripHandle', () => {
   it('stops click propagation so a row-level navigation does not fire', () => {
     const parentClick = vi.fn();
     const { container } = render(
-      <div onClick={parentClick}>
-        <GripHandle label="Grip" listeners={undefined} />
-      </div>,
+      <Table>
+        <TableBody>
+          <TableRow onClick={parentClick}>
+            <TableCell>
+              <GripHandle label="Grip" listeners={undefined} />
+            </TableCell>
+          </TableRow>
+        </TableBody>
+      </Table>,
     );
 
     fireEvent.click(container.querySelector('button')!);

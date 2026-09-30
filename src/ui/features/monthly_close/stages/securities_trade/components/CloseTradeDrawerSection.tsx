@@ -2,12 +2,12 @@ import React from 'react';
 
 import { MONTHLY_CLOSE_LABELS } from '@/ui/constants/monthlyClose';
 
-import { TradeDrawer, type TradeDrawerProps } from '../../../components/TradeDrawer';
 import type {
   TradeDrawerInput,
   TradeDrawerSide,
   TradeDrawerVM,
 } from '../../../viewmodels/tradeDrawer.vm';
+import { TradeDrawer, type TradeDrawerProps } from './TradeDrawer';
 
 interface CloseTradeDrawerSectionProps {
   kind: 'SECURITIES' | 'FINANCING' | null;

@@ -24,7 +24,7 @@ import type {
   TradeDrawerInput,
   TradeDrawerSide,
   TradeDrawerVM,
-} from '../viewmodels/tradeDrawer.vm';
+} from '../../../viewmodels/tradeDrawer.vm';
 
 export type TradeDrawerMode = 'ADD' | 'EDIT';
 

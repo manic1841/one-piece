@@ -82,13 +82,21 @@ export const BalanceSheetDataSchema = z.object({
 export type BalanceSheetData = z.infer<typeof BalanceSheetDataSchema>;
 
 // Cash Flow Statement
-export const CashFlowItemSchema = z.object({
-  code: z.string(),
-  label: z.string(),
-  amount: z.number(),
-});
+export const CashFlowItemSchema: z.ZodType<CashFlowItem> = z.lazy(() =>
+  z.object({
+    code: z.string(),
+    label: z.string(),
+    amount: z.number(),
+    subItems: z.array(CashFlowItemSchema).optional(),
+  }),
+);
 
-export type CashFlowItem = z.infer<typeof CashFlowItemSchema>;
+export interface CashFlowItem {
+  code: string;
+  label: string;
+  amount: number;
+  subItems?: CashFlowItem[];
+}
 
 export const CashFlowGroupSchema = z.object({
   label: z.string(),

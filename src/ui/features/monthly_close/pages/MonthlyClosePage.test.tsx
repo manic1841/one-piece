@@ -1,12 +1,27 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
 import { type FinancialPeriod, initialStageStates } from '@/domains/financial_period/schemas';
 
 import { MonthlyClosePage } from './MonthlyClosePage';
 
+// Hoisted and stable on purpose: the real `useAuthIdentity` is memoized, and a
+// fresh identity object per render would change every stage hook's load
+// callback identity and re-run its effect forever.
+const { authIdentity, confirmMock } = vi.hoisted(() => ({
+  authIdentity: { uid: 'user-1', email: 'user@test.com', isGlobalAdmin: false },
+  confirmMock: vi.fn(),
+}));
+
+beforeEach(() => {
+  // Default: the user declines every prompt. Tests that need acceptance
+  // override it per case.
+  confirmMock.mockReset();
+  confirmMock.mockResolvedValue(false);
+});
+
 vi.mock('@/ui/hooks/useAuthIdentity', () => ({
-  useAuthIdentity: () => ({ uid: 'user-1', email: 'user@test.com', isGlobalAdmin: false }),
+  useAuthIdentity: () => authIdentity,
 }));
 
 vi.mock('@/application/monthly_close/use_cases/monthlyCloseWorkflowUseCase', () => ({
@@ -73,6 +88,15 @@ vi.mock('@/application/report/use_cases/getReportPersistenceStateUseCase', () =>
     execute: vi.fn().mockResolvedValue({ isPersisted: true, timestamps: {} }),
   },
 }));
+vi.mock('@/application/report/use_cases/getStoredReportsBundleUseCase', () => ({
+  getStoredReportsBundleUseCase: {
+    execute: vi.fn().mockResolvedValue({
+      incomeStatement: null,
+      balanceSheet: null,
+      cashFlow: null,
+    }),
+  },
+}));
 vi.mock('@/application/report/use_cases/getSettlementReadinessUseCase', () => ({
   getSettlementReadinessUseCase: {
     execute: vi.fn().mockResolvedValue({
@@ -125,7 +149,7 @@ vi.mock('@/application/report/use_cases/previewFinancialReportsWorkflow', () => 
   },
 }));
 vi.mock('@/ui/features/app/confirm/useConfirm', () => ({
-  useConfirm: () => ({ confirm: vi.fn().mockResolvedValue(false) }),
+  useConfirm: () => ({ confirm: confirmMock }),
 }));
 
 function closedPeriod(): FinancialPeriod {
@@ -156,6 +180,20 @@ function cascadeDemotedPeriod(): FinancialPeriod {
     status: 'NEEDS_REVIEW',
     reviewSourceStageId: null,
     stages: initialStageStates(),
+  };
+}
+
+function inProgressPeriod(): FinancialPeriod {
+  return {
+    id: '2026-09',
+    yearMonth: '2026-09',
+    status: 'IN_PROGRESS',
+    stages: initialStageStates(),
+    reviewSourceStageId: null,
+    createdBy: 'user@test.com',
+    createdAt: new Date(),
+    updatedBy: 'user@test.com',
+    updatedAt: new Date(),
   };
 }
 
@@ -190,5 +228,121 @@ describe('MonthlyClosePage (cascade-demoted period)', () => {
     await waitFor(() => {
       expect(screen.getByRole('button', { name: 'CONTINUE →' })).toBeInTheDocument();
     });
+  });
+});
+
+// The completeness-check load is the observable side of `refreshAll`, so its
+// call count tells us whether a confirm ran the post-confirm refresh path.
+describe('MonthlyClosePage (confirm side effects)', () => {
+  const completenessCalls = async () => {
+    const mod = await import(
+      '@/application/settlement/use_cases/checkSettlementCompletenessUseCase'
+    );
+    return vi.mocked(mod.checkSettlementCompletenessUseCase.execute).mock.calls.length;
+  };
+
+  it('runs no afterConfirm or refresh when confirm fails', async () => {
+    const workflow = (
+      await import('@/application/monthly_close/use_cases/monthlyCloseWorkflowUseCase')
+    ).monthlyCloseWorkflowUseCase;
+    vi.mocked(workflow.start).mockResolvedValueOnce(inProgressPeriod());
+    vi.mocked(workflow.confirmStage).mockResolvedValueOnce(null);
+
+    render(<MonthlyClosePage householdId="household-1" userEmail="user@test.com" />);
+    fireEvent.click(screen.getByRole('button', { name: '開始關帳' }));
+
+    const confirmButton = await screen.findByRole('button', { name: 'CONTINUE →' });
+    await waitFor(async () => expect(await completenessCalls()).toBeGreaterThan(0));
+    const callsBefore = await completenessCalls();
+
+    fireEvent.click(confirmButton);
+    await waitFor(() => expect(workflow.confirmStage).toHaveBeenCalled());
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(await completenessCalls()).toBe(callsBefore);
+  });
+
+  it('refreshes stage data when confirm succeeds', async () => {
+    const workflow = (
+      await import('@/application/monthly_close/use_cases/monthlyCloseWorkflowUseCase')
+    ).monthlyCloseWorkflowUseCase;
+    const completed = inProgressPeriod();
+    completed.stages.ACCOUNT_BALANCE = {
+      status: 'COMPLETED',
+      confirmedAt: new Date('2026-09-20T10:00:00Z'),
+      confirmedBy: 'user@test.com',
+    };
+    vi.mocked(workflow.start).mockResolvedValueOnce(inProgressPeriod());
+    vi.mocked(workflow.confirmStage).mockResolvedValueOnce(completed);
+
+    render(<MonthlyClosePage householdId="household-1" userEmail="user@test.com" />);
+    fireEvent.click(screen.getByRole('button', { name: '開始關帳' }));
+
+    const confirmButton = await screen.findByRole('button', { name: 'CONTINUE →' });
+    await waitFor(async () => expect(await completenessCalls()).toBeGreaterThan(0));
+    const callsBefore = await completenessCalls();
+
+    fireEvent.click(confirmButton);
+    await waitFor(() => expect(workflow.confirmStage).toHaveBeenCalled());
+
+    await waitFor(async () => expect(await completenessCalls()).toBeGreaterThan(callsBefore));
+  });
+
+  // T13 (#237): start and reopen also land on a new period, so both must end
+  // with the stages reloading. Start now relies on the auto-load gate flipping
+  // (#240); reopen still goes through the page-level `refreshAll`, so an
+  // accepted reopen has to reload a second time.
+  it('refreshes stage data after start', async () => {
+    const workflow = (
+      await import('@/application/monthly_close/use_cases/monthlyCloseWorkflowUseCase')
+    ).monthlyCloseWorkflowUseCase;
+    vi.mocked(workflow.start).mockResolvedValueOnce(inProgressPeriod());
+
+    render(<MonthlyClosePage householdId="household-1" userEmail="user@test.com" />);
+    const before = await completenessCalls();
+
+    fireEvent.click(screen.getByRole('button', { name: '開始關帳' }));
+
+    await waitFor(async () => expect(await completenessCalls()).toBeGreaterThan(before));
+  });
+
+  it('refreshes stage data again after a confirmed reopen', async () => {
+    const workflow = (
+      await import('@/application/monthly_close/use_cases/monthlyCloseWorkflowUseCase')
+    ).monthlyCloseWorkflowUseCase;
+    // A CLOSED period offers the reopen prompt; accepting it must refresh too.
+    confirmMock.mockResolvedValue(true);
+    vi.mocked(workflow.start).mockResolvedValueOnce(closedPeriod());
+    vi.mocked(workflow.reopen).mockResolvedValueOnce(inProgressPeriod());
+
+    render(<MonthlyClosePage householdId="household-1" userEmail="user@test.com" />);
+    const before = await completenessCalls();
+    fireEvent.click(screen.getByRole('button', { name: '開始關帳' }));
+
+    await waitFor(() => expect(workflow.reopen).toHaveBeenCalled());
+    // Start refreshes once; the accepted reopen must refresh a second time, so
+    // the delta has to be more than the single round start already produced.
+    await waitFor(async () => expect(await completenessCalls()).toBeGreaterThan(before + 1));
+  });
+});
+
+// T7 (#231): the shared entity lists feed every stage's dropdowns and prefill.
+// A failed read used to leave the page silently empty, so it gets its own copy.
+describe('MonthlyClosePage (shared entity load failure)', () => {
+  it('surfaces a failed entity load instead of an empty page', async () => {
+    const accounts = await import('@/application/account/use_cases/getAccountsUseCase');
+    vi.mocked(accounts.getAccountsUseCase.execute).mockRejectedValueOnce(new Error('boom'));
+
+    render(<MonthlyClosePage householdId="household-1" userEmail="user@test.com" />);
+
+    // The shared entity load is gated on the period existing (#240), so it
+    // starts when the user starts the month, not on mount.
+    fireEvent.click(screen.getByRole('button', { name: '開始關帳' }));
+
+    expect(
+      await screen.findByText('無法載入帳戶、專案與債務資料，請稍後再試。'),
+    ).toBeInTheDocument();
   });
 });
