@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { diffBalanceSheet, diffCashFlow, diffIncomeStatement } from '@/domains/report/reportDrift';
@@ -123,6 +123,62 @@ describe('CloseFinancialReports', () => {
 
     fireEvent.click(toggle);
     expect(screen.getByTestId('close-income-statement')).toHaveTextContent('薪資 › Charles');
+  });
+
+  // Legacy persisted reports store detail codes flat while the preview nests
+  // them; the drift pair must not put the same code at two levels, or the
+  // flattened table carries duplicate React keys and collapse/expand renders
+  // ghost rows.
+  it('renders a legacy-vs-rollup property pair without duplicate rows on collapse/expand', () => {
+    const preview = buildPreview();
+    preview.balanceSheet.assets.groups.property = {
+      label: '不動產',
+      total: 192345,
+      items: [
+        {
+          code: 'asset:property',
+          label: '不動產',
+          amount: 192345,
+          subItems: [{ code: 'asset:property:senhuo', label: '我家', amount: 192345 }],
+        },
+      ],
+    };
+    const persisted = {
+      ...preview.balanceSheet,
+      assets: {
+        ...preview.balanceSheet.assets,
+        groups: {
+          property: {
+            label: '不動產',
+            total: 192345,
+            items: [
+              { code: 'asset:property:senhuo', label: 'asset:property:senhuo', amount: 192345 },
+            ],
+          },
+        },
+      },
+    };
+    renderReports({
+      reports: {
+        incomeStatement: diffIncomeStatement(preview.incomeStatement as never, null),
+        balanceSheet: diffBalanceSheet(preview.balanceSheet as never, persisted as never),
+        cashFlow: diffCashFlow(preview.cashFlow as never, null),
+      },
+    });
+
+    fireEvent.mouseDown(screen.getByRole('tab', { name: '資產負債表' }));
+    const sheet = screen.getByTestId('close-balance-sheet');
+    expect((sheet.textContent!.match(/我家/g) ?? []).length).toBe(1);
+
+    // The three statements share forceMount, so the chevron name repeats across
+    // tables; scope to the balance sheet's own toggle.
+    const toggle = within(sheet)
+      .getAllByRole('button', { name: '不動產' })
+      .find((button) => button.closest('[data-testid="close-balance-sheet"]') !== null)!;
+    fireEvent.click(toggle);
+    expect(sheet).not.toHaveTextContent('我家');
+    fireEvent.click(toggle);
+    expect((sheet.textContent!.match(/我家/g) ?? []).length).toBe(1);
   });
 
   it('resets collapsed groups when switching statement tabs', () => {
@@ -291,5 +347,43 @@ describe('CloseFinancialReports', () => {
 
     expect(screen.getByText('無法載入報表預覽，請稍後再試。')).toBeInTheDocument();
     expect(screen.queryByText(MONTHLY_CLOSE_LABELS.NO_DATA)).not.toBeInTheDocument();
+  });
+
+  // Same-month inflow/outflow flips (buy+sell an investment, capital injection
+  // plus withdrawal) put one code in both buckets. The flattened cash-flow
+  // table must not share row keys across buckets, or collapsing one bucket
+  // collapses the other too and duplicate React keys render ghosts.
+  it('renders a flipped inflow/outflow code once per bucket without duplicate keys', () => {
+    const preview = buildPreview();
+    const detail = (amount: number) => [
+      { code: 'asset:investment:etf', label: '證券投資 › ETF', amount },
+    ];
+    preview.cashFlow.investing = {
+      label: '投資活動',
+      total: 100000,
+      inflowItems: [
+        { code: 'asset:investment', label: '證券投資', amount: 100000, subItems: detail(100000) },
+      ],
+      outflowItems: [
+        { code: 'asset:investment', label: '證券投資', amount: 200000, subItems: detail(200000) },
+      ],
+    };
+    renderReports({
+      reports: {
+        incomeStatement: diffIncomeStatement(preview.incomeStatement as never, null),
+        balanceSheet: diffBalanceSheet(preview.balanceSheet as never, null),
+        cashFlow: diffCashFlow(preview.cashFlow as never, null),
+      },
+    });
+
+    fireEvent.mouseDown(screen.getByRole('tab', { name: '現金流量表' }));
+    const flow = screen.getByTestId('close-cash-flow');
+    expect((flow.textContent!.match(/ETF/g) ?? []).length).toBe(2);
+
+    const inflowToggle = within(flow).getAllByRole('button', { name: '證券投資' })[0];
+    fireEvent.click(inflowToggle);
+    expect((flow.textContent!.match(/ETF/g) ?? []).length).toBe(1);
+    fireEvent.click(inflowToggle);
+    expect((flow.textContent!.match(/ETF/g) ?? []).length).toBe(2);
   });
 });
