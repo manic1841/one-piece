@@ -13,6 +13,8 @@ import { type UserProfile } from '@/domains/auth/user/types';
 export interface AuthState {
   user: AuthUser | null;
   userProfile: UserProfile | null;
+  /** `userProfile` 的讀取正在進行中；`loading` 只涵蓋 auth 初始化，兩者獨立。 */
+  profileLoading: boolean;
   isAdmin: boolean;
   loading: boolean;
   /** 非 null 表示 auth 初始化失敗（後端不可達等），UI 應顯示失敗畫面而非永久等待。 */
@@ -25,6 +27,7 @@ export interface AuthState {
 export const AuthStateContext = createContext<AuthState>({
   user: null,
   userProfile: null,
+  profileLoading: false,
   isAdmin: false,
   loading: true,
   initError: null,

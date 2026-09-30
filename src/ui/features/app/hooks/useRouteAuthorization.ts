@@ -30,7 +30,7 @@ interface ResolvedDecision {
  */
 export function useRouteAuthorization(requireHousehold: boolean): { outcome: RouteAccessState } {
   const auth = useAuthIdentity();
-  const { userProfile, loading } = useAuthState();
+  const { userProfile, profileLoading, loading } = useAuthState();
   const householdId = userProfile?.householdId ?? null;
 
   const [resolved, setResolved] = useState<ResolvedDecision | null>(null);
@@ -38,7 +38,7 @@ export function useRouteAuthorization(requireHousehold: boolean): { outcome: Rou
   const requestKey = [auth.uid, auth.isGlobalAdmin, householdId ?? '', requireHousehold].join('|');
 
   useEffect(() => {
-    if (loading || !auth.uid) return;
+    if (loading || profileLoading || !auth.uid) return;
 
     let cancelled = false;
 
@@ -56,9 +56,9 @@ export function useRouteAuthorization(requireHousehold: boolean): { outcome: Rou
     return () => {
       cancelled = true;
     };
-  }, [auth, householdId, loading, requireHousehold, requestKey]);
+  }, [auth, householdId, loading, profileLoading, requireHousehold, requestKey]);
 
-  if (loading) return { outcome: 'pending' };
+  if (loading || profileLoading) return { outcome: 'pending' };
   if (!auth.uid) return { outcome: 'unauthenticated' };
   if (resolved?.key === requestKey) return { outcome: resolved.outcome };
 
