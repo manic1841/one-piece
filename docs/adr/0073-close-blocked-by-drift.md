@@ -18,7 +18,6 @@
 
 - 判定是**衍生的**（每次 render 從 Step 8 的 drift 樹算），不是額外持久化的旗標：drift 本身是 preview 與 persisted 的函式，快取它只會製造第二個真相。
 - 後端的關帳就緒檢查（Financial Reports 已確認 + 三張 persisted 存在）維持不變：它守的是「有沒有報表」，本 ADR 守的是「報表是不是現況」。兩者互補，本 ADR 不要求後端重算 drift。
-- `shouldBlock` 是 `closeStageControl` 契約上既有的擴充點（階段自行拒絕確認並附理由）。本 ADR 的 drift 把關目前**不走**這條路（由 Step 9 自己的判定與畫面承擔），因此今日沒有任何階段實作 `shouldBlock`——契約保留，供未來「階段級拒絕」使用。
 
 ## Considered Options
 

@@ -42,10 +42,6 @@ vi.mock('@/application/debt/use_cases/listDebtAccountsUseCase', () => ({
   listDebtAccountsUseCase: { execute: vi.fn().mockResolvedValue([]) },
 }));
 
-// T9 (#233) has no live implementer: every stage's `shouldBlock` returns null,
-// so the refusal path is driven here by a faked stage controller.
-const BLOCKED_REASON = '尚有未結算的專案，請先完成專案結算';
-
 vi.mock('./useCloseStepRegistry', () => {
   const stageIds = [
     'ACCOUNT_BALANCE',
@@ -63,10 +59,6 @@ vi.mock('./useCloseStepRegistry', () => {
       stageId,
       confirming: false,
       buildRequest: () => ({ stageId }) as never,
-      shouldBlock: () =>
-        stageId === 'PROJECT_SETTLEMENT'
-          ? { blocked: true as const, reason: BLOCKED_REASON }
-          : null,
       afterConfirm: vi.fn(),
       resetDraft: vi.fn(),
       refresh: refreshSpy,
@@ -112,7 +104,7 @@ function periodAwaitingProjectSettlement() {
   };
 }
 
-describe('useMonthlyClosePage (blocked confirm)', () => {
+describe('useMonthlyClosePage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     confirmMock.mockResolvedValue(false);
@@ -129,47 +121,6 @@ describe('useMonthlyClosePage (blocked confirm)', () => {
     await waitFor(() => expect(result.current.displayedStageId).toBe('PROJECT_SETTLEMENT'));
     return result;
   };
-
-  it('shows the stage reason and submits nothing when a stage blocks', async () => {
-    const result = await renderPage();
-
-    await act(async () => {
-      await result.current.handleConfirmStage('PROJECT_SETTLEMENT');
-    });
-
-    expect(result.current.blockedReason).toBe(BLOCKED_REASON);
-    expect(monthlyCloseWorkflowUseCase.confirmStage).not.toHaveBeenCalled();
-  });
-
-  it('clears the reason once the stage is no longer the displayed one', async () => {
-    const result = await renderPage();
-
-    await act(async () => {
-      await result.current.handleConfirmStage('PROJECT_SETTLEMENT');
-    });
-    expect(result.current.blockedReason).toBe(BLOCKED_REASON);
-
-    act(() => {
-      result.current.setViewingStageId('ACCOUNT_BALANCE');
-    });
-
-    expect(result.current.blockedReason).toBeNull();
-  });
-
-  it('clears the reason on a month switch', async () => {
-    const result = await renderPage();
-
-    await act(async () => {
-      await result.current.handleConfirmStage('PROJECT_SETTLEMENT');
-    });
-    expect(result.current.blockedReason).toBe(BLOCKED_REASON);
-
-    act(() => {
-      result.current.selectYearMonth('2026-10');
-    });
-
-    expect(result.current.blockedReason).toBeNull();
-  });
 
   // #237: `refreshAll` is the page's one refresh entry — every stage that opted
   // in, and no call site has to know which stage owns which loaded data.
@@ -193,7 +144,6 @@ describe('useMonthlyClosePage (blocked confirm)', () => {
     refreshSpy.mockClear();
 
     await act(async () => {
-      // A stage that does not block: the refresh path sits behind the gate.
       await result.current.handleConfirmStage('ACCOUNT_BALANCE');
     });
 

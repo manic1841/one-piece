@@ -7,7 +7,6 @@ import { Button } from '@/ui/components/ui/button';
 import { Card, CardContent } from '@/ui/components/ui/card';
 import { MONTHLY_CLOSE_LABELS } from '@/ui/constants/monthlyClose';
 import { ClosePipeline } from '@/ui/features/monthly_close/components/ClosePipeline';
-import { CloseStageBlockedNotice } from '@/ui/features/monthly_close/components/CloseStageBlockedNotice';
 
 import { useMonthlyClosePage } from '../hooks/useMonthlyClosePage';
 
@@ -27,7 +26,6 @@ export const MonthlyClosePage: React.FC<MonthlyClosePageProps> = ({
     isStarting,
     error,
     entitiesError,
-    blockedReason,
     setViewingStageId,
     currentStageId,
     displayedStageId,
@@ -152,9 +150,6 @@ export const MonthlyClosePage: React.FC<MonthlyClosePageProps> = ({
 
               {displayedStage && (
                 <>
-                  {/* A refused confirm must say why instead of doing nothing
-                      (#233). Sits with the stage card, next to its actions. */}
-                  <CloseStageBlockedNotice reason={blockedReason} />
                   {/* Every stage renders through the same evidence-only shell,
                       so React would reuse the instance across stages; the key
                       forces a remount when the walk moves. */}
