@@ -76,6 +76,21 @@
 - **同月刷新失敗保留上一輪已載入的資料**（最後已知值，不是空白）並顯示錯誤；切月失敗沒有同月已知值可留，畫面顯示錯誤與空值。「有沒有資料」因此不是把關依據。
 - **prefill 每個 `yearMonth` 只在記憶體做一次**：以 `useRef` 記住已預填的月份（換月才重新預填），不持久化；整頁重載會重跑預填（草稿本來就不持久化，見 §4）。
 
+### 載入扇出與量測
+
+工作區一旦載入（首次 mount、換月、`start` 之後），九個 stage hook **同時**各自載入，與當前顯示哪個階段無關——這是 draft 跨 stage 保留與 summary 跨讀的設計代價。量測結果（2026-09，本機 Firebase Emulator + Vite dev server，QA seed 資料集：5 帳戶、7 專案、2 portfolio、2 債務）：
+
+- **規模**：一次換月（或開始關帳）約 70 個 Listen `addTarget`、其中 50 個相異 target，2.8 秒到達網路靜止；首次 mount 同量級。
+- **組成**：帳戶餘額階段的快照讀取為 **2N**（每帳戶 current + previous，N = 帳戶數），是最大單項；其餘為專案結算（每 active 專案一筆月快照）、Completeness Check、Financial Reports（ledgerCodes + 三張 persisted + 持久化旗標），以及各階段的 prefill／evidence。
+- **共享實體重複讀取**：`projects` 清單由 page 的 `loadEntities` 與專案結算 stage 各讀一次，`accounts`／`portfolios` 同理。量測上不顯著。
+
+量測方法注意事項：
+
+- **不要拿 DevTools Network 的 HTTP 請求數當讀取數**：Firestore web SDK 把多次讀取 multiplex 到同一條 WebChannel，且同一 target 會在 channel 重開時重送（本量測觀察到 74 個 `addTarget` 只對應 53 個相異 target，單一 target 最多重送 3 次）。應以 SDK 呼叫邊界或相異 target 為準。
+- **dev 的 `StrictMode` 讓每個 stage 的載入跑兩次**（mount → cleanup → mount），網路讀取因此翻倍；這是 dev-only，不是 production 成本。量測需在 `StrictMode` 關閉下取得才有代表性。
+
+**結論：目前規模下不構成瓶頸，不為載入型 stage 加 `enabled`。** 扇出有界（隨帳戶／專案數線性）、彼此平行，成本與延遲在可接受範圍；`enabled` 會引入第二套載入模型與 walk position 依賴，換得的延遲在此規模不值得。若真實裝置上 `/close` 首次可互動時間明顯超過約 1 秒，再回來評估延後載入（首次造訪或成為 walk position 才載）。
+
 ### Report Drift（報表漂移比對）
 
 關帳畫面永遠顯示即時重算的 Report Preview；[Persisted Report](../CONTEXT.md) 只當狀態旗標兼比對基準。當期間為 `IN_PROGRESS`/`NEEDS_REVIEW` 且 persisted 報表存在時，Step 8 三張表與 Step 9 五個聚合數字會逐欄比對並標註 Report Drift：
