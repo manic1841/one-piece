@@ -60,13 +60,13 @@
 
 ### UI 組構：大一統步驟 registry
 
-- **`useCloseStepRegistry` 是唯一列出全部九個步驟的檔案，也是唯一允許跨階段讀取的地方**：九個 step hooks 在 hook 內無條件呼叫（rules of hooks 不依賴條件分派），回傳 `Record<CloseStageId, CloseStepDefinition>`，TypeScript 強制每個階段都有條目。新增步驟 = 一個 step hook + 一個 registry 條目。
+- **`useCloseStepRegistry` 是唯一列出全部九個步驟的檔案，也是唯一允許跨階段讀取的地方**：九個 step hooks 在 hook 內無條件呼叫（rules of hooks 不依賴條件分派；載入受期間存在閘門，見 §「載入扇出與量測」），回傳 `Record<CloseStageId, CloseStepDefinition>`，TypeScript 強制每個階段都有條目。新增步驟 = 一個 step hook + 一個 registry 條目。
 - **`CloseStepDefinition` 條目 = control + content factory + evidence builder**：`control` 是該階段的 stage controller（`closeStageControl` 契約，頁面只對契約分派：`buildRequest` / `confirmGate` / `afterConfirm` / `resetDraft` / `refresh` / `keepsViewOnConfirm`）；`render(ctx)` 是 content factory，從 registry 內的 stage hook 閉包直讀該階段資料（draft、prefill、drawer、summary VM），把頁面傳入的 chrome／navigation／entities context 映射到 step 元件的窄 props，資料未載入時回傳 `null`；`evidence()` 是零參數閉包，從擁有該資料的 stage hook 建構該階段證據。
 - **每個階段自載 evidence**：證據型階段也擁有自己的載入——`TRANSACTION_VALIDATION` stage hook 擁有 `validateMonthTransactionsUseCase`（單次呼叫同時供給自己的 issues 與 Step 7 的 checked count）、`COMPLETENESS_CHECK` stage hook 擁有 `checkSettlementCompletenessUseCase`（anomalies）與 `getSettlementReadinessUseCase`（readiness）。兩個 hook 都以 `control.refresh` opt-in 重載，page 不再持有任何 evidence 載入或 `refreshStageEvidence`。載入走 `useLoadingTask`：失敗時該階段顯示自己的罐頭錯誤訊息（`CloseStageLoadError`），不靜默留白——留白與「本月乾淨」在畫面上無法區分。
 - **registry 為唯一跨階段讀取點**：`CLOSE_PERIOD` 的 evidence 與 `COMPLETENESS_CHECK`／`CLOSE_PERIOD` 的 summary VM 都在 registry 內跨讀其他 stage hook（`useCloseSummaryVM` 在九個 stage hooks 之後呼叫）；**報表資料（即時 preview bundle、persisted bundle）與持久化旗標全由 `FINANCIAL_REPORTS` stage 擁有**（#228）——三者出自同一次載入，不會先後落地而互相矛盾；`CLOSE_PERIOD` 沒有自己的 stage hook（無草稿階段走 no-op control），它的 evidence 讀 `FINANCIAL_REPORTS` 的持久化旗標，Step 9 的五個財務數字與 Step 8 的調整項證據都讀同一份 preview bundle。`FINANCIAL_REPORTS` 的 Generate 守門另外跨讀 `COMPLETENESS_CHECK` 的 readiness。preview 不受持久化 gating：一律載入當前分錄重算的即時預覽，關帳畫面永遠顯示即時數字，persisted 只當狀態旗標（`CLOSED` 期間唯一例外，見 Report Drift）。step hook 之間不互相引用。
 - **preview 只有一份（#228）**：`FINANCIAL_REPORTS` 載入的 preview **帶** household 自訂標籤（Step 8 表格的顯示標籤，且該 resolver 隨確認送進產生路徑凍結進 persisted），同一份 bundle 也供 Step 9 的五個財務數字與 Step 8 的調整項證據使用；早期由 `CLOSE_PERIOD` 另載一份不帶標籤的 preview 的做法已移除——兩份只是同一次載入的兩種包裝，合併後數字不可能分岐。
 - **消費邊界**：page hook（`useMonthlyClosePage`）讀 registry 做「確認提交路徑」與「月切換 resetDraft 迭代」；page 元件只渲染 `registry[displayedStageId].render(stageContext)`，不再認得任何 step 的內部，也不出現任何 stage ID 或 stage control 存取。`CloseStepContext` 只帶三類資料：**chrome**（step/progress/confirmed 文字、confirming、isConfirmable/isReadOnly/isReviewing）、**導覽指令**（onConfirm/onGoToStage/onContinue/onBack；render 只為 `displayedStage` 執行，因此每個 stage 的確認都走同一個 `onConfirm`）、**共享實體**（accounts/portfolios；projects 只需要 `{id, name}`，由 `useCloseStepRegistry` 的 args 傳入，不經 context）。workflow 只把 page VM 與共享實體傳入 registry；單階段資料（draft、prefill、drawer、evidence、報表持久化與 bundle）留在 step hook 內、由 registry 閉包直讀。證券買入／賣出的 add-edit drawer 是 step 自有內容，由 SECURITIES_TRADE 條目的 content factory 呼叫 `securitiesTradeStage.drawer.open` 一併渲染，不從 page 掛載。
-- **月切換清空草稿 / 單一刷新入口**：頁面迭代 registry 的 control record 呼叫 `resetDraft()` 清空草稿；`closeStageControl` 另有對稱的選用方法 `refresh()`，page hook 提供單一 `refreshAll`（所有 opt-in 的 stage refresh），在 confirm、start、reopen、go-to-with-reset 後呼叫，因此沒有任何呼叫點需要知道哪個 stage 擁有哪份已載入資料。`refresh()` 不得 reject（錯誤由該 hook 自己的 `useLoadingTask` 持有並以 `errorMessage` 呈現），`refreshAll` 因此可以單純 `Promise.all`。
+- **月切換清空草稿 / 單一刷新入口**：頁面迭代 registry 的 control record 呼叫 `resetDraft()` 清空草稿；`closeStageControl` 另有對稱的選用方法 `refresh()`，page hook 提供單一 `refreshAll`（所有 opt-in 的 stage refresh），在 confirm、reopen、go-to-with-reset 後呼叫，因此沒有任何呼叫點需要知道哪個 stage 擁有哪份已載入資料（`start` 不再呼叫 `refreshAll`：新期間的首次載入改由「期間已載入」閘門翻轉觸發，見 §「載入扇出與量測」）。`refresh()` 不得 reject（錯誤由該 hook 自己的 `useLoadingTask` 持有並以 `errorMessage` 呈現），`refreshAll` 因此可以單純 `Promise.all`。
 
 ### 載入失敗的語意（ADR-0072）
 
@@ -78,9 +78,10 @@
 
 ### 載入扇出與量測
 
-工作區一旦載入（首次 mount、換月、`start` 之後），九個 stage hook **同時**各自載入，與當前顯示哪個階段無關——這是 draft 跨 stage 保留與 summary 跨讀的設計代價。量測結果（2026-09，本機 Firebase Emulator + Vite dev server，QA seed 資料集：5 帳戶、7 專案、2 portfolio、2 債務）：
+工作區的資料**在期間載入之後**（按下「開始關帳」，含 start／reopen 後）才開始載入：九個 stage hook **同時**各自載入，與當前顯示哪個階段無關——這是 draft 跨 stage 保留與 summary 跨讀的設計代價。進入一個尚未開始的月份時，畫面上只有「選擇關帳期間」，此時**不發出任何關帳相關讀取**（#240）。閘門訊號是單一的 `pageVM.isStarted`（該月期間已載入），同時套用於九個 stage hook 的自動載入 effect 與 page 的共享實體清單；`control.refresh`（顯式重載）不受閘門影響，重開與重設等流程才不會被擋掉。量測結果（2026-09，本機 Firebase Emulator + Vite dev server，QA seed 資料集：5 帳戶、7 專案、2 portfolio、2 債務）：
 
-- **規模**：一次換月（或開始關帳）約 70 個 Listen `addTarget`、其中 50 個相異 target，2.8 秒到達網路靜止；首次 mount 同量級。
+- **規模**：按下「開始關帳」後約 70 個 Listen `addTarget`、其中 **50 個相異 target**，2.8 秒到達網路靜止。
+- **開始前為 0（#240）**：停在一個尚未開始的月份上（畫面只有「選擇關帳期間」）閒置觀測，期間**不新增任何相異 target**（僅 app 外殼開機時的 4 個 shell target，與關帳無關）；按下「開始關帳」才新增 50 個。此量測在 dev `StrictMode` 開啟下取得；自動載入的時點由 mount 改到「期間載入」旗標翻轉（非 mount 效果，`StrictMode` 不重跑），因此開始後的相異 target 數與 #239 同量級。
 - **組成**：帳戶餘額階段的快照讀取為 **2N**（每帳戶 current + previous，N = 帳戶數），是最大單項；其餘為專案結算（每 active 專案一筆月快照）、Completeness Check、Financial Reports（ledgerCodes + 三張 persisted + 持久化旗標），以及各階段的 prefill／evidence。
 - **共享實體重複讀取**：`projects` 清單由 page 的 `loadEntities` 與專案結算 stage 各讀一次，`accounts`／`portfolios` 同理。量測上不顯著。
 
@@ -89,7 +90,7 @@
 - **不要拿 DevTools Network 的 HTTP 請求數當讀取數**：Firestore web SDK 把多次讀取 multiplex 到同一條 WebChannel，且同一 target 會在 channel 重開時重送（本量測觀察到 74 個 `addTarget` 只對應 53 個相異 target，單一 target 最多重送 3 次）。應以 SDK 呼叫邊界或相異 target 為準。
 - **dev 的 `StrictMode` 讓每個 stage 的載入跑兩次**（mount → cleanup → mount），網路讀取因此翻倍；這是 dev-only，不是 production 成本。量測需在 `StrictMode` 關閉下取得才有代表性。
 
-**結論：目前規模下不構成瓶頸，不為載入型 stage 加 `enabled`。** 扇出有界（隨帳戶／專案數線性）、彼此平行，成本與延遲在可接受範圍；`enabled` 會引入第二套載入模型與 walk position 依賴，換得的延遲在此規模不值得。若真實裝置上 `/close` 首次可互動時間明顯超過約 1 秒，再回來評估延後載入（首次造訪或成為 walk position 才載）。
+**結論：延遲面不構成瓶頸，不為載入型 stage 加 walk-position `enabled`；改以「期間存在」為單一閘門延後載入（#240）。** 閘門訊號是 `pageVM.isStarted`，同時套用於九個 stage 的自動載入 effect 與 page 的共享實體清單：進入尚未開始的月份為 **0** 個 target，按下開始後才發出約 **50** 個相異 target。閘門是可逆的實作選擇（拿掉即回到現況），未達 ADR 門檻。扇出仍是有界的（隨帳戶／專案數線性）且彼此平行；若真實裝置上按下「開始關帳」後的首次可互動時間明顯超過約 1 秒，再回來評估更細的載入時機（例如 walk position 附近的階段先載）。
 
 ### Report Drift（報表漂移比對）
 

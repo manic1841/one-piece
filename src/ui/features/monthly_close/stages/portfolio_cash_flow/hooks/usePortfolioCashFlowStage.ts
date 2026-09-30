@@ -16,6 +16,7 @@ interface UsePortfolioCashFlowStageArgs {
   portfolios: Portfolio[];
   auth: AuthContext;
   confirmingStageId: string | null;
+  enabled?: boolean;
 }
 
 const LOAD_ERROR = '無法載入 Portfolio 金流，請稍後再試。';
@@ -90,6 +91,7 @@ export const usePortfolioCashFlowStage = ({
   portfolios,
   auth,
   confirmingStageId,
+  enabled = true,
 }: UsePortfolioCashFlowStageArgs): CloseStageControl & {
   cashFlows: PortfolioCashFlows;
   setCashFlows: React.Dispatch<React.SetStateAction<PortfolioCashFlows>>;
@@ -133,8 +135,9 @@ export const usePortfolioCashFlowStage = ({
   }, [auth, householdId, portfolios, run, selectedYearMonth]);
 
   useEffect(() => {
+    if (!enabled) return;
     void load();
-  }, [load]);
+  }, [enabled, load]);
 
   const control = useConfirmStageControl({
     stageId: 'PORTFOLIO_CASH_FLOW',

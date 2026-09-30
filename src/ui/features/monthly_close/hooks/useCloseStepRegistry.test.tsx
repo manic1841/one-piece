@@ -130,6 +130,20 @@ const readinessFixture = {
   totalUnsettled: 0,
 };
 
+// The registry gates every stage auto-load on `pageVM.isStarted` (#240), so the
+// shared default is a loaded period: these tests exercise what a started month
+// renders, not the gate itself (that lives at the page seam).
+const startedPageVM = mapPeriodToPageVM(
+  {
+    id: '2026-08',
+    yearMonth: '2026-08',
+    status: 'IN_PROGRESS',
+    stages: {},
+    reviewSourceStageId: null,
+  } as never,
+  '2026-08',
+);
+
 const baseArgs: UseCloseStepRegistryArgs = {
   householdId: 'household-1',
   selectedYearMonth: '2026-08',
@@ -138,7 +152,7 @@ const baseArgs: UseCloseStepRegistryArgs = {
   portfolios: [],
   projects: [],
   debtAccounts: [],
-  pageVM: mapPeriodToPageVM(null, '2026-08'),
+  pageVM: startedPageVM,
 };
 
 const account = (id: string): Account =>
@@ -549,7 +563,7 @@ describe('useCloseStepRegistry', () => {
 
     const closedArgs: UseCloseStepRegistryArgs = {
       ...baseArgs,
-      pageVM: { ...mapPeriodToPageVM(null, '2026-08'), isClosed: true },
+      pageVM: { ...startedPageVM, isClosed: true },
     };
     function ClosedHarness() {
       const registry = useCloseStepRegistry(closedArgs);

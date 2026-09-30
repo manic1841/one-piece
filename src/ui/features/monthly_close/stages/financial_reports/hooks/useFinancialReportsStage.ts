@@ -37,6 +37,7 @@ interface UseFinancialReportsStageArgs {
   confirmingStageId: string | null;
   /** A CLOSED period renders the persisted record read-only; drift is not compared. */
   isClosed: boolean;
+  enabled?: boolean;
 }
 
 const PREVIEW_ERROR = '無法載入報表預覽，請稍後再試。';
@@ -148,6 +149,7 @@ export const useFinancialReportsStage = ({
   selectedYearMonth,
   confirmingStageId,
   isClosed,
+  enabled = true,
 }: UseFinancialReportsStageArgs): CloseStageControl & {
   labelResolver: ReportLabelResolver;
   reportBundle: PreviewFinancialReportsResult | null;
@@ -203,8 +205,9 @@ export const useFinancialReportsStage = ({
   }, [auth, householdId, run, selectedYearMonth]);
 
   useEffect(() => {
+    if (!enabled) return;
     void load();
-  }, [load]);
+  }, [enabled, load]);
 
   const labelResolver = useMemo<ReportLabelResolver>(
     () => (code, fallback) =>

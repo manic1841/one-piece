@@ -18,6 +18,7 @@ interface UseCompletenessCheckStageArgs {
   householdId: string;
   selectedYearMonth: string;
   confirmingStageId: string | null;
+  enabled?: boolean;
 }
 
 interface CompletenessData {
@@ -72,6 +73,7 @@ export const useCompletenessCheckStage = ({
   householdId,
   selectedYearMonth,
   confirmingStageId,
+  enabled = true,
 }: UseCompletenessCheckStageArgs): ReturnType<typeof useConfirmStageControl> & {
   anomalies: CompletenessActivity[];
   readiness: SettlementReadiness | null;
@@ -108,8 +110,9 @@ export const useCompletenessCheckStage = ({
   }, [auth, householdId, run, selectedYearMonth]);
 
   useEffect(() => {
+    if (!enabled) return;
     void load();
-  }, [load]);
+  }, [enabled, load]);
 
   const control = useConfirmStageControl({
     stageId: 'COMPLETENESS_CHECK',

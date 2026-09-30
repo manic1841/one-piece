@@ -35,6 +35,7 @@ interface UseSecuritiesTradeStageArgs {
   householdId: string;
   selectedYearMonth: string;
   confirmingStageId: string | null;
+  enabled?: boolean;
 }
 
 /**
@@ -47,6 +48,7 @@ export const useSecuritiesTradeStage = ({
   householdId,
   selectedYearMonth,
   confirmingStageId,
+  enabled = true,
 }: UseSecuritiesTradeStageArgs): CloseStageControl & {
   securities: { buys: SecuritiesTradeInput[]; sells: SecuritiesTradeInput[] };
   setSecurities: React.Dispatch<
@@ -125,8 +127,9 @@ export const useSecuritiesTradeStage = ({
   }, [householdId, run, selectedYearMonth]);
 
   useEffect(() => {
+    if (!enabled) return;
     void load();
-  }, [load]);
+  }, [enabled, load]);
 
   const hasSecurities = securities.buys.length > 0 || securities.sells.length > 0;
   const hasFinancing =

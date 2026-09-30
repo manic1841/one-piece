@@ -18,6 +18,7 @@ interface UseAccountBalanceStageArgs {
   accounts: Account[];
   auth: AuthContext;
   confirmingStageId: string | null;
+  enabled?: boolean;
 }
 
 interface AccountSnapshotData {
@@ -111,6 +112,7 @@ export const useAccountBalanceStage = ({
   accounts,
   auth,
   confirmingStageId,
+  enabled = true,
 }: UseAccountBalanceStageArgs): CloseStageControl & {
   balances: AccountBalanceInput[];
   setBalances: React.Dispatch<React.SetStateAction<AccountBalanceInput[]>>;
@@ -143,8 +145,9 @@ export const useAccountBalanceStage = ({
   }, [accounts, auth, householdId, run, selectedYearMonth]);
 
   useEffect(() => {
+    if (!enabled) return;
     void load();
-  }, [load]);
+  }, [enabled, load]);
 
   const control = useConfirmStageControl({
     stageId: 'ACCOUNT_BALANCE',

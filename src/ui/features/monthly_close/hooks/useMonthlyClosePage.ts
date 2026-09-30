@@ -122,8 +122,9 @@ export const useMonthlyClosePage = ({
   }, [auth, householdId, runEntities]);
 
   useEffect(() => {
+    if (!pageVM.isStarted) return;
     void loadEntities();
-  }, [loadEntities]);
+  }, [loadEntities, pageVM.isStarted]);
 
   // One refresh entry: every stage that opted into `control.refresh`. Used
   // wherever the period changed under the stages (confirm, start, reopen,
@@ -195,7 +196,6 @@ export const useMonthlyClosePage = ({
 
   const handleStart = async () => {
     const result = await start();
-    await refreshAll();
     if (!result) return;
     if (!isReopenablePeriod(result)) return;
 

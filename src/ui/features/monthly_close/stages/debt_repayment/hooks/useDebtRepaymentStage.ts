@@ -21,6 +21,7 @@ interface UseDebtRepaymentStageArgs {
   debtAccounts: DebtAccount[];
   auth: AuthContext;
   confirmingStageId: string | null;
+  enabled?: boolean;
 }
 
 const LOAD_ERROR = '無法載入債務還款試算，請稍後再試。';
@@ -117,6 +118,7 @@ export const useDebtRepaymentStage = ({
   debtAccounts,
   auth,
   confirmingStageId,
+  enabled = true,
 }: UseDebtRepaymentStageArgs): CloseStageControl & {
   repayments: DebtRepaymentInput[];
   setRepayments: React.Dispatch<React.SetStateAction<DebtRepaymentInput[]>>;
@@ -146,8 +148,9 @@ export const useDebtRepaymentStage = ({
   }, [auth, debtAccounts, householdId, run, selectedYearMonth]);
 
   useEffect(() => {
+    if (!enabled) return;
     void load();
-  }, [load]);
+  }, [enabled, load]);
 
   const control = useConfirmStageControl({
     stageId: 'DEBT_REPAYMENT',

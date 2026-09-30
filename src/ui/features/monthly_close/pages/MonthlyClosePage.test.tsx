@@ -290,9 +290,10 @@ describe('MonthlyClosePage (confirm side effects)', () => {
     await waitFor(async () => expect(await completenessCalls()).toBeGreaterThan(callsBefore));
   });
 
-  // T13 (#237): start and reopen also land on a new period, so both must go
-  // through the same page-level `refreshAll` as a confirm does — otherwise the
-  // stages keep rendering the period that was open before.
+  // T13 (#237): start and reopen also land on a new period, so both must end
+  // with the stages reloading. Start now relies on the auto-load gate flipping
+  // (#240); reopen still goes through the page-level `refreshAll`, so an
+  // accepted reopen has to reload a second time.
   it('refreshes stage data after start', async () => {
     const workflow = (
       await import('@/application/monthly_close/use_cases/monthlyCloseWorkflowUseCase')
@@ -335,6 +336,10 @@ describe('MonthlyClosePage (shared entity load failure)', () => {
     vi.mocked(accounts.getAccountsUseCase.execute).mockRejectedValueOnce(new Error('boom'));
 
     render(<MonthlyClosePage householdId="household-1" userEmail="user@test.com" />);
+
+    // The shared entity load is gated on the period existing (#240), so it
+    // starts when the user starts the month, not on mount.
+    fireEvent.click(screen.getByRole('button', { name: '開始關帳' }));
 
     expect(
       await screen.findByText('無法載入帳戶、專案與債務資料，請稍後再試。'),
