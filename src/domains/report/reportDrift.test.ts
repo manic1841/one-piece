@@ -154,6 +154,28 @@ describe('diffItems', () => {
     });
     expect(byCode(row.subItems!, 'expense:food:b').status).toBe(DRIFT_STATUS.REMOVED);
   });
+
+  // Legacy persisted reports (pre-roll-up) store detail codes flat at the group
+  // level while the preview nests them under the parent; compared as-is the pair
+  // reads as an added parent plus a removed flat row sharing the detail's React
+  // key. Folding the flat rows into their parent keeps the pair comparable.
+  it('folds legacy flat detail rows into their parent before comparing', () => {
+    const preview = [item('asset:property', 192345, [item('asset:property:senhuo', 192345)])];
+    const persisted = [item('asset:property:senhuo', 192345)];
+
+    const rows = diffItems(preview, persisted);
+
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({
+      code: 'asset:property',
+      amount: 192345,
+      status: DRIFT_STATUS.UNCHANGED,
+    });
+    expect(byCode(rows[0].subItems!, 'asset:property:senhuo')).toMatchObject({
+      amount: 192345,
+      status: DRIFT_STATUS.UNCHANGED,
+    });
+  });
 });
 
 describe('diffBalanceSheet', () => {

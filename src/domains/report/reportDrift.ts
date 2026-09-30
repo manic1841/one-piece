@@ -205,18 +205,52 @@ const diffItem = (preview: SourceItem, persisted: SourceItem): DriftItem => {
   };
 };
 
+/** Whether the item tree already nests detail rows under a parent. */
+const hasNestedItems = (items: readonly SourceItem[]): boolean =>
+  items.some((item) => (item.subItems?.length ?? 0) > 0);
+
+/**
+ * Fold legacy flat group items (pre-roll-up persisted reports) into the nested
+ * shape the preview produces: a 2-segment parent per `type:category` with its
+ * 3+ segment detail codes as subItems. Compared as-is, the legacy shape and the
+ * nested preview never match by code — the pair renders as an added parent plus
+ * a removed flat row sharing the detail's React key, which duplicates rows when
+ * the table re-renders on collapse/expand.
+ */
+const foldLegacyItems = (items: readonly SourceItem[]): SourceItem[] => {
+  if (hasNestedItems(items)) return [...items];
+  const parents = new Map<string, { amount: number; subItems: SourceItem[] }>();
+  for (const item of items) {
+    const segments = item.code.split(':');
+    const parentCode = segments.slice(0, 2).join(':');
+    const node = parents.get(parentCode) ?? { amount: 0, subItems: [] };
+    node.amount += item.amount;
+    if (segments.length > 2) node.subItems.push(item);
+    parents.set(parentCode, node);
+  }
+  return Array.from(parents.entries()).map(([code, node]) => ({
+    code,
+    label: code,
+    amount: node.amount,
+    subItems: node.subItems.length > 0 ? node.subItems : undefined,
+  }));
+};
+
 /** Compare one level of rows, appending persisted-only rows as removed. */
 export const diffItems = (
   preview: readonly SourceItem[],
   persisted: readonly SourceItem[],
 ): DriftItem[] => {
-  const persistedByCode = new Map(persisted.map((item) => [item.code, item]));
+  const foldedPersisted = foldLegacyItems(persisted);
+  const persistedByCode = new Map(foldedPersisted.map((item) => [item.code, item]));
   const previewCodes = new Set(preview.map((item) => item.code));
   const rows = preview.map((item) => {
     const previous = persistedByCode.get(item.code);
     return previous ? diffItem(item, previous) : addedItem(item);
   });
-  const removedRows = persisted.filter((item) => !previewCodes.has(item.code)).map(removedItem);
+  const removedRows = foldedPersisted
+    .filter((item) => !previewCodes.has(item.code))
+    .map(removedItem);
   return [...rows, ...removedRows];
 };
 
