@@ -129,9 +129,10 @@ describe('usePortfolioCashFlowStage', () => {
   });
 
   // #231: a failed prefill load used to leave an empty draft that read as a
-  // clean month. The hook reports it with copy the consumer owns and confirm
-  // stays reachable — prefill is a convenience, not a gate.
-  it('surfaces the canned copy on load failure without blocking confirm', async () => {
+  // clean month. The hook reports it with copy the consumer owns; the failure
+  // never leaks a rejection, and a draft the user types by hand still submits
+  // (prefill is a convenience, not a gate).
+  it('reports a load failure without blocking a hand-typed draft or leaking a rejection', async () => {
     vi.mocked(listPortfolioSnapshotsUseCase.execute).mockRejectedValue(new Error('boom'));
     // Hoisted: a fresh array per render would change `load`'s identity and loop.
     const portfolios = [portfolio('p-1')];
@@ -150,6 +151,18 @@ describe('usePortfolioCashFlowStage', () => {
       expect(result.current.errorMessage).toBe('無法載入 Portfolio 金流，請稍後再試。'),
     );
     expect(result.current.cashFlows).toEqual({});
-    expect(result.current.shouldBlock()).toBeNull();
+
+    act(() => {
+      result.current.setCashFlows({ 'p-1': { deposits: 5_000, withdrawals: 0 } });
+    });
+    expect(result.current.buildRequest()).toEqual({
+      stageId: 'PORTFOLIO_CASH_FLOW',
+      portfolioCashFlows: { 'p-1': { deposits: 5_000, withdrawals: 0 } },
+    });
+
+    // The failed load settles instead of escaping as an unhandled rejection.
+    await act(async () => {
+      await expect(result.current.refresh?.()).resolves.toBeUndefined();
+    });
   });
 });

@@ -147,8 +147,9 @@ describe('useDebtRepaymentStage', () => {
   });
 
   // #231: a failed prefill load surfaces the canned copy; the draft stays empty
-  // and confirm is not blocked — prefill is a convenience, not a gate.
-  it('surfaces the canned copy on load failure without blocking confirm', async () => {
+  // on failure, the failure never leaks a rejection, and a draft the user types
+  // by hand still submits (prefill is a convenience, not a gate).
+  it('reports a load failure without blocking a hand-typed draft or leaking a rejection', async () => {
     vi.mocked(previewDebtSettlementsUseCase.execute).mockRejectedValue(new Error('boom'));
     // Hoisted: a fresh array per render would change `load`'s identity and loop.
     const debtAccounts = [debtAccount('debt-1')];
@@ -167,6 +168,19 @@ describe('useDebtRepaymentStage', () => {
       expect(result.current.errorMessage).toBe('無法載入債務還款試算，請稍後再試。'),
     );
     expect(result.current.repayments).toEqual([]);
-    expect(result.current.shouldBlock()).toBeNull();
+
+    const draft = [{ debtAccountId: 'debt-1', totalPayment: 8_000, date: new Date('2026-08-05') }];
+    act(() => {
+      result.current.setRepayments(draft);
+    });
+    expect(result.current.buildRequest()).toEqual({
+      stageId: 'DEBT_REPAYMENT',
+      repayments: draft,
+    });
+
+    // The failed load settles instead of escaping as an unhandled rejection.
+    await act(async () => {
+      await expect(result.current.refresh?.()).resolves.toBeUndefined();
+    });
   });
 });

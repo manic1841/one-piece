@@ -48,9 +48,9 @@ describe('useProjectSettlementStage', () => {
   });
 
   // #231: a failed load used to leave an empty list that read as "no projects".
-  // The hook reports it with copy the consumer owns, and confirm stays reachable
-  // — the stage has no draft, so there is nothing for the failure to gate.
-  it('surfaces the canned copy on load failure without blocking confirm', async () => {
+  // The hook reports it with copy the consumer owns; the failure never leaks a
+  // rejection, and the stage still builds its request (no draft to gate).
+  it('reports a load failure without blocking confirm or leaking a rejection', async () => {
     vi.mocked(listProjectsUseCase.execute).mockRejectedValue(new Error('boom'));
 
     const { result } = renderStage();
@@ -59,6 +59,9 @@ describe('useProjectSettlementStage', () => {
       expect(result.current.errorMessage).toBe('無法載入專案結算狀態，請稍後再試。'),
     );
     expect(result.current.settlements).toEqual([]);
-    expect(result.current.shouldBlock()).toBeNull();
+    expect(result.current.buildRequest()).toEqual({ stageId: 'PROJECT_SETTLEMENT' });
+
+    // The failed load settles instead of escaping as an unhandled rejection.
+    await expect(result.current.refresh?.()).resolves.toBeUndefined();
   });
 });
