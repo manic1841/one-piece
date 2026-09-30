@@ -145,4 +145,28 @@ describe('useDebtRepaymentStage', () => {
     expect(result.current.debtSectionMetas).toEqual([]);
     expect(result.current.buildRequest()).toEqual({ stageId: 'DEBT_REPAYMENT', repayments: [] });
   });
+
+  // #231: a failed prefill load surfaces the canned copy; the draft stays empty
+  // and confirm is not blocked — prefill is a convenience, not a gate.
+  it('surfaces the canned copy on load failure without blocking confirm', async () => {
+    vi.mocked(previewDebtSettlementsUseCase.execute).mockRejectedValue(new Error('boom'));
+    // Hoisted: a fresh array per render would change `load`'s identity and loop.
+    const debtAccounts = [debtAccount('debt-1')];
+
+    const { result } = renderHook(() =>
+      useDebtRepaymentStage({
+        householdId: 'household-1',
+        selectedYearMonth: '2026-08',
+        debtAccounts,
+        auth,
+        confirmingStageId: null,
+      }),
+    );
+
+    await waitFor(() =>
+      expect(result.current.errorMessage).toBe('無法載入債務還款試算，請稍後再試。'),
+    );
+    expect(result.current.repayments).toEqual([]);
+    expect(result.current.shouldBlock()).toBeNull();
+  });
 });

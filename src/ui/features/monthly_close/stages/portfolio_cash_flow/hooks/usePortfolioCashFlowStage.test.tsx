@@ -127,4 +127,29 @@ describe('usePortfolioCashFlowStage', () => {
     await waitFor(() => expect(result.current.portfolioSnapshots.size).toBe(1));
     expect(result.current.portfolioSnapshots.get('p-1')).toBeNull();
   });
+
+  // #231: a failed prefill load used to leave an empty draft that read as a
+  // clean month. The hook reports it with copy the consumer owns and confirm
+  // stays reachable — prefill is a convenience, not a gate.
+  it('surfaces the canned copy on load failure without blocking confirm', async () => {
+    vi.mocked(listPortfolioSnapshotsUseCase.execute).mockRejectedValue(new Error('boom'));
+    // Hoisted: a fresh array per render would change `load`'s identity and loop.
+    const portfolios = [portfolio('p-1')];
+
+    const { result } = renderHook(() =>
+      usePortfolioCashFlowStage({
+        householdId: 'household-1',
+        selectedYearMonth: '2026-08',
+        portfolios,
+        auth,
+        confirmingStageId: null,
+      }),
+    );
+
+    await waitFor(() =>
+      expect(result.current.errorMessage).toBe('無法載入 Portfolio 金流，請稍後再試。'),
+    );
+    expect(result.current.cashFlows).toEqual({});
+    expect(result.current.shouldBlock()).toBeNull();
+  });
 });
