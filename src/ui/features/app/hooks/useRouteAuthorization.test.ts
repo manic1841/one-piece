@@ -25,6 +25,7 @@ const authState = (overrides: Partial<AuthState> = {}): AuthState =>
   ({
     user: { uid: 'user-1', email: 'user@example.com' },
     userProfile: { householdId: 'household-1' },
+    profileLoading: false,
     isAdmin: false,
     loading: false,
     initError: null,
@@ -68,6 +69,36 @@ describe('useRouteAuthorization', () => {
     const { result } = renderHook(() => useRouteAuthorization(true));
 
     await waitFor(() => expect(result.current.outcome).toBe('onboarding'));
+    expect(authorizeRouteAccessUseCase.execute).toHaveBeenCalledWith({
+      auth: identity,
+      householdId: 'household-1',
+      requireHousehold: true,
+    });
+  });
+
+  it('stays pending while the profile read is still resolving after init finished', async () => {
+    vi.mocked(useAuthState).mockReturnValue(
+      authState({ userProfile: null, profileLoading: true, loading: false }) as AuthState,
+    );
+
+    const { result } = renderHook(() => useRouteAuthorization(true));
+
+    expect(result.current.outcome).toBe('pending');
+    expect(authorizeRouteAccessUseCase.execute).not.toHaveBeenCalled();
+  });
+
+  it('runs the workflow once the profile resolves to a household', async () => {
+    vi.mocked(useAuthState).mockReturnValue(
+      authState({ userProfile: null, profileLoading: true, loading: false }) as AuthState,
+    );
+    const { result, rerender } = renderHook(() => useRouteAuthorization(true));
+
+    expect(result.current.outcome).toBe('pending');
+
+    vi.mocked(useAuthState).mockReturnValue(authState() as AuthState);
+    rerender();
+
+    await waitFor(() => expect(result.current.outcome).toBe('allow'));
     expect(authorizeRouteAccessUseCase.execute).toHaveBeenCalledWith({
       auth: identity,
       householdId: 'household-1',

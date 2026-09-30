@@ -130,14 +130,14 @@ const terminusRow = (key: string, label: string, amount: DriftAmount): Statement
   children: [],
 });
 
-const itemRows = (items: DriftItem[], depth: number): StatementRow[] =>
+const itemRows = (items: DriftItem[], depth: number, keyPrefix = ''): StatementRow[] =>
   items.map((item) => ({
-    key: item.code,
+    key: `${keyPrefix}${item.code}`,
     label: item.label,
     amount: item,
     tone: depth <= 1 ? 'group' : depth === 2 ? 'detail' : 'deepDetail',
     depth,
-    children: item.subItems?.length ? itemRows(item.subItems, depth + 1) : [],
+    children: item.subItems?.length ? itemRows(item.subItems, depth + 1, keyPrefix) : [],
   }));
 
 const flattenRows = (
@@ -356,7 +356,15 @@ export const BalanceSheetView: React.FC<
   );
 };
 
-const cashFlowGroupRow = (key: string, label: string, items: DriftItem[]): StatementRow | null => {
+// Inflow and outflow buckets legitimately share codes (a same-month buy+sell
+// or capital in+out), so their flattened rows need bucket-scoped keys or the
+// duplicate React keys render ghost rows on collapse/expand.
+const cashFlowGroupRow = (
+  key: string,
+  label: string,
+  items: DriftItem[],
+  keyPrefix: string,
+): StatementRow | null => {
   if (items.length === 0) return null;
   return {
     key,
@@ -364,7 +372,7 @@ const cashFlowGroupRow = (key: string, label: string, items: DriftItem[]): State
     amount: combineDrift(items),
     tone: 'group',
     depth: 1,
-    children: itemRows(items, 2),
+    children: itemRows(items, 2, keyPrefix),
   };
 };
 
@@ -385,8 +393,13 @@ export const CashFlowView: React.FC<StatementViewProps & { data: CashFlowDrift |
     const hasItems = group.inflowItems.length > 0 || group.outflowItems.length > 0;
     if (group.total.amount === 0 && !hasItems) continue;
     const children = [
-      cashFlowGroupRow(`${key}:inflow`, MONTHLY_CLOSE_LABELS.INFLOW, group.inflowItems),
-      cashFlowGroupRow(`${key}:outflow`, MONTHLY_CLOSE_LABELS.OUTFLOW, group.outflowItems),
+      cashFlowGroupRow(`${key}:inflow`, MONTHLY_CLOSE_LABELS.INFLOW, group.inflowItems, 'inflow:'),
+      cashFlowGroupRow(
+        `${key}:outflow`,
+        MONTHLY_CLOSE_LABELS.OUTFLOW,
+        group.outflowItems,
+        'outflow:',
+      ),
     ].filter((row): row is StatementRow => row !== null);
     rows.push({
       key: `section:${key}`,

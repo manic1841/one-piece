@@ -25,6 +25,7 @@ interface AuthStateProviderProps {
 export const AuthStateProvider: React.FC<AuthStateProviderProps> = ({ gateway, children }) => {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [profileLoading, setProfileLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
   const [initError, setInitError] = useState<AuthInitErrorCode | null>(null);
@@ -32,6 +33,7 @@ export const AuthStateProvider: React.FC<AuthStateProviderProps> = ({ gateway, c
 
   const ensureProfile = useCallback(async (target: AuthUser) => {
     const seed = profileSeedRef.current;
+    setProfileLoading(true);
     try {
       const profile = await ensureUserProfileUseCase.execute({
         uid: target.uid,
@@ -43,6 +45,8 @@ export const AuthStateProvider: React.FC<AuthStateProviderProps> = ({ gateway, c
     } catch (error) {
       console.error('Error ensuring user profile:', error);
       setUserProfile(null);
+    } finally {
+      setProfileLoading(false);
     }
   }, []);
 
@@ -64,6 +68,7 @@ export const AuthStateProvider: React.FC<AuthStateProviderProps> = ({ gateway, c
       if (snapshot.user) {
         void ensureProfile(snapshot.user);
       } else {
+        setProfileLoading(false);
         setUserProfile(null);
       }
     });
@@ -91,6 +96,7 @@ export const AuthStateProvider: React.FC<AuthStateProviderProps> = ({ gateway, c
     () => ({
       user,
       userProfile,
+      profileLoading,
       isAdmin,
       loading,
       initError,
@@ -98,7 +104,17 @@ export const AuthStateProvider: React.FC<AuthStateProviderProps> = ({ gateway, c
       loginWithGoogle,
       refreshProfile,
     }),
-    [user, userProfile, isAdmin, loading, initError, logout, loginWithGoogle, refreshProfile],
+    [
+      user,
+      userProfile,
+      profileLoading,
+      isAdmin,
+      loading,
+      initError,
+      logout,
+      loginWithGoogle,
+      refreshProfile,
+    ],
   );
 
   return <AuthStateContext.Provider value={value}>{children}</AuthStateContext.Provider>;
