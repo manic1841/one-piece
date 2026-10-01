@@ -9,6 +9,10 @@ import {
   calculateLiquidBalance,
 } from './reportCalculations';
 
+const LEDGER_LABELS: Record<string, string> = {
+  'asset:property': '不動產',
+};
+
 const entry = (ledgerCode: string, debit: number, credit: number): JournalEntryLine => ({
   ledgerCode,
   debit,
@@ -215,8 +219,8 @@ describe('calculateBalanceSheet', () => {
 
     expect(result.equity.groups.capital.total).toBe(10000);
     expect(result.equity.groups.capital.items.every((item) => item.amount > 0)).toBe(true);
-    expect(result.equity.groups.capital.items[0].code).toBe('equity:capital');
-    expect(result.equity.groups.capital.items[0].subItems?.map((sub) => sub.code)).toEqual([
+    expect(result.equity.groups.capital.items.map((item) => item.code)).toEqual([
+      'equity:capital',
       'equity:capital:addition',
     ]);
   });
@@ -231,12 +235,15 @@ describe('calculateBalanceSheet', () => {
 
     const capital = result.equity.groups.capital;
     expect(capital.total).toBe(-2000);
-    const subItems = capital.items[0]?.subItems ?? [];
-    expect(subItems.find((sub) => sub.code === 'equity:capital:injection')?.amount).toBe(3000);
-    expect(subItems.find((sub) => sub.code === 'equity:capital:dividend')?.amount).toBe(-5000);
+    expect(capital.items.find((item) => item.code === 'equity:capital:injection')?.amount).toBe(
+      3000,
+    );
+    expect(capital.items.find((item) => item.code === 'equity:capital:dividend')?.amount).toBe(
+      -5000,
+    );
   });
 
-  it('rolls balance-sheet ledger-code sections into parent category with subItems', () => {
+  it('records balance-sheet detail codes directly in the roll-up group items', () => {
     const entries = [
       entry('asset:property:house', 800000, 0),
       entry('asset:property:land', 200000, 0),
@@ -246,13 +253,26 @@ describe('calculateBalanceSheet', () => {
 
     const propertyGroup = result.assets.groups.property;
     expect(propertyGroup.total).toBe(1000000);
-    expect(propertyGroup.items).toHaveLength(1);
-    expect(propertyGroup.items[0].code).toBe('asset:property');
-    expect(propertyGroup.items[0].amount).toBe(1000000);
-    expect(propertyGroup.items[0].subItems?.map((sub) => sub.code)).toEqual([
+    // The group row already carries the roll-up; items are the detail codes.
+    expect(propertyGroup.items.map((item) => item.code)).toEqual([
       'asset:property:house',
       'asset:property:land',
     ]);
+  });
+
+  it('renders a bare property-code balance as its own group item row', () => {
+    const entries = [entry('asset:property', 500000, 0)];
+
+    const result = calculateBalanceSheet({
+      ...baseInput,
+      entries,
+      labelResolver: (code) => LEDGER_LABELS[code] ?? code,
+    });
+
+    const propertyGroup = result.assets.groups.property;
+    expect(propertyGroup.total).toBe(500000);
+    expect(propertyGroup.items.map((item) => item.code)).toEqual(['asset:property']);
+    expect(propertyGroup.items[0].label).toBe('不動產');
   });
 
   it('computes adjustment as residual', () => {

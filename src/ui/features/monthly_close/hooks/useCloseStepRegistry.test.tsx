@@ -1,4 +1,4 @@
-import { fireEvent, render, renderHook, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, renderHook, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { getAccountSnapshotsUseCase } from '@/application/account/use_cases/getAccountSnapshotsUseCase';
@@ -130,19 +130,13 @@ const readinessFixture = {
   totalUnsettled: 0,
 };
 
-// The registry gates every stage auto-load on `pageVM.isStarted` (#240), so the
-// shared default is a loaded period: these tests exercise what a started month
-// renders, not the gate itself (that lives at the page seam).
-const startedPageVM = mapPeriodToPageVM(
-  {
-    id: '2026-08',
-    yearMonth: '2026-08',
-    status: 'IN_PROGRESS',
-    stages: {},
-    reviewSourceStageId: null,
-  } as never,
-  '2026-08',
-);
+const startedPageVM = mapPeriodToPageVM({
+  id: '2026-08',
+  yearMonth: '2026-08',
+  status: 'IN_PROGRESS',
+  stages: {},
+  reviewSourceStageId: null,
+} as never);
 
 const baseArgs: UseCloseStepRegistryArgs = {
   householdId: 'household-1',
@@ -171,16 +165,13 @@ const account = (id: string): Account =>
 
 /** A live period whose only meaningful fact is the FINANCIAL_REPORTS stage state. */
 const pageVMWithReportsStage = (status: 'PENDING' | 'COMPLETED') =>
-  mapPeriodToPageVM(
-    {
-      id: '2026-08',
-      yearMonth: '2026-08',
-      status: 'IN_PROGRESS',
-      stages: { FINANCIAL_REPORTS: { status } },
-      reviewSourceStageId: null,
-    } as never,
-    '2026-08',
-  );
+  mapPeriodToPageVM({
+    id: '2026-08',
+    yearMonth: '2026-08',
+    status: 'IN_PROGRESS',
+    stages: { FINANCIAL_REPORTS: { status } },
+    reviewSourceStageId: null,
+  } as never);
 
 const renderRegistry = (overrides: Partial<UseCloseStepRegistryArgs> = {}) =>
   renderHook(() => useCloseStepRegistry({ ...baseArgs, ...overrides }));
@@ -326,6 +317,21 @@ describe('useCloseStepRegistry', () => {
     );
   });
 
+  it('blocks Step 7 confirm while TRANSACTION_VALIDATION is still loading', async () => {
+    vi.mocked(validateMonthTransactionsUseCase.execute).mockReturnValue(
+      new Promise(() => {}) as never,
+    );
+
+    function Harness() {
+      const registry = useCloseStepRegistry(baseArgs);
+      return <>{registry.COMPLETENESS_CHECK.render(baseContext)}</>;
+    }
+
+    render(<Harness />);
+
+    await waitFor(() => expect(screen.getByTestId('readiness-confirm')).toBeInTheDocument());
+    expect(screen.getByTestId('readiness-confirm')).toBeDisabled();
+  });
   it('dispatches CLOSE_PERIOD to the summary panel via the content factory', () => {
     const { result } = renderRegistry();
 
@@ -359,7 +365,10 @@ describe('useCloseStepRegistry', () => {
     const { result } = renderRegistry({ pageVM: pageVMWithReportsStage('PENDING') });
 
     await waitFor(() =>
-      expect(result.current.CLOSE_PERIOD.evidence().kind).toBe('REPORT_PERSISTENCE'),
+      expect(result.current.CLOSE_PERIOD.evidence()).toMatchObject({
+        kind: 'PERSISTENCE',
+        persisted: true,
+      }),
     );
 
     render(<>{result.current.FINANCIAL_REPORTS.render(baseContext)}</>);
@@ -401,7 +410,10 @@ describe('useCloseStepRegistry', () => {
     const { result } = renderRegistry();
 
     await waitFor(() =>
-      expect(result.current.PROJECT_SETTLEMENT.evidence().projectSettlements).toHaveLength(2),
+      expect(result.current.PROJECT_SETTLEMENT.evidence()).toMatchObject({
+        kind: 'SETTLEMENTS',
+        rows: [{ projectName: '裝修' }, { projectName: '旅遊' }],
+      }),
     );
 
     render(<>{result.current.PROJECT_SETTLEMENT.render(baseContext)}</>);
@@ -421,7 +433,7 @@ describe('useCloseStepRegistry', () => {
     render(<>{result.current.SECURITIES_TRADE.render(baseContext)}</>);
 
     fireEvent.click(screen.getAllByRole('button', { name: '新增交易' })[0]);
-    expect(openSpy).toHaveBeenCalledWith('SECURITIES', 'ADD', undefined);
+    expect(openSpy).toHaveBeenCalledWith('SECURITIES', 'ADD', null);
   });
 
   it('reflects the FINANCIAL_REPORTS persistence state in CLOSE_PERIOD evidence', async () => {
@@ -432,9 +444,11 @@ describe('useCloseStepRegistry', () => {
     const { result } = renderRegistry();
 
     await waitFor(() =>
-      expect(result.current.CLOSE_PERIOD.evidence().kind).toBe('REPORT_PERSISTENCE'),
+      expect(result.current.CLOSE_PERIOD.evidence()).toMatchObject({
+        kind: 'PERSISTENCE',
+        persisted: true,
+      }),
     );
-    expect(result.current.CLOSE_PERIOD.evidence().reportsPersisted).toBe(true);
   });
 
   it("derives FINANCIAL_REPORTS evidence from CLOSE_PERIOD's preview bundle", async () => {
@@ -442,9 +456,11 @@ describe('useCloseStepRegistry', () => {
     const { result } = renderRegistry();
 
     await waitFor(() =>
-      expect(result.current.FINANCIAL_REPORTS.evidence().kind).toBe('CASH_FLOW_ADJUSTMENTS'),
+      expect(result.current.FINANCIAL_REPORTS.evidence()).toMatchObject({
+        kind: 'ADJUSTMENT',
+        count: 1500,
+      }),
     );
-    expect(result.current.FINANCIAL_REPORTS.evidence().cashFlowAdjustments).toBe(1500);
   });
 
   it('derives COMPLETENESS_CHECK evidence from its own stage hook', async () => {
@@ -465,9 +481,11 @@ describe('useCloseStepRegistry', () => {
     const { result } = renderRegistry();
 
     await waitFor(() =>
-      expect(result.current.COMPLETENESS_CHECK.evidence().zeroActivityNames).toEqual(['裝修']),
+      expect(result.current.COMPLETENESS_CHECK.evidence()).toMatchObject({
+        kind: 'ZERO_ACTIVITY',
+        names: ['裝修'],
+      }),
     );
-    expect(result.current.COMPLETENESS_CHECK.evidence().kind).toBe('COMPLETENESS_ANOMALIES');
   });
 
   it('derives TRANSACTION_VALIDATION evidence from its own stage hook', async () => {
@@ -479,9 +497,11 @@ describe('useCloseStepRegistry', () => {
     const { result } = renderRegistry();
 
     await waitFor(() =>
-      expect(result.current.TRANSACTION_VALIDATION.evidence().transactionIssues).toHaveLength(1),
+      expect(result.current.TRANSACTION_VALIDATION.evidence()).toMatchObject({
+        kind: 'ISSUES',
+        issues: [{ transactionId: 't1', description: '餐飲', reason: '分配總和不等於 100%' }],
+      }),
     );
-    expect(result.current.TRANSACTION_VALIDATION.evidence().kind).toBe('TRANSACTION_VALIDATION');
   });
 
   it("renders the five Step 9 financial figures from CLOSE_PERIOD's own bundle", async () => {
@@ -576,15 +596,6 @@ describe('useCloseStepRegistry', () => {
     expect(screen.queryByText(/->/)).not.toBeInTheDocument();
   });
 
-  it('resets every stage draft through the control record', () => {
-    const { result } = renderRegistry();
-
-    for (const step of Object.values(result.current)) {
-      expect(typeof step.control.resetDraft).toBe('function');
-      step.control.resetDraft();
-    }
-  });
-
   // T11 (#235): the page refreshes stages through `control.refresh` and never
   // asks which stage owns which data, so every stage that loads something must
   // expose it — and it must resolve even when the load fails, or `Promise.all`
@@ -613,10 +624,46 @@ describe('useCloseStepRegistry', () => {
     ).resolves.toBeDefined();
   });
 
-  // T7 (#231): a failed prefill load used to leave the stage rendering an empty
-  // draft that read as a clean month. Each stage now reports the failure with
-  // copy the consumer owns, and confirm stays reachable: prefill is a
-  // convenience, so a hand-typed draft still submits.
+  it('adopts the confirm response rows into the SECURITIES_TRADE draft (#250)', async () => {
+    const { result } = renderRegistry();
+    await waitFor(() => expect(getMonthInvestmentFinancingUseCase.execute).toHaveBeenCalled());
+
+    const confirmedRow = {
+      transactionId: 'tx-1',
+      amount: 5000,
+      date: new Date('2026-08-05'),
+    };
+    act(() => {
+      result.current.SECURITIES_TRADE.control.afterConfirm({
+        buys: [confirmedRow],
+        sells: [],
+        shareholderFinancing: [],
+        dividendPayout: [],
+      });
+    });
+
+    expect(result.current.SECURITIES_TRADE.control.buildRequest()).toEqual({
+      stageId: 'SECURITIES_TRADE',
+      securities: {
+        buys: [{ ...confirmedRow, description: undefined, projectId: null }],
+        sells: [],
+      },
+      financing: { shareholderFinancing: [], dividendPayout: [] },
+      removedTransactionIds: [],
+    });
+  });
+
+  it('accepts an undefined confirm slice on a stage with nothing to adopt (#250)', async () => {
+    const { result } = renderRegistry();
+    await waitFor(() => expect(getMonthInvestmentFinancingUseCase.execute).toHaveBeenCalled());
+
+    const control = result.current.ACCOUNT_BALANCE.control;
+
+    expect(() => control.afterConfirm(undefined)).not.toThrow();
+    // Nothing was adopted, so the stage still submits its own empty draft.
+    expect(control.buildRequest()).toEqual({ stageId: 'ACCOUNT_BALANCE', accountBalances: [] });
+  });
+
   it('surfaces the ACCOUNT_BALANCE prefill failure without blocking confirm', async () => {
     vi.mocked(getAccountSnapshotsUseCase.execute).mockRejectedValue(new Error('boom'));
     const args: UseCloseStepRegistryArgs = { ...baseArgs, accounts: [account('acc-1')] };
@@ -705,10 +752,7 @@ describe('useCloseStepRegistry', () => {
     );
   });
 
-  // #234: the close gate reads Step 8's own drift tree — a drifted child under a
-  // matching total still blocks. It states *that* the reports drifted and never
-  // names a count (see `hasReportDrift`), so the block and the warnings the user
-  // saw cannot disagree.
+  // #234: any drift in Step 8's reports blocks the close; never names a count.
   it('blocks the close when Step 8 drifted, without naming a count', async () => {
     vi.mocked(previewFinancialReportsWorkflow.execute).mockResolvedValue(
       previewWithTotals({ netIncome: 117_000 }),

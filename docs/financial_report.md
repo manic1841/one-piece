@@ -17,9 +17,9 @@ One-Piece 結合了「管理會計 (Projects)」與「財務會計 (Accounts)」
 
 ## 0. 報表產生前置檢查
 
-- 正式報表的產生入口為「月度關帳」流程（`/close` 的 FINANCIAL_REPORTS 階段，由 `monthlyCloseWorkflowUseCase` 呼叫 `generateFinancialReportsUseCase`）；財務結算中心僅顯示報表產生狀態，不再提供產生按鈕。
+- 正式報表的產生入口為「月度關帳」流程（FINANCIAL_REPORTS 階段，由 `monthlyCloseWorkflowUseCase` 呼叫 `generateFinancialReportsUseCase`）；財務結算中心僅顯示報表產生狀態，不再提供產生按鈕。
 - 產生前檢查分兩層：
-  - **就緒檢查（Step 7，Completeness Check 階段）**：報表產生前，把各類別月結算完成度、交易驗證與零活動警示彙整為整體就緒狀態，讓使用者先確認資料能否產生正確報表；缺漏項目以深連結導回對應階段修正。只呈現就緒狀態，不呈現財務數字。
+  - **就緒檢查（Step 7，Completeness Check 階段）**：報表產生前，把各類別月結算完成度、交易驗證與零活動警示彙整為整體就緒狀態，讓使用者先確認資料能否產生正確報表；缺漏項目以階段跳轉導回對應階段修正。只呈現就緒狀態，不呈現財務數字。
   - **產生階段（Step 8，Financial Reports 階段）**：預覽報表 → 確認 → 產生；產生按鈕在結算未就緒時保持 disabled 作為最後一道防線（就緒狀態跨讀 Step 7，不重複列出未結算類別名稱）。寫入路徑本身亦再檢查一次，未就緒時拒絕產生。
 - **關帳畫面的顯示語意**：關帳畫面（Step 8 三張表與 Step 9 五個聚合數字）**永遠顯示即時重算的 Report Preview**，無論該期間是否已有已產生報表；Persisted Report 只當狀態旗標與比對基準。期間為 `IN_PROGRESS`／`NEEDS_REVIEW` 且 persisted 存在時逐欄標註 Report Drift；唯一例外是 `CLOSED`——唯讀回看改顯示 persisted（定案紀錄）、不做比對。顯示模式由期間狀態決定，不是單純的 `isPersisted` 旗標（reopen 後殘檔仍顯示 preview 並比對）。取捨理由見 [ADR-0071](adr/0071-close-shows-preview-with-drift.md)。
 - 產生正式報表前，會先檢查以下「啟用中」資產負債來源是否都有該月份結算快照：
@@ -77,11 +77,17 @@ One-Piece 結合了「管理會計 (Projects)」與「財務會計 (Accounts)」
 - 權益細項拆為五個來源：
   - **期初權益**：上期結轉。
   - **本期淨利**：從損益表結轉。
-  - **資本**：`equity:capital*` 當月 `credit − debit`（`equity:capital` 本身與其明細科目加總）；credit 為投入、debit 為提款／分紅，淨 debit 月為**負（扣除）**，明細科目同樣帶號（見「報表層符號原則」）。
+  - **資本**：`equity:capital*` 當月 `credit − debit` 加總；credit 為投入、debit 為提款／分紅，淨 debit 月為**負（扣除）**，明細科目同樣帶號（見「報表層符號原則」）。
   - **股票報酬**：active portfolio snapshots 的累計損益（`gain` 加總）。
   - **調整項目**：其餘無法歸類於上述四項的部分；理論上應接近零。
 - 調整項目偏大代表資料有誤，但系統無法自動定位是哪一筆，須人工追查。
 - 儲存端不寫入任何「權益」餘額；`equity:*` 僅是歸屬用的科目。
+
+### 呈現結構
+
+- **欄位項（不動產、資本）不設第二層父列**：資產負債表的 group（`assets.groups.property`、`equity.groups.capital`）本身就是 roll-up 層——group 名即類別、`total` 已加總，`items` 直接記錄明細科目（`asset:property:<house>` 等），不再巢狀出 `asset:property` 父列。直接記在 bare 科目（`asset:property`、`equity:capital` 本身）的餘額以獨立平列呈現。理由與取捨見 [ADR-0074](adr/0074-balance-sheet-group-items-flat.md)。
+- **舊格式相容**：Report Drift 對 roll-up 時期 persisted 報表（父列 + subItems）先還原成平列（父列金額減明細加總的餘額還原為 bare 科目列）再比對，切換期間不出現假警示。
+- 損益表與現金流量的明細 roll-up（父科目成列、明細巢狀 subItems）不變，見 §1、§3 與 [ADR-0069](adr/0069-report-layer-rollup-label-resolution.md)。
 
 ---
 

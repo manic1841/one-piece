@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback } from 'react';
 
 import { type DebtRepaymentInput } from '@/application/monthly_close/use_cases/monthlyCloseRequests';
 import { previewDebtSettlementsUseCase } from '@/application/settlement/use_cases/previewDebtSettlementsUseCase';
@@ -7,8 +7,10 @@ import { getEffectiveMonthlyDueForBalance } from '@/domains/debt/debtPaymentCalc
 import { type DebtAccount } from '@/domains/debt/schemas';
 import type { CloseStageControl } from '@/ui/features/monthly_close/hooks/closeStageControl';
 import { useConfirmStageControl } from '@/ui/features/monthly_close/hooks/useConfirmStageControl';
+import { useSeededDraft } from '@/ui/features/monthly_close/hooks/useSeededDraft';
+import { useStageLoader } from '@/ui/features/monthly_close/hooks/useStageLoader';
 import type { DebtSectionMetaVM } from '@/ui/features/monthly_close/viewmodels/debtPayment.vm';
-import { useLoadingTask } from '@/ui/hooks/useLoadingTask';
+import { useAuthIdentity } from '@/ui/hooks/useAuthIdentity';
 import { logger } from '@/utils/logger';
 
 export const closeMonthDate = (yearMonth: string): Date =>
@@ -19,9 +21,7 @@ interface UseDebtRepaymentStageArgs {
   selectedYearMonth: string;
   /** Full debt documents: the monthly-due calculation reads schedule fields. */
   debtAccounts: DebtAccount[];
-  auth: AuthContext;
   confirmingStageId: string | null;
-  enabled?: boolean;
 }
 
 const LOAD_ERROR = '無法載入債務還款試算，請稍後再試。';
@@ -102,66 +102,45 @@ const fetchDebtPrefill = async ({
   }
 };
 
-/**
- * Stage controller for DEBT_REPAYMENT: owns the repayment draft and the
- * preview prefill that seeds it (absorbed from useDebtRepaymentPrefill).
- * Every active debt gets a draft row: a month with recorded payments prefills
- * the booked amount, an unrecorded month prefills the system-calculated
- * monthly due (interest amount during the grace period) against the preview's
- * opening balance, so the due and the displayed split share one basis. Local
- * drafts are not persisted. A load failure surfaces the canned message without
- * blocking confirm.
- */
+/** Stage controller for DEBT_REPAYMENT: the repayment draft and its preview prefill. */
 export const useDebtRepaymentStage = ({
   householdId,
   selectedYearMonth,
   debtAccounts,
-  auth,
   confirmingStageId,
-  enabled = true,
-}: UseDebtRepaymentStageArgs): CloseStageControl & {
-  repayments: DebtRepaymentInput[];
-  setRepayments: React.Dispatch<React.SetStateAction<DebtRepaymentInput[]>>;
+}: UseDebtRepaymentStageArgs): CloseStageControl<'DEBT_REPAYMENT'> & {
+  repayments: DebtRepaymentInput[] | null;
+  setRepayments: (value: DebtRepaymentInput[]) => void;
   debtSectionMetas: DebtSectionMetaVM[];
   errorMessage: string | null;
 } => {
-  const [repayments, setRepayments] = useState<DebtRepaymentInput[]>([]);
-  const [debtSectionMetas, setDebtSectionMetas] = useState<DebtSectionMetaVM[]>([]);
-  const { errorMessage, run } = useLoadingTask();
-  // A slow load for a month the user already left must not land last and win.
-  const inFlightRef = useRef<AbortController | null>(null);
+  const auth = useAuthIdentity();
 
-  const load = useCallback(async () => {
-    if (!householdId || debtAccounts.length === 0) return;
-    inFlightRef.current?.abort();
-    const controller = new AbortController();
-    inFlightRef.current = controller;
-
-    await run(() => fetchDebtPrefill({ householdId, selectedYearMonth, debtAccounts, auth }), {
-      signal: controller.signal,
-      writeBack: (result) => {
-        if (!result.ok) return;
-        setDebtSectionMetas(result.value.debtSectionMetas);
-        setRepayments(result.value.repayments);
-      },
-    });
-  }, [auth, debtAccounts, householdId, run, selectedYearMonth]);
-
-  useEffect(() => {
-    if (!enabled) return;
-    void load();
-  }, [enabled, load]);
+  const load = useCallback(
+    () => fetchDebtPrefill({ householdId, selectedYearMonth, debtAccounts, auth }),
+    [auth, debtAccounts, householdId, selectedYearMonth],
+  );
+  // The gate carries every precondition, including `selectedYearMonth`.
+  const { data, errorMessage, refresh } = useStageLoader<DebtPrefillData>({
+    enabled: householdId !== '' && selectedYearMonth !== '' && debtAccounts.length > 0,
+    load,
+  });
+  const [repayments, setRepayments] = useSeededDraft<DebtRepaymentInput[]>(
+    data?.repayments ?? null,
+  );
 
   const control = useConfirmStageControl({
     stageId: 'DEBT_REPAYMENT',
     confirmingStageId,
-    buildRequest: () => ({ stageId: 'DEBT_REPAYMENT', repayments }),
-    resetDraft: () => {
-      setRepayments([]);
-      setDebtSectionMetas([]);
-    },
-    refresh: load,
+    buildRequest: () => ({ stageId: 'DEBT_REPAYMENT', repayments: repayments ?? [] }),
+    refresh,
   });
 
-  return { ...control, repayments, setRepayments, debtSectionMetas, errorMessage };
+  return {
+    ...control,
+    repayments,
+    setRepayments,
+    debtSectionMetas: data?.debtSectionMetas ?? [],
+    errorMessage,
+  };
 };

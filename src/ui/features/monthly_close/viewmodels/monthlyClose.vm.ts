@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { type CloseStageId, type FinancialPeriod } from '@/domains/financial_period/schemas';
 import { CLOSE_STAGE_ORDER } from '@/ui/constants/monthlyClose';
 
-export type { CloseStageId };
+export type { CloseStageId, FinancialPeriod };
 
 export type {
   DebtRepaymentInput,
@@ -12,30 +12,6 @@ export type {
 } from '@/application/monthly_close/use_cases/monthlyCloseWorkflowUseCase';
 
 export { isCascadeDemoted, isReopenablePeriod } from '@/domains/financial_period/stateMachine';
-
-export interface CloseStageEvidence {
-  kind:
-    | 'TRANSACTION_VALIDATION'
-    | 'COMPLETENESS_ANOMALIES'
-    | 'CASH_FLOW_ADJUSTMENTS'
-    | 'REPORT_PERSISTENCE'
-    | 'PROJECT_SETTLEMENT'
-    | 'NONE';
-  transactionIssues: { transactionId: string; description: string; reason: string }[];
-  zeroActivityNames: string[];
-  cashFlowAdjustments: number;
-  reportsPersisted: boolean | null;
-  projectSettlements: ProjectSettlementEvidenceRow[];
-}
-
-export interface ProjectSettlementEvidenceRow {
-  projectId: string;
-  projectName: string;
-  settled: boolean;
-  income: number | null;
-  expense: number | null;
-  closingBalance: number | null;
-}
 
 export interface CloseStageItemVM {
   stageId: CloseStageId;
@@ -51,13 +27,12 @@ export interface CloseStageItemVM {
 export interface MonthlyClosePageVM {
   periodLabel: string;
   periodText: string;
-  status: FinancialPeriod['status'] | 'NONE';
+  status: FinancialPeriod['status'];
   statusText: string;
   isPaused: boolean;
   isClosed: boolean;
   isCascadeDemoted: boolean;
   isActive: boolean;
-  isStarted: boolean;
   reviewSourceStageId: CloseStageId | null;
   reviewSourceLabel: string | null;
   stages: CloseStageItemVM[];

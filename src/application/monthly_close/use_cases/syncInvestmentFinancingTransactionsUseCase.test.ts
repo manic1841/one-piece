@@ -24,7 +24,11 @@ describe('SyncInvestmentFinancingTransactionsUseCase', () => {
   });
 
   it('creates transactions for new rows with intent-mapped entries', async () => {
-    await syncInvestmentFinancingTransactionsUseCase.execute({
+    vi.mocked(createTransactionUseCase.execute)
+      .mockResolvedValueOnce('tx-buy')
+      .mockResolvedValueOnce('tx-fin');
+
+    const result = await syncInvestmentFinancingTransactionsUseCase.execute({
       ...baseRequest,
       securities: {
         buys: [{ amount: 5000, date: new Date('2026-09-02'), description: 'buy 0050' }],
@@ -63,10 +67,32 @@ describe('SyncInvestmentFinancingTransactionsUseCase', () => {
     });
     expect(updateTransactionUseCase.execute).not.toHaveBeenCalled();
     expect(deleteTransactionUseCase.execute).not.toHaveBeenCalled();
+
+    // #250: the write returns the authoritative rows with their new IDs.
+    expect(result.buys).toEqual([
+      {
+        transactionId: 'tx-buy',
+        amount: 5000,
+        date: new Date('2026-09-02'),
+        description: 'buy 0050',
+        projectId: undefined,
+      },
+    ]);
+    expect(result.shareholderFinancing).toEqual([
+      {
+        transactionId: 'tx-fin',
+        amount: 10_000,
+        date: new Date('2026-09-03'),
+        description: undefined,
+        projectId: 'proj-1',
+      },
+    ]);
+    expect(result.sells).toEqual([]);
+    expect(result.dividendPayout).toEqual([]);
   });
 
   it('updates loaded rows in place and deletes removed IDs', async () => {
-    await syncInvestmentFinancingTransactionsUseCase.execute({
+    const result = await syncInvestmentFinancingTransactionsUseCase.execute({
       ...baseRequest,
       securities: {
         buys: [{ transactionId: 'tx-1', amount: 7000, date: new Date('2026-09-02') }],
@@ -94,10 +120,13 @@ describe('SyncInvestmentFinancingTransactionsUseCase', () => {
       transactionId: 'tx-2',
       auth,
     });
+    // The updated row returns with its existing ID, so re-confirmation updates in place (#250).
+    expect(result.buys).toEqual([expect.objectContaining({ transactionId: 'tx-1', amount: 7000 })]);
+    expect(result.sells).toEqual([]);
   });
 
   it('moves a loaded row across sides by updating its intent', async () => {
-    await syncInvestmentFinancingTransactionsUseCase.execute({
+    const result = await syncInvestmentFinancingTransactionsUseCase.execute({
       ...baseRequest,
       securities: {
         buys: [],
@@ -115,5 +144,7 @@ describe('SyncInvestmentFinancingTransactionsUseCase', () => {
         data: expect.objectContaining({ intent: 'SECURITY_SELL' }),
       }),
     );
+    expect(result.sells).toEqual([expect.objectContaining({ transactionId: 'tx-1' })]);
+    expect(result.buys).toEqual([]);
   });
 });

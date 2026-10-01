@@ -1,10 +1,9 @@
 import React from 'react';
 
-import { MONTHLY_CLOSE_LABELS } from '@/ui/constants/monthlyClose';
 import { CloseStageChrome } from '@/ui/features/monthly_close/components/CloseStageChrome';
 import { CloseStageEvidenceList } from '@/ui/features/monthly_close/components/CloseStageEvidenceList';
 import { CloseStageLoadError } from '@/ui/features/monthly_close/components/CloseStageLoadError';
-import { type CloseStageEvidence } from '@/ui/features/monthly_close/viewmodels/monthlyClose.vm';
+import { type CloseStageEvidence } from '@/ui/features/monthly_close/viewmodels/closeEvidence.vm';
 
 interface CloseEvidenceOnlyStageProps {
   stepText: string;
@@ -52,8 +51,5 @@ export const CloseEvidenceOnlyStage: React.FC<CloseEvidenceOnlyStageProps> = ({
   >
     <CloseStageEvidenceList evidence={evidence} />
     <CloseStageLoadError message={loadErrorMessage} />
-    {evidence.kind === 'NONE' && (
-      <p className="text-xs text-muted-foreground">{MONTHLY_CLOSE_LABELS.NO_DATA}</p>
-    )}
   </CloseStageChrome>
 );

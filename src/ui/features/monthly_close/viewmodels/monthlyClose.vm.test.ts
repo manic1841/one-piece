@@ -41,7 +41,7 @@ describe('resolveDisplayedStageId', () => {
     ).toBe('ACCOUNT_BALANCE');
   });
 
-  it('honors the viewed stage while paused so GO TO deep links work', () => {
+  it('honors the viewed stage while paused so GO TO stage jumps work', () => {
     expect(
       resolveDisplayedStageId({
         isClosed: false,

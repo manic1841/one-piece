@@ -77,6 +77,7 @@ const renderReports = (props?: Partial<Props>) =>
       reports={reportsFrom()}
       timestamps={{}}
       isLoading={false}
+      isReady={true}
       error={null}
       isSettlementReady={true}
       onContinue={() => {}}
@@ -125,22 +126,18 @@ describe('CloseFinancialReports', () => {
     expect(screen.getByTestId('close-income-statement')).toHaveTextContent('薪資 › Charles');
   });
 
-  // Legacy persisted reports store detail codes flat while the preview nests
-  // them; the drift pair must not put the same code at two levels, or the
-  // flattened table carries duplicate React keys and collapse/expand renders
-  // ghost rows.
-  it('renders a legacy-vs-rollup property pair without duplicate rows on collapse/expand', () => {
+  // Pre-ADR-0074 persisted reports stored a redundant parent row inside the
+  // roll-up group while the preview records details flat; the folded pair must
+  // not put the same code at two levels, or the flattened table carries
+  // duplicate React keys and collapse/expand renders ghost rows.
+  it('renders a rollup-era persisted property group without duplicate rows on collapse/expand', () => {
     const preview = buildPreview();
     preview.balanceSheet.assets.groups.property = {
       label: '不動產',
-      total: 192345,
+      total: 384690,
       items: [
-        {
-          code: 'asset:property',
-          label: '不動產',
-          amount: 192345,
-          subItems: [{ code: 'asset:property:senhuo', label: '我家', amount: 192345 }],
-        },
+        { code: 'asset:property:senhuo', label: '不動產 › 我家', amount: 192345 },
+        { code: 'asset:property', label: '不動產', amount: 192345 },
       ],
     };
     const persisted = {
@@ -150,9 +147,14 @@ describe('CloseFinancialReports', () => {
         groups: {
           property: {
             label: '不動產',
-            total: 192345,
+            total: 384690,
             items: [
-              { code: 'asset:property:senhuo', label: 'asset:property:senhuo', amount: 192345 },
+              {
+                code: 'asset:property',
+                label: '不動產',
+                amount: 384690,
+                subItems: [{ code: 'asset:property:senhuo', label: '我家', amount: 192345 }],
+              },
             ],
           },
         },
@@ -294,8 +296,16 @@ describe('CloseFinancialReports', () => {
     expect(screen.getByTestId('generate-reports')).toBeDisabled();
   });
 
+  // The stage's own load still being unknown blocks Generate just as an error does (#250).
+  it('disables generate while its own report load is not yet ready (#250)', () => {
+    renderReports({ isReady: false });
+
+    expect(screen.getByTestId('generate-reports')).toBeDisabled();
+  });
+
+  // A failed load carries both the message and isReady === false (#250).
   it('disables generate when the report preview failed to load (#229)', () => {
-    renderReports({ error: '無法載入報表預覽，請稍後再試。' });
+    renderReports({ error: '無法載入報表預覽，請稍後再試。', isReady: false });
 
     expect(screen.getByTestId('generate-reports')).toBeDisabled();
   });

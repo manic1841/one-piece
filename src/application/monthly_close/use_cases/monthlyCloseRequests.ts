@@ -1,6 +1,6 @@
 import { type AuthContext } from '@/application/types';
 import { type Holding } from '@/domains/account/types/account';
-import { type CloseStageId } from '@/domains/financial_period/schemas';
+import { type CloseStageId, type FinancialPeriod } from '@/domains/financial_period/schemas';
 import { type ReportLabelResolver } from '@/domains/report/reportCalculations';
 
 export interface AccountBalanceInput {
@@ -74,3 +74,31 @@ export interface MonthlyCloseConfirmRequest extends MonthlyCloseStartRequest {
 export interface MonthlyCloseResetStagesRequest extends MonthlyCloseStartRequest {
   fromStageId: CloseStageId;
 }
+
+/** The authoritative SECURITIES_TRADE rows a confirmation returns, IDs included (#250). */
+export interface SecuritiesTradeConfirmResult {
+  buys: ConfirmedTradeRow[];
+  sells: ConfirmedTradeRow[];
+  shareholderFinancing: ConfirmedTradeRow[];
+  dividendPayout: ConfirmedTradeRow[];
+}
+
+/** A confirmed row carries the document ID the write landed on. */
+export interface ConfirmedTradeRow extends CloseTradeInput {
+  transactionId: string;
+}
+
+/** Which stages return authoritative rows, and what. */
+export type StageConfirmDataMap = {
+  SECURITIES_TRADE: SecuritiesTradeConfirmResult;
+};
+
+/** A stage's own slice of the confirm result; `undefined` when it returns none. */
+export type StageConfirmData<K extends CloseStageId> = K extends keyof StageConfirmDataMap
+  ? StageConfirmDataMap[K]
+  : undefined;
+
+/** A confirmation outcome: the stage that ran, the mutated period, and that stage's slice. */
+export type MonthlyCloseConfirmResult<S extends CloseStageId = CloseStageId> = {
+  [K in S]: { stageId: K; period: FinancialPeriod; data: StageConfirmData<K> };
+}[S];

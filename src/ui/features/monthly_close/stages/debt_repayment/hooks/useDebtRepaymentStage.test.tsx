@@ -10,7 +10,12 @@ vi.mock('@/application/settlement/use_cases/previewDebtSettlementsUseCase', () =
   previewDebtSettlementsUseCase: { execute: vi.fn() },
 }));
 
-const auth = { uid: 'user-1', email: 'user@test.com', isGlobalAdmin: false };
+const { authIdentity } = vi.hoisted(() => ({
+  authIdentity: { uid: 'user-1', email: 'user@test.com', isGlobalAdmin: false },
+}));
+vi.mock('@/ui/hooks/useAuthIdentity', () => ({
+  useAuthIdentity: () => authIdentity,
+}));
 
 const debtAccount = (id: string): DebtAccount =>
   ({
@@ -61,7 +66,6 @@ describe('useDebtRepaymentStage', () => {
         householdId: 'household-1',
         selectedYearMonth: '2026-08',
         debtAccounts,
-        auth,
         confirmingStageId: null,
       }),
     );
@@ -98,7 +102,6 @@ describe('useDebtRepaymentStage', () => {
         householdId: 'household-1',
         selectedYearMonth: '2026-08',
         debtAccounts,
-        auth,
         confirmingStageId: null,
       }),
     );
@@ -107,7 +110,45 @@ describe('useDebtRepaymentStage', () => {
     expect(result.current.repayments[0]?.totalPayment).toBe(12_000);
   });
 
-  it('retires the draft through resetDraft on month switch', async () => {
+  it('re-seeds the draft for the new month when the workspace remounts (#250)', async () => {
+    vi.mocked(previewDebtSettlementsUseCase.execute).mockImplementation(async ({ month }) => ({
+      items: [
+        {
+          debtAccountId: 'debt-1',
+          debtAccountName: '房貸',
+          openingBalance: 1_000_000,
+          hasRepaymentRecord: true,
+          repaymentCount: 1,
+          repaymentAmount: month === 8 ? 15_000 : 20_000,
+          hasSnapshot: true,
+          willCreateSnapshot: false,
+        },
+      ],
+    }));
+
+    const debtAccounts = [debtAccount('debt-1')];
+
+    const renderFor = (month: string) =>
+      renderHook(() =>
+        useDebtRepaymentStage({
+          householdId: 'household-1',
+          selectedYearMonth: month,
+          debtAccounts,
+          confirmingStageId: null,
+        }),
+      );
+
+    const august = renderFor('2026-08');
+    await waitFor(() => expect(august.result.current.repayments?.[0]?.totalPayment).toBe(15_000));
+    august.unmount();
+
+    const { result } = renderFor('2026-09');
+
+    await waitFor(() => expect(result.current.repayments?.[0]?.totalPayment).toBe(20_000));
+  });
+
+  // The prefill seeds once (#250): an edit is owned, later loads leave it alone.
+  it('never overwrites an edited repayment on a same-month reload (#250)', async () => {
     vi.mocked(previewDebtSettlementsUseCase.execute).mockResolvedValue({
       items: [
         {
@@ -130,7 +171,6 @@ describe('useDebtRepaymentStage', () => {
         householdId: 'household-1',
         selectedYearMonth: '2026-08',
         debtAccounts,
-        auth,
         confirmingStageId: null,
       }),
     );
@@ -138,17 +178,18 @@ describe('useDebtRepaymentStage', () => {
     await waitFor(() => expect(result.current.repayments).toHaveLength(1));
 
     act(() => {
-      result.current.resetDraft();
+      result.current.setRepayments([
+        { debtAccountId: 'debt-1', totalPayment: 8_000, date: new Date('2026-08-05') },
+      ]);
+    });
+    await act(async () => {
+      await result.current.refresh?.();
     });
 
-    expect(result.current.repayments).toEqual([]);
-    expect(result.current.debtSectionMetas).toEqual([]);
-    expect(result.current.buildRequest()).toEqual({ stageId: 'DEBT_REPAYMENT', repayments: [] });
+    expect(result.current.repayments?.[0]?.totalPayment).toBe(8_000);
   });
 
-  // #231: a failed prefill load surfaces the canned copy; the draft stays empty
-  // on failure, the failure never leaks a rejection, and a draft the user types
-  // by hand still submits (prefill is a convenience, not a gate).
+  // A failed prefill surfaces the canned copy and leaves the draft unknown (#231).
   it('reports a load failure without blocking a hand-typed draft or leaking a rejection', async () => {
     vi.mocked(previewDebtSettlementsUseCase.execute).mockRejectedValue(new Error('boom'));
     // Hoisted: a fresh array per render would change `load`'s identity and loop.
@@ -159,7 +200,6 @@ describe('useDebtRepaymentStage', () => {
         householdId: 'household-1',
         selectedYearMonth: '2026-08',
         debtAccounts,
-        auth,
         confirmingStageId: null,
       }),
     );
@@ -167,7 +207,7 @@ describe('useDebtRepaymentStage', () => {
     await waitFor(() =>
       expect(result.current.errorMessage).toBe('無法載入債務還款試算，請稍後再試。'),
     );
-    expect(result.current.repayments).toEqual([]);
+    expect(result.current.repayments).toBeNull();
 
     const draft = [{ debtAccountId: 'debt-1', totalPayment: 8_000, date: new Date('2026-08-05') }];
     act(() => {
@@ -182,5 +222,25 @@ describe('useDebtRepaymentStage', () => {
     await act(async () => {
       await expect(result.current.refresh?.()).resolves.toBeUndefined();
     });
+  });
+
+  // An empty month is "nothing to read", not "read the previous month" (#250).
+  it('issues no prefill read and stays unseeded while the month is empty', async () => {
+    const debtAccounts = [debtAccount('debt-1')];
+
+    const { result } = renderHook(() =>
+      useDebtRepaymentStage({
+        householdId: 'household-1',
+        selectedYearMonth: '',
+        debtAccounts,
+        confirmingStageId: null,
+      }),
+    );
+
+    await act(async () => {});
+
+    expect(previewDebtSettlementsUseCase.execute).not.toHaveBeenCalled();
+    expect(result.current.repayments).toBeNull();
+    expect(result.current.debtSectionMetas).toEqual([]);
   });
 });

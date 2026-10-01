@@ -7,13 +7,13 @@ import { CloseStageChrome } from '@/ui/features/monthly_close/components/CloseSt
 import { CloseStageEvidenceList } from '@/ui/features/monthly_close/components/CloseStageEvidenceList';
 import { CloseStageLoadError } from '@/ui/features/monthly_close/components/CloseStageLoadError';
 import { closeMonthDate } from '@/ui/features/monthly_close/stages/debt_repayment/hooks/useDebtRepaymentStage';
+import { NO_EVIDENCE } from '@/ui/features/monthly_close/viewmodels/closeEvidence.vm';
 import { type DebtSectionMetaVM } from '@/ui/features/monthly_close/viewmodels/debtPayment.vm';
 import {
   buildDebtPaymentSections,
   buildDebtPaymentTotal,
 } from '@/ui/features/monthly_close/viewmodels/debtPayment.vm';
 import { type DebtRepaymentInput } from '@/ui/features/monthly_close/viewmodels/monthlyClose.vm';
-import { type CloseStageEvidence } from '@/ui/features/monthly_close/viewmodels/monthlyClose.vm';
 import { formatCurrency } from '@/ui/utils';
 
 interface CloseDebtRepaymentStageProps {
@@ -24,13 +24,12 @@ interface CloseDebtRepaymentStageProps {
   isReviewing: boolean;
   isConfirmable: boolean;
   isReadOnly: boolean;
-  evidence: CloseStageEvidence;
   /** Canned copy when the prefill load failed; it does not block confirm. */
   loadErrorMessage?: string | null;
   debtAccounts: DebtSectionMetaVM[];
   yearMonth: string;
   repayments: DebtRepaymentInput[];
-  setRepayments: React.Dispatch<React.SetStateAction<DebtRepaymentInput[]>>;
+  setRepayments: (value: DebtRepaymentInput[]) => void;
   onConfirm: () => void;
   onBackToCurrent: () => void;
 }
@@ -47,7 +46,6 @@ export const CloseDebtRepaymentStage: React.FC<CloseDebtRepaymentStageProps> = (
   isReviewing,
   isConfirmable,
   isReadOnly,
-  evidence,
   loadErrorMessage = null,
   debtAccounts,
   yearMonth,
@@ -87,7 +85,7 @@ export const CloseDebtRepaymentStage: React.FC<CloseDebtRepaymentStageProps> = (
         <p className="mb-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
           {MONTHLY_CLOSE_LABELS.EVIDENCE_LABEL}
         </p>
-        <CloseStageEvidenceList evidence={evidence} />
+        <CloseStageEvidenceList evidence={NO_EVIDENCE} />
       </div>
       {debtAccounts.length === 0 ? (
         <p className="text-xs text-muted-foreground">{MONTHLY_CLOSE_LABELS.NO_DATA}</p>

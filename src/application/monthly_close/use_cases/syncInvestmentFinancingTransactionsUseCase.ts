@@ -2,7 +2,9 @@ import { createTransactionUseCase } from '@/application/ledger/use_cases/createT
 import { deleteTransactionUseCase } from '@/application/ledger/use_cases/deleteTransactionUseCase';
 import { updateTransactionUseCase } from '@/application/ledger/use_cases/updateTransactionUseCase';
 import {
+  type ConfirmedTradeRow,
   type FinancingInput,
+  type SecuritiesTradeConfirmResult,
   type SecuritiesTradeInput,
 } from '@/application/monthly_close/use_cases/monthlyCloseRequests';
 import { type AuthContext } from '@/application/types';
@@ -42,19 +44,21 @@ const SYNC_INTENTS: Record<CloseTradeIntent, 'INVESTMENT' | 'FINANCING'> = {
   DIVIDEND_PAYOUT: 'FINANCING',
 };
 
+/** Where each intent's confirmed row lands in the returned authoritative set. */
+const BUCKET_BY_INTENT: Record<CloseTradeIntent, keyof SecuritiesTradeConfirmResult> = {
+  SECURITY_BUY: 'buys',
+  SECURITY_SELL: 'sells',
+  SHAREHOLDER_FINANCING: 'shareholderFinancing',
+  DIVIDEND_PAYOUT: 'dividendPayout',
+};
+
 const asCloseTradeRow =
   (intent: CloseTradeIntent) =>
   (row: SecuritiesTradeInput): CloseTradeRow => ({ ...row, intent });
 
-/**
- * SECURITIES_TRADE reconfirm semantics (ADR-0052 revision): diff-merge the
- * submitted rows into the month's investment and financing transactions.
- * Rows with a transaction ID update in place, new rows create transactions,
- * and loaded-but-removed IDs are deleted. Manually created transactions made
- * outside the close workflow are never touched.
- */
+/** Diff-merges the submitted rows into the month's trades and returns the authoritative rows. */
 export class SyncInvestmentFinancingTransactionsUseCase {
-  async execute(request: InvestmentFinancingSyncRequest): Promise<void> {
+  async execute(request: InvestmentFinancingSyncRequest): Promise<SecuritiesTradeConfirmResult> {
     const { householdId, userEmail, auth } = request;
     const rows: CloseTradeRow[] = [
       ...request.securities.buys.map(asCloseTradeRow('SECURITY_BUY')),
@@ -64,12 +68,20 @@ export class SyncInvestmentFinancingTransactionsUseCase {
     ];
 
     const removedIds = request.removedTransactionIds ?? [];
+    const result: SecuritiesTradeConfirmResult = {
+      buys: [],
+      sells: [],
+      shareholderFinancing: [],
+      dividendPayout: [],
+    };
 
     for (const row of rows) {
+      let transactionId: string;
       if (row.transactionId) {
+        transactionId = row.transactionId;
         await updateTransactionUseCase.execute({
           householdId,
-          transactionId: row.transactionId,
+          transactionId,
           userEmail,
           auth,
           data: {
@@ -87,17 +99,28 @@ export class SyncInvestmentFinancingTransactionsUseCase {
           allocation: null,
         });
       } else {
-        await createTransactionUseCase.execute({
+        transactionId = await createTransactionUseCase.execute({
           householdId,
           userEmail,
           data: this.buildTransactionCreate(row, userEmail),
         });
       }
+
+      const confirmedRow: ConfirmedTradeRow = {
+        transactionId,
+        amount: row.amount,
+        date: row.date,
+        description: row.description,
+        projectId: row.projectId,
+      };
+      result[BUCKET_BY_INTENT[row.intent]].push(confirmedRow);
     }
 
     for (const transactionId of removedIds) {
       await deleteTransactionUseCase.execute({ householdId, transactionId, auth });
     }
+
+    return result;
   }
 
   /** Ledger codes resolve from the intent mapping (single source), never hardcoded here. */

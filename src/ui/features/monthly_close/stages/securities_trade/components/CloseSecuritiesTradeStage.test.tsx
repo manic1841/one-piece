@@ -3,15 +3,6 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { CloseSecuritiesTradeStage } from './CloseSecuritiesTradeStage';
 
-const noEvidence = {
-  kind: 'NONE' as const,
-  transactionIssues: [],
-  zeroActivityNames: [],
-  cashFlowAdjustments: 0,
-  reportsPersisted: null,
-  projectSettlements: [],
-};
-
 const tradeInput = {
   transactionId: 'tx-1',
   amount: 1200,
@@ -30,7 +21,6 @@ const renderStage = (props?: Partial<Parameters<typeof CloseSecuritiesTradeStage
       isReviewing={false}
       isConfirmable={true}
       isReadOnly={false}
-      evidence={noEvidence}
       securities={{ buys: [], sells: [] }}
       financing={{ shareholderFinancing: [], dividendPayout: [] }}
       projects={[]}

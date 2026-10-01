@@ -3,48 +3,35 @@ import { MONTHLY_CLOSE_LABELS } from '@/ui/constants/monthlyClose';
 
 import { type CloseStageControl } from './closeStageControl';
 
-interface UseConfirmStageControlArgs {
-  stageId: CloseStageControl['stageId'];
+interface UseConfirmStageControlArgs<S extends CloseStageId> {
+  stageId: S;
   confirmingStageId: string | null;
-  buildRequest: CloseStageControl['buildRequest'];
+  buildRequest: CloseStageControl<S>['buildRequest'];
   /** Ask before submitting (empty-stage warning); false aborts. */
   confirmGate?: () => Promise<boolean>;
-  afterConfirm?: CloseStageControl['afterConfirm'];
-  /**
-   * Month-switch reset (back to `[]` / `{}` / empty rows); stages without a
-   * draft leave it unset and the adapter makes it a no-op.
-   */
-  resetDraft?: CloseStageControl['resetDraft'];
-  /**
-   * Reloads the stage's own loaded data after an external change; stages that
-   * load nothing leave it unset and the adapter omits it.
-   */
-  refresh?: CloseStageControl['refresh'];
+  afterConfirm?: CloseStageControl<S>['afterConfirm'];
+  /** Reloads the stage's own loaded data after an external change; unset when it loads nothing. */
+  refresh?: CloseStageControl<S>['refresh'];
   /** Keep the stage view open after a successful confirm (FINANCIAL_REPORTS). */
-  keepsViewOnConfirm?: CloseStageControl['keepsViewOnConfirm'];
+  keepsViewOnConfirm?: boolean;
 }
 
-/**
- * Shared adapter for stages whose control is a plain confirm with no draft
- * state of their own beyond the per-stage payload.
- */
-export const useConfirmStageControl = ({
+/** Shared adapter for stages whose control is a plain confirm with no draft state beyond the per-stage payload. */
+export const useConfirmStageControl = <S extends CloseStageId>({
   stageId,
   confirmingStageId,
   buildRequest,
   confirmGate,
   afterConfirm,
-  resetDraft,
   refresh,
   keepsViewOnConfirm,
-}: UseConfirmStageControlArgs): CloseStageControl => {
+}: UseConfirmStageControlArgs<S>): CloseStageControl<S> => {
   return {
     stageId,
     confirming: confirmingStageId === stageId,
     buildRequest,
     confirmGate,
     afterConfirm: afterConfirm ?? (() => undefined),
-    resetDraft: resetDraft ?? (() => undefined),
     refresh,
     keepsViewOnConfirm,
   };
@@ -58,16 +45,11 @@ export const EMPTY_STAGE_CONFIRM_OPTIONS = {
   cancelLabel: MONTHLY_CLOSE_LABELS.CANCEL,
 } as const;
 
-/**
- * The empty implementation for stages with no draft state of their own:
- * `buildRequest` submits the stage ID alone, `resetDraft` is a no-op, and the
- * confirm gate and post-confirm effect stay empty. Dispatchable through the
- * same strategy record as every other stage.
- */
-export const useNoOpStageControl = (
-  stageId: CloseStageId,
+/** The empty control for stages with no draft state of their own. */
+export const useNoOpStageControl = <S extends CloseStageId>(
+  stageId: S,
   confirmingStageId: string | null,
-): CloseStageControl =>
+): CloseStageControl<S> =>
   useConfirmStageControl({
     stageId,
     confirmingStageId,
