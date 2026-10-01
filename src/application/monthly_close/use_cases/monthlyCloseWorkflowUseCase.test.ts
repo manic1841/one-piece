@@ -545,7 +545,7 @@ describe('MonthlyCloseWorkflowUseCase.confirmStage', () => {
       completeStage(basePeriod(), 'SECURITIES_TRADE'),
     );
 
-    const period = await useCase.confirmStage({
+    const { period, securities } = await useCase.confirmStage({
       ...REQUEST_BASE,
       stageId: 'SECURITIES_TRADE',
       securities: { buys: [{ amount: 3000, date: new Date('2026-09-08') }], sells: [] },
@@ -553,6 +553,7 @@ describe('MonthlyCloseWorkflowUseCase.confirmStage', () => {
 
     expect(period.stages.SECURITIES_TRADE?.status).toBe('COMPLETED');
     expect(createTransactionUseCase.execute).toHaveBeenCalledTimes(1);
+    expect(securities?.buys).toHaveLength(1);
   });
 
   it('rewrites the month snapshot for portfolios that already hold one', async () => {
@@ -646,7 +647,7 @@ describe('MonthlyCloseWorkflowUseCase.confirmStage', () => {
       completeStage(basePeriod(), 'DEBT_REPAYMENT'),
     );
 
-    const period = await useCase.confirmStage({
+    const { period } = await useCase.confirmStage({
       ...REQUEST_BASE,
       stageId: 'DEBT_REPAYMENT',
       repayments: [
@@ -678,7 +679,7 @@ describe('MonthlyCloseWorkflowUseCase.confirmStage', () => {
       anomalies: [{ kind: 'ZERO_ACTIVITY_ACCOUNT', accountId: 'account-1' }],
     } as any);
 
-    const period = await useCase.confirmStage({ ...REQUEST_BASE, stageId: 'COMPLETENESS_CHECK' });
+    const { period } = await useCase.confirmStage({ ...REQUEST_BASE, stageId: 'COMPLETENESS_CHECK' });
 
     expect(period.status).toBe('NEEDS_REVIEW');
     expect(period.reviewSourceStageId).toBe('COMPLETENESS_CHECK');
@@ -699,7 +700,7 @@ describe('MonthlyCloseWorkflowUseCase.confirmStage', () => {
       anomalies: [],
     } as any);
 
-    const period = await useCase.confirmStage({ ...REQUEST_BASE, stageId: 'COMPLETENESS_CHECK' });
+    const { period } = await useCase.confirmStage({ ...REQUEST_BASE, stageId: 'COMPLETENESS_CHECK' });
 
     expect(period.status).toBe('IN_PROGRESS');
     expect(period.stages.COMPLETENESS_CHECK.status).toBe('COMPLETED');
@@ -728,10 +729,10 @@ describe('MonthlyCloseWorkflowUseCase.confirmStage', () => {
 
     const result = await useCase.confirmStage({ ...REQUEST_BASE, stageId: 'COMPLETENESS_CHECK' });
 
-    expect(result.status).toBe('IN_PROGRESS');
-    expect(result.reviewSourceStageId).toBeNull();
-    expect(result.stages.FINANCIAL_REPORTS?.status).toBe('PENDING');
-    expect(result.stages.CLOSE_PERIOD?.status).toBe('PENDING');
+    expect(result.period.status).toBe('IN_PROGRESS');
+    expect(result.period.reviewSourceStageId).toBeNull();
+    expect(result.period.stages.FINANCIAL_REPORTS?.status).toBe('PENDING');
+    expect(result.period.stages.CLOSE_PERIOD?.status).toBe('PENDING');
     expect(checkSettlementCompletenessUseCase.execute).not.toHaveBeenCalled();
   });
 
@@ -817,7 +818,7 @@ describe('MonthlyCloseWorkflowUseCase.confirmStage', () => {
       completeStage(basePeriod(), 'FINANCIAL_REPORTS'),
     );
 
-    const period = await useCase.confirmStage({ ...REQUEST_BASE, stageId: 'CLOSE_PERIOD' });
+    const { period } = await useCase.confirmStage({ ...REQUEST_BASE, stageId: 'CLOSE_PERIOD' });
 
     expect(period.status).toBe('CLOSED');
     expect(saveFinancialPeriodUseCase.execute).toHaveBeenCalledWith(
@@ -841,7 +842,7 @@ describe('MonthlyCloseWorkflowUseCase.confirmStage', () => {
       completeStage(basePeriod(), 'ACCOUNT_BALANCE'),
     );
 
-    const period = await useCase.confirmStage({
+    const { period } = await useCase.confirmStage({
       ...REQUEST_BASE,
       stageId: 'ACCOUNT_BALANCE',
       accountBalances: [{ accountId: 'account-1', amount: 1000 }],
@@ -868,7 +869,7 @@ describe('MonthlyCloseWorkflowUseCase.confirmStage', () => {
       completeStage(basePeriod(), 'DEBT_REPAYMENT'),
     );
 
-    const period = await useCase.confirmStage({
+    const { period } = await useCase.confirmStage({
       ...REQUEST_BASE,
       stageId: 'DEBT_REPAYMENT',
       repayments: [
@@ -942,7 +943,7 @@ describe('MonthlyCloseWorkflowUseCase.confirmStage', () => {
   });
 
   it('confirms the securities stage with zero rows instead of rejecting', async () => {
-    const period = await useCase.confirmStage({
+    const { period } = await useCase.confirmStage({
       ...REQUEST_BASE,
       stageId: 'SECURITIES_TRADE',
     });

@@ -27,7 +27,7 @@ interface CloseAccountBalanceStageProps {
   accounts: Account[];
   accountSnapshots: Map<string, AccountSnapshot>;
   balances: AccountBalanceInput[];
-  setBalances: React.Dispatch<React.SetStateAction<AccountBalanceInput[]>>;
+  setBalances: (value: AccountBalanceInput[]) => void;
   onConfirm: () => void;
   onBackToCurrent: () => void;
 }

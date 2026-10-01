@@ -11,11 +11,6 @@ interface UseConfirmStageControlArgs {
   confirmGate?: () => Promise<boolean>;
   afterConfirm?: CloseStageControl['afterConfirm'];
   /**
-   * Month-switch reset (back to `[]` / `{}` / empty rows); stages without a
-   * draft leave it unset and the adapter makes it a no-op.
-   */
-  resetDraft?: CloseStageControl['resetDraft'];
-  /**
    * Reloads the stage's own loaded data after an external change; stages that
    * load nothing leave it unset and the adapter omits it.
    */
@@ -34,7 +29,6 @@ export const useConfirmStageControl = ({
   buildRequest,
   confirmGate,
   afterConfirm,
-  resetDraft,
   refresh,
   keepsViewOnConfirm,
 }: UseConfirmStageControlArgs): CloseStageControl => {
@@ -44,7 +38,6 @@ export const useConfirmStageControl = ({
     buildRequest,
     confirmGate,
     afterConfirm: afterConfirm ?? (() => undefined),
-    resetDraft: resetDraft ?? (() => undefined),
     refresh,
     keepsViewOnConfirm,
   };
@@ -60,9 +53,9 @@ export const EMPTY_STAGE_CONFIRM_OPTIONS = {
 
 /**
  * The empty implementation for stages with no draft state of their own:
- * `buildRequest` submits the stage ID alone, `resetDraft` is a no-op, and the
- * confirm gate and post-confirm effect stay empty. Dispatchable through the
- * same strategy record as every other stage.
+ * `buildRequest` submits the stage ID alone, and the confirm gate and
+ * post-confirm effect stay empty. Dispatchable through the same strategy
+ * record as every other stage.
  */
 export const useNoOpStageControl = (
   stageId: CloseStageId,

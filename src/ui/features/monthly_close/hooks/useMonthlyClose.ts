@@ -6,6 +6,7 @@ import {
 } from '@/application/monthly_close/errors';
 import { monthlyCloseWorkflowUseCase } from '@/application/monthly_close/use_cases/monthlyCloseWorkflowUseCase';
 import { type MonthlyCloseConfirmRequest } from '@/application/monthly_close/use_cases/monthlyCloseWorkflowUseCase';
+import { type MonthlyCloseConfirmResult } from '@/application/monthly_close/use_cases/monthlyCloseRequests';
 import { type CloseStageId, type FinancialPeriod } from '@/domains/financial_period/schemas';
 import { MONTHLY_CLOSE_LABELS } from '@/ui/constants/monthlyClose';
 import { useAuthIdentity } from '@/ui/hooks/useAuthIdentity';
@@ -113,7 +114,7 @@ export const useMonthlyClose = ({ householdId, userEmail }: UseMonthlyCloseParam
   const confirmStage = useCallback(
     async (
       request: Omit<MonthlyCloseConfirmRequest, 'householdId' | 'yearMonth' | 'userEmail' | 'auth'>,
-    ): Promise<FinancialPeriod | null> => {
+    ): Promise<MonthlyCloseConfirmResult | null> => {
       if (!householdId || !selectedYearMonth) return null;
       const seq = beginRequest();
       setConfirmingStageId(request.stageId);
@@ -127,7 +128,7 @@ export const useMonthlyClose = ({ householdId, userEmail }: UseMonthlyCloseParam
           ...request,
         });
         if (!isLatestRequest(seq)) return null;
-        setPeriod(result);
+        setPeriod(result.period);
         return result;
       } catch (err) {
         if (!isLatestRequest(seq)) return null;

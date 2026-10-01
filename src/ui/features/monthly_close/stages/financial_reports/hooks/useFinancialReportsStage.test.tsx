@@ -166,17 +166,9 @@ describe('useFinancialReportsStage', () => {
     await waitFor(() => expect(result.current.reportsPersisted).toBe(true));
   });
 
-  it('clears the loaded reports on a month switch before the new month loads', async () => {
-    mockPreview.mockResolvedValue(buildPreview(50000));
-
-    const { result, rerender } = renderStage();
-    await waitFor(() => expect(result.current.reports.incomeStatement).not.toBeNull());
-
-    act(() => rerender({ yearMonth: '2026-04', isClosed: false }));
-
-    expect(result.current.reports.incomeStatement).toBeNull();
-  });
-
+  // The month-switch reset and the "same-month failure keeps the last known
+  // value" rule are `useStageLoader` guarantees now, tested once in
+  // `useStageLoader.test.ts`.
   it('surfaces the canned message and settles loading when the preview load fails', async () => {
     mockPreview.mockRejectedValue(new Error('boom'));
 
@@ -196,23 +188,6 @@ describe('useFinancialReportsStage', () => {
     await waitFor(() => expect(result.current.reportBundle).not.toBeNull());
     expect(result.current.persistedBundle).toBeNull();
     expect(result.current.error).toBeNull();
-  });
-
-  it('keeps the previous preview on a same-month refresh failure but flags the error (#226)', async () => {
-    mockPreview.mockResolvedValue(buildPreview(50000));
-    mockPersistence.mockResolvedValue({ isPersisted: true, timestamps: {} });
-
-    const { result } = renderStage();
-    await waitFor(() => expect(result.current.reportsPersisted).toBe(true));
-
-    mockPreview.mockRejectedValue(new Error('boom'));
-    await act(() => result.current.refresh?.());
-
-    await waitFor(() => expect(result.current.error).not.toBeNull());
-    // The stale flag and preview stay on screen by design; consumers gate on the
-    // error, so a stale `reportsPersisted: true` is never read as verified.
-    expect(result.current.reportsPersisted).toBe(true);
-    expect(result.current.reports.incomeStatement).not.toBeNull();
   });
 
   // T13 (#237): a reset (go-to-stage-with-reset, or a cascade-demote) deletes

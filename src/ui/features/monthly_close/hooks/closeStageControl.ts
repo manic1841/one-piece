@@ -1,4 +1,7 @@
-import type { MonthlyCloseConfirmRequest } from '@/application/monthly_close/use_cases/monthlyCloseRequests';
+import type {
+  MonthlyCloseConfirmRequest,
+  MonthlyCloseConfirmResult,
+} from '@/application/monthly_close/use_cases/monthlyCloseRequests';
 import type { CloseStageId } from '@/domains/financial_period/schemas';
 
 /**
@@ -21,20 +24,18 @@ export interface CloseStageControl {
   >;
   /** Ask before submitting (empty-stage warning); false aborts. */
   confirmGate?: () => Promise<boolean>;
-  /** Post-confirm side effects (prefill refresh keys, navigation resets). */
-  afterConfirm: () => void;
   /**
-   * Month switch retires the stage draft (back to `[]` / `{}` / empty rows);
-   * a no-op for stages without one. The page iterates the strategy record on
-   * month switch, so a new draft-bearing stage registers its own reset.
+   * Post-confirm side effects, given the confirmation's result: adopt the
+   * stage's authoritative rows and/or reset navigation. Called only after a
+   * successful confirm (a null result writes nothing and skips it).
    */
-  resetDraft: () => void;
+  afterConfirm: (result: MonthlyCloseConfirmResult) => void;
   /**
    * Reloads the stage's own loaded data after an external change (period
-   * start/reopen/reset, or a confirm). Mirrors `resetDraft`: the page iterates
-   * the strategy record and calls it, so a stage that loads data opts in and
-   * the page never learns which stage owns what. Optional; stages that load
-   * nothing leave it unset.
+   * start/reopen/reset, or a confirm). Mirrors the optionality of a load: the
+   * page iterates the strategy record and calls it, so a stage that loads data
+   * opts in and the page never learns which stage owns what. Optional; stages
+   * that load nothing leave it unset.
    */
   refresh?: () => Promise<void>;
   /** Keep the stage view open after a successful confirm (FINANCIAL_REPORTS). */

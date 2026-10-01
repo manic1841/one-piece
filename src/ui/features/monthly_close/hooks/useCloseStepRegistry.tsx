@@ -13,7 +13,6 @@ import {
   mapTransactionIssuesToEvidence,
 } from '@/ui/features/monthly_close/mappers/monthlyClose.mappers';
 import type { CloseStageEvidence } from '@/ui/features/monthly_close/viewmodels/monthlyClose.vm';
-import { useAuthIdentity } from '@/ui/hooks/useAuthIdentity';
 
 import { CloseEvidenceOnlyStage } from '../components/CloseEvidenceOnlyStage';
 import { CloseStageLoadError } from '../components/CloseStageLoadError';
@@ -111,13 +110,11 @@ export const useCloseStepRegistry = ({
   debtAccounts,
   pageVM,
 }: UseCloseStepRegistryArgs) => {
-  const auth = useAuthIdentity();
   const enabled = pageVM.isStarted;
   const accountBalanceStage = useAccountBalanceStage({
     householdId,
     selectedYearMonth,
     accounts,
-    auth,
     confirmingStageId,
     enabled,
   });
@@ -131,7 +128,6 @@ export const useCloseStepRegistry = ({
     householdId,
     selectedYearMonth,
     portfolios,
-    auth,
     confirmingStageId,
     enabled,
   });
@@ -139,7 +135,6 @@ export const useCloseStepRegistry = ({
     householdId,
     selectedYearMonth,
     debtAccounts,
-    auth,
     confirmingStageId,
     enabled,
   });
@@ -252,7 +247,7 @@ export const useCloseStepRegistry = ({
           loadErrorMessage={accountBalanceStage.errorMessage}
           accounts={ctx.accounts}
           accountSnapshots={accountBalanceStage.accountSnapshots}
-          balances={accountBalanceStage.balances}
+          balances={accountBalanceStage.balances ?? []}
           setBalances={accountBalanceStage.setBalances}
           onConfirm={ctx.onConfirm}
           onBackToCurrent={ctx.onBack}
@@ -298,7 +293,7 @@ export const useCloseStepRegistry = ({
           loadErrorMessage={portfolioCashFlowStage.errorMessage}
           portfolios={ctx.portfolios}
           portfolioSnapshots={portfolioCashFlowStage.portfolioSnapshots}
-          cashFlows={portfolioCashFlowStage.cashFlows}
+          cashFlows={portfolioCashFlowStage.cashFlows ?? {}}
           setCashFlows={portfolioCashFlowStage.setCashFlows}
           onConfirm={ctx.onConfirm}
           onBackToCurrent={ctx.onBack}
@@ -326,7 +321,7 @@ export const useCloseStepRegistry = ({
           loadErrorMessage={debtRepaymentStage.errorMessage}
           debtAccounts={debtRepaymentStage.debtSectionMetas}
           yearMonth={selectedYearMonth}
-          repayments={debtRepaymentStage.repayments}
+          repayments={debtRepaymentStage.repayments ?? []}
           setRepayments={debtRepaymentStage.setRepayments}
           onConfirm={ctx.onConfirm}
           onBackToCurrent={ctx.onBack}

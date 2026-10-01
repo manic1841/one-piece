@@ -159,13 +159,8 @@ export const useMonthlyClosePage = ({
   );
   const displayedStepText = resolveStepText(pageVM.stages, displayedStageId);
 
-  // Stage inputs are submitted with the selected month's confirmation, so a
-  // month switch retires every stage draft through the registry; the next
-  // month's tables then prefill.
-  const handleSelectYearMonth = (yearMonth: string) => {
-    selectYearMonth(yearMonth);
-    for (const step of Object.values(stepRegistry)) step.control.resetDraft();
-  };
+  // Stage drafts retire on a month switch through `useSeededDraft`'s key, so the
+  // page only has to move the period; no per-stage `resetDraft` loop remains.
 
   const handleConfirmStage = async (stageId: CloseStageId) => {
     // The registry is a complete record, so the stage is always present.
@@ -179,7 +174,7 @@ export const useMonthlyClosePage = ({
     if (!control.keepsViewOnConfirm) {
       setViewingStageId(null);
     }
-    control.afterConfirm();
+    control.afterConfirm(result);
     await refreshAll();
   };
 
@@ -283,7 +278,7 @@ export const useMonthlyClosePage = ({
     displayedStepText,
     stepRegistry,
     stageContext,
-    selectYearMonth: handleSelectYearMonth,
+    selectYearMonth,
     start,
     reopen,
     refreshAll,

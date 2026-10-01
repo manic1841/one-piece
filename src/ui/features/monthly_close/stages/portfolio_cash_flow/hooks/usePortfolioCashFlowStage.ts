@@ -1,11 +1,13 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback } from 'react';
 
 import { listPortfolioSnapshotsUseCase } from '@/application/portfolio/use_cases/listPortfolioSnapshotsUseCase';
 import { type AuthContext } from '@/application/types';
 import { type Portfolio, type PortfolioSnapshot } from '@/domains/portfolio/schemas';
 import type { CloseStageControl } from '@/ui/features/monthly_close/hooks/closeStageControl';
 import { useConfirmStageControl } from '@/ui/features/monthly_close/hooks/useConfirmStageControl';
-import { useLoadingTask } from '@/ui/hooks/useLoadingTask';
+import { useSeededDraft } from '@/ui/features/monthly_close/hooks/useSeededDraft';
+import { useStageLoader } from '@/ui/features/monthly_close/hooks/useStageLoader';
+import { useAuthIdentity } from '@/ui/hooks/useAuthIdentity';
 import { logger } from '@/utils/logger';
 
 type PortfolioCashFlows = Record<string, { deposits: number; withdrawals: number }>;
@@ -14,7 +16,6 @@ interface UsePortfolioCashFlowStageArgs {
   householdId: string;
   selectedYearMonth: string;
   portfolios: Portfolio[];
-  auth: AuthContext;
   confirmingStageId: string | null;
   enabled?: boolean;
 }
@@ -79,73 +80,57 @@ const fetchPortfolioSnapshots = async ({
 /**
  * Stage controller for PORTFOLIO_CASH_FLOW: owns the cash-flow draft the
  * sections edit and the month-scoped snapshot display data (absorbed from
- * usePortfolioSnapshotPrefill). The draft seeds from the month's booked flows
- * once snapshots have loaded, so a re-confirmation submits the booked flows
- * instead of zero-filling them; user edits after the seed are never
- * overwritten. `control.refresh` re-fetches the display after a confirm. A load
- * failure surfaces the canned message without blocking confirm.
+ * usePortfolioSnapshotPrefill). The draft is seeded by `useSeededDraft` from the
+ * month's booked flows once every snapshot has loaded (all-or-nothing), so a
+ * re-confirmation submits the booked flows instead of zero-filling them; edits
+ * after the seed are never overwritten. `control.refresh` re-fetches the display
+ * after a confirm. A load failure surfaces the canned message without blocking
+ * confirm.
  */
 export const usePortfolioCashFlowStage = ({
   householdId,
   selectedYearMonth,
   portfolios,
-  auth,
   confirmingStageId,
   enabled = true,
 }: UsePortfolioCashFlowStageArgs): CloseStageControl & {
-  cashFlows: PortfolioCashFlows;
-  setCashFlows: React.Dispatch<React.SetStateAction<PortfolioCashFlows>>;
+  cashFlows: PortfolioCashFlows | null;
+  setCashFlows: (value: PortfolioCashFlows) => void;
   portfolioSnapshots: Map<string, PortfolioSnapshot | null>;
   errorMessage: string | null;
 } => {
-  const [cashFlows, setCashFlows] = useState<PortfolioCashFlows>({});
-  const [data, setData] = useState<{
-    yearMonth: string;
-    snapshots: Map<string, PortfolioSnapshot | null>;
-  } | null>(null);
-  const seededMonthRef = useRef<string | null>(null);
-  const { errorMessage, run } = useLoadingTask();
-  // A slow load for a month the user already left must not land last and win.
-  const inFlightRef = useRef<AbortController | null>(null);
+  const auth = useAuthIdentity();
 
-  const portfolioSnapshots = useMemo(
-    () => (data?.yearMonth === selectedYearMonth ? data.snapshots : new Map()),
-    [data, selectedYearMonth],
+  const load = useCallback(
+    () => fetchPortfolioSnapshots({ householdId, selectedYearMonth, portfolios, auth }),
+    [auth, householdId, portfolios, selectedYearMonth],
   );
-
-  const load = useCallback(async () => {
-    if (!householdId || !selectedYearMonth || portfolios.length === 0) return;
-    inFlightRef.current?.abort();
-    const controller = new AbortController();
-    inFlightRef.current = controller;
-
-    await run(() => fetchPortfolioSnapshots({ householdId, selectedYearMonth, portfolios, auth }), {
-      signal: controller.signal,
-      writeBack: (result) => {
-        if (!result.ok) return;
-        setData({ yearMonth: selectedYearMonth, snapshots: result.value.snapshots });
-        // Seed the draft from the month's booked flows once all snapshots are
-        // present; seeds once per month and never overwrites user edits.
-        if (!result.value.booked) return;
-        if (seededMonthRef.current === selectedYearMonth) return;
-        setCashFlows(result.value.booked);
-        seededMonthRef.current = selectedYearMonth;
-      },
-    });
-  }, [auth, householdId, portfolios, run, selectedYearMonth]);
-
-  useEffect(() => {
-    if (!enabled) return;
-    void load();
-  }, [enabled, load]);
+  // The gate waits for the shared portfolios list, so the prefill never runs
+  // against an empty list; the loader runs it when the gate flips.
+  const { data, errorMessage, refresh } = useStageLoader<PortfolioSnapshotData>({
+    key: selectedYearMonth,
+    enabled: enabled && householdId !== '' && selectedYearMonth !== '' && portfolios.length > 0,
+    load,
+  });
+  // `booked: null` means at least one snapshot is missing — an unknown, not an
+  // empty draft — so the draft waits instead of seeding zeros.
+  const [cashFlows, setCashFlows] = useSeededDraft<PortfolioCashFlows>(
+    selectedYearMonth,
+    data?.booked ?? null,
+  );
 
   const control = useConfirmStageControl({
     stageId: 'PORTFOLIO_CASH_FLOW',
     confirmingStageId,
-    buildRequest: () => ({ stageId: 'PORTFOLIO_CASH_FLOW', portfolioCashFlows: cashFlows }),
-    resetDraft: () => setCashFlows({}),
-    refresh: load,
+    buildRequest: () => ({ stageId: 'PORTFOLIO_CASH_FLOW', portfolioCashFlows: cashFlows ?? {} }),
+    refresh,
   });
 
-  return { ...control, cashFlows, setCashFlows, portfolioSnapshots, errorMessage };
+  return {
+    ...control,
+    cashFlows,
+    setCashFlows,
+    portfolioSnapshots: data?.snapshots ?? new Map<string, PortfolioSnapshot | null>(),
+    errorMessage,
+  };
 };

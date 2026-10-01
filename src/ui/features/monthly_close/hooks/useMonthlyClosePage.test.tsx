@@ -6,10 +6,11 @@ import { initialStageStates } from '@/domains/financial_period/schemas';
 
 import { useMonthlyClosePage } from './useMonthlyClosePage';
 
-const { authIdentity, refreshSpy, confirmMock } = vi.hoisted(() => ({
+const { authIdentity, refreshSpy, confirmMock, afterConfirmSpy } = vi.hoisted(() => ({
   authIdentity: { uid: 'user-1', email: 'user@test.com', isGlobalAdmin: false },
   refreshSpy: vi.fn().mockResolvedValue(undefined),
   confirmMock: vi.fn(),
+  afterConfirmSpy: vi.fn(),
 }));
 
 vi.mock('@/ui/features/app/confirm/useConfirm', () => ({
@@ -59,8 +60,7 @@ vi.mock('./useCloseStepRegistry', () => {
       stageId,
       confirming: false,
       buildRequest: () => ({ stageId }) as never,
-      afterConfirm: vi.fn(),
-      resetDraft: vi.fn(),
+      afterConfirm: afterConfirmSpy,
       refresh: refreshSpy,
     },
     render: () => null,
@@ -137,9 +137,9 @@ describe('useMonthlyClosePage', () => {
   });
 
   it('refreshes every stage after a successful confirm', async () => {
-    vi.mocked(monthlyCloseWorkflowUseCase.confirmStage).mockResolvedValue(
-      periodAwaitingProjectSettlement() as never,
-    );
+    vi.mocked(monthlyCloseWorkflowUseCase.confirmStage).mockResolvedValue({
+      period: periodAwaitingProjectSettlement(),
+    } as never);
     const result = await renderPage();
     refreshSpy.mockClear();
 
@@ -149,5 +149,23 @@ describe('useMonthlyClosePage', () => {
 
     expect(monthlyCloseWorkflowUseCase.confirmStage).toHaveBeenCalled();
     expect(refreshSpy).toHaveBeenCalledTimes(9);
+  });
+
+  // #250: the confirm's result (the authoritative rows) is handed to the stage's
+  // afterConfirm, so a stage can adopt what the write returned without a reload.
+  it('passes the confirm result to the stage afterConfirm', async () => {
+    const confirmed = {
+      period: periodAwaitingProjectSettlement(),
+      securities: { buys: [], sells: [], shareholderFinancing: [], dividendPayout: [] },
+    };
+    vi.mocked(monthlyCloseWorkflowUseCase.confirmStage).mockResolvedValue(confirmed as never);
+    const result = await renderPage();
+    afterConfirmSpy.mockClear();
+
+    await act(async () => {
+      await result.current.handleConfirmStage('ACCOUNT_BALANCE');
+    });
+
+    expect(afterConfirmSpy).toHaveBeenCalledWith(confirmed);
   });
 });

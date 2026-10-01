@@ -1,4 +1,4 @@
-import { act, renderHook, waitFor } from '@testing-library/react';
+import { renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { getAccountSnapshotsUseCase } from '@/application/account/use_cases/getAccountSnapshotsUseCase';
@@ -14,7 +14,12 @@ vi.mock('@/application/account/use_cases/getPreviousSnapshotUseCase', () => ({
   getPreviousSnapshotUseCase: { execute: vi.fn() },
 }));
 
-const auth = { uid: 'user-1', email: 'user@test.com', isGlobalAdmin: false };
+const { authIdentity } = vi.hoisted(() => ({
+  authIdentity: { uid: 'user-1', email: 'user@test.com', isGlobalAdmin: false },
+}));
+vi.mock('@/ui/hooks/useAuthIdentity', () => ({
+  useAuthIdentity: () => authIdentity,
+}));
 
 const account = (id: string): Account =>
   ({
@@ -51,7 +56,6 @@ const renderStage = (selectedYearMonth = '2026-08') =>
         householdId: 'household-1',
         selectedYearMonth: yearMonth,
         accounts,
-        auth,
         confirmingStageId: null,
       }),
     { initialProps: { yearMonth: selectedYearMonth } },
@@ -82,25 +86,9 @@ describe('useAccountBalanceStage', () => {
     expect(result.current.accountSnapshots.get('acc-1')?.amount).toBe(9_000);
   });
 
-  // #232: prefill is a one-shot seed per month. It used to re-seed whenever the
-  // draft was empty, so a user who cleared every row got their deletions undone
-  // by the next refresh.
-  it('does not re-prefill a month after the user cleared every row (#232)', async () => {
-    mockBookedBalances({ 8: 12_000 });
-
-    const { result } = renderStage();
-    await waitFor(() => expect(result.current.balances).toHaveLength(1));
-
-    act(() => {
-      result.current.setBalances([]);
-    });
-    await act(async () => {
-      await result.current.refresh?.();
-    });
-
-    expect(result.current.balances).toEqual([]);
-  });
-
+  // The one-shot seed ("a user who cleared every row keeps it cleared") and the
+  // month-switch reset are `useSeededDraft` guarantees now, tested once in
+  // `useSeededDraft.test.ts`. What stays here is the stage's own payload mapping.
   it('prefills the new month after switching (#232)', async () => {
     mockBookedBalances({ 8: 12_000, 9: 15_000 });
 
@@ -120,6 +108,33 @@ describe('useAccountBalanceStage', () => {
     const { result } = renderStage();
 
     await waitFor(() => expect(result.current.errorMessage).toBe('無法載入帳戶快照，請稍後再試。'));
-    expect(result.current.balances).toEqual([]);
+    // A failed load writes nothing: the draft stays unknown (null), never a
+    // fabricated empty draft that would read as "no balances this month".
+    expect(result.current.balances).toBeNull();
+  });
+
+  // The account race: the shared accounts list arrives after the stage's first
+  // render. The gate must wait for it, and the real prefill must still seed —
+  // before this fix the empty first pass locked the month to an empty draft.
+  it('prefills once the shared accounts list arrives (#250)', async () => {
+    mockBookedBalances({ 8: 12_000 });
+
+    const { result, rerender } = renderHook(
+      ({ accountList }: { accountList: Account[] }) =>
+        useAccountBalanceStage({
+          householdId: 'household-1',
+          selectedYearMonth: '2026-08',
+          accounts: accountList,
+          confirmingStageId: null,
+        }),
+      { initialProps: { accountList: [] as Account[] } },
+    );
+
+    expect(getAccountSnapshotsUseCase.execute).not.toHaveBeenCalled();
+
+    rerender({ accountList: accounts });
+
+    await waitFor(() => expect(result.current.balances).toHaveLength(1));
+    expect(result.current.balances?.[0]).toMatchObject({ accountId: 'acc-1', amount: 12_000 });
   });
 });

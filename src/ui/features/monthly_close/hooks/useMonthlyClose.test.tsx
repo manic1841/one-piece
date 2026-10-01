@@ -82,7 +82,7 @@ describe('useMonthlyClose', () => {
   });
 
   it('delegates stage confirmation with assembled request context', async () => {
-    vi.mocked(monthlyCloseWorkflowUseCase.confirmStage).mockResolvedValue(period());
+    vi.mocked(monthlyCloseWorkflowUseCase.confirmStage).mockResolvedValue({ period: period() });
 
     const { result } = renderHook(() =>
       useMonthlyClose({ householdId: 'household-1', userEmail: 'user@test.com' }),

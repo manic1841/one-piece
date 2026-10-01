@@ -29,9 +29,7 @@ interface ClosePortfolioCashFlowStageProps {
   portfolios: { id: string; name: string }[];
   portfolioSnapshots: Map<string, PortfolioSnapshot | null>;
   cashFlows: Record<string, { deposits: number; withdrawals: number }>;
-  setCashFlows: React.Dispatch<
-    React.SetStateAction<Record<string, { deposits: number; withdrawals: number }>>
-  >;
+  setCashFlows: (value: Record<string, { deposits: number; withdrawals: number }>) => void;
   onConfirm: () => void;
   onBackToCurrent: () => void;
 }

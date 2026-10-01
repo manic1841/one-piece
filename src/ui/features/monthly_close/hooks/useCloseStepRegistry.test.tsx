@@ -1,4 +1,4 @@
-import { fireEvent, render, renderHook, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, renderHook, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { getAccountSnapshotsUseCase } from '@/application/account/use_cases/getAccountSnapshotsUseCase';
@@ -576,15 +576,6 @@ describe('useCloseStepRegistry', () => {
     expect(screen.queryByText(/->/)).not.toBeInTheDocument();
   });
 
-  it('resets every stage draft through the control record', () => {
-    const { result } = renderRegistry();
-
-    for (const step of Object.values(result.current)) {
-      expect(typeof step.control.resetDraft).toBe('function');
-      step.control.resetDraft();
-    }
-  });
-
   // T11 (#235): the page refreshes stages through `control.refresh` and never
   // asks which stage owns which data, so every stage that loads something must
   // expose it — and it must resolve even when the load fails, or `Promise.all`
@@ -611,6 +602,39 @@ describe('useCloseStepRegistry', () => {
     await expect(
       Promise.all(loadBearing.map((stageId) => result.current[stageId].control.refresh?.())),
     ).resolves.toBeDefined();
+  });
+
+  // #250: the confirm response carries the stage's authoritative rows. The page
+  // hands the whole result to `control.afterConfirm`, and the registry wires
+  // that straight into the real securities stage hook, so a re-confirmation
+  // updates those rows in place instead of creating duplicate transactions.
+  it('adopts the confirm response rows into the SECURITIES_TRADE draft (#250)', async () => {
+    const { result } = renderRegistry();
+    await waitFor(() => expect(getMonthInvestmentFinancingUseCase.execute).toHaveBeenCalled());
+
+    const confirmedRow = {
+      transactionId: 'tx-1',
+      amount: 5000,
+      date: new Date('2026-08-05'),
+    };
+    act(() => {
+      result.current.SECURITIES_TRADE.control.afterConfirm({
+        period: { id: '2026-08', yearMonth: '2026-08' } as never,
+        securities: {
+          buys: [confirmedRow],
+          sells: [],
+          shareholderFinancing: [],
+          dividendPayout: [],
+        },
+      });
+    });
+
+    expect(result.current.SECURITIES_TRADE.control.buildRequest()).toEqual({
+      stageId: 'SECURITIES_TRADE',
+      securities: { buys: [confirmedRow], sells: [] },
+      financing: { shareholderFinancing: [], dividendPayout: [] },
+      removedTransactionIds: [],
+    });
   });
 
   // T7 (#231): a failed prefill load used to leave the stage rendering an empty
