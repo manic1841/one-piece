@@ -226,6 +226,84 @@ describe('diffBalanceSheet', () => {
       status: DRIFT_STATUS.REMOVED,
     });
   });
+
+  // Pre-ADR-0074 balance-sheet reports stored a redundant parent row
+  // (`asset:property` + subItems) inside the roll-up group; the preview now
+  // records details flat. Folding the parent back keeps the pair comparable
+  // instead of flagging the group as a mass of added/removed rows.
+  it('folds a rollup-era parent row back to flat items before comparing', () => {
+    const preview = build({});
+    preview.assets.groups.property = {
+      label: '不動產',
+      total: 1000000,
+      items: [
+        { code: 'asset:property:house', label: '不動產 › house', amount: 800000 },
+        { code: 'asset:property:land', label: '不動產 › land', amount: 200000 },
+      ],
+    };
+    const persisted = build({});
+    persisted.assets.groups.property = {
+      label: '不動產',
+      total: 1000000,
+      items: [
+        {
+          code: 'asset:property',
+          label: '不動產',
+          amount: 1000000,
+          subItems: [
+            { code: 'asset:property:house', label: '不動產 › house', amount: 800000 },
+            { code: 'asset:property:land', label: '不動產 › land', amount: 200000 },
+          ],
+        },
+      ],
+    };
+
+    const drift = diffBalanceSheet(preview, persisted);
+
+    expect(drift.assets.groups.property.total).toEqual({
+      amount: 1000000,
+      previousAmount: null,
+      status: DRIFT_STATUS.UNCHANGED,
+    });
+    const rows = drift.assets.groups.property.items;
+    expect(rows.map((row) => row.code)).toEqual(['asset:property:house', 'asset:property:land']);
+    expect(rows.every((row) => row.status === DRIFT_STATUS.UNCHANGED)).toBe(true);
+  });
+
+  it('restores a bare-code row when the rollup-era parent exceeds its subItems', () => {
+    const preview = build({});
+    preview.assets.groups.property = {
+      label: '不動產',
+      total: 1000000,
+      items: [
+        { code: 'asset:property', label: '不動產', amount: 300000 },
+        { code: 'asset:property:house', label: '不動產 › house', amount: 700000 },
+      ],
+    };
+    const persisted = build({});
+    persisted.assets.groups.property = {
+      label: '不動產',
+      total: 1000000,
+      items: [
+        {
+          code: 'asset:property',
+          label: '不動產',
+          amount: 1000000,
+          subItems: [{ code: 'asset:property:house', label: '不動產 › house', amount: 700000 }],
+        },
+      ],
+    };
+
+    const drift = diffBalanceSheet(preview, persisted);
+
+    const rows = drift.assets.groups.property.items;
+    expect(rows.map((row) => row.code)).toEqual(['asset:property', 'asset:property:house']);
+    expect(byCode(rows, 'asset:property')).toMatchObject({
+      amount: 300000,
+      status: DRIFT_STATUS.UNCHANGED,
+    });
+    expect(byCode(rows, 'asset:property:house').status).toBe(DRIFT_STATUS.UNCHANGED);
+  });
 });
 
 describe('diffAmount', () => {

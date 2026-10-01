@@ -208,7 +208,7 @@ const hasNestedItems = (items: readonly SourceItem[]): boolean =>
  * a removed flat row sharing the detail's React key, which duplicates rows when
  * the table re-renders on collapse/expand.
  */
-const foldLegacyItems = (items: readonly SourceItem[]): SourceItem[] => {
+const nestLegacyItems = (items: readonly SourceItem[]): SourceItem[] => {
   if (hasNestedItems(items)) return [...items];
   const parents = new Map<string, { amount: number; subItems: SourceItem[] }>();
   for (const item of items) {
@@ -228,21 +228,50 @@ const foldLegacyItems = (items: readonly SourceItem[]): SourceItem[] => {
 };
 
 /** Compare one level of rows, appending persisted-only rows as removed. */
-export const diffItems = (
+const diffNormalizedItems = (
   preview: readonly SourceItem[],
   persisted: readonly SourceItem[],
 ): DriftItem[] => {
-  const foldedPersisted = foldLegacyItems(persisted);
-  const persistedByCode = new Map(foldedPersisted.map((item) => [item.code, item]));
+  const persistedByCode = new Map(persisted.map((item) => [item.code, item]));
   const previewCodes = new Set(preview.map((item) => item.code));
   const rows = preview.map((item) => {
     const previous = persistedByCode.get(item.code);
     return previous ? diffItem(item, previous) : addedItem(item);
   });
-  const removedRows = foldedPersisted
-    .filter((item) => !previewCodes.has(item.code))
-    .map(removedItem);
+  const removedRows = persisted.filter((item) => !previewCodes.has(item.code)).map(removedItem);
   return [...rows, ...removedRows];
+};
+
+/** Compare one level of rows, appending persisted-only rows as removed. */
+export const diffItems = (
+  preview: readonly SourceItem[],
+  persisted: readonly SourceItem[],
+): DriftItem[] => diffNormalizedItems(preview, nestLegacyItems(persisted));
+
+/**
+ * The inverse of `nestLegacyItems` for balance-sheet groups: those carry the
+ * roll-up themselves (label + summed total), and their items now record detail
+ * codes directly. Reports generated before that shape stored a redundant parent
+ * row with the details as subItems; unfolding it (the unallocated remainder
+ * becomes a bare-code row) restores the flat shape the preview produces, so the
+ * pair compares by code instead of reading as a mass of added/removed rows.
+ */
+const flattenRollupItems = (items: readonly SourceItem[]): SourceItem[] => {
+  if (!items.some((item) => (item.subItems?.length ?? 0) > 0)) return [...items];
+  const flat: SourceItem[] = [];
+  for (const item of items) {
+    const children = item.subItems ?? [];
+    if (children.length === 0) {
+      flat.push(item);
+      continue;
+    }
+    const childrenSum = children.reduce((sum, child) => sum + child.amount, 0);
+    if (item.amount !== childrenSum) {
+      flat.push({ code: item.code, label: item.label, amount: item.amount - childrenSum });
+    }
+    flat.push(...children.map(({ code, label, amount }) => ({ code, label, amount })));
+  }
+  return flat;
 };
 
 const diffGroups = (
@@ -257,7 +286,7 @@ const diffGroups = (
       total: previous
         ? diffAmount(group.total, previous.total)
         : { amount: group.total, previousAmount: null, status: DRIFT_STATUS.ADDED },
-      items: diffItems(group.items, previous?.items ?? []),
+      items: diffNormalizedItems(group.items, flattenRollupItems(previous?.items ?? [])),
     };
   }
   for (const [key, group] of Object.entries(persisted ?? {})) {

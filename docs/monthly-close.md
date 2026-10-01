@@ -116,6 +116,7 @@ URL 有效 ⟺ 該期間已有狀態紀錄。`yearMonth` 形狀不合法、或�
 - preview 欄位比 persisted 多／少：該列以警示色顯示 `0 -> <preview>` 或 `<persisted> -> 0`。
 - 父列只在子列集合增減時警示（`RESTRUCTURED`），避免總額變動時整棵樹亮起；葉節點直接比對、加總行（群組 total 與整表總結行）直接比對、標籤變更不比對。
 - 舊 persisted 現金流無 `subItems`（schema 修正前）時，只比對該層並抑制子列「缺席」警示。
+- 舊 persisted 資產負債表的欄位項含父列 + subItems（ADR-0074 前格式）時，先還原成平列（父列金額減明細加總的餘額還原為 bare 科目列）再比對，不出現假警示。
 - 警示色沿用既有 token `--warning`，且只套用在金額 cell，不整列變色。
 
 比對邏輯是 `src/domains/report/reportDrift.ts` 的純函式（輸入 preview + persisted，輸出帶 status／delta 的標註列樹），不含 React。persisted bundle 由 `FINANCIAL_REPORTS` stage 與 preview bundle 一併載入並持有、由 registry 跨讀，讀取走 `getStoredReportUseCase` 既有的權限檢查。

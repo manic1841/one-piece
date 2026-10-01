@@ -77,11 +77,17 @@ One-Piece 結合了「管理會計 (Projects)」與「財務會計 (Accounts)」
 - 權益細項拆為五個來源：
   - **期初權益**：上期結轉。
   - **本期淨利**：從損益表結轉。
-  - **資本**：`equity:capital*` 當月 `credit − debit`（`equity:capital` 本身與其明細科目加總）；credit 為投入、debit 為提款／分紅，淨 debit 月為**負（扣除）**，明細科目同樣帶號（見「報表層符號原則」）。
+  - **資本**：`equity:capital*` 當月 `credit − debit` 加總；credit 為投入、debit 為提款／分紅，淨 debit 月為**負（扣除）**，明細科目同樣帶號（見「報表層符號原則」）。
   - **股票報酬**：active portfolio snapshots 的累計損益（`gain` 加總）。
   - **調整項目**：其餘無法歸類於上述四項的部分；理論上應接近零。
 - 調整項目偏大代表資料有誤，但系統無法自動定位是哪一筆，須人工追查。
 - 儲存端不寫入任何「權益」餘額；`equity:*` 僅是歸屬用的科目。
+
+### 呈現結構
+
+- **欄位項（不動產、資本）不設第二層父列**：資產負債表的 group（`assets.groups.property`、`equity.groups.capital`）本身就是 roll-up 層——group 名即類別、`total` 已加總，`items` 直接記錄明細科目（`asset:property:<house>` 等），不再巢狀出 `asset:property` 父列。直接記在 bare 科目（`asset:property`、`equity:capital` 本身）的餘額以獨立平列呈現。理由與取捨見 [ADR-0074](adr/0074-balance-sheet-group-items-flat.md)。
+- **舊格式相容**：Report Drift 對 roll-up 時期 persisted 報表（父列 + subItems）先還原成平列（父列金額減明細加總的餘額還原為 bare 科目列）再比對，切換期間不出現假警示。
+- 損益表與現金流量的明細 roll-up（父科目成列、明細巢狀 subItems）不變，見 §1、§3 與 [ADR-0069](adr/0069-report-layer-rollup-label-resolution.md)。
 
 ---
 
