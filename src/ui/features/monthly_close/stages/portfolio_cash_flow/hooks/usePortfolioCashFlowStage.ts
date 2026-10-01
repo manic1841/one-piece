@@ -17,7 +17,6 @@ interface UsePortfolioCashFlowStageArgs {
   selectedYearMonth: string;
   portfolios: Portfolio[];
   confirmingStageId: string | null;
-  enabled?: boolean;
 }
 
 const LOAD_ERROR = '無法載入 Portfolio 金流，請稍後再試。';
@@ -83,7 +82,6 @@ export const usePortfolioCashFlowStage = ({
   selectedYearMonth,
   portfolios,
   confirmingStageId,
-  enabled = true,
 }: UsePortfolioCashFlowStageArgs): CloseStageControl<'PORTFOLIO_CASH_FLOW'> & {
   cashFlows: PortfolioCashFlows | null;
   setCashFlows: (value: PortfolioCashFlows) => void;
@@ -98,15 +96,11 @@ export const usePortfolioCashFlowStage = ({
   );
   // The gate waits for the shared portfolios list, so the prefill never runs on an empty list.
   const { data, errorMessage, refresh } = useStageLoader<PortfolioSnapshotData>({
-    key: selectedYearMonth,
-    enabled: enabled && householdId !== '' && selectedYearMonth !== '' && portfolios.length > 0,
+    enabled: householdId !== '' && selectedYearMonth !== '' && portfolios.length > 0,
     load,
   });
   // `booked: null` means at least one snapshot is missing: an unknown, not an empty draft.
-  const [cashFlows, setCashFlows] = useSeededDraft<PortfolioCashFlows>(
-    selectedYearMonth,
-    data?.booked ?? null,
-  );
+  const [cashFlows, setCashFlows] = useSeededDraft<PortfolioCashFlows>(data?.booked ?? null);
 
   const control = useConfirmStageControl({
     stageId: 'PORTFOLIO_CASH_FLOW',

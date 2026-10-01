@@ -3,8 +3,6 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useLoadingTask } from '@/ui/hooks/useLoadingTask';
 
 export interface UseStageLoaderArgs<T> {
-  /** The period key (the selected `yearMonth`); a change retires the loaded value. */
-  key: string;
   /** The single gate: the consumer composes every precondition into it. */
   enabled: boolean;
   /** The read; it throws the consumer's canned copy on failure. */
@@ -12,7 +10,7 @@ export interface UseStageLoaderArgs<T> {
 }
 
 export interface UseStageLoaderResult<T> {
-  /** The value loaded for the current key, or null when unknown. */
+  /** The loaded value, or null when unknown. */
   data: T | null;
   errorMessage: string | null;
   isLoading: boolean;
@@ -22,18 +20,16 @@ export interface UseStageLoaderResult<T> {
   refresh: () => Promise<void>;
 }
 
-/** The close stages' period-keyed load skeleton: abort/supersede, per-key reset, and `isReady`. */
+/** The close stages' load skeleton: abort/supersede, failure-is-not-empty, and `isReady`. */
 export const useStageLoader = <T>({
-  key,
   enabled,
   load,
 }: UseStageLoaderArgs<T>): UseStageLoaderResult<T> => {
   const { errorMessage, loading: isLoading, run } = useLoadingTask();
-  const [state, setState] = useState<{ key: string; value: T } | null>(null);
-  // A slow load for a key the user already left must not land last and win.
+  const [data, setData] = useState<T | null>(null);
   const inFlightRef = useRef<AbortController | null>(null);
 
-  // `load` is kept in a ref so only `key` and `enabled` re-trigger a load.
+  // `load` is kept in a ref so only `enabled` re-triggers a load.
   const loadRef = useRef(load);
   useEffect(() => {
     loadRef.current = load;
@@ -44,15 +40,14 @@ export const useStageLoader = <T>({
     const controller = new AbortController();
     inFlightRef.current = controller;
 
-    // The key is captured at start, so an abandoned run writes nothing.
     await run((signal) => loadRef.current(signal), {
       signal: controller.signal,
       writeBack: (result) => {
         if (!result.ok) return;
-        setState({ key, value: result.value });
+        setData(result.value);
       },
     });
-  }, [key, run]);
+  }, [run]);
 
   useEffect(() => {
     if (!enabled) {
@@ -62,8 +57,6 @@ export const useStageLoader = <T>({
     }
     void runLoad();
   }, [enabled, runLoad]);
-
-  const data = state?.key === key ? state.value : null;
 
   return {
     data,

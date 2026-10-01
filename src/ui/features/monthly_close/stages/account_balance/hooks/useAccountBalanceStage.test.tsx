@@ -86,14 +86,16 @@ describe('useAccountBalanceStage', () => {
     expect(result.current.accountSnapshots.get('acc-1')?.amount).toBe(9_000);
   });
 
-  // The one-shot seed and month-switch reset are covered in useSeededDraft.test.ts.
-  it('prefills the new month after switching (#232)', async () => {
+  // The one-shot seed is covered in useSeededDraft.test.ts; a period change is a remount.
+  it('prefills the new month after the workspace remounts (#232)', async () => {
     mockBookedBalances({ 8: 12_000, 9: 15_000 });
 
-    const { result, rerender } = renderStage();
-    await waitFor(() => expect(result.current.balances).toHaveLength(1));
+    const august = renderStage('2026-08');
+    await waitFor(() => expect(august.result.current.balances).toHaveLength(1));
+    expect(august.result.current.balances[0]).toMatchObject({ accountId: 'acc-1', amount: 12_000 });
+    august.unmount();
 
-    rerender({ yearMonth: '2026-09' });
+    const { result } = renderStage('2026-09');
 
     await waitFor(() =>
       expect(result.current.balances[0]).toMatchObject({ accountId: 'acc-1', amount: 15_000 }),

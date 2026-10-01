@@ -110,51 +110,43 @@ export const useCloseStepRegistry = ({
   debtAccounts,
   pageVM,
 }: UseCloseStepRegistryArgs): CloseStepRegistry => {
-  const enabled = pageVM.isStarted;
   const accountBalanceStage = useAccountBalanceStage({
     householdId,
     selectedYearMonth,
     accounts,
     confirmingStageId,
-    enabled,
   });
   const securitiesTradeStage = useSecuritiesTradeStage({
     householdId,
     selectedYearMonth,
     confirmingStageId,
-    enabled,
   });
   const portfolioCashFlowStage = usePortfolioCashFlowStage({
     householdId,
     selectedYearMonth,
     portfolios,
     confirmingStageId,
-    enabled,
   });
   const debtRepaymentStage = useDebtRepaymentStage({
     householdId,
     selectedYearMonth,
     debtAccounts,
     confirmingStageId,
-    enabled,
   });
   const projectSettlementStage = useProjectSettlementStage({
     householdId,
     selectedYearMonth,
     confirmingStageId,
-    enabled,
   });
   const transactionValidationStage = useTransactionValidationStage({
     householdId,
     selectedYearMonth,
     confirmingStageId,
-    enabled,
   });
   const completenessCheckStage = useCompletenessCheckStage({
     householdId,
     selectedYearMonth,
     confirmingStageId,
-    enabled,
   });
   const closePeriodControl = useNoOpStageControl('CLOSE_PERIOD', confirmingStageId);
   const financialReportsStage = useFinancialReportsStage({
@@ -162,7 +154,6 @@ export const useCloseStepRegistry = ({
     selectedYearMonth,
     confirmingStageId,
     isClosed: pageVM.isClosed,
-    enabled,
   });
 
   // Steps 7-8 summary VMs: built here, after the stage hooks, so COMPLETENESS_CHECK

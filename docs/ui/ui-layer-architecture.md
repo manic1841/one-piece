@@ -156,7 +156,7 @@ of Use Cases. Two responsibilities plus one mechanism — there is no third laye
 | **Query**             | One per resource. Read-only.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       | read use cases                                                    |
 | **Command**           | One per resource, named `*Cmds` when it exists as a distinct bundle. Write-only.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   | write use cases                                                   |
 | **`useLoadingTask`**  | A **mechanism**, not a tier. Used _by_ Query/Command hooks, exactly like `useState`. It owns the loading state, the failure value, the write-back of a run's outcome, and the ability to abandon a run, so a hook that needs cancellation or a typed failure no longer has a reason to hand-roll either. **Superseding a previous run is the consumer's job _at this level_** — the mechanism only exposes the signal slot; a consumer that needs supersession owns the `AbortController` (or composes a mechanism that does, see below). Optional `initiallyLoading` seeds the loading state for a hook whose first paint precedes its first run. | —                                                                 |
-| **Feature mechanism** | Also a **mechanism**, not a tier, but scoped to one feature and living beside the hooks that compose it (e.g. `features/monthly_close/hooks/useStageLoader.ts` — a keyed, abort-superseding load — and `useSeededDraft.ts` — a source that follows until the user takes ownership, retiring on a key change). Extracted only after the same hand-rolled shape repeats across several hooks; promoted to `src/ui/hooks/` only when a second feature needs it.                                                                                                                                                                                       | —                                                                 |
+| **Feature mechanism** | Also a **mechanism**, not a tier, but scoped to one feature and living beside the hooks that compose it (e.g. `features/monthly_close/hooks/useStageLoader.ts` — an abort-superseding load with a single `enabled` gate — and `useSeededDraft.ts` — a source that follows until the user takes ownership). Extracted only after the same hand-rolled shape repeats across several hooks; promoted to `src/ui/hooks/` only when a second feature needs it.                                                                                                                                                                                          | —                                                                 |
 
 Rules:
 
@@ -225,16 +225,17 @@ Rules:
   response can land last and win. Pass its signal as `run`'s `signal` option. When the same shape repeats across many
   hooks of one feature, **the responsibility moves out of the consumers and into a composed mechanism** rather than
   being copy-pasted: the monthly-close stages share `useStageLoader`
-  (`features/monthly_close/hooks/useStageLoader.ts`), which owns the in-flight controller, the keyed write-back, the
+  (`features/monthly_close/hooks/useStageLoader.ts`), which owns the in-flight controller, the write-back, the
   supersede-abort, the `enabled` gate and the failure semantics, leaving each stage hook only its payload mapping. A
   feature mechanism lives beside the hooks that compose it; it is not promoted to `src/ui/hooks/` until a second feature
   needs it.
 - **Seed-Once Ownership**: a feature mechanism that seeds a draft from loaded data owns the ownership rule instead of
-  leaving it to every consumer. `useSeededDraft(key, source)` returns `[value, setValue]`: `source === null` means
-  **unknown** (do not seed, and never fabricate an empty draft), `[]`/`{}` means **known empty** (seed it), the value
-  follows the latest `source` until the consumer calls `setValue` (which takes ownership for that key), and a **key
-  change retires the owned value** so no explicit reset step is needed. The setter takes `SetStateAction`, so two
-  sequential updates in one action compose instead of the second discarding the first.
+  leaving it to every consumer. `useSeededDraft(source)` returns `[value, setValue]`: `source === null` means
+  **unknown** (do not seed, and never fabricate an empty draft), `[]`/`{}` means **known empty** (seed it), and the value
+  follows the latest `source` until the consumer calls `setValue`, which takes ownership. Retirement is **the mount's,
+  not the mechanism's**: a mechanism scoped to one period has no key to watch, so a consumer that must retire an owned
+  value on a context change remounts instead (e.g. the close workspace is mounted with `key={yearMonth}`). The setter
+  takes `SetStateAction`, so two sequential updates in one action compose instead of the second discarding the first.
 - **Error Wording Stays With The Consumer**: the mechanism carries the failure value, not the copy. A hook that wants a
   specific user-facing message maps it from the failure value itself; the mechanism never invents wording.
 - **Retry Identity**: For a financial command that requires an idempotency key,
@@ -429,7 +430,7 @@ Global Header(sticky 系統狀態列)只負責:
 
 - **List** = Browse / Filter / Create / Reorder:檢視清單、內容區 filter(顯示停用／顯示已結清 toggle 屬 view filter,非資料變更)、create 入口、拖曳排序(見 [ADR-0059](../adr/0059-dnd-kit-shared-sortable.md))。view filter 與搜尋放在 List 內容區,不放 header。
 - **Detail** = 該實體的管理動作:Edit(inline rename 或 Edit Form)、Activate/Deactivate、Danger Zone(刪除)。
-- **Workflow**(如 `/close`)= 該工作流的主要動作:Confirm、Close Period。
+- **Workflow** = 該工作流的主要動作:Confirm、Close Period。
 
 ### 7.2 List → Detail
 

@@ -1,21 +1,20 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 
 import { type FinancialPeriod, initialStageStates } from '@/domains/financial_period/schemas';
+import { MONTHLY_CLOSE_LABELS } from '@/ui/constants/monthlyClose';
 
 import { MonthlyClosePage } from './MonthlyClosePage';
 
-// Hoisted and stable on purpose: the real `useAuthIdentity` is memoized, and a
-// fresh identity object per render would change every stage hook's load
-// callback identity and re-run its effect forever.
+// Stable hoisted identity: a fresh one per render would re-run every stage load.
 const { authIdentity, confirmMock } = vi.hoisted(() => ({
   authIdentity: { uid: 'user-1', email: 'user@test.com', isGlobalAdmin: false },
   confirmMock: vi.fn(),
 }));
 
 beforeEach(() => {
-  // Default: the user declines every prompt. Tests that need acceptance
-  // override it per case.
+  // Default: the user declines every prompt; tests that need acceptance override it.
   confirmMock.mockReset();
   confirmMock.mockResolvedValue(false);
 });
@@ -26,7 +25,7 @@ vi.mock('@/ui/hooks/useAuthIdentity', () => ({
 
 vi.mock('@/application/monthly_close/use_cases/monthlyCloseWorkflowUseCase', () => ({
   monthlyCloseWorkflowUseCase: {
-    start: vi.fn().mockResolvedValue(closedPeriod()),
+    start: vi.fn(),
     reopen: vi.fn(),
     confirmStage: vi.fn(),
     resetStagesFrom: vi.fn(),
@@ -197,12 +196,21 @@ function inProgressPeriod(): FinancialPeriod {
   };
 }
 
+const renderWorkspace = (period: FinancialPeriod = inProgressPeriod()) =>
+  render(
+    <MemoryRouter>
+      <MonthlyClosePage
+        householdId="household-1"
+        userEmail="user@test.com"
+        yearMonth={period.yearMonth}
+        initialPeriod={period}
+      />
+    </MemoryRouter>,
+  );
+
 describe('MonthlyClosePage (closed period)', () => {
   it('renders the read-only Step 9 close summary as the default view', async () => {
-    render(<MonthlyClosePage householdId="household-1" userEmail="user@test.com" />);
-
-    const startButton = screen.getByRole('button', { name: '開始關帳' });
-    fireEvent.click(startButton);
+    renderWorkspace(closedPeriod());
 
     await waitFor(() => {
       expect(screen.getByTestId('close-summary-panel')).toBeInTheDocument();
@@ -212,18 +220,34 @@ describe('MonthlyClosePage (closed period)', () => {
     expect(screen.queryByTestId('close-period-confirm')).not.toBeInTheDocument();
     expect(screen.getByText('本期已完成關帳')).toBeInTheDocument();
   });
+
+  it('offers the reopen entry only while the period is locked', async () => {
+    const { unmount } = renderWorkspace(closedPeriod());
+    expect(
+      await screen.findByRole('button', { name: MONTHLY_CLOSE_LABELS.REOPEN_CONFIRM }),
+    ).toBeInTheDocument();
+    unmount();
+
+    renderWorkspace(inProgressPeriod());
+    await waitFor(() =>
+      expect(screen.queryByRole('button', { name: 'CONTINUE →' })).toBeInTheDocument(),
+    );
+    expect(
+      screen.queryByRole('button', { name: MONTHLY_CLOSE_LABELS.REOPEN_CONFIRM }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('links back to the period picker', async () => {
+    renderWorkspace(inProgressPeriod());
+
+    const switcher = await screen.findByRole('link', { name: MONTHLY_CLOSE_LABELS.SWITCH_PERIOD });
+    expect(switcher).toHaveAttribute('href', '/close');
+  });
 });
 
 describe('MonthlyClosePage (cascade-demoted period)', () => {
   it('keeps the recovery walk confirm button reachable (ADR-0066)', async () => {
-    vi.mocked(
-      (await import('@/application/monthly_close/use_cases/monthlyCloseWorkflowUseCase'))
-        .monthlyCloseWorkflowUseCase.start,
-    ).mockResolvedValueOnce(cascadeDemotedPeriod());
-
-    render(<MonthlyClosePage householdId="household-1" userEmail="user@test.com" />);
-
-    fireEvent.click(screen.getByRole('button', { name: '開始關帳' }));
+    renderWorkspace(cascadeDemotedPeriod());
 
     await waitFor(() => {
       expect(screen.getByRole('button', { name: 'CONTINUE →' })).toBeInTheDocument();
@@ -231,8 +255,7 @@ describe('MonthlyClosePage (cascade-demoted period)', () => {
   });
 });
 
-// The completeness-check load is the observable side of `refreshAll`, so its
-// call count tells us whether a confirm ran the post-confirm refresh path.
+// The completeness-check call count is the observable side of `refreshAll`.
 describe('MonthlyClosePage (confirm side effects)', () => {
   const completenessCalls = async () => {
     const mod = await import(
@@ -245,11 +268,9 @@ describe('MonthlyClosePage (confirm side effects)', () => {
     const workflow = (
       await import('@/application/monthly_close/use_cases/monthlyCloseWorkflowUseCase')
     ).monthlyCloseWorkflowUseCase;
-    vi.mocked(workflow.start).mockResolvedValueOnce(inProgressPeriod());
     vi.mocked(workflow.confirmStage).mockResolvedValueOnce(null);
 
-    render(<MonthlyClosePage householdId="household-1" userEmail="user@test.com" />);
-    fireEvent.click(screen.getByRole('button', { name: '開始關帳' }));
+    renderWorkspace();
 
     const confirmButton = await screen.findByRole('button', { name: 'CONTINUE →' });
     await waitFor(async () => expect(await completenessCalls()).toBeGreaterThan(0));
@@ -274,15 +295,13 @@ describe('MonthlyClosePage (confirm side effects)', () => {
       confirmedAt: new Date('2026-09-20T10:00:00Z'),
       confirmedBy: 'user@test.com',
     };
-    vi.mocked(workflow.start).mockResolvedValueOnce(inProgressPeriod());
     vi.mocked(workflow.confirmStage).mockResolvedValueOnce({
       stageId: 'ACCOUNT_BALANCE',
       period: completed,
       data: undefined,
     });
 
-    render(<MonthlyClosePage householdId="household-1" userEmail="user@test.com" />);
-    fireEvent.click(screen.getByRole('button', { name: '開始關帳' }));
+    renderWorkspace();
 
     const confirmButton = await screen.findByRole('button', { name: 'CONTINUE →' });
     await waitFor(async () => expect(await completenessCalls()).toBeGreaterThan(0));
@@ -294,56 +313,36 @@ describe('MonthlyClosePage (confirm side effects)', () => {
     await waitFor(async () => expect(await completenessCalls()).toBeGreaterThan(callsBefore));
   });
 
-  // T13 (#237): start and reopen also land on a new period, so both must end
-  // with the stages reloading. Start now relies on the auto-load gate flipping
-  // (#240); reopen still goes through the page-level `refreshAll`, so an
-  // accepted reopen has to reload a second time.
-  it('refreshes stage data after start', async () => {
+  // T13 (#237): mounting loads once; an accepted reopen on the same mount still refreshes.
+  it('refreshes stage data again after an accepted reopen', async () => {
     const workflow = (
       await import('@/application/monthly_close/use_cases/monthlyCloseWorkflowUseCase')
     ).monthlyCloseWorkflowUseCase;
-    vi.mocked(workflow.start).mockResolvedValueOnce(inProgressPeriod());
-
-    render(<MonthlyClosePage householdId="household-1" userEmail="user@test.com" />);
-    const before = await completenessCalls();
-
-    fireEvent.click(screen.getByRole('button', { name: '開始關帳' }));
-
-    await waitFor(async () => expect(await completenessCalls()).toBeGreaterThan(before));
-  });
-
-  it('refreshes stage data again after a confirmed reopen', async () => {
-    const workflow = (
-      await import('@/application/monthly_close/use_cases/monthlyCloseWorkflowUseCase')
-    ).monthlyCloseWorkflowUseCase;
-    // A CLOSED period offers the reopen prompt; accepting it must refresh too.
     confirmMock.mockResolvedValue(true);
-    vi.mocked(workflow.start).mockResolvedValueOnce(closedPeriod());
     vi.mocked(workflow.reopen).mockResolvedValueOnce(inProgressPeriod());
 
-    render(<MonthlyClosePage householdId="household-1" userEmail="user@test.com" />);
+    renderWorkspace(closedPeriod());
+
+    await waitFor(async () => expect(await completenessCalls()).toBeGreaterThan(0));
     const before = await completenessCalls();
-    fireEvent.click(screen.getByRole('button', { name: '開始關帳' }));
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: MONTHLY_CLOSE_LABELS.REOPEN_CONFIRM }),
+    );
 
     await waitFor(() => expect(workflow.reopen).toHaveBeenCalled());
-    // Start refreshes once; the accepted reopen must refresh a second time, so
-    // the delta has to be more than the single round start already produced.
-    await waitFor(async () => expect(await completenessCalls()).toBeGreaterThan(before + 1));
+    // The mount's own round plus the explicit refreshAll after the reopen.
+    await waitFor(async () => expect(await completenessCalls()).toBeGreaterThan(before));
   });
 });
 
-// T7 (#231): the shared entity lists feed every stage's dropdowns and prefill.
-// A failed read used to leave the page silently empty, so it gets its own copy.
+// T7 (#231): a failed entity load must surface, not leave the page silently empty.
 describe('MonthlyClosePage (shared entity load failure)', () => {
   it('surfaces a failed entity load instead of an empty page', async () => {
     const accounts = await import('@/application/account/use_cases/getAccountsUseCase');
     vi.mocked(accounts.getAccountsUseCase.execute).mockRejectedValueOnce(new Error('boom'));
 
-    render(<MonthlyClosePage householdId="household-1" userEmail="user@test.com" />);
-
-    // The shared entity load is gated on the period existing (#240), so it
-    // starts when the user starts the month, not on mount.
-    fireEvent.click(screen.getByRole('button', { name: '開始關帳' }));
+    renderWorkspace();
 
     expect(
       await screen.findByText('無法載入帳戶、專案與債務資料，請稍後再試。'),

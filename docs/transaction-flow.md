@@ -19,7 +19,7 @@ We replaced it with `TransactionForm` and a direct `IntentMapping` flow. This av
 7. **Template Persistence**: After an income allocation is successfully created, the same allocation percentages are upserted into `allocationTemplates` for that `ledgerCode` as a convenience template. Historical allocations are not mutated.
 8. **Project Selection Rule**: `projectId` is optional for regular entries (expense, income, investment, financing, manual). Only historical `TRANSFER` transactions carry `fromProjectId` and `toProjectId`; the form no longer creates them ([ADR-0042](adr/0042-pause-project-transfer-feature.md)). 歷史 TRANSFER 交易對某個專案的方向判定：`toProjectId === projectId` 為流入，`fromProjectId === projectId` 為流出。
 9. **Debt Payment Retry Rule**: `DEBT_PAYMENT` is a re-bookable financial command keyed by period × account for the monthly close stage (`monthly-close:{yearMonth}:{debtAccountId}`). The caller creates one idempotency key per user action and reuses it for retries; the Transaction, DebtSnapshot, DebtAccount balance cache, and household operation record commit in one Firestore transaction. A same-key replay with an unchanged payload returns the original result; a changed payload replaces the month's record (previous transaction deleted, snapshot and balance re-derived) inside the same transaction boundary; a zero-amount payload clears the month's record.
-10. **Debt Payment Entry Point**: The form no longer offers a `DEBT_PAYMENT` tab or panel, and repayments are recorded only through the monthly close workflow (`/close` DEBT_REPAYMENT stage via `monthlyCloseWorkflowUseCase`, which also settles fully-repaid debt accounts). The settlement-prompt dialog in the transaction feature is removed with it.
+10. **Debt Payment Entry Point**: The form no longer offers a `DEBT_PAYMENT` tab or panel, and repayments are recorded only through the monthly close workflow (its DEBT_REPAYMENT stage, via `monthlyCloseWorkflowUseCase`, which also settles fully-repaid debt accounts). The settlement-prompt dialog in the transaction feature is removed with it.
 
 ## Intent Type Notes
 
@@ -36,7 +36,7 @@ IntentType 分三層：
 - `allowedDebitPrefix` / `allowedCreditPrefix`：列出該前綴底下的全部科目，等同「這個 category 底下的明細科目」（不動產、薪資、獎金）。
 - `debitCustomOnly` / `creditCustomOnly`：只列該 mapping 自己的預設科目，加上使用者自建的科目（其他支出、其他收入）。系統科目由各自的意圖負責，不在這裡重複出現。
 
-目前 UI 的實作限制如下：`LIABILITY_BORROW` 由建立 `DebtAccount` 的流程產生，不從 `TransactionForm` 輸入；`TRANSFER` 目前暫停實作（[ADR-0042](adr/0042-pause-project-transfer-feature.md)）；`DEBT_PAYMENT` 不再從表單輸入，僅能透過月度關帳流程（`/close` 的 DEBT_REPAYMENT 階段）錄入；編輯流程暫不支援 `TRANSFER`，以避免尚未具備專用更新流程時產生部分副作用。
+目前 UI 的實作限制如下：`LIABILITY_BORROW` 由建立 `DebtAccount` 的流程產生，不從 `TransactionForm` 輸入；`TRANSFER` 目前暫停實作（[ADR-0042](adr/0042-pause-project-transfer-feature.md)）；`DEBT_PAYMENT` 不再從表單輸入，僅能透過月度關帳流程的 DEBT_REPAYMENT 階段錄入；編輯流程暫不支援 `TRANSFER`，以避免尚未具備專用更新流程時產生部分副作用。
 
 `DEBT_PAYMENT` 的付款規則、atomicity、retry 與 operation record 以
 [ADR-0014](adr/0014-debt-payment-intenttype.md)、[ADR-0015](adr/0015-debt-account-balance-derived.md)、[ADR-0017](adr/0017-grace-period-derived-not-stored.md) 與 [ADR-0038](adr/0038-command-atomicity-and-retry-policy.md) 為準。

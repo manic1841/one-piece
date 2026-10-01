@@ -12,6 +12,7 @@ import { formatCurrency, formatYearMonth } from '@/ui/utils';
 export type { NextMonthDebtDueResult };
 
 export interface DashboardCloseStatusVM {
+  yearMonth: string;
   periodText: string;
   glyphType: StatusGlyphType;
   statusText: string;
@@ -26,6 +27,7 @@ export const mapPeriodToCloseStatusVM = (
 ): DashboardCloseStatusVM => {
   if (!period) {
     return {
+      yearMonth,
       periodText: formatYearMonthOf(yearMonth),
       glyphType: DASHBOARD_CLOSE_NO_RECORD.glyphType,
       statusText: DASHBOARD_CLOSE_NO_RECORD.statusText,
@@ -44,6 +46,7 @@ export const mapPeriodToCloseStatusVM = (
     : CLOSE_STAGE_ORDER.find((stageId) => period.stages[stageId]?.status !== 'COMPLETED');
 
   return {
+    yearMonth: period.yearMonth,
     periodText: formatYearMonthOf(period.yearMonth),
     glyphType: DASHBOARD_CLOSE_STATUS_GLYPHS[period.status],
     statusText: DASHBOARD_CLOSE_STATUS_TEXT_MAP[period.status],

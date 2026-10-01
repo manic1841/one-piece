@@ -21,29 +21,7 @@ const STATUS_TEXT_MAP: Record<string, string> = {
   CLOSED: MONTHLY_CLOSE_LABELS.CLOSED,
 };
 
-export const mapPeriodToPageVM = (
-  period: FinancialPeriod | null,
-  yearMonth: string,
-): MonthlyClosePageVM => {
-  if (!period) {
-    return {
-      periodLabel: MONTHLY_CLOSE_LABELS.PERIOD_LABEL,
-      periodText: yearMonth,
-      status: 'NONE',
-      statusText: MONTHLY_CLOSE_LABELS.OPEN,
-      isPaused: false,
-      isClosed: false,
-      isCascadeDemoted: false,
-      isActive: false,
-      isStarted: false,
-      reviewSourceStageId: null,
-      reviewSourceLabel: null,
-      stages: [],
-      completedCount: 0,
-      totalCount: CLOSE_STAGE_ORDER.length,
-    };
-  }
-
+export const mapPeriodToPageVM = (period: FinancialPeriod): MonthlyClosePageVM => {
   const confirmedAtOf = (stageId: CloseStageId): Date | null => {
     const at = period.stages[stageId]?.confirmedAt;
     return at instanceof Date ? at : null;
@@ -88,7 +66,6 @@ export const mapPeriodToPageVM = (
     isClosed: period.status === 'CLOSED',
     isCascadeDemoted: isCascadeDemoted(period),
     isActive: period.status === 'IN_PROGRESS' || period.status === 'NEEDS_REVIEW',
-    isStarted: true,
     reviewSourceStageId: period.reviewSourceStageId ?? null,
     reviewSourceLabel: period.reviewSourceStageId
       ? (CLOSE_STAGE_LABELS[period.reviewSourceStageId as keyof typeof CLOSE_STAGE_LABELS] ??

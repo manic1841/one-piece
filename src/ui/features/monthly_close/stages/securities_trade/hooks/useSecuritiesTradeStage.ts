@@ -55,7 +55,6 @@ interface UseSecuritiesTradeStageArgs {
   householdId: string;
   selectedYearMonth: string;
   confirmingStageId: string | null;
-  enabled?: boolean;
 }
 
 /** Stage controller for SECURITIES_TRADE: the diff-merge draft, prefill, warning, and drawer. */
@@ -63,7 +62,6 @@ export const useSecuritiesTradeStage = ({
   householdId,
   selectedYearMonth,
   confirmingStageId,
-  enabled = true,
 }: UseSecuritiesTradeStageArgs): CloseStageControl<'SECURITIES_TRADE'> & {
   securities: SecuritiesRows;
   setSecurities: Dispatch<SetStateAction<SecuritiesRows>>;
@@ -106,12 +104,11 @@ export const useSecuritiesTradeStage = ({
   }, [householdId, selectedYearMonth]);
 
   const { data, errorMessage, refresh } = useStageLoader<SecuritiesTradeDraft>({
-    key: selectedYearMonth,
-    enabled: enabled && householdId !== '' && selectedYearMonth !== '',
+    enabled: householdId !== '' && selectedYearMonth !== '',
     load,
   });
   // One draft unit: the drawer moves rows between buckets and records a removal together.
-  const [draft, setDraft] = useSeededDraft<SecuritiesTradeDraft>(selectedYearMonth, data);
+  const [draft, setDraft] = useSeededDraft<SecuritiesTradeDraft>(data);
 
   const securities = draft?.securities ?? EMPTY_DRAFT.securities;
   const financing = draft?.financing ?? EMPTY_DRAFT.financing;

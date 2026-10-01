@@ -78,28 +78,33 @@ describe('usePortfolioCashFlowStage', () => {
       snapshot('s-1', { deposits: 700, withdrawals: 0 }),
     ]);
     const portfolios = [portfolio('p-1')];
-    const { result, rerender } = renderHook(
-      ({ month }: { month: string }) =>
+    const renderFor = (month: string) =>
+      renderHook(() =>
         usePortfolioCashFlowStage({
           householdId: 'household-1',
           selectedYearMonth: month,
           portfolios,
           confirmingStageId: null,
         }),
-      { initialProps: { month: '2026-08' } },
-    );
-    await waitFor(() => expect(result.current.cashFlows['p-1']).toBeDefined());
+      );
+
+    const august = renderFor('2026-08');
+    await waitFor(() => expect(august.result.current.cashFlows['p-1']).toBeDefined());
     act(() => {
-      result.current.setCashFlows({ 'p-1': { deposits: 9_999, withdrawals: 0 } });
+      august.result.current.setCashFlows({ 'p-1': { deposits: 9_999, withdrawals: 0 } });
     });
     // #235: a same-month reload goes through the stage's own `refresh`, which is
     // the single reload entry the page broadcasts — not a prop-driven counter.
     await act(async () => {
-      await result.current.refresh?.();
+      await august.result.current.refresh?.();
     });
-    await waitFor(() => expect(result.current.portfolioSnapshots.get('p-1')).not.toBeNull());
-    expect(result.current.cashFlows['p-1'].deposits).toBe(9_999);
-    rerender({ month: '2026-09' });
+    await waitFor(() => expect(august.result.current.portfolioSnapshots.get('p-1')).not.toBeNull());
+    expect(august.result.current.cashFlows['p-1'].deposits).toBe(9_999);
+
+    // A new month is a new mount, so the owned draft cannot survive it.
+    august.unmount();
+    const { result } = renderFor('2026-09');
+
     await waitFor(() => expect(result.current.cashFlows['p-1'].deposits).toBe(700));
   });
 

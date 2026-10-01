@@ -130,16 +130,13 @@ const readinessFixture = {
   totalUnsettled: 0,
 };
 
-const startedPageVM = mapPeriodToPageVM(
-  {
-    id: '2026-08',
-    yearMonth: '2026-08',
-    status: 'IN_PROGRESS',
-    stages: {},
-    reviewSourceStageId: null,
-  } as never,
-  '2026-08',
-);
+const startedPageVM = mapPeriodToPageVM({
+  id: '2026-08',
+  yearMonth: '2026-08',
+  status: 'IN_PROGRESS',
+  stages: {},
+  reviewSourceStageId: null,
+} as never);
 
 const baseArgs: UseCloseStepRegistryArgs = {
   householdId: 'household-1',
@@ -168,16 +165,13 @@ const account = (id: string): Account =>
 
 /** A live period whose only meaningful fact is the FINANCIAL_REPORTS stage state. */
 const pageVMWithReportsStage = (status: 'PENDING' | 'COMPLETED') =>
-  mapPeriodToPageVM(
-    {
-      id: '2026-08',
-      yearMonth: '2026-08',
-      status: 'IN_PROGRESS',
-      stages: { FINANCIAL_REPORTS: { status } },
-      reviewSourceStageId: null,
-    } as never,
-    '2026-08',
-  );
+  mapPeriodToPageVM({
+    id: '2026-08',
+    yearMonth: '2026-08',
+    status: 'IN_PROGRESS',
+    stages: { FINANCIAL_REPORTS: { status } },
+    reviewSourceStageId: null,
+  } as never);
 
 const renderRegistry = (overrides: Partial<UseCloseStepRegistryArgs> = {}) =>
   renderHook(() => useCloseStepRegistry({ ...baseArgs, ...overrides }));

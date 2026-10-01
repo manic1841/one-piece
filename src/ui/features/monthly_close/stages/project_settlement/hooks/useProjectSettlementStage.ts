@@ -12,7 +12,6 @@ interface UseProjectSettlementStageArgs {
   householdId: string;
   selectedYearMonth: string;
   confirmingStageId: string | null;
-  enabled?: boolean;
 }
 
 const LOAD_ERROR = '無法載入專案結算狀態，請稍後再試。';
@@ -62,7 +61,6 @@ export const useProjectSettlementStage = ({
   householdId,
   selectedYearMonth,
   confirmingStageId,
-  enabled = true,
 }: UseProjectSettlementStageArgs): CloseStageControl<'PROJECT_SETTLEMENT'> & {
   settlements: ProjectSettlementEvidenceRow[];
   errorMessage: string | null;
@@ -72,8 +70,7 @@ export const useProjectSettlementStage = ({
     [householdId, selectedYearMonth],
   );
   const { data, errorMessage, refresh } = useStageLoader<ProjectSettlementEvidenceRow[]>({
-    key: selectedYearMonth,
-    enabled: enabled && householdId !== '' && selectedYearMonth !== '',
+    enabled: householdId !== '' && selectedYearMonth !== '',
     load,
   });
 

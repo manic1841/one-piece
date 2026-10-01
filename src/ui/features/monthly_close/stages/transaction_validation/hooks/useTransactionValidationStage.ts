@@ -13,7 +13,6 @@ interface UseTransactionValidationStageArgs {
   householdId: string;
   selectedYearMonth: string;
   confirmingStageId: string | null;
-  enabled?: boolean;
 }
 
 interface ValidationData {
@@ -57,7 +56,6 @@ export const useTransactionValidationStage = ({
   householdId,
   selectedYearMonth,
   confirmingStageId,
-  enabled = true,
 }: UseTransactionValidationStageArgs): CloseStageControl<'TRANSACTION_VALIDATION'> & {
   transactionIssues: TransactionValidationIssue[];
   checkedCount: number;
@@ -71,8 +69,7 @@ export const useTransactionValidationStage = ({
     [auth, householdId, selectedYearMonth],
   );
   const { data, errorMessage, isReady, refresh } = useStageLoader<ValidationData>({
-    key: selectedYearMonth,
-    enabled: enabled && householdId !== '' && selectedYearMonth !== '',
+    enabled: householdId !== '' && selectedYearMonth !== '',
     load,
   });
 

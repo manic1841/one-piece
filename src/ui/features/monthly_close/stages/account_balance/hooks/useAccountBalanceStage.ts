@@ -19,7 +19,6 @@ interface UseAccountBalanceStageArgs {
   selectedYearMonth: string;
   accounts: Account[];
   confirmingStageId: string | null;
-  enabled?: boolean;
 }
 
 interface AccountSnapshotData {
@@ -101,7 +100,6 @@ export const useAccountBalanceStage = ({
   selectedYearMonth,
   accounts,
   confirmingStageId,
-  enabled = true,
 }: UseAccountBalanceStageArgs): CloseStageControl<'ACCOUNT_BALANCE'> & {
   balances: AccountBalanceInput[] | null;
   setBalances: (value: AccountBalanceInput[]) => void;
@@ -116,14 +114,10 @@ export const useAccountBalanceStage = ({
   );
   // The gate waits for the shared accounts: an empty list seeds the month from nothing.
   const { data, errorMessage, refresh } = useStageLoader<AccountSnapshotData>({
-    key: selectedYearMonth,
-    enabled: enabled && householdId !== '' && selectedYearMonth !== '' && accounts.length > 0,
+    enabled: householdId !== '' && selectedYearMonth !== '' && accounts.length > 0,
     load,
   });
-  const [balances, setBalances] = useSeededDraft<AccountBalanceInput[]>(
-    selectedYearMonth,
-    data?.prefill ?? null,
-  );
+  const [balances, setBalances] = useSeededDraft<AccountBalanceInput[]>(data?.prefill ?? null);
 
   const control = useConfirmStageControl({
     stageId: 'ACCOUNT_BALANCE',

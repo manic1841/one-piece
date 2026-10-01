@@ -1,25 +1,26 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { getAccountsUseCase } from '@/application/account/use_cases/getAccountsUseCase';
 import { listDebtAccountsUseCase } from '@/application/debt/use_cases/listDebtAccountsUseCase';
 import { type MonthlyCloseConfirmResult } from '@/application/monthly_close/use_cases/monthlyCloseRequests';
+import {
+  type MonthlyCloseConfirmRequest,
+  monthlyCloseWorkflowUseCase,
+} from '@/application/monthly_close/use_cases/monthlyCloseWorkflowUseCase';
 import { listPortfoliosUseCase } from '@/application/portfolio/use_cases/listPortfoliosUseCase';
 import { listProjectsUseCase } from '@/application/project/use_cases/listProjectsUseCase';
 import { type Account } from '@/domains/account/types/account';
 import { type DebtAccount } from '@/domains/debt/schemas';
-import { type CloseStageId } from '@/domains/financial_period/schemas';
+import { type CloseStageId, type FinancialPeriod } from '@/domains/financial_period/schemas';
 import { type Portfolio } from '@/domains/portfolio/schemas';
 import { type Project } from '@/domains/project/schemas';
 import { MONTHLY_CLOSE_LABELS } from '@/ui/constants/monthlyClose';
-import { useAuthState } from '@/ui/contexts/useAuthState';
 import { useConfirm } from '@/ui/features/app/confirm/useConfirm';
 import {
   type CloseStepContext,
   useCloseStepRegistry,
 } from '@/ui/features/monthly_close/hooks/useCloseStepRegistry';
-import { useMonthlyClose } from '@/ui/features/monthly_close/hooks/useMonthlyClose';
 import {
-  isReopenablePeriod,
   resolveDisplayedStageId,
   resolveGoToResetRange,
   resolveNextStageId,
@@ -30,50 +31,125 @@ import { useAuthIdentity } from '@/ui/hooks/useAuthIdentity';
 import { useLoadingTask } from '@/ui/hooks/useLoadingTask';
 import { logger } from '@/utils/logger';
 
+import { mapPeriodToPageVM } from '../mappers/monthlyClose.mappers';
+import { monthlyCloseErrorText } from './monthlyCloseErrorText';
+
 const ENTITIES_LOAD_ERROR = '無法載入帳戶、專案與債務資料，請稍後再試。';
 
-interface UseMonthlyClosePageArgs {
-  householdId?: string;
-  userEmail?: string;
+interface UseMonthlyCloseWorkspaceArgs {
+  householdId: string;
+  userEmail: string;
+  yearMonth: string;
+  initialPeriod: FinancialPeriod;
 }
 
-/**
- * Owns MonthlyClosePage's workflow state: the close workflow, the entity lists
- * the steps share, and the derived stage selection. The nine step hooks run
- * inside the unified registry (useCloseStepRegistry), so this hook reads each
- * stage's control, content, and evidence from the registry record instead of
- * knowing any step's internals. The page keeps only layout and rendering.
- */
+/** Owns one period's close state: its commands, shared entities, and derived stage selection. */
 export const useMonthlyClosePage = ({
-  householdId: householdIdProp,
-  userEmail: userEmailProp,
-}: UseMonthlyClosePageArgs) => {
-  const { userProfile } = useAuthState();
-  const householdId = householdIdProp ?? userProfile?.householdId ?? '';
-  const userEmail = userEmailProp ?? userProfile?.email ?? '';
+  householdId,
+  userEmail,
+  yearMonth,
+  initialPeriod,
+}: UseMonthlyCloseWorkspaceArgs) => {
   const auth = useAuthIdentity();
-
-  const {
-    pageVM,
-    selectedYearMonth,
-    confirmingStageId,
-    isStarting,
-    error,
-    selectYearMonth,
-    start,
-    reopen,
-    confirmStage,
-    resetStagesFrom,
-  } = useMonthlyClose({ householdId, userEmail });
+  const [period, setPeriod] = useState<FinancialPeriod>(initialPeriod);
+  const [confirmingStageId, setConfirmingStageId] = useState<CloseStageId | null>(null);
+  const [isStarting, setIsStarting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [viewingStageId, setViewingStageId] = useState<CloseStageId | null>(null);
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [portfolios, setPortfolios] = useState<Portfolio[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [debtAccounts, setDebtAccounts] = useState<DebtAccount[]>([]);
 
+  const pageVM = useMemo(() => mapPeriodToPageVM(period), [period]);
+
+  // Monotonic request sequence: a stale write cannot clobber a newer one on the same period.
+  const requestSeqRef = useRef(0);
+  const beginRequest = useCallback(() => (requestSeqRef.current += 1), []);
+  const isLatestRequest = useCallback((seq: number) => seq === requestSeqRef.current, []);
+
+  const reopen = useCallback(async (): Promise<FinancialPeriod | null> => {
+    const seq = beginRequest();
+    setIsStarting(true);
+    setError(null);
+    try {
+      const result = await monthlyCloseWorkflowUseCase.reopen({
+        householdId,
+        yearMonth,
+        userEmail,
+        auth,
+      });
+      if (!isLatestRequest(seq)) return null;
+      setPeriod(result);
+      return result;
+    } catch (err) {
+      if (!isLatestRequest(seq)) return null;
+      setError(monthlyCloseErrorText(err, MONTHLY_CLOSE_LABELS.REOPEN_ERROR));
+      return null;
+    } finally {
+      setIsStarting(false);
+    }
+  }, [auth, beginRequest, householdId, isLatestRequest, userEmail, yearMonth]);
+
+  const confirmStage = useCallback(
+    async (
+      request: Omit<MonthlyCloseConfirmRequest, 'householdId' | 'yearMonth' | 'userEmail' | 'auth'>,
+    ): Promise<MonthlyCloseConfirmResult | null> => {
+      const seq = beginRequest();
+      setConfirmingStageId(request.stageId);
+      setError(null);
+      try {
+        const result = await monthlyCloseWorkflowUseCase.confirmStage({
+          householdId,
+          yearMonth,
+          userEmail,
+          auth,
+          ...request,
+        });
+        if (!isLatestRequest(seq)) return null;
+        setPeriod(result.period);
+        return result;
+      } catch (err) {
+        if (!isLatestRequest(seq)) return null;
+        setError(monthlyCloseErrorText(err, MONTHLY_CLOSE_LABELS.CONFIRM_ERROR));
+        return null;
+      } finally {
+        setConfirmingStageId(null);
+      }
+    },
+    [auth, beginRequest, householdId, isLatestRequest, userEmail, yearMonth],
+  );
+
+  const resetStagesFrom = useCallback(
+    async (fromStageId: CloseStageId): Promise<FinancialPeriod | null> => {
+      const seq = beginRequest();
+      setIsStarting(true);
+      setError(null);
+      try {
+        const result = await monthlyCloseWorkflowUseCase.resetStagesFrom({
+          householdId,
+          yearMonth,
+          userEmail,
+          auth,
+          fromStageId,
+        });
+        if (!isLatestRequest(seq)) return null;
+        setPeriod(result);
+        return result;
+      } catch (err) {
+        if (!isLatestRequest(seq)) return null;
+        setError(monthlyCloseErrorText(err, MONTHLY_CLOSE_LABELS.CONFIRM_ERROR));
+        return null;
+      } finally {
+        setIsStarting(false);
+      }
+    },
+    [auth, beginRequest, householdId, isLatestRequest, userEmail, yearMonth],
+  );
+
   const stepRegistry = useCloseStepRegistry({
     householdId,
-    selectedYearMonth,
+    selectedYearMonth: yearMonth,
     confirmingStageId,
     accounts,
     portfolios,
@@ -83,8 +159,7 @@ export const useMonthlyClosePage = ({
   });
   const { confirm } = useConfirm();
 
-  // The shared entity lists are loaded once for the whole page; a failed read
-  // would otherwise leave every stage silently empty, so it gets its own copy.
+  // One shared entity load; a failed read gets its own copy instead of an empty page.
   const { errorMessage: entitiesError, run: runEntities } = useLoadingTask();
   const entitiesInFlightRef = useRef<AbortController | null>(null);
 
@@ -123,15 +198,10 @@ export const useMonthlyClosePage = ({
   }, [auth, householdId, runEntities]);
 
   useEffect(() => {
-    if (!pageVM.isStarted) return;
     void loadEntities();
-  }, [loadEntities, pageVM.isStarted]);
+  }, [loadEntities]);
 
-  // One refresh entry: every stage that opted into `control.refresh`. Used
-  // wherever the period changed under the stages (confirm, start, reopen,
-  // go-to-with-reset), so no call site has to know which stage owns which
-  // loaded data. Deliberately a plain function: the registry object is rebuilt
-  // on every render, so a `useCallback` around it would never hold (#236).
+  // One refresh entry for every stage that opted into refresh, after confirm/reopen/reset (#236).
   const refreshAll = () =>
     Promise.all(Object.values(stepRegistry).map((step) => step.control.refresh?.()));
 
@@ -144,9 +214,7 @@ export const useMonthlyClosePage = ({
     currentStageId,
   });
   const displayedStage = pageVM.stages.find((stage) => stage.stageId === displayedStageId) ?? null;
-  // Only CLOSED locks the workspace read-only. A cascade-demoted period stays
-  // NEEDS_REVIEW with a full recovery walk (ADR-0066), so its confirm buttons
-  // must stay reachable; the page-level reopen entry handles its own gating.
+  // Only CLOSED is read-only; a cascade-demoted period keeps a full recovery walk (ADR-0066).
   const isReadOnlyPeriod = pageVM.isClosed;
   const isReviewing =
     !isReadOnlyPeriod && displayedStageId !== null && displayedStageId !== currentStageId;
@@ -160,15 +228,12 @@ export const useMonthlyClosePage = ({
   );
   const displayedStepText = resolveStepText(pageVM.stages, displayedStageId);
 
-  // Drafts retire on a month switch through `useSeededDraft`'s key: no `resetDraft` step.
   const handleConfirmStage = async (stageId: CloseStageId) => {
     // The registry is a complete record, so the stage is always present.
     const { control } = stepRegistry[stageId];
     if (control.confirmGate && !(await control.confirmGate())) return;
     const result = await confirmStage(control.buildRequest());
-    // A failed confirm (null) writes nothing, so none of the post-confirm
-    // side effects may run: no view reset and no refresh (which would
-    // recompute the report preview for nothing).
+    // A failed confirm writes nothing, so no view reset and no refresh may follow.
     if (!result) return;
     if (!control.keepsViewOnConfirm) {
       setViewingStageId(null);
@@ -191,14 +256,11 @@ export const useMonthlyClosePage = ({
     await refreshAll();
   };
 
-  const handleStart = async () => {
-    const result = await start();
-    if (!result) return;
-    if (!isReopenablePeriod(result)) return;
-
+  // Reopen withdraws the finalize decision behind a confirmation (ADR-0066).
+  const handleReopen = async () => {
     const confirmed = await confirm({
       title:
-        result.status === 'CLOSED'
+        period.status === 'CLOSED'
           ? MONTHLY_CLOSE_LABELS.REOPENED_TITLE
           : MONTHLY_CLOSE_LABELS.REOPENED_BANNER,
       context: MONTHLY_CLOSE_LABELS.REOPENED_CONTEXT,
@@ -206,15 +268,13 @@ export const useMonthlyClosePage = ({
       confirmLabel: MONTHLY_CLOSE_LABELS.REOPEN_CONFIRM,
       cancelLabel: MONTHLY_CLOSE_LABELS.CANCEL,
     });
-    if (confirmed) {
-      await reopen();
-      await refreshAll();
-    }
+    if (!confirmed) return;
+    const result = await reopen();
+    if (!result) return;
+    await refreshAll();
   };
 
-  // Going back to a stage in a paused period is a recovery walk, so it resets
-  // the target stage and everything after it (ADR-0070) — behind a confirmation,
-  // because that discards later confirmations.
+  // GO TO in a paused period resets the target stage and everything after it (ADR-0070).
   const handleGoToStage = async (stageId: CloseStageId) => {
     if (!pageVM.isPaused) {
       showStage(stageId);
@@ -233,8 +293,7 @@ export const useMonthlyClosePage = ({
     await handleGoToStageWithReset(stageId);
   };
 
-  // Only the stage the walk is standing on may be confirmed; a paused period is
-  // held at the stage that raised the review.
+  // Only the walk position may be confirmed; a paused period is held at the review stage.
   const isWalkPositionStage = (stageId: CloseStageId) =>
     pageVM.isPaused ? stageId === currentStageId : true;
 
@@ -248,14 +307,12 @@ export const useMonthlyClosePage = ({
       : false,
     isReadOnly: isReadOnlyPeriod,
     isReviewing,
-    // The render only ever runs for displayedStage, so every confirm command is
-    // the same call; stages never name a stage ID.
+    // Render only runs for the displayed stage, so every confirm is the same call.
     onConfirm: () => {
       if (displayedStage) void handleConfirmStage(displayedStage.stageId);
     },
     onGoToStage: (stageId) => void handleGoToStage(stageId),
-    // Continue advances to the next stage in walk order; the page asks the
-    // viewmodel for it instead of naming a stage ID here.
+    // Continue asks the viewmodel for the next stage instead of naming a stage ID.
     onContinue: () => setViewingStageId(resolveNextStageId(displayedStageId)),
     onBack: () => setViewingStageId(null),
     accounts,
@@ -264,8 +321,8 @@ export const useMonthlyClosePage = ({
 
   return {
     householdId,
+    yearMonth,
     pageVM,
-    selectedYearMonth,
     confirmingStageId,
     isStarting,
     error,
@@ -280,11 +337,9 @@ export const useMonthlyClosePage = ({
     displayedStepText,
     stepRegistry,
     stageContext,
-    selectYearMonth,
-    start,
     reopen,
     refreshAll,
-    handleStart,
+    handleReopen,
     handleConfirmStage,
     handleGoToStage,
     handleGoToStageWithReset,

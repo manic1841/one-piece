@@ -15,7 +15,8 @@ import Onboarding from '@/ui/features/auth/pages/OnboardingPage';
 import Dashboard from '@/ui/features/dashboard/pages/DashboardPage';
 import DebtDetailPage from '@/ui/features/debt/pages/DebtDetailPage';
 import DebtListPage from '@/ui/features/debt/pages/DebtListPage';
-import MonthlyClosePage from '@/ui/features/monthly_close/pages/MonthlyClosePage';
+import { ClosePeriodPickerPage } from '@/ui/features/monthly_close/pages/ClosePeriodPickerPage';
+import { ClosePeriodRouteGate } from '@/ui/features/monthly_close/pages/ClosePeriodRouteGate';
 import PortfolioDetailPage from '@/ui/features/portfolio/pages/PortfolioDetailPage';
 import PortfoliosPage from '@/ui/features/portfolio/pages/PortfoliosPage';
 import ProjectDetailPage from '@/ui/features/project/pages/ProjectDetailPage';
@@ -59,7 +60,8 @@ function App() {
                 }
               >
                 <Route index element={<Dashboard />} />
-                <Route path="close" element={<MonthlyClosePage />} />
+                <Route path="close" element={<ClosePeriodPickerPage />} />
+                <Route path="close/:yearMonth" element={<ClosePeriodRouteGate />} />
                 <Route path="transactions" element={<Transactions />} />
                 <Route path="projects" element={<ProjectsPage />} />
                 <Route path="projects/:id" element={<ProjectDetailPage />} />

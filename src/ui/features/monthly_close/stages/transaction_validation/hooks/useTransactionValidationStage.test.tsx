@@ -49,7 +49,7 @@ describe('useTransactionValidationStage', () => {
     expect(mockExecute).toHaveBeenCalledTimes(1);
   });
 
-  // The month-switch reset and same-month-failure retention are covered in useStageLoader.test.ts.
+  // The same-month failure retention is covered in useStageLoader.test.ts.
   it('surfaces the canned message instead of reporting a clean batch on failure', async () => {
     mockExecute.mockRejectedValue(new Error('boom'));
 

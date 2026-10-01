@@ -76,7 +76,7 @@ describe('useCompletenessCheckStage', () => {
     expect(result.current.anomalies).toEqual([anomaly]);
   });
 
-  // The month-switch reset and same-month-failure retention are covered in useStageLoader.test.ts.
+  // The same-month failure retention is covered in useStageLoader.test.ts.
   it('surfaces the canned message instead of reporting a clean month on failure', async () => {
     mockReadiness.mockRejectedValue(new Error('boom'));
 

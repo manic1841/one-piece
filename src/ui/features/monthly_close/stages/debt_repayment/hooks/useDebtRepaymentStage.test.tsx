@@ -110,7 +110,7 @@ describe('useDebtRepaymentStage', () => {
     expect(result.current.repayments[0]?.totalPayment).toBe(12_000);
   });
 
-  it('re-seeds the draft for the new month on a month switch (#250)', async () => {
+  it('re-seeds the draft for the new month when the workspace remounts (#250)', async () => {
     vi.mocked(previewDebtSettlementsUseCase.execute).mockImplementation(async ({ month }) => ({
       items: [
         {
@@ -128,20 +128,21 @@ describe('useDebtRepaymentStage', () => {
 
     const debtAccounts = [debtAccount('debt-1')];
 
-    const { result, rerender } = renderHook(
-      ({ month }: { month: string }) =>
+    const renderFor = (month: string) =>
+      renderHook(() =>
         useDebtRepaymentStage({
           householdId: 'household-1',
           selectedYearMonth: month,
           debtAccounts,
           confirmingStageId: null,
         }),
-      { initialProps: { month: '2026-08' } },
-    );
+      );
 
-    await waitFor(() => expect(result.current.repayments?.[0]?.totalPayment).toBe(15_000));
+    const august = renderFor('2026-08');
+    await waitFor(() => expect(august.result.current.repayments?.[0]?.totalPayment).toBe(15_000));
+    august.unmount();
 
-    rerender({ month: '2026-09' });
+    const { result } = renderFor('2026-09');
 
     await waitFor(() => expect(result.current.repayments?.[0]?.totalPayment).toBe(20_000));
   });

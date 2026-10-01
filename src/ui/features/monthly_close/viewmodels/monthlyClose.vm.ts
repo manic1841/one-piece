@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { type CloseStageId, type FinancialPeriod } from '@/domains/financial_period/schemas';
 import { CLOSE_STAGE_ORDER } from '@/ui/constants/monthlyClose';
 
-export type { CloseStageId };
+export type { CloseStageId, FinancialPeriod };
 
 export type {
   DebtRepaymentInput,
@@ -51,13 +51,12 @@ export interface CloseStageItemVM {
 export interface MonthlyClosePageVM {
   periodLabel: string;
   periodText: string;
-  status: FinancialPeriod['status'] | 'NONE';
+  status: FinancialPeriod['status'];
   statusText: string;
   isPaused: boolean;
   isClosed: boolean;
   isCascadeDemoted: boolean;
   isActive: boolean;
-  isStarted: boolean;
   reviewSourceStageId: CloseStageId | null;
   reviewSourceLabel: string | null;
   stages: CloseStageItemVM[];

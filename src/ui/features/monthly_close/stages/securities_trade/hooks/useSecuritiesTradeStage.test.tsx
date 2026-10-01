@@ -139,28 +139,31 @@ describe('useSecuritiesTradeStage', () => {
     expect(result.current.securities.buys[0]?.transactionId).toBe('tx-new-buy');
   });
 
-  it('re-seeds the draft for the new month on a month switch (#250)', async () => {
+  it('re-seeds the draft for the new month when the workspace remounts (#250)', async () => {
     vi.mocked(getMonthInvestmentFinancingUseCase.execute).mockResolvedValue({
       ...emptyMonthResult,
       buys: [monthTransaction('tx-aug', 1)],
     });
 
-    const { result, rerender } = renderHook(
-      ({ yearMonth }: { yearMonth: string }) =>
+    const renderFor = (yearMonth: string) =>
+      renderHook(() =>
         useSecuritiesTradeStage({
           householdId: 'household-1',
           selectedYearMonth: yearMonth,
           confirmingStageId: null,
         }),
-      { initialProps: { yearMonth: '2026-08' } },
-    );
-    await waitFor(() => expect(result.current.securities.buys).toHaveLength(1));
+      );
+
+    const august = renderFor('2026-08');
+    await waitFor(() => expect(august.result.current.securities.buys).toHaveLength(1));
+    expect(august.result.current.securities.buys[0]?.transactionId).toBe('tx-aug');
+    august.unmount();
 
     vi.mocked(getMonthInvestmentFinancingUseCase.execute).mockResolvedValue({
       ...emptyMonthResult,
       buys: [monthTransaction('tx-sep', 2)],
     });
-    rerender({ yearMonth: '2026-09' });
+    const { result } = renderFor('2026-09');
 
     await waitFor(() => expect(result.current.securities.buys[0]?.transactionId).toBe('tx-sep'));
   });

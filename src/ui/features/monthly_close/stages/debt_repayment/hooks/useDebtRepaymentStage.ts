@@ -22,7 +22,6 @@ interface UseDebtRepaymentStageArgs {
   /** Full debt documents: the monthly-due calculation reads schedule fields. */
   debtAccounts: DebtAccount[];
   confirmingStageId: string | null;
-  enabled?: boolean;
 }
 
 const LOAD_ERROR = '無法載入債務還款試算，請稍後再試。';
@@ -109,7 +108,6 @@ export const useDebtRepaymentStage = ({
   selectedYearMonth,
   debtAccounts,
   confirmingStageId,
-  enabled = true,
 }: UseDebtRepaymentStageArgs): CloseStageControl<'DEBT_REPAYMENT'> & {
   repayments: DebtRepaymentInput[] | null;
   setRepayments: (value: DebtRepaymentInput[]) => void;
@@ -124,12 +122,10 @@ export const useDebtRepaymentStage = ({
   );
   // The gate carries every precondition, including `selectedYearMonth`.
   const { data, errorMessage, refresh } = useStageLoader<DebtPrefillData>({
-    key: selectedYearMonth,
-    enabled: enabled && householdId !== '' && selectedYearMonth !== '' && debtAccounts.length > 0,
+    enabled: householdId !== '' && selectedYearMonth !== '' && debtAccounts.length > 0,
     load,
   });
   const [repayments, setRepayments] = useSeededDraft<DebtRepaymentInput[]>(
-    selectedYearMonth,
     data?.repayments ?? null,
   );
 

@@ -35,15 +35,6 @@ const anomaly = (name: string): CompletenessActivity => ({
 });
 
 describe('mapPeriodToPageVM', () => {
-  it('maps a missing period to the not-started shell', () => {
-    const vm = mapPeriodToPageVM(null, '2026-09');
-
-    expect(vm.isStarted).toBe(false);
-    expect(vm.status).toBe('NONE');
-    expect(vm.totalCount).toBe(9);
-    expect(vm.stages).toHaveLength(0);
-  });
-
   it('maps stage list with glyphs order and completed progress', () => {
     const period = authPeriod();
     period.stages.ACCOUNT_BALANCE = {
@@ -53,7 +44,7 @@ describe('mapPeriodToPageVM', () => {
     };
     period.stages.DEBT_REPAYMENT = { status: 'COMPLETED' };
 
-    const vm = mapPeriodToPageVM(period, '2026-09');
+    const vm = mapPeriodToPageVM(period);
 
     expect(vm.stages).toHaveLength(9);
     expect(vm.stages[0].stageId).toBe('ACCOUNT_BALANCE');
@@ -71,7 +62,7 @@ describe('mapPeriodToPageVM', () => {
       reviewSourceStageId: 'COMPLETENESS_CHECK',
     });
 
-    const vm = mapPeriodToPageVM(period, '2026-09');
+    const vm = mapPeriodToPageVM(period);
 
     expect(vm.isPaused).toBe(true);
     expect(vm.reviewSourceStageId).toBe('COMPLETENESS_CHECK');
@@ -81,7 +72,7 @@ describe('mapPeriodToPageVM', () => {
   });
 
   it('marks a closed period as finalized', () => {
-    const vm = mapPeriodToPageVM(authPeriod({ status: 'CLOSED' }), '2026-09');
+    const vm = mapPeriodToPageVM(authPeriod({ status: 'CLOSED' }));
 
     expect(vm.isClosed).toBe(true);
     expect(vm.isActive).toBe(false);

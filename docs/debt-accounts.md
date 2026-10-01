@@ -343,7 +343,7 @@ DebtAccount.closedAt = today
 
 ## 7. 債務月結算與警訊
 
-債務月結算僅能透過月度關帳流程（`/close` 的 `DEBT_REPAYMENT` 階段）執行，不再有獨立的結算對話框入口。`DEBT_REPAYMENT` 階段確認時一次完成兩件事：
+債務月結算僅能透過月度關帳流程的 `DEBT_REPAYMENT` 階段執行，不再有獨立的結算對話框入口。`DEBT_REPAYMENT` 階段確認時一次完成兩件事：
 
 1. 依輸入建立還款交易（`createDebtPaymentUseCase`，含冪等鍵）。
 2. 執行 `settleDebtAccountsUseCase`，為當月尚無 `Debt Snapshot` 的啟用中 `DebtAccount` 建立快照（已存在的快照不會重複建立）。

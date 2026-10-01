@@ -153,18 +153,20 @@ const expectRowShown = async (description: string) => {
 };
 
 /** Renders the real registry's SECURITIES_TRADE content from the real page hook. */
-const Harness = ({ holderRef }: { holderRef: PageHolder }) => {
-  const current = useMonthlyClosePage({});
+const Harness = ({ holderRef, yearMonth }: { holderRef: PageHolder; yearMonth: string }) => {
+  const current = useMonthlyClosePage({
+    householdId: 'household-1',
+    userEmail: 'user@test.com',
+    yearMonth,
+    initialPeriod: inProgressPeriod(yearMonth),
+  });
   useEffect(() => {
     holderRef.current = current;
   });
   return <div>{current.stepRegistry.SECURITIES_TRADE.render(current.stageContext)}</div>;
 };
 
-const startPage = async (holder: PageHolder) => {
-  await act(async () => {
-    await holder.current?.handleStart();
-  });
+const expectWorkspaceLoaded = async () => {
   await waitFor(() => expect(getMonthInvestmentFinancingUseCase.execute).toHaveBeenCalled());
 };
 
@@ -182,7 +184,7 @@ describe('useMonthlyClosePage confirm adoption (#250)', () => {
     );
   });
 
-  const renderPage = () => render(<Harness holderRef={holder} />);
+  const renderPage = () => render(<Harness holderRef={holder} yearMonth="2026-09" />);
 
   it('adopts the confirm response rows into the stage draft', async () => {
     vi.mocked(monthlyCloseWorkflowUseCase.confirmStage).mockResolvedValue({
@@ -197,7 +199,7 @@ describe('useMonthlyClosePage confirm adoption (#250)', () => {
     } as never);
 
     renderPage();
-    await startPage(holder);
+    await expectWorkspaceLoaded();
     await expectRowShown('prefill-buy');
 
     await act(async () => {
@@ -214,7 +216,7 @@ describe('useMonthlyClosePage confirm adoption (#250)', () => {
     vi.mocked(monthlyCloseWorkflowUseCase.confirmStage).mockResolvedValue(null as never);
 
     renderPage();
-    await startPage(holder);
+    await expectWorkspaceLoaded();
     await expectRowShown('prefill-buy');
 
     const control = holder.current!.stepRegistry.SECURITIES_TRADE.control;
@@ -244,28 +246,22 @@ describe('useMonthlyClosePage confirm adoption (#250)', () => {
       },
     } as never);
 
-    renderPage();
-    await startPage(holder);
+    const september = renderPage();
+    await expectWorkspaceLoaded();
+    await expectRowShown('prefill-buy');
     await act(async () => {
       await holder.current?.handleConfirmStage('SECURITIES_TRADE');
     });
-    expect(rowCount('confirmed-buy')).toBeGreaterThan(0);
+    await expectRowShown('confirmed-buy');
+    expect(rowCount('prefill-buy')).toBe(0);
 
-    // Derive the switch target from the selected month; the clock decides the opening month.
-    const nextMonth = holder.current!.selectedYearMonth === '2026-11' ? '2026-12' : '2026-11';
+    // A new month is a new mount, so the previous month's adopted draft is gone.
+    september.unmount();
     vi.mocked(getMonthInvestmentFinancingUseCase.execute).mockResolvedValue(
       monthTransactions(tradeRow('tx-october', 'october-buy', 500)) as never,
     );
-    vi.mocked(monthlyCloseWorkflowUseCase.start).mockResolvedValue(inProgressPeriod(nextMonth));
+    render(<Harness holderRef={holder} yearMonth="2026-10" />);
 
-    await act(async () => {
-      holder.current?.selectYearMonth(nextMonth);
-    });
-    await act(async () => {
-      await holder.current?.handleStart();
-    });
-
-    // Ownership is per key: the new month seeds from its own prefill.
     await expectRowShown('october-buy');
     expect(rowCount('confirmed-buy')).toBe(0);
   });
