@@ -5,14 +5,14 @@ import { type DebtAccount } from '@/domains/debt/schemas';
 import { type CloseStageId } from '@/domains/financial_period/schemas';
 import { type Portfolio } from '@/domains/portfolio/schemas';
 import {
+  type CloseStageEvidence,
   NO_EVIDENCE,
-  mapAdjustmentCountToEvidence,
-  mapAnomaliesToEvidence,
-  mapPersistenceToEvidence,
-  mapProjectSettlementsToEvidence,
-  mapTransactionIssuesToEvidence,
-} from '@/ui/features/monthly_close/mappers/monthlyClose.mappers';
-import type { CloseStageEvidence } from '@/ui/features/monthly_close/viewmodels/monthlyClose.vm';
+  adjustmentEvidence,
+  issuesEvidence,
+  persistenceEvidence,
+  settlementsEvidence,
+  zeroActivityEvidence,
+} from '@/ui/features/monthly_close/viewmodels/closeEvidence.vm';
 
 import { CloseEvidenceOnlyStage } from '../components/CloseEvidenceOnlyStage';
 import { CloseStageLoadError } from '../components/CloseStageLoadError';
@@ -177,19 +177,17 @@ export const useCloseStepRegistry = ({
   // Per-stage evidence closures: built from the owning stage's data. CLOSE_PERIOD
   // reads the persistence state owned by FINANCIAL_REPORTS — the intentional
   // cross-stage read, permitted only here.
-  const noEvidence = () => NO_EVIDENCE;
-  const projectSettlementEvidence = () =>
-    mapProjectSettlementsToEvidence(projectSettlementStage.settlements);
+  const projectSettlementEvidence = () => settlementsEvidence(projectSettlementStage.settlements);
   const transactionValidationEvidence = () =>
-    mapTransactionIssuesToEvidence(transactionValidationStage.transactionIssues);
-  const completenessCheckEvidence = () => mapAnomaliesToEvidence(completenessCheckStage.anomalies);
+    issuesEvidence(transactionValidationStage.transactionIssues);
+  const completenessCheckEvidence = () => zeroActivityEvidence(completenessCheckStage.anomalies);
   const financialReportsEvidence = () => {
     const adjustment = financialReportsStage.reportBundle?.cashFlow.adjustment ?? null;
-    return adjustment !== null ? mapAdjustmentCountToEvidence(adjustment) : NO_EVIDENCE;
+    return adjustment !== null ? adjustmentEvidence(adjustment) : NO_EVIDENCE;
   };
   const closePeriodEvidence = () =>
     financialReportsStage.reportsPersisted !== null
-      ? mapPersistenceToEvidence(financialReportsStage.reportsPersisted)
+      ? persistenceEvidence(financialReportsStage.reportsPersisted)
       : NO_EVIDENCE;
 
   // The FINANCIAL_REPORTS action is driven by the stage's own completion, not
@@ -205,10 +203,9 @@ export const useCloseStepRegistry = ({
   // Close gate: any drift in Step 8's reports blocks the close (#234, ADR-0073).
   const hasDrift = financialReportsStage.hasAnyDrift;
 
-  // Chrome props shared by every workspace-stage factory; each factory only
-  // adds its own content props on top. chromeProps calls the evidence closure
-  // itself, so render factories no longer receive evidence as a second argument.
-  const chromeProps = (ctx: CloseStepContext, evidence: () => CloseStageEvidence) => ({
+  // Chrome props shared by every workspace-stage factory; the stage's own
+  // content props (including evidence) are added on top by each factory.
+  const chromeProps = (ctx: CloseStepContext) => ({
     stepText: ctx.stepText,
     progressText: ctx.progressText,
     confirmedAtText: ctx.confirmedAtText,
@@ -216,7 +213,6 @@ export const useCloseStepRegistry = ({
     isReviewing: ctx.isReviewing,
     isConfirmable: ctx.isConfirmable,
     isReadOnly: ctx.isReadOnly,
-    evidence: evidence(),
   });
 
   return {
@@ -224,7 +220,7 @@ export const useCloseStepRegistry = ({
       control: accountBalanceStage,
       render: (ctx) => (
         <CloseAccountBalanceStage
-          {...chromeProps(ctx, noEvidence)}
+          {...chromeProps(ctx)}
           loadErrorMessage={accountBalanceStage.errorMessage}
           accounts={ctx.accounts}
           accountSnapshots={accountBalanceStage.accountSnapshots}
@@ -234,14 +230,14 @@ export const useCloseStepRegistry = ({
           onBackToCurrent={ctx.onBack}
         />
       ),
-      evidence: noEvidence,
+      evidence: () => NO_EVIDENCE,
     },
     SECURITIES_TRADE: {
       control: securitiesTradeStage,
       render: (ctx) => (
         <>
           <CloseSecuritiesTradeStage
-            {...chromeProps(ctx, noEvidence)}
+            {...chromeProps(ctx)}
             loadErrorMessage={securitiesTradeStage.errorMessage}
             securities={securitiesTradeStage.securities}
             financing={securitiesTradeStage.financing}
@@ -264,13 +260,13 @@ export const useCloseStepRegistry = ({
           />
         </>
       ),
-      evidence: noEvidence,
+      evidence: () => NO_EVIDENCE,
     },
     PORTFOLIO_CASH_FLOW: {
       control: portfolioCashFlowStage,
       render: (ctx) => (
         <ClosePortfolioCashFlowStage
-          {...chromeProps(ctx, noEvidence)}
+          {...chromeProps(ctx)}
           loadErrorMessage={portfolioCashFlowStage.errorMessage}
           portfolios={ctx.portfolios}
           portfolioSnapshots={portfolioCashFlowStage.portfolioSnapshots}
@@ -280,13 +276,14 @@ export const useCloseStepRegistry = ({
           onBackToCurrent={ctx.onBack}
         />
       ),
-      evidence: noEvidence,
+      evidence: () => NO_EVIDENCE,
     },
     PROJECT_SETTLEMENT: {
       control: projectSettlementStage,
       render: (ctx) => (
         <CloseEvidenceOnlyStage
-          {...chromeProps(ctx, projectSettlementEvidence)}
+          {...chromeProps(ctx)}
+          evidence={projectSettlementEvidence()}
           loadErrorMessage={projectSettlementStage.errorMessage}
           onConfirm={ctx.onConfirm}
           onBackToCurrent={ctx.onBack}
@@ -298,7 +295,7 @@ export const useCloseStepRegistry = ({
       control: debtRepaymentStage,
       render: (ctx) => (
         <CloseDebtRepaymentStage
-          {...chromeProps(ctx, noEvidence)}
+          {...chromeProps(ctx)}
           loadErrorMessage={debtRepaymentStage.errorMessage}
           debtAccounts={debtRepaymentStage.debtSectionMetas}
           yearMonth={selectedYearMonth}
@@ -308,13 +305,14 @@ export const useCloseStepRegistry = ({
           onBackToCurrent={ctx.onBack}
         />
       ),
-      evidence: noEvidence,
+      evidence: () => NO_EVIDENCE,
     },
     TRANSACTION_VALIDATION: {
       control: transactionValidationStage,
       render: (ctx) => (
         <CloseEvidenceOnlyStage
-          {...chromeProps(ctx, transactionValidationEvidence)}
+          {...chromeProps(ctx)}
+          evidence={transactionValidationEvidence()}
           loadErrorMessage={transactionValidationStage.errorMessage}
           onConfirm={ctx.onConfirm}
           onBackToCurrent={ctx.onBack}

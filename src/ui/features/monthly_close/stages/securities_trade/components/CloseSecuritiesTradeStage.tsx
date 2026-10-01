@@ -4,11 +4,11 @@ import { MONTHLY_CLOSE_LABELS } from '@/ui/constants/monthlyClose';
 import { CloseStageChrome } from '@/ui/features/monthly_close/components/CloseStageChrome';
 import { CloseStageEvidenceList } from '@/ui/features/monthly_close/components/CloseStageEvidenceList';
 import { CloseStageLoadError } from '@/ui/features/monthly_close/components/CloseStageLoadError';
+import { NO_EVIDENCE } from '@/ui/features/monthly_close/viewmodels/closeEvidence.vm';
 import type {
   FinancingInput,
   SecuritiesTradeInput,
 } from '@/ui/features/monthly_close/viewmodels/monthlyClose.vm';
-import { type CloseStageEvidence } from '@/ui/features/monthly_close/viewmodels/monthlyClose.vm';
 
 import { TradeTable } from './TradeTable';
 import { type TradeSide, type TradeTableRow } from './TradeTable';
@@ -21,7 +21,6 @@ interface CloseSecuritiesTradeStageProps {
   isReviewing: boolean;
   isConfirmable: boolean;
   isReadOnly: boolean;
-  evidence: CloseStageEvidence;
   /** Canned copy when the prefill load failed; prefill is a convenience, so it does not block confirm. */
   loadErrorMessage?: string | null;
   securities: { buys: SecuritiesTradeInput[]; sells: SecuritiesTradeInput[] };
@@ -73,7 +72,6 @@ export const CloseSecuritiesTradeStage: React.FC<CloseSecuritiesTradeStageProps>
   isReviewing,
   isConfirmable,
   isReadOnly,
-  evidence,
   loadErrorMessage = null,
   securities,
   financing,
@@ -103,7 +101,7 @@ export const CloseSecuritiesTradeStage: React.FC<CloseSecuritiesTradeStageProps>
         <p className="mb-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
           {MONTHLY_CLOSE_LABELS.EVIDENCE_LABEL}
         </p>
-        <CloseStageEvidenceList evidence={evidence} />
+        <CloseStageEvidenceList evidence={NO_EVIDENCE} />
       </div>
       <div className="space-y-6">
         <TradeTable

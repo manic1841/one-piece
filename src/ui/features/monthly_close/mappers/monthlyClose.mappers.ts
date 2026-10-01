@@ -1,4 +1,3 @@
-import type { CompletenessActivity } from '@/application/settlement/use_cases/checkSettlementCompletenessUseCase';
 import type { CloseStageId, FinancialPeriod } from '@/domains/financial_period/schemas';
 import { isCascadeDemoted } from '@/domains/financial_period/stateMachine';
 import {
@@ -7,12 +6,7 @@ import {
   MONTHLY_CLOSE_LABELS,
 } from '@/ui/constants/monthlyClose';
 
-import type {
-  CloseStageEvidence,
-  CloseStageItemVM,
-  MonthlyClosePageVM,
-  ProjectSettlementEvidenceRow,
-} from '../viewmodels/monthlyClose.vm';
+import type { CloseStageItemVM, MonthlyClosePageVM } from '../viewmodels/monthlyClose.vm';
 
 const STATUS_TEXT_MAP: Record<string, string> = {
   OPEN: MONTHLY_CLOSE_LABELS.OPEN,
@@ -75,62 +69,4 @@ export const mapPeriodToPageVM = (period: FinancialPeriod): MonthlyClosePageVM =
     completedCount,
     totalCount: CLOSE_STAGE_ORDER.length,
   };
-};
-
-export const mapAnomaliesToEvidence = (anomalies: CompletenessActivity[]): CloseStageEvidence => ({
-  kind: 'COMPLETENESS_ANOMALIES',
-  transactionIssues: [],
-  zeroActivityNames: anomalies.map((activity) => activity.name),
-  cashFlowAdjustments: 0,
-  reportsPersisted: null,
-  projectSettlements: [],
-});
-
-export const mapTransactionIssuesToEvidence = (
-  issues: { transactionId: string; description: string; reason: string }[],
-): CloseStageEvidence => ({
-  kind: 'TRANSACTION_VALIDATION',
-  transactionIssues: issues,
-  zeroActivityNames: [],
-  cashFlowAdjustments: 0,
-  reportsPersisted: null,
-  projectSettlements: [],
-});
-
-export const mapAdjustmentCountToEvidence = (adjustments: number): CloseStageEvidence => ({
-  kind: 'CASH_FLOW_ADJUSTMENTS',
-  transactionIssues: [],
-  zeroActivityNames: [],
-  cashFlowAdjustments: adjustments,
-  reportsPersisted: null,
-  projectSettlements: [],
-});
-
-export const mapPersistenceToEvidence = (reportsPersisted: boolean): CloseStageEvidence => ({
-  kind: 'REPORT_PERSISTENCE',
-  transactionIssues: [],
-  zeroActivityNames: [],
-  cashFlowAdjustments: 0,
-  reportsPersisted,
-  projectSettlements: [],
-});
-
-export const mapProjectSettlementsToEvidence = (
-  settlements: ProjectSettlementEvidenceRow[],
-): CloseStageEvidence => ({
-  kind: 'PROJECT_SETTLEMENT',
-  transactionIssues: [],
-  zeroActivityNames: [],
-  cashFlowAdjustments: 0,
-  reportsPersisted: null,
-  projectSettlements: settlements,
-});
-
-export const NO_EVIDENCE: CloseStageEvidence = {
-  kind: 'NONE',
-  transactionIssues: [],
-  zeroActivityNames: [],
-  cashFlowAdjustments: 0,
-  reportsPersisted: null,
-  projectSettlements: [],
 };

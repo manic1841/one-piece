@@ -1,24 +1,13 @@
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 
+import { NO_EVIDENCE } from '@/ui/features/monthly_close/viewmodels/closeEvidence.vm';
+
 import { CloseEvidenceOnlyStage } from './CloseEvidenceOnlyStage';
 
-const noEvidence = {
-  kind: 'NONE' as const,
-  transactionIssues: [],
-  zeroActivityNames: [],
-  cashFlowAdjustments: 0,
-  reportsPersisted: null,
-  projectSettlements: [],
-};
-
 const transactionIssueEvidence = {
-  kind: 'TRANSACTION_VALIDATION' as const,
-  transactionIssues: [{ transactionId: 'tx-1', description: '分類遺漏', reason: '缺少分類' }],
-  zeroActivityNames: [],
-  cashFlowAdjustments: 0,
-  reportsPersisted: null,
-  projectSettlements: [],
+  kind: 'ISSUES' as const,
+  issues: [{ transactionId: 'tx-1', description: '分類遺漏', reason: '缺少分類' }],
 };
 
 const renderStage = (props?: Partial<Parameters<typeof CloseEvidenceOnlyStage>[0]>) =>
@@ -31,7 +20,7 @@ const renderStage = (props?: Partial<Parameters<typeof CloseEvidenceOnlyStage>[0
       isReviewing={false}
       isConfirmable={true}
       isReadOnly={false}
-      evidence={noEvidence}
+      evidence={NO_EVIDENCE}
       onConfirm={() => {}}
       onBackToCurrent={() => {}}
       {...props}

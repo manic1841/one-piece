@@ -5,7 +5,7 @@ import { listProjectsUseCase } from '@/application/project/use_cases/listProject
 import type { CloseStageControl } from '@/ui/features/monthly_close/hooks/closeStageControl';
 import { useNoOpStageControl } from '@/ui/features/monthly_close/hooks/useConfirmStageControl';
 import { useStageLoader } from '@/ui/features/monthly_close/hooks/useStageLoader';
-import { type ProjectSettlementEvidenceRow } from '@/ui/features/monthly_close/viewmodels/monthlyClose.vm';
+import { type ProjectSettlementEvidenceRow } from '@/ui/features/monthly_close/viewmodels/closeEvidence.vm';
 import { logger } from '@/utils/logger';
 
 interface UseProjectSettlementStageArgs {

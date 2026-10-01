@@ -3,15 +3,6 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { ClosePortfolioCashFlowStage } from './ClosePortfolioCashFlowStage';
 
-const noEvidence = {
-  kind: 'NONE' as const,
-  transactionIssues: [],
-  zeroActivityNames: [],
-  cashFlowAdjustments: 0,
-  reportsPersisted: null,
-  projectSettlements: [],
-};
-
 const renderStage = (props?: Partial<Parameters<typeof ClosePortfolioCashFlowStage>[0]>) =>
   render(
     <ClosePortfolioCashFlowStage
@@ -22,7 +13,6 @@ const renderStage = (props?: Partial<Parameters<typeof ClosePortfolioCashFlowSta
       isReviewing={false}
       isConfirmable={true}
       isReadOnly={false}
-      evidence={noEvidence}
       portfolios={[]}
       portfolioSnapshots={new Map()}
       cashFlows={{}}
