@@ -735,10 +735,7 @@ describe('useCloseStepRegistry', () => {
     );
   });
 
-  // #234: the close gate reads Step 8's own drift tree — a drifted child under a
-  // matching total still blocks. It states *that* the reports drifted and never
-  // names a count (see `hasReportDrift`), so the block and the warnings the user
-  // saw cannot disagree.
+  // #234: any drift in Step 8's reports blocks the close; never names a count.
   it('blocks the close when Step 8 drifted, without naming a count', async () => {
     vi.mocked(previewFinancialReportsWorkflow.execute).mockResolvedValue(
       previewWithTotals({ netIncome: 117_000 }),

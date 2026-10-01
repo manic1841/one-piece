@@ -36,7 +36,6 @@ import { CloseTradeDrawerSection } from '../stages/securities_trade/components/C
 import { useSecuritiesTradeStage } from '../stages/securities_trade/hooks/useSecuritiesTradeStage';
 import { useTransactionValidationStage } from '../stages/transaction_validation/hooks/useTransactionValidationStage';
 import { type MonthlyClosePageVM } from '../viewmodels/monthlyClose.vm';
-import { hasReportDrift } from '../viewmodels/reportDrift.vm';
 
 /**
  * Shared context every content factory receives at the page-to-registry
@@ -166,8 +165,7 @@ export const useCloseStepRegistry = ({
   const { readinessVM, closeSummaryVM } = useCloseSummaryVM({
     readiness: completenessCheckStage.readiness,
     checkedCount: transactionValidationStage.checkedCount,
-    reportBundle: financialReportsStage.reportBundle,
-    persistedBundle: financialReportsStage.persistedBundle,
+    reportDrift: financialReportsStage.reportDrift,
     isClosed: pageVM.isClosed,
     transactionIssues: transactionValidationStage.transactionIssues,
     securities: securitiesTradeStage.securities,
@@ -204,13 +202,8 @@ export const useCloseStepRegistry = ({
   const step7Error = completenessCheckStage.errorMessage ?? transactionValidationStage.errorMessage;
   const isStep7Ready = completenessCheckStage.isReady && transactionValidationStage.isReady;
 
-  // The front-end close gate (#234): a figure drifting between the live preview
-  // and the persisted report means Step 8 was confirmed and the data moved
-  // afterwards, so closing now would freeze the stale reports. Computed here
-  // because the registry is the only place allowed to read across stages; it is
-  // a pure function of the drift tree Step 8 already renders. A boolean, not a
-  // count — see `hasReportDrift` for why the block cannot name a number.
-  const hasDrift = hasReportDrift(financialReportsStage.reports);
+  // Close gate: any drift in Step 8's reports blocks the close (#234, ADR-0073).
+  const hasDrift = financialReportsStage.hasAnyDrift;
 
   // Chrome props shared by every workspace-stage factory; each factory only
   // adds its own content props on top. chromeProps calls the evidence closure

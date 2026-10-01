@@ -142,6 +142,26 @@ describe('useFinancialReportsStage', () => {
     );
   });
 
+  // The gate reads this boolean from the same comparison as the rendered trees.
+  it('reports hasAnyDrift from the same comparison as the rendered trees', async () => {
+    mockPreview.mockResolvedValue(buildPreview(50000));
+    mockStoredBundle.mockResolvedValue(persistedBundle(40000));
+
+    const { result } = renderStage();
+
+    await waitFor(() => expect(result.current.hasAnyDrift).toBe(true));
+  });
+
+  it('reports no drift when the preview matches the persisted baseline', async () => {
+    mockPreview.mockResolvedValue(buildPreview(40000));
+    mockStoredBundle.mockResolvedValue(persistedBundle(40000));
+
+    const { result } = renderStage();
+
+    await waitFor(() => expect(result.current.reportBundle).not.toBeNull());
+    expect(result.current.hasAnyDrift).toBe(false);
+  });
+
   it('renders the persisted record without drift marks when the period is closed', async () => {
     mockPreview.mockResolvedValue(buildPreview(50000));
     mockStoredBundle.mockResolvedValue(persistedBundle(40000));
