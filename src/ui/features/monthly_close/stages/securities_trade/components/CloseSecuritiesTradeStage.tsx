@@ -5,13 +5,14 @@ import { CloseStageChrome } from '@/ui/features/monthly_close/components/CloseSt
 import { CloseStageEvidenceList } from '@/ui/features/monthly_close/components/CloseStageEvidenceList';
 import { CloseStageLoadError } from '@/ui/features/monthly_close/components/CloseStageLoadError';
 import { NO_EVIDENCE } from '@/ui/features/monthly_close/viewmodels/closeEvidence.vm';
-import type {
-  FinancingInput,
-  SecuritiesTradeInput,
-} from '@/ui/features/monthly_close/viewmodels/monthlyClose.vm';
+import {
+  type TradeRowValue,
+  type TradeSide,
+  type TradeTableRow,
+  projectTradeRows,
+} from '@/ui/features/monthly_close/viewmodels/tradeDraft.vm';
 
 import { TradeTable } from './TradeTable';
-import { type TradeSide, type TradeTableRow } from './TradeTable';
 
 interface CloseSecuritiesTradeStageProps {
   stepText: string;
@@ -23,8 +24,8 @@ interface CloseSecuritiesTradeStageProps {
   isReadOnly: boolean;
   /** Canned copy when the prefill load failed; prefill is a convenience, so it does not block confirm. */
   loadErrorMessage?: string | null;
-  securities: { buys: SecuritiesTradeInput[]; sells: SecuritiesTradeInput[] };
-  financing: { shareholderFinancing: FinancingInput[]; dividendPayout: FinancingInput[] };
+  securities: { buys: TradeRowValue[]; sells: TradeRowValue[] };
+  financing: { shareholderFinancing: TradeRowValue[]; dividendPayout: TradeRowValue[] };
   projects: { id: string; name: string }[];
   /** Opens the add/edit drawer for the securities or financing table. */
   onOpenTradeDrawer: (kind: 'SECURITIES' | 'FINANCING', row?: TradeTableRow) => void;
@@ -41,24 +42,6 @@ const financingSideLabels: Record<TradeSide, string> = {
   BUY: MONTHLY_CLOSE_LABELS.SHAREHOLDER_FINANCING,
   SELL: MONTHLY_CLOSE_LABELS.DIVIDEND_PAYOUT,
 };
-
-const toTradeRows = (
-  rows: (SecuritiesTradeInput | FinancingInput)[],
-  side: TradeSide,
-): TradeTableRow[] =>
-  rows.map((row) => ({
-    transactionId: row.transactionId,
-    side,
-    amount: row.amount,
-    description: row.description,
-    projectId: row.projectId,
-    date: row.date,
-  }));
-
-const toSideTradeRows = (
-  buys: (SecuritiesTradeInput | FinancingInput)[],
-  sells: (SecuritiesTradeInput | FinancingInput)[],
-): TradeTableRow[] => [...toTradeRows(buys, 'BUY'), ...toTradeRows(sells, 'SELL')];
 
 /**
  * SECURITIES_TRADE step: the securities and financing TradeTables rendered
@@ -107,7 +90,10 @@ export const CloseSecuritiesTradeStage: React.FC<CloseSecuritiesTradeStageProps>
         <TradeTable
           title={MONTHLY_CLOSE_LABELS.SECURITIES_TRANSACTIONS}
           sideLabels={sideLabels}
-          rows={toSideTradeRows(securities.buys, securities.sells)}
+          rows={[
+            ...projectTradeRows('buys', securities.buys),
+            ...projectTradeRows('sells', securities.sells),
+          ]}
           projectIdName={projectNameOf}
           onAdd={() => onOpenTradeDrawer('SECURITIES')}
           onRowClick={(row) => onOpenTradeDrawer('SECURITIES', row)}
@@ -118,7 +104,10 @@ export const CloseSecuritiesTradeStage: React.FC<CloseSecuritiesTradeStageProps>
           title={MONTHLY_CLOSE_LABELS.FINANCING_RECORDS}
           sideLabels={financingSideLabels}
           netLabel={MONTHLY_CLOSE_LABELS.NET_FINANCING_CASH_FLOW}
-          rows={toSideTradeRows(financing.shareholderFinancing, financing.dividendPayout)}
+          rows={[
+            ...projectTradeRows('shareholderFinancing', financing.shareholderFinancing),
+            ...projectTradeRows('dividendPayout', financing.dividendPayout),
+          ]}
           projectIdName={projectNameOf}
           onAdd={() => onOpenTradeDrawer('FINANCING')}
           onRowClick={(row) => onOpenTradeDrawer('FINANCING', row)}

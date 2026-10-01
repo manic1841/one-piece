@@ -433,7 +433,7 @@ describe('useCloseStepRegistry', () => {
     render(<>{result.current.SECURITIES_TRADE.render(baseContext)}</>);
 
     fireEvent.click(screen.getAllByRole('button', { name: '新增交易' })[0]);
-    expect(openSpy).toHaveBeenCalledWith('SECURITIES', 'ADD', undefined);
+    expect(openSpy).toHaveBeenCalledWith('SECURITIES', 'ADD', null);
   });
 
   it('reflects the FINANCIAL_REPORTS persistence state in CLOSE_PERIOD evidence', async () => {
@@ -644,7 +644,10 @@ describe('useCloseStepRegistry', () => {
 
     expect(result.current.SECURITIES_TRADE.control.buildRequest()).toEqual({
       stageId: 'SECURITIES_TRADE',
-      securities: { buys: [confirmedRow], sells: [] },
+      securities: {
+        buys: [{ ...confirmedRow, description: undefined, projectId: null }],
+        sells: [],
+      },
       financing: { shareholderFinancing: [], dividendPayout: [] },
       removedTransactionIds: [],
     });

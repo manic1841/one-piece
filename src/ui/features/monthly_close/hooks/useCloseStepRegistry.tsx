@@ -243,7 +243,7 @@ export const useCloseStepRegistry = ({
             financing={securitiesTradeStage.financing}
             projects={projects}
             onOpenTradeDrawer={(kind, row) =>
-              securitiesTradeStage.drawer.open(kind, row ? 'EDIT' : 'ADD', row)
+              securitiesTradeStage.drawer.open(kind, row ? 'EDIT' : 'ADD', row?.rowKey ?? null)
             }
             onConfirm={ctx.onConfirm}
             onBackToCurrent={ctx.onBack}
@@ -256,7 +256,7 @@ export const useCloseStepRegistry = ({
             submitting={securitiesTradeStage.confirming}
             onConfirm={securitiesTradeStage.drawerForm.submit}
             onCancel={securitiesTradeStage.drawer.close}
-            onDelete={securitiesTradeStage.drawer.deleteRow}
+            onDelete={securitiesTradeStage.handleDeleteRow}
           />
         </>
       ),
