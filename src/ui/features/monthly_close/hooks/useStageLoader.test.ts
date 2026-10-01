@@ -8,13 +8,13 @@ interface Props {
   enabled: boolean;
 }
 
-const renderLoader = (load: (signal: AbortSignal) => Promise<string>, initial: Partial<Props> = {}) =>
-  renderHook(
-    ({ key, enabled }: Props) => useStageLoader({ key, enabled, load }),
-    {
-      initialProps: { key: '2026-08', enabled: true, ...initial } as Props,
-    },
-  );
+const renderLoader = (
+  load: (signal: AbortSignal) => Promise<string>,
+  initial: Partial<Props> = {},
+) =>
+  renderHook(({ key, enabled }: Props) => useStageLoader({ key, enabled, load }), {
+    initialProps: { key: '2026-08', enabled: true, ...initial } as Props,
+  });
 
 describe('useStageLoader', () => {
   it('exposes the value loaded for the key with isReady', async () => {

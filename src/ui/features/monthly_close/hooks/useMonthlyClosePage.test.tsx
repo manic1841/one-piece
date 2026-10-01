@@ -153,8 +153,6 @@ describe('useMonthlyClosePage', () => {
     expect(refreshSpy).toHaveBeenCalledTimes(9);
   });
 
-  // #250: the page dispatches the result back to the stage that produced it, as
-  // that stage's own slice.
   it('dispatches the confirm result slice to the stage afterConfirm', async () => {
     vi.mocked(monthlyCloseWorkflowUseCase.confirmStage).mockResolvedValue({
       stageId: 'ACCOUNT_BALANCE',

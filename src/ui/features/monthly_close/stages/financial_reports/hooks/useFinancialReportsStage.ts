@@ -167,12 +167,11 @@ export const useFinancialReportsStage = ({
     () => fetchFinancialReportsData({ householdId, selectedYearMonth, auth }),
     [auth, householdId, selectedYearMonth],
   );
-  const { data, errorMessage, isLoading, isReady, refresh } =
-    useStageLoader<FinancialReportsData>({
-      key: selectedYearMonth,
-      enabled: enabled && householdId !== '' && selectedYearMonth !== '',
-      load,
-    });
+  const { data, errorMessage, isLoading, isReady, refresh } = useStageLoader<FinancialReportsData>({
+    key: selectedYearMonth,
+    enabled: enabled && householdId !== '' && selectedYearMonth !== '',
+    load,
+  });
 
   const customLabels = useMemo(() => data?.customLabels ?? new Map<string, string>(), [data]);
   const preview = data?.preview ?? null;

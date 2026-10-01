@@ -679,7 +679,10 @@ describe('MonthlyCloseWorkflowUseCase.confirmStage', () => {
       anomalies: [{ kind: 'ZERO_ACTIVITY_ACCOUNT', accountId: 'account-1' }],
     } as any);
 
-    const { period } = await useCase.confirmStage({ ...REQUEST_BASE, stageId: 'COMPLETENESS_CHECK' });
+    const { period } = await useCase.confirmStage({
+      ...REQUEST_BASE,
+      stageId: 'COMPLETENESS_CHECK',
+    });
 
     expect(period.status).toBe('NEEDS_REVIEW');
     expect(period.reviewSourceStageId).toBe('COMPLETENESS_CHECK');
@@ -700,7 +703,10 @@ describe('MonthlyCloseWorkflowUseCase.confirmStage', () => {
       anomalies: [],
     } as any);
 
-    const { period } = await useCase.confirmStage({ ...REQUEST_BASE, stageId: 'COMPLETENESS_CHECK' });
+    const { period } = await useCase.confirmStage({
+      ...REQUEST_BASE,
+      stageId: 'COMPLETENESS_CHECK',
+    });
 
     expect(period.status).toBe('IN_PROGRESS');
     expect(period.stages.COMPLETENESS_CHECK.status).toBe('COMPLETED');

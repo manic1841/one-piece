@@ -95,11 +95,7 @@ const fetchAccountSnapshots = async ({
   }
 };
 
-/**
- * Stage controller for ACCOUNT_BALANCE: the ending-balance draft and the snapshot prefill that
- * seeds it. The draft is seeded by `useSeededDraft`, so a same-month reload never overwrites an
- * edit; the gate waits for the shared accounts so an empty list cannot lock the month (#232).
- */
+/** Stage controller for ACCOUNT_BALANCE: the ending-balance draft and its snapshot prefill. */
 export const useAccountBalanceStage = ({
   householdId,
   selectedYearMonth,

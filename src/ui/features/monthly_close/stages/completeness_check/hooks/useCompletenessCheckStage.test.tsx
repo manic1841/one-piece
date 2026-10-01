@@ -76,10 +76,7 @@ describe('useCompletenessCheckStage', () => {
     expect(result.current.anomalies).toEqual([anomaly]);
   });
 
-  // The month-switch reset, the "exposes refresh" wiring and the
-  // "same-month failure keeps the last known value" rule are all `useStageLoader`
-  // guarantees now, tested once in `useStageLoader.test.ts`. This stage's test
-  // only covers what is stage-specific: the payload mapping and its own copy.
+  // The month-switch reset and same-month-failure retention are covered in useStageLoader.test.ts.
   it('surfaces the canned message instead of reporting a clean month on failure', async () => {
     mockReadiness.mockRejectedValue(new Error('boom'));
 

@@ -1,5 +1,5 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { useDashboardCloseStatus } from './useDashboardCloseStatus';
 
@@ -30,7 +30,12 @@ describe('useDashboardCloseStatus', () => {
     vi.clearAllMocks();
   });
 
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it('loads the previous calendar month period and maps CLOSED', async () => {
+    vi.useFakeTimers({ now: new Date('2026-09-15T12:00:00'), shouldAdvanceTime: true });
     getFinancialPeriodMock.mockResolvedValue(buildPeriod('CLOSED'));
 
     const { result } = renderHook(() => useDashboardCloseStatus('household-1'));

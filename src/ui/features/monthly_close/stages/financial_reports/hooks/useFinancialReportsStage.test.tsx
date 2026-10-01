@@ -166,9 +166,7 @@ describe('useFinancialReportsStage', () => {
     await waitFor(() => expect(result.current.reportsPersisted).toBe(true));
   });
 
-  // The month-switch reset and the "same-month failure keeps the last known
-  // value" rule are `useStageLoader` guarantees now, tested once in
-  // `useStageLoader.test.ts`.
+  // The month-switch reset and same-month-failure retention are covered in useStageLoader.test.ts.
   it('surfaces the canned message and settles loading when the preview load fails', async () => {
     mockPreview.mockRejectedValue(new Error('boom'));
 

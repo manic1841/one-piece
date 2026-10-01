@@ -56,17 +56,7 @@ const asCloseTradeRow =
   (intent: CloseTradeIntent) =>
   (row: SecuritiesTradeInput): CloseTradeRow => ({ ...row, intent });
 
-/**
- * SECURITIES_TRADE reconfirm semantics (ADR-0052 revision): diff-merge the
- * submitted rows into the month's investment and financing transactions.
- * Rows with a transaction ID update in place, new rows create transactions,
- * and loaded-but-removed IDs are deleted. Manually created transactions made
- * outside the close workflow are never touched.
- *
- * Returns the authoritative rows — updated and created ones, each with its
- * document ID — so the stage can adopt them and stay idempotent across a
- * re-confirmation (#250).
- */
+/** Diff-merges the submitted rows into the month's trades and returns the authoritative rows. */
 export class SyncInvestmentFinancingTransactionsUseCase {
   async execute(request: InvestmentFinancingSyncRequest): Promise<SecuritiesTradeConfirmResult> {
     const { householdId, userEmail, auth } = request;

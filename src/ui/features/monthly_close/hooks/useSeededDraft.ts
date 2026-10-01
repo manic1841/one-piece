@@ -9,8 +9,6 @@ export const useSeededDraft = <T>(
   const [owned, setOwned] = useState<{ key: string; value: T } | null>(null);
   const value = owned && owned.key === key ? owned.value : source;
 
-  // `key`/`source` are captured from the creating render, so a handler always
-  // writes against the current key instead of reading refs during render.
   const setValue = useCallback(
     (updater: SetStateAction<T>) => {
       setOwned((previous) => {

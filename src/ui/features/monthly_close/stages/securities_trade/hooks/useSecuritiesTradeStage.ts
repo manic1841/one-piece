@@ -45,11 +45,11 @@ interface SecuritiesTradeDraft {
   removedTransactionIds: string[];
 }
 
-const emptyDraft = (): SecuritiesTradeDraft => ({
+const EMPTY_DRAFT: SecuritiesTradeDraft = {
   securities: { buys: [], sells: [] },
   financing: { shareholderFinancing: [], dividendPayout: [] },
   removedTransactionIds: [],
-});
+};
 
 interface UseSecuritiesTradeStageArgs {
   householdId: string;
@@ -58,14 +58,7 @@ interface UseSecuritiesTradeStageArgs {
   enabled?: boolean;
 }
 
-/**
- * Stage controller for SECURITIES_TRADE: owns the diff-merge draft (buys,
- * sells, financing, removed IDs), the month-transaction prefill, the
- * empty-stage pre-confirm warning, and the add-edit trade drawer with its
- * RHF form. Drafts and the drawer live here; the page only orchestrates. The
- * prefill is seeded by `useSeededDraft`, so a background reload never clears a
- * row the user is editing.
- */
+/** Stage controller for SECURITIES_TRADE: the diff-merge draft, prefill, warning, and drawer. */
 export const useSecuritiesTradeStage = ({
   householdId,
   selectedYearMonth,
@@ -120,31 +113,25 @@ export const useSecuritiesTradeStage = ({
   // One draft unit: the drawer moves rows between buckets and records a removal together.
   const [draft, setDraft] = useSeededDraft<SecuritiesTradeDraft>(selectedYearMonth, data);
 
-  const securities = draft?.securities ?? emptyDraft().securities;
-  const financing = draft?.financing ?? emptyDraft().financing;
-  const removedTransactionIds = draft?.removedTransactionIds ?? [];
+  const securities = draft?.securities ?? EMPTY_DRAFT.securities;
+  const financing = draft?.financing ?? EMPTY_DRAFT.financing;
+  const removedTransactionIds = draft?.removedTransactionIds ?? EMPTY_DRAFT.removedTransactionIds;
 
   const setDraftBucket = useCallback(
     <K extends keyof SecuritiesTradeDraft>(bucket: K) =>
       (updater: SetStateAction<SecuritiesTradeDraft[K]>) =>
         setDraft((previous) => {
-          const base = previous ?? emptyDraft();
+          const base = previous ?? EMPTY_DRAFT;
           const value = typeof updater === 'function' ? updater(base[bucket]) : updater;
           return { ...base, [bucket]: value };
         }),
     [setDraft],
   );
 
-  const setSecurities = useMemo(
-    () => setDraftBucket('securities') as Dispatch<SetStateAction<SecuritiesRows>>,
-    [setDraftBucket],
-  );
-  const setFinancing = useMemo(
-    () => setDraftBucket('financing') as Dispatch<SetStateAction<FinancingRows>>,
-    [setDraftBucket],
-  );
+  const setSecurities = useMemo(() => setDraftBucket('securities'), [setDraftBucket]);
+  const setFinancing = useMemo(() => setDraftBucket('financing'), [setDraftBucket]);
   const setRemovedTransactionIds = useMemo(
-    () => setDraftBucket('removedTransactionIds') as Dispatch<SetStateAction<string[]>>,
+    () => setDraftBucket('removedTransactionIds'),
     [setDraftBucket],
   );
 

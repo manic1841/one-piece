@@ -21,10 +21,19 @@ describe('useSeededDraft', () => {
     expect(result.current[0]).toBeNull();
   });
 
-  it('treats an empty source as a known empty draft', () => {
+  it('treats an empty array source as a known empty draft', () => {
     const { result } = renderDraft('2026-08', []);
 
     expect(result.current[0]).toEqual([]);
+  });
+
+  it('treats an empty object source as a known empty draft', () => {
+    const { result } = renderHook(
+      ({ k, s }: { k: string; s: Record<string, number> | null }) => useSeededDraft(k, s),
+      { initialProps: { k: '2026-08', s: {} } },
+    );
+
+    expect(result.current[0]).toEqual({});
   });
 
   it('follows the latest source while the draft is not owned', () => {

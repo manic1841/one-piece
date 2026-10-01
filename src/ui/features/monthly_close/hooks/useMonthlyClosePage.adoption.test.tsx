@@ -1,5 +1,6 @@
-import { act, render, screen, waitFor } from '@testing-library/react';
 import { useEffect } from 'react';
+
+import { act, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { getMonthInvestmentFinancingUseCase } from '@/application/monthly_close/use_cases/getMonthInvestmentFinancingUseCase';
@@ -8,13 +9,6 @@ import { getSettlementReadinessUseCase } from '@/application/report/use_cases/ge
 import { type FinancialPeriod, initialStageStates } from '@/domains/financial_period/schemas';
 
 import { useMonthlyClosePage } from './useMonthlyClosePage';
-
-// Issue #250: the confirm's response is authoritative — the page hands the
-// returned slice back to the stage that produced it, that stage adopts the rows
-// as its draft, and a later re-read of the month must not clobber them. This is
-// observed through the real registry's own SECURITIES_TRADE content, so the
-// whole chain (workflow result -> page dispatch -> stage `afterConfirm` ->
-// `useSeededDraft` ownership) is what is under test, not a stubbed stage.
 
 const { authIdentity, confirmMock } = vi.hoisted(() => ({
   authIdentity: { uid: 'user-1', email: 'user@test.com', isGlobalAdmin: false },
@@ -210,8 +204,7 @@ describe('useMonthlyClosePage confirm adoption (#250)', () => {
       await holder.current?.handleConfirmStage('SECURITIES_TRADE');
     });
 
-    // The write's rows, not the re-read ones: the refresh after confirm reloads
-    // the prefill, and the adopted draft must survive it.
+    // The adopted draft survives the post-confirm refresh's re-read of the write rows.
     expect(rowCount('confirmed-buy')).toBeGreaterThan(0);
     expect(rowCount('prefill-buy')).toBe(0);
     expect(getMonthInvestmentFinancingUseCase.execute.mock.calls.length).toBeGreaterThan(1);
@@ -258,8 +251,7 @@ describe('useMonthlyClosePage confirm adoption (#250)', () => {
     });
     expect(rowCount('confirmed-buy')).toBeGreaterThan(0);
 
-    // The page's opening month comes from the clock, so the switch target is
-    // derived from what is actually selected instead of assumed.
+    // Derive the switch target from the selected month; the clock decides the opening month.
     const nextMonth = holder.current!.selectedYearMonth === '2026-11' ? '2026-12' : '2026-11';
     vi.mocked(getMonthInvestmentFinancingUseCase.execute).mockResolvedValue(
       monthTransactions(tradeRow('tx-october', 'october-buy', 500)) as never,

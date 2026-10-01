@@ -33,8 +33,7 @@ export const useStageLoader = <T>({
   // A slow load for a key the user already left must not land last and win.
   const inFlightRef = useRef<AbortController | null>(null);
 
-  // `load` may be a fresh closure every render, so it is kept in a ref: only `key` and
-  // `enabled`, through `runLoad`'s identity, re-trigger a load.
+  // `load` is kept in a ref so only `key` and `enabled` re-trigger a load.
   const loadRef = useRef(load);
   useEffect(() => {
     loadRef.current = load;

@@ -146,9 +146,7 @@ describe('useDebtRepaymentStage', () => {
     await waitFor(() => expect(result.current.repayments?.[0]?.totalPayment).toBe(20_000));
   });
 
-  // #250: the prefill used to overwrite the draft unconditionally on every
-  // reload, so a user who typed a payment lost it to the next refresh. The
-  // draft is now seeded once: an edit is owned and later loads do not touch it.
+  // The prefill seeds once (#250): an edit is owned, later loads leave it alone.
   it('never overwrites an edited repayment on a same-month reload (#250)', async () => {
     vi.mocked(previewDebtSettlementsUseCase.execute).mockResolvedValue({
       items: [
@@ -190,9 +188,7 @@ describe('useDebtRepaymentStage', () => {
     expect(result.current.repayments?.[0]?.totalPayment).toBe(8_000);
   });
 
-  // #231: a failed prefill load surfaces the canned copy; the draft stays
-  // unknown (null) on failure, the failure never leaks a rejection, and a draft
-  // the user types by hand still submits (prefill is a convenience, not a gate).
+  // A failed prefill surfaces the canned copy and leaves the draft unknown (#231).
   it('reports a load failure without blocking a hand-typed draft or leaking a rejection', async () => {
     vi.mocked(previewDebtSettlementsUseCase.execute).mockRejectedValue(new Error('boom'));
     // Hoisted: a fresh array per render would change `load`'s identity and loop.
@@ -227,8 +223,7 @@ describe('useDebtRepaymentStage', () => {
     });
   });
 
-  // #250: an empty month is "nothing to read", not "read the previous month".
-  // The old guard checked the household and the debts but not the month.
+  // An empty month is "nothing to read", not "read the previous month" (#250).
   it('issues no prefill read and stays unseeded while the month is empty', async () => {
     const debtAccounts = [debtAccount('debt-1')];
 

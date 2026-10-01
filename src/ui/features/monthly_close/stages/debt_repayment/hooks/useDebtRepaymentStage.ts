@@ -103,17 +103,7 @@ const fetchDebtPrefill = async ({
   }
 };
 
-/**
- * Stage controller for DEBT_REPAYMENT: owns the repayment draft and the
- * preview prefill that seeds it (absorbed from useDebtRepaymentPrefill).
- * Every active debt gets a draft row: a month with recorded payments prefills
- * the booked amount, an unrecorded month prefills the system-calculated
- * monthly due (interest amount during the grace period) against the preview's
- * opening balance, so the due and the displayed split share one basis. The
- * draft is seeded by `useSeededDraft`, so a background reload never overwrites
- * a row the user edited, and a load failure surfaces the canned message without
- * blocking confirm.
- */
+/** Stage controller for DEBT_REPAYMENT: the repayment draft and its preview prefill. */
 export const useDebtRepaymentStage = ({
   householdId,
   selectedYearMonth,

@@ -693,9 +693,7 @@ describe('monthlyCloseWorkflowUseCase — emulator integration', () => {
       expect(transaction.entries[0].debit).toBe(expectedAmounts[intent]);
     }
 
-    // #250: the confirm response carries the authoritative rows — the same
-    // documents just booked, with their IDs — so the stage can adopt them
-    // without a reload and a re-confirm updates in place.
+    // #250: the response carries the rows just written, with their IDs.
     expect(firstConfirm.data?.buys.map((row) => row.transactionId)).toEqual([
       byIntent.SECURITY_BUY[0].id,
     ]);
@@ -767,8 +765,7 @@ describe('monthlyCloseWorkflowUseCase — emulator integration', () => {
     expect(reconfirmed.DIVIDEND_PAYOUT[0].id).not.toBe(firstPayoutId);
     expect(reconfirmed.DIVIDEND_PAYOUT[0].amount).toBe(12_000);
 
-    // The re-confirm response matches what was persisted: reused IDs for the
-    // updated rows, the fresh ID for the new payout row.
+    // The re-confirm reuses the updated rows' IDs and the new payout's fresh ID.
     expect(secondConfirm.data?.buys.map((row) => row.transactionId)).toEqual([
       firstBuyId,
       firstSellId,

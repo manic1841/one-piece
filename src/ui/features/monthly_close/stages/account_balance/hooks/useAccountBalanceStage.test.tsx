@@ -86,9 +86,7 @@ describe('useAccountBalanceStage', () => {
     expect(result.current.accountSnapshots.get('acc-1')?.amount).toBe(9_000);
   });
 
-  // The one-shot seed ("a user who cleared every row keeps it cleared") and the
-  // month-switch reset are `useSeededDraft` guarantees now, tested once in
-  // `useSeededDraft.test.ts`. What stays here is the stage's own payload mapping.
+  // The one-shot seed and month-switch reset are covered in useSeededDraft.test.ts.
   it('prefills the new month after switching (#232)', async () => {
     mockBookedBalances({ 8: 12_000, 9: 15_000 });
 
@@ -108,14 +106,11 @@ describe('useAccountBalanceStage', () => {
     const { result } = renderStage();
 
     await waitFor(() => expect(result.current.errorMessage).toBe('無法載入帳戶快照，請稍後再試。'));
-    // A failed load writes nothing: the draft stays unknown (null), never a
-    // fabricated empty draft that would read as "no balances this month".
+    // A failed load leaves the draft unknown (null), never a fabricated empty draft.
     expect(result.current.balances).toBeNull();
   });
 
-  // The account race: the shared accounts list arrives after the stage's first
-  // render. The gate must wait for it, and the real prefill must still seed —
-  // before this fix the empty first pass locked the month to an empty draft.
+  // The gate waits for the shared accounts list so the real prefill can still seed.
   it('prefills once the shared accounts list arrives (#250)', async () => {
     mockBookedBalances({ 8: 12_000 });
 

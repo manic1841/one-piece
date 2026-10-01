@@ -23,7 +23,8 @@ interface CloseFinancialReportsProps {
   reports: ReportViewsVM;
   timestamps: ReportTimestampsVM;
   isLoading: boolean;
-  /** This stage's own load is known and did not fail (useStageLoader.isReady). */  isReady: boolean;
+  /** This stage's own load is known and did not fail (useStageLoader.isReady). */
+  isReady: boolean;
   error: string | null;
   /**
    * null while readiness has not loaded or its load failed; Generate needs an

@@ -57,11 +57,7 @@ const fetchSettlements = async ({
   }
 };
 
-/**
- * Stage controller for PROJECT_SETTLEMENT: every active project with its settlement state for the
- * month. A stored snapshot means settled; no snapshot means unsettled. No draft — the stage
- * confirms with its stage ID alone.
- */
+/** Stage controller for PROJECT_SETTLEMENT: every active project with its settlement state. */
 export const useProjectSettlementStage = ({
   householdId,
   selectedYearMonth,

@@ -77,11 +77,7 @@ const fetchPortfolioSnapshots = async ({
   }
 };
 
-/**
- * Stage controller for PORTFOLIO_CASH_FLOW: the cash-flow draft and the month-scoped snapshot
- * display data. Seeded all-or-nothing once every snapshot has loaded, so a re-confirmation
- * submits the booked flows instead of zero-filling them.
- */
+/** Stage controller for PORTFOLIO_CASH_FLOW: the cash-flow draft and its month snapshot data. */
 export const usePortfolioCashFlowStage = ({
   householdId,
   selectedYearMonth,

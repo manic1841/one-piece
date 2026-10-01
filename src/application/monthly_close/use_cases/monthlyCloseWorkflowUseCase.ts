@@ -183,11 +183,7 @@ export class MonthlyCloseWorkflowUseCase {
       .map((period) => supersedeClosedPeriodInState(period));
   }
 
-  /**
-   * Single-phase stage confirmation (ADR-0052): creates that stage's data from
-   * the submitted inputs, then marks the stage complete. Stage order is UI
-   * guidance only. The result carries the stage's authoritative rows, if any.
-   */
+  /** Single-phase stage confirmation (ADR-0052): creates the stage's data, then completes it. */
   async confirmStage(request: MonthlyCloseConfirmRequest): Promise<MonthlyCloseConfirmResult> {
     const { householdId, yearMonth, userEmail, auth, stageId } = request;
     await this.assertMember(householdId, auth);
@@ -210,7 +206,7 @@ export class MonthlyCloseWorkflowUseCase {
       // ADR-0052: resolving the review means completing the stage confirmation,
       // which returns the workflow to IN_PROGRESS without re-running the check.
       const period = await this.completeConfirm(current, stageId, userEmail, householdId);
-      return { stageId, period, data: undefined };
+      return withPeriod({ stageId, data: undefined }, period);
     }
 
     if (stageId === 'COMPLETENESS_CHECK') {
@@ -221,7 +217,7 @@ export class MonthlyCloseWorkflowUseCase {
         current,
         userEmail,
       );
-      if (paused) return { stageId, period: paused, data: undefined };
+      if (paused) return withPeriod({ stageId, data: undefined }, paused);
     }
 
     const outcome = await this.runStageAction(yearMonth, auth, request, current);

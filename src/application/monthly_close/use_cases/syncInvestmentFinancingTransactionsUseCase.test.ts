@@ -120,11 +120,8 @@ describe('SyncInvestmentFinancingTransactionsUseCase', () => {
       transactionId: 'tx-2',
       auth,
     });
-    // The updated row comes back carrying its existing ID, so a re-confirmation
-    // updates instead of duplicating (#250).
-    expect(result.buys).toEqual([
-      expect.objectContaining({ transactionId: 'tx-1', amount: 7000 }),
-    ]);
+    // The updated row returns with its existing ID, so re-confirmation updates in place (#250).
+    expect(result.buys).toEqual([expect.objectContaining({ transactionId: 'tx-1', amount: 7000 })]);
     expect(result.sells).toEqual([]);
   });
 

@@ -130,9 +130,6 @@ const readinessFixture = {
   totalUnsettled: 0,
 };
 
-// The registry gates every stage auto-load on `pageVM.isStarted` (#240), so the
-// shared default is a loaded period: these tests exercise what a started month
-// renders, not the gate itself (that lives at the page seam).
 const startedPageVM = mapPeriodToPageVM(
   {
     id: '2026-08',
@@ -326,9 +323,6 @@ describe('useCloseStepRegistry', () => {
     );
   });
 
-  // #250: readiness alone is not enough — while TRANSACTION_VALIDATION's own read
-  // is still in flight its issues are unknown, so Step 7 must not offer confirm
-  // as if the month were clean.
   it('blocks Step 7 confirm while TRANSACTION_VALIDATION is still loading', async () => {
     vi.mocked(validateMonthTransactionsUseCase.execute).mockReturnValue(
       new Promise(() => {}) as never,
@@ -622,10 +616,6 @@ describe('useCloseStepRegistry', () => {
     ).resolves.toBeDefined();
   });
 
-  // #250: the confirm response carries the stage's authoritative rows. The page
-  // hands the producing stage its own slice, and the registry wires that
-  // straight into the real securities stage hook, so a re-confirmation updates
-  // those rows in place instead of creating duplicate transactions.
   it('adopts the confirm response rows into the SECURITIES_TRADE draft (#250)', async () => {
     const { result } = renderRegistry();
     await waitFor(() => expect(getMonthInvestmentFinancingUseCase.execute).toHaveBeenCalled());
@@ -652,9 +642,6 @@ describe('useCloseStepRegistry', () => {
     });
   });
 
-  // #250: only SECURITIES_TRADE has authoritative rows to adopt. Every other
-  // stage is handed `undefined` and must tolerate it — `useConfirmStageControl`
-  // defaults `afterConfirm` to a no-op, so there is no per-stage special case.
   it('accepts an undefined confirm slice on a stage with nothing to adopt (#250)', async () => {
     const { result } = renderRegistry();
     await waitFor(() => expect(getMonthInvestmentFinancingUseCase.execute).toHaveBeenCalled());
@@ -666,10 +653,6 @@ describe('useCloseStepRegistry', () => {
     expect(control.buildRequest()).toEqual({ stageId: 'ACCOUNT_BALANCE', accountBalances: [] });
   });
 
-  // T7 (#231): a failed prefill load used to leave the stage rendering an empty
-  // draft that read as a clean month. Each stage now reports the failure with
-  // copy the consumer owns, and confirm stays reachable: prefill is a
-  // convenience, so a hand-typed draft still submits.
   it('surfaces the ACCOUNT_BALANCE prefill failure without blocking confirm', async () => {
     vi.mocked(getAccountSnapshotsUseCase.execute).mockRejectedValue(new Error('boom'));
     const args: UseCloseStepRegistryArgs = { ...baseArgs, accounts: [account('acc-1')] };
