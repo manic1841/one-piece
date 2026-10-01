@@ -2,6 +2,7 @@ import { createTransactionUseCase } from '@/application/ledger/use_cases/createT
 import { deleteTransactionUseCase } from '@/application/ledger/use_cases/deleteTransactionUseCase';
 import { updateTransactionUseCase } from '@/application/ledger/use_cases/updateTransactionUseCase';
 import {
+  type ConfirmedTradeRow,
   type FinancingInput,
   type SecuritiesTradeConfirmResult,
   type SecuritiesTradeInput,
@@ -62,10 +63,9 @@ const asCloseTradeRow =
  * and loaded-but-removed IDs are deleted. Manually created transactions made
  * outside the close workflow are never touched.
  *
- * Returns the authoritative rows — the updated and the created ones, each with
- * its document ID — so the stage can adopt them and stay idempotent across a
- * re-confirmation (#250). The write path carries them back rather than the UI
- * re-reading, because a reload must not overwrite a draft the user already owns.
+ * Returns the authoritative rows — updated and created ones, each with its
+ * document ID — so the stage can adopt them and stay idempotent across a
+ * re-confirmation (#250).
  */
 export class SyncInvestmentFinancingTransactionsUseCase {
   async execute(request: InvestmentFinancingSyncRequest): Promise<SecuritiesTradeConfirmResult> {
@@ -116,7 +116,7 @@ export class SyncInvestmentFinancingTransactionsUseCase {
         });
       }
 
-      const confirmedRow: SecuritiesTradeInput = {
+      const confirmedRow: ConfirmedTradeRow = {
         transactionId,
         amount: row.amount,
         date: row.date,

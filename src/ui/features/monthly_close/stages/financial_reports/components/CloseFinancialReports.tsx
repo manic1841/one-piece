@@ -23,6 +23,7 @@ interface CloseFinancialReportsProps {
   reports: ReportViewsVM;
   timestamps: ReportTimestampsVM;
   isLoading: boolean;
+  /** This stage's own load is known and did not fail (useStageLoader.isReady). */  isReady: boolean;
   error: string | null;
   /**
    * null while readiness has not loaded or its load failed; Generate needs an
@@ -128,6 +129,7 @@ export const CloseFinancialReports: React.FC<CloseFinancialReportsProps> = ({
   reports,
   timestamps,
   isLoading,
+  isReady,
   error,
   isSettlementReady,
   onContinue,
@@ -158,13 +160,10 @@ export const CloseFinancialReports: React.FC<CloseFinancialReportsProps> = ({
     setCollapsedKeys(new Set());
   }, []);
 
-  // The missing-category list belongs to Step 7; here readiness only gates the
-  // Generate action. Generate requires an explicit ready (never null/unknown),
-  // loaded data, no load error, and a known persistence state — an unknown
-  // state could mean reports already exist (#229).
+  // Generate gates on "known, and not failed", never on the data alone (#229).
   const hasAnyData = incomeStatement !== null || balanceSheet !== null || cashFlow !== null;
   const isGenerateBlocked =
-    isSettlementReady !== true || error !== null || !hasAnyData || reportsPersisted === null;
+    isSettlementReady !== true || !isReady || !hasAnyData || reportsPersisted === null;
   const showAdjustmentWarning = Math.abs(cashFlow?.adjustment.amount ?? 0) > 1000;
   const showExistingReportsWarning = !isStageCompleted && reportsPersisted === true;
   const showPersistenceUnknown =

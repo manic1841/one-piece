@@ -58,20 +58,16 @@ const fetchSettlements = async ({
 };
 
 /**
- * Stage controller for PROJECT_SETTLEMENT: loads every active project with its
- * settlement state for the selected month (absorbed from
- * useProjectSettlementEvidence). A stored snapshot means settled and carries
- * the confirmed income/expense/closing balance; no snapshot means unsettled.
- * No draft: the stage confirms with the stage ID alone. Loading goes through
- * `useStageLoader` (period-keyed value, supersede, "failed run writes nothing");
- * a failure surfaces the canned message without blocking confirm.
+ * Stage controller for PROJECT_SETTLEMENT: every active project with its settlement state for the
+ * month. A stored snapshot means settled; no snapshot means unsettled. No draft — the stage
+ * confirms with its stage ID alone.
  */
 export const useProjectSettlementStage = ({
   householdId,
   selectedYearMonth,
   confirmingStageId,
   enabled = true,
-}: UseProjectSettlementStageArgs): CloseStageControl & {
+}: UseProjectSettlementStageArgs): CloseStageControl<'PROJECT_SETTLEMENT'> & {
   settlements: ProjectSettlementEvidenceRow[];
   errorMessage: string | null;
 } => {

@@ -96,17 +96,9 @@ const fetchAccountSnapshots = async ({
 };
 
 /**
- * Stage controller for ACCOUNT_BALANCE: owns the ending-balance draft and the
- * snapshot prefill that seeds it (absorbed from useSnapshotBalancePrefill).
- * Exposes the previous snapshots for display. The draft is seeded by
- * `useSeededDraft`: it follows the prefill until the user edits it, and a
- * same-month reload never overwrites an edit — and because the prefill is not
- * seeded before the shared accounts arrive (the `enabled` gate), the old race
- * where an empty first pass locked the month to an empty draft is gone (#232).
- * Local drafts and the seed are never persisted, so a page reload re-runs the
- * prefill — intended (CONTEXT.md, Prefill). A load failure surfaces the canned
- * message without blocking confirm: prefill is a convenience, so a draft the
- * user typed by hand still submits.
+ * Stage controller for ACCOUNT_BALANCE: the ending-balance draft and the snapshot prefill that
+ * seeds it. The draft is seeded by `useSeededDraft`, so a same-month reload never overwrites an
+ * edit; the gate waits for the shared accounts so an empty list cannot lock the month (#232).
  */
 export const useAccountBalanceStage = ({
   householdId,
@@ -114,7 +106,7 @@ export const useAccountBalanceStage = ({
   accounts,
   confirmingStageId,
   enabled = true,
-}: UseAccountBalanceStageArgs): CloseStageControl & {
+}: UseAccountBalanceStageArgs): CloseStageControl<'ACCOUNT_BALANCE'> & {
   balances: AccountBalanceInput[] | null;
   setBalances: (value: AccountBalanceInput[]) => void;
   accountSnapshots: Map<string, AccountSnapshot>;
@@ -126,9 +118,7 @@ export const useAccountBalanceStage = ({
     () => fetchAccountSnapshots({ householdId, selectedYearMonth, accounts, auth }),
     [accounts, auth, householdId, selectedYearMonth],
   );
-  // The gate waits for the shared accounts list: running with an empty list
-  // would seed the month from nothing (the race this issue fixes). The loader
-  // runs the load when the gate flips, not merely on mount.
+  // The gate waits for the shared accounts: an empty list seeds the month from nothing.
   const { data, errorMessage, refresh } = useStageLoader<AccountSnapshotData>({
     key: selectedYearMonth,
     enabled: enabled && householdId !== '' && selectedYearMonth !== '' && accounts.length > 0,

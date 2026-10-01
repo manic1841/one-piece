@@ -77,6 +77,7 @@ const renderReports = (props?: Partial<Props>) =>
       reports={reportsFrom()}
       timestamps={{}}
       isLoading={false}
+      isReady={true}
       error={null}
       isSettlementReady={true}
       onContinue={() => {}}
@@ -294,8 +295,18 @@ describe('CloseFinancialReports', () => {
     expect(screen.getByTestId('generate-reports')).toBeDisabled();
   });
 
+  // #250: the stage's own load being unknown (not yet landed) blocks Generate
+  // just as an error does — `isReady` is the named "known and not failed" reading.
+  it('disables generate while its own report load is not yet ready (#250)', () => {
+    renderReports({ isReady: false });
+
+    expect(screen.getByTestId('generate-reports')).toBeDisabled();
+  });
+
+  // A failed load always carries both: `error` for the message, `isReady` false
+  // for the gate (#250).
   it('disables generate when the report preview failed to load (#229)', () => {
-    renderReports({ error: '無法載入報表預覽，請稍後再試。' });
+    renderReports({ error: '無法載入報表預覽，請稍後再試。', isReady: false });
 
     expect(screen.getByTestId('generate-reports')).toBeDisabled();
   });

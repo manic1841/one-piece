@@ -326,6 +326,24 @@ describe('useCloseStepRegistry', () => {
     );
   });
 
+  // #250: readiness alone is not enough — while TRANSACTION_VALIDATION's own read
+  // is still in flight its issues are unknown, so Step 7 must not offer confirm
+  // as if the month were clean.
+  it('blocks Step 7 confirm while TRANSACTION_VALIDATION is still loading', async () => {
+    vi.mocked(validateMonthTransactionsUseCase.execute).mockReturnValue(
+      new Promise(() => {}) as never,
+    );
+
+    function Harness() {
+      const registry = useCloseStepRegistry(baseArgs);
+      return <>{registry.COMPLETENESS_CHECK.render(baseContext)}</>;
+    }
+
+    render(<Harness />);
+
+    await waitFor(() => expect(screen.getByTestId('readiness-confirm')).toBeInTheDocument());
+    expect(screen.getByTestId('readiness-confirm')).toBeDisabled();
+  });
   it('dispatches CLOSE_PERIOD to the summary panel via the content factory', () => {
     const { result } = renderRegistry();
 
@@ -605,9 +623,9 @@ describe('useCloseStepRegistry', () => {
   });
 
   // #250: the confirm response carries the stage's authoritative rows. The page
-  // hands the whole result to `control.afterConfirm`, and the registry wires
-  // that straight into the real securities stage hook, so a re-confirmation
-  // updates those rows in place instead of creating duplicate transactions.
+  // hands the producing stage its own slice, and the registry wires that
+  // straight into the real securities stage hook, so a re-confirmation updates
+  // those rows in place instead of creating duplicate transactions.
   it('adopts the confirm response rows into the SECURITIES_TRADE draft (#250)', async () => {
     const { result } = renderRegistry();
     await waitFor(() => expect(getMonthInvestmentFinancingUseCase.execute).toHaveBeenCalled());
@@ -619,13 +637,10 @@ describe('useCloseStepRegistry', () => {
     };
     act(() => {
       result.current.SECURITIES_TRADE.control.afterConfirm({
-        period: { id: '2026-08', yearMonth: '2026-08' } as never,
-        securities: {
-          buys: [confirmedRow],
-          sells: [],
-          shareholderFinancing: [],
-          dividendPayout: [],
-        },
+        buys: [confirmedRow],
+        sells: [],
+        shareholderFinancing: [],
+        dividendPayout: [],
       });
     });
 
@@ -635,6 +650,20 @@ describe('useCloseStepRegistry', () => {
       financing: { shareholderFinancing: [], dividendPayout: [] },
       removedTransactionIds: [],
     });
+  });
+
+  // #250: only SECURITIES_TRADE has authoritative rows to adopt. Every other
+  // stage is handed `undefined` and must tolerate it — `useConfirmStageControl`
+  // defaults `afterConfirm` to a no-op, so there is no per-stage special case.
+  it('accepts an undefined confirm slice on a stage with nothing to adopt (#250)', async () => {
+    const { result } = renderRegistry();
+    await waitFor(() => expect(getMonthInvestmentFinancingUseCase.execute).toHaveBeenCalled());
+
+    const control = result.current.ACCOUNT_BALANCE.control;
+
+    expect(() => control.afterConfirm(undefined)).not.toThrow();
+    // Nothing was adopted, so the stage still submits its own empty draft.
+    expect(control.buildRequest()).toEqual({ stageId: 'ACCOUNT_BALANCE', accountBalances: [] });
   });
 
   // T7 (#231): a failed prefill load used to leave the stage rendering an empty

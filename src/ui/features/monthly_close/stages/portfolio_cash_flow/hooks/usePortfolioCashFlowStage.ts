@@ -78,14 +78,9 @@ const fetchPortfolioSnapshots = async ({
 };
 
 /**
- * Stage controller for PORTFOLIO_CASH_FLOW: owns the cash-flow draft the
- * sections edit and the month-scoped snapshot display data (absorbed from
- * usePortfolioSnapshotPrefill). The draft is seeded by `useSeededDraft` from the
- * month's booked flows once every snapshot has loaded (all-or-nothing), so a
- * re-confirmation submits the booked flows instead of zero-filling them; edits
- * after the seed are never overwritten. `control.refresh` re-fetches the display
- * after a confirm. A load failure surfaces the canned message without blocking
- * confirm.
+ * Stage controller for PORTFOLIO_CASH_FLOW: the cash-flow draft and the month-scoped snapshot
+ * display data. Seeded all-or-nothing once every snapshot has loaded, so a re-confirmation
+ * submits the booked flows instead of zero-filling them.
  */
 export const usePortfolioCashFlowStage = ({
   householdId,
@@ -93,7 +88,7 @@ export const usePortfolioCashFlowStage = ({
   portfolios,
   confirmingStageId,
   enabled = true,
-}: UsePortfolioCashFlowStageArgs): CloseStageControl & {
+}: UsePortfolioCashFlowStageArgs): CloseStageControl<'PORTFOLIO_CASH_FLOW'> & {
   cashFlows: PortfolioCashFlows | null;
   setCashFlows: (value: PortfolioCashFlows) => void;
   portfolioSnapshots: Map<string, PortfolioSnapshot | null>;
@@ -105,15 +100,13 @@ export const usePortfolioCashFlowStage = ({
     () => fetchPortfolioSnapshots({ householdId, selectedYearMonth, portfolios, auth }),
     [auth, householdId, portfolios, selectedYearMonth],
   );
-  // The gate waits for the shared portfolios list, so the prefill never runs
-  // against an empty list; the loader runs it when the gate flips.
+  // The gate waits for the shared portfolios list, so the prefill never runs on an empty list.
   const { data, errorMessage, refresh } = useStageLoader<PortfolioSnapshotData>({
     key: selectedYearMonth,
     enabled: enabled && householdId !== '' && selectedYearMonth !== '' && portfolios.length > 0,
     load,
   });
-  // `booked: null` means at least one snapshot is missing — an unknown, not an
-  // empty draft — so the draft waits instead of seeding zeros.
+  // `booked: null` means at least one snapshot is missing: an unknown, not an empty draft.
   const [cashFlows, setCashFlows] = useSeededDraft<PortfolioCashFlows>(
     selectedYearMonth,
     data?.booked ?? null,

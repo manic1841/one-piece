@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { getAccountsUseCase } from '@/application/account/use_cases/getAccountsUseCase';
 import { listDebtAccountsUseCase } from '@/application/debt/use_cases/listDebtAccountsUseCase';
+import { type MonthlyCloseConfirmResult } from '@/application/monthly_close/use_cases/monthlyCloseRequests';
 import { listPortfoliosUseCase } from '@/application/portfolio/use_cases/listPortfoliosUseCase';
 import { listProjectsUseCase } from '@/application/project/use_cases/listProjectsUseCase';
 import { type Account } from '@/domains/account/types/account';
@@ -159,9 +160,7 @@ export const useMonthlyClosePage = ({
   );
   const displayedStepText = resolveStepText(pageVM.stages, displayedStageId);
 
-  // Stage drafts retire on a month switch through `useSeededDraft`'s key, so the
-  // page only has to move the period; no per-stage `resetDraft` loop remains.
-
+  // Drafts retire on a month switch through `useSeededDraft`'s key: no `resetDraft` step.
   const handleConfirmStage = async (stageId: CloseStageId) => {
     // The registry is a complete record, so the stage is always present.
     const { control } = stepRegistry[stageId];
@@ -174,7 +173,10 @@ export const useMonthlyClosePage = ({
     if (!control.keepsViewOnConfirm) {
       setViewingStageId(null);
     }
-    control.afterConfirm(result);
+    // Generic forward: an indexed call reduces the argument to `never`.
+    const dispatch = <S extends CloseStageId>(confirmed: MonthlyCloseConfirmResult<S>) =>
+      stepRegistry[confirmed.stageId].control.afterConfirm(confirmed.data);
+    dispatch(result);
     await refreshAll();
   };
 

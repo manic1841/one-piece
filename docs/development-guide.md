@@ -248,7 +248,7 @@ Compose 只發佈 app 的 port（`5173`）；emulator 的 `8080`/`9099` 只在 c
 | `/__emulator/firestore/*`                                                                     | `http://firebase:8080/*` |
 | `/identitytoolkit.googleapis.com/*`、`/securetoken.googleapis.com/*`、`/www.googleapis.com/*` | `http://firebase:9099/*` |
 
-Auth 之所以用「假 API host」前綴而非自己的路徑前綴，是因為 `connectAuthEmulator` 會強制把 URL 路徑換成 `/`；Firestore 則是 channel base URL 直接由 `host:port` 字串串接，所以路徑前綴可以放在 host 裡。細節見 `src/infra/emulatorEndpoints.ts` 的註解。
+Auth 之所以用「假 API host」前綴而非自己的路徑前綴，是因為 `connectAuthEmulator` 會強制把 URL 路徑換成 `/`；Firestore 則是 channel base URL 直接由 `host:port` 字串串接，所以路徑前綴可以放在 host 裡。另有 `/emulator/auth` 前綴：Auth SDK 在 emulator 模式下 `signInWithPopup` 開啟的 widget 路徑若不轉發，會被 Vite 的 SPA fallback 吃掉（popup 載到 `index.html`，變黑畫面）。
 
 若瀏覽器本身就在 compose 網路內（可解析 `firebase`），可略過 proxy：
 

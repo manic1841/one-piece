@@ -3,6 +3,7 @@ import { useCallback } from 'react';
 import { validateMonthTransactionsUseCase } from '@/application/monthly_close/use_cases/validateMonthTransactionsUseCase';
 import { type AuthContext } from '@/application/types';
 import { type TransactionValidationIssue } from '@/domains/transaction_validation/validator';
+import { type CloseStageControl } from '@/ui/features/monthly_close/hooks/closeStageControl';
 import { useConfirmStageControl } from '@/ui/features/monthly_close/hooks/useConfirmStageControl';
 import { useStageLoader } from '@/ui/features/monthly_close/hooks/useStageLoader';
 import { useAuthIdentity } from '@/ui/hooks/useAuthIdentity';
@@ -51,26 +52,17 @@ const fetchValidation = async ({
   }
 };
 
-/**
- * Stage controller for TRANSACTION_VALIDATION: owns the month's validation
- * evidence — the per-transaction issues Step 7 surfaces and the checked count
- * it reports. Validation is read-only (no draft, no gate, no write path); a
- * single load serves both the stage's own evidence and Step 7's N/M count, so
- * the batch is validated once per refresh. Loading goes through `useStageLoader`,
- * which owns the period-keyed value, the supersede, the "failed run writes
- * nothing" rule, and the failure shape (a failed month switch reads empty while
- * a failed same-month refresh keeps the last known values, so consumers gate on
- * `errorMessage` — never on the data alone, #226).
- */
+/** Stage controller for TRANSACTION_VALIDATION: the month's per-transaction validation issues. */
 export const useTransactionValidationStage = ({
   householdId,
   selectedYearMonth,
   confirmingStageId,
   enabled = true,
-}: UseTransactionValidationStageArgs): ReturnType<typeof useConfirmStageControl> & {
+}: UseTransactionValidationStageArgs): CloseStageControl<'TRANSACTION_VALIDATION'> & {
   transactionIssues: TransactionValidationIssue[];
   checkedCount: number;
   errorMessage: string | null;
+  isReady: boolean;
 } => {
   const auth = useAuthIdentity();
 
@@ -78,7 +70,7 @@ export const useTransactionValidationStage = ({
     () => fetchValidation({ householdId, selectedYearMonth, auth }),
     [auth, householdId, selectedYearMonth],
   );
-  const { data, errorMessage, refresh } = useStageLoader<ValidationData>({
+  const { data, errorMessage, isReady, refresh } = useStageLoader<ValidationData>({
     key: selectedYearMonth,
     enabled: enabled && householdId !== '' && selectedYearMonth !== '',
     load,
@@ -96,5 +88,6 @@ export const useTransactionValidationStage = ({
     transactionIssues: data?.issues ?? [],
     checkedCount: data?.checkedCount ?? 0,
     errorMessage,
+    isReady,
   };
 };

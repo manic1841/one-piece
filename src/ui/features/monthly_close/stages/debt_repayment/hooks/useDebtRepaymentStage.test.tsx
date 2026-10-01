@@ -226,4 +226,25 @@ describe('useDebtRepaymentStage', () => {
       await expect(result.current.refresh?.()).resolves.toBeUndefined();
     });
   });
+
+  // #250: an empty month is "nothing to read", not "read the previous month".
+  // The old guard checked the household and the debts but not the month.
+  it('issues no prefill read and stays unseeded while the month is empty', async () => {
+    const debtAccounts = [debtAccount('debt-1')];
+
+    const { result } = renderHook(() =>
+      useDebtRepaymentStage({
+        householdId: 'household-1',
+        selectedYearMonth: '',
+        debtAccounts,
+        confirmingStageId: null,
+      }),
+    );
+
+    await act(async () => {});
+
+    expect(previewDebtSettlementsUseCase.execute).not.toHaveBeenCalled();
+    expect(result.current.repayments).toBeNull();
+    expect(result.current.debtSectionMetas).toEqual([]);
+  });
 });

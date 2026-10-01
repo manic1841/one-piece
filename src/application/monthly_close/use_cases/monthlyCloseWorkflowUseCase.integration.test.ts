@@ -696,16 +696,16 @@ describe('monthlyCloseWorkflowUseCase — emulator integration', () => {
     // #250: the confirm response carries the authoritative rows — the same
     // documents just booked, with their IDs — so the stage can adopt them
     // without a reload and a re-confirm updates in place.
-    expect(firstConfirm.securities?.buys.map((row) => row.transactionId)).toEqual([
+    expect(firstConfirm.data?.buys.map((row) => row.transactionId)).toEqual([
       byIntent.SECURITY_BUY[0].id,
     ]);
-    expect(firstConfirm.securities?.sells.map((row) => row.transactionId)).toEqual([
+    expect(firstConfirm.data?.sells.map((row) => row.transactionId)).toEqual([
       byIntent.SECURITY_SELL[0].id,
     ]);
-    expect(
-      firstConfirm.securities?.shareholderFinancing.map((row) => row.transactionId),
-    ).toEqual([byIntent.SHAREHOLDER_FINANCING[0].id]);
-    expect(firstConfirm.securities?.dividendPayout.map((row) => row.transactionId)).toEqual([
+    expect(firstConfirm.data?.shareholderFinancing.map((row) => row.transactionId)).toEqual([
+      byIntent.SHAREHOLDER_FINANCING[0].id,
+    ]);
+    expect(firstConfirm.data?.dividendPayout.map((row) => row.transactionId)).toEqual([
       byIntent.DIVIDEND_PAYOUT[0].id,
     ]);
 
@@ -769,12 +769,12 @@ describe('monthlyCloseWorkflowUseCase — emulator integration', () => {
 
     // The re-confirm response matches what was persisted: reused IDs for the
     // updated rows, the fresh ID for the new payout row.
-    expect(secondConfirm.securities?.buys.map((row) => row.transactionId)).toEqual([
+    expect(secondConfirm.data?.buys.map((row) => row.transactionId)).toEqual([
       firstBuyId,
       firstSellId,
     ]);
-    expect(secondConfirm.securities?.sells).toEqual([]);
-    expect(secondConfirm.securities?.dividendPayout.map((row) => row.transactionId)).toEqual([
+    expect(secondConfirm.data?.sells).toEqual([]);
+    expect(secondConfirm.data?.dividendPayout.map((row) => row.transactionId)).toEqual([
       reconfirmed.DIVIDEND_PAYOUT[0].id,
     ]);
   });

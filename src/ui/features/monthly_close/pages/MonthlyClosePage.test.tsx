@@ -275,7 +275,11 @@ describe('MonthlyClosePage (confirm side effects)', () => {
       confirmedBy: 'user@test.com',
     };
     vi.mocked(workflow.start).mockResolvedValueOnce(inProgressPeriod());
-    vi.mocked(workflow.confirmStage).mockResolvedValueOnce(completed);
+    vi.mocked(workflow.confirmStage).mockResolvedValueOnce({
+      stageId: 'ACCOUNT_BALANCE',
+      period: completed,
+      data: undefined,
+    });
 
     render(<MonthlyClosePage householdId="household-1" userEmail="user@test.com" />);
     fireEvent.click(screen.getByRole('button', { name: '開始關帳' }));

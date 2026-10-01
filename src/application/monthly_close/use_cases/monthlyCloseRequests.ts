@@ -75,26 +75,30 @@ export interface MonthlyCloseResetStagesRequest extends MonthlyCloseStartRequest
   fromStageId: CloseStageId;
 }
 
-/**
- * The authoritative SECURITIES_TRADE rows after a confirmation: the loaded rows
- * updated in place and the new rows created, each carrying its Firestore
- * document ID. The stage adopts these to stay idempotent — a re-confirmation
- * updates by ID instead of duplicating (#250).
- */
+/** The authoritative SECURITIES_TRADE rows a confirmation returns, IDs included (#250). */
 export interface SecuritiesTradeConfirmResult {
-  buys: SecuritiesTradeInput[];
-  sells: SecuritiesTradeInput[];
-  shareholderFinancing: FinancingInput[];
-  dividendPayout: FinancingInput[];
+  buys: ConfirmedTradeRow[];
+  sells: ConfirmedTradeRow[];
+  shareholderFinancing: ConfirmedTradeRow[];
+  dividendPayout: ConfirmedTradeRow[];
 }
 
-/**
- * What a stage confirmation returns: the mutated period plus the stage's
- * authoritative rows when it produces any. The write path carries them back
- * rather than the UI re-reading: under the "a reload never overwrites an edited
- * draft" rule, a post-confirm reload could not deliver IDs into a frozen draft.
- */
-export interface MonthlyCloseConfirmResult {
-  period: FinancialPeriod;
-  securities?: SecuritiesTradeConfirmResult;
+/** A confirmed row carries the document ID the write landed on. */
+export interface ConfirmedTradeRow extends CloseTradeInput {
+  transactionId: string;
 }
+
+/** Which stages return authoritative rows, and what. */
+export type StageConfirmDataMap = {
+  SECURITIES_TRADE: SecuritiesTradeConfirmResult;
+};
+
+/** A stage's own slice of the confirm result; `undefined` when it returns none. */
+export type StageConfirmData<K extends CloseStageId> = K extends keyof StageConfirmDataMap
+  ? StageConfirmDataMap[K]
+  : undefined;
+
+/** A confirmation outcome: the stage that ran, the mutated period, and that stage's slice. */
+export type MonthlyCloseConfirmResult<S extends CloseStageId = CloseStageId> = {
+  [K in S]: { stageId: K; period: FinancialPeriod; data: StageConfirmData<K> };
+}[S];

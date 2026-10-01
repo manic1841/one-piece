@@ -545,7 +545,7 @@ describe('MonthlyCloseWorkflowUseCase.confirmStage', () => {
       completeStage(basePeriod(), 'SECURITIES_TRADE'),
     );
 
-    const { period, securities } = await useCase.confirmStage({
+    const { period, data } = await useCase.confirmStage({
       ...REQUEST_BASE,
       stageId: 'SECURITIES_TRADE',
       securities: { buys: [{ amount: 3000, date: new Date('2026-09-08') }], sells: [] },
@@ -553,7 +553,7 @@ describe('MonthlyCloseWorkflowUseCase.confirmStage', () => {
 
     expect(period.stages.SECURITIES_TRADE?.status).toBe('COMPLETED');
     expect(createTransactionUseCase.execute).toHaveBeenCalledTimes(1);
-    expect(securities?.buys).toHaveLength(1);
+    expect(data?.buys).toHaveLength(1);
   });
 
   it('rewrites the month snapshot for portfolios that already hold one', async () => {

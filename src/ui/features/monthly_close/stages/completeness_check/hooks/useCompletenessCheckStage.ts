@@ -9,6 +9,7 @@ import {
   checkSettlementCompletenessUseCase,
 } from '@/application/settlement/use_cases/checkSettlementCompletenessUseCase';
 import { type AuthContext } from '@/application/types';
+import { type CloseStageControl } from '@/ui/features/monthly_close/hooks/closeStageControl';
 import { useConfirmStageControl } from '@/ui/features/monthly_close/hooks/useConfirmStageControl';
 import { useStageLoader } from '@/ui/features/monthly_close/hooks/useStageLoader';
 import { useAuthIdentity } from '@/ui/hooks/useAuthIdentity';
@@ -57,25 +58,17 @@ const fetchCompleteness = async ({
   }
 };
 
-/**
- * Stage controller for COMPLETENESS_CHECK: owns the month's anomalies and the
- * settlement readiness Step 7 renders. It is read-only (no draft, no gate); the
- * readiness it owns is also the single source Step 8's Generate gate reads
- * across stages in the registry, so it is loaded exactly once per refresh.
- * Loading goes through `useStageLoader`, which owns the period-keyed value, the
- * supersede, and the failure shape (a failed month switch reads empty while a
- * failed same-month refresh keeps the last known values, so consumers gate on
- * `errorMessage` — never on the data alone, #226).
- */
+/** Stage controller for COMPLETENESS_CHECK: the month's anomalies and the settlement readiness. */
 export const useCompletenessCheckStage = ({
   householdId,
   selectedYearMonth,
   confirmingStageId,
   enabled = true,
-}: UseCompletenessCheckStageArgs): ReturnType<typeof useConfirmStageControl> & {
+}: UseCompletenessCheckStageArgs): CloseStageControl<'COMPLETENESS_CHECK'> & {
   anomalies: CompletenessActivity[];
   readiness: SettlementReadiness | null;
   errorMessage: string | null;
+  isReady: boolean;
 } => {
   const auth = useAuthIdentity();
 
@@ -83,7 +76,7 @@ export const useCompletenessCheckStage = ({
     () => fetchCompleteness({ householdId, selectedYearMonth, auth }),
     [auth, householdId, selectedYearMonth],
   );
-  const { data, errorMessage, refresh } = useStageLoader<CompletenessData>({
+  const { data, errorMessage, isReady, refresh } = useStageLoader<CompletenessData>({
     key: selectedYearMonth,
     enabled: enabled && householdId !== '' && selectedYearMonth !== '',
     load,
@@ -101,5 +94,6 @@ export const useCompletenessCheckStage = ({
     anomalies: data?.anomalies ?? [],
     readiness: data?.readiness ?? null,
     errorMessage,
+    isReady,
   };
 };

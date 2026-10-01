@@ -111,9 +111,7 @@ const fetchDebtPrefill = async ({
  * monthly due (interest amount during the grace period) against the preview's
  * opening balance, so the due and the displayed split share one basis. The
  * draft is seeded by `useSeededDraft`, so a background reload never overwrites
- * a row the user edited — the prefill used to overwrite unconditionally on
- * every reload, contradicting `docs/monthly-close.md`'s seed-once rule. Local
- * drafts are not persisted. A load failure surfaces the canned message without
+ * a row the user edited, and a load failure surfaces the canned message without
  * blocking confirm.
  */
 export const useDebtRepaymentStage = ({
@@ -122,7 +120,7 @@ export const useDebtRepaymentStage = ({
   debtAccounts,
   confirmingStageId,
   enabled = true,
-}: UseDebtRepaymentStageArgs): CloseStageControl & {
+}: UseDebtRepaymentStageArgs): CloseStageControl<'DEBT_REPAYMENT'> & {
   repayments: DebtRepaymentInput[] | null;
   setRepayments: (value: DebtRepaymentInput[]) => void;
   debtSectionMetas: DebtSectionMetaVM[];
@@ -134,9 +132,7 @@ export const useDebtRepaymentStage = ({
     () => fetchDebtPrefill({ householdId, selectedYearMonth, debtAccounts, auth }),
     [auth, debtAccounts, householdId, selectedYearMonth],
   );
-  // The gate carries every precondition — including `selectedYearMonth`, which
-  // the old guard omitted, so a month switch could run the previous month's
-  // prefill — and the loader runs the read when it flips.
+  // The gate carries every precondition, including `selectedYearMonth`.
   const { data, errorMessage, refresh } = useStageLoader<DebtPrefillData>({
     key: selectedYearMonth,
     enabled: enabled && householdId !== '' && selectedYearMonth !== '' && debtAccounts.length > 0,

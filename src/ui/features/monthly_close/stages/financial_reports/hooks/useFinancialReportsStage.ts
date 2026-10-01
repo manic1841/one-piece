@@ -150,7 +150,7 @@ export const useFinancialReportsStage = ({
   confirmingStageId,
   isClosed,
   enabled = true,
-}: UseFinancialReportsStageArgs): CloseStageControl & {
+}: UseFinancialReportsStageArgs): CloseStageControl<'FINANCIAL_REPORTS'> & {
   labelResolver: ReportLabelResolver;
   reportBundle: PreviewFinancialReportsResult | null;
   persistedBundle: StoredReportsBundle | null;
@@ -158,6 +158,7 @@ export const useFinancialReportsStage = ({
   reports: ReportViewsVM;
   timestamps: ReportTimestampsVM;
   isLoading: boolean;
+  isReady: boolean;
   error: string | null;
 } => {
   const auth = useAuthIdentity();
@@ -166,11 +167,12 @@ export const useFinancialReportsStage = ({
     () => fetchFinancialReportsData({ householdId, selectedYearMonth, auth }),
     [auth, householdId, selectedYearMonth],
   );
-  const { data, errorMessage, isLoading, refresh } = useStageLoader<FinancialReportsData>({
-    key: selectedYearMonth,
-    enabled: enabled && householdId !== '' && selectedYearMonth !== '',
-    load,
-  });
+  const { data, errorMessage, isLoading, isReady, refresh } =
+    useStageLoader<FinancialReportsData>({
+      key: selectedYearMonth,
+      enabled: enabled && householdId !== '' && selectedYearMonth !== '',
+      load,
+    });
 
   const customLabels = useMemo(() => data?.customLabels ?? new Map<string, string>(), [data]);
   const preview = data?.preview ?? null;
@@ -235,6 +237,7 @@ export const useFinancialReportsStage = ({
     reports,
     timestamps,
     isLoading,
+    isReady,
     error: errorMessage,
   };
 };

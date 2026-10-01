@@ -138,7 +138,9 @@ describe('useMonthlyClosePage', () => {
 
   it('refreshes every stage after a successful confirm', async () => {
     vi.mocked(monthlyCloseWorkflowUseCase.confirmStage).mockResolvedValue({
+      stageId: 'ACCOUNT_BALANCE',
       period: periodAwaitingProjectSettlement(),
+      data: undefined,
     } as never);
     const result = await renderPage();
     refreshSpy.mockClear();
@@ -151,14 +153,14 @@ describe('useMonthlyClosePage', () => {
     expect(refreshSpy).toHaveBeenCalledTimes(9);
   });
 
-  // #250: the confirm's result (the authoritative rows) is handed to the stage's
-  // afterConfirm, so a stage can adopt what the write returned without a reload.
-  it('passes the confirm result to the stage afterConfirm', async () => {
-    const confirmed = {
+  // #250: the page dispatches the result back to the stage that produced it, as
+  // that stage's own slice.
+  it('dispatches the confirm result slice to the stage afterConfirm', async () => {
+    vi.mocked(monthlyCloseWorkflowUseCase.confirmStage).mockResolvedValue({
+      stageId: 'ACCOUNT_BALANCE',
       period: periodAwaitingProjectSettlement(),
-      securities: { buys: [], sells: [], shareholderFinancing: [], dividendPayout: [] },
-    };
-    vi.mocked(monthlyCloseWorkflowUseCase.confirmStage).mockResolvedValue(confirmed as never);
+      data: undefined,
+    } as never);
     const result = await renderPage();
     afterConfirmSpy.mockClear();
 
@@ -166,6 +168,6 @@ describe('useMonthlyClosePage', () => {
       await result.current.handleConfirmStage('ACCOUNT_BALANCE');
     });
 
-    expect(afterConfirmSpy).toHaveBeenCalledWith(confirmed);
+    expect(afterConfirmSpy).toHaveBeenCalledWith(undefined);
   });
 });

@@ -108,25 +108,17 @@ describe('useSecuritiesTradeStage', () => {
 
     act(() => {
       result.current.afterConfirm({
-        period: {
-          id: 'p1',
-          householdId: 'household-1',
-          yearMonth: '2026-08',
-          status: 'PENDING',
-        } as never,
-        securities: {
-          buys: [
-            {
-              transactionId: 'tx-new-buy',
-              amount: 7000,
-              date: new Date('2026-08-05'),
-              description: '交易 tx-new-buy',
-            },
-          ],
-          sells: [],
-          shareholderFinancing: [],
-          dividendPayout: [],
-        },
+        buys: [
+          {
+            transactionId: 'tx-new-buy',
+            amount: 7000,
+            date: new Date('2026-08-05'),
+            description: '交易 tx-new-buy',
+          },
+        ],
+        sells: [],
+        shareholderFinancing: [],
+        dividendPayout: [],
       });
     });
 

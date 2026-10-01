@@ -1,4 +1,4 @@
-import { type Dispatch, type SetStateAction, useCallback } from 'react';
+import { type Dispatch, type SetStateAction, useCallback, useMemo } from 'react';
 
 import { getMonthInvestmentFinancingUseCase } from '@/application/monthly_close/use_cases/getMonthInvestmentFinancingUseCase';
 import { type FinancingInput } from '@/application/monthly_close/use_cases/monthlyCloseRequests';
@@ -33,14 +33,12 @@ const toTradeRow = (transaction: {
 });
 
 type SecuritiesRows = { buys: SecuritiesTradeInput[]; sells: SecuritiesTradeInput[] };
-type FinancingRows = { shareholderFinancing: FinancingInput[]; dividendPayout: FinancingInput[] };
+type FinancingRows = {
+  shareholderFinancing: FinancingInput[];
+  dividendPayout: FinancingInput[];
+};
 
-/**
- * The whole stage draft is one unit: rows are moved between the securities and
- * financing buckets by the drawer, and a removal rewrites rows and records the
- * removed ID together, so ownership must span all three or an edit to one bucket
- * would leave the others exposed to a background reload.
- */
+/** The whole stage draft: rows are swapped between buckets and a removal rewrites rows and IDs together. */
 interface SecuritiesTradeDraft {
   securities: SecuritiesRows;
   financing: FinancingRows;
@@ -66,15 +64,14 @@ interface UseSecuritiesTradeStageArgs {
  * empty-stage pre-confirm warning, and the add-edit trade drawer with its
  * RHF form. Drafts and the drawer live here; the page only orchestrates. The
  * prefill is seeded by `useSeededDraft`, so a background reload never clears a
- * row the user is editing — the previous version overwrote the whole draft on
- * every reload.
+ * row the user is editing.
  */
 export const useSecuritiesTradeStage = ({
   householdId,
   selectedYearMonth,
   confirmingStageId,
   enabled = true,
-}: UseSecuritiesTradeStageArgs): CloseStageControl & {
+}: UseSecuritiesTradeStageArgs): CloseStageControl<'SECURITIES_TRADE'> & {
   securities: SecuritiesRows;
   setSecurities: Dispatch<SetStateAction<SecuritiesRows>>;
   financing: FinancingRows;
@@ -120,48 +117,35 @@ export const useSecuritiesTradeStage = ({
     enabled: enabled && householdId !== '' && selectedYearMonth !== '',
     load,
   });
+  // One draft unit: the drawer moves rows between buckets and records a removal together.
   const [draft, setDraft] = useSeededDraft<SecuritiesTradeDraft>(selectedYearMonth, data);
 
   const securities = draft?.securities ?? emptyDraft().securities;
   const financing = draft?.financing ?? emptyDraft().financing;
   const removedTransactionIds = draft?.removedTransactionIds ?? [];
 
-  // Each setter writes one bucket of the whole draft, so the three stay in sync
-  // (the drawer swaps a row between buckets or removes one and records its ID).
-  const setSecurities = useCallback<Dispatch<SetStateAction<SecuritiesRows>>>(
-    (updater) =>
-      setDraft((previous) => {
-        const base = previous ?? emptyDraft();
-        return {
-          ...base,
-          securities:
-            typeof updater === 'function' ? updater(base.securities) : updater,
-        };
-      }),
+  const setDraftBucket = useCallback(
+    <K extends keyof SecuritiesTradeDraft>(bucket: K) =>
+      (updater: SetStateAction<SecuritiesTradeDraft[K]>) =>
+        setDraft((previous) => {
+          const base = previous ?? emptyDraft();
+          const value = typeof updater === 'function' ? updater(base[bucket]) : updater;
+          return { ...base, [bucket]: value };
+        }),
     [setDraft],
   );
-  const setFinancing = useCallback<Dispatch<SetStateAction<FinancingRows>>>(
-    (updater) =>
-      setDraft((previous) => {
-        const base = previous ?? emptyDraft();
-        return {
-          ...base,
-          financing: typeof updater === 'function' ? updater(base.financing) : updater,
-        };
-      }),
-    [setDraft],
+
+  const setSecurities = useMemo(
+    () => setDraftBucket('securities') as Dispatch<SetStateAction<SecuritiesRows>>,
+    [setDraftBucket],
   );
-  const setRemovedTransactionIds = useCallback<Dispatch<SetStateAction<string[]>>>(
-    (updater) =>
-      setDraft((previous) => {
-        const base = previous ?? emptyDraft();
-        return {
-          ...base,
-          removedTransactionIds:
-            typeof updater === 'function' ? updater(base.removedTransactionIds) : updater,
-        };
-      }),
-    [setDraft],
+  const setFinancing = useMemo(
+    () => setDraftBucket('financing') as Dispatch<SetStateAction<FinancingRows>>,
+    [setDraftBucket],
+  );
+  const setRemovedTransactionIds = useMemo(
+    () => setDraftBucket('removedTransactionIds') as Dispatch<SetStateAction<string[]>>,
+    [setDraftBucket],
   );
 
   const hasSecurities = securities.buys.length > 0 || securities.sells.length > 0;
@@ -183,12 +167,8 @@ export const useSecuritiesTradeStage = ({
       financing,
       removedTransactionIds,
     }),
-    // Adopt the write's authoritative rows: existing rows come back with their
-    // Firestore IDs, new rows with the IDs just created. Marking the draft owned
-    // keeps a later reload from clearing it, and the IDs make a re-confirmation
-    // update in place instead of duplicating (ADR-0052 revision, #250).
-    afterConfirm: (result) => {
-      const confirmed = result.securities;
+    // Adopt the write's authoritative rows so a re-confirmation updates in place.
+    afterConfirm: (confirmed) => {
       if (!confirmed) return;
       setDraft({
         securities: { buys: confirmed.buys, sells: confirmed.sells },
