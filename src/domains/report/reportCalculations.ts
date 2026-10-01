@@ -187,38 +187,25 @@ export function calculateBalanceSheet(input: BalanceSheetInput): BalanceSheetDat
     ledgerTotals.set(entry.ledgerCode, current + (entry.debit - entry.credit));
   }
 
-  const getCumulativeTotal = (prefix: string) => {
-    let total = 0;
-    let matched = false;
-    const subItems: BalanceSheetItem[] = [];
-    for (const [code, amount] of ledgerTotals.entries()) {
-      if (code.startsWith(prefix)) {
-        matched = true;
-        total += amount;
-        if (code !== prefix) {
-          subItems.push({
-            code,
-            label: resolveLabel(code, code.slice(prefix.length + 1)),
-            amount,
-          });
-        }
-      }
+  // Amounts booked on the bare `type:category` code render as their own group
+  // item row; detail codes are recorded flat (ADR-0074).
+  const cumulativeGroupItems = (totals: Map<string, number>, prefix: string, sign: 1 | -1) => {
+    const items: BalanceSheetItem[] = [];
+    for (const [code, rawAmount] of totals.entries()) {
+      if (!code.startsWith(prefix)) continue;
+      const amount = rawAmount * sign;
+      items.push({
+        code,
+        label:
+          code === prefix ? resolveLabel(code) : resolveLabel(code, code.slice(prefix.length + 1)),
+        amount,
+      });
     }
-    const items: BalanceSheetItem[] = matched
-      ? [
-          {
-            code: prefix,
-            label: resolveLabel(prefix, prefix),
-            amount: total,
-            subItems:
-              subItems.length > 0 ? subItems.sort((a, b) => b.amount - a.amount) : undefined,
-          },
-        ]
-      : [];
-    return { total, items };
+    return items.sort((a, b) => b.amount - a.amount);
   };
 
-  const property = getCumulativeTotal(LEDGER_CODES.ASSET_PROPERTY);
+  const propertyItems = cumulativeGroupItems(ledgerTotals, LEDGER_CODES.ASSET_PROPERTY, 1);
+  const propertyTotal = propertyItems.reduce((sum, item) => sum + item.amount, 0);
 
   const debtSnapshotMap = new Map(debtSnapshots.map((s) => [s.debtId, s.closingBalance]));
   let debtTotal = 0;
@@ -229,7 +216,7 @@ export function calculateBalanceSheet(input: BalanceSheetInput): BalanceSheetDat
     debtItems.push({ code: `debt:${debt.id}`, label: debt.name, amount });
   }
 
-  const assetsTotal = cashAndBankTotal + investmentTotalValue + property.total;
+  const assetsTotal = cashAndBankTotal + investmentTotalValue + propertyTotal;
   const liabilitiesTotal = debtTotal;
   const totalEquity = assetsTotal - liabilitiesTotal;
 
@@ -242,40 +229,8 @@ export function calculateBalanceSheet(input: BalanceSheetInput): BalanceSheetDat
     monthlyLedgerTotals.set(entry.ledgerCode, current + (entry.debit - entry.credit));
   }
 
-  const getCapitalTotal = (prefix: string) => {
-    let total = 0;
-    let matched = false;
-    const subItems: BalanceSheetItem[] = [];
-    for (const [code, amount] of monthlyLedgerTotals.entries()) {
-      if (code.startsWith(prefix)) {
-        // `monthlyLedgerTotals` stores `debit - credit`; capital is credit-normal,
-        // so a credit (injection) increases it and a debit (dividend) reduces it.
-        const signedAmount = -amount;
-        matched = true;
-        total += signedAmount;
-        if (code !== prefix) {
-          subItems.push({
-            code,
-            label: resolveLabel(code, code.slice(prefix.length + 1)),
-            amount: signedAmount,
-          });
-        }
-      }
-    }
-    const items: BalanceSheetItem[] = matched
-      ? [
-          {
-            code: prefix,
-            label: resolveLabel(prefix, prefix),
-            amount: total,
-            subItems:
-              subItems.length > 0 ? subItems.sort((a, b) => b.amount - a.amount) : undefined,
-          },
-        ]
-      : [];
-    return { total, items };
-  };
-  const capital = getCapitalTotal(LEDGER_CODES.EQUITY_CAPITAL);
+  const capitalItems = cumulativeGroupItems(monthlyLedgerTotals, LEDGER_CODES.EQUITY_CAPITAL, -1);
+  const capitalTotal = capitalItems.reduce((sum, item) => sum + item.amount, 0);
 
   const portfolioSnapshotMap = new Map(portfolioSnapshots.map((s) => [s.portfolioId, s.gain]));
   let stockGain = 0;
@@ -283,7 +238,7 @@ export function calculateBalanceSheet(input: BalanceSheetInput): BalanceSheetDat
     stockGain += portfolioSnapshotMap.get(portfolio.id) || 0;
   }
 
-  const adjustment = totalEquity - (openingEquity + netIncome + capital.total + stockGain);
+  const adjustment = totalEquity - (openingEquity + netIncome + capitalTotal + stockGain);
 
   return {
     yearMonth,
@@ -292,7 +247,7 @@ export function calculateBalanceSheet(input: BalanceSheetInput): BalanceSheetDat
       groups: {
         cash: { label: '現金與銀行', total: cashAndBankTotal, items: accountItems },
         investment: { label: '投資資產', total: investmentTotalValue, items: investmentItems },
-        property: { label: '不動產', total: property.total, items: property.items },
+        property: { label: '不動產', total: propertyTotal, items: propertyItems },
       },
     },
     liabilities: {
@@ -306,7 +261,7 @@ export function calculateBalanceSheet(input: BalanceSheetInput): BalanceSheetDat
       groups: {
         openingEquity: { label: '期初餘額', total: openingEquity, items: [] },
         netIncome: { label: '本期淨利', total: netIncome, items: [] },
-        capital: { label: '資本', total: capital.total, items: capital.items },
+        capital: { label: '資本', total: capitalTotal, items: capitalItems },
         stock_gain: { label: '股票報酬', total: stockGain, items: [] },
         adjustment: { label: '調整', total: adjustment, items: [] },
       },

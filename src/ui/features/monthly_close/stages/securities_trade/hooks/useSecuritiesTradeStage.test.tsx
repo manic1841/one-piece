@@ -37,6 +37,26 @@ const renderStage = (selectedYearMonth = '2026-08') =>
     }),
   );
 
+type StageResult = ReturnType<typeof renderStage>['result'];
+
+/** Drives the real drawer → form → command → draft path, the way the UI does. */
+const submitTrade = async (
+  result: StageResult,
+  kind: 'SECURITIES' | 'FINANCING',
+  amount: string,
+  rowKey?: string,
+) => {
+  act(() => {
+    result.current.drawer.open(kind, rowKey === undefined ? 'ADD' : 'EDIT', rowKey ?? null);
+  });
+  act(() => {
+    result.current.drawerForm.form.setValue('amount', amount);
+  });
+  await act(async () => {
+    await result.current.drawerForm.submit();
+  });
+};
+
 describe('useSecuritiesTradeStage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -59,7 +79,7 @@ describe('useSecuritiesTradeStage', () => {
       amount: 5000,
       date: new Date('2026-08-05'),
       description: '交易 tx-buy',
-      projectId: undefined,
+      projectId: null,
     });
     expect(result.current.financing.shareholderFinancing[0]?.transactionId).toBe('tx-fin');
     expect(result.current.totalPlannedTrades).toBe(1);
@@ -71,12 +91,7 @@ describe('useSecuritiesTradeStage', () => {
     const { result } = renderStage();
     await waitFor(() => expect(getMonthInvestmentFinancingUseCase.execute).toHaveBeenCalled());
 
-    act(() => {
-      result.current.setSecurities((previous) => ({
-        ...previous,
-        buys: [{ transactionId: undefined, amount: 999, date: new Date(), projectId: undefined }],
-      }));
-    });
+    await submitTrade(result, 'SECURITIES', '999');
     expect(result.current.securities.buys).toHaveLength(1);
 
     // A later reload returns different (or empty) rows and must not clear the draft.
@@ -128,7 +143,7 @@ describe('useSecuritiesTradeStage', () => {
         amount: 7000,
         date: new Date('2026-08-05'),
         description: '交易 tx-new-buy',
-        projectId: undefined,
+        projectId: null,
       },
     ]);
 
@@ -166,5 +181,58 @@ describe('useSecuritiesTradeStage', () => {
     const { result } = renderFor('2026-09');
 
     await waitFor(() => expect(result.current.securities.buys[0]?.transactionId).toBe('tx-sep'));
+  });
+
+  // Regression: an unsaved row lost its identity, so editing duplicated it and deleting was a no-op.
+  it('edits an unsaved row in place through the drawer instead of duplicating it', async () => {
+    vi.mocked(getMonthInvestmentFinancingUseCase.execute).mockResolvedValue(emptyMonthResult);
+    const { result } = renderStage();
+    await waitFor(() => expect(getMonthInvestmentFinancingUseCase.execute).toHaveBeenCalled());
+
+    await submitTrade(result, 'SECURITIES', '10');
+    expect(result.current.securities.buys).toHaveLength(1);
+
+    await submitTrade(result, 'SECURITIES', '42', 'buys:0');
+    expect(result.current.securities.buys).toHaveLength(1);
+    expect(result.current.securities.buys[0]?.amount).toBe(42);
+  });
+
+  it('deletes an unsaved row locally without recording a removal', async () => {
+    vi.mocked(getMonthInvestmentFinancingUseCase.execute).mockResolvedValue(emptyMonthResult);
+    const { result } = renderStage();
+    await waitFor(() => expect(getMonthInvestmentFinancingUseCase.execute).toHaveBeenCalled());
+
+    await submitTrade(result, 'SECURITIES', '10');
+    expect(result.current.securities.buys).toHaveLength(1);
+
+    act(() => {
+      result.current.drawer.open('SECURITIES', 'EDIT', 'buys:0');
+    });
+    act(() => {
+      result.current.handleDeleteRow();
+    });
+
+    expect(result.current.securities.buys).toHaveLength(0);
+    expect(result.current.buildRequest().removedTransactionIds).toEqual([]);
+    expect(result.current.drawer.state.kind).toBeNull();
+  });
+
+  it('records the removal when a persisted row is deleted', async () => {
+    vi.mocked(getMonthInvestmentFinancingUseCase.execute).mockResolvedValue({
+      ...emptyMonthResult,
+      buys: [monthTransaction('tx-buy', 5000)],
+    });
+    const { result } = renderStage();
+    await waitFor(() => expect(result.current.securities.buys).toHaveLength(1));
+
+    act(() => {
+      result.current.drawer.open('SECURITIES', 'EDIT', 'tx-buy');
+    });
+    act(() => {
+      result.current.handleDeleteRow();
+    });
+
+    expect(result.current.securities.buys).toHaveLength(0);
+    expect(result.current.buildRequest().removedTransactionIds).toEqual(['tx-buy']);
   });
 });

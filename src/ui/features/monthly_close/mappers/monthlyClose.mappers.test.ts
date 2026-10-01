@@ -1,16 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
-import { type CompletenessActivity } from '@/application/settlement/use_cases/checkSettlementCompletenessUseCase';
 import { type FinancialPeriod, initialStageStates } from '@/domains/financial_period/schemas';
 
-import {
-  NO_EVIDENCE,
-  mapAdjustmentCountToEvidence,
-  mapAnomaliesToEvidence,
-  mapPeriodToPageVM,
-  mapPersistenceToEvidence,
-  mapProjectSettlementsToEvidence,
-} from './monthlyClose.mappers';
+import { mapPeriodToPageVM } from './monthlyClose.mappers';
 
 const authPeriod = (overrides: Partial<FinancialPeriod> = {}): FinancialPeriod => ({
   yearMonth: '2026-09',
@@ -23,15 +15,6 @@ const authPeriod = (overrides: Partial<FinancialPeriod> = {}): FinancialPeriod =
   updatedBy: 'user@test.com',
   updatedAt: new Date('2026-09-01T00:00:00Z'),
   ...overrides,
-});
-
-const anomaly = (name: string): CompletenessActivity => ({
-  targetType: 'ACCOUNT',
-  targetId: 'account-1',
-  name,
-  status: 'ZERO_ACTIVITY',
-  activityCount: 0,
-  activityAmount: 0,
 });
 
 describe('mapPeriodToPageVM', () => {
@@ -76,45 +59,5 @@ describe('mapPeriodToPageVM', () => {
 
     expect(vm.isClosed).toBe(true);
     expect(vm.isActive).toBe(false);
-  });
-});
-
-describe('evidence mappers', () => {
-  it('maps anomalies with names', () => {
-    const evidence = mapAnomaliesToEvidence([anomaly('台新銀行'), anomaly('國泰帳戶')]);
-
-    expect(evidence.kind).toBe('COMPLETENESS_ANOMALIES');
-    expect(evidence.zeroActivityNames).toEqual(['台新銀行', '國泰帳戶']);
-  });
-
-  it('maps adjustment count and persistence state', () => {
-    expect(mapAdjustmentCountToEvidence(-120).cashFlowAdjustments).toBe(-120);
-    expect(mapPersistenceToEvidence(true).reportsPersisted).toBe(true);
-    expect(NO_EVIDENCE.kind).toBe('NONE');
-  });
-
-  it('maps project settlements into the settlement evidence', () => {
-    const evidence = mapProjectSettlementsToEvidence([
-      {
-        projectId: 'project-1',
-        projectName: '裝修',
-        settled: true,
-        income: 5000,
-        expense: 3000,
-        closingBalance: 2000,
-      },
-      {
-        projectId: 'project-2',
-        projectName: '旅遊',
-        settled: false,
-        income: null,
-        expense: null,
-        closingBalance: null,
-      },
-    ]);
-
-    expect(evidence.kind).toBe('PROJECT_SETTLEMENT');
-    expect(evidence.projectSettlements).toHaveLength(2);
-    expect(evidence.projectSettlements[0]?.settled).toBe(true);
   });
 });

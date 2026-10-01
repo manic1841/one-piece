@@ -22,16 +22,9 @@ import { MONTHLY_CLOSE_LABELS } from '@/ui/constants/monthlyClose';
 import { formatCurrency } from '@/ui/utils';
 import { cn } from '@/ui/utils/cn';
 
-export type TradeSide = 'BUY' | 'SELL';
+import { type TradeSide, type TradeTableRow } from '../../../viewmodels/tradeDraft.vm';
 
-export interface TradeTableRow {
-  transactionId?: string;
-  side: TradeSide;
-  amount: number;
-  description?: string;
-  projectId?: string | null;
-  date: Date;
-}
+export type { TradeSide, TradeTableRow };
 
 interface TradeTableProps {
   title: string;
@@ -117,9 +110,9 @@ export const TradeTable: React.FC<TradeTableProps> = ({
                 </DataTableHeadRow>
               </TableHeader>
               <TableBody>
-                {rows.map((row, index) => (
+                {rows.map((row) => (
                   <DataTableRow
-                    key={row.transactionId ?? `row-${index}`}
+                    key={row.rowKey}
                     className={cn(
                       interactiveRowClass,
                       disabled && 'pointer-events-none opacity-60',
@@ -151,9 +144,9 @@ export const TradeTable: React.FC<TradeTableProps> = ({
           </DataTableScrollArea>
 
           <MobileDataList>
-            {rows.map((row, index) => (
+            {rows.map((row) => (
               <MobileDataRow
-                key={row.transactionId ?? `mobile-${index}`}
+                key={row.rowKey}
                 className={cn('space-y-1 border-border/60', !disabled && 'cursor-pointer')}
                 onClick={() => {
                   if (!disabled) onRowClick(row);

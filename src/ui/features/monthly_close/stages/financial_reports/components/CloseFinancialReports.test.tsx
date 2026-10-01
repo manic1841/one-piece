@@ -126,22 +126,18 @@ describe('CloseFinancialReports', () => {
     expect(screen.getByTestId('close-income-statement')).toHaveTextContent('薪資 › Charles');
   });
 
-  // Legacy persisted reports store detail codes flat while the preview nests
-  // them; the drift pair must not put the same code at two levels, or the
-  // flattened table carries duplicate React keys and collapse/expand renders
-  // ghost rows.
-  it('renders a legacy-vs-rollup property pair without duplicate rows on collapse/expand', () => {
+  // Pre-ADR-0074 persisted reports stored a redundant parent row inside the
+  // roll-up group while the preview records details flat; the folded pair must
+  // not put the same code at two levels, or the flattened table carries
+  // duplicate React keys and collapse/expand renders ghost rows.
+  it('renders a rollup-era persisted property group without duplicate rows on collapse/expand', () => {
     const preview = buildPreview();
     preview.balanceSheet.assets.groups.property = {
       label: '不動產',
-      total: 192345,
+      total: 384690,
       items: [
-        {
-          code: 'asset:property',
-          label: '不動產',
-          amount: 192345,
-          subItems: [{ code: 'asset:property:senhuo', label: '我家', amount: 192345 }],
-        },
+        { code: 'asset:property:senhuo', label: '不動產 › 我家', amount: 192345 },
+        { code: 'asset:property', label: '不動產', amount: 192345 },
       ],
     };
     const persisted = {
@@ -151,9 +147,14 @@ describe('CloseFinancialReports', () => {
         groups: {
           property: {
             label: '不動產',
-            total: 192345,
+            total: 384690,
             items: [
-              { code: 'asset:property:senhuo', label: 'asset:property:senhuo', amount: 192345 },
+              {
+                code: 'asset:property',
+                label: '不動產',
+                amount: 384690,
+                subItems: [{ code: 'asset:property:senhuo', label: '我家', amount: 192345 }],
+              },
             ],
           },
         },

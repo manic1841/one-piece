@@ -13,30 +13,6 @@ export type {
 
 export { isCascadeDemoted, isReopenablePeriod } from '@/domains/financial_period/stateMachine';
 
-export interface CloseStageEvidence {
-  kind:
-    | 'TRANSACTION_VALIDATION'
-    | 'COMPLETENESS_ANOMALIES'
-    | 'CASH_FLOW_ADJUSTMENTS'
-    | 'REPORT_PERSISTENCE'
-    | 'PROJECT_SETTLEMENT'
-    | 'NONE';
-  transactionIssues: { transactionId: string; description: string; reason: string }[];
-  zeroActivityNames: string[];
-  cashFlowAdjustments: number;
-  reportsPersisted: boolean | null;
-  projectSettlements: ProjectSettlementEvidenceRow[];
-}
-
-export interface ProjectSettlementEvidenceRow {
-  projectId: string;
-  projectName: string;
-  settled: boolean;
-  income: number | null;
-  expense: number | null;
-  closingBalance: number | null;
-}
-
 export interface CloseStageItemVM {
   stageId: CloseStageId;
   label: string;

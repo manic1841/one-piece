@@ -4,12 +4,14 @@ import {
   DRIFT_STATUS,
   type DriftItem,
   annotateIncomeStatement,
+  annotateReports,
+  combineDrift,
+  compareReports,
   diffAmount,
   diffBalanceSheet,
   diffCashFlow,
   diffIncomeStatement,
   diffItems,
-  diffReportTotals,
 } from './reportDrift';
 import { type BalanceSheetData, type CashFlowData, type IncomeStatementData } from './schemas';
 
@@ -22,6 +24,21 @@ const item = (code: string, amount: number, subItems?: { code: string; amount: n
 
 const byCode = (rows: DriftItem[], code: string): DriftItem =>
   rows.find((row) => row.code === code)!;
+
+const amount = (
+  value: number,
+  previousAmount: number | null = null,
+  status: (typeof DRIFT_STATUS)[keyof typeof DRIFT_STATUS] = DRIFT_STATUS.UNCHANGED,
+) => ({ amount: value, previousAmount, status });
+
+/** Every `status` string found anywhere in a drift tree — an independent walk. */
+const collectStatuses = (node: unknown): string[] => {
+  if (Array.isArray(node)) return node.flatMap(collectStatuses);
+  if (node === null || typeof node !== 'object') return [];
+  const record = node as Record<string, unknown>;
+  const own = typeof record.status === 'string' ? [record.status] : [];
+  return [...own, ...Object.values(record).flatMap(collectStatuses)];
+};
 
 describe('diffItems', () => {
   it('flags a leaf whose amount differs with the persisted value for the arrow', () => {
@@ -209,6 +226,84 @@ describe('diffBalanceSheet', () => {
       status: DRIFT_STATUS.REMOVED,
     });
   });
+
+  // Pre-ADR-0074 balance-sheet reports stored a redundant parent row
+  // (`asset:property` + subItems) inside the roll-up group; the preview now
+  // records details flat. Folding the parent back keeps the pair comparable
+  // instead of flagging the group as a mass of added/removed rows.
+  it('folds a rollup-era parent row back to flat items before comparing', () => {
+    const preview = build({});
+    preview.assets.groups.property = {
+      label: '不動產',
+      total: 1000000,
+      items: [
+        { code: 'asset:property:house', label: '不動產 › house', amount: 800000 },
+        { code: 'asset:property:land', label: '不動產 › land', amount: 200000 },
+      ],
+    };
+    const persisted = build({});
+    persisted.assets.groups.property = {
+      label: '不動產',
+      total: 1000000,
+      items: [
+        {
+          code: 'asset:property',
+          label: '不動產',
+          amount: 1000000,
+          subItems: [
+            { code: 'asset:property:house', label: '不動產 › house', amount: 800000 },
+            { code: 'asset:property:land', label: '不動產 › land', amount: 200000 },
+          ],
+        },
+      ],
+    };
+
+    const drift = diffBalanceSheet(preview, persisted);
+
+    expect(drift.assets.groups.property.total).toEqual({
+      amount: 1000000,
+      previousAmount: null,
+      status: DRIFT_STATUS.UNCHANGED,
+    });
+    const rows = drift.assets.groups.property.items;
+    expect(rows.map((row) => row.code)).toEqual(['asset:property:house', 'asset:property:land']);
+    expect(rows.every((row) => row.status === DRIFT_STATUS.UNCHANGED)).toBe(true);
+  });
+
+  it('restores a bare-code row when the rollup-era parent exceeds its subItems', () => {
+    const preview = build({});
+    preview.assets.groups.property = {
+      label: '不動產',
+      total: 1000000,
+      items: [
+        { code: 'asset:property', label: '不動產', amount: 300000 },
+        { code: 'asset:property:house', label: '不動產 › house', amount: 700000 },
+      ],
+    };
+    const persisted = build({});
+    persisted.assets.groups.property = {
+      label: '不動產',
+      total: 1000000,
+      items: [
+        {
+          code: 'asset:property',
+          label: '不動產',
+          amount: 1000000,
+          subItems: [{ code: 'asset:property:house', label: '不動產 › house', amount: 700000 }],
+        },
+      ],
+    };
+
+    const drift = diffBalanceSheet(preview, persisted);
+
+    const rows = drift.assets.groups.property.items;
+    expect(rows.map((row) => row.code)).toEqual(['asset:property', 'asset:property:house']);
+    expect(byCode(rows, 'asset:property')).toMatchObject({
+      amount: 300000,
+      status: DRIFT_STATUS.UNCHANGED,
+    });
+    expect(byCode(rows, 'asset:property:house').status).toBe(DRIFT_STATUS.UNCHANGED);
+  });
 });
 
 describe('diffAmount', () => {
@@ -302,32 +397,255 @@ describe('diffCashFlow', () => {
   });
 });
 
-describe('diffReportTotals', () => {
-  const totals = {
-    totalAssets: 100,
-    totalLiabilities: 40,
-    equity: 60,
-    netIncome: 20,
-    netCashFlow: 5,
-  };
-
-  it('compares each Step 9 figure against the persisted total', () => {
-    const drift = diffReportTotals(totals, { ...totals, equity: 50, netCashFlow: 5 });
-
-    expect(drift.equity).toMatchObject({
-      amount: 60,
-      previousAmount: 50,
-      status: DRIFT_STATUS.CHANGED,
+describe('combineDrift', () => {
+  it('sums unchanged operands with no drift', () => {
+    expect(combineDrift([amount(10), amount(5)])).toEqual({
+      amount: 15,
+      previousAmount: null,
+      status: DRIFT_STATUS.UNCHANGED,
     });
-    expect(drift.netCashFlow.status).toBe(DRIFT_STATUS.UNCHANGED);
-    expect(drift.totalAssets.status).toBe(DRIFT_STATUS.UNCHANGED);
   });
 
-  it('leaves every figure unflagged when there is no persisted report', () => {
-    const drift = diffReportTotals(totals, null);
+  it('flags the sum when any operand drifted', () => {
+    const combined = combineDrift([amount(12, 10, DRIFT_STATUS.CHANGED), amount(5)]);
 
-    expect(Object.values(drift).every((value) => value.status === DRIFT_STATUS.UNCHANGED)).toBe(
-      true,
-    );
+    expect(combined).toEqual({ amount: 17, previousAmount: 15, status: DRIFT_STATUS.CHANGED });
+  });
+
+  it('does not mask a drifted operand even when the totals happen to match', () => {
+    // 10 -> 12 and 5 -> 3 sum to the same preview/persisted total.
+    const combined = combineDrift([
+      amount(12, 10, DRIFT_STATUS.CHANGED),
+      amount(3, 5, DRIFT_STATUS.CHANGED),
+    ]);
+
+    expect(combined.status).toBe(DRIFT_STATUS.CHANGED);
+    expect(combined.previousAmount).toBe(15);
+  });
+
+  // #237: an ADDED operand has no persisted value, so it counts as 0.
+  it('counts an added operand as zero in the persisted total', () => {
+    const combined = combineDrift([amount(100, null, DRIFT_STATUS.ADDED), amount(50)]);
+
+    expect(combined).toEqual({ amount: 150, previousAmount: 50, status: DRIFT_STATUS.CHANGED });
+  });
+
+  it('keeps a removed operand persisted amount in the total', () => {
+    const combined = combineDrift([amount(0, 70, DRIFT_STATUS.REMOVED), amount(50)]);
+
+    expect(combined).toEqual({ amount: 50, previousAmount: 120, status: DRIFT_STATUS.CHANGED });
+  });
+
+  it('treats a restructured operand persisted total as its previous value', () => {
+    const combined = combineDrift([
+      amount(30, 30, DRIFT_STATUS.RESTRUCTURED),
+      amount(20, 40, DRIFT_STATUS.CHANGED),
+    ]);
+
+    expect(combined).toEqual({ amount: 50, previousAmount: 70, status: DRIFT_STATUS.CHANGED });
+  });
+});
+
+describe('compareReports', () => {
+  const income = (
+    incomeTotal: number,
+    incomeItems = [{ code: 'income:salary', label: '薪資', amount: incomeTotal }],
+  ): IncomeStatementData => ({
+    yearMonth: '2026-03',
+    incomeTotal,
+    expenseTotal: 30000,
+    netIncome: incomeTotal - 30000,
+    incomeItems,
+    expenseItems: [{ code: 'expense:food', label: '餐飲', amount: 30000 }],
+  });
+
+  const balance = (assetsTotal: number): BalanceSheetData => ({
+    yearMonth: '2026-03',
+    assets: { total: assetsTotal, groups: {} },
+    liabilities: { total: 0, groups: {} },
+    equity: { total: assetsTotal, groups: {} },
+  });
+
+  const cashFlow = (adjustment: number): CashFlowData => ({
+    yearMonth: '2026-03',
+    operating: { label: '營業活動', total: 0, inflowItems: [], outflowItems: [] },
+    investing: { label: '投資活動', total: 0, inflowItems: [], outflowItems: [] },
+    financing: { label: '融資活動', total: 0, inflowItems: [], outflowItems: [] },
+    netCashChange: 0,
+    beginningBalance: 0,
+    endingBalance: 0,
+    actualBalance: 0,
+    adjustment,
+  });
+
+  const preview = (incomeTotal = 50000, assetsTotal = 100000, adjustment = 0) => ({
+    incomeStatement: income(incomeTotal),
+    balanceSheet: balance(assetsTotal),
+    cashFlow: cashFlow(adjustment),
+  });
+
+  it('reports no drift when the preview matches the persisted record', () => {
+    const model = compareReports(preview(), preview());
+
+    expect(model.hasAnyDrift).toBe(false);
+    expect(model.incomeStatement?.incomeTotal.status).toBe(DRIFT_STATUS.UNCHANGED);
+  });
+
+  it('reports drift and annotates the changed statement when a figure moved', () => {
+    const model = compareReports(preview(50000), preview(40000));
+
+    expect(model.hasAnyDrift).toBe(true);
+    expect(model.incomeStatement?.incomeTotal).toMatchObject({
+      amount: 50000,
+      previousAmount: 40000,
+      status: DRIFT_STATUS.CHANGED,
+    });
+    expect(model.cashFlow?.adjustment.status).toBe(DRIFT_STATUS.UNCHANGED);
+  });
+
+  it('reports a drifted nested detail row, not just its parent', () => {
+    const previewModel = preview(30, 100000, 0);
+    previewModel.incomeStatement = income(30, [
+      { code: 'income:work', label: '工作', amount: 30 },
+      { code: 'income:bonus', label: '獎金', amount: 20 },
+    ]);
+    const persisted = preview(30, 100000, 0);
+    persisted.incomeStatement = income(30, [{ code: 'income:work', label: '工作', amount: 30 }]);
+
+    const model = compareReports(previewModel, persisted);
+
+    expect(model.hasAnyDrift).toBe(true);
+  });
+
+  it('reports a drifted balance-sheet group item', () => {
+    const previewModel = preview(50000, 100000, 0);
+    previewModel.balanceSheet = {
+      ...balance(100000),
+      assets: {
+        total: 100000,
+        groups: {
+          cash: {
+            label: '現金',
+            total: 100000,
+            items: [{ code: 'cash:new', label: '新', amount: 100000 }],
+          },
+        },
+      },
+    };
+    const persisted = preview(50000, 100000, 0);
+    persisted.balanceSheet = balance(100000);
+
+    const model = compareReports(previewModel, persisted);
+
+    expect(model.hasAnyDrift).toBe(true);
+  });
+
+  it('reports a drifted figure the screen does not draw as its own cell (調整數)', () => {
+    const model = compareReports(preview(50000, 100000, 500), preview(50000, 100000, 0));
+
+    expect(model.hasAnyDrift).toBe(true);
+  });
+
+  it('leaves every tree unflagged when there is no persisted report', () => {
+    const model = compareReports(preview(), null);
+
+    expect(model.hasAnyDrift).toBe(false);
+    expect(model.incomeStatement?.incomeTotal.status).toBe(DRIFT_STATUS.UNCHANGED);
+    expect(model.balanceSheet?.assets.total.status).toBe(DRIFT_STATUS.UNCHANGED);
+  });
+
+  it('reports drift for a removed and a restructured node, not only CHANGED', () => {
+    const withItems = (items: IncomeStatementData['incomeItems']) => ({
+      ...preview(30000, 100000, 0),
+      incomeStatement: { ...income(30000), incomeItems: items },
+    });
+
+    const previewModel = withItems([
+      {
+        code: 'income:a',
+        label: 'A',
+        amount: 30000,
+        subItems: [{ code: 'income:a:1', label: 'A1', amount: 30000 }],
+      },
+    ]);
+    const persisted = withItems([
+      {
+        code: 'income:a',
+        label: 'A',
+        amount: 30000,
+        subItems: [
+          { code: 'income:a:1', label: 'A1', amount: 20000 },
+          { code: 'income:a:2', label: 'A2', amount: 10000 },
+        ],
+      },
+    ]);
+
+    const model = compareReports(previewModel, persisted);
+
+    expect(collectStatuses(model.incomeStatement)).toContain(DRIFT_STATUS.REMOVED);
+    expect(collectStatuses(model.incomeStatement)).toContain(DRIFT_STATUS.RESTRUCTURED);
+    expect(model.hasAnyDrift).toBe(true);
+  });
+
+  // The acceptance property: hasAnyDrift iff some node is not UNCHANGED.
+  it('derives hasAnyDrift iff some node drifted', () => {
+    const cases: [ReturnType<typeof preview>, ReturnType<typeof preview> | null][] = [
+      [preview(), preview()],
+      [preview(50000), preview(40000)],
+      [preview(50000, 100000, 500), preview(50000)],
+      [preview(), null],
+    ];
+
+    for (const [previewModel, persisted] of cases) {
+      const model = compareReports(previewModel, persisted);
+      const anyDrifted = collectStatuses([
+        model.incomeStatement,
+        model.balanceSheet,
+        model.cashFlow,
+      ]).some((status) => status !== DRIFT_STATUS.UNCHANGED);
+
+      expect(model.hasAnyDrift).toBe(anyDrifted);
+    }
+  });
+});
+
+describe('annotateReports', () => {
+  it('shows the persisted record with no drift marks and no drift', () => {
+    const persisted = {
+      incomeStatement: {
+        yearMonth: '2026-03',
+        incomeTotal: 40000,
+        expenseTotal: 30000,
+        netIncome: 10000,
+        incomeItems: [],
+        expenseItems: [],
+      },
+      balanceSheet: {
+        yearMonth: '2026-03',
+        assets: { total: 100000, groups: {} },
+        liabilities: { total: 0, groups: {} },
+        equity: { total: 100000, groups: {} },
+      },
+      cashFlow: null,
+    };
+
+    const model = annotateReports(persisted);
+
+    expect(model.hasAnyDrift).toBe(false);
+    expect(model.incomeStatement?.incomeTotal).toEqual({
+      amount: 40000,
+      previousAmount: null,
+      status: DRIFT_STATUS.UNCHANGED,
+    });
+    expect(model.cashFlow).toBeNull();
+  });
+
+  it('returns an empty model when there is no persisted record', () => {
+    const model = annotateReports(null);
+
+    expect(model.hasAnyDrift).toBe(false);
+    expect(model.incomeStatement).toBeNull();
+    expect(model.balanceSheet).toBeNull();
+    expect(model.cashFlow).toBeNull();
   });
 });

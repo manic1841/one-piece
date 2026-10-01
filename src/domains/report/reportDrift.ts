@@ -86,15 +86,6 @@ export interface CashFlowDrift {
   adjustment: DriftAmount;
 }
 
-/** The five figures Step 9 summarizes, plus their drift annotations. */
-export interface ReportTotals {
-  totalAssets: number;
-  totalLiabilities: number;
-  equity: number;
-  netIncome: number;
-  netCashFlow: number;
-}
-
 /** The shape every statement row shares, whether it nests or not. */
 interface SourceItem {
   code: string;
@@ -217,7 +208,7 @@ const hasNestedItems = (items: readonly SourceItem[]): boolean =>
  * a removed flat row sharing the detail's React key, which duplicates rows when
  * the table re-renders on collapse/expand.
  */
-const foldLegacyItems = (items: readonly SourceItem[]): SourceItem[] => {
+const nestLegacyItems = (items: readonly SourceItem[]): SourceItem[] => {
   if (hasNestedItems(items)) return [...items];
   const parents = new Map<string, { amount: number; subItems: SourceItem[] }>();
   for (const item of items) {
@@ -237,21 +228,50 @@ const foldLegacyItems = (items: readonly SourceItem[]): SourceItem[] => {
 };
 
 /** Compare one level of rows, appending persisted-only rows as removed. */
-export const diffItems = (
+const diffNormalizedItems = (
   preview: readonly SourceItem[],
   persisted: readonly SourceItem[],
 ): DriftItem[] => {
-  const foldedPersisted = foldLegacyItems(persisted);
-  const persistedByCode = new Map(foldedPersisted.map((item) => [item.code, item]));
+  const persistedByCode = new Map(persisted.map((item) => [item.code, item]));
   const previewCodes = new Set(preview.map((item) => item.code));
   const rows = preview.map((item) => {
     const previous = persistedByCode.get(item.code);
     return previous ? diffItem(item, previous) : addedItem(item);
   });
-  const removedRows = foldedPersisted
-    .filter((item) => !previewCodes.has(item.code))
-    .map(removedItem);
+  const removedRows = persisted.filter((item) => !previewCodes.has(item.code)).map(removedItem);
   return [...rows, ...removedRows];
+};
+
+/** Compare one level of rows, appending persisted-only rows as removed. */
+export const diffItems = (
+  preview: readonly SourceItem[],
+  persisted: readonly SourceItem[],
+): DriftItem[] => diffNormalizedItems(preview, nestLegacyItems(persisted));
+
+/**
+ * The inverse of `nestLegacyItems` for balance-sheet groups: those carry the
+ * roll-up themselves (label + summed total), and their items now record detail
+ * codes directly. Reports generated before that shape stored a redundant parent
+ * row with the details as subItems; unfolding it (the unallocated remainder
+ * becomes a bare-code row) restores the flat shape the preview produces, so the
+ * pair compares by code instead of reading as a mass of added/removed rows.
+ */
+const flattenRollupItems = (items: readonly SourceItem[]): SourceItem[] => {
+  if (!items.some((item) => (item.subItems?.length ?? 0) > 0)) return [...items];
+  const flat: SourceItem[] = [];
+  for (const item of items) {
+    const children = item.subItems ?? [];
+    if (children.length === 0) {
+      flat.push(item);
+      continue;
+    }
+    const childrenSum = children.reduce((sum, child) => sum + child.amount, 0);
+    if (item.amount !== childrenSum) {
+      flat.push({ code: item.code, label: item.label, amount: item.amount - childrenSum });
+    }
+    flat.push(...children.map(({ code, label, amount }) => ({ code, label, amount })));
+  }
+  return flat;
 };
 
 const diffGroups = (
@@ -266,7 +286,7 @@ const diffGroups = (
       total: previous
         ? diffAmount(group.total, previous.total)
         : { amount: group.total, previousAmount: null, status: DRIFT_STATUS.ADDED },
-      items: diffItems(group.items, previous?.items ?? []),
+      items: diffNormalizedItems(group.items, flattenRollupItems(previous?.items ?? [])),
     };
   }
   for (const [key, group] of Object.entries(persisted ?? {})) {
@@ -398,25 +418,77 @@ export const diffBalanceSheet = (
   };
 };
 
-/** Step 9's five aggregate figures: compare each against the persisted total. */
-export const diffReportTotals = (
-  preview: ReportTotals,
-  persisted: ReportTotals | null,
-): Record<keyof ReportTotals, DriftAmount> => {
-  if (!persisted) {
-    return {
-      totalAssets: unchangedAmount(preview.totalAssets),
-      totalLiabilities: unchangedAmount(preview.totalLiabilities),
-      equity: unchangedAmount(preview.equity),
-      netIncome: unchangedAmount(preview.netIncome),
-      netCashFlow: unchangedAmount(preview.netCashFlow),
-    };
+/** The three persisted statements, each null when it was never generated. */
+export interface ReportStatements {
+  incomeStatement: IncomeStatementData | null;
+  balanceSheet: BalanceSheetData | null;
+  cashFlow: CashFlowData | null;
+}
+
+/** A complete preview: the three statements are always produced together. */
+export interface PreviewStatements {
+  incomeStatement: IncomeStatementData;
+  balanceSheet: BalanceSheetData;
+  cashFlow: CashFlowData;
+}
+
+/** One comparison's annotated statements plus the close gate's boolean. */
+export interface ReportDriftModel {
+  incomeStatement: IncomeStatementDrift | null;
+  balanceSheet: BalanceSheetDrift | null;
+  cashFlow: CashFlowDrift | null;
+  hasAnyDrift: boolean;
+}
+
+/** True when any figure in the trees is not UNCHANGED (a null tree holds none). */
+const holdsDrift = (node: unknown): boolean => {
+  if (Array.isArray(node)) return node.some(holdsDrift);
+  if (node === null || typeof node !== 'object') return false;
+  const record = node as Record<string, unknown>;
+  if (record.status !== undefined && record.status !== DRIFT_STATUS.UNCHANGED) return true;
+  return Object.values(record).some(holdsDrift);
+};
+
+const modelOf = (
+  incomeStatement: IncomeStatementDrift | null,
+  balanceSheet: BalanceSheetDrift | null,
+  cashFlow: CashFlowDrift | null,
+): ReportDriftModel => ({
+  incomeStatement,
+  balanceSheet,
+  cashFlow,
+  hasAnyDrift: holdsDrift([incomeStatement, balanceSheet, cashFlow]),
+});
+
+/** Annotate a live preview against the persisted record. */
+export const compareReports = (
+  preview: PreviewStatements,
+  persisted: ReportStatements | null,
+): ReportDriftModel =>
+  modelOf(
+    diffIncomeStatement(preview.incomeStatement, persisted?.incomeStatement ?? null),
+    diffBalanceSheet(preview.balanceSheet, persisted?.balanceSheet ?? null),
+    diffCashFlow(preview.cashFlow, persisted?.cashFlow ?? null),
+  );
+
+/** The persisted record shown read-only for a CLOSED period, with no drift marks. */
+export const annotateReports = (persisted: ReportStatements | null): ReportDriftModel =>
+  modelOf(
+    persisted?.incomeStatement ? annotateIncomeStatement(persisted.incomeStatement) : null,
+    persisted?.balanceSheet ? annotateBalanceSheet(persisted.balanceSheet) : null,
+    persisted?.cashFlow ? annotateCashFlow(persisted.cashFlow) : null,
+  );
+
+/** An ADDED operand has no persisted value, so it counts as 0 (#237). */
+const persistedValueOf = (part: DriftAmount): number =>
+  part.status === DRIFT_STATUS.ADDED ? 0 : (part.previousAmount ?? part.amount);
+
+/** Sum drift-annotated operands; drifted when any operand drifted. */
+export const combineDrift = (parts: readonly DriftAmount[]): DriftAmount => {
+  const amount = parts.reduce((sum, part) => sum + part.amount, 0);
+  const previousAmount = parts.reduce((sum, part) => sum + persistedValueOf(part), 0);
+  if (parts.every((part) => part.status === DRIFT_STATUS.UNCHANGED)) {
+    return { amount, previousAmount: null, status: DRIFT_STATUS.UNCHANGED };
   }
-  return {
-    totalAssets: diffAmount(preview.totalAssets, persisted.totalAssets),
-    totalLiabilities: diffAmount(preview.totalLiabilities, persisted.totalLiabilities),
-    equity: diffAmount(preview.equity, persisted.equity),
-    netIncome: diffAmount(preview.netIncome, persisted.netIncome),
-    netCashFlow: diffAmount(preview.netCashFlow, persisted.netCashFlow),
-  };
+  return { amount, previousAmount, status: DRIFT_STATUS.CHANGED };
 };

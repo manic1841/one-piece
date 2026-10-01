@@ -2,7 +2,10 @@ import { z } from 'zod';
 
 import { optionalText } from '@/shared/schemas/coerce';
 
-export type TradeDrawerSide = 'BUY' | 'SELL';
+import { type TradeDrawerDraft, type TradeSide } from './tradeDraft.vm';
+
+/** The drawer's side selector; the same two values the draft VM calls `TradeSide`. */
+export type TradeDrawerSide = TradeSide;
 
 /**
  * Form VM for the trade drawer (ADR-0064). Type is a required choice between
@@ -41,9 +44,7 @@ export const createEmptyTradeDrawerInput = (side: TradeDrawerSide = 'BUY'): Trad
   projectId: '',
 });
 
-export const mapTradeDrawerVMToDraft = (
-  vm: TradeDrawerVM,
-): { side: TradeDrawerSide; amount: number; description?: string; projectId: string | null } => ({
+export const mapTradeDrawerVMToDraft = (vm: TradeDrawerVM): TradeDrawerDraft => ({
   side: vm.side,
   amount: vm.amount,
   description: vm.description,

@@ -9,7 +9,7 @@ import {
   type AccountBalanceInput,
   type AccountSnapshot,
 } from '@/ui/features/monthly_close/viewmodels/accountBalance.vm';
-import { type CloseStageEvidence } from '@/ui/features/monthly_close/viewmodels/monthlyClose.vm';
+import { NO_EVIDENCE } from '@/ui/features/monthly_close/viewmodels/closeEvidence.vm';
 
 import { CloseAccountBalanceInputs } from './CloseAccountBalanceInputs';
 
@@ -21,7 +21,6 @@ interface CloseAccountBalanceStageProps {
   isReviewing: boolean;
   isConfirmable: boolean;
   isReadOnly: boolean;
-  evidence: CloseStageEvidence;
   /** Canned copy when the snapshot load failed; prefill is a convenience, so it does not block confirm. */
   loadErrorMessage?: string | null;
   accounts: Account[];
@@ -44,7 +43,6 @@ export const CloseAccountBalanceStage: React.FC<CloseAccountBalanceStageProps> =
   isReviewing,
   isConfirmable,
   isReadOnly,
-  evidence,
   loadErrorMessage = null,
   accounts,
   accountSnapshots,
@@ -70,7 +68,7 @@ export const CloseAccountBalanceStage: React.FC<CloseAccountBalanceStageProps> =
       <p className="mb-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
         {MONTHLY_CLOSE_LABELS.EVIDENCE_LABEL}
       </p>
-      <CloseStageEvidenceList evidence={evidence} />
+      <CloseStageEvidenceList evidence={NO_EVIDENCE} />
     </div>
     <CloseAccountBalanceInputs
       accounts={accounts}

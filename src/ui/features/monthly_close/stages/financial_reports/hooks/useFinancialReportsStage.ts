@@ -13,12 +13,9 @@ import {
 import { type AuthContext } from '@/application/types';
 import { type ReportLabelResolver } from '@/domains/report/reportCalculations';
 import {
-  annotateBalanceSheet,
-  annotateCashFlow,
-  annotateIncomeStatement,
-  diffBalanceSheet,
-  diffCashFlow,
-  diffIncomeStatement,
+  type ReportDriftModel,
+  annotateReports,
+  compareReports,
 } from '@/domains/report/reportDrift';
 import { getUnifiedLedgerCodeLabel } from '@/ui/constants/transaction';
 import type { CloseStageControl } from '@/ui/features/monthly_close/hooks/closeStageControl';
@@ -154,6 +151,8 @@ export const useFinancialReportsStage = ({
   persistedBundle: StoredReportsBundle | null;
   reportsPersisted: boolean | null;
   reports: ReportViewsVM;
+  reportDrift: ReportDriftModel;
+  hasAnyDrift: boolean;
   timestamps: ReportTimestampsVM;
   isLoading: boolean;
   isReady: boolean;
@@ -182,34 +181,24 @@ export const useFinancialReportsStage = ({
     [customLabels],
   );
 
-  // A CLOSED period renders the persisted record with no drift marks; a live
-  // period renders the preview annotated against the persisted report, so a
-  // reopened period with leftover files keeps comparing.
+  // CLOSED annotates the persisted record; otherwise compare the preview against it.
+  const reportDrift = useMemo<ReportDriftModel>(
+    () =>
+      isClosed
+        ? annotateReports(persistedBundle)
+        : preview
+          ? compareReports(preview, persistedBundle)
+          : annotateReports(null),
+    [isClosed, persistedBundle, preview],
+  );
+
   const reports = useMemo<ReportViewsVM>(
     () => ({
-      incomeStatement: isClosed
-        ? persistedBundle?.incomeStatement
-          ? annotateIncomeStatement(persistedBundle.incomeStatement)
-          : null
-        : preview
-          ? diffIncomeStatement(preview.incomeStatement, persistedBundle?.incomeStatement ?? null)
-          : null,
-      balanceSheet: isClosed
-        ? persistedBundle?.balanceSheet
-          ? annotateBalanceSheet(persistedBundle.balanceSheet)
-          : null
-        : preview
-          ? diffBalanceSheet(preview.balanceSheet, persistedBundle?.balanceSheet ?? null)
-          : null,
-      cashFlow: isClosed
-        ? persistedBundle?.cashFlow
-          ? annotateCashFlow(persistedBundle.cashFlow)
-          : null
-        : preview
-          ? diffCashFlow(preview.cashFlow, persistedBundle?.cashFlow ?? null)
-          : null,
+      incomeStatement: reportDrift.incomeStatement,
+      balanceSheet: reportDrift.balanceSheet,
+      cashFlow: reportDrift.cashFlow,
     }),
-    [isClosed, persistedBundle, preview],
+    [reportDrift],
   );
 
   const timestamps = data?.persistedTimestamps ?? {};
@@ -231,6 +220,8 @@ export const useFinancialReportsStage = ({
     persistedBundle,
     reportsPersisted,
     reports,
+    reportDrift,
+    hasAnyDrift: reportDrift.hasAnyDrift,
     timestamps,
     isLoading,
     isReady,

@@ -365,7 +365,10 @@ describe('useCloseStepRegistry', () => {
     const { result } = renderRegistry({ pageVM: pageVMWithReportsStage('PENDING') });
 
     await waitFor(() =>
-      expect(result.current.CLOSE_PERIOD.evidence().kind).toBe('REPORT_PERSISTENCE'),
+      expect(result.current.CLOSE_PERIOD.evidence()).toMatchObject({
+        kind: 'PERSISTENCE',
+        persisted: true,
+      }),
     );
 
     render(<>{result.current.FINANCIAL_REPORTS.render(baseContext)}</>);
@@ -407,7 +410,10 @@ describe('useCloseStepRegistry', () => {
     const { result } = renderRegistry();
 
     await waitFor(() =>
-      expect(result.current.PROJECT_SETTLEMENT.evidence().projectSettlements).toHaveLength(2),
+      expect(result.current.PROJECT_SETTLEMENT.evidence()).toMatchObject({
+        kind: 'SETTLEMENTS',
+        rows: [{ projectName: '裝修' }, { projectName: '旅遊' }],
+      }),
     );
 
     render(<>{result.current.PROJECT_SETTLEMENT.render(baseContext)}</>);
@@ -427,7 +433,7 @@ describe('useCloseStepRegistry', () => {
     render(<>{result.current.SECURITIES_TRADE.render(baseContext)}</>);
 
     fireEvent.click(screen.getAllByRole('button', { name: '新增交易' })[0]);
-    expect(openSpy).toHaveBeenCalledWith('SECURITIES', 'ADD', undefined);
+    expect(openSpy).toHaveBeenCalledWith('SECURITIES', 'ADD', null);
   });
 
   it('reflects the FINANCIAL_REPORTS persistence state in CLOSE_PERIOD evidence', async () => {
@@ -438,9 +444,11 @@ describe('useCloseStepRegistry', () => {
     const { result } = renderRegistry();
 
     await waitFor(() =>
-      expect(result.current.CLOSE_PERIOD.evidence().kind).toBe('REPORT_PERSISTENCE'),
+      expect(result.current.CLOSE_PERIOD.evidence()).toMatchObject({
+        kind: 'PERSISTENCE',
+        persisted: true,
+      }),
     );
-    expect(result.current.CLOSE_PERIOD.evidence().reportsPersisted).toBe(true);
   });
 
   it("derives FINANCIAL_REPORTS evidence from CLOSE_PERIOD's preview bundle", async () => {
@@ -448,9 +456,11 @@ describe('useCloseStepRegistry', () => {
     const { result } = renderRegistry();
 
     await waitFor(() =>
-      expect(result.current.FINANCIAL_REPORTS.evidence().kind).toBe('CASH_FLOW_ADJUSTMENTS'),
+      expect(result.current.FINANCIAL_REPORTS.evidence()).toMatchObject({
+        kind: 'ADJUSTMENT',
+        count: 1500,
+      }),
     );
-    expect(result.current.FINANCIAL_REPORTS.evidence().cashFlowAdjustments).toBe(1500);
   });
 
   it('derives COMPLETENESS_CHECK evidence from its own stage hook', async () => {
@@ -471,9 +481,11 @@ describe('useCloseStepRegistry', () => {
     const { result } = renderRegistry();
 
     await waitFor(() =>
-      expect(result.current.COMPLETENESS_CHECK.evidence().zeroActivityNames).toEqual(['裝修']),
+      expect(result.current.COMPLETENESS_CHECK.evidence()).toMatchObject({
+        kind: 'ZERO_ACTIVITY',
+        names: ['裝修'],
+      }),
     );
-    expect(result.current.COMPLETENESS_CHECK.evidence().kind).toBe('COMPLETENESS_ANOMALIES');
   });
 
   it('derives TRANSACTION_VALIDATION evidence from its own stage hook', async () => {
@@ -485,9 +497,11 @@ describe('useCloseStepRegistry', () => {
     const { result } = renderRegistry();
 
     await waitFor(() =>
-      expect(result.current.TRANSACTION_VALIDATION.evidence().transactionIssues).toHaveLength(1),
+      expect(result.current.TRANSACTION_VALIDATION.evidence()).toMatchObject({
+        kind: 'ISSUES',
+        issues: [{ transactionId: 't1', description: '餐飲', reason: '分配總和不等於 100%' }],
+      }),
     );
-    expect(result.current.TRANSACTION_VALIDATION.evidence().kind).toBe('TRANSACTION_VALIDATION');
   });
 
   it("renders the five Step 9 financial figures from CLOSE_PERIOD's own bundle", async () => {
@@ -630,7 +644,10 @@ describe('useCloseStepRegistry', () => {
 
     expect(result.current.SECURITIES_TRADE.control.buildRequest()).toEqual({
       stageId: 'SECURITIES_TRADE',
-      securities: { buys: [confirmedRow], sells: [] },
+      securities: {
+        buys: [{ ...confirmedRow, description: undefined, projectId: null }],
+        sells: [],
+      },
       financing: { shareholderFinancing: [], dividendPayout: [] },
       removedTransactionIds: [],
     });
@@ -735,10 +752,7 @@ describe('useCloseStepRegistry', () => {
     );
   });
 
-  // #234: the close gate reads Step 8's own drift tree — a drifted child under a
-  // matching total still blocks. It states *that* the reports drifted and never
-  // names a count (see `hasReportDrift`), so the block and the warnings the user
-  // saw cannot disagree.
+  // #234: any drift in Step 8's reports blocks the close; never names a count.
   it('blocks the close when Step 8 drifted, without naming a count', async () => {
     vi.mocked(previewFinancialReportsWorkflow.execute).mockResolvedValue(
       previewWithTotals({ netIncome: 117_000 }),

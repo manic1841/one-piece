@@ -2,14 +2,13 @@ import { useMemo } from 'react';
 
 import { type SecuritiesTradeInput } from '@/application/monthly_close/use_cases/monthlyCloseWorkflowUseCase';
 import { type SettlementReadiness } from '@/application/report/use_cases/getSettlementReadinessUseCase';
-import { type StoredReportsBundle } from '@/application/report/use_cases/getStoredReportsBundleUseCase';
-import { type PreviewFinancialReportsResult } from '@/application/report/use_cases/previewFinancialReportsWorkflow';
 import { type CompletenessActivity } from '@/application/settlement/use_cases/checkSettlementCompletenessUseCase';
-import { type ReportTotals, diffReportTotals } from '@/domains/report/reportDrift';
+import { type ReportDriftModel } from '@/domains/report/reportDrift';
 import { REPORT_VIEW_TITLES } from '@/ui/constants/report/reportViewLabels';
 
 import {
   type FinancialDriftVM,
+  type FinancialResultVM,
   mapCloseSummary,
   mapReadinessVM,
 } from '../mappers/closeSummary.mappers';
@@ -19,8 +18,8 @@ interface UseCloseSummaryVMArgs {
   readiness: SettlementReadiness | null;
   /** The validated-transaction count TRANSACTION_VALIDATION's stage hook owns. */
   checkedCount: number;
-  reportBundle: PreviewFinancialReportsResult | null;
-  persistedBundle: StoredReportsBundle | null;
+  /** The drift-annotated statements; Step 9's five figures are read from its trees. */
+  reportDrift: ReportDriftModel;
   /** CLOSED renders the persisted record read-only; drift is only compared while live. */
   isClosed: boolean;
   transactionIssues: { transactionId: string; description: string; reason: string }[];
@@ -30,27 +29,6 @@ interface UseCloseSummaryVMArgs {
   reportsPersisted: boolean | null;
 }
 
-const EMPTY_FINANCIAL_RESULT = {
-  totalAssets: null,
-  totalLiabilities: null,
-  equity: null,
-  netIncome: null,
-  netCashFlow: null,
-} as const;
-
-const toTotals = (
-  bundle: PreviewFinancialReportsResult | StoredReportsBundle | null,
-): ReportTotals | null => {
-  if (!bundle?.incomeStatement || !bundle.balanceSheet || !bundle.cashFlow) return null;
-  return {
-    totalAssets: bundle.balanceSheet.assets.total,
-    totalLiabilities: bundle.balanceSheet.liabilities.total,
-    equity: bundle.balanceSheet.equity.total,
-    netIncome: bundle.incomeStatement.netIncome,
-    netCashFlow: bundle.cashFlow.netCashChange,
-  };
-};
-
 /**
  * Derives the readiness and close-summary view models that Steps 7-8 render,
  * from the evidence each owning stage hook provides, plus the five financial
@@ -59,8 +37,7 @@ const toTotals = (
 export const useCloseSummaryVM = ({
   readiness,
   checkedCount,
-  reportBundle,
-  persistedBundle,
+  reportDrift,
   isClosed,
   transactionIssues,
   securities,
@@ -98,20 +75,30 @@ export const useCloseSummaryVM = ({
     zeroActivityNames,
   ]);
 
-  const previewTotals = useMemo(() => toTotals(reportBundle), [reportBundle]);
-  const persistedTotals = useMemo(() => toTotals(persistedBundle), [persistedBundle]);
-
-  const financialResult = useMemo(() => {
-    // CLOSED renders the frozen persisted record; every other status renders the
-    // live preview, so a reopened period with leftover files keeps comparing.
-    const source = isClosed ? persistedTotals : previewTotals;
-    return source ?? EMPTY_FINANCIAL_RESULT;
-  }, [isClosed, persistedTotals, previewTotals]);
+  // Step 9's five figures are the drift model's tree nodes, not a second comparison.
+  const financialResult = useMemo<FinancialResultVM>(
+    () => ({
+      totalAssets: reportDrift.balanceSheet?.assets.total.amount ?? null,
+      totalLiabilities: reportDrift.balanceSheet?.liabilities.total.amount ?? null,
+      equity: reportDrift.balanceSheet?.equity.total.amount ?? null,
+      netIncome: reportDrift.incomeStatement?.netIncome.amount ?? null,
+      netCashFlow: reportDrift.cashFlow?.netCashChange.amount ?? null,
+    }),
+    [reportDrift],
+  );
 
   const financialDrift = useMemo<FinancialDriftVM | undefined>(() => {
-    if (isClosed || !previewTotals || !persistedTotals) return undefined;
-    return diffReportTotals(previewTotals, persistedTotals);
-  }, [isClosed, persistedTotals, previewTotals]);
+    if (isClosed) return undefined;
+    const drift: FinancialDriftVM = {};
+    if (reportDrift.balanceSheet) {
+      drift.totalAssets = reportDrift.balanceSheet.assets.total;
+      drift.totalLiabilities = reportDrift.balanceSheet.liabilities.total;
+      drift.equity = reportDrift.balanceSheet.equity.total;
+    }
+    if (reportDrift.incomeStatement) drift.netIncome = reportDrift.incomeStatement.netIncome;
+    if (reportDrift.cashFlow) drift.netCashFlow = reportDrift.cashFlow.netCashChange;
+    return drift;
+  }, [isClosed, reportDrift]);
 
   const reportResults = useMemo(
     () =>

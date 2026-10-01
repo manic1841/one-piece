@@ -4,7 +4,7 @@ import { MONTHLY_CLOSE_LABELS } from '@/ui/constants/monthlyClose';
 import { CloseStageChrome } from '@/ui/features/monthly_close/components/CloseStageChrome';
 import { CloseStageEvidenceList } from '@/ui/features/monthly_close/components/CloseStageEvidenceList';
 import { CloseStageLoadError } from '@/ui/features/monthly_close/components/CloseStageLoadError';
-import { type CloseStageEvidence } from '@/ui/features/monthly_close/viewmodels/monthlyClose.vm';
+import { NO_EVIDENCE } from '@/ui/features/monthly_close/viewmodels/closeEvidence.vm';
 import type { PortfolioSnapshot } from '@/ui/features/monthly_close/viewmodels/portfolioCashFlow.vm';
 import {
   buildPortfolioCashFlowSections,
@@ -23,7 +23,6 @@ interface ClosePortfolioCashFlowStageProps {
   isReviewing: boolean;
   isConfirmable: boolean;
   isReadOnly: boolean;
-  evidence: CloseStageEvidence;
   /** Canned copy when the snapshot load failed; prefill is a convenience, so it does not block confirm. */
   loadErrorMessage?: string | null;
   portfolios: { id: string; name: string }[];
@@ -151,7 +150,6 @@ export const ClosePortfolioCashFlowStage: React.FC<ClosePortfolioCashFlowStagePr
   isReviewing,
   isConfirmable,
   isReadOnly,
-  evidence,
   loadErrorMessage = null,
   portfolios,
   portfolioSnapshots,
@@ -177,7 +175,7 @@ export const ClosePortfolioCashFlowStage: React.FC<ClosePortfolioCashFlowStagePr
       <p className="mb-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
         {MONTHLY_CLOSE_LABELS.EVIDENCE_LABEL}
       </p>
-      <CloseStageEvidenceList evidence={evidence} />
+      <CloseStageEvidenceList evidence={NO_EVIDENCE} />
     </div>
     <PortfolioCashFlowContent
       portfolios={portfolios}

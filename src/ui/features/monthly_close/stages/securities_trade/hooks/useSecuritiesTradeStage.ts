@@ -1,8 +1,6 @@
-import { type Dispatch, type SetStateAction, useCallback, useMemo } from 'react';
+import { useCallback } from 'react';
 
 import { getMonthInvestmentFinancingUseCase } from '@/application/monthly_close/use_cases/getMonthInvestmentFinancingUseCase';
-import { type FinancingInput } from '@/application/monthly_close/use_cases/monthlyCloseRequests';
-import { type SecuritiesTradeInput } from '@/application/monthly_close/use_cases/monthlyCloseWorkflowUseCase';
 import { useConfirm } from '@/ui/features/app/confirm/useConfirm';
 import type { CloseStageControl } from '@/ui/features/monthly_close/hooks/closeStageControl';
 import {
@@ -13,43 +11,19 @@ import { useSeededDraft } from '@/ui/features/monthly_close/hooks/useSeededDraft
 import { useStageLoader } from '@/ui/features/monthly_close/hooks/useStageLoader';
 import { logger } from '@/utils/logger';
 
+import {
+  EMPTY_TRADE_DRAFT,
+  type SecuritiesTradeDraft,
+  type TradeCommand,
+  adoptConfirmedTradeRows,
+  applyTradeCommand,
+  findTradeRow,
+  toTradeRowValue,
+} from '../../../viewmodels/tradeDraft.vm';
 import { useTradeDrawer } from './useTradeDrawer';
 import { useTradeDrawerForm } from './useTradeDrawerForm';
 
 const LOAD_ERROR = '無法載入本月投資與融資交易，請稍後再試。';
-
-const toTradeRow = (transaction: {
-  id: string;
-  amount?: number | null;
-  date: Date;
-  description?: string | null;
-  projectId?: string | null;
-}) => ({
-  transactionId: transaction.id,
-  amount: transaction.amount ?? 0,
-  date: transaction.date,
-  description: transaction.description ?? undefined,
-  projectId: transaction.projectId,
-});
-
-type SecuritiesRows = { buys: SecuritiesTradeInput[]; sells: SecuritiesTradeInput[] };
-type FinancingRows = {
-  shareholderFinancing: FinancingInput[];
-  dividendPayout: FinancingInput[];
-};
-
-/** The whole stage draft: rows are swapped between buckets and a removal rewrites rows and IDs together. */
-interface SecuritiesTradeDraft {
-  securities: SecuritiesRows;
-  financing: FinancingRows;
-  removedTransactionIds: string[];
-}
-
-const EMPTY_DRAFT: SecuritiesTradeDraft = {
-  securities: { buys: [], sells: [] },
-  financing: { shareholderFinancing: [], dividendPayout: [] },
-  removedTransactionIds: [],
-};
 
 interface UseSecuritiesTradeStageArgs {
   householdId: string;
@@ -57,31 +31,23 @@ interface UseSecuritiesTradeStageArgs {
   confirmingStageId: string | null;
 }
 
-/** Stage controller for SECURITIES_TRADE: the diff-merge draft, prefill, warning, and drawer. */
 export const useSecuritiesTradeStage = ({
   householdId,
   selectedYearMonth,
   confirmingStageId,
 }: UseSecuritiesTradeStageArgs): CloseStageControl<'SECURITIES_TRADE'> & {
-  securities: SecuritiesRows;
-  setSecurities: Dispatch<SetStateAction<SecuritiesRows>>;
-  financing: FinancingRows;
-  setFinancing: Dispatch<SetStateAction<FinancingRows>>;
-  removedTransactionIds: string[];
-  setRemovedTransactionIds: Dispatch<SetStateAction<string[]>>;
-  /** The drawer's VM projection: state, open/close/confirm wiring, and the RHF form. */
+  securities: SecuritiesTradeDraft['securities'];
+  financing: SecuritiesTradeDraft['financing'];
   drawer: ReturnType<typeof useTradeDrawer>;
   drawerForm: ReturnType<typeof useTradeDrawerForm>;
+  handleDeleteRow: () => void;
   /** The count of planned buys/sells the readiness check consumes (cross-stage). */
   totalPlannedTrades: number;
-  /** Canned copy when the month-transaction prefill failed to load. */
   errorMessage: string | null;
 } => {
   const { confirm: confirmDialog } = useConfirm();
 
-  // SECURITIES_TRADE prefill: the month's existing investment and financing
-  // transactions become editable rows carrying their transaction IDs, so the
-  // confirmation diff-merges instead of duplicating (ADR-0052 revision).
+  // Prefill this month's investment and financing transactions as rows carrying their IDs (ADR-0052).
   const load = useCallback(async (): Promise<SecuritiesTradeDraft> => {
     try {
       const result = await getMonthInvestmentFinancingUseCase.execute({
@@ -90,10 +56,13 @@ export const useSecuritiesTradeStage = ({
         month: Number(selectedYearMonth.slice(5, 7)),
       });
       return {
-        securities: { buys: result.buys.map(toTradeRow), sells: result.sells.map(toTradeRow) },
+        securities: {
+          buys: result.buys.map(toTradeRowValue),
+          sells: result.sells.map(toTradeRowValue),
+        },
         financing: {
-          shareholderFinancing: result.shareholderFinancing.map(toTradeRow),
-          dividendPayout: result.dividendPayout.map(toTradeRow),
+          shareholderFinancing: result.shareholderFinancing.map(toTradeRowValue),
+          dividendPayout: result.dividendPayout.map(toTradeRowValue),
         },
         removedTransactionIds: [],
       };
@@ -107,31 +76,17 @@ export const useSecuritiesTradeStage = ({
     enabled: householdId !== '' && selectedYearMonth !== '',
     load,
   });
-  // One draft unit: the drawer moves rows between buckets and records a removal together.
   const [draft, setDraft] = useSeededDraft<SecuritiesTradeDraft>(data);
+  const current = draft ?? EMPTY_TRADE_DRAFT;
 
-  const securities = draft?.securities ?? EMPTY_DRAFT.securities;
-  const financing = draft?.financing ?? EMPTY_DRAFT.financing;
-  const removedTransactionIds = draft?.removedTransactionIds ?? EMPTY_DRAFT.removedTransactionIds;
-
-  const setDraftBucket = useCallback(
-    <K extends keyof SecuritiesTradeDraft>(bucket: K) =>
-      (updater: SetStateAction<SecuritiesTradeDraft[K]>) =>
-        setDraft((previous) => {
-          const base = previous ?? EMPTY_DRAFT;
-          const value = typeof updater === 'function' ? updater(base[bucket]) : updater;
-          return { ...base, [bucket]: value };
-        }),
+  const applyCommand = useCallback(
+    (command: TradeCommand) => {
+      setDraft((previous) => applyTradeCommand(previous ?? EMPTY_TRADE_DRAFT, command));
+    },
     [setDraft],
   );
 
-  const setSecurities = useMemo(() => setDraftBucket('securities'), [setDraftBucket]);
-  const setFinancing = useMemo(() => setDraftBucket('financing'), [setDraftBucket]);
-  const setRemovedTransactionIds = useMemo(
-    () => setDraftBucket('removedTransactionIds'),
-    [setDraftBucket],
-  );
-
+  const { securities, financing, removedTransactionIds } = current;
   const hasSecurities = securities.buys.length > 0 || securities.sells.length > 0;
   const hasFinancing =
     financing.shareholderFinancing.length > 0 || financing.dividendPayout.length > 0;
@@ -152,17 +107,8 @@ export const useSecuritiesTradeStage = ({
       removedTransactionIds,
     }),
     // Adopt the write's authoritative rows so a re-confirmation updates in place.
-    afterConfirm: (confirmed) => {
-      if (!confirmed) return;
-      setDraft({
-        securities: { buys: confirmed.buys, sells: confirmed.sells },
-        financing: {
-          shareholderFinancing: confirmed.shareholderFinancing,
-          dividendPayout: confirmed.dividendPayout,
-        },
-        removedTransactionIds: [],
-      });
-    },
+    afterConfirm: (confirmed) =>
+      setDraft((previous) => adoptConfirmedTradeRows(previous ?? EMPTY_TRADE_DRAFT, confirmed)),
     refresh,
   });
 
@@ -171,32 +117,33 @@ export const useSecuritiesTradeStage = ({
     Number(selectedYearMonth.slice(5, 7)) - 1,
     15,
   );
-  const drawer = useTradeDrawer({
-    securities,
-    financing,
-    setSecurities,
-    setFinancing,
-    removedTransactionIds,
-    setRemovedTransactionIds,
-    closeMonth,
-  });
+  const drawer = useTradeDrawer({ closeMonth });
+  const editing =
+    drawer.state.mode === 'EDIT' ? findTradeRow(current, drawer.state.targetId) : null;
   const drawerForm = useTradeDrawerForm({
     isOpen: drawer.state.kind !== null,
-    editRow: drawer.findRow(drawer.state.targetId),
-    onDraftConfirm: drawer.confirmDraft,
+    editRow: editing ? { side: editing.side, ...editing.row } : undefined,
+    onDraftConfirm: (vmDraft) => {
+      const command = drawer.resolveCommand(vmDraft, editing?.row);
+      if (command) applyCommand(command);
+      drawer.close();
+    },
   });
+
+  const handleDeleteRow = useCallback(() => {
+    const command = drawer.resolveDelete();
+    if (command) applyCommand(command);
+    drawer.close();
+  }, [drawer, applyCommand]);
 
   return {
     ...control,
     confirmGate,
     securities,
-    setSecurities,
     financing,
-    setFinancing,
-    removedTransactionIds,
-    setRemovedTransactionIds,
     drawer,
     drawerForm,
+    handleDeleteRow,
     errorMessage,
     totalPlannedTrades: securities.buys.length + securities.sells.length,
   };
