@@ -30,7 +30,7 @@ interface CloseDebtRepaymentStageProps {
   debtAccounts: DebtSectionMetaVM[];
   yearMonth: string;
   repayments: DebtRepaymentInput[];
-  setRepayments: React.Dispatch<React.SetStateAction<DebtRepaymentInput[]>>;
+  setRepayments: (value: DebtRepaymentInput[]) => void;
   onConfirm: () => void;
   onBackToCurrent: () => void;
 }

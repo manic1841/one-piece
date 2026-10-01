@@ -32,7 +32,7 @@ export const MonthlyCloseCard: React.FC<MonthlyCloseCardProps> = ({
   return (
     <button
       type="button"
-      onClick={() => navigate('/close')}
+      onClick={() => navigate(vm ? `/close/${vm.yearMonth}` : '/close')}
       className="block w-full cursor-pointer rounded-lg border border-border bg-elevated/30 backdrop-blur-sm p-6 text-left transition-colors hover:bg-elevated/50"
     >
       <div className="flex items-center justify-between gap-4">

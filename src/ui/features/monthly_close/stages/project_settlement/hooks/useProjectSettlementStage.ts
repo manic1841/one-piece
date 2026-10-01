@@ -1,18 +1,17 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback } from 'react';
 
 import { listProjectSnapshotsUseCase } from '@/application/project/use_cases/listProjectSnapshotsUseCase';
 import { listProjectsUseCase } from '@/application/project/use_cases/listProjectsUseCase';
 import type { CloseStageControl } from '@/ui/features/monthly_close/hooks/closeStageControl';
 import { useNoOpStageControl } from '@/ui/features/monthly_close/hooks/useConfirmStageControl';
+import { useStageLoader } from '@/ui/features/monthly_close/hooks/useStageLoader';
 import { type ProjectSettlementEvidenceRow } from '@/ui/features/monthly_close/viewmodels/monthlyClose.vm';
-import { useLoadingTask } from '@/ui/hooks/useLoadingTask';
 import { logger } from '@/utils/logger';
 
 interface UseProjectSettlementStageArgs {
   householdId: string;
   selectedYearMonth: string;
   confirmingStageId: string | null;
-  enabled?: boolean;
 }
 
 const LOAD_ERROR = '無法載入專案結算狀態，請稍後再試。';
@@ -57,49 +56,25 @@ const fetchSettlements = async ({
   }
 };
 
-/**
- * Stage controller for PROJECT_SETTLEMENT: loads every active project with its
- * settlement state for the selected month (absorbed from
- * useProjectSettlementEvidence). A stored snapshot means settled and carries
- * the confirmed income/expense/closing balance; no snapshot means unsettled.
- * No draft: the stage confirms with the stage ID alone. A load failure surfaces
- * the canned message without blocking confirm.
- */
+/** Stage controller for PROJECT_SETTLEMENT: every active project with its settlement state. */
 export const useProjectSettlementStage = ({
   householdId,
   selectedYearMonth,
   confirmingStageId,
-  enabled = true,
-}: UseProjectSettlementStageArgs): CloseStageControl & {
+}: UseProjectSettlementStageArgs): CloseStageControl<'PROJECT_SETTLEMENT'> & {
   settlements: ProjectSettlementEvidenceRow[];
   errorMessage: string | null;
 } => {
-  const [settlements, setSettlements] = useState<ProjectSettlementEvidenceRow[]>([]);
-  const { errorMessage, run } = useLoadingTask();
-  // A slow load for a month the user already left must not land last and win.
-  const inFlightRef = useRef<AbortController | null>(null);
-
-  const load = useCallback(async () => {
-    if (!householdId || !selectedYearMonth) return;
-    inFlightRef.current?.abort();
-    const controller = new AbortController();
-    inFlightRef.current = controller;
-
-    await run(() => fetchSettlements({ householdId, selectedYearMonth }), {
-      signal: controller.signal,
-      writeBack: (result) => {
-        if (!result.ok) return;
-        setSettlements(result.value);
-      },
-    });
-  }, [householdId, run, selectedYearMonth]);
-
-  useEffect(() => {
-    if (!enabled) return;
-    void load();
-  }, [enabled, load]);
+  const load = useCallback(
+    () => fetchSettlements({ householdId, selectedYearMonth }),
+    [householdId, selectedYearMonth],
+  );
+  const { data, errorMessage, refresh } = useStageLoader<ProjectSettlementEvidenceRow[]>({
+    enabled: householdId !== '' && selectedYearMonth !== '',
+    load,
+  });
 
   const control = useNoOpStageControl('PROJECT_SETTLEMENT', confirmingStageId);
 
-  return { ...control, settlements, errorMessage, refresh: load };
+  return { ...control, settlements: data ?? [], errorMessage, refresh };
 };

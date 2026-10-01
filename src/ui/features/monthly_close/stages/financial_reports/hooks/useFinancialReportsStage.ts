@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo } from 'react';
 
 import { listAllLedgerCodesUseCase } from '@/application/ledger/use_cases/listAllLedgerCodesUseCase';
 import { getReportPersistenceStateUseCase } from '@/application/report/use_cases/getReportPersistenceStateUseCase';
@@ -23,12 +23,12 @@ import {
 import { getUnifiedLedgerCodeLabel } from '@/ui/constants/transaction';
 import type { CloseStageControl } from '@/ui/features/monthly_close/hooks/closeStageControl';
 import { useConfirmStageControl } from '@/ui/features/monthly_close/hooks/useConfirmStageControl';
+import { useStageLoader } from '@/ui/features/monthly_close/hooks/useStageLoader';
 import type {
   ReportTimestampsVM,
   ReportViewsVM,
 } from '@/ui/features/monthly_close/viewmodels/financialReports.vm';
 import { useAuthIdentity } from '@/ui/hooks/useAuthIdentity';
-import { useLoadingTask } from '@/ui/hooks/useLoadingTask';
 import { logger } from '@/utils/logger';
 
 interface UseFinancialReportsStageArgs {
@@ -37,7 +37,6 @@ interface UseFinancialReportsStageArgs {
   confirmingStageId: string | null;
   /** A CLOSED period renders the persisted record read-only; drift is not compared. */
   isClosed: boolean;
-  enabled?: boolean;
 }
 
 const PREVIEW_ERROR = '無法載入報表預覽，請稍後再試。';
@@ -149,8 +148,7 @@ export const useFinancialReportsStage = ({
   selectedYearMonth,
   confirmingStageId,
   isClosed,
-  enabled = true,
-}: UseFinancialReportsStageArgs): CloseStageControl & {
+}: UseFinancialReportsStageArgs): CloseStageControl<'FINANCIAL_REPORTS'> & {
   labelResolver: ReportLabelResolver;
   reportBundle: PreviewFinancialReportsResult | null;
   persistedBundle: StoredReportsBundle | null;
@@ -158,56 +156,25 @@ export const useFinancialReportsStage = ({
   reports: ReportViewsVM;
   timestamps: ReportTimestampsVM;
   isLoading: boolean;
+  isReady: boolean;
   error: string | null;
 } => {
   const auth = useAuthIdentity();
-  // Keyed by year-month: a value loaded for a previous month reads as null
-  // under the current selection, so a month switch never shows the last
-  // month's figures or badge while the new month loads.
-  const [data, setData] = useState<{
-    yearMonth: string;
-    customLabels: Map<string, string>;
-    preview: PreviewFinancialReportsResult;
-    persistedBundle: StoredReportsBundle | null;
-    isPersisted: boolean | null;
-    persistedTimestamps: ReportTimestampsVM;
-  } | null>(null);
-  const { loading: isLoading, errorMessage, run } = useLoadingTask();
-  // Paging months faster than the load completes supersedes the previous load;
-  // without this the slower, older month could land last and win.
-  const inFlightRef = useRef<AbortController | null>(null);
 
-  const current = data?.yearMonth === selectedYearMonth ? data : null;
-  const customLabels = useMemo(() => current?.customLabels ?? new Map<string, string>(), [current]);
-  const preview = current?.preview ?? null;
+  const load = useCallback(
+    () => fetchFinancialReportsData({ householdId, selectedYearMonth, auth }),
+    [auth, householdId, selectedYearMonth],
+  );
+  const { data, errorMessage, isLoading, isReady, refresh } = useStageLoader<FinancialReportsData>({
+    enabled: householdId !== '' && selectedYearMonth !== '',
+    load,
+  });
+
+  const customLabels = useMemo(() => data?.customLabels ?? new Map<string, string>(), [data]);
+  const preview = data?.preview ?? null;
   const reportBundle = preview;
-  const persistedBundle = current?.persistedBundle ?? null;
-  const reportsPersisted = current?.isPersisted ?? null;
-
-  const load = useCallback(async () => {
-    if (!householdId || !selectedYearMonth) return;
-    inFlightRef.current?.abort();
-    const controller = new AbortController();
-    inFlightRef.current = controller;
-
-    await run(() => fetchFinancialReportsData({ householdId, selectedYearMonth, auth }), {
-      signal: controller.signal,
-      // A failed run writes nothing. On a month switch the new month therefore
-      // reads empty rather than the previous month's; on a same-month refresh
-      // the previous values stay on screen, so the error channel (not the data)
-      // is what marks the stage not-ready (#226) — this also keeps a stale
-      // `reportsPersisted` from being read as verified.
-      writeBack: (result) => {
-        if (!result.ok) return;
-        setData({ yearMonth: selectedYearMonth, ...result.value });
-      },
-    });
-  }, [auth, householdId, run, selectedYearMonth]);
-
-  useEffect(() => {
-    if (!enabled) return;
-    void load();
-  }, [enabled, load]);
+  const persistedBundle = data?.persistedBundle ?? null;
+  const reportsPersisted = data?.isPersisted ?? null;
 
   const labelResolver = useMemo<ReportLabelResolver>(
     () => (code, fallback) =>
@@ -245,13 +212,13 @@ export const useFinancialReportsStage = ({
     [isClosed, persistedBundle, preview],
   );
 
-  const timestamps = current?.persistedTimestamps ?? {};
+  const timestamps = data?.persistedTimestamps ?? {};
 
   const control = useConfirmStageControl({
     stageId: 'FINANCIAL_REPORTS',
     confirmingStageId,
     buildRequest: () => ({ stageId: 'FINANCIAL_REPORTS', labelResolver }),
-    refresh: load,
+    refresh,
     // The report preview stays open so the user can read the generated
     // reports before confirming the next stage; every other stage resets.
     keepsViewOnConfirm: true,
@@ -266,6 +233,7 @@ export const useFinancialReportsStage = ({
     reports,
     timestamps,
     isLoading,
+    isReady,
     error: errorMessage,
   };
 };

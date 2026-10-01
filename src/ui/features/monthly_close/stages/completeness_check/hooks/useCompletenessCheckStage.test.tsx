@@ -1,4 +1,4 @@
-import { act, renderHook, waitFor } from '@testing-library/react';
+import { renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { getSettlementReadinessUseCase } from '@/application/report/use_cases/getSettlementReadinessUseCase';
@@ -76,27 +76,7 @@ describe('useCompletenessCheckStage', () => {
     expect(result.current.anomalies).toEqual([anomaly]);
   });
 
-  it('clears the evidence on a month switch before the new month loads', async () => {
-    const { result, rerender } = renderStage();
-    await waitFor(() => expect(result.current.readiness).not.toBeNull());
-
-    mockReadiness.mockReturnValue(new Promise(() => {}));
-    act(() => rerender({ ym: '2026-09' }));
-
-    expect(result.current.readiness).toBeNull();
-    expect(result.current.anomalies).toEqual([]);
-  });
-
-  it('exposes refresh so a confirm rebuilds the evidence', async () => {
-    const { result } = renderStage();
-    await waitFor(() => expect(result.current.readiness).not.toBeNull());
-
-    mockReadiness.mockResolvedValue({ ...readinessFixture, isReady: false, totalUnsettled: 1 });
-    await act(() => result.current.refresh?.());
-
-    expect(result.current.readiness?.isReady).toBe(false);
-  });
-
+  // The same-month failure retention is covered in useStageLoader.test.ts.
   it('surfaces the canned message instead of reporting a clean month on failure', async () => {
     mockReadiness.mockRejectedValue(new Error('boom'));
 
@@ -107,20 +87,5 @@ describe('useCompletenessCheckStage', () => {
     );
     expect(result.current.readiness).toBeNull();
     expect(result.current.anomalies).toEqual([]);
-  });
-
-  it('keeps the previous evidence on a same-month refresh failure but flags the error (#226)', async () => {
-    const { result } = renderStage();
-    await waitFor(() => expect(result.current.readiness).not.toBeNull());
-
-    mockReadiness.mockRejectedValue(new Error('boom'));
-    await act(() => result.current.refresh?.());
-
-    await waitFor(() =>
-      expect(result.current.errorMessage).toBe('無法載入結算就緒狀態，請稍後再試。'),
-    );
-    // Stale values stay on screen by design (no flash-empty), which is exactly
-    // why consumers must gate on the error rather than on the data.
-    expect(result.current.readiness).not.toBeNull();
   });
 });

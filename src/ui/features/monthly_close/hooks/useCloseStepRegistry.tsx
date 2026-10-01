@@ -13,7 +13,6 @@ import {
   mapTransactionIssuesToEvidence,
 } from '@/ui/features/monthly_close/mappers/monthlyClose.mappers';
 import type { CloseStageEvidence } from '@/ui/features/monthly_close/viewmodels/monthlyClose.vm';
-import { useAuthIdentity } from '@/ui/hooks/useAuthIdentity';
 
 import { CloseEvidenceOnlyStage } from '../components/CloseEvidenceOnlyStage';
 import { CloseStageLoadError } from '../components/CloseStageLoadError';
@@ -68,17 +67,17 @@ export interface CloseStepContext {
 }
 
 /** The registry entry: control + content factory + evidence builder. */
-export interface CloseStepDefinition {
+export interface CloseStepDefinition<S extends CloseStageId = CloseStageId> {
   /** The stage controller the page dispatches on (closeStageControl contract). */
-  control: CloseStageControl;
+  control: CloseStageControl<S>;
   /** Renders the step's content; a factory returns null when its data has not loaded. */
   render: (ctx: CloseStepContext) => React.ReactNode;
-  /**
-   * Builds the stage's evidence from the shared inputs and the owning stage's
-   * data. The registry is the only place allowed to read across stages.
-   */
+  /** Builds the stage's evidence; the registry is the only place allowed to read across stages. */
   evidence: () => CloseStageEvidence;
 }
+
+/** The full registry: one entry per stage, each control pinned to its own stage id. */
+export type CloseStepRegistry = { [K in CloseStageId]: CloseStepDefinition<K> };
 
 export interface UseCloseStepRegistryArgs {
   householdId: string;
@@ -110,56 +109,44 @@ export const useCloseStepRegistry = ({
   projects,
   debtAccounts,
   pageVM,
-}: UseCloseStepRegistryArgs) => {
-  const auth = useAuthIdentity();
-  const enabled = pageVM.isStarted;
+}: UseCloseStepRegistryArgs): CloseStepRegistry => {
   const accountBalanceStage = useAccountBalanceStage({
     householdId,
     selectedYearMonth,
     accounts,
-    auth,
     confirmingStageId,
-    enabled,
   });
   const securitiesTradeStage = useSecuritiesTradeStage({
     householdId,
     selectedYearMonth,
     confirmingStageId,
-    enabled,
   });
   const portfolioCashFlowStage = usePortfolioCashFlowStage({
     householdId,
     selectedYearMonth,
     portfolios,
-    auth,
     confirmingStageId,
-    enabled,
   });
   const debtRepaymentStage = useDebtRepaymentStage({
     householdId,
     selectedYearMonth,
     debtAccounts,
-    auth,
     confirmingStageId,
-    enabled,
   });
   const projectSettlementStage = useProjectSettlementStage({
     householdId,
     selectedYearMonth,
     confirmingStageId,
-    enabled,
   });
   const transactionValidationStage = useTransactionValidationStage({
     householdId,
     selectedYearMonth,
     confirmingStageId,
-    enabled,
   });
   const completenessCheckStage = useCompletenessCheckStage({
     householdId,
     selectedYearMonth,
     confirmingStageId,
-    enabled,
   });
   const closePeriodControl = useNoOpStageControl('CLOSE_PERIOD', confirmingStageId);
   const financialReportsStage = useFinancialReportsStage({
@@ -167,7 +154,6 @@ export const useCloseStepRegistry = ({
     selectedYearMonth,
     confirmingStageId,
     isClosed: pageVM.isClosed,
-    enabled,
   });
 
   // Steps 7-8 summary VMs: built here, after the stage hooks, so COMPLETENESS_CHECK
@@ -214,12 +200,9 @@ export const useCloseStepRegistry = ({
   const isFinancialReportsCompleted =
     pageVM.stages.find((stage) => stage.stageId === 'FINANCIAL_REPORTS')?.isCompleted ?? false;
 
-  // Step 7's evidence is aggregated from two owning stage hooks. Either one
-  // failing its load makes the readiness unknown rather than clean: a failed
-  // same-month refresh keeps the previous values on screen (#226), so the error
-  // flag — not the data — decides whether Step 7 may confirm.
+  // Either owning load failing or not having landed makes Step 7 unknown.
   const step7Error = completenessCheckStage.errorMessage ?? transactionValidationStage.errorMessage;
-  const isStep7Ready = step7Error === null;
+  const isStep7Ready = completenessCheckStage.isReady && transactionValidationStage.isReady;
 
   // The front-end close gate (#234): a figure drifting between the live preview
   // and the persisted report means Step 8 was confirmed and the data moved
@@ -252,7 +235,7 @@ export const useCloseStepRegistry = ({
           loadErrorMessage={accountBalanceStage.errorMessage}
           accounts={ctx.accounts}
           accountSnapshots={accountBalanceStage.accountSnapshots}
-          balances={accountBalanceStage.balances}
+          balances={accountBalanceStage.balances ?? []}
           setBalances={accountBalanceStage.setBalances}
           onConfirm={ctx.onConfirm}
           onBackToCurrent={ctx.onBack}
@@ -298,7 +281,7 @@ export const useCloseStepRegistry = ({
           loadErrorMessage={portfolioCashFlowStage.errorMessage}
           portfolios={ctx.portfolios}
           portfolioSnapshots={portfolioCashFlowStage.portfolioSnapshots}
-          cashFlows={portfolioCashFlowStage.cashFlows}
+          cashFlows={portfolioCashFlowStage.cashFlows ?? {}}
           setCashFlows={portfolioCashFlowStage.setCashFlows}
           onConfirm={ctx.onConfirm}
           onBackToCurrent={ctx.onBack}
@@ -326,7 +309,7 @@ export const useCloseStepRegistry = ({
           loadErrorMessage={debtRepaymentStage.errorMessage}
           debtAccounts={debtRepaymentStage.debtSectionMetas}
           yearMonth={selectedYearMonth}
-          repayments={debtRepaymentStage.repayments}
+          repayments={debtRepaymentStage.repayments ?? []}
           setRepayments={debtRepaymentStage.setRepayments}
           onConfirm={ctx.onConfirm}
           onBackToCurrent={ctx.onBack}
@@ -373,6 +356,7 @@ export const useCloseStepRegistry = ({
           reports={financialReportsStage.reports}
           timestamps={financialReportsStage.timestamps}
           isLoading={financialReportsStage.isLoading}
+          isReady={financialReportsStage.isReady}
           error={financialReportsStage.error}
           isSettlementReady={
             isStep7Ready ? (completenessCheckStage.readiness?.isReady ?? null) : null
@@ -408,5 +392,5 @@ export const useCloseStepRegistry = ({
       ),
       evidence: closePeriodEvidence,
     },
-  } satisfies Record<CloseStageId, CloseStepDefinition>;
+  } satisfies CloseStepRegistry;
 };

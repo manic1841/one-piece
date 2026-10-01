@@ -10,7 +10,12 @@ vi.mock('@/application/portfolio/use_cases/listPortfolioSnapshotsUseCase', () =>
   listPortfolioSnapshotsUseCase: { execute: vi.fn() },
 }));
 
-const auth = { uid: 'user-1', email: 'user@test.com', isGlobalAdmin: false };
+const { authIdentity } = vi.hoisted(() => ({
+  authIdentity: { uid: 'user-1', email: 'user@test.com', isGlobalAdmin: false },
+}));
+vi.mock('@/ui/hooks/useAuthIdentity', () => ({
+  useAuthIdentity: () => authIdentity,
+}));
 
 const portfolio = (id: string): Portfolio =>
   ({
@@ -40,7 +45,6 @@ describe('usePortfolioCashFlowStage', () => {
         householdId: 'household-1',
         selectedYearMonth: '2026-08',
         portfolios,
-        auth,
         confirmingStageId: null,
       }),
     );
@@ -61,13 +65,12 @@ describe('usePortfolioCashFlowStage', () => {
         householdId: 'household-1',
         selectedYearMonth: '2026-08',
         portfolios,
-        auth,
         confirmingStageId: null,
       }),
     );
     await waitFor(() => expect(result.current.portfolioSnapshots.size).toBe(1));
     expect(result.current.portfolioSnapshots.get('p-1')).toBeNull();
-    expect(result.current.cashFlows).toEqual({});
+    expect(result.current.cashFlows).toBeNull();
   });
 
   it('seeds once per month and never overwrites later edits', async () => {
@@ -75,57 +78,34 @@ describe('usePortfolioCashFlowStage', () => {
       snapshot('s-1', { deposits: 700, withdrawals: 0 }),
     ]);
     const portfolios = [portfolio('p-1')];
-    const { result, rerender } = renderHook(
-      ({ month }: { month: string }) =>
+    const renderFor = (month: string) =>
+      renderHook(() =>
         usePortfolioCashFlowStage({
           householdId: 'household-1',
           selectedYearMonth: month,
           portfolios,
-          auth,
           confirmingStageId: null,
         }),
-      { initialProps: { month: '2026-08' } },
-    );
-    await waitFor(() => expect(result.current.cashFlows['p-1']).toBeDefined());
+      );
+
+    const august = renderFor('2026-08');
+    await waitFor(() => expect(august.result.current.cashFlows['p-1']).toBeDefined());
     act(() => {
-      result.current.setCashFlows({ 'p-1': { deposits: 9_999, withdrawals: 0 } });
+      august.result.current.setCashFlows({ 'p-1': { deposits: 9_999, withdrawals: 0 } });
     });
     // #235: a same-month reload goes through the stage's own `refresh`, which is
     // the single reload entry the page broadcasts — not a prop-driven counter.
     await act(async () => {
-      await result.current.refresh?.();
+      await august.result.current.refresh?.();
     });
-    await waitFor(() => expect(result.current.portfolioSnapshots.get('p-1')).not.toBeNull());
-    expect(result.current.cashFlows['p-1'].deposits).toBe(9_999);
-    rerender({ month: '2026-09' });
-    await waitFor(() => expect(result.current.cashFlows['p-1'].deposits).toBe(700));
-  });
+    await waitFor(() => expect(august.result.current.portfolioSnapshots.get('p-1')).not.toBeNull());
+    expect(august.result.current.cashFlows['p-1'].deposits).toBe(9_999);
 
-  it('clears the portfolio snapshot map immediately on month switch', async () => {
-    vi.mocked(listPortfolioSnapshotsUseCase.execute).mockImplementation(async ({ month }) => {
-      if (month === 8) {
-        return [snapshot('s-1', { deposits: 1_000, withdrawals: 100 })];
-      }
-      return [];
-    });
-    const portfolios = [portfolio('p-1')];
-    const { result, rerender } = renderHook(
-      ({ month }: { month: string }) =>
-        usePortfolioCashFlowStage({
-          householdId: 'household-1',
-          selectedYearMonth: month,
-          portfolios,
-          auth,
-          confirmingStageId: null,
-        }),
-      { initialProps: { month: '2026-08' } },
-    );
-    await waitFor(() => expect(result.current.portfolioSnapshots.size).toBe(1));
-    expect(result.current.portfolioSnapshots.get('p-1')?.cashFlow.deposits).toBe(1_000);
-    rerender({ month: '2026-09' });
-    expect(result.current.portfolioSnapshots.size).toBe(0);
-    await waitFor(() => expect(result.current.portfolioSnapshots.size).toBe(1));
-    expect(result.current.portfolioSnapshots.get('p-1')).toBeNull();
+    // A new month is a new mount, so the owned draft cannot survive it.
+    august.unmount();
+    const { result } = renderFor('2026-09');
+
+    await waitFor(() => expect(result.current.cashFlows['p-1'].deposits).toBe(700));
   });
 
   // #231: a failed prefill load used to leave an empty draft that read as a
@@ -142,7 +122,6 @@ describe('usePortfolioCashFlowStage', () => {
         householdId: 'household-1',
         selectedYearMonth: '2026-08',
         portfolios,
-        auth,
         confirmingStageId: null,
       }),
     );
@@ -150,7 +129,7 @@ describe('usePortfolioCashFlowStage', () => {
     await waitFor(() =>
       expect(result.current.errorMessage).toBe('無法載入 Portfolio 金流，請稍後再試。'),
     );
-    expect(result.current.cashFlows).toEqual({});
+    expect(result.current.cashFlows).toBeNull();
 
     act(() => {
       result.current.setCashFlows({ 'p-1': { deposits: 5_000, withdrawals: 0 } });

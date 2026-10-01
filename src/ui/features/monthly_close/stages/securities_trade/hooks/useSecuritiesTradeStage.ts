@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { type Dispatch, type SetStateAction, useCallback, useMemo } from 'react';
 
 import { getMonthInvestmentFinancingUseCase } from '@/application/monthly_close/use_cases/getMonthInvestmentFinancingUseCase';
 import { type FinancingInput } from '@/application/monthly_close/use_cases/monthlyCloseRequests';
@@ -9,7 +9,8 @@ import {
   EMPTY_STAGE_CONFIRM_OPTIONS,
   useConfirmStageControl,
 } from '@/ui/features/monthly_close/hooks/useConfirmStageControl';
-import { useLoadingTask } from '@/ui/hooks/useLoadingTask';
+import { useSeededDraft } from '@/ui/features/monthly_close/hooks/useSeededDraft';
+import { useStageLoader } from '@/ui/features/monthly_close/hooks/useStageLoader';
 import { logger } from '@/utils/logger';
 
 import { useTradeDrawer } from './useTradeDrawer';
@@ -31,38 +32,43 @@ const toTradeRow = (transaction: {
   projectId: transaction.projectId,
 });
 
+type SecuritiesRows = { buys: SecuritiesTradeInput[]; sells: SecuritiesTradeInput[] };
+type FinancingRows = {
+  shareholderFinancing: FinancingInput[];
+  dividendPayout: FinancingInput[];
+};
+
+/** The whole stage draft: rows are swapped between buckets and a removal rewrites rows and IDs together. */
+interface SecuritiesTradeDraft {
+  securities: SecuritiesRows;
+  financing: FinancingRows;
+  removedTransactionIds: string[];
+}
+
+const EMPTY_DRAFT: SecuritiesTradeDraft = {
+  securities: { buys: [], sells: [] },
+  financing: { shareholderFinancing: [], dividendPayout: [] },
+  removedTransactionIds: [],
+};
+
 interface UseSecuritiesTradeStageArgs {
   householdId: string;
   selectedYearMonth: string;
   confirmingStageId: string | null;
-  enabled?: boolean;
 }
 
-/**
- * Stage controller for SECURITIES_TRADE: owns the diff-merge draft (buys,
- * sells, financing, removed IDs), the month-transaction prefill, the
- * empty-stage pre-confirm warning, and the add-edit trade drawer with its
- * RHF form. Drafts and the drawer live here; the page only orchestrates.
- */
+/** Stage controller for SECURITIES_TRADE: the diff-merge draft, prefill, warning, and drawer. */
 export const useSecuritiesTradeStage = ({
   householdId,
   selectedYearMonth,
   confirmingStageId,
-  enabled = true,
-}: UseSecuritiesTradeStageArgs): CloseStageControl & {
-  securities: { buys: SecuritiesTradeInput[]; sells: SecuritiesTradeInput[] };
-  setSecurities: React.Dispatch<
-    React.SetStateAction<{ buys: SecuritiesTradeInput[]; sells: SecuritiesTradeInput[] }>
-  >;
-  financing: { shareholderFinancing: FinancingInput[]; dividendPayout: FinancingInput[] };
-  setFinancing: React.Dispatch<
-    React.SetStateAction<{
-      shareholderFinancing: FinancingInput[];
-      dividendPayout: FinancingInput[];
-    }>
-  >;
+}: UseSecuritiesTradeStageArgs): CloseStageControl<'SECURITIES_TRADE'> & {
+  securities: SecuritiesRows;
+  setSecurities: Dispatch<SetStateAction<SecuritiesRows>>;
+  financing: FinancingRows;
+  setFinancing: Dispatch<SetStateAction<FinancingRows>>;
   removedTransactionIds: string[];
-  setRemovedTransactionIds: React.Dispatch<React.SetStateAction<string[]>>;
+  setRemovedTransactionIds: Dispatch<SetStateAction<string[]>>;
   /** The drawer's VM projection: state, open/close/confirm wiring, and the RHF form. */
   drawer: ReturnType<typeof useTradeDrawer>;
   drawerForm: ReturnType<typeof useTradeDrawerForm>;
@@ -71,65 +77,60 @@ export const useSecuritiesTradeStage = ({
   /** Canned copy when the month-transaction prefill failed to load. */
   errorMessage: string | null;
 } => {
-  const [securities, setSecurities] = useState<{
-    buys: SecuritiesTradeInput[];
-    sells: SecuritiesTradeInput[];
-  }>({ buys: [], sells: [] });
-  const [financing, setFinancing] = useState<{
-    shareholderFinancing: FinancingInput[];
-    dividendPayout: FinancingInput[];
-  }>({ shareholderFinancing: [], dividendPayout: [] });
-  const [removedTransactionIds, setRemovedTransactionIds] = useState<string[]>([]);
   const { confirm: confirmDialog } = useConfirm();
-  const { errorMessage, run } = useLoadingTask();
-  const inFlightRef = useRef<AbortController | null>(null);
 
   // SECURITIES_TRADE prefill: the month's existing investment and financing
   // transactions become editable rows carrying their transaction IDs, so the
   // confirmation diff-merges instead of duplicating (ADR-0052 revision).
-  // `control.refresh` re-runs it after a confirm, so local rows pick up their
-  // Firestore document IDs.
-  const load = useCallback(async () => {
-    if (!householdId || !selectedYearMonth) return;
-    inFlightRef.current?.abort();
-    const controller = new AbortController();
-    inFlightRef.current = controller;
-
-    await run(
-      async () => {
-        try {
-          return await getMonthInvestmentFinancingUseCase.execute({
-            householdId,
-            year: Number(selectedYearMonth.slice(0, 4)),
-            month: Number(selectedYearMonth.slice(5, 7)),
-          });
-        } catch (caught) {
-          logger.warn('Failed to load month transactions', 'useSecuritiesTradeStage', { caught });
-          throw new Error(LOAD_ERROR);
-        }
-      },
-      {
-        signal: controller.signal,
-        writeBack: (result) => {
-          if (!result.ok) return;
-          setSecurities({
-            buys: result.value.buys.map(toTradeRow),
-            sells: result.value.sells.map(toTradeRow),
-          });
-          setFinancing({
-            shareholderFinancing: result.value.shareholderFinancing.map(toTradeRow),
-            dividendPayout: result.value.dividendPayout.map(toTradeRow),
-          });
-          setRemovedTransactionIds([]);
+  const load = useCallback(async (): Promise<SecuritiesTradeDraft> => {
+    try {
+      const result = await getMonthInvestmentFinancingUseCase.execute({
+        householdId,
+        year: Number(selectedYearMonth.slice(0, 4)),
+        month: Number(selectedYearMonth.slice(5, 7)),
+      });
+      return {
+        securities: { buys: result.buys.map(toTradeRow), sells: result.sells.map(toTradeRow) },
+        financing: {
+          shareholderFinancing: result.shareholderFinancing.map(toTradeRow),
+          dividendPayout: result.dividendPayout.map(toTradeRow),
         },
-      },
-    );
-  }, [householdId, run, selectedYearMonth]);
+        removedTransactionIds: [],
+      };
+    } catch (caught) {
+      logger.warn('Failed to load month transactions', 'useSecuritiesTradeStage', { caught });
+      throw new Error(LOAD_ERROR);
+    }
+  }, [householdId, selectedYearMonth]);
 
-  useEffect(() => {
-    if (!enabled) return;
-    void load();
-  }, [enabled, load]);
+  const { data, errorMessage, refresh } = useStageLoader<SecuritiesTradeDraft>({
+    enabled: householdId !== '' && selectedYearMonth !== '',
+    load,
+  });
+  // One draft unit: the drawer moves rows between buckets and records a removal together.
+  const [draft, setDraft] = useSeededDraft<SecuritiesTradeDraft>(data);
+
+  const securities = draft?.securities ?? EMPTY_DRAFT.securities;
+  const financing = draft?.financing ?? EMPTY_DRAFT.financing;
+  const removedTransactionIds = draft?.removedTransactionIds ?? EMPTY_DRAFT.removedTransactionIds;
+
+  const setDraftBucket = useCallback(
+    <K extends keyof SecuritiesTradeDraft>(bucket: K) =>
+      (updater: SetStateAction<SecuritiesTradeDraft[K]>) =>
+        setDraft((previous) => {
+          const base = previous ?? EMPTY_DRAFT;
+          const value = typeof updater === 'function' ? updater(base[bucket]) : updater;
+          return { ...base, [bucket]: value };
+        }),
+    [setDraft],
+  );
+
+  const setSecurities = useMemo(() => setDraftBucket('securities'), [setDraftBucket]);
+  const setFinancing = useMemo(() => setDraftBucket('financing'), [setDraftBucket]);
+  const setRemovedTransactionIds = useMemo(
+    () => setDraftBucket('removedTransactionIds'),
+    [setDraftBucket],
+  );
 
   const hasSecurities = securities.buys.length > 0 || securities.sells.length > 0;
   const hasFinancing =
@@ -150,12 +151,19 @@ export const useSecuritiesTradeStage = ({
       financing,
       removedTransactionIds,
     }),
-    resetDraft: () => {
-      setSecurities({ buys: [], sells: [] });
-      setFinancing({ shareholderFinancing: [], dividendPayout: [] });
-      setRemovedTransactionIds([]);
+    // Adopt the write's authoritative rows so a re-confirmation updates in place.
+    afterConfirm: (confirmed) => {
+      if (!confirmed) return;
+      setDraft({
+        securities: { buys: confirmed.buys, sells: confirmed.sells },
+        financing: {
+          shareholderFinancing: confirmed.shareholderFinancing,
+          dividendPayout: confirmed.dividendPayout,
+        },
+        removedTransactionIds: [],
+      });
     },
-    refresh: load,
+    refresh,
   });
 
   const closeMonth = new Date(

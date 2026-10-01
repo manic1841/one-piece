@@ -235,7 +235,9 @@ describe('UI layer boundary contract (issue #178, ADR-0062)', () => {
     expect(isNonSurface(stageComponent)).toBe(false);
     // A flat feature tier file is unaffected.
     expect(
-      featureTierOf(path.join(UI_DIR, 'features', 'monthly_close', 'hooks', 'useMonthlyClose.ts')),
+      featureTierOf(
+        path.join(UI_DIR, 'features', 'monthly_close', 'hooks', 'useMonthlyClosePickerPage.ts'),
+      ),
     ).toBe('hooks');
     // A stage folder's own root is not a tier: fail-closed Surface.
     expect(

@@ -14,6 +14,7 @@ import {
 } from '@/application/monthly_close/use_cases/financialReportsWorkflowUseCases';
 import {
   type MonthlyCloseConfirmRequest,
+  type MonthlyCloseConfirmResult,
   type MonthlyCloseResetStagesRequest,
   type MonthlyCloseStartRequest,
 } from '@/application/monthly_close/use_cases/monthlyCloseRequests';
@@ -50,9 +51,20 @@ export type {
   FinancingInput,
   InvestmentFinancingInput,
   MonthlyCloseConfirmRequest,
+  MonthlyCloseConfirmResult,
   MonthlyCloseStartRequest,
+  SecuritiesTradeConfirmResult,
   SecuritiesTradeInput,
 } from '@/application/monthly_close/use_cases/monthlyCloseRequests';
+
+/** A confirm result before its period is attached. */
+type StageConfirmOutcome = Pick<MonthlyCloseConfirmResult, 'stageId' | 'data'>;
+
+/** Attaches the period to a stage's outcome, keeping `stageId` correlated to `data`. */
+const withPeriod = <S extends CloseStageId>(
+  outcome: Pick<MonthlyCloseConfirmResult<S>, 'stageId' | 'data'>,
+  period: FinancialPeriod,
+): MonthlyCloseConfirmResult<S> => ({ stageId: outcome.stageId, period, data: outcome.data });
 
 export class MonthlyCloseWorkflowUseCase {
   private readonly getPeriod = new GetFinancialPeriodUseCase();
@@ -171,12 +183,8 @@ export class MonthlyCloseWorkflowUseCase {
       .map((period) => supersedeClosedPeriodInState(period));
   }
 
-  /**
-   * Single-phase stage confirmation (ADR-0052): the confirmation idempotently
-   * creates that stage's data from the submitted inputs, then marks the stage
-   * complete. Stage order is UI guidance only; the system does not enforce it.
-   */
-  async confirmStage(request: MonthlyCloseConfirmRequest): Promise<FinancialPeriod> {
+  /** Single-phase stage confirmation (ADR-0052): creates the stage's data, then completes it. */
+  async confirmStage(request: MonthlyCloseConfirmRequest): Promise<MonthlyCloseConfirmResult> {
     const { householdId, yearMonth, userEmail, auth, stageId } = request;
     await this.assertMember(householdId, auth);
 
@@ -197,7 +205,8 @@ export class MonthlyCloseWorkflowUseCase {
     ) {
       // ADR-0052: resolving the review means completing the stage confirmation,
       // which returns the workflow to IN_PROGRESS without re-running the check.
-      return this.completeConfirm(current, stageId, userEmail, householdId);
+      const period = await this.completeConfirm(current, stageId, userEmail, householdId);
+      return withPeriod({ stageId, data: undefined }, period);
     }
 
     if (stageId === 'COMPLETENESS_CHECK') {
@@ -208,12 +217,13 @@ export class MonthlyCloseWorkflowUseCase {
         current,
         userEmail,
       );
-      if (paused) return paused;
+      if (paused) return withPeriod({ stageId, data: undefined }, paused);
     }
 
-    await this.runStageAction(yearMonth, auth, request, current);
+    const outcome = await this.runStageAction(yearMonth, auth, request, current);
 
-    return this.completeConfirm(current, stageId, userEmail, householdId);
+    const period = await this.completeConfirm(current, stageId, userEmail, householdId);
+    return withPeriod(outcome, period);
   }
 
   private async completeConfirm(
@@ -305,12 +315,13 @@ export class MonthlyCloseWorkflowUseCase {
     return period;
   }
 
+  /** Runs the stage's data creation; only SECURITIES_TRADE returns rows. */
   private async runStageAction(
     yearMonth: string,
     auth: AuthContext,
     request: MonthlyCloseConfirmRequest,
     current: FinancialPeriod,
-  ): Promise<void> {
+  ): Promise<StageConfirmOutcome> {
     const { householdId, userEmail, stageId } = request;
 
     switch (stageId) {
@@ -323,7 +334,7 @@ export class MonthlyCloseWorkflowUseCase {
           userEmail,
           auth,
         });
-        return;
+        return { stageId, data: undefined };
       }
       case 'TRANSACTION_VALIDATION': {
         await validateMonthTransactionsUseCase.execute({
@@ -332,12 +343,12 @@ export class MonthlyCloseWorkflowUseCase {
           month: this.monthOf(yearMonth),
           auth,
         });
-        return;
+        return { stageId, data: undefined };
       }
       case 'SECURITIES_TRADE': {
         const securities = request.securities;
         const financing = request.financing;
-        await this.syncInvestmentFinancing.execute({
+        const result = await this.syncInvestmentFinancing.execute({
           householdId,
           userEmail,
           auth,
@@ -345,7 +356,7 @@ export class MonthlyCloseWorkflowUseCase {
           financing: financing ?? { shareholderFinancing: [], dividendPayout: [] },
           removedTransactionIds: request.removedTransactionIds,
         });
-        return;
+        return { stageId, data: result };
       }
       case 'PORTFOLIO_CASH_FLOW': {
         await this.recordPortfolioCashFlows.execute({
@@ -356,11 +367,11 @@ export class MonthlyCloseWorkflowUseCase {
           userEmail,
           auth,
         });
-        return;
+        return { stageId, data: undefined };
       }
       case 'PROJECT_SETTLEMENT': {
         await settleProjectsUseCase.execute({ householdId, yearMonth, userEmail, auth });
-        return;
+        return { stageId, data: undefined };
       }
       case 'DEBT_REPAYMENT': {
         await this.recordDebtRepayments.execute({
@@ -370,10 +381,10 @@ export class MonthlyCloseWorkflowUseCase {
           userEmail,
           auth,
         });
-        return;
+        return { stageId, data: undefined };
       }
       case 'COMPLETENESS_CHECK': {
-        return;
+        return { stageId, data: undefined };
       }
       case 'FINANCIAL_REPORTS': {
         await this.runFinancialReports.execute({
@@ -383,11 +394,11 @@ export class MonthlyCloseWorkflowUseCase {
           month: this.monthOf(yearMonth),
           labelResolver: request.labelResolver,
         });
-        return;
+        return { stageId, data: undefined };
       }
       case 'CLOSE_PERIOD': {
         await this.checkCloseReadiness.execute({ householdId, yearMonth, period: current });
-        return;
+        return { stageId, data: undefined };
       }
     }
   }

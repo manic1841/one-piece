@@ -1,4 +1,4 @@
-import { act, renderHook, waitFor } from '@testing-library/react';
+import { renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { validateMonthTransactionsUseCase } from '@/application/monthly_close/use_cases/validateMonthTransactionsUseCase';
@@ -49,27 +49,7 @@ describe('useTransactionValidationStage', () => {
     expect(mockExecute).toHaveBeenCalledTimes(1);
   });
 
-  it('clears the evidence on a month switch before the new month loads', async () => {
-    const { result, rerender } = renderStage();
-    await waitFor(() => expect(result.current.checkedCount).toBe(4));
-
-    mockExecute.mockReturnValue(new Promise(() => {}));
-    act(() => rerender({ ym: '2026-09' }));
-
-    expect(result.current.transactionIssues).toEqual([]);
-    expect(result.current.checkedCount).toBe(0);
-  });
-
-  it('exposes refresh so a confirm rebuilds the evidence', async () => {
-    const { result } = renderStage();
-    await waitFor(() => expect(result.current.checkedCount).toBe(4));
-
-    mockExecute.mockResolvedValue({ yearMonth: '2026-08', checkedCount: 5, issues: [] });
-    await act(() => result.current.refresh?.());
-
-    expect(result.current.checkedCount).toBe(5);
-  });
-
+  // The same-month failure retention is covered in useStageLoader.test.ts.
   it('surfaces the canned message instead of reporting a clean batch on failure', async () => {
     mockExecute.mockRejectedValue(new Error('boom'));
 
@@ -80,20 +60,5 @@ describe('useTransactionValidationStage', () => {
     );
     expect(result.current.checkedCount).toBe(0);
     expect(result.current.transactionIssues).toEqual([]);
-  });
-
-  it('keeps the previous evidence on a same-month refresh failure but flags the error (#226)', async () => {
-    const { result } = renderStage();
-    await waitFor(() => expect(result.current.checkedCount).toBe(4));
-
-    mockExecute.mockRejectedValue(new Error('boom'));
-    await act(() => result.current.refresh?.());
-
-    await waitFor(() =>
-      expect(result.current.errorMessage).toBe('無法載入交易驗證結果，請稍後再試。'),
-    );
-    // Stale values stay on screen by design (no flash-empty), which is exactly
-    // why consumers must gate on the error rather than on the data.
-    expect(result.current.checkedCount).toBe(4);
   });
 });

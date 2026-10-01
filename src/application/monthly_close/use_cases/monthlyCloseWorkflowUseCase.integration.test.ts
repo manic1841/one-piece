@@ -659,7 +659,7 @@ describe('monthlyCloseWorkflowUseCase — emulator integration', () => {
 
     // First confirmation creates all four transaction kinds with
     // intent-specific ledger entries from the intent mapping.
-    await confirmStage('SECURITIES_TRADE', {
+    const firstConfirm = await confirmStage('SECURITIES_TRADE', {
       securities: { buys: [buy], sells: [sell] },
       financing: { shareholderFinancing: [borrow], dividendPayout: [payout] },
     });
@@ -693,6 +693,20 @@ describe('monthlyCloseWorkflowUseCase — emulator integration', () => {
       expect(transaction.entries[0].debit).toBe(expectedAmounts[intent]);
     }
 
+    // #250: the response carries the rows just written, with their IDs.
+    expect(firstConfirm.data?.buys.map((row) => row.transactionId)).toEqual([
+      byIntent.SECURITY_BUY[0].id,
+    ]);
+    expect(firstConfirm.data?.sells.map((row) => row.transactionId)).toEqual([
+      byIntent.SECURITY_SELL[0].id,
+    ]);
+    expect(firstConfirm.data?.shareholderFinancing.map((row) => row.transactionId)).toEqual([
+      byIntent.SHAREHOLDER_FINANCING[0].id,
+    ]);
+    expect(firstConfirm.data?.dividendPayout.map((row) => row.transactionId)).toEqual([
+      byIntent.DIVIDEND_PAYOUT[0].id,
+    ]);
+
     // Capture document IDs from the first booking, then re-confirm with the
     // buy edited, the sell flipped to a buy, the dividend removed, and new
     // financing: IDs are reused (update-in-place), the flip moves the row
@@ -702,7 +716,7 @@ describe('monthlyCloseWorkflowUseCase — emulator integration', () => {
     const firstBorrowId = byIntent.SHAREHOLDER_FINANCING[0].id;
     const firstPayoutId = byIntent.DIVIDEND_PAYOUT[0].id;
 
-    await confirmStage('SECURITIES_TRADE', {
+    const secondConfirm = await confirmStage('SECURITIES_TRADE', {
       securities: {
         buys: [
           { transactionId: firstBuyId, amount: 60_000, date: buy.date, projectId: null },
@@ -750,6 +764,16 @@ describe('monthlyCloseWorkflowUseCase — emulator integration', () => {
     expect(reconfirmed.DIVIDEND_PAYOUT).toHaveLength(1);
     expect(reconfirmed.DIVIDEND_PAYOUT[0].id).not.toBe(firstPayoutId);
     expect(reconfirmed.DIVIDEND_PAYOUT[0].amount).toBe(12_000);
+
+    // The re-confirm reuses the updated rows' IDs and the new payout's fresh ID.
+    expect(secondConfirm.data?.buys.map((row) => row.transactionId)).toEqual([
+      firstBuyId,
+      firstSellId,
+    ]);
+    expect(secondConfirm.data?.sells).toEqual([]);
+    expect(secondConfirm.data?.dividendPayout.map((row) => row.transactionId)).toEqual([
+      reconfirmed.DIVIDEND_PAYOUT[0].id,
+    ]);
   });
 
   it('books a grace-period repayment: above-interest excess books as principal', async () => {

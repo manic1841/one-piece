@@ -105,6 +105,7 @@ export const MONTHLY_CLOSE_LABELS = {
   START_ERROR: '無法開始關帳。',
   REOPEN_ERROR: '無法重新開啟關帳。',
   SELECT_PERIOD: '選擇關帳期間',
+  SWITCH_PERIOD: '切換期間',
   READY: '就緒',
   NOT_READY: '未就緒',
   PERSISTED: '已產生',
