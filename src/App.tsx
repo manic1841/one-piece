@@ -31,13 +31,8 @@ import Transactions from '@/ui/features/transaction/pages/TransactionsPage';
 function App() {
   return (
     <AuthStateProvider gateway={firebaseAuthGateway}>
-      <Toaster
-        toastOptions={{
-          classNames: {
-            toast: 'rounded-lg border border-border bg-card text-card-foreground shadow-lg',
-          },
-        }}
-      />
+      {/* Positioning only — the toast surface is owned by <Toast>. */}
+      <Toaster theme="dark" />
       <AuthGate>
         <ConfirmDialogProvider>
           <BrowserRouter>

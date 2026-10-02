@@ -5,14 +5,8 @@ import { ArrowRight, MoreVertical, Plus, Search, Settings, X } from 'lucide-reac
 import { FinancialNumber } from '@/ui/components/FinancialNumber';
 import { Metric, MetricGroup } from '@/ui/components/MetricGroup';
 import { StatusGlyph } from '@/ui/components/StatusGlyph';
-import { Badge } from '@/ui/components/ui/badge';
-import { Button } from '@/ui/components/ui/button';
-import { CurrencyInput } from '@/ui/components/form/CurrencyInput';
-import { DateInput } from '@/ui/components/form/DateInput';
-import { SelectField } from '@/ui/components/form/Select';
-import { TextInput } from '@/ui/components/form/TextInput';
 import { YearMonthPicker } from '@/ui/components/YearMonthPicker';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/ui/components/ui/tooltip';
+import { BarChart } from '@/ui/components/charts/BarChart';
 import {
   DataTable,
   DataTableCell,
@@ -24,13 +18,43 @@ import {
   MobileDataList,
   MobileDataRow,
 } from '@/ui/components/data-table';
+import { CurrencyInput } from '@/ui/components/form/CurrencyInput';
+import { DateInput } from '@/ui/components/form/DateInput';
+import { SelectField } from '@/ui/components/form/Select';
+import { TextInput } from '@/ui/components/form/TextInput';
+import { Badge } from '@/ui/components/ui/badge';
+import { Button } from '@/ui/components/ui/button';
 import { TableBody, TableHeader } from '@/ui/components/ui/table';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/ui/components/ui/tooltip';
+
 import { GalleryIntro, GalleryModule, GallerySection } from './GalleryScaffold';
+import { ToastSection } from './GalleryToasts';
 
 const SAMPLE_TABLE_ROWS = [
-  { id: 't-1', date: 'SEP 18', description: 'Salary Received', account: 'Main Bank', amount: '+NT$85,000', tone: 'positive' as const },
-  { id: 't-2', date: 'SEP 17', description: 'ETF Purchase', account: 'Brokerage', amount: '-NT$20,000', tone: 'negative' as const },
-  { id: 't-3', date: 'SEP 16', description: 'Dividend Received', account: 'Brokerage', amount: '+NT$8,420', tone: 'positive' as const },
+  {
+    id: 't-1',
+    date: 'SEP 18',
+    description: 'Salary Received',
+    account: 'Main Bank',
+    amount: '+NT$85,000',
+    tone: 'positive' as const,
+  },
+  {
+    id: 't-2',
+    date: 'SEP 17',
+    description: 'ETF Purchase',
+    account: 'Brokerage',
+    amount: '-NT$20,000',
+    tone: 'negative' as const,
+  },
+  {
+    id: 't-3',
+    date: 'SEP 16',
+    description: 'Dividend Received',
+    account: 'Brokerage',
+    amount: '+NT$8,420',
+    tone: 'positive' as const,
+  },
 ];
 
 const FieldDemo: React.FC<{ label: string; error?: boolean; children: React.ReactNode }> = ({
@@ -71,7 +95,13 @@ const MetricSection: React.FC = () => (
     <MetricGroup>
       <Metric label="TOTAL ASSETS" value="NT$5,420,000" change="+6.8% YTD" changeTone="positive" />
       <Metric label="TOTAL LIABILITIES" value="NT$598,680" change="-1.2% YTD" />
-      <Metric label="MONTHLY CASH FLOW" value="+NT$36,000" tone="positive" change="+22.4% MoM" changeTone="positive" />
+      <Metric
+        label="MONTHLY CASH FLOW"
+        value="+NT$36,000"
+        tone="positive"
+        change="+22.4% MoM"
+        changeTone="positive"
+      />
       <Metric label="PORTFOLIO RETURN" value="+12.4%" tone="positive" change="YTD" />
     </MetricGroup>
   </GallerySection>
@@ -147,6 +177,7 @@ const StatusSection: React.FC = () => (
   </GallerySection>
 );
 
+const BAR_CHART_LABELS = ['FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP'];
 const BAR_HEIGHTS = [38, 48, 45, 62, 58, 70, 67, 82];
 
 const SectionModuleSection: React.FC = () => (
@@ -157,15 +188,14 @@ const SectionModuleSection: React.FC = () => (
           12M NET WORTH
         </p>
         <div className="my-4 h-px bg-border" />
-        <GalleryModule label="TREND" className="flex h-40 items-end gap-2">
-          {BAR_HEIGHTS.map((height, index) => (
-            <div
-              key={`${height}-${index}`}
-              style={{ height: `${height}%` }}
-              className={index === BAR_HEIGHTS.length - 1 ? 'w-[7%] bg-primary' : 'w-[7%] bg-muted'}
-              aria-hidden="true"
-            />
-          ))}
+        <GalleryModule label="TREND">
+          <BarChart
+            labels={BAR_CHART_LABELS}
+            series={[{ tone: 'neutral', values: BAR_HEIGHTS }]}
+            highlightIndex={BAR_HEIGHTS.length - 1}
+            height={150}
+            ariaLabel="12 month net worth trend"
+          />
         </GalleryModule>
       </div>
       <GalleryModule label="MONTHLY CLOSE">
@@ -202,11 +232,21 @@ const ButtonSection: React.FC = () => (
       </GalleryModule>
       <GalleryModule label="ICON BUTTON">
         <div className="flex flex-wrap items-center gap-2">
-          <Button variant="outline" size="icon" aria-label="Add"><Plus size={16} /></Button>
-          <Button variant="ghost" size="icon" aria-label="More"><MoreVertical size={16} /></Button>
-          <Button variant="ghost" size="icon" aria-label="Settings"><Settings size={16} /></Button>
-          <Button variant="ghost" size="icon" aria-label="Search"><Search size={16} /></Button>
-          <Button variant="outline" size="icon" aria-label="Close"><X size={16} /></Button>
+          <Button variant="outline" size="icon" aria-label="Add">
+            <Plus size={16} />
+          </Button>
+          <Button variant="ghost" size="icon" aria-label="More">
+            <MoreVertical size={16} />
+          </Button>
+          <Button variant="ghost" size="icon" aria-label="Settings">
+            <Settings size={16} />
+          </Button>
+          <Button variant="ghost" size="icon" aria-label="Search">
+            <Search size={16} />
+          </Button>
+          <Button variant="outline" size="icon" aria-label="Close">
+            <X size={16} />
+          </Button>
         </div>
       </GalleryModule>
     </div>
@@ -282,23 +322,14 @@ const PeriodSection: React.FC = () => (
   </GallerySection>
 );
 
-const ToastSection: React.FC = () => (
-  <GallerySection number="11" title="Toast">
-    <div className="rounded-lg border border-border bg-elevated p-4">
-      <p className="font-mono text-xs text-positive">✓ TRANSACTION SAVED</p>
-    </div>
-    <p className="mt-3 font-mono text-[11px] text-muted-foreground">
-      Live toasts: sonner (App.tsx)
-    </p>
-  </GallerySection>
-);
-
 const TooltipSection: React.FC = () => (
   <GallerySection number="12" title="Tooltip">
     <div className="flex min-h-24 items-center justify-center rounded-lg border border-border bg-card">
       <Tooltip>
         <TooltipTrigger asChild>
-          <Button variant="ghost" size="icon" aria-label="Explain">?</Button>
+          <Button variant="ghost" size="icon" aria-label="Explain">
+            ?
+          </Button>
         </TooltipTrigger>
         <TooltipContent>Calculated from Jan 1 to Oct 2, 2026</TooltipContent>
       </Tooltip>

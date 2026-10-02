@@ -17,6 +17,13 @@
 | `src/ui/components/AppFallback.tsx`                  | AppFallback                    |
 | `src/ui/components/ActivityList.tsx`                 | ActivityList / ActivityRow     |
 | `src/ui/components/Avatar.tsx`                       | Avatar                         |
+| `src/ui/components/charts/BarChart.tsx`              | charts / BarChart              |
+| `src/ui/components/charts/ChartLegend.tsx`           | charts / ChartLegend           |
+| `src/ui/components/charts/ChartTooltip.tsx`          | charts / ChartTooltip          |
+| `src/ui/components/charts/DonutChart.tsx`            | charts / DonutChart            |
+| `src/ui/components/charts/InteractiveBarChart.tsx`   | charts / InteractiveBarChart   |
+| `src/ui/components/charts/InteractiveLineChart.tsx`  | charts / InteractiveLineChart  |
+| `src/ui/components/charts/LineChart.tsx`             | charts / LineChart             |
 | `src/ui/components/CliProgress.tsx`                  | CliProgress                    |
 | `src/ui/components/CompactRow.tsx`                   | CompactRow                     |
 | `src/ui/components/Divider.tsx`                      | Divider                        |
@@ -32,6 +39,7 @@
 | `src/ui/components/RadioGroup.tsx`                   | RadioGroup / Radio             |
 | `src/ui/components/Skeleton.tsx`                     | Skeleton                       |
 | `src/ui/components/StatusGlyph.tsx`                  | StatusGlyph                    |
+| `src/ui/components/Toast.tsx`                        | Toast                          |
 | `src/ui/components/Toolbar.tsx`                      | Toolbar                        |
 | `src/ui/components/YearMonthPicker.tsx`              | YearMonthPicker                |
 | `src/ui/components/data-table/DataTable.tsx`         | data-table / DataTable         |
@@ -81,16 +89,19 @@
 
 這些檔案在 `src/ui/components/` 底下但不是元件本身，因此不列為元件條目。列在這裡是為了讓「索引 vs 檔案系統」的比對沒有暗門——新增同類檔案時測試會要求歸類。
 
-| 檔案                                                  | 種類                                  |
-| ----------------------------------------------------- | ------------------------------------- |
-| `src/ui/components/data-table/index.ts`               | barrel                                |
-| `src/ui/components/data-table/parseOptionalAmount.ts` | 內部 helper（`NumberInput` 使用）     |
-| `src/ui/components/data-table/styles.ts`              | 表面常數                              |
-| `src/ui/components/form/form-context.ts`              | 內部接線（context 與 `useFormField`） |
-| `src/ui/components/form/index.ts`                     | barrel                                |
-| `src/ui/components/form/styles.ts`                    | 表面常數                              |
-| `src/ui/components/ui/button-variants.ts`             | 變體定義模組（`button` 使用）         |
-| `src/ui/components/ui/input-styles.ts`                | 表面常數                              |
+| 檔案                                                  | 種類                                       |
+| ----------------------------------------------------- | ------------------------------------------ |
+| `src/ui/components/charts/chartTheme.ts`              | 表面常數（色調對應、donut 色階、數值格式） |
+| `src/ui/components/charts/chartInteraction.ts`        | 互動共用（點型別、index clamp、tooltip 定位） |
+| `src/ui/components/charts/lineChartGeometry.ts`       | 幾何計算（`LineChart` 使用）               |
+| `src/ui/components/data-table/index.ts`               | barrel                                     |
+| `src/ui/components/data-table/parseOptionalAmount.ts` | 內部 helper（`NumberInput` 使用）          |
+| `src/ui/components/data-table/styles.ts`              | 表面常數                                   |
+| `src/ui/components/form/form-context.ts`              | 內部接線（context 與 `useFormField`）      |
+| `src/ui/components/form/index.ts`                     | barrel                                     |
+| `src/ui/components/form/styles.ts`                    | 表面常數                                   |
+| `src/ui/components/ui/button-variants.ts`             | 變體定義模組（`button` 使用）              |
+| `src/ui/components/ui/input-styles.ts`                | 表面常數                                   |
 
 ## 頁面骨架
 
@@ -186,6 +197,11 @@
   - **不要用於**：表單欄位列（用 `form` 套件）。
   - 節例：`src/ui/features/transaction/pages/TransactionsPage.tsx`（遷移見 issue #258）。
 
+- **`Toast`** — Toast 表面（visual-standards §通知）：浮動卡片，左側狀態 glyph + 訊息、右側單一選用動作（UNDO／RETRY）。元件自帶表面（`bg-card` + `border` + `shadow-lg`）；live toast 以 `toast.custom(() => <Toast …/>, { unstyled: true, style: { width: '356px' } })` 掛進 sonner，全域 `Toaster` 只負責定位，不再加表面。Toast 只回報結果，不承載 workflow instruction。
+  - Props：`message`、`tone?`（`success`／`error`）、`actionLabel?`、`onAction?`、`className?`。
+  - **不要用於**：需要使用者解決的問題（用 inline alert）；重要的 workflow instruction；純字串 `toast('…')`（會落到 sonner 預設外觀）。
+  - 節例：`src/ui/features/app/pages/GalleryPrimitives.tsx`。
+
 - **`RadioGroup` / `Radio`** — 行內單選：原生 `input[type=radio]`、`<label>` 包覆控制項，零 Radix 依賴。
   - Props（Group）：`aria-label`（必填）、`name`、`value?`、`onValueChange?`、`children`、`className?`。Props（Radio）：`value`、`label`、`className?`。
   - **不要用於**：二元設定（用 `ui/` 群組的 `switch`）；多選（用 `checkbox`）。
@@ -201,6 +217,46 @@
   - 選擇只暫存在 picker 內（draft state），按 APPLY 才 commit；Escape／外點取消。
   - **不要用於**：單一日期（那是 `form / DateInput`）。
   - 範例：`src/ui/features/account/pages/AccountSnapshotEditor.tsx`
+
+## 圖表 (charts)
+
+資料驅動的圖表群：呼叫端傳值與標籤，幾何、比例與軸標籤由元件推導。色調一律走 `chartTheme.ts` 的 tone→token 對應（`primary` / `positive` / `negative` / `neutral`），不新增顏色（[`design-system.md`](design-system.md) §1）。標籤文字一律由呼叫端提供——元件不得硬編任何領域系列名稱。
+
+- **`charts / LineChart`** — 折線圖：格線、可選面積、座標軸標籤。y 軸以資料範圍加邊距（不做 0 基底），讓大額餘額中的小幅變動仍可讀。
+  - Props：`values`（必填）、`labels?`（長度需與 `values` 相同才會畫 x 軸）、`tone?`、`showArea?`、`markLastPoint?`、`height?`、`ariaLabel?`、`className?`、`children?`（render-prop，取得算好的 geometry 以便疊加互動層）。
+  - **不要用於**：需要 hover 明細——用 `InteractiveLineChart`。
+  - 節例：`src/ui/features/app/pages/GalleryCharts.tsx`
+
+- **`charts / BarChart`** — 分組長條圖。值以**大小**呈現（高度 ∝ 數值），收入／支出用 series 的 tone 表達，不是負高度；`highlightIndex` 指定的欄位改用 primary tone。
+  - Props：`labels`、`series`（`{ tone, values }[]`）、`highlightIndex?`、`height?`、`showLabels?`、`ariaLabel?`、`className?`、`children?`（`(layout) => ReactNode` 疊加層，`layout` 提供每個欄位的 index／label／values／ratio）。
+  - `children` 疊加層會被放在長條區內、與欄位同樣的 flex 版面下；一旦提供 `children`，`ariaLabel` 不再掛 `role="img"`（交給疊加層自行標註語意）。
+  - **不要用於**：長條圖的明細 tooltip——用 `InteractiveBarChart`。
+  - 節例：`src/ui/features/app/pages/GalleryCharts.tsx`
+
+- **`charts / DonutChart`** — 圓環圖：圓環 ＋ 中心標題 ＋（可選）垂直圖例。切片顏色取自共用的 token 色階（首片 accent、其餘中性），佔比由數值推導並四捨五入為整數百分比。
+  - Props：`segments`（`{ label, value }[]`）、`centerLabel`、`size?`、`showLegend?`、`ariaLabel?`、`className?`。
+  - **不要用於**：需要精確讀值——圓環只適合看比例；精確值用數字或表格。
+  - 節例：`src/ui/features/app/pages/GalleryCharts.tsx`
+
+- **`charts / ChartLegend`** — 圖例。`horizontal` 為 inline swatch 列（長條圖），`vertical` 為 label／value 列（圓環）。
+  - Props：`items`（`{ label, tone?, color?, value? }[]`）、`orientation?`、`className?`。
+  - **不要用於**：需要互動切換序列（本輪未實作）。
+  - 節例：`src/ui/features/app/pages/GalleryCharts.tsx`
+
+- **`charts / ChartTooltip`** — 圖表 hover 卡片表面（標題／數值／次要行）。定位由呼叫端負責。
+  - Props：`title`、`value`、`meta?`、`className?`、`style?`。
+  - **不要用於**：非圖表的說明（那用 `ui/tooltip`）。
+  - 節例：`src/ui/components/charts/InteractiveLineChart.tsx`、`src/ui/components/charts/InteractiveBarChart.tsx`
+
+- **`charts / InteractiveLineChart`** — `LineChart` ＋ scrubber：導線、資料點、共用 `ChartTooltip`。整塊以 `role="slider"` 呈現，滑鼠 hover 與鍵盤左右鍵都能選取同一筆資料（Escape 清除）。
+  - Props：`values`、`points`（`{ title, value, meta? }[]`）、`xLabels?`、`tone?`、`height?`、`ariaLabel`（必填）、`className?`。
+  - **不要用於**：只是要看趨勢、不需要明細——用 `LineChart`。
+  - 節例：`src/ui/features/app/pages/GalleryCharts.tsx`
+
+- **`charts / InteractiveBarChart`** — `BarChart` ＋ hover／鍵盤 scrubber：導線、共用 `ChartTooltip`。整塊以 `role="slider"` 呈現，滑鼠移到任一欄位（以各欄實際 rect 命中）或鍵盤左右鍵都能選取該欄（Escape 清除）。
+  - Props：`labels`、`series`、`points`（`{ title, value, meta? }[]`）、`highlightIndex?`、`height?`、`showLabels?`、`ariaLabel`（必填）、`className?`。
+  - **不要用於**：只是要看趨勢、不需要明細——用 `BarChart`。
+  - 節例：`src/ui/features/app/pages/GalleryCharts.tsx`
 
 ## data-table 套件
 

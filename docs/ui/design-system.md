@@ -13,6 +13,7 @@
 記帳工具的介面應該安靜、可信、資料優先。色板為 **dark-first**：`src/index.css` 的 `:root` 直接承載暗色值，不另設 `.dark` class 區塊。**現行 token 值一律以 `src/index.css` 為唯一來源**；主題切換（若未來需要）屆時再引入切換機制與配對色板。
 
 - `primary` 為 teal（暗色底上承擔主要互動色）；`chart-1..5` 為資料視覺色，硬編碼 hex 一律對齊 token。
+- 圖表色調由共用對應決定（`src/ui/components/charts/chartTheme.ts`）：**accent 保留給「當前／選取／主要趨勢」**，其餘資料用中性色阶；圖表保持安靜，不使用裝飾性漸層。
 - 層級由材質（§3）而非色差承擔。
 - 金額語意 token `positive`（收入/資產）與 `negative`（支出/負債警示）定義於 `src/index.css` 並註冊進 `tailwind.config.js`；全站金額一律經此 token 呈現，`destructive` 維持紅系並僅用於不可逆動作。
 - `border-strong` token（比 `border` 亮一階）定義於 `src/index.css` 並註冊進 `tailwind.config.js`；`badge`/`alert` 等需要可見邊界的元件改用它，避免暗色底上邊界消失。
