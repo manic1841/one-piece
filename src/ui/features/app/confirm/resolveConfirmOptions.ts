@@ -1,9 +1,15 @@
+import type { ReactNode } from 'react';
+
 export interface ConfirmOptions {
   title: string;
   context?: string;
   consequence?: string;
   confirmLabel?: string;
   cancelLabel?: string;
+  /** Optional status line (e.g. a StatusGlyph) rendered between the context and the consequence. */
+  status?: ReactNode;
+  /** Visual tone of the confirm button. 'primary' for non-destructive actions; defaults to destructive. */
+  confirmTone?: 'destructive' | 'primary';
 }
 
 export const DEFAULT_CONFIRM_LABEL = 'DELETE';
@@ -27,5 +33,7 @@ export const resolveConfirmOptions = (input: ConfirmOptions | string): ConfirmOp
     consequence: input.consequence ?? DEFAULT_CONSEQUENCE,
     confirmLabel: input.confirmLabel ?? DEFAULT_CONFIRM_LABEL,
     cancelLabel: input.cancelLabel ?? DEFAULT_CANCEL_LABEL,
+    status: input.status,
+    confirmTone: input.confirmTone,
   };
 };

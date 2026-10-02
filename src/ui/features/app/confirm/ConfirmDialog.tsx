@@ -1,32 +1,28 @@
 import React, { useCallback, useMemo, useRef, useState } from 'react';
 
-import { Button } from '@/ui/components/ui/button';
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
 } from '@/ui/components/ui/dialog';
 
 import {
   type ConfirmOptions,
-  DEFAULT_CANCEL_LABEL,
-  DEFAULT_CONFIRM_LABEL,
   resolveConfirmOptions,
 } from './resolveConfirmOptions';
 import { ConfirmContext } from './useConfirm';
+import { ConfirmDialogBody } from './ConfirmDialogBody';
 
 export const ConfirmDialogProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [options, setOptions] = useState<ConfirmOptions | null>(null);
+  const [content, setContent] = useState<ConfirmOptions | null>(null);
+  const [open, setOpen] = useState(false);
   const resolverRef = useRef<((confirmed: boolean) => void) | null>(null);
 
   const confirm = useCallback((input: ConfirmOptions | string) => {
     return new Promise<boolean>((resolve) => {
       resolverRef.current?.(false);
       resolverRef.current = resolve;
-      setOptions(resolveConfirmOptions(input));
+      setContent(resolveConfirmOptions(input));
+      setOpen(true);
     });
   }, []);
 
@@ -34,7 +30,7 @@ export const ConfirmDialogProvider: React.FC<{ children: React.ReactNode }> = ({
     const resolver = resolverRef.current;
     resolverRef.current = null;
     resolver?.(confirmed);
-    setOptions(null);
+    setOpen(false);
   }, []);
 
   const value = useMemo(() => ({ confirm }), [confirm]);
@@ -43,27 +39,17 @@ export const ConfirmDialogProvider: React.FC<{ children: React.ReactNode }> = ({
     <ConfirmContext.Provider value={value}>
       {children}
       <Dialog
-        open={options != null}
-        onOpenChange={(open) => {
-          if (!open) settle(false);
+        open={open}
+        onOpenChange={(o) => {
+          if (!o) settle(false);
         }}
       >
         <DialogContent className="max-w-md" aria-describedby={undefined}>
-          <DialogHeader>
-            <DialogTitle>{options?.title}</DialogTitle>
-            {options?.context && <DialogDescription>{options.context}</DialogDescription>}
-          </DialogHeader>
-          {options?.consequence && (
-            <p className="text-sm text-muted-foreground">{options.consequence}</p>
-          )}
-          <DialogFooter>
-            <Button variant="outline" onClick={() => settle(false)}>
-              {options?.cancelLabel ?? DEFAULT_CANCEL_LABEL}
-            </Button>
-            <Button variant="destructive" onClick={() => settle(true)}>
-              {options?.confirmLabel ?? DEFAULT_CONFIRM_LABEL}
-            </Button>
-          </DialogFooter>
+          <ConfirmDialogBody
+            options={content}
+            onConfirm={() => settle(true)}
+            onCancel={() => settle(false)}
+          />
         </DialogContent>
       </Dialog>
     </ConfirmContext.Provider>
