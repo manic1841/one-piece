@@ -20,10 +20,8 @@ export function PageSection({ number, title, children, className }: PageSectionP
   return (
     <section className={cn('border-b border-border py-10', className)}>
       {(number !== undefined || title !== undefined) && (
-        <p className="mb-6 font-mono text-[11px] uppercase tracking-heading text-muted-foreground">
-          {number !== undefined && title !== undefined
-            ? `${number} / ${title}`
-            : number ?? title}
+        <p className="mb-6 font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
+          {number !== undefined && title !== undefined ? `${number} / ${title}` : (number ?? title)}
         </p>
       )}
       {children}

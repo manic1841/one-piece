@@ -21,7 +21,6 @@ const ROUNDED_FULL_ALLOWED = new Set([
   'components/charts/DonutChart.tsx',
   'components/charts/InteractiveLineChart.tsx',
   'components/ui/switch.tsx',
-  'features/app/layout/Layout.tsx',
   'features/app/layout/PixelPet.tsx',
   'features/auth/pages/AccessDeniedPage.tsx',
   'features/dashboard/components/AssetsLiabilitiesBlock.tsx',

@@ -17,7 +17,7 @@ type ModuleProps = {
 export function Module({ label, children, className }: ModuleProps) {
   return (
     <div className={cn('min-w-0 rounded-lg border border-border bg-card p-5', className)}>
-      <p className="mb-4 font-mono text-[11px] uppercase tracking-heading text-muted-foreground">
+      <p className="mb-4 font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
         {label}
       </p>
       {children}

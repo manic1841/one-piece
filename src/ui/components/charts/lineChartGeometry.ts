@@ -1,5 +1,3 @@
-import { formatChartValue } from './chartTheme';
-
 /**
  * Line geometry for `LineChart`. Charts stay data-driven: callers pass values,
  * the geometry (path, gridlines, labels) is derived here so every line chart in
@@ -37,7 +35,6 @@ export interface LineChartGeometry {
   areaPath: string;
   /** Horizontal gridline positions, in viewBox units. */
   gridLines: number[];
-  yLabels: { y: number; text: string }[];
   xLabels: { x: number; text: string }[];
 }
 
@@ -46,7 +43,6 @@ const EMPTY_GEOMETRY: LineChartGeometry = {
   path: '',
   areaPath: '',
   gridLines: [],
-  yLabels: [],
   xLabels: [],
 };
 
@@ -97,10 +93,6 @@ export function buildLineGeometry(
     const ratio = index / (lineCount - 1);
     return Number((PADDING_TOP + (1 - ratio) * innerHeight).toFixed(2));
   });
-  const yLabels = gridLines.map((y, index) => ({
-    y,
-    text: formatChartValue(yMin + (ySpan * index) / (lineCount - 1)),
-  }));
 
   const xLabels: { x: number; text: string }[] = [];
   if (labels.length === values.length) {
@@ -112,5 +104,5 @@ export function buildLineGeometry(
     });
   }
 
-  return { points, path, areaPath, gridLines, yLabels, xLabels };
+  return { points, path, areaPath, gridLines, xLabels };
 }

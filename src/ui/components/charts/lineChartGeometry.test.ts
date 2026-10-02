@@ -75,14 +75,6 @@ describe('buildLineGeometry', () => {
     expect(geometry.xLabels[geometry.xLabels.length - 1].text).toBe('M23');
   });
 
-  it('renders y labels from the low end up, matching the gridline order', () => {
-    const geometry = buildLineGeometry([100, 400]);
-
-    expect(geometry.gridLines).toHaveLength(4);
-    expect(geometry.yLabels[0].text).toBe('70');
-    expect(geometry.yLabels[3].y).toBeLessThan(geometry.yLabels[0].y);
-  });
-
   it('omits x labels when their length does not match the values', () => {
     const geometry = buildLineGeometry([1, 2, 3], ['JAN', 'FEB']);
 

@@ -2,15 +2,10 @@ import * as React from 'react';
 
 import { cn } from '@/ui/utils/cn';
 
+import { ChartScrubber } from './ChartScrubber';
 import { ChartTooltip } from './ChartTooltip';
 import { LineChart } from './LineChart';
-import {
-  type ChartPoint,
-  clampIndex,
-  describePoint,
-  shouldFlipTooltip,
-  useTooltipAllowance,
-} from './chartInteraction';
+import { type ChartPoint, clampIndex, shouldFlipTooltip } from './chartInteraction';
 import type { ChartTone } from './chartTheme';
 import type { LineChartGeometry } from './lineChartGeometry';
 
@@ -34,81 +29,64 @@ const ChartHoverLayer: React.FC<{
   plotHeight: number;
 }> = ({ geometry, points, ariaLabel, plotHeight }) => {
   const count = geometry.points.length;
-  const [active, setActive] = React.useState<number | null>(null);
-  const { ref: tooltipRef, allowedTopRatio } = useTooltipAllowance(plotHeight, active);
 
-  if (count === 0) return null;
-
-  const point = active === null ? undefined : geometry.points[active];
-  const tip = active === null ? undefined : points[active];
-
-  const handleMove = (event: React.MouseEvent<HTMLDivElement>) => {
+  const resolveIndex = (event: React.MouseEvent<HTMLDivElement>, length: number) => {
     const rect = event.currentTarget.getBoundingClientRect();
-    if (rect.width === 0) return;
+    if (rect.width === 0) return -1;
     const ratio = (event.clientX - rect.left) / rect.width;
-    setActive(clampIndex(Math.round(ratio * (count - 1)), count));
+    return clampIndex(Math.round(ratio * (length - 1)), length);
   };
-
-  const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
-    if (event.key === 'ArrowRight' || event.key === 'ArrowLeft') {
-      event.preventDefault();
-      const step = event.key === 'ArrowRight' ? 1 : -1;
-      setActive(clampIndex((active ?? -1) + step, count));
-      return;
-    }
-    if (event.key === 'Escape') setActive(null);
-  };
-
-  const flipped = shouldFlipTooltip(point?.xRatio ?? 0);
 
   return (
-    <div
-      role="slider"
-      tabIndex={0}
-      aria-label={ariaLabel}
-      aria-valuemin={0}
-      aria-valuemax={count - 1}
-      aria-valuenow={active ?? 0}
-      aria-valuetext={tip === undefined ? undefined : describePoint(tip)}
+    <ChartScrubber
+      count={count}
+      plotHeight={plotHeight}
+      points={points}
+      ariaLabel={ariaLabel}
       className="absolute inset-0 cursor-crosshair outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
-      onMouseMove={handleMove}
-      onMouseLeave={() => setActive(null)}
-      onKeyDown={handleKeyDown}
+      resolveIndex={resolveIndex}
     >
-      {point !== undefined && (
-        <>
-          <span
-            aria-hidden="true"
-            className="pointer-events-none absolute inset-y-0 w-px bg-border-strong"
-            style={{ left: `${point.xRatio * 100}%` }}
-          />
-          <span
-            aria-hidden="true"
-            className="pointer-events-none absolute h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-primary bg-card"
-            style={{ left: `${point.xRatio * 100}%`, top: `${point.topRatio * 100}%` }}
-          />
-          <span
-            aria-hidden="true"
-            className="pointer-events-none absolute h-1 w-1 -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary"
-            style={{ left: `${point.xRatio * 100}%`, top: `${point.topRatio * 100}%` }}
-          />
-          {tip !== undefined && (
-            <ChartTooltip
-              ref={tooltipRef}
-              title={tip.title}
-              value={tip.value}
-              meta={tip.meta}
-              className={cn('absolute z-10 -mt-3', flipped ? '-ml-3.5' : 'ml-3.5')}
-              style={{
-                left: `${point.xRatio * 100}%`,
-                top: `${Math.max(point.topRatio, allowedTopRatio) * 100}%`,
-                transform: flipped ? 'translate(-100%, -100%)' : 'translate(0, -100%)',
-              }}
+      {({ active, tooltipRef, allowedTopRatio }) => {
+        const point = active === null ? undefined : geometry.points[active];
+        const tip = active === null ? undefined : points[active];
+        if (point === undefined) return null;
+        const flipped = shouldFlipTooltip(point.xRatio);
+
+        return (
+          <>
+            <span
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-y-0 w-px bg-border-strong"
+              style={{ left: `${point.xRatio * 100}%` }}
             />
-          )}
-        </>
-      )}
-    </div>
+            <span
+              aria-hidden="true"
+              className="pointer-events-none absolute h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-primary bg-card"
+              style={{ left: `${point.xRatio * 100}%`, top: `${point.topRatio * 100}%` }}
+            />
+            <span
+              aria-hidden="true"
+              className="pointer-events-none absolute h-1 w-1 -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary"
+              style={{ left: `${point.xRatio * 100}%`, top: `${point.topRatio * 100}%` }}
+            />
+            {tip !== undefined && (
+              <ChartTooltip
+                ref={tooltipRef}
+                title={tip.title}
+                value={tip.value}
+                meta={tip.meta}
+                className={cn('absolute z-10 -mt-3', flipped ? '-ml-3.5' : 'ml-3.5')}
+                style={{
+                  left: `${point.xRatio * 100}%`,
+                  top: `${Math.max(point.topRatio, allowedTopRatio) * 100}%`,
+                  transform: flipped ? 'translate(-100%, -100%)' : 'translate(0, -100%)',
+                }}
+              />
+            )}
+          </>
+        );
+      }}
+    </ChartScrubber>
   );
 };
 

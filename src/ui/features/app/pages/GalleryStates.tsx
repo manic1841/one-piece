@@ -1,8 +1,7 @@
 import React from 'react';
 
-import { toast } from 'sonner';
-
 import { ArrowRight, Search, Settings } from 'lucide-react';
+import { toast } from 'sonner';
 
 import { ActivityList, ActivityRow } from '@/ui/components/ActivityList';
 import { Avatar } from '@/ui/components/Avatar';
@@ -38,6 +37,7 @@ import { ConfirmDialogBody } from '@/ui/features/app/confirm/ConfirmDialogBody';
 import type { ConfirmOptions } from '@/ui/features/app/confirm/resolveConfirmOptions';
 import { useConfirm } from '@/ui/features/app/confirm/useConfirm';
 import CommandPalette from '@/ui/features/app/layout/CommandPalette';
+
 import { DrawerSection } from './GalleryDrawer';
 import { GalleryModule, GallerySection } from './GalleryScaffold';
 
@@ -129,9 +129,27 @@ const ActivitySection: React.FC = () => (
   <GallerySection number="25" title="Activity List">
     <GalleryModule label="RECENT ACTIVITY">
       <ActivityList>
-        <ActivityRow date="SEP 18" title="Salary Received" meta="Main Bank" amount="+NT$85,000" tone="positive" />
-        <ActivityRow date="SEP 17" title="ETF Purchase" meta="Brokerage" amount="-NT$20,000" tone="negative" />
-        <ActivityRow date="SEP 16" title="Dividend Received" meta="Brokerage" amount="+NT$8,420" tone="positive" />
+        <ActivityRow
+          date="SEP 18"
+          title="Salary Received"
+          meta="Main Bank"
+          amount="+NT$85,000"
+          tone="positive"
+        />
+        <ActivityRow
+          date="SEP 17"
+          title="ETF Purchase"
+          meta="Brokerage"
+          amount="-NT$20,000"
+          tone="negative"
+        />
+        <ActivityRow
+          date="SEP 16"
+          title="Dividend Received"
+          meta="Brokerage"
+          amount="+NT$8,420"
+          tone="positive"
+        />
       </ActivityList>
     </GalleryModule>
   </GallerySection>
@@ -147,7 +165,9 @@ const UserSection: React.FC = () => (
           <p className="font-mono text-[11px] text-muted-foreground">celine@onepiece.app</p>
         </div>
         <div className="ml-auto flex gap-2">
-          <Button variant="ghost" size="icon" aria-label="Settings"><Settings size={16} /></Button>
+          <Button variant="ghost" size="icon" aria-label="Settings">
+            <Settings size={16} />
+          </Button>
           <Button variant="text">Log out</Button>
         </div>
       </div>
@@ -218,7 +238,12 @@ const SelectionSection: React.FC<{ cadence: string; onCadenceChange: (value: str
 }) => (
   <GallerySection number="30" title="Radio / Single Selection">
     <GalleryModule label="CADENCE">
-      <RadioGroup aria-label="Cadence" name="cadence" value={cadence} onValueChange={onCadenceChange}>
+      <RadioGroup
+        aria-label="Cadence"
+        name="cadence"
+        value={cadence}
+        onValueChange={onCadenceChange}
+      >
         <Radio value="monthly" label="Monthly" />
         <Radio value="quarterly" label="Quarterly" />
         <Radio value="yearly" label="Yearly" />
@@ -247,7 +272,9 @@ const AccordionSection: React.FC = () => (
         <AccordionTrigger>RECONCILIATION HISTORY</AccordionTrigger>
         <AccordionContent>
           <div className="border-b border-border py-3">
-            <p className="font-mono text-sm text-muted-foreground">No reconciliation entries yet.</p>
+            <p className="font-mono text-sm text-muted-foreground">
+              No reconciliation entries yet.
+            </p>
           </div>
         </AccordionContent>
       </AccordionItem>
@@ -271,12 +298,12 @@ const AlertSection: React.FC = () => (
 const DividerSection: React.FC = () => (
   <GallerySection number="33" title="Divider">
     <GalleryModule label="BALANCE">
-      <p className="font-mono text-[11px] uppercase tracking-heading text-muted-foreground">
+      <p className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
         ASSETS
       </p>
       <FinancialNumber className="mt-2" value="NT$5,420,000" size="large" />
       <Divider className="my-4" />
-      <p className="font-mono text-[11px] uppercase tracking-heading text-muted-foreground">
+      <p className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
         LIABILITIES
       </p>
       <FinancialNumber className="mt-2" value="NT$598,680" size="large" />
@@ -295,15 +322,17 @@ const PageChromeSection: React.FC = () => (
       <Toolbar
         actions={
           <>
-            <Button variant="outline" size="sm">EDIT</Button>
-            <Button variant="destructive" size="sm">DELETE</Button>
+            <Button variant="outline" size="sm">
+              EDIT
+            </Button>
+            <Button variant="destructive" size="sm">
+              DELETE
+            </Button>
             <Button size="sm">+ ADD TRANSACTION</Button>
           </>
         }
       >
-        <span className="font-mono text-[11px] uppercase text-muted-foreground">
-          5 SELECTED
-        </span>
+        <span className="font-mono text-[11px] uppercase text-muted-foreground">5 SELECTED</span>
       </Toolbar>
     </div>
   </GallerySection>
@@ -368,10 +397,10 @@ const CommandSection: React.FC = () => {
   );
 };
 
-export const GalleryStatesBody: React.FC<{ cadence: string; onCadenceChange: (value: string) => void }> = ({
-  cadence,
-  onCadenceChange,
-}) => (
+export const GalleryStatesBody: React.FC<{
+  cadence: string;
+  onCadenceChange: (value: string) => void;
+}> = ({ cadence, onCadenceChange }) => (
   <>
     <EmptySection />
     <LoadingSection />

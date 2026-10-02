@@ -1,4 +1,4 @@
-/** Shared chart vocabulary: tone → color, the donut slice ramp, and axis value formatting. */
+/** Shared chart vocabulary: tone → color and the donut slice ramp. */
 
 export type ChartTone = 'primary' | 'positive' | 'negative' | 'neutral';
 
@@ -26,12 +26,3 @@ export const CHART_DONUT_COLORS = [
   'hsl(var(--muted))',
   'hsl(var(--elevated))',
 ];
-
-/** Compact axis formatting: 4812430 → 4.8M. Values below 1K stay integers. */
-export function formatChartValue(value: number): string {
-  const magnitude = Math.abs(value);
-  if (magnitude >= 1_000_000_000) return `${(value / 1_000_000_000).toFixed(1)}B`;
-  if (magnitude >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M`;
-  if (magnitude >= 1_000) return `${Math.round(value / 1_000)}K`;
-  return `${Math.round(value)}`;
-}

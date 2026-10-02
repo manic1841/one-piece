@@ -1,4 +1,4 @@
-/** Shared pieces of chart interaction: pointer→index mapping, keyboard clamp, and tooltip anchoring. */
+/** Shared pieces of chart interaction: point vocabulary, keyboard scrubber, and tooltip anchoring. */
 import * as React from 'react';
 
 export type ChartPoint = {
@@ -24,18 +24,12 @@ export const shouldFlipTooltip = (xRatio: number): boolean => xRatio > 0.72;
 /** Gap between the tooltip card and the point it describes, in px. */
 export const TOOLTIP_GAP = 12;
 
-/**
- * Fallback card height for the first render (or when nothing is measurable):
- * a 3-line card (title + value + meta). Real cards can wrap, so the interactive
- * charts measure the actual card and anchor against that instead.
- */
+/** Assumed card height (3 lines) until the real card has been measured. */
 export const TOOLTIP_CARD_ALLOWANCE = 84;
 
 /**
- * Measures the rendered tooltip card and reports the top ratio above which the
- * card must be anchored so its top stays inside the plot. Re-measures whenever
- * `contentKey` changes (e.g. the hovered index), because wrapped text changes
- * the card height.
+ * Measures the rendered tooltip card so the charts can anchor it inside the plot.
+ * Re-runs on `contentKey` because wrapped text changes the card height.
  */
 export const useTooltipAllowance = (
   plotHeight: number,
@@ -52,4 +46,35 @@ export const useTooltipAllowance = (
   const allowance = (cardHeight ?? TOOLTIP_CARD_ALLOWANCE) + TOOLTIP_GAP;
 
   return { ref, allowedTopRatio: Math.min(0.9, allowance / plotHeight) };
+};
+
+/**
+ * Scrubber state shared by the interactive charts: arrow keys move the active
+ * index, Escape clears it. `ariaValueProps` keeps the aria value contract in one
+ * place; `role`/`tabIndex` stay literal on each element so the a11y linter sees
+ * them (jsx-a11y cannot read a spread).
+ */
+export const useChartScrubber = (count: number, plotHeight: number) => {
+  const [active, setActive] = React.useState<number | null>(null);
+  const { ref: tooltipRef, allowedTopRatio } = useTooltipAllowance(plotHeight, active);
+
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (event.key === 'ArrowRight' || event.key === 'ArrowLeft') {
+      event.preventDefault();
+      const step = event.key === 'ArrowRight' ? 1 : -1;
+      setActive(clampIndex((active ?? -1) + step, count));
+      return;
+    }
+    if (event.key === 'Escape') setActive(null);
+  };
+
+  const clear = () => setActive(null);
+
+  const ariaValueProps = {
+    'aria-valuemin': 0,
+    'aria-valuemax': count - 1,
+    'aria-valuenow': active ?? 0,
+  } as const;
+
+  return { active, setActive, clear, handleKeyDown, tooltipRef, allowedTopRatio, ariaValueProps };
 };

@@ -7,7 +7,7 @@ import { Button } from '@/ui/components/ui/button';
 
 import { GalleryModule, GallerySection } from './GalleryScaffold';
 
-/** sonner renders our Toast surface unstyled; width matches sonner's TOAST_WIDTH (356px). */
+/** Unstyled so <Toast> owns the surface; the width is sonner's TOAST_WIDTH. */
 const LIVE_TOAST_OPTIONS = { unstyled: true, style: { width: '356px' } } as const;
 
 const UNDONE_TOAST = <Toast message="TRANSACTION UNDONE" />;

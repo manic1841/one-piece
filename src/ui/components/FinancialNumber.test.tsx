@@ -17,12 +17,31 @@ describe('FinancialNumber', () => {
   });
 
   it('applies the hero size and tone classes', () => {
-    const { container } = render(
-      <FinancialNumber value="+12.42%" size="hero" tone="positive" />,
-    );
+    render(<FinancialNumber value="+12.42%" size="hero" tone="positive" />);
 
-    const number = container.firstElementChild as HTMLElement;
+    const number = screen.getByText('+12.42%');
     expect(number.className).toContain('text-4xl');
     expect(number.className).toContain('text-positive');
+  });
+
+  it('renders an optional change line with its own tone', () => {
+    render(
+      <FinancialNumber
+        value="NT$4,812,430"
+        size="hero"
+        change="+8.42% YTD"
+        changeTone="positive"
+      />,
+    );
+
+    const change = screen.getByText('+8.42% YTD');
+    expect(change.className).toContain('text-positive');
+    expect(change.className).toContain('font-mono');
+  });
+
+  it('omits the change line when no change is provided', () => {
+    const { container } = render(<FinancialNumber value="NT$4,812,430" />);
+
+    expect(container.querySelectorAll('span')).toHaveLength(2);
   });
 });

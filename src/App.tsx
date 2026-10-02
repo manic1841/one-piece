@@ -1,3 +1,5 @@
+import { Suspense, lazy } from 'react';
+
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import { Toaster } from 'sonner';
 
@@ -7,7 +9,6 @@ import AccountDetailPage from '@/ui/features/account/pages/AccountDetailPage';
 import Accounts from '@/ui/features/account/pages/AccountsPage';
 import { AuthGate } from '@/ui/features/app/AuthGate';
 import { ConfirmDialogProvider } from '@/ui/features/app/confirm/ConfirmDialog';
-import GalleryPage from '@/ui/features/app/pages/GalleryPage';
 import Layout from '@/ui/features/app/layout/Layout';
 import ProtectedRoute from '@/ui/features/app/router/ProtectedRoute';
 import AccessDenied from '@/ui/features/auth/pages/AccessDeniedPage';
@@ -28,18 +29,28 @@ import RetirementPlanList from '@/ui/features/retirement/pages/RetirementPlanLis
 import Settings from '@/ui/features/setting/pages/SettingsPage';
 import Transactions from '@/ui/features/transaction/pages/TransactionsPage';
 
+const GalleryPage = import.meta.env.DEV
+  ? lazy(() => import('@/ui/features/app/pages/GalleryPage'))
+  : null;
+
 function App() {
   return (
     <AuthStateProvider gateway={firebaseAuthGateway}>
-      {/* Positioning only — the toast surface is owned by <Toast>. */}
       <Toaster theme="dark" />
       <AuthGate>
         <ConfirmDialogProvider>
           <BrowserRouter>
             <Routes>
-              {/* Dev-only design-system gallery: outside the auth routes, prod never serves it. */}
-              {import.meta.env.DEV && (
-                <Route path="/gallery" element={<GalleryPage />} />
+              {/* Gated on DEV so the production bundle drops the chunk instead of shipping it dead. */}
+              {import.meta.env.DEV && GalleryPage !== null && (
+                <Route
+                  path="/gallery"
+                  element={
+                    <Suspense fallback={null}>
+                      <GalleryPage />
+                    </Suspense>
+                  }
+                />
               )}
               <Route path="/login" element={<Login />} />
               <Route path="/access-denied" element={<AccessDenied />} />

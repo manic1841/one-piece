@@ -3,8 +3,6 @@
 @tailwind utilities;
 
 @layer base {
-  /* Palette provenance: the designer component-gallery prototype (docs/ui/design-system.md §1.1).
-     The prototype's :root colors converted to HSL channels; two decimals so the round-trip is exact. */
   :root {
     --background: 216 21.74% 4.51%;
     --foreground: 216 23.81% 95.88%;

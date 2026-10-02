@@ -19,7 +19,7 @@ type ChartLegendProps = {
   className?: string;
 };
 
-/** Chart legend. Labels come from the caller — never hardcode domain series names here. */
+/** Chart legend. */
 export function ChartLegend({ items, orientation = 'horizontal', className }: ChartLegendProps) {
   const swatch = (item: ChartLegendItem) => (
     <span
@@ -53,7 +53,7 @@ export function ChartLegend({ items, orientation = 'horizontal', className }: Ch
       {items.map((item) => (
         <span
           key={item.label}
-          className="inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-heading text-muted-foreground"
+          className="inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-widest text-muted-foreground"
         >
           {swatch(item)}
           {item.label}

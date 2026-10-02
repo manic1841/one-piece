@@ -63,7 +63,7 @@ const FieldDemo: React.FC<{ label: string; error?: boolean; children: React.Reac
   children,
 }) => (
   <div className="flex flex-col gap-1.5">
-    <span className="font-mono text-[11px] uppercase tracking-heading text-muted-foreground">
+    <span className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
       {label}
     </span>
     {children}
@@ -75,16 +75,24 @@ const NumberSection: React.FC = () => (
   <GallerySection number="01" title="Financial Number">
     <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
       <GalleryModule label="NET WORTH">
-        <FinancialNumber value="NT$4,812,430" size="hero" />
-        <p className="mt-2 font-mono text-xs text-positive">+8.42% YTD · +NT$374,210</p>
+        <FinancialNumber
+          value="NT$4,812,430"
+          size="hero"
+          change="+8.42% YTD · +NT$374,210"
+          changeTone="positive"
+        />
       </GalleryModule>
       <GalleryModule label="PORTFOLIO RETURN">
-        <FinancialNumber value="+12.42%" size="large" tone="positive" />
-        <p className="mt-2 font-mono text-xs text-muted-foreground">YTD</p>
+        <FinancialNumber
+          value="+12.42%"
+          size="large"
+          tone="positive"
+          change="YTD"
+          changeTone="positive"
+        />
       </GalleryModule>
       <GalleryModule label="MISSING DATA">
-        <FinancialNumber value={null} />
-        <p className="mt-2 font-mono text-xs text-muted-foreground">No report available</p>
+        <FinancialNumber value={null} change="No report available" />
       </GalleryModule>
     </div>
   </GallerySection>
@@ -184,7 +192,7 @@ const SectionModuleSection: React.FC = () => (
   <GallerySection number="05" title="Section & Module">
     <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
       <div>
-        <p className="font-mono text-[11px] uppercase tracking-heading text-muted-foreground">
+        <p className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
           12M NET WORTH
         </p>
         <div className="my-4 h-px bg-border" />

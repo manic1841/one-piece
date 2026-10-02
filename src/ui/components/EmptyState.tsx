@@ -19,7 +19,7 @@ export function EmptyState({ title, description, action, className }: EmptyState
       <span aria-hidden="true" className="font-mono text-xl text-muted-foreground">
         ○
       </span>
-      <span className="mt-3 font-mono text-[11px] uppercase tracking-heading text-muted-foreground">
+      <span className="mt-3 font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
         {title}
       </span>
       <p className="mx-auto mt-2 max-w-sm text-sm text-muted-foreground leading-relaxed">

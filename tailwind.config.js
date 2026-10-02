@@ -79,8 +79,6 @@ export default {
         heading: '-0.01em',
         caption: '0.01em',
       },
-      // Platform-native stacks (design-system §4). Apple first, then Windows and Linux
-      // fallbacks; CJK families sit after the Latin ones so per-glyph fallback finds them.
       fontFamily: {
         sans: [
           '-apple-system',

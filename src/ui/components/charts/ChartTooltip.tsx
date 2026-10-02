@@ -15,10 +15,7 @@ type ChartTooltipProps = {
   ref?: React.Ref<HTMLDivElement>;
 };
 
-/**
- * Chart hover card surface. Positioning is the caller's job (see
- * `InteractiveLineChart`); this renders the floating card only.
- */
+/** Floating chart hover card. */
 export function ChartTooltip({ title, value, meta, className, style, ref }: ChartTooltipProps) {
   return (
     <div

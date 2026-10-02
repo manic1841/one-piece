@@ -2,7 +2,7 @@ import * as React from 'react';
 
 import { cn } from '@/ui/utils/cn';
 
-export type ActivityTone = 'positive' | 'negative' | 'default';
+import { MONEY_TONE_CLASS, type MoneyTone } from './moneyTone';
 
 type ActivityRowProps = {
   /** Short date or marker, e.g. "SEP 18". */
@@ -12,18 +12,19 @@ type ActivityRowProps = {
   meta?: string;
   /** Preformatted amount, e.g. "+$85,000". */
   amount?: string;
-  tone?: ActivityTone;
+  tone?: MoneyTone;
   className?: string;
 };
 
-const toneClass = {
-  default: 'text-foreground',
-  positive: 'text-positive',
-  negative: 'text-negative',
-} as const;
-
 /** One recent-activity line: date / title+meta / amount. List rows are provided by the caller. */
-export function ActivityRow({ date, title, meta, amount, tone = 'default', className }: ActivityRowProps) {
+export function ActivityRow({
+  date,
+  title,
+  meta,
+  amount,
+  tone = 'default',
+  className,
+}: ActivityRowProps) {
   return (
     <div className={cn('flex min-h-12 items-center gap-4 border-b border-border py-2', className)}>
       <span className="w-14 shrink-0 font-mono text-[11px] text-muted-foreground">{date}</span>
@@ -36,7 +37,7 @@ export function ActivityRow({ date, title, meta, amount, tone = 'default', class
         )}
       </div>
       {amount !== undefined && (
-        <span className={cn('shrink-0 font-mono text-sm tabular-nums', toneClass[tone])}>
+        <span className={cn('shrink-0 font-mono text-sm tabular-nums', MONEY_TONE_CLASS[tone])}>
           {amount}
         </span>
       )}
@@ -52,9 +53,5 @@ type ActivityListProps = {
 
 /** Recent context as a typographic list, not a data table. */
 export function ActivityList({ children, className }: ActivityListProps) {
-  return (
-    <div className={cn('[&>*:last-child]:border-b-0', className)}>
-      {children}
-    </div>
-  );
+  return <div className={cn('[&>*:last-child]:border-b-0', className)}>{children}</div>;
 }

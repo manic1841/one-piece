@@ -7,6 +7,7 @@ import { DonutChart } from '@/ui/components/charts/DonutChart';
 import { InteractiveBarChart } from '@/ui/components/charts/InteractiveBarChart';
 import { InteractiveLineChart } from '@/ui/components/charts/InteractiveLineChart';
 import { LineChart } from '@/ui/components/charts/LineChart';
+import type { MoneyTone } from '@/ui/components/moneyTone';
 
 import { GalleryModule, GallerySection } from './GalleryScaffold';
 
@@ -68,24 +69,19 @@ const NET_WORTH_POINTS = [
   { title: 'SEP 2026', value: 'NT$4,812,430', meta: '+8.42% YTD' },
 ];
 
-const ChartHead: React.FC<{
-  value: string;
-  meta: string;
-  tone?: 'positive' | 'negative' | 'default';
-}> = ({ value, meta, tone = 'default' }) => (
+const ChartHead: React.FC<{ value: string; meta: string; tone?: MoneyTone }> = ({
+  value,
+  meta,
+  tone = 'default',
+}) => (
   <div className="mb-4">
-    <FinancialNumber value={value} size="large" tone={tone === 'default' ? 'default' : tone} />
-    <p
-      className={
-        tone === 'negative'
-          ? 'mt-1 font-mono text-xs text-negative'
-          : tone === 'positive'
-            ? 'mt-1 font-mono text-xs text-positive'
-            : 'mt-1 font-mono text-xs text-muted-foreground'
-      }
-    >
-      {meta}
-    </p>
+    <FinancialNumber
+      value={value}
+      size="large"
+      tone={tone}
+      change={meta}
+      changeTone={tone === 'default' ? 'muted' : tone}
+    />
   </div>
 );
 
@@ -131,11 +127,16 @@ const LineChartSection: React.FC = () => (
       <GalleryModule label="CHART WITH SUMMARY">
         <div className="grid grid-cols-1 items-center gap-7 sm:grid-cols-[180px_1fr]">
           <div>
-            <p className="font-mono text-[11px] uppercase tracking-heading text-muted-foreground">
+            <p className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
               PORTFOLIO RETURN
             </p>
-            <FinancialNumber value="+12.42%" size="hero" className="mt-1 block" />
-            <p className="mt-1 font-mono text-[11px] text-positive">YTD · +NT$284,210</p>
+            <FinancialNumber
+              value="+12.42%"
+              size="hero"
+              change="YTD · +NT$284,210"
+              changeTone="positive"
+              className="mt-1 block"
+            />
           </div>
           <LineChart values={PORTFOLIO_RETURN} labels={MONTHS_12.slice(0, 11)} height={145} />
         </div>
@@ -154,7 +155,7 @@ const LineChartSection: React.FC = () => (
           />
         </div>
         <div>
-          <p className="mb-3 font-mono text-[11px] uppercase tracking-heading text-muted-foreground">
+          <p className="mb-3 font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
             TOOLTIP SPECIMEN
           </p>
           <ChartTooltip title="SEP 2026" value="NT$4,812,430" meta="+8.42% YTD" />
