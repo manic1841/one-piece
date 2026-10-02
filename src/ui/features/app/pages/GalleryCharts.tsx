@@ -93,10 +93,26 @@ const LineChartSection: React.FC = () => (
         <LineChart
           values={NET_WORTH}
           labels={MONTHS_12}
+          includeZero
+          yAxis="left"
           showArea
           markLastPoint
           height={150}
           ariaLabel="12 month net worth"
+        />
+      </GalleryModule>
+
+      <GalleryModule label="LINE CHART · CASH FLOW · ZERO BASELINE">
+        <ChartHead value="-NT$12,300" meta="SEP 2026" tone="negative" />
+        <LineChart
+          values={[38000, -12000, 42000, -8000, 36000, -12300]}
+          labels={CASH_FLOW_LABELS}
+          tone="positive"
+          includeZero
+          zeroLine
+          markLastPoint
+          height={150}
+          ariaLabel="Monthly net cash flow"
         />
       </GalleryModule>
 
@@ -138,7 +154,13 @@ const LineChartSection: React.FC = () => (
               className="mt-1 block"
             />
           </div>
-          <LineChart values={PORTFOLIO_RETURN} labels={MONTHS_12.slice(0, 11)} height={145} />
+          <LineChart
+            values={PORTFOLIO_RETURN}
+            labels={MONTHS_12.slice(0, 11)}
+            includeZero
+            yAxis="left"
+            height={145}
+          />
         </div>
       </GalleryModule>
     </div>

@@ -16,6 +16,10 @@ type InteractiveLineChartProps = {
   /** Axis labels (usually a subset, always including the last). */
   xLabels?: string[];
   tone?: ChartTone;
+  /** Pin the y range to include 0 (see `LineChart`). */
+  includeZero?: boolean;
+  /** Render y value labels down the left edge (see `LineChart`). */
+  yAxis?: 'none' | 'left';
   /** Rendered plot height in px. */
   height?: number;
   ariaLabel: string;
@@ -100,6 +104,8 @@ export function InteractiveLineChart({
   points,
   xLabels = [],
   tone = 'primary',
+  includeZero,
+  yAxis,
   height = 170,
   ariaLabel,
   className,
@@ -111,6 +117,8 @@ export function InteractiveLineChart({
       tone={tone}
       showArea
       markLastPoint
+      includeZero={includeZero}
+      yAxis={yAxis}
       height={height}
       className={className}
     >

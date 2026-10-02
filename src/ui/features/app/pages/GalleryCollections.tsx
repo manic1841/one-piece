@@ -189,6 +189,7 @@ const ActivitySection: React.FC = () => (
           meta="Main Bank"
           amount="+NT$85,000"
           tone="positive"
+          onActivate={() => undefined}
         />
         <ActivityRow
           date="SEP 17"

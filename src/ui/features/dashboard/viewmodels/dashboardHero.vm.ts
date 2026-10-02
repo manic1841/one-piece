@@ -2,13 +2,16 @@ import type {
   DashboardNetWorthPoint,
   DashboardOverview,
 } from '@/application/dashboard/use_cases/getDashboardOverviewUseCase';
+import type { ChartPoint } from '@/ui/components/charts/chartInteraction';
 import { formatCurrency, formatYearMonth } from '@/ui/utils';
 
 export type { DashboardComposition } from '@/application/dashboard/use_cases/getDashboardOverviewUseCase';
 
-export interface NetWorthSparklinePointVM {
-  x: number;
-  y: number;
+export interface DashboardHeroTrendVM {
+  values: number[];
+  labels: string[];
+  points: ChartPoint[];
+  hasData: boolean;
 }
 
 export interface DashboardHeroVM {
@@ -20,30 +23,9 @@ export interface DashboardHeroVM {
     amountText: string | null;
     direction: 'positive' | 'negative';
   } | null;
-  sparkline: {
-    points: NetWorthSparklinePointVM[];
-    path: string | undefined;
-    areaPath: string | undefined;
-  };
-  trend: {
-    path: string | undefined;
-    areaPath: string | undefined;
-    endPoint: NetWorthSparklinePointVM | undefined;
-    xLabels: { x: number; text: string }[];
-    yLabels: { y: number; text: string }[];
-  };
+  /** Net-worth series backing the hero trend chart. */
+  trend: DashboardHeroTrendVM;
 }
-
-const SPARKLINE_WIDTH = 240;
-const SPARKLINE_HEIGHT = 48;
-const SPARKLINE_PADDING = 2;
-
-const TREND_WIDTH = 720;
-const TREND_HEIGHT = 220;
-const TREND_PADDING_X = 8;
-const TREND_PADDING_TOP = 12;
-const TREND_PADDING_BOTTOM = 24;
-const TREND_Y_LABEL_COUNT = 4;
 
 const MONTH_NAMES = [
   'JAN',
@@ -60,59 +42,6 @@ const MONTH_NAMES = [
   'DEC',
 ];
 
-const formatTrendValue = (value: number): string => {
-  if (value >= 1000000) {
-    return `${(value / 1000000).toFixed(1)}M`;
-  }
-  if (value >= 1000) {
-    return `${Math.round(value / 1000)}K`;
-  }
-  return `${Math.round(value)}`;
-};
-
-const buildSparklineGeometry = (
-  series: DashboardNetWorthPoint[],
-): {
-  points: NetWorthSparklinePointVM[];
-  path: string | undefined;
-  areaPath: string | undefined;
-} => {
-  const present = series
-    .map((point, monthIndex) => ({ ...point, monthIndex }))
-    .filter(
-      (point): point is DashboardNetWorthPoint & { monthIndex: number; netAssets: number } =>
-        point.netAssets !== null,
-    );
-
-  if (present.length === 0) {
-    return { points: [], path: undefined, areaPath: undefined };
-  }
-
-  const values = present.map((point) => point.netAssets);
-  const min = Math.min(...values);
-  const max = Math.max(...values);
-  const span = max - min;
-  const innerWidth = SPARKLINE_WIDTH - SPARKLINE_PADDING * 2;
-  const innerHeight = SPARKLINE_HEIGHT - SPARKLINE_PADDING * 2;
-
-  const points = present.map((point) => {
-    const xRatio = (point.monthIndex + 1) / series.length;
-    const yRatio = span === 0 ? 0.5 : (point.netAssets - min) / span;
-    return {
-      x: SPARKLINE_PADDING + xRatio * innerWidth,
-      y: SPARKLINE_PADDING + (1 - yRatio) * innerHeight,
-    };
-  });
-
-  const path = points
-    .map((point, index) => `${index === 0 ? 'M' : 'L'}${point.x.toFixed(1)} ${point.y.toFixed(1)}`)
-    .join(' ');
-
-  const areaPath = `${path} L${points[points.length - 1].x.toFixed(1)} ${SPARKLINE_HEIGHT} L${points[0].x.toFixed(1)} ${SPARKLINE_HEIGHT} Z`;
-
-  return { points, path, areaPath };
-};
-
 export const mapDashboardOverviewToHeroVM = (
   overview: DashboardOverview | null,
 ): DashboardHeroVM => {
@@ -122,14 +51,7 @@ export const mapDashboardOverviewToHeroVM = (
       anchorPeriodText: null,
       netWorthText: '—',
       ytd: null,
-      sparkline: { points: [], path: undefined, areaPath: undefined },
-      trend: {
-        path: undefined,
-        areaPath: undefined,
-        endPoint: undefined,
-        xLabels: [],
-        yLabels: [],
-      },
+      trend: { values: [], labels: [], points: [], hasData: false },
     };
   }
 
@@ -141,8 +63,7 @@ export const mapDashboardOverviewToHeroVM = (
     anchorPeriodText: `${formatYearMonth(year, month)} REPORT`,
     netWorthText: formatCurrency(anchor.netWorth),
     ytd: buildYtdVM(anchor.netWorth, anchor.ytdBaseline?.netWorth ?? null),
-    sparkline: buildSparklineGeometry(anchor.netWorthSeries),
-    trend: buildTrendGeometry(anchor.netWorthSeries),
+    trend: buildTrendVM(anchor.netWorthSeries),
   };
 };
 
@@ -161,72 +82,31 @@ const buildYtdVM = (netWorth: number, baselineNetWorth: number | null): Dashboar
   };
 };
 
-const buildTrendGeometry = (
-  series: DashboardNetWorthPoint[],
-): {
-  path: string | undefined;
-  areaPath: string | undefined;
-  endPoint: NetWorthSparklinePointVM | undefined;
-  xLabels: { x: number; text: string }[];
-  yLabels: { y: number; text: string }[];
-} => {
-  const present = series
-    .map((point, monthIndex) => ({ ...point, monthIndex }))
-    .filter(
-      (point): point is DashboardNetWorthPoint & { monthIndex: number; netAssets: number } =>
-        point.netAssets !== null,
-    );
-
-  if (present.length === 0) {
-    return { path: undefined, areaPath: undefined, endPoint: undefined, xLabels: [], yLabels: [] };
-  }
-
+const buildTrendVM = (series: DashboardNetWorthPoint[]): DashboardHeroTrendVM => {
+  const present = series.filter(
+    (point): point is DashboardNetWorthPoint & { netAssets: number } => point.netAssets !== null,
+  );
   const values = present.map((point) => point.netAssets);
-  const rawMin = Math.min(...values);
-  const rawMax = Math.max(...values);
-  const rawSpan = rawMax - rawMin;
-  const yMin = rawSpan === 0 ? rawMin * 0.9 : 0;
-  const yMax = rawSpan === 0 ? rawMax * 1.1 : rawMax;
-  const ySpan = yMax - yMin;
-  const innerWidth = TREND_WIDTH - TREND_PADDING_X * 2;
-  const innerHeight = TREND_HEIGHT - TREND_PADDING_TOP - TREND_PADDING_BOTTOM;
+  const labels = present.map((point) => `${MONTH_NAMES[point.month - 1]} ${point.year}`);
+  return {
+    values,
+    labels,
+    points: values.map((value, index) => ({
+      title: labels[index],
+      value: formatCurrency(value),
+      meta: formatMonthOverMonth(values, index),
+    })),
+    hasData: present.length > 0,
+  };
+};
 
-  const points = present.map((point, index) => {
-    const xRatio = present.length === 1 ? 1 : index / (present.length - 1);
-    const yRatio = ySpan === 0 ? 0.5 : (point.netAssets - yMin) / ySpan;
-    return {
-      x: TREND_PADDING_X + xRatio * innerWidth,
-      y: TREND_PADDING_TOP + (1 - yRatio) * innerHeight,
-    };
-  });
-
-  const path = points
-    .map((point, index) => `${index === 0 ? 'M' : 'L'}${point.x.toFixed(1)} ${point.y.toFixed(1)}`)
-    .join(' ');
-
-  const areaPath = `${path} L${points[points.length - 1].x.toFixed(1)} ${TREND_HEIGHT - TREND_PADDING_BOTTOM} L${points[0].x.toFixed(1)} ${TREND_HEIGHT - TREND_PADDING_BOTTOM} Z`;
-
-  const endPoint = points[points.length - 1];
-
-  const xLabelStep = Math.max(1, Math.ceil(present.length / 3));
-  const xLabels: { x: number; text: string }[] = [];
-  for (let index = 0; index < present.length; index += 1) {
-    const isLast = index === present.length - 1;
-    if (!isLast && index % xLabelStep !== 0) continue;
-    const labelPoint = present[index];
-    xLabels.push({
-      x: points[index].x,
-      text: `${MONTH_NAMES[labelPoint.month - 1]} ${labelPoint.year}`,
-    });
+/** Month-over-month change relative to the previous point; the first point has no baseline. */
+/** Month-over-month change relative to the previous point; the first point has no baseline. */
+const formatMonthOverMonth = (values: number[], index: number): string => {
+  const previous = values[index - 1];
+  if (previous === undefined || previous === 0) {
+    return '—';
   }
-
-  const yLabels = Array.from({ length: TREND_Y_LABEL_COUNT }, (_, index) => {
-    const value = yMin + (ySpan * index) / (TREND_Y_LABEL_COUNT - 1);
-    return {
-      y: TREND_PADDING_TOP + (1 - index / (TREND_Y_LABEL_COUNT - 1)) * innerHeight,
-      text: formatTrendValue(value),
-    };
-  });
-
-  return { path, areaPath, endPoint, xLabels, yLabels };
+  const percent = ((values[index] - previous) / previous) * 100;
+  return `${percent >= 0 ? '+' : ''}${percent.toFixed(1)}% MoM`;
 };

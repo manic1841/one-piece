@@ -40,6 +40,14 @@ const LoadingSection: React.FC = () => (
           statusText="Generating September financial statements..."
         />
       </GalleryModule>
+      <GalleryModule label="STAGE PROGRESS · NO COMMAND">
+        <CliProgress
+          value={60}
+          tone="positive"
+          detail="3/5 · NEXT LEDGER"
+          ariaLabel="3 of 5 close stages completed"
+        />
+      </GalleryModule>
     </div>
   </GallerySection>
 );

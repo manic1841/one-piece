@@ -13,6 +13,8 @@ type ActivityRowProps = {
   /** Preformatted amount, e.g. "+$85,000". */
   amount?: string;
   tone?: MoneyTone;
+  /** When given, the row becomes an interactive button that calls this on click. */
+  onActivate?: () => void;
   className?: string;
 };
 
@@ -23,10 +25,11 @@ export function ActivityRow({
   meta,
   amount,
   tone = 'default',
+  onActivate,
   className,
 }: ActivityRowProps) {
-  return (
-    <div className={cn('flex min-h-12 items-center gap-4 border-b border-border py-2', className)}>
+  const body = (
+    <>
       <span className="w-14 shrink-0 font-mono text-[11px] text-muted-foreground">{date}</span>
       <div className="min-w-0 flex-1">
         <span className="block truncate text-sm">{title}</span>
@@ -41,8 +44,28 @@ export function ActivityRow({
           {amount}
         </span>
       )}
-    </div>
+    </>
   );
+
+  const baseClass = 'flex min-h-12 items-center gap-4 border-b border-border py-2';
+
+  if (onActivate !== undefined) {
+    return (
+      <button
+        type="button"
+        onClick={onActivate}
+        className={cn(
+          baseClass,
+          'w-full cursor-pointer text-left transition-colors hover:bg-muted/50',
+          className,
+        )}
+      >
+        {body}
+      </button>
+    );
+  }
+
+  return <div className={cn(baseClass, className)}>{body}</div>;
 }
 
 type ActivityListProps = {

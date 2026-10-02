@@ -2,6 +2,7 @@ import React from 'react';
 
 import { ArrowRight } from 'lucide-react';
 
+import { CliProgress } from '@/ui/components/CliProgress';
 import { Divider } from '@/ui/components/Divider';
 import { FinancialNumber } from '@/ui/components/FinancialNumber';
 import { PageHeader } from '@/ui/components/PageHeader';
@@ -24,7 +25,15 @@ const BAR_CHART_LABELS = ['FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP'
 const BAR_HEIGHTS = [38, 48, 45, 62, 58, 70, 67, 82];
 
 const SectionModuleSection: React.FC = () => (
-  <GallerySection number="04" title="Section & Module">
+  <GallerySection
+    number="04"
+    title="Section & Module"
+    action={
+      <Button variant="text" size="sm">
+        ACTION SLOT
+      </Button>
+    }
+  >
     <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
       <div>
         <p className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
@@ -48,6 +57,14 @@ const SectionModuleSection: React.FC = () => (
           <StatusGlyph type="verified" label="LEDGER · 128 ENTRIES" />
           <div className="h-px bg-border" />
           <StatusGlyph type="waiting" label="REPORTS · WAITING" />
+        </div>
+        <div className="mt-5">
+          <CliProgress
+            value={60}
+            tone="default"
+            detail="3/5 · NEXT FINANCIAL REPORTS"
+            ariaLabel="3 of 5 close stages completed"
+          />
         </div>
         <div className="mt-5">
           <Button variant="text">

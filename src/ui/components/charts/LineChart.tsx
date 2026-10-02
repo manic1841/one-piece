@@ -20,6 +20,12 @@ type LineChartProps = {
   showArea?: boolean;
   /** Mark the final point with a dot. */
   markLastPoint?: boolean;
+  /** Pin the y scale to include 0 (0-baseline charts). */
+  includeZero?: boolean;
+  /** Draw a dashed line where the value is 0 (needs 0 inside the scale). */
+  zeroLine?: boolean;
+  /** Render the value labels down the left edge, overlaying the plot. */
+  yAxis?: 'none' | 'left';
   /** Rendered plot height in px. */
   height?: number;
   ariaLabel?: string;
@@ -35,12 +41,15 @@ export function LineChart({
   tone = 'primary',
   showArea = false,
   markLastPoint = false,
+  includeZero = false,
+  zeroLine = false,
+  yAxis = 'none',
   height = 150,
   ariaLabel,
   className,
   children,
 }: LineChartProps) {
-  const geometry = buildLineGeometry(values, labels);
+  const geometry = buildLineGeometry(values, labels, undefined, undefined, includeZero);
   const color = CHART_TONE_COLOR[tone];
   const last = geometry.points[geometry.points.length - 1];
   const a11yProps =
@@ -66,6 +75,17 @@ export function LineChart({
               strokeWidth={1}
             />
           ))}
+          {zeroLine && geometry.zeroLineY !== undefined && (
+            <line
+              x1={0}
+              x2={LINE_CHART_WIDTH}
+              y1={geometry.zeroLineY}
+              y2={geometry.zeroLineY}
+              stroke="hsl(var(--border))"
+              strokeWidth={1}
+              strokeDasharray="4 4"
+            />
+          )}
           {showArea && <path d={geometry.areaPath} fill={color} stroke="none" opacity={0.07} />}
           <path
             d={geometry.path}
@@ -79,6 +99,19 @@ export function LineChart({
             <circle cx={last.x} cy={last.y} r={4} fill={color} />
           )}
         </svg>
+        {yAxis === 'left' && (
+          <div aria-hidden="true" className="pointer-events-none absolute inset-0">
+            {geometry.yLabels.map((label) => (
+              <span
+                key={label.text}
+                className="absolute left-0 -translate-y-1/2 font-mono text-[10px] tabular-nums text-muted-foreground"
+                style={{ top: `${(label.y / LINE_CHART_HEIGHT) * 100}%` }}
+              >
+                {label.text}
+              </span>
+            ))}
+          </div>
+        )}
         {children?.(geometry)}
       </div>
       {geometry.xLabels.length > 0 && (

@@ -31,6 +31,10 @@ export interface DashboardCashFlowPoint {
   year: number;
   month: number;
   netCashFlow: number | null;
+  /** Operating + investing + financing inflows; null without a report. */
+  cashIn: number | null;
+  /** Operating + investing + financing outflows; null without a report. */
+  cashOut: number | null;
 }
 
 export interface DashboardAnchor {
@@ -112,6 +116,9 @@ const buildTwelveMonthSlots = (anchorYearMonth: string): { year: number; month: 
 
 const sumDebtPayments = (transactions: Transaction[]): number =>
   transactions.reduce((sum, transaction) => sum + (transaction.amount ?? 0), 0);
+
+const sumItems = (items: { amount: number }[]): number =>
+  items.reduce((sum, item) => sum + item.amount, 0);
 
 export class GetDashboardOverviewUseCase {
   private readonly getFinancialPeriod = new GetFinancialPeriodUseCase();
@@ -258,15 +265,24 @@ export class GetDashboardOverviewUseCase {
     anchorYearMonth: string,
     reports: FinancialReport[],
   ): DashboardCashFlowPoint[] {
-    const netCashFlowByMonth = new Map(
-      reports.filter(isCashFlow).map((report) => [report.yearMonth, report.data.netCashChange]),
+    const cashFlowByMonth = new Map(
+      reports.filter(isCashFlow).map((report) => [report.yearMonth, report.data]),
     );
 
-    return buildTwelveMonthSlots(anchorYearMonth).map(({ year, month }) => ({
-      year,
-      month,
-      netCashFlow: netCashFlowByMonth.get(toYearMonth({ year, month })) ?? null,
-    }));
+    return buildTwelveMonthSlots(anchorYearMonth).map(({ year, month }) => {
+      const data = cashFlowByMonth.get(toYearMonth({ year, month }));
+      if (!data) {
+        return { year, month, netCashFlow: null, cashIn: null, cashOut: null };
+      }
+      const groups = [data.operating, data.investing, data.financing];
+      return {
+        year,
+        month,
+        netCashFlow: data.netCashChange,
+        cashIn: sumItems(groups.flatMap((group) => group.inflowItems)),
+        cashOut: sumItems(groups.flatMap((group) => group.outflowItems)),
+      };
+    });
   }
 }
 

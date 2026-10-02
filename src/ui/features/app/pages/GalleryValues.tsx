@@ -49,6 +49,15 @@ const MetricSection: React.FC = () => (
       />
       <Metric label="PORTFOLIO RETURN" value="+12.4%" tone="positive" change="YTD" />
     </MetricGroup>
+    <GalleryModule label="5-COLUMN SNAPSHOT" className="mt-6">
+      <MetricGroup columns={5} lastSpansFull>
+        <Metric label="TOTAL ASSETS" value="NT$5,420,000" change="ANCHORED 2026-08" />
+        <Metric label="TOTAL LIABILITIES" value="NT$598,680" />
+        <Metric label="MONTHLY CASH FLOW" value="-NT$12,300" tone="negative" />
+        <Metric label="PORTFOLIO RETURN" value="3.91%" change="損益 NT$3,000" />
+        <Metric label="INVESTMENT LEVERAGE" value="1.20x" />
+      </MetricGroup>
+    </GalleryModule>
   </GallerySection>
 );
 

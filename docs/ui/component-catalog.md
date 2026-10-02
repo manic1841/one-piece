@@ -147,32 +147,32 @@
 - **`Skeleton`** — 載入 shimmer 區塊（Table / List / Detail 的 loading 態）。組合多個 block 成列；自身只渲染一塊。
   - Props：`className?`（尺寸由呼叫端給）。
   - **不要用於**：長時間工作的進度（用 `CliProgress`）；單行文字 loading 已足夠時。
-  - 範例：`src/ui/features/app/pages/GalleryFeedback.tsx`
+  - 範例：`src/ui/features/dashboard/pages/DashboardPage.tsx`
 
-- **`CliProgress`** — Terminal-style 進度（長時間工作的 loading 態，states-and-a11y 的 engineering identity）。自繪 bar，自帶 `role="progressbar"` 與 `aria-value*`。
-  - Props：`command`、`value`（0-100）、`statusText?`、`className?`。
-  - **不要用於**：短暫 loading（用 `Skeleton` 或單行文字）。
-  - 範例：`src/ui/features/app/pages/GalleryFeedback.tsx`
+- **`CliProgress`** — Terminal-style 進度條（`[████░░] 62%`）。自繪 bar，自帶 `role="progressbar"` 與 `aria-value*`。ASCII 軌道會撐滿容器寬度（填色與剩餘格都是超長字元串、依左右各自裁切），在任何寬度下都維持 terminal 讀數外觀。預設用於長時間工作的 loading 態（states-and-a11y 的 engineering identity）；省略 `command` 時可作為區塊/階段的完成量表。
+  - Props：`command?`（有給才畫 `$ …` 命令列）、`value`（0-100）、`tone?`（`default`/`positive`/`warning`）、`statusText?`（`→ …` 行）、`detail?`（尾端小字，如 `3/5 · NEXT LEDGER`）、`ariaLabel?`（`command` 缺席時的無障礙名稱）、`className?`。
+  - **不要用於**：短暫 loading（用 `Skeleton` 或單行文字）；需要水平量表的比例顯示（用堆疊條或 `DonutChart`）。
+  - 範例：`src/ui/features/dashboard/components/MonthlyCloseCard.tsx`、`src/ui/features/app/pages/GalleryFeedback.tsx`
 
 - **`EmptyState`** — 空狀態：狀態 glyph ＋ status 標題 ＋ 一句說明 ＋ 一個主要 action。不做大型 Card。
   - Props：`title`、`description`、`action?`、`className?`。glyph 固定，不是 prop。
   - **不要用於**：錯誤狀態（用 inline alert）；頁面級 fallback（用 `AppFallback`）。
-  - 範例：`src/ui/features/app/pages/GalleryFeedback.tsx`
+  - 範例：`src/ui/features/dashboard/pages/DashboardPage.tsx`
 
 - **`FinancialNumber`** — 財務數值顯示：`hero` / `large` / `default` 三級 ＋ 選用 change line ＋ 缺值「$ —」。值與 change line 都由呼叫端預先格式化，本元件不做貨幣運算。
   - Props：`value?: string | null`、`size?`、`tone?`（`default`/`positive`/`negative`）、`change?`、`changeTone?`（`default`/`positive`/`negative`/`muted`）、`className?`。提供 `change` 時根元素變為 block。
   - **不要用於**：表格儲存格（用 `data-table` 的 `NumberCell`）；輸入（用 `form` 的 `NumberInput`/`CurrencyInput`）。
-  - 範例：`src/ui/features/app/pages/GalleryValues.tsx`
+  - 範例：`src/ui/features/dashboard/pages/DashboardPage.tsx`（hero 淨資產 ＋ YTD change line）。
 
 - **`MetricGroup` / `Metric`** — 同層級財務指標列：label + mono 值 + change line，非卡片。`MetricGroup` 是分割線容器，`Metric` 是單一指標。
-  - Props（Group）：`children`、`className?`。Props（Metric）：`label`、`value`、`tone?`、`change?`、`changeTone?`、`className?`。
+  - Props（Group）：`children`、`columns?`（`2`/`3`/`4`/`5`，md 以上；手機固定 2 欄）、`lastSpansFull?`（末格在手機跨滿，收掉 2 欄換行留下的缺角）、`className?`。Props（Metric）：`label`、`value`、`tone?`、`change?`、`changeTone?`、`testId?`、`className?`。
   - **不要用於**：需要互動或篩選的資料（那是 table/toolbar 的事）。
-  - 範例：`src/ui/features/app/pages/GalleryValues.tsx`
+  - 範例：`src/ui/features/dashboard/pages/DashboardPage.tsx`（FINANCIAL SNAPSHOT，5 欄）。
 
-- **`PageSection`** — 頁面層級的全寬 section band（`border-b` + `py-10`），visual-standards 的「structure over cards」：頁面區域用 band 分段，不用浮動卡片。number + title 為選用的 mono 標題；僅內容時是素 band。
-  - Props：`number?`、`title?`、`children`、`className?`。
+- **`PageSection`** — 頁面層級的全寬 section band（`border-b` ＋ `py-10`），visual-standards 的「structure over cards」：頁面區域用 band 分段，不用浮動卡片。number ＋ title 為選用的 mono 標題；僅內容時是素 band。
+  - Props：`number?`、`title?`、`action?`（與標題同列的尾端控件）、`spacing?`（`default`/`compact`，後者收緊密集堆疊）、`children`、`className?`。
   - **不要用於**：section 內的個別單元（用 `Module`）；需要 sticky 或導航的區域（用 `PageHeader` / `Toolbar`）。
-  - 範例：`src/ui/features/app/pages/GalleryScaffold.tsx`（re-export 為 `GallerySection`）。
+  - 範例：`src/ui/features/dashboard/pages/DashboardPage.tsx`（`spacing="compact"` 堆疊）。
 
 - **`Module`** — PageSection 內的 distinct module：mono label + 卡片邊界（唯一允許卡片的層級，design-system「Card 保留給 distinct module」）。`min-w-0` 防止在響應式 grid 溢出。
   - Props：`label`、`children`、`className?`。
@@ -180,9 +180,9 @@
   - 範例：`src/ui/features/app/pages/GalleryScaffold.tsx`（re-export 為 `GalleryModule`）。
 
 - **`ActivityList` / `ActivityRow`** — 最近活動列：date / title+meta / amount。列表容器收掉最後一列的底線。
-  - Props（Row）：`date`、`title`、`meta?`、`amount?`、`tone?`、`className?`。
+  - Props（Row）：`date`、`title`、`meta?`、`amount?`、`tone?`、`onActivate?`（提供時該列變成可點擊的 button，供導覽／選取）、`className?`。
   - **不要用於**：完整交易資料表（用 `data-table` 套件）。
-  - 範例：`src/ui/features/app/pages/GalleryCollections.tsx`
+  - 範例：`src/ui/features/dashboard/pages/DashboardPage.tsx`（RECENT TRANSACTIONS）。
 
 - **`Avatar`** — 身分圓形：photo 或 initials，mono、uppercase。`rounded-full` 白名單內的本質圓形。
   - Props：`initials?`、`src?`、`alt?`、`size?`（`sm`/`default`）、`className?`。
@@ -224,12 +224,12 @@
 
 資料驅動的圖表群：呼叫端傳值與標籤，幾何、比例與軸標籤由元件推導。色調一律走 `chartTheme.ts` 的 tone→token 對應（`primary` / `positive` / `negative` / `neutral`），不新增顏色（[`design-system.md`](design-system.md) §1）。標籤文字一律由呼叫端提供——元件不得硬編任何領域系列名稱。
 
-- **`charts / LineChart`** — 折線圖：格線、可選面積、座標軸標籤。y 軸以資料範圍加邊距（不做 0 基底），讓大額餘額中的小幅變動仍可讀。
-  - Props：`values`（必填）、`labels?`（長度需與 `values` 相同才會畫 x 軸）、`tone?`、`showArea?`、`markLastPoint?`、`height?`、`ariaLabel?`、`className?`、`children?`（render-prop，取得算好的 geometry 以便疊加互動層）。
+- **`charts / LineChart`** — 折線圖：格線、可選面積、座標軸標籤。y 軸預設以資料範圍加邊距（不做 0 基底），讓大額餘額中的小幅變動仍可讀；`includeZero` 可改為 0 基底。
+  - Props：`values`（必填）、`labels?`（長度需與 `values` 相同才會畫 x 軸）、`tone?`、`showArea?`、`markLastPoint?`、`includeZero?`（y 值域含 0）、`zeroLine?`（在 0 畫虛線，需 0 落在值域內）、`yAxis?`（`none`/`left`，左側值標籤）、`height?`、`ariaLabel?`、`className?`、`children?`（render-prop，取得算好的 geometry 以便疊加互動層）。
   - **不要用於**：需要 hover 明細——用 `InteractiveLineChart`。
-  - 範例：`src/ui/features/app/pages/GalleryCharts.tsx`
+  - 範例：`src/ui/features/app/pages/GalleryCharts.tsx`（`includeZero` ＋ `zeroLine`）。
 
-- **`charts / BarChart`** — 分組長條圖。值以**大小**呈現（高度 ∝ 數值），收入／支出用 series 的 tone 表達，不是負高度；`highlightIndex` 指定的欄位改用 primary tone。
+- **`charts / BarChart`** — 分組長條圖。值以**大小**呈現（高度 ∝ 數值），收入／支出用 series 的 tone 表達，不是負高度；`highlightIndex` 指定的欄位改用 primary tone（呼叫端不需要 highlight 時可省略）。
   - Props：`labels`、`series`（`{ tone, values }[]`）、`highlightIndex?`、`height?`、`showLabels?`、`ariaLabel?`、`className?`、`children?`（`(layout) => ReactNode` 疊加層，`layout` 提供每個欄位的 index／label／values／ratio）。
   - `children` 疊加層會被放在長條區內、與欄位同樣的 flex 版面下；一旦提供 `children`，`ariaLabel` 不再掛 `role="img"`（交給疊加層自行標註語意）。
   - **不要用於**：長條圖的明細 tooltip——用 `InteractiveBarChart`。
@@ -238,7 +238,7 @@
 - **`charts / DonutChart`** — 圓環圖：圓環 ＋ 中心標題 ＋（可選）垂直圖例。切片顏色取自共用的 token 色階（首片 accent、其餘中性），佔比由數值推導並四捨五入為整數百分比。
   - Props：`segments`（`{ label, value }[]`）、`centerLabel`、`size?`、`showLegend?`、`ariaLabel?`、`className?`。
   - **不要用於**：需要精確讀值——圓環只適合看比例；精確值用數字或表格。
-  - 範例：`src/ui/features/app/pages/GalleryCharts.tsx`
+  - 範例：`src/ui/features/dashboard/components/AssetCompositionBlock.tsx`（資產組成）。
 
 - **`charts / ChartLegend`** — 圖例。`horizontal` 為 inline swatch 列（長條圖），`vertical` 為 label／value 列（圓環）。
   - Props：`items`（`{ label, tone?, color?, value? }[]`）、`orientation?`、`className?`。
@@ -256,14 +256,14 @@
   - 範例：`src/ui/components/charts/InteractiveLineChart.tsx`、`src/ui/components/charts/InteractiveBarChart.tsx`
 
 - **`charts / InteractiveLineChart`** — `LineChart` ＋ scrubber：導線、資料點、共用 `ChartTooltip`。整塊以 `role="slider"` 呈現，滑鼠 hover 與鍵盤左右鍵都能選取同一筆資料（Escape 清除）。
-  - Props：`values`、`points`（`{ title, value, meta? }[]`）、`xLabels?`、`tone?`、`height?`、`ariaLabel`（必填）、`className?`。
+  - Props：`values`、`points`（`{ title, value, meta? }[]`）、`xLabels?`、`tone?`、`includeZero?`、`yAxis?`、`height?`、`ariaLabel`（必填）、`className?`。
   - **不要用於**：只是要看趨勢、不需要明細——用 `LineChart`。
-  - 範例：`src/ui/features/app/pages/GalleryCharts.tsx`
+  - 範例：`src/ui/features/dashboard/pages/DashboardPage.tsx`（淨資產趨勢，`includeZero` ＋ `yAxis="left"`）、`src/ui/features/app/pages/GalleryCharts.tsx`
 
 - **`charts / InteractiveBarChart`** — `BarChart` ＋ hover／鍵盤 scrubber：導線、共用 `ChartTooltip`。整塊以 `role="slider"` 呈現，滑鼠移到任一欄位（以各欄實際 rect 命中）或鍵盤左右鍵都能選取該欄（Escape 清除）。
   - Props：`labels`、`series`、`points`（`{ title, value, meta? }[]`）、`highlightIndex?`、`height?`、`showLabels?`、`ariaLabel`（必填）、`className?`。
   - **不要用於**：只是要看趨勢、不需要明細——用 `BarChart`。
-  - 範例：`src/ui/features/app/pages/GalleryCharts.tsx`
+  - 範例：`src/ui/features/dashboard/components/CashFlowChartBlock.tsx`（月現金流流入／流出）、`src/ui/features/app/pages/GalleryCharts.tsx`
 
 ## data-table 套件
 

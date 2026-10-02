@@ -54,7 +54,7 @@ $ generate-reports --period SEP-2026
 
 - role 由**原生元素**或 **Radix primitive** 提供；呼叫端不重新發明 role。
 - 表單欄位的 `aria-invalid` / `aria-describedby` 由 `FormControl` 注入（注入清單見 [`design-system.md`](design-system.md) §7 `form`）；欄位元件只負責轉發，不自行組裝。
-- `ui/alert` 承擔 `role="alert"` live region；`ui/progress` 承擔 `role="progressbar"`。未走這兩個 primitive 的自繪進度指示，必須自行補齊等價的 `role` 與 `aria-value*`。
+- `ui/alert` 承擔 `role="alert"` live region；`CliProgress` 自繪進度條並自帶 `role="progressbar"` 與 `aria-value*`。其他自繪進度指示同樣必須自行補齊等價的 `role` 與 `aria-value*`。
 - 拖曳排序的播報容器（`aria-live`）置於 table **外層**，不得成為 `tbody` 的子元素。
 - 純裝飾的關閉 backdrop 標 `aria-hidden="true"`——它對輔助技術沒有意義。
 

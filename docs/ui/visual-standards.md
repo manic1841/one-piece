@@ -136,14 +136,14 @@ NET WORTH
 ↓
 FINANCIAL SNAPSHOT
 ↓
-FINANCIAL DETAILS
+ASSETS ∥ MONTHLY CASH FLOW
 ↓
-MONTHLY CLOSE
-↓
-RECENT ACTIVITY
+MONTHLY CLOSE ∥ RECENT ACTIVITY
 ```
 
-Close 排在 Recent 之前：Monthly Close 是時間敏感的 workflow 入口，Recent Activity 是低優先的系統日誌。
+ASSETS 與 MONTHLY CASH FLOW 並排於同一列：左為資產組成（圓環）、右為月現金流（流入／流出長條），兩欄等寬（行動版上下堆疊）。資產只顯示組成，負債不重複列出（負債已由 Financial Snapshot 的「總負債」與月關帳流程承載）。
+
+MONTHLY CLOSE 與 RECENT ACTIVITY 並排於同一列：左為 Monthly Close、右為 Recent Activity，兩欄等寬（行動版上下堆疊，Close 在上）。Close 在左，因為它是時間敏感的 workflow 入口、Recent Activity 是低優先的系統日誌。Monthly Close 卡以階段狀態清單呈現進度，並以進度條總結完成比例。
 
 不要增加：
 

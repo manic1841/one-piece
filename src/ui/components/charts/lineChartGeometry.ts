@@ -36,6 +36,10 @@ export interface LineChartGeometry {
   /** Horizontal gridline positions, in viewBox units. */
   gridLines: number[];
   xLabels: { x: number; text: string }[];
+  /** y-axis value labels aligned to the gridlines (top to bottom). */
+  yLabels: { y: number; text: string }[];
+  /** y position of value 0, present only when 0 falls inside the value range. */
+  zeroLineY?: number;
 }
 
 const EMPTY_GEOMETRY: LineChartGeometry = {
@@ -44,28 +48,52 @@ const EMPTY_GEOMETRY: LineChartGeometry = {
   areaPath: '',
   gridLines: [],
   xLabels: [],
+  yLabels: [],
+};
+
+const formatAxisValue = (value: number): string => {
+  const abs = Math.abs(value);
+  if (abs >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M`;
+  if (abs >= 1_000) return `${Math.round(value / 1_000)}K`;
+  return `${Math.round(value)}`;
 };
 
 /**
- * Build a 0-baseline-free line geometry: the y scale is padded around the data
- * range so small movements in a large balance remain readable.
+ * Build a line geometry. By default the y scale is padded around the data
+ * range so small movements in a large balance remain readable; `includeZero`
+ * pins the range to include 0 (0-baseline charts). `zeroLineY` marks where 0
+ * sits when it falls inside the value range.
  */
 export function buildLineGeometry(
   values: number[],
   labels: string[] = [],
   gridLineCount = DEFAULT_GRID_LINES,
   maxXLabels = DEFAULT_MAX_X_LABELS,
+  includeZero = false,
 ): LineChartGeometry {
   if (values.length === 0) return EMPTY_GEOMETRY;
 
   const min = Math.min(...values);
   const max = Math.max(...values);
   const span = max - min;
-  const fallbackPad = Math.abs(max || 1) * 0.1;
-  const yMin = span === 0 ? min - fallbackPad : min - span * 0.1;
-  const yMax = span === 0 ? max + fallbackPad : max + span * 0.1;
-  const ySpan = yMax - yMin;
   const innerHeight = LINE_CHART_HEIGHT - PADDING_TOP - PADDING_BOTTOM;
+
+  let yMin: number;
+  let yMax: number;
+  if (includeZero) {
+    yMin = Math.min(0, min);
+    yMax = Math.max(0, max);
+    if (yMin === yMax) {
+      const pad = Math.abs(yMax || 1) * 0.1;
+      yMin -= pad;
+      yMax += pad;
+    }
+  } else {
+    const fallbackPad = Math.abs(max || 1) * 0.1;
+    yMin = span === 0 ? min - fallbackPad : min - span * 0.1;
+    yMax = span === 0 ? max + fallbackPad : max + span * 0.1;
+  }
+  const ySpan = yMax - yMin;
 
   const points: LinePoint[] = values.map((value, index) => {
     const xRatio = values.length === 1 ? 0 : index / (values.length - 1);
@@ -104,5 +132,14 @@ export function buildLineGeometry(
     });
   }
 
-  return { points, path, areaPath, gridLines, xLabels };
+  const yLabels = gridLines.map((y, index) => ({
+    y,
+    text: formatAxisValue(yMin + (1 - index / (lineCount - 1)) * ySpan),
+  }));
+  const zeroLineY =
+    0 >= yMin && 0 <= yMax
+      ? Number((PADDING_TOP + (1 - (0 - yMin) / ySpan) * innerHeight).toFixed(2))
+      : undefined;
+
+  return { points, path, areaPath, gridLines, xLabels, yLabels, zeroLineY };
 }

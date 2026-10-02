@@ -30,37 +30,40 @@ const buildOverview = (
   pulse: null,
 });
 
-describe('mapDashboardOverviewToHeroVM trend geometry', () => {
-  it('builds axis labels and path for the anchored series', () => {
+describe('mapDashboardOverviewToHeroVM trend data', () => {
+  it('exposes the anchored series as values + month labels', () => {
     const vm = mapDashboardOverviewToHeroVM(buildOverview());
 
     expect(vm.hasAnchor).toBe(true);
-    expect(vm.trend.path).toMatch(/^M/);
-    expect(vm.trend.areaPath).toMatch(/Z$/);
-    expect(vm.trend.endPoint).toBeDefined();
-
-    expect(vm.trend.xLabels).toHaveLength(4);
-    expect(vm.trend.xLabels[0].text).toBe('SEP 2025');
-    expect(vm.trend.xLabels[1].text).toBe('JAN 2026');
-    expect(vm.trend.xLabels[2].text).toBe('MAY 2026');
-    expect(vm.trend.xLabels[3].text).toBe('AUG 2026');
-    expect(vm.trend.xLabels[0].x).toBeLessThan(vm.trend.xLabels[1].x);
-    expect(vm.trend.xLabels[1].x).toBeLessThan(vm.trend.xLabels[2].x);
-    expect(vm.trend.xLabels[2].x).toBeLessThan(vm.trend.xLabels[3].x);
-
-    expect(vm.trend.yLabels).toHaveLength(4);
-    expect(vm.trend.yLabels[0].text).toBe('0');
-    expect(vm.trend.yLabels[3].text).toBe('2.1M');
+    expect(vm.trend.hasData).toBe(true);
+    expect(vm.trend.values).toHaveLength(12);
+    expect(vm.trend.values[0]).toBe(1000000);
+    expect(vm.trend.values[11]).toBe(2100000);
+    expect(vm.trend.labels[0]).toBe('SEP 2025');
+    expect(vm.trend.labels[11]).toBe('AUG 2026');
   });
 
-  it('returns empty trend geometry without an anchor', () => {
+  it('builds one tooltip point per month with a month-over-month delta', () => {
+    const vm = mapDashboardOverviewToHeroVM(buildOverview());
+
+    expect(vm.trend.points).toHaveLength(12);
+    expect(vm.trend.points[0]).toEqual({
+      title: 'SEP 2025',
+      value: 'NT$1,000,000',
+      meta: '—',
+    });
+    expect(vm.trend.points[11]).toEqual({
+      title: 'AUG 2026',
+      value: 'NT$2,100,000',
+      meta: '+5.0% MoM',
+    });
+  });
+
+  it('returns an empty trend without an anchor', () => {
     const vm = mapDashboardOverviewToHeroVM(null);
 
     expect(vm.hasAnchor).toBe(false);
-    expect(vm.trend.path).toBeUndefined();
-    expect(vm.trend.xLabels).toHaveLength(0);
-    expect(vm.trend.yLabels).toHaveLength(0);
-    expect(vm.trend.endPoint).toBeUndefined();
+    expect(vm.trend).toEqual({ values: [], labels: [], points: [], hasData: false });
   });
 });
 

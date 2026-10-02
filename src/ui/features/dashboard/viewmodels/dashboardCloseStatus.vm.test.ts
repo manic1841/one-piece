@@ -41,6 +41,44 @@ describe('dashboardCloseStatus.vm', () => {
     expect(vm.nextStageLabel).toBe('證券買入／賣出');
   });
 
+  it('exposes one glyph per stage in workflow order', () => {
+    const vm = mapPeriodToCloseStatusVM(
+      buildPeriod('IN_PROGRESS', {
+        ACCOUNT_BALANCE: { status: 'COMPLETED' },
+        SECURITIES_TRADE: { status: 'PENDING' },
+      }),
+      '2026-08',
+    );
+
+    expect(vm.stages).toHaveLength(8);
+    expect(vm.stages[0]).toMatchObject({
+      stageId: 'ACCOUNT_BALANCE',
+      label: '帳戶餘額',
+      glyphType: 'verified',
+    });
+    expect(vm.stages[1]).toMatchObject({
+      stageId: 'SECURITIES_TRADE',
+      label: '證券買入／賣出',
+      glyphType: 'active',
+    });
+    expect(vm.stages[2]).toMatchObject({
+      stageId: 'PORTFOLIO_CASH_FLOW',
+      glyphType: 'waiting',
+    });
+  });
+
+  it('marks every stage verified for a closed period', () => {
+    const vm = mapPeriodToCloseStatusVM(buildPeriod('CLOSED'), '2026-08');
+
+    expect(vm.stages.every((stage) => stage.glyphType === 'verified')).toBe(true);
+  });
+
+  it('marks every stage waiting when there is no record', () => {
+    const vm = mapPeriodToCloseStatusVM(null, '2026-08');
+
+    expect(vm.stages.every((stage) => stage.glyphType === 'waiting')).toBe(true);
+  });
+
   it('reports full progress for a closed period', () => {
     const vm = mapPeriodToCloseStatusVM(buildPeriod('CLOSED'), '2026-08');
 
