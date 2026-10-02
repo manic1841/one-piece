@@ -240,6 +240,7 @@ Pixel Pet         → Navigate
 - **預設集只有三個**：本月、最近 3 個月、自訂日期（單選互斥）。「自訂日期」展開 FROM/TO 輸入，以 套用 提交；範圍倒置顯示就近 inline 錯誤，不送出請求。
 - **選擇即套用**：preset 選定立即重新載入，不暫存 draft；只有自訂日期走 draft + 套用。
 - **期間瀏覽的落點在 toolbar 右側**，與情境篩選列並列；情境篩選列的樣式契約見 [`design-system.md`](design-system.md) §7 `tabs`。
+- **兩者共用同一條 toolbar 細線**：情境篩選列只畫選中態底線，不畫自己的容器框線；細線由 toolbar 提供，選中態底線咬住該細線。
 
 ## 資料密度 (Data Density)
 

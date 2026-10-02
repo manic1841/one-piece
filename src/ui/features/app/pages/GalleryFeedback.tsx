@@ -6,13 +6,15 @@ import { toast } from 'sonner';
 import { AppFallback } from '@/ui/components/AppFallback';
 import { CliProgress } from '@/ui/components/CliProgress';
 import { EmptyState } from '@/ui/components/EmptyState';
+import { FilterStrip } from '@/ui/components/FilterStrip';
+import { SearchField } from '@/ui/components/SearchField';
 import { Skeleton } from '@/ui/components/Skeleton';
 import { StatusGlyph } from '@/ui/components/StatusGlyph';
 import { Toast } from '@/ui/components/Toast';
 import { Alert, AlertDescription } from '@/ui/components/ui/alert';
 import { Button } from '@/ui/components/ui/button';
 
-import { GalleryGroup, GalleryModule, GallerySection } from './GalleryScaffold';
+import { GalleryCaption, GalleryGroup, GalleryModule, GallerySection } from './GalleryScaffold';
 
 const EmptySection: React.FC = () => (
   <GallerySection number="29" title="Empty State">
@@ -166,6 +168,45 @@ const FailureSection: React.FC = () => (
   </GallerySection>
 );
 
+const FilterSection: React.FC = () => {
+  const [filter, setFilter] = React.useState('ALL');
+  const [query, setQuery] = React.useState('');
+
+  return (
+    <GallerySection number="34" title="Filter Strip & Search Field">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+        <GalleryModule label="CONTEXTUAL FILTER">
+          <div className="border-b border-border">
+            <FilterStrip
+              items={[
+                { id: 'ALL', label: '全部' },
+                { id: 'EXPENSE', label: '支出' },
+                { id: 'INCOME', label: '收入' },
+              ]}
+              value={filter}
+              onValueChange={setFilter}
+              ariaLabel="交易類型篩選"
+            />
+          </div>
+        </GalleryModule>
+        <GalleryModule label="CONTEXTUAL SEARCH">
+          <SearchField
+            value={query}
+            onValueChange={setQuery}
+            placeholder="搜尋交易或備註..."
+            ariaLabel="搜尋交易"
+          />
+        </GalleryModule>
+      </div>
+      <GalleryCaption>
+        情境篩選列是底線式，沿用 tabs 的觸發區 token（選中態 2px 底線咬住列的細線），但維持
+        role=group 與 aria-pressed——它是篩選，不是 tab；細線由呼叫端的列提供。搜尋欄是模組內
+        情境搜尋，不同於全域 Command Palette。
+      </GalleryCaption>
+    </GallerySection>
+  );
+};
+
 export const GalleryFeedbackBody: React.FC = () => (
   <>
     <GalleryGroup label="STATES & FEEDBACK" />
@@ -174,5 +215,6 @@ export const GalleryFeedbackBody: React.FC = () => (
     <AlertSection />
     <ToastSection />
     <FailureSection />
+    <FilterSection />
   </>
 );

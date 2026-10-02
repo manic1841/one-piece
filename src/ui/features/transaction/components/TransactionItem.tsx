@@ -2,16 +2,22 @@ import React, { useState } from 'react';
 
 import { Pencil, Trash2 } from 'lucide-react';
 
+import {
+  DataTable,
+  DataTableCell,
+  DataTableColGroup,
+  DataTableHeadCell,
+  DataTableHeadRow,
+  DataTableRow,
+  MobileExpandableRow,
+  NumberCell,
+  TableBody,
+  TableHeader,
+} from '@/ui/components/data-table';
 import { Button } from '@/ui/components/ui/button';
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/ui/components/ui/table';
-import {
+  ACCOUNTING_DETAILS_CREDIT_LABEL,
+  ACCOUNTING_DETAILS_DEBIT_LABEL,
   ACCOUNTING_DETAILS_ENTRY_LABEL,
   ACCOUNTING_DETAILS_SECTION_LABEL,
   NO_CASH_ENTRY_LABEL,
@@ -24,6 +30,9 @@ import { cn } from '@/ui/utils/cn';
 // Must match TransactionList's desktop column count: the accordion spans all of them.
 const ACCORDION_ROW_COL_SPAN = 5;
 
+/** 會計科目 60% / Debit 20% / Credit 20%（總和 100）。 */
+const ACCOUNTING_DETAILS_COLUMN_WIDTHS = [60, 20, 20] as const;
+
 function AccountingDetailsTable({ transaction }: { transaction: TransactionListItemVM }) {
   const detailEntries = transaction.entries ?? [];
 
@@ -32,28 +41,25 @@ function AccountingDetailsTable({ transaction }: { transaction: TransactionListI
       <p className="font-mono text-[10px] uppercase tracking-[0.08em] text-muted-foreground">
         {ACCOUNTING_DETAILS_SECTION_LABEL}
       </p>
-      <Table className="mt-2">
+      <DataTable className="mt-2">
+        <DataTableColGroup widths={ACCOUNTING_DETAILS_COLUMN_WIDTHS} />
         <TableHeader>
-          <TableRow>
-            <TableHead>{ACCOUNTING_DETAILS_ENTRY_LABEL}</TableHead>
-            <TableHead className="text-right">Debit</TableHead>
-            <TableHead className="text-right">Credit</TableHead>
-          </TableRow>
+          <DataTableHeadRow>
+            <DataTableHeadCell>{ACCOUNTING_DETAILS_ENTRY_LABEL}</DataTableHeadCell>
+            <DataTableHeadCell align="number">{ACCOUNTING_DETAILS_DEBIT_LABEL}</DataTableHeadCell>
+            <DataTableHeadCell align="number">{ACCOUNTING_DETAILS_CREDIT_LABEL}</DataTableHeadCell>
+          </DataTableHeadRow>
         </TableHeader>
         <TableBody>
           {detailEntries.map((entry, index) => (
-            <TableRow key={`${entry.ledgerCode}-${index}`}>
-              <TableCell className="font-mono text-[12px]">{entry.ledgerLabel}</TableCell>
-              <TableCell className="text-right font-mono tabular-nums">
-                {entry.debit > 0 ? formatAmount(entry.debit) : '—'}
-              </TableCell>
-              <TableCell className="text-right font-mono tabular-nums">
-                {entry.credit > 0 ? formatAmount(entry.credit) : '—'}
-              </TableCell>
-            </TableRow>
+            <DataTableRow key={`${entry.ledgerCode}-${index}`}>
+              <DataTableCell className="font-mono text-[12px]">{entry.ledgerLabel}</DataTableCell>
+              <NumberCell value={entry.debit > 0 ? entry.debit : null} format={formatCurrency} />
+              <NumberCell value={entry.credit > 0 ? entry.credit : null} format={formatCurrency} />
+            </DataTableRow>
           ))}
         </TableBody>
-      </Table>
+      </DataTable>
     </div>
   );
 }
@@ -128,7 +134,7 @@ export const TransactionItem: React.FC<TransactionItemProps> = ({
 
   return (
     <>
-      <TableRow
+      <DataTableRow
         data-testid={`transaction-row-${transaction.id}`}
         className={cn('align-top group', isExpanded && 'border-b-0 bg-muted/50')}
         interactive={hasEntries}
@@ -137,19 +143,20 @@ export const TransactionItem: React.FC<TransactionItemProps> = ({
         onClick={hasEntries ? () => setIsExpanded((prev) => !prev) : undefined}
         onKeyDown={hasEntries ? handleRowKeyDown : undefined}
       >
-        <TableCell className="font-mono text-[12px] tabular-nums whitespace-nowrap">
+        <DataTableCell className="font-mono text-[12px] tabular-nums whitespace-nowrap">
           {dateText}
-        </TableCell>
-        <TableCell>
+        </DataTableCell>
+        <DataTableCell>
           <span className="block font-medium">{displayTitle}</span>
           <span className="text-[11px] text-muted-foreground">{categoryLabel}</span>
-        </TableCell>
-        <TableCell className="text-muted-foreground">{projectName ?? '—'}</TableCell>
-        <TableCell
+        </DataTableCell>
+        <DataTableCell className="text-muted-foreground">{projectName ?? '—'}</DataTableCell>
+        <DataTableCell
           className={cn(
-            'text-right font-mono tabular-nums whitespace-nowrap',
+            'font-mono tabular-nums whitespace-nowrap',
             hasCashLedger ? amountColor : 'text-warning',
           )}
+          align="number"
         >
           {signedAmountText}
           {!hasCashLedger && (
@@ -157,22 +164,22 @@ export const TransactionItem: React.FC<TransactionItemProps> = ({
               {NO_CASH_ENTRY_LABEL}
             </span>
           )}
-        </TableCell>
-        <TableCell>
+        </DataTableCell>
+        <DataTableCell>
           <span className="flex justify-end gap-1 opacity-0 transition-opacity duration-fast group-hover:opacity-100 group-focus-within:opacity-100">
             <RowActions transaction={transaction} onEdit={onEdit} onDelete={onDelete} />
           </span>
-        </TableCell>
-      </TableRow>
+        </DataTableCell>
+      </DataTableRow>
       {hasEntries && isExpanded ? (
-        <TableRow
+        <DataTableRow
           className="hover:bg-transparent"
           data-testid={`transaction-details-${transaction.id}`}
         >
-          <TableCell colSpan={ACCORDION_ROW_COL_SPAN} className="p-0">
+          <DataTableCell colSpan={ACCORDION_ROW_COL_SPAN} className="p-0">
             <AccountingDetailsTable transaction={transaction} />
-          </TableCell>
-        </TableRow>
+          </DataTableCell>
+        </DataTableRow>
       ) : null}
     </>
   );
@@ -193,72 +200,46 @@ export const TransactionItemMobile: React.FC<TransactionItemProps> = ({
     signedAmountText,
   } = transaction;
   const amountColor = isPositive ? 'text-positive' : 'text-negative';
-  const [isExpanded, setIsExpanded] = useState(false);
   const hasEntries = (transaction.entries ?? []).length > 0;
 
   return (
-    <div
+    <MobileExpandableRow
       data-testid={`transaction-row-mobile-${transaction.id}`}
-      role={hasEntries ? 'button' : undefined}
-      tabIndex={hasEntries ? 0 : undefined}
-      aria-expanded={hasEntries ? isExpanded : undefined}
-      onClick={hasEntries ? () => setIsExpanded((prev) => !prev) : undefined}
-      onKeyDown={(event) => {
-        if (!hasEntries) return;
-        if (event.target !== event.currentTarget) return;
-        if (event.key !== 'Enter' && event.key !== ' ') return;
-        event.preventDefault();
-        setIsExpanded((prev) => !prev);
-      }}
-      className={cn(
-        'border-b border-border py-3 md:hidden',
-        hasEntries &&
-          'cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-0',
-      )}
-    >
-      <div className="flex items-center justify-between gap-2">
-        <span className="flex min-w-0 items-baseline gap-2">
+      summary={
+        <>
           <span className="font-mono text-[11px] tabular-nums text-muted-foreground whitespace-nowrap">
             {dateText}
           </span>
           <span className="min-w-0 truncate text-sm font-medium">{displayTitle}</span>
-        </span>
+        </>
+      }
+      value={
         <span
           className={cn(
-            'ml-auto font-mono text-sm tabular-nums whitespace-nowrap',
+            'font-mono text-sm tabular-nums',
             hasCashLedger ? amountColor : 'text-warning',
           )}
         >
           {signedAmountText}
         </span>
-        <span
-          className="flex shrink-0 gap-0.5"
-          onClick={(event) => event.stopPropagation()}
-          onKeyDown={(event) => event.stopPropagation()}
-          role="presentation"
-        >
-          <RowActions transaction={transaction} onEdit={onEdit} onDelete={onDelete} />
-        </span>
-      </div>
-      <div className="mt-1 flex items-center gap-2 text-[11px] text-muted-foreground">
-        <span className="truncate">{projectName ?? '—'}</span>
-        <span className="truncate">{categoryLabel}</span>
-        {!hasCashLedger && (
-          <span className={cn('font-bold uppercase', TRACKING_LABEL)}>{NO_CASH_ENTRY_LABEL}</span>
-        )}
-      </div>
-      {hasEntries && isExpanded ? (
-        <div
-          className="mt-3 border-t border-border pt-2"
-          data-testid={`transaction-details-mobile-${transaction.id}`}
-        >
-          <AccountingDetailsTable transaction={transaction} />
-        </div>
-      ) : null}
-    </div>
+      }
+      actions={<RowActions transaction={transaction} onEdit={onEdit} onDelete={onDelete} />}
+      meta={
+        <>
+          <span className="truncate">{projectName ?? '—'}</span>
+          <span className="truncate">{categoryLabel}</span>
+          {!hasCashLedger && (
+            <span className={cn('font-bold uppercase', TRACKING_LABEL)}>{NO_CASH_ENTRY_LABEL}</span>
+          )}
+        </>
+      }
+      details={
+        hasEntries ? (
+          <div data-testid={`transaction-details-mobile-${transaction.id}`}>
+            <AccountingDetailsTable transaction={transaction} />
+          </div>
+        ) : undefined
+      }
+    />
   );
 };
-
-function formatAmount(value: number): string {
-  return formatCurrency(value);
-}

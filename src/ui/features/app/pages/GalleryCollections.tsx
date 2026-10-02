@@ -13,11 +13,13 @@ import {
   MobileDataField,
   MobileDataList,
   MobileDataRow,
+  MobileExpandableRow,
   NumberCell,
   NumberInput,
   parseOptionalAmount,
 } from '@/ui/components/data-table';
 import { GripHandle, SortableListScope } from '@/ui/components/sortable/SortableListScope';
+import { Button } from '@/ui/components/ui/button';
 import { TableBody, TableHeader } from '@/ui/components/ui/table';
 import { useSortableRow } from '@/ui/hooks/useSortableList';
 import { cn } from '@/ui/utils/cn';
@@ -97,6 +99,44 @@ const DataTableSection: React.FC = () => (
           </MobileDataRow>
         ))}
       </MobileDataList>
+    </GalleryModule>
+    <GalleryModule label="MOBILE EXPANDABLE ROW">
+      <div className="max-w-md">
+        {SAMPLE_TABLE_ROWS.map((row) => (
+          <MobileExpandableRow
+            key={row.id}
+            summary={
+              <>
+                <span className="font-mono text-[11px] tabular-nums text-muted-foreground">
+                  {row.date}
+                </span>
+                <span className="min-w-0 truncate text-sm font-medium">{row.description}</span>
+              </>
+            }
+            value={
+              <span
+                className={cn(
+                  'font-mono text-sm tabular-nums',
+                  row.tone === 'positive' ? 'text-positive' : 'text-negative',
+                )}
+              >
+                {row.amount}
+              </span>
+            }
+            meta={<span className="truncate">{row.account}</span>}
+            actions={
+              <Button variant="text" size="sm">
+                EDIT
+              </Button>
+            }
+            details={
+              <p className="text-sm text-muted-foreground">
+                展開內容（會計科目、分錄）出現在此列下方。
+              </p>
+            }
+          />
+        ))}
+      </div>
     </GalleryModule>
     <GalleryCaption>
       唯讀的結構化紀錄：表頭 + 明確欄寬（總和 100%），供掃描與跨表比較。行動版改走 grouped card。

@@ -1,11 +1,27 @@
 import React, { useMemo, useState } from 'react';
 
-import { Plus, Search } from 'lucide-react';
+import { Plus } from 'lucide-react';
 
+import { FilterStrip } from '@/ui/components/FilterStrip';
 import { PageHeader } from '@/ui/components/PageHeader';
+import { SearchField } from '@/ui/components/SearchField';
 import { Button } from '@/ui/components/ui/button';
-import { Input } from '@/ui/components/ui/input';
-import { getIntentTypeLabel } from '@/ui/constants/transaction';
+import {
+  TRANSACTIONS_PAGE_CREATE_ACTION,
+  TRANSACTIONS_PAGE_DELETE_CONFIRM_CONTEXT,
+  TRANSACTIONS_PAGE_DELETE_CONFIRM_TITLE,
+  TRANSACTIONS_PAGE_DESCRIPTION,
+  TRANSACTIONS_PAGE_EDIT_MISSING_TITLE,
+  TRANSACTIONS_PAGE_EDIT_UNSUPPORTED_TITLE,
+  TRANSACTIONS_PAGE_FILTER_EMPTY_DESCRIPTION,
+  TRANSACTIONS_PAGE_FILTER_EMPTY_TITLE,
+  TRANSACTIONS_PAGE_FILTER_LABEL,
+  TRANSACTIONS_PAGE_SEARCH_LABEL,
+  TRANSACTIONS_PAGE_SEARCH_PLACEHOLDER,
+  TRANSACTIONS_PAGE_TITLE,
+  TRANSACTION_FILTER_ALL,
+  TRANSACTION_FILTER_ITEMS,
+} from '@/ui/constants/transaction';
 import { useAuthState } from '@/ui/contexts/useAuthState';
 import { useConfirm } from '@/ui/features/app/confirm/useConfirm';
 import { useLedgerCodes } from '@/ui/features/ledger/hooks/useLedgerCodes';
@@ -26,7 +42,6 @@ import {
   mapTransactionToListItemVM,
 } from '@/ui/features/transaction/viewmodels/transaction-list.vm';
 import { mapDomainTransactionToFormOutput } from '@/ui/features/transaction/viewmodels/transaction.vm';
-import { cn } from '@/ui/utils/cn';
 
 import { TransactionForm } from '../components/form/TransactionForm';
 
@@ -49,8 +64,14 @@ const initialPeriodRange = (period: TransactionPeriod): { startDate?: Date; endD
 
 const Transactions: React.FC = () => {
   const { userProfile } = useAuthState();
-  const { transactions, loading, reload, deleteTransaction, getTransactionAllocation } =
-    useTransactions(userProfile?.householdId, initialPeriodRange('CURRENT_MONTH'));
+  const {
+    transactions,
+    loading,
+    errorMessage,
+    reload,
+    deleteTransaction,
+    getTransactionAllocation,
+  } = useTransactions(userProfile?.householdId, initialPeriodRange('CURRENT_MONTH'));
   const { projects } = useProjects(userProfile?.householdId);
   const { getLabel } = useLedgerCodes();
 
@@ -58,8 +79,8 @@ const Transactions: React.FC = () => {
 
   const handleDelete = async (transaction: TransactionListItemVM) => {
     const confirmed = await confirm({
-      title: 'Delete this transaction?',
-      context: 'Related allocation data will be removed as well.',
+      title: TRANSACTIONS_PAGE_DELETE_CONFIRM_TITLE,
+      context: TRANSACTIONS_PAGE_DELETE_CONFIRM_CONTEXT,
     });
     if (confirmed) {
       await deleteTransaction(transaction.id);
@@ -92,18 +113,23 @@ const Transactions: React.FC = () => {
 
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterType, setFilterType] = useState<string>('ALL');
+  const [filterType, setFilterType] = useState<string>(TRANSACTION_FILTER_ALL);
   const [period, setPeriod] = useState<TransactionPeriod>('CURRENT_MONTH');
+
+  const openCreateForm = () => {
+    resetEditState();
+    setIsFormOpen(true);
+  };
 
   const handleEdit = async (transaction: TransactionListItemVM) => {
     const target = transactions.find((item) => item.id === transaction.id);
     if (!target) {
-      await confirm({ title: '找不到要編輯的交易資料。' });
+      await confirm({ title: TRANSACTIONS_PAGE_EDIT_MISSING_TITLE });
       return;
     }
 
     if (isNonEditableIntent(target.intentType)) {
-      await confirm({ title: '目前不支援編輯此交易。' });
+      await confirm({ title: TRANSACTIONS_PAGE_EDIT_UNSUPPORTED_TITLE });
       return;
     }
 
@@ -164,11 +190,14 @@ const Transactions: React.FC = () => {
           item.intentType.toLowerCase().includes(searchTerm.toLowerCase())
         : true;
 
-      const matchType = filterType === 'ALL' ? true : item.intentType === filterType;
+      const matchType =
+        filterType === TRANSACTION_FILTER_ALL ? true : item.intentType === filterType;
 
       return matchSearch && matchType;
     });
   }, [transactionItems, searchTerm, filterType]);
+
+  const isFiltered = searchTerm.trim() !== '' || filterType !== TRANSACTION_FILTER_ALL;
 
   const projectOptions = projects
     .filter((project) => project.isActive)
@@ -180,63 +209,55 @@ const Transactions: React.FC = () => {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="交易"
-        description="管理你的收入、支出與資金流動。"
+        title={TRANSACTIONS_PAGE_TITLE}
+        description={TRANSACTIONS_PAGE_DESCRIPTION}
         actions={
-          <Button
-            onClick={() => {
-              resetEditState();
-              setIsFormOpen(true);
-            }}
-          >
+          <Button onClick={openCreateForm}>
             <Plus className="w-4 h-4" />
-            新增交易
+            {TRANSACTIONS_PAGE_CREATE_ACTION}
           </Button>
         }
       />
 
-      <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between border-b border-border pb-4">
-        <div className="relative w-full md:w-96">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="搜尋交易或備註..."
-            className="pl-9 bg-muted/50 border-none focus-visible:ring-1 focus-visible:ring-border"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-        </div>
+      <div className="flex flex-col gap-4 border-b border-border pb-4 md:flex-row md:items-end md:justify-between md:pb-0">
+        <SearchField
+          className="w-full md:w-96 md:pb-3"
+          value={searchTerm}
+          onValueChange={setSearchTerm}
+          placeholder={TRANSACTIONS_PAGE_SEARCH_PLACEHOLDER}
+          ariaLabel={TRANSACTIONS_PAGE_SEARCH_LABEL}
+        />
         <div className="flex w-full flex-wrap items-end gap-4 md:w-auto">
-          {[
-            { id: 'ALL', label: '全部' },
-            { id: 'EXPENSE', label: getIntentTypeLabel('EXPENSE') },
-            { id: 'INCOME', label: getIntentTypeLabel('INCOME') },
-            { id: 'INVESTMENT', label: getIntentTypeLabel('INVESTMENT') },
-            { id: 'FINANCING', label: getIntentTypeLabel('FINANCING') },
-          ].map((type) => (
-            <button
-              key={type.id}
-              onClick={() => setFilterType(type.id)}
-              className={cn(
-                '-mb-1 whitespace-nowrap border-b-2 px-1 pb-1 text-sm font-medium transition-colors duration-fast focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-0',
-                filterType === type.id
-                  ? 'text-foreground font-semibold border-primary'
-                  : 'text-muted-foreground border-transparent',
-              )}
-            >
-              {type.label}
-            </button>
-          ))}
-          <TransactionPeriodPicker
-            period={period}
-            onPeriodChange={handlePeriodChange}
-            onRangeChange={(range) => void handleDateRangeSearch(range)}
+          <FilterStrip
+            items={TRANSACTION_FILTER_ITEMS}
+            value={filterType}
+            onValueChange={setFilterType}
+            ariaLabel={TRANSACTIONS_PAGE_FILTER_LABEL}
           />
+          <div className="md:pb-3">
+            <TransactionPeriodPicker
+              period={period}
+              onPeriodChange={handlePeriodChange}
+              onRangeChange={(range) => void handleDateRangeSearch(range)}
+            />
+          </div>
         </div>
       </div>
 
       <TransactionList
         items={filteredTransactions}
         loading={loading}
+        error={errorMessage}
+        emptyState={
+          isFiltered
+            ? {
+                title: TRANSACTIONS_PAGE_FILTER_EMPTY_TITLE,
+                description: TRANSACTIONS_PAGE_FILTER_EMPTY_DESCRIPTION,
+              }
+            : undefined
+        }
+        onRetry={() => void reload()}
+        onCreate={isFiltered ? undefined : openCreateForm}
         onEdit={handleEdit}
         onDelete={handleDelete}
       />

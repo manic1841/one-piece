@@ -62,7 +62,7 @@ const transaction = (overrides: Partial<LedgerTransaction> = {}): LedgerTransact
 const controllerBase = {
   transactions: [] as LedgerTransaction[],
   loading: false,
-  error: null,
+  errorMessage: null as string | null,
   reload: vi.fn(),
   deleteTransaction: vi.fn(),
   getTransactionAllocation: vi.fn(),
@@ -125,13 +125,14 @@ describe('TransactionsPage system filter', () => {
     mockUseTransactions.mockReturnValue(controllerBase);
     render(<TransactionsPage />);
 
+    expect(screen.getByRole('group', { name: '交易類型篩選' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '全部' })).toBeInTheDocument();
     for (const id of ['EXPENSE', 'INCOME', 'INVESTMENT', 'FINANCING']) {
       expect(screen.getByRole('button', { name: getIntentTypeLabel(id) })).toBeInTheDocument();
     }
   });
 
-  it('filters by intent type and emphasizes the active option with a bottom border', () => {
+  it('marks the active option with aria-pressed and a bottom border', () => {
     mockUseTransactions.mockReturnValue({
       ...controllerBase,
       transactions: [
@@ -159,9 +160,27 @@ describe('TransactionsPage system filter', () => {
     expect(screen.getAllByText('Shareholder financing').length).toBe(2);
 
     const activeButton = screen.getByRole('button', { name: '融資' });
+    expect(activeButton).toHaveAttribute('aria-pressed', 'true');
     expect(activeButton.className).toContain('border-b');
     expect(activeButton.className).not.toContain('rounded-full');
     expect(activeButton.className).not.toContain('bg-primary');
     expect(activeButton.className).not.toContain('shadow');
+  });
+
+  it('shows filter-empty copy instead of the period-empty state when a search matches nothing', () => {
+    mockUseTransactions.mockReturnValue({
+      ...controllerBase,
+      transactions: [transaction({ id: 'tx-1', description: 'Groceries' })],
+    });
+
+    render(<TransactionsPage />);
+
+    fireEvent.change(screen.getByRole('searchbox', { name: '搜尋交易' }), {
+      target: { value: 'zzz-no-match' },
+    });
+
+    expect(screen.getByText('NO MATCH')).toBeInTheDocument();
+    expect(screen.getByText('沒有符合搜尋或篩選條件的交易。')).toBeInTheDocument();
+    expect(screen.queryByText('目前期間沒有任何交易紀錄。')).not.toBeInTheDocument();
   });
 });

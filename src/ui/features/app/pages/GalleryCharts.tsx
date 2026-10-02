@@ -86,7 +86,7 @@ const ChartHead: React.FC<{ value: string; meta: string; tone?: MoneyTone }> = (
 );
 
 const LineChartSection: React.FC = () => (
-  <GallerySection number="34" title="Chart & Data Visualization">
+  <GallerySection number="35" title="Chart & Data Visualization">
     <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
       <GalleryModule label="LINE CHART · 12M NET WORTH">
         <ChartHead value="NT$4,812,430" meta="+8.42% YTD" tone="positive" />

@@ -31,6 +31,7 @@
 | `src/ui/components/Divider.tsx`                      | Divider                        |
 | `src/ui/components/EmptyState.tsx`                   | EmptyState                     |
 | `src/ui/components/ErrorBoundary.tsx`                | ErrorBoundary                  |
+| `src/ui/components/FilterStrip.tsx`                  | FilterStrip                    |
 | `src/ui/components/FinancialNumber.tsx`              | FinancialNumber                |
 | `src/ui/components/InlineEditableTitle.tsx`          | InlineEditableTitle            |
 | `src/ui/components/MetricGroup.tsx`                  | MetricGroup / Metric           |
@@ -39,6 +40,7 @@
 | `src/ui/components/PageSection.tsx`                  | PageSection                    |
 | `src/ui/components/PeriodBadge.tsx`                  | PeriodBadge                    |
 | `src/ui/components/RadioGroup.tsx`                   | RadioGroup / Radio             |
+| `src/ui/components/SearchField.tsx`                  | SearchField                    |
 | `src/ui/components/Skeleton.tsx`                     | Skeleton                       |
 | `src/ui/components/StatusGlyph.tsx`                  | StatusGlyph                    |
 | `src/ui/components/Toast.tsx`                        | Toast                          |
@@ -104,6 +106,7 @@
 | `src/ui/components/form/styles.ts`                    | 表面常數                                            |
 | `src/ui/components/ui/button-variants.ts`             | 變體定義模組（`button` 使用）                       |
 | `src/ui/components/ui/input-styles.ts`                | 表面常數                                            |
+| `src/ui/components/ui/tabs-styles.ts`                 | 表面常數                                            |
 
 ## 頁面骨架
 
@@ -199,6 +202,16 @@
   - **不要用於**：表單欄位列（用 `form` 套件）。
   - 範例：`src/ui/features/app/pages/GalleryLayout.tsx`
 
+- **`FilterStrip`** — 語意為 filter 的底線式篩選列。項目為原生 `button`，以 `aria-pressed` 標示選取；整列是具名的 `role="group"`。沿用 `tabs` 的觸發區 token（選中態 2px 底線以 `-mb-px` 咬住細線），但**細線由呼叫端的列提供**——本元件不畫自己的容器框線，因此可嵌進任何有底線的列。
+  - Props：`items`（`{ id, label }[]`，必填）、`value`（選取的 id）、`onValueChange`（必填）、`ariaLabel`（必填）、`className?`。
+  - **不要用於**：切換內容區塊的 tab（用 `ui/tabs`）；需要 server-side 重載的資料範圍選擇（那是期間瀏覽，不是情境篩選）。
+  - 範例：`src/ui/features/transaction/pages/TransactionsPage.tsx`、`src/ui/features/app/pages/GalleryFeedback.tsx`
+
+- **`SearchField`** — 模組內情境搜尋欄（標準 input 表面；focus 走既有 input 的 primary focus ring，不另換表面）。
+  - Props：`value`、`onValueChange`（必填）、`placeholder?`、`ariaLabel`（必填，可存取名稱）、`className?`、`ref`。
+  - **不要用於**：全域 Find / Do / Navigate（那是 Command Palette）；需要送出才過濾的查詢（本元件只回報輸入值）。
+  - 範例：`src/ui/features/transaction/pages/TransactionsPage.tsx`、`src/ui/features/app/pages/GalleryFeedback.tsx`
+
 - **`Toast`** — Toast 表面（visual-standards §通知）：浮動卡片，左側狀態 glyph + 訊息、右側單一選用動作（UNDO／RETRY）。元件自帶表面（`bg-card` + `border` + `shadow-lg`）；live toast 以 `toast.custom(() => <Toast …/>, { unstyled: true, style: { width: '356px' } })` 掛進 sonner，全域 `Toaster` 只負責定位，不再加表面。Toast 只回報結果，不承載 workflow instruction。
   - Props：`message`、`tone?`（`success`／`error`）、`actionLabel?`、`onAction?`、`className?`。
   - **不要用於**：需要使用者解決的問題（用 inline alert）；重要的 workflow instruction；純字串 `toast('…')`（會落到 sonner 預設外觀）。
@@ -207,7 +220,7 @@
 - **`RadioGroup` / `Radio`** — 行內單選：原生 `input[type=radio]`、`<label>` 包覆控制項，零 Radix 依賴。
   - Props（Group）：`aria-label`（必填）、`name`、`value?`、`onValueChange?`、`children`、`className?`。Props（Radio）：`value`、`label`、`className?`。
   - **不要用於**：二元設定（用 `ui/` 群組的 `switch`）；多選（用 `checkbox`）。
-  - 範例：`src/ui/features/app/pages/GalleryForms.tsx`
+  - 範例：`src/ui/features/transaction/components/TransactionPeriodPicker.tsx`、`src/ui/features/app/pages/GalleryForms.tsx`
 
 - **`ui/tooltip`** — Tooltip primitive：Radix 包裝、Root 自帶 Provider。「僅在需要時解釋」——不懂的縮寫、推導式、缺值說明。
   - Props：透通 Radix Root/Trigger/Content；Content 預設 `sideOffset={6}`、`max-w-xs`。
@@ -272,7 +285,7 @@
 - **`DataTable`** — 表格外框。**`DataTableScrollArea`** 是可捲動區（僅桌機）。
   - Props：原生 table 屬性（`DataTable`）／原生 div 屬性（`DataTableScrollArea`）。
   - **不要用於**：非表格的資料陳列（行動版清單用 `MobileDataRow`／`CompactRow`）。
-  - 範例：`src/ui/features/monthly_close/stages/account_balance/components/CloseAccountBalanceInputs.tsx`
+  - 範例：`src/ui/features/transaction/components/TransactionItem.tsx`、`src/ui/features/monthly_close/stages/account_balance/components/CloseAccountBalanceInputs.tsx`
 
 - **`DataTableRow`** — 資料列。**`DataTableHeadRow`** 是表頭列。
   - Props：原生 `tr` 屬性。
@@ -288,22 +301,22 @@
 - **`DataTableColGroup`** — 以百分比陣列定義欄寬；總和必須為 100（開發模式會報錯）。
   - Props：`widths`（必填，百分比陣列，總和 100）、`className?`。
   - **不要用於**：欄寬和必須為 100 的理由見 [`design-system.md`](design-system.md) `data-table`。
-  - 範例：`src/ui/features/monthly_close/stages/account_balance/components/CloseAccountBalanceInputs.tsx`
+  - 範例：`src/ui/features/transaction/components/TransactionItem.tsx`、`src/ui/features/monthly_close/stages/account_balance/components/CloseAccountBalanceInputs.tsx`
 
 - **`NumberCell`** — 數字 cell 的顯示。
   - Props：原生 `td` 屬性（不含 children 與 align），另加 `value`（`number | null | undefined`）、`format?`、`emptyText?`（預設 `—`）。
   - **不要用於**：可編輯的數字欄（用 `NumberInput`）。
-  - 範例：`src/ui/features/monthly_close/stages/account_balance/components/CloseAccountBalanceInputs.tsx`
+  - 範例：`src/ui/features/transaction/components/TransactionItem.tsx`、`src/ui/features/monthly_close/stages/account_balance/components/CloseAccountBalanceInputs.tsx`
 
 - **`NumberInput`**（data-table）— 表格內可編輯數字欄。
   - Props：原生 input 屬性（不含 `type`），另加 `compact?`（切換較短的列內高度）。保留原生 `value`／`onChange` 事件契約。
   - **不要用於**：form 套件內的欄位（用 `form / NumberInput`，見下方裁決）；不需要原生事件時也不必用它。
   - 範例：`src/ui/features/monthly_close/stages/debt_repayment/components/CloseDebtRepaymentStage.tsx`
 
-- **`MobileDataRow`** — 行動版的 grouped row（label／值）。**`MobileDataList`** 是外框；**`MobileDataField`** 是其中一欄。
-  - Props：原生 div 屬性；`MobileDataField` 另加 `label`（必填）、`children?`、`className?`。
+- **`MobileDataRow`** — 行動版的 grouped row（label／值）。**`MobileDataList`** 是外框；**`MobileDataField`** 是其中一欄。**`MobileExpandableRow`** 是可展開的列變體：`summary` / `value` / `meta` / `actions` / `details`，自身接管展開狀態與鍵盤等價（Enter／Space）並在提供 `details` 時補上 `role="button"` 與 `aria-expanded`；`actions` 區停止冒泡，讓列動作不切換展開。
+  - Props：原生 div 屬性；`MobileDataField` 另加 `label`（必填）、`children?`、`className?`；`MobileExpandableRow` 另加 `summary`（必填）、`value?`、`meta?`、`actions?`、`details?`。
   - **不要用於**：桌機佈局（用 `DataTable`）。
-  - 範例：`src/ui/features/monthly_close/stages/account_balance/components/CloseAccountBalanceMobileLists.tsx`
+  - 範例：`src/ui/features/monthly_close/stages/account_balance/components/CloseAccountBalanceMobileLists.tsx`、`src/ui/features/transaction/components/TransactionItem.tsx`
 
 ## form 套件
 

@@ -13,7 +13,12 @@ export { DataTableCell } from './DataTableCell';
 export { NumberCell } from './NumberCell';
 export { NumberInput } from './NumberInput';
 export { parseOptionalAmount } from './parseOptionalAmount';
-export { MobileDataList, MobileDataRow, MobileDataField } from './MobileDataRow';
+export {
+  MobileDataList,
+  MobileDataRow,
+  MobileDataField,
+  MobileExpandableRow,
+} from './MobileDataRow';
 
 export {
   dataTableClass,

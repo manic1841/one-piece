@@ -65,12 +65,57 @@ describe('TransactionList loading and empty states', () => {
     expect(screen.queryByText(/Loading transactions/i)).toBeNull();
   });
 
+  it('announces the loading state to assistive technology', () => {
+    render(<TransactionList items={[]} loading={true} />);
+
+    expect(screen.getByRole('status')).toHaveTextContent('載入交易紀錄中');
+  });
+
   it('renders the standard empty state without a Card', () => {
     const { container } = render(<TransactionList items={[]} loading={false} />);
 
-    expect(screen.getByText('○ NO DATA')).toBeVisible();
+    expect(screen.getByText('NO DATA')).toBeVisible();
     expect(screen.getByText('目前期間沒有任何交易紀錄。')).toBeVisible();
     expect(container.querySelector('.rounded-lg')).toBeNull();
+  });
+
+  it('uses the supplied empty copy when the page overrides it', () => {
+    render(
+      <TransactionList
+        items={[]}
+        loading={false}
+        emptyState={{ title: 'NO MATCH', description: '沒有符合搜尋或篩選條件的交易。' }}
+      />,
+    );
+
+    expect(screen.getByText('NO MATCH')).toBeVisible();
+    expect(screen.getByText('沒有符合搜尋或篩選條件的交易。')).toBeVisible();
+  });
+
+  it('offers the create action in the empty state when the page provides one', () => {
+    const onCreate = vi.fn();
+    render(<TransactionList items={[]} loading={false} onCreate={onCreate} />);
+
+    fireEvent.click(screen.getByRole('button', { name: '新增交易' }));
+    expect(onCreate).toHaveBeenCalledTimes(1);
+  });
+
+  it('replaces the list with an inline error and offers a retry, without stale rows', () => {
+    const onRetry = vi.fn();
+    render(
+      <TransactionList
+        items={[baseItem()]}
+        loading={false}
+        error="無法載入交易紀錄"
+        onRetry={onRetry}
+      />,
+    );
+
+    expect(screen.getByRole('alert')).toHaveTextContent('無法載入交易紀錄');
+    expect(screen.queryByTestId('transaction-row-tx-1')).toBeNull();
+
+    fireEvent.click(screen.getByRole('button', { name: '重試' }));
+    expect(onRetry).toHaveBeenCalledTimes(1);
   });
 });
 
@@ -242,7 +287,8 @@ describe('TransactionList mobile compact rows', () => {
     );
 
     const compactRow = screen.getByTestId('transaction-row-mobile-tx-1');
-    expect(compactRow.className).toContain('md:hidden');
+    expect(compactRow.parentElement?.className).toContain('md:hidden');
+    expect(compactRow.className).toContain('border-t');
     expect(compactRow.textContent).toContain('2026-09-21');
     expect(compactRow.textContent).toContain('Groceries');
     expect(compactRow.textContent).toContain('-NT$1,800');

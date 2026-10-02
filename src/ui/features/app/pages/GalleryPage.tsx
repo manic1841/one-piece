@@ -12,7 +12,7 @@ import { GalleryValuesBody } from './GalleryValues';
 
 /**
  * Dev-only component gallery. Bodies are grouped by nature and rendered in that
- * order; section numbers follow the render order (01–34).
+ * order; section numbers follow the render order (01–35).
  */
 const GalleryPage: React.FC = () => (
   <GalleryChrome>

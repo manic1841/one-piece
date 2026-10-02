@@ -2,6 +2,7 @@ import React, { useId, useState } from 'react';
 
 import { ChevronDown } from 'lucide-react';
 
+import { Radio, RadioGroup } from '@/ui/components/RadioGroup';
 import { Button } from '@/ui/components/ui/button';
 import { Input } from '@/ui/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/ui/components/ui/popover';
@@ -86,37 +87,28 @@ export const TransactionPeriodPicker: React.FC<TransactionPeriodPickerProps> = (
           </Button>
         </PopoverTrigger>
         <PopoverContent align="end" className="w-64 p-3">
-          <fieldset className="space-y-2">
-            <legend className="mb-1 font-mono text-[10px] tracking-widest text-muted-foreground">
-              期間
-            </legend>
-            {PERIOD_OPTIONS.map((option) => {
-              const radioId = `${periodRadioName}-${option.value}`;
-              return (
-                <label
-                  key={option.value}
-                  htmlFor={radioId}
-                  className="flex cursor-pointer items-center gap-2 text-sm"
-                >
-                  <input
-                    id={radioId}
-                    type="radio"
-                    name={periodRadioName}
-                    value={option.value}
-                    checked={period === option.value}
-                    onChange={() => {
-                      onPeriodChange(option.value);
-                      if (option.value !== 'CUSTOM') {
-                        setOpen(false);
-                      }
-                    }}
-                    className="size-4 accent-primary"
-                  />
-                  <span className="font-mono">{option.label}</span>
-                </label>
-              );
-            })}
-          </fieldset>
+          <p className="mb-1 font-mono text-[10px] tracking-widest text-muted-foreground">期間</p>
+          <RadioGroup
+            aria-label="期間"
+            name={periodRadioName}
+            value={period}
+            onValueChange={(value) => {
+              onPeriodChange(value as TransactionPeriod);
+              if (value !== 'CUSTOM') {
+                setOpen(false);
+              }
+            }}
+            className="flex-col items-start gap-2"
+          >
+            {PERIOD_OPTIONS.map((option) => (
+              <Radio
+                key={option.value}
+                value={option.value}
+                label={option.label}
+                className="font-mono"
+              />
+            ))}
+          </RadioGroup>
 
           {period === 'CUSTOM' ? (
             <div className="mt-3 space-y-2 border-t border-border pt-3">

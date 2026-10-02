@@ -5,6 +5,7 @@ import { getTransactionAllocationUseCase } from '@/application/ledger/use_cases/
 import { listRecentTransactionsUseCase } from '@/application/ledger/use_cases/listRecentTransactionsUseCase';
 import { type Allocation } from '@/domains/allocation/schemas';
 import { type Transaction } from '@/domains/ledger/schemas';
+import { getErrorMessage } from '@/ui/hooks/getErrorMessage';
 import { useAuthIdentity } from '@/ui/hooks/useAuthIdentity';
 import { useLoadingTask } from '@/ui/hooks/useLoadingTask';
 
@@ -14,6 +15,8 @@ type TransactionListQuery = {
   endDate?: Date;
 };
 
+const LOAD_ERROR = '無法載入交易紀錄';
+
 export function useTransactions(
   householdId?: string,
   initialQuery?: { limit?: number; startDate?: Date; endDate?: Date },
@@ -22,6 +25,7 @@ export function useTransactions(
   const lastQueryRef = useRef<TransactionListQuery>(initialQuery ?? { limit: 100 });
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const { loading, error, run } = useLoadingTask();
+  const errorMessage = error === null ? null : getErrorMessage(error, LOAD_ERROR);
 
   const load = useCallback(
     async (query?: TransactionListQuery) => {
@@ -80,7 +84,7 @@ export function useTransactions(
   return {
     transactions,
     loading,
-    error,
+    errorMessage,
     reload: load,
     deleteTransaction,
     getTransactionAllocation,
