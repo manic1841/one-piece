@@ -17,7 +17,7 @@ We replaced it with `TransactionForm` and a direct `IntentMapping` flow. This av
 5. **Allocation Trigger**: The income/expense form emits `triggerAllocation` plus allocation items. On create, the UI controller sends the normalized Transaction and Allocation payload to the dedicated composite command, which atomically creates the Transaction, deterministic Allocation, source `allocationId` link, and operation result. Reallocation-only actions use `replaceAllocationUseCase`, which changes only the Allocation desired state and source link atomically; the existing financial Transaction is not recreated or deleted. On edit, `updateTransactionUseCase` uses the same replacement helper while updating the other editable Transaction fields.
 6. **Income Allocation Template Prefill**: When an income `ledgerCode` is selected, the UI controller queries `allocationTemplates` by exact `ledgerCode`; if not found, it falls back to `isDefault == true`; if still not found, allocation stays blank.
 7. **Template Persistence**: After an income allocation is successfully created, the same allocation percentages are upserted into `allocationTemplates` for that `ledgerCode` as a convenience template. Historical allocations are not mutated.
-8. **Project Selection Rule**: `projectId` is optional for regular entries (expense, income, investment, financing, manual). Only historical `TRANSFER` transactions carry `fromProjectId` and `toProjectId`; the form no longer creates them ([ADR-0042](adr/0042-pause-project-transfer-feature.md)). 歷史 TRANSFER 交易對某個專案的方向判定：`toProjectId === projectId` 為流入，`fromProjectId === projectId` 為流出。
+8. **Project Selection Rule**: `projectId` is optional for regular entries (expense, income, manual). Investment and financing transactions are created by the monthly close securities-trade stage, not this form. Only historical `TRANSFER` transactions carry `fromProjectId` and `toProjectId`; the form no longer creates them ([ADR-0042](adr/0042-pause-project-transfer-feature.md)). 歷史 TRANSFER 交易對某個專案的方向判定：`toProjectId === projectId` 為流入，`fromProjectId === projectId` 為流出。
 9. **Debt Payment Retry Rule**: `DEBT_PAYMENT` is a re-bookable financial command keyed by period × account for the monthly close stage (`monthly-close:{yearMonth}:{debtAccountId}`). The caller creates one idempotency key per user action and reuses it for retries; the Transaction, DebtSnapshot, DebtAccount balance cache, and household operation record commit in one Firestore transaction. A same-key replay with an unchanged payload returns the original result; a changed payload replaces the month's record (previous transaction deleted, snapshot and balance re-derived) inside the same transaction boundary; a zero-amount payload clears the month's record.
 10. **Debt Payment Entry Point**: The form no longer offers a `DEBT_PAYMENT` tab or panel, and repayments are recorded only through the monthly close workflow (its DEBT_REPAYMENT stage, via `monthlyCloseWorkflowUseCase`, which also settles fully-repaid debt accounts). The settlement-prompt dialog in the transaction feature is removed with it.
 
@@ -26,7 +26,7 @@ We replaced it with `TransactionForm` and a direct `IntentMapping` flow. This av
 IntentType 分三層：
 
 - **日常事件**（`EXPENSE`、`INCOME`）：最常用的進出，表單直接提供。
-- **特殊事件**（固定業務意圖，如 `ASSET_PURCHASE`、`LIABILITY_BORROW`、`LIABILITY_PAYMENT`、`DEBT_PAYMENT`、`TRANSFER`）：情境明確，由專屬流程帶入必要欄位。
+- **特殊事件**（固定業務意圖，如 `ASSET_PURCHASE`、`LIABILITY_BORROW`、`LIABILITY_PAYMENT`、`DEBT_PAYMENT`、`TRANSFER`）：情境明確，由專屬流程帶入必要欄位。投資與融資（`INVESTMENT`、`FINANCING`）屬此類，由月度關帳的證券買入／賣出階段帶入，不從表單輸入。
 - **不規則事件**（`MANUAL`）：以上都不適用時的手動分錄。
 
 每個意圖對應一組固定的借貸分錄，寫入時由映射展開；報表一律從分錄的 LedgerCode 計算，不從意圖直接推導（ADR-0005）。
@@ -36,7 +36,7 @@ IntentType 分三層：
 - `allowedDebitPrefix` / `allowedCreditPrefix`：列出該前綴底下的全部科目，等同「這個 category 底下的明細科目」（不動產、薪資、獎金）。
 - `debitCustomOnly` / `creditCustomOnly`：只列該 mapping 自己的預設科目，加上使用者自建的科目（其他支出、其他收入）。系統科目由各自的意圖負責，不在這裡重複出現。
 
-目前 UI 的實作限制如下：`LIABILITY_BORROW` 由建立 `DebtAccount` 的流程產生，不從 `TransactionForm` 輸入；`TRANSFER` 目前暫停實作（[ADR-0042](adr/0042-pause-project-transfer-feature.md)）；`DEBT_PAYMENT` 不再從表單輸入，僅能透過月度關帳流程的 DEBT_REPAYMENT 階段錄入；編輯流程暫不支援 `TRANSFER`，以避免尚未具備專用更新流程時產生部分副作用。
+目前 UI 的實作限制如下：`LIABILITY_BORROW` 由建立 `DebtAccount` 的流程產生，不從 `TransactionForm` 輸入；`TRANSFER` 目前暫停實作（[ADR-0042](adr/0042-pause-project-transfer-feature.md)）；`DEBT_PAYMENT` 不再從表單輸入，僅能透過月度關帳流程的 DEBT_REPAYMENT 階段錄入；`INVESTMENT` 與 `FINANCING` 不從表單輸入，僅能透過月度關帳的證券買入／賣出階段建立（[monthly-close.md](monthly-close.md)），既有交易在交易列表僅供檢視、不可編輯（與 `TRANSFER` 同）；編輯流程暫不支援 `TRANSFER`，以避免尚未具備專用更新流程時產生部分副作用。
 
 `DEBT_PAYMENT` 的付款規則、atomicity、retry 與 operation record 以
 [ADR-0014](adr/0014-debt-payment-intenttype.md)、[ADR-0015](adr/0015-debt-account-balance-derived.md)、[ADR-0017](adr/0017-grace-period-derived-not-stored.md) 與 [ADR-0038](adr/0038-command-atomicity-and-retry-policy.md) 為準。
@@ -55,5 +55,5 @@ Allocation 的資料邊界與獨立集合決策見 [ADR-0011](adr/0011-allocatio
 
 If you need a new transaction type (like "Entertainment"), don't clutter the UI with new hardcoded components. The flow is two steps:
 
-1. Go into `DEFAULT_INTENT_MAPPINGS`, add the new `IntentType`, and define its debit and credit ledger codes. It will automatically populate in the form.
+1. Go into `DEFAULT_INTENT_MAPPINGS`, add the new `IntentType`, and define its debit and credit ledger codes. `EXPENSE` and `INCOME` mappings automatically populate the form's category pickers; other types enter through their dedicated flows.
 2. Add the display wording for the new intent to `INTENT_LABELS` in `src/ui/constants/transaction/displayLabels.ts` (see the UI labeling guideline and ADR-0046). A guard test fails if a domain intent has no display label.

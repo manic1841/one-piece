@@ -7,7 +7,11 @@ export type IntentType = Extract<
   'EXPENSE' | 'INCOME' | 'INVESTMENT' | 'FINANCING' | 'MANUAL'
 >;
 
-export type TransactionFormTab = 'EXPENSE' | 'INCOME' | 'INVESTMENT' | 'FINANCING' | 'ADVANCED';
+export type TransactionFormTab = 'EXPENSE' | 'INCOME' | 'ADVANCED';
+
+/** Intent types the transaction form cannot edit; their existing transactions stay read-only. */
+export const isNonEditableIntent = (intentType: string | null | undefined): boolean =>
+  intentType === 'TRANSFER' || intentType === 'INVESTMENT' || intentType === 'FINANCING';
 
 export type TransactionFormOutput = {
   intentType: IntentType;

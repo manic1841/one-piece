@@ -5,7 +5,6 @@ import {
   TransactionAdvancedFormSchema,
   TransactionExpenseFormSchema,
   TransactionIncomeFormSchema,
-  TransactionInvestmentFormSchema,
   createTransactionAdvancedFormValues,
   createTransactionExpenseFormValues,
   createTransactionIncomeFormValues,
@@ -121,21 +120,6 @@ describe('transactionForm.vm', () => {
     expect(output.triggerAllocation).toBe(false);
     expect(output.allocationItems).toBeUndefined();
     expect(output.allocationDirection).toBeUndefined();
-  });
-
-  it('leaves investment and financing without allocation fields', () => {
-    const output = TransactionInvestmentFormSchema.parse({
-      amount: '500',
-      date: '2026-03-26',
-      projectId: '',
-      intent: 'REAL_ESTATE_BUY',
-      ledgerCode: 'asset:property',
-      description: '',
-    });
-
-    expect(output.intentType).toBe('INVESTMENT');
-    expect(output.amount).toBe(500);
-    expect('triggerAllocation' in output).toBe(false);
   });
 
   it('requires a ledger code on the advanced tab', () => {

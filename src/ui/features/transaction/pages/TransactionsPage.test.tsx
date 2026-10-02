@@ -18,8 +18,6 @@ vi.mock('@/ui/features/transaction/hooks/useTransactionForm', () => ({
   useTransactionForm: () => ({
     expenseCategories: [],
     incomeCategories: [],
-    investmentCategories: [],
-    financingCategories: [],
     advancedCategories: [],
     allActiveLedgerCodes: [],
     loadIncomeAllocationTemplate: vi.fn(),
@@ -100,34 +98,26 @@ describe('TransactionsPage copy', () => {
     expect(screen.getByPlaceholderText('搜尋交易或備註...')).toBeInTheDocument();
   });
 
-  it('shows a generic edit-confirmation dialog for transfer transactions', async () => {
-    const confirm = vi.fn().mockResolvedValue(true);
-    mockUseConfirm.mockReturnValue({ confirm });
-    mockUseTransactions.mockReturnValue({
-      ...controllerBase,
-      transactions: [
-        transaction({
-          id: 'tx-transfer',
-          description: 'Internal transfer',
-          intentType: 'TRANSFER',
-          intent: 'TRANSFER_GENERIC',
-          entries: [
-            { ledgerCode: 'asset:cash', debit: 300, credit: 0 },
-            { ledgerCode: 'asset:bank', debit: 0, credit: 300 },
-          ],
+  it.each(['TRANSFER', 'INVESTMENT', 'FINANCING'] as const)(
+    'blocks editing %s transactions',
+    async (intentType) => {
+      const confirm = vi.fn().mockResolvedValue(true);
+      mockUseConfirm.mockReturnValue({ confirm });
+      mockUseTransactions.mockReturnValue({
+        ...controllerBase,
+        transactions: [transaction({ id: `tx-${intentType}`, intentType })],
+      });
+      render(<TransactionsPage />);
+
+      fireEvent.click(
+        within(screen.getByTestId(`transaction-row-tx-${intentType}`)).getByRole('button', {
+          name: '編輯交易',
         }),
-      ],
-    });
-    render(<TransactionsPage />);
+      );
 
-    fireEvent.click(
-      within(screen.getByTestId('transaction-row-tx-transfer')).getByRole('button', {
-        name: '編輯交易',
-      }),
-    );
-
-    expect(confirm).toHaveBeenCalledWith({ title: '目前不支援編輯此交易。' });
-  });
+      expect(confirm).toHaveBeenCalledWith({ title: '目前不支援編輯此交易。' });
+    },
+  );
 });
 
 describe('TransactionsPage system filter', () => {

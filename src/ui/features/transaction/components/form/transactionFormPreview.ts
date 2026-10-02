@@ -1,4 +1,4 @@
-import { getIntentTypeLabel, getUnifiedLedgerCodeLabel } from '@/ui/constants/transaction';
+import { getIntentTypeLabel } from '@/ui/constants/transaction';
 import {
   type TransactionFormCategoryOption,
   type TransactionFormOutput,
@@ -26,19 +26,9 @@ export const buildPreviewDetails = (input: {
   projects: TransactionFormProjectOption[];
   expenseCategories: TransactionFormCategoryOption[];
   incomeCategories: TransactionFormCategoryOption[];
-  investmentCategories: TransactionFormCategoryOption[];
-  financingCategories: TransactionFormCategoryOption[];
   advancedCategories: TransactionFormCategoryOption[];
 }) => {
-  const {
-    preview,
-    projects,
-    expenseCategories,
-    incomeCategories,
-    investmentCategories,
-    financingCategories,
-    advancedCategories,
-  } = input;
+  const { preview, projects, expenseCategories, incomeCategories, advancedCategories } = input;
 
   if (!preview) return [] as string[];
 
@@ -55,24 +45,6 @@ export const buildPreviewDetails = (input: {
     return [
       findCategoryLabel(incomeCategories, preview.ledgerCode),
       preview.triggerAllocation ? '送出後需分配' : '直接入帳',
-      preview.date,
-    ].filter(Boolean);
-  }
-
-  if (preview.intentType === 'INVESTMENT') {
-    return [
-      findProjectLabel(projects, preview.projectId),
-      findCategoryLabel(investmentCategories, preview.intent || preview.ledgerCode),
-      getUnifiedLedgerCodeLabel(preview.ledgerCode),
-      preview.date,
-    ].filter(Boolean);
-  }
-
-  if (preview.intentType === 'FINANCING') {
-    return [
-      findProjectLabel(projects, preview.projectId),
-      findCategoryLabel(financingCategories, preview.intent || preview.ledgerCode),
-      getUnifiedLedgerCodeLabel(preview.ledgerCode),
       preview.date,
     ].filter(Boolean);
   }

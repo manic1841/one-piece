@@ -17,7 +17,10 @@ import {
 } from '@/ui/features/transaction/components/TransactionPeriodPicker';
 import { useTransactionForm } from '@/ui/features/transaction/hooks/useTransactionForm';
 import { useTransactions } from '@/ui/features/transaction/hooks/useTransactions';
-import { type TransactionFormOutput } from '@/ui/features/transaction/types/transaction';
+import {
+  type TransactionFormOutput,
+  isNonEditableIntent,
+} from '@/ui/features/transaction/types/transaction';
 import {
   type TransactionListItemVM,
   mapTransactionToListItemVM,
@@ -99,7 +102,7 @@ const Transactions: React.FC = () => {
       return;
     }
 
-    if (target.intentType === 'TRANSFER') {
+    if (isNonEditableIntent(target.intentType)) {
       await confirm({ title: '目前不支援編輯此交易。' });
       return;
     }
@@ -115,8 +118,6 @@ const Transactions: React.FC = () => {
   const {
     expenseCategories,
     incomeCategories,
-    investmentCategories,
-    financingCategories,
     advancedCategories,
     allActiveLedgerCodes,
     loadIncomeAllocationTemplate,
@@ -255,8 +256,6 @@ const Transactions: React.FC = () => {
           projects={projectOptions}
           expenseCategories={expenseCategories}
           incomeCategories={incomeCategories}
-          investmentCategories={investmentCategories}
-          financingCategories={financingCategories}
           advancedCategories={advancedCategories}
           allActiveLedgerCodes={allActiveLedgerCodes}
           loadIncomeAllocationTemplate={loadIncomeAllocationTemplate}

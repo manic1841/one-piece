@@ -42,20 +42,6 @@ const incomeCategories: TransactionFormCategoryOption[] = [
   })),
 ];
 
-const investmentCategories: TransactionFormCategoryOption[] = DEFAULT_INTENT_MAPPINGS.filter(
-  (mapping) => mapping.type === 'INVESTMENT',
-).map((mapping) => ({
-  value: mapping.intent,
-  label: getIntentLabel(mapping.intent),
-}));
-
-const financingCategories: TransactionFormCategoryOption[] = DEFAULT_INTENT_MAPPINGS.filter(
-  (mapping) => mapping.type === 'FINANCING',
-).map((mapping) => ({
-  value: mapping.intent,
-  label: getIntentLabel(mapping.intent),
-}));
-
 const advancedCategories: TransactionFormCategoryOption[] = [
   ...expenseCategories,
   ...incomeCategories,
@@ -278,8 +264,6 @@ export const useTransactionForm = (
   return {
     expenseCategories,
     incomeCategories,
-    investmentCategories,
-    financingCategories,
     advancedCategories,
     allActiveLedgerCodes,
     loadIncomeAllocationTemplate,
