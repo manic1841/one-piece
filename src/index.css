@@ -14,7 +14,7 @@
     --popover: 216 28% 7%;
     --popover-foreground: 213 15% 91%;
     --elevated: 216 25% 9%;
-    --primary: 213 15% 91%;
+    --primary: 176 50% 57%;
     --primary-foreground: 216 33% 5%;
     --secondary: 215 20% 11%;
     --secondary-foreground: 213 15% 91%;
@@ -30,7 +30,7 @@
     --border: 213 15% 17%;
     --border-strong: 213 14% 27%;
     --input: 213 15% 17%;
-    --ring: 213 15% 45%;
+    --ring: 176 50% 57%;
     --radius: 0.25rem;
     --chart-1: 210 70% 55%;
     --chart-2: 152 60% 46%;
