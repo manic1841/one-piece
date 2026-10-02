@@ -9,7 +9,7 @@ import { InteractiveLineChart } from '@/ui/components/charts/InteractiveLineChar
 import { LineChart } from '@/ui/components/charts/LineChart';
 import type { MoneyTone } from '@/ui/components/moneyTone';
 
-import { GalleryModule, GallerySection } from './GalleryScaffold';
+import { GalleryGroup, GalleryModule, GallerySection } from './GalleryScaffold';
 
 const MONTHS_12 = [
   'OCT',
@@ -86,7 +86,7 @@ const ChartHead: React.FC<{ value: string; meta: string; tone?: MoneyTone }> = (
 );
 
 const LineChartSection: React.FC = () => (
-  <GallerySection number="15" title="Chart & Data Visualization">
+  <GallerySection number="34" title="Chart & Data Visualization">
     <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
       <GalleryModule label="LINE CHART · 12M NET WORTH">
         <ChartHead value="NT$4,812,430" meta="+8.42% YTD" tone="positive" />
@@ -165,4 +165,9 @@ const LineChartSection: React.FC = () => (
   </GallerySection>
 );
 
-export const GalleryChartsBody: React.FC = () => <LineChartSection />;
+export const GalleryChartsBody: React.FC = () => (
+  <>
+    <GalleryGroup label="DATA VISUALIZATION" />
+    <LineChartSection />
+  </>
+);

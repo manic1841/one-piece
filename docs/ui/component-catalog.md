@@ -77,7 +77,6 @@
 | `src/ui/components/ui/input.tsx`                     | ui/ 群組                       |
 | `src/ui/components/ui/label.tsx`                     | ui/ 群組                       |
 | `src/ui/components/ui/popover.tsx`                   | ui/ 群組                       |
-| `src/ui/components/ui/progress.tsx`                  | ui/ 群組                       |
 | `src/ui/components/ui/select.tsx`                    | ui/ 群組                       |
 | `src/ui/components/ui/sheet.tsx`                     | ui/ 群組                       |
 | `src/ui/components/ui/switch.tsx`                    | ui/ 群組                       |
@@ -147,27 +146,27 @@
 - **`Skeleton`** — 載入 shimmer 區塊（Table / List / Detail 的 loading 態）。組合多個 block 成列；自身只渲染一塊。
   - Props：`className?`（尺寸由呼叫端給）。
   - **不要用於**：長時間工作的進度（用 `CliProgress`）；單行文字 loading 已足夠時。
-  - 範例：`src/ui/features/app/pages/GalleryStates.tsx`
+  - 範例：`src/ui/features/app/pages/GalleryFeedback.tsx`
 
 - **`CliProgress`** — Terminal-style 進度（長時間工作的 loading 態，states-and-a11y 的 engineering identity）。自繪 bar，自帶 `role="progressbar"` 與 `aria-value*`。
   - Props：`command`、`value`（0-100）、`statusText?`、`className?`。
   - **不要用於**：短暫 loading（用 `Skeleton` 或單行文字）。
-  - 範例：`src/ui/features/app/pages/GalleryStates.tsx`
+  - 範例：`src/ui/features/app/pages/GalleryFeedback.tsx`
 
 - **`EmptyState`** — 空狀態：狀態 glyph ＋ status 標題 ＋ 一句說明 ＋ 一個主要 action。不做大型 Card。
   - Props：`title`、`description`、`action?`、`className?`。glyph 固定，不是 prop。
   - **不要用於**：錯誤狀態（用 inline alert）；頁面級 fallback（用 `AppFallback`）。
-  - 範例：`src/ui/features/app/pages/GalleryStates.tsx`
+  - 範例：`src/ui/features/app/pages/GalleryFeedback.tsx`
 
 - **`FinancialNumber`** — 財務數值顯示：`hero` / `large` / `default` 三級 ＋ 選用 change line ＋ 缺值「$ —」。值與 change line 都由呼叫端預先格式化，本元件不做貨幣運算。
   - Props：`value?: string | null`、`size?`、`tone?`（`default`/`positive`/`negative`）、`change?`、`changeTone?`（`default`/`positive`/`negative`/`muted`）、`className?`。提供 `change` 時根元素變為 block。
   - **不要用於**：表格儲存格（用 `data-table` 的 `NumberCell`）；輸入（用 `form` 的 `NumberInput`/`CurrencyInput`）。
-  - 範例：`src/ui/features/app/pages/GalleryPrimitives.tsx`
+  - 範例：`src/ui/features/app/pages/GalleryValues.tsx`
 
 - **`MetricGroup` / `Metric`** — 同層級財務指標列：label + mono 值 + change line，非卡片。`MetricGroup` 是分割線容器，`Metric` 是單一指標。
   - Props（Group）：`children`、`className?`。Props（Metric）：`label`、`value`、`tone?`、`change?`、`changeTone?`、`className?`。
   - **不要用於**：需要互動或篩選的資料（那是 table/toolbar 的事）。
-  - 範例：`src/ui/features/app/pages/GalleryPrimitives.tsx`
+  - 範例：`src/ui/features/app/pages/GalleryValues.tsx`
 
 - **`PageSection`** — 頁面層級的全寬 section band（`border-b` + `py-10`），visual-standards 的「structure over cards」：頁面區域用 band 分段，不用浮動卡片。number + title 為選用的 mono 標題；僅內容時是素 band。
   - Props：`number?`、`title?`、`children`、`className?`。
@@ -182,7 +181,7 @@
 - **`ActivityList` / `ActivityRow`** — 最近活動列：date / title+meta / amount。列表容器收掉最後一列的底線。
   - Props（Row）：`date`、`title`、`meta?`、`amount?`、`tone?`、`className?`。
   - **不要用於**：完整交易資料表（用 `data-table` 套件）。
-  - 範例：`src/ui/features/app/pages/GalleryStates.tsx`
+  - 範例：`src/ui/features/app/pages/GalleryCollections.tsx`
 
 - **`Avatar`** — 身分圓形：photo 或 initials，mono、uppercase。`rounded-full` 白名單內的本質圓形。
   - Props：`initials?`、`src?`、`alt?`、`size?`（`sm`/`default`）、`className?`。
@@ -192,27 +191,27 @@
 - **`Divider`** — 結構性分隔線。純呈現、無語意。
   - Props：`className?`。
   - **不要用於**：需要語意分組的內容（用 section / heading）。
-  - 範例：`src/ui/features/app/pages/GalleryStates.tsx`
+  - 範例：`src/ui/features/app/pages/GalleryLayout.tsx`
 
 - **`Toolbar`** — 頁面工具列：資料檢視控制在前、動作在後，兩組分離。
   - Props：`children?`（leading）、`actions?`（trailing）、`className?`。
   - **不要用於**：表單欄位列（用 `form` 套件）。
-  - 範例：`src/ui/features/app/pages/GalleryStates.tsx`
+  - 範例：`src/ui/features/app/pages/GalleryLayout.tsx`
 
 - **`Toast`** — Toast 表面（visual-standards §通知）：浮動卡片，左側狀態 glyph + 訊息、右側單一選用動作（UNDO／RETRY）。元件自帶表面（`bg-card` + `border` + `shadow-lg`）；live toast 以 `toast.custom(() => <Toast …/>, { unstyled: true, style: { width: '356px' } })` 掛進 sonner，全域 `Toaster` 只負責定位，不再加表面。Toast 只回報結果，不承載 workflow instruction。
   - Props：`message`、`tone?`（`success`／`error`）、`actionLabel?`、`onAction?`、`className?`。
   - **不要用於**：需要使用者解決的問題（用 inline alert）；重要的 workflow instruction；純字串 `toast('…')`（會落到 sonner 預設外觀）。
-  - 範例：`src/ui/features/app/pages/GalleryToasts.tsx`
+  - 範例：`src/ui/features/app/pages/GalleryFeedback.tsx`
 
 - **`RadioGroup` / `Radio`** — 行內單選：原生 `input[type=radio]`、`<label>` 包覆控制項，零 Radix 依賴。
   - Props（Group）：`aria-label`（必填）、`name`、`value?`、`onValueChange?`、`children`、`className?`。Props（Radio）：`value`、`label`、`className?`。
   - **不要用於**：二元設定（用 `ui/` 群組的 `switch`）；多選（用 `checkbox`）。
-  - 範例：`src/ui/features/app/pages/GalleryStates.tsx`
+  - 範例：`src/ui/features/app/pages/GalleryForms.tsx`
 
 - **`ui/tooltip`** — Tooltip primitive：Radix 包裝、Root 自帶 Provider。「僅在需要時解釋」——不懂的縮寫、推導式、缺值說明。
   - Props：透通 Radix Root/Trigger/Content；Content 預設 `sideOffset={6}`、`max-w-xs`。
   - **不要用於**：恆常可見的說明（那用 description 文字）。
-  - 範例：`src/ui/features/app/pages/GalleryPrimitives.tsx`
+  - 範例：`src/ui/features/app/pages/GalleryInteraction.tsx`
 
 - **`YearMonthPicker`** — 年月選擇（outline 按鈕 ＋ Popover 內雙 Select）。`mode` 為 `'year-month'`（預設）或 `'year'`。
   - Props：`mode?`、`year`、`month?`、`onYearChange`、`onMonthChange?`、`className?`。
@@ -347,7 +346,7 @@
 - **`CurrencyInput`** — `NumberInput` 加上前綴。
   - Props：同 `NumberInput`，另加 `prefix?`。
   - **不要用於**：**它不內建貨幣符號**，符號由呼叫端提供；金額顯示也不要經它（顯示走 `formatCurrency`）。
-  - 範例：`src/ui/features/app/pages/GalleryPrimitives.tsx`
+  - 範例：`src/ui/features/app/pages/GalleryForms.tsx`
 - **`DateInput`** — 日期欄位，emit ISO `yyyy-MM-dd`。
   - Props：同 `TextInput` 的 string value 契約，另加 `error?`。
   - **不要用於**：年月（用 `YearMonthPicker`）。
@@ -372,7 +371,7 @@
 
 ## ui/ 群組（shadcn 上游 primitive）
 
-`src/ui/components/ui/` 是 shadcn 產生的 primitive 群，包 Radix 或原生元素：`accordion`、`alert`、`badge`、`button`、`card`、`checkbox`、`command`、`dialog`、`dropdown-menu`、`input`、`label`、`popover`、`progress`、`select`、`sheet`、`switch`、`table`、`tabs`、`textarea`。
+`src/ui/components/ui/` 是 shadcn 產生的 primitive 群，包 Radix 或原生元素：`accordion`、`alert`、`badge`、`button`、`card`、`checkbox`、`command`、`dialog`、`dropdown-menu`、`input`、`label`、`popover`、`select`、`sheet`、`switch`、`table`、`tabs`、`textarea`。
 
 - 變體軸（variant／size／direction 等）與完整值以各檔案為準，本目錄不複述完整列舉；表面契約見 [`design-system.md`](design-system.md) §7。其中少數非預設變體值得先知道：`button` 另有 `text` variant（tertiary 動作），`alert` 與 `badge` 另有 `destructive` 變體，`sheet` 有四個進出方向。
 - **何時不要用**：表單欄位不要直接用 `input`／`select`／`textarea`，用 `form/` 的對應欄位（見下方裁決）；表格不要直接用 `table`，用 `data-table` 套件。

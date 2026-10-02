@@ -1,11 +1,28 @@
 import React from 'react';
 
-import { ActivityList, ActivityRow } from '@/ui/components/ActivityList';
 import { Module } from '@/ui/components/Module';
 import { PageSection } from '@/ui/components/PageSection';
 
 export const GallerySection = PageSection;
 export const GalleryModule = Module;
+
+/**
+ * Group band separating collections of like-natured components. The gallery is
+ * ordered by nature (values → layout → collections → forms → interaction →
+ * feedback → data-viz), and each band names the group it opens.
+ */
+export const GalleryGroup: React.FC<{ label: string }> = ({ label }) => (
+  <div className="pt-14">
+    <p className="border-b border-border pb-2 font-mono text-[11px] font-semibold uppercase tracking-widest text-foreground">
+      {label}
+    </p>
+  </div>
+);
+
+/** Mono footnote under a scene explaining its role or contract. */
+export const GalleryCaption: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+  <p className="mt-3 font-mono text-[11px] leading-relaxed text-muted-foreground">{children}</p>
+);
 
 export const GalleryIntro: React.FC = () => (
   <div className="pb-10">
@@ -15,49 +32,8 @@ export const GalleryIntro: React.FC = () => (
     <h2 className="mt-2 text-3xl font-bold tracking-display">Component Gallery</h2>
     <p className="mt-3 max-w-2xl text-sm text-muted-foreground leading-relaxed">
       Engineering-first household financial operating system. Dark-first, data-driven, semantic
-      color, and structure over cardization. Rendered from the real global components.
+      color, and structure over cardization. Rendered from the real global components. Sections are
+      grouped by nature and numbered by render order.
     </p>
   </div>
-);
-
-const SAMPLE_TRANSACTION_ROWS = [
-  {
-    id: 'sample-1',
-    date: 'SEP 18',
-    title: 'Salary Received',
-    meta: 'Main Bank',
-    amount: '+NT$85,000',
-    tone: 'positive' as const,
-  },
-  {
-    id: 'sample-2',
-    date: 'SEP 17',
-    title: 'ETF Purchase',
-    meta: 'Brokerage',
-    amount: '-NT$20,000',
-    tone: 'negative' as const,
-  },
-  {
-    id: 'sample-3',
-    date: 'SEP 16',
-    title: 'Dividend Received',
-    meta: 'Brokerage',
-    amount: '+NT$8,420',
-    tone: 'positive' as const,
-  },
-];
-
-export const RowList: React.FC<{ withMeta?: boolean }> = ({ withMeta = false }) => (
-  <ActivityList>
-    {SAMPLE_TRANSACTION_ROWS.map((row) => (
-      <ActivityRow
-        key={row.id}
-        date={row.date}
-        title={row.title}
-        meta={withMeta ? row.meta : undefined}
-        amount={row.amount}
-        tone={row.tone}
-      />
-    ))}
-  </ActivityList>
 );

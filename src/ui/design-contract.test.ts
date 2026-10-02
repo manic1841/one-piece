@@ -48,7 +48,7 @@ const SHADOW_ALLOWED = new Set([
   'components/ui/tooltip.tsx',
   'features/app/layout/Layout.tsx',
   'features/app/layout/PixelPet.tsx',
-  'features/app/pages/GalleryDrawer.tsx',
+  'features/app/pages/GalleryInteraction.tsx',
   'features/report/components/ReportHeader.tsx',
 ]);
 
