@@ -9,9 +9,9 @@ import {
 } from '@/ui/components/ui/dialog';
 
 import {
+  type ConfirmOptions,
   DEFAULT_CANCEL_LABEL,
   DEFAULT_CONFIRM_LABEL,
-  type ConfirmOptions,
   resolveConfirmOptions,
 } from './resolveConfirmOptions';
 
@@ -37,8 +37,9 @@ export const ConfirmDialogBody: React.FC<ConfirmDialogBodyProps> = ({
   const resolved = options ? resolveConfirmOptions(options) : null;
 
   const statusLine = resolved?.status;
-  const consequenceLine =
-    resolved?.consequence && <p className="text-sm text-muted-foreground">{resolved.consequence}</p>;
+  const consequenceLine = resolved?.consequence && (
+    <p className="text-sm text-muted-foreground">{resolved.consequence}</p>
+  );
   const footer = (
     <DialogFooter className="mt-auto">
       <Button variant="outline" onClick={onCancel}>

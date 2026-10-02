@@ -1,11 +1,9 @@
-import { fireEvent, render, screen } from '@testing-library/react';
-import { beforeAll, describe, expect, it, vi } from 'vitest';
 import { useState } from 'react';
 
-import {
-  type TransactionPeriod,
-  TransactionPeriodPicker,
-} from './TransactionPeriodPicker';
+import { fireEvent, render, screen } from '@testing-library/react';
+import { beforeAll, describe, expect, it, vi } from 'vitest';
+
+import { type TransactionPeriod, TransactionPeriodPicker } from './TransactionPeriodPicker';
 
 beforeAll(() => {
   Element.prototype.scrollIntoView = Element.prototype.scrollIntoView ?? (() => {});
@@ -34,9 +32,7 @@ const PickerHarness = ({ initialPeriod, onPeriodChange, onRangeChange }: Harness
   );
 };
 
-const renderPicker = (
-  overrides: Partial<Parameters<typeof TransactionPeriodPicker>[0]> = {},
-) => {
+const renderPicker = (overrides: Partial<Parameters<typeof TransactionPeriodPicker>[0]> = {}) => {
   const onPeriodChange = vi.fn();
   const onRangeChange = vi.fn();
   render(

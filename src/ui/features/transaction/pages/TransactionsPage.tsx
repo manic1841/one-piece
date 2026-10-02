@@ -233,7 +233,12 @@ const Transactions: React.FC = () => {
         </div>
       </div>
 
-      <TransactionList items={filteredTransactions} loading={loading} onEdit={handleEdit} onDelete={handleDelete} />
+      <TransactionList
+        items={filteredTransactions}
+        loading={loading}
+        onEdit={handleEdit}
+        onDelete={handleDelete}
+      />
 
       {userProfile?.householdId && isFormOpen && (
         <TransactionForm

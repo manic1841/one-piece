@@ -2,7 +2,11 @@ import { useCallback } from 'react';
 
 import { getLatestRateUseCase } from '@/application/exchange_rate/use_cases/getLatestRateUseCase';
 import { type CurrencyCode } from '@/domains/exchange_rate/types';
-import { type LoadingTaskOptions, type LoadingTaskResult, useLoadingTask } from '@/ui/hooks/useLoadingTask';
+import {
+  type LoadingTaskOptions,
+  type LoadingTaskResult,
+  useLoadingTask,
+} from '@/ui/hooks/useLoadingTask';
 
 export function useExchangeRate() {
   const { loading, error, errorMessage, run } = useLoadingTask();

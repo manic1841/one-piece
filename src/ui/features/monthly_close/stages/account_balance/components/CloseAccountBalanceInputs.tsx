@@ -1,4 +1,4 @@
-import React, { useEffect, useState, type SetStateAction } from 'react';
+import React, { type SetStateAction, useEffect, useState } from 'react';
 
 import {
   DataTable,

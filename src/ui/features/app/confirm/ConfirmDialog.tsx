@@ -1,16 +1,10 @@
 import React, { useCallback, useMemo, useRef, useState } from 'react';
 
-import {
-  Dialog,
-  DialogContent,
-} from '@/ui/components/ui/dialog';
+import { Dialog, DialogContent } from '@/ui/components/ui/dialog';
 
-import {
-  type ConfirmOptions,
-  resolveConfirmOptions,
-} from './resolveConfirmOptions';
-import { ConfirmContext } from './useConfirm';
 import { ConfirmDialogBody } from './ConfirmDialogBody';
+import { type ConfirmOptions, resolveConfirmOptions } from './resolveConfirmOptions';
+import { ConfirmContext } from './useConfirm';
 
 export const ConfirmDialogProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [content, setContent] = useState<ConfirmOptions | null>(null);

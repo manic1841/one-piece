@@ -41,7 +41,6 @@ export const TransactionList: React.FC<TransactionListProps> = ({
   onDelete,
   onEdit,
 }) => {
-
   const groupedItems = React.useMemo(() => {
     const groups: Record<string, TransactionListItemVM[]> = {};
 

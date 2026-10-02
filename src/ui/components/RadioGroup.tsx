@@ -20,17 +20,20 @@ type RadioOptionProps = {
 };
 
 /** Inline single selection from a mutually exclusive set. Native input; no Radix dependency. */
-export function RadioGroup({ name, value, onValueChange, children, className, ...aria }: RadioGroupProps) {
+export function RadioGroup({
+  name,
+  value,
+  onValueChange,
+  children,
+  className,
+  ...aria
+}: RadioGroupProps) {
   const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.checked) onValueChange?.(event.target.value);
   };
 
   return (
-    <div
-      role="radiogroup"
-      className={cn('flex items-center gap-6', className)}
-      {...aria}
-    >
+    <div role="radiogroup" className={cn('flex items-center gap-6', className)} {...aria}>
       {React.Children.map(children, (child) =>
         React.isValidElement<RadioOptionProps>(child)
           ? React.cloneElement(child, {
@@ -51,7 +54,13 @@ type RadioProps = {
 };
 
 /** One option inside RadioGroup: label wraps the native input, so no htmlFor wiring is needed. */
-export function Radio({ value, label, checked, className, ...radio }: RadioProps & RadioOptionProps) {
+export function Radio({
+  value,
+  label,
+  checked,
+  className,
+  ...radio
+}: RadioProps & RadioOptionProps) {
   return (
     <label className={cn('flex cursor-pointer items-center gap-2 text-sm', className)}>
       <span className="relative inline-flex h-[18px] w-[18px] shrink-0">

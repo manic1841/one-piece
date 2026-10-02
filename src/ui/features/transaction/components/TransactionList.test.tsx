@@ -160,12 +160,7 @@ describe('TransactionItem table structure', () => {
 
   it('renders the desktop columns in Date / Transaction / Project / Amount / Actions order', () => {
     render(
-      <TransactionList
-        items={[baseItem()]}
-        loading={false}
-        onEdit={vi.fn()}
-        onDelete={vi.fn()}
-      />,
+      <TransactionList items={[baseItem()]} loading={false} onEdit={vi.fn()} onDelete={vi.fn()} />,
     );
 
     const headers = screen.getAllByRole('columnheader').map((cell) => cell.textContent);
@@ -201,12 +196,7 @@ describe('TransactionItem table structure', () => {
 
   it('hides row actions until hover or focus via the opacity pattern', () => {
     render(
-      <TransactionList
-        items={[baseItem()]}
-        loading={false}
-        onEdit={vi.fn()}
-        onDelete={vi.fn()}
-      />,
+      <TransactionList items={[baseItem()]} loading={false} onEdit={vi.fn()} onDelete={vi.fn()} />,
     );
 
     const transactionRow = screen.getByTestId('transaction-row-tx-1');

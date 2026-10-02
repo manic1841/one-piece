@@ -7,7 +7,13 @@ describe('ActivityRow', () => {
   it('renders date, title, meta, and amount with tone', () => {
     render(
       <ActivityList>
-        <ActivityRow date="SEP 18" title="Salary Received" meta="Main Bank" amount="+$85,000" tone="positive" />
+        <ActivityRow
+          date="SEP 18"
+          title="Salary Received"
+          meta="Main Bank"
+          amount="+$85,000"
+          tone="positive"
+        />
       </ActivityList>,
     );
 

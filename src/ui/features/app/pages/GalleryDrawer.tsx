@@ -1,13 +1,8 @@
 import React from 'react';
 
-import { Button } from '@/ui/components/ui/button';
 import { Skeleton } from '@/ui/components/Skeleton';
-import {
-  Sheet,
-  SheetContent,
-  SheetTrigger,
-} from '@/ui/components/ui/sheet';
-
+import { Button } from '@/ui/components/ui/button';
+import { Sheet, SheetContent, SheetTrigger } from '@/ui/components/ui/sheet';
 import { DrawerPanel } from '@/ui/features/app/drawer/DrawerPanel';
 
 import { GalleryModule, GallerySection } from './GalleryScaffold';
@@ -21,8 +16,12 @@ const TRANSACTION_FIELDS: { label: string; value: React.ReactNode; className?: s
 
 const TRANSACTION_FOOTER = (
   <>
-    <Button variant="outline" size="sm">Edit</Button>
-    <Button variant="destructive" size="sm">Delete</Button>
+    <Button variant="outline" size="sm">
+      Edit
+    </Button>
+    <Button variant="destructive" size="sm">
+      Delete
+    </Button>
   </>
 );
 

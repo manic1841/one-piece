@@ -38,7 +38,11 @@ const colorMap: Record<StatusGlyphType, string> = {
 export function StatusGlyph({ type, label, className }: StatusGlyphProps) {
   return (
     <span
-      className={cn('inline-flex items-center gap-1.5 text-xs font-medium', colorMap[type], className)}
+      className={cn(
+        'inline-flex items-center gap-1.5 text-xs font-medium',
+        colorMap[type],
+        className,
+      )}
     >
       <span className="text-[10px] leading-none">{glyphMap[type]}</span>
       {(label ?? defaultLabelMap[type]) !== '' && <span>{label ?? defaultLabelMap[type]}</span>}

@@ -165,7 +165,10 @@ export const TransactionItem: React.FC<TransactionItemProps> = ({
         </TableCell>
       </TableRow>
       {hasEntries && isExpanded ? (
-        <TableRow className="hover:bg-transparent" data-testid={`transaction-details-${transaction.id}`}>
+        <TableRow
+          className="hover:bg-transparent"
+          data-testid={`transaction-details-${transaction.id}`}
+        >
           <TableCell colSpan={ACCORDION_ROW_COL_SPAN} className="p-0">
             <AccountingDetailsTable transaction={transaction} />
           </TableCell>
@@ -180,8 +183,15 @@ export const TransactionItemMobile: React.FC<TransactionItemProps> = ({
   onEdit,
   onDelete,
 }) => {
-  const { displayTitle, projectName, categoryLabel, dateText, hasCashLedger, isPositive, signedAmountText } =
-    transaction;
+  const {
+    displayTitle,
+    projectName,
+    categoryLabel,
+    dateText,
+    hasCashLedger,
+    isPositive,
+    signedAmountText,
+  } = transaction;
   const amountColor = isPositive ? 'text-positive' : 'text-negative';
   const [isExpanded, setIsExpanded] = useState(false);
   const hasEntries = (transaction.entries ?? []).length > 0;
@@ -238,7 +248,10 @@ export const TransactionItemMobile: React.FC<TransactionItemProps> = ({
         )}
       </div>
       {hasEntries && isExpanded ? (
-        <div className="mt-3 border-t border-border pt-2" data-testid={`transaction-details-mobile-${transaction.id}`}>
+        <div
+          className="mt-3 border-t border-border pt-2"
+          data-testid={`transaction-details-mobile-${transaction.id}`}
+        >
           <AccountingDetailsTable transaction={transaction} />
         </div>
       ) : null}

@@ -1,6 +1,7 @@
+import { type SetStateAction, useEffect, useRef, useState } from 'react';
+
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { useEffect, useRef, type SetStateAction, useState } from 'react';
 
 import type { AccountBalanceInput } from '@/application/monthly_close/use_cases/monthlyCloseWorkflowUseCase';
 import type { Account, AccountSnapshot } from '@/domains/account/types/account';
@@ -171,16 +172,18 @@ describe('CloseAccountBalanceInputs', () => {
   it('auto-fetches the exchange rate on mount and keeps manual input as fallback', async () => {
     const { useExchangeRate } = await import('@/ui/hooks/useExchangeRate');
     // Mirrors useLoadingTask.run: the writeBack carries the outcome.
-    const getRate = vi.fn().mockImplementation(
-      (
-        _from: string,
-        _to: string,
-        options?: { writeBack?: (result: { ok: true; value: number }) => void },
-      ) => {
-        options?.writeBack?.({ ok: true, value: 31.4 });
-        return Promise.resolve({ ok: true, value: 31.4 });
-      },
-    );
+    const getRate = vi
+      .fn()
+      .mockImplementation(
+        (
+          _from: string,
+          _to: string,
+          options?: { writeBack?: (result: { ok: true; value: number }) => void },
+        ) => {
+          options?.writeBack?.({ ok: true, value: 31.4 });
+          return Promise.resolve({ ok: true, value: 31.4 });
+        },
+      );
     vi.mocked(useExchangeRate).mockReturnValue({
       getRate,
       loading: false,
@@ -336,13 +339,19 @@ describe('CloseAccountBalanceInputs', () => {
       resolve: (rate: { ok: true; value: number }) => void;
       options?: { writeBack?: (result: { ok: true; value: number }) => void };
     }> = [];
-    const getRate = vi.fn().mockImplementation(
-      (_from: string, _to: string, options?: { writeBack?: (result: { ok: true; value: number }) => void }) => {
-        return new Promise<{ ok: true; value: number }>((resolve) => {
-          deferred.push({ resolve, options });
-        });
-      },
-    );
+    const getRate = vi
+      .fn()
+      .mockImplementation(
+        (
+          _from: string,
+          _to: string,
+          options?: { writeBack?: (result: { ok: true; value: number }) => void },
+        ) => {
+          return new Promise<{ ok: true; value: number }>((resolve) => {
+            deferred.push({ resolve, options });
+          });
+        },
+      );
     vi.mocked(useExchangeRate).mockReturnValue({
       getRate,
       loading: false,
@@ -391,6 +400,13 @@ describe('CloseAccountBalanceInputs', () => {
         ]),
       );
     });
-    expect(onInputsChange).toHaveBeenLastCalledWith(expect.arrayContaining([expect.anything(), expect.anything(), expect.anything(), expect.anything()]));
+    expect(onInputsChange).toHaveBeenLastCalledWith(
+      expect.arrayContaining([
+        expect.anything(),
+        expect.anything(),
+        expect.anything(),
+        expect.anything(),
+      ]),
+    );
   });
 });
