@@ -2,7 +2,9 @@ import React from 'react';
 
 import { Landmark, ReceiptText, SlidersHorizontal } from 'lucide-react';
 
+import { Divider } from '@/ui/components/Divider';
 import { Form } from '@/ui/components/form';
+import { Alert, AlertDescription } from '@/ui/components/ui/alert';
 import { Badge } from '@/ui/components/ui/badge';
 import { Button } from '@/ui/components/ui/button';
 import {
@@ -98,18 +100,15 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
         className="max-h-[90vh] max-w-4xl overflow-y-auto"
         aria-describedby={undefined}
       >
-        <DialogHeader className="space-y-2">
-          <Badge variant="outline" className="w-fit">
-            Transaction Form
-          </Badge>
+        <DialogHeader>
           <DialogTitle>{mode === 'edit' ? '編輯交易' : '新增交易'}</DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-5" noValidate>
           {error ? (
-            <div className="rounded-lg border border-negative/20 bg-negative/10 px-4 py-3 text-sm text-negative">
-              {error}
-            </div>
+            <Alert variant="destructive" className="border-negative/20 bg-negative/10">
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
           ) : null}
 
           <Tabs
@@ -158,8 +157,10 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
             </TabsContent>
           </Tabs>
 
+          <Divider />
+
           {preview ? (
-            <div className="rounded-lg border bg-primary px-4 py-3 text-primary-foreground">
+            <div className="rounded-lg bg-primary px-4 py-3 text-primary-foreground">
               <div className="text-xs uppercase tracking-[0.2em] text-primary-foreground">
                 Preview
               </div>
