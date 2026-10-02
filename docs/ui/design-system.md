@@ -6,6 +6,8 @@
 
 本文件是設計 token 與元件表面契約的唯一真相來源。實作以本文件為準；若與 `ui-layer-architecture.md` 的分層規則衝突，以分層規則為準——呈現層契約不涉入資料流、ViewModel/Hook 職責邊界與 display label API。
 
+**與 gallery 的分工**：`/gallery` 路由是全站畫面的規範樣板，它呈現的是本文件的契約，不是第二份規格——表面規格衝突時以本文件為準，場景組合方式以 gallery 為準（取捨見 [ADR-0075](../adr/0075-gallery-normative-template.md)）。
+
 ---
 
 ## 1. 色彩

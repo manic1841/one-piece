@@ -355,21 +355,21 @@ infra 不得 import `src/ui/**`（見 §2 規則 10）。
 ## 6. RWD 斷點契約
 
 斷點決策見 [ADR-0044](../adr/0044-rwd-breakpoint-contract.md)。`md`(768px)是行動殼
-與桌面殼的唯一切換點;兩殼皆為 sticky header + 置中 `max-w-7xl` 容器,無側欄。
+與桌面殼的唯一切換點;兩殼皆為 sticky header + 置中最大寬度容器,無側欄。
 
 ## 6.1 導航所有權契約
 
 主導航在所有斷點由 Pixel Pet 獨家擁有(見 [ADR-0055](../adr/0055-pixel-pet-single-navigator-ownership.md))。
 行動 bottom nav 與 More sheet 已收編;行動版經 Pixel Pet 的 Navigator sheet 導航。
 退場以「Pet + sheet 覆蓋 bottom nav 全部目的地與 More sheet 功能、不留斷點」為條件,已達成。
-header 不含主導航;Navigator 清單為 **8 項**——`NAV_ITEMS` 扣除 Dashboard 與
-Settings,Dashboard 由 header 品牌承擔、Settings 由 Avatar menu 承擔;Ctrl/Cmd+K 指
-令面板為 Quick Access,涵蓋含 Dashboard 與 Settings 在內的全部 **10 條**路由,與
+header 不含主導航;Navigator 清單即 `NAV_ITEMS` 扣除 Dashboard 與
+Settings——Dashboard 由 header 品牌承擔、Settings 由 Avatar menu 承擔;Ctrl/Cmd+K 指
+令面板為 Quick Access,涵蓋含 Dashboard 與 Settings 在內的全部路由,與
 Navigator 清單互相獨立(見 [ADR-0055](../adr/0055-pixel-pet-single-navigator-ownership.md))。
 
 四檔工作流視窗（Monthly Close、Portfolio Detail、Debt、Header）的視覺權重與操作
 位置契約見 [ADR-0056](../adr/0056-workflow-first-surfaces.md):pipeline 為頁面主要層
-級,mobile 步驟列去 Card,確認動作顯示 `CONTINUE →`;Portfolio Detail 無快照管理入
+級,mobile 步驟列去 Card,確認動作為繼續按鈕;Portfolio Detail 無快照管理入
 口;Debt 列表列無常駐 Edit / Delete,動作在詳情 header;Header 無獨立 Settings 鈕
 ,Settings 在 Avatar menu。
 
@@ -401,7 +401,7 @@ Global Header(sticky 系統狀態列)只負責:
 
 ### 360px(手機直式)
 
-- 頁面底部固定 Pixel Pet 按鈕;點擊展開 Navigator sheet,8 個目的地完整可點。
+- 頁面底部固定 Pixel Pet 按鈕;點擊展開 Navigator sheet,全部目的地完整可點。
 - 無 bottom nav 與 More 按鈕;除固定 pet 按鈕外無其他浮動導航元素。
 - 頂部列顯示 App 名稱與 household 切換器,不與 Logout 重疊。
 - 交易列表呈現全寬度卡片式,日期篩選輸入與按鈕直向堆疊、各自佔滿列寬。
@@ -409,8 +409,8 @@ Global Header(sticky 系統狀態列)只負責:
 
 ### 768px(平板直式)
 
-- 內容區為置中 `max-w-7xl` 容器,無側欄;無遮蓋、無異常留白。
-- 主導航由 Pixel Pet Navigator 承擔,以 8 個目的地呈現(`NAV_ITEMS` 扣除 Dashboard 與 Settings),完整可點、無換行截斷。
+- 內容區為置中最大寬度容器,無側欄;無遮蓋、無異常留白。
+- 主導航由 Pixel Pet Navigator 承擔,以 Navigator 清單呈現(`NAV_ITEMS` 扣除 Dashboard 與 Settings),完整可點、無換行截斷。
 - 內容區無水平捲軸;交易列表日期篩選列允許折行,所有控制項完整可見。
 
 ### 1024px(平板橫式 / 小桌機)
@@ -419,7 +419,7 @@ Global Header(sticky 系統狀態列)只負責:
 
 ### 1280px(桌機)
 
-- 版面與 1024px 一致;`max-w-7xl` 容器置中,兩側留白對稱。
+- 版面與 1024px 一致;內容容器置中,兩側留白對稱。
 - 任何斷點皆不得出現整頁水平捲軸。
 
 ## 7. 動作位置與 List / Detail 責任切分

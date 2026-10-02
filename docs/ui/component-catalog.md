@@ -7,6 +7,7 @@
 ## 規則
 
 - **擴充，不 fork**：建立新共用元件前，先確認 `src/ui/components` 既有的能不能擴充；不能才新建，並在同一個 task 內遷移既有的重複實作（[`ui-layer-architecture.md`](ui-layer-architecture.md) §2 規則 9）。
+- **Gallery 是正式規範樣板**：`/gallery` 路由（`src/ui/features/app/pages/Gallery*.tsx`，dev-only）已升格為全站畫面的視覺規範樣板——它以真實共用元件呈現每個元件的標準用法與場景。**新畫面開發一律先照 gallery 對應 section 的組合方式做**，不用自製實作；新增或調整共用元件時，同一個 task 內同步更新 gallery section，讓樣板與元件契約不漂移。既有的 production 畫面遷移到 gallery 樣板的追蹤見 GitHub issues（圖表 #259、元件採用 #261、頁面層落差 #262）；升格決策的取捨見 [ADR-0075](../adr/0075-gallery-normative-template.md)。
 - **`ui/` 群組**：`ui/` 是 shadcn 上游 primitive 群，**以擴充上游為原則，不 fork 一份自有的**。需要新行為時優先在上游 primitive 或它上層的套件（`form/`、`data-table/`）處理，而不是複製 `ui/` 的檔案出來改。`data-table` 套件疊在結構 primitive 之上而非重寫（[ADR-0061](../adr/0061-data-table-package-over-primitives.md)）。
 - **範例路徑**是「哪裡有真實用法」，不是唯一合法用法。
 

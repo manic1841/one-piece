@@ -4,6 +4,8 @@
 
 本文件是頁面層級視覺契約的唯一真相來源。已由其他文件承載的契約（Dashboard 資料錨定、關帳階段模型等）一律以指標引用、不在本文件重述；規則差異時以該事實的歸屬文件為準。
 
+全站畫面的**視覺規範樣板**是 `/gallery` 路由（dev-only，以真實共用元件呈現）：新畫面開發一律先照 gallery 對應 section 的組合方式實作，不用自製替代。樣板規則與維護責任屬 [`component-catalog.md`](component-catalog.md)「規則」節，本節不重複。
+
 ---
 
 ## 核心設計原則
@@ -59,7 +61,7 @@ Page Header 規則：
 頁面依用途分兩類：
 
 - **資料密集頁**（Transactions、Accounts、Debt、Reports）：可使用完整內容寬度。
-- **閱讀 / 情境頁**（Retirement、Account Detail、Portfolio Detail）：限制在較窄的閱讀寬度（約 960–1200px），避免長行。
+- **閱讀 / 情境頁**（Retirement、Account Detail、Portfolio Detail）：限制在較窄的閱讀寬度，避免長行。容器上限屬 RWD 斷點契約，見 [`ui-layer-architecture.md`](ui-layer-architecture.md)。
 
 原則：
 
@@ -67,20 +69,22 @@ Page Header 規則：
 
 ## 間距
 
-級距本身（`4 · 8 · 12 · 16 · 24 · 32 · 48 · 64`）定義在 [`design-system.md`](design-system.md) 的「間距級距」節；本節只定使用場景與禁止事項。
+級距本身與對應的 Tailwind token 定義在 [`design-system.md`](design-system.md) 的「間距級距」節；本節只定使用場景與禁止事項。
 
 | 級距 | 用途                       |
 | ---- | -------------------------- |
-| 4px  | icon / text 微間距         |
-| 8px  | label → input、icon → text |
-| 12px | table / compact row        |
-| 16px | component internal padding |
-| 24px | section internal spacing   |
-| 32px | section separation         |
-| 48px | major section separation   |
-| 64px | page-level breathing room  |
+| 最小 | icon / text 微間距         |
+| 次小 | label → input、icon → text |
+| 小   | table / compact row        |
+| 中小 | component internal padding |
+| 中   | section internal spacing   |
+| 大   | section separation         |
+| 特大 | major section separation   |
+| 最大 | page-level breathing room  |
 
-**禁止**：級距外的任意值（`13px`、`18px`、`22px`、`27px`、`37px`…）不得大量出現，除非有特殊 layout 原因。目標是讓整個系統有**可預測的節奏**。
+上表的級距對應 design-system 級距由小到大的八個值；具體數字以該節為準，不在本節複述。
+
+**禁止**：級距外的任意值不得大量出現，除非有特殊 layout 原因。目標是讓整個系統有**可預測的節奏**。
 
 ## 狀態 (States)
 
@@ -101,7 +105,7 @@ Page Header 規則：
 Monthly Close 是全站最重要的 workflow UI。其階段模型、資料建立邊界與確認語意見 [monthly-close.md](../monthly-close.md)，不在本節重述：
 
 - 階段資料建立邊界與 8 階段模型：[monthly-close.md](../monthly-close.md)；取捨理由見 [ADR-0052](../adr/0052-monthly-close-stage-data-boundary.md)。
-- workflow-first 表面收斂（pipeline 分工、per-stage 自成一體）：[ADR-0056](../adr/0056-workflow-first-surfaces.md)（#209 修訂：9 個獨立 step 元件取代單一 workspace frame）。
+- workflow-first 表面收斂（pipeline 分工、per-stage 自成一體）：[ADR-0056](../adr/0056-workflow-first-surfaces.md)（#209 修訂：各階段獨立 step 元件取代單一 workspace frame）。
 
 本節只定頁面層級的呈現標準：
 
@@ -354,6 +358,7 @@ ONE PIECE VISUAL CHECK
 [ ] 沒有 domain implementation details 暴露給使用者
 [ ] 沒有不必要的 Card / Pill / Shadow
 [ ] Page hierarchy 一眼可讀
+[ ] 畫面組合與 gallery 對應 section 一致（自製替代即 drift）
 ```
 
 ### 最後的判斷標準

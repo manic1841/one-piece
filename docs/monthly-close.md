@@ -95,19 +95,20 @@ URL 有效 ⟺ 該期間已有狀態紀錄。`yearMonth` 形狀不合法、或�
 
 ### 載入扇出與量測
 
-工作區的資料**在該期間確定存在之後**才開始載入：工作區只在路由閘門確認該期間已有狀態紀錄後才掛載（見 §1），掛載即讓八個 stage hook **同時**各自載入，與當前顯示哪個階段無關——這是 draft 跨 stage 保留與 summary 跨讀的設計代價。停留在期間選擇畫面、或被導向一個尚未開始的月份時，**不發出任何關帳相關讀取**（#240）：工作區根本不存在，不需要任何把關旗標為此而存在。`control.refresh`（顯式重載）是另一條路徑，不受階段自身載入前提影響，重開與重設等流程才不會被擋掉。量測結果（2026-09，本機 Firebase Emulator + Vite dev server，QA seed 資料集：5 帳戶、7 專案、2 portfolio、2 債務）：
+工作區的資料**在該期間確定存在之後**才開始載入：工作區只在路由閘門確認該期間已有狀態紀錄後才掛載（見 §1），掛載即讓八個 stage hook **同時**各自載入，與當前顯示哪個階段無關——這是 draft 跨 stage 保留與 summary 跨讀的設計代價。停留在期間選擇畫面、或被導向一個尚未開始的月份時，**不發出任何關帳相關讀取**（#240）：工作區根本不存在，不需要任何把關旗標為此而存在。`control.refresh`（顯式重載）是另一條路徑，不受階段自身載入前提影響，重開與重設等流程才不會被擋掉。
 
-- **規模**：進入工作區後約 70 個 Listen `addTarget`、其中 **50 個相異 target**，2.8 秒到達網路靜止。
-- **進入前為 0（#240）**：停在期間選擇畫面上，或導向一個尚未開始的月份而被導回該畫面，閒置觀測期間**不新增任何相異 target**（僅 app 外殼開機時的 4 個 shell target，與關帳無關）；進入工作區才新增 50 個。此量測在 dev `StrictMode` 開啟下取得；自動載入是掛載效果，`StrictMode` 的重掛載會讓它多跑一輪，但相異 target 數不受重跑影響，因此工作區的相異 target 數與 #239 同量級。
+扇出與量測的結論（實測細節與方法論見 #240 的量測紀錄，QA seed 資料集規模見 [qa-seed-data.md](qa-seed-data.md)）：
+
+- **進入工作區前為 0 個關帳讀取**（#240）：工作區不存在時不發出任何 Listen，閒置觀測不新增 target；進入工作區才開始載入。
 - **組成**：帳戶餘額階段的快照讀取為 **2N**（每帳戶 current + previous，N = 帳戶數），是最大單項；其餘為專案結算（每 active 專案一筆月快照）、Completeness Check、Financial Reports（ledgerCodes + 三張 persisted + 持久化旗標），以及各階段的 prefill／evidence。
 - **共享實體重複讀取**：`projects` 清單由 page 的 `loadEntities` 與專案結算 stage 各讀一次，`accounts`／`portfolios` 同理。量測上不顯著。
 
 量測方法注意事項：
 
-- **不要拿 DevTools Network 的 HTTP 請求數當讀取數**：Firestore web SDK 把多次讀取 multiplex 到同一條 WebChannel，且同一 target 會在 channel 重開時重送（本量測觀察到 74 個 `addTarget` 只對應 53 個相異 target，單一 target 最多重送 3 次）。應以 SDK 呼叫邊界或相異 target 為準。
+- **不要拿 DevTools Network 的 HTTP 請求數當讀取數**：Firestore web SDK 把多次讀取 multiplex 到同一條 WebChannel，且同一 target 會在 channel 重開時重送。應以 SDK 呼叫邊界或相異 target 為準。
 - **dev 的 `StrictMode` 讓每個 stage 的載入跑兩次**（mount → cleanup → mount），網路讀取因此翻倍；這是 dev-only，不是 production 成本。量測需在 `StrictMode` 關閉下取得才有代表性。
 
-**結論：延遲面不構成瓶頸，不為載入型 stage 加 walk-position `enabled`；以「期間存在」為單一閘門延後載入（#240），閘門由路由承擔。** 停留期間選擇畫面或導向尚未開始的月份為 **0** 個 target，掛載工作區後才發出約 **50** 個相異 target。閘門是可逆的實作選擇（拿掉即回到現況），未達 ADR 門檻。扇出仍是有界的（隨帳戶／專案數線性）且彼此平行；若真實裝置上進入工作區後的首次可互動時間明顯超過約 1 秒，再回來評估更細的載入時機（例如 walk position 附近的階段先載）。
+**結論：延遲面不構成瓶頸，不為載入型 stage 加 walk-position `enabled`；以「期間存在」為單一閘門延後載入（#240），閘門由路由承擔。** 閘門是可逆的實作選擇（拿掉即回到現況），未達 ADR 門檻。扇出仍是有界的（隨帳戶／專案數線性）且彼此平行；若真實裝置上進入工作區後的首次可互動時間明顯變長，再回來評估更細的載入時機（例如 walk position 附近的階段先載）。
 
 ### Report Drift（報表漂移比對）
 
