@@ -2,7 +2,7 @@ import React from 'react';
 
 import { toast } from 'sonner';
 
-import { ArrowRight, Settings } from 'lucide-react';
+import { ArrowRight, Search, Settings } from 'lucide-react';
 
 import { ActivityList, ActivityRow } from '@/ui/components/ActivityList';
 import { Avatar } from '@/ui/components/Avatar';
@@ -37,6 +37,7 @@ import { Switch } from '@/ui/components/ui/switch';
 import { ConfirmDialogBody } from '@/ui/features/app/confirm/ConfirmDialogBody';
 import type { ConfirmOptions } from '@/ui/features/app/confirm/resolveConfirmOptions';
 import { useConfirm } from '@/ui/features/app/confirm/useConfirm';
+import CommandPalette from '@/ui/features/app/layout/CommandPalette';
 import { DrawerSection } from './GalleryDrawer';
 import { GalleryModule, GallerySection } from './GalleryScaffold';
 
@@ -154,39 +155,62 @@ const UserSection: React.FC = () => (
   </GallerySection>
 );
 
-const SwitchSection: React.FC = () => (
-  <GallerySection number="28" title="Toggle / Switch">
-    <GalleryModule label="SETTINGS">
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <span className="text-sm">Automatic reconciliation</span>
-          <Switch checked onCheckedChange={() => {}} aria-label="Automatic reconciliation" />
-        </div>
-        <div className="flex items-center justify-between">
-          <span className="text-sm">Notifications</span>
-          <Switch checked={false} onCheckedChange={() => {}} aria-label="Notifications" />
-        </div>
-      </div>
-    </GalleryModule>
-  </GallerySection>
-);
+const SwitchSection: React.FC = () => {
+  const [reconcile, setReconcile] = React.useState(true);
+  const [notify, setNotify] = React.useState(false);
 
-const CheckboxSection: React.FC = () => (
-  <GallerySection number="29" title="CheckBox / Selection">
-    <GalleryModule label="DATA SELECTION">
-      <div className="space-y-3">
-        <label className="flex items-center gap-3 text-sm">
-          <Checkbox checked onCheckedChange={() => {}} aria-label="ETF Purchase" />
-          ETF Purchase
-        </label>
-        <label className="flex items-center gap-3 text-sm">
-          <Checkbox checked={false} onCheckedChange={() => {}} aria-label="Dividend Received" />
-          Dividend Received
-        </label>
-      </div>
-    </GalleryModule>
-  </GallerySection>
-);
+  return (
+    <GallerySection number="28" title="Toggle / Switch">
+      <GalleryModule label="SETTINGS">
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <span className="text-sm">Automatic reconciliation</span>
+            <Switch
+              checked={reconcile}
+              onCheckedChange={setReconcile}
+              aria-label="Automatic reconciliation"
+            />
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-sm">Notifications</span>
+            <Switch checked={notify} onCheckedChange={setNotify} aria-label="Notifications" />
+          </div>
+        </div>
+      </GalleryModule>
+    </GallerySection>
+  );
+};
+
+const CheckboxSection: React.FC = () => {
+  const [etf, setEtf] = React.useState(true);
+  const [dividend, setDividend] = React.useState(false);
+  const toBoolean = (checked: boolean | 'indeterminate') => checked === true;
+
+  return (
+    <GallerySection number="29" title="CheckBox / Selection">
+      <GalleryModule label="DATA SELECTION">
+        <div className="space-y-3">
+          <label className="flex items-center gap-3 text-sm">
+            <Checkbox
+              checked={etf}
+              onCheckedChange={(checked) => setEtf(toBoolean(checked))}
+              aria-label="ETF Purchase"
+            />
+            ETF Purchase
+          </label>
+          <label className="flex items-center gap-3 text-sm">
+            <Checkbox
+              checked={dividend}
+              onCheckedChange={(checked) => setDividend(toBoolean(checked))}
+              aria-label="Dividend Received"
+            />
+            Dividend Received
+          </label>
+        </div>
+      </GalleryModule>
+    </GallerySection>
+  );
+};
 
 const SelectionSection: React.FC<{ cadence: string; onCadenceChange: (value: string) => void }> = ({
   cadence,
@@ -205,31 +229,29 @@ const SelectionSection: React.FC<{ cadence: string; onCadenceChange: (value: str
 
 const AccordionSection: React.FC = () => (
   <GallerySection number="31" title="Accordion / Collapsible Section">
-    <div className="rounded-lg border border-border">
-      <Accordion type="single" collapsible>
-        <AccordionItem value="details">
-          <AccordionTrigger>ACCOUNT DETAILS</AccordionTrigger>
-          <AccordionContent className="px-4">
-            <div className="space-y-3">
-              <div>
-                <p className="font-mono text-[10px] uppercase text-muted-foreground">ACCOUNT TYPE</p>
-                <p className="mt-1 font-mono text-sm">BROKERAGE</p>
-              </div>
-              <div>
-                <p className="font-mono text-[10px] uppercase text-muted-foreground">CURRENCY</p>
-                <p className="mt-1 font-mono text-sm">TWD</p>
-              </div>
-            </div>
-          </AccordionContent>
-        </AccordionItem>
-        <AccordionItem value="history">
-          <AccordionTrigger>RECONCILIATION HISTORY</AccordionTrigger>
-          <AccordionContent className="px-4">
+    <Accordion type="single" collapsible>
+      <AccordionItem value="details">
+        <AccordionTrigger>ACCOUNT DETAILS</AccordionTrigger>
+        <AccordionContent>
+          <div className="border-b border-border py-3">
+            <p className="font-mono text-[10px] uppercase text-muted-foreground">ACCOUNT TYPE</p>
+            <p className="mt-1 font-mono text-sm">BROKERAGE</p>
+          </div>
+          <div className="border-b border-border py-3">
+            <p className="font-mono text-[10px] uppercase text-muted-foreground">CURRENCY</p>
+            <p className="mt-1 font-mono text-sm">TWD</p>
+          </div>
+        </AccordionContent>
+      </AccordionItem>
+      <AccordionItem value="history">
+        <AccordionTrigger>RECONCILIATION HISTORY</AccordionTrigger>
+        <AccordionContent>
+          <div className="border-b border-border py-3">
             <p className="font-mono text-sm text-muted-foreground">No reconciliation entries yet.</p>
-          </AccordionContent>
-        </AccordionItem>
-      </Accordion>
-    </div>
+          </div>
+        </AccordionContent>
+      </AccordionItem>
+    </Accordion>
   </GallerySection>
 );
 
@@ -287,44 +309,64 @@ const PageChromeSection: React.FC = () => (
   </GallerySection>
 );
 
-const CommandSection: React.FC = () => (
-  <GallerySection number="44" title="Search / Command Access">
-    <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-      <GalleryModule label="COMMAND PALETTE · CTRL / ⌘ K">
-        <Command className="rounded-lg border border-border">
-          <CommandInput placeholder="Search or run a command..." />
-          <CommandList>
-            <CommandEmpty>No results found.</CommandEmpty>
-            <CommandGroup heading="NAVIGATION">
-              <CommandItem>→ Open Portfolio</CommandItem>
-              <CommandItem>→ Open Monthly Close</CommandItem>
-            </CommandGroup>
-            <CommandSeparator />
-            <CommandGroup heading="ACTIONS">
-              <CommandItem>+ Add Transaction</CommandItem>
-              <CommandItem>+ Create Project</CommandItem>
-            </CommandGroup>
-          </CommandList>
-        </Command>
-      </GalleryModule>
-      <GalleryModule label="CONTEXTUAL SEARCH">
-        <Command className="rounded-lg border border-border">
-          <CommandInput placeholder="Search current data..." />
-          <CommandList>
-            <CommandEmpty>No results found.</CommandEmpty>
-            <CommandGroup heading="TRANSACTIONS">
-              <CommandItem>SEP 18 · Salary Received</CommandItem>
-              <CommandItem>SEP 17 · ETF Purchase</CommandItem>
-            </CommandGroup>
-          </CommandList>
-        </Command>
-        <p className="mt-3 font-mono text-[11px] text-muted-foreground">
-          Search only indexed fields within the current context.
-        </p>
-      </GalleryModule>
-    </div>
-  </GallerySection>
-);
+const CommandSection: React.FC = () => {
+  const [liveOpen, setLiveOpen] = React.useState(false);
+
+  React.useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key.toLowerCase() === 'k' && (event.ctrlKey || event.metaKey)) {
+        event.preventDefault();
+        setLiveOpen((prev) => !prev);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  return (
+    <GallerySection number="44" title="Search / Command Access">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+        <GalleryModule label="COMMAND PALETTE (SIMULATED) · CTRL / ⌘ K">
+          <Command className="rounded-lg border border-border">
+            <CommandInput placeholder="Search or run a command..." />
+            <CommandList>
+              <CommandEmpty>No results found.</CommandEmpty>
+              <CommandGroup heading="NAVIGATION">
+                <CommandItem>→ Open Portfolio</CommandItem>
+                <CommandItem>→ Open Monthly Close</CommandItem>
+              </CommandGroup>
+              <CommandSeparator />
+              <CommandGroup heading="ACTIONS">
+                <CommandItem>+ Add Transaction</CommandItem>
+                <CommandItem>+ Create Project</CommandItem>
+              </CommandGroup>
+            </CommandList>
+          </Command>
+        </GalleryModule>
+        <GalleryModule label="LIVE PALETTE" className="flex flex-col">
+          <p className="font-mono text-[11px] text-muted-foreground">
+            Press Ctrl / ⌘ K or click Search to open the real CommandPalette.
+          </p>
+          <div className="flex-1" />
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label="Search"
+              onClick={() => setLiveOpen(true)}
+              className="text-muted-foreground"
+            >
+              <Search size={18} />
+            </Button>
+            <span className="font-mono text-[11px] text-muted-foreground">CTRL / ⌘ K</span>
+          </div>
+        </GalleryModule>
+      </div>
+      <CommandPalette open={liveOpen} onOpenChange={setLiveOpen} />
+    </GallerySection>
+  );
+};
 
 export const GalleryStatesBody: React.FC<{ cadence: string; onCadenceChange: (value: string) => void }> = ({
   cadence,

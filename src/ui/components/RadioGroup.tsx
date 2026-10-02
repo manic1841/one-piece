@@ -51,15 +51,22 @@ type RadioProps = {
 };
 
 /** One option inside RadioGroup: label wraps the native input, so no htmlFor wiring is needed. */
-export function Radio({ value, label, className, ...radio }: RadioProps & RadioOptionProps) {
+export function Radio({ value, label, checked, className, ...radio }: RadioProps & RadioOptionProps) {
   return (
     <label className={cn('flex cursor-pointer items-center gap-2 text-sm', className)}>
-      <input
-        type="radio"
-        value={value}
-        className="h-4 w-4 cursor-pointer appearance-none rounded-full border border-border-strong bg-transparent checked:border-primary checked:bg-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-        {...radio}
-      />
+      <span className="relative inline-flex h-[18px] w-[18px] shrink-0">
+        <input
+          type="radio"
+          value={value}
+          checked={checked}
+          className="peer h-full w-full cursor-pointer appearance-none rounded-full border border-strong bg-transparent p-0 transition-colors duration-fast ease-out-quint checked:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+          {...radio}
+        />
+        <span
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 m-auto h-2 w-2 rounded-full bg-transparent peer-checked:bg-primary"
+        />
+      </span>
       <span className="text-foreground">{label}</span>
     </label>
   );
