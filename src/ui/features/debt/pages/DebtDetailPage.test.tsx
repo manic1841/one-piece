@@ -144,7 +144,7 @@ describe('DebtDetailPage header actions', () => {
     const status = await screen.findByText(DEBT_STATUS_SETTLED_LABEL);
     const glyphWrap = status.closest('span')!.parentElement!;
     expect(glyphWrap.textContent).toContain('✓');
-    expect(glyphWrap.querySelector('.text-positive')).not.toBeNull();
+    expect(glyphWrap.className).toContain('text-positive');
     expect(glyphWrap.className).not.toMatch(/rounded-|(^|\s)border(-|\s)/);
   });
 });

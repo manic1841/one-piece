@@ -182,7 +182,7 @@ describe('DebtListPage table', () => {
     expect(status.length).toBe(2);
     status.forEach((glyph) => {
       expect(glyph.textContent).toContain('!');
-      expect(glyph.querySelector('.text-warning')).not.toBeNull();
+      expect(glyph.className).toContain('text-warning');
     });
     const nameCells = screen
       .getAllByText('Mortgage A')

@@ -15,12 +15,24 @@
 | 檔案                                                 | 條目                           |
 | ---------------------------------------------------- | ------------------------------ |
 | `src/ui/components/AppFallback.tsx`                  | AppFallback                    |
+| `src/ui/components/ActivityList.tsx`                 | ActivityList / ActivityRow     |
+| `src/ui/components/Avatar.tsx`                       | Avatar                         |
+| `src/ui/components/CliProgress.tsx`                  | CliProgress                    |
 | `src/ui/components/CompactRow.tsx`                   | CompactRow                     |
+| `src/ui/components/Divider.tsx`                      | Divider                        |
+| `src/ui/components/EmptyState.tsx`                   | EmptyState                     |
 | `src/ui/components/ErrorBoundary.tsx`                | ErrorBoundary                  |
+| `src/ui/components/FinancialNumber.tsx`              | FinancialNumber                |
 | `src/ui/components/InlineEditableTitle.tsx`          | InlineEditableTitle            |
+| `src/ui/components/MetricGroup.tsx`                  | MetricGroup / Metric           |
+| `src/ui/components/Module.tsx`                       | Module                         |
 | `src/ui/components/PageHeader.tsx`                   | PageHeader                     |
+| `src/ui/components/PageSection.tsx`                  | PageSection                    |
 | `src/ui/components/PeriodBadge.tsx`                  | PeriodBadge                    |
+| `src/ui/components/RadioGroup.tsx`                   | RadioGroup / Radio             |
+| `src/ui/components/Skeleton.tsx`                     | Skeleton                       |
 | `src/ui/components/StatusGlyph.tsx`                  | StatusGlyph                    |
+| `src/ui/components/Toolbar.tsx`                      | Toolbar                        |
 | `src/ui/components/YearMonthPicker.tsx`              | YearMonthPicker                |
 | `src/ui/components/data-table/DataTable.tsx`         | data-table / DataTable         |
 | `src/ui/components/data-table/DataTableCell.tsx`     | data-table / DataTableCell     |
@@ -63,6 +75,7 @@
 | `src/ui/components/ui/table.tsx`                     | ui/ 群組                       |
 | `src/ui/components/ui/tabs.tsx`                      | ui/ 群組                       |
 | `src/ui/components/ui/textarea.tsx`                  | ui/ 群組                       |
+| `src/ui/components/ui/tooltip.tsx`                   | ui/ 群組                       |
 
 ## 非元件模組（不在本目錄的元件索引）
 
@@ -117,6 +130,71 @@
   - Props：`value`、`onSave(value) => Promise<void> | void`、`disabled?`、`className?`。
   - **不要用於**：需要明確 save／cancel 按鈕與欄位驗證的表單（用 `form` 套件）。
   - 範例：`src/ui/features/project/pages/ProjectDetailPage.tsx`
+
+- **`Skeleton`** — 載入 shimmer 區塊（Table / List / Detail 的 loading 態）。組合多個 block 成列；自身只渲染一塊。
+  - Props：`className?`（尺寸由呼叫端給）。
+  - **不要用於**：長時間工作的進度（用 `CliProgress`）；單行文字 loading 已足夠時。
+  - 範例：`prototype` 時代的散落 `animate-pulse` 已由本元件取代，遷移見 issue #258。
+
+- **`CliProgress`** — Terminal-style 進度（長時間工作的 loading 態，states-and-a11y 的 engineering identity）。自繪 bar，自帶 `role="progressbar"` 與 `aria-value*`。
+  - Props：`command`、`value`（0-100）、`statusText?`、`className?`。
+  - **不要用於**：短暫 loading（用 `Skeleton` 或單行文字）。
+  - 範例：`src/ui/features/monthly_close/stages/financial_reports/components/CloseFinancialReports.tsx`（若尚未遷移，issue #258）。
+
+- **`EmptyState`** — 空狀態：status 標題 + 一句說明 + 一個主要 action。不插圖、不做大型 Card。
+  - Props：`title`、`description`、`action?`、`className?`。
+  - **不要用於**：錯誤狀態（用 inline alert）；頁面級 fallback（用 `AppFallback`）。
+  - 範例：`prototype` 時代的散落空狀態已由本元件取代，遷移見 issue #258。
+
+- **`FinancialNumber`** — 財務數值顯示：`hero` / `large` / `default` 三級 + 缺值「$ —」。值由呼叫端預先格式化，本元件不做貨幣運算。
+  - Props：`value?: string | null`、`size?`、`tone?`（`default`/`positive`/`negative`）、`className?`。
+  - **不要用於**：表格儲存格（用 `data-table` 的 `NumberCell`）；輸入（用 `form` 的 `NumberInput`/`CurrencyInput`）。
+  - 範例：`src/ui/features/dashboard/pages/DashboardPage.tsx`（遷移見 issue #258）。
+
+- **`MetricGroup` / `Metric`** — 同層級財務指標列：label + mono 值 + change line，非卡片。`MetricGroup` 是分割線容器，`Metric` 是單一指標。
+  - Props（Group）：`children`、`className?`。Props（Metric）：`label`、`value`、`tone?`、`change?`、`changeTone?`、`className?`。
+  - **不要用於**：需要互動或篩選的資料（那是 table/toolbar 的事）。
+  - 範例：`src/ui/features/dashboard/pages/DashboardPage.tsx`（遷移見 issue #258）。
+
+- **`PageSection`** — 頁面層級的全寬 section band（`border-b` + `py-10`），visual-standards 的「structure over cards」：頁面區域用 band 分段，不用浮動卡片。number + title 為選用的 mono 標題；僅內容時是素 band。
+  - Props：`number?`、`title?`、`children`、`className?`。
+  - **不要用於**：section 內的個別單元（用 `Module`）；需要 sticky 或導航的區域（用 `PageHeader` / `Toolbar`）。
+  - 範例：`src/ui/features/app/pages/GalleryScaffold.tsx`（re-export 為 `GallerySection`）。
+
+- **`Module`** — PageSection 內的 distinct module：mono label + 卡片邊界（唯一允許卡片的層級，design-system「Card 保留給 distinct module」）。`min-w-0` 防止在響應式 grid 溢出。
+  - Props：`label`、`children`、`className?`。
+  - **不要用於**：頁面級分段（用 `PageSection`）；列表內的重複列（那不是 module，是 row）。
+  - 範例：`src/ui/features/app/pages/GalleryScaffold.tsx`（re-export 為 `GalleryModule`）。
+
+- **`ActivityList` / `ActivityRow`** — 最近活動列：date / title+meta / amount。列表容器收掉最後一列的底線。
+  - Props（Row）：`date`、`title`、`meta?`、`amount?`、`tone?`、`className?`。
+  - **不要用於**：完整交易資料表（用 `data-table` 套件）。
+  - 節例：`src/ui/features/transaction/pages/TransactionsPage.tsx`（遷移見 issue #258）。
+
+- **`Avatar`** — 身分圓形：photo 或 initials，mono、uppercase。`rounded-full` 白名單內的本質圓形。
+  - Props：`initials?`、`src?`、`alt?`、`size?`（`sm`/`default`）、`className?`。
+  - **不要用於**：非身分用途的圓形裝飾。
+  - 範例：`src/ui/features/app/layout/Layout.tsx`（遷移見 issue #258）。
+
+- **`Divider`** — 結構性分隔線。純呈現、無語意。
+  - Props：`className?`。
+  - **不要用於**：需要語意分組的內容（用 section / heading）。
+  - 節例：`prototype` 時代的散落 `border-t` 已由本元件取代，遷移見 issue #258。
+
+- **`Toolbar`** — 頁面工具列：資料檢視控制在前、動作在後，兩組分離。
+  - Props：`children?`（leading）、`actions?`（trailing）、`className?`。
+  - **不要用於**：表單欄位列（用 `form` 套件）。
+  - 節例：`src/ui/features/transaction/pages/TransactionsPage.tsx`（遷移見 issue #258）。
+
+- **`RadioGroup` / `Radio`** — 行內單選：原生 `input[type=radio]`、`<label>` 包覆控制項，零 Radix 依賴。
+  - Props（Group）：`aria-label`（必填）、`name`、`value?`、`onValueChange?`、`children`、`className?`。Props（Radio）：`value`、`label`、`className?`。
+  - **不要用於**：二元設定（用 `ui/` 群組的 `switch`）；多選（用 `checkbox`）。
+  - 節例：`src/ui/components/RadioGroup.test.tsx`。
+
+- **`ui/tooltip`** — Tooltip primitive：Radix 包裝、Root 自帶 Provider。「僅在需要時解釋」——不懂的縮寫、推導式、缺值說明。
+  - Props：透通 Radix Root/Trigger/Content；Content 預設 `sideOffset={6}`、`max-w-xs`。
+  - **不要用於**：恆常可見的說明（那用 description 文字）。
+  - 節例：`src/ui/components/ui/tooltip.test.tsx`。
 
 - **`YearMonthPicker`** — 年月選擇（outline 按鈕 ＋ Popover 內雙 Select）。`mode` 為 `'year-month'`（預設）或 `'year'`。
   - Props：`mode?`、`year`、`month?`、`onYearChange`、`onMonthChange?`、`className?`。

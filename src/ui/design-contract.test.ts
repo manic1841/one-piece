@@ -16,6 +16,8 @@ const CLASS_SOURCE_PATTERN = /\.(ts|tsx)$/;
 const ROUNDED_FULL_ALLOWED = new Set([
   // Essential circles: switch track/knob, spinners, avatars, status dots,
   // data-viz capsules (progress tracks), circular state/icon containers.
+  'components/Avatar.tsx',
+  'components/RadioGroup.tsx',
   'components/ui/switch.tsx',
   'features/app/layout/Layout.tsx',
   'features/app/layout/PixelPet.tsx',
@@ -41,8 +43,10 @@ const SHADOW_ALLOWED = new Set([
   'components/ui/select.tsx',
   'components/ui/sheet.tsx',
   'components/ui/switch.tsx',
+  'components/ui/tooltip.tsx',
   'features/app/layout/Layout.tsx',
   'features/app/layout/PixelPet.tsx',
+  'features/app/pages/GalleryDrawer.tsx',
   'features/report/components/ReportHeader.tsx',
 ]);
 

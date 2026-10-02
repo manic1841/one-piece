@@ -7,6 +7,7 @@ import AccountDetailPage from '@/ui/features/account/pages/AccountDetailPage';
 import Accounts from '@/ui/features/account/pages/AccountsPage';
 import { AuthGate } from '@/ui/features/app/AuthGate';
 import { ConfirmDialogProvider } from '@/ui/features/app/confirm/ConfirmDialog';
+import GalleryPage from '@/ui/features/app/pages/GalleryPage';
 import Layout from '@/ui/features/app/layout/Layout';
 import ProtectedRoute from '@/ui/features/app/router/ProtectedRoute';
 import AccessDenied from '@/ui/features/auth/pages/AccessDeniedPage';
@@ -41,6 +42,10 @@ function App() {
         <ConfirmDialogProvider>
           <BrowserRouter>
             <Routes>
+              {/* Dev-only design-system gallery: outside the auth routes, prod never serves it. */}
+              {import.meta.env.DEV && (
+                <Route path="/gallery" element={<GalleryPage />} />
+              )}
               <Route path="/login" element={<Login />} />
               <Route path="/access-denied" element={<AccessDenied />} />
               <Route
