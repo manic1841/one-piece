@@ -7,7 +7,7 @@ const renderStage = (props?: Partial<Parameters<typeof ClosePortfolioCashFlowSta
   render(
     <ClosePortfolioCashFlowStage
       stepText="Portfolio 金流"
-      progressText="04 / 09"
+      progressText="03 / 08"
       confirmedAtText={null}
       confirming={false}
       isReviewing={false}

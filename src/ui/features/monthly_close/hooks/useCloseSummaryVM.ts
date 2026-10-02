@@ -16,7 +16,7 @@ import { type MonthlyClosePageVM } from '../viewmodels/monthlyClose.vm';
 
 interface UseCloseSummaryVMArgs {
   readiness: SettlementReadiness | null;
-  /** The drift-annotated statements; Step 8's five figures are read from its trees. */
+  /** The drift-annotated statements; CLOSE_PERIOD's five figures are read from its trees. */
   reportDrift: ReportDriftModel;
   /** CLOSED renders the persisted record read-only; drift is only compared while live. */
   isClosed: boolean;
@@ -28,9 +28,9 @@ interface UseCloseSummaryVMArgs {
 }
 
 /**
- * Derives the readiness and close-summary view models that Steps 7-8 render,
- * from the evidence each owning stage hook provides, plus the five financial
- * figures' drift annotations (Report Drift).
+ * Derives the readiness and close-summary view models that COMPLETENESS_CHECK
+ * and CLOSE_PERIOD render, from the evidence each owning stage hook provides,
+ * plus the five financial figures' drift annotations (Report Drift).
  */
 export const useCloseSummaryVM = ({
   readiness,
@@ -70,7 +70,7 @@ export const useCloseSummaryVM = ({
     zeroActivityNames,
   ]);
 
-  // Step 8's five figures are the drift model's tree nodes, not a second comparison.
+  // CLOSE_PERIOD's five figures are the drift model's tree nodes, not a second comparison.
   const financialResult = useMemo<FinancialResultVM>(
     () => ({
       totalAssets: reportDrift.balanceSheet?.assets.total.amount ?? null,

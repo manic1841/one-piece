@@ -33,9 +33,9 @@ const LOAD_ERROR = '無法載入結算就緒狀態，請稍後再試。';
 
 /**
  * Loads the month's completeness evidence: the zero-activity anomalies (the
- * only NEEDS_REVIEW source), the settlement readiness Step 6 aggregates, and
- * the transaction-validation issues Step 6 renders. A read failure throws the
- * canned message so the surface shows copy the consumer owns.
+ * only NEEDS_REVIEW source), the settlement readiness COMPLETENESS_CHECK
+ * aggregates, and the transaction-validation issues it renders. A read failure
+ * throws the canned message so the surface shows copy the consumer owns.
  */
 const fetchCompleteness = async ({
   householdId,

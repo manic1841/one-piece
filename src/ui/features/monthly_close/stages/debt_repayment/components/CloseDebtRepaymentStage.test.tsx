@@ -7,7 +7,7 @@ const renderStage = (props?: Partial<Parameters<typeof CloseDebtRepaymentStage>[
   render(
     <CloseDebtRepaymentStage
       stepText="債務還款"
-      progressText="06 / 09"
+      progressText="05 / 08"
       confirmedAtText={null}
       confirming={false}
       isReviewing={false}

@@ -101,7 +101,7 @@ vi.mock('@/ui/features/app/confirm/useConfirm', () => ({
 
 const baseContext: CloseStepContext = {
   stepText: 'ACCOUNT_BALANCE',
-  progressText: '01 / 09',
+  progressText: '01 / 08',
   confirmedAtText: null,
   confirming: false,
   isConfirmable: true,
@@ -244,7 +244,7 @@ describe('useCloseStepRegistry', () => {
     vi.clearAllMocks();
     vi.mocked(getSettlementReadinessUseCase.execute).mockResolvedValue(readinessFixture);
     // clearAllMocks does not restore implementations set with mockResolvedValue,
-    // so re-seed the Step 6 sources that individual tests override.
+    // so re-seed the COMPLETENESS_CHECK sources that individual tests override.
     vi.mocked(validateMonthTransactionsUseCase.execute).mockResolvedValue({
       yearMonth: '2026-08',
       checkedCount: 0,
@@ -293,12 +293,12 @@ describe('useCloseStepRegistry', () => {
     expect(container).toBeEmptyDOMElement();
   });
 
-  // T3 (#227): Step 6 aggregates COMPLETENESS_CHECK's readiness with the
-  // transaction-validation issues (the check has no stage of its own). A
-  // transaction-validation failure used to render as "checked 0, no issues" —
-  // indistinguishable from a clean month — with confirm still enabled. The
-  // merged Step 6 load makes any source failure unknown, so no confirm renders.
-  it('surfaces a transaction-validation load failure in Step 6 and blocks confirm', async () => {
+  // T3 (#227): COMPLETENESS_CHECK aggregates the readiness with the
+  // transaction-validation issues. A transaction-validation failure used to
+  // render as "checked 0, no issues" — indistinguishable from a clean month —
+  // with confirm still enabled. The merged load makes any source failure
+  // unknown, so no confirm renders.
+  it('surfaces a transaction-validation failure in COMPLETENESS_CHECK', async () => {
     vi.mocked(validateMonthTransactionsUseCase.execute).mockRejectedValue(new Error('boom'));
 
     function Harness() {
@@ -314,7 +314,7 @@ describe('useCloseStepRegistry', () => {
     expect(screen.queryByTestId('readiness-confirm')).not.toBeInTheDocument();
   });
 
-  it('surfaces a COMPLETENESS_CHECK load failure in Step 6 and blocks confirm', async () => {
+  it('surfaces a completeness-evidence failure in COMPLETENESS_CHECK', async () => {
     vi.mocked(getSettlementReadinessUseCase.execute).mockRejectedValue(new Error('boom'));
 
     function Harness() {
@@ -329,7 +329,7 @@ describe('useCloseStepRegistry', () => {
     );
   });
 
-  it('blocks Step 6 confirm while a Step 6 source is still loading', async () => {
+  it('blocks confirm while a COMPLETENESS_CHECK source is still loading', async () => {
     vi.mocked(validateMonthTransactionsUseCase.execute).mockReturnValue(
       new Promise(() => {}) as never,
     );
@@ -342,7 +342,7 @@ describe('useCloseStepRegistry', () => {
     render(<Harness />);
 
     // Readiness cannot land while a sibling read is pending (one Promise.all),
-    // so Step 6 renders no confirm at all rather than an enabled one.
+    // so COMPLETENESS_CHECK renders no confirm at all rather than an enabled one.
     await waitFor(() => expect(screen.queryByTestId('readiness-confirm')).not.toBeInTheDocument());
   });
   it('dispatches CLOSE_PERIOD to the summary panel via the content factory', () => {
@@ -501,7 +501,7 @@ describe('useCloseStepRegistry', () => {
     );
   });
 
-  it("renders the five Step 8 financial figures from CLOSE_PERIOD's own bundle", async () => {
+  it('renders the five CLOSE_PERIOD financial figures from its own bundle', async () => {
     vi.mocked(previewFinancialReportsWorkflow.execute).mockResolvedValue(
       previewWithTotals({
         netIncome: 117_000,
@@ -526,7 +526,7 @@ describe('useCloseStepRegistry', () => {
     expect(screen.getByText('NT$179,000')).toBeInTheDocument();
   });
 
-  it('annotates a Step 8 figure that drifted from the persisted report while live', async () => {
+  it('annotates a CLOSE_PERIOD figure that drifted from the persisted report while live', async () => {
     vi.mocked(previewFinancialReportsWorkflow.execute).mockResolvedValue(
       previewWithTotals({
         netIncome: 117_000,
@@ -558,7 +558,7 @@ describe('useCloseStepRegistry', () => {
     );
   });
 
-  it('renders the persisted Step 8 record with no drift marks for a CLOSED period', async () => {
+  it('renders the persisted CLOSE_PERIOD record with no drift marks for a CLOSED period', async () => {
     vi.mocked(previewFinancialReportsWorkflow.execute).mockResolvedValue(
       previewWithTotals({
         netIncome: 117_000,
@@ -748,8 +748,8 @@ describe('useCloseStepRegistry', () => {
     );
   });
 
-  // #234: any drift in Step 7's reports blocks the close; never names a count.
-  it('blocks the close when Step 7 drifted, without naming a count', async () => {
+  // #234: any drift in FINANCIAL_REPORTS blocks the close; never names a count.
+  it('blocks the close when FINANCIAL_REPORTS drifted, without naming a count', async () => {
     vi.mocked(previewFinancialReportsWorkflow.execute).mockResolvedValue(
       previewWithTotals({ netIncome: 117_000 }),
     );
@@ -765,9 +765,7 @@ describe('useCloseStepRegistry', () => {
     render(<Harness />);
 
     await waitFor(() =>
-      expect(screen.getByTestId('close-drift-block')).toHaveTextContent(
-        '步驟 7 的報表與已產生報表不一致',
-      ),
+      expect(screen.getByTestId('close-drift-block')).toHaveTextContent('報表與已產生報表不一致'),
     );
     expect(screen.getByTestId('close-drift-block')).not.toHaveTextContent('項漂移');
     expect(screen.getByTestId('close-period-confirm')).toBeDisabled();
@@ -792,7 +790,7 @@ describe('useCloseStepRegistry', () => {
     expect(screen.queryByTestId('close-drift-block')).not.toBeInTheDocument();
   });
 
-  it('sends the user to Step 7 from the drift block', async () => {
+  it('sends the user to FINANCIAL_REPORTS from the drift block', async () => {
     vi.mocked(previewFinancialReportsWorkflow.execute).mockResolvedValue(
       previewWithTotals({ netIncome: 117_000 }),
     );

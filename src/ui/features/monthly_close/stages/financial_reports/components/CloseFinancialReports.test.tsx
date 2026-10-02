@@ -286,7 +286,7 @@ describe('CloseFinancialReports', () => {
     renderReports({ isSettlementReady: false });
 
     expect(screen.getByTestId('generate-reports')).toBeDisabled();
-    // The missing-category list is Step 6's presentation; Step 7 only gates.
+    // The missing-category list is COMPLETENESS_CHECK's presentation; FINANCIAL_REPORTS only gates.
     expect(screen.queryByText(/尚未完成所有類別的月結算/)).not.toBeInTheDocument();
   });
 

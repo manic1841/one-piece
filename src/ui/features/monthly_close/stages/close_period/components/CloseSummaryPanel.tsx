@@ -16,17 +16,18 @@ import {
 
 interface CloseSummaryPanelProps {
   summary: CloseSummaryVM;
-  /** Set when the report data Step 8 renders failed to load (#228). */
+  /** Set when the report data CLOSE_PERIOD renders failed to load (#228). */
   loadErrorMessage?: string | null;
   /**
-   * Whether any figure in Step 7's statements drifted from the persisted report
-   * (#234). Derived live by the registry from the drift tree Step 7 already
-   * renders, so the gate cannot disagree with the warnings the user saw. A
-   * boolean, not a count: the tree mixes independent figures with render-time
-   * sums the screen does not draw, so no tally matches what the user can count.
+   * Whether any figure in FINANCIAL_REPORTS statements drifted from the
+   * persisted report (#234). Derived live by the registry from the drift tree
+   * FINANCIAL_REPORTS already renders, so the gate cannot disagree with the
+   * warnings the user saw. A boolean, not a count: the tree mixes independent
+   * figures with render-time sums the screen does not draw, so no tally matches
+   * what the user can count.
    */
   hasDrift: boolean;
-  /** Sends the user back to Step 7 to regenerate the reports. */
+  /** Sends the user back to FINANCIAL_REPORTS to regenerate the reports. */
   onReviewReports: () => void;
   onClose: () => void;
   confirming: boolean;
@@ -181,9 +182,9 @@ export const CloseSummaryPanel: React.FC<CloseSummaryPanelProps> = ({
       {!isReadOnly && (
         <div className="space-y-3 border-t border-border pt-[26px]">
           {/* The backend close gate only checks that the reports are persisted,
-              so a drift that appeared after Step 7 was confirmed would be frozen
-              into the closed period. The block lives here, next to the action
-              it refuses (#234). */}
+              so a drift that appeared after FINANCIAL_REPORTS was confirmed
+              would be frozen into the closed period. The block lives here, next
+              to the action it refuses (#234). */}
           {hasDrift && (
             <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-warning/30 bg-warning/10 px-4 py-3">
               <p className="text-sm text-warning" role="alert" data-testid="close-drift-block">

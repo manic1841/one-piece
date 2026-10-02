@@ -21,12 +21,12 @@
 
 Phase 1 收斂時定下的四個來源色碼與其對應 token 如下。此表只保留**來源依據**；現行值以 `src/index.css` 為唯一來源，不在本文件複述（複述的值必與程式碼漂移）。
 
-| 來源色碼            | 對應 token                   |
-| ------------------- | ---------------------------- |
-| Primary `#5CC8C0`   | `--primary`                  |
-| Secondary `#7C858F` | `--muted-foreground`         |
-| Surface `#0A0E14`   | `--background`               |
-| Elevated `#0D1117`  | `--elevated`                 |
+| 來源色碼            | 對應 token           |
+| ------------------- | -------------------- |
+| Primary `#5CC8C0`   | `--primary`          |
+| Secondary `#7C858F` | `--muted-foreground` |
+| Surface `#0A0E14`   | `--background`       |
+| Elevated `#0D1117`  | `--elevated`         |
 
 ## 2. 動態（Motion）
 

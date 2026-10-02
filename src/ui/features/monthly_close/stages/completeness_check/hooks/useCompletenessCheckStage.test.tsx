@@ -79,7 +79,7 @@ describe('useCompletenessCheckStage', () => {
     });
   });
 
-  it('owns the anomalies, readiness, and transaction validation for Step 6', async () => {
+  it('owns the anomalies, readiness, and transaction validation for COMPLETENESS_CHECK', async () => {
     const { result } = renderStage();
 
     await waitFor(() => expect(result.current.readiness?.isReady).toBe(true));

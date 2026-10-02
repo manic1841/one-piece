@@ -102,7 +102,7 @@ describe('CloseReadinessCheck', () => {
   });
 
   it('renders readiness only — no financial figures', () => {
-    // Step 6 surfaces readiness state, not report numbers; the aggregated
+    // COMPLETENESS_CHECK surfaces readiness state, not report numbers; the aggregated
     // figures belong to Steps 8-9 (see docs/monthly-close.md §3).
     const { container } = renderPanel();
 

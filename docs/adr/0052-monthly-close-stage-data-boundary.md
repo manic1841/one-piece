@@ -9,7 +9,7 @@ Monthly Close 以階段表達關帳進度，每個階段完成由使用者確認
 
 **修訂（債務還款納入可重確認）**：債務還款階段列入可重確認階段：同鍵（期間 × 帳戶）未變更 payload 冪等返回、變更 payload 覆蓋當月紀錄（前筆交易刪除、快照與餘額重算）、清零取代成無還款，全部在同一筆 Firestore transaction 內。原「已完成即拒絕重新確認」讓使用者改錯金額後無法在同一期間修正，只能等下個月或手動刪改文件。取捨是取代分支讓寫入路徑多出 delete 與讀寫順序限制（Firestore transactions 要求所有 reads 先於 writes）；但重複確認不再重複入帳，且修正語意與帳戶餘額、證券買入／賣出一致。
 
-**修訂（交易驗證階段移除，2026-10-02）**：TRANSACTION_VALIDATION 階段已移除；批次檢查的結果改由 Completeness Check 階段載入，併入結算就緒狀態與例外清單（見 [monthly-close.md](../monthly-close.md)）。當初新增獨立階段是為了「明確的驗證步驟與 unresolved exceptions 路由」，但檢查的價值在於結果本身，而階段的確認動作只是重跑一次全月檢查並丟棄結果——獨立階段唯一的實質產出是確認時間戳。修訂後檢查仍在報表產生前把關（問題存在時 Step 6 確認與 Step 7 產生皆受阻），但不佔一個行走步驟；交易問題沒有工作區內的落點，例外僅列文字、不附階段跳轉。
+**修訂（交易驗證階段移除，2026-10-02）**：TRANSACTION_VALIDATION 階段已移除；批次檢查的結果改由 Completeness Check 階段載入，併入結算就緒狀態與例外清單（見 [monthly-close.md](../monthly-close.md)）。當初新增獨立階段是為了「明確的驗證步驟與 unresolved exceptions 路由」，但檢查的價值在於結果本身，而階段的確認動作只是重跑一次全月檢查並丟棄結果——獨立階段唯一的實質產出是確認時間戳。修訂後檢查仍在報表產生前把關（問題存在時 Completeness Check 確認與 Financial Reports 產生皆受阻），但不佔一個行走步驟；交易問題沒有工作區內的落點，例外僅列文字、不附階段跳轉。
 
 單段式（確認即建立）優於兩段式（輸入提交與階段確認分離）：兩段式會產生「階段 PENDING 但資料已存在」的中間狀態，確認補齊邏輯可能覆蓋已提交資料（如 portfolio 補零覆蓋 deposits/withdrawals），且 UI 需多處理一個子狀態。輸入驗證提前由 UI 表單 inline 檢查承擔，不需提前建資料。工作流內建立的是既有合法事件（快照與交易），關帳工作流與期間狀態本身不是財務事件（[ADR-0050](0050-financial-period-workflow-state.md)）。
 

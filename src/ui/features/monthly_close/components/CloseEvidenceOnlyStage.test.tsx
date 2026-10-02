@@ -23,7 +23,7 @@ const renderStage = (props?: Partial<Parameters<typeof CloseEvidenceOnlyStage>[0
   render(
     <CloseEvidenceOnlyStage
       stepText="專案結算"
-      progressText="02 / 09"
+      progressText="04 / 08"
       confirmedAtText={null}
       confirming={false}
       isReviewing={false}

@@ -151,8 +151,8 @@ export const useCloseStepRegistry = ({
   // Steps 6-7 summary VMs: built here, after the stage hooks, so COMPLETENESS_CHECK
   // and CLOSE_PERIOD read them from this closure instead of the page copying them
   // into CloseStepContext. The readiness COMPLETENESS_CHECK owns is also the
-  // single source Step 7's Generate gate reads across stages; CLOSE_PERIOD's
-  // five financial figures come from the preview bundle FINANCIAL_REPORTS owns
+  // single source the FINANCIAL_REPORTS Generate gate reads across stages;
+  // CLOSE_PERIOD's five financial figures come from the preview bundle FINANCIAL_REPORTS owns
   // (#228) — one load owns the preview, the persisted baseline, and the flag, so
   // they cannot land at different times.
   const { readinessVM, closeSummaryVM } = useCloseSummaryVM({
@@ -189,7 +189,7 @@ export const useCloseStepRegistry = ({
   const completenessCheckError = completenessCheckStage.errorMessage;
   const isCompletenessCheckReady = completenessCheckStage.isReady;
 
-  // Close gate: any drift in Step 7's reports blocks the close (#234, ADR-0073).
+  // Close gate: any drift in FINANCIAL_REPORTS reports blocks the close (#234, ADR-0073).
   const hasDrift = financialReportsStage.hasAnyDrift;
 
   // Chrome props shared by every workspace-stage factory; the stage's own
@@ -310,7 +310,7 @@ export const useCloseStepRegistry = ({
             isReadOnly={ctx.isReadOnly}
           />
         ) : (
-          // Step 6 needs readiness to render at all, so a failed load would
+          // COMPLETENESS_CHECK needs readiness to render at all, so a failed load would
           // otherwise leave the stage blank and look like a clean month.
           <CloseStageLoadError message={completenessCheckError} />
         ),
@@ -340,7 +340,7 @@ export const useCloseStepRegistry = ({
     },
     CLOSE_PERIOD: {
       control: closePeriodControl,
-      // Step 8 renders the summary unconditionally: mapCloseSummary always
+      // CLOSE_PERIOD renders the summary unconditionally: mapCloseSummary always
       // returns an object, so a null guard here was dead code. A failed report
       // load surfaces its own copy instead (#228).
       render: (ctx) => (

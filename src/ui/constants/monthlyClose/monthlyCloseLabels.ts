@@ -157,7 +157,7 @@ export const MONTHLY_CLOSE_LABELS = {
   GENERATED_AT: '產生時間',
   EXISTING_REPORTS_WARNING: '此期間已有先前產生的報表；確認後將以目前預覽重新產生並覆寫。',
   PERSISTENCE_UNKNOWN_WARNING: '無法確認報表是否已產生，暫時無法產生報表，請重新載入後再試。',
-  DRIFT_BLOCK_MESSAGE: '步驟 7 的報表與已產生報表不一致，請先回到步驟 7 重新產生報表再關帳。',
-  DRIFT_BLOCK_ACTION: '回到步驟 7',
+  DRIFT_BLOCK_MESSAGE: `報表與已產生報表不一致，請先回到 ${CLOSE_STAGE_LABELS.FINANCIAL_REPORTS} 重新產生報表再關帳。`,
+  DRIFT_BLOCK_ACTION: `回到 ${CLOSE_STAGE_LABELS.FINANCIAL_REPORTS}`,
   PREVIEW_ERROR: '無法載入報表預覽。',
 } as const;
