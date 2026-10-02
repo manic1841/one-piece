@@ -31,22 +31,21 @@ describe('dashboardCloseStatus.vm', () => {
     const vm = mapPeriodToCloseStatusVM(
       buildPeriod('IN_PROGRESS', {
         ACCOUNT_BALANCE: { status: 'COMPLETED' },
-        TRANSACTION_VALIDATION: { status: 'COMPLETED' },
         SECURITIES_TRADE: { status: 'PENDING' },
       }),
       '2026-08',
     );
 
-    expect(vm.completedCount).toBe(2);
-    expect(vm.totalCount).toBe(9);
+    expect(vm.completedCount).toBe(1);
+    expect(vm.totalCount).toBe(8);
     expect(vm.nextStageLabel).toBe('證券買入／賣出');
   });
 
   it('reports full progress for a closed period', () => {
     const vm = mapPeriodToCloseStatusVM(buildPeriod('CLOSED'), '2026-08');
 
-    expect(vm.completedCount).toBe(9);
-    expect(vm.totalCount).toBe(9);
+    expect(vm.completedCount).toBe(8);
+    expect(vm.totalCount).toBe(8);
     expect(vm.nextStageLabel).toBeNull();
   });
 

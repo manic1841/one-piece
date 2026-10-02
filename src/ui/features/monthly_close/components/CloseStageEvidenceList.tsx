@@ -18,28 +18,6 @@ export const CloseStageEvidenceList: React.FC<CloseStageEvidenceListProps> = ({ 
     case 'NONE':
       return <p className="text-xs text-muted-foreground">{MONTHLY_CLOSE_LABELS.NO_DATA}</p>;
 
-    case 'ISSUES':
-      if (evidence.issues.length === 0) return null;
-      return (
-        <div className="flex items-start gap-2 rounded-lg border border-warning/20 bg-warning/5 p-3">
-          <AlertCircle size={14} className="mt-0.5 shrink-0 text-warning" />
-          <div className="space-y-1">
-            <p className="text-xs font-semibold text-foreground">
-              {MONTHLY_CLOSE_LABELS.TRANSACTION_ISSUES}
-            </p>
-            {evidence.issues.map((issue) => (
-              <p
-                key={`${issue.transactionId}-${issue.reason}`}
-                className="text-xs text-muted-foreground"
-              >
-                {issue.description ? `${issue.description}：` : ''}
-                {issue.reason}
-              </p>
-            ))}
-          </div>
-        </div>
-      );
-
     case 'ZERO_ACTIVITY':
       if (evidence.names.length === 0) return null;
       return (

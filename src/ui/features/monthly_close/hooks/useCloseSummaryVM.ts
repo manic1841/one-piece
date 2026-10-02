@@ -16,9 +16,7 @@ import { type MonthlyClosePageVM } from '../viewmodels/monthlyClose.vm';
 
 interface UseCloseSummaryVMArgs {
   readiness: SettlementReadiness | null;
-  /** The validated-transaction count TRANSACTION_VALIDATION's stage hook owns. */
-  checkedCount: number;
-  /** The drift-annotated statements; Step 9's five figures are read from its trees. */
+  /** The drift-annotated statements; Step 8's five figures are read from its trees. */
   reportDrift: ReportDriftModel;
   /** CLOSED renders the persisted record read-only; drift is only compared while live. */
   isClosed: boolean;
@@ -36,7 +34,6 @@ interface UseCloseSummaryVMArgs {
  */
 export const useCloseSummaryVM = ({
   readiness,
-  checkedCount,
   reportDrift,
   isClosed,
   transactionIssues,
@@ -54,7 +51,6 @@ export const useCloseSummaryVM = ({
     return mapReadinessVM({
       totalAccounts: readiness.totalAccounts,
       confirmedAccounts: readiness.totalAccounts - readiness.unsettledAccounts.length,
-      totalTransactions: checkedCount,
       transactionIssues,
       totalSecurities: securities.buys.length + securities.sells.length,
       totalPortfolios: readiness.totalPortfolios,
@@ -67,7 +63,6 @@ export const useCloseSummaryVM = ({
       anomalies: [],
     });
   }, [
-    checkedCount,
     readiness,
     securities.buys.length,
     securities.sells.length,
@@ -75,7 +70,7 @@ export const useCloseSummaryVM = ({
     zeroActivityNames,
   ]);
 
-  // Step 9's five figures are the drift model's tree nodes, not a second comparison.
+  // Step 8's five figures are the drift model's tree nodes, not a second comparison.
   const financialResult = useMemo<FinancialResultVM>(
     () => ({
       totalAssets: reportDrift.balanceSheet?.assets.total.amount ?? null,

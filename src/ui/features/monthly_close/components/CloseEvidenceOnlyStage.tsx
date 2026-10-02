@@ -21,8 +21,8 @@ interface CloseEvidenceOnlyStageProps {
 }
 
 /**
- * TRANSACTION_VALIDATION and PROJECT_SETTLEMENT: workspace stages with no
- * inputs; they render the stage evidence alone inside the shared chrome.
+ * PROJECT_SETTLEMENT: a workspace stage with no inputs; it renders the stage
+ * evidence alone inside the shared chrome.
  */
 export const CloseEvidenceOnlyStage: React.FC<CloseEvidenceOnlyStageProps> = ({
   stepText,

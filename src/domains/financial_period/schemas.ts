@@ -11,7 +11,6 @@ import { BaseSchema } from '@/shared/schemas/base';
 
 export const CLOSE_STAGE_IDS = [
   'ACCOUNT_BALANCE',
-  'TRANSACTION_VALIDATION',
   'SECURITIES_TRADE',
   'PORTFOLIO_CASH_FLOW',
   'PROJECT_SETTLEMENT',

@@ -15,7 +15,11 @@ vi.mock('@/ui/features/app/confirm/useConfirm', () => ({
 const summaryVM: CloseSummaryVM = {
   activity: [
     { stepText: '01 帳戶餘額', status: CLOSE_ACTIVITY_STATUS.CONFIRMED, dataText: '3 個帳戶' },
-    { stepText: '02 交易驗證', status: CLOSE_ACTIVITY_STATUS.CONFIRMED, dataText: '128 筆交易' },
+    {
+      stepText: '02 證券買入／賣出',
+      status: CLOSE_ACTIVITY_STATUS.CONFIRMED,
+      dataText: '128 筆交易',
+    },
     {
       stepText: '04 Portfolio 金流',
       status: CLOSE_ACTIVITY_STATUS.NOT_CONFIRMED,
@@ -63,7 +67,7 @@ describe('CloseSummaryPanel', () => {
     renderPanel();
 
     expect(screen.getByText('01 帳戶餘額')).toBeInTheDocument();
-    expect(screen.getByText('02 交易驗證')).toBeInTheDocument();
+    expect(screen.getByText('02 證券買入／賣出')).toBeInTheDocument();
     expect(screen.getByText('09 Close Period')).toBeInTheDocument();
   });
 
@@ -146,7 +150,7 @@ describe('CloseSummaryPanel', () => {
     expect(screen.getAllByText('狀態未知')).toHaveLength(3);
   });
 
-  // #228: Step 9 surfaces a report load failure instead of a silently empty summary.
+  // #228: Step 8 surfaces a report load failure instead of a silently empty summary.
   it('surfaces a report load failure', () => {
     renderPanel({ loadErrorMessage: '無法載入報表預覽，請稍後再試。' });
 
@@ -160,12 +164,12 @@ describe('CloseSummaryPanel', () => {
   });
 
   // #234: the backend close gate only checks that the reports are persisted, so
-  // a drift appearing after Step 8 was confirmed has to be caught here.
+  // a drift appearing after Step 7 was confirmed has to be caught here.
   it('blocks the close when reports drifted', () => {
     renderPanel({ hasDrift: true });
 
     expect(screen.getByTestId('close-period-confirm')).toBeDisabled();
-    expect(screen.getByRole('alert')).toHaveTextContent('步驟 8 的報表與已產生報表不一致');
+    expect(screen.getByRole('alert')).toHaveTextContent('步驟 7 的報表與已產生報表不一致');
   });
 
   it('does not name a drift count the screen cannot justify', () => {
@@ -174,7 +178,7 @@ describe('CloseSummaryPanel', () => {
     expect(screen.getByTestId('close-drift-block')).not.toHaveTextContent('項漂移');
   });
 
-  it('sends the user back to Step 8 from the drift block', () => {
+  it('sends the user back to Step 7 from the drift block', () => {
     const onReviewReports = vi.fn();
 
     renderPanel({ hasDrift: true, onReviewReports });

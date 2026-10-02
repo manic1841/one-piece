@@ -5,15 +5,24 @@ import { NO_EVIDENCE } from '@/ui/features/monthly_close/viewmodels/closeEvidenc
 
 import { CloseEvidenceOnlyStage } from './CloseEvidenceOnlyStage';
 
-const transactionIssueEvidence = {
-  kind: 'ISSUES' as const,
-  issues: [{ transactionId: 'tx-1', description: '分類遺漏', reason: '缺少分類' }],
+const settlementEvidence = {
+  kind: 'SETTLEMENTS' as const,
+  rows: [
+    {
+      projectId: 'p1',
+      projectName: '裝修',
+      settled: true,
+      income: 5000,
+      expense: 3000,
+      closingBalance: 2000,
+    },
+  ],
 };
 
 const renderStage = (props?: Partial<Parameters<typeof CloseEvidenceOnlyStage>[0]>) =>
   render(
     <CloseEvidenceOnlyStage
-      stepText="交易驗證"
+      stepText="專案結算"
       progressText="02 / 09"
       confirmedAtText={null}
       confirming={false}
@@ -32,7 +41,7 @@ describe('CloseEvidenceOnlyStage', () => {
     renderStage();
 
     expect(screen.getByText('當前步驟')).toBeInTheDocument();
-    expect(screen.getByText('交易驗證')).toBeInTheDocument();
+    expect(screen.getByText('專案結算')).toBeInTheDocument();
   });
 
   it('shows a no-data note when the evidence is empty', () => {
@@ -42,8 +51,8 @@ describe('CloseEvidenceOnlyStage', () => {
   });
 
   it('renders the evidence list rows', () => {
-    renderStage({ evidence: transactionIssueEvidence });
+    renderStage({ evidence: settlementEvidence });
 
-    expect(screen.getByText(/分類遺漏/)).toBeInTheDocument();
+    expect(screen.getByText(/裝修/)).toBeInTheDocument();
   });
 });

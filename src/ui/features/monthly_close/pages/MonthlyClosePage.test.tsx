@@ -209,7 +209,7 @@ const renderWorkspace = (period: FinancialPeriod = inProgressPeriod()) =>
   );
 
 describe('MonthlyClosePage (closed period)', () => {
-  it('renders the read-only Step 9 close summary as the default view', async () => {
+  it('renders the read-only Step 8 close summary as the default view', async () => {
     renderWorkspace(closedPeriod());
 
     await waitFor(() => {

@@ -337,10 +337,6 @@ describe('monthlyCloseWorkflowUseCase — emulator integration', () => {
       ).docs.length,
     ).toBe(1);
 
-    // TRANSACTION_VALIDATION batch-checks the month's transactions and
-    // completes without creating or modifying data (spec 05 stage 02).
-    await confirmStage('TRANSACTION_VALIDATION', {});
-
     // SECURITIES_TRADE creates a SECURITY_BUY (INVESTMENT intentType) transaction.
     const buyDate = new Date(2026, 2, 10);
     await confirmStage('SECURITIES_TRADE', {
@@ -810,7 +806,6 @@ describe('monthlyCloseWorkflowUseCase — emulator integration', () => {
         { accountId: 'acc-securities', amount },
       ],
     });
-    await confirmStage('TRANSACTION_VALIDATION', {});
     await confirmStage('SECURITIES_TRADE', {});
     await confirmStage('PORTFOLIO_CASH_FLOW', {});
     await confirmStage('PROJECT_SETTLEMENT', {});
@@ -848,31 +843,6 @@ describe('monthlyCloseWorkflowUseCase — emulator integration', () => {
       doc(db, 'households', householdId, 'debtAccounts', graceLoanId),
     );
     expect(graceAccount.data()?.currentBalance).toBe(9_500_000 - 1.5);
-  });
-
-  it('validates real month transactions without modifying them', async () => {
-    await monthlyCloseWorkflowUseCase.start({
-      householdId: householdId,
-      yearMonth,
-      userEmail: 'user@example.com',
-      auth,
-    });
-
-    await confirmStage('SECURITIES_TRADE', {
-      securities: { buys: [{ amount, date: new Date(2026, 2, 10) }], sells: [] },
-    });
-    const before = await findTransactionByIntentOrIntentType('SECURITY_BUY');
-
-    // Transaction Validation batch-checks a month that actually holds
-    // transactions and completes without rewriting any of them (spec 05).
-    await confirmStage('TRANSACTION_VALIDATION', {});
-
-    const after = await findTransactionByIntentOrIntentType('SECURITY_BUY');
-    expect(after).not.toBeNull();
-    expect(after?.id).toBe(before?.id);
-    expect(after?.amount).toBe(before?.amount);
-    expect(after?.date).toEqual(before?.date);
-    expect(after?.updatedAt).toEqual(before?.updatedAt);
   });
 });
 

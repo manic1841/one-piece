@@ -126,11 +126,6 @@ describe('resolveWalkPosition', () => {
       confirmedBy: 'u',
       confirmedAt: new Date(),
     };
-    period.stages.TRANSACTION_VALIDATION = {
-      status: 'COMPLETED',
-      confirmedBy: 'u',
-      confirmedAt: new Date(),
-    };
 
     expect(resolveWalkPosition(period)).toBe('SECURITIES_TRADE');
   });
@@ -177,7 +172,6 @@ describe('confirmStageInState — paused-period guards', () => {
     });
     for (const stageId of [
       'ACCOUNT_BALANCE',
-      'TRANSACTION_VALIDATION',
       'SECURITIES_TRADE',
       'PORTFOLIO_CASH_FLOW',
       'PROJECT_SETTLEMENT',
@@ -318,7 +312,6 @@ describe('resetStagesFromInState', () => {
     const next = resetStagesFromInState(period, 'SECURITIES_TRADE');
 
     expect(next.stages.ACCOUNT_BALANCE?.status).toBe('COMPLETED');
-    expect(next.stages.TRANSACTION_VALIDATION?.status).toBe('COMPLETED');
     expect(next.stages.SECURITIES_TRADE?.status).toBe('PENDING');
     expect(next.stages.COMPLETENESS_CHECK?.status).toBe('PENDING');
     expect(next.stages.CLOSE_PERIOD?.status).toBe('PENDING');

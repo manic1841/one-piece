@@ -5,7 +5,6 @@ import { type CompletenessActivity } from '@/application/settlement/use_cases/ch
 import {
   NO_EVIDENCE,
   adjustmentEvidence,
-  issuesEvidence,
   persistenceEvidence,
   settlementsEvidence,
   zeroActivityEvidence,
@@ -28,12 +27,6 @@ describe('closeEvidence factories', () => {
     });
     expect(adjustmentEvidence(-120)).toEqual({ kind: 'ADJUSTMENT', count: -120 });
     expect(persistenceEvidence(true)).toEqual({ kind: 'PERSISTENCE', persisted: true });
-    expect(
-      issuesEvidence([{ transactionId: 'tx-1', description: '餐飲', reason: '分配不存在' }]),
-    ).toEqual({
-      kind: 'ISSUES',
-      issues: [{ transactionId: 'tx-1', description: '餐飲', reason: '分配不存在' }],
-    });
   });
 
   it('maps project settlements into the settlement evidence', () => {

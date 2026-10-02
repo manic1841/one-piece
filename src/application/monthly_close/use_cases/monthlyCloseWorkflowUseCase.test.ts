@@ -15,7 +15,6 @@ import {
   saveFinancialPeriodUseCase,
 } from '@/application/monthly_close/use_cases/financialPeriodAccessUseCases';
 import { MonthlyCloseWorkflowUseCase } from '@/application/monthly_close/use_cases/monthlyCloseWorkflowUseCase';
-import { validateMonthTransactionsUseCase } from '@/application/monthly_close/use_cases/validateMonthTransactionsUseCase';
 import { createPortfolioSnapshotUseCase } from '@/application/portfolio/use_cases/createPortfolioSnapshotUseCase';
 import { listPortfolioSnapshotsUseCase } from '@/application/portfolio/use_cases/listPortfolioSnapshotsUseCase';
 import { listPortfoliosUseCase } from '@/application/portfolio/use_cases/listPortfoliosUseCase';
@@ -45,7 +44,6 @@ vi.mock('@/application/report/use_cases/getReportPersistenceStateUseCase');
 vi.mock('@/application/settlement/use_cases/checkSettlementCompletenessUseCase');
 vi.mock('@/application/settlement/use_cases/settleDebtAccountsUseCase');
 vi.mock('@/application/settlement/use_cases/settleProjectsUseCase');
-vi.mock('@/application/monthly_close/use_cases/validateMonthTransactionsUseCase');
 vi.mock('@/application/monthly_close/use_cases/financialPeriodAccessUseCases', () => {
   const getFinancialPeriodUseCase = { execute: vi.fn() };
   const saveFinancialPeriodUseCase = {
@@ -171,7 +169,6 @@ describe('MonthlyCloseWorkflowUseCase.reopen', () => {
     let period = basePeriod({ status: 'CLOSED' });
     for (const stageId of [
       'ACCOUNT_BALANCE',
-      'TRANSACTION_VALIDATION',
       'DEBT_REPAYMENT',
       'FINANCIAL_REPORTS',
       'CLOSE_PERIOD',
@@ -184,7 +181,6 @@ describe('MonthlyCloseWorkflowUseCase.reopen', () => {
     const reopened = await useCase.reopen(REQUEST_BASE);
 
     expect(reopened.stages.ACCOUNT_BALANCE?.status).toBe('COMPLETED');
-    expect(reopened.stages.TRANSACTION_VALIDATION?.status).toBe('COMPLETED');
     expect(reopened.stages.DEBT_REPAYMENT?.status).toBe('COMPLETED');
     expect(reopened.stages.FINANCIAL_REPORTS?.status).toBe('PENDING');
     expect(reopened.stages.CLOSE_PERIOD?.status).toBe('PENDING');
@@ -319,7 +315,6 @@ describe('MonthlyCloseWorkflowUseCase.resetStagesFrom', () => {
     expect(result.status).toBe('NEEDS_REVIEW');
     expect(result.reviewSourceStageId).toBeNull();
     expect(result.stages.ACCOUNT_BALANCE?.status).toBe('COMPLETED');
-    expect(result.stages.TRANSACTION_VALIDATION?.status).toBe('COMPLETED');
     expect(result.stages.SECURITIES_TRADE?.status).toBe('PENDING');
     expect(result.stages.CLOSE_PERIOD?.status).toBe('PENDING');
     expect(saveFinancialPeriodUseCase.execute).toHaveBeenCalledWith(
@@ -448,32 +443,6 @@ describe('MonthlyCloseWorkflowUseCase.confirmStage', () => {
     );
     expect(batchRecordSnapshotsUseCase.execute).not.toHaveBeenCalled();
     expect(saveFinancialPeriodUseCase.execute).not.toHaveBeenCalled();
-  });
-
-  it('batch-validates the month transactions at the validation stage', async () => {
-    vi.mocked(validateMonthTransactionsUseCase.execute).mockResolvedValue({
-      yearMonth: '2026-09',
-      checkedCount: 3,
-      issues: [],
-    });
-
-    await useCase.confirmStage({ ...REQUEST_BASE, stageId: 'TRANSACTION_VALIDATION' });
-
-    expect(validateMonthTransactionsUseCase.execute).toHaveBeenCalledWith({
-      householdId: 'household-1',
-      year: 2026,
-      month: 9,
-      auth,
-    });
-    expect(saveFinancialPeriodUseCase.execute).toHaveBeenCalledWith(
-      expect.objectContaining({
-        period: expect.objectContaining({
-          stages: expect.objectContaining({
-            TRANSACTION_VALIDATION: expect.objectContaining({ status: 'COMPLETED' }),
-          }),
-        }),
-      }),
-    );
   });
 
   it('creates buy and sell transactions for securities trades', async () => {
@@ -719,7 +688,6 @@ describe('MonthlyCloseWorkflowUseCase.confirmStage', () => {
     });
     for (const stageId of [
       'ACCOUNT_BALANCE',
-      'TRANSACTION_VALIDATION',
       'SECURITIES_TRADE',
       'PORTFOLIO_CASH_FLOW',
       'PROJECT_SETTLEMENT',

@@ -52,7 +52,7 @@ interface CloseFinancialReportsProps {
   reportsPersisted: boolean | null;
 }
 
-/** The warning surface (amber glyph + tinted border) shared by Step 8's alerts. */
+/** The warning surface (amber glyph + tinted border) shared by Step 7's alerts. */
 const WarningAlert: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <Alert className="border-warning/30 bg-warning/5 text-foreground">
     <AlertTriangle className="h-4 w-4 text-warning" />
@@ -82,7 +82,7 @@ interface ReportsAlertsProps {
   showPersistenceUnknown: boolean;
 }
 
-/** The Step 8 warning surface: load error plus every pre-confirm/unknown alert. */
+/** The Step 7 warning surface: load error plus every pre-confirm/unknown alert. */
 const ReportsAlerts: React.FC<ReportsAlertsProps> = ({
   error,
   timestamps,

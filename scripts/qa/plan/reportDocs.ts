@@ -115,7 +115,7 @@ export const buildReportDocs = (
 
 // Monthly close period states (ADR-0050/0052/0066). The matrix covers every
 // persisted shape a QA run needs: a Completeness Check pause, closable months
-// with all nine stages completed, and an active close mid-workflow. No record
+// with all stages completed, and an active close mid-workflow. No record
 // is seeded for 2026-05 and earlier (absence = has not started closing).
 export const buildMonthlyCloseDocs = (b: Builder) => {
   const { identity } = b;

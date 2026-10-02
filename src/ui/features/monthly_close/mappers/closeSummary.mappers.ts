@@ -4,7 +4,6 @@ import { CLOSE_STAGE_LABELS, MONTHLY_CLOSE_LABELS } from '@/ui/constants/monthly
 
 export const READINESS_CHECK_IDS = [
   'ACCOUNT_BALANCE',
-  'TRANSACTION_VALIDATION',
   'SECURITIES_TRADE',
   'PORTFOLIO_CASH_FLOW',
   'PROJECT_SETTLEMENT',
@@ -20,10 +19,11 @@ export interface ReadinessCheckVM {
   countText: string;
 }
 
+/** stageId is null for exceptions with no in-workflow landing (e.g. transaction issues). */
 export interface ReadinessExceptionVM {
   label: string;
   detail: string;
-  stageId: CloseStageId;
+  stageId: CloseStageId | null;
 }
 
 export interface ReadinessVM {
@@ -35,7 +35,6 @@ export interface ReadinessVM {
 export interface ReadinessInput {
   totalAccounts: number;
   confirmedAccounts: number;
-  totalTransactions: number;
   transactionIssues: { description: string; reason: string }[];
   totalSecurities: number;
   totalPortfolios: number;
@@ -177,20 +176,14 @@ export const mapReadinessVM = (input: ReadinessInput): ReadinessVM => {
 
   const checks: ReadinessCheckVM[] = [
     snapshotChecks[0],
-    {
-      id: 'TRANSACTION_VALIDATION',
-      label: CLOSE_STAGE_LABELS.TRANSACTION_VALIDATION,
-      passed: input.transactionIssues.length === 0,
-      countText: `${input.totalTransactions}`,
-    },
     securitiesCheck,
     ...snapshotChecks.slice(1),
   ];
 
   const transactionExceptions: ReadinessExceptionVM[] = input.transactionIssues.map((issue) => ({
-    label: CLOSE_STAGE_LABELS.TRANSACTION_VALIDATION,
+    label: MONTHLY_CLOSE_LABELS.TRANSACTION_ISSUES,
     detail: issue.description ? `${issue.description}：${issue.reason}` : issue.reason,
-    stageId: 'TRANSACTION_VALIDATION',
+    stageId: null,
   }));
 
   // Zero-activity alerts pause the workflow as NEEDS_REVIEW (ADR-0050); the

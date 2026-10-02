@@ -22,7 +22,6 @@ import { RecordDebtRepaymentsUseCase } from '@/application/monthly_close/use_cas
 import { RecordMonthSnapshotsUseCase } from '@/application/monthly_close/use_cases/recordMonthSnapshotsUseCase';
 import { RecordPortfolioCashFlowsUseCase } from '@/application/monthly_close/use_cases/recordPortfolioCashFlowsUseCase';
 import { SyncInvestmentFinancingTransactionsUseCase } from '@/application/monthly_close/use_cases/syncInvestmentFinancingTransactionsUseCase';
-import { validateMonthTransactionsUseCase } from '@/application/monthly_close/use_cases/validateMonthTransactionsUseCase';
 import { checkSettlementCompletenessUseCase } from '@/application/settlement/use_cases/checkSettlementCompletenessUseCase';
 import { settleProjectsUseCase } from '@/application/settlement/use_cases/settleProjectsUseCase';
 import { type AuthContext } from '@/application/types';
@@ -332,15 +331,6 @@ export class MonthlyCloseWorkflowUseCase {
           month: this.monthOf(yearMonth),
           accountBalances: request.accountBalances ?? [],
           userEmail,
-          auth,
-        });
-        return { stageId, data: undefined };
-      }
-      case 'TRANSACTION_VALIDATION': {
-        await validateMonthTransactionsUseCase.execute({
-          householdId,
-          year: this.yearOf(yearMonth),
-          month: this.monthOf(yearMonth),
           auth,
         });
         return { stageId, data: undefined };

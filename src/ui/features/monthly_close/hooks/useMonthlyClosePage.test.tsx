@@ -47,7 +47,6 @@ vi.mock('./useCloseStepRegistry', () => {
     'PORTFOLIO_CASH_FLOW',
     'PROJECT_SETTLEMENT',
     'DEBT_REPAYMENT',
-    'TRANSACTION_VALIDATION',
     'COMPLETENESS_CHECK',
     'FINANCIAL_REPORTS',
     'CLOSE_PERIOD',
@@ -73,12 +72,7 @@ vi.mock('./useCloseStepRegistry', () => {
 function periodAwaitingProjectSettlement(): FinancialPeriod {
   const stages = initialStageStates();
   // PROJECT_SETTLEMENT is current once everything ahead of it in the walk is done.
-  const done = [
-    'ACCOUNT_BALANCE',
-    'TRANSACTION_VALIDATION',
-    'SECURITIES_TRADE',
-    'PORTFOLIO_CASH_FLOW',
-  ] as const;
+  const done = ['ACCOUNT_BALANCE', 'SECURITIES_TRADE', 'PORTFOLIO_CASH_FLOW'] as const;
   for (const stageId of done) {
     stages[stageId] = {
       status: 'COMPLETED',
@@ -123,7 +117,7 @@ describe('useMonthlyClosePage', () => {
 
     expect(result.current.yearMonth).toBe('2026-09');
     expect(result.current.pageVM.status).toBe('IN_PROGRESS');
-    expect(result.current.pageVM.stages).toHaveLength(9);
+    expect(result.current.pageVM.stages).toHaveLength(8);
   });
 
   // #237: `refreshAll` is the page's one refresh entry, so no call site names a stage's data.
@@ -139,7 +133,7 @@ describe('useMonthlyClosePage', () => {
     });
 
     expect(monthlyCloseWorkflowUseCase.resetStagesFrom).toHaveBeenCalled();
-    expect(refreshSpy).toHaveBeenCalledTimes(9);
+    expect(refreshSpy).toHaveBeenCalledTimes(8);
   });
 
   it('refreshes every stage after a successful confirm', async () => {
@@ -156,7 +150,7 @@ describe('useMonthlyClosePage', () => {
     });
 
     expect(monthlyCloseWorkflowUseCase.confirmStage).toHaveBeenCalled();
-    expect(refreshSpy).toHaveBeenCalledTimes(9);
+    expect(refreshSpy).toHaveBeenCalledTimes(8);
   });
 
   it('dispatches the confirm result slice to the stage afterConfirm', async () => {
@@ -190,7 +184,7 @@ describe('useMonthlyClosePage', () => {
     expect(monthlyCloseWorkflowUseCase.reopen).toHaveBeenCalledWith(
       expect.objectContaining({ householdId: 'household-1', yearMonth: '2026-09' }),
     );
-    expect(refreshSpy).toHaveBeenCalledTimes(9);
+    expect(refreshSpy).toHaveBeenCalledTimes(8);
   });
 
   it('does not reopen when the user declines the confirmation', async () => {

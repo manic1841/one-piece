@@ -1,6 +1,7 @@
 import { renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { validateMonthTransactionsUseCase } from '@/application/monthly_close/use_cases/validateMonthTransactionsUseCase';
 import { getSettlementReadinessUseCase } from '@/application/report/use_cases/getSettlementReadinessUseCase';
 import { checkSettlementCompletenessUseCase } from '@/application/settlement/use_cases/checkSettlementCompletenessUseCase';
 
@@ -19,9 +20,13 @@ vi.mock('@/application/settlement/use_cases/checkSettlementCompletenessUseCase',
 vi.mock('@/application/report/use_cases/getSettlementReadinessUseCase', () => ({
   getSettlementReadinessUseCase: { execute: vi.fn() },
 }));
+vi.mock('@/application/monthly_close/use_cases/validateMonthTransactionsUseCase', () => ({
+  validateMonthTransactionsUseCase: { execute: vi.fn() },
+}));
 
 const mockCompleteness = vi.mocked(checkSettlementCompletenessUseCase.execute);
 const mockReadiness = vi.mocked(getSettlementReadinessUseCase.execute);
+const mockValidation = vi.mocked(validateMonthTransactionsUseCase.execute);
 
 const readinessFixture = {
   year: 2026,
@@ -67,13 +72,19 @@ describe('useCompletenessCheckStage', () => {
       anomalies: [anomaly],
     });
     mockReadiness.mockResolvedValue(readinessFixture);
+    mockValidation.mockResolvedValue({
+      yearMonth: '2026-08',
+      checkedCount: 128,
+      issues: [],
+    });
   });
 
-  it('owns the anomalies and the readiness Step 7 aggregates', async () => {
+  it('owns the anomalies, readiness, and transaction validation for Step 6', async () => {
     const { result } = renderStage();
 
     await waitFor(() => expect(result.current.readiness?.isReady).toBe(true));
     expect(result.current.anomalies).toEqual([anomaly]);
+    expect(result.current.transactionIssues).toEqual([]);
   });
 
   // The same-month failure retention is covered in useStageLoader.test.ts.

@@ -46,7 +46,7 @@ orchestrator 為 `scripts/qa/plan/index.ts`，`buildQaSeedPlan` 是唯一對外�
 | 期間      | 狀態         | 形狀                                                                                            |
 | --------- | ------------ | ----------------------------------------------------------------------------------------------- |
 | `2026-06` | NEEDS_REVIEW | 前六階段 COMPLETED；Completeness Check 零活動暫停（`reviewSourceStageId = COMPLETENESS_CHECK`） |
-| `2026-07` | CLOSED       | 九階段全 COMPLETED 帶 `confirmedBy`/`confirmedAt`；重開與 ADR-0066 連鎖降級的 E2E 目標          |
+| `2026-07` | CLOSED       | 八階段全 COMPLETED 帶 `confirmedBy`/`confirmedAt`；重開與 ADR-0066 連鎖降級的 E2E 目標          |
 | `2026-08` | CLOSED       | 同上                                                                                            |
 | `2026-09` | IN_PROGRESS  | 前五階段 COMPLETED                                                                              |
 

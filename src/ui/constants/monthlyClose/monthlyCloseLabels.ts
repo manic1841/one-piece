@@ -2,7 +2,6 @@ import { CLOSE_STAGE_IDS, type CloseStageId } from '@/domains/financial_period/s
 
 export const CLOSE_STAGE_LABELS: Record<CloseStageId, string> = {
   ACCOUNT_BALANCE: '帳戶餘額',
-  TRANSACTION_VALIDATION: '交易驗證',
   SECURITIES_TRADE: '證券買入／賣出',
   PORTFOLIO_CASH_FLOW: 'Portfolio 金流',
   PROJECT_SETTLEMENT: '專案結算',
@@ -158,7 +157,7 @@ export const MONTHLY_CLOSE_LABELS = {
   GENERATED_AT: '產生時間',
   EXISTING_REPORTS_WARNING: '此期間已有先前產生的報表；確認後將以目前預覽重新產生並覆寫。',
   PERSISTENCE_UNKNOWN_WARNING: '無法確認報表是否已產生，暫時無法產生報表，請重新載入後再試。',
-  DRIFT_BLOCK_MESSAGE: '步驟 8 的報表與已產生報表不一致，請先回到步驟 8 重新產生報表再關帳。',
-  DRIFT_BLOCK_ACTION: '回到步驟 8',
+  DRIFT_BLOCK_MESSAGE: '步驟 7 的報表與已產生報表不一致，請先回到步驟 7 重新產生報表再關帳。',
+  DRIFT_BLOCK_ACTION: '回到步驟 7',
   PREVIEW_ERROR: '無法載入報表預覽。',
 } as const;

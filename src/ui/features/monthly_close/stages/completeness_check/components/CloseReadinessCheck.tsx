@@ -12,7 +12,7 @@ interface CloseReadinessCheckProps {
   /** Set when a refresh failed while previously loaded readiness is shown. */
   errorMessage?: string | null;
   onConfirm: () => void;
-  onGoToStage: (stageId: ReadinessExceptionVM['stageId']) => void;
+  onGoToStage: (stageId: NonNullable<ReadinessExceptionVM['stageId']>) => void;
   confirming: boolean;
   /** While paused, only the walk position's confirm button is enabled (ADR-0070). */
   isConfirmable: boolean;
@@ -72,27 +72,32 @@ export const CloseReadinessCheck: React.FC<CloseReadinessCheckProps> = ({
           <p className="mb-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
             {MONTHLY_CLOSE_LABELS.READINESS_EXCEPTIONS}
           </p>
-          {readiness.exceptions.map((exception) => (
-            <div
-              key={`${exception.label}-${exception.detail}`}
-              className="flex items-center justify-between gap-3 rounded-lg border border-warning/20 bg-warning/5 px-3 py-2"
-            >
-              <div className="space-y-0.5">
-                <p className="text-xs font-semibold text-foreground">{exception.label}</p>
-                <p className="text-xs text-muted-foreground">{exception.detail}</p>
-              </div>
-              <Button
-                variant="link"
-                size="sm"
-                onClick={() => onGoToStage(exception.stageId)}
-                className="h-auto p-0 text-xs font-semibold uppercase tracking-[0.08em]"
+          {readiness.exceptions.map((exception) => {
+            const stageId = exception.stageId;
+            return (
+              <div
+                key={`${exception.label}-${exception.detail}`}
+                className="flex items-center justify-between gap-3 rounded-lg border border-warning/20 bg-warning/5 px-3 py-2"
               >
-                {MONTHLY_CLOSE_LABELS.GO_TO_STAGE_PREFIX}
-                {exception.label}
-                {MONTHLY_CLOSE_LABELS.GO_TO_STAGE_SUFFIX}
-              </Button>
-            </div>
-          ))}
+                <div className="space-y-0.5">
+                  <p className="text-xs font-semibold text-foreground">{exception.label}</p>
+                  <p className="text-xs text-muted-foreground">{exception.detail}</p>
+                </div>
+                {stageId !== null && (
+                  <Button
+                    variant="link"
+                    size="sm"
+                    onClick={() => onGoToStage(stageId)}
+                    className="h-auto p-0 text-xs font-semibold uppercase tracking-[0.08em]"
+                  >
+                    {MONTHLY_CLOSE_LABELS.GO_TO_STAGE_PREFIX}
+                    {exception.label}
+                    {MONTHLY_CLOSE_LABELS.GO_TO_STAGE_SUFFIX}
+                  </Button>
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
 

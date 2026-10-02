@@ -100,7 +100,7 @@ Page Header 規則：
 
 Monthly Close 是全站最重要的 workflow UI。其階段模型、資料建立邊界與確認語意見 [monthly-close.md](../monthly-close.md)，不在本節重述：
 
-- 階段資料建立邊界與 9 階段模型：[monthly-close.md](../monthly-close.md)；取捨理由見 [ADR-0052](../adr/0052-monthly-close-stage-data-boundary.md)。
+- 階段資料建立邊界與 8 階段模型：[monthly-close.md](../monthly-close.md)；取捨理由見 [ADR-0052](../adr/0052-monthly-close-stage-data-boundary.md)。
 - workflow-first 表面收斂（pipeline 分工、per-stage 自成一體）：[ADR-0056](../adr/0056-workflow-first-surfaces.md)（#209 修訂：9 個獨立 step 元件取代單一 workspace frame）。
 
 本節只定頁面層級的呈現標準：
@@ -192,9 +192,9 @@ Section → Group → Detail → Deep detail → Subtotal → Terminus
 - **Terminus 是頁面視覺終點**：字級跳級、列高加大、最重的上緣線。財務報表維持中性語言，不用品牌色色條或彩色強調。
 - **不變式**：同一角色在三張表一致；明細不再因落在不同深度而在表間有不同大小與顏色。
 
-### 關帳報表表格階層 (Step 8 Statements)
+### 關帳報表表格階層 (Step 7 Statements)
 
-Step 8 三張表是一個**沒有欄名標題列的單表**，由資料本身的階層建立結構：
+Step 7 三張表是一個**沒有欄名標題列的單表**，由資料本身的階層建立結構：
 
 - **報表切換沿用全站 tabs 分頁**（樣式見 [`design-system.md`](design-system.md) 的 `tabs`）：桌機才顯示分頁；行動版不顯示分頁，三張表依序堆疊並各帶標題。
 - **列樣式依「財務報表語意階層」**（上節）。
