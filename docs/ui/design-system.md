@@ -13,21 +13,32 @@
 記帳工具的介面應該安靜、可信、資料優先。色板為 **dark-first**：`src/index.css` 的 `:root` 直接承載暗色值，不另設 `.dark` class 區塊。**現行 token 值一律以 `src/index.css` 為唯一來源**；主題切換（若未來需要）屆時再引入切換機制與配對色板。
 
 - `primary` 為 teal（暗色底上承擔主要互動色）；`chart-1..5` 為資料視覺色，硬編碼 hex 一律對齊 token。
-- 圖表色調由共用對應決定（`src/ui/components/charts/chartTheme.ts`）：**accent 保留給「當前／選取／主要趨勢」**，其餘資料用中性色阶；圖表保持安靜，不使用裝飾性漸層。
+- 圖表色調由共用對應決定（`src/ui/components/charts/chartTheme.ts`）：**accent 保留給「當前／選取／主要趨勢」**，其餘資料用中性色階；圖表保持安靜，不使用裝飾性漸層。
 - 層級由材質（§3）而非色差承擔。
-- 金額語意 token `positive`（收入/資產）與 `negative`（支出/負債警示）定義於 `src/index.css` 並註冊進 `tailwind.config.js`；全站金額一律經此 token 呈現，`destructive` 維持紅系並僅用於不可逆動作。
+- 金額語意 token `positive`（收入/資產）與 `negative`（支出/負債警示）定義於 `src/index.css` 並註冊進 `tailwind.config.js`；全站金額一律經此 token 呈現。`destructive` 與 `negative` 同值（來源色板只有一個紅），仍僅用於不可逆動作與錯誤文字。
 - `border-strong` token（比 `border` 亮一階）定義於 `src/index.css` 並註冊進 `tailwind.config.js`；`badge`/`alert` 等需要可見邊界的元件改用它，避免暗色底上邊界消失。
 
 ### 1.1 來源色碼 provenance
 
-Phase 1 收斂時定下的四個來源色碼與其對應 token 如下。此表只保留**來源依據**；現行值以 `src/index.css` 為唯一來源，不在本文件複述（複述的值必與程式碼漂移）。
+現行色板取自**設計原型的元件 gallery**：介面視覺以該原型為來源依據。下表只記錄**來源色碼 → token** 的對應以防日後漂移；**現行值仍以 `src/index.css` 為唯一來源**，不在本文件複述。
 
-| 來源色碼            | 對應 token           |
-| ------------------- | -------------------- |
-| Primary `#5CC8C0`   | `--primary`          |
-| Secondary `#7C858F` | `--muted-foreground` |
-| Surface `#0A0E14`   | `--background`       |
-| Elevated `#0D1117`  | `--elevated`         |
+| 來源色碼（原型）        | 對應 token                             |
+| ----------------------- | -------------------------------------- |
+| `#090b0e`（bg）         | `--background`、`--primary-foreground` |
+| `#0b0e12`（surface）    | `--card`、`--popover`                  |
+| `#10141a`（surface-2）  | `--elevated`                           |
+| `#151a21`（surface-3）  | `--secondary`、`--muted`               |
+| `#20262e`（border）     | `--border`、`--input`                  |
+| `#303844`（border-str） | `--border-strong`                      |
+| `#f2f4f7`（text）       | `--foreground` 與各 `*-foreground`     |
+| `#8b95a3`（muted）      | `--muted-foreground`                   |
+| `#5CC8C0`（accent）     | `--primary`、`--ring`                  |
+| `#5fd19a`（positive）   | `--positive`                           |
+| `#e46d78`（negative）   | `--negative`、`--destructive`          |
+| `#e6b45f`（warning）    | `--warning`                            |
+
+- 原型比本專案多一階文字色 `--dim`（`#5f6977`，用於座標軸與註解文字），目前尚未收斂成 token。
+- 沒有原型對應、沿用本專案既有語意的 token：`--accent`（比 surface-3 再亮一階的第四層表面，原型只有三層）、`--chart-1`／`--chart-4`。其中 `--chart-2`／`-3`／`-5` 對齊 `positive`／`warning`／`negative`，避免同一語意在兩處出現不同值。
 
 ## 2. 動態（Motion）
 
@@ -76,8 +87,19 @@ Token（定義於 `tailwind.config.js`，全部走 CSS 變數）：
 
 ## 4. 字體排印
 
-- 正文使用系統字體堆疊（含 `'Noto Sans TC'` 以覆蓋繁中）；`src/index.css` 另引入 `@fontsource-variable/inter`（拉丁正文）與 `@fontsource-variable/jetbrains-mono`（等寬）。
-- `font-mono`（JetBrains Mono）為正式的資料樣式：金額、日期、代碼、badge、座標軸與標籤性 UI（FROM/TO/APPLY 等）一律使用；段落正文維持系統字體，不以等寬呈現長文。
+字體一律使用**平台原生字族**（Apple 優先，其餘平台降級），不隨專案打包任何 webfont——與設計原型相同：原型的 `Inter` 在未安裝時即落到 `ui-sans-serif`（＝ Apple 系統字），因此原生堆疊才是與原型一致的做法。堆疊定義於 `tailwind.config.js` 的 `fontFamily`。
+
+| 角色       | 堆疊（依序）                                                                                                                                     | Apple           | Windows            |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | --------------- | ------------------ |
+| UI／正文   | `-apple-system` → `BlinkMacSystemFont` → `"Segoe UI"` → `Roboto` → … → `"PingFang TC"` → `"Microsoft JhengHei"` → `"Noto Sans TC"` → `system-ui` | San Francisco   | Segoe UI           |
+| 中文       | 接在拉丁字族之後（逐字 fallback）                                                                                                                | PingFang TC     | Microsoft JhengHei |
+| 數字／等寬 | `"SFMono-Regular"` → `"SF Mono"` → `Menlo` → `Consolas` → `"Liberation Mono"` → … → `ui-monospace`                                               | SF Mono / Menlo | Consolas           |
+
+規則：
+
+- 中文字族排在拉丁字族**之後**是刻意的：拉丁字族不含 CJK，瀏覽器會逐字 fallback 到第一個有該字形的字族，順序不影響 Latin 的呈現。
+- **取捨**：原生字族讓畫面貼合各平台慣例（Apple 上與原型完全一致），代價是**同一份程式碼在不同 OS 的字寬與換行位置不同**、且無法保證離線環境的呈現一致。若日後需要跨平台逐像素一致，再引入打包的 webfont。
+- `font-mono` 為正式的資料樣式：金額、日期、代碼、badge、座標軸與標籤性 UI（FROM/TO/APPLY 等）一律使用；段落正文維持 UI 字族，不以等寬呈現長文。
 - Tracking 隨尺寸變化，定義於 Tailwind `letterSpacing`：display `-0.02em`、heading `-0.01em`、body `0`、caption `0.01em`。
 - Leading 與尺寸反比：標題 `leading-tight`、內文 `leading-relaxed`。
 - 間距一律用 `rem`/`em`，尊重使用者瀏覽器字體大小設定。
