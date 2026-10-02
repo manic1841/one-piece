@@ -24,6 +24,8 @@ export interface ExistingHouseholdData {
   allocationTemplates: Array<{ id: string }>;
   ledgerCodes: Array<{ id: string }>;
   intentMappings: Array<{ id: string }>;
+  financialPeriods: Array<{ id: string }>;
+  watchList: Array<{ id: string }>;
 }
 
 export const isRecord = (value: unknown): value is Record<string, unknown> => {
@@ -42,6 +44,7 @@ const getId = (entity: unknown): string => {
 export const buildDeleteRefs = async (
   householdId: string,
   existing: ExistingHouseholdData,
+  includedCollections: ReadonlySet<string>,
 ): Promise<DocumentReference<DocumentData>[]> => {
   const refs: DocumentReference<DocumentData>[] = [];
 
@@ -94,6 +97,17 @@ export const buildDeleteRefs = async (
   existing.intentMappings.forEach((item) =>
     refs.push(toDocRef(`households/${householdId}/intent_mappings/${item.id}`)),
   );
+
+  if (includedCollections.has('financialPeriods')) {
+    existing.financialPeriods.forEach((item) =>
+      refs.push(toDocRef(`households/${householdId}/financialPeriods/${item.id}`)),
+    );
+  }
+  if (includedCollections.has('watchList')) {
+    existing.watchList.forEach((item) =>
+      refs.push(toDocRef(`households/${householdId}/watchList/${item.id}`)),
+    );
+  }
 
   const [accountSnapshotRefs, projectSnapshotRefs, portfolioSnapshotRefs, debtSnapshotRefs] =
     await Promise.all([
@@ -306,6 +320,23 @@ export const buildSetOps = (
     });
   });
 
+  (backupData.collections.financialPeriods ?? []).forEach((item) => {
+    const id = getId(item);
+    if (!id) return;
+    ops.push({
+      ref: toDocRef(`households/${householdId}/financialPeriods/${id}`),
+      data: item as DocumentData,
+    });
+  });
+
+  (backupData.collections.watchList ?? []).forEach((item) => {
+    const id = getId(item);
+    if (!id) return;
+    ops.push({
+      ref: toDocRef(`households/${householdId}/watchList/${id}`),
+      data: item as DocumentData,
+    });
+  });
   return ops;
 };
 

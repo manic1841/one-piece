@@ -5,6 +5,7 @@ import { allocationRepository } from '@/infra/repositories/allocationRepository'
 import { allocationTemplateRepository } from '@/infra/repositories/allocationTemplateRepository';
 import { customLedgerCodeRepository } from '@/infra/repositories/customLedgerCodeRepository';
 import { debtAccountRepository } from '@/infra/repositories/debtAccountRepository';
+import { financialPeriodRepository } from '@/infra/repositories/financialPeriodRepository';
 import { householdRepository } from '@/infra/repositories/householdRepository';
 import { intentMappingRepository } from '@/infra/repositories/intentMappingRepository';
 import { portfolioRepository } from '@/infra/repositories/portfolioRepository';
@@ -12,7 +13,9 @@ import { projectRepository } from '@/infra/repositories/projectRepository';
 import { reportRepository } from '@/infra/repositories/reportRepository';
 import { retirementRepository } from '@/infra/repositories/retirementRepository';
 import { transactionRepository } from '@/infra/repositories/transactionRepository';
+import { watchListRepository } from '@/infra/repositories/watchListRepository';
 
+import { HouseholdBackupPayloadSchema } from './backupSchema';
 import { type HouseholdBackupPayload } from './exportHouseholdBackupUseCase';
 import {
   type ExistingHouseholdData,
@@ -65,6 +68,13 @@ class ImportHouseholdBackupUseCase {
     if (!backup.household || !backup.collections) {
       throw new Error('Invalid backup file: missing required fields');
     }
+
+    const result = HouseholdBackupPayloadSchema.safeParse(backup);
+    if (!result.success) {
+      const first = result.error.issues[0];
+      const path = first ? first.path.join('.') : '(unknown)';
+      throw new Error(`Invalid backup file: payload failed validation at ${path}`);
+    }
   }
 
   private async loadExistingData(householdId: string): Promise<ExistingHouseholdData> {
@@ -80,6 +90,8 @@ class ImportHouseholdBackupUseCase {
       allocationTemplates,
       ledgerCodes,
       intentMappings,
+      financialPeriods,
+      watchList,
     ] = await Promise.all([
       accountRepository.getAccounts(householdId, true),
       projectRepository.getProjects(householdId, true),
@@ -92,6 +104,8 @@ class ImportHouseholdBackupUseCase {
       allocationTemplateRepository.list([householdId]),
       customLedgerCodeRepository.list([householdId]),
       intentMappingRepository.list([householdId]),
+      financialPeriodRepository.listAll(householdId),
+      watchListRepository.listTargets(householdId),
     ]);
 
     return {
@@ -106,6 +120,8 @@ class ImportHouseholdBackupUseCase {
       allocationTemplates,
       ledgerCodes,
       intentMappings,
+      financialPeriods,
+      watchList,
     };
   }
 
@@ -129,10 +145,14 @@ class ImportHouseholdBackupUseCase {
     }
 
     const existingData = await this.loadExistingData(householdId);
-    const deleteRefs = await buildDeleteRefs(householdId, existingData);
+    const includedCollections = new Set(
+      Object.entries(backup.collections)
+        .filter(([, value]) => Array.isArray(value))
+        .map(([key]) => key),
+    );
+    const deleteRefs = await buildDeleteRefs(householdId, existingData, includedCollections);
     const backupData = reviveDates(backup) as HouseholdBackupPayload;
     const setOps = buildSetOps(householdId, backupData);
-
     // CONTRACT: Deletes commit before writes. If the write phase fails
     // partway, existing data is already deleted — the household will be
     // in a partially restored state. Validation runs before any deletes,

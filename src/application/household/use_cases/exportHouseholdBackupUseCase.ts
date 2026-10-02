@@ -7,6 +7,7 @@ import { allocationTemplateRepository } from '@/infra/repositories/allocationTem
 import { customLedgerCodeRepository } from '@/infra/repositories/customLedgerCodeRepository';
 import { debtAccountRepository } from '@/infra/repositories/debtAccountRepository';
 import { debtSnapshotRepository } from '@/infra/repositories/debtSnapshotRepository';
+import { financialPeriodRepository } from '@/infra/repositories/financialPeriodRepository';
 import { householdRepository } from '@/infra/repositories/householdRepository';
 import { intentMappingRepository } from '@/infra/repositories/intentMappingRepository';
 import { portfolioRepository } from '@/infra/repositories/portfolioRepository';
@@ -16,6 +17,7 @@ import { projectSnapshotRepository } from '@/infra/repositories/projectSnapshotR
 import { reportRepository } from '@/infra/repositories/reportRepository';
 import { retirementRepository } from '@/infra/repositories/retirementRepository';
 import { transactionRepository } from '@/infra/repositories/transactionRepository';
+import { watchListRepository } from '@/infra/repositories/watchListRepository';
 
 export interface ExportHouseholdBackupRequest {
   householdId: string;
@@ -51,6 +53,8 @@ export interface HouseholdBackupPayload {
     allocationTemplates: unknown[];
     ledgerCodes: unknown[];
     intentMappings: unknown[];
+    financialPeriods: unknown[];
+    watchList: unknown[];
   };
 }
 
@@ -92,6 +96,8 @@ class ExportHouseholdBackupUseCase {
       allocationTemplates,
       ledgerCodes,
       intentMappings,
+      financialPeriods,
+      watchList,
     ] = await Promise.all([
       accountRepository.getAccounts(householdId, true),
       projectRepository.getProjects(householdId, true),
@@ -104,6 +110,8 @@ class ExportHouseholdBackupUseCase {
       allocationTemplateRepository.list([householdId]),
       customLedgerCodeRepository.list([householdId]),
       intentMappingRepository.list([householdId]),
+      financialPeriodRepository.listAll(householdId),
+      watchListRepository.listTargets(householdId),
     ]);
 
     const [accountBundle, projectBundle, portfolioBundle, debtBundle] = await Promise.all([
@@ -150,6 +158,8 @@ class ExportHouseholdBackupUseCase {
         allocationTemplates,
         ledgerCodes,
         intentMappings,
+        financialPeriods,
+        watchList,
       },
     };
   }
