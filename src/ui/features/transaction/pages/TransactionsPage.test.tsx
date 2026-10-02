@@ -77,12 +77,27 @@ describe('TransactionsPage copy', () => {
     mockUseConfirm.mockReturnValue({ confirm: vi.fn().mockResolvedValue(true) });
   });
 
-  it('renders the transfer-free page description', () => {
+  it('renders the funds-flow page description', () => {
     mockUseTransactions.mockReturnValue(controllerBase);
     render(<TransactionsPage />);
 
-    expect(screen.getByText('檢視與管理所有交易紀錄。')).toBeInTheDocument();
+    expect(screen.getByText('管理你的收入、支出與資金流動。')).toBeInTheDocument();
     expect(screen.queryByText(/轉帳/)).not.toBeInTheDocument();
+  });
+
+  it('defaults to the current-month period and reloads when the preset changes', () => {
+    mockUseTransactions.mockReturnValue(controllerBase);
+    render(<TransactionsPage />);
+
+    expect(screen.getByRole('button', { name: /本月/ })).toBeInTheDocument();
+    expect(mockUseTransactions).toHaveBeenCalledWith('hh-1', expect.anything());
+  });
+
+  it('renders the transaction search with the notes-matching placeholder', () => {
+    mockUseTransactions.mockReturnValue(controllerBase);
+    render(<TransactionsPage />);
+
+    expect(screen.getByPlaceholderText('搜尋交易或備註...')).toBeInTheDocument();
   });
 
   it('shows a generic edit-confirmation dialog for transfer transactions', async () => {

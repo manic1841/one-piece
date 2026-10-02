@@ -1,15 +1,19 @@
 import React from 'react';
 
-import { Button } from '@/ui/components/ui/button';
-import { Card, CardContent } from '@/ui/components/ui/card';
-import { Input } from '@/ui/components/ui/input';
-import { Table, TableBody, TableHead, TableHeader, TableRow } from '@/ui/components/ui/table';
 import {
-  MONTH_HEADER_TRACKING_LABEL,
+  DataTable,
+  DataTableColGroup,
+  DataTableHeadCell,
+  DataTableHeadRow,
+  TableBody,
+  TableHeader,
+} from '@/ui/components/data-table';
+import {
+  NO_DATA_DESCRIPTION,
+  NO_DATA_STATUS_LABEL,
   TRANSACTION_COUNT_SUFFIX,
 } from '@/ui/constants/transaction/displayLabels';
 import { type TransactionListItemVM } from '@/ui/features/transaction/viewmodels/transaction-list.vm';
-import { cn } from '@/ui/utils/cn';
 
 import { TransactionItem, TransactionItemMobile } from './TransactionItem';
 
@@ -18,41 +22,25 @@ interface TransactionListProps {
   loading: boolean;
   onEdit?: (transaction: TransactionListItemVM) => void;
   onDelete?: (transaction: TransactionListItemVM) => void;
-  onDateRangeSearch?: (range: { fromDate?: Date; toDate?: Date }) => void | Promise<void>;
 }
+
+/** 桌面欄寬：日期 12%、交易 38%、專案 20%、金額 22%、動作 8%（總和 100）。 */
+const DESKTOP_COLUMN_WIDTHS = [12, 38, 20, 22, 8] as const;
+
+const SkeletonList: React.FC<{ rows?: number }> = ({ rows = 5 }) => (
+  <div className="space-y-2 py-2" aria-hidden="true">
+    {Array.from({ length: rows }, (_, index) => (
+      <div key={index} className="h-12 animate-pulse rounded-sm bg-muted" />
+    ))}
+  </div>
+);
 
 export const TransactionList: React.FC<TransactionListProps> = ({
   items,
   loading,
   onDelete,
   onEdit,
-  onDateRangeSearch,
 }) => {
-  const [fromDate, setFromDate] = React.useState('');
-  const [toDate, setToDate] = React.useState('');
-  const [dateRangeError, setDateRangeError] = React.useState('');
-  const fromDateInputId = React.useId();
-  const toDateInputId = React.useId();
-
-  const handleApplyDateRange = async () => {
-    if (fromDate && toDate && fromDate > toDate) {
-      setDateRangeError('開始日期不可晚於結束日期');
-      return;
-    }
-
-    setDateRangeError('');
-    await onDateRangeSearch?.({
-      fromDate: fromDate ? new Date(`${fromDate}T00:00:00`) : undefined,
-      toDate: toDate ? new Date(`${toDate}T23:59:59.999`) : undefined,
-    });
-  };
-
-  const handleClearDateRange = async () => {
-    setFromDate('');
-    setToDate('');
-    setDateRangeError('');
-    await onDateRangeSearch?.({});
-  };
 
   const groupedItems = React.useMemo(() => {
     const groups: Record<string, TransactionListItemVM[]> = {};
@@ -65,104 +53,39 @@ export const TransactionList: React.FC<TransactionListProps> = ({
       groups[key].push(item);
     });
 
-    // Sort items within each group by date descending
     Object.keys(groups).forEach((key) => {
       groups[key].sort((a, b) => b.sortTimestamp - a.sortTimestamp);
     });
 
-    // Return entries sorted by key (month) descending
     return Object.entries(groups).sort((a, b) => b[0].localeCompare(a[0]));
   }, [items]);
 
   if (loading) {
-    return (
-      <Card>
-        <CardContent className="p-8">
-          <div className="text-center text-muted-foreground">Loading transactions...</div>
-        </CardContent>
-      </Card>
-    );
+    return <SkeletonList />;
   }
 
   return (
-    <div className="space-y-10">
-      <div className="space-y-3 pb-4 border-b border-border">
-        <div className="flex flex-col gap-3 md:flex-row md:flex-wrap md:items-end">
-          <div className="w-full md:min-w-56 md:max-w-64 md:flex-1">
-            <label
-              htmlFor={fromDateInputId}
-              className="mb-1 block font-mono text-[10px] tracking-widest text-muted-foreground"
-            >
-              FROM
-            </label>
-            <Input
-              id={fromDateInputId}
-              type="date"
-              value={fromDate}
-              onChange={(event) => setFromDate(event.target.value)}
-              className="font-mono"
-            />
-          </div>
-          <div className="w-full md:min-w-56 md:max-w-64 md:flex-1">
-            <label
-              htmlFor={toDateInputId}
-              className="mb-1 block font-mono text-[10px] tracking-widest text-muted-foreground"
-            >
-              TO
-            </label>
-            <Input
-              id={toDateInputId}
-              type="date"
-              value={toDate}
-              onChange={(event) => setToDate(event.target.value)}
-              className="font-mono"
-            />
-          </div>
-          <Button
-            type="button"
-            variant="outline"
-            className="w-full font-mono md:w-auto"
-            onClick={() => void handleApplyDateRange()}
-          >
-            APPLY
-          </Button>
-          <Button
-            type="button"
-            variant="text"
-            className="w-full font-mono md:w-auto"
-            disabled={!fromDate && !toDate}
-            onClick={() => void handleClearDateRange()}
-          >
-            CLEAR
-          </Button>
-        </div>
-        {dateRangeError ? <p className="mt-2 text-xs text-destructive">{dateRangeError}</p> : null}
-      </div>
-
+    <div className="space-y-8">
       {items.length === 0 ? (
-        <Card>
-          <CardContent className="p-8">
-            <div className="text-center text-muted-foreground">No transactions found.</div>
-          </CardContent>
-        </Card>
+        <div className="flex flex-col items-start gap-2 py-8">
+          <span className="font-mono text-[10px] uppercase tracking-[0.08em] text-muted-foreground">
+            {NO_DATA_STATUS_LABEL}
+          </span>
+          <p className="text-sm text-muted-foreground">{NO_DATA_DESCRIPTION}</p>
+        </div>
       ) : null}
 
       {groupedItems.map(([month, transactions]) => (
         <section key={month} className="relative">
-          <div className="sticky top-0 z-10 bg-muted/80 backdrop-blur-sm pt-2 pb-3 mb-2 -mx-4 px-4 flex items-center justify-between border-b border-border/50">
-            <h3
-              className={cn(
-                'text-xs font-bold text-muted-foreground uppercase',
-                MONTH_HEADER_TRACKING_LABEL,
-              )}
-            >
-              {month}
+          <div className="mb-1 flex items-baseline justify-between border-b border-border pb-2">
+            <h3 className="text-sm font-semibold tracking-heading text-foreground">
+              {transactions[0]?.monthHeaderText ?? month}
             </h3>
-            <span className="text-[10px] text-muted-foreground font-medium">
+            <span className="font-mono text-[11px] tabular-nums text-muted-foreground">
               {transactions.length} {TRANSACTION_COUNT_SUFFIX}
             </span>
           </div>
-          <div className="space-y-2 md:hidden">
+          <div className="md:hidden">
             {transactions.map((item) => (
               <TransactionItemMobile
                 key={item.id}
@@ -172,16 +95,19 @@ export const TransactionList: React.FC<TransactionListProps> = ({
               />
             ))}
           </div>
-          <div className="hidden bg-card rounded-lg border border-border overflow-hidden divide-y divide-border md:block">
-            <Table className="hidden md:table">
+          <div className="hidden md:block">
+            <DataTable>
+              <DataTableColGroup widths={DESKTOP_COLUMN_WIDTHS} />
               <TableHeader>
-                <TableRow>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Intent</TableHead>
-                  <TableHead className="text-right">Amount</TableHead>
-                  <TableHead>Project</TableHead>
-                  <TableHead className="w-24"></TableHead>
-                </TableRow>
+                <DataTableHeadRow>
+                  <DataTableHeadCell>日期</DataTableHeadCell>
+                  <DataTableHeadCell>交易</DataTableHeadCell>
+                  <DataTableHeadCell>專案</DataTableHeadCell>
+                  <DataTableHeadCell align="number">金額</DataTableHeadCell>
+                  <DataTableHeadCell>
+                    <span className="sr-only">動作</span>
+                  </DataTableHeadCell>
+                </DataTableHeadRow>
               </TableHeader>
               <TableBody>
                 {transactions.map((item) => (
@@ -193,7 +119,7 @@ export const TransactionList: React.FC<TransactionListProps> = ({
                   />
                 ))}
               </TableBody>
-            </Table>
+            </DataTable>
           </div>
         </section>
       ))}

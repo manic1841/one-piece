@@ -213,8 +213,8 @@ export const useCloseStepRegistry = ({
           loadErrorMessage={accountBalanceStage.errorMessage}
           accounts={ctx.accounts}
           accountSnapshots={accountBalanceStage.accountSnapshots}
-          balances={accountBalanceStage.balances ?? []}
-          setBalances={accountBalanceStage.setBalances}
+          balances={accountBalanceStage.balances}
+          setBalances={(updater) => accountBalanceStage.setBalances(updater)}
           onConfirm={ctx.onConfirm}
           onBackToCurrent={ctx.onBack}
         />

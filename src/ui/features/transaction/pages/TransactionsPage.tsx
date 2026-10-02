@@ -11,6 +11,10 @@ import { useConfirm } from '@/ui/features/app/confirm/useConfirm';
 import { useLedgerCodes } from '@/ui/features/ledger/hooks/useLedgerCodes';
 import { useProjects } from '@/ui/features/project/hooks/useProjects';
 import { TransactionList } from '@/ui/features/transaction/components/TransactionList';
+import {
+  type TransactionPeriod,
+  TransactionPeriodPicker,
+} from '@/ui/features/transaction/components/TransactionPeriodPicker';
 import { useTransactionForm } from '@/ui/features/transaction/hooks/useTransactionForm';
 import { useTransactions } from '@/ui/features/transaction/hooks/useTransactions';
 import { type TransactionFormOutput } from '@/ui/features/transaction/types/transaction';
@@ -23,10 +27,27 @@ import { cn } from '@/ui/utils/cn';
 
 import { TransactionForm } from '../components/form/TransactionForm';
 
+const initialPeriodRange = (period: TransactionPeriod): { startDate?: Date; endDate?: Date } => {
+  const today = new Date();
+  if (period === 'CURRENT_MONTH') {
+    return {
+      startDate: new Date(today.getFullYear(), today.getMonth(), 1),
+      endDate: new Date(today.getFullYear(), today.getMonth() + 1, 0, 23, 59, 59, 999),
+    };
+  }
+  if (period === 'LAST_3_MONTHS') {
+    return {
+      startDate: new Date(today.getFullYear(), today.getMonth() - 2, 1),
+      endDate: new Date(today.getFullYear(), today.getMonth() + 1, 0, 23, 59, 59, 999),
+    };
+  }
+  return {};
+};
+
 const Transactions: React.FC = () => {
   const { userProfile } = useAuthState();
   const { transactions, loading, reload, deleteTransaction, getTransactionAllocation } =
-    useTransactions(userProfile?.householdId);
+    useTransactions(userProfile?.householdId, initialPeriodRange('CURRENT_MONTH'));
   const { projects } = useProjects(userProfile?.householdId);
   const { getLabel } = useLedgerCodes();
 
@@ -40,6 +61,12 @@ const Transactions: React.FC = () => {
     if (confirmed) {
       await deleteTransaction(transaction.id);
     }
+  };
+
+  const handlePeriodChange = (nextPeriod: TransactionPeriod) => {
+    setPeriod(nextPeriod);
+    const range = initialPeriodRange(nextPeriod);
+    void reload({ limit: 100, startDate: range.startDate, endDate: range.endDate });
   };
 
   const handleDateRangeSearch = async (range: { fromDate?: Date; toDate?: Date }) => {
@@ -60,6 +87,11 @@ const Transactions: React.FC = () => {
     setEditingInitialOutput(null);
   };
 
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterType, setFilterType] = useState<string>('ALL');
+  const [period, setPeriod] = useState<TransactionPeriod>('CURRENT_MONTH');
+
   const handleEdit = async (transaction: TransactionListItemVM) => {
     const target = transactions.find((item) => item.id === transaction.id);
     if (!target) {
@@ -79,10 +111,6 @@ const Transactions: React.FC = () => {
     setEditingInitialOutput(initialOutput);
     setIsFormOpen(true);
   };
-
-  const [isFormOpen, setIsFormOpen] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filterType, setFilterType] = useState<string>('ALL');
 
   const {
     expenseCategories,
@@ -152,7 +180,7 @@ const Transactions: React.FC = () => {
     <div className="space-y-6">
       <PageHeader
         title="交易"
-        description="檢視與管理所有交易紀錄。"
+        description="管理你的收入、支出與資金流動。"
         actions={
           <Button
             onClick={() => {
@@ -166,17 +194,17 @@ const Transactions: React.FC = () => {
         }
       />
 
-      <div className="flex flex-col md:flex-row gap-4 items-start md:items-end justify-between border-b border-border">
-        <div className="relative w-full pb-3 md:w-96">
+      <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between border-b border-border pb-4">
+        <div className="relative w-full md:w-96">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="搜尋備註或類型..."
+            placeholder="搜尋交易或備註..."
             className="pl-9 bg-muted/50 border-none focus-visible:ring-1 focus-visible:ring-border"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
-        <div className="flex w-full gap-4 md:w-auto">
+        <div className="flex w-full flex-wrap items-end gap-4 md:w-auto">
           {[
             { id: 'ALL', label: '全部' },
             { id: 'EXPENSE', label: getIntentTypeLabel('EXPENSE') },
@@ -188,7 +216,7 @@ const Transactions: React.FC = () => {
               key={type.id}
               onClick={() => setFilterType(type.id)}
               className={cn(
-                '-mb-px whitespace-nowrap border-b-2 px-1 pb-3 pt-1 text-sm font-medium transition-colors duration-fast focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-0',
+                '-mb-1 whitespace-nowrap border-b-2 px-1 pb-1 text-sm font-medium transition-colors duration-fast focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-0',
                 filterType === type.id
                   ? 'text-foreground font-semibold border-primary'
                   : 'text-muted-foreground border-transparent',
@@ -197,16 +225,15 @@ const Transactions: React.FC = () => {
               {type.label}
             </button>
           ))}
+          <TransactionPeriodPicker
+            period={period}
+            onPeriodChange={handlePeriodChange}
+            onRangeChange={(range) => void handleDateRangeSearch(range)}
+          />
         </div>
       </div>
 
-      <TransactionList
-        items={filteredTransactions}
-        loading={loading}
-        onEdit={handleEdit}
-        onDelete={handleDelete}
-        onDateRangeSearch={handleDateRangeSearch}
-      />
+      <TransactionList items={filteredTransactions} loading={loading} onEdit={handleEdit} onDelete={handleDelete} />
 
       {userProfile?.householdId && isFormOpen && (
         <TransactionForm

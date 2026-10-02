@@ -118,6 +118,7 @@ Token（定義於 `tailwind.config.js`，全部走 CSS 變數）：
 - `progress`：`bg-muted` 實心軌道 + `bg-accent` 填充。
 - `tabs`：全站統一**底線式**（取代原膠囊／segmented 樣式）。`TabsList` 無底色、無圓角、無內距，只有一條滿寬的 `border-b border-border` 細線，標籤靠左。`TabsTrigger` 無底色；active 態＝文字 `text-foreground` 且 `font-semibold`，並以 `border-b-2 border-primary` 的底線咬住細線（`-mb-px` 讓 2px 底線與 1px 細線重疊成單線）；未選中為 `text-muted-foreground` 且 hover **不提亮**（active 狀態只靠字重、字色與底線三個訊號）。移除 press 縮放；focus 為 `ring-2 ring-ring ring-offset-0`（光環貼齊觸發區）。同款底線亦可套用於語意為 filter 的篩選列——該列維持 `role=button` 並對齊相同 class token，不因此變成 tab。
 - `YearMonthPicker`：按鈕式（`MON YYYY ▾` outline 按鈕）+ Popover 內雙 Select；選擇僅暫存在 picker 內部（draft state），按 APPLY 才 commit，Escape/外點取消。
+- **Popover 內 radio 單選**（feature-local 先例：交易頁 `TransactionPeriodPicker`）：選項為原生 `input type="radio"` + `<label>` 包覆，以 `useId` 的 name 分組；`accent-primary` 上色。radix `DropdownMenuRadioGroup` 適合 dropdown 選單；popover 內需要即時 commit 的單選用原生 radio，測試與鍵盤語意都直接。
 - 確認對話：以 promise-based `useConfirm()`（`ConfirmDialogProvider` 全站掛載）取代 `window.confirm`；結構為 Title → Context → Consequence → Actions（outline Cancel + destructive 確認）。字串輸入預設 destructive "DELETE"（不可逆刪除）；可逆動作必須傳結構化 options 並使用非 destructive 標籤（如 "DISABLE"）。
 - `sortable-list`：共用 `src/ui/components/sortable/` 模式——`GripHandle` activator button（h-8 w-8、`touch-none`、focus ring、`active:scale-[0.97]`）+ 三感應器（Pointer distance 8px、Touch delay 180ms、Keyboard sortableKeyboardCoordinates）；僅 grip 可拖曳，row click 導覽不受干擾；DndContext 放在 Table 外層。細節見 ADR-0059。
 - `data-table`：全站表格共通原則。

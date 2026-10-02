@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, type SetStateAction } from 'react';
 
 import {
   DataTable,
@@ -213,10 +213,11 @@ const ForeignTableHead: React.FC = () => (
 interface CloseAccountBalanceInputsProps {
   accounts: Account[];
   snapshots: Map<string, AccountSnapshot>;
-  inputs: AccountBalanceInput[];
+  /** null = the snapshot draft is unknown; auto-fetch waits for a known draft. */
+  inputs: AccountBalanceInput[] | null;
   /** Closed periods render read-only: inputs are disabled and rates stop auto-fetching. */
   isReadOnly?: boolean;
-  onInputsChange: (inputs: AccountBalanceInput[]) => void;
+  onInputsChange: (updater: SetStateAction<AccountBalanceInput[] | null>) => void;
 }
 
 const sectionKindOf = (accounts: Account[], accountId: string): AccountBalanceSectionKind => {
@@ -238,25 +239,32 @@ export const CloseAccountBalanceInputs: React.FC<CloseAccountBalanceInputsProps>
   const [rateError, setRateError] = useState<string | null>(null);
 
   const findInput = (accountId: string): AccountBalanceInput | undefined =>
-    inputs.find((item) => item.accountId === accountId);
+    inputs?.find((item) => item.accountId === accountId);
 
   const patchInput = (accountId: string, patch: Partial<AccountBalanceInput>): void => {
-    const kind = sectionKindOf(accounts, accountId);
-    const current = findInput(accountId);
-    const merged: AccountBalanceInput = {
-      accountId,
-      amount: current?.amount ?? 0,
-      ...current,
-      ...patch,
-    };
-    onInputsChange(
-      upsertSectionInput(inputs, { ...merged, amount: computeSectionInput(merged, kind) }, kind),
-    );
+    onInputsChange((previousInputs) => {
+      const previous = previousInputs ?? [];
+      const kind = sectionKindOf(accounts, accountId);
+      const current = previous.find((item) => item.accountId === accountId);
+      const merged: AccountBalanceInput = {
+        accountId,
+        amount: current?.amount ?? 0,
+        ...current,
+        ...patch,
+      };
+      return upsertSectionInput(
+        previous,
+        { ...merged, amount: computeSectionInput(merged, kind) },
+        kind,
+      );
+    });
   };
 
   const onTwdAmountChange = (accountId: string, amount: number | undefined): void => {
     if (amount === undefined) {
-      onInputsChange(inputs.filter((item) => item.accountId !== accountId));
+      onInputsChange((previousInputs) =>
+        (previousInputs ?? []).filter((item) => item.accountId !== accountId),
+      );
       return;
     }
     patchInput(accountId, { amount });
@@ -281,26 +289,37 @@ export const CloseAccountBalanceInputs: React.FC<CloseAccountBalanceInputsProps>
 
   const foreignAccounts = accounts.filter((account) => account.currency !== 'TWD');
 
+  // The inputs gate: a null draft means the snapshot prefill is still unknown,
+  // so the auto-fetch waits instead of landing its rate under a draft that the
+  // seed would then discard. Each run owns its own AbortController so a faster
+  // response cannot be superseded by a slower sibling (Supersede On Rapid Deps).
+  const autoFetchKey = isReadOnly
+    ? null
+    : `${foreignAccounts.map((account) => `${account.id}:${account.currency}`).join(',')}`;
+
   useEffect(() => {
-    if (isReadOnly) return;
-    let cancelled = false;
+    if (autoFetchKey === null || inputs === null) return;
+    const controller = new AbortController();
     for (const account of foreignAccounts) {
       if (findInput(account.id)?.exchangeRate !== undefined) continue;
-      void (async () => {
-        const rate = await getRate(account.currency as CurrencyCode, 'TWD');
-        if (cancelled || !rate.ok) {
-          if (!cancelled && !rate.ok) setRateError('取得匯率失敗，請稍後再試或手動輸入匯率');
-          return;
-        }
-        if (findInput(account.id)?.exchangeRate !== undefined) return;
-        patchInput(account.id, { exchangeRate: Number(rate.value.toFixed(4)) });
-      })();
+      void getRate(account.currency as CurrencyCode, 'TWD', {
+        signal: controller.signal,
+        writeBack: (result) => {
+          // An abandoned run never reaches here, so no stale error lands.
+          if (!result.ok) {
+            setRateError('取得匯率失敗，請稍後再試或手動輸入匯率');
+            return;
+          }
+          if (findInput(account.id)?.exchangeRate !== undefined) return;
+          patchInput(account.id, { exchangeRate: Number(result.value.toFixed(4)) });
+        },
+      });
     }
     return () => {
-      cancelled = true;
+      controller.abort();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [foreignAccounts.map((account) => account.id + account.currency).join(','), isReadOnly]);
+  }, [autoFetchKey, inputs === null]);
 
   const sections = buildAccountBalanceSections({ accounts, snapshots });
 

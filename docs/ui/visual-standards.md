@@ -228,6 +228,15 @@ Pixel Pet         → Navigate
 
 不要做 Global Search 把整個系統所有資料混在一起。
 
+## 交易頁期間瀏覽 (Transactions Period Browsing)
+
+交易頁 toolbar 的期間選擇（`TransactionPeriodPicker`，feature-local）與情境篩選列的語意不同，不得混為一談：
+
+- **期間是 server-side 資料範圍**：選擇即重新向後端載入該期間的交易（預設本月）；type filter 與搜尋是 client-side 的已載入資料過濾。兩者各自獨立，期間切換不清空搜尋或 filter。
+- **預設集只有三個**：本月、最近 3 個月、自訂日期（單選互斥）。「自訂日期」展開 FROM/TO 輸入，以 套用 提交；範圍倒置顯示就近 inline 錯誤，不送出請求。
+- **選擇即套用**：preset 選定立即重新載入，不暫存 draft；只有自訂日期走 draft + 套用。
+- **期間瀏覽的落點在 toolbar 右側**，與情境篩選列並列；情境篩選列的樣式契約見 [`design-system.md`](design-system.md) §7 `tabs`。
+
 ## 資料密度 (Data Density)
 
 ONE PIECE 不追求「資訊越多越好」。採三層：

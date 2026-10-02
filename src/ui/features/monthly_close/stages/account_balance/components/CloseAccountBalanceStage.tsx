@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { type SetStateAction } from 'react';
 
 import { MONTHLY_CLOSE_LABELS } from '@/ui/constants/monthlyClose';
 import { CloseStageChrome } from '@/ui/features/monthly_close/components/CloseStageChrome';
@@ -25,8 +25,9 @@ interface CloseAccountBalanceStageProps {
   loadErrorMessage?: string | null;
   accounts: Account[];
   accountSnapshots: Map<string, AccountSnapshot>;
-  balances: AccountBalanceInput[];
-  setBalances: (value: AccountBalanceInput[]) => void;
+  /** null = the snapshot draft is unknown; the inputs surface waits for it. */
+  balances: AccountBalanceInput[] | null;
+  setBalances: (updater: SetStateAction<AccountBalanceInput[] | null>) => void;
   onConfirm: () => void;
   onBackToCurrent: () => void;
 }

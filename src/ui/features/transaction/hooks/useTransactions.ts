@@ -14,9 +14,12 @@ type TransactionListQuery = {
   endDate?: Date;
 };
 
-export function useTransactions(householdId?: string) {
+export function useTransactions(
+  householdId?: string,
+  initialQuery?: { limit?: number; startDate?: Date; endDate?: Date },
+) {
   const auth = useAuthIdentity();
-  const lastQueryRef = useRef<TransactionListQuery>({ limit: 100 });
+  const lastQueryRef = useRef<TransactionListQuery>(initialQuery ?? { limit: 100 });
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const { loading, error, run } = useLoadingTask();
 
