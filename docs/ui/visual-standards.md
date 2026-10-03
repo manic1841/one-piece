@@ -54,6 +54,15 @@ Page Header 規則：
 - 不要把 Header 做成 Card。
 - 不使用大型 hero banner。
 
+### 入口畫面 (Entry / Gate Surface)
+
+登入、拒絕存取、Onboarding 與啟動失敗（`AppFallback`）**不套用 Page Shell**：它們在主介面之外，只完成單一任務，因此共用置中窄欄、鋪滿視窗高度的版面殼 `GateSurface`（見 [`component-catalog.md`](component-catalog.md)）。
+
+- 無導覽、無 Page Header；一個畫面只回答一件事。
+- 頁面唯一 H1 即該畫面標題。
+- 失敗訊息用 inline alert（`AppFallback` 例外——啟動失敗走其內建文案區，非表單錯誤）。
+- 內容與間距由呼叫端決定；`GateSurface` 只提供版面（`children` ＋ `className`）。
+
 ## 頁面寬度
 
 桌面版以固定最大內容寬度置中。容器上限與斷點切換屬 RWD 斷點契約，見 [`ui-layer-architecture.md`](ui-layer-architecture.md)（[ADR-0044](../adr/0044-rwd-breakpoint-contract.md)），本節不重述數字。

@@ -7,6 +7,7 @@ import { AppFallback } from '@/ui/components/AppFallback';
 import { CliProgress } from '@/ui/components/CliProgress';
 import { EmptyState } from '@/ui/components/EmptyState';
 import { FilterStrip } from '@/ui/components/FilterStrip';
+import { GateSurface } from '@/ui/components/GateSurface';
 import { LoadingLine } from '@/ui/components/LoadingLine';
 import { SearchField } from '@/ui/components/SearchField';
 import { Skeleton } from '@/ui/components/Skeleton';
@@ -14,6 +15,8 @@ import { StatusGlyph } from '@/ui/components/StatusGlyph';
 import { Toast } from '@/ui/components/Toast';
 import { Alert, AlertDescription } from '@/ui/components/ui/alert';
 import { Button } from '@/ui/components/ui/button';
+import { Input } from '@/ui/components/ui/input';
+import { Label } from '@/ui/components/ui/label';
 
 import { GalleryCaption, GalleryGroup, GalleryModule, GallerySection } from './GalleryScaffold';
 
@@ -211,6 +214,58 @@ const FilterSection: React.FC = () => {
   );
 };
 
+const GateSection: React.FC = () => (
+  <GallerySection number="36" title="Entry / Gate Surface">
+    <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+      <GalleryModule label="GATE SURFACE · SINGLE ACTION">
+        <div className="h-72 overflow-hidden rounded-lg border border-border [&>div]:min-h-full">
+          <GateSurface className="space-y-4 text-center">
+            <div className="space-y-2">
+              <h1 className="text-2xl font-bold text-foreground">Welcome to One Piece</h1>
+              <p className="text-sm text-muted-foreground">
+                Please sign in with your Google account to continue
+              </p>
+            </div>
+            <Button className="w-full">Sign in with Google</Button>
+          </GateSurface>
+        </div>
+      </GalleryModule>
+      <GalleryModule label="GATE SURFACE · FORM">
+        <div className="h-72 overflow-hidden rounded-lg border border-border [&>div]:min-h-full">
+          <GateSurface className="space-y-6">
+            <div className="space-y-1.5">
+              <h1 className="text-2xl font-bold text-foreground">Create or Join Family</h1>
+              <p className="text-sm text-muted-foreground">
+                Enter a household name or ID to get started
+              </p>
+            </div>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label>Household Name or ID</Label>
+                <Input placeholder="Enter a name to create or ID to join" />
+              </div>
+              <Button className="w-full">Continue</Button>
+            </div>
+          </GateSurface>
+        </div>
+      </GalleryModule>
+    </div>
+    <GalleryModule label="CONTEXT" className="mt-6">
+      <ul className="space-y-3 text-sm text-muted-foreground">
+        <li>
+          <span className="text-foreground">GateSurface</span> 是登入、拒絕存取、Onboarding 與
+          啟動失敗（AppFallback）共用的入口版面殼：置中窄欄、鋪滿視窗高度、無卡片。
+        </li>
+        <li>
+          兩種形：文字＋單一動作（登入）、表單容器（Onboarding）；錯誤用 inline alert，不用卡片。
+        </li>
+        <li>內容與間距由呼叫端決定；元件只提供版面（children ＋ className）。</li>
+        <li>用於主介面之外、必須靠自身完成任務的畫面；一般頁面用 Page Shell。</li>
+      </ul>
+    </GalleryModule>
+  </GallerySection>
+);
+
 export const GalleryFeedbackBody: React.FC = () => (
   <>
     <GalleryGroup label="STATES & FEEDBACK" />
@@ -220,5 +275,6 @@ export const GalleryFeedbackBody: React.FC = () => (
     <ToastSection />
     <FailureSection />
     <FilterSection />
+    <GateSection />
   </>
 );

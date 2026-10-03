@@ -33,6 +33,7 @@
 | `src/ui/components/ErrorBoundary.tsx`                | ErrorBoundary                   |
 | `src/ui/components/FilterStrip.tsx`                  | FilterStrip                     |
 | `src/ui/components/FinancialNumber.tsx`              | FinancialNumber                 |
+| `src/ui/components/GateSurface.tsx`                  | GateSurface                     |
 | `src/ui/components/InlineEditableTitle.tsx`          | InlineEditableTitle             |
 | `src/ui/components/MetricGroup.tsx`                  | MetricGroup / Metric            |
 | `src/ui/components/Module.tsx`                       | Module                          |
@@ -124,11 +125,17 @@
   - **不要用於**：把 Header 做成 Card、塞大量 Metric；那些是 [`visual-standards.md`](visual-standards.md) Page Shell 的禁止事項。
   - 範例：`src/ui/features/debt/pages/DebtDetailPage.tsx`
 
-- **`AppFallback`** — 全 app 啟動不可恢復失敗的畫面。由 `ErrorBoundary` 與 `AuthGate` 使用。
+- **`AppFallback`** — 全 app 啟動不可恢復失敗的畫面。由 `ErrorBoundary` 與 `AuthGate` 使用；版面建在 `GateSurface` 上。
   - Props：`title`、`description`、`hint?`、`onRetry?`（未提供時預設按鈕為重新載入）。
   - 變體：無。
   - **不要用於**：一般頁面層的錯誤——那用 inline alert 或 exception（見 [`states-and-a11y.md`](states-and-a11y.md) 錯誤狀態）。
   - 範例：`src/ui/features/app/AuthGate.tsx`
+
+- **`GateSurface`** — App 入口畫面（登入、拒絕存取、Onboarding）與啟動失敗共用的版面殼：置中窄欄、鋪滿視窗高度、`bg-background`，不含卡片。
+  - Props：`children?`、`className?`（加在內層容器，用來控制間距與對齊）。
+  - 變體：無。
+  - **不要用於**：主介面內的頁面——那些用 Page Shell（`PageHeader` ＋ `PageSection`），見 [`visual-standards.md`](visual-standards.md)。
+  - 範例：`src/ui/features/auth/pages/LoginPage.tsx`、`src/ui/components/AppFallback.tsx`
 
 - **`ErrorBoundary`** — class component，捕捉 render 期錯誤並渲染 `AppFallback`。
   - Props：`children`。**不要用於**：可預期的資料錯誤（那是 Controller 的責任）。
