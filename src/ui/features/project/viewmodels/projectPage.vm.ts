@@ -36,16 +36,3 @@ export const toProjectRows = (
       net: totals.income - totals.expense,
     };
   });
-
-/**
- * 把「看得見的列」的新順序放回完整序列：被篩掉的列（例如停用專案）保留原本的
- * 位置，可見列依新順序佔回它們原本佔的欄位。
- */
-export const mergeReorderedIds = (
-  allIds: readonly string[],
-  reorderedVisibleIds: readonly string[],
-): string[] => {
-  const visible = new Set(reorderedVisibleIds);
-  let cursor = 0;
-  return allIds.map((id) => (visible.has(id) ? reorderedVisibleIds[cursor++] : id));
-};

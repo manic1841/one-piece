@@ -1,5 +1,25 @@
 import { format } from 'date-fns';
 
+/** Uppercase month abbreviations (JAN…DEC), the axis/period vocabulary for month-labelled series. */
+export const MONTH_NAMES = [
+  'JAN',
+  'FEB',
+  'MAR',
+  'APR',
+  'MAY',
+  'JUN',
+  'JUL',
+  'AUG',
+  'SEP',
+  'OCT',
+  'NOV',
+  'DEC',
+] as const;
+
+/** Month label for a period, e.g. "SEP 2026". */
+export const formatMonthLabel = (year: number, month: number): string =>
+  `${MONTH_NAMES[month - 1]} ${year}`;
+
 /**
  * Format a date to a string (YYYY-MM-DD)
  * @param date - The date to format

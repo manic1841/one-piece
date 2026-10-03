@@ -65,13 +65,9 @@ const cmdsBase = {
   createAccount: vi.fn().mockResolvedValue(undefined),
   updateAccount: vi.fn().mockResolvedValue(undefined),
   deleteAccount: vi.fn().mockResolvedValue(undefined),
-  recordSnapshot: vi.fn().mockResolvedValue(undefined),
-  updateSnapshot: vi.fn().mockResolvedValue(undefined),
-  deleteSnapshot: vi.fn().mockResolvedValue(undefined),
   reorderAccounts: vi.fn().mockResolvedValue(undefined),
   loading: false,
   error: null,
-  errorMessage: null,
 };
 
 const renderList = () =>
@@ -81,14 +77,21 @@ const renderList = () =>
     </MemoryRouter>,
   );
 
-describe('AccountList header actions', () => {
+const mockAccounts = (value: AccountWithSnapshot[]) => {
+  mockUseAccounts.mockReturnValue({
+    ...accountsBase,
+    fetchAccountsWithSnapshots: vi.fn().mockResolvedValue({ ok: true, value }),
+  });
+  mockUseAccountCmds.mockReturnValue(cmdsBase as never);
+};
+
+describe('AccountList header and summary', () => {
   afterEach(() => {
     vi.clearAllMocks();
   });
 
   it('keeps only the create action in the header with no CSV export or import', async () => {
-    mockUseAccounts.mockReturnValue(accountsBase);
-    mockUseAccountCmds.mockReturnValue(cmdsBase as never);
+    mockAccounts([]);
 
     renderList();
 
@@ -98,36 +101,58 @@ describe('AccountList header actions', () => {
     expect(document.querySelector('input[type="file"]')).not.toBeInTheDocument();
   });
 
-  it('renders the show-inactive toggle with the unified 顯示停用 / 隱藏停用 wording', async () => {
-    mockUseAccounts.mockReturnValue(accountsBase);
-    mockUseAccountCmds.mockReturnValue(cmdsBase as never);
+  it('summarises the total balance and the active count', async () => {
+    mockAccounts([
+      account({ id: 'b1', snapshot: { ...snapshot } as never }),
+      account({ id: 'b2', isActive: false, snapshot: { ...snapshot } as never }),
+    ]);
 
     renderList();
 
-    const toggle = await screen.findByRole('button', { name: '顯示停用' });
-    expect(toggle).toBeInTheDocument();
-
-    fireEvent.click(toggle);
-    expect(screen.getByRole('button', { name: '隱藏停用' })).toBeInTheDocument();
+    // Only the active account's balance counts towards the household total.
+    await waitFor(() =>
+      expect(screen.getByTestId('account-total-balance')).toHaveTextContent('NT$1,800,000'),
+    );
+    expect(screen.getByTestId('account-active-count')).toHaveTextContent('1');
   });
 
-  it('keeps inactive accounts hidden by default', async () => {
+  it('reports a failed load instead of an empty state', async () => {
     mockUseAccounts.mockReturnValue({
       ...accountsBase,
-      fetchAccountsWithSnapshots: vi.fn().mockResolvedValue({
-        ok: true,
-        value: [
-          account({ id: 'b1', name: 'Main Bank', category: 'bank' }),
-          account({ id: 'old', name: 'Old Bank', category: 'bank', isActive: false }),
-        ],
-      }),
+      fetchAccountsWithSnapshots: vi
+        .fn()
+        .mockResolvedValue({ ok: false, kind: 'failed', error: new Error('nope') }),
+      error: new Error('nope'),
     });
     mockUseAccountCmds.mockReturnValue(cmdsBase as never);
 
     renderList();
 
+    expect(await screen.findByText('無法載入帳戶清單。')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /重試/ })).toBeInTheDocument();
+  });
+});
+
+describe('AccountList view filter', () => {
+  afterEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('keeps inactive accounts hidden by default and reveals them on 含停用', async () => {
+    mockAccounts([
+      account({ id: 'b1', name: 'Main Bank' }),
+      account({ id: 'old', name: 'Old Bank', isActive: false }),
+    ]);
+
+    renderList();
+
     expect(await screen.findByText('Main Bank')).toBeInTheDocument();
     expect(screen.queryByText('Old Bank')).not.toBeInTheDocument();
+
+    const filter = screen.getByRole('group', { name: '帳戶狀態篩選' });
+    fireEvent.click(within(filter).getByRole('button', { name: '含停用' }));
+
+    expect(await screen.findByText('Old Bank')).toBeInTheDocument();
   });
 });
 
@@ -136,34 +161,17 @@ describe('AccountList grouped tables', () => {
     vi.clearAllMocks();
   });
 
-  it('renders CASH/BANK/SECURITIES sections with Account | Ending Balance | As of columns', async () => {
-    mockUseAccounts.mockReturnValue({
-      ...accountsBase,
-      fetchAccountsWithSnapshots: vi.fn().mockResolvedValue({
-        ok: true,
-        value: [
-          account({
-            id: 'c1',
-            name: 'Wallet',
-            category: 'cash',
-            snapshot: { ...snapshot } as never,
-          }),
-          account({
-            id: 'b1',
-            name: 'Main Bank',
-            category: 'bank',
-            snapshot: { ...snapshot } as never,
-          }),
-          account({
-            id: 's1',
-            name: 'Brokerage',
-            category: 'securities',
-            snapshot: { ...snapshot } as never,
-          }),
-        ],
+  it('renders CASH/BANK/SECURITIES sections with the shared column heads', async () => {
+    mockAccounts([
+      account({ id: 'c1', name: 'Wallet', category: 'cash', snapshot: { ...snapshot } as never }),
+      account({ id: 'b1', name: 'Main Bank', snapshot: { ...snapshot } as never }),
+      account({
+        id: 's1',
+        name: 'Brokerage',
+        category: 'securities',
+        snapshot: { ...snapshot } as never,
       }),
-    });
-    mockUseAccountCmds.mockReturnValue(cmdsBase as never);
+    ]);
 
     renderList();
 
@@ -172,10 +180,35 @@ describe('AccountList grouped tables', () => {
     expect(screen.getByText('SECURITIES')).toBeInTheDocument();
 
     const bankSection = screen.getByText('BANK').closest('section') as HTMLElement;
-    expect(within(bankSection).getByText('Account')).toBeInTheDocument();
-    expect(within(bankSection).getByText('Ending Balance')).toBeInTheDocument();
-    expect(within(bankSection).getByText('As of')).toBeInTheDocument();
+    expect(within(bankSection).getByRole('columnheader', { name: '帳戶' })).toBeInTheDocument();
+    expect(within(bankSection).getByRole('columnheader', { name: '狀態' })).toBeInTheDocument();
+    expect(
+      within(bankSection).getByRole('columnheader', { name: '期末餘額' }),
+    ).toBeInTheDocument();
+    expect(
+      within(bankSection).getByRole('columnheader', { name: '結算月份' }),
+    ).toBeInTheDocument();
     expect(within(bankSection).getByText('Main Bank')).toBeInTheDocument();
+  });
+
+  it('marks a foreign-currency account with a currency badge', async () => {
+    mockAccounts([
+      account({ id: 'b1', name: 'US Bank', currency: 'USD', snapshot: { ...snapshot } as never }),
+      account({ id: 'b2', name: 'Main Bank', snapshot: { ...snapshot } as never }),
+    ]);
+
+    renderList();
+
+    const usRow = await screen.findByTestId('account-row-b1');
+    expect(within(usRow).getByText('USD')).toBeInTheDocument();
+  });
+
+  it('shows a filter-aware empty state when the view has no rows', async () => {
+    mockAccounts([account({ id: 'old', name: 'Old Bank', isActive: false })]);
+
+    renderList();
+
+    expect(await screen.findByText('NO ACCOUNT IN VIEW')).toBeInTheDocument();
   });
 });
 
@@ -191,28 +224,38 @@ describe('AccountList drag reorder', () => {
   const bankB = makeBank('b2', 'Beta Bank', 1);
 
   const setup = (accounts: AccountWithSnapshot[]) => {
-    mockUseAccounts.mockReturnValue({
-      ...accountsBase,
-      fetchAccountsWithSnapshots: vi.fn().mockResolvedValue({ ok: true, value: accounts }),
-    });
-    mockUseAccountCmds.mockReturnValue(cmdsBase as never);
+    mockAccounts(accounts);
     mockUseNavigate.mockReturnValue(navigate);
+  };
 
-    return renderList();
+  const stubRowGeometry = (rows: HTMLElement[]) => {
+    rows.forEach((row, index) => {
+      const top = index * 48;
+      vi.spyOn(row, 'getBoundingClientRect').mockReturnValue({
+        x: 0,
+        y: top,
+        top,
+        left: 0,
+        bottom: top + 48,
+        right: 400,
+        width: 400,
+        height: 48,
+        toJSON: () => ({}),
+      } as DOMRect);
+    });
   };
 
   it('renders a grip handle on every row', async () => {
     setup([bankA, bankB]);
 
+    // Desktop and mobile each render the same sortable row, so each grip is
+    // expected twice.
     const gripsA = await screen.findAllByTestId('account-grip-b1');
-    expect(gripsA).toHaveLength(1);
-    expect(gripsA[0].tagName).toBe('BUTTON');
-    expect(gripsA[0].getAttribute('aria-label')).toContain('Alpha Bank');
-
-    const gripsB = await screen.findAllByTestId('account-grip-b2');
-    expect(gripsB).toHaveLength(1);
-    expect(gripsB[0].tagName).toBe('BUTTON');
-    expect(gripsB[0].getAttribute('aria-label')).toContain('Beta Bank');
+    expect(gripsA).toHaveLength(2);
+    gripsA.forEach((grip) => {
+      expect(grip.tagName).toBe('BUTTON');
+      expect(grip.getAttribute('aria-label')).toContain('Alpha Bank');
+    });
   });
 
   it('navigates on row click while the grip is present', async () => {
@@ -225,43 +268,19 @@ describe('AccountList drag reorder', () => {
   it('does not navigate when the grip handle is clicked', async () => {
     setup([bankA]);
 
-    fireEvent.click(await screen.findByTestId('account-grip-b1'));
+    fireEvent.click((await screen.findAllByTestId('account-grip-b1'))[0]);
     expect(navigate).not.toHaveBeenCalled();
   });
 
   it('persists the new order through the reorder use case after a keyboard drag', async () => {
     setup([bankA, bankB]);
 
-    const rowA = await screen.findByTestId('account-row-b1');
-    const rowB = await screen.findByTestId('account-row-b2');
+    stubRowGeometry([
+      await screen.findByTestId('account-row-b1'),
+      await screen.findByTestId('account-row-b2'),
+    ]);
 
-    // jsdom reports zero rects; give the two rows real geometry so
-    // dnd-kit collision detection can resolve a drop target.
-    vi.spyOn(rowA, 'getBoundingClientRect').mockReturnValue({
-      x: 0,
-      y: 0,
-      top: 0,
-      left: 0,
-      bottom: 48,
-      right: 400,
-      width: 400,
-      height: 48,
-      toJSON: () => ({}),
-    } as DOMRect);
-    vi.spyOn(rowB, 'getBoundingClientRect').mockReturnValue({
-      x: 0,
-      y: 48,
-      top: 48,
-      left: 0,
-      bottom: 96,
-      right: 400,
-      width: 400,
-      height: 48,
-      toJSON: () => ({}),
-    } as DOMRect);
-
-    const grip = screen.getByTestId('account-grip-b1');
-    fireEvent.keyDown(grip, { key: ' ', code: 'Space' });
+    fireEvent.keyDown(screen.getAllByTestId('account-grip-b1')[0], { key: ' ', code: 'Space' });
 
     // KeyboardSensor attaches its document keydown listener in a setTimeout.
     await act(async () => {
@@ -284,34 +303,12 @@ describe('AccountList drag reorder', () => {
     hiddenInactive.isActive = false;
     setup([hiddenInactive, bankA, bankB]);
 
-    const rowA = await screen.findByTestId('account-row-b1');
-    const rowB = await screen.findByTestId('account-row-b2');
+    stubRowGeometry([
+      await screen.findByTestId('account-row-b1'),
+      await screen.findByTestId('account-row-b2'),
+    ]);
 
-    vi.spyOn(rowA, 'getBoundingClientRect').mockReturnValue({
-      x: 0,
-      y: 0,
-      top: 0,
-      left: 0,
-      bottom: 48,
-      right: 400,
-      width: 400,
-      height: 48,
-      toJSON: () => ({}),
-    } as DOMRect);
-    vi.spyOn(rowB, 'getBoundingClientRect').mockReturnValue({
-      x: 0,
-      y: 48,
-      top: 48,
-      left: 0,
-      bottom: 96,
-      right: 400,
-      width: 400,
-      height: 48,
-      toJSON: () => ({}),
-    } as DOMRect);
-
-    const grip = screen.getByTestId('account-grip-b1');
-    fireEvent.keyDown(grip, { key: ' ', code: 'Space' });
+    fireEvent.keyDown(screen.getAllByTestId('account-grip-b1')[0], { key: ' ', code: 'Space' });
 
     await act(async () => {
       await new Promise((resolve) => setTimeout(resolve, 10));

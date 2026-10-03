@@ -1,17 +1,10 @@
 import { useCallback } from 'react';
 
 import { createAccountUseCase } from '@/application/account/use_cases/createAccountUseCase';
-import { deleteAccountSnapshotUseCase } from '@/application/account/use_cases/deleteAccountSnapshotUseCase';
 import { deleteAccountUseCase } from '@/application/account/use_cases/deleteAccountUseCase';
-import { recordAccountSnapshotUseCase } from '@/application/account/use_cases/recordAccountSnapshotUseCase';
 import { reorderAccountsUseCase } from '@/application/account/use_cases/reorderAccountsUseCase';
-import { updateAccountSnapshotUseCase } from '@/application/account/use_cases/updateAccountSnapshotUseCase';
 import { updateAccountUseCase } from '@/application/account/use_cases/updateAccountUseCase';
-import {
-  type AccountCreate,
-  type AccountSnapshot,
-  type AccountSnapshotCreate,
-} from '@/domains/account/types';
+import { type AccountCreate } from '@/domains/account/types';
 import { useAuthIdentity } from '@/ui/hooks/useAuthIdentity';
 import { useLoadingTask } from '@/ui/hooks/useLoadingTask';
 
@@ -63,51 +56,6 @@ export function useAccountCmds(householdId: string) {
     [householdId, auth, run],
   );
 
-  const recordSnapshot = useCallback(
-    async (accountId: string, snapshot: AccountSnapshotCreate) => {
-      return run(async () => {
-        await recordAccountSnapshotUseCase.execute({
-          householdId,
-          accountId,
-          snapshot,
-          userEmail: auth.email || '',
-          auth,
-        });
-      });
-    },
-    [householdId, auth, run],
-  );
-
-  const updateSnapshot = useCallback(
-    async (accountId: string, snapshotId: string, updates: Partial<AccountSnapshot>) => {
-      return run(async () => {
-        await updateAccountSnapshotUseCase.execute({
-          householdId,
-          accountId,
-          snapshotId,
-          updates,
-          userEmail: auth.email || '',
-          auth,
-        });
-      });
-    },
-    [householdId, auth, run],
-  );
-
-  const deleteSnapshot = useCallback(
-    async (accountId: string, snapshotId: string) => {
-      return run(async () => {
-        await deleteAccountSnapshotUseCase.execute({
-          householdId,
-          accountId,
-          snapshotId,
-          auth,
-        });
-      });
-    },
-    [householdId, auth, run],
-  );
-
   const reorderAccounts = useCallback(
     async (accountOrders: Array<{ id: string; order: number }>) => {
       return run(async () => {
@@ -126,9 +74,6 @@ export function useAccountCmds(householdId: string) {
     createAccount,
     updateAccount,
     deleteAccount,
-    recordSnapshot,
-    updateSnapshot,
-    deleteSnapshot,
     reorderAccounts,
     loading,
     error,

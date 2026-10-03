@@ -1,7 +1,5 @@
 import React from 'react';
 
-import { X } from 'lucide-react';
-
 import {
   Form,
   FormControl,
@@ -9,94 +7,98 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-  NumberInput,
   SelectField,
   TextInput,
 } from '@/ui/components/form';
+import { Alert, AlertDescription } from '@/ui/components/ui/alert';
 import { Button } from '@/ui/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/ui/components/ui/dialog';
 import { AccountCategoryOptions, CurrencyOptions } from '@/ui/constants/account/label';
+import { ACCOUNT_FORM_LABELS } from '@/ui/constants/account/formLabels';
 
 import { useAccountForm } from '../hooks/useAccountForm';
 import type { AccountCreate } from '../viewmodels/account.vm';
 
 interface AccountFormProps {
+  isOpen: boolean;
+  onClose: () => void;
   onSubmit: (data: AccountCreate) => Promise<void>;
-  onCancel: () => void;
-  loading?: boolean;
+  title?: string;
 }
 
-const AccountForm: React.FC<AccountFormProps> = ({ onSubmit, onCancel, loading }) => {
-  const { form, submit } = useAccountForm(onSubmit);
+const AccountForm: React.FC<AccountFormProps> = ({ isOpen, onClose, onSubmit, title }) => {
+  const { form, submit, error, isSubmitting } = useAccountForm(onSubmit, onClose, isOpen);
 
   return (
-    <div className="bg-card rounded-lg border border-border overflow-hidden">
-      <div className="px-6 py-4 border-b border-border flex justify-between items-center bg-muted/50">
-        <h3 className="text-lg font-semibold text-foreground">新增帳戶</h3>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={onCancel}
-          className="text-muted-foreground hover:text-muted-foreground"
-        >
-          <X size={20} />
-        </Button>
-      </div>
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" aria-describedby={undefined}>
+        <DialogHeader>
+          <DialogTitle>{title || ACCOUNT_FORM_LABELS.CREATE_TITLE}</DialogTitle>
+        </DialogHeader>
+        <Form {...form}>
+          <form onSubmit={submit} className="space-y-6 py-4">
+            {error && (
+              <Alert variant="destructive" className="border-negative/20 bg-negative/10">
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
 
-      <Form {...form}>
-        <form onSubmit={submit} className="p-6 space-y-4">
-          <FormField name="name">
-            <FormItem>
-              <FormLabel required>帳戶名稱</FormLabel>
-              <FormControl>
-                <TextInput placeholder="例如：台銀、中信、富邦" />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          </FormField>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <FormField name="category">
+            <FormField name="name">
               <FormItem>
-                <FormLabel required>帳戶類別</FormLabel>
+                <FormLabel required>{ACCOUNT_FORM_LABELS.NAME_LABEL}</FormLabel>
                 <FormControl>
-                  <SelectField options={AccountCategoryOptions} placeholder="選擇類別" />
+                  <TextInput placeholder={ACCOUNT_FORM_LABELS.NAME_PLACEHOLDER} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
             </FormField>
 
-            <FormField name="currency">
-              <FormItem>
-                <FormLabel required>幣別</FormLabel>
-                <FormControl>
-                  <SelectField options={CurrencyOptions} placeholder="選擇幣別" />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            </FormField>
-          </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <FormField name="category">
+                <FormItem>
+                  <FormLabel required>{ACCOUNT_FORM_LABELS.CATEGORY_LABEL}</FormLabel>
+                  <FormControl>
+                    <SelectField
+                      options={AccountCategoryOptions}
+                      placeholder={ACCOUNT_FORM_LABELS.CATEGORY_PLACEHOLDER}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              </FormField>
 
-          <FormField name="order">
-            <FormItem>
-              <FormLabel>顯示順序</FormLabel>
-              <FormControl>
-                <NumberInput />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          </FormField>
+              <FormField name="currency">
+                <FormItem>
+                  <FormLabel required>{ACCOUNT_FORM_LABELS.CURRENCY_LABEL}</FormLabel>
+                  <FormControl>
+                    <SelectField
+                      options={CurrencyOptions}
+                      placeholder={ACCOUNT_FORM_LABELS.CURRENCY_PLACEHOLDER}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              </FormField>
+            </div>
 
-          <div className="pt-4 flex justify-end gap-3">
-            <Button type="button" variant="outline" onClick={onCancel}>
-              取消
-            </Button>
-            <Button type="submit" disabled={loading}>
-              建立帳戶
-            </Button>
-          </div>
-        </form>
-      </Form>
-    </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={onClose} disabled={isSubmitting} type="button">
+                {ACCOUNT_FORM_LABELS.CANCEL_ACTION}
+              </Button>
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting ? ACCOUNT_FORM_LABELS.SAVING_ACTION : ACCOUNT_FORM_LABELS.SAVE_ACTION}
+              </Button>
+            </DialogFooter>
+          </form>
+        </Form>
+      </DialogContent>
+    </Dialog>
   );
 };
 

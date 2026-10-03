@@ -6,21 +6,22 @@ import { checkAccountMonthlyUsageUseCase } from '@/application/account/use_cases
 import { getAccountHistoryUseCase } from '@/application/account/use_cases/getAccountHistoryUseCase';
 import { getAccountsWithSnapshotsUseCase } from '@/application/account/use_cases/getAccountsWithSnapshotsUseCase';
 import { type AccountSnapshot, type AccountWithSnapshot } from '@/domains/account/types/account';
+import { toMonthTrendSeries } from '@/ui/components/charts/monthTrendSeries';
 import { useAuthState } from '@/ui/contexts/useAuthState';
-import { buildTrendGeometry } from '@/ui/features/account/components/detail/accountTrendGeometry';
 import { useAccountCmds } from '@/ui/features/account/hooks/useAccountCmds';
-import { type HoldingRowVM, toHoldingRowVM } from '@/ui/features/account/viewmodels/account.vm';
+import { toAccountHistoryRows, formatSignedCurrency } from '@/ui/features/account/viewmodels/accountDetail.vm';
 import { useConfirm } from '@/ui/features/app/confirm/useConfirm';
 import { useLoadingTask } from '@/ui/hooks/useLoadingTask';
 
 interface UseAccountDetailPageArgs {
-  /** The list page passes the already-loaded row; the route passes nothing. */
+  /** The list page may pass the already-loaded row; the route passes nothing. */
   account?: AccountWithSnapshot;
 }
 
 /**
- * Owns AccountDetailPage's data: the account row, its snapshot history, the
- * holdings rows and the enable/disable command. The page keeps only rendering.
+ * Owns AccountDetailPage's data: the account row, its 12-period history, the
+ * derived trend series, the rename command and the enable/disable command. The
+ * page keeps only rendering.
  */
 export const useAccountDetailPage = ({ account }: UseAccountDetailPageArgs) => {
   const { id } = useParams<{ id: string }>();
@@ -30,20 +31,32 @@ export const useAccountDetailPage = ({ account }: UseAccountDetailPageArgs) => {
   const { updateAccount } = useAccountCmds(householdId);
 
   const [fetchedAccount, setFetchedAccount] = useState<AccountWithSnapshot | null>(null);
-  const { loading, run } = useLoadingTask({ initiallyLoading: true });
   const [history, setHistory] = useState<AccountSnapshot[]>([]);
-  const [statusOverride, setStatusOverride] = useState<boolean | null>(null);
+  const [reloadNonce, setReloadNonce] = useState(0);
+  const {
+    loading: accountLoading,
+    error: accountError,
+    run: runAccount,
+  } = useLoadingTask({ initiallyLoading: true });
+  const {
+    loading: historyLoading,
+    error: historyError,
+    run: runHistory,
+  } = useLoadingTask({ initiallyLoading: true });
 
   const activeAccount = account ?? fetchedAccount;
-  const activeId = activeAccount?.id ?? null;
+  const activeId = activeAccount?.id ?? id ?? null;
 
-  // Adjusting state during render, not in an effect: the override is local to the
-  // account it was set for, and React's documented pattern for it avoids the
-  // extra render an effect would cost.
-  const [overrideForId, setOverrideForId] = useState(activeId);
-  if (overrideForId !== activeId) {
-    setOverrideForId(activeId);
-    setStatusOverride(null);
+  // Adjusting state during render, not in an effect: the overrides are local to
+  // the account they were set for, and React's documented pattern for it avoids
+  // the extra render an effect would cost.
+  const [overrides, setOverrides] = useState<{
+    forId: string | null;
+    name: string | null;
+    isActive: boolean | null;
+  }>({ forId: activeId, name: null, isActive: null });
+  if (overrides.forId !== activeId) {
+    setOverrides({ forId: activeId, name: null, isActive: null });
   }
 
   const auth = useMemo(
@@ -51,82 +64,82 @@ export const useAccountDetailPage = ({ account }: UseAccountDetailPageArgs) => {
     [userProfile],
   );
 
-  const refetchAccount = useCallback(async () => {
-    if (account || !householdId) return;
-    try {
-      const accounts = await getAccountsWithSnapshotsUseCase.execute({
-        householdId,
-        auth,
-        includeInactive: true,
-      });
-      setFetchedAccount(accounts.find((a) => a.id === id) ?? null);
-    } catch {
-      setFetchedAccount(null);
-    }
-  }, [account, householdId, id, auth]);
-
-  const loadAccount = useCallback(async () => {
+  useEffect(() => {
     // The guard belongs inside the task: `initiallyLoading` is released by
     // *initiating* a run, so every path must initiate one.
-    await run(
+    const controller = new AbortController();
+    void runAccount(
       async () =>
         account || !householdId
           ? null
           : getAccountsWithSnapshotsUseCase.execute({ householdId, auth, includeInactive: true }),
       {
+        signal: controller.signal,
         writeBack: (result) =>
           setFetchedAccount(result.ok ? (result.value?.find((a) => a.id === id) ?? null) : null),
       },
     );
-  }, [account, householdId, id, auth, run]);
+    return () => controller.abort();
+  }, [account, householdId, id, auth, runAccount, reloadNonce]);
 
   useEffect(() => {
-    void loadAccount();
-  }, [loadAccount]);
+    const controller = new AbortController();
+    void runHistory(
+      async () => {
+        if (!householdId || !id) return [];
+        return getAccountHistoryUseCase.execute({ householdId, accountId: id, auth });
+      },
+      {
+        signal: controller.signal,
+        writeBack: (result) => {
+          if (result.ok) setHistory(result.value);
+        },
+      },
+    );
+    return () => controller.abort();
+  }, [householdId, id, auth, runHistory, reloadNonce]);
 
-  useEffect(() => {
-    let ignore = false;
-    const loadHistory = async () => {
-      if (!householdId || !id) {
-        return;
-      }
-      try {
-        const snapshots = await getAccountHistoryUseCase.execute({
-          householdId,
-          accountId: id,
-          auth,
-        });
-        if (!ignore) setHistory(snapshots);
-      } catch {
-        if (!ignore) setHistory([]);
-      }
-    };
-    void loadHistory();
-    return () => {
-      ignore = true;
-    };
-  }, [householdId, id, auth]);
+  const loading = accountLoading || historyLoading;
+  // A failed load is reported as an error, never as "this account does not exist".
+  const error = loading ? null : (accountError ?? historyError);
+  const notFound = !loading && error === null && activeAccount === undefined;
+
+  const reload = useCallback(() => setReloadNonce((nonce) => nonce + 1), []);
+
+  const historyRows = useMemo(() => toAccountHistoryRows(history), [history]);
+  const latestRow = historyRows[0];
 
   const trend = useMemo(
     () =>
-      buildTrendGeometry(
+      toMonthTrendSeries(
         history.map((snapshot) => ({
           year: snapshot.year,
           month: snapshot.month,
           value: snapshot.amount,
         })),
+        (point, index, ordered) => {
+          const previous = ordered[index - 1];
+          if (previous === undefined) return undefined;
+          return formatSignedCurrency(point.value - previous.value);
+        },
       ),
     [history],
   );
 
-  const holdings: HoldingRowVM[] = useMemo(() => {
-    const snapshotHoldings = activeAccount?.snapshot?.holdings ?? [];
-    return snapshotHoldings.map((holding, index) => toHoldingRowVM(holding, index));
-  }, [activeAccount?.snapshot]);
+  const isActive = overrides.isActive ?? activeAccount?.isActive !== false;
+  const name = overrides.name ?? activeAccount?.name ?? '';
 
-  const historyRows = useMemo(() => history.slice().reverse(), [history]);
-
-  const isActive = statusOverride ?? activeAccount?.isActive !== false;
+  const handleRename = useCallback(
+    async (nextName: string) => {
+      if (!activeAccount) return;
+      const result = await updateAccount(activeAccount.id, { name: nextName });
+      if (!result.ok) return;
+      // No refetch: the row's other fields do not change on a rename, and
+      // reloading would blank the page back to its skeleton for a moment.
+      setOverrides((previous) => ({ ...previous, name: nextName }));
+    },
+    [activeAccount, updateAccount],
+  );
 
   const handleToggleActive = useCallback(async () => {
     if (!activeAccount) return;
@@ -160,19 +173,21 @@ export const useAccountDetailPage = ({ account }: UseAccountDetailPageArgs) => {
     if (!result.ok) {
       return;
     }
-    setStatusOverride(nextActive);
-    if (!account) {
-      await refetchAccount();
-    }
-  }, [account, activeAccount, auth, confirm, householdId, isActive, refetchAccount, updateAccount]);
+    setOverrides((previous) => ({ ...previous, isActive: nextActive }));
+  }, [activeAccount, auth, confirm, householdId, isActive, updateAccount]);
 
   return {
     activeAccount,
+    name,
     loading,
+    error,
+    notFound,
+    reload,
     isActive,
     trend,
-    holdings,
     historyRows,
+    latestRow,
+    handleRename,
     handleToggleActive,
   };
 };

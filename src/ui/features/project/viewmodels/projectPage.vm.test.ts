@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { type Project } from '@/domains/project/schemas';
 
-import { mergeReorderedIds, toProjectRows, toProjectSnapshotTotals } from './projectPage.vm';
+import { toProjectRows, toProjectSnapshotTotals } from './projectPage.vm';
 
 const project = (overrides: Partial<Project>): Project =>
   ({
@@ -25,16 +25,6 @@ describe('toProjectSnapshotTotals', () => {
 
   it('treats a project with no snapshots as zero', () => {
     expect(toProjectSnapshotTotals([])).toEqual({ income: 0, expense: 0 });
-  });
-});
-
-describe('mergeReorderedIds', () => {
-  it('reorders the visible ids and keeps filtered ids in place', () => {
-    expect(mergeReorderedIds(['a', 'b', 'c'], ['c', 'a'])).toEqual(['c', 'b', 'a']);
-  });
-
-  it('returns the original order when every id is visible', () => {
-    expect(mergeReorderedIds(['a', 'b', 'c'], ['a', 'b', 'c'])).toEqual(['a', 'b', 'c']);
   });
 });
 

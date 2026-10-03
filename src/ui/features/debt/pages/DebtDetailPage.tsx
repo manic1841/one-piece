@@ -5,13 +5,13 @@ import { useNavigate } from 'react-router-dom';
 
 import { PageHeader } from '@/ui/components/PageHeader';
 import { StatusGlyph } from '@/ui/components/StatusGlyph';
+import { InteractiveLineChart } from '@/ui/components/charts/InteractiveLineChart';
 import { Button } from '@/ui/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/ui/components/ui/dialog';
 import { DEBT_STATUS_SETTLED_LABEL } from '@/ui/constants/debtStatusLabels';
 import { DebtAccountForm } from '@/ui/features/debt/components/DebtAccountForm';
 import { DebtPaymentsTable } from '@/ui/features/debt/components/detail/DebtPaymentsTable';
 import { DebtSnapshotTable } from '@/ui/features/debt/components/detail/DebtSnapshotTable';
-import { DebtTrendChart } from '@/ui/features/debt/components/detail/DebtTrendChart';
 import { useDebtDetailPage } from '@/ui/features/debt/hooks/useDebtDetailPage';
 import { type DebtAccount } from '@/ui/features/debt/viewmodels/debtDisplay.vm';
 import { formatCurrency, formatDate } from '@/ui/utils';
@@ -117,7 +117,18 @@ export default function DebtDetailPage({ account }: DebtDetailPageProps) {
 
       <section className="space-y-3">
         <SectionTitle>12M TREND</SectionTitle>
-        <DebtTrendChart trend={trend} />
+        {trend.hasData ? (
+          <InteractiveLineChart
+            values={trend.values}
+            points={trend.points}
+            xLabels={trend.labels}
+            yAxis="left"
+            height={208}
+            ariaLabel="12 month loan balance trend"
+          />
+        ) : (
+          <p className="text-sm text-muted-foreground">尚無月度結算資料</p>
+        )}
       </section>
 
       <section className="space-y-3">

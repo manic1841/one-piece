@@ -97,6 +97,7 @@
 | `src/ui/components/charts/chartTheme.ts`              | 表面常數（色調對應、donut 色階、數值格式）          |
 | `src/ui/components/charts/chartInteraction.ts`        | 互動共用（點型別、keyboard scrubber、tooltip 定位） |
 | `src/ui/components/charts/lineChartGeometry.ts`       | 幾何計算（`LineChart` 使用）                        |
+| `src/ui/components/charts/monthTrendSeries.ts`        | 月份趨勢資料整理（標籤、tooltip、升冪序列）         |
 | `src/ui/components/moneyTone.ts`                      | 表面常數（金額語意的色調對應）                      |
 | `src/ui/components/data-table/index.ts`               | barrel                                              |
 | `src/ui/components/data-table/parseOptionalAmount.ts` | 內部 helper（`NumberInput` 使用）                   |

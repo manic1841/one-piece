@@ -4,9 +4,9 @@ import { useNavigate, useParams } from 'react-router-dom';
 
 import { listDebtAccountsUseCase } from '@/application/debt/use_cases/listDebtAccountsUseCase';
 import { type DebtAccount } from '@/domains/debt/schemas';
+import { toMonthTrendSeries } from '@/ui/components/charts/monthTrendSeries';
 import { useAuthState } from '@/ui/contexts/useAuthState';
 import { useConfirm } from '@/ui/features/app/confirm/useConfirm';
-import { buildTrendGeometry } from '@/ui/features/debt/components/detail/debtTrendGeometry';
 import { useDebtAccountCmds } from '@/ui/features/debt/hooks/useDebtAccountCmds';
 import { useDebtSnapshots } from '@/ui/features/debt/hooks/useDebtSnapshots';
 import {
@@ -116,14 +116,11 @@ export const useDebtDetailPage = ({ account }: UseDebtDetailPageArgs) => {
 
   const trend = useMemo(
     () =>
-      buildTrendGeometry(
-        snapshots
-          .slice()
-          .reverse()
-          .map((snapshot) => {
-            const [year, month] = snapshot.yearMonth.split('-').map(Number);
-            return { year, month, value: snapshot.closingBalance };
-          }),
+      toMonthTrendSeries(
+        snapshots.map((snapshot) => {
+          const [year, month] = snapshot.yearMonth.split('-').map(Number);
+          return { year, month, value: snapshot.closingBalance };
+        }),
       ),
     [snapshots],
   );

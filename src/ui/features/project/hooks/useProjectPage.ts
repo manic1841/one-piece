@@ -4,10 +4,10 @@ import { type Project, type ProjectCreate } from '@/domains/project/schemas';
 import {
   type ProjectRowVM,
   type ProjectSnapshotTotals,
-  mergeReorderedIds,
   toProjectRows,
   toProjectSnapshotTotals,
 } from '@/ui/features/project/viewmodels/projectPage.vm';
+import { mergeReorderedIds } from '@/ui/utils/reorder';
 import { useLoadingTask } from '@/ui/hooks/useLoadingTask';
 
 import { useProjectCmds } from './useProjectCmds';
