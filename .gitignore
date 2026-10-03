@@ -14,9 +14,12 @@ dist-ssr
 .pnpm-store/
 
 # Editor directories and files
+# Workspace settings hold machine/user-level prefs (TS server memory, terminal
+# auto-approve, watcher excludes), so they stay local — never commit them.
+# Project-wide tooling config lives in committed files (eslint.config.js,
+# tsconfig*.json, vitest*.config.ts, tailwind.config.js).
 .vscode/*
 !.vscode/extensions.json
-!.vscode/settings.json
 .idea
 .DS_Store
 *.suo
