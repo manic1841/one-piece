@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { type AccountWithSnapshot } from '@/domains/account/types/account';
 import { useAccountCmds } from '@/ui/features/account/hooks/useAccountCmds';
-import { useAccounts } from '@/ui/features/account/hooks/useAccounts';
+import { type AccountFetchOptions, useAccounts } from '@/ui/features/account/hooks/useAccounts';
 
 import AccountList from './AccountList';
 
@@ -53,6 +53,10 @@ const account = (overrides: Partial<AccountWithSnapshot>): AccountWithSnapshot =
 
 const snapshot = { amount: 1800000, year: 2026, month: 9 };
 
+// Each account renders twice: once in the desktop table, once in the mobile
+// list. Row assertions therefore match two elements per account.
+const RENDERED_ROWS_PER_ACCOUNT = 2;
+
 const accountsBase = {
   fetchAccounts: vi.fn(),
   fetchAccountsWithSnapshots: vi.fn().mockResolvedValue({ ok: true, value: [] }),
@@ -80,7 +84,16 @@ const renderList = () =>
 const mockAccounts = (value: AccountWithSnapshot[]) => {
   mockUseAccounts.mockReturnValue({
     ...accountsBase,
-    fetchAccountsWithSnapshots: vi.fn().mockResolvedValue({ ok: true, value }),
+    fetchAccountsWithSnapshots: vi.fn(
+      async (
+        _householdId: string,
+        _auth: unknown,
+        options?: AccountFetchOptions<AccountWithSnapshot[]>,
+      ) => {
+        options?.writeBack?.(value);
+        return { ok: true, value };
+      },
+    ),
   });
   mockUseAccountCmds.mockReturnValue(cmdsBase as never);
 };
@@ -95,7 +108,7 @@ describe('AccountList header and summary', () => {
 
     renderList();
 
-    expect(screen.getByRole('button', { name: /新增帳戶/ })).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: /新增帳戶/ })).toHaveLength(2);
     expect(screen.queryByRole('button', { name: '匯出' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /匯入/ })).not.toBeInTheDocument();
     expect(document.querySelector('input[type="file"]')).not.toBeInTheDocument();
@@ -146,13 +159,13 @@ describe('AccountList view filter', () => {
 
     renderList();
 
-    expect(await screen.findByText('Main Bank')).toBeInTheDocument();
+    expect(await screen.findAllByText('Main Bank')).toHaveLength(RENDERED_ROWS_PER_ACCOUNT);
     expect(screen.queryByText('Old Bank')).not.toBeInTheDocument();
 
     const filter = screen.getByRole('group', { name: '帳戶狀態篩選' });
     fireEvent.click(within(filter).getByRole('button', { name: '含停用' }));
 
-    expect(await screen.findByText('Old Bank')).toBeInTheDocument();
+    expect(await screen.findAllByText('Old Bank')).toHaveLength(RENDERED_ROWS_PER_ACCOUNT);
   });
 });
 
@@ -182,13 +195,9 @@ describe('AccountList grouped tables', () => {
     const bankSection = screen.getByText('BANK').closest('section') as HTMLElement;
     expect(within(bankSection).getByRole('columnheader', { name: '帳戶' })).toBeInTheDocument();
     expect(within(bankSection).getByRole('columnheader', { name: '狀態' })).toBeInTheDocument();
-    expect(
-      within(bankSection).getByRole('columnheader', { name: '期末餘額' }),
-    ).toBeInTheDocument();
-    expect(
-      within(bankSection).getByRole('columnheader', { name: '結算月份' }),
-    ).toBeInTheDocument();
-    expect(within(bankSection).getByText('Main Bank')).toBeInTheDocument();
+    expect(within(bankSection).getByRole('columnheader', { name: '期末餘額' })).toBeInTheDocument();
+    expect(within(bankSection).getByRole('columnheader', { name: '結算月份' })).toBeInTheDocument();
+    expect(within(bankSection).getAllByText('Main Bank')).toHaveLength(RENDERED_ROWS_PER_ACCOUNT);
   });
 
   it('marks a foreign-currency account with a currency badge', async () => {
@@ -226,6 +235,7 @@ describe('AccountList drag reorder', () => {
   const setup = (accounts: AccountWithSnapshot[]) => {
     mockAccounts(accounts);
     mockUseNavigate.mockReturnValue(navigate);
+    renderList();
   };
 
   const stubRowGeometry = (rows: HTMLElement[]) => {

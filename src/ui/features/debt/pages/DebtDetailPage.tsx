@@ -122,6 +122,7 @@ export default function DebtDetailPage({ account }: DebtDetailPageProps) {
             values={trend.values}
             points={trend.points}
             xLabels={trend.labels}
+            includeZero={false}
             yAxis="left"
             height={208}
             ariaLabel="12 month loan balance trend"

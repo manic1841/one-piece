@@ -30,7 +30,6 @@ import {
 import { MONEY_CHANGE_TONE_CLASS } from '@/ui/components/moneyTone';
 import { Alert, AlertDescription } from '@/ui/components/ui/alert';
 import { Button } from '@/ui/components/ui/button';
-import { AccountCategoryLabels } from '@/ui/constants/account/label';
 import {
   ACCOUNT_DETAIL_LABELS,
   ACCOUNT_HISTORY_COLUMN_LABELS,
@@ -40,9 +39,10 @@ import {
   accountHoldingRowLabel,
   accountHoldingsCountLabel,
 } from '@/ui/constants/account/detailLabels';
+import { AccountCategoryLabels } from '@/ui/constants/account/label';
 import { useAccountDetailPage } from '@/ui/features/account/hooks/useAccountDetailPage';
-import { type AccountHistoryRowVM } from '@/ui/features/account/viewmodels/accountDetail.vm';
 import { type AccountWithSnapshot } from '@/ui/features/account/viewmodels/account.vm';
+import { type AccountHistoryRowVM } from '@/ui/features/account/viewmodels/accountDetail.vm';
 import { formatDate } from '@/ui/utils';
 import { cn } from '@/ui/utils/cn';
 
@@ -54,7 +54,9 @@ const SKELETON_ROWS = [0, 1, 2];
 
 const HoldingsTable: React.FC<{ row: AccountHistoryRowVM }> = ({ row }) => {
   if (row.holdings.length === 0) {
-    return <p className="text-sm text-muted-foreground">{ACCOUNT_DETAIL_LABELS.HOLDINGS_EMPTY_HINT}</p>;
+    return (
+      <p className="text-sm text-muted-foreground">{ACCOUNT_DETAIL_LABELS.HOLDINGS_EMPTY_HINT}</p>
+    );
   }
 
   const holdings = row.holdings;
@@ -248,7 +250,9 @@ const AccountDetailPage: React.FC<AccountDetailPageProps> = ({ account }) => {
             </p>
           </div>
         ) : (
-          <p className="text-sm text-muted-foreground">{ACCOUNT_DETAIL_LABELS.HISTORY_EMPTY_HINT}</p>
+          <p className="text-sm text-muted-foreground">
+            {ACCOUNT_DETAIL_LABELS.HISTORY_EMPTY_HINT}
+          </p>
         )}
       </PageSection>
 
@@ -258,6 +262,7 @@ const AccountDetailPage: React.FC<AccountDetailPageProps> = ({ account }) => {
             values={trend.values}
             points={trend.points}
             xLabels={trend.labels}
+            includeZero={false}
             yAxis="left"
             height={208}
             ariaLabel="12 month account balance trend"
@@ -269,7 +274,9 @@ const AccountDetailPage: React.FC<AccountDetailPageProps> = ({ account }) => {
 
       <PageSection title={ACCOUNT_DETAIL_LABELS.HISTORY_SECTION_TITLE} spacing="compact">
         {historyRows.length === 0 ? (
-          <p className="text-sm text-muted-foreground">{ACCOUNT_DETAIL_LABELS.HISTORY_EMPTY_HINT}</p>
+          <p className="text-sm text-muted-foreground">
+            {ACCOUNT_DETAIL_LABELS.HISTORY_EMPTY_HINT}
+          </p>
         ) : (
           <>
             <DataTableScrollArea>
@@ -351,7 +358,12 @@ const AccountDetailPage: React.FC<AccountDetailPageProps> = ({ account }) => {
                   value={<span className="font-mono text-sm tabular-nums">{row.balanceText}</span>}
                   meta={
                     <>
-                      <span className={cn('font-mono tabular-nums', MONEY_CHANGE_TONE_CLASS[row.changeTone])}>
+                      <span
+                        className={cn(
+                          'font-mono tabular-nums',
+                          MONEY_CHANGE_TONE_CLASS[row.changeTone],
+                        )}
+                      >
                         {row.changeText}
                       </span>
                       <span>{accountHoldingsCountLabel(row.holdingsCount)}</span>

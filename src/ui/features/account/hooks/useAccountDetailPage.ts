@@ -9,7 +9,10 @@ import { type AccountSnapshot, type AccountWithSnapshot } from '@/domains/accoun
 import { toMonthTrendSeries } from '@/ui/components/charts/monthTrendSeries';
 import { useAuthState } from '@/ui/contexts/useAuthState';
 import { useAccountCmds } from '@/ui/features/account/hooks/useAccountCmds';
-import { toAccountHistoryRows, formatSignedCurrency } from '@/ui/features/account/viewmodels/accountDetail.vm';
+import {
+  formatSignedCurrency,
+  toAccountHistoryRows,
+} from '@/ui/features/account/viewmodels/accountDetail.vm';
 import { useConfirm } from '@/ui/features/app/confirm/useConfirm';
 import { useLoadingTask } from '@/ui/hooks/useLoadingTask';
 

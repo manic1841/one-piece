@@ -30,7 +30,7 @@ export function useAccounts() {
   const [hasLoaded, setHasLoaded] = useState(false);
 
   const track = useCallback(
-    <T,>(
+    <T>(
       task: (signal: AbortSignal) => Promise<T>,
       writeBack?: (value: T) => void,
     ): Promise<LoadingTaskResult<T>> =>

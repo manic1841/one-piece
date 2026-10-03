@@ -2,6 +2,7 @@ import { act, renderHook, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
 import { useAccountListController } from './useAccountListController';
+import { type AccountFetchOptions } from './useAccounts';
 
 vi.mock('@/ui/contexts/useAuthState', () => ({
   useAuthState: () => ({
@@ -63,9 +64,18 @@ const accountsFixture = [
   accountWithSnapshot('a3', 'Third', 2),
 ];
 
+const setFetchedAccounts = (accounts: typeof accountsFixture): void => {
+  fetchAccountsWithSnapshots.mockImplementation(
+    async (_householdId, _auth, options?: AccountFetchOptions<typeof accountsFixture>) => {
+      options?.writeBack?.(accounts);
+      return { ok: true, value: accounts };
+    },
+  );
+};
+
 describe('useAccountListController', () => {
   it('exposes only the rows/create/reorder/view-filter surface', async () => {
-    fetchAccountsWithSnapshots.mockResolvedValue({ ok: true, value: accountsFixture });
+    setFetchedAccounts(accountsFixture);
 
     const { result } = renderHook(() => useAccountListController());
 
@@ -93,13 +103,17 @@ describe('useAccountListController', () => {
   it('reorderRows persists the full order sequence', async () => {
     let committed = accountsFixture;
 
-    fetchAccountsWithSnapshots.mockImplementation(() =>
-      Promise.resolve({ ok: true, value: committed }),
-    );
+    fetchAccountsWithSnapshots.mockImplementation(async (_householdId, _auth, options) => {
+      options?.writeBack?.(committed);
+      return { ok: true, value: committed };
+    });
+    // The refetch after a reorder returns the accounts with their persisted
+    // order, so the mock must apply the new order values too.
     reorderAccounts.mockImplementation(async (orders) => {
-      committed = orders.map(
-        (entry) => accountsFixture.find((account) => account.id === entry.id)!,
-      );
+      committed = orders.map((entry) => ({
+        ...accountsFixture.find((account) => account.id === entry.id)!,
+        order: entry.order,
+      }));
     });
 
     const { result } = renderHook(() => useAccountListController());
@@ -126,7 +140,7 @@ describe('useAccountListController', () => {
   it('reorderRows merges a section-only reorder back into the global order', async () => {
     // a0 is a cash row: its slot must survive a bank-only reorder.
     const mixed = [accountWithSnapshot('a0', 'Wallet', 0, 'cash'), ...accountsFixture];
-    fetchAccountsWithSnapshots.mockResolvedValue({ ok: true, value: mixed });
+    setFetchedAccounts(mixed);
 
     const { result } = renderHook(() => useAccountListController());
 
@@ -148,7 +162,7 @@ describe('useAccountListController', () => {
   });
 
   it('ignores a reorder whose rows do not belong to the loaded list', async () => {
-    fetchAccountsWithSnapshots.mockResolvedValue({ ok: true, value: accountsFixture });
+    setFetchedAccounts(accountsFixture);
 
     const { result } = renderHook(() => useAccountListController());
 

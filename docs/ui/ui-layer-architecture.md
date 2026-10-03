@@ -442,8 +442,8 @@ Global Header(sticky 系統狀態列)只負責:
 
 Detail 的編輯入口依欄位複雜度二選一:
 
-- **單一 metadata 欄位**(名稱)→ `InlineEditableTitle` inline edit,掛在 PageHeader title slot。適用:Project / Portfolio / Retirement plan 名稱。
-- **多欄位 configuration** → Edit Form(dialog 或 detail 區塊)。適用:Debt / Account。
+- **單一 metadata 欄位**(名稱)→ `InlineEditableTitle` inline edit,掛在 PageHeader title slot。適用:Account / Project / Portfolio / Retirement plan 名稱。
+- **多欄位 configuration** → Edit Form(dialog 或 detail 區塊)。適用:Debt。
 
 `PageHeader` 不知道「怎麼編輯名稱」——`title` 接受 `ReactNode`,由頁面自行傳入 `<InlineEditableTitle value={...} onSave={...} />`;儲存走既有 update command,成功後頁面自行 refetch／同步 state。
 

@@ -7,8 +7,8 @@ import { z } from 'zod';
 import { ACCOUNT_FORM_LABELS } from '@/ui/constants/account/formLabels';
 
 import {
-  AccountFormSchema,
   type AccountCreate,
+  AccountFormSchema,
   type AccountFormVM,
   createDefaultAccountFormVM,
   mapAccountVMToDomain,

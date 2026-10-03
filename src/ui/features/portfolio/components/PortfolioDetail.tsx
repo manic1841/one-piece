@@ -1,5 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
+import { InteractiveLineChart } from '@/ui/components/charts/InteractiveLineChart';
+import { toMonthTrendSeries } from '@/ui/components/charts/monthTrendSeries';
 import {
   Accordion,
   AccordionContent,
@@ -14,8 +16,6 @@ import {
   TableHeader,
   TableRow,
 } from '@/ui/components/ui/table';
-import { InteractiveLineChart } from '@/ui/components/charts/InteractiveLineChart';
-import { toMonthTrendSeries } from '@/ui/components/charts/monthTrendSeries';
 import { useAccounts } from '@/ui/features/account/hooks/useAccounts';
 import { usePortfolioQueries } from '@/ui/features/portfolio/hooks/usePortfolios';
 import {
@@ -177,6 +177,7 @@ const PortfolioDetail: React.FC<PortfolioDetailProps> = ({ householdId, portfoli
             values={trend.values}
             points={trend.points}
             xLabels={trend.labels}
+            includeZero={false}
             yAxis="left"
             height={208}
             ariaLabel="12 month portfolio value trend"

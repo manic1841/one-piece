@@ -238,7 +238,7 @@
   - Props：`mode?`、`year`、`month?`、`onYearChange`、`onMonthChange?`、`className?`。
   - 選擇只暫存在 picker 內（draft state），按 APPLY 才 commit；Escape／外點取消。
   - **不要用於**：單一日期（那是 `form / DateInput`）。
-  - 範例：`src/ui/features/account/pages/AccountSnapshotEditor.tsx`
+  - 範例：`src/ui/features/report/components/ReportSettlement.tsx`、`src/ui/features/report/components/ReportHeader.tsx`、`src/ui/features/monthly_close/pages/ClosePeriodPickerPage.tsx`
 
 ## 圖表 (charts)
 

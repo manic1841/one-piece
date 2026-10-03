@@ -7,8 +7,8 @@ import {
   toProjectRows,
   toProjectSnapshotTotals,
 } from '@/ui/features/project/viewmodels/projectPage.vm';
-import { mergeReorderedIds } from '@/ui/utils/reorder';
 import { useLoadingTask } from '@/ui/hooks/useLoadingTask';
+import { mergeReorderedIds } from '@/ui/utils/reorder';
 
 import { useProjectCmds } from './useProjectCmds';
 import { useProjectQueries, useProjects } from './useProjects';

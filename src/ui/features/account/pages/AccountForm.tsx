@@ -19,8 +19,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/ui/components/ui/dialog';
-import { AccountCategoryOptions, CurrencyOptions } from '@/ui/constants/account/label';
 import { ACCOUNT_FORM_LABELS } from '@/ui/constants/account/formLabels';
+import { AccountCategoryOptions, CurrencyOptions } from '@/ui/constants/account/label';
 
 import { useAccountForm } from '../hooks/useAccountForm';
 import type { AccountCreate } from '../viewmodels/account.vm';
@@ -37,7 +37,10 @@ const AccountForm: React.FC<AccountFormProps> = ({ isOpen, onClose, onSubmit, ti
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" aria-describedby={undefined}>
+      <DialogContent
+        className="max-w-2xl max-h-[90vh] overflow-y-auto"
+        aria-describedby={undefined}
+      >
         <DialogHeader>
           <DialogTitle>{title || ACCOUNT_FORM_LABELS.CREATE_TITLE}</DialogTitle>
         </DialogHeader>

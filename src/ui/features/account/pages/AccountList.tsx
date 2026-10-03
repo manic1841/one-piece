@@ -32,13 +32,13 @@ import { Badge } from '@/ui/components/ui/badge';
 import { Button } from '@/ui/components/ui/button';
 import { AccountCategorySectionTitles } from '@/ui/constants/account/label';
 import {
+  ACCOUNTS_PAGE_LABELS,
   ACCOUNT_COLUMN_LABELS,
   ACCOUNT_COLUMN_WIDTHS,
   ACCOUNT_FILTER_ALL,
   ACCOUNT_FILTER_ITEMS,
   ACCOUNT_STATUS_LABELS,
   ACCOUNT_SUMMARY_LABELS,
-  ACCOUNTS_PAGE_LABELS,
   accountReorderLabel,
 } from '@/ui/constants/account/pageLabels';
 import { useAccountListController } from '@/ui/features/account/hooks/useAccountListController';
@@ -111,7 +111,10 @@ const SortableAccountRow: React.FC<{
         </span>
       </DataTableCell>
       <DataTableCell>
-        <StatusGlyph type={row.isActive ? 'active' : 'inactive'} label={statusLabel(row.isActive)} />
+        <StatusGlyph
+          type={row.isActive ? 'active' : 'inactive'}
+          label={statusLabel(row.isActive)}
+        />
       </DataTableCell>
       <DataTableCell align="number" className={MONEY_TONE_CLASS.default}>
         {row.balanceText}
@@ -169,7 +172,10 @@ const SortableAccountMobileRow: React.FC<{
         <CurrencyMarker row={row} />
       </div>
       <MobileDataField label={ACCOUNT_COLUMN_LABELS.STATUS}>
-        <StatusGlyph type={row.isActive ? 'active' : 'inactive'} label={statusLabel(row.isActive)} />
+        <StatusGlyph
+          type={row.isActive ? 'active' : 'inactive'}
+          label={statusLabel(row.isActive)}
+        />
       </MobileDataField>
       <MobileDataField label={ACCOUNT_COLUMN_LABELS.BALANCE}>
         <span className={cn('font-mono text-sm tabular-nums', MONEY_TONE_CLASS.default)}>
@@ -280,7 +286,9 @@ const AccountList: React.FC = () => {
                   <DataTableHeadCell align="number">
                     {ACCOUNT_COLUMN_LABELS.BALANCE}
                   </DataTableHeadCell>
-                  <DataTableHeadCell align="number">{ACCOUNT_COLUMN_LABELS.AS_OF}</DataTableHeadCell>
+                  <DataTableHeadCell align="number">
+                    {ACCOUNT_COLUMN_LABELS.AS_OF}
+                  </DataTableHeadCell>
                 </DataTableHeadRow>
               </TableHeader>
               <TableBody>
