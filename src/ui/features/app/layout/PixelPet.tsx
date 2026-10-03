@@ -5,8 +5,9 @@ import { NavLink } from 'react-router-dom';
 
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/ui/components/ui/sheet';
 
+import PetAvatar from './PetAvatar';
 import { NAVIGATOR_ITEMS } from './navigation';
-import { PET_FACES, PET_REACTIONS, type PetReaction } from './petReaction';
+import { PET_REACTIONS, type PetReaction } from './petReaction';
 import { useIsDesktop } from './useIsDesktop';
 
 type PixelPetProps = {
@@ -42,11 +43,9 @@ const PixelPet: React.FC<PixelPetProps> = ({ reaction = 'idle' }) => {
         aria-expanded={open}
         data-reaction={activeReaction}
         onClick={() => setOpen((prev) => !prev)}
-        className="fixed bottom-24 right-4 z-[60] flex h-14 w-14 items-center justify-center rounded-full bg-primary/15 border border-primary/40 shadow-lg transition-transform duration-fast ease-out-quint hover:scale-105 active:scale-[0.97] md:bottom-8 md:right-8"
+        className="fixed bottom-24 right-4 z-[60] flex h-14 w-14 items-center justify-center rounded-full transition-transform duration-fast ease-out-quint hover:scale-105 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background md:bottom-8 md:right-8"
       >
-        <span data-testid="pet-face" className="text-primary text-xl leading-none select-none">
-          {PET_FACES[activeReaction]}
-        </span>
+        <PetAvatar reaction={activeReaction} />
       </button>
       {open && (
         <div

@@ -102,3 +102,18 @@
     }
   }
 }
+
+/* Pixel Pet sprite strips: the inner image is one frame wide/tall vs the 48px
+   viewport, so shifting it a full length walks the strip. Frame count is baked
+   into the inline `steps()`; the global reduced-motion rule settles it on frame 0. */
+@keyframes pet-strip-x {
+  to {
+    transform: translateX(-100%);
+  }
+}
+
+@keyframes pet-strip-y {
+  to {
+    transform: translateY(-100%);
+  }
+}
