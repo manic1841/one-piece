@@ -24,7 +24,6 @@ const ROUNDED_FULL_ALLOWED = new Set([
   'features/app/layout/PixelPet.tsx',
   'features/auth/pages/AccessDeniedPage.tsx',
   'features/dashboard/components/AssetCompositionBlock.tsx',
-  'features/project/components/detail/ProjectSnapshotItem.tsx',
   'features/report/pages/BalanceSheet.tsx',
   'features/report/pages/CashFlowStatement.tsx',
   'features/report/pages/IncomeStatement.tsx',

@@ -150,7 +150,7 @@
 - **`Skeleton`** — 載入 shimmer 區塊（Table / List / Detail 的 loading 態）。組合多個 block 成列；自身只渲染一塊。
   - Props：`className?`（尺寸由呼叫端給）。
   - **不要用於**：長時間工作的進度（用 `CliProgress`）；單行文字 loading 已足夠時。
-  - 範例：`src/ui/features/dashboard/pages/DashboardPage.tsx`
+  - 範例：`src/ui/features/dashboard/pages/DashboardPage.tsx`、`src/ui/features/project/pages/ProjectsPage.tsx`
 
 - **`CliProgress`** — Terminal-style 進度條（`[████░░] 62%`）。自繪 bar，自帶 `role="progressbar"` 與 `aria-value*`。ASCII 軌道會撐滿容器寬度（填色與剩餘格都是超長字元串、依左右各自裁切），在任何寬度下都維持 terminal 讀數外觀。預設用於長時間工作的 loading 態（states-and-a11y 的 engineering identity）；省略 `command` 時可作為區塊/階段的完成量表。
   - Props：`command?`（有給才畫 `$ …` 命令列）、`value`（0-100）、`tone?`（`default`/`positive`/`warning`）、`statusText?`（`→ …` 行）、`detail?`（尾端小字，如 `3/5 · NEXT LEDGER`）、`ariaLabel?`（`command` 缺席時的無障礙名稱）、`className?`。
@@ -160,7 +160,7 @@
 - **`EmptyState`** — 空狀態：狀態 glyph ＋ status 標題 ＋ 一句說明 ＋ 一個主要 action。不做大型 Card。
   - Props：`title`、`description`、`action?`、`className?`。glyph 固定，不是 prop。
   - **不要用於**：錯誤狀態（用 inline alert）；頁面級 fallback（用 `AppFallback`）。
-  - 範例：`src/ui/features/dashboard/pages/DashboardPage.tsx`
+  - 範例：`src/ui/features/dashboard/pages/DashboardPage.tsx`、`src/ui/features/project/pages/ProjectsPage.tsx`
 
 - **`FinancialNumber`** — 財務數值顯示：`hero` / `large` / `default` 三級 ＋ 選用 change line ＋ 缺值「$ —」。值與 change line 都由呼叫端預先格式化，本元件不做貨幣運算。
   - Props：`value?: string | null`、`size?`、`tone?`（`default`/`positive`/`negative`）、`change?`、`changeTone?`（`default`/`positive`/`negative`/`muted`）、`className?`。提供 `change` 時根元素變為 block。
@@ -170,17 +170,22 @@
 - **`MetricGroup` / `Metric`** — 同層級財務指標列：label + mono 值 + change line，非卡片。`MetricGroup` 是分割線容器，`Metric` 是單一指標。
   - Props（Group）：`children`、`columns?`（`2`/`3`/`4`/`5`，md 以上；手機固定 2 欄）、`lastSpansFull?`（末格在手機跨滿，收掉 2 欄換行留下的缺角）、`className?`。Props（Metric）：`label`、`value`、`tone?`、`change?`、`changeTone?`、`testId?`、`className?`。
   - **不要用於**：需要互動或篩選的資料（那是 table/toolbar 的事）。
-  - 範例：`src/ui/features/dashboard/pages/DashboardPage.tsx`（FINANCIAL SNAPSHOT，5 欄）。
+  - 範例：`src/ui/features/dashboard/pages/DashboardPage.tsx`（FINANCIAL SNAPSHOT，5 欄）、`src/ui/features/project/pages/ProjectDetailPage.tsx`（SUMMARY，4 欄）。
 
 - **`PageSection`** — 頁面層級的全寬 section band（`border-b` ＋ `py-10`），visual-standards 的「structure over cards」：頁面區域用 band 分段，不用浮動卡片。number ＋ title 為選用的 mono 標題；僅內容時是素 band。
   - Props：`number?`、`title?`、`action?`（與標題同列的尾端控件）、`spacing?`（`default`/`compact`，後者收緊密集堆疊）、`children`、`className?`。
   - **不要用於**：section 內的個別單元（用 `Module`）；需要 sticky 或導航的區域（用 `PageHeader` / `Toolbar`）。
-  - 範例：`src/ui/features/dashboard/pages/DashboardPage.tsx`（`spacing="compact"` 堆疊）。
+  - 範例：`src/ui/features/dashboard/pages/DashboardPage.tsx`（`spacing="compact"` 堆疊）、`src/ui/features/project/pages/ProjectDetailPage.tsx`。
 
 - **`Module`** — PageSection 內的 distinct module：mono label + 卡片邊界（唯一允許卡片的層級，design-system「Card 保留給 distinct module」）。`min-w-0` 防止在響應式 grid 溢出。
   - Props：`label`、`children`、`className?`。
   - **不要用於**：頁面級分段（用 `PageSection`）；列表內的重複列（那不是 module，是 row）。
   - 範例：`src/ui/features/app/pages/GalleryScaffold.tsx`（re-export 為 `GalleryModule`）。
+
+- **`ui/accordion`** — 可摺疊的 section 級面板（Radix 包裝）：trigger 是一列 mono 標題，內容展開。用於把次要閱讀層收起。
+  - Props：透通 Radix Root／Item／Trigger／Content；`type`、`defaultValue` 由呼叫端決定（`multiple` 可多開）。
+  - **不要用於**：表格列的展開明細（那是 `data-table` 的列展開，見 [`design-system.md`](design-system.md) `data-table`）；需要 tab 語意的區塊切換（用 `ui/tabs`）。
+  - 範例：`src/ui/features/project/components/detail/ProjectCashFlowPanel.tsx`（月度現金流面板，預設展開）。
 
 - **`ActivityList` / `ActivityRow`** — 最近活動列：date / title+meta / amount。列表容器收掉最後一列的底線。
   - Props（Row）：`date`、`title`、`meta?`、`amount?`、`tone?`、`onActivate?`（提供時該列變成可點擊的 button，供導覽／選取）、`className?`。
@@ -200,12 +205,12 @@
 - **`Toolbar`** — 頁面工具列：資料檢視控制在前、動作在後，兩組分離。
   - Props：`children?`（leading）、`actions?`（trailing）、`className?`。
   - **不要用於**：表單欄位列（用 `form` 套件）。
-  - 範例：`src/ui/features/app/pages/GalleryLayout.tsx`
+  - 範例：`src/ui/features/app/pages/GalleryLayout.tsx`、`src/ui/features/project/pages/ProjectsPage.tsx`
 
 - **`FilterStrip`** — 語意為 filter 的底線式篩選列。項目為原生 `button`，以 `aria-pressed` 標示選取；整列是具名的 `role="group"`。沿用 `tabs` 的觸發區 token（選中態 2px 底線以 `-mb-px` 咬住細線），但**細線由呼叫端的列提供**——本元件不畫自己的容器框線，因此可嵌進任何有底線的列。
   - Props：`items`（`{ id, label }[]`，必填）、`value`（選取的 id）、`onValueChange`（必填）、`ariaLabel`（必填）、`className?`。
   - **不要用於**：切換內容區塊的 tab（用 `ui/tabs`）；需要 server-side 重載的資料範圍選擇（那是期間瀏覽，不是情境篩選）。
-  - 範例：`src/ui/features/transaction/pages/TransactionsPage.tsx`、`src/ui/features/app/pages/GalleryFeedback.tsx`
+  - 範例：`src/ui/features/transaction/pages/TransactionsPage.tsx`、`src/ui/features/project/pages/ProjectsPage.tsx`、`src/ui/features/app/pages/GalleryFeedback.tsx`
 
 - **`SearchField`** — 模組內情境搜尋欄（標準 input 表面；focus 走既有 input 的 primary focus ring，不另換表面）。
   - Props：`value`、`onValueChange`（必填）、`placeholder?`、`ariaLabel`（必填，可存取名稱）、`className?`、`ref`。

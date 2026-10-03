@@ -1,9 +1,17 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { type Project, type ProjectCreate } from '@/domains/project/schemas';
+import {
+  type ProjectRowVM,
+  type ProjectSnapshotTotals,
+  mergeReorderedIds,
+  toProjectRows,
+  toProjectSnapshotTotals,
+} from '@/ui/features/project/viewmodels/projectPage.vm';
+import { useLoadingTask } from '@/ui/hooks/useLoadingTask';
 
 import { useProjectCmds } from './useProjectCmds';
-import { useProjects } from './useProjects';
+import { useProjectQueries, useProjects } from './useProjects';
 
 export interface ProjectArgs {
   project: ProjectCreate;
@@ -12,48 +20,79 @@ export interface ProjectArgs {
 
 export const useProjectPage = (householdId?: string) => {
   const { projects, loading, error, reload } = useProjects(householdId || '');
+  const { getProjectSnapshots } = useProjectQueries(householdId || '');
+  const { createProject, updateProject, reorderProjects } = useProjectCmds(householdId || '');
+  const { run } = useLoadingTask();
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [showInactive, setShowInactive] = useState(false);
   const [localProjects, setLocalProjects] = useState<Project[]>([]);
-
-  const { createProject, updateProject, reorderProjects } = useProjectCmds(householdId || '');
+  const [totalsByProject, setTotalsByProject] = useState<Map<string, ProjectSnapshotTotals>>(
+    new Map(),
+  );
 
   useEffect(() => {
     setLocalProjects(projects);
   }, [projects]);
 
-  // create project
+  useEffect(() => {
+    const controller = new AbortController();
+    void run(
+      async () => {
+        if (!householdId || localProjects.length === 0) return [];
+        return Promise.all(
+          localProjects.map(async (project) => {
+            const result = await getProjectSnapshots(project.id);
+            return [project.id, toProjectSnapshotTotals(result.ok ? result.value : [])] as const;
+          }),
+        );
+      },
+      {
+        signal: controller.signal,
+        writeBack: (result) => {
+          if (result.ok) setTotalsByProject(new Map(result.value));
+        },
+      },
+    );
+    return () => controller.abort();
+  }, [householdId, localProjects, getProjectSnapshots, run]);
+
   const create = async ({ project }: ProjectArgs) => {
     await createProject(project);
     setIsFormOpen(false);
   };
 
-  // update project
   const update = async ({ id, project }: { id: string; project: Partial<ProjectCreate> }) => {
     await updateProject(id, project);
     setIsFormOpen(false);
     reload();
   };
 
-  // open form
   const openForm = () => {
     setIsFormOpen(true);
   };
 
-  // close form
   const closeForm = () => {
     setIsFormOpen(false);
   };
 
-  const handleReorder = useCallback(
-    (ordered: Project[]) => {
-      const baseIds = new Set(localProjects.map((project) => project.id));
-      if (
-        ordered.length !== localProjects.length ||
-        !ordered.every((project) => baseIds.has(project.id))
-      ) {
-        return;
-      }
+  const rows = useMemo(
+    () => toProjectRows(localProjects, totalsByProject),
+    [localProjects, totalsByProject],
+  );
+  const activeCount = useMemo(() => rows.filter((row) => row.isActive).length, [rows]);
+
+  const reorderRows = useCallback(
+    (orderedRows: ProjectRowVM[]) => {
+      const projectById = new Map(localProjects.map((project) => [project.id, project]));
+      if (!orderedRows.every((row) => projectById.has(row.id))) return;
+
+      const mergedIds = mergeReorderedIds(
+        localProjects.map((project) => project.id),
+        orderedRows.map((row) => row.id),
+      );
+      const ordered = mergedIds
+        .map((id) => projectById.get(id))
+        .filter((project): project is Project => project !== undefined);
 
       setLocalProjects(ordered);
       void reorderProjects(
@@ -66,15 +105,16 @@ export const useProjectPage = (householdId?: string) => {
   return {
     loading,
     error,
-    projects: localProjects,
+    rows,
+    activeCount,
     reload,
     create,
     update,
     isFormOpen,
     openForm,
     closeForm,
-    handleReorder,
     showInactive,
-    toggleShowInactive: () => setShowInactive((prev) => !prev),
+    setShowInactive,
+    reorderRows,
   };
 };

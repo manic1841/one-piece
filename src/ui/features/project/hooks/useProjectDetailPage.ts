@@ -4,19 +4,15 @@ import { useParams } from 'react-router-dom';
 
 import { listDebtAccountsUseCase } from '@/application/debt/use_cases/listDebtAccountsUseCase';
 import { type Project } from '@/domains/project/schemas';
+import { PROJECT_BALANCE_MISSING } from '@/ui/constants/project/projectDetailLabels';
 import { useAuthState } from '@/ui/contexts/useAuthState';
 import { useProjectCmds } from '@/ui/features/project/hooks/useProjectCmds';
 import { useProjectDetailView } from '@/ui/features/project/hooks/useProjectDetailView';
-import {
-  ProjectDetailItemType,
-  type ProjectRecordItemVM,
-  type ProjectSnapshotItemVM,
-  toExpenseBreakdown,
-} from '@/ui/features/project/viewmodels/projectDetail.vm';
+import { useLoadingTask } from '@/ui/hooks/useLoadingTask';
 import { formatCurrency } from '@/ui/utils';
 
 interface UseProjectDetailPageArgs {
-  /** The list page passes the already-loaded row; the route passes nothing. */
+  /** 清單頁傳入已載入的資料，路由進入時為 undefined。 */
   project?: Project;
 }
 
@@ -26,157 +22,134 @@ interface ProjectDebtRow {
   balanceText: string;
 }
 
-/**
- * Owns ProjectDetailPage's data: the project row, its debt links, the selected
- * period's records and the derived summary. The page keeps only rendering.
- */
+type ProjectFetchState = 'loading' | 'loaded' | 'notFound';
+
 export const useProjectDetailPage = ({ project }: UseProjectDetailPageArgs) => {
   const { id } = useParams<{ id: string }>();
   const { userProfile } = useAuthState();
   const householdId = userProfile?.householdId ?? '';
 
-  const { items, selectedYearMonth, setSelectedYearMonth, currentSnapshot } = useProjectDetailView(
-    householdId,
-    id || '',
-  );
+  const {
+    monthGroups,
+    totals,
+    latestSnapshot,
+    loading: viewLoading,
+    error: viewError,
+    reload,
+  } = useProjectDetailView(householdId, id || '');
 
   const { updateProject } = useProjectCmds(householdId);
+  const { run: runDebt } = useLoadingTask();
 
   const [projectDebt, setProjectDebt] = useState<ProjectDebtRow[]>([]);
   const [fetchedProject, setFetchedProject] = useState<Project | null>(null);
+  const [fetchState, setFetchState] = useState<ProjectFetchState>(project ? 'loaded' : 'loading');
+  const [nameOverride, setNameOverride] = useState<string | null>(null);
   const [statusOverride, setStatusOverride] = useState<boolean | null>(null);
 
-  const activeProject = project ?? fetchedProject;
-
-  useEffect(() => {
-    let ignore = false;
-    const load = async () => {
-      if (!householdId || !id) return;
-      const accounts = await listDebtAccountsUseCase.execute({
-        householdId,
-        includeInactive: true,
-      });
-      if (!ignore) {
-        setProjectDebt(
-          accounts
-            .filter((a) => a.linkedProjectId === id)
-            .map((a) => ({
-              id: a.id,
-              name: a.name,
-              balanceText: formatCurrency(a.currentBalance),
-            })),
-        );
-      }
-    };
-    void load();
-    return () => {
-      ignore = true;
-    };
-  }, [householdId, id]);
-
-  useEffect(() => {
-    let ignore = false;
-    const load = async () => {
-      if (project || !householdId || !id) return;
-      try {
-        const { getProjectUseCase } = await import(
-          '@/application/project/use_cases/getProjectUseCase'
-        );
-        const data = await getProjectUseCase.execute({ householdId, projectId: id });
-        if (!ignore) {
-          setFetchedProject(data);
-        }
-      } catch {
-        if (!ignore) setFetchedProject(null);
-      }
-    };
-    void load();
-    return () => {
-      ignore = true;
-    };
-  }, [project, householdId, id]);
-
-  useEffect(() => {
-    setStatusOverride(null);
-  }, [id]);
-
-  const refreshProject = useCallback(
-    async (projectId: string) => {
+  const loadProject = useCallback(async () => {
+    if (project || !householdId || !id) return;
+    setFetchState('loading');
+    try {
       const { getProjectUseCase } = await import(
         '@/application/project/use_cases/getProjectUseCase'
       );
-      const data = await getProjectUseCase.execute({ householdId, projectId });
-      if (data) setFetchedProject(data);
-    },
-    [householdId],
+      const data = await getProjectUseCase.execute({ householdId, projectId: id });
+      setFetchedProject(data);
+      setFetchState(data ? 'loaded' : 'notFound');
+    } catch {
+      setFetchedProject(null);
+      setFetchState('notFound');
+    }
+  }, [project, householdId, id]);
+
+  useEffect(() => {
+    void loadProject();
+  }, [loadProject]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    void runDebt(
+      async () => {
+        if (!householdId || !id) return [];
+        const accounts = await listDebtAccountsUseCase.execute({
+          householdId,
+          includeInactive: true,
+        });
+        return accounts
+          .filter((account) => account.linkedProjectId === id)
+          .map((account) => ({
+            id: account.id,
+            name: account.name,
+            balanceText: formatCurrency(account.currentBalance),
+          }));
+      },
+      {
+        signal: controller.signal,
+        writeBack: (result) => {
+          if (result.ok) setProjectDebt(result.value);
+        },
+      },
+    );
+    return () => controller.abort();
+  }, [householdId, id, runDebt]);
+
+  useEffect(() => {
+    setNameOverride(null);
+    setStatusOverride(null);
+  }, [id]);
+
+  const baseProject = project ?? fetchedProject;
+  const activeProject = useMemo(
+    () => (baseProject && nameOverride ? { ...baseProject, name: nameOverride } : baseProject),
+    [baseProject, nameOverride],
   );
+  const isActive = statusOverride ?? baseProject?.isActive !== false;
 
   const handleRename = useCallback(
     async (name: string) => {
       if (!activeProject) return;
       await updateProject(activeProject.id, { name });
-      setFetchedProject((prev) =>
-        prev && prev.id === activeProject.id ? { ...prev, name } : prev,
-      );
+      setNameOverride(name);
     },
     [activeProject, updateProject],
   );
 
-  const isActive = statusOverride ?? activeProject?.isActive !== false;
-
   const handleToggleActive = useCallback(async () => {
     if (!activeProject) return;
     const nextActive = !isActive;
-
     const result = await updateProject(activeProject.id, { isActive: nextActive });
     if (!result.ok) return;
     setStatusOverride(nextActive);
-    if (!project) {
-      await refreshProject(activeProject.id);
-    }
-  }, [activeProject, isActive, project, refreshProject, updateProject]);
+  }, [activeProject, isActive, updateProject]);
 
-  const records = useMemo(
-    () =>
-      items.filter(
-        (item): item is ProjectRecordItemVM => item.type === ProjectDetailItemType.RECORD,
-      ),
-    [items],
+  const summary = useMemo(
+    () => ({
+      income: totals.income,
+      expense: totals.expense,
+      net: totals.net,
+      balanceText: latestSnapshot?.closingBalanceText ?? PROJECT_BALANCE_MISSING,
+    }),
+    [totals, latestSnapshot],
   );
 
-  const snapshots = useMemo(
-    () =>
-      items.filter(
-        (item): item is ProjectSnapshotItemVM => item.type === ProjectDetailItemType.SNAPSHOT,
-      ),
-    [items],
-  );
+  const reloadAll = useCallback(async () => {
+    await Promise.all([loadProject(), reload()]);
+  }, [loadProject, reload]);
 
-  const expenseBreakdown = useMemo(() => toExpenseBreakdown(items), [items]);
-
-  const summary = useMemo(() => {
-    const income = records.filter((r) => r.isIncome).reduce((sum, r) => sum + r.amount, 0);
-    const expense = records.filter((r) => !r.isIncome).reduce((sum, r) => sum + r.amount, 0);
-    const net = income - expense;
-    return {
-      income,
-      expense,
-      net,
-      balanceText: formatCurrency(currentSnapshot?.closingBalance ?? net),
-    };
-  }, [records, currentSnapshot]);
+  const notFound = fetchState === 'notFound';
 
   return {
     projectId: id,
     activeProject,
     projectDebt,
     isActive,
-    records,
-    snapshots,
-    expenseBreakdown,
+    monthGroups,
     summary,
-    selectedYearMonth,
-    setSelectedYearMonth,
+    loading: !notFound && (fetchState === 'loading' || viewLoading),
+    error: viewError,
+    notFound,
+    reload: reloadAll,
     handleRename,
     handleToggleActive,
   };

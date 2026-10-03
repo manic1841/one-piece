@@ -16,11 +16,12 @@ export const MobileDataList: React.FC<React.HTMLAttributes<HTMLDivElement>> = ({
 }) => <div className={cn(mobileDataListClass, className)} {...props} />;
 MobileDataList.displayName = 'MobileDataList';
 
-/** 行動版單列：label 左 / 值右的 row representation。 */
-export const MobileDataRow: React.FC<React.HTMLAttributes<HTMLDivElement>> = ({
-  className,
-  ...props
-}) => <div className={cn(mobileDataRowClass, className)} {...props} />;
+/** 轉發 ref，讓可排序清單能把列本身當成 draggable node。 */
+export const MobileDataRow = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
+  ({ className, ...props }, ref) => (
+    <div ref={ref} className={cn(mobileDataRowClass, className)} {...props} />
+  ),
+);
 MobileDataRow.displayName = 'MobileDataRow';
 
 interface MobileDataFieldProps {

@@ -455,7 +455,7 @@ Detail 的編輯入口依欄位複雜度二選一:
 
 - 掛在 PageHeader actions,緊鄰狀態顯示(badge/meta),讓狀態與改變狀態的動作成對。
 - 標籤依狀態二選一:active 顯示「停用 {domain}」、inactive 顯示「啟用 {domain}」。
-- 可逆動作用 outline variant;停用帳戶若當月有交易,先走 monthly-usage 檢查 + `useConfirm()`(DISABLE 標籤)。切換走既有 update command,成功後狀態即時反映。
+- 可逆動作用 outline variant;**lifecycle 停用是例外**:同一位置隨狀態換標籤的 activate/deactivate toggle,active 態的「停用 {domain}」用 destructive tone(inactive 態的「啟用 {domain}」仍用 outline)——停用把實體移出日常使用,紅色 tone 表達該後果。停用帳戶若當月有交易,先走 monthly-usage 檢查 + `useConfirm()`(DISABLE 標籤)。切換走既有 update command,成功後狀態即時反映。
 - List 只呈現狀態(glyph/muted),不提供切換。
 
 ### 7.5 Action Hierarchy(優先序)
@@ -463,7 +463,7 @@ Detail 的編輯入口依欄位複雜度二選一:
 全站最多三層:
 
 - **Primary**:主要完成動作(`SAVE` / `CONFIRM` / `CLOSE PERIOD` / domain create:`NEW`——新增帳戶／新增貸款／New Project／New Plan／新增交易／新增組合)。
-- **Secondary**:次要動作(`EDIT` / `IMPORT` / `DEACTIVATE`,可逆,outline variant)。
+- **Secondary**:次要動作(`EDIT` / `IMPORT` / `DEACTIVATE`,可逆,outline variant;惟 lifecycle deactivate 用 destructive tone,理由見 §7.4)。
 - **Tertiary**:低干擾(`View details →` / `More`)。
 
 一個 context 通常只需要一個 primary action;不要在同一區域堆疊多個 primary。

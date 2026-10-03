@@ -1,21 +1,35 @@
-import React from 'react';
-
-import { Power } from 'lucide-react';
+import { ArrowRight, Power } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
+import { EmptyState } from '@/ui/components/EmptyState';
 import { InlineEditableTitle } from '@/ui/components/InlineEditableTitle';
+import { Metric, MetricGroup } from '@/ui/components/MetricGroup';
 import { PageHeader } from '@/ui/components/PageHeader';
+import { PageSection } from '@/ui/components/PageSection';
+import { Skeleton } from '@/ui/components/Skeleton';
 import { StatusGlyph } from '@/ui/components/StatusGlyph';
-import { YearMonthPicker } from '@/ui/components/YearMonthPicker';
+import {
+  DataTable,
+  DataTableCell,
+  DataTableColGroup,
+  DataTableHeadCell,
+  DataTableHeadRow,
+  DataTableRow,
+  DataTableScrollArea,
+  MobileDataField,
+  MobileDataList,
+  MobileDataRow,
+  TableBody,
+  TableHeader,
+} from '@/ui/components/data-table';
+import { Alert, AlertDescription } from '@/ui/components/ui/alert';
 import { Button } from '@/ui/components/ui/button';
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/ui/components/ui/table';
+  PROJECT_DEBT_COLUMN_WIDTHS,
+  PROJECT_DETAIL_LABELS,
+  PROJECT_SUMMARY_LABELS,
+} from '@/ui/constants/project/projectDetailLabels';
+import { ProjectCashFlowPanel } from '@/ui/features/project/components/detail/ProjectCashFlowPanel';
 import { useProjectDetailPage } from '@/ui/features/project/hooks/useProjectDetailPage';
 import { type Project } from '@/ui/features/project/viewmodels/projectForm.vm';
 import { formatCurrency } from '@/ui/utils';
@@ -24,234 +38,148 @@ interface ProjectDetailPageProps {
   project?: Project;
 }
 
-const SectionTitle: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <p className="font-mono text-[11px] tracking-widest text-muted-foreground uppercase">
-    {children}
-  </p>
-);
+const SKELETON_ROWS = [0, 1, 2];
+
+const netTone = (net: number): 'positive' | 'negative' => (net >= 0 ? 'positive' : 'negative');
 
 export default function ProjectDetailPage({ project }: ProjectDetailPageProps) {
   const navigate = useNavigate();
   const {
-    projectId,
     activeProject,
     projectDebt,
     isActive,
-    records,
-    snapshots,
-    expenseBreakdown,
+    monthGroups,
     summary,
-    selectedYearMonth,
-    setSelectedYearMonth,
+    loading,
+    error,
+    notFound,
+    reload,
     handleRename,
     handleToggleActive,
   } = useProjectDetailPage({ project });
 
-  if (!projectId || !activeProject) return <div>Project not found</div>;
+  const backToList = () => navigate('/projects');
+
+  if (loading) {
+    return (
+      <div role="status" className="space-y-6 pb-20">
+        <span className="sr-only">{PROJECT_DETAIL_LABELS.LOADING_LABEL}</span>
+        {SKELETON_ROWS.map((row) => (
+          <Skeleton key={row} className="h-16" />
+        ))}
+      </div>
+    );
+  }
+
+  if (notFound || !activeProject) {
+    return (
+      <EmptyState
+        title={PROJECT_DETAIL_LABELS.NOT_FOUND_TITLE}
+        description={PROJECT_DETAIL_LABELS.NOT_FOUND_DESCRIPTION}
+        action={
+          <Button variant="outline" onClick={backToList}>
+            {PROJECT_DETAIL_LABELS.NOT_FOUND_ACTION}
+          </Button>
+        }
+      />
+    );
+  }
 
   return (
     <div className="space-y-8 pb-20">
       <PageHeader
         title={<InlineEditableTitle value={activeProject.name} onSave={handleRename} />}
-        crumb="PROJECTS"
-        onBack={() => navigate('/projects')}
+        crumb={PROJECT_DETAIL_LABELS.CRUMB}
+        onBack={backToList}
         badge={!isActive ? <StatusGlyph type="inactive" /> : undefined}
         actions={
-          <div className="flex items-center gap-2">
-            {isActive ? (
-              <Button variant="outline" onClick={() => void handleToggleActive()}>
-                <Power size={16} />
-                停用 Project
-              </Button>
-            ) : (
-              <Button variant="outline" onClick={() => void handleToggleActive()}>
-                啟用 Project
-              </Button>
-            )}
-            <YearMonthPicker
-              year={
-                selectedYearMonth === 'current'
-                  ? String(new Date().getFullYear())
-                  : selectedYearMonth.split('-')[0]
-              }
-              month={
-                selectedYearMonth === 'current'
-                  ? String(new Date().getMonth() + 1)
-                  : selectedYearMonth.split('-')[1]
-              }
-              onYearChange={(year) => {
-                const month =
-                  selectedYearMonth === 'current'
-                    ? String(new Date().getMonth() + 1)
-                    : selectedYearMonth.split('-')[1];
-                setSelectedYearMonth(`${year}-${month}`);
-              }}
-              onMonthChange={(month) => {
-                const year =
-                  selectedYearMonth === 'current'
-                    ? String(new Date().getFullYear())
-                    : selectedYearMonth.split('-')[0];
-                setSelectedYearMonth(`${year}-${month}`);
-              }}
-            />
-            {selectedYearMonth !== 'current' && (
-              <Button variant="ghost" onClick={() => setSelectedYearMonth('current')}>
-                本月
-              </Button>
-            )}
-          </div>
+          isActive ? (
+            <Button variant="destructive" onClick={() => void handleToggleActive()}>
+              <Power size={16} />
+              {PROJECT_DETAIL_LABELS.DEACTIVATE_ACTION}
+            </Button>
+          ) : (
+            <Button variant="outline" onClick={() => void handleToggleActive()}>
+              {PROJECT_DETAIL_LABELS.ACTIVATE_ACTION}
+            </Button>
+          )
         }
       />
 
-      <section className="space-y-3">
-        <SectionTitle>SUMMARY</SectionTitle>
-        <div className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm md:grid-cols-4">
-          <div>
-            <p className="text-xs text-muted-foreground">Income</p>
-            <p className="font-mono tabular-nums text-positive">{formatCurrency(summary.income)}</p>
-          </div>
-          <div>
-            <p className="text-xs text-muted-foreground">Expense</p>
-            <p className="font-mono tabular-nums text-negative">
-              {formatCurrency(summary.expense)}
-            </p>
-          </div>
-          <div>
-            <p className="text-xs text-muted-foreground">Net Cash Flow</p>
-            <p
-              className={`font-mono tabular-nums ${summary.net >= 0 ? 'text-positive' : 'text-negative'}`}
-            >
-              {formatCurrency(summary.net)}
-            </p>
-          </div>
-          <div>
-            <p className="text-xs text-muted-foreground">Balance</p>
-            <p className="font-mono text-lg tabular-nums text-foreground">{summary.balanceText}</p>
-          </div>
-        </div>
-      </section>
+      {error && (
+        <Alert variant="warning">
+          <AlertDescription>{error}</AlertDescription>
+          <Button variant="text" className="ml-auto shrink-0" onClick={() => void reload()}>
+            {PROJECT_DETAIL_LABELS.RETRY_ACTION}
+            <ArrowRight size={16} aria-hidden="true" />
+          </Button>
+        </Alert>
+      )}
 
-      <section className="space-y-3">
-        <SectionTitle>12M CASH FLOW</SectionTitle>
-        {records.length === 0 ? (
-          <p className="text-sm text-muted-foreground">尚無現金流紀錄</p>
-        ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Date</TableHead>
-                <TableHead>Category</TableHead>
-                <TableHead className="text-right">Amount</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {records.map((record) => (
-                <TableRow key={record.id}>
-                  <TableCell className="font-mono text-[12px]">{record.dateText}</TableCell>
-                  <TableCell className="text-muted-foreground">{record.categoryLabel}</TableCell>
-                  <TableCell
-                    className={`text-right font-mono tabular-nums ${record.isIncome ? 'text-positive' : 'text-negative'}`}
-                  >
-                    {record.amountText}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        )}
-      </section>
+      <PageSection title={PROJECT_DETAIL_LABELS.SUMMARY_SECTION_TITLE} spacing="compact">
+        <MetricGroup columns={4}>
+          <Metric
+            label={PROJECT_SUMMARY_LABELS.INCOME}
+            value={formatCurrency(summary.income)}
+            tone="positive"
+          />
+          <Metric
+            label={PROJECT_SUMMARY_LABELS.EXPENSE}
+            value={formatCurrency(summary.expense)}
+            tone="negative"
+          />
+          <Metric
+            label={PROJECT_SUMMARY_LABELS.NET_CASH_FLOW}
+            value={formatCurrency(summary.net)}
+            tone={netTone(summary.net)}
+          />
+          <Metric label={PROJECT_SUMMARY_LABELS.BALANCE} value={summary.balanceText} />
+        </MetricGroup>
+      </PageSection>
 
-      <section className="space-y-3">
-        <SectionTitle>EXPENSE BREAKDOWN</SectionTitle>
-        {expenseBreakdown.length === 0 ? (
-          <p className="text-sm text-muted-foreground">尚無支出紀錄</p>
-        ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Category</TableHead>
-                <TableHead className="text-right">Amount</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {expenseBreakdown.map((row) => (
-                <TableRow key={row.categoryLabel}>
-                  <TableCell className="text-muted-foreground">{row.categoryLabel}</TableCell>
-                  <TableCell className="text-right font-mono tabular-nums">
-                    {row.amountText}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        )}
-      </section>
-
-      <section className="space-y-3">
-        <SectionTitle>PROJECT DEBT</SectionTitle>
+      <PageSection title={PROJECT_DETAIL_LABELS.DEBT_SECTION_TITLE} spacing="compact">
         {projectDebt.length === 0 ? (
-          <p className="text-sm text-muted-foreground">此專案沒有連結貸款</p>
+          <p className="text-sm text-muted-foreground">{PROJECT_DETAIL_LABELS.DEBT_EMPTY_HINT}</p>
         ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Loan</TableHead>
-                <TableHead className="text-right">Outstanding Balance</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
+          <>
+            <DataTableScrollArea>
+              <DataTable>
+                <DataTableColGroup widths={PROJECT_DEBT_COLUMN_WIDTHS} />
+                <TableHeader>
+                  <DataTableHeadRow>
+                    <DataTableHeadCell>{PROJECT_DETAIL_LABELS.DEBT_LOAN_COLUMN}</DataTableHeadCell>
+                    <DataTableHeadCell align="number">
+                      {PROJECT_DETAIL_LABELS.DEBT_BALANCE_COLUMN}
+                    </DataTableHeadCell>
+                  </DataTableHeadRow>
+                </TableHeader>
+                <TableBody>
+                  {projectDebt.map((debt) => (
+                    <DataTableRow key={debt.id}>
+                      <DataTableCell>{debt.name}</DataTableCell>
+                      <DataTableCell align="number">{debt.balanceText}</DataTableCell>
+                    </DataTableRow>
+                  ))}
+                </TableBody>
+              </DataTable>
+            </DataTableScrollArea>
+            <MobileDataList>
               {projectDebt.map((debt) => (
-                <TableRow key={debt.id}>
-                  <TableCell>{debt.name}</TableCell>
-                  <TableCell className="text-right font-mono tabular-nums">
-                    {debt.balanceText}
-                  </TableCell>
-                </TableRow>
+                <MobileDataRow key={debt.id}>
+                  <MobileDataField label={PROJECT_DETAIL_LABELS.DEBT_LOAN_COLUMN}>
+                    {debt.name}
+                  </MobileDataField>
+                  <MobileDataField label={PROJECT_DETAIL_LABELS.DEBT_BALANCE_COLUMN}>
+                    <span className="font-mono text-sm tabular-nums">{debt.balanceText}</span>
+                  </MobileDataField>
+                </MobileDataRow>
               ))}
-            </TableBody>
-          </Table>
+            </MobileDataList>
+          </>
         )}
-      </section>
+      </PageSection>
 
-      <section className="space-y-3">
-        <SectionTitle>MONTHLY SNAPSHOT</SectionTitle>
-        {snapshots.length === 0 ? (
-          <p className="text-sm text-muted-foreground">尚無月度結算資料</p>
-        ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Month</TableHead>
-                <TableHead className="text-right">Opening</TableHead>
-                <TableHead className="text-right">Income</TableHead>
-                <TableHead className="text-right">Expense</TableHead>
-                <TableHead className="text-right">Closing</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {snapshots.map((snapshot) => (
-                <TableRow key={snapshot.id}>
-                  <TableCell className="font-mono text-[12px]">
-                    {snapshot.year}-{String(snapshot.month).padStart(2, '0')}
-                  </TableCell>
-                  <TableCell className="text-right font-mono tabular-nums">
-                    {snapshot.openingBalanceText}
-                  </TableCell>
-                  <TableCell className="text-right font-mono tabular-nums">
-                    {snapshot.incomeText}
-                  </TableCell>
-                  <TableCell className="text-right font-mono tabular-nums">
-                    {snapshot.expenseText}
-                  </TableCell>
-                  <TableCell className="text-right font-mono tabular-nums">
-                    {snapshot.closingBalanceText}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        )}
-      </section>
+      <ProjectCashFlowPanel groups={monthGroups} />
     </div>
   );
 }

@@ -61,7 +61,7 @@ Managed display labels cover:
 - Report view titles: 損益表 / 資產負債表 / 現金流量表 (via `src/ui/constants/report/reportViewLabels.ts`)
 - Debt status labels: 已結清 / 寬限期 (via `src/ui/constants/debtStatusLabels.ts`)
 
-Free-form UI chrome (button text, error messages, subtitles, descriptive copy) is out of scope.
+Free-form UI chrome (button text, error messages, subtitles, descriptive copy) is out of scope. Project page chrome (titles, actions, error copy, column heads) is centralised in `src/ui/constants/project/` for the same reason every other display string is: components must not carry literals. It is chrome, so it is not pinned here.
 
 ## Implementation Rule
 

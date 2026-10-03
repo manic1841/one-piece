@@ -8,6 +8,7 @@ import {
   FormMessage,
   TextInput,
 } from '@/ui/components/form';
+import { PROJECT_FORM_LABELS } from '@/ui/constants/project/projectFormLabels';
 
 /**
  * The project form body. Reads its binding from the surrounding `<Form>`
@@ -16,13 +17,11 @@ import {
 export const ProjectFormFields: React.FC = () => {
   return (
     <div className="space-y-4">
-      <h3 className="text-sm font-semibold text-muted-foreground">基本資料</h3>
-
       <FormField name="name">
         <FormItem>
-          <FormLabel required>名稱</FormLabel>
+          <FormLabel required>{PROJECT_FORM_LABELS.NAME_LABEL}</FormLabel>
           <FormControl>
-            <TextInput placeholder="例如：生活費、房租" />
+            <TextInput placeholder={PROJECT_FORM_LABELS.NAME_PLACEHOLDER} />
           </FormControl>
           <FormMessage />
         </FormItem>
