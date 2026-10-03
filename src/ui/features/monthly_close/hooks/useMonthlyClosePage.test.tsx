@@ -13,7 +13,7 @@ const { authIdentity, refreshSpy, confirmMock, afterConfirmSpy } = vi.hoisted(()
   afterConfirmSpy: vi.fn(),
 }));
 
-vi.mock('@/ui/features/app/confirm/useConfirm', () => ({
+vi.mock('@/ui/components/confirm/useConfirm', () => ({
   useConfirm: () => ({ confirm: confirmMock }),
 }));
 vi.mock('@/ui/hooks/useAuthIdentity', () => ({

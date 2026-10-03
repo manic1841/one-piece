@@ -2,6 +2,7 @@ import React from 'react';
 
 import { Trash2 } from 'lucide-react';
 
+import { useConfirm } from '@/ui/components/confirm/useConfirm';
 import { Button } from '@/ui/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/ui/components/ui/card';
 import {
@@ -12,7 +13,6 @@ import {
   TableHeader,
   TableRow,
 } from '@/ui/components/ui/table';
-import { useConfirm } from '@/ui/features/app/confirm/useConfirm';
 import { type PortfolioSnapshot } from '@/ui/features/portfolio/viewmodels/portfolioDisplay.vm';
 import { formatCurrency, formatPercentage, formatYearMonth } from '@/ui/utils';
 

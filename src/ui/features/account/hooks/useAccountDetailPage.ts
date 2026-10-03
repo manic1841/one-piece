@@ -7,13 +7,13 @@ import { getAccountHistoryUseCase } from '@/application/account/use_cases/getAcc
 import { getAccountsWithSnapshotsUseCase } from '@/application/account/use_cases/getAccountsWithSnapshotsUseCase';
 import { type AccountSnapshot, type AccountWithSnapshot } from '@/domains/account/types/account';
 import { toMonthTrendSeries } from '@/ui/components/charts/monthTrendSeries';
+import { useConfirm } from '@/ui/components/confirm/useConfirm';
 import { useAuthState } from '@/ui/contexts/useAuthState';
 import { useAccountCmds } from '@/ui/features/account/hooks/useAccountCmds';
 import {
   formatSignedCurrency,
   toAccountHistoryRows,
 } from '@/ui/features/account/viewmodels/accountDetail.vm';
-import { useConfirm } from '@/ui/features/app/confirm/useConfirm';
 import { useLoadingTask } from '@/ui/hooks/useLoadingTask';
 
 interface UseAccountDetailPageArgs {

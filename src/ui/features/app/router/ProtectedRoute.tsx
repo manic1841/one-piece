@@ -2,6 +2,7 @@ import React from 'react';
 
 import { Navigate, useLocation } from 'react-router-dom';
 
+import { LoadingLine } from '@/ui/components/LoadingLine';
 import { useRouteAuthorization } from '@/ui/features/app/hooks/useRouteAuthorization';
 
 interface ProtectedRouteProps {
@@ -18,11 +19,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, requireHouseh
   const location = useLocation();
 
   if (outcome === 'pending') {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-muted-foreground">Loading...</div>
-      </div>
-    );
+    return <LoadingLine />;
   }
 
   if (outcome === 'unauthenticated') {

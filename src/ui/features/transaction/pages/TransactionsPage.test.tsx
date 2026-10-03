@@ -2,8 +2,8 @@ import { fireEvent, render, screen, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { type LedgerTransaction } from '@/domains/ledger/schemas';
+import { useConfirm } from '@/ui/components/confirm/useConfirm';
 import { getIntentTypeLabel } from '@/ui/constants/transaction';
-import { useConfirm } from '@/ui/features/app/confirm/useConfirm';
 import { useTransactions } from '@/ui/features/transaction/hooks/useTransactions';
 
 import TransactionsPage from './TransactionsPage';
@@ -38,7 +38,7 @@ vi.mock('@/ui/features/ledger/hooks/useLedgerCodes', () => ({
   }),
 }));
 
-vi.mock('@/ui/features/app/confirm/useConfirm');
+vi.mock('@/ui/components/confirm/useConfirm');
 
 const mockUseConfirm = vi.mocked(useConfirm);
 

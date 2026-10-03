@@ -5,6 +5,7 @@ import { Plus } from 'lucide-react';
 import { FilterStrip } from '@/ui/components/FilterStrip';
 import { PageHeader } from '@/ui/components/PageHeader';
 import { SearchField } from '@/ui/components/SearchField';
+import { useConfirm } from '@/ui/components/confirm/useConfirm';
 import { Button } from '@/ui/components/ui/button';
 import {
   TRANSACTIONS_PAGE_CREATE_ACTION,
@@ -23,7 +24,6 @@ import {
   TRANSACTION_FILTER_ITEMS,
 } from '@/ui/constants/transaction';
 import { useAuthState } from '@/ui/contexts/useAuthState';
-import { useConfirm } from '@/ui/features/app/confirm/useConfirm';
 import { useLedgerCodes } from '@/ui/features/ledger/hooks/useLedgerCodes';
 import { useProjects } from '@/ui/features/project/hooks/useProjects';
 import { TransactionList } from '@/ui/features/transaction/components/TransactionList';

@@ -7,6 +7,7 @@ import { AppFallback } from '@/ui/components/AppFallback';
 import { CliProgress } from '@/ui/components/CliProgress';
 import { EmptyState } from '@/ui/components/EmptyState';
 import { FilterStrip } from '@/ui/components/FilterStrip';
+import { LoadingLine } from '@/ui/components/LoadingLine';
 import { SearchField } from '@/ui/components/SearchField';
 import { Skeleton } from '@/ui/components/Skeleton';
 import { StatusGlyph } from '@/ui/components/StatusGlyph';
@@ -49,6 +50,9 @@ const LoadingSection: React.FC = () => (
           detail="3/5 · NEXT LEDGER"
           ariaLabel="3 of 5 close stages completed"
         />
+      </GalleryModule>
+      <GalleryModule label="SINGLE-LINE LOADING">
+        <LoadingLine className="min-h-0 py-6" />
       </GalleryModule>
     </div>
   </GallerySection>

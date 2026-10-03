@@ -2,8 +2,8 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter, useNavigate } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 
+import { useConfirm } from '@/ui/components/confirm/useConfirm';
 import { DEBT_STATUS_GRACE_PERIOD_LABEL } from '@/ui/constants/debtStatusLabels';
-import { useConfirm } from '@/ui/features/app/confirm/useConfirm';
 import { useDebtAccountCmds } from '@/ui/features/debt/hooks/useDebtAccountCmds';
 import { useDebtPage } from '@/ui/features/debt/hooks/useDebtPage';
 import { type DebtAccountDisplayVM } from '@/ui/features/debt/viewmodels/debtDisplay.vm';
@@ -12,7 +12,7 @@ import DebtListPage from './DebtListPage';
 
 vi.mock('@/ui/features/debt/hooks/useDebtPage');
 vi.mock('@/ui/features/debt/hooks/useDebtAccountCmds');
-vi.mock('@/ui/features/app/confirm/useConfirm');
+vi.mock('@/ui/components/confirm/useConfirm');
 vi.mock('react-router-dom', async () => {
   const actual = await vi.importActual<typeof import('react-router-dom')>('react-router-dom');
   return {

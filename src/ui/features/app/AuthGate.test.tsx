@@ -41,11 +41,12 @@ describe('AuthGate', () => {
     expect(screen.getByText('app')).toBeInTheDocument();
   });
 
-  it('renders nothing while auth is still initializing', () => {
+  it('shows the shared loading line while auth is still initializing', () => {
     mockAuthState({ loading: true });
 
     renderGate();
 
+    expect(screen.getByText('Loading...')).toBeInTheDocument();
     expect(screen.queryByText('app')).toBeNull();
   });
 

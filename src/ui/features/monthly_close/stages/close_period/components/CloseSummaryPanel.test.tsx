@@ -8,7 +8,7 @@ import { CloseSummaryPanel } from './CloseSummaryPanel';
 
 const { confirmMock } = vi.hoisted(() => ({ confirmMock: vi.fn() }));
 
-vi.mock('@/ui/features/app/confirm/useConfirm', () => ({
+vi.mock('@/ui/components/confirm/useConfirm', () => ({
   useConfirm: () => ({ confirm: confirmMock }),
 }));
 

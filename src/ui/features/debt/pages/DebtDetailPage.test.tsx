@@ -5,9 +5,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { listDebtAccountsUseCase } from '@/application/debt/use_cases/listDebtAccountsUseCase';
 import { listDebtSnapshotsUseCase } from '@/application/debt/use_cases/listDebtSnapshotsUseCase';
 import { type DebtAccount } from '@/domains/debt/schemas';
+import { useConfirm } from '@/ui/components/confirm/useConfirm';
 import { DEBT_STATUS_SETTLED_LABEL } from '@/ui/constants/debtStatusLabels';
 import { useAuthState } from '@/ui/contexts/useAuthState';
-import { useConfirm } from '@/ui/features/app/confirm/useConfirm';
 import { useDebtAccountCmds } from '@/ui/features/debt/hooks/useDebtAccountCmds';
 
 import DebtDetailPage from './DebtDetailPage';
@@ -25,7 +25,7 @@ vi.mock('@/application/debt/use_cases/listDebtPaymentsUseCase', () => ({
   },
 }));
 vi.mock('@/ui/features/debt/hooks/useDebtAccountCmds');
-vi.mock('@/ui/features/app/confirm/useConfirm');
+vi.mock('@/ui/components/confirm/useConfirm');
 vi.mock('react-router-dom', async () => {
   const actual = await vi.importActual<typeof import('react-router-dom')>('react-router-dom');
   return {

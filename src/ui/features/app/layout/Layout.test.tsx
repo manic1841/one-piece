@@ -2,7 +2,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { ConfirmDialogProvider } from '@/ui/features/app/confirm/ConfirmDialog';
+import { ConfirmDialogProvider } from '@/ui/components/confirm/ConfirmDialog';
 
 import Layout from './Layout';
 import { NAVIGATOR_ITEMS, NAV_ITEMS } from './navigation';
@@ -364,7 +364,7 @@ describe('Layout pixel pet and navigator', () => {
     expect(items.map((item) => item.getAttribute('href'))).not.toContain('/settings');
   });
 
-  it('keeps the navigator open after the pointer leaves the pet, and closes it on outside click', () => {
+  it('keeps the navigator open after the pointer leaves the pet, and closes it on Escape', async () => {
     renderLayout();
 
     const pet = screen.getByRole('button', { name: /pixel pet/i });
@@ -375,8 +375,9 @@ describe('Layout pixel pet and navigator', () => {
     fireEvent.mouseLeave(pet);
     expect(screen.getByTestId('navigator')).toBeInTheDocument();
 
-    fireEvent.pointerDown(screen.getByTestId('navigator-backdrop'));
-    expect(screen.queryByTestId('navigator')).not.toBeInTheDocument();
+    // Popover owns dismissal (no hand-rolled backdrop to click).
+    fireEvent.keyDown(document, { key: 'Escape' });
+    await waitFor(() => expect(screen.queryByTestId('navigator')).not.toBeInTheDocument());
     expect(screen.queryByTestId('navigator-sheet')).not.toBeInTheDocument();
   });
 

@@ -4,9 +4,9 @@ import { Search } from 'lucide-react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 
 import { StatusGlyph } from '@/ui/components/StatusGlyph';
+import { useConfirm } from '@/ui/components/confirm/useConfirm';
 import { Button } from '@/ui/components/ui/button';
 import { useAuthState } from '@/ui/contexts/useAuthState';
-import { useConfirm } from '@/ui/features/app/confirm/useConfirm';
 
 import { useHouseholdGuard } from '../hooks/useHouseholdGuard';
 import { usePetReaction } from '../hooks/usePetReaction';

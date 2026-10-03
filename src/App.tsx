@@ -4,11 +4,11 @@ import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import { Toaster } from 'sonner';
 
 import { firebaseAuthGateway } from '@/infra/contexts/firebaseAuthGateway';
+import { ConfirmDialogProvider } from '@/ui/components/confirm/ConfirmDialog';
 import { AuthStateProvider } from '@/ui/contexts/AuthStateProvider';
 import AccountDetailPage from '@/ui/features/account/pages/AccountDetailPage';
 import Accounts from '@/ui/features/account/pages/AccountsPage';
 import { AuthGate } from '@/ui/features/app/AuthGate';
-import { ConfirmDialogProvider } from '@/ui/features/app/confirm/ConfirmDialog';
 import Layout from '@/ui/features/app/layout/Layout';
 import ProtectedRoute from '@/ui/features/app/router/ProtectedRoute';
 import AccessDenied from '@/ui/features/auth/pages/AccessDeniedPage';

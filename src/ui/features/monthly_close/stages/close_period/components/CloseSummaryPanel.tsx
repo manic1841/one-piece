@@ -1,9 +1,9 @@
 import React from 'react';
 
 import { StatusGlyph } from '@/ui/components/StatusGlyph';
+import { useConfirm } from '@/ui/components/confirm/useConfirm';
 import { Button } from '@/ui/components/ui/button';
 import { MONTHLY_CLOSE_LABELS } from '@/ui/constants/monthlyClose';
-import { useConfirm } from '@/ui/features/app/confirm/useConfirm';
 import { CloseStageLoadError } from '@/ui/features/monthly_close/components/CloseStageLoadError';
 import { formatDriftDelta, isDrifted } from '@/ui/features/monthly_close/viewmodels/reportDrift.vm';
 import { cn, formatCurrency } from '@/ui/utils';

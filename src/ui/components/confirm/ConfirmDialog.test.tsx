@@ -4,7 +4,10 @@ import '@testing-library/jest-dom/vitest';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
+import { Dialog, DialogContent } from '@/ui/components/ui/dialog';
+
 import { ConfirmDialogProvider } from './ConfirmDialog';
+import { ConfirmDialogBody } from './ConfirmDialogBody';
 import { resolveConfirmOptions } from './resolveConfirmOptions';
 import { useConfirm } from './useConfirm';
 
@@ -110,5 +113,41 @@ describe('ConfirmDialog', () => {
 
     await waitFor(() => expect(onResult).toHaveBeenCalledWith(false));
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+  });
+});
+
+describe('ConfirmDialogBody inline/live parity', () => {
+  const TITLE = 'Delete transaction?';
+  const CONTEXT = 'SEP 17 · ETF Purchase · -NT$20,000';
+  const OPTIONS = { title: TITLE, context: CONTEXT };
+
+  const renderInline = () =>
+    render(<ConfirmDialogBody inline options={OPTIONS} onConfirm={() => {}} onCancel={() => {}} />);
+
+  const renderLive = () =>
+    render(
+      <Dialog open>
+        <DialogContent>
+          <ConfirmDialogBody options={OPTIONS} onConfirm={() => {}} onCancel={() => {}} />
+        </DialogContent>
+      </Dialog>,
+    );
+
+  it('renders the title with the same classes inline as in the modal', () => {
+    const inline = renderInline();
+    const inlineClass = screen.getByText(TITLE).className;
+    inline.unmount();
+
+    renderLive();
+    expect(screen.getByText(TITLE).className).toBe(inlineClass);
+  });
+
+  it('renders the context with the same classes inline as in the modal', () => {
+    const inline = renderInline();
+    const inlineClass = screen.getByText(CONTEXT).className;
+    inline.unmount();
+
+    renderLive();
+    expect(screen.getByText(CONTEXT).className).toBe(inlineClass);
   });
 });

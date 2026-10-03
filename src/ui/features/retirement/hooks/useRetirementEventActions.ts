@@ -6,7 +6,7 @@ import type {
   RetirementPlan,
   RetirementPlanCreate,
 } from '@/domains/retirement/types';
-import { useConfirm } from '@/ui/features/app/confirm/useConfirm';
+import { useConfirm } from '@/ui/components/confirm/useConfirm';
 
 interface UseRetirementEventActionsParams {
   id: string | undefined;

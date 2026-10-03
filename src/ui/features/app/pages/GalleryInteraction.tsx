@@ -6,6 +6,10 @@ import { toast } from 'sonner';
 import { Avatar } from '@/ui/components/Avatar';
 import { Skeleton } from '@/ui/components/Skeleton';
 import { StatusGlyph } from '@/ui/components/StatusGlyph';
+import { ConfirmDialogBody } from '@/ui/components/confirm/ConfirmDialogBody';
+import type { ConfirmOptions } from '@/ui/components/confirm/resolveConfirmOptions';
+import { useConfirm } from '@/ui/components/confirm/useConfirm';
+import { DrawerPanel } from '@/ui/components/drawer/DrawerPanel';
 import {
   Accordion,
   AccordionContent,
@@ -25,10 +29,6 @@ import {
 import { Sheet, SheetContent, SheetTrigger } from '@/ui/components/ui/sheet';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/ui/components/ui/tabs';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/ui/components/ui/tooltip';
-import { ConfirmDialogBody } from '@/ui/features/app/confirm/ConfirmDialogBody';
-import type { ConfirmOptions } from '@/ui/features/app/confirm/resolveConfirmOptions';
-import { useConfirm } from '@/ui/features/app/confirm/useConfirm';
-import { DrawerPanel } from '@/ui/features/app/drawer/DrawerPanel';
 import CommandPalette from '@/ui/features/app/layout/CommandPalette';
 
 import { GalleryGroup, GalleryModule, GallerySection } from './GalleryScaffold';

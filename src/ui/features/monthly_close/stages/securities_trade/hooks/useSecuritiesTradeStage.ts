@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
 
 import { getMonthInvestmentFinancingUseCase } from '@/application/monthly_close/use_cases/getMonthInvestmentFinancingUseCase';
-import { useConfirm } from '@/ui/features/app/confirm/useConfirm';
+import { useConfirm } from '@/ui/components/confirm/useConfirm';
 import type { CloseStageControl } from '@/ui/features/monthly_close/hooks/closeStageControl';
 import {
   EMPTY_STAGE_CONFIRM_OPTIONS,

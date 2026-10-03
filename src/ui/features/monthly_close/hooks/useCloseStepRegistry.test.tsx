@@ -95,7 +95,7 @@ vi.mock('@/application/report/use_cases/getStoredReportsBundleUseCase', () => ({
     }),
   },
 }));
-vi.mock('@/ui/features/app/confirm/useConfirm', () => ({
+vi.mock('@/ui/components/confirm/useConfirm', () => ({
   useConfirm: () => ({ confirm: vi.fn().mockResolvedValue(true) }),
 }));
 

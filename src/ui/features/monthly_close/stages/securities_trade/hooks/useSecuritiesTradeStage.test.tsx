@@ -10,7 +10,7 @@ vi.mock('@/application/monthly_close/use_cases/getMonthInvestmentFinancingUseCas
 }));
 
 const { confirmDialog } = vi.hoisted(() => ({ confirmDialog: vi.fn().mockResolvedValue(true) }));
-vi.mock('@/ui/features/app/confirm/useConfirm', () => ({
+vi.mock('@/ui/components/confirm/useConfirm', () => ({
   useConfirm: () => ({ confirm: confirmDialog }),
 }));
 

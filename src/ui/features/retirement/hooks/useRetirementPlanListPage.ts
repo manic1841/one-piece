@@ -3,7 +3,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import { type RetirementPlan, type RetirementPlanCreate } from '@/domains/retirement/types';
-import { useConfirm } from '@/ui/features/app/confirm/useConfirm';
+import { useConfirm } from '@/ui/components/confirm/useConfirm';
 import { useRetirementPlanCmds } from '@/ui/features/retirement/hooks/useRetirementPlanCmds';
 import { useRetirementPlans } from '@/ui/features/retirement/hooks/useRetirementPlans';
 import { mapRetirementPlanToListItemVM } from '@/ui/features/retirement/viewmodels/retirementDisplay.vm';

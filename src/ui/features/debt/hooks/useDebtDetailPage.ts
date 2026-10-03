@@ -5,8 +5,8 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { listDebtAccountsUseCase } from '@/application/debt/use_cases/listDebtAccountsUseCase';
 import { type DebtAccount } from '@/domains/debt/schemas';
 import { toMonthTrendSeries } from '@/ui/components/charts/monthTrendSeries';
+import { useConfirm } from '@/ui/components/confirm/useConfirm';
 import { useAuthState } from '@/ui/contexts/useAuthState';
-import { useConfirm } from '@/ui/features/app/confirm/useConfirm';
 import { useDebtAccountCmds } from '@/ui/features/debt/hooks/useDebtAccountCmds';
 import { useDebtSnapshots } from '@/ui/features/debt/hooks/useDebtSnapshots';
 import {

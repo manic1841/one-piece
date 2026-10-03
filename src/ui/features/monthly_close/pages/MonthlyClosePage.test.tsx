@@ -147,7 +147,7 @@ vi.mock('@/application/report/use_cases/previewFinancialReportsWorkflow', () => 
     }),
   },
 }));
-vi.mock('@/ui/features/app/confirm/useConfirm', () => ({
+vi.mock('@/ui/components/confirm/useConfirm', () => ({
   useConfirm: () => ({ confirm: confirmMock }),
 }));
 
