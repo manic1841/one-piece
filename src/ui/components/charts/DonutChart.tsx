@@ -1,12 +1,9 @@
 import { cn } from '@/ui/utils/cn';
 
 import { ChartLegend } from './ChartLegend';
-import { CHART_DONUT_COLORS } from './chartTheme';
+import { type DonutSegment, buildDonutSlices } from './donutSlices';
 
-export type DonutSegment = {
-  label: string;
-  value: number;
-};
+export type { DonutSegment } from './donutSlices';
 
 type DonutChartProps = {
   segments: DonutSegment[];
@@ -32,16 +29,7 @@ export function DonutChart({
   ariaLabel,
   className,
 }: DonutChartProps) {
-  const total = segments.reduce((sum, segment) => sum + Math.max(0, segment.value), 0);
-  const safeTotal = total > 0 ? total : 1;
-  const shares = segments.map((segment) => (Math.max(0, segment.value) / safeTotal) * 100);
-
-  const slices = segments.map((_, index) => {
-    const color = CHART_DONUT_COLORS[index % CHART_DONUT_COLORS.length];
-    const start = shares.slice(0, index).reduce((sum, share) => sum + share, 0);
-    const stop = `${color} ${start}% ${start + shares[index]}%`;
-    return { color, percent: Math.round(shares[index]), stop };
-  });
+  const slices = buildDonutSlices(segments);
 
   const a11yProps =
     ariaLabel === undefined ? {} : { role: 'img' as const, 'aria-label': ariaLabel };

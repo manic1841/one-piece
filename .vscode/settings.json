@@ -1,0 +1,24 @@
+{
+  // 排除會產生大量檔案變動的目錄，避免 file watcher 長時間吃 CPU。
+  // node_modules / dist / coverage 由建置工具寫入，編輯器不需要監看。
+  "files.watcherExclude": {
+    "**/node_modules/**": true,
+    "**/dist/**": true,
+    "**/coverage/**": true,
+    "**/.git/**": true
+  },
+  "search.exclude": {
+    "**/node_modules": true,
+    "**/dist": true,
+    "**/coverage": true,
+    "**/pnpm-lock.yaml": true
+  },
+  "files.exclude": {
+    "**/node_modules": true,
+    "**/dist": true,
+    "**/coverage": true
+  },
+  // 限制 TS server 的背景負載：不自動下載 @types，並設定記憶體上限。
+  "js/ts.tsserver.maxMemory": 3072,
+  "js/ts.tsserver.automaticTypeAcquisition.enabled": false
+}

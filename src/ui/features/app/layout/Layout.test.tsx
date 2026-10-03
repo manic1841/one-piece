@@ -81,6 +81,29 @@ function renderLayout({ initialRoute = '/', withPageMarker = false } = {}) {
   );
 }
 
+/**
+ * happy-dom implements `matchMedia` and reports a 1024px viewport, so the layout is
+ * desktop by default. Force a mobile viewport (no `min-width: 768px` match) so the
+ * bottom-sheet branch of `useIsDesktop` renders. Restored in `afterEach`.
+ */
+let mobileViewportSpy: ReturnType<typeof vi.spyOn> | undefined;
+
+function stubMobileViewport() {
+  mobileViewportSpy = vi.spyOn(window, 'matchMedia').mockImplementation(
+    (query) =>
+      ({
+        matches: false,
+        media: query,
+        onchange: null,
+        addEventListener: () => {},
+        removeEventListener: () => {},
+        addListener: () => {},
+        removeListener: () => {},
+        dispatchEvent: () => false,
+      }) as unknown as MediaQueryList,
+  );
+}
+
 describe('Layout system status bar', () => {
   afterEach(() => {
     vi.useRealTimers();
@@ -296,6 +319,11 @@ describe('Layout content width', () => {
 });
 
 describe('Layout pixel pet and navigator', () => {
+  afterEach(() => {
+    mobileViewportSpy?.mockRestore();
+    mobileViewportSpy = undefined;
+  });
+
   it('renders a round pet placeholder fixed bottom-right', () => {
     renderLayout();
 
@@ -405,6 +433,7 @@ describe('Layout pixel pet and navigator', () => {
   });
 
   it('exposes the navigator on mobile as a bottom sheet', async () => {
+    stubMobileViewport();
     renderLayout();
 
     const pet = screen.getByRole('button', { name: /pixel pet/i });

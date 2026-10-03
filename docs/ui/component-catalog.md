@@ -92,22 +92,23 @@
 
 這些檔案在 `src/ui/components/` 底下但不是元件本身，因此不列為元件條目。列在這裡是為了讓「索引 vs 檔案系統」的比對沒有暗門——新增同類檔案時測試會要求歸類。
 
-| 檔案                                                  | 種類                                                |
-| ----------------------------------------------------- | --------------------------------------------------- |
-| `src/ui/components/charts/chartTheme.ts`              | 表面常數（色調對應、donut 色階、數值格式）          |
-| `src/ui/components/charts/chartInteraction.ts`        | 互動共用（點型別、keyboard scrubber、tooltip 定位） |
-| `src/ui/components/charts/lineChartGeometry.ts`       | 幾何計算（`LineChart` 使用）                        |
-| `src/ui/components/charts/monthTrendSeries.ts`        | 月份趨勢資料整理（標籤、tooltip、升冪序列）         |
-| `src/ui/components/moneyTone.ts`                      | 表面常數（金額語意的色調對應）                      |
-| `src/ui/components/data-table/index.ts`               | barrel                                              |
-| `src/ui/components/data-table/parseOptionalAmount.ts` | 內部 helper（`NumberInput` 使用）                   |
-| `src/ui/components/data-table/styles.ts`              | 表面常數                                            |
-| `src/ui/components/form/form-context.ts`              | 內部接線（context 與 `useFormField`）               |
-| `src/ui/components/form/index.ts`                     | barrel                                              |
-| `src/ui/components/form/styles.ts`                    | 表面常數                                            |
-| `src/ui/components/ui/button-variants.ts`             | 變體定義模組（`button` 使用）                       |
-| `src/ui/components/ui/input-styles.ts`                | 表面常數                                            |
-| `src/ui/components/ui/tabs-styles.ts`                 | 表面常數                                            |
+| 檔案                                                  | 種類                                                 |
+| ----------------------------------------------------- | ---------------------------------------------------- |
+| `src/ui/components/charts/chartTheme.ts`              | 表面常數（色調對應、donut 色階、數值格式）           |
+| `src/ui/components/charts/chartInteraction.ts`        | 互動共用（點型別、keyboard scrubber、tooltip 定位）  |
+| `src/ui/components/charts/donutSlices.ts`             | 幾何計算（donut 切片、百分比與 conic-gradient stop） |
+| `src/ui/components/charts/lineChartGeometry.ts`       | 幾何計算（`LineChart` 使用）                         |
+| `src/ui/components/charts/monthTrendSeries.ts`        | 月份趨勢資料整理（標籤、tooltip、升冪序列）          |
+| `src/ui/components/moneyTone.ts`                      | 表面常數（金額語意的色調對應）                       |
+| `src/ui/components/data-table/index.ts`               | barrel                                               |
+| `src/ui/components/data-table/parseOptionalAmount.ts` | 內部 helper（`NumberInput` 使用）                    |
+| `src/ui/components/data-table/styles.ts`              | 表面常數                                             |
+| `src/ui/components/form/form-context.ts`              | 內部接線（context 與 `useFormField`）                |
+| `src/ui/components/form/index.ts`                     | barrel                                               |
+| `src/ui/components/form/styles.ts`                    | 表面常數                                             |
+| `src/ui/components/ui/button-variants.ts`             | 變體定義模組（`button` 使用）                        |
+| `src/ui/components/ui/input-styles.ts`                | 表面常數                                             |
+| `src/ui/components/ui/tabs-styles.ts`                 | 表面常數                                             |
 
 ## 頁面骨架
 

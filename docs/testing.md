@@ -4,13 +4,13 @@
 
 ## 測試總覽
 
-| 層級     | 指令                    | 需要模擬器 | 說明                                             |
-| -------- | ----------------------- | ---------- | ------------------------------------------------ |
-| 格式     | `pnpm format`           | 否         | Prettier 自動排版（寫入型，commit 前執行）       |
-| 單元測試 | `pnpm test`             | 否         | jsdom 環境,驗證 domain、use case 與 UI 元件行為  |
-| 覆蓋率   | `pnpm test:coverage`    | 否         | 單元測試範圍的 text/JSON/HTML 報告               |
-| 整合測試 | `pnpm test:integration` | 是         | 對 Firebase Emulator 驗證持久化與 security rules |
-| E2E 測試 | 未導入(見下)            | 是         | 最小 browser smoke suite,屬 roadmap 最後階段     |
+| 層級     | 指令                    | 需要模擬器 | 說明                                                |
+| -------- | ----------------------- | ---------- | --------------------------------------------------- |
+| 格式     | `pnpm format`           | 否         | Prettier 自動排版（寫入型，commit 前執行）          |
+| 單元測試 | `pnpm test`             | 否         | happy-dom 環境,驗證 domain、use case 與 UI 元件行為 |
+| 覆蓋率   | `pnpm test:coverage`    | 否         | 單元測試範圍的 text/JSON/HTML 報告                  |
+| 整合測試 | `pnpm test:integration` | 是         | 對 Firebase Emulator 驗證持久化與 security rules    |
+| E2E 測試 | 未導入(見下)            | 是         | 最小 browser smoke suite,屬 roadmap 最後階段        |
 
 ## 單元測試
 
@@ -26,6 +26,21 @@ pnpm test
 ```bash
 pnpm test:coverage
 ```
+
+### 測試環境與轉譯(效能)
+
+單元測試環境為 `happy-dom`(非 jsdom),React 轉譯使用 `@vitejs/plugin-react-swc`。
+兩者皆為純效能選擇:實測在 12 vCPU 容器上把整套 `<Test Files>` 由約 75s 降到約 54s,
+測試集合與結果完全不變。`vite.config.ts`(dev/build)仍使用 babel + react-compiler,
+不受影響;請勿為了「一致」而把兩者混用。
+
+兩個已知的 happy-dom 差異與其處理方式:
+
+- CSS 引擎不解析 `conic-gradient`,故 `DonutChart` 的環形幾何改由純函式
+  `buildDonutSlices()` 斷言,而非讀取 inline style;`hsl(...)` 仍由 happy-dom 保留,
+  圖例 swatch 可直接比對。
+- `matchMedia` 有實作且預設回報 1024px 視窗,故 `Layout` 的 mobile bottom sheet
+  測試以 `stubMobileViewport()` 明確指定行動版視窗,不再依賴環境預設值。
 
 ## 整合測試
 

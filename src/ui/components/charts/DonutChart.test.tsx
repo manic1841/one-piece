@@ -2,6 +2,7 @@ import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 
 import { DonutChart } from './DonutChart';
+import { buildDonutSlices } from './donutSlices';
 
 const SEGMENTS = [
   { label: 'Equities', value: 42 },
@@ -12,23 +13,25 @@ const SEGMENTS = [
 
 describe('DonutChart', () => {
   it('builds a conic-gradient covering 0–100% from the shares', () => {
-    const { container } = render(<DonutChart segments={SEGMENTS} centerLabel="100%" />);
+    const stops = buildDonutSlices(SEGMENTS).map((slice) => slice.stop);
 
-    const ring = container.firstElementChild?.firstElementChild as HTMLElement;
-    expect(ring.style.background).toContain('conic-gradient');
-    expect(ring.style.background).toContain('0% 42%');
-    expect(ring.style.background).toContain('42% 67%');
-    expect(ring.style.background).toContain('100%');
+    expect(stops).toEqual([
+      'hsl(var(--primary)) 0% 42%',
+      'hsl(var(--border-strong)) 42% 67%',
+      'hsl(var(--border)) 67% 84%',
+      'hsl(var(--muted)) 84% 100%',
+    ]);
   });
 
   it('shares one color per slice between the ring and its legend', () => {
     const { container } = render(<DonutChart segments={SEGMENTS} centerLabel="100%" />);
 
-    const ring = container.firstElementChild?.firstElementChild as HTMLElement;
+    const sliceColors = buildDonutSlices(SEGMENTS).map((slice) => slice.color);
     const swatches = Array.from(
       container.querySelectorAll<HTMLElement>('span[aria-hidden="true"]'),
     );
-    expect(ring.style.background).toContain('hsl(var(--primary))');
+
+    expect(swatches.map((swatch) => swatch.style.background)).toEqual(sliceColors);
     expect(swatches[0].style.background).toBe('hsl(var(--primary))');
     expect(swatches[1].style.background).toBe('hsl(var(--border-strong))');
   });
@@ -54,11 +57,9 @@ describe('DonutChart', () => {
   });
 
   it('does not divide by zero when every value is zero', () => {
-    const { container } = render(
-      <DonutChart segments={[{ label: 'None', value: 0 }]} centerLabel="0%" />,
-    );
+    const slices = buildDonutSlices([{ label: 'None', value: 0 }]);
 
-    const ring = container.firstElementChild?.firstElementChild as HTMLElement;
-    expect(ring.style.background).toContain('0% 0%');
+    expect(slices).toHaveLength(1);
+    expect(slices[0].stop).toBe('hsl(var(--primary)) 0% 0%');
   });
 });

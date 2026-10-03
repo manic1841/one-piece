@@ -1,4 +1,3 @@
-/// <reference types="vitest" />
 import react from '@vitejs/plugin-react';
 import path from 'path';
 import { defineConfig } from 'vitest/config';
@@ -102,10 +101,5 @@ export default defineConfig({
     },
     // Increase chunk size warning limit to 600kb (reduced warnings for split chunks)
     chunkSizeWarningLimit: 600,
-  },
-  test: {
-    globals: true,
-    environment: 'jsdom',
-    setupFiles: './vitest.setup.ts',
   },
 });

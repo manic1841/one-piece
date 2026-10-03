@@ -1,4 +1,4 @@
-import react from '@vitejs/plugin-react';
+import react from '@vitejs/plugin-react-swc';
 import path from 'path';
 import tsconfigPaths from 'vite-tsconfig-paths';
 import { defineConfig } from 'vitest/config';
@@ -19,7 +19,9 @@ export default defineConfig({
   },
   test: {
     globals: true,
-    environment: 'jsdom',
+    // happy-dom 建立環境比 jsdom 快，且跑測試時間明顯較短（見 docs/testing.md）。
+    // 少數依賴 jsdom 專有行為的檔案以 `// @vitest-environment jsdom` 就地覆寫。
+    environment: 'happy-dom',
     setupFiles: './vitest.setup.ts',
     include: ['src/**/*.{test,spec}.{ts,tsx}'],
     exclude: ['src/**/*.integration.test.{ts,tsx}'],
