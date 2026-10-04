@@ -4,7 +4,6 @@ import {
   type CloseStageId,
   type CloseStageState,
   type FinancialPeriod,
-  type FinancialPeriodStatus,
   initialStageStates,
 } from './schemas';
 
@@ -24,9 +23,6 @@ export class FinancialPeriodStateError extends Error {
     this.name = 'FinancialPeriodStateError';
   }
 }
-
-export const resolvePeriodStatus = (existing: FinancialPeriod | null): FinancialPeriodStatus =>
-  existing?.status ?? 'OPEN';
 
 /**
  * Walk position (ADR-0070): while paused, the only confirmable stage is the

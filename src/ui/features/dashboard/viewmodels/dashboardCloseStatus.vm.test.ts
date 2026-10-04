@@ -113,12 +113,6 @@ describe('dashboardCloseStatus.vm', () => {
     expect(vm.statusText).toBe('NOT STARTED');
   });
 
-  it('maps OPEN to the waiting glyph', () => {
-    const vm = mapPeriodToCloseStatusVM(buildPeriod('OPEN'), '2026-08');
-
-    expect(vm.glyphType).toBe('waiting');
-  });
-
   it('formats the period text in mono style YYYY-MM', () => {
     const vm = mapPeriodToCloseStatusVM(buildPeriod('CLOSED'), '2026-08');
 

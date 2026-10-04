@@ -23,8 +23,8 @@ interface CloseFinancialReportsProps {
   reports: ReportViewsVM;
   timestamps: ReportTimestampsVM;
   isLoading: boolean;
-  /** This stage's own load is known and did not fail (useStageLoader.isReady). */
-  isReady: boolean;
+  /** This stage's own load is known and did not fail (useStageLoader.isLoaded). */
+  isLoaded: boolean;
   error: string | null;
   /**
    * null while readiness has not loaded or its load failed; Generate needs an
@@ -130,7 +130,7 @@ export const CloseFinancialReports: React.FC<CloseFinancialReportsProps> = ({
   reports,
   timestamps,
   isLoading,
-  isReady,
+  isLoaded,
   error,
   isSettlementReady,
   onContinue,
@@ -164,7 +164,7 @@ export const CloseFinancialReports: React.FC<CloseFinancialReportsProps> = ({
   // Generate gates on "known, and not failed", never on the data alone (#229).
   const hasAnyData = incomeStatement !== null || balanceSheet !== null || cashFlow !== null;
   const isGenerateBlocked =
-    isSettlementReady !== true || !isReady || !hasAnyData || reportsPersisted === null;
+    isSettlementReady !== true || !isLoaded || !hasAnyData || reportsPersisted === null;
   const showAdjustmentWarning = Math.abs(cashFlow?.adjustment.amount ?? 0) > 1000;
   const showExistingReportsWarning = !isStageCompleted && reportsPersisted === true;
   const showPersistenceUnknown =

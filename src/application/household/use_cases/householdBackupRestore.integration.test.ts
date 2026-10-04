@@ -475,7 +475,7 @@ describe('household backup/restore round-trip (Firestore Emulator)', () => {
     await seedAccounts(hid, ['acc-1']);
     await financialPeriodRepository.savePeriod(
       hid,
-      { yearMonth: '2025-01', status: 'OPEN', stages: initialStageStates() },
+      { yearMonth: '2025-01', status: 'IN_PROGRESS', stages: initialStageStates() },
       'admin-uid',
     );
     await watchListRepository.addTarget(

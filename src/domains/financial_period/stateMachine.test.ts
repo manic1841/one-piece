@@ -10,7 +10,6 @@ import {
   reconfirmStageInState,
   reopenPeriodInState,
   resetStagesFromInState,
-  resolvePeriodStatus,
   resolveWalkPosition,
 } from './stateMachine';
 import { FinancialPeriodStateError } from './stateMachine';
@@ -25,16 +24,6 @@ const basePeriod = (overrides: Partial<FinancialPeriod> = {}): FinancialPeriod =
   updatedBy: 'user-1',
   updatedAt: new Date(),
   ...overrides,
-});
-
-describe('resolvePeriodStatus', () => {
-  it('treats a missing record as OPEN', () => {
-    expect(resolvePeriodStatus(null)).toBe('OPEN');
-  });
-
-  it('returns the persisted status when a record exists', () => {
-    expect(resolvePeriodStatus(basePeriod({ status: 'NEEDS_REVIEW' }))).toBe('NEEDS_REVIEW');
-  });
 });
 
 describe('confirmStageInState', () => {

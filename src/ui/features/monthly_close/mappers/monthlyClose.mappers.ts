@@ -9,7 +9,6 @@ import {
 import type { CloseStageItemVM, MonthlyClosePageVM } from '../viewmodels/monthlyClose.vm';
 
 const STATUS_TEXT_MAP: Record<string, string> = {
-  OPEN: MONTHLY_CLOSE_LABELS.OPEN,
   IN_PROGRESS: MONTHLY_CLOSE_LABELS.IN_PROGRESS,
   NEEDS_REVIEW: MONTHLY_CLOSE_LABELS.NEEDS_REVIEW,
   CLOSED: MONTHLY_CLOSE_LABELS.CLOSED,

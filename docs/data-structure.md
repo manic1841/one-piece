@@ -155,9 +155,9 @@ firestore
      │    # - 同一 household 中，一個 ledgerCode 僅對應一個 template
      │    # - 可設定一筆 isDefault = true 作為無匹配 ledgerCode 的 fallback
      │    # - template 僅供 UI 預填，修改 template 不會回寫既有 allocations
-       ├─ financialPeriods/{yearMonth}    # 財務期間狀態 (ADR-0050/0052)；docId = YYYY-MM，開始關帳才建檔，無紀錄 = OPEN
+       ├─ financialPeriods/{yearMonth}    # 財務期間狀態 (ADR-0050/0052)；docId = YYYY-MM，開始關帳才建檔，無紀錄 = 尚未開始關帳
        │    ├─ yearMonth: string          # 財務期間鍵 (YYYY-MM)
-       │    ├─ status: "OPEN" | "IN_PROGRESS" | "NEEDS_REVIEW" | "CLOSED"
+       │    ├─ status: "IN_PROGRESS" | "NEEDS_REVIEW" | "CLOSED"
        │    ├─ stages: map<stageId, { status, confirmedBy?, confirmedAt? }>   # 各階段狀態 (ADR-0052 八階段)
        │    ├─ reviewSourceStageId?: string # NEEDS_REVIEW 時的來源階段；null = 前期關帳重開的連鎖降級 (ADR-0066)
        │    ├─ createdBy: string

@@ -15,12 +15,12 @@ export interface UseStageLoaderResult<T> {
   errorMessage: string | null;
   isLoading: boolean;
   /** A gate reads this: the data is known and the last load did not fail. */
-  isReady: boolean;
+  isLoaded: boolean;
   /** Explicit reload; it bypasses `enabled` so reopen/reset flows are never gated. */
   refresh: () => Promise<void>;
 }
 
-/** The close stages' load skeleton: abort/supersede, failure-is-not-empty, and `isReady`. */
+/** The close stages' load skeleton: abort/supersede, failure-is-not-empty, and `isLoaded`. */
 export const useStageLoader = <T>({
   enabled,
   load,
@@ -62,7 +62,7 @@ export const useStageLoader = <T>({
     data,
     errorMessage,
     isLoading,
-    isReady: data !== null && errorMessage === null,
+    isLoaded: data !== null && errorMessage === null,
     refresh: runLoad,
   };
 };

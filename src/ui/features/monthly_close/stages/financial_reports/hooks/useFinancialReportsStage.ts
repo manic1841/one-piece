@@ -155,7 +155,7 @@ export const useFinancialReportsStage = ({
   hasAnyDrift: boolean;
   timestamps: ReportTimestampsVM;
   isLoading: boolean;
-  isReady: boolean;
+  isLoaded: boolean;
   error: string | null;
 } => {
   const auth = useAuthIdentity();
@@ -164,10 +164,12 @@ export const useFinancialReportsStage = ({
     () => fetchFinancialReportsData({ householdId, selectedYearMonth, auth }),
     [auth, householdId, selectedYearMonth],
   );
-  const { data, errorMessage, isLoading, isReady, refresh } = useStageLoader<FinancialReportsData>({
-    enabled: householdId !== '' && selectedYearMonth !== '',
-    load,
-  });
+  const { data, errorMessage, isLoading, isLoaded, refresh } = useStageLoader<FinancialReportsData>(
+    {
+      enabled: householdId !== '' && selectedYearMonth !== '',
+      load,
+    },
+  );
 
   const customLabels = useMemo(() => data?.customLabels ?? new Map<string, string>(), [data]);
   const preview = data?.preview ?? null;
@@ -224,7 +226,7 @@ export const useFinancialReportsStage = ({
     hasAnyDrift: reportDrift.hasAnyDrift,
     timestamps,
     isLoading,
-    isReady,
+    isLoaded,
     error: errorMessage,
   };
 };

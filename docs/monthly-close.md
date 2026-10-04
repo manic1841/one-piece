@@ -25,7 +25,6 @@ URL 有效 ⟺ 該期間已有狀態紀錄。`yearMonth` 形狀不合法、或�
 
 | 狀態           | 意義                                                                                                                                                                                                                                                                                                                                                     |
 | -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `OPEN`         | 關帳已開啟，尚未完成任何階段                                                                                                                                                                                                                                                                                                                             |
 | `IN_PROGRESS`  | 階段推進中                                                                                                                                                                                                                                                                                                                                               |
 | `NEEDS_REVIEW` | 待使用者確認，工作流暫停。兩種來源：Completeness Check 的零活動異常（`reviewSourceStageId = COMPLETENESS_CHECK`），或前期關帳被重新開啟的連鎖降級（`reviewSourceStageId = null`）                                                                                                                                                                        |
 | `CLOSED`       | 該期間的報表已產生且狀態已定案。工作區以**唯讀模式**呈現（spec [#207](https://github.com/manic1841/one-piece/issues/207)）：預設渲染 Close Period 的關帳總結（定案紀錄），pipeline 的每個階段皆可點擊回看，所有輸入停用、確認／新增／刪除等動作鈕隱藏，證券買入／賣出的 add-edit drawer 入口（新增按鈕與整列點擊）完全隱藏；只有重開（reopen）能解除唯讀 |
@@ -36,7 +35,7 @@ URL 有效 ⟺ 該期間已有狀態紀錄。`yearMonth` 形狀不合法、或�
 - Completeness Check 的零活動異常會暫停工作流；使用者按行走順序逐階段確認，確認 review 來源階段（Completeness Check）時暫停清除，回到 `IN_PROGRESS`，Financial Reports 與 Close Period 重設為 `PENDING`（報表需重新產生）。
 - **暫停即強制順序恢復（ADR-0070）**：`NEEDS_REVIEW` 期間瀏覽自由（pipeline 點擊、階段跳轉皆可用），但**確認**只能作用在行走位置——`CLOSE_STAGE_IDS` 順序中第一個非 `COMPLETED` 的階段；對其他階段確認拋 `STAGE_NOT_WALK_POSITION`。暫停只在行走終點清除：Completeness Check 暫停以確認 review 來源階段清除；連鎖降級維持 `NEEDS_REVIEW` 直到重新關帳（`CLOSED`）。
 - **重新開啟（reopen）**：已關帳期間可透過確認視窗重新開啟，狀態改回 `IN_PROGRESS`，Financial Reports 與 Close Period 重設為 `PENDING`（報表重新產生、重新關帳），其他已完成階段保留；連鎖降級的期間走同一條重開路徑，但重開後**全部八個階段**重設為 `PENDING` 且狀態維持 `NEEDS_REVIEW`（恢復是完整的順序行走）。重開後 Dashboard 錨定的「最近已關帳月份」暫時退回上一個已關帳月份。
-- **連鎖降級（reopen cascade）**：重開某期間時，該期間之後所有 `CLOSED` 期間自動改為 `NEEDS_REVIEW`（`reviewSourceStageId = null`），因為它們的定案可能基於修正前的歷史；`IN_PROGRESS` 與 `OPEN` 的期間不受影響。被降級的期間**不會**在前月重新關帳後自動回復，恢復必須由使用者逐期手動重開。辨識記號是 `reviewSourceStageId = null`（Completeness Check 的暫停一定帶 `COMPLETENESS_CHECK`），不需要新 schema 值。
+- **連鎖降級（reopen cascade）**：重開某期間時，該期間之後所有 `CLOSED` 期間自動改為 `NEEDS_REVIEW`（`reviewSourceStageId = null`），因為它們的定案可能基於修正前的歷史；`IN_PROGRESS` 與尚未開始關帳的期間不受影響。被降級的期間**不會**在前月重新關帳後自動回復，恢復必須由使用者逐期手動重開。辨識記號是 `reviewSourceStageId = null`（Completeness Check 的暫停一定帶 `COMPLETENESS_CHECK`），不需要新 schema 值。
 - 現金差異維持報表層級的警告（見 [`financial_report.md`](financial_report.md)），**不暫停**工作流。
 
 ## 3. 階段模型
@@ -67,12 +66,12 @@ URL 有效 ⟺ 該期間已有狀態紀錄。`yearMonth` 形狀不合法、或�
 - **關帳前把關 Report Drift（ADR-0073）**：Financial Reports 三張報表只要有任何 drift（涵蓋畫面所有警示列與警示 cell，含僅子列增減的 `RESTRUCTURED` 列），關帳確認鈕即 disabled；同一位置以警示區塊說明報表與已產生報表不一致並提供「回到 Financial Reports」捷徑，漂移未清除前關不掉帳。警示**只表達有漂移、不報項數**（判定涵蓋推導值與畫面未繪製的項，任何計數都對不上使用者能數到的警示，理由見 ADR-0073）。判定不依賴 Close Period 的五個聚合數字——聚合相等時子列仍可能漂移。後端關帳就緒檢查不變，仍只驗「Financial Reports 已確認 + 三張 persisted 存在」。
 - **Close Period 總結後正式關帳**：呈現整個 Monthly Close 的關帳活動列、財務結果（完整數字，取自 FINANCIAL_REPORTS stage 自載的即時 preview bundle）與報表清單；關帳需經一個確認對話框，說明重開的後果（其後已關帳期間轉為 NEEDS REVIEW、恢復須逐期手動）。關帳後總結固定為唯讀的定案紀錄。
 - **`CLOSED` 期間的瀏覽規則（spec [#207](https://github.com/manic1841/one-piece/issues/207)）**：已關帳期間沒有行走位置，`displayedStageId` 預設為 `CLOSE_PERIOD`（渲染 Close Period 唯讀總結），使用者可從 pipeline 點擊任一階段回看其定案內容。唯讀語意：輸入欄位 disabled（含證券持倉與匯率）、chrome 的確認 bar、readiness/close 的確認鈕、新增／刪除動作鈕全部**隱藏**（非 disabled），add-edit drawer 因此不可達。回看進度（pipeline 的 position text）跟隨使用者檢視的階段，而非固定在行走位置。
-- 階段順序依賴在非暫停期間**僅為 UI 引導**，系統不強制；`NEEDS_REVIEW` 期間確認順序由行走規則強制（見 §2）。唯一的硬性條件是 **Close Period 需要 Financial Reports 階段已確認且三張報表已產生**。
+- 階段順序依賴在非暫停期間**僅為 UI 引導**，系統不強制；`NEEDS_REVIEW` 期間確認順序由行走規則強制（見 §2）。硬性條件有二：**Close Period 需要 Financial Reports 階段已確認且三張報表已產生**，以及**帳戶餘額階段不可空確認**（無任何輸入時以 `STAGE_INPUT_REQUIRED` 拒絕，見 §5）。
 - 建立的是既有合法事件（快照與交易）；關帳工作流與期間狀態本身不是財務事件。
 
 ### UI 組構：大一統步驟 registry
 
-- **`useCloseStepRegistry` 是唯一列出全部八個步驟的檔案，也是唯一允許跨階段讀取的地方**：八個 step hooks 在 hook 內無條件呼叫（rules of hooks 不依賴條件分派；載入受期間存在閘門，見 §「載入扇出與量測」），回傳 `Record<CloseStageId, CloseStepDefinition>`，TypeScript 強制每個階段都有條目。新增步驟 = 一個 step hook + 一個 registry 條目。
+- **`useCloseStepRegistry` 是唯一列出全部八個步驟定義的檔案，也是唯一允許跨階段讀取的地方**：八個 step hooks 在 hook 內無條件呼叫（rules of hooks 不依賴條件分派；載入受期間存在閘門，見 §「載入扇出與量測」），回傳 `Record<CloseStageId, CloseStepDefinition>`，TypeScript 強制每個階段都有條目。新增步驟 = 一個 step hook + 一個 registry 條目。
 - **`CloseStepDefinition` 條目 = control + content factory + evidence builder**：`control` 是該階段的 stage controller（`closeStageControl` 契約，頁面只對契約分派：`buildRequest` / `confirmGate` / `afterConfirm` / `refresh` / `keepsViewOnConfirm`）；`render(ctx)` 是 content factory，從 registry 內的 stage hook 閉包直讀該階段資料（draft、prefill、drawer、summary VM），把頁面傳入的 chrome／navigation／entities context 映射到 step 元件的窄 props，資料未載入時回傳 `null`；`evidence()` 是零參數閉包，從擁有該資料的 stage hook 建構該階段證據。**證據是判別聯合**：一個階段只帶一種證據形狀，渲染端對形狀窮舉——新增一種證據而沒接上畫面是編譯錯誤，不是靜默遺漏。
 - **每個階段自載 evidence**：證據型階段也擁有自己的載入——`COMPLETENESS_CHECK` stage hook 同時擁有 `checkSettlementCompletenessUseCase`（anomalies）、`getSettlementReadinessUseCase`（readiness）與 `validateMonthTransactionsUseCase`（交易驗證 issues，一次呼叫供給 Completeness Check 的呈現）。hook 以 `control.refresh` opt-in 重載，page 不再持有任何 evidence 載入或 `refreshStageEvidence`。載入走 `useStageLoader`（組合 `useLoadingTask`，見下）：失敗時該階段顯示自己的罐頭錯誤訊息（`CloseStageLoadError`），不靜默留白——留白與「本月乾淨」在畫面上無法區分。
 - **registry 為唯一跨階段讀取點**：`CLOSE_PERIOD` 的 evidence 與 `COMPLETENESS_CHECK`／`CLOSE_PERIOD` 的 summary VM 都在 registry 內跨讀其他 stage hook（`useCloseSummaryVM` 在八個 stage hooks 之後呼叫）；**報表資料（即時 preview bundle、persisted bundle）與持久化旗標全由 `FINANCIAL_REPORTS` stage 擁有**（#228）——三者出自同一次載入，不會先後落地而互相矛盾；`CLOSE_PERIOD` 沒有自己的 stage hook（無草稿階段走 no-op control），它的 evidence 讀 `FINANCIAL_REPORTS` 的持久化旗標，Close Period 的五個財務數字與 Financial Reports 的調整項證據都讀同一份 preview bundle。`FINANCIAL_REPORTS` 的 Generate 守門另外跨讀 `COMPLETENESS_CHECK` 的 readiness。preview 不受持久化 gating：一律載入當前分錄重算的即時預覽，關帳畫面永遠顯示即時數字，persisted 只當狀態旗標（`CLOSED` 期間唯一例外，見 Report Drift）。step hook 之間不互相引用。
@@ -88,7 +87,7 @@ URL 有效 ⟺ 該期間已有狀態紀錄。`yearMonth` 形狀不合法、或�
 ### 載入失敗的語意（ADR-0072）
 
 - **載入失敗代表資料 UNKNOWN，不是 EMPTY**：失敗的階段顯示自己的罐頭錯誤訊息（`CloseStageLoadError`，文案由消費該資料的 hook 擁有），不留白——留白與「本月乾淨」在畫面上無法區分。
-- **把關讀法固定為「已知且未失敗」**：`data !== null && errorMessage === null`，`useStageLoader` 把這個讀法具名為 `isReady`。目前有兩個把關讀 `isReady`：(1) **Completeness Check 的確認閘門**——`isConfirmable && COMPLETENESS_CHECK.isReady`（交易驗證問題與 readiness 同一份載入，任一失敗或尚未落地都視為未就緒；`errorMessage` 仍獨立供顯示）；(2) **Financial Reports 的 Generate 守門**——`!isSettlementReady || !isReady || !hasAnyData || reportsPersisted === null`，其中 `isSettlementReady` 讀的是 Completeness Check 聚合後的整體就緒（含交易驗證問題、排除非阻擋的零活動）。Close Period 的 **drift 把關不改**：`hasDrift` 是領域比對（即時 preview 與持久化報表是否分岔），不是載入狀態，因此不讀 `isReady`。
+- **把關讀法固定為「已知且未失敗」**：`data !== null && errorMessage === null`，`useStageLoader` 把這個讀法具名為 `isLoaded`（有別於就緒判定的 `isReady`）。目前有兩個把關讀 `isLoaded`：(1) **Completeness Check 的確認閘門**——`isConfirmable && COMPLETENESS_CHECK.isLoaded`（交易驗證問題與 readiness 同一份載入，任一失敗或尚未落地都視為未就緒；`errorMessage` 仍獨立供顯示）；(2) **Financial Reports 的 Generate 守門**——`!isSettlementReady || !isLoaded || !hasAnyData || reportsPersisted === null`，其中 `isSettlementReady` 讀的是 Completeness Check 聚合後的整體就緒（含交易驗證問題、排除非阻擋的零活動）。Close Period 的 **drift 把關不改**：`hasDrift` 是領域比對（即時 preview 與持久化報表是否分岔），不是載入狀態，因此不讀 `isLoaded`。
 - **prefill 失敗不阻擋確認**：prefill 是便利，不是關卡——錯誤照常顯示，使用者手打的草稿仍可提交。
 - **同月刷新失敗保留上一輪已載入的資料**（最後已知值，不是空白）並顯示錯誤；切月失敗沒有同月已知值可留，畫面顯示錯誤與空值。「有沒有資料」因此不是把關依據。
 - **prefill 每個 `yearMonth` 只種一次**：草稿由 `useSeededDraft` 從當月載入結果種入——使用者一旦編輯（或在確認後採納權威列）當月的草稿即取得所有權，之後同月的重載不會覆蓋它；換月由工作區重掛載淘汰重種。草稿不持久化；整頁重載會重跑預填（草稿本來就不持久化，見 §4）。
@@ -129,7 +128,7 @@ URL 有效 ⟺ 該期間已有狀態紀錄。`yearMonth` 形狀不合法、或�
 
 | 階段               | 確認時建立什麼                                                                                                                                                                                                                                                                                                                                                            |
 | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 帳戶餘額           | 為**有輸入**的帳戶建立快照（使用者的觀察餘額）；不為未輸入的帳戶偽造零值                                                                                                                                                                                                                                                                                                  |
+| 帳戶餘額           | 為**有輸入**的帳戶建立快照（使用者的觀察餘額）；不為未輸入的帳戶偽造零值，且無任何輸入時以 `STAGE_INPUT_REQUIRED` 拒絕確認（見 §5）                                                                                                                                                                                                                                                                                                  |
 | 證券買入／賣出     | Diff-merge 當月投資與融資交易：載入的既有列以**文件 ID 更新**（intent 隨買入／賣出側改變、可跨側搬移），新增列逐筆建立為獨立合法事件，移除的列以 ID 刪除；監看清單外的手動交易預設不受寫入影響，但**會被 prefill 載入為階段列**——使用者刪除或編輯後，刪除以 `removedTransactionIds` 落地，該文件即轉為階段管理                                                            |
 | Portfolio 金流     | 為每個 portfolio 寫入快照（存入與領出金隨確認一次提交）；**已存在的月快照以提交內容同鍵覆蓋**，未輸入的 portfolio 補一筆零金流快照；階段**允許重新確認**（修正輸入後再次確認即覆蓋）                                                                                                                                                                                      |
 | 專案結算           | 執行結算流程建立專案快照；證據區列出 active 專案與 N/M 結算狀態，確認後顯示各專案的快照結果（收入、支出、期末餘額）                                                                                                                                                                                                                                                       |
@@ -182,7 +181,7 @@ URL 有效 ⟺ 該期間已有狀態紀錄。`yearMonth` 形狀不合法、或�
 
 ## 5. 帳戶餘額階段的輸入
 
-該階段依 Account Type 分區，所有必要輸入直接呈現在頁面內（單一 current step 工作區），不使用 Dialog。
+該階段依 Account Type 分區，所有必要輸入直接呈現在頁面內（單一 current step 工作區），不使用 Dialog。與證券買入／賣出不同，本階段**不可空確認**：沒有任何帳戶輸入時，確認以 `STAGE_INPUT_REQUIRED` 拒絕（零輸入不產生任何快照，就緒必然不成立）。
 
 - **現金／銀行**：前期餘額（唯讀，取上月快照）＋期末餘額（可編輯）。
 - **外幣**：外幣金額＋匯率（皆可編輯）＋取得匯率按鈕，台幣價值由系統計算，不可做成 input。取得匯率按鈕置於 Account 欄，全階段單一實體。

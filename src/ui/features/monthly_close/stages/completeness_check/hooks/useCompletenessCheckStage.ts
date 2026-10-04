@@ -75,7 +75,7 @@ export const useCompletenessCheckStage = ({
   readiness: SettlementReadiness | null;
   transactionIssues: TransactionValidationIssue[];
   errorMessage: string | null;
-  isReady: boolean;
+  isLoaded: boolean;
 } => {
   const auth = useAuthIdentity();
 
@@ -83,7 +83,7 @@ export const useCompletenessCheckStage = ({
     () => fetchCompleteness({ householdId, selectedYearMonth, auth }),
     [auth, householdId, selectedYearMonth],
   );
-  const { data, errorMessage, isReady, refresh } = useStageLoader<CompletenessData>({
+  const { data, errorMessage, isLoaded, refresh } = useStageLoader<CompletenessData>({
     enabled: householdId !== '' && selectedYearMonth !== '',
     load,
   });
@@ -101,6 +101,6 @@ export const useCompletenessCheckStage = ({
     readiness: data?.readiness ?? null,
     transactionIssues: data?.transactionIssues ?? [],
     errorMessage,
-    isReady,
+    isLoaded,
   };
 };

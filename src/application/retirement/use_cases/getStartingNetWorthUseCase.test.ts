@@ -88,7 +88,7 @@ describe('getStartingNetWorthUseCase', () => {
         if (yearMonth === '2026-07') {
           return { status: 'CLOSED' } as never;
         }
-        return { status: 'OPEN' } as never;
+        return { status: 'IN_PROGRESS' } as never;
       },
     );
 

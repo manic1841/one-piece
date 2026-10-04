@@ -187,7 +187,7 @@ export const useCloseStepRegistry = ({
     pageVM.stages.find((stage) => stage.stageId === 'FINANCIAL_REPORTS')?.isCompleted ?? false;
 
   const completenessCheckError = completenessCheckStage.errorMessage;
-  const isCompletenessCheckReady = completenessCheckStage.isReady;
+  const isCompletenessCheckReady = completenessCheckStage.isLoaded;
 
   // Close gate: any drift in FINANCIAL_REPORTS reports blocks the close (#234, ADR-0073).
   const hasDrift = financialReportsStage.hasAnyDrift;
@@ -323,7 +323,7 @@ export const useCloseStepRegistry = ({
           reports={financialReportsStage.reports}
           timestamps={financialReportsStage.timestamps}
           isLoading={financialReportsStage.isLoading}
-          isReady={financialReportsStage.isReady}
+          isLoaded={financialReportsStage.isLoaded}
           error={financialReportsStage.error}
           isSettlementReady={isCompletenessCheckReady ? (readinessVM?.isReady ?? null) : null}
           onContinue={ctx.onContinue}
