@@ -7,13 +7,12 @@ import {
   NumberInput,
   parseOptionalAmount,
 } from '@/ui/components/data-table';
-import { formatCurrency } from '@/ui/utils';
 
 import type {
   AccountBalanceEntryVM,
   AccountBalanceInput,
 } from '../../../viewmodels/accountBalance.vm';
-import { computeSectionInput } from '../../../viewmodels/accountBalance.vm';
+import { foreignTwdValueText } from '../../../viewmodels/accountBalance.vm';
 import { AccountNameCell } from './AccountNameCell';
 
 interface TwdMobileListProps {
@@ -37,7 +36,7 @@ export const TwdMobileList: React.FC<TwdMobileListProps> = ({
         </p>
         <MobileDataField label="前期餘額">
           <p className="font-mono text-sm tabular-nums text-foreground">
-            {entry.previousBalance === null ? '—' : formatCurrency(entry.previousBalance)}
+            {entry.previousBalanceText}
           </p>
         </MobileDataField>
         <MobileDataField label="期末餘額">
@@ -81,9 +80,7 @@ export const ForeignMobileList: React.FC<ForeignMobileListProps> = ({
         </p>
         <MobileDataField label="前期餘額">
           <p className="font-mono text-sm tabular-nums text-foreground">
-            {entry.previousBalance === null
-              ? '—'
-              : formatCurrency(entry.previousBalance, entry.account.currency)}
+            {entry.previousBalanceText}
           </p>
         </MobileDataField>
         <MobileDataField label="外幣金額">
@@ -122,17 +119,7 @@ export const ForeignMobileList: React.FC<ForeignMobileListProps> = ({
             data-testid={`twd-value-${entry.account.id}`}
             className="font-mono text-sm font-medium tabular-nums text-foreground"
           >
-            {formatCurrency(
-              computeSectionInput(
-                {
-                  accountId: entry.account.id,
-                  amount: 0,
-                  originalAmount: findInput(entry.account.id)?.originalAmount ?? 0,
-                  exchangeRate: findInput(entry.account.id)?.exchangeRate ?? 0,
-                },
-                'foreign',
-              ),
-            )}
+            {foreignTwdValueText(findInput(entry.account.id))}
           </p>
         </MobileDataField>
       </MobileDataRow>

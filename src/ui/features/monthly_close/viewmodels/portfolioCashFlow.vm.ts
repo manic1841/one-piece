@@ -3,20 +3,23 @@ import {
   calculatePortfolioTotal,
 } from '@/domains/portfolio/calculators/portfolioCalculator';
 import { type PortfolioSnapshot } from '@/domains/portfolio/types/portfolio';
+import { formatCurrency, formatCurrencyOrDash, formatPercentage } from '@/ui/utils';
 
 export type { PortfolioSnapshot };
 
 export interface PortfolioCashFlowSectionVM {
   portfolioId: string;
   portfolioName: string;
-  securitiesBalance: number | null;
-  bankBalance: number | null;
+  securitiesBalanceText: string;
+  bankBalanceText: string;
   deposits: number | undefined;
   withdrawals: number | undefined;
   netCashFlow: number;
   openingValue: number;
   gain: number;
+  gainText: string;
   returnRate: number;
+  returnRateText: string;
 }
 
 export interface PortfolioBalanceVM {
@@ -48,14 +51,16 @@ const buildSection = (
   return {
     portfolioId: portfolio.id,
     portfolioName: portfolio.name,
-    securitiesBalance,
-    bankBalance,
+    securitiesBalanceText: formatCurrencyOrDash(securitiesBalance),
+    bankBalanceText: formatCurrencyOrDash(bankBalance),
     deposits,
     withdrawals,
     netCashFlow,
     openingValue,
     gain,
+    gainText: formatCurrency(gain),
     returnRate,
+    returnRateText: formatPercentage(returnRate, 2),
   };
 };
 
@@ -82,10 +87,17 @@ export const buildPortfolioCashFlowSections = ({
     ),
   );
 
+export interface PortfolioCashFlowTotalVM {
+  gain: number;
+  gainText: string;
+  returnRate: number;
+  returnRateText: string;
+}
+
 export const buildPortfolioCashFlowTotal = (
   sections: PortfolioCashFlowSectionVM[],
-): { gain: number; returnRate: number } =>
-  calculatePortfolioTotal(
+): PortfolioCashFlowTotalVM => {
+  const { gain, returnRate } = calculatePortfolioTotal(
     sections.map((section) => ({
       performance: {
         openingValue: section.openingValue,
@@ -98,5 +110,12 @@ export const buildPortfolioCashFlowTotal = (
       },
     })),
   );
+  return {
+    gain,
+    gainText: formatCurrency(gain),
+    returnRate,
+    returnRateText: formatPercentage(returnRate, 2),
+  };
+};
 
 export const shouldUseAccordion = (portfolioCount: number): boolean => portfolioCount >= 4;

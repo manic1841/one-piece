@@ -21,6 +21,7 @@ import {
   type DriftItem,
   type IncomeStatementDrift,
   combineDrift,
+  formatDriftAmountText,
   formatDriftDelta,
   isDrifted,
 } from '../../../viewmodels/reportDrift.vm';
@@ -83,9 +84,7 @@ const StatementAmountCell: React.FC<{ drift: DriftAmount; tone: RowTone }> = ({ 
 
 /** Inline variant of {@link StatementAmountCell} for totals rendered inside prose. */
 const StatementAmountText: React.FC<{ drift: DriftAmount }> = ({ drift }) => (
-  <span className={cn(isDrifted(drift) && 'text-warning')}>
-    {formatDriftDelta(drift) ?? formatCurrency(drift.amount)}
-  </span>
+  <span className={cn(isDrifted(drift) && 'text-warning')}>{formatDriftAmountText(drift)}</span>
 );
 
 const RowAmountCell: React.FC<{ value: DriftAmount | null; tone: RowTone }> = ({ value, tone }) => {

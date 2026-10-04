@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
+import { DRIFT_STATUS } from '@/domains/report/reportDrift';
+import { MONTHLY_CLOSE_LABELS } from '@/ui/constants/monthlyClose';
+
 import { CLOSE_ACTIVITY_STATUS, mapCloseSummary, mapReadinessVM } from './closeSummary.mappers';
 
 const readinessInput = {
@@ -154,6 +157,39 @@ describe('mapCloseSummary', () => {
       netIncome: 117_000,
       netCashFlow: 179_000,
     });
+  });
+
+  it('formats the financial figures once, in the mapper', () => {
+    const vm = mapCloseSummary(summaryInput);
+
+    expect(vm.financialText).toEqual({
+      totalAssets: 'NT$10,500,000',
+      totalLiabilities: 'NT$6,200,000',
+      equity: 'NT$4,300,000',
+      netIncome: 'NT$117,000',
+      netCashFlow: 'NT$179,000',
+    });
+  });
+
+  it('shows 空值 for a figure the preview does not have, never NT$0', () => {
+    const vm = mapCloseSummary({
+      ...summaryInput,
+      financialResult: { ...summaryInput.financialResult, netIncome: null },
+    });
+
+    expect(vm.financialText.netIncome).toBe(MONTHLY_CLOSE_LABELS.NO_DATA);
+  });
+
+  it('prints the drift delta in place of the figure when it moved', () => {
+    const vm = mapCloseSummary({
+      ...summaryInput,
+      financialDrift: {
+        equity: { amount: 4_300_000, previousAmount: 4_200_000, status: DRIFT_STATUS.CHANGED },
+      },
+    });
+
+    expect(vm.financialText.equity).toBe('NT$4,200,000 -> NT$4,300,000');
+    expect(vm.financialText.netIncome).toBe('NT$117,000');
   });
 
   it('marks missing reports as not generated', () => {

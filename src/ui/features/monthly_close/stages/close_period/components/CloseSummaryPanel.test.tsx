@@ -34,6 +34,13 @@ const summaryVM: CloseSummaryVM = {
     netIncome: 117_000,
     netCashFlow: 179_000,
   },
+  financialText: {
+    totalAssets: 'NT$10,500,000',
+    totalLiabilities: 'NT$6,200,000',
+    equity: 'NT$4,300,000',
+    netIncome: 'NT$117,000',
+    netCashFlow: 'NT$179,000',
+  },
   reports: [
     { title: '損益表', isGenerated: true },
     { title: '資產負債表', isGenerated: true },
@@ -102,6 +109,10 @@ describe('CloseSummaryPanel', () => {
         ...summaryVM,
         financialDrift: {
           equity: { amount: 4_300_000, previousAmount: 4_200_000, status: DRIFT_STATUS.CHANGED },
+        },
+        financialText: {
+          ...summaryVM.financialText,
+          equity: 'NT$4,200,000 -> NT$4,300,000',
         },
       },
     });

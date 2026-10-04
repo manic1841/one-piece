@@ -3,7 +3,7 @@ import React from 'react';
 import { StatusGlyph } from '@/ui/components/StatusGlyph';
 import { Alert, AlertDescription } from '@/ui/components/ui/alert';
 import { MONTHLY_CLOSE_LABELS } from '@/ui/constants/monthlyClose';
-import { formatCurrency } from '@/ui/utils';
+import { closeEyebrowClass } from '@/ui/features/monthly_close/components/CloseSectionHeading';
 
 import type { CloseStageEvidence } from '../viewmodels/closeEvidence.vm';
 
@@ -11,12 +11,10 @@ interface CloseStageEvidenceListProps {
   evidence: CloseStageEvidence;
 }
 
-const ProjectFigure: React.FC<{ label: string; value: number }> = ({ label, value }) => (
+const ProjectFigure: React.FC<{ label: string; value: string }> = ({ label, value }) => (
   <div>
-    <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-      {label}
-    </p>
-    <p className="font-mono text-xs tabular-nums text-foreground">{formatCurrency(value)}</p>
+    <p className={closeEyebrowClass}>{label}</p>
+    <p className="font-mono text-xs tabular-nums text-foreground">{value}</p>
   </div>
 );
 
@@ -45,7 +43,7 @@ export const CloseStageEvidenceList: React.FC<CloseStageEvidenceListProps> = ({ 
       return (
         <Alert variant="default">
           <StatusGlyph type="inactive" label={MONTHLY_CLOSE_LABELS.ADJUSTMENT} />
-          <AlertDescription>{evidence.count.toLocaleString()}</AlertDescription>
+          <AlertDescription>{evidence.countText}</AlertDescription>
         </Alert>
       );
 
@@ -77,19 +75,19 @@ export const CloseStageEvidenceList: React.FC<CloseStageEvidenceListProps> = ({ 
                 <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
                   <ProjectFigure
                     label={MONTHLY_CLOSE_LABELS.PROJECT_OPENING_BALANCE}
-                    value={settlement.openingBalance}
+                    value={settlement.openingBalanceText}
                   />
                   <ProjectFigure
                     label={MONTHLY_CLOSE_LABELS.INCOME_SECTION}
-                    value={settlement.income}
+                    value={settlement.incomeText}
                   />
                   <ProjectFigure
                     label={MONTHLY_CLOSE_LABELS.EXPENSE_SECTION}
-                    value={settlement.expense}
+                    value={settlement.expenseText}
                   />
                   <ProjectFigure
                     label={MONTHLY_CLOSE_LABELS.CLOSING_BALANCE}
-                    value={settlement.closingBalance}
+                    value={settlement.closingBalanceText}
                   />
                 </div>
               </Alert>

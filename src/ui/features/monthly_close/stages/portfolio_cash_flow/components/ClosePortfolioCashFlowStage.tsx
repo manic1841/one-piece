@@ -1,7 +1,10 @@
 import React from 'react';
 
 import { MONTHLY_CLOSE_LABELS } from '@/ui/constants/monthlyClose';
-import { CloseSectionHeading } from '@/ui/features/monthly_close/components/CloseSectionHeading';
+import {
+  CloseSectionHeading,
+  closeEyebrowClass,
+} from '@/ui/features/monthly_close/components/CloseSectionHeading';
 import { CloseStageChrome } from '@/ui/features/monthly_close/components/CloseStageChrome';
 import { CloseStageEvidenceList } from '@/ui/features/monthly_close/components/CloseStageEvidenceList';
 import { CloseStageLoadError } from '@/ui/features/monthly_close/components/CloseStageLoadError';
@@ -14,7 +17,6 @@ import {
   buildPortfolioCashFlowSections,
   buildPortfolioCashFlowTotal,
 } from '@/ui/features/monthly_close/viewmodels/portfolioCashFlow.vm';
-import { formatCurrency, formatPercentage } from '@/ui/utils';
 import { cn } from '@/ui/utils/cn';
 
 import { PortfolioCashFlowAccordion, PortfolioCashFlowSection } from './PortfolioCashFlowSection';
@@ -122,9 +124,7 @@ const PortfolioCashFlowContent: React.FC<{
         />
       </div>
       <div className="flex items-center justify-between gap-3 border-t border-border pt-4">
-        <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-          {MONTHLY_CLOSE_LABELS.TOTAL_RETURN}
-        </p>
+        <p className={closeEyebrowClass}>{MONTHLY_CLOSE_LABELS.TOTAL_RETURN}</p>
         <div className="flex items-center gap-4">
           <p
             className={cn(
@@ -136,7 +136,7 @@ const PortfolioCashFlowContent: React.FC<{
                   : 'text-foreground',
             )}
           >
-            {formatCurrency(total.gain)}
+            {total.gainText}
           </p>
           <p
             className={cn(
@@ -148,7 +148,7 @@ const PortfolioCashFlowContent: React.FC<{
                   : 'text-foreground',
             )}
           >
-            {formatPercentage(total.returnRate, 2)}
+            {total.returnRateText}
           </p>
         </div>
       </div>

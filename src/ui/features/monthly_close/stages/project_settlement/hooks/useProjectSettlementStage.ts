@@ -7,7 +7,10 @@ import { type AuthContext } from '@/application/types';
 import type { CloseStageControl } from '@/ui/features/monthly_close/hooks/closeStageControl';
 import { useNoOpStageControl } from '@/ui/features/monthly_close/hooks/useConfirmStageControl';
 import { useStageLoader } from '@/ui/features/monthly_close/hooks/useStageLoader';
-import { type ProjectSettlementEvidenceRow } from '@/ui/features/monthly_close/viewmodels/closeEvidence.vm';
+import {
+  type ProjectSettlementEvidenceRow,
+  projectSettlementEvidenceRow,
+} from '@/ui/features/monthly_close/viewmodels/closeEvidence.vm';
 import { useAuthIdentity } from '@/ui/hooks/useAuthIdentity';
 import { logger } from '@/utils/logger';
 
@@ -61,15 +64,17 @@ const fetchSettlements = async ({
       ),
     ]);
 
-    return previews.map((preview, index) => ({
-      projectId: preview.projectId,
-      projectName: preview.projectName,
-      settled: settledFlags[index] ?? false,
-      openingBalance: preview.openingBalance,
-      income: preview.income,
-      expense: preview.expense,
-      closingBalance: preview.closingBalance,
-    }));
+    return previews.map((preview, index) =>
+      projectSettlementEvidenceRow({
+        projectId: preview.projectId,
+        projectName: preview.projectName,
+        settled: settledFlags[index] ?? false,
+        openingBalance: preview.openingBalance,
+        income: preview.income,
+        expense: preview.expense,
+        closingBalance: preview.closingBalance,
+      }),
+    );
   } catch (caught) {
     logger.warn('Failed to load project settlements', 'useProjectSettlementStage', { caught });
     throw new Error(LOAD_ERROR);

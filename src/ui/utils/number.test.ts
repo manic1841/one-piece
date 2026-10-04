@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { formatCurrency } from './number';
+import { formatCurrency, formatCurrencyOrDash } from './number';
 
 describe('formatCurrency', () => {
   it('defaults to the base currency (TWD)', () => {
@@ -23,5 +23,17 @@ describe('formatCurrency', () => {
 
   it('falls back to a code suffix for an unrecognised code', () => {
     expect(formatCurrency(1234, 'GBP')).toBe('1,234 GBP');
+  });
+});
+
+describe('formatCurrencyOrDash', () => {
+  it('formats a present amount like formatCurrency', () => {
+    expect(formatCurrencyOrDash(0)).toBe('NT$0');
+    expect(formatCurrencyOrDash(12000, 'USD')).toBe('US$12,000');
+  });
+
+  it('shows an em dash for a missing amount so it never reads as zero', () => {
+    expect(formatCurrencyOrDash(null)).toBe('—');
+    expect(formatCurrencyOrDash(null, 'USD')).toBe('—');
   });
 });

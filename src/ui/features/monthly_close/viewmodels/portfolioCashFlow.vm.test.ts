@@ -41,14 +41,15 @@ describe('buildPortfolioCashFlowSections', () => {
     });
 
     expect(sections[0].portfolioName).toBe('Investment A');
-    expect(sections[0].securitiesBalance).toBe(1_000_000);
-    expect(sections[0].bankBalance).toBe(280_000);
+    expect(sections[0].securitiesBalanceText).toBe('NT$1,000,000');
+    expect(sections[0].bankBalanceText).toBe('NT$280,000');
     expect(sections[0].deposits).toBe(100_000);
     expect(sections[0].withdrawals).toBe(30_000);
     expect(sections[0].netCashFlow).toBe(70_000);
     expect(sections[0].openingValue).toBe(1_200_000);
     // gain = closing(1_280_000) - opening(1_200_000) - netCashFlow(70_000); Dietz base = 1_200_000 + 35_000
     expect(sections[0].gain).toBe(10_000);
+    expect(sections[0].gainText).toBe('NT$10,000');
     expect(sections[0].returnRate).toBeCloseTo((10_000 / 1_235_000) * 100, 10);
   });
 
@@ -78,8 +79,8 @@ describe('buildPortfolioCashFlowSections', () => {
       portfolioCashFlows: {},
     });
 
-    expect(sections[0].securitiesBalance).toBeNull();
-    expect(sections[0].bankBalance).toBeNull();
+    expect(sections[0].securitiesBalanceText).toBe('—');
+    expect(sections[0].bankBalanceText).toBe('—');
     expect(sections[0].gain).toBe(0);
     expect(sections[0].returnRate).toBe(0);
   });
@@ -91,26 +92,30 @@ describe('buildPortfolioCashFlowTotal', () => {
       {
         portfolioId: 'p1',
         portfolioName: 'A',
-        securitiesBalance: 1_000_000,
-        bankBalance: 280_000,
+        securitiesBalanceText: 'NT$1,000,000',
+        bankBalanceText: 'NT$280,000',
         deposits: undefined,
         withdrawals: undefined,
         netCashFlow: 70_000,
         openingValue: 1_210_000,
         gain: 35_000,
+        gainText: 'NT$35,000',
         returnRate: 2.8,
+        returnRateText: '2.80%',
       },
       {
         portfolioId: 'p2',
         portfolioName: 'B',
-        securitiesBalance: 500_000,
-        bankBalance: 0,
+        securitiesBalanceText: 'NT$500,000',
+        bankBalanceText: 'NT$0',
         deposits: undefined,
         withdrawals: undefined,
         netCashFlow: 0,
         openingValue: 500_000,
         gain: 10_000,
+        gainText: 'NT$10,000',
         returnRate: 2,
+        returnRateText: '2.00%',
       },
     ];
 
@@ -118,13 +123,17 @@ describe('buildPortfolioCashFlowTotal', () => {
 
     // Σgain / Σ(openingValue + netCashFlow/2), from the domain calculator path
     expect(total.gain).toBe(45_000);
+    expect(total.gainText).toBe('NT$45,000');
     expect(total.returnRate).toBeCloseTo((45_000 / (1_245_000 + 500_000)) * 100, 10);
+    expect(total.returnRateText).toBe('2.58%');
   });
 
   it('returns zero for an empty section list', () => {
     const total = buildPortfolioCashFlowTotal([]);
 
     expect(total.gain).toBe(0);
+    expect(total.gainText).toBe('NT$0');
     expect(total.returnRate).toBe(0);
+    expect(total.returnRateText).toBe('0.00%');
   });
 });

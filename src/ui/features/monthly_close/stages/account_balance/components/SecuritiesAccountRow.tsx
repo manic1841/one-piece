@@ -21,11 +21,13 @@ import {
 import { Button } from '@/ui/components/ui/button';
 import { Input } from '@/ui/components/ui/input';
 import { Label } from '@/ui/components/ui/label';
-import { formatCurrency } from '@/ui/utils';
 import { cn } from '@/ui/utils/cn';
 
 import type { Account, AccountBalanceInput, Holding } from '../../../viewmodels/accountBalance.vm';
-import { computeSectionInput } from '../../../viewmodels/accountBalance.vm';
+import {
+  holdingsMarketValueText,
+  securitiesTwdValueText,
+} from '../../../viewmodels/accountBalance.vm';
 
 /** 欄寬契約：總和必須等於 100（Symbol/Name/Cost/Value/Leverage 均分 + actions 7%）。 */
 const SECURITIES_COLUMN_WIDTHS = [18.6, 18.6, 18.6, 18.6, 18.6, 7] as const;
@@ -60,8 +62,6 @@ export const SecuritiesAccountRow: React.FC<SecuritiesAccountRowProps> = ({
 }) => {
   const holdings = input?.holdings ?? [];
   const isForeign = entry.account.currency !== 'TWD';
-  const holdingsSum = holdings.reduce((sum, holding) => sum + (holding.marketValue || 0), 0);
-  const twdValue = input ? computeSectionInput(input, 'securities') : 0;
   const canImport = !isReadOnly && entry.canImportPrevious && previousHoldings.length > 0;
 
   const updateHolding = (index: number, field: keyof Holding, value: string): void => {
@@ -273,7 +273,7 @@ export const SecuritiesAccountRow: React.FC<SecuritiesAccountRowProps> = ({
         <div className="text-right">
           <p className={dataTableLabelClass}>市值</p>
           <p className="font-mono text-sm font-medium tabular-nums text-foreground">
-            {formatCurrency(holdingsSum)}
+            {holdingsMarketValueText(input)}
           </p>
         </div>
       </div>
@@ -301,7 +301,7 @@ export const SecuritiesAccountRow: React.FC<SecuritiesAccountRowProps> = ({
               data-testid={`twd-value-${entry.account.id}`}
               className="font-mono text-sm font-medium tabular-nums text-foreground"
             >
-              {formatCurrency(twdValue)}
+              {securitiesTwdValueText(input)}
             </p>
           </div>
         </div>

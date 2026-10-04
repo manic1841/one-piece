@@ -13,6 +13,7 @@ import type {
   ReportTimestampsVM,
   ReportViewsVM,
 } from '@/ui/features/monthly_close/viewmodels/financialReports.vm';
+import { formatReportTimestamps } from '@/ui/features/monthly_close/viewmodels/financialReports.vm';
 
 import {
   BalanceSheetView,
@@ -60,20 +61,6 @@ interface CloseFinancialReportsProps {
   showAdjustmentWarning: boolean;
 }
 
-/**
- * Formats the frozen generation times as ` ｜ 損益表 10:00 ｜ ...`, or an empty
- * string when nothing is persisted. Shared by the generated panel and the
- * existing-reports warning so both read the same evidence.
- */
-const formatTimestamps = (timestamps: ReportTimestampsVM): string => {
-  const parts = [
-    [REPORT_VIEW_TITLES.INCOME_STATEMENT, timestamps.incomeStatement],
-    [REPORT_VIEW_TITLES.BALANCE_SHEET, timestamps.balanceSheet],
-    [REPORT_VIEW_TITLES.CASH_FLOW, timestamps.cashFlow],
-  ].flatMap(([title, time]) => (time ? [`${title} ${time}`] : []));
-  return parts.length > 0 ? ` ｜ ${parts.join(' ｜ ')}` : '';
-};
-
 interface ReportsAlertsProps {
   error: string | null;
   timestamps: ReportTimestampsVM;
@@ -82,7 +69,9 @@ interface ReportsAlertsProps {
   showPersistenceUnknown: boolean;
 }
 
-/** The FINANCIAL_REPORTS warning surface: load error plus every pre-confirm/unknown alert. */
+/**
+ * The FINANCIAL_REPORTS warning surface: load error plus every pre-confirm/unknown alert.
+ */
 const ReportsAlerts: React.FC<ReportsAlertsProps> = ({
   error,
   timestamps,
@@ -90,7 +79,7 @@ const ReportsAlerts: React.FC<ReportsAlertsProps> = ({
   showExistingReportsWarning,
   showPersistenceUnknown,
 }) => {
-  const generatedAt = formatTimestamps(timestamps);
+  const generatedAt = formatReportTimestamps(timestamps);
   return (
     <>
       {error && (
@@ -212,7 +201,7 @@ export const CloseFinancialReports: React.FC<CloseFinancialReportsProps> = ({
             </p>
             <p className="text-xs text-muted-foreground">
               {MONTHLY_CLOSE_LABELS.GENERATED_AT}
-              {formatTimestamps(timestamps)}
+              {formatReportTimestamps(timestamps)}
             </p>
             <div className="flex justify-end">
               <Button

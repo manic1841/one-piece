@@ -10,8 +10,8 @@ import {
   closeEyebrowClass,
 } from '@/ui/features/monthly_close/components/CloseSectionHeading';
 import { CloseStageLoadError } from '@/ui/features/monthly_close/components/CloseStageLoadError';
-import { formatDriftDelta, isDrifted } from '@/ui/features/monthly_close/viewmodels/reportDrift.vm';
-import { cn, formatCurrency } from '@/ui/utils';
+import { isDrifted } from '@/ui/features/monthly_close/viewmodels/reportDrift.vm';
+import { cn } from '@/ui/utils';
 
 import {
   CLOSE_ACTIVITY_STATUS,
@@ -118,9 +118,7 @@ export const CloseSummaryPanel: React.FC<CloseSummaryPanelProps> = ({
             <p className={closeEyebrowClass}>{MONTHLY_CLOSE_LABELS.SUMMARY_FINANCIAL}</p>
             <div className="space-y-1">
               {financialRows.map((row) => {
-                const value = summary.financial[row.key];
                 const drift = summary.financialDrift?.[row.key];
-                const delta = drift ? formatDriftDelta(drift) : null;
                 return (
                   <div
                     key={row.key}
@@ -133,9 +131,7 @@ export const CloseSummaryPanel: React.FC<CloseSummaryPanelProps> = ({
                         isDrifted(drift) ? 'text-warning' : 'text-muted-foreground',
                       )}
                     >
-                      {value === null
-                        ? MONTHLY_CLOSE_LABELS.NO_DATA
-                        : (delta ?? formatCurrency(value))}
+                      {summary.financialText[row.key]}
                     </span>
                   </div>
                 );

@@ -448,7 +448,10 @@ describe('useCloseStepRegistry', () => {
     await waitFor(() =>
       expect(result.current.PROJECT_SETTLEMENT.evidence()).toMatchObject({
         kind: 'SETTLEMENTS',
-        rows: [{ projectName: '裝修' }, { projectName: '旅遊' }],
+        rows: [
+          { projectName: '裝修', openingBalanceText: 'NT$1,000', incomeText: 'NT$5,000' },
+          { projectName: '旅遊' },
+        ],
       }),
     );
 
@@ -494,7 +497,7 @@ describe('useCloseStepRegistry', () => {
     await waitFor(() =>
       expect(result.current.FINANCIAL_REPORTS.evidence()).toMatchObject({
         kind: 'ADJUSTMENT',
-        count: 1500,
+        countText: '1,500',
       }),
     );
   });

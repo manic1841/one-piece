@@ -36,6 +36,17 @@ export const formatCurrency = (amount: number, currency: string = 'TWD'): string
 };
 
 /**
+ * Format a money amount that may be absent, showing an em dash where the value
+ * is null so a missing figure never reads as zero.
+ *
+ * @param amount - The amount to format, or null when there is none
+ * @param currency - Currency code (default: "TWD")
+ * @returns Formatted currency string, or "—" (e.g., "NT$1,234", "—")
+ */
+export const formatCurrencyOrDash = (amount: number | null, currency: string = 'TWD'): string =>
+  amount === null ? '—' : formatCurrency(amount, currency);
+
+/**
  * Format a number as a percentage
  * @param value - The percentage value (0-100)
  * @param decimals - Number of decimal places (default: 1)

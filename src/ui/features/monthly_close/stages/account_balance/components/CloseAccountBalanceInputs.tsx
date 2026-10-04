@@ -30,6 +30,8 @@ import {
   type AccountBalanceSectionKind,
   buildAccountBalanceSections,
   computeSectionInput,
+  foreignTwdValueText,
+  roundExchangeRate,
   upsertSectionInput,
 } from '../../../viewmodels/accountBalance.vm';
 import { AccountNameCell } from './AccountNameCell';
@@ -132,13 +134,6 @@ const ForeignAccountRow: React.FC<ForeignAccountRowProps> = ({
   isReadOnly,
   onDetailChange,
 }) => {
-  const originalAmount = input?.originalAmount ?? 0;
-  const exchangeRate = input?.exchangeRate ?? 0;
-  const twdValue = computeSectionInput(
-    { accountId: entry.account.id, amount: 0, originalAmount, exchangeRate },
-    'foreign',
-  );
-
   return (
     <DataTableRow>
       <DataTableCell>
@@ -192,7 +187,7 @@ const ForeignAccountRow: React.FC<ForeignAccountRowProps> = ({
         </div>
       </DataTableCell>
       <DataTableCell align="number" className="font-medium text-foreground">
-        <span data-testid={`twd-value-${entry.account.id}`}>{formatCurrency(twdValue)}</span>
+        <span data-testid={`twd-value-${entry.account.id}`}>{foreignTwdValueText(input)}</span>
       </DataTableCell>
     </DataTableRow>
   );
@@ -276,7 +271,7 @@ export const CloseAccountBalanceInputs: React.FC<CloseAccountBalanceInputsProps>
     value: number | undefined,
   ): void => {
     if (value === undefined) return;
-    patchInput(accountId, { [field]: field === 'exchangeRate' ? Number(value.toFixed(4)) : value });
+    patchInput(accountId, { [field]: field === 'exchangeRate' ? roundExchangeRate(value) : value });
   };
 
   const onHoldingsChange = (accountId: string, holdings: Holding[]): void => {
@@ -311,7 +306,7 @@ export const CloseAccountBalanceInputs: React.FC<CloseAccountBalanceInputsProps>
             return;
           }
           if (findInput(account.id)?.exchangeRate !== undefined) return;
-          patchInput(account.id, { exchangeRate: Number(result.value.toFixed(4)) });
+          patchInput(account.id, { exchangeRate: roundExchangeRate(result.value) });
         },
       });
     }
