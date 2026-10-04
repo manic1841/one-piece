@@ -14,6 +14,12 @@ const STATUS_TEXT_MAP: Record<string, string> = {
   CLOSED: MONTHLY_CLOSE_LABELS.CLOSED,
 };
 
+/** A `YYYY-MM` period as its display title, e.g. "2026 年 9 月". */
+export const formatYearMonthTitle = (yearMonth: string): string => {
+  const [year, month] = yearMonth.split('-');
+  return `${year} 年 ${Number(month)} 月`;
+};
+
 export const mapPeriodToPageVM = (period: FinancialPeriod): MonthlyClosePageVM => {
   const confirmedAtOf = (stageId: CloseStageId): Date | null => {
     const at = period.stages[stageId]?.confirmedAt;
@@ -53,6 +59,7 @@ export const mapPeriodToPageVM = (period: FinancialPeriod): MonthlyClosePageVM =
   return {
     periodLabel: MONTHLY_CLOSE_LABELS.PERIOD_LABEL,
     periodText: period.yearMonth,
+    periodTitle: formatYearMonthTitle(period.yearMonth),
     status: period.status,
     statusText: STATUS_TEXT_MAP[period.status] ?? period.status,
     isPaused: period.status === 'NEEDS_REVIEW',
