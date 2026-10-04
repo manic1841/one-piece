@@ -1,9 +1,9 @@
 import React from 'react';
 
 import { StatusGlyph } from '@/ui/components/StatusGlyph';
+import { eyebrowClass } from '@/ui/components/eyebrow';
 import { Alert, AlertDescription } from '@/ui/components/ui/alert';
 import { MONTHLY_CLOSE_LABELS } from '@/ui/constants/monthlyClose';
-import { closeEyebrowClass } from '@/ui/features/monthly_close/components/CloseSectionHeading';
 
 import type { CloseStageEvidence } from '../viewmodels/closeEvidence.vm';
 
@@ -13,12 +13,11 @@ interface CloseStageEvidenceListProps {
 
 const ProjectFigure: React.FC<{ label: string; value: string }> = ({ label, value }) => (
   <div>
-    <p className={closeEyebrowClass}>{label}</p>
+    <p className={eyebrowClass}>{label}</p>
     <p className="font-mono text-xs tabular-nums text-foreground">{value}</p>
   </div>
 );
 
-/** Draws the stage's evidence for its kind. */
 export const CloseStageEvidenceList: React.FC<CloseStageEvidenceListProps> = ({ evidence }) => {
   switch (evidence.kind) {
     case 'NONE':
@@ -64,7 +63,10 @@ export const CloseStageEvidenceList: React.FC<CloseStageEvidenceListProps> = ({ 
             <p className="text-xs text-muted-foreground">{MONTHLY_CLOSE_LABELS.NO_PROJECTS}</p>
           ) : (
             evidence.rows.map((settlement) => (
-              <Alert key={settlement.projectId} variant="default" className="block space-y-2">
+              <div
+                key={settlement.projectId}
+                className="space-y-2 border-b border-border/60 pb-3 last:border-b-0 last:pb-0"
+              >
                 <div className="flex min-w-0 items-center gap-1.5 text-xs">
                   <StatusGlyph type={settlement.settled ? 'verified' : 'review'} label="" />
                   <span className="truncate text-foreground">{settlement.projectName}</span>
@@ -90,7 +92,7 @@ export const CloseStageEvidenceList: React.FC<CloseStageEvidenceListProps> = ({ 
                     value={settlement.closingBalanceText}
                   />
                 </div>
-              </Alert>
+              </div>
             ))
           )}
         </div>

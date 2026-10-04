@@ -7,6 +7,7 @@ import { DonutChart } from '@/ui/components/charts/DonutChart';
 import { InteractiveBarChart } from '@/ui/components/charts/InteractiveBarChart';
 import { InteractiveLineChart } from '@/ui/components/charts/InteractiveLineChart';
 import { LineChart } from '@/ui/components/charts/LineChart';
+import { eyebrowClass } from '@/ui/components/eyebrow';
 import type { MoneyTone } from '@/ui/components/moneyTone';
 
 import { GalleryGroup, GalleryModule, GallerySection } from './GalleryScaffold';
@@ -143,9 +144,7 @@ const LineChartSection: React.FC = () => (
       <GalleryModule label="CHART WITH SUMMARY">
         <div className="grid grid-cols-1 items-center gap-7 sm:grid-cols-[180px_1fr]">
           <div>
-            <p className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
-              PORTFOLIO RETURN
-            </p>
+            <p className={eyebrowClass}>PORTFOLIO RETURN</p>
             <FinancialNumber
               value="+12.42%"
               size="hero"
@@ -177,9 +176,7 @@ const LineChartSection: React.FC = () => (
           />
         </div>
         <div>
-          <p className="mb-3 font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
-            TOOLTIP SPECIMEN
-          </p>
+          <p className={`mb-3 ${eyebrowClass}`}>TOOLTIP SPECIMEN</p>
           <ChartTooltip title="SEP 2026" value="NT$4,812,430" meta="+8.42% YTD" />
         </div>
       </div>

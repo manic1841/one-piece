@@ -9,6 +9,7 @@ import { PageHeader } from '@/ui/components/PageHeader';
 import { StatusGlyph } from '@/ui/components/StatusGlyph';
 import { Toolbar } from '@/ui/components/Toolbar';
 import { BarChart } from '@/ui/components/charts/BarChart';
+import { eyebrowClass } from '@/ui/components/eyebrow';
 import { Button } from '@/ui/components/ui/button';
 import {
   Card,
@@ -36,9 +37,7 @@ const SectionModuleSection: React.FC = () => (
   >
     <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
       <div>
-        <p className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
-          12M NET WORTH
-        </p>
+        <p className={eyebrowClass}>12M NET WORTH</p>
         <div className="my-4 h-px bg-border" />
         <GalleryModule label="TREND">
           <BarChart
@@ -141,14 +140,10 @@ const CardSection: React.FC = () => (
 const DividerSection: React.FC = () => (
   <GallerySection number="07" title="Divider">
     <GalleryModule label="BALANCE">
-      <p className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
-        ASSETS
-      </p>
+      <p className={eyebrowClass}>ASSETS</p>
       <FinancialNumber className="mt-2" value="NT$5,420,000" size="large" />
       <Divider className="my-4" />
-      <p className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
-        LIABILITIES
-      </p>
+      <p className={eyebrowClass}>LIABILITIES</p>
       <FinancialNumber className="mt-2" value="NT$598,680" size="large" />
     </GalleryModule>
   </GallerySection>

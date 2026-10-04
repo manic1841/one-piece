@@ -22,7 +22,6 @@ interface UsePortfolioCashFlowStageArgs {
 
 const LOAD_ERROR = '無法載入 Portfolio 金流，請稍後再試。';
 
-/** The linked account balances shown read-only beside the cash-flow inputs. */
 export interface PortfolioBalanceValues {
   securities: number | null;
   bank: number | null;

@@ -1,6 +1,7 @@
 import React from 'react';
 
 import { NumberInput, parseOptionalAmount } from '@/ui/components/data-table';
+import { eyebrowClass } from '@/ui/components/eyebrow';
 import {
   Accordion,
   AccordionContent,
@@ -9,7 +10,6 @@ import {
 } from '@/ui/components/ui/accordion';
 import { Label } from '@/ui/components/ui/label';
 import { MONTHLY_CLOSE_LABELS } from '@/ui/constants/monthlyClose';
-import { closeEyebrowClass } from '@/ui/features/monthly_close/components/CloseSectionHeading';
 import { cn } from '@/ui/utils/cn';
 
 import type { PortfolioCashFlowSectionVM } from '../../../viewmodels/portfolioCashFlow.vm';
@@ -29,7 +29,7 @@ const CashFlowInputs: React.FC<CashFlowInputsProps> = ({
 }) => (
   <div className="grid grid-cols-2 gap-4">
     <div className="space-y-2">
-      <Label className={closeEyebrowClass}>{MONTHLY_CLOSE_LABELS.CASH_IN}</Label>
+      <Label className={eyebrowClass}>{MONTHLY_CLOSE_LABELS.CASH_IN}</Label>
       <NumberInput
         disabled={disabled}
         placeholder="0"
@@ -39,7 +39,7 @@ const CashFlowInputs: React.FC<CashFlowInputsProps> = ({
       />
     </div>
     <div className="space-y-2">
-      <Label className={closeEyebrowClass}>{MONTHLY_CLOSE_LABELS.CASH_OUT}</Label>
+      <Label className={eyebrowClass}>{MONTHLY_CLOSE_LABELS.CASH_OUT}</Label>
       <NumberInput
         disabled={disabled}
         placeholder="0"
@@ -58,13 +58,13 @@ interface BalanceFieldsProps {
 const BalanceFields: React.FC<BalanceFieldsProps> = ({ section }) => (
   <div className="grid grid-cols-2 gap-4">
     <div>
-      <p className={closeEyebrowClass}>{MONTHLY_CLOSE_LABELS.SECURITIES_BALANCE}</p>
+      <p className={eyebrowClass}>{MONTHLY_CLOSE_LABELS.SECURITIES_BALANCE}</p>
       <p className="font-mono text-sm tabular-nums text-foreground">
         {section.securitiesBalanceText}
       </p>
     </div>
     <div>
-      <p className={closeEyebrowClass}>{MONTHLY_CLOSE_LABELS.BANK_BALANCE}</p>
+      <p className={eyebrowClass}>{MONTHLY_CLOSE_LABELS.BANK_BALANCE}</p>
       <p className="font-mono text-sm tabular-nums text-foreground">{section.bankBalanceText}</p>
     </div>
   </div>
@@ -77,7 +77,7 @@ interface ReturnFieldsProps {
 const ReturnFields: React.FC<ReturnFieldsProps> = ({ section }) => (
   <div className="grid grid-cols-2 gap-4">
     <div>
-      <p className={closeEyebrowClass}>{MONTHLY_CLOSE_LABELS.RETURN}</p>
+      <p className={eyebrowClass}>{MONTHLY_CLOSE_LABELS.RETURN}</p>
       <p
         className={cn(
           'font-mono text-sm tabular-nums',
@@ -92,7 +92,7 @@ const ReturnFields: React.FC<ReturnFieldsProps> = ({ section }) => (
       </p>
     </div>
     <div>
-      <p className={closeEyebrowClass}>{MONTHLY_CLOSE_LABELS.RETURN_RATE}</p>
+      <p className={eyebrowClass}>{MONTHLY_CLOSE_LABELS.RETURN_RATE}</p>
       <p
         className={cn(
           'font-mono text-sm tabular-nums',

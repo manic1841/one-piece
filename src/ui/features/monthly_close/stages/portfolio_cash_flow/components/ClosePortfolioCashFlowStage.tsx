@@ -1,10 +1,8 @@
 import React from 'react';
 
+import { eyebrowClass } from '@/ui/components/eyebrow';
 import { MONTHLY_CLOSE_LABELS } from '@/ui/constants/monthlyClose';
-import {
-  CloseSectionHeading,
-  closeEyebrowClass,
-} from '@/ui/features/monthly_close/components/CloseSectionHeading';
+import { CloseSectionHeading } from '@/ui/features/monthly_close/components/CloseSectionHeading';
 import { CloseStageChrome } from '@/ui/features/monthly_close/components/CloseStageChrome';
 import { CloseStageEvidenceList } from '@/ui/features/monthly_close/components/CloseStageEvidenceList';
 import { CloseStageLoadError } from '@/ui/features/monthly_close/components/CloseStageLoadError';
@@ -124,7 +122,7 @@ const PortfolioCashFlowContent: React.FC<{
         />
       </div>
       <div className="flex items-center justify-between gap-3 border-t border-border pt-4">
-        <p className={closeEyebrowClass}>{MONTHLY_CLOSE_LABELS.TOTAL_RETURN}</p>
+        <p className={eyebrowClass}>{MONTHLY_CLOSE_LABELS.TOTAL_RETURN}</p>
         <div className="flex items-center gap-4">
           <p
             className={cn(

@@ -48,7 +48,6 @@ export const settlementsEvidence = (rows: ProjectSettlementEvidenceRow[]): Close
   rows,
 });
 
-/** One project's settlement evidence: the preview's four figures, formatted once. */
 export const projectSettlementEvidenceRow = ({
   projectId,
   projectName,

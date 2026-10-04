@@ -1,5 +1,6 @@
 import * as React from 'react';
 
+import { eyebrowClass } from '@/ui/components/eyebrow';
 import { cn } from '@/ui/utils/cn';
 
 type ModuleProps = {
@@ -17,9 +18,7 @@ type ModuleProps = {
 export function Module({ label, children, className }: ModuleProps) {
   return (
     <div className={cn('min-w-0 rounded-lg border border-border bg-card p-5', className)}>
-      <p className="mb-4 font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
-        {label}
-      </p>
+      <p className={cn('mb-4', eyebrowClass)}>{label}</p>
       {children}
     </div>
   );

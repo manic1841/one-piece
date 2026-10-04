@@ -8,6 +8,7 @@ import { InlineEditableTitle } from '@/ui/components/InlineEditableTitle';
 import { Radio, RadioGroup } from '@/ui/components/RadioGroup';
 import { StatusGlyph } from '@/ui/components/StatusGlyph';
 import { YearMonthPicker } from '@/ui/components/YearMonthPicker';
+import { eyebrowClass } from '@/ui/components/eyebrow';
 import {
   Form,
   FormControl,
@@ -35,9 +36,7 @@ const FieldDemo: React.FC<{ label: string; error?: boolean; children: React.Reac
   children,
 }) => (
   <div className="flex flex-col gap-1.5">
-    <span className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
-      {label}
-    </span>
+    <span className={eyebrowClass}>{label}</span>
     {children}
     {error && <StatusGlyph type="error" label="Balance does not match ledger" />}
   </div>

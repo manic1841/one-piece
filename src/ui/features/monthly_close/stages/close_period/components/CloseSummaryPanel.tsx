@@ -2,13 +2,11 @@ import React from 'react';
 
 import { StatusGlyph } from '@/ui/components/StatusGlyph';
 import { useConfirm } from '@/ui/components/confirm/useConfirm';
+import { eyebrowClass } from '@/ui/components/eyebrow';
 import { Alert, AlertDescription } from '@/ui/components/ui/alert';
 import { Button } from '@/ui/components/ui/button';
 import { MONTHLY_CLOSE_LABELS } from '@/ui/constants/monthlyClose';
-import {
-  CloseSectionHeading,
-  closeEyebrowClass,
-} from '@/ui/features/monthly_close/components/CloseSectionHeading';
+import { CloseSectionHeading } from '@/ui/features/monthly_close/components/CloseSectionHeading';
 import { CloseStageLoadError } from '@/ui/features/monthly_close/components/CloseStageLoadError';
 import { isDrifted } from '@/ui/features/monthly_close/viewmodels/reportDrift.vm';
 import { cn } from '@/ui/utils';
@@ -90,7 +88,7 @@ export const CloseSummaryPanel: React.FC<CloseSummaryPanelProps> = ({
 
       <div className="grid gap-6 lg:grid-cols-2">
         <div className="space-y-2">
-          <p className={closeEyebrowClass}>{MONTHLY_CLOSE_LABELS.SUMMARY_ACTIVITY}</p>
+          <p className={eyebrowClass}>{MONTHLY_CLOSE_LABELS.SUMMARY_ACTIVITY}</p>
           <ul className="space-y-1">
             {summary.activity.map((row) => (
               <li
@@ -115,7 +113,7 @@ export const CloseSummaryPanel: React.FC<CloseSummaryPanelProps> = ({
 
         <div className="space-y-4">
           <div className="space-y-2">
-            <p className={closeEyebrowClass}>{MONTHLY_CLOSE_LABELS.SUMMARY_FINANCIAL}</p>
+            <p className={eyebrowClass}>{MONTHLY_CLOSE_LABELS.SUMMARY_FINANCIAL}</p>
             <div className="space-y-1">
               {financialRows.map((row) => {
                 const drift = summary.financialDrift?.[row.key];
@@ -140,7 +138,7 @@ export const CloseSummaryPanel: React.FC<CloseSummaryPanelProps> = ({
           </div>
 
           <div className="space-y-2">
-            <p className={closeEyebrowClass}>{MONTHLY_CLOSE_LABELS.SUMMARY_REPORTS}</p>
+            <p className={eyebrowClass}>{MONTHLY_CLOSE_LABELS.SUMMARY_REPORTS}</p>
             <div className="space-y-1">
               {summary.reports.map((report) => (
                 <div

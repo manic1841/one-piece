@@ -1,10 +1,7 @@
 import * as React from 'react';
 
+import { eyebrowClass } from '@/ui/components/eyebrow';
 import { cn } from '@/ui/utils/cn';
-
-/** The canonical mono eyebrow (design-system: 11px uppercase mono, tracking-widest). */
-export const closeEyebrowClass =
-  'font-mono text-[11px] uppercase tracking-widest text-muted-foreground';
 
 interface CloseSectionHeadingProps {
   /** Mono eyebrow above the title, e.g. the step name or the evidence label. */
@@ -28,7 +25,7 @@ export const CloseSectionHeading: React.FC<CloseSectionHeadingProps> = ({
 }) => (
   <div className={cn('flex flex-wrap items-end justify-between gap-3', className)}>
     <div className="space-y-1">
-      <p className={closeEyebrowClass}>{eyebrow}</p>
+      <p className={eyebrowClass}>{eyebrow}</p>
       {title !== undefined && (
         <h2 className="text-[22px] font-medium leading-tight text-foreground">{title}</h2>
       )}

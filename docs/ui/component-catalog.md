@@ -104,6 +104,7 @@
 | `src/ui/components/charts/donutSlices.ts`             | 幾何計算（donut 切片、百分比與 conic-gradient stop） |
 | `src/ui/components/charts/lineChartGeometry.ts`       | 幾何計算（`LineChart` 使用）                         |
 | `src/ui/components/charts/monthTrendSeries.ts`        | 月份趨勢資料整理（標籤、tooltip、升冪序列）          |
+| `src/ui/components/eyebrow.ts`                        | 表面常數（11px 全大寫 mono 標籤的共用 class）        |
 | `src/ui/components/moneyTone.ts`                      | 表面常數（金額語意的色調對應）                       |
 | `src/ui/components/data-table/index.ts`               | barrel                                               |
 | `src/ui/components/data-table/parseOptionalAmount.ts` | 內部 helper（`NumberInput` 使用）                    |

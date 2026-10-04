@@ -34,7 +34,6 @@ export interface DebtPaymentSectionVM extends DebtSectionMetaVM {
   closingBalanceText: string;
 }
 
-/** A section's computed figures, before they are formatted for display. */
 type DebtPaymentFiguresVM = Omit<
   DebtPaymentSectionVM,
   | 'interestRateText'

@@ -1,12 +1,10 @@
 import React from 'react';
 
 import { NumberInput, parseOptionalAmount } from '@/ui/components/data-table';
+import { eyebrowClass } from '@/ui/components/eyebrow';
 import { Label } from '@/ui/components/ui/label';
 import { MONTHLY_CLOSE_LABELS } from '@/ui/constants/monthlyClose';
-import {
-  CloseSectionHeading,
-  closeEyebrowClass,
-} from '@/ui/features/monthly_close/components/CloseSectionHeading';
+import { CloseSectionHeading } from '@/ui/features/monthly_close/components/CloseSectionHeading';
 import { CloseStageChrome } from '@/ui/features/monthly_close/components/CloseStageChrome';
 import { CloseStageEvidenceList } from '@/ui/features/monthly_close/components/CloseStageEvidenceList';
 import { CloseStageLoadError } from '@/ui/features/monthly_close/components/CloseStageLoadError';
@@ -98,20 +96,20 @@ export const CloseDebtRepaymentStage: React.FC<CloseDebtRepaymentStageProps> = (
                 <p className="text-sm font-medium text-foreground">{section.debtAccountName}</p>
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                   <div>
-                    <p className={closeEyebrowClass}>{MONTHLY_CLOSE_LABELS.INTEREST_RATE}</p>
+                    <p className={eyebrowClass}>{MONTHLY_CLOSE_LABELS.INTEREST_RATE}</p>
                     <p className="font-mono text-sm tabular-nums text-foreground">
                       {section.interestRateText}
                     </p>
                   </div>
                   <div>
-                    <p className={closeEyebrowClass}>{MONTHLY_CLOSE_LABELS.PREVIOUS_BALANCE}</p>
+                    <p className={eyebrowClass}>{MONTHLY_CLOSE_LABELS.PREVIOUS_BALANCE}</p>
                     <p className="font-mono text-sm tabular-nums text-foreground">
                       {section.openingBalanceText}
                     </p>
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label className={closeEyebrowClass}>{MONTHLY_CLOSE_LABELS.TOTAL_PAYMENT}</Label>
+                  <Label className={eyebrowClass}>{MONTHLY_CLOSE_LABELS.TOTAL_PAYMENT}</Label>
                   <NumberInput
                     disabled={confirming || isReadOnly}
                     placeholder="0"
@@ -133,25 +131,25 @@ export const CloseDebtRepaymentStage: React.FC<CloseDebtRepaymentStageProps> = (
                 </div>
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
                   <div>
-                    <p className={closeEyebrowClass}>{MONTHLY_CLOSE_LABELS.INTEREST}</p>
+                    <p className={eyebrowClass}>{MONTHLY_CLOSE_LABELS.INTEREST}</p>
                     <p className="font-mono text-sm tabular-nums text-foreground">
                       {section.interestText}
                     </p>
                   </div>
                   <div>
-                    <p className={closeEyebrowClass}>{MONTHLY_CLOSE_LABELS.PRINCIPAL}</p>
+                    <p className={eyebrowClass}>{MONTHLY_CLOSE_LABELS.PRINCIPAL}</p>
                     <p className="font-mono text-sm tabular-nums text-foreground">
                       {section.principalText}
                     </p>
                   </div>
                   <div>
-                    <p className={closeEyebrowClass}>{MONTHLY_CLOSE_LABELS.MONTHLY_DUE}</p>
+                    <p className={eyebrowClass}>{MONTHLY_CLOSE_LABELS.MONTHLY_DUE}</p>
                     <p className="font-mono text-sm tabular-nums text-muted-foreground">
                       {section.monthlyDueText}
                     </p>
                   </div>
                   <div>
-                    <p className={closeEyebrowClass}>{MONTHLY_CLOSE_LABELS.CLOSING_BALANCE}</p>
+                    <p className={eyebrowClass}>{MONTHLY_CLOSE_LABELS.CLOSING_BALANCE}</p>
                     <p className="font-mono text-sm tabular-nums text-foreground">
                       {section.closingBalanceText}
                     </p>
@@ -162,7 +160,7 @@ export const CloseDebtRepaymentStage: React.FC<CloseDebtRepaymentStageProps> = (
             </React.Fragment>
           ))}
           <div className="flex items-center justify-between gap-3 border-t border-border pt-4">
-            <p className={closeEyebrowClass}>{MONTHLY_CLOSE_LABELS.DEBT_TOTAL}</p>
+            <p className={eyebrowClass}>{MONTHLY_CLOSE_LABELS.DEBT_TOTAL}</p>
             <div className="flex items-center gap-4">
               <p className="font-mono text-sm tabular-nums text-foreground">
                 {total.principalText}

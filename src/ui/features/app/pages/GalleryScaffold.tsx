@@ -2,6 +2,7 @@ import React from 'react';
 
 import { Module } from '@/ui/components/Module';
 import { PageSection } from '@/ui/components/PageSection';
+import { eyebrowClass } from '@/ui/components/eyebrow';
 
 export const GallerySection = PageSection;
 export const GalleryModule = Module;
@@ -26,9 +27,7 @@ export const GalleryCaption: React.FC<{ children: React.ReactNode }> = ({ childr
 
 export const GalleryIntro: React.FC = () => (
   <div className="pb-10">
-    <p className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
-      DESIGN SYSTEM / COMPONENT GALLERY
-    </p>
+    <p className={eyebrowClass}>DESIGN SYSTEM / COMPONENT GALLERY</p>
     <h2 className="mt-2 text-3xl font-bold tracking-display">Component Gallery</h2>
     <p className="mt-3 max-w-2xl text-sm text-muted-foreground leading-relaxed">
       Engineering-first household financial operating system. Dark-first, data-driven, semantic

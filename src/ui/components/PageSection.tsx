@@ -1,5 +1,6 @@
 import * as React from 'react';
 
+import { eyebrowClass } from '@/ui/components/eyebrow';
 import { cn } from '@/ui/utils/cn';
 
 type PageSectionSpacing = 'default' | 'compact';
@@ -48,7 +49,7 @@ export function PageSection({
           className={cn('flex items-center justify-between gap-4', HEADER_MARGIN_CLASS[spacing])}
         >
           {hasHeading && (
-            <p className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
+            <p className={eyebrowClass}>
               {number !== undefined && title !== undefined
                 ? `${number} / ${title}`
                 : (number ?? title)}

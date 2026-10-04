@@ -1,13 +1,11 @@
 import React from 'react';
 
 import { StatusGlyph } from '@/ui/components/StatusGlyph';
+import { eyebrowClass } from '@/ui/components/eyebrow';
 import { Alert, AlertDescription } from '@/ui/components/ui/alert';
 import { Button } from '@/ui/components/ui/button';
 import { MONTHLY_CLOSE_LABELS } from '@/ui/constants/monthlyClose';
-import {
-  CloseSectionHeading,
-  closeEyebrowClass,
-} from '@/ui/features/monthly_close/components/CloseSectionHeading';
+import { CloseSectionHeading } from '@/ui/features/monthly_close/components/CloseSectionHeading';
 import { CloseStageLoadError } from '@/ui/features/monthly_close/components/CloseStageLoadError';
 
 import { type ReadinessExceptionVM, type ReadinessVM } from '../../../mappers/closeSummary.mappers';
@@ -69,7 +67,7 @@ export const CloseReadinessCheck: React.FC<CloseReadinessCheckProps> = ({
 
       {readiness.exceptions.length > 0 && (
         <div className="space-y-2">
-          <p className={closeEyebrowClass}>{MONTHLY_CLOSE_LABELS.READINESS_EXCEPTIONS}</p>
+          <p className={eyebrowClass}>{MONTHLY_CLOSE_LABELS.READINESS_EXCEPTIONS}</p>
           {readiness.exceptions.map((exception) => {
             const stageId = exception.stageId;
             return (

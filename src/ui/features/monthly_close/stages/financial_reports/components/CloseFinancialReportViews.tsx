@@ -47,8 +47,7 @@ const indentClass = (level: number): string => INDENT_CLASS[level] ?? 'pl-12';
  *
  * The tone is a semantic role (see `Financial Statement Semantic Hierarchy` in
  * `docs/ui/visual-standards.md`), assigned from the row's level by
- * {@link toneForLevel} — never inferred from how far the label is indented. The
- * same role looks the same in every statement.
+ * {@link toneForLevel}. The same role looks the same in every statement.
  */
 type RowTone = 'section' | 'group' | 'detail' | 'deepDetail' | 'subtotal' | 'terminus';
 

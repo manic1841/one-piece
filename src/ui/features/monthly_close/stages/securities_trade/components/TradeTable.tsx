@@ -17,9 +17,9 @@ import {
   TableHeader,
   dataTableLabelClass,
 } from '@/ui/components/data-table';
+import { eyebrowClass } from '@/ui/components/eyebrow';
 import { Button } from '@/ui/components/ui/button';
 import { MONTHLY_CLOSE_LABELS } from '@/ui/constants/monthlyClose';
-import { closeEyebrowClass } from '@/ui/features/monthly_close/components/CloseSectionHeading';
 import { formatCurrency } from '@/ui/utils';
 import { cn } from '@/ui/utils/cn';
 
@@ -86,7 +86,7 @@ export const TradeTable: React.FC<TradeTableProps> = ({
   return (
     <section className="space-y-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className={closeEyebrowClass}>{title}</p>
+        <p className={eyebrowClass}>{title}</p>
         <span className="font-mono text-[11px] tabular-nums text-muted-foreground">
           {rows.length} {MONTHLY_CLOSE_LABELS.TRANSACTIONS_COUNT}
         </span>

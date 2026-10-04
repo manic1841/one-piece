@@ -1,7 +1,5 @@
 import React, { useCallback, useState } from 'react';
 
-import { AlertTriangle } from 'lucide-react';
-
 import { StatusGlyph } from '@/ui/components/StatusGlyph';
 import { Alert, AlertDescription } from '@/ui/components/ui/alert';
 import { Button } from '@/ui/components/ui/button';
@@ -53,11 +51,7 @@ interface CloseFinancialReportsProps {
    * failed (unknown), which is NEVER rendered as 尚未產生 (#229).
    */
   reportsPersisted: boolean | null;
-  /**
-   * Whether the cash-flow adjustment exceeds the confirmation threshold. The
-   * threshold is an application decision, derived by the stage hook and handed
-   * down rather than recomputed here.
-   */
+  /** Whether the cash-flow adjustment exceeds the confirmation threshold. */
   showAdjustmentWarning: boolean;
 }
 
@@ -90,7 +84,7 @@ const ReportsAlerts: React.FC<ReportsAlertsProps> = ({
 
       {showAdjustmentWarning && (
         <Alert variant="warning">
-          <AlertTriangle className="h-4 w-4" />
+          <StatusGlyph type="review" />
           <AlertDescription>{MONTHLY_CLOSE_LABELS.ADJUSTMENT_WARNING}</AlertDescription>
         </Alert>
       )}
@@ -101,7 +95,7 @@ const ReportsAlerts: React.FC<ReportsAlertsProps> = ({
           done (#222). */}
       {showExistingReportsWarning && (
         <Alert variant="warning">
-          <AlertTriangle className="h-4 w-4" />
+          <StatusGlyph type="review" />
           <AlertDescription>
             <p>{MONTHLY_CLOSE_LABELS.EXISTING_REPORTS_WARNING}</p>
             {generatedAt && (
@@ -116,7 +110,7 @@ const ReportsAlerts: React.FC<ReportsAlertsProps> = ({
 
       {showPersistenceUnknown && (
         <Alert variant="warning">
-          <AlertTriangle className="h-4 w-4" />
+          <StatusGlyph type="review" />
           <AlertDescription>{MONTHLY_CLOSE_LABELS.PERSISTENCE_UNKNOWN_WARNING}</AlertDescription>
         </Alert>
       )}

@@ -2,6 +2,7 @@ import * as React from 'react';
 
 import { cn } from '@/ui/utils/cn';
 
+import { eyebrowClass } from './eyebrow';
 import {
   MONEY_CHANGE_TONE_CLASS,
   MONEY_TONE_CLASS,
@@ -72,9 +73,7 @@ export function Metric({
 }: MetricProps) {
   return (
     <div data-testid={testId} className={cn('min-w-0 px-3 py-1 md:px-5 md:py-1.5', className)}>
-      <span className="block font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
-        {label}
-      </span>
+      <span className={cn('block', eyebrowClass)}>{label}</span>
       <span className={cn('mt-1.5 block font-mono text-xl tabular-nums', MONEY_TONE_CLASS[tone])}>
         {value}
       </span>
