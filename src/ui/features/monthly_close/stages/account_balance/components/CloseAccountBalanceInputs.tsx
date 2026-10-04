@@ -15,7 +15,11 @@ import {
   parseOptionalAmount,
 } from '@/ui/components/data-table';
 import { Label } from '@/ui/components/ui/label';
-import { MONTHLY_CLOSE_LABELS } from '@/ui/constants/monthlyClose';
+import {
+  ACCOUNT_BALANCE_FIELD_LABELS,
+  ACCOUNT_BALANCE_SECTIONS,
+  MONTHLY_CLOSE_LABELS,
+} from '@/ui/constants/monthlyClose';
 import { useExchangeRate } from '@/ui/hooks/useExchangeRate';
 import { formatCurrency } from '@/ui/utils';
 
@@ -38,12 +42,6 @@ import { AccountNameCell } from './AccountNameCell';
 import { ForeignMobileList, TwdMobileList } from './CloseAccountBalanceMobileLists';
 import { SecuritiesAccountRow } from './SecuritiesAccountRow';
 
-const SECTION_LABELS: Record<AccountBalanceSectionKind, string> = {
-  twd: '現金 / 銀行',
-  foreign: '外幣',
-  securities: '證券',
-};
-
 const sectionTitleClass = 'text-[13px] font-semibold uppercase tracking-[0.08em] text-foreground';
 
 const sectionNoteClass =
@@ -55,12 +53,6 @@ const sectionNoteClass =
  */
 const TWD_COLUMN_WIDTHS = [14, 22, 64] as const;
 const FOREIGN_COLUMN_WIDTHS = [14, 22, 22, 8, 34] as const;
-
-const SECTION_NOTES: Record<AccountBalanceSectionKind, string> = {
-  twd: 'Ending balance at period end',
-  foreign: 'TWD value is calculated automatically',
-  securities: 'Market value is calculated from holdings',
-};
 
 interface TwdAccountRowProps {
   entry: {
@@ -87,7 +79,7 @@ const TwdAccountRow: React.FC<TwdAccountRowProps> = ({
       <DataTableCell>
         <div className="flex justify-end">
           <Label htmlFor={`ending-${entry.account.id}`} className="sr-only">
-            期末餘額 {entry.account.name}
+            {MONTHLY_CLOSE_LABELS.CLOSING_BALANCE} {entry.account.name}
           </Label>
           <NumberInput
             id={`ending-${entry.account.id}`}
@@ -108,8 +100,10 @@ const TwdTableHead: React.FC = () => (
   <TableHeader>
     <DataTableHeadRow>
       <DataTableHeadCell>帳戶</DataTableHeadCell>
-      <DataTableHeadCell align="number">前期餘額</DataTableHeadCell>
-      <DataTableHeadCell align="number">期末餘額</DataTableHeadCell>
+      <DataTableHeadCell align="number">
+        {ACCOUNT_BALANCE_FIELD_LABELS.PREVIOUS_MONTH_BALANCE}
+      </DataTableHeadCell>
+      <DataTableHeadCell align="number">{MONTHLY_CLOSE_LABELS.CLOSING_BALANCE}</DataTableHeadCell>
     </DataTableHeadRow>
   </TableHeader>
 );
@@ -148,7 +142,7 @@ const ForeignAccountRow: React.FC<ForeignAccountRowProps> = ({
       <DataTableCell>
         <div className="flex justify-end">
           <Label htmlFor={`foreign-${entry.account.id}`} className="sr-only">
-            外幣金額 {entry.account.name}
+            {ACCOUNT_BALANCE_FIELD_LABELS.FOREIGN_AMOUNT} {entry.account.name}
           </Label>
           <NumberInput
             id={`foreign-${entry.account.id}`}
@@ -168,7 +162,7 @@ const ForeignAccountRow: React.FC<ForeignAccountRowProps> = ({
       <DataTableCell>
         <div className="flex justify-end">
           <Label htmlFor={`rate-${entry.account.id}`} className="sr-only">
-            匯率 {entry.account.name}
+            {ACCOUNT_BALANCE_FIELD_LABELS.EXCHANGE_RATE} {entry.account.name}
           </Label>
           <NumberInput
             id={`rate-${entry.account.id}`}
@@ -197,10 +191,16 @@ const ForeignTableHead: React.FC = () => (
   <TableHeader>
     <DataTableHeadRow>
       <DataTableHeadCell>帳戶</DataTableHeadCell>
-      <DataTableHeadCell align="number">前期餘額</DataTableHeadCell>
-      <DataTableHeadCell align="number">外幣金額</DataTableHeadCell>
-      <DataTableHeadCell align="number">匯率</DataTableHeadCell>
-      <DataTableHeadCell align="number">TWD 價值</DataTableHeadCell>
+      <DataTableHeadCell align="number">
+        {ACCOUNT_BALANCE_FIELD_LABELS.PREVIOUS_MONTH_BALANCE}
+      </DataTableHeadCell>
+      <DataTableHeadCell align="number">
+        {ACCOUNT_BALANCE_FIELD_LABELS.FOREIGN_AMOUNT}
+      </DataTableHeadCell>
+      <DataTableHeadCell align="number">
+        {ACCOUNT_BALANCE_FIELD_LABELS.EXCHANGE_RATE}
+      </DataTableHeadCell>
+      <DataTableHeadCell align="number">{ACCOUNT_BALANCE_FIELD_LABELS.TWD_VALUE}</DataTableHeadCell>
     </DataTableHeadRow>
   </TableHeader>
 );
@@ -326,8 +326,8 @@ export const CloseAccountBalanceInputs: React.FC<CloseAccountBalanceInputsProps>
           className="space-y-4 border-b border-border pb-[30px] pt-[30px] first:pt-0 last:border-b-0 last:pb-0"
         >
           <div className="flex items-baseline justify-between">
-            <p className={sectionTitleClass}>{SECTION_LABELS[section.kind]}</p>
-            <p className={sectionNoteClass}>{SECTION_NOTES[section.kind]}</p>
+            <p className={sectionTitleClass}>{ACCOUNT_BALANCE_SECTIONS[section.kind].label}</p>
+            <p className={sectionNoteClass}>{ACCOUNT_BALANCE_SECTIONS[section.kind].note}</p>
           </div>
           {section.kind === 'twd' && section.accounts.length > 0 && (
             <DataTableScrollArea>

@@ -32,6 +32,7 @@ export {
   numberInputClass,
   numberInputCompactClass,
   numberInputSpinnerClass,
+  textInputCompactClass,
   mobileDataListClass,
   mobileDataRowClass,
   mobileFieldClass,

@@ -16,6 +16,24 @@ export const getCloseStageLabel = (stageId: CloseStageId): string =>
 
 export const CLOSE_STAGE_ORDER: readonly CloseStageId[] = CLOSE_STAGE_IDS;
 
+/**
+ * ACCOUNT_BALANCE 的三個分區：標題與說明共用於桌面表格與行動版清單，
+ * 避免同一組字串在兩個表面各寫一次。
+ */
+export const ACCOUNT_BALANCE_SECTIONS = {
+  twd: { label: '現金 / 銀行', note: 'Ending balance at period end' },
+  foreign: { label: '外幣', note: 'TWD value is calculated automatically' },
+  securities: { label: '證券', note: 'Market value is calculated from holdings' },
+} as const;
+
+/** ACCOUNT_BALANCE 欄位標籤：桌面表頭與行動版欄位共用。 */
+export const ACCOUNT_BALANCE_FIELD_LABELS = {
+  PREVIOUS_MONTH_BALANCE: '前期餘額',
+  FOREIGN_AMOUNT: '外幣金額',
+  EXCHANGE_RATE: '匯率',
+  TWD_VALUE: 'TWD 價值',
+} as const;
+
 export const MONTHLY_CLOSE_LABELS = {
   PAGE_TITLE: '月度關帳',
   PAGE_SUBTITLE: 'MONTHLY CLOSE WORKFLOW',

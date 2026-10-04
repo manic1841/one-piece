@@ -17,10 +17,12 @@ import {
   TableHeader,
   dataTableLabelClass,
   parseOptionalAmount,
+  textInputCompactClass,
 } from '@/ui/components/data-table';
 import { Button } from '@/ui/components/ui/button';
 import { Input } from '@/ui/components/ui/input';
 import { Label } from '@/ui/components/ui/label';
+import { ACCOUNT_BALANCE_FIELD_LABELS } from '@/ui/constants/monthlyClose';
 import { cn } from '@/ui/utils/cn';
 
 import type { Account, AccountBalanceInput, Holding } from '../../../viewmodels/accountBalance.vm';
@@ -31,8 +33,6 @@ import {
 
 /** 欄寬契約：總和必須等於 100（Symbol/Name/Cost/Value/Leverage 均分 + actions 7%）。 */
 const SECURITIES_COLUMN_WIDTHS = [18.6, 18.6, 18.6, 18.6, 18.6, 7] as const;
-
-const textInputClass = 'h-8 rounded-none border-border bg-muted px-2.5 text-xs';
 
 const toNumber = (value: string): number => {
   const parsed = Number.parseFloat(value);
@@ -131,7 +131,7 @@ export const SecuritiesAccountRow: React.FC<SecuritiesAccountRowProps> = ({
                     <DataTableCell className="pl-3">
                       <Input
                         aria-label={`Symbol ${index + 1}`}
-                        className={textInputClass}
+                        className={textInputCompactClass}
                         disabled={isReadOnly}
                         value={holding.symbol}
                         onChange={(event) => updateHolding(index, 'symbol', event.target.value)}
@@ -140,7 +140,7 @@ export const SecuritiesAccountRow: React.FC<SecuritiesAccountRowProps> = ({
                     <DataTableCell className="pl-3">
                       <Input
                         aria-label={`Name ${index + 1}`}
-                        className={textInputClass}
+                        className={textInputCompactClass}
                         disabled={isReadOnly}
                         value={holding.name}
                         onChange={(event) => updateHolding(index, 'name', event.target.value)}
@@ -280,9 +280,9 @@ export const SecuritiesAccountRow: React.FC<SecuritiesAccountRowProps> = ({
       {isForeign && (
         <div className="flex items-start justify-between gap-4 border-t border-border/60 pt-3 md:justify-end md:gap-6">
           <div className="space-y-1 md:text-right">
-            <p className={dataTableLabelClass}>匯率</p>
+            <p className={dataTableLabelClass}>{ACCOUNT_BALANCE_FIELD_LABELS.EXCHANGE_RATE}</p>
             <Label htmlFor={`sec-rate-${entry.account.id}`} className="sr-only">
-              匯率 {entry.account.name}
+              {ACCOUNT_BALANCE_FIELD_LABELS.EXCHANGE_RATE} {entry.account.name}
             </Label>
             <NumberInput
               id={`sec-rate-${entry.account.id}`}
@@ -296,7 +296,7 @@ export const SecuritiesAccountRow: React.FC<SecuritiesAccountRowProps> = ({
             />
           </div>
           <div className="text-right">
-            <p className={dataTableLabelClass}>TWD 價值</p>
+            <p className={dataTableLabelClass}>{ACCOUNT_BALANCE_FIELD_LABELS.TWD_VALUE}</p>
             <p
               data-testid={`twd-value-${entry.account.id}`}
               className="font-mono text-sm font-medium tabular-nums text-foreground"

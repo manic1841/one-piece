@@ -7,6 +7,7 @@ import {
   NumberInput,
   parseOptionalAmount,
 } from '@/ui/components/data-table';
+import { ACCOUNT_BALANCE_FIELD_LABELS, MONTHLY_CLOSE_LABELS } from '@/ui/constants/monthlyClose';
 
 import type {
   AccountBalanceEntryVM,
@@ -34,14 +35,14 @@ export const TwdMobileList: React.FC<TwdMobileListProps> = ({
         <p className="text-sm font-medium text-foreground">
           <AccountNameCell name={entry.account.name} currency="TWD" />
         </p>
-        <MobileDataField label="前期餘額">
+        <MobileDataField label={ACCOUNT_BALANCE_FIELD_LABELS.PREVIOUS_MONTH_BALANCE}>
           <p className="font-mono text-sm tabular-nums text-foreground">
             {entry.previousBalanceText}
           </p>
         </MobileDataField>
-        <MobileDataField label="期末餘額">
+        <MobileDataField label={MONTHLY_CLOSE_LABELS.CLOSING_BALANCE}>
           <NumberInput
-            aria-label={`期末餘額 ${entry.account.name}`}
+            aria-label={`${MONTHLY_CLOSE_LABELS.CLOSING_BALANCE} ${entry.account.name}`}
             className="w-[150px] max-w-full"
             disabled={isReadOnly}
             value={findInput(entry.account.id)?.amount ?? ''}
@@ -78,14 +79,14 @@ export const ForeignMobileList: React.FC<ForeignMobileListProps> = ({
         <p className="text-sm font-medium text-foreground">
           <AccountNameCell name={entry.account.name} currency={entry.account.currency} />
         </p>
-        <MobileDataField label="前期餘額">
+        <MobileDataField label={ACCOUNT_BALANCE_FIELD_LABELS.PREVIOUS_MONTH_BALANCE}>
           <p className="font-mono text-sm tabular-nums text-foreground">
             {entry.previousBalanceText}
           </p>
         </MobileDataField>
-        <MobileDataField label="外幣金額">
+        <MobileDataField label={ACCOUNT_BALANCE_FIELD_LABELS.FOREIGN_AMOUNT}>
           <NumberInput
-            aria-label={`外幣金額 ${entry.account.name}`}
+            aria-label={`${ACCOUNT_BALANCE_FIELD_LABELS.FOREIGN_AMOUNT} ${entry.account.name}`}
             className="w-[150px] max-w-full"
             disabled={isReadOnly}
             value={findInput(entry.account.id)?.originalAmount ?? ''}
@@ -98,9 +99,9 @@ export const ForeignMobileList: React.FC<ForeignMobileListProps> = ({
             }
           />
         </MobileDataField>
-        <MobileDataField label="匯率">
+        <MobileDataField label={ACCOUNT_BALANCE_FIELD_LABELS.EXCHANGE_RATE}>
           <NumberInput
-            aria-label={`匯率 ${entry.account.name}`}
+            aria-label={`${ACCOUNT_BALANCE_FIELD_LABELS.EXCHANGE_RATE} ${entry.account.name}`}
             step="0.0001"
             className="w-[150px] max-w-full"
             disabled={isReadOnly}
@@ -114,7 +115,7 @@ export const ForeignMobileList: React.FC<ForeignMobileListProps> = ({
             }
           />
         </MobileDataField>
-        <MobileDataField label="TWD 價值">
+        <MobileDataField label={ACCOUNT_BALANCE_FIELD_LABELS.TWD_VALUE}>
           <p
             data-testid={`twd-value-${entry.account.id}`}
             className="font-mono text-sm font-medium tabular-nums text-foreground"

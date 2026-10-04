@@ -54,6 +54,12 @@ export const numberInputClass =
 export const numberInputCompactClass =
   'h-8 rounded-none border-border bg-muted px-2.5 text-right font-mono text-xs tabular-nums';
 
+/**
+ * 文字輸入框緊湊版（子表格，32px）：與 {@link numberInputCompactClass} 同幾何，
+ * 但左對齊且用一般字體（如持倉的 Symbol／Name）。
+ */
+export const textInputCompactClass = 'h-8 rounded-none border-border bg-muted px-2.5 text-xs';
+
 /** 行動版 grouped card 容器。 */
 export const mobileDataListClass = 'space-y-3 md:hidden';
 

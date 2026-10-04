@@ -48,9 +48,6 @@ const COLUMN_WIDTHS = [16, 24, 36, 24] as const;
 const interactiveRowClass =
   'cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-0';
 
-const sideColorClass = (side: TradeSide): string =>
-  side === 'BUY' ? 'text-positive' : 'text-negative';
-
 /**
  * 關帳階段的交易表格（證券與融資共用）：買入/賣出（或融資兩類）在同一表格，
  * 整列可點擊開 Drawer 編輯，表格不放列內動作按鈕（乾淨表格契約）。
@@ -133,9 +130,7 @@ export const TradeTable: React.FC<TradeTableProps> = ({
                     }}
                     onKeyDown={rowKeyDown(row)}
                   >
-                    <DataTableCell
-                      className={cn('pl-3 font-mono text-xs font-medium', sideColorClass(row.side))}
-                    >
+                    <DataTableCell className="pl-3 font-mono text-xs font-medium">
                       {typeLabel(row.side)}
                     </DataTableCell>
                     <NumberCell value={row.amount} format={formatCurrency} />
@@ -168,9 +163,7 @@ export const TradeTable: React.FC<TradeTableProps> = ({
                 onKeyDown={rowKeyDown(row)}
               >
                 <div className="flex items-center justify-between">
-                  <p className={cn('font-mono text-xs font-medium', sideColorClass(row.side))}>
-                    {typeLabel(row.side)}
-                  </p>
+                  <p className="font-mono text-xs font-medium">{typeLabel(row.side)}</p>
                   <p className="font-mono text-sm font-medium tabular-nums">
                     {formatCurrency(row.amount)}
                   </p>
