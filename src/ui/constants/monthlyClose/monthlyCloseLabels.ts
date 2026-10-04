@@ -67,6 +67,7 @@ export const MONTHLY_CLOSE_LABELS = {
   EMPTY_STAGE_WARNING_CONTEXT: '證券交易紀錄與融資紀錄都是空的。',
   EMPTY_STAGE_WARNING_CONSEQUENCE: '仍然要確認這個階段嗎?',
   REVIEWING: 'REVIEWING',
+  CURRENT_STEP: '當前步驟',
   BACK_TO_CURRENT: '返回當前步驟',
   RESOLVE_REVIEW: '審閱完畢，繼續關帳',
   FINALIZED: '本期已完成關帳',

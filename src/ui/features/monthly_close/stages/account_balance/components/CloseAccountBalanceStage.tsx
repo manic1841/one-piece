@@ -1,6 +1,7 @@
 import React, { type SetStateAction } from 'react';
 
 import { MONTHLY_CLOSE_LABELS } from '@/ui/constants/monthlyClose';
+import { CloseSectionHeading } from '@/ui/features/monthly_close/components/CloseSectionHeading';
 import { CloseStageChrome } from '@/ui/features/monthly_close/components/CloseStageChrome';
 import { CloseStageEvidenceList } from '@/ui/features/monthly_close/components/CloseStageEvidenceList';
 import { CloseStageLoadError } from '@/ui/features/monthly_close/components/CloseStageLoadError';
@@ -66,9 +67,7 @@ export const CloseAccountBalanceStage: React.FC<CloseAccountBalanceStageProps> =
   >
     <CloseStageLoadError message={loadErrorMessage} />
     <div>
-      <p className="mb-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-        {MONTHLY_CLOSE_LABELS.EVIDENCE_LABEL}
-      </p>
+      <CloseSectionHeading eyebrow={MONTHLY_CLOSE_LABELS.EVIDENCE_LABEL} className="mb-1" />
       <CloseStageEvidenceList evidence={NO_EVIDENCE} />
     </div>
     <CloseAccountBalanceInputs

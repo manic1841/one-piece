@@ -2,11 +2,13 @@ import React, { useCallback, useState } from 'react';
 
 import { AlertTriangle } from 'lucide-react';
 
+import { StatusGlyph } from '@/ui/components/StatusGlyph';
 import { Alert, AlertDescription } from '@/ui/components/ui/alert';
 import { Button } from '@/ui/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/ui/components/ui/tabs';
 import { MONTHLY_CLOSE_LABELS } from '@/ui/constants/monthlyClose';
 import { REPORT_VIEW_TITLES } from '@/ui/constants/report/reportViewLabels';
+import { CloseSectionHeading } from '@/ui/features/monthly_close/components/CloseSectionHeading';
 import type {
   ReportTimestampsVM,
   ReportViewsVM,
@@ -50,15 +52,13 @@ interface CloseFinancialReportsProps {
    * failed (unknown), which is NEVER rendered as 尚未產生 (#229).
    */
   reportsPersisted: boolean | null;
+  /**
+   * Whether the cash-flow adjustment exceeds the confirmation threshold. The
+   * threshold is an application decision, derived by the stage hook and handed
+   * down rather than recomputed here.
+   */
+  showAdjustmentWarning: boolean;
 }
-
-/** The warning surface (amber glyph + tinted border) shared by FINANCIAL_REPORTS alerts. */
-const WarningAlert: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <Alert className="border-warning/30 bg-warning/5 text-foreground">
-    <AlertTriangle className="h-4 w-4 text-warning" />
-    <AlertDescription>{children}</AlertDescription>
-  </Alert>
-);
 
 /**
  * Formats the frozen generation times as ` ｜ 損益表 10:00 ｜ ...`, or an empty
@@ -94,13 +94,16 @@ const ReportsAlerts: React.FC<ReportsAlertsProps> = ({
   return (
     <>
       {error && (
-        <Alert variant="destructive" className="border-negative/20 bg-negative/10">
+        <Alert variant="destructive">
           <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
 
       {showAdjustmentWarning && (
-        <WarningAlert>{MONTHLY_CLOSE_LABELS.ADJUSTMENT_WARNING}</WarningAlert>
+        <Alert variant="warning">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription>{MONTHLY_CLOSE_LABELS.ADJUSTMENT_WARNING}</AlertDescription>
+        </Alert>
       )}
 
       {/* Persisted reports without a completed stage are leftover files (legacy
@@ -108,19 +111,25 @@ const ReportsAlerts: React.FC<ReportsAlertsProps> = ({
           preview and overwrites them, so warn instead of claiming the stage is
           done (#222). */}
       {showExistingReportsWarning && (
-        <WarningAlert>
-          <p>{MONTHLY_CLOSE_LABELS.EXISTING_REPORTS_WARNING}</p>
-          {generatedAt && (
-            <p>
-              {MONTHLY_CLOSE_LABELS.GENERATED_AT}
-              {generatedAt}
-            </p>
-          )}
-        </WarningAlert>
+        <Alert variant="warning">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription>
+            <p>{MONTHLY_CLOSE_LABELS.EXISTING_REPORTS_WARNING}</p>
+            {generatedAt && (
+              <p>
+                {MONTHLY_CLOSE_LABELS.GENERATED_AT}
+                {generatedAt}
+              </p>
+            )}
+          </AlertDescription>
+        </Alert>
       )}
 
       {showPersistenceUnknown && (
-        <WarningAlert>{MONTHLY_CLOSE_LABELS.PERSISTENCE_UNKNOWN_WARNING}</WarningAlert>
+        <Alert variant="warning">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription>{MONTHLY_CLOSE_LABELS.PERSISTENCE_UNKNOWN_WARNING}</AlertDescription>
+        </Alert>
       )}
     </>
   );
@@ -141,6 +150,7 @@ export const CloseFinancialReports: React.FC<CloseFinancialReportsProps> = ({
   isReadOnly,
   isStageCompleted,
   reportsPersisted,
+  showAdjustmentWarning,
 }) => {
   const { incomeStatement, balanceSheet, cashFlow } = reports;
 
@@ -165,31 +175,25 @@ export const CloseFinancialReports: React.FC<CloseFinancialReportsProps> = ({
   const hasAnyData = incomeStatement !== null || balanceSheet !== null || cashFlow !== null;
   const isGenerateBlocked =
     isSettlementReady !== true || !isLoaded || !hasAnyData || reportsPersisted === null;
-  const showAdjustmentWarning = Math.abs(cashFlow?.adjustment.amount ?? 0) > 1000;
   const showExistingReportsWarning = !isStageCompleted && reportsPersisted === true;
   const showPersistenceUnknown =
     !isStageCompleted && !isLoading && error === null && reportsPersisted === null;
 
   return (
     <div className="space-y-6 pt-8">
-      <div className="flex flex-wrap items-end justify-between gap-3 border-b border-border pb-4">
-        <div className="space-y-1">
-          <p className="text-[11px] uppercase tracking-[0.12em] text-muted-foreground">
-            {MONTHLY_CLOSE_LABELS.EVIDENCE_LABEL}
-          </p>
-          <h2 className="text-[22px] font-medium leading-tight text-foreground">
-            {MONTHLY_CLOSE_LABELS.FINANCIAL_REPORTS_TITLE}
-          </h2>
-          <p className="text-xs text-muted-foreground">
-            {MONTHLY_CLOSE_LABELS.FINANCIAL_REPORTS_NOTE}
-          </p>
-        </div>
-        <span className="font-mono text-[13px] tabular-nums text-muted-foreground">
-          {isStageCompleted
-            ? MONTHLY_CLOSE_LABELS.REPORTS_GENERATED
-            : MONTHLY_CLOSE_LABELS.FINANCIAL_REPORTS_TITLE}
-        </span>
-      </div>
+      <CloseSectionHeading
+        eyebrow={MONTHLY_CLOSE_LABELS.EVIDENCE_LABEL}
+        title={MONTHLY_CLOSE_LABELS.FINANCIAL_REPORTS_TITLE}
+        note={MONTHLY_CLOSE_LABELS.FINANCIAL_REPORTS_NOTE}
+        trailing={
+          <span className="font-mono text-[13px] tabular-nums text-muted-foreground">
+            {isStageCompleted
+              ? MONTHLY_CLOSE_LABELS.REPORTS_GENERATED
+              : MONTHLY_CLOSE_LABELS.FINANCIAL_REPORTS_TITLE}
+          </span>
+        }
+        className="border-b border-border pb-4"
+      />
 
       <ReportsAlerts
         error={error}
@@ -200,28 +204,28 @@ export const CloseFinancialReports: React.FC<CloseFinancialReportsProps> = ({
       />
 
       {isStageCompleted && (
-        <div
-          data-testid="reports-generated-panel"
-          className="space-y-2 rounded-lg border border-positive/30 bg-positive/10 px-4 py-3"
-        >
-          <p className="text-sm font-bold text-foreground">
-            {MONTHLY_CLOSE_LABELS.REPORTS_GENERATED}
-          </p>
-          <p className="text-xs text-muted-foreground">
-            {MONTHLY_CLOSE_LABELS.GENERATED_AT}
-            {formatTimestamps(timestamps)}
-          </p>
-          <div className="flex justify-end">
-            <Button
-              variant="link"
-              size="sm"
-              onClick={onContinue}
-              className="h-auto p-0 text-xs font-semibold uppercase tracking-[0.08em]"
-            >
-              {MONTHLY_CLOSE_LABELS.CONTINUE}
-            </Button>
-          </div>
-        </div>
+        <Alert variant="default" data-testid="reports-generated-panel">
+          <StatusGlyph type="verified" className="shrink-0" />
+          <AlertDescription className="flex-1 space-y-2">
+            <p className="text-sm font-bold text-foreground">
+              {MONTHLY_CLOSE_LABELS.REPORTS_GENERATED}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {MONTHLY_CLOSE_LABELS.GENERATED_AT}
+              {formatTimestamps(timestamps)}
+            </p>
+            <div className="flex justify-end">
+              <Button
+                variant="link"
+                size="sm"
+                onClick={onContinue}
+                className="h-auto p-0 text-xs font-semibold uppercase tracking-[0.08em]"
+              >
+                {MONTHLY_CLOSE_LABELS.CONTINUE}
+              </Button>
+            </div>
+          </AlertDescription>
+        </Alert>
       )}
 
       {hasAnyData && (

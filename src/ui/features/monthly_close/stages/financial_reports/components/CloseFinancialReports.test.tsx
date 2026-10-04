@@ -6,7 +6,7 @@ import { MONTHLY_CLOSE_LABELS } from '@/ui/constants/monthlyClose';
 
 import { CloseFinancialReports } from './CloseFinancialReports';
 
-const buildPreview = (overrides?: { adjustment?: number }) => ({
+const buildPreview = () => ({
   incomeStatement: {
     yearMonth: '2026-03',
     incomeTotal: 50000,
@@ -58,7 +58,7 @@ const buildPreview = (overrides?: { adjustment?: number }) => ({
     beginningBalance: 0,
     endingBalance: 20000,
     actualBalance: 20000,
-    adjustment: overrides?.adjustment ?? 0,
+    adjustment: 0,
   },
 });
 
@@ -88,6 +88,7 @@ const renderReports = (props?: Partial<Props>) =>
       isReadOnly={false}
       isStageCompleted={false}
       reportsPersisted={false}
+      showAdjustmentWarning={false}
       {...props}
     />,
   );
@@ -335,8 +336,8 @@ describe('CloseFinancialReports', () => {
     expect(screen.getByTestId('generate-reports')).toBeDisabled();
   });
 
-  it('warns when the cash flow adjustment exceeds 1000', () => {
-    renderReports({ reports: reportsFrom(buildPreview({ adjustment: 1500 })) });
+  it('shows the adjustment warning the stage derived', () => {
+    renderReports({ showAdjustmentWarning: true });
 
     expect(screen.getByText(/現金流調整超過 1,000/)).toBeInTheDocument();
   });

@@ -19,7 +19,6 @@ import {
 import { Button } from '@/ui/components/ui/button';
 import { Sheet, SheetContent } from '@/ui/components/ui/sheet';
 import { MONTHLY_CLOSE_LABELS } from '@/ui/constants/monthlyClose';
-import { cn } from '@/ui/utils/cn';
 
 import type {
   TradeDrawerInput,
@@ -46,9 +45,6 @@ export interface TradeDrawerProps {
   onDelete: () => void;
 }
 
-const fieldLabelClass =
-  'mb-1 block text-[10px] font-semibold uppercase tracking-widest text-muted-foreground';
-
 /**
  * 新增／編輯交易的 Drawer（ADR-0064）：Type 必選、Amount 必填（右對齊）、
  * Description 左對齊選填。編輯模式下放一個 DELETE（本機移除，確認時才刪
@@ -72,7 +68,7 @@ export const TradeDrawer: React.FC<TradeDrawerProps> = ({
       <SheetContent
         side="bottom"
         aria-describedby={undefined}
-        className="rounded-t-2xl sm:max-w-md sm:rounded-none sm:inset-y-0 sm:right-0 sm:left-auto sm:h-full sm:rounded-l-2xl"
+        className="rounded-t-lg sm:max-w-md sm:rounded-none sm:inset-y-0 sm:right-0 sm:left-auto sm:h-full sm:rounded-l-lg"
       >
         <DrawerPanel
           title={title}
@@ -89,7 +85,7 @@ export const TradeDrawer: React.FC<TradeDrawerProps> = ({
             >
               <FormField name="side">
                 <FormItem>
-                  <FormLabel className={fieldLabelClass}>{MONTHLY_CLOSE_LABELS.TYPE}</FormLabel>
+                  <FormLabel>{MONTHLY_CLOSE_LABELS.TYPE}</FormLabel>
                   <div className="flex items-center gap-3">
                     {sides.map((side) => (
                       <SideButton
@@ -106,7 +102,7 @@ export const TradeDrawer: React.FC<TradeDrawerProps> = ({
 
               <FormField name="amount">
                 <FormItem>
-                  <FormLabel className={fieldLabelClass}>{MONTHLY_CLOSE_LABELS.AMOUNT}</FormLabel>
+                  <FormLabel>{MONTHLY_CLOSE_LABELS.AMOUNT}</FormLabel>
                   <FormControl>
                     <NumberInput
                       id="trade-draft-amount"
@@ -122,9 +118,7 @@ export const TradeDrawer: React.FC<TradeDrawerProps> = ({
 
               <FormField name="description">
                 <FormItem>
-                  <FormLabel className={fieldLabelClass}>
-                    {MONTHLY_CLOSE_LABELS.DESCRIPTION}
-                  </FormLabel>
+                  <FormLabel>{MONTHLY_CLOSE_LABELS.DESCRIPTION}</FormLabel>
                   <FormControl>
                     <TextInput
                       id="trade-draft-description"
@@ -138,7 +132,7 @@ export const TradeDrawer: React.FC<TradeDrawerProps> = ({
 
               <FormField name="projectId">
                 <FormItem>
-                  <FormLabel className={fieldLabelClass}>{MONTHLY_CLOSE_LABELS.PROJECT}</FormLabel>
+                  <FormLabel>{MONTHLY_CLOSE_LABELS.PROJECT}</FormLabel>
                   <FormControl>
                     <SelectField
                       options={projects.map((project) => ({
@@ -154,11 +148,7 @@ export const TradeDrawer: React.FC<TradeDrawerProps> = ({
                 </FormItem>
               </FormField>
 
-              <div
-                className={cn(
-                  'mt-8 flex items-center justify-between gap-3 border-t border-border pt-4',
-                )}
-              >
+              <div className="mt-8 flex items-center justify-between gap-3 border-t border-border pt-4">
                 {canDelete ? (
                   <Button
                     type="button"

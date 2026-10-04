@@ -31,7 +31,13 @@ export const statementTitleClass =
 /** Two columns: the label (chevron + indented text) and the rightmost amount. */
 const STATEMENT_COLUMN_WIDTHS = [74, 26] as const;
 
-const INDENT_STEP = 16;
+/**
+ * Indentation per hierarchy level (design-system 間距級距): one step per level,
+ * never an inline pixel calculation.
+ */
+const INDENT_CLASS: readonly string[] = ['', 'pl-4', 'pl-8', 'pl-12'];
+
+const indentClass = (level: number): string => INDENT_CLASS[level] ?? 'pl-12';
 
 /**
  * A statement row in display order. Sections (the top-level groups that stand in
@@ -39,8 +45,9 @@ const INDENT_STEP = 16;
  * follows. Rows with children are collapsible with a chevron on the left.
  *
  * The tone is a semantic role (see `Financial Statement Semantic Hierarchy` in
- * `docs/ui/visual-standards.md`), not a depth: the same role looks the same in
- * every statement.
+ * `docs/ui/visual-standards.md`), assigned from the row's level by
+ * {@link toneForLevel} — never inferred from how far the label is indented. The
+ * same role looks the same in every statement.
  */
 type RowTone = 'section' | 'group' | 'detail' | 'deepDetail' | 'subtotal' | 'terminus';
 
@@ -49,7 +56,8 @@ interface StatementRow {
   label: string;
   amount: DriftAmount | null;
   tone: RowTone;
-  depth: number;
+  /** The row's level in the report hierarchy (1 = first-level data). */
+  level: number;
   children: StatementRow[];
 }
 
@@ -117,7 +125,7 @@ const totalRow = (key: string, label: string, amount: DriftAmount): StatementRow
   label: `${label}${MONTHLY_CLOSE_LABELS.TOTAL_SUFFIX}`,
   amount,
   tone: 'subtotal',
-  depth: 0,
+  level: 0,
   children: [],
 });
 
@@ -126,18 +134,28 @@ const terminusRow = (key: string, label: string, amount: DriftAmount): Statement
   label,
   amount,
   tone: 'terminus',
-  depth: 0,
+  level: 0,
   children: [],
 });
 
-const itemRows = (items: DriftItem[], depth: number, keyPrefix = ''): StatementRow[] =>
+/**
+ * The semantic role of a data row, keyed by its level in the report hierarchy:
+ * first-level data is a Group, its `subItems` are Detail, and everything below
+ * is Deep detail (visual-standards 「財務報表語意階層」). The role comes from the
+ * table, so the same level looks the same in all three statements.
+ */
+const LEVEL_TONES: readonly RowTone[] = ['group', 'detail', 'deepDetail'];
+
+const toneForLevel = (level: number): RowTone => LEVEL_TONES[level - 1] ?? 'deepDetail';
+
+const itemRows = (items: DriftItem[], level: number, keyPrefix = ''): StatementRow[] =>
   items.map((item) => ({
     key: `${keyPrefix}${item.code}`,
     label: item.label,
     amount: item,
-    tone: depth <= 1 ? 'group' : depth === 2 ? 'detail' : 'deepDetail',
-    depth,
-    children: item.subItems?.length ? itemRows(item.subItems, depth + 1, keyPrefix) : [],
+    tone: toneForLevel(level),
+    level,
+    children: item.subItems?.length ? itemRows(item.subItems, level + 1, keyPrefix) : [],
   }));
 
 const flattenRows = (
@@ -165,7 +183,7 @@ const StatementRowView: React.FC<{
   return (
     <DataTableRow className={ROW_TONE_CLASS[row.tone]}>
       <DataTableCell>
-        <div className="flex items-center gap-1" style={{ paddingLeft: row.depth * INDENT_STEP }}>
+        <div className={cn('flex items-center gap-1', indentClass(row.level))}>
           {hasChildren ? (
             <button
               type="button"
@@ -224,7 +242,7 @@ export const IncomeStatementView: React.FC<
       label: MONTHLY_CLOSE_LABELS.INCOME_SECTION,
       amount: null,
       tone: 'section',
-      depth: 0,
+      level: 0,
       children: itemRows(data.incomeItems, 1),
     });
     rows.push(totalRow('total:income', MONTHLY_CLOSE_LABELS.INCOME_SECTION, data.incomeTotal));
@@ -235,7 +253,7 @@ export const IncomeStatementView: React.FC<
       label: MONTHLY_CLOSE_LABELS.EXPENSE_SECTION,
       amount: null,
       tone: 'section',
-      depth: 0,
+      level: 0,
       children: itemRows(data.expenseItems, 1),
     });
     rows.push(totalRow('total:expense', MONTHLY_CLOSE_LABELS.EXPENSE_SECTION, data.expenseTotal));
@@ -259,7 +277,7 @@ const balanceGroupRow = (key: string, group: DriftGroup): StatementRow => ({
   label: group.label,
   amount: group.total,
   tone: 'group',
-  depth: 1,
+  level: 1,
   children: itemRows(group.items, 2),
 });
 
@@ -275,7 +293,7 @@ const balanceSection = (
     label,
     amount: null,
     tone: 'section',
-    depth: 0,
+    level: 0,
     children: groups.map(([groupKey, group]) => balanceGroupRow(`${key}:${groupKey}`, group)),
   },
   totalRow(`total:${key}`, label, total),
@@ -371,7 +389,7 @@ const cashFlowGroupRow = (
     label,
     amount: combineDrift(items),
     tone: 'group',
-    depth: 1,
+    level: 1,
     children: itemRows(items, 2, keyPrefix),
   };
 };
@@ -406,7 +424,7 @@ export const CashFlowView: React.FC<StatementViewProps & { data: CashFlowDrift |
       label: group.label,
       amount: null,
       tone: 'section',
-      depth: 0,
+      level: 0,
       children,
     });
     rows.push(totalRow(`total:${key}`, group.label, group.total));

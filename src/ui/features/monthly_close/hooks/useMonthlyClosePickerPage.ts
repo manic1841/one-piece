@@ -29,8 +29,7 @@ export const useMonthlyClosePickerPage = ({
   const month = selectedYearMonth.slice(5, 7);
 
   const setYear = useCallback(
-    (nextYear: string) =>
-      setSelectedYearMonth((previous) => `${nextYear}-${previous.slice(5, 7)}`),
+    (nextYear: string) => setSelectedYearMonth((previous) => `${nextYear}-${previous.slice(5, 7)}`),
     [],
   );
 

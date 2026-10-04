@@ -339,6 +339,7 @@ export const useCloseStepRegistry = ({
           isReadOnly={ctx.isReadOnly}
           isStageCompleted={isFinancialReportsCompleted}
           reportsPersisted={financialReportsStage.reportsPersisted}
+          showAdjustmentWarning={financialReportsStage.showAdjustmentWarning}
         />
       ),
       evidence: financialReportsEvidence,
