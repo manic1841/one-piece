@@ -1,9 +1,9 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { MemoryRouter, useNavigate } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 
 import { useConfirm } from '@/ui/components/confirm/useConfirm';
-import { DEBT_STATUS_GRACE_PERIOD_LABEL } from '@/ui/constants/debtStatusLabels';
+import { DEBT_STATUS_GRACE_PERIOD_LABEL } from '@/ui/constants/debt/label';
 import { useDebtAccountCmds } from '@/ui/features/debt/hooks/useDebtAccountCmds';
 import { useDebtPage } from '@/ui/features/debt/hooks/useDebtPage';
 import { type DebtAccountDisplayVM } from '@/ui/features/debt/viewmodels/debtDisplay.vm';
@@ -46,7 +46,6 @@ const buildDebtVM = (overrides: Partial<DebtAccountDisplayVM> = {}): DebtAccount
     projectName: null,
     typeLabel: '房貸',
     inGracePeriod: false,
-    graceEndYearMonthText: '',
     monthlyDueAmount: 25000,
     createdBy: 'u1',
     updatedBy: 'u1',
@@ -139,7 +138,7 @@ describe('DebtListPage table', () => {
     expect(screen.getByRole('button', { name: /新增貸款/ })).toBeInTheDocument();
   });
 
-  it('renders the settled filter as a compact text toggle next to the total outstanding summary', () => {
+  it('renders the inactive filter as a FilterStrip in the toolbar', () => {
     mockUseDebtPage.mockReturnValue(controllerBase);
     mockUseDebtAccountCmds.mockReturnValue({ removeDebtAccount: vi.fn() } as never);
     mockUseConfirm.mockReturnValue({ confirm: vi.fn().mockResolvedValue(false) } as never);
@@ -151,14 +150,17 @@ describe('DebtListPage table', () => {
       </MemoryRouter>,
     );
 
-    const toggle = screen.getByRole('button', { name: '顯示已結清' });
-    expect(toggle.hasAttribute('title')).toBe(false);
+    const filter = screen.getByRole('group', { name: '貸款狀態篩選' });
+    expect(within(filter).getByRole('button', { name: '僅啟用中' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
 
-    const summary = screen.getByText('TOTAL OUTSTANDING').parentElement!;
-    expect(summary.contains(toggle)).toBe(true);
-
-    fireEvent.click(toggle);
-    expect(screen.getByRole('button', { name: '隱藏已結清' })).toBeInTheDocument();
+    fireEvent.click(within(filter).getByRole('button', { name: '含停用' }));
+    expect(within(filter).getByRole('button', { name: '含停用' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
   });
 
   it('renders the grace period status as a glyph + text status, not a colored badge', () => {
@@ -194,12 +196,12 @@ describe('DebtListPage table', () => {
     });
   });
 
-  it('hides settled loans by default and reveals them via the toggle without changing data', () => {
+  it('hides inactive loans by default and reveals them via the filter without changing data', () => {
     mockUseDebtPage.mockReturnValue({
       ...controllerBase,
       debtAccountViews: [
         buildDebtVM({ id: 'd1', name: 'Active Loan', isActive: true }),
-        buildDebtVM({ id: 'd2', name: 'Settled Loan', isActive: false, currentBalance: 0 }),
+        buildDebtVM({ id: 'd2', name: 'Inactive Loan', isActive: false, currentBalance: 0 }),
       ],
       totalDebt: 4800000,
     });
@@ -214,19 +216,19 @@ describe('DebtListPage table', () => {
       </MemoryRouter>,
     );
 
-    expect(screen.getByText('TOTAL OUTSTANDING')).toBeInTheDocument();
-    expect(screen.queryAllByText('Settled Loan')).toHaveLength(0);
+    expect(screen.getByText('貸款總額')).toBeInTheDocument();
+    expect(screen.queryAllByText('Inactive Loan')).toHaveLength(0);
 
-    fireEvent.click(screen.getByRole('button', { name: '顯示已結清' }));
+    const filter = screen.getByRole('group', { name: '貸款狀態篩選' });
+    fireEvent.click(within(filter).getByRole('button', { name: '含停用' }));
 
-    expect(screen.getAllByText('Settled Loan')).toHaveLength(2);
-    expect(screen.getByRole('button', { name: '隱藏已結清' })).toBeInTheDocument();
+    expect(screen.getAllByText('Inactive Loan')).toHaveLength(2);
 
     fireEvent.click(screen.getByTestId('debt-row-d2'));
     expect(navigate).toHaveBeenCalledWith('/debt/d2');
 
-    fireEvent.click(screen.getByRole('button', { name: '隱藏已結清' }));
-    expect(screen.queryAllByText('Settled Loan')).toHaveLength(0);
+    fireEvent.click(within(filter).getByRole('button', { name: '僅啟用中' }));
+    expect(screen.queryAllByText('Inactive Loan')).toHaveLength(0);
   });
 
   it('renders mobile compact rows with name + outstanding, type/monthly/as-of metadata', () => {
@@ -243,7 +245,7 @@ describe('DebtListPage table', () => {
     );
 
     const compactRow = screen.getByTestId('debt-row-mobile-d1');
-    expect(compactRow.className).toContain('md:hidden');
+    expect(compactRow.parentElement!.className).toContain('md:hidden');
     expect(compactRow.textContent).toContain('Mortgage A');
     expect(compactRow.textContent).toContain('4,800,000');
     expect(compactRow.textContent).toContain('房貸');
@@ -266,10 +268,81 @@ describe('DebtListPage table', () => {
       </MemoryRouter>,
     );
 
-    const table = container.querySelector('table');
-    expect(table).not.toBeNull();
-    expect(table!.className).toContain('hidden');
-    expect(table!.className).toContain('md:table');
-    expect(container.querySelector('.overflow-x-auto')).toBeNull();
+    const scrollArea = container.querySelector('.overflow-x-auto');
+    expect(scrollArea).not.toBeNull();
+    expect(scrollArea!.className).toContain('hidden');
+    expect(scrollArea!.className).toContain('md:block');
+    expect(container.querySelector('table')).not.toBeNull();
+  });
+
+  it('summarises the total outstanding and the active loan count', () => {
+    mockUseDebtPage.mockReturnValue({
+      ...controllerBase,
+      debtAccountViews: [
+        buildDebtVM({ id: 'd1', isActive: true, currentBalance: 4800000 }),
+        buildDebtVM({ id: 'd2', isActive: false, currentBalance: 0 }),
+      ],
+    });
+    mockUseDebtAccountCmds.mockReturnValue({ removeDebtAccount: vi.fn() } as never);
+    mockUseConfirm.mockReturnValue({ confirm: vi.fn().mockResolvedValue(false) } as never);
+    mockUseNavigate.mockReturnValue(vi.fn());
+
+    render(
+      <MemoryRouter>
+        <DebtListPage />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByText('貸款總額')).toBeInTheDocument();
+    expect(screen.getByText('啟用貸款')).toBeInTheDocument();
+    expect(screen.getByTestId('debt-active-count')).toHaveTextContent('1');
+  });
+
+  it('shows a loading state while the loans load', () => {
+    mockUseDebtPage.mockReturnValue({ ...controllerBase, loading: true });
+    mockUseDebtAccountCmds.mockReturnValue({ removeDebtAccount: vi.fn() } as never);
+    mockUseConfirm.mockReturnValue({ confirm: vi.fn().mockResolvedValue(false) } as never);
+    mockUseNavigate.mockReturnValue(vi.fn());
+
+    render(
+      <MemoryRouter>
+        <DebtListPage />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByText('載入中…')).toBeInTheDocument();
+  });
+
+  it('shows an alert with retry when loading fails', () => {
+    const reload = vi.fn();
+    mockUseDebtPage.mockReturnValue({ ...controllerBase, errorMessage: '載入失敗', reload });
+    mockUseDebtAccountCmds.mockReturnValue({ removeDebtAccount: vi.fn() } as never);
+    mockUseConfirm.mockReturnValue({ confirm: vi.fn().mockResolvedValue(false) } as never);
+    mockUseNavigate.mockReturnValue(vi.fn());
+
+    render(
+      <MemoryRouter>
+        <DebtListPage />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByText('載入失敗')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: '重試' }));
+    expect(reload).toHaveBeenCalled();
+  });
+
+  it('shows the empty state when there are no loans', () => {
+    mockUseDebtPage.mockReturnValue({ ...controllerBase, debtAccountViews: [] });
+    mockUseDebtAccountCmds.mockReturnValue({ removeDebtAccount: vi.fn() } as never);
+    mockUseConfirm.mockReturnValue({ confirm: vi.fn().mockResolvedValue(false) } as never);
+    mockUseNavigate.mockReturnValue(vi.fn());
+
+    render(
+      <MemoryRouter>
+        <DebtListPage />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByText('尚無貸款紀錄')).toBeInTheDocument();
   });
 });

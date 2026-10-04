@@ -11,6 +11,7 @@ import { useDebtAccountCmds } from '@/ui/features/debt/hooks/useDebtAccountCmds'
 import { useDebtSnapshots } from '@/ui/features/debt/hooks/useDebtSnapshots';
 import {
   type DebtPaymentHistoryItemVM,
+  mapDebtHistoryMonths,
   mapDebtPaymentTransactionToHistoryVM,
 } from '@/ui/features/debt/viewmodels/debtDisplay.vm';
 import { useDebtAccountFormViewModel } from '@/ui/features/debt/viewmodels/useDebtAccountFormViewModel';
@@ -114,6 +115,11 @@ export const useDebtDetailPage = ({ account }: UseDebtDetailPageArgs) => {
     };
   }, [activeAccount, householdId, userProfile]);
 
+  const historyMonths = useMemo(
+    () => mapDebtHistoryMonths(snapshots, history),
+    [snapshots, history],
+  );
+
   const trend = useMemo(
     () =>
       toMonthTrendSeries(
@@ -169,8 +175,8 @@ export const useDebtDetailPage = ({ account }: UseDebtDetailPageArgs) => {
 
   return {
     activeAccount,
-    snapshots,
-    history,
+    isSettled: Boolean(activeAccount?.closedAt),
+    historyMonths,
     trend,
     loading,
     isEditOpen,

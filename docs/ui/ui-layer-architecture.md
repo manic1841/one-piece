@@ -428,7 +428,7 @@ Global Header(sticky 系統狀態列)只負責:
 
 ### 7.1 責任切分
 
-- **List** = Browse / Filter / Create / Reorder:檢視清單、內容區 filter(顯示停用／顯示已結清 toggle 屬 view filter,非資料變更)、create 入口、拖曳排序(見 [ADR-0059](../adr/0059-dnd-kit-shared-sortable.md))。view filter 與搜尋放在 List 內容區,不放 header。
+- **List** = Browse / Filter / Create / Reorder:檢視清單、內容區 filter(僅啟用中／含停用的狀態篩選屬 view filter,非資料變更)、create 入口、拖曳排序(見 [ADR-0059](../adr/0059-dnd-kit-shared-sortable.md))。view filter 與搜尋放在 List 內容區,不放 header。
 - **Detail** = 該實體的管理動作:Edit(inline rename 或 Edit Form)、Activate/Deactivate、Danger Zone(刪除)。
 - **Workflow** = 該工作流的主要動作:Confirm、Close Period。
 

@@ -155,7 +155,7 @@
 - **`CompactRow`** — 行動版佈局的資訊列：單列 label／值對齊。
   - Props：`children`、`onClick?`、`testId`（必填）、`className?`、`style?`、`ref?`。
   - **不要用於**：桌面版的表格資料（用 `data-table` 套件）；它只在行動版佈局出現。
-  - 範例：`src/ui/features/debt/pages/DebtListPage.tsx`
+  - 範例：`src/ui/features/portfolio/components/SortablePortfolioRows.tsx`、`src/ui/features/app/pages/GalleryCollections.tsx`
 
 - **`InlineEditableTitle`** — 就地編輯的標題。trim 後為空或未變更即取消；Enter 儲存、Escape 取消；儲存失敗自動還原。
   - Props：`value`、`onSave(value) => Promise<void> | void`、`disabled?`、`className?`。
@@ -180,27 +180,27 @@
 - **`EmptyState`** — 空狀態：狀態 glyph ＋ status 標題 ＋ 一句說明 ＋ 一個主要 action。不做大型 Card。
   - Props：`title`、`description`、`action?`、`className?`。glyph 固定，不是 prop。
   - **不要用於**：錯誤狀態（用 inline alert）；頁面級 fallback（用 `AppFallback`）。
-  - 範例：`src/ui/features/dashboard/pages/DashboardPage.tsx`、`src/ui/features/project/pages/ProjectsPage.tsx`
+  - 範例：`src/ui/features/dashboard/pages/DashboardPage.tsx`、`src/ui/features/project/pages/ProjectsPage.tsx`、`src/ui/features/debt/pages/DebtListPage.tsx`
 
 - **`FinancialNumber`** — 財務數值顯示：`hero` / `large` / `default` 三級 ＋ 選用 change line ＋ 缺值「$ —」。值與 change line 都由呼叫端預先格式化，本元件不做貨幣運算。
   - Props：`value?: string | null`、`size?`、`tone?`（`default`/`positive`/`negative`）、`change?`、`changeTone?`（`default`/`positive`/`negative`/`muted`）、`className?`。提供 `change` 時根元素變為 block。
   - **不要用於**：表格儲存格（用 `data-table` 的 `NumberCell`）；輸入（用 `form` 的 `NumberInput`/`CurrencyInput`）。
-  - 範例：`src/ui/features/dashboard/pages/DashboardPage.tsx`（hero 淨資產 ＋ YTD change line）。
+  - 範例：`src/ui/features/dashboard/pages/DashboardPage.tsx`（hero 淨資產 ＋ YTD change line）、`src/ui/features/debt/pages/DebtDetailPage.tsx`。
 
 - **`MetricGroup` / `Metric`** — 同層級財務指標列：label + mono 值 + change line，非卡片。`MetricGroup` 是分割線容器，`Metric` 是單一指標。
   - Props（Group）：`children`、`columns?`（`2`/`3`/`4`/`5`，md 以上；手機固定 2 欄）、`lastSpansFull?`（末格在手機跨滿，收掉 2 欄換行留下的缺角）、`className?`。Props（Metric）：`label`、`value`、`tone?`、`change?`、`changeTone?`、`testId?`、`className?`。
   - **不要用於**：需要互動或篩選的資料（那是 table/toolbar 的事）。
-  - 範例：`src/ui/features/dashboard/pages/DashboardPage.tsx`（FINANCIAL SNAPSHOT，5 欄）、`src/ui/features/project/pages/ProjectDetailPage.tsx`（SUMMARY，4 欄）。
+  - 範例：`src/ui/features/dashboard/pages/DashboardPage.tsx`（FINANCIAL SNAPSHOT，5 欄）、`src/ui/features/project/pages/ProjectDetailPage.tsx`（SUMMARY，4 欄）、`src/ui/features/debt/pages/DebtDetailPage.tsx`（LOAN INFORMATION，4 欄）、`src/ui/features/debt/pages/DebtListPage.tsx`（SUMMARY，2 欄）。
 
 - **`PageSection`** — 頁面層級的全寬 section band（`border-b` ＋ `py-10`），visual-standards 的「structure over cards」：頁面區域用 band 分段，不用浮動卡片。number ＋ title 為選用的 mono 標題；僅內容時是素 band。
   - Props：`number?`、`title?`、`action?`（與標題同列的尾端控件）、`spacing?`（`default`/`compact`，後者收緊密集堆疊）、`children`、`className?`。
   - **不要用於**：section 內的個別單元（用 `Module`）；需要 sticky 或導航的區域（用 `PageHeader` / `Toolbar`）。
-  - 範例：`src/ui/features/dashboard/pages/DashboardPage.tsx`（`spacing="compact"` 堆疊）、`src/ui/features/project/pages/ProjectDetailPage.tsx`。
+  - 範例：`src/ui/features/dashboard/pages/DashboardPage.tsx`（`spacing="compact"` 堆疊）、`src/ui/features/project/pages/ProjectDetailPage.tsx`、`src/ui/features/debt/pages/DebtDetailPage.tsx`、`src/ui/features/debt/pages/DebtListPage.tsx`。
 
 - **`Module`** — PageSection 內的 distinct module：mono label + 卡片邊界（唯一允許卡片的層級，design-system「Card 保留給 distinct module」）。`min-w-0` 防止在響應式 grid 溢出。
   - Props：`label`、`children`、`className?`。
   - **不要用於**：頁面級分段（用 `PageSection`）；列表內的重複列（那不是 module，是 row）。
-  - 範例：`src/ui/features/app/pages/GalleryScaffold.tsx`（re-export 為 `GalleryModule`）。
+  - 範例：`src/ui/features/app/pages/GalleryScaffold.tsx`（re-export 為 `GalleryModule`）、`src/ui/features/debt/pages/DebtDetailPage.tsx`（DANGER ZONE）。
 
 - **`ui/accordion`** — 可摺疊的 section 級面板（Radix 包裝）：trigger 是一列 mono 標題，內容展開。用於把次要閱讀層收起。
   - Props：透通 Radix Root／Item／Trigger／Content；`type`、`defaultValue` 由呼叫端決定（`multiple` 可多開）。
@@ -330,7 +330,7 @@
 - **`DataTable`** — 表格外框。**`DataTableScrollArea`** 是可捲動區（僅桌機）。
   - Props：原生 table 屬性（`DataTable`）／原生 div 屬性（`DataTableScrollArea`）。
   - **不要用於**：非表格的資料陳列（行動版清單用 `MobileDataRow`／`CompactRow`）。
-  - 範例：`src/ui/features/transaction/components/TransactionItem.tsx`、`src/ui/features/monthly_close/stages/account_balance/components/CloseAccountBalanceInputs.tsx`
+  - 範例：`src/ui/features/transaction/components/TransactionItem.tsx`、`src/ui/features/debt/pages/DebtListPage.tsx`、`src/ui/features/debt/components/detail/DebtHistoryTable.tsx`、`src/ui/features/monthly_close/stages/account_balance/components/CloseAccountBalanceInputs.tsx`
 
 - **`DataTableRow`** — 資料列。**`DataTableHeadRow`** 是表頭列。
   - Props：原生 `tr` 屬性。
@@ -361,7 +361,7 @@
 - **`MobileDataRow`** — 行動版的 grouped row（label／值）。**`MobileDataList`** 是外框；**`MobileDataField`** 是其中一欄。**`MobileExpandableRow`** 是可展開的列變體：`summary` / `value` / `meta` / `actions` / `details`，自身接管展開狀態與鍵盤等價（Enter／Space）並在提供 `details` 時補上 `role="button"` 與 `aria-expanded`；`actions` 區停止冒泡，讓列動作不切換展開。
   - Props：原生 div 屬性；`MobileDataField` 另加 `label`（必填）、`children?`、`className?`；`MobileExpandableRow` 另加 `summary`（必填）、`value?`、`meta?`、`actions?`、`details?`。
   - **不要用於**：桌機佈局（用 `DataTable`）。
-  - 範例：`src/ui/features/monthly_close/stages/account_balance/components/CloseAccountBalanceMobileLists.tsx`、`src/ui/features/transaction/components/TransactionItem.tsx`
+  - 範例：`src/ui/features/monthly_close/stages/account_balance/components/CloseAccountBalanceMobileLists.tsx`、`src/ui/features/transaction/components/TransactionItem.tsx`、`src/ui/features/debt/pages/DebtListPage.tsx`
 
 ## form 套件
 

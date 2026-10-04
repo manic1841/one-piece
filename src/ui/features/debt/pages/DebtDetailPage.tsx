@@ -1,17 +1,19 @@
-import React from 'react';
-
 import { Pencil, Power, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
+import { EmptyState } from '@/ui/components/EmptyState';
+import { FinancialNumber } from '@/ui/components/FinancialNumber';
+import { Metric, MetricGroup } from '@/ui/components/MetricGroup';
+import { Module } from '@/ui/components/Module';
 import { PageHeader } from '@/ui/components/PageHeader';
+import { PageSection } from '@/ui/components/PageSection';
+import { Skeleton } from '@/ui/components/Skeleton';
 import { StatusGlyph } from '@/ui/components/StatusGlyph';
 import { InteractiveLineChart } from '@/ui/components/charts/InteractiveLineChart';
 import { Button } from '@/ui/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/ui/components/ui/dialog';
-import { DEBT_STATUS_SETTLED_LABEL } from '@/ui/constants/debtStatusLabels';
-import { DebtAccountForm } from '@/ui/features/debt/components/DebtAccountForm';
-import { DebtPaymentsTable } from '@/ui/features/debt/components/detail/DebtPaymentsTable';
-import { DebtSnapshotTable } from '@/ui/features/debt/components/detail/DebtSnapshotTable';
+import { DEBT_STATUS_INACTIVE_LABEL, DEBT_STATUS_SETTLED_LABEL } from '@/ui/constants/debt/label';
+import { DebtAccountFormDialog } from '@/ui/features/debt/components/DebtAccountFormDialog';
+import { DebtHistoryTable } from '@/ui/features/debt/components/detail/DebtHistoryTable';
 import { useDebtDetailPage } from '@/ui/features/debt/hooks/useDebtDetailPage';
 import { type DebtAccount } from '@/ui/features/debt/viewmodels/debtDisplay.vm';
 import { formatCurrency, formatDate } from '@/ui/utils';
@@ -20,18 +22,14 @@ interface DebtDetailPageProps {
   account?: DebtAccount;
 }
 
-const SectionTitle: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <p className="font-mono text-[11px] tracking-widest text-muted-foreground uppercase">
-    {children}
-  </p>
-);
+const SKELETON_ROWS = [0, 1, 2];
 
 export default function DebtDetailPage({ account }: DebtDetailPageProps) {
   const navigate = useNavigate();
   const {
     activeAccount,
-    snapshots,
-    history,
+    isSettled,
+    historyMonths,
     trend,
     loading,
     isEditOpen,
@@ -42,8 +40,30 @@ export default function DebtDetailPage({ account }: DebtDetailPageProps) {
     handleEnable,
   } = useDebtDetailPage({ account });
 
-  if (loading) return <div>Loading...</div>;
-  if (!activeAccount) return <div>Loan not found</div>;
+  if (loading) {
+    return (
+      <div role="status" className="space-y-6 pb-20">
+        <span className="sr-only">載入中…</span>
+        {SKELETON_ROWS.map((row) => (
+          <Skeleton key={row} className="h-16" />
+        ))}
+      </div>
+    );
+  }
+
+  if (!activeAccount) {
+    return (
+      <EmptyState
+        title="找不到貸款"
+        description="此貸款可能已被刪除，或你不屬於它所屬的家庭。"
+        action={
+          <Button variant="outline" onClick={() => navigate('/debt')}>
+            返回債務列表
+          </Button>
+        }
+      />
+    );
+  }
 
   return (
     <div className="space-y-8 pb-20">
@@ -54,7 +74,10 @@ export default function DebtDetailPage({ account }: DebtDetailPageProps) {
         onBack={() => navigate('/debt')}
         badge={
           !activeAccount.isActive ? (
-            <StatusGlyph type="verified" label={DEBT_STATUS_SETTLED_LABEL} />
+            <StatusGlyph
+              type={isSettled ? 'verified' : 'inactive'}
+              label={isSettled ? DEBT_STATUS_SETTLED_LABEL : DEBT_STATUS_INACTIVE_LABEL}
+            />
           ) : undefined
         }
         actions={
@@ -65,13 +88,13 @@ export default function DebtDetailPage({ account }: DebtDetailPageProps) {
               </Button>
             ) : (
               <Button variant="outline" onClick={() => setIsEditOpen(true)}>
-                <Pencil size={16} />
+                <Pencil size={16} aria-hidden="true" />
                 編輯貸款
               </Button>
             )}
             {activeAccount.isActive && (
-              <Button variant="outline" onClick={() => void handleDisable()}>
-                <Power size={16} />
+              <Button variant="destructive" onClick={() => void handleDisable()}>
+                <Power size={16} aria-hidden="true" />
                 停用貸款
               </Button>
             )}
@@ -79,44 +102,32 @@ export default function DebtDetailPage({ account }: DebtDetailPageProps) {
         }
       />
 
-      <section className="space-y-3">
-        <SectionTitle>OUTSTANDING BALANCE</SectionTitle>
+      <PageSection title="OUTSTANDING BALANCE" spacing="compact">
         <div className="flex items-baseline justify-between">
-          <p className="font-mono text-3xl tabular-nums text-destructive">
-            {formatCurrency(activeAccount.currentBalance)}
-          </p>
-          <p className="font-mono text-xs tabular-nums text-muted-foreground">
+          <FinancialNumber
+            value={formatCurrency(activeAccount.currentBalance)}
+            size="large"
+            tone="negative"
+          />
+          <span className="font-mono text-xs tabular-nums text-muted-foreground">
             / {formatCurrency(activeAccount.originalAmount)}
-          </p>
+          </span>
         </div>
-      </section>
+      </PageSection>
 
-      <section className="space-y-3">
-        <SectionTitle>LOAN INFORMATION</SectionTitle>
-        <div className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm md:grid-cols-4">
-          <div>
-            <p className="text-xs text-muted-foreground">Original</p>
-            <p className="font-mono tabular-nums">{formatCurrency(activeAccount.originalAmount)}</p>
-          </div>
-          <div>
-            <p className="text-xs text-muted-foreground">Monthly Payment</p>
-            <p className="font-mono tabular-nums">{formatCurrency(activeAccount.monthlyPayment)}</p>
-          </div>
-          <div>
-            <p className="text-xs text-muted-foreground">Interest Rate</p>
-            <p className="font-mono tabular-nums">{activeAccount.interestRate}%</p>
-          </div>
-          <div>
-            <p className="text-xs text-muted-foreground">Period</p>
-            <p className="font-mono text-[12px] tabular-nums">
-              {formatDate(activeAccount.startDate)} ~ {formatDate(activeAccount.endDate)}
-            </p>
-          </div>
-        </div>
-      </section>
+      <PageSection title="LOAN INFORMATION" spacing="compact">
+        <MetricGroup columns={4}>
+          <Metric label="Original" value={formatCurrency(activeAccount.originalAmount)} />
+          <Metric label="Monthly Payment" value={formatCurrency(activeAccount.monthlyPayment)} />
+          <Metric label="Interest Rate" value={`${activeAccount.interestRate}%`} />
+          <Metric
+            label="Period"
+            value={`${formatDate(activeAccount.startDate)} ~ ${formatDate(activeAccount.endDate)}`}
+          />
+        </MetricGroup>
+      </PageSection>
 
-      <section className="space-y-3">
-        <SectionTitle>12M TREND</SectionTitle>
+      <PageSection title="12M TREND" spacing="compact">
         {trend.hasData ? (
           <InteractiveLineChart
             values={trend.values}
@@ -130,42 +141,32 @@ export default function DebtDetailPage({ account }: DebtDetailPageProps) {
         ) : (
           <p className="text-sm text-muted-foreground">尚無月度結算資料</p>
         )}
-      </section>
+      </PageSection>
 
-      <section className="space-y-3">
-        <SectionTitle>12M HISTORY</SectionTitle>
-        <DebtSnapshotTable snapshots={snapshots} />
-      </section>
+      <PageSection title="HISTORY" spacing="compact">
+        <DebtHistoryTable months={historyMonths} />
+      </PageSection>
 
-      <section className="space-y-3">
-        <SectionTitle>RECENT PAYMENTS</SectionTitle>
-        <DebtPaymentsTable history={history} />
-      </section>
+      <PageSection spacing="compact">
+        <Module label="DANGER ZONE">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+            onClick={() => void handleDelete()}
+          >
+            <Trash2 size={14} aria-hidden="true" />
+            刪除貸款
+          </Button>
+        </Module>
+      </PageSection>
 
-      <section className="space-y-3 border-t border-border pt-6">
-        <SectionTitle>DANGER ZONE</SectionTitle>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="text-destructive hover:bg-destructive/10 hover:text-destructive"
-          onClick={() => void handleDelete()}
-        >
-          <Trash2 size={14} />
-          刪除貸款
-        </Button>
-      </section>
-
-      <Dialog open={isEditOpen} onOpenChange={(open) => !open && setIsEditOpen(false)}>
-        <DialogContent
-          className="max-w-2xl max-h-[90vh] overflow-y-auto"
-          aria-describedby={undefined}
-        >
-          <DialogHeader>
-            <DialogTitle>編輯貸款</DialogTitle>
-          </DialogHeader>
-          <DebtAccountForm vm={formVm} />
-        </DialogContent>
-      </Dialog>
+      <DebtAccountFormDialog
+        open={isEditOpen}
+        onOpenChange={(open) => !open && setIsEditOpen(false)}
+        title="編輯貸款"
+        vm={formVm}
+      />
     </div>
   );
 }

@@ -222,8 +222,8 @@ firestore
             ├─ linkedLedgerCode: string # 由 type 自動對應，e.g. "liability:mortgage"
             ├─ linkedProjectId?: string | null
             ├─ note?: string
-            ├─ isActive: boolean        # false = 已結清/停用
-            ├─ closedAt?: Timestamp | null # 結清日期，isActive=false 時寫入
+            ├─ isActive: boolean        # false = 停用（結清時亦為 false）
+            ├─ closedAt?: Timestamp | null # 結清日期，結清時寫入（closedAt 有值=已結清，否則=停用）
             └─ snapshots/{yearMonth}     # 每月 DEBT_PAYMENT 累計快照，ID = YYYY-MM
 ```
 

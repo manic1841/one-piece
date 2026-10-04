@@ -10,11 +10,6 @@ import { formatCurrency, formatDate } from '@/ui/utils';
 
 export type { DebtAccount, DebtSnapshot, DebtType };
 
-const formatYearMonth = (date: Date | null): string => {
-  if (!date) return '—';
-  return `${date.getFullYear()}年${date.getMonth() + 1}月`;
-};
-
 const estimatePayoffDate = (account: DebtAccount): Date | null => {
   const { currentBalance, interestRate, monthlyPayment } = account;
   if (monthlyPayment <= 0) return null;
@@ -42,7 +37,6 @@ export interface DebtAccountDisplayVM extends DebtAccount {
   projectName: string | null;
   typeLabel: string;
   inGracePeriod: boolean;
-  graceEndYearMonthText: string;
   monthlyDueAmount: number;
 }
 
@@ -69,8 +63,6 @@ export const mapDebtAccountToDisplayVM = (
     projectName,
     typeLabel: DebtTypeLabels[account.type as DebtType],
     inGracePeriod,
-    graceEndYearMonthText:
-      account.graceEndDate && inGracePeriod ? formatYearMonth(account.graceEndDate) : '',
     monthlyDueAmount: inGracePeriod
       ? calculateGraceMonthlyPayment(account.currentBalance, account.interestRate)
       : account.monthlyPayment,
@@ -79,12 +71,16 @@ export const mapDebtAccountToDisplayVM = (
 
 export interface DebtPaymentHistoryItemVM {
   id: string;
+  yearMonth: string;
   dateText: string;
   descriptionText: string;
   principalText: string;
   interestText: string;
   totalText: string;
 }
+
+const toYearMonth = (date: Date): string =>
+  `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
 
 /**
  * One repayment history row for the debt detail table. The principal/interest
@@ -100,6 +96,7 @@ export const mapDebtPaymentTransactionToHistoryVM = (
 
   return {
     id: transaction.id,
+    yearMonth: toYearMonth(transaction.date),
     dateText: formatDate(transaction.date),
     // `description` is the field that carries the payment note; the previous
     // code read a non-existent `note` and so always showed the fallback.
@@ -108,4 +105,50 @@ export const mapDebtPaymentTransactionToHistoryVM = (
     interestText: formatCurrency(split.interest),
     totalText: formatCurrency(split.total),
   };
+};
+
+export interface DebtHistoryMonthVM {
+  key: string;
+  yearMonth: string;
+  openingText: string;
+  principalText: string;
+  interestText: string;
+  closingText: string;
+  payments: DebtPaymentHistoryItemVM[];
+}
+
+/**
+ * Merges the monthly snapshots and the repayment rows into one history: each
+ * month is a row whose payments expand beneath it. A month that only has a
+ * payment -- a repayment recorded before that month's snapshot exists -- still
+ * gets a row, so no payment is dropped; its snapshot columns read `—`.
+ */
+export const mapDebtHistoryMonths = (
+  snapshots: DebtSnapshot[],
+  payments: DebtPaymentHistoryItemVM[],
+): DebtHistoryMonthVM[] => {
+  const snapshotByMonth = new Map(snapshots.map((snapshot) => [snapshot.yearMonth, snapshot]));
+  const paymentsByMonth = new Map<string, DebtPaymentHistoryItemVM[]>();
+  for (const payment of payments) {
+    const group = paymentsByMonth.get(payment.yearMonth);
+    if (group) group.push(payment);
+    else paymentsByMonth.set(payment.yearMonth, [payment]);
+  }
+
+  const months = [...new Set([...snapshotByMonth.keys(), ...paymentsByMonth.keys()])].sort((a, b) =>
+    b.localeCompare(a),
+  );
+
+  return months.map((yearMonth) => {
+    const snapshot = snapshotByMonth.get(yearMonth);
+    return {
+      key: yearMonth,
+      yearMonth,
+      openingText: snapshot ? formatCurrency(snapshot.openingBalance) : '—',
+      principalText: snapshot ? formatCurrency(snapshot.principalPaid) : '—',
+      interestText: snapshot ? formatCurrency(snapshot.interestPaid) : '—',
+      closingText: snapshot ? formatCurrency(snapshot.closingBalance) : '—',
+      payments: paymentsByMonth.get(yearMonth) ?? [],
+    };
+  });
 };
