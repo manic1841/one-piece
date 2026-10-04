@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { type FinancialPeriod, initialStageStates } from './schemas';
+import { CLOSE_STAGE_IDS, type FinancialPeriod, initialStageStates } from './schemas';
 import {
   closePeriodInState,
   completedStageCount,
@@ -327,16 +327,23 @@ describe('resetStagesFromInState', () => {
 });
 
 describe('closePeriodInState', () => {
-  it('requires Close Period stage completed', () => {
-    expect(() => closePeriodInState(basePeriod(), 'user-1', new Date())).toThrow(
-      FinancialPeriodStateError,
+  /** Every walk stage has been confirmed; CLOSE_PERIOD itself completes on close. */
+  const readyToClose = (): FinancialPeriod['stages'] =>
+    Object.fromEntries(
+      CLOSE_STAGE_IDS.filter((stageId) => stageId !== 'CLOSE_PERIOD').map((stageId) => [
+        stageId,
+        { status: 'COMPLETED' as const },
+      ]),
     );
+
+  it('rejects closing while any stage is incomplete', () => {
+    const confirmed = confirmStageInState(basePeriod(), 'CLOSE_PERIOD', 'user-1', new Date());
+    expect(() => closePeriodInState(confirmed, 'user-1', new Date())).toThrow(/STAGES_INCOMPLETE/);
   });
 
-  it('finalizes the period as CLOSED when Close Period is confirmed', () => {
+  it('finalizes the period as CLOSED when every stage is completed', () => {
     const closedAt = new Date('2026-10-05T10:00:00Z');
-    const confirmed = confirmStageInState(basePeriod(), 'CLOSE_PERIOD', 'user-1', new Date());
-    const next = closePeriodInState(confirmed, 'user-1', closedAt);
+    const next = closePeriodInState(basePeriod({ stages: readyToClose() }), 'user-1', closedAt);
 
     expect(next.status).toBe('CLOSED');
     expect(next.reviewSourceStageId).toBeNull();
@@ -347,19 +354,9 @@ describe('closePeriodInState', () => {
     });
   });
 
-  it('allows closing when the Close Period stage is completed', () => {
-    const confirmed = confirmStageInState(basePeriod(), 'CLOSE_PERIOD', 'user-1', new Date());
-    const next = closePeriodInState(confirmed, 'user-1', new Date());
-
-    expect(next.status).toBe('CLOSED');
-  });
-
   it('rejects closing an already-closed period', () => {
-    const confirmed = confirmStageInState(basePeriod(), 'CLOSE_PERIOD', 'user-1', new Date());
-    const closed = closePeriodInState(confirmed, 'user-1', new Date());
+    const closed = closePeriodInState(basePeriod({ stages: readyToClose() }), 'user-1', new Date());
 
-    expect(() => closePeriodInState(closed, 'user-1', new Date())).toThrow(
-      FinancialPeriodStateError,
-    );
+    expect(() => closePeriodInState(closed, 'user-1', new Date())).toThrow(/PERIOD_CLOSED/);
   });
 });

@@ -100,6 +100,7 @@ export const MONTHLY_CLOSE_LABELS = {
   LOAD_ERROR: '無法載入關帳狀態。',
   CONFIRM_ERROR: '確認失敗，請稍後再試。',
   STAGE_ALREADY_COMPLETED_ERROR: '此階段已完成確認，無法重新確認。',
+  STAGES_INCOMPLETE_ERROR: '尚有階段未確認，無法關帳。',
   START_ERROR: '無法開始關帳。',
   REOPEN_ERROR: '無法重新開啟關帳。',
   SELECT_PERIOD: '選擇關帳期間',

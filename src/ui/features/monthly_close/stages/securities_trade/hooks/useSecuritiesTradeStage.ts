@@ -18,6 +18,7 @@ import {
   adoptConfirmedTradeRows,
   applyTradeCommand,
   findTradeRow,
+  pendingTradeRows,
   toTradeRowValue,
 } from '../../../viewmodels/tradeDraft.vm';
 import { useTradeDrawer } from './useTradeDrawer';
@@ -100,10 +101,11 @@ export const useSecuritiesTradeStage = ({
   const control = useConfirmStageControl({
     stageId: 'SECURITIES_TRADE',
     confirmingStageId,
+    // Only rows the user added/edited are submitted; untouched prefills stay out
+    // of the write so their audit fields are not churned.
     buildRequest: () => ({
       stageId: 'SECURITIES_TRADE',
-      securities,
-      financing,
+      ...pendingTradeRows(current),
       removedTransactionIds,
     }),
     // Adopt the write's authoritative rows so a re-confirmation updates in place.

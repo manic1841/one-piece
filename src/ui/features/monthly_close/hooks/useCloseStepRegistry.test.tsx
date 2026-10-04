@@ -624,6 +624,20 @@ describe('useCloseStepRegistry', () => {
     const { result } = renderRegistry();
     await waitFor(() => expect(getMonthInvestmentFinancingUseCase.execute).toHaveBeenCalled());
 
+    // The user adds a row through the real drawer → form → command path.
+    act(() => {
+      result.current.SECURITIES_TRADE.control.drawer.open('SECURITIES', 'ADD', null);
+    });
+    act(() => {
+      result.current.SECURITIES_TRADE.control.drawerForm.form.setValue('amount', '5000');
+    });
+    await act(async () => {
+      await result.current.SECURITIES_TRADE.control.drawerForm.submit();
+    });
+
+    // Until the write comes back, the added row is the only thing to submit.
+    expect(result.current.SECURITIES_TRADE.control.buildRequest().securities.buys).toHaveLength(1);
+
     const confirmedRow = {
       transactionId: 'tx-1',
       amount: 5000,
@@ -638,12 +652,11 @@ describe('useCloseStepRegistry', () => {
       });
     });
 
+    // The authoritative row is adopted in place and marked clean, so nothing is
+    // pending for a re-confirm to rewrite.
     expect(result.current.SECURITIES_TRADE.control.buildRequest()).toEqual({
       stageId: 'SECURITIES_TRADE',
-      securities: {
-        buys: [{ ...confirmedRow, description: undefined, projectId: null }],
-        sells: [],
-      },
+      securities: { buys: [], sells: [] },
       financing: { shareholderFinancing: [], dividendPayout: [] },
       removedTransactionIds: [],
     });

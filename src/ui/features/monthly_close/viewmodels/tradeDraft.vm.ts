@@ -1,6 +1,8 @@
 import {
   type CloseTradeInput,
+  type FinancingInput,
   type SecuritiesTradeConfirmResult,
+  type SecuritiesTradeInput,
 } from '@/application/monthly_close/use_cases/monthlyCloseRequests';
 
 export type TradeSide = 'BUY' | 'SELL';
@@ -22,6 +24,8 @@ export interface TradeRowValue {
   date: Date;
   description?: string;
   projectId: string | null;
+  /** Set on add/edit; only dirty rows are submitted so untouched prefills are not rewritten. */
+  dirty?: boolean;
 }
 
 export interface SecuritiesTradeDraft {
@@ -155,7 +159,7 @@ export const applyTradeCommand = (
   command: TradeCommand,
 ): SecuritiesTradeDraft => {
   if (command.type === 'ADD') {
-    const rows = [...rowsOf(draft, command.bucket), command.row];
+    const rows = [...rowsOf(draft, command.bucket), { ...command.row, dirty: true }];
     return clearRemoval(withRows(draft, command.bucket, rows), command.row.transactionId);
   }
 
@@ -186,7 +190,8 @@ export const applyTradeCommand = (
   );
   const target = rowsOf(without, command.toBucket);
   const insertAt = Math.min(found.index, target.length);
-  const next = [...target.slice(0, insertAt), command.row, ...target.slice(insertAt)];
+  const edited = { ...command.row, dirty: true };
+  const next = [...target.slice(0, insertAt), edited, ...target.slice(insertAt)];
   return clearRemoval(withRows(without, command.toBucket, next), command.row.transactionId);
 };
 
@@ -198,6 +203,70 @@ const normalizeRow = (row: CloseTradeInput): TradeRowValue => ({
   projectId: row.projectId ?? null,
 });
 
+/** The reverse of `normalizeRow`: the request shape, without the draft-only `dirty` flag. */
+const toSubmitRow = (row: TradeRowValue): CloseTradeInput => ({
+  transactionId: row.transactionId,
+  amount: row.amount,
+  date: row.date,
+  description: row.description,
+  projectId: row.projectId,
+});
+
+const dirtyRowsOf = (rows: TradeRowValue[]): CloseTradeInput[] =>
+  rows.filter((row) => row.dirty === true).map(toSubmitRow);
+
+/**
+ * The rows to submit: only rows the user added or edited, plus the removal
+ * ledger. Untouched prefilled rows stay out of the write so their audit fields
+ * (updatedAt/updatedBy) are not churned.
+ */
+export const pendingTradeRows = (
+  draft: SecuritiesTradeDraft,
+): {
+  securities: { buys: SecuritiesTradeInput[]; sells: SecuritiesTradeInput[] };
+  financing: { shareholderFinancing: FinancingInput[]; dividendPayout: FinancingInput[] };
+} => ({
+  securities: {
+    buys: dirtyRowsOf(draft.securities.buys),
+    sells: dirtyRowsOf(draft.securities.sells),
+  },
+  financing: {
+    shareholderFinancing: dirtyRowsOf(draft.financing.shareholderFinancing),
+    dividendPayout: dirtyRowsOf(draft.financing.dividendPayout),
+  },
+});
+
+/** Reconcile one bucket after a confirm: replace edited rows in place, append new/moved rows. */
+const adoptBucket = (rows: TradeRowValue[], confirmed: CloseTradeInput[]): TradeRowValue[] => {
+  const confirmedById = new Map(
+    confirmed
+      .filter((row) => row.transactionId !== undefined)
+      .map((row) => [row.transactionId as string, row]),
+  );
+  const placed = new Set<string>();
+  const next: TradeRowValue[] = [];
+  for (const row of rows) {
+    const id = row.transactionId;
+    if (id !== undefined && confirmedById.has(id)) {
+      next.push(normalizeRow(confirmedById.get(id)!));
+      placed.add(id);
+      continue;
+    }
+    // Drop rows the write consumed: an added row (no id) or one moved to another bucket.
+    if (row.dirty === true) continue;
+    next.push(row);
+  }
+  for (const row of confirmed) {
+    if (row.transactionId !== undefined && placed.has(row.transactionId)) continue;
+    next.push(normalizeRow(row));
+  }
+  return next;
+};
+
+/**
+ * Adopt the write's authoritative rows (#250) without discarding untouched
+ * prefills: edited rows are replaced in place, new and cross-bucket rows appended.
+ */
 export const adoptConfirmedTradeRows = (
   draft: SecuritiesTradeDraft,
   confirmed: SecuritiesTradeConfirmResult | null | undefined,
@@ -205,12 +274,15 @@ export const adoptConfirmedTradeRows = (
   if (!confirmed) return draft;
   return {
     securities: {
-      buys: confirmed.buys.map(normalizeRow),
-      sells: confirmed.sells.map(normalizeRow),
+      buys: adoptBucket(draft.securities.buys, confirmed.buys),
+      sells: adoptBucket(draft.securities.sells, confirmed.sells),
     },
     financing: {
-      shareholderFinancing: confirmed.shareholderFinancing.map(normalizeRow),
-      dividendPayout: confirmed.dividendPayout.map(normalizeRow),
+      shareholderFinancing: adoptBucket(
+        draft.financing.shareholderFinancing,
+        confirmed.shareholderFinancing,
+      ),
+      dividendPayout: adoptBucket(draft.financing.dividendPayout, confirmed.dividendPayout),
     },
     removedTransactionIds: [],
   };

@@ -9,6 +9,7 @@ import {
   adoptConfirmedTradeRows,
   applyTradeCommand,
   findTradeRow,
+  pendingTradeRows,
   projectTradeRows,
   resolveTradeBucket,
   sideForBucket,
@@ -183,5 +184,73 @@ describe('adoptConfirmedTradeRows', () => {
 
   it('leaves the draft untouched when the confirm returned nothing', () => {
     expect(adoptConfirmedTradeRows(EMPTY_TRADE_DRAFT, undefined)).toBe(EMPTY_TRADE_DRAFT);
+  });
+
+  it('keeps untouched prefilled rows and replaces an edited row in place', () => {
+    const draft = draftWith({
+      securities: { buys: [row(10, 'tx-keep'), { ...row(20, 'tx-edit'), dirty: true }], sells: [] },
+    });
+    const next = adoptConfirmedTradeRows(draft, {
+      buys: [{ transactionId: 'tx-edit', amount: 99, date: new Date('2026-08-05') }],
+      sells: [],
+      shareholderFinancing: [],
+      dividendPayout: [],
+    });
+
+    expect(next.securities.buys.map((r) => [r.transactionId, r.amount])).toEqual([
+      ['tx-keep', 10],
+      ['tx-edit', 99],
+    ]);
+  });
+
+  it('appends a confirmed new row and clears its dirty flag', () => {
+    const draft = draftWith({ securities: { buys: [{ ...row(10), dirty: true }], sells: [] } });
+    const next = adoptConfirmedTradeRows(draft, {
+      buys: [{ transactionId: 'tx-new', amount: 10, date: new Date('2026-08-05') }],
+      sells: [],
+      shareholderFinancing: [],
+      dividendPayout: [],
+    });
+
+    expect(next.securities.buys).toHaveLength(1);
+    expect(next.securities.buys[0]).toMatchObject({ transactionId: 'tx-new', amount: 10 });
+    expect(next.securities.buys[0]?.dirty).toBeUndefined();
+  });
+});
+
+describe('pendingTradeRows', () => {
+  it('returns only the rows the user added or edited', () => {
+    const draft = draftWith({
+      securities: {
+        buys: [row(10, 'tx-clean'), { ...row(20, 'tx-dirty'), dirty: true }, row(30)],
+        sells: [],
+      },
+    });
+
+    expect(pendingTradeRows(draft).securities.buys).toEqual([
+      {
+        transactionId: 'tx-dirty',
+        amount: 20,
+        date: new Date('2026-08-05'),
+        description: undefined,
+        projectId: null,
+      },
+    ]);
+  });
+
+  it('returns an empty set when nothing was touched', () => {
+    const draft = draftWith({ securities: { buys: [row(10, 'tx-clean')], sells: [] } });
+
+    expect(pendingTradeRows(draft).securities.buys).toEqual([]);
+  });
+
+  it('marks an added row dirty', () => {
+    const next = applyTradeCommand(EMPTY_TRADE_DRAFT, {
+      type: 'ADD',
+      bucket: 'buys',
+      row: row(100),
+    });
+
+    expect(next.securities.buys[0]?.dirty).toBe(true);
   });
 });

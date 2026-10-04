@@ -102,6 +102,14 @@ function completeStage(period: FinancialPeriod, stageId: keyof FinancialPeriod['
   return period;
 }
 
+/** Confirms every walk stage; CLOSE_PERIOD stays pending until the terminal close. */
+function completeWalkStages(period: FinancialPeriod): FinancialPeriod {
+  for (const stageId of Object.keys(period.stages)) {
+    if (stageId !== 'CLOSE_PERIOD') completeStage(period, stageId);
+  }
+  return period;
+}
+
 describe('MonthlyCloseWorkflowUseCase.start', () => {
   let useCase: MonthlyCloseWorkflowUseCase;
 
@@ -783,13 +791,28 @@ describe('MonthlyCloseWorkflowUseCase.confirmStage', () => {
     expect(saveFinancialPeriodUseCase.execute).not.toHaveBeenCalled();
   });
 
-  it('closes the period when reports are persisted', async () => {
+  it('rejects close while any stage is incomplete', async () => {
     vi.mocked(getReportPersistenceStateUseCase.execute).mockResolvedValue({
       isPersisted: true,
       timestamps: {},
     } as any);
     vi.mocked(getFinancialPeriodUseCase.execute).mockResolvedValue(
       completeStage(basePeriod(), 'FINANCIAL_REPORTS'),
+    );
+
+    await expect(
+      useCase.confirmStage({ ...REQUEST_BASE, stageId: 'CLOSE_PERIOD' }),
+    ).rejects.toMatchObject({ code: MonthlyCloseCommandErrorCode.STAGES_INCOMPLETE });
+    expect(saveFinancialPeriodUseCase.execute).not.toHaveBeenCalled();
+  });
+
+  it('closes the period when reports are persisted', async () => {
+    vi.mocked(getReportPersistenceStateUseCase.execute).mockResolvedValue({
+      isPersisted: true,
+      timestamps: {},
+    } as any);
+    vi.mocked(getFinancialPeriodUseCase.execute).mockResolvedValue(
+      completeWalkStages(basePeriod()),
     );
 
     const { period } = await useCase.confirmStage({ ...REQUEST_BASE, stageId: 'CLOSE_PERIOD' });

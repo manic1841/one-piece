@@ -56,7 +56,11 @@ const asCloseTradeRow =
   (intent: CloseTradeIntent) =>
   (row: SecuritiesTradeInput): CloseTradeRow => ({ ...row, intent });
 
-/** Diff-merges the submitted rows into the month's trades and returns the authoritative rows. */
+/**
+ * Writes the submitted (changed) rows — updating persisted ones by ID and
+ * creating new ones — deletes the removed IDs, and returns the authoritative
+ * versions of the rows it wrote.
+ */
 export class SyncInvestmentFinancingTransactionsUseCase {
   async execute(request: InvestmentFinancingSyncRequest): Promise<SecuritiesTradeConfirmResult> {
     const { householdId, userEmail, auth } = request;

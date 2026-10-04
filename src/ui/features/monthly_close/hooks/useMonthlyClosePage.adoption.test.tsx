@@ -206,9 +206,10 @@ describe('useMonthlyClosePage confirm adoption (#250)', () => {
       await holder.current?.handleConfirmStage('SECURITIES_TRADE');
     });
 
-    // The adopted draft survives the post-confirm refresh's re-read of the write rows.
+    // The adopted draft merges onto the prefilled draft: the untouched prefill row
+    // survives the post-confirm refresh's re-read, and the confirmed row is appended.
     expect(rowCount('confirmed-buy')).toBeGreaterThan(0);
-    expect(rowCount('prefill-buy')).toBe(0);
+    expect(rowCount('prefill-buy')).toBeGreaterThan(0);
     expect(getMonthInvestmentFinancingUseCase.execute.mock.calls.length).toBeGreaterThan(1);
   });
 
@@ -253,7 +254,7 @@ describe('useMonthlyClosePage confirm adoption (#250)', () => {
       await holder.current?.handleConfirmStage('SECURITIES_TRADE');
     });
     await expectRowShown('confirmed-buy');
-    expect(rowCount('prefill-buy')).toBe(0);
+    expect(rowCount('prefill-buy')).toBeGreaterThan(0);
 
     // A new month is a new mount, so the previous month's adopted draft is gone.
     september.unmount();

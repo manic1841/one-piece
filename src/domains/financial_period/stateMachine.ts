@@ -15,7 +15,7 @@ export class FinancialPeriodStateError extends Error {
     | 'STAGE_NOT_FOUND'
     | 'STAGE_NOT_WALK_POSITION'
     | 'STAGE_ALREADY_COMPLETED'
-    | 'STAGE_NOT_COMPLETED';
+    | 'STAGES_INCOMPLETE';
 
   constructor(code: FinancialPeriodStateError['code'], message: string) {
     super(`[${code}] ${message}`);
@@ -31,6 +31,13 @@ export class FinancialPeriodStateError extends Error {
  */
 export const resolveWalkPosition = (period: FinancialPeriod): CloseStageId | null =>
   CLOSE_STAGE_IDS.find((stageId) => period.stages[stageId]?.status !== 'COMPLETED') ?? null;
+
+/** Every stage the walk must clear before the terminal close; CLOSE_PERIOD completes on close. */
+const PRE_CLOSE_STAGE_IDS = CLOSE_STAGE_IDS.filter((stageId) => stageId !== 'CLOSE_PERIOD');
+
+/** Whether the confirmable walk is finished, leaving only the terminal close. */
+export const isReadyToClose = (period: FinancialPeriod): boolean =>
+  PRE_CLOSE_STAGE_IDS.every((stageId) => isStageCompleted(period, stageId));
 
 const isPausedPeriod = (period: FinancialPeriod): boolean => period.status === 'NEEDS_REVIEW';
 
@@ -148,10 +155,10 @@ export const closePeriodInState = (
   if (period.status === 'CLOSED') {
     throw new FinancialPeriodStateError('PERIOD_CLOSED', 'period is already closed');
   }
-  if (!isStageCompleted(period, 'CLOSE_PERIOD')) {
+  if (!isReadyToClose(period)) {
     throw new FinancialPeriodStateError(
-      'STAGE_NOT_COMPLETED',
-      'Close Period stage must be confirmed before closing',
+      'STAGES_INCOMPLETE',
+      'every stage must be completed before closing',
     );
   }
 

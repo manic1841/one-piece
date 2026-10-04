@@ -34,6 +34,7 @@ import {
 import {
   closePeriodInState,
   confirmStageInState,
+  isReadyToClose,
   isReconfirmableStage,
   isReopenablePeriod,
   markNeedsReviewInState,
@@ -388,6 +389,12 @@ export class MonthlyCloseWorkflowUseCase {
       }
       case 'CLOSE_PERIOD': {
         await this.checkCloseReadiness.execute({ householdId, yearMonth, period: current });
+        if (!isReadyToClose(current)) {
+          throw new MonthlyCloseCommandError(
+            MonthlyCloseCommandErrorCode.STAGES_INCOMPLETE,
+            'every stage must be completed before closing',
+          );
+        }
         return { stageId, data: undefined };
       }
     }
