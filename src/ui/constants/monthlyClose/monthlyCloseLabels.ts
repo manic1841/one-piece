@@ -56,6 +56,7 @@ export const MONTHLY_CLOSE_LABELS = {
   NO_TRANSACTIONS: '尚無紀錄',
   NO_PROJECTS: '沒有專案',
   UNSETTLED: '尚未結算',
+  PROJECT_OPENING_BALANCE: '上期餘額',
   DEPOSIT: '存入',
   WITHDRAW: '領出',
   STARTED: '關帳進行中',

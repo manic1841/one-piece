@@ -63,6 +63,9 @@ vi.mock('@/application/portfolio/use_cases/listPortfolioSnapshotsUseCase', () =>
 vi.mock('@/application/project/use_cases/listProjectSnapshotsUseCase', () => ({
   listProjectSnapshotsUseCase: { execute: vi.fn().mockResolvedValue([]) },
 }));
+vi.mock('@/application/settlement/use_cases/previewProjectSettlementsUseCase', () => ({
+  previewProjectSettlementsUseCase: { execute: vi.fn().mockResolvedValue([]) },
+}));
 vi.mock('@/application/settlement/use_cases/previewDebtSettlementsUseCase', () => ({
   previewDebtSettlementsUseCase: { execute: vi.fn().mockResolvedValue({ items: [] }) },
 }));

@@ -99,7 +99,7 @@ URL 有效 ⟺ 該期間已有狀態紀錄。`yearMonth` 形狀不合法、或�
 扇出與量測的結論（實測細節與方法論見 #240 的量測紀錄，QA seed 資料集規模見 [qa-seed-data.md](qa-seed-data.md)）：
 
 - **進入工作區前為 0 個關帳讀取**（#240）：工作區不存在時不發出任何 Listen，閒置觀測不新增 target；進入工作區才開始載入。
-- **組成**：帳戶餘額階段的快照讀取為 **2N**（每帳戶 current + previous，N = 帳戶數），是最大單項；Portfolio 金流階段為每個 **active** portfolio 讀當月與前月兩筆月快照，並為其兩個連結帳戶各讀一筆當月餘額（當月缺席時補一次前月）。其餘為專案結算（每 active 專案一筆月快照）、Completeness Check、Financial Reports（ledgerCodes + 三張 persisted + 持久化旗標），以及各階段的 prefill／evidence。
+- **組成**：帳戶餘額階段的快照讀取為 **2N**（每帳戶 current + previous，N = 帳戶數），是最大單項；Portfolio 金流階段為每個 **active** portfolio 讀當月與前月兩筆月快照，並為其兩個連結帳戶各讀一筆當月餘額（當月缺席時補一次前月）；專案結算階段為每個 active 專案讀一筆月快照（結算狀態）並在記憶體中計算即時 preview。其餘為專案清單、Completeness Check、Financial Reports（ledgerCodes + 三張 persisted + 持久化旗標），以及各階段的 prefill／evidence。
 - **共享實體重複讀取**：`projects` 清單由 page 的 `loadEntities` 與專案結算 stage 各讀一次，`accounts`／`portfolios` 同理。量測上不顯著。
 
 量測方法注意事項：
@@ -131,7 +131,7 @@ URL 有效 ⟺ 該期間已有狀態紀錄。`yearMonth` 形狀不合法、或�
 | 帳戶餘額           | 為**有輸入**的帳戶建立快照（使用者的觀察餘額）；不為未輸入的帳戶偽造零值，且無任何輸入時以 `STAGE_INPUT_REQUIRED` 拒絕確認（見 §5）                                                                                                                                                                                                                                       |
 | 證券買入／賣出     | **僅提交使用者新增或編輯的列**（未動過的 prefill 列不寫入，避免 churn 稽核欄位）：載入的既有列以**文件 ID 更新**（intent 隨買入／賣出側改變、可跨側搬移），新增列逐筆建立為獨立合法事件，移除的列以 ID 刪除；監看清單外的手動交易預設不受寫入影響，但**會被 prefill 載入為階段列**——使用者刪除或編輯後，刪除以 `removedTransactionIds` 落地，該文件即轉為階段管理         |
 | Portfolio 金流     | 為每個 **active** portfolio 寫入快照（存入與領出金隨確認一次提交）；**已存在的月快照以提交內容同鍵覆蓋**，未輸入的 active portfolio 補一筆零金流快照；inactive portfolio 已封存，不寫入（與就緒檢查的 active 過濾一致）；階段**允許重新確認**（修正輸入後再次確認即覆蓋）                                                                                                 |     |
-| 專案結算           | 執行結算流程建立專案快照；證據區列出 active 專案與 N/M 結算狀態，確認後顯示各專案的快照結果（收入、支出、期末餘額）                                                                                                                                                                                                                                                       |
+| 專案結算           | 執行結算流程建立專案快照；證據區列出 active 專案與 N/M 結算狀態，每個專案以即時 preview 顯示上期餘額、收入、支出與本期餘額（確認後 persisted 快照即與之一致）                                                                                                                                                                                                             |     |
 | 債務還款           | 逐筆走 `createDebtPaymentUseCase` 的原子邊界（Transaction + DebtSnapshot + 餘額同一筆 Firestore transaction），批次內不包跨筆交易；為當月無還款的貸款補一筆零還款快照（零還款是推導，不是事件）；**同鍵重新確認 = 覆蓋當月紀錄**：未變更 payload 冪等返回、變更 payload 刪除前筆交易並重算快照與餘額、清零（總繳款 0）覆蓋成無還款，全部在同一筆 Firestore transaction 內 |
 | Completeness Check | 不建立任何資料。依監看清單推斷各對象在目標月份的活動狀態，只讀不寫                                                                                                                                                                                                                                                                                                        |
 | Financial Reports  | 產生三張報表（顯示標籤隨報表凍結，見 ADR-0069）；確認以同鍵冪等 upsert 覆寫既有 persisted（已存在不重複建立文件）                                                                                                                                                                                                                                                         |
@@ -159,14 +159,11 @@ URL 有效 ⟺ 該期間已有狀態紀錄。`yearMonth` 形狀不合法、或�
 
 ### 專案結算的顯示與重新確認
 
-- **確認動作**：執行結算流程建立專案快照；確認前列出所有 active 專案與其 N/M 結
-  算狀態（`listProjectsUseCase` + `listProjectSnapshotsUseCase`：該月快照存在即已結
-  算），確認後顯示各專案的快照結果（收入、支出、期末餘額，來自專案快照）。專案
+- **確認動作**：執行結算流程建立專案快照；確認前列出所有 active 專案，每個專案以即時 preview
+  （`previewProjectSettlementsUseCase`，與寫入路徑同一領域函式）顯示上期餘額、收入、支出與本期餘額；結算狀態（該月快照存在即已結算，`listProjectSnapshotsUseCase`）以狀態符號表示，未結算另附「尚未結算」提示。專案
   結算的 N/M 與 Completeness Check 就緒狀態是兩份不同的讀取——就緒聚合由
   `COMPLETENESS_CHECK` stage hook 擁有。
-- **顯示內容**：本階段沒有輸入表單，證據區列出每個 active 專案一列：結算狀態
-  （已結算顯示期末餘額、未結算顯示「尚未結算」警示）。沒有 active 專案時顯示「沒
-  有專案」。
+- **顯示內容**：本階段沒有輸入表單，證據區列出每個 active 專案一列：項目名稱＋結算狀態符號（未結算再加「尚未結算」），下方以 label/value 呈現上期餘額／收入／支出／本期餘額；桌機四欄、行動版兩欄。沒有 active 專案時顯示「沒有專案」。
 
 ### Completeness Check 的細節
 

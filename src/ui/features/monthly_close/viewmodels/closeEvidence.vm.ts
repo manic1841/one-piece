@@ -5,10 +5,12 @@ import { type CompletenessActivity } from '@/application/settlement/use_cases/ch
 export interface ProjectSettlementEvidenceRow {
   projectId: string;
   projectName: string;
+  /** Whether the month's snapshot is already persisted. */
   settled: boolean;
-  income: number | null;
-  expense: number | null;
-  closingBalance: number | null;
+  openingBalance: number;
+  income: number;
+  expense: number;
+  closingBalance: number;
 }
 
 export type CloseStageEvidence =

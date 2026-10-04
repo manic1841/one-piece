@@ -35,6 +35,7 @@ describe('closeEvidence factories', () => {
         projectId: 'project-1',
         projectName: '裝修',
         settled: true,
+        openingBalance: 1000,
         income: 5000,
         expense: 3000,
         closingBalance: 2000,
@@ -43,9 +44,10 @@ describe('closeEvidence factories', () => {
         projectId: 'project-2',
         projectName: '旅遊',
         settled: false,
-        income: null,
-        expense: null,
-        closingBalance: null,
+        openingBalance: 0,
+        income: 0,
+        expense: 0,
+        closingBalance: 0,
       },
     ]);
 

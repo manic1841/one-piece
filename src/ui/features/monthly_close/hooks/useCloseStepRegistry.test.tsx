@@ -13,6 +13,7 @@ import { getStoredReportsBundleUseCase } from '@/application/report/use_cases/ge
 import { previewFinancialReportsWorkflow } from '@/application/report/use_cases/previewFinancialReportsWorkflow';
 import { checkSettlementCompletenessUseCase } from '@/application/settlement/use_cases/checkSettlementCompletenessUseCase';
 import { previewDebtSettlementsUseCase } from '@/application/settlement/use_cases/previewDebtSettlementsUseCase';
+import { previewProjectSettlementsUseCase } from '@/application/settlement/use_cases/previewProjectSettlementsUseCase';
 import { type Account } from '@/domains/account/types/account';
 import { MONTHLY_CLOSE_LABELS } from '@/ui/constants/monthlyClose';
 import { mapPeriodToPageVM } from '@/ui/features/monthly_close/mappers/monthlyClose.mappers';
@@ -55,6 +56,9 @@ vi.mock('@/application/portfolio/use_cases/listPortfolioSnapshotsUseCase', () =>
 }));
 vi.mock('@/application/project/use_cases/listProjectSnapshotsUseCase', () => ({
   listProjectSnapshotsUseCase: { execute: vi.fn().mockResolvedValue([]) },
+}));
+vi.mock('@/application/settlement/use_cases/previewProjectSettlementsUseCase', () => ({
+  previewProjectSettlementsUseCase: { execute: vi.fn().mockResolvedValue([]) },
 }));
 vi.mock('@/application/project/use_cases/listProjectsUseCase', () => ({
   listProjectsUseCase: { execute: vi.fn().mockResolvedValue([]) },
@@ -255,6 +259,7 @@ describe('useCloseStepRegistry', () => {
       activities: [],
       anomalies: [],
     });
+    vi.mocked(previewProjectSettlementsUseCase.execute).mockResolvedValue([]);
   });
 
   it('registers all eight close steps', () => {
@@ -419,6 +424,24 @@ describe('useCloseStepRegistry', () => {
         ? ([{ income: 5000, expense: 3000, closingBalance: 2000 }] as never)
         : ([] as never),
     );
+    vi.mocked(previewProjectSettlementsUseCase.execute).mockResolvedValue([
+      {
+        projectId: 'project-1',
+        projectName: '裝修',
+        openingBalance: 1000,
+        income: 5000,
+        expense: 3000,
+        closingBalance: 2000,
+      },
+      {
+        projectId: 'project-2',
+        projectName: '旅遊',
+        openingBalance: 0,
+        income: 0,
+        expense: 0,
+        closingBalance: 0,
+      },
+    ] as never);
 
     const { result } = renderRegistry();
 

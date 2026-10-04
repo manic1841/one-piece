@@ -12,6 +12,15 @@ interface CloseStageEvidenceListProps {
   evidence: CloseStageEvidence;
 }
 
+const ProjectFigure: React.FC<{ label: string; value: number }> = ({ label, value }) => (
+  <div>
+    <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+      {label}
+    </p>
+    <p className="font-mono text-xs tabular-nums text-foreground">{formatCurrency(value)}</p>
+  </div>
+);
+
 /** Draws the stage's evidence for its kind. */
 export const CloseStageEvidenceList: React.FC<CloseStageEvidenceListProps> = ({ evidence }) => {
   switch (evidence.kind) {
@@ -63,30 +72,41 @@ export const CloseStageEvidenceList: React.FC<CloseStageEvidenceListProps> = ({ 
 
     case 'SETTLEMENTS':
       return (
-        <div className="space-y-1 rounded-lg border border-border/60 bg-muted/40 p-3">
+        <div className="space-y-2 rounded-lg border border-border/60 bg-muted/40 p-3">
           {evidence.rows.length === 0 ? (
             <p className="text-xs text-muted-foreground">{MONTHLY_CLOSE_LABELS.NO_PROJECTS}</p>
           ) : (
             evidence.rows.map((settlement) => (
-              <div
-                key={settlement.projectId}
-                className="flex items-center justify-between gap-3 text-xs"
-              >
-                <span className="flex min-w-0 items-center gap-1.5">
+              <div key={settlement.projectId} className="space-y-2 text-xs">
+                <div className="flex min-w-0 items-center gap-1.5">
                   {settlement.settled ? (
                     <Check size={12} className="shrink-0 text-positive" />
                   ) : (
                     <AlertCircle size={12} className="shrink-0 text-warning" />
                   )}
                   <span className="truncate text-foreground">{settlement.projectName}</span>
-                </span>
-                {settlement.settled && settlement.closingBalance !== null ? (
-                  <span className="font-mono tabular-nums text-muted-foreground">
-                    {formatCurrency(settlement.closingBalance)}
-                  </span>
-                ) : (
-                  <span className="shrink-0 text-warning">{MONTHLY_CLOSE_LABELS.UNSETTLED}</span>
-                )}
+                  {!settlement.settled && (
+                    <span className="shrink-0 text-warning">{MONTHLY_CLOSE_LABELS.UNSETTLED}</span>
+                  )}
+                </div>
+                <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+                  <ProjectFigure
+                    label={MONTHLY_CLOSE_LABELS.PROJECT_OPENING_BALANCE}
+                    value={settlement.openingBalance}
+                  />
+                  <ProjectFigure
+                    label={MONTHLY_CLOSE_LABELS.INCOME_SECTION}
+                    value={settlement.income}
+                  />
+                  <ProjectFigure
+                    label={MONTHLY_CLOSE_LABELS.EXPENSE_SECTION}
+                    value={settlement.expense}
+                  />
+                  <ProjectFigure
+                    label={MONTHLY_CLOSE_LABELS.CLOSING_BALANCE}
+                    value={settlement.closingBalance}
+                  />
+                </div>
               </div>
             ))
           )}

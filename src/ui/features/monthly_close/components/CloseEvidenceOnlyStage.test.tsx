@@ -12,6 +12,7 @@ const settlementEvidence = {
       projectId: 'p1',
       projectName: '裝修',
       settled: true,
+      openingBalance: 1000,
       income: 5000,
       expense: 3000,
       closingBalance: 2000,
