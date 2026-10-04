@@ -15,6 +15,8 @@ const renderStage = (props?: Partial<Parameters<typeof ClosePortfolioCashFlowSta
       isReadOnly={false}
       portfolios={[]}
       portfolioSnapshots={new Map()}
+      openingValues={{}}
+      balances={{}}
       cashFlows={{}}
       setCashFlows={() => undefined}
       onConfirm={() => {}}
@@ -43,6 +45,16 @@ describe('ClosePortfolioCashFlowStage', () => {
     expect(screen.getAllByText('長期持倉').length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByLabelText(/CASH IN 長期持倉/).length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByLabelText(/CASH OUT 長期持倉/).length).toBeGreaterThanOrEqual(1);
+  });
+
+  it('shows em dashes for balances the linked account snapshots do not provide', () => {
+    renderStage({
+      portfolios: [{ id: 'p-1', name: '長期持倉' }],
+      balances: { 'p-1': { securities: 1_000_000, bank: null } },
+    });
+
+    expect(screen.getAllByText(/1,000,000/).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('—').length).toBeGreaterThanOrEqual(1);
   });
 
   it('routes input edits through setCashFlows', () => {

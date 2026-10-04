@@ -107,6 +107,9 @@ export const useCloseStepRegistry = ({
   debtAccounts,
   pageVM,
 }: UseCloseStepRegistryArgs): CloseStepRegistry => {
+  // Only active portfolios are closed and displayed, mirroring the settlement
+  // readiness check; inactive portfolios are archived and take no snapshot.
+  const activePortfolios = portfolios.filter((portfolio) => portfolio.isActive);
   const accountBalanceStage = useAccountBalanceStage({
     householdId,
     selectedYearMonth,
@@ -121,7 +124,7 @@ export const useCloseStepRegistry = ({
   const portfolioCashFlowStage = usePortfolioCashFlowStage({
     householdId,
     selectedYearMonth,
-    portfolios,
+    portfolios: activePortfolios,
     confirmingStageId,
   });
   const debtRepaymentStage = useDebtRepaymentStage({
@@ -257,8 +260,10 @@ export const useCloseStepRegistry = ({
         <ClosePortfolioCashFlowStage
           {...chromeProps(ctx)}
           loadErrorMessage={portfolioCashFlowStage.errorMessage}
-          portfolios={ctx.portfolios}
+          portfolios={activePortfolios}
           portfolioSnapshots={portfolioCashFlowStage.portfolioSnapshots}
+          openingValues={portfolioCashFlowStage.openingValues}
+          balances={portfolioCashFlowStage.balances}
           cashFlows={portfolioCashFlowStage.cashFlows ?? {}}
           setCashFlows={portfolioCashFlowStage.setCashFlows}
           onConfirm={ctx.onConfirm}

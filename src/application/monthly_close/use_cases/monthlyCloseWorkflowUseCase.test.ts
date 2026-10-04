@@ -535,8 +535,8 @@ describe('MonthlyCloseWorkflowUseCase.confirmStage', () => {
 
   it('rewrites the month snapshot for portfolios that already hold one', async () => {
     vi.mocked(listPortfoliosUseCase.execute).mockResolvedValue([
-      { id: 'portfolio-1' },
-      { id: 'portfolio-2' },
+      { id: 'portfolio-1', isActive: true },
+      { id: 'portfolio-2', isActive: true },
     ] as any);
     vi.mocked(listPortfolioSnapshotsUseCase.execute).mockImplementation(async ({ portfolioId }) =>
       portfolioId === 'portfolio-1' ? [{ id: 'snapshot-1' }] : [],
@@ -564,7 +564,9 @@ describe('MonthlyCloseWorkflowUseCase.confirmStage', () => {
   });
 
   it('defaults to zero cash flow for portfolios without submitted input', async () => {
-    vi.mocked(listPortfoliosUseCase.execute).mockResolvedValue([{ id: 'portfolio-1' }] as any);
+    vi.mocked(listPortfoliosUseCase.execute).mockResolvedValue([
+      { id: 'portfolio-1', isActive: true },
+    ] as any);
     vi.mocked(listPortfolioSnapshotsUseCase.execute).mockResolvedValue([]);
 
     await useCase.confirmStage({ ...REQUEST_BASE, stageId: 'PORTFOLIO_CASH_FLOW' });
@@ -574,6 +576,21 @@ describe('MonthlyCloseWorkflowUseCase.confirmStage', () => {
         portfolioId: 'portfolio-1',
         cashFlow: { deposits: 0, withdrawals: 0 },
       }),
+    );
+  });
+
+  it('skips inactive portfolios, which are archived and take no snapshot', async () => {
+    vi.mocked(listPortfoliosUseCase.execute).mockResolvedValue([
+      { id: 'portfolio-active', isActive: true },
+      { id: 'portfolio-archived', isActive: false },
+    ] as any);
+    vi.mocked(listPortfolioSnapshotsUseCase.execute).mockResolvedValue([]);
+
+    await useCase.confirmStage({ ...REQUEST_BASE, stageId: 'PORTFOLIO_CASH_FLOW' });
+
+    expect(createPortfolioSnapshotUseCase.execute).toHaveBeenCalledTimes(1);
+    expect(createPortfolioSnapshotUseCase.execute).toHaveBeenCalledWith(
+      expect.objectContaining({ portfolioId: 'portfolio-active' }),
     );
   });
 

@@ -50,7 +50,17 @@ vi.mock('@/application/account/use_cases/getAccountsUseCase', () => ({
   getAccountsUseCase: { execute: vi.fn().mockResolvedValue([{ id: 'acc-1' }]) },
 }));
 vi.mock('@/application/portfolio/use_cases/listPortfoliosUseCase', () => ({
-  listPortfoliosUseCase: { execute: vi.fn().mockResolvedValue([{ id: 'p-1', name: '長期' }]) },
+  listPortfoliosUseCase: {
+    execute: vi.fn().mockResolvedValue([
+      {
+        id: 'p-1',
+        name: '長期',
+        isActive: true,
+        securitiesAccountId: 'acc-sec',
+        bankAccountId: 'acc-bank',
+      },
+    ]),
+  },
 }));
 vi.mock('@/application/project/use_cases/listProjectsUseCase', () => ({
   listProjectsUseCase: {
@@ -199,9 +209,13 @@ describe('useMonthlyClosePage loading fan-out (#240)', () => {
       expect(read.execute).toHaveBeenCalledTimes(1);
     }
     // Entity-dependent prefills load once, with the real entities already in place.
-    expect(getAccountSnapshotsUseCase.execute).toHaveBeenCalledTimes(1);
+    // The account-balance stage reads one account's current snapshot (its prior
+    // month comes from getPreviousSnapshotUseCase); the portfolio stage reads the
+    // portfolio's current and previous snapshot and each of its two linked
+    // accounts' balance (current, then the previous month fallback).
+    expect(getAccountSnapshotsUseCase.execute).toHaveBeenCalledTimes(5);
     expect(getPreviousSnapshotUseCase.execute).toHaveBeenCalledTimes(1);
-    expect(listPortfolioSnapshotsUseCase.execute).toHaveBeenCalledTimes(1);
+    expect(listPortfolioSnapshotsUseCase.execute).toHaveBeenCalledTimes(2);
     expect(listProjectSnapshotsUseCase.execute).toHaveBeenCalledTimes(1);
     expect(previewDebtSettlementsUseCase.execute).toHaveBeenCalledTimes(1);
     // Shared entities, loaded once by the page.

@@ -712,7 +712,7 @@ describe('useCloseStepRegistry', () => {
     vi.mocked(listPortfolioSnapshotsUseCase.execute).mockRejectedValue(new Error('boom'));
     const args: UseCloseStepRegistryArgs = {
       ...baseArgs,
-      portfolios: [{ id: 'p-1', name: '長期持倉' }] as never,
+      portfolios: [{ id: 'p-1', name: '長期持倉', isActive: true }] as never,
     };
 
     function Harness() {
