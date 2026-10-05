@@ -1,7 +1,6 @@
 import React, { useCallback, useState } from 'react';
 
 import { StatusGlyph } from '@/ui/components/StatusGlyph';
-import { statementTitleClass } from '@/ui/components/statement/StatementTable';
 import { Alert, AlertDescription } from '@/ui/components/ui/alert';
 import { Button } from '@/ui/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/ui/components/ui/tabs';
@@ -223,9 +222,6 @@ export const CloseFinancialReports: React.FC<CloseFinancialReportsProps> = ({
             value="INCOME_STATEMENT"
             className="md:hidden md:data-[state=active]:block"
           >
-            <div className="md:hidden">
-              <p className={statementTitleClass}>{REPORT_VIEW_TITLES.INCOME_STATEMENT}</p>
-            </div>
             <IncomeStatementView
               data={incomeStatement}
               collapsed={collapsedKeys}
@@ -237,9 +233,6 @@ export const CloseFinancialReports: React.FC<CloseFinancialReportsProps> = ({
             value="BALANCE_SHEET"
             className="md:hidden md:data-[state=active]:block"
           >
-            <div className="md:hidden">
-              <p className={statementTitleClass}>{REPORT_VIEW_TITLES.BALANCE_SHEET}</p>
-            </div>
             <BalanceSheetView
               data={balanceSheet}
               collapsed={collapsedKeys}
@@ -251,9 +244,6 @@ export const CloseFinancialReports: React.FC<CloseFinancialReportsProps> = ({
             value="CASH_FLOW"
             className="md:hidden md:data-[state=active]:block"
           >
-            <div className="md:hidden">
-              <p className={statementTitleClass}>{REPORT_VIEW_TITLES.CASH_FLOW}</p>
-            </div>
             <CashFlowView data={cashFlow} collapsed={collapsedKeys} onToggle={toggleCollapsed} />
           </TabsContent>
         </Tabs>

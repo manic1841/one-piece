@@ -97,9 +97,35 @@ describe('ReportDetailPage', () => {
     expect(screen.getByRole('tab', { name: '資產負債表' })).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: '現金流量表' })).toBeInTheDocument();
     expect(screen.getByText('收入合計')).toBeInTheDocument();
-    expect(screen.getByText('本期淨利')).toBeInTheDocument();
+    // 三張表各帶三個摘要指標，值為已產生報表的當期值。
+    expect(screen.getByTestId('statement-metric-income')).toHaveTextContent('NT$50,000');
+    expect(screen.getByTestId('statement-metric-expense')).toHaveTextContent('NT$20,000');
+    expect(screen.getByTestId('statement-metric-net-income')).toHaveTextContent('NT$30,000');
+    expect(screen.getByTestId('statement-metric-assets')).toHaveTextContent('NT$200,000');
+    expect(screen.getByTestId('statement-metric-liabilities')).toHaveTextContent('NT$0');
+    expect(screen.getByTestId('statement-metric-equity')).toHaveTextContent('NT$200,000');
+    expect(screen.getByTestId('statement-metric-beginning-balance')).toHaveTextContent('NT$0');
+    expect(screen.getByTestId('statement-metric-ending-balance')).toHaveTextContent('NT$80,000');
+    expect(screen.getByTestId('statement-metric-net-cash-change')).toHaveTextContent('NT$0');
     // The final summary row is emphasised in the primary colour.
-    expect(screen.getByText('本期淨利').className).toContain('text-primary');
+    const terminus = screen
+      .getAllByText('本期淨利')
+      .find((node) => node.className.includes('text-primary'));
+    expect(terminus).toBeDefined();
+    // 結果型指標依正負上色（與月度關帳一致）。
+    expect(
+      screen.getByTestId('statement-metric-net-income').querySelector('.text-positive'),
+    ).not.toBeNull();
+    expect(
+      screen.getByTestId('statement-metric-net-cash-change').querySelector('.text-positive'),
+    ).toBeNull();
+    // 三張表在行動版堆疊時各帶標題（桌機由 tabs 承擔）。
+    for (const title of ['損益表', '資產負債表', '現金流量表']) {
+      const mobileTitles = screen
+        .getAllByText(title)
+        .filter((node) => node.classList.contains('md:hidden'));
+      expect(mobileTitles).toHaveLength(1);
+    }
   });
 
   it('switches to the balance sheet tab', async () => {

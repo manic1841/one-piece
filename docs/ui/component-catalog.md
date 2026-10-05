@@ -73,6 +73,7 @@
 | `src/ui/components/form/TextArea.tsx`                | form / TextArea                 |
 | `src/ui/components/form/TextInput.tsx`               | form / TextInput                |
 | `src/ui/components/sortable/SortableListScope.tsx`   | sortable / SortableListScope    |
+| `src/ui/components/statement/StatementPanel.tsx`     | statement / StatementPanel      |
 | `src/ui/components/statement/StatementTable.tsx`     | statement / StatementTable      |
 | `src/ui/components/ui/accordion.tsx`                 | ui/ 群組                        |
 | `src/ui/components/ui/alert.tsx`                     | ui/ 群組                        |
@@ -113,6 +114,7 @@
 | `src/ui/components/confirm/useConfirm.ts`             | 內部接線（context 與 `useConfirm`）                  |
 | `src/ui/components/data-table/styles.ts`              | 表面常數                                             |
 | `src/ui/components/statement/statementRows.ts`        | 列組裝（報表語意階層的 `StatementRow[]` builder）    |
+| `src/ui/components/statement/statementMetrics.ts`     | 指標身分定義（報表摘要 metrics 的標籤與順序）        |
 | `src/ui/components/form/form-context.ts`              | 內部接線（context 與 `useFormField`）                |
 | `src/ui/components/form/index.ts`                     | barrel                                               |
 | `src/ui/components/form/styles.ts`                    | 表面常數                                             |
@@ -433,7 +435,10 @@
 
 ## statement
 
-- **`StatementTable`** — 財務報表語意階層表格（兩欄：縮排標籤 ＋ 右緣金額）。`rows` 為 `StatementRow`（`key`／`label`／`amountText`／`amountWarning?`／`tone`／`level`／`children`），`collapsed`／`onToggle` 控制可摺疊列，`testId` 掛在表格上。同模組另匯出 `statementTitleClass`：行動版堆疊時每張表上方的標題表面（桌機由 tabs 承擔），關帳 stage 與報表檢視共用同一份。
+- **`StatementPanel`** — 一張報表的排版外框：標題（僅行動版 `statementTitleClass`）＋ 摘要指標列 ＋ 表格內容。`title` 與 `metrics` 皆可缺席：空狀態保留標題、省略指標列（不顯示歸零假象）；`testId` 掛在外框根節點。報表檢視與月度關帳共用同一份外框。
+- **不要用於**：一般頁面區塊（用 `PageSection`）；需要卡片式 KPI 時。
+- **`statementMetrics`**（`statementMetrics.ts`）— 報表摘要指標的**身分定義**：`incomeMetrics`／`balanceMetrics`／`cashFlowMetrics` 各回傳該表固定三個 `StatementMetric`（`key`／`testId`／`label` 內定，值由呼叫端提供）。標籤取自 `@/ui/constants/report/reportMetricLabels` 的 `REPORT_METRIC_LABELS`；月度關帳在值之上另帶漂移變化行（`change`／`changeTone`）。指標陣容只定義一次，兩個表面因此不會各自漂移。
+- **`StatementTable`** — 財務報表語意階層表格（兩欄：縮排標籤 ＋ 右緣金額）。`rows` 為 `StatementRow`（`key`／`label`／`amountText`／`amountWarning?`／`tone`／`level`／`children`），`collapsed`／`onToggle` 控制可摺疊列，`testId` 掛在表格上。同模組另匯出 `statementTitleClass`：行動版堆疊時每張表上方的標題表面（桌機由 tabs 承擔），由 `StatementPanel` 使用。
 - **`buildStatementRows`**（`statementRows.ts`）— 把「區塊 + 資料」排成 `StatementRow[]`：指派縮排層級與語意角色、以路徑組出穩定 key（同層同名不互撞）、把每個區塊收成「標題列 → 資料列 → 合計列」並補上 terminus。呼叫端只提供已解析的金額欄（`StatementAmountCell`）與標籤；月度關帳（漂移比對）與報表檢視（已產生報表）共用同一份列結構。
 - 語意角色由 `tone`（`section`／`group`／`detail`／`deepDetail`／`subtotal`／`terminus`）決定，縮排由 `level` 決定（見 [`visual-standards.md`](visual-standards.md) 「財務報表語意階層」）。金額一律由呼叫端先格式化為 `amountText`（`null` 表示該列無金額），元件不感知任何 drift／比較邏輯。
 - **不要用於**：一般資料列表（用 `data-table` 套件）；需要多欄或可編輯欄位時。

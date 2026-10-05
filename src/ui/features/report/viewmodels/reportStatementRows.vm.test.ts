@@ -11,8 +11,11 @@ import {
   type IncomeStatementVM,
 } from './reportDisplay.vm';
 import {
+  buildBalanceMetrics,
   buildBalanceSheetRows,
+  buildCashFlowMetrics,
   buildCashFlowRows,
+  buildIncomeMetrics,
   buildIncomeStatementRows,
 } from './reportStatementRows.vm';
 
@@ -187,5 +190,63 @@ describe('buildCashFlowRows', () => {
 
     expect(rows).toHaveLength(1);
     expect(rows[0]).toMatchObject({ label: '現金淨變動' });
+  });
+});
+
+describe('metric builders', () => {
+  it('projects the three income metrics with labels, order and test ids', () => {
+    const metrics = buildIncomeMetrics(
+      incomeVM({
+        incomeTotalText: formatCurrency(50000),
+        expenseTotalText: formatCurrency(20000),
+        netIncome: 30000,
+        netIncomeText: formatCurrency(30000),
+      }),
+    );
+
+    expect(metrics.map((m) => [m.testId, m.label, m.value])).toEqual([
+      ['statement-metric-income', '收入', formatCurrency(50000)],
+      ['statement-metric-expense', '支出', formatCurrency(20000)],
+      ['statement-metric-net-income', '本期淨利', formatCurrency(30000)],
+    ]);
+    // 淨利為正 → positive tone；已產生報表沒有漂移，因此不顯示變化行。
+    expect(metrics.at(-1)?.tone).toBe('positive');
+    expect(metrics.every((metric) => metric.change === undefined)).toBe(true);
+  });
+
+  it('projects the three balance metrics from the side totals', () => {
+    const metrics = buildBalanceMetrics(
+      balanceVM({
+        assets: side(200000, {}),
+        liabilities: side(50000, {}),
+        equity: side(150000, {}),
+      }),
+    );
+
+    expect(metrics.map((m) => [m.label, m.value])).toEqual([
+      ['資產', formatCurrency(200000)],
+      ['負債', formatCurrency(50000)],
+      ['權益', formatCurrency(150000)],
+    ]);
+  });
+
+  it('projects the three cash-flow metrics, excluding the actual-balance footnote', () => {
+    const metrics = buildCashFlowMetrics(
+      cashFlowVM({
+        beginningBalanceText: formatCurrency(1000),
+        endingBalanceText: formatCurrency(4000),
+        netCashChange: -3000,
+        netCashChangeText: formatCurrency(-3000),
+        actualBalanceText: formatCurrency(9999),
+      }),
+    );
+
+    expect(metrics.map((m) => [m.testId, m.value])).toEqual([
+      ['statement-metric-beginning-balance', formatCurrency(1000)],
+      ['statement-metric-ending-balance', formatCurrency(4000)],
+      ['statement-metric-net-cash-change', formatCurrency(-3000)],
+    ]);
+    // 現金淨變動為負 → negative tone。
+    expect(metrics.at(-1)?.tone).toBe('negative');
   });
 });

@@ -210,6 +210,7 @@ Section → Group → Detail → Deep detail → Subtotal → Terminus
 Financial Reports 三張表是一個**沒有欄名標題列的單表**，由資料本身的階層建立結構：
 
 - **報表切換沿用全站 tabs 分頁**（樣式見 [`design-system.md`](design-system.md) 的 `tabs`）：桌機才顯示分頁；行動版不顯示分頁，三張表依序堆疊並各帶標題。
+- **每張表帶摘要指標列**：表上方為該表的三個關鍵合計（損益表：收入／支出／本期淨利；資產負債表：資產／負債／權益；現金流量表：期初餘額／期末餘額／現金淨變動），以 `MetricGroup` 排版（非卡片），實際餘額仍只以表下註腳呈現。結果型指標（本期淨利、現金淨變動）依正負上色，其餘維持中性；月度關帳在當期值上另加漂移變化行（muted）。行動版標題與指標列一起堆疊在表格上方（見 [`component-catalog.md`](component-catalog.md) 的 `StatementPanel`）。
 - **列樣式依「財務報表語意階層」**（上節）。
 - **階層以縮排表達**（級距見 [`design-system.md`](design-system.md) 的「間距級距」），可摺疊、**預設展開**、chevron 置於標籤**左側**；摺疊狀態跨分頁切換**不保留**（切回重置為展開）。
 - **金額欄一律靠表格最右**，與標籤欄兩欄配置（欄寬為程式碼常數）。

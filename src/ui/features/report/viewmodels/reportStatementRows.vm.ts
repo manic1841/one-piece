@@ -1,4 +1,11 @@
+import { signTone } from '@/ui/components/moneyTone';
 import { type StatementRow } from '@/ui/components/statement/StatementTable';
+import {
+  type StatementMetric,
+  balanceMetrics,
+  cashFlowMetrics,
+  incomeMetrics,
+} from '@/ui/components/statement/statementMetrics';
 import {
   type StatementAmountCell,
   type StatementNode,
@@ -199,3 +206,29 @@ export const buildCashFlowRows = (vm: CashFlowVM): StatementRow[] => {
     },
   });
 };
+
+/**
+ * 已產生報表 → 摘要指標（純當期值，無漂移變化行）。指標的身份與順序由
+ * `@/ui/components/statement/statementMetrics` 承擔；本層只提供已格式化的值。
+ * 結果型指標（淨利、現金淨變動）依正負上色，與月度關帳讀起來一致。
+ */
+export const buildIncomeMetrics = (vm: IncomeStatementVM): StatementMetric[] =>
+  incomeMetrics({
+    income: { value: vm.incomeTotalText },
+    expense: { value: vm.expenseTotalText },
+    netIncome: { value: vm.netIncomeText, tone: signTone(vm.netIncome) },
+  });
+
+export const buildBalanceMetrics = (vm: BalanceSheetVM): StatementMetric[] =>
+  balanceMetrics({
+    assets: { value: vm.assets.totalText },
+    liabilities: { value: vm.liabilities.totalText },
+    equity: { value: vm.equity.totalText },
+  });
+
+export const buildCashFlowMetrics = (vm: CashFlowVM): StatementMetric[] =>
+  cashFlowMetrics({
+    beginning: { value: vm.beginningBalanceText },
+    ending: { value: vm.endingBalanceText },
+    netChange: { value: vm.netCashChangeText, tone: signTone(vm.netCashChange) },
+  });

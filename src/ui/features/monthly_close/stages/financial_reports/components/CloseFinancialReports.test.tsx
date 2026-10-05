@@ -397,4 +397,49 @@ describe('CloseFinancialReports', () => {
     fireEvent.click(inflowToggle);
     expect((flow.textContent!.match(/ETF/g) ?? []).length).toBe(2);
   });
+
+  it('shows the three statement metric rows with drift change lines', () => {
+    const preview = buildPreview();
+    // 已產生報表與本次預覽不同：收入由 40,000 漂移到 50,000。
+    const reports = {
+      ...reportsFrom(preview),
+      incomeStatement: diffIncomeStatement(
+        preview.incomeStatement as never,
+        { ...preview.incomeStatement, incomeTotal: 40000 } as never,
+      ),
+    };
+    renderReports({ reports });
+
+    // 三張表各帶三個指標；值為當期值，變化行為漂移 delta。
+    const income = screen.getByTestId('statement-metric-income');
+    expect(income).toHaveTextContent('收入');
+    expect(income).toHaveTextContent('NT$50,000');
+    expect(income).toHaveTextContent('NT$40,000 -> NT$50,000');
+
+    // 未漂移的指標不顯示變化行。
+    expect(screen.getByTestId('statement-metric-expense')).not.toHaveTextContent('->');
+
+    expect(screen.getByTestId('statement-metric-assets')).toHaveTextContent('NT$100,000');
+    expect(screen.getByTestId('statement-metric-liabilities')).toHaveTextContent('負債');
+    expect(screen.getByTestId('statement-metric-equity')).toHaveTextContent('權益');
+    expect(screen.getByTestId('statement-metric-beginning-balance')).toHaveTextContent('期初餘額');
+    expect(screen.getByTestId('statement-metric-ending-balance')).toHaveTextContent('NT$20,000');
+    expect(screen.getByTestId('statement-metric-net-cash-change')).toHaveTextContent('現金淨變動');
+
+    // 每張表在行動版堆疊時都帶標題。
+    expect(
+      within(screen.getByTestId('close-income-statement')).getByText('損益表'),
+    ).toBeInTheDocument();
+    expect(
+      within(screen.getByTestId('close-balance-sheet')).getByText('資產負債表'),
+    ).toBeInTheDocument();
+    expect(
+      within(screen.getByTestId('close-cash-flow')).getByText('現金流量表'),
+    ).toBeInTheDocument();
+
+    // 結果型指標依正負上色（淨利 20,000 為正）。
+    expect(
+      screen.getByTestId('statement-metric-net-income').querySelector('.text-positive'),
+    ).not.toBeNull();
+  });
 });

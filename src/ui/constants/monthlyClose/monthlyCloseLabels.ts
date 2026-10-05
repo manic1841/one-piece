@@ -1,4 +1,5 @@
 import { CLOSE_STAGE_IDS, type CloseStageId } from '@/domains/financial_period/schemas';
+import { REPORT_METRIC_LABELS } from '@/ui/constants/report/reportMetricLabels';
 
 export const CLOSE_STAGE_LABELS: Record<CloseStageId, string> = {
   ACCOUNT_BALANCE: '帳戶餘額',
@@ -136,6 +137,7 @@ export const MONTHLY_CLOSE_LABELS = {
   ADJUSTMENT: '現金流調整',
   REPORTS_PERSISTENCE: '報表產生狀態',
   INTEREST_RATE: '年利率',
+  // 債務餘額用語：與報表現金餘額（`REPORT_METRIC_LABELS`）字面相同但語意不同，故不共用。
   PREVIOUS_BALANCE: '期初餘額',
   TOTAL_PAYMENT: '總繳款',
   PRINCIPAL: '本金',
@@ -145,17 +147,18 @@ export const MONTHLY_CLOSE_LABELS = {
   DEBT_TOTAL: '債務合計',
   FINANCIAL_REPORTS_TITLE: '財務報表',
   FINANCIAL_REPORTS_NOTE: '損益表、資產負債表與現金流量表',
-  INCOME_SECTION: '收入',
-  EXPENSE_SECTION: '支出',
-  NET_INCOME: '本期淨利',
-  ASSETS_SECTION: '資產',
-  LIABILITIES_SECTION: '負債',
-  EQUITY_SECTION: '權益',
+  // 損益／資產負債／現金流的區塊標題與摘要指標是同一個概念，共用同一份字（`REPORT_METRIC_LABELS`）。
+  INCOME_SECTION: REPORT_METRIC_LABELS.INCOME,
+  EXPENSE_SECTION: REPORT_METRIC_LABELS.EXPENSE,
+  NET_INCOME: REPORT_METRIC_LABELS.NET_INCOME,
+  ASSETS_SECTION: REPORT_METRIC_LABELS.ASSETS,
+  LIABILITIES_SECTION: REPORT_METRIC_LABELS.LIABILITIES,
+  EQUITY_SECTION: REPORT_METRIC_LABELS.EQUITY,
   LIABILITIES_PLUS_EQUITY: '負債 + 權益',
   TOTAL_SUFFIX: '合計',
   INFLOW: '流入',
   OUTFLOW: '流出',
-  NET_CASH_CHANGE: '現金淨變動',
+  NET_CASH_CHANGE: REPORT_METRIC_LABELS.NET_CASH_CHANGE,
   ACTUAL_BALANCE: '實際餘額',
   ADJUSTMENT_WARNING: '現金流調整超過 1,000，請先確認再產生報表。',
   READINESS_CHECK_TITLE: '就緒檢查',

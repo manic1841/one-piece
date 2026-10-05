@@ -7,7 +7,8 @@ import { EmptyState } from '@/ui/components/EmptyState';
 import { PageHeader } from '@/ui/components/PageHeader';
 import { PageSection } from '@/ui/components/PageSection';
 import { Skeleton } from '@/ui/components/Skeleton';
-import { StatementTable, statementTitleClass } from '@/ui/components/statement/StatementTable';
+import { StatementPanel } from '@/ui/components/statement/StatementPanel';
+import { StatementTable } from '@/ui/components/statement/StatementTable';
 import { Alert, AlertDescription } from '@/ui/components/ui/alert';
 import { Button } from '@/ui/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/ui/components/ui/tabs';
@@ -24,69 +25,88 @@ import {
   stepReportPeriod,
 } from '@/ui/features/report/viewmodels/reportHistory.vm';
 import {
+  buildBalanceMetrics,
   buildBalanceSheetRows,
+  buildCashFlowMetrics,
   buildCashFlowRows,
+  buildIncomeMetrics,
   buildIncomeStatementRows,
 } from '@/ui/features/report/viewmodels/reportStatementRows.vm';
 
 const SKELETON_ROWS = [0, 1, 2, 3, 4, 5];
 
-/** 單張報表：null 時顯示空狀態，否則渲染語意階層表（現金流附實際餘額註腳）。 */
+/**
+ * 單張報表：外框帶標題（僅行動版）與摘要指標；null 時只留下標題與空狀態，不顯示指標。
+ */
 const ReportStatement: React.FC<{
   view: ReportViewId;
   state: ReportDetailReady;
   collapsed: ReadonlySet<string>;
   onToggle: (key: string) => void;
 }> = ({ view, state, collapsed, onToggle }) => {
-  if (view === 'INCOME_STATEMENT') {
-    return state.incomeStatement === null ? (
-      <EmptyState
-        title={REPORT_DETAIL_LABELS.EMPTY_TITLE}
-        description={REPORT_DETAIL_LABELS.EMPTY_DESCRIPTION}
-      />
-    ) : (
-      <StatementTable
-        testId="report-detail-income-statement"
-        rows={buildIncomeStatementRows(state.incomeStatement)}
-        collapsed={collapsed}
-        onToggle={onToggle}
-      />
-    );
-  }
-
-  if (view === 'BALANCE_SHEET') {
-    return state.balanceSheet === null ? (
-      <EmptyState
-        title={REPORT_DETAIL_LABELS.EMPTY_TITLE}
-        description={REPORT_DETAIL_LABELS.EMPTY_DESCRIPTION}
-      />
-    ) : (
-      <StatementTable
-        testId="report-detail-balance-sheet"
-        rows={buildBalanceSheetRows(state.balanceSheet)}
-        collapsed={collapsed}
-        onToggle={onToggle}
-      />
-    );
-  }
-
-  return state.cashFlow === null ? (
+  const title = REPORT_VIEW_TITLES[view];
+  const empty = (
     <EmptyState
       title={REPORT_DETAIL_LABELS.EMPTY_TITLE}
       description={REPORT_DETAIL_LABELS.EMPTY_DESCRIPTION}
     />
-  ) : (
-    <div className="space-y-6">
-      <StatementTable
-        testId="report-detail-cash-flow"
-        rows={buildCashFlowRows(state.cashFlow)}
-        collapsed={collapsed}
-        onToggle={onToggle}
-      />
-      <p className="text-right text-xs text-muted-foreground">
-        {REPORT_DETAIL_LABELS.ACTUAL_BALANCE_LABEL} {state.cashFlow.actualBalanceText}
-      </p>
-    </div>
+  );
+
+  if (view === 'INCOME_STATEMENT') {
+    const data = state.incomeStatement;
+    return (
+      <StatementPanel title={title} metrics={data ? buildIncomeMetrics(data) : undefined}>
+        {data === null ? (
+          empty
+        ) : (
+          <StatementTable
+            testId="report-detail-income-statement"
+            rows={buildIncomeStatementRows(data)}
+            collapsed={collapsed}
+            onToggle={onToggle}
+          />
+        )}
+      </StatementPanel>
+    );
+  }
+
+  if (view === 'BALANCE_SHEET') {
+    const data = state.balanceSheet;
+    return (
+      <StatementPanel title={title} metrics={data ? buildBalanceMetrics(data) : undefined}>
+        {data === null ? (
+          empty
+        ) : (
+          <StatementTable
+            testId="report-detail-balance-sheet"
+            rows={buildBalanceSheetRows(data)}
+            collapsed={collapsed}
+            onToggle={onToggle}
+          />
+        )}
+      </StatementPanel>
+    );
+  }
+
+  const data = state.cashFlow;
+  return (
+    <StatementPanel title={title} metrics={data ? buildCashFlowMetrics(data) : undefined}>
+      {data === null ? (
+        empty
+      ) : (
+        <div className="space-y-6">
+          <StatementTable
+            testId="report-detail-cash-flow"
+            rows={buildCashFlowRows(data)}
+            collapsed={collapsed}
+            onToggle={onToggle}
+          />
+          <p className="text-right text-xs text-muted-foreground">
+            {REPORT_DETAIL_LABELS.ACTUAL_BALANCE_LABEL} {data.actualBalanceText}
+          </p>
+        </div>
+      )}
+    </StatementPanel>
   );
 };
 
@@ -207,9 +227,6 @@ const ReportDetailPage: React.FC = () => {
               value={view}
               className="md:hidden md:data-[state=active]:block"
             >
-              <div className="md:hidden">
-                <p className={statementTitleClass}>{REPORT_VIEW_TITLES[view]}</p>
-              </div>
               <PageSection spacing="compact" className="border-b-0">
                 <ReportStatement
                   view={view}

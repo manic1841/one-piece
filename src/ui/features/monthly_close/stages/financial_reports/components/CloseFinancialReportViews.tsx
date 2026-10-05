@@ -1,6 +1,14 @@
 import React from 'react';
 
+import { type MoneyTone, signTone } from '@/ui/components/moneyTone';
+import { StatementPanel } from '@/ui/components/statement/StatementPanel';
 import { type StatementRow, StatementTable } from '@/ui/components/statement/StatementTable';
+import {
+  type StatementMetricValue,
+  balanceMetrics,
+  cashFlowMetrics,
+  incomeMetrics,
+} from '@/ui/components/statement/statementMetrics';
 import {
   type StatementAmountCell,
   type StatementNode,
@@ -8,6 +16,8 @@ import {
   buildStatementRows,
 } from '@/ui/components/statement/statementRows';
 import { MONTHLY_CLOSE_LABELS } from '@/ui/constants/monthlyClose';
+import { REPORT_VIEW_TITLES } from '@/ui/constants/report/reportViewLabels';
+import { formatCurrency } from '@/ui/utils';
 import { cn } from '@/ui/utils/cn';
 
 import {
@@ -19,6 +29,7 @@ import {
   type IncomeStatementDrift,
   combineDrift,
   formatDriftAmountText,
+  formatDriftDelta,
   isDrifted,
 } from '../../../viewmodels/reportDrift.vm';
 
@@ -26,6 +37,14 @@ import {
 const driftCell = (drift: DriftAmount): StatementAmountCell => ({
   amountText: formatDriftAmountText(drift),
   amountWarning: isDrifted(drift),
+});
+
+/** 漂移金額 → 摘要指標值：當期值為本體，變化行為漂移 delta（未漂移則不顯示變化行）。 */
+const driftMetricValue = (drift: DriftAmount, tone?: MoneyTone): StatementMetricValue => ({
+  value: formatCurrency(drift.amount),
+  tone,
+  change: formatDriftDelta(drift) ?? undefined,
+  changeTone: 'muted',
 });
 
 /** Inline variant of the amount cell for totals rendered inside prose. */
@@ -64,11 +83,7 @@ interface StatementViewProps {
   onToggle: (key: string) => void;
 }
 
-export const IncomeStatementView: React.FC<
-  StatementViewProps & { data: IncomeStatementDrift | null }
-> = ({ data, collapsed, onToggle }) => {
-  if (!data) return null;
-
+const incomeStatementRows = (data: IncomeStatementDrift): StatementRow[] => {
   const sections = [
     included(data.incomeTotal, data.incomeItems.length)
       ? driftSection(
@@ -88,20 +103,38 @@ export const IncomeStatementView: React.FC<
       : null,
   ].filter((section): section is StatementSectionSource => section !== null);
 
-  const rows = buildStatementRows({
+  return buildStatementRows({
     sections,
     terminus: { label: MONTHLY_CLOSE_LABELS.NET_INCOME, cell: driftCell(data.netIncome) },
   });
+};
+
+export const IncomeStatementView: React.FC<
+  StatementViewProps & { data: IncomeStatementDrift | null }
+> = ({ data, collapsed, onToggle }) => {
+  const metrics = data
+    ? incomeMetrics({
+        income: driftMetricValue(data.incomeTotal),
+        expense: driftMetricValue(data.expenseTotal),
+        netIncome: driftMetricValue(data.netIncome, signTone(data.netIncome.amount)),
+      })
+    : undefined;
 
   return (
-    <div data-testid="close-income-statement">
-      <StatementTable
-        testId="income-statement-table"
-        rows={rows}
-        collapsed={collapsed}
-        onToggle={onToggle}
-      />
-    </div>
+    <StatementPanel
+      testId="close-income-statement"
+      title={REPORT_VIEW_TITLES.INCOME_STATEMENT}
+      metrics={metrics}
+    >
+      {data ? (
+        <StatementTable
+          testId="income-statement-table"
+          rows={incomeStatementRows(data)}
+          collapsed={collapsed}
+          onToggle={onToggle}
+        />
+      ) : null}
+    </StatementPanel>
   );
 };
 
@@ -151,16 +184,29 @@ const balanceSheetRows = (data: BalanceSheetDrift): StatementRow[] => {
 export const BalanceSheetView: React.FC<
   StatementViewProps & { data: BalanceSheetDrift | null }
 > = ({ data, collapsed, onToggle }) => {
-  if (!data) return null;
+  const metrics = data
+    ? balanceMetrics({
+        assets: driftMetricValue(data.assets.total),
+        liabilities: driftMetricValue(data.liabilities.total),
+        equity: driftMetricValue(data.equity.total),
+      })
+    : undefined;
+
   return (
-    <div data-testid="close-balance-sheet">
-      <StatementTable
-        testId="balance-sheet-table"
-        rows={balanceSheetRows(data)}
-        collapsed={collapsed}
-        onToggle={onToggle}
-      />
-    </div>
+    <StatementPanel
+      testId="close-balance-sheet"
+      title={REPORT_VIEW_TITLES.BALANCE_SHEET}
+      metrics={metrics}
+    >
+      {data ? (
+        <StatementTable
+          testId="balance-sheet-table"
+          rows={balanceSheetRows(data)}
+          collapsed={collapsed}
+          onToggle={onToggle}
+        />
+      ) : null}
+    </StatementPanel>
   );
 };
 
@@ -179,12 +225,7 @@ const cashFlowBucketNode = (
   };
 };
 
-export const CashFlowView: React.FC<StatementViewProps & { data: CashFlowDrift | null }> = ({
-  data,
-  collapsed,
-  onToggle,
-}) => {
-  if (!data) return null;
+const cashFlowRows = (data: CashFlowDrift): StatementRow[] => {
   const sections = (['operating', 'investing', 'financing'] as const)
     .map((key) => {
       const group = data[key];
@@ -198,25 +239,43 @@ export const CashFlowView: React.FC<StatementViewProps & { data: CashFlowDrift |
     })
     .filter((section): section is StatementSectionSource => section !== null);
 
-  const rows = buildStatementRows({
+  return buildStatementRows({
     sections,
     terminus: {
       label: MONTHLY_CLOSE_LABELS.NET_CASH_CHANGE,
       cell: driftCell(data.netCashChange),
     },
   });
+};
+
+export const CashFlowView: React.FC<StatementViewProps & { data: CashFlowDrift | null }> = ({
+  data,
+  collapsed,
+  onToggle,
+}) => {
+  const metrics = data
+    ? cashFlowMetrics({
+        beginning: driftMetricValue(data.beginningBalance),
+        ending: driftMetricValue(data.endingBalance),
+        netChange: driftMetricValue(data.netCashChange, signTone(data.netCashChange.amount)),
+      })
+    : undefined;
 
   return (
-    <div className="space-y-6" data-testid="close-cash-flow">
-      <StatementTable
-        testId="cash-flow-table"
-        rows={rows}
-        collapsed={collapsed}
-        onToggle={onToggle}
-      />
-      <p className="text-right text-xs text-muted-foreground">
-        {MONTHLY_CLOSE_LABELS.ACTUAL_BALANCE} <StatementAmountText drift={data.actualBalance} />
-      </p>
-    </div>
+    <StatementPanel testId="close-cash-flow" title={REPORT_VIEW_TITLES.CASH_FLOW} metrics={metrics}>
+      {data ? (
+        <div className="space-y-6">
+          <StatementTable
+            testId="cash-flow-table"
+            rows={cashFlowRows(data)}
+            collapsed={collapsed}
+            onToggle={onToggle}
+          />
+          <p className="text-right text-xs text-muted-foreground">
+            {MONTHLY_CLOSE_LABELS.ACTUAL_BALANCE} <StatementAmountText drift={data.actualBalance} />
+          </p>
+        </div>
+      ) : null}
+    </StatementPanel>
   );
 };
