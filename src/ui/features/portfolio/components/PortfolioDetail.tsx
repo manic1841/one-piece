@@ -1,265 +1,150 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React from 'react';
 
+import { Divider } from '@/ui/components/Divider';
+import { FinancialNumber } from '@/ui/components/FinancialNumber';
+import { Metric, MetricGroup } from '@/ui/components/MetricGroup';
+import { PageSection } from '@/ui/components/PageSection';
 import { InteractiveLineChart } from '@/ui/components/charts/InteractiveLineChart';
-import { toMonthTrendSeries } from '@/ui/components/charts/monthTrendSeries';
 import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from '@/ui/components/ui/accordion';
-import {
-  Table,
+  DataTable,
+  DataTableCell,
+  DataTableColGroup,
+  DataTableHeadCell,
+  DataTableHeadRow,
+  DataTableRow,
   TableBody,
-  TableCell,
-  TableHead,
   TableHeader,
-  TableRow,
-} from '@/ui/components/ui/table';
-import { useAccounts } from '@/ui/features/account/hooks/useAccounts';
-import { usePortfolioQueries } from '@/ui/features/portfolio/hooks/usePortfolios';
+} from '@/ui/components/data-table';
+import { sectionTitleClass } from '@/ui/components/eyebrow';
+import { Button } from '@/ui/components/ui/button';
 import {
-  type Portfolio,
-  type PortfolioSnapshot,
-} from '@/ui/features/portfolio/viewmodels/portfolioDisplay.vm';
-import { useAuthIdentity } from '@/ui/hooks/useAuthIdentity';
-import { formatCurrency, formatMonthLabel, formatPercentage } from '@/ui/utils';
+  PORTFOLIO_DANGER_LABELS,
+  PORTFOLIO_DETAIL_LABELS,
+  PORTFOLIO_PERFORMANCE_COLUMN_LABELS,
+  PORTFOLIO_PERFORMANCE_COLUMN_WIDTHS,
+} from '@/ui/constants/portfolio/labels';
+import { type PortfolioDetailVM } from '@/ui/features/portfolio/viewmodels/portfolioDisplay.vm';
+import { cn } from '@/ui/utils/cn';
 
 interface PortfolioDetailProps {
-  householdId: string;
-  portfolio: Portfolio;
+  vm: PortfolioDetailVM;
+  onDelete: () => void;
 }
 
-const SectionTitle: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <p className="font-mono text-[11px] tracking-widest text-muted-foreground uppercase">
-    {children}
-  </p>
-);
-
-const PortfolioDetail: React.FC<PortfolioDetailProps> = ({ householdId, portfolio }) => {
-  const { fetchAccounts } = useAccounts();
-  const auth = useAuthIdentity();
-  const { getSnapshots, loading: queryLoading } = usePortfolioQueries(householdId);
-
-  const [snapshots, setSnapshots] = useState<PortfolioSnapshot[]>([]);
-  const [loadingSnapshots, setLoadingSnapshots] = useState(false);
-  const [accountNames, setAccountNames] = useState<Map<string, string>>(new Map());
-
-  const refreshSnapshots = useCallback(async () => {
-    if (!portfolio.id) return;
-
-    setLoadingSnapshots(true);
-    try {
-      const res = await getSnapshots(portfolio.id);
-      if (res.ok) {
-        setSnapshots(res.value);
-      }
-    } finally {
-      setLoadingSnapshots(false);
-    }
-  }, [portfolio.id, getSnapshots]);
-
-  React.useEffect(() => {
-    refreshSnapshots();
-  }, [refreshSnapshots]);
-
-  useEffect(() => {
-    let ignore = false;
-    const load = async () => {
-      const accountsResult = await fetchAccounts(householdId, auth, { includeInactive: true });
-      const accounts = accountsResult.ok ? accountsResult.value : [];
-      if (!ignore) {
-        const names = new Map<string, string>();
-        for (const account of accounts) {
-          names.set(account.id, account.name);
-        }
-        setAccountNames(names);
-      }
-    };
-    void load();
-    return () => {
-      ignore = true;
-    };
-  }, [householdId, fetchAccounts, auth]);
-
-  const latestSnapshot = snapshots.length > 0 ? snapshots[0] : null;
-
-  const breakdown = useMemo(() => {
-    const openingValue = latestSnapshot?.performance.openingValue ?? 0;
-    const closingValue = latestSnapshot?.performance.closingValue ?? 0;
-    const deposits = latestSnapshot?.cashFlow.deposits ?? 0;
-    const withdrawals = latestSnapshot?.cashFlow.withdrawals ?? 0;
-    const investmentCashFlow = deposits - withdrawals;
-    const calculatedReturn = closingValue - openingValue - investmentCashFlow;
-    const investedBase = closingValue - investmentCashFlow - calculatedReturn;
-    const returnRate = investedBase > 0 ? (calculatedReturn / investedBase) * 100 : 0;
-
-    return {
-      openingValue,
-      closingValue,
-      deposits,
-      withdrawals,
-      investmentCashFlow,
-      calculatedReturn,
-      returnRate,
-    };
-  }, [latestSnapshot]);
-
-  const trend = useMemo(
-    () =>
-      toMonthTrendSeries(
-        snapshots.map((snapshot) => ({
-          year: snapshot.year,
-          month: snapshot.month,
-          value: snapshot.totalValue,
-        })),
-      ),
-    [snapshots],
-  );
-
-  if (queryLoading || loadingSnapshots) return <div>Loading...</div>;
-
+/**
+ * Portfolio detail data sections (ADR-0058: the page owns the header). It only
+ * renders a `PortfolioDetailVM`; all loading, projection and commands live in
+ * `usePortfolioDetailPage` (#262 Q12). Every value shown is read from the
+ * snapshot's frozen `performance` — nothing is recomputed here (#262 Q7).
+ */
+const PortfolioDetail: React.FC<PortfolioDetailProps> = ({ vm, onDelete }) => {
   return (
     <div className="space-y-8">
-      <section className="space-y-3">
-        <SectionTitle>PORTFOLIO VALUE</SectionTitle>
+      <PageSection title={PORTFOLIO_DETAIL_LABELS.VALUE_SECTION} spacing="compact" className="pt-0">
         <div className="flex items-baseline justify-between">
-          <p className="font-mono text-3xl tabular-nums text-foreground">
-            {formatCurrency(latestSnapshot?.totalValue ?? 0)}
-          </p>
-          {latestSnapshot && (
-            <p className="font-mono text-xs tabular-nums text-muted-foreground">
-              {formatMonthLabel(latestSnapshot.year, latestSnapshot.month)}
-            </p>
+          <FinancialNumber value={vm.totalValueText} size="hero" />
+          {vm.asOfText && (
+            <span className="font-mono text-xs tabular-nums text-muted-foreground">
+              {vm.asOfText}
+            </span>
           )}
         </div>
-      </section>
-      <section className="space-y-3">
-        <SectionTitle>VALUE BREAKDOWN</SectionTitle>
-        <div className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm md:grid-cols-4">
-          <div>
-            <p className="text-xs text-muted-foreground">Securities</p>
-            <p className="font-medium font-mono tabular-nums">
-              {accountNames.get(portfolio.securitiesAccountId) ?? '—'}
-            </p>
-          </div>
-          <div>
-            <p className="text-xs text-muted-foreground">Bank</p>
-            <p className="font-medium font-mono tabular-nums">
-              {accountNames.get(portfolio.bankAccountId) ?? '—'}
-            </p>
-          </div>
-        </div>
-      </section>
-      <section className="space-y-3">
-        <SectionTitle>RETURN</SectionTitle>
-        <div className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm md:grid-cols-4">
-          <div>
-            <p className="text-xs text-muted-foreground">Monthly</p>
-            <p className="font-mono tabular-nums">
-              {latestSnapshot ? formatPercentage(latestSnapshot.performance.returnRate, 2) : '—'}
-            </p>
-          </div>
-          <div>
-            <p className="text-xs text-muted-foreground">Cumulative</p>
-            <p className="font-mono tabular-nums">
-              {latestSnapshot
-                ? formatPercentage(latestSnapshot.performance.cumulativeReturnRate, 2)
-                : '—'}
-            </p>
-          </div>
-        </div>
-      </section>
-      <section className="space-y-3">
-        <SectionTitle>12M PORTFOLIO VALUE</SectionTitle>
-        {trend.hasData ? (
+      </PageSection>
+
+      <PageSection title={PORTFOLIO_DETAIL_LABELS.BREAKDOWN_SECTION} spacing="compact">
+        <MetricGroup columns={2}>
+          <Metric label={PORTFOLIO_DETAIL_LABELS.SECURITIES} value={vm.securitiesName} />
+          <Metric label={PORTFOLIO_DETAIL_LABELS.BANK} value={vm.bankName} />
+        </MetricGroup>
+      </PageSection>
+
+      <PageSection title={PORTFOLIO_DETAIL_LABELS.RETURN_SECTION} spacing="compact">
+        <MetricGroup columns={2}>
+          <Metric label={PORTFOLIO_DETAIL_LABELS.MONTHLY} value={vm.monthlyReturnText} />
+          <Metric label={PORTFOLIO_DETAIL_LABELS.CUMULATIVE} value={vm.cumulativeReturnText} />
+        </MetricGroup>
+      </PageSection>
+
+      <PageSection title={PORTFOLIO_DETAIL_LABELS.RETURN_CALCULATION_SECTION} spacing="compact">
+        <MetricGroup columns={4}>
+          <Metric
+            label={PORTFOLIO_DETAIL_LABELS.PREVIOUS_VALUE}
+            value={vm.breakdown.previousValueText}
+          />
+          <Metric
+            label={PORTFOLIO_DETAIL_LABELS.CURRENT_VALUE}
+            value={vm.breakdown.currentValueText}
+          />
+          <Metric
+            label={PORTFOLIO_DETAIL_LABELS.INVESTMENT_CASH_FLOW}
+            value={vm.breakdown.investmentCashFlowText}
+          />
+          <Metric
+            label={PORTFOLIO_DETAIL_LABELS.CALCULATED_RETURN}
+            value={vm.breakdown.calculatedReturnText}
+          />
+        </MetricGroup>
+      </PageSection>
+
+      <PageSection title={PORTFOLIO_DETAIL_LABELS.TREND_SECTION} spacing="compact">
+        {vm.trend.hasData ? (
           <InteractiveLineChart
-            values={trend.values}
-            points={trend.points}
-            xLabels={trend.labels}
+            values={vm.trend.values}
+            points={vm.trend.points}
+            xLabels={vm.trend.labels}
             includeZero={false}
             yAxis="left"
-            height={208}
+            height={320}
             ariaLabel="12 month portfolio value trend"
           />
         ) : (
-          <p className="text-sm text-muted-foreground">尚無快照資料</p>
+          <p className="text-sm text-muted-foreground">{PORTFOLIO_DETAIL_LABELS.NO_SNAPSHOT}</p>
         )}
-      </section>
-      <section className="space-y-3">
-        <SectionTitle>MONTHLY PERFORMANCE</SectionTitle>
-        <Table>
+      </PageSection>
+
+      <PageSection title={PORTFOLIO_DETAIL_LABELS.PERFORMANCE_SECTION} spacing="compact">
+        <DataTable>
+          <DataTableColGroup widths={PORTFOLIO_PERFORMANCE_COLUMN_WIDTHS} />
           <TableHeader>
-            <TableRow>
-              <TableHead>Date</TableHead>
-              <TableHead className="text-right">Total Value</TableHead>
-              <TableHead className="text-right">Return</TableHead>
-              <TableHead className="text-right">Cumulative %</TableHead>
-              <TableHead className="text-right">Net Flow</TableHead>
-            </TableRow>
+            <DataTableHeadRow>
+              <DataTableHeadCell>{PORTFOLIO_PERFORMANCE_COLUMN_LABELS.DATE}</DataTableHeadCell>
+              <DataTableHeadCell align="number">
+                {PORTFOLIO_PERFORMANCE_COLUMN_LABELS.TOTAL_VALUE}
+              </DataTableHeadCell>
+              <DataTableHeadCell align="number">
+                {PORTFOLIO_PERFORMANCE_COLUMN_LABELS.RETURN}
+              </DataTableHeadCell>
+              <DataTableHeadCell align="number">
+                {PORTFOLIO_PERFORMANCE_COLUMN_LABELS.CUMULATIVE}
+              </DataTableHeadCell>
+              <DataTableHeadCell align="number">
+                {PORTFOLIO_PERFORMANCE_COLUMN_LABELS.NET_FLOW}
+              </DataTableHeadCell>
+            </DataTableHeadRow>
           </TableHeader>
           <TableBody>
-            {snapshots.map((snapshot) => (
-              <TableRow key={snapshot.id}>
-                <TableCell className="font-mono text-[12px]">
-                  {formatMonthLabel(snapshot.year, snapshot.month)}
-                </TableCell>
-                <TableCell className="text-right font-mono tabular-nums">
-                  {formatCurrency(snapshot.totalValue)}
-                </TableCell>
-                <TableCell className="text-right font-mono tabular-nums">
-                  {formatPercentage(snapshot.performance.returnRate, 2)}
-                </TableCell>
-                <TableCell className="text-right font-mono tabular-nums">
-                  {formatPercentage(snapshot.performance.cumulativeReturnRate, 2)}
-                </TableCell>
-                <TableCell className="text-right font-mono tabular-nums">
-                  {formatCurrency(snapshot.performance.netCashFlow)}
-                </TableCell>
-              </TableRow>
+            {vm.performanceRows.map((row) => (
+              <DataTableRow key={row.id}>
+                <DataTableCell className="font-mono text-[12px]">{row.dateText}</DataTableCell>
+                <DataTableCell align="number">{row.totalValueText}</DataTableCell>
+                <DataTableCell align="number">{row.returnText}</DataTableCell>
+                <DataTableCell align="number">{row.cumulativeText}</DataTableCell>
+                <DataTableCell align="number">{row.netFlowText}</DataTableCell>
+              </DataTableRow>
             ))}
           </TableBody>
-        </Table>
+        </DataTable>
+      </PageSection>
+
+      <section className="space-y-3 pt-10">
+        <Divider className="border-destructive" />
+        <p className={cn(sectionTitleClass, 'text-destructive')}>
+          {PORTFOLIO_DANGER_LABELS.MODULE}
+        </p>
+        <Button variant="destructive" onClick={onDelete}>
+          {PORTFOLIO_DANGER_LABELS.DELETE}
+        </Button>
       </section>
-      <Accordion type="single" collapsible>
-        <AccordionItem value="return-calculation">
-          <AccordionTrigger>RETURN CALCULATION</AccordionTrigger>
-          <AccordionContent>
-            <div className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm md:grid-cols-3">
-              <div>
-                <p className="text-xs text-muted-foreground">Previous Portfolio Value</p>
-                <p className="font-mono tabular-nums">{formatCurrency(breakdown.openingValue)}</p>
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Current Portfolio Value</p>
-                <p className="font-mono tabular-nums">{formatCurrency(breakdown.closingValue)}</p>
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Investment Cash Flow</p>
-                <p className="font-mono tabular-nums">
-                  {formatCurrency(breakdown.investmentCashFlow)}
-                </p>
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Non-investment Cash Flow</p>
-                <p className="font-mono tabular-nums">$0</p>
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Calculated Return</p>
-                <p className="font-mono tabular-nums">
-                  {formatCurrency(breakdown.calculatedReturn)}
-                </p>
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Return Rate</p>
-                <p className="font-mono tabular-nums">
-                  {formatPercentage(breakdown.returnRate, 2)}
-                </p>
-              </div>
-            </div>
-          </AccordionContent>
-        </AccordionItem>
-      </Accordion>
     </div>
   );
 };

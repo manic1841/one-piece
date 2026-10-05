@@ -27,7 +27,6 @@
 | `src/ui/components/charts/InteractiveLineChart.tsx`  | charts / InteractiveLineChart   |
 | `src/ui/components/charts/LineChart.tsx`             | charts / LineChart              |
 | `src/ui/components/CliProgress.tsx`                  | CliProgress                     |
-| `src/ui/components/CompactRow.tsx`                   | CompactRow                      |
 | `src/ui/components/Divider.tsx`                      | Divider                         |
 | `src/ui/components/EmptyState.tsx`                   | EmptyState                      |
 | `src/ui/components/ErrorBoundary.tsx`                | ErrorBoundary                   |
@@ -153,11 +152,6 @@
   - **不要用於**：一般標籤（用 `ui/` 群組的 `badge`）。
   - 範例：`src/ui/features/monthly_close/pages/MonthlyClosePage.tsx`
 
-- **`CompactRow`** — 行動版佈局的資訊列：單列 label／值對齊。
-  - Props：`children`、`onClick?`、`testId`（必填）、`className?`、`style?`、`ref?`。
-  - **不要用於**：桌面版的表格資料（用 `data-table` 套件）；它只在行動版佈局出現。
-  - 範例：`src/ui/features/portfolio/components/SortablePortfolioRows.tsx`、`src/ui/features/app/pages/GalleryCollections.tsx`
-
 - **`InlineEditableTitle`** — 就地編輯的標題。trim 後為空或未變更即取消；Enter 儲存、Escape 取消；儲存失敗自動還原。
   - Props：`value`、`onSave(value) => Promise<void> | void`、`disabled?`、`className?`。
   - **不要用於**：需要明確 save／cancel 按鈕與欄位驗證的表單（用 `form` 套件）。
@@ -193,7 +187,7 @@
   - **不要用於**：需要互動或篩選的資料（那是 table/toolbar 的事）。
   - 範例：`src/ui/features/dashboard/pages/DashboardPage.tsx`（FINANCIAL SNAPSHOT，5 欄）、`src/ui/features/project/pages/ProjectDetailPage.tsx`（SUMMARY，4 欄）、`src/ui/features/debt/pages/DebtDetailPage.tsx`（LOAN INFORMATION，4 欄）、`src/ui/features/debt/pages/DebtListPage.tsx`（SUMMARY，2 欄）。
 
-- **`PageSection`** — 頁面層級的全寬 section band（`border-b` ＋ `py-10`），visual-standards 的「structure over cards」：頁面區域用 band 分段，不用浮動卡片。number ＋ title 為選用的 mono 標題；僅內容時是素 band。
+- **`PageSection`** — 頁面層級的全寬 section band（`border-b` ＋ `py-10`），visual-standards 的「structure over cards」：頁面區域用 band 分段，不用浮動卡片。number ＋ title 為選用的 section 標題（14px mono 全大寫 `font-semibold text-foreground`，`sectionTitleClass`，比 eyebrow 標籤大一階）；僅內容時是素 band。
   - Props：`number?`、`title?`、`action?`（與標題同列的尾端控件）、`spacing?`（`default`/`compact`，後者收緊密集堆疊）、`children`、`className?`。
   - **不要用於**：section 內的個別單元（用 `Module`）；需要 sticky 或導航的區域（用 `PageHeader` / `Toolbar`）。
   - 範例：`src/ui/features/dashboard/pages/DashboardPage.tsx`（`spacing="compact"` 堆疊）、`src/ui/features/project/pages/ProjectDetailPage.tsx`、`src/ui/features/debt/pages/DebtDetailPage.tsx`、`src/ui/features/debt/pages/DebtListPage.tsx`。
@@ -201,7 +195,7 @@
 - **`Module`** — PageSection 內的 distinct module：mono label + 卡片邊界（唯一允許卡片的層級，design-system「Card 保留給 distinct module」）。`min-w-0` 防止在響應式 grid 溢出。
   - Props：`label`、`children`、`className?`。
   - **不要用於**：頁面級分段（用 `PageSection`）；列表內的重複列（那不是 module，是 row）。
-  - 範例：`src/ui/features/app/pages/GalleryScaffold.tsx`（re-export 為 `GalleryModule`）、`src/ui/features/debt/pages/DebtDetailPage.tsx`（DANGER ZONE）。
+  - 範例：`src/ui/features/app/pages/GalleryScaffold.tsx`（re-export 為 `GalleryModule`）。
 
 - **`ui/accordion`** — 可摺疊的 section 級面板（Radix 包裝）：trigger 是一列 mono 標題，內容展開。用於把次要閱讀層收起。
   - Props：透通 Radix Root／Item／Trigger／Content；`type`、`defaultValue` 由呼叫端決定（`multiple` 可多開）。
@@ -330,7 +324,7 @@
 
 - **`DataTable`** — 表格外框。**`DataTableScrollArea`** 是可捲動區（僅桌機）。
   - Props：原生 table 屬性（`DataTable`）／原生 div 屬性（`DataTableScrollArea`）。
-  - **不要用於**：非表格的資料陳列（行動版清單用 `MobileDataRow`／`CompactRow`）。
+  - **不要用於**：非表格的資料陳列（行動版清單用 `MobileDataRow`）。
   - 範例：`src/ui/features/transaction/components/TransactionItem.tsx`、`src/ui/features/debt/pages/DebtListPage.tsx`、`src/ui/features/debt/components/detail/DebtHistoryTable.tsx`、`src/ui/features/monthly_close/stages/account_balance/components/CloseAccountBalanceInputs.tsx`
 
 - **`DataTableRow`** — 資料列。**`DataTableHeadRow`** 是表頭列。

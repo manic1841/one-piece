@@ -1,123 +1,63 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, useNavigate } from 'react-router-dom';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { type Portfolio } from '@/domains/portfolio/types/portfolio';
-import { useAuthState } from '@/ui/contexts/useAuthState';
-import { useAccounts } from '@/ui/features/account/hooks/useAccounts';
-import { usePortfolioCmds } from '@/ui/features/portfolio/hooks/usePortfolioCmds';
-import { usePortfolioQueries, usePortfolios } from '@/ui/features/portfolio/hooks/usePortfolios';
+import { type MonthTrendSeries } from '@/ui/components/charts/monthTrendSeries';
+import { usePortfolioDetailPage } from '@/ui/features/portfolio/hooks/usePortfolioDetailPage';
+import { type PortfolioDetailVM } from '@/ui/features/portfolio/viewmodels/portfolioDisplay.vm';
 
 import PortfolioDetailPage from './PortfolioDetailPage';
 
-vi.mock('@/ui/contexts/useAuthState');
-vi.mock('@/ui/hooks/useAuthIdentity');
-vi.mock('@/ui/features/account/hooks/useAccounts');
-vi.mock('@/ui/features/portfolio/hooks/usePortfolioCmds');
-vi.mock('@/ui/features/portfolio/hooks/usePortfolios');
+vi.mock('@/ui/features/portfolio/hooks/usePortfolioDetailPage');
 vi.mock('react-router-dom', async () => {
   const actual = await vi.importActual<typeof import('react-router-dom')>('react-router-dom');
   return {
     ...actual,
     useNavigate: vi.fn(),
-    useParams: vi.fn(() => ({ id: 'p1' })),
   };
 });
 
-const mockUseAuth = vi.mocked(useAuthState);
+const mockUseDetail = vi.mocked(usePortfolioDetailPage);
 const mockUseNavigate = vi.mocked(useNavigate);
-const mockUsePortfolios = vi.mocked(usePortfolios);
-const mockUsePortfolioQueries = vi.mocked(usePortfolioQueries);
-const mockUsePortfolioCmds = vi.mocked(usePortfolioCmds);
-const mockUseAccounts = vi.mocked(useAccounts);
 
-class ResizeObserverStub {
-  observe() {}
-  unobserve() {}
-  disconnect() {}
-}
+const emptyTrend: MonthTrendSeries = { values: [], labels: [], points: [], hasData: false };
 
-vi.stubGlobal('ResizeObserver', ResizeObserverStub);
-
-const portfolio: Portfolio = {
+const makeVm = (overrides: Partial<PortfolioDetailVM> = {}): PortfolioDetailVM => ({
   id: 'p1',
   name: 'Main Portfolio',
-  securitiesAccountId: 's1',
-  bankAccountId: 'b1',
   isActive: true,
-  order: 0,
-  createdBy: 'u1',
-  updatedBy: 'u1',
-  createdAt: new Date('2026-01-01'),
-  updatedAt: new Date('2026-01-01'),
-};
-
-const snapshot = {
-  id: 'p1-2026-09',
-  year: 2026,
-  month: 9,
-  totalValue: 2480000,
-  accounts: [],
-  cashFlow: { deposits: 0, withdrawals: 0 },
-  performance: {
-    openingValue: 2220000,
-    closingValue: 2480000,
-    netCashFlow: 0,
-    gain: 260000,
-    returnRate: 12.42,
-    cumulativeGain: 260000,
-    cumulativeReturnRate: 12.42,
+  totalValueText: 'NT$2,480,000',
+  asOfText: '2026-09',
+  securitiesName: 'Brokerage',
+  bankName: 'Investment Bank',
+  monthlyReturnText: '12.42%',
+  cumulativeReturnText: '12.42%',
+  breakdown: {
+    previousValueText: 'NT$2,220,000',
+    currentValueText: 'NT$2,480,000',
+    investmentCashFlowText: 'NT$0',
+    calculatedReturnText: 'NT$260,000',
   },
-  createdBy: 'u1',
-  updatedBy: 'u1',
-  createdAt: new Date('2026-09-01'),
-  updatedAt: new Date('2026-09-01'),
-};
+  trend: { ...emptyTrend, hasData: false },
+  performanceRows: [],
+  ...overrides,
+});
 
-const renderPage = (overrides: { updatePortfolio?: ReturnType<typeof vi.fn> } = {}) => {
-  mockUseAuth.mockReturnValue({
-    userProfile: {
-      uid: 'u1',
-      email: 'user@example.com',
-      householdId: 'h1',
-    },
-  } as never);
-  mockUsePortfolios.mockReturnValue({
-    portfolios: [portfolio],
-    latestSnapshots: new Map([['p1', snapshot as never]]),
-    toListItemVM: vi.fn(),
-    loading: false,
-    error: null,
-    reload: vi.fn(),
-  } as never);
-  mockUsePortfolioQueries.mockReturnValue({
-    getSnapshots: vi.fn().mockResolvedValue({ ok: true, value: [snapshot] }),
-    loading: false,
-    error: null,
-  } as never);
-  mockUsePortfolioCmds.mockReturnValue({
-    createPortfolio: vi.fn(),
-    updatePortfolio: overrides.updatePortfolio ?? vi.fn().mockResolvedValue(undefined),
-    deletePortfolio: vi.fn(),
-    reorderPortfolios: vi.fn(),
-    createSnapshot: vi.fn(),
-    deleteSnapshot: vi.fn(),
-    loading: false,
-    error: null,
-  } as never);
-  mockUseAccounts.mockReturnValue({
-    fetchAccounts: vi.fn().mockResolvedValue({
-      ok: true,
-      value: [
-        { id: 's1', name: 'Brokerage', category: 'securities', currency: 'TWD' },
-        { id: 'b1', name: 'Investment Bank', category: 'bank', currency: 'TWD' },
-      ],
-    }),
-    fetchAccountsWithSnapshots: vi.fn(),
-    loading: false,
-    error: null,
-  } as never);
+const makeController = (overrides: Partial<ReturnType<typeof usePortfolioDetailPage>> = {}) => ({
+  vm: makeVm(),
+  loading: false,
+  error: null,
+  reload: vi.fn(),
+  handleRename: vi.fn(),
+  handleActivate: vi.fn(),
+  handleDeactivate: vi.fn(),
+  handleDelete: vi.fn(),
+  ...overrides,
+});
 
+const setup = (controller = makeController()) => {
+  mockUseDetail.mockReturnValue(controller as never);
+  mockUseNavigate.mockReturnValue(vi.fn());
   return render(
     <MemoryRouter>
       <PortfolioDetailPage />
@@ -125,55 +65,63 @@ const renderPage = (overrides: { updatePortfolio?: ReturnType<typeof vi.fn> } = 
   );
 };
 
-describe('PortfolioDetailPage header', () => {
-  it('renders the shared PageHeader with title, crumb, badge and back button', async () => {
-    const { container } = renderPage();
+afterEach(() => {
+  vi.clearAllMocks();
+});
 
-    expect(await screen.findByText('PORTFOLIO VALUE')).toBeInTheDocument();
+describe('PortfolioDetailPage', () => {
+  it('renders a loading status while the controller loads', () => {
+    setup(makeController({ vm: null, loading: true }));
+    expect(screen.getByText('載入投資組合中')).toBeInTheDocument();
+  });
+
+  it('renders the not-found empty state when there is no portfolio', () => {
+    setup(makeController({ vm: null }));
+    expect(screen.getByText('找不到投資組合')).toBeInTheDocument();
+  });
+
+  it('renders the shared load-error copy with a retry when the load fails', () => {
+    const reload = vi.fn();
+    setup(makeController({ vm: null, error: '無法載入投資組合。', reload }));
+
+    expect(screen.getByText('無法載入投資組合。')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: '重試' }));
+    expect(reload).toHaveBeenCalledTimes(1);
+  });
+
+  it('renders the shared PageHeader with title, crumb and description', () => {
+    setup();
     expect(screen.getByRole('heading', { level: 1, name: 'Main Portfolio' })).toBeInTheDocument();
     expect(screen.getByText('PORTFOLIOS')).toBeInTheDocument();
-    expect(screen.getByText('2026-09')).toBeInTheDocument();
-
-    const backButton = container.querySelector('svg.lucide-arrow-left')?.closest('button');
-    expect(backButton).not.toBeNull();
+    expect(screen.getByText('一個證券帳戶連結一個銀行帳戶')).toBeInTheDocument();
   });
 
-  it('navigates back to the portfolio list from the header back button', async () => {
-    const navigate = vi.fn();
-    mockUseNavigate.mockReturnValue(navigate);
-    const { container } = renderPage();
-    await screen.findByText('PORTFOLIO VALUE');
+  it('shows the deactivate action while active and calls it', () => {
+    const handleDeactivate = vi.fn();
+    setup(makeController({ handleDeactivate }));
 
-    const backButton = container.querySelector('svg.lucide-arrow-left')?.closest('button');
-    expect(backButton).not.toBeNull();
-    fireEvent.click(backButton as HTMLButtonElement);
-
-    expect(navigate).toHaveBeenCalledWith('/portfolios');
+    fireEvent.click(screen.getByRole('button', { name: '停用組合' }));
+    expect(handleDeactivate).toHaveBeenCalledTimes(1);
   });
 
-  it('exposes the inline name editor in the header title slot', async () => {
-    renderPage();
-    await screen.findByText('PORTFOLIO VALUE');
+  it('shows the inactive badge and enable action while inactive', () => {
+    const handleActivate = vi.fn();
+    setup(makeController({ vm: makeVm({ isActive: false }), handleActivate }));
 
-    expect(screen.getByRole('button', { name: 'Edit name' })).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Edit name' }));
-
-    const input = screen.getByLabelText('Rename') as HTMLInputElement;
-    expect(input.value).toBe('Main Portfolio');
+    expect(screen.getByText('已停用')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: '啟用組合' }));
+    expect(handleActivate).toHaveBeenCalledTimes(1);
   });
 
-  it('submits the rename through the update portfolio command', async () => {
-    const updatePortfolio = vi.fn().mockResolvedValue(undefined);
-    renderPage({ updatePortfolio });
-    await screen.findByText('PORTFOLIO VALUE');
+  it('submits the rename through the controller', async () => {
+    const handleRename = vi.fn().mockResolvedValue(undefined);
+    setup(makeController({ handleRename }));
 
     fireEvent.click(screen.getByRole('button', { name: 'Edit name' }));
     const input = screen.getByLabelText('Rename');
     fireEvent.change(input, { target: { value: 'Growth Fund' } });
     fireEvent.keyDown(input, { key: 'Enter' });
 
-    await waitFor(() => {
-      expect(updatePortfolio).toHaveBeenCalledWith('p1', { name: 'Growth Fund' });
-    });
+    await waitFor(() => expect(handleRename).toHaveBeenCalledWith('Growth Fund'));
   });
 });

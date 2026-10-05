@@ -1,15 +1,16 @@
 import { Pencil, Power, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
+import { Divider } from '@/ui/components/Divider';
 import { EmptyState } from '@/ui/components/EmptyState';
 import { FinancialNumber } from '@/ui/components/FinancialNumber';
 import { Metric, MetricGroup } from '@/ui/components/MetricGroup';
-import { Module } from '@/ui/components/Module';
 import { PageHeader } from '@/ui/components/PageHeader';
 import { PageSection } from '@/ui/components/PageSection';
 import { Skeleton } from '@/ui/components/Skeleton';
 import { StatusGlyph } from '@/ui/components/StatusGlyph';
 import { InteractiveLineChart } from '@/ui/components/charts/InteractiveLineChart';
+import { sectionTitleClass } from '@/ui/components/eyebrow';
 import { Button } from '@/ui/components/ui/button';
 import { DEBT_STATUS_INACTIVE_LABEL, DEBT_STATUS_SETTLED_LABEL } from '@/ui/constants/debt/label';
 import { DebtAccountFormDialog } from '@/ui/features/debt/components/DebtAccountFormDialog';
@@ -17,6 +18,7 @@ import { DebtHistoryTable } from '@/ui/features/debt/components/detail/DebtHisto
 import { useDebtDetailPage } from '@/ui/features/debt/hooks/useDebtDetailPage';
 import { type DebtAccount } from '@/ui/features/debt/viewmodels/debtDisplay.vm';
 import { formatCurrency, formatDate } from '@/ui/utils';
+import { cn } from '@/ui/utils/cn';
 
 interface DebtDetailPageProps {
   account?: DebtAccount;
@@ -147,19 +149,14 @@ export default function DebtDetailPage({ account }: DebtDetailPageProps) {
         <DebtHistoryTable months={historyMonths} />
       </PageSection>
 
-      <PageSection spacing="compact">
-        <Module label="DANGER ZONE">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="text-destructive hover:bg-destructive/10 hover:text-destructive"
-            onClick={() => void handleDelete()}
-          >
-            <Trash2 size={14} aria-hidden="true" />
-            刪除貸款
-          </Button>
-        </Module>
-      </PageSection>
+      <section className="space-y-3">
+        <Divider className="border-destructive" />
+        <p className={cn(sectionTitleClass, 'text-destructive')}>DANGER ZONE</p>
+        <Button variant="destructive" onClick={() => void handleDelete()}>
+          <Trash2 size={14} aria-hidden="true" />
+          刪除貸款
+        </Button>
+      </section>
 
       <DebtAccountFormDialog
         open={isEditOpen}

@@ -1,210 +1,167 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React from 'react';
 
 import { Plus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
+import { EmptyState } from '@/ui/components/EmptyState';
+import { FinancialNumber } from '@/ui/components/FinancialNumber';
 import { PageHeader } from '@/ui/components/PageHeader';
-import { SortableListScope } from '@/ui/components/sortable/SortableListScope';
-import { Button } from '@/ui/components/ui/button';
-import { Table, TableBody, TableHead, TableHeader, TableRow } from '@/ui/components/ui/table';
-import { useAccounts } from '@/ui/features/account/hooks/useAccounts';
-import { usePortfolioCmds } from '@/ui/features/portfolio/hooks/usePortfolioCmds';
-import { usePortfolios } from '@/ui/features/portfolio/hooks/usePortfolios';
-import { type PortfolioSnapshot } from '@/ui/features/portfolio/viewmodels/portfolioDisplay.vm';
+import { PageSection } from '@/ui/components/PageSection';
+import { Skeleton } from '@/ui/components/Skeleton';
 import {
-  type Account,
-  type PortfolioFormVM,
-  mapPortfolioVMToDomain,
-} from '@/ui/features/portfolio/viewmodels/portfolioForm.vm';
-import { useAuthIdentity } from '@/ui/hooks/useAuthIdentity';
-import { formatCurrency, formatYearMonth } from '@/ui/utils';
+  DataTable,
+  DataTableColGroup,
+  DataTableHeadCell,
+  DataTableHeadRow,
+  DataTableScrollArea,
+  MobileDataList,
+  TableBody,
+  TableHeader,
+} from '@/ui/components/data-table';
+import { SortableListScope } from '@/ui/components/sortable/SortableListScope';
+import { Alert, AlertDescription } from '@/ui/components/ui/alert';
+import { Button } from '@/ui/components/ui/button';
+import {
+  PORTFOLIO_COLUMN_LABELS,
+  PORTFOLIO_COLUMN_WIDTHS,
+  PORTFOLIO_PAGE_LABELS,
+} from '@/ui/constants/portfolio/labels';
+import { usePortfolioListController } from '@/ui/features/portfolio/hooks/usePortfolioListController';
 
 import PortfolioForm from './PortfolioForm';
-import { SortableCompactRow, SortableTableRow } from './SortablePortfolioRows';
+import { SortableMobileRow, SortableTableRow } from './SortablePortfolioRows';
 
-interface PortfolioListProps {
-  householdId: string;
-}
+const SKELETON_ROWS = [0, 1, 2, 3, 4];
 
-interface PortfolioRowVM {
-  id: string;
-  name: string;
-  securitiesName: string;
-  bankName: string;
-  valueText: string;
-  returnRate: number | null;
-  asOfText: string | null;
-  isActive: boolean;
-}
-
-const PortfolioList: React.FC<PortfolioListProps> = ({ householdId }) => {
+/**
+ * Portfolio list surface. All data orchestration lives in
+ * `usePortfolioListController`; this component only renders.
+ */
+const PortfolioList: React.FC = () => {
   const navigate = useNavigate();
-  const auth = useAuthIdentity();
-  const { portfolios, latestSnapshots, reload } = usePortfolios(householdId);
-  const { fetchAccounts } = useAccounts();
-  const { createPortfolio, reorderPortfolios } = usePortfolioCmds(
-    householdId,
-    auth.email || '',
+  const {
+    loading,
+    error,
     reload,
-  );
-  const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const [localPortfolios, setLocalPortfolios] = useState(portfolios);
-  const [localRows, setLocalRows] = useState<PortfolioRowVM[]>([]);
-  const [accounts, setAccounts] = useState<Account[]>([]);
+    rows,
+    overview,
+    accounts,
+    reorderRows,
+    create,
+    isFormOpen,
+    openForm,
+    closeForm,
+  } = usePortfolioListController();
 
-  useEffect(() => {
-    setLocalPortfolios(portfolios);
-  }, [portfolios]);
-
-  useEffect(() => {
-    let ignore = false;
-    const load = async () => {
-      const result = await fetchAccounts(householdId, auth, { includeInactive: true });
-      if (!ignore) setAccounts(result.ok ? result.value : []);
-    };
-    void load();
-    return () => {
-      ignore = true;
-    };
-  }, [householdId, fetchAccounts, auth]);
-
-  const accountNames = useMemo(() => {
-    const names = new Map<string, string>();
-    for (const account of accounts) {
-      names.set(account.id, account.name);
+  const renderContent = () => {
+    if (loading) {
+      return (
+        <div role="status" className="space-y-2 py-2">
+          <span className="sr-only">{PORTFOLIO_PAGE_LABELS.LOADING_LABEL}</span>
+          {SKELETON_ROWS.map((row) => (
+            <Skeleton key={row} className="h-12" />
+          ))}
+        </div>
+      );
     }
-    return names;
-  }, [accounts]);
 
-  const overview = useMemo(() => {
-    const snapshots: PortfolioSnapshot[] = localPortfolios
-      .map((portfolio) => latestSnapshots.get(portfolio.id))
-      .filter((snapshot): snapshot is PortfolioSnapshot => snapshot !== undefined);
+    if (error) {
+      return (
+        <Alert variant="destructive">
+          <AlertDescription>{error}</AlertDescription>
+          <Button variant="text" className="ml-auto shrink-0" onClick={() => void reload()}>
+            {PORTFOLIO_PAGE_LABELS.RETRY_ACTION}
+          </Button>
+        </Alert>
+      );
+    }
 
-    const totalValue = snapshots.reduce((sum, snapshot) => sum + snapshot.totalValue, 0);
-    const totalCumulativeGain = snapshots.reduce(
-      (sum, snapshot) => sum + snapshot.performance.cumulativeGain,
-      0,
-    );
-    const totalInvested = totalValue - totalCumulativeGain;
-    const totalReturnRate = totalInvested > 0 ? (totalCumulativeGain / totalInvested) * 100 : 0;
+    if (rows.length === 0) {
+      return (
+        <EmptyState
+          title={PORTFOLIO_PAGE_LABELS.EMPTY_TITLE}
+          description={PORTFOLIO_PAGE_LABELS.EMPTY_DESCRIPTION}
+          action={
+            <Button onClick={openForm} className="gap-2">
+              <Plus size={16} aria-hidden="true" />
+              {PORTFOLIO_PAGE_LABELS.CREATE_ACTION}
+            </Button>
+          }
+        />
+      );
+    }
 
-    const latestPeriod = snapshots.reduce<{ year: number; month: number } | null>(
-      (latest, snapshot) => {
-        if (!latest) {
-          return { year: snapshot.year, month: snapshot.month };
-        }
-        if (
-          snapshot.year > latest.year ||
-          (snapshot.year === latest.year && snapshot.month > latest.month)
-        ) {
-          return { year: snapshot.year, month: snapshot.month };
-        }
-        return latest;
-      },
-      null,
-    );
+    return (
+      <>
+        <PageSection
+          title={PORTFOLIO_PAGE_LABELS.TOTAL_VALUE_LABEL}
+          spacing="compact"
+          className="border-b-0"
+        >
+          <FinancialNumber value={overview.totalValueText} size="large" className="mt-2" />
+        </PageSection>
 
-    return {
-      totalValue,
-      totalReturnRate,
-      snapshotsCount: snapshots.length,
-      latestPeriodLabel: latestPeriod
-        ? formatYearMonth(latestPeriod.year, latestPeriod.month)
-        : null,
-    };
-  }, [localPortfolios, latestSnapshots]);
+        {/* DndContext renders aria-live divs, so it must wrap the table
+            rather than sit inside tbody (invalid HTML). */}
+        <SortableListScope items={rows} onReorder={reorderRows}>
+          <DataTableScrollArea>
+            <DataTable>
+              <DataTableColGroup widths={PORTFOLIO_COLUMN_WIDTHS} />
+              <TableHeader>
+                <DataTableHeadRow>
+                  <DataTableHeadCell className="w-10">
+                    <span className="sr-only">{PORTFOLIO_COLUMN_LABELS.REORDER}</span>
+                  </DataTableHeadCell>
+                  <DataTableHeadCell>{PORTFOLIO_COLUMN_LABELS.NAME}</DataTableHeadCell>
+                  <DataTableHeadCell>{PORTFOLIO_COLUMN_LABELS.SECURITIES}</DataTableHeadCell>
+                  <DataTableHeadCell>{PORTFOLIO_COLUMN_LABELS.BANK}</DataTableHeadCell>
+                  <DataTableHeadCell align="number">
+                    {PORTFOLIO_COLUMN_LABELS.VALUE}
+                  </DataTableHeadCell>
+                  <DataTableHeadCell align="number">
+                    {PORTFOLIO_COLUMN_LABELS.RETURN}
+                  </DataTableHeadCell>
+                </DataTableHeadRow>
+              </TableHeader>
+              <TableBody>
+                {rows.map((row) => (
+                  <SortableTableRow key={row.id} row={row} onNavigate={navigate} />
+                ))}
+              </TableBody>
+            </DataTable>
+          </DataTableScrollArea>
+        </SortableListScope>
 
-  const handleReorder = (ordered: PortfolioRowVM[]) => {
-    setLocalRows(ordered);
-    void reorderPortfolios(ordered.map((p, index) => ({ id: p.id, order: index }))).then(() =>
-      reload(),
+        <SortableListScope items={rows} onReorder={reorderRows}>
+          <MobileDataList>
+            {rows.map((row) => (
+              <SortableMobileRow key={row.id} row={row} onNavigate={navigate} />
+            ))}
+          </MobileDataList>
+        </SortableListScope>
+      </>
     );
   };
-
-  const handleCreateSubmit = async (vm: PortfolioFormVM) => {
-    await createPortfolio(mapPortfolioVMToDomain(vm));
-  };
-
-  const baseRows: PortfolioRowVM[] = localPortfolios
-    .slice()
-    .sort((a, b) => (a.order || 0) - (b.order || 0))
-    .map((portfolio) => {
-      const snapshot = latestSnapshots.get(portfolio.id);
-      return {
-        id: portfolio.id,
-        name: portfolio.name,
-        securitiesName: accountNames.get(portfolio.securitiesAccountId) ?? '—',
-        bankName: accountNames.get(portfolio.bankAccountId) ?? '—',
-        valueText: formatCurrency(snapshot?.totalValue ?? 0),
-        returnRate: snapshot ? snapshot.performance.cumulativeReturnRate : null,
-        asOfText: snapshot ? formatYearMonth(snapshot.year, snapshot.month) : null,
-        isActive: portfolio.isActive !== false,
-      };
-    });
-
-  const rowOrder = new Set(localRows.map((r) => r.id));
-  const rows: PortfolioRowVM[] =
-    localRows.length === baseRows.length && baseRows.every((r) => rowOrder.has(r.id))
-      ? localRows
-      : baseRows;
 
   return (
     <div className="space-y-8">
       <PageHeader
-        title="投資組合"
-        description="分析投資表現：一個證券帳戶連結一個銀行帳戶"
+        title={PORTFOLIO_PAGE_LABELS.TITLE}
+        description={PORTFOLIO_PAGE_LABELS.DESCRIPTION}
         actions={
-          <Button onClick={() => setIsCreateOpen(true)} className="gap-2">
-            <Plus size={18} />
-            新增組合
+          <Button onClick={openForm} className="gap-2">
+            <Plus size={18} aria-hidden="true" />
+            {PORTFOLIO_PAGE_LABELS.CREATE_ACTION}
           </Button>
         }
       />
 
-      <div className="flex items-baseline justify-between">
-        <p className="font-mono text-[11px] tracking-widest text-muted-foreground uppercase">
-          TOTAL PORTFOLIO VALUE
-        </p>
-        <p className="font-mono text-2xl tabular-nums text-foreground">
-          {formatCurrency(overview.totalValue)}
-        </p>
-      </div>
-
-      {/* DndContext renders aria-live divs, so it must wrap the table
-          rather than sit inside tbody (invalid HTML). */}
-      <SortableListScope items={rows} onReorder={handleReorder}>
-        <Table className="hidden md:table">
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-10" />
-              <TableHead>Name</TableHead>
-              <TableHead>Securities</TableHead>
-              <TableHead>Bank</TableHead>
-              <TableHead className="text-right">Portfolio Value</TableHead>
-              <TableHead className="text-right">Return</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {rows.map((row) => (
-              <SortableTableRow key={row.id} row={row} onNavigate={navigate} />
-            ))}
-          </TableBody>
-        </Table>
-      </SortableListScope>
-
-      <SortableListScope items={rows} onReorder={handleReorder}>
-        <div className="space-y-2 md:hidden">
-          {rows.map((row) => (
-            <SortableCompactRow key={row.id} row={row} onNavigate={navigate} />
-          ))}
-        </div>
-      </SortableListScope>
+      {renderContent()}
 
       <PortfolioForm
-        isOpen={isCreateOpen}
-        onClose={() => setIsCreateOpen(false)}
-        onSubmit={handleCreateSubmit}
+        isOpen={isFormOpen}
+        onClose={closeForm}
+        onSubmit={create}
         accounts={accounts}
       />
     </div>

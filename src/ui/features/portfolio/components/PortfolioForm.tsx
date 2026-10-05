@@ -9,10 +9,9 @@ import {
   FormMessage,
   SelectField,
   TextInput,
-  useFormField,
 } from '@/ui/components/form';
+import { Alert, AlertDescription } from '@/ui/components/ui/alert';
 import { Button } from '@/ui/components/ui/button';
-import { Checkbox } from '@/ui/components/ui/checkbox';
 import {
   Dialog,
   DialogContent,
@@ -20,10 +19,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/ui/components/ui/dialog';
+import { PORTFOLIO_FORM_LABELS } from '@/ui/constants/portfolio/labels';
 import { usePortfolioForm } from '@/ui/features/portfolio/hooks/usePortfolioForm';
 import {
   type Account,
-  type Portfolio,
   type PortfolioFormVM,
 } from '@/ui/features/portfolio/viewmodels/portfolioForm.vm';
 
@@ -32,43 +31,17 @@ interface PortfolioFormProps {
   onClose: () => void;
   onSubmit: (data: PortfolioFormVM) => Promise<void>;
   accounts: Account[];
-  portfolio?: Portfolio;
 }
 
 /**
- * A Radix checkbox is not a native value/onChange input, so `FormControl` cannot
- * inject the binding; the field is wired through `useFormField` instead.
+ * Surface for the portfolio create dialog (ADR-0064). It only renders: the RHF
+ * state, the account lists and the submit gate all live in `usePortfolioForm`.
+ * There is no edit mode — rename and lifecycle live on the detail page.
  */
-const ActiveField: React.FC = () => {
-  const { field } = useFormField();
-
-  return (
-    <label className="flex items-center space-x-2 cursor-pointer">
-      <Checkbox
-        checked={Boolean(field.value)}
-        onCheckedChange={(checked) => field.onChange(checked === true)}
-        onBlur={field.onBlur}
-      />
-      <span className="text-sm font-normal">Active</span>
-    </label>
-  );
-};
-
-/**
- * Surface for the portfolio dialog (ADR-0064). It only renders: the RHF state,
- * the account lists and the submit gate all live in `usePortfolioForm`.
- */
-const PortfolioForm: React.FC<PortfolioFormProps> = ({
-  isOpen,
-  onClose,
-  onSubmit,
-  accounts,
-  portfolio,
-}) => {
+const PortfolioForm: React.FC<PortfolioFormProps> = ({ isOpen, onClose, onSubmit, accounts }) => {
   const { form, submit, securitiesOptions, bankOptions, error, isSubmitting } = usePortfolioForm({
     isOpen,
     accounts,
-    portfolio,
     onSubmit,
     onClose,
   });
@@ -77,21 +50,21 @@ const PortfolioForm: React.FC<PortfolioFormProps> = ({
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent aria-describedby={undefined}>
         <DialogHeader>
-          <DialogTitle>{portfolio ? 'Edit Portfolio' : 'Create Portfolio'}</DialogTitle>
+          <DialogTitle>{PORTFOLIO_FORM_LABELS.CREATE_TITLE}</DialogTitle>
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={submit} className="space-y-4 py-4" noValidate>
             {error && (
-              <div className="text-sm text-destructive bg-destructive/10 p-3 rounded-md">
-                {error}
-              </div>
+              <Alert variant="destructive">
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
             )}
 
             <FormField name="name">
               <FormItem>
-                <FormLabel required>Name</FormLabel>
+                <FormLabel required>{PORTFOLIO_FORM_LABELS.NAME}</FormLabel>
                 <FormControl>
-                  <TextInput placeholder="e.g., Retirement Fund" />
+                  <TextInput placeholder={PORTFOLIO_FORM_LABELS.NAME_PLACEHOLDER} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -99,11 +72,11 @@ const PortfolioForm: React.FC<PortfolioFormProps> = ({
 
             <FormField name="securitiesAccountId">
               <FormItem>
-                <FormLabel required>Securities Account</FormLabel>
+                <FormLabel required>{PORTFOLIO_FORM_LABELS.SECURITIES_ACCOUNT}</FormLabel>
                 <FormControl>
                   <SelectField
                     options={securitiesOptions}
-                    placeholder="Select securities account"
+                    placeholder={PORTFOLIO_FORM_LABELS.SECURITIES_PLACEHOLDER}
                   />
                 </FormControl>
                 <FormMessage />
@@ -112,29 +85,23 @@ const PortfolioForm: React.FC<PortfolioFormProps> = ({
 
             <FormField name="bankAccountId">
               <FormItem>
-                <FormLabel required>Bank Account</FormLabel>
+                <FormLabel required>{PORTFOLIO_FORM_LABELS.BANK_ACCOUNT}</FormLabel>
                 <FormControl>
-                  <SelectField options={bankOptions} placeholder="Select bank account" />
+                  <SelectField
+                    options={bankOptions}
+                    placeholder={PORTFOLIO_FORM_LABELS.BANK_PLACEHOLDER}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
             </FormField>
 
-            <FormField name="isActive">
-              <FormItem className="space-y-0">
-                <ActiveField />
-                <FormMessage />
-              </FormItem>
-            </FormField>
-
-            {portfolio && <p className="text-xs text-muted-foreground">帳戶連結建立後不可變更</p>}
-
             <DialogFooter>
               <Button type="button" variant="outline" onClick={onClose} disabled={isSubmitting}>
-                Cancel
+                {PORTFOLIO_FORM_LABELS.CANCEL}
               </Button>
               <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? 'Saving...' : portfolio ? 'Save Changes' : 'Create Portfolio'}
+                {isSubmitting ? PORTFOLIO_FORM_LABELS.SAVING : PORTFOLIO_FORM_LABELS.SUBMIT}
               </Button>
             </DialogFooter>
           </form>

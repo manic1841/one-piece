@@ -3,28 +3,23 @@ import { describe, expect, it } from 'vitest';
 import {
   PortfolioFormSchema,
   createDefaultPortfolioFormVM,
-  mapPortfolioToFormVM,
   mapPortfolioVMToDomain,
 } from './portfolioForm.vm';
 
 describe('portfolioForm.vm', () => {
-  it('parses and maps portfolio form to domain input', () => {
+  it('parses and maps a create form to a domain payload', () => {
     const vm = PortfolioFormSchema.parse({
       name: 'Retirement',
       securitiesAccountId: 'a1',
       bankAccountId: 'a2',
-      isActive: true,
-      order: 1,
     });
 
-    const domain = mapPortfolioVMToDomain(vm);
-
-    expect(domain).toEqual({
+    expect(mapPortfolioVMToDomain(vm)).toEqual({
       name: 'Retirement',
       securitiesAccountId: 'a1',
       bankAccountId: 'a2',
       isActive: true,
-      order: 1,
+      order: 0,
     });
   });
 
@@ -33,8 +28,6 @@ describe('portfolioForm.vm', () => {
       name: '  Retirement  ',
       securitiesAccountId: 'a1',
       bankAccountId: 'a2',
-      isActive: true,
-      order: 0,
     });
 
     expect(parsed.name).toBe('Retirement');
@@ -43,8 +36,6 @@ describe('portfolioForm.vm', () => {
         name: '   ',
         securitiesAccountId: 'a1',
         bankAccountId: 'a2',
-        isActive: true,
-        order: 0,
       }).success,
     ).toBe(false);
   });
@@ -54,8 +45,6 @@ describe('portfolioForm.vm', () => {
       name: 'Retirement',
       securitiesAccountId: '',
       bankAccountId: '',
-      isActive: true,
-      order: 0,
     });
 
     expect(result.success).toBe(false);
@@ -65,34 +54,11 @@ describe('portfolioForm.vm', () => {
     ]);
   });
 
-  it('defaults to an active portfolio with no links', () => {
+  it('has no editable lifecycle or order field', () => {
     expect(createDefaultPortfolioFormVM()).toEqual({
       name: '',
       securitiesAccountId: '',
       bankAccountId: '',
-      isActive: true,
-      order: 0,
-    });
-
-    expect(mapPortfolioToFormVM()).toEqual(createDefaultPortfolioFormVM());
-  });
-
-  it('hydrates an edited portfolio without collapsing a zero order', () => {
-    expect(
-      mapPortfolioToFormVM({
-        id: 'p1',
-        name: 'Retirement',
-        securitiesAccountId: 'a1',
-        bankAccountId: 'a2',
-        isActive: false,
-        order: 0,
-      }),
-    ).toEqual({
-      name: 'Retirement',
-      securitiesAccountId: 'a1',
-      bankAccountId: 'a2',
-      isActive: false,
-      order: 0,
     });
   });
 });

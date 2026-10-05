@@ -473,7 +473,7 @@ Detail 的編輯入口依欄位複雜度二選一:
 - **List Header** = create action only(`New` / 新增 {domain});結算／設定等流程入口屬各自工作流頁面,不在 List header。
 - **Detail Header** = 該實體的管理動作(Edit、Activate/Deactivate),緊鄰狀態顯示。
 - **Workflow Header** = 該工作流的主要動作(Confirm、Close Period)。
-- **Destructive**(Delete／移除)放頁面尾端 Danger Zone,永不升級到 header。
+- **Destructive**(Delete／移除)放頁面尾端 Danger Zone,永不升級到 header;Danger Zone 的刪除用 `button` 的 destructive variant。
 
 > **Closing principle:Action Hierarchy defines priority; List / Detail defines placement.**
 

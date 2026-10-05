@@ -1,7 +1,6 @@
 import React from 'react';
 
 import { ActivityList, ActivityRow } from '@/ui/components/ActivityList';
-import CompactRow from '@/ui/components/CompactRow';
 import {
   DataTable,
   DataTableCell,
@@ -313,31 +312,6 @@ const SortableSection: React.FC = () => {
   );
 };
 
-const CompactRowSection: React.FC = () => (
-  <GallerySection number="12" title="Compact Row">
-    <GalleryModule label="MOBILE ROW · FORCED VISIBLE">
-      <CompactRow
-        testId="gallery-compact-row"
-        onClick={() => {}}
-        style={{ display: 'block' }}
-        className="bg-card/50"
-      >
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm">Main Bank</p>
-            <p className="font-mono text-[11px] text-muted-foreground">CASH</p>
-          </div>
-          <span className="font-mono text-sm tabular-nums">NT$1,242,000</span>
-        </div>
-      </CompactRow>
-    </GalleryModule>
-    <GalleryCaption>
-      集合的<strong>行動版</strong>列：`&lt;md` 時取代桌面表格列（`md:hidden`），單列
-      label／值對齊。 此處強制顯示以便檢視。
-    </GalleryCaption>
-  </GallerySection>
-);
-
 export const GalleryCollectionsBody: React.FC = () => (
   <>
     <GalleryGroup label="COLLECTIONS" />
@@ -345,6 +319,5 @@ export const GalleryCollectionsBody: React.FC = () => (
     <DataTablePrimitivesSection />
     <ActivitySection />
     <SortableSection />
-    <CompactRowSection />
   </>
 );

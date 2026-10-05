@@ -104,7 +104,8 @@ Token（定義於 `tailwind.config.js`，全部走 CSS 變數）：
 - 中文字族排在拉丁字族**之後**是刻意的：拉丁字族不含 CJK，瀏覽器會逐字 fallback 到第一個有該字形的字族，順序不影響 Latin 的呈現。
 - **取捨**：原生字族讓畫面貼合各平台慣例（Apple 上與原型完全一致），代價是**同一份程式碼在不同 OS 的字寬與換行位置不同**、且無法保證離線環境的呈現一致。若日後需要跨平台逐像素一致，再引入打包的 webfont。
 - `font-mono` 為正式的資料樣式：金額、日期、代碼、badge、座標軸與標籤性 UI（FROM/TO/APPLY 等）一律使用；段落正文維持 UI 字族，不以等寬呈現長文。
-- Tracking 隨尺寸變化，定義於 Tailwind `letterSpacing`：display `-0.02em`、heading `-0.01em`、body `0`、caption `0.01em`。**11px 全大寫 mono 標籤**（eyebrow／label／module 與 section 標題）用 `tracking-widest`（`0.1em`）——這類標籤的寬字距是刻意的，不要套 heading 的負字距。
+- Tracking 隨尺寸變化，定義於 Tailwind `letterSpacing`：display `-0.02em`、heading `-0.01em`、body `0`、caption `0.01em`。**11px 全大寫 mono 標籤**（eyebrow／label／module）用 `tracking-widest`（`0.1em`）——這類標籤的寬字距是刻意的，不要套 heading 的負字距。
+- **Section 標題與 eyebrow 標籤分屬兩級**：section 標題（`PageSection` 的 title）比 eyebrow 標籤大一階、用重量建立層級（14px、`font-semibold`、`text-foreground`，仍為 mono 全大寫，不套 `tracking-widest`）；module 標籤、metric label、eyebrow 等標籤性文字維持 11px mono `tracking-widest`（`eyebrowClass`）。
 - Leading 與尺寸反比：標題 `leading-tight`、內文 `leading-relaxed`。
 - 間距一律用 `rem`/`em`，尊重使用者瀏覽器字體大小設定。
 - 頁面標題使用重量（`font-semibold`/`font-bold`）建立層級，不以加大尺寸為唯一手段。

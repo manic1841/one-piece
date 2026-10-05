@@ -3,6 +3,8 @@ import React, { useState } from 'react';
 import { Trash2 } from 'lucide-react';
 import { useParams } from 'react-router-dom';
 
+import { Divider } from '@/ui/components/Divider';
+import { sectionTitleClass } from '@/ui/components/eyebrow';
 import {
   Accordion,
   AccordionContent,
@@ -21,6 +23,7 @@ import { IncomeTabContent } from '@/ui/features/retirement/components/detail/Inc
 import { ProjectionResultsContent } from '@/ui/features/retirement/components/detail/ProjectionResultsContent';
 import { RetirementPlanHeader } from '@/ui/features/retirement/components/detail/RetirementPlanHeader';
 import { useRetirementPlanDetailPage } from '@/ui/features/retirement/hooks/useRetirementPlanDetailPage';
+import { cn } from '@/ui/utils/cn';
 
 const RetirementPlanForm: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -180,16 +183,10 @@ const RetirementPlanForm: React.FC = () => {
           </AccordionContent>
         </AccordionItem>
       </Accordion>
-      <section className="space-y-3 border-t border-border pt-6">
-        <p className="font-mono text-[11px] tracking-widest text-muted-foreground uppercase">
-          DANGER ZONE
-        </p>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="text-destructive hover:bg-destructive/10 hover:text-destructive"
-          onClick={() => void handleDelete()}
-        >
+      <section className="space-y-3">
+        <Divider className="border-destructive" />
+        <p className={cn(sectionTitleClass, 'text-destructive')}>DANGER ZONE</p>
+        <Button variant="destructive" onClick={() => void handleDelete()}>
           <Trash2 size={14} />
           Delete plan
         </Button>
