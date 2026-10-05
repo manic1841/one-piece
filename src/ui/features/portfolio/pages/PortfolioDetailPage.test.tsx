@@ -89,6 +89,16 @@ describe('PortfolioDetailPage', () => {
     expect(reload).toHaveBeenCalledTimes(1);
   });
 
+  it('keeps the portfolio and shows an inline alert when the load fails with data present', () => {
+    const reload = vi.fn();
+    setup(makeController({ error: '無法載入投資組合。', reload }));
+
+    expect(screen.getByRole('heading', { level: 1, name: 'Main Portfolio' })).toBeInTheDocument();
+    expect(screen.getByText('無法載入投資組合。')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: '重試' }));
+    expect(reload).toHaveBeenCalledTimes(1);
+  });
+
   it('renders the shared PageHeader with title, crumb and description', () => {
     setup();
     expect(screen.getByRole('heading', { level: 1, name: 'Main Portfolio' })).toBeInTheDocument();

@@ -205,4 +205,20 @@ describe('DebtDetailPage header actions', () => {
       screen.getByRole('button', { name: DEBT_DETAIL_LABELS.RETRY_ACTION }),
     ).toBeInTheDocument();
   });
+
+  it('keeps the loan and shows an inline alert when only the history fetch fails', async () => {
+    vi.mocked(listDebtAccountsUseCase.execute).mockResolvedValue([buildAccount()]);
+    vi.mocked(listDebtSnapshotsUseCase.execute).mockRejectedValue(new Error('boom'));
+
+    render(
+      <MemoryRouter>
+        <DebtDetailPage />
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByText(DEBT_DETAIL_LABELS.LOAD_ERROR)).toBeInTheDocument();
+    expect(
+      screen.getByText(DEBT_DETAIL_LABELS.OUTSTANDING_BALANCE_SECTION_TITLE),
+    ).toBeInTheDocument();
+  });
 });

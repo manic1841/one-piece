@@ -99,6 +99,15 @@ const PortfolioDetailPage: React.FC = () => {
         }
       />
 
+      {error !== null && (
+        <Alert variant="warning">
+          <AlertDescription>{error}</AlertDescription>
+          <Button variant="text" className="ml-auto shrink-0" onClick={reload}>
+            {PORTFOLIO_DETAIL_LABELS.RETRY_ACTION}
+          </Button>
+        </Alert>
+      )}
+
       <PortfolioDetail vm={vm} onDelete={() => void handleDelete()} />
     </div>
   );

@@ -45,10 +45,18 @@ export const useDebtDetailPage = ({ account }: UseDebtDetailPageArgs) => {
   const [fetchedAccount, setFetchedAccount] = useState<DebtAccount | null>(null);
   const [history, setHistory] = useState<DebtPaymentHistoryItemVM[]>([]);
   const [reloadNonce, setReloadNonce] = useState(0);
-  const { loading, errorMessage, run } = useLoadingTask({ initiallyLoading: true });
+  const {
+    loading: accountLoading,
+    errorMessage: accountErrorMessage,
+    run,
+  } = useLoadingTask({ initiallyLoading: true });
 
   const activeAccount = account ?? fetchedAccount;
-  const { snapshots } = useDebtSnapshots(householdId, id ?? '');
+  const {
+    snapshots,
+    loading: snapshotsLoading,
+    errorMessage: snapshotsErrorMessage,
+  } = useDebtSnapshots(householdId, id ?? '', reloadNonce);
 
   const fetchAccountRow = useCallback(async () => {
     const accounts = await listDebtAccountsUseCase.execute({
@@ -180,7 +188,9 @@ export const useDebtDetailPage = ({ account }: UseDebtDetailPageArgs) => {
     onCancel: () => setIsEditOpen(false),
   });
 
-  const error = loading || errorMessage === null ? null : DEBT_DETAIL_LABELS.LOAD_ERROR;
+  const loading = accountLoading || snapshotsLoading;
+  const errorMessage = accountErrorMessage ?? snapshotsErrorMessage;
+  const error = errorMessage === null ? null : DEBT_DETAIL_LABELS.LOAD_ERROR;
   const notFound = !loading && error === null && !activeAccount;
 
   const reload = useCallback(() => setReloadNonce((nonce) => nonce + 1), []);

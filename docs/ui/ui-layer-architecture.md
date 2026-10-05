@@ -447,7 +447,7 @@ Detail 的編輯入口依欄位複雜度二選一:
 
 `PageHeader` 不知道「怎麼編輯名稱」——`title` 接受 `ReactNode`,由頁面自行傳入 `<InlineEditableTitle value={...} onSave={...} />`;儲存走既有 update command,成功後頁面自行 refetch／同步 state。
 
-**詳細頁的 header 由 page 層擁有**:每個 detail 頁面自行渲染共用 `PageHeader`(title + 描述 + crumb + back 鈕 + header actions),detail 元件只渲染資料 sections。Account / Portfolio / Debt / Project 詳情頁皆屬此形:page 負責 header、loading/error/not-found 狀態與命令,資料 sections 抽成純 surface 元件(`AccountDetail` / `PortfolioDetail` / `DebtDetail` / `ProjectDetail`),後者只消費 VM 或已投影的資料,不自行取資料。名稱編輯走 `InlineEditableTitle`(見上);`PortfolioForm` 只由列表頁的「新增組合」開啟(create)。取捨理由見 [ADR-0058](../adr/0058-portfolio-detail-header-migration.md)。
+**詳細頁的 header 由 page 層擁有**:每個 detail 頁面自行渲染共用 `PageHeader`(title + 描述 + crumb + back 鈕 + header actions),detail 元件只渲染資料 sections。Account / Portfolio / Debt / Project 詳情頁皆屬此形:page 負責 header、loading/error/not-found 狀態與命令,資料 sections 抽成純 surface 元件(`AccountDetail` / `PortfolioDetail` / `DebtDetail` / `ProjectDetail`),後者只消費 VM 或已投影的資料,不自行取資料。四頁錯誤呈現一致:實體本身載入失敗→整頁 warning Alert + 重試;實體已在但某段資料(歷史／快照／彙總)載入失敗→header 下方 inline warning Alert + 重試,保留已載入的實體不清空(ADR-0072:載入失敗是 UNKNOWN,不是 EMPTY)。名稱編輯走 `InlineEditableTitle`(見上);`PortfolioForm` 只由列表頁的「新增組合」開啟(create)。取捨理由見 [ADR-0058](../adr/0058-portfolio-detail-header-migration.md)。
 
 ### 7.4 Lifecycle 控制
 

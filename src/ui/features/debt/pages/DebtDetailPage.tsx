@@ -120,6 +120,15 @@ export default function DebtDetailPage({ account }: DebtDetailPageProps) {
         }
       />
 
+      {error !== null && (
+        <Alert variant="warning">
+          <AlertDescription>{error}</AlertDescription>
+          <Button variant="text" className="ml-auto shrink-0" onClick={reload}>
+            {DEBT_DETAIL_LABELS.RETRY_ACTION}
+          </Button>
+        </Alert>
+      )}
+
       <DebtDetail
         account={activeAccount}
         trend={trend}

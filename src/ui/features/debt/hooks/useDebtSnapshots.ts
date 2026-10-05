@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { listDebtSnapshotsUseCase } from '@/application/debt/use_cases/listDebtSnapshotsUseCase';
 import { type DebtSnapshot } from '@/domains/debt/schemas';
 import { useAuthIdentity } from '@/ui/hooks/useAuthIdentity';
+import { useLoadingTask } from '@/ui/hooks/useLoadingTask';
 
 const MONTHS_OF_HISTORY = 12;
 
@@ -15,30 +16,39 @@ const trailingYearMonthRange = (now: Date): { start: string; end: string } => {
   return { start: monthKey(start), end: monthKey(now) };
 };
 
-/** Reads a loan's snapshot history through the use-case layer. */
-export function useDebtSnapshots(householdId: string, debtAccountId: string) {
+/**
+ * Reads a loan's snapshot history through the use-case layer. Failures surface as
+ * `errorMessage` (ADR-0072: 載入失敗是 UNKNOWN，不是空資料) so the detail page can
+ * show an inline retry instead of an empty trend.
+ */
+export function useDebtSnapshots(householdId: string, debtAccountId: string, reloadNonce = 0) {
   const auth = useAuthIdentity();
   const [snapshots, setSnapshots] = useState<DebtSnapshot[]>([]);
+  const { loading, errorMessage, run } = useLoadingTask({ initiallyLoading: true });
 
   useEffect(() => {
-    let ignore = false;
-    const load = async () => {
-      if (!householdId || !debtAccountId || !auth) return;
-      const { start, end } = trailingYearMonthRange(new Date());
-      const data = await listDebtSnapshotsUseCase.execute({
-        householdId,
-        debtAccountId,
-        startYearMonth: start,
-        endYearMonth: end,
-        auth,
-      });
-      if (!ignore) setSnapshots(data);
-    };
-    void load();
-    return () => {
-      ignore = true;
-    };
-  }, [householdId, debtAccountId, auth]);
+    const controller = new AbortController();
+    void run(
+      async () => {
+        if (!householdId || !debtAccountId) return [];
+        const { start, end } = trailingYearMonthRange(new Date());
+        return listDebtSnapshotsUseCase.execute({
+          householdId,
+          debtAccountId,
+          startYearMonth: start,
+          endYearMonth: end,
+          auth,
+        });
+      },
+      {
+        signal: controller.signal,
+        writeBack: (result) => {
+          if (result.ok) setSnapshots(result.value);
+        },
+      },
+    );
+    return () => controller.abort();
+  }, [householdId, debtAccountId, auth, run, reloadNonce]);
 
-  return { snapshots };
+  return { snapshots, loading, errorMessage };
 }
