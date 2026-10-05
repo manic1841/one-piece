@@ -1,4 +1,10 @@
 import { type StatementRow } from '@/ui/components/statement/StatementTable';
+import {
+  type StatementAmountCell,
+  type StatementNode,
+  type StatementSectionSource,
+  buildStatementRows,
+} from '@/ui/components/statement/statementRows';
 import { MONTHLY_CLOSE_LABELS } from '@/ui/constants/monthlyClose';
 import { formatCurrency } from '@/ui/utils';
 
@@ -12,221 +18,184 @@ import {
 } from './reportDisplay.vm';
 
 /**
- * 已產生報表 → 共用 `StatementTable` 的列（純值、無漂移比對）。與月度關帳的
- * 差異只在金額：此處直接傳入已格式化的金額文字，不做「已產生 → 預覽」比較。
+ * 已產生報表 → 共用列結構（純值、無漂移比對）。列結構本身由
+ * `@/ui/components/statement/statementRows` 承擔；本層只把 VM 的數字與標籤投影成
+ * 「區塊 + 金額欄」，與月度關帳的差異僅在金額來源。
  */
-const TOTAL_SUFFIX = MONTHLY_CLOSE_LABELS.TOTAL_SUFFIX;
 
-const LEVEL_TONES: readonly StatementRow['tone'][] = ['group', 'detail', 'deepDetail'];
+const amountCell = (amountText: string): StatementAmountCell => ({ amountText });
 
-const toneForLevel = (level: number): StatementRow['tone'] =>
-  LEVEL_TONES[level - 1] ?? 'deepDetail';
+const totalLabel = (section: string): string => `${section}${MONTHLY_CLOSE_LABELS.TOTAL_SUFFIX}`;
 
-const sectionRow = (key: string, label: string, children: StatementRow[]): StatementRow => ({
-  key,
-  label,
-  amountText: null,
-  tone: 'section',
-  level: 0,
-  children,
-});
-
-const totalRow = (key: string, label: string, amountText: string): StatementRow => ({
-  key,
-  label: `${label}${TOTAL_SUFFIX}`,
-  amountText,
-  tone: 'subtotal',
-  level: 0,
-  children: [],
-});
-
-const terminusRow = (key: string, label: string, amountText: string): StatementRow => ({
-  key,
-  label,
-  amountText,
-  tone: 'terminus',
-  level: 0,
-  children: [],
-});
-
-interface PlainItem {
+interface StatementItemVM {
   code: string;
   label: string;
   amountText: string;
-  subItems?: PlainItem[];
+  subItems?: StatementItemVM[];
 }
 
-const itemRows = (items: PlainItem[], level: number, keyPrefix = ''): StatementRow[] =>
-  items.map((item) => ({
-    key: `${keyPrefix}${item.code}`,
-    label: item.label,
-    amountText: item.amountText,
-    tone: toneForLevel(level),
-    level,
-    children: item.subItems?.length ? itemRows(item.subItems, level + 1, keyPrefix) : [],
-  }));
+const itemNode = (item: StatementItemVM): StatementNode => ({
+  code: item.code,
+  label: item.label,
+  cell: amountCell(item.amountText),
+  subItems: item.subItems?.length ? item.subItems.map(itemNode) : undefined,
+});
 
-export const buildIncomeStatementRows = (vm: IncomeStatementVM): StatementRow[] => {
-  const rows: StatementRow[] = [];
-  if (vm.incomeTotal !== 0 || vm.incomeItems.length > 0) {
-    rows.push(
-      sectionRow(
-        'section:income',
-        MONTHLY_CLOSE_LABELS.INCOME_SECTION,
-        itemRows(vm.incomeItems, 1),
-      ),
-    );
-    rows.push(totalRow('total:income', MONTHLY_CLOSE_LABELS.INCOME_SECTION, vm.incomeTotalText));
-  }
-  if (vm.expenseTotal !== 0 || vm.expenseItems.length > 0) {
-    rows.push(
-      sectionRow(
-        'section:expense',
-        MONTHLY_CLOSE_LABELS.EXPENSE_SECTION,
-        itemRows(vm.expenseItems, 1),
-      ),
-    );
-    rows.push(totalRow('total:expense', MONTHLY_CLOSE_LABELS.EXPENSE_SECTION, vm.expenseTotalText));
-  }
-  rows.push(terminusRow('terminus:netIncome', MONTHLY_CLOSE_LABELS.NET_INCOME, vm.netIncomeText));
-  return rows;
+const incomeSection = (
+  key: string,
+  label: string,
+  total: number,
+  totalText: string,
+  items: StatementItemVM[],
+): StatementSectionSource | null => {
+  if (total === 0 && items.length === 0) return null;
+  return {
+    key,
+    label,
+    totalLabel: totalLabel(label),
+    cell: amountCell(totalText),
+    nodes: items.map(itemNode),
+  };
 };
 
-const balanceGroupRow = (key: string, group: BalanceSheetGroupVM): StatementRow => ({
-  key,
+export const buildIncomeStatementRows = (vm: IncomeStatementVM): StatementRow[] => {
+  const sections = [
+    incomeSection(
+      'income',
+      MONTHLY_CLOSE_LABELS.INCOME_SECTION,
+      vm.incomeTotal,
+      vm.incomeTotalText,
+      vm.incomeItems,
+    ),
+    incomeSection(
+      'expense',
+      MONTHLY_CLOSE_LABELS.EXPENSE_SECTION,
+      vm.expenseTotal,
+      vm.expenseTotalText,
+      vm.expenseItems,
+    ),
+  ].filter((section): section is StatementSectionSource => section !== null);
+
+  return buildStatementRows({
+    sections,
+    terminus: { label: MONTHLY_CLOSE_LABELS.NET_INCOME, cell: amountCell(vm.netIncomeText) },
+  });
+};
+
+const balanceGroupNode = (key: string, group: BalanceSheetGroupVM): StatementNode => ({
+  code: key,
   label: group.label,
-  amountText: group.totalText,
-  tone: 'group',
-  level: 1,
-  children: itemRows(group.items, 2),
+  cell: amountCell(group.totalText),
+  subItems: group.items.map(itemNode),
 });
 
 const hasEntries = (group: BalanceSheetGroupVM): boolean =>
   group.total !== 0 || group.items.length > 0;
 
+/**
+ * 一個資產負債表區塊。`filtered` 決定明細群組是否省略「無資料」項；權益的五個來源是
+ * 固定拆分，即使為零也顯示，不讓歸零的來源被默默省略。
+ */
 const balanceSection = (
   key: string,
   label: string,
+  total: number,
   totalText: string,
-  groups: [string, BalanceSheetGroupVM][],
-): StatementRow[] => [
-  sectionRow(
-    `section:${key}`,
-    label,
-    groups.map(([groupKey, group]) => balanceGroupRow(`${key}:${groupKey}`, group)),
-  ),
-  totalRow(`total:${key}`, label, totalText),
-];
-
-export const buildBalanceSheetRows = (vm: BalanceSheetVM): StatementRow[] => {
-  const rows: StatementRow[] = [];
-
-  const assetGroups = Object.entries(vm.assets.groups).filter(([, group]) => hasEntries(group));
-  if (vm.assets.total !== 0 || assetGroups.length > 0) {
-    rows.push(
-      ...balanceSection(
-        'assets',
-        MONTHLY_CLOSE_LABELS.ASSETS_SECTION,
-        vm.assets.totalText,
-        assetGroups,
-      ),
-    );
-  }
-
-  const liabilityGroups = Object.entries(vm.liabilities.groups).filter(([, group]) =>
-    hasEntries(group),
-  );
-  if (vm.liabilities.total !== 0 || liabilityGroups.length > 0) {
-    rows.push(
-      ...balanceSection(
-        'liabilities',
-        MONTHLY_CLOSE_LABELS.LIABILITIES_SECTION,
-        vm.liabilities.totalText,
-        liabilityGroups,
-      ),
-    );
-  }
-
-  // 權益的五個來源是固定拆分，即使為零也顯示，不讓歸零的來源被默默省略。
-  const equityGroups = Object.entries(vm.equity.groups);
-  if (vm.equity.total !== 0 || equityGroups.length > 0) {
-    rows.push(
-      ...balanceSection(
-        'equity',
-        MONTHLY_CLOSE_LABELS.EQUITY_SECTION,
-        vm.equity.totalText,
-        equityGroups,
-      ),
-    );
-  }
-
-  rows.push(
-    terminusRow(
-      'terminus:liabilitiesPlusEquity',
-      MONTHLY_CLOSE_LABELS.LIABILITIES_PLUS_EQUITY,
-      formatCurrency(vm.liabilities.total + vm.equity.total),
-    ),
-  );
-
-  return rows;
-};
-
-// 流入與流出桶可能共用科目代碼，因此扁平的列需要桶範圍的 key，否則重複 key 會在收合／展開時留下 ghost row。
-const cashFlowGroupRow = (
-  key: string,
-  label: string,
-  items: CashFlowItemVM[],
-  totalText: string,
-  keyPrefix: string,
-): StatementRow | null => {
-  if (items.length === 0) return null;
+  groups: Record<string, BalanceSheetGroupVM>,
+  filtered: boolean,
+): StatementSectionSource | null => {
+  const entries = Object.entries(groups).filter(([, group]) => !filtered || hasEntries(group));
+  if (total === 0 && entries.length === 0) return null;
   return {
     key,
     label,
-    amountText: totalText,
-    tone: 'group',
-    level: 1,
-    children: itemRows(items, 2, keyPrefix),
+    totalLabel: totalLabel(label),
+    cell: amountCell(totalText),
+    nodes: entries.map(([groupKey, group]) => balanceGroupNode(groupKey, group)),
   };
 };
 
-const buildCashFlowGroup = (key: string, group: CashFlowGroupVM): StatementRow[] => {
-  const hasItems = group.inflowItems.length > 0 || group.outflowItems.length > 0;
-  if (group.total === 0 && !hasItems) return [];
-  const children = [
-    cashFlowGroupRow(
-      `${key}:inflow`,
-      MONTHLY_CLOSE_LABELS.INFLOW,
-      group.inflowItems,
-      formatCurrency(group.inflowItems.reduce((sum, item) => sum + item.amount, 0)),
-      'inflow:',
+export const buildBalanceSheetRows = (vm: BalanceSheetVM): StatementRow[] => {
+  const sections = [
+    balanceSection(
+      'assets',
+      MONTHLY_CLOSE_LABELS.ASSETS_SECTION,
+      vm.assets.total,
+      vm.assets.totalText,
+      vm.assets.groups,
+      true,
     ),
-    cashFlowGroupRow(
-      `${key}:outflow`,
-      MONTHLY_CLOSE_LABELS.OUTFLOW,
-      group.outflowItems,
-      formatCurrency(group.outflowItems.reduce((sum, item) => sum + item.amount, 0)),
-      'outflow:',
+    balanceSection(
+      'liabilities',
+      MONTHLY_CLOSE_LABELS.LIABILITIES_SECTION,
+      vm.liabilities.total,
+      vm.liabilities.totalText,
+      vm.liabilities.groups,
+      true,
     ),
-  ].filter((row): row is StatementRow => row !== null);
-  return [
-    sectionRow(`section:${key}`, group.label, children),
-    totalRow(`total:${key}`, group.label, group.totalText),
-  ];
+    balanceSection(
+      'equity',
+      MONTHLY_CLOSE_LABELS.EQUITY_SECTION,
+      vm.equity.total,
+      vm.equity.totalText,
+      vm.equity.groups,
+      false,
+    ),
+  ].filter((section): section is StatementSectionSource => section !== null);
+
+  return buildStatementRows({
+    sections,
+    terminus: {
+      label: MONTHLY_CLOSE_LABELS.LIABILITIES_PLUS_EQUITY,
+      cell: amountCell(formatCurrency(vm.liabilities.total + vm.equity.total)),
+    },
+  });
+};
+
+// 流入與流出桶可能共用科目代碼，因此扁平的列需要桶範圍的 key；路徑式 key 由 builder 承擔。
+const cashFlowBucketNode = (
+  bucket: 'inflow' | 'outflow',
+  label: string,
+  items: CashFlowItemVM[],
+): StatementNode | null => {
+  if (items.length === 0) return null;
+  const sum = items.reduce((total, item) => total + item.amount, 0);
+  return {
+    code: bucket,
+    label,
+    cell: amountCell(formatCurrency(sum)),
+    subItems: items.map(itemNode),
+  };
+};
+
+const cashFlowSection = (key: string, group: CashFlowGroupVM): StatementSectionSource | null => {
+  const nodes = [
+    cashFlowBucketNode('inflow', MONTHLY_CLOSE_LABELS.INFLOW, group.inflowItems),
+    cashFlowBucketNode('outflow', MONTHLY_CLOSE_LABELS.OUTFLOW, group.outflowItems),
+  ].filter((node): node is StatementNode => node !== null);
+
+  if (group.total === 0 && nodes.length === 0) return null;
+  return {
+    key,
+    label: group.label,
+    totalLabel: totalLabel(group.label),
+    cell: amountCell(group.totalText),
+    nodes,
+  };
 };
 
 export const buildCashFlowRows = (vm: CashFlowVM): StatementRow[] => {
-  const rows: StatementRow[] = [
-    ...buildCashFlowGroup('operating', vm.operating),
-    ...buildCashFlowGroup('investing', vm.investing),
-    ...buildCashFlowGroup('financing', vm.financing),
-  ];
-  rows.push(
-    terminusRow(
-      'terminus:netCashChange',
-      MONTHLY_CLOSE_LABELS.NET_CASH_CHANGE,
-      vm.netCashChangeText,
-    ),
-  );
-  return rows;
+  const sections = [
+    cashFlowSection('operating', vm.operating),
+    cashFlowSection('investing', vm.investing),
+    cashFlowSection('financing', vm.financing),
+  ].filter((section): section is StatementSectionSource => section !== null);
+
+  return buildStatementRows({
+    sections,
+    terminus: {
+      label: MONTHLY_CLOSE_LABELS.NET_CASH_CHANGE,
+      cell: amountCell(vm.netCashChangeText),
+    },
+  });
 };
