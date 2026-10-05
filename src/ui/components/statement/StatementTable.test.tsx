@@ -97,6 +97,31 @@ describe('StatementTable', () => {
     expect(screen.getByText('NT$40,000 -> NT$50,000').className).toContain('text-warning');
   });
 
+  it('renders each semantic role with its distinguishing tone', () => {
+    renderTable();
+
+    // Section header label is a small-caps eyebrow and its row is tinted.
+    expect(screen.getByText('收入').className).toContain('uppercase');
+    expect(screen.getByText('收入').closest('tr')?.className).toContain('bg-muted/40');
+
+    // A subtotal closes its block with a stronger top rule.
+    expect(screen.getByText('收入合計').closest('tr')?.className).toContain('border-border-strong');
+
+    // The terminus (final result) row is the tall emphasized row.
+    expect(screen.getByText('本期淨利').closest('tr')?.className).toContain('h-16');
+  });
+
+  it('indents each row by its hierarchy level', () => {
+    renderTable();
+
+    // Level 0 (sections, totals, terminus) sits flush.
+    expect(screen.getByText('收入').closest('div')?.className).not.toMatch(/pl-(4|8|12)/);
+    // Level 1 (group) is one step in from the left edge.
+    expect(screen.getByText('薪資').closest('div')?.className).toContain('pl-4');
+    // Level 2 (detail) is one step further.
+    expect(screen.getByText('薪資 › Charles').closest('div')?.className).toContain('pl-8');
+  });
+
   it('hides children of a collapsed row and shows them when expanded', () => {
     const { rerender } = renderTable({ collapsed: new Set(['section:income']) });
 
