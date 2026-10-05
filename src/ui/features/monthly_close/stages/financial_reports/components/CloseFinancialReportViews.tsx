@@ -1,17 +1,8 @@
 import React from 'react';
 
-import { ChevronRight } from 'lucide-react';
-
-import {
-  DataTable,
-  DataTableCell,
-  DataTableColGroup,
-  DataTableRow,
-  NumberCell,
-  TableBody,
-} from '@/ui/components/data-table';
+import { type StatementRow, StatementTable } from '@/ui/components/statement/StatementTable';
 import { MONTHLY_CLOSE_LABELS } from '@/ui/constants/monthlyClose';
-import { cn, formatCurrency } from '@/ui/utils';
+import { cn } from '@/ui/utils/cn';
 
 import {
   type BalanceSheetDrift,
@@ -22,106 +13,27 @@ import {
   type IncomeStatementDrift,
   combineDrift,
   formatDriftAmountText,
-  formatDriftDelta,
   isDrifted,
 } from '../../../viewmodels/reportDrift.vm';
 
 export const statementTitleClass =
   'text-[13px] font-semibold uppercase tracking-[0.08em] text-foreground';
 
-/** Two columns: the label (chevron + indented text) and the rightmost amount. */
-const STATEMENT_COLUMN_WIDTHS = [74, 26] as const;
+/** 漂移金額 → 共用列的金額欄位：文字為 delta 或原值，警示色標記已漂移。 */
+const amountCell = (drift: DriftAmount): Pick<StatementRow, 'amountText' | 'amountWarning'> => ({
+  amountText: formatDriftAmountText(drift),
+  amountWarning: isDrifted(drift),
+});
 
-/**
- * Indentation per hierarchy level (design-system 間距級距): one step per level,
- * never an inline pixel calculation.
- */
-const INDENT_CLASS: readonly string[] = ['', 'pl-4', 'pl-8', 'pl-12'];
-
-const indentClass = (level: number): string => INDENT_CLASS[level] ?? 'pl-12';
-
-/**
- * A statement row in display order. Sections (the top-level groups that stand in
- * for the table header) carry no amount of their own — a dedicated total row
- * follows. Rows with children are collapsible with a chevron on the left.
- *
- * The tone is a semantic role (see `Financial Statement Semantic Hierarchy` in
- * `docs/ui/visual-standards.md`), assigned from the row's level by
- * {@link toneForLevel}. The same role looks the same in every statement.
- */
-type RowTone = 'section' | 'group' | 'detail' | 'deepDetail' | 'subtotal' | 'terminus';
-
-interface StatementRow {
-  key: string;
-  label: string;
-  amount: DriftAmount | null;
-  tone: RowTone;
-  /** The row's level in the report hierarchy (1 = first-level data). */
-  level: number;
-  children: StatementRow[];
-}
-
-/** A drifted amount cell: the `<persisted> -> <preview>` text in the warning colour. */
-const StatementAmountCell: React.FC<{ drift: DriftAmount; tone: RowTone }> = ({ drift, tone }) => {
-  const className = AMOUNT_TONE_CLASS[tone];
-  const delta = formatDriftDelta(drift);
-  if (delta === null) {
-    return (
-      <NumberCell
-        value={drift.amount}
-        format={formatCurrency}
-        className={cn(className, isDrifted(drift) && 'text-warning')}
-      />
-    );
-  }
-  return (
-    <DataTableCell align="number" className={cn(className, 'text-warning')}>
-      {delta}
-    </DataTableCell>
-  );
-};
-
-/** Inline variant of {@link StatementAmountCell} for totals rendered inside prose. */
+/** Inline variant of the amount cell for totals rendered inside prose. */
 const StatementAmountText: React.FC<{ drift: DriftAmount }> = ({ drift }) => (
   <span className={cn(isDrifted(drift) && 'text-warning')}>{formatDriftAmountText(drift)}</span>
 );
 
-const RowAmountCell: React.FC<{ value: DriftAmount | null; tone: RowTone }> = ({ value, tone }) => {
-  if (value === null) return <DataTableCell align="number" />;
-  return <StatementAmountCell drift={value} tone={tone} />;
-};
-
-const LABEL_TONE_CLASS: Record<RowTone, string> = {
-  section: 'text-[11px] font-semibold uppercase tracking-[0.08em] text-foreground',
-  group: 'text-[13px] font-medium text-foreground',
-  detail: 'text-xs text-muted-foreground',
-  deepDetail: 'text-[11px] text-muted-foreground',
-  subtotal: 'text-[13px] font-semibold text-foreground',
-  terminus: 'text-base font-semibold text-foreground',
-};
-
-const AMOUNT_TONE_CLASS: Record<RowTone, string> = {
-  section: '',
-  group: 'text-[13px]',
-  detail: 'text-xs',
-  deepDetail: 'text-[11px]',
-  subtotal: 'text-[13px] font-semibold',
-  terminus: 'text-base font-semibold',
-};
-
-const ROW_TONE_CLASS: Record<RowTone, string> = {
-  section: 'border-b border-border bg-muted/40',
-  group: '',
-  detail: '',
-  deepDetail: '',
-  subtotal: 'border-t border-border-strong',
-  terminus: 'h-16 border-t-2 border-foreground bg-muted/40',
-};
-
 const totalRow = (key: string, label: string, amount: DriftAmount): StatementRow => ({
   key,
   label: `${label}${MONTHLY_CLOSE_LABELS.TOTAL_SUFFIX}`,
-  amount,
+  ...amountCell(amount),
   tone: 'subtotal',
   level: 0,
   children: [],
@@ -130,7 +42,7 @@ const totalRow = (key: string, label: string, amount: DriftAmount): StatementRow
 const terminusRow = (key: string, label: string, amount: DriftAmount): StatementRow => ({
   key,
   label,
-  amount,
+  ...amountCell(amount),
   tone: 'terminus',
   level: 0,
   children: [],
@@ -142,84 +54,20 @@ const terminusRow = (key: string, label: string, amount: DriftAmount): Statement
  * is Deep detail (visual-standards 「財務報表語意階層」). The role comes from the
  * table, so the same level looks the same in all three statements.
  */
-const LEVEL_TONES: readonly RowTone[] = ['group', 'detail', 'deepDetail'];
+const LEVEL_TONES: readonly StatementRow['tone'][] = ['group', 'detail', 'deepDetail'];
 
-const toneForLevel = (level: number): RowTone => LEVEL_TONES[level - 1] ?? 'deepDetail';
+const toneForLevel = (level: number): StatementRow['tone'] =>
+  LEVEL_TONES[level - 1] ?? 'deepDetail';
 
 const itemRows = (items: DriftItem[], level: number, keyPrefix = ''): StatementRow[] =>
   items.map((item) => ({
     key: `${keyPrefix}${item.code}`,
     label: item.label,
-    amount: item,
+    ...amountCell(item),
     tone: toneForLevel(level),
     level,
     children: item.subItems?.length ? itemRows(item.subItems, level + 1, keyPrefix) : [],
   }));
-
-const flattenRows = (
-  rows: StatementRow[],
-  collapsed: ReadonlySet<string>,
-  out: StatementRow[] = [],
-): StatementRow[] => {
-  for (const row of rows) {
-    out.push(row);
-    if (row.children.length > 0 && !collapsed.has(row.key)) {
-      flattenRows(row.children, collapsed, out);
-    }
-  }
-  return out;
-};
-
-const StatementRowView: React.FC<{
-  row: StatementRow;
-  collapsed: ReadonlySet<string>;
-  onToggle: (key: string) => void;
-}> = ({ row, collapsed, onToggle }) => {
-  const hasChildren = row.children.length > 0;
-  const isCollapsed = hasChildren && collapsed.has(row.key);
-
-  return (
-    <DataTableRow className={ROW_TONE_CLASS[row.tone]}>
-      <DataTableCell>
-        <div className={cn('flex items-center gap-1', indentClass(row.level))}>
-          {hasChildren ? (
-            <button
-              type="button"
-              onClick={() => onToggle(row.key)}
-              aria-expanded={!isCollapsed}
-              aria-label={row.label}
-              className="flex h-5 w-5 shrink-0 items-center justify-center text-muted-foreground"
-            >
-              <ChevronRight
-                className={cn('h-3.5 w-3.5 transition-transform', !isCollapsed && 'rotate-90')}
-              />
-            </button>
-          ) : (
-            <span className="h-5 w-5 shrink-0" aria-hidden />
-          )}
-          <span className={LABEL_TONE_CLASS[row.tone]}>{row.label}</span>
-        </div>
-      </DataTableCell>
-      <RowAmountCell value={row.amount} tone={row.tone} />
-    </DataTableRow>
-  );
-};
-
-const StatementTable: React.FC<{
-  rows: StatementRow[];
-  collapsed: ReadonlySet<string>;
-  onToggle: (key: string) => void;
-  testId: string;
-}> = ({ rows, collapsed, onToggle, testId }) => (
-  <DataTable data-testid={testId}>
-    <DataTableColGroup widths={STATEMENT_COLUMN_WIDTHS} />
-    <TableBody>
-      {flattenRows(rows, collapsed).map((row) => (
-        <StatementRowView key={row.key} row={row} collapsed={collapsed} onToggle={onToggle} />
-      ))}
-    </TableBody>
-  </DataTable>
-);
 
 interface StatementViewProps {
   collapsed: ReadonlySet<string>;
@@ -238,7 +86,7 @@ export const IncomeStatementView: React.FC<
     rows.push({
       key: 'section:income',
       label: MONTHLY_CLOSE_LABELS.INCOME_SECTION,
-      amount: null,
+      amountText: null,
       tone: 'section',
       level: 0,
       children: itemRows(data.incomeItems, 1),
@@ -249,7 +97,7 @@ export const IncomeStatementView: React.FC<
     rows.push({
       key: 'section:expense',
       label: MONTHLY_CLOSE_LABELS.EXPENSE_SECTION,
-      amount: null,
+      amountText: null,
       tone: 'section',
       level: 0,
       children: itemRows(data.expenseItems, 1),
@@ -273,7 +121,7 @@ export const IncomeStatementView: React.FC<
 const balanceGroupRow = (key: string, group: DriftGroup): StatementRow => ({
   key,
   label: group.label,
-  amount: group.total,
+  ...amountCell(group.total),
   tone: 'group',
   level: 1,
   children: itemRows(group.items, 2),
@@ -289,7 +137,7 @@ const balanceSection = (
   {
     key: `section:${key}`,
     label,
-    amount: null,
+    amountText: null,
     tone: 'section',
     level: 0,
     children: groups.map(([groupKey, group]) => balanceGroupRow(`${key}:${groupKey}`, group)),
@@ -385,7 +233,7 @@ const cashFlowGroupRow = (
   return {
     key,
     label,
-    amount: combineDrift(items),
+    ...amountCell(combineDrift(items)),
     tone: 'group',
     level: 1,
     children: itemRows(items, 2, keyPrefix),
@@ -420,7 +268,7 @@ export const CashFlowView: React.FC<StatementViewProps & { data: CashFlowDrift |
     rows.push({
       key: `section:${key}`,
       label: group.label,
-      amount: null,
+      amountText: null,
       tone: 'section',
       level: 0,
       children,

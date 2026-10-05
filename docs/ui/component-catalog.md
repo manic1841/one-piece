@@ -73,6 +73,7 @@
 | `src/ui/components/form/TextArea.tsx`                | form / TextArea                 |
 | `src/ui/components/form/TextInput.tsx`               | form / TextInput                |
 | `src/ui/components/sortable/SortableListScope.tsx`   | sortable / SortableListScope    |
+| `src/ui/components/statement/StatementTable.tsx`     | statement / StatementTable      |
 | `src/ui/components/ui/accordion.tsx`                 | ui/ 群組                        |
 | `src/ui/components/ui/alert.tsx`                     | ui/ 群組                        |
 | `src/ui/components/ui/badge.tsx`                     | ui/ 群組                        |
@@ -428,6 +429,13 @@
 - 只有 grip 可拖曳，列點擊導覽不受干擾；grip 會停止事件冒泡並抑制拖曳後的一次 click。細節見 [ADR-0059](../adr/0059-dnd-kit-shared-sortable.md)。
 - **不要用於**：非排序清單；也不要為排序另寫一份 DnD 接線。
 - 範例：`src/ui/features/account/pages/AccountList.tsx`
+
+## statement
+
+- **`StatementTable`** — 財務報表語意階層表格（兩欄：縮排標籤 ＋ 右緣金額）。`rows` 為 `StatementRow`（`key`／`label`／`amountText`／`amountWarning?`／`tone`／`level`／`children`），`collapsed`／`onToggle` 控制可摺疊列，`testId` 掛在表格上。
+- 語意角色由 `tone`（`section`／`group`／`detail`／`deepDetail`／`subtotal`／`terminus`）決定，縮排由 `level` 決定（見 [`visual-standards.md`](visual-standards.md) 「財務報表語意階層」）。金額一律由呼叫端先格式化為 `amountText`（`null` 表示該列無金額），元件不感知任何 drift／比較邏輯。
+- **不要用於**：一般資料列表（用 `data-table` 套件）；需要多欄或可編輯欄位時。
+- 範例：`src/ui/features/monthly_close/stages/financial_reports/components/CloseFinancialReportViews.tsx`
 
 ## ui/ 群組（shadcn 上游 primitive）
 
