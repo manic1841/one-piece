@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
-import { useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 
 import { checkAccountMonthlyUsageUseCase } from '@/application/account/use_cases/checkAccountMonthlyUsageUseCase';
 import { getAccountHistoryUseCase } from '@/application/account/use_cases/getAccountHistoryUseCase';
@@ -8,6 +8,7 @@ import { getAccountsWithSnapshotsUseCase } from '@/application/account/use_cases
 import { type AccountSnapshot, type AccountWithSnapshot } from '@/domains/account/types/account';
 import { toMonthTrendSeries } from '@/ui/components/charts/monthTrendSeries';
 import { useConfirm } from '@/ui/components/confirm/useConfirm';
+import { ACCOUNT_DANGER_LABELS } from '@/ui/constants/account/detailLabels';
 import { useAuthState } from '@/ui/contexts/useAuthState';
 import { useAccountCmds } from '@/ui/features/account/hooks/useAccountCmds';
 import {
@@ -28,10 +29,11 @@ interface UseAccountDetailPageArgs {
  */
 export const useAccountDetailPage = ({ account }: UseAccountDetailPageArgs) => {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const { userProfile } = useAuthState();
   const householdId = userProfile?.householdId ?? '';
   const { confirm } = useConfirm();
-  const { updateAccount } = useAccountCmds(householdId);
+  const { updateAccount, deleteAccount } = useAccountCmds(householdId);
 
   const [fetchedAccount, setFetchedAccount] = useState<AccountWithSnapshot | null>(null);
   const [history, setHistory] = useState<AccountSnapshot[]>([]);
@@ -179,6 +181,18 @@ export const useAccountDetailPage = ({ account }: UseAccountDetailPageArgs) => {
     setOverrides((previous) => ({ ...previous, isActive: nextActive }));
   }, [activeAccount, auth, confirm, householdId, isActive, updateAccount]);
 
+  const handleDelete = useCallback(async () => {
+    if (!activeAccount) return;
+    const confirmed = await confirm({
+      title: ACCOUNT_DANGER_LABELS.DELETE_TITLE,
+      consequence: ACCOUNT_DANGER_LABELS.DELETE_CONSEQUENCE,
+      confirmLabel: ACCOUNT_DANGER_LABELS.CONFIRM,
+    });
+    if (!confirmed) return;
+    await deleteAccount(activeAccount.id);
+    navigate('/accounts');
+  }, [activeAccount, confirm, deleteAccount, navigate]);
+
   return {
     activeAccount,
     name,
@@ -192,6 +206,7 @@ export const useAccountDetailPage = ({ account }: UseAccountDetailPageArgs) => {
     latestRow,
     handleRename,
     handleToggleActive,
+    handleDelete,
   };
 };
 

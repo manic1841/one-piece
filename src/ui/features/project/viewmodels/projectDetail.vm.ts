@@ -64,6 +64,21 @@ export interface ProjectTotals {
   net: number;
 }
 
+/** 專案詳情上方 summary 的呈現資料。 */
+export interface ProjectSummary {
+  income: number;
+  expense: number;
+  net: number;
+  balanceText: string;
+}
+
+/** 專案詳情「連結貸款」表的列。 */
+export interface ProjectDebtRow {
+  id: string;
+  name: string;
+  balanceText: string;
+}
+
 const toDate = (value: unknown): Date => {
   if (value instanceof Date) return value;
   const maybeTimestamp = value as { seconds?: number };

@@ -3,8 +3,10 @@ import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { type Project } from '@/domains/project/schemas';
+import { useConfirm } from '@/ui/components/confirm/useConfirm';
 import {
   PROJECT_BALANCE_MISSING,
+  PROJECT_DANGER_LABELS,
   PROJECT_DETAIL_LABELS,
 } from '@/ui/constants/project/projectDetailLabels';
 import { useAuthState } from '@/ui/contexts/useAuthState';
@@ -14,6 +16,7 @@ import { useProjectDetailView } from '@/ui/features/project/hooks/useProjectDeta
 import ProjectDetailPage from './ProjectDetailPage';
 
 vi.mock('@/ui/contexts/useAuthState');
+vi.mock('@/ui/components/confirm/useConfirm');
 vi.mock('@/ui/features/project/hooks/useProjectCmds');
 vi.mock('@/ui/features/project/hooks/useProjectDetailView');
 vi.mock('@/application/debt/use_cases/listDebtAccountsUseCase', () => ({
@@ -35,6 +38,7 @@ vi.mock('react-router-dom', async () => {
 });
 
 const mockUseAuth = vi.mocked(useAuthState);
+const mockUseConfirm = vi.mocked(useConfirm);
 const mockUseProjectCmds = vi.mocked(useProjectCmds);
 const mockUseProjectDetailView = vi.mocked(useProjectDetailView);
 
@@ -83,6 +87,7 @@ describe('ProjectDetailPage lifecycle actions', () => {
         householdId: 'h1',
       },
     } as never);
+    mockUseConfirm.mockReturnValue({ confirm: vi.fn().mockResolvedValue(true) } as never);
     mockUseProjectCmds.mockReturnValue({
       updateProject: vi.fn().mockResolvedValue({ ok: true, value: true }),
     } as never);
@@ -145,6 +150,7 @@ describe('ProjectDetailPage states', () => {
     mockUseAuth.mockReturnValue({
       userProfile: { uid: 'u1', email: 'user@example.com', householdId: 'h1' },
     } as never);
+    mockUseConfirm.mockReturnValue({ confirm: vi.fn().mockResolvedValue(true) } as never);
     mockUseProjectCmds.mockReturnValue({
       updateProject: vi.fn().mockResolvedValue({ ok: true, value: true }),
     } as never);
@@ -215,5 +221,45 @@ describe('ProjectDetailPage states', () => {
 
     expect(screen.getByText('NT$40,000')).toBeInTheDocument();
     expect(screen.queryByText(PROJECT_BALANCE_MISSING)).not.toBeInTheDocument();
+  });
+});
+
+describe('ProjectDetailPage danger zone', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockUseAuth.mockReturnValue({
+      userProfile: { uid: 'u1', email: 'user@example.com', householdId: 'h1' },
+    } as never);
+    mockUseProjectDetailView.mockReturnValue(learnViewResult as never);
+  });
+
+  it('deletes the project from the danger zone after confirmation', async () => {
+    const deleteProject = vi.fn().mockResolvedValue({ ok: true, value: true });
+    mockUseConfirm.mockReturnValue({ confirm: vi.fn().mockResolvedValue(true) } as never);
+    mockUseProjectCmds.mockReturnValue({
+      updateProject: vi.fn(),
+      deleteProject,
+    } as never);
+
+    renderDetail(buildProject());
+
+    fireEvent.click(screen.getByRole('button', { name: PROJECT_DANGER_LABELS.DELETE }));
+
+    await waitFor(() => expect(deleteProject).toHaveBeenCalledWith('p1'));
+  });
+
+  it('does not delete when the confirmation is dismissed', async () => {
+    const deleteProject = vi.fn().mockResolvedValue({ ok: true, value: true });
+    mockUseConfirm.mockReturnValue({ confirm: vi.fn().mockResolvedValue(false) } as never);
+    mockUseProjectCmds.mockReturnValue({
+      updateProject: vi.fn(),
+      deleteProject,
+    } as never);
+
+    renderDetail(buildProject());
+
+    fireEvent.click(screen.getByRole('button', { name: PROJECT_DANGER_LABELS.DELETE }));
+
+    await waitFor(() => expect(deleteProject).not.toHaveBeenCalled());
   });
 });

@@ -242,7 +242,7 @@ UI 以 `closedAt` 區分「已結清」與「已停用」兩種 `isActive=false`
 - `closedAt` 有值 →「已結清」
 - `closedAt` 為空 →「已停用」
 
-這些狀態字與 `房貸`／`信貸` 等債務標籤集中在 `src/ui/constants/debt/label.ts`
+這些狀態字與 `房貸`／`信貸` 等債務標籤集中在 `src/ui/constants/debt/label.ts`；貸款詳情頁 chrome（section 標題、動作、錯誤文案）集中在 `src/ui/constants/debt/detailLabels.ts`。
 
 ---
 

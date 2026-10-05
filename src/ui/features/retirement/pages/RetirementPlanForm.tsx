@@ -183,7 +183,7 @@ const RetirementPlanForm: React.FC = () => {
           </AccordionContent>
         </AccordionItem>
       </Accordion>
-      <section className="space-y-3">
+      <section className="space-y-3 pt-10">
         <Divider className="border-destructive" />
         <p className={cn(sectionTitleClass, 'text-destructive')}>DANGER ZONE</p>
         <Button variant="destructive" onClick={() => void handleDelete()}>

@@ -6,6 +6,7 @@ import { listDebtAccountsUseCase } from '@/application/debt/use_cases/listDebtAc
 import { listDebtSnapshotsUseCase } from '@/application/debt/use_cases/listDebtSnapshotsUseCase';
 import { type DebtAccount } from '@/domains/debt/schemas';
 import { useConfirm } from '@/ui/components/confirm/useConfirm';
+import { DEBT_DETAIL_LABELS } from '@/ui/constants/debt/detailLabels';
 import { DEBT_STATUS_INACTIVE_LABEL, DEBT_STATUS_SETTLED_LABEL } from '@/ui/constants/debt/label';
 import { useAuthState } from '@/ui/contexts/useAuthState';
 import { useDebtAccountCmds } from '@/ui/features/debt/hooks/useDebtAccountCmds';
@@ -187,5 +188,21 @@ describe('DebtDetailPage header actions', () => {
     );
 
     expect(await screen.findByText('找不到貸款')).toBeInTheDocument();
+  });
+
+  it('shows a load error with a retry action when the fetch fails', async () => {
+    vi.mocked(listDebtAccountsUseCase.execute).mockRejectedValue(new Error('boom'));
+    vi.mocked(listDebtSnapshotsUseCase.execute).mockResolvedValue([]);
+
+    render(
+      <MemoryRouter>
+        <DebtDetailPage />
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByText(DEBT_DETAIL_LABELS.LOAD_ERROR)).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: DEBT_DETAIL_LABELS.RETRY_ACTION }),
+    ).toBeInTheDocument();
   });
 });

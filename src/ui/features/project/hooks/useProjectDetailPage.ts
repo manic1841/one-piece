@@ -1,13 +1,21 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
-import { useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 
 import { listDebtAccountsUseCase } from '@/application/debt/use_cases/listDebtAccountsUseCase';
 import { type Project } from '@/domains/project/schemas';
-import { PROJECT_BALANCE_MISSING } from '@/ui/constants/project/projectDetailLabels';
+import { useConfirm } from '@/ui/components/confirm/useConfirm';
+import {
+  PROJECT_BALANCE_MISSING,
+  PROJECT_DANGER_LABELS,
+} from '@/ui/constants/project/projectDetailLabels';
 import { useAuthState } from '@/ui/contexts/useAuthState';
 import { useProjectCmds } from '@/ui/features/project/hooks/useProjectCmds';
 import { useProjectDetailView } from '@/ui/features/project/hooks/useProjectDetailView';
+import {
+  type ProjectDebtRow,
+  type ProjectSummary,
+} from '@/ui/features/project/viewmodels/projectDetail.vm';
 import { useLoadingTask } from '@/ui/hooks/useLoadingTask';
 import { formatCurrency } from '@/ui/utils';
 
@@ -16,18 +24,14 @@ interface UseProjectDetailPageArgs {
   project?: Project;
 }
 
-interface ProjectDebtRow {
-  id: string;
-  name: string;
-  balanceText: string;
-}
-
 type ProjectFetchState = 'loading' | 'loaded' | 'notFound';
 
 export const useProjectDetailPage = ({ project }: UseProjectDetailPageArgs) => {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const { userProfile } = useAuthState();
   const householdId = userProfile?.householdId ?? '';
+  const { confirm } = useConfirm();
 
   const {
     monthGroups,
@@ -38,7 +42,7 @@ export const useProjectDetailPage = ({ project }: UseProjectDetailPageArgs) => {
     reload,
   } = useProjectDetailView(householdId, id || '');
 
-  const { updateProject } = useProjectCmds(householdId);
+  const { updateProject, deleteProject } = useProjectCmds(householdId);
   const { run: runDebt } = useLoadingTask();
 
   const [projectDebt, setProjectDebt] = useState<ProjectDebtRow[]>([]);
@@ -123,7 +127,7 @@ export const useProjectDetailPage = ({ project }: UseProjectDetailPageArgs) => {
     setStatusOverride(nextActive);
   }, [activeProject, isActive, updateProject]);
 
-  const summary = useMemo(
+  const summary = useMemo<ProjectSummary>(
     () => ({
       income: totals.income,
       expense: totals.expense,
@@ -132,6 +136,18 @@ export const useProjectDetailPage = ({ project }: UseProjectDetailPageArgs) => {
     }),
     [totals, latestSnapshot],
   );
+
+  const handleDelete = useCallback(async () => {
+    if (!activeProject) return;
+    const confirmed = await confirm({
+      title: PROJECT_DANGER_LABELS.DELETE_TITLE,
+      consequence: PROJECT_DANGER_LABELS.DELETE_CONSEQUENCE,
+      confirmLabel: PROJECT_DANGER_LABELS.CONFIRM,
+    });
+    if (!confirmed) return;
+    await deleteProject(activeProject.id);
+    navigate('/projects');
+  }, [activeProject, confirm, deleteProject, navigate]);
 
   const reloadAll = useCallback(async () => {
     await Promise.all([loadProject(), reload()]);
@@ -152,6 +168,7 @@ export const useProjectDetailPage = ({ project }: UseProjectDetailPageArgs) => {
     reload: reloadAll,
     handleRename,
     handleToggleActive,
+    handleDelete,
   };
 };
 

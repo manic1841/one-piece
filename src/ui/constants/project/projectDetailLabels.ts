@@ -20,6 +20,14 @@ export const PROJECT_DETAIL_LABELS = {
   NOT_FOUND_ACTION: '返回專案清單',
 } as const;
 
+export const PROJECT_DANGER_LABELS = {
+  MODULE: 'DANGER ZONE',
+  DELETE: '刪除專案',
+  DELETE_TITLE: '刪除專案？',
+  DELETE_CONSEQUENCE: '刪除後無法復原。',
+  CONFIRM: '刪除',
+} as const;
+
 export const PROJECT_BALANCE_MISSING = '$ —';
 
 export const PROJECT_SUMMARY_LABELS = {

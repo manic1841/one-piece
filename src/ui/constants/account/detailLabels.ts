@@ -26,6 +26,14 @@ export const ACCOUNT_DETAIL_LABELS = {
   HOLDINGS_EMPTY_HINT: '此期間沒有持倉紀錄。',
 } as const;
 
+export const ACCOUNT_DANGER_LABELS = {
+  MODULE: 'DANGER ZONE',
+  DELETE: '刪除帳戶',
+  DELETE_TITLE: '刪除帳戶？',
+  DELETE_CONSEQUENCE: '刪除後無法復原。',
+  CONFIRM: '刪除',
+} as const;
+
 /** History columns: expand affordance, period, closing balance, change, holdings count. */
 export const ACCOUNT_HISTORY_COLUMN_WIDTHS = [10, 24, 26, 22, 18] as const;
 
