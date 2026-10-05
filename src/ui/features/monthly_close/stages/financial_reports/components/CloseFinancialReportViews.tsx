@@ -16,9 +16,6 @@ import {
   isDrifted,
 } from '../../../viewmodels/reportDrift.vm';
 
-export const statementTitleClass =
-  'text-[13px] font-semibold uppercase tracking-[0.08em] text-foreground';
-
 /** 漂移金額 → 共用列的金額欄位：文字為 delta 或原值，警示色標記已漂移。 */
 const amountCell = (drift: DriftAmount): Pick<StatementRow, 'amountText' | 'amountWarning'> => ({
   amountText: formatDriftAmountText(drift),

@@ -161,7 +161,7 @@ Token（定義於 `tailwind.config.js`，全部走 CSS 變數）：
     - Detail：`12px / 400 / muted-foreground`；金額 12px。
     - Deep detail：`11px / 400 / muted-foreground`；金額 11px。
     - Subtotal：`13px / 600 / foreground`；金額 13px / 600；`border-t border-border-strong`。
-    - Terminus：`16px / 600 / foreground`；金額 16px / 600；`border-t-2 border-foreground`、列高 64px、`bg-muted/40`。Terminus 是 `text-sm` 表格層級與一般資料列高的具名例外。
+    - Terminus：`16px / 600 / primary`；金額 16px / 600 / primary；`border-t-2 border-primary`、列高 64px、`bg-muted/40`。Terminus 是 `text-sm` 表格層級與一般資料列高的具名例外，也是報表唯一的品牌色強調。
   - **Input 數字**：34px 高（子表格可 32px）、右對齊 mono、`tabular-nums`、無原生 spinner（`[appearance:textfield]` + webkit spin button `appearance-none`）、空值填「—」。子表格的文字輸入（如持倉的 Symbol／Name）共用同一個 32px 緊湊幾何，但左對齊、一般字體（`textInputCompactClass`）。
   - **列高/內距**：資料列 54px（`h-[54px]` 是**最小**列高）、td padding `9px 12px`（pr 用 `pr-3`）。垂直內距必須讓「最高的 cell 內容（34px 輸入框）＋上下內距＋1px 分隔線」≤ 54px，否則列高會被內容撐開——純文字列不受影響（本來就由最小列高撐滿）。`border-b border-border` 細分隔線、無 zebra。
   - **Vertical alignment**：th `align-bottom`、td `align-middle`。

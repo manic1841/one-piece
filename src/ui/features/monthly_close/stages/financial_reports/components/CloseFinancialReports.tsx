@@ -1,6 +1,7 @@
 import React, { useCallback, useState } from 'react';
 
 import { StatusGlyph } from '@/ui/components/StatusGlyph';
+import { statementTitleClass } from '@/ui/components/statement/StatementTable';
 import { Alert, AlertDescription } from '@/ui/components/ui/alert';
 import { Button } from '@/ui/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/ui/components/ui/tabs';
@@ -13,12 +14,7 @@ import type {
 } from '@/ui/features/monthly_close/viewmodels/financialReports.vm';
 import { formatReportTimestamps } from '@/ui/features/monthly_close/viewmodels/financialReports.vm';
 
-import {
-  BalanceSheetView,
-  CashFlowView,
-  IncomeStatementView,
-  statementTitleClass,
-} from './CloseFinancialReportViews';
+import { BalanceSheetView, CashFlowView, IncomeStatementView } from './CloseFinancialReportViews';
 
 interface CloseFinancialReportsProps {
   reports: ReportViewsVM;

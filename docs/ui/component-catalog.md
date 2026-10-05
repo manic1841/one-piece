@@ -432,10 +432,10 @@
 
 ## statement
 
-- **`StatementTable`** — 財務報表語意階層表格（兩欄：縮排標籤 ＋ 右緣金額）。`rows` 為 `StatementRow`（`key`／`label`／`amountText`／`amountWarning?`／`tone`／`level`／`children`），`collapsed`／`onToggle` 控制可摺疊列，`testId` 掛在表格上。
+- **`StatementTable`** — 財務報表語意階層表格（兩欄：縮排標籤 ＋ 右緣金額）。`rows` 為 `StatementRow`（`key`／`label`／`amountText`／`amountWarning?`／`tone`／`level`／`children`），`collapsed`／`onToggle` 控制可摺疊列，`testId` 掛在表格上。同模組另匯出 `statementTitleClass`：行動版堆疊時每張表上方的標題表面（桌機由 tabs 承擔），關帳 stage 與報表檢視共用同一份。
 - 語意角色由 `tone`（`section`／`group`／`detail`／`deepDetail`／`subtotal`／`terminus`）決定，縮排由 `level` 決定（見 [`visual-standards.md`](visual-standards.md) 「財務報表語意階層」）。金額一律由呼叫端先格式化為 `amountText`（`null` 表示該列無金額），元件不感知任何 drift／比較邏輯。
 - **不要用於**：一般資料列表（用 `data-table` 套件）；需要多欄或可編輯欄位時。
-- 範例：`src/ui/features/monthly_close/stages/financial_reports/components/CloseFinancialReportViews.tsx`
+- 範例：`src/ui/features/monthly_close/stages/financial_reports/components/CloseFinancialReportViews.tsx`、`src/ui/features/report/pages/ReportDetailPage.tsx`
 
 ## ui/ 群組（shadcn 上游 primitive）
 

@@ -43,13 +43,20 @@ const STATEMENT_COLUMN_WIDTHS = [74, 26] as const;
 /** Indentation per hierarchy level (design-system 間距級距). */
 const INDENT_CLASS: readonly string[] = ['', 'pl-4', 'pl-8', 'pl-12'];
 
+/**
+ * 行動版堆疊時每張表上方的標題（桌機由 tabs 承擔）。共用同一份表面，讓關帳 stage
+ * 與報表檢視的報表標題長得一樣。
+ */
+export const statementTitleClass =
+  'text-[13px] font-semibold uppercase tracking-[0.08em] text-foreground';
+
 const LABEL_TONE_CLASS: Record<StatementRowTone, string> = {
   section: 'text-[11px] font-semibold uppercase tracking-[0.08em] text-foreground',
   group: 'text-[13px] font-medium text-foreground',
   detail: 'text-xs text-muted-foreground',
   deepDetail: 'text-[11px] text-muted-foreground',
   subtotal: 'text-[13px] font-semibold text-foreground',
-  terminus: 'text-base font-semibold text-foreground',
+  terminus: 'text-base font-semibold text-primary',
 };
 
 const AMOUNT_TONE_CLASS: Record<StatementRowTone, string> = {
@@ -58,7 +65,7 @@ const AMOUNT_TONE_CLASS: Record<StatementRowTone, string> = {
   detail: 'text-xs',
   deepDetail: 'text-[11px]',
   subtotal: 'text-[13px] font-semibold',
-  terminus: 'text-base font-semibold',
+  terminus: 'text-base font-semibold text-primary',
 };
 
 const ROW_TONE_CLASS: Record<StatementRowTone, string> = {
@@ -67,7 +74,7 @@ const ROW_TONE_CLASS: Record<StatementRowTone, string> = {
   detail: '',
   deepDetail: '',
   subtotal: 'border-t border-border-strong',
-  terminus: 'h-16 border-t-2 border-foreground bg-muted/40',
+  terminus: 'h-16 border-t-2 border-primary bg-muted/40',
 };
 
 const flattenRows = (
@@ -135,13 +142,21 @@ interface StatementTableProps {
   testId: string;
 }
 
+/**
+ * `TableBody` zeroes every border on its last row (`[&_tr:last-child]:border-0`),
+ * which also kills the terminus row's top rule. Restore that one side from the
+ * table root, where the selector outranks the reset; the row itself supplies the
+ * colour (`border-primary`).
+ */
+const RESTORE_TERMINUS_TOP_RULE = '[&_tbody>tr:last-child]:border-t-2';
+
 export const StatementTable: React.FC<StatementTableProps> = ({
   rows,
   collapsed,
   onToggle,
   testId,
 }) => (
-  <DataTable data-testid={testId}>
+  <DataTable data-testid={testId} className={RESTORE_TERMINUS_TOP_RULE}>
     <DataTableColGroup widths={STATEMENT_COLUMN_WIDTHS} />
     <TableBody>
       {flattenRows(rows, collapsed).map((row) => (

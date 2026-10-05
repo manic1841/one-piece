@@ -107,8 +107,11 @@ describe('StatementTable', () => {
     // A subtotal closes its block with a stronger top rule.
     expect(screen.getByText('收入合計').closest('tr')?.className).toContain('border-border-strong');
 
-    // The terminus (final result) row is the tall emphasized row.
-    expect(screen.getByText('本期淨利').closest('tr')?.className).toContain('h-16');
+    // The terminus (final result) row is the tall emphasized row, in primary.
+    const terminusRow = screen.getByText('本期淨利').closest('tr');
+    expect(terminusRow?.className).toContain('h-16');
+    expect(terminusRow?.className).toContain('border-primary');
+    expect(screen.getByText('本期淨利').className).toContain('text-primary');
   });
 
   it('indents each row by its hierarchy level', () => {
@@ -156,5 +159,14 @@ describe('StatementTable', () => {
 
     expect(screen.queryByRole('button', { name: '收入合計' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: '本期淨利' })).not.toBeInTheDocument();
+  });
+
+  it("restores the terminus top rule that TableBody's last-child reset would zero", () => {
+    renderTable();
+
+    const table = screen.getByTestId('statement-table');
+    expect(table.className).toContain('[&_tbody>tr:last-child]:border-t-2');
+    // The last row is the terminus row and keeps its top rule class.
+    expect(screen.getByText('本期淨利').closest('tr')?.className).toContain('border-t-2');
   });
 });

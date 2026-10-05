@@ -23,6 +23,8 @@ import PortfolioDetailPage from '@/ui/features/portfolio/pages/PortfolioDetailPa
 import PortfoliosPage from '@/ui/features/portfolio/pages/PortfoliosPage';
 import ProjectDetailPage from '@/ui/features/project/pages/ProjectDetailPage';
 import ProjectsPage from '@/ui/features/project/pages/ProjectsPage';
+import ReportDetailPage from '@/ui/features/report/pages/ReportDetailPage';
+import ReportListPage from '@/ui/features/report/pages/ReportListPage';
 import Reports from '@/ui/features/report/pages/ReportsPage';
 import RetirementPlanForm from '@/ui/features/retirement/pages/RetirementPlanForm';
 import RetirementPlanList from '@/ui/features/retirement/pages/RetirementPlanList';
@@ -81,6 +83,9 @@ function App() {
                 <Route path="portfolios" element={<PortfoliosPage />} />
                 <Route path="portfolios/:id" element={<PortfolioDetailPage />} />
                 <Route path="reports" element={<Reports />} />
+                {/* Temporary Phase 1 routes (#263) coexisting with the old hub until Phase 2 renames them. */}
+                <Route path="report-next" element={<ReportListPage />} />
+                <Route path="report-next/:period" element={<ReportDetailPage />} />
                 <Route path="retirement" element={<RetirementPlanList />} />
                 <Route path="retirement/:id" element={<RetirementPlanForm />} />
                 <Route path="debt" element={<DebtListPage />} />
