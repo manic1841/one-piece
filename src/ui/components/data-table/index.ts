@@ -22,6 +22,7 @@ export {
 
 export {
   dataTableClass,
+  dataTableFrameClass,
   dataTableScrollAreaClass,
   dataTableHeadTextClass,
   dataTableHeadNumberClass,

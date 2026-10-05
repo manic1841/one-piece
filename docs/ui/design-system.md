@@ -152,6 +152,7 @@ Token（定義於 `tailwind.config.js`，全部走 CSS 變數）：
 - `data-table`：全站表格共通原則。
   - **通則**：所有 Data Table 遵循同一標準——表頭 muted、數字右對齊、財務數字 monospace、細分隔線；不使用厚重 border、不使用 zebra striping。可查看 Detail 的資料整列可點擊（List → Detail），不用 row 端常駐 View/Edit 按鈕。
   - **結構**：真表格 `table-fixed` + `border-collapse`；欄寬為明確 % 數且總和必須＝100（瀏覽器會等比壓縮超寬表格，破壞跨表對齊）；同頁多表格共用欄寬常數以保持跨表同軸。
+  - **外框**：表格上下各有一條 `border-border` 細線收邊——第一列上緣、最後列下緣（`dataTableFrameClass`，由 DataTable 統一套用）。因為 `border-collapse`，有表頭時第一列上緣與表頭底線會合併成單線；`TableBody` 的 last-child 重置會清掉最後列下緣，外框規則從表格根套用、specificity 高於重置。只有單列時上緣交給該列自帶的規則（見 terminus）。
   - **Header**：10px / 500 / uppercase / 0.08em / muted、row 約 40px、`pb-[9px]`、`align-bottom`、底線 `border-b border-border`；文字欄表頭左對齊、數字欄表頭右對齊（與資料同軸）。
   - **對齊**：一般文字欄左對齊；數字欄右對齊 + `font-mono` + `tabular-nums`；日期/代碼欄 mono。
   - **數字**：table 層級正常大小（`text-sm`）；不顯示無意義 `.00`；空值顯示「—」。
@@ -161,7 +162,7 @@ Token（定義於 `tailwind.config.js`，全部走 CSS 變數）：
     - Detail：`12px / 400 / muted-foreground`；金額 12px。
     - Deep detail：`11px / 400 / muted-foreground`；金額 11px。
     - Subtotal：`13px / 600 / foreground`；金額 13px / 600；`border-t border-border-strong`。
-    - Terminus：`16px / 600 / primary`；金額 16px / 600 / primary；`border-t-2 border-primary`、列高 64px、`bg-muted/40`。Terminus 是 `text-sm` 表格層級與一般資料列高的具名例外，也是報表唯一的品牌色強調。
+    - Terminus：`16px / 600 / primary`；金額 16px / 600 / primary；`border-t-2 border-primary`、列高 64px、`bg-muted/40`。Terminus 是 `text-sm` 表格層級與一般資料列高的具名例外，也是報表唯一的品牌色強調。它同時是表格最後一列，因此也承擔表格下緣外框——同樣套 `border-b-2 border-primary`，與上緣的 `border-t-2 border-primary` 對稱包成一個方框。
   - **Input 數字**：34px 高（子表格可 32px）、右對齊 mono、`tabular-nums`、無原生 spinner（`[appearance:textfield]` + webkit spin button `appearance-none`）、空值填「—」。子表格的文字輸入（如持倉的 Symbol／Name）共用同一個 32px 緊湊幾何，但左對齊、一般字體（`textInputCompactClass`）。
   - **列高/內距**：資料列 54px（`h-[54px]` 是**最小**列高）、td padding `9px 12px`（pr 用 `pr-3`）。垂直內距必須讓「最高的 cell 內容（34px 輸入框）＋上下內距＋1px 分隔線」≤ 54px，否則列高會被內容撐開——純文字列不受影響（本來就由最小列高撐滿）。`border-b border-border` 細分隔線、無 zebra。
   - **Vertical alignment**：th `align-bottom`、td `align-middle`。

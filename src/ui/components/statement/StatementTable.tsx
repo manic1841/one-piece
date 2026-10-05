@@ -144,11 +144,15 @@ interface StatementTableProps {
 
 /**
  * `TableBody` zeroes every border on its last row (`[&_tr:last-child]:border-0`),
- * which also kills the terminus row's top rule. Restore that one side from the
- * table root, where the selector outranks the reset; the row itself supplies the
- * colour (`border-primary`).
+ * which also kills the terminus row's rules. The shared frame
+ * (`dataTableFrameClass`) already restores a neutral bottom line for every data
+ * table; the terminus row needs a heavier bottom to match its top
+ * (`border-t-2 border-primary`). Restore both from the table root, where the
+ * selector outranks the reset: 2px width on the terminus top and bottom. Colour
+ * comes from the row's `border-primary`; `cn`/tailwind-merge lets this 2px
+ * `border-b-2` override the shared 1px `border-b`.
  */
-const RESTORE_TERMINUS_TOP_RULE = '[&_tbody>tr:last-child]:border-t-2';
+const TERMINUS_FRAME_RULE = '[&_tbody>tr:last-child]:border-t-2 [&_tbody>tr:last-child]:border-b-2';
 
 export const StatementTable: React.FC<StatementTableProps> = ({
   rows,
@@ -156,7 +160,7 @@ export const StatementTable: React.FC<StatementTableProps> = ({
   onToggle,
   testId,
 }) => (
-  <DataTable data-testid={testId} className={RESTORE_TERMINUS_TOP_RULE}>
+  <DataTable data-testid={testId} className={TERMINUS_FRAME_RULE}>
     <DataTableColGroup widths={STATEMENT_COLUMN_WIDTHS} />
     <TableBody>
       {flattenRows(rows, collapsed).map((row) => (

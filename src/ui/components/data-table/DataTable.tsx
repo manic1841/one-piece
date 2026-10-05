@@ -3,17 +3,17 @@ import * as React from 'react';
 import { Table } from '@/ui/components/ui/table';
 import { cn } from '@/ui/utils/cn';
 
-import { dataTableClass, dataTableScrollAreaClass } from './styles';
+import { dataTableClass, dataTableFrameClass, dataTableScrollAreaClass } from './styles';
 
 /**
  * Data table 桌面表體。在 `ui/table` 的結構 primitive 之上加上 data-table 樣式契約
- * （table-fixed + border-collapse + text-sm）。
+ * （table-fixed + border-collapse + text-sm）與外框線（{@link dataTableFrameClass}）。
  */
 export const DataTable = React.forwardRef<
   HTMLTableElement,
   React.TableHTMLAttributes<HTMLTableElement>
 >(({ className, ...props }, ref) => (
-  <Table ref={ref} className={cn(dataTableClass, className)} {...props} />
+  <Table ref={ref} className={cn(dataTableClass, dataTableFrameClass, className)} {...props} />
 ));
 DataTable.displayName = 'DataTable';
 

@@ -161,11 +161,15 @@ describe('StatementTable', () => {
     expect(screen.queryByRole('button', { name: '本期淨利' })).not.toBeInTheDocument();
   });
 
-  it("restores the terminus top rule that TableBody's last-child reset would zero", () => {
+  it("restores the terminus rules that TableBody's last-child reset would zero", () => {
     renderTable();
 
     const table = screen.getByTestId('statement-table');
+    // Top matches the shared frame's neutral 1px line, so restore the terminus's
+    // heavier 2px top; the bottom is the table's frame line, bumped to 2px so the
+    // terminus is framed symmetrically (colour comes from the row's border-primary).
     expect(table.className).toContain('[&_tbody>tr:last-child]:border-t-2');
+    expect(table.className).toContain('[&_tbody>tr:last-child]:border-b-2');
     // The last row is the terminus row and keeps its top rule class.
     expect(screen.getByText('本期淨利').closest('tr')?.className).toContain('border-t-2');
   });
