@@ -17,6 +17,7 @@ import {
   TableBody,
   TableHeader,
 } from '@/ui/components/data-table';
+import { sectionTitleClass } from '@/ui/components/eyebrow';
 import { MONEY_TONE_CLASS } from '@/ui/components/moneyTone';
 import {
   Accordion,
@@ -66,7 +67,9 @@ export const ProjectCashFlowPanel: React.FC<ProjectCashFlowPanelProps> = ({ grou
     <PageSection spacing="compact">
       <Accordion type="multiple" defaultValue={[PANEL_VALUE]} className="border-y-0">
         <AccordionItem value={PANEL_VALUE}>
-          <AccordionTrigger className="h-auto border-b-0 p-0 hover:text-foreground">
+          <AccordionTrigger
+            className={cn('h-auto border-b-0 p-0 tracking-normal', sectionTitleClass)}
+          >
             {PROJECT_DETAIL_LABELS.CASH_FLOW_SECTION_TITLE}
           </AccordionTrigger>
           <AccordionContent className="px-0 pb-0 pt-4">
