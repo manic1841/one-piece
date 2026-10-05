@@ -8,6 +8,7 @@ import { useConfirm } from '@/ui/components/confirm/useConfirm';
 import {
   PROJECT_BALANCE_MISSING,
   PROJECT_DANGER_LABELS,
+  PROJECT_DETAIL_LABELS,
 } from '@/ui/constants/project/projectDetailLabels';
 import { useAuthState } from '@/ui/contexts/useAuthState';
 import { useProjectCmds } from '@/ui/features/project/hooks/useProjectCmds';
@@ -24,7 +25,7 @@ interface UseProjectDetailPageArgs {
   project?: Project;
 }
 
-type ProjectFetchState = 'loading' | 'loaded' | 'notFound';
+type ProjectFetchState = 'loading' | 'loaded' | 'notFound' | 'error';
 
 export const useProjectDetailPage = ({ project }: UseProjectDetailPageArgs) => {
   const { id } = useParams<{ id: string }>();
@@ -62,8 +63,9 @@ export const useProjectDetailPage = ({ project }: UseProjectDetailPageArgs) => {
       setFetchedProject(data);
       setFetchState(data ? 'loaded' : 'notFound');
     } catch {
+      // A failed load is UNKNOWN, not absent (ADR-0072): offer retry, not not-found.
       setFetchedProject(null);
-      setFetchState('notFound');
+      setFetchState('error');
     }
   }, [project, householdId, id]);
 
@@ -154,6 +156,7 @@ export const useProjectDetailPage = ({ project }: UseProjectDetailPageArgs) => {
   }, [loadProject, reload]);
 
   const notFound = fetchState === 'notFound';
+  const error = viewError ?? (fetchState === 'error' ? PROJECT_DETAIL_LABELS.LOAD_ERROR : null);
 
   return {
     projectId: id,
@@ -162,8 +165,8 @@ export const useProjectDetailPage = ({ project }: UseProjectDetailPageArgs) => {
     isActive,
     monthGroups,
     summary,
-    loading: !notFound && (fetchState === 'loading' || viewLoading),
-    error: viewError,
+    loading: fetchState === 'loading' || viewLoading,
+    error,
     notFound,
     reload: reloadAll,
     handleRename,

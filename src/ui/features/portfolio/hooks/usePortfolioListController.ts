@@ -20,11 +20,7 @@ import { useAuthIdentity } from '@/ui/hooks/useAuthIdentity';
 const byOrder = (a: { order?: number }, b: { order?: number }): number =>
   (a.order || 0) - (b.order || 0);
 
-/**
- * Owns the portfolio list's data: the rows, the drag order, the create dialog
- * and the account options. The page keeps only rendering (ui-layer-architecture
- * §4 Presentation State Stays Put).
- */
+/** Owns the list's rows, drag order, create dialog and account options (ui-layer-architecture §4). */
 export function usePortfolioListController() {
   const { userProfile } = useAuthState();
   const householdId = userProfile?.householdId || '';
@@ -91,9 +87,11 @@ export function usePortfolioListController() {
 
   const create = useCallback(
     async (vm: PortfolioFormVM) => {
-      await createPortfolio(mapPortfolioVMToDomain(vm));
+      // Append after existing rows, never at 0: `order` belongs to drag, not the form.
+      const order = portfolios.reduce((max, item) => Math.max(max, item.order ?? 0), -1) + 1;
+      await createPortfolio({ ...mapPortfolioVMToDomain(vm), order });
     },
-    [createPortfolio],
+    [createPortfolio, portfolios],
   );
 
   const openForm = useCallback(() => setIsFormOpen(true), []);
@@ -101,8 +99,7 @@ export function usePortfolioListController() {
 
   return {
     loading,
-    // The mechanism carries the failure value; the user-facing copy is the
-    // consumer's (§4 Error Wording Stays With The Consumer).
+    // §4 Error Wording Stays With The Consumer: the mechanism carries the failure value.
     error: errorMessage === null ? null : PORTFOLIO_PAGE_LABELS.LOAD_ERROR,
     reload,
     rows,

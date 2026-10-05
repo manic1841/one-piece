@@ -1,6 +1,6 @@
 import React from 'react';
 
-import { Divider } from '@/ui/components/Divider';
+import { DangerZone } from '@/ui/components/DangerZone';
 import { FinancialNumber } from '@/ui/components/FinancialNumber';
 import { Metric, MetricGroup } from '@/ui/components/MetricGroup';
 import { PageSection } from '@/ui/components/PageSection';
@@ -12,11 +12,12 @@ import {
   DataTableHeadCell,
   DataTableHeadRow,
   DataTableRow,
+  MobileDataField,
+  MobileDataList,
+  MobileDataRow,
   TableBody,
   TableHeader,
 } from '@/ui/components/data-table';
-import { sectionTitleClass } from '@/ui/components/eyebrow';
-import { Button } from '@/ui/components/ui/button';
 import {
   PORTFOLIO_DANGER_LABELS,
   PORTFOLIO_DETAIL_LABELS,
@@ -24,19 +25,13 @@ import {
   PORTFOLIO_PERFORMANCE_COLUMN_WIDTHS,
 } from '@/ui/constants/portfolio/labels';
 import { type PortfolioDetailVM } from '@/ui/features/portfolio/viewmodels/portfolioDisplay.vm';
-import { cn } from '@/ui/utils/cn';
 
 interface PortfolioDetailProps {
   vm: PortfolioDetailVM;
   onDelete: () => void;
 }
 
-/**
- * Portfolio detail data sections (ADR-0058: the page owns the header). It only
- * renders a `PortfolioDetailVM`; all loading, projection and commands live in
- * `usePortfolioDetailPage` (#262 Q12). Every value shown is read from the
- * snapshot's frozen `performance` — nothing is recomputed here (#262 Q7).
- */
+/** Portfolio detail data sections. The page owns the header, states and commands. */
 const PortfolioDetail: React.FC<PortfolioDetailProps> = ({ vm, onDelete }) => {
   return (
     <div className="space-y-8">
@@ -134,17 +129,29 @@ const PortfolioDetail: React.FC<PortfolioDetailProps> = ({ vm, onDelete }) => {
             ))}
           </TableBody>
         </DataTable>
+
+        <MobileDataList>
+          {vm.performanceRows.map((row) => (
+            <MobileDataRow key={row.id}>
+              <div className="flex items-center justify-between gap-2 text-sm font-medium">
+                <span className="font-mono text-[12px] tabular-nums">{row.dateText}</span>
+                <span className="font-mono tabular-nums">{row.totalValueText}</span>
+              </div>
+              <MobileDataField label={PORTFOLIO_PERFORMANCE_COLUMN_LABELS.RETURN}>
+                <span className="font-mono text-sm tabular-nums">{row.returnText}</span>
+              </MobileDataField>
+              <MobileDataField label={PORTFOLIO_PERFORMANCE_COLUMN_LABELS.CUMULATIVE}>
+                <span className="font-mono text-sm tabular-nums">{row.cumulativeText}</span>
+              </MobileDataField>
+              <MobileDataField label={PORTFOLIO_PERFORMANCE_COLUMN_LABELS.NET_FLOW}>
+                <span className="font-mono text-sm tabular-nums">{row.netFlowText}</span>
+              </MobileDataField>
+            </MobileDataRow>
+          ))}
+        </MobileDataList>
       </PageSection>
 
-      <section className="space-y-3 pt-10">
-        <Divider className="border-destructive" />
-        <p className={cn(sectionTitleClass, 'text-destructive')}>
-          {PORTFOLIO_DANGER_LABELS.MODULE}
-        </p>
-        <Button variant="destructive" onClick={onDelete}>
-          {PORTFOLIO_DANGER_LABELS.DELETE}
-        </Button>
-      </section>
+      <DangerZone actionLabel={PORTFOLIO_DANGER_LABELS.DELETE} onAction={onDelete} />
     </div>
   );
 };

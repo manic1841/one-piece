@@ -1,8 +1,7 @@
 import React from 'react';
 
-import { Trash2 } from 'lucide-react';
-
-import { Divider } from '@/ui/components/Divider';
+import { DangerZone } from '@/ui/components/DangerZone';
+import { FinancialNumber } from '@/ui/components/FinancialNumber';
 import { Metric, MetricGroup } from '@/ui/components/MetricGroup';
 import { PageSection } from '@/ui/components/PageSection';
 import {
@@ -19,8 +18,6 @@ import {
   TableBody,
   TableHeader,
 } from '@/ui/components/data-table';
-import { sectionTitleClass } from '@/ui/components/eyebrow';
-import { Button } from '@/ui/components/ui/button';
 import {
   PROJECT_DANGER_LABELS,
   PROJECT_DEBT_COLUMN_WIDTHS,
@@ -34,7 +31,6 @@ import {
   type ProjectSummary,
 } from '@/ui/features/project/viewmodels/projectDetail.vm';
 import { formatCurrency } from '@/ui/utils';
-import { cn } from '@/ui/utils/cn';
 
 const netTone = (net: number): 'positive' | 'negative' => (net >= 0 ? 'positive' : 'negative');
 
@@ -53,8 +49,12 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({
   onDelete,
 }) => (
   <div className="space-y-8">
+    <PageSection title={PROJECT_DETAIL_LABELS.BALANCE_SECTION_TITLE} spacing="compact">
+      <FinancialNumber value={summary.balanceText} size="hero" />
+    </PageSection>
+
     <PageSection title={PROJECT_DETAIL_LABELS.SUMMARY_SECTION_TITLE} spacing="compact">
-      <MetricGroup columns={4}>
+      <MetricGroup columns={3}>
         <Metric
           label={PROJECT_SUMMARY_LABELS.INCOME}
           value={formatCurrency(summary.income)}
@@ -70,7 +70,6 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({
           value={formatCurrency(summary.net)}
           tone={netTone(summary.net)}
         />
-        <Metric label={PROJECT_SUMMARY_LABELS.BALANCE} value={summary.balanceText} />
       </MetricGroup>
     </PageSection>
 
@@ -118,14 +117,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({
 
     <ProjectCashFlowPanel groups={monthGroups} />
 
-    <section className="space-y-3 pt-10">
-      <Divider className="border-destructive" />
-      <p className={cn(sectionTitleClass, 'text-destructive')}>{PROJECT_DANGER_LABELS.MODULE}</p>
-      <Button variant="destructive" onClick={onDelete}>
-        <Trash2 size={14} aria-hidden="true" />
-        {PROJECT_DANGER_LABELS.DELETE}
-      </Button>
-    </section>
+    <DangerZone actionLabel={PROJECT_DANGER_LABELS.DELETE} onAction={onDelete} />
   </div>
 );
 

@@ -19,11 +19,7 @@ import {
 } from '@/ui/features/portfolio/viewmodels/portfolioDisplay.vm';
 import { useAuthIdentity } from '@/ui/hooks/useAuthIdentity';
 
-/**
- * Owns PortfolioDetailPage's data: the portfolio row, its snapshots and the linked
- * account names, projected into a single detail VM, plus the rename / lifecycle /
- * delete commands. The page keeps only rendering (see #262 Q12).
- */
+/** Owns the detail page's data and commands; the page keeps only rendering. */
 export const usePortfolioDetailPage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();

@@ -28,9 +28,11 @@ import {
 import { Alert, AlertDescription } from '@/ui/components/ui/alert';
 import { Button } from '@/ui/components/ui/button';
 import {
+  DEBT_COLUMN_LABELS,
   DEBT_FILTER_ALL,
   DEBT_FILTER_ITEMS,
   DEBT_FILTER_LABEL,
+  DEBT_LIST_LABELS,
   DEBT_STATUS_GRACE_PERIOD_LABEL,
   DEBT_SUMMARY_LABELS,
 } from '@/ui/constants/debt/label';
@@ -74,7 +76,8 @@ export default function DebtListPage() {
     householdId,
     initialAccount: editTarget ?? undefined,
     projects,
-    submitLabel: dialogMode === 'create' ? '新增' : '儲存',
+    submitLabel:
+      dialogMode === 'create' ? DEBT_LIST_LABELS.SUBMIT_CREATE : DEBT_LIST_LABELS.SUBMIT_EDIT,
     onSubmitSuccess: () => {
       closeDialog();
       reload();
@@ -96,13 +99,13 @@ export default function DebtListPage() {
   return (
     <div className="space-y-8">
       <PageHeader
-        title="債務管理"
-        description="追蹤所有貸款與還款進度"
+        title={DEBT_LIST_LABELS.TITLE}
+        description={DEBT_LIST_LABELS.DESCRIPTION}
         actions={
           <div className="flex gap-2">
             <Button onClick={openCreate} className="gap-2">
               <Plus size={18} aria-hidden="true" />
-              新增貸款
+              {DEBT_LIST_LABELS.CREATE_ACTION}
             </Button>
           </div>
         }
@@ -110,24 +113,28 @@ export default function DebtListPage() {
 
       {loading && (
         <div role="status" className="space-y-2 py-2">
-          <span className="sr-only">載入中…</span>
+          <span className="sr-only">{DEBT_LIST_LABELS.LOADING_LABEL}</span>
           {SKELETON_ROWS.map((row) => (
             <Skeleton key={row} className="h-12" />
           ))}
         </div>
       )}
       {errorMessage && (
-        <Alert variant="destructive">
-          <AlertDescription>{errorMessage}</AlertDescription>
+        <Alert variant="warning">
+          <AlertDescription>{DEBT_LIST_LABELS.LOAD_ERROR}</AlertDescription>
           <Button variant="text" className="ml-auto shrink-0" onClick={() => void reload()}>
-            重試
+            {DEBT_LIST_LABELS.RETRY_ACTION}
           </Button>
         </Alert>
       )}
 
       {!loading && (
         <>
-          <PageSection title="SUMMARY" spacing="compact" className="border-b-0">
+          <PageSection
+            title={DEBT_LIST_LABELS.SUMMARY_SECTION_TITLE}
+            spacing="compact"
+            className="border-b-0"
+          >
             <MetricGroup columns={2} lastSpansFull>
               <Metric
                 testId="debt-total-outstanding"
@@ -155,17 +162,20 @@ export default function DebtListPage() {
           {visibleAccounts.length === 0 ? (
             debtAccountViews.length === 0 ? (
               <EmptyState
-                title="尚無貸款紀錄"
-                description="點擊「新增貸款」開始建立。"
+                title={DEBT_LIST_LABELS.EMPTY_TITLE}
+                description={DEBT_LIST_LABELS.EMPTY_DESCRIPTION}
                 action={
                   <Button onClick={openCreate} className="gap-2">
                     <Plus size={16} aria-hidden="true" />
-                    新增貸款
+                    {DEBT_LIST_LABELS.CREATE_ACTION}
                   </Button>
                 }
               />
             ) : (
-              <EmptyState title="沒有符合的貸款" description="目前沒有符合條件的貸款。" />
+              <EmptyState
+                title={DEBT_LIST_LABELS.FILTER_EMPTY_TITLE}
+                description={DEBT_LIST_LABELS.FILTER_EMPTY_DESCRIPTION}
+              />
             )
           ) : (
             <>
@@ -201,15 +211,15 @@ export default function DebtListPage() {
                           {formatCurrency(account.currentBalance)}
                         </span>
                       </div>
-                      <MobileDataField label="類型">
+                      <MobileDataField label={DEBT_COLUMN_LABELS.MOBILE_TYPE}>
                         <span className="text-sm">{account.typeLabel}</span>
                       </MobileDataField>
-                      <MobileDataField label="每月應付">
+                      <MobileDataField label={DEBT_COLUMN_LABELS.MOBILE_MONTHLY_PAYMENT}>
                         <span className="font-mono text-sm tabular-nums">
                           {formatCurrency(account.monthlyDueAmount)}
                         </span>
                       </MobileDataField>
-                      <MobileDataField label="截至">
+                      <MobileDataField label={DEBT_COLUMN_LABELS.MOBILE_AS_OF}>
                         <span className="font-mono text-sm tabular-nums">
                           {account.updatedAt ? formatDate(account.updatedAt) : '—'}
                         </span>
@@ -223,11 +233,17 @@ export default function DebtListPage() {
                   <DataTableColGroup widths={DEBT_COLUMN_WIDTHS} />
                   <TableHeader>
                     <DataTableHeadRow>
-                      <DataTableHeadCell>Loan Name</DataTableHeadCell>
-                      <DataTableHeadCell>Type</DataTableHeadCell>
-                      <DataTableHeadCell align="number">Outstanding Balance</DataTableHeadCell>
-                      <DataTableHeadCell align="number">Monthly Payment</DataTableHeadCell>
-                      <DataTableHeadCell align="number">As of</DataTableHeadCell>
+                      <DataTableHeadCell>{DEBT_COLUMN_LABELS.NAME}</DataTableHeadCell>
+                      <DataTableHeadCell>{DEBT_COLUMN_LABELS.TYPE}</DataTableHeadCell>
+                      <DataTableHeadCell align="number">
+                        {DEBT_COLUMN_LABELS.OUTSTANDING_BALANCE}
+                      </DataTableHeadCell>
+                      <DataTableHeadCell align="number">
+                        {DEBT_COLUMN_LABELS.MONTHLY_PAYMENT}
+                      </DataTableHeadCell>
+                      <DataTableHeadCell align="number">
+                        {DEBT_COLUMN_LABELS.AS_OF}
+                      </DataTableHeadCell>
                     </DataTableHeadRow>
                   </TableHeader>
                   <TableBody>
@@ -275,7 +291,9 @@ export default function DebtListPage() {
       <DebtAccountFormDialog
         open={dialogMode !== null}
         onOpenChange={(open) => !open && closeDialog()}
-        title={dialogMode === 'create' ? '新增貸款' : '編輯貸款'}
+        title={
+          dialogMode === 'create' ? DEBT_LIST_LABELS.CREATE_ACTION : DEBT_LIST_LABELS.EDIT_TITLE
+        }
         vm={formVm}
       />
     </div>

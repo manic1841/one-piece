@@ -27,6 +27,7 @@
 | `src/ui/components/charts/InteractiveLineChart.tsx`  | charts / InteractiveLineChart   |
 | `src/ui/components/charts/LineChart.tsx`             | charts / LineChart              |
 | `src/ui/components/CliProgress.tsx`                  | CliProgress                     |
+| `src/ui/components/DangerZone.tsx`                   | DangerZone                      |
 | `src/ui/components/Divider.tsx`                      | Divider                         |
 | `src/ui/components/EmptyState.tsx`                   | EmptyState                      |
 | `src/ui/components/ErrorBoundary.tsx`                | ErrorBoundary                   |
@@ -180,12 +181,12 @@
 - **`FinancialNumber`** — 財務數值顯示：`hero` / `large` / `default` 三級 ＋ 選用 change line ＋ 缺值「$ —」。值與 change line 都由呼叫端預先格式化，本元件不做貨幣運算。
   - Props：`value?: string | null`、`size?`、`tone?`（`default`/`positive`/`negative`）、`change?`、`changeTone?`（`default`/`positive`/`negative`/`muted`）、`className?`。提供 `change` 時根元素變為 block。
   - **不要用於**：表格儲存格（用 `data-table` 的 `NumberCell`）；輸入（用 `form` 的 `NumberInput`/`CurrencyInput`）。
-  - 範例：`src/ui/features/dashboard/pages/DashboardPage.tsx`（hero 淨資產 ＋ YTD change line）、`src/ui/features/debt/pages/DebtDetailPage.tsx`。
+  - 範例：`src/ui/features/dashboard/pages/DashboardPage.tsx`（hero 淨資產 ＋ YTD change line）、`src/ui/features/debt/pages/DebtDetailPage.tsx`、`src/ui/features/project/pages/ProjectDetailPage.tsx`（hero 專案餘額）。
 
 - **`MetricGroup` / `Metric`** — 同層級財務指標列：label + mono 值 + change line，非卡片。`MetricGroup` 是分割線容器，`Metric` 是單一指標。
   - Props（Group）：`children`、`columns?`（`2`/`3`/`4`/`5`，md 以上；手機固定 2 欄）、`lastSpansFull?`（末格在手機跨滿，收掉 2 欄換行留下的缺角）、`className?`。Props（Metric）：`label`、`value`、`tone?`、`change?`、`changeTone?`、`testId?`、`className?`。
   - **不要用於**：需要互動或篩選的資料（那是 table/toolbar 的事）。
-  - 範例：`src/ui/features/dashboard/pages/DashboardPage.tsx`（FINANCIAL SNAPSHOT，5 欄）、`src/ui/features/project/pages/ProjectDetailPage.tsx`（SUMMARY，4 欄）、`src/ui/features/debt/pages/DebtDetailPage.tsx`（LOAN INFORMATION，4 欄）、`src/ui/features/debt/pages/DebtListPage.tsx`（SUMMARY，2 欄）。
+  - 範例：`src/ui/features/dashboard/pages/DashboardPage.tsx`（FINANCIAL SNAPSHOT，5 欄）、`src/ui/features/project/pages/ProjectDetailPage.tsx`（SUMMARY，3 欄）、`src/ui/features/debt/pages/DebtDetailPage.tsx`（LOAN INFORMATION，4 欄）、`src/ui/features/debt/pages/DebtListPage.tsx`（SUMMARY，2 欄）。
 
 - **`PageSection`** — 頁面層級的全寬 section band（`border-b` ＋ `py-10`），visual-standards 的「structure over cards」：頁面區域用 band 分段，不用浮動卡片。number ＋ title 為選用的 section 標題（14px mono 全大寫 `font-semibold text-foreground`，`sectionTitleClass`，比 eyebrow 標籤大一階）；僅內容時是素 band。
   - Props：`number?`、`title?`、`action?`（與標題同列的尾端控件）、`spacing?`（`default`/`compact`，後者收緊密集堆疊）、`children`、`className?`。
@@ -199,8 +200,8 @@
 
 - **`ui/accordion`** — 可摺疊的 section 級面板（Radix 包裝）：trigger 是一列 mono 標題，內容展開。用於把次要閱讀層收起。
   - Props：透通 Radix Root／Item／Trigger／Content；`type`、`defaultValue` 由呼叫端決定（`multiple` 可多開）。
-  - **不要用於**：表格列的展開明細（那是 `data-table` 的列展開，見 [`design-system.md`](design-system.md) `data-table`）；需要 tab 語意的區塊切換（用 `ui/tabs`）。
-  - 範例：`src/ui/features/project/components/detail/ProjectCashFlowPanel.tsx`（月度現金流面板，預設展開）。
+  - **不要用於**：表格列的展開明細（那是 `data-table` 的列展開，見 [`design-system.md`](design-system.md) `data-table`）；需要 tab 語意的區塊切換（用 `ui/tabs`）；**section 標題本身**——非摺疊的 section 用 `PageSection` 的 `title`，不要拿 accordion trigger 當標題樣式。
+  - 範例：`src/ui/features/monthly_close/stages/portfolio_cash_flow/components/PortfolioCashFlowSection.tsx`（每個 portfolio 一個可摺疊 section）、`src/ui/features/retirement/pages/RetirementPlanForm.tsx`（`type="multiple"` 的工作區區塊）。
 
 - **`ActivityList` / `ActivityRow`** — 最近活動列：date / title+meta / amount。列表容器收掉最後一列的底線。
   - Props（Row）：`date`、`title`、`meta?`、`amount?`、`tone?`、`onActivate?`（提供時該列變成可點擊的 button，供導覽／選取）、`className?`。
@@ -216,6 +217,11 @@
   - Props：`className?`。
   - **不要用於**：需要語意分組的內容（用 section / heading）。
   - 範例：`src/ui/features/app/pages/GalleryLayout.tsx`
+
+- **`DangerZone`** — 頁面尾端的不可逆動作區（ui-layer-architecture §7.6）：destructive 分隔線、destructive 標題、destructive 動作鈕。標題文字固定在本元件內，不由呼叫端傳入。
+  - Props：`actionLabel`、`onAction`、`className?`。
+  - **不要用於**：可逆的管理動作（用 Detail header 的 inline action）。
+  - 範例：`src/ui/features/debt/components/DebtDetail.tsx`
 
 - **`Toolbar`** — 頁面工具列：資料檢視控制在前、動作在後，兩組分離。
   - Props：`children?`（leading）、`actions?`（trailing）、`className?`。

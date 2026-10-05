@@ -87,7 +87,6 @@ export const PORTFOLIO_LIFECYCLE_LABELS = {
 } as const;
 
 export const PORTFOLIO_DANGER_LABELS = {
-  MODULE: 'DANGER ZONE',
   DELETE: '刪除投資組合',
   DELETE_TITLE: '刪除投資組合？',
   DELETE_DESCRIPTION: '刪除後無法復原，相關快照也會一併移除。',

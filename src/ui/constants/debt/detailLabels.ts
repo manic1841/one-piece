@@ -23,7 +23,6 @@ export const DEBT_DETAIL_LABELS = {
 } as const;
 
 export const DEBT_DANGER_LABELS = {
-  MODULE: 'DANGER ZONE',
   DELETE: '刪除貸款',
   DELETE_TITLE: '刪除貸款？',
   DELETE_CONSEQUENCE: '刪除後無法復原。',

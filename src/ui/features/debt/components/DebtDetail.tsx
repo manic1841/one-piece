@@ -1,15 +1,11 @@
 import React from 'react';
 
-import { Trash2 } from 'lucide-react';
-
-import { Divider } from '@/ui/components/Divider';
+import { DangerZone } from '@/ui/components/DangerZone';
 import { FinancialNumber } from '@/ui/components/FinancialNumber';
 import { Metric, MetricGroup } from '@/ui/components/MetricGroup';
 import { PageSection } from '@/ui/components/PageSection';
 import { InteractiveLineChart } from '@/ui/components/charts/InteractiveLineChart';
 import { type MonthTrendSeries } from '@/ui/components/charts/monthTrendSeries';
-import { sectionTitleClass } from '@/ui/components/eyebrow';
-import { Button } from '@/ui/components/ui/button';
 import { DEBT_DANGER_LABELS, DEBT_DETAIL_LABELS } from '@/ui/constants/debt/detailLabels';
 import { DebtHistoryTable } from '@/ui/features/debt/components/detail/DebtHistoryTable';
 import {
@@ -17,7 +13,6 @@ import {
   type DebtHistoryMonthVM,
 } from '@/ui/features/debt/viewmodels/debtDisplay.vm';
 import { formatCurrency, formatDate } from '@/ui/utils';
-import { cn } from '@/ui/utils/cn';
 
 interface DebtDetailProps {
   account: DebtAccount;
@@ -80,14 +75,7 @@ const DebtDetail: React.FC<DebtDetailProps> = ({ account, trend, historyMonths, 
       <DebtHistoryTable months={historyMonths} />
     </PageSection>
 
-    <section className="space-y-3 pt-10">
-      <Divider className="border-destructive" />
-      <p className={cn(sectionTitleClass, 'text-destructive')}>{DEBT_DANGER_LABELS.MODULE}</p>
-      <Button variant="destructive" onClick={onDelete}>
-        <Trash2 size={14} aria-hidden="true" />
-        {DEBT_DANGER_LABELS.DELETE}
-      </Button>
-    </section>
+    <DangerZone actionLabel={DEBT_DANGER_LABELS.DELETE} onAction={onDelete} />
   </div>
 );
 

@@ -33,10 +33,7 @@ import { SortableMobileRow, SortableTableRow } from './SortablePortfolioRows';
 
 const SKELETON_ROWS = [0, 1, 2, 3, 4];
 
-/**
- * Portfolio list surface. All data orchestration lives in
- * `usePortfolioListController`; this component only renders.
- */
+/** Portfolio list surface; all data orchestration lives in `usePortfolioListController`. */
 const PortfolioList: React.FC = () => {
   const navigate = useNavigate();
   const {
@@ -67,7 +64,7 @@ const PortfolioList: React.FC = () => {
 
     if (error) {
       return (
-        <Alert variant="destructive">
+        <Alert variant="warning">
           <AlertDescription>{error}</AlertDescription>
           <Button variant="text" className="ml-auto shrink-0" onClick={() => void reload()}>
             {PORTFOLIO_PAGE_LABELS.RETRY_ACTION}

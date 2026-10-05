@@ -1,8 +1,8 @@
 import React, { useCallback, useState } from 'react';
 
-import { ChevronDown, ChevronRight, Trash2 } from 'lucide-react';
+import { ChevronDown, ChevronRight } from 'lucide-react';
 
-import { Divider } from '@/ui/components/Divider';
+import { DangerZone } from '@/ui/components/DangerZone';
 import { FinancialNumber } from '@/ui/components/FinancialNumber';
 import { Metric, MetricGroup } from '@/ui/components/MetricGroup';
 import { PageSection } from '@/ui/components/PageSection';
@@ -23,7 +23,6 @@ import {
   TableBody,
   TableHeader,
 } from '@/ui/components/data-table';
-import { sectionTitleClass } from '@/ui/components/eyebrow';
 import { MONEY_CHANGE_TONE_CLASS } from '@/ui/components/moneyTone';
 import { Button } from '@/ui/components/ui/button';
 import {
@@ -291,14 +290,7 @@ const AccountDetail: React.FC<AccountDetailProps> = ({
         )}
       </PageSection>
 
-      <section className="space-y-3 pt-10">
-        <Divider className="border-destructive" />
-        <p className={cn(sectionTitleClass, 'text-destructive')}>{ACCOUNT_DANGER_LABELS.MODULE}</p>
-        <Button variant="destructive" onClick={onDelete}>
-          <Trash2 size={14} aria-hidden="true" />
-          {ACCOUNT_DANGER_LABELS.DELETE}
-        </Button>
-      </section>
+      <DangerZone actionLabel={ACCOUNT_DANGER_LABELS.DELETE} onAction={onDelete} />
     </div>
   );
 };

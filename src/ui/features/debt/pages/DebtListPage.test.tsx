@@ -3,7 +3,7 @@ import { MemoryRouter, useNavigate } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 
 import { useConfirm } from '@/ui/components/confirm/useConfirm';
-import { DEBT_STATUS_GRACE_PERIOD_LABEL } from '@/ui/constants/debt/label';
+import { DEBT_LIST_LABELS, DEBT_STATUS_GRACE_PERIOD_LABEL } from '@/ui/constants/debt/label';
 import { useDebtAccountCmds } from '@/ui/features/debt/hooks/useDebtAccountCmds';
 import { useDebtPage } from '@/ui/features/debt/hooks/useDebtPage';
 import { type DebtAccountDisplayVM } from '@/ui/features/debt/viewmodels/debtDisplay.vm';
@@ -326,8 +326,8 @@ describe('DebtListPage table', () => {
       </MemoryRouter>,
     );
 
-    expect(screen.getByText('載入失敗')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: '重試' }));
+    expect(screen.getByText(DEBT_LIST_LABELS.LOAD_ERROR)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: DEBT_LIST_LABELS.RETRY_ACTION }));
     expect(reload).toHaveBeenCalled();
   });
 

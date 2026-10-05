@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { getProjectUseCase } from '@/application/project/use_cases/getProjectUseCase';
 import { type Project } from '@/domains/project/schemas';
 import { useConfirm } from '@/ui/components/confirm/useConfirm';
 import {
@@ -112,7 +113,7 @@ describe('ProjectDetailPage lifecycle actions', () => {
     expect(
       screen.queryByRole('button', { name: PROJECT_DETAIL_LABELS.DEACTIVATE_ACTION }),
     ).not.toBeInTheDocument();
-    expect(screen.getByText('INACTIVE')).toBeInTheDocument();
+    expect(screen.getByText(PROJECT_DETAIL_LABELS.INACTIVE_BADGE)).toBeInTheDocument();
   });
 
   it('deactivates via the existing update command and reflects the new state', async () => {
@@ -194,7 +195,17 @@ describe('ProjectDetailPage states', () => {
     ).toBeInTheDocument();
   });
 
-  it('renders the summary metrics and the cash-flow accordion panel', () => {
+  it('shows a retry error, not the not-found state, when the project fetch fails', async () => {
+    mockUseProjectDetailView.mockReturnValue(learnViewResult as never);
+    vi.mocked(getProjectUseCase.execute).mockRejectedValueOnce(new Error('offline'));
+
+    renderDetailWithoutProject();
+
+    expect(await screen.findByText(PROJECT_DETAIL_LABELS.LOAD_ERROR)).toBeInTheDocument();
+    expect(screen.queryByText(PROJECT_DETAIL_LABELS.NOT_FOUND_TITLE)).not.toBeInTheDocument();
+  });
+
+  it('renders the summary metrics and the cash-flow panel', () => {
     mockUseProjectDetailView.mockReturnValue(learnViewResult as never);
 
     renderDetail(buildProject());

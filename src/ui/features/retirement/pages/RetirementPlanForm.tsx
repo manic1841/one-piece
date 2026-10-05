@@ -1,10 +1,8 @@
 import React, { useState } from 'react';
 
-import { Trash2 } from 'lucide-react';
 import { useParams } from 'react-router-dom';
 
-import { Divider } from '@/ui/components/Divider';
-import { sectionTitleClass } from '@/ui/components/eyebrow';
+import { DangerZone } from '@/ui/components/DangerZone';
 import {
   Accordion,
   AccordionContent,
@@ -23,7 +21,6 @@ import { IncomeTabContent } from '@/ui/features/retirement/components/detail/Inc
 import { ProjectionResultsContent } from '@/ui/features/retirement/components/detail/ProjectionResultsContent';
 import { RetirementPlanHeader } from '@/ui/features/retirement/components/detail/RetirementPlanHeader';
 import { useRetirementPlanDetailPage } from '@/ui/features/retirement/hooks/useRetirementPlanDetailPage';
-import { cn } from '@/ui/utils/cn';
 
 const RetirementPlanForm: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -183,14 +180,7 @@ const RetirementPlanForm: React.FC = () => {
           </AccordionContent>
         </AccordionItem>
       </Accordion>
-      <section className="space-y-3 pt-10">
-        <Divider className="border-destructive" />
-        <p className={cn(sectionTitleClass, 'text-destructive')}>DANGER ZONE</p>
-        <Button variant="destructive" onClick={() => void handleDelete()}>
-          <Trash2 size={14} />
-          Delete plan
-        </Button>
-      </section>{' '}
+      <DangerZone actionLabel="Delete plan" onAction={() => void handleDelete()} />
     </div>
   );
 };

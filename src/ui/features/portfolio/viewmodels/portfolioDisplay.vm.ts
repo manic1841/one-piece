@@ -65,10 +65,7 @@ export const mapPortfoliosToOverviewVM = (
   return { totalValueText: formatCurrency(totalValue) };
 };
 
-/**
- * 報酬拆解：全部讀快照凍結的 `performance`，不重算（見 #262 Q7）。快照的報酬由
- * 領域函式 `calculatePortfolioPeriodPerformance` 寫入，頁面只負責顯示。
- */
+/** 報酬拆解：讀快照凍結的 `performance`，不在頁面重算。 */
 export interface PortfolioReturnBreakdownVM {
   previousValueText: string;
   currentValueText: string;

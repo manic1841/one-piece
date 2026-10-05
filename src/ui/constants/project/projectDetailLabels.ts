@@ -3,6 +3,8 @@ export const PROJECT_DETAIL_LABELS = {
   BACK_LABEL: '返回專案清單',
   DEACTIVATE_ACTION: '停用專案',
   ACTIVATE_ACTION: '啟用專案',
+  INACTIVE_BADGE: '已停用專案',
+  BALANCE_SECTION_TITLE: 'PROJECT BALANCE',
   SUMMARY_SECTION_TITLE: 'SUMMARY',
   DEBT_SECTION_TITLE: 'PROJECT DEBT',
   CASH_FLOW_SECTION_TITLE: 'MONTHLY CASH FLOW',
@@ -21,7 +23,6 @@ export const PROJECT_DETAIL_LABELS = {
 } as const;
 
 export const PROJECT_DANGER_LABELS = {
-  MODULE: 'DANGER ZONE',
   DELETE: '刪除專案',
   DELETE_TITLE: '刪除專案？',
   DELETE_CONSEQUENCE: '刪除後無法復原。',
@@ -34,7 +35,6 @@ export const PROJECT_SUMMARY_LABELS = {
   INCOME: '收入',
   EXPENSE: '支出',
   NET_CASH_FLOW: '淨現金流',
-  BALANCE: '餘額',
 } as const;
 
 export const PROJECT_DEBT_COLUMN_WIDTHS = [60, 40] as const;

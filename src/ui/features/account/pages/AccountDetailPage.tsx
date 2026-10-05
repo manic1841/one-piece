@@ -57,7 +57,7 @@ const AccountDetailPage: React.FC<AccountDetailPageProps> = ({ account }) => {
     return (
       <div className="space-y-6 pb-20">
         <Button variant="ghost" size="sm" onClick={backToList} className="gap-2">
-          <ArrowLeft size={16} />
+          <ArrowLeft size={16} aria-hidden="true" />
           {ACCOUNT_DETAIL_LABELS.BACK_LABEL}
         </Button>
         <Alert variant="warning">

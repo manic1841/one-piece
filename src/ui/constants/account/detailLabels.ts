@@ -27,7 +27,6 @@ export const ACCOUNT_DETAIL_LABELS = {
 } as const;
 
 export const ACCOUNT_DANGER_LABELS = {
-  MODULE: 'DANGER ZONE',
   DELETE: '刪除帳戶',
   DELETE_TITLE: '刪除帳戶？',
   DELETE_CONSEQUENCE: '刪除後無法復原。',

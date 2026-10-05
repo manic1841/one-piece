@@ -1,4 +1,4 @@
-import { ArrowRight, Power } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Power } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 import { EmptyState } from '@/ui/components/EmptyState';
@@ -49,6 +49,24 @@ export default function ProjectDetailPage({ project }: ProjectDetailPageProps) {
     );
   }
 
+  if (error !== null && !activeProject) {
+    return (
+      <div className="space-y-6 pb-20">
+        <Button variant="ghost" size="sm" onClick={backToList} className="gap-2">
+          <ArrowLeft size={16} aria-hidden="true" />
+          {PROJECT_DETAIL_LABELS.BACK_LABEL}
+        </Button>
+        <Alert variant="warning">
+          <AlertDescription>{error}</AlertDescription>
+          <Button variant="text" className="ml-auto shrink-0" onClick={() => void reload()}>
+            {PROJECT_DETAIL_LABELS.RETRY_ACTION}
+            <ArrowRight size={16} aria-hidden="true" />
+          </Button>
+        </Alert>
+      </div>
+    );
+  }
+
   if (notFound || !activeProject) {
     return (
       <EmptyState
@@ -69,7 +87,11 @@ export default function ProjectDetailPage({ project }: ProjectDetailPageProps) {
         title={<InlineEditableTitle value={activeProject.name} onSave={handleRename} />}
         crumb={PROJECT_DETAIL_LABELS.CRUMB}
         onBack={backToList}
-        badge={!isActive ? <StatusGlyph type="inactive" /> : undefined}
+        badge={
+          !isActive ? (
+            <StatusGlyph type="inactive" label={PROJECT_DETAIL_LABELS.INACTIVE_BADGE} />
+          ) : undefined
+        }
         actions={
           isActive ? (
             <Button variant="destructive" onClick={() => void handleToggleActive()}>
