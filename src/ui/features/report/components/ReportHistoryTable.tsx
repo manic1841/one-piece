@@ -23,7 +23,7 @@ import { type ReportHistoryRowVM } from '../viewmodels/reportHistory.vm';
 
 const COLUMN_WIDTHS = [22, 26, 26, 26] as const;
 
-const detailPath = (period: string): string => `/report-next/${period}`;
+const detailPath = (period: string): string => `/reports/${period}`;
 
 interface ReportHistoryTableProps {
   rows: ReportHistoryRowVM[];

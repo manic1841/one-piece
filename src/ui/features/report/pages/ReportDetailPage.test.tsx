@@ -71,9 +71,9 @@ const bundle = {
 
 const renderPage = (period = '2026-06') =>
   render(
-    <MemoryRouter initialEntries={[`/report-next/${period}`]}>
+    <MemoryRouter initialEntries={[`/reports/${period}`]}>
       <Routes>
-        <Route path="/report-next/:period" element={<ReportDetailPage />} />
+        <Route path="/reports/:period" element={<ReportDetailPage />} />
       </Routes>
     </MemoryRouter>,
   );
@@ -190,6 +190,6 @@ describe('ReportDetailPage', () => {
 
     const prev = await screen.findByRole('button', { name: REPORT_DETAIL_LABELS.PREVIOUS_PERIOD });
     fireEvent.click(prev);
-    expect(navigate).toHaveBeenCalledWith('/report-next/2026-05');
+    expect(navigate).toHaveBeenCalledWith('/reports/2026-05');
   });
 });

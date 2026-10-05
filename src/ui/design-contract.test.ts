@@ -24,9 +24,6 @@ const ROUNDED_FULL_ALLOWED = new Set([
   'features/app/layout/PixelPet.tsx',
   'features/auth/pages/AccessDeniedPage.tsx',
   'features/dashboard/components/AssetCompositionBlock.tsx',
-  'features/report/pages/BalanceSheet.tsx',
-  'features/report/pages/CashFlowStatement.tsx',
-  'features/report/pages/IncomeStatement.tsx',
   'features/setting/components/MemberManagementUI.tsx',
   'features/setting/components/SettingsUI.tsx',
 ]);
@@ -47,7 +44,6 @@ const SHADOW_ALLOWED = new Set([
   'features/app/layout/Layout.tsx',
   'features/app/layout/PixelPet.tsx',
   'features/app/pages/GalleryInteraction.tsx',
-  'features/report/components/ReportHeader.tsx',
 ]);
 
 const collectSourceFiles = (dir: string): string[] => {

@@ -25,7 +25,6 @@ import ProjectDetailPage from '@/ui/features/project/pages/ProjectDetailPage';
 import ProjectsPage from '@/ui/features/project/pages/ProjectsPage';
 import ReportDetailPage from '@/ui/features/report/pages/ReportDetailPage';
 import ReportListPage from '@/ui/features/report/pages/ReportListPage';
-import Reports from '@/ui/features/report/pages/ReportsPage';
 import RetirementPlanForm from '@/ui/features/retirement/pages/RetirementPlanForm';
 import RetirementPlanList from '@/ui/features/retirement/pages/RetirementPlanList';
 import Settings from '@/ui/features/setting/pages/SettingsPage';
@@ -82,10 +81,8 @@ function App() {
                 <Route path="accounts/:id" element={<AccountDetailPage />} />
                 <Route path="portfolios" element={<PortfoliosPage />} />
                 <Route path="portfolios/:id" element={<PortfolioDetailPage />} />
-                <Route path="reports" element={<Reports />} />
-                {/* Temporary Phase 1 routes (#263) coexisting with the old hub until Phase 2 renames them. */}
-                <Route path="report-next" element={<ReportListPage />} />
-                <Route path="report-next/:period" element={<ReportDetailPage />} />
+                <Route path="reports" element={<ReportListPage />} />
+                <Route path="reports/:period" element={<ReportDetailPage />} />
                 <Route path="retirement" element={<RetirementPlanList />} />
                 <Route path="retirement/:id" element={<RetirementPlanForm />} />
                 <Route path="debt" element={<DebtListPage />} />

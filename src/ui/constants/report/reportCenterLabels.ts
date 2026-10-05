@@ -1,7 +1,7 @@
 import { type ReportViewId } from './reportViewLabels';
 
 /**
- * 報表中心（清單 / detail / 歷史）的顯示文案。三張報表標題沿用
+ * 報表檢視（清單 / detail / 歷史）的顯示文案。三張報表標題沿用
  * `REPORT_VIEW_TITLES`，不在此複述。
  */
 export const REPORT_LIST_LABELS = {
@@ -28,7 +28,6 @@ export const REPORT_LIST_LABELS = {
 
 export const REPORT_DETAIL_LABELS = {
   BACK_CRUMB: '報表',
-  BACK_ACTION: '返回報表清單',
   PREVIOUS_PERIOD: '上一期',
   NEXT_PERIOD: '下一期',
   GO_TO_CLOSE: '前往關帳',
@@ -47,7 +46,3 @@ export const REPORT_TAB_ORDER: readonly ReportViewId[] = [
   'BALANCE_SHEET',
   'CASH_FLOW',
 ];
-
-export const REPORT_PERIOD_LABELS = {
-  INVALID_PARAM: '報表期間格式不正確。',
-} as const;

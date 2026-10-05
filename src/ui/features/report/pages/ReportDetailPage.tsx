@@ -132,10 +132,7 @@ const ReportDetailPage: React.FC = () => {
   if (state.status === 'invalid' || period === null) {
     return (
       <div className="space-y-8">
-        <PageHeader
-          title={REPORT_DETAIL_LABELS.BACK_CRUMB}
-          onBack={() => navigate('/report-next')}
-        />
+        <PageHeader title={REPORT_DETAIL_LABELS.BACK_CRUMB} onBack={() => navigate('/reports')} />
         <EmptyState
           title={REPORT_DETAIL_LABELS.EMPTY_TITLE}
           description={REPORT_DETAIL_LABELS.EMPTY_DESCRIPTION}
@@ -152,7 +149,7 @@ const ReportDetailPage: React.FC = () => {
       <PageHeader
         title={period.raw}
         crumb={REPORT_DETAIL_LABELS.BACK_CRUMB}
-        onBack={() => navigate('/report-next')}
+        onBack={() => navigate('/reports')}
         description={formatReportPeriodDisplay(period)}
         actions={
           <div className="flex items-center gap-2">
@@ -165,7 +162,7 @@ const ReportDetailPage: React.FC = () => {
               variant="ghost"
               size="icon"
               aria-label={REPORT_DETAIL_LABELS.PREVIOUS_PERIOD}
-              onClick={() => navigate(`/report-next/${stepReportPeriod(period, -1)}`)}
+              onClick={() => navigate(`/reports/${stepReportPeriod(period, -1)}`)}
             >
               <ChevronLeft className="h-5 w-5" aria-hidden="true" />
             </Button>
@@ -173,7 +170,7 @@ const ReportDetailPage: React.FC = () => {
               variant="ghost"
               size="icon"
               aria-label={REPORT_DETAIL_LABELS.NEXT_PERIOD}
-              onClick={() => navigate(`/report-next/${stepReportPeriod(period, 1)}`)}
+              onClick={() => navigate(`/reports/${stepReportPeriod(period, 1)}`)}
             >
               <ChevronRight className="h-5 w-5" aria-hidden="true" />
             </Button>
