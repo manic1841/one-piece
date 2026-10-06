@@ -1,7 +1,7 @@
 # 監看清單是獨立 domain,記帳完整性檢查作為結算流程的軟關卡
 
-**狀態：** 已接受（2026-09）
-**規範來源：** [monthly-close.md](../monthly-close.md) §4；[debt-accounts.md](../debt-accounts.md) §5.5；[data-structure.md](../data-structure.md) §watchList
+**狀態：** 已被 [ADR-0080](0080-remove-watch-list.md) 取代
+**規範來源：** 無（本決策已由 ADR-0080 取代，原規則已移除）
 
 每月專案結算前,使用者需要確認每筆記帳都確實記錄成功。經設計訪談釐清,真正的缺口是**記帳完整性**(怕自己漏記),不是寫入可靠性——建立交易走 Firestore `runTransaction` 原子寫入(見 [ADR-0038](0038-command-atomicity-and-retry-policy.md)、[ADR-0039](0039-allocation-atomicity-and-identity.md)),畫面顯示成功即已落庫。
 

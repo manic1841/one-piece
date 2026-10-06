@@ -2,6 +2,7 @@ import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 
+import { getSettlementReadinessUseCase } from '@/application/report/use_cases/getSettlementReadinessUseCase';
 import { type FinancialPeriod, initialStageStates } from '@/domains/financial_period/schemas';
 import { MONTHLY_CLOSE_LABELS } from '@/ui/constants/monthlyClose';
 
@@ -71,11 +72,6 @@ vi.mock('@/application/settlement/use_cases/previewDebtSettlementsUseCase', () =
 }));
 vi.mock('@/application/ledger/use_cases/listAllLedgerCodesUseCase', () => ({
   listAllLedgerCodesUseCase: { execute: vi.fn().mockResolvedValue([]) },
-}));
-vi.mock('@/application/settlement/use_cases/checkSettlementCompletenessUseCase', () => ({
-  checkSettlementCompletenessUseCase: {
-    execute: vi.fn().mockResolvedValue({ yearMonth: '2026-09', activities: [], anomalies: [] }),
-  },
 }));
 vi.mock('@/application/monthly_close/use_cases/validateMonthTransactionsUseCase', () => ({
   validateMonthTransactionsUseCase: {
@@ -255,14 +251,9 @@ describe('MonthlyClosePage (cascade-demoted period)', () => {
   });
 });
 
-// The completeness-check call count is the observable side of `refreshAll`.
+// The readiness call count is the observable side of `refreshAll`.
 describe('MonthlyClosePage (confirm side effects)', () => {
-  const completenessCalls = async () => {
-    const mod = await import(
-      '@/application/settlement/use_cases/checkSettlementCompletenessUseCase'
-    );
-    return vi.mocked(mod.checkSettlementCompletenessUseCase.execute).mock.calls.length;
-  };
+  const readinessCalls = () => vi.mocked(getSettlementReadinessUseCase.execute).mock.calls.length;
 
   it('runs no afterConfirm or refresh when confirm fails', async () => {
     const workflow = (
@@ -273,8 +264,8 @@ describe('MonthlyClosePage (confirm side effects)', () => {
     renderWorkspace();
 
     const confirmButton = await screen.findByRole('button', { name: 'CONTINUE →' });
-    await waitFor(async () => expect(await completenessCalls()).toBeGreaterThan(0));
-    const callsBefore = await completenessCalls();
+    await waitFor(() => expect(readinessCalls()).toBeGreaterThan(0));
+    const callsBefore = readinessCalls();
 
     fireEvent.click(confirmButton);
     await waitFor(() => expect(workflow.confirmStage).toHaveBeenCalled());
@@ -282,7 +273,7 @@ describe('MonthlyClosePage (confirm side effects)', () => {
       await Promise.resolve();
     });
 
-    expect(await completenessCalls()).toBe(callsBefore);
+    expect(readinessCalls()).toBe(callsBefore);
   });
 
   it('refreshes stage data when confirm succeeds', async () => {
@@ -304,13 +295,13 @@ describe('MonthlyClosePage (confirm side effects)', () => {
     renderWorkspace();
 
     const confirmButton = await screen.findByRole('button', { name: 'CONTINUE →' });
-    await waitFor(async () => expect(await completenessCalls()).toBeGreaterThan(0));
-    const callsBefore = await completenessCalls();
+    await waitFor(() => expect(readinessCalls()).toBeGreaterThan(0));
+    const callsBefore = readinessCalls();
 
     fireEvent.click(confirmButton);
     await waitFor(() => expect(workflow.confirmStage).toHaveBeenCalled());
 
-    await waitFor(async () => expect(await completenessCalls()).toBeGreaterThan(callsBefore));
+    await waitFor(() => expect(readinessCalls()).toBeGreaterThan(callsBefore));
   });
 
   // T13 (#237): mounting loads once; an accepted reopen on the same mount still refreshes.
@@ -323,8 +314,8 @@ describe('MonthlyClosePage (confirm side effects)', () => {
 
     renderWorkspace(closedPeriod());
 
-    await waitFor(async () => expect(await completenessCalls()).toBeGreaterThan(0));
-    const before = await completenessCalls();
+    await waitFor(() => expect(readinessCalls()).toBeGreaterThan(0));
+    const before = readinessCalls();
 
     fireEvent.click(
       await screen.findByRole('button', { name: MONTHLY_CLOSE_LABELS.REOPEN_CONFIRM }),
@@ -332,7 +323,7 @@ describe('MonthlyClosePage (confirm side effects)', () => {
 
     await waitFor(() => expect(workflow.reopen).toHaveBeenCalled());
     // The mount's own round plus the explicit refreshAll after the reopen.
-    await waitFor(async () => expect(await completenessCalls()).toBeGreaterThan(before));
+    await waitFor(() => expect(readinessCalls()).toBeGreaterThan(before));
   });
 });
 

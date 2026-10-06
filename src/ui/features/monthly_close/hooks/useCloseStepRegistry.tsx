@@ -154,7 +154,6 @@ export const useCloseStepRegistry = ({
     isClosed: pageVM.isClosed,
     transactionIssues: completenessCheckStage.transactionIssues,
     securities: securitiesTradeStage.securities,
-    anomalies: completenessCheckStage.anomalies,
     pageVM,
     reportsPersisted: financialReportsStage.reportsPersisted,
   });

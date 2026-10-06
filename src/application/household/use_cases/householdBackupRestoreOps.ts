@@ -25,7 +25,6 @@ export interface ExistingHouseholdData {
   ledgerCodes: Array<{ id: string }>;
   intentMappings: Array<{ id: string }>;
   financialPeriods: Array<{ id: string }>;
-  watchList: Array<{ id: string }>;
 }
 
 export const isRecord = (value: unknown): value is Record<string, unknown> => {
@@ -101,11 +100,6 @@ export const buildDeleteRefs = async (
   if (includedCollections.has('financialPeriods')) {
     existing.financialPeriods.forEach((item) =>
       refs.push(toDocRef(`households/${householdId}/financialPeriods/${item.id}`)),
-    );
-  }
-  if (includedCollections.has('watchList')) {
-    existing.watchList.forEach((item) =>
-      refs.push(toDocRef(`households/${householdId}/watchList/${item.id}`)),
     );
   }
 
@@ -325,15 +319,6 @@ export const buildSetOps = (
     if (!id) return;
     ops.push({
       ref: toDocRef(`households/${householdId}/financialPeriods/${id}`),
-      data: item as DocumentData,
-    });
-  });
-
-  (backupData.collections.watchList ?? []).forEach((item) => {
-    const id = getId(item);
-    if (!id) return;
-    ops.push({
-      ref: toDocRef(`households/${householdId}/watchList/${id}`),
       data: item as DocumentData,
     });
   });

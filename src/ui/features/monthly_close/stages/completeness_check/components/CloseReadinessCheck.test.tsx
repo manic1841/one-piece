@@ -88,19 +88,6 @@ describe('CloseReadinessCheck', () => {
     expect(screen.queryByText(/GO TO/)).not.toBeInTheDocument();
   });
 
-  it('shows zero-activity exceptions as non-blocking info rows', () => {
-    renderPanel({
-      readiness: {
-        ...readinessVM,
-        isReady: true,
-        exceptions: [{ label: '零活動', detail: '台新銀行', stageId: 'COMPLETENESS_CHECK' }],
-      },
-    });
-
-    expect(screen.getByText('台新銀行')).toBeInTheDocument();
-    expect(screen.getByTestId('readiness-confirm')).toBeEnabled();
-  });
-
   it('renders readiness only — no financial figures', () => {
     // COMPLETENESS_CHECK surfaces readiness state, not report numbers; the aggregated
     // figures belong to Steps 8-9 (see docs/monthly-close.md §3).

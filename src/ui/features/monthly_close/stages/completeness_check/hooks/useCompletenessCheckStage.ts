@@ -5,10 +5,6 @@ import {
   type SettlementReadiness,
   getSettlementReadinessUseCase,
 } from '@/application/report/use_cases/getSettlementReadinessUseCase';
-import {
-  type CompletenessActivity,
-  checkSettlementCompletenessUseCase,
-} from '@/application/settlement/use_cases/checkSettlementCompletenessUseCase';
 import { type AuthContext } from '@/application/types';
 import { type TransactionValidationIssue } from '@/domains/transaction_validation/validator';
 import { type CloseStageControl } from '@/ui/features/monthly_close/hooks/closeStageControl';
@@ -24,7 +20,6 @@ interface UseCompletenessCheckStageArgs {
 }
 
 interface CompletenessData {
-  anomalies: CompletenessActivity[];
   readiness: SettlementReadiness;
   transactionIssues: TransactionValidationIssue[];
 }
@@ -32,10 +27,10 @@ interface CompletenessData {
 const LOAD_ERROR = '無法載入結算就緒狀態，請稍後再試。';
 
 /**
- * Loads the month's completeness evidence: the zero-activity anomalies (the
- * only NEEDS_REVIEW source), the settlement readiness COMPLETENESS_CHECK
- * aggregates, and the transaction-validation issues it renders. A read failure
- * throws the canned message so the surface shows copy the consumer owns.
+ * Loads the month's completeness evidence: the settlement readiness the
+ * COMPLETENESS_CHECK aggregates, and the transaction-validation issues it
+ * renders. A read failure throws the canned message so the surface shows copy
+ * the consumer owns.
  */
 const fetchCompleteness = async ({
   householdId,
@@ -49,13 +44,11 @@ const fetchCompleteness = async ({
   const year = Number(selectedYearMonth.slice(0, 4));
   const month = Number(selectedYearMonth.slice(5, 7));
   try {
-    const [completeness, readiness, validation] = await Promise.all([
-      checkSettlementCompletenessUseCase.execute({ householdId, year, month, auth }),
+    const [readiness, validation] = await Promise.all([
       getSettlementReadinessUseCase.execute({ householdId, year, month, auth }),
       validateMonthTransactionsUseCase.execute({ householdId, year, month, auth }),
     ]);
     return {
-      anomalies: completeness.anomalies,
       readiness,
       transactionIssues: validation.issues,
     };
@@ -65,13 +58,12 @@ const fetchCompleteness = async ({
   }
 };
 
-/** Stage controller for COMPLETENESS_CHECK: the month's anomalies, settlement readiness, and transaction issues. */
+/** Stage controller for COMPLETENESS_CHECK: the month's settlement readiness and transaction issues. */
 export const useCompletenessCheckStage = ({
   householdId,
   selectedYearMonth,
   confirmingStageId,
 }: UseCompletenessCheckStageArgs): CloseStageControl<'COMPLETENESS_CHECK'> & {
-  anomalies: CompletenessActivity[];
   readiness: SettlementReadiness | null;
   transactionIssues: TransactionValidationIssue[];
   errorMessage: string | null;
@@ -97,7 +89,6 @@ export const useCompletenessCheckStage = ({
 
   return {
     ...control,
-    anomalies: data?.anomalies ?? [],
     readiness: data?.readiness ?? null,
     transactionIssues: data?.transactionIssues ?? [],
     errorMessage,

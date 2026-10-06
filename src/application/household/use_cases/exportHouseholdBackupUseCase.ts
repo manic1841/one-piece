@@ -17,7 +17,6 @@ import { projectSnapshotRepository } from '@/infra/repositories/projectSnapshotR
 import { reportRepository } from '@/infra/repositories/reportRepository';
 import { retirementRepository } from '@/infra/repositories/retirementRepository';
 import { transactionRepository } from '@/infra/repositories/transactionRepository';
-import { watchListRepository } from '@/infra/repositories/watchListRepository';
 
 export interface ExportHouseholdBackupRequest {
   householdId: string;
@@ -54,7 +53,6 @@ export interface HouseholdBackupPayload {
     ledgerCodes: unknown[];
     intentMappings: unknown[];
     financialPeriods: unknown[];
-    watchList: unknown[];
   };
 }
 
@@ -97,7 +95,6 @@ class ExportHouseholdBackupUseCase {
       ledgerCodes,
       intentMappings,
       financialPeriods,
-      watchList,
     ] = await Promise.all([
       accountRepository.getAccounts(householdId, true),
       projectRepository.getProjects(householdId, true),
@@ -111,7 +108,6 @@ class ExportHouseholdBackupUseCase {
       customLedgerCodeRepository.list([householdId]),
       intentMappingRepository.list([householdId]),
       financialPeriodRepository.listAll(householdId),
-      watchListRepository.listTargets(householdId),
     ]);
 
     const [accountBundle, projectBundle, portfolioBundle, debtBundle] = await Promise.all([
@@ -159,7 +155,6 @@ class ExportHouseholdBackupUseCase {
         ledgerCodes,
         intentMappings,
         financialPeriods,
-        watchList,
       },
     };
   }

@@ -20,7 +20,6 @@ import { listPortfolioSnapshotsUseCase } from '@/application/portfolio/use_cases
 import { listPortfoliosUseCase } from '@/application/portfolio/use_cases/listPortfoliosUseCase';
 import { generateFinancialReportsUseCase } from '@/application/report/use_cases/generateFinancialReportsUseCase';
 import { getReportPersistenceStateUseCase } from '@/application/report/use_cases/getReportPersistenceStateUseCase';
-import { checkSettlementCompletenessUseCase } from '@/application/settlement/use_cases/checkSettlementCompletenessUseCase';
 import { settleDebtAccountsUseCase } from '@/application/settlement/use_cases/settleDebtAccountsUseCase';
 import { settleProjectsUseCase } from '@/application/settlement/use_cases/settleProjectsUseCase';
 import { type AuthContext } from '@/application/types';
@@ -41,7 +40,6 @@ vi.mock('@/application/portfolio/use_cases/listPortfolioSnapshotsUseCase');
 vi.mock('@/application/portfolio/use_cases/listPortfoliosUseCase');
 vi.mock('@/application/report/use_cases/generateFinancialReportsUseCase');
 vi.mock('@/application/report/use_cases/getReportPersistenceStateUseCase');
-vi.mock('@/application/settlement/use_cases/checkSettlementCompletenessUseCase');
 vi.mock('@/application/settlement/use_cases/settleDebtAccountsUseCase');
 vi.mock('@/application/settlement/use_cases/settleProjectsUseCase');
 vi.mock('@/application/monthly_close/use_cases/financialPeriodAccessUseCases', () => {
@@ -666,37 +664,7 @@ describe('MonthlyCloseWorkflowUseCase.confirmStage', () => {
     });
   });
 
-  it('pauses the workflow when completeness anomalies exist', async () => {
-    vi.mocked(checkSettlementCompletenessUseCase.execute).mockResolvedValue({
-      yearMonth: '2026-09',
-      activities: [],
-      anomalies: [{ kind: 'ZERO_ACTIVITY_ACCOUNT', accountId: 'account-1' }],
-    } as any);
-
-    const { period } = await useCase.confirmStage({
-      ...REQUEST_BASE,
-      stageId: 'COMPLETENESS_CHECK',
-    });
-
-    expect(period.status).toBe('NEEDS_REVIEW');
-    expect(period.reviewSourceStageId).toBe('COMPLETENESS_CHECK');
-    expect(saveFinancialPeriodUseCase.execute).toHaveBeenCalledWith(
-      expect.objectContaining({
-        period: expect.objectContaining({
-          status: 'NEEDS_REVIEW',
-          reviewSourceStageId: 'COMPLETENESS_CHECK',
-        }),
-      }),
-    );
-  });
-
-  it('completes the stage when there are no anomalies', async () => {
-    vi.mocked(checkSettlementCompletenessUseCase.execute).mockResolvedValue({
-      yearMonth: '2026-09',
-      activities: [],
-      anomalies: [],
-    } as any);
-
+  it('completes the completeness stage directly (no zero-activity gate)', async () => {
     const { period } = await useCase.confirmStage({
       ...REQUEST_BASE,
       stageId: 'COMPLETENESS_CHECK',
@@ -706,7 +674,7 @@ describe('MonthlyCloseWorkflowUseCase.confirmStage', () => {
     expect(period.stages.COMPLETENESS_CHECK.status).toBe('COMPLETED');
   });
 
-  it('completes the stage when the review source stage is confirmed without re-running the check', async () => {
+  it('completes the stage when a legacy review source stage is confirmed', async () => {
     const period = basePeriod({
       status: 'NEEDS_REVIEW',
       reviewSourceStageId: 'COMPLETENESS_CHECK',
@@ -732,7 +700,6 @@ describe('MonthlyCloseWorkflowUseCase.confirmStage', () => {
     expect(result.period.reviewSourceStageId).toBeNull();
     expect(result.period.stages.FINANCIAL_REPORTS?.status).toBe('PENDING');
     expect(result.period.stages.CLOSE_PERIOD?.status).toBe('PENDING');
-    expect(checkSettlementCompletenessUseCase.execute).not.toHaveBeenCalled();
   });
 
   it('generates reports at the reports stage', async () => {

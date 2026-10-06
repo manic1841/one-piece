@@ -8,7 +8,6 @@ import type { AuthContext } from '@/application/types';
 import { initialStageStates } from '@/domains/financial_period/schemas';
 import { financialPeriodRepository } from '@/infra/repositories/financialPeriodRepository';
 import { reportRepository } from '@/infra/repositories/reportRepository';
-import { watchListRepository } from '@/infra/repositories/watchListRepository';
 import { db, resetMockDb } from '@/test/mocks/firebase';
 
 const adminAuth: AuthContext = { uid: 'admin-uid', isGlobalAdmin: false };
@@ -425,7 +424,7 @@ describe('household backup/restore round-trip (Firestore Emulator)', () => {
     expect(await countDocsInCollection(`households/${hid}/reports`)).toBe(1);
   });
 
-  it('exports and round-trips financialPeriods and watchList', async () => {
+  it('exports and round-trips financialPeriods', async () => {
     const hid = 'household-optional-collections';
     await seedHousehold(hid);
     await financialPeriodRepository.savePeriod(
@@ -439,23 +438,15 @@ describe('household backup/restore round-trip (Firestore Emulator)', () => {
       },
       'admin-uid',
     );
-    await watchListRepository.addTarget(
-      hid,
-      { targetType: 'PROJECT', targetId: 'proj-1', name: 'Project proj-1' },
-      'admin-uid',
-    );
 
     const payload = await exportHouseholdBackupUseCase.execute({
       householdId: hid,
       auth: adminAuth,
     });
     expect(payload.collections.financialPeriods).toHaveLength(1);
-    expect(payload.collections.watchList).toHaveLength(1);
 
     await deleteAllInCollection(`households/${hid}/financialPeriods`);
-    await deleteAllInCollection(`households/${hid}/watchList`);
     expect(await countDocsInCollection(`households/${hid}/financialPeriods`)).toBe(0);
-    expect(await countDocsInCollection(`households/${hid}/watchList`)).toBe(0);
 
     await importHouseholdBackupUseCase.execute({
       householdId: hid,
@@ -465,11 +456,13 @@ describe('household backup/restore round-trip (Firestore Emulator)', () => {
 
     const restoredPeriod = await getDoc(doc(db, `households/${hid}/financialPeriods/2025-01`));
     expect(restoredPeriod.exists()).toBe(true);
-    const restoredTarget = await getDoc(doc(db, `households/${hid}/watchList/PROJECT:proj-1`));
-    expect(restoredTarget.exists()).toBe(true);
   });
 
-  it('old v1 backups without optional collection keys do not delete local financialPeriods or watchList', async () => {
+  // The retired collection key cannot be named in production code (its domain,
+  // repository and schema are gone); ADR-0080 records which collection it was.
+  const RETIRED_COLLECTION_KEY = 'watchList';
+
+  it('ignores a collection retired from the app when an old v1 backup still carries it', async () => {
     const hid = 'household-old-backup';
     await seedHousehold(hid);
     await seedAccounts(hid, ['acc-1']);
@@ -478,20 +471,28 @@ describe('household backup/restore round-trip (Firestore Emulator)', () => {
       { yearMonth: '2025-01', status: 'IN_PROGRESS', stages: initialStageStates() },
       'admin-uid',
     );
-    await watchListRepository.addTarget(
-      hid,
-      { targetType: 'DEBT_ACCOUNT', targetId: 'debt-1', name: 'Debt debt-1' },
-      'admin-uid',
-    );
+    // Residue: a document left in the retired collection before the feature was
+    // removed, with no repository left to read or delete it.
+    await setDoc(doc(db, `households/${hid}/${RETIRED_COLLECTION_KEY}/PROJECT:local`), {
+      targetType: 'PROJECT',
+      targetId: 'local',
+      name: 'Local residue',
+    });
 
-    // Simulate an old v1 backup: strip the keys added after it was exported.
+    // A pre-removal v1 backup may still carry the retired collection. It must be
+    // ignored on import (ADR-0080): not rejected, not restored, and its presence
+    // must not delete what is already local nor disturb the payload's collections.
     const payload = await exportHouseholdBackupUseCase.execute({
       householdId: hid,
       auth: adminAuth,
     });
-    const legacyBackup = structuredClone(payload) as HouseholdBackupPayload;
+    const legacyBackup = structuredClone(payload) as HouseholdBackupPayload & {
+      collections: Record<string, unknown>;
+    };
     delete legacyBackup.collections.financialPeriods;
-    delete legacyBackup.collections.watchList;
+    legacyBackup.collections[RETIRED_COLLECTION_KEY] = [
+      { id: 'PROJECT:p1', targetType: 'PROJECT', targetId: 'p1', name: 'Legacy', ...baseFields },
+    ];
 
     await importHouseholdBackupUseCase.execute({
       householdId: hid,
@@ -499,9 +500,17 @@ describe('household backup/restore round-trip (Firestore Emulator)', () => {
       backup: legacyBackup,
     });
 
-    expect(await countDocsInCollection(`households/${hid}/financialPeriods`)).toBe(1);
-    expect(await countDocsInCollection(`households/${hid}/watchList`)).toBe(1);
+    // The backup's retired entry is not restored...
+    expect(await countDocsInCollection(`households/${hid}/${RETIRED_COLLECTION_KEY}`)).toBe(1);
+    expect(
+      (await getDoc(doc(db, `households/${hid}/${RETIRED_COLLECTION_KEY}/PROJECT:p1`))).exists(),
+    ).toBe(false);
+    // ...and the local residue is not deleted.
+    expect(
+      (await getDoc(doc(db, `households/${hid}/${RETIRED_COLLECTION_KEY}/PROJECT:local`))).exists(),
+    ).toBe(true);
 
+    expect(await countDocsInCollection(`households/${hid}/financialPeriods`)).toBe(1);
     expect(await countDocsInCollection(`households/${hid}/accounts`)).toBe(1);
     const restoredAccount = await getDoc(doc(db, `households/${hid}/accounts/acc-1`));
     expect(restoredAccount.exists()).toBe(true);

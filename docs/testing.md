@@ -119,7 +119,8 @@ snapshots 與三份財務報表)。腳本可重複執行(upsert,非 append)。
 
 Monthly close 種子寫入四個期間狀態形狀(見
 [monthly-close.md](monthly-close.md) §2):`2026-06` NEEDS_REVIEW
-(Completeness Check 零活動暫停)、`2026-07`/`2026-08` CLOSED
+(舊版完整性暫停遺留,`reviewSourceStageId = COMPLETENESS_CHECK`,
+ADR-0080)、`2026-07`/`2026-08` CLOSED
 (重開確認視窗與 ADR-0066 連鎖降級的目標)、`2026-09` IN_PROGRESS
 (前五階段完成)。`2026-05` 及更早不寫入紀錄(無紀錄 = 尚未開始關帳)。
 

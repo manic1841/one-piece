@@ -16,8 +16,6 @@ const readinessInput = {
   confirmedProjects: 4,
   totalDebts: 2,
   confirmedDebts: 2,
-  zeroActivityNames: [] as string[],
-  anomalies: [] as string[],
 };
 
 describe('mapReadinessVM', () => {
@@ -74,18 +72,6 @@ describe('mapReadinessVM', () => {
     expect(vm.exceptions).toEqual([
       expect.objectContaining({ label: '帳戶餘額', stageId: 'ACCOUNT_BALANCE' }),
       expect.objectContaining({ label: 'Portfolio 金流', stageId: 'PORTFOLIO_CASH_FLOW' }),
-    ]);
-  });
-
-  it('lists zero-activity names as exceptions without blocking readiness', () => {
-    const vm = mapReadinessVM({
-      ...readinessInput,
-      zeroActivityNames: ['台新銀行'],
-    });
-
-    expect(vm.isReady).toBe(true);
-    expect(vm.exceptions).toEqual([
-      { label: '零活動', detail: '台新銀行', stageId: 'COMPLETENESS_CHECK' },
     ]);
   });
 });

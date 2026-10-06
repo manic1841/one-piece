@@ -74,11 +74,6 @@ vi.mock('@/application/monthly_close/use_cases/validateMonthTransactionsUseCase'
     execute: vi.fn().mockResolvedValue({ yearMonth: '2026-09', checkedCount: 0, issues: [] }),
   },
 }));
-vi.mock('@/application/settlement/use_cases/checkSettlementCompletenessUseCase', () => ({
-  checkSettlementCompletenessUseCase: {
-    execute: vi.fn().mockResolvedValue({ yearMonth: '2026-09', activities: [], anomalies: [] }),
-  },
-}));
 vi.mock('@/application/report/use_cases/getSettlementReadinessUseCase', () => ({
   getSettlementReadinessUseCase: { execute: vi.fn() },
 }));

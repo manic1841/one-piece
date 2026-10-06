@@ -62,7 +62,6 @@ export const SettingsModuleLabels = {
   householdMembers: 'MEMBERS',
   accountingLedgerCodes: 'LEDGER CODES',
   accountingAllocation: 'INCOME ALLOCATION',
-  accountingWatchList: 'WATCH LIST',
   systemWhitelist: 'EMAIL WHITELIST',
   backup: 'BACKUP & RESTORE',
 } as const;

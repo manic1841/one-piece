@@ -189,35 +189,14 @@ principal 為 0 的還款（利息-only，含照實繳利息的寬限期付款�
 | 函數                             | 位置                                           | 目的                                               |
 | -------------------------------- | ---------------------------------------------- | -------------------------------------------------- |
 | `isInGracePeriod()`              | `src/domains/debt/debtPaymentCalculator.ts`    | 判斷是否在寬限期                                   |
-| `isLoanActiveInMonth()`          | `src/domains/debt/debtPaymentCalculator.ts`    | 判斷借款期間是否涵蓋某月份（記帳完整性檢查用）     |
 | `calculateGraceMonthlyPayment()` | `src/domains/debt/debtPaymentCalculator.ts`    | 計算寬限期利息                                     |
 | `calculateLoan()`                | `src/ui/features/debt/utils/loanCalculator.ts` | 試算時包含 `graceEndDate` 參數                     |
 | `buildDebtPaymentEntries()`      | `src/domains/debt/debtPaymentCalculator.ts`    | 由本金是否 > 0 決定分錄（寬限期不是特例）          |
 | `parseDebtPaymentEntries()`      | `src/domains/debt/debtPaymentCalculator.ts`    | 由 `DEBT_PAYMENT` 分錄讀回本金／利息（上述的逆向） |
 
-### 記帳完整性檢查中的債務語意
-
-監看清單（ADR-0048）可監看債務帳戶。結算前檢查以當月 `DEBT_PAYMENT` 交易為準，
-**不看** `linkedLedgerCode` 的活動：還債分錄借方正是該負債科目，當月若有新借款
-入帳，該科目活動不為零就會掩蓋漏還。
-
-參與檢查的條件：
-
-- `isActive = true`（停用／已結清的債務不參與檢查）
-- 借款期間涵蓋目標月份，由 `isLoanActiveInMonth(startDate, endDate, monthStart)`
-  以「月份」為粒度判斷：起始月與到期月都算在期間內（到期日 2026-08-31 不涵蓋
-  9 月，2026-09-05 仍涵蓋 9 月）
-- **寬限期不豁免檢查**。寬限期間的還款仍會產生利息的 `DEBT_PAYMENT` 交易
-  （見本節上方），所以該月零筆還款就是漏記的訊號，與 ADR-0017 一致
-- 債務文件已不存在時跳過（監看清單可能留有已刪除對象的殘留紀錄）
-- 無 `debtAccountId` 的 legacy 還款（`LIABILITY_PAYMENT`，見第 4 節）不計入：
-  `debtAccountId` 是 ADR-0014 之後還款交易的正典索引，本檢查只認正典格式；
-  誤報方向是請使用者確認，屬可接受
-
-已知偏差：日期比較一律採**本地日期**（`isInGracePeriod()` 亦同）。表單以
+已知偏差：`isInGracePeriod()` 的日期比較採**本地日期**。表單以
 `<input type="date">` 建立日期，字串 `2026-09-01` 会被解析成 UTC 午夜，因此在
-**UTC 負偏移**的瀏覽器上，本地日期會落到 8/31；若 `startDate` 或 `endDate` 恰好
-落在月初 1 日，涵蓋的月份會比預期早一個月。本專案目前沒有跨時區使用的需求，
+**UTC 負偏移**的瀏覽器上，本地日期會落到 8/31。本專案目前沒有跨時區使用的需求，
 且此行為與既有債務日期判讀一致，故不另作處理；若要修正，應統一改採 UTC 欄位
 或日期字串比較，影響範圍含寬限期判斷。
 
@@ -331,10 +310,8 @@ operation record 在同一個 Firestore transaction 內提交；任一寫入失�
 1. 依輸入建立還款交易（`createDebtPaymentUseCase`，含冪等鍵）。
 2. 執行 `settleDebtAccountsUseCase`，為當月尚無 `Debt Snapshot` 的啟用中 `DebtAccount` 建立快照（已存在的快照不會重複建立）。
 
-### 無還款警訊規則
+### 無還款月份的結算
 
-- 若某些帳戶在該月沒有還款紀錄，Completeness Check 階段會標記為零活動異常，暫停關帳流程（`NEEDS_REVIEW`）。
-- 這不是永久阻擋：使用者確認檢視後重新確認 `COMPLETENESS_CHECK` 階段即可繼續。
 - 結算時，無還款帳戶會建立「零還款快照」：
   - `principalPaid = 0`
   - `interestPaid = 0`

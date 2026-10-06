@@ -165,8 +165,8 @@ describe('household backup coverage contract (issue #256)', () => {
   it('scanner finds the known household collections', () => {
     const scanned = scannedCollectionNames();
     expect(
-      ['accounts', 'transactions', 'retirement_plans', 'financialPeriods', 'watchList'].every(
-        (name) => scanned.has(name),
+      ['accounts', 'transactions', 'retirement_plans', 'financialPeriods'].every((name) =>
+        scanned.has(name),
       ),
       `scanner missed known collections; found: ${[...scanned].sort().join(', ')}`,
     ).toBe(true);

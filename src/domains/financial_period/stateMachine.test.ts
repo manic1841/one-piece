@@ -6,7 +6,6 @@ import {
   completedStageCount,
   confirmStageInState,
   isStageCompleted,
-  markNeedsReviewInState,
   reconfirmStageInState,
   reopenPeriodInState,
   resetStagesFromInState,
@@ -83,27 +82,6 @@ describe('confirmStageInState', () => {
         new Date(),
       ),
     ).toThrow(FinancialPeriodStateError);
-  });
-});
-
-describe('markNeedsReviewInState', () => {
-  it('records the review source stage', () => {
-    const next = markNeedsReviewInState(basePeriod(), 'COMPLETENESS_CHECK');
-
-    expect(next.status).toBe('NEEDS_REVIEW');
-    expect(next.reviewSourceStageId).toBe('COMPLETENESS_CHECK');
-  });
-
-  it('rejects review marking on a CLOSED period', () => {
-    expect(() =>
-      markNeedsReviewInState(basePeriod({ status: 'CLOSED' }), 'COMPLETENESS_CHECK'),
-    ).toThrow(FinancialPeriodStateError);
-  });
-
-  it('rejects an unknown review source stage', () => {
-    expect(() => markNeedsReviewInState(basePeriod(), 'NOT_A_STAGE' as never)).toThrow(
-      FinancialPeriodStateError,
-    );
   });
 });
 

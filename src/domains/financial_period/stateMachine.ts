@@ -118,23 +118,6 @@ export const reconfirmStageInState = (
   };
 };
 
-export const markNeedsReviewInState = (
-  period: FinancialPeriod,
-  stageId: CloseStageId,
-): FinancialPeriod => {
-  if (period.status === 'CLOSED') {
-    throw new FinancialPeriodStateError('PERIOD_CLOSED', 'closed period cannot need review');
-  }
-  if (!CLOSE_STAGE_IDS_SET.has(stageId)) {
-    throw new FinancialPeriodStateError('STAGE_NOT_FOUND', `unknown stage: ${stageId}`);
-  }
-  return {
-    ...period,
-    status: 'NEEDS_REVIEW',
-    reviewSourceStageId: stageId,
-  };
-};
-
 export const isStageCompleted = (period: FinancialPeriod, stageId: CloseStageId): boolean =>
   period.stages[stageId]?.status === 'COMPLETED';
 

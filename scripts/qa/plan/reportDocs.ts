@@ -147,7 +147,8 @@ export const buildMonthlyCloseDocs = (b: Builder) => {
     });
   };
 
-  // Paused on the Completeness Check zero-activity anomaly.
+  // Legacy pause: persisted before the Completeness Check zero-activity source
+  // was removed (ADR-0080). Keeps the legacy resolution path covered.
   emitPeriod(
     '2026-06',
     'NEEDS_REVIEW',

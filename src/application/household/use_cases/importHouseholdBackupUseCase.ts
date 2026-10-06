@@ -13,7 +13,6 @@ import { projectRepository } from '@/infra/repositories/projectRepository';
 import { reportRepository } from '@/infra/repositories/reportRepository';
 import { retirementRepository } from '@/infra/repositories/retirementRepository';
 import { transactionRepository } from '@/infra/repositories/transactionRepository';
-import { watchListRepository } from '@/infra/repositories/watchListRepository';
 
 import { HouseholdBackupPayloadSchema } from './backupSchema';
 import { type HouseholdBackupPayload } from './exportHouseholdBackupUseCase';
@@ -91,7 +90,6 @@ class ImportHouseholdBackupUseCase {
       ledgerCodes,
       intentMappings,
       financialPeriods,
-      watchList,
     ] = await Promise.all([
       accountRepository.getAccounts(householdId, true),
       projectRepository.getProjects(householdId, true),
@@ -105,7 +103,6 @@ class ImportHouseholdBackupUseCase {
       customLedgerCodeRepository.list([householdId]),
       intentMappingRepository.list([householdId]),
       financialPeriodRepository.listAll(householdId),
-      watchListRepository.listTargets(householdId),
     ]);
 
     return {
@@ -121,7 +118,6 @@ class ImportHouseholdBackupUseCase {
       ledgerCodes,
       intentMappings,
       financialPeriods,
-      watchList,
     };
   }
 

@@ -11,7 +11,6 @@ import { getReportPersistenceStateUseCase } from '@/application/report/use_cases
 import { getSettlementReadinessUseCase } from '@/application/report/use_cases/getSettlementReadinessUseCase';
 import { getStoredReportsBundleUseCase } from '@/application/report/use_cases/getStoredReportsBundleUseCase';
 import { previewFinancialReportsWorkflow } from '@/application/report/use_cases/previewFinancialReportsWorkflow';
-import { checkSettlementCompletenessUseCase } from '@/application/settlement/use_cases/checkSettlementCompletenessUseCase';
 import { previewDebtSettlementsUseCase } from '@/application/settlement/use_cases/previewDebtSettlementsUseCase';
 import { previewProjectSettlementsUseCase } from '@/application/settlement/use_cases/previewProjectSettlementsUseCase';
 import { type Account } from '@/domains/account/types/account';
@@ -77,11 +76,6 @@ vi.mock('@/application/monthly_close/use_cases/validateMonthTransactionsUseCase'
 vi.mock('@/application/report/use_cases/getReportPersistenceStateUseCase', () => ({
   getReportPersistenceStateUseCase: {
     execute: vi.fn().mockResolvedValue({ isPersisted: false, timestamps: {} }),
-  },
-}));
-vi.mock('@/application/settlement/use_cases/checkSettlementCompletenessUseCase', () => ({
-  checkSettlementCompletenessUseCase: {
-    execute: vi.fn().mockResolvedValue({ yearMonth: '2026-08', activities: [], anomalies: [] }),
   },
 }));
 vi.mock('@/application/report/use_cases/getSettlementReadinessUseCase', () => ({
@@ -246,11 +240,6 @@ describe('useCloseStepRegistry', () => {
       yearMonth: '2026-08',
       checkedCount: 0,
       issues: [],
-    });
-    vi.mocked(checkSettlementCompletenessUseCase.execute).mockResolvedValue({
-      yearMonth: '2026-08',
-      activities: [],
-      anomalies: [],
     });
     vi.mocked(previewProjectSettlementsUseCase.execute).mockResolvedValue([]);
   });

@@ -17,7 +17,6 @@ import {
   ReportType,
 } from '@/domains/report/schemas';
 import { RetirementPlanSchema } from '@/domains/retirement/schemas';
-import { WatchListTargetSchema } from '@/domains/watch_list/schemas';
 
 /**
  * Import-side validation for the household backup payload (issue #256):
@@ -51,7 +50,6 @@ const AllocationDocumentSchema = withRevivedBase(AllocationSchema.shape);
 const AllocationTemplateDocumentSchema = withRevivedBase(AllocationTemplateSchema.shape);
 const LedgerCodeDocumentSchema = withRevivedBase(CustomLedgerCodeSchema.shape);
 const IntentMappingDocumentSchema = withRevivedBase(IntentMappingSchema.shape);
-const WatchListDocumentSchema = withRevivedBase(WatchListTargetSchema.shape);
 
 /** FinancialPeriod docs revive from the persisted create shape plus doc metadata. */
 const FinancialPeriodDocumentSchema = withRevivedBase(FinancialPeriodCreateSchema.shape);
@@ -112,6 +110,13 @@ export const HouseholdBackupPayloadSchema = z.object({
   exportedAt: z.string(),
   householdId: z.string(),
   household: HouseholdDocumentSchema,
+  /**
+   * Only live collections are declared. Zod objects drop undeclared keys, so a
+   * collection retired from the app but still present in an older
+   * schemaVersion-1 payload is ignored on import rather than rejected or
+   * restored. The retired collection is named in ADR-0080, the single source of
+   * that decision; do not restate it here.
+   */
   collections: z.object({
     accounts: z.array(
       z.object({
@@ -145,6 +150,5 @@ export const HouseholdBackupPayloadSchema = z.object({
     ledgerCodes: z.array(LedgerCodeDocumentSchema),
     intentMappings: z.array(IntentMappingDocumentSchema),
     financialPeriods: z.array(FinancialPeriodDocumentSchema).optional(),
-    watchList: z.array(WatchListDocumentSchema).optional(),
   }),
 });

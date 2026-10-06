@@ -2,7 +2,6 @@ import { useMemo } from 'react';
 
 import { type SecuritiesTradeInput } from '@/application/monthly_close/use_cases/monthlyCloseWorkflowUseCase';
 import { type SettlementReadiness } from '@/application/report/use_cases/getSettlementReadinessUseCase';
-import { type CompletenessActivity } from '@/application/settlement/use_cases/checkSettlementCompletenessUseCase';
 import { type ReportDriftModel } from '@/domains/report/reportDrift';
 import { REPORT_VIEW_TITLES } from '@/ui/constants/report/reportViewLabels';
 
@@ -22,7 +21,6 @@ interface UseCloseSummaryVMArgs {
   isClosed: boolean;
   transactionIssues: { transactionId: string; description: string; reason: string }[];
   securities: { buys: SecuritiesTradeInput[]; sells: SecuritiesTradeInput[] };
-  anomalies: CompletenessActivity[];
   pageVM: MonthlyClosePageVM;
   reportsPersisted: boolean | null;
 }
@@ -38,14 +36,9 @@ export const useCloseSummaryVM = ({
   isClosed,
   transactionIssues,
   securities,
-  anomalies,
   pageVM,
   reportsPersisted,
 }: UseCloseSummaryVMArgs) => {
-  // Memoized so a re-render that did not change the anomalies does not
-  // invalidate the readiness projection that reads it.
-  const zeroActivityNames = useMemo(() => anomalies.map((activity) => activity.name), [anomalies]);
-
   const readinessVM = useMemo(() => {
     if (!readiness) return null;
     return mapReadinessVM({
@@ -59,16 +52,8 @@ export const useCloseSummaryVM = ({
       confirmedProjects: readiness.totalProjects - readiness.unsettledProjects.length,
       totalDebts: readiness.totalDebts,
       confirmedDebts: readiness.totalDebts - readiness.unsettledDebts.length,
-      zeroActivityNames,
-      anomalies: [],
     });
-  }, [
-    readiness,
-    securities.buys.length,
-    securities.sells.length,
-    transactionIssues,
-    zeroActivityNames,
-  ]);
+  }, [readiness, securities.buys.length, securities.sells.length, transactionIssues]);
 
   // CLOSE_PERIOD's five figures are the drift model's tree nodes, not a second comparison.
   const financialResult = useMemo<FinancialResultVM>(

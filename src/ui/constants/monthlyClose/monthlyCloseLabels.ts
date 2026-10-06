@@ -131,7 +131,6 @@ export const MONTHLY_CLOSE_LABELS = {
   PERSISTED: '已產生',
   NOT_PERSISTED: '尚未產生',
   PERSISTENCE_UNKNOWN: '狀態未知',
-  ZERO_ACTIVITY: '零活動',
   TRANSACTION_ISSUES: '交易驗證問題',
   ADJUSTMENT: '現金流調整',
   REPORTS_PERSISTENCE: '報表產生狀態',

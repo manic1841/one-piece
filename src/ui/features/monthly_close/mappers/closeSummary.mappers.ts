@@ -46,8 +46,6 @@ export interface ReadinessInput {
   confirmedProjects: number;
   totalDebts: number;
   confirmedDebts: number;
-  zeroActivityNames: string[];
-  anomalies: string[];
 }
 
 export const CLOSE_ACTIVITY_STATUS = {
@@ -218,29 +216,10 @@ export const mapReadinessVM = (input: ReadinessInput): ReadinessVM => {
     stageId: null,
   }));
 
-  // Zero-activity alerts pause the workflow as NEEDS_REVIEW (ADR-0050); the
-  // paused stage's own confirmation is the resolution action, not a blocker.
-  const zeroActivityExceptions: ReadinessExceptionVM[] = [
-    ...input.zeroActivityNames,
-    ...input.anomalies,
-  ].map((name) => ({
-    label: MONTHLY_CLOSE_LABELS.ZERO_ACTIVITY,
-    detail: name,
-    stageId: 'COMPLETENESS_CHECK',
-  }));
-
-  const exceptions: ReadinessExceptionVM[] = [
-    ...snapshotExceptions,
-    ...transactionExceptions,
-    ...zeroActivityExceptions,
-  ];
-
-  const hasBlockingExceptions = exceptions.some(
-    (exception) => exception.stageId !== 'COMPLETENESS_CHECK',
-  );
+  const exceptions: ReadinessExceptionVM[] = [...snapshotExceptions, ...transactionExceptions];
 
   return {
-    isReady: !hasBlockingExceptions,
+    isReady: exceptions.length === 0,
     checks,
     exceptions,
   };
