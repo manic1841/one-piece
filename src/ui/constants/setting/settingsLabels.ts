@@ -163,6 +163,18 @@ export const SettingsLedgerCodeLabels = {
   emptyGroup: 'No categories defined for this type.',
 } as const;
 
+export const SettingsLedgerCodeViolationMessages = {
+  invalidShape:
+    '科目代碼格式不正確：請輸入 category（如 property）或 category:detail（如 property:taipei），僅限小寫英數字與底線。',
+  unknownType: (type: string) => `不支援的科目類型 ${type}。`,
+  duplicate: (code: string) => `科目代碼 ${code} 已存在。`,
+  parentInactive: (parent: string) => `父科目 ${parent} 已停用，請先啟用或改選其他 category。`,
+  parentMissing: (parent: string, available: string[]) =>
+    available.length > 0
+      ? `父科目 ${parent} 不存在，請先建立它。此類型可用的 category：${available.join('、')}。`
+      : `父科目 ${parent} 不存在，請先建立它。`,
+} as const;
+
 export const SettingsAllocationLabels = {
   formTitleCreate: 'Create Template',
   formTitleEdit: 'Edit Template',

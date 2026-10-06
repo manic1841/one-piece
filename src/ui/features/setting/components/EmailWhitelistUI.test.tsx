@@ -42,7 +42,7 @@ describe('EmailWhitelistUI', () => {
   it('rejects an invalid email before calling the hook', async () => {
     const props = renderSettings();
 
-    fireEvent.change(screen.getByLabelText('Add Email to Whitelist'), {
+    fireEvent.change(screen.getByLabelText(/Add Email to Whitelist/), {
       target: { value: 'not-an-email' },
     });
     fireEvent.click(screen.getByRole('button', { name: /Add/ }));
@@ -54,7 +54,7 @@ describe('EmailWhitelistUI', () => {
   it('rejects a duplicate email already in the whitelist', async () => {
     const props = renderSettings();
 
-    fireEvent.change(screen.getByLabelText('Add Email to Whitelist'), {
+    fireEvent.change(screen.getByLabelText(/Add Email to Whitelist/), {
       target: { value: 'owner@example.com' },
     });
     fireEvent.click(screen.getByRole('button', { name: /Add/ }));
@@ -66,7 +66,7 @@ describe('EmailWhitelistUI', () => {
   it('normalises and adds a valid email', async () => {
     const props = renderSettings();
 
-    fireEvent.change(screen.getByLabelText('Add Email to Whitelist'), {
+    fireEvent.change(screen.getByLabelText(/Add Email to Whitelist/), {
       target: { value: '  New@Example.com ' },
     });
     fireEvent.click(screen.getByRole('button', { name: /Add/ }));

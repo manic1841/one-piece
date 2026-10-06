@@ -10,7 +10,7 @@ import { SettingsLedgerCodeLabels } from '@/ui/constants/setting/settingsLabels'
  */
 export const LedgerCodeFormSchema = z.object({
   type: z.string().min(1),
-  code: z.string().trim().min(1, SettingsLedgerCodeLabels.errorCodeRequired),
+  code: z.string().trim().toLowerCase().min(1, SettingsLedgerCodeLabels.errorCodeRequired),
   label: z.string().trim().min(1, SettingsLedgerCodeLabels.errorLabelRequired),
 });
 

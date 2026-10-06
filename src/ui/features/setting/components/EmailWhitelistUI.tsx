@@ -77,7 +77,7 @@ const EmailWhitelistUI: React.FC<EmailWhitelistUIProps> = ({
         <form onSubmit={submit} noValidate className="space-y-2">
           <FormField name="email">
             <FormItem>
-              <FormLabel>{SettingsWhitelistLabels.addLabel}</FormLabel>
+              <FormLabel required>{SettingsWhitelistLabels.addLabel}</FormLabel>
               <div className="flex gap-2">
                 <FormControl>
                   <TextInput

@@ -57,6 +57,7 @@ const MemberManagementUI: React.FC<MemberManagementUIProps> = ({
 }) => {
   const { confirm } = useConfirm();
   const { form, submit, isSubmitting } = useMemberForm({ onAdd });
+  const email = form.watch('email');
 
   const handleRemoveMember = async (uid: string, email: string) => {
     const confirmed = await confirm({
@@ -98,7 +99,7 @@ const MemberManagementUI: React.FC<MemberManagementUIProps> = ({
               </FormItem>
             </FormField>
             <div className="flex items-end">
-              <Button type="submit" className="w-full" disabled={loading || isSubmitting}>
+              <Button type="submit" className="w-full" disabled={loading || isSubmitting || !email}>
                 {loading ? SettingsHouseholdLabels.adding : SettingsHouseholdLabels.addAction}
               </Button>
             </div>

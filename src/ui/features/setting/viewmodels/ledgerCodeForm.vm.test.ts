@@ -18,8 +18,8 @@ describe('ledgerCodeForm.vm', () => {
     );
   });
 
-  it('trims the code and label', () => {
-    const parsed = LedgerCodeFormSchema.parse({ type: 'asset', code: ' travel ', label: ' 差旅 ' });
+  it('trims and lowercases the code, and trims the label', () => {
+    const parsed = LedgerCodeFormSchema.parse({ type: 'asset', code: ' Travel ', label: ' 差旅 ' });
     expect(parsed).toEqual({ type: 'asset', code: 'travel', label: '差旅' });
   });
 });

@@ -1,5 +1,3 @@
-import { useState } from 'react';
-
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 
@@ -10,6 +8,7 @@ import {
   depthTwoCodesOfType,
   validateNewLedgerCode,
 } from '@/domains/ledger/ledgerCodeRules';
+import { SettingsLedgerCodeViolationMessages } from '@/ui/constants/setting/settingsLabels';
 import { useAuthIdentity } from '@/ui/hooks/useAuthIdentity';
 
 import {
@@ -29,19 +28,18 @@ const describeViolation = (
 
   switch (violation) {
     case 'INVALID_SHAPE':
-      return '科目代碼格式不正確：請輸入 category（如 property）或 category:detail（如 property:taipei），僅限小寫英數字與底線。';
+      return SettingsLedgerCodeViolationMessages.invalidShape;
     case 'UNKNOWN_TYPE':
-      return `不支援的科目類型 ${type}。`;
+      return SettingsLedgerCodeViolationMessages.unknownType(type);
     case 'DUPLICATE':
-      return `科目代碼 ${code} 已存在。`;
+      return SettingsLedgerCodeViolationMessages.duplicate(code);
     case 'PARENT_INACTIVE':
-      return `父科目 ${parent} 已停用，請先啟用或改選其他 category。`;
-    case 'PARENT_MISSING': {
-      const available = depthTwoCodesOfType(candidates, type);
-      return available.length > 0
-        ? `父科目 ${parent} 不存在，請先建立它。此類型可用的 category：${available.join('、')}。`
-        : `父科目 ${parent} 不存在，請先建立它。`;
-    }
+      return SettingsLedgerCodeViolationMessages.parentInactive(parent);
+    case 'PARENT_MISSING':
+      return SettingsLedgerCodeViolationMessages.parentMissing(
+        parent,
+        depthTwoCodesOfType(candidates, type),
+      );
   }
 };
 
@@ -71,7 +69,7 @@ export function useLedgerCodeForm({
     mode: 'onTouched',
     defaultValues: createDefaultLedgerCodeFormVM(),
   });
-  const [error, setError] = useState('');
+  const setRootError = (message: string) => form.setError('root', { message });
 
   /** @returns `true` when the code was created (the dialog may close); `false` on validation or write failure. */
   const submit = async (): Promise<boolean> => {
@@ -84,11 +82,11 @@ export function useLedgerCodeForm({
       const code = `${parsed.type}:${parsed.code}`;
       const validation = validateNewLedgerCode(code, candidates);
       if (!validation.valid) {
-        setError(describeViolation(validation.violation, code, candidates));
+        setRootError(describeViolation(validation.violation, code, candidates));
         return;
       }
 
-      setError('');
+      form.clearErrors('root');
       try {
         await createCustomLedgerCodeUseCase.execute({
           householdId,
@@ -101,7 +99,7 @@ export function useLedgerCodeForm({
         await refresh();
         created = true;
       } catch (err) {
-        setError('新增失敗: ' + (err instanceof Error ? err.message : String(err)));
+        setRootError('新增失敗: ' + (err instanceof Error ? err.message : String(err)));
       }
     })();
 
@@ -111,7 +109,7 @@ export function useLedgerCodeForm({
   return {
     form,
     submit,
-    error,
+    error: form.formState.errors.root?.message ?? '',
     isSubmitting: form.formState.isSubmitting,
   };
 }

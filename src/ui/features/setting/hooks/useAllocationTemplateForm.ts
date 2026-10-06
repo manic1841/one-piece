@@ -11,6 +11,7 @@ import {
   type AllocationTemplateFormVM,
   createDefaultAllocationTemplateFormVM,
   mapAllocationTemplateVMToItems,
+  positivePercentage,
   toAllocationTemplateFormVM,
 } from '../viewmodels/allocationTemplateForm.vm';
 
@@ -41,10 +42,12 @@ export function useAllocationTemplateForm({
   const [error, setError] = useState('');
 
   const watchedItems = useWatch({ control: form.control, name: 'items' });
-  const totalPercentage = (watchedItems ?? []).reduce(
-    (sum, item) => sum + (Number.parseFloat(item.percentage) || 0),
-    0,
-  );
+  // Same predicate as the schema/map: only usable positive rows count toward the
+  // preview, so the total shown can never drift from what `submit` accepts.
+  const totalPercentage = (watchedItems ?? []).reduce((sum, item) => {
+    const value = positivePercentage(item.percentage);
+    return value === null ? sum : sum + value;
+  }, 0);
 
   const appendItem = useCallback(
     (projectId: string) => {
