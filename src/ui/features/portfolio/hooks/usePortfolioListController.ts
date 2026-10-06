@@ -5,6 +5,7 @@ import { useAuthState } from '@/ui/contexts/useAuthState';
 import { useAccounts } from '@/ui/features/account/hooks/useAccounts';
 import { usePortfolioCmds } from '@/ui/features/portfolio/hooks/usePortfolioCmds';
 import { usePortfolios } from '@/ui/features/portfolio/hooks/usePortfolios';
+import { buildAggregateAllocationVM } from '@/ui/features/portfolio/viewmodels/holdingsAllocation.vm';
 import {
   type PortfolioListRowVM,
   mapPortfolioToRowVM,
@@ -75,6 +76,12 @@ export function usePortfolioListController() {
     [portfolios, latestSnapshots],
   );
 
+  // 家庭級持倉配置：各 active 組合各自的最新快照彙總（可能混時點）。
+  const allocation = useMemo(
+    () => buildAggregateAllocationVM(portfolios, latestSnapshots),
+    [portfolios, latestSnapshots],
+  );
+
   const reorderRows = useCallback(
     (ordered: PortfolioListRowVM[]) => {
       setLocalRows(ordered);
@@ -104,6 +111,7 @@ export function usePortfolioListController() {
     reload,
     rows,
     overview,
+    allocation,
     accounts,
     reorderRows,
     create,

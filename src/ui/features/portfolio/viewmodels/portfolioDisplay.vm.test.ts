@@ -83,6 +83,19 @@ describe('portfolioDisplay.vm', () => {
     expect(vm.totalValueText).toContain('124,456');
   });
 
+  it('excludes inactive portfolios from the overview total', () => {
+    const inactive = { ...portfolio, id: 'p2', isActive: false };
+    const vm = mapPortfoliosToOverviewVM(
+      [portfolio, inactive],
+      new Map([
+        ['p1', snapshot as never],
+        ['p2', { ...snapshot, totalValue: 999999 } as never],
+      ]),
+    );
+
+    expect(vm.totalValueText).toContain('123,456');
+  });
+
   it('maps the detail VM from the frozen snapshot performance', () => {
     const vm = mapPortfolioToDetailVM(portfolio, [snapshot], names);
 

@@ -40,6 +40,13 @@ const makeVm = (overrides: Partial<PortfolioDetailVM> = {}): PortfolioDetailVM =
   },
   trend: { ...emptyTrend, hasData: false },
   performanceRows: [],
+  allocation: {
+    hasData: false,
+    marketSegments: [],
+    exposureSegments: [],
+    marketTotalText: '—',
+    exposureTotalText: '—',
+  },
   ...overrides,
 });
 

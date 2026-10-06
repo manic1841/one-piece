@@ -66,6 +66,18 @@ export const PORTFOLIO_PERFORMANCE_COLUMN_LABELS = {
   NET_FLOW: 'Net Flow',
 } as const;
 
+/** 持倉配置區塊（詳情頁與列表頁共用）。 */
+export const PORTFOLIO_ALLOCATION_LABELS = {
+  SECTION_TITLE: 'HOLDINGS ALLOCATION',
+  MARKET_TITLE: 'Market Value',
+  EXPOSURE_TITLE: 'Exposure',
+  MARKET_ARIA: 'Market value allocation',
+  EXPOSURE_ARIA: 'Exposure allocation',
+  OTHER: '其他',
+  EMPTY_DETAIL: '此組合尚無持倉資料',
+  EMPTY_LIST: '尚無持倉資料，完成證券持倉後顯示配置',
+} as const;
+
 export const PORTFOLIO_FORM_LABELS = {
   CREATE_TITLE: 'Create Portfolio',
   NAME: 'Name',

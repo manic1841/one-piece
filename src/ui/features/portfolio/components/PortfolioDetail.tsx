@@ -23,12 +23,15 @@ import {
 import { Button } from '@/ui/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/ui/components/ui/tooltip';
 import {
+  PORTFOLIO_ALLOCATION_LABELS,
   PORTFOLIO_DANGER_LABELS,
   PORTFOLIO_DETAIL_LABELS,
   PORTFOLIO_PERFORMANCE_COLUMN_LABELS,
   PORTFOLIO_PERFORMANCE_COLUMN_WIDTHS,
 } from '@/ui/constants/portfolio/labels';
 import { type PortfolioDetailVM } from '@/ui/features/portfolio/viewmodels/portfolioDisplay.vm';
+
+import HoldingsAllocation from './HoldingsAllocation';
 
 interface PortfolioDetailProps {
   vm: PortfolioDetailVM;
@@ -56,6 +59,16 @@ const PortfolioDetail: React.FC<PortfolioDetailProps> = ({ vm, onDelete }) => {
           <Metric label={PORTFOLIO_DETAIL_LABELS.BANK} value={vm.bankName} />
         </MetricGroup>
       </PageSection>
+
+      <HoldingsAllocation
+        vm={vm.allocation}
+        // 無快照沿用既有的「尚無快照資料」；有快照但無持倉才顯示持倉空狀態。
+        emptyText={
+          vm.asOfText === null
+            ? PORTFOLIO_DETAIL_LABELS.NO_SNAPSHOT
+            : PORTFOLIO_ALLOCATION_LABELS.EMPTY_DETAIL
+        }
+      />
 
       <PageSection
         title={PORTFOLIO_DETAIL_LABELS.RETURN_SECTION}

@@ -45,6 +45,13 @@ const makeController = (
     reload: vi.fn(),
     rows,
     overview: { totalValueText: 'NT$2,000' },
+    allocation: {
+      hasData: false,
+      marketSegments: [],
+      exposureSegments: [],
+      marketTotalText: '—',
+      exposureTotalText: '—',
+    },
     accounts: [],
     reorderRows: vi.fn(),
     create: vi.fn(),

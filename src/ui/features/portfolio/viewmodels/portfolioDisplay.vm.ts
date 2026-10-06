@@ -3,9 +3,10 @@ import { type MonthTrendSeries, toMonthTrendSeries } from '@/ui/components/chart
 import { formatCurrency, formatPercentage, formatYearMonth } from '@/ui/utils';
 import { formatMonthLabel } from '@/ui/utils/date';
 
-export type { Portfolio, PortfolioSnapshot };
+import { type HoldingsAllocationVM, buildPortfolioAllocationVM } from './holdingsAllocation.vm';
+import { EMPTY_TEXT, isPortfolioActive } from './portfolioVm';
 
-const EMPTY_TEXT = '—';
+export type { Portfolio, PortfolioSnapshot };
 
 const resolveAccountName = (names: Map<string, string>, id: string): string =>
   names.get(id) ?? EMPTY_TEXT;
@@ -58,7 +59,8 @@ export const mapPortfoliosToOverviewVM = (
   snapshots: Map<string, PortfolioSnapshot>,
 ): PortfolioListOverviewVM => {
   const totalValue = portfolios.reduce(
-    (sum, portfolio) => sum + (snapshots.get(portfolio.id)?.totalValue ?? 0),
+    (sum, portfolio) =>
+      isPortfolioActive(portfolio) ? sum + (snapshots.get(portfolio.id)?.totalValue ?? 0) : sum,
     0,
   );
 
@@ -95,6 +97,7 @@ export interface PortfolioDetailVM {
   breakdown: PortfolioReturnBreakdownVM;
   trend: MonthTrendSeries;
   performanceRows: PortfolioPerformanceRowVM[];
+  allocation: HoldingsAllocationVM;
 }
 
 export const mapPortfolioToDetailVM = (
@@ -138,5 +141,6 @@ export const mapPortfolioToDetailVM = (
       cumulativeText: formatPercentage(snapshot.performance.cumulativeReturnRate, 2),
       netFlowText: formatCurrency(snapshot.performance.netCashFlow),
     })),
+    allocation: buildPortfolioAllocationVM(latest ?? undefined),
   };
 };

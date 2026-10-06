@@ -48,6 +48,13 @@ const makeVm = (overrides: Partial<PortfolioDetailVM> = {}): PortfolioDetailVM =
       netFlowText: 'NT$0',
     },
   ],
+  allocation: {
+    hasData: false,
+    marketSegments: [],
+    exposureSegments: [],
+    marketTotalText: '—',
+    exposureTotalText: '—',
+  },
   ...overrides,
 });
 
@@ -81,6 +88,13 @@ describe('PortfolioDetail surfaces', () => {
     );
 
     expect(screen.getByText('尚無快照資料')).toBeInTheDocument();
+  });
+
+  it('uses the holdings empty copy (not the snapshot one) when a snapshot has no holdings', () => {
+    render(<PortfolioDetail vm={makeVm()} onDelete={vi.fn()} />);
+
+    expect(screen.getByText('此組合尚無持倉資料')).toBeInTheDocument();
+    expect(screen.queryByText('尚無快照資料')).not.toBeInTheDocument();
   });
 
   it('invokes the delete handler from the danger zone', () => {

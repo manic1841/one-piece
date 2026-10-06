@@ -22,12 +22,14 @@ import { SortableListScope } from '@/ui/components/sortable/SortableListScope';
 import { Alert, AlertDescription } from '@/ui/components/ui/alert';
 import { Button } from '@/ui/components/ui/button';
 import {
+  PORTFOLIO_ALLOCATION_LABELS,
   PORTFOLIO_COLUMN_LABELS,
   PORTFOLIO_COLUMN_WIDTHS,
   PORTFOLIO_PAGE_LABELS,
 } from '@/ui/constants/portfolio/labels';
 import { usePortfolioListController } from '@/ui/features/portfolio/hooks/usePortfolioListController';
 
+import HoldingsAllocation from './HoldingsAllocation';
 import PortfolioForm from './PortfolioForm';
 import { SortableMobileRow, SortableTableRow } from './SortablePortfolioRows';
 
@@ -42,6 +44,7 @@ const PortfolioList: React.FC = () => {
     reload,
     rows,
     overview,
+    allocation,
     accounts,
     reorderRows,
     create,
@@ -90,13 +93,11 @@ const PortfolioList: React.FC = () => {
 
     return (
       <>
-        <PageSection
-          title={PORTFOLIO_PAGE_LABELS.TOTAL_VALUE_LABEL}
-          spacing="compact"
-          className="border-b-0"
-        >
+        <PageSection title={PORTFOLIO_PAGE_LABELS.TOTAL_VALUE_LABEL} spacing="compact">
           <FinancialNumber value={overview.totalValueText} size="large" className="mt-2" />
         </PageSection>
+
+        <HoldingsAllocation vm={allocation} emptyText={PORTFOLIO_ALLOCATION_LABELS.EMPTY_LIST} />
 
         {/* DndContext renders aria-live divs, so it must wrap the table
             rather than sit inside tbody (invalid HTML). */}
