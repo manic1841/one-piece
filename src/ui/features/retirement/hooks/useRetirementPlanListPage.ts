@@ -6,14 +6,20 @@ import { type RetirementPlan, type RetirementPlanCreate } from '@/domains/retire
 import { useConfirm } from '@/ui/components/confirm/useConfirm';
 import { useRetirementPlanCmds } from '@/ui/features/retirement/hooks/useRetirementPlanCmds';
 import { useRetirementPlans } from '@/ui/features/retirement/hooks/useRetirementPlans';
-import { mapRetirementPlanToListItemVM } from '@/ui/features/retirement/viewmodels/retirementDisplay.vm';
+import {
+  mapRetirementPlanToListItemVM,
+  sortRetirementPlanListItems,
+} from '@/ui/features/retirement/viewmodels/retirementDisplay.vm';
 
 export const useRetirementPlanListPage = (householdId?: string, email?: string) => {
   const navigate = useNavigate();
   const [plans, setPlans] = useState<RetirementPlan[]>([]);
   const [mutating, setMutating] = useState(false);
   const { listPlans, loading, error } = useRetirementPlans(householdId);
-  const { createPlan, deletePlan, duplicatePlan } = useRetirementPlanCmds(householdId, email);
+  const { createPlan, deletePlan, duplicatePlan, updatePlan } = useRetirementPlanCmds(
+    householdId,
+    email,
+  );
   const { confirm } = useConfirm();
 
   const fetchPlans = useCallback(async () => {
@@ -34,7 +40,9 @@ export const useRetirementPlanListPage = (householdId?: string, email?: string) 
     // Create a default plan
     const newPlan: RetirementPlanCreate = {
       name: `New Plan ${new Date().toLocaleDateString()}`,
-      isActive: true,
+      // Only the first plan in a household becomes active; later plans start
+      // inactive so the existing active plan is never silently replaced.
+      isActive: plans.length === 0,
       autoUpdate: false,
       currentYear: new Date().getFullYear(),
       birthYear: new Date().getFullYear() - 30, // Default age 30
@@ -71,6 +79,19 @@ export const useRetirementPlanListPage = (householdId?: string, email?: string) 
     }
   };
 
+  const handleSetActivePlan = async (id: string) => {
+    if (mutating) return;
+    try {
+      setMutating(true);
+      await updatePlan(id, { isActive: true });
+      await fetchPlans();
+    } catch (err) {
+      console.error('Failed to activate retirement plan', err);
+    } finally {
+      setMutating(false);
+    }
+  };
+
   const handleDuplicatePlan = async (id: string) => {
     if (!householdId || !email || mutating) return;
     try {
@@ -89,7 +110,7 @@ export const useRetirementPlanListPage = (householdId?: string, email?: string) 
 
   return {
     plans,
-    planItems: plans.map(mapRetirementPlanToListItemVM),
+    planItems: sortRetirementPlanListItems(plans.map(mapRetirementPlanToListItemVM)),
     listPlans, // This will be used as the data source (async fetch)
     loading,
     error,
@@ -97,6 +118,7 @@ export const useRetirementPlanListPage = (householdId?: string, email?: string) 
     createPlan: handleCreatePlan,
     deletePlan: handleDeletePlan,
     duplicatePlan: handleDuplicatePlan,
+    setActivePlan: handleSetActivePlan,
     reload: fetchPlans,
   };
 };

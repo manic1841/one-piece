@@ -92,8 +92,6 @@ export default defineConfig({
             '@radix-ui/react-slot',
             '@radix-ui/react-tabs',
           ],
-          // Charts library
-          recharts: ['recharts'],
           // Utilities
           utils: ['date-fns', 'zod', 'clsx', 'tailwind-merge'],
         },

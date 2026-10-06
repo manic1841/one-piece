@@ -10,6 +10,7 @@ import { upsertIncomeAllocationTemplateUseCase } from '@/application/ledger/use_
 import { IntentType } from '@/domains/ledger/constants';
 import { DEFAULT_INTENT_MAPPINGS } from '@/domains/ledger/intentMapping';
 import { normalizeDescription } from '@/domains/operation/fingerprint';
+import { newId } from '@/shared/id';
 import { getIntentLabel } from '@/ui/constants/transaction';
 import { useAuthState } from '@/ui/contexts/useAuthState';
 import { useLedgerCodes } from '@/ui/features/ledger/hooks/useLedgerCodes';
@@ -84,7 +85,7 @@ export const useTransactionForm = (
       return transactionWithAllocationAttemptRef.current.idempotencyKey;
     }
 
-    const idempotencyKey = globalThis.crypto.randomUUID();
+    const idempotencyKey = newId();
     transactionWithAllocationAttemptRef.current = { signature, idempotencyKey };
     return idempotencyKey;
   };

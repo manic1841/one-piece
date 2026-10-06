@@ -10,6 +10,7 @@ import { ConfirmDialogBody } from '@/ui/components/confirm/ConfirmDialogBody';
 import type { ConfirmOptions } from '@/ui/components/confirm/resolveConfirmOptions';
 import { useConfirm } from '@/ui/components/confirm/useConfirm';
 import { DrawerPanel } from '@/ui/components/drawer/DrawerPanel';
+import { AdvancedDisclosure } from '@/ui/components/form';
 import {
   Accordion,
   AccordionContent,
@@ -31,7 +32,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/ui/components/ui/tab
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/ui/components/ui/tooltip';
 import CommandPalette from '@/ui/features/app/layout/CommandPalette';
 
-import { GalleryGroup, GalleryModule, GallerySection } from './GalleryScaffold';
+import { GalleryCaption, GalleryGroup, GalleryModule, GallerySection } from './GalleryScaffold';
 
 const ButtonSection: React.FC = () => (
   <GallerySection number="21" title="Button & Action">
@@ -84,6 +85,17 @@ const TooltipSection: React.FC = () => (
   </GallerySection>
 );
 
+const AdvancedDisclosureDemo: React.FC = () => {
+  const [open, setOpen] = React.useState(false);
+  return (
+    <div className="max-w-sm">
+      <AdvancedDisclosure label="Advanced" open={open} onOpenChange={setOpen}>
+        <p className="text-sm text-muted-foreground">Growth Rate · Start Year · End Year</p>
+      </AdvancedDisclosure>
+    </div>
+  );
+};
+
 const AccordionSection: React.FC = () => (
   <GallerySection number="23" title="Accordion / Collapsible Section">
     <Accordion type="single" collapsible>
@@ -111,6 +123,13 @@ const AccordionSection: React.FC = () => (
         </AccordionContent>
       </AccordionItem>
     </Accordion>
+    <GalleryModule label="FORM · ADVANCED DISCLOSURE">
+      <AdvancedDisclosureDemo />
+    </GalleryModule>
+    <GalleryCaption>
+      表單內的 `AdvancedDisclosure` 不是 `ui/accordion`：它是有邊框的 field
+      形狀切換鈕，收納次要欄位。
+    </GalleryCaption>
   </GallerySection>
 );
 

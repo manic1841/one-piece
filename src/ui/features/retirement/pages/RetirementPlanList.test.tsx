@@ -41,7 +41,7 @@ function planItemFixture(
     name: 'Test Plan',
     isActive: true,
     retirementAge: 60,
-    statusText: 'Active',
+    statusText: '使用中',
     finalNetWorthText: 'NT$300,000',
     ...overrides,
   };
@@ -60,6 +60,7 @@ function controllerFixture(
     createPlan: vi.fn().mockResolvedValue(undefined),
     deletePlan: vi.fn().mockResolvedValue(undefined),
     duplicatePlan: vi.fn().mockResolvedValue(undefined),
+    setActivePlan: vi.fn().mockResolvedValue(undefined),
     reload: vi.fn().mockResolvedValue(undefined),
     ...overrides,
   };
@@ -88,7 +89,7 @@ describe('RetirementPlanList table', () => {
     expect(screen.getByRole('columnheader', { name: 'Retirement Age' })).toBeInTheDocument();
     expect(screen.getByRole('columnheader', { name: 'Final Net Worth' })).toBeInTheDocument();
     expect(screen.getByRole('columnheader', { name: 'Status' })).toBeInTheDocument();
-    expect(screen.getByText('Test Plan')).toBeInTheDocument();
+    expect(screen.getAllByText('Test Plan').length).toBeGreaterThan(0);
   });
 
   it('renders plan rows without per-plan cards', () => {
@@ -102,6 +103,55 @@ describe('RetirementPlanList table', () => {
     expect(screen.queryByText('5% Return')).not.toBeInTheDocument();
   });
 
+  it('marks the active plan with a primary bar and a text badge', () => {
+    mockUseRetirementPlanListPage.mockReturnValue(controllerFixture());
+
+    renderList();
+
+    const row = screen.getByTestId('retirement-plan-row-plan-1');
+    expect(row.className.includes('border-l-primary')).toBe(true);
+    expect(screen.getAllByText('使用中').length).toBeGreaterThan(0);
+  });
+
+  it('places the active plan before inactive plans', () => {
+    mockUseRetirementPlanListPage.mockReturnValue(
+      controllerFixture({
+        planItems: [
+          planItemFixture({ id: 'plan-active', name: 'Active Plan', isActive: true }),
+          planItemFixture({
+            id: 'plan-idle',
+            name: 'Idle Plan',
+            isActive: false,
+            statusText: '未使用',
+          }),
+        ],
+      }),
+    );
+
+    renderList();
+
+    const table = screen.getByRole('table');
+    const active = table.querySelector('[data-testid="retirement-plan-row-plan-active"]');
+    const idle = table.querySelector('[data-testid="retirement-plan-row-plan-idle"]');
+    expect(active).not.toBeNull();
+    expect(idle).not.toBeNull();
+    expect(Boolean(active!.compareDocumentPosition(idle!) & Node.DOCUMENT_POSITION_FOLLOWING)).toBe(
+      true,
+    );
+  });
+
+  it('renders the desktop table before the mobile list in the DOM', () => {
+    mockUseRetirementPlanListPage.mockReturnValue(controllerFixture());
+
+    renderList();
+
+    const table = screen.getByTestId('retirement-plan-table');
+    const mobileRow = screen.getByTestId('retirement-plan-row-mobile-plan-1');
+    expect(
+      Boolean(table.compareDocumentPosition(mobileRow) & Node.DOCUMENT_POSITION_FOLLOWING),
+    ).toBe(true);
+  });
+
   it('navigates to plan detail on row click', () => {
     const navigate = vi.fn();
     mockUseNavigate.mockReturnValue(navigate);
@@ -109,7 +159,7 @@ describe('RetirementPlanList table', () => {
 
     renderList();
 
-    fireEvent.click(screen.getByText('Test Plan'));
+    fireEvent.click(screen.getByTestId('retirement-plan-row-plan-1'));
     expect(navigate).toHaveBeenCalledWith('/retirement/plan-1');
   });
 
@@ -125,14 +175,38 @@ describe('RetirementPlanList table', () => {
       newPlanButton.compareDocumentPosition(screen.getByRole('table')) &
         Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
-    expect(
-      screen.queryByRole('button', { name: 'Duplicate', exact: true }),
-    ).not.toBeInTheDocument();
 
     const duplicateAction = screen.getByRole('button', { name: 'Duplicate plan' });
     expect(duplicateAction.textContent).toBe('');
     fireEvent.click(duplicateAction);
     expect(duplicatePlan).toHaveBeenCalledWith('plan-1');
+  });
+
+  it('activates an inactive plan from its row-action icon', () => {
+    const navigate = vi.fn();
+    mockUseNavigate.mockReturnValue(navigate);
+    const setActivePlan = vi.fn().mockResolvedValue(undefined);
+    mockUseRetirementPlanListPage.mockReturnValue(
+      controllerFixture({
+        setActivePlan,
+        planItems: [planItemFixture({ isActive: false, statusText: '未使用' })],
+      }),
+    );
+
+    renderList();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Set as active' }));
+    expect(setActivePlan).toHaveBeenCalledWith('plan-1');
+    expect(navigate).not.toHaveBeenCalledWith('/retirement/plan-1');
+  });
+
+  it('hides the activate action for the already-active plan', () => {
+    mockUseRetirementPlanListPage.mockReturnValue(controllerFixture());
+
+    renderList();
+
+    expect(screen.queryByRole('button', { name: 'Set as active' })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Duplicate plan' })).toBeInTheDocument();
   });
 
   it('does not navigate when the duplicate action is clicked', () => {
@@ -153,13 +227,13 @@ describe('RetirementPlanList table', () => {
 
     renderList();
 
-    const row = screen.getByTestId('retirement-plan-row-plan-1');
-    expect(row).toHaveTextContent('Test Plan');
-    expect(row).toHaveTextContent('Retirement Age');
-    expect(row).toHaveTextContent('60');
-    expect(row).toHaveTextContent('Final Net Worth');
-    expect(row).toHaveTextContent('NT$300,000');
-    expect(row).toHaveTextContent('Active');
+    const row = screen.getByTestId('retirement-plan-row-mobile-plan-1');
+    expect(row.textContent).toContain('Test Plan');
+    expect(row.textContent).toContain('Retirement Age');
+    expect(row.textContent).toContain('60');
+    expect(row.textContent).toContain('Final Net Worth');
+    expect(row.textContent).toContain('NT$300,000');
+    expect(row.textContent).toContain('使用中');
   });
 
   it('shows the empty state with a create call to action', () => {
@@ -169,7 +243,19 @@ describe('RetirementPlanList table', () => {
 
     renderList();
 
-    expect(screen.getByText('No plans yet')).toBeInTheDocument();
+    expect(screen.getByText('NO PLANS')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Create Plan/i })).toBeInTheDocument();
+  });
+
+  it('shows an actionable error state with retry', () => {
+    const reload = vi.fn().mockResolvedValue(undefined);
+    mockUseRetirementPlanListPage.mockReturnValue(
+      controllerFixture({ error: new Error('boom'), reload }),
+    );
+
+    renderList();
+
+    fireEvent.click(screen.getByRole('button', { name: '重試' }));
+    expect(reload).toHaveBeenCalled();
   });
 });

@@ -7,6 +7,7 @@ import type {
   RetirementPlan,
   RetirementPlanCreate,
 } from '@/domains/retirement/types';
+import { newId } from '@/shared/id';
 import { useConfirm } from '@/ui/components/confirm/useConfirm';
 
 interface UseRetirementExpenseActionsParams {
@@ -26,7 +27,7 @@ export const useRetirementExpenseActions = ({
     async (expenseData: Omit<RetirementExpenseCategory, 'id'>) => {
       if (!id || !plan) return;
       await handleUpdatePlan({
-        expenses: appendById(plan.expenses, { ...expenseData, id: crypto.randomUUID() }),
+        expenses: appendById(plan.expenses, { ...expenseData, id: newId() }),
       });
     },
     [id, plan, handleUpdatePlan],

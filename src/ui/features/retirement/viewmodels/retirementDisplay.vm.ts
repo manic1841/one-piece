@@ -1,6 +1,10 @@
 import { calculateYearlyExpense } from '@/domains/retirement/logic/expenseEngine';
 import { resolveSampleYear } from '@/domains/retirement/logic/retirementCalculator';
-import { normalizeRetirementEventPhases } from '@/domains/retirement/logic/retirementEventPhases';
+import {
+  type NormalizedRetirementEventPhase,
+  calculateRetirementEventPhaseAmount,
+  normalizeRetirementEventPhases,
+} from '@/domains/retirement/logic/retirementEventPhases';
 import { type RetirementProjection } from '@/domains/retirement/logic/retirementPlanProjection';
 import {
   type RetirementExpenseCategory,
@@ -8,6 +12,13 @@ import {
   type RetirementOneTimeEvent,
   type RetirementPlan,
 } from '@/domains/retirement/types';
+import { type MoneyTone } from '@/ui/components/moneyTone';
+import { RETIREMENT_LIST_LABELS } from '@/ui/constants/retirement/retirementListLabels';
+import {
+  RetirementExpenseBadgeLabels,
+  RetirementRiskLabels,
+  RetirementTabContentLabels,
+} from '@/ui/constants/retirement/retirementWorkspaceLabels';
 import { formatCurrency } from '@/ui/utils';
 
 export type { RetirementExpenseCategory, RetirementIncomeSource, RetirementOneTimeEvent };
@@ -22,6 +33,17 @@ export interface RetirementPlanListItemVM {
   statusText: string;
   finalNetWorthText: string;
 }
+
+/**
+ * Active plan first, otherwise keep the incoming order. The repository already returns
+ * plans by `updatedAt` desc, so this is a stable partition — not a re-sort (issue #264).
+ */
+export const sortRetirementPlanListItems = (
+  items: RetirementPlanListItemVM[],
+): RetirementPlanListItemVM[] => [
+  ...items.filter((item) => item.isActive),
+  ...items.filter((item) => !item.isActive),
+];
 
 export interface RetirementPlanHeaderVM {
   id: string;
@@ -62,7 +84,9 @@ export const mapRetirementPlanToListItemVM = (plan: RetirementPlan): RetirementP
   name: plan.name,
   isActive: plan.isActive,
   retirementAge: plan.retirementAge,
-  statusText: plan.isActive ? 'Active' : 'Inactive',
+  statusText: plan.isActive
+    ? RETIREMENT_LIST_LABELS.ACTIVE_BADGE
+    : RETIREMENT_LIST_LABELS.INACTIVE_BADGE,
   finalNetWorthText:
     plan.summary?.finalNetWorth != null ? formatCurrency(plan.summary.finalNetWorth) : '—',
 });
@@ -93,9 +117,7 @@ export interface RetirementExpenseItemVM {
   amountText: string;
   growthAndMultiplierText: string;
   periodText: string;
-  modeLabel: string;
-  retirementModeLabel?: string;
-  expenseTypeLabel?: string;
+  typeLabel: string;
   debtModeLabel?: string;
 }
 
@@ -113,13 +135,14 @@ export const mapRetirementExpenseToVM = (
       expense.growthRate != null ? `${expense.growthRate}% growth` : 'Inflation'
     } ${retirementModeText}`,
     periodText: `${expense.startYear} - ${expense.endYear ?? 'Lifetime'}`,
-    modeLabel: isDebtPayment ? 'debt_payment' : 'fixed',
-    expenseTypeLabel: isDebtPayment ? 'debt_payment' : undefined,
+    typeLabel: isDebtPayment
+      ? RetirementExpenseBadgeLabels.typeDebtPayment
+      : RetirementExpenseBadgeLabels.typeGeneral,
     debtModeLabel: isDebtPayment
       ? expense.interestOnly
-        ? 'interest only'
+        ? RetirementExpenseBadgeLabels.interestOnly
         : expense.includesPrincipal
-          ? 'includes principal'
+          ? RetirementExpenseBadgeLabels.includesPrincipal
           : undefined
       : undefined,
   };
@@ -131,28 +154,54 @@ export interface RetirementEventItemVM {
   note?: string;
   yearText: string;
   amountText: string;
+  /** Present only when the event is segmented, so the row still shows one money figure. */
+  phaseCountText?: string;
   typeText: string;
   amountClassName: string;
 }
 
-export const mapRetirementEventToVM = (event: RetirementOneTimeEvent): RetirementEventItemVM => {
+/**
+ * Lifetime cost of one phase: the per-year `amount` grown each year it spans, summed.
+ */
+const sumPhaseAmount = (
+  phase: NormalizedRetirementEventPhase,
+  planInflationRate: number,
+): number => {
+  let total = 0;
+  for (let year = phase.startYear; year <= phase.endYear; year += 1) {
+    total += calculateRetirementEventPhaseAmount(phase, year, planInflationRate);
+  }
+  return total;
+};
+
+/**
+ * `planInflationRate` is required: a phase without an explicit `growthRate` is grown
+ * by plan inflation, so a total computed without it would understate the cost.
+ */
+export const mapRetirementEventToVM = (
+  event: RetirementOneTimeEvent,
+  planInflationRate: number,
+): RetirementEventItemVM => {
   const phases = normalizeRetirementEventPhases(event);
   const minYear =
     phases.length > 0 ? Math.min(...phases.map((phase) => phase.startYear)) : event.year;
   const maxYear =
     phases.length > 0 ? Math.max(...phases.map((phase) => phase.endYear)) : event.year;
   const isIncome = event.type === 'income';
-  const amountText =
-    phases.length <= 1 && phases[0]?.amount != null
-      ? `${isIncome ? '+' : '-'}${formatCurrency(phases[0].amount)}`
-      : `${phases.length} phases`;
+  const totalAmount = phases.reduce(
+    (total, phase) => total + sumPhaseAmount(phase, planInflationRate),
+    0,
+  );
 
   return {
     id: event.id,
     name: event.name,
     note: event.note,
     yearText: `Year: ${minYear}${maxYear && maxYear !== minYear ? `-${maxYear}` : ''}`,
-    amountText,
+    amountText: `${isIncome ? '+' : '-'}${formatCurrency(totalAmount)}`,
+    ...(phases.length > 1 && {
+      phaseCountText: RetirementTabContentLabels.phaseCount(phases.length),
+    }),
     typeText: event.type,
     amountClassName: isIncome ? 'text-positive' : 'text-negative',
   };
@@ -163,10 +212,13 @@ export interface RetirementProjectionPointVM {
   age: number;
   income: number;
   expense: number;
+  /** Investment income earned on the opening balance that year (issue #265). */
+  investmentIncome: number;
   netCashFlow: number;
   savings: number;
   incomeText: string;
   expenseText: string;
+  investmentIncomeText: string;
   netCashFlowText: string;
   savingsText: string;
   isBankruptYear: boolean;
@@ -193,16 +245,24 @@ export interface ExpenseBreakdownSlice {
   type: 'fixed' | 'variable';
 }
 
+export interface RetirementRiskVM {
+  key: 'retirementYear' | 'bankruptcyYear' | 'minSavingsYear' | 'lifeExpectancyEnd';
+  label: string;
+  valueText: string;
+  tone: MoneyTone;
+}
+
 export interface RetirementProjectionVM {
   retirementYear: number;
   retirementSavingsText: string;
   minYearText: string;
   minSavingsText: string;
   bankruptText: string;
-  bankruptClassName: string;
+  bankruptTone: MoneyTone;
   chartData: RetirementProjectionPointVM[];
   yearlyDetails: RetirementProjectionYearDetailVM[];
   expenseBreakdownChartData: ExpenseBreakdownSlice[] | null;
+  risks: RetirementRiskVM[];
 }
 
 export const mapRetirementProjectionToVM = (
@@ -213,6 +273,9 @@ export const mapRetirementProjectionToVM = (
   const retirementSnapshot = projection.find((item) => item.year === retirementYear);
   const bankruptSnapshot = projection.find((item) => item.savings < 0);
 
+  // Derived from the fresh projection rather than the persisted `plan.summary`,
+  // which only refreshes on explicit recalculate: minYearText and the
+  // min-savings risk must agree and must not go stale after an edit.
   let minSnapshot = projection[0];
   for (const snapshot of projection) {
     if (!minSnapshot || snapshot.savings < minSnapshot.savings) {
@@ -243,16 +306,18 @@ export const mapRetirementProjectionToVM = (
     minYearText: String(minSnapshot?.year ?? '-'),
     minSavingsText: formatCurrency(minSnapshot?.savings ?? 0),
     bankruptText: bankruptSnapshot ? `是 (${bankruptSnapshot.year})` : '否',
-    bankruptClassName: bankruptSnapshot ? 'text-negative' : 'text-positive',
+    bankruptTone: bankruptSnapshot ? 'negative' : 'positive',
     chartData: projection.map((item) => ({
       year: item.year,
       age: item.age,
       income: item.income,
       expense: item.expense,
+      investmentIncome: item.investmentIncome,
       netCashFlow: item.netCashFlow,
       savings: item.savings,
       incomeText: formatCurrency(item.income),
       expenseText: formatCurrency(item.expense),
+      investmentIncomeText: formatCurrency(item.investmentIncome),
       netCashFlowText: formatCurrency(item.netCashFlow),
       savingsText: formatCurrency(item.savings),
       isBankruptYear: bankruptSnapshot?.year === item.year,
@@ -278,5 +343,31 @@ export const mapRetirementProjectionToVM = (
       })),
     })),
     expenseBreakdownChartData,
+    risks: [
+      {
+        key: 'retirementYear',
+        label: RetirementRiskLabels.retirementYear,
+        valueText: String(retirementYear),
+        tone: 'default',
+      },
+      {
+        key: 'bankruptcyYear',
+        label: RetirementRiskLabels.bankruptcyYear,
+        valueText: bankruptSnapshot ? String(bankruptSnapshot.year) : RetirementRiskLabels.none,
+        tone: bankruptSnapshot ? 'negative' : 'default',
+      },
+      {
+        key: 'minSavingsYear',
+        label: RetirementRiskLabels.minSavingsYear,
+        valueText: String(minSnapshot?.year ?? RetirementRiskLabels.none),
+        tone: 'default',
+      },
+      {
+        key: 'lifeExpectancyEnd',
+        label: RetirementRiskLabels.lifeExpectancyEnd,
+        valueText: plan ? String(plan.birthYear + plan.lifeExpectancy) : '—',
+        tone: 'default',
+      },
+    ],
   };
 };

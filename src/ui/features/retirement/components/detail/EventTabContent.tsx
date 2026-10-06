@@ -1,13 +1,19 @@
 import React from 'react';
 
-import { Pencil, Trash2 } from 'lucide-react';
+import { Pencil } from 'lucide-react';
 
+import { ListSectionHeader } from '@/ui/components/ListSectionHeader';
+import { RowActions } from '@/ui/components/RowActions';
 import { Button } from '@/ui/components/ui/button';
-import { RetirementWorkspaceTermLabels } from '@/ui/constants/retirement/retirementWorkspaceLabels';
+import {
+  RetirementTabContentLabels,
+  RetirementWorkspaceTermLabels,
+} from '@/ui/constants/retirement/retirementWorkspaceLabels';
 import {
   type RetirementEventItemVM,
   type RetirementOneTimeEvent,
 } from '@/ui/features/retirement/viewmodels/retirementDisplay.vm';
+import { cn } from '@/ui/utils/cn';
 
 import EventDialog from '../EventDialog';
 
@@ -27,53 +33,56 @@ export const EventTabContent: React.FC<EventTabContentProps> = ({
   handleDeleteEvent,
 }) => {
   return (
-    <div className="rounded-lg border p-6">
-      <div className="flex justify-between items-center mb-4">
-        <h3 className="text-lg font-semibold">
-          {RetirementWorkspaceTermLabels.retirementEvents} ({eventItems.length})
-        </h3>
-        <EventDialog onSave={handleAddEvent} currentYear={currentYear} />
-      </div>
+    <div>
+      <ListSectionHeader
+        className="mb-4"
+        title={RetirementWorkspaceTermLabels.retirementEvents}
+        count={eventItems.length}
+        actions={<EventDialog onSave={handleAddEvent} currentYear={currentYear} />}
+      />
       {eventItems.length === 0 ? (
-        <p className="text-muted-foreground">
-          No life events defined yet. Click Add Event to get started.
-        </p>
+        <p className="text-sm text-muted-foreground">{RetirementTabContentLabels.eventEmpty}</p>
       ) : (
-        <div className="space-y-2">
+        <div className="divide-y divide-border">
           {eventItems.map(({ domain, vm }) => (
-            <div key={vm.id} className="border rounded p-4">
-              <div className="flex justify-between items-start">
-                <div>
-                  <div className="font-medium">{vm.name}</div>
-                  <div className="text-sm text-muted-foreground">{vm.yearText}</div>
-                  {vm.note && <div className="text-sm text-muted-foreground mt-1">{vm.note}</div>}
+            <div key={vm.id} className="flex items-start justify-between gap-4 py-3">
+              <div className="min-w-0">
+                <div className="font-medium">{vm.name}</div>
+                <div className="font-mono text-sm tabular-nums text-muted-foreground">
+                  {vm.yearText}
                 </div>
-                <div className="flex items-center gap-4">
-                  <div className="text-right">
-                    <div className={`font-medium ${vm.amountClassName}`}>{vm.amountText}</div>
-                    <div className="text-xs uppercase text-muted-foreground">{vm.typeText}</div>
+                {vm.note && <div className="mt-1 text-sm text-muted-foreground">{vm.note}</div>}
+              </div>
+              <div className="flex shrink-0 items-center gap-4">
+                <div className="text-right">
+                  <div className={cn('font-mono font-medium tabular-nums', vm.amountClassName)}>
+                    {vm.amountText}
                   </div>
-                  <div className="flex gap-2">
+                  <div className="text-xs uppercase text-muted-foreground">{vm.typeText}</div>
+                  {vm.phaseCountText && (
+                    <div className="text-xs text-muted-foreground">{vm.phaseCountText}</div>
+                  )}
+                </div>
+                <RowActions
+                  edit={
                     <EventDialog
                       onSave={(updates) => handleUpdateEvent(domain.id, updates)}
                       currentYear={currentYear}
                       initialData={domain}
                       trigger={
-                        <Button variant="ghost" size="icon">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          aria-label={RetirementTabContentLabels.editAction}
+                        >
                           <Pencil className="h-4 w-4" />
                         </Button>
                       }
                     />
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                      onClick={() => handleDeleteEvent(domain.id)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
+                  }
+                  onDelete={() => handleDeleteEvent(domain.id)}
+                  deleteLabel={RetirementTabContentLabels.deleteAction}
+                />
               </div>
             </div>
           ))}

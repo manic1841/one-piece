@@ -1,5 +1,6 @@
 import { mapCategoryToRetirementIncomeType } from '@/domains/retirement/mappers/retirementMapper';
 import { type RetirementIncomeSource } from '@/domains/retirement/types';
+import { newId } from '@/shared/id';
 
 export type PlannedIncome = {
   ledgerCode: string;
@@ -53,7 +54,7 @@ export function calculateIncomeSourceSuggestions(
     const annualAmount = value.total;
 
     incomeSources.push({
-      id: crypto.randomUUID(),
+      id: newId(),
       name: toIncomeStreamName(key),
       incomeCategory: key,
       type: mapCategoryToRetirementIncomeType(key),

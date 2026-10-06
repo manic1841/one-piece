@@ -1,6 +1,10 @@
 import React from 'react';
 
+import { Pencil } from 'lucide-react';
+
 import { ActivityList, ActivityRow } from '@/ui/components/ActivityList';
+import { ListSectionHeader } from '@/ui/components/ListSectionHeader';
+import { RowActions } from '@/ui/components/RowActions';
 import {
   DataTable,
   DataTableCell,
@@ -312,6 +316,46 @@ const SortableSection: React.FC = () => {
   );
 };
 
+const EditableListSection: React.FC = () => (
+  <GallerySection number="12" title="Editable List">
+    <GalleryModule label="SECTION HEADER + ROW ACTIONS">
+      <ListSectionHeader
+        className="mb-4"
+        title="Income Streams"
+        count={1}
+        actions={
+          <Button variant="outline" size="sm">
+            IMPORT
+          </Button>
+        }
+      />
+      <div className="divide-y divide-border">
+        <div className="flex items-center justify-between gap-4 py-3">
+          <div className="min-w-0">
+            <div className="font-medium">Salary</div>
+            <div className="font-mono text-sm tabular-nums text-muted-foreground">
+              NT$1,200,000 · 3% growth · Lifelong
+            </div>
+          </div>
+          <RowActions
+            edit={
+              <Button variant="ghost" size="icon" aria-label="Edit Salary">
+                <Pencil className="h-4 w-4" />
+              </Button>
+            }
+            onDelete={() => undefined}
+            deleteLabel="Delete Salary"
+          />
+        </div>
+      </div>
+    </GalleryModule>
+    <GalleryCaption>
+      可編輯列的清單：`ListSectionHeader`（標題 ＋ 計數 ＋ 動作）搭配 `RowActions`（edit trigger ＋
+      destructive delete）。標題列 class 與列尾動作由共用元件決定，垂直間距由呼叫端給。
+    </GalleryCaption>
+  </GallerySection>
+);
+
 export const GalleryCollectionsBody: React.FC = () => (
   <>
     <GalleryGroup label="COLLECTIONS" />
@@ -319,5 +363,6 @@ export const GalleryCollectionsBody: React.FC = () => (
     <DataTablePrimitivesSection />
     <ActivitySection />
     <SortableSection />
+    <EditableListSection />
   </>
 );

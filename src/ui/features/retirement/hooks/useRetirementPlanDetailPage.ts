@@ -24,6 +24,7 @@ export const useRetirementPlanDetailPage = (
     plan,
     loading,
     error,
+    reload,
     netWorthSource,
     staleIncomeSyncBanner,
     handleApplyStaleIncomeSync,
@@ -96,11 +97,15 @@ export const useRetirementPlanDetailPage = (
       ? plan.expenses.map((expense) => ({ domain: expense, vm: mapRetirementExpenseToVM(expense) }))
       : [],
     eventItems: plan
-      ? plan.events.map((event) => ({ domain: event, vm: mapRetirementEventToVM(event) }))
+      ? plan.events.map((event) => ({
+          domain: event,
+          vm: mapRetirementEventToVM(event, plan.inflationRate),
+        }))
       : [],
     projectionVM,
     loading,
     error,
+    reload,
     staleIncomeSyncBanner,
     handleApplyStaleIncomeSync,
     handleDismissStaleIncomeSync,

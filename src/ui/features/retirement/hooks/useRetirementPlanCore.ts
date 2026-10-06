@@ -232,6 +232,7 @@ export const useRetirementPlanCore = ({
     plan,
     loading: planLoading,
     error: planError,
+    reload: loadPlan,
     netWorthSource,
     staleIncomeSyncBanner,
     handleApplyStaleIncomeSync,

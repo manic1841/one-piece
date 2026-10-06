@@ -15,7 +15,7 @@
 記帳工具的介面應該安靜、可信、資料優先。色板為 **dark-first**：`src/index.css` 的 `:root` 直接承載暗色值，不另設 `.dark` class 區塊。**現行 token 值一律以 `src/index.css` 為唯一來源**；主題切換（若未來需要）屆時再引入切換機制與配對色板。
 
 - `primary` 為 teal（暗色底上承擔主要互動色）；`chart-1..5` 為資料視覺色，硬編碼 hex 一律對齊 token。
-- 圖表色調由共用對應決定（`src/ui/components/charts/chartTheme.ts`）：**accent 保留給「當前／選取／主要趨勢」**，其餘資料用中性色階；圖表保持安靜，不使用裝飾性漸層。
+- 圖表色調由共用對應決定（`src/ui/components/charts/chartTheme.ts`）：**accent 保留給「當前／選取／主要趨勢」**，其餘資料用中性色階；圖表保持安靜，不使用裝飾性漸層。面積填色只允許**單色資料歸屬漸層**（單一色相、取自序列自身顏色、且以線本身為基線往下淡出），見 [ADR-0078](../adr/0078-single-colour-data-affiliation-gradient.md)。
 - 層級由材質（§3）而非色差承擔。
 - 金額語意 token `positive`（收入/資產）與 `negative`（支出/負債警示）定義於 `src/index.css` 並註冊進 `tailwind.config.js`；全站金額一律經此 token 呈現。`destructive` 與 `negative` 同值（來源色板只有一個紅），仍僅用於不可逆動作與錯誤文字。
 - `border-strong` token（比 `border` 亮一階）定義於 `src/index.css` 並註冊進 `tailwind.config.js`；`badge`/`alert` 等需要可見邊界的元件改用它，避免暗色底上邊界消失。
@@ -37,10 +37,11 @@
 | `#5CC8C0`（accent）     | `--primary`、`--ring`                  |
 | `#5fd19a`（positive）   | `--positive`                           |
 | `#e46d78`（negative）   | `--negative`、`--destructive`          |
-| `#e6b45f`（warning）    | `--warning`                            |
+| `#e6b45f`（warning）    | `--warning`、`--chart-3`               |
+| `#3C8CDD`（淨資產藍）   | `--chart-1`                            |
 
 - 原型比本專案多一階文字色 `--dim`（`#5f6977`，用於座標軸與註解文字），目前尚未收斂成 token。
-- 沒有原型對應、沿用本專案既有語意的 token：`--accent`（比 surface-3 再亮一階的第四層表面，原型只有三層）、`--chart-1`／`--chart-4`。其中 `--chart-2`／`-3`／`-5` 對齊 `positive`／`warning`／`negative`，避免同一語意在兩處出現不同值。
+- 沒有原型對應、沿用本專案既有語意的 token：`--accent`（比 surface-3 再亮一階的第四層表面，原型只有三層）、`--chart-4`。其中 `--chart-1` 為資產／淨資產語意、`--chart-2`／`-3`／`-5` 對齊 `positive`／`warning`／`negative`，避免同一語意在兩處出現不同值。
 - `src/index.css` 的值以**裸 HSL 通道、兩位小數**書寫：`hsl(var(--x))` 需要裸通道才支援 `bg-positive/70` 這類 alpha modifier，而整數四捨五入會讓與原型 hex 的 round-trip 產生每通道 1–2/255 的誤差。**不要把通道改成整數**。
 
 ## 2. 動態（Motion）

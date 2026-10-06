@@ -1,9 +1,15 @@
 import React from 'react';
 
-import { Pencil, Trash2 } from 'lucide-react';
+import { Pencil } from 'lucide-react';
 
+import { ListSectionHeader } from '@/ui/components/ListSectionHeader';
+import { RowActions } from '@/ui/components/RowActions';
+import { Badge } from '@/ui/components/ui/badge';
 import { Button } from '@/ui/components/ui/button';
-import { RetirementWorkspaceTermLabels } from '@/ui/constants/retirement/retirementWorkspaceLabels';
+import {
+  RetirementTabContentLabels,
+  RetirementWorkspaceTermLabels,
+} from '@/ui/constants/retirement/retirementWorkspaceLabels';
 import {
   type RetirementExpenseCategory,
   type RetirementExpenseItemVM,
@@ -33,87 +39,69 @@ export const ExpenseTabContent: React.FC<ExpenseTabContentProps> = ({
   handleImportFromLedger,
 }) => {
   return (
-    <div className="rounded-lg border p-6">
-      <div className="flex justify-between items-center mb-4">
-        <h3 className="text-lg font-semibold">
-          {RetirementWorkspaceTermLabels.expenseCategories} ({expenseItems.length})
-        </h3>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" onClick={handleImportDebtRepayments}>
-            匯入債務還款
-          </Button>
-          <Button variant="outline" onClick={handleImportFromLedger}>
-            Import from Ledger
-          </Button>
-          <RetirementExpenseDialog
-            onSave={handleAddExpense}
-            currentYear={currentYear}
-            planInflationRate={planInflationRate}
-          />
-        </div>
-      </div>
+    <div>
+      <ListSectionHeader
+        className="mb-4"
+        title={RetirementWorkspaceTermLabels.expenseCategories}
+        count={expenseItems.length}
+        actions={
+          <>
+            <Button variant="outline" size="sm" onClick={handleImportDebtRepayments}>
+              {RetirementTabContentLabels.importDebtRepayments}
+            </Button>
+            <Button variant="outline" size="sm" onClick={handleImportFromLedger}>
+              {RetirementTabContentLabels.importFromLedger}
+            </Button>
+            <RetirementExpenseDialog
+              onSave={handleAddExpense}
+              currentYear={currentYear}
+              planInflationRate={planInflationRate}
+            />
+          </>
+        }
+      />
       {expenseItems.length === 0 ? (
-        <p className="text-muted-foreground">
-          No expense categories defined yet. Click Add Expense to get started.
-        </p>
+        <p className="text-sm text-muted-foreground">{RetirementTabContentLabels.expenseEmpty}</p>
       ) : (
-        <div className="space-y-2">
+        <div className="divide-y divide-border">
           {expenseItems.map(({ domain, vm }) => (
-            <div key={vm.id} className="border rounded p-4">
-              <div className="flex justify-between items-start">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <div className="font-medium">{vm.name}</div>
-                    <span className="text-xs px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
-                      {vm.modeLabel}
-                    </span>
-                    {vm.retirementModeLabel && (
-                      <span className="text-xs px-1.5 py-0.5 rounded bg-positive/15 text-positive">
-                        {vm.retirementModeLabel}
-                      </span>
-                    )}
-                    {vm.expenseTypeLabel && (
-                      <span className="text-xs px-1.5 py-0.5 rounded bg-primary/15 text-primary">
-                        {vm.expenseTypeLabel}
-                      </span>
-                    )}
-                    {vm.debtModeLabel && (
-                      <span className="text-xs px-1.5 py-0.5 rounded bg-warning/10 text-warning">
-                        {vm.debtModeLabel}
-                      </span>
-                    )}
-                  </div>
-                  <div className="text-sm text-muted-foreground">{vm.periodText}</div>
+            <div key={vm.id} className="flex items-start justify-between gap-4 py-3">
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <div className="font-medium">{vm.name}</div>
+                  <Badge variant="outline">{vm.typeLabel}</Badge>
+                  {vm.debtModeLabel && <Badge variant="outline">{vm.debtModeLabel}</Badge>}
                 </div>
-                <div className="flex items-center gap-4">
-                  <div className="text-right">
-                    <div className="font-medium">{vm.amountText}</div>
-                    <div className="text-sm text-muted-foreground">
-                      {vm.growthAndMultiplierText}
-                    </div>
-                  </div>
-                  <div className="flex gap-2">
+                <div className="font-mono text-sm tabular-nums text-muted-foreground">
+                  {vm.periodText}
+                </div>
+              </div>
+              <div className="flex shrink-0 items-center gap-4">
+                <div className="text-right">
+                  <div className="font-mono font-medium tabular-nums">{vm.amountText}</div>
+                  <div className="text-sm text-muted-foreground">{vm.growthAndMultiplierText}</div>
+                </div>
+                <RowActions
+                  edit={
                     <RetirementExpenseDialog
                       onSave={(updates) => handleUpdateExpense(domain.id, updates)}
                       currentYear={currentYear}
                       planInflationRate={planInflationRate}
                       initialData={domain}
                       trigger={
-                        <Button variant="ghost" size="icon">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          aria-label={RetirementTabContentLabels.editAction}
+                        >
                           <Pencil className="h-4 w-4" />
                         </Button>
                       }
                     />
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                      onClick={() => handleDeleteExpense(domain.id)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
+                  }
+                  onDelete={() => handleDeleteExpense(domain.id)}
+                  deleteLabel={RetirementTabContentLabels.deleteAction}
+                />
               </div>
             </div>
           ))}

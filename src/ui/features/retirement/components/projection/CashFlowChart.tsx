@@ -1,110 +1,77 @@
-import {
-  Bar,
-  CartesianGrid,
-  Cell,
-  ComposedChart,
-  Line,
-  ReferenceLine,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from 'recharts';
-
+import { ChartLegend } from '@/ui/components/charts/ChartLegend';
+import { InteractiveComposedChart } from '@/ui/components/charts/InteractiveComposedChart';
+import { type ComposedSeries } from '@/ui/components/charts/composedChartGeometry';
+import { RetirementChartLabels } from '@/ui/constants/retirement/retirementWorkspaceLabels';
 import { type RetirementProjectionVM } from '@/ui/features/retirement/viewmodels/retirementDisplay.vm';
 
 type RetirementProjectionProps = {
   projection: RetirementProjectionVM;
 };
 
+const buildSeries = (projection: RetirementProjectionVM): ComposedSeries[] => {
+  const points = projection.chartData;
+  const income = points.map((point) => point.income);
+  const incomeAndReturn = points.map((point) => point.income + point.investmentIncome);
+
+  return [
+    { kind: 'line', tone: 'positive', area: true, values: income },
+    // Investment return stacks on income: the band is the gap between the two lines.
+    {
+      kind: 'line',
+      tone: 'investment',
+      area: true,
+      values: incomeAndReturn,
+      baselineValues: income,
+    },
+    { kind: 'line', tone: 'negative', area: true, values: points.map((point) => -point.expense) },
+    { kind: 'line', tone: 'primary', values: points.map((point) => point.netCashFlow) },
+    { kind: 'line', tone: 'asset', axis: 'right', values: points.map((point) => point.savings) },
+  ];
+};
+
+/**
+ * 年度現金流投影：收入與投資報酬的堆疊帶（零以上）、支出帶（零以下）＋淨現金流線，
+ * 疊上淨資產線（右軸）。資料即投影的 `chartData`，不新增計算（issue #265）。
+ */
 export function CashFlowChart({ projection }: RetirementProjectionProps) {
+  const labels = projection.chartData.map((point) => String(point.year));
+  const retirementIndex = projection.chartData.findIndex(
+    (point) => point.year === projection.retirementYear,
+  );
+
   return (
-    <div className="h-[360px] w-full rounded-lg border p-4">
-      <ResponsiveContainer width="100%" height="100%">
-        <ComposedChart
-          data={projection.chartData}
-          margin={{ top: 16, right: 28, left: 8, bottom: 8 }}
-        >
-          <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.3} />
-          <XAxis dataKey="year" />
-          <YAxis yAxisId="cashflow" tickFormatter={(value) => `${Math.round(value / 1000)}k`} />
-          <YAxis
-            yAxisId="savings"
-            orientation="right"
-            tickFormatter={(value) => `${Math.round(value / 1000)}k`}
-          />
-          <ReferenceLine
-            yAxisId="cashflow"
-            y={0}
-            stroke="hsl(var(--muted-foreground))"
-            strokeDasharray="3 3"
-            strokeOpacity={0.8}
-          />
-          <Tooltip
-            labelFormatter={(value) => `Year ${value}`}
-            formatter={(
-              _value: number,
-              name: string,
-              payload: {
-                payload?: {
-                  incomeText?: string;
-                  expenseText?: string;
-                  netCashFlowText?: string;
-                  savingsText?: string;
-                };
-              },
-            ) => {
-              if (name === 'income') return [payload.payload?.incomeText ?? '', 'Income'];
-              if (name === 'expense') return [payload.payload?.expenseText ?? '', 'Expense'];
-              if (name === 'netCashFlow') {
-                return [payload.payload?.netCashFlowText ?? '', 'Net Cash Flow'];
-              }
-              return [payload.payload?.savingsText ?? '', 'Savings'];
-            }}
-          />
-          <ReferenceLine
-            x={projection.retirementYear}
-            yAxisId="cashflow"
-            stroke="hsl(var(--chart-4))"
-            strokeDasharray="4 4"
-            label={{ value: 'Retirement', position: 'top', fill: 'hsl(var(--chart-4))' }}
-          />
-          <Bar yAxisId="savings" dataKey="savings" barSize={14} radius={[4, 4, 0, 0]}>
-            {projection.chartData.map((item) => (
-              <Cell
-                key={item.year}
-                fill={item.isBankruptYear ? 'hsl(var(--negative))' : 'hsl(var(--chart-3))'}
-                fillOpacity={item.isBankruptYear ? 0.85 : 0.45}
-              />
-            ))}
-          </Bar>
-          <Line
-            yAxisId="cashflow"
-            type="monotone"
-            dataKey="income"
-            stroke="hsl(var(--positive))"
-            strokeWidth={2}
-            dot={false}
-          />
-          <Line
-            yAxisId="cashflow"
-            type="monotone"
-            dataKey="expense"
-            stroke="hsl(var(--negative))"
-            strokeWidth={2}
-            dot={false}
-          />
-          <Line
-            yAxisId="cashflow"
-            type="monotone"
-            dataKey="netCashFlow"
-            stroke="hsl(var(--chart-4))"
-            strokeWidth={1.8}
-            strokeDasharray="4 3"
-            dot={false}
-          />
-        </ComposedChart>
-      </ResponsiveContainer>
+    <div className="space-y-3">
+      <InteractiveComposedChart
+        labels={labels}
+        series={buildSeries(projection)}
+        referenceLines={
+          retirementIndex >= 0
+            ? [
+                {
+                  index: retirementIndex,
+                  tone: 'primary',
+                  label: RetirementChartLabels.retirementMarker,
+                },
+              ]
+            : []
+        }
+        points={projection.chartData.map((point) => ({
+          title: `${RetirementChartLabels.tooltipYearPrefix} ${point.year}`,
+          value: `${RetirementChartLabels.netCashFlow} ${point.netCashFlowText}`,
+          meta: `${RetirementChartLabels.income} ${point.incomeText} · ${RetirementChartLabels.investmentReturn} ${point.investmentIncomeText} · ${RetirementChartLabels.expense} ${point.expenseText} · ${RetirementChartLabels.netWorth} ${point.savingsText}`,
+        }))}
+        height={360}
+        ariaLabel={RetirementChartLabels.cashFlowAriaLabel}
+      />
+      <ChartLegend
+        items={[
+          { label: RetirementChartLabels.income, tone: 'positive' },
+          { label: RetirementChartLabels.investmentReturn, tone: 'investment' },
+          { label: RetirementChartLabels.expense, tone: 'negative' },
+          { label: RetirementChartLabels.netCashFlow, tone: 'primary' },
+          { label: RetirementChartLabels.netWorth, tone: 'asset' },
+        ]}
+      />
     </div>
   );
 }

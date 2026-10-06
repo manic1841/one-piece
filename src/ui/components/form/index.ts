@@ -20,6 +20,8 @@ export { CurrencyInput } from './CurrencyInput';
 export { DateInput } from './DateInput';
 export { SelectField } from './Select';
 export { TextArea } from './TextArea';
+export { AdvancedDisclosure } from './AdvancedDisclosure';
+export { ReadoutField } from './ReadoutField';
 export { useFormField } from './form-context';
 
 export type { TextInputProps } from './TextInput';
@@ -28,3 +30,5 @@ export type { CurrencyInputProps } from './CurrencyInput';
 export type { DateInputProps } from './DateInput';
 export type { SelectFieldProps, SelectFieldOption } from './Select';
 export type { TextAreaProps } from './TextArea';
+export type { AdvancedDisclosureProps } from './AdvancedDisclosure';
+export type { ReadoutFieldProps } from './ReadoutField';

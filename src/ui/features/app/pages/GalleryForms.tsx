@@ -18,6 +18,7 @@ import {
   FormLabel,
   FormMessage,
   NumberInput,
+  ReadoutField,
   TextArea,
   TextInput,
 } from '@/ui/components/form';
@@ -58,6 +59,15 @@ const InputSection: React.FC = () => (
         <DateInput defaultValue="2026-10-02" aria-label="Date" />
       </FieldDemo>
     </div>
+    <GalleryModule label="READOUT FIELD · DERIVED VALUE">
+      <div className="grid max-w-sm gap-4">
+        <ReadoutField label="GROWTH" value="Using plan inflation: 3%" />
+        <ReadoutField label="DURATION" value="Lifelong" />
+      </div>
+    </GalleryModule>
+    <GalleryCaption>
+      唯讀推導值走 `ReadoutField`：label 在上、與 input 同尺寸的邊框值框在下；它不是輸入欄。
+    </GalleryCaption>
   </GallerySection>
 );
 

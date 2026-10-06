@@ -19,6 +19,7 @@
 主文件保留假設參數、事件、快取摘要與 `isActive`。收入與支出類別由子集合管理；其結構見 [ADR-0026](adr/0026-retirement-plan-subcollections.md)。
 
 - **同一 household 僅允許一筆 `isActive=true`**，由 create/update transaction 內的 active fan-out 原子維護（[ADR-0036](adr/0036-single-active-retirement-plan.md)、[ADR-0040](adr/0040-retirement-plan-atomic-writes.md)）。
+- **新建計畫預設狀態**：household 尚無計畫時，首個建立的計畫為 `isActive=true`；之後建立的計畫一律 `isActive=false`，不自動取代現有 active。使用者可在清單頁將任一非 active 計畫設為 active，此時 fan-out 會原子地把其他計畫降為非 active（issue #264）。
 - **複製計畫**：完整複製子集合與事件，但新計畫預設 `isActive=false`，不昨接釋放原 active（[ADR-0037](adr/0037-retirement-plan-duplicate-inactive.md)）。
 - 計畫不存在時操作回傳 `PLAN_NOT_FOUND`。
 
@@ -98,6 +99,7 @@ phase 形狀與驗證：
 | income/expense 子集合整批替換 | 整批替換而非逐筆 diff                                                                                                                                                                        | [ADR-0030](adr/0030-retirement-update-batch-replace.md)    |
 | 刪除順序（歷史；已原子化）    | 子集合先行、主文件最後                                                                                                                                                                       | [ADR-0031](adr/0031-retirement-delete-order.md)            |
 | active plan 唯一性            | 同一 household 至多一筆 `isActive=true`                                                                                                                                                      | [ADR-0036](adr/0036-single-active-retirement-plan.md)      |
+| 新建計畫預設狀態              | household 首個計畫 `isActive=true`，之後建立的計畫 `isActive=false`；清單頁可手動將非 active 計畫設為 active                                                                                 | issue #264                                                 |
 | 複製後預設非啟用              | 新計畫 `isActive=false`                                                                                                                                                                      | [ADR-0037](adr/0037-retirement-plan-duplicate-inactive.md) |
 | 寫入原子邊界、上限與併發      | create/update/delete/duplicate 全在單一 transaction 內；preflight（schema 驗證）在 transaction 外先做；單次寫入上限 400 筆，超過回 `PLAN_TOO_LARGE`；transaction 失敗回 `TRANSACTION_FAILED` | [ADR-0040](adr/0040-retirement-plan-atomic-writes.md)      |
 
@@ -107,16 +109,18 @@ phase 形狀與驗證：
 
 - 收入頁面提供「Import from Ledger」按鈕（上一完整年度匯入行為不變）。
 - 支出頁面提供「匯入債務還款」與「Import from Ledger」按鈕。
-- 計畫清單頁以系統表格呈現：欄位為 Name、Retirement Age、Final Net Worth、Status；點擊列進入計畫詳情，Duplicate 為列尾圖示動作，New Plan 留在頁首；未重新計算的計畫 Final Net Worth 顯示「—」（無 fallback 值）。
+- 計畫清單頁以系統表格呈現：欄位為 Name、Retirement Age、Final Net Worth、Status；active 計畫置頂（其餘維持 repository 的 updatedAt 由新到舊），並以列左緣品牌色條與文字狀態徽章（使用中／未使用）凸顯——顏色只是輔助，不可作為唯一訊號。點擊列進入計畫詳情，Duplicate 與 Set as active（僅非 active 計畫）為列尾圖示動作，New Plan 留在頁首；未重新計算的計畫 Final Net Worth 顯示「—」（無 fallback 值）。空／載入／錯誤三態沿用共用元件（EmptyState／Skeleton／inline Alert + 重試）。
 - Projection 摘要為快取：Recalculate 時重新推導 netWorthAtRetirement（退休年期初淨資產）與 finalNetWorth（投影期末淨資產），不使用遷移腳本。
-- 事件頁為分段編輯：可新增多個 phase，每段設定 Start/End Year 與金額（必填），Growth Rate 留空代表隨計畫通膨。
+- 事件頁為分段編輯：可新增多個 phase，每段設定 Start/End Year 與金額（必填）、可選 Growth Rate（留空代表隨計畫通膨）；phase 以 repeater 編輯（`md` 以上為欄位對齊的單列、行動版為兩欄堆疊區塊，不橫向捲動），各欄位共用系統表單欄位與樣式。
+- 事件清單列顯示該事件的**終身費用總和**（每個 phase 逐年以自身成長率或計畫通膨成長後加總），並在金額下方註記 phase 數量（僅分段事件）；收入事件以 `+`、支出事件以 `-` 標示。
 - 收入頁每筆收入只有一組金額欄位：目前年金額（匯入時唯讀帶入；null = 情境專用流，顯示「—」帶 Import from Ledger 提示，退休前貢獻 0）與退休年金額（可編輯）。
 - 收入對話框為 v2 形狀（issue #133）：Type、唯讀 Current Annual、可編輯 Retirement Annual、Growth（Advanced 展開明確成長率）、Start/End Year 與 Lifelong 收進 Advanced；無 Source 選擇器、Ledger Code、Sample Year、收入層級 Auto Update、試算預覽與連動退休年 Badge（計畫層級 Auto Update 是唯一開關）。
 - 支出對話框以 Duration 顯示期間：未設定 End Year 即 Lifelong，設定後顯示 Until {endYear}；Debt Payment 的 End Year 保留在主表單。Start/End Year 收進 Advanced 展開區（Start Year 預設當前年度，無 2100 預設值）。
 - 支出成長率預設跟隨計畫通膨並顯示「Using plan inflation: {rate}%」，Advanced 展開後才能輸入明確成長率（留空 = 計畫通膨，0 = 明確 0%）；目前年支出一般支出可編輯，Debt 匯入值為系統推導唯讀，退休後費用比例（%）維持必填。
 - Projection Results：
-  - 圖表中 `Savings` 使用柱狀圖並綁定右側縱軸。
-  - 明細表可逐年展開，查看當年每一筆收入明細與支出明細。
+  - 現金流圖以共用 `ComposedChart` 呈現：收入帶與投資報酬帶**堆疊**在零以上（投資報酬帶畫在收入帶之上，值為收入＋投資報酬，`baselineValues` 即收入線）、支出帶在零以下，各帶為單色資料歸屬漸層；再加上淨現金流線（primary，左軸）與淨資產線（`savings`，右軸，`asset` 藍，逐年遞增）；淨資產即投影期末餘額，與其他序列同源。圖例與 tooltip 皆逐序列列出收入／投資報酬／支出／淨現金流／淨資產。
+  - Overview 另有獨立的淨資產軌跡圖（單一淨資產面積線，標出退休年與歸零線）。
+  - 明細表走系統 data-table（桌面）與 `MobileExpandableRow`（行動版），逐年以列展開顯示當年收入明細與支出明細。
   - 明細表額外顯示 `投資收益` 欄位（與 `收入` 分開）。
   - Mobile（<md）不使用橫向捲動表格（issue #138）：每年為 compact row，Year 與 Savings（收盤淨資產）固定顯示，其餘欄位（Age、Status、Income、Expense、投資收益、Net）與收支明細在展開區，閱讀順序與桌面一致；md+ 維持系統表格。
 - 收入匯入結果以 `incomeCategory` 對齊：
@@ -125,7 +129,11 @@ phase 形狀與驗證：
 - 債務匯入結果以 `sourceDebtAccountId` 對齊：
   - 已存在相同 `sourceDebtAccountId`：更新既有項目（保留原 id）
   - 不存在：新增項目
-- 退休詳情頁為單頁 Scenario Workspace（2026-09-20 #120）：固定閱讀順序為「投影輸出在上、假設與輸入在下」（Output first → Input later）——輸出區依序 Overview / Results、Current Financial State、Projected Net Worth、Cash Flow Projection，輸入區依序 Scenario Assumptions、Income、Living Expenses、Life Events；無 Tabs，各區塊為可收合 section（共用 accordion primitive），全 viewport 適用。
+- 退休詳情頁為單頁 Scenario Workspace（2026-09-20 #120；2026-10 改為分頁，issue #264）：頂部分為三個底線式 Tabs，全 viewport 適用；行動版分頁列可橫向捲動（不堆疊）。
+  - **Overview**：Outcome（退休時資產／最低資產年份／是否破產，以 MetricGroup 排版非卡片）、Current Financial State、淨資產軌跡圖、關鍵風險（退休年／破產年／最低資產年／預期壽命終點，皆由既有資料直接列出）。
+  - **Projection**：現金流投影圖與年度明細。
+  - **Plan Setup**：Scenario Assumptions、Income、Living Expenses、Life Events。
+  - 桌面切換分頁會卸載未顯示的分頁（本地編輯狀態不保留）；無投影結果時，Overview 與 Projection 顯示單一空狀態（前往每月關帳）。
 
 ## 7. 驗證重點
 

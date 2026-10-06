@@ -51,7 +51,8 @@ const EMPTY_GEOMETRY: LineChartGeometry = {
   yLabels: [],
 };
 
-const formatAxisValue = (value: number): string => {
+/** Compact axis tick (1.2M / 850K / 42). */
+export const formatAxisValue = (value: number): string => {
   const abs = Math.abs(value);
   if (abs >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M`;
   if (abs >= 1_000) return `${Math.round(value / 1_000)}K`;

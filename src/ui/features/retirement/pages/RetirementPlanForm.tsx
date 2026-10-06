@@ -3,23 +3,32 @@ import React, { useState } from 'react';
 import { useParams } from 'react-router-dom';
 
 import { DangerZone } from '@/ui/components/DangerZone';
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from '@/ui/components/ui/accordion';
+import { EmptyState } from '@/ui/components/EmptyState';
+import { PageSection } from '@/ui/components/PageSection';
+import { Skeleton } from '@/ui/components/Skeleton';
 import { Alert, AlertDescription } from '@/ui/components/ui/alert';
 import { Button } from '@/ui/components/ui/button';
-import { RetirementWorkspaceSectionLabels } from '@/ui/constants/retirement/retirementWorkspaceLabels';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/ui/components/ui/tabs';
+import {
+  RETIREMENT_WORKSPACE_TAB_ORDER,
+  RetirementWorkspaceLabels,
+  RetirementWorkspaceSectionLabels,
+  type RetirementWorkspaceTabKey,
+  RetirementWorkspaceTabLabels,
+} from '@/ui/constants/retirement/retirementWorkspaceLabels';
 import { useAuthState } from '@/ui/contexts/useAuthState';
 import AssumptionsForm from '@/ui/features/retirement/components/AssumptionsForm';
 import { CurrentFinancialState } from '@/ui/features/retirement/components/detail/CurrentFinancialState';
 import { EventTabContent } from '@/ui/features/retirement/components/detail/EventTabContent';
 import { ExpenseTabContent } from '@/ui/features/retirement/components/detail/ExpenseTabContent';
 import { IncomeTabContent } from '@/ui/features/retirement/components/detail/IncomeTabContent';
-import { ProjectionResultsContent } from '@/ui/features/retirement/components/detail/ProjectionResultsContent';
+import { ProjectionEmptyState } from '@/ui/features/retirement/components/detail/ProjectionEmptyState';
+import { RetirementOutcome } from '@/ui/features/retirement/components/detail/RetirementOutcome';
 import { RetirementPlanHeader } from '@/ui/features/retirement/components/detail/RetirementPlanHeader';
+import { RetirementRisks } from '@/ui/features/retirement/components/detail/RetirementRisks';
+import { CashFlowChart } from '@/ui/features/retirement/components/projection/CashFlowChart';
+import { NetWorthChart } from '@/ui/features/retirement/components/projection/NetWorthChart';
+import { YearlyDetails } from '@/ui/features/retirement/components/projection/YearlyDetails';
 import { useRetirementPlanDetailPage } from '@/ui/features/retirement/hooks/useRetirementPlanDetailPage';
 
 const RetirementPlanForm: React.FC = () => {
@@ -35,6 +44,8 @@ const RetirementPlanForm: React.FC = () => {
     projectionVM,
     netWorthSource,
     loading,
+    error,
+    reload,
     staleIncomeSyncBanner,
     handleApplyStaleIncomeSync,
     handleDismissStaleIncomeSync,
@@ -57,88 +68,130 @@ const RetirementPlanForm: React.FC = () => {
     handleImportExpensesFromLedger,
   } = useRetirementPlanDetailPage(id, userProfile?.householdId, userProfile?.email);
 
-  const [expandedSections, setExpandedSections] = useState<string[]>(['overview']);
+  const [activeTab, setActiveTab] = useState<RetirementWorkspaceTabKey>('overview');
 
   if (loading) {
-    return <div className="p-8">Loading...</div>;
+    return (
+      <div role="status" className="space-y-2 py-2">
+        <span className="sr-only">{RetirementWorkspaceLabels.loading}</span>
+        {[0, 1, 2, 3, 4].map((row) => (
+          <Skeleton key={row} className="h-12" />
+        ))}
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <Alert variant="warning">
+        <AlertDescription>{RetirementWorkspaceLabels.loadError}</AlertDescription>
+        <Button variant="text" className="ml-auto shrink-0" onClick={() => void reload()}>
+          {RetirementWorkspaceLabels.retryAction}
+        </Button>
+      </Alert>
+    );
   }
 
   if (!plan || !headerVM || !assumptionsVM) {
-    return <div className="p-8">Plan not found</div>;
+    return (
+      <EmptyState
+        title={RetirementWorkspaceLabels.notFoundTitle}
+        description={RetirementWorkspaceLabels.notFound}
+      />
+    );
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {staleIncomeSyncBanner && (
         <Alert className="border-warning/40 bg-warning/5">
           <AlertDescription className="flex items-center justify-between gap-3">
             <span>
-              收入樣本年度可更新：{staleIncomeSyncBanner.staleCount}{' '}
-              筆收入資料仍使用舊年度，建議更新至 {staleIncomeSyncBanner.targetSampleYear} 年。
+              {RetirementWorkspaceLabels.staleBannerPrefix}
+              {staleIncomeSyncBanner.staleCount}
+              {RetirementWorkspaceLabels.staleBannerMiddle}
+              {staleIncomeSyncBanner.targetSampleYear}
+              {RetirementWorkspaceLabels.staleBannerSuffix}
             </span>
             <div className="flex items-center gap-2">
               <Button size="sm" onClick={handleApplyStaleIncomeSync}>
-                更新
+                {RetirementWorkspaceLabels.staleApplyAction}
               </Button>
               <Button size="sm" variant="outline" onClick={handleDismissStaleIncomeSync}>
-                稍後
+                {RetirementWorkspaceLabels.staleDismissAction}
               </Button>
             </div>
           </AlertDescription>
         </Alert>
       )}
+
       <RetirementPlanHeader
         header={headerVM}
         handleSaveName={handleSaveName}
         handleRecalculate={handleRecalculate}
         handleToggleAutoUpdate={handleToggleAutoUpdate}
       />
-      <Accordion
-        type="multiple"
-        value={expandedSections}
-        onValueChange={setExpandedSections}
-        className="w-full"
+
+      <Tabs
+        value={activeTab}
+        onValueChange={(value) => setActiveTab(value as RetirementWorkspaceTabKey)}
+        className="space-y-6"
       >
-        <AccordionItem value="overview">
-          <AccordionTrigger>{RetirementWorkspaceSectionLabels.overview}</AccordionTrigger>
-          <AccordionContent>
-            <ProjectionResultsContent projectionVM={projectionVM} section="overview" />
-          </AccordionContent>
-        </AccordionItem>
+        {/* Scroll container wraps the list so the underline trick (`-mb-px` on
+            TabsTrigger) cannot be measured as vertical overflow — the trigger's
+            border box stays inside TabsList's border box, so only width scrolls. */}
+        <div className="overflow-x-auto">
+          <TabsList className="min-w-max" aria-label={RetirementWorkspaceLabels.tabsAriaLabel}>
+            {RETIREMENT_WORKSPACE_TAB_ORDER.map((tab) => (
+              <TabsTrigger key={tab} value={tab}>
+                {RetirementWorkspaceTabLabels[tab]}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </div>
 
-        <AccordionItem value="currentFinancialState">
-          <AccordionTrigger>
-            {RetirementWorkspaceSectionLabels.currentFinancialState}
-          </AccordionTrigger>
-          <AccordionContent>
-            <CurrentFinancialState netWorthSource={netWorthSource} />
-          </AccordionContent>
-        </AccordionItem>
+        <TabsContent value="overview" className="space-y-6">
+          {projectionVM ? (
+            <>
+              <PageSection title={RetirementWorkspaceSectionLabels.outcome}>
+                <RetirementOutcome projection={projectionVM} />
+              </PageSection>
+              <PageSection title={RetirementWorkspaceSectionLabels.currentFinancialState}>
+                <CurrentFinancialState netWorthSource={netWorthSource} />
+              </PageSection>
+              <PageSection title={RetirementWorkspaceSectionLabels.netWorth}>
+                <NetWorthChart projection={projectionVM} />
+              </PageSection>
+              <PageSection title={RetirementWorkspaceSectionLabels.risks}>
+                <RetirementRisks projection={projectionVM} />
+              </PageSection>
+            </>
+          ) : (
+            <ProjectionEmptyState />
+          )}
+        </TabsContent>
 
-        <AccordionItem value="netWorth">
-          <AccordionTrigger>{RetirementWorkspaceSectionLabels.netWorth}</AccordionTrigger>
-          <AccordionContent>
-            <ProjectionResultsContent projectionVM={projectionVM} section="netWorth" />
-          </AccordionContent>
-        </AccordionItem>
+        <TabsContent value="projection" className="space-y-6">
+          {projectionVM ? (
+            <>
+              <PageSection title={RetirementWorkspaceSectionLabels.cashFlow}>
+                <CashFlowChart projection={projectionVM} />
+              </PageSection>
+              <PageSection>
+                <YearlyDetails projection={projectionVM} />
+              </PageSection>
+            </>
+          ) : (
+            <ProjectionEmptyState />
+          )}
+        </TabsContent>
 
-        <AccordionItem value="cashFlow">
-          <AccordionTrigger>{RetirementWorkspaceSectionLabels.cashFlow}</AccordionTrigger>
-          <AccordionContent>
-            <ProjectionResultsContent projectionVM={projectionVM} section="cashFlow" />
-          </AccordionContent>
-        </AccordionItem>
-
-        <AccordionItem value="assumptions">
-          <AccordionTrigger>{RetirementWorkspaceSectionLabels.assumptions}</AccordionTrigger>
-          <AccordionContent>
+        <TabsContent value="planSetup" className="space-y-6">
+          <PageSection title={RetirementWorkspaceSectionLabels.assumptions}>
             <AssumptionsForm assumptions={assumptionsVM} onSave={handleUpdatePlan} />
-          </AccordionContent>
-        </AccordionItem>
+          </PageSection>
 
-        <AccordionItem value="income">
-          <AccordionTrigger>{RetirementWorkspaceSectionLabels.income}</AccordionTrigger>
-          <AccordionContent>
+          <PageSection title={RetirementWorkspaceSectionLabels.income}>
             <IncomeTabContent
               currentYear={plan.currentYear}
               planInflationRate={plan.inflationRate}
@@ -148,12 +201,9 @@ const RetirementPlanForm: React.FC = () => {
               handleDeleteIncome={handleDeleteIncome}
               handleImportIncomeFromTransactions={handleImportIncomeFromTransactions}
             />
-          </AccordionContent>
-        </AccordionItem>
+          </PageSection>
 
-        <AccordionItem value="expenses">
-          <AccordionTrigger>{RetirementWorkspaceSectionLabels.expenses}</AccordionTrigger>
-          <AccordionContent>
+          <PageSection title={RetirementWorkspaceSectionLabels.expenses}>
             <ExpenseTabContent
               currentYear={plan.currentYear}
               planInflationRate={plan.inflationRate}
@@ -164,12 +214,9 @@ const RetirementPlanForm: React.FC = () => {
               handleImportDebtRepayments={handleImportDebtRepayments}
               handleImportFromLedger={handleImportExpensesFromLedger}
             />
-          </AccordionContent>
-        </AccordionItem>
+          </PageSection>
 
-        <AccordionItem value="events">
-          <AccordionTrigger>{RetirementWorkspaceSectionLabels.events}</AccordionTrigger>
-          <AccordionContent>
+          <PageSection title={RetirementWorkspaceSectionLabels.events}>
             <EventTabContent
               currentYear={plan.currentYear}
               eventItems={eventItems}
@@ -177,10 +224,14 @@ const RetirementPlanForm: React.FC = () => {
               handleUpdateEvent={handleUpdateEvent}
               handleDeleteEvent={handleDeleteEvent}
             />
-          </AccordionContent>
-        </AccordionItem>
-      </Accordion>
-      <DangerZone actionLabel="Delete plan" onAction={() => void handleDelete()} />
+          </PageSection>
+        </TabsContent>
+      </Tabs>
+
+      <DangerZone
+        actionLabel={RetirementWorkspaceLabels.deletePlanAction}
+        onAction={() => void handleDelete()}
+      />
     </div>
   );
 };

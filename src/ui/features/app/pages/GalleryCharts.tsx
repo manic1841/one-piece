@@ -5,8 +5,10 @@ import { ChartLegend } from '@/ui/components/charts/ChartLegend';
 import { ChartTooltip } from '@/ui/components/charts/ChartTooltip';
 import { DonutChart } from '@/ui/components/charts/DonutChart';
 import { InteractiveBarChart } from '@/ui/components/charts/InteractiveBarChart';
+import { InteractiveComposedChart } from '@/ui/components/charts/InteractiveComposedChart';
 import { InteractiveLineChart } from '@/ui/components/charts/InteractiveLineChart';
 import { LineChart } from '@/ui/components/charts/LineChart';
+import { type ComposedSeries } from '@/ui/components/charts/composedChartGeometry';
 import { eyebrowClass } from '@/ui/components/eyebrow';
 import type { MoneyTone } from '@/ui/components/moneyTone';
 
@@ -54,6 +56,37 @@ const ALLOCATION = [
   { label: 'Bonds', value: 17 },
   { label: 'Other', value: 16 },
 ];
+
+const PROJECTION_LABELS = ['2026', '2030', '2035', '2040', '2045', '2050'];
+const PROJECTION_INCOME = [720_000, 760_000, 680_000, 520_000, 420_000, 380_000];
+const PROJECTION_EXPENSE = [420_000, 480_000, 520_000, 540_000, 560_000, 520_000];
+const PROJECTION_NET_CASH_FLOW = [300_000, 280_000, 160_000, -20_000, -140_000, -140_000];
+const PROJECTION_NET_WORTH = [1_200_000, 1_800_000, 2_400_000, 2_600_000, 2_200_000, 1_400_000];
+// 5% of the net worth held that year — the band that stacks on top of income.
+const PROJECTION_RETURN = [60_000, 90_000, 120_000, 130_000, 110_000, 70_000];
+const PROJECTION_SERIES: ComposedSeries[] = [
+  { kind: 'line', tone: 'positive', area: true, values: PROJECTION_INCOME },
+  {
+    kind: 'line',
+    tone: 'investment',
+    area: true,
+    values: PROJECTION_INCOME.map((income, index) => income + (PROJECTION_RETURN[index] ?? 0)),
+    baselineValues: PROJECTION_INCOME,
+  },
+  {
+    kind: 'line',
+    tone: 'negative',
+    area: true,
+    values: PROJECTION_EXPENSE.map((expense) => -expense),
+  },
+  { kind: 'line', tone: 'primary', values: PROJECTION_NET_CASH_FLOW },
+  { kind: 'line', tone: 'asset', axis: 'right', values: PROJECTION_NET_WORTH },
+];
+const PROJECTION_POINTS = PROJECTION_LABELS.map((year, index) => ({
+  title: `YEAR ${year}`,
+  value: `NET CASH FLOW NT$${(PROJECTION_NET_CASH_FLOW[index] ?? 0).toLocaleString()}`,
+  meta: `INCOME NT$${(PROJECTION_INCOME[index] ?? 0).toLocaleString()} · RETURN NT$${(PROJECTION_RETURN[index] ?? 0).toLocaleString()} · NET WORTH NT$${(PROJECTION_NET_WORTH[index] ?? 0).toLocaleString()}`,
+}));
 
 const NET_WORTH_POINTS = [
   { title: 'OCT 2025', value: 'NT$4,120,000', meta: '—' },
@@ -133,6 +166,28 @@ const LineChartSection: React.FC = () => (
             { label: 'INCOME', tone: 'positive' },
             { label: 'EXPENSE', tone: 'negative' },
             { label: 'CURRENT', tone: 'primary' },
+          ]}
+        />
+      </GalleryModule>
+
+      <GalleryModule label="COMPOSED CHART · PROJECTION · STACKED BANDS · HOVER OR ARROW KEYS">
+        <ChartHead value="NT$1,400,000" meta="2050 · NET WORTH" tone="default" />
+        <InteractiveComposedChart
+          labels={PROJECTION_LABELS}
+          series={PROJECTION_SERIES}
+          referenceLines={[{ index: 3, tone: 'primary', label: 'RETIREMENT' }]}
+          points={PROJECTION_POINTS}
+          height={220}
+          ariaLabel="Retirement projection with detail"
+        />
+        <ChartLegend
+          className="mt-4"
+          items={[
+            { label: 'INCOME', tone: 'positive' },
+            { label: 'INVESTMENT RETURN', tone: 'investment' },
+            { label: 'EXPENSE', tone: 'negative' },
+            { label: 'NET CASH FLOW', tone: 'primary' },
+            { label: 'NET WORTH', tone: 'asset' },
           ]}
         />
       </GalleryModule>

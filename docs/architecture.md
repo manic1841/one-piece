@@ -47,7 +47,7 @@
 
 ### 📂 Shared - `src/shared/`
 
-- **職責**: 基礎工具包（共用常數、base schema）。
+- **職責**: 基礎工具包（共用常數、base schema、平台安全的 id 產生器）。
 - **規則**: 只能被其他層依賴，不能依賴任何其他層。
 
 **依賴方向**：所有依賴指向內層——`UI -> Application -> Domain <- Infrastructure`。

@@ -51,6 +51,21 @@ describe('EventDialog', () => {
     );
   });
 
+  it('stacks the phase repeater on mobile instead of overflowing sideways', () => {
+    const dialog = openEventDialog();
+
+    const phaseRow = dialog.getByRole('button', { name: 'Remove phase' }).parentElement;
+    const headerRow = dialog.getByText('Phase').parentElement;
+
+    expect(phaseRow).toHaveClass('grid', 'grid-cols-2');
+    expect(headerRow).toHaveClass('hidden', 'md:grid');
+    // Header and data rows must share one desktop template, or the columns drift apart.
+    const desktopColumns = (element: HTMLElement | null) =>
+      [...(element?.classList ?? [])].find((token) => token.startsWith('md:grid-cols-'));
+    expect(desktopColumns(phaseRow)).toBeDefined();
+    expect(desktopColumns(headerRow)).toBe(desktopColumns(phaseRow));
+  });
+
   it('adds and removes phases through the repeater', async () => {
     const dialog = openEventDialog();
 

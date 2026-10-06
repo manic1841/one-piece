@@ -10,6 +10,7 @@ import {
   mapRetirementPlanToHeaderVM,
   mapRetirementPlanToListItemVM,
   mapRetirementProjectionToVM,
+  sortRetirementPlanListItems,
 } from './retirementDisplay.vm';
 
 const SAMPLE_YEAR = 2023;
@@ -57,7 +58,7 @@ describe('retirementDisplay.vm', () => {
     );
 
     expect(vm.retirementAge).toBe(60);
-    expect(vm.statusText).toBe('Active');
+    expect(vm.statusText).toBe('使用中');
     expect(vm.finalNetWorthText).toContain('300,000');
   });
 
@@ -65,13 +66,44 @@ describe('retirementDisplay.vm', () => {
     const vm = mapRetirementPlanToListItemVM(makePlan({ summary: undefined }));
 
     expect(vm.finalNetWorthText).toBe('—');
-    expect(vm.statusText).toBe('Active');
+    expect(vm.statusText).toBe('使用中');
   });
 
-  it('maps plan list item vm status to Inactive when the plan is not active', () => {
+  it('maps plan list item vm status to 未使用 when the plan is not active', () => {
     const vm = mapRetirementPlanToListItemVM(makePlan({ isActive: false }));
 
-    expect(vm.statusText).toBe('Inactive');
+    expect(vm.statusText).toBe('未使用');
+  });
+
+  it('puts the active plan first without reordering the rest', () => {
+    const items = [
+      {
+        id: 'c',
+        name: 'C',
+        isActive: false,
+        retirementAge: 60,
+        statusText: '未使用',
+        finalNetWorthText: '—',
+      },
+      {
+        id: 'a',
+        name: 'A',
+        isActive: true,
+        retirementAge: 60,
+        statusText: '使用中',
+        finalNetWorthText: '—',
+      },
+      {
+        id: 'b',
+        name: 'B',
+        isActive: false,
+        retirementAge: 60,
+        statusText: '未使用',
+        finalNetWorthText: '—',
+      },
+    ];
+
+    expect(sortRetirementPlanListItems(items).map((item) => item.id)).toEqual(['a', 'c', 'b']);
   });
 
   it('maps plan list item vm with em dash for a stale summary without finalNetWorth', () => {
@@ -136,16 +168,40 @@ describe('retirementDisplay.vm', () => {
     });
     expect(expense.growthAndMultiplierText).toContain('80%');
 
-    const event = mapRetirementEventToVM({
-      id: 'ev1',
-      name: 'House purchase',
-      year: 2028,
-      type: 'expense',
-      amount: 200000,
-      note: 'Down payment',
-    });
+    const event = mapRetirementEventToVM(
+      {
+        id: 'ev1',
+        name: 'House purchase',
+        year: 2028,
+        type: 'expense',
+        amount: 200000,
+        note: 'Down payment',
+      },
+      2,
+    );
     expect(event.amountText).toContain('200,000');
     expect(event.amountClassName).toBe('text-negative');
+    expect(event.phaseCountText).toBeUndefined();
+  });
+
+  it('totals a segmented event over each phase and its years, and notes the phase count', () => {
+    const event = mapRetirementEventToVM(
+      {
+        id: 'ev2',
+        name: 'Education',
+        type: 'expense',
+        phases: [
+          // Three years at 80,000 grown 3% each year: 80,000 + 82,400 + 84,872.
+          { name: 'Kindergarten', startYear: 2025, endYear: 2027, amount: 80_000, growthRate: 3 },
+          // Three years at 120,000, growth absent so plan inflation (2%) applies.
+          { name: 'High school', startYear: 2028, endYear: 2030, amount: 120_000 },
+        ],
+      },
+      2,
+    );
+
+    expect(event.amountText).toBe('-NT$614,520');
+    expect(event.phaseCountText).toBe('2 phases');
   });
 
   it('maps projection vm', () => {
@@ -185,6 +241,14 @@ describe('retirementDisplay.vm', () => {
     expect(vm.yearlyDetails[0].investmentReturnText).toContain('25,000');
     expect(vm.yearlyDetails[0].incomeItems[0]?.name).toBe('Salary');
     expect(vm.yearlyDetails[0].expenseItems[0]?.name).toBe('Living');
+    expect(vm.risks.map((risk) => risk.key)).toEqual([
+      'retirementYear',
+      'bankruptcyYear',
+      'minSavingsYear',
+      'lifeExpectancyEnd',
+    ]);
+    expect(vm.risks[0]?.valueText).toBe('2050');
+    expect(vm.risks[1]?.valueText).toBe('無');
   });
 
   it('includes debt and fixed living expenses in retirement-year breakdown', () => {
