@@ -382,7 +382,7 @@ ONE PIECE VISUAL CHECK
 [ ] Empty state 簡潔
 [ ] Loading pattern 一致
 [ ] Advanced settings 預設收起
-[ ] Chart 無裝飾性元素
+[ ] Chart 無裝飾性元素（面積僅允許單色資料歸屬漸層，見 ADR-0078）
 [ ] Mobile 為 single-column / responsive layout
 [ ] Mobile reading order 與 Desktop 一致
 [ ] 沒有 domain implementation details 暴露給使用者
