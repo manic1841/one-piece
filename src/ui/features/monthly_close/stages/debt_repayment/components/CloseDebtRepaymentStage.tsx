@@ -4,12 +4,9 @@ import { NumberInput, parseOptionalAmount } from '@/ui/components/data-table';
 import { eyebrowClass } from '@/ui/components/eyebrow';
 import { Label } from '@/ui/components/ui/label';
 import { MONTHLY_CLOSE_LABELS } from '@/ui/constants/monthlyClose';
-import { CloseSectionHeading } from '@/ui/features/monthly_close/components/CloseSectionHeading';
 import { CloseStageChrome } from '@/ui/features/monthly_close/components/CloseStageChrome';
-import { CloseStageEvidenceList } from '@/ui/features/monthly_close/components/CloseStageEvidenceList';
 import { CloseStageLoadError } from '@/ui/features/monthly_close/components/CloseStageLoadError';
 import { closeMonthDate } from '@/ui/features/monthly_close/stages/debt_repayment/hooks/useDebtRepaymentStage';
-import { NO_EVIDENCE } from '@/ui/features/monthly_close/viewmodels/closeEvidence.vm';
 import { type DebtSectionMetaVM } from '@/ui/features/monthly_close/viewmodels/debtPayment.vm';
 import {
   buildDebtPaymentSections,
@@ -82,10 +79,6 @@ export const CloseDebtRepaymentStage: React.FC<CloseDebtRepaymentStageProps> = (
       onBackToCurrent={onBackToCurrent}
     >
       <CloseStageLoadError message={loadErrorMessage} />
-      <div>
-        <CloseSectionHeading eyebrow={MONTHLY_CLOSE_LABELS.EVIDENCE_LABEL} className="mb-1" />
-        <CloseStageEvidenceList evidence={NO_EVIDENCE} />
-      </div>
       {debtAccounts.length === 0 ? (
         <p className="text-xs text-muted-foreground">{MONTHLY_CLOSE_LABELS.NO_DATA}</p>
       ) : (

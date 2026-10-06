@@ -208,13 +208,6 @@ const balanceSheetOf = (totalAssets = 0, totalLiabilities = 0, equity = 0) => ({
   equity: { total: equity, groups: {} },
 });
 
-const previewFixture = (adjustment: number) =>
-  ({
-    incomeStatement: emptyStatement(),
-    balanceSheet: balanceSheetOf(),
-    cashFlow: emptyCashFlow(0, adjustment),
-  }) as never;
-
 const previewWithTotals = (totals: {
   netIncome?: number;
   totalAssets?: number;
@@ -380,21 +373,21 @@ describe('useCloseStepRegistry', () => {
       isPersisted: true,
       timestamps: { incomeStatement: '10:00' },
     } as never);
-    const { result } = renderRegistry({ pageVM: pageVMWithReportsStage('PENDING') });
 
-    await waitFor(() =>
-      expect(result.current.CLOSE_PERIOD.evidence()).toMatchObject({
-        kind: 'PERSISTENCE',
-        persisted: true,
-      }),
-    );
+    function ReportsHarness() {
+      const registry = useCloseStepRegistry({
+        ...baseArgs,
+        pageVM: pageVMWithReportsStage('PENDING'),
+      });
+      return <>{registry.FINANCIAL_REPORTS.render(baseContext)}</>;
+    }
 
-    render(<>{result.current.FINANCIAL_REPORTS.render(baseContext)}</>);
+    render(<ReportsHarness />);
 
+    expect(await screen.findByTestId('generate-reports')).toBeInTheDocument();
     expect(screen.queryByTestId('reports-generated-panel')).not.toBeInTheDocument();
     expect(screen.getByText(/已有先前產生的報表/)).toBeInTheDocument();
     expect(screen.getByText(/10:00/)).toBeInTheDocument();
-    expect(screen.getByTestId('generate-reports')).toBeInTheDocument();
   });
 
   it('replaces the reports action with the generated panel once the stage is completed', () => {
@@ -414,7 +407,7 @@ describe('useCloseStepRegistry', () => {
     expect(screen.getByText('當前步驟')).toBeInTheDocument();
   });
 
-  it('builds per-project settlement evidence from the project settlement stage', async () => {
+  it('renders per-project settlement rows from the project settlement stage', async () => {
     vi.mocked(listProjectsUseCase.execute).mockResolvedValue([
       { id: 'project-1', name: '裝修', isActive: true },
       { id: 'project-2', name: '旅遊', isActive: true },
@@ -443,23 +436,18 @@ describe('useCloseStepRegistry', () => {
       },
     ] as never);
 
-    const { result } = renderRegistry();
+    function SettlementHarness() {
+      const registry = useCloseStepRegistry(baseArgs);
+      return <>{registry.PROJECT_SETTLEMENT.render(baseContext)}</>;
+    }
 
-    await waitFor(() =>
-      expect(result.current.PROJECT_SETTLEMENT.evidence()).toMatchObject({
-        kind: 'SETTLEMENTS',
-        rows: [
-          { projectName: '裝修', openingBalanceText: 'NT$1,000', incomeText: 'NT$5,000' },
-          { projectName: '旅遊' },
-        ],
-      }),
-    );
+    render(<SettlementHarness />);
 
-    render(<>{result.current.PROJECT_SETTLEMENT.render(baseContext)}</>);
-
-    expect(screen.getByText('裝修')).toBeInTheDocument();
-    expect(screen.getByText('旅遊')).toBeInTheDocument();
-    expect(screen.getByText(MONTHLY_CLOSE_LABELS.UNSETTLED)).toBeInTheDocument();
+    expect((await screen.findAllByText('裝修')).length).toBeGreaterThan(0);
+    expect(screen.getAllByText('旅遊').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('NT$1,000').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('NT$5,000').length).toBeGreaterThan(0);
+    expect(screen.getAllByText(MONTHLY_CLOSE_LABELS.UNSETTLED).length).toBeGreaterThan(0);
   });
 
   it('opens the trade drawer directly through the securities stage', () => {
@@ -473,58 +461,6 @@ describe('useCloseStepRegistry', () => {
 
     fireEvent.click(screen.getAllByRole('button', { name: '新增交易' })[0]);
     expect(openSpy).toHaveBeenCalledWith('SECURITIES', 'ADD', null);
-  });
-
-  it('reflects the FINANCIAL_REPORTS persistence state in CLOSE_PERIOD evidence', async () => {
-    vi.mocked(getReportPersistenceStateUseCase.execute).mockResolvedValue({
-      isPersisted: true,
-      timestamps: {},
-    });
-    const { result } = renderRegistry();
-
-    await waitFor(() =>
-      expect(result.current.CLOSE_PERIOD.evidence()).toMatchObject({
-        kind: 'PERSISTENCE',
-        persisted: true,
-      }),
-    );
-  });
-
-  it("derives FINANCIAL_REPORTS evidence from CLOSE_PERIOD's preview bundle", async () => {
-    vi.mocked(previewFinancialReportsWorkflow.execute).mockResolvedValue(previewFixture(1500));
-    const { result } = renderRegistry();
-
-    await waitFor(() =>
-      expect(result.current.FINANCIAL_REPORTS.evidence()).toMatchObject({
-        kind: 'ADJUSTMENT',
-        countText: '1,500',
-      }),
-    );
-  });
-
-  it('derives COMPLETENESS_CHECK evidence from its own stage hook', async () => {
-    vi.mocked(checkSettlementCompletenessUseCase.execute).mockResolvedValue({
-      yearMonth: '2026-08',
-      activities: [],
-      anomalies: [
-        {
-          targetType: 'PROJECT',
-          targetId: 'project-1',
-          name: '裝修',
-          status: 'ZERO_ACTIVITY',
-          activityCount: 0,
-          activityAmount: 0,
-        },
-      ],
-    } as never);
-    const { result } = renderRegistry();
-
-    await waitFor(() =>
-      expect(result.current.COMPLETENESS_CHECK.evidence()).toMatchObject({
-        kind: 'ZERO_ACTIVITY',
-        names: ['裝修'],
-      }),
-    );
   });
 
   it('renders the five CLOSE_PERIOD financial figures from its own bundle', async () => {

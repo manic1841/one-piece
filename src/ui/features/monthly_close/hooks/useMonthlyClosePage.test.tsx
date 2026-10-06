@@ -60,7 +60,6 @@ vi.mock('./useCloseStepRegistry', () => {
       refresh: refreshSpy,
     },
     render: () => null,
-    evidence: () => ({ kind: 'NONE' as const }),
   });
   return {
     useCloseStepRegistry: () =>

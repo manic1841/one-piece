@@ -67,10 +67,10 @@ describe('useProjectSettlementStage', () => {
     expect(result.current.settlements[0]).toMatchObject({
       projectId: 'project-1',
       settled: true,
-      openingBalanceText: 'NT$1,000',
-      incomeText: 'NT$5,000',
-      expenseText: 'NT$3,000',
-      closingBalanceText: 'NT$3,000',
+      openingBalance: 1_000,
+      income: 5_000,
+      expense: 3_000,
+      closingBalance: 3_000,
     });
     expect(result.current.errorMessage).toBeNull();
   });

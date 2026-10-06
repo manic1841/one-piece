@@ -1,16 +1,12 @@
 import React, { type SetStateAction } from 'react';
 
-import { MONTHLY_CLOSE_LABELS } from '@/ui/constants/monthlyClose';
-import { CloseSectionHeading } from '@/ui/features/monthly_close/components/CloseSectionHeading';
 import { CloseStageChrome } from '@/ui/features/monthly_close/components/CloseStageChrome';
-import { CloseStageEvidenceList } from '@/ui/features/monthly_close/components/CloseStageEvidenceList';
 import { CloseStageLoadError } from '@/ui/features/monthly_close/components/CloseStageLoadError';
 import {
   type Account,
   type AccountBalanceInput,
   type AccountSnapshot,
 } from '@/ui/features/monthly_close/viewmodels/accountBalance.vm';
-import { NO_EVIDENCE } from '@/ui/features/monthly_close/viewmodels/closeEvidence.vm';
 
 import { CloseAccountBalanceInputs } from './CloseAccountBalanceInputs';
 
@@ -66,10 +62,6 @@ export const CloseAccountBalanceStage: React.FC<CloseAccountBalanceStageProps> =
     onBackToCurrent={onBackToCurrent}
   >
     <CloseStageLoadError message={loadErrorMessage} />
-    <div>
-      <CloseSectionHeading eyebrow={MONTHLY_CLOSE_LABELS.EVIDENCE_LABEL} className="mb-1" />
-      <CloseStageEvidenceList evidence={NO_EVIDENCE} />
-    </div>
     <CloseAccountBalanceInputs
       accounts={accounts}
       snapshots={accountSnapshots}

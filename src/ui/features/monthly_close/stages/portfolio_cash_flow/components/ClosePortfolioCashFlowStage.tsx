@@ -2,11 +2,8 @@ import React from 'react';
 
 import { eyebrowClass } from '@/ui/components/eyebrow';
 import { MONTHLY_CLOSE_LABELS } from '@/ui/constants/monthlyClose';
-import { CloseSectionHeading } from '@/ui/features/monthly_close/components/CloseSectionHeading';
 import { CloseStageChrome } from '@/ui/features/monthly_close/components/CloseStageChrome';
-import { CloseStageEvidenceList } from '@/ui/features/monthly_close/components/CloseStageEvidenceList';
 import { CloseStageLoadError } from '@/ui/features/monthly_close/components/CloseStageLoadError';
-import { NO_EVIDENCE } from '@/ui/features/monthly_close/viewmodels/closeEvidence.vm';
 import type {
   PortfolioBalanceVM,
   PortfolioSnapshot,
@@ -189,10 +186,6 @@ export const ClosePortfolioCashFlowStage: React.FC<ClosePortfolioCashFlowStagePr
     onBackToCurrent={onBackToCurrent}
   >
     <CloseStageLoadError message={loadErrorMessage} />
-    <div>
-      <CloseSectionHeading eyebrow={MONTHLY_CLOSE_LABELS.EVIDENCE_LABEL} className="mb-1" />
-      <CloseStageEvidenceList evidence={NO_EVIDENCE} />
-    </div>
     <PortfolioCashFlowContent
       portfolios={portfolios}
       portfolioSnapshots={portfolioSnapshots}

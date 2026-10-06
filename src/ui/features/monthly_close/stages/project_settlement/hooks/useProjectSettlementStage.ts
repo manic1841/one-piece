@@ -7,10 +7,7 @@ import { type AuthContext } from '@/application/types';
 import type { CloseStageControl } from '@/ui/features/monthly_close/hooks/closeStageControl';
 import { useNoOpStageControl } from '@/ui/features/monthly_close/hooks/useConfirmStageControl';
 import { useStageLoader } from '@/ui/features/monthly_close/hooks/useStageLoader';
-import {
-  type ProjectSettlementEvidenceRow,
-  projectSettlementEvidenceRow,
-} from '@/ui/features/monthly_close/viewmodels/closeEvidence.vm';
+import { type ProjectSettlementRow } from '@/ui/features/monthly_close/viewmodels/projectSettlement.vm';
 import { useAuthIdentity } from '@/ui/hooks/useAuthIdentity';
 import { logger } from '@/utils/logger';
 
@@ -36,7 +33,7 @@ const fetchSettlements = async ({
   householdId: string;
   selectedYearMonth: string;
   auth: AuthContext;
-}): Promise<ProjectSettlementEvidenceRow[]> => {
+}): Promise<ProjectSettlementRow[]> => {
   const year = Number(selectedYearMonth.slice(0, 4));
   const month = Number(selectedYearMonth.slice(5, 7));
   try {
@@ -64,17 +61,15 @@ const fetchSettlements = async ({
       ),
     ]);
 
-    return previews.map((preview, index) =>
-      projectSettlementEvidenceRow({
-        projectId: preview.projectId,
-        projectName: preview.projectName,
-        settled: settledFlags[index] ?? false,
-        openingBalance: preview.openingBalance,
-        income: preview.income,
-        expense: preview.expense,
-        closingBalance: preview.closingBalance,
-      }),
-    );
+    return previews.map((preview, index) => ({
+      projectId: preview.projectId,
+      projectName: preview.projectName,
+      settled: settledFlags[index] ?? false,
+      openingBalance: preview.openingBalance,
+      income: preview.income,
+      expense: preview.expense,
+      closingBalance: preview.closingBalance,
+    }));
   } catch (caught) {
     logger.warn('Failed to load project settlements', 'useProjectSettlementStage', { caught });
     throw new Error(LOAD_ERROR);
@@ -87,7 +82,7 @@ export const useProjectSettlementStage = ({
   selectedYearMonth,
   confirmingStageId,
 }: UseProjectSettlementStageArgs): CloseStageControl<'PROJECT_SETTLEMENT'> & {
-  settlements: ProjectSettlementEvidenceRow[];
+  settlements: ProjectSettlementRow[];
   errorMessage: string | null;
 } => {
   const auth = useAuthIdentity();
@@ -96,7 +91,7 @@ export const useProjectSettlementStage = ({
     () => fetchSettlements({ householdId, selectedYearMonth, auth }),
     [auth, householdId, selectedYearMonth],
   );
-  const { data, errorMessage, refresh } = useStageLoader<ProjectSettlementEvidenceRow[]>({
+  const { data, errorMessage, refresh } = useStageLoader<ProjectSettlementRow[]>({
     enabled: householdId !== '' && selectedYearMonth !== '',
     load,
   });

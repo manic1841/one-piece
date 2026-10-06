@@ -58,7 +58,7 @@ URL 有效 ⟺ 該期間已有狀態紀錄。`yearMonth` 形狀不合法、或�
 - 每個階段完成由**使用者確認**；系統的檢查結果只是證據。
 - **確認動作 = 冪等執行該階段的資料建立（已存在則不重複）+ 標記階段完成**。輸入隨確認一次提交，不做跨階段的一鍵全部快照。可重確認的階段（帳戶餘額、證券買入／賣出、Portfolio 金流、債務還款）重複確認走同鍵冪等覆蓋，不產生重複文件。
 - **證券買入／賣出允許空紀錄確認**：兩個 table 皆為空時，UI 在提交前跳出警告（可仍選擇確認），系統不阻擋——空確認即冪等寫入零列，階段照常完成。
-- **專案結算是無輸入、僅證據的工作區階段**：證據區列出每個 active 專案的結算狀態；確認動作 = 執行結算流程建立專案快照。
+- **專案結算是無輸入的唯讀工作區階段**：畫面以表格列出每個 active 專案的結算狀態與即時預覽金額（上期餘額／收入／支出／期末餘額）；確認動作 = 執行結算流程建立專案快照。
 - **Completeness Check 是報表產生前的就緒檢查**：呈現五類檢查（帳戶餘額、證券買入／賣出、Portfolio 金流、專案結算、債務還款）的完成度與例外清單，交易驗證問題一併列入就緒狀態與例外清單；**只呈現就緒狀態，不呈現任何財務數字**（財務結果屬 Close Period，報表內容屬 Financial Reports）。就緒與否由確認按鈕的 disabled 狀態硬性表達，例外項目附「GO TO ○○ →」階段跳轉導回對應階段修正——交易驗證問題沒有工作區內的落點，僅列文字不附跳轉。零活動警示列為例外但不阻擋——暫停機制（NEEDS REVIEW）才是它的處理路徑。
 - **暫停期間的 GO TO 是重設語意（ADR-0070）**：`NEEDS_REVIEW` 期間點擊 GO TO 階段跳轉會先跳出確認對話框（該步驟之後重新進入待確認、報表需重新產生），確認後該階段（含）之後全部重設為 `PENDING`，前期完成階段保留，狀態維持 `NEEDS_REVIEW`。
 - **Financial Reports 預覽後產生**：預覽報表 → 確認 → 產生；**Generate 按鈕在結算未就緒時 disabled 作為第二道防線**（就緒狀態跨讀 COMPLETENESS_CHECK stage hook，不自行重載；未就緒的類別名稱不在此重複列出，那屬 Completeness Check 的呈現）。三張表是**沒有欄名標題列的單表**，列樣式依**財務報表語意階層**（Section → Group → Detail → Deep detail → Subtotal → Terminus；見 [`ui/visual-standards.md`](ui/visual-standards.md) 的同名節）：Section 是各表一級區塊（損益表：收入／支出；資產負債表：資產／負債／權益；現金流量表：營業活動／投資活動／融資活動），資料縮排、可摺疊、預設展開、chevron 在標籤左側、金額一律靠表格最右。每個 Section 有自己的 Subtotal，整表最後一列為 **Terminus**，作為頁面的視覺終點；現金流量的「實際餘額」為表下的 muted 註腳，不與現金淨變動等重。摺疊狀態跨分頁切換不保留（切回一律重置為展開）。
@@ -72,11 +72,11 @@ URL 有效 ⟺ 該期間已有狀態紀錄。`yearMonth` 形狀不合法、或�
 ### UI 組構：大一統步驟 registry
 
 - **`useCloseStepRegistry` 是唯一列出全部八個步驟定義的檔案，也是唯一允許跨階段讀取的地方**：八個 step hooks 在 hook 內無條件呼叫（rules of hooks 不依賴條件分派；載入受期間存在閘門，見 §「載入扇出與量測」），回傳 `Record<CloseStageId, CloseStepDefinition>`，TypeScript 強制每個階段都有條目。新增步驟 = 一個 step hook + 一個 registry 條目。
-- **`CloseStepDefinition` 條目 = control + content factory + evidence builder**：`control` 是該階段的 stage controller（`closeStageControl` 契約，頁面只對契約分派：`buildRequest` / `confirmGate` / `afterConfirm` / `refresh` / `keepsViewOnConfirm`）；`render(ctx)` 是 content factory，從 registry 內的 stage hook 閉包直讀該階段資料（draft、prefill、drawer、summary VM），把頁面傳入的 chrome／navigation／entities context 映射到 step 元件的窄 props，資料未載入時回傳 `null`；`evidence()` 是零參數閉包，從擁有該資料的 stage hook 建構該階段證據。**證據是判別聯合**：一個階段只帶一種證據形狀，渲染端對形狀窮舉——新增一種證據而沒接上畫面是編譯錯誤，不是靜默遺漏。
-- **每個階段自載 evidence**：證據型階段也擁有自己的載入——`COMPLETENESS_CHECK` stage hook 同時擁有 `checkSettlementCompletenessUseCase`（anomalies）、`getSettlementReadinessUseCase`（readiness）與 `validateMonthTransactionsUseCase`（交易驗證 issues，一次呼叫供給 Completeness Check 的呈現）。hook 以 `control.refresh` opt-in 重載，page 不再持有任何 evidence 載入或 `refreshStageEvidence`。載入走 `useStageLoader`（組合 `useLoadingTask`，見下）：失敗時該階段顯示自己的罐頭錯誤訊息（`CloseStageLoadError`），不靜默留白——留白與「本月乾淨」在畫面上無法區分。
-- **registry 為唯一跨階段讀取點**：`CLOSE_PERIOD` 的 evidence 與 `COMPLETENESS_CHECK`／`CLOSE_PERIOD` 的 summary VM 都在 registry 內跨讀其他 stage hook（`useCloseSummaryVM` 在八個 stage hooks 之後呼叫）；**報表資料（即時 preview bundle、persisted bundle）與持久化旗標全由 `FINANCIAL_REPORTS` stage 擁有**（#228）——三者出自同一次載入，不會先後落地而互相矛盾；`CLOSE_PERIOD` 沒有自己的 stage hook（無草稿階段走 no-op control），它的 evidence 讀 `FINANCIAL_REPORTS` 的持久化旗標，Close Period 的五個財務數字與 Financial Reports 的調整項證據都讀同一份 preview bundle。`FINANCIAL_REPORTS` 的 Generate 守門另外跨讀 `COMPLETENESS_CHECK` 的 readiness。preview 不受持久化 gating：一律載入當前分錄重算的即時預覽，關帳畫面永遠顯示即時數字，persisted 只當狀態旗標（`CLOSED` 期間唯一例外，見 Report Drift）。step hook 之間不互相引用。
-- **preview 只有一份（#228）**：`FINANCIAL_REPORTS` 載入的 preview **帶** household 自訂標籤（Financial Reports 表格的顯示標籤，且該 resolver 隨確認送進產生路徑凍結進 persisted），同一份 bundle 也供 Close Period 的五個財務數字與 Financial Reports 的調整項證據使用；早期由 `CLOSE_PERIOD` 另載一份不帶標籤的 preview 的做法已移除——兩份只是同一次載入的兩種包裝，合併後數字不可能分岐。
-- **消費邊界**：page hook（`useMonthlyClosePage`）讀 registry 做「確認提交路徑」；page 元件只渲染 `registry[displayedStageId].render(stageContext)`，不再認得任何 step 的內部，也不出現任何 stage ID 或 stage control 存取。`CloseStepContext` 只帶三類資料：**chrome**（step/progress/confirmed 文字、confirming、isConfirmable/isReadOnly/isReviewing）、**導覽指令**（onConfirm/onGoToStage/onContinue/onBack；render 只為 `displayedStage` 執行，因此每個 stage 的確認都走同一個 `onConfirm`）、**共享實體**（accounts/portfolios；projects 只需要 `{id, name}`，由 `useCloseStepRegistry` 的 args 傳入，不經 context）。workflow 只把 page VM 與共享實體傳入 registry；單階段資料（draft、prefill、drawer、evidence、報表持久化與 bundle）留在 step hook 內、由 registry 閉包直讀。證券買入／賣出的 add-edit drawer 是 step 自有內容，由 SECURITIES_TRADE 條目的 content factory 呼叫 `securitiesTradeStage.drawer.open` 一併渲染，不從 page 掛載。
+- **`CloseStepDefinition` 條目 = control + content factory**：`control` 是該階段的 stage controller（`closeStageControl` 契約，頁面只對契約分派：`buildRequest` / `confirmGate` / `afterConfirm` / `refresh` / `keepsViewOnConfirm`）；`render(ctx)` 是 content factory，從 registry 內的 stage hook 閉包直讀該階段資料（draft、prefill、drawer、summary VM），把頁面傳入的 chrome／navigation／entities context 映射到 step 元件的窄 props，資料未載入時回傳 `null`。**每個階段自行渲染它要給使用者看的內容**（輸入表單或結算表格）：沒有獨立的 evidence 通道，也沒有跨階段共用的證據元件，因此不會出現「某個階段的資料在別處被重畫一次」這種第二條呈現路徑。
+- **每個階段自載自己的資料**：每個階段都擁有自己的載入——`COMPLETENESS_CHECK` stage hook 同時擁有 `checkSettlementCompletenessUseCase`（anomalies）、`getSettlementReadinessUseCase`（readiness）與 `validateMonthTransactionsUseCase`（交易驗證 issues，一次呼叫供給 Completeness Check 的呈現）。hook 以 `control.refresh` opt-in 重載，page 不再持有任何階段的載入或 `refreshStageEvidence`。載入走 `useStageLoader`（組合 `useLoadingTask`，見下）：失敗時該階段顯示自己的罐頭錯誤訊息（`CloseStageLoadError`），不靜默留白——留白與「本月乾淨」在畫面上無法區分。
+- **registry 為唯一跨階段讀取點**：`COMPLETENESS_CHECK`／`CLOSE_PERIOD` 的 summary VM 都在 registry 內跨讀其他 stage hook（`useCloseSummaryVM` 在八個 stage hooks 之後呼叫）；**報表資料（即時 preview bundle、persisted bundle）與持久化旗標全由 `FINANCIAL_REPORTS` stage 擁有**（#228）——三者出自同一次載入，不會先後落地而互相矛盾；`CLOSE_PERIOD` 沒有自己的 stage hook（無草稿階段走 no-op control），Close Period 的五個財務數字與 Financial Reports 的調整項警示都讀同一份 preview bundle。`FINANCIAL_REPORTS` 的 Generate 守門另外跨讀 `COMPLETENESS_CHECK` 的 readiness。preview 不受持久化 gating：一律載入當前分錄重算的即時預覽，關帳畫面永遠顯示即時數字，persisted 只當狀態旗標（`CLOSED` 期間唯一例外，見 Report Drift）。step hook 之間不互相引用。
+- **preview 只有一份（#228）**：`FINANCIAL_REPORTS` 載入的 preview **帶** household 自訂標籤（Financial Reports 表格的顯示標籤，且該 resolver 隨確認送進產生路徑凍結進 persisted），同一份 bundle 也供 Close Period 的五個財務數字與 Financial Reports 的調整項警示使用；早期由 `CLOSE_PERIOD` 另載一份不帶標籤的 preview 的做法已移除——兩份只是同一次載入的兩種包裝，合併後數字不可能分岐。
+- **消費邊界**：page hook（`useMonthlyClosePage`）讀 registry 做「確認提交路徑」；page 元件只渲染 `registry[displayedStageId].render(stageContext)`，不再認得任何 step 的內部，也不出現任何 stage ID 或 stage control 存取。`CloseStepContext` 只帶三類資料：**chrome**（step/progress/confirmed 文字、confirming、isConfirmable/isReadOnly/isReviewing）、**導覽指令**（onConfirm/onGoToStage/onContinue/onBack；render 只為 `displayedStage` 執行，因此每個 stage 的確認都走同一個 `onConfirm`）、**共享實體**（accounts/portfolios；projects 只需要 `{id, name}`，由 `useCloseStepRegistry` 的 args 傳入，不經 context）。workflow 只把 page VM 與共享實體傳入 registry；單階段資料（draft、prefill、drawer、報表持久化與 bundle）留在 step hook 內、由 registry 閉包直讀。證券買入／賣出的 add-edit drawer 是 step 自有內容，由 SECURITIES_TRADE 條目的 content factory 呼叫 `securitiesTradeStage.drawer.open` 一併渲染，不從 page 掛載。
 - **單一刷新入口**：`closeStageControl` 的選用方法 `refresh()`（由 `useStageLoader` 提供）是唯一的外部重載介面，page hook 提供單一 `refreshAll`（所有 opt-in 的 stage refresh），在 confirm、reopen、go-to-with-reset 後呼叫，因此沒有任何呼叫點需要知道哪個 stage 擁有哪份已載入資料（`start` 不呼叫 `refreshAll`：開始關帳後導向工作區，工作區是隨期間新掛載的元件樹，首次載入由掛載本身發出，見 §「載入扇出與量測」）。`refresh()` 不得 reject（錯誤由該 hook 自己的 `useStageLoader` 持有並以 `errorMessage` 呈現），`refreshAll` 因此可以單純 `Promise.all`。
 - **兩個抽出的階段機制（#250）**：八個關帳階段重複的載入與草稿骨架收斂成 `src/ui/features/monthly_close/hooks/` 下的 `useStageLoader<T>`（載入、取代與失敗語意）與 `useSeededDraft<T>`（每期種一次的草稿），stage hook 只留自己的 payload 映射。兩個機制的 interface 與語意記於 [`ui-layer-architecture.md`](ui/ui-layer-architecture.md) §4，此處不重述；關帳層套用三條規則：
   - **所有前置條件都合成到單一 `enabled`**：`load` 內不再有守衛，「無事可讀」因此永遠不會變成一輪空跑而把空值寫回去。
@@ -99,7 +99,7 @@ URL 有效 ⟺ 該期間已有狀態紀錄。`yearMonth` 形狀不合法、或�
 扇出與量測的結論（實測細節與方法論見 #240 的量測紀錄，QA seed 資料集規模見 [qa-seed-data.md](qa-seed-data.md)）：
 
 - **進入工作區前為 0 個關帳讀取**（#240）：工作區不存在時不發出任何 Listen，閒置觀測不新增 target；進入工作區才開始載入。
-- **組成**：帳戶餘額階段的快照讀取為 **2N**（每帳戶 current + previous，N = 帳戶數），是最大單項；Portfolio 金流階段為每個 **active** portfolio 讀當月與前月兩筆月快照，並為其兩個連結帳戶各讀一筆當月餘額（當月缺席時補一次前月）；專案結算階段為每個 active 專案讀一筆月快照（結算狀態）並在記憶體中計算即時 preview。其餘為專案清單、Completeness Check、Financial Reports（ledgerCodes + 三張 persisted + 持久化旗標），以及各階段的 prefill／evidence。
+- **組成**：帳戶餘額階段的快照讀取為 **2N**（每帳戶 current + previous，N = 帳戶數），是最大單項；Portfolio 金流階段為每個 **active** portfolio 讀當月與前月兩筆月快照，並為其兩個連結帳戶各讀一筆當月餘額（當月缺席時補一次前月）；專案結算階段為每個 active 專案讀一筆月快照（結算狀態）並在記憶體中計算即時 preview。其餘為專案清單、Completeness Check、Financial Reports（ledgerCodes + 三張 persisted + 持久化旗標），以及各階段的 prefill。
 - **共享實體重複讀取**：`projects` 清單由 page 的 `loadEntities` 與專案結算 stage 各讀一次，`accounts`／`portfolios` 同理。量測上不顯著。
 
 量測方法注意事項：
@@ -131,7 +131,7 @@ URL 有效 ⟺ 該期間已有狀態紀錄。`yearMonth` 形狀不合法、或�
 | 帳戶餘額           | 為**有輸入**的帳戶建立快照（使用者的觀察餘額）；不為未輸入的帳戶偽造零值，且無任何輸入時以 `STAGE_INPUT_REQUIRED` 拒絕確認（見 §5）                                                                                                                                                                                                                                       |
 | 證券買入／賣出     | **僅提交使用者新增或編輯的列**（未動過的 prefill 列不寫入，避免 churn 稽核欄位）：載入的既有列以**文件 ID 更新**（intent 隨買入／賣出側改變、可跨側搬移），新增列逐筆建立為獨立合法事件，移除的列以 ID 刪除；監看清單外的手動交易預設不受寫入影響，但**會被 prefill 載入為階段列**——使用者刪除或編輯後，刪除以 `removedTransactionIds` 落地，該文件即轉為階段管理         |
 | Portfolio 金流     | 為每個 **active** portfolio 寫入快照（存入與領出金隨確認一次提交）；**已存在的月快照以提交內容同鍵覆蓋**，未輸入的 active portfolio 補一筆零金流快照；inactive portfolio 已封存，不寫入（與就緒檢查的 active 過濾一致）；階段**允許重新確認**（修正輸入後再次確認即覆蓋）                                                                                                 |     |
-| 專案結算           | 執行結算流程建立專案快照；證據區列出 active 專案與 N/M 結算狀態，每個專案以即時 preview 顯示上期餘額、收入、支出與本期餘額（確認後 persisted 快照即與之一致）                                                                                                                                                                                                             |     |
+| 專案結算           | 執行結算流程建立專案快照；畫面以表格列出 active 專案與其結算狀態，每個專案以即時 preview 顯示上期餘額、收入、支出與期末餘額（確認後 persisted 快照即與之一致）                                                                                                                                                                                                            |     |
 | 債務還款           | 逐筆走 `createDebtPaymentUseCase` 的原子邊界（Transaction + DebtSnapshot + 餘額同一筆 Firestore transaction），批次內不包跨筆交易；為當月無還款的貸款補一筆零還款快照（零還款是推導，不是事件）；**同鍵重新確認 = 覆蓋當月紀錄**：未變更 payload 冪等返回、變更 payload 刪除前筆交易並重算快照與餘額、清零（總繳款 0）覆蓋成無還款，全部在同一筆 Firestore transaction 內 |
 | Completeness Check | 不建立任何資料。依監看清單推斷各對象在目標月份的活動狀態，只讀不寫                                                                                                                                                                                                                                                                                                        |
 | Financial Reports  | 產生三張報表（顯示標籤隨報表凍結，見 ADR-0069）；確認以同鍵冪等 upsert 覆寫既有 persisted（已存在不重複建立文件）                                                                                                                                                                                                                                                         |
@@ -160,10 +160,10 @@ URL 有效 ⟺ 該期間已有狀態紀錄。`yearMonth` 形狀不合法、或�
 ### 專案結算的顯示與重新確認
 
 - **確認動作**：執行結算流程建立專案快照；確認前列出所有 active 專案，每個專案以即時 preview
-  （`previewProjectSettlementsUseCase`，與寫入路徑同一領域函式）顯示上期餘額、收入、支出與本期餘額；結算狀態（該月快照存在即已結算，`listProjectSnapshotsUseCase`）以狀態符號表示，未結算另附「尚未結算」提示。專案
+  （`previewProjectSettlementsUseCase`，與寫入路徑同一領域函式）顯示上期餘額、收入、支出與期末餘額；結算狀態（該月快照存在即已結算，`listProjectSnapshotsUseCase`）以狀態符號表示，未結算另附「尚未結算」提示。專案
   結算的 N/M 與 Completeness Check 就緒狀態是兩份不同的讀取——就緒聚合由
   `COMPLETENESS_CHECK` stage hook 擁有。
-- **顯示內容**：本階段沒有輸入表單，證據區列出每個 active 專案一列：項目名稱＋結算狀態符號（未結算再加「尚未結算」），下方以 label/value 呈現上期餘額／收入／支出／本期餘額；桌機四欄、行動版兩欄。沒有 active 專案時顯示「沒有專案」。
+- **顯示內容**：本階段沒有輸入表單，以一個表格列出每個 active 專案一列：專案名稱＋結算狀態符號（未結算再加「尚未結算」）／上期餘額／收入／支出／期末餘額；桌機五欄、行動版單欄堆疊（每列以 label/value 呈現四個金額）。資料列不可點擊（沒有 detail 頁）。沒有 active 專案時顯示「沒有專案」。
 
 ### Completeness Check 的細節
 
@@ -199,4 +199,4 @@ URL 有效 ⟺ 該期間已有狀態紀錄。`yearMonth` 形狀不合法、或�
 - 資料結構：`data-structure.md` 的 `financialPeriods` 章節
 - 報表計算與 Dashboard 錨定：`financial_report.md`
 - 呈現層契約：`ui/visual-standards.md`、`ui/design-system.md`、`ui/ui-layer-architecture.md`
-- 決策理由：ADR-0050（狀態持久化）、ADR-0052（階段資料邊界）、ADR-0053（Dashboard 錨定）、ADR-0066（重開與連鎖降級）、ADR-0072（載入失敗不是證據）、ADR-0073（關帳前的 drift 把關）
+- 決策理由：ADR-0050（狀態持久化）、ADR-0052（階段資料邊界）、ADR-0053（Dashboard 錨定）、ADR-0066（重開與連鎖降級）、ADR-0072（載入失敗不是證據）、ADR-0073（關帳前的 drift 把關）、ADR-0079（階段自渲染，registry 不帶 evidence builder）
