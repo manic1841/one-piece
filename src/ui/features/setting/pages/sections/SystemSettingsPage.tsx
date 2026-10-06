@@ -3,8 +3,9 @@ import React from 'react';
 import { ShieldAlert } from 'lucide-react';
 import { useOutletContext } from 'react-router-dom';
 
+import { Module } from '@/ui/components/Module';
 import { Alert, AlertDescription } from '@/ui/components/ui/alert';
-import { SettingsSystemLabels } from '@/ui/constants/setting/settingsLabels';
+import { SettingsModuleLabels, SettingsSystemLabels } from '@/ui/constants/setting/settingsLabels';
 import EmailWhitelistUI from '@/ui/features/setting/components/EmailWhitelistUI';
 import { type SettingsAccessContext } from '@/ui/features/setting/hooks/useSettingsShell';
 import { useSystemSettingsPage } from '@/ui/features/setting/hooks/useSystemSettingsPage';
@@ -21,14 +22,16 @@ const SystemSettingsContent: React.FC = () => {
           <p className="text-sm text-muted-foreground">{SettingsSystemLabels.bannerDescription}</p>
         </AlertDescription>
       </Alert>
-      <EmailWhitelistUI
-        whitelist={state.whitelist}
-        loading={state.loading}
-        saving={state.saving}
-        error={state.error}
-        onAdd={state.addWhitelistEmail}
-        onRemove={state.removeWhitelistEmail}
-      />
+      <Module label={SettingsModuleLabels.systemWhitelist}>
+        <EmailWhitelistUI
+          whitelist={state.whitelist}
+          loading={state.loading}
+          saving={state.saving}
+          error={state.error}
+          onAdd={state.addWhitelistEmail}
+          onRemove={state.removeWhitelistEmail}
+        />
+      </Module>
     </div>
   );
 };

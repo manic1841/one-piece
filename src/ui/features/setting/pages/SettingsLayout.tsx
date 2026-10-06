@@ -2,6 +2,7 @@ import React from 'react';
 
 import { NavLink, Outlet } from 'react-router-dom';
 
+import { AccessDenied } from '@/ui/components/AccessDenied';
 import { PageHeader } from '@/ui/components/PageHeader';
 import { Skeleton } from '@/ui/components/Skeleton';
 import {
@@ -14,11 +15,11 @@ import {
   SettingsSectionLabels,
   SettingsShellLabels,
 } from '@/ui/constants/setting/settingsLabels';
-import AccessDenied from '@/ui/features/auth/pages/AccessDeniedPage';
 import {
   useSettingsShell,
   visibleSettingsSections,
 } from '@/ui/features/setting/hooks/useSettingsShell';
+import { useLogoutRedirect } from '@/ui/hooks/useLogoutRedirect';
 import { cn } from '@/ui/utils/cn';
 
 const settingsTabClass = cn(tabTriggerBaseClass, tabTriggerSelectedClass);
@@ -31,6 +32,7 @@ const settingsTabClass = cn(tabTriggerBaseClass, tabTriggerSelectedClass);
  */
 const SettingsLayout: React.FC = () => {
   const { isAdmin, isHouseholdOwnerOrAdmin, isSettingsAuthorized, loading } = useSettingsShell();
+  const onLogout = useLogoutRedirect();
 
   if (loading) {
     return (
@@ -44,7 +46,12 @@ const SettingsLayout: React.FC = () => {
   }
 
   if (!isSettingsAuthorized) {
-    return <AccessDenied description={SettingsShellLabels.accessDeniedDescription} />;
+    return (
+      <AccessDenied
+        description={SettingsShellLabels.accessDeniedDescription}
+        onLogout={() => void onLogout()}
+      />
+    );
   }
 
   const access = { isAdmin, isHouseholdOwnerOrAdmin };

@@ -2,6 +2,8 @@ import React from 'react';
 
 import { useOutletContext } from 'react-router-dom';
 
+import { Module } from '@/ui/components/Module';
+import { SettingsModuleLabels } from '@/ui/constants/setting/settingsLabels';
 import MemberManagementUI from '@/ui/features/setting/components/MemberManagementUI';
 import { useHouseholdSettingsPage } from '@/ui/features/setting/hooks/useHouseholdSettingsPage';
 import { type SettingsAccessContext } from '@/ui/features/setting/hooks/useSettingsShell';
@@ -10,17 +12,19 @@ import { SettingsSectionGate } from '@/ui/features/setting/pages/SettingsSection
 const HouseholdSettingsContent: React.FC = () => {
   const state = useHouseholdSettingsPage();
   return (
-    <MemberManagementUI
-      household={state.household}
-      memberProfiles={state.memberProfiles}
-      loading={state.memberLoading}
-      error={state.memberError}
-      success={state.memberSuccess}
-      onAdd={state.addHouseholdMember}
-      onRemove={state.removeHouseholdMember}
-      onUpdateRole={state.updateMemberRole}
-      currentUid={state.currentUid}
-    />
+    <Module label={SettingsModuleLabels.householdMembers}>
+      <MemberManagementUI
+        household={state.household}
+        memberProfiles={state.memberProfiles}
+        loading={state.memberLoading}
+        error={state.memberError}
+        success={state.memberSuccess}
+        onAdd={state.addHouseholdMember}
+        onRemove={state.removeHouseholdMember}
+        onUpdateRole={state.updateMemberRole}
+        currentUid={state.currentUid}
+      />
+    </Module>
   );
 };
 

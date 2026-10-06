@@ -33,6 +33,8 @@ export interface SelectFieldProps {
   className?: string;
   id?: string;
   name?: string;
+  /** Accessible name for label-less usage (e.g. a role select inside a row). */
+  'aria-label'?: string;
   'aria-invalid'?: boolean;
   'aria-describedby'?: string;
 }

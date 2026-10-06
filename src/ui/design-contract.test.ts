@@ -17,14 +17,13 @@ const ROUNDED_FULL_ALLOWED = new Set([
   // Essential circles: switch track/knob, spinners, avatars, status dots,
   // data-viz capsules (progress tracks), circular state/icon containers.
   'components/Avatar.tsx',
+  'components/AccessDenied.tsx',
   'components/RadioGroup.tsx',
   'components/charts/DonutChart.tsx',
   'components/charts/InteractiveLineChart.tsx',
   'components/ui/switch.tsx',
   'features/app/layout/PixelPet.tsx',
-  'features/auth/pages/AccessDeniedPage.tsx',
   'features/dashboard/components/AssetCompositionBlock.tsx',
-  'features/setting/components/MemberManagementUI.tsx',
 ]);
 
 const SHADOW_ALLOWED = new Set([

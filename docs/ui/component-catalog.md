@@ -15,6 +15,7 @@
 
 | 檔案                                                    | 條目                              |
 | ------------------------------------------------------- | --------------------------------- |
+| `src/ui/components/AccessDenied.tsx`                    | AccessDenied                      |
 | `src/ui/components/AppFallback.tsx`                     | AppFallback                       |
 | `src/ui/components/ActivityList.tsx`                    | ActivityList / ActivityRow        |
 | `src/ui/components/Avatar.tsx`                          | Avatar                            |
@@ -137,6 +138,12 @@
   - **不要用於**：把 Header 做成 Card、塞大量 Metric；那些是 [`visual-standards.md`](visual-standards.md) Page Shell 的禁止事項。
   - 範例：`src/ui/features/debt/pages/DebtDetailPage.tsx`
 
+- **`AccessDenied`** — 拒絕存取畫面：`GateSurface` 版面 + 盾牌圖示 + H1「Access Denied」+ 說明 + Logout。`/access-denied` 路由與 Settings 授權閘共用。
+  - Props：`description?`（預設為 `DEFAULT_ACCESS_DENIED_DESCRIPTION`）、`onLogout`（必填，由呼叫端注入）。
+  - 變體：無。
+  - **不要用於**：登入畫面（用 `LoginPage`）；一般頁面層的權限提示（那用 inline alert 或 `EmptyState`）。
+  - 範例：`src/ui/features/auth/pages/AccessDeniedPage.tsx`、`src/ui/features/setting/pages/SettingsLayout.tsx`。
+
 - **`AppFallback`** — 全 app 啟動不可恢復失敗的畫面。由 `ErrorBoundary` 與 `AuthGate` 使用；版面建在 `GateSurface` 上。
   - Props：`title`、`description`、`hint?`、`onRetry?`（未提供時預設按鈕為重新載入）。
   - 變體：無。
@@ -209,10 +216,10 @@
   - **不要用於**：頁面級分段（用 `PageSection`）；列表內的重複列（那不是 module，是 row）。
   - 範例：`src/ui/features/app/pages/GalleryScaffold.tsx`（re-export 為 `GalleryModule`）。
 
-- **`ui/accordion`** — 可摺疊的 section 級面板（Radix 包裝）：trigger 是一列 mono 標題，內容展開。用於把次要閱讀層收起。
+- **`ui/accordion`** — 可摺疊的 section 級面板（Radix 包裝）：trigger 是一列 mono 標題，內容展開。用於把次要閱讀層收起，或把同質項目依固定維度分成可收合的群組。
   - Props：透通 Radix Root／Item／Trigger／Content；`type`、`defaultValue` 由呼叫端決定（`multiple` 可多開）。
   - **不要用於**：表格列的展開明細（那是 `data-table` 的列展開，見 [`design-system.md`](design-system.md) `data-table`）；需要 tab 語意的區塊切換（用 `ui/tabs`）；**section 標題本身**——非摺疊的 section 用 `PageSection` 的 `title`，不要拿 accordion trigger 當標題樣式。
-  - 範例：`src/ui/features/monthly_close/stages/portfolio_cash_flow/components/PortfolioCashFlowSection.tsx`（每個 portfolio 一個可摺疊 section）。
+  - 範例：`src/ui/features/monthly_close/stages/portfolio_cash_flow/components/PortfolioCashFlowSection.tsx`（每個 portfolio 一個可摺疊 section）；`src/ui/features/setting/components/LedgerCodeSettings.tsx`（把科目清單依類型分成可收合的群組、預設全開，群組標題帶筆數）。
 
 - **`ActivityList` / `ActivityRow`** — 最近活動列：date / title+meta / amount。列表容器收掉最後一列的底線。
   - Props（Row）：`date`、`title`、`meta?`、`amount?`、`tone?`、`onActivate?`（提供時該列變成可點擊的 button，供導覽／選取）、`className?`。

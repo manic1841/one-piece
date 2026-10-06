@@ -2,6 +2,8 @@ import React from 'react';
 
 import { useOutletContext } from 'react-router-dom';
 
+import { Module } from '@/ui/components/Module';
+import { SettingsModuleLabels } from '@/ui/constants/setting/settingsLabels';
 import { BackupSettings } from '@/ui/features/setting/components/BackupSettings';
 import { useBackupSettingsPage } from '@/ui/features/setting/hooks/useBackupSettingsPage';
 import { type SettingsAccessContext } from '@/ui/features/setting/hooks/useSettingsShell';
@@ -10,16 +12,18 @@ import { SettingsSectionGate } from '@/ui/features/setting/pages/SettingsSection
 const BackupSettingsContent: React.FC = () => {
   const state = useBackupSettingsPage();
   return (
-    <BackupSettings
-      backupLoading={state.backupLoading}
-      backupError={state.backupError}
-      backupSuccess={state.backupSuccess}
-      onExport={state.exportHouseholdBackup}
-      restoreLoading={state.restoreLoading}
-      restoreError={state.restoreError}
-      restoreSuccess={state.restoreSuccess}
-      onRestore={state.restoreHouseholdBackup}
-    />
+    <Module label={SettingsModuleLabels.backup}>
+      <BackupSettings
+        backupLoading={state.backupLoading}
+        backupError={state.backupError}
+        backupSuccess={state.backupSuccess}
+        onExport={state.exportHouseholdBackup}
+        restoreLoading={state.restoreLoading}
+        restoreError={state.restoreError}
+        restoreSuccess={state.restoreSuccess}
+        onRestore={state.restoreHouseholdBackup}
+      />
+    </Module>
   );
 };
 

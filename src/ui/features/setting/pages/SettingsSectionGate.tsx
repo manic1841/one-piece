@@ -2,10 +2,9 @@ import React from 'react';
 
 import { Navigate } from 'react-router-dom';
 
-import { SETTINGS_SECTION_PATHS } from '@/ui/constants/setting/settingsLabels';
 import {
   type SettingsAccessContext,
-  firstVisibleSettingsSection,
+  firstVisibleSettingsPath,
 } from '@/ui/features/setting/hooks/useSettingsShell';
 
 interface SettingsSectionGateProps {
@@ -25,7 +24,7 @@ export const SettingsSectionGate: React.FC<SettingsSectionGateProps> = ({
   children,
 }) => {
   if (!authorized) {
-    return <Navigate to={SETTINGS_SECTION_PATHS[firstVisibleSettingsSection(access)]} replace />;
+    return <Navigate to={firstVisibleSettingsPath(access)} replace />;
   }
   return <>{children}</>;
 };

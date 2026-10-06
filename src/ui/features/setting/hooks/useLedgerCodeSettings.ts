@@ -10,6 +10,10 @@ import {
   parseLedgerCode,
   validateNewLedgerCode,
 } from '@/domains/ledger/ledgerCodeRules';
+import {
+  SETTINGS_LEDGER_TYPE_ORDER,
+  type SettingsLedgerType,
+} from '@/ui/constants/setting/settingsLabels';
 import { useAuthState } from '@/ui/contexts/useAuthState';
 import { type LedgerCodeItem, useLedgerCodes } from '@/ui/features/ledger/hooks/useLedgerCodes';
 import { useAuthIdentity } from '@/ui/hooks/useAuthIdentity';
@@ -22,14 +26,7 @@ export interface LedgerCodeRow {
   parentLabel?: string;
 }
 
-type GroupedLedgerCodeRows = {
-  asset: LedgerCodeRow[];
-  liability: LedgerCodeRow[];
-  income: LedgerCodeRow[];
-  expense: LedgerCodeRow[];
-};
-
-const GROUPED_TYPES = ['asset', 'liability', 'income', 'expense'] as const;
+type GroupedLedgerCodeRows = Record<SettingsLedgerType, LedgerCodeRow[]>;
 
 const describeViolation = (
   violation: LedgerCodeViolation,
@@ -59,9 +56,10 @@ const describeViolation = (
 
 /** Details are listed right after their parent, one indent deeper. */
 const buildGroupedRows = (codes: LedgerCodeItem[]): GroupedLedgerCodeRows => {
-  const grouped = { asset: [], liability: [], income: [], expense: [] } as GroupedLedgerCodeRows;
+  // 每個類型都在迴圈內被指派，類型清單是單一來源，不會漏鍵。
+  const grouped = {} as GroupedLedgerCodeRows;
 
-  for (const type of GROUPED_TYPES) {
+  for (const type of SETTINGS_LEDGER_TYPE_ORDER) {
     const items = codes.filter((code) => code.type === type);
     const bases = items.filter((item) => parseLedgerCode(item.code)?.depth === 2);
     const details = items.filter((item) => parseLedgerCode(item.code)?.depth === 3);
@@ -109,18 +107,19 @@ export function useLedgerCodeSettings() {
 
   const groupedRows = useMemo(() => buildGroupedRows(codes), [codes]);
 
-  const handleAdd = async () => {
-    if (!householdId || !userEmail) return;
+  /** @returns `true` when the code was created (the dialog may close); `false` on validation or write failure. */
+  const handleAdd = async (): Promise<boolean> => {
+    if (!householdId || !userEmail) return false;
 
     const label = newLabel.trim();
     const suffix = newCode.trim().toLowerCase();
-    if (!suffix || !label) return;
+    if (!suffix || !label) return false;
 
     const code = `${newType}:${suffix}`;
     const validation = validateNewLedgerCode(code, candidates);
     if (!validation.valid) {
       setError(describeViolation(validation.violation, code, candidates));
-      return;
+      return false;
     }
 
     setIsSubmitting(true);
@@ -137,8 +136,10 @@ export function useLedgerCodeSettings() {
       setNewCode('');
       setNewLabel('');
       await refresh();
+      return true;
     } catch (err) {
       setError('新增失敗: ' + (err instanceof Error ? err.message : String(err)));
+      return false;
     } finally {
       setIsSubmitting(false);
     }

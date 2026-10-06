@@ -4,6 +4,7 @@ import { getHouseholdUseCase } from '@/application/household/use_cases/getHouseh
 import { RoleEnum } from '@/domains/household/role';
 import {
   SETTINGS_SECTION_ORDER,
+  SETTINGS_SECTION_PATHS,
   type SettingsSectionKey,
 } from '@/ui/constants/setting/settingsLabels';
 import { useAuthState } from '@/ui/contexts/useAuthState';
@@ -30,6 +31,13 @@ export const visibleSettingsSections = (access: SettingsAccessContext): Settings
  */
 export const firstVisibleSettingsSection = (access: SettingsAccessContext): SettingsSectionKey =>
   visibleSettingsSections(access)[0] ?? 'household';
+
+/**
+ * 有權限的第一個區段路徑。`/settings` 的索引導向與各區段的角色閘共用同一份推導，
+ * 不各自組路徑。
+ */
+export const firstVisibleSettingsPath = (access: SettingsAccessContext): string =>
+  SETTINGS_SECTION_PATHS[firstVisibleSettingsSection(access)];
 
 interface UseSettingsShellResult extends SettingsAccessContext {
   isSettingsAuthorized: boolean;
