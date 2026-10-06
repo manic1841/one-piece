@@ -300,6 +300,20 @@ const onSubmit = form.handleSubmit((vm) => {
   watched values), so the preview cannot drift from what submit accepts. Switching tabs must not remount the dialog, or
   the inactive panels lose their values.
 
+### What is not a form (carve-outs)
+
+A **form** is an editable surface group with a `useForm`, field-level validation, and a `Schema.parse` submit gate
+(ADR-0064's motivation — field-level validation timing and the dirty/touched/field-error lifecycle). Two editable
+surfaces are explicitly **not** forms, and must not be forced into RHF:
+
+- **Keystroke-written draft grids** (the monthly-close stages): their state is a draft owned by the Controller hook
+  (`useSeededDraft`) and patched on every keystroke. There is no field-level validation and no submit gate — the commit
+  boundary is the stage Confirm / the workflow use case, guarded by the domain, not by `useForm`. They still use the
+  `form` suite's RHF-free input components (`NumberInput`, `TextInput`, …).
+- **Single-scalar inline row edits**: ADR-0065 already lists "表格內的 inline 編輯" as a case where an input component is
+  used outside a form; one scalar with a Save/Cancel button is not a form. A row that edits more than one field, or that
+  validates, does become one.
+
 ---
 
 ## 5. Typical Data Flow
