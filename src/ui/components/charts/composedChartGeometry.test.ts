@@ -7,14 +7,22 @@ import {
   pickComposedXLabels,
 } from './composedChartGeometry';
 
-/** y of the area path's closing baseline edge (the last coordinate pair before `Z`). */
+/** y of every coordinate pair in a path (or a fragment of one). */
+const pathYs = (d: string): number[] =>
+  d
+    .replace(/ Z$/, '')
+    .split(/[ML]/)
+    .slice(1)
+    .map((pair) => Number(pair.trim().split(' ')[1]));
+
+/** y where an area path's baseline edge closes. */
 const baselineYOf = (areaPath: string): number => {
-  const coords = areaPath.replace(/ Z$/, '').split(/[ML]/).slice(1);
-  return Number(coords[coords.length - 1].trim().split(' ')[1]);
+  const ys = pathYs(areaPath);
+  return ys[ys.length - 1];
 };
 
 /** y of the line's top edge (the first coordinate pair). */
-const lineYOf = (path: string): number => Number(path.split(' ')[1]);
+const lineYOf = (path: string): number => pathYs(path)[0];
 
 describe('buildComposedGeometry', () => {
   it('grows positive bars up from the zero baseline and negative bars down', () => {
@@ -89,16 +97,48 @@ describe('buildComposedGeometry', () => {
     expect(baselineYOf(stacked.areaPath!)).toBeCloseTo(lineYOf(income.path));
     // ...which is higher on screen than the income band's own axis baseline.
     expect(baselineYOf(stacked.areaPath!)).toBeLessThan(baselineYOf(income.areaPath!));
-    // The stacked line sits above its baseline, so its gradient keeps the default direction.
-    expect(stacked.areaFlipped).toBe(false);
   });
 
-  it('flips the area gradient when the baseline sits above the line on screen', () => {
-    const [expense] = buildComposedGeometry(
+  it('traces a varying baseline so a stacked band cannot bleed into the one below', () => {
+    const series: ComposedSeries[] = [
+      { kind: 'line', tone: 'positive', area: true, values: [100, 60, 90] },
+      {
+        kind: 'line',
+        tone: 'investment',
+        area: true,
+        values: [140, 100, 130],
+        baselineValues: [100, 60, 90],
+      },
+    ];
+    const [income, stacked] = buildComposedGeometry(['A', 'B', 'C'], series).lines;
+
+    // One point per line sample plus one per baseline sample.
+    expect(pathYs(stacked.areaPath!)).toHaveLength(6);
+    // The closing edge walks the income line back through the middle column. Closing with a
+    // single segment instead would cut straight past it and paint over the band below.
+    expect(pathYs(stacked.areaPath!).slice(3)).toEqual(pathYs(income.path).reverse());
+  });
+
+  it('anchors each band gradient at its own line, flipping bands that hang below zero', () => {
+    const [income, stacked, expense] = buildComposedGeometry(
       ['A', 'B'],
-      [{ kind: 'line', tone: 'negative', area: true, values: [-10, -20] }],
+      [
+        { kind: 'line', tone: 'positive', area: true, values: [100, 100] },
+        {
+          kind: 'line',
+          tone: 'investment',
+          area: true,
+          values: [140, 140],
+          baselineValues: [100, 100],
+        },
+        { kind: 'line', tone: 'negative', area: true, values: [-80, -80] },
+      ],
     ).lines;
 
+    // These bands have their line as the top edge, so the gradient runs top-down from it...
+    expect(income.areaFlipped).toBe(false);
+    expect(stacked.areaFlipped).toBe(false);
+    // ...while a band below zero has its line at the bottom, so its gradient runs upward.
     expect(expense.areaFlipped).toBe(true);
   });
 

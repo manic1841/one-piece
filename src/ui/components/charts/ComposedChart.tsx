@@ -15,11 +15,11 @@ import {
 
 const BAR_FILL_OPACITY = 0.6;
 /**
- * Area fill: a single-colour gradient anchored at the line, fading to nothing at the
- * baseline (ADR-0078). Decorative gradients remain banned — this one carries which line
- * an area belongs to, and its strongest stop sits under that line.
+ * Area fill: a single-colour gradient at full strength where the band meets its own line,
+ * fading to nothing at the band's baseline (ADR-0078). Decorative gradients remain banned —
+ * this one carries which line an area belongs to.
  */
-const AREA_GRADIENT_TOP_OPACITY = 0.38;
+const AREA_GRADIENT_OPACITY = 0.38;
 const LINE_STROKE_WIDTH = 1.8;
 
 type ComposedChartProps = {
@@ -84,7 +84,7 @@ export function ComposedChart({
                   <stop
                     offset="0%"
                     stopColor={CHART_TONE_COLOR[line.tone]}
-                    stopOpacity={AREA_GRADIENT_TOP_OPACITY}
+                    stopOpacity={AREA_GRADIENT_OPACITY}
                   />
                   <stop offset="100%" stopColor={CHART_TONE_COLOR[line.tone]} stopOpacity={0} />
                 </linearGradient>

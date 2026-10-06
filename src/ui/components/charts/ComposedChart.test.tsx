@@ -63,6 +63,28 @@ describe('ComposedChart', () => {
     expect(areaFills).toContain(`url(#${gradients[1].id})`);
   });
 
+  it('flips a below-zero band gradient so it stays strongest at its own line', () => {
+    const { container } = render(
+      <ComposedChart
+        labels={['A', 'B']}
+        series={[
+          { kind: 'line', tone: 'positive', area: true, values: [10, 20] },
+          { kind: 'line', tone: 'negative', area: true, values: [-10, -20] },
+        ]}
+      />,
+    );
+
+    const gradients = [...container.querySelectorAll('linearGradient')];
+    const axis = gradients.map((gradient) => [
+      gradient.getAttribute('y1'),
+      gradient.getAttribute('y2'),
+    ]);
+    // A band above zero is full strength at its top edge, which is where its line sits...
+    expect(axis[0]).toEqual(['0', '1']);
+    // ...and a band below zero has its line at the bottom, so the gradient runs the other way.
+    expect(axis[1]).toEqual(['1', '0']);
+  });
+
   it('renders both axis label columns for a dual-axis chart', () => {
     const dualSeries: ComposedSeries[] = [
       { kind: 'bar', tone: 'positive', values: [55_000, 70_000] },

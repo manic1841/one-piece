@@ -83,9 +83,9 @@ export type ComposedLine = {
   path: string;
   areaPath?: string;
   /**
-   * True when the area's baseline sits **above** the line on screen (e.g. an expense
-   * band below zero). Gradients anchored at the line must reverse direction then, or
-   * the strongest stop lands on the baseline instead of under the line.
+   * True when the band's baseline sits **above** its line on screen (a band below zero, or
+   * one stacked under another). The gradient is anchored at the band's own line, so it has
+   * to run bottom-up then, or full strength would land on the baseline instead of the line.
    */
   areaFlipped?: boolean;
   points: { xRatio: number; topRatio: number }[];
@@ -213,22 +213,16 @@ export function buildComposedGeometry(
   });
 
   const lineSeries = series.filter((item): item is ComposedLineSeries => item.kind === 'line');
+
   const lines: ComposedLine[] = lineSeries.map((item, seriesIndex) => {
     const scale = scaleOf(item.axis ?? 'left');
     const zeroY = yFor(0, scale);
-    const baselineYAt = (index: number): number => {
-      const baseline = item.baselineValues?.[index];
-      return baseline === undefined ? zeroY : yFor(baseline, scale);
-    };
     const coords = labels.map((_, index) => {
-      const value = item.values[index] ?? 0;
-      const y = yFor(value, scale);
+      const baseline = item.baselineValues?.[index];
       return {
         x: centerAt(index),
-        y,
-        baselineY: baselineYAt(index),
-        xRatio: centerAt(index) / COMPOSED_CHART_WIDTH,
-        topRatio: y / COMPOSED_CHART_HEIGHT,
+        y: yFor(item.values[index] ?? 0, scale),
+        baselineY: baseline === undefined ? zeroY : yFor(baseline, scale),
       };
     });
     const path = coords
@@ -238,21 +232,32 @@ export function buildComposedGeometry(
       .join(' ');
     const first = coords[0];
     const last = coords[coords.length - 1];
-    const areaPath = item.area
-      ? `${path} L${last.x.toFixed(2)} ${last.baselineY.toFixed(2)} L${first.x.toFixed(2)} ${first.baselineY.toFixed(2)} Z`
-      : undefined;
+    // Trace the baseline point by point when it varies: a stacked band's baseline is
+    // another line, and closing with a single straight segment would cut across it and let
+    // the band bleed into the one below. A flat baseline needs only its two corners.
+    const flatBaseline = coords.every((point) => point.baselineY === first.baselineY);
+    const baselineEdge = flatBaseline
+      ? `L${last.x.toFixed(2)} ${last.baselineY.toFixed(2)} L${first.x.toFixed(2)} ${first.baselineY.toFixed(2)}`
+      : [...coords]
+          .reverse()
+          .map((point) => `L${point.x.toFixed(2)} ${point.baselineY.toFixed(2)}`)
+          .join(' ');
+    const areaPath = item.area ? `${path} ${baselineEdge} Z` : undefined;
     const meanLineY = coords.reduce((total, point) => total + point.y, 0) / coords.length;
     const meanBaselineY =
       coords.reduce((total, point) => total + point.baselineY, 0) / coords.length;
+
     return {
       key: `line-${seriesIndex}`,
       tone: item.tone,
       path,
       ...(areaPath ? { areaPath } : {}),
+      // The gradient is anchored at the band's own line, so a band whose baseline sits
+      // above it on screen (below zero, or stacked under another) runs bottom-up.
       ...(areaPath ? { areaFlipped: meanBaselineY < meanLineY } : {}),
-      points: coords.map(({ xRatio, topRatio }) => ({
-        xRatio: Number(xRatio.toFixed(4)),
-        topRatio: Number(topRatio.toFixed(4)),
+      points: coords.map(({ x, y }) => ({
+        xRatio: Number((x / COMPOSED_CHART_WIDTH).toFixed(4)),
+        topRatio: Number((y / COMPOSED_CHART_HEIGHT).toFixed(4)),
       })),
     };
   });
