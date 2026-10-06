@@ -9,7 +9,7 @@
 - **擴充，不 fork**：建立新共用元件前，先確認 `src/ui/components` 既有的能不能擴充；不能才新建，並在同一個 task 內遷移既有的重複實作（[`ui-layer-architecture.md`](ui-layer-architecture.md) §2 規則 9）。
 - **Gallery 是正式規範樣板**：`/gallery` 路由（`src/ui/features/app/pages/Gallery*.tsx`，dev-only）已升格為全站畫面的視覺規範樣板——它以真實共用元件呈現每個元件的標準用法與場景。**新畫面開發一律先照 gallery 對應 section 的組合方式做**，不用自製實作；新增或調整共用元件時，同一個 task 內同步更新 gallery section，讓樣板與元件契約不漂移。既有的 production 畫面遷移到 gallery 樣板的追蹤見 GitHub issues（圖表 #259、元件採用 #261、頁面層落差 #262）；升格決策的取捨見 [ADR-0075](../adr/0075-gallery-normative-template.md)。
 - **`ui/` 群組**：`ui/` 是 shadcn 上游 primitive 群，**以擴充上游為原則，不 fork 一份自有的**。需要新行為時優先在上游 primitive 或它上層的套件（`form/`、`data-table/`）處理，而不是複製 `ui/` 的檔案出來改。`data-table` 套件疊在結構 primitive 之上而非重寫（[ADR-0061](../adr/0061-data-table-package-over-primitives.md)）。
-- **範例路徑**是「哪裡有真實用法」，不是唯一合法用法。
+- **範例路徑**是「哪裡有真實用法」，不是唯一合法用法；沒有真實用法（僅 dev gallery 呈現）者標為 **無真實消費端** 並註明原因。
 
 ## 索引
 
@@ -214,7 +214,7 @@
 - **`Module`** — PageSection 內的 distinct module：mono label + 卡片邊界（唯一允許卡片的層級，design-system「Card 保留給 distinct module」）。`min-w-0` 防止在響應式 grid 溢出。
   - Props：`label`、`children`、`className?`。
   - **不要用於**：頁面級分段（用 `PageSection`）；列表內的重複列（那不是 module，是 row）。
-  - 範例：`src/ui/features/app/pages/GalleryScaffold.tsx`（re-export 為 `GalleryModule`）。
+  - 範例：`src/ui/features/setting/pages/sections/HouseholdSettingsPage.tsx`、`src/ui/features/setting/pages/sections/AccountingSettingsPage.tsx`。
 
 - **`ui/accordion`** — 可摺疊的 section 級面板（Radix 包裝）：trigger 是一列 mono 標題，內容展開。用於把次要閱讀層收起，或把同質項目依固定維度分成可收合的群組。
   - Props：透通 Radix Root／Item／Trigger／Content；`type`、`defaultValue` 由呼叫端決定（`multiple` 可多開）。
@@ -244,7 +244,7 @@
 - **`Divider`** — 結構性分隔線。純呈現、無語意。
   - Props：`className?`。
   - **不要用於**：需要語意分組的內容（用 section / heading）。
-  - 範例：`src/ui/features/app/pages/GalleryLayout.tsx`
+  - 範例：`src/ui/features/transaction/components/form/TransactionForm.tsx`、`src/ui/features/transaction/components/form/DynamicCategorySelector.tsx`。
 
 - **`DangerZone`** — 頁面尾端的不可逆動作區（ui-layer-architecture §7.6）：destructive 分隔線、destructive 標題、destructive 動作鈕。標題文字固定在本元件內，不由呼叫端傳入。
   - Props：`actionLabel`、`onAction`、`className?`。
@@ -269,7 +269,7 @@
 - **`Toast`** — Toast 表面（visual-standards §通知）：浮動卡片，左側狀態 glyph + 訊息、右側單一選用動作（UNDO／RETRY）。元件自帶表面（`bg-card` + `border` + `shadow-lg`）；live toast 以 `toast.custom(() => <Toast …/>, { unstyled: true, style: { width: '356px' } })` 掛進 sonner，全域 `Toaster` 只負責定位，不再加表面。Toast 只回報結果，不承載 workflow instruction。
   - Props：`message`、`tone?`（`success`／`error`）、`actionLabel?`、`onAction?`、`className?`。
   - **不要用於**：需要使用者解決的問題（用 inline alert）；重要的 workflow instruction；純字串 `toast('…')`（會落到 sonner 預設外觀）。
-  - 範例：`src/ui/features/app/pages/GalleryFeedback.tsx`
+  - 範例：**無真實消費端**——尚未接上任何 workflow；唯一消費端是 dev gallery（`src/ui/features/app/pages/GalleryFeedback.tsx`）。全域 sonner `<Toaster>` 已掛載於 `App.tsx`，但 production 目前沒有任何 `toast()` 呼叫端。
 
 - **`RadioGroup` / `Radio`** — 行內單選：原生 `input[type=radio]`、`<label>` 包覆控制項，零 Radix 依賴。
   - Props（Group）：`aria-label`（必填）、`name`、`value?`、`onValueChange?`、`children`、`className?`。Props（Radio）：`value`、`label`、`className?`。
@@ -279,7 +279,7 @@
 - **`ui/tooltip`** — Tooltip primitive：Radix 包裝、Root 自帶 Provider。「僅在需要時解釋」——不懂的縮寫、推導式、缺值說明。
   - Props：透通 Radix Root/Trigger/Content；Content 預設 `sideOffset={6}`、`max-w-xs`。
   - **不要用於**：恆常可見的說明（那用 description 文字）。
-  - 範例：`src/ui/features/app/pages/GalleryInteraction.tsx`
+  - 範例：**無真實消費端**——目前僅 dev gallery 呈現（`src/ui/features/app/pages/GalleryInteraction.tsx`）。
 
 - **`YearMonthPicker`** — 年月選擇（outline 按鈕 ＋ Popover 內雙 Select）。`mode` 為 `'year-month'`（預設）或 `'year'`。
   - Props：`mode?`、`year`、`month?`、`onYearChange`、`onMonthChange?`、`className?`。
@@ -305,7 +305,7 @@
 
 - **`confirm / ConfirmDialogBody`** — 對話的內容殼，可放在 `DialogContent`（modal）或頁面內（`inline`，Gallery 預覽用）。
   - Props：`options`（`ConfirmOptions | null`）、`onConfirm`、`onCancel`、`inline?`。
-  - 範例：`src/ui/features/app/pages/GalleryInteraction.tsx`
+  - 範例：`src/ui/components/confirm/ConfirmDialog.tsx`（modal 分支）。
 
 ## 圖表 (charts)
 
@@ -314,13 +314,13 @@
 - **`charts / LineChart`** — 折線圖：格線、可選面積、座標軸標籤。y 軸預設以資料範圍加邊距（不做 0 基底），讓大額餘額中的小幅變動仍可讀；`includeZero` 可改為 0 基底。
   - Props：`values`（必填）、`labels?`（長度需與 `values` 相同才會畫 x 軸）、`tone?`、`showArea?`、`markLastPoint?`、`includeZero?`（y 值域含 0）、`zeroLine?`（在 0 畫虛線，需 0 落在值域內）、`yAxis?`（`none`/`left`，左側值標籤）、`height?`、`ariaLabel?`、`className?`、`children?`（render-prop，取得算好的 geometry 以便疊加互動層）。
   - **不要用於**：需要 hover 明細——用 `InteractiveLineChart`。
-  - 範例：`src/ui/features/app/pages/GalleryCharts.tsx`（`includeZero` ＋ `zeroLine`）。
+  - 範例：`src/ui/components/charts/InteractiveLineChart.tsx`（作為互動版的基礎）；`src/ui/features/app/pages/GalleryCharts.tsx`（`includeZero` ＋ `zeroLine` 場景）。
 
 - **`charts / BarChart`** — 分組長條圖。值以**大小**呈現（高度 ∝ 數值），收入／支出用 series 的 tone 表達，不是負高度；`highlightIndex` 指定的欄位改用 primary tone（呼叫端不需要 highlight 時可省略）。
   - Props：`labels`、`series`（`{ tone, values }[]`）、`highlightIndex?`、`height?`、`showLabels?`、`ariaLabel?`、`className?`、`children?`（`(layout) => ReactNode` 疊加層，`layout` 提供每個欄位的 index／label／values／ratio）。
   - `children` 疊加層會被放在長條區內、與欄位同樣的 flex 版面下；一旦提供 `children`，`ariaLabel` 不再掛 `role="img"`（交給疊加層自行標註語意）。
   - **不要用於**：長條圖的明細 tooltip——用 `InteractiveBarChart`。
-  - 範例：`src/ui/features/app/pages/GalleryCharts.tsx`
+  - 範例：`src/ui/components/charts/InteractiveBarChart.tsx`（作為互動版的基礎）。
 
 - **`charts / ComposedChart`** — 複合圖：分組長條與折線共用同一塊繪圖區。長條可為負值（由 0 基準線向下長），折線可選擇填滿；具 `axis: 'right'` 的序列使用獨立的右側 y 軸。可標記 `referenceLines`（依欄位 index 畫垂直虛線，例如退休年）。左／右軸刻度與 x 軸標籤由元件推導。
   - Props：`labels`、`series`（`{ kind: 'bar' | 'line', tone, values, axis?, area?, baselineValues? }[]`）、`referenceLines?`（`{ index, tone?, label? }[]`）、`height?`、`showLabels?`、`ariaLabel?`、`className?`、`children?`（`(layout) => ReactNode` 疊加層，`layout` 提供欄位、長條矩形、折線路徑、軸標籤與實際使用的標記）。
@@ -338,7 +338,7 @@
 - **`charts / ChartLegend`** — 圖例。`horizontal` 為 inline swatch 列（長條圖），`vertical` 為 label／value 列（圓環）。
   - Props：`items`（`{ label, tone?, color?, value? }[]`）、`orientation?`、`className?`。
   - **不要用於**：需要互動切換序列（本輪未實作）。
-  - 範例：`src/ui/features/app/pages/GalleryCharts.tsx`
+  - 範例：`src/ui/components/charts/DonutChart.tsx`（`vertical` 模式）。
 
 - **`charts / ChartTooltip`** — 圖表 hover 卡片表面（標題／數值／次要行）。定位由呼叫端負責。
   - Props：`title`、`value`、`meta?`、`className?`、`style?`。
@@ -447,7 +447,7 @@
 - **`CurrencyInput`** — `NumberInput` 加上前綴。
   - Props：同 `NumberInput`，另加 `prefix?`。
   - **不要用於**：**它不內建貨幣符號**，符號由呼叫端提供；金額顯示也不要經它（顯示走 `formatCurrency`）。
-  - 範例：`src/ui/features/app/pages/GalleryForms.tsx`
+  - 範例：**無真實消費端**——目前僅 dev gallery 呈現（`src/ui/features/app/pages/GalleryForms.tsx`）；feature 的金額輸入走 `NumberInput`。
 - **`DateInput`** — 日期欄位，emit ISO `yyyy-MM-dd`。
   - Props：同 `TextInput` 的 string value 契約，另加 `error?`。
   - **不要用於**：年月（用 `YearMonthPicker`）。
