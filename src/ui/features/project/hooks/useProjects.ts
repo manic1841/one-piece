@@ -11,22 +11,30 @@ import { useLoadingTask } from '@/ui/hooks/useLoadingTask';
 
 export function useProjects(householdId?: string) {
   const [projects, setProjects] = useState<Project[]>([]);
-  const { loading, error, run } = useLoadingTask();
+  // `loading` is a first-load gate, not a task lifetime: once a household's list
+  // has been loaded, a reload is a background refresh and must not blank the
+  // list back to the skeleton (ui-layer-architecture §4, route/boot gates).
+  const [loadedFor, setLoadedFor] = useState<string | null>(null);
+  const { error, run } = useLoadingTask();
+  const key = householdId ?? '';
 
   const loadProjects = useCallback(async () => {
-    if (!householdId) return;
-    await run(async () => {
-      const result = await listProjectsUseCase.execute({ householdId });
-      setProjects(result);
-    });
-  }, [householdId, run]);
+    await run(
+      async () => {
+        if (!householdId) return;
+        const result = await listProjectsUseCase.execute({ householdId });
+        setProjects(result);
+      },
+      { writeBack: () => setLoadedFor(key) },
+    );
+  }, [householdId, key, run]);
 
   useEffect(() => {
     loadProjects();
   }, [loadProjects]);
 
   return {
-    loading,
+    loading: loadedFor !== key,
     error,
     projects,
     reload: loadProjects,

@@ -16,7 +16,6 @@ import { getReportPersistenceStateUseCase } from '@/application/report/use_cases
 import { getSettlementReadinessUseCase } from '@/application/report/use_cases/getSettlementReadinessUseCase';
 import { getStoredReportsBundleUseCase } from '@/application/report/use_cases/getStoredReportsBundleUseCase';
 import { previewFinancialReportsWorkflow } from '@/application/report/use_cases/previewFinancialReportsWorkflow';
-import { checkSettlementCompletenessUseCase } from '@/application/settlement/use_cases/checkSettlementCompletenessUseCase';
 import { previewDebtSettlementsUseCase } from '@/application/settlement/use_cases/previewDebtSettlementsUseCase';
 import { type FinancialPeriod, initialStageStates } from '@/domains/financial_period/schemas';
 
@@ -30,7 +29,7 @@ const { authIdentity, confirmMock } = vi.hoisted(() => ({
   confirmMock: vi.fn(),
 }));
 
-vi.mock('@/ui/features/app/confirm/useConfirm', () => ({
+vi.mock('@/ui/components/confirm/useConfirm', () => ({
   useConfirm: () => ({ confirm: confirmMock }),
 }));
 vi.mock('@/ui/hooks/useAuthIdentity', () => ({
@@ -50,7 +49,17 @@ vi.mock('@/application/account/use_cases/getAccountsUseCase', () => ({
   getAccountsUseCase: { execute: vi.fn().mockResolvedValue([{ id: 'acc-1' }]) },
 }));
 vi.mock('@/application/portfolio/use_cases/listPortfoliosUseCase', () => ({
-  listPortfoliosUseCase: { execute: vi.fn().mockResolvedValue([{ id: 'p-1', name: '長期' }]) },
+  listPortfoliosUseCase: {
+    execute: vi.fn().mockResolvedValue([
+      {
+        id: 'p-1',
+        name: '長期',
+        isActive: true,
+        securitiesAccountId: 'acc-sec',
+        bankAccountId: 'acc-bank',
+      },
+    ]),
+  },
 }));
 vi.mock('@/application/project/use_cases/listProjectsUseCase', () => ({
   listProjectsUseCase: {
@@ -84,17 +93,15 @@ vi.mock('@/application/portfolio/use_cases/listPortfolioSnapshotsUseCase', () =>
 vi.mock('@/application/project/use_cases/listProjectSnapshotsUseCase', () => ({
   listProjectSnapshotsUseCase: { execute: vi.fn().mockResolvedValue([]) },
 }));
+vi.mock('@/application/settlement/use_cases/previewProjectSettlementsUseCase', () => ({
+  previewProjectSettlementsUseCase: { execute: vi.fn().mockResolvedValue([]) },
+}));
 vi.mock('@/application/settlement/use_cases/previewDebtSettlementsUseCase', () => ({
   previewDebtSettlementsUseCase: { execute: vi.fn().mockResolvedValue({ items: [] }) },
 }));
 vi.mock('@/application/monthly_close/use_cases/validateMonthTransactionsUseCase', () => ({
   validateMonthTransactionsUseCase: {
     execute: vi.fn().mockResolvedValue({ yearMonth: '2026-09', checkedCount: 0, issues: [] }),
-  },
-}));
-vi.mock('@/application/settlement/use_cases/checkSettlementCompletenessUseCase', () => ({
-  checkSettlementCompletenessUseCase: {
-    execute: vi.fn().mockResolvedValue({ yearMonth: '2026-09', activities: [], anomalies: [] }),
   },
 }));
 vi.mock('@/application/report/use_cases/getSettlementReadinessUseCase', () => ({
@@ -140,7 +147,6 @@ const readinessFixture = {
 const singleOwnerReads = [
   getMonthInvestmentFinancingUseCase,
   validateMonthTransactionsUseCase,
-  checkSettlementCompletenessUseCase,
   getSettlementReadinessUseCase,
   listAllLedgerCodesUseCase,
   previewFinancialReportsWorkflow,
@@ -199,9 +205,13 @@ describe('useMonthlyClosePage loading fan-out (#240)', () => {
       expect(read.execute).toHaveBeenCalledTimes(1);
     }
     // Entity-dependent prefills load once, with the real entities already in place.
-    expect(getAccountSnapshotsUseCase.execute).toHaveBeenCalledTimes(1);
+    // The account-balance stage reads one account's current snapshot (its prior
+    // month comes from getPreviousSnapshotUseCase); the portfolio stage reads the
+    // portfolio's current and previous snapshot and each of its two linked
+    // accounts' balance (current, then the previous month fallback).
+    expect(getAccountSnapshotsUseCase.execute).toHaveBeenCalledTimes(5);
     expect(getPreviousSnapshotUseCase.execute).toHaveBeenCalledTimes(1);
-    expect(listPortfolioSnapshotsUseCase.execute).toHaveBeenCalledTimes(1);
+    expect(listPortfolioSnapshotsUseCase.execute).toHaveBeenCalledTimes(2);
     expect(listProjectSnapshotsUseCase.execute).toHaveBeenCalledTimes(1);
     expect(previewDebtSettlementsUseCase.execute).toHaveBeenCalledTimes(1);
     // Shared entities, loaded once by the page.

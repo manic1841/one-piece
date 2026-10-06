@@ -5,9 +5,9 @@
 
 #126（S10）收斂前，四個工作流視窗的視覺權重與操作位置不一致：Monthly Close 的 mobile 步驟列是 Card、確認鈕文案為「確認此階段」（語意不透明）；Portfolio Detail 在正式 UI 保留「關帳快照」建立入口與 MONTHLY PERFORMANCE 每列刪除鈕，而快照已由 Monthly Close 確認冪等產生（ADR-0012 recomputable cache、ADR-0052 單段式確認即建立）；Debt 列表列內有常駐 Edit（emoji）與合併「停用/刪除」鈕，而列表列已可點入詳情；Header 有獨立 Settings 圖示鈕，與 Avatar 下拉（僅 Logout）並存。
 
-收斂的方向是 workflow-first：pipeline 是頁面的主要層級，工作區集中，破壞性與低頻操作移到詳情。Monthly Close 的步驟呈現收斂為單一響應式元件，只負責 navigation 與 progress；9 個系統階段、schema 與 confirm API 皆不變。Portfolio Detail 移除快照管理入口與每列刪除鈕——快照由 Monthly Close 的確認動作冪等產生，保留手動入口會造成兩條寫入路徑。Debt 的列內常駐動作移到詳情，列表只保留導覽 affordance。Header 的獨立 Settings 鈕收進 User Menu，低頻操作不佔用常駐欄位。
+收斂的方向是 workflow-first：pipeline 是頁面的主要層級，工作區集中，破壞性與低頻操作移到詳情。Monthly Close 的步驟呈現收斂為單一響應式元件，只負責 navigation 與 progress；系統階段、schema 與 confirm API 皆不變。Portfolio Detail 移除快照管理入口與每列刪除鈕——快照由 Monthly Close 的確認動作冪等產生，保留手動入口會造成兩條寫入路徑。Debt 的列內常駐動作移到詳情，列表只保留導覽 affordance。Header 的獨立 Settings 鈕收進 User Menu，低頻操作不佔用常駐欄位。
 
-**修訂（2026-09-28，#209）**：Monthly Close 不再保留單一 current step workspace frame。9 個系統階段各有獨立的 step hook 與 step 元件（`stages/<name>/` per-stage 自成一體），共用骨架收斂為 chrome 薄殼（`useCloseStageChrome` + `CloseStageChrome`），步驟內容由大一統 registry（`useCloseStepRegistry`，見 [monthly-close.md](../monthly-close.md)）的 content factory 逐階段組裝；pipeline 是頁面的主要層級、navigation 與 progress 只負責導覽的分工不變。其餘三個視窗的收斂方向不受影響。
+**修訂（2026-09-28，#209）**：Monthly Close 不再保留單一 current step workspace frame。系統階段各有獨立的 step hook 與 step 元件（`stages/<name>/` per-stage 自成一體），共用骨架收斂為 chrome 薄殼（`useCloseStageChrome` + `CloseStageChrome`），步驟內容由大一統 registry（`useCloseStepRegistry`，見 [monthly-close.md](../monthly-close.md)）的 content factory 逐階段組裝；pipeline 是頁面的主要層級、navigation 與 progress 只負責導覽的分工不變。其餘三個視窗的收斂方向不受影響。
 
 ## Considered Options
 

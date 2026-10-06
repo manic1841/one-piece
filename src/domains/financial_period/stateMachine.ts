@@ -4,7 +4,6 @@ import {
   type CloseStageId,
   type CloseStageState,
   type FinancialPeriod,
-  type FinancialPeriodStatus,
   initialStageStates,
 } from './schemas';
 
@@ -16,7 +15,7 @@ export class FinancialPeriodStateError extends Error {
     | 'STAGE_NOT_FOUND'
     | 'STAGE_NOT_WALK_POSITION'
     | 'STAGE_ALREADY_COMPLETED'
-    | 'STAGE_NOT_COMPLETED';
+    | 'STAGES_INCOMPLETE';
 
   constructor(code: FinancialPeriodStateError['code'], message: string) {
     super(`[${code}] ${message}`);
@@ -25,9 +24,6 @@ export class FinancialPeriodStateError extends Error {
   }
 }
 
-export const resolvePeriodStatus = (existing: FinancialPeriod | null): FinancialPeriodStatus =>
-  existing?.status ?? 'OPEN';
-
 /**
  * Walk position (ADR-0070): while paused, the only confirmable stage is the
  * first PENDING stage in CLOSE_STAGE_IDS order; the pause clears only at the
@@ -35,6 +31,13 @@ export const resolvePeriodStatus = (existing: FinancialPeriod | null): Financial
  */
 export const resolveWalkPosition = (period: FinancialPeriod): CloseStageId | null =>
   CLOSE_STAGE_IDS.find((stageId) => period.stages[stageId]?.status !== 'COMPLETED') ?? null;
+
+/** Every stage the walk must clear before the terminal close; CLOSE_PERIOD completes on close. */
+const PRE_CLOSE_STAGE_IDS = CLOSE_STAGE_IDS.filter((stageId) => stageId !== 'CLOSE_PERIOD');
+
+/** Whether the confirmable walk is finished, leaving only the terminal close. */
+export const isReadyToClose = (period: FinancialPeriod): boolean =>
+  PRE_CLOSE_STAGE_IDS.every((stageId) => isStageCompleted(period, stageId));
 
 const isPausedPeriod = (period: FinancialPeriod): boolean => period.status === 'NEEDS_REVIEW';
 
@@ -115,23 +118,6 @@ export const reconfirmStageInState = (
   };
 };
 
-export const markNeedsReviewInState = (
-  period: FinancialPeriod,
-  stageId: CloseStageId,
-): FinancialPeriod => {
-  if (period.status === 'CLOSED') {
-    throw new FinancialPeriodStateError('PERIOD_CLOSED', 'closed period cannot need review');
-  }
-  if (!CLOSE_STAGE_IDS_SET.has(stageId)) {
-    throw new FinancialPeriodStateError('STAGE_NOT_FOUND', `unknown stage: ${stageId}`);
-  }
-  return {
-    ...period,
-    status: 'NEEDS_REVIEW',
-    reviewSourceStageId: stageId,
-  };
-};
-
 export const isStageCompleted = (period: FinancialPeriod, stageId: CloseStageId): boolean =>
   period.stages[stageId]?.status === 'COMPLETED';
 
@@ -152,10 +138,10 @@ export const closePeriodInState = (
   if (period.status === 'CLOSED') {
     throw new FinancialPeriodStateError('PERIOD_CLOSED', 'period is already closed');
   }
-  if (!isStageCompleted(period, 'CLOSE_PERIOD')) {
+  if (!isReadyToClose(period)) {
     throw new FinancialPeriodStateError(
-      'STAGE_NOT_COMPLETED',
-      'Close Period stage must be confirmed before closing',
+      'STAGES_INCOMPLETE',
+      'every stage must be completed before closing',
     );
   }
 

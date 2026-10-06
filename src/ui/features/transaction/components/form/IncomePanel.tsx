@@ -31,12 +31,12 @@ export function IncomePanel({ categories, projects, allLedgerCodes }: IncomePane
   const triggerAllocation = useWatch({ control, name: 'triggerAllocation' });
 
   return (
-    <div className="space-y-5 rounded-lg border border-border bg-card p-5">
+    <div className="space-y-5">
       <AmountDateFields />
       <FormField name="intent">
         <FormItem>
           <FormLabel>收入類別</FormLabel>
-          <FormChipGroup options={categories} tone="income" />
+          <FormChipGroup options={categories} />
           <FormMessage />
         </FormItem>
       </FormField>
@@ -54,12 +54,10 @@ export function IncomePanel({ categories, projects, allLedgerCodes }: IncomePane
       </FormField>
 
       <FormField name="triggerAllocation">
-        <TransactionAllocationToggle tone="income" label="收入分配" />
+        <TransactionAllocationToggle label="收入分配" />
       </FormField>
 
-      {triggerAllocation ? (
-        <AllocationSection projects={projects} title="收入分配" tone="income" />
-      ) : null}
+      {triggerAllocation ? <AllocationSection projects={projects} title="收入分配" /> : null}
     </div>
   );
 }

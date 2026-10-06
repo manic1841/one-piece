@@ -1,37 +1,167 @@
-import { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 
 import { Edit2, Plus, Power, Shield } from 'lucide-react';
+import { type UseFormReturn } from 'react-hook-form';
 
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+  SelectField,
+  type SelectFieldOption,
+  TextInput,
+} from '@/ui/components/form';
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@/ui/components/ui/accordion';
+import { Alert, AlertDescription } from '@/ui/components/ui/alert';
 import { Badge } from '@/ui/components/ui/badge';
 import { Button } from '@/ui/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/ui/card';
-import { Input } from '@/ui/components/ui/input';
-import { Label } from '@/ui/components/ui/label';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/ui/components/ui/dialog';
+import {
+  SETTINGS_LEDGER_TYPE_LABELS,
+  SETTINGS_LEDGER_TYPE_ORDER,
+  SettingsLedgerCodeLabels,
+} from '@/ui/constants/setting/settingsLabels';
 import { useLedgerCodeSettings } from '@/ui/features/setting/hooks/useLedgerCodeSettings';
-import { LEDGER_PREFIX } from '@/ui/features/setting/viewmodels/setting.vm';
+import { type LedgerCodeFormVM } from '@/ui/features/setting/viewmodels/ledgerCodeForm.vm';
+import { cn } from '@/ui/utils/cn';
 
+const TYPE_OPTIONS: SelectFieldOption[] = SETTINGS_LEDGER_TYPE_ORDER.map((type) => ({
+  value: type,
+  label: SETTINGS_LEDGER_TYPE_LABELS[type],
+}));
+
+interface AddCodeDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  form: UseFormReturn<LedgerCodeFormVM>;
+  /** Resolves `true` on success；對話框僅在成功後關閉。 */
+  submit: () => Promise<boolean>;
+  isSubmitting: boolean;
+  error: string;
+}
+
+/**
+ * 新增自訂科目的 dialog。建立科目是次要流程，收進 dialog 讓科目清單保持第一層
+ * （visual-standards：複雜設定預設隱藏）。欄位由 RHF + `form` 套件黏合（ADR-0064）。
+ */
+const AddCodeDialog: React.FC<AddCodeDialogProps> = ({
+  open,
+  onOpenChange,
+  form,
+  submit,
+  isSubmitting,
+  error,
+}) => {
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (await submit()) onOpenChange(false);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogTrigger asChild>
+        <Button>
+          <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
+          {SettingsLedgerCodeLabels.addAction}
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{SettingsLedgerCodeLabels.dialogTitle}</DialogTitle>
+          <DialogDescription>{SettingsLedgerCodeLabels.dialogDescription}</DialogDescription>
+        </DialogHeader>
+        <Form {...form}>
+          <form onSubmit={handleSubmit} className="grid gap-4 py-4" noValidate>
+            <FormField name="type">
+              <FormItem>
+                <FormLabel>{SettingsLedgerCodeLabels.typeLabel}</FormLabel>
+                <FormControl>
+                  <SelectField options={TYPE_OPTIONS} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            </FormField>
+            <FormField name="code">
+              <FormItem>
+                <FormLabel required>{SettingsLedgerCodeLabels.codeLabel}</FormLabel>
+                <FormControl>
+                  <TextInput placeholder={SettingsLedgerCodeLabels.codePlaceholder} />
+                </FormControl>
+                <p className="text-xs leading-snug text-muted-foreground">
+                  <span className="font-mono">{SettingsLedgerCodeLabels.codeHelpPrefix}</span>
+                  {SettingsLedgerCodeLabels.codeHelpMiddle}
+                  <span className="font-mono">{SettingsLedgerCodeLabels.codeHelpDetail}</span>
+                  {SettingsLedgerCodeLabels.codeHelpSuffix}
+                </p>
+                <FormMessage />
+              </FormItem>
+            </FormField>
+            <FormField name="label">
+              <FormItem>
+                <FormLabel required>{SettingsLedgerCodeLabels.labelLabel}</FormLabel>
+                <FormControl>
+                  <TextInput placeholder={SettingsLedgerCodeLabels.labelPlaceholder} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            </FormField>
+
+            {error && (
+              <Alert variant="destructive">
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
+
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+                {SettingsLedgerCodeLabels.cancelAction}
+              </Button>
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting
+                  ? SettingsLedgerCodeLabels.adding
+                  : SettingsLedgerCodeLabels.addAction}
+              </Button>
+            </DialogFooter>
+          </form>
+        </Form>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+/** Accounting 區段內容：自訂科目代碼的清單與編輯。外框由區段頁面提供。 */
 export const LedgerCodeSettings = () => {
   const {
     groupedRows,
-    loading,
-    newLabel,
-    setNewLabel,
-    newCode,
-    setNewCode,
-    newType,
-    setNewType,
     editingCode,
     editValue,
     setEditValue,
-    isSubmitting,
     error,
-    handleAdd,
     handleToggleActive,
     startEdit,
     cancelEdit,
     saveEdit,
+    ledgerCodeForm,
   } = useLedgerCodeSettings();
+  const { form, submit, error: formError, isSubmitting } = ledgerCodeForm;
   const editInputRef = useRef<HTMLInputElement>(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
 
   useEffect(() => {
     if (editingCode) editInputRef.current?.focus();
@@ -39,168 +169,123 @@ export const LedgerCodeSettings = () => {
 
   return (
     <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Shield className="text-primary" size={20} />
-            Ledger Code Settings
-          </CardTitle>
-          <CardDescription>Manage accounting categories for your transactions.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-8">
-          {error && (
-            <p
-              role="alert"
-              className="text-sm text-destructive rounded-lg border border-destructive/40 bg-destructive/10 p-3"
-            >
-              {error}
-            </p>
-          )}
+      {/* 對話框開著時錯誤顯示在對話框內，避免同一訊息同時出現兩處。 */}
+      {error && !dialogOpen && (
+        <Alert variant="destructive">
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
 
-          {/* New Code Form */}
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              void handleAdd();
-            }}
-            className="space-y-4 p-4 bg-muted/30 rounded-lg border"
-          >
-            <h3 className="text-sm font-medium flex items-center gap-2">
-              <Plus size={16} /> Add Custom Category or Detail
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div className="space-y-2">
-                <Label>Type</Label>
-                <select
-                  className="w-full h-10 px-3 py-2 bg-background border border-input rounded-md text-sm"
-                  value={newType}
-                  onChange={(e) => setNewType(e.target.value)}
-                >
-                  <option value={LEDGER_PREFIX.ASSET}>Asset (資產)</option>
-                  <option value={LEDGER_PREFIX.LIABILITY}>Liability (負債)</option>
-                  <option value={LEDGER_PREFIX.INCOME}>Income (收入)</option>
-                  <option value={LEDGER_PREFIX.EXPENSE}>Expense (支出)</option>
-                </select>
-              </div>
-              <div className="space-y-2">
-                <Label>科目代碼 (Slug)</Label>
-                <Input
-                  placeholder="property 或 property:taipei"
-                  value={newCode}
-                  onChange={(e) => setNewCode(e.target.value)}
-                  required
-                />
-                <p className="text-[10px] text-muted-foreground leading-snug">
-                  <span className="font-mono">category</span> 建立科目；
-                  <span className="font-mono">category:detail</span> 在既有 category
-                  底下建立明細科目。
-                </p>
-              </div>
-              <div className="space-y-2">
-                <Label>Display Name (Label)</Label>
-                <Input
-                  placeholder="e.g. 差旅費"
-                  value={newLabel}
-                  onChange={(e) => setNewLabel(e.target.value)}
-                  required
-                />
-              </div>
-              <div className="flex items-end">
-                <Button type="submit" className="w-full" disabled={isSubmitting || loading}>
-                  {isSubmitting ? 'Adding...' : 'Add Category'}
-                </Button>
-              </div>
-            </div>
-          </form>
+      <div className="flex justify-end">
+        <AddCodeDialog
+          open={dialogOpen}
+          onOpenChange={setDialogOpen}
+          form={form}
+          submit={submit}
+          isSubmitting={isSubmitting}
+          error={formError}
+        />
+      </div>
 
-          {/* Grouped Lists */}
-          <div className="space-y-8">
-            {Object.entries(groupedRows).map(([type, rows]) => (
-              <div key={type} className="space-y-3">
-                <h3 className="text-xs font-black uppercase tracking-widest text-muted-foreground px-1 border-l-2 border-primary pl-3">
-                  {type} Categories
-                </h3>
-                <div className="border rounded-lg overflow-hidden divide-y bg-card">
-                  {rows.length === 0 && (
-                    <div className="p-8 text-center text-muted-foreground text-sm italic">
-                      No categories defined for this type.
-                    </div>
-                  )}
-                  {rows.map(({ item, isDetail, parentLabel }) => (
-                    <div
-                      key={item.code}
-                      className={`p-4 flex items-center justify-between group hover:bg-muted/50 transition-colors ${
-                        isDetail ? 'pl-10 bg-muted/20' : ''
-                      }`}
-                    >
-                      <div className="flex items-center gap-4">
-                        <div className="space-y-1">
+      <Accordion type="multiple" defaultValue={SETTINGS_LEDGER_TYPE_ORDER}>
+        {SETTINGS_LEDGER_TYPE_ORDER.map((type) => {
+          const rows = groupedRows[type];
+          return (
+            <AccordionItem key={type} value={type}>
+              <AccordionTrigger>
+                {`${SETTINGS_LEDGER_TYPE_LABELS[type]} ${SettingsLedgerCodeLabels.groupSuffix} (${rows.length})`}
+              </AccordionTrigger>
+              <AccordionContent>
+                {rows.length === 0 ? (
+                  <p className="py-3 text-sm text-muted-foreground italic">
+                    {SettingsLedgerCodeLabels.emptyGroup}
+                  </p>
+                ) : (
+                  <div className="divide-y divide-border">
+                    {rows.map(({ item, isDetail, parentLabel }) => (
+                      <div
+                        key={item.code}
+                        className={cn(
+                          'flex items-center justify-between gap-4 py-3',
+                          isDetail && 'pl-6',
+                        )}
+                      >
+                        <div className="min-w-0 space-y-1">
                           {editingCode === item.code ? (
                             <div className="flex items-center gap-2">
-                              <Input
+                              <TextInput
                                 ref={editInputRef}
+                                aria-label={SettingsLedgerCodeLabels.editInputLabel}
                                 value={editValue}
-                                onChange={(e) => setEditValue(e.target.value)}
-                                className="h-8 w-48 text-sm"
+                                onChange={setEditValue}
+                                className="h-8 w-48"
                               />
                               <Button size="sm" onClick={saveEdit}>
-                                Save
+                                {SettingsLedgerCodeLabels.saveAction}
                               </Button>
                               <Button size="sm" variant="ghost" onClick={cancelEdit}>
-                                Cancel
+                                {SettingsLedgerCodeLabels.cancelAction}
                               </Button>
                             </div>
                           ) : (
                             <div className="flex items-center gap-2">
-                              <p className="font-bold text-sm">
+                              <p className="truncate text-sm font-medium">
                                 {isDetail && parentLabel
                                   ? `${parentLabel} › ${item.label}`
                                   : item.label}
                               </p>
                               {item.isCustom && (
-                                <button
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  aria-label={SettingsLedgerCodeLabels.editAction}
+                                  className="h-6 w-6 text-muted-foreground hover:text-primary"
                                   onClick={() => startEdit(item.code, item.label)}
-                                  className="text-muted-foreground hover:text-primary opacity-0 group-hover:opacity-100 transition-opacity"
                                 >
                                   <Edit2 size={12} />
-                                </button>
+                                </Button>
                               )}
                             </div>
                           )}
-                          <p className="text-[10px] font-mono text-muted-foreground bg-muted px-1.5 py-0.5 rounded w-fit capitalize">
+                          <Badge variant="outline" className="font-mono">
                             {item.code}
-                          </p>
+                          </Badge>
+                        </div>
+
+                        <div className="flex shrink-0 items-center gap-2">
+                          {!item.isCustom ? (
+                            <Badge variant="secondary" className="gap-1 uppercase">
+                              <Shield size={10} aria-hidden="true" />
+                              {SettingsLedgerCodeLabels.systemBadge}
+                            </Badge>
+                          ) : (
+                            <Button
+                              variant={item.isActive ? 'outline' : 'ghost'}
+                              size="sm"
+                              className={cn(
+                                'h-8 gap-1.5',
+                                item.isActive
+                                  ? 'text-positive hover:text-positive'
+                                  : 'text-muted-foreground',
+                              )}
+                              onClick={() => handleToggleActive(item)}
+                            >
+                              <Power size={14} aria-hidden="true" />
+                              {item.isActive
+                                ? SettingsLedgerCodeLabels.activeAction
+                                : SettingsLedgerCodeLabels.disabledAction}
+                            </Button>
+                          )}
                         </div>
                       </div>
-
-                      <div className="flex items-center gap-2">
-                        {!item.isCustom ? (
-                          <Badge
-                            variant="secondary"
-                            className="gap-1 text-[10px] uppercase font-bold"
-                          >
-                            <Shield size={10} /> System
-                          </Badge>
-                        ) : (
-                          <Button
-                            variant={item.isActive ? 'outline' : 'ghost'}
-                            size="sm"
-                            className={`h-8 gap-1.5 ${item.isActive ? 'text-positive hover:text-positive' : 'text-muted-foreground'}`}
-                            onClick={() => handleToggleActive(item)}
-                          >
-                            <Power size={14} />
-                            {item.isActive ? 'Active' : 'Disabled'}
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+                    ))}
+                  </div>
+                )}
+              </AccordionContent>
+            </AccordionItem>
+          );
+        })}
+      </Accordion>
     </div>
   );
 };

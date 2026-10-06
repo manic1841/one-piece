@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { type SetStateAction, useCallback } from 'react';
 
 import { getAccountSnapshotsUseCase } from '@/application/account/use_cases/getAccountSnapshotsUseCase';
 import { getPreviousSnapshotUseCase } from '@/application/account/use_cases/getPreviousSnapshotUseCase';
@@ -102,7 +102,7 @@ export const useAccountBalanceStage = ({
   confirmingStageId,
 }: UseAccountBalanceStageArgs): CloseStageControl<'ACCOUNT_BALANCE'> & {
   balances: AccountBalanceInput[] | null;
-  setBalances: (value: AccountBalanceInput[]) => void;
+  setBalances: (updater: SetStateAction<AccountBalanceInput[] | null>) => void;
   accountSnapshots: Map<string, AccountSnapshot>;
   errorMessage: string | null;
 } => {
@@ -117,7 +117,9 @@ export const useAccountBalanceStage = ({
     enabled: householdId !== '' && selectedYearMonth !== '' && accounts.length > 0,
     load,
   });
-  const [balances, setBalances] = useSeededDraft<AccountBalanceInput[]>(data?.prefill ?? null);
+  const [balances, setBalances] = useSeededDraft<AccountBalanceInput[] | null>(
+    data?.prefill ?? null,
+  );
 
   const control = useConfirmStageControl({
     stageId: 'ACCOUNT_BALANCE',

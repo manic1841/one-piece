@@ -23,8 +23,6 @@ const projects = [
 
 const expenseCategories = [{ value: 'FOOD', label: '餐飲' }];
 const incomeCategories = [{ value: 'OTHER_INCOME', label: '其他收入' }];
-const investmentCategories = [{ value: 'REAL_ESTATE_BUY', label: '購置不動產' }];
-const financingCategories = [{ value: 'OTHER_FINANCING', label: '其他融資' }];
 
 const ledgerCode = (
   code: string,
@@ -52,8 +50,6 @@ function renderForm(overrides: Partial<React.ComponentProps<typeof TransactionFo
       projects={projects}
       expenseCategories={expenseCategories}
       incomeCategories={incomeCategories}
-      investmentCategories={investmentCategories}
-      financingCategories={financingCategories}
       advancedCategories={[...expenseCategories, ...incomeCategories]}
       allActiveLedgerCodes={allActiveLedgerCodes}
       {...overrides}

@@ -28,7 +28,7 @@ const INTENT_TYPE_OPTIONS = [{ value: 'MANUAL', label: 'MANUAL' }];
 
 export function AdvancedPanel({ projects, allLedgerCodes }: AdvancedPanelProps) {
   return (
-    <div className="space-y-5 rounded-lg border border-border bg-card p-5">
+    <div className="space-y-5">
       <AmountDateFields />
       <div className="grid gap-4 md:grid-cols-2">
         <FormField name="intentType">
@@ -43,7 +43,7 @@ export function AdvancedPanel({ projects, allLedgerCodes }: AdvancedPanelProps) 
         <FormField name="projectId">
           <FormItem>
             <FormLabel>專案 (選填)</FormLabel>
-            <FormChipGroup options={toProjectOptions(projects)} tone="neutral" />
+            <FormChipGroup options={toProjectOptions(projects)} />
             <FormMessage />
           </FormItem>
         </FormField>

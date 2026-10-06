@@ -19,6 +19,54 @@ interface HouseholdSwitcherProps {
   compact?: boolean;
 }
 
+/** Derived from the controller's return shape so this Surface file never imports a domain type. */
+type Households = ReturnType<typeof useHouseholdSwitcher>['households'];
+
+interface HouseholdMenuContentProps {
+  loading: boolean;
+  households: Households;
+  currentHouseholdId?: string;
+  onSwitch: (householdId: string) => void;
+  onLeave: () => void;
+}
+
+const HouseholdMenuContent: React.FC<HouseholdMenuContentProps> = ({
+  loading,
+  households,
+  currentHouseholdId,
+  onSwitch,
+  onLeave,
+}) => (
+  <DropdownMenuContent align="start" className="w-56">
+    <DropdownMenuLabel>Switch Household</DropdownMenuLabel>
+    <DropdownMenuSeparator />
+    {loading ? (
+      <DropdownMenuItem disabled>Loading...</DropdownMenuItem>
+    ) : (
+      <>
+        {households.map((household) => (
+          <DropdownMenuItem
+            key={household.id}
+            onClick={() => onSwitch(household.id)}
+            className={household.id === currentHouseholdId ? 'bg-primary/10' : ''}
+          >
+            <Home size={16} className="mr-2" />
+            {household.name}
+            {household.id === currentHouseholdId && (
+              <span className="ml-auto text-xs text-primary">Current</span>
+            )}
+          </DropdownMenuItem>
+        ))}
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={onLeave} className="text-destructive">
+          <LogOutIcon size={16} className="mr-2" />
+          Leave Household
+        </DropdownMenuItem>
+      </>
+    )}
+  </DropdownMenuContent>
+);
+
 const HouseholdSwitcher: React.FC<HouseholdSwitcherProps> = ({
   currentHouseholdId,
   currentHouseholdName,
@@ -31,43 +79,30 @@ const HouseholdSwitcher: React.FC<HouseholdSwitcherProps> = ({
     setIsOpen,
   );
 
+  const menuContent = (
+    <HouseholdMenuContent
+      loading={loading}
+      households={households}
+      currentHouseholdId={currentHouseholdId}
+      onSwitch={handleSwitchHousehold}
+      onLeave={handleLeaveHousehold}
+    />
+  );
+
   if (compact) {
     return (
       <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
         <DropdownMenuTrigger asChild>
-          <button className="text-left flex items-center gap-1 hover:opacity-80 transition-opacity">
-            <p className="text-xs text-muted-foreground font-medium">{currentHouseholdName}</p>
-            <ChevronDown size={12} className="text-muted-foreground" />
-          </button>
+          <Button
+            variant="text"
+            size="sm"
+            className="h-auto gap-1 px-0 py-0 text-xs font-medium [&_svg]:size-3"
+          >
+            {currentHouseholdName}
+            <ChevronDown />
+          </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="start" className="w-56">
-          <DropdownMenuLabel>Switch Household</DropdownMenuLabel>
-          <DropdownMenuSeparator />
-          {loading ? (
-            <DropdownMenuItem disabled>Loading...</DropdownMenuItem>
-          ) : (
-            <>
-              {households.map((household) => (
-                <DropdownMenuItem
-                  key={household.id}
-                  onClick={() => handleSwitchHousehold(household.id)}
-                  className={household.id === currentHouseholdId ? 'bg-primary/10' : ''}
-                >
-                  <Home size={16} className="mr-2" />
-                  {household.name}
-                  {household.id === currentHouseholdId && (
-                    <span className="ml-auto text-xs text-primary">Current</span>
-                  )}
-                </DropdownMenuItem>
-              ))}
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={handleLeaveHousehold} className="text-destructive">
-                <LogOutIcon size={16} className="mr-2" />
-                Leave Household
-              </DropdownMenuItem>
-            </>
-          )}
-        </DropdownMenuContent>
+        {menuContent}
       </DropdownMenu>
     );
   }
@@ -82,34 +117,7 @@ const HouseholdSwitcher: React.FC<HouseholdSwitcherProps> = ({
           <ChevronDown size={16} className="text-muted-foreground flex-shrink-0 ml-2" />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" className="w-56">
-        <DropdownMenuLabel>Switch Household</DropdownMenuLabel>
-        <DropdownMenuSeparator />
-        {loading ? (
-          <DropdownMenuItem disabled>Loading...</DropdownMenuItem>
-        ) : (
-          <>
-            {households.map((household) => (
-              <DropdownMenuItem
-                key={household.id}
-                onClick={() => handleSwitchHousehold(household.id)}
-                className={household.id === currentHouseholdId ? 'bg-primary/10' : ''}
-              >
-                <Home size={16} className="mr-2" />
-                {household.name}
-                {household.id === currentHouseholdId && (
-                  <span className="ml-auto text-xs text-primary">Current</span>
-                )}
-              </DropdownMenuItem>
-            ))}
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={handleLeaveHousehold} className="text-destructive">
-              <LogOutIcon size={16} className="mr-2" />
-              Leave Household
-            </DropdownMenuItem>
-          </>
-        )}
-      </DropdownMenuContent>
+      {menuContent}
     </DropdownMenu>
   );
 };

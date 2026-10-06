@@ -66,9 +66,9 @@ describe('resolveDisplayedStageId', () => {
       resolveDisplayedStageId({
         isClosed: false,
         viewingStageId: null,
-        currentStageId: 'TRANSACTION_VALIDATION',
+        currentStageId: 'SECURITIES_TRADE',
       }),
-    ).toBe('TRANSACTION_VALIDATION');
+    ).toBe('SECURITIES_TRADE');
   });
 });
 
@@ -76,7 +76,7 @@ describe('resolveStepText', () => {
   it('formats the step number and label for a displayed stage', () => {
     const stages = CLOSE_STAGE_IDS.map((stageId) => ({ stageId, label: stageId }));
 
-    expect(resolveStepText(stages, 'COMPLETENESS_CHECK')).toBe('07 COMPLETENESS_CHECK');
+    expect(resolveStepText(stages, 'COMPLETENESS_CHECK')).toBe('06 COMPLETENESS_CHECK');
   });
 
   it('returns null for an unknown stage', () => {
@@ -90,17 +90,17 @@ describe('resolvePositionText', () => {
   it('follows the viewed stage in a closed period so progress matches the step header', () => {
     expect(
       resolvePositionText(stages, null, true, CLOSE_STAGE_IDS.length, 'PORTFOLIO_CASH_FLOW'),
-    ).toBe('04 / 09');
+    ).toBe('03 / 08');
   });
 
   it('shows the final position for a closed period with no viewed stage', () => {
-    expect(resolvePositionText(stages, null, true, CLOSE_STAGE_IDS.length, null)).toBe('09 / 09');
+    expect(resolvePositionText(stages, null, true, CLOSE_STAGE_IDS.length, null)).toBe('08 / 08');
   });
 
   it('keeps the walk position while not paused', () => {
     expect(
       resolvePositionText(stages, 'ACCOUNT_BALANCE', false, CLOSE_STAGE_IDS.length, null),
-    ).toBe('01 / 09');
+    ).toBe('01 / 08');
   });
 });
 
@@ -108,11 +108,11 @@ describe('resolveGoToResetRange', () => {
   it('derives the reset range from the target stage index', () => {
     const stages = CLOSE_STAGE_IDS.map((stageId) => ({ stageId }));
 
-    expect(resolveGoToResetRange(stages, 'DEBT_REPAYMENT', 9)).toBe('06-09');
+    expect(resolveGoToResetRange(stages, 'DEBT_REPAYMENT', 8)).toBe('05-08');
   });
 
   it('falls back to step 01 for an unknown stage', () => {
-    expect(resolveGoToResetRange([], 'ACCOUNT_BALANCE', 9)).toBe('01-09');
+    expect(resolveGoToResetRange([], 'ACCOUNT_BALANCE', 8)).toBe('01-08');
   });
 });
 

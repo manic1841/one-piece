@@ -6,7 +6,7 @@ import { MONTHLY_CLOSE_LABELS } from '@/ui/constants/monthlyClose';
 
 import { CloseFinancialReports } from './CloseFinancialReports';
 
-const buildPreview = (overrides?: { adjustment?: number }) => ({
+const buildPreview = () => ({
   incomeStatement: {
     yearMonth: '2026-03',
     incomeTotal: 50000,
@@ -58,7 +58,7 @@ const buildPreview = (overrides?: { adjustment?: number }) => ({
     beginningBalance: 0,
     endingBalance: 20000,
     actualBalance: 20000,
-    adjustment: overrides?.adjustment ?? 0,
+    adjustment: 0,
   },
 });
 
@@ -77,7 +77,7 @@ const renderReports = (props?: Partial<Props>) =>
       reports={reportsFrom()}
       timestamps={{}}
       isLoading={false}
-      isReady={true}
+      isLoaded={true}
       error={null}
       isSettlementReady={true}
       onContinue={() => {}}
@@ -88,6 +88,7 @@ const renderReports = (props?: Partial<Props>) =>
       isReadOnly={false}
       isStageCompleted={false}
       reportsPersisted={false}
+      showAdjustmentWarning={false}
       {...props}
     />,
   );
@@ -286,7 +287,7 @@ describe('CloseFinancialReports', () => {
     renderReports({ isSettlementReady: false });
 
     expect(screen.getByTestId('generate-reports')).toBeDisabled();
-    // The missing-category list is Step 7's presentation; Step 8 only gates.
+    // The missing-category list is COMPLETENESS_CHECK's presentation; FINANCIAL_REPORTS only gates.
     expect(screen.queryByText(/尚未完成所有類別的月結算/)).not.toBeInTheDocument();
   });
 
@@ -298,14 +299,14 @@ describe('CloseFinancialReports', () => {
 
   // The stage's own load still being unknown blocks Generate just as an error does (#250).
   it('disables generate while its own report load is not yet ready (#250)', () => {
-    renderReports({ isReady: false });
+    renderReports({ isLoaded: false });
 
     expect(screen.getByTestId('generate-reports')).toBeDisabled();
   });
 
-  // A failed load carries both the message and isReady === false (#250).
+  // A failed load carries both the message and isLoaded === false (#250).
   it('disables generate when the report preview failed to load (#229)', () => {
-    renderReports({ error: '無法載入報表預覽，請稍後再試。', isReady: false });
+    renderReports({ error: '無法載入報表預覽，請稍後再試。', isLoaded: false });
 
     expect(screen.getByTestId('generate-reports')).toBeDisabled();
   });
@@ -335,8 +336,8 @@ describe('CloseFinancialReports', () => {
     expect(screen.getByTestId('generate-reports')).toBeDisabled();
   });
 
-  it('warns when the cash flow adjustment exceeds 1000', () => {
-    renderReports({ reports: reportsFrom(buildPreview({ adjustment: 1500 })) });
+  it('shows the adjustment warning the stage derived', () => {
+    renderReports({ showAdjustmentWarning: true });
 
     expect(screen.getByText(/現金流調整超過 1,000/)).toBeInTheDocument();
   });
@@ -395,5 +396,50 @@ describe('CloseFinancialReports', () => {
     expect((flow.textContent!.match(/ETF/g) ?? []).length).toBe(1);
     fireEvent.click(inflowToggle);
     expect((flow.textContent!.match(/ETF/g) ?? []).length).toBe(2);
+  });
+
+  it('shows the three statement metric rows with drift change lines', () => {
+    const preview = buildPreview();
+    // 已產生報表與本次預覽不同：收入由 40,000 漂移到 50,000。
+    const reports = {
+      ...reportsFrom(preview),
+      incomeStatement: diffIncomeStatement(
+        preview.incomeStatement as never,
+        { ...preview.incomeStatement, incomeTotal: 40000 } as never,
+      ),
+    };
+    renderReports({ reports });
+
+    // 三張表各帶三個指標；值為當期值，變化行為漂移 delta。
+    const income = screen.getByTestId('statement-metric-income');
+    expect(income).toHaveTextContent('收入');
+    expect(income).toHaveTextContent('NT$50,000');
+    expect(income).toHaveTextContent('NT$40,000 -> NT$50,000');
+
+    // 未漂移的指標不顯示變化行。
+    expect(screen.getByTestId('statement-metric-expense')).not.toHaveTextContent('->');
+
+    expect(screen.getByTestId('statement-metric-assets')).toHaveTextContent('NT$100,000');
+    expect(screen.getByTestId('statement-metric-liabilities')).toHaveTextContent('負債');
+    expect(screen.getByTestId('statement-metric-equity')).toHaveTextContent('權益');
+    expect(screen.getByTestId('statement-metric-beginning-balance')).toHaveTextContent('期初餘額');
+    expect(screen.getByTestId('statement-metric-ending-balance')).toHaveTextContent('NT$20,000');
+    expect(screen.getByTestId('statement-metric-net-cash-change')).toHaveTextContent('現金淨變動');
+
+    // 每張表在行動版堆疊時都帶標題。
+    expect(
+      within(screen.getByTestId('close-income-statement')).getByText('損益表'),
+    ).toBeInTheDocument();
+    expect(
+      within(screen.getByTestId('close-balance-sheet')).getByText('資產負債表'),
+    ).toBeInTheDocument();
+    expect(
+      within(screen.getByTestId('close-cash-flow')).getByText('現金流量表'),
+    ).toBeInTheDocument();
+
+    // 結果型指標依正負上色（淨利 20,000 為正）。
+    expect(
+      screen.getByTestId('statement-metric-net-income').querySelector('.text-positive'),
+    ).not.toBeNull();
   });
 });

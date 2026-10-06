@@ -1,5 +1,7 @@
 import React from 'react';
 
+import { Alert, AlertDescription } from '@/ui/components/ui/alert';
+
 interface CloseStageLoadErrorProps {
   /** The stage's canned load-failure copy; null while the load has not failed. */
   message: string | null;
@@ -13,8 +15,8 @@ interface CloseStageLoadErrorProps {
 export const CloseStageLoadError: React.FC<CloseStageLoadErrorProps> = ({ message }) => {
   if (!message) return null;
   return (
-    <p className="pt-4 text-sm text-destructive" role="alert">
-      {message}
-    </p>
+    <Alert variant="destructive" className="mt-4">
+      <AlertDescription>{message}</AlertDescription>
+    </Alert>
   );
 };

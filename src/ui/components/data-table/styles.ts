@@ -32,6 +32,17 @@ export const dataTableHeadNumberClass = `${headCellBaseClass} text-right`;
 /** 資料列：最小 54px 高、細分隔線（實際高度 = max(54, 最高 cell 內容)）。 */
 export const dataTableRowClass = 'h-[54px] border-b border-border';
 
+/**
+ * 表格外框：第一列上緣一條線、最後列下緣一條線，補齊 `TableBody` 重置
+ * （`[&_tr:last-child]:border-0`）清掉的上下邊界。線色沿用列的 `border-border`；
+ * 選擇器從表格根套用，specificity 高於重置。第一列加 `:not(:last-child)` 守衛：
+ * 只有單列時上緣交給該列自己的規則（如報表 terminus 的 `border-t-2`），避免 1px
+ * 上緣線與列自帶的重線互搶。消費者要更重的下緣時，以同名
+ * `[&_tbody>tr:last-child]:border-b-2` 覆寫——`cn`（tailwind-merge）讓後者勝出。
+ */
+export const dataTableFrameClass =
+  '[&_tbody>tr:first-child:not(:last-child)]:border-t [&_tbody>tr:last-child]:border-b';
+
 /** 一般 cell：垂直置中、9px 上下內距（見檔首的列高預算）。 */
 export const dataTableCellTextClass = 'py-[9px] pr-3 align-middle text-left';
 
@@ -53,6 +64,12 @@ export const numberInputClass =
 /** 數字輸入框緊湊版（子表格，32px）。 */
 export const numberInputCompactClass =
   'h-8 rounded-none border-border bg-muted px-2.5 text-right font-mono text-xs tabular-nums';
+
+/**
+ * 文字輸入框緊湊版（子表格，32px）：與 {@link numberInputCompactClass} 同幾何，
+ * 但左對齊且用一般字體（如持倉的 Symbol／Name）。
+ */
+export const textInputCompactClass = 'h-8 rounded-none border-border bg-muted px-2.5 text-xs';
 
 /** 行動版 grouped card 容器。 */
 export const mobileDataListClass = 'space-y-3 md:hidden';

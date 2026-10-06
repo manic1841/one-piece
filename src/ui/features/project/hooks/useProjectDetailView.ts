@@ -1,85 +1,79 @@
 import { useCallback, useEffect, useState } from 'react';
 
+import { PROJECT_DETAIL_LABELS } from '@/ui/constants/project/projectDetailLabels';
 import {
-  type ProjectDetailItemVM,
+  type ProjectMonthGroup,
   type ProjectSnapshotItemVM,
+  type ProjectTotals,
   mapSnapshotToProjectDetailVM,
   mapTransactionToProjectDetailVM,
+  toLatestSnapshot,
+  toProjectMonthGroups,
+  toRecentTotals,
 } from '@/ui/features/project/viewmodels/projectDetail.vm';
+import { useLoadingTask } from '@/ui/hooks/useLoadingTask';
 
-import { useProjectCmds } from './useProjectCmds';
 import { useProjectQueries } from './useProjects';
+
+const EMPTY_TOTALS: ProjectTotals = { income: 0, expense: 0, net: 0 };
 
 export const useProjectDetailView = (householdId: string, projectId: string) => {
   const { getProjectRecords, getProjectSnapshots } = useProjectQueries(householdId);
-  const [items, setItems] = useState<ProjectDetailItemVM[]>([]);
-  const [history, setHistory] = useState<string[]>([]);
-  const [selectedYearMonth, setSelectedYearMonth] = useState<string>('current');
-  const [currentSnapshot, setCurrentSnapshot] = useState<ProjectSnapshotItemVM | null>(null);
+  const { loading, errorMessage, run } = useLoadingTask({ initiallyLoading: true });
+  const [monthGroups, setMonthGroups] = useState<ProjectMonthGroup[]>([]);
+  const [totals, setTotals] = useState<ProjectTotals>(EMPTY_TOTALS);
+  const [latestSnapshot, setLatestSnapshot] = useState<ProjectSnapshotItemVM | null>(null);
 
   const load = useCallback(async () => {
-    if (!householdId || !projectId) return;
+    await run(
+      async () => {
+        if (!householdId || !projectId) return null;
 
-    const [recordsResult, snapshotsResult] = await Promise.all([
-      selectedYearMonth === 'current'
-        ? getProjectRecords(projectId)
-        : getProjectRecords(projectId, selectedYearMonth),
-      getProjectSnapshots(projectId),
-    ]);
+        const [recordsResult, snapshotsResult] = await Promise.all([
+          getProjectRecords(projectId),
+          getProjectSnapshots(projectId),
+        ]);
 
-    const records = recordsResult.ok ? recordsResult.value : [];
-    const snapshots = snapshotsResult.ok ? snapshotsResult.value : [];
+        if (recordsResult.ok === false && recordsResult.kind === 'failed') {
+          throw recordsResult.error;
+        }
+        if (snapshotsResult.ok === false && snapshotsResult.kind === 'failed') {
+          throw snapshotsResult.error;
+        }
 
-    // Update history list (sorted DESC)
-    const yearMonths = snapshots.map((s) => `${s.year}-${s.month.toString().padStart(2, '0')}`);
-    setHistory([...new Set(yearMonths)].sort((a, b) => b.localeCompare(a)));
-
-    const recordItems = records.map(mapTransactionToProjectDetailVM);
-
-    if (selectedYearMonth !== 'current') {
-      const snapshot = snapshots.find(
-        (s) => `${s.year}-${s.month.toString().padStart(2, '0')}` === selectedYearMonth,
-      );
-      const snapshotVM = snapshot ? mapSnapshotToProjectDetailVM(snapshot) : null;
-      setCurrentSnapshot(snapshotVM);
-
-      const snapshotItems = snapshotVM ? [snapshotVM] : [];
-      setItems([...snapshotItems, ...recordItems]);
-    } else {
-      setCurrentSnapshot(null);
-      const snapshotItems = snapshots.map(mapSnapshotToProjectDetailVM);
-      const merged = [...recordItems, ...snapshotItems].sort(
-        (a, b) => b.date.getTime() - a.date.getTime(),
-      );
-      setItems(merged);
-    }
-  }, [householdId, projectId, selectedYearMonth, getProjectRecords, getProjectSnapshots]);
+        return {
+          records: recordsResult.ok ? recordsResult.value : [],
+          snapshots: snapshotsResult.ok ? snapshotsResult.value : [],
+        };
+      },
+      {
+        writeBack: (result) => {
+          if (!result.ok) return;
+          const records = result.value?.records ?? [];
+          const snapshots = result.value?.snapshots ?? [];
+          const groupVMs = snapshots.map(mapSnapshotToProjectDetailVM);
+          const groups = toProjectMonthGroups(
+            records.map(mapTransactionToProjectDetailVM),
+            groupVMs,
+          );
+          setMonthGroups(groups);
+          setTotals(toRecentTotals(groups));
+          setLatestSnapshot(toLatestSnapshot(groupVMs));
+        },
+      },
+    );
+  }, [householdId, projectId, getProjectRecords, getProjectSnapshots, run]);
 
   useEffect(() => {
-    const init = async () => {
-      await load();
-    };
-    init();
+    void load();
   }, [load]);
 
-  const { deleteSnapshot: deleteSnapshotCmd } = useProjectCmds(householdId);
-
-  const deleteSnapshot = useCallback(
-    async (snapshotId: string) => {
-      if (!projectId) return;
-      await deleteSnapshotCmd(projectId, snapshotId);
-      await load();
-    },
-    [projectId, deleteSnapshotCmd, load],
-  );
-
   return {
-    items,
-    history,
-    selectedYearMonth,
-    setSelectedYearMonth,
-    currentSnapshot,
+    monthGroups,
+    totals,
+    latestSnapshot,
+    loading,
+    error: errorMessage === null ? null : PROJECT_DETAIL_LABELS.LOAD_ERROR,
     reload: load,
-    deleteSnapshot,
   };
 };

@@ -5,15 +5,7 @@ import { optionalText, requiredNumber } from '@/shared/schemas/coerce';
 import { type AllocationDraftItem } from '../types/allocation';
 import { type TransactionFormOutput } from '../types/transaction';
 
-/**
- * Per-tab Form VM schemas (ADR-0064).
- *
- * The transaction dialog composes one transaction through five tab panels. Each
- * panel is its own RHF form with its own schema — the tab selection is hook
- * state, never a form field. Every schema coerces at the boundary, so `z.input`
- * is the string shape a field emits and `z.output` is the numeric
- * `TransactionFormOutput` the controller forwards.
- */
+/** Per-tab form schemas; each coerces its string fields into the numeric `TransactionFormOutput`. */
 
 const requiredText = (message: string) => z.string().min(1, message);
 
@@ -113,32 +105,6 @@ export const TransactionIncomeFormSchema = z
     }),
   );
 
-const categoryPanelFields = {
-  ...amountDate,
-  projectId: optionalText(),
-  intent: optionalText(),
-  ledgerCode: optionalText(),
-  ...description,
-};
-
-/** The investment and financing panels share a field set and differ only by intent. */
-const categoryPanelSchema = (intentType: 'INVESTMENT' | 'FINANCING') =>
-  z.object(categoryPanelFields).transform(
-    (value): TransactionFormOutput => ({
-      intentType,
-      intent: value.intent,
-      date: value.date,
-      amount: value.amount,
-      projectId: value.projectId,
-      ledgerCode: value.ledgerCode,
-      description: value.description,
-    }),
-  );
-
-export const TransactionInvestmentFormSchema = categoryPanelSchema('INVESTMENT');
-
-export const TransactionFinancingFormSchema = categoryPanelSchema('FINANCING');
-
 export const TransactionAdvancedFormSchema = z
   .object({
     ...amountDate,
@@ -162,8 +128,6 @@ export const TransactionAdvancedFormSchema = z
 
 export type TransactionExpenseFormInput = z.input<typeof TransactionExpenseFormSchema>;
 export type TransactionIncomeFormInput = z.input<typeof TransactionIncomeFormSchema>;
-export type TransactionInvestmentFormInput = z.input<typeof TransactionInvestmentFormSchema>;
-export type TransactionFinancingFormInput = z.input<typeof TransactionFinancingFormSchema>;
 export type TransactionAdvancedFormInput = z.input<typeof TransactionAdvancedFormSchema>;
 
 /**
@@ -206,28 +170,6 @@ export const createTransactionIncomeFormValues = (
   description: output?.description ?? '',
   triggerAllocation: Boolean(output?.triggerAllocation),
   allocationItems: toDraftAllocationItems(output?.allocationItems),
-});
-
-export const createTransactionInvestmentFormValues = (
-  output?: TransactionFormOutput | null,
-): TransactionInvestmentFormInput => ({
-  amount: output ? output.amount.toString() : '',
-  date: output?.date ?? todayIso(),
-  projectId: output?.projectId ?? '',
-  intent: output?.intent ?? '',
-  ledgerCode: output?.ledgerCode ?? '',
-  description: output?.description ?? '',
-});
-
-export const createTransactionFinancingFormValues = (
-  output?: TransactionFormOutput | null,
-): TransactionFinancingFormInput => ({
-  amount: output ? output.amount.toString() : '',
-  date: output?.date ?? todayIso(),
-  projectId: output?.projectId ?? '',
-  intent: output?.intent ?? '',
-  ledgerCode: output?.ledgerCode ?? '',
-  description: output?.description ?? '',
 });
 
 export const createTransactionAdvancedFormValues = (

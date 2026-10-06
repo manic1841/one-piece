@@ -23,7 +23,6 @@ import { createPortfolioUseCase } from '@/application/portfolio/use_cases/create
 import { listPortfoliosUseCase } from '@/application/portfolio/use_cases/listPortfoliosUseCase';
 import { createProjectUseCase } from '@/application/project/use_cases/createProjectUseCase';
 import { getReportPersistenceStateUseCase } from '@/application/report/use_cases/getReportPersistenceStateUseCase';
-import { addWatchListTargetUseCase } from '@/application/watch_list/use_cases/addWatchListTargetUseCase';
 import type { CloseStageId } from '@/domains/financial_period/schemas';
 import { CLOSE_STAGE_IDS } from '@/domains/financial_period/schemas';
 import { ReportType } from '@/domains/report/schemas';
@@ -271,20 +270,9 @@ describe('monthlyCloseWorkflowUseCase — emulator integration', () => {
       userEmail: 'user@example.com',
       auth,
     });
-
-    await addWatchListTargetUseCase.execute({
-      householdId: householdId,
-      target: {
-        targetType: 'DEBT_ACCOUNT',
-        targetId: zeroPaymentLoanId,
-        name: 'Loan with no payment',
-      },
-      userEmail: 'user@example.com',
-      auth,
-    });
   });
 
-  it('walks start -> stage confirmations -> NEEDS_REVIEW -> resolved -> CLOSED', async () => {
+  it('walks start -> stage confirmations -> CLOSED', async () => {
     // OPEN via absence
     expect(await financialPeriodRepository.getPeriod(householdId, yearMonth)).toBeNull();
 
@@ -336,10 +324,6 @@ describe('monthlyCloseWorkflowUseCase — emulator integration', () => {
         )
       ).docs.length,
     ).toBe(1);
-
-    // TRANSACTION_VALIDATION batch-checks the month's transactions and
-    // completes without creating or modifying data (spec 05 stage 02).
-    await confirmStage('TRANSACTION_VALIDATION', {});
 
     // SECURITIES_TRADE creates a SECURITY_BUY (INVESTMENT intentType) transaction.
     const buyDate = new Date(2026, 2, 10);
@@ -493,21 +477,8 @@ describe('monthlyCloseWorkflowUseCase — emulator integration', () => {
     expect(cleared.clearedSnapshot.data()?.interestPaid).toBe(0);
     expect(cleared.clearedAccount.data()?.currentBalance).toBe(1_200_000);
 
-    // COMPLETENESS_CHECK pauses on the watched debt with zero activity. The
-    // stage stays PENDING; re-confirming it is the resolution path (ADR-0052).
-    await confirmStage('COMPLETENESS_CHECK', {});
-    period = await financialPeriodRepository.getPeriod(householdId, yearMonth);
-    expect(period?.status).toBe('NEEDS_REVIEW');
-    expect(period?.reviewSourceStageId).toBe('COMPLETENESS_CHECK');
-    expect(period?.stages.COMPLETENESS_CHECK.status).toBe('PENDING');
-
-    // Close Period is refused while the review is unresolved: the walk position
-    // is earlier in the pipeline (ADR-0070), so the guard rejects the jump.
-    await expect(confirmStage('CLOSE_PERIOD', {})).rejects.toMatchObject({
-      code: 'STAGE_NOT_WALK_POSITION',
-    });
-
-    // Resolving the review completes the stage without re-running the check.
+    // COMPLETENESS_CHECK no longer pauses on zero activity (ADR-0080): with no
+    // watch list there is nothing to infer, so the stage completes directly.
     await confirmStage('COMPLETENESS_CHECK', {});
     period = await financialPeriodRepository.getPeriod(householdId, yearMonth);
     expect(period?.status).toBe('IN_PROGRESS');
@@ -810,7 +781,6 @@ describe('monthlyCloseWorkflowUseCase — emulator integration', () => {
         { accountId: 'acc-securities', amount },
       ],
     });
-    await confirmStage('TRANSACTION_VALIDATION', {});
     await confirmStage('SECURITIES_TRADE', {});
     await confirmStage('PORTFOLIO_CASH_FLOW', {});
     await confirmStage('PROJECT_SETTLEMENT', {});
@@ -848,31 +818,6 @@ describe('monthlyCloseWorkflowUseCase — emulator integration', () => {
       doc(db, 'households', householdId, 'debtAccounts', graceLoanId),
     );
     expect(graceAccount.data()?.currentBalance).toBe(9_500_000 - 1.5);
-  });
-
-  it('validates real month transactions without modifying them', async () => {
-    await monthlyCloseWorkflowUseCase.start({
-      householdId: householdId,
-      yearMonth,
-      userEmail: 'user@example.com',
-      auth,
-    });
-
-    await confirmStage('SECURITIES_TRADE', {
-      securities: { buys: [{ amount, date: new Date(2026, 2, 10) }], sells: [] },
-    });
-    const before = await findTransactionByIntentOrIntentType('SECURITY_BUY');
-
-    // Transaction Validation batch-checks a month that actually holds
-    // transactions and completes without rewriting any of them (spec 05).
-    await confirmStage('TRANSACTION_VALIDATION', {});
-
-    const after = await findTransactionByIntentOrIntentType('SECURITY_BUY');
-    expect(after).not.toBeNull();
-    expect(after?.id).toBe(before?.id);
-    expect(after?.amount).toBe(before?.amount);
-    expect(after?.date).toEqual(before?.date);
-    expect(after?.updatedAt).toEqual(before?.updatedAt);
   });
 });
 

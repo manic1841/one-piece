@@ -1,16 +1,14 @@
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, useNavigate } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 
-import { type Project } from '@/domains/project/schemas';
+import { PROJECTS_PAGE_LABELS } from '@/ui/constants/project/projectPageLabels';
 import { useAuthState } from '@/ui/contexts/useAuthState';
 import { useProjectPage } from '@/ui/features/project/hooks/useProjectPage';
-import { useProjectQueries } from '@/ui/features/project/hooks/useProjects';
 
 import ProjectsPage from './ProjectsPage';
 
 vi.mock('@/ui/features/project/hooks/useProjectPage');
-vi.mock('@/ui/features/project/hooks/useProjects');
 vi.mock('@/ui/contexts/useAuthState', async () => {
   const actual = await vi.importActual<typeof import('@/ui/contexts/useAuthState')>(
     '@/ui/contexts/useAuthState',
@@ -29,7 +27,6 @@ vi.mock('react-router-dom', async () => {
 });
 
 const mockUseProjectPage = vi.mocked(useProjectPage);
-const mockUseProjectQueries = vi.mocked(useProjectQueries);
 const mockUseNavigate = vi.mocked(useNavigate);
 const mockUseAuth = vi.mocked(useAuthState);
 
@@ -43,271 +40,211 @@ const authProfile = {
   refreshProfile: vi.fn().mockResolvedValue(undefined),
 };
 
-const project: Project = {
+const rowVM = {
   id: 'pr1',
   name: 'Kitchen Remodel',
   isActive: true,
-  order: 0,
-  createdBy: 'u1',
-  updatedBy: 'u1',
-  createdAt: new Date('2026-01-01'),
-  updatedAt: new Date('2026-09-01'),
-} as never;
+  income: 150000,
+  expense: 90000,
+  net: 60000,
+};
 
 const controllerBase = {
   loading: false,
   error: null,
-  projects: [project],
+  rows: [rowVM],
+  activeCount: 1,
   reload: vi.fn(),
   create: vi.fn(),
   update: vi.fn(),
   isFormOpen: false,
   openForm: vi.fn(),
   closeForm: vi.fn(),
-  handleReorder: vi.fn(),
   showInactive: false,
-  toggleShowInactive: vi.fn(),
+  setShowInactive: vi.fn(),
+  reorderRows: vi.fn(),
 };
 
-describe('ProjectsPage table', () => {
+const renderPage = () =>
+  render(
+    <MemoryRouter>
+      <ProjectsPage />
+    </MemoryRouter>,
+  );
+
+describe('ProjectsPage', () => {
   beforeEach(() => {
+    vi.clearAllMocks();
     mockUseAuth.mockReturnValue(authProfile as never);
+    mockUseNavigate.mockReturnValue(vi.fn());
   });
 
-  it('renders Name | Status | Income | Expense | Net Cash Flow columns', () => {
+  it('renders the shared data-table with Chinese column headers', async () => {
     mockUseProjectPage.mockReturnValue(controllerBase as never);
-    mockUseProjectQueries.mockReturnValue({
-      getProjectBalance: vi.fn(),
-      getProjectRecords: vi.fn(),
-      getProjectSnapshots: vi.fn().mockResolvedValue({
-        ok: true,
-        value: [
-          {
-            id: 's1',
-            year: 2026,
-            month: 8,
-            openingBalance: 0,
-            income: 100000,
-            expense: 60000,
-            closingBalance: 40000,
-          },
-          {
-            id: 's2',
-            year: 2026,
-            month: 9,
-            openingBalance: 40000,
-            income: 50000,
-            expense: 30000,
-            closingBalance: 60000,
-          },
-        ],
-      }),
-    });
-    mockUseNavigate.mockReturnValue(vi.fn());
 
-    render(
-      <MemoryRouter>
-        <ProjectsPage />
-      </MemoryRouter>,
-    );
+    renderPage();
 
-    expect(screen.getByText('Name')).toBeInTheDocument();
-    expect(screen.getByText('Status')).toBeInTheDocument();
-    expect(screen.getByText('Income')).toBeInTheDocument();
-    expect(screen.getByText('Expense')).toBeInTheDocument();
-    expect(screen.getByText('Net Cash Flow')).toBeInTheDocument();
+    expect(screen.getByText('名稱')).toBeInTheDocument();
+    expect(screen.getAllByText('狀態').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('收入').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('支出').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('淨現金流').length).toBeGreaterThan(0);
     expect(screen.getAllByText('Kitchen Remodel').length).toBe(2);
+    expect((await screen.findAllByText('進行中')).length).toBeGreaterThan(0);
   });
 
   it('navigates to the project detail route on row click', async () => {
-    mockUseProjectPage.mockReturnValue(controllerBase as never);
-    mockUseProjectQueries.mockReturnValue({
-      getProjectBalance: vi.fn(),
-      getProjectRecords: vi.fn(),
-      getProjectSnapshots: vi.fn().mockResolvedValue({ ok: true, value: [] }),
-    });
     const navigate = vi.fn();
     mockUseNavigate.mockReturnValue(navigate);
+    mockUseProjectPage.mockReturnValue(controllerBase as never);
 
-    render(
-      <MemoryRouter>
-        <ProjectsPage />
-      </MemoryRouter>,
-    );
+    renderPage();
 
     fireEvent.click(await screen.findByTestId('project-row-pr1'));
     expect(navigate).toHaveBeenCalledWith('/projects/pr1');
   });
 
-  it('renders mobile compact rows with name + net cash flow and income/expense metadata', async () => {
-    mockUseProjectPage.mockReturnValue(controllerBase as never);
-    mockUseProjectQueries.mockReturnValue({
-      getProjectBalance: vi.fn(),
-      getProjectRecords: vi.fn(),
-      getProjectSnapshots: vi.fn().mockResolvedValue({
-        ok: true,
-        value: [
-          {
-            id: 's1',
-            year: 2026,
-            month: 8,
-            openingBalance: 0,
-            income: 100000,
-            expense: 60000,
-            closingBalance: 40000,
-          },
-          {
-            id: 's2',
-            year: 2026,
-            month: 9,
-            openingBalance: 40000,
-            income: 50000,
-            expense: 30000,
-            closingBalance: 60000,
-          },
-        ],
-      }),
-    });
+  it('renders mobile rows inside a MobileDataList with Chinese field labels', async () => {
     const navigate = vi.fn();
     mockUseNavigate.mockReturnValue(navigate);
+    mockUseProjectPage.mockReturnValue(controllerBase as never);
 
-    render(
-      <MemoryRouter>
-        <ProjectsPage />
-      </MemoryRouter>,
-    );
+    renderPage();
 
-    const compactRow = await screen.findByTestId('project-row-mobile-pr1');
-    expect(compactRow.className).toContain('md:hidden');
-    expect(compactRow.textContent).toContain('Kitchen Remodel');
-    await screen.findByText('Income NT$150,000 · Expense NT$90,000');
-    expect(compactRow.textContent).toContain('NT$60,000');
+    const mobileRow = await screen.findByTestId('project-row-mobile-pr1');
+    expect(mobileRow.textContent).toContain('Kitchen Remodel');
+    expect(mobileRow.textContent).toContain('淨現金流');
+    expect(mobileRow.textContent).toContain('NT$60,000');
 
-    fireEvent.click(compactRow);
+    const list = mobileRow.closest('div.md\\:hidden') ?? mobileRow.parentElement;
+    expect(list?.className).toContain('md:hidden');
+
+    fireEvent.click(mobileRow);
     expect(navigate).toHaveBeenCalledWith('/projects/pr1');
   });
 
-  it('keeps the desktop table hidden on mobile with no overflow-x-auto', async () => {
+  it('exposes the keyboard equivalent for row navigation on desktop and mobile', async () => {
+    const navigate = vi.fn();
+    mockUseNavigate.mockReturnValue(navigate);
     mockUseProjectPage.mockReturnValue(controllerBase as never);
-    mockUseProjectQueries.mockReturnValue({
-      getProjectBalance: vi.fn(),
-      getProjectRecords: vi.fn(),
-      getProjectSnapshots: vi.fn().mockResolvedValue({ ok: true, value: [] }),
-    });
-    mockUseNavigate.mockReturnValue(vi.fn());
 
-    const { container } = render(
-      <MemoryRouter>
-        <ProjectsPage />
-      </MemoryRouter>,
-    );
+    renderPage();
+
+    const desktopRow = await screen.findByTestId('project-row-pr1');
+    expect(desktopRow).toHaveAttribute('tabindex', '0');
+    fireEvent.keyDown(desktopRow, { key: 'Enter' });
+    expect(navigate).toHaveBeenCalledWith('/projects/pr1');
+
+    navigate.mockClear();
+    const mobileRow = await screen.findByTestId('project-row-mobile-pr1');
+    expect(mobileRow).toHaveAttribute('role', 'button');
+    expect(mobileRow).toHaveAttribute('tabindex', '0');
+    fireEvent.keyDown(mobileRow, { key: ' ' });
+    expect(navigate).toHaveBeenCalledWith('/projects/pr1');
+  });
+
+  it('hides the desktop scroll area on mobile via the shared container', async () => {
+    mockUseProjectPage.mockReturnValue(controllerBase as never);
+
+    renderPage();
 
     const tableCell = await screen.findByTestId('project-row-pr1');
-    const desktopTable = tableCell.closest('table');
-    expect(desktopTable).not.toBeNull();
-    expect(desktopTable!.className).toContain('hidden');
-    expect(desktopTable!.className).toContain('md:table');
-    expect(container.querySelector('.overflow-x-auto')).toBeNull();
+    const scrollArea = tableCell.closest('div.hidden');
+    expect(scrollArea).not.toBeNull();
+    expect(scrollArea!.className).toContain('hidden');
+    expect(scrollArea!.className).toContain('md:block');
   });
 
-  it('shows only New Project in header actions with a flex-wrap guard', () => {
-    mockUseProjectPage.mockReturnValue(controllerBase as never);
-    mockUseProjectQueries.mockReturnValue({
-      getProjectBalance: vi.fn(),
-      getProjectRecords: vi.fn(),
-      getProjectSnapshots: vi.fn().mockResolvedValue({ ok: true, value: [] }),
-    });
-    mockUseNavigate.mockReturnValue(vi.fn());
+  it('renders the loading skeleton with a status role', () => {
+    mockUseProjectPage.mockReturnValue({ ...controllerBase, loading: true } as never);
 
-    render(
-      <MemoryRouter>
-        <ProjectsPage />
-      </MemoryRouter>,
-    );
+    renderPage();
 
-    expect(screen.queryByRole('button', { name: /Settlement/i })).toBeNull();
-    expect(screen.queryByRole('button', { name: '更多專案操作' })).toBeNull();
-    expect(screen.queryByText('Settings')).toBeNull();
-    expect(screen.getByRole('button', { name: /New Project/i })).not.toBeNull();
-
-    const actionsRow = screen
-      .getByRole('button', { name: /New Project/i })
-      .closest('div')!.parentElement!;
-    expect(actionsRow.className).toContain('flex-wrap');
+    expect(screen.getByRole('status')).toBeInTheDocument();
+    expect(screen.getByText(PROJECTS_PAGE_LABELS.LOADING_LABEL)).toBeInTheDocument();
   });
 
-  it('hides inactive projects by default and shows them after toggling the filter', async () => {
-    const inactive = { ...project, id: 'pr2', name: 'Garage Build', isActive: false } as never;
+  it('renders an error alert with a working retry action', () => {
+    const reload = vi.fn();
     mockUseProjectPage.mockReturnValue({
       ...controllerBase,
-      projects: [project, inactive],
-      toggleShowInactive: vi.fn(() => {
-        mockUseProjectPage.mockReturnValue({
-          ...controllerBase,
-          projects: [project, inactive],
-          showInactive: true,
-        });
-        rerender();
-      }),
+      error: new Error('boom'),
+      reload,
     } as never);
-    mockUseProjectQueries.mockReturnValue({
-      getProjectBalance: vi.fn(),
-      getProjectRecords: vi.fn(),
-      getProjectSnapshots: vi.fn().mockResolvedValue({ ok: true, value: [] }),
+
+    renderPage();
+
+    expect(screen.getByText(PROJECTS_PAGE_LABELS.LOAD_ERROR)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /重試/ }));
+    expect(reload).toHaveBeenCalled();
+  });
+
+  it('renders the empty state and create action when there are no projects', () => {
+    const openForm = vi.fn();
+    mockUseProjectPage.mockReturnValue({ ...controllerBase, rows: [], openForm } as never);
+
+    renderPage();
+
+    expect(screen.getByText(PROJECTS_PAGE_LABELS.EMPTY_TITLE)).toBeInTheDocument();
+    const createButtons = screen.getAllByRole('button', {
+      name: PROJECTS_PAGE_LABELS.CREATE_ACTION,
     });
-    mockUseNavigate.mockReturnValue(vi.fn());
+    fireEvent.click(createButtons[createButtons.length - 1]);
+    expect(openForm).toHaveBeenCalled();
+  });
 
-    const view = render(
-      <MemoryRouter>
-        <ProjectsPage />
-      </MemoryRouter>,
+  it('exposes the view filter in the content area and switches it', () => {
+    const setShowInactive = vi.fn();
+    mockUseProjectPage.mockReturnValue({ ...controllerBase, setShowInactive } as never);
+
+    renderPage();
+
+    expect(
+      screen.getByRole('group', { name: PROJECTS_PAGE_LABELS.FILTER_LABEL }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '僅進行中' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
     );
-    const rerender = () =>
-      view.rerender(
-        <MemoryRouter>
-          <ProjectsPage />
-        </MemoryRouter>,
-      );
 
-    expect(screen.queryByText('Garage Build')).toBeNull();
-    expect(screen.getByRole('button', { name: '顯示停用' })).not.toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: '含停用' }));
+    expect(setShowInactive).toHaveBeenCalledWith(true);
+  });
 
-    fireEvent.click(screen.getByRole('button', { name: '顯示停用' }));
+  it('shows only the create action in the header', () => {
+    mockUseProjectPage.mockReturnValue(controllerBase as never);
 
-    expect(await screen.findAllByText('Garage Build').then((nodes) => nodes.length)).toBe(2);
-    expect(screen.getByRole('button', { name: '隱藏停用' })).not.toBeNull();
+    renderPage();
+
+    expect(screen.queryByRole('button', { name: /New Project/i })).toBeNull();
+    expect(
+      screen.getByRole('button', { name: PROJECTS_PAGE_LABELS.CREATE_ACTION }),
+    ).toBeInTheDocument();
   });
 });
 
 describe('ProjectsPage drag reorder', () => {
-  const projectA: Project = { ...project, id: 'pr1', order: 0 } as never;
-  const projectB: Project = { ...project, id: 'pr2', name: 'Garage Build', order: 1 } as never;
+  const rowA = {
+    id: 'pr1',
+    name: 'Kitchen Remodel',
+    isActive: true,
+    income: 0,
+    expense: 0,
+    net: 0,
+  };
+  const rowB = { id: 'pr2', name: 'Garage Build', isActive: true, income: 0, expense: 0, net: 0 };
 
-  const setupDrag = (projects: Project[]) => {
-    const navigate = vi.fn();
+  beforeEach(() => {
     mockUseAuth.mockReturnValue(authProfile as never);
+    mockUseNavigate.mockReturnValue(vi.fn());
     mockUseProjectPage.mockReturnValue({
       ...controllerBase,
-      projects,
+      rows: [rowA, rowB],
     } as never);
-    mockUseProjectQueries.mockReturnValue({
-      getProjectBalance: vi.fn(),
-      getProjectRecords: vi.fn(),
-      getProjectSnapshots: vi.fn().mockResolvedValue({ ok: true, value: [] }),
-    });
-    mockUseNavigate.mockReturnValue(navigate);
-
-    render(
-      <MemoryRouter>
-        <ProjectsPage />
-      </MemoryRouter>,
-    );
-
-    return navigate;
-  };
+  });
 
   it('renders a grip handle on every row (desktop and mobile)', async () => {
-    setupDrag([projectA, projectB]);
+    renderPage();
 
     const gripsA = await screen.findAllByTestId('project-grip-pr1');
     expect(gripsA).toHaveLength(2);
@@ -322,86 +259,12 @@ describe('ProjectsPage drag reorder', () => {
   });
 
   it('navigates on row click while the grip is present', async () => {
-    const navigate = setupDrag([projectA]);
+    const navigate = vi.fn();
+    mockUseNavigate.mockReturnValue(navigate);
+
+    renderPage();
 
     fireEvent.click(await screen.findByTestId('project-row-pr1'));
-    expect(navigate).toHaveBeenCalledWith('/projects/pr1');
-  });
-
-  it('does not navigate when the grip handle is clicked', async () => {
-    setupDrag([projectA]);
-
-    const grips = await screen.findAllByTestId('project-grip-pr1');
-    fireEvent.click(grips[0]);
-    expect(
-      mockUseProjectPage().handleReorder as unknown as ReturnType<typeof vi.fn>,
-    ).not.toHaveBeenCalled();
-  });
-
-  it('persists the new order through the controller after a keyboard drag', async () => {
-    const handleReorder = vi.fn();
-    mockUseAuth.mockReturnValue(authProfile as never);
-    mockUseProjectPage.mockReturnValue({
-      ...controllerBase,
-      projects: [projectA, projectB],
-      handleReorder,
-    } as never);
-    mockUseProjectQueries.mockReturnValue({
-      getProjectBalance: vi.fn(),
-      getProjectRecords: vi.fn(),
-      getProjectSnapshots: vi.fn().mockResolvedValue({ ok: true, value: [] }),
-    });
-    mockUseNavigate.mockReturnValue(vi.fn());
-
-    render(
-      <MemoryRouter>
-        <ProjectsPage />
-      </MemoryRouter>,
-    );
-
-    const rowA = await screen.findByTestId('project-row-pr1');
-    const rowB = await screen.findByTestId('project-row-pr2');
-
-    // jsdom reports zero rects; give the rows real geometry so dnd-kit
-    // collision detection can resolve a drop target.
-    vi.spyOn(rowA, 'getBoundingClientRect').mockReturnValue({
-      x: 0,
-      y: 0,
-      top: 0,
-      left: 0,
-      bottom: 48,
-      right: 400,
-      width: 400,
-      height: 48,
-      toJSON: () => ({}),
-    } as DOMRect);
-    vi.spyOn(rowB, 'getBoundingClientRect').mockReturnValue({
-      x: 0,
-      y: 48,
-      top: 48,
-      left: 0,
-      bottom: 96,
-      right: 400,
-      width: 400,
-      height: 48,
-      toJSON: () => ({}),
-    } as DOMRect);
-
-    const grip = screen.getAllByTestId('project-grip-pr1')[0];
-    fireEvent.keyDown(grip, { key: ' ', code: 'Space' });
-
-    await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 10));
-    });
-
-    fireEvent.keyDown(document, { key: 'ArrowDown', code: 'ArrowDown' });
-    fireEvent.keyDown(document, { key: ' ', code: 'Space' });
-
-    await waitFor(() => {
-      expect(handleReorder).toHaveBeenCalledWith([
-        expect.objectContaining({ id: 'pr2' }),
-        expect.objectContaining({ id: 'pr1' }),
-      ]);
-    });
+    await waitFor(() => expect(navigate).toHaveBeenCalledWith('/projects/pr1'));
   });
 });

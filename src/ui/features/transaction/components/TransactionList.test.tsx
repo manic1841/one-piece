@@ -1,7 +1,10 @@
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
-import { ACCOUNTING_DETAILS_ENTRY_LABEL } from '@/ui/constants/transaction/displayLabels';
+import {
+  ACCOUNTING_DETAILS_ENTRY_LABEL,
+  ACCOUNTING_DETAILS_SECTION_LABEL,
+} from '@/ui/constants/transaction/displayLabels';
 
 import { type TransactionListItemVM } from '../viewmodels/transaction-list.vm';
 import { TransactionList } from './TransactionList';
@@ -14,74 +17,179 @@ const baseItem = (overrides: Partial<TransactionListItemVM> = {}): TransactionLi
   categoryKey: 'category',
   dateText: '2026-09-01',
   monthKey: '2026-09',
+  monthHeaderText: '2026 年 9 月',
   sortTimestamp: 0,
   signedAmount: -100,
   amountText: '-100',
+  signedAmountText: '-NT$100',
   isPositive: false,
   hasCashLedger: true,
   entries: [],
   ...overrides,
 });
 
-describe('TransactionList date filter row', () => {
-  it('wraps and sizes controls by content from md up, so the row cannot overflow 768px', () => {
-    render(<TransactionList items={[baseItem()]} loading={false} onDateRangeSearch={vi.fn()} />);
+const entry = (overrides: Partial<TransactionListItemVM['entries'][number]> = {}) => ({
+  ledgerCode: 'expense:food',
+  ledgerLabel: '餐飲',
+  debit: 100,
+  credit: 0,
+  hasInvestmentDetail: false,
+  ...overrides,
+});
 
-    const row = screen.getByText('FROM').closest('div')!.parentElement!;
-    expect(row.className).toContain('flex-col');
-    expect(row.className).toContain('md:flex-row');
-    expect(row.className).toContain('md:flex-wrap');
+describe('TransactionList month header', () => {
+  it('renders the zh-TW month header with muted count, without background', () => {
+    render(<TransactionList items={[baseItem()]} loading={false} />);
 
-    const startDateField = screen.getByText('FROM').closest('div')!;
-    expect(startDateField.className).toContain('w-full');
-    expect(startDateField.className).toContain('md:min-w-56');
-    expect(startDateField.className).not.toMatch(/(^|\s)md:w-56(\s|$)/);
+    const header = screen.getByRole('heading', { name: '2026 年 9 月' });
+    expect(header).toBeVisible();
+    expect(header.className).not.toContain('bg-muted');
+    expect(screen.getByText('1 筆交易')).toBeVisible();
+  });
 
-    const searchButton = screen.getByRole('button', { name: 'APPLY' });
-    expect(searchButton.className).toContain('md:w-auto');
+  it('renders no date filter inputs in the list: the period picker lives in the page toolbar', () => {
+    render(<TransactionList items={[baseItem()]} loading={false} />);
+
+    expect(screen.queryByText('FROM')).toBeNull();
+    expect(screen.queryByText('TO')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'APPLY' })).toBeNull();
   });
 });
 
-describe('TransactionItem accounting details header', () => {
-  it('renders the constants-layer entry label, never the Ledger Code term', () => {
+describe('TransactionList loading and empty states', () => {
+  it('renders a skeleton list while loading instead of a Card', () => {
+    const { container } = render(<TransactionList items={[]} loading={true} />);
+
+    expect(container.querySelector('.animate-pulse')).not.toBeNull();
+    expect(container.querySelector('.rounded-lg')).toBeNull();
+    expect(screen.queryByText(/Loading transactions/i)).toBeNull();
+  });
+
+  it('announces the loading state to assistive technology', () => {
+    render(<TransactionList items={[]} loading={true} />);
+
+    expect(screen.getByRole('status')).toHaveTextContent('載入交易紀錄中');
+  });
+
+  it('renders the standard empty state without a Card', () => {
+    const { container } = render(<TransactionList items={[]} loading={false} />);
+
+    expect(screen.getByText('NO DATA')).toBeVisible();
+    expect(screen.getByText('目前期間沒有任何交易紀錄。')).toBeVisible();
+    expect(container.querySelector('.rounded-lg')).toBeNull();
+  });
+
+  it('uses the supplied empty copy when the page overrides it', () => {
     render(
       <TransactionList
-        items={[
-          baseItem({
-            entries: [
-              {
-                ledgerCode: 'expense:food',
-                ledgerLabel: '餐飲',
-                debit: 100,
-                credit: 0,
-                hasInvestmentDetail: false,
-              },
-            ],
-          }),
-        ]}
+        items={[]}
         loading={false}
-        onDateRangeSearch={vi.fn()}
+        emptyState={{ title: 'NO MATCH', description: '沒有符合搜尋或篩選條件的交易。' }}
       />,
     );
 
-    const transactionRow = screen.getByTestId('transaction-row-tx-1');
-    fireEvent.click(
-      within(transactionRow.closest('tbody')!).getByRole('button', { name: 'ACCOUNTING DETAILS' }),
+    expect(screen.getByText('NO MATCH')).toBeVisible();
+    expect(screen.getByText('沒有符合搜尋或篩選條件的交易。')).toBeVisible();
+  });
+
+  it('offers the create action in the empty state when the page provides one', () => {
+    const onCreate = vi.fn();
+    render(<TransactionList items={[]} loading={false} onCreate={onCreate} />);
+
+    fireEvent.click(screen.getByRole('button', { name: '新增交易' }));
+    expect(onCreate).toHaveBeenCalledTimes(1);
+  });
+
+  it('replaces the list with an inline error and offers a retry, without stale rows', () => {
+    const onRetry = vi.fn();
+    render(
+      <TransactionList
+        items={[baseItem()]}
+        loading={false}
+        error="無法載入交易紀錄"
+        onRetry={onRetry}
+      />,
     );
+
+    expect(screen.getByRole('alert')).toHaveTextContent('無法載入交易紀錄');
+    expect(screen.queryByTestId('transaction-row-tx-1')).toBeNull();
+
+    fireEvent.click(screen.getByRole('button', { name: '重試' }));
+    expect(onRetry).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('TransactionItem accounting details', () => {
+  it('keeps accounting details collapsed until the row is clicked, then toggles', () => {
+    render(<TransactionList items={[baseItem({ entries: [entry()] })]} loading={false} />);
+
+    const transactionRow = screen.getByTestId('transaction-row-tx-1');
+    expect(screen.queryByText(ACCOUNTING_DETAILS_SECTION_LABEL)).toBeNull();
+    expect(transactionRow).toHaveAttribute('aria-expanded', 'false');
+
+    fireEvent.click(transactionRow);
+
+    expect(screen.getByText(ACCOUNTING_DETAILS_SECTION_LABEL)).toBeVisible();
+    expect(transactionRow).toHaveAttribute('aria-expanded', 'true');
+
+    fireEvent.click(transactionRow);
+    expect(screen.queryByText(ACCOUNTING_DETAILS_SECTION_LABEL)).toBeNull();
+  });
+
+  it('renders the expanded details table with the constants-layer entry label, never the Ledger Code term', () => {
+    render(<TransactionList items={[baseItem({ entries: [entry()] })]} loading={false} />);
+
+    fireEvent.click(screen.getByTestId('transaction-row-tx-1'));
+
     const header = screen.getByRole('columnheader', { name: ACCOUNTING_DETAILS_ENTRY_LABEL });
     expect(header).toBeVisible();
     expect(within(header.closest('tr')!).queryByText(/Ledger Code/i)).toBeNull();
     expect(screen.getByText('餐飲')).toBeVisible();
+  });
+
+  it('collapses rows independently: expanding one row does not expand another', () => {
+    render(
+      <TransactionList
+        items={[
+          baseItem({ id: 'tx-1', entries: [entry()] }),
+          baseItem({
+            id: 'tx-2',
+            displayTitle: 'Second transaction',
+            signedAmount: -200,
+            signedAmountText: '-NT$200',
+            entries: [entry()],
+          }),
+        ]}
+        loading={false}
+      />,
+    );
+
+    fireEvent.click(screen.getByTestId('transaction-row-tx-1'));
+    expect(screen.getByTestId('transaction-row-tx-1')).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByTestId('transaction-row-tx-2')).toHaveAttribute('aria-expanded', 'false');
+  });
+
+  it('supports keyboard toggle on the focusable row', () => {
+    render(<TransactionList items={[baseItem({ entries: [entry()] })]} loading={false} />);
+
+    const transactionRow = screen.getByTestId('transaction-row-tx-1');
+    expect(transactionRow).toHaveAttribute('tabindex', '0');
+
+    fireEvent.keyDown(transactionRow, { key: 'Enter' });
+    expect(screen.getByText(ACCOUNTING_DETAILS_SECTION_LABEL)).toBeVisible();
+
+    fireEvent.keyDown(transactionRow, { key: ' ' });
+    expect(screen.queryByText(ACCOUNTING_DETAILS_SECTION_LABEL)).toBeNull();
   });
 });
 
 describe('TransactionItem table structure', () => {
   it('renders only legal table rows inside tbody: no div between tbody and tr', () => {
     const { container } = render(
-      <TransactionList items={[baseItem()]} loading={false} onDateRangeSearch={vi.fn()} />,
+      <TransactionList items={[baseItem()]} loading={false} onEdit={vi.fn()} onDelete={vi.fn()} />,
     );
 
-    const tbody = container.querySelector('tbody')!;
+    const tbody = container.querySelector('table tbody')!;
     expect(tbody).not.toBeNull();
 
     Array.from(tbody.children).forEach((child) => {
@@ -89,112 +197,133 @@ describe('TransactionItem table structure', () => {
     });
 
     const directTrs = Array.from(tbody.children) as HTMLElement[];
-    expect(directTrs.length).toBeGreaterThanOrEqual(2);
+    expect(directTrs.length).toBeGreaterThanOrEqual(1);
     expect(directTrs.some((tr) => tr.getAttribute('data-testid') === 'transaction-row-tx-1')).toBe(
       true,
     );
   });
 
-  it('renders the transaction row and its accounting details as separate tr elements', () => {
+  it('renders the desktop columns in Date / Transaction / Project / Amount / Actions order', () => {
     render(
-      <TransactionList
-        items={[baseItem({ displayTitle: 'Test transaction' })]}
-        loading={false}
-        onDateRangeSearch={vi.fn()}
-      />,
+      <TransactionList items={[baseItem()]} loading={false} onEdit={vi.fn()} onDelete={vi.fn()} />,
     );
 
-    const rows = screen.getAllByRole('row');
-    expect(rows.length).toBeGreaterThanOrEqual(2);
+    const headers = screen.getAllByRole('columnheader').map((cell) => cell.textContent);
+    const dateIndex = headers.indexOf('日期');
+    const intentIndex = headers.indexOf('交易');
+    const projectIndex = headers.indexOf('專案');
+    const amountIndex = headers.indexOf('金額');
+    expect(dateIndex).toBeLessThan(intentIndex);
+    expect(intentIndex).toBeLessThan(projectIndex);
+    expect(projectIndex).toBeLessThan(amountIndex);
+    expect(amountIndex).toBeLessThan(headers.indexOf('動作'));
+  });
+
+  it('keeps the expanded details row as a separate tr from the transaction row', () => {
+    render(
+      <TransactionList
+        items={[baseItem({ displayTitle: 'Test transaction', entries: [entry()] })]}
+        loading={false}
+      />,
+    );
 
     const transactionRow = screen.getByTestId('transaction-row-tx-1');
     expect(transactionRow.tagName).toBe('TR');
     expect(transactionRow.textContent).toContain('Test transaction');
-    expect(transactionRow.textContent).not.toContain('ACCOUNTING DETAILS');
 
-    const detailsTrigger = within(transactionRow.closest('tbody')!).getByRole('button', {
-      name: 'ACCOUNTING DETAILS',
-    });
-    const detailsRow = detailsTrigger.closest('tr')!;
+    fireEvent.click(transactionRow);
+
+    const detailsRow = screen.getByTestId('transaction-details-tx-1');
+    expect(detailsRow.tagName).toBe('TR');
     expect(detailsRow).not.toBe(transactionRow);
     expect(detailsRow.textContent).not.toContain('Test transaction');
+  });
+
+  it('hides row actions until hover or focus via the opacity pattern', () => {
+    render(
+      <TransactionList items={[baseItem()]} loading={false} onEdit={vi.fn()} onDelete={vi.fn()} />,
+    );
+
+    const transactionRow = screen.getByTestId('transaction-row-tx-1');
+    const actionsSpan = within(transactionRow)
+      .getByRole('button', { name: '編輯交易' })
+      .closest('span.flex')!;
+    expect(actionsSpan.className).toContain('opacity-0');
+    expect(actionsSpan.className).toContain('group-hover:opacity-100');
+    expect(actionsSpan.className).toContain('group-focus-within:opacity-100');
+  });
+
+  it('applies the clickable-row hover only to the interactive row, not the details row', () => {
+    render(<TransactionList items={[baseItem({ entries: [entry()] })]} loading={false} />);
+
+    const transactionRow = screen.getByTestId('transaction-row-tx-1');
+    expect(transactionRow.className).toContain('cursor-pointer');
+    expect(transactionRow.className).toContain('hover:bg-muted/50');
+
+    fireEvent.click(transactionRow);
+    const detailsRow = screen.getByTestId('transaction-details-tx-1');
+    expect(detailsRow.className).toContain('hover:bg-transparent');
+    expect(detailsRow.className).not.toContain('cursor-pointer');
   });
 });
 
 describe('TransactionList mobile compact rows', () => {
-  it('renders a mobile compact list per month group, hidden from md up', () => {
+  it('renders a mobile compact row per transaction, hidden from md up, with persistent actions', () => {
     render(
       <TransactionList
         items={[
           baseItem({
             id: 'tx-1',
-            dateText: 'SEP 21',
+            dateText: '2026-09-21',
             displayTitle: 'Groceries',
-            amountText: '1,800',
+            signedAmountText: '-NT$1,800',
             isPositive: false,
           }),
         ]}
         loading={false}
-        onDateRangeSearch={vi.fn()}
         onEdit={vi.fn()}
         onDelete={vi.fn()}
       />,
     );
 
     const compactRow = screen.getByTestId('transaction-row-mobile-tx-1');
-    expect(compactRow.className).toContain('md:hidden');
-    expect(compactRow.textContent).toContain('SEP 21');
+    expect(compactRow.parentElement?.className).toContain('md:hidden');
+    expect(compactRow.className).toContain('border-t');
+    expect(compactRow.textContent).toContain('2026-09-21');
     expect(compactRow.textContent).toContain('Groceries');
-    expect(compactRow.textContent).toContain('1,800');
+    expect(compactRow.textContent).toContain('-NT$1,800');
     expect(within(compactRow).getByRole('button', { name: '編輯交易' })).not.toBeNull();
     expect(within(compactRow).getByRole('button', { name: '刪除交易' })).not.toBeNull();
   });
 
-  it('keeps the desktop month-group tables hidden on mobile and removes the wrapper scroll', () => {
-    const { container } = render(
-      <TransactionList items={[baseItem()]} loading={false} onDateRangeSearch={vi.fn()} />,
-    );
+  it('expands accounting details from the mobile row click with aria-expanded', () => {
+    render(<TransactionList items={[baseItem({ entries: [entry()] })]} loading={false} />);
 
-    const tables = container.querySelectorAll('table');
-    expect(tables.length).toBeGreaterThanOrEqual(1);
-    tables.forEach((table) => {
-      if (table.closest('tr')) {
-        return;
-      }
-      expect(table.className).toContain('hidden');
-      expect(table.className).toContain('md:table');
-    });
-    expect(container.querySelector('.overflow-x-auto')).toBeNull();
+    const compactRow = screen.getByTestId('transaction-row-mobile-tx-1');
+    expect(compactRow).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.queryByText(ACCOUNTING_DETAILS_SECTION_LABEL)).toBeNull();
+
+    fireEvent.click(compactRow);
+
+    expect(compactRow).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByText(ACCOUNTING_DETAILS_SECTION_LABEL)).toBeVisible();
+    expect(screen.getByText('餐飲')).toBeVisible();
   });
 
-  it('renders the accounting details accordion in the mobile compact row', () => {
+  it('keeps action clicks from toggling the mobile row expansion', () => {
     render(
       <TransactionList
-        items={[
-          baseItem({
-            id: 'tx-1',
-            displayTitle: 'Test transaction',
-            entries: [
-              {
-                ledgerCode: 'expense:food',
-                ledgerLabel: '餐飲',
-                debit: 100,
-                credit: 0,
-                hasInvestmentDetail: false,
-              },
-            ],
-          }),
-        ]}
+        items={[baseItem({ entries: [entry()] })]}
         loading={false}
-        onDateRangeSearch={vi.fn()}
+        onEdit={vi.fn()}
+        onDelete={vi.fn()}
       />,
     );
 
     const compactRow = screen.getByTestId('transaction-row-mobile-tx-1');
-    const trigger = within(compactRow).getByRole('button', { name: 'ACCOUNTING DETAILS' });
-    fireEvent.click(trigger);
-    const header = screen.getByRole('columnheader', { name: ACCOUNTING_DETAILS_ENTRY_LABEL });
-    expect(header).toBeVisible();
-    expect(screen.getByText('餐飲')).toBeVisible();
+    fireEvent.click(within(compactRow).getByRole('button', { name: '編輯交易' }));
+
+    expect(compactRow).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.queryByText(ACCOUNTING_DETAILS_SECTION_LABEL)).toBeNull();
   });
 });

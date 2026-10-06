@@ -1,13 +1,18 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { getAccountSnapshotsUseCase } from '@/application/account/use_cases/getAccountSnapshotsUseCase';
 import { listPortfolioSnapshotsUseCase } from '@/application/portfolio/use_cases/listPortfolioSnapshotsUseCase';
+import { type AccountSnapshot } from '@/domains/account/types/account';
 import { type Portfolio, type PortfolioSnapshot } from '@/domains/portfolio/schemas';
 
 import { usePortfolioCashFlowStage } from './usePortfolioCashFlowStage';
 
 vi.mock('@/application/portfolio/use_cases/listPortfolioSnapshotsUseCase', () => ({
   listPortfolioSnapshotsUseCase: { execute: vi.fn() },
+}));
+vi.mock('@/application/account/use_cases/getAccountSnapshotsUseCase', () => ({
+  getAccountSnapshotsUseCase: { execute: vi.fn() },
 }));
 
 const { authIdentity } = vi.hoisted(() => ({
@@ -33,6 +38,58 @@ const snapshot = (id: string, cashFlow: { deposits: number; withdrawals: number 
 describe('usePortfolioCashFlowStage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(getAccountSnapshotsUseCase.execute).mockResolvedValue([]);
+  });
+
+  it('reads the linked account balances and the previous month total for the opening value', async () => {
+    vi.mocked(listPortfolioSnapshotsUseCase.execute).mockImplementation(async ({ year, month }) => [
+      {
+        totalValue: year === 2026 && month === 7 ? 1_200_000 : 0,
+        cashFlow: { deposits: 0, withdrawals: 0 },
+      } as PortfolioSnapshot,
+    ]);
+    vi.mocked(getAccountSnapshotsUseCase.execute).mockImplementation(async ({ month }) =>
+      month === 8 ? [{ amount: 1_000_000 } as AccountSnapshot] : [],
+    );
+
+    const { result } = renderHook(() =>
+      usePortfolioCashFlowStage({
+        householdId: 'household-1',
+        selectedYearMonth: '2026-08',
+        portfolios: [portfolio('p-1')],
+        confirmingStageId: null,
+      }),
+    );
+
+    await waitFor(() => expect(result.current.balances['p-1']).toBeDefined());
+    expect(result.current.balances['p-1']).toEqual({ securities: 1_000_000, bank: 1_000_000 });
+    expect(result.current.openingValues['p-1']).toBe(1_200_000);
+  });
+
+  it('falls back to the previous month and reports null when neither month has a balance', async () => {
+    vi.mocked(listPortfolioSnapshotsUseCase.execute).mockResolvedValue([]);
+    vi.mocked(getAccountSnapshotsUseCase.execute).mockImplementation(async ({ month }) =>
+      month === 7 ? [{ amount: 900_000 } as AccountSnapshot] : [],
+    );
+
+    const { result } = renderHook(() =>
+      usePortfolioCashFlowStage({
+        householdId: 'household-1',
+        selectedYearMonth: '2026-08',
+        portfolios: [portfolio('p-1')],
+        confirmingStageId: null,
+      }),
+    );
+
+    await waitFor(() => expect(result.current.balances['p-1']).toBeDefined());
+    expect(result.current.balances['p-1']).toEqual({ securities: 900_000, bank: 900_000 });
+    expect(result.current.openingValues['p-1']).toBe(0);
+
+    vi.mocked(getAccountSnapshotsUseCase.execute).mockResolvedValue([]);
+    await act(async () => {
+      await result.current.refresh?.();
+    });
+    expect(result.current.balances['p-1']).toEqual({ securities: null, bank: null });
   });
 
   it('seeds the draft from the month snapshots once all are loaded', async () => {

@@ -1,3 +1,5 @@
+import { format } from 'date-fns';
+
 import { LEDGER_CODES, LEDGER_PREFIX } from '@/domains/ledger/constants';
 import {
   type JournalEntryLine,
@@ -5,6 +7,14 @@ import {
 } from '@/domains/ledger/schemas';
 import { getTransactionCategoryLabel } from '@/ui/constants/transaction';
 import { formatCurrency, formatDate } from '@/ui/utils';
+
+const MONTH_HEADER_FORMAT = 'yyyy 年 M 月';
+
+const formatMonthHeader = (monthKey: string): string => {
+  const [year, month] = monthKey.split('-').map(Number);
+  if (!year || !month) return monthKey;
+  return format(new Date(year, month - 1, 1), MONTH_HEADER_FORMAT);
+};
 
 const sumEntries = (transaction: LedgerTransaction) => {
   return transaction.entries.reduce(
@@ -59,9 +69,11 @@ export type TransactionListItemVM = {
   categoryKey: string;
   dateText: string;
   monthKey: string;
+  monthHeaderText: string;
   sortTimestamp: number;
   signedAmount: number;
   amountText: string;
+  signedAmountText: string;
   isPositive: boolean;
   hasCashLedger: boolean;
   projectName?: string;
@@ -98,8 +110,10 @@ export const mapTransactionToListItemVM = (
 
   const date = new Date(transaction.date);
   const monthKey = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}`;
+  const monthHeaderText = formatMonthHeader(monthKey);
   const sortTimestamp = date.getTime();
   const isPositive = signedAmount >= 0;
+  const signedAmountText = `${isPositive ? '+' : '-'}${formatCurrency(Math.abs(signedAmount))}`;
 
   const entries: TransactionListEntryVM[] = transaction.entries.map((entry: JournalEntryLine) => ({
     ledgerCode: entry.ledgerCode,
@@ -120,9 +134,11 @@ export const mapTransactionToListItemVM = (
     categoryKey,
     dateText: formatDate(date),
     monthKey,
+    monthHeaderText,
     sortTimestamp,
     signedAmount,
     amountText: formatCurrency(Math.abs(signedAmount)),
+    signedAmountText,
     isPositive,
     hasCashLedger,
     projectName: options?.projectName,

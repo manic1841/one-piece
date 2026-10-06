@@ -1,39 +1,36 @@
-import React from 'react';
-
-import { Pencil, Power, Trash2 } from 'lucide-react';
+import { ArrowLeft, Pencil, Power } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
+import { EmptyState } from '@/ui/components/EmptyState';
 import { PageHeader } from '@/ui/components/PageHeader';
+import { Skeleton } from '@/ui/components/Skeleton';
 import { StatusGlyph } from '@/ui/components/StatusGlyph';
+import { Alert, AlertDescription } from '@/ui/components/ui/alert';
 import { Button } from '@/ui/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/ui/components/ui/dialog';
-import { DEBT_STATUS_SETTLED_LABEL } from '@/ui/constants/debtStatusLabels';
-import { DebtAccountForm } from '@/ui/features/debt/components/DebtAccountForm';
-import { DebtPaymentsTable } from '@/ui/features/debt/components/detail/DebtPaymentsTable';
-import { DebtSnapshotTable } from '@/ui/features/debt/components/detail/DebtSnapshotTable';
-import { DebtTrendChart } from '@/ui/features/debt/components/detail/DebtTrendChart';
+import { DEBT_DETAIL_LABELS, debtInterestRateLabel } from '@/ui/constants/debt/detailLabels';
+import { DEBT_STATUS_INACTIVE_LABEL, DEBT_STATUS_SETTLED_LABEL } from '@/ui/constants/debt/label';
+import { DebtAccountFormDialog } from '@/ui/features/debt/components/DebtAccountFormDialog';
+import DebtDetail from '@/ui/features/debt/components/DebtDetail';
 import { useDebtDetailPage } from '@/ui/features/debt/hooks/useDebtDetailPage';
 import { type DebtAccount } from '@/ui/features/debt/viewmodels/debtDisplay.vm';
-import { formatCurrency, formatDate } from '@/ui/utils';
 
 interface DebtDetailPageProps {
   account?: DebtAccount;
 }
 
-const SectionTitle: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <p className="font-mono text-[11px] tracking-widest text-muted-foreground uppercase">
-    {children}
-  </p>
-);
+const SKELETON_ROWS = [0, 1, 2];
 
 export default function DebtDetailPage({ account }: DebtDetailPageProps) {
   const navigate = useNavigate();
   const {
     activeAccount,
-    snapshots,
-    history,
+    isSettled,
+    historyMonths,
     trend,
     loading,
+    error,
+    notFound,
+    reload,
     isEditOpen,
     setIsEditOpen,
     formVm,
@@ -42,118 +39,109 @@ export default function DebtDetailPage({ account }: DebtDetailPageProps) {
     handleEnable,
   } = useDebtDetailPage({ account });
 
-  if (loading) return <div>Loading...</div>;
-  if (!activeAccount) return <div>Loan not found</div>;
+  const backToList = () => navigate('/debt');
+
+  if (loading) {
+    return (
+      <div role="status" className="space-y-6 pb-20">
+        <span className="sr-only">{DEBT_DETAIL_LABELS.LOADING_LABEL}</span>
+        {SKELETON_ROWS.map((row) => (
+          <Skeleton key={row} className="h-16" />
+        ))}
+      </div>
+    );
+  }
+
+  if (error !== null && !activeAccount) {
+    return (
+      <div className="space-y-6 pb-20">
+        <Button variant="ghost" size="sm" onClick={backToList} className="gap-2">
+          <ArrowLeft size={16} aria-hidden="true" />
+          {DEBT_DETAIL_LABELS.BACK_LABEL}
+        </Button>
+        <Alert variant="warning">
+          <AlertDescription>{error}</AlertDescription>
+          <Button variant="text" className="ml-auto shrink-0" onClick={reload}>
+            {DEBT_DETAIL_LABELS.RETRY_ACTION}
+          </Button>
+        </Alert>
+      </div>
+    );
+  }
+
+  if (notFound || !activeAccount) {
+    return (
+      <EmptyState
+        title={DEBT_DETAIL_LABELS.NOT_FOUND_TITLE}
+        description={DEBT_DETAIL_LABELS.NOT_FOUND_DESCRIPTION}
+        action={
+          <Button variant="outline" onClick={backToList}>
+            {DEBT_DETAIL_LABELS.NOT_FOUND_ACTION}
+          </Button>
+        }
+      />
+    );
+  }
 
   return (
     <div className="space-y-8 pb-20">
       <PageHeader
         title={activeAccount.name}
-        description={`年利率 ${activeAccount.interestRate}%`}
-        crumb="DEBT"
+        description={debtInterestRateLabel(activeAccount.interestRate)}
+        crumb={DEBT_DETAIL_LABELS.CRUMB}
         onBack={() => navigate('/debt')}
         badge={
           !activeAccount.isActive ? (
-            <StatusGlyph type="verified" label={DEBT_STATUS_SETTLED_LABEL} />
+            <StatusGlyph
+              type={isSettled ? 'verified' : 'inactive'}
+              label={isSettled ? DEBT_STATUS_SETTLED_LABEL : DEBT_STATUS_INACTIVE_LABEL}
+            />
           ) : undefined
         }
         actions={
           <div className="flex gap-2">
             {!activeAccount.isActive ? (
               <Button variant="outline" onClick={() => void handleEnable()}>
-                啟用貸款
+                {DEBT_DETAIL_LABELS.ACTIVATE_ACTION}
               </Button>
             ) : (
               <Button variant="outline" onClick={() => setIsEditOpen(true)}>
-                <Pencil size={16} />
-                編輯貸款
+                <Pencil size={16} aria-hidden="true" />
+                {DEBT_DETAIL_LABELS.EDIT_ACTION}
               </Button>
             )}
             {activeAccount.isActive && (
-              <Button variant="outline" onClick={() => void handleDisable()}>
-                <Power size={16} />
-                停用貸款
+              <Button variant="destructive" onClick={() => void handleDisable()}>
+                <Power size={16} aria-hidden="true" />
+                {DEBT_DETAIL_LABELS.DEACTIVATE_ACTION}
               </Button>
             )}
           </div>
         }
       />
 
-      <section className="space-y-3">
-        <SectionTitle>OUTSTANDING BALANCE</SectionTitle>
-        <div className="flex items-baseline justify-between">
-          <p className="font-mono text-3xl tabular-nums text-destructive">
-            {formatCurrency(activeAccount.currentBalance)}
-          </p>
-          <p className="font-mono text-xs tabular-nums text-muted-foreground">
-            / {formatCurrency(activeAccount.originalAmount)}
-          </p>
-        </div>
-      </section>
+      {error !== null && (
+        <Alert variant="warning">
+          <AlertDescription>{error}</AlertDescription>
+          <Button variant="text" className="ml-auto shrink-0" onClick={reload}>
+            {DEBT_DETAIL_LABELS.RETRY_ACTION}
+          </Button>
+        </Alert>
+      )}
 
-      <section className="space-y-3">
-        <SectionTitle>LOAN INFORMATION</SectionTitle>
-        <div className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm md:grid-cols-4">
-          <div>
-            <p className="text-xs text-muted-foreground">Original</p>
-            <p className="font-mono tabular-nums">{formatCurrency(activeAccount.originalAmount)}</p>
-          </div>
-          <div>
-            <p className="text-xs text-muted-foreground">Monthly Payment</p>
-            <p className="font-mono tabular-nums">{formatCurrency(activeAccount.monthlyPayment)}</p>
-          </div>
-          <div>
-            <p className="text-xs text-muted-foreground">Interest Rate</p>
-            <p className="font-mono tabular-nums">{activeAccount.interestRate}%</p>
-          </div>
-          <div>
-            <p className="text-xs text-muted-foreground">Period</p>
-            <p className="font-mono text-[12px] tabular-nums">
-              {formatDate(activeAccount.startDate)} ~ {formatDate(activeAccount.endDate)}
-            </p>
-          </div>
-        </div>
-      </section>
+      <DebtDetail
+        account={activeAccount}
+        trend={trend}
+        historyMonths={historyMonths}
+        onDelete={() => void handleDelete()}
+      />
 
-      <section className="space-y-3">
-        <SectionTitle>12M TREND</SectionTitle>
-        <DebtTrendChart trend={trend} />
-      </section>
-
-      <section className="space-y-3">
-        <SectionTitle>12M HISTORY</SectionTitle>
-        <DebtSnapshotTable snapshots={snapshots} />
-      </section>
-
-      <section className="space-y-3">
-        <SectionTitle>RECENT PAYMENTS</SectionTitle>
-        <DebtPaymentsTable history={history} />
-      </section>
-
-      <section className="space-y-3 border-t border-border pt-6">
-        <SectionTitle>DANGER ZONE</SectionTitle>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="text-destructive hover:bg-destructive/10 hover:text-destructive"
-          onClick={() => void handleDelete()}
-        >
-          <Trash2 size={14} />
-          刪除貸款
-        </Button>
-      </section>
-
-      <Dialog open={isEditOpen} onOpenChange={(open) => !open && setIsEditOpen(false)}>
-        <DialogContent
-          className="max-w-2xl max-h-[90vh] overflow-y-auto"
-          aria-describedby={undefined}
-        >
-          <DialogHeader>
-            <DialogTitle>編輯貸款</DialogTitle>
-          </DialogHeader>
-          <DebtAccountForm vm={formVm} />
-        </DialogContent>
-      </Dialog>
+      <DebtAccountFormDialog
+        open={isEditOpen}
+        onOpenChange={(open) => !open && setIsEditOpen(false)}
+        title={DEBT_DETAIL_LABELS.EDIT_ACTION}
+        vm={formVm}
+      />
     </div>
   );
 }

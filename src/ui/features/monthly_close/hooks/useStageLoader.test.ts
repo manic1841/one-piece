@@ -16,12 +16,12 @@ const renderLoader = (
   });
 
 describe('useStageLoader', () => {
-  it('exposes the loaded value with isReady', async () => {
+  it('exposes the loaded value with isLoaded', async () => {
     const load = vi.fn(async () => 'august');
     const { result } = renderLoader(load);
 
     await waitFor(() => expect(result.current.data).toBe('august'));
-    expect(result.current.isReady).toBe(true);
+    expect(result.current.isLoaded).toBe(true);
     expect(result.current.errorMessage).toBeNull();
     expect(result.current.isLoading).toBe(false);
   });
@@ -72,7 +72,7 @@ describe('useStageLoader', () => {
 
     await waitFor(() => expect(result.current.errorMessage).toBe('boom'));
     expect(result.current.data).toBeNull();
-    expect(result.current.isReady).toBe(false);
+    expect(result.current.isLoaded).toBe(false);
   });
 
   it('keeps the last known value on a refresh failure but marks it not ready', async () => {
@@ -89,7 +89,7 @@ describe('useStageLoader', () => {
 
     expect(result.current.data).toBe('august');
     expect(result.current.errorMessage).toBe('boom');
-    expect(result.current.isReady).toBe(false);
+    expect(result.current.isLoaded).toBe(false);
   });
 
   it('reloads through refresh and clears the previous failure', async () => {
@@ -112,7 +112,7 @@ describe('useStageLoader', () => {
 
     expect(result.current.data).toBe('august-2');
     expect(result.current.errorMessage).toBeNull();
-    expect(result.current.isReady).toBe(true);
+    expect(result.current.isLoaded).toBe(true);
   });
 
   it('refreshes even while the gate is closed', async () => {

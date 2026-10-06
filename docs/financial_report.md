@@ -17,11 +17,11 @@ One-Piece 結合了「管理會計 (Projects)」與「財務會計 (Accounts)」
 
 ## 0. 報表產生前置檢查
 
-- 正式報表的產生入口為「月度關帳」流程（FINANCIAL_REPORTS 階段，由 `monthlyCloseWorkflowUseCase` 呼叫 `generateFinancialReportsUseCase`）；財務結算中心僅顯示報表產生狀態，不再提供產生按鈕。
+- 正式報表的產生入口為「月度關帳」流程（FINANCIAL_REPORTS 階段，由 `monthlyCloseWorkflowUseCase` 呼叫 `generateFinancialReportsUseCase`）。報表檢視（清單與 detail）只讀已產生報表、不做漂移比對，也不提供產生入口；非已關帳期間的 detail 僅以次級動作導回月度關帳。同一期間在關帳畫面顯示即時預覽並標註 Report Drift，兩者是刻意的不同契約（見 [ADR-0077](adr/0077-report-view-shows-persisted-close-shows-preview.md)）。
 - 產生前檢查分兩層：
-  - **就緒檢查（Step 7，Completeness Check 階段）**：報表產生前，把各類別月結算完成度、交易驗證與零活動警示彙整為整體就緒狀態，讓使用者先確認資料能否產生正確報表；缺漏項目以階段跳轉導回對應階段修正。只呈現就緒狀態，不呈現財務數字。
-  - **產生階段（Step 8，Financial Reports 階段）**：預覽報表 → 確認 → 產生；產生按鈕在結算未就緒時保持 disabled 作為最後一道防線（就緒狀態跨讀 Step 7，不重複列出未結算類別名稱）。寫入路徑本身亦再檢查一次，未就緒時拒絕產生。
-- **關帳畫面的顯示語意**：關帳畫面（Step 8 三張表與 Step 9 五個聚合數字）**永遠顯示即時重算的 Report Preview**，無論該期間是否已有已產生報表；Persisted Report 只當狀態旗標與比對基準。期間為 `IN_PROGRESS`／`NEEDS_REVIEW` 且 persisted 存在時逐欄標註 Report Drift；唯一例外是 `CLOSED`——唯讀回看改顯示 persisted（定案紀錄）、不做比對。顯示模式由期間狀態決定，不是單純的 `isPersisted` 旗標（reopen 後殘檔仍顯示 preview 並比對）。取捨理由見 [ADR-0071](adr/0071-close-shows-preview-with-drift.md)。
+  - **就緒檢查（Completeness Check 階段）**：報表產生前，把各類別月結算完成度與交易驗證彙整為整體就緒狀態，讓使用者先確認資料能否產生正確報表；缺漏項目以階段跳轉導回對應階段修正（交易驗證問題無工作區內落點，僅列文字）。只呈現就緒狀態，不呈現財務數字。
+  - **產生階段（Financial Reports 階段）**：預覽報表 → 確認 → 產生；產生按鈕在結算未就緒時保持 disabled 作為最後一道防線（就緒狀態跨讀 Completeness Check，不重複列出未結算類別名稱）。寫入路徑本身亦再檢查一次，未就緒時拒絕產生。
+- **關帳畫面的顯示語意**：關帳畫面（Financial Reports 三張表與 Close Period 五個聚合數字）**永遠顯示即時重算的 Report Preview**，無論該期間是否已有已產生報表；Persisted Report 只當狀態旗標與比對基準。期間為 `IN_PROGRESS`／`NEEDS_REVIEW` 且 persisted 存在時逐欄標註 Report Drift；唯一例外是 `CLOSED`——唯讀回看改顯示 persisted（定案紀錄）、不做比對。顯示模式由期間狀態決定，不是單純的 `isPersisted` 旗標（reopen 後殘檔仍顯示 preview 並比對）。取捨理由見 [ADR-0071](adr/0071-close-shows-preview-with-drift.md)。
 - 產生正式報表前，會先檢查以下「啟用中」資產負債來源是否都有該月份結算快照：
   - 專案 (`Project Snapshot`)
   - 帳戶 (`Account Snapshot`)
@@ -29,8 +29,6 @@ One-Piece 結合了「管理會計 (Projects)」與「財務會計 (Accounts)」
   - 債務帳戶 (`Debt Snapshot`)
 - 若上述任一類別存在未結算項目，報表發佈應被阻擋。
 - 若某一類別在當月沒有任何啟用中資料，則該類別視為通過，不應單獨阻擋報表生成。
-- 債務類別另有提示：若某些債務帳戶在當月沒有還款紀錄，系統會顯示「無還款警訊」供使用者檢查。
-  此警訊屬於風險提醒，不會直接阻擋結算；使用者仍可在債務結算預覽中確認後繼續。
 
 上述手動觸發與四類快照檢查的決策依據見 [ADR-0018](adr/0018-manual-financial-report-generation.md)。
 

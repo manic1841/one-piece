@@ -37,19 +37,19 @@ export function ExpensePanel({ projects, categories, allLedgerCodes }: ExpensePa
   const triggerAllocation = useWatch({ control, name: 'triggerAllocation' });
 
   return (
-    <div className="space-y-5 rounded-lg border border-border bg-card p-5">
+    <div className="space-y-5">
       <AmountDateFields />
       <FormField name="projectId">
         <FormItem>
           <FormLabel>專案</FormLabel>
-          <FormChipGroup options={toProjectOptions(projects)} tone="neutral" />
+          <FormChipGroup options={toProjectOptions(projects)} />
           <FormMessage />
         </FormItem>
       </FormField>
       <FormField name="intent">
         <FormItem>
           <FormLabel>費用類別</FormLabel>
-          <FormChipGroup options={categories} tone="expense" />
+          <FormChipGroup options={categories} />
           <FormMessage />
         </FormItem>
       </FormField>
@@ -67,12 +67,10 @@ export function ExpensePanel({ projects, categories, allLedgerCodes }: ExpensePa
       </FormField>
 
       <FormField name="triggerAllocation">
-        <TransactionAllocationToggle tone="expense" label="支出分配" />
+        <TransactionAllocationToggle label="支出分配" />
       </FormField>
 
-      {triggerAllocation ? (
-        <AllocationSection projects={projects} title="支出分攤" tone="expense" />
-      ) : null}
+      {triggerAllocation ? <AllocationSection projects={projects} title="支出分攤" /> : null}
     </div>
   );
 }

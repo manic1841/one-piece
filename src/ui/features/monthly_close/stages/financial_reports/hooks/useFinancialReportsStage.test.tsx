@@ -6,7 +6,7 @@ import { getStoredReportsBundleUseCase } from '@/application/report/use_cases/ge
 import { previewFinancialReportsWorkflow } from '@/application/report/use_cases/previewFinancialReportsWorkflow';
 import { DRIFT_STATUS } from '@/domains/report/reportDrift';
 
-import { useFinancialReportsStage } from './useFinancialReportsStage';
+import { ADJUSTMENT_WARNING_THRESHOLD, useFinancialReportsStage } from './useFinancialReportsStage';
 
 const { authIdentity } = vi.hoisted(() => ({
   authIdentity: { uid: 'user-1', email: 'user@test.com', isGlobalAdmin: false },
@@ -34,7 +34,7 @@ vi.mock('@/application/report/use_cases/previewFinancialReportsWorkflow', () => 
   previewFinancialReportsWorkflow: { execute: vi.fn() },
 }));
 
-const buildPreview = (incomeTotal: number, isPersisted = false) =>
+const buildPreview = (incomeTotal: number, isPersisted = false, adjustment = 0) =>
   ({
     incomeStatement: {
       yearMonth: '2026-03',
@@ -59,7 +59,7 @@ const buildPreview = (incomeTotal: number, isPersisted = false) =>
       beginningBalance: 0,
       endingBalance: 0,
       actualBalance: 0,
-      adjustment: 0,
+      adjustment,
     },
     isPersisted,
     timestamps: {},
@@ -210,7 +210,7 @@ describe('useFinancialReportsStage', () => {
 
   // T13 (#237): a reset (go-to-stage-with-reset, or a cascade-demote) deletes
   // the persisted reports while the period is still open. The refresh that
-  // follows must drop the flag and the timestamps, or Step 8 would keep offering
+  // follows must drop the flag and the timestamps, or FINANCIAL_REPORTS would keep offering
   // the "already generated" state for files that no longer exist.
   it('drops the persisted flag and timestamps when the reports stop being persisted', async () => {
     mockPreview.mockResolvedValue(buildPreview(50000));
@@ -228,5 +228,22 @@ describe('useFinancialReportsStage', () => {
 
     await waitFor(() => expect(result.current.reportsPersisted).toBe(false));
     expect(result.current.timestamps).toEqual({});
+  });
+
+  it('warns only when the cash-flow adjustment exceeds the threshold', async () => {
+    mockPreview.mockResolvedValue(buildPreview(50000, false, ADJUSTMENT_WARNING_THRESHOLD + 1));
+
+    const { result } = renderStage();
+
+    await waitFor(() => expect(result.current.showAdjustmentWarning).toBe(true));
+  });
+
+  it('does not warn when the adjustment is exactly the threshold', async () => {
+    mockPreview.mockResolvedValue(buildPreview(50000, false, -ADJUSTMENT_WARNING_THRESHOLD));
+
+    const { result } = renderStage();
+
+    await waitFor(() => expect(result.current.reportBundle).not.toBeNull());
+    expect(result.current.showAdjustmentWarning).toBe(false);
   });
 });

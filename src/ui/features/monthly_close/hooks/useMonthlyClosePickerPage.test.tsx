@@ -93,7 +93,8 @@ describe('useMonthlyClosePickerPage', () => {
     const { result } = renderPicker();
 
     await act(async () => {
-      result.current.setSelectedYearMonth('2026-01');
+      result.current.setYear('2026');
+      result.current.setMonth('01');
     });
     await act(async () => {
       await result.current.start(result.current.selectedYearMonth);

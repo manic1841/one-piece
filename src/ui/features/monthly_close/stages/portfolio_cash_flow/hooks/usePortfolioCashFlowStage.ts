@@ -1,5 +1,6 @@
 import { useCallback } from 'react';
 
+import { getAccountSnapshotsUseCase } from '@/application/account/use_cases/getAccountSnapshotsUseCase';
 import { listPortfolioSnapshotsUseCase } from '@/application/portfolio/use_cases/listPortfolioSnapshotsUseCase';
 import { type AuthContext } from '@/application/types';
 import { type Portfolio, type PortfolioSnapshot } from '@/domains/portfolio/schemas';
@@ -21,16 +22,64 @@ interface UsePortfolioCashFlowStageArgs {
 
 const LOAD_ERROR = '無法載入 Portfolio 金流，請稍後再試。';
 
+export interface PortfolioBalanceValues {
+  securities: number | null;
+  bank: number | null;
+}
+
 interface PortfolioSnapshotData {
   snapshots: Map<string, PortfolioSnapshot | null>;
   /** The month's booked flows, or null when any portfolio has no snapshot yet. */
   booked: PortfolioCashFlows | null;
+  /** Previous month's portfolio total per portfolio — this month's opening value. */
+  openingValues: Record<string, number>;
+  /** Live securities/bank balances read from the linked account snapshots. */
+  balances: Record<string, PortfolioBalanceValues>;
 }
 
+const previousYearMonth = (year: number, month: number): { year: number; month: number } =>
+  month === 1 ? { year: year - 1, month: 12 } : { year, month: month - 1 };
+
 /**
- * Loads the month's snapshot per portfolio. A read failure throws the canned
- * message so the surface shows copy the consumer owns instead of a silently
- * empty panel.
+ * The account's balance for the month, falling back to the previous month so a
+ * month whose snapshot is not written yet still shows the last observed value;
+ * null means neither month has one, which the view renders as an em dash.
+ */
+const readAccountBalance = async ({
+  householdId,
+  accountId,
+  year,
+  month,
+  auth,
+}: {
+  householdId: string;
+  accountId: string;
+  year: number;
+  month: number;
+  auth: AuthContext;
+}): Promise<number | null> => {
+  const readAt = async (atYear: number, atMonth: number) => {
+    const snapshots = await getAccountSnapshotsUseCase.execute({
+      householdId,
+      accountId,
+      year: atYear,
+      month: atMonth,
+      auth,
+    });
+    return snapshots[0] ?? null;
+  };
+  const current = await readAt(year, month);
+  if (current) return current.amount;
+  const previous = previousYearMonth(year, month);
+  const fallback = await readAt(previous.year, previous.month);
+  return fallback?.amount ?? null;
+};
+
+/**
+ * Loads the month's snapshot per portfolio, the previous month's total (the
+ * opening value) and the linked accounts' live balances. A read failure throws
+ * the canned message so the surface shows copy the consumer owns instead of a
+ * silently empty panel.
  */
 const fetchPortfolioSnapshots = async ({
   householdId,
@@ -45,31 +94,68 @@ const fetchPortfolioSnapshots = async ({
 }): Promise<PortfolioSnapshotData> => {
   const year = Number(selectedYearMonth.slice(0, 4));
   const month = Number(selectedYearMonth.slice(5, 7));
+  const previous = previousYearMonth(year, month);
   try {
     const entries = await Promise.all(
       portfolios.map(async (portfolio) => {
-        const snapshots = await listPortfolioSnapshotsUseCase.execute({
-          householdId,
+        const [current, prior, securities, bank] = await Promise.all([
+          listPortfolioSnapshotsUseCase.execute({
+            householdId,
+            portfolioId: portfolio.id,
+            year,
+            month,
+            auth,
+          }),
+          listPortfolioSnapshotsUseCase.execute({
+            householdId,
+            portfolioId: portfolio.id,
+            year: previous.year,
+            month: previous.month,
+            auth,
+          }),
+          readAccountBalance({
+            householdId,
+            accountId: portfolio.securitiesAccountId,
+            year,
+            month,
+            auth,
+          }),
+          readAccountBalance({
+            householdId,
+            accountId: portfolio.bankAccountId,
+            year,
+            month,
+            auth,
+          }),
+        ]);
+        return {
           portfolioId: portfolio.id,
-          year,
-          month,
-          auth,
-        });
-        return [portfolio.id, snapshots[0] ?? null] as const;
+          snapshot: current[0] ?? null,
+          openingValue: prior[0]?.totalValue ?? 0,
+          balance: { securities, bank },
+        };
       }),
     );
-    const snapshots = new Map(entries);
+    const snapshots = new Map(entries.map((entry) => [entry.portfolioId, entry.snapshot]));
+    const openingValues: Record<string, number> = {};
+    const balances: Record<string, PortfolioBalanceValues> = {};
+    const booked: PortfolioCashFlows = {};
+    let everySettled = true;
+    for (const entry of entries) {
+      openingValues[entry.portfolioId] = entry.openingValue;
+      balances[entry.portfolioId] = entry.balance;
+      if (entry.snapshot) {
+        booked[entry.portfolioId] = {
+          deposits: entry.snapshot.cashFlow.deposits,
+          withdrawals: entry.snapshot.cashFlow.withdrawals,
+        };
+      } else {
+        everySettled = false;
+      }
+    }
     // Seed only when every portfolio has a snapshot (all-or-nothing), so a
     // partially settled month does not seed a half-filled draft.
-    const booked: PortfolioCashFlows = {};
-    for (const [portfolioId, snapshot] of entries) {
-      if (!snapshot) return { snapshots, booked: null };
-      booked[portfolioId] = {
-        deposits: snapshot.cashFlow.deposits,
-        withdrawals: snapshot.cashFlow.withdrawals,
-      };
-    }
-    return { snapshots, booked };
+    return { snapshots, booked: everySettled ? booked : null, openingValues, balances };
   } catch (caught) {
     logger.warn('Failed to load portfolio snapshots', 'usePortfolioCashFlowStage', { caught });
     throw new Error(LOAD_ERROR);
@@ -86,6 +172,8 @@ export const usePortfolioCashFlowStage = ({
   cashFlows: PortfolioCashFlows | null;
   setCashFlows: (value: PortfolioCashFlows) => void;
   portfolioSnapshots: Map<string, PortfolioSnapshot | null>;
+  openingValues: Record<string, number>;
+  balances: Record<string, PortfolioBalanceValues>;
   errorMessage: string | null;
 } => {
   const auth = useAuthIdentity();
@@ -114,6 +202,8 @@ export const usePortfolioCashFlowStage = ({
     cashFlows,
     setCashFlows,
     portfolioSnapshots: data?.snapshots ?? new Map<string, PortfolioSnapshot | null>(),
+    openingValues: data?.openingValues ?? {},
+    balances: data?.balances ?? {},
     errorMessage,
   };
 };

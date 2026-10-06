@@ -5,7 +5,6 @@ import { describe, expect, it } from 'vitest';
 import { Alert, AlertDescription } from './alert';
 import { Badge } from './badge';
 import { Button } from './button';
-import { Progress } from './progress';
 
 describe('Badge', () => {
   it('renders a 4px-radius mono chip with a visible border', () => {
@@ -43,16 +42,5 @@ describe('Button', () => {
 
     const button = screen.getByRole('button', { name: 'View details' });
     expect(button.className).toContain('border-transparent');
-  });
-});
-
-describe('Progress', () => {
-  it('uses a surface-colored track with an accent indicator fill', () => {
-    render(<Progress value={40} data-testid="progress" />);
-
-    const root = screen.getByTestId('progress');
-    expect(root.className).toContain('bg-muted');
-    const indicator = root.firstElementChild as HTMLElement;
-    expect(indicator.className).toContain('bg-accent');
   });
 });

@@ -13,7 +13,7 @@ vi.mock('@/application/monthly_close/use_cases/financialPeriodAccessUseCases', (
 
 const getFinancialPeriodMock = vi.fn();
 
-const buildPeriod = (status: 'OPEN' | 'IN_PROGRESS' | 'NEEDS_REVIEW' | 'CLOSED') => ({
+const buildPeriod = (status: 'IN_PROGRESS' | 'NEEDS_REVIEW' | 'CLOSED') => ({
   id: '2026-08',
   yearMonth: '2026-08',
   status,
@@ -54,15 +54,11 @@ describe('usePetReaction', () => {
     await waitFor(() => expect(result.current).toBe('nod'));
   });
 
-  it('keeps idle for OPEN and for no period record', async () => {
-    getFinancialPeriodMock.mockResolvedValue(buildPeriod('OPEN'));
-
-    const { result: openResult } = renderHook(() => usePetReaction('household-1'));
-    await waitFor(() => expect(openResult.current).toBe('idle'));
-
+  it('keeps idle when no period record exists', async () => {
     getFinancialPeriodMock.mockResolvedValue(null);
-    const { result: noRecordResult } = renderHook(() => usePetReaction('household-1'));
-    await waitFor(() => expect(noRecordResult.current).toBe('idle'));
+
+    const { result } = renderHook(() => usePetReaction('household-1'));
+    await waitFor(() => expect(result.current).toBe('idle'));
   });
 
   it('stays idle without a household', async () => {

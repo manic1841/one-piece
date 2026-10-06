@@ -5,6 +5,9 @@ import { exportHouseholdBackupUseCase } from '@/application/household/use_cases/
 import type { HouseholdBackupPayload } from '@/application/household/use_cases/exportHouseholdBackupUseCase';
 import { importHouseholdBackupUseCase } from '@/application/household/use_cases/importHouseholdBackupUseCase';
 import type { AuthContext } from '@/application/types';
+import { initialStageStates } from '@/domains/financial_period/schemas';
+import { financialPeriodRepository } from '@/infra/repositories/financialPeriodRepository';
+import { reportRepository } from '@/infra/repositories/reportRepository';
 import { db, resetMockDb } from '@/test/mocks/firebase';
 
 const adminAuth: AuthContext = { uid: 'admin-uid', isGlobalAdmin: false };
@@ -288,7 +291,51 @@ describe('household backup/restore round-trip (Firestore Emulator)', () => {
     expect(await countDocsInCollection(`households/${hid}/transactions`)).toBe(450);
   });
 
-  it('partial-failure: restores delete existing data first, then write; a mid-restore failure leaves deleted state', async () => {
+  it('payloads that fail zod validation are rejected before any deletes', async () => {
+    const hid = 'household-validation-reject';
+    await seedHousehold(hid);
+    await seedAccounts(hid, ['acc-1']);
+
+    // Corrupt a report so the payload fails domain-schema validation.
+    const payload = await exportHouseholdBackupUseCase.execute({
+      householdId: hid,
+      auth: adminAuth,
+    });
+    const corrupted = structuredClone(payload) as HouseholdBackupPayload;
+    corrupted.collections.reports = [
+      {
+        id: 'bad-report',
+        householdId: hid,
+        type: 'INCOME_STATEMENT',
+        yearMonth: NaN,
+        createdBy: 'admin-uid',
+        updatedBy: 'admin-uid',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        data: {
+          yearMonth: '2025-01',
+          incomeTotal: 0,
+          expenseTotal: 0,
+          netIncome: 0,
+          incomeItems: [],
+          expenseItems: [],
+        },
+      } as unknown as Record<string, unknown>,
+    ];
+
+    await expect(
+      importHouseholdBackupUseCase.execute({
+        householdId: hid,
+        auth: adminAuth,
+        backup: corrupted,
+      }),
+    ).rejects.toThrow(/failed validation/);
+
+    const surviving = await getDoc(doc(db, `households/${hid}/accounts/acc-1`));
+    expect(surviving.exists(), 'validation failure must not delete existing data').toBe(true);
+  });
+
+  it('partial-failure: a mid-restore write failure after successful validation leaves deleted state', async () => {
     const hid = 'household-partial-fail';
     await seedHousehold(hid);
     await seedAccounts(hid, ['acc-1']);
@@ -299,16 +346,31 @@ describe('household backup/restore round-trip (Firestore Emulator)', () => {
       auth: adminAuth,
     });
 
-    // Corrupt the backup data to cause a write failure mid-restore.
-    // We keep the structure valid but inject an unserializable value.
+    // Corrupt the backup so it passes validation but fails at writeBatch.set:
+    // the undefined createdBy survives zod's `.optional()` and reviveDates,
+    // but is not a valid Firestore field value, so the batch commit throws.
     const corrupted = structuredClone(payload) as HouseholdBackupPayload;
-    // Replace transaction data with a value that will fail at writeBatch.set
-    corrupted.collections.transactions = [
-      { id: 'bad-tx', amount: undefined } as unknown as Record<string, unknown>,
+    corrupted.collections.reports = [
+      {
+        id: 'bad-report',
+        householdId: hid,
+        type: 'INCOME_STATEMENT',
+        yearMonth: '2025-01',
+        createdBy: undefined,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        data: {
+          yearMonth: '2025-01',
+          incomeTotal: 0,
+          expenseTotal: 0,
+          netIncome: 0,
+          incomeItems: [],
+          expenseItems: [],
+        },
+      } as unknown as Record<string, unknown>,
     ];
 
-    // The import should delete existing data first, then fail on the write.
-    // After failure, the original account is gone (deleted in commitDeletes).
+    // The undefined createdBy field makes writeBatch.set throw.
     await expect(
       importHouseholdBackupUseCase.execute({
         householdId: hid,
@@ -317,12 +379,140 @@ describe('household backup/restore round-trip (Firestore Emulator)', () => {
       }),
     ).rejects.toThrow();
 
-    // The original account was deleted before the write phase started.
     const deletedAccount = await getDoc(doc(db, `households/${hid}/accounts/acc-1`));
     expect(deletedAccount.exists()).toBe(false);
 
-    // The household doc itself survives (it was only in the delete refs if it existed).
     const household = await getDoc(householdDoc(hid));
     expect(household.exists()).toBe(true);
+  });
+
+  it('exports and restores a household with saved reports', async () => {
+    const hid = 'household-with-reports';
+    await seedHousehold(hid);
+    await reportRepository.saveReport(
+      hid,
+      {
+        householdId: hid,
+        type: 'INCOME_STATEMENT',
+        yearMonth: '2025-01',
+        data: {
+          yearMonth: '2025-01',
+          incomeTotal: 1000,
+          expenseTotal: 400,
+          netIncome: 600,
+          incomeItems: [{ code: 'salary', label: 'Salary', amount: 1000, subItems: [] }],
+          expenseItems: [],
+        },
+      },
+      'admin-uid',
+    );
+    const payload = await exportHouseholdBackupUseCase.execute({
+      householdId: hid,
+      auth: adminAuth,
+    });
+    expect(payload.collections.reports).toHaveLength(1);
+
+    await deleteAllInCollection(`households/${hid}/reports`);
+    expect(await countDocsInCollection(`households/${hid}/reports`)).toBe(0);
+
+    await importHouseholdBackupUseCase.execute({
+      householdId: hid,
+      auth: adminAuth,
+      backup: payload,
+    });
+
+    expect(await countDocsInCollection(`households/${hid}/reports`)).toBe(1);
+  });
+
+  it('exports and round-trips financialPeriods', async () => {
+    const hid = 'household-optional-collections';
+    await seedHousehold(hid);
+    await financialPeriodRepository.savePeriod(
+      hid,
+      {
+        yearMonth: '2025-01',
+        status: 'IN_PROGRESS',
+        stages: {
+          ACCOUNT_BALANCE: { status: 'COMPLETED', confirmedAt: NOW, confirmedBy: 'admin-uid' },
+        },
+      },
+      'admin-uid',
+    );
+
+    const payload = await exportHouseholdBackupUseCase.execute({
+      householdId: hid,
+      auth: adminAuth,
+    });
+    expect(payload.collections.financialPeriods).toHaveLength(1);
+
+    await deleteAllInCollection(`households/${hid}/financialPeriods`);
+    expect(await countDocsInCollection(`households/${hid}/financialPeriods`)).toBe(0);
+
+    await importHouseholdBackupUseCase.execute({
+      householdId: hid,
+      auth: adminAuth,
+      backup: payload,
+    });
+
+    const restoredPeriod = await getDoc(doc(db, `households/${hid}/financialPeriods/2025-01`));
+    expect(restoredPeriod.exists()).toBe(true);
+  });
+
+  // The retired collection key cannot be named in production code (its domain,
+  // repository and schema are gone); ADR-0080 records which collection it was.
+  const RETIRED_COLLECTION_KEY = 'watchList';
+
+  it('ignores a collection retired from the app when an old v1 backup still carries it', async () => {
+    const hid = 'household-old-backup';
+    await seedHousehold(hid);
+    await seedAccounts(hid, ['acc-1']);
+    await financialPeriodRepository.savePeriod(
+      hid,
+      { yearMonth: '2025-01', status: 'IN_PROGRESS', stages: initialStageStates() },
+      'admin-uid',
+    );
+    // Residue: a document left in the retired collection before the feature was
+    // removed, with no repository left to read or delete it.
+    await setDoc(doc(db, `households/${hid}/${RETIRED_COLLECTION_KEY}/PROJECT:local`), {
+      targetType: 'PROJECT',
+      targetId: 'local',
+      name: 'Local residue',
+    });
+
+    // A pre-removal v1 backup may still carry the retired collection. It must be
+    // ignored on import (ADR-0080): not rejected, not restored, and its presence
+    // must not delete what is already local nor disturb the payload's collections.
+    const payload = await exportHouseholdBackupUseCase.execute({
+      householdId: hid,
+      auth: adminAuth,
+    });
+    const legacyBackup = structuredClone(payload) as HouseholdBackupPayload & {
+      collections: Record<string, unknown>;
+    };
+    delete legacyBackup.collections.financialPeriods;
+    legacyBackup.collections[RETIRED_COLLECTION_KEY] = [
+      { id: 'PROJECT:p1', targetType: 'PROJECT', targetId: 'p1', name: 'Legacy', ...baseFields },
+    ];
+
+    await importHouseholdBackupUseCase.execute({
+      householdId: hid,
+      auth: adminAuth,
+      backup: legacyBackup,
+    });
+
+    // The backup's retired entry is not restored...
+    expect(await countDocsInCollection(`households/${hid}/${RETIRED_COLLECTION_KEY}`)).toBe(1);
+    expect(
+      (await getDoc(doc(db, `households/${hid}/${RETIRED_COLLECTION_KEY}/PROJECT:p1`))).exists(),
+    ).toBe(false);
+    // ...and the local residue is not deleted.
+    expect(
+      (await getDoc(doc(db, `households/${hid}/${RETIRED_COLLECTION_KEY}/PROJECT:local`))).exists(),
+    ).toBe(true);
+
+    expect(await countDocsInCollection(`households/${hid}/financialPeriods`)).toBe(1);
+    expect(await countDocsInCollection(`households/${hid}/accounts`)).toBe(1);
+    const restoredAccount = await getDoc(doc(db, `households/${hid}/accounts/acc-1`));
+    expect(restoredAccount.exists()).toBe(true);
   });
 });

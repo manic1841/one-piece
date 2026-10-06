@@ -27,5 +27,5 @@ Close Period 為 `PENDING`，連鎖降級則維持 `NEEDS_REVIEW` 直到重新�
   表已持久化——重開後舊報表檔案殘留不再能通過關卡。
 - `NEEDS_REVIEW_BLOCKED` 錯誤碼被行走規則吸收移除；暫停期間確認非行走位置改拋
   `STAGE_NOT_WALK_POSITION`。
-- 連鎖降級的重開重設全部九個階段（取代 ADR-0066 的重開語意）；`CLOSED` 期間的
+- 連鎖降級的重開重設全部階段（取代 ADR-0066 的重開語意）；`CLOSED` 期間的
   重開維持 ADR-0066。

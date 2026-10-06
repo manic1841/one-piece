@@ -1,11 +1,29 @@
-import React, { useState } from 'react';
+import React from 'react';
 
-import { Mail, Plus, ShieldCheck, User as UserIcon, X } from 'lucide-react';
+import { X } from 'lucide-react';
 
+import { Avatar } from '@/ui/components/Avatar';
+import { ListSectionHeader } from '@/ui/components/ListSectionHeader';
+import { useConfirm } from '@/ui/components/confirm/useConfirm';
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+  SelectField,
+  type SelectFieldOption,
+  TextInput,
+} from '@/ui/components/form';
+import { Alert, AlertDescription } from '@/ui/components/ui/alert';
+import { Badge } from '@/ui/components/ui/badge';
 import { Button } from '@/ui/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/ui/card';
-import { Input } from '@/ui/components/ui/input';
-import { Label } from '@/ui/components/ui/label';
+import {
+  SETTINGS_MEMBER_ROLE_LABELS,
+  SettingsHouseholdLabels,
+} from '@/ui/constants/setting/settingsLabels';
+import { useMemberForm } from '@/ui/features/setting/hooks/useMemberForm';
 import { type Household, RoleEnum } from '@/ui/features/setting/viewmodels/setting.vm';
 
 interface MemberManagementUIProps {
@@ -21,6 +39,11 @@ interface MemberManagementUIProps {
   currentUid: string;
 }
 
+const ROLE_OPTIONS: SelectFieldOption[] = (
+  [RoleEnum.OWNER, RoleEnum.ADMIN, RoleEnum.MEMBER, RoleEnum.GUEST] as const
+).map((role) => ({ value: role, label: SETTINGS_MEMBER_ROLE_LABELS[role] }));
+
+/** Household 區段內容：新增成員表單 + 成員列。外框由區段頁面提供。 */
 const MemberManagementUI: React.FC<MemberManagementUIProps> = ({
   household,
   memberProfiles,
@@ -32,144 +55,121 @@ const MemberManagementUI: React.FC<MemberManagementUIProps> = ({
   onUpdateRole,
   currentUid,
 }) => {
-  const [email, setEmail] = useState('');
-  const [role, setRole] = useState<string>(RoleEnum.MEMBER);
+  const { confirm } = useConfirm();
+  const { form, submit, isSubmitting } = useMemberForm({ onAdd });
+  const email = form.watch('email');
 
-  const handleAddMember = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      await onAdd(email, role);
-      setEmail('');
-    } catch {
-      // Error handled by hook
-    }
+  const handleRemoveMember = async (uid: string, email: string) => {
+    const confirmed = await confirm({
+      title: SettingsHouseholdLabels.removeConfirmTitle,
+      context: email,
+      consequence: SettingsHouseholdLabels.removeConfirmConsequence,
+      confirmLabel: SettingsHouseholdLabels.removeConfirmLabel,
+    });
+    if (!confirmed) return;
+    await onRemove(uid);
   };
 
   if (!household) return null;
 
+  const memberEntries = Object.entries(household.members);
+
   return (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <UserIcon className="text-primary" size={20} />
-            Household Member Management
-          </CardTitle>
-          <CardDescription>
-            Add members to your household and manage their permissions.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {/* Add member form */}
-          <form
-            onSubmit={handleAddMember}
-            className="space-y-4 mb-8 p-4 bg-muted/30 rounded-lg border"
-          >
-            <h3 className="text-sm font-medium mb-2 flex items-center gap-2">
-              <Plus size={16} /> Add New Member
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="space-y-2 col-span-1 md:col-span-1">
-                <Label htmlFor="member-email">Email Address</Label>
-                <div className="relative">
-                  <Mail
-                    className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
-                    size={16}
-                  />
-                  <Input
-                    id="member-email"
-                    type="email"
-                    placeholder="user@example.com"
-                    className="pl-10"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                  />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="member-role">Assign Role</Label>
-                <select
-                  id="member-role"
-                  className="w-full h-10 px-3 py-2 bg-background border border-input rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-                  value={role}
-                  onChange={(e) => setRole(e.target.value)}
-                >
-                  <option value={RoleEnum.MEMBER}>Member</option>
-                  <option value={RoleEnum.ADMIN}>Admin</option>
-                  <option value={RoleEnum.GUEST}>Guest</option>
-                  <option value={RoleEnum.OWNER}>Owner</option>
-                </select>
-              </div>
-              <div className="flex items-end">
-                <Button type="submit" className="w-full" disabled={loading || !email}>
-                  {loading ? 'Adding...' : 'Add Member'}
-                </Button>
-              </div>
-            </div>
-            {error && <p className="text-sm text-destructive">{error}</p>}
-            {success && <p className="text-sm text-positive font-medium">{success}</p>}
-          </form>
-
-          {/* Members list */}
-          <div className="space-y-4">
-            <h3 className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-              <ShieldCheck size={16} /> Current Members ({Object.keys(household.members).length})
-            </h3>
-            <div className="border rounded-lg overflow-hidden divide-y">
-              {Object.entries(household.members).map(([uid, member]) => (
-                <div
-                  key={uid}
-                  className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-card"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center text-primary font-bold">
-                      {(memberProfiles[uid]?.displayName || 'U').charAt(0).toUpperCase()}
-                    </div>
-                    <div>
-                      <p className="font-medium">
-                        {memberProfiles[uid]?.displayName || 'Loading...'}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {memberProfiles[uid]?.email || uid}
-                      </p>
-                    </div>
-                    {uid === currentUid && (
-                      <span className="text-[10px] px-2 py-0.5 bg-muted text-muted-foreground rounded">
-                        You
-                      </span>
-                    )}
-                  </div>
-
-                  <div className="flex items-center gap-3 self-end sm:self-auto">
-                    <select
-                      className="h-8 px-2 py-1 bg-transparent border border-input rounded-md text-xs focus:outline-none focus:ring-1 focus:ring-ring"
-                      value={member.role}
-                      disabled={uid === currentUid || loading}
-                      onChange={(e) => onUpdateRole(uid, e.target.value)}
-                    >
-                      <option value={RoleEnum.OWNER}>Owner</option>
-                      <option value={RoleEnum.ADMIN}>Admin</option>
-                      <option value={RoleEnum.MEMBER}>Member</option>
-                      <option value={RoleEnum.GUEST}>Guest</option>
-                    </select>
-
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 text-destructive hover:bg-destructive/10"
-                      disabled={uid === currentUid || loading}
-                      onClick={() => onRemove(uid)}
-                    >
-                      <X size={16} />
-                    </Button>
-                  </div>
-                </div>
-              ))}
+    <div className="space-y-8">
+      <Form {...form}>
+        <form onSubmit={submit} className="space-y-4" noValidate>
+          <ListSectionHeader title={SettingsHouseholdLabels.addTitle} />
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+            <FormField name="email">
+              <FormItem>
+                <FormLabel required>{SettingsHouseholdLabels.emailLabel}</FormLabel>
+                <FormControl>
+                  <TextInput type="email" placeholder={SettingsHouseholdLabels.emailPlaceholder} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            </FormField>
+            <FormField name="role">
+              <FormItem>
+                <FormLabel>{SettingsHouseholdLabels.roleLabel}</FormLabel>
+                <FormControl>
+                  <SelectField options={ROLE_OPTIONS} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            </FormField>
+            <div className="flex items-end">
+              <Button type="submit" className="w-full" disabled={loading || isSubmitting || !email}>
+                {loading ? SettingsHouseholdLabels.adding : SettingsHouseholdLabels.addAction}
+              </Button>
             </div>
           </div>
-        </CardContent>
-      </Card>
+          {error && (
+            <Alert variant="destructive">
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+          {success && (
+            <Alert>
+              <AlertDescription className="text-positive">{success}</AlertDescription>
+            </Alert>
+          )}
+        </form>
+      </Form>
+
+      <div>
+        <ListSectionHeader
+          className="mb-4"
+          title={SettingsHouseholdLabels.membersTitle}
+          count={memberEntries.length}
+        />
+        <div className="divide-y divide-border">
+          {memberEntries.map(([uid, member]) => {
+            const profile = memberProfiles[uid];
+            const displayName = profile?.displayName || SettingsHouseholdLabels.nameLoading;
+            const isSelf = uid === currentUid;
+
+            return (
+              <div
+                key={uid}
+                className="flex flex-col gap-3 py-3 sm:flex-row sm:items-center sm:justify-between"
+              >
+                <div className="flex min-w-0 items-center gap-3">
+                  <Avatar initials={displayName.charAt(0).toUpperCase()} />
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium">{displayName}</p>
+                    <p className="truncate font-mono text-[11px] text-muted-foreground">
+                      {profile?.email || uid}
+                    </p>
+                  </div>
+                  {isSelf && <Badge variant="outline">{SettingsHouseholdLabels.selfBadge}</Badge>}
+                </div>
+
+                <div className="flex items-center gap-2 self-end sm:self-auto">
+                  <SelectField
+                    aria-label={SettingsHouseholdLabels.roleFieldLabel}
+                    className="w-32"
+                    value={member.role}
+                    onChange={(value) => void onUpdateRole(uid, value)}
+                    options={ROLE_OPTIONS}
+                    disabled={isSelf || loading}
+                  />
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    aria-label={`${SettingsHouseholdLabels.removeAction} ${profile?.email || uid}`}
+                    className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                    disabled={isSelf || loading}
+                    onClick={() => void handleRemoveMember(uid, profile?.email || uid)}
+                  >
+                    <X size={16} />
+                  </Button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
     </div>
   );
 };

@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import { type UseFormReturn, useForm } from 'react-hook-form';
 import { describe, expect, it } from 'vitest';
 
@@ -94,5 +94,21 @@ describe('AllocationSection', () => {
     renderSection([{ projectId: 'project-1', percentage: '40' }]);
 
     expect(screen.getByText('合計: 40.0%')).toBeInTheDocument();
+  });
+
+  it('aggregates a row percentage error at the block bottom and flags the input', async () => {
+    const form = renderSection([{ projectId: 'project-1', percentage: '' }]);
+
+    await act(async () => {
+      form.setError('allocationItems.0.percentage', {
+        type: 'manual',
+        message: '請輸入分配比例',
+      });
+    });
+
+    expect(screen.getByRole('spinbutton')).toHaveAttribute('aria-invalid', 'true');
+    expect(
+      screen.getAllByText('請輸入分配比例').filter((node) => !node.className.includes('sr-only')),
+    ).toHaveLength(1);
   });
 });

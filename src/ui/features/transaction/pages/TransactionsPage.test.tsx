@@ -2,8 +2,8 @@ import { fireEvent, render, screen, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { type LedgerTransaction } from '@/domains/ledger/schemas';
+import { useConfirm } from '@/ui/components/confirm/useConfirm';
 import { getIntentTypeLabel } from '@/ui/constants/transaction';
-import { useConfirm } from '@/ui/features/app/confirm/useConfirm';
 import { useTransactions } from '@/ui/features/transaction/hooks/useTransactions';
 
 import TransactionsPage from './TransactionsPage';
@@ -18,8 +18,6 @@ vi.mock('@/ui/features/transaction/hooks/useTransactionForm', () => ({
   useTransactionForm: () => ({
     expenseCategories: [],
     incomeCategories: [],
-    investmentCategories: [],
-    financingCategories: [],
     advancedCategories: [],
     allActiveLedgerCodes: [],
     loadIncomeAllocationTemplate: vi.fn(),
@@ -40,7 +38,7 @@ vi.mock('@/ui/features/ledger/hooks/useLedgerCodes', () => ({
   }),
 }));
 
-vi.mock('@/ui/features/app/confirm/useConfirm');
+vi.mock('@/ui/components/confirm/useConfirm');
 
 const mockUseConfirm = vi.mocked(useConfirm);
 
@@ -64,7 +62,7 @@ const transaction = (overrides: Partial<LedgerTransaction> = {}): LedgerTransact
 const controllerBase = {
   transactions: [] as LedgerTransaction[],
   loading: false,
-  error: null,
+  errorMessage: null as string | null,
   reload: vi.fn(),
   deleteTransaction: vi.fn(),
   getTransactionAllocation: vi.fn(),
@@ -77,42 +75,49 @@ describe('TransactionsPage copy', () => {
     mockUseConfirm.mockReturnValue({ confirm: vi.fn().mockResolvedValue(true) });
   });
 
-  it('renders the transfer-free page description', () => {
+  it('renders the funds-flow page description', () => {
     mockUseTransactions.mockReturnValue(controllerBase);
     render(<TransactionsPage />);
 
-    expect(screen.getByText('檢視與管理所有交易紀錄。')).toBeInTheDocument();
+    expect(screen.getByText('管理你的收入、支出與資金流動。')).toBeInTheDocument();
     expect(screen.queryByText(/轉帳/)).not.toBeInTheDocument();
   });
 
-  it('shows a generic edit-confirmation dialog for transfer transactions', async () => {
-    const confirm = vi.fn().mockResolvedValue(true);
-    mockUseConfirm.mockReturnValue({ confirm });
-    mockUseTransactions.mockReturnValue({
-      ...controllerBase,
-      transactions: [
-        transaction({
-          id: 'tx-transfer',
-          description: 'Internal transfer',
-          intentType: 'TRANSFER',
-          intent: 'TRANSFER_GENERIC',
-          entries: [
-            { ledgerCode: 'asset:cash', debit: 300, credit: 0 },
-            { ledgerCode: 'asset:bank', debit: 0, credit: 300 },
-          ],
-        }),
-      ],
-    });
+  it('defaults to the current-month period and reloads when the preset changes', () => {
+    mockUseTransactions.mockReturnValue(controllerBase);
     render(<TransactionsPage />);
 
-    fireEvent.click(
-      within(screen.getByTestId('transaction-row-tx-transfer')).getByRole('button', {
-        name: '編輯交易',
-      }),
-    );
-
-    expect(confirm).toHaveBeenCalledWith({ title: '目前不支援編輯此交易。' });
+    expect(screen.getByRole('button', { name: /本月/ })).toBeInTheDocument();
+    expect(mockUseTransactions).toHaveBeenCalledWith('hh-1', expect.anything());
   });
+
+  it('renders the transaction search with the notes-matching placeholder', () => {
+    mockUseTransactions.mockReturnValue(controllerBase);
+    render(<TransactionsPage />);
+
+    expect(screen.getByPlaceholderText('搜尋交易或備註...')).toBeInTheDocument();
+  });
+
+  it.each(['TRANSFER', 'INVESTMENT', 'FINANCING'] as const)(
+    'blocks editing %s transactions',
+    async (intentType) => {
+      const confirm = vi.fn().mockResolvedValue(true);
+      mockUseConfirm.mockReturnValue({ confirm });
+      mockUseTransactions.mockReturnValue({
+        ...controllerBase,
+        transactions: [transaction({ id: `tx-${intentType}`, intentType })],
+      });
+      render(<TransactionsPage />);
+
+      fireEvent.click(
+        within(screen.getByTestId(`transaction-row-tx-${intentType}`)).getByRole('button', {
+          name: '編輯交易',
+        }),
+      );
+
+      expect(confirm).toHaveBeenCalledWith({ title: '目前不支援編輯此交易。' });
+    },
+  );
 });
 
 describe('TransactionsPage system filter', () => {
@@ -120,13 +125,14 @@ describe('TransactionsPage system filter', () => {
     mockUseTransactions.mockReturnValue(controllerBase);
     render(<TransactionsPage />);
 
+    expect(screen.getByRole('group', { name: '交易類型篩選' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '全部' })).toBeInTheDocument();
     for (const id of ['EXPENSE', 'INCOME', 'INVESTMENT', 'FINANCING']) {
       expect(screen.getByRole('button', { name: getIntentTypeLabel(id) })).toBeInTheDocument();
     }
   });
 
-  it('filters by intent type and emphasizes the active option with a bottom border', () => {
+  it('marks the active option with aria-pressed and a bottom border', () => {
     mockUseTransactions.mockReturnValue({
       ...controllerBase,
       transactions: [
@@ -154,9 +160,27 @@ describe('TransactionsPage system filter', () => {
     expect(screen.getAllByText('Shareholder financing').length).toBe(2);
 
     const activeButton = screen.getByRole('button', { name: '融資' });
+    expect(activeButton).toHaveAttribute('aria-pressed', 'true');
     expect(activeButton.className).toContain('border-b');
     expect(activeButton.className).not.toContain('rounded-full');
     expect(activeButton.className).not.toContain('bg-primary');
     expect(activeButton.className).not.toContain('shadow');
+  });
+
+  it('shows filter-empty copy instead of the period-empty state when a search matches nothing', () => {
+    mockUseTransactions.mockReturnValue({
+      ...controllerBase,
+      transactions: [transaction({ id: 'tx-1', description: 'Groceries' })],
+    });
+
+    render(<TransactionsPage />);
+
+    fireEvent.change(screen.getByRole('searchbox', { name: '搜尋交易' }), {
+      target: { value: 'zzz-no-match' },
+    });
+
+    expect(screen.getByText('NO MATCH')).toBeInTheDocument();
+    expect(screen.getByText('沒有符合搜尋或篩選條件的交易。')).toBeInTheDocument();
+    expect(screen.queryByText('目前期間沒有任何交易紀錄。')).not.toBeInTheDocument();
   });
 });

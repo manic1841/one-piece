@@ -13,14 +13,17 @@ export interface RecordPortfolioCashFlowsRequest {
 
 /**
  * PORTFOLIO_CASH_FLOW stage action: idempotently writes one cash-flow snapshot
- * per portfolio; portfolios that already hold a month snapshot are rewritten
- * with the submitted inputs (same-key overwrite), missing inputs zero-fill
- * (ADR-0052).
+ * per active portfolio; portfolios that already hold a month snapshot are
+ * rewritten with the submitted inputs (same-key overwrite), missing inputs
+ * zero-fill (ADR-0052). Inactive portfolios are archived and take no snapshot,
+ * mirroring the settlement readiness check.
  */
 export class RecordPortfolioCashFlowsUseCase {
   async execute(request: RecordPortfolioCashFlowsRequest): Promise<void> {
     const { householdId, year, month, portfolioCashFlows, userEmail, auth } = request;
-    const portfolios = await listPortfoliosUseCase.execute({ householdId, auth });
+    const portfolios = (await listPortfoliosUseCase.execute({ householdId, auth })).filter(
+      (portfolio) => portfolio.isActive,
+    );
 
     for (const portfolio of portfolios) {
       await createPortfolioSnapshotUseCase.execute({

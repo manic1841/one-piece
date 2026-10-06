@@ -4,13 +4,19 @@ import { useNavigate, useParams } from 'react-router-dom';
 
 import { listDebtAccountsUseCase } from '@/application/debt/use_cases/listDebtAccountsUseCase';
 import { type DebtAccount } from '@/domains/debt/schemas';
+import { toMonthTrendSeries } from '@/ui/components/charts/monthTrendSeries';
+import { useConfirm } from '@/ui/components/confirm/useConfirm';
+import {
+  DEBT_DANGER_LABELS,
+  DEBT_DETAIL_LABELS,
+  DEBT_LIFECYCLE_LABELS,
+} from '@/ui/constants/debt/detailLabels';
 import { useAuthState } from '@/ui/contexts/useAuthState';
-import { useConfirm } from '@/ui/features/app/confirm/useConfirm';
-import { buildTrendGeometry } from '@/ui/features/debt/components/detail/debtTrendGeometry';
 import { useDebtAccountCmds } from '@/ui/features/debt/hooks/useDebtAccountCmds';
 import { useDebtSnapshots } from '@/ui/features/debt/hooks/useDebtSnapshots';
 import {
   type DebtPaymentHistoryItemVM,
+  mapDebtHistoryMonths,
   mapDebtPaymentTransactionToHistoryVM,
 } from '@/ui/features/debt/viewmodels/debtDisplay.vm';
 import { useDebtAccountFormViewModel } from '@/ui/features/debt/viewmodels/useDebtAccountFormViewModel';
@@ -38,10 +44,19 @@ export const useDebtDetailPage = ({ account }: UseDebtDetailPageArgs) => {
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [fetchedAccount, setFetchedAccount] = useState<DebtAccount | null>(null);
   const [history, setHistory] = useState<DebtPaymentHistoryItemVM[]>([]);
-  const { loading, run } = useLoadingTask({ initiallyLoading: true });
+  const [reloadNonce, setReloadNonce] = useState(0);
+  const {
+    loading: accountLoading,
+    errorMessage: accountErrorMessage,
+    run,
+  } = useLoadingTask({ initiallyLoading: true });
 
   const activeAccount = account ?? fetchedAccount;
-  const { snapshots } = useDebtSnapshots(householdId, id ?? '');
+  const {
+    snapshots,
+    loading: snapshotsLoading,
+    errorMessage: snapshotsErrorMessage,
+  } = useDebtSnapshots(householdId, id ?? '', reloadNonce);
 
   const fetchAccountRow = useCallback(async () => {
     const accounts = await listDebtAccountsUseCase.execute({
@@ -79,7 +94,7 @@ export const useDebtDetailPage = ({ account }: UseDebtDetailPageArgs) => {
 
   useEffect(() => {
     void loadAccount();
-  }, [loadAccount]);
+  }, [loadAccount, reloadNonce]);
 
   useEffect(() => {
     let mounted = true;
@@ -112,18 +127,20 @@ export const useDebtDetailPage = ({ account }: UseDebtDetailPageArgs) => {
     return () => {
       mounted = false;
     };
-  }, [activeAccount, householdId, userProfile]);
+  }, [activeAccount, householdId, userProfile, reloadNonce]);
+
+  const historyMonths = useMemo(
+    () => mapDebtHistoryMonths(snapshots, history),
+    [snapshots, history],
+  );
 
   const trend = useMemo(
     () =>
-      buildTrendGeometry(
-        snapshots
-          .slice()
-          .reverse()
-          .map((snapshot) => {
-            const [year, month] = snapshot.yearMonth.split('-').map(Number);
-            return { year, month, value: snapshot.closingBalance };
-          }),
+      toMonthTrendSeries(
+        snapshots.map((snapshot) => {
+          const [year, month] = snapshot.yearMonth.split('-').map(Number);
+          return { year, month, value: snapshot.closingBalance };
+        }),
       ),
     [snapshots],
   );
@@ -131,10 +148,10 @@ export const useDebtDetailPage = ({ account }: UseDebtDetailPageArgs) => {
   const handleDisable = useCallback(async () => {
     if (!activeAccount) return;
     const confirmed = await confirm({
-      title: 'Disable this loan?',
-      context: 'It will be hidden from the debt list and excluded from totals.',
-      consequence: 'You can re-enable it later from the edit dialog.',
-      confirmLabel: 'DISABLE',
+      title: DEBT_LIFECYCLE_LABELS.DISABLE_TITLE,
+      context: DEBT_LIFECYCLE_LABELS.DISABLE_CONTEXT,
+      consequence: DEBT_LIFECYCLE_LABELS.DISABLE_CONSEQUENCE,
+      confirmLabel: DEBT_LIFECYCLE_LABELS.DISABLE_CONFIRM,
     });
     if (!confirmed) return;
     await updateDebtAccount(activeAccount.id, { isActive: false });
@@ -144,8 +161,9 @@ export const useDebtDetailPage = ({ account }: UseDebtDetailPageArgs) => {
   const handleDelete = useCallback(async () => {
     if (!activeAccount) return;
     const confirmed = await confirm({
-      title: 'Delete this loan?',
-      consequence: 'This action cannot be undone.',
+      title: DEBT_DANGER_LABELS.DELETE_TITLE,
+      consequence: DEBT_DANGER_LABELS.DELETE_CONSEQUENCE,
+      confirmLabel: DEBT_DANGER_LABELS.CONFIRM,
     });
     if (!confirmed) return;
     await removeDebtAccount(activeAccount.id);
@@ -170,12 +188,22 @@ export const useDebtDetailPage = ({ account }: UseDebtDetailPageArgs) => {
     onCancel: () => setIsEditOpen(false),
   });
 
+  const loading = accountLoading || snapshotsLoading;
+  const errorMessage = accountErrorMessage ?? snapshotsErrorMessage;
+  const error = errorMessage === null ? null : DEBT_DETAIL_LABELS.LOAD_ERROR;
+  const notFound = !loading && error === null && !activeAccount;
+
+  const reload = useCallback(() => setReloadNonce((nonce) => nonce + 1), []);
+
   return {
     activeAccount,
-    snapshots,
-    history,
+    isSettled: Boolean(activeAccount?.closedAt),
+    historyMonths,
     trend,
     loading,
+    error,
+    notFound,
+    reload,
     isEditOpen,
     setIsEditOpen,
     formVm,

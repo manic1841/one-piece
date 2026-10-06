@@ -13,7 +13,7 @@ import {
   calculateRetirementProjection,
 } from '@/domains/retirement/logic/retirementCalculator';
 import type { RetirementPlan, RetirementPlanCreate } from '@/domains/retirement/types';
-import { useConfirm } from '@/ui/features/app/confirm/useConfirm';
+import { useConfirm } from '@/ui/components/confirm/useConfirm';
 import { useRetirementPlanCmds } from '@/ui/features/retirement/hooks/useRetirementPlanCmds';
 import { useRetirementPlans } from '@/ui/features/retirement/hooks/useRetirementPlans';
 import { useAuthIdentity } from '@/ui/hooks/useAuthIdentity';
@@ -232,6 +232,7 @@ export const useRetirementPlanCore = ({
     plan,
     loading: planLoading,
     error: planError,
+    reload: loadPlan,
     netWorthSource,
     staleIncomeSyncBanner,
     handleApplyStaleIncomeSync,

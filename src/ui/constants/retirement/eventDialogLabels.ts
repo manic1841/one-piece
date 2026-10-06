@@ -1,0 +1,27 @@
+/** 一次性事件對話框（EventDialog）的顯示文字單一來源。 */
+
+export const RetirementEventDialogLabels = {
+  editTitle: 'Edit One-Time Event',
+  createTitle: 'Add One-Time Event',
+  nameLabel: 'Event Name',
+  namePlaceholder: 'e.g., House Down Payment',
+  typeLabel: 'Type',
+  typeIncome: 'Income',
+  typeExpense: 'Expense',
+  phasesLabel: 'Phases',
+  phaseColumn: 'Phase',
+  phaseNamePlaceholder: 'Phase name',
+  startYear: 'Start Year',
+  endYear: 'End Year',
+  amount: 'Amount',
+  growthRate: 'Growth Rate',
+  growthPlaceholder: 'Inflation',
+  addPhaseAction: 'Add Phase',
+  removePhaseAction: 'Remove phase',
+  noteLabel: 'Note (Optional)',
+  notePlaceholder: 'Additional details...',
+  cancelAction: 'Cancel',
+  savingAction: 'Saving...',
+  saveChangesAction: 'Save Changes',
+  addEventAction: 'Add Event',
+} as const;

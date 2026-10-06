@@ -29,7 +29,7 @@
   - 從交易分錄 (`Transaction.entries`) 導入收入的完整流程。
 
 - **[月度關帳 (Monthly Close)](/docs/monthly-close.md)**
-  - 期間狀態、九階段模型、各階段的資料建立邊界與關帳完成條件。
+  - 期間狀態、八階段模型、各階段的資料建立邊界與關帳完成條件。
   - 帳戶餘額階段的輸入與計算語意。
 
 - **[QA Seed 資料設計 (QA Seed Data)](/docs/qa-seed-data.md)**

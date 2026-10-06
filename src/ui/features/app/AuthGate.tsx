@@ -1,6 +1,7 @@
 import React from 'react';
 
 import { AppFallback } from '@/ui/components/AppFallback';
+import { LoadingLine } from '@/ui/components/LoadingLine';
 import { useAuthGate } from '@/ui/features/app/hooks/useAuthGate';
 
 /**
@@ -25,7 +26,7 @@ export const AuthGate: React.FC<{ children: React.ReactNode }> = ({ children }) 
   }
 
   if (loading) {
-    return null;
+    return <LoadingLine />;
   }
 
   return <>{children}</>;

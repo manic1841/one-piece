@@ -1,17 +1,24 @@
 import React from 'react';
 
-import { ChevronRight } from 'lucide-react';
-
+import { type MoneyTone, signTone } from '@/ui/components/moneyTone';
+import { StatementPanel } from '@/ui/components/statement/StatementPanel';
+import { type StatementRow, StatementTable } from '@/ui/components/statement/StatementTable';
 import {
-  DataTable,
-  DataTableCell,
-  DataTableColGroup,
-  DataTableRow,
-  NumberCell,
-  TableBody,
-} from '@/ui/components/data-table';
+  type StatementMetricValue,
+  balanceMetrics,
+  cashFlowMetrics,
+  incomeMetrics,
+} from '@/ui/components/statement/statementMetrics';
+import {
+  type StatementAmountCell,
+  type StatementNode,
+  type StatementSectionSource,
+  buildStatementRows,
+} from '@/ui/components/statement/statementRows';
 import { MONTHLY_CLOSE_LABELS } from '@/ui/constants/monthlyClose';
-import { cn, formatCurrency } from '@/ui/utils';
+import { REPORT_VIEW_TITLES } from '@/ui/constants/report/reportViewLabels';
+import { formatCurrency } from '@/ui/utils';
+import { cn } from '@/ui/utils/cn';
 
 import {
   type BalanceSheetDrift,
@@ -21,359 +28,224 @@ import {
   type DriftItem,
   type IncomeStatementDrift,
   combineDrift,
+  formatDriftAmountText,
   formatDriftDelta,
   isDrifted,
 } from '../../../viewmodels/reportDrift.vm';
 
-export const statementTitleClass =
-  'text-[13px] font-semibold uppercase tracking-[0.08em] text-foreground';
-
-/** Two columns: the label (chevron + indented text) and the rightmost amount. */
-const STATEMENT_COLUMN_WIDTHS = [74, 26] as const;
-
-const INDENT_STEP = 16;
-
-/**
- * A statement row in display order. Sections (the top-level groups that stand in
- * for the table header) carry no amount of their own — a dedicated total row
- * follows. Rows with children are collapsible with a chevron on the left.
- *
- * The tone is a semantic role (see `Financial Statement Semantic Hierarchy` in
- * `docs/ui/visual-standards.md`), not a depth: the same role looks the same in
- * every statement.
- */
-type RowTone = 'section' | 'group' | 'detail' | 'deepDetail' | 'subtotal' | 'terminus';
-
-interface StatementRow {
-  key: string;
-  label: string;
-  amount: DriftAmount | null;
-  tone: RowTone;
-  depth: number;
-  children: StatementRow[];
-}
-
-/** A drifted amount cell: the `<persisted> -> <preview>` text in the warning colour. */
-const StatementAmountCell: React.FC<{ drift: DriftAmount; tone: RowTone }> = ({ drift, tone }) => {
-  const className = AMOUNT_TONE_CLASS[tone];
-  const delta = formatDriftDelta(drift);
-  if (delta === null) {
-    return (
-      <NumberCell
-        value={drift.amount}
-        format={formatCurrency}
-        className={cn(className, isDrifted(drift) && 'text-warning')}
-      />
-    );
-  }
-  return (
-    <DataTableCell align="number" className={cn(className, 'text-warning')}>
-      {delta}
-    </DataTableCell>
-  );
-};
-
-/** Inline variant of {@link StatementAmountCell} for totals rendered inside prose. */
-const StatementAmountText: React.FC<{ drift: DriftAmount }> = ({ drift }) => (
-  <span className={cn(isDrifted(drift) && 'text-warning')}>
-    {formatDriftDelta(drift) ?? formatCurrency(drift.amount)}
-  </span>
-);
-
-const RowAmountCell: React.FC<{ value: DriftAmount | null; tone: RowTone }> = ({ value, tone }) => {
-  if (value === null) return <DataTableCell align="number" />;
-  return <StatementAmountCell drift={value} tone={tone} />;
-};
-
-const LABEL_TONE_CLASS: Record<RowTone, string> = {
-  section: 'text-[11px] font-semibold uppercase tracking-[0.08em] text-foreground',
-  group: 'text-[13px] font-medium text-foreground',
-  detail: 'text-xs text-muted-foreground',
-  deepDetail: 'text-[11px] text-muted-foreground',
-  subtotal: 'text-[13px] font-semibold text-foreground',
-  terminus: 'text-base font-semibold text-foreground',
-};
-
-const AMOUNT_TONE_CLASS: Record<RowTone, string> = {
-  section: '',
-  group: 'text-[13px]',
-  detail: 'text-xs',
-  deepDetail: 'text-[11px]',
-  subtotal: 'text-[13px] font-semibold',
-  terminus: 'text-base font-semibold',
-};
-
-const ROW_TONE_CLASS: Record<RowTone, string> = {
-  section: 'border-b border-border bg-muted/40',
-  group: '',
-  detail: '',
-  deepDetail: '',
-  subtotal: 'border-t border-border-strong',
-  terminus: 'h-16 border-t-2 border-foreground bg-muted/40',
-};
-
-const totalRow = (key: string, label: string, amount: DriftAmount): StatementRow => ({
-  key,
-  label: `${label}${MONTHLY_CLOSE_LABELS.TOTAL_SUFFIX}`,
-  amount,
-  tone: 'subtotal',
-  depth: 0,
-  children: [],
+/** 漂移金額 → 共用列的金額欄位：文字為 delta 或原值，警示色標記已漂移。 */
+const driftCell = (drift: DriftAmount): StatementAmountCell => ({
+  amountText: formatDriftAmountText(drift),
+  amountWarning: isDrifted(drift),
 });
 
-const terminusRow = (key: string, label: string, amount: DriftAmount): StatementRow => ({
+/** 漂移金額 → 摘要指標值：當期值為本體，變化行為漂移 delta（未漂移則不顯示變化行）。 */
+const driftMetricValue = (drift: DriftAmount, tone?: MoneyTone): StatementMetricValue => ({
+  value: formatCurrency(drift.amount),
+  tone,
+  change: formatDriftDelta(drift) ?? undefined,
+  changeTone: 'muted',
+});
+
+/** Inline variant of the amount cell for totals rendered inside prose. */
+const StatementAmountText: React.FC<{ drift: DriftAmount }> = ({ drift }) => (
+  <span className={cn(isDrifted(drift) && 'text-warning')}>{formatDriftAmountText(drift)}</span>
+);
+
+const totalLabel = (section: string): string => `${section}${MONTHLY_CLOSE_LABELS.TOTAL_SUFFIX}`;
+
+/** 一條漂移明細列，含巢狀 `subItems`（縮排層級與角色由共用 builder 依層級決定）。 */
+const driftNode = (item: DriftItem): StatementNode => ({
+  code: item.code,
+  label: item.label,
+  cell: driftCell(item),
+  subItems: item.subItems?.length ? item.subItems.map(driftNode) : undefined,
+});
+
+const driftSection = (
+  key: string,
+  label: string,
+  total: DriftAmount,
+  nodes: StatementNode[],
+): StatementSectionSource => ({
   key,
   label,
-  amount,
-  tone: 'terminus',
-  depth: 0,
-  children: [],
+  totalLabel: totalLabel(label),
+  cell: driftCell(total),
+  nodes,
 });
 
-const itemRows = (items: DriftItem[], depth: number, keyPrefix = ''): StatementRow[] =>
-  items.map((item) => ({
-    key: `${keyPrefix}${item.code}`,
-    label: item.label,
-    amount: item,
-    tone: depth <= 1 ? 'group' : depth === 2 ? 'detail' : 'deepDetail',
-    depth,
-    children: item.subItems?.length ? itemRows(item.subItems, depth + 1, keyPrefix) : [],
-  }));
-
-const flattenRows = (
-  rows: StatementRow[],
-  collapsed: ReadonlySet<string>,
-  out: StatementRow[] = [],
-): StatementRow[] => {
-  for (const row of rows) {
-    out.push(row);
-    if (row.children.length > 0 && !collapsed.has(row.key)) {
-      flattenRows(row.children, collapsed, out);
-    }
-  }
-  return out;
-};
-
-const StatementRowView: React.FC<{
-  row: StatementRow;
-  collapsed: ReadonlySet<string>;
-  onToggle: (key: string) => void;
-}> = ({ row, collapsed, onToggle }) => {
-  const hasChildren = row.children.length > 0;
-  const isCollapsed = hasChildren && collapsed.has(row.key);
-
-  return (
-    <DataTableRow className={ROW_TONE_CLASS[row.tone]}>
-      <DataTableCell>
-        <div className="flex items-center gap-1" style={{ paddingLeft: row.depth * INDENT_STEP }}>
-          {hasChildren ? (
-            <button
-              type="button"
-              onClick={() => onToggle(row.key)}
-              aria-expanded={!isCollapsed}
-              aria-label={row.label}
-              className="flex h-5 w-5 shrink-0 items-center justify-center text-muted-foreground"
-            >
-              <ChevronRight
-                className={cn('h-3.5 w-3.5 transition-transform', !isCollapsed && 'rotate-90')}
-              />
-            </button>
-          ) : (
-            <span className="h-5 w-5 shrink-0" aria-hidden />
-          )}
-          <span className={LABEL_TONE_CLASS[row.tone]}>{row.label}</span>
-        </div>
-      </DataTableCell>
-      <RowAmountCell value={row.amount} tone={row.tone} />
-    </DataTableRow>
-  );
-};
-
-const StatementTable: React.FC<{
-  rows: StatementRow[];
-  collapsed: ReadonlySet<string>;
-  onToggle: (key: string) => void;
-  testId: string;
-}> = ({ rows, collapsed, onToggle, testId }) => (
-  <DataTable data-testid={testId}>
-    <DataTableColGroup widths={STATEMENT_COLUMN_WIDTHS} />
-    <TableBody>
-      {flattenRows(rows, collapsed).map((row) => (
-        <StatementRowView key={row.key} row={row} collapsed={collapsed} onToggle={onToggle} />
-      ))}
-    </TableBody>
-  </DataTable>
-);
+/** 總額非 0 或有明細才顯示該區塊（「無資料」判斷）。 */
+const included = (total: DriftAmount, count: number): boolean => total.amount !== 0 || count > 0;
 
 interface StatementViewProps {
   collapsed: ReadonlySet<string>;
   onToggle: (key: string) => void;
 }
 
+const incomeStatementRows = (data: IncomeStatementDrift): StatementRow[] => {
+  const sections = [
+    included(data.incomeTotal, data.incomeItems.length)
+      ? driftSection(
+          'income',
+          MONTHLY_CLOSE_LABELS.INCOME_SECTION,
+          data.incomeTotal,
+          data.incomeItems.map(driftNode),
+        )
+      : null,
+    included(data.expenseTotal, data.expenseItems.length)
+      ? driftSection(
+          'expense',
+          MONTHLY_CLOSE_LABELS.EXPENSE_SECTION,
+          data.expenseTotal,
+          data.expenseItems.map(driftNode),
+        )
+      : null,
+  ].filter((section): section is StatementSectionSource => section !== null);
+
+  return buildStatementRows({
+    sections,
+    terminus: { label: MONTHLY_CLOSE_LABELS.NET_INCOME, cell: driftCell(data.netIncome) },
+  });
+};
+
 export const IncomeStatementView: React.FC<
   StatementViewProps & { data: IncomeStatementDrift | null }
 > = ({ data, collapsed, onToggle }) => {
-  if (!data) return null;
-  const showIncome = data.incomeTotal.amount !== 0 || data.incomeItems.length > 0;
-  const showExpense = data.expenseTotal.amount !== 0 || data.expenseItems.length > 0;
-
-  const rows: StatementRow[] = [];
-  if (showIncome) {
-    rows.push({
-      key: 'section:income',
-      label: MONTHLY_CLOSE_LABELS.INCOME_SECTION,
-      amount: null,
-      tone: 'section',
-      depth: 0,
-      children: itemRows(data.incomeItems, 1),
-    });
-    rows.push(totalRow('total:income', MONTHLY_CLOSE_LABELS.INCOME_SECTION, data.incomeTotal));
-  }
-  if (showExpense) {
-    rows.push({
-      key: 'section:expense',
-      label: MONTHLY_CLOSE_LABELS.EXPENSE_SECTION,
-      amount: null,
-      tone: 'section',
-      depth: 0,
-      children: itemRows(data.expenseItems, 1),
-    });
-    rows.push(totalRow('total:expense', MONTHLY_CLOSE_LABELS.EXPENSE_SECTION, data.expenseTotal));
-  }
-  rows.push(terminusRow('terminus:netIncome', MONTHLY_CLOSE_LABELS.NET_INCOME, data.netIncome));
+  const metrics = data
+    ? incomeMetrics({
+        income: driftMetricValue(data.incomeTotal),
+        expense: driftMetricValue(data.expenseTotal),
+        netIncome: driftMetricValue(data.netIncome, signTone(data.netIncome.amount)),
+      })
+    : undefined;
 
   return (
-    <div data-testid="close-income-statement">
-      <StatementTable
-        testId="income-statement-table"
-        rows={rows}
-        collapsed={collapsed}
-        onToggle={onToggle}
-      />
-    </div>
+    <StatementPanel
+      testId="close-income-statement"
+      title={REPORT_VIEW_TITLES.INCOME_STATEMENT}
+      metrics={metrics}
+    >
+      {data ? (
+        <StatementTable
+          testId="income-statement-table"
+          rows={incomeStatementRows(data)}
+          collapsed={collapsed}
+          onToggle={onToggle}
+        />
+      ) : null}
+    </StatementPanel>
   );
 };
 
-const balanceGroupRow = (key: string, group: DriftGroup): StatementRow => ({
-  key,
+const balanceGroupNode = (key: string, group: DriftGroup): StatementNode => ({
+  code: key,
   label: group.label,
-  amount: group.total,
-  tone: 'group',
-  depth: 1,
-  children: itemRows(group.items, 2),
+  cell: driftCell(group.total),
+  subItems: group.items.map(driftNode),
 });
 
-/** A balance-sheet section: header row, its groups, then the section total row. */
+/** 一個資產負債表區塊：標題列 + 群組列 + 合計列（空區塊回傳 null）。 */
 const balanceSection = (
   key: string,
   label: string,
-  total: DriftAmount,
-  groups: [string, DriftGroup][],
-): StatementRow[] => [
-  {
-    key: `section:${key}`,
+  side: { total: DriftAmount; groups: Record<string, DriftGroup> },
+  filtered: boolean,
+): StatementSectionSource | null => {
+  const entries = Object.entries(side.groups).filter(
+    ([, group]) => !filtered || included(group.total, group.items.length),
+  );
+  if (!included(side.total, entries.length)) return null;
+  return driftSection(
+    key,
     label,
-    amount: null,
-    tone: 'section',
-    depth: 0,
-    children: groups.map(([groupKey, group]) => balanceGroupRow(`${key}:${groupKey}`, group)),
-  },
-  totalRow(`total:${key}`, label, total),
-];
-
-const hasBalanceEntries = (group: DriftGroup): boolean =>
-  group.total.amount !== 0 || group.items.length > 0;
+    side.total,
+    entries.map(([groupKey, group]) => balanceGroupNode(groupKey, group)),
+  );
+};
 
 const balanceSheetRows = (data: BalanceSheetDrift): StatementRow[] => {
-  const rows: StatementRow[] = [];
+  const sections = [
+    balanceSection('assets', MONTHLY_CLOSE_LABELS.ASSETS_SECTION, data.assets, true),
+    balanceSection('liabilities', MONTHLY_CLOSE_LABELS.LIABILITIES_SECTION, data.liabilities, true),
+    // 權益的五個來源是固定拆分，即使為零也顯示，不讓歸零的來源被默默省略。
+    balanceSection('equity', MONTHLY_CLOSE_LABELS.EQUITY_SECTION, data.equity, false),
+  ].filter((section): section is StatementSectionSource => section !== null);
 
-  const assetGroups = Object.entries(data.assets.groups).filter(([, group]) =>
-    hasBalanceEntries(group),
-  );
-  if (data.assets.total.amount !== 0 || assetGroups.length > 0) {
-    rows.push(
-      ...balanceSection(
-        'assets',
-        MONTHLY_CLOSE_LABELS.ASSETS_SECTION,
-        data.assets.total,
-        assetGroups,
-      ),
-    );
-  }
-
-  const liabilityGroups = Object.entries(data.liabilities.groups).filter(([, group]) =>
-    hasBalanceEntries(group),
-  );
-  if (data.liabilities.total.amount !== 0 || liabilityGroups.length > 0) {
-    rows.push(
-      ...balanceSection(
-        'liabilities',
-        MONTHLY_CLOSE_LABELS.LIABILITIES_SECTION,
-        data.liabilities.total,
-        liabilityGroups,
-      ),
-    );
-  }
-
-  // The five equity sources are a fixed breakdown — always shown, even at zero,
-  // so a zeroed source is not silently dropped from the statement.
-  const equityGroups = Object.entries(data.equity.groups);
-  if (data.equity.total.amount !== 0 || equityGroups.length > 0) {
-    rows.push(
-      ...balanceSection(
-        'equity',
-        MONTHLY_CLOSE_LABELS.EQUITY_SECTION,
-        data.equity.total,
-        equityGroups,
-      ),
-    );
-  }
-
-  rows.push(
-    terminusRow(
-      'terminus:liabilitiesPlusEquity',
-      MONTHLY_CLOSE_LABELS.LIABILITIES_PLUS_EQUITY,
-      combineDrift([data.liabilities.total, data.equity.total]),
-    ),
-  );
-
-  return rows;
+  return buildStatementRows({
+    sections,
+    terminus: {
+      label: MONTHLY_CLOSE_LABELS.LIABILITIES_PLUS_EQUITY,
+      cell: driftCell(combineDrift([data.liabilities.total, data.equity.total])),
+    },
+  });
 };
 
 export const BalanceSheetView: React.FC<
   StatementViewProps & { data: BalanceSheetDrift | null }
 > = ({ data, collapsed, onToggle }) => {
-  if (!data) return null;
+  const metrics = data
+    ? balanceMetrics({
+        assets: driftMetricValue(data.assets.total),
+        liabilities: driftMetricValue(data.liabilities.total),
+        equity: driftMetricValue(data.equity.total),
+      })
+    : undefined;
+
   return (
-    <div data-testid="close-balance-sheet">
-      <StatementTable
-        testId="balance-sheet-table"
-        rows={balanceSheetRows(data)}
-        collapsed={collapsed}
-        onToggle={onToggle}
-      />
-    </div>
+    <StatementPanel
+      testId="close-balance-sheet"
+      title={REPORT_VIEW_TITLES.BALANCE_SHEET}
+      metrics={metrics}
+    >
+      {data ? (
+        <StatementTable
+          testId="balance-sheet-table"
+          rows={balanceSheetRows(data)}
+          collapsed={collapsed}
+          onToggle={onToggle}
+        />
+      ) : null}
+    </StatementPanel>
   );
 };
 
-// Inflow and outflow buckets legitimately share codes (a same-month buy+sell
-// or capital in+out), so their flattened rows need bucket-scoped keys or the
-// duplicate React keys render ghost rows on collapse/expand.
-const cashFlowGroupRow = (
-  key: string,
+// 流入與流出桶可能共用科目代碼，路徑式 key（由共用 builder 組出）讓桶彼此隔離。
+const cashFlowBucketNode = (
+  bucket: 'inflow' | 'outflow',
   label: string,
   items: DriftItem[],
-  keyPrefix: string,
-): StatementRow | null => {
+): StatementNode | null => {
   if (items.length === 0) return null;
   return {
-    key,
+    code: bucket,
     label,
-    amount: combineDrift(items),
-    tone: 'group',
-    depth: 1,
-    children: itemRows(items, 2, keyPrefix),
+    cell: driftCell(combineDrift(items)),
+    subItems: items.map(driftNode),
   };
+};
+
+const cashFlowRows = (data: CashFlowDrift): StatementRow[] => {
+  const sections = (['operating', 'investing', 'financing'] as const)
+    .map((key) => {
+      const group = data[key];
+      const nodes = [
+        cashFlowBucketNode('inflow', MONTHLY_CLOSE_LABELS.INFLOW, group.inflowItems),
+        cashFlowBucketNode('outflow', MONTHLY_CLOSE_LABELS.OUTFLOW, group.outflowItems),
+      ].filter((node): node is StatementNode => node !== null);
+      return included(group.total, nodes.length)
+        ? driftSection(key, group.label, group.total, nodes)
+        : null;
+    })
+    .filter((section): section is StatementSectionSource => section !== null);
+
+  return buildStatementRows({
+    sections,
+    terminus: {
+      label: MONTHLY_CLOSE_LABELS.NET_CASH_CHANGE,
+      cell: driftCell(data.netCashChange),
+    },
+  });
 };
 
 export const CashFlowView: React.FC<StatementViewProps & { data: CashFlowDrift | null }> = ({
@@ -381,51 +253,29 @@ export const CashFlowView: React.FC<StatementViewProps & { data: CashFlowDrift |
   collapsed,
   onToggle,
 }) => {
-  if (!data) return null;
-  const groups = [
-    { key: 'operating', group: data.operating },
-    { key: 'investing', group: data.investing },
-    { key: 'financing', group: data.financing },
-  ];
-
-  const rows: StatementRow[] = [];
-  for (const { key, group } of groups) {
-    const hasItems = group.inflowItems.length > 0 || group.outflowItems.length > 0;
-    if (group.total.amount === 0 && !hasItems) continue;
-    const children = [
-      cashFlowGroupRow(`${key}:inflow`, MONTHLY_CLOSE_LABELS.INFLOW, group.inflowItems, 'inflow:'),
-      cashFlowGroupRow(
-        `${key}:outflow`,
-        MONTHLY_CLOSE_LABELS.OUTFLOW,
-        group.outflowItems,
-        'outflow:',
-      ),
-    ].filter((row): row is StatementRow => row !== null);
-    rows.push({
-      key: `section:${key}`,
-      label: group.label,
-      amount: null,
-      tone: 'section',
-      depth: 0,
-      children,
-    });
-    rows.push(totalRow(`total:${key}`, group.label, group.total));
-  }
-  rows.push(
-    terminusRow('terminus:netCashChange', MONTHLY_CLOSE_LABELS.NET_CASH_CHANGE, data.netCashChange),
-  );
+  const metrics = data
+    ? cashFlowMetrics({
+        beginning: driftMetricValue(data.beginningBalance),
+        ending: driftMetricValue(data.endingBalance),
+        netChange: driftMetricValue(data.netCashChange, signTone(data.netCashChange.amount)),
+      })
+    : undefined;
 
   return (
-    <div className="space-y-6" data-testid="close-cash-flow">
-      <StatementTable
-        testId="cash-flow-table"
-        rows={rows}
-        collapsed={collapsed}
-        onToggle={onToggle}
-      />
-      <p className="text-right text-xs text-muted-foreground">
-        {MONTHLY_CLOSE_LABELS.ACTUAL_BALANCE} <StatementAmountText drift={data.actualBalance} />
-      </p>
-    </div>
+    <StatementPanel testId="close-cash-flow" title={REPORT_VIEW_TITLES.CASH_FLOW} metrics={metrics}>
+      {data ? (
+        <div className="space-y-6">
+          <StatementTable
+            testId="cash-flow-table"
+            rows={cashFlowRows(data)}
+            collapsed={collapsed}
+            onToggle={onToggle}
+          />
+          <p className="text-right text-xs text-muted-foreground">
+            {MONTHLY_CLOSE_LABELS.ACTUAL_BALANCE} <StatementAmountText drift={data.actualBalance} />
+          </p>
+        </div>
+      ) : null}
+    </StatementPanel>
   );
 };

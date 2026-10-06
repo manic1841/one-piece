@@ -7,13 +7,13 @@ import {
   NumberInput,
   parseOptionalAmount,
 } from '@/ui/components/data-table';
-import { formatCurrency } from '@/ui/utils';
+import { ACCOUNT_BALANCE_FIELD_LABELS, MONTHLY_CLOSE_LABELS } from '@/ui/constants/monthlyClose';
 
 import type {
   AccountBalanceEntryVM,
   AccountBalanceInput,
 } from '../../../viewmodels/accountBalance.vm';
-import { computeSectionInput } from '../../../viewmodels/accountBalance.vm';
+import { foreignTwdValueText } from '../../../viewmodels/accountBalance.vm';
 import { AccountNameCell } from './AccountNameCell';
 
 interface TwdMobileListProps {
@@ -35,20 +35,19 @@ export const TwdMobileList: React.FC<TwdMobileListProps> = ({
         <p className="text-sm font-medium text-foreground">
           <AccountNameCell name={entry.account.name} currency="TWD" />
         </p>
-        <MobileDataField label="前期餘額">
+        <MobileDataField label={ACCOUNT_BALANCE_FIELD_LABELS.PREVIOUS_MONTH_BALANCE}>
           <p className="font-mono text-sm tabular-nums text-foreground">
-            {entry.previousBalance === null ? '—' : formatCurrency(entry.previousBalance)}
+            {entry.previousBalanceText}
           </p>
         </MobileDataField>
-        <MobileDataField label="期末餘額">
+        <MobileDataField label={MONTHLY_CLOSE_LABELS.CLOSING_BALANCE}>
           <NumberInput
-            aria-label={`期末餘額 ${entry.account.name}`}
+            surface="table"
+            aria-label={`${MONTHLY_CLOSE_LABELS.CLOSING_BALANCE} ${entry.account.name}`}
             className="w-[150px] max-w-full"
             disabled={isReadOnly}
-            value={findInput(entry.account.id)?.amount ?? ''}
-            onChange={(event) =>
-              onAmountChange(entry.account.id, parseOptionalAmount(event.target.value))
-            }
+            value={findInput(entry.account.id)?.amount?.toString() ?? ''}
+            onChange={(value) => onAmountChange(entry.account.id, parseOptionalAmount(value))}
           />
         </MobileDataField>
       </MobileDataRow>
@@ -79,60 +78,42 @@ export const ForeignMobileList: React.FC<ForeignMobileListProps> = ({
         <p className="text-sm font-medium text-foreground">
           <AccountNameCell name={entry.account.name} currency={entry.account.currency} />
         </p>
-        <MobileDataField label="前期餘額">
+        <MobileDataField label={ACCOUNT_BALANCE_FIELD_LABELS.PREVIOUS_MONTH_BALANCE}>
           <p className="font-mono text-sm tabular-nums text-foreground">
-            {entry.previousBalance === null
-              ? '—'
-              : formatCurrency(entry.previousBalance, entry.account.currency)}
+            {entry.previousBalanceText}
           </p>
         </MobileDataField>
-        <MobileDataField label="外幣金額">
+        <MobileDataField label={ACCOUNT_BALANCE_FIELD_LABELS.FOREIGN_AMOUNT}>
           <NumberInput
-            aria-label={`外幣金額 ${entry.account.name}`}
+            surface="table"
+            aria-label={`${ACCOUNT_BALANCE_FIELD_LABELS.FOREIGN_AMOUNT} ${entry.account.name}`}
             className="w-[150px] max-w-full"
             disabled={isReadOnly}
-            value={findInput(entry.account.id)?.originalAmount ?? ''}
-            onChange={(event) =>
-              onDetailChange(
-                entry.account.id,
-                'originalAmount',
-                parseOptionalAmount(event.target.value),
-              )
+            value={findInput(entry.account.id)?.originalAmount?.toString() ?? ''}
+            onChange={(value) =>
+              onDetailChange(entry.account.id, 'originalAmount', parseOptionalAmount(value))
             }
           />
         </MobileDataField>
-        <MobileDataField label="匯率">
+        <MobileDataField label={ACCOUNT_BALANCE_FIELD_LABELS.EXCHANGE_RATE}>
           <NumberInput
-            aria-label={`匯率 ${entry.account.name}`}
+            surface="table"
+            aria-label={`${ACCOUNT_BALANCE_FIELD_LABELS.EXCHANGE_RATE} ${entry.account.name}`}
             step="0.0001"
             className="w-[150px] max-w-full"
             disabled={isReadOnly}
-            value={findInput(entry.account.id)?.exchangeRate ?? ''}
-            onChange={(event) =>
-              onDetailChange(
-                entry.account.id,
-                'exchangeRate',
-                parseOptionalAmount(event.target.value),
-              )
+            value={findInput(entry.account.id)?.exchangeRate?.toString() ?? ''}
+            onChange={(value) =>
+              onDetailChange(entry.account.id, 'exchangeRate', parseOptionalAmount(value))
             }
           />
         </MobileDataField>
-        <MobileDataField label="TWD 價值">
+        <MobileDataField label={ACCOUNT_BALANCE_FIELD_LABELS.TWD_VALUE}>
           <p
             data-testid={`twd-value-${entry.account.id}`}
             className="font-mono text-sm font-medium tabular-nums text-foreground"
           >
-            {formatCurrency(
-              computeSectionInput(
-                {
-                  accountId: entry.account.id,
-                  amount: 0,
-                  originalAmount: findInput(entry.account.id)?.originalAmount ?? 0,
-                  exchangeRate: findInput(entry.account.id)?.exchangeRate ?? 0,
-                },
-                'foreign',
-              ),
-            )}
+            {foreignTwdValueText(findInput(entry.account.id))}
           </p>
         </MobileDataField>
       </MobileDataRow>

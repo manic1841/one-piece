@@ -1,18 +1,12 @@
 import React, { useEffect, useState } from 'react';
 
-import { LogOut, Search, Settings, UserRound } from 'lucide-react';
+import { Search } from 'lucide-react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 
 import { StatusGlyph } from '@/ui/components/StatusGlyph';
+import { useConfirm } from '@/ui/components/confirm/useConfirm';
 import { Button } from '@/ui/components/ui/button';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/ui/components/ui/dropdown-menu';
 import { useAuthState } from '@/ui/contexts/useAuthState';
-import { useConfirm } from '@/ui/features/app/confirm/useConfirm';
 
 import { useHouseholdGuard } from '../hooks/useHouseholdGuard';
 import { usePetReaction } from '../hooks/usePetReaction';
@@ -20,6 +14,7 @@ import CommandPalette from './CommandPalette';
 import HouseholdSwitcher from './HouseholdSwitcher';
 import PixelPet from './PixelPet';
 import SiteFooter from './SiteFooter';
+import { UserMenu } from './UserMenu';
 import { APP_BRAND } from './brand';
 
 const Layout: React.FC = () => {
@@ -124,37 +119,12 @@ const Layout: React.FC = () => {
             >
               <Search size={18} />
             </Button>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" aria-label="Avatar" className="shrink-0">
-                  {userProfile?.photoURL ? (
-                    <img
-                      src={userProfile.photoURL}
-                      alt=""
-                      className="w-6 h-6 rounded-full object-cover"
-                    />
-                  ) : (
-                    <UserRound size={18} className="text-muted-foreground" />
-                  )}
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem
-                  onClick={() => navigate('/settings')}
-                  className="text-muted-foreground hover:bg-accent hover:text-foreground"
-                >
-                  <Settings size={16} />
-                  Settings
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={handleLogout}
-                  className="text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
-                >
-                  <LogOut size={16} />
-                  Logout
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <UserMenu
+              name={userProfile?.displayName ?? ''}
+              photoURL={userProfile?.photoURL}
+              onSettings={() => navigate('/settings')}
+              onLogout={handleLogout}
+            />
           </div>
         </div>
       </header>

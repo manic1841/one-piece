@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { type Account, type PortfolioFormVM } from '../viewmodels/portfolioForm.vm';
 import PortfolioForm from './PortfolioForm';
 
-// The Radix checkbox measures itself through `@radix-ui/react-use-size`.
+// The Radix select measures itself through `@radix-ui/react-use-size`.
 class ResizeObserverStub {
   observe() {}
   unobserve() {}
@@ -27,61 +27,39 @@ const accounts = [
   { id: 'other-1', name: 'Misc', category: 'other', currency: 'TWD' },
 ] as unknown as Account[];
 
-const portfolio = {
-  id: 'p1',
-  name: 'Retirement',
-  securitiesAccountId: 'sec-1',
-  bankAccountId: 'bank-1',
-  isActive: true,
-  order: 3,
-  createdBy: 'u1',
-  updatedBy: 'u1',
-  createdAt: new Date('2026-01-01'),
-  updatedAt: new Date('2026-01-01'),
-};
-
-const otherPortfolio = { ...portfolio, id: 'p2', name: 'Education', order: 0 };
-
 function renderForm({
   isOpen = true,
-  target,
   onSubmit = vi.fn().mockResolvedValue(undefined),
 }: {
   isOpen?: boolean;
-  target?: typeof portfolio;
   onSubmit?: (data: PortfolioFormVM) => Promise<void>;
 } = {}) {
   const onClose = vi.fn();
 
-  const renderFormElement = (open: boolean, editTarget?: typeof portfolio) => (
-    <PortfolioForm
-      isOpen={open}
-      onClose={onClose}
-      onSubmit={onSubmit}
-      accounts={accounts}
-      portfolio={editTarget}
-    />
+  const utils = render(
+    <PortfolioForm isOpen={isOpen} onClose={onClose} onSubmit={onSubmit} accounts={accounts} />,
   );
 
-  const utils = render(renderFormElement(isOpen, target));
-
-  return {
-    ...utils,
-    onSubmit,
-    onClose,
-    rerenderWith: (open: boolean, editTarget?: typeof portfolio) =>
-      utils.rerender(renderFormElement(open, editTarget)),
-  };
+  return { ...utils, onSubmit, onClose };
 }
 
-const submitButton = () => screen.getByRole('button', { name: /Create Portfolio|Save Changes/ });
+const submitButton = () => screen.getByRole('button', { name: 'Create Portfolio' });
 const nameInput = () => screen.getByLabelText(/^Name/);
 
-describe('PortfolioForm', () => {
-  it('submits the edited portfolio as a validated VM', async () => {
-    const { onSubmit, onClose } = renderForm({ target: portfolio });
+const chooseSelect = async (index: number, optionName: string) => {
+  const trigger = screen.getAllByRole('combobox')[index];
+  trigger.focus();
+  fireEvent.click(trigger);
+  fireEvent.click(await screen.findByRole('option', { name: optionName }));
+};
 
-    expect(nameInput()).toHaveValue('Retirement');
+describe('PortfolioForm', () => {
+  it('submits a validated create VM', async () => {
+    const { onSubmit, onClose } = renderForm();
+
+    fireEvent.change(nameInput(), { target: { value: 'Retirement' } });
+    await chooseSelect(0, 'Brokerage');
+    await chooseSelect(1, 'Bank A (bank)');
 
     act(() => {
       fireEvent.click(submitButton());
@@ -92,17 +70,14 @@ describe('PortfolioForm', () => {
       name: 'Retirement',
       securitiesAccountId: 'sec-1',
       bankAccountId: 'bank-1',
-      isActive: true,
-      order: 3,
     });
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
   it('blocks the submit and marks the name when it is cleared', async () => {
-    const { onSubmit, onClose } = renderForm({ target: portfolio });
+    const { onSubmit, onClose } = renderForm();
 
     fireEvent.change(nameInput(), { target: { value: '' } });
-
     act(() => {
       fireEvent.click(submitButton());
     });
@@ -112,11 +87,10 @@ describe('PortfolioForm', () => {
     expect(onClose).not.toHaveBeenCalled();
   });
 
-  it('reports the missing account links on an empty create form', async () => {
+  it('reports the missing account links on an empty form', async () => {
     const { onSubmit } = renderForm();
 
     expect(nameInput()).toHaveValue('');
-    expect(screen.getByRole('checkbox')).toBeChecked();
     expect(screen.getAllByRole('combobox')).toHaveLength(2);
 
     act(() => {
@@ -124,32 +98,11 @@ describe('PortfolioForm', () => {
     });
 
     await waitFor(() => expect(screen.getByText('請選擇證券帳戶')).toBeInTheDocument());
-    expect(screen.getByText('請選擇銀行帳戶')).toBeInTheDocument();
     expect(onSubmit).not.toHaveBeenCalled();
   });
 
-  it('surfaces a rejected submit through the root error channel', async () => {
-    const onSubmit = vi.fn().mockRejectedValue(new Error('儲存失敗，請稍後再試'));
-    const { onClose } = renderForm({ target: portfolio, onSubmit });
-
-    act(() => {
-      fireEvent.click(submitButton());
-    });
-
-    await waitFor(() => expect(screen.getByText('儲存失敗，請稍後再試')).toBeInTheDocument());
-    expect(onClose).not.toHaveBeenCalled();
-  });
-
-  it('re-applies the edit target every time the dialog opens', async () => {
-    const { rerenderWith } = renderForm({ target: portfolio });
-
-    expect(nameInput()).toHaveValue('Retirement');
-
-    await act(async () => {
-      rerenderWith(false, otherPortfolio);
-      rerenderWith(true, otherPortfolio);
-    });
-
-    expect(nameInput()).toHaveValue('Education');
+  it('has no lifecycle checkbox (create-only)', () => {
+    renderForm();
+    expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
   });
 });

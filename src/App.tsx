@@ -1,12 +1,14 @@
+import { Suspense, lazy } from 'react';
+
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import { Toaster } from 'sonner';
 
 import { firebaseAuthGateway } from '@/infra/contexts/firebaseAuthGateway';
+import { ConfirmDialogProvider } from '@/ui/components/confirm/ConfirmDialog';
 import { AuthStateProvider } from '@/ui/contexts/AuthStateProvider';
 import AccountDetailPage from '@/ui/features/account/pages/AccountDetailPage';
 import Accounts from '@/ui/features/account/pages/AccountsPage';
 import { AuthGate } from '@/ui/features/app/AuthGate';
-import { ConfirmDialogProvider } from '@/ui/features/app/confirm/ConfirmDialog';
 import Layout from '@/ui/features/app/layout/Layout';
 import ProtectedRoute from '@/ui/features/app/router/ProtectedRoute';
 import AccessDenied from '@/ui/features/auth/pages/AccessDeniedPage';
@@ -21,26 +23,41 @@ import PortfolioDetailPage from '@/ui/features/portfolio/pages/PortfolioDetailPa
 import PortfoliosPage from '@/ui/features/portfolio/pages/PortfoliosPage';
 import ProjectDetailPage from '@/ui/features/project/pages/ProjectDetailPage';
 import ProjectsPage from '@/ui/features/project/pages/ProjectsPage';
-import Reports from '@/ui/features/report/pages/ReportsPage';
+import ReportDetailPage from '@/ui/features/report/pages/ReportDetailPage';
+import ReportListPage from '@/ui/features/report/pages/ReportListPage';
 import RetirementPlanForm from '@/ui/features/retirement/pages/RetirementPlanForm';
 import RetirementPlanList from '@/ui/features/retirement/pages/RetirementPlanList';
-import Settings from '@/ui/features/setting/pages/SettingsPage';
+import SettingsIndexRedirect from '@/ui/features/setting/pages/SettingsIndexRedirect';
+import SettingsLayout from '@/ui/features/setting/pages/SettingsLayout';
+import AccountingSettingsPage from '@/ui/features/setting/pages/sections/AccountingSettingsPage';
+import BackupSettingsPage from '@/ui/features/setting/pages/sections/BackupSettingsPage';
+import HouseholdSettingsPage from '@/ui/features/setting/pages/sections/HouseholdSettingsPage';
+import SystemSettingsPage from '@/ui/features/setting/pages/sections/SystemSettingsPage';
 import Transactions from '@/ui/features/transaction/pages/TransactionsPage';
+
+const GalleryPage = import.meta.env.DEV
+  ? lazy(() => import('@/ui/features/app/pages/GalleryPage'))
+  : null;
 
 function App() {
   return (
     <AuthStateProvider gateway={firebaseAuthGateway}>
-      <Toaster
-        toastOptions={{
-          classNames: {
-            toast: 'rounded-lg border border-border bg-card text-card-foreground shadow-lg',
-          },
-        }}
-      />
+      <Toaster theme="dark" />
       <AuthGate>
         <ConfirmDialogProvider>
           <BrowserRouter>
             <Routes>
+              {/* Gated on DEV so the production bundle drops the chunk instead of shipping it dead. */}
+              {import.meta.env.DEV && GalleryPage !== null && (
+                <Route
+                  path="/gallery"
+                  element={
+                    <Suspense fallback={null}>
+                      <GalleryPage />
+                    </Suspense>
+                  }
+                />
+              )}
               <Route path="/login" element={<Login />} />
               <Route path="/access-denied" element={<AccessDenied />} />
               <Route
@@ -69,12 +86,19 @@ function App() {
                 <Route path="accounts/:id" element={<AccountDetailPage />} />
                 <Route path="portfolios" element={<PortfoliosPage />} />
                 <Route path="portfolios/:id" element={<PortfolioDetailPage />} />
-                <Route path="reports" element={<Reports />} />
+                <Route path="reports" element={<ReportListPage />} />
+                <Route path="reports/:period" element={<ReportDetailPage />} />
                 <Route path="retirement" element={<RetirementPlanList />} />
                 <Route path="retirement/:id" element={<RetirementPlanForm />} />
                 <Route path="debt" element={<DebtListPage />} />
                 <Route path="debt/:id" element={<DebtDetailPage />} />
-                <Route path="settings" element={<Settings />} />
+                <Route path="settings" element={<SettingsLayout />}>
+                  <Route index element={<SettingsIndexRedirect />} />
+                  <Route path="household" element={<HouseholdSettingsPage />} />
+                  <Route path="accounting" element={<AccountingSettingsPage />} />
+                  <Route path="backup" element={<BackupSettingsPage />} />
+                  <Route path="system" element={<SystemSettingsPage />} />
+                </Route>
               </Route>
             </Routes>
           </BrowserRouter>

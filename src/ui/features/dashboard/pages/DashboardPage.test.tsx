@@ -72,8 +72,8 @@ const buildOverview = () => ({
     investmentGain: 3000,
   },
   cashFlowSeries: [
-    { year: 2026, month: 7, netCashFlow: 3200 },
-    { year: 2026, month: 8, netCashFlow: -12300 },
+    { year: 2026, month: 7, netCashFlow: 3200, cashIn: 5200, cashOut: 2000 },
+    { year: 2026, month: 8, netCashFlow: -12300, cashIn: 4600, cashOut: 16900 },
   ],
 });
 
@@ -109,14 +109,14 @@ describe('DashboardPage NET WORTH hero ytd line', () => {
       </MemoryRouter>,
     );
 
-    const ytd = await screen.findByTestId('hero-ytd');
-    expect(ytd.textContent).toContain('+12.5% YTD');
-    expect(ytd.textContent).toContain('+NT$50');
+    const change = await screen.findByText(/\+12\.5% YTD/);
+    expect(change.textContent).toContain('+12.5% YTD');
+    expect(change.textContent).toContain('+NT$50');
   });
 });
 
-describe('DashboardPage assets and liabilities block', () => {
-  it('renders the balance sheet composition from the anchor', async () => {
+describe('DashboardPage asset composition block', () => {
+  it('renders the asset composition from the anchor', async () => {
     mockGetOverview.mockResolvedValue(buildOverview());
 
     render(
@@ -125,18 +125,15 @@ describe('DashboardPage assets and liabilities block', () => {
       </MemoryRouter>,
     );
 
-    const block = await screen.findByTestId('assets-liabilities');
+    const block = await screen.findByTestId('asset-composition');
     expect(block.textContent).toContain('現金與銀行');
     expect(block.textContent).toContain('投資資產');
     expect(block.textContent).toContain('不動產');
-    expect(block.textContent).toContain('貸款');
-    expect(screen.getByTestId('al-asset-cash')).toBeInTheDocument();
-    expect(screen.getByTestId('al-liability-loan')).toBeInTheDocument();
   });
 });
 
 describe('DashboardPage monthly cash flow chart', () => {
-  it('renders the 12M net cash flow series with the latest value', async () => {
+  it('renders the monthly inflow / outflow bars with the latest net value', async () => {
     mockGetOverview.mockResolvedValue(buildOverview());
 
     render(
@@ -147,6 +144,8 @@ describe('DashboardPage monthly cash flow chart', () => {
 
     const chart = await screen.findByTestId('cashflow-chart');
     expect(chart.textContent).toContain('AUG 2026');
+    expect(chart.textContent).toContain('現金流入');
+    expect(chart.textContent).toContain('現金流出');
     expect(chart.textContent).toContain('-NT$12,300');
   });
 });
@@ -164,7 +163,7 @@ describe('DashboardPage monthly close card', () => {
     const card = await screen.findByTestId('monthly-close-card');
     expect(card.textContent).toContain('下月應付');
     expect(card.textContent).toContain('NT$420');
-    expect(screen.getByTestId('close-progress')).toBeInTheDocument();
+    expect(screen.getByRole('progressbar', { name: /close stages completed/ })).toBeInTheDocument();
   });
 });
 
@@ -178,19 +177,19 @@ describe('DashboardPage reading path order', () => {
       </MemoryRouter>,
     );
 
-    await screen.findByTestId('hero-ytd');
+    await screen.findByTestId('stat-totalAssets');
 
     const container = document.body;
     const order = (container.textContent ?? '')
       .split(
-        /(NET WORTH TREND|NET WORTH|FINANCIAL SNAPSHOT|ASSETS & LIABILITIES|MONTHLY CASH FLOW|RECENT TRANSACTIONS|MONTHLY CLOSE)/,
+        /(NET WORTH TREND|NET WORTH|FINANCIAL SNAPSHOT|ASSETS|MONTHLY CASH FLOW|RECENT TRANSACTIONS|MONTHLY CLOSE)/,
       )
       .filter((part) =>
         [
           'NET WORTH',
           'NET WORTH TREND',
           'FINANCIAL SNAPSHOT',
-          'ASSETS & LIABILITIES',
+          'ASSETS',
           'MONTHLY CASH FLOW',
           'RECENT TRANSACTIONS',
           'MONTHLY CLOSE',
@@ -201,10 +200,10 @@ describe('DashboardPage reading path order', () => {
       'NET WORTH',
       'NET WORTH TREND',
       'FINANCIAL SNAPSHOT',
-      'ASSETS & LIABILITIES',
+      'ASSETS',
       'MONTHLY CASH FLOW',
-      'RECENT TRANSACTIONS',
       'MONTHLY CLOSE',
+      'RECENT TRANSACTIONS',
     ]);
   });
 });

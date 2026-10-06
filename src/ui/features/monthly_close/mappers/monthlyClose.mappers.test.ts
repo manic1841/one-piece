@@ -29,9 +29,9 @@ describe('mapPeriodToPageVM', () => {
 
     const vm = mapPeriodToPageVM(period);
 
-    expect(vm.stages).toHaveLength(9);
+    expect(vm.stages).toHaveLength(8);
     expect(vm.stages[0].stageId).toBe('ACCOUNT_BALANCE');
-    expect(vm.stages[1].stageId).toBe('TRANSACTION_VALIDATION');
+    expect(vm.stages[1].stageId).toBe('SECURITIES_TRADE');
     expect(vm.stages[0].isCompleted).toBe(true);
     expect(vm.stages[0].confirmedAtText).toContain('2026-09-16');
     expect(vm.completedCount).toBe(2);

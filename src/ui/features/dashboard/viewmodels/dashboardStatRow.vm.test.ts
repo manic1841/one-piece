@@ -72,7 +72,7 @@ describe('dashboardStatRow.vm', () => {
       ),
     );
 
-    expect(vm.metrics[2].valueClassName).toBe('text-positive');
+    expect(vm.metrics[2].tone).toBe('positive');
   });
 
   it('renders em-dashes when no anchor is closed', () => {

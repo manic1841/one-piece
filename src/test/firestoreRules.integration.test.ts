@@ -125,22 +125,6 @@ describe('Firestore security rules authorization matrix', () => {
       );
     });
 
-    it('denied write on watch list (anonymous)', async () => {
-      const db = testEnv.unauthenticatedContext().firestore();
-      await assertFails(
-        setDoc(doc(db, `households/${HOUSEHOLD_ID}/watchList/PROJECT:p1`), {
-          targetType: 'PROJECT',
-          targetId: 'p1',
-          name: '媽媽專案',
-        }),
-      );
-    });
-
-    it('denied read on watch list (anonymous)', async () => {
-      const db = testEnv.unauthenticatedContext().firestore();
-      await assertFails(getDoc(doc(db, `households/${HOUSEHOLD_ID}/watchList/PROJECT:p1`)));
-    });
-
     it('denied read on users collection', async () => {
       const db = testEnv.unauthenticatedContext().firestore();
       await assertFails(getDoc(doc(db, 'users/user1')));
@@ -163,22 +147,6 @@ describe('Firestore security rules authorization matrix', () => {
       await assertFails(
         setDoc(doc(db, `households/${HOUSEHOLD_ID}/transactions/tx1`), { name: 'x' }),
       );
-    });
-
-    it('denied write on watch list (not a member)', async () => {
-      const db = testEnv.authenticatedContext('non-member-uid', TOKENS.nonMember).firestore();
-      await assertFails(
-        setDoc(doc(db, `households/${HOUSEHOLD_ID}/watchList/LEDGER_CODE:expense:travel`), {
-          targetType: 'LEDGER_CODE',
-          targetId: 'expense:travel',
-          name: '差旅費',
-        }),
-      );
-    });
-
-    it('denied read on watch list (not a member)', async () => {
-      const db = testEnv.authenticatedContext('non-member-uid', TOKENS.nonMember).firestore();
-      await assertFails(getDoc(doc(db, `households/${HOUSEHOLD_ID}/watchList/PROJECT:p1`)));
     });
 
     it('allowed read on household main doc (isSystemUser)', async () => {
@@ -226,22 +194,6 @@ describe('Firestore security rules authorization matrix', () => {
       const db = testEnv.authenticatedContext('member-uid', TOKENS.member).firestore();
       await assertFails(
         setDoc(doc(db, `households/${HOUSEHOLD_ID}/transactions/tx1`), { name: 'x' }),
-      );
-    });
-
-    it('allowed read on watch list (household member)', async () => {
-      const db = testEnv.authenticatedContext('member-uid', TOKENS.member).firestore();
-      await assertSucceeds(getDoc(doc(db, `households/${HOUSEHOLD_ID}/watchList/PROJECT:p1`)));
-    });
-
-    it('denied write on watch list (member is not admin)', async () => {
-      const db = testEnv.authenticatedContext('member-uid', TOKENS.member).firestore();
-      await assertFails(
-        setDoc(doc(db, `households/${HOUSEHOLD_ID}/watchList/PROJECT:p1`), {
-          targetType: 'PROJECT',
-          targetId: 'p1',
-          name: '媽媽專案',
-        }),
       );
     });
 
@@ -303,22 +255,6 @@ describe('Firestore security rules authorization matrix', () => {
       );
     });
 
-    it('allowed write on watch list (household admin)', async () => {
-      const db = testEnv.authenticatedContext('admin-uid', TOKENS.admin).firestore();
-      await assertSucceeds(
-        setDoc(doc(db, `households/${HOUSEHOLD_ID}/watchList/PROJECT:p1`), {
-          targetType: 'PROJECT',
-          targetId: 'p1',
-          name: '媽媽專案',
-        }),
-      );
-    });
-
-    it('allowed read on watch list (household admin)', async () => {
-      const db = testEnv.authenticatedContext('admin-uid', TOKENS.admin).firestore();
-      await assertSucceeds(getDoc(doc(db, `households/${HOUSEHOLD_ID}/watchList/PROJECT:p1`)));
-    });
-
     it('allowed read on household main doc', async () => {
       const db = testEnv.authenticatedContext('admin-uid', TOKENS.admin).firestore();
       await assertSucceeds(getDoc(doc(db, `households/${HOUSEHOLD_ID}`)));
@@ -354,17 +290,6 @@ describe('Firestore security rules authorization matrix', () => {
       const db = testEnv.authenticatedContext('owner-uid', TOKENS.owner).firestore();
       await assertSucceeds(
         setDoc(doc(db, `households/${HOUSEHOLD_ID}/transactions/tx1`), { name: 'x' }),
-      );
-    });
-
-    it('allowed write on watch list (household owner)', async () => {
-      const db = testEnv.authenticatedContext('owner-uid', TOKENS.owner).firestore();
-      await assertSucceeds(
-        setDoc(doc(db, `households/${HOUSEHOLD_ID}/watchList/DEBT_ACCOUNT:d1`), {
-          targetType: 'DEBT_ACCOUNT',
-          targetId: 'd1',
-          name: '房貸',
-        }),
       );
     });
 

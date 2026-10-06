@@ -1,13 +1,12 @@
 FROM node:24-bookworm-slim
 
-WORKDIR /workspace
+WORKDIR /workspace/one-piece
 
 RUN npm install --global pnpm@10.24.0 && \
     npm cache clean --force
 
-COPY package.json pnpm-lock.yaml ./
-RUN pnpm install --frozen-lockfile
-
+# node_modules 由 host bind mount（..:/workspace）提供，各 worktree 安裝、
+# 共用 store。build 時不需再安裝依賴，否則只是塞一份用不到的 node_modules 進 image。
 COPY . .
 
 EXPOSE 5173

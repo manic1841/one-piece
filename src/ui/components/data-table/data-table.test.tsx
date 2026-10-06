@@ -61,6 +61,25 @@ describe('DataTable', () => {
     expect(table.className).toContain('table-fixed');
     expect(table.className).toContain('border-collapse');
   });
+
+  it('frames the table with a top rule on the first row and a bottom rule on the last', () => {
+    render(
+      <DataTable data-testid="table">
+        <TableBody>
+          <DataTableRow>
+            <DataTableCell>a</DataTableCell>
+          </DataTableRow>
+        </TableBody>
+      </DataTable>,
+    );
+
+    // These selectors come from the table root so they outrank `TableBody`'s
+    // `[&_tr:last-child]:border-0` reset. The first-row rule carries a
+    // `:not(:last-child)` guard so a single-row table's top rule comes from the row.
+    const table = screen.getByTestId('table');
+    expect(table.className).toContain('[&_tbody>tr:first-child:not(:last-child)]:border-t');
+    expect(table.className).toContain('[&_tbody>tr:last-child]:border-b');
+  });
 });
 
 describe('DataTableColGroup', () => {
@@ -231,7 +250,7 @@ describe('NumberCell', () => {
 
 describe('NumberInput', () => {
   it('removes the native spinner and right-aligns mono numerics', () => {
-    render(<NumberInput aria-label="ending" defaultValue={100} />);
+    render(<NumberInput surface="table" aria-label="ending" />);
 
     const input = screen.getByLabelText('ending');
     expect(input).toHaveAttribute('type', 'number');
@@ -243,7 +262,7 @@ describe('NumberInput', () => {
   });
 
   it('uses the 32px height for compact (sub-table) inputs', () => {
-    render(<NumberInput aria-label="cost" compact defaultValue={1} />);
+    render(<NumberInput surface="table" aria-label="cost" compact />);
 
     const input = screen.getByLabelText('cost');
     expect(input.className).toContain('h-8');

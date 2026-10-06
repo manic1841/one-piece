@@ -27,6 +27,8 @@ export interface CloseStageItemVM {
 export interface MonthlyClosePageVM {
   periodLabel: string;
   periodText: string;
+  /** Display title, e.g. "2026 年 9 月". */
+  periodTitle: string;
   status: FinancialPeriod['status'];
   statusText: string;
   isPaused: boolean;

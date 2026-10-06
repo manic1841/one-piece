@@ -8,7 +8,6 @@ const readinessVM: ReadinessVM = {
   isReady: false,
   checks: [
     { id: 'ACCOUNT_BALANCE', label: '帳戶餘額', passed: false, countText: '2 / 3' },
-    { id: 'TRANSACTION_VALIDATION', label: '交易驗證', passed: true, countText: '128' },
     { id: 'SECURITIES_TRADE', label: '證券買入／賣出', passed: true, countText: '6' },
     { id: 'PORTFOLIO_CASH_FLOW', label: 'Portfolio 金流', passed: false, countText: '1 / 2' },
     { id: 'PROJECT_SETTLEMENT', label: '專案結算', passed: true, countText: '4 / 4' },
@@ -42,12 +41,12 @@ describe('CloseReadinessCheck', () => {
     vi.clearAllMocks();
   });
 
-  it('renders the six readiness checks with their N/M counts', () => {
+  it('renders the five readiness checks with their N/M counts', () => {
     renderPanel();
 
     expect(screen.getAllByText('帳戶餘額').length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText('2 / 3')).toBeInTheDocument();
-    expect(screen.getByText('128')).toBeInTheDocument();
+    expect(screen.getByText('6')).toBeInTheDocument();
   });
 
   it('lists exceptions with their details', () => {
@@ -77,21 +76,20 @@ describe('CloseReadinessCheck', () => {
     expect(onGoToStage).toHaveBeenCalledWith('ACCOUNT_BALANCE');
   });
 
-  it('shows zero-activity exceptions as non-blocking info rows', () => {
+  it('renders a text-only exception without a GO TO action', () => {
     renderPanel({
       readiness: {
         ...readinessVM,
-        isReady: true,
-        exceptions: [{ label: '零活動', detail: '台新銀行', stageId: 'COMPLETENESS_CHECK' }],
+        exceptions: [{ label: '交易驗證問題', detail: '餐飲：分配不存在', stageId: null }],
       },
     });
 
-    expect(screen.getByText('台新銀行')).toBeInTheDocument();
-    expect(screen.getByTestId('readiness-confirm')).toBeEnabled();
+    expect(screen.getByText('餐飲：分配不存在')).toBeInTheDocument();
+    expect(screen.queryByText(/GO TO/)).not.toBeInTheDocument();
   });
 
   it('renders readiness only — no financial figures', () => {
-    // Step 7 surfaces readiness state, not report numbers; the aggregated
+    // COMPLETENESS_CHECK surfaces readiness state, not report numbers; the aggregated
     // figures belong to Steps 8-9 (see docs/monthly-close.md §3).
     const { container } = renderPanel();
 

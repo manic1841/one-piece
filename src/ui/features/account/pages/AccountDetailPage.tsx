@@ -1,180 +1,133 @@
 import React from 'react';
 
-import { Power } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Power } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
+import { EmptyState } from '@/ui/components/EmptyState';
+import { InlineEditableTitle } from '@/ui/components/InlineEditableTitle';
 import { PageHeader } from '@/ui/components/PageHeader';
-import { Badge } from '@/ui/components/ui/badge';
+import { Skeleton } from '@/ui/components/Skeleton';
+import { StatusGlyph } from '@/ui/components/StatusGlyph';
+import { Alert, AlertDescription } from '@/ui/components/ui/alert';
 import { Button } from '@/ui/components/ui/button';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/ui/components/ui/table';
+import { ACCOUNT_DETAIL_LABELS } from '@/ui/constants/account/detailLabels';
 import { AccountCategoryLabels } from '@/ui/constants/account/label';
-import AccountTrendChart from '@/ui/features/account/components/detail/AccountTrendChart';
-import { MONTH_NAMES } from '@/ui/features/account/components/detail/accountTrendGeometry';
+import AccountDetail from '@/ui/features/account/components/AccountDetail';
 import { useAccountDetailPage } from '@/ui/features/account/hooks/useAccountDetailPage';
 import { type AccountWithSnapshot } from '@/ui/features/account/viewmodels/account.vm';
-import { formatCurrency, formatDate } from '@/ui/utils';
 
 interface AccountDetailPageProps {
   account?: AccountWithSnapshot;
 }
 
-const SectionTitle: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <p className="font-mono text-[11px] tracking-widest text-muted-foreground uppercase">
-    {children}
-  </p>
-);
+const SKELETON_ROWS = [0, 1, 2];
 
 const AccountDetailPage: React.FC<AccountDetailPageProps> = ({ account }) => {
   const navigate = useNavigate();
-  const { activeAccount, loading, isActive, trend, holdings, historyRows, handleToggleActive } =
-    useAccountDetailPage({ account });
+  const {
+    activeAccount,
+    name,
+    loading,
+    error,
+    notFound,
+    reload,
+    isActive,
+    trend,
+    historyRows,
+    latestRow,
+    handleRename,
+    handleToggleActive,
+    handleDelete,
+  } = useAccountDetailPage({ account });
 
-  if (loading) return <div>Loading...</div>;
-  if (!activeAccount) return <div>Account not found</div>;
+  const backToList = () => navigate('/accounts');
+
+  if (loading) {
+    return (
+      <div role="status" className="space-y-6 pb-20">
+        <span className="sr-only">{ACCOUNT_DETAIL_LABELS.LOADING_LABEL}</span>
+        {SKELETON_ROWS.map((row) => (
+          <Skeleton key={row} className="h-16" />
+        ))}
+      </div>
+    );
+  }
+
+  if (error !== null && !activeAccount) {
+    return (
+      <div className="space-y-6 pb-20">
+        <Button variant="ghost" size="sm" onClick={backToList} className="gap-2">
+          <ArrowLeft size={16} aria-hidden="true" />
+          {ACCOUNT_DETAIL_LABELS.BACK_LABEL}
+        </Button>
+        <Alert variant="warning">
+          <AlertDescription>{ACCOUNT_DETAIL_LABELS.LOAD_ERROR}</AlertDescription>
+          <Button variant="text" className="ml-auto shrink-0" onClick={reload}>
+            {ACCOUNT_DETAIL_LABELS.RETRY_ACTION}
+            <ArrowRight size={16} aria-hidden="true" />
+          </Button>
+        </Alert>
+      </div>
+    );
+  }
+
+  if (notFound || !activeAccount) {
+    return (
+      <EmptyState
+        title={ACCOUNT_DETAIL_LABELS.NOT_FOUND_TITLE}
+        description={ACCOUNT_DETAIL_LABELS.NOT_FOUND_DESCRIPTION}
+        action={
+          <Button variant="outline" onClick={backToList}>
+            {ACCOUNT_DETAIL_LABELS.NOT_FOUND_ACTION}
+          </Button>
+        }
+      />
+    );
+  }
 
   return (
     <div className="space-y-8 pb-20">
       <PageHeader
-        title={activeAccount.name}
-        crumb={`ACCOUNTS / ${AccountCategoryLabels[activeAccount.category].toUpperCase()}`}
-        onBack={() => navigate('/accounts')}
+        title={<InlineEditableTitle value={name} onSave={handleRename} />}
+        crumb={`${ACCOUNT_DETAIL_LABELS.CRUMB} / ${AccountCategoryLabels[activeAccount.category].toUpperCase()}`}
+        onBack={backToList}
         badge={
-          <Badge variant="outline" className="font-mono">
-            {activeAccount.currency}
-          </Badge>
+          !isActive ? (
+            <StatusGlyph type="inactive" label={ACCOUNT_DETAIL_LABELS.INACTIVE_BADGE} />
+          ) : undefined
         }
-        meta={!isActive && <p className="mt-1 text-xs text-muted-foreground">停用帳戶</p>}
         actions={
-          <div className="flex gap-2">
-            {isActive ? (
-              <Button variant="outline" onClick={() => void handleToggleActive()}>
-                <Power size={16} />
-                停用帳戶
-              </Button>
-            ) : (
-              <Button variant="outline" onClick={() => void handleToggleActive()}>
-                啟用帳戶
-              </Button>
-            )}
-          </div>
+          isActive ? (
+            <Button variant="destructive" onClick={() => void handleToggleActive()}>
+              <Power size={16} />
+              {ACCOUNT_DETAIL_LABELS.DEACTIVATE_ACTION}
+            </Button>
+          ) : (
+            <Button variant="outline" onClick={() => void handleToggleActive()}>
+              {ACCOUNT_DETAIL_LABELS.ACTIVATE_ACTION}
+            </Button>
+          )
         }
       />
 
-      <section className="space-y-3">
-        <SectionTitle>BASIC INFO</SectionTitle>
-        <div className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm md:grid-cols-4">
-          <div>
-            <p className="text-xs text-muted-foreground">Account</p>
-            <p className="font-medium">{activeAccount.name}</p>
-          </div>
-          <div>
-            <p className="text-xs text-muted-foreground">Type</p>
-            <p className="font-medium">{AccountCategoryLabels[activeAccount.category]}</p>
-          </div>
-          <div>
-            <p className="text-xs text-muted-foreground">Currency</p>
-            <p className="font-medium font-mono">{activeAccount.currency}</p>
-          </div>
-          <div>
-            <p className="text-xs text-muted-foreground">Created</p>
-            <p className="font-medium font-mono text-[13px]">
-              {formatDate(activeAccount.createdAt)}
-            </p>
-          </div>
-        </div>
-      </section>
-
-      <section className="space-y-3">
-        <SectionTitle>ENDING BALANCE</SectionTitle>
-        <div className="flex items-baseline justify-between">
-          <p className="font-mono text-3xl tabular-nums text-foreground">
-            {formatCurrency(activeAccount.snapshot?.amount ?? 0)}
-          </p>
-          {activeAccount.snapshot && (
-            <p className="font-mono text-xs tabular-nums text-muted-foreground">
-              {MONTH_NAMES[activeAccount.snapshot.month - 1]} {activeAccount.snapshot.year}
-            </p>
-          )}
-        </div>
-      </section>
-
-      <section className="space-y-3">
-        <SectionTitle>12M TREND</SectionTitle>
-        {trend.path ? (
-          <AccountTrendChart trend={trend} />
-        ) : (
-          <p className="text-sm text-muted-foreground">尚無結算資料，完成本月關帳後顯示趨勢</p>
-        )}
-      </section>
-
-      <section className="space-y-3">
-        <SectionTitle>12M HISTORY</SectionTitle>
-        {historyRows.length === 0 ? (
-          <p className="text-sm text-muted-foreground">目前尚無結算紀錄</p>
-        ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Period</TableHead>
-                <TableHead className="text-right">Ending Balance</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {historyRows.map((snapshot) => (
-                <TableRow key={snapshot.id}>
-                  <TableCell className="font-mono text-[12px]">
-                    {MONTH_NAMES[snapshot.month - 1]} {snapshot.year}
-                  </TableCell>
-                  <TableCell className="text-right font-mono tabular-nums">
-                    {formatCurrency(snapshot.amount)}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        )}
-      </section>
-
-      {holdings.length > 0 && (
-        <section className="space-y-3">
-          <SectionTitle>HOLDINGS</SectionTitle>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Symbol</TableHead>
-                <TableHead>Name</TableHead>
-                <TableHead className="text-right">Cost</TableHead>
-                <TableHead className="text-right">Value</TableHead>
-                <TableHead className="text-right">Leverage</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {holdings.map((row) => (
-                <TableRow key={row.id}>
-                  <TableCell className="font-mono text-[12px]">{row.symbol}</TableCell>
-                  <TableCell>{row.name}</TableCell>
-                  <TableCell className="text-right font-mono tabular-nums">
-                    {row.costText}
-                  </TableCell>
-                  <TableCell className="text-right font-mono tabular-nums">
-                    {row.valueText}
-                  </TableCell>
-                  <TableCell className="text-right font-mono tabular-nums">
-                    {row.leverageText}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </section>
+      {error !== null && (
+        <Alert variant="warning">
+          <AlertDescription>{ACCOUNT_DETAIL_LABELS.LOAD_ERROR}</AlertDescription>
+          <Button variant="text" className="ml-auto shrink-0" onClick={reload}>
+            {ACCOUNT_DETAIL_LABELS.RETRY_ACTION}
+            <ArrowRight size={16} aria-hidden="true" />
+          </Button>
+        </Alert>
       )}
+
+      <AccountDetail
+        name={name}
+        account={activeAccount}
+        latestRow={latestRow}
+        trend={trend}
+        historyRows={historyRows}
+        onDelete={() => void handleDelete()}
+      />
     </div>
   );
 };

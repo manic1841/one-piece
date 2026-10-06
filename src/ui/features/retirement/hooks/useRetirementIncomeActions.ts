@@ -7,7 +7,8 @@ import type {
   RetirementPlan,
   RetirementPlanCreate,
 } from '@/domains/retirement/types';
-import { useConfirm } from '@/ui/features/app/confirm/useConfirm';
+import { newId } from '@/shared/id';
+import { useConfirm } from '@/ui/components/confirm/useConfirm';
 
 interface UseRetirementIncomeActionsParams {
   id: string | undefined;
@@ -29,7 +30,7 @@ export const useRetirementIncomeActions = ({
         throw new Error('Retirement plan is not ready yet. Please wait and try again.');
       }
       await handleUpdatePlan({
-        incomes: appendById(plan.incomes, { ...incomeData, id: crypto.randomUUID() }),
+        incomes: appendById(plan.incomes, { ...incomeData, id: newId() }),
       });
     },
     [id, plan, handleUpdatePlan],

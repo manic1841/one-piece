@@ -11,8 +11,8 @@ import { getReportPersistenceStateUseCase } from '@/application/report/use_cases
 import { getSettlementReadinessUseCase } from '@/application/report/use_cases/getSettlementReadinessUseCase';
 import { getStoredReportsBundleUseCase } from '@/application/report/use_cases/getStoredReportsBundleUseCase';
 import { previewFinancialReportsWorkflow } from '@/application/report/use_cases/previewFinancialReportsWorkflow';
-import { checkSettlementCompletenessUseCase } from '@/application/settlement/use_cases/checkSettlementCompletenessUseCase';
 import { previewDebtSettlementsUseCase } from '@/application/settlement/use_cases/previewDebtSettlementsUseCase';
+import { previewProjectSettlementsUseCase } from '@/application/settlement/use_cases/previewProjectSettlementsUseCase';
 import { type Account } from '@/domains/account/types/account';
 import { MONTHLY_CLOSE_LABELS } from '@/ui/constants/monthlyClose';
 import { mapPeriodToPageVM } from '@/ui/features/monthly_close/mappers/monthlyClose.mappers';
@@ -56,6 +56,9 @@ vi.mock('@/application/portfolio/use_cases/listPortfolioSnapshotsUseCase', () =>
 vi.mock('@/application/project/use_cases/listProjectSnapshotsUseCase', () => ({
   listProjectSnapshotsUseCase: { execute: vi.fn().mockResolvedValue([]) },
 }));
+vi.mock('@/application/settlement/use_cases/previewProjectSettlementsUseCase', () => ({
+  previewProjectSettlementsUseCase: { execute: vi.fn().mockResolvedValue([]) },
+}));
 vi.mock('@/application/project/use_cases/listProjectsUseCase', () => ({
   listProjectsUseCase: { execute: vi.fn().mockResolvedValue([]) },
 }));
@@ -75,11 +78,6 @@ vi.mock('@/application/report/use_cases/getReportPersistenceStateUseCase', () =>
     execute: vi.fn().mockResolvedValue({ isPersisted: false, timestamps: {} }),
   },
 }));
-vi.mock('@/application/settlement/use_cases/checkSettlementCompletenessUseCase', () => ({
-  checkSettlementCompletenessUseCase: {
-    execute: vi.fn().mockResolvedValue({ yearMonth: '2026-08', activities: [], anomalies: [] }),
-  },
-}));
 vi.mock('@/application/report/use_cases/getSettlementReadinessUseCase', () => ({
   getSettlementReadinessUseCase: { execute: vi.fn() },
 }));
@@ -95,13 +93,13 @@ vi.mock('@/application/report/use_cases/getStoredReportsBundleUseCase', () => ({
     }),
   },
 }));
-vi.mock('@/ui/features/app/confirm/useConfirm', () => ({
+vi.mock('@/ui/components/confirm/useConfirm', () => ({
   useConfirm: () => ({ confirm: vi.fn().mockResolvedValue(true) }),
 }));
 
 const baseContext: CloseStepContext = {
   stepText: 'ACCOUNT_BALANCE',
-  progressText: '01 / 09',
+  progressText: '01 / 08',
   confirmedAtText: null,
   confirming: false,
   isConfirmable: true,
@@ -204,13 +202,6 @@ const balanceSheetOf = (totalAssets = 0, totalLiabilities = 0, equity = 0) => ({
   equity: { total: equity, groups: {} },
 });
 
-const previewFixture = (adjustment: number) =>
-  ({
-    incomeStatement: emptyStatement(),
-    balanceSheet: balanceSheetOf(),
-    cashFlow: emptyCashFlow(0, adjustment),
-  }) as never;
-
 const previewWithTotals = (totals: {
   netIncome?: number;
   totalAssets?: number;
@@ -243,19 +234,26 @@ describe('useCloseStepRegistry', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(getSettlementReadinessUseCase.execute).mockResolvedValue(readinessFixture);
+    // clearAllMocks does not restore implementations set with mockResolvedValue,
+    // so re-seed the COMPLETENESS_CHECK sources that individual tests override.
+    vi.mocked(validateMonthTransactionsUseCase.execute).mockResolvedValue({
+      yearMonth: '2026-08',
+      checkedCount: 0,
+      issues: [],
+    });
+    vi.mocked(previewProjectSettlementsUseCase.execute).mockResolvedValue([]);
   });
 
-  it('registers all nine close steps', () => {
+  it('registers all eight close steps', () => {
     const { result } = renderRegistry();
 
-    expect(Object.keys(result.current)).toHaveLength(9);
+    expect(Object.keys(result.current)).toHaveLength(8);
     expect(Object.keys(result.current)).toEqual([
       'ACCOUNT_BALANCE',
       'SECURITIES_TRADE',
       'PORTFOLIO_CASH_FLOW',
       'PROJECT_SETTLEMENT',
       'DEBT_REPAYMENT',
-      'TRANSACTION_VALIDATION',
       'COMPLETENESS_CHECK',
       'FINANCIAL_REPORTS',
       'CLOSE_PERIOD',
@@ -282,11 +280,12 @@ describe('useCloseStepRegistry', () => {
     expect(container).toBeEmptyDOMElement();
   });
 
-  // T3 (#227): Step 7 aggregates COMPLETENESS_CHECK's readiness with
-  // TRANSACTION_VALIDATION's checked count and issues. A TRANSACTION_VALIDATION
-  // failure alone used to render as "checked 0, no issues" — indistinguishable
-  // from a clean month — with confirm still enabled.
-  it('surfaces a TRANSACTION_VALIDATION load failure in Step 7 and blocks confirm', async () => {
+  // T3 (#227): COMPLETENESS_CHECK aggregates the readiness with the
+  // transaction-validation issues. A transaction-validation failure used to
+  // render as "checked 0, no issues" — indistinguishable from a clean month —
+  // with confirm still enabled. The merged load makes any source failure
+  // unknown, so no confirm renders.
+  it('surfaces a transaction-validation failure in COMPLETENESS_CHECK', async () => {
     vi.mocked(validateMonthTransactionsUseCase.execute).mockRejectedValue(new Error('boom'));
 
     function Harness() {
@@ -297,12 +296,12 @@ describe('useCloseStepRegistry', () => {
     render(<Harness />);
 
     await waitFor(() =>
-      expect(screen.getByRole('alert')).toHaveTextContent('無法載入交易驗證結果，請稍後再試。'),
+      expect(screen.getByRole('alert')).toHaveTextContent('無法載入結算就緒狀態，請稍後再試。'),
     );
-    expect(screen.getByTestId('readiness-confirm')).toBeDisabled();
+    expect(screen.queryByTestId('readiness-confirm')).not.toBeInTheDocument();
   });
 
-  it('surfaces a COMPLETENESS_CHECK load failure in Step 7 and blocks confirm', async () => {
+  it('surfaces a completeness-evidence failure in COMPLETENESS_CHECK', async () => {
     vi.mocked(getSettlementReadinessUseCase.execute).mockRejectedValue(new Error('boom'));
 
     function Harness() {
@@ -317,7 +316,7 @@ describe('useCloseStepRegistry', () => {
     );
   });
 
-  it('blocks Step 7 confirm while TRANSACTION_VALIDATION is still loading', async () => {
+  it('blocks confirm while a COMPLETENESS_CHECK source is still loading', async () => {
     vi.mocked(validateMonthTransactionsUseCase.execute).mockReturnValue(
       new Promise(() => {}) as never,
     );
@@ -329,8 +328,9 @@ describe('useCloseStepRegistry', () => {
 
     render(<Harness />);
 
-    await waitFor(() => expect(screen.getByTestId('readiness-confirm')).toBeInTheDocument());
-    expect(screen.getByTestId('readiness-confirm')).toBeDisabled();
+    // Readiness cannot land while a sibling read is pending (one Promise.all),
+    // so COMPLETENESS_CHECK renders no confirm at all rather than an enabled one.
+    await waitFor(() => expect(screen.queryByTestId('readiness-confirm')).not.toBeInTheDocument());
   });
   it('dispatches CLOSE_PERIOD to the summary panel via the content factory', () => {
     const { result } = renderRegistry();
@@ -362,21 +362,21 @@ describe('useCloseStepRegistry', () => {
       isPersisted: true,
       timestamps: { incomeStatement: '10:00' },
     } as never);
-    const { result } = renderRegistry({ pageVM: pageVMWithReportsStage('PENDING') });
 
-    await waitFor(() =>
-      expect(result.current.CLOSE_PERIOD.evidence()).toMatchObject({
-        kind: 'PERSISTENCE',
-        persisted: true,
-      }),
-    );
+    function ReportsHarness() {
+      const registry = useCloseStepRegistry({
+        ...baseArgs,
+        pageVM: pageVMWithReportsStage('PENDING'),
+      });
+      return <>{registry.FINANCIAL_REPORTS.render(baseContext)}</>;
+    }
 
-    render(<>{result.current.FINANCIAL_REPORTS.render(baseContext)}</>);
+    render(<ReportsHarness />);
 
+    expect(await screen.findByTestId('generate-reports')).toBeInTheDocument();
     expect(screen.queryByTestId('reports-generated-panel')).not.toBeInTheDocument();
     expect(screen.getByText(/已有先前產生的報表/)).toBeInTheDocument();
     expect(screen.getByText(/10:00/)).toBeInTheDocument();
-    expect(screen.getByTestId('generate-reports')).toBeInTheDocument();
   });
 
   it('replaces the reports action with the generated panel once the stage is completed', () => {
@@ -396,7 +396,7 @@ describe('useCloseStepRegistry', () => {
     expect(screen.getByText('當前步驟')).toBeInTheDocument();
   });
 
-  it('builds per-project settlement evidence from the project settlement stage', async () => {
+  it('renders per-project settlement rows from the project settlement stage', async () => {
     vi.mocked(listProjectsUseCase.execute).mockResolvedValue([
       { id: 'project-1', name: '裝修', isActive: true },
       { id: 'project-2', name: '旅遊', isActive: true },
@@ -406,21 +406,37 @@ describe('useCloseStepRegistry', () => {
         ? ([{ income: 5000, expense: 3000, closingBalance: 2000 }] as never)
         : ([] as never),
     );
+    vi.mocked(previewProjectSettlementsUseCase.execute).mockResolvedValue([
+      {
+        projectId: 'project-1',
+        projectName: '裝修',
+        openingBalance: 1000,
+        income: 5000,
+        expense: 3000,
+        closingBalance: 2000,
+      },
+      {
+        projectId: 'project-2',
+        projectName: '旅遊',
+        openingBalance: 0,
+        income: 0,
+        expense: 0,
+        closingBalance: 0,
+      },
+    ] as never);
 
-    const { result } = renderRegistry();
+    function SettlementHarness() {
+      const registry = useCloseStepRegistry(baseArgs);
+      return <>{registry.PROJECT_SETTLEMENT.render(baseContext)}</>;
+    }
 
-    await waitFor(() =>
-      expect(result.current.PROJECT_SETTLEMENT.evidence()).toMatchObject({
-        kind: 'SETTLEMENTS',
-        rows: [{ projectName: '裝修' }, { projectName: '旅遊' }],
-      }),
-    );
+    render(<SettlementHarness />);
 
-    render(<>{result.current.PROJECT_SETTLEMENT.render(baseContext)}</>);
-
-    expect(screen.getByText('裝修')).toBeInTheDocument();
-    expect(screen.getByText('旅遊')).toBeInTheDocument();
-    expect(screen.getByText(MONTHLY_CLOSE_LABELS.UNSETTLED)).toBeInTheDocument();
+    expect((await screen.findAllByText('裝修')).length).toBeGreaterThan(0);
+    expect(screen.getAllByText('旅遊').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('NT$1,000').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('NT$5,000').length).toBeGreaterThan(0);
+    expect(screen.getAllByText(MONTHLY_CLOSE_LABELS.UNSETTLED).length).toBeGreaterThan(0);
   });
 
   it('opens the trade drawer directly through the securities stage', () => {
@@ -436,75 +452,7 @@ describe('useCloseStepRegistry', () => {
     expect(openSpy).toHaveBeenCalledWith('SECURITIES', 'ADD', null);
   });
 
-  it('reflects the FINANCIAL_REPORTS persistence state in CLOSE_PERIOD evidence', async () => {
-    vi.mocked(getReportPersistenceStateUseCase.execute).mockResolvedValue({
-      isPersisted: true,
-      timestamps: {},
-    });
-    const { result } = renderRegistry();
-
-    await waitFor(() =>
-      expect(result.current.CLOSE_PERIOD.evidence()).toMatchObject({
-        kind: 'PERSISTENCE',
-        persisted: true,
-      }),
-    );
-  });
-
-  it("derives FINANCIAL_REPORTS evidence from CLOSE_PERIOD's preview bundle", async () => {
-    vi.mocked(previewFinancialReportsWorkflow.execute).mockResolvedValue(previewFixture(1500));
-    const { result } = renderRegistry();
-
-    await waitFor(() =>
-      expect(result.current.FINANCIAL_REPORTS.evidence()).toMatchObject({
-        kind: 'ADJUSTMENT',
-        count: 1500,
-      }),
-    );
-  });
-
-  it('derives COMPLETENESS_CHECK evidence from its own stage hook', async () => {
-    vi.mocked(checkSettlementCompletenessUseCase.execute).mockResolvedValue({
-      yearMonth: '2026-08',
-      activities: [],
-      anomalies: [
-        {
-          targetType: 'PROJECT',
-          targetId: 'project-1',
-          name: '裝修',
-          status: 'ZERO_ACTIVITY',
-          activityCount: 0,
-          activityAmount: 0,
-        },
-      ],
-    } as never);
-    const { result } = renderRegistry();
-
-    await waitFor(() =>
-      expect(result.current.COMPLETENESS_CHECK.evidence()).toMatchObject({
-        kind: 'ZERO_ACTIVITY',
-        names: ['裝修'],
-      }),
-    );
-  });
-
-  it('derives TRANSACTION_VALIDATION evidence from its own stage hook', async () => {
-    vi.mocked(validateMonthTransactionsUseCase.execute).mockResolvedValue({
-      yearMonth: '2026-08',
-      checkedCount: 3,
-      issues: [{ transactionId: 't1', description: '餐飲', reason: '分配總和不等於 100%' }],
-    });
-    const { result } = renderRegistry();
-
-    await waitFor(() =>
-      expect(result.current.TRANSACTION_VALIDATION.evidence()).toMatchObject({
-        kind: 'ISSUES',
-        issues: [{ transactionId: 't1', description: '餐飲', reason: '分配總和不等於 100%' }],
-      }),
-    );
-  });
-
-  it("renders the five Step 9 financial figures from CLOSE_PERIOD's own bundle", async () => {
+  it('renders the five CLOSE_PERIOD financial figures from its own bundle', async () => {
     vi.mocked(previewFinancialReportsWorkflow.execute).mockResolvedValue(
       previewWithTotals({
         netIncome: 117_000,
@@ -529,7 +477,7 @@ describe('useCloseStepRegistry', () => {
     expect(screen.getByText('NT$179,000')).toBeInTheDocument();
   });
 
-  it('annotates a Step 9 figure that drifted from the persisted report while live', async () => {
+  it('annotates a CLOSE_PERIOD figure that drifted from the persisted report while live', async () => {
     vi.mocked(previewFinancialReportsWorkflow.execute).mockResolvedValue(
       previewWithTotals({
         netIncome: 117_000,
@@ -561,7 +509,7 @@ describe('useCloseStepRegistry', () => {
     );
   });
 
-  it('renders the persisted Step 9 record with no drift marks for a CLOSED period', async () => {
+  it('renders the persisted CLOSE_PERIOD record with no drift marks for a CLOSED period', async () => {
     vi.mocked(previewFinancialReportsWorkflow.execute).mockResolvedValue(
       previewWithTotals({
         netIncome: 117_000,
@@ -607,7 +555,6 @@ describe('useCloseStepRegistry', () => {
       'PORTFOLIO_CASH_FLOW',
       'PROJECT_SETTLEMENT',
       'DEBT_REPAYMENT',
-      'TRANSACTION_VALIDATION',
       'COMPLETENESS_CHECK',
       'FINANCIAL_REPORTS',
     ] as const;
@@ -628,6 +575,20 @@ describe('useCloseStepRegistry', () => {
     const { result } = renderRegistry();
     await waitFor(() => expect(getMonthInvestmentFinancingUseCase.execute).toHaveBeenCalled());
 
+    // The user adds a row through the real drawer → form → command path.
+    act(() => {
+      result.current.SECURITIES_TRADE.control.drawer.open('SECURITIES', 'ADD', null);
+    });
+    act(() => {
+      result.current.SECURITIES_TRADE.control.drawerForm.form.setValue('amount', '5000');
+    });
+    await act(async () => {
+      await result.current.SECURITIES_TRADE.control.drawerForm.submit();
+    });
+
+    // Until the write comes back, the added row is the only thing to submit.
+    expect(result.current.SECURITIES_TRADE.control.buildRequest().securities.buys).toHaveLength(1);
+
     const confirmedRow = {
       transactionId: 'tx-1',
       amount: 5000,
@@ -642,12 +603,11 @@ describe('useCloseStepRegistry', () => {
       });
     });
 
+    // The authoritative row is adopted in place and marked clean, so nothing is
+    // pending for a re-confirm to rewrite.
     expect(result.current.SECURITIES_TRADE.control.buildRequest()).toEqual({
       stageId: 'SECURITIES_TRADE',
-      securities: {
-        buys: [{ ...confirmedRow, description: undefined, projectId: null }],
-        sells: [],
-      },
+      securities: { buys: [], sells: [] },
       financing: { shareholderFinancing: [], dividendPayout: [] },
       removedTransactionIds: [],
     });
@@ -703,7 +663,7 @@ describe('useCloseStepRegistry', () => {
     vi.mocked(listPortfolioSnapshotsUseCase.execute).mockRejectedValue(new Error('boom'));
     const args: UseCloseStepRegistryArgs = {
       ...baseArgs,
-      portfolios: [{ id: 'p-1', name: '長期持倉' }] as never,
+      portfolios: [{ id: 'p-1', name: '長期持倉', isActive: true }] as never,
     };
 
     function Harness() {
@@ -752,8 +712,8 @@ describe('useCloseStepRegistry', () => {
     );
   });
 
-  // #234: any drift in Step 8's reports blocks the close; never names a count.
-  it('blocks the close when Step 8 drifted, without naming a count', async () => {
+  // #234: any drift in FINANCIAL_REPORTS blocks the close; never names a count.
+  it('blocks the close when FINANCIAL_REPORTS drifted, without naming a count', async () => {
     vi.mocked(previewFinancialReportsWorkflow.execute).mockResolvedValue(
       previewWithTotals({ netIncome: 117_000 }),
     );
@@ -769,9 +729,7 @@ describe('useCloseStepRegistry', () => {
     render(<Harness />);
 
     await waitFor(() =>
-      expect(screen.getByTestId('close-drift-block')).toHaveTextContent(
-        '步驟 8 的報表與已產生報表不一致',
-      ),
+      expect(screen.getByTestId('close-drift-block')).toHaveTextContent('報表與已產生報表不一致'),
     );
     expect(screen.getByTestId('close-drift-block')).not.toHaveTextContent('項漂移');
     expect(screen.getByTestId('close-period-confirm')).toBeDisabled();
@@ -796,7 +754,7 @@ describe('useCloseStepRegistry', () => {
     expect(screen.queryByTestId('close-drift-block')).not.toBeInTheDocument();
   });
 
-  it('sends the user to Step 8 from the drift block', async () => {
+  it('sends the user to FINANCIAL_REPORTS from the drift block', async () => {
     vi.mocked(previewFinancialReportsWorkflow.execute).mockResolvedValue(
       previewWithTotals({ netIncome: 117_000 }),
     );

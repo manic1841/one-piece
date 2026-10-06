@@ -4,20 +4,15 @@ import * as TabsPrimitive from '@radix-ui/react-tabs';
 
 import { cn } from '@/ui/utils/cn';
 
+import { tabListBaseClass, tabTriggerBaseClass, tabTriggerSelectedClass } from './tabs-styles';
+
 const Tabs = TabsPrimitive.Root;
 
 const TabsList = React.forwardRef<
   React.ComponentRef<typeof TabsPrimitive.List>,
   React.ComponentPropsWithoutRef<typeof TabsPrimitive.List>
 >(({ className, ...props }, ref) => (
-  <TabsPrimitive.List
-    ref={ref}
-    className={cn(
-      'inline-flex h-auto w-full items-center justify-start gap-6 rounded-none border-b border-border bg-transparent p-0 text-muted-foreground',
-      className,
-    )}
-    {...props}
-  />
+  <TabsPrimitive.List ref={ref} className={cn(tabListBaseClass, className)} {...props} />
 ));
 TabsList.displayName = TabsPrimitive.List.displayName;
 
@@ -27,10 +22,7 @@ const TabsTrigger = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <TabsPrimitive.Trigger
     ref={ref}
-    className={cn(
-      'inline-flex items-center justify-center whitespace-nowrap rounded-sm border-b-2 border-transparent bg-transparent px-1 pb-2 pt-1 -mb-px text-sm font-medium text-muted-foreground ring-offset-background transition-colors duration-fast ease-out-quint focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-0 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:border-primary data-[state=active]:font-semibold data-[state=active]:text-foreground',
-      className,
-    )}
+    className={cn(tabTriggerBaseClass, tabTriggerSelectedClass, className)}
     {...props}
   />
 ));

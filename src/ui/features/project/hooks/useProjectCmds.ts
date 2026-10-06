@@ -1,7 +1,6 @@
 import { useCallback } from 'react';
 
 import { createProjectUseCase } from '@/application/project/use_cases/createProjectUseCase';
-import { deleteProjectSnapshotUseCase } from '@/application/project/use_cases/deleteProjectSnapshotUseCase';
 import { deleteProjectUseCase } from '@/application/project/use_cases/deleteProjectUseCase';
 import { recordProjectSnapshotUseCase } from '@/application/project/use_cases/recordProjectSnapshotUseCase';
 import { reorderProjectsUseCase } from '@/application/project/use_cases/reorderProjectsUseCase';
@@ -15,12 +14,6 @@ import {
 } from '@/domains/project/schemas';
 import { useAuthIdentity } from '@/ui/hooks/useAuthIdentity';
 import { useLoadingTask } from '@/ui/hooks/useLoadingTask';
-
-export interface DeleteProjectSnapshotRequest {
-  householdId: string;
-  projectId: string;
-  snapshotId: string;
-}
 
 export function useProjectCmds(householdId: string) {
   const auth = useAuthIdentity();
@@ -116,20 +109,6 @@ export function useProjectCmds(householdId: string) {
     [householdId, auth, run],
   );
 
-  const deleteSnapshot = useCallback(
-    async (_projectId: string, snapshotId: string) => {
-      return run(async () => {
-        return deleteProjectSnapshotUseCase.execute({
-          householdId,
-          projectId: _projectId,
-          snapshotId,
-          auth,
-        });
-      });
-    },
-    [householdId, auth, run],
-  );
-
   return {
     loading,
     error,
@@ -139,6 +118,5 @@ export function useProjectCmds(householdId: string) {
     reorderProjects,
     recordSnapshot,
     updateSnapshot,
-    deleteSnapshot,
   };
 }

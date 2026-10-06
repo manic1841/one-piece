@@ -1,4 +1,6 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { type SetStateAction, useEffect, useRef, useState } from 'react';
+
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { AccountBalanceInput } from '@/application/monthly_close/use_cases/monthlyCloseWorkflowUseCase';
@@ -62,14 +64,39 @@ const renderSections = (
     onInputsChange?: (inputs: AccountBalanceInput[]) => void;
   } = {},
 ) => {
-  render(
-    <CloseAccountBalanceInputs
-      accounts={overrides.accounts ?? [account({ id: 'cash-1', name: '現金帳戶' })]}
-      snapshots={overrides.snapshots ?? new Map()}
-      inputs={overrides.inputs ?? []}
-      onInputsChange={overrides.onInputsChange ?? (() => {})}
-    />,
-  );
+  // Mirrors useSeededDraft: the callback observes the composed array, not the raw updater.
+  const Harness = () => {
+    const [inputs, setInputs] = useState<AccountBalanceInput[] | null>(overrides.inputs ?? []);
+    const reportedRef = useRef<AccountBalanceInput[] | null>(overrides.inputs ?? null);
+
+    const handleInputsChange = (updater: SetStateAction<AccountBalanceInput[] | null>): void => {
+      setInputs((previous) => {
+        const next =
+          typeof updater === 'function'
+            ? (updater as (prev: AccountBalanceInput[] | null) => AccountBalanceInput[] | null)(
+                previous,
+              )
+            : updater;
+        reportedRef.current = next;
+        return next;
+      });
+    };
+
+    useEffect(() => {
+      if (reportedRef.current !== null) overrides.onInputsChange?.(reportedRef.current);
+    });
+
+    return (
+      <CloseAccountBalanceInputs
+        accounts={overrides.accounts ?? [account({ id: 'cash-1', name: '現金帳戶' })]}
+        snapshots={overrides.snapshots ?? new Map()}
+        inputs={inputs}
+        onInputsChange={handleInputsChange}
+      />
+    );
+  };
+
+  render(<Harness />);
 };
 
 describe('CloseAccountBalanceInputs', () => {
@@ -99,7 +126,7 @@ describe('CloseAccountBalanceInputs', () => {
     expect(screen.getAllByText('—').length).toBeGreaterThan(0);
   });
 
-  it('submits a TWD ending balance edit as the account input', () => {
+  it('submits a TWD ending balance edit as the account input', async () => {
     const onInputsChange = vi.fn<(inputs: AccountBalanceInput[]) => void>();
     renderSections({ onInputsChange });
 
@@ -107,7 +134,9 @@ describe('CloseAccountBalanceInputs', () => {
       target: { value: '52000' },
     });
 
-    expect(onInputsChange).toHaveBeenCalledWith([input({ accountId: 'cash-1', amount: 52000 })]);
+    await waitFor(() => {
+      expect(onInputsChange).toHaveBeenCalledWith([input({ accountId: 'cash-1', amount: 52000 })]);
+    });
   });
 
   it('renders foreign accounts with amount, rate, and a calculated (non-input) TWD value', () => {
@@ -142,7 +171,19 @@ describe('CloseAccountBalanceInputs', () => {
 
   it('auto-fetches the exchange rate on mount and keeps manual input as fallback', async () => {
     const { useExchangeRate } = await import('@/ui/hooks/useExchangeRate');
-    const getRate = vi.fn().mockResolvedValue({ ok: true, value: 31.4 });
+    // Mirrors useLoadingTask.run: the writeBack carries the outcome.
+    const getRate = vi
+      .fn()
+      .mockImplementation(
+        (
+          _from: string,
+          _to: string,
+          options?: { writeBack?: (result: { ok: true; value: number }) => void },
+        ) => {
+          options?.writeBack?.({ ok: true, value: 31.4 });
+          return Promise.resolve({ ok: true, value: 31.4 });
+        },
+      );
     vi.mocked(useExchangeRate).mockReturnValue({
       getRate,
       loading: false,
@@ -161,7 +202,7 @@ describe('CloseAccountBalanceInputs', () => {
         input({ accountId: 'usd-1', amount: 0, exchangeRate: 31.4 }),
       ]);
     });
-    expect(getRate).toHaveBeenCalledWith('USD', 'TWD');
+    expect(getRate).toHaveBeenCalledWith('USD', 'TWD', expect.anything());
   });
 
   it('does not overwrite an existing exchange rate on mount', async () => {
@@ -290,5 +331,82 @@ describe('CloseAccountBalanceInputs', () => {
     });
 
     expect(screen.queryByText('需期末餘額')).toBeNull();
+  });
+
+  it('auto-fills every foreign account rate when responses land out of order', async () => {
+    const { useExchangeRate } = await import('@/ui/hooks/useExchangeRate');
+    const deferred: Array<{
+      resolve: (rate: { ok: true; value: number }) => void;
+      options?: { writeBack?: (result: { ok: true; value: number }) => void };
+    }> = [];
+    const getRate = vi
+      .fn()
+      .mockImplementation(
+        (
+          _from: string,
+          _to: string,
+          options?: { writeBack?: (result: { ok: true; value: number }) => void },
+        ) => {
+          return new Promise<{ ok: true; value: number }>((resolve) => {
+            deferred.push({ resolve, options });
+          });
+        },
+      );
+    vi.mocked(useExchangeRate).mockReturnValue({
+      getRate,
+      loading: false,
+      error: null,
+      errorMessage: null,
+    } as never);
+
+    const onInputsChange = vi.fn<(inputs: AccountBalanceInput[]) => void>();
+    renderSections({
+      accounts: [
+        account({ id: 'usd-1', name: 'USD Account', currency: 'USD' }),
+        account({ id: 'jpy-1', name: 'JPY Account', currency: 'JPY' }),
+        account({ id: 'eur-1', name: 'EUR Account', currency: 'EUR' }),
+        account({ id: 'hkd-1', name: 'HKD Account', currency: 'HKD' }),
+      ],
+      onInputsChange,
+    });
+
+    await waitFor(() => expect(getRate).toHaveBeenCalledTimes(4));
+
+    // Responses land in reverse order, the way real network timing does.
+    act(() => {
+      deferred[3].resolve({ ok: true, value: 4.05 });
+      deferred[3].options?.writeBack?.({ ok: true, value: 4.05 });
+    });
+    act(() => {
+      deferred[2].resolve({ ok: true, value: 35.2 });
+      deferred[2].options?.writeBack?.({ ok: true, value: 35.2 });
+    });
+    act(() => {
+      deferred[1].resolve({ ok: true, value: 0.21 });
+      deferred[1].options?.writeBack?.({ ok: true, value: 0.21 });
+    });
+    act(() => {
+      deferred[0].resolve({ ok: true, value: 31.4 });
+      deferred[0].options?.writeBack?.({ ok: true, value: 31.4 });
+    });
+
+    await waitFor(() => {
+      expect(onInputsChange).toHaveBeenLastCalledWith(
+        expect.arrayContaining([
+          expect.objectContaining({ accountId: 'usd-1', exchangeRate: 31.4 }),
+          expect.objectContaining({ accountId: 'jpy-1', exchangeRate: 0.21 }),
+          expect.objectContaining({ accountId: 'eur-1', exchangeRate: 35.2 }),
+          expect.objectContaining({ accountId: 'hkd-1', exchangeRate: 4.05 }),
+        ]),
+      );
+    });
+    expect(onInputsChange).toHaveBeenLastCalledWith(
+      expect.arrayContaining([
+        expect.anything(),
+        expect.anything(),
+        expect.anything(),
+        expect.anything(),
+      ]),
+    );
   });
 });

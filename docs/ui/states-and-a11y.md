@@ -54,7 +54,7 @@ $ generate-reports --period SEP-2026
 
 - role 由**原生元素**或 **Radix primitive** 提供；呼叫端不重新發明 role。
 - 表單欄位的 `aria-invalid` / `aria-describedby` 由 `FormControl` 注入（注入清單見 [`design-system.md`](design-system.md) §7 `form`）；欄位元件只負責轉發，不自行組裝。
-- `ui/alert` 承擔 `role="alert"` live region；`ui/progress` 承擔 `role="progressbar"`。未走這兩個 primitive 的自繪進度指示，必須自行補齊等價的 `role` 與 `aria-value*`。
+- `ui/alert` 承擔 `role="alert"` live region；`CliProgress` 自繪進度條並自帶 `role="progressbar"` 與 `aria-value*`。其他自繪進度指示同樣必須自行補齊等價的 `role` 與 `aria-value*`。
 - 拖曳排序的播報容器（`aria-live`）置於 table **外層**，不得成為 `tbody` 的子元素。
 - 純裝飾的關閉 backdrop 標 `aria-hidden="true"`——它對輔助技術沒有意義。
 
@@ -70,6 +70,7 @@ $ generate-reports --period SEP-2026
 - 非原生互動元素只允許兩種，且都必須補齊鍵盤等價：
   1. **容器類元件**（整列或整塊可點擊的列／卡片）：`role="button"` + `tabIndex={0}` + Enter／Space 觸發。
   2. **裝飾性關閉 backdrop**：標 `aria-hidden="true"`，關閉的鍵盤等價由 Escape 承擔。
+  3. **data-table 的可點擊列**（`DataTableRow`，`<tr>`）：**唯一不得掛 `role` 的例外**——`<tbody>` 的子項必須是 `row`，改 `role="button"` 會摧毀表格列語意。鍵盤等價改由 `tabIndex={0}` + Enter／Space 承擔（列可點擊時才給 `tabIndex`），展開列另帶 `aria-expanded`。詳見 [`design-system.md`](design-system.md) 的 `data-table` 段。
 
 - 表單輸入必須有**可程式化關聯**的 label：`htmlFor` + `id`，或以 `<label>` 包覆控制項。Radix 的 checkbox / switch 控制項以 `<label>` 包覆，並在 eslint 設定中登錄為控制項。
 - 浮層（popover / dialog / sheet）必須能用 **Escape** 關閉。
@@ -94,7 +95,7 @@ ONE PIECE A11Y CHECK
 [ ] 空狀態只有一句說明 + 一個主要 action
 [ ] 錯誤就近呈現、可被解讀為行動
 [ ] 互動全部是原生元素
-[ ] 非原生互動元素有 role + tabIndex + Enter/Space
+[ ] 非原生互動元素有 role + tabIndex + Enter/Space（`<tr>` 例外：不掛 role）
 [ ] 每個輸入都有可程式化關聯的 label
 [ ] 浮層都能用 Escape 關閉
 [ ] 展開/收合控件帶 aria-expanded

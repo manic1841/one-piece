@@ -5,6 +5,7 @@ import { type AuthContext } from '@/application/types';
 import { type RetirementExpenseCategory, RetirementExpenseType } from '@/domains/retirement/types';
 import { debtAccountRepository } from '@/infra/repositories/debtAccountRepository';
 import { debtSnapshotRepository } from '@/infra/repositories/debtSnapshotRepository';
+import { newId } from '@/shared/id';
 
 interface ImportRetirementDebtRequest {
   householdId: string;
@@ -52,7 +53,7 @@ export class ImportRetirementDebtUseCase {
         const totalPaid = snapshots.reduce((sum, snapshot) => sum + snapshot.totalPaid, 0);
 
         return {
-          id: crypto.randomUUID(),
+          id: newId(),
           name: `${account.name} 還款`,
           sourceDebtAccountId: account.id,
           type: RetirementExpenseType.DEBT_PAYMENT,

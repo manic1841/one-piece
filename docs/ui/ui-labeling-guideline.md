@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Define a single source of truth for frontend display labels, especially for:
+Define the policy for frontend display labels, especially for:
 
 - `intentType` labels
 - `intent` labels
@@ -35,25 +35,22 @@ Project detail and report UIs must also follow this rule:
 
 ## Canonical Wording
 
+**Wording 的權威是 pinning test，不是本文件**：`src/ui/constants/transaction/displayLabels.test.ts` 釘住 intentType、高風險 intent、完整 intent label 表與 ledger code wording，任何 wording 變更必須在同一個 task 內更新該測試。本節只記政策性範例與「為什麼」，完整對照表以測試為準：
+
 ### Intent Type
 
-- `INCOME` -> `收入`
-- `EXPENSE` -> `支出`
-- `INVESTMENT` -> `投資`
-- `FINANCING` -> `融資`
-- `TRANSFER` -> `轉帳`
-- `DEBT_PAYMENT` -> `還款`
-- `LIABILITY_BORROW` -> `借款入帳`
-- `MANUAL` -> `手動分錄`
+八個意圖類型（`INCOME`、`EXPENSE`、`INVESTMENT`、`FINANCING`、`TRANSFER`、`DEBT_PAYMENT`、`LIABILITY_BORROW`、`MANUAL`）的顯示文字由測試的 canonical intentType wording 釘住；測試另斷言「每個 domain intent mapping 都有 display label」與完整 intent label 表與 domain 同步。
 
 ### High-risk Terms (must stay consistent)
 
-- `SALARY` -> `薪資` (not `薪水`)
-- `INVESTMENT_INCOME` -> `投資收益` (not `投資收入`)
-- `expense:living` -> `生活費` (not `生活`)
-- `expense:housing` -> `家居` (not `住房`)
-- `expense:social` -> `社交` (not `人際` / `人情往來`)
-- `income:refund` -> `退款回補` (not `退款`)
+- `SALARY` 是「薪資」，不是「薪水」。
+- `INVESTMENT_INCOME` 是「投資收益」，不是「投資收入」。
+- `expense:living` 是「生活費」，不是「生活」。
+- `expense:housing` 是「家居」，不是「住房」。
+- `expense:social` 是「社交」，不是「人際」或「人情往來」。
+- `income:refund` 是「退款回補」，不是「退款」。
+
+以上六組的實際對照值由測試的高風險 wording 與 ledger code wording 釘住。
 
 ## Scope (2026-09 decision)
 
@@ -62,9 +59,9 @@ Managed display labels cover:
 - Transaction labels: `intentType`, `intent`, `ledgerCode` (via `displayLabels.ts`)
 - Account category labels (via `src/ui/constants/account/label.ts` `AccountCategoryLabels`)
 - Report view titles: 損益表 / 資產負債表 / 現金流量表 (via `src/ui/constants/report/reportViewLabels.ts`)
-- Debt status labels: 已結清 / 寬限期 (via `src/ui/constants/debtStatusLabels.ts`)
+- Debt labels (via `src/ui/constants/debt/label.ts`): `DebtTypeLabels` for 房貸 / 信貸, and the debtor status words 已結清 / 已停用 / 寬限期
 
-Free-form UI chrome (button text, error messages, subtitles, descriptive copy) is out of scope.
+Free-form UI chrome (button text, error messages, subtitles, descriptive copy) is out of scope. Every feature's page chrome (titles, actions, error copy, column heads) is centralised under `src/ui/constants/<feature>/` for the same reason every other display string is: components must not carry literals. It is chrome, so it is not pinned here.
 
 ## Implementation Rule
 
@@ -98,4 +95,4 @@ Free-form UI chrome (button text, error messages, subtitles, descriptive copy) i
 - ESLint has a restricted import rule to block direct imports of `@/domains/report/labels`.
 - ESLint additionally blocks `@/ui/constants/report/ledgerCodeLabels` imports from `src/ui/features/**`; only `displayLabels.ts` may use that internal layer.
 - If a new UI display text is needed, extend `displayLabels.ts` first instead of adding a new label map.
-- `src/ui/constants/transaction/displayLabels.test.ts` pins the canonical wording above; a wording change must update this test in the same task.
+- `src/ui/constants/transaction/displayLabels.test.ts` 是 wording 的權威：它釘住全部對照表，wording 變更必須在同一個 task 內更新該測試；本文件只記政策與理由，不維護第二份對照表。

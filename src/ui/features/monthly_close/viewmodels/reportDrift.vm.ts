@@ -40,3 +40,7 @@ export const formatDriftDelta = (drift: DriftAmount): string | null => {
       return `${formatCurrency(drift.previousAmount)} -> ${formatCurrency(drift.amount)}`;
   }
 };
+
+/** The amount text for any drift state: the delta when it drifted, else the amount. */
+export const formatDriftAmountText = (drift: DriftAmount): string =>
+  formatDriftDelta(drift) ?? formatCurrency(drift.amount);

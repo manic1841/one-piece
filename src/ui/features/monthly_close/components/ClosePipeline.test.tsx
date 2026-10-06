@@ -33,12 +33,12 @@ const renderPipeline = (
   render(
     <ClosePipeline
       stages={stages}
-      currentStageId="TRANSACTION_VALIDATION"
+      currentStageId="SECURITIES_TRADE"
       viewingStageId={null}
       isClosed={overrides.isClosed ?? false}
       isPaused={overrides.isPaused ?? false}
       statusText="IN PROGRESS"
-      positionText="02 / 09"
+      positionText="02 / 08"
       onSelectStage={onSelectStage}
     />,
   );
@@ -50,7 +50,7 @@ describe('ClosePipeline', () => {
 
     expect(screen.queryByRole('list', { name: 'Close workflow pipeline' })).toBeNull();
     expect(screen.getByTestId('close-pipeline-toggle')).toHaveTextContent('SHOW WORKFLOW');
-    expect(screen.getByText('02 / 09')).toBeInTheDocument();
+    expect(screen.getByText('02 / 08')).toBeInTheDocument();
   });
 
   it('expands the stage list on toggle and keeps the interaction model', () => {
@@ -67,11 +67,11 @@ describe('ClosePipeline', () => {
     expect(list).toBeInTheDocument();
     expect(screen.getAllByRole('button')).toHaveLength(CLOSE_STAGE_ORDER.length + 1);
     expect(screen.getByRole('button', { name: /帳戶餘額/ })).toBeEnabled();
-    expect(screen.getByRole('button', { name: /交易驗證/ })).toHaveAttribute(
+    expect(screen.getByRole('button', { name: /證券買入／賣出/ })).toHaveAttribute(
       'aria-current',
       'step',
     );
-    expect(screen.getByRole('button', { name: /證券買入／賣出/ })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /Portfolio 金流/ })).toBeDisabled();
 
     fireEvent.click(screen.getByRole('button', { name: /帳戶餘額/ }));
     expect(onSelectStage).toHaveBeenCalledWith('ACCOUNT_BALANCE');

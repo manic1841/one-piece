@@ -5,6 +5,7 @@ import { MONTHLY_CLOSE_LABELS } from '@/ui/constants/monthlyClose';
 import { useAuthIdentity } from '@/ui/hooks/useAuthIdentity';
 import { formatYearMonth } from '@/ui/utils';
 
+import { formatYearMonthTitle } from '../mappers/monthlyClose.mappers';
 import { monthlyCloseErrorText } from './monthlyCloseErrorText';
 
 interface UseMonthlyClosePickerPageArgs {
@@ -24,6 +25,20 @@ export const useMonthlyClosePickerPage = ({
   const [isStarting, setIsStarting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const year = selectedYearMonth.slice(0, 4);
+  const month = selectedYearMonth.slice(5, 7);
+
+  const setYear = useCallback(
+    (nextYear: string) => setSelectedYearMonth((previous) => `${nextYear}-${previous.slice(5, 7)}`),
+    [],
+  );
+
+  const setMonth = useCallback(
+    (nextMonth: string) =>
+      setSelectedYearMonth((previous) => `${previous.slice(0, 4)}-${nextMonth.padStart(2, '0')}`),
+    [],
+  );
+
   const start = useCallback(
     async (yearMonth: string): Promise<boolean> => {
       if (!householdId) return false;
@@ -42,5 +57,15 @@ export const useMonthlyClosePickerPage = ({
     [auth, householdId, userEmail],
   );
 
-  return { selectedYearMonth, setSelectedYearMonth, isStarting, error, start };
+  return {
+    selectedYearMonth,
+    year,
+    month,
+    title: formatYearMonthTitle(selectedYearMonth),
+    setYear,
+    setMonth,
+    isStarting,
+    error,
+    start,
+  };
 };
