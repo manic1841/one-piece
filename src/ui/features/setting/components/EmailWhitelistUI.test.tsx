@@ -39,7 +39,7 @@ describe('EmailWhitelistUI', () => {
     expect(screen.getByText('NO WHITELISTED USERS')).toBeInTheDocument();
   });
 
-  it('rejects an invalid email before calling the hook', () => {
+  it('rejects an invalid email before calling the hook', async () => {
     const props = renderSettings();
 
     fireEvent.change(screen.getByLabelText('Add Email to Whitelist'), {
@@ -47,11 +47,11 @@ describe('EmailWhitelistUI', () => {
     });
     fireEvent.click(screen.getByRole('button', { name: /Add/ }));
 
-    expect(screen.getByText('Please enter a valid email address')).toBeInTheDocument();
+    expect(await screen.findByText('Please enter a valid email address')).toBeInTheDocument();
     expect(props.onAdd).not.toHaveBeenCalled();
   });
 
-  it('rejects a duplicate email already in the whitelist', () => {
+  it('rejects a duplicate email already in the whitelist', async () => {
     const props = renderSettings();
 
     fireEvent.change(screen.getByLabelText('Add Email to Whitelist'), {
@@ -59,11 +59,11 @@ describe('EmailWhitelistUI', () => {
     });
     fireEvent.click(screen.getByRole('button', { name: /Add/ }));
 
-    expect(screen.getByText('This email is already in the whitelist')).toBeInTheDocument();
+    expect(await screen.findByText('This email is already in the whitelist')).toBeInTheDocument();
     expect(props.onAdd).not.toHaveBeenCalled();
   });
 
-  it('normalises and adds a valid email', () => {
+  it('normalises and adds a valid email', async () => {
     const props = renderSettings();
 
     fireEvent.change(screen.getByLabelText('Add Email to Whitelist'), {
@@ -71,7 +71,7 @@ describe('EmailWhitelistUI', () => {
     });
     fireEvent.click(screen.getByRole('button', { name: /Add/ }));
 
-    expect(props.onAdd).toHaveBeenCalledWith('new@example.com');
+    await waitFor(() => expect(props.onAdd).toHaveBeenCalledWith('new@example.com'));
   });
 
   it('confirms removal through the shared dialog instead of window.confirm', async () => {

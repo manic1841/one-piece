@@ -1,15 +1,23 @@
-import React, { useState } from 'react';
+import React from 'react';
 
 import { Plus, X } from 'lucide-react';
 
 import { EmptyState } from '@/ui/components/EmptyState';
 import { ListSectionHeader } from '@/ui/components/ListSectionHeader';
 import { useConfirm } from '@/ui/components/confirm/useConfirm';
-import { FormItem, TextInput } from '@/ui/components/form';
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+  TextInput,
+} from '@/ui/components/form';
 import { Alert, AlertDescription } from '@/ui/components/ui/alert';
 import { Button } from '@/ui/components/ui/button';
-import { Label } from '@/ui/components/ui/label';
 import { SettingsWhitelistLabels } from '@/ui/constants/setting/settingsLabels';
+import { useEmailWhitelistForm } from '@/ui/features/setting/hooks/useEmailWhitelistForm';
 
 interface EmailWhitelistUIProps {
   whitelist: string[];
@@ -19,8 +27,6 @@ interface EmailWhitelistUIProps {
   onAdd: (email: string) => Promise<void>;
   onRemove: (email: string) => Promise<void>;
 }
-
-const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 /** System 區段內容：全域 email 白名單。外框由區段頁面提供。 */
 const EmailWhitelistUI: React.FC<EmailWhitelistUIProps> = ({
@@ -32,36 +38,14 @@ const EmailWhitelistUI: React.FC<EmailWhitelistUIProps> = ({
   onRemove,
 }) => {
   const { confirm } = useConfirm();
-  const [newEmail, setNewEmail] = useState('');
-  const [localError, setLocalError] = useState('');
+  const {
+    form,
+    submit,
+    error: formError,
+    isSubmitting,
+  } = useEmailWhitelistForm({ onAdd, whitelist });
 
-  const error = propError || localError;
-
-  const handleAddEmail = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLocalError('');
-
-    const email = newEmail.trim().toLowerCase();
-    if (!email) {
-      setLocalError(SettingsWhitelistLabels.errorEmailRequired);
-      return;
-    }
-    if (!EMAIL_PATTERN.test(email)) {
-      setLocalError(SettingsWhitelistLabels.errorEmailInvalid);
-      return;
-    }
-    if (whitelist.includes(email)) {
-      setLocalError(SettingsWhitelistLabels.errorEmailDuplicate);
-      return;
-    }
-
-    try {
-      await onAdd(email);
-      setNewEmail('');
-    } catch {
-      // Error handled by parent hook
-    }
-  };
+  const error = propError || formError;
 
   const handleRemoveEmail = async (email: string) => {
     const confirmed = await confirm({
@@ -89,26 +73,30 @@ const EmailWhitelistUI: React.FC<EmailWhitelistUIProps> = ({
         </Alert>
       )}
 
-      <form onSubmit={handleAddEmail} noValidate className="space-y-2">
-        <FormItem>
-          <Label htmlFor="new-email">{SettingsWhitelistLabels.addLabel}</Label>
-          <div className="flex gap-2">
-            <TextInput
-              id="new-email"
-              type="email"
-              value={newEmail}
-              onChange={setNewEmail}
-              placeholder={SettingsWhitelistLabels.emailPlaceholder}
-              disabled={saving}
-              className="flex-1"
-            />
-            <Button type="submit" disabled={saving}>
-              <Plus size={16} aria-hidden="true" />
-              {SettingsWhitelistLabels.addAction}
-            </Button>
-          </div>
-        </FormItem>
-      </form>
+      <Form {...form}>
+        <form onSubmit={submit} noValidate className="space-y-2">
+          <FormField name="email">
+            <FormItem>
+              <FormLabel>{SettingsWhitelistLabels.addLabel}</FormLabel>
+              <div className="flex gap-2">
+                <FormControl>
+                  <TextInput
+                    type="email"
+                    placeholder={SettingsWhitelistLabels.emailPlaceholder}
+                    disabled={saving}
+                    className="flex-1"
+                  />
+                </FormControl>
+                <Button type="submit" disabled={saving || isSubmitting}>
+                  <Plus size={16} aria-hidden="true" />
+                  {SettingsWhitelistLabels.addAction}
+                </Button>
+              </div>
+              <FormMessage />
+            </FormItem>
+          </FormField>
+        </form>
+      </Form>
 
       <ListSectionHeader title={SettingsWhitelistLabels.listTitle} count={whitelist.length} />
       {loading ? (
