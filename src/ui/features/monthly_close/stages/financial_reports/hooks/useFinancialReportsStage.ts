@@ -38,6 +38,14 @@ interface UseFinancialReportsStageArgs {
 
 const PREVIEW_ERROR = '無法載入報表預覽，請稍後再試。';
 
+/**
+ * The cash-flow adjustment is the part of the change the derivations cannot
+ * explain (docs/financial_report.md): a figure this large means the data is
+ * wrong somewhere the system cannot locate, so the user must confirm before
+ * generating. The threshold is an application decision, not a render one.
+ */
+export const ADJUSTMENT_WARNING_THRESHOLD = 1000;
+
 interface FinancialReportsData {
   customLabels: Map<string, string>;
   preview: PreviewFinancialReportsResult;
@@ -153,9 +161,11 @@ export const useFinancialReportsStage = ({
   reports: ReportViewsVM;
   reportDrift: ReportDriftModel;
   hasAnyDrift: boolean;
+  /** Whether the cash-flow adjustment exceeds the confirmation threshold. */
+  showAdjustmentWarning: boolean;
   timestamps: ReportTimestampsVM;
   isLoading: boolean;
-  isReady: boolean;
+  isLoaded: boolean;
   error: string | null;
 } => {
   const auth = useAuthIdentity();
@@ -164,10 +174,12 @@ export const useFinancialReportsStage = ({
     () => fetchFinancialReportsData({ householdId, selectedYearMonth, auth }),
     [auth, householdId, selectedYearMonth],
   );
-  const { data, errorMessage, isLoading, isReady, refresh } = useStageLoader<FinancialReportsData>({
-    enabled: householdId !== '' && selectedYearMonth !== '',
-    load,
-  });
+  const { data, errorMessage, isLoading, isLoaded, refresh } = useStageLoader<FinancialReportsData>(
+    {
+      enabled: householdId !== '' && selectedYearMonth !== '',
+      load,
+    },
+  );
 
   const customLabels = useMemo(() => data?.customLabels ?? new Map<string, string>(), [data]);
   const preview = data?.preview ?? null;
@@ -222,9 +234,11 @@ export const useFinancialReportsStage = ({
     reports,
     reportDrift,
     hasAnyDrift: reportDrift.hasAnyDrift,
+    showAdjustmentWarning:
+      Math.abs(reports.cashFlow?.adjustment.amount ?? 0) > ADJUSTMENT_WARNING_THRESHOLD,
     timestamps,
     isLoading,
-    isReady,
+    isLoaded,
     error: errorMessage,
   };
 };

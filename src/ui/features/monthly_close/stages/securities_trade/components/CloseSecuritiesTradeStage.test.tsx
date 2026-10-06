@@ -15,7 +15,7 @@ const renderStage = (props?: Partial<Parameters<typeof CloseSecuritiesTradeStage
   render(
     <CloseSecuritiesTradeStage
       stepText="證券買入／賣出"
-      progressText="03 / 09"
+      progressText="02 / 08"
       confirmedAtText={null}
       confirming={false}
       isReviewing={false}

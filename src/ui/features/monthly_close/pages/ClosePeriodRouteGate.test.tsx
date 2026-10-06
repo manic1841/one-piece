@@ -70,7 +70,7 @@ describe('ClosePeriodRouteGate', () => {
 
     renderAt('/close/2026-09');
 
-    expect(screen.getByText(MONTHLY_CLOSE_LABELS.LOADING)).toBeInTheDocument();
+    expect(screen.getByText('Loading...')).toBeInTheDocument();
     expect(screen.queryByTestId('workspace')).not.toBeInTheDocument();
   });
 

@@ -1,17 +1,15 @@
 import { useMemo, useState } from 'react';
 
 import { checkLedgerCodeInUseUseCase } from '@/application/ledger/use_cases/checkLedgerCodeInUseUseCase';
-import { createCustomLedgerCodeUseCase } from '@/application/ledger/use_cases/createCustomLedgerCodeUseCase';
 import { updateCustomLedgerCodeUseCase } from '@/application/ledger/use_cases/updateCustomLedgerCodeUseCase';
+import { type LedgerCodeCandidate, parseLedgerCode } from '@/domains/ledger/ledgerCodeRules';
 import {
-  type LedgerCodeCandidate,
-  type LedgerCodeViolation,
-  depthTwoCodesOfType,
-  parseLedgerCode,
-  validateNewLedgerCode,
-} from '@/domains/ledger/ledgerCodeRules';
+  SETTINGS_LEDGER_TYPE_ORDER,
+  type SettingsLedgerType,
+} from '@/ui/constants/setting/settingsLabels';
 import { useAuthState } from '@/ui/contexts/useAuthState';
 import { type LedgerCodeItem, useLedgerCodes } from '@/ui/features/ledger/hooks/useLedgerCodes';
+import { useLedgerCodeForm } from '@/ui/features/setting/hooks/useLedgerCodeForm';
 import { useAuthIdentity } from '@/ui/hooks/useAuthIdentity';
 
 export { type LedgerCodeItem };
@@ -22,46 +20,14 @@ export interface LedgerCodeRow {
   parentLabel?: string;
 }
 
-type GroupedLedgerCodeRows = {
-  asset: LedgerCodeRow[];
-  liability: LedgerCodeRow[];
-  income: LedgerCodeRow[];
-  expense: LedgerCodeRow[];
-};
-
-const GROUPED_TYPES = ['asset', 'liability', 'income', 'expense'] as const;
-
-const describeViolation = (
-  violation: LedgerCodeViolation,
-  code: string,
-  candidates: LedgerCodeCandidate[],
-): string => {
-  const type = code.split(':')[0];
-  const parent = code.split(':').slice(0, 2).join(':');
-
-  switch (violation) {
-    case 'INVALID_SHAPE':
-      return '科目代碼格式不正確：請輸入 category（如 property）或 category:detail（如 property:taipei），僅限小寫英數字與底線。';
-    case 'UNKNOWN_TYPE':
-      return `不支援的科目類型 ${type}。`;
-    case 'DUPLICATE':
-      return `科目代碼 ${code} 已存在。`;
-    case 'PARENT_INACTIVE':
-      return `父科目 ${parent} 已停用，請先啟用或改選其他 category。`;
-    case 'PARENT_MISSING': {
-      const available = depthTwoCodesOfType(candidates, type);
-      return available.length > 0
-        ? `父科目 ${parent} 不存在，請先建立它。此類型可用的 category：${available.join('、')}。`
-        : `父科目 ${parent} 不存在，請先建立它。`;
-    }
-  }
-};
+type GroupedLedgerCodeRows = Record<SettingsLedgerType, LedgerCodeRow[]>;
 
 /** Details are listed right after their parent, one indent deeper. */
 const buildGroupedRows = (codes: LedgerCodeItem[]): GroupedLedgerCodeRows => {
-  const grouped = { asset: [], liability: [], income: [], expense: [] } as GroupedLedgerCodeRows;
+  // 每個類型都在迴圈內被指派，類型清單是單一來源，不會漏鍵。
+  const grouped = {} as GroupedLedgerCodeRows;
 
-  for (const type of GROUPED_TYPES) {
+  for (const type of SETTINGS_LEDGER_TYPE_ORDER) {
     const items = codes.filter((code) => code.type === type);
     const bases = items.filter((item) => parseLedgerCode(item.code)?.depth === 2);
     const details = items.filter((item) => parseLedgerCode(item.code)?.depth === 3);
@@ -94,12 +60,8 @@ export function useLedgerCodeSettings() {
   const auth = useAuthIdentity();
 
   const { codes, loading, refresh } = useLedgerCodes(true);
-  const [newLabel, setNewLabel] = useState('');
-  const [newCode, setNewCode] = useState('');
-  const [newType, setNewType] = useState<string>('expense');
   const [editingCode, setEditingCode] = useState<string | null>(null);
   const [editValue, setEditValue] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
 
   const candidates = useMemo<LedgerCodeCandidate[]>(
@@ -109,40 +71,9 @@ export function useLedgerCodeSettings() {
 
   const groupedRows = useMemo(() => buildGroupedRows(codes), [codes]);
 
-  const handleAdd = async () => {
-    if (!householdId || !userEmail) return;
-
-    const label = newLabel.trim();
-    const suffix = newCode.trim().toLowerCase();
-    if (!suffix || !label) return;
-
-    const code = `${newType}:${suffix}`;
-    const validation = validateNewLedgerCode(code, candidates);
-    if (!validation.valid) {
-      setError(describeViolation(validation.violation, code, candidates));
-      return;
-    }
-
-    setIsSubmitting(true);
-    setError('');
-    try {
-      await createCustomLedgerCodeUseCase.execute({
-        householdId,
-        userEmail,
-        auth,
-        code,
-        label,
-      });
-
-      setNewCode('');
-      setNewLabel('');
-      await refresh();
-    } catch (err) {
-      setError('新增失敗: ' + (err instanceof Error ? err.message : String(err)));
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+  // 新增科目的表單狀態（RHF）由專屬 Controller hook 擁有；本 hook 只留列表／
+  // 停用／就地改名的非表單職責（ADR-0064、§4）。
+  const ledgerCodeForm = useLedgerCodeForm({ householdId, userEmail, candidates, refresh });
 
   const handleToggleActive = async (
     item: Pick<LedgerCodeItem, 'code' | 'isActive' | 'isCustom'>,
@@ -217,21 +148,14 @@ export function useLedgerCodeSettings() {
   return {
     groupedRows,
     loading,
-    newLabel,
-    setNewLabel,
-    newCode,
-    setNewCode,
-    newType,
-    setNewType,
     editingCode,
     editValue,
     setEditValue,
-    isSubmitting,
     error,
-    handleAdd,
     handleToggleActive,
     startEdit,
     cancelEdit,
     saveEdit,
+    ledgerCodeForm,
   };
 }

@@ -3,6 +3,7 @@ import {
   DebtPaymentError,
   calculateDebtPayment,
 } from '@/domains/debt/debtPaymentCalculator';
+import { formatCurrency } from '@/ui/utils';
 
 export type { DebtPaymentCalculation };
 
@@ -25,7 +26,23 @@ export interface DebtPaymentSectionVM extends DebtSectionMetaVM {
   warning: string | null;
   /** Present only when the write path would reject the payment outright. */
   blockedReason: string | null;
+  interestRateText: string;
+  openingBalanceText: string;
+  monthlyDueText: string;
+  principalText: string;
+  interestText: string;
+  closingBalanceText: string;
 }
+
+type DebtPaymentFiguresVM = Omit<
+  DebtPaymentSectionVM,
+  | 'interestRateText'
+  | 'openingBalanceText'
+  | 'monthlyDueText'
+  | 'principalText'
+  | 'interestText'
+  | 'closingBalanceText'
+>;
 
 /**
  * Mirrors the write path's split (spec 195: UI preview and write share one
@@ -33,7 +50,7 @@ export interface DebtPaymentSectionVM extends DebtSectionMetaVM {
  * balance is rejected by `calculateDebtPayment` on the write path, so the
  * preview surfaces it as a blocked section instead of rendering the throw.
  */
-const buildSection = (meta: DebtSectionMetaVM, totalPayment: number): DebtPaymentSectionVM => {
+const resolveFigures = (meta: DebtSectionMetaVM, totalPayment: number): DebtPaymentFiguresVM => {
   if (totalPayment <= 0) {
     return {
       ...meta,
@@ -79,6 +96,19 @@ const buildSection = (meta: DebtSectionMetaVM, totalPayment: number): DebtPaymen
   }
 };
 
+const formatFigures = (figures: DebtPaymentFiguresVM): DebtPaymentSectionVM => ({
+  ...figures,
+  interestRateText: `${figures.interestRate}%`,
+  openingBalanceText: formatCurrency(figures.openingBalance),
+  monthlyDueText: formatCurrency(figures.monthlyDue),
+  principalText: formatCurrency(figures.principal),
+  interestText: formatCurrency(figures.interest),
+  closingBalanceText: formatCurrency(figures.closingBalance),
+});
+
+const buildSection = (meta: DebtSectionMetaVM, totalPayment: number): DebtPaymentSectionVM =>
+  formatFigures(resolveFigures(meta, totalPayment));
+
 export const buildDebtPaymentSections = ({
   debtAccounts,
   repayments,
@@ -92,10 +122,25 @@ export const buildDebtPaymentSections = ({
     return buildSection(meta, totalPayment);
   });
 
-export const buildDebtPaymentTotal = (
-  sections: DebtPaymentSectionVM[],
-): { principal: number; interest: number; total: number } => {
+export interface DebtPaymentTotalVM {
+  principal: number;
+  interest: number;
+  total: number;
+  principalText: string;
+  interestText: string;
+  totalText: string;
+}
+
+export const buildDebtPaymentTotal = (sections: DebtPaymentSectionVM[]): DebtPaymentTotalVM => {
   const principal = sections.reduce((sum, section) => sum + section.principal, 0);
   const interest = sections.reduce((sum, section) => sum + section.interest, 0);
-  return { principal, interest, total: principal + interest };
+  const total = principal + interest;
+  return {
+    principal,
+    interest,
+    total,
+    principalText: formatCurrency(principal),
+    interestText: formatCurrency(interest),
+    totalText: formatCurrency(total),
+  };
 };

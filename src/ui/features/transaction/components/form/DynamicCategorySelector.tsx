@@ -1,5 +1,6 @@
 import { useFormContext, useWatch } from 'react-hook-form';
 
+import { Divider } from '@/ui/components/Divider';
 import {
   FormControl,
   FormField,
@@ -31,20 +32,22 @@ export function DynamicCategorySelector({ allLedgerCodes }: DynamicCategorySelec
   if (!options) return null;
 
   return (
-    <FormField name="ledgerCode">
-      <FormItem className="mt-4 rounded-lg border border-border bg-muted p-3">
-        <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-          屬性 / 詳細類別
-        </FormLabel>
-        <FormControl>
-          <SelectField
-            options={options.map((option) => ({ value: option.code, label: option.label }))}
-            placeholder="選擇具體項目..."
-            className="bg-card"
-          />
-        </FormControl>
-        <FormMessage />
-      </FormItem>
-    </FormField>
+    <div className="space-y-4">
+      <Divider />
+      <FormField name="ledgerCode">
+        <FormItem>
+          <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+            屬性 / 詳細類別
+          </FormLabel>
+          <FormControl>
+            <SelectField
+              options={options.map((option) => ({ value: option.code, label: option.label }))}
+              placeholder="選擇具體項目..."
+            />
+          </FormControl>
+          <FormMessage />
+        </FormItem>
+      </FormField>
+    </div>
   );
 }

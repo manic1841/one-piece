@@ -18,8 +18,14 @@ describe('debtPayment.vm', () => {
     });
 
     expect(section.principal).toBe(1_100);
+    expect(section.principalText).toBe('NT$1,100');
     expect(section.interest).toBe(100);
+    expect(section.interestText).toBe('NT$100');
     expect(section.closingBalance).toBe(8_900);
+    expect(section.closingBalanceText).toBe('NT$8,900');
+    expect(section.interestRateText).toBe('12%');
+    expect(section.openingBalanceText).toBe('NT$10,000');
+    expect(section.monthlyDueText).toBe('NT$100');
     expect(section.warning).toBeNull();
     expect(section.blockedReason).toBeNull();
   });
@@ -86,6 +92,9 @@ describe('debtPayment.vm', () => {
       principal: 2_100,
       interest: 100,
       total: 2_200,
+      principalText: 'NT$2,100',
+      interestText: 'NT$100',
+      totalText: 'NT$2,200',
     });
   });
 

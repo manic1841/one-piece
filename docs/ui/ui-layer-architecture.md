@@ -300,6 +300,20 @@ const onSubmit = form.handleSubmit((vm) => {
   watched values), so the preview cannot drift from what submit accepts. Switching tabs must not remount the dialog, or
   the inactive panels lose their values.
 
+### What is not a form (carve-outs)
+
+A **form** is an editable surface group with a `useForm`, field-level validation, and a `Schema.parse` submit gate
+(ADR-0064's motivation — field-level validation timing and the dirty/touched/field-error lifecycle). Two editable
+surfaces are explicitly **not** forms, and must not be forced into RHF:
+
+- **Keystroke-written draft grids** (the monthly-close stages): their state is a draft owned by the Controller hook
+  (`useSeededDraft`) and patched on every keystroke. There is no field-level validation and no submit gate — the commit
+  boundary is the stage Confirm / the workflow use case, guarded by the domain, not by `useForm`. They still use the
+  `form` suite's RHF-free input components (`NumberInput`, `TextInput`, …).
+- **Single-scalar inline row edits**: ADR-0065 already lists "表格內的 inline 編輯" as a case where an input component is
+  used outside a form; one scalar with a Save/Cancel button is not a form. A row that edits more than one field, or that
+  validates, does become one.
+
 ---
 
 ## 5. Typical Data Flow
@@ -355,21 +369,23 @@ infra 不得 import `src/ui/**`（見 §2 規則 10）。
 ## 6. RWD 斷點契約
 
 斷點決策見 [ADR-0044](../adr/0044-rwd-breakpoint-contract.md)。`md`(768px)是行動殼
-與桌面殼的唯一切換點;兩殼皆為 sticky header + 置中 `max-w-7xl` 容器,無側欄。
+與桌面殼的唯一切換點;兩殼皆為 sticky header + 置中最大寬度容器,無側欄。
 
 ## 6.1 導航所有權契約
 
 主導航在所有斷點由 Pixel Pet 獨家擁有(見 [ADR-0055](../adr/0055-pixel-pet-single-navigator-ownership.md))。
 行動 bottom nav 與 More sheet 已收編;行動版經 Pixel Pet 的 Navigator sheet 導航。
 退場以「Pet + sheet 覆蓋 bottom nav 全部目的地與 More sheet 功能、不留斷點」為條件,已達成。
-header 不含主導航;Navigator 清單為 **8 項**——`NAV_ITEMS` 扣除 Dashboard 與
-Settings,Dashboard 由 header 品牌承擔、Settings 由 Avatar menu 承擔;Ctrl/Cmd+K 指
-令面板為 Quick Access,涵蓋含 Dashboard 與 Settings 在內的全部 **10 條**路由,與
-Navigator 清單互相獨立(見 [ADR-0055](../adr/0055-pixel-pet-single-navigator-ownership.md))。
+header 不含主導航;Navigator 清單即 `NAV_ITEMS` 扣除 Dashboard 與
+Settings——Dashboard 由 header 品牌承擔、Settings 由 Avatar menu 承擔;Ctrl/Cmd+K 指
+令面板為 Quick Access,涵蓋全部**頂層**路由,與 Navigator 清單互相獨立(見
+[ADR-0055](../adr/0055-pixel-pet-single-navigator-ownership.md))。Settings 是全站
+唯一帶子路由的表面:經 Avatar menu 進入後,區段以路由式頁籤切換,子路由不進
+`NAV_ITEMS`。
 
 四檔工作流視窗（Monthly Close、Portfolio Detail、Debt、Header）的視覺權重與操作
 位置契約見 [ADR-0056](../adr/0056-workflow-first-surfaces.md):pipeline 為頁面主要層
-級,mobile 步驟列去 Card,確認動作顯示 `CONTINUE →`;Portfolio Detail 無快照管理入
+級,mobile 步驟列去 Card,確認動作為繼續按鈕;Portfolio Detail 無快照管理入
 口;Debt 列表列無常駐 Edit / Delete,動作在詳情 header;Header 無獨立 Settings 鈕
 ,Settings 在 Avatar menu。
 
@@ -401,7 +417,7 @@ Global Header(sticky 系統狀態列)只負責:
 
 ### 360px(手機直式)
 
-- 頁面底部固定 Pixel Pet 按鈕;點擊展開 Navigator sheet,8 個目的地完整可點。
+- 頁面底部固定 Pixel Pet 按鈕;點擊展開 Navigator sheet,全部目的地完整可點。
 - 無 bottom nav 與 More 按鈕;除固定 pet 按鈕外無其他浮動導航元素。
 - 頂部列顯示 App 名稱與 household 切換器,不與 Logout 重疊。
 - 交易列表呈現全寬度卡片式,日期篩選輸入與按鈕直向堆疊、各自佔滿列寬。
@@ -409,8 +425,8 @@ Global Header(sticky 系統狀態列)只負責:
 
 ### 768px(平板直式)
 
-- 內容區為置中 `max-w-7xl` 容器,無側欄;無遮蓋、無異常留白。
-- 主導航由 Pixel Pet Navigator 承擔,以 8 個目的地呈現(`NAV_ITEMS` 扣除 Dashboard 與 Settings),完整可點、無換行截斷。
+- 內容區為置中最大寬度容器,無側欄;無遮蓋、無異常留白。
+- 主導航由 Pixel Pet Navigator 承擔,以 Navigator 清單呈現(`NAV_ITEMS` 扣除 Dashboard 與 Settings),完整可點、無換行截斷。
 - 內容區無水平捲軸;交易列表日期篩選列允許折行,所有控制項完整可見。
 
 ### 1024px(平板橫式 / 小桌機)
@@ -419,7 +435,7 @@ Global Header(sticky 系統狀態列)只負責:
 
 ### 1280px(桌機)
 
-- 版面與 1024px 一致;`max-w-7xl` 容器置中,兩側留白對稱。
+- 版面與 1024px 一致;內容容器置中,兩側留白對稱。
 - 任何斷點皆不得出現整頁水平捲軸。
 
 ## 7. 動作位置與 List / Detail 責任切分
@@ -428,7 +444,7 @@ Global Header(sticky 系統狀態列)只負責:
 
 ### 7.1 責任切分
 
-- **List** = Browse / Filter / Create / Reorder:檢視清單、內容區 filter(顯示停用／顯示已結清 toggle 屬 view filter,非資料變更)、create 入口、拖曳排序(見 [ADR-0059](../adr/0059-dnd-kit-shared-sortable.md))。view filter 與搜尋放在 List 內容區,不放 header。
+- **List** = Browse / Filter / Create / Reorder:檢視清單、內容區 filter(僅啟用中／含停用的狀態篩選屬 view filter,非資料變更)、create 入口、拖曳排序(見 [ADR-0059](../adr/0059-dnd-kit-shared-sortable.md))。view filter 與搜尋放在 List 內容區,不放 header。
 - **Detail** = 該實體的管理動作:Edit(inline rename 或 Edit Form)、Activate/Deactivate、Danger Zone(刪除)。
 - **Workflow** = 該工作流的主要動作:Confirm、Close Period。
 
@@ -442,12 +458,12 @@ Global Header(sticky 系統狀態列)只負責:
 
 Detail 的編輯入口依欄位複雜度二選一:
 
-- **單一 metadata 欄位**(名稱)→ `InlineEditableTitle` inline edit,掛在 PageHeader title slot。適用:Project / Portfolio / Retirement plan 名稱。
-- **多欄位 configuration** → Edit Form(dialog 或 detail 區塊)。適用:Debt / Account。
+- **單一 metadata 欄位**(名稱)→ `InlineEditableTitle` inline edit,掛在 PageHeader title slot。適用:Account / Project / Portfolio / Retirement plan 名稱。
+- **多欄位 configuration** → Edit Form(dialog 或 detail 區塊)。適用:Debt。
 
 `PageHeader` 不知道「怎麼編輯名稱」——`title` 接受 `ReactNode`,由頁面自行傳入 `<InlineEditableTitle value={...} onSave={...} />`;儲存走既有 update command,成功後頁面自行 refetch／同步 state。
 
-**詳細頁的 header 由 page 層擁有**:每個 detail 頁面自行渲染共用 `PageHeader`(title + 描述 + crumb + back 鈕 + header actions),detail 元件只渲染資料 sections。`PortfolioDetailPage` 屬此形:名稱走 `InlineEditableTitle`(見上),detail 元件只渲染資料 sections;`PortfolioForm` 只由列表頁的「新增組合」開啟(create)。取捨理由見 [ADR-0058](../adr/0058-portfolio-detail-header-migration.md)。
+**詳細頁的 header 由 page 層擁有**:每個 detail 頁面自行渲染共用 `PageHeader`(title + 描述 + crumb + back 鈕 + header actions),detail 元件只渲染資料 sections。Account / Portfolio / Debt / Project 詳情頁皆屬此形:page 負責 header、loading/error/not-found 狀態與命令,資料 sections 抽成純 surface 元件(`AccountDetail` / `PortfolioDetail` / `DebtDetail` / `ProjectDetail`),後者只消費 VM 或已投影的資料,不自行取資料。四頁錯誤呈現一致:實體本身載入失敗→整頁 warning Alert + 重試;實體已在但某段資料(歷史／快照／彙總)載入失敗→header 下方 inline warning Alert + 重試,保留已載入的實體不清空(ADR-0072:載入失敗是 UNKNOWN,不是 EMPTY)。名稱編輯走 `InlineEditableTitle`(見上);`PortfolioForm` 只由列表頁的「新增組合」開啟(create)。取捨理由見 [ADR-0058](../adr/0058-portfolio-detail-header-migration.md)。
 
 ### 7.4 Lifecycle 控制
 
@@ -455,7 +471,7 @@ Detail 的編輯入口依欄位複雜度二選一:
 
 - 掛在 PageHeader actions,緊鄰狀態顯示(badge/meta),讓狀態與改變狀態的動作成對。
 - 標籤依狀態二選一:active 顯示「停用 {domain}」、inactive 顯示「啟用 {domain}」。
-- 可逆動作用 outline variant;停用帳戶若當月有交易,先走 monthly-usage 檢查 + `useConfirm()`(DISABLE 標籤)。切換走既有 update command,成功後狀態即時反映。
+- 可逆動作用 outline variant;**lifecycle 停用是例外**:同一位置隨狀態換標籤的 activate/deactivate toggle,active 態的「停用 {domain}」用 destructive tone(inactive 態的「啟用 {domain}」仍用 outline)——停用把實體移出日常使用,紅色 tone 表達該後果。停用帳戶若當月有交易,先走 monthly-usage 檢查 + `useConfirm()`(DISABLE 標籤)。切換走既有 update command,成功後狀態即時反映。
 - List 只呈現狀態(glyph/muted),不提供切換。
 
 ### 7.5 Action Hierarchy(優先序)
@@ -463,7 +479,7 @@ Detail 的編輯入口依欄位複雜度二選一:
 全站最多三層:
 
 - **Primary**:主要完成動作(`SAVE` / `CONFIRM` / `CLOSE PERIOD` / domain create:`NEW`——新增帳戶／新增貸款／New Project／New Plan／新增交易／新增組合)。
-- **Secondary**:次要動作(`EDIT` / `IMPORT` / `DEACTIVATE`,可逆,outline variant)。
+- **Secondary**:次要動作(`EDIT` / `IMPORT` / `DEACTIVATE`,可逆,outline variant;惟 lifecycle deactivate 用 destructive tone,理由見 §7.4)。
 - **Tertiary**:低干擾(`View details →` / `More`)。
 
 一個 context 通常只需要一個 primary action;不要在同一區域堆疊多個 primary。
@@ -473,7 +489,7 @@ Detail 的編輯入口依欄位複雜度二選一:
 - **List Header** = create action only(`New` / 新增 {domain});結算／設定等流程入口屬各自工作流頁面,不在 List header。
 - **Detail Header** = 該實體的管理動作(Edit、Activate/Deactivate),緊鄰狀態顯示。
 - **Workflow Header** = 該工作流的主要動作(Confirm、Close Period)。
-- **Destructive**(Delete／移除)放頁面尾端 Danger Zone,永不升級到 header。
+- **Destructive**(Delete／移除)放頁面尾端 Danger Zone,永不升級到 header;Danger Zone 的刪除用 `button` 的 destructive variant。
 
 > **Closing principle:Action Hierarchy defines priority; List / Detail defines placement.**
 

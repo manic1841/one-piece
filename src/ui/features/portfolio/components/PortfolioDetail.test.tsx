@@ -1,123 +1,107 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
-import { type Portfolio } from '@/domains/portfolio/types/portfolio';
-import { useAccounts } from '@/ui/features/account/hooks/useAccounts';
-import { usePortfolioCmds } from '@/ui/features/portfolio/hooks/usePortfolioCmds';
-import { usePortfolioQueries, usePortfolios } from '@/ui/features/portfolio/hooks/usePortfolios';
+import { type MonthTrendSeries } from '@/ui/components/charts/monthTrendSeries';
+import { type PortfolioDetailVM } from '@/ui/features/portfolio/viewmodels/portfolioDisplay.vm';
 
 import PortfolioDetail from './PortfolioDetail';
 
-vi.mock('@/ui/features/account/hooks/useAccounts');
-vi.mock('@/ui/hooks/useAuthIdentity');
-vi.mock('@/ui/features/portfolio/hooks/usePortfolioCmds');
-vi.mock('@/ui/features/portfolio/hooks/usePortfolios');
-vi.mock('react-router-dom', async () => {
-  const actual = await vi.importActual<typeof import('react-router-dom')>('react-router-dom');
-  return {
-    ...actual,
-    useNavigate: vi.fn(),
-    useParams: vi.fn(() => ({ id: 'p1' })),
-  };
-});
+const emptyTrend: MonthTrendSeries = {
+  values: [],
+  labels: [],
+  points: [],
+  hasData: false,
+};
 
-const mockUsePortfolios = vi.mocked(usePortfolios);
-const mockUsePortfolioQueries = vi.mocked(usePortfolioQueries);
-const mockUsePortfolioCmds = vi.mocked(usePortfolioCmds);
-const mockUseAccounts = vi.mocked(useAccounts);
-
-const portfolio: Portfolio = {
+const makeVm = (overrides: Partial<PortfolioDetailVM> = {}): PortfolioDetailVM => ({
   id: 'p1',
   name: 'Main Portfolio',
-  securitiesAccountId: 's1',
-  bankAccountId: 'b1',
   isActive: true,
-  order: 0,
-  createdBy: 'u1',
-  updatedBy: 'u1',
-  createdAt: new Date('2026-01-01'),
-  updatedAt: new Date('2026-01-01'),
-};
-
-const snapshot = {
-  id: 'p1-2026-09',
-  year: 2026,
-  month: 9,
-  totalValue: 2480000,
-  accounts: [],
-  cashFlow: { deposits: 0, withdrawals: 0 },
-  performance: {
-    openingValue: 2220000,
-    closingValue: 2480000,
-    netCashFlow: 0,
-    gain: 260000,
-    returnRate: 12.42,
-    cumulativeGain: 260000,
-    cumulativeReturnRate: 12.42,
+  totalValueText: 'NT$2,480,000',
+  asOfText: '2026-09',
+  securitiesName: 'Brokerage',
+  bankName: 'Investment Bank',
+  monthlyReturnText: '12.42%',
+  cumulativeReturnText: '12.42%',
+  breakdown: {
+    previousValueText: 'NT$2,220,000',
+    currentValueText: 'NT$2,480,000',
+    investmentCashFlowText: 'NT$0',
+    calculatedReturnText: 'NT$260,000',
   },
-  createdBy: 'u1',
-  updatedBy: 'u1',
-  createdAt: new Date('2026-09-01'),
-  updatedAt: new Date('2026-09-01'),
-};
-
-const renderDetail = () => {
-  mockUsePortfolios.mockReturnValue({
-    portfolios: [portfolio],
-    latestSnapshots: new Map(),
-    toListItemVM: vi.fn(),
-    toDetailVM: vi.fn(),
-    loading: false,
-    error: null,
-    reload: vi.fn(),
-  } as never);
-  mockUsePortfolioQueries.mockReturnValue({
-    getSnapshots: vi.fn().mockResolvedValue({ ok: true, value: [snapshot] }),
-    loading: false,
-    error: null,
-  } as never);
-  mockUsePortfolioCmds.mockReturnValue({
-    createPortfolio: vi.fn(),
-    updatePortfolio: vi.fn(),
-    deletePortfolio: vi.fn(),
-    reorderPortfolios: vi.fn(),
-    createSnapshot: vi.fn(),
-    deleteSnapshot: vi.fn(),
-    loading: false,
-    error: null,
-    errorMessage: null,
-  } as never);
-  mockUseAccounts.mockReturnValue({
-    fetchAccounts: vi.fn().mockResolvedValue({ ok: true, value: [] }),
-    fetchAccountsWithSnapshots: vi.fn(),
-    loading: false,
-    error: null,
-    errorMessage: null,
-  } as never);
-
-  return render(<PortfolioDetail householdId="h1" portfolio={portfolio} />);
-};
+  trend: {
+    values: [2220000, 2480000],
+    labels: ['AUG', 'SEP'],
+    points: [
+      { title: 'AUG', value: 'NT$2,220,000' },
+      { title: 'SEP', value: 'NT$2,480,000' },
+    ],
+    hasData: true,
+  },
+  performanceRows: [
+    {
+      id: 'p1-2026-09',
+      dateText: 'Sep 2026',
+      totalValueText: 'NT$2,480,000',
+      returnText: '12.42%',
+      cumulativeText: '12.42%',
+      netFlowText: 'NT$0',
+    },
+  ],
+  allocation: {
+    hasData: false,
+    marketSegments: [],
+    exposureSegments: [],
+    marketTotalText: '—',
+    exposureTotalText: '—',
+  },
+  ...overrides,
+});
 
 describe('PortfolioDetail surfaces', () => {
-  it('renders the six performance sections without a snapshot create or delete entry', async () => {
-    renderDetail();
+  it('renders every data section from the VM without a snapshot entry', () => {
+    render(<PortfolioDetail vm={makeVm()} onDelete={vi.fn()} />);
 
-    expect(await screen.findByText('PORTFOLIO VALUE')).toBeInTheDocument();
+    expect(screen.getByText('PORTFOLIO VALUE')).toBeInTheDocument();
     expect(screen.getByText('VALUE BREAKDOWN')).toBeInTheDocument();
     expect(screen.getByText('RETURN')).toBeInTheDocument();
+    expect(screen.getByText('RETURN CALCULATION')).toBeInTheDocument();
     expect(screen.getByText('12M PORTFOLIO VALUE')).toBeInTheDocument();
     expect(screen.getByText('MONTHLY PERFORMANCE')).toBeInTheDocument();
-    expect(screen.getByText('RETURN CALCULATION')).toBeInTheDocument();
+    expect(screen.getByText('DANGER ZONE')).toBeInTheDocument();
 
+    expect(screen.getAllByText('NT$2,480,000').length).toBeGreaterThan(0);
     expect(screen.queryByText(/關帳快照/)).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /刪除快照/ })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /Record Settlement/i })).not.toBeInTheDocument();
   });
 
-  it('keeps the monthly performance table rows', async () => {
-    renderDetail();
+  it('no longer shows the non-investment cash flow row', () => {
+    render(<PortfolioDetail vm={makeVm()} onDelete={vi.fn()} />);
+    expect(screen.queryByText('Non-investment Cash Flow')).not.toBeInTheDocument();
+  });
 
-    expect(await screen.findByText('MONTHLY PERFORMANCE')).toBeInTheDocument();
-    expect(screen.getAllByText(/SEP\s+2026/).length).toBeGreaterThan(0);
+  it('falls back to an empty-state line when there is no snapshot', () => {
+    render(
+      <PortfolioDetail
+        vm={makeVm({ trend: emptyTrend, performanceRows: [] })}
+        onDelete={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText('尚無快照資料')).toBeInTheDocument();
+  });
+
+  it('uses the holdings empty copy (not the snapshot one) when a snapshot has no holdings', () => {
+    render(<PortfolioDetail vm={makeVm()} onDelete={vi.fn()} />);
+
+    expect(screen.getByText('此組合尚無持倉資料')).toBeInTheDocument();
+    expect(screen.queryByText('尚無快照資料')).not.toBeInTheDocument();
+  });
+
+  it('invokes the delete handler from the danger zone', () => {
+    const onDelete = vi.fn();
+    render(<PortfolioDetail vm={makeVm()} onDelete={onDelete} />);
+
+    fireEvent.click(screen.getByRole('button', { name: '刪除投資組合' }));
+    expect(onDelete).toHaveBeenCalledTimes(1);
   });
 });

@@ -1,10 +1,12 @@
 import type { CloseStageId } from '@/domains/financial_period/schemas';
 import { type DriftAmount } from '@/domains/report/reportDrift';
 import { CLOSE_STAGE_LABELS, MONTHLY_CLOSE_LABELS } from '@/ui/constants/monthlyClose';
+import { formatCurrency } from '@/ui/utils';
+
+import { formatDriftDelta } from '../viewmodels/reportDrift.vm';
 
 export const READINESS_CHECK_IDS = [
   'ACCOUNT_BALANCE',
-  'TRANSACTION_VALIDATION',
   'SECURITIES_TRADE',
   'PORTFOLIO_CASH_FLOW',
   'PROJECT_SETTLEMENT',
@@ -20,10 +22,11 @@ export interface ReadinessCheckVM {
   countText: string;
 }
 
+/** stageId is null for exceptions with no in-workflow landing (e.g. transaction issues). */
 export interface ReadinessExceptionVM {
   label: string;
   detail: string;
-  stageId: CloseStageId;
+  stageId: CloseStageId | null;
 }
 
 export interface ReadinessVM {
@@ -35,7 +38,6 @@ export interface ReadinessVM {
 export interface ReadinessInput {
   totalAccounts: number;
   confirmedAccounts: number;
-  totalTransactions: number;
   transactionIssues: { description: string; reason: string }[];
   totalSecurities: number;
   totalPortfolios: number;
@@ -44,8 +46,6 @@ export interface ReadinessInput {
   confirmedProjects: number;
   totalDebts: number;
   confirmedDebts: number;
-  zeroActivityNames: string[];
-  anomalies: string[];
 }
 
 export const CLOSE_ACTIVITY_STATUS = {
@@ -75,6 +75,12 @@ export type FinancialResultKey = keyof FinancialResultVM;
 /** Per-figure drift annotations for a live period; absent for a CLOSED record. */
 export type FinancialDriftVM = Partial<Record<FinancialResultKey, DriftAmount>>;
 
+/**
+ * The five figures as the panel prints them: the drift delta when the figure
+ * moved, the amount otherwise, and 空值 for a figure the preview does not have.
+ */
+export type FinancialResultText = Record<FinancialResultKey, string>;
+
 export interface ReportResultVM {
   title: string;
   /** null when the persistence read failed, so "unknown" is not shown as 尚未產生. */
@@ -84,6 +90,7 @@ export interface ReportResultVM {
 export interface CloseSummaryVM {
   activity: CloseActivityRowVM[];
   financial: FinancialResultVM;
+  financialText: FinancialResultText;
   financialDrift?: FinancialDriftVM;
   reports: ReportResultVM[];
   reportsGeneratedCount: number;
@@ -102,6 +109,28 @@ export interface CloseSummaryInput {
 }
 
 const padStep = (value: number): string => value.toString().padStart(2, '0');
+
+/** One finite subset of the five figures; keeps the formatter total over the keys. */
+const FINANCIAL_RESULT_KEYS: readonly FinancialResultKey[] = [
+  'totalAssets',
+  'totalLiabilities',
+  'equity',
+  'netIncome',
+  'netCashFlow',
+];
+
+const formatFinancialResult = (
+  result: FinancialResultVM,
+  drift?: FinancialDriftVM,
+): FinancialResultText =>
+  Object.fromEntries(
+    FINANCIAL_RESULT_KEYS.map((key) => {
+      const value = result[key];
+      if (value === null) return [key, MONTHLY_CLOSE_LABELS.NO_DATA];
+      const delta = drift?.[key] !== undefined ? formatDriftDelta(drift[key]) : null;
+      return [key, delta ?? formatCurrency(value)];
+    }),
+  ) as FinancialResultText;
 
 const snapshotCheck = (
   id: ReadinessCheckId,
@@ -177,45 +206,20 @@ export const mapReadinessVM = (input: ReadinessInput): ReadinessVM => {
 
   const checks: ReadinessCheckVM[] = [
     snapshotChecks[0],
-    {
-      id: 'TRANSACTION_VALIDATION',
-      label: CLOSE_STAGE_LABELS.TRANSACTION_VALIDATION,
-      passed: input.transactionIssues.length === 0,
-      countText: `${input.totalTransactions}`,
-    },
     securitiesCheck,
     ...snapshotChecks.slice(1),
   ];
 
   const transactionExceptions: ReadinessExceptionVM[] = input.transactionIssues.map((issue) => ({
-    label: CLOSE_STAGE_LABELS.TRANSACTION_VALIDATION,
+    label: MONTHLY_CLOSE_LABELS.TRANSACTION_ISSUES,
     detail: issue.description ? `${issue.description}：${issue.reason}` : issue.reason,
-    stageId: 'TRANSACTION_VALIDATION',
+    stageId: null,
   }));
 
-  // Zero-activity alerts pause the workflow as NEEDS_REVIEW (ADR-0050); the
-  // paused stage's own confirmation is the resolution action, not a blocker.
-  const zeroActivityExceptions: ReadinessExceptionVM[] = [
-    ...input.zeroActivityNames,
-    ...input.anomalies,
-  ].map((name) => ({
-    label: MONTHLY_CLOSE_LABELS.ZERO_ACTIVITY,
-    detail: name,
-    stageId: 'COMPLETENESS_CHECK',
-  }));
-
-  const exceptions: ReadinessExceptionVM[] = [
-    ...snapshotExceptions,
-    ...transactionExceptions,
-    ...zeroActivityExceptions,
-  ];
-
-  const hasBlockingExceptions = exceptions.some(
-    (exception) => exception.stageId !== 'COMPLETENESS_CHECK',
-  );
+  const exceptions: ReadinessExceptionVM[] = [...snapshotExceptions, ...transactionExceptions];
 
   return {
-    isReady: !hasBlockingExceptions,
+    isReady: exceptions.length === 0,
     checks,
     exceptions,
   };
@@ -235,6 +239,7 @@ export const mapCloseSummary = (input: CloseSummaryInput): CloseSummaryVM => {
   return {
     activity,
     financial: input.financialResult,
+    financialText: formatFinancialResult(input.financialResult, input.financialDrift),
     financialDrift: input.financialDrift,
     reports: input.reports,
     reportsGeneratedCount: input.reports.filter((report) => report.isGenerated === true).length,

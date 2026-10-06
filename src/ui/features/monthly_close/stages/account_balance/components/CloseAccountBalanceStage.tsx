@@ -1,15 +1,12 @@
-import React from 'react';
+import React, { type SetStateAction } from 'react';
 
-import { MONTHLY_CLOSE_LABELS } from '@/ui/constants/monthlyClose';
 import { CloseStageChrome } from '@/ui/features/monthly_close/components/CloseStageChrome';
-import { CloseStageEvidenceList } from '@/ui/features/monthly_close/components/CloseStageEvidenceList';
 import { CloseStageLoadError } from '@/ui/features/monthly_close/components/CloseStageLoadError';
 import {
   type Account,
   type AccountBalanceInput,
   type AccountSnapshot,
 } from '@/ui/features/monthly_close/viewmodels/accountBalance.vm';
-import { NO_EVIDENCE } from '@/ui/features/monthly_close/viewmodels/closeEvidence.vm';
 
 import { CloseAccountBalanceInputs } from './CloseAccountBalanceInputs';
 
@@ -25,8 +22,9 @@ interface CloseAccountBalanceStageProps {
   loadErrorMessage?: string | null;
   accounts: Account[];
   accountSnapshots: Map<string, AccountSnapshot>;
-  balances: AccountBalanceInput[];
-  setBalances: (value: AccountBalanceInput[]) => void;
+  /** null = the snapshot draft is unknown; the inputs surface waits for it. */
+  balances: AccountBalanceInput[] | null;
+  setBalances: (updater: SetStateAction<AccountBalanceInput[] | null>) => void;
   onConfirm: () => void;
   onBackToCurrent: () => void;
 }
@@ -64,12 +62,6 @@ export const CloseAccountBalanceStage: React.FC<CloseAccountBalanceStageProps> =
     onBackToCurrent={onBackToCurrent}
   >
     <CloseStageLoadError message={loadErrorMessage} />
-    <div>
-      <p className="mb-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-        {MONTHLY_CLOSE_LABELS.EVIDENCE_LABEL}
-      </p>
-      <CloseStageEvidenceList evidence={NO_EVIDENCE} />
-    </div>
     <CloseAccountBalanceInputs
       accounts={accounts}
       snapshots={accountSnapshots}

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { type SetStateAction, useEffect, useState } from 'react';
 
 import {
   DataTable,
@@ -15,7 +15,11 @@ import {
   parseOptionalAmount,
 } from '@/ui/components/data-table';
 import { Label } from '@/ui/components/ui/label';
-import { MONTHLY_CLOSE_LABELS } from '@/ui/constants/monthlyClose';
+import {
+  ACCOUNT_BALANCE_FIELD_LABELS,
+  ACCOUNT_BALANCE_SECTIONS,
+  MONTHLY_CLOSE_LABELS,
+} from '@/ui/constants/monthlyClose';
 import { useExchangeRate } from '@/ui/hooks/useExchangeRate';
 import { formatCurrency } from '@/ui/utils';
 
@@ -30,17 +34,13 @@ import {
   type AccountBalanceSectionKind,
   buildAccountBalanceSections,
   computeSectionInput,
+  foreignTwdValueText,
+  roundExchangeRate,
   upsertSectionInput,
 } from '../../../viewmodels/accountBalance.vm';
 import { AccountNameCell } from './AccountNameCell';
 import { ForeignMobileList, TwdMobileList } from './CloseAccountBalanceMobileLists';
 import { SecuritiesAccountRow } from './SecuritiesAccountRow';
-
-const SECTION_LABELS: Record<AccountBalanceSectionKind, string> = {
-  twd: '現金 / 銀行',
-  foreign: '外幣',
-  securities: '證券',
-};
 
 const sectionTitleClass = 'text-[13px] font-semibold uppercase tracking-[0.08em] text-foreground';
 
@@ -53,12 +53,6 @@ const sectionNoteClass =
  */
 const TWD_COLUMN_WIDTHS = [14, 22, 64] as const;
 const FOREIGN_COLUMN_WIDTHS = [14, 22, 22, 8, 34] as const;
-
-const SECTION_NOTES: Record<AccountBalanceSectionKind, string> = {
-  twd: 'Ending balance at period end',
-  foreign: 'TWD value is calculated automatically',
-  securities: 'Market value is calculated from holdings',
-};
 
 interface TwdAccountRowProps {
   entry: {
@@ -85,16 +79,15 @@ const TwdAccountRow: React.FC<TwdAccountRowProps> = ({
       <DataTableCell>
         <div className="flex justify-end">
           <Label htmlFor={`ending-${entry.account.id}`} className="sr-only">
-            期末餘額 {entry.account.name}
+            {MONTHLY_CLOSE_LABELS.CLOSING_BALANCE} {entry.account.name}
           </Label>
           <NumberInput
+            surface="table"
             id={`ending-${entry.account.id}`}
             className="w-full max-w-[220px]"
             disabled={isReadOnly}
-            value={input?.amount ?? ''}
-            onChange={(event) =>
-              onAmountChange(entry.account.id, parseOptionalAmount(event.target.value))
-            }
+            value={input?.amount?.toString() ?? ''}
+            onChange={(value) => onAmountChange(entry.account.id, parseOptionalAmount(value))}
           />
         </div>
       </DataTableCell>
@@ -106,8 +99,10 @@ const TwdTableHead: React.FC = () => (
   <TableHeader>
     <DataTableHeadRow>
       <DataTableHeadCell>帳戶</DataTableHeadCell>
-      <DataTableHeadCell align="number">前期餘額</DataTableHeadCell>
-      <DataTableHeadCell align="number">期末餘額</DataTableHeadCell>
+      <DataTableHeadCell align="number">
+        {ACCOUNT_BALANCE_FIELD_LABELS.PREVIOUS_MONTH_BALANCE}
+      </DataTableHeadCell>
+      <DataTableHeadCell align="number">{MONTHLY_CLOSE_LABELS.CLOSING_BALANCE}</DataTableHeadCell>
     </DataTableHeadRow>
   </TableHeader>
 );
@@ -132,13 +127,6 @@ const ForeignAccountRow: React.FC<ForeignAccountRowProps> = ({
   isReadOnly,
   onDetailChange,
 }) => {
-  const originalAmount = input?.originalAmount ?? 0;
-  const exchangeRate = input?.exchangeRate ?? 0;
-  const twdValue = computeSectionInput(
-    { accountId: entry.account.id, amount: 0, originalAmount, exchangeRate },
-    'foreign',
-  );
-
   return (
     <DataTableRow>
       <DataTableCell>
@@ -153,19 +141,16 @@ const ForeignAccountRow: React.FC<ForeignAccountRowProps> = ({
       <DataTableCell>
         <div className="flex justify-end">
           <Label htmlFor={`foreign-${entry.account.id}`} className="sr-only">
-            外幣金額 {entry.account.name}
+            {ACCOUNT_BALANCE_FIELD_LABELS.FOREIGN_AMOUNT} {entry.account.name}
           </Label>
           <NumberInput
+            surface="table"
             id={`foreign-${entry.account.id}`}
             className="w-full max-w-[150px]"
             disabled={isReadOnly}
-            value={input?.originalAmount ?? ''}
-            onChange={(event) =>
-              onDetailChange(
-                entry.account.id,
-                'originalAmount',
-                parseOptionalAmount(event.target.value),
-              )
+            value={input?.originalAmount?.toString() ?? ''}
+            onChange={(value) =>
+              onDetailChange(entry.account.id, 'originalAmount', parseOptionalAmount(value))
             }
           />
         </div>
@@ -173,26 +158,23 @@ const ForeignAccountRow: React.FC<ForeignAccountRowProps> = ({
       <DataTableCell>
         <div className="flex justify-end">
           <Label htmlFor={`rate-${entry.account.id}`} className="sr-only">
-            匯率 {entry.account.name}
+            {ACCOUNT_BALANCE_FIELD_LABELS.EXCHANGE_RATE} {entry.account.name}
           </Label>
           <NumberInput
+            surface="table"
             id={`rate-${entry.account.id}`}
             step="0.0001"
             className="w-full max-w-[110px]"
             disabled={isReadOnly}
-            value={input?.exchangeRate ?? ''}
-            onChange={(event) =>
-              onDetailChange(
-                entry.account.id,
-                'exchangeRate',
-                parseOptionalAmount(event.target.value),
-              )
+            value={input?.exchangeRate?.toString() ?? ''}
+            onChange={(value) =>
+              onDetailChange(entry.account.id, 'exchangeRate', parseOptionalAmount(value))
             }
           />
         </div>
       </DataTableCell>
       <DataTableCell align="number" className="font-medium text-foreground">
-        <span data-testid={`twd-value-${entry.account.id}`}>{formatCurrency(twdValue)}</span>
+        <span data-testid={`twd-value-${entry.account.id}`}>{foreignTwdValueText(input)}</span>
       </DataTableCell>
     </DataTableRow>
   );
@@ -202,10 +184,16 @@ const ForeignTableHead: React.FC = () => (
   <TableHeader>
     <DataTableHeadRow>
       <DataTableHeadCell>帳戶</DataTableHeadCell>
-      <DataTableHeadCell align="number">前期餘額</DataTableHeadCell>
-      <DataTableHeadCell align="number">外幣金額</DataTableHeadCell>
-      <DataTableHeadCell align="number">匯率</DataTableHeadCell>
-      <DataTableHeadCell align="number">TWD 價值</DataTableHeadCell>
+      <DataTableHeadCell align="number">
+        {ACCOUNT_BALANCE_FIELD_LABELS.PREVIOUS_MONTH_BALANCE}
+      </DataTableHeadCell>
+      <DataTableHeadCell align="number">
+        {ACCOUNT_BALANCE_FIELD_LABELS.FOREIGN_AMOUNT}
+      </DataTableHeadCell>
+      <DataTableHeadCell align="number">
+        {ACCOUNT_BALANCE_FIELD_LABELS.EXCHANGE_RATE}
+      </DataTableHeadCell>
+      <DataTableHeadCell align="number">{ACCOUNT_BALANCE_FIELD_LABELS.TWD_VALUE}</DataTableHeadCell>
     </DataTableHeadRow>
   </TableHeader>
 );
@@ -213,10 +201,11 @@ const ForeignTableHead: React.FC = () => (
 interface CloseAccountBalanceInputsProps {
   accounts: Account[];
   snapshots: Map<string, AccountSnapshot>;
-  inputs: AccountBalanceInput[];
+  /** null = the snapshot draft is unknown; auto-fetch waits for a known draft. */
+  inputs: AccountBalanceInput[] | null;
   /** Closed periods render read-only: inputs are disabled and rates stop auto-fetching. */
   isReadOnly?: boolean;
-  onInputsChange: (inputs: AccountBalanceInput[]) => void;
+  onInputsChange: (updater: SetStateAction<AccountBalanceInput[] | null>) => void;
 }
 
 const sectionKindOf = (accounts: Account[], accountId: string): AccountBalanceSectionKind => {
@@ -238,25 +227,32 @@ export const CloseAccountBalanceInputs: React.FC<CloseAccountBalanceInputsProps>
   const [rateError, setRateError] = useState<string | null>(null);
 
   const findInput = (accountId: string): AccountBalanceInput | undefined =>
-    inputs.find((item) => item.accountId === accountId);
+    inputs?.find((item) => item.accountId === accountId);
 
   const patchInput = (accountId: string, patch: Partial<AccountBalanceInput>): void => {
-    const kind = sectionKindOf(accounts, accountId);
-    const current = findInput(accountId);
-    const merged: AccountBalanceInput = {
-      accountId,
-      amount: current?.amount ?? 0,
-      ...current,
-      ...patch,
-    };
-    onInputsChange(
-      upsertSectionInput(inputs, { ...merged, amount: computeSectionInput(merged, kind) }, kind),
-    );
+    onInputsChange((previousInputs) => {
+      const previous = previousInputs ?? [];
+      const kind = sectionKindOf(accounts, accountId);
+      const current = previous.find((item) => item.accountId === accountId);
+      const merged: AccountBalanceInput = {
+        accountId,
+        amount: current?.amount ?? 0,
+        ...current,
+        ...patch,
+      };
+      return upsertSectionInput(
+        previous,
+        { ...merged, amount: computeSectionInput(merged, kind) },
+        kind,
+      );
+    });
   };
 
   const onTwdAmountChange = (accountId: string, amount: number | undefined): void => {
     if (amount === undefined) {
-      onInputsChange(inputs.filter((item) => item.accountId !== accountId));
+      onInputsChange((previousInputs) =>
+        (previousInputs ?? []).filter((item) => item.accountId !== accountId),
+      );
       return;
     }
     patchInput(accountId, { amount });
@@ -268,7 +264,7 @@ export const CloseAccountBalanceInputs: React.FC<CloseAccountBalanceInputsProps>
     value: number | undefined,
   ): void => {
     if (value === undefined) return;
-    patchInput(accountId, { [field]: field === 'exchangeRate' ? Number(value.toFixed(4)) : value });
+    patchInput(accountId, { [field]: field === 'exchangeRate' ? roundExchangeRate(value) : value });
   };
 
   const onHoldingsChange = (accountId: string, holdings: Holding[]): void => {
@@ -281,26 +277,37 @@ export const CloseAccountBalanceInputs: React.FC<CloseAccountBalanceInputsProps>
 
   const foreignAccounts = accounts.filter((account) => account.currency !== 'TWD');
 
+  // The inputs gate: a null draft means the snapshot prefill is still unknown,
+  // so the auto-fetch waits instead of landing its rate under a draft that the
+  // seed would then discard. Each run owns its own AbortController so a faster
+  // response cannot be superseded by a slower sibling (Supersede On Rapid Deps).
+  const autoFetchKey = isReadOnly
+    ? null
+    : `${foreignAccounts.map((account) => `${account.id}:${account.currency}`).join(',')}`;
+
   useEffect(() => {
-    if (isReadOnly) return;
-    let cancelled = false;
+    if (autoFetchKey === null || inputs === null) return;
+    const controller = new AbortController();
     for (const account of foreignAccounts) {
       if (findInput(account.id)?.exchangeRate !== undefined) continue;
-      void (async () => {
-        const rate = await getRate(account.currency as CurrencyCode, 'TWD');
-        if (cancelled || !rate.ok) {
-          if (!cancelled && !rate.ok) setRateError('取得匯率失敗，請稍後再試或手動輸入匯率');
-          return;
-        }
-        if (findInput(account.id)?.exchangeRate !== undefined) return;
-        patchInput(account.id, { exchangeRate: Number(rate.value.toFixed(4)) });
-      })();
+      void getRate(account.currency as CurrencyCode, 'TWD', {
+        signal: controller.signal,
+        writeBack: (result) => {
+          // An abandoned run never reaches here, so no stale error lands.
+          if (!result.ok) {
+            setRateError('取得匯率失敗，請稍後再試或手動輸入匯率');
+            return;
+          }
+          if (findInput(account.id)?.exchangeRate !== undefined) return;
+          patchInput(account.id, { exchangeRate: roundExchangeRate(result.value) });
+        },
+      });
     }
     return () => {
-      cancelled = true;
+      controller.abort();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [foreignAccounts.map((account) => account.id + account.currency).join(','), isReadOnly]);
+  }, [autoFetchKey, inputs === null]);
 
   const sections = buildAccountBalanceSections({ accounts, snapshots });
 
@@ -312,8 +319,8 @@ export const CloseAccountBalanceInputs: React.FC<CloseAccountBalanceInputsProps>
           className="space-y-4 border-b border-border pb-[30px] pt-[30px] first:pt-0 last:border-b-0 last:pb-0"
         >
           <div className="flex items-baseline justify-between">
-            <p className={sectionTitleClass}>{SECTION_LABELS[section.kind]}</p>
-            <p className={sectionNoteClass}>{SECTION_NOTES[section.kind]}</p>
+            <p className={sectionTitleClass}>{ACCOUNT_BALANCE_SECTIONS[section.kind].label}</p>
+            <p className={sectionNoteClass}>{ACCOUNT_BALANCE_SECTIONS[section.kind].note}</p>
           </div>
           {section.kind === 'twd' && section.accounts.length > 0 && (
             <DataTableScrollArea>

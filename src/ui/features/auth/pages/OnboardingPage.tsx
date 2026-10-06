@@ -2,58 +2,61 @@ import React from 'react';
 
 import { LogOut } from 'lucide-react';
 
+import { GateSurface } from '@/ui/components/GateSurface';
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+  TextInput,
+} from '@/ui/components/form';
+import { Alert, AlertDescription } from '@/ui/components/ui/alert';
 import { Button } from '@/ui/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/ui/card';
-import { Input } from '@/ui/components/ui/input';
-import { Label } from '@/ui/components/ui/label';
 import { useOnboarding } from '@/ui/features/auth/hooks/useOnboarding';
 
 const Onboarding: React.FC = () => {
-  const { input, setInput, loading, error, handleSubmit, handleLogout } = useOnboarding();
+  const { form, submit, error, isSubmitting, handleLogout } = useOnboarding();
 
   return (
-    <div className="min-h-screen bg-muted flex flex-col items-center justify-center p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader>
-          <div className="flex justify-between items-center">
-            <div>
-              <CardTitle>Create or Join Family</CardTitle>
-              <CardDescription className="mt-1.5">
-                Enter a household name or ID to get started
-              </CardDescription>
-            </div>
-            <Button variant="ghost" size="icon" onClick={handleLogout}>
-              <LogOut size={20} />
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {error && (
-              <div className="bg-destructive/10 text-destructive p-3 rounded-lg text-sm">
-                {error}
-              </div>
-            )}
+    <GateSurface className="space-y-6">
+      <div className="flex items-center justify-between gap-4">
+        <div className="space-y-1.5">
+          <h1 className="text-2xl font-bold text-foreground">Create or Join Family</h1>
+          <p className="text-sm text-muted-foreground">
+            Enter a household name or ID to get started
+          </p>
+        </div>
+        <Button variant="ghost" size="icon" onClick={handleLogout} aria-label="Log out">
+          <LogOut size={20} aria-hidden="true" />
+        </Button>
+      </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="household">Household Name or ID</Label>
-              <Input
-                id="household"
-                type="text"
-                required
-                placeholder="Enter a name to create or ID to join"
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-              />
-            </div>
+      <Form {...form}>
+        <form onSubmit={submit} className="space-y-4" noValidate>
+          {error && (
+            <Alert variant="destructive">
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
 
-            <Button type="submit" disabled={loading} className="w-full">
-              {loading ? 'Processing...' : 'Continue'}
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
-    </div>
+          <FormField name="input">
+            <FormItem>
+              <FormLabel required>Household Name or ID</FormLabel>
+              <FormControl>
+                <TextInput placeholder="Enter a name to create or ID to join" />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          </FormField>
+
+          <Button type="submit" disabled={isSubmitting} className="w-full">
+            {isSubmitting ? 'Processing...' : 'Continue'}
+          </Button>
+        </form>
+      </Form>
+    </GateSurface>
   );
 };
 

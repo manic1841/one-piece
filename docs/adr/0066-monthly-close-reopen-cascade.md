@@ -15,12 +15,12 @@ with `reviewSourceStageId = null`; those periods never auto-restore and are
 recovered by manually reopening them through the same confirm-dialog flow.
 
 **修訂（ADR-0070）：** cascade-demoted 期間的重開不再沿用「只撤回定案、保留
-已完成階段」——降級代表定案可能基於修正前的歷史，重開後全部九個階段重設為
+已完成階段」——降級代表定案可能基於修正前的歷史，重開後全部階段重設為
 `PENDING` 且狀態維持 `NEEDS_REVIEW`，恢復必須走強制的順序行走（見 ADR-0070）。
 `CLOSED` 期間的重開維持本 ADR 的原始行為。
 
 Considered options: a new `REOPENED` status value (rejected — indistinguishable
-from `IN_PROGRESS` in every consumer), resetting all nine stages to `PENDING`
+from `IN_PROGRESS` in every consumer), resetting all eight stages to `PENDING`
 (rejected — loses confirmation history and risks duplicate ledger entries from
 re-running transaction stages; the cascade-reopen revision supersedes this for
 demoted periods, where a full walk is the point), and cascading to all later

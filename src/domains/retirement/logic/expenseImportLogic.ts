@@ -1,5 +1,6 @@
 import { RetirementExpenseType } from '@/domains/retirement/schemas';
 import type { RetirementExpenseCategory } from '@/domains/retirement/types';
+import { newId } from '@/shared/id';
 
 export type PlannedExpense = {
   ledgerCode: string;
@@ -35,7 +36,7 @@ export function groupExpenseSuggestions(
   const categories: RetirementExpenseCategory[] = [];
   expenseMap.forEach((value, key) => {
     const category: RetirementExpenseCategory = {
-      id: crypto.randomUUID(),
+      id: newId(),
       name: toExpenseCategoryName(key),
       type: RetirementExpenseType.GENERAL,
       includesPrincipal: false,

@@ -1,16 +1,14 @@
 import { describe, expect, it } from 'vitest';
 
-import { type FinancialPeriod, initialStageStates } from './schemas';
+import { CLOSE_STAGE_IDS, type FinancialPeriod, initialStageStates } from './schemas';
 import {
   closePeriodInState,
   completedStageCount,
   confirmStageInState,
   isStageCompleted,
-  markNeedsReviewInState,
   reconfirmStageInState,
   reopenPeriodInState,
   resetStagesFromInState,
-  resolvePeriodStatus,
   resolveWalkPosition,
 } from './stateMachine';
 import { FinancialPeriodStateError } from './stateMachine';
@@ -25,16 +23,6 @@ const basePeriod = (overrides: Partial<FinancialPeriod> = {}): FinancialPeriod =
   updatedBy: 'user-1',
   updatedAt: new Date(),
   ...overrides,
-});
-
-describe('resolvePeriodStatus', () => {
-  it('treats a missing record as OPEN', () => {
-    expect(resolvePeriodStatus(null)).toBe('OPEN');
-  });
-
-  it('returns the persisted status when a record exists', () => {
-    expect(resolvePeriodStatus(basePeriod({ status: 'NEEDS_REVIEW' }))).toBe('NEEDS_REVIEW');
-  });
 });
 
 describe('confirmStageInState', () => {
@@ -97,36 +85,10 @@ describe('confirmStageInState', () => {
   });
 });
 
-describe('markNeedsReviewInState', () => {
-  it('records the review source stage', () => {
-    const next = markNeedsReviewInState(basePeriod(), 'COMPLETENESS_CHECK');
-
-    expect(next.status).toBe('NEEDS_REVIEW');
-    expect(next.reviewSourceStageId).toBe('COMPLETENESS_CHECK');
-  });
-
-  it('rejects review marking on a CLOSED period', () => {
-    expect(() =>
-      markNeedsReviewInState(basePeriod({ status: 'CLOSED' }), 'COMPLETENESS_CHECK'),
-    ).toThrow(FinancialPeriodStateError);
-  });
-
-  it('rejects an unknown review source stage', () => {
-    expect(() => markNeedsReviewInState(basePeriod(), 'NOT_A_STAGE' as never)).toThrow(
-      FinancialPeriodStateError,
-    );
-  });
-});
-
 describe('resolveWalkPosition', () => {
   it('returns the first PENDING stage in CLOSE_STAGE_IDS order', () => {
     const period = basePeriod({ status: 'NEEDS_REVIEW', reviewSourceStageId: null });
     period.stages.ACCOUNT_BALANCE = {
-      status: 'COMPLETED',
-      confirmedBy: 'u',
-      confirmedAt: new Date(),
-    };
-    period.stages.TRANSACTION_VALIDATION = {
       status: 'COMPLETED',
       confirmedBy: 'u',
       confirmedAt: new Date(),
@@ -177,7 +139,6 @@ describe('confirmStageInState — paused-period guards', () => {
     });
     for (const stageId of [
       'ACCOUNT_BALANCE',
-      'TRANSACTION_VALIDATION',
       'SECURITIES_TRADE',
       'PORTFOLIO_CASH_FLOW',
       'PROJECT_SETTLEMENT',
@@ -318,7 +279,6 @@ describe('resetStagesFromInState', () => {
     const next = resetStagesFromInState(period, 'SECURITIES_TRADE');
 
     expect(next.stages.ACCOUNT_BALANCE?.status).toBe('COMPLETED');
-    expect(next.stages.TRANSACTION_VALIDATION?.status).toBe('COMPLETED');
     expect(next.stages.SECURITIES_TRADE?.status).toBe('PENDING');
     expect(next.stages.COMPLETENESS_CHECK?.status).toBe('PENDING');
     expect(next.stages.CLOSE_PERIOD?.status).toBe('PENDING');
@@ -345,16 +305,23 @@ describe('resetStagesFromInState', () => {
 });
 
 describe('closePeriodInState', () => {
-  it('requires Close Period stage completed', () => {
-    expect(() => closePeriodInState(basePeriod(), 'user-1', new Date())).toThrow(
-      FinancialPeriodStateError,
+  /** Every walk stage has been confirmed; CLOSE_PERIOD itself completes on close. */
+  const readyToClose = (): FinancialPeriod['stages'] =>
+    Object.fromEntries(
+      CLOSE_STAGE_IDS.filter((stageId) => stageId !== 'CLOSE_PERIOD').map((stageId) => [
+        stageId,
+        { status: 'COMPLETED' as const },
+      ]),
     );
+
+  it('rejects closing while any stage is incomplete', () => {
+    const confirmed = confirmStageInState(basePeriod(), 'CLOSE_PERIOD', 'user-1', new Date());
+    expect(() => closePeriodInState(confirmed, 'user-1', new Date())).toThrow(/STAGES_INCOMPLETE/);
   });
 
-  it('finalizes the period as CLOSED when Close Period is confirmed', () => {
+  it('finalizes the period as CLOSED when every stage is completed', () => {
     const closedAt = new Date('2026-10-05T10:00:00Z');
-    const confirmed = confirmStageInState(basePeriod(), 'CLOSE_PERIOD', 'user-1', new Date());
-    const next = closePeriodInState(confirmed, 'user-1', closedAt);
+    const next = closePeriodInState(basePeriod({ stages: readyToClose() }), 'user-1', closedAt);
 
     expect(next.status).toBe('CLOSED');
     expect(next.reviewSourceStageId).toBeNull();
@@ -365,19 +332,9 @@ describe('closePeriodInState', () => {
     });
   });
 
-  it('allows closing when the Close Period stage is completed', () => {
-    const confirmed = confirmStageInState(basePeriod(), 'CLOSE_PERIOD', 'user-1', new Date());
-    const next = closePeriodInState(confirmed, 'user-1', new Date());
-
-    expect(next.status).toBe('CLOSED');
-  });
-
   it('rejects closing an already-closed period', () => {
-    const confirmed = confirmStageInState(basePeriod(), 'CLOSE_PERIOD', 'user-1', new Date());
-    const closed = closePeriodInState(confirmed, 'user-1', new Date());
+    const closed = closePeriodInState(basePeriod({ stages: readyToClose() }), 'user-1', new Date());
 
-    expect(() => closePeriodInState(closed, 'user-1', new Date())).toThrow(
-      FinancialPeriodStateError,
-    );
+    expect(() => closePeriodInState(closed, 'user-1', new Date())).toThrow(/PERIOD_CLOSED/);
   });
 });

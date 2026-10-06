@@ -8,6 +8,7 @@ import {
   type RetirementPlanCreate,
 } from '@/domains/retirement/types';
 import { optionalNumber, requiredNumber } from '@/shared/schemas/coerce';
+import { RetirementFormValidationLabels as M } from '@/ui/constants/retirement/formValidationLabels';
 
 import { type RetirementAssumptionsDisplayVM } from './retirementDisplay.vm';
 
@@ -35,7 +36,7 @@ const requiredYear = (message: string) =>
   requiredNumber(message).refine((value) => Number.isInteger(value), { error: message });
 
 export const RetirementIncomeFormVMSchema = z.object({
-  name: z.string().min(1, '請輸入名稱'),
+  name: z.string().min(1, M.name),
   // Import provenance, carried read-only through the form: an edit must never
   // destroy the ledger link (#133), so it rides along in the form values.
   calculatedFrom: z
@@ -53,10 +54,10 @@ export const RetirementIncomeFormVMSchema = z.object({
   lifelong: z.boolean().default(false),
   /** Import-derived; shown read-only. */
   currentAnnual: z.number().finite().nullable(),
-  retirementAnnual: optionalNumber('請輸入有效金額'),
-  growthRate: optionalNumber('請輸入有效成長率'),
-  startYear: requiredYear('請輸入開始年度'),
-  endYear: optionalNumber('請輸入結束年度'),
+  retirementAnnual: optionalNumber(M.validAmount),
+  growthRate: optionalNumber(M.growthRate),
+  startYear: requiredYear(M.startYear),
+  endYear: optionalNumber(M.endYear),
   note: z.string().optional(),
 });
 
@@ -113,7 +114,7 @@ export const mapRetirementIncomeVMToDomain = (
 
 export const RetirementExpenseFormVMSchema = z
   .object({
-    name: z.string().min(1, '請輸入名稱'),
+    name: z.string().min(1, M.name),
     // Debt-derived provenance, read-only in the form.
     sourceDebtAccountId: z.string().optional(),
     type: z.nativeEnum(RetirementExpenseType).default(RetirementExpenseType.GENERAL),
@@ -131,10 +132,10 @@ export const RetirementExpenseFormVMSchema = z
       })
       .optional(),
     expenseCategory: z.string().optional(),
-    currentAnnual: requiredNumber('請輸入目前年支出'),
-    growthRate: optionalNumber('請輸入有效成長率'),
-    retirementMultiplier: requiredNumber('請輸入退休後費用比例'), // stored as 0–100 in the form
-    startYear: requiredYear('請輸入開始年度'),
+    currentAnnual: requiredNumber(M.currentAnnual),
+    growthRate: optionalNumber(M.growthRate),
+    retirementMultiplier: requiredNumber(M.retirementMultiplier), // stored as 0–100 in the form
+    startYear: requiredYear(M.startYear),
     endYear: z.string().optional(),
     note: z.string().optional(),
   })
@@ -145,7 +146,7 @@ export const RetirementExpenseFormVMSchema = z
     if (value.type === RetirementExpenseType.DEBT_PAYMENT && !value.endYear) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message: '請輸入結束年度',
+        message: M.endYear,
         path: ['endYear'],
       });
     }
@@ -208,19 +209,19 @@ export const mapRetirementExpenseVMToDomain = (
 });
 
 export const RetirementEventFormVMSchema = z.object({
-  name: z.string().min(1, '請輸入事件名稱'),
+  name: z.string().min(1, M.eventName),
   type: z.enum(['income', 'expense']),
   phases: z
     .array(
       z.object({
-        name: z.string().min(1, '請輸入階段名稱'),
-        startYear: requiredYear('請輸入開始年度'),
-        endYear: requiredYear('請輸入結束年度'),
-        amount: requiredNumber('請輸入金額'),
-        growthRate: optionalNumber('請輸入有效成長率'),
+        name: z.string().min(1, M.phaseName),
+        startYear: requiredYear(M.startYear),
+        endYear: requiredYear(M.endYear),
+        amount: requiredNumber(M.eventAmount),
+        growthRate: optionalNumber(M.growthRate),
       }),
     )
-    .min(1, '至少需要一個階段'),
+    .min(1, M.atLeastOnePhase),
   note: z.string().optional(),
 });
 
@@ -291,16 +292,16 @@ export const mapRetirementEventVMToDomain = (
 });
 
 export const RetirementAssumptionsFormVMSchema = z.object({
-  currentYear: requiredYear('請輸入目前年度'),
-  birthYear: requiredYear('請輸入出生年度'),
-  retirementAge: requiredYear('請輸入退休年齡').refine((value) => value > 0, {
-    error: '請輸入退休年齡',
+  currentYear: requiredYear(M.currentYear),
+  birthYear: requiredYear(M.birthYear),
+  retirementAge: requiredYear(M.retirementAge).refine((value) => value > 0, {
+    error: M.retirementAge,
   }),
-  lifeExpectancy: requiredYear('請輸入預期壽命').refine((value) => value > 0, {
-    error: '請輸入預期壽命',
+  lifeExpectancy: requiredYear(M.lifeExpectancy).refine((value) => value > 0, {
+    error: M.lifeExpectancy,
   }),
-  inflationRate: requiredNumber('請輸入通膨率'),
-  investmentReturnRate: requiredNumber('請輸入投資報酬率'),
+  inflationRate: requiredNumber(M.inflationRate),
+  investmentReturnRate: requiredNumber(M.investmentReturnRate),
 });
 
 export type RetirementAssumptionsFormInput = z.input<typeof RetirementAssumptionsFormVMSchema>;

@@ -17,20 +17,22 @@ import {
   TableHeader,
   dataTableLabelClass,
   parseOptionalAmount,
+  textInputCompactClass,
 } from '@/ui/components/data-table';
 import { Button } from '@/ui/components/ui/button';
 import { Input } from '@/ui/components/ui/input';
 import { Label } from '@/ui/components/ui/label';
-import { formatCurrency } from '@/ui/utils';
+import { ACCOUNT_BALANCE_FIELD_LABELS } from '@/ui/constants/monthlyClose';
 import { cn } from '@/ui/utils/cn';
 
 import type { Account, AccountBalanceInput, Holding } from '../../../viewmodels/accountBalance.vm';
-import { computeSectionInput } from '../../../viewmodels/accountBalance.vm';
+import {
+  holdingsMarketValueText,
+  securitiesTwdValueText,
+} from '../../../viewmodels/accountBalance.vm';
 
 /** 欄寬契約：總和必須等於 100（Symbol/Name/Cost/Value/Leverage 均分 + actions 7%）。 */
 const SECURITIES_COLUMN_WIDTHS = [18.6, 18.6, 18.6, 18.6, 18.6, 7] as const;
-
-const textInputClass = 'h-8 rounded-none border-border bg-muted px-2.5 text-xs';
 
 const toNumber = (value: string): number => {
   const parsed = Number.parseFloat(value);
@@ -60,8 +62,6 @@ export const SecuritiesAccountRow: React.FC<SecuritiesAccountRowProps> = ({
 }) => {
   const holdings = input?.holdings ?? [];
   const isForeign = entry.account.currency !== 'TWD';
-  const holdingsSum = holdings.reduce((sum, holding) => sum + (holding.marketValue || 0), 0);
-  const twdValue = input ? computeSectionInput(input, 'securities') : 0;
   const canImport = !isReadOnly && entry.canImportPrevious && previousHoldings.length > 0;
 
   const updateHolding = (index: number, field: keyof Holding, value: string): void => {
@@ -131,7 +131,7 @@ export const SecuritiesAccountRow: React.FC<SecuritiesAccountRowProps> = ({
                     <DataTableCell className="pl-3">
                       <Input
                         aria-label={`Symbol ${index + 1}`}
-                        className={textInputClass}
+                        className={textInputCompactClass}
                         disabled={isReadOnly}
                         value={holding.symbol}
                         onChange={(event) => updateHolding(index, 'symbol', event.target.value)}
@@ -140,7 +140,7 @@ export const SecuritiesAccountRow: React.FC<SecuritiesAccountRowProps> = ({
                     <DataTableCell className="pl-3">
                       <Input
                         aria-label={`Name ${index + 1}`}
-                        className={textInputClass}
+                        className={textInputCompactClass}
                         disabled={isReadOnly}
                         value={holding.name}
                         onChange={(event) => updateHolding(index, 'name', event.target.value)}
@@ -148,36 +148,37 @@ export const SecuritiesAccountRow: React.FC<SecuritiesAccountRowProps> = ({
                     </DataTableCell>
                     <DataTableCell className="pl-3">
                       <NumberInput
+                        surface="table"
                         aria-label={`Cost ${index + 1}`}
                         compact
                         className="w-full"
                         disabled={isReadOnly}
-                        value={holding.cost}
-                        onChange={(event) => updateHolding(index, 'cost', event.target.value)}
+                        value={holding.cost.toString()}
+                        onChange={(value) => updateHolding(index, 'cost', value)}
                       />
                     </DataTableCell>
                     <DataTableCell className="pl-3">
                       <NumberInput
+                        surface="table"
                         aria-label={`Value ${index + 1}`}
                         compact
                         className="w-full"
                         disabled={isReadOnly}
-                        value={holding.marketValue}
-                        onChange={(event) =>
-                          updateHolding(index, 'marketValue', event.target.value)
-                        }
+                        value={holding.marketValue.toString()}
+                        onChange={(value) => updateHolding(index, 'marketValue', value)}
                       />
                     </DataTableCell>
                     <DataTableCell className="pl-3">
                       <NumberInput
+                        surface="table"
                         aria-label={`Leverage ${index + 1}`}
                         compact
                         step="0.01"
                         placeholder="1"
                         className="w-full"
                         disabled={isReadOnly}
-                        value={holding.leverage ?? ''}
-                        onChange={(event) => updateHolding(index, 'leverage', event.target.value)}
+                        value={holding.leverage?.toString() ?? ''}
+                        onChange={(value) => updateHolding(index, 'leverage', value)}
                       />
                     </DataTableCell>
                     {!isReadOnly && (
@@ -222,33 +223,36 @@ export const SecuritiesAccountRow: React.FC<SecuritiesAccountRowProps> = ({
                   <div>
                     <p className={dataTableLabelClass}>Cost</p>
                     <NumberInput
+                      surface="table"
                       aria-label={`Cost ${index + 1}`}
                       compact
                       disabled={isReadOnly}
-                      value={holding.cost}
-                      onChange={(event) => updateHolding(index, 'cost', event.target.value)}
+                      value={holding.cost.toString()}
+                      onChange={(value) => updateHolding(index, 'cost', value)}
                     />
                   </div>
                   <div>
                     <p className={dataTableLabelClass}>Value</p>
                     <NumberInput
+                      surface="table"
                       aria-label={`Value ${index + 1}`}
                       compact
                       disabled={isReadOnly}
-                      value={holding.marketValue}
-                      onChange={(event) => updateHolding(index, 'marketValue', event.target.value)}
+                      value={holding.marketValue.toString()}
+                      onChange={(value) => updateHolding(index, 'marketValue', value)}
                     />
                   </div>
                   <div>
                     <p className={dataTableLabelClass}>Leverage</p>
                     <NumberInput
+                      surface="table"
                       aria-label={`Leverage ${index + 1}`}
                       compact
                       step="0.01"
                       placeholder="1"
                       disabled={isReadOnly}
-                      value={holding.leverage ?? ''}
-                      onChange={(event) => updateHolding(index, 'leverage', event.target.value)}
+                      value={holding.leverage?.toString() ?? ''}
+                      onChange={(value) => updateHolding(index, 'leverage', value)}
                     />
                   </div>
                 </div>
@@ -273,35 +277,34 @@ export const SecuritiesAccountRow: React.FC<SecuritiesAccountRowProps> = ({
         <div className="text-right">
           <p className={dataTableLabelClass}>市值</p>
           <p className="font-mono text-sm font-medium tabular-nums text-foreground">
-            {formatCurrency(holdingsSum)}
+            {holdingsMarketValueText(input)}
           </p>
         </div>
       </div>
       {isForeign && (
         <div className="flex items-start justify-between gap-4 border-t border-border/60 pt-3 md:justify-end md:gap-6">
           <div className="space-y-1 md:text-right">
-            <p className={dataTableLabelClass}>匯率</p>
+            <p className={dataTableLabelClass}>{ACCOUNT_BALANCE_FIELD_LABELS.EXCHANGE_RATE}</p>
             <Label htmlFor={`sec-rate-${entry.account.id}`} className="sr-only">
-              匯率 {entry.account.name}
+              {ACCOUNT_BALANCE_FIELD_LABELS.EXCHANGE_RATE} {entry.account.name}
             </Label>
             <NumberInput
+              surface="table"
               id={`sec-rate-${entry.account.id}`}
               step="0.0001"
               className="w-28 md:ml-auto"
               disabled={isReadOnly}
-              value={input?.exchangeRate ?? ''}
-              onChange={(event) =>
-                onRateChange(entry.account.id, parseOptionalAmount(event.target.value))
-              }
+              value={input?.exchangeRate?.toString() ?? ''}
+              onChange={(value) => onRateChange(entry.account.id, parseOptionalAmount(value))}
             />
           </div>
           <div className="text-right">
-            <p className={dataTableLabelClass}>TWD 價值</p>
+            <p className={dataTableLabelClass}>{ACCOUNT_BALANCE_FIELD_LABELS.TWD_VALUE}</p>
             <p
               data-testid={`twd-value-${entry.account.id}`}
               className="font-mono text-sm font-medium tabular-nums text-foreground"
             >
-              {formatCurrency(twdValue)}
+              {securitiesTwdValueText(input)}
             </p>
           </div>
         </div>

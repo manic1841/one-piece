@@ -1,8 +1,10 @@
 import React from 'react';
 
-import { HandCoins, Landmark, ReceiptText, SlidersHorizontal } from 'lucide-react';
+import { Landmark, ReceiptText, SlidersHorizontal } from 'lucide-react';
 
+import { Divider } from '@/ui/components/Divider';
 import { Form } from '@/ui/components/form';
+import { Alert, AlertDescription } from '@/ui/components/ui/alert';
 import { Badge } from '@/ui/components/ui/badge';
 import { Button } from '@/ui/components/ui/button';
 import {
@@ -16,7 +18,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/ui/components/ui/tab
 import { getIntentTypeLabel } from '@/ui/constants/transaction';
 import { type LedgerCodeItem } from '@/ui/features/ledger/hooks/useLedgerCodes';
 import { AdvancedPanel } from '@/ui/features/transaction/components/form/AdvancedPanel';
-import { CategoryPanel } from '@/ui/features/transaction/components/form/CategoryPanel';
 import { ExpensePanel } from '@/ui/features/transaction/components/form/ExpensePanel';
 import { IncomePanel } from '@/ui/features/transaction/components/form/IncomePanel';
 import { useTransactionFormState } from '@/ui/features/transaction/hooks/useTransactionFormState';
@@ -40,8 +41,6 @@ interface TransactionFormProps {
   projects: TransactionFormProjectOption[];
   expenseCategories: TransactionFormCategoryOption[];
   incomeCategories: TransactionFormCategoryOption[];
-  investmentCategories: TransactionFormCategoryOption[];
-  financingCategories: TransactionFormCategoryOption[];
   advancedCategories: TransactionFormCategoryOption[];
   allActiveLedgerCodes: LedgerCodeItem[];
   loadIncomeAllocationTemplate?: (ledgerCode: string) => Promise<AllocationItemInput[] | null>;
@@ -63,8 +62,6 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
   projects,
   expenseCategories,
   incomeCategories,
-  investmentCategories,
-  financingCategories,
   advancedCategories,
   allActiveLedgerCodes,
   loadIncomeAllocationTemplate,
@@ -74,8 +71,6 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
     setActiveTab,
     expenseForm,
     incomeForm,
-    investmentForm,
-    financingForm,
     advancedForm,
     preview,
     previewDetails,
@@ -86,8 +81,6 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
     projects,
     expenseCategories,
     incomeCategories,
-    investmentCategories,
-    financingCategories,
     advancedCategories,
     loadIncomeAllocationTemplate,
   });
@@ -107,18 +100,15 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
         className="max-h-[90vh] max-w-4xl overflow-y-auto"
         aria-describedby={undefined}
       >
-        <DialogHeader className="space-y-2">
-          <Badge variant="outline" className="w-fit">
-            Transaction Form
-          </Badge>
+        <DialogHeader>
           <DialogTitle>{mode === 'edit' ? '編輯交易' : '新增交易'}</DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-5" noValidate>
           {error ? (
-            <div className="rounded-lg border border-negative/20 bg-negative/10 px-4 py-3 text-sm text-negative">
-              {error}
-            </div>
+            <Alert variant="destructive" className="border-negative/20 bg-negative/10">
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
           ) : null}
 
           <Tabs
@@ -133,14 +123,6 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
               <TabsTrigger value="INCOME" className="gap-1">
                 <Landmark className="h-3.5 w-3.5" />
                 {getIntentTypeLabel('INCOME')}
-              </TabsTrigger>
-              <TabsTrigger value="INVESTMENT" className="gap-1">
-                <Landmark className="h-3.5 w-3.5" />
-                {getIntentTypeLabel('INVESTMENT')}
-              </TabsTrigger>
-              <TabsTrigger value="FINANCING" className="gap-1">
-                <HandCoins className="h-3.5 w-3.5" />
-                {getIntentTypeLabel('FINANCING')}
               </TabsTrigger>
               <TabsTrigger value="ADVANCED" className="gap-1">
                 <SlidersHorizontal className="h-3.5 w-3.5" />
@@ -168,30 +150,6 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
               </Form>
             </TabsContent>
 
-            <TabsContent value="INVESTMENT" className="mt-4">
-              <Form {...investmentForm}>
-                <CategoryPanel
-                  title={getIntentTypeLabel('INVESTMENT')}
-                  tone="neutral"
-                  categories={investmentCategories}
-                  projects={projects}
-                  allLedgerCodes={allActiveLedgerCodes}
-                />
-              </Form>
-            </TabsContent>
-
-            <TabsContent value="FINANCING" className="mt-4">
-              <Form {...financingForm}>
-                <CategoryPanel
-                  title={getIntentTypeLabel('FINANCING')}
-                  tone="neutral"
-                  categories={financingCategories}
-                  projects={projects}
-                  allLedgerCodes={allActiveLedgerCodes}
-                />
-              </Form>
-            </TabsContent>
-
             <TabsContent value="ADVANCED" className="mt-4">
               <Form {...advancedForm}>
                 <AdvancedPanel projects={projects} allLedgerCodes={allActiveLedgerCodes} />
@@ -199,8 +157,10 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
             </TabsContent>
           </Tabs>
 
+          <Divider />
+
           {preview ? (
-            <div className="rounded-lg border bg-primary px-4 py-3 text-primary-foreground">
+            <div className="rounded-lg bg-primary px-4 py-3 text-primary-foreground">
               <div className="text-xs uppercase tracking-[0.2em] text-primary-foreground">
                 Preview
               </div>

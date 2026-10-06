@@ -1,12 +1,15 @@
 import React from 'react';
 
 import { StatusGlyph } from '@/ui/components/StatusGlyph';
+import { useConfirm } from '@/ui/components/confirm/useConfirm';
+import { eyebrowClass } from '@/ui/components/eyebrow';
+import { Alert, AlertDescription } from '@/ui/components/ui/alert';
 import { Button } from '@/ui/components/ui/button';
 import { MONTHLY_CLOSE_LABELS } from '@/ui/constants/monthlyClose';
-import { useConfirm } from '@/ui/features/app/confirm/useConfirm';
+import { CloseSectionHeading } from '@/ui/features/monthly_close/components/CloseSectionHeading';
 import { CloseStageLoadError } from '@/ui/features/monthly_close/components/CloseStageLoadError';
-import { formatDriftDelta, isDrifted } from '@/ui/features/monthly_close/viewmodels/reportDrift.vm';
-import { cn, formatCurrency } from '@/ui/utils';
+import { isDrifted } from '@/ui/features/monthly_close/viewmodels/reportDrift.vm';
+import { cn } from '@/ui/utils';
 
 import {
   CLOSE_ACTIVITY_STATUS,
@@ -16,17 +19,18 @@ import {
 
 interface CloseSummaryPanelProps {
   summary: CloseSummaryVM;
-  /** Set when the report data Step 9 renders failed to load (#228). */
+  /** Set when the report data CLOSE_PERIOD renders failed to load (#228). */
   loadErrorMessage?: string | null;
   /**
-   * Whether any figure in Step 8's statements drifted from the persisted report
-   * (#234). Derived live by the registry from the drift tree Step 8 already
-   * renders, so the gate cannot disagree with the warnings the user saw. A
-   * boolean, not a count: the tree mixes independent figures with render-time
-   * sums the screen does not draw, so no tally matches what the user can count.
+   * Whether any figure in FINANCIAL_REPORTS statements drifted from the
+   * persisted report (#234). Derived live by the registry from the drift tree
+   * FINANCIAL_REPORTS already renders, so the gate cannot disagree with the
+   * warnings the user saw. A boolean, not a count: the tree mixes independent
+   * figures with render-time sums the screen does not draw, so no tally matches
+   * what the user can count.
    */
   hasDrift: boolean;
-  /** Sends the user back to Step 8 to regenerate the reports. */
+  /** Sends the user back to FINANCIAL_REPORTS to regenerate the reports. */
   onReviewReports: () => void;
   onClose: () => void;
   confirming: boolean;
@@ -71,30 +75,25 @@ export const CloseSummaryPanel: React.FC<CloseSummaryPanelProps> = ({
   return (
     <section className="space-y-6 pt-8" data-testid="close-summary-panel">
       <CloseStageLoadError message={loadErrorMessage} />
-      <div className="flex flex-wrap items-end justify-between gap-3 border-b border-border pb-4">
-        <div className="space-y-1">
-          <p className="text-[11px] uppercase tracking-[0.12em] text-muted-foreground">
-            {MONTHLY_CLOSE_LABELS.SUMMARY_LABEL}
-          </p>
-          <h2 className="text-[22px] font-medium leading-tight text-foreground">
-            {MONTHLY_CLOSE_LABELS.SUMMARY_TITLE}
-          </h2>
-        </div>
-        <span className="font-mono text-[13px] tabular-nums text-muted-foreground">
-          {summary.reportsGeneratedCount} / {summary.reports.length}
-        </span>
-      </div>
+      <CloseSectionHeading
+        eyebrow={MONTHLY_CLOSE_LABELS.SUMMARY_LABEL}
+        title={MONTHLY_CLOSE_LABELS.SUMMARY_TITLE}
+        trailing={
+          <span className="font-mono text-[13px] tabular-nums text-muted-foreground">
+            {summary.reportsGeneratedCount} / {summary.reports.length}
+          </span>
+        }
+        className="border-b border-border pb-4"
+      />
 
       <div className="grid gap-6 lg:grid-cols-2">
         <div className="space-y-2">
-          <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-            {MONTHLY_CLOSE_LABELS.SUMMARY_ACTIVITY}
-          </p>
+          <p className={eyebrowClass}>{MONTHLY_CLOSE_LABELS.SUMMARY_ACTIVITY}</p>
           <ul className="space-y-1">
             {summary.activity.map((row) => (
               <li
                 key={row.stepText}
-                className="flex items-center justify-between gap-3 rounded-lg px-3 py-2 odd:bg-muted/30"
+                className="flex items-center justify-between gap-3 border-b border-border/60 px-3 py-2 last:border-b-0"
               >
                 <div className="flex min-w-0 items-center gap-2">
                   <StatusGlyph
@@ -114,18 +113,14 @@ export const CloseSummaryPanel: React.FC<CloseSummaryPanelProps> = ({
 
         <div className="space-y-4">
           <div className="space-y-2">
-            <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-              {MONTHLY_CLOSE_LABELS.SUMMARY_FINANCIAL}
-            </p>
+            <p className={eyebrowClass}>{MONTHLY_CLOSE_LABELS.SUMMARY_FINANCIAL}</p>
             <div className="space-y-1">
               {financialRows.map((row) => {
-                const value = summary.financial[row.key];
                 const drift = summary.financialDrift?.[row.key];
-                const delta = drift ? formatDriftDelta(drift) : null;
                 return (
                   <div
                     key={row.key}
-                    className="flex items-center justify-between rounded-lg px-3 py-2 odd:bg-muted/30"
+                    className="flex items-center justify-between border-b border-border/60 px-3 py-2 last:border-b-0"
                   >
                     <span className="text-sm text-foreground">{row.label}</span>
                     <span
@@ -134,9 +129,7 @@ export const CloseSummaryPanel: React.FC<CloseSummaryPanelProps> = ({
                         isDrifted(drift) ? 'text-warning' : 'text-muted-foreground',
                       )}
                     >
-                      {value === null
-                        ? MONTHLY_CLOSE_LABELS.NO_DATA
-                        : (delta ?? formatCurrency(value))}
+                      {summary.financialText[row.key]}
                     </span>
                   </div>
                 );
@@ -145,14 +138,12 @@ export const CloseSummaryPanel: React.FC<CloseSummaryPanelProps> = ({
           </div>
 
           <div className="space-y-2">
-            <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-              {MONTHLY_CLOSE_LABELS.SUMMARY_REPORTS}
-            </p>
+            <p className={eyebrowClass}>{MONTHLY_CLOSE_LABELS.SUMMARY_REPORTS}</p>
             <div className="space-y-1">
               {summary.reports.map((report) => (
                 <div
                   key={report.title}
-                  className="flex items-center justify-between rounded-lg px-3 py-2 odd:bg-muted/30"
+                  className="flex items-center justify-between border-b border-border/60 px-3 py-2 last:border-b-0"
                 >
                   <span className="text-sm text-foreground">{report.title}</span>
                   <StatusGlyph
@@ -181,24 +172,24 @@ export const CloseSummaryPanel: React.FC<CloseSummaryPanelProps> = ({
       {!isReadOnly && (
         <div className="space-y-3 border-t border-border pt-[26px]">
           {/* The backend close gate only checks that the reports are persisted,
-              so a drift that appeared after Step 8 was confirmed would be frozen
-              into the closed period. The block lives here, next to the action
-              it refuses (#234). */}
+              so a drift that appeared after FINANCIAL_REPORTS was confirmed
+              would be frozen into the closed period. The block lives here, next
+              to the action it refuses (#234). */}
           {hasDrift && (
-            <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-warning/30 bg-warning/10 px-4 py-3">
-              <p className="text-sm text-warning" role="alert" data-testid="close-drift-block">
-                {MONTHLY_CLOSE_LABELS.DRIFT_BLOCK_MESSAGE}
-              </p>
-              <Button
-                type="button"
-                variant="outline"
-                data-testid="review-reports"
-                onClick={onReviewReports}
-                className="h-8 shrink-0 px-3 text-xs font-semibold"
-              >
-                {MONTHLY_CLOSE_LABELS.DRIFT_BLOCK_ACTION}
-              </Button>
-            </div>
+            <Alert variant="warning" data-testid="close-drift-block">
+              <AlertDescription className="flex flex-wrap items-center justify-between gap-3">
+                <span className="text-warning">{MONTHLY_CLOSE_LABELS.DRIFT_BLOCK_MESSAGE}</span>
+                <Button
+                  type="button"
+                  variant="outline"
+                  data-testid="review-reports"
+                  onClick={onReviewReports}
+                  className="h-8 shrink-0 px-3 text-xs font-semibold"
+                >
+                  {MONTHLY_CLOSE_LABELS.DRIFT_BLOCK_ACTION}
+                </Button>
+              </AlertDescription>
+            </Alert>
           )}
           <div className="flex items-center justify-end">
             <Button

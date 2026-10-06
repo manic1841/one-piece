@@ -3,12 +3,16 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    command: pnpm dev --host 0.0.0.0
+    # command: pnpm dev --host 0.0.0.0
+    command: tail -f /dev/null
     depends_on:
       firebase:
         condition: service_healthy
     environment:
-      CHOKIDAR_USEPOLLING: 'true'
+      # inotify 充足（max_user_watches=1048576），不需輪詢，避免背景燒 CPU
+      CHOKIDAR_USEPOLLING: 'false'
+      # 固定共用同一份 pnpm store（絕對路徑），讓 repo 與所有 worktree 都能 hardlink
+      npm_config_store_dir: /workspace/one-piece/.pnpm-store
       FIREBASE_AUTH_EMULATOR_HOST: http://firebase:9099
       FIREBASE_PROJECT_ID: demo-project
       FIRESTORE_EMULATOR_HOST: firebase:8080
@@ -20,8 +24,11 @@ services:
     ports:
       - '${VITE_PORT:-5173}:5173'
     volumes:
-      - .:/workspace
-      - node_modules:/workspace/node_modules
+      # host 上 repo 的父目錄 → VS Code 建的 worktree sibling 落在此，
+      # 與 pnpm store 同檔案系統（可 hardlink）、且持久不隨容器重建消失。
+      # repo 本身會以 host 資料夾名出現在 /workspace/one-piece；
+      # 不再額外掛 .:/workspace/main，避免同一份被掛成兩個路徑。
+      - ..:/workspace
 
   firebase:
     build:
@@ -43,4 +50,3 @@ services:
 
 volumes:
   firebase_data:
-  node_modules:

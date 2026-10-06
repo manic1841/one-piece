@@ -64,7 +64,7 @@
 - **維護結構參考**: 如果修改了資料結構，更新 `docs/data-structure.md` 的欄位清單與 ADR 連結。
 - **保持 `docs/` 的準確性**: 主題文件說明現在如何運作，規範細節住在這裡；決策理由集中在 ADR。
 - **效能考量**: 避免在前端進行超大規模的資料處理與循環引用。
-- **備份/還原流程**: Settings 提供 household 等級的 JSON 備份與還原。還原應包含各主集合與其 snapshot 子集合，並限制為 household owner/admin（或 global admin）可執行。
+- **備份/還原流程**: Settings 提供 household 等級的 JSON 備份與還原，限制為 household owner/admin（或 global admin）可執行。備份涵蓋 household 資料域全部集合：根文檔、四個含 snapshot 子集合的實體（accounts/projects/portfolios/debtAccounts）、retirement_plans（子集合內嵌於計畫文檔）、transactions、reports、allocations、allocationTemplates、ledgerCodes、intentMappings、financialPeriods；coverage 由 `backupCoverage.test.ts` 靜態掃描把關，新增集合未更新備份會讓測試失敗。三項設計排除：`operations`（冪等鍵紀錄，還原舊紀錄干擾重試與去重語意）、`users` 與 `access_control`（全域身分與存取層，隨備份還原有安全風險）。匯入以與匯出同組 domain schema 驗證 payload，驗證失敗即中止、不刪任何資料；刪除逐集合條件化，舊 v1 備份缺 `financialPeriods` 鍵時本地該集合不受影響。**已退役的集合**若仍出現在舊 v1 備份中，匯入時一律忽略（不還原、不刪除本地資料），取捨見 ADR-0080。還原信任備份值不重算衍生欄位，備份越舊其中的快取觀察值（debtAccount 餘額、專案快照餘額）越陳舊。
 
 ### 文件分工：每份文件回答什麼問題
 
@@ -128,20 +128,21 @@ ADR 回答的是**當初為什麼這樣決定**。規範細節（欄位、enum�
 AI agent 修改或建立任何 UI 時，**必須**遵守：
 
 1. 先讀 `docs/ui/` 下的呈現層文件，再動手。
-2. 重用既有的 design token。
-3. 盡可能重用既有元件。
-4. 不在沒有正當理由的情況下引入新顏色。
-5. 不引入新的字體排印。
-6. 不使用大型圓角卡片。
-7. 不使用裝飾性漸層。
-8. 維持既有的資訊層級。
-9. 維持既有的導航決策。
-10. 維持財務資料的語意。
-11. 不重複財務資料的輸入流程。
-12. 優先採用可推導的值，而非要求使用者重複輸入。
-13. 將 Monthly Close 視為 workflow。
-14. 將 Navigator 視為獨立的導航層。
-15. Pixel Pet 的行為與其最終美術素材保持獨立。
+2. 新畫面開發一律先照 `/gallery` 路由的對應 section 實作（gallery 是全站視覺規範樣板，見 [`ui/component-catalog.md`](ui/component-catalog.md) 規則節），不用自製實作。
+3. 重用既有的 design token。
+4. 盡可能重用既有元件。
+5. 不在沒有正當理由的情況下引入新顏色。
+6. 不引入新的字體排印。
+7. 不使用大型圓角卡片。
+8. 不使用裝飾性漸層。單色、取自序列自身顏色、且以線為基線的資料歸屬漸層除外（[ADR-0078](adr/0078-single-colour-data-affiliation-gradient.md)）。
+9. 維持既有的資訊層級。
+10. 維持既有的導航決策。
+11. 維持財務資料的語意。
+12. 不重複財務資料的輸入流程。
+13. 優先採用可推導的值，而非要求使用者重複輸入。
+14. 將 Monthly Close 視為 workflow。
+15. 將 Navigator 視為獨立的導航層。
+16. Pixel Pet 的行為與其最終美術素材保持獨立。
 
 其中屬契約層面的細節（token、顏色、字體排印、圓角、漸層、元件表面）以 `docs/ui/` 的呈現層文件為準；本節只規範 AI agent 的義務。
 

@@ -2,17 +2,12 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { deleteAllocationTemplateUseCase } from '@/application/ledger/use_cases/deleteAllocationTemplateUseCase';
 import { listAllocationTemplatesUseCase } from '@/application/ledger/use_cases/listAllocationTemplatesUseCase';
-import { saveAllocationTemplateUseCase } from '@/application/ledger/use_cases/saveAllocationTemplateUseCase';
 import { type AllocationTemplate } from '@/domains/allocation/templateSchemas';
+import { useConfirm } from '@/ui/components/confirm/useConfirm';
 import { useAuthState } from '@/ui/contexts/useAuthState';
-import { useConfirm } from '@/ui/features/app/confirm/useConfirm';
 import { useProjects } from '@/ui/features/project/hooks/useProjects';
+import { useAllocationTemplateForm } from '@/ui/features/setting/hooks/useAllocationTemplateForm';
 import { useLoadingTask } from '@/ui/hooks/useLoadingTask';
-
-export interface TemplateDraftItem {
-  projectId: string;
-  percentage: string;
-}
 
 export const useAllocationTemplateSettings = () => {
   const { userProfile, user } = useAuthState();
@@ -26,11 +21,16 @@ export const useAllocationTemplateSettings = () => {
 
   const [templates, setTemplates] = useState<AllocationTemplate[]>([]);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
-  const [name, setName] = useState('');
-  const [ledgerCode, setLedgerCode] = useState('');
-  const [isDefault, setIsDefault] = useState(false);
-  const [items, setItems] = useState<TemplateDraftItem[]>([]);
   const [selectedProjectId, setSelectedProjectId] = useState('');
+
+  // 表單狀態（含 items repeater）由專屬 Controller hook 擁有；本 hook 只留列表、
+  // 選取與 picker 等非表單職責（ADR-0064、§4）。
+  const allocationForm = useAllocationTemplateForm({
+    householdId,
+    userEmail,
+    selectedTemplateId,
+  });
+  const { fields, reset: resetAllocationForm, appendItem, submit } = allocationForm;
 
   const selectedTemplate = useMemo(
     () => templates.find((template) => template.id === selectedTemplateId) ?? null,
@@ -38,8 +38,8 @@ export const useAllocationTemplateSettings = () => {
   );
 
   const availableProjects = useMemo(
-    () => activeProjects.filter((project) => !items.some((item) => item.projectId === project.id)),
-    [activeProjects, items],
+    () => activeProjects.filter((project) => !fields.some((item) => item.projectId === project.id)),
+    [activeProjects, fields],
   );
 
   const loadTemplates = useCallback(async (): Promise<AllocationTemplate[]> => {
@@ -62,12 +62,9 @@ export const useAllocationTemplateSettings = () => {
 
   const resetForm = useCallback(() => {
     setSelectedTemplateId(null);
-    setName('');
-    setLedgerCode('');
-    setIsDefault(false);
-    setItems([]);
     setSelectedProjectId('');
-  }, []);
+    resetAllocationForm();
+  }, [resetAllocationForm]);
 
   const editTemplate = useCallback(
     (templateId: string) => {
@@ -75,89 +72,30 @@ export const useAllocationTemplateSettings = () => {
       if (!template) return;
 
       setSelectedTemplateId(template.id);
-      setName(template.name);
-      setLedgerCode(template.ledgerCode);
-      setIsDefault(template.isDefault);
-      setItems(
-        template.items.map((item) => ({
-          projectId: item.projectId,
-          percentage: item.percentage.toString(),
-        })),
-      );
       setSelectedProjectId('');
+      resetAllocationForm(template);
     },
-    [templates],
+    [templates, resetAllocationForm],
   );
 
   const addProjectItem = useCallback(() => {
     if (!selectedProjectId) return;
-    setItems((prev) => [...prev, { projectId: selectedProjectId, percentage: '' }]);
+    appendItem(selectedProjectId);
     setSelectedProjectId('');
-  }, [selectedProjectId]);
-
-  const updateItemPercentage = useCallback((projectId: string, percentage: string) => {
-    setItems((prev) =>
-      prev.map((item) => (item.projectId === projectId ? { ...item, percentage } : item)),
-    );
-  }, []);
-
-  const removeItem = useCallback((projectId: string) => {
-    setItems((prev) => prev.filter((item) => item.projectId !== projectId));
-  }, []);
+  }, [appendItem, selectedProjectId]);
 
   const saveTemplate = useCallback(async () => {
-    if (!householdId || !userEmail) return;
+    const savedId = await submit();
+    if (!savedId) return;
 
-    const parsedItems = items
-      .map((item) => ({
-        projectId: item.projectId,
-        percentage: Number.parseFloat(item.percentage),
-      }))
-      .filter((item) => Number.isFinite(item.percentage) && item.percentage > 0);
-
-    const saved = await run(() =>
-      saveAllocationTemplateUseCase.execute({
-        householdId,
-        userEmail,
-        data: {
-          id: selectedTemplateId ?? undefined,
-          name,
-          ledgerCode,
-          isDefault,
-          items: parsedItems,
-        },
-      }),
-    );
-
-    if (!saved.ok || !saved.value) return;
-
-    const templateId = saved.value;
     const latestTemplates = await loadTemplates();
-    const latest = latestTemplates.find((template) => template.id === templateId);
+    const latest = latestTemplates.find((template) => template.id === savedId);
     if (!latest) return;
 
     setSelectedTemplateId(latest.id);
-    setName(latest.name);
-    setLedgerCode(latest.ledgerCode);
-    setIsDefault(latest.isDefault);
-    setItems(
-      latest.items.map((item) => ({
-        projectId: item.projectId,
-        percentage: item.percentage.toString(),
-      })),
-    );
     setSelectedProjectId('');
-  }, [
-    householdId,
-    isDefault,
-    items,
-    ledgerCode,
-    loadTemplates,
-    name,
-    run,
-    selectedTemplateId,
-    userEmail,
-  ]);
+    resetAllocationForm(latest);
+  }, [loadTemplates, resetAllocationForm, submit]);
 
   const { confirm } = useConfirm();
 
@@ -186,21 +124,13 @@ export const useAllocationTemplateSettings = () => {
     activeProjects,
     availableProjects,
     selectedTemplateId,
-    name,
-    setName,
-    ledgerCode,
-    setLedgerCode,
-    isDefault,
-    setIsDefault,
-    items,
     selectedProjectId,
     setSelectedProjectId,
     resetForm,
     editTemplate,
     addProjectItem,
-    updateItemPercentage,
-    removeItem,
     saveTemplate,
     deleteTemplate,
+    allocationForm,
   };
 };

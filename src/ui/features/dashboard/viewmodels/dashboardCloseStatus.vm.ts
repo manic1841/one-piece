@@ -1,5 +1,5 @@
 import { type NextMonthDebtDueResult } from '@/application/debt/use_cases/getNextMonthDebtDueUseCase';
-import { type FinancialPeriod } from '@/domains/financial_period/schemas';
+import { type CloseStageId, type FinancialPeriod } from '@/domains/financial_period/schemas';
 import { type StatusGlyphType } from '@/ui/components/StatusGlyph';
 import {
   DASHBOARD_CLOSE_NO_RECORD,
@@ -11,6 +11,12 @@ import { formatCurrency, formatYearMonth } from '@/ui/utils';
 
 export type { NextMonthDebtDueResult };
 
+export interface DashboardCloseStageVM {
+  stageId: CloseStageId;
+  label: string;
+  glyphType: StatusGlyphType;
+}
+
 export interface DashboardCloseStatusVM {
   yearMonth: string;
   periodText: string;
@@ -19,6 +25,7 @@ export interface DashboardCloseStatusVM {
   completedCount: number;
   totalCount: number;
   nextStageLabel: string | null;
+  stages: DashboardCloseStageVM[];
 }
 
 export const mapPeriodToCloseStatusVM = (
@@ -34,6 +41,7 @@ export const mapPeriodToCloseStatusVM = (
       completedCount: 0,
       totalCount: CLOSE_STAGE_ORDER.length,
       nextStageLabel: null,
+      stages: buildStageVMs(null, null),
     };
   }
 
@@ -53,8 +61,23 @@ export const mapPeriodToCloseStatusVM = (
     completedCount: isClosed ? CLOSE_STAGE_ORDER.length : completedCount,
     totalCount: CLOSE_STAGE_ORDER.length,
     nextStageLabel: nextStageId ? CLOSE_STAGE_LABELS[nextStageId] : null,
+    stages: buildStageVMs(period, isClosed ? null : (nextStageId ?? null), isClosed),
   };
 };
+
+const buildStageVMs = (
+  period: FinancialPeriod | null,
+  nextStageId: CloseStageId | null,
+  isClosed = false,
+): DashboardCloseStageVM[] =>
+  CLOSE_STAGE_ORDER.map((stageId) => {
+    const completed = isClosed || period?.stages[stageId]?.status === 'COMPLETED';
+    return {
+      stageId,
+      label: CLOSE_STAGE_LABELS[stageId],
+      glyphType: completed ? 'verified' : stageId === nextStageId ? 'active' : 'waiting',
+    };
+  });
 
 export const mapNextMonthDueText = (nextMonthDue: NextMonthDebtDueResult | null): string | null => {
   if (!nextMonthDue) {

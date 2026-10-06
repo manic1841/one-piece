@@ -173,10 +173,10 @@ principal 為 0 的還款（利息-only，含照實繳利息的寬限期付款�
 
 ### UI 上的寬限期標示
 
-**DebtListPage 卡片**：
+**DebtListPage 列**：
 
-- 如果 `isInGracePeriod = true`，顯示 badge：「寬限期至 YYYY/MM」
-- 「每月應付」項目改為「本月應付（利息）」，顯示 `calculateGraceMonthlyPayment(currentBalance, interestRate)`
+- 如果 `isInGracePeriod = true`，在貸款名稱旁顯示「寬限期」狀態字形（`StatusGlyph`）
+- 「每月應付」的金額改以 `calculateGraceMonthlyPayment(currentBalance, interestRate)` 計算（標籤不變）
 
 **DebtAccountForm**：
 
@@ -189,35 +189,14 @@ principal 為 0 的還款（利息-only，含照實繳利息的寬限期付款�
 | 函數                             | 位置                                           | 目的                                               |
 | -------------------------------- | ---------------------------------------------- | -------------------------------------------------- |
 | `isInGracePeriod()`              | `src/domains/debt/debtPaymentCalculator.ts`    | 判斷是否在寬限期                                   |
-| `isLoanActiveInMonth()`          | `src/domains/debt/debtPaymentCalculator.ts`    | 判斷借款期間是否涵蓋某月份（記帳完整性檢查用）     |
 | `calculateGraceMonthlyPayment()` | `src/domains/debt/debtPaymentCalculator.ts`    | 計算寬限期利息                                     |
 | `calculateLoan()`                | `src/ui/features/debt/utils/loanCalculator.ts` | 試算時包含 `graceEndDate` 參數                     |
 | `buildDebtPaymentEntries()`      | `src/domains/debt/debtPaymentCalculator.ts`    | 由本金是否 > 0 決定分錄（寬限期不是特例）          |
 | `parseDebtPaymentEntries()`      | `src/domains/debt/debtPaymentCalculator.ts`    | 由 `DEBT_PAYMENT` 分錄讀回本金／利息（上述的逆向） |
 
-### 記帳完整性檢查中的債務語意
-
-監看清單（ADR-0048）可監看債務帳戶。結算前檢查以當月 `DEBT_PAYMENT` 交易為準，
-**不看** `linkedLedgerCode` 的活動：還債分錄借方正是該負債科目，當月若有新借款
-入帳，該科目活動不為零就會掩蓋漏還。
-
-參與檢查的條件：
-
-- `isActive = true`（停用／已結清的債務不參與檢查）
-- 借款期間涵蓋目標月份，由 `isLoanActiveInMonth(startDate, endDate, monthStart)`
-  以「月份」為粒度判斷：起始月與到期月都算在期間內（到期日 2026-08-31 不涵蓋
-  9 月，2026-09-05 仍涵蓋 9 月）
-- **寬限期不豁免檢查**。寬限期間的還款仍會產生利息的 `DEBT_PAYMENT` 交易
-  （見本節上方），所以該月零筆還款就是漏記的訊號，與 ADR-0017 一致
-- 債務文件已不存在時跳過（監看清單可能留有已刪除對象的殘留紀錄）
-- 無 `debtAccountId` 的 legacy 還款（`LIABILITY_PAYMENT`，見第 4 節）不計入：
-  `debtAccountId` 是 ADR-0014 之後還款交易的正典索引，本檢查只認正典格式；
-  誤報方向是請使用者確認，屬可接受
-
-已知偏差：日期比較一律採**本地日期**（`isInGracePeriod()` 亦同）。表單以
+已知偏差：`isInGracePeriod()` 的日期比較採**本地日期**。表單以
 `<input type="date">` 建立日期，字串 `2026-09-01` 会被解析成 UTC 午夜，因此在
-**UTC 負偏移**的瀏覽器上，本地日期會落到 8/31；若 `startDate` 或 `endDate` 恰好
-落在月初 1 日，涵蓋的月份會比預期早一個月。本專案目前沒有跨時區使用的需求，
+**UTC 負偏移**的瀏覽器上，本地日期會落到 8/31。本專案目前沒有跨時區使用的需求，
 且此行為與既有債務日期判讀一致，故不另作處理；若要修正，應統一改採 UTC 欄位
 或日期字串比較，影響範圍含寬限期判斷。
 
@@ -225,23 +204,28 @@ principal 為 0 的還款（利息-only，含照實繳利息的寬限期付款�
 
 ## 5.6. 結清欄位與狀態（Debt Settlement State）
 
-`DebtAccount` 包含下列結清相關欄位：
+`DebtAccount` 包含下列狀態相關欄位：
 
 ```
-isActive: boolean                   // true=啟用中, false=已結清/停用
-closedAt: Date | null | undefined   // 結清日期，結清時寫入
+isActive: boolean                   // true=啟用中；false=停用
+closedAt: Date | null | undefined   // 結清日期
 ```
 
-`closedAt` 為記錄用途；當帳戶被標記結清時，需同時寫入：
+目前實作中，應用程式碼只會將 `isActive` 由 `true` 改為 `false`（使用者停用）；`closedAt` 至今沒有任何寫入者，僅存在於 schema。因此：
 
-```
-DebtAccount.isActive = false
-DebtAccount.closedAt = today
-```
+- 透過現有流程停用的帳戶，`closedAt` 一律為空 → UI 顯示「已停用」。
+- `closedAt` 有值 → UI 顯示「已結清」；此路徑已由 UI 支援，但尚無流程會寫入 `closedAt`。
+
+UI 以 `closedAt` 區分「已結清」與「已停用」兩種 `isActive=false` 情境：
+
+- `closedAt` 有值 →「已結清」
+- `closedAt` 為空 →「已停用」
+
+這些狀態字與 `房貸`／`信貸` 等債務標籤集中在 `src/ui/constants/debt/label.ts`；貸款詳情頁 chrome（section 標題、動作、錯誤文案）集中在 `src/ui/constants/debt/detailLabels.ts`。
 
 ---
 
-## 5.7. DEBT_PAYMENT 後的結清偵測
+## 5.7. DEBT_PAYMENT 後的餘額更新
 
 `currentBalance` 是派生值，不是獨立的數字：
 
@@ -257,8 +241,6 @@ DebtSnapshot 同樣可從分錄重算，不另存獨立來源。取捨理由見 
 ```
 寫入 DEBT_PAYMENT
   → 重算並更新 DebtAccount.currentBalance
-  → 若 currentBalance <= 0
-      顯示結清確認對話框
 ```
 
 Transaction、該月份 DebtSnapshot 與 DebtAccount.currentBalance 必須和付款的
@@ -269,47 +251,27 @@ operation record 在同一個 Firestore transaction 內提交；任一寫入失�
 備註：
 
 - 因尾款四捨五入，`currentBalance` 可能略小於 0。
-- 系統直接視為可結清，不額外做負值特例流程。
+- 餘額歸零**不會**自動結清帳戶：目前沒有任何程式在 `currentBalance` 達到 0 時
+  改動 `isActive` 或寫入 `closedAt`。
 
 ---
 
-## 5.8. 結清確認對話框
+## 5.8. 標記結清（尚未實作）
 
-觸發條件：`DEBT_PAYMENT` 成功後，`currentBalance <= 0`。
+目前沒有「結清」的使用者流程：既沒有結清確認對話框，也沒有 `標記結清` 入口。
+`closedAt` 僅存在於 schema，待未來實作時寫入。
 
-內容：
+現階段貸款只透過兩個機制反映在系統中：
 
-- 標題：`{貸款名稱} 已還清`
-- 內文：`剩餘本金已為 0，是否將此貸款標記為結清？`
-- 按鈕：`確認結清` / `稍後再說`
-
-行為：
-
-- `確認結清`：寫入 `isActive=false`、`closedAt=today`
-- `稍後再說`：不修改帳戶，讓使用者可稍後手動結清
+- 還款：`DEBT_PAYMENT` 分錄會扣減 `currentBalance`（見 §5.7）。
+- 月初結帳：`DEBT_REPAYMENT` 階段產生當月 DebtSnapshot（見
+  [monthly-close.md](monthly-close.md)），只記錄本金／利息拆分，不會結清帳戶。
 
 ---
 
-## 5.9. 手動結清入口
+## 5.9. 結清後 UI 規則
 
-在債務管理頁中，符合以下條件的帳戶會顯示 `標記結清` 按鈕：
-
-```
-currentBalance <= 0 && isActive == true
-```
-
-手動結清執行邏輯與對話框確認相同：
-
-```
-DebtAccount.isActive = false
-DebtAccount.closedAt = today
-```
-
----
-
-## 5.10. 結清後 UI 規則
-
-- 債務列表頁：預設只顯示啟用中帳戶，使用者可透過「顯示已結清」切換查看歷史
+- 債務列表頁：預設只顯示啟用中帳戶，使用者可透過「僅啟用中／含停用」篩選查看所有停用帳戶（含已結清）
 - Dashboard 債務摘要：僅統計 `isActive=true` 帳戶
 - 新增交易的 `DEBT_PAYMENT` 帳戶選單：僅顯示 `isActive=true` 帳戶
 - 月初待繳提醒/待繳筆數：僅計算 `isActive=true` 帳戶
@@ -348,10 +310,8 @@ DebtAccount.closedAt = today
 1. 依輸入建立還款交易（`createDebtPaymentUseCase`，含冪等鍵）。
 2. 執行 `settleDebtAccountsUseCase`，為當月尚無 `Debt Snapshot` 的啟用中 `DebtAccount` 建立快照（已存在的快照不會重複建立）。
 
-### 無還款警訊規則
+### 無還款月份的結算
 
-- 若某些帳戶在該月沒有還款紀錄，Completeness Check 階段會標記為零活動異常，暫停關帳流程（`NEEDS_REVIEW`）。
-- 這不是永久阻擋：使用者確認檢視後重新確認 `COMPLETENESS_CHECK` 階段即可繼續。
 - 結算時，無還款帳戶會建立「零還款快照」：
   - `principalPaid = 0`
   - `interestPaid = 0`
@@ -360,23 +320,24 @@ DebtAccount.closedAt = today
 
 ---
 
-## 7. 路由
+## 8. 路由
 
-`/debt` → `DebtListPage`（在受保護的 Layout 內）
+- `/debt` → `DebtListPage`（在受保護的 Layout 內）
+- `/debt/:id` → `DebtDetailPage`（在受保護的 Layout 內）
 
 ---
 
-## 8. 相關檔案
+## 9. 相關檔案
 
-| 層                         | 路徑                                                             |
-| -------------------------- | ---------------------------------------------------------------- |
-| Domain                     | `src/domains/debt/schemas.ts`                                    |
-| Utility                    | `src/ui/features/debt/utils/loanCalculator.ts`                   |
-| Calculator (Split & Grace) | `src/domains/debt/debtPaymentCalculator.ts`                      |
-| Repository                 | `src/infra/repositories/debtAccountRepository.ts`                |
-| Repository (Snapshot)      | `src/infra/repositories/debtSnapshotRepository.ts`               |
-| Use Cases                  | `src/application/debt/use_cases/`                                |
-| LedgerCode Init            | `src/application/ledger/use_cases/initDebtLedgerCodesUseCase.ts` |
-| Hooks                      | `src/ui/features/debt/hooks/`                                    |
-| Components                 | `src/ui/features/debt/components/DebtAccountForm.tsx`            |
-| Page                       | `src/ui/features/debt/pages/DebtListPage.tsx`                    |
+| 層                         | 路徑                                                                |
+| -------------------------- | ------------------------------------------------------------------- |
+| Domain                     | `src/domains/debt/schemas.ts`                                       |
+| Utility                    | `src/ui/features/debt/utils/loanCalculator.ts`                      |
+| Calculator (Split & Grace) | `src/domains/debt/debtPaymentCalculator.ts`                         |
+| Repository                 | `src/infra/repositories/debtAccountRepository.ts`                   |
+| Repository (Snapshot)      | `src/infra/repositories/debtSnapshotRepository.ts`                  |
+| Use Cases                  | `src/application/debt/use_cases/`                                   |
+| LedgerCode Init            | `src/application/ledger/use_cases/initDebtLedgerCodesUseCase.ts`    |
+| Hooks                      | `src/ui/features/debt/hooks/`                                       |
+| Components                 | `src/ui/features/debt/components/DebtAccountForm.tsx`               |
+| Page                       | `src/ui/features/debt/pages/DebtListPage.tsx`、`DebtDetailPage.tsx` |

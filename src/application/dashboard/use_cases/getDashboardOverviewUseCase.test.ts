@@ -95,7 +95,12 @@ const buildBalanceSheet = (
   },
 });
 
-const buildCashFlow = (yearMonth: string, netCashChange: number): FinancialReport => ({
+const buildCashFlow = (
+  yearMonth: string,
+  netCashChange: number,
+  inflow = 0,
+  outflow = 0,
+): FinancialReport => ({
   id: `${yearMonth}-CASH_FLOW`,
   householdId: 'household-1',
   yearMonth,
@@ -106,7 +111,12 @@ const buildCashFlow = (yearMonth: string, netCashChange: number): FinancialRepor
   type: ReportType.CASH_FLOW,
   data: {
     yearMonth,
-    operating: { label: '營業活動', total: 0, inflowItems: [], outflowItems: [] },
+    operating: {
+      label: '營業活動',
+      total: inflow - outflow,
+      inflowItems: inflow > 0 ? [{ code: 'income:salary', label: '收入', amount: inflow }] : [],
+      outflowItems: outflow > 0 ? [{ code: 'expense:food', label: '支出', amount: outflow }] : [],
+    },
     investing: { label: '投資活動', total: 0, inflowItems: [], outflowItems: [] },
     financing: { label: '融資活動', total: 0, inflowItems: [], outflowItems: [] },
     netCashChange,
@@ -454,9 +464,9 @@ describe('GetDashboardOverviewUseCase', () => {
     it('surfaces the anchor composition and a 12-month cash flow series', async () => {
       listReportsMock.mockResolvedValue([
         buildBalanceSheet('2026-07', 500, 120),
-        buildCashFlow('2026-07', 3200),
+        buildCashFlow('2026-07', 3200, 5200, 2000),
         buildBalanceSheet('2026-08', 600, 150),
-        buildCashFlow('2026-08', -12300),
+        buildCashFlow('2026-08', -12300, 4600, 16900),
       ]);
       listPortfoliosMock.mockResolvedValue([]);
       listDebtPaymentsMock.mockResolvedValue([]);
@@ -480,6 +490,8 @@ describe('GetDashboardOverviewUseCase', () => {
         year: 2025,
         month: 9,
         netCashFlow: null,
+        cashIn: null,
+        cashOut: null,
       });
       expect(result.cashFlowSeries[9]).toMatchObject({
         year: 2026,
@@ -490,11 +502,15 @@ describe('GetDashboardOverviewUseCase', () => {
         year: 2026,
         month: 7,
         netCashFlow: 3200,
+        cashIn: 5200,
+        cashOut: 2000,
       });
       expect(result.cashFlowSeries[11]).toMatchObject({
         year: 2026,
         month: 8,
         netCashFlow: -12300,
+        cashIn: 4600,
+        cashOut: 16900,
       });
     });
   });

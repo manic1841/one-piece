@@ -1,57 +1,114 @@
 import React from 'react';
 
-import { useNavigate, useParams } from 'react-router-dom';
+import { ArrowLeft } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
+import { EmptyState } from '@/ui/components/EmptyState';
 import { InlineEditableTitle } from '@/ui/components/InlineEditableTitle';
 import { PageHeader } from '@/ui/components/PageHeader';
-import { Badge } from '@/ui/components/ui/badge';
-import { useAuthState } from '@/ui/contexts/useAuthState';
+import { Skeleton } from '@/ui/components/Skeleton';
+import { StatusGlyph } from '@/ui/components/StatusGlyph';
+import { Alert, AlertDescription } from '@/ui/components/ui/alert';
+import { Button } from '@/ui/components/ui/button';
+import {
+  PORTFOLIO_DETAIL_LABELS,
+  PORTFOLIO_LIFECYCLE_LABELS,
+} from '@/ui/constants/portfolio/labels';
 import PortfolioDetail from '@/ui/features/portfolio/components/PortfolioDetail';
-import { usePortfolioCmds } from '@/ui/features/portfolio/hooks/usePortfolioCmds';
-import { usePortfolios } from '@/ui/features/portfolio/hooks/usePortfolios';
-import { formatYearMonth } from '@/ui/utils';
+import { usePortfolioDetailPage } from '@/ui/features/portfolio/hooks/usePortfolioDetailPage';
+
+const SKELETON_ROWS = [0, 1, 2, 3];
 
 const PortfolioDetailPage: React.FC = () => {
-  const { userProfile } = useAuthState();
   const navigate = useNavigate();
-  const { id } = useParams<{ id: string }>();
-  const householdId = userProfile?.householdId ?? '';
-  const { portfolios, latestSnapshots, loading } = usePortfolios(householdId);
-  const { updatePortfolio } = usePortfolioCmds(householdId, userProfile?.email || '');
+  const {
+    vm,
+    loading,
+    error,
+    reload,
+    handleRename,
+    handleActivate,
+    handleDeactivate,
+    handleDelete,
+  } = usePortfolioDetailPage();
 
-  const portfolio = portfolios.find((item) => item.id === id);
-
-  if (!userProfile?.householdId || loading) {
-    return <div>Loading...</div>;
+  if (loading) {
+    return (
+      <div role="status" className="space-y-6 pb-20">
+        <span className="sr-only">{PORTFOLIO_DETAIL_LABELS.LOADING_LABEL}</span>
+        {SKELETON_ROWS.map((row) => (
+          <Skeleton key={row} className="h-16" />
+        ))}
+      </div>
+    );
   }
 
-  if (!portfolio) {
-    return <div>Portfolio not found</div>;
+  if (error !== null && !vm) {
+    return (
+      <div className="space-y-6 pb-20">
+        <Button variant="ghost" size="sm" onClick={() => navigate('/portfolios')} className="gap-2">
+          <ArrowLeft size={16} aria-hidden="true" />
+          {PORTFOLIO_DETAIL_LABELS.BACK_ACTION}
+        </Button>
+        <Alert variant="warning">
+          <AlertDescription>{error}</AlertDescription>
+          <Button variant="text" className="ml-auto shrink-0" onClick={reload}>
+            {PORTFOLIO_DETAIL_LABELS.RETRY_ACTION}
+          </Button>
+        </Alert>
+      </div>
+    );
   }
 
-  const handleRename = async (name: string) => {
-    await updatePortfolio(portfolio.id, { name });
-  };
-
-  const latestSnapshot = latestSnapshots.get(portfolio.id);
+  if (!vm) {
+    return (
+      <EmptyState
+        title={PORTFOLIO_DETAIL_LABELS.NOT_FOUND_TITLE}
+        description={PORTFOLIO_DETAIL_LABELS.NOT_FOUND_DESCRIPTION}
+        action={
+          <Button variant="outline" onClick={() => navigate('/portfolios')}>
+            {PORTFOLIO_DETAIL_LABELS.BACK_ACTION}
+          </Button>
+        }
+      />
+    );
+  }
 
   return (
     <div className="space-y-8 pb-20">
       <PageHeader
-        title={<InlineEditableTitle value={portfolio.name} onSave={handleRename} />}
-        description="一個證券帳戶連結一個銀行帳戶"
-        crumb="PORTFOLIOS"
+        title={<InlineEditableTitle value={vm.name} onSave={handleRename} />}
+        description={PORTFOLIO_DETAIL_LABELS.DESCRIPTION}
+        crumb={PORTFOLIO_DETAIL_LABELS.CRUMB}
         onBack={() => navigate('/portfolios')}
         badge={
-          latestSnapshot ? (
-            <Badge variant="outline" className="font-mono">
-              {formatYearMonth(latestSnapshot.year, latestSnapshot.month)}
-            </Badge>
+          !vm.isActive ? (
+            <StatusGlyph type="inactive" label={PORTFOLIO_LIFECYCLE_LABELS.INACTIVE} />
           ) : undefined
+        }
+        actions={
+          vm.isActive ? (
+            <Button variant="destructive" onClick={() => void handleDeactivate()}>
+              {PORTFOLIO_LIFECYCLE_LABELS.DEACTIVATE}
+            </Button>
+          ) : (
+            <Button variant="outline" onClick={() => void handleActivate()}>
+              {PORTFOLIO_LIFECYCLE_LABELS.ACTIVATE}
+            </Button>
+          )
         }
       />
 
-      <PortfolioDetail householdId={householdId} portfolio={portfolio} />
+      {error !== null && (
+        <Alert variant="warning">
+          <AlertDescription>{error}</AlertDescription>
+          <Button variant="text" className="ml-auto shrink-0" onClick={reload}>
+            {PORTFOLIO_DETAIL_LABELS.RETRY_ACTION}
+          </Button>
+        </Alert>
+      )}
+
+      <PortfolioDetail vm={vm} onDelete={() => void handleDelete()} />
     </div>
   );
 };

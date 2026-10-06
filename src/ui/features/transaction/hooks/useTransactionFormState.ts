@@ -17,26 +17,18 @@ import {
   TransactionAdvancedFormSchema,
   type TransactionExpenseFormInput,
   TransactionExpenseFormSchema,
-  type TransactionFinancingFormInput,
-  TransactionFinancingFormSchema,
   type TransactionIncomeFormInput,
   TransactionIncomeFormSchema,
-  type TransactionInvestmentFormInput,
-  TransactionInvestmentFormSchema,
   createTransactionAdvancedFormValues,
   createTransactionExpenseFormValues,
-  createTransactionFinancingFormValues,
   createTransactionIncomeFormValues,
-  createTransactionInvestmentFormValues,
 } from '@/ui/features/transaction/viewmodels/transactionForm.vm';
 
 const mapIntentTypeToTab = (
   intentType?: TransactionFormOutput['intentType'] | null,
 ): TransactionFormTab => {
   if (intentType === 'MANUAL') return 'ADVANCED';
-  if (intentType === 'INCOME' || intentType === 'INVESTMENT' || intentType === 'FINANCING') {
-    return intentType;
-  }
+  if (intentType === 'INCOME') return 'INCOME';
   return 'EXPENSE';
 };
 
@@ -54,30 +46,17 @@ interface UseTransactionFormStateParams {
   projects: TransactionFormProjectOption[];
   expenseCategories: TransactionFormCategoryOption[];
   incomeCategories: TransactionFormCategoryOption[];
-  investmentCategories: TransactionFormCategoryOption[];
-  financingCategories: TransactionFormCategoryOption[];
   advancedCategories: TransactionFormCategoryOption[];
   loadIncomeAllocationTemplate?: (ledgerCode: string) => Promise<AllocationItemInput[] | null>;
 }
 
-/**
- * Controller for the transaction dialog.
- *
- * The dialog composes one transaction across five tab panels, so there is one
- * RHF form per panel — never one giant form for every tab. The selected tab is
- * hook state, not a form field. Each form's schema coerces the string field
- * values into the numeric `TransactionFormOutput`, which is handed to
- * `onSubmit`; the numeric VM parse inside `useTransactionForm` stays the
- * authoritative gate.
- */
+/** One RHF form per tab panel; the tab is hook state, never a form field. */
 export const useTransactionFormState = ({
   initialOutput,
   onSubmit,
   projects,
   expenseCategories,
   incomeCategories,
-  investmentCategories,
-  financingCategories,
   advancedCategories,
   loadIncomeAllocationTemplate,
 }: UseTransactionFormStateParams) => {
@@ -92,8 +71,6 @@ export const useTransactionFormState = ({
     return {
       expense: createTransactionExpenseFormValues(tab === 'EXPENSE' ? output : null),
       income: createTransactionIncomeFormValues(tab === 'INCOME' ? output : null),
-      investment: createTransactionInvestmentFormValues(tab === 'INVESTMENT' ? output : null),
-      financing: createTransactionFinancingFormValues(tab === 'FINANCING' ? output : null),
       advanced: createTransactionAdvancedFormValues(tab === 'ADVANCED' ? output : null),
     };
   });
@@ -114,18 +91,6 @@ export const useTransactionFormState = ({
     defaultValues: defaultValues.income,
   });
 
-  const investmentForm = useForm<TransactionInvestmentFormInput, unknown, TransactionFormOutput>({
-    resolver: zodResolver(TransactionInvestmentFormSchema),
-    mode: 'onTouched',
-    defaultValues: defaultValues.investment,
-  });
-
-  const financingForm = useForm<TransactionFinancingFormInput, unknown, TransactionFormOutput>({
-    resolver: zodResolver(TransactionFinancingFormSchema),
-    mode: 'onTouched',
-    defaultValues: defaultValues.financing,
-  });
-
   const advancedForm = useForm<TransactionAdvancedFormInput, unknown, TransactionFormOutput>({
     resolver: zodResolver(TransactionAdvancedFormSchema),
     mode: 'onTouched',
@@ -134,8 +99,6 @@ export const useTransactionFormState = ({
 
   const expenseValues = useWatch({ control: expenseForm.control });
   const incomeValues = useWatch({ control: incomeForm.control });
-  const investmentValues = useWatch({ control: investmentForm.control });
-  const financingValues = useWatch({ control: financingForm.control });
   const advancedValues = useWatch({ control: advancedForm.control });
 
   // Derived preview: the active tab's values run through the same schema the
@@ -146,14 +109,10 @@ export const useTransactionFormState = ({
         return parseOutput(TransactionExpenseFormSchema, expenseValues);
       case 'INCOME':
         return parseOutput(TransactionIncomeFormSchema, incomeValues);
-      case 'INVESTMENT':
-        return parseOutput(TransactionInvestmentFormSchema, investmentValues);
-      case 'FINANCING':
-        return parseOutput(TransactionFinancingFormSchema, financingValues);
       case 'ADVANCED':
         return parseOutput(TransactionAdvancedFormSchema, advancedValues);
     }
-  }, [activeTab, expenseValues, incomeValues, investmentValues, financingValues, advancedValues]);
+  }, [activeTab, expenseValues, incomeValues, advancedValues]);
 
   const previewDetails = useMemo(
     () =>
@@ -162,19 +121,9 @@ export const useTransactionFormState = ({
         projects,
         expenseCategories,
         incomeCategories,
-        investmentCategories,
-        financingCategories,
         advancedCategories,
       }),
-    [
-      preview,
-      projects,
-      expenseCategories,
-      incomeCategories,
-      investmentCategories,
-      financingCategories,
-      advancedCategories,
-    ],
+    [preview, projects, expenseCategories, incomeCategories, advancedCategories],
   );
 
   const incomeLedgerCode = useWatch({ control: incomeForm.control, name: 'ledgerCode' });
@@ -230,17 +179,11 @@ export const useTransactionFormState = ({
       INCOME: incomeForm.handleSubmit(() =>
         onSubmit(TransactionIncomeFormSchema.parse(incomeForm.getValues())),
       ),
-      INVESTMENT: investmentForm.handleSubmit(() =>
-        onSubmit(TransactionInvestmentFormSchema.parse(investmentForm.getValues())),
-      ),
-      FINANCING: financingForm.handleSubmit(() =>
-        onSubmit(TransactionFinancingFormSchema.parse(financingForm.getValues())),
-      ),
       ADVANCED: advancedForm.handleSubmit(() =>
         onSubmit(TransactionAdvancedFormSchema.parse(advancedForm.getValues())),
       ),
     }),
-    [advancedForm, expenseForm, financingForm, incomeForm, investmentForm, onSubmit],
+    [advancedForm, expenseForm, incomeForm, onSubmit],
   );
 
   const submit = () => {
@@ -252,8 +195,6 @@ export const useTransactionFormState = ({
     setActiveTab,
     expenseForm,
     incomeForm,
-    investmentForm,
-    financingForm,
     advancedForm,
     preview,
     previewDetails,

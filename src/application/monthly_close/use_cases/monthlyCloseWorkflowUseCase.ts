@@ -22,8 +22,6 @@ import { RecordDebtRepaymentsUseCase } from '@/application/monthly_close/use_cas
 import { RecordMonthSnapshotsUseCase } from '@/application/monthly_close/use_cases/recordMonthSnapshotsUseCase';
 import { RecordPortfolioCashFlowsUseCase } from '@/application/monthly_close/use_cases/recordPortfolioCashFlowsUseCase';
 import { SyncInvestmentFinancingTransactionsUseCase } from '@/application/monthly_close/use_cases/syncInvestmentFinancingTransactionsUseCase';
-import { validateMonthTransactionsUseCase } from '@/application/monthly_close/use_cases/validateMonthTransactionsUseCase';
-import { checkSettlementCompletenessUseCase } from '@/application/settlement/use_cases/checkSettlementCompletenessUseCase';
 import { settleProjectsUseCase } from '@/application/settlement/use_cases/settleProjectsUseCase';
 import { type AuthContext } from '@/application/types';
 import {
@@ -35,9 +33,9 @@ import {
 import {
   closePeriodInState,
   confirmStageInState,
+  isReadyToClose,
   isReconfirmableStage,
   isReopenablePeriod,
-  markNeedsReviewInState,
   reconfirmStageInState,
   reopenPeriodInState,
   resetStagesFromInState,
@@ -209,17 +207,6 @@ export class MonthlyCloseWorkflowUseCase {
       return withPeriod({ stageId, data: undefined }, period);
     }
 
-    if (stageId === 'COMPLETENESS_CHECK') {
-      const paused = await this.runCompletenessCheck(
-        householdId,
-        yearMonth,
-        auth,
-        current,
-        userEmail,
-      );
-      if (paused) return withPeriod({ stageId, data: undefined }, paused);
-    }
-
     const outcome = await this.runStageAction(yearMonth, auth, request, current);
 
     const period = await this.completeConfirm(current, stageId, userEmail, householdId);
@@ -286,35 +273,6 @@ export class MonthlyCloseWorkflowUseCase {
     }
   }
 
-  /**
-   * Completeness Check is the only NEEDS_REVIEW source (ADR-0052). Zero-activity
-   * anomalies pause the workflow without completing the stage, so the same
-   * confirmation acts as the resolution path once the user has reviewed.
-   */
-  private async runCompletenessCheck(
-    householdId: string,
-    yearMonth: string,
-    auth: AuthContext,
-    current: FinancialPeriod,
-    userEmail: string,
-  ): Promise<FinancialPeriod | null> {
-    const { anomalies } = await checkSettlementCompletenessUseCase.execute({
-      householdId,
-      year: this.yearOf(yearMonth),
-      month: this.monthOf(yearMonth),
-      auth,
-    });
-    if (anomalies.length === 0) return null;
-
-    const period = markNeedsReviewInState(current, 'COMPLETENESS_CHECK');
-    await this.savePeriod.execute({
-      householdId,
-      period: this.toPeriodCreate(period),
-      userEmail,
-    });
-    return period;
-  }
-
   /** Runs the stage's data creation; only SECURITIES_TRADE returns rows. */
   private async runStageAction(
     yearMonth: string,
@@ -332,15 +290,6 @@ export class MonthlyCloseWorkflowUseCase {
           month: this.monthOf(yearMonth),
           accountBalances: request.accountBalances ?? [],
           userEmail,
-          auth,
-        });
-        return { stageId, data: undefined };
-      }
-      case 'TRANSACTION_VALIDATION': {
-        await validateMonthTransactionsUseCase.execute({
-          householdId,
-          year: this.yearOf(yearMonth),
-          month: this.monthOf(yearMonth),
           auth,
         });
         return { stageId, data: undefined };
@@ -398,6 +347,12 @@ export class MonthlyCloseWorkflowUseCase {
       }
       case 'CLOSE_PERIOD': {
         await this.checkCloseReadiness.execute({ householdId, yearMonth, period: current });
+        if (!isReadyToClose(current)) {
+          throw new MonthlyCloseCommandError(
+            MonthlyCloseCommandErrorCode.STAGES_INCOMPLETE,
+            'every stage must be completed before closing',
+          );
+        }
         return { stageId, data: undefined };
       }
     }

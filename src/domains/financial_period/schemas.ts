@@ -7,11 +7,10 @@ import { BaseSchema } from '@/shared/schemas/base';
 // closing period (ADR-0050). Stages follow the M1 stage model (ADR-0052);
 // the listed order is UI guidance only, the system does not enforce it.
 // Path: households/{householdId}/financialPeriods/{docId}, docId = yearMonth.
-// No record means the period has not started closing (treated as OPEN).
+// No record means the period has not started closing.
 
 export const CLOSE_STAGE_IDS = [
   'ACCOUNT_BALANCE',
-  'TRANSACTION_VALIDATION',
   'SECURITIES_TRADE',
   'PORTFOLIO_CASH_FLOW',
   'PROJECT_SETTLEMENT',
@@ -24,7 +23,7 @@ export type CloseStageId = (typeof CLOSE_STAGE_IDS)[number];
 
 export const CLOSE_STAGE_IDS_SET: ReadonlySet<string> = new Set(CLOSE_STAGE_IDS);
 
-export const FinancialPeriodStatus = z.enum(['OPEN', 'IN_PROGRESS', 'NEEDS_REVIEW', 'CLOSED']);
+export const FinancialPeriodStatus = z.enum(['IN_PROGRESS', 'NEEDS_REVIEW', 'CLOSED']);
 export type FinancialPeriodStatus = z.infer<typeof FinancialPeriodStatus>;
 
 export const CloseStageStateSchema = z.object({

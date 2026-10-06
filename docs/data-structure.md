@@ -145,20 +145,15 @@ firestore
      │    │    └─ percentage: number
      │    ├─ createdBy: string
      │    └─ updatedAt: Timestamp
-
-      ├─ watchList/{docId}              # 監看清單 (ADR-0048)；docId = "{targetType}:{targetId}"
-       │    ├─ targetType: "PROJECT" | "LEDGER_CODE" | "DEBT_ACCOUNT"
-       │    ├─ targetId: string          # 監看對象 id（ledger code 含 ':'，故 docId 以 targetType 命名空間隔離）
-       │    └─ name: string              # 名稱快照，供警示顯示
      │
      │    # 規則：
      │    # - 同一 household 中，一個 ledgerCode 僅對應一個 template
      │    # - 可設定一筆 isDefault = true 作為無匹配 ledgerCode 的 fallback
      │    # - template 僅供 UI 預填，修改 template 不會回寫既有 allocations
-       ├─ financialPeriods/{yearMonth}    # 財務期間狀態 (ADR-0050/0052)；docId = YYYY-MM，開始關帳才建檔，無紀錄 = OPEN
+       ├─ financialPeriods/{yearMonth}    # 財務期間狀態 (ADR-0050/0052)；docId = YYYY-MM，開始關帳才建檔，無紀錄 = 尚未開始關帳
        │    ├─ yearMonth: string          # 財務期間鍵 (YYYY-MM)
-       │    ├─ status: "OPEN" | "IN_PROGRESS" | "NEEDS_REVIEW" | "CLOSED"
-       │    ├─ stages: map<stageId, { status, confirmedBy?, confirmedAt? }>   # 各階段狀態 (ADR-0052 九階段)
+       │    ├─ status: "IN_PROGRESS" | "NEEDS_REVIEW" | "CLOSED"
+       │    ├─ stages: map<stageId, { status, confirmedBy?, confirmedAt? }>   # 各階段狀態 (ADR-0052 八階段)
        │    ├─ reviewSourceStageId?: string # NEEDS_REVIEW 時的來源階段；null = 前期關帳重開的連鎖降級 (ADR-0066)
        │    ├─ createdBy: string
        │    └─ updatedAt: Timestamp
@@ -222,8 +217,8 @@ firestore
             ├─ linkedLedgerCode: string # 由 type 自動對應，e.g. "liability:mortgage"
             ├─ linkedProjectId?: string | null
             ├─ note?: string
-            ├─ isActive: boolean        # false = 已結清/停用
-            ├─ closedAt?: Timestamp | null # 結清日期，isActive=false 時寫入
+            ├─ isActive: boolean        # false = 停用（結清時亦為 false）
+            ├─ closedAt?: Timestamp | null # 結清日期，結清時寫入（closedAt 有值=已結清，否則=停用）
             └─ snapshots/{yearMonth}     # 每月 DEBT_PAYMENT 累計快照，ID = YYYY-MM
 ```
 

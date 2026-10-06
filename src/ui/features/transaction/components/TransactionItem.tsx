@@ -1,25 +1,25 @@
-import React from 'react';
+import React, { useState } from 'react';
 
 import { Pencil, Trash2 } from 'lucide-react';
 
-import CompactRow from '@/ui/components/CompactRow';
 import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from '@/ui/components/ui/accordion';
+  DataTable,
+  DataTableCell,
+  DataTableColGroup,
+  DataTableHeadCell,
+  DataTableHeadRow,
+  DataTableRow,
+  MobileExpandableRow,
+  NumberCell,
+  TableBody,
+  TableHeader,
+} from '@/ui/components/data-table';
 import { Button } from '@/ui/components/ui/button';
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/ui/components/ui/table';
-import {
+  ACCOUNTING_DETAILS_CREDIT_LABEL,
+  ACCOUNTING_DETAILS_DEBIT_LABEL,
   ACCOUNTING_DETAILS_ENTRY_LABEL,
+  ACCOUNTING_DETAILS_SECTION_LABEL,
   NO_CASH_ENTRY_LABEL,
   TRACKING_LABEL,
 } from '@/ui/constants/transaction/displayLabels';
@@ -30,46 +30,44 @@ import { cn } from '@/ui/utils/cn';
 // Must match TransactionList's desktop column count: the accordion spans all of them.
 const ACCORDION_ROW_COL_SPAN = 5;
 
+/** 會計科目 60% / Debit 20% / Credit 20%（總和 100）。 */
+const ACCOUNTING_DETAILS_COLUMN_WIDTHS = [60, 20, 20] as const;
+
+function AccountingDetailsTable({ transaction }: { transaction: TransactionListItemVM }) {
+  const detailEntries = transaction.entries ?? [];
+
+  return (
+    <div className="px-3 pb-4 pt-3">
+      <p className="font-mono text-[10px] uppercase tracking-[0.08em] text-muted-foreground">
+        {ACCOUNTING_DETAILS_SECTION_LABEL}
+      </p>
+      <DataTable className="mt-2">
+        <DataTableColGroup widths={ACCOUNTING_DETAILS_COLUMN_WIDTHS} />
+        <TableHeader>
+          <DataTableHeadRow>
+            <DataTableHeadCell>{ACCOUNTING_DETAILS_ENTRY_LABEL}</DataTableHeadCell>
+            <DataTableHeadCell align="number">{ACCOUNTING_DETAILS_DEBIT_LABEL}</DataTableHeadCell>
+            <DataTableHeadCell align="number">{ACCOUNTING_DETAILS_CREDIT_LABEL}</DataTableHeadCell>
+          </DataTableHeadRow>
+        </TableHeader>
+        <TableBody>
+          {detailEntries.map((entry, index) => (
+            <DataTableRow key={`${entry.ledgerCode}-${index}`}>
+              <DataTableCell className="font-mono text-[12px]">{entry.ledgerLabel}</DataTableCell>
+              <NumberCell value={entry.debit > 0 ? entry.debit : null} format={formatCurrency} />
+              <NumberCell value={entry.credit > 0 ? entry.credit : null} format={formatCurrency} />
+            </DataTableRow>
+          ))}
+        </TableBody>
+      </DataTable>
+    </div>
+  );
+}
+
 interface TransactionItemProps {
   transaction: TransactionListItemVM;
   onEdit?: (transaction: TransactionListItemVM) => void;
   onDelete?: (transaction: TransactionListItemVM) => void;
-}
-
-function AccountingDetailsAccordion({ transaction }: { transaction: TransactionListItemVM }) {
-  const detailEntries = transaction.entries ?? [];
-
-  return (
-    <Accordion type="single" collapsible className="border-t border-border/50">
-      <AccordionItem value="accounting-details" className="border-b-0">
-        <AccordionTrigger className="px-4">ACCOUNTING DETAILS</AccordionTrigger>
-        <AccordionContent className="px-4">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>{ACCOUNTING_DETAILS_ENTRY_LABEL}</TableHead>
-                <TableHead className="text-right">Debit</TableHead>
-                <TableHead className="text-right">Credit</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {detailEntries.map((entry, index) => (
-                <TableRow key={`${entry.ledgerCode}-${index}`}>
-                  <TableCell className="font-mono text-[12px]">{entry.ledgerLabel}</TableCell>
-                  <TableCell className="text-right font-mono tabular-nums">
-                    {entry.debit > 0 ? formatAmount(entry.debit) : '—'}
-                  </TableCell>
-                  <TableCell className="text-right font-mono tabular-nums">
-                    {entry.credit > 0 ? formatAmount(entry.credit) : '—'}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </AccordionContent>
-      </AccordionItem>
-    </Accordion>
-  );
 }
 
 function RowActions({
@@ -121,46 +119,68 @@ export const TransactionItem: React.FC<TransactionItemProps> = ({
     dateText,
     hasCashLedger,
     isPositive,
-    amountText,
+    signedAmountText,
   } = transaction;
   const amountColor = isPositive ? 'text-positive' : 'text-negative';
+  const [isExpanded, setIsExpanded] = useState(false);
+  const hasEntries = (transaction.entries ?? []).length > 0;
+
+  const handleRowKeyDown = (event: React.KeyboardEvent<HTMLTableRowElement>) => {
+    if (event.target !== event.currentTarget) return;
+    if (event.key !== 'Enter' && event.key !== ' ') return;
+    event.preventDefault();
+    setIsExpanded((prev) => !prev);
+  };
 
   return (
     <>
-      <TableRow data-testid={`transaction-row-${transaction.id}`} className="align-top">
-        <TableCell className="font-mono text-[12px] tabular-nums whitespace-nowrap">
+      <DataTableRow
+        data-testid={`transaction-row-${transaction.id}`}
+        className={cn('align-top group', isExpanded && 'border-b-0 bg-muted/50')}
+        interactive={hasEntries}
+        aria-expanded={hasEntries ? isExpanded : undefined}
+        tabIndex={hasEntries ? 0 : undefined}
+        onClick={hasEntries ? () => setIsExpanded((prev) => !prev) : undefined}
+        onKeyDown={hasEntries ? handleRowKeyDown : undefined}
+      >
+        <DataTableCell className="font-mono text-[12px] tabular-nums whitespace-nowrap">
           {dateText}
-        </TableCell>
-        <TableCell>
+        </DataTableCell>
+        <DataTableCell>
           <span className="block font-medium">{displayTitle}</span>
           <span className="text-[11px] text-muted-foreground">{categoryLabel}</span>
-        </TableCell>
-        <TableCell
+        </DataTableCell>
+        <DataTableCell className="text-muted-foreground">{projectName ?? '—'}</DataTableCell>
+        <DataTableCell
           className={cn(
-            'text-right font-mono tabular-nums whitespace-nowrap',
+            'font-mono tabular-nums whitespace-nowrap',
             hasCashLedger ? amountColor : 'text-warning',
           )}
+          align="number"
         >
-          {isPositive ? '+' : '-'}
-          {amountText}
+          {signedAmountText}
           {!hasCashLedger && (
             <span className={cn('block font-bold uppercase', TRACKING_LABEL)}>
               {NO_CASH_ENTRY_LABEL}
             </span>
           )}
-        </TableCell>
-        <TableCell className="text-muted-foreground">{projectName ?? '—'}</TableCell>
-        <TableCell>
-          <span className="flex justify-end gap-1">
+        </DataTableCell>
+        <DataTableCell>
+          <span className="flex justify-end gap-1 opacity-0 transition-opacity duration-fast group-hover:opacity-100 group-focus-within:opacity-100">
             <RowActions transaction={transaction} onEdit={onEdit} onDelete={onDelete} />
           </span>
-        </TableCell>
-      </TableRow>
-      <TableRow>
-        <TableCell colSpan={ACCORDION_ROW_COL_SPAN} className="p-0">
-          <AccountingDetailsAccordion transaction={transaction} />
-        </TableCell>
-      </TableRow>
+        </DataTableCell>
+      </DataTableRow>
+      {hasEntries && isExpanded ? (
+        <DataTableRow
+          className="hover:bg-transparent"
+          data-testid={`transaction-details-${transaction.id}`}
+        >
+          <DataTableCell colSpan={ACCORDION_ROW_COL_SPAN} className="p-0">
+            <AccountingDetailsTable transaction={transaction} />
+          </DataTableCell>
+        </DataTableRow>
+      ) : null}
     </>
   );
 };
@@ -170,45 +190,56 @@ export const TransactionItemMobile: React.FC<TransactionItemProps> = ({
   onEdit,
   onDelete,
 }) => {
-  const { displayTitle, categoryLabel, dateText, hasCashLedger, isPositive, amountText } =
-    transaction;
+  const {
+    displayTitle,
+    projectName,
+    categoryLabel,
+    dateText,
+    hasCashLedger,
+    isPositive,
+    signedAmountText,
+  } = transaction;
   const amountColor = isPositive ? 'text-positive' : 'text-negative';
+  const hasEntries = (transaction.entries ?? []).length > 0;
 
   return (
-    <CompactRow testId={`transaction-row-mobile-${transaction.id}`} className="bg-card/50">
-      <div className="flex items-center justify-between gap-2">
-        <span className="flex min-w-0 items-baseline gap-2">
+    <MobileExpandableRow
+      data-testid={`transaction-row-mobile-${transaction.id}`}
+      summary={
+        <>
           <span className="font-mono text-[11px] tabular-nums text-muted-foreground whitespace-nowrap">
             {dateText}
           </span>
           <span className="min-w-0 truncate text-sm font-medium">{displayTitle}</span>
-        </span>
+        </>
+      }
+      value={
         <span
           className={cn(
-            'ml-auto font-mono text-sm tabular-nums whitespace-nowrap',
+            'font-mono text-sm tabular-nums',
             hasCashLedger ? amountColor : 'text-warning',
           )}
         >
-          {isPositive ? '+' : '-'}
-          {amountText}
+          {signedAmountText}
         </span>
-        <span className="flex shrink-0 gap-0.5">
-          <RowActions transaction={transaction} onEdit={onEdit} onDelete={onDelete} />
-        </span>
-      </div>
-      <div className="mt-1 flex items-center gap-2 text-[11px] text-muted-foreground">
-        <span className="truncate">{categoryLabel}</span>
-        {!hasCashLedger && (
-          <span className={cn('font-bold uppercase', TRACKING_LABEL)}>{NO_CASH_ENTRY_LABEL}</span>
-        )}
-      </div>
-      <div className="mt-2 border-t pt-1">
-        <AccountingDetailsAccordion transaction={transaction} />
-      </div>
-    </CompactRow>
+      }
+      actions={<RowActions transaction={transaction} onEdit={onEdit} onDelete={onDelete} />}
+      meta={
+        <>
+          <span className="truncate">{projectName ?? '—'}</span>
+          <span className="truncate">{categoryLabel}</span>
+          {!hasCashLedger && (
+            <span className={cn('font-bold uppercase', TRACKING_LABEL)}>{NO_CASH_ENTRY_LABEL}</span>
+          )}
+        </>
+      }
+      details={
+        hasEntries ? (
+          <div data-testid={`transaction-details-mobile-${transaction.id}`}>
+            <AccountingDetailsTable transaction={transaction} />
+          </div>
+        ) : undefined
+      }
+    />
   );
 };
-
-function formatAmount(value: number): string {
-  return formatCurrency(value);
-}

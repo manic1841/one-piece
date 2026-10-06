@@ -1,5 +1,6 @@
 import React from 'react';
 
+import { GateSurface } from '@/ui/components/GateSurface';
 import { Button } from '@/ui/components/ui/button';
 
 interface AppFallbackProps {
@@ -17,14 +18,12 @@ interface AppFallbackProps {
  * 不得是 silent failure。
  */
 export const AppFallback: React.FC<AppFallbackProps> = ({ title, description, hint, onRetry }) => (
-  <div className="flex min-h-screen items-center justify-center bg-background px-6">
-    <div className="w-full max-w-md space-y-3 text-center">
-      <h1 className="text-lg font-semibold text-foreground">{title}</h1>
-      <p className="text-sm text-muted-foreground">{description}</p>
-      {hint && <p className="font-mono text-xs text-muted-foreground">{hint}</p>}
-      <div className="pt-2">
-        <Button onClick={onRetry ?? (() => window.location.reload())}>Reload</Button>
-      </div>
+  <GateSurface className="space-y-3 text-center">
+    <h1 className="text-lg font-semibold text-foreground">{title}</h1>
+    <p className="text-sm text-muted-foreground">{description}</p>
+    {hint && <p className="font-mono text-xs text-muted-foreground">{hint}</p>}
+    <div className="pt-2">
+      <Button onClick={onRetry ?? (() => window.location.reload())}>Reload</Button>
     </div>
-  </div>
+  </GateSurface>
 );

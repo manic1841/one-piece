@@ -3,6 +3,8 @@ import React from 'react';
 import { ChevronRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
+import { CliProgress } from '@/ui/components/CliProgress';
+import { Skeleton } from '@/ui/components/Skeleton';
 import { StatusGlyph } from '@/ui/components/StatusGlyph';
 import { DASHBOARD_CLOSE_LABELS } from '@/ui/constants/dashboard/monthlyCloseStatus';
 import { mapNextMonthDueText } from '@/ui/features/dashboard/viewmodels/dashboardCloseStatus.vm';
@@ -42,45 +44,43 @@ export const MonthlyCloseCard: React.FC<MonthlyCloseCardProps> = ({
         <ChevronRight className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
       </div>
       {loading ? (
-        <div className="mt-4 h-6 w-40 animate-pulse rounded bg-muted" />
+        <Skeleton className="mt-4 h-6 w-40" />
       ) : error ? (
         <p className="mt-4 text-sm text-negative">{error}</p>
       ) : vm ? (
-        <div className="mt-4 space-y-3" data-testid="monthly-close-card">
+        <div className="mt-4 space-y-4" data-testid="monthly-close-card">
           <div className="flex items-center gap-3">
             <p className="font-mono text-lg tabular-nums text-foreground">{vm.periodText}</p>
             <StatusGlyph type={vm.glyphType} label={vm.statusText} />
           </div>
-          <div>
-            <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
-              <div
-                data-testid="close-progress"
-                role="progressbar"
-                aria-valuenow={vm.completedCount}
-                aria-valuemin={0}
-                aria-valuemax={vm.totalCount}
-                aria-label={`${vm.completedCount} of ${vm.totalCount} close stages completed`}
-                className={
-                  vm.glyphType === 'verified'
-                    ? 'h-full bg-positive'
-                    : vm.glyphType === 'review'
-                      ? 'h-full bg-warning'
-                      : 'h-full bg-chart-1'
-                }
-                style={{ width: `${(vm.completedCount / vm.totalCount) * 100}%` }}
-              />
-            </div>
-            <p className="mt-1.5 font-mono text-[10px] tracking-widest text-muted-foreground">
-              {vm.completedCount}/{vm.totalCount}
-              {vm.nextStageLabel != null && ` · NEXT ${vm.nextStageLabel}`}
-            </p>
+          <div className="space-y-3">
+            {vm.stages.map((stage, index) => (
+              <div key={stage.stageId}>
+                {index > 0 && <div className="mb-3 h-px bg-border" />}
+                <StatusGlyph type={stage.glyphType} label={stage.label} />
+              </div>
+            ))}
           </div>
+          <CliProgress
+            value={(vm.completedCount / vm.totalCount) * 100}
+            tone={
+              vm.glyphType === 'verified'
+                ? 'positive'
+                : vm.glyphType === 'review'
+                  ? 'warning'
+                  : 'default'
+            }
+            detail={`${vm.completedCount}/${vm.totalCount}${
+              vm.nextStageLabel != null ? ` · NEXT ${vm.nextStageLabel}` : ''
+            }`}
+            ariaLabel={`${vm.completedCount} of ${vm.totalCount} close stages completed`}
+          />
           {nextMonthDueLoading ? (
             <div className="flex items-baseline justify-between gap-4 border-t border-border pt-3">
               <span className="text-xs font-medium tracking-wider text-muted-foreground">
                 下月應付
               </span>
-              <div className="h-5 w-20 animate-pulse rounded bg-muted" />
+              <Skeleton className="h-5 w-20" />
             </div>
           ) : nextMonthDueText != null ? (
             <div className="flex items-baseline justify-between gap-4 border-t border-border pt-3">

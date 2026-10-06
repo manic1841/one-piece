@@ -1,3 +1,5 @@
+import { ListSectionHeader } from '@/ui/components/ListSectionHeader';
+import { Metric, MetricGroup } from '@/ui/components/MetricGroup';
 import {
   Form,
   FormControl,
@@ -8,6 +10,7 @@ import {
   NumberInput,
 } from '@/ui/components/form';
 import { Button } from '@/ui/components/ui/button';
+import { RetirementAssumptionsLabels } from '@/ui/constants/retirement/retirementWorkspaceLabels';
 import { type RetirementAssumptionsDisplayVM } from '@/ui/features/retirement/viewmodels/retirementDisplay.vm';
 import { type RetirementPlanCreate } from '@/ui/features/retirement/viewmodels/retirementForm.vm';
 
@@ -26,49 +29,53 @@ export default function AssumptionsForm({ assumptions, onSave }: AssumptionsForm
 
   if (!editing) {
     return (
-      <div className="rounded-lg border p-6">
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="text-lg font-semibold">Basic Assumptions</h3>
-          <Button onClick={startEdit}>Edit</Button>
-        </div>
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <div className="text-sm text-muted-foreground">Current Year</div>
-            <div className="text-lg font-medium">{assumptions.currentYear}</div>
-          </div>
-          <div>
-            <div className="text-sm text-muted-foreground">Birth Year</div>
-            <div className="text-lg font-medium">{assumptions.birthYear}</div>
-          </div>
-          <div>
-            <div className="text-sm text-muted-foreground">Retirement Age</div>
-            <div className="text-lg font-medium">{assumptions.retirementAge}</div>
-          </div>
-          <div>
-            <div className="text-sm text-muted-foreground">Life Expectancy</div>
-            <div className="text-lg font-medium">{assumptions.lifeExpectancy}</div>
-          </div>
-          <div>
-            <div className="text-sm text-muted-foreground">Inflation Rate</div>
-            <div className="text-lg font-medium">{assumptions.inflationRate}%</div>
-          </div>
-          <div>
-            <div className="text-sm text-muted-foreground">Investment Return</div>
-            <div className="text-lg font-medium">{assumptions.investmentReturnRate}%</div>
-          </div>
-        </div>
+      <div className="space-y-4">
+        <ListSectionHeader
+          title={RetirementAssumptionsLabels.viewTitle}
+          actions={
+            <Button variant="outline" size="sm" onClick={startEdit}>
+              {RetirementAssumptionsLabels.editAction}
+            </Button>
+          }
+        />
+        <MetricGroup columns={3}>
+          <Metric
+            label={RetirementAssumptionsLabels.currentYear}
+            value={String(assumptions.currentYear)}
+          />
+          <Metric
+            label={RetirementAssumptionsLabels.birthYear}
+            value={String(assumptions.birthYear)}
+          />
+          <Metric
+            label={RetirementAssumptionsLabels.retirementAge}
+            value={String(assumptions.retirementAge)}
+          />
+          <Metric
+            label={RetirementAssumptionsLabels.lifeExpectancy}
+            value={String(assumptions.lifeExpectancy)}
+          />
+          <Metric
+            label={RetirementAssumptionsLabels.inflationRate}
+            value={`${assumptions.inflationRate}%`}
+          />
+          <Metric
+            label={RetirementAssumptionsLabels.investmentReturn}
+            value={`${assumptions.investmentReturnRate}%`}
+          />
+        </MetricGroup>
       </div>
     );
   }
 
   return (
-    <div className="rounded-lg border p-6">
-      <h3 className="text-lg font-semibold mb-4">Edit Assumptions</h3>
+    <div className="space-y-4">
+      <ListSectionHeader title={RetirementAssumptionsLabels.editTitle} />
       <Form {...form}>
-        <form onSubmit={submit} className="grid grid-cols-2 gap-4" noValidate>
+        <form onSubmit={submit} className="grid grid-cols-1 gap-4 md:grid-cols-2" noValidate>
           <FormField name="currentYear">
             <FormItem>
-              <FormLabel required>Current Year</FormLabel>
+              <FormLabel required>{RetirementAssumptionsLabels.currentYear}</FormLabel>
               <FormControl>
                 <NumberInput />
               </FormControl>
@@ -77,7 +84,7 @@ export default function AssumptionsForm({ assumptions, onSave }: AssumptionsForm
           </FormField>
           <FormField name="birthYear">
             <FormItem>
-              <FormLabel required>Birth Year</FormLabel>
+              <FormLabel required>{RetirementAssumptionsLabels.birthYear}</FormLabel>
               <FormControl>
                 <NumberInput />
               </FormControl>
@@ -86,7 +93,7 @@ export default function AssumptionsForm({ assumptions, onSave }: AssumptionsForm
           </FormField>
           <FormField name="retirementAge">
             <FormItem>
-              <FormLabel required>Retirement Age</FormLabel>
+              <FormLabel required>{RetirementAssumptionsLabels.retirementAge}</FormLabel>
               <FormControl>
                 <NumberInput />
               </FormControl>
@@ -95,7 +102,7 @@ export default function AssumptionsForm({ assumptions, onSave }: AssumptionsForm
           </FormField>
           <FormField name="lifeExpectancy">
             <FormItem>
-              <FormLabel required>Life Expectancy</FormLabel>
+              <FormLabel required>{RetirementAssumptionsLabels.lifeExpectancy}</FormLabel>
               <FormControl>
                 <NumberInput />
               </FormControl>
@@ -104,7 +111,7 @@ export default function AssumptionsForm({ assumptions, onSave }: AssumptionsForm
           </FormField>
           <FormField name="inflationRate">
             <FormItem>
-              <FormLabel required>Inflation Rate (%)</FormLabel>
+              <FormLabel required>{RetirementAssumptionsLabels.inflationRateInput}</FormLabel>
               <FormControl>
                 <NumberInput step="0.1" />
               </FormControl>
@@ -113,7 +120,7 @@ export default function AssumptionsForm({ assumptions, onSave }: AssumptionsForm
           </FormField>
           <FormField name="investmentReturnRate">
             <FormItem>
-              <FormLabel required>Investment Return Rate (%)</FormLabel>
+              <FormLabel required>{RetirementAssumptionsLabels.investmentReturnInput}</FormLabel>
               <FormControl>
                 <NumberInput step="0.1" />
               </FormControl>
@@ -123,10 +130,10 @@ export default function AssumptionsForm({ assumptions, onSave }: AssumptionsForm
         </form>
       </Form>
 
-      <div className="flex gap-2 mt-6">
-        <Button onClick={() => submit()}>Save</Button>
+      <div className="flex gap-2">
+        <Button onClick={() => submit()}>{RetirementAssumptionsLabels.saveAction}</Button>
         <Button variant="outline" onClick={cancel}>
-          Cancel
+          {RetirementAssumptionsLabels.cancelAction}
         </Button>
       </div>
     </div>

@@ -16,24 +16,21 @@ const CLASS_SOURCE_PATTERN = /\.(ts|tsx)$/;
 const ROUNDED_FULL_ALLOWED = new Set([
   // Essential circles: switch track/knob, spinners, avatars, status dots,
   // data-viz capsules (progress tracks), circular state/icon containers.
+  'components/Avatar.tsx',
+  'components/AccessDenied.tsx',
+  'components/RadioGroup.tsx',
+  'components/charts/DonutChart.tsx',
+  'components/charts/InteractiveLineChart.tsx',
   'components/ui/switch.tsx',
-  'features/app/layout/Layout.tsx',
   'features/app/layout/PixelPet.tsx',
-  'features/auth/pages/AccessDeniedPage.tsx',
-  'features/dashboard/components/AssetsLiabilitiesBlock.tsx',
-  'features/dashboard/components/MonthlyCloseCard.tsx',
-  'features/project/components/detail/ProjectSnapshotItem.tsx',
-  'features/report/pages/BalanceSheet.tsx',
-  'features/report/pages/CashFlowStatement.tsx',
-  'features/report/pages/IncomeStatement.tsx',
-  'features/setting/components/MemberManagementUI.tsx',
-  'features/setting/components/SettingsUI.tsx',
+  'features/dashboard/components/AssetCompositionBlock.tsx',
 ]);
 
 const SHADOW_ALLOWED = new Set([
   // Floating layers only: dialog, dropdown, sheet, toast, popover, select,
   // command palette, switch knob, and the materialized app chrome (L1/L2/L3).
-  '../App.tsx',
+  'components/Toast.tsx',
+  'components/charts/ChartTooltip.tsx',
   'components/ui/command.tsx',
   'components/ui/dialog.tsx',
   'components/ui/dropdown-menu.tsx',
@@ -41,9 +38,10 @@ const SHADOW_ALLOWED = new Set([
   'components/ui/select.tsx',
   'components/ui/sheet.tsx',
   'components/ui/switch.tsx',
+  'components/ui/tooltip.tsx',
   'features/app/layout/Layout.tsx',
   'features/app/layout/PixelPet.tsx',
-  'features/report/components/ReportHeader.tsx',
+  'features/app/pages/GalleryInteraction.tsx',
 ]);
 
 const collectSourceFiles = (dir: string): string[] => {

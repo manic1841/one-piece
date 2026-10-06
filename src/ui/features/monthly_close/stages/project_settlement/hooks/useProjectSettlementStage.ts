@@ -2,10 +2,13 @@ import { useCallback } from 'react';
 
 import { listProjectSnapshotsUseCase } from '@/application/project/use_cases/listProjectSnapshotsUseCase';
 import { listProjectsUseCase } from '@/application/project/use_cases/listProjectsUseCase';
+import { previewProjectSettlementsUseCase } from '@/application/settlement/use_cases/previewProjectSettlementsUseCase';
+import { type AuthContext } from '@/application/types';
 import type { CloseStageControl } from '@/ui/features/monthly_close/hooks/closeStageControl';
 import { useNoOpStageControl } from '@/ui/features/monthly_close/hooks/useConfirmStageControl';
 import { useStageLoader } from '@/ui/features/monthly_close/hooks/useStageLoader';
-import { type ProjectSettlementEvidenceRow } from '@/ui/features/monthly_close/viewmodels/closeEvidence.vm';
+import { type ProjectSettlementRow } from '@/ui/features/monthly_close/viewmodels/projectSettlement.vm';
+import { useAuthIdentity } from '@/ui/hooks/useAuthIdentity';
 import { logger } from '@/utils/logger';
 
 interface UseProjectSettlementStageArgs {
@@ -17,39 +20,56 @@ interface UseProjectSettlementStageArgs {
 const LOAD_ERROR = '無法載入專案結算狀態，請稍後再試。';
 
 /**
- * Loads every active project with its settlement state for the month. A read
- * failure throws the canned message so the surface shows copy the consumer
- * owns instead of an empty list that reads as "no projects".
+ * Loads every active project with its live settlement preview, plus whether the
+ * month snapshot is already persisted. A read failure throws the canned message
+ * so the surface shows copy the consumer owns instead of an empty list that
+ * reads as "no projects".
  */
 const fetchSettlements = async ({
   householdId,
   selectedYearMonth,
+  auth,
 }: {
   householdId: string;
   selectedYearMonth: string;
-}): Promise<ProjectSettlementEvidenceRow[]> => {
+  auth: AuthContext;
+}): Promise<ProjectSettlementRow[]> => {
+  const year = Number(selectedYearMonth.slice(0, 4));
+  const month = Number(selectedYearMonth.slice(5, 7));
   try {
     const projects = await listProjectsUseCase.execute({ householdId });
     const activeProjects = projects.filter((project) => project.isActive);
+    if (activeProjects.length === 0) return [];
 
-    return await Promise.all(
-      activeProjects.map(async (project) => {
-        const snapshots = await listProjectSnapshotsUseCase.execute({
-          householdId,
-          projectId: project.id,
-          yearMonth: selectedYearMonth,
-        });
-        const snapshot = snapshots[0] ?? null;
-        return {
-          projectId: project.id,
-          projectName: project.name,
-          settled: snapshot !== null,
-          income: snapshot?.income ?? null,
-          expense: snapshot?.expense ?? null,
-          closingBalance: snapshot?.closingBalance ?? null,
-        };
+    const [previews, settledFlags] = await Promise.all([
+      previewProjectSettlementsUseCase.execute({
+        householdId,
+        projects: activeProjects.map((project) => ({ id: project.id, name: project.name })),
+        year,
+        month,
+        auth,
       }),
-    );
+      Promise.all(
+        activeProjects.map(async (project) => {
+          const snapshots = await listProjectSnapshotsUseCase.execute({
+            householdId,
+            projectId: project.id,
+            yearMonth: selectedYearMonth,
+          });
+          return snapshots.length > 0;
+        }),
+      ),
+    ]);
+
+    return previews.map((preview, index) => ({
+      projectId: preview.projectId,
+      projectName: preview.projectName,
+      settled: settledFlags[index] ?? false,
+      openingBalance: preview.openingBalance,
+      income: preview.income,
+      expense: preview.expense,
+      closingBalance: preview.closingBalance,
+    }));
   } catch (caught) {
     logger.warn('Failed to load project settlements', 'useProjectSettlementStage', { caught });
     throw new Error(LOAD_ERROR);
@@ -62,14 +82,16 @@ export const useProjectSettlementStage = ({
   selectedYearMonth,
   confirmingStageId,
 }: UseProjectSettlementStageArgs): CloseStageControl<'PROJECT_SETTLEMENT'> & {
-  settlements: ProjectSettlementEvidenceRow[];
+  settlements: ProjectSettlementRow[];
   errorMessage: string | null;
 } => {
+  const auth = useAuthIdentity();
+
   const load = useCallback(
-    () => fetchSettlements({ householdId, selectedYearMonth }),
-    [householdId, selectedYearMonth],
+    () => fetchSettlements({ householdId, selectedYearMonth, auth }),
+    [auth, householdId, selectedYearMonth],
   );
-  const { data, errorMessage, refresh } = useStageLoader<ProjectSettlementEvidenceRow[]>({
+  const { data, errorMessage, refresh } = useStageLoader<ProjectSettlementRow[]>({
     enabled: householdId !== '' && selectedYearMonth !== '',
     load,
   });

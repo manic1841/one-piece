@@ -17,6 +17,7 @@ import {
   TableHeader,
   dataTableLabelClass,
 } from '@/ui/components/data-table';
+import { eyebrowClass } from '@/ui/components/eyebrow';
 import { Button } from '@/ui/components/ui/button';
 import { MONTHLY_CLOSE_LABELS } from '@/ui/constants/monthlyClose';
 import { formatCurrency } from '@/ui/utils';
@@ -44,10 +45,8 @@ interface TradeTableProps {
 
 const COLUMN_WIDTHS = [16, 24, 36, 24] as const;
 
-const interactiveRowClass = 'cursor-pointer transition-colors hover:bg-elevated/60';
-
-const sideColorClass = (side: TradeSide): string =>
-  side === 'BUY' ? 'text-positive' : 'text-negative';
+const interactiveRowClass =
+  'cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-0';
 
 /**
  * 關帳階段的交易表格（證券與融資共用）：買入/賣出（或融資兩類）在同一表格，
@@ -75,12 +74,19 @@ export const TradeTable: React.FC<TradeTableProps> = ({
     .reduce((sum, row) => sum + (row.amount || 0), 0);
   const netFlow = buyTotal - sellTotal;
 
+  const rowKeyDown =
+    (row: TradeTableRow) =>
+    (event: React.KeyboardEvent<HTMLTableRowElement | HTMLDivElement>): void => {
+      if (event.target !== event.currentTarget) return;
+      if (event.key !== 'Enter' && event.key !== ' ') return;
+      event.preventDefault();
+      if (!disabled) onRowClick(row);
+    };
+
   return (
     <section className="space-y-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-          {title}
-        </p>
+        <p className={eyebrowClass}>{title}</p>
         <span className="font-mono text-[11px] tabular-nums text-muted-foreground">
           {rows.length} {MONTHLY_CLOSE_LABELS.TRANSACTIONS_COUNT}
         </span>
@@ -113,6 +119,8 @@ export const TradeTable: React.FC<TradeTableProps> = ({
                 {rows.map((row) => (
                   <DataTableRow
                     key={row.rowKey}
+                    interactive={!disabled}
+                    tabIndex={disabled ? undefined : 0}
                     className={cn(
                       interactiveRowClass,
                       disabled && 'pointer-events-none opacity-60',
@@ -120,10 +128,9 @@ export const TradeTable: React.FC<TradeTableProps> = ({
                     onClick={() => {
                       if (!disabled) onRowClick(row);
                     }}
+                    onKeyDown={rowKeyDown(row)}
                   >
-                    <DataTableCell
-                      className={cn('pl-3 font-mono text-xs font-medium', sideColorClass(row.side))}
-                    >
+                    <DataTableCell className="pl-3 font-mono text-xs font-medium">
                       {typeLabel(row.side)}
                     </DataTableCell>
                     <NumberCell value={row.amount} format={formatCurrency} />
@@ -147,15 +154,16 @@ export const TradeTable: React.FC<TradeTableProps> = ({
             {rows.map((row) => (
               <MobileDataRow
                 key={row.rowKey}
-                className={cn('space-y-1 border-border/60', !disabled && 'cursor-pointer')}
+                role="button"
+                tabIndex={disabled ? undefined : 0}
+                className={cn('space-y-1 border-border/60', !disabled && interactiveRowClass)}
                 onClick={() => {
                   if (!disabled) onRowClick(row);
                 }}
+                onKeyDown={rowKeyDown(row)}
               >
                 <div className="flex items-center justify-between">
-                  <p className={cn('font-mono text-xs font-medium', sideColorClass(row.side))}>
-                    {typeLabel(row.side)}
-                  </p>
+                  <p className="font-mono text-xs font-medium">{typeLabel(row.side)}</p>
                   <p className="font-mono text-sm font-medium tabular-nums">
                     {formatCurrency(row.amount)}
                   </p>

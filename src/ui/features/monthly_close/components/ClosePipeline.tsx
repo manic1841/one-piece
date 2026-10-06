@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 
 import { StatusGlyph } from '@/ui/components/StatusGlyph';
+import { Badge } from '@/ui/components/ui/badge';
 import { MONTHLY_CLOSE_LABELS, getCloseStageLabel } from '@/ui/constants/monthlyClose';
 import { cn } from '@/ui/utils/cn';
 
@@ -130,20 +131,20 @@ export const ClosePipeline: React.FC<ClosePipelineProps> = ({
                   </span>
                   <span className="truncate font-medium">{getCloseStageLabel(stage.stageId)}</span>
                   {stage.isStale && status !== 'WAITING' && (
-                    <span
+                    <Badge
                       data-testid="close-pipeline-stale"
-                      className="shrink-0 rounded-sm border border-warning/40 bg-warning/10 px-1.5 py-0.5 text-[9px] font-bold text-warning"
+                      className="shrink-0 border-warning/40 bg-warning/10 text-warning"
                     >
                       {MONTHLY_CLOSE_LABELS.NEEDS_RECONFIRM}
-                    </span>
+                    </Badge>
                   )}
                   {status === 'REVIEW' && (
-                    <span
+                    <Badge
                       data-testid="close-pipeline-review"
-                      className="shrink-0 rounded-sm border border-warning/30 bg-warning/10 px-1.5 py-0.5 text-[9px] font-bold text-warning"
+                      className="shrink-0 border-warning/40 bg-warning/10 text-warning"
                     >
                       {MONTHLY_CLOSE_LABELS.NEEDS_REVIEW}
-                    </span>
+                    </Badge>
                   )}
                 </button>
               </li>

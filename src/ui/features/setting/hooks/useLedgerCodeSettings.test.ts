@@ -77,23 +77,31 @@ describe('useLedgerCodeSettings', () => {
     vi.mocked(checkLedgerCodeInUseUseCase.execute).mockResolvedValue(false);
   });
 
+  const setForm = (
+    result: { current: ReturnType<typeof useLedgerCodeSettings> },
+    vm: { type: string; code: string; label: string },
+  ) => {
+    act(() => {
+      const form = result.current.ledgerCodeForm.form;
+      form.setValue('type', vm.type);
+      form.setValue('code', vm.code);
+      form.setValue('label', vm.label);
+    });
+  };
+
   it('prevents adding duplicate ledger codes', async () => {
     const { result } = renderHook(() => useLedgerCodeSettings());
     const { createCustomLedgerCodeUseCase } = await import(
       '../../../../application/ledger/use_cases/createCustomLedgerCodeUseCase'
     );
 
-    act(() => {
-      result.current.setNewType('expense');
-      result.current.setNewCode('food');
-      result.current.setNewLabel('重複餐飲');
-    });
+    setForm(result, { type: 'expense', code: 'food', label: '重複餐飲' });
 
     await act(async () => {
-      await result.current.handleAdd();
+      await result.current.ledgerCodeForm.submit();
     });
 
-    expect(result.current.error).toBe('科目代碼 expense:food 已存在。');
+    expect(result.current.ledgerCodeForm.error).toBe('科目代碼 expense:food 已存在。');
     expect(createCustomLedgerCodeUseCase.execute).not.toHaveBeenCalled();
   });
 
@@ -103,14 +111,10 @@ describe('useLedgerCodeSettings', () => {
       '../../../../application/ledger/use_cases/createCustomLedgerCodeUseCase'
     );
 
-    act(() => {
-      result.current.setNewType('expense');
-      result.current.setNewCode('travel');
-      result.current.setNewLabel('差旅費');
-    });
+    setForm(result, { type: 'expense', code: 'travel', label: '差旅費' });
 
     await act(async () => {
-      await result.current.handleAdd();
+      await result.current.ledgerCodeForm.submit();
     });
 
     expect(createCustomLedgerCodeUseCase.execute).toHaveBeenCalledWith({
@@ -125,9 +129,12 @@ describe('useLedgerCodeSettings', () => {
       label: '差旅費',
     });
     expect(refresh).toHaveBeenCalledTimes(1);
-    expect(result.current.newCode).toBe('');
-    expect(result.current.newLabel).toBe('');
-    expect(result.current.error).toBe('');
+    expect(result.current.ledgerCodeForm.form.getValues()).toEqual({
+      type: 'expense',
+      code: '',
+      label: '',
+    });
+    expect(result.current.ledgerCodeForm.error).toBe('');
   });
 
   it('creates a detail code under an existing category', async () => {
@@ -153,14 +160,10 @@ describe('useLedgerCodeSettings', () => {
 
     const { result } = renderHook(() => useLedgerCodeSettings());
 
-    act(() => {
-      result.current.setNewType('asset');
-      result.current.setNewCode('property:taipei');
-      result.current.setNewLabel('台北房產');
-    });
+    setForm(result, { type: 'asset', code: 'property:taipei', label: '台北房產' });
 
     await act(async () => {
-      await result.current.handleAdd();
+      await result.current.ledgerCodeForm.submit();
     });
 
     expect(createCustomLedgerCodeUseCase.execute).toHaveBeenCalledWith(
@@ -191,18 +194,14 @@ describe('useLedgerCodeSettings', () => {
 
     const { result } = renderHook(() => useLedgerCodeSettings());
 
-    act(() => {
-      result.current.setNewType('asset');
-      result.current.setNewCode('property:taipei');
-      result.current.setNewLabel('台北房產');
-    });
+    setForm(result, { type: 'asset', code: 'property:taipei', label: '台北房產' });
 
     await act(async () => {
-      await result.current.handleAdd();
+      await result.current.ledgerCodeForm.submit();
     });
 
-    expect(result.current.error).toContain('父科目 asset:property 不存在');
-    expect(result.current.error).toContain('asset:cash');
+    expect(result.current.ledgerCodeForm.error).toContain('父科目 asset:property 不存在');
+    expect(result.current.ledgerCodeForm.error).toContain('asset:cash');
     expect(createCustomLedgerCodeUseCase.execute).not.toHaveBeenCalled();
   });
 
@@ -212,17 +211,13 @@ describe('useLedgerCodeSettings', () => {
       '../../../../application/ledger/use_cases/createCustomLedgerCodeUseCase'
     );
 
-    act(() => {
-      result.current.setNewType('expense');
-      result.current.setNewCode('My Stuff');
-      result.current.setNewLabel('亂七八糟');
-    });
+    setForm(result, { type: 'expense', code: 'My Stuff', label: '亂七八糟' });
 
     await act(async () => {
-      await result.current.handleAdd();
+      await result.current.ledgerCodeForm.submit();
     });
 
-    expect(result.current.error).toContain('科目代碼格式不正確');
+    expect(result.current.ledgerCodeForm.error).toContain('科目代碼格式不正確');
     expect(createCustomLedgerCodeUseCase.execute).not.toHaveBeenCalled();
   });
 

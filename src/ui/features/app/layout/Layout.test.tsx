@@ -2,7 +2,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { ConfirmDialogProvider } from '@/ui/features/app/confirm/ConfirmDialog';
+import { ConfirmDialogProvider } from '@/ui/components/confirm/ConfirmDialog';
 
 import Layout from './Layout';
 import { NAVIGATOR_ITEMS, NAV_ITEMS } from './navigation';
@@ -78,6 +78,29 @@ function renderLayout({ initialRoute = '/', withPageMarker = false } = {}) {
         )}
       </MemoryRouter>
     </ConfirmDialogProvider>,
+  );
+}
+
+/**
+ * happy-dom implements `matchMedia` and reports a 1024px viewport, so the layout is
+ * desktop by default. Force a mobile viewport (no `min-width: 768px` match) so the
+ * bottom-sheet branch of `useIsDesktop` renders. Restored in `afterEach`.
+ */
+let mobileViewportSpy: ReturnType<typeof vi.spyOn> | undefined;
+
+function stubMobileViewport() {
+  mobileViewportSpy = vi.spyOn(window, 'matchMedia').mockImplementation(
+    (query) =>
+      ({
+        matches: false,
+        media: query,
+        onchange: null,
+        addEventListener: () => {},
+        removeEventListener: () => {},
+        addListener: () => {},
+        removeListener: () => {},
+        dispatchEvent: () => false,
+      }) as unknown as MediaQueryList,
   );
 }
 
@@ -296,6 +319,11 @@ describe('Layout content width', () => {
 });
 
 describe('Layout pixel pet and navigator', () => {
+  afterEach(() => {
+    mobileViewportSpy?.mockRestore();
+    mobileViewportSpy = undefined;
+  });
+
   it('renders a round pet placeholder fixed bottom-right', () => {
     renderLayout();
 
@@ -336,7 +364,7 @@ describe('Layout pixel pet and navigator', () => {
     expect(items.map((item) => item.getAttribute('href'))).not.toContain('/settings');
   });
 
-  it('keeps the navigator open after the pointer leaves the pet, and closes it on outside click', () => {
+  it('keeps the navigator open after the pointer leaves the pet, and closes it on Escape', async () => {
     renderLayout();
 
     const pet = screen.getByRole('button', { name: /pixel pet/i });
@@ -347,8 +375,9 @@ describe('Layout pixel pet and navigator', () => {
     fireEvent.mouseLeave(pet);
     expect(screen.getByTestId('navigator')).toBeInTheDocument();
 
-    fireEvent.pointerDown(screen.getByTestId('navigator-backdrop'));
-    expect(screen.queryByTestId('navigator')).not.toBeInTheDocument();
+    // Popover owns dismissal (no hand-rolled backdrop to click).
+    fireEvent.keyDown(document, { key: 'Escape' });
+    await waitFor(() => expect(screen.queryByTestId('navigator')).not.toBeInTheDocument());
     expect(screen.queryByTestId('navigator-sheet')).not.toBeInTheDocument();
   });
 
@@ -405,6 +434,7 @@ describe('Layout pixel pet and navigator', () => {
   });
 
   it('exposes the navigator on mobile as a bottom sheet', async () => {
+    stubMobileViewport();
     renderLayout();
 
     const pet = screen.getByRole('button', { name: /pixel pet/i });

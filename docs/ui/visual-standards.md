@@ -4,6 +4,8 @@
 
 本文件是頁面層級視覺契約的唯一真相來源。已由其他文件承載的契約（Dashboard 資料錨定、關帳階段模型等）一律以指標引用、不在本文件重述；規則差異時以該事實的歸屬文件為準。
 
+全站畫面的**視覺規範樣板**是 `/gallery` 路由（dev-only，以真實共用元件呈現）：新畫面開發一律先照 gallery 對應 section 的組合方式實作，不用自製替代。樣板規則與維護責任屬 [`component-catalog.md`](component-catalog.md)「規則」節，本節不重複。
+
 ---
 
 ## 核心設計原則
@@ -15,6 +17,8 @@
 3. **Space creates hierarchy**
 4. **Color communicates state**
 5. **Motion has a purpose**
+
+> 原則 4 的**具名例外**：以顏色編碼「分類」而非「狀態」的並列拆解圖（donut）使用 `chart-*` 類別色板；這道例外只適用於分類拆解，不得用於金額或狀態呈現，見 [ADR-0081](../adr/0081-chart-tone-vs-categorical-palette.md)。
 
 Tie-break：若一個做法同時符合與違反多條原則，以序號較小的原則勝出；仍不明確時，選**裝飾較少、新元素較少**的那一個。`development-guide` §4 的六個提問是同一判斷的展開。
 
@@ -52,6 +56,15 @@ Page Header 規則：
 - 不要把 Header 做成 Card。
 - 不使用大型 hero banner。
 
+### 入口畫面 (Entry / Gate Surface)
+
+登入、拒絕存取、Onboarding 與啟動失敗（`AppFallback`）**不套用 Page Shell**：它們在主介面之外，只完成單一任務，因此共用置中窄欄、鋪滿視窗高度的版面殼 `GateSurface`（見 [`component-catalog.md`](component-catalog.md)）。
+
+- 無導覽、無 Page Header；一個畫面只回答一件事。
+- 頁面唯一 H1 即該畫面標題。
+- 失敗訊息用 inline alert（`AppFallback` 例外——啟動失敗走其內建文案區，非表單錯誤）。
+- 內容與間距由呼叫端決定；`GateSurface` 只提供版面（`children` ＋ `className`）。
+
 ## 頁面寬度
 
 桌面版以固定最大內容寬度置中。容器上限與斷點切換屬 RWD 斷點契約，見 [`ui-layer-architecture.md`](ui-layer-architecture.md)（[ADR-0044](../adr/0044-rwd-breakpoint-contract.md)），本節不重述數字。
@@ -59,7 +72,7 @@ Page Header 規則：
 頁面依用途分兩類：
 
 - **資料密集頁**（Transactions、Accounts、Debt、Reports）：可使用完整內容寬度。
-- **閱讀 / 情境頁**（Retirement、Account Detail、Portfolio Detail）：限制在較窄的閱讀寬度（約 960–1200px），避免長行。
+- **閱讀 / 情境頁**（Retirement、Account Detail、Portfolio Detail）：限制在較窄的閱讀寬度，避免長行。容器上限屬 RWD 斷點契約，見 [`ui-layer-architecture.md`](ui-layer-architecture.md)。
 
 原則：
 
@@ -67,20 +80,22 @@ Page Header 規則：
 
 ## 間距
 
-級距本身（`4 · 8 · 12 · 16 · 24 · 32 · 48 · 64`）定義在 [`design-system.md`](design-system.md) 的「間距級距」節；本節只定使用場景與禁止事項。
+級距本身與對應的 Tailwind token 定義在 [`design-system.md`](design-system.md) 的「間距級距」節；本節只定使用場景與禁止事項。
 
 | 級距 | 用途                       |
 | ---- | -------------------------- |
-| 4px  | icon / text 微間距         |
-| 8px  | label → input、icon → text |
-| 12px | table / compact row        |
-| 16px | component internal padding |
-| 24px | section internal spacing   |
-| 32px | section separation         |
-| 48px | major section separation   |
-| 64px | page-level breathing room  |
+| 最小 | icon / text 微間距         |
+| 次小 | label → input、icon → text |
+| 小   | table / compact row        |
+| 中小 | component internal padding |
+| 中   | section internal spacing   |
+| 大   | section separation         |
+| 特大 | major section separation   |
+| 最大 | page-level breathing room  |
 
-**禁止**：級距外的任意值（`13px`、`18px`、`22px`、`27px`、`37px`…）不得大量出現，除非有特殊 layout 原因。目標是讓整個系統有**可預測的節奏**。
+上表的級距對應 design-system 級距由小到大的八個值；具體數字以該節為準，不在本節複述。
+
+**禁止**：級距外的任意值不得大量出現，除非有特殊 layout 原因。目標是讓整個系統有**可預測的節奏**。
 
 ## 狀態 (States)
 
@@ -100,8 +115,8 @@ Page Header 規則：
 
 Monthly Close 是全站最重要的 workflow UI。其階段模型、資料建立邊界與確認語意見 [monthly-close.md](../monthly-close.md)，不在本節重述：
 
-- 階段資料建立邊界與 9 階段模型：[monthly-close.md](../monthly-close.md)；取捨理由見 [ADR-0052](../adr/0052-monthly-close-stage-data-boundary.md)。
-- workflow-first 表面收斂（pipeline 分工、per-stage 自成一體）：[ADR-0056](../adr/0056-workflow-first-surfaces.md)（#209 修訂：9 個獨立 step 元件取代單一 workspace frame）。
+- 階段資料建立邊界與 8 階段模型：[monthly-close.md](../monthly-close.md)；取捨理由見 [ADR-0052](../adr/0052-monthly-close-stage-data-boundary.md)。
+- workflow-first 表面收斂（pipeline 分工、per-stage 自成一體）：[ADR-0056](../adr/0056-workflow-first-surfaces.md)（#209 修訂：各階段獨立 step 元件取代單一 workspace frame）。
 
 本節只定頁面層級的呈現標準：
 
@@ -132,14 +147,14 @@ NET WORTH
 ↓
 FINANCIAL SNAPSHOT
 ↓
-FINANCIAL DETAILS
+ASSETS ∥ MONTHLY CASH FLOW
 ↓
-MONTHLY CLOSE
-↓
-RECENT ACTIVITY
+MONTHLY CLOSE ∥ RECENT ACTIVITY
 ```
 
-Close 排在 Recent 之前：Monthly Close 是時間敏感的 workflow 入口，Recent Activity 是低優先的系統日誌。
+ASSETS 與 MONTHLY CASH FLOW 並排於同一列：左為資產組成（圓環）、右為月現金流（流入／流出長條），兩欄等寬（行動版上下堆疊）。資產只顯示組成，負債不重複列出（負債已由 Financial Snapshot 的「總負債」與月關帳流程承載）。
+
+MONTHLY CLOSE 與 RECENT ACTIVITY 並排於同一列：左為 Monthly Close、右為 Recent Activity，兩欄等寬（行動版上下堆疊，Close 在上）。Close 在左，因為它是時間敏感的 workflow 入口、Recent Activity 是低優先的系統日誌。Monthly Close 卡以階段狀態清單呈現進度，並以進度條總結完成比例。
 
 不要增加：
 
@@ -189,19 +204,39 @@ Section → Group → Detail → Deep detail → Subtotal → Terminus
 
 - **Section 是區塊而非 Card**：只用微背景帶與一條下緣細線區隔，不加圓角、不加外框、不加重陰影。小字大寫與全站表頭語言一致，但提亮成 `foreground`，讓它高於底下資料列而非弱於資料列。
 - **Subtotal 靠線與字重建立層級**，不使用背景色（只有 Section 與 Terminus 帶微背景）。
-- **Terminus 是頁面視覺終點**：字級跳級、列高加大、最重的上緣線。財務報表維持中性語言，不用品牌色色條或彩色強調。
+- **Terminus 是頁面視覺終點**：字級跳級、列高加大、最重的上緣線，並以 `primary`（品牌色）強調最終總結——這是財務報表唯一的彩色強調；其餘角色維持中性語言，不用彩色。
 - **不變式**：同一角色在三張表一致；明細不再因落在不同深度而在表間有不同大小與顏色。
 
-### 關帳報表表格階層 (Step 8 Statements)
+### 關帳報表表格階層 (Financial Reports Statements)
 
-Step 8 三張表是一個**沒有欄名標題列的單表**，由資料本身的階層建立結構：
+Financial Reports 三張表是一個**沒有欄名標題列的單表**，由資料本身的階層建立結構：
 
 - **報表切換沿用全站 tabs 分頁**（樣式見 [`design-system.md`](design-system.md) 的 `tabs`）：桌機才顯示分頁；行動版不顯示分頁，三張表依序堆疊並各帶標題。
+- **每張表帶摘要指標列**：表上方為該表的三個關鍵合計（損益表：收入／支出／本期淨利；資產負債表：資產／負債／權益；現金流量表：期初餘額／期末餘額／現金淨變動），以 `MetricGroup` 排版（非卡片），實際餘額仍只以表下註腳呈現。結果型指標（本期淨利、現金淨變動）依正負上色，其餘維持中性；月度關帳在當期值上另加漂移變化行（muted）。行動版標題與指標列一起堆疊在表格上方（見 [`component-catalog.md`](component-catalog.md) 的 `StatementPanel`）。
 - **列樣式依「財務報表語意階層」**（上節）。
 - **階層以縮排表達**（級距見 [`design-system.md`](design-system.md) 的「間距級距」），可摺疊、**預設展開**、chevron 置於標籤**左側**；摺疊狀態跨分頁切換**不保留**（切回重置為展開）。
 - **金額欄一律靠表格最右**，與標籤欄兩欄配置（欄寬為程式碼常數）。
 - **現金流的實際餘額為表下的 muted 註腳**（對帳性質的次要觀察值），不與現金淨變動等重。
 - **行動版沿用同一張兩欄表**（標籤換行、無水平捲動），並沿用同一套語意階層，不另做 grouped card；資產負債表的五項權益來源固定呈現（含 0），確保 breakdown 不因歸零而被隱藏。
+
+### 報表檢視 (Report View)
+
+報表檢視是回看已產生報表的介面，分為清單與 detail，兩者一律讀**已產生報表**、不做漂移比對（與關帳畫面的預覽契約刻意不同，見 [ADR-0077](../adr/0077-report-view-shows-persisted-close-shows-preview.md)）。
+
+- **清單**：header（標題 ＋ 月／年粒度切換）→ hero（最近一份有報表期間的淨利）→ summary（同期的期末權益與期末現金）→ **報表歷史**。hero 與 summary 同源；最新期間尚無報表時往前找，不顯示空值。
+- **報表歷史**：每列一個期間（期間、淨利、期末權益、期末現金），最新在前、全列不分頁；月／年切換是同一份資料的兩種粒度（年度為月報表聚合，見 [`CONTEXT.md`](../../CONTEXT.md) 的 Report Year）。狀態標記**僅在非已關帳時**顯示，已關帳為預設不標。
+- **detail**：header（期間 ＋ 上／下導覽）→ 底線式 tabs（三張報表）；每張表沿用上節「財務報表語意階層」與關帳報表的表格／分頁契約（同一份共用呈現）。導覽為純日曆移動，任何期間皆可開啟，該期無報表顯示空狀態；非已關帳期間於 header 提供次級動作前往月度關帳。
+- **三態**一律沿用共用元件：載入＝Skeleton、錯誤＝ inline 提醒 ＋ 重試、空＝空狀態（detail 空狀態帶期間）；不使用 spinner 或純文字紅字。
+
+### Detail 頁的次要閱讀層 (Detail Secondary Layers)
+
+Detail 頁把低頻決策的資訊收在可摺疊面板與列展開之後，讓主結論（summary）先被讀到：
+
+- **區塊級折疊**：次要 section 可整段收進可摺疊面板，面板標題即 section 標題，**預設展開**；展開狀態**不持久**（切換檢視即重置）。
+- **列展開**：同一份資料的「彙總列 → 該列明細」用**列展開**承擔。彙總列是唯一的互動列（chevron 置於標籤**左側**、`aria-expanded`），展開顯示該列明細；展開中的列不加 hover 底色，明細列一律不得有 hover 呈現。
+- **權威值優先**：每月彙總以已結算的快照為權威，缺快照時退回該月明細合計；SUMMARY 固定為最近 12 個月合計，實體餘額取最新快照並獨立於 summary 呈現（專案詳情以 hero 數字承擔），兩者都不隨展開狀態跳動。
+- **可推導的聚合不另開表**：能由明細推導的聚合（如支出分類）不另開表格，改由展開明細承擔。
+- 行動版以可展開的 grouped row 呈現同一組資料，不另做第二套結構。
 
 ## 行動版佈局 (Mobile)
 
@@ -227,6 +262,16 @@ Pixel Pet         → Navigate
 ```
 
 不要做 Global Search 把整個系統所有資料混在一起。
+
+## 交易頁期間瀏覽 (Transactions Period Browsing)
+
+交易頁 toolbar 的期間選擇（`TransactionPeriodPicker`，feature-local）與情境篩選列的語意不同，不得混為一談：
+
+- **期間是 server-side 資料範圍**：選擇即重新向後端載入該期間的交易（預設本月）；type filter 與搜尋是 client-side 的已載入資料過濾。兩者各自獨立，期間切換不清空搜尋或 filter。
+- **預設集只有三個**：本月、最近 3 個月、自訂日期（單選互斥）。「自訂日期」展開 FROM/TO 輸入，以 套用 提交；範圍倒置顯示就近 inline 錯誤，不送出請求。
+- **選擇即套用**：preset 選定立即重新載入，不暫存 draft；只有自訂日期走 draft + 套用。
+- **期間瀏覽的落點在 toolbar 右側**，與情境篩選列並列；情境篩選列的樣式契約見 [`design-system.md`](design-system.md) §7 `tabs`。
+- **兩者共用同一條 toolbar 細線**：情境篩選列只畫選中態底線，不畫自己的容器框線；細線由 toolbar 提供，選中態底線咬住該細線。
 
 ## 資料密度 (Data Density)
 
@@ -332,25 +377,26 @@ ONE PIECE VISUAL CHECK
 [ ] Financial numbers 使用 monospace
 [ ] Numeric columns right aligned
 [ ] Status 使用 icon + text
-[ ] Color 只表達 semantic state
+[ ] Color 只表達 semantic state（分類拆解圖的 `chart-*` 類別色板為具名例外，見 ADR-0081）
 [ ] Primary / Secondary / Tertiary hierarchy 清楚
 [ ] List → Detail interaction 一致
 [ ] 不存在 row-level action clutter
 [ ] Empty state 簡潔
 [ ] Loading pattern 一致
 [ ] Advanced settings 預設收起
-[ ] Chart 無裝飾性元素
+[ ] Chart 無裝飾性元素（面積僅允許單色資料歸屬漸層，見 ADR-0078）
 [ ] Mobile 為 single-column / responsive layout
 [ ] Mobile reading order 與 Desktop 一致
 [ ] 沒有 domain implementation details 暴露給使用者
 [ ] 沒有不必要的 Card / Pill / Shadow
 [ ] Page hierarchy 一眼可讀
+[ ] 畫面組合與 gallery 對應 section 一致（自製替代即 drift）
 ```
 
 ### 最後的判斷標準
 
 - 問「這個元件到底要不要做成 Card？」→ **如果拿掉外框後，資訊層級仍然清楚，就不要做 Card。**
-- 問「這個資訊要不要用顏色？」→ **如果它不是 State，就不要用顏色。**
+- 問「這個資訊要不要用顏色？」→ **如果它不是 State，就不要用顏色。**（唯一例外：以顏色編碼分類的拆解圖，見 ADR-0081）
 - 問「這個資訊要不要放在第一層？」→ **如果使用者不需要每天做決策，就放到 Detail / Advanced / Accordion。**
 
 這三條基本上就能約束整個 ONE PIECE 的 Visual Consistency。

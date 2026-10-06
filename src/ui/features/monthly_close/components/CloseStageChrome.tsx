@@ -4,6 +4,7 @@ import { Button } from '@/ui/components/ui/button';
 import { MONTHLY_CLOSE_LABELS } from '@/ui/constants/monthlyClose';
 
 import { useCloseStageChrome } from '../hooks/useCloseStageChrome';
+import { CloseSectionHeading } from './CloseSectionHeading';
 
 interface CloseStageChromeProps {
   stepText: string;
@@ -51,17 +52,16 @@ export const CloseStageChrome: React.FC<CloseStageChromeProps> = ({
 
   return (
     <section className="space-y-4 pt-8">
-      <div className="flex flex-wrap items-end justify-between gap-3 border-b border-border pb-4">
-        <div className="space-y-1">
-          <p className="text-[11px] uppercase tracking-[0.12em] text-muted-foreground">當前步驟</p>
-          <div className="flex items-center gap-2">
-            <h2 className="text-[22px] font-medium leading-tight text-foreground">{stepText}</h2>
-          </div>
-        </div>
-        <span className="font-mono text-[13px] tabular-nums text-muted-foreground">
-          {progressText}
-        </span>
-      </div>
+      <CloseSectionHeading
+        eyebrow={MONTHLY_CLOSE_LABELS.CURRENT_STEP}
+        title={stepText}
+        trailing={
+          <span className="font-mono text-[13px] tabular-nums text-muted-foreground">
+            {progressText}
+          </span>
+        }
+        className="border-b border-border pb-4"
+      />
 
       {confirmedAtText && <p className="text-xs text-muted-foreground">{confirmedAtText}</p>}
 

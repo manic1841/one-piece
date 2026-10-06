@@ -9,26 +9,24 @@ import { type SelectFieldOption } from '@/ui/components/form';
 import {
   type Account,
   AccountCategory,
-  type Portfolio,
   type PortfolioFormInput,
   PortfolioFormSchema,
   type PortfolioFormVM,
   createDefaultPortfolioFormVM,
-  mapPortfolioToFormVM,
 } from '../viewmodels/portfolioForm.vm';
 
 interface UsePortfolioFormParams {
   isOpen: boolean;
   /** The household's accounts; the page already loads them to label the list. */
   accounts: Account[];
-  portfolio?: Portfolio;
   onSubmit: (data: PortfolioFormVM) => Promise<void>;
   onClose: () => void;
 }
 
 /**
- * Controller for the portfolio dialog (ADR-0064). Owns the RHF state and the
- * account options; the dialog only renders.
+ * Controller for the portfolio create dialog (ADR-0064). Owns the RHF state and
+ * the account options; the dialog only renders. There is no edit mode — the
+ * portfolio is renamed inline and its lifecycle toggled from the detail page.
  *
  * The resolver drives field-level display (`onTouched`), and the explicit
  * `PortfolioFormSchema.parse` in the submit handler is the authoritative gate
@@ -39,7 +37,6 @@ interface UsePortfolioFormParams {
 export const usePortfolioForm = ({
   isOpen,
   accounts,
-  portfolio,
   onSubmit,
   onClose,
 }: UsePortfolioFormParams) => {
@@ -49,12 +46,12 @@ export const usePortfolioForm = ({
     defaultValues: createDefaultPortfolioFormVM(),
   });
 
-  // The dialog stays mounted behind `isOpen`, so the edit target is applied by
-  // resetting rather than by seeding the defaults once.
+  // The dialog stays mounted behind `isOpen`, so the form is cleared whenever
+  // it opens rather than seeded once on mount.
   useEffect(() => {
     if (!isOpen) return;
-    form.reset(portfolio ? mapPortfolioToFormVM(portfolio) : createDefaultPortfolioFormVM());
-  }, [isOpen, portfolio, form]);
+    form.reset(createDefaultPortfolioFormVM());
+  }, [isOpen, form]);
 
   const securitiesOptions = useMemo<SelectFieldOption[]>(
     () =>

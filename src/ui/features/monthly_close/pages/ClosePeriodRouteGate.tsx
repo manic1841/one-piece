@@ -2,7 +2,8 @@ import React from 'react';
 
 import { Navigate, useParams } from 'react-router-dom';
 
-import { MONTHLY_CLOSE_LABELS } from '@/ui/constants/monthlyClose';
+import { LoadingLine } from '@/ui/components/LoadingLine';
+import { Alert, AlertDescription } from '@/ui/components/ui/alert';
 import { useAuthState } from '@/ui/contexts/useAuthState';
 
 import { useClosePeriodRoute } from '../hooks/useClosePeriodRoute';
@@ -21,14 +22,14 @@ export const ClosePeriodRouteGate: React.FC = () => {
   }
 
   if (state.status === 'loading') {
-    return <p className="text-sm text-muted-foreground">{MONTHLY_CLOSE_LABELS.LOADING}</p>;
+    return <LoadingLine className="min-h-0 py-6" />;
   }
 
   if (state.status === 'error') {
     return (
-      <div className="rounded-lg border border-negative/20 bg-negative/10 px-4 py-3 text-sm text-negative">
-        {state.errorMessage}
-      </div>
+      <Alert variant="destructive">
+        <AlertDescription>{state.errorMessage}</AlertDescription>
+      </Alert>
     );
   }
 

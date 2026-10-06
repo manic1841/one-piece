@@ -225,10 +225,7 @@ export const mapDomainTransactionToFormOutput = (
   allocation?: Allocation | null,
 ): TransactionFormOutput => {
   const normalizedIntentType: TransactionFormOutput['intentType'] =
-    transaction.intentType === 'EXPENSE' ||
-    transaction.intentType === 'INCOME' ||
-    transaction.intentType === 'INVESTMENT' ||
-    transaction.intentType === 'FINANCING'
+    transaction.intentType === 'EXPENSE' || transaction.intentType === 'INCOME'
       ? transaction.intentType
       : 'MANUAL';
 

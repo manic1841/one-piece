@@ -14,8 +14,8 @@ import { type DebtAccount } from '@/domains/debt/schemas';
 import { type CloseStageId, type FinancialPeriod } from '@/domains/financial_period/schemas';
 import { type Portfolio } from '@/domains/portfolio/schemas';
 import { type Project } from '@/domains/project/schemas';
+import { useConfirm } from '@/ui/components/confirm/useConfirm';
 import { MONTHLY_CLOSE_LABELS } from '@/ui/constants/monthlyClose';
-import { useConfirm } from '@/ui/features/app/confirm/useConfirm';
 import {
   type CloseStepContext,
   useCloseStepRegistry,

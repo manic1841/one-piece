@@ -5,9 +5,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { listDebtAccountsUseCase } from '@/application/debt/use_cases/listDebtAccountsUseCase';
 import { listDebtSnapshotsUseCase } from '@/application/debt/use_cases/listDebtSnapshotsUseCase';
 import { type DebtAccount } from '@/domains/debt/schemas';
-import { DEBT_STATUS_SETTLED_LABEL } from '@/ui/constants/debtStatusLabels';
+import { useConfirm } from '@/ui/components/confirm/useConfirm';
+import { DEBT_DETAIL_LABELS } from '@/ui/constants/debt/detailLabels';
+import { DEBT_STATUS_INACTIVE_LABEL, DEBT_STATUS_SETTLED_LABEL } from '@/ui/constants/debt/label';
 import { useAuthState } from '@/ui/contexts/useAuthState';
-import { useConfirm } from '@/ui/features/app/confirm/useConfirm';
 import { useDebtAccountCmds } from '@/ui/features/debt/hooks/useDebtAccountCmds';
 
 import DebtDetailPage from './DebtDetailPage';
@@ -25,7 +26,7 @@ vi.mock('@/application/debt/use_cases/listDebtPaymentsUseCase', () => ({
   },
 }));
 vi.mock('@/ui/features/debt/hooks/useDebtAccountCmds');
-vi.mock('@/ui/features/app/confirm/useConfirm');
+vi.mock('@/ui/components/confirm/useConfirm');
 vi.mock('react-router-dom', async () => {
   const actual = await vi.importActual<typeof import('react-router-dom')>('react-router-dom');
   return {
@@ -139,12 +140,85 @@ describe('DebtDetailPage header actions', () => {
   });
 
   it('renders the settled status as a glyph + text status, not a badge', async () => {
-    renderDetail(buildAccount({ isActive: false }));
+    renderDetail(buildAccount({ isActive: false, closedAt: new Date('2026-01-01') }));
 
     const status = await screen.findByText(DEBT_STATUS_SETTLED_LABEL);
     const glyphWrap = status.closest('span')!.parentElement!;
     expect(glyphWrap.textContent).toContain('✓');
-    expect(glyphWrap.querySelector('.text-positive')).not.toBeNull();
+    expect(glyphWrap.className).toContain('text-positive');
     expect(glyphWrap.className).not.toMatch(/rounded-|(^|\s)border(-|\s)/);
+  });
+
+  it('renders a merely disabled loan as inactive, not settled', async () => {
+    renderDetail(buildAccount({ isActive: false, closedAt: null }));
+
+    expect(await screen.findByText(DEBT_STATUS_INACTIVE_LABEL)).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: '啟用貸款' })).toBeInTheDocument();
+  });
+
+  it('renders the history table inline with month rows that expand to payments', async () => {
+    renderDetail(buildAccount());
+
+    expect(await screen.findByText('HISTORY')).toBeInTheDocument();
+    expect(screen.queryByText('RECENT PAYMENTS')).not.toBeInTheDocument();
+  });
+
+  it('shows a loading state before the loan resolves', async () => {
+    vi.mocked(listDebtAccountsUseCase.execute).mockResolvedValue([]);
+    vi.mocked(listDebtSnapshotsUseCase.execute).mockResolvedValue([]);
+
+    render(
+      <MemoryRouter>
+        <DebtDetailPage />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByText('載入中…')).toBeInTheDocument();
+    await waitFor(() => expect(screen.queryByText('載入中…')).not.toBeInTheDocument());
+  });
+
+  it('shows the not-found state when the loan does not exist', async () => {
+    vi.mocked(listDebtAccountsUseCase.execute).mockResolvedValue([]);
+    vi.mocked(listDebtSnapshotsUseCase.execute).mockResolvedValue([]);
+
+    render(
+      <MemoryRouter>
+        <DebtDetailPage />
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByText('找不到貸款')).toBeInTheDocument();
+  });
+
+  it('shows a load error with a retry action when the fetch fails', async () => {
+    vi.mocked(listDebtAccountsUseCase.execute).mockRejectedValue(new Error('boom'));
+    vi.mocked(listDebtSnapshotsUseCase.execute).mockResolvedValue([]);
+
+    render(
+      <MemoryRouter>
+        <DebtDetailPage />
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByText(DEBT_DETAIL_LABELS.LOAD_ERROR)).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: DEBT_DETAIL_LABELS.RETRY_ACTION }),
+    ).toBeInTheDocument();
+  });
+
+  it('keeps the loan and shows an inline alert when only the history fetch fails', async () => {
+    vi.mocked(listDebtAccountsUseCase.execute).mockResolvedValue([buildAccount()]);
+    vi.mocked(listDebtSnapshotsUseCase.execute).mockRejectedValue(new Error('boom'));
+
+    render(
+      <MemoryRouter>
+        <DebtDetailPage />
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByText(DEBT_DETAIL_LABELS.LOAD_ERROR)).toBeInTheDocument();
+    expect(
+      screen.getByText(DEBT_DETAIL_LABELS.OUTSTANDING_BALANCE_SECTION_TITLE),
+    ).toBeInTheDocument();
   });
 });

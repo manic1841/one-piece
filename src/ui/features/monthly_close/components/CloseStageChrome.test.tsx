@@ -8,7 +8,7 @@ describe('CloseStageChrome', () => {
     render(
       <CloseStageChrome
         stepText="05 債務還款"
-        progressText="05 / 09"
+        progressText="05 / 08"
         confirmedAtText="2026-09-27 10:00 由 user@test.com 確認"
         confirming={false}
         isConfirmable
@@ -22,7 +22,7 @@ describe('CloseStageChrome', () => {
 
     expect(screen.getByText('當前步驟')).toBeInTheDocument();
     expect(screen.getByText('05 債務還款')).toBeInTheDocument();
-    expect(screen.getByText('05 / 09')).toBeInTheDocument();
+    expect(screen.getByText('05 / 08')).toBeInTheDocument();
     expect(screen.getByText('2026-09-27 10:00 由 user@test.com 確認')).toBeInTheDocument();
     expect(screen.getByText('evidence slot')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'CONTINUE →' })).toBeEnabled();
@@ -32,7 +32,7 @@ describe('CloseStageChrome', () => {
     render(
       <CloseStageChrome
         stepText="05 債務還款"
-        progressText="05 / 09"
+        progressText="05 / 08"
         confirming
         isConfirmable
         isReadOnly={false}
@@ -50,7 +50,7 @@ describe('CloseStageChrome', () => {
     render(
       <CloseStageChrome
         stepText="05 債務還款"
-        progressText="05 / 09"
+        progressText="05 / 08"
         confirming={false}
         isConfirmable={false}
         isReadOnly={false}
@@ -70,7 +70,7 @@ describe('CloseStageChrome', () => {
     render(
       <CloseStageChrome
         stepText="05 債務還款"
-        progressText="05 / 09"
+        progressText="05 / 08"
         confirming={false}
         isReviewing
         isConfirmable
@@ -97,7 +97,7 @@ describe('CloseStageChrome', () => {
     render(
       <CloseStageChrome
         stepText="05 債務還款"
-        progressText="05 / 09"
+        progressText="05 / 08"
         confirming={false}
         isConfirmable
         showActions={false}
@@ -115,7 +115,7 @@ describe('CloseStageChrome', () => {
     render(
       <CloseStageChrome
         stepText="05 債務還款"
-        progressText="05 / 09"
+        progressText="05 / 08"
         confirming={false}
         isConfirmable
         showActions

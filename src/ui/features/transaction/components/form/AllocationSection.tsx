@@ -1,10 +1,10 @@
 import { useMemo, useState } from 'react';
 
+import { Trash2 } from 'lucide-react';
 import { useFieldArray, useFormContext, useWatch } from 'react-hook-form';
 
 import { FormControl, FormField, FormItem, FormMessage, NumberInput } from '@/ui/components/form';
 import { Button } from '@/ui/components/ui/button';
-import { Card, CardContent } from '@/ui/components/ui/card';
 import { Label } from '@/ui/components/ui/label';
 import { type AllocationDraftItem } from '@/ui/features/transaction/types/allocation';
 import { type TransactionFormProjectOption } from '@/ui/features/transaction/types/transaction';
@@ -14,7 +14,6 @@ import { formatCurrency } from '@/ui/utils';
 interface AllocationSectionProps {
   projects: TransactionFormProjectOption[];
   title: string;
-  tone?: 'income' | 'expense';
 }
 
 const toPositiveNumber = (value: string | number | undefined) => {
@@ -27,12 +26,8 @@ const toPositiveNumber = (value: string | number | undefined) => {
  * row binds its percentage by indexed path through the shared glue, and the row
  * key is the field-array `id`.
  */
-export const AllocationSection: React.FC<AllocationSectionProps> = ({
-  projects,
-  title,
-  tone = 'income',
-}) => {
-  const { control } = useFormContext<TransactionAllocationFormValues>();
+export const AllocationSection: React.FC<AllocationSectionProps> = ({ projects, title }) => {
+  const { control, formState } = useFormContext<TransactionAllocationFormValues>();
   const { fields, append, remove, replace } = useFieldArray({ control, name: 'allocationItems' });
   const watchedItems = useWatch({ control, name: 'allocationItems' }) as
     | AllocationDraftItem[]
@@ -53,12 +48,19 @@ export const AllocationSection: React.FC<AllocationSectionProps> = ({
   );
   const amountNumber = toPositiveNumber(amount);
 
-  const totalClass =
-    Math.abs(totalPercentage - 100) < 0.01
-      ? tone === 'income'
-        ? 'text-positive'
-        : 'text-negative'
-      : 'text-warning';
+  const totalClass = Math.abs(totalPercentage - 100) < 0.01 ? 'text-foreground' : 'text-warning';
+
+  const allocationErrors = formState.errors.allocationItems;
+  const rowErrorMessages = Array.from(
+    new Set(
+      (Array.isArray(allocationErrors) ? allocationErrors : [])
+        .map(
+          (entry) =>
+            (entry as { percentage?: { message?: string } } | undefined)?.percentage?.message,
+        )
+        .filter((message): message is string => typeof message === 'string'),
+    ),
+  );
 
   const addSelectedProject = () => {
     if (!selectedProjectId) return;
@@ -68,9 +70,9 @@ export const AllocationSection: React.FC<AllocationSectionProps> = ({
 
   return (
     <div className="space-y-3">
-      <div className="flex justify-between items-center">
+      <div className="flex items-center justify-between pr-11">
         <Label>{title}</Label>
-        <span className={`text-sm font-medium ${totalClass}`}>
+        <span className={`whitespace-nowrap text-sm font-medium ${totalClass}`}>
           合計: {totalPercentage.toFixed(1)}%
         </span>
       </div>
@@ -113,61 +115,63 @@ export const AllocationSection: React.FC<AllocationSectionProps> = ({
         </Button>
       </div>
 
-      <Card>
-        <CardContent className="p-4 space-y-3 max-h-60 overflow-y-auto">
-          {fields.length === 0 ? (
-            <p className="text-sm text-muted-foreground">尚未加入分配專案。</p>
-          ) : null}
+      <div className="max-h-60 space-y-3 overflow-y-auto">
+        {fields.length === 0 ? (
+          <p className="text-sm text-muted-foreground">尚未加入分配專案。</p>
+        ) : null}
 
-          {fields.map((row, index) => {
-            const project = projects.find((item) => item.id === row.projectId);
-            if (!project) return null;
+        {fields.map((row, index) => {
+          const project = projects.find((item) => item.id === row.projectId);
+          if (!project) return null;
 
-            const percentage = toPositiveNumber(watchedItems?.[index]?.percentage);
-            const allocatedAmount = (amountNumber * percentage) / 100;
+          const percentage = toPositiveNumber(watchedItems?.[index]?.percentage);
+          const allocatedAmount = (amountNumber * percentage) / 100;
 
-            return (
-              <div
-                key={row.id}
-                className="flex items-center gap-3"
-                data-testid={`allocation-row-${project.id}`}
-              >
-                <div className="flex-1">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium">{project.name}</span>
-                  </div>
+          return (
+            <div
+              key={row.id}
+              className="flex items-center gap-3"
+              data-testid={`allocation-row-${project.id}`}
+            >
+              <span className="flex-1 text-sm font-medium">{project.name}</span>
+              <div className="w-28">
+                <div className="relative">
+                  <FormField name={`allocationItems.${index}.percentage`}>
+                    <FormItem className="space-y-0">
+                      <FormControl>
+                        <NumberInput min="0" max="100" step="0.1" className="pr-6 text-right" />
+                      </FormControl>
+                      <FormMessage className="sr-only" />
+                    </FormItem>
+                  </FormField>
+                  <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
+                    %
+                  </span>
                 </div>
-                <div className="w-24">
-                  <div className="relative">
-                    <FormField name={`allocationItems.${index}.percentage`}>
-                      <FormItem className="space-y-0">
-                        <FormControl>
-                          <NumberInput min="0" max="100" step="0.1" className="pr-6 text-right" />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    </FormField>
-                    <span className="absolute right-3 top-2.5 text-muted-foreground text-sm">
-                      %
-                    </span>
-                  </div>
-                </div>
-                <div className="w-24 text-right text-sm text-muted-foreground">
-                  {formatCurrency(allocatedAmount)}
-                </div>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  className="h-8 px-2 text-xs text-muted-foreground"
-                  onClick={() => remove(index)}
-                >
-                  移除
-                </Button>
               </div>
-            );
-          })}
-        </CardContent>
-      </Card>
+              <div className="w-24 text-right text-sm text-muted-foreground">
+                {formatCurrency(allocatedAmount)}
+              </div>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                onClick={() => remove(index)}
+                aria-label="移除"
+              >
+                <Trash2 size={15} />
+              </Button>
+            </div>
+          );
+        })}
+      </div>
+
+      {rowErrorMessages.map((message) => (
+        <p key={message} className="text-destructive text-sm font-medium">
+          {message}
+        </p>
+      ))}
 
       <FormField name="allocationItems">
         <FormItem>

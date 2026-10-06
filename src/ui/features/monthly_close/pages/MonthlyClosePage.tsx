@@ -2,8 +2,10 @@ import React from 'react';
 
 import { Link } from 'react-router-dom';
 
+import { PageHeader } from '@/ui/components/PageHeader';
 import { PeriodBadge } from '@/ui/components/PeriodBadge';
 import { StatusGlyph } from '@/ui/components/StatusGlyph';
+import { Alert, AlertDescription } from '@/ui/components/ui/alert';
 import { Button } from '@/ui/components/ui/button';
 import { MONTHLY_CLOSE_LABELS } from '@/ui/constants/monthlyClose';
 import { ClosePipeline } from '@/ui/features/monthly_close/components/ClosePipeline';
@@ -44,69 +46,59 @@ export const MonthlyClosePage: React.FC<MonthlyClosePageProps> = ({
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-top-4 duration-base">
-      <div className="flex flex-col gap-4 border-b border-border pb-7 md:flex-row md:items-end md:justify-between">
-        <div className="space-y-1">
-          <p className="text-[11px] uppercase tracking-[0.12em] text-muted-foreground">
-            {MONTHLY_CLOSE_LABELS.PAGE_TITLE}
-          </p>
-          <h1 className="text-[30px] font-medium leading-tight text-foreground">
-            {yearMonth.slice(0, 4)} 年 {Number(yearMonth.slice(5, 7))} 月
-          </h1>
-        </div>
-        <div className="flex items-center gap-3">
-          <Link
-            to="/close"
-            className="text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
-          >
-            {MONTHLY_CLOSE_LABELS.SWITCH_PERIOD}
-          </Link>
-          <PeriodBadge label={MONTHLY_CLOSE_LABELS.PERIOD_LABEL} period={yearMonth} />
-          {isPeriodLocked && (
-            <Button
-              variant="outline"
-              onClick={() => void handleReopen()}
-              disabled={isStarting}
-              className="active:scale-[0.97]"
+      <PageHeader
+        crumb={MONTHLY_CLOSE_LABELS.PAGE_TITLE}
+        title={pageVM.periodTitle}
+        badge={<PeriodBadge label={pageVM.periodLabel} period={pageVM.periodText} />}
+        actions={
+          <>
+            <Link
+              to="/close"
+              className="text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
             >
-              {MONTHLY_CLOSE_LABELS.REOPEN_CONFIRM}
-            </Button>
-          )}
-        </div>
-      </div>
+              {MONTHLY_CLOSE_LABELS.SWITCH_PERIOD}
+            </Link>
+            {isPeriodLocked && (
+              <Button
+                variant="outline"
+                onClick={() => void handleReopen()}
+                disabled={isStarting}
+                className="active:scale-[0.97]"
+              >
+                {MONTHLY_CLOSE_LABELS.REOPEN_CONFIRM}
+              </Button>
+            )}
+          </>
+        }
+      />
 
       {(error || entitiesError) && (
-        <div className="rounded-lg border border-negative/20 bg-negative/10 px-4 py-3 text-sm text-negative">
-          {error ?? entitiesError}
-        </div>
+        <Alert variant="destructive">
+          <AlertDescription>{error ?? entitiesError}</AlertDescription>
+        </Alert>
       )}
 
       {pageVM.isClosed && (
-        <div className="rounded-lg border border-positive/30 bg-positive/10 px-4 py-3">
-          <div className="flex items-center gap-2">
-            <StatusGlyph type="verified" label={MONTHLY_CLOSE_LABELS.FINALIZED_SUBTITLE} />
-            <p className="text-sm font-bold text-foreground">{MONTHLY_CLOSE_LABELS.FINALIZED}</p>
-          </div>
-        </div>
+        <Alert variant="default">
+          <StatusGlyph type="verified" label={MONTHLY_CLOSE_LABELS.FINALIZED_SUBTITLE} />
+          <AlertDescription>{MONTHLY_CLOSE_LABELS.FINALIZED}</AlertDescription>
+        </Alert>
       )}
 
       {pageVM.isCascadeDemoted && (
-        <div className="rounded-lg border border-warning/30 bg-warning/5 px-4 py-3">
-          <div className="flex items-center gap-2">
-            <StatusGlyph type="review" label={MONTHLY_CLOSE_LABELS.NEEDS_REVIEW} />
-            <p className="text-sm text-foreground">{MONTHLY_CLOSE_LABELS.CASCADE_BANNER}</p>
-          </div>
-        </div>
+        <Alert variant="warning">
+          <StatusGlyph type="review" label={MONTHLY_CLOSE_LABELS.NEEDS_REVIEW} />
+          <AlertDescription>{MONTHLY_CLOSE_LABELS.CASCADE_BANNER}</AlertDescription>
+        </Alert>
       )}
 
       {pageVM.isPaused && pageVM.reviewSourceStageId && pageVM.reviewSourceLabel && (
-        <div className="rounded-lg border border-warning/30 bg-warning/5 px-4 py-3">
-          <div className="flex items-center gap-2">
-            <StatusGlyph type="review" label={MONTHLY_CLOSE_LABELS.NEEDS_REVIEW} />
-            <p className="text-sm text-foreground">
-              {MONTHLY_CLOSE_LABELS.PAUSED}：{pageVM.reviewSourceLabel}
-            </p>
-          </div>
-        </div>
+        <Alert variant="warning">
+          <StatusGlyph type="review" label={MONTHLY_CLOSE_LABELS.NEEDS_REVIEW} />
+          <AlertDescription>
+            {MONTHLY_CLOSE_LABELS.PAUSED}：{pageVM.reviewSourceLabel}
+          </AlertDescription>
+        </Alert>
       )}
 
       <div className="space-y-5">

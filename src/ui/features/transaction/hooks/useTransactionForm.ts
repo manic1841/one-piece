@@ -10,6 +10,7 @@ import { upsertIncomeAllocationTemplateUseCase } from '@/application/ledger/use_
 import { IntentType } from '@/domains/ledger/constants';
 import { DEFAULT_INTENT_MAPPINGS } from '@/domains/ledger/intentMapping';
 import { normalizeDescription } from '@/domains/operation/fingerprint';
+import { newId } from '@/shared/id';
 import { getIntentLabel } from '@/ui/constants/transaction';
 import { useAuthState } from '@/ui/contexts/useAuthState';
 import { useLedgerCodes } from '@/ui/features/ledger/hooks/useLedgerCodes';
@@ -41,20 +42,6 @@ const incomeCategories: TransactionFormCategoryOption[] = [
     label: getIntentLabel(mapping.intent),
   })),
 ];
-
-const investmentCategories: TransactionFormCategoryOption[] = DEFAULT_INTENT_MAPPINGS.filter(
-  (mapping) => mapping.type === 'INVESTMENT',
-).map((mapping) => ({
-  value: mapping.intent,
-  label: getIntentLabel(mapping.intent),
-}));
-
-const financingCategories: TransactionFormCategoryOption[] = DEFAULT_INTENT_MAPPINGS.filter(
-  (mapping) => mapping.type === 'FINANCING',
-).map((mapping) => ({
-  value: mapping.intent,
-  label: getIntentLabel(mapping.intent),
-}));
 
 const advancedCategories: TransactionFormCategoryOption[] = [
   ...expenseCategories,
@@ -98,7 +85,7 @@ export const useTransactionForm = (
       return transactionWithAllocationAttemptRef.current.idempotencyKey;
     }
 
-    const idempotencyKey = globalThis.crypto.randomUUID();
+    const idempotencyKey = newId();
     transactionWithAllocationAttemptRef.current = { signature, idempotencyKey };
     return idempotencyKey;
   };
@@ -278,8 +265,6 @@ export const useTransactionForm = (
   return {
     expenseCategories,
     incomeCategories,
-    investmentCategories,
-    financingCategories,
     advancedCategories,
     allActiveLedgerCodes,
     loadIncomeAllocationTemplate,

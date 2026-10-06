@@ -1,4 +1,5 @@
 import type { DashboardOverview } from '@/application/dashboard/use_cases/getDashboardOverviewUseCase';
+import { type MoneyTone } from '@/ui/components/moneyTone';
 import { DASHBOARD_STAT_ROW_LABELS } from '@/ui/constants/dashboard/statRowLabels';
 import { formatCurrency, formatPercentage } from '@/ui/utils';
 
@@ -7,7 +8,7 @@ export interface DashboardStatMetricVM {
   label: string;
   valueText: string;
   detailText: string | null;
-  valueClassName: string;
+  tone: MoneyTone;
 }
 
 export interface DashboardStatRowVM {
@@ -15,15 +16,13 @@ export interface DashboardStatRowVM {
   metrics: DashboardStatMetricVM[];
 }
 
-const POSITIVE_CLASS = 'text-positive';
-const NEGATIVE_CLASS = 'text-negative';
 const GAIN_PREFIX = '損益';
 
 const pulseText = (value: number | null | undefined, format: (value: number) => string): string =>
   value === null || value === undefined ? '—' : format(value);
 
-const pulseSignClass = (value: number | null | undefined): string =>
-  value === null || value === undefined ? '' : value >= 0 ? POSITIVE_CLASS : NEGATIVE_CLASS;
+const pulseTone = (value: number | null | undefined): MoneyTone =>
+  value === null || value === undefined ? 'default' : value >= 0 ? 'positive' : 'negative';
 
 export const mapDashboardOverviewToStatRowVM = (
   overview: DashboardOverview | null,
@@ -36,7 +35,7 @@ export const mapDashboardOverviewToStatRowVM = (
     label: DASHBOARD_STAT_ROW_LABELS.TOTAL_ASSETS,
     valueText: anchor ? formatCurrency(anchor.assets) : '—',
     detailText: anchor ? `${DASHBOARD_STAT_ROW_LABELS.ANCHOR_PREFIX} ${anchor.yearMonth}` : null,
-    valueClassName: '',
+    tone: 'default',
   };
 
   const totalLiabilities: DashboardStatMetricVM = {
@@ -44,7 +43,7 @@ export const mapDashboardOverviewToStatRowVM = (
     label: DASHBOARD_STAT_ROW_LABELS.TOTAL_LIABILITIES,
     valueText: anchor ? formatCurrency(anchor.liabilities) : '—',
     detailText: null,
-    valueClassName: '',
+    tone: 'default',
   };
 
   const monthlyCashFlow: DashboardStatMetricVM = {
@@ -52,7 +51,7 @@ export const mapDashboardOverviewToStatRowVM = (
     label: DASHBOARD_STAT_ROW_LABELS.MONTHLY_CASH_FLOW,
     valueText: pulseText(pulse?.netCashFlow, formatCurrency),
     detailText: null,
-    valueClassName: pulseSignClass(pulse?.netCashFlow),
+    tone: pulseTone(pulse?.netCashFlow),
   };
 
   const portfolioReturn: DashboardStatMetricVM = {
@@ -63,7 +62,7 @@ export const mapDashboardOverviewToStatRowVM = (
       pulse?.investmentReturn == null || pulse?.investmentGain == null
         ? null
         : `${GAIN_PREFIX} ${formatCurrency(pulse.investmentGain)}`,
-    valueClassName: '',
+    tone: 'default',
   };
 
   const investmentLeverage: DashboardStatMetricVM = {
@@ -71,7 +70,7 @@ export const mapDashboardOverviewToStatRowVM = (
     label: DASHBOARD_STAT_ROW_LABELS.INVESTMENT_LEVERAGE,
     valueText: pulseText(pulse?.investmentLeverage, (value) => `${value.toFixed(2)}x`),
     detailText: null,
-    valueClassName: '',
+    tone: 'default',
   };
 
   return {

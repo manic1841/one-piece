@@ -15,7 +15,7 @@ const { authIdentity, confirmMock } = vi.hoisted(() => ({
   confirmMock: vi.fn(),
 }));
 
-vi.mock('@/ui/features/app/confirm/useConfirm', () => ({
+vi.mock('@/ui/components/confirm/useConfirm', () => ({
   useConfirm: () => ({ confirm: confirmMock }),
 }));
 vi.mock('@/ui/hooks/useAuthIdentity', () => ({
@@ -63,17 +63,15 @@ vi.mock('@/application/portfolio/use_cases/listPortfolioSnapshotsUseCase', () =>
 vi.mock('@/application/project/use_cases/listProjectSnapshotsUseCase', () => ({
   listProjectSnapshotsUseCase: { execute: vi.fn().mockResolvedValue([]) },
 }));
+vi.mock('@/application/settlement/use_cases/previewProjectSettlementsUseCase', () => ({
+  previewProjectSettlementsUseCase: { execute: vi.fn().mockResolvedValue([]) },
+}));
 vi.mock('@/application/settlement/use_cases/previewDebtSettlementsUseCase', () => ({
   previewDebtSettlementsUseCase: { execute: vi.fn().mockResolvedValue({ items: [] }) },
 }));
 vi.mock('@/application/monthly_close/use_cases/validateMonthTransactionsUseCase', () => ({
   validateMonthTransactionsUseCase: {
     execute: vi.fn().mockResolvedValue({ yearMonth: '2026-09', checkedCount: 0, issues: [] }),
-  },
-}));
-vi.mock('@/application/settlement/use_cases/checkSettlementCompletenessUseCase', () => ({
-  checkSettlementCompletenessUseCase: {
-    execute: vi.fn().mockResolvedValue({ yearMonth: '2026-09', activities: [], anomalies: [] }),
   },
 }));
 vi.mock('@/application/report/use_cases/getSettlementReadinessUseCase', () => ({
@@ -206,9 +204,10 @@ describe('useMonthlyClosePage confirm adoption (#250)', () => {
       await holder.current?.handleConfirmStage('SECURITIES_TRADE');
     });
 
-    // The adopted draft survives the post-confirm refresh's re-read of the write rows.
+    // The adopted draft merges onto the prefilled draft: the untouched prefill row
+    // survives the post-confirm refresh's re-read, and the confirmed row is appended.
     expect(rowCount('confirmed-buy')).toBeGreaterThan(0);
-    expect(rowCount('prefill-buy')).toBe(0);
+    expect(rowCount('prefill-buy')).toBeGreaterThan(0);
     expect(getMonthInvestmentFinancingUseCase.execute.mock.calls.length).toBeGreaterThan(1);
   });
 
@@ -253,7 +252,7 @@ describe('useMonthlyClosePage confirm adoption (#250)', () => {
       await holder.current?.handleConfirmStage('SECURITIES_TRADE');
     });
     await expectRowShown('confirmed-buy');
-    expect(rowCount('prefill-buy')).toBe(0);
+    expect(rowCount('prefill-buy')).toBeGreaterThan(0);
 
     // A new month is a new mount, so the previous month's adopted draft is gone.
     september.unmount();

@@ -7,7 +7,7 @@ const renderStage = (props?: Partial<Parameters<typeof CloseAccountBalanceStage>
   render(
     <CloseAccountBalanceStage
       stepText="帳戶餘額"
-      progressText="01 / 09"
+      progressText="01 / 08"
       confirmedAtText={null}
       confirming={false}
       isReviewing={false}
@@ -29,7 +29,7 @@ describe('CloseAccountBalanceStage', () => {
 
     expect(screen.getByText('當前步驟')).toBeInTheDocument();
     expect(screen.getByText('帳戶餘額')).toBeInTheDocument();
-    expect(screen.getByText('01 / 09')).toBeInTheDocument();
+    expect(screen.getByText('01 / 08')).toBeInTheDocument();
   });
 
   it('renders an empty input state when no accounts exist', () => {

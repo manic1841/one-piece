@@ -122,6 +122,7 @@ describe('useRetirementPlanDetailPage', () => {
     plan,
     loading: false,
     error: null,
+    reload: vi.fn().mockResolvedValue(undefined),
     netWorthSource: {
       startingNetWorth: 100000,
       anchorYearMonth: '2025-12',

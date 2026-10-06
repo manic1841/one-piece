@@ -1,10 +1,27 @@
 import { describe, expect, it } from 'vitest';
 
+import { type DebtSnapshot } from '@/domains/debt/schemas';
 import { type Transaction } from '@/domains/ledger/schemas';
 import {
   mapDebtAccountToDisplayVM,
+  mapDebtHistoryMonths,
   mapDebtPaymentTransactionToHistoryVM,
 } from '@/ui/features/debt/viewmodels/debtDisplay.vm';
+
+const buildSnapshot = (overrides: Partial<DebtSnapshot> = {}): DebtSnapshot =>
+  ({
+    id: 'snap-2026-05',
+    yearMonth: '2026-05',
+    openingBalance: 500000,
+    principalPaid: 1100,
+    interestPaid: 100,
+    closingBalance: 498900,
+    createdBy: 'u',
+    createdAt: new Date('2026-05-31T00:00:00'),
+    updatedBy: 'u',
+    updatedAt: new Date('2026-05-31T00:00:00'),
+    ...overrides,
+  }) as DebtSnapshot;
 
 const buildTransaction = (overrides: Partial<Transaction> = {}): Transaction => ({
   id: 'tx-1',
@@ -64,6 +81,7 @@ describe('debtDisplay.vm', () => {
     );
 
     expect(vm.descriptionText).toBe('房貸 A 2026-05 還款');
+    expect(vm.yearMonth).toBe('2026-05');
     expect(vm.principalText).toBe('NT$1,100');
     expect(vm.interestText).toBe('NT$100');
     expect(vm.totalText).toBe('NT$1,200');
@@ -73,5 +91,23 @@ describe('debtDisplay.vm', () => {
     const vm = mapDebtPaymentTransactionToHistoryVM(buildTransaction());
 
     expect(vm.descriptionText).toBe('還款');
+  });
+
+  it('merges snapshots and payments into one month-ordered history', () => {
+    const payment = mapDebtPaymentTransactionToHistoryVM(
+      buildTransaction({ id: 'tx-apr', date: new Date('2026-04-10T00:00:00') }),
+    );
+
+    const months = mapDebtHistoryMonths([buildSnapshot()], [payment]);
+
+    expect(months.map((month) => month.key)).toEqual(['2026-05', '2026-04']);
+    expect(months[0].closingText).toBe('NT$498,900');
+    expect(months[0].payments).toHaveLength(0);
+    expect(months[1].openingText).toBe('—');
+    expect(months[1].payments).toHaveLength(1);
+  });
+
+  it('returns an empty history when there are no snapshots or payments', () => {
+    expect(mapDebtHistoryMonths([], [])).toEqual([]);
   });
 });

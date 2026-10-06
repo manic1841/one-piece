@@ -6,7 +6,8 @@ import type {
   RetirementPlan,
   RetirementPlanCreate,
 } from '@/domains/retirement/types';
-import { useConfirm } from '@/ui/features/app/confirm/useConfirm';
+import { newId } from '@/shared/id';
+import { useConfirm } from '@/ui/components/confirm/useConfirm';
 
 interface UseRetirementEventActionsParams {
   id: string | undefined;
@@ -24,7 +25,7 @@ export const useRetirementEventActions = ({
     async (eventData: Omit<RetirementOneTimeEvent, 'id'>) => {
       if (!id || !plan) return;
       await handleUpdatePlan({
-        events: appendById(plan.events, { ...eventData, id: crypto.randomUUID() }),
+        events: appendById(plan.events, { ...eventData, id: newId() }),
       });
     },
     [id, plan, handleUpdatePlan],

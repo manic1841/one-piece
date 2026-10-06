@@ -13,7 +13,7 @@ vi.mock('@/application/monthly_close/use_cases/financialPeriodAccessUseCases', (
 
 const getFinancialPeriodMock = vi.fn();
 
-const buildPeriod = (status: 'OPEN' | 'IN_PROGRESS' | 'NEEDS_REVIEW' | 'CLOSED') => ({
+const buildPeriod = (status: 'IN_PROGRESS' | 'NEEDS_REVIEW' | 'CLOSED') => ({
   id: '2026-08',
   yearMonth: '2026-08',
   status,

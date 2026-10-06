@@ -13,52 +13,16 @@ import {
   SelectField,
   TextArea,
   TextInput,
-  useFormField,
 } from '@/ui/components/form';
+import { Alert, AlertDescription } from '@/ui/components/ui/alert';
 import { Button } from '@/ui/components/ui/button';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/ui/components/ui/select';
-import { DebtTypeOptions } from '@/ui/constants/debt/label';
+import { DEBT_NO_PROJECT_LABEL, DebtTypeOptions } from '@/ui/constants/debt/label';
 import { type DebtAccountFormViewModel } from '@/ui/features/debt/viewmodels/useDebtAccountFormViewModel';
 import { formatCurrency } from '@/ui/utils';
 
 interface DebtAccountFormProps {
   vm: DebtAccountFormViewModel;
 }
-
-const NO_PROJECT = '__none__';
-
-/**
- * Project picker. Radix Select forbids the empty string, so the "no project"
- * option uses the `NO_PROJECT` sentinel; the field value itself stays ''.
- */
-const ProjectSelectField: React.FC<{ projects: { id: string; name: string }[] }> = ({
-  projects,
-}) => {
-  const { field } = useFormField();
-  const value = (field.value as string) || NO_PROJECT;
-
-  return (
-    <Select value={value} onValueChange={(next) => field.onChange(next === NO_PROJECT ? '' : next)}>
-      <SelectTrigger>
-        <SelectValue placeholder="— 無 —" />
-      </SelectTrigger>
-      <SelectContent>
-        <SelectItem value={NO_PROJECT}>— 無 —</SelectItem>
-        {projects.map((project) => (
-          <SelectItem key={project.id} value={project.id}>
-            {project.name}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
-  );
-};
 
 export function DebtAccountForm({ vm }: DebtAccountFormProps) {
   const {
@@ -84,7 +48,6 @@ export function DebtAccountForm({ vm }: DebtAccountFormProps) {
   return (
     <Form {...form}>
       <form onSubmit={handleSubmit} className="space-y-5" noValidate>
-        {/* 貸款名稱 */}
         <FormField name="name">
           <FormItem>
             <FormLabel required>貸款名稱</FormLabel>
@@ -95,7 +58,6 @@ export function DebtAccountForm({ vm }: DebtAccountFormProps) {
           </FormItem>
         </FormField>
 
-        {/* 貸款類型 */}
         <FormField name="type">
           <FormItem>
             <FormLabel required>貸款類型</FormLabel>
@@ -106,7 +68,6 @@ export function DebtAccountForm({ vm }: DebtAccountFormProps) {
           </FormItem>
         </FormField>
 
-        {/* 金額欄位 */}
         <div className="grid grid-cols-2 gap-4">
           <FormField name="originalAmount">
             <FormItem>
@@ -133,7 +94,6 @@ export function DebtAccountForm({ vm }: DebtAccountFormProps) {
           </FormField>
         </div>
 
-        {/* 年利率 */}
         <FormField name="interestRate">
           <FormItem>
             <FormLabel required>年利率 (%)</FormLabel>
@@ -144,7 +104,6 @@ export function DebtAccountForm({ vm }: DebtAccountFormProps) {
           </FormItem>
         </FormField>
 
-        {/* 日期 */}
         <div className="grid grid-cols-2 gap-4">
           <FormField name="startDate">
             <FormItem>
@@ -166,7 +125,6 @@ export function DebtAccountForm({ vm }: DebtAccountFormProps) {
           </FormField>
         </div>
 
-        {/* 寬限期結束日（非必填） */}
         <FormField name="graceEndDate">
           <FormItem>
             <FormLabel>寬限期結束日（選填）</FormLabel>
@@ -180,7 +138,6 @@ export function DebtAccountForm({ vm }: DebtAccountFormProps) {
           </FormItem>
         </FormField>
 
-        {/* 撥款交易資訊（建立時使用） */}
         <div className="grid grid-cols-2 gap-4">
           <FormField name="disbursementDate">
             <FormItem>
@@ -205,10 +162,8 @@ export function DebtAccountForm({ vm }: DebtAccountFormProps) {
           </FormField>
         </div>
 
-        {/* 試算摘要 */}
         {calcResult && (
           <div className="bg-muted rounded-md px-4 py-4 space-y-3 text-sm">
-            {/* 無寬限期的試算結果 */}
             {!calcResult.graceMonths && (
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
@@ -224,12 +179,11 @@ export function DebtAccountForm({ vm }: DebtAccountFormProps) {
               </div>
             )}
 
-            {/* 有寬限期的試算結果 */}
             {calcResult.graceMonths !== undefined && calcResult.graceMonths > 0 && (
               <div className="space-y-2">
-                <div className="text-xs text-warning bg-warning/10 rounded px-2 py-1">
-                  ⚠️ 寬限期設定
-                </div>
+                <Alert variant="warning">
+                  <AlertDescription>寬限期設定</AlertDescription>
+                </Alert>
                 <div className="flex items-center justify-between">
                   <span>寬限期月數：</span>
                   <strong className="font-semibold">{calcResult.graceMonths} 期</strong>
@@ -240,7 +194,6 @@ export function DebtAccountForm({ vm }: DebtAccountFormProps) {
                     {formatCurrency(calcResult.graceMonthlyPayment ?? 0)}
                   </strong>
                 </div>
-                <hr className="my-1" />
                 <div className="flex items-center justify-between">
                   <span>正式還款月數：</span>
                   <strong className="font-semibold">{calcResult.normalMonths} 期</strong>
@@ -274,7 +227,6 @@ export function DebtAccountForm({ vm }: DebtAccountFormProps) {
           </div>
         )}
 
-        {/* 每月應還金額 */}
         <FormField name="monthlyPayment">
           <FormItem>
             <FormLabel required>
@@ -292,15 +244,22 @@ export function DebtAccountForm({ vm }: DebtAccountFormProps) {
           </FormItem>
         </FormField>
 
-        {/* 對應專案 */}
         <FormField name="linkedProjectId">
           <FormItem>
             <FormLabel>對應專案</FormLabel>
-            <ProjectSelectField projects={projects} />
+            <FormControl>
+              <SelectField
+                options={projects.map((project) => ({
+                  value: project.id,
+                  label: project.name,
+                }))}
+                noneLabel={DEBT_NO_PROJECT_LABEL}
+                placeholder={DEBT_NO_PROJECT_LABEL}
+              />
+            </FormControl>
           </FormItem>
         </FormField>
 
-        {/* 備註 */}
         <FormField name="note">
           <FormItem>
             <FormLabel>備註</FormLabel>
@@ -311,11 +270,10 @@ export function DebtAccountForm({ vm }: DebtAccountFormProps) {
           </FormItem>
         </FormField>
 
-        {/* 操作 */}
         {error && (
-          <div className="text-sm text-destructive bg-destructive/10 p-3 rounded-md animate-in fade-in">
-            {error}
-          </div>
+          <Alert variant="destructive">
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
         )}
         <div className="flex justify-end gap-3 pt-2">
           <Button type="button" variant="outline" onClick={cancel} disabled={loading}>

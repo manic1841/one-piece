@@ -125,7 +125,6 @@ describe('QA seed plan builder', () => {
         'PORTFOLIO_CASH_FLOW',
         'PROJECT_SETTLEMENT',
         'SECURITIES_TRADE',
-        'TRANSACTION_VALIDATION',
       ]);
       expect(
         Object.values(stages).every((s) => s.status === 'PENDING' || s.status === 'COMPLETED'),

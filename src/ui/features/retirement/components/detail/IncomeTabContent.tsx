@@ -1,9 +1,14 @@
 import React from 'react';
 
-import { Pencil, Trash2 } from 'lucide-react';
+import { Pencil } from 'lucide-react';
 
+import { ListSectionHeader } from '@/ui/components/ListSectionHeader';
+import { RowActions } from '@/ui/components/RowActions';
 import { Button } from '@/ui/components/ui/button';
-import { RetirementWorkspaceTermLabels } from '@/ui/constants/retirement/retirementWorkspaceLabels';
+import {
+  RetirementTabContentLabels,
+  RetirementWorkspaceTermLabels,
+} from '@/ui/constants/retirement/retirementWorkspaceLabels';
 import {
   type RetirementIncomeItemVM,
   type RetirementIncomeSource,
@@ -31,58 +36,62 @@ export const IncomeTabContent: React.FC<IncomeTabContentProps> = ({
   handleImportIncomeFromTransactions,
 }) => {
   return (
-    <div className="rounded-lg border p-6">
-      <div className="flex justify-between items-center mb-4">
-        <h3 className="text-lg font-semibold">
-          {RetirementWorkspaceTermLabels.incomeStreams} ({incomeItems.length})
-        </h3>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" onClick={handleImportIncomeFromTransactions}>
-            Import from Ledger
-          </Button>
-          <RetirementIncomeDialog
-            onSave={handleAddIncome}
-            currentYear={currentYear}
-            planInflationRate={planInflationRate}
-          />
-        </div>
-      </div>
+    <div>
+      <ListSectionHeader
+        className="mb-4"
+        title={RetirementWorkspaceTermLabels.incomeStreams}
+        count={incomeItems.length}
+        actions={
+          <>
+            <Button variant="outline" size="sm" onClick={handleImportIncomeFromTransactions}>
+              {RetirementTabContentLabels.importFromLedger}
+            </Button>
+            <RetirementIncomeDialog
+              onSave={handleAddIncome}
+              currentYear={currentYear}
+              planInflationRate={planInflationRate}
+            />
+          </>
+        }
+      />
       {incomeItems.length === 0 ? (
-        <p className="text-muted-foreground">
-          No income streams added yet. Import from the ledger or click Add Income to get started.
-        </p>
+        <p className="text-sm text-muted-foreground">{RetirementTabContentLabels.incomeEmpty}</p>
       ) : (
-        <div className="space-y-2">
+        <div className="divide-y divide-border">
           {incomeItems.map(({ domain, vm }) => (
-            <div key={vm.id} className="flex items-center justify-between border rounded p-4">
-              <div>
+            <div key={vm.id} className="flex items-center justify-between gap-4 py-3">
+              <div className="min-w-0">
                 <div className="font-medium">{vm.name}</div>
-                <div className="text-sm text-muted-foreground">
+                <div className="font-mono text-sm tabular-nums text-muted-foreground">
                   {vm.amountText} {vm.growthText} {vm.periodText}
                 </div>
-                {domain.lifelong && <div className="mt-1 text-xs text-muted-foreground">終身</div>}
+                {domain.lifelong && (
+                  <div className="mt-1 text-xs text-muted-foreground">
+                    {RetirementTabContentLabels.lifelong}
+                  </div>
+                )}
               </div>
-              <div className="flex items-center gap-2">
-                <RetirementIncomeDialog
-                  onSave={(updates) => handleUpdateIncome(domain.id, updates)}
-                  currentYear={currentYear}
-                  planInflationRate={planInflationRate}
-                  initialData={domain}
-                  trigger={
-                    <Button variant="ghost" size="icon" className="h-8 w-8">
-                      <Pencil className="h-4 w-4" />
-                    </Button>
-                  }
-                />
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 text-destructive hover:text-destructive"
-                  onClick={() => handleDeleteIncome(domain.id)}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
+              <RowActions
+                edit={
+                  <RetirementIncomeDialog
+                    onSave={(updates) => handleUpdateIncome(domain.id, updates)}
+                    currentYear={currentYear}
+                    planInflationRate={planInflationRate}
+                    initialData={domain}
+                    trigger={
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        aria-label={RetirementTabContentLabels.editAction}
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                    }
+                  />
+                }
+                onDelete={() => handleDeleteIncome(domain.id)}
+                deleteLabel={RetirementTabContentLabels.deleteAction}
+              />
             </div>
           ))}
         </div>

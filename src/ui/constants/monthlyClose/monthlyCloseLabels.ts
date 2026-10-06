@@ -1,8 +1,8 @@
 import { CLOSE_STAGE_IDS, type CloseStageId } from '@/domains/financial_period/schemas';
+import { REPORT_METRIC_LABELS } from '@/ui/constants/report/reportMetricLabels';
 
 export const CLOSE_STAGE_LABELS: Record<CloseStageId, string> = {
   ACCOUNT_BALANCE: '帳戶餘額',
-  TRANSACTION_VALIDATION: '交易驗證',
   SECURITIES_TRADE: '證券買入／賣出',
   PORTFOLIO_CASH_FLOW: 'Portfolio 金流',
   PROJECT_SETTLEMENT: '專案結算',
@@ -16,6 +16,24 @@ export const getCloseStageLabel = (stageId: CloseStageId): string =>
   CLOSE_STAGE_LABELS[stageId] ?? stageId;
 
 export const CLOSE_STAGE_ORDER: readonly CloseStageId[] = CLOSE_STAGE_IDS;
+
+/**
+ * ACCOUNT_BALANCE 的三個分區：標題與說明共用於桌面表格與行動版清單，
+ * 避免同一組字串在兩個表面各寫一次。
+ */
+export const ACCOUNT_BALANCE_SECTIONS = {
+  twd: { label: '現金 / 銀行', note: 'Ending balance at period end' },
+  foreign: { label: '外幣', note: 'TWD value is calculated automatically' },
+  securities: { label: '證券', note: 'Market value is calculated from holdings' },
+} as const;
+
+/** ACCOUNT_BALANCE 欄位標籤：桌面表頭與行動版欄位共用。 */
+export const ACCOUNT_BALANCE_FIELD_LABELS = {
+  PREVIOUS_MONTH_BALANCE: '前期餘額',
+  FOREIGN_AMOUNT: '外幣金額',
+  EXCHANGE_RATE: '匯率',
+  TWD_VALUE: 'TWD 價值',
+} as const;
 
 export const MONTHLY_CLOSE_LABELS = {
   PAGE_TITLE: '月度關帳',
@@ -57,6 +75,7 @@ export const MONTHLY_CLOSE_LABELS = {
   NO_TRANSACTIONS: '尚無紀錄',
   NO_PROJECTS: '沒有專案',
   UNSETTLED: '尚未結算',
+  PROJECT_OPENING_BALANCE: '上期餘額',
   DEPOSIT: '存入',
   WITHDRAW: '領出',
   STARTED: '關帳進行中',
@@ -67,6 +86,7 @@ export const MONTHLY_CLOSE_LABELS = {
   EMPTY_STAGE_WARNING_CONTEXT: '證券交易紀錄與融資紀錄都是空的。',
   EMPTY_STAGE_WARNING_CONSEQUENCE: '仍然要確認這個階段嗎?',
   REVIEWING: 'REVIEWING',
+  CURRENT_STEP: '當前步驟',
   BACK_TO_CURRENT: '返回當前步驟',
   RESOLVE_REVIEW: '審閱完畢，繼續關帳',
   FINALIZED: '本期已完成關帳',
@@ -90,32 +110,32 @@ export const MONTHLY_CLOSE_LABELS = {
   HIDE_WORKFLOW: 'HIDE WORKFLOW',
   CLOSED: 'CLOSED',
   IN_PROGRESS: 'IN PROGRESS',
-  OPEN: 'OPEN',
   NOT_STARTED: 'NOT STARTED',
   PERIOD_LABEL: '關帳期間',
   EVIDENCE_LABEL: '階段證據',
   INPUTS_LABEL: '階段輸入',
   NO_DATA: '-',
-  NO_EVIDENCE: '尚無階段證據。',
   STAGE_GUIDANCE: '階段順序僅為引導，可依需求調整確認順序。',
   LOADING: '載入中...',
   LOAD_ERROR: '無法載入關帳狀態。',
   CONFIRM_ERROR: '確認失敗，請稍後再試。',
   STAGE_ALREADY_COMPLETED_ERROR: '此階段已完成確認，無法重新確認。',
+  STAGES_INCOMPLETE_ERROR: '尚有階段未確認，無法關帳。',
   START_ERROR: '無法開始關帳。',
   REOPEN_ERROR: '無法重新開啟關帳。',
   SELECT_PERIOD: '選擇關帳期間',
+  SELECT_PERIOD_HINT: '挑選年月後按「開始關帳」，即可建立該期間的關帳流程。',
   SWITCH_PERIOD: '切換期間',
   READY: '就緒',
   NOT_READY: '未就緒',
   PERSISTED: '已產生',
   NOT_PERSISTED: '尚未產生',
   PERSISTENCE_UNKNOWN: '狀態未知',
-  ZERO_ACTIVITY: '零活動',
   TRANSACTION_ISSUES: '交易驗證問題',
   ADJUSTMENT: '現金流調整',
   REPORTS_PERSISTENCE: '報表產生狀態',
   INTEREST_RATE: '年利率',
+  // 債務餘額用語：與報表現金餘額（`REPORT_METRIC_LABELS`）字面相同但語意不同，故不共用。
   PREVIOUS_BALANCE: '期初餘額',
   TOTAL_PAYMENT: '總繳款',
   PRINCIPAL: '本金',
@@ -125,17 +145,18 @@ export const MONTHLY_CLOSE_LABELS = {
   DEBT_TOTAL: '債務合計',
   FINANCIAL_REPORTS_TITLE: '財務報表',
   FINANCIAL_REPORTS_NOTE: '損益表、資產負債表與現金流量表',
-  INCOME_SECTION: '收入',
-  EXPENSE_SECTION: '支出',
-  NET_INCOME: '本期淨利',
-  ASSETS_SECTION: '資產',
-  LIABILITIES_SECTION: '負債',
-  EQUITY_SECTION: '權益',
+  // 損益／資產負債／現金流的區塊標題與摘要指標是同一個概念，共用同一份字（`REPORT_METRIC_LABELS`）。
+  INCOME_SECTION: REPORT_METRIC_LABELS.INCOME,
+  EXPENSE_SECTION: REPORT_METRIC_LABELS.EXPENSE,
+  NET_INCOME: REPORT_METRIC_LABELS.NET_INCOME,
+  ASSETS_SECTION: REPORT_METRIC_LABELS.ASSETS,
+  LIABILITIES_SECTION: REPORT_METRIC_LABELS.LIABILITIES,
+  EQUITY_SECTION: REPORT_METRIC_LABELS.EQUITY,
   LIABILITIES_PLUS_EQUITY: '負債 + 權益',
   TOTAL_SUFFIX: '合計',
   INFLOW: '流入',
   OUTFLOW: '流出',
-  NET_CASH_CHANGE: '現金淨變動',
+  NET_CASH_CHANGE: REPORT_METRIC_LABELS.NET_CASH_CHANGE,
   ACTUAL_BALANCE: '實際餘額',
   ADJUSTMENT_WARNING: '現金流調整超過 1,000，請先確認再產生報表。',
   READINESS_CHECK_TITLE: '就緒檢查',
@@ -158,7 +179,7 @@ export const MONTHLY_CLOSE_LABELS = {
   GENERATED_AT: '產生時間',
   EXISTING_REPORTS_WARNING: '此期間已有先前產生的報表；確認後將以目前預覽重新產生並覆寫。',
   PERSISTENCE_UNKNOWN_WARNING: '無法確認報表是否已產生，暫時無法產生報表，請重新載入後再試。',
-  DRIFT_BLOCK_MESSAGE: '步驟 8 的報表與已產生報表不一致，請先回到步驟 8 重新產生報表再關帳。',
-  DRIFT_BLOCK_ACTION: '回到步驟 8',
+  DRIFT_BLOCK_MESSAGE: `報表與已產生報表不一致，請先回到 ${CLOSE_STAGE_LABELS.FINANCIAL_REPORTS} 重新產生報表再關帳。`,
+  DRIFT_BLOCK_ACTION: `回到 ${CLOSE_STAGE_LABELS.FINANCIAL_REPORTS}`,
   PREVIEW_ERROR: '無法載入報表預覽。',
 } as const;

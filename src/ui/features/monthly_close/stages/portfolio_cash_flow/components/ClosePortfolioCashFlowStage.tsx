@@ -1,16 +1,17 @@
 import React from 'react';
 
+import { eyebrowClass } from '@/ui/components/eyebrow';
 import { MONTHLY_CLOSE_LABELS } from '@/ui/constants/monthlyClose';
 import { CloseStageChrome } from '@/ui/features/monthly_close/components/CloseStageChrome';
-import { CloseStageEvidenceList } from '@/ui/features/monthly_close/components/CloseStageEvidenceList';
 import { CloseStageLoadError } from '@/ui/features/monthly_close/components/CloseStageLoadError';
-import { NO_EVIDENCE } from '@/ui/features/monthly_close/viewmodels/closeEvidence.vm';
-import type { PortfolioSnapshot } from '@/ui/features/monthly_close/viewmodels/portfolioCashFlow.vm';
+import type {
+  PortfolioBalanceVM,
+  PortfolioSnapshot,
+} from '@/ui/features/monthly_close/viewmodels/portfolioCashFlow.vm';
 import {
   buildPortfolioCashFlowSections,
   buildPortfolioCashFlowTotal,
 } from '@/ui/features/monthly_close/viewmodels/portfolioCashFlow.vm';
-import { formatCurrency, formatPercentage } from '@/ui/utils';
 import { cn } from '@/ui/utils/cn';
 
 import { PortfolioCashFlowAccordion, PortfolioCashFlowSection } from './PortfolioCashFlowSection';
@@ -27,6 +28,8 @@ interface ClosePortfolioCashFlowStageProps {
   loadErrorMessage?: string | null;
   portfolios: { id: string; name: string }[];
   portfolioSnapshots: Map<string, PortfolioSnapshot | null>;
+  openingValues: Record<string, number>;
+  balances: Record<string, PortfolioBalanceVM>;
   cashFlows: Record<string, { deposits: number; withdrawals: number }>;
   setCashFlows: (value: Record<string, { deposits: number; withdrawals: number }>) => void;
   onConfirm: () => void;
@@ -36,10 +39,20 @@ interface ClosePortfolioCashFlowStageProps {
 const PortfolioCashFlowContent: React.FC<{
   portfolios: ClosePortfolioCashFlowStageProps['portfolios'];
   portfolioSnapshots: ClosePortfolioCashFlowStageProps['portfolioSnapshots'];
+  openingValues: ClosePortfolioCashFlowStageProps['openingValues'];
+  balances: ClosePortfolioCashFlowStageProps['balances'];
   cashFlows: ClosePortfolioCashFlowStageProps['cashFlows'];
   setCashFlows: ClosePortfolioCashFlowStageProps['setCashFlows'];
   disabled: boolean;
-}> = ({ portfolios, portfolioSnapshots, cashFlows, setCashFlows, disabled }) => {
+}> = ({
+  portfolios,
+  portfolioSnapshots,
+  openingValues,
+  balances,
+  cashFlows,
+  setCashFlows,
+  disabled,
+}) => {
   const snapshotFor = (portfolioId: string) => portfolioSnapshots.get(portfolioId);
 
   const handleDepositsChange = (portfolioId: string, value: number) => {
@@ -73,6 +86,8 @@ const PortfolioCashFlowContent: React.FC<{
   const sections = buildPortfolioCashFlowSections({
     portfolios,
     snapshots: portfolioSnapshots,
+    balances,
+    openingValues,
     portfolioCashFlows: cashFlows,
   });
   const total = buildPortfolioCashFlowTotal(sections);
@@ -104,9 +119,7 @@ const PortfolioCashFlowContent: React.FC<{
         />
       </div>
       <div className="flex items-center justify-between gap-3 border-t border-border pt-4">
-        <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-          {MONTHLY_CLOSE_LABELS.TOTAL_RETURN}
-        </p>
+        <p className={eyebrowClass}>{MONTHLY_CLOSE_LABELS.TOTAL_RETURN}</p>
         <div className="flex items-center gap-4">
           <p
             className={cn(
@@ -118,7 +131,7 @@ const PortfolioCashFlowContent: React.FC<{
                   : 'text-foreground',
             )}
           >
-            {formatCurrency(total.gain)}
+            {total.gainText}
           </p>
           <p
             className={cn(
@@ -130,7 +143,7 @@ const PortfolioCashFlowContent: React.FC<{
                   : 'text-foreground',
             )}
           >
-            {formatPercentage(total.returnRate, 2)}
+            {total.returnRateText}
           </p>
         </div>
       </div>
@@ -153,6 +166,8 @@ export const ClosePortfolioCashFlowStage: React.FC<ClosePortfolioCashFlowStagePr
   loadErrorMessage = null,
   portfolios,
   portfolioSnapshots,
+  openingValues,
+  balances,
   cashFlows,
   setCashFlows,
   onConfirm,
@@ -171,15 +186,11 @@ export const ClosePortfolioCashFlowStage: React.FC<ClosePortfolioCashFlowStagePr
     onBackToCurrent={onBackToCurrent}
   >
     <CloseStageLoadError message={loadErrorMessage} />
-    <div>
-      <p className="mb-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-        {MONTHLY_CLOSE_LABELS.EVIDENCE_LABEL}
-      </p>
-      <CloseStageEvidenceList evidence={NO_EVIDENCE} />
-    </div>
     <PortfolioCashFlowContent
       portfolios={portfolios}
       portfolioSnapshots={portfolioSnapshots}
+      openingValues={openingValues}
+      balances={balances}
       cashFlows={cashFlows}
       setCashFlows={setCashFlows}
       disabled={confirming || isReadOnly}

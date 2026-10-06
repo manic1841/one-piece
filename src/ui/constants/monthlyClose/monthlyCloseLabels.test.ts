@@ -3,6 +3,8 @@ import { describe, expect, it } from 'vitest';
 import { CLOSE_STAGE_IDS } from '@/domains/financial_period/schemas';
 
 import {
+  ACCOUNT_BALANCE_FIELD_LABELS,
+  ACCOUNT_BALANCE_SECTIONS,
   CLOSE_STAGE_LABELS,
   CLOSE_STAGE_ORDER,
   MONTHLY_CLOSE_LABELS,
@@ -36,5 +38,18 @@ describe('monthlyCloseLabels', () => {
     expect(MONTHLY_CLOSE_LABELS.MONTHLY_DUE).toBe('應繳');
     expect(MONTHLY_CLOSE_LABELS.CLOSING_BALANCE).toBe('期末餘額');
     expect(MONTHLY_CLOSE_LABELS.DEBT_TOTAL).toBe('債務合計');
+  });
+
+  it('provides the account balance section and field labels', () => {
+    expect(ACCOUNT_BALANCE_SECTIONS.twd.label).toBe('現金 / 銀行');
+    expect(ACCOUNT_BALANCE_SECTIONS.foreign.label).toBe('外幣');
+    expect(ACCOUNT_BALANCE_SECTIONS.securities.label).toBe('證券');
+    for (const section of Object.values(ACCOUNT_BALANCE_SECTIONS)) {
+      expect(section.note).toBeTruthy();
+    }
+    expect(ACCOUNT_BALANCE_FIELD_LABELS.PREVIOUS_MONTH_BALANCE).toBe('前期餘額');
+    expect(ACCOUNT_BALANCE_FIELD_LABELS.FOREIGN_AMOUNT).toBe('外幣金額');
+    expect(ACCOUNT_BALANCE_FIELD_LABELS.EXCHANGE_RATE).toBe('匯率');
+    expect(ACCOUNT_BALANCE_FIELD_LABELS.TWD_VALUE).toBe('TWD 價值');
   });
 });

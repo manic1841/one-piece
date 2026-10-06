@@ -1,48 +1,76 @@
-@import '@fontsource-variable/inter';
-@import '@fontsource-variable/jetbrains-mono';
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
-    --background: 216 33% 5%;
-    --foreground: 213 15% 91%;
-    --card: 216 28% 7%;
-    --card-foreground: 213 15% 91%;
-    --popover: 216 28% 7%;
-    --popover-foreground: 213 15% 91%;
-    --elevated: 216 25% 9%;
-    --primary: 213 15% 91%;
-    --primary-foreground: 216 33% 5%;
-    --secondary: 215 20% 11%;
-    --secondary-foreground: 213 15% 91%;
-    --muted: 215 20% 11%;
-    --muted-foreground: 213 12% 58%;
-    --accent: 215 20% 13%;
-    --accent-foreground: 213 15% 91%;
-    --destructive: 0 72% 56%;
-    --destructive-foreground: 213 15% 91%;
-    --positive: 152 60% 46%;
-    --negative: 0 78% 62%;
-    --warning: 38 92% 56%;
-    --border: 213 15% 17%;
-    --border-strong: 213 14% 27%;
-    --input: 213 15% 17%;
-    --ring: 213 15% 45%;
+    --background: 216 21.74% 4.51%;
+    --foreground: 216 23.81% 95.88%;
+    --card: 214.29 24.14% 5.69%;
+    --card-foreground: 216 23.81% 95.88%;
+    --popover: 214.29 24.14% 5.69%;
+    --popover-foreground: 216 23.81% 95.88%;
+    --elevated: 216 23.81% 8.24%;
+    --primary: 175.56 49.54% 57.25%;
+    --primary-foreground: 216 21.74% 4.51%;
+    --secondary: 215 22.22% 10.59%;
+    --secondary-foreground: 216 23.81% 95.88%;
+    --muted: 215 22.22% 10.59%;
+    --muted-foreground: 215 11.54% 59.22%;
+    --accent: 215 22.22% 13%;
+    --accent-foreground: 216 23.81% 95.88%;
+    --destructive: 354.45 68.79% 66.08%;
+    --destructive-foreground: 216 23.81% 95.88%;
+    --positive: 151.05 55.34% 59.61%;
+    --negative: 354.45 68.79% 66.08%;
+    --warning: 37.78 72.97% 63.73%;
+    --border: 214.29 17.95% 15.29%;
+    --border-strong: 216 17.24% 22.75%;
+    --input: 214.29 17.95% 15.29%;
+    --ring: 175.56 49.54% 57.25%;
     --radius: 0.25rem;
     --chart-1: 210 70% 55%;
-    --chart-2: 152 60% 46%;
-    --chart-3: 38 92% 56%;
+    --chart-2: 27 63% 60%;
+    --chart-3: 37.78 72.97% 63.73%;
     --chart-4: 262 60% 62%;
-    --chart-5: 0 78% 62%;
+    --chart-5: 200 57% 65%;
+    --chart-6: 245 45% 62%;
+    --chart-7: 211 13% 61%;
   }
 }
 
 @layer base {
   * {
     @apply border-border;
+  }
+
+  html {
+    scrollbar-gutter: stable;
+  }
+
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--border-strong)) transparent;
+  }
+
+  *::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  *::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  *::-webkit-scrollbar-thumb {
+    background-color: hsl(var(--border-strong));
+    border: 3px solid transparent;
+    border-radius: 9999px;
+    background-clip: content-box;
+  }
+
+  *::-webkit-scrollbar-thumb:hover {
+    background-color: hsl(var(--muted-foreground));
   }
 
   body {
@@ -74,5 +102,20 @@
     .material-chrome {
       border: 1px solid hsl(var(--border));
     }
+  }
+}
+
+/* Pixel Pet sprite strips: the inner image is one frame wide/tall vs the 48px
+   viewport, so shifting it a full length walks the strip. Frame count is baked
+   into the inline `steps()`; the global reduced-motion rule settles it on frame 0. */
+@keyframes pet-strip-x {
+  to {
+    transform: translateX(-100%);
+  }
+}
+
+@keyframes pet-strip-y {
+  to {
+    transform: translateY(-100%);
   }
 }

@@ -1,6 +1,7 @@
 import React from 'react';
 
 import { Form } from '@/ui/components/form';
+import { Alert, AlertDescription } from '@/ui/components/ui/alert';
 import { Button } from '@/ui/components/ui/button';
 import {
   Dialog,
@@ -9,6 +10,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/ui/components/ui/dialog';
+import { PROJECT_FORM_LABELS } from '@/ui/constants/project/projectFormLabels';
 import { ProjectFormFields } from '@/ui/features/project/components/form/ProjectFormFields';
 import { useProjectForm } from '@/ui/features/project/hooks/useProjectForm';
 import { type ProjectArgs } from '@/ui/features/project/hooks/useProjectPage';
@@ -43,26 +45,27 @@ const ProjectForm: React.FC<ProjectFormProps> = ({
         aria-describedby={undefined}
       >
         <DialogHeader>
-          <DialogTitle>{title || (initialData?.id ? 'Edit Project' : 'New Project')}</DialogTitle>
+          <DialogTitle>
+            {title ||
+              (initialData?.id ? PROJECT_FORM_LABELS.EDIT_TITLE : PROJECT_FORM_LABELS.CREATE_TITLE)}
+          </DialogTitle>
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={submit} className="space-y-6 py-4">
-            {/* Error Message */}
             {error && (
-              <div className="text-sm text-destructive bg-destructive/10 p-3 rounded-md">
-                {error}
-              </div>
+              <Alert variant="destructive" className="border-negative/20 bg-negative/10">
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
             )}
 
-            {/* Basic Information */}
             <ProjectFormFields />
 
             <DialogFooter>
               <Button variant="outline" onClick={onClose} disabled={isSubmitting} type="button">
-                取消
+                {PROJECT_FORM_LABELS.CANCEL_ACTION}
               </Button>
               <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? '儲存中...' : '儲存'}
+                {isSubmitting ? PROJECT_FORM_LABELS.SAVING_ACTION : PROJECT_FORM_LABELS.SAVE_ACTION}
               </Button>
             </DialogFooter>
           </form>

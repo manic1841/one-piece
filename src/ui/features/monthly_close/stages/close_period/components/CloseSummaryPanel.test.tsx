@@ -8,14 +8,18 @@ import { CloseSummaryPanel } from './CloseSummaryPanel';
 
 const { confirmMock } = vi.hoisted(() => ({ confirmMock: vi.fn() }));
 
-vi.mock('@/ui/features/app/confirm/useConfirm', () => ({
+vi.mock('@/ui/components/confirm/useConfirm', () => ({
   useConfirm: () => ({ confirm: confirmMock }),
 }));
 
 const summaryVM: CloseSummaryVM = {
   activity: [
     { stepText: '01 帳戶餘額', status: CLOSE_ACTIVITY_STATUS.CONFIRMED, dataText: '3 個帳戶' },
-    { stepText: '02 交易驗證', status: CLOSE_ACTIVITY_STATUS.CONFIRMED, dataText: '128 筆交易' },
+    {
+      stepText: '02 證券買入／賣出',
+      status: CLOSE_ACTIVITY_STATUS.CONFIRMED,
+      dataText: '128 筆交易',
+    },
     {
       stepText: '04 Portfolio 金流',
       status: CLOSE_ACTIVITY_STATUS.NOT_CONFIRMED,
@@ -29,6 +33,13 @@ const summaryVM: CloseSummaryVM = {
     equity: 4_300_000,
     netIncome: 117_000,
     netCashFlow: 179_000,
+  },
+  financialText: {
+    totalAssets: 'NT$10,500,000',
+    totalLiabilities: 'NT$6,200,000',
+    equity: 'NT$4,300,000',
+    netIncome: 'NT$117,000',
+    netCashFlow: 'NT$179,000',
   },
   reports: [
     { title: '損益表', isGenerated: true },
@@ -63,7 +74,7 @@ describe('CloseSummaryPanel', () => {
     renderPanel();
 
     expect(screen.getByText('01 帳戶餘額')).toBeInTheDocument();
-    expect(screen.getByText('02 交易驗證')).toBeInTheDocument();
+    expect(screen.getByText('02 證券買入／賣出')).toBeInTheDocument();
     expect(screen.getByText('09 Close Period')).toBeInTheDocument();
   });
 
@@ -98,6 +109,10 @@ describe('CloseSummaryPanel', () => {
         ...summaryVM,
         financialDrift: {
           equity: { amount: 4_300_000, previousAmount: 4_200_000, status: DRIFT_STATUS.CHANGED },
+        },
+        financialText: {
+          ...summaryVM.financialText,
+          equity: 'NT$4,200,000 -> NT$4,300,000',
         },
       },
     });
@@ -146,7 +161,7 @@ describe('CloseSummaryPanel', () => {
     expect(screen.getAllByText('狀態未知')).toHaveLength(3);
   });
 
-  // #228: Step 9 surfaces a report load failure instead of a silently empty summary.
+  // #228: CLOSE_PERIOD surfaces a report load failure instead of a silently empty summary.
   it('surfaces a report load failure', () => {
     renderPanel({ loadErrorMessage: '無法載入報表預覽，請稍後再試。' });
 
@@ -160,12 +175,12 @@ describe('CloseSummaryPanel', () => {
   });
 
   // #234: the backend close gate only checks that the reports are persisted, so
-  // a drift appearing after Step 8 was confirmed has to be caught here.
+  // a drift appearing after FINANCIAL_REPORTS was confirmed has to be caught here.
   it('blocks the close when reports drifted', () => {
     renderPanel({ hasDrift: true });
 
     expect(screen.getByTestId('close-period-confirm')).toBeDisabled();
-    expect(screen.getByRole('alert')).toHaveTextContent('步驟 8 的報表與已產生報表不一致');
+    expect(screen.getByRole('alert')).toHaveTextContent('報表與已產生報表不一致');
   });
 
   it('does not name a drift count the screen cannot justify', () => {
@@ -174,7 +189,7 @@ describe('CloseSummaryPanel', () => {
     expect(screen.getByTestId('close-drift-block')).not.toHaveTextContent('項漂移');
   });
 
-  it('sends the user back to Step 8 from the drift block', () => {
+  it('sends the user back to FINANCIAL_REPORTS from the drift block', () => {
     const onReviewReports = vi.fn();
 
     renderPanel({ hasDrift: true, onReviewReports });

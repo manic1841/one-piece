@@ -97,7 +97,10 @@ export default tseslint.config(
     },
   },
   {
-    files: ['src/ui/components/ui/**'],
+    // Toast.tsx intentionally co-locates the sonner wiring (`showToast`,
+    // `LIVE_TOAST_OPTIONS`) next to the `Toast` surface so callers get one import;
+    // that file is therefore exempt from the fast-refresh export constraint.
+    files: ['src/ui/components/ui/**', 'src/ui/components/Toast.tsx'],
     rules: {
       'react-refresh/only-export-components': 'off',
     },
