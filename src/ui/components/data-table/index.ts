@@ -11,7 +11,7 @@ export { DataTableHeadCell } from './DataTableHeadCell';
 export { DataTableRow, DataTableHeadRow } from './DataTableRow';
 export { DataTableCell } from './DataTableCell';
 export { NumberCell } from './NumberCell';
-export { NumberInput } from './NumberInput';
+export { NumberInput } from '../NumberInput';
 export { parseOptionalAmount } from './parseOptionalAmount';
 export {
   MobileDataList,

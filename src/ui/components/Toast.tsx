@@ -1,3 +1,5 @@
+import { toast } from 'sonner';
+
 import { Button } from '@/ui/components/ui/button';
 import { cn } from '@/ui/utils/cn';
 
@@ -46,4 +48,12 @@ export function Toast({ message, tone = 'success', actionLabel, onAction, classN
       )}
     </div>
   );
+}
+
+/** sonner options that let `<Toast>` own the surface; width matches sonner's default. */
+export const LIVE_TOAST_OPTIONS = { unstyled: true, style: { width: '356px' } } as const;
+
+/** Emit a live toast rendered from the shared `Toast` surface. */
+export function showToast(message: string, tone: ToastTone = 'success'): void {
+  toast.custom(() => <Toast message={message} tone={tone} />, LIVE_TOAST_OPTIONS);
 }

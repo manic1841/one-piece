@@ -164,7 +164,7 @@ Token（定義於 `tailwind.config.js`，全部走 CSS 變數）：
     - Deep detail：`11px / 400 / muted-foreground`；金額 11px。
     - Subtotal：`13px / 600 / foreground`；金額 13px / 600；`border-t border-border-strong`。
     - Terminus：`16px / 600 / primary`；金額 16px / 600 / primary；`border-t-2 border-primary`、列高 64px、`bg-muted/40`。Terminus 是 `text-sm` 表格層級與一般資料列高的具名例外，也是報表唯一的品牌色強調。它同時是表格最後一列，因此也承擔表格下緣外框——同樣套 `border-b-2 border-primary`，與上緣的 `border-t-2 border-primary` 對稱包成一個方框。
-  - **Input 數字**：34px 高（子表格可 32px）、右對齊 mono、`tabular-nums`、無原生 spinner（`[appearance:textfield]` + webkit spin button `appearance-none`）、空值填「—」。子表格的文字輸入（如持倉的 Symbol／Name）共用同一個 32px 緊湊幾何，但左對齊、一般字體（`textInputCompactClass`）。
+  - **Input 數字**：34px 高（子表格可 32px）、右對齊 mono、`tabular-nums`、無原生 spinner（`[appearance:textfield]` + webkit spin button `appearance-none`）、空值填「—」。這是 `NumberInput` 的 `surface="table"`（`compact` 為 32px）；子表格的文字輸入（如持倉的 Symbol／Name）共用同一個 32px 緊湊幾何，但左對齊、一般字體（`textInputCompactClass`）。
   - **列高/內距**：資料列 54px（`h-[54px]` 是**最小**列高）、td padding `9px 12px`（pr 用 `pr-3`）。垂直內距必須讓「最高的 cell 內容（34px 輸入框）＋上下內距＋1px 分隔線」≤ 54px，否則列高會被內容撐開——純文字列不受影響（本來就由最小列高撐滿）。`border-b border-border` 細分隔線、無 zebra。
   - **Vertical alignment**：th `align-bottom`、td `align-middle`。
   - **Mobile**：`md:hidden` grouped cards——label 左 / 值右的 row representation；淡 row boundary（`border-t border-border/60`）可接受，不做成厚重 Card；禁止行動版橫向捲動。
@@ -177,13 +177,13 @@ Token（定義於 `tailwind.config.js`，全部走 CSS 變數）：
 - `form`：全站表單共通原則。表單狀態與驗證時機的規則（RHF、`useForm` 呼叫點、submit gate）見 `ui-layer-architecture.md` §4，此段只規範元件表面。
   - **欄位群組**：`FormItem` 是唯一決定 label / control / error 垂直佈局的地方（`space-y-2`）。欄位不得自行決定 label 或 error 的位置與間距。
   - **表面的分層**：表單內容以間距與細線分層，不套外框；Card 只保留給表單中的 alert 與狀態回報。
-  - **元件解耦**：輸入欄位（`TextInput`、`NumberInput`、`CurrencyInput`、`DateInput`…）是 RHF-free 的受控元件，唯一 value contract 為 string。RHF 的接線集中於 `FormControl`，欄位本身不得 import RHF。理由見 ADR-0065。
+  - **元件解耦**：輸入欄位（`TextInput`、`NumberInput`、`DateInput`…）是 RHF-free 的受控元件，唯一 value contract 為 string。RHF 的接線集中於 `FormControl`，欄位本身不得 import RHF。理由見 ADR-0065。
   - **注入契約**：`FormControl` 以 `cloneElement` 注入 `value / onChange / onBlur / name / ref / error（boolean）/ aria-invalid / aria-describedby / id`。`error` 供視覺、`aria-*` 供無障礙，兩者缺一不可；欄位元件必須轉發 `ref` 至原生元素。
   - **Select 無值列**：Radix Select 禁止空字串作為 item value（空字串語意是「清除選擇、顯示 placeholder」）。optional select 的「無值」列以 `noneLabel` 表示（sentinel item value 內部承擔，欄位 value contract 仍為 string，選擇「無值」列時 emit `''`）；option 不得自帶 `value: ''`。
   - **Required**：必填欄位在 `FormLabel` 尾端加 `*`（`text-destructive`），不寫「必填」文字。
   - **Error**：一律顯示在 control 下方，只顯示第一筆錯誤（`FormMessage`）；欄位錯誤時 `FormLabel` 轉 `text-destructive`。
   - **重複列的錯誤**：重複列（repeater）的逐列錯誤不佔控制項下方空間，改彙總於區塊底部，並以輸入框錯誤態標示問題列；每列仍保留供無障礙描述使用的訊息。
   - **Disabled**：使用 native `disabled`，統一 `opacity-50` 且不可 focus（由 input primitives 的 `disabled:` 樣式承擔，不另行手寫）。
-  - **幾何**：表單輸入框與 data-table 數字輸入共用高度（34px）與數字處理（右對齊 mono `tabular-nums`、移除原生 spinner）；但 surface 各自保留——form 用 `rounded-md` + `border-input` + `bg-background`（即 `ui/input` 的樣式），table 維持 `rounded-none` + `bg-muted`。共用的只有幾何與數字處理，不是整體外觀。
+  - **單一數字輸入**：全站數字欄位是單一 `NumberInput`（`src/ui/components/NumberInput.tsx`，form 與 data-table 兩個 barrel 都 re-export），以 `surface` 表達 form／table 兩種表面。兩者**共用高度（34px）與數字處理**（右對齊 mono `tabular-nums`、移除原生 spinner）**，surface 各自保留**——form 用 `rounded-md` + `border-input` + `bg-background`（即 `ui/input` 的樣式），table 用 `rounded-none` + `border-border` + `bg-muted`；共用的只有幾何與數字處理，不是整體外觀。
   - **Mobile**：輸入框聚焦時字級須 ≥ 16px（`text-base`，桌面 `md:text-sm`），避免 iOS Safari 聚焦自動縮放。
-  - **單一貨幣符號來源**：`CurrencyInput` 不內建貨幣符號，`prefix` 由呼叫端提供。金額顯示一律經 `formatCurrency(amount, currency)`：本位幣（TWD）為預設，符號前置（`NT$`、`US$`、`€`、`¥`），0 位小數；非本位幣原幣金額傳入自身幣別，形狀與本位幣一致。
+  - **單一貨幣符號來源**：`NumberInput` 不內建貨幣符號，`prefix` 由呼叫端提供。金額顯示一律經 `formatCurrency(amount, currency)`：本位幣（TWD）為預設，符號前置（`NT$`、`US$`、`€`、`¥`），0 位小數；非本位幣原幣金額傳入自身幣別，形狀與本位幣一致。

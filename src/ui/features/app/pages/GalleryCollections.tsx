@@ -188,10 +188,9 @@ const DataTablePrimitivesSection: React.FC = () => {
                     <NumberCell value={row.ledger} format={formatTWD} />
                     <DataTableCell align="number">
                       <NumberInput
+                        surface="table"
                         value={ending[row.id] ?? ''}
-                        onChange={(event) =>
-                          setEnding((prev) => ({ ...prev, [row.id]: event.target.value }))
-                        }
+                        onChange={(value) => setEnding((prev) => ({ ...prev, [row.id]: value }))}
                         aria-label={`Ending balance for ${row.account}`}
                         className="w-full"
                       />

@@ -12,7 +12,7 @@ import { LoadingLine } from '@/ui/components/LoadingLine';
 import { SearchField } from '@/ui/components/SearchField';
 import { Skeleton } from '@/ui/components/Skeleton';
 import { StatusGlyph } from '@/ui/components/StatusGlyph';
-import { Toast } from '@/ui/components/Toast';
+import { LIVE_TOAST_OPTIONS, Toast } from '@/ui/components/Toast';
 import { Alert, AlertDescription } from '@/ui/components/ui/alert';
 import { Button } from '@/ui/components/ui/button';
 import { Input } from '@/ui/components/ui/input';
@@ -73,9 +73,6 @@ const AlertSection: React.FC = () => (
     </Alert>
   </GallerySection>
 );
-
-/** Unstyled so <Toast> owns the surface; the width is sonner's TOAST_WIDTH. */
-const LIVE_TOAST_OPTIONS = { unstyled: true, style: { width: '356px' } } as const;
 
 const UNDONE_TOAST = <Toast message="TRANSACTION UNDONE" />;
 const RETRYING_TOAST = <Toast message="RETRYING SAVE" />;

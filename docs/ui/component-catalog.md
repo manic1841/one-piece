@@ -41,6 +41,7 @@
 | `src/ui/components/ListSectionHeader.tsx`               | ListSectionHeader                 |
 | `src/ui/components/MetricGroup.tsx`                     | MetricGroup / Metric              |
 | `src/ui/components/Module.tsx`                          | Module                            |
+| `src/ui/components/NumberInput.tsx`                     | NumberInput                       |
 | `src/ui/components/PageHeader.tsx`                      | PageHeader                        |
 | `src/ui/components/PageSection.tsx`                     | PageSection                       |
 | `src/ui/components/PeriodBadge.tsx`                     | PeriodBadge                       |
@@ -63,9 +64,7 @@
 | `src/ui/components/data-table/DataTableRow.tsx`         | data-table / DataTableRow         |
 | `src/ui/components/data-table/MobileDataRow.tsx`        | data-table / MobileDataRow        |
 | `src/ui/components/data-table/NumberCell.tsx`           | data-table / NumberCell           |
-| `src/ui/components/data-table/NumberInput.tsx`          | data-table / NumberInput          |
 | `src/ui/components/form/AdvancedDisclosure.tsx`         | form / AdvancedDisclosure         |
-| `src/ui/components/form/CurrencyInput.tsx`              | form / CurrencyInput              |
 | `src/ui/components/form/DateInput.tsx`                  | form / DateInput                  |
 | `src/ui/components/form/Form.tsx`                       | form / Form                       |
 | `src/ui/components/form/FormControl.tsx`                | form / FormControl                |
@@ -74,7 +73,6 @@
 | `src/ui/components/form/FormItem.tsx`                   | form / FormItem                   |
 | `src/ui/components/form/FormLabel.tsx`                  | form / FormLabel                  |
 | `src/ui/components/form/FormMessage.tsx`                | form / FormMessage                |
-| `src/ui/components/form/NumberInput.tsx`                | form / NumberInput                |
 | `src/ui/components/form/ReadoutField.tsx`               | form / ReadoutField               |
 | `src/ui/components/form/Select.tsx`                     | form / Select                     |
 | `src/ui/components/form/TextArea.tsx`                   | form / TextArea                   |
@@ -198,7 +196,7 @@
 
 - **`FinancialNumber`** — 財務數值顯示：`hero` / `large` / `default` 三級 ＋ 選用 change line ＋ 缺值「$ —」。值與 change line 都由呼叫端預先格式化，本元件不做貨幣運算。
   - Props：`value?: string | null`、`size?`、`tone?`（`default`/`positive`/`negative`）、`change?`、`changeTone?`（`default`/`positive`/`negative`/`muted`）、`className?`。提供 `change` 時根元素變為 block。
-  - **不要用於**：表格儲存格（用 `data-table` 的 `NumberCell`）；輸入（用 `form` 的 `NumberInput`/`CurrencyInput`）。
+  - **不要用於**：表格儲存格（用 `data-table` 的 `NumberCell`）；輸入（用 `NumberInput`）。
   - 範例：`src/ui/features/dashboard/pages/DashboardPage.tsx`（hero 淨資產 ＋ YTD change line）、`src/ui/features/debt/pages/DebtDetailPage.tsx`、`src/ui/features/project/pages/ProjectDetailPage.tsx`（hero 專案餘額）。
 
 - **`MetricGroup` / `Metric`** — 同層級財務指標列：label + mono 值 + change line，非卡片。`MetricGroup` 是分割線容器，`Metric` 是單一指標。
@@ -266,10 +264,10 @@
   - **不要用於**：全域 Find / Do / Navigate（那是 Command Palette）；需要送出才過濾的查詢（本元件只回報輸入值）。
   - 範例：`src/ui/features/transaction/pages/TransactionsPage.tsx`、`src/ui/features/app/pages/GalleryFeedback.tsx`
 
-- **`Toast`** — Toast 表面（visual-standards §通知）：浮動卡片，左側狀態 glyph + 訊息、右側單一選用動作（UNDO／RETRY）。元件自帶表面（`bg-card` + `border` + `shadow-lg`）；live toast 以 `toast.custom(() => <Toast …/>, { unstyled: true, style: { width: '356px' } })` 掛進 sonner，全域 `Toaster` 只負責定位，不再加表面。Toast 只回報結果，不承載 workflow instruction。
+- **`Toast`** — Toast 表面（visual-standards §通知）：浮動卡片，左側狀態 glyph + 訊息、右側單一選用動作（UNDO／RETRY）。元件自帶表面（`bg-card` + `border` + `shadow-lg`）；live toast 以 `toast.custom(() => <Toast …/>, { unstyled: true, style: { width: '356px' } })` 掛進 sonner，全域 `Toaster` 只負責定位，不再加表面。同檔匯出 `showToast(message, tone?)`（封裝上述掛法）與 `LIVE_TOAST_OPTIONS`；呼叫端優先用 `showToast`。Toast 只回報結果，不承載 workflow instruction。
   - Props：`message`、`tone?`（`success`／`error`）、`actionLabel?`、`onAction?`、`className?`。
   - **不要用於**：需要使用者解決的問題（用 inline alert）；重要的 workflow instruction；純字串 `toast('…')`（會落到 sonner 預設外觀）。
-  - 範例：**無真實消費端**——尚未接上任何 workflow；唯一消費端是 dev gallery（`src/ui/features/app/pages/GalleryFeedback.tsx`）。全域 sonner `<Toaster>` 已掛載於 `App.tsx`，但 production 目前沒有任何 `toast()` 呼叫端。
+  - 範例：`src/ui/features/transaction/pages/TransactionsPage.tsx`（`showToast`：交易儲存／刪除成功）。
 
 - **`RadioGroup` / `Radio`** — 行內單選：原生 `input[type=radio]`、`<label>` 包覆控制項，零 Radix 依賴。
   - Props（Group）：`aria-label`（必填）、`name`、`value?`、`onValueChange?`、`children`、`className?`。Props（Radio）：`value`、`label`、`className?`。
@@ -279,7 +277,7 @@
 - **`ui/tooltip`** — Tooltip primitive：Radix 包裝、Root 自帶 Provider。「僅在需要時解釋」——不懂的縮寫、推導式、缺值說明。
   - Props：透通 Radix Root/Trigger/Content；Content 預設 `sideOffset={6}`、`max-w-xs`。
   - **不要用於**：恆常可見的說明（那用 description 文字）。
-  - 範例：**無真實消費端**——目前僅 dev gallery 呈現（`src/ui/features/app/pages/GalleryInteraction.tsx`）。
+  - 範例：`src/ui/features/portfolio/components/PortfolioDetail.tsx`（RETURN section 的「報酬計算方式」資訊鈕，解釋 Modified-Dietz 推導）。
 
 - **`YearMonthPicker`** — 年月選擇（outline 按鈕 ＋ Popover 內雙 Select）。`mode` 為 `'year-month'`（預設）或 `'year'`。
   - Props：`mode?`、`year`、`month?`、`onYearChange`、`onMonthChange?`、`className?`。
@@ -395,11 +393,6 @@
   - **不要用於**：可編輯的數字欄（用 `NumberInput`）。
   - 範例：`src/ui/features/transaction/components/TransactionItem.tsx`、`src/ui/features/monthly_close/stages/account_balance/components/CloseAccountBalanceInputs.tsx`
 
-- **`NumberInput`**（data-table）— 表格內可編輯數字欄。
-  - Props：原生 input 屬性（不含 `type`），另加 `compact?`（切換較短的列內高度）。保留原生 `value`／`onChange` 事件契約。
-  - **不要用於**：form 套件內的欄位（用 `form / NumberInput`，見下方裁決）；不需要原生事件時也不必用它。
-  - 範例：`src/ui/features/monthly_close/stages/debt_repayment/components/CloseDebtRepaymentStage.tsx`
-
 - **`MobileDataRow`** — 行動版的 grouped row（label／值）。**`MobileDataList`** 是外框；**`MobileDataField`** 是其中一欄。**`MobileExpandableRow`** 是可展開的列變體：`summary` / `value` / `meta` / `actions` / `details`，自身接管展開狀態與鍵盤等價（Enter／Space）並在提供 `details` 時補上 `role="button"` 與 `aria-expanded`；`actions` 區停止冒泡，讓列動作不切換展開。
   - Props：原生 div 屬性；`MobileDataField` 另加 `label`（必填）、`children?`、`className?`；`MobileExpandableRow` 另加 `summary`（必填）、`value?`、`meta?`、`actions?`、`details?`。
   - **不要用於**：桌機佈局（用 `DataTable`）。
@@ -440,14 +433,10 @@
   - Props：原生 input 屬性（不含 `value`／`onChange`），value 為 string，另加 `error?`。
   - **不要用於**：data table 的輸入欄（用 `data-table`）；需要原生事件物件時。
   - 範例：`src/ui/features/account/pages/AccountForm.tsx`
-- **`NumberInput`**（form）— 數字欄位。
-  - Props：同 `TextInput` 的 string value 契約，不含 `type`。
-  - **不要用於**：data table 內（用 `data-table / NumberInput`）。
-  - 範例：`src/ui/features/transaction/components/form/AllocationSection.tsx`
-- **`CurrencyInput`** — `NumberInput` 加上前綴。
-  - Props：同 `NumberInput`，另加 `prefix?`。
-  - **不要用於**：**它不內建貨幣符號**，符號由呼叫端提供；金額顯示也不要經它（顯示走 `formatCurrency`）。
-  - 範例：**無真實消費端**——目前僅 dev gallery 呈現（`src/ui/features/app/pages/GalleryForms.tsx`）；feature 的金額輸入走 `NumberInput`。
+- **`NumberInput`** — 全站唯一的數字輸入欄（`src/ui/components/NumberInput.tsx`；`form` 與 `data-table` 兩個 barrel 都 re-export，因此跨畫面共用一個元件、一個 string 契約，[ADR-0065](../adr/0065-rhf-free-field-components-with-formcontrol-glue.md)）。`surface` 選 `form`／`table`，兩者共用幾何與數字處理、surface 各自保留；`compact` 用於表格子列（32px）；`prefix?` 為選用貨幣前綴（呼叫端提供、不內建；金額顯示也不要經它，走 `formatCurrency`；承自已刪除的 `CurrencyInput`，目前僅 dev gallery 範例使用）。表面規格見 [`design-system.md`](design-system.md) §7。
+  - Props：同 `TextInput` 的 string value 契約，另加 `surface?`（`form`（預設）／`table`）、`compact?`、`prefix?`、`error?`（僅 `surface="form"` 呈現）。
+  - **不要用於**：表格儲存格的顯示（用 `NumberCell`）；唯讀推導值（用 `ReadoutField`）。
+  - 範例：`src/ui/features/transaction/components/form/AllocationSection.tsx`（form surface）、`src/ui/features/monthly_close/stages/account_balance/components/CloseAccountBalanceInputs.tsx`（table surface）。
 - **`DateInput`** — 日期欄位，emit ISO `yyyy-MM-dd`。
   - Props：同 `TextInput` 的 string value 契約，另加 `error?`。
   - **不要用於**：年月（用 `YearMonthPicker`）。
@@ -505,15 +494,13 @@
 
 ### 近重複裁決
 
-三組「看起來一樣、其實契約不同」的元件。選錯會拿到錯的 value 契約或錯的 surface：
+以下「看起來一樣、其實契約不同」的元件，選錯會拿到錯的 value 契約或錯的 surface。數字輸入原本也是這樣一對（form／data-table 各一個），現已合併為單一 `NumberInput`，改用 `surface` 表達差異，不再列於此表：
 
-| 該用哪個                         | 用在                                                                     | 不要用在                             |
-| -------------------------------- | ------------------------------------------------------------------------ | ------------------------------------ |
-| `form / TextInput`               | form 套件的文字欄位：RHF-free 的 **string** value 契約、帶 error 呈現    | data table 內；需要原生事件物件時    |
-| `ui/input`                       | 需要 shadcn 原始 surface／原生事件，或作為上游 primitive 被擴充          | 表單欄位（改用 `form / TextInput`）  |
-| `form / NumberInput`             | form 套件的數字欄位：string value 契約、`error` 呈現                     | data table 內                        |
-| `data-table / NumberInput`       | data table 內的可編輯數字欄：原生事件契約、`compact` 高度、table surface | form 套件內                          |
-| `form / Select`（`SelectField`） | 單值選欄位：`options` ＋ `noneLabel`、string value 契約                  | 需要自行組合 Radix parts 時          |
-| `ui/select`（Radix part 集）     | 需要自行組合 Radix parts 的場合，或被上游擴充                            | 一般表單欄位（改用 `form / Select`） |
+| 該用哪個                         | 用在                                                                  | 不要用在                             |
+| -------------------------------- | --------------------------------------------------------------------- | ------------------------------------ |
+| `form / TextInput`               | form 套件的文字欄位：RHF-free 的 **string** value 契約、帶 error 呈現 | data table 內；需要原生事件物件時    |
+| `ui/input`                       | 需要 shadcn 原始 surface／原生事件，或作為上游 primitive 被擴充       | 表單欄位（改用 `form / TextInput`）  |
+| `form / Select`（`SelectField`） | 單值選欄位：`options` ＋ `noneLabel`、string value 契約               | 需要自行組合 Radix parts 時          |
+| `ui/select`（Radix part 集）     | 需要自行組合 Radix parts 的場合，或被上游擴充                         | 一般表單欄位（改用 `form / Select`） |
 
-三者**共用的只有幾何與數字處理，surface 各自保留**——判準與表面規格見 [`design-system.md`](design-system.md) §7 的 `form` 與 `data-table`。
+`NumberInput` 的 `form`／`table` 兩種 surface **共用的只有幾何與數字處理，不是整體外觀**；其餘各組的判準與表面規格見 [`design-system.md`](design-system.md) §7 的 `form` 與 `data-table`。

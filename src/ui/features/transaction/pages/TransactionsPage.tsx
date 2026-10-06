@@ -5,10 +5,12 @@ import { Plus } from 'lucide-react';
 import { FilterStrip } from '@/ui/components/FilterStrip';
 import { PageHeader } from '@/ui/components/PageHeader';
 import { SearchField } from '@/ui/components/SearchField';
+import { showToast } from '@/ui/components/Toast';
 import { useConfirm } from '@/ui/components/confirm/useConfirm';
 import { Button } from '@/ui/components/ui/button';
 import {
   TRANSACTIONS_PAGE_CREATE_ACTION,
+  TRANSACTIONS_PAGE_DELETED_TOAST,
   TRANSACTIONS_PAGE_DELETE_CONFIRM_CONTEXT,
   TRANSACTIONS_PAGE_DELETE_CONFIRM_TITLE,
   TRANSACTIONS_PAGE_DESCRIPTION,
@@ -17,6 +19,7 @@ import {
   TRANSACTIONS_PAGE_FILTER_EMPTY_DESCRIPTION,
   TRANSACTIONS_PAGE_FILTER_EMPTY_TITLE,
   TRANSACTIONS_PAGE_FILTER_LABEL,
+  TRANSACTIONS_PAGE_SAVED_TOAST,
   TRANSACTIONS_PAGE_SEARCH_LABEL,
   TRANSACTIONS_PAGE_SEARCH_PLACEHOLDER,
   TRANSACTIONS_PAGE_TITLE,
@@ -83,7 +86,10 @@ const Transactions: React.FC = () => {
       context: TRANSACTIONS_PAGE_DELETE_CONFIRM_CONTEXT,
     });
     if (confirmed) {
-      await deleteTransaction(transaction.id);
+      const result = await deleteTransaction(transaction.id);
+      if (result?.ok) {
+        showToast(TRANSACTIONS_PAGE_DELETED_TOAST);
+      }
     }
   };
 
@@ -156,6 +162,7 @@ const Transactions: React.FC = () => {
     () => {
       setIsFormOpen(false);
       resetEditState();
+      showToast(TRANSACTIONS_PAGE_SAVED_TOAST);
     },
     () => reload(),
   );

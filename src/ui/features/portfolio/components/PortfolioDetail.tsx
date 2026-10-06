@@ -1,5 +1,7 @@
 import React from 'react';
 
+import { Info } from 'lucide-react';
+
 import { DangerZone } from '@/ui/components/DangerZone';
 import { FinancialNumber } from '@/ui/components/FinancialNumber';
 import { Metric, MetricGroup } from '@/ui/components/MetricGroup';
@@ -18,6 +20,8 @@ import {
   TableBody,
   TableHeader,
 } from '@/ui/components/data-table';
+import { Button } from '@/ui/components/ui/button';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/ui/components/ui/tooltip';
 import {
   PORTFOLIO_DANGER_LABELS,
   PORTFOLIO_DETAIL_LABELS,
@@ -53,7 +57,24 @@ const PortfolioDetail: React.FC<PortfolioDetailProps> = ({ vm, onDelete }) => {
         </MetricGroup>
       </PageSection>
 
-      <PageSection title={PORTFOLIO_DETAIL_LABELS.RETURN_SECTION} spacing="compact">
+      <PageSection
+        title={PORTFOLIO_DETAIL_LABELS.RETURN_SECTION}
+        spacing="compact"
+        action={
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                aria-label={PORTFOLIO_DETAIL_LABELS.RETURN_METHOD_LABEL}
+              >
+                <Info size={14} aria-hidden="true" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>{PORTFOLIO_DETAIL_LABELS.RETURN_METHOD_TOOLTIP}</TooltipContent>
+          </Tooltip>
+        }
+      >
         <MetricGroup columns={2}>
           <Metric label={PORTFOLIO_DETAIL_LABELS.MONTHLY} value={vm.monthlyReturnText} />
           <Metric label={PORTFOLIO_DETAIL_LABELS.CUMULATIVE} value={vm.cumulativeReturnText} />

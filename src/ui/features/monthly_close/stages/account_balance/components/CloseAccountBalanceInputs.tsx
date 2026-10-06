@@ -82,13 +82,12 @@ const TwdAccountRow: React.FC<TwdAccountRowProps> = ({
             {MONTHLY_CLOSE_LABELS.CLOSING_BALANCE} {entry.account.name}
           </Label>
           <NumberInput
+            surface="table"
             id={`ending-${entry.account.id}`}
             className="w-full max-w-[220px]"
             disabled={isReadOnly}
-            value={input?.amount ?? ''}
-            onChange={(event) =>
-              onAmountChange(entry.account.id, parseOptionalAmount(event.target.value))
-            }
+            value={input?.amount?.toString() ?? ''}
+            onChange={(value) => onAmountChange(entry.account.id, parseOptionalAmount(value))}
           />
         </div>
       </DataTableCell>
@@ -145,16 +144,13 @@ const ForeignAccountRow: React.FC<ForeignAccountRowProps> = ({
             {ACCOUNT_BALANCE_FIELD_LABELS.FOREIGN_AMOUNT} {entry.account.name}
           </Label>
           <NumberInput
+            surface="table"
             id={`foreign-${entry.account.id}`}
             className="w-full max-w-[150px]"
             disabled={isReadOnly}
-            value={input?.originalAmount ?? ''}
-            onChange={(event) =>
-              onDetailChange(
-                entry.account.id,
-                'originalAmount',
-                parseOptionalAmount(event.target.value),
-              )
+            value={input?.originalAmount?.toString() ?? ''}
+            onChange={(value) =>
+              onDetailChange(entry.account.id, 'originalAmount', parseOptionalAmount(value))
             }
           />
         </div>
@@ -165,17 +161,14 @@ const ForeignAccountRow: React.FC<ForeignAccountRowProps> = ({
             {ACCOUNT_BALANCE_FIELD_LABELS.EXCHANGE_RATE} {entry.account.name}
           </Label>
           <NumberInput
+            surface="table"
             id={`rate-${entry.account.id}`}
             step="0.0001"
             className="w-full max-w-[110px]"
             disabled={isReadOnly}
-            value={input?.exchangeRate ?? ''}
-            onChange={(event) =>
-              onDetailChange(
-                entry.account.id,
-                'exchangeRate',
-                parseOptionalAmount(event.target.value),
-              )
+            value={input?.exchangeRate?.toString() ?? ''}
+            onChange={(value) =>
+              onDetailChange(entry.account.id, 'exchangeRate', parseOptionalAmount(value))
             }
           />
         </div>

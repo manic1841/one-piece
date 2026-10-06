@@ -42,13 +42,12 @@ export const TwdMobileList: React.FC<TwdMobileListProps> = ({
         </MobileDataField>
         <MobileDataField label={MONTHLY_CLOSE_LABELS.CLOSING_BALANCE}>
           <NumberInput
+            surface="table"
             aria-label={`${MONTHLY_CLOSE_LABELS.CLOSING_BALANCE} ${entry.account.name}`}
             className="w-[150px] max-w-full"
             disabled={isReadOnly}
-            value={findInput(entry.account.id)?.amount ?? ''}
-            onChange={(event) =>
-              onAmountChange(entry.account.id, parseOptionalAmount(event.target.value))
-            }
+            value={findInput(entry.account.id)?.amount?.toString() ?? ''}
+            onChange={(value) => onAmountChange(entry.account.id, parseOptionalAmount(value))}
           />
         </MobileDataField>
       </MobileDataRow>
@@ -86,32 +85,26 @@ export const ForeignMobileList: React.FC<ForeignMobileListProps> = ({
         </MobileDataField>
         <MobileDataField label={ACCOUNT_BALANCE_FIELD_LABELS.FOREIGN_AMOUNT}>
           <NumberInput
+            surface="table"
             aria-label={`${ACCOUNT_BALANCE_FIELD_LABELS.FOREIGN_AMOUNT} ${entry.account.name}`}
             className="w-[150px] max-w-full"
             disabled={isReadOnly}
-            value={findInput(entry.account.id)?.originalAmount ?? ''}
-            onChange={(event) =>
-              onDetailChange(
-                entry.account.id,
-                'originalAmount',
-                parseOptionalAmount(event.target.value),
-              )
+            value={findInput(entry.account.id)?.originalAmount?.toString() ?? ''}
+            onChange={(value) =>
+              onDetailChange(entry.account.id, 'originalAmount', parseOptionalAmount(value))
             }
           />
         </MobileDataField>
         <MobileDataField label={ACCOUNT_BALANCE_FIELD_LABELS.EXCHANGE_RATE}>
           <NumberInput
+            surface="table"
             aria-label={`${ACCOUNT_BALANCE_FIELD_LABELS.EXCHANGE_RATE} ${entry.account.name}`}
             step="0.0001"
             className="w-[150px] max-w-full"
             disabled={isReadOnly}
-            value={findInput(entry.account.id)?.exchangeRate ?? ''}
-            onChange={(event) =>
-              onDetailChange(
-                entry.account.id,
-                'exchangeRate',
-                parseOptionalAmount(event.target.value),
-              )
+            value={findInput(entry.account.id)?.exchangeRate?.toString() ?? ''}
+            onChange={(value) =>
+              onDetailChange(entry.account.id, 'exchangeRate', parseOptionalAmount(value))
             }
           />
         </MobileDataField>

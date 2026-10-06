@@ -148,36 +148,37 @@ export const SecuritiesAccountRow: React.FC<SecuritiesAccountRowProps> = ({
                     </DataTableCell>
                     <DataTableCell className="pl-3">
                       <NumberInput
+                        surface="table"
                         aria-label={`Cost ${index + 1}`}
                         compact
                         className="w-full"
                         disabled={isReadOnly}
-                        value={holding.cost}
-                        onChange={(event) => updateHolding(index, 'cost', event.target.value)}
+                        value={holding.cost.toString()}
+                        onChange={(value) => updateHolding(index, 'cost', value)}
                       />
                     </DataTableCell>
                     <DataTableCell className="pl-3">
                       <NumberInput
+                        surface="table"
                         aria-label={`Value ${index + 1}`}
                         compact
                         className="w-full"
                         disabled={isReadOnly}
-                        value={holding.marketValue}
-                        onChange={(event) =>
-                          updateHolding(index, 'marketValue', event.target.value)
-                        }
+                        value={holding.marketValue.toString()}
+                        onChange={(value) => updateHolding(index, 'marketValue', value)}
                       />
                     </DataTableCell>
                     <DataTableCell className="pl-3">
                       <NumberInput
+                        surface="table"
                         aria-label={`Leverage ${index + 1}`}
                         compact
                         step="0.01"
                         placeholder="1"
                         className="w-full"
                         disabled={isReadOnly}
-                        value={holding.leverage ?? ''}
-                        onChange={(event) => updateHolding(index, 'leverage', event.target.value)}
+                        value={holding.leverage?.toString() ?? ''}
+                        onChange={(value) => updateHolding(index, 'leverage', value)}
                       />
                     </DataTableCell>
                     {!isReadOnly && (
@@ -222,33 +223,36 @@ export const SecuritiesAccountRow: React.FC<SecuritiesAccountRowProps> = ({
                   <div>
                     <p className={dataTableLabelClass}>Cost</p>
                     <NumberInput
+                      surface="table"
                       aria-label={`Cost ${index + 1}`}
                       compact
                       disabled={isReadOnly}
-                      value={holding.cost}
-                      onChange={(event) => updateHolding(index, 'cost', event.target.value)}
+                      value={holding.cost.toString()}
+                      onChange={(value) => updateHolding(index, 'cost', value)}
                     />
                   </div>
                   <div>
                     <p className={dataTableLabelClass}>Value</p>
                     <NumberInput
+                      surface="table"
                       aria-label={`Value ${index + 1}`}
                       compact
                       disabled={isReadOnly}
-                      value={holding.marketValue}
-                      onChange={(event) => updateHolding(index, 'marketValue', event.target.value)}
+                      value={holding.marketValue.toString()}
+                      onChange={(value) => updateHolding(index, 'marketValue', value)}
                     />
                   </div>
                   <div>
                     <p className={dataTableLabelClass}>Leverage</p>
                     <NumberInput
+                      surface="table"
                       aria-label={`Leverage ${index + 1}`}
                       compact
                       step="0.01"
                       placeholder="1"
                       disabled={isReadOnly}
-                      value={holding.leverage ?? ''}
-                      onChange={(event) => updateHolding(index, 'leverage', event.target.value)}
+                      value={holding.leverage?.toString() ?? ''}
+                      onChange={(value) => updateHolding(index, 'leverage', value)}
                     />
                   </div>
                 </div>
@@ -285,14 +289,13 @@ export const SecuritiesAccountRow: React.FC<SecuritiesAccountRowProps> = ({
               {ACCOUNT_BALANCE_FIELD_LABELS.EXCHANGE_RATE} {entry.account.name}
             </Label>
             <NumberInput
+              surface="table"
               id={`sec-rate-${entry.account.id}`}
               step="0.0001"
               className="w-28 md:ml-auto"
               disabled={isReadOnly}
-              value={input?.exchangeRate ?? ''}
-              onChange={(event) =>
-                onRateChange(entry.account.id, parseOptionalAmount(event.target.value))
-              }
+              value={input?.exchangeRate?.toString() ?? ''}
+              onChange={(value) => onRateChange(entry.account.id, parseOptionalAmount(value))}
             />
           </div>
           <div className="text-right">

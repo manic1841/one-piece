@@ -31,21 +31,23 @@ const CashFlowInputs: React.FC<CashFlowInputsProps> = ({
     <div className="space-y-2">
       <Label className={eyebrowClass}>{MONTHLY_CLOSE_LABELS.CASH_IN}</Label>
       <NumberInput
+        surface="table"
         disabled={disabled}
         placeholder="0"
         aria-label={`${MONTHLY_CLOSE_LABELS.CASH_IN} ${section.portfolioName}`}
         value={section.deposits?.toString() ?? ''}
-        onChange={(event) => onDepositsChange(parseOptionalAmount(event.target.value) ?? 0)}
+        onChange={(value) => onDepositsChange(parseOptionalAmount(value) ?? 0)}
       />
     </div>
     <div className="space-y-2">
       <Label className={eyebrowClass}>{MONTHLY_CLOSE_LABELS.CASH_OUT}</Label>
       <NumberInput
+        surface="table"
         disabled={disabled}
         placeholder="0"
         aria-label={`${MONTHLY_CLOSE_LABELS.CASH_OUT} ${section.portfolioName}`}
         value={section.withdrawals?.toString() ?? ''}
-        onChange={(event) => onWithdrawalsChange(parseOptionalAmount(event.target.value) ?? 0)}
+        onChange={(value) => onWithdrawalsChange(parseOptionalAmount(value) ?? 0)}
       />
     </div>
   </div>

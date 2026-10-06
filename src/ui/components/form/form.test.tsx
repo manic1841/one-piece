@@ -5,7 +5,6 @@ import { beforeAll, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 
 import {
-  CurrencyInput,
   Form,
   FormControl,
   FormField,
@@ -53,7 +52,7 @@ describe('field components are RHF-free', () => {
   });
 
   it('renders a currency prefix without owning the symbol', () => {
-    render(<CurrencyInput prefix="NT$" />);
+    render(<NumberInput prefix="NT$" />);
     expect(screen.getByText('NT$')).toBeInTheDocument();
   });
 

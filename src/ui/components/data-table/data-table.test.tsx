@@ -250,7 +250,7 @@ describe('NumberCell', () => {
 
 describe('NumberInput', () => {
   it('removes the native spinner and right-aligns mono numerics', () => {
-    render(<NumberInput aria-label="ending" defaultValue={100} />);
+    render(<NumberInput surface="table" aria-label="ending" />);
 
     const input = screen.getByLabelText('ending');
     expect(input).toHaveAttribute('type', 'number');
@@ -262,7 +262,7 @@ describe('NumberInput', () => {
   });
 
   it('uses the 32px height for compact (sub-table) inputs', () => {
-    render(<NumberInput aria-label="cost" compact defaultValue={1} />);
+    render(<NumberInput surface="table" aria-label="cost" compact />);
 
     const input = screen.getByLabelText('cost');
     expect(input.className).toContain('h-8');

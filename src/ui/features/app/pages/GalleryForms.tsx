@@ -22,7 +22,6 @@ import {
   TextArea,
   TextInput,
 } from '@/ui/components/form';
-import { CurrencyInput } from '@/ui/components/form/CurrencyInput';
 import { DateInput } from '@/ui/components/form/DateInput';
 import { SelectField } from '@/ui/components/form/Select';
 import { Button } from '@/ui/components/ui/button';
@@ -43,6 +42,18 @@ const FieldDemo: React.FC<{ label: string; error?: boolean; children: React.Reac
   </div>
 );
 
+/** Controlled currency demo: `NumberInput` owns the string contract + prefix. */
+const CurrencyDemo: React.FC<{ label: string; initial: string; error?: boolean }> = ({
+  label,
+  initial,
+  error,
+}) => {
+  const [value, setValue] = React.useState(initial);
+  return (
+    <NumberInput prefix="NT$" value={value} onChange={setValue} error={error} aria-label={label} />
+  );
+};
+
 const InputSection: React.FC = () => (
   <GallerySection number="13" title="Input & Form Field">
     <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
@@ -50,10 +61,10 @@ const InputSection: React.FC = () => (
         <TextInput defaultValue="Main Bank Account" aria-label="Account name" />
       </FieldDemo>
       <FieldDemo label="AMOUNT">
-        <CurrencyInput prefix="NT$" defaultValue={125420} aria-label="Amount" />
+        <CurrencyDemo label="Amount" initial="125420" />
       </FieldDemo>
       <FieldDemo label="ENDING BALANCE *" error>
-        <CurrencyInput prefix="NT$" defaultValue={124200} error aria-label="Ending balance" />
+        <CurrencyDemo label="Ending balance" initial="124200" error />
       </FieldDemo>
       <FieldDemo label="DATE">
         <DateInput defaultValue="2026-10-02" aria-label="Date" />

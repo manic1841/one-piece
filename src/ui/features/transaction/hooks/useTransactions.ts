@@ -51,8 +51,8 @@ export function useTransactions(
 
   const deleteTransaction = useCallback(
     async (transactionId: string) => {
-      if (!householdId) return;
-      await run(async () => {
+      if (!householdId) return undefined;
+      return run(async () => {
         await deleteTransactionUseCase.execute({
           householdId,
           transactionId,

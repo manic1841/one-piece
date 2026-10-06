@@ -104,14 +104,15 @@ export const CloseDebtRepaymentStage: React.FC<CloseDebtRepaymentStageProps> = (
                 <div className="space-y-2">
                   <Label className={eyebrowClass}>{MONTHLY_CLOSE_LABELS.TOTAL_PAYMENT}</Label>
                   <NumberInput
+                    surface="table"
                     disabled={confirming || isReadOnly}
                     placeholder="0"
                     aria-label={`${MONTHLY_CLOSE_LABELS.TOTAL_PAYMENT} ${section.debtAccountName}`}
                     value={section.totalPayment > 0 ? section.totalPayment.toString() : ''}
-                    onChange={(event) =>
+                    onChange={(value) =>
                       handleTotalPaymentChange(
                         section.debtAccountId,
-                        parseOptionalAmount(event.target.value) ?? 0,
+                        parseOptionalAmount(value) ?? 0,
                       )
                     }
                   />

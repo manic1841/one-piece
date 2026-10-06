@@ -15,8 +15,7 @@ export { FormDescription } from './FormDescription';
 export { FormMessage } from './FormMessage';
 
 export { TextInput } from './TextInput';
-export { NumberInput } from './NumberInput';
-export { CurrencyInput } from './CurrencyInput';
+export { NumberInput } from '../NumberInput';
 export { DateInput } from './DateInput';
 export { SelectField } from './Select';
 export { TextArea } from './TextArea';
@@ -25,8 +24,7 @@ export { ReadoutField } from './ReadoutField';
 export { useFormField } from './form-context';
 
 export type { TextInputProps } from './TextInput';
-export type { NumberInputProps } from './NumberInput';
-export type { CurrencyInputProps } from './CurrencyInput';
+export type { NumberInputProps, NumberInputSurface } from '../NumberInput';
 export type { DateInputProps } from './DateInput';
 export type { SelectFieldProps, SelectFieldOption } from './Select';
 export type { TextAreaProps } from './TextArea';
