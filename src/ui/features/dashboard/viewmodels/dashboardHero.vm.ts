@@ -3,7 +3,7 @@ import type {
   DashboardOverview,
 } from '@/application/dashboard/use_cases/getDashboardOverviewUseCase';
 import type { ChartPoint } from '@/ui/components/charts/chartInteraction';
-import { formatCurrency, formatYearMonth } from '@/ui/utils';
+import { formatCurrency, formatMonthLabel, formatYearMonth } from '@/ui/utils';
 
 export type { DashboardComposition } from '@/application/dashboard/use_cases/getDashboardOverviewUseCase';
 
@@ -26,21 +26,6 @@ export interface DashboardHeroVM {
   /** Net-worth series backing the hero trend chart. */
   trend: DashboardHeroTrendVM;
 }
-
-const MONTH_NAMES = [
-  'JAN',
-  'FEB',
-  'MAR',
-  'APR',
-  'MAY',
-  'JUN',
-  'JUL',
-  'AUG',
-  'SEP',
-  'OCT',
-  'NOV',
-  'DEC',
-];
 
 export const mapDashboardOverviewToHeroVM = (
   overview: DashboardOverview | null,
@@ -87,7 +72,7 @@ const buildTrendVM = (series: DashboardNetWorthPoint[]): DashboardHeroTrendVM =>
     (point): point is DashboardNetWorthPoint & { netAssets: number } => point.netAssets !== null,
   );
   const values = present.map((point) => point.netAssets);
-  const labels = present.map((point) => `${MONTH_NAMES[point.month - 1]} ${point.year}`);
+  const labels = present.map((point) => formatMonthLabel(point.year, point.month));
   return {
     values,
     labels,

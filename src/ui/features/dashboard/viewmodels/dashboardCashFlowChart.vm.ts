@@ -2,7 +2,7 @@ import type { DashboardCashFlowPoint } from '@/application/dashboard/use_cases/g
 import type { BarChartSeries } from '@/ui/components/charts/BarChart';
 import type { ChartPoint } from '@/ui/components/charts/chartInteraction';
 import { DASHBOARD_CASHFLOW_LABELS } from '@/ui/constants/dashboard/cashFlowLabels';
-import { formatCurrency } from '@/ui/utils';
+import { formatCurrency, formatMonthLabel } from '@/ui/utils';
 
 export type { DashboardCashFlowPoint };
 
@@ -13,21 +13,6 @@ export interface DashboardCashFlowChartVM {
   hasData: boolean;
   latestText: string | null;
 }
-
-const MONTH_NAMES = [
-  'JAN',
-  'FEB',
-  'MAR',
-  'APR',
-  'MAY',
-  'JUN',
-  'JUL',
-  'AUG',
-  'SEP',
-  'OCT',
-  'NOV',
-  'DEC',
-];
 
 type PresentCashFlowPoint = DashboardCashFlowPoint & {
   netCashFlow: number;
@@ -43,7 +28,7 @@ export const mapCashFlowSeriesToChartVM = (
       point.netCashFlow !== null && point.cashIn !== null && point.cashOut !== null,
   );
   const latest = present[present.length - 1];
-  const labels = present.map((point) => `${MONTH_NAMES[point.month - 1]} ${point.year}`);
+  const labels = present.map((point) => formatMonthLabel(point.year, point.month));
 
   return {
     series: [
