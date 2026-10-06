@@ -1,8 +1,19 @@
 import React, { useEffect, useRef, useState } from 'react';
 
 import { Edit2, Plus, Power, Shield } from 'lucide-react';
+import { type UseFormReturn } from 'react-hook-form';
 
-import { FormItem, SelectField, type SelectFieldOption, TextInput } from '@/ui/components/form';
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+  SelectField,
+  type SelectFieldOption,
+  TextInput,
+} from '@/ui/components/form';
 import {
   Accordion,
   AccordionContent,
@@ -21,13 +32,13 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/ui/components/ui/dialog';
-import { Label } from '@/ui/components/ui/label';
 import {
   SETTINGS_LEDGER_TYPE_LABELS,
   SETTINGS_LEDGER_TYPE_ORDER,
   SettingsLedgerCodeLabels,
 } from '@/ui/constants/setting/settingsLabels';
 import { useLedgerCodeSettings } from '@/ui/features/setting/hooks/useLedgerCodeSettings';
+import { type LedgerCodeFormVM } from '@/ui/features/setting/viewmodels/ledgerCodeForm.vm';
 import { cn } from '@/ui/utils/cn';
 
 const TYPE_OPTIONS: SelectFieldOption[] = SETTINGS_LEDGER_TYPE_ORDER.map((type) => ({
@@ -38,38 +49,28 @@ const TYPE_OPTIONS: SelectFieldOption[] = SETTINGS_LEDGER_TYPE_ORDER.map((type) 
 interface AddCodeDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  type: string;
-  onTypeChange: (value: string) => void;
-  code: string;
-  onCodeChange: (value: string) => void;
-  label: string;
-  onLabelChange: (value: string) => void;
+  form: UseFormReturn<LedgerCodeFormVM>;
+  /** Resolves `true` on success；對話框僅在成功後關閉。 */
+  submit: () => Promise<boolean>;
   isSubmitting: boolean;
   error: string;
-  /** Resolves `true` on success；對話框僅在成功後關閉。 */
-  onSubmit: () => Promise<boolean>;
 }
 
 /**
  * 新增自訂科目的 dialog。建立科目是次要流程，收進 dialog 讓科目清單保持第一層
- * （visual-standards：複雜設定預設隱藏）。
+ * （visual-standards：複雜設定預設隱藏）。欄位由 RHF + `form` 套件黏合（ADR-0064）。
  */
 const AddCodeDialog: React.FC<AddCodeDialogProps> = ({
   open,
   onOpenChange,
-  type,
-  onTypeChange,
-  code,
-  onCodeChange,
-  label,
-  onLabelChange,
+  form,
+  submit,
   isSubmitting,
   error,
-  onSubmit,
 }) => {
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (await onSubmit()) onOpenChange(false);
+    if (await submit()) onOpenChange(false);
   };
 
   return (
@@ -85,58 +86,60 @@ const AddCodeDialog: React.FC<AddCodeDialogProps> = ({
           <DialogTitle>{SettingsLedgerCodeLabels.dialogTitle}</DialogTitle>
           <DialogDescription>{SettingsLedgerCodeLabels.dialogDescription}</DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="grid gap-4 py-4" noValidate>
-          <FormItem>
-            <Label htmlFor="new-ledger-type">{SettingsLedgerCodeLabels.typeLabel}</Label>
-            <SelectField
-              id="new-ledger-type"
-              value={type}
-              onChange={onTypeChange}
-              options={TYPE_OPTIONS}
-            />
-          </FormItem>
-          <FormItem>
-            <Label htmlFor="new-ledger-code">{SettingsLedgerCodeLabels.codeLabel}</Label>
-            <TextInput
-              id="new-ledger-code"
-              placeholder={SettingsLedgerCodeLabels.codePlaceholder}
-              value={code}
-              onChange={onCodeChange}
-              required
-            />
-            <p className="text-xs leading-snug text-muted-foreground">
-              <span className="font-mono">{SettingsLedgerCodeLabels.codeHelpPrefix}</span>
-              {SettingsLedgerCodeLabels.codeHelpMiddle}
-              <span className="font-mono">{SettingsLedgerCodeLabels.codeHelpDetail}</span>
-              {SettingsLedgerCodeLabels.codeHelpSuffix}
-            </p>
-          </FormItem>
-          <FormItem>
-            <Label htmlFor="new-ledger-label">{SettingsLedgerCodeLabels.labelLabel}</Label>
-            <TextInput
-              id="new-ledger-label"
-              placeholder={SettingsLedgerCodeLabels.labelPlaceholder}
-              value={label}
-              onChange={onLabelChange}
-              required
-            />
-          </FormItem>
+        <Form {...form}>
+          <form onSubmit={handleSubmit} className="grid gap-4 py-4" noValidate>
+            <FormField name="type">
+              <FormItem>
+                <FormLabel>{SettingsLedgerCodeLabels.typeLabel}</FormLabel>
+                <FormControl>
+                  <SelectField options={TYPE_OPTIONS} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            </FormField>
+            <FormField name="code">
+              <FormItem>
+                <FormLabel required>{SettingsLedgerCodeLabels.codeLabel}</FormLabel>
+                <FormControl>
+                  <TextInput placeholder={SettingsLedgerCodeLabels.codePlaceholder} />
+                </FormControl>
+                <p className="text-xs leading-snug text-muted-foreground">
+                  <span className="font-mono">{SettingsLedgerCodeLabels.codeHelpPrefix}</span>
+                  {SettingsLedgerCodeLabels.codeHelpMiddle}
+                  <span className="font-mono">{SettingsLedgerCodeLabels.codeHelpDetail}</span>
+                  {SettingsLedgerCodeLabels.codeHelpSuffix}
+                </p>
+                <FormMessage />
+              </FormItem>
+            </FormField>
+            <FormField name="label">
+              <FormItem>
+                <FormLabel required>{SettingsLedgerCodeLabels.labelLabel}</FormLabel>
+                <FormControl>
+                  <TextInput placeholder={SettingsLedgerCodeLabels.labelPlaceholder} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            </FormField>
 
-          {error && (
-            <Alert variant="destructive">
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
+            {error && (
+              <Alert variant="destructive">
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
 
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              {SettingsLedgerCodeLabels.cancelAction}
-            </Button>
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? SettingsLedgerCodeLabels.adding : SettingsLedgerCodeLabels.addAction}
-            </Button>
-          </DialogFooter>
-        </form>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+                {SettingsLedgerCodeLabels.cancelAction}
+              </Button>
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting
+                  ? SettingsLedgerCodeLabels.adding
+                  : SettingsLedgerCodeLabels.addAction}
+              </Button>
+            </DialogFooter>
+          </form>
+        </Form>
       </DialogContent>
     </Dialog>
   );
@@ -146,23 +149,17 @@ const AddCodeDialog: React.FC<AddCodeDialogProps> = ({
 export const LedgerCodeSettings = () => {
   const {
     groupedRows,
-    newLabel,
-    setNewLabel,
-    newCode,
-    setNewCode,
-    newType,
-    setNewType,
     editingCode,
     editValue,
     setEditValue,
-    isSubmitting,
     error,
-    handleAdd,
     handleToggleActive,
     startEdit,
     cancelEdit,
     saveEdit,
+    ledgerCodeForm,
   } = useLedgerCodeSettings();
+  const { form, submit, error: formError, isSubmitting } = ledgerCodeForm;
   const editInputRef = useRef<HTMLInputElement>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
 
@@ -183,15 +180,10 @@ export const LedgerCodeSettings = () => {
         <AddCodeDialog
           open={dialogOpen}
           onOpenChange={setDialogOpen}
-          type={newType}
-          onTypeChange={setNewType}
-          code={newCode}
-          onCodeChange={setNewCode}
-          label={newLabel}
-          onLabelChange={setNewLabel}
+          form={form}
+          submit={submit}
           isSubmitting={isSubmitting}
-          error={error}
-          onSubmit={handleAdd}
+          error={formError}
         />
       </div>
 

@@ -1,5 +1,11 @@
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { fireEvent, render, renderHook, screen, waitFor, within } from '@testing-library/react';
+import { useForm } from 'react-hook-form';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+import {
+  type LedgerCodeFormVM,
+  createDefaultLedgerCodeFormVM,
+} from '@/ui/features/setting/viewmodels/ledgerCodeForm.vm';
 
 import { LedgerCodeSettings } from './LedgerCodeSettings';
 
@@ -7,25 +13,28 @@ vi.mock('@/ui/features/setting/hooks/useLedgerCodeSettings', () => ({
   useLedgerCodeSettings: vi.fn(),
 }));
 
+/** A real RHF form instance, since the dialog binds through `FormProvider`. */
+const makeForm = () =>
+  renderHook(() => useForm<LedgerCodeFormVM>({ defaultValues: createDefaultLedgerCodeFormVM() }))
+    .result.current;
+
 const hookReturn = (overrides: Record<string, unknown> = {}) => ({
   groupedRows: { asset: [], liability: [], income: [], expense: [] },
   loading: false,
-  newLabel: '',
-  setNewLabel: vi.fn(),
-  newCode: '',
-  setNewCode: vi.fn(),
-  newType: 'expense',
-  setNewType: vi.fn(),
   editingCode: null,
   editValue: '',
   setEditValue: vi.fn(),
-  isSubmitting: false,
   error: '',
-  handleAdd: vi.fn().mockResolvedValue(true),
   handleToggleActive: vi.fn(),
   startEdit: vi.fn(),
   cancelEdit: vi.fn(),
   saveEdit: vi.fn(),
+  ledgerCodeForm: {
+    form: makeForm(),
+    submit: vi.fn().mockResolvedValue(true),
+    error: '',
+    isSubmitting: false,
+  },
   ...overrides,
 });
 
@@ -78,6 +87,7 @@ describe('LedgerCodeSettings', () => {
 
   it('submits the add form through the hook and closes the dialog on success', async () => {
     const value = await mockHook();
+    const { form, submit } = value.ledgerCodeForm;
 
     render(<LedgerCodeSettings />);
     openAddDialog();
@@ -90,14 +100,20 @@ describe('LedgerCodeSettings', () => {
     });
     submitDialog();
 
-    expect(value.setNewCode).toHaveBeenCalledWith('travel');
-    expect(value.setNewLabel).toHaveBeenCalledWith('差旅費');
-    expect(value.handleAdd).toHaveBeenCalledTimes(1);
+    expect(form.getValues()).toMatchObject({ code: 'travel', label: '差旅費' });
+    expect(submit).toHaveBeenCalledTimes(1);
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
   });
 
   it('keeps the dialog open and shows the error inside it when the add fails', async () => {
-    await mockHook({ handleAdd: vi.fn().mockResolvedValue(false), error: '科目代碼已存在。' });
+    await mockHook({
+      ledgerCodeForm: {
+        form: makeForm(),
+        submit: vi.fn().mockResolvedValue(false),
+        error: '科目代碼已存在。',
+        isSubmitting: false,
+      },
+    });
 
     render(<LedgerCodeSettings />);
     openAddDialog();

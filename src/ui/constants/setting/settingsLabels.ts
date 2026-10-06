@@ -149,6 +149,8 @@ export const SettingsLedgerCodeLabels = {
   codeHelpSuffix: ' 在既有 category 底下建立明細科目。',
   labelLabel: 'Display Name (Label)',
   labelPlaceholder: 'e.g. 差旅費',
+  errorCodeRequired: '請輸入科目代碼。',
+  errorLabelRequired: '請輸入顯示名稱。',
   systemBadge: 'System',
   activeAction: 'Active',
   disabledAction: 'Disabled',
