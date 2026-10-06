@@ -81,6 +81,8 @@ export const SettingsHouseholdLabels = {
   emailPlaceholder: SETTINGS_EMAIL_PLACEHOLDER,
   roleLabel: 'Assign Role',
   roleFieldLabel: 'Role',
+  errorEmailRequired: 'Please enter an email address',
+  errorEmailInvalid: 'Please enter a valid email address',
   addAction: 'Add Member',
   adding: SETTINGS_ADDING_TEXT,
   membersTitle: 'Current Members',

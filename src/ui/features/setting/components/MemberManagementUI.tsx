@@ -1,19 +1,29 @@
-import React, { useState } from 'react';
+import React from 'react';
 
 import { X } from 'lucide-react';
 
 import { Avatar } from '@/ui/components/Avatar';
 import { ListSectionHeader } from '@/ui/components/ListSectionHeader';
 import { useConfirm } from '@/ui/components/confirm/useConfirm';
-import { FormItem, SelectField, type SelectFieldOption, TextInput } from '@/ui/components/form';
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+  SelectField,
+  type SelectFieldOption,
+  TextInput,
+} from '@/ui/components/form';
 import { Alert, AlertDescription } from '@/ui/components/ui/alert';
 import { Badge } from '@/ui/components/ui/badge';
 import { Button } from '@/ui/components/ui/button';
-import { Label } from '@/ui/components/ui/label';
 import {
   SETTINGS_MEMBER_ROLE_LABELS,
   SettingsHouseholdLabels,
 } from '@/ui/constants/setting/settingsLabels';
+import { useMemberForm } from '@/ui/features/setting/hooks/useMemberForm';
 import { type Household, RoleEnum } from '@/ui/features/setting/viewmodels/setting.vm';
 
 interface MemberManagementUIProps {
@@ -46,18 +56,7 @@ const MemberManagementUI: React.FC<MemberManagementUIProps> = ({
   currentUid,
 }) => {
   const { confirm } = useConfirm();
-  const [email, setEmail] = useState('');
-  const [role, setRole] = useState<string>(RoleEnum.MEMBER);
-
-  const handleAddMember = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      await onAdd(email, role);
-      setEmail('');
-    } catch {
-      // Error handled by hook
-    }
-  };
+  const { form, submit, isSubmitting } = useMemberForm({ onAdd });
 
   const handleRemoveMember = async (uid: string, email: string) => {
     const confirmed = await confirm({
@@ -76,41 +75,46 @@ const MemberManagementUI: React.FC<MemberManagementUIProps> = ({
 
   return (
     <div className="space-y-8">
-      <form onSubmit={handleAddMember} className="space-y-4">
-        <ListSectionHeader title={SettingsHouseholdLabels.addTitle} />
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-          <FormItem>
-            <Label htmlFor="member-email">{SettingsHouseholdLabels.emailLabel}</Label>
-            <TextInput
-              id="member-email"
-              type="email"
-              placeholder={SettingsHouseholdLabels.emailPlaceholder}
-              value={email}
-              onChange={setEmail}
-              required
-            />
-          </FormItem>
-          <FormItem>
-            <Label htmlFor="member-role">{SettingsHouseholdLabels.roleLabel}</Label>
-            <SelectField id="member-role" value={role} onChange={setRole} options={ROLE_OPTIONS} />
-          </FormItem>
-          <div className="flex items-end">
-            <Button type="submit" className="w-full" disabled={loading || !email}>
-              {loading ? SettingsHouseholdLabels.adding : SettingsHouseholdLabels.addAction}
-            </Button>
+      <Form {...form}>
+        <form onSubmit={submit} className="space-y-4" noValidate>
+          <ListSectionHeader title={SettingsHouseholdLabels.addTitle} />
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+            <FormField name="email">
+              <FormItem>
+                <FormLabel required>{SettingsHouseholdLabels.emailLabel}</FormLabel>
+                <FormControl>
+                  <TextInput type="email" placeholder={SettingsHouseholdLabels.emailPlaceholder} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            </FormField>
+            <FormField name="role">
+              <FormItem>
+                <FormLabel>{SettingsHouseholdLabels.roleLabel}</FormLabel>
+                <FormControl>
+                  <SelectField options={ROLE_OPTIONS} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            </FormField>
+            <div className="flex items-end">
+              <Button type="submit" className="w-full" disabled={loading || isSubmitting}>
+                {loading ? SettingsHouseholdLabels.adding : SettingsHouseholdLabels.addAction}
+              </Button>
+            </div>
           </div>
-        </div>
-        {error && (
-          <Alert variant="destructive">
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        )}
-        {success && (
-          <Alert>
-            <AlertDescription className="text-positive">{success}</AlertDescription>
-          </Alert>
-        )}
-      </form>
+          {error && (
+            <Alert variant="destructive">
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+          {success && (
+            <Alert>
+              <AlertDescription className="text-positive">{success}</AlertDescription>
+            </Alert>
+          )}
+        </form>
+      </Form>
 
       <div>
         <ListSectionHeader

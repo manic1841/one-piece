@@ -48,15 +48,27 @@ describe('MemberManagementUI', () => {
     expect(screen.getByText('Current Members (2)')).toBeInTheDocument();
   });
 
-  it('adds a member with the entered email and role', () => {
+  it('adds a member with the entered email and role', async () => {
     const props = renderSettings();
 
-    fireEvent.change(screen.getByLabelText('Email Address'), {
+    fireEvent.change(screen.getByLabelText(/Email Address/), {
       target: { value: 'new@example.com' },
     });
     fireEvent.click(screen.getByRole('button', { name: 'Add Member' }));
 
-    expect(props.onAdd).toHaveBeenCalledWith('new@example.com', 'member');
+    await waitFor(() => expect(props.onAdd).toHaveBeenCalledWith('new@example.com', 'member'));
+  });
+
+  it('rejects an invalid email before calling the hook', async () => {
+    const props = renderSettings();
+
+    fireEvent.change(screen.getByLabelText(/Email Address/), {
+      target: { value: 'not-an-email' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Add Member' }));
+
+    expect(await screen.findByText('Please enter a valid email address')).toBeInTheDocument();
+    expect(props.onAdd).not.toHaveBeenCalled();
   });
 
   it('shows error and success lines when provided', () => {
