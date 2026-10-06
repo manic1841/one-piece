@@ -175,6 +175,8 @@ export const SettingsAllocationLabels = {
   totalPrefix: 'Total',
   itemsEmpty: 'No allocation items yet.',
   percentageLabel: 'Percentage',
+  errorItemsRequired: '請至少加入一個分配項目。',
+  errorTotal: '分配比例總和必須為 100%。',
   removeItemAction: 'Remove allocation item',
   saveAction: 'Save Template',
   deleteAction: 'Delete template',

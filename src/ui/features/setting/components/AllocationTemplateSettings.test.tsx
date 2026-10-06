@@ -1,5 +1,11 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, renderHook, screen } from '@testing-library/react';
+import { useForm } from 'react-hook-form';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+import {
+  type AllocationTemplateFormVM,
+  createDefaultAllocationTemplateFormVM,
+} from '@/ui/features/setting/viewmodels/allocationTemplateForm.vm';
 
 import { AllocationTemplateSettings } from './AllocationTemplateSettings';
 
@@ -7,7 +13,25 @@ vi.mock('@/ui/features/setting/hooks/useAllocationTemplateSettings', () => ({
   useAllocationTemplateSettings: vi.fn(),
 }));
 
-const hookReturn = () => ({
+const makeForm = () =>
+  renderHook(() =>
+    useForm<AllocationTemplateFormVM>({ defaultValues: createDefaultAllocationTemplateFormVM() }),
+  ).result.current;
+
+const allocationFormBase = (overrides: Record<string, unknown> = {}) => ({
+  form: makeForm(),
+  fields: [],
+  appendItem: vi.fn(),
+  removeItem: vi.fn(),
+  reset: vi.fn(),
+  submit: vi.fn().mockResolvedValue(undefined),
+  totalPercentage: 0,
+  error: '',
+  isSubmitting: false,
+  ...overrides,
+});
+
+const hookReturn = (overrides: Record<string, unknown> = {}) => ({
   loading: false,
   error: '',
   templates: [],
@@ -21,29 +45,22 @@ const hookReturn = () => ({
     { id: 'p2', name: 'Travel Fund', isActive: true },
   ],
   selectedTemplateId: null,
-  name: '',
-  setName: vi.fn(),
-  ledgerCode: '',
-  setLedgerCode: vi.fn(),
-  isDefault: false,
-  setIsDefault: vi.fn(),
-  items: [],
   selectedProjectId: '',
   setSelectedProjectId: vi.fn(),
   resetForm: vi.fn(),
   editTemplate: vi.fn(),
   addProjectItem: vi.fn(),
-  updateItemPercentage: vi.fn(),
-  removeItem: vi.fn(),
   saveTemplate: vi.fn().mockResolvedValue(undefined),
   deleteTemplate: vi.fn().mockResolvedValue(undefined),
+  allocationForm: allocationFormBase(),
+  ...overrides,
 });
 
-const mockHook = async (overrides: Partial<ReturnType<typeof hookReturn>> = {}) => {
+const mockHook = async (overrides: Record<string, unknown> = {}) => {
   const { useAllocationTemplateSettings } = await import(
     '@/ui/features/setting/hooks/useAllocationTemplateSettings'
   );
-  const value = { ...hookReturn(), ...overrides };
+  const value = hookReturn(overrides);
   vi.mocked(useAllocationTemplateSettings).mockReturnValue(value as never);
   return value;
 };
@@ -66,10 +83,13 @@ describe('AllocationTemplateSettings', () => {
   it('flags an incomplete total and shows the edit title while editing', async () => {
     await mockHook({
       selectedTemplateId: 't1',
-      items: [
-        { projectId: 'p1', percentage: '60' },
-        { projectId: 'p2', percentage: '30' },
-      ],
+      allocationForm: allocationFormBase({
+        fields: [
+          { id: 'r1', projectId: 'p1', percentage: '60' },
+          { id: 'r2', projectId: 'p2', percentage: '30' },
+        ],
+        totalPercentage: 90,
+      }),
     });
 
     render(<AllocationTemplateSettings />);
