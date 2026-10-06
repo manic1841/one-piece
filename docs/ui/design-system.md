@@ -14,8 +14,10 @@
 
 記帳工具的介面應該安靜、可信、資料優先。色板為 **dark-first**：`src/index.css` 的 `:root` 直接承載暗色值，不另設 `.dark` class 區塊。**現行 token 值一律以 `src/index.css` 為唯一來源**；主題切換（若未來需要）屆時再引入切換機制與配對色板。
 
-- `primary` 為 teal（暗色底上承擔主要互動色）；`chart-1..5` 為資料視覺色，硬編碼 hex 一律對齊 token。
-- 圖表色調由共用對應決定（`src/ui/components/charts/chartTheme.ts`）：**accent 保留給「當前／選取／主要趨勢」**，其餘資料用中性色階；圖表保持安靜，不使用裝飾性漸層。面積填色只允許**單色資料歸屬漸層**（單一色相、取自序列自身顏色，且濃度端落在該帶自己的線上、往它的基線淡出），見 [ADR-0078](../adr/0078-single-colour-data-affiliation-gradient.md)。
+- `primary` 為 teal（暗色底上承擔主要互動色）。
+- 顏色分兩層（見 [ADR-0081](../adr/0081-chart-tone-vs-categorical-palette.md)）：**語意 tone** 表達「資料的意義」，**`chart-*` 類別色板**表達「分類之間的差異」。硬編碼 hex 一律對齊 token。
+- 圖表色調由共用對應決定（`src/ui/components/charts/chartTheme.ts`）：語意圖表中 **accent 保留給「當前／選取／主要趨勢」**，其餘資料走語意 tone；分類拆解圖（donut）改用 `chart-*` 類別色板（下段）。圖表保持安靜，不使用裝飾性漸層。面積填色只允許**單色資料歸屬漸層**（單一色相、取自序列自身顏色，且濃度端落在該帶自己的線上、往它的基線淡出），見 [ADR-0078](../adr/0078-single-colour-data-affiliation-gradient.md)。
+- **語意 tone**（`positive`／`negative`／`warning`／`primary`／`neutral`／`investment`／`asset`）用於線圖、柱圖、金額與狀態，編碼資料的意義。**`chart-1..7` 為類別色板**：只在「以顏色編碼分類、而非編碼狀態」的並列拆解圖（donut）使用，依資料順序配色；不得用於金額或狀態呈現。這是「Color communicates state」的具名例外（見 `visual-standards.md` 核心設計原則 4）。
 - 層級由材質（§3）而非色差承擔。
 - 金額語意 token `positive`（收入/資產）與 `negative`（支出/負債警示）定義於 `src/index.css` 並註冊進 `tailwind.config.js`；全站金額一律經此 token 呈現。`destructive` 與 `negative` 同值（來源色板只有一個紅），仍僅用於不可逆動作與錯誤文字。
 - `border-strong` token（比 `border` 亮一階）定義於 `src/index.css` 並註冊進 `tailwind.config.js`；`badge`/`alert` 等需要可見邊界的元件改用它，避免暗色底上邊界消失。
@@ -41,8 +43,8 @@
 | `#3C8CDD`（淨資產藍）   | `--chart-1`                            |
 
 - 原型比本專案多一階文字色 `--dim`（`#5f6977`，用於座標軸與註解文字），目前尚未收斂成 token。
-- 沒有原型對應、沿用本專案既有語意的 token：`--accent`（比 surface-3 再亮一階的第四層表面，原型只有三層）、`--chart-4`。其中 `--chart-1` 為資產／淨資產語意、`--chart-2`／`-3`／`-5` 對齊 `positive`／`warning`／`negative`，避免同一語意在兩處出現不同值。
-- `src/index.css` 的值以**裸 HSL 通道、兩位小數**書寫：`hsl(var(--x))` 需要裸通道才支援 `bg-positive/70` 這類 alpha modifier，而整數四捨五入會讓與原型 hex 的 round-trip 產生每通道 1–2/255 的誤差。**不要把通道改成整數**。
+- 沒有原型對應的 token：`--accent`（比 surface-3 再亮一階的第四層表面，原型只有三層）。`--chart-1` 為資產／淨資產語意，同時是類別色板的第二片；`--chart-2/3/4/5/6/7` 收斂為**類別色板**（`chart-1` 藍、`chart-2` 橘、`chart-3` 琥珀、`chart-4` 紫、`chart-5` 天藍、`chart-6` 靛、`chart-7` 石灰），不再互為語意色的別名——`chart-2`／`chart-5` 已改值，`chart-3` 恰與 `warning` 同值但語意各自獨立（見 [ADR-0081](../adr/0081-chart-tone-vs-categorical-palette.md)）。
+- `src/index.css` 的值以**裸 HSL 通道、兩位小數**書寫：`hsl(var(--x))` 需要裸通道才支援 `bg-positive/70` 這類 alpha modifier，而整數四捨五入會讓與原型 hex 的 round-trip 產生每通道 1–2/255 的誤差。**不要把原型換算值改成整數**（沒有原型來源、新定義的類別色可用整數通道，如 `--chart-2/5/6/7`）。
 
 ## 2. 動態（Motion）
 

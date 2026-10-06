@@ -307,7 +307,7 @@
 
 ## 圖表 (charts)
 
-資料驅動的圖表群：呼叫端傳值與標籤，幾何、比例與軸標籤由元件推導。色調一律走 `chartTheme.ts` 的 tone→token 對應（`primary` / `positive` / `negative` / `neutral` / `investment` / `asset`），不新增顏色（[`design-system.md`](design-system.md) §1）。標籤文字一律由呼叫端提供——元件不得硬編任何領域系列名稱。
+資料驅動的圖表群：呼叫端傳值與標籤，幾何、比例與軸標籤由元件推導。色調一律走 `chartTheme.ts`：語意圖表用 tone→token 對應（`primary` / `positive` / `negative` / `neutral` / `investment` / `asset`），分類拆解圖（donut）用 `CHART_DONUT_COLORS` 的 `chart-*` 類別色板（[`design-system.md`](design-system.md) §1、[ADR-0081](../adr/0081-chart-tone-vs-categorical-palette.md)）。標籤文字一律由呼叫端提供——元件不得硬編任何領域系列名稱。
 
 - **`charts / LineChart`** — 折線圖：格線、可選面積、座標軸標籤。y 軸預設以資料範圍加邊距（不做 0 基底），讓大額餘額中的小幅變動仍可讀；`includeZero` 可改為 0 基底。
   - Props：`values`（必填）、`labels?`（長度需與 `values` 相同才會畫 x 軸）、`tone?`、`showArea?`、`markLastPoint?`、`includeZero?`（y 值域含 0）、`zeroLine?`（在 0 畫虛線，需 0 落在值域內）、`yAxis?`（`none`/`left`，左側值標籤）、`height?`、`ariaLabel?`、`className?`、`children?`（render-prop，取得算好的 geometry 以便疊加互動層）。
@@ -328,7 +328,7 @@
   - **不要用於**：需要 hover 明細——用 `InteractiveComposedChart`。
   - 範例：`src/ui/features/retirement/components/projection/CashFlowChart.tsx`（收入＋投資報酬堆疊帶＋支出帶＋淨現金流線＋淨資產右軸線）。
 
-- **`charts / DonutChart`** — 圓環圖：圓環 ＋ 中心標題 ＋（可選）垂直圖例。切片顏色取自共用的 token 色階（首片 accent、其餘中性），佔比由數值推導並四捨五入為整數百分比。
+- **`charts / DonutChart`** — 圓環圖：圓環 ＋ 中心標題 ＋（可選）垂直圖例。切片顏色取自 `CHART_DONUT_COLORS` 類別色板（首片 `primary`，其餘 `chart-1..7`，依資料順序），佔比由數值推導並四捨五入為整數百分比。
   - Props：`segments`（`{ label, value }[]`）、`centerLabel`、`size?`、`showLegend?`、`ariaLabel?`、`className?`。
   - **不要用於**：需要精確讀值——圓環只適合看比例；精確值用數字或表格。
   - 範例：`src/ui/features/dashboard/components/AssetCompositionBlock.tsx`（資產組成）。

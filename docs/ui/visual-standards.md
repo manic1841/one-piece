@@ -18,6 +18,8 @@
 4. **Color communicates state**
 5. **Motion has a purpose**
 
+> 原則 4 的**具名例外**：以顏色編碼「分類」而非「狀態」的並列拆解圖（donut）使用 `chart-*` 類別色板；這道例外只適用於分類拆解，不得用於金額或狀態呈現，見 [ADR-0081](../adr/0081-chart-tone-vs-categorical-palette.md)。
+
 Tie-break：若一個做法同時符合與違反多條原則，以序號較小的原則勝出；仍不明確時，選**裝飾較少、新元素較少**的那一個。`development-guide` §4 的六個提問是同一判斷的展開。
 
 ONE PIECE 的視覺目標是：
@@ -375,7 +377,7 @@ ONE PIECE VISUAL CHECK
 [ ] Financial numbers 使用 monospace
 [ ] Numeric columns right aligned
 [ ] Status 使用 icon + text
-[ ] Color 只表達 semantic state
+[ ] Color 只表達 semantic state（分類拆解圖的 `chart-*` 類別色板為具名例外，見 ADR-0081）
 [ ] Primary / Secondary / Tertiary hierarchy 清楚
 [ ] List → Detail interaction 一致
 [ ] 不存在 row-level action clutter
@@ -394,7 +396,7 @@ ONE PIECE VISUAL CHECK
 ### 最後的判斷標準
 
 - 問「這個元件到底要不要做成 Card？」→ **如果拿掉外框後，資訊層級仍然清楚，就不要做 Card。**
-- 問「這個資訊要不要用顏色？」→ **如果它不是 State，就不要用顏色。**
+- 問「這個資訊要不要用顏色？」→ **如果它不是 State，就不要用顏色。**（唯一例外：以顏色編碼分類的拆解圖，見 ADR-0081）
 - 問「這個資訊要不要放在第一層？」→ **如果使用者不需要每天做決策，就放到 Detail / Advanced / Accordion。**
 
 這三條基本上就能約束整個 ONE PIECE 的 Visual Consistency。

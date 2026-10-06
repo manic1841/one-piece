@@ -5,7 +5,7 @@ export type ChartTone =
   | 'positive'
   | 'negative'
   | 'neutral'
-  /** Investment return: `--warning`, the same value as `--chart-3` (amber). */
+  /** Investment return: `--warning` (amber). */
   | 'investment'
   /** Long-horizon stock (net worth): `--chart-1` (blue). */
   | 'asset';
@@ -30,11 +30,18 @@ export const CHART_TONE_FILL: Record<ChartTone, string> = {
   asset: 'bg-chart-1/70',
 };
 
-/** Donut slice ramp: the accent carries the first slice, the rest stay neutral (never decorative). */
+/**
+ * Categorical palette for pie/donut breakdowns: encodes *which category*, not
+ * data state. Brand teal leads, then the `--chart-*` ramp by data order. No red
+ * (reserved for `--negative`). See ADR-0081.
+ */
 export const CHART_DONUT_COLORS = [
   'hsl(var(--primary))',
-  'hsl(var(--border-strong))',
-  'hsl(var(--border))',
-  'hsl(var(--muted))',
-  'hsl(var(--elevated))',
+  'hsl(var(--chart-1))',
+  'hsl(var(--chart-4))',
+  'hsl(var(--chart-3))',
+  'hsl(var(--chart-2))',
+  'hsl(var(--chart-5))',
+  'hsl(var(--chart-6))',
+  'hsl(var(--chart-7))',
 ];

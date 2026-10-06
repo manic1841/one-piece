@@ -2,6 +2,7 @@ import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 
 import { DonutChart } from './DonutChart';
+import { CHART_DONUT_COLORS } from './chartTheme';
 import { buildDonutSlices } from './donutSlices';
 
 const SEGMENTS = [
@@ -17,9 +18,9 @@ describe('DonutChart', () => {
 
     expect(stops).toEqual([
       'hsl(var(--primary)) 0% 42%',
-      'hsl(var(--border-strong)) 42% 67%',
-      'hsl(var(--border)) 67% 84%',
-      'hsl(var(--muted)) 84% 100%',
+      'hsl(var(--chart-1)) 42% 67%',
+      'hsl(var(--chart-4)) 67% 84%',
+      'hsl(var(--chart-3)) 84% 100%',
     ]);
   });
 
@@ -33,7 +34,7 @@ describe('DonutChart', () => {
 
     expect(swatches.map((swatch) => swatch.style.background)).toEqual(sliceColors);
     expect(swatches[0].style.background).toBe('hsl(var(--primary))');
-    expect(swatches[1].style.background).toBe('hsl(var(--border-strong))');
+    expect(swatches[1].style.background).toBe('hsl(var(--chart-1))');
   });
 
   it('labels each legend row with its rounded share', () => {
@@ -61,5 +62,11 @@ describe('DonutChart', () => {
 
     expect(slices).toHaveLength(1);
     expect(slices[0].stop).toBe('hsl(var(--primary)) 0% 0%');
+  });
+
+  it('has a categorical palette wide enough to avoid repeating colours', () => {
+    // Top 7 + 其他 = 8 slices (issue #174), so the palette must hold 8 distinct colours.
+    expect(CHART_DONUT_COLORS.length).toBeGreaterThanOrEqual(8);
+    expect(new Set(CHART_DONUT_COLORS).size).toBe(CHART_DONUT_COLORS.length);
   });
 });
