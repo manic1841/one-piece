@@ -27,7 +27,12 @@ import ReportDetailPage from '@/ui/features/report/pages/ReportDetailPage';
 import ReportListPage from '@/ui/features/report/pages/ReportListPage';
 import RetirementPlanForm from '@/ui/features/retirement/pages/RetirementPlanForm';
 import RetirementPlanList from '@/ui/features/retirement/pages/RetirementPlanList';
-import Settings from '@/ui/features/setting/pages/SettingsPage';
+import SettingsIndexRedirect from '@/ui/features/setting/pages/SettingsIndexRedirect';
+import SettingsLayout from '@/ui/features/setting/pages/SettingsLayout';
+import AccountingSettingsPage from '@/ui/features/setting/pages/sections/AccountingSettingsPage';
+import BackupSettingsPage from '@/ui/features/setting/pages/sections/BackupSettingsPage';
+import HouseholdSettingsPage from '@/ui/features/setting/pages/sections/HouseholdSettingsPage';
+import SystemSettingsPage from '@/ui/features/setting/pages/sections/SystemSettingsPage';
 import Transactions from '@/ui/features/transaction/pages/TransactionsPage';
 
 const GalleryPage = import.meta.env.DEV
@@ -87,7 +92,13 @@ function App() {
                 <Route path="retirement/:id" element={<RetirementPlanForm />} />
                 <Route path="debt" element={<DebtListPage />} />
                 <Route path="debt/:id" element={<DebtDetailPage />} />
-                <Route path="settings" element={<Settings />} />
+                <Route path="settings" element={<SettingsLayout />}>
+                  <Route index element={<SettingsIndexRedirect />} />
+                  <Route path="household" element={<HouseholdSettingsPage />} />
+                  <Route path="accounting" element={<AccountingSettingsPage />} />
+                  <Route path="backup" element={<BackupSettingsPage />} />
+                  <Route path="system" element={<SystemSettingsPage />} />
+                </Route>
               </Route>
             </Routes>
           </BrowserRouter>

@@ -25,7 +25,6 @@ const ROUNDED_FULL_ALLOWED = new Set([
   'features/auth/pages/AccessDeniedPage.tsx',
   'features/dashboard/components/AssetCompositionBlock.tsx',
   'features/setting/components/MemberManagementUI.tsx',
-  'features/setting/components/SettingsUI.tsx',
 ]);
 
 const SHADOW_ALLOWED = new Set([

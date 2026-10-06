@@ -4,7 +4,7 @@ import * as TabsPrimitive from '@radix-ui/react-tabs';
 
 import { cn } from '@/ui/utils/cn';
 
-import { tabTriggerBaseClass } from './tabs-styles';
+import { tabListBaseClass, tabTriggerBaseClass, tabTriggerSelectedClass } from './tabs-styles';
 
 const Tabs = TabsPrimitive.Root;
 
@@ -12,14 +12,7 @@ const TabsList = React.forwardRef<
   React.ComponentRef<typeof TabsPrimitive.List>,
   React.ComponentPropsWithoutRef<typeof TabsPrimitive.List>
 >(({ className, ...props }, ref) => (
-  <TabsPrimitive.List
-    ref={ref}
-    className={cn(
-      'inline-flex h-auto w-full items-center justify-start gap-6 rounded-none border-b border-border bg-transparent p-0 text-muted-foreground',
-      className,
-    )}
-    {...props}
-  />
+  <TabsPrimitive.List ref={ref} className={cn(tabListBaseClass, className)} {...props} />
 ));
 TabsList.displayName = TabsPrimitive.List.displayName;
 
@@ -29,11 +22,7 @@ const TabsTrigger = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <TabsPrimitive.Trigger
     ref={ref}
-    className={cn(
-      tabTriggerBaseClass,
-      'data-[state=active]:border-primary data-[state=active]:font-semibold data-[state=active]:text-foreground',
-      className,
-    )}
+    className={cn(tabTriggerBaseClass, tabTriggerSelectedClass, className)}
     {...props}
   />
 ));

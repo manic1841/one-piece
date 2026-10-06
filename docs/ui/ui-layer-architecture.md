@@ -364,8 +364,10 @@ infra 不得 import `src/ui/**`（見 §2 規則 10）。
 退場以「Pet + sheet 覆蓋 bottom nav 全部目的地與 More sheet 功能、不留斷點」為條件,已達成。
 header 不含主導航;Navigator 清單即 `NAV_ITEMS` 扣除 Dashboard 與
 Settings——Dashboard 由 header 品牌承擔、Settings 由 Avatar menu 承擔;Ctrl/Cmd+K 指
-令面板為 Quick Access,涵蓋含 Dashboard 與 Settings 在內的全部路由,與
-Navigator 清單互相獨立(見 [ADR-0055](../adr/0055-pixel-pet-single-navigator-ownership.md))。
+令面板為 Quick Access,涵蓋全部**頂層**路由,與 Navigator 清單互相獨立(見
+[ADR-0055](../adr/0055-pixel-pet-single-navigator-ownership.md))。Settings 是全站
+唯一帶子路由的表面:經 Avatar menu 進入後,區段以路由式頁籤切換,子路由不進
+`NAV_ITEMS`。
 
 四檔工作流視窗（Monthly Close、Portfolio Detail、Debt、Header）的視覺權重與操作
 位置契約見 [ADR-0056](../adr/0056-workflow-first-surfaces.md):pipeline 為頁面主要層
