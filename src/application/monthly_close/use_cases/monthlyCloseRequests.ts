@@ -55,21 +55,53 @@ export interface MonthlyCloseStartRequest {
   auth: AuthContext;
 }
 
-export interface MonthlyCloseConfirmRequest extends MonthlyCloseStartRequest {
-  stageId: CloseStageId;
-  accountBalances?: AccountBalanceInput[];
-  securities?: {
-    buys: SecuritiesTradeInput[];
-    sells: SecuritiesTradeInput[];
+/**
+ * Every stage's confirm payload. Stages that create no data (PROJECT_SETTLEMENT,
+ * COMPLETENESS_CHECK, CLOSE_PERIOD) declare an explicit empty payload so this map
+ * stays total — a missing key must never stand in for "no payload".
+ */
+export interface StageConfirmPayloads {
+  ACCOUNT_BALANCE: { accountBalances: AccountBalanceInput[] };
+  SECURITIES_TRADE: {
+    securities: { buys: SecuritiesTradeInput[]; sells: SecuritiesTradeInput[] };
+    financing: InvestmentFinancingInput['financing'];
+    /** SECURITIES_TRADE reconfirm: transaction doc IDs loaded earlier but removed from the rows. */
+    removedTransactionIds?: string[];
   };
-  financing?: InvestmentFinancingInput['financing'];
-  portfolioCashFlows?: Record<string, { deposits: number; withdrawals: number }>;
-  repayments?: DebtRepaymentInput[];
-  /** SECURITIES_TRADE reconfirm: transaction doc IDs loaded earlier but removed from the rows. */
-  removedTransactionIds?: string[];
-  /** Report display labels: static catalog first, then household custom codes. */
-  labelResolver?: ReportLabelResolver;
+  PORTFOLIO_CASH_FLOW: {
+    portfolioCashFlows: Record<string, { deposits: number; withdrawals: number }>;
+  };
+  PROJECT_SETTLEMENT: Record<never, never>;
+  DEBT_REPAYMENT: { repayments: DebtRepaymentInput[] };
+  COMPLETENESS_CHECK: Record<never, never>;
+  FINANCIAL_REPORTS: { labelResolver: ReportLabelResolver };
+  CLOSE_PERIOD: Record<never, never>;
 }
+
+/** One stage's confirm body: its stage id married to that stage's payload. */
+export type StageConfirmRequestBody<S extends CloseStageId> = {
+  stageId: S;
+} & StageConfirmPayloads[S];
+
+/**
+ * The confirm body as a discriminated union. Written as a mapped type rather
+ * than `StageConfirmRequestBody<CloseStageId>` because a generic parameter does
+ * not distribute over a union: the latter would collapse to a single member
+ * whose `stageId` is the whole union, losing the discriminant.
+ */
+export type MonthlyCloseConfirmBody = {
+  [K in CloseStageId]: StageConfirmRequestBody<K>;
+}[CloseStageId];
+
+/**
+ * A confirm request is a discriminated union on `stageId`. The base fields sit
+ * *inside* every member rather than wrapping the union: `Base & Union` breaks
+ * `Omit`/`Extract`, which are not distributive over a union for the keys the
+ * members share.
+ */
+export type MonthlyCloseConfirmRequest = {
+  [K in CloseStageId]: MonthlyCloseStartRequest & StageConfirmRequestBody<K>;
+}[CloseStageId];
 
 export interface MonthlyCloseResetStagesRequest extends MonthlyCloseStartRequest {
   fromStageId: CloseStageId;

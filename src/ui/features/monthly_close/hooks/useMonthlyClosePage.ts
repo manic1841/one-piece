@@ -2,11 +2,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { getAccountsUseCase } from '@/application/account/use_cases/getAccountsUseCase';
 import { listDebtAccountsUseCase } from '@/application/debt/use_cases/listDebtAccountsUseCase';
-import { type MonthlyCloseConfirmResult } from '@/application/monthly_close/use_cases/monthlyCloseRequests';
 import {
-  type MonthlyCloseConfirmRequest,
-  monthlyCloseWorkflowUseCase,
-} from '@/application/monthly_close/use_cases/monthlyCloseWorkflowUseCase';
+  type MonthlyCloseConfirmBody,
+  type MonthlyCloseConfirmResult,
+} from '@/application/monthly_close/use_cases/monthlyCloseRequests';
+import { monthlyCloseWorkflowUseCase } from '@/application/monthly_close/use_cases/monthlyCloseWorkflowUseCase';
 import { listPortfoliosUseCase } from '@/application/portfolio/use_cases/listPortfoliosUseCase';
 import { listProjectsUseCase } from '@/application/project/use_cases/listProjectsUseCase';
 import { type Account } from '@/domains/account/types/account';
@@ -92,9 +92,7 @@ export const useMonthlyClosePage = ({
   }, [auth, beginRequest, householdId, isLatestRequest, userEmail, yearMonth]);
 
   const confirmStage = useCallback(
-    async (
-      request: Omit<MonthlyCloseConfirmRequest, 'householdId' | 'yearMonth' | 'userEmail' | 'auth'>,
-    ): Promise<MonthlyCloseConfirmResult | null> => {
+    async (request: MonthlyCloseConfirmBody): Promise<MonthlyCloseConfirmResult | null> => {
       const seq = beginRequest();
       setConfirmingStageId(request.stageId);
       setError(null);
