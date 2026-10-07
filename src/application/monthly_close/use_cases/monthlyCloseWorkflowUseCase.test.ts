@@ -440,7 +440,7 @@ describe('MonthlyCloseWorkflowUseCase.confirmStage', () => {
 
   it('rejects account balance confirmation without balances', async () => {
     await expect(
-      useCase.confirmStage({ ...REQUEST_BASE, stageId: 'ACCOUNT_BALANCE' }),
+      useCase.confirmStage({ ...REQUEST_BASE, stageId: 'ACCOUNT_BALANCE', accountBalances: [] }),
     ).rejects.toEqual(
       new MonthlyCloseCommandError(
         MonthlyCloseCommandErrorCode.STAGE_INPUT_REQUIRED,
@@ -459,6 +459,7 @@ describe('MonthlyCloseWorkflowUseCase.confirmStage', () => {
         buys: [{ amount: 5000, date: new Date('2026-09-02') }],
         sells: [{ amount: 2000, date: new Date('2026-09-03') }],
       },
+      financing: { shareholderFinancing: [], dividendPayout: [] },
     });
 
     expect(createTransactionUseCase.execute).toHaveBeenCalledTimes(2);
@@ -524,6 +525,7 @@ describe('MonthlyCloseWorkflowUseCase.confirmStage', () => {
       ...REQUEST_BASE,
       stageId: 'SECURITIES_TRADE',
       securities: { buys: [{ amount: 3000, date: new Date('2026-09-08') }], sells: [] },
+      financing: { shareholderFinancing: [], dividendPayout: [] },
     });
 
     expect(period.stages.SECURITIES_TRADE?.status).toBe('COMPLETED');
@@ -567,7 +569,11 @@ describe('MonthlyCloseWorkflowUseCase.confirmStage', () => {
     ] as any);
     vi.mocked(listPortfolioSnapshotsUseCase.execute).mockResolvedValue([]);
 
-    await useCase.confirmStage({ ...REQUEST_BASE, stageId: 'PORTFOLIO_CASH_FLOW' });
+    await useCase.confirmStage({
+      ...REQUEST_BASE,
+      stageId: 'PORTFOLIO_CASH_FLOW',
+      portfolioCashFlows: {},
+    });
 
     expect(createPortfolioSnapshotUseCase.execute).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -584,7 +590,11 @@ describe('MonthlyCloseWorkflowUseCase.confirmStage', () => {
     ] as any);
     vi.mocked(listPortfolioSnapshotsUseCase.execute).mockResolvedValue([]);
 
-    await useCase.confirmStage({ ...REQUEST_BASE, stageId: 'PORTFOLIO_CASH_FLOW' });
+    await useCase.confirmStage({
+      ...REQUEST_BASE,
+      stageId: 'PORTFOLIO_CASH_FLOW',
+      portfolioCashFlows: {},
+    });
 
     expect(createPortfolioSnapshotUseCase.execute).toHaveBeenCalledTimes(1);
     expect(createPortfolioSnapshotUseCase.execute).toHaveBeenCalledWith(
@@ -628,7 +638,7 @@ describe('MonthlyCloseWorkflowUseCase.confirmStage', () => {
   });
 
   it('allows debt repayment confirmation without repayments and still settles', async () => {
-    await useCase.confirmStage({ ...REQUEST_BASE, stageId: 'DEBT_REPAYMENT' });
+    await useCase.confirmStage({ ...REQUEST_BASE, stageId: 'DEBT_REPAYMENT', repayments: [] });
 
     expect(createDebtPaymentUseCase.execute).not.toHaveBeenCalled();
     expect(settleDebtAccountsUseCase.execute).toHaveBeenCalledTimes(1);
@@ -927,6 +937,8 @@ describe('MonthlyCloseWorkflowUseCase.confirmStage', () => {
     const { period } = await useCase.confirmStage({
       ...REQUEST_BASE,
       stageId: 'SECURITIES_TRADE',
+      securities: { buys: [], sells: [] },
+      financing: { shareholderFinancing: [], dividendPayout: [] },
     });
 
     expect(period.stages.SECURITIES_TRADE?.status).toBe('COMPLETED');

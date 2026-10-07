@@ -31,8 +31,5 @@ Dashboard 整頁錨定**最新已關帳期間的 report 月份**：淨資產只�
 
 - 未關帳的最新月份不會出現在 Dashboard 的狀態數字上（hero 標注來源期間讓行為可見）；
   關帳推進時整頁一起前進。
-- 月度槓桿與實際還款需要 read-only 的期間版資料組裝（dashboard overview use case）；
-  live use cases（`GetLeverageStatsUseCase`、`GetDebtSummaryUseCase`）保持原樣供其他消費者
-  使用。兩者目前皆已無 Dashboard 側的消費者，但退役屬 application 層決策，不由此 ADR
-  處理。
+- 月度槓桿與實際還款需要 read-only 的期間版資料組裝（dashboard overview use case）。
 - 淨資產詞條已寫入 `CONTEXT.md`（資產負債表單一基準，避免詞：淨值）。

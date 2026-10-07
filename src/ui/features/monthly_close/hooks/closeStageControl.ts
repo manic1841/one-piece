@@ -1,6 +1,6 @@
 import type {
-  MonthlyCloseConfirmRequest,
   StageConfirmData,
+  StageConfirmRequestBody,
 } from '@/application/monthly_close/use_cases/monthlyCloseRequests';
 import type { CloseStageId } from '@/domains/financial_period/schemas';
 
@@ -10,10 +10,7 @@ export interface CloseStageControl<S extends CloseStageId = CloseStageId> {
   /** Which stage's confirm button shows the loading state. */
   confirming: boolean;
   /** The per-stage payload the stage assembles at confirm time. */
-  buildRequest: () => Omit<
-    MonthlyCloseConfirmRequest,
-    'householdId' | 'yearMonth' | 'userEmail' | 'auth'
-  >;
+  buildRequest: () => StageConfirmRequestBody<S>;
   /** Ask before submitting (empty-stage warning); false aborts. */
   confirmGate?: () => Promise<boolean>;
   /** Post-confirm side effects, given this stage's own authoritative slice. */
