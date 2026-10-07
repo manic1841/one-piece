@@ -206,7 +206,7 @@ firestore
 
        └─ debtAccounts/{debtAccountId}  # 債務帳戶
             ├─ name: string             # e.g. 玉山房貸
-            ├─ type: "mortgage" | "car_loan" | "personal_loan"
+            ├─ type: "mortgage" | "loan"
             ├─ repaymentType: "equal_payment"
             ├─ originalAmount: number
             ├─ currentBalance: number

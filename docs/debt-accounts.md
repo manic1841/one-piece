@@ -9,19 +9,12 @@
 
 ---
 
-## 2. LedgerCode 初始化策略
+## 2. LedgerCode 來源
 
-系統進入債務管理頁面時，會 lazy init 三筆自訂 LedgerCode（若不存在）：
-
-| LedgerCode                | 標籤     |
-| ------------------------- | -------- |
-| `liability:mortgage`      | 房貸     |
-| `liability:car_loan`      | 車貸     |
-| `liability:personal_loan` | 個人信貸 |
-
-- 使用 `initDebtLedgerCodesUseCase` 執行，idempotent（可重複執行不影響已有資料）
-- fire-and-forget：不阻塞 UI 渲染
-- 文件路徑：`households/{householdId}/ledgerCodes/{code}`（以 code 為 docId）
+債務帳戶不使用自訂 LedgerCode，進入頁面時也不初始化任何資料。其 `linkedLedgerCode`
+指向 `LEDGER_CODES` 常數中的系統科目（`src/domains/ledger/constants/ledgerCodes.ts`），
+隨程式碼定義、不寫入 Firestore；科目清單由 `listAllLedgerCodesUseCase` 統一枚舉
+系統科目與 household 自訂科目。
 
 ---
 
@@ -337,7 +330,7 @@ operation record 在同一個 Firestore transaction 內提交；任一寫入失�
 | Repository                 | `src/infra/repositories/debtAccountRepository.ts`                   |
 | Repository (Snapshot)      | `src/infra/repositories/debtSnapshotRepository.ts`                  |
 | Use Cases                  | `src/application/debt/use_cases/`                                   |
-| LedgerCode Init            | `src/application/ledger/use_cases/initDebtLedgerCodesUseCase.ts`    |
+| LedgerCode 常數            | `src/domains/ledger/constants/ledgerCodes.ts`                       |
 | Hooks                      | `src/ui/features/debt/hooks/`                                       |
 | Components                 | `src/ui/features/debt/components/DebtAccountForm.tsx`               |
 | Page                       | `src/ui/features/debt/pages/DebtListPage.tsx`、`DebtDetailPage.tsx` |

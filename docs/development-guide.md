@@ -48,7 +48,7 @@
 - **不要直接呼叫 Repository**: 除非是極其簡單的讀取，否則應透過 Use Case 排列組合業務邏輯。
 - **編排規則**: 單一使用者操作不得編排多個 Use Case——多步流程屬 Workflow（如月度關帳），住在 application 層。一個 Hook 檔提供多個 Use Case 作為操作選單不算編排，是允許的。
 - **嚴格型別**: 正式程式碼絕對禁止使用 `any`。測試檔為了建立 mock 或 fixture，已由 ESLint 測試檔規則放寬 `no-explicit-any`；能使用 `unknown`、具體型別或 typed helper 時仍應優先使用。
-- **單一職責**: 一個 Use Case 文件只做一件事（例如：`recordTransactionUseCase.ts` 只負責記錄交易）。
+- **單一職責**: 一個 Use Case 文件只做一件事（例如：`createTransactionUseCase.ts` 只負責建立交易）。
 - **表單一致性**: 表單資料必須先映射到 ViewModel，再由 mapper 轉換成 domain 型別。
 - **驗證一致性**: 所有新表單路徑統一採用 Zod schema，禁止分散式手寫驗證。
 - **格式一致性**: 正式程式碼與 Markdown 文件以 Prettier 為格式單一真相來源（設定在 `.prettierrc`：單引號、尾逗號、printWidth 100、`@trivago` import 排序）；依賴產物（`pnpm-lock.yaml`、`skills-lock.json`）不在格式範圍（見 `.prettierignore`），lockfile 格式只能由 pnpm 管理。
