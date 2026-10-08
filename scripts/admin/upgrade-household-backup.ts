@@ -14,9 +14,10 @@
  *   v1 plan below. The plan was computed by hand per the authoritative rules
  *   in migrate-retirement-v1.ts (DERIVED flattening, SALARY_PERCENTAGE
  *   flattening against the salary baseline at the retirement year, event
- *   phases, plan-doc field removal). Incomes omit calculatedFrom: the import
- *   path's reviveDates converts ISO strings to Date, which conflicts with the
- *   v1 schema's importedAt: string.
+ *   phases, plan-doc field removal). Incomes omit calculatedFrom: it was dropped
+ *   when the old import-side date revival (since deleted, issue #281) turned
+ *   its `importedAt` string into a Date, and the omission stays so the
+ *   transform's output is frozen.
  *
  * Everything else passes through unchanged: the full-collection parse probe
  * against the real backup confirmed all other collections already match the

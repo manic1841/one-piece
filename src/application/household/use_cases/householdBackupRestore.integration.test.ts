@@ -1,4 +1,12 @@
-import { collection, doc, getDoc, getDocs, setDoc, writeBatch } from 'firebase/firestore';
+import {
+  Timestamp,
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  setDoc,
+  writeBatch,
+} from 'firebase/firestore';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { exportHouseholdBackupUseCase } from '@/application/household/use_cases/exportHouseholdBackupUseCase';
@@ -218,6 +226,60 @@ describe('household backup/restore round-trip (Firestore Emulator)', () => {
     expect(restProj?.project).toEqual(origProj?.project);
   });
 
+  it('round-trips a payload that went through JSON, as the downloaded file does', async () => {
+    const hid = 'household-json-roundtrip';
+    await seedHousehold(hid);
+    await seedAccounts(hid, ['acc-1']);
+    await seedNestedSnapshots(hid, 'accounts', 'acc-1', 2);
+    await seedTransactions(hid, ['tx-1']);
+
+    const original = await exportHouseholdBackupUseCase.execute({
+      householdId: hid,
+      auth: adminAuth,
+    });
+
+    // A backup is transferred as a JSON file: every Date becomes an ISO string.
+    // This is the shape the UI hands to the import use case (issue #281) — the
+    // Date-bearing object above never leaves the process.
+    const fileContents = JSON.parse(JSON.stringify(original)) as HouseholdBackupPayload;
+
+    await deleteAllInCollection(`households/${hid}/accounts`);
+    await deleteAllInCollection(`households/${hid}/transactions`);
+    expect(await countDocsInCollection(`households/${hid}/accounts`)).toBe(0);
+
+    const result = await importHouseholdBackupUseCase.execute({
+      householdId: hid,
+      auth: adminAuth,
+      backup: fileContents,
+    });
+    expect(result.restoredDocuments).toBeGreaterThan(0);
+
+    // The stored document holds a timestamp, not a string: a string here would
+    // mean the restored doc no longer matches its schema on read.
+    const rawTx = await getDoc(doc(db, `households/${hid}/transactions/tx-1`));
+    expect(rawTx.data()?.date).toBeInstanceOf(Timestamp);
+    expect((rawTx.data()?.date as Timestamp).toDate().toISOString()).toBe(NOW.toISOString());
+    const rawHousehold = await getDoc(householdDoc(hid));
+    expect(rawHousehold.data()?.createdAt).toBeInstanceOf(Timestamp);
+
+    // And the re-exported payload matches what was exported before the JSON hop.
+    const restored = await exportHouseholdBackupUseCase.execute({
+      householdId: hid,
+      auth: adminAuth,
+    });
+    expect(restored.collections.accounts).toHaveLength(1);
+    expect(restored.collections.accounts[0].snapshots).toHaveLength(2);
+    expect(restored.collections.transactions).toHaveLength(1);
+
+    const origTx = original.collections.transactions.find(
+      (t) => (t as { id: string }).id === 'tx-1',
+    );
+    const restTx = restored.collections.transactions.find(
+      (t) => (t as { id: string }).id === 'tx-1',
+    );
+    expect(restTx).toEqual(origTx);
+  });
+
   it('malformed payloads are rejected with explicit errors before partial writes', async () => {
     const hid = 'household-malformed';
     await seedHousehold(hid);
@@ -347,8 +409,9 @@ describe('household backup/restore round-trip (Firestore Emulator)', () => {
     });
 
     // Corrupt the backup so it passes validation but fails at writeBatch.set:
-    // the undefined createdBy survives zod's `.optional()` and reviveDates,
-    // but is not a valid Firestore field value, so the batch commit throws.
+    // the undefined createdBy survives zod's `.optional()` (validation does not
+    // reject it), but is not a valid Firestore field value, so the batch commit
+    // throws.
     const corrupted = structuredClone(payload) as HouseholdBackupPayload;
     corrupted.collections.reports = [
       {

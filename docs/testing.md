@@ -274,6 +274,12 @@ tests。刻意維持精簡;目前涵蓋的旅程如下(清單隨需求增減,不
   `financial_period/stateMachine.test.ts` 與
   `monthlyCloseWorkflowUseCase.integration.test.ts` 守;這條旅程守的是使用者實際看到的
   跨期間畫面結果——cascade banner 由 `isCascadeDemoted` 分支渲染,下層不斷言畫面。
+- 備份匯出→還原:設定頁匯出時攔截瀏覽器下載取得檔案,補一筆落在 `2026-06` 的支出
+  (該月沒有專案快照,專案 MONTHLY CASH FLOW 讀的是即時分錄;有快照的
+  `2026-07`…`09` 讀的是凍結值),再以真實 file chooser 上傳原檔並確認對話框,斷言同一
+  列的數字回到備份當時、收入錨點不變。**下載／上傳這段檔案 plumbing 是 Playwright
+  獨有的 seam**;payload 本身的邏輯與 JSON round-trip 由
+  `householdBackupRestore.integration.test.ts` 守。
 
 專案間轉帳不在範圍(功能暫停,見 [ADR-0042](adr/0042-pause-project-transfer-feature.md));
 貸款、退休匯入、offline 等列為 backlog。
