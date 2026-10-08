@@ -1,7 +1,12 @@
 import { expect, test } from '@playwright/test';
 
-import { installEmulatorSession, resetQaEnvironment, signInEmulatorUser } from './support/qa';
-import { QA_EMAIL, QA_PASSWORD } from './support/qa';
+import {
+  QA_EMAIL,
+  QA_PASSWORD,
+  installEmulatorSession,
+  resetQaEnvironment,
+  signInEmulatorUser,
+} from './support/qa';
 import { parseMoney, pickFirstDetailCategory } from './support/ui';
 
 const TARGET_PROJECT_ID = 'proj_travel';

@@ -6,10 +6,10 @@
  * point these at a production Firebase project, and never reuse a real user's
  * session here.
  */
-import { QA_EMAIL, QA_HOUSEHOLD_ID, QA_PASSWORD } from '../../scripts/qa/qa-identity';
+import { QA_EMAIL, QA_PASSWORD } from '../../scripts/qa/qa-identity';
 import { resolveEmulatorEnv } from '../../scripts/shared/emulator-env';
 
-export { QA_EMAIL, QA_HOUSEHOLD_ID, QA_PASSWORD };
+export { QA_EMAIL, QA_PASSWORD };
 
 const emulatorTargets = resolveEmulatorEnv();
 

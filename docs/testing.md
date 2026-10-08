@@ -139,12 +139,9 @@ snapshots 與三份財務報表)。腳本可重複執行(upsert,非 append)。
 本期都有資料支撐。`operation` 集合不 seed(runtime 重試記錄)。
 
 Monthly close 種子寫入三個期間狀態形狀(見
-[monthly-close.md](monthly-close.md) §2):`2026-06` NEEDS_REVIEW
-(舊版完整性暫停遺留,`reviewSourceStageId = COMPLETENESS_CHECK`,
-ADR-0080)、`2026-07`/`2026-08` CLOSED
-(重開確認視窗與 ADR-0066 連鎖降級的目標)。`2026-09` **不寫入紀錄**——它是
-「從尚未開始關帳走完 8 階段」E2E 的目標期間,紀錄由測試按「開始關帳」
-建立;`2026-05` 及更早同樣不寫入紀錄(無紀錄 = 尚未開始關帳)。
+[monthly-close.md](monthly-close.md) §2);期間矩陣與 `2026-09` 不寫入
+紀錄的原因見 [qa-seed-data.md](qa-seed-data.md) §4(種子的單一來源),
+本文件不複述。
 
 ### 瀏覽器 QA 環境注意事項
 
@@ -267,6 +264,10 @@ tests。刻意維持精簡;目前涵蓋的旅程如下(清單隨需求增減,不
   `<persisted> -> <preview>` 漂移標註且關帳鈕停用;走漂移區塊的捷徑回到 Financial
   Reports 重新產生報表後,漂移消失、關帳通過(ADR-0073,見
   [monthly-close.md](monthly-close.md) §3)。
+- 預填／草稿的期間邊界:在 `2026-09`(測試自行按下「開始關帳」)的帳戶餘額輸入一組
+  可辨識的草稿值,切換期間至 `2026-08` 後,斷言該欄位是自己期間的數字——既非草稿、
+  也非另一期間的預填(`2026-08` 種子為 `CLOSED`,欄位唯讀並顯示該月快照,是這條
+  邊界最強的觀測形狀;CONTEXT §預填)。
 
 專案間轉帳不在範圍(功能暫停,見 [ADR-0042](adr/0042-pause-project-transfer-feature.md));
 貸款、退休匯入、offline 等列為 backlog。

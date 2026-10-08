@@ -24,6 +24,25 @@ export const expectCloseStep = async (page: Page, n: number): Promise<void> => {
   await expect(page.getByText(marker).first()).toBeVisible({ timeout: 20_000 });
 };
 
+/** The ACCOUNT_BALANCE stage's label on the pipeline and its view title. */
+const ACCOUNT_BALANCE_STAGE = '帳戶餘額';
+
+/** English month abbreviations, matching the period picker's MONTH options. */
+const PICKER_MONTHS = [
+  'JAN',
+  'FEB',
+  'MAR',
+  'APR',
+  'MAY',
+  'JUN',
+  'JUL',
+  'AUG',
+  'SEP',
+  'OCT',
+  'NOV',
+  'DEC',
+];
+
 /**
  * Confirm the stage on screen, accepting the empty-stage warning dialog when a
  * stage has no rows to record.
@@ -35,32 +54,66 @@ export const confirmCloseStage = async (page: Page): Promise<void> => {
 
   // A confirm gate (empty-stage warning) opens its dialog after the click, and
   // Radix mounts the content only while open — so a bounded wait for it *is* the
-  // presence check. No dialog within the window means the stage had rows and
-  // confirmed directly; every other failure surfaces at the caller's assertion.
+  // presence check. Only a timeout means "no dialog, the stage had rows"; any
+  // other rejection is a real failure and must not be read as absence.
   const dialog = page.getByRole('dialog');
   try {
     await dialog.waitFor({ state: 'visible', timeout: 2_000 });
-  } catch {
+  } catch (error) {
+    if ((error as Error).name !== 'TimeoutError') throw error;
     return;
   }
   await dialog.getByRole('button', { name: RECONFIRM_ACTION }).click();
 };
 
 /**
- * Start a period that has no record yet: `/close` → pick 2026-09 → 開始關帳.
- * The close specs need the period to be genuinely unstarted, which the seed
- * guarantees (issue #277).
+ * Select `yearMonth` in `/close`'s picker and press 開始關帳. A period with no
+ * record is started; one that already exists is returned unchanged by the use
+ * case and simply opened — which is how the app's 切換期間 flows (`useCase.start`
+ * short-circuits on an existing record), so the same path serves both.
  */
-export const startSeptemberPeriod = async (page: Page): Promise<void> => {
+export const openPeriod = async (page: Page, yearMonth: string): Promise<void> => {
+  const [year, month] = yearMonth.split('-');
   await page.goto('/close');
   await page.locator('button[aria-haspopup="listbox"]').click();
   await page.getByLabel('year-picker-year').click();
-  await page.getByRole('option', { name: '2026' }).click();
+  await page.getByRole('option', { name: year }).click();
   await page.getByLabel('year-picker-month').click();
-  await page.getByRole('option', { name: 'SEP' }).click();
+  await page.getByRole('option', { name: PICKER_MONTHS[Number(month) - 1] }).click();
   await page.getByRole('button', { name: 'APPLY' }).click();
   await page.getByRole('button', { name: '開始關帳' }).click();
-  await expect(page).toHaveURL(/\/close\/2026-09/);
+  await expect(page).toHaveURL(new RegExp(`/close/${yearMonth}`));
+};
+
+/**
+ * Show the ACCOUNT_BALANCE stage. An active period sitting on step 1 already has
+ * it on screen; a `CLOSED` period opens on the read-only summary, so the walk
+ * has to be expanded and the stage picked from the pipeline.
+ */
+export const openAccountBalanceStage = async (
+  page: Page,
+  { fromPipeline = false }: { fromPipeline?: boolean } = {},
+): Promise<void> => {
+  if (fromPipeline) {
+    await page.getByTestId('close-pipeline-toggle').click();
+    await page.getByRole('button', { name: ACCOUNT_BALANCE_STAGE }).first().click();
+  }
+  await expect(page.locator('input[id^="ending-"]').first()).toBeVisible({ timeout: 20_000 });
+};
+
+/**
+ * Read one account's ending-balance field, waiting for its seeded value. Read-only
+ * periods render the same inputs disabled but populated with that month's settled
+ * snapshot, so this reads the draft for an active period and the record for a
+ * closed one. The prefill arrives with the stage's async load — after the input is
+ * already on screen — so the wait belongs here, not at each call site.
+ */
+export const readSeededEndingBalance = async (page: Page, accountId: string): Promise<number> => {
+  const field = page.locator(`input#ending-${accountId}`).first();
+  await expect
+    .poll(async () => parseMoney(await field.inputValue()), { timeout: 20_000 })
+    .not.toBeNaN();
+  return parseMoney(await field.inputValue());
 };
 
 /**
@@ -98,9 +151,15 @@ export const generateReports = async (page: Page): Promise<void> => {
   await expectCloseStep(page, 8);
 };
 
+/**
+ * The period the close-from-scratch journey starts. The seed leaves it unstarted
+ * (#277), which is what makes that journey start from nothing.
+ */
+const SCRATCH_PERIOD = '2026-09';
+
 /** Confirm stages 1–6, generate the reports, and stand on the Close Period summary. */
 export const walkToCloseSummary = async (page: Page): Promise<void> => {
-  await startSeptemberPeriod(page);
+  await openPeriod(page, SCRATCH_PERIOD);
   await confirmAccountBalanceStage(page);
   await confirmStages(page, 2, 6);
   await generateReports(page);

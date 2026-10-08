@@ -6,18 +6,21 @@ import {
   confirmStages,
   expectCloseStep,
   generateReports,
-  startSeptemberPeriod,
+  openAccountBalanceStage,
+  openPeriod,
 } from './support/close';
 import {
   QA_EMAIL,
   QA_PASSWORD,
+  countAccountSnapshots,
   installEmulatorSession,
   resetQaEnvironment,
   signInEmulatorUser,
 } from './support/qa';
 
 const PERIOD = '2026-09';
-const ACCOUNT_BALANCE_STAGE = '帳戶餘額';
+/** Any seeded account: the re-confirm upserts its snapshot for the period. */
+const ACCOUNT_BALANCE_ACCOUNT_ID = 'acc_bank_main';
 
 /**
  * Journey: close a period that has NOT been started, from scratch — 開始關帳 plus
@@ -30,10 +33,10 @@ const ACCOUNT_BALANCE_STAGE = '帳戶餘額';
  * so this run also covers "reports existed before any close record".
  *
  * Idempotency is asserted where the user can see it: re-confirming an already
- * completed stage (the 重新確認 path) must not move the walk on. That a repeated
- * confirm writes no duplicate documents is a persistence claim, covered at the
- * application layer (`monthlyCloseWorkflowUseCase.test.ts`, ADR-0052) rather
- * than through the browser (ADR-0082).
+ * completed stage (the 重新確認 path) must not move the walk on, and the repeat
+ * confirm must upsert one snapshot doc per period rather than append (checked
+ * through the emulator's REST API; the write path itself is covered at the
+ * application layer, `monthlyCloseWorkflowUseCase.test.ts`, ADR-0052).
  *
  * This spec mutates close state, so it resets the emulator first: it can be run
  * standalone and never inherits a period left CLOSED by a previous run.
@@ -51,16 +54,21 @@ test('closing a period from scratch runs all eight stages', async ({ page }) => 
   await installEmulatorSession(page, session);
 
   // Start the period. Before this the period has no record at all.
-  await startSeptemberPeriod(page);
+  await openPeriod(page, PERIOD);
   await confirmAccountBalanceStage(page);
 
   // Idempotency: revisit the completed stage from the pipeline and confirm it
-  // again. The walk must stay where it is, not advance or rewind.
+  // again. The walk must stay where it is, not advance or rewind, and the
+  // repeat confirm must upsert one snapshot doc per period rather than append.
+  const snapCountBefore = await countAccountSnapshots(ACCOUNT_BALANCE_ACCOUNT_ID);
+  // A wrong read path would return 0 twice and the comparison below would pass
+  // for the wrong reason.
+  expect(snapCountBefore).toBeGreaterThan(0);
   await expectCloseStep(page, 2);
-  await page.getByTestId('close-pipeline-toggle').click();
-  await page.getByRole('button', { name: ACCOUNT_BALANCE_STAGE }).click();
+  await openAccountBalanceStage(page, { fromPipeline: true });
   await confirmCloseStage(page);
   await expectCloseStep(page, 2);
+  expect(await countAccountSnapshots(ACCOUNT_BALANCE_ACCOUNT_ID)).toBe(snapCountBefore);
 
   // Stages 2–6, then generate the reports (which also confirms stage 7).
   await confirmStages(page, 2, 6);

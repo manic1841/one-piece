@@ -1,7 +1,6 @@
 import { expect, test } from '@playwright/test';
 
-import { installEmulatorSession, signInEmulatorUser } from './support/qa';
-import { QA_EMAIL, QA_PASSWORD } from './support/qa';
+import { QA_EMAIL, QA_PASSWORD, installEmulatorSession, signInEmulatorUser } from './support/qa';
 import { pickFirstDetailCategory } from './support/ui';
 
 const TARGET_PROJECT_NAME = '旅遊基金';

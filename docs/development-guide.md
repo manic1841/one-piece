@@ -177,6 +177,7 @@ AI agent 修改或建立任何 UI 時，**必須**遵守：
 - `pnpm test:coverage`: 對相同的 unit test 範圍產生 text、JSON 與 HTML coverage 報告。
 - `pnpm test:integration`: 執行需要 Firebase Emulator 的 integration tests；執行前會在期限內重試等待 emulator 可連線。
 - `pnpm test:e2e`: 執行 Playwright browser smoke suite（見 [測試指南](testing.md) §E2E）。需要外部啟動的 emulator 與 chromium，較慢且不進本地 commit pipeline；由 CI 的 `e2e` job 在 PR 與 main push 上把關（見 §7.1）。
+- `pnpm typecheck:e2e`: 驗證 E2E 測試檔（`e2e/`）與 `playwright.config.ts` 的 TypeScript。E2E 檔案不在 `src/`，因此不在 `tsc -b` 的 build graph 內，由本命令獨立把關；CI 的 `e2e` job 在跑 Playwright 前執行。
 - `pnpm exec tsc --noEmit -p tsconfig.test.json`: 驗證測試檔的 TypeScript project 設定與 `@/*` 路徑別名；此 project 也由 root solution reference，供 IDE 解析使用，並以 declaration-only、no-check 方式納入 build graph，不進行完整語意型別檢查。
 - `pnpm exec tsc -b`: 依 root solution 執行完整 build graph 型別檢查（正式程式碼）。
 - `pnpm lint`: 執行唯讀 ESLint 檢查。

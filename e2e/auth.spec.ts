@@ -1,7 +1,12 @@
 import { expect, test } from '@playwright/test';
 
-import { installEmulatorSession, signInEmulatorUser, signInNonWhitelistedUser } from './support/qa';
-import { QA_EMAIL, QA_PASSWORD } from './support/qa';
+import {
+  QA_EMAIL,
+  QA_PASSWORD,
+  installEmulatorSession,
+  signInEmulatorUser,
+  signInNonWhitelistedUser,
+} from './support/qa';
 
 /**
  * Journey 1 — the entry gate. If this breaks, nothing else in the app is

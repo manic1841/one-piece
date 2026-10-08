@@ -1,5 +1,6 @@
 import { execFileSync } from 'node:child_process';
 
+import { QA_HOUSEHOLD_ID } from '../../scripts/qa/qa-identity';
 import { resolveEmulatorEnv } from '../../scripts/shared/emulator-env';
 
 /**
@@ -53,4 +54,23 @@ export const resetQaEnvironment = (): void => {
   }
 
   console.warn(`✅ E2E reset complete: emulator project "${projectId}" reseeded.\n`);
+};
+
+/**
+ * Count the account snapshots persisted under one account's snapshot
+ * collection. Uses the Firestore REST API (the `/emulator/v1/.../documents`
+ * path only supports the DELETE-all wipe, not listing). Used to assert that a
+ * repeated stage confirmation upserts (one doc per period) instead of appending.
+ */
+export const countAccountSnapshots = async (accountId: string): Promise<number> => {
+  const { firestoreHost, firestorePort, projectId } = resolveEmulatorEnv();
+  const url =
+    `http://${firestoreHost}:${firestorePort}/v1/projects/${projectId}` +
+    `/databases/(default)/documents/households/${QA_HOUSEHOLD_ID}/accounts/${accountId}/snapshots`;
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`Failed to read snapshots for ${accountId}: HTTP ${response.status}`);
+  }
+  const payload = (await response.json()) as { documents?: unknown[] };
+  return payload.documents?.length ?? 0;
 };

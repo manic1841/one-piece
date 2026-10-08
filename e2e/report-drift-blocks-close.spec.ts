@@ -97,9 +97,10 @@ test('a late expense drifts the reports and blocks the close until they are rege
   await expect(regenerate).toHaveText('REGENERATE REPORTS');
   await regenerate.click();
 
-  // Regenerating persists the current preview, so the drift hint clears — the
-  // reports now describe the period again.
-  await expect(panel).not.toContainText('重新產生會以目前預覽覆寫');
+  // Regenerating persists the current preview and then reloads it, so the drift
+  // hint clears only after a write plus a re-read — budget for round-trips, not
+  // for the 5s default that a locally-loaded emulator can just miss.
+  await expect(panel).not.toContainText('重新產生會以目前預覽覆寫', { timeout: 20_000 });
 
   // 6. Back on the summary the gate has lifted and the close goes through.
   await page
@@ -107,7 +108,7 @@ test('a late expense drifts the reports and blocks the close until they are rege
     .first()
     .click();
   await expect(driftBlock).toBeHidden({ timeout: 20_000 });
-  await expect(closeAction).toBeEnabled();
+  await expect(closeAction).toBeEnabled({ timeout: 20_000 });
   await closeAction.click();
   await page.getByRole('dialog').getByRole('button', { name: '正式關帳' }).click();
 

@@ -79,6 +79,9 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Typecheck E2E
+        run: pnpm typecheck:e2e
+
       - name: Install Playwright browser
         run: pnpm exec playwright install --with-deps chromium
 
