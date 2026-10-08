@@ -242,6 +242,18 @@ describe('useCloseStepRegistry', () => {
       issues: [],
     });
     vi.mocked(previewProjectSettlementsUseCase.execute).mockResolvedValue([]);
+    // Same reason: the report preview / baseline / persistence mocks are
+    // per-test overrides too.
+    vi.mocked(previewFinancialReportsWorkflow.execute).mockResolvedValue(null);
+    vi.mocked(getStoredReportsBundleUseCase.execute).mockResolvedValue({
+      incomeStatement: null,
+      balanceSheet: null,
+      cashFlow: null,
+    } as never);
+    vi.mocked(getReportPersistenceStateUseCase.execute).mockResolvedValue({
+      isPersisted: false,
+      timestamps: {},
+    } as never);
   });
 
   it('registers all eight close steps', () => {
@@ -386,6 +398,36 @@ describe('useCloseStepRegistry', () => {
 
     expect(screen.getByTestId('reports-generated-panel')).toBeInTheDocument();
     expect(screen.queryByTestId('generate-reports')).not.toBeInTheDocument();
+  });
+
+  // #234/ADR-0073: drift on a completed stage keeps the regenerate action, so
+  // the Close Period drift block's instruction is followable.
+  it('keeps the regenerate action on a completed reports stage once it drifted', async () => {
+    vi.mocked(previewFinancialReportsWorkflow.execute).mockResolvedValue(
+      previewWithTotals({ netIncome: 117_000 }),
+    );
+    vi.mocked(getStoredReportsBundleUseCase.execute).mockResolvedValue(
+      persistedWithTotals({ netIncome: 100_000 }),
+    );
+
+    function DriftedReportsHarness() {
+      const registry = useCloseStepRegistry({
+        ...baseArgs,
+        pageVM: pageVMWithReportsStage('COMPLETED'),
+      });
+      return <>{registry.FINANCIAL_REPORTS.render(baseContext)}</>;
+    }
+
+    render(<DriftedReportsHarness />);
+
+    await waitFor(() =>
+      expect(screen.getByTestId('reports-generated-panel')).toHaveTextContent(
+        MONTHLY_CLOSE_LABELS.GENERATED_REPORTS_DRIFT_HINT,
+      ),
+    );
+    expect(screen.getByTestId('generate-reports')).toHaveTextContent(
+      MONTHLY_CLOSE_LABELS.REGENERATE_REPORTS,
+    );
   });
 
   it('renders the shared chrome frame for a stage with inputs', () => {

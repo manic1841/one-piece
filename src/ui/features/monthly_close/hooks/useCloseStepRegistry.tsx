@@ -309,6 +309,7 @@ export const useCloseStepRegistry = ({
           isStageCompleted={isFinancialReportsCompleted}
           reportsPersisted={financialReportsStage.reportsPersisted}
           showAdjustmentWarning={financialReportsStage.showAdjustmentWarning}
+          hasDrift={hasDrift}
         />
       ),
     },

@@ -48,6 +48,14 @@ interface CloseFinancialReportsProps {
   reportsPersisted: boolean | null;
   /** Whether the cash-flow adjustment exceeds the confirmation threshold. */
   showAdjustmentWarning: boolean;
+  /**
+   * Whether any statement figure drifted from the persisted report (#234).
+   * Drift makes the stage's own confirmation stale, so it re-opens the
+   * regenerate action the completed stage would otherwise hide: the Close Period
+   * drift block sends the user back here to regenerate, and that instruction
+   * would be a dead end without it (ADR-0073).
+   */
+  hasDrift: boolean;
 }
 
 interface ReportsAlertsProps {
@@ -129,6 +137,7 @@ export const CloseFinancialReports: React.FC<CloseFinancialReportsProps> = ({
   isStageCompleted,
   reportsPersisted,
   showAdjustmentWarning,
+  hasDrift,
 }) => {
   const { incomeStatement, balanceSheet, cashFlow } = reports;
 
@@ -156,6 +165,10 @@ export const CloseFinancialReports: React.FC<CloseFinancialReportsProps> = ({
   const showExistingReportsWarning = !isStageCompleted && reportsPersisted === true;
   const showPersistenceUnknown =
     !isStageCompleted && !isLoading && error === null && reportsPersisted === null;
+  // A completed stage normally hides the action (its reports are the final
+  // record). Drift is the exception: a later entry made those reports stale, and
+  // this is the only way to clear it.
+  const showGenerate = !isReadOnly && (!isStageCompleted || hasDrift);
 
   return (
     <div className="space-y-6 pt-8">
@@ -192,6 +205,11 @@ export const CloseFinancialReports: React.FC<CloseFinancialReportsProps> = ({
               {MONTHLY_CLOSE_LABELS.GENERATED_AT}
               {formatReportTimestamps(timestamps)}
             </p>
+            {hasDrift && (
+              <p className="text-xs text-warning">
+                {MONTHLY_CLOSE_LABELS.GENERATED_REPORTS_DRIFT_HINT}
+              </p>
+            )}
             <div className="flex justify-end">
               <Button
                 variant="link"
@@ -265,7 +283,7 @@ export const CloseFinancialReports: React.FC<CloseFinancialReportsProps> = ({
         >
           {MONTHLY_CLOSE_LABELS.BACK_TO_CURRENT}
         </Button>
-        {!isStageCompleted && !isReadOnly && (
+        {showGenerate && (
           <Button
             data-testid="generate-reports"
             onClick={onGenerate}
@@ -274,7 +292,9 @@ export const CloseFinancialReports: React.FC<CloseFinancialReportsProps> = ({
           >
             {confirming || isLoading
               ? MONTHLY_CLOSE_LABELS.LOADING
-              : MONTHLY_CLOSE_LABELS.GENERATE_REPORTS}
+              : isStageCompleted
+                ? MONTHLY_CLOSE_LABELS.REGENERATE_REPORTS
+                : MONTHLY_CLOSE_LABELS.GENERATE_REPORTS}
           </Button>
         )}
       </div>

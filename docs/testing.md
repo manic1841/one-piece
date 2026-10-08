@@ -263,6 +263,10 @@ tests。刻意維持精簡;目前涵蓋的旅程如下(清單隨需求增減,不
 - 記支出 → 交易列表出現(專案餘額同樣是快照衍生值,於結算時更新)。
 - 關帳:從「尚未開始關帳」的期間開始(seed 的 `2026-09`),依序走完 8 階段
   (帳戶餘額 → … → Close Period)、正式關帳,報表歷史出現該期間。
+- 報表漂移阻擋關帳:關帳走完 8 階段後補記一筆落在該期間的支出,關帳畫面出現
+  `<persisted> -> <preview>` 漂移標註且關帳鈕停用;走漂移區塊的捷徑回到 Financial
+  Reports 重新產生報表後,漂移消失、關帳通過(ADR-0073,見
+  [monthly-close.md](monthly-close.md) §3)。
 
 專案間轉帳不在範圍(功能暫停,見 [ADR-0042](adr/0042-pause-project-transfer-feature.md));
 貸款、退休匯入、offline 等列為 backlog。
