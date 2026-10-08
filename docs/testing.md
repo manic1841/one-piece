@@ -138,12 +138,13 @@ snapshots 與三份財務報表)。腳本可重複執行(upsert,非 append)。
 資料窗口固定在 2025-01～2026-09,確保退休收入流的 sampleYear 與報表
 本期都有資料支撐。`operation` 集合不 seed(runtime 重試記錄)。
 
-Monthly close 種子寫入四個期間狀態形狀(見
+Monthly close 種子寫入三個期間狀態形狀(見
 [monthly-close.md](monthly-close.md) §2):`2026-06` NEEDS_REVIEW
 (舊版完整性暫停遺留,`reviewSourceStageId = COMPLETENESS_CHECK`,
 ADR-0080)、`2026-07`/`2026-08` CLOSED
-(重開確認視窗與 ADR-0066 連鎖降級的目標)、`2026-09` IN_PROGRESS
-(前五階段完成)。`2026-05` 及更早不寫入紀錄(無紀錄 = 尚未開始關帳)。
+(重開確認視窗與 ADR-0066 連鎖降級的目標)。`2026-09` **不寫入紀錄**——它是
+「從尚未開始關帳走完 8 階段」E2E 的目標期間,紀錄由測試按「開始關帳」
+建立;`2026-05` 及更早同樣不寫入紀錄(無紀錄 = 尚未開始關帳)。
 
 ### 瀏覽器 QA 環境注意事項
 
@@ -256,10 +257,12 @@ E2E 由 [Playwright](https://playwright.dev/) 驅動,是最後一層信心來源
 tests。刻意維持精簡;目前涵蓋的旅程如下(清單隨需求增減,不固定條數):
 
 - 登入:白名單內可進、白名單外被擋。
-- 記收入 → 確認分配 → 專案收入增加(專案餘額是快照衍生值,於結算時才更新,
-  故即時可觀察的是專案的收入彙總)。
+- 記收入 → 確認分配 → 目標專案該月收入增加(觀測點是專案 MONTHLY CASH FLOW 的
+  當月列:SUMMARY 固定為最近 12 個月合計、PROJECT BALANCE 是快照衍生值,
+  兩者都不是「即時增加」的觀測點,見 [visual-standards.md](ui/visual-standards.md))。
 - 記支出 → 交易列表出現(專案餘額同樣是快照衍生值,於結算時更新)。
-- 月底結算 → 報表產生。
+- 關帳:從「尚未開始關帳」的期間開始(seed 的 `2026-09`),依序走完 8 階段
+  (帳戶餘額 → … → Close Period)、正式關帳,報表歷史出現該期間。
 
 專案間轉帳不在範圍(功能暫停,見 [ADR-0042](adr/0042-pause-project-transfer-feature.md));
 貸款、退休匯入、offline 等列為 backlog。

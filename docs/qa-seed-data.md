@@ -48,7 +48,8 @@ orchestrator 為 `scripts/qa/plan/index.ts`，`buildQaSeedPlan` 是唯一對外�
 | `2026-06` | NEEDS_REVIEW | 前六階段 COMPLETED；舊版完整性暫停遺留（`reviewSourceStageId = COMPLETENESS_CHECK`，ADR-0080） |
 | `2026-07` | CLOSED       | 八階段全 COMPLETED 帶 `confirmedBy`/`confirmedAt`；重開與 ADR-0066 連鎖降級的 E2E 目標         |
 | `2026-08` | CLOSED       | 同上                                                                                           |
-| `2026-09` | IN_PROGRESS  | 前五階段 COMPLETED                                                                             |
+
+`2026-09` **不寫入期間紀錄**：它是唯一快照齊全的月份，作為「從尚未開始關帳走完關帳」的 E2E 目標（issue #277），狀態紀錄由測試按下「開始關帳」建立；其三份已產生報表仍保留，讓該次關帳順帶覆蓋「先有報表、後關帳」的路徑。
 
 `2026-05` 及更早不寫入紀錄（無紀錄 = 尚未開始關帳）。`operation` 集合不 seed（runtime 重試記錄）。
 

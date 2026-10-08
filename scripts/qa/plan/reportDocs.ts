@@ -113,10 +113,11 @@ export const buildReportDocs = (
   }
 };
 
-// Monthly close period states (ADR-0050/0052/0066). The matrix covers every
-// persisted shape a QA run needs: a Completeness Check pause, closable months
-// with all stages completed, and an active close mid-workflow. No record
-// is seeded for 2026-05 and earlier (absence = has not started closing).
+// Monthly close period states (ADR-0050/0052/0066). The matrix covers the
+// persisted shapes a QA run needs: a Completeness Check pause and closable
+// months with all stages completed. 2026-09 is intentionally absent — it is the
+// "not started closing" target for the E2E in issue #277 — as is 2026-05 and
+// earlier (absence = has not started closing).
 export const buildMonthlyCloseDocs = (b: Builder) => {
   const { identity } = b;
 
@@ -133,7 +134,7 @@ export const buildMonthlyCloseDocs = (b: Builder) => {
 
   const emitPeriod = (
     yearMonth: string,
-    status: 'IN_PROGRESS' | 'NEEDS_REVIEW' | 'CLOSED',
+    status: 'NEEDS_REVIEW' | 'CLOSED',
     stages: Record<string, CloseStageState>,
     reviewSourceStageId: CloseStageId | null = null,
   ) => {
@@ -168,14 +169,19 @@ export const buildMonthlyCloseDocs = (b: Builder) => {
     completedStages(CLOSE_STAGE_IDS.length - 1, new Date(2026, 7, 31)),
   );
 
-  // Active close: first five stages confirmed, validation evidence pending.
-  emitPeriod('2026-09', 'IN_PROGRESS', completedStages(4, new Date(2026, 8, 12)));
+  // 2026-09 is deliberately NOT seeded with a period record: it is the only
+  // month whose account/portfolio/project/debt snapshots are all present, so it
+  // is the target for the "close from a period that has not been started" E2E
+  // (issue #277). Its reports stay seeded, so the close run also covers the
+  // "reports existed before any close record" path (CONTEXT §已產生報表).
+  // A period record is created by the user pressing 開始關帳; do not "restore"
+  // it here. 2026-05 and earlier are likewise absent (not started closing).
 
-  // Unused stage IDs must fail the seed loudly; assert the record shape here
-  // so a stage rename in schemas.ts breaks the seeder instead of the QA run.
+  // Period count and stage IDs are asserted here so a stage rename in
+  // schemas.ts breaks the seeder instead of the QA run.
   const seeded = b.docs.filter((doc) => doc.collectionPath.endsWith('/financialPeriods'));
-  if (seeded.length !== 4) {
-    throw new Error(`expected 4 financial periods, built ${seeded.length}`);
+  if (seeded.length !== 3) {
+    throw new Error(`expected 3 financial periods, built ${seeded.length}`);
   }
   for (const period of seeded) {
     const stageIds = Object.keys((period.data as { stages: Record<string, unknown> }).stages);
