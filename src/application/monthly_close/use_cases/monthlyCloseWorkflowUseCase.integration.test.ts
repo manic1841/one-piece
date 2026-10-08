@@ -31,9 +31,10 @@ import { projectRepository } from '@/infra/repositories/projectRepository';
 import { reportRepository } from '@/infra/repositories/reportRepository';
 import { transactionRepository } from '@/infra/repositories/transactionRepository';
 import { emulatorProjectId, firestoreEmulator } from '@/test/emulatorEnv';
+import { TEST_USER as auth } from '@/test/factories';
 import { db, resetMockDb } from '@/test/mocks/firebase';
+import { seedAccount as seedAccountDoc } from '@/test/seeds';
 
-const auth = { uid: 'user-1', email: 'user@example.com', isGlobalAdmin: true };
 const yearMonth = '2026-03';
 
 const roundAmount = (value: number): number => Math.round(value * 100) / 100;
@@ -67,20 +68,8 @@ const withFreshReader = async <T>(read: (readerDb: Firestore) => Promise<T>): Pr
   }
 };
 
-const seedAccount = async (id: string, category: string = 'cash') => {
-  await setDoc(doc(db, 'households', householdId, 'accounts', id), {
-    id,
-    name: `Account ${id}`,
-    category,
-    currency: 'TWD',
-    order: 0,
-    isActive: true,
-    createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp(),
-    createdBy: 'user@example.com',
-    updatedBy: 'user@example.com',
-  });
-};
+const seedAccount = (id: string, category = 'cash') =>
+  seedAccountDoc(householdId, id, { category });
 
 type ConfirmStageInput = Omit<
   MonthlyCloseConfirmRequest,

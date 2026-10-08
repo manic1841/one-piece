@@ -176,6 +176,7 @@ AI agent 修改或建立任何 UI 時，**必須**遵守：
 - `pnpm test`: 執行不依賴 Firebase Emulator 的 unit tests。
 - `pnpm test:coverage`: 對相同的 unit test 範圍產生 text、JSON 與 HTML coverage 報告。
 - `pnpm test:integration`: 執行需要 Firebase Emulator 的 integration tests；執行前會在期限內重試等待 emulator 可連線。
+- `pnpm test:e2e`: 執行 Playwright browser smoke suite（見 [測試指南](testing.md) §E2E）。需要外部啟動的 emulator 與 chromium，較慢且不進本地 commit pipeline；由 CI 的 `e2e` job 在 PR 與 main push 上把關（見 §7.1）。
 - `pnpm exec tsc --noEmit -p tsconfig.test.json`: 驗證測試檔的 TypeScript project 設定與 `@/*` 路徑別名；此 project 也由 root solution reference，供 IDE 解析使用，並以 declaration-only、no-check 方式納入 build graph，不進行完整語意型別檢查。
 - `pnpm exec tsc -b`: 依 root solution 執行完整 build graph 型別檢查（正式程式碼）。
 - `pnpm lint`: 執行唯讀 ESLint 檢查。
@@ -189,7 +190,7 @@ AI agent 修改或建立任何 UI 時，**必須**遵守：
 
 GitHub Actions 位於 `.github/workflows/`：
 
-- **CI**（`test.yml`）：對 main/develop 的 push 與 PR 觸發。依序執行 `pnpm lint`、`pnpm docs:check`、`tsc -b`、unit tests、Firestore Emulator integration tests。CI 未含 format check——格式一致性由 `pnpm format` 在 commit 前承擔（見 §7 驗證命令）。Node 版本以 `.nvmrc`
+- **CI**（`test.yml`）：對 main/develop 的 push 與 PR 觸發。依序執行 `pnpm lint`、`pnpm docs:check`、`tsc -b`、unit tests、Firestore Emulator integration tests。另有獨立的 **`e2e` job**，只在 PR 與 main push 執行（chromium + Playwright，見 ADR-0082），不在每次 push 觸發。CI 未含 format check——格式一致性由 `pnpm format` 在 commit 前承擔(見 §7 驗證命令)。Node 版本以 `.nvmrc`
   為單一真相來源；依賴以 `--frozen-lockfile` 安裝並快取 pnpm store。同一分支的新
   push 會取消舊的執行（concurrency），整體逾時 20 分鐘。
 - **Deploy to Firebase Hosting on PR**（`firebase-hosting-pull-request.yml`）：

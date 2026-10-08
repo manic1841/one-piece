@@ -10,7 +10,7 @@
 | 單元測試 | `pnpm test`             | 否         | happy-dom 環境,驗證 domain、use case 與 UI 元件行為 |
 | 覆蓋率   | `pnpm test:coverage`    | 否         | 單元測試範圍的 text/JSON/HTML 報告                  |
 | 整合測試 | `pnpm test:integration` | 是         | 對 Firebase Emulator 驗證持久化與 security rules    |
-| E2E 測試 | 未導入(見下)            | 是         | 最小 browser smoke suite,屬 roadmap 最後階段        |
+| E2E 測試 | `pnpm test:e2e`         | 是         | Playwright 最小 browser smoke suite,涵蓋關鍵旅程    |
 
 ## 單元測試
 
@@ -26,6 +26,13 @@ pnpm test
 ```bash
 pnpm test:coverage
 ```
+
+### 元件測試 (UI)
+
+元件測試只服務於**有邏輯的表單與互動**(例如分配比例即時加總),不為純樣式、
+文案或 Tailwind class 撰寫斷言。這是前瞻性規則:既有行為測試保留,不受此限;
+**架構守門測試**(`design-contract.test.ts`、`layer-boundary.test.ts` 這類驗證
+跨檔契約的測試)**不算元件測試**,不受本節約束。
 
 ### 測試環境與轉譯(效能)
 
@@ -182,18 +189,89 @@ unit / integration / E2E 三層已足以覆蓋對外行為;多一條 seam 就多
 維護的抽象,卻不增加可觀察行為的覆蓋。只有在單一應用邊界經實作驗證仍無法暴露
 所需外部行為時,才新增 seam。
 
+## 覆蓋率政策
+
+覆蓋率門檻是**防退化**,不是一次達標的願望。政策:
+
+- **全域 ratchet**:門檻設在目前實測值,只允許往上調,不允許退步。
+- **`src/domains/**` 另設專屬門檻\*\*:風險真正集中在「數字算對」,domain 的門檻
+  高於全域並獨立往上收。
+- **UI 不設門檻**:避免為了衝數字而寫沒有意義的 render 斷言。
+
+具體百分比是會隨程式碼變動的值,只住在 `vitest.config.ts` 的
+`coverage.thresholds`,本文件不複述數字;「domain 高、UI 不設、只升不降」
+才是這裡要守的語意不變式。
+
+## 不變量與黃金資料集
+
+### 黃金資料集單一來源
+
+確定性的完整資料集由 `pnpm qa:seed` 提供(建構邏輯在 `scripts/qa/plan`),
+是**唯一來源**:報表與結算的測試從同一份 seed plan 讀資料,不另建 test-only
+的資料集,避免同一份事實有兩個家。
+
+預期數字一律**獨立手算**,不重算被測程式自己的算式——這延續
+`src/test/qaSeedPlan.test.ts` 的既有原則,讓斷言能抓到實作錯誤而非複述它。
+
+### 不變量
+
+以下四條以跑在黃金資料集上的**確定性 round-trip** 驗證,不引入 property-based
+測試框架:
+
+1. 每筆 Transaction 借方合計 = 貸方合計。
+2. 專案餘額可由 Transaction + Allocation 完整重算,與 Snapshot 一致。
+3. `currentBalance` 可由 entries 重算。
+4. 資產負債表永遠平衡(權益為推算值)。
+
+①在 `src/test/qaSeedPlan.test.ts`,②③④在 `src/test/qaSeedInvariants.test.ts`;
+每一條都走與產生 seed 文件**不同**的生產路徑重算,再與 seed 的結果比對。
+③只涵蓋視窗內有 entry 的債務帳戶(視窗外結清的帳戶其餘額無 entry 可推)。
+
+## Fixture factory
+
+`src/test/factories/` 提供 `buildAccount()`、`buildTransaction()`、
+`buildDebtAccount()` 與各 snapshot builder:預設值合法、可用 `Partial` override、
+**不含 Firestore write**(純物件)。集合路徑與 `setDoc` 集中在 `src/test/seeds.ts`
+的 seed writer(薄薄一層包住 builder),跨檔重複的 seed helper 只留下單一檔案特有的
+參數形狀,集合路徑不再各自重寫。
+
 ## E2E 測試(瀏覽器)
 
-目前尚未導入 E2E 測試。E2E 是最後一層信心來源:在 complex hook 的 loading/error/retry/cancellation/
-double-submit coverage 完成後,加入最小 browser smoke suite,涵蓋:
+E2E 由 [Playwright](https://playwright.dev/) 驅動,是最後一層信心來源,
+驗證「使用者可完成關鍵旅程」,不取代 domain、application 與 Emulator boundary
+tests。刻意維持精簡;目前涵蓋的旅程如下(清單隨需求增減,不固定條數):
 
-- onboarding
-- transaction entry
-- monthly settlement
-- report viewing
+- 登入:白名單內可進、白名單外被擋。
+- 記收入 → 確認分配 → 專案收入增加(專案餘額是快照衍生值,於結算時才更新,
+  故即時可觀察的是專案的收入彙總)。
+- 記支出 → 交易列表出現(專案餘額同樣是快照衍生值,於結算時更新)。
+- 月底結算 → 報表產生。
 
-定位:E2E 驗證「使用者可完成關鍵旅程」,不取代 domain、application 與
-Emulator boundary tests。導入時應更新本文件與 `package.json` 的 test scripts。
+專案間轉帳不在範圍(功能暫停,見 [ADR-0042](adr/0042-pause-project-transfer-feature.md));
+貸款、退休匯入、offline 等列為 backlog。
+
+### 執行方式與邊界
+
+```bash
+pnpm test:e2e
+```
+
+- **只跑 chromium,對 `pnpm dev`(Vite dev server)驅動**:沿用 `vite.config.ts`
+  既有的同源 emulator proxy。對 production preview 執行需另補 `preview:` proxy,
+  且 build artifact 的正確性已由 `tsc -b` 與 `vite build` 覆蓋,列為 backlog。
+- **emulator 由外部啟動**,與 integration test 的心智模型一致;Playwright 的
+  `webServer` 只負責起 Vite dev server,`globalSetup` 負責對 emulator 執行
+  `qa:init` / `qa:seed`,不另寫一份 seed。
+- **登入以 Auth emulator REST 取得 session 後注入 SDK 儲存**:走
+  `signInWithPassword` 拿 token,寫入 localStorage 與 IndexedDB(集中在
+  `e2e/support/auth.ts` 一個檔)。應用目前只有 Google popup 登入,容器內無法完成,
+  故不驅動登入頁;injection 只在 Playwright context 內生效,不進生產 bundle,且僅指向
+  本機 emulator(`demo-project`、公開假 API key、拋棄式 QA 帳號),不得指向生產專案。
+- **gate 位置**:只在 PR 與 main push 跑(見 `test.yml`),不放進每次 push。
+  決策取捨見 [ADR-0082](adr/0082-e2e-playwright-limited-critical-journeys.md)。
+
+E2E 檔案住在根目錄 `e2e/`(非 `src/`,避免被 Vitest 的 `include` 與 `tsc -b` 誤收),
+設定在根目錄 `playwright.config.ts`。
 
 ## Docker 環境執行
 
