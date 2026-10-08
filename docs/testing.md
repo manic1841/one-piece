@@ -60,6 +60,20 @@ pnpm test:integration
   在 15 秒期限內重試等待 emulator 可連線，逾時才提早失敗。
 - 需要 Firestore (8080) 與 Auth (9099) 模擬器運行中。
 
+### 模擬器資料會被清空(unit 除外)
+
+**任何一層的測試 reset 都是對 emulator 專案發出整庫 DELETE**——單一事實,不是兩個
+各自獨立的地雷:
+
+- **integration**:`resetMockDb()` 於每個 `beforeEach` 清空**整個** `demo-project`
+  的 Firestore 資料,**清空後不還原**,跑完 app 會落 `/access-denied`。要繼續手動
+  QA 得自行 `pnpm qa:init && pnpm qa:seed`。範圍設計見 issue #208。
+- **E2E**:`e2e/support/reset.ts` 用同一種整庫 DELETE,但**清空後立刻**
+  `qa:init` + `qa:seed`,環境停在已知良好狀態;執行時會**印出清空警告**,不讓清空
+  變成靜默副作用。
+
+`pnpm test`(unit)不使用 emulator,不受影響。
+
 ### 模擬器環境變數
 
 在 Docker dev stack 內,emulator host 是 service 名稱 `firebase`;本機以
@@ -262,6 +276,10 @@ pnpm test:e2e
 - **emulator 由外部啟動**,與 integration test 的心智模型一致;Playwright 的
   `webServer` 只負責起 Vite dev server,`globalSetup` 負責對 emulator 執行
   `qa:init` / `qa:seed`,不另寫一份 seed。
+- **會動狀態的 spec 自行 reset**:`qa:seed` 以 merge 寫入、**永不刪除** spec 新建的
+  文件,因此關帳/重開等 spec 若沿用前一輪殘留的狀態,就無法單獨執行。這類 spec 在
+  `beforeAll` 呼叫 `e2e/support/reset.ts` 的 reset(清空 Firestore → `qa:init` →
+  `qa:seed`),使結果與執行順序無關;`globalSetup` 也用它建立首次的乾淨狀態。
 - **登入以 Auth emulator REST 取得 session 後注入 SDK 儲存**:走
   `signInWithPassword` 拿 token,寫入 localStorage 與 IndexedDB(集中在
   `e2e/support/auth.ts` 一個檔)。應用目前只有 Google popup 登入,容器內無法完成,

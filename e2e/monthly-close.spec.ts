@@ -1,6 +1,6 @@
 import { type Page, expect, test } from '@playwright/test';
 
-import { installEmulatorSession, signInEmulatorUser } from './support/qa';
+import { installEmulatorSession, resetQaEnvironment, signInEmulatorUser } from './support/qa';
 import { QA_EMAIL, QA_PASSWORD } from './support/qa';
 
 const PERIOD = '2026-09';
@@ -41,7 +41,14 @@ const confirmCurrentStage = async (page: Page): Promise<void> => {
  * Journey 4 — settle a period and see its reports. Uses the seeded period that
  * is already IN PROGRESS (first five stages done), so the test drives the
  * remaining stages: completeness check, financial reports, then close.
+ *
+ * This spec mutates close state, so it resets the emulator first: the test can
+ * be run standalone and never inherits a period left CLOSED by a previous run.
  */
+test.beforeAll(() => {
+  resetQaEnvironment();
+});
+
 test('settling a period generates its reports', async ({ page }) => {
   const session = await signInEmulatorUser(QA_EMAIL, QA_PASSWORD);
   await installEmulatorSession(page, session);

@@ -1,6 +1,6 @@
 /**
  * Barrel for the E2E support helpers the specs use: QA identity, Auth
- * emulator session minting, and session installation.
+ * emulator session minting, session installation, and the emulator reset.
  */
 export {
   QA_EMAIL,
@@ -10,3 +10,4 @@ export {
   signInNonWhitelistedUser,
 } from './emulator';
 export { installEmulatorSession } from './auth';
+export { resetQaEnvironment } from './reset';

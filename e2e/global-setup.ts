@@ -1,13 +1,14 @@
-import { execFileSync } from 'node:child_process';
+import { resetQaEnvironment } from './support/reset';
 
 /**
- * Seed the emulator once per run: identity/whitelist (`qa:init`) then the
- * deterministic financial dataset (`qa:seed`). The emulator itself is assumed
- * to be already running (started externally, like the integration tests).
+ * Build a known-good emulator state once per run: wipe any leftover data, then
+ * seed identity/whitelist (`qa:init`) and the deterministic financial dataset
+ * (`qa:seed`). The emulator itself is assumed to be already running (started
+ * externally, like the integration tests).
+ *
+ * State-mutating specs additionally reset in their own `beforeAll` so they can
+ * be run standalone (see `e2e/support/reset.ts`).
  */
 export default function globalSetup(): void {
-  const env = { ...process.env };
-  for (const script of ['qa:init', 'qa:seed']) {
-    execFileSync('pnpm', [script], { stdio: 'inherit', env });
-  }
+  resetQaEnvironment();
 }
