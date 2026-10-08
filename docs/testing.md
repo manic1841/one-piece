@@ -268,6 +268,12 @@ tests。刻意維持精簡;目前涵蓋的旅程如下(清單隨需求增減,不
   可辨識的草稿值,切換期間至 `2026-08` 後,斷言該欄位是自己期間的數字——既非草稿、
   也非另一期間的預填(`2026-08` 種子為 `CLOSED`,欄位唯讀並顯示該月快照,是這條
   邊界最強的觀測形狀;CONTEXT §預填)。
+- 重開已關帳期間觸發連鎖降級:重開 `2026-07`(種子 `CLOSED`)後,該期間不再是 CLOSED、
+  退回 Financial Reports 待確認,既有已產生報表保留為比對基準;其後已關帳的 `2026-08`
+  轉為 `NEEDS_REVIEW`(ADR-0066)。狀態轉移與降級後的階段形狀由
+  `financial_period/stateMachine.test.ts` 與
+  `monthlyCloseWorkflowUseCase.integration.test.ts` 守;這條旅程守的是使用者實際看到的
+  跨期間畫面結果——cascade banner 由 `isCascadeDemoted` 分支渲染,下層不斷言畫面。
 
 專案間轉帳不在範圍(功能暫停,見 [ADR-0042](adr/0042-pause-project-transfer-feature.md));
 貸款、退休匯入、offline 等列為 backlog。
