@@ -43,7 +43,10 @@ jobs:
 
       - name: Start Firebase emulators
         working-directory: firebase-emulator
-        run: docker compose up -d --build
+        # `--wait` blocks until the container is healthy (the image ships a
+        # HEALTHCHECK), so the test job's own retry loop is not the only thing
+        # standing between a started-but-not-ready emulator and a red run.
+        run: docker compose up -d --build --wait
 
       - name: Run tests
         run: pnpm test
@@ -87,7 +90,9 @@ jobs:
 
       - name: Start Firebase emulators
         working-directory: firebase-emulator
-        run: docker compose up -d --build
+        # `--wait` blocks until the container is healthy, so the E2E reset does
+        # not race the emulator's boot (see `e2e/support/reset.ts`).
+        run: docker compose up -d --build --wait
 
       - name: Run E2E tests
         # The dev server runs on the host, so the proxy targets must be reachable

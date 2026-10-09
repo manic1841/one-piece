@@ -307,6 +307,12 @@ pnpm test:e2e
   `webServer` 只負責起 Vite dev server,`globalSetup` 負責對 emulator 執行
   `qa:init` / `qa:seed`,不另寫一份 seed。E2E 跑在 `demo-project`,integration
   跑在 `demo-integration`,兩層 namespace 不同(見「模擬器資料會被清空」)。
+- **等 emulator 就緒才動手**:`docker compose up -d` 在容器 *started* 即返回,不等
+  *healthy*,且 E2E 的 `globalSetup` 早於 spec 執行,所以 `e2e/support/reset.ts` 在
+  整庫 DELETE 前先以 curl 重試輪詢 emulator 位址(`--retry-connrefused`),等同
+  integration 的 `assertEmulatorsAvailable()`;CI 另以 `docker compose up --wait`
+  等容器 healthy(雙重保險)。本機對剛啟動的 emulator 跑 `pnpm test:e2e` 也靠這道
+  等待。
 - **會動狀態的 spec 自行 reset**:`qa:seed` 以 merge 寫入、**永不刪除** spec 新建的
   文件,因此關帳/重開等 spec 若沿用前一輪殘留的狀態,就無法單獨執行。這類 spec 在
   `beforeAll` 呼叫 `e2e/support/reset.ts` 的 reset(清空 Firestore → `qa:init` →

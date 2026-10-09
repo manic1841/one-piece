@@ -18,6 +18,42 @@ const deleteFirestoreData = (url: string): number => {
 };
 
 /**
+ * Wait until the Firestore emulator answers before touching it. `docker compose
+ * up -d` returns as soon as the container is *started*, not *healthy*, so in CI
+ * the reset would otherwise curl a port that is not listening yet and abort the
+ * whole run in `globalSetup`. curl's own retry flags give the synchronous wait
+ * the integration suite gets from `assertEmulatorsAvailable()`, and they also
+ * cover a locally-started emulator still booting.
+ */
+const waitForFirestore = (baseUrl: string): void => {
+  try {
+    execFileSync(
+      'curl',
+      [
+        '-sf',
+        '-o',
+        '/dev/null',
+        '--max-time',
+        '2',
+        '--retry',
+        '60',
+        '--retry-delay',
+        '1',
+        '--retry-connrefused',
+        '--retry-all-errors',
+        baseUrl,
+      ],
+      { encoding: 'utf8', stdio: ['ignore', 'ignore', 'ignore'] },
+    );
+  } catch {
+    throw new Error(
+      `E2E reset: Firestore emulator at ${baseUrl} did not become reachable. ` +
+        'Start the Firebase emulator before running E2E tests.',
+    );
+  }
+};
+
+/**
  * Full QA-environment reset for E2E: wipe the emulator's Firestore data, then
  * rebuild identity + seed (`qa:init` → `qa:seed`).
  *
@@ -34,7 +70,10 @@ const deleteFirestoreData = (url: string): number => {
  */
 export const resetQaEnvironment = (): void => {
   const { firestoreHost, firestorePort, projectId } = resolveEmulatorEnv();
-  const wipeUrl = `http://${firestoreHost}:${firestorePort}/emulator/v1/projects/${projectId}/databases/(default)/documents`;
+  const firestoreBaseUrl = `http://${firestoreHost}:${firestorePort}`;
+  const wipeUrl = `${firestoreBaseUrl}/emulator/v1/projects/${projectId}/databases/(default)/documents`;
+
+  waitForFirestore(firestoreBaseUrl);
 
   console.warn(
     `\n⚠️  E2E reset: wiping ALL Firestore data in emulator project "${projectId}" ` +
