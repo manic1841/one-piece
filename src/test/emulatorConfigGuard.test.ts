@@ -62,4 +62,16 @@ describe('emulator API-key agreement (issue #284)', () => {
     // look under a different `<apiKey>` and never see the injected session.
     expect(helper).not.toMatch(/AIzaSy/);
   });
+
+  it('makes the app fall back to the emulator key (never the production key) in emulator mode', () => {
+    const app = read('src/firebase.ts');
+    expect(extract(app, /const EMULATOR_API_KEY = '([^']+)'/, 'src/firebase.ts')).toBe(
+      EMULATOR_API_KEY,
+    );
+    // Outside emulator mode the production fallback must still be the real
+    // production key, not the emulator key.
+    expect(extract(app, /const PRODUCTION_API_KEY = '([^']+)'/, 'src/firebase.ts')).toBe(
+      extract(read('.env.production'), /^VITE_FIREBASE_API_KEY=(.+)$/m, '.env.production'),
+    );
+  });
 });
