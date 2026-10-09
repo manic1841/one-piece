@@ -77,13 +77,15 @@ const writeGoldenDataset = async (docs: SeedDoc[]): Promise<void> => {
   const chunkSize = 50;
   for (let i = 0; i < docs.length; i += chunkSize) {
     await Promise.all(
-      docs.slice(i, i + chunkSize).map((seedDoc) =>
-        setDoc(
-          doc(db, seedDoc.collectionPath, seedDoc.id),
-          toFirestoreValue(seedDoc.data) as DocumentData,
-          { merge: true },
+      docs
+        .slice(i, i + chunkSize)
+        .map((seedDoc) =>
+          setDoc(
+            doc(db, seedDoc.collectionPath, seedDoc.id),
+            toFirestoreValue(seedDoc.data) as DocumentData,
+            { merge: true },
+          ),
         ),
-      ),
     );
   }
 };
@@ -140,8 +142,7 @@ const buildOracle = (docs: SeedDoc[]): Oracle => {
     .filter((d) => /\/portfolios\/[^/]+\/snapshots$/.test(d.collectionPath) && d.id === PERIOD)
     .map((d) => ({
       portfolioId: /\/portfolios\/([^/]+)\/snapshots$/.exec(d.collectionPath)![1]!,
-      gain:
-        (d.data as { performance?: { gain?: number } }).performance?.gain ?? 0,
+      gain: (d.data as { performance?: { gain?: number } }).performance?.gain ?? 0,
     }));
 
   const fixtureReport = (type: ReportType, target: string): unknown =>
