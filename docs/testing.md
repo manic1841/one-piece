@@ -105,6 +105,20 @@ FIREBASE_AUTH_EMULATOR_HOST=http://firebase:9099 \
 pnpm test:integration src/test/firestoreRules.integration.test.ts
 ```
 
+#### 設定所有權(file-map)
+
+emulator 相關設定散在多個檔案;動到任何一項前,先確認它的單一來源,不要在別處再抄
+一份字面值——API key 漂移(PR #283)就是這樣發生的。
+
+| 設定                       | 單一來源                                                                         | 說明                                                                                                                                           |
+| -------------------------- | -------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| 連線位址(host/port)        | env `FIRESTORE_EMULATOR_HOST` / `FIREBASE_AUTH_EMULATOR_HOST`                    | 兩層測試與 admin 腳本都讀;未設時落 `127.0.0.1`。解析集中在 `scripts/shared/emulator-env.ts`(admin/QA)與 `src/test/emulatorEnv.ts`(integration) |
+| integration 專案 id        | `src/test/emulatorEnv.ts` 的 `INTEGRATION_FIREBASE_PROJECT_ID`(程式常數)         | 整庫 DELETE 的 namespace,**不讀** `FIREBASE_PROJECT_ID`(#208)                                                                                  |
+| dev/QA/E2E 專案 id         | `docker-compose.yml`(`FIREBASE_PROJECT_ID` / `VITE_FIREBASE_PROJECT_ID`)         | 預設 `demo-project`;E2E 另於 `test.yml` 顯式注入                                                                                               |
+| QA 身分(帳號/家戶/api key) | `scripts/qa/qa-identity.ts`(`QA_EMAIL` / `QA_HOUSEHOLD_ID` / `EMULATOR_API_KEY`) | `qa:init`、`qa:seed`、E2E session installer 共用                                                                                               |
+| app 的 emulator 開關       | `.env.development` 的 `VITE_FIRESTORE_EMULATOR`(compose app service 亦設 `true`) | 決定 `src/firebase.ts` 是否連 emulator                                                                                                         |
+| app 的 api key             | `.env.development` 的 `VITE_FIREBASE_API_KEY`                                    | 必須等於 `EMULATOR_API_KEY`;由 `src/test/emulatorConfigGuard.test.ts` 鎖定                                                                     |
+
 ### Firestore security rules 測試
 
 `src/test/firestoreRules.integration.test.ts` 使用
@@ -307,8 +321,8 @@ pnpm test:e2e
   `webServer` 只負責起 Vite dev server,`globalSetup` 負責對 emulator 執行
   `qa:init` / `qa:seed`,不另寫一份 seed。E2E 跑在 `demo-project`,integration
   跑在 `demo-integration`,兩層 namespace 不同(見「模擬器資料會被清空」)。
-- **等 emulator 就緒才動手**:`docker compose up -d` 在容器 *started* 即返回,不等
-  *healthy*,且 E2E 的 `globalSetup` 早於 spec 執行,所以 `e2e/support/reset.ts` 在
+- **等 emulator 就緒才動手**:`docker compose up -d` 在容器 _started_ 即返回,不等
+  _healthy_,且 E2E 的 `globalSetup` 早於 spec 執行,所以 `e2e/support/reset.ts` 在
   整庫 DELETE 前先以 curl 重試輪詢 emulator 位址(`--retry-connrefused`),等同
   integration 的 `assertEmulatorsAvailable()`;CI 另以 `docker compose up --wait`
   等容器 healthy(雙重保險)。本機對剛啟動的 emulator 跑 `pnpm test:e2e` 也靠這道
@@ -329,6 +343,9 @@ pnpm test:e2e
   亦即 `.env.development` / `docker-compose.yml` 的 `fake-api-key`)。**E2E 預設值
   不得退回生產 API key**——CI 的 `Run E2E tests` 步驟不注入 `VITE_FIREBASE_API_KEY`,
   若預設值不一致,app 會找不到 session,所有 spec 一起卡在登入閘。
+- **CI 不重試(`retries: 0`)**:smoke suite 決定性高,重試只會掩蓋第一次失敗,且在
+  全紅時把 job 的 `timeout-minutes` 燒完直到被 cancelled,害 `--log-failed` 變空
+  (issue #285,見 [qa-faq §13](qa-faq.md#13-ci-e2e-job-被-cancelled--log-failed-是空的))。
 - **gate 位置**:只在 PR 與 main push 跑(見 `test.yml`),不放進每次 push。
   決策取捨見 [ADR-0082](adr/0082-e2e-playwright-limited-critical-journeys.md)。
 

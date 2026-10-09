@@ -6,10 +6,21 @@ import { getStorage } from 'firebase/storage';
 
 import { FIRESTORE_PROXY_PATH } from '@/infra/emulatorEndpoints';
 
+// In emulator mode the API key MUST equal the E2E session installer's key
+// (`e2e/support/emulator.ts`): the Firebase SDK keys its persisted Auth entry as
+// `firebase:authUser:<apiKey>:…`, so a different value makes the app miss the
+// injected session and every E2E spec dies at the login gate (issue #284). The
+// emulator's public fake key is therefore the fallback in emulator mode; the
+// production key only ever applies outside it.
+const EMULATOR_API_KEY = 'fake-api-key';
+const PRODUCTION_API_KEY = 'AIzaSyCm6Bu5ibGuY-oQXYMeprq0FV9lhy3EFKo';
+const useEmulator = import.meta.env.VITE_FIRESTORE_EMULATOR === 'true';
+
 // Your web app's Firebase configuration
 // For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || 'AIzaSyCm6Bu5ibGuY-oQXYMeprq0FV9lhy3EFKo',
+  apiKey:
+    import.meta.env.VITE_FIREBASE_API_KEY || (useEmulator ? EMULATOR_API_KEY : PRODUCTION_API_KEY),
   authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || 'one-piece-4e822.firebaseapp.com',
   projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || 'one-piece-4e822',
   storageBucket:
@@ -25,11 +36,11 @@ const auth = getAuth(app);
 const storage = getStorage(app);
 let analytics;
 
-if (typeof window !== 'undefined' && import.meta.env.VITE_FIRESTORE_EMULATOR !== 'true') {
+if (typeof window !== 'undefined' && !useEmulator) {
   analytics = getAnalytics(app);
 }
 
-if (import.meta.env.VITE_FIRESTORE_EMULATOR === 'true') {
+if (useEmulator) {
   // Escape hatch for browsers that run inside the compose network and can resolve
   // the `firebase` service hostname themselves.
   const directHost = import.meta.env.VITE_FIREBASE_EMULATOR_HOST as string | undefined;
