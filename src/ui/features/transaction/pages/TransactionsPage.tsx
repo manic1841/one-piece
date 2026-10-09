@@ -235,12 +235,14 @@ const Transactions: React.FC = () => {
           ariaLabel={TRANSACTIONS_PAGE_SEARCH_LABEL}
         />
         <div className="flex w-full flex-wrap items-end gap-4 md:w-auto">
-          <FilterStrip
-            items={TRANSACTION_FILTER_ITEMS}
-            value={filterType}
-            onValueChange={setFilterType}
-            ariaLabel={TRANSACTIONS_PAGE_FILTER_LABEL}
-          />
+          <div className="md:pb-3">
+            <FilterStrip
+              items={TRANSACTION_FILTER_ITEMS}
+              value={filterType}
+              onValueChange={setFilterType}
+              ariaLabel={TRANSACTIONS_PAGE_FILTER_LABEL}
+            />
+          </div>
           <div className="md:pb-3">
             <TransactionPeriodPicker
               period={period}

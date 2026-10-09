@@ -268,7 +268,7 @@
   - **不要用於**：表單欄位列（用 `form` 套件）。
   - 範例：`src/ui/features/app/pages/GalleryLayout.tsx`、`src/ui/features/project/pages/ProjectsPage.tsx`
 
-- **`FilterStrip`** — 語意為 filter 的底線式篩選列。項目為原生 `button`，以 `aria-pressed` 標示選取；整列是具名的 `role="group"`。沿用 `tabs` 的觸發區 token（選中態 2px 底線以 `-mb-px` 咬住細線），但**細線由呼叫端的列提供**——本元件不畫自己的容器框線，因此可嵌進任何有底線的列。
+- **`FilterStrip`** — 語意為 filter 的按鈕切換列。項目為原生 `button`，以 `aria-pressed` 標示選取；整列是具名的 `role="group"`。未選中為 outline 按鈕、淡化字色；選中態＝primary 字色 ＋ 微抬升底色，框線不變。按鈕相連成一段：無 gap、按鈕之間無分隔線，整組只有兩端圓角與外側邊界。樣式以 `/gallery` 的 Filter Strip section 為準。
   - Props：`items`（`{ id, label }[]`，必填）、`value`（選取的 id）、`onValueChange`（必填）、`ariaLabel`（必填）、`className?`。
   - **不要用於**：切換內容區塊的 tab（用 `ui/tabs`）；需要 server-side 重載的資料範圍選擇（那是期間瀏覽，不是情境篩選）。
   - 範例：`src/ui/features/transaction/pages/TransactionsPage.tsx`、`src/ui/features/project/pages/ProjectsPage.tsx`、`src/ui/features/app/pages/GalleryFeedback.tsx`

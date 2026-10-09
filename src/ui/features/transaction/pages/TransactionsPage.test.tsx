@@ -132,7 +132,7 @@ describe('TransactionsPage system filter', () => {
     }
   });
 
-  it('marks the active option with aria-pressed and a bottom border', () => {
+  it('marks the active option with aria-pressed and the joined outline treatment', () => {
     mockUseTransactions.mockReturnValue({
       ...controllerBase,
       transactions: [
@@ -161,10 +161,10 @@ describe('TransactionsPage system filter', () => {
 
     const activeButton = screen.getByRole('button', { name: '融資' });
     expect(activeButton).toHaveAttribute('aria-pressed', 'true');
-    expect(activeButton.className).toContain('border-b');
+    expect(activeButton.className).toContain('aria-pressed:text-primary');
     expect(activeButton.className).not.toContain('rounded-full');
     expect(activeButton.className).not.toContain('bg-primary');
-    expect(activeButton.className).not.toContain('shadow');
+    expect(activeButton.className).not.toMatch(/shadow-(sm|md|lg|xl|2xl|inner)/);
   });
 
   it('shows filter-empty copy instead of the period-empty state when a search matches nothing', () => {

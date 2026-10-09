@@ -14,7 +14,6 @@ import { useAuthState } from '@/ui/contexts/useAuthState';
 import { ReportHistoryTable } from '@/ui/features/report/components/ReportHistoryTable';
 import { useReportHistory } from '@/ui/features/report/hooks/useReportHistory';
 import { type ReportGranularity } from '@/ui/features/report/viewmodels/reportHistory.vm';
-import { cn } from '@/ui/utils/cn';
 
 const MODE_ITEMS = [
   { id: 'MONTHLY', label: REPORT_LIST_LABELS.MODE_MONTHLY },
@@ -83,10 +82,8 @@ const ReportListPage: React.FC = () => {
 
           <PageSection>
             <div className="space-y-6">
-              <div className="flex items-end justify-between gap-4 border-b border-border">
-                <p className={cn(sectionTitleClass, 'pb-2')}>
-                  {REPORT_LIST_LABELS.HISTORY_SECTION_TITLE}
-                </p>
+              <div className="flex items-end justify-between gap-4 border-b border-border pb-2">
+                <p className={sectionTitleClass}>{REPORT_LIST_LABELS.HISTORY_SECTION_TITLE}</p>
                 <FilterStrip
                   items={MODE_ITEMS}
                   value={granularity}
