@@ -36,13 +36,9 @@ const stageStatus = (
   return stage.isCompleted ? 'COMPLETED' : 'WAITING';
 };
 
-const glyphTypeMap: Record<ClosePipelineStageStatus, 'active' | 'verified' | 'waiting' | 'review'> =
-  {
-    CURRENT: 'active',
-    COMPLETED: 'verified',
-    WAITING: 'waiting',
-    REVIEW: 'review',
-  };
+/** Green carries exactly one meaning in the pipeline: completed. Everything else shows its number. */
+const stepGlyphType = (status: ClosePipelineStageStatus): 'verified' | 'review' | null =>
+  status === 'COMPLETED' ? 'verified' : status === 'REVIEW' ? 'review' : null;
 
 const headerGlyphType = (isClosed: boolean, isPaused: boolean): 'active' | 'verified' | 'review' =>
   isClosed ? 'verified' : isPaused ? 'review' : 'active';
@@ -93,10 +89,12 @@ export const ClosePipeline: React.FC<ClosePipelineProps> = ({
         <ol
           id="close-pipeline-stages"
           aria-label="Close workflow pipeline"
-          className="grid grid-cols-1 gap-[7px] border-b border-border py-4 md:grid-cols-9 md:gap-[7px]"
+          className="grid grid-cols-1 gap-[7px] border-b border-border py-4 md:gap-[7px] md:[grid-template-columns:repeat(var(--pipeline-cols),minmax(0,1fr))]"
+          style={{ '--pipeline-cols': stages.length } as React.CSSProperties}
         >
           {stages.map((stage, index) => {
             const status = stageStatus(stage, currentStageId, isClosed, isPaused);
+            const glyphType = stepGlyphType(status);
             const isViewing = stage.stageId === viewingStageId;
             const completedIndex = stages.findIndex((item) => !item.isCompleted);
             const isBeforeCurrent =
@@ -125,8 +123,17 @@ export const ClosePipeline: React.FC<ClosePipelineProps> = ({
                     !clickable && 'cursor-not-allowed',
                   )}
                 >
-                  <StatusGlyph type={glyphTypeMap[status]} label="" className="shrink-0" />
-                  <span className="whitespace-nowrap font-semibold tracking-widest opacity-60">
+                  <StatusGlyph
+                    type={glyphType ?? 'waiting'}
+                    label=""
+                    className={cn('shrink-0', glyphType === null && 'opacity-0')}
+                  />
+                  <span
+                    className={cn(
+                      'whitespace-nowrap font-semibold tracking-widest',
+                      glyphType === null ? 'opacity-100' : 'opacity-0',
+                    )}
+                  >
                     {stepNumber(index)}
                   </span>
                   <span className="truncate font-medium">{getCloseStageLabel(stage.stageId)}</span>

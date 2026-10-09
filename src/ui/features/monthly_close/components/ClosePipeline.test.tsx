@@ -65,13 +65,17 @@ describe('ClosePipeline', () => {
 
     const list = screen.getByRole('list', { name: 'Close workflow pipeline' });
     expect(list).toBeInTheDocument();
+    expect(list).toHaveAttribute('style', expect.stringContaining('--pipeline-cols: 8'));
     expect(screen.getAllByRole('button')).toHaveLength(CLOSE_STAGE_ORDER.length + 1);
     expect(screen.getByRole('button', { name: /帳戶餘額/ })).toBeEnabled();
+    expect(screen.getByRole('button', { name: /帳戶餘額/ })).toHaveTextContent('✓');
     expect(screen.getByRole('button', { name: /證券買入／賣出/ })).toHaveAttribute(
       'aria-current',
       'step',
     );
+    expect(screen.getByRole('button', { name: /證券買入／賣出/ })).toHaveTextContent('02');
     expect(screen.getByRole('button', { name: /Portfolio 金流/ })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /Portfolio 金流/ })).toHaveTextContent('03');
 
     fireEvent.click(screen.getByRole('button', { name: /帳戶餘額/ }));
     expect(onSelectStage).toHaveBeenCalledWith('ACCOUNT_BALANCE');
