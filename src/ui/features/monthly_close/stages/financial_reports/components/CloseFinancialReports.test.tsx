@@ -89,6 +89,7 @@ const renderReports = (props?: Partial<Props>) =>
       isStageCompleted={false}
       reportsPersisted={false}
       showAdjustmentWarning={false}
+      hasDrift={false}
       {...props}
     />,
   );
@@ -245,6 +246,37 @@ describe('CloseFinancialReports', () => {
     expect(panel).toHaveTextContent('10:00');
     expect(panel).toHaveTextContent('10:01');
     expect(panel).toHaveTextContent('10:02');
+    expect(screen.queryByTestId('generate-reports')).not.toBeInTheDocument();
+  });
+
+  // ADR-0073: the Close Period drift block tells the user to come back here and
+  // regenerate. Hiding the action because the stage was already confirmed made
+  // that instruction a dead end, so drift re-opens it.
+  it('offers regeneration on a completed stage once its reports drifted', () => {
+    const onGenerate = vi.fn();
+    renderReports({
+      isStageCompleted: true,
+      reportsPersisted: true,
+      hasDrift: true,
+      onGenerate,
+    });
+
+    const panel = screen.getByTestId('reports-generated-panel');
+    expect(panel).toHaveTextContent(MONTHLY_CLOSE_LABELS.REPORTS_GENERATED);
+    expect(panel).toHaveTextContent(MONTHLY_CLOSE_LABELS.GENERATED_REPORTS_DRIFT_HINT);
+
+    const button = screen.getByTestId('generate-reports');
+    expect(button).toHaveTextContent(MONTHLY_CLOSE_LABELS.REGENERATE_REPORTS);
+    fireEvent.click(button);
+    expect(onGenerate).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not hint at drift on a completed stage whose reports still match', () => {
+    renderReports({ isStageCompleted: true, reportsPersisted: true, hasDrift: false });
+
+    expect(screen.getByTestId('reports-generated-panel')).not.toHaveTextContent(
+      MONTHLY_CLOSE_LABELS.GENERATED_REPORTS_DRIFT_HINT,
+    );
     expect(screen.queryByTestId('generate-reports')).not.toBeInTheDocument();
   });
 

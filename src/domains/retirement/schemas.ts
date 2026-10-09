@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 import { BaseSchema } from '@/shared/schemas/base';
+import { TimestampSchema } from '@/shared/schemas/date';
 
 // --- Categories and Enums ---
 
@@ -184,7 +185,7 @@ export const RetirementPlanCreateSchema = z.object({
       minSavings: z.number(),
       minSavingsYear: z.number(),
       isBankrupt: z.boolean(),
-      lastCalculatedAt: z.date(),
+      lastCalculatedAt: TimestampSchema,
     })
     .optional(),
 });

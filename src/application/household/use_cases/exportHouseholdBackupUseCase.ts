@@ -52,7 +52,8 @@ export interface HouseholdBackupPayload {
     allocationTemplates: unknown[];
     ledgerCodes: unknown[];
     intentMappings: unknown[];
-    financialPeriods: unknown[];
+    /** Optional: legacy schemaVersion-1 files may predate financial periods. */
+    financialPeriods?: unknown[];
   };
 }
 

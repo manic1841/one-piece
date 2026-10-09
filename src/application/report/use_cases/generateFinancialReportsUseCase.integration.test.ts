@@ -1,70 +1,12 @@
-import { collection, doc, getDocsFromServer, serverTimestamp, setDoc } from 'firebase/firestore';
+import { collection, getDocsFromServer } from 'firebase/firestore';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { generateFinancialReportsUseCase } from '@/application/report/use_cases/generateFinancialReportsUseCase';
 import { ReportType } from '@/domains/report/schemas';
 import { reportRepository } from '@/infra/repositories/reportRepository';
+import { TEST_USER as auth } from '@/test/factories';
 import { db, resetMockDb } from '@/test/mocks/firebase';
-
-const auth = { uid: 'user-1', email: 'user@example.com', isGlobalAdmin: true };
-
-const seedAccount = async (householdId: string, accountId: string) => {
-  await setDoc(doc(db, 'households', householdId, 'accounts', accountId), {
-    id: accountId,
-    name: `Account ${accountId}`,
-    category: 'cash',
-    currency: 'TWD',
-    order: 0,
-    isActive: true,
-    createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp(),
-    createdBy: 'user@example.com',
-    updatedBy: 'user@example.com',
-  });
-};
-
-const seedAccountSnapshot = async (
-  householdId: string,
-  accountId: string,
-  yearMonth: string,
-  amount: number,
-) => {
-  await setDoc(doc(db, 'households', householdId, 'accounts', accountId, 'snapshots', yearMonth), {
-    id: yearMonth,
-    accountId,
-    year: Number(yearMonth.split('-')[0]),
-    month: Number(yearMonth.split('-')[1]),
-    amount,
-    holdings: [],
-    createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp(),
-    createdBy: 'user@example.com',
-    updatedBy: 'user@example.com',
-  });
-};
-
-const seedTransaction = async (
-  householdId: string,
-  transactionId: string,
-  date: Date,
-  entries: { ledgerCode: string; debit: number; credit: number }[],
-) => {
-  await setDoc(doc(db, 'households', householdId, 'transactions', transactionId), {
-    id: transactionId,
-    date,
-    description: '',
-    intent: 'SALARY',
-    intentType: 'INCOME',
-    amount: 0,
-    projectId: null,
-    allocationId: null,
-    entries,
-    createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp(),
-    createdBy: 'user@example.com',
-    updatedBy: 'user@example.com',
-  });
-};
+import { seedAccount, seedAccountSnapshot, seedTransaction } from '@/test/seeds';
 
 describe('generateFinancialReportsUseCase — emulator integration', () => {
   let householdId: string;
@@ -80,13 +22,16 @@ describe('generateFinancialReportsUseCase — emulator integration', () => {
   it('generates, persists, and re-reads matching reports', async () => {
     // Seed settlement snapshots
     await seedAccount(householdId, 'acc-1');
-    await seedAccountSnapshot(householdId, 'acc-1', yearMonth, 5000);
+    await seedAccountSnapshot(householdId, 'acc-1', yearMonth, { amount: 5000 });
 
     // Seed a salary income transaction in March 2026
-    await seedTransaction(householdId, 'tx-1', new Date(2026, 2, 15), [
-      { ledgerCode: 'asset:cash', debit: 1000, credit: 0 },
-      { ledgerCode: 'income:salary', debit: 0, credit: 1000 },
-    ]);
+    await seedTransaction(householdId, 'tx-1', {
+      date: new Date(2026, 2, 15),
+      entries: [
+        { ledgerCode: 'asset:cash', debit: 1000, credit: 0 },
+        { ledgerCode: 'income:salary', debit: 0, credit: 1000 },
+      ],
+    });
 
     // Generate
     const result = await generateFinancialReportsUseCase.execute({
@@ -132,7 +77,7 @@ describe('generateFinancialReportsUseCase — emulator integration', () => {
 
   it('overwrites existing reports on regeneration', async () => {
     await seedAccount(householdId, 'acc-1');
-    await seedAccountSnapshot(householdId, 'acc-1', yearMonth, 5000);
+    await seedAccountSnapshot(householdId, 'acc-1', yearMonth, { amount: 5000 });
 
     await generateFinancialReportsUseCase.execute({ householdId, auth, year, month });
 

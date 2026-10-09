@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { IntentType } from '@/domains/ledger/constants';
 import { LEDGER_CODE_PATTERN } from '@/domains/ledger/ledgerCodeRules';
 import { BaseSchema } from '@/shared/schemas/base';
+import { TimestampSchema } from '@/shared/schemas/date';
 
 export type LedgerCode = string; // e.g. "asset:cash", "income:salary"
 
@@ -67,7 +68,7 @@ export const JournalEntryLineSchema = z.object({
 export type JournalEntryLine = z.infer<typeof JournalEntryLineSchema>;
 
 export const TransactionCreateSchema = z.object({
-  date: z.date(),
+  date: TimestampSchema,
   description: z.string().optional(),
   intentType: z.enum(IntentType).optional(),
   intent: z.string().optional(),

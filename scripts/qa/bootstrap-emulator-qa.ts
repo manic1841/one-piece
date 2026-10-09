@@ -8,7 +8,13 @@
 import admin from 'firebase-admin';
 
 import { applyEmulatorEnv } from '../shared/emulator-env';
-import { QA_DISPLAY_NAME, QA_EMAIL, QA_HOUSEHOLD_ID, QA_PASSWORD } from './qa-identity';
+import {
+  EMULATOR_API_KEY,
+  QA_DISPLAY_NAME,
+  QA_EMAIL,
+  QA_HOUSEHOLD_ID,
+  QA_PASSWORD,
+} from './qa-identity';
 
 // Resolve emulator targets from env vars (defaults to localhost) before SDK init.
 const emulator = applyEmulatorEnv();
@@ -152,14 +158,14 @@ const printSessionRecipe = (uid: string): void => {
     },
     createdAt: Date.now(),
     lastLoginAt: Date.now(),
-    apiKey: 'fake-api-key',
+    apiKey: EMULATOR_API_KEY,
     appName: '[DEFAULT]',
   };
   console.log('--------------------------------------------------');
   console.log('Browser session recipe (skip Google popup):');
   console.log('1. Open the app, then in DevTools console run:');
   console.log(
-    `localStorage.setItem('firebase:authUser:fake-api-key:[DEFAULT]', JSON.stringify(${JSON.stringify(
+    `localStorage.setItem('firebase:authUser:${EMULATOR_API_KEY}:[DEFAULT]', JSON.stringify(${JSON.stringify(
       session,
     )}))`,
   );

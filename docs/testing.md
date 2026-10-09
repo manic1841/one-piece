@@ -10,7 +10,7 @@
 | 單元測試 | `pnpm test`             | 否         | happy-dom 環境,驗證 domain、use case 與 UI 元件行為 |
 | 覆蓋率   | `pnpm test:coverage`    | 否         | 單元測試範圍的 text/JSON/HTML 報告                  |
 | 整合測試 | `pnpm test:integration` | 是         | 對 Firebase Emulator 驗證持久化與 security rules    |
-| E2E 測試 | 未導入(見下)            | 是         | 最小 browser smoke suite,屬 roadmap 最後階段        |
+| E2E 測試 | `pnpm test:e2e`         | 是         | Playwright 最小 browser smoke suite,涵蓋關鍵旅程    |
 
 ## 單元測試
 
@@ -26,6 +26,13 @@ pnpm test
 ```bash
 pnpm test:coverage
 ```
+
+### 元件測試 (UI)
+
+元件測試只服務於**有邏輯的表單與互動**(例如分配比例即時加總),不為純樣式、
+文案或 Tailwind class 撰寫斷言。這是前瞻性規則:既有行為測試保留,不受此限;
+**架構守門測試**(`design-contract.test.ts`、`layer-boundary.test.ts` 這類驗證
+跨檔契約的測試)**不算元件測試**,不受本節約束。
 
 ### 測試環境與轉譯(效能)
 
@@ -53,6 +60,23 @@ pnpm test:integration
   在 15 秒期限內重試等待 emulator 可連線，逾時才提早失敗。
 - 需要 Firestore (8080) 與 Auth (9099) 模擬器運行中。
 
+### 模擬器資料會被清空(unit 除外)
+
+兩層測試的 reset 都是對 emulator 專案發出整庫 DELETE,但**各清各的 namespace**,
+互不影響(issue #208):
+
+- **integration**:`resetMockDb()` 於每個 `beforeEach` 清空**整個 `demo-integration`
+  專案**——integration 專屬的 Firestore 專案,**不是** dev/QA/E2E 用的 `demo-project`。
+  清空後不還原,但因為只動自己的 namespace,跑完 `demo-project` 的 QA 資料完好。
+  `resetMockDb` 內建 guard:專案 id 非 `demo-integration` 即拒絕清空
+  (`src/test/emulatorEnv.ts` 的 `assertIntegrationProject`),環境變數無法把清空
+  導回 `demo-project`(專案 id 是程式常數,不讀 `FIREBASE_PROJECT_ID`)。
+- **E2E**:`e2e/support/reset.ts` 對 `demo-project` 發同一種整庫 DELETE,但**清空後
+  立刻** `qa:init` + `qa:seed`,環境停在已知良好狀態;執行時會**印出清空警告**,
+  不讓清空變成靜默副作用。
+
+`pnpm test`(unit)不使用 emulator,不受影響。
+
 ### 模擬器環境變數
 
 在 Docker dev stack 內,emulator host 是 service 名稱 `firebase`;本機以
@@ -62,22 +86,22 @@ pnpm test:integration
 # Docker dev stack 內
 FIRESTORE_EMULATOR_HOST=firebase:8080 \
 FIREBASE_AUTH_EMULATOR_HOST=http://firebase:9099 \
-FIREBASE_PROJECT_ID=demo-project \
 pnpm test:integration
 
 # 本機
 FIRESTORE_EMULATOR_HOST=127.0.0.1:8080 \
 FIREBASE_AUTH_EMULATOR_HOST=http://127.0.0.1:9099 \
-FIREBASE_PROJECT_ID=demo-project \
 pnpm test:integration
 ```
+
+integration 固定跑在專屬專案 `demo-integration`(`src/test/emulatorEnv.ts` 的常數),
+`FIREBASE_PROJECT_ID` 不影響它——只有連線位址讀環境變數。
 
 執行單一整合測試檔,附加路徑即可:
 
 ```bash
 FIRESTORE_EMULATOR_HOST=firebase:8080 \
 FIREBASE_AUTH_EMULATOR_HOST=http://firebase:9099 \
-FIREBASE_PROJECT_ID=demo-project \
 pnpm test:integration src/test/firestoreRules.integration.test.ts
 ```
 
@@ -117,12 +141,10 @@ snapshots 與三份財務報表)。腳本可重複執行(upsert,非 append)。
 資料窗口固定在 2025-01～2026-09,確保退休收入流的 sampleYear 與報表
 本期都有資料支撐。`operation` 集合不 seed(runtime 重試記錄)。
 
-Monthly close 種子寫入四個期間狀態形狀(見
-[monthly-close.md](monthly-close.md) §2):`2026-06` NEEDS_REVIEW
-(舊版完整性暫停遺留,`reviewSourceStageId = COMPLETENESS_CHECK`,
-ADR-0080)、`2026-07`/`2026-08` CLOSED
-(重開確認視窗與 ADR-0066 連鎖降級的目標)、`2026-09` IN_PROGRESS
-(前五階段完成)。`2026-05` 及更早不寫入紀錄(無紀錄 = 尚未開始關帳)。
+Monthly close 種子寫入三個期間狀態形狀(見
+[monthly-close.md](monthly-close.md) §2);期間矩陣與 `2026-09` 不寫入
+紀錄的原因見 [qa-seed-data.md](qa-seed-data.md) §4(種子的單一來源),
+本文件不複述。
 
 ### 瀏覽器 QA 環境注意事項
 
@@ -182,18 +204,136 @@ unit / integration / E2E 三層已足以覆蓋對外行為;多一條 seam 就多
 維護的抽象,卻不增加可觀察行為的覆蓋。只有在單一應用邊界經實作驗證仍無法暴露
 所需外部行為時,才新增 seam。
 
+## 覆蓋率政策
+
+覆蓋率門檻是**防退化**,不是一次達標的願望。政策:
+
+- **全域 ratchet**:門檻設在目前實測值,只允許往上調,不允許退步。
+- **`src/domains/**` 另設專屬門檻\*\*:風險真正集中在「數字算對」,domain 的門檻
+  高於全域並獨立往上收。
+- **UI 不設門檻**:避免為了衝數字而寫沒有意義的 render 斷言。
+
+具體百分比是會隨程式碼變動的值,只住在 `vitest.config.ts` 的
+`coverage.thresholds`,本文件不複述數字;「domain 高、UI 不設、只升不降」
+才是這裡要守的語意不變式。
+
+## 不變量與黃金資料集
+
+### 黃金資料集單一來源
+
+確定性的完整資料集由 `pnpm qa:seed` 提供(建構邏輯在 `scripts/qa/plan`),
+是**唯一來源**:報表與結算的測試從同一份 seed plan 讀資料,不另建 test-only
+的資料集,避免同一份事實有兩個家。
+
+預期數字一律**獨立手算**,不重算被測程式自己的算式——這延續
+`src/test/qaSeedPlan.test.ts` 的既有原則,讓斷言能抓到實作錯誤而非複述它。
+
+### 不變量
+
+以下四條以跑在黃金資料集上的**確定性 round-trip** 驗證,不引入 property-based
+測試框架:
+
+1. 每筆 Transaction 借方合計 = 貸方合計。
+2. 專案餘額可由 Transaction + Allocation 完整重算,與 Snapshot 一致。
+3. `currentBalance` 可由 entries 重算。
+4. 資產負債表永遠平衡(權益為推算值)。
+
+①在 `src/test/qaSeedPlan.test.ts`,②③④在 `src/test/qaSeedInvariants.test.ts`;
+每一條都走與產生 seed 文件**不同**的生產路徑重算,再與 seed 的結果比對。
+③只涵蓋視窗內有 entry 的債務帳戶(視窗外結清的帳戶其餘額無 entry 可推)。
+
+關帳**管線**不改變數字另有一條:黃金資料集走完 8 階段後,`financialReports`
+三張報表的總數仍等於以同一批快照餵報告計算器(`calculateIncomeStatement` /
+`calculateBalanceSheet` / `calculateCashFlow`)的輸出,見
+`monthlyCloseGoldenDataset.integration.test.ts`(#282)。這條鏈只有完整資料集
+(輸入 → payload → 持久化 → 報表)才串得起來,下層各段已分別被 unit 與既有
+integration 守住,故補在 integration 而非 E2E。
+
+## Fixture factory
+
+`src/test/factories/` 提供 `buildAccount()`、`buildTransaction()`、
+`buildDebtAccount()` 與各 snapshot builder:預設值合法、可用 `Partial` override、
+**不含 Firestore write**(純物件)。集合路徑與 `setDoc` 集中在 `src/test/seeds.ts`
+的 seed writer(薄薄一層包住 builder),跨檔重複的 seed helper 只留下單一檔案特有的
+參數形狀,集合路徑不再各自重寫。
+
 ## E2E 測試(瀏覽器)
 
-目前尚未導入 E2E 測試。E2E 是最後一層信心來源:在 complex hook 的 loading/error/retry/cancellation/
-double-submit coverage 完成後,加入最小 browser smoke suite,涵蓋:
+E2E 由 [Playwright](https://playwright.dev/) 驅動,是最後一層信心來源,
+驗證「使用者可完成關鍵旅程」,不取代 domain、application 與 Emulator boundary
+tests。刻意維持精簡;目前涵蓋的旅程如下(清單隨需求增減,不固定條數):
 
-- onboarding
-- transaction entry
-- monthly settlement
-- report viewing
+- 登入:白名單內可進、白名單外被擋。
+- 記收入 → 確認分配 → 目標專案該月收入增加(觀測點是專案 MONTHLY CASH FLOW 的
+  當月列:SUMMARY 固定為最近 12 個月合計、PROJECT BALANCE 是快照衍生值,
+  兩者都不是「即時增加」的觀測點,見 [visual-standards.md](ui/visual-standards.md))。
+- 記支出 → 交易列表出現(專案餘額同樣是快照衍生值,於結算時更新)。
+- 關帳:從「尚未開始關帳」的期間開始(seed 的 `2026-09`),依序走完 8 階段
+  (帳戶餘額 → … → Close Period)、正式關帳,報表歷史出現該期間。
+- 報表漂移阻擋關帳:關帳走完 8 階段後補記一筆落在該期間的支出,關帳畫面出現
+  `<persisted> -> <preview>` 漂移標註且關帳鈕停用;走漂移區塊的捷徑回到 Financial
+  Reports 重新產生報表後,漂移消失、關帳通過(ADR-0073,見
+  [monthly-close.md](monthly-close.md) §3)。
+- 預填／草稿的期間邊界:在 `2026-09`(測試自行按下「開始關帳」)的帳戶餘額輸入一組
+  可辨識的草稿值,切換期間至 `2026-08` 後,斷言該欄位是自己期間的數字——既非草稿、
+  也非另一期間的預填(`2026-08` 種子為 `CLOSED`,欄位唯讀並顯示該月快照,是這條
+  邊界最強的觀測形狀;CONTEXT §預填)。
+- 重開已關帳期間觸發連鎖降級:重開 `2026-07`(種子 `CLOSED`)後,該期間不再是 CLOSED、
+  退回 Financial Reports 待確認,既有已產生報表保留為比對基準;其後已關帳的 `2026-08`
+  轉為 `NEEDS_REVIEW`(ADR-0066)。狀態轉移與降級後的階段形狀由
+  `financial_period/stateMachine.test.ts` 與
+  `monthlyCloseWorkflowUseCase.integration.test.ts` 守;這條旅程守的是使用者實際看到的
+  跨期間畫面結果——cascade banner 由 `isCascadeDemoted` 分支渲染,下層不斷言畫面。
+- 備份匯出→還原:設定頁匯出時攔截瀏覽器下載取得檔案,補一筆落在 `2026-06` 的支出
+  (該月沒有專案快照,專案 MONTHLY CASH FLOW 讀的是即時分錄;有快照的
+  `2026-07`…`09` 讀的是凍結值),再以真實 file chooser 上傳原檔並確認對話框,斷言同一
+  列的數字回到備份當時、收入錨點不變。**下載／上傳這段檔案 plumbing 是 Playwright
+  獨有的 seam**;payload 本身的邏輯與 JSON round-trip 由
+  `householdBackupRestore.integration.test.ts` 守。
 
-定位:E2E 驗證「使用者可完成關鍵旅程」,不取代 domain、application 與
-Emulator boundary tests。導入時應更新本文件與 `package.json` 的 test scripts。
+專案間轉帳不在範圍(功能暫停,見 [ADR-0042](adr/0042-pause-project-transfer-feature.md));
+貸款、退休匯入、offline 等列為 backlog。
+
+### 執行方式與邊界
+
+```bash
+pnpm test:e2e
+```
+
+- **只跑 chromium,對 `pnpm dev`(Vite dev server)驅動**:沿用 `vite.config.ts`
+  既有的同源 emulator proxy。對 production preview 執行需另補 `preview:` proxy,
+  且 build artifact 的正確性已由 `tsc -b` 與 `vite build` 覆蓋,列為 backlog。
+- **emulator 由外部啟動**,與 integration test 的心智模型一致;Playwright 的
+  `webServer` 只負責起 Vite dev server,`globalSetup` 負責對 emulator 執行
+  `qa:init` / `qa:seed`,不另寫一份 seed。E2E 跑在 `demo-project`,integration
+  跑在 `demo-integration`,兩層 namespace 不同(見「模擬器資料會被清空」)。
+- **等 emulator 就緒才動手**:`docker compose up -d` 在容器 *started* 即返回,不等
+  *healthy*,且 E2E 的 `globalSetup` 早於 spec 執行,所以 `e2e/support/reset.ts` 在
+  整庫 DELETE 前先以 curl 重試輪詢 emulator 位址(`--retry-connrefused`),等同
+  integration 的 `assertEmulatorsAvailable()`;CI 另以 `docker compose up --wait`
+  等容器 healthy(雙重保險)。本機對剛啟動的 emulator 跑 `pnpm test:e2e` 也靠這道
+  等待。
+- **會動狀態的 spec 自行 reset**:`qa:seed` 以 merge 寫入、**永不刪除** spec 新建的
+  文件,因此關帳/重開等 spec 若沿用前一輪殘留的狀態,就無法單獨執行。這類 spec 在
+  `beforeAll` 呼叫 `e2e/support/reset.ts` 的 reset(清空 Firestore → `qa:init` →
+  `qa:seed`),使結果與執行順序無關;`globalSetup` 也用它建立首次的乾淨狀態。
+- **登入以 Auth emulator REST 取得 session 後注入 SDK 儲存**:走
+  `signInWithPassword` 拿 token,寫入 localStorage 與 IndexedDB(集中在
+  `e2e/support/auth.ts` 一個檔)。應用目前只有 Google popup 登入,容器內無法完成,
+  故不驅動登入頁;injection 只在 Playwright context 內生效,不進生產 bundle,且僅指向
+  本機 emulator(`demo-project`、公開假 API key、拋棄式 QA 帳號),不得指向生產專案。
+- **API key 必須與 app 一致,否則 session 靜默失效**:SDK 以
+  `firebase:authUser:<apiKey>:…` 為 key 保存 session,寫入端(`e2e/support/emulator.ts`
+  的 `APP_API_KEY`)與讀取端(app 的 `firebaseConfig.apiKey`)必須同值。兩端都優先讀
+  `VITE_FIREBASE_API_KEY`,預設同為 `EMULATOR_API_KEY`(`scripts/qa/qa-identity.ts`,
+  亦即 `.env.development` / `docker-compose.yml` 的 `fake-api-key`)。**E2E 預設值
+  不得退回生產 API key**——CI 的 `Run E2E tests` 步驟不注入 `VITE_FIREBASE_API_KEY`,
+  若預設值不一致,app 會找不到 session,所有 spec 一起卡在登入閘。
+- **gate 位置**:只在 PR 與 main push 跑(見 `test.yml`),不放進每次 push。
+  決策取捨見 [ADR-0082](adr/0082-e2e-playwright-limited-critical-journeys.md)。
+
+E2E 檔案住在根目錄 `e2e/`(非 `src/`,避免被 Vitest 的 `include` 與 `tsc -b` 誤收),
+設定在根目錄 `playwright.config.ts`。
 
 ## Docker 環境執行
 

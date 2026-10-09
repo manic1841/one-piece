@@ -43,13 +43,66 @@ jobs:
 
       - name: Start Firebase emulators
         working-directory: firebase-emulator
-        run: docker compose up -d --build
+        # `--wait` blocks until the container is healthy (the image ships a
+        # HEALTHCHECK), so the test job's own retry loop is not the only thing
+        # standing between a started-but-not-ready emulator and a red run.
+        run: docker compose up -d --build --wait
 
       - name: Run tests
         run: pnpm test
 
       - name: Run Firestore Emulator integration tests
         run: pnpm test:integration
+
+      - name: Stop Firebase emulators
+        if: always()
+        working-directory: firebase-emulator
+        run: docker compose down -v
+
+  # The smoke suite gates PRs and the main push only: PR is the merge gate and
+  # main is one step before live deploy. Running it on every push would only
+  # slow feature branches down (ADR-0082).
+  e2e:
+    if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck E2E
+        run: pnpm typecheck:e2e
+
+      - name: Install Playwright browser
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Start Firebase emulators
+        working-directory: firebase-emulator
+        # `--wait` blocks until the container is healthy, so the E2E reset does
+        # not race the emulator's boot (see `e2e/support/reset.ts`).
+        run: docker compose up -d --build --wait
+
+      - name: Run E2E tests
+        # The dev server runs on the host, so the proxy targets must be reachable
+        # localhost ports (the compose service name `firebase` is not resolvable here).
+        env:
+          FIRESTORE_EMULATOR_HOST: 127.0.0.1:8080
+          FIREBASE_AUTH_EMULATOR_HOST: http://127.0.0.1:9099
+          FIREBASE_PROJECT_ID: demo-project
+          VITE_FIRESTORE_EMULATOR: 'true'
+        run: pnpm test:e2e
 
       - name: Stop Firebase emulators
         if: always()

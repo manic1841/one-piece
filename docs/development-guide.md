@@ -64,7 +64,7 @@
 - **維護結構參考**: 如果修改了資料結構，更新 `docs/data-structure.md` 的欄位清單與 ADR 連結。
 - **保持 `docs/` 的準確性**: 主題文件說明現在如何運作，規範細節住在這裡；決策理由集中在 ADR。
 - **效能考量**: 避免在前端進行超大規模的資料處理與循環引用。
-- **備份/還原流程**: Settings 提供 household 等級的 JSON 備份與還原，限制為 household owner/admin（或 global admin）可執行。備份涵蓋 household 資料域全部集合：根文檔、四個含 snapshot 子集合的實體（accounts/projects/portfolios/debtAccounts）、retirement_plans（子集合內嵌於計畫文檔）、transactions、reports、allocations、allocationTemplates、ledgerCodes、intentMappings、financialPeriods；coverage 由 `backupCoverage.test.ts` 靜態掃描把關，新增集合未更新備份會讓測試失敗。三項設計排除：`operations`（冪等鍵紀錄，還原舊紀錄干擾重試與去重語意）、`users` 與 `access_control`（全域身分與存取層，隨備份還原有安全風險）。匯入以與匯出同組 domain schema 驗證 payload，驗證失敗即中止、不刪任何資料；刪除逐集合條件化，舊 v1 備份缺 `financialPeriods` 鍵時本地該集合不受影響。**已退役的集合**若仍出現在舊 v1 備份中，匯入時一律忽略（不還原、不刪除本地資料），取捨見 ADR-0080。還原信任備份值不重算衍生欄位，備份越舊其中的快取觀察值（debtAccount 餘額、專案快照餘額）越陳舊。
+- **備份/還原流程**: Settings 提供 household 等級的 JSON 備份與還原，限制為 household owner/admin（或 global admin）可執行。備份涵蓋 household 資料域全部集合：根文檔、四個含 snapshot 子集合的實體（accounts/projects/portfolios/debtAccounts）、retirement_plans（子集合內嵌於計畫文檔）、transactions、reports、allocations、allocationTemplates、ledgerCodes、intentMappings、financialPeriods；coverage 由 `backupCoverage.test.ts` 靜態掃描把關，新增集合未更新備份會讓測試失敗。三項設計排除：`operations`（冪等鍵紀錄，還原舊紀錄干擾重試與去重語意）、`users` 與 `access_control`（全域身分與存取層，隨備份還原有安全風險）。匯入以與匯出同組 domain schema 驗證 payload，驗證失敗即中止、不刪任何資料；刪除逐集合條件化，舊 v1 備份缺 `financialPeriods` 鍵時本地該集合不受影響。**備份檔是 JSON，其中的時間欄位到達匯入端時是 ISO 字串**：字串到時間的還原由 domain schema 上的共用 timestamp 型別負責（`src/shared/schemas/date.ts`），匯入寫回的是驗證後的解析結果而非原始 payload，因此「長得像時間」的字串欄位（如匯入來源的 `importedAt`）不會被誤判。**已退役的集合**若仍出現在舊 v1 備份中，匯入時一律忽略（不還原、不刪除本地資料），取捨見 ADR-0080。還原信任備份值不重算衍生欄位，備份越舊其中的快取觀察值（debtAccount 餘額、專案快照餘額）越陳舊。
 
 ### 文件分工：每份文件回答什麼問題
 
@@ -176,6 +176,8 @@ AI agent 修改或建立任何 UI 時，**必須**遵守：
 - `pnpm test`: 執行不依賴 Firebase Emulator 的 unit tests。
 - `pnpm test:coverage`: 對相同的 unit test 範圍產生 text、JSON 與 HTML coverage 報告。
 - `pnpm test:integration`: 執行需要 Firebase Emulator 的 integration tests；執行前會在期限內重試等待 emulator 可連線。
+- `pnpm test:e2e`: 執行 Playwright browser smoke suite（見 [測試指南](testing.md) §E2E）。需要外部啟動的 emulator 與 chromium，較慢且不進本地 commit pipeline；由 CI 的 `e2e` job 在 PR 與 main push 上把關（見 §7.1）。
+- `pnpm typecheck:e2e`: 驗證 E2E 測試檔（`e2e/`）與 `playwright.config.ts` 的 TypeScript。E2E 檔案不在 `src/`，因此不在 `tsc -b` 的 build graph 內，由本命令獨立把關；CI 的 `e2e` job 在跑 Playwright 前執行。
 - `pnpm exec tsc --noEmit -p tsconfig.test.json`: 驗證測試檔的 TypeScript project 設定與 `@/*` 路徑別名；此 project 也由 root solution reference，供 IDE 解析使用，並以 declaration-only、no-check 方式納入 build graph，不進行完整語意型別檢查。
 - `pnpm exec tsc -b`: 依 root solution 執行完整 build graph 型別檢查（正式程式碼）。
 - `pnpm lint`: 執行唯讀 ESLint 檢查。
@@ -189,7 +191,7 @@ AI agent 修改或建立任何 UI 時，**必須**遵守：
 
 GitHub Actions 位於 `.github/workflows/`：
 
-- **CI**（`test.yml`）：對 main/develop 的 push 與 PR 觸發。依序執行 `pnpm lint`、`pnpm docs:check`、`tsc -b`、unit tests、Firestore Emulator integration tests。CI 未含 format check——格式一致性由 `pnpm format` 在 commit 前承擔（見 §7 驗證命令）。Node 版本以 `.nvmrc`
+- **CI**（`test.yml`）：對 main/develop 的 push 與 PR 觸發。依序執行 `pnpm lint`、`pnpm docs:check`、`tsc -b`、unit tests、Firestore Emulator integration tests。另有獨立的 **`e2e` job**，只在 PR 與 main push 執行（chromium + Playwright，見 ADR-0082），不在每次 push 觸發。CI 未含 format check——格式一致性由 `pnpm format` 在 commit 前承擔(見 §7 驗證命令)。Node 版本以 `.nvmrc`
   為單一真相來源；依賴以 `--frozen-lockfile` 安裝並快取 pnpm store。同一分支的新
   push 會取消舊的執行（concurrency），整體逾時 20 分鐘。
 - **Deploy to Firebase Hosting on PR**（`firebase-hosting-pull-request.yml`）：

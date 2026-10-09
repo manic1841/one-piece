@@ -88,7 +88,6 @@ export const MONTHLY_CLOSE_LABELS = {
   REVIEWING: 'REVIEWING',
   CURRENT_STEP: '當前步驟',
   BACK_TO_CURRENT: '返回當前步驟',
-  RESOLVE_REVIEW: '審閱完畢，繼續關帳',
   FINALIZED: '本期已完成關帳',
   FINALIZED_SUBTITLE: 'FINALIZED',
   PAUSED: '已暫停，待審閱',
@@ -175,8 +174,10 @@ export const MONTHLY_CLOSE_LABELS = {
   SUMMARY_CLOSE_CONSEQUENCE:
     '重開此期間會使其後所有已關帳期間轉為待審閱（NEEDS REVIEW），恢復須逐期手動處理。',
   GENERATE_REPORTS: 'GENERATE REPORTS',
+  REGENERATE_REPORTS: 'REGENERATE REPORTS',
   REPORTS_GENERATED: 'REPORTS GENERATED',
   GENERATED_AT: '產生時間',
+  GENERATED_REPORTS_DRIFT_HINT: '報表產生後資料已變動；重新產生會以目前預覽覆寫。',
   EXISTING_REPORTS_WARNING: '此期間已有先前產生的報表；確認後將以目前預覽重新產生並覆寫。',
   PERSISTENCE_UNKNOWN_WARNING: '無法確認報表是否已產生，暫時無法產生報表，請重新載入後再試。',
   DRIFT_BLOCK_MESSAGE: `報表與已產生報表不一致，請先回到 ${CLOSE_STAGE_LABELS.FINANCIAL_REPORTS} 重新產生報表再關帳。`,

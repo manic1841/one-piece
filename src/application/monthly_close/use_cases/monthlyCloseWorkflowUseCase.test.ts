@@ -723,18 +723,33 @@ describe('MonthlyCloseWorkflowUseCase.confirmStage', () => {
     });
   });
 
-  // FINANCIAL_REPORTS is not reconfirmable, so once the stage is completed the
-  // UI hides its action; a direct re-confirm is refused rather than silently
-  // regenerating (#222).
-  it('rejects re-confirming the reports stage once it is completed', async () => {
+  // #222/ADR-0073: the reports stage is re-confirmable — a re-confirm
+  // regenerates all three reports from the current preview and overwrites them.
+  // The UI keeps the action hidden on a completed stage unless its reports
+  // drifted, so regeneration is always user-initiated, never silent.
+  it('regenerates the reports when the completed stage is re-confirmed', async () => {
     vi.mocked(getFinancialPeriodUseCase.execute).mockResolvedValue(
-      completeStage(basePeriod(), 'FINANCIAL_REPORTS'),
+      completeWalkStages(basePeriod()),
     );
 
-    await expect(
-      useCase.confirmStage({ ...REQUEST_BASE, stageId: 'FINANCIAL_REPORTS' }),
-    ).rejects.toMatchObject({ code: MonthlyCloseCommandErrorCode.STAGE_ALREADY_COMPLETED });
-    expect(generateFinancialReportsUseCase.execute).not.toHaveBeenCalled();
+    const { period } = await useCase.confirmStage({
+      ...REQUEST_BASE,
+      stageId: 'FINANCIAL_REPORTS',
+    });
+
+    expect(generateFinancialReportsUseCase.execute).toHaveBeenCalledWith({
+      householdId: 'household-1',
+      auth,
+      year: 2026,
+      month: 9,
+    });
+    expect(period.status).toBe('IN_PROGRESS');
+    expect(period.stages.FINANCIAL_REPORTS.status).toBe('COMPLETED');
+    expect(period.stages.FINANCIAL_REPORTS.confirmedAt).toBeInstanceOf(Date);
+    // Nothing else moves: regeneration is not a reset, so the walk stays on the
+    // Close Period stage the drift block is blocking (ADR-0073 shortcut).
+    expect(period.stages.CLOSE_PERIOD.status).toBe('PENDING');
+    expect(period.reviewSourceStageId).toBeNull();
   });
 
   it('rejects the reports stage while the period needs review before the walk position', async () => {

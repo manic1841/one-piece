@@ -101,18 +101,18 @@ describe('QA seed plan builder', () => {
     }
   });
 
-  it('seeds the four-shape monthly close matrix', () => {
+  it('seeds the monthly close matrix without a 2026-09 record', () => {
     const docs = buildQaSeedPlan(IDENTITY);
     const periods = docsUnder(docs, '/financialPeriods');
-    // 2026-06 paused, 2026-07/08 closed, 2026-09 active; nothing earlier.
-    expect(periods.map((p) => p.id).sort()).toEqual(['2026-06', '2026-07', '2026-08', '2026-09']);
+    // 2026-06 paused, 2026-07/08 closed. 2026-09 is left unstarted on purpose so
+    // the close-from-scratch E2E can create its record via 開始關帳 (issue #277).
+    expect(periods.map((p) => p.id).sort()).toEqual(['2026-06', '2026-07', '2026-08']);
 
     const byId = new Map(periods.map((p) => [p.id, p]));
     expect(byId.get('2026-06')!.data.status).toBe('NEEDS_REVIEW');
     expect(byId.get('2026-06')!.data.reviewSourceStageId).toBe('COMPLETENESS_CHECK');
     expect(byId.get('2026-07')!.data.status).toBe('CLOSED');
     expect(byId.get('2026-08')!.data.status).toBe('CLOSED');
-    expect(byId.get('2026-09')!.data.status).toBe('IN_PROGRESS');
 
     for (const period of periods) {
       const stages = period.data.stages as Record<string, { status: string; confirmedBy?: string }>;
@@ -131,9 +131,9 @@ describe('QA seed plan builder', () => {
       ).toBe(true);
     }
 
-    const active = byId.get('2026-09')!.data.stages as Record<string, { status: string }>;
-    expect(active.ACCOUNT_BALANCE.status).toBe('COMPLETED');
-    expect(active.CLOSE_PERIOD.status).toBe('PENDING');
+    // The unstarted month still has everything a close needs: reports exist.
+    const septemberReports = docsUnder(docs, '/reports').filter((d) => d.id.startsWith('2026-09'));
+    expect(septemberReports).toHaveLength(3);
   });
 
   it('seeds the multi-account story (issue #198): 5 accounts, snapshots 2026-01..09', () => {

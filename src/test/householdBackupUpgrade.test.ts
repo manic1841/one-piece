@@ -45,26 +45,9 @@ const hasFixture = existsSync(BACKUP_PATH);
 const loadBackup = (): HouseholdBackupPayload =>
   JSON.parse(readFileSync(BACKUP_PATH, 'utf8')) as HouseholdBackupPayload;
 
-const ISO_DATE_TIME_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z$/;
-
-// Mirrors the import path's reviveDates so schema date fields parse the way
-// Firestore restore would produce them.
-const reviveDates = (value: unknown): unknown => {
-  if (value instanceof Date) return value;
-  if (Array.isArray(value)) return value.map(reviveDates);
-  if (typeof value === 'string' && ISO_DATE_TIME_RE.test(value)) {
-    return new Date(value);
-  }
-  if (value && typeof value === 'object') {
-    const out: Record<string, unknown> = {};
-    Object.entries(value as Record<string, unknown>).forEach(([key, val]) => {
-      out[key] = reviveDates(val);
-    });
-    return out;
-  }
-  return value;
-};
-
+// Schemas parse the raw JSON as-is: persisted timestamps are ISO strings, and
+// the shared TimestampSchema accepts them and revives them to Date (issue #281).
+// There is no lexical revival step anywhere on the import path.
 const expectAllParse = (
   label: string,
   schema: { parse: (value: unknown) => unknown },
@@ -72,7 +55,7 @@ const expectAllParse = (
 ): void => {
   docs.forEach((doc, index) => {
     try {
-      schema.parse(reviveDates(doc));
+      schema.parse(doc);
     } catch (error) {
       throw new Error(`${label}[${index}] failed schema parse: ${(error as Error).message}`);
     }
@@ -147,8 +130,10 @@ describe('upgradeHouseholdBackup', () => {
       expect(income).not.toHaveProperty('baseAmount');
       expect(income).not.toHaveProperty('incomeCalculationMode');
       expect(income).not.toHaveProperty('derivedFrom');
-      // reviveDates would turn calculatedFrom.importedAt into a Date and fail
-      // the v1 schema's importedAt: string, so incomes omit calculatedFrom.
+      // calculatedFrom is dropped by the upgrade — it was removed when the old
+      // import-side date revival (since deleted, issue #281) turned its
+      // `importedAt` string into a Date — and the omission stays so this
+      // transform's output is frozen.
       expect(income).not.toHaveProperty('calculatedFrom');
     });
 
@@ -207,7 +192,7 @@ describe('upgradeHouseholdBackup', () => {
     const upgraded = upgradeHouseholdBackup(loadBackup());
     const c = upgraded.collections;
 
-    expect(() => HouseholdSchema.parse(reviveDates(upgraded.household))).not.toThrow();
+    expect(() => HouseholdSchema.parse(upgraded.household)).not.toThrow();
     expectAllParse(
       'accounts',
       AccountSchema,
@@ -256,16 +241,16 @@ describe('upgradeHouseholdBackup', () => {
     expectAllParse('intentMappings', IntentMappingSchema, c.intentMappings);
 
     const plan = c.retirementPlans[0];
-    expect(() => RetirementPlanSchema.parse(reviveDates(plan))).not.toThrow();
+    expect(() => RetirementPlanSchema.parse(plan)).not.toThrow();
     const planRecord = plan as Record<string, unknown>;
     (planRecord.incomes as unknown[]).forEach((income) =>
-      expect(() => RetirementIncomeSourceSchema.parse(reviveDates(income))).not.toThrow(),
+      expect(() => RetirementIncomeSourceSchema.parse(income)).not.toThrow(),
     );
     (planRecord.expenses as unknown[]).forEach((expense) =>
-      expect(() => RetirementExpenseCategorySchema.parse(reviveDates(expense))).not.toThrow(),
+      expect(() => RetirementExpenseCategorySchema.parse(expense)).not.toThrow(),
     );
     (planRecord.events as unknown[]).forEach((event) =>
-      expect(() => RetirementOneTimeEventSchema.parse(reviveDates(event))).not.toThrow(),
+      expect(() => RetirementOneTimeEventSchema.parse(event)).not.toThrow(),
     );
   });
 

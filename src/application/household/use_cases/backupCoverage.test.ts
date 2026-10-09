@@ -95,7 +95,8 @@ const literalBlockKeys = (block: string): string[] => {
     const isSeparator = (ch === ',' || ch === ';') && memberDepth === 0;
     if (isSeparator || i === block.length) {
       const member = block.slice(memberStart, i).trim();
-      const keyed = member.match(/^(\w+)\s*:/);
+      // A member may carry a leading comment and/or be optional (`key?:`).
+      const keyed = member.match(/^(?:\/\*[\s\S]*?\*\/|\/\/[^\n]*)?\s*(\w+)\s*\??\s*:/);
       if (keyed) {
         keys.push(keyed[1]);
       } else if (/^\w+$/.test(member)) {
