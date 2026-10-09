@@ -17,6 +17,7 @@
 10. [長跑 dev server 的 vite deps cache 過期 → App 不 mount](#10-長跑-dev-server-的-vite-deps-cache-過期--app-不-mount)
 11. [拖曳排序 handle 可見不等於 drop 可完成](#11-拖曳排序-handle-可見不等於-drop-可完成)
 12. [跑完 integration 後 QA 環境落 `/access-denied` → 是整庫清空不是資料壞](#12-跑完-integration-後-qa-環境落-access-denied--是整庫清空不是資料壞)
+13. [CI e2e job 被 cancelled → `--log-failed` 是空的](#13-ci-e2e-job-被-cancelled--log-failed-是空的)
 
 ## 1. REST-seeded 文件缺 base 欄位 → 頁面靜默吞錯
 
@@ -147,3 +148,13 @@
 **記錄自**:#208(2026-09-27,PR #202 live emulator 驗證發現)。
 
 **記錄自**:#120(2026-09-20)。
+
+## 13. CI e2e job 被 cancelled → `--log-failed` 是空的
+
+**症狀**:`gh run view <run> --log-failed` 什麼都不印,看起來像 CI 沒錄到錯誤;於是轉向本地重現,但本地環境不同(例如 dev container 有設 `VITE_FIREBASE_API_KEY`)又重現不出來。
+
+**根因**:GitHub Actions 的 `--log-failed` 只取 **failed** step 的 log;若 step 是被 **cancelled**(例如 Playwright 的 CI retries 把全紅 suite 的 wall-clock 拉長、撞上 job 的 `timeout-minutes`),cancelled ≠ failed,log 就是空的。CI retries 同時掩蓋第一次失敗,讓錯誤更晚才浮現。
+
+**判別法**:改用 `gh run view <job> --log | grep -nE "Error|passed|failed|Timeout"` 取完整輸出,不要只看 `--log-failed`。要本地重現要先對齊 CI 環境(例如 `VITE_FIREBASE_API_KEY` 未設)。現在 CI 已設 `retries: 0`,第一次失敗立即浮現,job 遠早於 timeout 結束。
+
+**記錄自**:#285(2026-10-09 retro)。

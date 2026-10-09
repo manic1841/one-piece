@@ -17,7 +17,11 @@ export default defineConfig({
   testDir: './e2e',
   fullyParallel: false,
   forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 1 : 0,
+  // No retries: a retry masks the first failure and, when the whole suite is
+  // red, burns the job's timeout-minutes until GitHub cancels the step — after
+  // which `gh run view --log-failed` prints nothing (issue #285). Failing on the
+  // first attempt surfaces the real error immediately and keeps the run short.
+  retries: 0,
   workers: 1,
   reporter: process.env.CI ? [['list'], ['html', { open: 'never' }]] : 'list',
   globalSetup: './e2e/global-setup.ts',
