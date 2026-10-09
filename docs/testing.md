@@ -62,15 +62,18 @@ pnpm test:integration
 
 ### 模擬器資料會被清空(unit 除外)
 
-**任何一層的測試 reset 都是對 emulator 專案發出整庫 DELETE**——單一事實,不是兩個
-各自獨立的地雷:
+兩層測試的 reset 都是對 emulator 專案發出整庫 DELETE,但**各清各的 namespace**,
+互不影響(issue #208):
 
-- **integration**:`resetMockDb()` 於每個 `beforeEach` 清空**整個** `demo-project`
-  的 Firestore 資料,**清空後不還原**,跑完 app 會落 `/access-denied`。要繼續手動
-  QA 得自行 `pnpm qa:init && pnpm qa:seed`。範圍設計見 issue #208。
-- **E2E**:`e2e/support/reset.ts` 用同一種整庫 DELETE,但**清空後立刻**
-  `qa:init` + `qa:seed`,環境停在已知良好狀態;執行時會**印出清空警告**,不讓清空
-  變成靜默副作用。
+- **integration**:`resetMockDb()` 於每個 `beforeEach` 清空**整個 `demo-integration`
+  專案**——integration 專屬的 Firestore 專案,**不是** dev/QA/E2E 用的 `demo-project`。
+  清空後不還原,但因為只動自己的 namespace,跑完 `demo-project` 的 QA 資料完好。
+  `resetMockDb` 內建 guard:專案 id 非 `demo-integration` 即拒絕清空
+  (`src/test/emulatorEnv.ts` 的 `assertIntegrationProject`),環境變數無法把清空
+  導回 `demo-project`(專案 id 是程式常數,不讀 `FIREBASE_PROJECT_ID`)。
+- **E2E**:`e2e/support/reset.ts` 對 `demo-project` 發同一種整庫 DELETE,但**清空後
+  立刻** `qa:init` + `qa:seed`,環境停在已知良好狀態;執行時會**印出清空警告**,
+  不讓清空變成靜默副作用。
 
 `pnpm test`(unit)不使用 emulator,不受影響。
 
@@ -83,22 +86,22 @@ pnpm test:integration
 # Docker dev stack 內
 FIRESTORE_EMULATOR_HOST=firebase:8080 \
 FIREBASE_AUTH_EMULATOR_HOST=http://firebase:9099 \
-FIREBASE_PROJECT_ID=demo-project \
 pnpm test:integration
 
 # 本機
 FIRESTORE_EMULATOR_HOST=127.0.0.1:8080 \
 FIREBASE_AUTH_EMULATOR_HOST=http://127.0.0.1:9099 \
-FIREBASE_PROJECT_ID=demo-project \
 pnpm test:integration
 ```
+
+integration 固定跑在專屬專案 `demo-integration`(`src/test/emulatorEnv.ts` 的常數),
+`FIREBASE_PROJECT_ID` 不影響它——只有連線位址讀環境變數。
 
 執行單一整合測試檔,附加路徑即可:
 
 ```bash
 FIRESTORE_EMULATOR_HOST=firebase:8080 \
 FIREBASE_AUTH_EMULATOR_HOST=http://firebase:9099 \
-FIREBASE_PROJECT_ID=demo-project \
 pnpm test:integration src/test/firestoreRules.integration.test.ts
 ```
 
@@ -302,7 +305,8 @@ pnpm test:e2e
   且 build artifact 的正確性已由 `tsc -b` 與 `vite build` 覆蓋,列為 backlog。
 - **emulator 由外部啟動**,與 integration test 的心智模型一致;Playwright 的
   `webServer` 只負責起 Vite dev server,`globalSetup` 負責對 emulator 執行
-  `qa:init` / `qa:seed`,不另寫一份 seed。
+  `qa:init` / `qa:seed`,不另寫一份 seed。E2E 跑在 `demo-project`,integration
+  跑在 `demo-integration`,兩層 namespace 不同(見「模擬器資料會被清空」)。
 - **會動狀態的 spec 自行 reset**:`qa:seed` 以 merge 寫入、**永不刪除** spec 新建的
   文件,因此關帳/重開等 spec 若沿用前一輪殘留的狀態,就無法單獨執行。這類 spec 在
   `beforeAll` 呼叫 `e2e/support/reset.ts` 的 reset(清空 Firestore → `qa:init` →

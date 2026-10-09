@@ -3,7 +3,12 @@ import { connectAuthEmulator, getAuth } from 'firebase/auth';
 import { connectFirestoreEmulator, doc, getFirestore } from 'firebase/firestore';
 import { vi } from 'vitest';
 
-import { authEmulator, emulatorProjectId, firestoreEmulator } from '../emulatorEnv';
+import {
+  assertIntegrationProject,
+  authEmulator,
+  emulatorProjectId,
+  firestoreEmulator,
+} from '../emulatorEnv';
 
 const firebaseConfig = {
   apiKey: 'AIzaSyCm6Bu5ibGuY-oQXYMeprq0FV9lhy3EFKo',
@@ -65,8 +70,15 @@ vi.mock('@/firebase', () => ({
   auth,
 }));
 
-// Provide a way to reset the DB for tests
+// Provide a way to reset the DB for tests.
+//
+// This wipes the WHOLE Firestore project, so it is scoped to the integration
+// suite's own project (intentionally not `demo-project`, the dev/QA/E2E one);
+// `assertIntegrationProject` fails loudly if that ever stops being true, and
+// unlike the E2E reset this does NOT restore afterwards (issue #208).
 export const resetMockDb = async () => {
+  assertIntegrationProject(emulatorProjectId);
+  console.warn(`\n⚠️  integration reset: wiping Firestore project "${emulatorProjectId}".\n`);
   try {
     const response = await fetch(
       `${firestoreEmulator.baseUrl}/emulator/v1/projects/${emulatorProjectId}/databases/(default)/documents`,

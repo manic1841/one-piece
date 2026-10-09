@@ -16,6 +16,7 @@
 9. [命名相近的標籤讓斷言誤判](#9-命名相近的標籤讓斷言誤判)
 10. [長跑 dev server 的 vite deps cache 過期 → App 不 mount](#10-長跑-dev-server-的-vite-deps-cache-過期--app-不-mount)
 11. [拖曳排序 handle 可見不等於 drop 可完成](#11-拖曳排序-handle-可見不等於-drop-可完成)
+12. [跑完 integration 後 QA 環境落 `/access-denied` → 是整庫清空不是資料壞](#12-跑完-integration-後-qa-環境落-access-denied--是整庫清空不是資料壞)
 
 ## 1. REST-seeded 文件缺 base 欄位 → 頁面靜默吞錯
 
@@ -132,5 +133,17 @@
 **判別法**:驗收拖曳排序要用「實際 drop 後順序改變」當驗收訊號,不能只驗 handle 存在/可見;手機路徑在 headless 用 real gesture 走一次,或 `fireEvent` 鍵盤三步加 rect mock。handle 可見性檢查通過不代表 AC 滿足。
 
 **記錄自**:#152(2026-09-22,code review Spec 軸發現;真實 Playwright 觸控拖放驗證修復)。
+
+## 12. 跑完 integration 後 QA 環境落 `/access-denied` → 是整庫清空不是資料壞
+
+**症狀**:跑一次 `pnpm test:integration` 後,app 落 `/access-denied`(whitelist 404、`memberUids` 空),整個 QA 環境像壞了;但程式碼沒動。
+
+**根因**:integration 與 E2E 的 reset 都是對 emulator 專案發**整庫 DELETE**。舊版 integration 跑在共用專案 `demo-project`,而且清完**不還原**,於是把 QA seed、whitelist、household 全清掉,環境停在壞狀態。這與程式碼錯誤的症狀很像,容易往資料層/datastore 找錯方向。
+
+**現在的防護**(issue #208):integration 改跑**專屬**專案 `demo-integration`(`src/test/emulatorEnv.ts` 的 `INTEGRATION_FIREBASE_PROJECT_ID`,程式常數、不讀 `FIREBASE_PROJECT_ID`),`demo-project` 只給 dev/QA/E2E。`resetMockDb` 的 `assertIntegrationProject` guard 會拒絕清任何其他專案。E2E 仍在 `demo-project`,但清完立刻 `qa:init` + `qa:seed` 還原。
+
+**判別法**:若 QA 環境仍疑似被清空,先確認搭的是哪個專案——integration 應只動 `demo-integration`,不應摸到 `demo-project`。要重建 `demo-project`:`pnpm qa:init && pnpm qa:seed`。
+
+**記錄自**:#208(2026-09-27,PR #202 live emulator 驗證發現)。
 
 **記錄自**:#120(2026-09-20)。
