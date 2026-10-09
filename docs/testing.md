@@ -322,6 +322,13 @@ pnpm test:e2e
   `e2e/support/auth.ts` 一個檔)。應用目前只有 Google popup 登入,容器內無法完成,
   故不驅動登入頁;injection 只在 Playwright context 內生效,不進生產 bundle,且僅指向
   本機 emulator(`demo-project`、公開假 API key、拋棄式 QA 帳號),不得指向生產專案。
+- **API key 必須與 app 一致,否則 session 靜默失效**:SDK 以
+  `firebase:authUser:<apiKey>:…` 為 key 保存 session,寫入端(`e2e/support/emulator.ts`
+  的 `APP_API_KEY`)與讀取端(app 的 `firebaseConfig.apiKey`)必須同值。兩端都優先讀
+  `VITE_FIREBASE_API_KEY`,預設同為 `EMULATOR_API_KEY`(`scripts/qa/qa-identity.ts`,
+  亦即 `.env.development` / `docker-compose.yml` 的 `fake-api-key`)。**E2E 預設值
+  不得退回生產 API key**——CI 的 `Run E2E tests` 步驟不注入 `VITE_FIREBASE_API_KEY`,
+  若預設值不一致,app 會找不到 session,所有 spec 一起卡在登入閘。
 - **gate 位置**:只在 PR 與 main push 跑(見 `test.yml`),不放進每次 push。
   決策取捨見 [ADR-0082](adr/0082-e2e-playwright-limited-critical-journeys.md)。
 

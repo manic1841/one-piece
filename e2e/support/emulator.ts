@@ -6,7 +6,12 @@
  * point these at a production Firebase project, and never reuse a real user's
  * session here.
  */
-import { QA_EMAIL, QA_HOUSEHOLD_ID, QA_PASSWORD } from '../../scripts/qa/qa-identity';
+import {
+  EMULATOR_API_KEY,
+  QA_EMAIL,
+  QA_HOUSEHOLD_ID,
+  QA_PASSWORD,
+} from '../../scripts/qa/qa-identity';
 import { resolveEmulatorEnv } from '../../scripts/shared/emulator-env';
 
 export { QA_EMAIL, QA_HOUSEHOLD_ID, QA_PASSWORD };
@@ -21,9 +26,14 @@ export const AUTH_EMULATOR_ORIGIN = emulatorTargets.authBaseUrl;
 
 export const EMULATOR_PROJECT_ID = emulatorTargets.projectId;
 
-/** Must equal the app's `firebaseConfig.apiKey`: it keys the Auth storage entry. */
-export const APP_API_KEY =
-  process.env.VITE_FIREBASE_API_KEY ?? 'AIzaSyCm6Bu5ibGuY-oQXYMeprq0FV9lhy3EFKo';
+/**
+ * Must equal the app's `firebaseConfig.apiKey`: it keys the Auth storage entry
+ * the session installer writes and the app reads. Mirrors the app's own
+ * resolution (env first, then the emulator's fake key) so the two agree in every
+ * environment — CI included, where no `VITE_FIREBASE_API_KEY` is exported. It
+ * must NEVER fall back to a real production key.
+ */
+export const APP_API_KEY = process.env.VITE_FIREBASE_API_KEY ?? EMULATOR_API_KEY;
 
 export interface EmulatorSession {
   email: string;
