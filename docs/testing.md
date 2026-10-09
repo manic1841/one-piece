@@ -239,6 +239,13 @@ unit / integration / E2E 三層已足以覆蓋對外行為;多一條 seam 就多
 每一條都走與產生 seed 文件**不同**的生產路徑重算,再與 seed 的結果比對。
 ③只涵蓋視窗內有 entry 的債務帳戶(視窗外結清的帳戶其餘額無 entry 可推)。
 
+關帳**管線**不改變數字另有一條:黃金資料集走完 8 階段後,`financialReports`
+三張報表的總數仍等於以同一批快照餵報告計算器(`calculateIncomeStatement` /
+`calculateBalanceSheet` / `calculateCashFlow`)的輸出,見
+`monthlyCloseGoldenDataset.integration.test.ts`(#282)。這條鏈只有完整資料集
+(輸入 → payload → 持久化 → 報表)才串得起來,下層各段已分別被 unit 與既有
+integration 守住,故補在 integration 而非 E2E。
+
 ## Fixture factory
 
 `src/test/factories/` 提供 `buildAccount()`、`buildTransaction()`、
