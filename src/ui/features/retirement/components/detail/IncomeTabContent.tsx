@@ -14,10 +14,12 @@ import {
   type RetirementIncomeSource,
 } from '@/ui/features/retirement/viewmodels/retirementDisplay.vm';
 
-import RetirementIncomeDialog from '../IncomeDialog';
+import { IncomeEntryEditor } from '../IncomeEntryEditor';
 
 interface IncomeTabContentProps {
   currentYear: number;
+  birthYear: number;
+  retirementAge: number;
   planInflationRate: number;
   incomeItems: Array<{ domain: RetirementIncomeSource; vm: RetirementIncomeItemVM }>;
   handleAddIncome: (data: Omit<RetirementIncomeSource, 'id'>) => Promise<void>;
@@ -28,6 +30,8 @@ interface IncomeTabContentProps {
 
 export const IncomeTabContent: React.FC<IncomeTabContentProps> = ({
   currentYear,
+  birthYear,
+  retirementAge,
   planInflationRate,
   incomeItems,
   handleAddIncome,
@@ -46,9 +50,11 @@ export const IncomeTabContent: React.FC<IncomeTabContentProps> = ({
             <Button variant="outline" size="sm" onClick={handleImportIncomeFromTransactions}>
               {RetirementTabContentLabels.importFromLedger}
             </Button>
-            <RetirementIncomeDialog
+            <IncomeEntryEditor
               onSave={handleAddIncome}
               currentYear={currentYear}
+              birthYear={birthYear}
+              retirementAge={retirementAge}
               planInflationRate={planInflationRate}
             />
           </>
@@ -73,9 +79,11 @@ export const IncomeTabContent: React.FC<IncomeTabContentProps> = ({
               </div>
               <RowActions
                 edit={
-                  <RetirementIncomeDialog
+                  <IncomeEntryEditor
                     onSave={(updates) => handleUpdateIncome(domain.id, updates)}
                     currentYear={currentYear}
+                    birthYear={birthYear}
+                    retirementAge={retirementAge}
                     planInflationRate={planInflationRate}
                     initialData={domain}
                     trigger={

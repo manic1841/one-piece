@@ -1,33 +1,36 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { type UseFormReturn, useForm, useWatch } from 'react-hook-form';
 import { ZodError } from 'zod';
 
 import type { RetirementIncomeSource } from '@/domains/retirement/types';
-import { RetirementIncomeDialogLabels } from '@/ui/constants/retirement/incomeDialogLabels';
+import { showToast } from '@/ui/components/Toast';
+import {
+  RetirementEntryEditorLabels as L,
+  RetirementGrowthReadoutLabels,
+} from '@/ui/constants/retirement/retirementWorkspaceLabels';
 import {
   type RetirementIncomeFormInput,
   type RetirementIncomeFormVM,
   RetirementIncomeFormVMSchema,
   buildRetirementIncomeFormInput,
+  defaultIncomeEndCondition,
   mapRetirementIncomeVMToDomain,
 } from '@/ui/features/retirement/viewmodels/retirementForm.vm';
 
-import {
-  deriveRetirementDurationText,
-  deriveRetirementGrowthText,
-  useRetirementDialogForm,
-} from './useRetirementDialogForm';
+import { deriveRetirementGrowthText, useRetirementDialogForm } from './useRetirementDialogForm';
 
-interface UseRetirementIncomeDialogOptions {
+interface UseRetirementIncomeEditorOptions {
   initialData?: RetirementIncomeSource;
   currentYear: number;
+  birthYear: number;
+  retirementAge: number;
   planInflationRate: number;
   onSave: (income: Omit<RetirementIncomeSource, 'id'>) => Promise<void>;
 }
 
-export interface RetirementIncomeDialogHook {
+export interface RetirementIncomeEditorHook {
   open: boolean;
   setOpen: (value: boolean) => void;
   loading: boolean;
@@ -35,51 +38,65 @@ export interface RetirementIncomeDialogHook {
   form: UseFormReturn<RetirementIncomeFormInput, unknown, RetirementIncomeFormVM>;
   /** Import-derived annual, shown read-only. Not a form field. */
   currentAnnual: number | null;
-  /** Derived readouts (previews), not RHF fields. */
+  /** Derived growth readout (preview), not an RHF field. */
   growthText: string;
-  durationText: string;
+  /** Import provenance label, or null when the row was not imported. */
+  importSourceText: string | null;
   submitError: string | null;
   handleSubmit: (event: React.FormEvent) => void;
 }
 
+const importSourceText = (income?: RetirementIncomeSource): string | null =>
+  income?.incomeCategory ?? income?.calculatedFrom?.ledgerCode ?? null;
+
 /**
- * Controller for the income dialog (ADR-0064). RHF owns the editable fields;
- * the growth/duration readouts are derived here, outside RHF. Submit runs the
- * authoritative `Schema.parse` gate before the mapper and the use case.
+ * Controller for the income side editor (ADR-0064). RHF owns the editable fields;
+ * the growth readout is derived here, outside RHF. Submit runs the authoritative
+ * `Schema.parse` gate before the mapper collapses the end-condition semantics.
  */
-export function useRetirementIncomeDialog({
+export function useRetirementIncomeEditor({
   initialData,
   currentYear,
+  birthYear,
+  retirementAge,
   planInflationRate,
   onSave,
-}: UseRetirementIncomeDialogOptions): RetirementIncomeDialogHook {
-  const initialForm = buildRetirementIncomeFormInput(initialData, currentYear);
+}: UseRetirementIncomeEditorOptions): RetirementIncomeEditorHook {
+  const retirementYear = birthYear + retirementAge;
+  const buildInput = (): RetirementIncomeFormInput =>
+    buildRetirementIncomeFormInput(initialData, { currentYear, retirementYear });
 
   const form = useForm<RetirementIncomeFormInput, unknown, RetirementIncomeFormVM>({
     resolver: zodResolver(RetirementIncomeFormVMSchema),
     mode: 'onTouched',
-    defaultValues: initialForm,
+    defaultValues: buildInput(),
   });
 
   const [submitError, setSubmitError] = useState<string | null>(null);
 
   const { open, setOpen, loading, setLoading } = useRetirementDialogForm({
     resetOnOpen: () => {
-      form.reset(buildRetirementIncomeFormInput(initialData, currentYear));
+      form.reset(buildInput());
       setSubmitError(null);
     },
   });
 
-  const watched = useWatch({ control: form.control });
-  const values = (watched ?? initialForm) as RetirementIncomeFormInput;
+  // Create mode: keep the end-condition default in step with the selected type
+  // (Salary → 退休時結束; 其餘 → 持續至預期壽命). Editing never rewrites semantics.
+  const type = useWatch({ control: form.control, name: 'type' });
+  const previousType = useRef(type);
+  useEffect(() => {
+    if (initialData || type === previousType.current) return;
+    previousType.current = type;
+    form.setValue('endCondition', defaultIncomeEndCondition(type ?? 'salary'));
+  }, [type, initialData, form]);
 
-  // Derived readouts (previews): the form holds what the user typed, the shared
-  // base derives the display value. Neither is an RHF field.
-  const durationText = deriveRetirementDurationText(values, RetirementIncomeDialogLabels);
+  const watched = useWatch({ control: form.control });
+  const values = (watched ?? buildInput()) as RetirementIncomeFormInput;
   const growthText = deriveRetirementGrowthText(
     values.growthRate,
     planInflationRate,
-    RetirementIncomeDialogLabels,
+    RetirementGrowthReadoutLabels,
   );
 
   const onSubmit = form.handleSubmit(async () => {
@@ -89,13 +106,16 @@ export function useRetirementIncomeDialog({
     try {
       // The resolver only drives field display; this parse is the gate.
       const parsed = RetirementIncomeFormVMSchema.parse(form.getValues());
-      // Lifelong supersedes any end year left behind in the field.
-      const vm: RetirementIncomeFormVM = parsed.lifelong
-        ? { ...parsed, endYear: undefined }
-        : parsed;
       // Import provenance (calculatedFrom/incomeCategory) rides along untouched:
       // an edit never destroys the ledger link (issue #133).
-      await onSave(mapRetirementIncomeVMToDomain(vm));
+      await onSave(
+        mapRetirementIncomeVMToDomain(parsed, {
+          birthYear,
+          retirementYear,
+          retirementAnnual: initialData?.retirementAnnual,
+        }),
+      );
+      showToast(L.savedIncome);
       setOpen(false);
     } catch (error) {
       if (error instanceof ZodError) {
@@ -122,9 +142,9 @@ export function useRetirementIncomeDialog({
     loading,
     form,
     // Read-only passthrough from the domain: edits never touch the import.
-    currentAnnual: initialForm.currentAnnual ?? null,
+    currentAnnual: initialData?.currentAnnual ?? null,
     growthText,
-    durationText,
+    importSourceText: importSourceText(initialData),
     submitError,
     handleSubmit,
   };

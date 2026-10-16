@@ -199,6 +199,8 @@ const RetirementPlanForm: React.FC = () => {
           <PageSection title={RetirementWorkspaceSectionLabels.income}>
             <IncomeTabContent
               currentYear={plan.currentYear}
+              birthYear={plan.birthYear}
+              retirementAge={plan.retirementAge}
               planInflationRate={plan.inflationRate}
               incomeItems={incomeItems}
               handleAddIncome={handleAddIncome}
@@ -211,6 +213,8 @@ const RetirementPlanForm: React.FC = () => {
           <PageSection title={RetirementWorkspaceSectionLabels.expenses}>
             <ExpenseTabContent
               currentYear={plan.currentYear}
+              birthYear={plan.birthYear}
+              retirementAge={plan.retirementAge}
               planInflationRate={plan.inflationRate}
               expenseItems={expenseItems}
               handleAddExpense={handleAddExpense}

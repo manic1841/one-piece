@@ -11,6 +11,10 @@ import {
 } from '@/domains/retirement/types';
 import { optionalNumber, requiredNumber } from '@/shared/schemas/coerce';
 import { RetirementFormValidationLabels as M } from '@/ui/constants/retirement/formValidationLabels';
+import {
+  type RetirementEndCondition,
+  RetirementEndConditionLabels,
+} from '@/ui/constants/retirement/retirementWorkspaceLabels';
 
 import {
   type RetirementAssumptionsDisplayVM,
@@ -25,6 +29,74 @@ export type {
   RetirementPlan,
   RetirementPlanCreate,
 };
+
+export type { RetirementEndCondition };
+
+/**
+ * 結束語意的回推（保守）：`lifelong` 或未設 `endYear` → 持續至預期壽命；
+ * `endYear === 退休年` → 退休時結束；其餘 → 指定年份。
+ * 「指定年齡」不回推（不保證 round-trip）。
+ */
+export const deriveRetirementEndCondition = (
+  data: { lifelong?: boolean; endYear?: number | null },
+  retirementYear: number,
+): RetirementEndCondition => {
+  if (data.lifelong || data.endYear == null) return 'lifelong';
+  return data.endYear === retirementYear ? 'retirement' : 'year';
+};
+
+/** 語意 → 顯示標籤（純函式即時推導）。 */
+export const retirementEndConditionText = (
+  condition: RetirementEndCondition,
+  value?: string | number,
+): string => {
+  const numeric = value === '' || value == null ? null : value;
+  if (condition === 'age' && numeric != null) return `指定年齡 ${numeric}`;
+  if (condition === 'year' && numeric != null) return `指定年份 ${numeric}`;
+  return RetirementEndConditionLabels[condition];
+};
+
+/** 收入類型的預設結束語意：Salary → 退休時結束；其餘 → 持續至預期壽命。 */
+export const defaultIncomeEndCondition = (
+  type: 'salary' | 'bonus' | 'pension' | 'rent' | 'other',
+): RetirementEndCondition => (type === 'salary' ? 'retirement' : 'lifelong');
+
+/**
+ * 編輯時選、儲存時塌縮：四語意 → 具體 `{ lifelong, endYear }`。
+ * 「指定年齡 N」以 `birthYear` 轉成絕對年份；`startYear` 不帶語意。
+ */
+export const collapseRetirementEndCondition = (
+  condition: RetirementEndCondition,
+  value: string | number | undefined,
+  { birthYear, retirementYear }: { birthYear: number; retirementYear: number },
+): { lifelong: boolean; endYear?: number } => {
+  if (condition === 'lifelong') return { lifelong: true };
+  if (condition === 'retirement') return { lifelong: false, endYear: retirementYear };
+  const numeric = Number(value);
+  return {
+    lifelong: false,
+    endYear: condition === 'age' ? birthYear + numeric : numeric,
+  };
+};
+
+/** 需輸入數值（年齡或年份）的語意。 */
+const needsEndConditionValue = (condition: RetirementEndCondition): boolean =>
+  condition === 'age' || condition === 'year';
+
+const isIntegerText = (value: string | undefined): boolean =>
+  value != null && value !== '' && Number.isInteger(Number(value));
+
+/** 側邊編輯器需要的時間錨點（由 plan 假設推導）。 */
+export interface RetirementEntryAnchor {
+  birthYear: number;
+  retirementYear: number;
+}
+
+/** 表單初始化需要的年份（不需要 birthYear）。 */
+export interface RetirementEntryBuildAnchor {
+  currentYear?: number;
+  retirementYear: number;
+}
 
 const currentYear = () => new Date().getFullYear();
 
@@ -42,82 +114,106 @@ const blank = (value: number | null | undefined): string =>
 const requiredYear = (message: string) =>
   requiredNumber(message).refine((value) => Number.isInteger(value), { error: message });
 
-export const RetirementIncomeFormVMSchema = z.object({
-  name: z.string().min(1, M.name),
-  // Import provenance, carried read-only through the form: an edit must never
-  // destroy the ledger link (#133), so it rides along in the form values.
-  calculatedFrom: z
-    .object({
-      ledgerCode: z.string().optional(),
-      sampleYear: z.number().int(),
-      totalAmount: z.number().finite(),
-      monthlyAverage: z.number().finite(),
-      sampleCount: z.number().int().positive(),
-      importedAt: z.string().min(1),
-    })
-    .optional(),
-  incomeCategory: z.string().optional(),
-  type: z.enum(['salary', 'bonus', 'pension', 'rent', 'other']),
-  lifelong: z.boolean().default(false),
-  /** Import-derived; shown read-only. */
-  currentAnnual: z.number().finite().nullable(),
-  retirementAnnual: optionalNumber(M.validAmount),
-  growthRate: optionalNumber(M.growthRate),
-  startYear: requiredYear(M.startYear),
-  endYear: optionalNumber(M.endYear),
-  note: z.string().optional(),
-});
+export const RetirementIncomeFormVMSchema = z
+  .object({
+    name: z.string().min(1, M.name),
+    // Import provenance, carried read-only through the form: an edit must never
+    // destroy the ledger link (#133), so it rides along in the form values.
+    calculatedFrom: z
+      .object({
+        ledgerCode: z.string().optional(),
+        sampleYear: z.number().int(),
+        totalAmount: z.number().finite(),
+        monthlyAverage: z.number().finite(),
+        sampleCount: z.number().int().positive(),
+        importedAt: z.string().min(1),
+      })
+      .optional(),
+    incomeCategory: z.string().optional(),
+    type: z.enum(['salary', 'bonus', 'pension', 'rent', 'other']),
+    /** Import-derived; shown read-only. */
+    currentAnnual: z.number().finite().nullable(),
+    growthRate: optionalNumber(M.growthRate),
+    startYear: requiredYear(M.startYear),
+    /** 結束條件語意（編輯時選、儲存時塌縮為 endYear／lifelong）。 */
+    endCondition: z.enum(['retirement', 'age', 'year', 'lifelong']),
+    /** 指定年齡或指定年份的原始輸入（字串邊界，ADR-0065）。 */
+    endConditionValue: z.string().optional(),
+    note: z.string().optional(),
+  })
+  .superRefine((value, ctx) => {
+    if (needsEndConditionValue(value.endCondition) && !isIntegerText(value.endConditionValue)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: M.endConditionValue,
+        path: ['endConditionValue'],
+      });
+    }
+  });
 
 export type RetirementIncomeFormInput = z.input<typeof RetirementIncomeFormVMSchema>;
 export type RetirementIncomeFormVM = z.output<typeof RetirementIncomeFormVMSchema>;
 
 export const buildRetirementIncomeFormInput = (
   domain: RetirementIncomeSource | undefined,
-  currentYearValue = currentYear(),
+  { currentYear: currentYearValue = currentYear(), retirementYear }: RetirementEntryBuildAnchor,
 ): RetirementIncomeFormInput => {
   if (!domain) {
     return {
       name: '',
       type: 'salary',
-      lifelong: false,
       currentAnnual: null,
-      retirementAnnual: '',
       growthRate: '',
       startYear: String(currentYearValue),
-      endYear: String(currentYearValue + 20),
+      endCondition: 'retirement',
+      endConditionValue: '',
     };
   }
 
+  const endCondition = deriveRetirementEndCondition(domain, retirementYear);
   return {
     name: domain.name,
     calculatedFrom: domain.calculatedFrom,
     incomeCategory: domain.incomeCategory,
     type: domain.type,
-    lifelong: domain.lifelong ?? false,
     currentAnnual: domain.currentAnnual,
-    retirementAnnual: blank(domain.retirementAnnual),
     growthRate: blank(domain.growthRate),
     startYear: String(domain.startYear),
-    endYear: blank(domain.endYear),
+    endCondition,
+    endConditionValue: endCondition === 'year' ? String(domain.endYear ?? '') : '',
     note: domain.note,
   };
 };
 
 export const mapRetirementIncomeVMToDomain = (
   vm: RetirementIncomeFormVM,
-): Omit<RetirementIncomeSource, 'id'> => ({
-  name: vm.name,
-  ...(vm.calculatedFrom && { calculatedFrom: vm.calculatedFrom }),
-  ...(vm.incomeCategory && { incomeCategory: vm.incomeCategory }),
-  type: vm.type,
-  lifelong: vm.lifelong,
-  currentAnnual: vm.currentAnnual,
-  ...(vm.retirementAnnual !== undefined && { retirementAnnual: vm.retirementAnnual }),
-  ...(vm.growthRate !== undefined && { growthRate: vm.growthRate }),
-  startYear: vm.startYear,
-  ...(typeof vm.endYear === 'number' && { endYear: vm.endYear }),
-  ...(vm.note && { note: vm.note }),
-});
+  {
+    birthYear,
+    retirementYear,
+    retirementAnnual,
+  }: RetirementEntryAnchor & {
+    retirementAnnual?: number;
+  },
+): Omit<RetirementIncomeSource, 'id'> => {
+  const collapsed = collapseRetirementEndCondition(vm.endCondition, vm.endConditionValue, {
+    birthYear,
+    retirementYear,
+  });
+  return {
+    name: vm.name,
+    ...(vm.calculatedFrom && { calculatedFrom: vm.calculatedFrom }),
+    ...(vm.incomeCategory && { incomeCategory: vm.incomeCategory }),
+    type: vm.type,
+    lifelong: collapsed.lifelong,
+    currentAnnual: vm.currentAnnual,
+    // 退休後水準退出 UI：保留既有值，不由表單改寫（架構不變）。
+    ...(retirementAnnual !== undefined && { retirementAnnual }),
+    ...(vm.growthRate !== undefined && { growthRate: vm.growthRate }),
+    startYear: vm.startYear,
+    ...(collapsed.endYear !== undefined && { endYear: collapsed.endYear }),
+    ...(vm.note && { note: vm.note }),
+  };
+};
 
 export const RetirementExpenseFormVMSchema = z
   .object({
@@ -141,20 +237,19 @@ export const RetirementExpenseFormVMSchema = z
     expenseCategory: z.string().optional(),
     currentAnnual: requiredNumber(M.currentAnnual),
     growthRate: optionalNumber(M.growthRate),
-    retirementMultiplier: requiredNumber(M.retirementMultiplier), // stored as 0–100 in the form
     startYear: requiredYear(M.startYear),
-    endYear: z.string().optional(),
+    /** 結束條件語意；Debt Payment 固定為 `year`（endYear 由匯入）。 */
+    endCondition: z.enum(['retirement', 'age', 'year', 'lifelong']),
+    endConditionValue: z.string().optional(),
     note: z.string().optional(),
   })
   .superRefine((value, ctx) => {
-    // A debt-payment category inherits its end date from the repayment schedule,
-    // so the field is required for that category only. Cross-field rule, so it
-    // lives in the schema rather than in the component.
-    if (value.type === RetirementExpenseType.DEBT_PAYMENT && !value.endYear) {
+    // 指定年齡／指定年份需要具體數值；Debt Payment 的年份由匯入帶入，同樣走這裡。
+    if (needsEndConditionValue(value.endCondition) && !isIntegerText(value.endConditionValue)) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message: M.endYear,
-        path: ['endYear'],
+        message: M.endConditionValue,
+        path: ['endConditionValue'],
       });
     }
   });
@@ -164,22 +259,23 @@ export type RetirementExpenseFormVM = z.output<typeof RetirementExpenseFormVMSch
 
 export const buildRetirementExpenseFormInput = (
   domain: RetirementExpenseCategory | undefined,
-  currentYearValue = currentYear(),
+  { currentYear: currentYearValue = currentYear(), retirementYear }: RetirementEntryBuildAnchor,
 ): RetirementExpenseFormInput => {
   if (!domain) {
     return {
       name: '',
       currentAnnual: '',
       growthRate: '',
-      retirementMultiplier: '70',
       startYear: String(currentYearValue),
-      endYear: '',
       type: RetirementExpenseType.GENERAL,
       includesPrincipal: false,
       interestOnly: false,
+      endCondition: 'lifelong',
+      endConditionValue: '',
     };
   }
 
+  const endCondition = deriveRetirementEndCondition(domain, retirementYear);
   return {
     name: domain.name,
     sourceDebtAccountId: domain.sourceDebtAccountId,
@@ -190,30 +286,44 @@ export const buildRetirementExpenseFormInput = (
     expenseCategory: domain.expenseCategory,
     currentAnnual: String(domain.currentAnnual),
     growthRate: blank(domain.growthRate),
-    retirementMultiplier: String(domain.retirementMultiplier * 100),
     startYear: String(domain.startYear),
-    endYear: domain.endYear?.toString() || '',
+    endCondition,
+    endConditionValue: endCondition === 'year' ? String(domain.endYear ?? '') : '',
     note: domain.note,
   };
 };
 
 export const mapRetirementExpenseVMToDomain = (
   vm: RetirementExpenseFormVM,
-): Omit<RetirementExpenseCategory, 'id'> => ({
-  name: vm.name,
-  ...(vm.sourceDebtAccountId && { sourceDebtAccountId: vm.sourceDebtAccountId }),
-  type: vm.type,
-  includesPrincipal: vm.includesPrincipal,
-  interestOnly: vm.interestOnly,
-  ...(vm.calculatedFrom && { calculatedFrom: vm.calculatedFrom }),
-  ...(vm.expenseCategory && { expenseCategory: vm.expenseCategory }),
-  currentAnnual: vm.currentAnnual,
-  ...(vm.growthRate !== undefined && { growthRate: vm.growthRate }),
-  retirementMultiplier: vm.retirementMultiplier / 100,
-  startYear: vm.startYear,
-  endYear: vm.endYear ? parseInt(vm.endYear, 10) : null,
-  ...(vm.note && { note: vm.note }),
-});
+  {
+    birthYear,
+    retirementYear,
+    retirementMultiplier,
+  }: RetirementEntryAnchor & {
+    retirementMultiplier: number;
+  },
+): Omit<RetirementExpenseCategory, 'id'> => {
+  const collapsed = collapseRetirementEndCondition(vm.endCondition, vm.endConditionValue, {
+    birthYear,
+    retirementYear,
+  });
+  return {
+    name: vm.name,
+    ...(vm.sourceDebtAccountId && { sourceDebtAccountId: vm.sourceDebtAccountId }),
+    type: vm.type,
+    includesPrincipal: vm.includesPrincipal,
+    interestOnly: vm.interestOnly,
+    ...(vm.calculatedFrom && { calculatedFrom: vm.calculatedFrom }),
+    ...(vm.expenseCategory && { expenseCategory: vm.expenseCategory }),
+    currentAnnual: vm.currentAnnual,
+    ...(vm.growthRate !== undefined && { growthRate: vm.growthRate }),
+    // 退休後水準退出 UI：保留既有值（新列預設 100%），架構不變。
+    retirementMultiplier,
+    startYear: vm.startYear,
+    endYear: collapsed.endYear ?? null,
+    ...(vm.note && { note: vm.note }),
+  };
+};
 
 export const RetirementEventFormVMSchema = z.object({
   name: z.string().min(1, M.eventName),

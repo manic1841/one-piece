@@ -113,10 +113,11 @@ phase 形狀與驗證：
 - Projection 摘要為快取：Recalculate 時重新推導 netWorthAtRetirement（退休年期初淨資產）與 finalNetWorth（投影期末淨資產），不使用遷移腳本。
 - 事件頁為分段編輯：可新增多個 phase，每段設定 Start/End Year 與金額（必填）、可選 Growth Rate（留空代表隨計畫通膨）；phase 以 repeater 編輯（`md` 以上為欄位對齊的單列、行動版為兩欄堆疊區塊，不橫向捲動），各欄位共用系統表單欄位與樣式。
 - 事件清單列顯示該事件的**終身費用總和**（每個 phase 逐年以自身成長率或計畫通膨成長後加總），並在金額下方註記 phase 數量（僅分段事件）；收入事件以 `+`、支出事件以 `-` 標示。
-- 收入頁每筆收入只有一組金額欄位：目前年金額（匯入時唯讀帶入）與退休年金額（可編輯）。
-- 收入對話框為 v2 形狀（issue #133）：Type、唯讀 Current Annual、可編輯 Retirement Annual、Growth（Advanced 展開明確成長率）、Start/End Year 與 Lifelong 收進 Advanced；無 Source 選擇器、Ledger Code、Sample Year、收入層級 Auto Update、試算預覽與連動退休年 Badge（計畫層級 Auto Update 是唯一開關）。
-- 支出對話框以 Duration 顯示期間：未設定 End Year 即 Lifelong，設定後顯示 Until {endYear}；Debt Payment 的 End Year 保留在主表單。Start/End Year 收進 Advanced 展開區（Start Year 預設當前年度，無 2100 預設值）。
-- 支出成長率預設跟隨計畫通膨並顯示「Using plan inflation: {rate}%」，Advanced 展開後才能輸入明確成長率（留空 = 計畫通膨，0 = 明確 0%）；目前年支出一般支出可編輯，Debt 匯入值為系統推導唯讀，退休後費用比例（%）維持必填。
+- 收入與支出列以**共用側邊編輯器**編輯（取代舊對話框，spec #301 §2.1）：桌面為右側面板、行動版為全螢幕 bottom sheet，重用 `ui/sheet` + `DrawerPanel`（不新建 SidePanel）；明示 `Save`／`Cancel`（對齊整批替換 ADR-0030／0040），開啟時焦點進首欄、關閉歸還觸發列，未存變更以 `useConfirm` 攔截關閉，存檔成功給 toast（無 Undo）。
+- 側邊編輯器為單一共用元件加兩小分支：Type（收入可選類型／支出隱藏）與 Debt（隱藏結束條件、`endYear` 唯讀、隱藏匯入來源）。收入目前年金額為匯入推導唯讀、支出目前年支出可編輯（Debt 匯入值唯讀）；成長率收在 Advanced 展開區，與結束條件同一個側欄。
+- **結束條件語意**（收入流與支出類別共用，spec #301 §2.2）：編輯時擇一（退休時結束／指定年齡 N／指定年份 Y／持續至預期壽命），儲存時塌縮為具體 `endYear`（`lifelong = false`）或 `lifelong = true` 並清除 `endYear`；`startYear` 不帶語意。預設 Salary → 退休時結束，Pension／Rent／Other 與一般生活費 → 持續至預期壽命；Debt Payment 不屬四語意（`endYear` 由匯入）。讀取既有資料保守回推語意標籤（純函式即時推導）：`lifelong` → 持續至預期壽命、`endYear === birthYear + retirementAge` → 退休時結束、其餘 → 指定年份；「指定年齡」不回推。
+- **退休後水準退出 UI**（spec #301 §2.3）：`retirementAnnual` 與 `retirementMultiplier` 不再顯示或輸入（schema 與架構不變；存檔時保留既有值，新支出預設 100%）。
+- 支出成長率留空代表隨計畫通膨並顯示「Using plan inflation: {rate}%」，Advanced 展開後才能輸入明確成長率（0 = 明確 0%）。
 - Projection Results：
   - 現金流圖以共用 `ComposedChart` 呈現：收入帶與投資報酬帶**堆疊**在零以上（投資報酬帶畫在收入帶之上，值為收入＋投資報酬，`baselineValues` 即收入線）、支出帶在零以下，各帶為單色資料歸屬漸層；再加上淨現金流線（primary，左軸）與淨資產線（`savings`，右軸，`asset` 藍，逐年遞增）；淨資產即投影期末餘額，與其他序列同源。圖例與 tooltip 皆逐序列列出收入／投資報酬／支出／淨現金流／淨資產。
   - Overview 另有獨立的淨資產軌跡圖（單一淨資產面積線，標出退休年與歸零線）。

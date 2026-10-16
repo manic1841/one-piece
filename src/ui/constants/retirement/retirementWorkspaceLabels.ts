@@ -152,3 +152,67 @@ export const RetirementExpenseBadgeLabels = {
   interestOnly: '只繳利息',
   includesPrincipal: '含本金',
 } as const;
+
+/** 結束條件語意（僅收入流與支出類別共用；Event phase 永遠是具體年份）。 */
+export type RetirementEndCondition = 'retirement' | 'age' | 'year' | 'lifelong';
+
+export const RetirementEndConditionLabels: Record<RetirementEndCondition, string> = {
+  retirement: '退休時結束',
+  age: '指定年齡',
+  year: '指定年份',
+  lifelong: '持續至預期壽命',
+};
+
+export const RetirementEndConditionOptions: Array<{
+  value: RetirementEndCondition;
+  label: string;
+}> = (Object.keys(RetirementEndConditionLabels) as RetirementEndCondition[]).map((value) => ({
+  value,
+  label: RetirementEndConditionLabels[value],
+}));
+
+/** 成長率唯讀摘要的顯示文字（純函式）。 */
+export const RetirementGrowthReadoutLabels = {
+  usingPlanInflation: (rate: number) => `Using plan inflation: ${rate}%`,
+  growthPercent: (rate: number) => `${rate}% growth`,
+} as const;
+
+/** 收入／支出共用側邊編輯器的顯示文字。 */
+export const RetirementEntryEditorLabels = {
+  titleIncomeAdd: '新增收入',
+  titleIncomeEdit: '編輯收入',
+  titleExpenseAdd: '新增支出',
+  titleExpenseEdit: '編輯支出',
+  description: '調整此項目的設定，完成後儲存。',
+  addIncomeAction: '新增收入',
+  addExpenseAction: '新增支出',
+  nameLabel: '名稱',
+  namePlaceholder: '例：薪資',
+  typeLabel: '類型',
+  typePlaceholder: '選擇類型…',
+  currentAnnual: '目前年均',
+  noValueMarker: '—',
+  importHint: '從 Ledger 匯入以填入金額。',
+  debtDerivedHint: '由債務還款匯入推導。',
+  growth: '成長',
+  importSource: '匯入來源',
+  advanced: 'Advanced',
+  endCondition: '結束條件',
+  endConditionAge: '指定年齡',
+  endConditionYear: '指定年份',
+  endYearReadOnly: '結束年度（由匯入決定）',
+  growthRateLabel: '成長率 (%)',
+  startYear: '開始年度',
+  planInflation: (rate: number) => `Plan inflation ${rate}%`,
+  planInflationPlaceholder: 'Plan inflation',
+  saveAction: 'Save',
+  cancelAction: 'Cancel',
+  savingAction: 'Saving…',
+  discardTitle: '放棄未儲存的變更？',
+  discardContext: '此編輯器有尚未儲存的變更。',
+  discardConsequence: '關閉後變更將不會保留。',
+  discardConfirm: '放棄',
+  discardCancel: '繼續編輯',
+  savedIncome: 'INCOME SAVED',
+  savedExpense: 'EXPENSE SAVED',
+} as const;
