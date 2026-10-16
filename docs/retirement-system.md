@@ -41,7 +41,7 @@
 
 phase 形狀與驗證：
 
-- 欄位：`name`、`startYear`、`endYear`、`amount`（必填）、`growthRate?`（缺省 = 計畫通膨率）。
+- 欄位：`name`（選填；phase 副標，留空則不顯示）、`startYear`、`endYear`、`amount`（必填）、`growthRate?`（缺省 = 計畫通膨率）。
 - 驗證規則：`endYear >= startYear`；`amount` 必填。違反時 schema 直接拒絞。
 - **舊版相容**：帶 `year` + `amount` 而無 `phases` 的舊事件，讀取時視為單段 phase（`startYear = endYear = year`）（[ADR-0035](adr/0035-legacy-single-event-compatibility.md)）；新寫入一律使用 `phases[]`。
 
@@ -111,8 +111,11 @@ phase 形狀與驗證：
 - 基準列的刪除以 **toast＋Undo** 完成（單一 Undo 槽、逾時 6 秒，spec #301 §2.4），不再使用確認模態；Undo 以補償性整批取代還原先前的集合。
 - 計畫清單頁以系統表格呈現：欄位為 Name、Retirement Age、Final Net Worth、Status；active 計畫置頂（其餘維持 repository 的 updatedAt 由新到舊），並以列左緣品牌色條與文字狀態徽章（使用中／未使用）凸顯——顏色只是輔助，不可作為唯一訊號。點擊列進入計畫詳情，Duplicate 與 Set as active（僅非 active 計畫）為列尾圖示動作，New Plan 留在頁首；未重新計算的計畫 Final Net Worth 顯示「—」（無 fallback 值）。空／載入／錯誤三態沿用共用元件（EmptyState／Skeleton／inline Alert + 重試）。
 - Projection 摘要為快取：Recalculate 時重新推導 netWorthAtRetirement（退休年期初淨資產）與 finalNetWorth（投影期末淨資產），不使用遷移腳本。
-- 事件頁為分段編輯：可新增多個 phase，每段設定 Start/End Year 與金額（必填）、可選 Growth Rate（留空代表隨計畫通膨）；phase 以 repeater 編輯（`md` 以上為欄位對齊的單列、行動版為兩欄堆疊區塊，不橫向捲動），各欄位共用系統表單欄位與樣式。
-- 事件清單列顯示該事件的**終身費用總和**（每個 phase 逐年以自身成長率或計畫通膨成長後加總），並在金額下方註記 phase 數量（僅分段事件）；收入事件以 `+`、支出事件以 `-` 標示。
+- **Life Events Data Table**（spec #301 §5.1 Data Table 側、§5.2、§5.5）為事件的**明細／管理**視圖：列＝事件，欄位為名稱／類型／年份／終身費用總和／動作，工具列提供 **Add Event** 與 `FilterStrip`（全部／收入／支出），具備空／載入／錯誤三態；桌面用系統 `DataTable`、行動版用 `MobileDataList`／`MobileExpandableRow`（桌面區塊先於行動版、測試目標各自獨立）。Timeline 視圖屬另一票（#309），本區域不含。
+- 事件清單列顯示該事件的**終身費用總和**（每個 phase 逐年以自身成長率或計畫通膨成長後加總），並在金額下方註記 phase 數量（僅分段事件）；收入事件以 `+`、支出事件以 `-` 標示。行動版展開區逐 phase 列出（`phase.name` 為副標，留空則不顯示、不回退）。
+- 事件與 phase 一律以**共用側邊編輯器**編輯，重用 `ui/sheet` + `DrawerPanel`（不新建 SidePanel）：**事件編輯器**含事件欄位與 phase repeater；**phase 編輯器**為單一 phase，側欄主名＝所屬事件名、副標＝`phase.name`（留空隱藏、不回退）。phase 欄位（spec #301 §5.2）：`startYear`／`endYear`／`amount` 必填、`growthRate` 可選（留空＝計畫通膨）。明示 `Save`／`Cancel`、焦點進首欄、未存變更以 `useConfirm` 攔截關閉、存檔成功給 toast（無 Undo）。
+- **Create Phase 為具名、鍵盤可達的控制**（編輯器內的 Add Phase 與每列的 Add Phase 圖示按鈕；#292 硬依賴）。
+- 事件與 phase 的刪除以 **toast＋Undo** 完成（單一 Undo 槽、逾時 6 秒，spec #301 §2.4），不使用確認模態。
 - 收入與支出列以**共用側邊編輯器**編輯（取代舊對話框，spec #301 §2.1）：桌面為右側面板、行動版為全螢幕 bottom sheet，重用 `ui/sheet` + `DrawerPanel`（不新建 SidePanel）；明示 `Save`／`Cancel`（對齊整批替換 ADR-0030／0040），開啟時焦點進首欄、關閉歸還觸發列，未存變更以 `useConfirm` 攔截關閉，存檔成功給 toast（無 Undo）。
 - 側邊編輯器為單一共用元件加兩小分支：Type（收入可選類型／支出隱藏）與 Debt（隱藏結束條件、`endYear` 唯讀、隱藏匯入來源）。收入目前年金額為匯入推導唯讀、支出目前年支出可編輯（Debt 匯入值唯讀）；成長率收在 Advanced 展開區，與結束條件同一個側欄。
 - **結束條件語意**（收入流與支出類別共用，spec #301 §2.2）：編輯時擇一（退休時結束／指定年齡 N／指定年份 Y／持續至預期壽命），儲存時塌縮為具體 `endYear`（`lifelong = false`）或 `lifelong = true` 並清除 `endYear`；`startYear` 不帶語意。預設 Salary → 退休時結束，Pension／Rent／Other 與一般生活費 → 持續至預期壽命；Debt Payment 不屬四語意（`endYear` 由匯入）。讀取既有資料保守回推語意標籤（純函式即時推導）：`lifelong` → 持續至預期壽命、`endYear === birthYear + retirementAge` → 退休時結束、其餘 → 指定年份；「指定年齡」不回推。

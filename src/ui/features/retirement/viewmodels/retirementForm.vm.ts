@@ -325,20 +325,25 @@ export const mapRetirementExpenseVMToDomain = (
   };
 };
 
+/**
+ * 單一 phase 欄位（spec #301 §5.2）：`name` 選填（空白＝不顯示副標）、`amount` 必填、
+ * `growthRate` 選填（留空＝計畫通膨）。事件 repeater 與獨立 phase 編輯器共用。
+ */
+export const RetirementPhaseFormVMSchema = z.object({
+  name: z.string(),
+  startYear: requiredYear(M.startYear),
+  endYear: requiredYear(M.endYear),
+  amount: requiredNumber(M.eventAmount),
+  growthRate: optionalNumber(M.growthRate),
+});
+
+export type RetirementPhaseFormInput = z.input<typeof RetirementPhaseFormVMSchema>;
+export type RetirementPhaseFormVM = z.output<typeof RetirementPhaseFormVMSchema>;
+
 export const RetirementEventFormVMSchema = z.object({
   name: z.string().min(1, M.eventName),
   type: z.enum(['income', 'expense']),
-  phases: z
-    .array(
-      z.object({
-        name: z.string().min(1, M.phaseName),
-        startYear: requiredYear(M.startYear),
-        endYear: requiredYear(M.endYear),
-        amount: requiredNumber(M.eventAmount),
-        growthRate: optionalNumber(M.growthRate),
-      }),
-    )
-    .min(1, M.atLeastOnePhase),
+  phases: z.array(RetirementPhaseFormVMSchema).min(1, M.atLeastOnePhase),
   note: z.string().optional(),
 });
 
@@ -355,7 +360,7 @@ export const buildRetirementEventFormInput = (
       type: 'expense',
       phases: [
         {
-          name: 'Phase 1',
+          name: '',
           startYear: currentYearValue.toString(),
           endYear: currentYearValue.toString(),
           amount: '',
@@ -377,7 +382,7 @@ export const buildRetirementEventFormInput = (
         }))
       : [
           {
-            name: domain.name,
+            name: '',
             startYear: String(domain.year ?? currentYearValue),
             endYear: String(domain.year ?? currentYearValue),
             amount: String(domain.amount ?? 0),
@@ -398,14 +403,31 @@ export const mapRetirementEventVMToDomain = (
 ): Omit<RetirementOneTimeEvent, 'id'> => ({
   name: vm.name,
   type: vm.type,
-  phases: vm.phases.map((phase) => ({
-    name: phase.name,
-    startYear: phase.startYear,
-    endYear: phase.endYear,
-    amount: phase.amount,
-    ...(phase.growthRate !== undefined ? { growthRate: phase.growthRate } : {}),
-  })),
+  phases: vm.phases.map(mapRetirementPhaseVMToDomain),
   ...(vm.note && { note: vm.note }),
+});
+
+/** 獨立 phase 編輯器的表單初值（新增＝以 currentYear 起算的空白 phase）。 */
+export const buildRetirementPhaseFormInput = (
+  phase: RetirementOneTimeEvent['phases'][number] | undefined,
+  currentYearValue = currentYear(),
+): RetirementPhaseFormInput => ({
+  name: phase?.name ?? '',
+  startYear: (phase?.startYear ?? currentYearValue).toString(),
+  endYear: (phase?.endYear ?? currentYearValue).toString(),
+  amount: phase?.amount != null ? String(phase.amount) : '',
+  growthRate: phase?.growthRate != null ? String(phase.growthRate) : '',
+});
+
+/** phase VM → domain phase（`growthRate` 未填＝省略，交由引擎套計畫通膨）。 */
+export const mapRetirementPhaseVMToDomain = (
+  vm: RetirementPhaseFormVM,
+): RetirementOneTimeEvent['phases'][number] => ({
+  name: vm.name,
+  startYear: vm.startYear,
+  endYear: vm.endYear,
+  amount: vm.amount,
+  ...(vm.growthRate !== undefined ? { growthRate: vm.growthRate } : {}),
 });
 
 export const RetirementAssumptionsFormVMSchema = z

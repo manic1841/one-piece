@@ -5,10 +5,12 @@ import {
   RetirementEventFormVMSchema,
   RetirementExpenseFormVMSchema,
   RetirementIncomeFormVMSchema,
+  RetirementPhaseFormVMSchema,
   buildRetirementAssumptionsFormInput,
   buildRetirementEventFormInput,
   buildRetirementExpenseFormInput,
   buildRetirementIncomeFormInput,
+  buildRetirementPhaseFormInput,
   calculateRetirementAssumptionPreview,
   collapseRetirementEndCondition,
   defaultIncomeEndCondition,
@@ -17,6 +19,7 @@ import {
   mapRetirementEventVMToDomain,
   mapRetirementExpenseVMToDomain,
   mapRetirementIncomeVMToDomain,
+  mapRetirementPhaseVMToDomain,
   retirementEndConditionText,
 } from './retirementForm.vm';
 import type { RetirementAssumptionsFormInput } from './retirementForm.vm';
@@ -363,5 +366,67 @@ describe('retirementForm.vm', () => {
 
       expect(blank).toEqual(explicit);
     });
+  });
+});
+
+describe('retirementForm.vm — phase form (spec #301 §5.2)', () => {
+  it('accepts a blank phase name (the subtitle is optional, not required)', () => {
+    const result = RetirementPhaseFormVMSchema.safeParse({
+      name: '',
+      startYear: '2030',
+      endYear: '2032',
+      amount: '10000',
+      growthRate: '',
+    });
+
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.growthRate).toBeUndefined();
+  });
+
+  it('builds an add-mode phase input from the current year', () => {
+    const input = buildRetirementPhaseFormInput(undefined, 2030);
+
+    expect(input).toEqual({
+      name: '',
+      startYear: '2030',
+      endYear: '2030',
+      amount: '',
+      growthRate: '',
+    });
+  });
+
+  it('round-trips an existing phase and drops a blank growth rate', () => {
+    const input = buildRetirementPhaseFormInput(
+      { name: 'Kindergarten', startYear: 2025, endYear: 2027, amount: 80000 },
+      2030,
+    );
+    expect(input).toEqual({
+      name: 'Kindergarten',
+      startYear: '2025',
+      endYear: '2027',
+      amount: '80000',
+      growthRate: '',
+    });
+
+    expect(mapRetirementPhaseVMToDomain(RetirementPhaseFormVMSchema.parse(input))).toEqual({
+      name: 'Kindergarten',
+      startYear: 2025,
+      endYear: 2027,
+      amount: 80000,
+    });
+  });
+
+  it('keeps an explicit growth rate through the mapper', () => {
+    const phase = mapRetirementPhaseVMToDomain(
+      RetirementPhaseFormVMSchema.parse({
+        name: '',
+        startYear: '2030',
+        endYear: '2032',
+        amount: '10000',
+        growthRate: '3',
+      }),
+    );
+
+    expect(phase.growthRate).toBe(3);
   });
 });

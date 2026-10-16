@@ -247,3 +247,80 @@ export const RetirementEntryEditorLabels = {
   savedIncome: 'INCOME SAVED',
   savedExpense: 'EXPENSE SAVED',
 } as const;
+
+/**
+ * Life Events Data Table（spec #301 §5.1 Data Table 側、§5.2、§5.5）。
+ *
+ * 事件清單為明細／管理視圖：列 = 事件（沿用既有呈現：終身費用總和、phase 數量註記、
+ * `+`／`-` 標示），編輯一律經側邊編輯器。phase 命名：主名＝所屬 Event 名；
+ * 副標＝`phase.name`（留空則不顯示、不回退）。
+ */
+export type RetirementEventsFilter = 'all' | 'income' | 'expense';
+
+export const RetirementEventsLabels = {
+  filterAriaLabel: '事件篩選',
+  filterAll: '全部',
+  filterIncome: '收入',
+  filterExpense: '支出',
+  columnName: '名稱',
+  columnType: '類型',
+  columnYears: '年份',
+  columnAmount: '終身費用總和',
+  columnActions: '動作',
+  typeIncome: '收入',
+  typeExpense: '支出',
+  addEventAction: '新增事件',
+  addPhaseAction: '新增階段',
+  editPhaseAction: '編輯階段',
+  removePhaseAction: '移除階段',
+  titleEventAdd: '新增事件',
+  titleEventEdit: '編輯事件',
+  description: '設定事件與其階段，完成後儲存。',
+  nameLabel: '事件名稱',
+  namePlaceholder: '例：購屋頭期款',
+  typeLabel: '類型',
+  phasesLabel: '階段',
+  phaseNameLabel: '階段名稱（選填）',
+  phaseNamePlaceholder: '階段名稱（選填）',
+  startYear: '開始年度',
+  endYear: '結束年度',
+  amount: '金額',
+  growthRate: '成長率 (%)',
+  growthPlaceholder: '計畫通膨',
+  noteLabel: '備註（選填）',
+  notePlaceholder: '補充說明…',
+  saveAction: 'Save',
+  cancelAction: 'Cancel',
+  savingAction: 'Saving…',
+  discardTitle: '放棄未儲存的變更？',
+  discardContext: '此編輯器有尚未儲存的變更。',
+  discardConsequence: '關閉後變更將不會保留。',
+  discardConfirm: '放棄',
+  discardCancel: '繼續編輯',
+  savedEvent: 'EVENT SAVED',
+  savedPhase: 'PHASE SAVED',
+  deletedEventToast: 'EVENT DELETED',
+  deletedPhaseToast: 'PHASE DELETED',
+  undoAction: 'UNDO',
+  emptyTitle: 'NO LIFE EVENTS',
+  emptyDescription: '新增人生事件以描述未來的收入或支出。',
+  filterEmptyTitle: 'NO MATCHING EVENTS',
+  filterEmptyDescription: '此篩選沒有符合的事件。',
+  loadingLabel: '載入中…',
+  loadError: '無法載入人生事件。',
+  retryAction: '重試',
+  growthInflation: 'Inflation',
+  growthPercent: (rate: number) => `${rate}% growth`,
+} as const;
+
+export const RetirementEventsFilterItems: ReadonlyArray<{
+  id: RetirementEventsFilter;
+  label: string;
+}> = [
+  { id: 'all', label: RetirementEventsLabels.filterAll },
+  { id: 'income', label: RetirementEventsLabels.filterIncome },
+  { id: 'expense', label: RetirementEventsLabels.filterExpense },
+];
+
+/** 五欄（名稱／類型／年份／終身費用總和／動作），總和為 100。 */
+export const RETIREMENT_EVENTS_COLUMN_WIDTHS: readonly number[] = [30, 12, 18, 22, 18];

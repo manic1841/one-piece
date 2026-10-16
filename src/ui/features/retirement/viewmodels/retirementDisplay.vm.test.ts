@@ -8,6 +8,7 @@ import {
   mapRetirementPlanToHeaderVM,
   mapRetirementPlanToListItemVM,
   mapRetirementProjectionToVM,
+  retirementPhaseName,
   sortRetirementPlanListItems,
 } from './retirementDisplay.vm';
 
@@ -310,5 +311,45 @@ describe('retirementDisplay.vm', () => {
       'Living',
       'Mortgage',
     ]);
+  });
+});
+
+describe('retirementDisplay.vm — event phases (spec #301 §5.1/§5.2)', () => {
+  it('labels the event type and exposes per-phase rows', () => {
+    const event = mapRetirementEventToVM(
+      {
+        id: 'ev1',
+        name: 'Education',
+        type: 'expense',
+        phases: [
+          { name: 'Kindergarten', startYear: 2025, endYear: 2027, amount: 80_000, growthRate: 3 },
+          { name: '', startYear: 2028, endYear: 2030, amount: 120_000 },
+        ],
+      },
+      2,
+    );
+
+    expect(event.typeLabel).toBe('支出');
+    expect(event.phases).toHaveLength(2);
+    expect(event.phases[0]).toEqual({
+      index: 0,
+      name: 'Kindergarten',
+      startYear: 2025,
+      endYear: 2027,
+      yearText: '2025–2027',
+      amountText: expect.stringContaining('80,000'),
+      growthText: '3% growth',
+    });
+    // Blank `phase.name` → no subtitle, never a fallback.
+    expect(event.phases[1]?.name).toBeUndefined();
+    // Growth blank → plan inflation.
+    expect(event.phases[1]?.growthText).toBe('Inflation');
+  });
+
+  it('collapses a blank phase name to undefined (no fallback)', () => {
+    expect(retirementPhaseName('')).toBeUndefined();
+    expect(retirementPhaseName('   ')).toBeUndefined();
+    expect(retirementPhaseName(undefined)).toBeUndefined();
+    expect(retirementPhaseName('  Down payment  ')).toBe('Down payment');
   });
 });
