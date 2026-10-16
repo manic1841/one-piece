@@ -172,6 +172,11 @@ Rules:
   several use cases as a menu of operations; that is not orchestration.
 - **Command Purity**: a `*Cmds` hook contains writes only. Reads live in a Query hook or the Controller, so that "calling
   Cmds means state changes" stays true.
+- **Reconcile From The Payload, Don't Re-Read**: after a successful write a Controller reconciles its state from the payload
+  it sent, instead of re-reading. A re-read costs a second fetch and flips the Controller's `loading`, which blanks the
+  page back to its skeleton for a change the user just made; it can also return a snapshot that predates the write.
+  Re-read only via an explicit Reload/Refresh action or the Controller's initial load effect. Fields the write payload
+  never carried (server-written audit metadata) are simply not reconciled.
 - **Split on Demand**: keep read and write in one hook until a second consumer needs only one side. Do not split for
   symmetry.
 - **Form State Is Controller State**: form state (`useForm`, hand-rolled field state, zod parsing) belongs in a hook,

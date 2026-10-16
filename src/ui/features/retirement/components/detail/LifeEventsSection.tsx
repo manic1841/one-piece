@@ -63,7 +63,7 @@ export const LifeEventsSection: React.FC<LifeEventsSectionProps> = ({
   handleDeletePhase,
   handleTimelineUpdatePhase,
 }) => {
-  const [view, setView] = useState<RetirementLifeEventsView>('table');
+  const [view, setView] = useState<RetirementLifeEventsView>('timeline');
 
   return (
     <div className="space-y-4">

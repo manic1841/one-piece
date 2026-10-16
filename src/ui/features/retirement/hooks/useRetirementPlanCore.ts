@@ -103,10 +103,7 @@ export const useRetirementPlanCore = ({
           planId: id,
           updateKeys: Object.keys(updates),
         });
-        await loadPlan();
-        logger.info('handleUpdatePlan loadPlan completed', 'retirement/useRetirementPlanCore', {
-          planId: id,
-        });
+        setPlan((previous) => (previous ? { ...previous, ...updates } : previous));
       } catch (error) {
         logger.error('handleUpdatePlan failed', 'retirement/useRetirementPlanCore', {
           planId: id,
@@ -117,7 +114,7 @@ export const useRetirementPlanCore = ({
         throw error;
       }
     },
-    [id, plan, updatePlan, loadPlan],
+    [id, plan, updatePlan],
   );
 
   const handleToggleAutoUpdate = useCallback(async () => {
@@ -145,17 +142,16 @@ export const useRetirementPlanCore = ({
         source.anchorYearMonth,
       );
 
-      await updatePlan(id, {
+      await handleUpdatePlan({
         summary: {
           ...summary,
           lastCalculatedAt: new Date(),
         },
       });
-      await loadPlan();
     } catch (error) {
       console.error('Failed to recalculate', error);
     }
-  }, [id, plan, householdId, auth, updatePlan, loadPlan]);
+  }, [id, plan, householdId, auth, handleUpdatePlan]);
 
   const handleDelete = useCallback(async () => {
     if (!id) return;

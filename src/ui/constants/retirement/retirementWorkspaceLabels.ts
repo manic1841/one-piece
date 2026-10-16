@@ -359,8 +359,8 @@ export const RetirementLifeEventsViewItems: ReadonlyArray<{
   id: RetirementLifeEventsView;
   label: string;
 }> = [
-  { id: 'table', label: RetirementLifeEventsViewLabels.table },
   { id: 'timeline', label: RetirementLifeEventsViewLabels.timeline },
+  { id: 'table', label: RetirementLifeEventsViewLabels.table },
 ];
 
 export const RetirementTimelineLabels = {

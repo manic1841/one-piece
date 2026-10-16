@@ -107,8 +107,11 @@ phase 形狀與驗證：
 
 目前對應的主要操作包括 `getPlan/getPlans`、`getPlanSummaries`、`countChildren`、`createPlanAtomically`、`updatePlanAtomically`、`deletePlanAtomically` 與 `DuplicateRetirementPlanUseCase`；create/update/delete/duplicate 的寫入一律走 [ADR-0040](adr/0040-retirement-plan-atomic-writes.md) 的單一 transaction 邊界。
 
+`updatePlanAtomically` 只在非子集合欄位有更新時才動主文件，且不寫 `updatedAt`；純子集合更新（整批替換）完全不動主文件。另注意 transaction 刪除子集合後，長生命週期的 Firestore 實例可能仍回傳寫入前的查詢快照（`getDocsFromServer` 亦然），即使資料已落地；驗證一律每次重建實例（見 `retirementPlanUseCase.integration.test.ts`），呼叫端因此不得依賴寫後重讀（見 §6）。
+
 ## 6. UI 操作
 
+- 退休詳情頁的 Controller **不在寫入後重讀計畫**（[分層契約](ui/ui-layer-architecture.md#4-controller-design-hooks)）：`updatePlan` 成功後以送出的 payload 就地調和本地 `plan`，不呼叫 `loadPlan`（重讀只保留給 `reload` 與初次載入）。理由有兩個：寫後重讀子集合會拿到過時快照（§5），以及重讀造成的 `loading` 翻轉會讓整頁（含 Plan Setup 各分頁）退回骨架，也就是使用者看到的「整個畫面重新載入」。審計欄位（`updatedBy`）不由調和回填，目前無 UI 讀取。
 - Plan Setup 的 **Financial Baseline** 區域合併原 Income 與 Living Expenses，作為 ledger 來源的管理視圖（spec #301 §4）。列一律由 **Import from Ledger**／**匯入債務還款**產生，**沒有手動新增**；沒有匯入來源（`currentAnnual` 為空）的舊列保留但唯讀（無編輯動作，仍可刪除）。表格為六欄：名稱／資料來源（`ledgerCode`／`incomeCategory`／`sourceDebtAccountId`）／基準年金額（唯讀，由匯入推導）／成長率（表格顯示推導值，於側邊編輯器 Advanced 編輯）／結束條件（§2.2 推導標籤）／動作。桌面用系統 `DataTable`、行動版用 `MobileDataList`／`MobileExpandableRow`。篩選只用 `FilterStrip`（全部／收入／支出／債務），不做搜尋；Import 動作置於區域工具列，空狀態主要 CTA 亦指向 Import from Ledger。區域具備空／載入／錯誤三態。
 - 基準列的刪除以 **toast＋Undo** 完成（單一 Undo 槽、逾時 6 秒，spec #301 §2.4），不再使用確認模態；Undo 以補償性整批取代還原先前的集合。
 - 計畫清單頁以系統表格呈現：欄位為 Name、Retirement Age、Final Net Worth、Status；active 計畫置頂（其餘維持 repository 的 updatedAt 由新到舊），並以列左緣品牌色條與文字狀態徽章（使用中／未使用）凸顯——顏色只是輔助，不可作為唯一訊號。點擊列進入計畫詳情，Duplicate 與 Set as active（僅非 active 計畫）為列尾圖示動作，New Plan 留在頁首；未重新計算的計畫 Final Net Worth 顯示「—」（無 fallback 值）。空／載入／錯誤三態沿用共用元件（EmptyState／Skeleton／inline Alert + 重試）。
