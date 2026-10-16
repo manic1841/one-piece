@@ -52,13 +52,35 @@ export interface RetirementPlanHeaderVM {
   autoUpdate: boolean;
 }
 
+/**
+ * The 基準年份 — the system's "now" year. It advances with time and is the base the
+ * 目前年齡 derivation anchors to (outside of `birthYear` itself); see CONTEXT.md 目前年齡.
+ */
+export const currentBaseYear = (): number => new Date().getFullYear();
+
+/** 目前年齡 = 基準年份 − 出生年. The single derivation of age from the birth-year anchor. */
+export const deriveCurrentAge = (birthYear: number, baseYear: number): number =>
+  baseYear - birthYear;
+
+/** 由年齡推導的年份 = 出生年 + 年齡 (退休年、預期壽命終點). */
+export const deriveYearFromAge = (birthYear: number, age: number): number => birthYear + age;
+
+/** 重新錨定出生年 = 基準年份 − 年齡 (editing the current age re-anchors the birth year). */
+export const deriveBirthYear = (age: number, baseYear: number): number => baseYear - age;
+
 export interface RetirementAssumptionsDisplayVM {
-  currentYear: number;
-  birthYear: number;
+  /** 目前年齡 — a derived display value, never a stored fact. */
+  currentAge: number;
   retirementAge: number;
   lifeExpectancy: number;
   inflationRate: number;
   investmentReturnRate: number;
+  /** 基準年份 (今天), shown as the parenthetical next to 目前年齡. */
+  currentYear: number;
+  /** 出生年 + 退休年齡, shown next to 退休年齡. */
+  retirementYear: number;
+  /** 出生年 + 預期壽命, shown next to 預期壽命. */
+  lifeExpectancyYear: number;
 }
 
 export const mapRetirementPlanToHeaderVM = (plan: RetirementPlan): RetirementPlanHeaderVM => ({
@@ -70,13 +92,16 @@ export const mapRetirementPlanToHeaderVM = (plan: RetirementPlan): RetirementPla
 
 export const mapRetirementPlanToAssumptionsDisplayVM = (
   plan: RetirementPlan,
+  baseYear = currentBaseYear(),
 ): RetirementAssumptionsDisplayVM => ({
-  currentYear: plan.currentYear,
-  birthYear: plan.birthYear,
+  currentAge: deriveCurrentAge(plan.birthYear, baseYear),
   retirementAge: plan.retirementAge,
   lifeExpectancy: plan.lifeExpectancy,
   inflationRate: plan.inflationRate,
   investmentReturnRate: plan.investmentReturnRate,
+  currentYear: baseYear,
+  retirementYear: deriveYearFromAge(plan.birthYear, plan.retirementAge),
+  lifeExpectancyYear: deriveYearFromAge(plan.birthYear, plan.lifeExpectancy),
 });
 
 export const mapRetirementPlanToListItemVM = (plan: RetirementPlan): RetirementPlanListItemVM => ({

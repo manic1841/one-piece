@@ -10,6 +10,7 @@ import {
   RetirementAssumptionsFormVMSchema,
   type RetirementPlanCreate,
   buildRetirementAssumptionsFormInput,
+  mapRetirementAssumptionsVMToPlanUpdates,
 } from '@/ui/features/retirement/viewmodels/retirementForm.vm';
 
 interface UseRetirementAssumptionsFormOptions {
@@ -56,7 +57,11 @@ export function useRetirementAssumptionsForm({
 
   const submit = form.handleSubmit(() => {
     // The resolver only drives field display; this parse is the gate.
-    onSave(RetirementAssumptionsFormVMSchema.parse(form.getValues()));
+    onSave(
+      mapRetirementAssumptionsVMToPlanUpdates(
+        RetirementAssumptionsFormVMSchema.parse(form.getValues()),
+      ),
+    );
     setEditing(false);
   });
 

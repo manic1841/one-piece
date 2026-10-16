@@ -3,36 +3,76 @@ import { describe, expect, it, vi } from 'vitest';
 
 import AssumptionsForm from './AssumptionsForm';
 
+const TODAY = new Date().getFullYear();
+
 const assumptions = {
-  currentYear: 2026,
-  birthYear: 1990,
+  currentAge: 36,
   retirementAge: 60,
   lifeExpectancy: 85,
   inflationRate: 2,
   investmentReturnRate: 5,
+  currentYear: 2026,
+  retirementYear: 2050,
+  lifeExpectancyYear: 2075,
 };
 
 describe('AssumptionsForm', () => {
-  it('shows the read-only summary until Edit is clicked', () => {
+  it('shows a five-metric summary with derived years and no year cells', () => {
     render(<AssumptionsForm assumptions={assumptions} onSave={vi.fn()} />);
 
-    expect(screen.getByText('Basic Assumptions')).toBeInTheDocument();
-    expect(screen.queryByLabelText(/^Inflation Rate/)).not.toBeInTheDocument();
+    expect(screen.getByText('36（2026）')).toBeInTheDocument();
+    expect(screen.getByText('60（2050）')).toBeInTheDocument();
+    expect(screen.getByText('85（2075）')).toBeInTheDocument();
+    expect(screen.getByText('2%')).toBeInTheDocument();
+    expect(screen.getByText('5%')).toBeInTheDocument();
+
+    expect(screen.queryByText('Current Year')).not.toBeInTheDocument();
+    expect(screen.queryByText('Birth Year')).not.toBeInTheDocument();
   });
 
-  it('saves the coerced values and returns to the summary', async () => {
+  it('expands two grouped fieldsets in place when Edit is clicked', () => {
+    render(<AssumptionsForm assumptions={assumptions} onSave={vi.fn()} />);
+
+    expect(screen.queryByText('人生時程')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
+
+    expect(screen.getByText('人生時程')).toBeInTheDocument();
+    expect(screen.getByText('財務假設')).toBeInTheDocument();
+    expect(screen.getByLabelText(/^目前年齡/)).toBeInTheDocument();
+    expect(screen.getByLabelText(/^退休年齡/)).toBeInTheDocument();
+    expect(screen.getByLabelText(/^預期壽命/)).toBeInTheDocument();
+    expect(screen.getByLabelText(/^通膨率/)).toBeInTheDocument();
+    expect(screen.getByLabelText(/^投資報酬率/)).toBeInTheDocument();
+  });
+
+  it('saves the edited assumptions and returns to the summary', async () => {
     const onSave = vi.fn();
     render(<AssumptionsForm assumptions={assumptions} onSave={onSave} />);
 
     fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
-    fireEvent.change(screen.getByLabelText(/^Inflation Rate/), { target: { value: '2.5' } });
+    fireEvent.change(screen.getByLabelText(/^通膨率/), { target: { value: '2.5' } });
     fireEvent.click(screen.getByRole('button', { name: 'Save' }));
 
     await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));
     expect(onSave).toHaveBeenCalledWith(
-      expect.objectContaining({ currentYear: 2026, inflationRate: 2.5 }),
+      expect.objectContaining({ inflationRate: 2.5, retirementAge: 60, lifeExpectancy: 85 }),
     );
-    expect(screen.getByText('Basic Assumptions')).toBeInTheDocument();
+    expect(onSave.mock.calls[0][0].currentYear).toBe(TODAY);
+    expect(onSave.mock.calls[0][0].birthYear).toBe(TODAY - 36);
+    expect(screen.getByText('36（2026）')).toBeInTheDocument();
+  });
+
+  it('blocks saving and shows an error when the timeline order is invalid', async () => {
+    const onSave = vi.fn();
+    render(<AssumptionsForm assumptions={assumptions} onSave={onSave} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
+    fireEvent.change(screen.getByLabelText(/^退休年齡/), { target: { value: '30' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+    expect(await screen.findByText('退休年齡必須大於目前年齡')).toBeInTheDocument();
+    expect(onSave).not.toHaveBeenCalled();
   });
 
   it('cancels back to the summary without saving', () => {
@@ -40,10 +80,10 @@ describe('AssumptionsForm', () => {
     render(<AssumptionsForm assumptions={assumptions} onSave={onSave} />);
 
     fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
-    fireEvent.change(screen.getByLabelText(/^Inflation Rate/), { target: { value: '9' } });
+    fireEvent.change(screen.getByLabelText(/^通膨率/), { target: { value: '9' } });
     fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
 
-    expect(screen.getByText('Basic Assumptions')).toBeInTheDocument();
+    expect(screen.getByText('36（2026）')).toBeInTheDocument();
     expect(onSave).not.toHaveBeenCalled();
   });
 });

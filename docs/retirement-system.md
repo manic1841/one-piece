@@ -133,6 +133,7 @@ phase 形狀與驗證：
   - **Overview**：Outcome（退休時資產／最低資產年份／是否破產，以 MetricGroup 排版非卡片）、Current Financial State、淨資產軌跡圖、關鍵風險（退休年／破產年／最低資產年／預期壽命終點，皆由既有資料直接列出）。
   - **Projection**：現金流投影圖與年度明細。
   - **Plan Setup**：Scenario Assumptions、Income、Living Expenses、Life Events。
+  - Scenario Assumptions 以唯讀摘要呈現五格指標（目前年齡／退休年齡／預期壽命／通膨率／投資報酬率），不另有 Current Year／Birth Year 欄位；推導年份以括註附在年齡欄位旁（例：`65（2045）`）。按 `Edit` 就地在區塊內展開編輯表單，分「人生時程」與「財務假設」兩群，並有明示 `Save`／`Cancel`。順序驗證為退休年齡 > 目前年齡、預期壽命 > 退休年齡。年齡與年份以 `birthYear` 為唯一換算基礎：`birthYear` 為不變錨，`currentYear` 於存檔時以「今天」覆寫，目前年齡為推導顯示值（由基準年份減出生年），編輯目前年齡即重新錨定 `birthYear`。
   - 桌面切換分頁會卸載未顯示的分頁（本地編輯狀態不保留）；無投影結果時，Overview 與 Projection 顯示單一空狀態（前往每月關帳）。
 
 ## 7. 驗證重點

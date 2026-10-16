@@ -10,7 +10,7 @@ import {
 import { optionalNumber, requiredNumber } from '@/shared/schemas/coerce';
 import { RetirementFormValidationLabels as M } from '@/ui/constants/retirement/formValidationLabels';
 
-import { type RetirementAssumptionsDisplayVM } from './retirementDisplay.vm';
+import { type RetirementAssumptionsDisplayVM, deriveBirthYear } from './retirementDisplay.vm';
 
 export type {
   RetirementExpenseCategory,
@@ -291,18 +291,35 @@ export const mapRetirementEventVMToDomain = (
   ...(vm.note && { note: vm.note }),
 });
 
-export const RetirementAssumptionsFormVMSchema = z.object({
-  currentYear: requiredYear(M.currentYear),
-  birthYear: requiredYear(M.birthYear),
-  retirementAge: requiredYear(M.retirementAge).refine((value) => value > 0, {
-    error: M.retirementAge,
-  }),
-  lifeExpectancy: requiredYear(M.lifeExpectancy).refine((value) => value > 0, {
-    error: M.lifeExpectancy,
-  }),
-  inflationRate: requiredNumber(M.inflationRate),
-  investmentReturnRate: requiredNumber(M.investmentReturnRate),
-});
+export const RetirementAssumptionsFormVMSchema = z
+  .object({
+    currentAge: requiredYear(M.currentAge).refine((value) => value > 0, { error: M.currentAge }),
+    retirementAge: requiredYear(M.retirementAge).refine((value) => value > 0, {
+      error: M.retirementAge,
+    }),
+    lifeExpectancy: requiredYear(M.lifeExpectancy).refine((value) => value > 0, {
+      error: M.lifeExpectancy,
+    }),
+    inflationRate: requiredNumber(M.inflationRate),
+    investmentReturnRate: requiredNumber(M.investmentReturnRate),
+  })
+  .superRefine((value, ctx) => {
+    // 人生時程 ordering: 目前年 < 退休年 < 預期壽命 (cross-field, so it lives here).
+    if (value.retirementAge <= value.currentAge) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: M.retirementAgeOrder,
+        path: ['retirementAge'],
+      });
+    }
+    if (value.lifeExpectancy <= value.retirementAge) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: M.lifeExpectancyOrder,
+        path: ['lifeExpectancy'],
+      });
+    }
+  });
 
 export type RetirementAssumptionsFormInput = z.input<typeof RetirementAssumptionsFormVMSchema>;
 export type RetirementAssumptionsFormVM = z.output<typeof RetirementAssumptionsFormVMSchema>;
@@ -310,10 +327,26 @@ export type RetirementAssumptionsFormVM = z.output<typeof RetirementAssumptionsF
 export const buildRetirementAssumptionsFormInput = (
   assumptions: RetirementAssumptionsDisplayVM,
 ): RetirementAssumptionsFormInput => ({
-  currentYear: String(assumptions.currentYear),
-  birthYear: String(assumptions.birthYear),
+  currentAge: String(assumptions.currentAge),
   retirementAge: String(assumptions.retirementAge),
   lifeExpectancy: String(assumptions.lifeExpectancy),
   inflationRate: String(assumptions.inflationRate),
   investmentReturnRate: String(assumptions.investmentReturnRate),
+});
+
+/**
+ * Save mapper: `currentYear` is refreshed to "today" on every save, and `birthYear`
+ * is re-anchored from the (possibly edited) 目前年齡 — so an untouched age round-trips
+ * to the same birth year. See CONTEXT.md 目前年齡.
+ */
+export const mapRetirementAssumptionsVMToPlanUpdates = (
+  vm: RetirementAssumptionsFormVM,
+  baseYear = currentYear(),
+): Partial<RetirementPlanCreate> => ({
+  currentYear: baseYear,
+  birthYear: deriveBirthYear(vm.currentAge, baseYear),
+  retirementAge: vm.retirementAge,
+  lifeExpectancy: vm.lifeExpectancy,
+  inflationRate: vm.inflationRate,
+  investmentReturnRate: vm.investmentReturnRate,
 });
