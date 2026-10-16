@@ -4,8 +4,6 @@ import type { RetirementProjection } from '@/domains/retirement/logic/retirement
 
 import {
   mapRetirementEventToVM,
-  mapRetirementExpenseToVM,
-  mapRetirementIncomeToVM,
   mapRetirementPlanToAssumptionsDisplayVM,
   mapRetirementPlanToHeaderVM,
   mapRetirementPlanToListItemVM,
@@ -153,33 +151,7 @@ describe('retirementDisplay.vm', () => {
     expect(vm.currentAge).toBe(40);
   });
 
-  it('maps income/expense/event display items', () => {
-    const income = mapRetirementIncomeToVM({
-      id: 'i1',
-      name: 'Salary',
-      lifelong: false,
-      type: 'salary',
-      currentAnnual: 120000,
-      growthRate: 3,
-      startYear: 2026,
-      endYear: 2045,
-    });
-    expect(income.amountText).toContain('120,000');
-
-    const expense = mapRetirementExpenseToVM({
-      id: 'e1',
-      name: 'Housing',
-      type: 'general',
-      includesPrincipal: false,
-      interestOnly: false,
-      currentAnnual: 36000,
-      growthRate: 2,
-      retirementMultiplier: 0.8,
-      startYear: 2026,
-      endYear: null,
-    });
-    expect(expense.growthAndMultiplierText).toContain('80%');
-
+  it('maps an event display item', () => {
     const event = mapRetirementEventToVM(
       {
         id: 'ev1',

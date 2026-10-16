@@ -44,8 +44,7 @@ vi.mock('@/ui/features/retirement/hooks/useRetirementPlanDetailPage', () => ({
       retirementYear: 2045,
       lifeExpectancyYear: 2070,
     },
-    incomeItems: [],
-    expenseItems: [],
+    baselineItems: [],
     eventItems: [],
     netWorthSource: {
       startingNetWorth: 100000,
@@ -63,7 +62,6 @@ vi.mock('@/ui/features/retirement/hooks/useRetirementPlanDetailPage', () => ({
     handleUpdatePlan: vi.fn(),
     handleToggleAutoUpdate: vi.fn(),
     handleRecalculate: vi.fn(),
-    handleAddExpense: vi.fn(),
     handleUpdateExpense: vi.fn(),
     handleDeleteExpense: vi.fn(),
     handleImportDebtRepayments: vi.fn(),
@@ -72,11 +70,9 @@ vi.mock('@/ui/features/retirement/hooks/useRetirementPlanDetailPage', () => ({
     handleDeleteEvent: vi.fn(),
     handleDelete: vi.fn(),
     handleSaveName: vi.fn(),
-    handleAddIncome: vi.fn(),
     handleUpdateIncome: vi.fn(),
     handleDeleteIncome: vi.fn(),
-    handleImportIncomeFromTransactions: vi.fn(),
-    handleImportExpensesFromLedger: vi.fn(),
+    handleImportFromLedger: vi.fn(),
   }),
 }));
 
@@ -213,7 +209,7 @@ describe('RetirementPlanForm - Scenario Workspace', () => {
     expect(screen.getByText(/每年明細/)).toBeVisible();
   });
 
-  it('keeps the assumptions and income inputs off the Overview tab until Plan Setup is opened', () => {
+  it('keeps the assumptions and baseline inputs off the Overview tab until Plan Setup is opened', () => {
     renderForm();
 
     expect(screen.queryByText('SCENARIO ASSUMPTIONS')).not.toBeInTheDocument();
@@ -222,17 +218,18 @@ describe('RetirementPlanForm - Scenario Workspace', () => {
     openTab(/Plan Setup/);
 
     expect(screen.getByText('SCENARIO ASSUMPTIONS')).toBeVisible();
-    expect(screen.getByText('LIVING EXPENSES')).toBeVisible();
+    expect(screen.getByText('FINANCIAL BASELINE')).toBeVisible();
     expect(screen.getByText('LIFE EVENTS')).toBeVisible();
   });
 
-  it('shows plan inflation as the growth default when the expense dialog opens', () => {
+  it('offers Import from Ledger as the primary action when the baseline is empty', () => {
     renderForm();
 
     openTab(/Plan Setup/);
-    fireEvent.click(screen.getByRole('button', { name: /新增支出/ }));
 
-    expect(screen.getByText('Using plan inflation: 2%')).toBeInTheDocument();
+    // No manual add: the empty baseline points at the import instead.
+    expect(screen.queryByRole('button', { name: /新增/ })).not.toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: 'Import from Ledger' }).length).toBeGreaterThan(0);
   });
 
   it('does not show the stale income sync banner when absent', () => {

@@ -6,10 +6,9 @@ import { useRetirementEventActions } from '@/ui/features/retirement/hooks/useRet
 import { useRetirementExpenseActions } from '@/ui/features/retirement/hooks/useRetirementExpenseActions';
 import { useRetirementIncomeActions } from '@/ui/features/retirement/hooks/useRetirementIncomeActions';
 import { useRetirementPlanCore } from '@/ui/features/retirement/hooks/useRetirementPlanCore';
+import { mapRetirementPlanToBaselineItems } from '@/ui/features/retirement/viewmodels/retirementBaseline.vm';
 import {
   mapRetirementEventToVM,
-  mapRetirementExpenseToVM,
-  mapRetirementIncomeToVM,
   mapRetirementPlanToAssumptionsDisplayVM,
   mapRetirementPlanToHeaderVM,
   mapRetirementProjectionToVM,
@@ -76,6 +75,13 @@ export const useRetirementPlanDetailPage = (
     handleUpdatePlan,
   });
 
+  // One ledger import for the merged Financial Baseline section (spec #301 §4.3):
+  // incomes and expenses are imported together from the same "Import from Ledger".
+  const handleImportFromLedger = useCallback(async () => {
+    await handleImportIncomeFromTransactions();
+    await handleImportExpensesFromLedger();
+  }, [handleImportIncomeFromTransactions, handleImportExpensesFromLedger]);
+
   const projectionVM =
     plan && netWorthSource && 'startingNetWorth' in netWorthSource
       ? mapRetirementProjectionToVM(
@@ -90,12 +96,7 @@ export const useRetirementPlanDetailPage = (
     headerVM: plan ? mapRetirementPlanToHeaderVM(plan) : null,
     assumptionsVM: plan ? mapRetirementPlanToAssumptionsDisplayVM(plan) : null,
     netWorthSource,
-    incomeItems: plan
-      ? plan.incomes.map((income) => ({ domain: income, vm: mapRetirementIncomeToVM(income) }))
-      : [],
-    expenseItems: plan
-      ? plan.expenses.map((expense) => ({ domain: expense, vm: mapRetirementExpenseToVM(expense) }))
-      : [],
+    baselineItems: plan ? mapRetirementPlanToBaselineItems(plan) : [],
     eventItems: plan
       ? plan.events.map((event) => ({
           domain: event,
@@ -124,7 +125,6 @@ export const useRetirementPlanDetailPage = (
     handleAddIncome,
     handleUpdateIncome,
     handleDeleteIncome,
-    handleImportIncomeFromTransactions,
-    handleImportExpensesFromLedger,
+    handleImportFromLedger,
   };
 };

@@ -107,8 +107,8 @@ phase 形狀與驗證：
 
 ## 6. UI 操作
 
-- 收入頁面提供「Import from Ledger」按鈕（上一完整年度匯入行為不變）。
-- 支出頁面提供「匯入債務還款」與「Import from Ledger」按鈕。
+- Plan Setup 的 **Financial Baseline** 區域合併原 Income 與 Living Expenses，作為 ledger 來源的管理視圖（spec #301 §4）。列一律由 **Import from Ledger**／**匯入債務還款**產生，**沒有手動新增**；沒有匯入來源（`currentAnnual` 為空）的舊列保留但唯讀（無編輯動作，仍可刪除）。表格為六欄：名稱／資料來源（`ledgerCode`／`incomeCategory`／`sourceDebtAccountId`）／基準年金額（唯讀，由匯入推導）／成長率（表格顯示推導值，於側邊編輯器 Advanced 編輯）／結束條件（§2.2 推導標籤）／動作。桌面用系統 `DataTable`、行動版用 `MobileDataList`／`MobileExpandableRow`。篩選只用 `FilterStrip`（全部／收入／支出／債務），不做搜尋；Import 動作置於區域工具列，空狀態主要 CTA 亦指向 Import from Ledger。區域具備空／載入／錯誤三態。
+- 基準列的刪除以 **toast＋Undo** 完成（單一 Undo 槽、逾時 6 秒，spec #301 §2.4），不再使用確認模態；Undo 以補償性整批取代還原先前的集合。
 - 計畫清單頁以系統表格呈現：欄位為 Name、Retirement Age、Final Net Worth、Status；active 計畫置頂（其餘維持 repository 的 updatedAt 由新到舊），並以列左緣品牌色條與文字狀態徽章（使用中／未使用）凸顯——顏色只是輔助，不可作為唯一訊號。點擊列進入計畫詳情，Duplicate 與 Set as active（僅非 active 計畫）為列尾圖示動作，New Plan 留在頁首；未重新計算的計畫 Final Net Worth 顯示「—」（無 fallback 值）。空／載入／錯誤三態沿用共用元件（EmptyState／Skeleton／inline Alert + 重試）。
 - Projection 摘要為快取：Recalculate 時重新推導 netWorthAtRetirement（退休年期初淨資產）與 finalNetWorth（投影期末淨資產），不使用遷移腳本。
 - 事件頁為分段編輯：可新增多個 phase，每段設定 Start/End Year 與金額（必填）、可選 Growth Rate（留空代表隨計畫通膨）；phase 以 repeater 編輯（`md` 以上為欄位對齊的單列、行動版為兩欄堆疊區塊，不橫向捲動），各欄位共用系統表單欄位與樣式。
@@ -133,7 +133,7 @@ phase 形狀與驗證：
 - 退休詳情頁為單頁 Scenario Workspace（2026-09-20 #120；2026-10 改為分頁，issue #264）：頂部分為三個底線式 Tabs，全 viewport 適用；行動版分頁列可橫向捲動（不堆疊）。
   - **Overview**：Outcome（退休時資產／最低資產年份／是否破產，以 MetricGroup 排版非卡片）、Current Financial State、淨資產軌跡圖、關鍵風險（退休年／破產年／最低資產年／預期壽命終點，皆由既有資料直接列出）。
   - **Projection**：現金流投影圖與年度明細。
-  - **Plan Setup**：Scenario Assumptions、Income、Living Expenses、Life Events。
+  - **Plan Setup**：Scenario Assumptions、Financial Baseline、Life Events。
   - Scenario Assumptions 以唯讀摘要呈現五格指標（目前年齡／退休年齡／預期壽命／通膨率／投資報酬率），不另有 Current Year／Birth Year 欄位；推導年份以括註附在年齡欄位旁（例：`65（2045）`）。按 `Edit` 就地在區塊內展開編輯表單，分「人生時程」與「財務假設」兩群，並有明示 `Save`／`Cancel`。順序驗證為退休年齡 > 目前年齡、預期壽命 > 退休年齡。年齡與年份以 `birthYear` 為唯一換算基礎：`birthYear` 為不變錨，`currentYear` 於存檔時以「今天」覆寫，目前年齡為推導顯示值（由基準年份減出生年），編輯目前年齡即重新錨定 `birthYear`。
   - 桌面切換分頁會卸載未顯示的分頁（本地編輯狀態不保留）；無投影結果時，Overview 與 Projection 顯示單一空狀態（前往每月關帳）。
 

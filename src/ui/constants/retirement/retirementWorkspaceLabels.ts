@@ -21,18 +21,13 @@ export const RetirementWorkspaceSectionLabels = {
   risks: 'KEY RISKS',
   cashFlow: 'CASH FLOW PROJECTION',
   assumptions: 'SCENARIO ASSUMPTIONS',
-  income: 'INCOME',
-  expenses: 'LIVING EXPENSES',
+  baseline: 'FINANCIAL BASELINE',
   events: 'LIFE EVENTS',
 } as const;
 
 export type RetirementWorkspaceSectionKey = keyof typeof RetirementWorkspaceSectionLabels;
 
 export const RetirementWorkspaceTermLabels = {
-  incomeStream: 'Income Stream',
-  incomeStreams: 'Income Streams',
-  expenseCategory: 'Expense Category',
-  expenseCategories: 'Expense Categories',
   retirementEvent: 'Life Event',
   retirementEvents: 'Life Events',
 } as const;
@@ -101,15 +96,58 @@ export const RetirementAssumptionsLabels = {
 export const RetirementTabContentLabels = {
   importFromLedger: 'Import from Ledger',
   importDebtRepayments: '匯入債務還款',
-  lifelong: '終身',
   editAction: 'Edit',
   deleteAction: 'Delete',
-  incomeEmpty:
-    'No income streams added yet. Import from the ledger or click Add Income to get started.',
-  expenseEmpty: 'No expense categories defined yet. Click Add Expense to get started.',
   eventEmpty: 'No life events defined yet. Click Add Event to get started.',
   phaseCount: (count: number) => `${count} phases`,
 } as const;
+
+/**
+ * Financial Baseline 區域（spec #301 §4）：合併原 Income 與 Living Expenses，
+ * 作為 ledger 來源的管理視圖。
+ */
+export type RetirementBaselineFilter = 'all' | 'income' | 'expense' | 'debt';
+
+export const RetirementBaselineLabels = {
+  filterAriaLabel: '基準列篩選',
+  filterAll: '全部',
+  filterIncome: '收入',
+  filterExpense: '支出',
+  filterDebt: '債務',
+  columnName: '名稱',
+  columnSource: '資料來源',
+  columnBaseAmount: '基準年金額',
+  columnGrowth: '成長率',
+  columnEndCondition: '結束條件',
+  columnActions: '動作',
+  /** 沒有匯入來源（`currentAnnual` 為空）的舊列，仍保留但唯讀。 */
+  noSource: '—',
+  growthInflation: 'Inflation',
+  growthPercent: (rate: number) => `${rate}% growth`,
+  emptyTitle: 'NO BASELINE DATA',
+  emptyDescription:
+    '基準列由 Ledger 匯入產生。匯入後即可檢視與編輯；未來才發生的收支請改用 Life Event 表達。',
+  filterEmptyTitle: 'NO MATCHING ROWS',
+  filterEmptyDescription: '此篩選沒有符合的基準列。',
+  loading: '載入中',
+  loadError: '無法載入基準資料。',
+  retryAction: '重試',
+  deletedRowToast: 'ROW DELETED',
+  undoAction: 'UNDO',
+} as const;
+
+export const RetirementBaselineFilterItems: ReadonlyArray<{
+  id: RetirementBaselineFilter;
+  label: string;
+}> = [
+  { id: 'all', label: RetirementBaselineLabels.filterAll },
+  { id: 'income', label: RetirementBaselineLabels.filterIncome },
+  { id: 'expense', label: RetirementBaselineLabels.filterExpense },
+  { id: 'debt', label: RetirementBaselineLabels.filterDebt },
+];
+
+/** 六欄（名稱／資料來源／基準年金額／成長率／結束條件／動作），總和為 100。 */
+export const RETIREMENT_BASELINE_COLUMN_WIDTHS: readonly number[] = [24, 20, 16, 14, 16, 10];
 
 export const RetirementYearlyDetailLabels = {
   sectionTitle: '每年明細',
@@ -141,13 +179,6 @@ export const RetirementChartLabels = {
   netCashFlow: 'Net Cash Flow',
   cashFlowAriaLabel: 'Cash flow projection by year',
   netWorthAriaLabel: 'Net worth projection by year',
-} as const;
-
-export const RetirementExpenseBadgeLabels = {
-  typeGeneral: '一般支出',
-  typeDebtPayment: '債務還款',
-  interestOnly: '只繳利息',
-  includesPrincipal: '含本金',
 } as const;
 
 /** 結束條件語意（僅收入流與支出類別共用；Event phase 永遠是具體年份）。 */

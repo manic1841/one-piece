@@ -15,7 +15,6 @@ import {
 import { type MoneyTone } from '@/ui/components/moneyTone';
 import { RETIREMENT_LIST_LABELS } from '@/ui/constants/retirement/retirementListLabels';
 import {
-  RetirementExpenseBadgeLabels,
   RetirementRiskLabels,
   RetirementTabContentLabels,
 } from '@/ui/constants/retirement/retirementWorkspaceLabels';
@@ -115,63 +114,6 @@ export const mapRetirementPlanToListItemVM = (plan: RetirementPlan): RetirementP
   finalNetWorthText:
     plan.summary?.finalNetWorth != null ? formatCurrency(plan.summary.finalNetWorth) : '—',
 });
-
-export interface RetirementIncomeItemVM {
-  id: string;
-  name: string;
-  amountText: string;
-  growthText: string;
-  periodText: string;
-}
-
-export const mapRetirementIncomeToVM = (
-  income: RetirementIncomeSource,
-): RetirementIncomeItemVM => ({
-  id: income.id,
-  name: income.name,
-  amountText: income.currentAnnual != null ? `${formatCurrency(income.currentAnnual)}/yr` : '—',
-  growthText: income.growthRate != null ? `${income.growthRate}% growth` : 'Inflation',
-  periodText: income.lifelong
-    ? `${income.startYear} - 終身`
-    : `${income.startYear} - ${income.endYear ?? '-'}`,
-});
-
-export interface RetirementExpenseItemVM {
-  id: string;
-  name: string;
-  amountText: string;
-  growthAndMultiplierText: string;
-  periodText: string;
-  typeLabel: string;
-  debtModeLabel?: string;
-}
-
-export const mapRetirementExpenseToVM = (
-  expense: RetirementExpenseCategory,
-): RetirementExpenseItemVM => {
-  const isDebtPayment = expense.type === 'debt_payment';
-  const amountText = `${formatCurrency(expense.currentAnnual)}/yr`;
-  const retirementModeText = `${expense.retirementMultiplier * 100}% after retirement`;
-  return {
-    id: expense.id,
-    name: expense.name,
-    amountText,
-    growthAndMultiplierText: `${
-      expense.growthRate != null ? `${expense.growthRate}% growth` : 'Inflation'
-    } ${retirementModeText}`,
-    periodText: `${expense.startYear} - ${expense.endYear ?? 'Lifetime'}`,
-    typeLabel: isDebtPayment
-      ? RetirementExpenseBadgeLabels.typeDebtPayment
-      : RetirementExpenseBadgeLabels.typeGeneral,
-    debtModeLabel: isDebtPayment
-      ? expense.interestOnly
-        ? RetirementExpenseBadgeLabels.interestOnly
-        : expense.includesPrincipal
-          ? RetirementExpenseBadgeLabels.includesPrincipal
-          : undefined
-      : undefined,
-  };
-};
 
 export interface RetirementEventItemVM {
   id: string;

@@ -180,8 +180,7 @@ describe('useRetirementPlanDetailPage', () => {
     expect(result.current.headerVM).toBeNull();
     expect(result.current.assumptionsVM).toBeNull();
     expect(result.current.netWorthSource).toBeTruthy();
-    expect(result.current.incomeItems).toEqual([]);
-    expect(result.current.expenseItems).toEqual([]);
+    expect(result.current.baselineItems).toEqual([]);
     expect(result.current.eventItems).toEqual([]);
     expect(result.current.projectionVM).toBeNull();
 
@@ -199,9 +198,7 @@ describe('useRetirementPlanDetailPage', () => {
     expect(result.current.handleAddIncome).toBe(handleAddIncome);
     expect(result.current.handleUpdateIncome).toBe(handleUpdateIncome);
     expect(result.current.handleDeleteIncome).toBe(handleDeleteIncome);
-    expect(result.current.handleImportIncomeFromTransactions).toBe(
-      handleImportIncomeFromTransactions,
-    );
+    expect(typeof result.current.handleImportFromLedger).toBe('function');
 
     expect(result.current.handleAddEvent).toBe(handleAddEvent);
     expect(result.current.handleUpdateEvent).toBe(handleUpdateEvent);
@@ -219,8 +216,7 @@ describe('useRetirementPlanDetailPage', () => {
     expect(result.current.headerVM).toBeTruthy();
     expect(result.current.assumptionsVM).toBeTruthy();
     expect(result.current.netWorthSource).toBeTruthy();
-    expect(result.current.incomeItems).toHaveLength(1);
-    expect(result.current.expenseItems).toHaveLength(1);
+    expect(result.current.baselineItems).toHaveLength(2);
     expect(result.current.eventItems).toHaveLength(1);
     expect(result.current.projectionVM).toBeTruthy();
   });
