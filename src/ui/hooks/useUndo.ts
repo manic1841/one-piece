@@ -12,7 +12,10 @@ export type UndoRequest = {
    * the hook introduces no draft layer of its own.
    */
   undo: () => void | Promise<void>;
-  /** Action button label; defaults to "UNDO". */
+  /**
+   * Action button label; the shared hook owns the single default (the retirement
+   * feature's old duplicate constant was removed) — callers rarely pass this.
+   */
   actionLabel?: string;
   tone?: ToastTone;
 };

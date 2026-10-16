@@ -136,7 +136,6 @@ export const RetirementBaselineLabels = {
   loadError: '無法載入基準資料。',
   retryAction: '重試',
   deletedRowToast: 'ROW DELETED',
-  undoAction: 'UNDO',
   /** Import completed successfully (spec #301 §2.4). */
   importedToast: 'IMPORTED',
   /** Rows kept because their ledger source was not in the import (spec #301 §4.3). */
@@ -321,7 +320,6 @@ export const RetirementEventsLabels = {
   deletedEventToast: 'EVENT DELETED',
   deletedPhaseToast: 'PHASE DELETED',
   updatedPhaseToast: 'PHASE UPDATED',
-  undoAction: 'UNDO',
   emptyTitle: 'NO LIFE EVENTS',
   emptyDescription: '新增人生事件以描述未來的收入或支出。',
   filterEmptyTitle: 'NO MATCHING EVENTS',
