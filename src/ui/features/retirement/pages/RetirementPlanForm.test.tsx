@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -227,9 +227,13 @@ describe('RetirementPlanForm - Scenario Workspace', () => {
 
     openTab(/Plan Setup/);
 
-    // No manual add: the empty baseline points at the import instead.
-    expect(screen.queryByRole('button', { name: /新增/ })).not.toBeInTheDocument();
-    expect(screen.getAllByRole('button', { name: 'Import from Ledger' }).length).toBeGreaterThan(0);
+    // No manual add in the baseline: it points at the import instead. (#308 adds
+    // Add Event to the separate Life Events region, so scope the query.)
+    const baseline = screen.getByText('FINANCIAL BASELINE').closest('section')!;
+    expect(within(baseline).queryByRole('button', { name: /新增/ })).not.toBeInTheDocument();
+    expect(
+      within(baseline).getAllByRole('button', { name: 'Import from Ledger' }).length,
+    ).toBeGreaterThan(0);
   });
 
   it('does not show the stale income sync banner when absent', () => {

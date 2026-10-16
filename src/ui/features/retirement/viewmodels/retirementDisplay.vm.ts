@@ -15,6 +15,7 @@ import {
 import { type MoneyTone } from '@/ui/components/moneyTone';
 import { RETIREMENT_LIST_LABELS } from '@/ui/constants/retirement/retirementListLabels';
 import {
+  RetirementEventsLabels,
   RetirementRiskLabels,
   RetirementTabContentLabels,
 } from '@/ui/constants/retirement/retirementWorkspaceLabels';
@@ -115,6 +116,18 @@ export const mapRetirementPlanToListItemVM = (plan: RetirementPlan): RetirementP
     plan.summary?.finalNetWorth != null ? formatCurrency(plan.summary.finalNetWorth) : '—',
 });
 
+export interface RetirementEventPhaseRowVM {
+  /** Stable list key: the phase's index within the owning event. */
+  index: number;
+  /** `phase.name`, or `undefined` when blank — never falls back (spec #301 §2.1). */
+  name?: string;
+  startYear: number;
+  endYear: number;
+  yearText: string;
+  amountText: string;
+  growthText: string;
+}
+
 export interface RetirementEventItemVM {
   id: string;
   name: string;
@@ -123,9 +136,21 @@ export interface RetirementEventItemVM {
   amountText: string;
   /** Present only when the event is segmented, so the row still shows one money figure. */
   phaseCountText?: string;
-  typeText: string;
+  typeLabel: string;
+  /** `'text-positive'` for income, `'text-negative'` for expense. */
   amountClassName: string;
+  /** Per-phase detail rows (`phase.name` blank → `name` omitted). */
+  phases: RetirementEventPhaseRowVM[];
 }
+
+/**
+ * phase 副標規則：`phase.name` 空白時回傳 `undefined`，**不回退**到任何替代文字
+ * （spec #301 §2.1／§5.2）。
+ */
+export const retirementPhaseName = (name?: string): string | undefined => {
+  const trimmed = name?.trim();
+  return trimmed ? trimmed : undefined;
+};
 
 /**
  * Lifetime cost of one phase: the per-year `amount` grown each year it spans, summed.
@@ -140,6 +165,23 @@ const sumPhaseAmount = (
   }
   return total;
 };
+
+const mapEventPhaseToRow = (
+  phase: NormalizedRetirementEventPhase,
+  index: number,
+): RetirementEventPhaseRowVM => ({
+  index,
+  ...(retirementPhaseName(phase.name) && { name: retirementPhaseName(phase.name) }),
+  startYear: phase.startYear,
+  endYear: phase.endYear,
+  yearText:
+    phase.endYear > phase.startYear ? `${phase.startYear}–${phase.endYear}` : `${phase.startYear}`,
+  amountText: formatCurrency(phase.amount),
+  growthText:
+    phase.growthRate != null
+      ? RetirementEventsLabels.growthPercent(phase.growthRate)
+      : RetirementEventsLabels.growthInflation,
+});
 
 /**
  * `planInflationRate` is required: a phase without an explicit `growthRate` is grown
@@ -169,8 +211,9 @@ export const mapRetirementEventToVM = (
     ...(phases.length > 1 && {
       phaseCountText: RetirementTabContentLabels.phaseCount(phases.length),
     }),
-    typeText: event.type,
+    typeLabel: isIncome ? RetirementEventsLabels.typeIncome : RetirementEventsLabels.typeExpense,
     amountClassName: isIncome ? 'text-positive' : 'text-negative',
+    phases: phases.map(mapEventPhaseToRow),
   };
 };
 

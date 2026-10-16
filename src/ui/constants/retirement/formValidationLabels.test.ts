@@ -7,7 +7,6 @@ describe('RetirementFormValidationLabels pinning', () => {
     expect(RetirementFormValidationLabels).toEqual({
       name: '請輸入名稱',
       eventName: '請輸入事件名稱',
-      phaseName: '請輸入階段名稱',
       eventAmount: '請輸入金額',
       currentAnnual: '請輸入目前年支出',
       currentAge: '請輸入目前年齡',

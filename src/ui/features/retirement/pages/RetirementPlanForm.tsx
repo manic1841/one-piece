@@ -56,6 +56,9 @@ const RetirementPlanForm: React.FC = () => {
     handleAddEvent,
     handleUpdateEvent,
     handleDeleteEvent,
+    handleAddPhase,
+    handleUpdatePhase,
+    handleDeletePhase,
     handleDelete,
     handleSaveName,
     handleUpdateIncome,
@@ -217,10 +220,16 @@ const RetirementPlanForm: React.FC = () => {
           <PageSection title={RetirementWorkspaceSectionLabels.events}>
             <EventTabContent
               currentYear={plan.currentYear}
+              loading={loading}
+              error={error}
+              onRetry={() => void reload()}
               eventItems={eventItems}
               handleAddEvent={handleAddEvent}
               handleUpdateEvent={handleUpdateEvent}
               handleDeleteEvent={handleDeleteEvent}
+              handleAddPhase={handleAddPhase}
+              handleUpdatePhase={handleUpdatePhase}
+              handleDeletePhase={handleDeletePhase}
             />
           </PageSection>
         </TabsContent>

@@ -85,7 +85,14 @@ export const useRetirementPlanDetailPage = (
     reportImport(await importDebtRepayments());
   }, [importDebtRepayments, reportImport]);
 
-  const { handleAddEvent, handleUpdateEvent, handleDeleteEvent } = useRetirementEventActions({
+  const {
+    handleAddEvent,
+    handleUpdateEvent,
+    handleDeleteEvent,
+    handleAddPhase,
+    handleUpdatePhase,
+    handleDeletePhase,
+  } = useRetirementEventActions({
     id,
     plan,
     handleUpdatePlan,
@@ -150,6 +157,9 @@ export const useRetirementPlanDetailPage = (
     handleAddEvent,
     handleUpdateEvent,
     handleDeleteEvent,
+    handleAddPhase,
+    handleUpdatePhase,
+    handleDeletePhase,
     handleDelete,
     handleSaveName,
     handleAddIncome,
