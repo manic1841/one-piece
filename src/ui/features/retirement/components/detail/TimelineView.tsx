@@ -183,6 +183,9 @@ export function TimelineView({
   const displayRows: TimelineRow[] = applyDraftToRows(rows, draft);
 
   // Selection persistence by id (spec #301 §5.4): cleared when the entity is gone.
+  // Keyboard navigation is roving focus only — it calls `moveFocusTo`, never
+  // `setSelectedKey`, so it leaves no persistent selected ring. Only pointer-driven
+  // drags and editor reassignment persist a selection.
   const barIds = new Set(displayRows.flatMap((row) => row.bars.map((bar) => bar.id)));
   const selected = selectedKey !== null && barIds.has(selectedKey) ? selectedKey : null;
 

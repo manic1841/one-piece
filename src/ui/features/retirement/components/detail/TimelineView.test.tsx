@@ -159,6 +159,19 @@ describe('TimelineView', () => {
     );
   });
 
+  it('moves keyboard focus without creating a persistent selection ring (spec §5.4 / #292)', async () => {
+    renderView();
+    const first = screen.getByRole('button', { name: '幼兒園，2028–2030' });
+    fireEvent.keyDown(first, { key: 'ArrowRight' });
+    const sibling = screen.getByRole('button', { name: '子女教育，2035' });
+    await waitFor(() => expect(sibling).toHaveFocus());
+
+    // Roving focus only: arrow keys move the tab stop but never mark a persistent
+    // selection, so neither bar carries the `ring-2 ring-ring` selected style.
+    expect(sibling).not.toHaveClass('ring-2');
+    expect(first).not.toHaveClass('ring-2');
+  });
+
   it('jumps to the last bar with End and back with Home', async () => {
     renderView();
     const first = screen.getByRole('button', { name: '幼兒園，2028–2030' });
