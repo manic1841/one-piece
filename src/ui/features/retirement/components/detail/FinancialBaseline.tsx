@@ -49,6 +49,9 @@ interface FinancialBaselineProps {
   loading: boolean;
   error: unknown;
   onRetry: () => void;
+  /** Set after an Import when existing rows did not match any source (spec #301 §4.3). */
+  importNotice: { unmatchedCount: number } | null;
+  onDismissImportNotice: () => void;
   onImportFromLedger: () => void;
   onImportDebtRepayments: () => void;
   onUpdateIncome: (id: string, data: Omit<RetirementIncomeSource, 'id'>) => Promise<void>;
@@ -74,6 +77,8 @@ export const FinancialBaseline: React.FC<FinancialBaselineProps> = ({
   loading,
   error,
   onRetry,
+  importNotice,
+  onDismissImportNotice,
   onImportFromLedger,
   onImportDebtRepayments,
   onUpdateIncome,
@@ -151,6 +156,17 @@ export const FinancialBaseline: React.FC<FinancialBaselineProps> = ({
 
     return (
       <>
+        {importNotice && importNotice.unmatchedCount > 0 && (
+          <Alert>
+            <AlertDescription className="flex items-center justify-between gap-3">
+              <span>{L.unmatchedNotice(importNotice.unmatchedCount)}</span>
+              <Button variant="text" size="sm" onClick={onDismissImportNotice}>
+                {L.unmatchedNoticeDismiss}
+              </Button>
+            </AlertDescription>
+          </Alert>
+        )}
+
         <Toolbar
           actions={
             <>

@@ -124,12 +124,11 @@ phase 形狀與驗證：
   - 明細表走系統 data-table（桌面）與 `MobileExpandableRow`（行動版），逐年以列展開顯示當年收入明細與支出明細。
   - 明細表額外顯示 `投資收益` 欄位（與 `收入` 分開）。
   - Mobile（<md）不使用橫向捲動表格（issue #138）：每年為 compact row，Year 與 Savings（收盤淨資產）固定顯示，其餘欄位（Age、Status、Income、Expense、投資收益、Net）與收支明細在展開區，閱讀順序與桌面一致；md+ 維持系統表格。
-- 收入匯入結果以 `incomeCategory` 對齊：
-  - 已存在相同 `incomeCategory`：更新既有項目（保留原 id）
-  - 不存在：新增項目
-- 債務匯入結果以 `sourceDebtAccountId` 對齊：
-  - 已存在相同 `sourceDebtAccountId`：更新既有項目（保留原 id）
-  - 不存在：新增項目
+- **匯入行為（spec #301 §4.3）**：Import 只引入／更新列、**永不重算**（重算只由 Recalculate 觸發）。重新匯入以來源鍵對齊——收入用 `incomeCategory`（回退 `calculatedFrom.ledgerCode`）、一般支出用 `expenseCategory`、債務還款用 `sourceDebtAccountId`：
+  - 已存在相同來源鍵：**保留原 id**，只覆寫**基準年金額**與來源統計（`calculatedFrom`）；債務還款的 `endYear` 亦跟隨匯入（不屬四語意）。**使用者假設（`growthRate`、結束條件 `endYear`／`lifelong`、名稱等可編輯欄位）一律保留**。
+  - 來源不存在：新增列（沿用匯入產生的 id）。
+  - **來源已不存在的既有列不刪除**，僅於匯入後提示「N 列未對應到來源」（沒有來源鍵的舊列不計入）。
+- 匯入成功給成功 toast（spec #301 §2.4）；**初次建立＝空狀態＋主要 CTA「Import from Ledger」，不自動建立任何預設列**。
 - 退休詳情頁為單頁 Scenario Workspace（2026-09-20 #120；2026-10 改為分頁，issue #264）：頂部分為三個底線式 Tabs，全 viewport 適用；行動版分頁列可橫向捲動（不堆疊）。
   - **Overview**：Outcome（退休時資產／最低資產年份／是否破產，以 MetricGroup 排版非卡片）、Current Financial State、淨資產軌跡圖、關鍵風險（退休年／破產年／最低資產年／預期壽命終點，皆由既有資料直接列出）。
   - **Projection**：現金流投影圖與年度明細。

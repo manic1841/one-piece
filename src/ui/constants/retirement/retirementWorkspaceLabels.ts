@@ -137,6 +137,11 @@ export const RetirementBaselineLabels = {
   retryAction: '重試',
   deletedRowToast: 'ROW DELETED',
   undoAction: 'UNDO',
+  /** Import completed successfully (spec #301 §2.4). */
+  importedToast: 'IMPORTED',
+  /** Rows kept because their ledger source was not in the import (spec #301 §4.3). */
+  unmatchedNotice: (count: number) => `${count} 列未對應到來源`,
+  unmatchedNoticeDismiss: '關閉',
 } as const;
 
 export const RetirementBaselineFilterItems: ReadonlyArray<{

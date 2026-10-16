@@ -1,4 +1,4 @@
-import { renderHook } from '@testing-library/react';
+import { act, renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
@@ -12,6 +12,10 @@ import { useRetirementExpenseActions } from './useRetirementExpenseActions';
 import { useRetirementIncomeActions } from './useRetirementIncomeActions';
 import { useRetirementPlanCore } from './useRetirementPlanCore';
 import { useRetirementPlanDetailPage } from './useRetirementPlanDetailPage';
+
+const { showToastMock } = vi.hoisted(() => ({ showToastMock: vi.fn() }));
+
+vi.mock('@/ui/components/Toast', () => ({ showToast: showToastMock }));
 
 vi.mock('./useRetirementPlanCore', () => ({
   useRetirementPlanCore: vi.fn(),
@@ -193,7 +197,7 @@ describe('useRetirementPlanDetailPage', () => {
     expect(result.current.handleAddExpense).toBe(handleAddExpense);
     expect(result.current.handleUpdateExpense).toBe(handleUpdateExpense);
     expect(result.current.handleDeleteExpense).toBe(handleDeleteExpense);
-    expect(result.current.handleImportDebtRepayments).toBe(handleImportDebtRepayments);
+    expect(typeof result.current.handleImportDebtRepayments).toBe('function');
 
     expect(result.current.handleAddIncome).toBe(handleAddIncome);
     expect(result.current.handleUpdateIncome).toBe(handleUpdateIncome);
@@ -219,5 +223,30 @@ describe('useRetirementPlanDetailPage', () => {
     expect(result.current.baselineItems).toHaveLength(2);
     expect(result.current.eventItems).toHaveLength(1);
     expect(result.current.projectionVM).toBeTruthy();
+  });
+
+  it('toasts on import and surfaces the unmatched notice, which can be dismissed', async () => {
+    mockedCore.mockReturnValueOnce(coreReturnValue(createPlan()));
+    mockedIncomeActions.mockReturnValueOnce({
+      handleAddIncome,
+      handleUpdateIncome,
+      handleDeleteIncome,
+      handleImportIncomeFromTransactions: vi.fn().mockResolvedValue(2),
+    });
+
+    const { result } = renderHook(() =>
+      useRetirementPlanDetailPage('plan-1', 'household-1', 'user@example.com'),
+    );
+
+    await act(async () => {
+      await result.current.handleImportFromLedger();
+    });
+
+    expect(showToastMock).toHaveBeenCalledTimes(1);
+    expect(result.current.importNotice).toEqual({ unmatchedCount: 2 });
+
+    act(() => result.current.handleDismissImportNotice());
+
+    expect(result.current.importNotice).toBeNull();
   });
 });

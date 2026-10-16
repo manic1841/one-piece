@@ -67,8 +67,8 @@ export const useRetirementExpenseActions = ({
     [id, plan, offer, handleUpdatePlan],
   );
 
-  const handleImportDebtRepayments = useCallback(async () => {
-    if (!id || !plan) return;
+  const handleImportDebtRepayments = useCallback(async (): Promise<number | null> => {
+    if (!id || !plan) return null;
 
     const imported = await importDebtData();
     const importedExpenses = imported.filter(
@@ -76,20 +76,17 @@ export const useRetirementExpenseActions = ({
         typeof item.currentAnnual === 'number' && typeof item.sourceDebtAccountId === 'string',
     );
 
-    if (importedExpenses.length === 0) {
-      return;
-    }
-
     const mergeResult = mergeImportedDebtRepaymentExpensesUseCase.execute({
       plan,
       importedExpenses,
     });
 
-    if (!mergeResult.hasChanges) {
-      return;
+    // Import only introduces/updates rows; it never triggers a recalculation.
+    if (mergeResult.hasChanges) {
+      await handleUpdatePlan({ expenses: mergeResult.expenses });
     }
 
-    await handleUpdatePlan({ expenses: mergeResult.expenses });
+    return mergeResult.unmatchedCount;
   }, [id, plan, importDebtData, handleUpdatePlan]);
 
   return {

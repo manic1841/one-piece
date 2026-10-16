@@ -107,6 +107,8 @@ function renderBaseline(overrides: Partial<ComponentProps<typeof FinancialBaseli
     loading: false,
     error: null,
     onRetry: vi.fn(),
+    importNotice: null,
+    onDismissImportNotice: vi.fn(),
     onImportFromLedger: vi.fn(),
     onImportDebtRepayments: vi.fn(),
     onUpdateIncome: vi.fn().mockResolvedValue(undefined),
@@ -198,6 +200,20 @@ describe('FinancialBaseline', () => {
 
     expect(props.onDeleteIncome).toHaveBeenCalledWith('i1');
     expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
+  });
+
+  it('surfaces the unmatched-to-source notice when an import leaves rows unmatched', () => {
+    renderBaseline({ importNotice: { unmatchedCount: 3 } });
+
+    expect(screen.getByText('3 列未對應到來源')).toBeInTheDocument();
+  });
+
+  it('dismisses the import notice', () => {
+    const props = renderBaseline({ importNotice: { unmatchedCount: 1 } });
+
+    fireEvent.click(screen.getByRole('button', { name: L.unmatchedNoticeDismiss }));
+
+    expect(props.onDismissImportNotice).toHaveBeenCalledTimes(1);
   });
 
   it('exposes a loading state', () => {

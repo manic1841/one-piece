@@ -61,6 +61,8 @@ const RetirementPlanForm: React.FC = () => {
     handleUpdateIncome,
     handleDeleteIncome,
     handleImportFromLedger,
+    importNotice,
+    handleDismissImportNotice,
   } = useRetirementPlanDetailPage(id, userProfile?.householdId, userProfile?.email);
 
   const [activeTab, setActiveTab] = useState<RetirementWorkspaceTabKey>('overview');
@@ -201,6 +203,8 @@ const RetirementPlanForm: React.FC = () => {
               loading={loading}
               error={error}
               onRetry={() => void reload()}
+              importNotice={importNotice}
+              onDismissImportNotice={handleDismissImportNotice}
               onImportFromLedger={() => void handleImportFromLedger()}
               onImportDebtRepayments={() => void handleImportDebtRepayments()}
               onUpdateIncome={handleUpdateIncome}

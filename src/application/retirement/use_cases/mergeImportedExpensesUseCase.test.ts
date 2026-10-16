@@ -46,15 +46,22 @@ describe('mergeImportedExpensesUseCase', () => {
     const result = mergeImportedExpensesUseCase.execute({ plan, importedExpenses: imported });
 
     expect(result.hasChanges).toBe(true);
+    expect(result.unmatchedCount).toBe(0);
     expect(result.expenses).toHaveLength(1);
     expect(result.expenses[0]?.id).toBe('new-1');
   });
 
-  it('updates an existing category in place keeping its id and other fields', () => {
+  it('updates an existing category in place keeping its id, user assumptions and source stats', () => {
     const existing = {
       ...buildImported('existing-1', 'expense:food', 40_000),
       growthRate: 1,
       retirementMultiplier: 0.8,
+      endYear: 2055,
+      calculatedFrom: {
+        debtAccountId: 'legacy',
+        sampleCount: 3,
+        importedAt: '2025-01-01T00:00:00.000Z',
+      },
     };
     const plan = buildPlan([existing]);
     const imported = [buildImported('imported-1', 'expense:food', 42_000)];
@@ -62,11 +69,16 @@ describe('mergeImportedExpensesUseCase', () => {
     const result = mergeImportedExpensesUseCase.execute({ plan, importedExpenses: imported });
 
     expect(result.hasChanges).toBe(true);
+    expect(result.unmatchedCount).toBe(0);
     expect(result.expenses).toHaveLength(1);
     expect(result.expenses[0]?.id).toBe('existing-1');
     expect(result.expenses[0]?.currentAnnual).toBe(42_000);
+    // User assumptions are preserved.
     expect(result.expenses[0]?.growthRate).toBe(1);
     expect(result.expenses[0]?.retirementMultiplier).toBe(0.8);
+    expect(result.expenses[0]?.endYear).toBe(2055);
+    // The import carries no stats, so the existing ones are not clobbered.
+    expect(result.expenses[0]?.calculatedFrom?.sampleCount).toBe(3);
   });
 
   it('does not report changes when the annual total is unchanged', () => {
@@ -82,6 +94,7 @@ describe('mergeImportedExpensesUseCase', () => {
     const result = mergeImportedExpensesUseCase.execute({ plan, importedExpenses: imported });
 
     expect(result.hasChanges).toBe(false);
+    expect(result.unmatchedCount).toBe(0);
     expect(result.expenses[0]?.id).toBe('existing-1');
   });
 
@@ -100,13 +113,14 @@ describe('mergeImportedExpensesUseCase', () => {
     expect(result.expenses).toHaveLength(0);
   });
 
-  it('returns the plan unchanged when nothing is imported', () => {
+  it('keeps rows whose source disappeared and reports them as unmatched', () => {
     const existing = buildImported('existing-1', 'expense:food', 40_000);
     const plan = buildPlan([existing]);
 
     const result = mergeImportedExpensesUseCase.execute({ plan, importedExpenses: [] });
 
     expect(result.hasChanges).toBe(false);
-    expect(result.expenses).toBe(plan.expenses);
+    expect(result.unmatchedCount).toBe(1);
+    expect(result.expenses).toEqual(plan.expenses);
   });
 });

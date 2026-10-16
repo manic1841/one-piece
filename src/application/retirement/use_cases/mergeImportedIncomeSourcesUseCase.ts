@@ -1,3 +1,4 @@
+import { alignBaselineImport } from '@/domains/retirement/logic/baselineImportAlignment';
 import type { RetirementIncomeSource, RetirementPlan } from '@/domains/retirement/types';
 
 interface MergeImportedIncomeSourcesRequest {
@@ -8,37 +9,34 @@ interface MergeImportedIncomeSourcesRequest {
 interface MergeImportedIncomeSourcesResult {
   incomes: RetirementIncomeSource[];
   hasChanges: boolean;
+  /** Existing sourced incomes with no matching source in the import. */
+  unmatchedCount: number;
 }
 
+/** Align on the merge key: `incomeCategory`, falling back to the raw ledger code. */
+const incomeSourceKey = (income: RetirementIncomeSource): string | undefined =>
+  income.incomeCategory ?? income.calculatedFrom?.ledgerCode;
+
+/**
+ * Aligns ledger-imported incomes into the plan (spec #301 §4.3): keep the
+ * existing id, overwrite only the base amount and source statistics, append
+ * missing sources, keep rows whose source disappeared.
+ */
 class MergeImportedIncomeSourcesUseCase {
   execute(request: MergeImportedIncomeSourcesRequest): MergeImportedIncomeSourcesResult {
     const { plan, importedIncomes } = request;
 
-    if (importedIncomes.length === 0) {
-      return { incomes: plan.incomes, hasChanges: false };
-    }
+    const { rows, hasChanges, unmatchedCount } = alignBaselineImport({
+      existing: plan.incomes,
+      imported: importedIncomes,
+      sourceKey: incomeSourceKey,
+      applyImport: (_existing, imported) => ({
+        currentAnnual: imported.currentAnnual,
+        ...(imported.calculatedFrom ? { calculatedFrom: imported.calculatedFrom } : {}),
+      }),
+    });
 
-    const merged = [...plan.incomes];
-
-    for (const importedIncome of importedIncomes) {
-      const matchIndex = merged.findIndex(
-        (existing) =>
-          existing.incomeCategory && existing.incomeCategory === importedIncome.incomeCategory,
-      );
-
-      if (matchIndex >= 0) {
-        merged[matchIndex] = {
-          ...merged[matchIndex],
-          ...importedIncome,
-          id: merged[matchIndex].id,
-        };
-        continue;
-      }
-
-      merged.push(importedIncome);
-    }
-
-    return { incomes: merged, hasChanges: true };
+    return { incomes: rows, hasChanges, unmatchedCount };
   }
 }
 

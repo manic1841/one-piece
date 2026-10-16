@@ -58,7 +58,7 @@ const createPlan = (): RetirementPlan => ({
 });
 
 describe('mergeImportedDebtRepaymentExpensesUseCase', () => {
-  it('replaces existing expense by sourceDebtAccountId but keeps original id', () => {
+  it('aligns on sourceDebtAccountId: keeps id, overwrites amount and import-owned end year', () => {
     const plan = createPlan();
 
     const importedExpenses: RetirementExpenseCategory[] = [
@@ -84,14 +84,46 @@ describe('mergeImportedDebtRepaymentExpensesUseCase', () => {
     });
 
     expect(result.hasChanges).toBe(true);
+    expect(result.unmatchedCount).toBe(0);
     expect(result.expenses).toHaveLength(1);
     expect(result.expenses[0].id).toBe('expense-debt-1');
-    expect(result.expenses[0].name).toBe('Card A 還款 (Updated)');
     expect(result.expenses[0].currentAnnual).toBe(18000);
+    // endYear follows the debt account import, not the four semantics.
+    expect(result.expenses[0].endYear).toBe(2032);
+    // Name is user-editable in the side editor, so it stays.
+    expect(result.expenses[0].name).toBe('Card A 還款');
   });
 
-  it('appends expenses when debt account does not exist', () => {
+  it('preserves an existing growth rate assumption', () => {
     const plan = createPlan();
+    plan.expenses[0].growthRate = 2;
+
+    const importedExpenses: RetirementExpenseCategory[] = [
+      {
+        id: 'imported-exp-1',
+        name: 'Card A 還款',
+        sourceDebtAccountId: 'debt-a',
+        type: RetirementExpenseType.DEBT_PAYMENT,
+        includesPrincipal: true,
+        interestOnly: false,
+        currentAnnual: 18000,
+        growthRate: 0,
+        retirementMultiplier: 1,
+        startYear: 2026,
+        endYear: 2032,
+      },
+    ];
+
+    const result = mergeImportedDebtRepaymentExpensesUseCase.execute({
+      plan,
+      importedExpenses,
+    });
+
+    expect(result.expenses[0].growthRate).toBe(2);
+  });
+
+  it('appends expenses when the debt account does not exist yet', () => {
+    const plan: RetirementPlan = { ...createPlan(), expenses: [] };
 
     const importedExpenses: RetirementExpenseCategory[] = [
       {
@@ -116,11 +148,12 @@ describe('mergeImportedDebtRepaymentExpensesUseCase', () => {
     });
 
     expect(result.hasChanges).toBe(true);
-    expect(result.expenses).toHaveLength(2);
-    expect(result.expenses[1].id).toBe('imported-exp-2');
+    expect(result.unmatchedCount).toBe(0);
+    expect(result.expenses).toHaveLength(1);
+    expect(result.expenses[0].id).toBe('imported-exp-2');
   });
 
-  it('returns original expenses when imported list is empty', () => {
+  it('keeps rows whose debt account disappeared and reports them as unmatched', () => {
     const plan = createPlan();
 
     const result = mergeImportedDebtRepaymentExpensesUseCase.execute({
@@ -129,6 +162,7 @@ describe('mergeImportedDebtRepaymentExpensesUseCase', () => {
     });
 
     expect(result.hasChanges).toBe(false);
-    expect(result.expenses).toBe(plan.expenses);
+    expect(result.unmatchedCount).toBe(1);
+    expect(result.expenses).toEqual(plan.expenses);
   });
 });
