@@ -19,8 +19,8 @@ import {
 import { useAuthState } from '@/ui/contexts/useAuthState';
 import AssumptionsForm from '@/ui/features/retirement/components/AssumptionsForm';
 import { CurrentFinancialState } from '@/ui/features/retirement/components/detail/CurrentFinancialState';
-import { EventTabContent } from '@/ui/features/retirement/components/detail/EventTabContent';
 import { FinancialBaseline } from '@/ui/features/retirement/components/detail/FinancialBaseline';
+import { LifeEventsSection } from '@/ui/features/retirement/components/detail/LifeEventsSection';
 import { ProjectionEmptyState } from '@/ui/features/retirement/components/detail/ProjectionEmptyState';
 import { RetirementOutcome } from '@/ui/features/retirement/components/detail/RetirementOutcome';
 import { RetirementPlanHeader } from '@/ui/features/retirement/components/detail/RetirementPlanHeader';
@@ -39,6 +39,7 @@ const RetirementPlanForm: React.FC = () => {
     assumptionsVM,
     baselineItems,
     eventItems,
+    timelineRange,
     projectionVM,
     netWorthSource,
     loading,
@@ -59,6 +60,7 @@ const RetirementPlanForm: React.FC = () => {
     handleAddPhase,
     handleUpdatePhase,
     handleDeletePhase,
+    handleTimelineUpdatePhase,
     handleDelete,
     handleSaveName,
     handleUpdateIncome,
@@ -218,19 +220,23 @@ const RetirementPlanForm: React.FC = () => {
           </PageSection>
 
           <PageSection title={RetirementWorkspaceSectionLabels.events}>
-            <EventTabContent
-              currentYear={plan.currentYear}
-              loading={loading}
-              error={error}
-              onRetry={() => void reload()}
-              eventItems={eventItems}
-              handleAddEvent={handleAddEvent}
-              handleUpdateEvent={handleUpdateEvent}
-              handleDeleteEvent={handleDeleteEvent}
-              handleAddPhase={handleAddPhase}
-              handleUpdatePhase={handleUpdatePhase}
-              handleDeletePhase={handleDeletePhase}
-            />
+            {timelineRange && (
+              <LifeEventsSection
+                currentYear={plan.currentYear}
+                loading={loading}
+                error={error}
+                onRetry={() => void reload()}
+                range={timelineRange}
+                eventItems={eventItems}
+                handleAddEvent={handleAddEvent}
+                handleUpdateEvent={handleUpdateEvent}
+                handleDeleteEvent={handleDeleteEvent}
+                handleAddPhase={handleAddPhase}
+                handleUpdatePhase={handleUpdatePhase}
+                handleDeletePhase={handleDeletePhase}
+                handleTimelineUpdatePhase={handleTimelineUpdatePhase}
+              />
+            )}
           </PageSection>
         </TabsContent>
       </Tabs>
