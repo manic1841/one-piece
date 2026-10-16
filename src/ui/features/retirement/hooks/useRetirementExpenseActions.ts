@@ -8,7 +8,8 @@ import type {
   RetirementPlanCreate,
 } from '@/domains/retirement/types';
 import { newId } from '@/shared/id';
-import { useConfirm } from '@/ui/components/confirm/useConfirm';
+import { RetirementBaselineLabels } from '@/ui/constants/retirement/retirementWorkspaceLabels';
+import { useUndo } from '@/ui/hooks/useUndo';
 
 interface UseRetirementExpenseActionsParams {
   id: string | undefined;
@@ -46,18 +47,24 @@ export const useRetirementExpenseActions = ({
     [id, plan, handleUpdatePlan],
   );
 
-  const { confirm } = useConfirm();
+  const { offer } = useUndo();
 
   const handleDeleteExpense = useCallback(
     async (expenseId: string) => {
       if (!id || !plan) return;
-      const confirmed = await confirm('Are you sure you want to delete this expense category?');
-      if (!confirmed) return;
+      // Undoable delete (spec #301 §2.4): no confirm modal, restore the whole
+      // collection on Undo via a compensating replace.
+      const previousExpenses = plan.expenses;
       await handleUpdatePlan({
         expenses: removeById(plan.expenses, expenseId),
       });
+      offer({
+        message: RetirementBaselineLabels.deletedRowToast,
+        actionLabel: RetirementBaselineLabels.undoAction,
+        undo: () => handleUpdatePlan({ expenses: previousExpenses }),
+      });
     },
-    [id, plan, confirm, handleUpdatePlan],
+    [id, plan, offer, handleUpdatePlan],
   );
 
   const handleImportDebtRepayments = useCallback(async () => {

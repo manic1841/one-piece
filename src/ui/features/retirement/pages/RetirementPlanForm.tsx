@@ -20,8 +20,7 @@ import { useAuthState } from '@/ui/contexts/useAuthState';
 import AssumptionsForm from '@/ui/features/retirement/components/AssumptionsForm';
 import { CurrentFinancialState } from '@/ui/features/retirement/components/detail/CurrentFinancialState';
 import { EventTabContent } from '@/ui/features/retirement/components/detail/EventTabContent';
-import { ExpenseTabContent } from '@/ui/features/retirement/components/detail/ExpenseTabContent';
-import { IncomeTabContent } from '@/ui/features/retirement/components/detail/IncomeTabContent';
+import { FinancialBaseline } from '@/ui/features/retirement/components/detail/FinancialBaseline';
 import { ProjectionEmptyState } from '@/ui/features/retirement/components/detail/ProjectionEmptyState';
 import { RetirementOutcome } from '@/ui/features/retirement/components/detail/RetirementOutcome';
 import { RetirementPlanHeader } from '@/ui/features/retirement/components/detail/RetirementPlanHeader';
@@ -38,8 +37,7 @@ const RetirementPlanForm: React.FC = () => {
     plan,
     headerVM,
     assumptionsVM,
-    incomeItems,
-    expenseItems,
+    baselineItems,
     eventItems,
     projectionVM,
     netWorthSource,
@@ -52,7 +50,6 @@ const RetirementPlanForm: React.FC = () => {
     handleUpdatePlan,
     handleToggleAutoUpdate,
     handleRecalculate,
-    handleAddExpense,
     handleUpdateExpense,
     handleDeleteExpense,
     handleImportDebtRepayments,
@@ -61,11 +58,9 @@ const RetirementPlanForm: React.FC = () => {
     handleDeleteEvent,
     handleDelete,
     handleSaveName,
-    handleAddIncome,
     handleUpdateIncome,
     handleDeleteIncome,
-    handleImportIncomeFromTransactions,
-    handleImportExpensesFromLedger,
+    handleImportFromLedger,
   } = useRetirementPlanDetailPage(id, userProfile?.householdId, userProfile?.email);
 
   const [activeTab, setActiveTab] = useState<RetirementWorkspaceTabKey>('overview');
@@ -196,32 +191,22 @@ const RetirementPlanForm: React.FC = () => {
             />
           </PageSection>
 
-          <PageSection title={RetirementWorkspaceSectionLabels.income}>
-            <IncomeTabContent
+          <PageSection title={RetirementWorkspaceSectionLabels.baseline}>
+            <FinancialBaseline
               currentYear={plan.currentYear}
               birthYear={plan.birthYear}
               retirementAge={plan.retirementAge}
               planInflationRate={plan.inflationRate}
-              incomeItems={incomeItems}
-              handleAddIncome={handleAddIncome}
-              handleUpdateIncome={handleUpdateIncome}
-              handleDeleteIncome={handleDeleteIncome}
-              handleImportIncomeFromTransactions={handleImportIncomeFromTransactions}
-            />
-          </PageSection>
-
-          <PageSection title={RetirementWorkspaceSectionLabels.expenses}>
-            <ExpenseTabContent
-              currentYear={plan.currentYear}
-              birthYear={plan.birthYear}
-              retirementAge={plan.retirementAge}
-              planInflationRate={plan.inflationRate}
-              expenseItems={expenseItems}
-              handleAddExpense={handleAddExpense}
-              handleUpdateExpense={handleUpdateExpense}
-              handleDeleteExpense={handleDeleteExpense}
-              handleImportDebtRepayments={handleImportDebtRepayments}
-              handleImportFromLedger={handleImportExpensesFromLedger}
+              items={baselineItems}
+              loading={loading}
+              error={error}
+              onRetry={() => void reload()}
+              onImportFromLedger={() => void handleImportFromLedger()}
+              onImportDebtRepayments={() => void handleImportDebtRepayments()}
+              onUpdateIncome={handleUpdateIncome}
+              onUpdateExpense={handleUpdateExpense}
+              onDeleteIncome={handleDeleteIncome}
+              onDeleteExpense={handleDeleteExpense}
             />
           </PageSection>
 

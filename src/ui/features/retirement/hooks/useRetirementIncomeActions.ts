@@ -8,7 +8,8 @@ import type {
   RetirementPlanCreate,
 } from '@/domains/retirement/types';
 import { newId } from '@/shared/id';
-import { useConfirm } from '@/ui/components/confirm/useConfirm';
+import { RetirementBaselineLabels } from '@/ui/constants/retirement/retirementWorkspaceLabels';
+import { useUndo } from '@/ui/hooks/useUndo';
 
 interface UseRetirementIncomeActionsParams {
   id: string | undefined;
@@ -23,7 +24,7 @@ export const useRetirementIncomeActions = ({
   importIncomeData,
   handleUpdatePlan,
 }: UseRetirementIncomeActionsParams) => {
-  const { confirm } = useConfirm();
+  const { offer } = useUndo();
   const handleAddIncome = useCallback(
     async (incomeData: Omit<RetirementIncomeSource, 'id'>) => {
       if (!id || !plan) {
@@ -49,13 +50,19 @@ export const useRetirementIncomeActions = ({
   const handleDeleteIncome = useCallback(
     async (incomeId: string) => {
       if (!id || !plan) return;
-      const confirmed = await confirm('Are you sure you want to delete this income source?');
-      if (!confirmed) return;
+      // Undoable delete (spec #301 §2.4): no confirm modal, restore the whole
+      // collection on Undo via a compensating replace.
+      const previousIncomes = plan.incomes;
       await handleUpdatePlan({
         incomes: removeById(plan.incomes, incomeId),
       });
+      offer({
+        message: RetirementBaselineLabels.deletedRowToast,
+        actionLabel: RetirementBaselineLabels.undoAction,
+        undo: () => handleUpdatePlan({ incomes: previousIncomes }),
+      });
     },
-    [id, plan, confirm, handleUpdatePlan],
+    [id, plan, offer, handleUpdatePlan],
   );
 
   const handleImportIncomeFromTransactions = useCallback(async () => {
