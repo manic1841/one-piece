@@ -1,7 +1,6 @@
 import React from 'react';
 
 import { ArrowRight } from 'lucide-react';
-import { toast } from 'sonner';
 
 import { AppFallback } from '@/ui/components/AppFallback';
 import { CliProgress } from '@/ui/components/CliProgress';
@@ -12,7 +11,7 @@ import { LoadingLine } from '@/ui/components/LoadingLine';
 import { SearchField } from '@/ui/components/SearchField';
 import { Skeleton } from '@/ui/components/Skeleton';
 import { StatusGlyph } from '@/ui/components/StatusGlyph';
-import { LIVE_TOAST_OPTIONS, Toast } from '@/ui/components/Toast';
+import { Toast, showToast } from '@/ui/components/Toast';
 import { Alert, AlertDescription } from '@/ui/components/ui/alert';
 import { Button } from '@/ui/components/ui/button';
 import { Input } from '@/ui/components/ui/input';
@@ -74,9 +73,6 @@ const AlertSection: React.FC = () => (
   </GallerySection>
 );
 
-const UNDONE_TOAST = <Toast message="TRANSACTION UNDONE" />;
-const RETRYING_TOAST = <Toast message="RETRYING SAVE" />;
-
 const ToastSection: React.FC = () => (
   <GallerySection number="32" title="Toast">
     <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
@@ -84,57 +80,38 @@ const ToastSection: React.FC = () => (
         <Toast
           message="TRANSACTION SAVED"
           actionLabel="UNDO"
-          onAction={() => toast.custom(() => UNDONE_TOAST, LIVE_TOAST_OPTIONS)}
+          onAction={() => showToast('TRANSACTION UNDONE')}
         />
         <Toast
           className="mt-4"
           tone="error"
           message="SAVE FAILED"
           actionLabel="RETRY"
-          onAction={() => toast.custom(() => RETRYING_TOAST, LIVE_TOAST_OPTIONS)}
+          onAction={() => showToast('RETRYING SAVE')}
         />
       </GalleryModule>
       <GalleryModule label="LIVE TOAST" className="flex flex-col">
         <p className="font-mono text-[11px] text-muted-foreground">
-          Fires real sonner toasts that render this same Toast surface.
+          Fires real sonner toasts through <code>showToast</code>, the preferred API.
         </p>
         <div className="mt-4 flex flex-wrap gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() =>
-              toast.custom(
-                (id) => (
-                  <Toast
-                    message="TRANSACTION SAVED"
-                    actionLabel="UNDO"
-                    onAction={() => toast.dismiss(id)}
-                  />
-                ),
-                LIVE_TOAST_OPTIONS,
-              )
-            }
-          >
+          <Button variant="outline" size="sm" onClick={() => showToast('TRANSACTION SAVED')}>
             SUCCESS
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => showToast('SAVE FAILED', 'error')}>
+            ERROR
           </Button>
           <Button
             variant="outline"
             size="sm"
             onClick={() =>
-              toast.custom(
-                (id) => (
-                  <Toast
-                    tone="error"
-                    message="SAVE FAILED"
-                    actionLabel="RETRY"
-                    onAction={() => toast.dismiss(id)}
-                  />
-                ),
-                LIVE_TOAST_OPTIONS,
-              )
+              showToast('TRANSACTION SAVED', 'success', {
+                actionLabel: 'UNDO',
+                onAction: () => showToast('TRANSACTION UNDONE'),
+              })
             }
           >
-            ERROR
+            WITH ACTION
           </Button>
         </div>
       </GalleryModule>
