@@ -125,4 +125,41 @@ describe('useRetirementEventActions', () => {
       message: RetirementEventsLabels.deletedPhaseToast,
     });
   });
+
+  it('updates a phase span without changing its event', async () => {
+    const { result, handleUpdatePlan } = setup();
+
+    await act(() =>
+      result.current.handleTimelineUpdatePhase('ev1', 0, { startYear: 2033, endYear: 2035 }),
+    );
+
+    const arg = handleUpdatePlan.mock.calls[0][0] as { events: RetirementPlan['events'] };
+    expect(arg.events.find((event) => event.id === 'ev1')?.phases[0]).toMatchObject({
+      startYear: 2033,
+      endYear: 2035,
+    });
+    expect(offerMock.mock.calls[0][0]).toMatchObject({
+      message: RetirementEventsLabels.updatedPhaseToast,
+    });
+  });
+
+  it('reassigns a phase to another event (undoable)', async () => {
+    const { result, handleUpdatePlan } = setup();
+
+    await act(() =>
+      result.current.handleTimelineUpdatePhase('ev1', 0, {
+        startYear: 2030,
+        endYear: 2030,
+        targetEventId: 'ev2',
+      }),
+    );
+
+    const arg = handleUpdatePlan.mock.calls[0][0] as { events: RetirementPlan['events'] };
+    expect(arg.events.find((event) => event.id === 'ev1')?.phases).toHaveLength(0);
+    expect(arg.events.find((event) => event.id === 'ev2')?.phases).toHaveLength(2);
+
+    const restored = createPlan();
+    offerMock.mock.calls[0][0].undo();
+    expect(handleUpdatePlan).toHaveBeenLastCalledWith({ events: restored.events });
+  });
 });

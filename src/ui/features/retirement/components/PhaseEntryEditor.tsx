@@ -2,10 +2,13 @@ import { Plus } from 'lucide-react';
 
 import { useConfirm } from '@/ui/components/confirm/useConfirm';
 import { DrawerPanel } from '@/ui/components/drawer/DrawerPanel';
-import { Form } from '@/ui/components/form';
+import { Form, SelectField } from '@/ui/components/form';
 import { Button } from '@/ui/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/ui/components/ui/sheet';
-import { RetirementEventsLabels as L } from '@/ui/constants/retirement/retirementWorkspaceLabels';
+import {
+  RetirementEventsLabels as L,
+  RetirementTimelineLabels,
+} from '@/ui/constants/retirement/retirementWorkspaceLabels';
 import {
   type RetirementOneTimeEvent,
   retirementPhaseName,
@@ -16,12 +19,31 @@ import { PhaseFields } from './PhaseFields';
 
 type RetirementEventPhase = RetirementOneTimeEvent['phases'][number];
 
+/**
+ * 行動版換 Event 的具名控制（spec #301 §5.4）：在編輯器內以「所屬 Event」select
+ * 完成 Desktop 拖曳上下歸組的動作。
+ */
+export interface PhaseReassignControl {
+  value: string;
+  options: ReadonlyArray<{ value: string; label: string }>;
+  onChange: (eventId: string) => void;
+}
+
 interface PhaseEntryEditorProps {
   /** The owning event's name — the phase's primary name (spec #301 §5.2). */
   eventName: string;
   onSave: (phase: RetirementEventPhase) => Promise<void>;
   currentYear: number;
   initialData?: RetirementEventPhase;
+  /** Timeline 空白拖曳建立時預填的年份範圍（spec #301 §5.5）。 */
+  initialRange?: { startYear: number; endYear: number };
+  reassign?: PhaseReassignControl;
+  /**
+   * Controlled open. When set, no trigger is rendered and the caller owns
+   * open/close (TimelineView opens the editor programmatically on drag/Enter).
+   */
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
   trigger?: React.ReactNode;
 }
 
@@ -35,15 +57,28 @@ export function PhaseEntryEditor({
   onSave,
   currentYear,
   initialData,
+  initialRange,
+  reassign,
+  open,
+  onOpenChange,
   trigger,
 }: PhaseEntryEditorProps) {
   const { confirm } = useConfirm();
-  const { open, setOpen, loading, form, submitError, handleSubmit } = useRetirementPhaseEditor({
+  const {
+    open: internalOpen,
+    setOpen,
+    loading,
+    form,
+    submitError,
+    handleSubmit,
+  } = useRetirementPhaseEditor({
     initialData,
     currentYear,
+    initialRange,
     onSave,
   });
 
+  const controlled = open !== undefined;
   const isDirty = form.formState.isDirty;
 
   const handleOpenChange = (next: boolean) => {
@@ -67,15 +102,25 @@ export function PhaseEntryEditor({
     });
   };
 
+  const onSheetOpenChange = (next: boolean) => {
+    if (controlled) {
+      onOpenChange?.(next);
+      return;
+    }
+    handleOpenChange(next);
+  };
+
   return (
-    <Sheet open={open} onOpenChange={handleOpenChange}>
-      <SheetTrigger asChild>
-        {trigger ?? (
-          <Button variant="ghost" size="icon" aria-label={L.addPhaseAction}>
-            <Plus className="h-4 w-4" />
-          </Button>
-        )}
-      </SheetTrigger>
+    <Sheet open={controlled ? open : internalOpen} onOpenChange={onSheetOpenChange}>
+      {!controlled && (
+        <SheetTrigger asChild>
+          {trigger ?? (
+            <Button variant="ghost" size="icon" aria-label={L.addPhaseAction}>
+              <Plus className="h-4 w-4" />
+            </Button>
+          )}
+        </SheetTrigger>
+      )}
       <SheetContent
         side="bottom"
         aria-describedby={undefined}
@@ -106,7 +151,20 @@ export function PhaseEntryEditor({
                 </>
               }
             >
-              <div className="pt-4">
+              <div className="grid gap-4 pt-4">
+                {reassign ? (
+                  <div className="grid gap-2">
+                    <span className="text-sm font-medium">
+                      {RetirementTimelineLabels.reassignLabel}
+                    </span>
+                    <SelectField
+                      value={reassign.value}
+                      options={[...reassign.options]}
+                      onChange={reassign.onChange}
+                      aria-label={RetirementTimelineLabels.reassignLabel}
+                    />
+                  </div>
+                ) : null}
                 <PhaseFields />
                 {submitError ? <p className="text-sm text-destructive">{submitError}</p> : null}
               </div>

@@ -15,6 +15,7 @@ import {
   mapRetirementPlanToHeaderVM,
   mapRetirementProjectionToVM,
 } from '@/ui/features/retirement/viewmodels/retirementDisplay.vm';
+import { deriveTimelineRange } from '@/ui/features/retirement/viewmodels/retirementTimeline.vm';
 
 /** Rows kept by an import because their ledger source was not in it (spec #301 §4.3). */
 export interface RetirementImportNotice {
@@ -92,6 +93,7 @@ export const useRetirementPlanDetailPage = (
     handleAddPhase,
     handleUpdatePhase,
     handleDeletePhase,
+    handleTimelineUpdatePhase,
   } = useRetirementEventActions({
     id,
     plan,
@@ -134,6 +136,7 @@ export const useRetirementPlanDetailPage = (
     assumptionsVM: plan ? mapRetirementPlanToAssumptionsDisplayVM(plan) : null,
     netWorthSource,
     baselineItems: plan ? mapRetirementPlanToBaselineItems(plan) : [],
+    timelineRange: plan ? deriveTimelineRange(plan) : null,
     eventItems: plan
       ? plan.events.map((event) => ({
           domain: event,
@@ -160,6 +163,7 @@ export const useRetirementPlanDetailPage = (
     handleAddPhase,
     handleUpdatePhase,
     handleDeletePhase,
+    handleTimelineUpdatePhase,
     handleDelete,
     handleSaveName,
     handleAddIncome,

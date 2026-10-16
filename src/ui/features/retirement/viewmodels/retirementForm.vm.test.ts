@@ -395,6 +395,25 @@ describe('retirementForm.vm — phase form (spec #301 §5.2)', () => {
     });
   });
 
+  it('seeds the years from an initial range (Timeline drag-create)', () => {
+    const input = buildRetirementPhaseFormInput(undefined, 2030, {
+      startYear: 2033,
+      endYear: 2036,
+    });
+
+    expect(input).toMatchObject({ startYear: '2033', endYear: '2036' });
+  });
+
+  it('ignores the initial range when editing an existing phase', () => {
+    const input = buildRetirementPhaseFormInput(
+      { name: '', startYear: 2025, endYear: 2027, amount: 80000 },
+      2030,
+      { startYear: 2033, endYear: 2036 },
+    );
+
+    expect(input).toMatchObject({ startYear: '2025', endYear: '2027' });
+  });
+
   it('round-trips an existing phase and drops a blank growth rate', () => {
     const input = buildRetirementPhaseFormInput(
       { name: 'Kindergarten', startYear: 2025, endYear: 2027, amount: 80000 },
