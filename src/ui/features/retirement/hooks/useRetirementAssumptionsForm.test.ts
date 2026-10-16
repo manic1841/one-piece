@@ -140,4 +140,70 @@ describe('useRetirementAssumptionsForm', () => {
     expect(result.current.form.getValues('currentAge')).toBe('36');
     expect(onSave).not.toHaveBeenCalled();
   });
+
+  describe('draft preview', () => {
+    const plan = () => ({
+      id: 'p1',
+      householdId: 'h1',
+      name: 'Plan A',
+      isActive: true,
+      autoUpdate: false,
+      currentYear: 2026,
+      birthYear: 1990,
+      retirementAge: 60,
+      lifeExpectancy: 85,
+      inflationRate: 0,
+      investmentReturnRate: 0,
+      incomes: [],
+      expenses: [],
+      events: [],
+      createdBy: 'u1',
+      updatedBy: 'u1',
+      createdAt: new Date('2026-01-01'),
+      updatedAt: new Date('2026-01-02'),
+    });
+
+    const startingNetWorthSource = {
+      startingNetWorth: 1_000_000,
+      anchorYearMonth: '2025-12',
+      assets: 1_200_000,
+      liabilities: 200_000,
+    };
+
+    it('exposes no preview when starting net worth is unavailable', () => {
+      const { result } = renderHook(() =>
+        useRetirementAssumptionsForm({
+          assumptions,
+          plan: plan(),
+          netWorthSource: { reason: 'NO_CLOSED_PERIOD' },
+          onSave: vi.fn(),
+        }),
+      );
+
+      expect(result.current.preview).toBeNull();
+    });
+
+    it('recomputes the preview as a field changes, without debounce', () => {
+      const { result } = renderHook(() =>
+        useRetirementAssumptionsForm({
+          assumptions,
+          plan: plan(),
+          netWorthSource: startingNetWorthSource,
+          onSave: vi.fn(),
+        }),
+      );
+
+      act(() => {
+        result.current.startEdit();
+      });
+      const before = result.current.preview?.finalNetWorth;
+
+      act(() => {
+        result.current.form.setValue('investmentReturnRate', '10');
+      });
+
+      expect(result.current.preview).not.toBeNull();
+      expect(result.current.preview?.finalNetWorth).toBeGreaterThan(before ?? 0);
+    });
+  });
 });
