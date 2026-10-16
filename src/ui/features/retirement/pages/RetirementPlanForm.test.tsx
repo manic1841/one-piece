@@ -5,6 +5,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { type RetirementPlan } from '@/domains/retirement/types';
 import { ConfirmDialogProvider } from '@/ui/components/confirm/ConfirmDialog';
 import {
+  type RetirementBaselineItem,
+  mapRetirementIncomeToBaselineRow,
+} from '@/ui/features/retirement/viewmodels/retirementBaseline.vm';
+import {
   type RetirementProjectionPointVM,
   type RetirementProjectionVM,
   type RetirementProjectionYearDetailVM,
@@ -25,7 +29,9 @@ vi.mock('@/ui/contexts/useAuthState', () => ({
   }),
 }));
 
-const { detailState } = vi.hoisted(() => ({ detailState: { isSummaryStale: false } }));
+const { detailState } = vi.hoisted(() => ({
+  detailState: { isSummaryStale: false, baselineItems: [] as RetirementBaselineItem[] },
+}));
 
 vi.mock('@/ui/features/retirement/hooks/useRetirementPlanDetailPage', () => ({
   useRetirementPlanDetailPage: () => ({
@@ -46,7 +52,7 @@ vi.mock('@/ui/features/retirement/hooks/useRetirementPlanDetailPage', () => ({
       retirementYear: 2045,
       lifeExpectancyYear: 2070,
     },
-    baselineItems: [],
+    baselineItems: detailState.baselineItems,
     eventItems: [],
     netWorthSource: {
       startingNetWorth: 100000,
@@ -153,6 +159,22 @@ function projectionFixture(): RetirementProjectionVM {
   };
 }
 
+/** One imported income row so the baseline renders a row whose side editor can open. */
+function baselineIncomeItem(): RetirementBaselineItem {
+  const domain = {
+    id: 'i1',
+    name: '薪資',
+    type: 'salary' as const,
+    lifelong: false,
+    startYear: 2026,
+    endYear: 2046,
+    currentAnnual: 120000,
+    growthRate: 2,
+    incomeCategory: 'income:salary',
+  };
+  return { kind: 'income', domain, vm: mapRetirementIncomeToBaselineRow(domain, 2046) };
+}
+
 function renderForm() {
   return render(
     <MemoryRouter>
@@ -171,6 +193,7 @@ describe('RetirementPlanForm - Scenario Workspace', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     detailState.isSummaryStale = false;
+    detailState.baselineItems = [];
   });
 
   it('renders the header and the plan name', () => {
@@ -253,5 +276,27 @@ describe('RetirementPlanForm - Scenario Workspace', () => {
 
     expect(screen.getByText('計畫摘要已過時，請點擊「重新計算」以更新。')).toBeVisible();
     expect(screen.getAllByRole('button', { name: /Recalculate/ }).length).toBeGreaterThan(0);
+  });
+
+  it('keeps the inline assumptions editor inert while a baseline side drawer holds a draft (§3.4)', () => {
+    detailState.baselineItems = [baselineIncomeItem()];
+    renderForm();
+    openTab(/Plan Setup/);
+
+    // The inline assumptions editor is reachable on its own.
+    const assumptions = screen.getByText('SCENARIO ASSUMPTIONS').closest('section')!;
+    fireEvent.click(within(assumptions).getByRole('button', { name: 'Edit' }));
+    expect(within(assumptions).getByRole('spinbutton', { name: /目前年齡/ })).toBeInTheDocument();
+
+    // Open a baseline row's modal side editor and leave an unsaved draft in it.
+    const baseline = screen.getByText('FINANCIAL BASELINE').closest('section')!;
+    fireEvent.click(within(baseline).getAllByRole('button', { name: 'Edit' })[0]!);
+    const drawer = screen.getByRole('dialog');
+    fireEvent.change(within(drawer).getByLabelText(/名稱/), { target: { value: 'Draft' } });
+
+    // The side editor is a modal Sheet: Radix marks the page behind it aria-hidden,
+    // so the assumptions editor is unreachable while the draft exists. That mutual
+    // exclusion is the §3.4 guarantee — the two dirty states can never coexist.
+    expect(screen.queryByRole('spinbutton', { name: /目前年齡/ })).not.toBeInTheDocument();
   });
 });

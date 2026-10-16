@@ -1,13 +1,12 @@
 import { useCallback } from 'react';
 
 import { mergeImportedIncomeSourcesUseCase } from '@/application/retirement/use_cases/mergeImportedIncomeSourcesUseCase';
-import { appendById, removeById, upsertById } from '@/domains/retirement/planMutations';
+import { removeById, upsertById } from '@/domains/retirement/planMutations';
 import type {
   RetirementIncomeSource,
   RetirementPlan,
   RetirementPlanCreate,
 } from '@/domains/retirement/types';
-import { newId } from '@/shared/id';
 import { RetirementBaselineLabels } from '@/ui/constants/retirement/retirementWorkspaceLabels';
 import { useUndo } from '@/ui/hooks/useUndo';
 
@@ -25,17 +24,6 @@ export const useRetirementIncomeActions = ({
   handleUpdatePlan,
 }: UseRetirementIncomeActionsParams) => {
   const { offer } = useUndo();
-  const handleAddIncome = useCallback(
-    async (incomeData: Omit<RetirementIncomeSource, 'id'>) => {
-      if (!id || !plan) {
-        throw new Error('Retirement plan is not ready yet. Please wait and try again.');
-      }
-      await handleUpdatePlan({
-        incomes: appendById(plan.incomes, { ...incomeData, id: newId() }),
-      });
-    },
-    [id, plan, handleUpdatePlan],
-  );
 
   const handleUpdateIncome = useCallback(
     async (incomeId: string, updates: Omit<RetirementIncomeSource, 'id'>) => {
@@ -56,9 +44,9 @@ export const useRetirementIncomeActions = ({
       await handleUpdatePlan({
         incomes: removeById(plan.incomes, incomeId),
       });
+      // Action label defaults to the shared 'UNDO' owned by useUndo (spec #301 §2.4).
       offer({
         message: RetirementBaselineLabels.deletedRowToast,
-        actionLabel: RetirementBaselineLabels.undoAction,
         undo: () => handleUpdatePlan({ incomes: previousIncomes }),
       });
     },
@@ -87,7 +75,6 @@ export const useRetirementIncomeActions = ({
   }, [id, plan, importIncomeData, handleUpdatePlan]);
 
   return {
-    handleAddIncome,
     handleUpdateIncome,
     handleDeleteIncome,
     handleImportIncomeFromTransactions,

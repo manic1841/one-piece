@@ -202,6 +202,11 @@ const RetirementPlanForm: React.FC = () => {
         </TabsContent>
 
         <TabsContent value="planSetup" className="space-y-6">
+          {/* §3.4 draft guard: the side editors below (baseline rows, life-event
+              phases) open as modal Sheets, which render the page behind them
+              aria-hidden. So the inline assumptions editor is unreachable while a
+              drawer holds a draft — the two dirty states can never coexist and no
+              extra cross-editor confirm is needed. */}
           <PageSection title={RetirementWorkspaceSectionLabels.assumptions}>
             <AssumptionsForm
               assumptions={assumptionsVM}

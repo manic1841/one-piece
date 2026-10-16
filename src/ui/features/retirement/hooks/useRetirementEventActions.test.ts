@@ -68,7 +68,6 @@ describe('useRetirementEventActions', () => {
     expect(offerMock).toHaveBeenCalledTimes(1);
     expect(offerMock.mock.calls[0][0]).toMatchObject({
       message: RetirementEventsLabels.deletedEventToast,
-      actionLabel: RetirementEventsLabels.undoAction,
     });
 
     const restored = createPlan();

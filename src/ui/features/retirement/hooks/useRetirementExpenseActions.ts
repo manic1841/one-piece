@@ -1,13 +1,12 @@
 import { useCallback } from 'react';
 
 import { mergeImportedDebtRepaymentExpensesUseCase } from '@/application/retirement/use_cases/mergeImportedDebtRepaymentExpensesUseCase';
-import { appendById, removeById, upsertById } from '@/domains/retirement/planMutations';
+import { removeById, upsertById } from '@/domains/retirement/planMutations';
 import type {
   RetirementExpenseCategory,
   RetirementPlan,
   RetirementPlanCreate,
 } from '@/domains/retirement/types';
-import { newId } from '@/shared/id';
 import { RetirementBaselineLabels } from '@/ui/constants/retirement/retirementWorkspaceLabels';
 import { useUndo } from '@/ui/hooks/useUndo';
 
@@ -24,16 +23,6 @@ export const useRetirementExpenseActions = ({
   importDebtData,
   handleUpdatePlan,
 }: UseRetirementExpenseActionsParams) => {
-  const handleAddExpense = useCallback(
-    async (expenseData: Omit<RetirementExpenseCategory, 'id'>) => {
-      if (!id || !plan) return;
-      await handleUpdatePlan({
-        expenses: appendById(plan.expenses, { ...expenseData, id: newId() }),
-      });
-    },
-    [id, plan, handleUpdatePlan],
-  );
-
   const handleUpdateExpense = useCallback(
     async (expenseId: string, updates: Omit<RetirementExpenseCategory, 'id'>) => {
       if (!id || !plan) return;
@@ -58,9 +47,9 @@ export const useRetirementExpenseActions = ({
       await handleUpdatePlan({
         expenses: removeById(plan.expenses, expenseId),
       });
+      // Action label defaults to the shared 'UNDO' owned by useUndo (spec #301 §2.4).
       offer({
         message: RetirementBaselineLabels.deletedRowToast,
-        actionLabel: RetirementBaselineLabels.undoAction,
         undo: () => handleUpdatePlan({ expenses: previousExpenses }),
       });
     },
@@ -90,7 +79,6 @@ export const useRetirementExpenseActions = ({
   }, [id, plan, importDebtData, handleUpdatePlan]);
 
   return {
-    handleAddExpense,
     handleUpdateExpense,
     handleDeleteExpense,
     handleImportDebtRepayments,

@@ -115,12 +115,10 @@ describe('useRetirementPlanDetailPage', () => {
   const handleDelete = vi.fn();
   const handleSaveName = vi.fn();
 
-  const handleAddExpense = vi.fn();
   const handleUpdateExpense = vi.fn();
   const handleDeleteExpense = vi.fn();
   const handleImportDebtRepayments = vi.fn();
 
-  const handleAddIncome = vi.fn();
   const handleUpdateIncome = vi.fn();
   const handleDeleteIncome = vi.fn();
   const handleImportIncomeFromTransactions = vi.fn();
@@ -156,14 +154,12 @@ describe('useRetirementPlanDetailPage', () => {
     mockedCore.mockReturnValue(coreReturnValue(null));
 
     mockedExpenseActions.mockReturnValue({
-      handleAddExpense,
       handleUpdateExpense,
       handleDeleteExpense,
       handleImportDebtRepayments,
     });
 
     mockedIncomeActions.mockReturnValue({
-      handleAddIncome,
       handleUpdateIncome,
       handleDeleteIncome,
       handleImportIncomeFromTransactions,
@@ -201,12 +197,10 @@ describe('useRetirementPlanDetailPage', () => {
     expect(result.current.handleDelete).toBe(handleDelete);
     expect(result.current.handleSaveName).toBe(handleSaveName);
 
-    expect(result.current.handleAddExpense).toBe(handleAddExpense);
     expect(result.current.handleUpdateExpense).toBe(handleUpdateExpense);
     expect(result.current.handleDeleteExpense).toBe(handleDeleteExpense);
     expect(typeof result.current.handleImportDebtRepayments).toBe('function');
 
-    expect(result.current.handleAddIncome).toBe(handleAddIncome);
     expect(result.current.handleUpdateIncome).toBe(handleUpdateIncome);
     expect(result.current.handleDeleteIncome).toBe(handleDeleteIncome);
     expect(typeof result.current.handleImportFromLedger).toBe('function');
@@ -235,7 +229,6 @@ describe('useRetirementPlanDetailPage', () => {
   it('toasts on import and surfaces the unmatched notice, which can be dismissed', async () => {
     mockedCore.mockReturnValueOnce(coreReturnValue(createPlan()));
     mockedIncomeActions.mockReturnValueOnce({
-      handleAddIncome,
       handleUpdateIncome,
       handleDeleteIncome,
       handleImportIncomeFromTransactions: vi.fn().mockResolvedValue(2),

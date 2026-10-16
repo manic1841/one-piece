@@ -56,7 +56,6 @@ export const useRetirementEventActions = ({
       await handleUpdatePlan({ events: removeById(previous, eventId) });
       offer({
         message: RetirementEventsLabels.deletedEventToast,
-        actionLabel: RetirementEventsLabels.undoAction,
         undo: () => handleUpdatePlan({ events: previous }),
       });
     },
@@ -104,7 +103,6 @@ export const useRetirementEventActions = ({
       await handleUpdatePlan({ events: nextEvents });
       offer({
         message: RetirementEventsLabels.deletedPhaseToast,
-        actionLabel: RetirementEventsLabels.undoAction,
         undo: () => handleUpdatePlan({ events: previous }),
       });
     },
@@ -120,7 +118,6 @@ export const useRetirementEventActions = ({
       await handleUpdatePlan({ events: next });
       offer({
         message,
-        actionLabel: RetirementEventsLabels.undoAction,
         undo: () => handleUpdatePlan({ events: previous }),
       });
     },

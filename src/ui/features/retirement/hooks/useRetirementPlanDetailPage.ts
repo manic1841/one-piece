@@ -56,7 +56,6 @@ export const useRetirementPlanDetailPage = (
   } = useRetirementPlanCore({ id, householdId, userEmail });
 
   const {
-    handleAddExpense,
     handleUpdateExpense,
     handleDeleteExpense,
     handleImportDebtRepayments: importDebtRepayments,
@@ -109,17 +108,13 @@ export const useRetirementPlanDetailPage = (
     handleUpdatePlan,
   });
 
-  const {
-    handleAddIncome,
-    handleUpdateIncome,
-    handleDeleteIncome,
-    handleImportIncomeFromTransactions,
-  } = useRetirementIncomeActions({
-    id,
-    plan,
-    importIncomeData,
-    handleUpdatePlan,
-  });
+  const { handleUpdateIncome, handleDeleteIncome, handleImportIncomeFromTransactions } =
+    useRetirementIncomeActions({
+      id,
+      plan,
+      importIncomeData,
+      handleUpdatePlan,
+    });
 
   const { confirm } = useConfirm();
 
@@ -198,7 +193,6 @@ export const useRetirementPlanDetailPage = (
     isSummaryStale,
     handleToggleAutoUpdate,
     handleRecalculate,
-    handleAddExpense,
     handleUpdateExpense,
     handleDeleteExpense,
     handleImportDebtRepayments,
@@ -211,7 +205,6 @@ export const useRetirementPlanDetailPage = (
     handleTimelineUpdatePhase,
     handleDelete,
     handleSaveName,
-    handleAddIncome,
     handleUpdateIncome,
     handleDeleteIncome,
     handleImportFromLedger,

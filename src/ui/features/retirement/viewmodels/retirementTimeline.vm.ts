@@ -46,7 +46,12 @@ export const deriveTimelineRange = (assumptions: {
   endYear: assumptions.birthYear + assumptions.lifeExpectancy,
 });
 
-/** 平移邊界＝`[投影起始, 投影結束 − 視窗年數 + 1]`（不得小於起始）。 */
+/**
+ * 平移邊界＝`[投影起始, 投影結束 − 視窗年數 + 1]`（不得小於起始）。
+ *
+ * 年份為閉區間（`windowStart..windowStart + visibleYears − 1`），故 `+ 1` 才是
+ * spec「投影結束 − 視窗長度」的忠實換算：少了 `+ 1`，最後一個投影年會永遠到不了。
+ */
 export const timelineWindowBounds = (
   range: TimelineRange,
   visibleYears: number,

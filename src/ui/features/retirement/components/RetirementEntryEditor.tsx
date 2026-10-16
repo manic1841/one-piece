@@ -52,9 +52,9 @@ interface RetirementEntryEditorProps<TFieldValues extends RetirementEntryFormVal
   /** Derived growth readout (preview). */
   growthText: string;
   planInflationRate: number;
-  /** Income: import-derived annual shown read-only (null = scenario-only). */
+  /** Annual shown read-only for both kinds (spec #301 §4.1/§4.2): import-derived. */
   currentAnnual?: number | null;
-  /** Expense: debt payment locks the annual and hides the end-condition control. */
+  /** Debt payment: its annual is import-derived; hides the end-condition control. */
   isDebtPayment?: boolean;
   isEdit: boolean;
   importSourceText?: string | null;
@@ -141,6 +141,14 @@ export function RetirementEntryEditor<TFieldValues extends RetirementEntryFormVa
 
   const showsValueField = endCondition === 'age' || endCondition === 'year';
 
+  // 基準年金額 is import-derived for both kinds (§4.1/§4.2): a null value points at the
+  // import; a debt row always carries its ledger-derived hint.
+  const annualHint = isDebtPayment
+    ? L.debtDerivedHint
+    : currentAnnual == null
+      ? L.importHint
+      : undefined;
+
   return (
     <Sheet open={open} onOpenChange={handleOpenChange}>
       <SheetTrigger asChild>{trigger ?? defaultTrigger}</SheetTrigger>
@@ -200,11 +208,7 @@ export function RetirementEntryEditor<TFieldValues extends RetirementEntryFormVa
                   </FormItem>
                 </FormField>
 
-                {kind === 'income' ? (
-                  <IncomeAnnualReadout value={currentAnnual ?? null} />
-                ) : (
-                  <ExpenseAnnualInput isDebtPayment={isDebtPayment} />
-                )}
+                <AnnualReadout value={currentAnnual ?? null} hint={annualHint} />
 
                 {!isDebtPayment && importSourceText ? (
                   <ReadoutField label={L.importSource} value={importSourceText} />
@@ -292,8 +296,12 @@ export function RetirementEntryEditor<TFieldValues extends RetirementEntryFormVa
   );
 }
 
-/** Income annual is import-derived: shown read-only (with a hint when scenario-only). */
-function IncomeAnnualReadout({ value }: { value: number | null }) {
+/**
+ * 基準年金額 is read-only for both income and expense (spec #301 §4.1/§4.2): it is
+ * derived from the ledger import, never typed. `hint` carries the import provenance
+ * (income and general expense when empty; debt's ledger-derived note always).
+ */
+function AnnualReadout({ value, hint }: { value: number | null; hint?: string }) {
   return (
     <div className="grid gap-2">
       <Label htmlFor="entry-current-annual">{L.currentAnnual}</Label>
@@ -304,25 +312,7 @@ function IncomeAnnualReadout({ value }: { value: number | null }) {
       ) : (
         <NumberInput id="entry-current-annual" value={String(value)} readOnly />
       )}
-      {value == null ? <p className="text-xs text-muted-foreground">{L.importHint}</p> : null}
+      {hint ? <p className="text-xs text-muted-foreground">{hint}</p> : null}
     </div>
-  );
-}
-
-/** Expense annual is editable, except for debt payments (import-derived). */
-function ExpenseAnnualInput({ isDebtPayment }: { isDebtPayment: boolean }) {
-  return (
-    <>
-      <FormField name="currentAnnual">
-        <FormItem>
-          <FormLabel required>{L.currentAnnual}</FormLabel>
-          <FormControl>
-            <NumberInput readOnly={isDebtPayment} />
-          </FormControl>
-          <FormMessage />
-        </FormItem>
-      </FormField>
-      {isDebtPayment ? <p className="text-xs text-muted-foreground">{L.debtDerivedHint}</p> : null}
-    </>
   );
 }

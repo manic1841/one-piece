@@ -38,6 +38,8 @@ export interface RetirementExpenseEditorHook {
   form: UseFormReturn<RetirementExpenseFormInput, unknown, RetirementExpenseFormVM>;
   /** Debt-derived category: its annual is imported and read-only. */
   isDebtPayment: boolean;
+  /** Import-derived annual, shown read-only (spec #301 §4.1/§4.2). Not a form field. */
+  currentAnnual: number | null;
   /** Derived growth readout (preview), not an RHF field. */
   growthText: string;
   /** Import provenance label, or null when the row was not imported. */
@@ -127,6 +129,8 @@ export function useRetirementExpenseEditor({
     loading,
     form,
     isDebtPayment,
+    // Read-only passthrough from the domain: 基準年金額 is import-derived (§4.1/§4.2).
+    currentAnnual: initialData?.currentAnnual ?? null,
     growthText,
     importSourceText: isDebtPayment ? null : (initialData?.expenseCategory ?? null),
     submitError,

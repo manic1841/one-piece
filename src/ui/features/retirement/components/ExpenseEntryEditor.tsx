@@ -29,6 +29,7 @@ export function ExpenseEntryEditor({
     loading,
     form,
     isDebtPayment,
+    currentAnnual,
     growthText,
     importSourceText,
     submitError,
@@ -53,6 +54,7 @@ export function ExpenseEntryEditor({
       submitError={submitError}
       growthText={growthText}
       planInflationRate={planInflationRate}
+      currentAnnual={currentAnnual}
       isDebtPayment={isDebtPayment}
       isEdit={Boolean(initialData)}
       importSourceText={importSourceText}

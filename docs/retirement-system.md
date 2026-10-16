@@ -121,7 +121,7 @@ phase 形狀與驗證：
 - **Create Phase 為具名、鍵盤可達的控制**（編輯器內的 Add Phase 與每列的 Add Phase 圖示按鈕；#292 硬依賴）。
 - 事件與 phase 的刪除以 **toast＋Undo** 完成（單一 Undo 槽、逾時 6 秒，spec #301 §2.4），不使用確認模態。
 - 收入與支出列以**共用側邊編輯器**編輯（取代舊對話框，spec #301 §2.1）：桌面為右側面板、行動版為全螢幕 bottom sheet，重用 `ui/sheet` + `DrawerPanel`（不新建 SidePanel）；明示 `Save`／`Cancel`（對齊整批替換 ADR-0030／0040），開啟時焦點進首欄、關閉歸還觸發列，未存變更以 `useConfirm` 攔截關閉，存檔成功給 toast（無 Undo）。
-- 側邊編輯器為單一共用元件加兩小分支：Type（收入可選類型／支出隱藏）與 Debt（隱藏結束條件、`endYear` 唯讀、隱藏匯入來源）。收入目前年金額為匯入推導唯讀、支出目前年支出可編輯（Debt 匯入值唯讀）；成長率收在 Advanced 展開區，與結束條件同一個側欄。
+- 側邊編輯器為單一共用元件加兩小分支：Type（收入可選類型／支出隱藏）與 Debt（隱藏結束條件、`endYear` 唯讀、隱藏匯入來源）。**基準年金額**（收入的目前年金額、支出的目前年支出）一律為**匯入推導唯讀**（spec #301 §4.1／§4.2），不提供輸入（Debt 匯入值亦唯讀並附推導說明）；成長率收在 Advanced 展開區，與結束條件同一個側欄。
 - **結束條件語意**（收入流與支出類別共用，spec #301 §2.2）：編輯時擇一（退休時結束／指定年齡 N／指定年份 Y／持續至預期壽命），儲存時塌縮為具體 `endYear`（`lifelong = false`）或 `lifelong = true` 並清除 `endYear`；`startYear` 不帶語意。預設 Salary → 退休時結束，Pension／Rent／Other 與一般生活費 → 持續至預期壽命；Debt Payment 不屬四語意（`endYear` 由匯入）。讀取既有資料保守回推語意標籤（純函式即時推導）：`lifelong` → 持續至預期壽命、`endYear === birthYear + retirementAge` → 退休時結束、其餘 → 指定年份；「指定年齡」不回推。
 - **退休後水準退出 UI**（spec #301 §2.3）：`retirementAnnual` 與 `retirementMultiplier` 不再顯示或輸入（schema 與架構不變；存檔時保留既有值，新支出預設 100%）。
 - 支出成長率留空代表隨計畫通膨並顯示「Using plan inflation: {rate}%」，Advanced 展開後才能輸入明確成長率（0 = 明確 0%）。
