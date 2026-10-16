@@ -12,13 +12,24 @@ import {
 } from '@/ui/components/form';
 import { Button } from '@/ui/components/ui/button';
 import { RetirementAssumptionsLabels } from '@/ui/constants/retirement/retirementWorkspaceLabels';
-import { type RetirementAssumptionsDisplayVM } from '@/ui/features/retirement/viewmodels/retirementDisplay.vm';
-import { type RetirementPlanCreate } from '@/ui/features/retirement/viewmodels/retirementForm.vm';
+import {
+  type RetirementAssumptionsDisplayVM,
+  type StartingNetWorthSource,
+} from '@/ui/features/retirement/viewmodels/retirementDisplay.vm';
+import {
+  type RetirementPlan,
+  type RetirementPlanCreate,
+} from '@/ui/features/retirement/viewmodels/retirementForm.vm';
+import { formatCurrency } from '@/ui/utils';
 
 import { useRetirementAssumptionsForm } from '../hooks/useRetirementAssumptionsForm';
 
 interface AssumptionsFormProps {
   assumptions: RetirementAssumptionsDisplayVM;
+  /** Persisted plan; the base for the draft-only preview projection. */
+  plan: RetirementPlan;
+  /** `startingNetWorth` source; the preview is hidden when it lacks one. */
+  netWorthSource: StartingNetWorthSource | null;
   onSave: (updates: Partial<RetirementPlanCreate>) => void;
 }
 
@@ -28,10 +39,21 @@ const L = RetirementAssumptionsLabels;
  * Scenario Assumptions: a five-metric read-only summary (目前年齡 / 退休年齡 /
  * 預期壽命 / 通膨率 / 投資報酬率) that expands in place into a two-group editor.
  * Derived years are parentheticals on the age cells, never their own cells.
+ *
+ * In edit mode a draft-only live preview (spec #301 §3.3) sits below the fields:
+ * 最終資產 and 最低資產 (with its year), recomputed on every keystroke without
+ * debounce. It is never persisted — see `calculateRetirementAssumptionPreview`.
  */
-export default function AssumptionsForm({ assumptions, onSave }: AssumptionsFormProps) {
-  const { editing, startEdit, cancel, form, submit } = useRetirementAssumptionsForm({
+export default function AssumptionsForm({
+  assumptions,
+  plan,
+  netWorthSource,
+  onSave,
+}: AssumptionsFormProps) {
+  const { editing, startEdit, cancel, form, submit, preview } = useRetirementAssumptionsForm({
     assumptions,
+    plan,
+    netWorthSource,
     onSave,
   });
 
@@ -138,6 +160,25 @@ export default function AssumptionsForm({ assumptions, onSave }: AssumptionsForm
               </FormField>
             </div>
           </fieldset>
+
+          {preview && (
+            <div className="space-y-3">
+              <span className={eyebrowClass}>{L.previewTitle}</span>
+              <MetricGroup columns={2}>
+                <Metric
+                  testId="assumption-preview-final-net-worth"
+                  label={L.previewFinalNetWorth}
+                  value={formatCurrency(preview.finalNetWorth)}
+                />
+                <Metric
+                  testId="assumption-preview-min-savings"
+                  label={L.previewMinSavings}
+                  value={formatCurrency(preview.minSavings)}
+                  change={String(preview.minYear)}
+                />
+              </MetricGroup>
+            </div>
+          )}
 
           <div className="flex gap-2">
             <Button type="submit">{L.saveAction}</Button>

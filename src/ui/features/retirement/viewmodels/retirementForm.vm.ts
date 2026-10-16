@@ -1,10 +1,12 @@
 import { z } from 'zod';
 
+import { calculatePlanProjection } from '@/domains/retirement/logic/retirementPlanProjection';
 import { RetirementExpenseType } from '@/domains/retirement/schemas';
 import {
   type RetirementExpenseCategory,
   type RetirementIncomeSource,
   type RetirementOneTimeEvent,
+  type RetirementPlan,
   type RetirementPlanCreate,
 } from '@/domains/retirement/types';
 import { optionalNumber, requiredNumber } from '@/shared/schemas/coerce';
@@ -14,12 +16,17 @@ import {
   RetirementEndConditionLabels,
 } from '@/ui/constants/retirement/retirementWorkspaceLabels';
 
-import { type RetirementAssumptionsDisplayVM, deriveBirthYear } from './retirementDisplay.vm';
+import {
+  type RetirementAssumptionsDisplayVM,
+  deriveBirthYear,
+  deriveCurrentAge,
+} from './retirementDisplay.vm';
 
 export type {
   RetirementExpenseCategory,
   RetirementIncomeSource,
   RetirementOneTimeEvent,
+  RetirementPlan,
   RetirementPlanCreate,
 };
 
@@ -460,3 +467,61 @@ export const mapRetirementAssumptionsVMToPlanUpdates = (
   inflationRate: vm.inflationRate,
   investmentReturnRate: vm.investmentReturnRate,
 });
+
+/** The picked figures the inline assumption preview renders (spec #301 §3.3). */
+export interface RetirementAssumptionPreviewVM {
+  /** 最終資產 — the closing balance in the projection's final year. */
+  finalNetWorth: number;
+  /** 最低資產 — the smallest closing balance across the projection. */
+  minSavings: number;
+  /** The year 最低資產 occurs in. */
+  minYear: number;
+}
+
+/** Lenient coercion: a blank or unparsable field keeps the plan's current value. */
+const draftNumber = (raw: string | number | undefined, fallback: number): number => {
+  if (raw === undefined) return fallback;
+  if (typeof raw === 'number') return raw;
+  if (raw.trim() === '') return fallback;
+  const value = Number(raw);
+  return Number.isNaN(value) ? fallback : value;
+};
+
+/**
+ * Draft-only projection (spec #301 §3.3): folds the live assumption draft over the
+ * current plan to build an unpersisted plan object, then runs the pure projection
+ * engine. Nothing here is written — the caller only displays the picked figures, so
+ * no schema field is added and nothing is persisted before save.
+ */
+export const calculateRetirementAssumptionPreview = (
+  plan: RetirementPlan,
+  startingNetWorth: number,
+  draft: RetirementAssumptionsFormInput,
+): RetirementAssumptionPreviewVM => {
+  const baseYear = currentYear();
+  const draftPlan: RetirementPlan = {
+    ...plan,
+    currentYear: baseYear,
+    birthYear: deriveBirthYear(
+      draftNumber(draft.currentAge, deriveCurrentAge(plan.birthYear, baseYear)),
+      baseYear,
+    ),
+    retirementAge: draftNumber(draft.retirementAge, plan.retirementAge),
+    lifeExpectancy: draftNumber(draft.lifeExpectancy, plan.lifeExpectancy),
+    inflationRate: draftNumber(draft.inflationRate, plan.inflationRate),
+    investmentReturnRate: draftNumber(draft.investmentReturnRate, plan.investmentReturnRate),
+  };
+
+  const projection = calculatePlanProjection(draftPlan, startingNetWorth);
+  const last = projection[projection.length - 1];
+  let minPoint = projection[0];
+  for (const point of projection) {
+    if (point.savings < minPoint.savings) minPoint = point;
+  }
+
+  return {
+    finalNetWorth: last?.savings ?? 0,
+    minSavings: minPoint?.savings ?? 0,
+    minYear: minPoint?.year ?? baseYear,
+  };
+};
