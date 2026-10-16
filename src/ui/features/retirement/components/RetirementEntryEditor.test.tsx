@@ -99,3 +99,35 @@ describe('RetirementEntryEditor — debt branch', () => {
     expect(screen.getByLabelText(/目前年均/)).toHaveAttribute('readonly');
   });
 });
+
+describe('RetirementEntryEditor — expense branch', () => {
+  function renderGeneralExpense() {
+    const expense: RetirementExpenseCategory = {
+      id: 'expense-2',
+      name: 'Groceries',
+      type: 'general',
+      includesPrincipal: false,
+      interestOnly: false,
+      currentAnnual: 120000,
+      retirementMultiplier: 1,
+      startYear: 2026,
+      endYear: null,
+    };
+    render(
+      <ExpenseEntryEditor
+        {...anchor}
+        initialData={expense}
+        onSave={vi.fn().mockResolvedValue(undefined)}
+        trigger={<button type="button">edit</button>}
+      />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'edit' }));
+  }
+
+  it('shows the import-derived annual read-only, not as an input (spec §4.1/§4.2)', () => {
+    renderGeneralExpense();
+    const annual = screen.getByLabelText(/目前年均/);
+    expect(annual).toHaveAttribute('readonly');
+    expect(annual).toHaveValue(120000);
+  });
+});
