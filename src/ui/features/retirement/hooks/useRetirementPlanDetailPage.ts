@@ -1,7 +1,9 @@
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 
 import { mergeImportedExpensesUseCase } from '@/application/retirement/use_cases/mergeImportedExpensesUseCase';
 import { calculatePlanProjection } from '@/domains/retirement/logic/retirementPlanProjection';
+import { showToast } from '@/ui/components/Toast';
+import { RetirementBaselineLabels } from '@/ui/constants/retirement/retirementWorkspaceLabels';
 import { useRetirementEventActions } from '@/ui/features/retirement/hooks/useRetirementEventActions';
 import { useRetirementExpenseActions } from '@/ui/features/retirement/hooks/useRetirementExpenseActions';
 import { useRetirementIncomeActions } from '@/ui/features/retirement/hooks/useRetirementIncomeActions';
@@ -13,6 +15,11 @@ import {
   mapRetirementPlanToHeaderVM,
   mapRetirementProjectionToVM,
 } from '@/ui/features/retirement/viewmodels/retirementDisplay.vm';
+
+/** Rows kept by an import because their ledger source was not in it (spec #301 §4.3). */
+export interface RetirementImportNotice {
+  unmatchedCount: number;
+}
 
 export const useRetirementPlanDetailPage = (
   id: string | undefined,
@@ -38,24 +45,45 @@ export const useRetirementPlanDetailPage = (
     importExpenseDataFromLedger,
   } = useRetirementPlanCore({ id, householdId, userEmail });
 
-  const { handleAddExpense, handleUpdateExpense, handleDeleteExpense, handleImportDebtRepayments } =
-    useRetirementExpenseActions({
-      id,
-      plan,
-      importDebtData,
-      handleUpdatePlan,
-    });
+  const {
+    handleAddExpense,
+    handleUpdateExpense,
+    handleDeleteExpense,
+    handleImportDebtRepayments: importDebtRepayments,
+  } = useRetirementExpenseActions({
+    id,
+    plan,
+    importDebtData,
+    handleUpdatePlan,
+  });
 
-  const handleImportExpensesFromLedger = useCallback(async () => {
-    if (!plan) return;
+  const [importNotice, setImportNotice] = useState<RetirementImportNotice | null>(null);
+
+  const handleDismissImportNotice = useCallback(() => setImportNotice(null), []);
+
+  // Import feedback (spec #301 §2.4 / §4.3): a success toast plus a persistent
+  // notice when existing rows did not match any source in the import.
+  const reportImport = useCallback((unmatchedCount: number | null) => {
+    if (unmatchedCount === null) return;
+    showToast(RetirementBaselineLabels.importedToast);
+    setImportNotice(unmatchedCount > 0 ? { unmatchedCount } : null);
+  }, []);
+
+  const handleImportExpensesFromLedger = useCallback(async (): Promise<number | null> => {
+    if (!plan) return null;
     const imported = await importExpenseDataFromLedger();
-    if (imported.length === 0) return;
 
     const mergeResult = mergeImportedExpensesUseCase.execute({ plan, importedExpenses: imported });
-    if (!mergeResult.hasChanges) return;
-
-    await handleUpdatePlan({ expenses: mergeResult.expenses });
+    // Import only introduces/updates rows; it never triggers a recalculation.
+    if (mergeResult.hasChanges) {
+      await handleUpdatePlan({ expenses: mergeResult.expenses });
+    }
+    return mergeResult.unmatchedCount;
   }, [plan, importExpenseDataFromLedger, handleUpdatePlan]);
+
+  const handleImportDebtRepayments = useCallback(async () => {
+    reportImport(await importDebtRepayments());
+  }, [importDebtRepayments, reportImport]);
 
   const { handleAddEvent, handleUpdateEvent, handleDeleteEvent } = useRetirementEventActions({
     id,
@@ -78,9 +106,11 @@ export const useRetirementPlanDetailPage = (
   // One ledger import for the merged Financial Baseline section (spec #301 §4.3):
   // incomes and expenses are imported together from the same "Import from Ledger".
   const handleImportFromLedger = useCallback(async () => {
-    await handleImportIncomeFromTransactions();
-    await handleImportExpensesFromLedger();
-  }, [handleImportIncomeFromTransactions, handleImportExpensesFromLedger]);
+    const incomeUnmatched = await handleImportIncomeFromTransactions();
+    const expenseUnmatched = await handleImportExpensesFromLedger();
+    if (incomeUnmatched === null && expenseUnmatched === null) return;
+    reportImport((incomeUnmatched ?? 0) + (expenseUnmatched ?? 0));
+  }, [handleImportIncomeFromTransactions, handleImportExpensesFromLedger, reportImport]);
 
   const projectionVM =
     plan && netWorthSource && 'startingNetWorth' in netWorthSource
@@ -126,5 +156,7 @@ export const useRetirementPlanDetailPage = (
     handleUpdateIncome,
     handleDeleteIncome,
     handleImportFromLedger,
+    importNotice,
+    handleDismissImportNotice,
   };
 };

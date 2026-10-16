@@ -65,28 +65,25 @@ export const useRetirementIncomeActions = ({
     [id, plan, offer, handleUpdatePlan],
   );
 
-  const handleImportIncomeFromTransactions = useCallback(async () => {
-    if (!id || !plan) return;
+  const handleImportIncomeFromTransactions = useCallback(async (): Promise<number | null> => {
+    if (!id || !plan) return null;
 
     const imported = await importIncomeData();
     const importedIncomes = imported.filter(
       (item) => typeof item.currentAnnual === 'number' && item.incomeCategory,
     );
 
-    if (importedIncomes.length === 0) {
-      return;
-    }
-
     const mergeResult = mergeImportedIncomeSourcesUseCase.execute({
       plan,
       importedIncomes,
     });
 
-    if (!mergeResult.hasChanges) {
-      return;
+    // Import only introduces/updates rows; it never triggers a recalculation.
+    if (mergeResult.hasChanges) {
+      await handleUpdatePlan({ incomes: mergeResult.incomes });
     }
 
-    await handleUpdatePlan({ incomes: mergeResult.incomes });
+    return mergeResult.unmatchedCount;
   }, [id, plan, importIncomeData, handleUpdatePlan]);
 
   return {
