@@ -9,6 +9,7 @@ import {
   buildRetirementEventFormInput,
   buildRetirementExpenseFormInput,
   buildRetirementIncomeFormInput,
+  mapRetirementAssumptionsVMToPlanUpdates,
   mapRetirementEventVMToDomain,
   mapRetirementExpenseVMToDomain,
   mapRetirementIncomeVMToDomain,
@@ -128,12 +129,14 @@ describe('retirementForm.vm', () => {
 
   it('validates assumptions vm and coerces field strings', () => {
     const input = buildRetirementAssumptionsFormInput({
-      currentYear: 2025,
-      birthYear: 1990,
+      currentAge: 36,
       retirementAge: 60,
       lifeExpectancy: 85,
       inflationRate: 2,
       investmentReturnRate: 5,
+      currentYear: 2026,
+      retirementYear: 2050,
+      lifeExpectancyYear: 2075,
     });
 
     expect(input.retirementAge).toBe('60');
@@ -143,10 +146,9 @@ describe('retirementForm.vm', () => {
     expect(parsed.success && parsed.data.retirementAge).toBe(60);
   });
 
-  it('rejects a non-integer assumptions year', () => {
+  it('rejects a non-integer assumptions age', () => {
     const result = RetirementAssumptionsFormVMSchema.safeParse({
-      currentYear: '2025.5',
-      birthYear: '1990',
+      currentAge: '36.5',
       retirementAge: '60',
       lifeExpectancy: '85',
       inflationRate: '2',
@@ -154,5 +156,36 @@ describe('retirementForm.vm', () => {
     });
 
     expect(result.success).toBe(false);
+  });
+
+  it('rejects an out-of-order assumptions timeline', () => {
+    const result = RetirementAssumptionsFormVMSchema.safeParse({
+      currentAge: '60',
+      retirementAge: '60',
+      lifeExpectancy: '85',
+      inflationRate: '2',
+      investmentReturnRate: '5',
+    });
+
+    expect(result.success).toBe(false);
+  });
+
+  it('maps assumptions to plan updates anchored to the base year', () => {
+    const vm = RetirementAssumptionsFormVMSchema.parse({
+      currentAge: '36',
+      retirementAge: '60',
+      lifeExpectancy: '85',
+      inflationRate: '2',
+      investmentReturnRate: '5',
+    });
+
+    expect(mapRetirementAssumptionsVMToPlanUpdates(vm, 2026)).toEqual({
+      currentYear: 2026,
+      birthYear: 1990,
+      retirementAge: 60,
+      lifeExpectancy: 85,
+      inflationRate: 2,
+      investmentReturnRate: 5,
+    });
   });
 });

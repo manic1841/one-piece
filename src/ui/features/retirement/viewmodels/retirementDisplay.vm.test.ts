@@ -133,12 +133,24 @@ describe('retirementDisplay.vm', () => {
     expect(vm.retirementSummaryText).toContain('Retire at 60');
   });
 
-  it('maps plan assumptions display vm', () => {
-    const vm = mapRetirementPlanToAssumptionsDisplayVM(makePlan({ autoUpdate: true }));
+  it('maps the assumptions summary with derived ages and years', () => {
+    const vm = mapRetirementPlanToAssumptionsDisplayVM(makePlan(), 2026);
 
-    expect(vm.currentYear).toBe(2026);
+    // currentAge = base year − birth year (1990); years derive from birth year.
+    expect(vm.currentAge).toBe(36);
+    expect(vm.retirementAge).toBe(60);
+    expect(vm.lifeExpectancy).toBe(85);
     expect(vm.inflationRate).toBe(2);
     expect(vm.investmentReturnRate).toBe(5);
+    expect(vm.currentYear).toBe(2026);
+    expect(vm.retirementYear).toBe(2050);
+    expect(vm.lifeExpectancyYear).toBe(2075);
+  });
+
+  it('derives the current age from the base year, not a stored age', () => {
+    const vm = mapRetirementPlanToAssumptionsDisplayVM(makePlan(), 2030);
+
+    expect(vm.currentAge).toBe(40);
   });
 
   it('maps income/expense/event display items', () => {

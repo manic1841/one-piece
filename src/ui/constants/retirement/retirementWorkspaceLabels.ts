@@ -84,14 +84,18 @@ export const RetirementAssumptionsLabels = {
   editAction: 'Edit',
   saveAction: 'Save',
   cancelAction: 'Cancel',
-  currentYear: 'Current Year',
-  birthYear: 'Birth Year',
-  retirementAge: 'Retirement Age',
-  lifeExpectancy: 'Life Expectancy',
-  inflationRate: 'Inflation Rate',
-  inflationRateInput: 'Inflation Rate (%)',
-  investmentReturn: 'Investment Return',
-  investmentReturnInput: 'Investment Return Rate (%)',
+  timelineGroup: '人生時程',
+  financialGroup: '財務假設',
+  currentAge: '目前年齡',
+  retirementAge: '退休年齡',
+  lifeExpectancy: '預期壽命',
+  inflationRate: '通膨率',
+  inflationRateInput: '通膨率 (%)',
+  investmentReturn: '投資報酬率',
+  investmentReturnInput: '投資報酬率 (%)',
+  /** 推導年份以括註掛在年齡欄位旁（例：65（2045））。 */
+  ageWithYear: (age: number, year: number) => `${age}（${year}）`,
+  ratePercent: (rate: number) => `${rate}%`,
 } as const;
 
 export const RetirementTabContentLabels = {
