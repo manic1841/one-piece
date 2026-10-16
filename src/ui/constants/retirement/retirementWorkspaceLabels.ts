@@ -306,6 +306,7 @@ export const RetirementEventsLabels = {
   savedPhase: 'PHASE SAVED',
   deletedEventToast: 'EVENT DELETED',
   deletedPhaseToast: 'PHASE DELETED',
+  updatedPhaseToast: 'PHASE UPDATED',
   undoAction: 'UNDO',
   emptyTitle: 'NO LIFE EVENTS',
   emptyDescription: '新增人生事件以描述未來的收入或支出。',
@@ -329,3 +330,37 @@ export const RetirementEventsFilterItems: ReadonlyArray<{
 
 /** 五欄（名稱／類型／年份／終身費用總和／動作），總和為 100。 */
 export const RETIREMENT_EVENTS_COLUMN_WIDTHS: readonly number[] = [30, 12, 18, 22, 18];
+
+/**
+ * Life Events Timeline（spec #301 §5.1 Timeline 側、§5.3–§5.5）。
+ * 與 Data Table 為區域內互斥切換；每 phase 一條 bar、依 Event 分列、tone 著色、不顯示金額。
+ */
+export type RetirementLifeEventsView = 'table' | 'timeline';
+
+export const RetirementLifeEventsViewLabels = {
+  ariaLabel: 'Life Events 視圖切換',
+  table: 'Data Table',
+  timeline: 'Timeline',
+} as const;
+
+export const RetirementLifeEventsViewItems: ReadonlyArray<{
+  id: RetirementLifeEventsView;
+  label: string;
+}> = [
+  { id: 'table', label: RetirementLifeEventsViewLabels.table },
+  { id: 'timeline', label: RetirementLifeEventsViewLabels.timeline },
+];
+
+export const RetirementTimelineLabels = {
+  ariaLabel: '人生事件時間軸',
+  windowLabel: 'WINDOW',
+  eventYearColumn: 'EVENT / YEAR',
+  /** 年份尺為裝飾、平移只由 WINDOW 列按鈕（spec #301 §5.4）。 */
+  panBackAria: (step: number) => `視窗左移 ${step} 年`,
+  panForwardAria: (step: number) => `視窗右移 ${step} 年`,
+  panToStartAria: '視窗回到投影起始年',
+  addPhaseAction: '新增階段',
+  openEditorAction: '編輯階段',
+  /** 行動版具名控制：換 Event（spec #301 §5.4）。 */
+  reassignLabel: '所屬 Event',
+} as const;

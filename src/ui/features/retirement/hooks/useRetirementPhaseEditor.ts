@@ -23,6 +23,8 @@ type RetirementEventPhase = RetirementOneTimeEvent['phases'][number];
 interface UseRetirementPhaseEditorOptions {
   initialData?: RetirementEventPhase;
   currentYear: number;
+  /** Timeline 空白拖曳建立時預填的年份範圍（spec #301 §5.5）。 */
+  initialRange?: { startYear: number; endYear: number };
   onSave: (phase: RetirementEventPhase) => Promise<void>;
 }
 
@@ -44,10 +46,11 @@ export interface RetirementPhaseEditorHook {
 export function useRetirementPhaseEditor({
   initialData,
   currentYear,
+  initialRange,
   onSave,
 }: UseRetirementPhaseEditorOptions): RetirementPhaseEditorHook {
   const buildInput = (): RetirementPhaseFormInput =>
-    buildRetirementPhaseFormInput(initialData, currentYear);
+    buildRetirementPhaseFormInput(initialData, currentYear, initialRange);
 
   const form = useForm<RetirementPhaseFormInput, unknown, RetirementPhaseFormVM>({
     resolver: zodResolver(RetirementPhaseFormVMSchema),

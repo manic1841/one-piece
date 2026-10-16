@@ -407,14 +407,18 @@ export const mapRetirementEventVMToDomain = (
   ...(vm.note && { note: vm.note }),
 });
 
-/** 獨立 phase 編輯器的表單初值（新增＝以 currentYear 起算的空白 phase）。 */
+/**
+ * 獨立 phase 編輯器的表單初值（新增＝以 currentYear 起算的空白 phase）。
+ * `initialRange` 供 Timeline 空白拖曳建立時預填拖出的年份範圍（spec #301 §5.5）。
+ */
 export const buildRetirementPhaseFormInput = (
   phase: RetirementOneTimeEvent['phases'][number] | undefined,
   currentYearValue = currentYear(),
+  initialRange?: { startYear: number; endYear: number },
 ): RetirementPhaseFormInput => ({
   name: phase?.name ?? '',
-  startYear: (phase?.startYear ?? currentYearValue).toString(),
-  endYear: (phase?.endYear ?? currentYearValue).toString(),
+  startYear: (phase?.startYear ?? initialRange?.startYear ?? currentYearValue).toString(),
+  endYear: (phase?.endYear ?? initialRange?.endYear ?? currentYearValue).toString(),
   amount: phase?.amount != null ? String(phase.amount) : '',
   growthRate: phase?.growthRate != null ? String(phase.growthRate) : '',
 });
