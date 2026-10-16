@@ -3,7 +3,11 @@ import { useCallback, useState } from 'react';
 import { mergeImportedExpensesUseCase } from '@/application/retirement/use_cases/mergeImportedExpensesUseCase';
 import { calculatePlanProjection } from '@/domains/retirement/logic/retirementPlanProjection';
 import { showToast } from '@/ui/components/Toast';
-import { RetirementBaselineLabels } from '@/ui/constants/retirement/retirementWorkspaceLabels';
+import { useConfirm } from '@/ui/components/confirm/useConfirm';
+import {
+  RetirementBaselineLabels,
+  RetirementRecalculationLabels,
+} from '@/ui/constants/retirement/retirementWorkspaceLabels';
 import { useRetirementEventActions } from '@/ui/features/retirement/hooks/useRetirementEventActions';
 import { useRetirementExpenseActions } from '@/ui/features/retirement/hooks/useRetirementExpenseActions';
 import { useRetirementIncomeActions } from '@/ui/features/retirement/hooks/useRetirementIncomeActions';
@@ -15,6 +19,11 @@ import {
   mapRetirementPlanToHeaderVM,
   mapRetirementProjectionToVM,
 } from '@/ui/features/retirement/viewmodels/retirementDisplay.vm';
+import { type RetirementPlanCreate } from '@/ui/features/retirement/viewmodels/retirementForm.vm';
+import {
+  isRetirementSummaryStale,
+  shiftRetirementEndingRows,
+} from '@/ui/features/retirement/viewmodels/retirementRecalculation.vm';
 import { deriveTimelineRange } from '@/ui/features/retirement/viewmodels/retirementTimeline.vm';
 
 /** Rows kept by an import because their ledger source was not in it (spec #301 §4.3). */
@@ -112,6 +121,40 @@ export const useRetirementPlanDetailPage = (
     handleUpdatePlan,
   });
 
+  const { confirm } = useConfirm();
+
+  // Assumption changes can move the years of stored 「退休時結束」 rows (spec #301
+  // §3.4): prompt and require confirmation before moving. Declining still saves the
+  // assumptions — the rows simply stay put. Only stored rows move; unsaved side-editor
+  // drafts are never remapped (their existing dirty confirm guards them).
+  const handleSaveAssumptions = useCallback(
+    async (updates: Partial<RetirementPlanCreate>) => {
+      if (!plan) return;
+      let next = updates;
+      if (updates.birthYear != null && updates.retirementAge != null) {
+        const shift = shiftRetirementEndingRows(plan, {
+          birthYear: updates.birthYear,
+          retirementAge: updates.retirementAge,
+        });
+        if (shift) {
+          const confirmed = await confirm({
+            title: RetirementRecalculationLabels.yearShiftTitle,
+            context: RetirementRecalculationLabels.yearShiftContext,
+            consequence: RetirementRecalculationLabels.yearShiftConsequence,
+            confirmLabel: RetirementRecalculationLabels.yearShiftConfirm,
+            cancelLabel: RetirementRecalculationLabels.yearShiftCancel,
+            confirmTone: 'primary',
+          });
+          if (confirmed) next = { ...updates, ...shift };
+        }
+      }
+      await handleUpdatePlan(next);
+    },
+    [plan, confirm, handleUpdatePlan],
+  );
+
+  const isSummaryStale = plan ? isRetirementSummaryStale(plan) : false;
+
   // One ledger import for the merged Financial Baseline section (spec #301 §4.3):
   // incomes and expenses are imported together from the same "Import from Ledger".
   const handleImportFromLedger = useCallback(async () => {
@@ -151,6 +194,8 @@ export const useRetirementPlanDetailPage = (
     handleApplyStaleIncomeSync,
     handleDismissStaleIncomeSync,
     handleUpdatePlan,
+    handleSaveAssumptions,
+    isSummaryStale,
     handleToggleAutoUpdate,
     handleRecalculate,
     handleAddExpense,

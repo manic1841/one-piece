@@ -213,6 +213,20 @@ export const RetirementGrowthReadoutLabels = {
   growthPercent: (rate: number) => `${rate}% growth`,
 } as const;
 
+/**
+ * 假設變更重算（spec #301 §3.4）：年份搬動的確認與 `summary` 過時提示。
+ * 搬動只針對已存的「退休時結束」列。
+ */
+export const RetirementRecalculationLabels = {
+  yearShiftTitle: '搬動結束年份？',
+  yearShiftContext: '假設變更會移動「退休時結束」列的結束年份。',
+  yearShiftConsequence:
+    '僅已儲存的「退休時結束」列會搬動；指定年齡、持續至預期壽命與匯入列不受影響。',
+  yearShiftConfirm: '搬動',
+  yearShiftCancel: '不搬動',
+  summaryStaleNotice: '計畫摘要已過時，請點擊「重新計算」以更新。',
+} as const;
+
 /** 收入／支出共用側邊編輯器的顯示文字。 */
 export const RetirementEntryEditorLabels = {
   titleIncomeAdd: '新增收入',
