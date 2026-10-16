@@ -13,9 +13,16 @@ import { useRetirementIncomeActions } from './useRetirementIncomeActions';
 import { useRetirementPlanCore } from './useRetirementPlanCore';
 import { useRetirementPlanDetailPage } from './useRetirementPlanDetailPage';
 
-const { showToastMock } = vi.hoisted(() => ({ showToastMock: vi.fn() }));
+const { showToastMock, confirmMock } = vi.hoisted(() => ({
+  showToastMock: vi.fn(),
+  confirmMock: vi.fn(),
+}));
 
 vi.mock('@/ui/components/Toast', () => ({ showToast: showToastMock }));
+
+vi.mock('@/ui/components/confirm/useConfirm', () => ({
+  useConfirm: () => ({ confirm: confirmMock }),
+}));
 
 vi.mock('./useRetirementPlanCore', () => ({
   useRetirementPlanCore: vi.fn(),
@@ -248,5 +255,75 @@ describe('useRetirementPlanDetailPage', () => {
     act(() => result.current.handleDismissImportNotice());
 
     expect(result.current.importNotice).toBeNull();
+  });
+
+  const planWithRetirementEndingIncome = (): RetirementPlan => {
+    const base = createPlan();
+    // endYear === birthYear 1985 + retirementAge 60 = 2045 → 「退休時結束」.
+    return { ...base, incomes: [{ ...base.incomes[0], endYear: 2045 }] };
+  };
+
+  it('prompts before moving 退休時結束 rows, then writes the shifted rows on confirm', async () => {
+    mockedCore.mockReturnValueOnce(coreReturnValue(planWithRetirementEndingIncome()));
+    confirmMock.mockResolvedValueOnce(true);
+
+    const { result } = renderHook(() =>
+      useRetirementPlanDetailPage('plan-1', 'household-1', 'user@example.com'),
+    );
+
+    await act(async () => {
+      await result.current.handleSaveAssumptions({ birthYear: 1985, retirementAge: 65 });
+    });
+
+    expect(confirmMock).toHaveBeenCalledTimes(1);
+    const updates = handleUpdatePlan.mock.calls[0][0];
+    expect(updates.retirementAge).toBe(65);
+    expect(updates.incomes[0].endYear).toBe(2050);
+  });
+
+  it('saves the assumptions without moving rows when the confirmation is declined', async () => {
+    mockedCore.mockReturnValueOnce(coreReturnValue(planWithRetirementEndingIncome()));
+    confirmMock.mockResolvedValueOnce(false);
+
+    const { result } = renderHook(() =>
+      useRetirementPlanDetailPage('plan-1', 'household-1', 'user@example.com'),
+    );
+
+    await act(async () => {
+      await result.current.handleSaveAssumptions({ birthYear: 1985, retirementAge: 65 });
+    });
+
+    expect(handleUpdatePlan).toHaveBeenCalledWith({ birthYear: 1985, retirementAge: 65 });
+  });
+
+  it('does not prompt when no stored row would move', async () => {
+    mockedCore.mockReturnValueOnce(coreReturnValue(createPlan()));
+
+    const { result } = renderHook(() =>
+      useRetirementPlanDetailPage('plan-1', 'household-1', 'user@example.com'),
+    );
+
+    await act(async () => {
+      await result.current.handleSaveAssumptions({ birthYear: 1985, retirementAge: 65 });
+    });
+
+    expect(confirmMock).not.toHaveBeenCalled();
+    expect(handleUpdatePlan).toHaveBeenCalledWith({ birthYear: 1985, retirementAge: 65 });
+  });
+
+  it('exposes summary staleness derived from the persisted plan', () => {
+    mockedCore.mockReturnValueOnce(
+      coreReturnValue({
+        ...createPlan(),
+        // birthYear 1985 + retirementAge 60 = 2045; the cached year disagrees.
+        summary: { retirementYear: 2046 } as RetirementPlan['summary'],
+      }),
+    );
+
+    const { result } = renderHook(() =>
+      useRetirementPlanDetailPage('plan-1', 'household-1', 'user@example.com'),
+    );
+
+    expect(result.current.isSummaryStale).toBe(true);
   });
 });

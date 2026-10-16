@@ -25,6 +25,8 @@ vi.mock('@/ui/contexts/useAuthState', () => ({
   }),
 }));
 
+const { detailState } = vi.hoisted(() => ({ detailState: { isSummaryStale: false } }));
+
 vi.mock('@/ui/features/retirement/hooks/useRetirementPlanDetailPage', () => ({
   useRetirementPlanDetailPage: () => ({
     plan: planFixture(),
@@ -60,6 +62,8 @@ vi.mock('@/ui/features/retirement/hooks/useRetirementPlanDetailPage', () => ({
     handleApplyStaleIncomeSync: vi.fn(),
     handleDismissStaleIncomeSync: vi.fn(),
     handleUpdatePlan: vi.fn(),
+    handleSaveAssumptions: vi.fn(),
+    isSummaryStale: detailState.isSummaryStale,
     handleToggleAutoUpdate: vi.fn(),
     handleRecalculate: vi.fn(),
     handleUpdateExpense: vi.fn(),
@@ -166,6 +170,7 @@ function openTab(name: RegExp) {
 describe('RetirementPlanForm - Scenario Workspace', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    detailState.isSummaryStale = false;
   });
 
   it('renders the header and the plan name', () => {
@@ -240,5 +245,13 @@ describe('RetirementPlanForm - Scenario Workspace', () => {
     renderForm();
 
     expect(screen.queryByText(/收入樣本年度可更新/)).not.toBeInTheDocument();
+  });
+
+  it('shows the stale summary notice with a Recalculate action only when the summary is stale', () => {
+    detailState.isSummaryStale = true;
+    renderForm();
+
+    expect(screen.getByText('計畫摘要已過時，請點擊「重新計算」以更新。')).toBeVisible();
+    expect(screen.getAllByRole('button', { name: /Recalculate/ }).length).toBeGreaterThan(0);
   });
 });

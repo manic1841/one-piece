@@ -72,6 +72,8 @@ phase 形狀與驗證：
 - 投影期初餘額不是手動輸入的獨立資料：取自最近已關帳期間的 BALANCE_SHEET 報表淨資產（資產總計 − 負債總計），與 Dashboard 錨定共用同一條計算路徑（見 [financial_report.md](financial_report.md) 第 4 節；取捨理由見 [ADR-0053](adr/0053-dashboard-report-anchored.md) 與 [ADR-0057](adr/0057-retirement-v1-flat-amount-fields.md)）。
 - 解析錨點：依 `yearMonth` 排序 persisted reports，取最新且期間狀態為 CLOSED 的月份；無已關帳期間時無法重算，必須先完成月度關帳。
 - 期初淨資產與錨定月份存入 summary（`startingNetWorth` / `anchorYearMonth`），讓輸出可標注來源期間。
+- **假設變更對 Baseline 的影響**（spec #301 §3.4）：假設變更導致退休年搬動時**提示後確認才搬**，且只搬**已存的「退休時結束」列**（`lifelong = false` 且 `endYear === 舊 birthYear + 舊 retirementAge`），跟隨新退休年；`lifelong` 無年份、指定年齡不回推、匯入（債務還款）列不適用，**未存草稿不重新映射**（搬動只針對已存列，搬動後 `endYear` 不得早於該列 `startYear`）。搬動沿用整批取代寫入（[ADR-0030](adr/0030-retirement-update-batch-replace.md)）。
+- **`summary` 過時偵測**：`summary.retirementYear !== birthYear + retirementAge` 時畫面標示摘要過時、仍由 Recalculate 手動重推（已知盲區：通膨／投報／壽命變更不觸發，刻意接受、不修）。
 
 ## 4. 債務還款導入流程
 
@@ -139,6 +141,7 @@ phase 形狀與驗證：
   - **Projection**：現金流投影圖與年度明細。
   - **Plan Setup**：Scenario Assumptions、Financial Baseline、Life Events。
   - Scenario Assumptions 以唯讀摘要呈現五格指標（目前年齡／退休年齡／預期壽命／通膨率／投資報酬率），不另有 Current Year／Birth Year 欄位；推導年份以括註附在年齡欄位旁（例：`65（2045）`）。按 `Edit` 就地在區塊內展開編輯表單，分「人生時程」與「財務假設」兩群，並有明示 `Save`／`Cancel`。順序驗證為退休年齡 > 目前年齡、預期壽命 > 退休年齡。年齡與年份以 `birthYear` 為唯一換算基礎：`birthYear` 為不變錨，`currentYear` 於存檔時以「今天」覆寫，目前年齡為推導顯示值（由基準年份減出生年），編輯目前年齡即重新錨定 `birthYear`。
+  - **假設變更重算**（spec #301 §3.4）：變更假設導致退休年搬動時，先以確認對話框提示、**確認後才搬動已存的「退休時結束」列**（跟隨退休年齡／重新錨定出生年；不屈就指定年齡、`lifelong` 無年份、匯入（債務還款）列不適用；只搬已存列、不重新映射未存草稿）；拒絕確認則假設照存、列不搬。`summary` 快取過時（`summary.retirementYear !== birthYear + retirementAge`）時於頁首顯示過時提示並附 Recalculate 動作，快取仍由 Recalculate 手動重推。Timeline 選取以 `eventId:index` 保留、實體不存在則清空（見下）。
   - 桌面切換分頁會卸載未顯示的分頁（本地編輯狀態不保留）；無投影結果時，Overview 與 Projection 顯示單一空狀態（前往每月關帳）。
 
 ## 7. 驗證重點

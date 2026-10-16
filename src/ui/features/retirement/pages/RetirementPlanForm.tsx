@@ -11,6 +11,7 @@ import { Button } from '@/ui/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/ui/components/ui/tabs';
 import {
   RETIREMENT_WORKSPACE_TAB_ORDER,
+  RetirementRecalculationLabels,
   RetirementWorkspaceLabels,
   RetirementWorkspaceSectionLabels,
   type RetirementWorkspaceTabKey,
@@ -48,7 +49,8 @@ const RetirementPlanForm: React.FC = () => {
     staleIncomeSyncBanner,
     handleApplyStaleIncomeSync,
     handleDismissStaleIncomeSync,
-    handleUpdatePlan,
+    handleSaveAssumptions,
+    isSummaryStale,
     handleToggleAutoUpdate,
     handleRecalculate,
     handleUpdateExpense,
@@ -127,6 +129,17 @@ const RetirementPlanForm: React.FC = () => {
         </Alert>
       )}
 
+      {isSummaryStale && (
+        <Alert className="border-warning/40 bg-warning/5">
+          <AlertDescription className="flex items-center justify-between gap-3">
+            <span>{RetirementRecalculationLabels.summaryStaleNotice}</span>
+            <Button size="sm" onClick={() => void handleRecalculate()}>
+              {RetirementWorkspaceLabels.recalculateAction}
+            </Button>
+          </AlertDescription>
+        </Alert>
+      )}
+
       <RetirementPlanHeader
         header={headerVM}
         handleSaveName={handleSaveName}
@@ -194,7 +207,7 @@ const RetirementPlanForm: React.FC = () => {
               assumptions={assumptionsVM}
               plan={plan}
               netWorthSource={netWorthSource}
-              onSave={handleUpdatePlan}
+              onSave={handleSaveAssumptions}
             />
           </PageSection>
 
