@@ -188,7 +188,12 @@ const RetirementPlanForm: React.FC = () => {
 
         <TabsContent value="planSetup" className="space-y-6">
           <PageSection title={RetirementWorkspaceSectionLabels.assumptions}>
-            <AssumptionsForm assumptions={assumptionsVM} onSave={handleUpdatePlan} />
+            <AssumptionsForm
+              assumptions={assumptionsVM}
+              plan={plan}
+              netWorthSource={netWorthSource}
+              onSave={handleUpdatePlan}
+            />
           </PageSection>
 
           <PageSection title={RetirementWorkspaceSectionLabels.income}>

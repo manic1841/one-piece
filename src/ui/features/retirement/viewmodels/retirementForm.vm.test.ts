@@ -9,11 +9,13 @@ import {
   buildRetirementEventFormInput,
   buildRetirementExpenseFormInput,
   buildRetirementIncomeFormInput,
+  calculateRetirementAssumptionPreview,
   mapRetirementAssumptionsVMToPlanUpdates,
   mapRetirementEventVMToDomain,
   mapRetirementExpenseVMToDomain,
   mapRetirementIncomeVMToDomain,
 } from './retirementForm.vm';
+import type { RetirementAssumptionsFormInput } from './retirementForm.vm';
 
 describe('retirementForm.vm', () => {
   it('builds and maps income form vm', () => {
@@ -186,6 +188,81 @@ describe('retirementForm.vm', () => {
       lifeExpectancy: 85,
       inflationRate: 2,
       investmentReturnRate: 5,
+    });
+  });
+
+  describe('calculateRetirementAssumptionPreview', () => {
+    const plan = () => ({
+      id: 'p1',
+      householdId: 'h1',
+      name: 'Plan A',
+      isActive: true,
+      autoUpdate: false,
+      currentYear: 2026,
+      birthYear: 1990,
+      retirementAge: 60,
+      lifeExpectancy: 85,
+      inflationRate: 0,
+      investmentReturnRate: 0,
+      incomes: [],
+      expenses: [],
+      events: [
+        {
+          id: 'e1',
+          type: 'expense' as const,
+          name: 'Big cost',
+          phases: [{ name: 'only', startYear: 2030, endYear: 2030, amount: 2_000_000 }],
+        },
+      ],
+      createdBy: 'u1',
+      updatedBy: 'u1',
+      createdAt: new Date('2026-01-01'),
+      updatedAt: new Date('2026-01-02'),
+    });
+
+    const draft = (overrides: Partial<RetirementAssumptionsFormInput> = {}) => ({
+      currentAge: '36',
+      retirementAge: '60',
+      lifeExpectancy: '85',
+      inflationRate: '0',
+      investmentReturnRate: '0',
+      ...overrides,
+    });
+
+    it('projects final and minimum savings from the draft plan', () => {
+      const preview = calculateRetirementAssumptionPreview(plan(), 1_000_000, draft());
+
+      // 2M one-time expense against a 1M start with no growth: the balance drops to
+      // -1M in 2030 and never recovers.
+      expect(preview.finalNetWorth).toBe(-1_000_000);
+      expect(preview.minSavings).toBe(-1_000_000);
+      expect(preview.minYear).toBe(2030);
+    });
+
+    it('uses the draft investment return rather than the stored plan value', () => {
+      const noEventPlan = { ...plan(), events: [] };
+      const preview = calculateRetirementAssumptionPreview(
+        noEventPlan,
+        1_000_000,
+        draft({ investmentReturnRate: '10' }),
+      );
+
+      // No flows, so the balance only grows: the final balance exceeds the start
+      // while the minimum is year one's closing balance (start + first-year growth).
+      expect(preview.finalNetWorth).toBeGreaterThan(1_000_000);
+      expect(preview.minSavings).toBe(1_100_000);
+    });
+
+    it('falls back to the plan values for blank draft fields', () => {
+      const startingNetWorth = 500_000;
+      const blank = calculateRetirementAssumptionPreview(
+        plan(),
+        startingNetWorth,
+        draft({ currentAge: '', retirementAge: '', lifeExpectancy: '', inflationRate: '' }),
+      );
+      const explicit = calculateRetirementAssumptionPreview(plan(), startingNetWorth, draft());
+
+      expect(blank).toEqual(explicit);
     });
   });
 });
