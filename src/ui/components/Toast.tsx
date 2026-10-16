@@ -53,7 +53,36 @@ export function Toast({ message, tone = 'success', actionLabel, onAction, classN
 /** sonner options that let `<Toast>` own the surface; width matches sonner's default. */
 export const LIVE_TOAST_OPTIONS = { unstyled: true, style: { width: '356px' } } as const;
 
+/**
+ * How long an action toast (e.g. UNDO) stays actionable before it auto-dismisses.
+ * The single-slot undo window (spec #301 §2.4) is the same 6 seconds.
+ */
+export const TOAST_TIMEOUT_MS = 6000;
+
+/** Optional single action carried by a live toast, e.g. UNDO. */
+export type ToastActionOptions = {
+  actionLabel: string;
+  onAction: () => void;
+};
+
 /** Emit a live toast rendered from the shared `Toast` surface. */
-export function showToast(message: string, tone: ToastTone = 'success'): void {
-  toast.custom(() => <Toast message={message} tone={tone} />, LIVE_TOAST_OPTIONS);
+export function showToast(
+  message: string,
+  tone: ToastTone = 'success',
+  action?: ToastActionOptions,
+): void {
+  const options = action
+    ? { ...LIVE_TOAST_OPTIONS, duration: TOAST_TIMEOUT_MS }
+    : LIVE_TOAST_OPTIONS;
+  toast.custom(
+    () => (
+      <Toast
+        message={message}
+        tone={tone}
+        actionLabel={action?.actionLabel}
+        onAction={action?.onAction}
+      />
+    ),
+    options,
+  );
 }

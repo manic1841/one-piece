@@ -1,7 +1,50 @@
-import { fireEvent, render, screen } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import type { ReactElement } from 'react';
 
-import { Toast } from './Toast';
+import { fireEvent, render, screen } from '@testing-library/react';
+import { toast } from 'sonner';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+
+import { LIVE_TOAST_OPTIONS, TOAST_TIMEOUT_MS, Toast, showToast } from './Toast';
+
+vi.mock('sonner', () => ({ toast: { custom: vi.fn() } }));
+
+const customMock = vi.mocked(toast.custom);
+
+/** Render the element the Nth `toast.custom` call produced. */
+function renderCustom(call: number): void {
+  const renderFn = customMock.mock.calls[call][0] as (id: string) => ReactElement;
+  render(renderFn('toast-id'));
+}
+
+describe('showToast', () => {
+  afterEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('renders the action label and fires the callback for an action toast', () => {
+    const onAction = vi.fn();
+
+    showToast('ROW DELETED', 'success', { actionLabel: 'UNDO', onAction });
+    renderCustom(0);
+    fireEvent.click(screen.getByRole('button', { name: 'UNDO' }));
+
+    expect(onAction).toHaveBeenCalledTimes(1);
+  });
+
+  it('holds an action toast open for the shared timeout', () => {
+    showToast('ROW DELETED', 'success', { actionLabel: 'UNDO', onAction: vi.fn() });
+
+    expect(customMock.mock.calls[0][1]).toMatchObject({ duration: TOAST_TIMEOUT_MS });
+  });
+
+  it('keeps the plain call backward compatible: no action, default sonner duration', () => {
+    showToast('TRANSACTION SAVED');
+    renderCustom(0);
+
+    expect(screen.queryByRole('button')).toBeNull();
+    expect(customMock.mock.calls[0][1]).toEqual(LIVE_TOAST_OPTIONS);
+  });
+});
 
 describe('Toast', () => {
   it('renders the message with a success glyph by default', () => {

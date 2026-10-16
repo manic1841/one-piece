@@ -264,7 +264,7 @@
   - **不要用於**：全域 Find / Do / Navigate（那是 Command Palette）；需要送出才過濾的查詢（本元件只回報輸入值）。
   - 範例：`src/ui/features/transaction/pages/TransactionsPage.tsx`、`src/ui/features/app/pages/GalleryFeedback.tsx`
 
-- **`Toast`** — Toast 表面（visual-standards §通知）：浮動卡片，左側狀態 glyph + 訊息、右側單一選用動作（UNDO／RETRY）。元件自帶表面（`bg-card` + `border` + `shadow-lg`）；live toast 以 `toast.custom(() => <Toast …/>, { unstyled: true, style: { width: '356px' } })` 掛進 sonner，全域 `Toaster` 只負責定位，不再加表面。同檔匯出 `showToast(message, tone?)`（封裝上述掛法）與 `LIVE_TOAST_OPTIONS`；呼叫端優先用 `showToast`。Toast 只回報結果，不承載 workflow instruction。
+- **`Toast`** — Toast 表面（visual-standards §通知）：浮動卡片，左側狀態 glyph + 訊息、右側單一選用動作（UNDO／RETRY）。元件自帶表面（`bg-card` + `border` + `shadow-lg`）；live toast 以 `toast.custom(() => <Toast …/>, { unstyled: true, style: { width: '356px' } })` 掛進 sonner，全域 `Toaster` 只負責定位，不再加表面。同檔匯出 `showToast(message, tone?, { actionLabel, onAction }?)`（封裝上述掛法；帶 action 時以 `TOAST_TIMEOUT_MS`（6 秒）為停留時間）、`LIVE_TOAST_OPTIONS` 與 `TOAST_TIMEOUT_MS`；呼叫端優先用 `showToast`。Toast 只回報結果，不承載 workflow instruction。
   - Props：`message`、`tone?`（`success`／`error`）、`actionLabel?`、`onAction?`、`className?`。
   - **不要用於**：需要使用者解決的問題（用 inline alert）；重要的 workflow instruction；純字串 `toast('…')`（會落到 sonner 預設外觀）。
   - 範例：`src/ui/features/transaction/pages/TransactionsPage.tsx`（`showToast`：交易儲存／刪除成功）。
