@@ -3,6 +3,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { type RetirementPlan } from '@/domains/retirement/types';
+import { ConfirmDialogProvider } from '@/ui/components/confirm/ConfirmDialog';
 import {
   type RetirementProjectionPointVM,
   type RetirementProjectionVM,
@@ -155,7 +156,9 @@ function projectionFixture(): RetirementProjectionVM {
 function renderForm() {
   return render(
     <MemoryRouter>
-      <RetirementPlanForm />
+      <ConfirmDialogProvider>
+        <RetirementPlanForm />
+      </ConfirmDialogProvider>
     </MemoryRouter>,
   );
 }
@@ -227,7 +230,7 @@ describe('RetirementPlanForm - Scenario Workspace', () => {
     renderForm();
 
     openTab(/Plan Setup/);
-    fireEvent.click(screen.getByRole('button', { name: /add expense/i }));
+    fireEvent.click(screen.getByRole('button', { name: /新增支出/ }));
 
     expect(screen.getByText('Using plan inflation: 2%')).toBeInTheDocument();
   });

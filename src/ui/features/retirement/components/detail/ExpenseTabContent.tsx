@@ -15,10 +15,12 @@ import {
   type RetirementExpenseItemVM,
 } from '@/ui/features/retirement/viewmodels/retirementDisplay.vm';
 
-import RetirementExpenseDialog from '../ExpenseDialog';
+import { ExpenseEntryEditor } from '../ExpenseEntryEditor';
 
 interface ExpenseTabContentProps {
   currentYear: number;
+  birthYear: number;
+  retirementAge: number;
   planInflationRate: number;
   expenseItems: Array<{ domain: RetirementExpenseCategory; vm: RetirementExpenseItemVM }>;
   handleAddExpense: (data: Omit<RetirementExpenseCategory, 'id'>) => Promise<void>;
@@ -30,6 +32,8 @@ interface ExpenseTabContentProps {
 
 export const ExpenseTabContent: React.FC<ExpenseTabContentProps> = ({
   currentYear,
+  birthYear,
+  retirementAge,
   planInflationRate,
   expenseItems,
   handleAddExpense,
@@ -52,9 +56,11 @@ export const ExpenseTabContent: React.FC<ExpenseTabContentProps> = ({
             <Button variant="outline" size="sm" onClick={handleImportFromLedger}>
               {RetirementTabContentLabels.importFromLedger}
             </Button>
-            <RetirementExpenseDialog
+            <ExpenseEntryEditor
               onSave={handleAddExpense}
               currentYear={currentYear}
+              birthYear={birthYear}
+              retirementAge={retirementAge}
               planInflationRate={planInflationRate}
             />
           </>
@@ -83,9 +89,11 @@ export const ExpenseTabContent: React.FC<ExpenseTabContentProps> = ({
                 </div>
                 <RowActions
                   edit={
-                    <RetirementExpenseDialog
+                    <ExpenseEntryEditor
                       onSave={(updates) => handleUpdateExpense(domain.id, updates)}
                       currentYear={currentYear}
+                      birthYear={birthYear}
+                      retirementAge={retirementAge}
                       planInflationRate={planInflationRate}
                       initialData={domain}
                       trigger={

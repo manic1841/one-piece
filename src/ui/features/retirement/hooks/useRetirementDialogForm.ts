@@ -33,11 +33,6 @@ export interface RetirementGrowthLabels {
   growthPercent: (rate: number) => string;
 }
 
-export interface RetirementDurationLabels {
-  lifelong: string;
-  until: (endYear: string) => string;
-}
-
 /**
  * Derived readout: how the entry's growth will behave. A blank input means
  * "follow plan inflation", an explicit `0` means no growth. The form only holds
@@ -51,12 +46,3 @@ export const deriveRetirementGrowthText = (
   growthRate === '' || growthRate === undefined
     ? labels.usingPlanInflation(planInflationRate)
     : labels.growthPercent(Number(growthRate));
-
-/** Derived readout: how long the entry lasts. See {@link deriveRetirementGrowthText}. */
-export const deriveRetirementDurationText = (
-  { lifelong, endYear }: { lifelong?: boolean; endYear?: string | number },
-  labels: RetirementDurationLabels,
-): string =>
-  lifelong || endYear === '' || endYear === undefined
-    ? labels.lifelong
-    : labels.until(String(endYear));
