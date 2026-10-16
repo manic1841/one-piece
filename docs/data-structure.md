@@ -89,7 +89,7 @@ firestore
       │         ├─ type: "salary" | "bonus" | "pension" | "rent" | "other"
       │         │
       │         │  # --- 金額設定（v2：無計算模式、無連動年份模式）---
-      │         ├─ currentAnnual: number | null    # 匯自完整年度實際資料（唯讀）；null = 情境專用流，退休前貢獻 0
+      │         ├─ currentAnnual: number | null    # 匯自完整年度實際資料（唯讀）
       │         ├─ retirementAnnual?: number        # 退休年金額；缺省時以 currentAnnual 調整後水準沿用
       │         ├─ growthRate?: number              # 年成長率（%），缺省 = 計畫通膨率
       │         ├─ startYear: number                 # 具體年份（v2 無 startYearMode；連動由遷移解析寫入）

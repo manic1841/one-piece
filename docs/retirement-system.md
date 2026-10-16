@@ -27,7 +27,7 @@
 
 路徑：`households/{householdId}/retirement_plans/{planId}/incomeStreams/{incomeStreamId}`
 
-收入流以會計科目、收入類型、目前/退休兩個金額欄位與來源統計描述；v1 不再有計算模式（見 [ADR-0057](adr/0057-retirement-v1-flat-amount-fields.md)），v2 再移除 `importedFrom` / `autoUpdate` / `startYearMode` / `endYearMode`（見 issue #133）：`currentAnnual` 為 `number | null`（null = 情境專用流，退休前貢獻 0），年份連動由遷移腳本解析為具體年份。分錄來源、樣本年度與過期更新見 [ADR-0023](adr/0023-retirement-income-from-entries-only.md) 至 [ADR-0025](adr/0025-retirement-sample-window-auto-shift.md)。欄位詳見 [data-structure.md](data-structure.md)。
+收入流以會計科目、收入類型、目前/退休兩個金額欄位與來源統計描述；v1 不再有計算模式（見 [ADR-0057](adr/0057-retirement-v1-flat-amount-fields.md)），v2 再移除 `importedFrom` / `autoUpdate` / `startYearMode` / `endYearMode`（見 issue #133）：`currentAnnual` 為 `number | null`，年份連動由遷移腳本解析為具體年份。分錄來源、樣本年度與過期更新見 [ADR-0023](adr/0023-retirement-income-from-entries-only.md) 至 [ADR-0025](adr/0025-retirement-sample-window-auto-shift.md)。欄位詳見 [data-structure.md](data-structure.md)。
 
 ### 2.3 支出類別子集合
 
@@ -113,7 +113,7 @@ phase 形狀與驗證：
 - Projection 摘要為快取：Recalculate 時重新推導 netWorthAtRetirement（退休年期初淨資產）與 finalNetWorth（投影期末淨資產），不使用遷移腳本。
 - 事件頁為分段編輯：可新增多個 phase，每段設定 Start/End Year 與金額（必填）、可選 Growth Rate（留空代表隨計畫通膨）；phase 以 repeater 編輯（`md` 以上為欄位對齊的單列、行動版為兩欄堆疊區塊，不橫向捲動），各欄位共用系統表單欄位與樣式。
 - 事件清單列顯示該事件的**終身費用總和**（每個 phase 逐年以自身成長率或計畫通膨成長後加總），並在金額下方註記 phase 數量（僅分段事件）；收入事件以 `+`、支出事件以 `-` 標示。
-- 收入頁每筆收入只有一組金額欄位：目前年金額（匯入時唯讀帶入；null = 情境專用流，顯示「—」帶 Import from Ledger 提示，退休前貢獻 0）與退休年金額（可編輯）。
+- 收入頁每筆收入只有一組金額欄位：目前年金額（匯入時唯讀帶入）與退休年金額（可編輯）。
 - 收入對話框為 v2 形狀（issue #133）：Type、唯讀 Current Annual、可編輯 Retirement Annual、Growth（Advanced 展開明確成長率）、Start/End Year 與 Lifelong 收進 Advanced；無 Source 選擇器、Ledger Code、Sample Year、收入層級 Auto Update、試算預覽與連動退休年 Badge（計畫層級 Auto Update 是唯一開關）。
 - 支出對話框以 Duration 顯示期間：未設定 End Year 即 Lifelong，設定後顯示 Until {endYear}；Debt Payment 的 End Year 保留在主表單。Start/End Year 收進 Advanced 展開區（Start Year 預設當前年度，無 2100 預設值）。
 - 支出成長率預設跟隨計畫通膨並顯示「Using plan inflation: {rate}%」，Advanced 展開後才能輸入明確成長率（留空 = 計畫通膨，0 = 明確 0%）；目前年支出一般支出可編輯，Debt 匯入值為系統推導唯讀，退休後費用比例（%）維持必填。
