@@ -75,7 +75,7 @@
 
 **症狀**:種子文件存在、查詢語法正確、甚至直接 REST runQuery 拿得到資料,頁面仍顯示空列表。
 
-**根因**:App 按「登入使用者的 householdId」做 parent-scoped 查詢(例如 `households/{householdId}/retirement_plans`)。種子資料寫在 `households/qa_household/...` 而登入者的 household 是 `hh-test` 時,查詢正確地回空——不是 bug。整條鏈路只有一個 Firestore database(`(default)`),看起來像「資料在不同 database」時,通常是 household scoping 或 auth 身分錯位(見 §2),不是 database 不一致。
+**根因**:App 按「登入使用者的 householdId」做 parent-scoped 查詢(例如 `households/{householdId}/retirementPlans`)。種子資料寫在 `households/qa_household/...` 而登入者的 household 是 `hh-test` 時,查詢正確地回空——不是 bug。整條鏈路只有一個 Firestore database(`(default)`),看起來像「資料在不同 database」時,通常是 household scoping 或 auth 身分錯位(見 §2),不是 database 不一致。
 
 **判別法**:先確認「實際登入的 user 的 householdId」再決定種子路徑;`qa:seed` 之所以用固定 doc ID + 固定 `qa_household`,就是為了讓種子資料與登入身分對齊。
 

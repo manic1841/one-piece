@@ -1,7 +1,7 @@
 # Retirement v1 平坦金額欄位：currentAnnual / retirementAnnual / 固定支出
 
-**狀態：** 已接受（2026-09-20）
-**規範來源：** [retirement-system.md](../retirement-system.md)；[data-structure.md](../data-structure.md)
+**狀態：** 已被 [ADR-0085](0085-source-method-rules-replace-flat-amounts.md) 取代
+**規範來源：** 無（本決策已由 ADR-0085 取代，原規則已移除）
 
 Retirement v1 規格（issue #127）實作前，退休計畫的輸入以「計算模式」描述：收入流有三態（FIXED / IMPORTED / DERIVED）、支出類別有雙模式（FIXED 或依連動收入乘以百分比）、事件 phase 各自宣告模式，DERIVED 收入還有依賴圖。期初餘額另存一份手動輸入的存款數字。
 

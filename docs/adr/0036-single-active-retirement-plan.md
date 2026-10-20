@@ -1,7 +1,7 @@
 # 同一 household 僅允許一筆 active 退休計畫
 
-**狀態：** 已接受
-**規範來源：** [data-structure.md](../data-structure.md) §retirement_plans
+**狀態：** 已被 [ADR-0083](0083-projection-is-frozen-plan-is-template.md) 取代
+**規範來源：** 無（本決策已由 ADR-0083 取代，原規則已移除）
 
 避免多筆計畫同時作為「當前試算基準」造成混淆。當任一計畫被建立或更新為啟用，系統自動將同 household 其他計畫設為停用。
 

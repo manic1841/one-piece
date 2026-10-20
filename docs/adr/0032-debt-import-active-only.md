@@ -1,6 +1,8 @@
 # 債務還款匯入僅限 active 帳戶
 
 **狀態：** 已接受
-**規範來源：** [debt-accounts.md](../debt-accounts.md) §6；[retirement-system.md](../retirement-system.md) §4
+**規範來源：** [retirement-system.md](../retirement-system.md) §4
 
 已結清貸款不應納入退休試算的未來支出，因此匯入只掃描啟用中的債務帳戶，並為每筆建立一筆債務還款支出類別。
+
+**修訂（ADR-0085）：** 匯入範圍仍是僅限啟用中帳戶，但新增的寫入物是一條由該債務帳戶推導的支出規則（Method 為攤還），不是支出類別。既有投影中的規則可以引用已結清的債務：規則是已解析的假設，不隨帳戶狀態回頭失效。

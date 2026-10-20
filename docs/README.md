@@ -25,8 +25,8 @@
   - 不同會計層級的資料來源說明。
 
 - **[退休系統設計 (Retirement System)](/docs/retirement-system.md)**
-  - 退休資料模型與收入流 (`incomeStreams`) 子集合規格。
-  - 從交易分錄 (`Transaction.entries`) 導入收入的完整流程。
+  - 退休計畫（假設模板）與投影（凍結的計算結果）的資料模型。
+  - 從交易分錄 (`Transaction.entries`) 推導基準的完整流程。
 
 - **[月度關帳 (Monthly Close)](/docs/monthly-close.md)**
   - 期間狀態、八階段模型、各階段的資料建立邊界與關帳完成條件。

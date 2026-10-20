@@ -5,7 +5,7 @@
 債務帳戶（DebtAccount）追蹤家庭的負債部位，如房貸、車貸、個人信貸。
 提供每月還款試算、還清進度追蹤、與 Project 的關聯。
 
-本文件是債務功能的表單、試算、衍生規則與操作流程的規範來源；相關取捨理由見 [ADR-0014](adr/0014-debt-payment-intenttype.md) 至 [ADR-0017](adr/0017-grace-period-derived-not-stored.md)（還款意圖、派生餘額、建立時同步入帳、寬限期狀態）與 [ADR-0032](adr/0032-debt-import-active-only.md)、[ADR-0033](adr/0033-debt-expense-principal-interest-mode.md)（退休匯入）。
+本文件是債務功能的表單、試算、衍生規則與操作流程的規範來源；相關取捨理由見 [ADR-0014](adr/0014-debt-payment-intenttype.md) 至 [ADR-0017](adr/0017-grace-period-derived-not-stored.md)（還款意圖、派生餘額、建立時同步入帳、寬限期狀態）。退休側如何消費債務見 [retirement-system.md](retirement-system.md) §4。
 
 ---
 
@@ -271,32 +271,7 @@ operation record 在同一個 Firestore transaction 內提交；任一寫入失�
 
 ---
 
-## 6. 退休系統導入規則（Debt -> Retirement）
-
-只匯入啟用中的債務，以及本金/利息的退休支出模式，分別由 [ADR-0032](adr/0032-debt-import-active-only.md) 與 [ADR-0033](adr/0033-debt-expense-principal-interest-mode.md) 定義；以下保留匯入流程與欄位對應。
-
-退休系統支援「匯入債務還款」：
-
-1. 掃描 `isActive=true` 的 DebtAccount
-2. 每個帳戶建立一筆退休 `expenseCategory`（`type = debt_payment`）
-3. 欄位來源：
-   - `name` <- DebtAccount.name
-   - `baseAmount` <- DebtAccount.monthlyPayment \* 12（`includesPrincipal=true`）
-   - `startYear/endYear` <- DebtAccount.startDate/endDate
-4. 讀取最近 12 個月 DebtSnapshot，寫入 `calculatedFrom` 統計
-
-### 本金與利息策略
-
-匯入支出可用以下旗標描述：
-
-- `includesPrincipal: true`
-  - 表示包含本金與利息，預設使用 `monthlyPayment * 12`
-- `interestOnly: true`
-  - 表示只計利息，使用 DebtSnapshot 的 `interestPaid` 年化值
-
-備註：本金在會計上不是損益費用，但退休現金流模型可依需求納入現金流出；需以上述旗標清楚標記。
-
-## 7. 債務月結算與警訊
+## 6. 債務月結算與警訊
 
 債務月結算僅能透過月度關帳流程的 `DEBT_REPAYMENT` 階段執行，不再有獨立的結算對話框入口。`DEBT_REPAYMENT` 階段確認時一次完成兩件事：
 
@@ -313,14 +288,14 @@ operation record 在同一個 Firestore transaction 內提交；任一寫入失�
 
 ---
 
-## 8. 路由
+## 7. 路由
 
 - `/debt` → `DebtListPage`（在受保護的 Layout 內）
 - `/debt/:id` → `DebtDetailPage`（在受保護的 Layout 內）
 
 ---
 
-## 9. 相關檔案
+## 8. 相關檔案
 
 | 層                         | 路徑                                                                |
 | -------------------------- | ------------------------------------------------------------------- |
