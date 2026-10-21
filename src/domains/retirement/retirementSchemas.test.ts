@@ -67,7 +67,7 @@ describe('RETIREMENT_ASSUMPTION_BOUNDS', () => {
     });
     expect(RETIREMENT_ASSUMPTION_BOUNDS.lifeExpectancy).toEqual({
       min: 1,
-      max: 130,
+      max: Number.POSITIVE_INFINITY,
     });
     expect(RETIREMENT_ASSUMPTION_BOUNDS.inflationRate).toEqual({
       min: -0.1,
@@ -94,7 +94,6 @@ describe('assumptions', () => {
     ['retirementAge', 121, RetirementSchemaErrorCode.OUT_OF_RANGE],
     ['retirementAge', 60.5, RetirementSchemaErrorCode.NOT_INTEGER],
     ['lifeExpectancy', 0, RetirementSchemaErrorCode.OUT_OF_RANGE],
-    ['lifeExpectancy', 131, RetirementSchemaErrorCode.OUT_OF_RANGE],
     ['lifeExpectancy', 85.5, RetirementSchemaErrorCode.NOT_INTEGER],
     ['inflationRate', -0.1001, RetirementSchemaErrorCode.OUT_OF_RANGE],
     ['inflationRate', 0.2001, RetirementSchemaErrorCode.OUT_OF_RANGE],
@@ -136,6 +135,7 @@ describe('assumptions', () => {
       }).success,
     ).toBe(true);
     expect(parseAssumptions({ retirementAge: 120, lifeExpectancy: 130 }).success).toBe(true);
+    expect(parseAssumptions({ lifeExpectancy: 131 }).success).toBe(true);
   });
 
   it('requires lifeExpectancy to be greater than retirementAge', () => {
@@ -492,7 +492,12 @@ describe('baselinePolicy', () => {
     ).toBe(true);
     expect(
       parseRules([
-        validRule({ method: 'inflation', source: ledgerSource, baselinePolicy: 'specificYear' }),
+        validRule({
+          method: 'inflation',
+          source: ledgerSource,
+          baselinePolicy: 'specificYear',
+          baselineYear: 1999,
+        }),
       ]).success,
     ).toBe(true);
   });
@@ -532,10 +537,20 @@ describe('baselinePolicy', () => {
     },
   );
 
-  it('allows specificYear baseline policy without a year at plan stage', () => {
+  it('requires a baseline year for specificYear baseline policy', () => {
     expect(
       parseRules([
         validRule({ method: 'inflation', source: ledgerSource, baselinePolicy: 'specificYear' }),
+      ]).success,
+    ).toBe(false);
+    expect(
+      parseRules([
+        validRule({
+          method: 'inflation',
+          source: ledgerSource,
+          baselinePolicy: 'specificYear',
+          baselineYear: 1999,
+        }),
       ]).success,
     ).toBe(true);
   });

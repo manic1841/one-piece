@@ -30,12 +30,24 @@ export const FormControl = ({ children }: FormControlProps) => {
     [formDescriptionId(id), error ? formMessageId(id) : null].filter(Boolean).join(' ') ||
     undefined;
 
-  return React.cloneElement(children as React.ReactElement<Record<string, unknown>>, {
+  // The child may carry its own handler (a row-level `update`, a method switch),
+  // so keep it and still let RHF record the raw value.
+  const child = children as React.ReactElement<Record<string, unknown>>;
+  const childOnChange = child.props.onChange as ((...args: unknown[]) => void) | undefined;
+  const childOnBlur = child.props.onBlur as ((...args: unknown[]) => void) | undefined;
+
+  return React.cloneElement(child, {
     id: formControlId(id),
     name,
     value: field.value ?? '',
-    onChange: field.onChange,
-    onBlur: field.onBlur,
+    onChange: (...args: unknown[]) => {
+      (field.onChange as (value: unknown) => void)(args[0]);
+      childOnChange?.(...args);
+    },
+    onBlur: (...args: unknown[]) => {
+      (field.onBlur as (value: unknown) => void)(args[0]);
+      childOnBlur?.(...args);
+    },
     ref: field.ref,
     error,
     'aria-invalid': error,

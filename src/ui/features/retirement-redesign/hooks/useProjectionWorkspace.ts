@@ -1,10 +1,15 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { useBlocker, useSearchParams } from 'react-router-dom';
+import { z } from 'zod';
 
-import { createProjectionUseCase } from '@/application/retirement/use_cases/createProjectionUseCase';
-import { getStartingNetWorthUseCase } from '@/application/retirement/use_cases/getStartingNetWorthUseCase';
+import {
+  type ProjectionCalculation,
+  createProjectionUseCase,
+} from '@/application/retirement/use_cases/createProjectionUseCase';
+import { getProjectionOpeningUseCase } from '@/application/retirement/use_cases/getProjectionOpeningUseCase';
 import { type RetirementPlanWorkspaceData } from '@/application/retirement/use_cases/retirementPlanLookup';
+import { saveWorkspaceAsPlanUseCase } from '@/application/retirement/use_cases/saveProjectionAsPlanUseCase';
 import { type RetirementAssumptions } from '@/domains/retirement/assumptions';
 import { type LifeEvent } from '@/domains/retirement/lifeEvents';
 import {
@@ -15,8 +20,9 @@ import { type ProjectionRule } from '@/domains/retirement/projectionRules';
 import { useConfirm } from '@/ui/components/confirm/useConfirm';
 import {
   PROJECTION_RESULT_LABELS,
-  resolveErrorLabel,
+  resolveValidationIssueLabel,
 } from '@/ui/constants/retirement-redesign/resultLabels';
+import { resolveErrorLabel } from '@/ui/constants/retirement-redesign/resultLabels';
 import { PROJECTION_WORKSPACE_LABELS } from '@/ui/constants/retirement-redesign/workspaceLabels';
 import { useAssumptionDraft } from '@/ui/features/retirement-redesign/hooks/useAssumptionDraft';
 import { useLifeEventDrafts } from '@/ui/features/retirement-redesign/hooks/useLifeEventDrafts';
@@ -44,6 +50,22 @@ interface ReportValue {
   anchorYearMonth: string;
 }
 
+export interface WorkspaceDraft {
+  assumptions: RetirementAssumptions;
+  rules: ProjectionRule[];
+  events: LifeEvent[];
+  startYear: number;
+  opening: OpeningNetWorthVM;
+  reportValue: ReportValue | null;
+}
+
+export interface SaveFailure {
+  ok: false;
+  messages: string[];
+}
+
+export type SaveWorkspaceOutcome = { ok: true; id: string } | SaveFailure;
+
 const EMPTY_OPENING: OpeningNetWorthVM = {
   source: 'derived',
   amountText: '',
@@ -59,9 +81,24 @@ interface ValidatedPlan {
 interface CalculatedProjection {
   projection: ReturnType<typeof mapProjectionResultToVM>;
   summary: ProjectionSummary;
-  warnings: ProjectionResolveError[];
-  source: ValidatedPlan;
+  calculation: ProjectionCalculation;
 }
+
+const openingSchema = z
+  .object({
+    source: z.enum(['derived', 'manual']),
+    amountText: z.string(),
+  })
+  .superRefine((value, ctx) => {
+    if (value.source !== 'manual') return;
+    const text = value.amountText.trim();
+    const amount = Number(text);
+    if (text === '' || !Number.isInteger(amount)) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['amountText'], message: 'INVALID' });
+    }
+  });
+
+const startYearSchema = z.number().int();
 
 /**
  * Controller for the projection workspace shell. The draft is a single
@@ -88,12 +125,14 @@ export function useProjectionWorkspace(householdId: string | undefined) {
   const [dirty, setDirty] = useState(false);
   const [appliedPlanName, setAppliedPlanName] = useState<string | null>(null);
   const [openingValidationError, setOpeningValidationError] = useState<string | undefined>();
+  const [startYearValidationError, setStartYearValidationError] = useState<string | undefined>();
   const [calculated, setCalculated] = useState<CalculatedProjection | null>(null);
   const [resolveErrors, setResolveErrors] = useState<ProjectionResolveError[]>([]);
   const [calculateError, setCalculateError] = useState<string | null>(null);
   const [calculating, setCalculating] = useState(false);
   const [savedId, setSavedId] = useState<string | null>(null);
-  const [startYear, setStartYear] = useState(() => new Date().getFullYear());
+  const [savedAsPlan, setSavedAsPlan] = useState(false);
+  const [startYear, setStartYearState] = useState(() => new Date().getFullYear());
   const [preloadWarning, setPreloadWarning] = useState<string | null>(null);
 
   const seededRef = useRef(false);
@@ -112,7 +151,7 @@ export function useProjectionWorkspace(householdId: string | undefined) {
     await run(
       async () => {
         if (!householdId) return { reason: 'NO_CLOSED_PERIOD' as const };
-        return getStartingNetWorthUseCase.execute({ householdId, auth });
+        return getProjectionOpeningUseCase.execute({ householdId, auth });
       },
       {
         writeBack: (result) => {
@@ -126,7 +165,7 @@ export function useProjectionWorkspace(householdId: string | undefined) {
           }
 
           const seeded: ReportValue = {
-            amountText: String(result.value.startingNetWorth),
+            amountText: String(result.value.openingNetWorth),
             anchorYearMonth: result.value.anchorYearMonth,
           };
           setReportValue(seeded);
@@ -147,18 +186,25 @@ export function useProjectionWorkspace(householdId: string | undefined) {
     setSearchParams({}, { replace: true });
   }, [setSearchParams]);
 
+  const replaceAll = useCallback(
+    (draft: WorkspaceDraft) => {
+      resetAssumptions(draft.assumptions);
+      replaceRules(draft.rules);
+      replaceEvents(draft.events);
+      setStartYearState(draft.startYear);
+      setOpening(draft.opening);
+      setReportValue(draft.reportValue);
+    },
+    [replaceEvents, replaceRules, resetAssumptions],
+  );
+
   const preloadFromProjection = useProjectionPreload({
     auth,
     householdId,
     run,
     setDirty,
     setWarning: setPreloadWarning,
-    setOpening,
-    setReportValue,
-    setStartYear,
-    resetAssumptions,
-    replaceRules,
-    replaceEvents,
+    replaceAll,
     markSeeded,
     clearParams,
   });
@@ -226,8 +272,6 @@ export function useProjectionWorkspace(householdId: string | undefined) {
     markDirty();
   }, [markDirty]);
 
-  const useManualValue = enterManual;
-
   const useReportValue = useCallback(() => {
     if (!reportValue) return;
     setOpening({ source: 'derived', ...reportValue });
@@ -237,6 +281,14 @@ export function useProjectionWorkspace(householdId: string | undefined) {
   const retryOpening = useCallback(() => {
     void loadOpening();
   }, [loadOpening]);
+
+  const setStartYear = useCallback(
+    (next: string) => {
+      setStartYearState(Number(next));
+      markDirty();
+    },
+    [markDirty],
+  );
 
   const applyPlan = useCallback(
     (plan: RetirementPlanWorkspaceData) => {
@@ -253,31 +305,46 @@ export function useProjectionWorkspace(householdId: string | undefined) {
     [assumptions, events, markDirty, rules],
   );
 
-  /** One call the setup stage can use before saving: the three schema groups. */
   const validateOpening = useCallback((): string | undefined => {
-    if (opening.source !== 'manual') return undefined;
-    const text = opening.amountText.trim();
-    const amount = Number(text);
-    if (text === '' || !Number.isInteger(amount)) {
-      return PROJECTION_RESULT_LABELS.OPENING_INVALID;
-    }
-    return undefined;
-  }, [opening.amountText, opening.source]);
+    const parsed = openingSchema.safeParse(opening);
+    return parsed.success ? undefined : PROJECTION_RESULT_LABELS.OPENING_INVALID;
+  }, [opening]);
 
-  const validate = useCallback(() => {
+  const validateStartYear = useCallback((): string | undefined => {
+    return startYearSchema.safeParse(startYear).success
+      ? undefined
+      : PROJECTION_RESULT_LABELS.START_YEAR_INVALID;
+  }, [startYear]);
+
+  const validateCore = useCallback(() => {
     const assumptionsResult = assumptions.validate();
     const rulesResult = rules.validate();
     const eventsResult = events.validate();
-    const openingError = validateOpening();
 
     return {
-      ok: assumptionsResult.ok && rulesResult.ok && eventsResult.ok && openingError === undefined,
       assumptions: assumptionsResult,
       rules: rulesResult,
       events: eventsResult,
-      openingError,
     };
-  }, [assumptions, events, rules, validateOpening]);
+  }, [assumptions, events, rules]);
+
+  const validate = useCallback(() => {
+    const core = validateCore();
+    const openingError = validateOpening();
+    const startYearError = validateStartYear();
+
+    return {
+      ok:
+        core.assumptions.ok &&
+        core.rules.ok &&
+        core.events.ok &&
+        openingError === undefined &&
+        startYearError === undefined,
+      ...core,
+      openingError,
+      startYearError,
+    };
+  }, [validateCore, validateOpening, validateStartYear]);
 
   const revealErrors = useCallback(() => {
     assumptions.revealAll();
@@ -295,11 +362,13 @@ export function useProjectionWorkspace(householdId: string | undefined) {
     setResolveErrors([]);
     setCalculateError(null);
     setOpeningValidationError(undefined);
+    setStartYearValidationError(undefined);
   }, []);
 
   const calculate = useCallback(async () => {
     const validation = validate();
     setOpeningValidationError(validation.openingError);
+    setStartYearValidationError(validation.startYearError);
     setCalculateError(null);
     setResolveErrors([]);
 
@@ -320,7 +389,7 @@ export function useProjectionWorkspace(householdId: string | undefined) {
 
     setCalculating(true);
 
-    const outcome = await createProjectionUseCase.execute({
+    const outcome = await createProjectionUseCase.calculate({
       householdId: householdId ?? '',
       auth,
       startYear,
@@ -329,7 +398,6 @@ export function useProjectionWorkspace(householdId: string | undefined) {
         amount: Number(opening.amountText),
       },
       ...plan,
-      persist: false,
     });
     setCalculating(false);
 
@@ -337,6 +405,12 @@ export function useProjectionWorkspace(householdId: string | undefined) {
       if (outcome.code === 'PROJECTION_RESOLVE_FAILED') {
         setResolveErrors(outcome.errors ?? []);
         setCalculateError(PROJECTION_RESULT_LABELS.RESOLVE_FAILED);
+      } else if (outcome.issues !== undefined) {
+        setCalculateError(
+          outcome.issues
+            .map(resolveValidationIssueLabel)
+            .join(PROJECTION_RESULT_LABELS.ISSUE_SEPARATOR),
+        );
       } else {
         setCalculateError(PROJECTION_RESULT_LABELS.CALCULATE_FAILED);
       }
@@ -345,36 +419,82 @@ export function useProjectionWorkspace(householdId: string | undefined) {
     }
 
     setCalculated({
-      projection: mapProjectionResultToVM(outcome.input, outcome.result),
-      summary: outcome.result.summary,
-      warnings: outcome.warnings,
-      source: plan,
+      projection: mapProjectionResultToVM(outcome.calculation.input, outcome.calculation.result),
+      summary: outcome.calculation.result.summary,
+      calculation: outcome.calculation,
     });
     setStage('preview');
   }, [auth, householdId, opening.amountText, opening.source, revealErrors, startYear, validate]);
 
   const save = useCallback(
-    async (name: string): Promise<string | null> => {
-      if (calculated === null) return null;
+    async (name: string): Promise<SaveWorkspaceOutcome> => {
+      if (calculated === null || householdId === undefined) {
+        return { ok: false, messages: [PROJECTION_WORKSPACE_LABELS.SAVE_DIALOG_FAILED] };
+      }
 
-      const outcome = await createProjectionUseCase.execute({
-        householdId: householdId ?? '',
+      const outcome = await createProjectionUseCase.persist({
+        householdId,
         auth,
-        startYear,
-        opening: {
-          source: opening.source,
-          amount: Number(opening.amountText),
-        },
-        ...calculated.source,
         name,
-        persist: true,
+        calculation: calculated.calculation,
       });
 
-      if (!outcome.ok || outcome.id === null) return null;
+      if (!outcome.ok) {
+        return {
+          ok: false,
+          messages:
+            outcome.issues !== undefined
+              ? outcome.issues.map(resolveValidationIssueLabel)
+              : [PROJECTION_WORKSPACE_LABELS.SAVE_DIALOG_FAILED],
+        };
+      }
+
       setSavedId(outcome.id);
-      return outcome.id;
+      return { ok: true, id: outcome.id };
     },
-    [auth, calculated, householdId, opening.amountText, opening.source, startYear],
+    [auth, calculated, householdId],
+  );
+
+  const saveAsPlan = useCallback(
+    async (name: string): Promise<SaveWorkspaceOutcome> => {
+      const validation = validate();
+      if (!validation.ok) {
+        revealErrors();
+        const { data: assumptionData } = validation.assumptions;
+        const { data: ruleData } = validation.rules;
+        const { data: eventData } = validation.events;
+        if (!assumptionData || !ruleData || !eventData) {
+          return { ok: false, messages: [PROJECTION_WORKSPACE_LABELS.SAVE_AS_PLAN_INVALID] };
+        }
+      }
+
+      const { data: assumptionData } = validation.assumptions;
+      const { data: ruleData } = validation.rules;
+      const { data: eventData } = validation.events;
+      if (householdId === undefined || !assumptionData || !ruleData || !eventData) {
+        return { ok: false, messages: [PROJECTION_WORKSPACE_LABELS.SAVE_DIALOG_FAILED] };
+      }
+
+      const outcome = await saveWorkspaceAsPlanUseCase.execute({
+        householdId,
+        auth,
+        name,
+        assumptions: assumptionData,
+        projectionRules: ruleData,
+        lifeEvents: eventData,
+      });
+
+      if (!outcome.ok) {
+        return {
+          ok: false,
+          messages: [PROJECTION_WORKSPACE_LABELS.SAVE_AS_PLAN_FAILED],
+        };
+      }
+
+      setSavedAsPlan(true);
+      return { ok: true, id: outcome.id };
+    },
+    [auth, householdId, revealErrors, validate],
   );
 
   return {
@@ -391,24 +511,29 @@ export function useProjectionWorkspace(householdId: string | undefined) {
     valid,
     dirty,
     calculated,
-    warningLabels: calculated?.warnings.map(resolveErrorLabel) ?? [],
-    errorLabels: resolveErrors.map(resolveErrorLabel),
+    warningLabels: calculated?.calculation.warnings.map(resolveErrorLabelSafe) ?? [],
+    errorLabels: resolveErrors.map(resolveErrorLabelSafe),
     calculateError,
     calculating,
     savedId,
+    savedAsPlan,
     calculate,
     save,
+    saveAsPlan,
+    startYear,
+    setStartYear,
     openingValidationError,
+    startYearValidationError,
     openingLoading,
     openingError,
     hasClosedPeriod: reportValue !== null,
-    canUseReportValue: reportValue !== null,
     setOpeningAmount,
     enterManual,
-    useManualValue,
     useReportValue,
     retryOpening,
     goToPreview,
     backToSetup,
   };
 }
+
+const resolveErrorLabelSafe = resolveErrorLabel;

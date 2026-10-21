@@ -20,6 +20,7 @@ import {
   createRetirementPlanUpdateSchema,
 } from '@/domains/retirement/planSchemas';
 import { db } from '@/firebase';
+import { byteLength, fromFirestore, sanitize } from '@/infra/repositories/firestorePayload';
 
 export const RETIREMENT_PLAN_DOCUMENT_MAX_BYTES = 900_000;
 
@@ -50,30 +51,7 @@ export interface UpdateRetirementPlanInput {
   userEmail: string;
 }
 
-const byteLength = (value: unknown): number =>
-  new TextEncoder().encode(JSON.stringify(value)).length;
-
 const currentYear = (): number => new Date().getFullYear();
-
-function sanitize(value: unknown): unknown {
-  if (value === undefined) return undefined;
-
-  if (value instanceof Date) return value;
-
-  if (Array.isArray(value)) {
-    return value.map((item) => sanitize(item)).filter((item) => item !== undefined);
-  }
-
-  if (typeof value === 'object' && value !== null) {
-    const entries = Object.entries(value)
-      .map(([key, entry]) => [key, sanitize(entry)] as const)
-      .filter(([, entry]) => entry !== undefined);
-
-    return Object.fromEntries(entries);
-  }
-
-  return value;
-}
 
 function toFirestore(value: RetirementPlanCreate): DocumentData {
   const { createdAt, updatedAt, ...rest } = sanitize(value) as RetirementPlanCreate;
@@ -83,18 +61,6 @@ function toFirestore(value: RetirementPlanCreate): DocumentData {
     createdAt: Timestamp.fromDate(createdAt),
     updatedAt: Timestamp.fromDate(updatedAt),
   };
-}
-
-function fromFirestore(data: DocumentData): unknown {
-  if (data instanceof Timestamp) return data.toDate();
-  if (data instanceof Date) return data;
-  if (Array.isArray(data)) return data.map((entry) => fromFirestore(entry));
-  if (data && typeof data === 'object') {
-    return Object.fromEntries(
-      Object.entries(data).map(([key, value]) => [key, fromFirestore(value)]),
-    );
-  }
-  return data;
 }
 
 function parsePlan(id: string, data: DocumentData): RetirementPlan {

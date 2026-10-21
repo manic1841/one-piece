@@ -11,33 +11,43 @@ import {
 } from '@/ui/components/ui/dialog';
 import { Input } from '@/ui/components/ui/input';
 import { Label } from '@/ui/components/ui/label';
-import { SAVE_AS_PLAN_LABELS } from '@/ui/constants/retirement-redesign/projectionLabels';
+import {
+  SAVE_AS_PLAN_ERROR_LABELS,
+  SAVE_AS_PLAN_LABELS,
+} from '@/ui/constants/retirement-redesign/projectionLabels';
+
+export interface SaveAsPlanOutcomeView {
+  ok: boolean;
+  code?: keyof typeof SAVE_AS_PLAN_ERROR_LABELS;
+}
 
 interface SaveAsPlanDialogProps {
   defaultName: string;
   onCancel: () => void;
-  onSave: (name: string) => Promise<boolean>;
+  onSave: (name: string) => Promise<SaveAsPlanOutcomeView>;
 }
 
 /** Creates a new plan from the projection's config; the projection stays untouched. */
 export function SaveAsPlanDialog({ defaultName, onCancel, onSave }: SaveAsPlanDialogProps) {
   const [name, setName] = useState(defaultName);
   const [saving, setSaving] = useState(false);
-  const [failed, setFailed] = useState(false);
-  const [missing, setMissing] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
 
   const submit = async () => {
     if (name.trim() === '') {
-      setMissing(true);
+      setMessage(SAVE_AS_PLAN_LABELS.NAME_REQUIRED);
       return;
     }
 
-    setMissing(false);
+    setMessage(null);
     setSaving(true);
-    setFailed(false);
-    const ok = await onSave(name.trim());
+    const outcome = await onSave(name.trim());
     setSaving(false);
-    if (!ok) setFailed(true);
+    if (!outcome.ok) {
+      setMessage(
+        SAVE_AS_PLAN_ERROR_LABELS[outcome.code ?? 'WRITE_FAILED'] ?? SAVE_AS_PLAN_LABELS.FAILED,
+      );
+    }
   };
 
   return (
@@ -68,17 +78,16 @@ export function SaveAsPlanDialog({ defaultName, onCancel, onSave }: SaveAsPlanDi
             value={name}
             onChange={(event) => {
               setName(event.target.value);
-              setMissing(false);
+              setMessage(null);
             }}
             disabled={saving}
-            aria-invalid={missing}
+            aria-invalid={message !== null}
           />
-          {missing && <p className="text-xs text-negative">{SAVE_AS_PLAN_LABELS.NAME_REQUIRED}</p>}
         </div>
 
-        {failed && (
+        {message !== null && (
           <Alert variant="warning">
-            <AlertDescription>{SAVE_AS_PLAN_LABELS.FAILED}</AlertDescription>
+            <AlertDescription>{message}</AlertDescription>
           </Alert>
         )}
 
@@ -89,7 +98,7 @@ export function SaveAsPlanDialog({ defaultName, onCancel, onSave }: SaveAsPlanDi
           <Button onClick={() => void submit()} disabled={saving}>
             {saving
               ? SAVE_AS_PLAN_LABELS.SAVING
-              : failed
+              : message !== null
                 ? SAVE_AS_PLAN_LABELS.RETRY
                 : SAVE_AS_PLAN_LABELS.CONFIRM}
           </Button>

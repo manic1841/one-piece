@@ -282,7 +282,14 @@ describe('resolveProjectionInput', () => {
         resolveProjectionInput(
           baseParams({
             rules: [
-              growthRule({ ledgerCodeId: 'code-1', rate: 0.1, baselinePolicy: 'specificYear' }),
+              {
+                ...growthRule({
+                  ledgerCodeId: 'code-1',
+                  rate: 0.1,
+                  baselinePolicy: 'specificYear',
+                }),
+                baselineYear: 2023,
+              },
             ],
             ledgerSources: ledger({ 2023: [100, 600] }),
           }),
@@ -301,7 +308,12 @@ describe('resolveProjectionInput', () => {
       const result = expectOk(
         resolveProjectionInput(
           baseParams({
-            rules: [inflationRule({ ledgerCodeId: 'code-1', baselinePolicy: 'specificYear' })],
+            rules: [
+              {
+                ...inflationRule({ ledgerCodeId: 'code-1', baselinePolicy: 'specificYear' }),
+                baselineYear: 2025,
+              },
+            ],
             ledgerSources: ledger({ 2025: [100, 0] }),
           }),
         ),
@@ -362,7 +374,7 @@ describe('resolveProjectionInput', () => {
 
       expect(
         items(result, 2025, 'inflows').find((item) => item.sourceRef === 'grown')?.amount,
-      ).toBe(100);
+      ).toBeCloseTo(110);
       expect(
         items(result, 2026, 'inflows').find((item) => item.sourceRef === 'grown')?.amount,
       ).toBeCloseTo(110);

@@ -10,191 +10,36 @@ import {
   updateDoc,
   writeBatch,
 } from 'firebase/firestore';
-import { z } from 'zod';
 
 import {
-  type RetirementAssumptions,
-  createAssumptionsSchema,
-} from '@/domains/retirement/assumptions';
-import { type LifeEvent, LifeEventsSchema } from '@/domains/retirement/lifeEvents';
-import {
-  type ProjectionYearResult,
-  type RuleSourceSnapshot,
-} from '@/domains/retirement/logic/projectionTypes';
-import {
-  type ProjectionRule,
-  ProjectionRulesSchema,
-  RuleSourceType,
-} from '@/domains/retirement/projectionRules';
+  type CreateProjectionAtomicallyInput,
+  PROJECTION_DOCUMENT_MAX_BYTES,
+  type ProjectionAnnual,
+  ProjectionAnnualSchema,
+  type ProjectionConfig,
+  type ProjectionDocument,
+  type ProjectionDocumentName,
+  ProjectionDocumentSchema,
+  type ProjectionSource,
+  ProjectionSourceSchema,
+  type ProjectionWriteResult,
+  createProjectionConfigSchema,
+} from '@/domains/retirement/logic/projectionDocuments';
 import { db } from '@/firebase';
-import { TimestampSchema } from '@/shared/schemas/date';
+import { byteLength, fromFirestore, sanitize } from '@/infra/repositories/firestorePayload';
 
-export const PROJECTION_DOCUMENT_MAX_BYTES = 900_000;
-
-export type ProjectionDocumentName = 'main' | 'config' | 'source' | 'annual';
-
-export type ProjectionWriteResult =
-  | { ok: true; id: string }
-  | { ok: false; code: 'PROJECTION_TOO_LARGE'; document: ProjectionDocumentName };
-
-export interface ProjectionSummaryFields {
-  retirementNetWorth: number | null;
-  finalNetWorth: number;
-  minNetWorth: number;
-  minNetWorthYear: number | null;
-  bankruptcyYear: number | null;
-  isBankrupt: boolean;
-}
-
-export interface ProjectionDocument extends ProjectionSummaryFields {
-  id: string;
-  name: string;
-  engineVersion: number;
-  createdAt: Date;
-  createdBy: string;
-}
-
-export interface ProjectionConfig {
-  startYear: number;
-  openingNetWorth: {
-    amount: number;
-    source: 'derived' | 'manual';
-    anchorYearMonth?: string;
-  };
-  assumptions: RetirementAssumptions;
-  projectionRules: ProjectionRule[];
-  lifeEvents: LifeEvent[];
-}
-
-export interface ProjectionSource {
-  ruleSources: RuleSourceSnapshot[];
-}
-
-export interface ProjectionAnnual {
-  years: ProjectionYearResult[];
-}
-
-export interface CreateProjectionAtomicallyInput {
-  householdId: string;
-  projection: Omit<ProjectionDocument, 'id'>;
-  config: ProjectionConfig;
-  source: ProjectionSource;
-  results: ProjectionAnnual;
-}
-
-const ProjectionYearResultSchema = z.object({
-  year: z.number(),
-  age: z.number(),
-  isRetired: z.boolean(),
-  opening: z.number(),
-  return: z.number(),
-  inflows: z.number(),
-  outflows: z.number(),
-  closing: z.number(),
-});
-
-const ProjectionSummarySchema = z.object({
-  retirementNetWorth: z.number().nullable(),
-  finalNetWorth: z.number(),
-  minNetWorth: z.number(),
-  minNetWorthYear: z.number().nullable(),
-  bankruptcyYear: z.number().nullable(),
-  isBankrupt: z.boolean(),
-});
-
-const ProjectionDocumentSchema = ProjectionSummarySchema.extend({
-  name: z.string().trim().min(1),
-  engineVersion: z.number(),
-  createdAt: TimestampSchema,
-  createdBy: z.string(),
-});
-
-const ProjectionSourceSchema = z.object({
-  ruleSources: z.array(
-    z.object({
-      ruleId: z.string(),
-      sourceType: RuleSourceType,
-      sourceId: z.string(),
-      baselineYear: z.number(),
-      baselineAmount: z.number(),
-    }),
-  ),
-});
-
-const ProjectionAnnualSchema = z.object({
-  years: z.array(ProjectionYearResultSchema),
-});
-
-function configSchema(currentYear: number) {
-  return z
-    .object({
-      startYear: z.number(),
-      openingNetWorth: z.object({
-        amount: z.number(),
-        source: z.enum(['derived', 'manual']),
-        anchorYearMonth: z.string().optional(),
-      }),
-      assumptions: createAssumptionsSchema(currentYear),
-      projectionRules: ProjectionRulesSchema,
-      lifeEvents: LifeEventsSchema,
-    })
-    .superRefine((value, ctx) => {
-      const hasAnchor = value.openingNetWorth.anchorYearMonth !== undefined;
-      const isDerived = value.openingNetWorth.source === 'derived';
-
-      if (isDerived && !hasAnchor) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ['openingNetWorth', 'anchorYearMonth'],
-          message: 'ANCHOR_REQUIRED',
-        });
-      }
-      if (!isDerived && hasAnchor) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ['openingNetWorth', 'anchorYearMonth'],
-          message: 'ANCHOR_FORBIDDEN',
-        });
-      }
-    });
-}
+export type {
+  CreateProjectionAtomicallyInput,
+  ProjectionAnnual,
+  ProjectionConfig,
+  ProjectionDocument,
+  ProjectionDocumentName,
+  ProjectionSource,
+  ProjectionWriteResult,
+} from '@/domains/retirement/logic/projectionDocuments';
+export { PROJECTION_DOCUMENT_MAX_BYTES } from '@/domains/retirement/logic/projectionDocuments';
 
 const currentYear = (): number => new Date().getFullYear();
-
-const byteLength = (value: unknown): number =>
-  new TextEncoder().encode(JSON.stringify(value)).length;
-
-function sanitize(value: unknown): unknown {
-  if (value === undefined) return undefined;
-
-  if (value instanceof Date) return value;
-
-  if (Array.isArray(value)) {
-    return value.map((item) => sanitize(item)).filter((item) => item !== undefined);
-  }
-
-  if (typeof value === 'object' && value !== null) {
-    const entries = Object.entries(value)
-      .map(([key, entry]) => [key, sanitize(entry)] as const)
-      .filter(([, entry]) => entry !== undefined);
-
-    return Object.fromEntries(entries);
-  }
-
-  return value;
-}
-
-function fromFirestore(data: DocumentData): unknown {
-  if (data instanceof Timestamp) return data.toDate();
-  if (data instanceof Date) return data;
-  if (Array.isArray(data)) return data.map((entry) => fromFirestore(entry));
-  if (data && typeof data === 'object') {
-    return Object.fromEntries(
-      Object.entries(data).map(([key, value]) => [key, fromFirestore(value)]),
-    );
-  }
-  return data;
-}
 
 class ProjectionRepository {
   private readonly collectionName = 'projections';
@@ -330,7 +175,7 @@ class ProjectionRepository {
     const snapshot = await getDoc(this.getConfigRef(householdId, projectionId));
     if (!snapshot.exists()) return null;
 
-    return configSchema(currentYear()).parse(fromFirestore(snapshot.data()));
+    return createProjectionConfigSchema(currentYear()).parse(fromFirestore(snapshot.data()));
   }
 
   async getProjectionSource(

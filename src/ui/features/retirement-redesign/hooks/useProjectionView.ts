@@ -3,7 +3,10 @@ import { useCallback, useEffect, useState } from 'react';
 import { deleteProjectionUseCase } from '@/application/retirement/use_cases/deleteProjectionUseCase';
 import { getProjectionViewUseCase } from '@/application/retirement/use_cases/getProjectionViewUseCase';
 import { renameProjectionNameUseCase } from '@/application/retirement/use_cases/renameProjectionNameUseCase';
-import { saveProjectionAsPlanUseCase } from '@/application/retirement/use_cases/saveProjectionAsPlanUseCase';
+import {
+  type SaveAsPlanOutcome,
+  saveProjectionAsPlanUseCase,
+} from '@/application/retirement/use_cases/saveProjectionAsPlanUseCase';
 import {
   type ProjectionViewVM,
   mapProjectionViewToVM,
@@ -42,9 +45,16 @@ export function useProjectionView(
 
   const rename = useCallback(
     async (name: string) => {
-      if (!householdId || !projectionId) return;
-      await renameProjectionNameUseCase.execute({ householdId, projectionId, name, auth });
-      setView((current) => (current === null ? null : { ...current, name }));
+      if (!householdId || !projectionId) throw new Error('Missing projection.');
+
+      const outcome = await renameProjectionNameUseCase.execute({
+        householdId,
+        projectionId,
+        name,
+        auth,
+      });
+      if (!outcome.ok) throw new Error(outcome.code);
+      setView((current) => (current === null ? null : { ...current, name: outcome.name }));
     },
     [auth, householdId, projectionId],
   );
@@ -55,18 +65,17 @@ export function useProjectionView(
   }, [auth, householdId, projectionId]);
 
   const saveAsPlan = useCallback(
-    async (name: string): Promise<boolean> => {
-      if (!householdId || !projectionId) return false;
+    async (name: string): Promise<SaveAsPlanOutcome> => {
+      if (!householdId || !projectionId) return { ok: false, code: 'PROJECTION_NOT_FOUND' };
       try {
-        await saveProjectionAsPlanUseCase.execute({
+        return await saveProjectionAsPlanUseCase.execute({
           householdId,
           projectionId,
           name,
           auth,
         });
-        return true;
       } catch {
-        return false;
+        return { ok: false, code: 'WRITE_FAILED' };
       }
     },
     [auth, householdId, projectionId],

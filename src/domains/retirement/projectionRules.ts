@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 import { RetirementSchemaErrorCode } from './errorCodes';
 import { resolveRuleGraph } from './logic/ruleGraph';
-import { addIssue, hasMoreThanFourDecimalPlaces } from './numeric';
+import { addIssue, decimalField } from './numeric';
 
 export const RuleType = z.enum(['income', 'expense']);
 export type RuleType = z.infer<typeof RuleType>;
@@ -55,36 +55,17 @@ export const EndConditionSchema = z.discriminatedUnion('type', [
 ]);
 export type EndCondition = z.infer<typeof EndConditionSchema>;
 
-const ratioSchema = z.number().superRefine((value, ctx) => {
-  if (value <= 0) {
-    addIssue(ctx, RetirementSchemaErrorCode.PARAMETER_NOT_POSITIVE, [], {
-      minExclusive: 0,
-    });
-  } else if (value > 2) {
-    addIssue(ctx, RetirementSchemaErrorCode.PARAMETER_OUT_OF_RANGE, [], {
-      minExclusive: 0,
-      max: 2,
-    });
-  }
-  if (hasMoreThanFourDecimalPlaces(value)) {
-    addIssue(ctx, RetirementSchemaErrorCode.PARAMETER_TOO_MANY_DECIMAL_PLACES, [], {
-      maxDecimalPlaces: 4,
-    });
-  }
+const ratioSchema = decimalField(0, 2, {
+  minExclusive: true,
+  belowCode: RetirementSchemaErrorCode.PARAMETER_NOT_POSITIVE,
+  aboveCode: RetirementSchemaErrorCode.PARAMETER_OUT_OF_RANGE,
+  tooManyCode: RetirementSchemaErrorCode.PARAMETER_TOO_MANY_DECIMAL_PLACES,
 });
 
-const rateSchema = z.number().superRefine((value, ctx) => {
-  if (value < -0.1 || value > 0.2) {
-    addIssue(ctx, RetirementSchemaErrorCode.PARAMETER_OUT_OF_RANGE, [], {
-      min: -0.1,
-      max: 0.2,
-    });
-  }
-  if (hasMoreThanFourDecimalPlaces(value)) {
-    addIssue(ctx, RetirementSchemaErrorCode.PARAMETER_TOO_MANY_DECIMAL_PLACES, [], {
-      maxDecimalPlaces: 4,
-    });
-  }
+const rateSchema = decimalField(-0.1, 0.2, {
+  belowCode: RetirementSchemaErrorCode.PARAMETER_OUT_OF_RANGE,
+  aboveCode: RetirementSchemaErrorCode.PARAMETER_OUT_OF_RANGE,
+  tooManyCode: RetirementSchemaErrorCode.PARAMETER_TOO_MANY_DECIMAL_PLACES,
 });
 
 const amountSchema = z.number().superRefine((value, ctx) => {
@@ -110,6 +91,7 @@ interface BranchOptions {
   validateBaseline?: (
     source: RuleSource,
     baselinePolicy: BaselinePolicy | undefined,
+    baselineYear: number | undefined,
     ctx: z.RefinementCtx,
   ) => void;
 }
@@ -172,6 +154,12 @@ function buildBranch(options: BranchOptions) {
         .optional()
         .transform((value) => value as BaselinePolicy | undefined)
     : undefined;
+  const baselineYearField = hasBaselinePolicy
+    ? z
+        .unknown()
+        .optional()
+        .transform((value) => value as number | undefined)
+    : undefined;
 
   const shape = {
     ...baseShape,
@@ -180,6 +168,7 @@ function buildBranch(options: BranchOptions) {
     parameters: parameterSchemaByMethod[method],
     endCondition: endConditionField,
     ...(baselinePolicyField ? { baselinePolicy: baselinePolicyField } : {}),
+    ...(baselineYearField ? { baselineYear: baselineYearField } : {}),
   };
 
   return z.object(shape).superRefine((value, ctx) => {
@@ -208,6 +197,7 @@ function buildBranch(options: BranchOptions) {
       validateBaseline?.(
         source as RuleSource,
         value.baselinePolicy as BaselinePolicy | undefined,
+        value.baselineYear as number | undefined,
         ctx,
       );
     }
@@ -291,6 +281,7 @@ const debtAmortizationBranch = buildBranch({
 function validateBaselinePolicy(
   source: RuleSource | undefined,
   baselinePolicy: BaselinePolicy | undefined,
+  baselineYear: number | undefined,
   ctx: z.RefinementCtx,
 ): void {
   if (source === undefined) return;
@@ -300,6 +291,9 @@ function validateBaselinePolicy(
       addIssue(ctx, RetirementSchemaErrorCode.BASELINE_POLICY_FORBIDDEN, ['baselinePolicy'], {
         sourceType: source.type,
       });
+    }
+    if (baselineYear !== undefined) {
+      addIssue(ctx, RetirementSchemaErrorCode.BASELINE_YEAR_FORBIDDEN, ['baselineYear']);
     }
     return;
   }
@@ -311,6 +305,25 @@ function validateBaselinePolicy(
 
   if (!BaselinePolicy.safeParse(baselinePolicy).success) {
     addIssue(ctx, RetirementSchemaErrorCode.BASELINE_POLICY_INVALID, ['baselinePolicy']);
+    return;
+  }
+
+  if (baselinePolicy === 'specificYear') {
+    if (baselineYear === undefined) {
+      addIssue(ctx, RetirementSchemaErrorCode.BASELINE_YEAR_REQUIRED, ['baselineYear']);
+      return;
+    }
+    if (!Number.isInteger(baselineYear) || baselineYear < 1900 || baselineYear > 2200) {
+      addIssue(ctx, RetirementSchemaErrorCode.BASELINE_YEAR_OUT_OF_RANGE, ['baselineYear'], {
+        min: 1900,
+        max: 2200,
+      });
+    }
+    return;
+  }
+
+  if (baselineYear !== undefined) {
+    addIssue(ctx, RetirementSchemaErrorCode.BASELINE_YEAR_FORBIDDEN, ['baselineYear']);
   }
 }
 

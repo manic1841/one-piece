@@ -150,9 +150,12 @@ describe('ProjectionViewPage', () => {
     vi.clearAllMocks();
     confirmMock.mockResolvedValue(false);
     vi.mocked(getProjectionViewUseCase.execute).mockResolvedValue(viewData());
-    vi.mocked(renameProjectionNameUseCase.execute).mockResolvedValue(undefined);
+    vi.mocked(renameProjectionNameUseCase.execute).mockResolvedValue({
+      ok: true,
+      name: 'Renamed projection',
+    });
     vi.mocked(deleteProjectionUseCase.execute).mockResolvedValue(undefined);
-    vi.mocked(saveProjectionAsPlanUseCase.execute).mockResolvedValue('plan-1');
+    vi.mocked(saveProjectionAsPlanUseCase.execute).mockResolvedValue({ ok: true, id: 'plan-1' });
   });
 
   it('opens on SUMMARY with all six metrics and no editable fields', async () => {

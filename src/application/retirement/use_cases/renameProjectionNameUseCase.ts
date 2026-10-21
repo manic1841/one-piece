@@ -1,5 +1,8 @@
+import { z } from 'zod';
+
 import { householdPermissionService } from '@/application/household/householdPermissionService';
 import { type AuthContext } from '@/application/types';
+import { RetirementSchemaErrorCode } from '@/domains/retirement/errorCodes';
 import { projectionRepository } from '@/infra/repositories/projectionRepository';
 
 interface RenameProjectionNameRequest {
@@ -9,13 +12,29 @@ interface RenameProjectionNameRequest {
   auth: AuthContext;
 }
 
-export class RenameProjectionNameUseCase {
-  async execute(request: RenameProjectionNameRequest): Promise<void> {
-    const { householdId, projectionId, name, auth } = request;
+export type RenameProjectionNameOutcome =
+  | { ok: true; name: string }
+  | { ok: false; code: 'NAME_REQUIRED' | 'NAME_TOO_LONG' | 'WRITE_FAILED' };
 
-    const next = name.trim();
-    if (next === '') throw new Error('Projection name is required.');
-    if (next.length > 100) throw new Error('Projection name must be at most 100 characters.');
+const nameSchema = z
+  .string()
+  .trim()
+  .min(1, RetirementSchemaErrorCode.NAME_REQUIRED)
+  .max(100, RetirementSchemaErrorCode.NAME_TOO_LONG);
+
+export class RenameProjectionNameUseCase {
+  async execute(request: RenameProjectionNameRequest): Promise<RenameProjectionNameOutcome> {
+    const { householdId, projectionId, auth } = request;
+
+    const parsed = nameSchema.safeParse(request.name);
+    if (!parsed.success) {
+      const message = parsed.error.issues[0]?.message;
+      return {
+        ok: false,
+        code:
+          message === RetirementSchemaErrorCode.NAME_TOO_LONG ? 'NAME_TOO_LONG' : 'NAME_REQUIRED',
+      };
+    }
 
     await householdPermissionService.assertWritePermission(
       householdId,
@@ -23,7 +42,12 @@ export class RenameProjectionNameUseCase {
       auth.isGlobalAdmin,
     );
 
-    await projectionRepository.renameProjectionName(householdId, projectionId, next);
+    try {
+      await projectionRepository.renameProjectionName(householdId, projectionId, parsed.data);
+      return { ok: true, name: parsed.data };
+    } catch {
+      return { ok: false, code: 'WRITE_FAILED' };
+    }
   }
 }
 

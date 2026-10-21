@@ -54,18 +54,6 @@ function anchorYear(anchorYearMonth: string | undefined): number | undefined {
   return Number.isNaN(year) ? undefined : year;
 }
 
-/**
- * `specificYear` carries no year in the plan schema, so it resolves to the
- * newest available baseline entry; timing anomalies surface as warnings.
- */
-function latestYear(years: Map<number, number>): number | undefined {
-  let latest: number | undefined;
-  for (const year of years.keys()) {
-    if (latest === undefined || year > latest) latest = year;
-  }
-  return latest;
-}
-
 interface ResolverState {
   assumptions: RetirementAssumptions;
   firstYear: number;
@@ -144,7 +132,11 @@ function resolveBaseline(
 
   const previousCompleteYear = startYear - 1;
   const baselineYear =
-    rule.baselinePolicy === 'specificYear' ? latestYear(ledger.netByYear) : previousCompleteYear;
+    rule.baselinePolicy === 'specificYear' && typeof rule.baselineYear === 'number'
+      ? rule.baselineYear
+      : rule.baselinePolicy === 'specificYear'
+        ? undefined
+        : previousCompleteYear;
 
   if (baselineYear === undefined) {
     state.errors.push(failure('MISSING_BASELINE', { kind: 'rule', ruleId: rule.id }));
@@ -230,10 +222,17 @@ function expandAmount(
   switch (rule.method) {
     case 'fixedAmount':
       return (rule.parameters as { amount: number }).amount;
+    // A rule source already carries its own growth; grow the same-year amount
+    // exactly once instead of compounding from a first-year snapshot (#312).
     case 'inflation':
-      return baselineAmount * Math.pow(1 + state.assumptions.inflationRate, elapsed);
+      return rule.source?.type === 'rule'
+        ? referencedAmount(state, rule.source.id, year) * (1 + state.assumptions.inflationRate)
+        : baselineAmount * Math.pow(1 + state.assumptions.inflationRate, elapsed);
     case 'growthRate':
-      return baselineAmount * Math.pow(1 + (rule.parameters as { rate: number }).rate, elapsed);
+      return rule.source?.type === 'rule'
+        ? referencedAmount(state, rule.source.id, year) *
+            (1 + (rule.parameters as { rate: number }).rate)
+        : baselineAmount * Math.pow(1 + (rule.parameters as { rate: number }).rate, elapsed);
     case 'percentage': {
       const sourceId = rule.source?.id;
       if (sourceId === undefined) return 0;

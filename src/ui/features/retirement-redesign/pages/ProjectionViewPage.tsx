@@ -12,7 +12,11 @@ import { useConfirm } from '@/ui/components/confirm/useConfirm';
 import { Alert, AlertDescription } from '@/ui/components/ui/alert';
 import { Button } from '@/ui/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/ui/components/ui/tabs';
-import { PROJECTION_VIEW_LABELS } from '@/ui/constants/retirement-redesign/projectionLabels';
+import {
+  PROJECTION_VIEW_LABELS,
+  RENAME_ERROR_LABELS,
+  SAVE_AS_PLAN_ERROR_LABELS,
+} from '@/ui/constants/retirement-redesign/projectionLabels';
 import { useAuthState } from '@/ui/contexts/useAuthState';
 import { ProjectionProjectionTab } from '@/ui/features/retirement-redesign/components/ProjectionProjectionTab';
 import { ProjectionSourceTab } from '@/ui/features/retirement-redesign/components/ProjectionSourceTab';
@@ -31,13 +35,28 @@ export default function ProjectionViewPage() {
   );
   const [saveAsPlanOpen, setSaveAsPlanOpen] = useState(false);
 
-  const handleSaveAsPlan = async (name: string): Promise<boolean> => {
-    const ok = await saveAsPlan(name);
-    if (ok) {
-      setSaveAsPlanOpen(false);
-      toast.success(PROJECTION_VIEW_LABELS.PLAN_SAVED);
+  const handleSaveAsPlan = async (name: string) => {
+    const outcome = await saveAsPlan(name);
+    if (!outcome.ok) {
+      toast.error(SAVE_AS_PLAN_ERROR_LABELS[outcome.code]);
+      return outcome;
     }
-    return ok;
+    setSaveAsPlanOpen(false);
+    toast.success(PROJECTION_VIEW_LABELS.PLAN_SAVED);
+    return outcome;
+  };
+
+  const handleRename = async (name: string) => {
+    try {
+      await rename(name);
+    } catch (error) {
+      const code = error instanceof Error ? error.message : 'WRITE_FAILED';
+      toast.error(
+        RENAME_ERROR_LABELS[code as keyof typeof RENAME_ERROR_LABELS] ??
+          RENAME_ERROR_LABELS.WRITE_FAILED,
+      );
+      throw error;
+    }
   };
 
   const handleDelete = async () => {
@@ -67,7 +86,7 @@ export default function ProjectionViewPage() {
           view === null ? (
             PROJECTION_VIEW_LABELS.LOADING
           ) : (
-            <InlineEditableTitle value={view.name} onSave={rename} />
+            <InlineEditableTitle value={view.name} onSave={handleRename} />
           )
         }
         meta={

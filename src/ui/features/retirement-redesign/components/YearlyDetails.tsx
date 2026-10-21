@@ -76,55 +76,6 @@ function YearFieldList({ row }: { row: RetirementProjectionYearDetailVM }) {
   );
 }
 
-function YearBreakdownPanels({ row }: { row: RetirementProjectionYearDetailVM }) {
-  return (
-    <div className="grid gap-3 md:grid-cols-2">
-      <div className="space-y-2">
-        <div className="text-xs font-semibold text-muted-foreground">
-          {PROJECTION_YEARLY_DETAIL_LABELS.incomeBreakdown}
-        </div>
-        {row.incomeItems.length === 0 ? (
-          <div className="text-sm text-muted-foreground">
-            {PROJECTION_YEARLY_DETAIL_LABELS.noIncomeItems}
-          </div>
-        ) : (
-          <div className="space-y-1.5">
-            {row.incomeItems.map((item, index) => (
-              <div key={`${row.year}-income-${index}`} className="flex items-center gap-2 text-sm">
-                <span className="text-muted-foreground">{item.name}</span>
-                <span className="ml-auto font-mono font-medium tabular-nums text-positive">
-                  {item.amountText}
-                </span>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-      <div className="space-y-2">
-        <div className="text-xs font-semibold text-muted-foreground">
-          {PROJECTION_YEARLY_DETAIL_LABELS.expenseBreakdown}
-        </div>
-        {row.expenseItems.length === 0 ? (
-          <div className="text-sm text-muted-foreground">
-            {PROJECTION_YEARLY_DETAIL_LABELS.noExpenseItems}
-          </div>
-        ) : (
-          <div className="space-y-1.5">
-            {row.expenseItems.map((item, index) => (
-              <div key={`${row.year}-expense-${index}`} className="flex items-center gap-2 text-sm">
-                <span className="text-muted-foreground">{item.name}</span>
-                <span className="ml-auto font-mono font-medium tabular-nums text-negative">
-                  {item.amountText}
-                </span>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
 export function YearlyDetails({ projection }: RetirementProjectionProps) {
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [expandedYears, setExpandedYears] = useState<Record<number, boolean>>({});
@@ -180,12 +131,7 @@ export function YearlyDetails({ projection }: RetirementProjectionProps) {
                 className={row.isRetired ? 'bg-warning/5' : undefined}
                 summary={<span className="text-sm font-medium tabular-nums">{row.year}</span>}
                 value={<span className="font-mono text-sm tabular-nums">{row.savingsText}</span>}
-                details={
-                  <div className="space-y-3">
-                    <YearFieldList row={row} />
-                    <YearBreakdownPanels row={row} />
-                  </div>
-                }
+                details={<YearFieldList row={row} />}
               />
             ))}
           </MobileDataList>
@@ -267,7 +213,7 @@ export function YearlyDetails({ projection }: RetirementProjectionProps) {
                         data-testid={`yearly-detail-${row.year}`}
                       >
                         <DataTableCell colSpan={YEARLY_COL_SPAN} className="bg-muted/30 px-3 py-3">
-                          <YearBreakdownPanels row={row} />
+                          <YearFieldList row={row} />
                         </DataTableCell>
                       </DataTableRow>
                     )}

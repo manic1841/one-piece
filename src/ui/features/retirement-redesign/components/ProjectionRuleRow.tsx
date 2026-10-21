@@ -1,7 +1,7 @@
-import { NumberInput } from '@/ui/components/NumberInput';
+import { FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/ui/components/form';
+import { NumberInput } from '@/ui/components/form';
 import { SelectField, type SelectFieldOption, TextInput } from '@/ui/components/form';
 import { Button } from '@/ui/components/ui/button';
-import { Label } from '@/ui/components/ui/label';
 import { Switch } from '@/ui/components/ui/switch';
 import {
   BASELINE_POLICY_LABELS,
@@ -12,25 +12,24 @@ import {
 } from '@/ui/constants/retirement-redesign/setupLabels';
 import {
   ALLOWED_METHODS_BY_RULE_TYPE,
+  type RuleDraftVM,
+  type RuleErrors,
   type RuleMethod,
   type RuleSourceType,
   type RuleType,
-} from '@/ui/features/retirement-redesign/hooks/useRuleDrafts';
-import {
-  type RuleDraftVM,
-  type RuleErrorField,
-  type RuleErrors,
   hasSource,
   needsBaselinePolicy,
+  needsBaselineYear,
 } from '@/ui/features/retirement-redesign/hooks/useRuleDrafts';
 
 interface ProjectionRuleRowProps {
+  index: number;
   rule: RuleDraftVM;
-  errors: RuleErrors;
   readOnly: boolean;
   ledgerOptions: SelectFieldOption[];
   ruleOptions: SelectFieldOption[];
   debtOptions: SelectFieldOption[];
+  errors: RuleErrors;
   update: (patch: Partial<RuleDraftVM>) => void;
   setRuleType: (ruleType: RuleType) => void;
   setMethod: (method: RuleMethod) => void;
@@ -43,23 +42,20 @@ const TYPE_OPTIONS: SelectFieldOption[] = Object.entries(RULE_TYPE_LABELS).map(
   ([value, label]) => ({ value, label }),
 );
 
-const fieldId = (ruleId: string, field: string) => `rule-${ruleId}-${field}`;
-
-function errorFor(errors: RuleErrors, field: RuleErrorField): string | undefined {
-  return errors[field];
-}
-
 /**
  * One rule editor. Method drives the parameter, end-condition and source
  * branches, so only the fields that belong to the current union are mounted.
+ * Row errors are summarised by the section; the hidden FormMessage keeps each
+ * control's `aria-describedby` target alive.
  */
 export function ProjectionRuleRow({
+  index,
   rule,
-  errors,
   readOnly,
   ledgerOptions,
   ruleOptions,
   debtOptions,
+  errors,
   update,
   setRuleType,
   setMethod,
@@ -67,7 +63,7 @@ export function ProjectionRuleRow({
   toggle,
   remove,
 }: ProjectionRuleRowProps) {
-  const idFor = (field: string) => fieldId(rule.id, field);
+  const prefix = `rules.${index}`;
   const showSource = hasSource(rule.method);
   const showBaseline = needsBaselinePolicy(rule.method, rule.sourceType);
   const isDebt = rule.method === 'debtAmortization';
@@ -83,34 +79,27 @@ export function ProjectionRuleRow({
         ? debtOptions
         : ledgerOptions;
 
+  const hiddenMessage = (field: keyof RuleErrors) => (
+    <FormMessage className="sr-only">{errors[field]}</FormMessage>
+  );
+
   return (
     <li data-testid="rule-row" className="grid gap-3 border-b border-border pb-4">
       <div className="flex items-end gap-2">
-        <div className="grid flex-1 gap-2">
-          <Label htmlFor={idFor('name')}>{RULE_LABELS.NAME}</Label>
-          <TextInput
-            id={idFor('name')}
-            value={rule.name}
-            onChange={(name) => update({ name })}
-            readOnly={readOnly}
-            error={!!errorFor(errors, 'name')}
-            aria-invalid={!!errorFor(errors, 'name')}
-          />
-          {errorFor(errors, 'name') && (
-            <p className="text-destructive text-sm font-medium">{errorFor(errors, 'name')}</p>
-          )}
+        <div className="flex-1">
+          <FormField name={`${prefix}.name`}>
+            <FormItem>
+              <FormLabel>{RULE_LABELS.NAME}</FormLabel>
+              <FormControl>
+                <TextInput readOnly={readOnly} onChange={(name) => update({ name })} />
+              </FormControl>
+              {hiddenMessage('name')}
+            </FormItem>
+          </FormField>
         </div>
 
-        <label
-          htmlFor={idFor('enabled')}
-          className="flex h-[34px] items-center gap-2 text-sm text-muted-foreground"
-        >
-          <Switch
-            id={idFor('enabled')}
-            checked={rule.enabled}
-            onCheckedChange={toggle}
-            disabled={readOnly}
-          />
+        <label className="flex h-[34px] items-center gap-2 text-sm text-muted-foreground">
+          <Switch checked={rule.enabled} onCheckedChange={toggle} disabled={readOnly} />
           {rule.enabled ? RULE_LABELS.ENABLED : RULE_LABELS.DISABLED}
         </label>
 
@@ -122,149 +111,154 @@ export function ProjectionRuleRow({
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <div className="grid gap-2">
-          <Label htmlFor={idFor('ruleType')}>{RULE_LABELS.RULE_TYPE}</Label>
-          <SelectField
-            id={idFor('ruleType')}
-            value={rule.ruleType}
-            onChange={(value) => setRuleType(value as RuleType)}
-            options={TYPE_OPTIONS}
-            disabled={readOnly}
-          />
-        </div>
+        <FormField name={`${prefix}.ruleType`}>
+          <FormItem>
+            <FormLabel>{RULE_LABELS.RULE_TYPE}</FormLabel>
+            <FormControl>
+              <SelectField
+                value={rule.ruleType}
+                onChange={(value) => setRuleType(value as RuleType)}
+                options={TYPE_OPTIONS}
+                disabled={readOnly}
+              />
+            </FormControl>
+            {hiddenMessage('ruleType')}
+          </FormItem>
+        </FormField>
 
-        <div className="grid gap-2">
-          <Label htmlFor={idFor('method')}>{RULE_LABELS.METHOD}</Label>
-          <SelectField
-            id={idFor('method')}
-            value={rule.method}
-            onChange={(value) => setMethod(value as RuleMethod)}
-            options={methodOptions}
-            disabled={readOnly}
-          />
-          {errorFor(errors, 'method') && (
-            <p className="text-destructive text-sm font-medium">{errorFor(errors, 'method')}</p>
-          )}
-        </div>
+        <FormField name={`${prefix}.method`}>
+          <FormItem>
+            <FormLabel>{RULE_LABELS.METHOD}</FormLabel>
+            <FormControl>
+              <SelectField
+                value={rule.method}
+                onChange={(value) => setMethod(value as RuleMethod)}
+                options={methodOptions}
+                disabled={readOnly}
+              />
+            </FormControl>
+            {hiddenMessage('method')}
+          </FormItem>
+        </FormField>
 
         {rule.method === 'growthRate' && (
-          <div className="grid gap-2">
-            <Label htmlFor={idFor('parameter')}>{RULE_LABELS.PARAMETER_RATE}</Label>
-            <NumberInput
-              id={idFor('parameter')}
-              value={rule.rateText}
-              onChange={(rateText) => update({ rateText })}
-              readOnly={readOnly}
-              error={!!errorFor(errors, 'parameter')}
-            />
-            {errorFor(errors, 'parameter') && (
-              <p className="text-destructive text-sm font-medium">
-                {errorFor(errors, 'parameter')}
-              </p>
-            )}
-          </div>
+          <FormField name={`${prefix}.rateText`}>
+            <FormItem>
+              <FormLabel>{RULE_LABELS.PARAMETER_RATE}</FormLabel>
+              <FormControl>
+                <NumberInput readOnly={readOnly} onChange={(rateText) => update({ rateText })} />
+              </FormControl>
+              {hiddenMessage('parameter')}
+            </FormItem>
+          </FormField>
         )}
 
         {rule.method === 'percentage' && (
-          <div className="grid gap-2">
-            <Label htmlFor={idFor('parameter')}>{RULE_LABELS.PARAMETER_RATIO}</Label>
-            <NumberInput
-              id={idFor('parameter')}
-              value={rule.ratioText}
-              onChange={(ratioText) => update({ ratioText })}
-              readOnly={readOnly}
-              error={!!errorFor(errors, 'parameter')}
-            />
-            {errorFor(errors, 'parameter') && (
-              <p className="text-destructive text-sm font-medium">
-                {errorFor(errors, 'parameter')}
-              </p>
-            )}
-          </div>
+          <FormField name={`${prefix}.ratioText`}>
+            <FormItem>
+              <FormLabel>{RULE_LABELS.PARAMETER_RATIO}</FormLabel>
+              <FormControl>
+                <NumberInput readOnly={readOnly} onChange={(ratioText) => update({ ratioText })} />
+              </FormControl>
+              {hiddenMessage('parameter')}
+            </FormItem>
+          </FormField>
         )}
 
         {rule.method === 'fixedAmount' && (
-          <div className="grid gap-2">
-            <Label htmlFor={idFor('parameter')}>{RULE_LABELS.PARAMETER_AMOUNT}</Label>
-            <NumberInput
-              id={idFor('parameter')}
-              value={rule.amountText}
-              onChange={(amountText) => update({ amountText })}
-              readOnly={readOnly}
-              error={!!errorFor(errors, 'parameter')}
-            />
-            {errorFor(errors, 'parameter') && (
-              <p className="text-destructive text-sm font-medium">
-                {errorFor(errors, 'parameter')}
-              </p>
-            )}
-          </div>
+          <FormField name={`${prefix}.amountText`}>
+            <FormItem>
+              <FormLabel>{RULE_LABELS.PARAMETER_AMOUNT}</FormLabel>
+              <FormControl>
+                <NumberInput
+                  readOnly={readOnly}
+                  onChange={(amountText) => update({ amountText })}
+                />
+              </FormControl>
+              {hiddenMessage('parameter')}
+            </FormItem>
+          </FormField>
         )}
 
         {showSource && (
           <>
             {(rule.method === 'inflation' || rule.method === 'growthRate') && (
-              <div className="grid gap-2">
-                <Label htmlFor={idFor('sourceType')}>{RULE_LABELS.SOURCE_TYPE}</Label>
-                <SelectField
-                  id={idFor('sourceType')}
-                  value={rule.sourceType}
-                  onChange={(value) => setSourceType(value as RuleSourceType)}
-                  options={[
-                    { value: 'ledgerCode', label: RULE_LABELS.LEDGER_SOURCE },
-                    { value: 'rule', label: RULE_LABELS.RULE_SOURCE },
-                  ]}
-                  disabled={readOnly}
-                  error={!!errorFor(errors, 'sourceType')}
-                />
-              </div>
+              <FormField name={`${prefix}.sourceType`}>
+                <FormItem>
+                  <FormLabel>{RULE_LABELS.SOURCE_TYPE}</FormLabel>
+                  <FormControl>
+                    <SelectField
+                      value={rule.sourceType}
+                      onChange={(value) => setSourceType(value as RuleSourceType)}
+                      options={[
+                        { value: 'ledgerCode', label: RULE_LABELS.LEDGER_SOURCE },
+                        { value: 'rule', label: RULE_LABELS.RULE_SOURCE },
+                      ]}
+                      disabled={readOnly}
+                    />
+                  </FormControl>
+                  {hiddenMessage('sourceType')}
+                </FormItem>
+              </FormField>
             )}
 
-            <div className="grid gap-2">
-              <Label htmlFor={idFor('sourceId')}>{RULE_LABELS.SOURCE}</Label>
-              <SelectField
-                id={idFor('sourceId')}
-                value={rule.sourceId}
-                onChange={(sourceId) => update({ sourceId })}
-                options={sourceOptions}
-                noneLabel={RULE_LABELS.NO_SOURCE}
-                disabled={readOnly}
-                error={!!errorFor(errors, 'sourceId')}
-              />
-              {errorFor(errors, 'sourceId') && (
-                <p className="text-destructive text-sm font-medium">
-                  {errorFor(errors, 'sourceId')}
-                </p>
-              )}
-            </div>
+            <FormField name={`${prefix}.sourceId`}>
+              <FormItem>
+                <FormLabel>{RULE_LABELS.SOURCE}</FormLabel>
+                <FormControl>
+                  <SelectField
+                    value={rule.sourceId}
+                    onChange={(sourceId) => update({ sourceId })}
+                    options={sourceOptions}
+                    noneLabel={RULE_LABELS.NO_SOURCE}
+                    disabled={readOnly}
+                  />
+                </FormControl>
+                {hiddenMessage('sourceId')}
+              </FormItem>
+            </FormField>
           </>
         )}
 
         {!showSource && <p className="text-sm text-muted-foreground">{RULE_LABELS.NO_SOURCE}</p>}
 
         {showBaseline && (
-          <div className="grid gap-2">
-            <Label htmlFor={idFor('baselinePolicy')}>{RULE_LABELS.BASELINE_POLICY}</Label>
-            <SelectField
-              id={idFor('baselinePolicy')}
-              value={rule.baselinePolicy}
-              onChange={(baselinePolicy) =>
-                update({ baselinePolicy: baselinePolicy as RuleDraftVM['baselinePolicy'] })
-              }
-              options={Object.entries(BASELINE_POLICY_LABELS).map(([value, label]) => ({
-                value,
-                label,
-              }))}
-              noneLabel={RULE_LABELS.CHOOSE_PLACEHOLDER}
-              disabled={readOnly}
-              error={!!errorFor(errors, 'baselinePolicy')}
-            />
-            {errorFor(errors, 'baselinePolicy') && (
-              <p className="text-destructive text-sm font-medium">
-                {errorFor(errors, 'baselinePolicy')}
-              </p>
-            )}
-          </div>
+          <FormField name={`${prefix}.baselinePolicy`}>
+            <FormItem>
+              <FormLabel>{RULE_LABELS.BASELINE_POLICY}</FormLabel>
+              <FormControl>
+                <SelectField
+                  value={rule.baselinePolicy}
+                  onChange={(baselinePolicy) =>
+                    update({ baselinePolicy: baselinePolicy as RuleDraftVM['baselinePolicy'] })
+                  }
+                  options={Object.entries(BASELINE_POLICY_LABELS).map(([value, label]) => ({
+                    value,
+                    label,
+                  }))}
+                  noneLabel={RULE_LABELS.CHOOSE_PLACEHOLDER}
+                  disabled={readOnly}
+                />
+              </FormControl>
+              {hiddenMessage('baselinePolicy')}
+            </FormItem>
+          </FormField>
+        )}
+
+        {showBaseline && needsBaselineYear(rule.baselinePolicy) && (
+          <FormField name={`${prefix}.baselineYearText`}>
+            <FormItem>
+              <FormLabel required>{RULE_LABELS.BASELINE_YEAR}</FormLabel>
+              <FormControl>
+                <NumberInput
+                  readOnly={readOnly}
+                  step={1}
+                  onChange={(baselineYearText) => update({ baselineYearText })}
+                />
+              </FormControl>
+              {hiddenMessage('baselineYear')}
+            </FormItem>
+          </FormField>
         )}
 
         {isDebt ? (
@@ -274,62 +268,48 @@ export function ProjectionRuleRow({
           </div>
         ) : (
           <>
-            <div className="grid gap-2">
-              <Label htmlFor={idFor('endCondition')}>{RULE_LABELS.END_CONDITION}</Label>
-              <SelectField
-                id={idFor('endCondition')}
-                value={rule.endConditionType}
-                onChange={(value) =>
-                  update({ endConditionType: value as RuleDraftVM['endConditionType'] })
-                }
-                options={Object.entries(END_CONDITION_LABELS).map(([value, label]) => ({
-                  value,
-                  label,
-                }))}
-                disabled={readOnly}
-                error={!!errorFor(errors, 'endCondition')}
-              />
-              {errorFor(errors, 'endCondition') && (
-                <p className="text-destructive text-sm font-medium">
-                  {errorFor(errors, 'endCondition')}
-                </p>
-              )}
-            </div>
+            <FormField name={`${prefix}.endConditionType`}>
+              <FormItem>
+                <FormLabel>{RULE_LABELS.END_CONDITION}</FormLabel>
+                <FormControl>
+                  <SelectField
+                    value={rule.endConditionType}
+                    onChange={(value) =>
+                      update({ endConditionType: value as RuleDraftVM['endConditionType'] })
+                    }
+                    options={Object.entries(END_CONDITION_LABELS).map(([value, label]) => ({
+                      value,
+                      label,
+                    }))}
+                    disabled={readOnly}
+                  />
+                </FormControl>
+                {hiddenMessage('endCondition')}
+              </FormItem>
+            </FormField>
 
             {rule.endConditionType === 'specificAge' && (
-              <div className="grid gap-2">
-                <Label htmlFor={idFor('endAge')}>{RULE_LABELS.END_AGE}</Label>
-                <NumberInput
-                  id={idFor('endAge')}
-                  value={rule.endAge}
-                  onChange={(endAge) => update({ endAge })}
-                  readOnly={readOnly}
-                  error={!!errorFor(errors, 'endAge')}
-                />
-                {errorFor(errors, 'endAge') && (
-                  <p className="text-destructive text-sm font-medium">
-                    {errorFor(errors, 'endAge')}
-                  </p>
-                )}
-              </div>
+              <FormField name={`${prefix}.endAge`}>
+                <FormItem>
+                  <FormLabel>{RULE_LABELS.END_AGE}</FormLabel>
+                  <FormControl>
+                    <NumberInput readOnly={readOnly} onChange={(endAge) => update({ endAge })} />
+                  </FormControl>
+                  {hiddenMessage('endAge')}
+                </FormItem>
+              </FormField>
             )}
 
             {rule.endConditionType === 'specificYear' && (
-              <div className="grid gap-2">
-                <Label htmlFor={idFor('endYear')}>{RULE_LABELS.END_YEAR}</Label>
-                <NumberInput
-                  id={idFor('endYear')}
-                  value={rule.endYear}
-                  onChange={(endYear) => update({ endYear })}
-                  readOnly={readOnly}
-                  error={!!errorFor(errors, 'endYear')}
-                />
-                {errorFor(errors, 'endYear') && (
-                  <p className="text-destructive text-sm font-medium">
-                    {errorFor(errors, 'endYear')}
-                  </p>
-                )}
-              </div>
+              <FormField name={`${prefix}.endYear`}>
+                <FormItem>
+                  <FormLabel>{RULE_LABELS.END_YEAR}</FormLabel>
+                  <FormControl>
+                    <NumberInput readOnly={readOnly} onChange={(endYear) => update({ endYear })} />
+                  </FormControl>
+                  {hiddenMessage('endYear')}
+                </FormItem>
+              </FormField>
             )}
           </>
         )}

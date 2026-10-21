@@ -1,4 +1,6 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo } from 'react';
+
+import { type Resolver, type ResolverResult, useForm } from 'react-hook-form';
 
 import { RetirementSchemaErrorCode } from '@/domains/retirement/errorCodes';
 import {
@@ -35,7 +37,8 @@ export type RuleErrorField =
   | 'endCondition'
   | 'endAge'
   | 'endYear'
-  | 'baselinePolicy';
+  | 'baselinePolicy'
+  | 'baselineYear';
 
 export interface RuleDraftVM {
   id: string;
@@ -52,11 +55,16 @@ export interface RuleDraftVM {
   endAge: string;
   endYear: string;
   baselinePolicy: BaselinePolicy | '';
+  baselineYearText: string;
   touched: boolean;
 }
 
 export type RuleErrors = Partial<Record<RuleErrorField, string>>;
 export type RuleErrorsById = Record<string, RuleErrors>;
+
+export interface RulesForm {
+  rules: RuleDraftVM[];
+}
 
 const DEFAULT_METHOD: RuleMethod = 'inflation';
 
@@ -76,6 +84,7 @@ function blankRule(ruleType: RuleType): RuleDraftVM {
     endAge: '',
     endYear: '',
     baselinePolicy: '',
+    baselineYearText: '',
     touched: false,
   };
 }
@@ -86,6 +95,10 @@ export function hasSource(method: RuleMethod): boolean {
 
 export function needsBaselinePolicy(method: RuleMethod, sourceType: RuleSourceType | ''): boolean {
   return (method === 'inflation' || method === 'growthRate') && sourceType !== 'rule';
+}
+
+export function needsBaselineYear(baselinePolicy: BaselinePolicy | ''): boolean {
+  return baselinePolicy === 'specificYear';
 }
 
 function parseNumber(text: string): number {
@@ -109,6 +122,21 @@ function buildEndCondition(rule: RuleDraftVM): EndCondition {
     default:
       return { type: 'retirementYearExclusive' };
   }
+}
+
+function baselineFields(rule: RuleDraftVM): {
+  baselinePolicy?: BaselinePolicy;
+  baselineYear?: number;
+} {
+  if (!needsBaselinePolicy(rule.method, rule.sourceType)) return {};
+  if (rule.baselinePolicy === '') return {};
+  if (rule.baselinePolicy === 'specificYear') {
+    return {
+      baselinePolicy: rule.baselinePolicy,
+      baselineYear: parseNumber(rule.baselineYearText),
+    };
+  }
+  return { baselinePolicy: rule.baselinePolicy };
 }
 
 function buildRule(rule: RuleDraftVM): unknown {
@@ -143,9 +171,7 @@ function buildRule(rule: RuleDraftVM): unknown {
         source,
         parameters: { rate: percentToDecimal(rule.rateText) },
         endCondition: buildEndCondition(rule),
-        ...(needsBaselinePolicy(rule.method, rule.sourceType) && rule.baselinePolicy !== ''
-          ? { baselinePolicy: rule.baselinePolicy }
-          : {}),
+        ...baselineFields(rule),
       };
     default:
       return {
@@ -153,34 +179,12 @@ function buildRule(rule: RuleDraftVM): unknown {
         source,
         parameters: {},
         endCondition: buildEndCondition(rule),
-        ...(needsBaselinePolicy(rule.method, rule.sourceType) && rule.baselinePolicy !== ''
-          ? { baselinePolicy: rule.baselinePolicy }
-          : {}),
+        ...baselineFields(rule),
       };
   }
 }
 
-function fieldForPath(path: (string | number | symbol)[]): RuleErrorField | undefined {
-  const first = path[0];
-  if (typeof first !== 'string') return undefined;
-  if (first in TARGET_FIELD) return TARGET_FIELD[first];
-  if (first === 'parameters') return 'parameter';
-  return undefined;
-}
-
-const TARGET_FIELD: Record<string, RuleErrorField> = {
-  name: 'name',
-  ruleType: 'ruleType',
-  method: 'method',
-  source: 'sourceId',
-  endCondition: 'endCondition',
-  baselinePolicy: 'baselinePolicy',
-};
-
-function mapIssuePath(
-  path: (string | number | symbol)[],
-  rule: RuleDraftVM,
-): RuleErrorField | undefined {
+function mapIssuePath(path: (string | number | symbol)[]): RuleErrorField | undefined {
   const [head, second] = path;
   if (head === 'source') return second === 'type' ? 'sourceType' : 'sourceId';
   if (head === 'endCondition') {
@@ -188,21 +192,24 @@ function mapIssuePath(
     if (second === 'year') return 'endYear';
     return 'endCondition';
   }
-  if (head === 'parameters') {
-    if (rule.method === 'growthRate') return 'parameter';
-    if (rule.method === 'percentage') return 'parameter';
-    return 'parameter';
+  if (head === 'parameters') return 'parameter';
+  switch (head) {
+    case 'name':
+      return 'name';
+    case 'ruleType':
+      return 'ruleType';
+    case 'method':
+      return 'method';
+    case 'baselinePolicy':
+      return 'baselinePolicy';
+    case 'baselineYear':
+      return 'baselineYear';
+    default:
+      return undefined;
   }
-  return fieldForPath(path);
 }
 
 function ruleFromDomain(rule: ProjectionRule): RuleDraftVM {
-  const ruleWithOptionals = rule as ProjectionRule & {
-    baselinePolicy?: BaselinePolicy;
-    endCondition?: EndCondition;
-    parameters?: { rate?: number; ratio?: number; amount?: number };
-  };
-
   return {
     id: rule.id,
     name: rule.name,
@@ -212,77 +219,138 @@ function ruleFromDomain(rule: ProjectionRule): RuleDraftVM {
     sourceType: rule.source?.type ?? '',
     sourceId: rule.source?.id ?? '',
     rateText:
-      ruleWithOptionals.parameters?.rate === undefined
-        ? ''
-        : decimalToPercentText(ruleWithOptionals.parameters.rate),
+      rule.parameters && 'rate' in rule.parameters
+        ? decimalToPercentText(rule.parameters.rate)
+        : '',
     ratioText:
-      ruleWithOptionals.parameters?.ratio === undefined
-        ? ''
-        : decimalToPercentText(ruleWithOptionals.parameters.ratio),
+      rule.parameters && 'ratio' in rule.parameters
+        ? decimalToPercentText(rule.parameters.ratio)
+        : '',
     amountText:
-      ruleWithOptionals.parameters?.amount === undefined
-        ? ''
-        : String(ruleWithOptionals.parameters.amount),
-    endConditionType: ruleWithOptionals.endCondition?.type ?? 'retirementYearExclusive',
-    endAge:
-      ruleWithOptionals.endCondition?.type === 'specificAge'
-        ? String(ruleWithOptionals.endCondition.age)
-        : '',
-    endYear:
-      ruleWithOptionals.endCondition?.type === 'specificYear'
-        ? String(ruleWithOptionals.endCondition.year)
-        : '',
-    baselinePolicy: ruleWithOptionals.baselinePolicy ?? '',
+      rule.parameters && 'amount' in rule.parameters ? String(rule.parameters.amount) : '',
+    endConditionType: rule.endCondition?.type ?? 'retirementYearExclusive',
+    endAge: rule.endCondition?.type === 'specificAge' ? String(rule.endCondition.age) : '',
+    endYear: rule.endCondition?.type === 'specificYear' ? String(rule.endCondition.year) : '',
+    baselinePolicy:
+      typeof rule.baselinePolicy === 'string' ? (rule.baselinePolicy as BaselinePolicy) : '',
+    baselineYearText: rule.baselineYear === undefined ? '' : String(rule.baselineYear),
     touched: false,
   };
 }
 
+function buildErrors(rules: RuleDraftVM[]): RuleErrorsById {
+  const errors: RuleErrorsById = {};
+  const parsedById = rules.map((rule) => ProjectionRuleSchema.safeParse(buildRule(rule)));
+  const built: unknown[] = [];
+
+  for (const [index, parsed] of parsedById.entries()) {
+    const rule = rules[index];
+    if (parsed.success) {
+      built.push(parsed.data);
+      continue;
+    }
+    const rowErrors: RuleErrors = {};
+    for (const issue of parsed.error.issues) {
+      const field = mapIssuePath(issue.path);
+      if (field !== undefined && rowErrors[field] === undefined) {
+        rowErrors[field] = labelFor(issue.code, issue.message);
+      }
+    }
+    errors[rule.id] = rowErrors;
+    built.push(buildRule(rule));
+  }
+
+  const all = ProjectionRulesSchema.safeParse(built);
+  if (!all.success) {
+    for (const issue of all.error.issues) {
+      const index = issue.path[0];
+      if (typeof index !== 'number') continue;
+      const rule = rules[index];
+      if (rule === undefined) continue;
+      const field = mapIssuePath(issue.path.slice(1));
+      if (field !== undefined && errors[rule.id]?.[field] === undefined) {
+        errors[rule.id] = {
+          ...errors[rule.id],
+          [field]: labelFor(issue.code, issue.message),
+        };
+      }
+    }
+  }
+
+  return errors;
+}
+
 export function useRuleDrafts(markDirty: () => void) {
-  const [rules, setRules] = useState<RuleDraftVM[]>([]);
+  const resolver = useCallback<Resolver<RulesForm>>((values): ResolverResult<RulesForm> => {
+    const errors = buildErrors(values.rules);
+    const fieldErrors: Record<string, unknown> = {};
+
+    for (const [index, rule] of values.rules.entries()) {
+      if (!rule.touched) continue;
+      const rowErrors = errors[rule.id];
+      if (rowErrors === undefined) continue;
+      fieldErrors[index] = Object.fromEntries(
+        Object.entries(rowErrors).map(([field, message]) => [
+          field,
+          { type: 'validation', message },
+        ]),
+      );
+    }
+
+    if (Object.keys(fieldErrors).length === 0) return { values, errors: {} };
+    return { values, errors: { rules: fieldErrors } } as unknown as ResolverResult<RulesForm>;
+  }, []);
+
+  const form = useForm<RulesForm>({ mode: 'onTouched', defaultValues: { rules: [] }, resolver });
+  const rules = form.watch('rules');
+
+  const commit = useCallback(
+    (next: RuleDraftVM[]) => {
+      form.reset({ rules: next } as never);
+      markDirty();
+    },
+    [form, markDirty],
+  );
 
   const update = useCallback(
     (id: string, patch: Partial<RuleDraftVM>) => {
-      setRules((current) =>
-        current.map((rule) => (rule.id === id ? { ...rule, ...patch, touched: true } : rule)),
+      commit(
+        form
+          .getValues('rules')
+          .map((rule) => (rule.id === id ? { ...rule, ...patch, touched: true } : rule)),
       );
-      markDirty();
     },
-    [markDirty],
+    [commit, form],
   );
 
   const add = useCallback(
-    (ruleType: RuleType) => {
-      setRules((current) => [...current, blankRule(ruleType)]);
-      markDirty();
-    },
-    [markDirty],
+    (ruleType: RuleType) => commit([...form.getValues('rules'), blankRule(ruleType)]),
+    [commit, form],
   );
 
   const remove = useCallback(
-    (id: string) => {
-      setRules((current) => current.filter((rule) => rule.id !== id));
-      markDirty();
-    },
-    [markDirty],
+    (id: string) => commit(form.getValues('rules').filter((rule) => rule.id !== id)),
+    [commit, form],
   );
 
   const toggle = useCallback(
     (id: string) => {
-      setRules((current) =>
-        current.map((rule) =>
-          rule.id === id ? { ...rule, enabled: !rule.enabled, touched: true } : rule,
-        ),
+      commit(
+        form
+          .getValues('rules')
+          .map((rule) =>
+            rule.id === id ? { ...rule, enabled: !rule.enabled, touched: true } : rule,
+          ),
       );
-      markDirty();
     },
-    [markDirty],
+    [commit, form],
   );
 
   /** A method switch drops parameters by construction and realigns the source. */
   const setMethod = useCallback(
     (id: string, method: RuleMethod) => {
-      setRules((current) =>
-        current.map((rule) => {
+      commit(
+        form.getValues('rules').map((rule) => {
           if (rule.id !== id) return rule;
 
           const reset: Partial<RuleDraftVM> = {
@@ -291,6 +359,7 @@ export function useRuleDrafts(markDirty: () => void) {
             ratioText: '',
             amountText: '',
             baselinePolicy: '',
+            baselineYearText: '',
             endAge: '',
             endYear: '',
             endConditionType: 'retirementYearExclusive',
@@ -315,30 +384,28 @@ export function useRuleDrafts(markDirty: () => void) {
           };
         }),
       );
-      markDirty();
     },
-    [markDirty],
+    [commit, form],
   );
 
   const setRuleType = useCallback(
     (id: string, ruleType: RuleType) => {
-      setRules((current) =>
-        current.map((rule) => {
+      commit(
+        form.getValues('rules').map((rule) => {
           if (rule.id !== id) return rule;
           const allowed = ALLOWED_METHODS_BY_RULE_TYPE[ruleType];
           if (allowed.includes(rule.method)) return { ...rule, ruleType, touched: true };
           return { ...rule, ruleType, method: DEFAULT_METHOD, touched: true };
         }),
       );
-      markDirty();
     },
-    [markDirty],
+    [commit, form],
   );
 
   const setSourceType = useCallback(
     (id: string, sourceType: RuleSourceType) => {
-      setRules((current) =>
-        current.map((rule) =>
+      commit(
+        form.getValues('rules').map((rule) =>
           rule.id === id
             ? {
                 ...rule,
@@ -347,81 +414,66 @@ export function useRuleDrafts(markDirty: () => void) {
                 baselinePolicy: needsBaselinePolicy(rule.method, sourceType)
                   ? rule.baselinePolicy
                   : '',
+                baselineYearText: needsBaselinePolicy(rule.method, sourceType)
+                  ? rule.baselineYearText
+                  : '',
                 touched: true,
               }
             : rule,
         ),
       );
-      markDirty();
     },
-    [markDirty],
+    [commit, form],
   );
 
   const validate = useCallback((): ValidationOutcome<ProjectionRule[], RuleErrorsById> => {
-    const errors: RuleErrorsById = {};
-    const parsedById = rules.map((rule) => ProjectionRuleSchema.safeParse(buildRule(rule)));
-    const built: unknown[] = [];
-
-    for (const [index, parsed] of parsedById.entries()) {
-      const rule = rules[index];
-      if (parsed.success) {
-        built.push(parsed.data);
-        continue;
-      }
-      const rowErrors: RuleErrors = {};
-      for (const issue of parsed.error.issues) {
-        const field = mapIssuePath(issue.path, rule);
-        if (field !== undefined && rowErrors[field] === undefined) {
-          rowErrors[field] = labelFor(issue.code, issue.message);
-        }
-      }
-      errors[rule.id] = rowErrors;
-      built.push(buildRule(rule));
-    }
-
+    const current = form.getValues('rules');
+    const errors = buildErrors(current);
+    const built = current.map((rule) => {
+      const parsed = ProjectionRuleSchema.safeParse(buildRule(rule));
+      return parsed.success ? parsed.data : buildRule(rule);
+    });
     const all = ProjectionRulesSchema.safeParse(built);
-    if (all.success) return { ok: Object.keys(errors).length === 0, data: all.data, errors };
 
-    for (const issue of all.error.issues) {
-      const index = issue.path[0];
-      if (typeof index !== 'number') continue;
-      const rule = rules[index];
-      if (rule === undefined) continue;
-      const field = mapIssuePath(issue.path.slice(1), rule);
-      if (field !== undefined && errors[rule.id]?.[field] === undefined) {
-        errors[rule.id] = {
-          ...errors[rule.id],
-          [field]: labelFor(issue.code, issue.message),
-        };
-      }
-    }
-
-    return { ok: false, errors };
-  }, [rules]);
-
-  const validation = useMemo(() => validate(), [validate]);
+    void form.trigger();
+    return {
+      ok: Object.keys(errors).length === 0 && all.success,
+      data: all.success ? all.data : undefined,
+      errors,
+    };
+  }, [form]);
 
   const visibleErrors = useMemo(() => {
+    const all = buildErrors(rules);
     const visible: RuleErrorsById = {};
     for (const rule of rules) {
-      if (rule.touched && validation.errors[rule.id]) visible[rule.id] = validation.errors[rule.id];
+      if (rule.touched && all[rule.id]) visible[rule.id] = all[rule.id];
     }
     return visible;
-  }, [rules, validation.errors]);
+  }, [rules]);
 
-  const replaceAll = useCallback((next: ProjectionRule[]) => {
-    setRules(next.map(ruleFromDomain));
-  }, []);
+  const replaceAll = useCallback(
+    (next: ProjectionRule[]) => {
+      form.reset({ rules: next.map(ruleFromDomain) });
+    },
+    [form],
+  );
 
   /** CALCULATE reveals every rule error, not only the touched rows. */
   const revealAll = useCallback(() => {
-    setRules((current) => current.map((rule) => ({ ...rule, touched: true })));
-  }, []);
+    form.setValue(
+      'rules',
+      form.getValues('rules').map((rule) => ({ ...rule, touched: true })),
+      { shouldDirty: true, shouldTouch: true },
+    );
+    void form.trigger();
+  }, [form]);
 
   return {
+    form,
     rules,
     errors: visibleErrors,
-    valid: validation.ok,
+    valid: Object.keys(buildErrors(rules)).length === 0,
     add,
     revealAll,
     remove,

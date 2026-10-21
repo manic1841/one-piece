@@ -6,8 +6,8 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { listDebtAccountsUseCase } from '@/application/debt/use_cases/listDebtAccountsUseCase';
 import { createProjectionUseCase } from '@/application/retirement/use_cases/createProjectionUseCase';
+import { getProjectionOpeningUseCase } from '@/application/retirement/use_cases/getProjectionOpeningUseCase';
 import { getProjectionViewUseCase } from '@/application/retirement/use_cases/getProjectionViewUseCase';
-import { getStartingNetWorthUseCase } from '@/application/retirement/use_cases/getStartingNetWorthUseCase';
 import { type RetirementPlanWorkspaceData } from '@/application/retirement/use_cases/retirementPlanLookup';
 import {
   type ProjectionInput,
@@ -16,8 +16,8 @@ import {
 
 import ProjectionWorkspacePage from './ProjectionWorkspacePage';
 
-vi.mock('@/application/retirement/use_cases/getStartingNetWorthUseCase', () => ({
-  getStartingNetWorthUseCase: { execute: vi.fn() },
+vi.mock('@/application/retirement/use_cases/getProjectionOpeningUseCase', () => ({
+  getProjectionOpeningUseCase: { execute: vi.fn() },
 }));
 
 vi.mock('@/application/retirement/use_cases/getProjectionViewUseCase', () => ({
@@ -25,7 +25,7 @@ vi.mock('@/application/retirement/use_cases/getProjectionViewUseCase', () => ({
 }));
 
 vi.mock('@/application/retirement/use_cases/createProjectionUseCase', () => ({
-  createProjectionUseCase: { execute: vi.fn() },
+  createProjectionUseCase: { calculate: vi.fn(), persist: vi.fn() },
   ProjectionCommandErrorCode: {
     PROJECTION_VALIDATION_FAILED: 'PROJECTION_VALIDATION_FAILED',
     PROJECTION_RESOLVE_FAILED: 'PROJECTION_RESOLVE_FAILED',
@@ -150,10 +150,26 @@ const projectionResult: ProjectionResult = {
 function successOutcome(warnings: unknown[] = []) {
   return {
     ok: true as const,
-    id: null,
-    result: projectionResult,
-    input: projectionInput,
-    warnings: warnings as never,
+    calculation: {
+      input: projectionInput,
+      result: projectionResult,
+      warnings: warnings as never,
+      config: {
+        startYear: 2026,
+        openingNetWorth: { amount: 100_000, source: 'manual' as const },
+        assumptions: {
+          birthYear: 1990,
+          retirementAge: 60,
+          lifeExpectancy: 85,
+          inflationRate: 0.02,
+          annualReturnRate: 0.05,
+        },
+        projectionRules: [],
+        lifeEvents: [],
+      },
+      source: { ruleSources: [] },
+      startYear: 2026,
+    },
   };
 }
 
@@ -307,10 +323,14 @@ describe('ProjectionWorkspacePage', () => {
     planLibraryMock.loading = false;
     planLibraryMock.error = null;
     planLibraryMock.getPlan.mockResolvedValue(null);
-    vi.mocked(getStartingNetWorthUseCase.execute).mockResolvedValue({
+    vi.mocked(getProjectionOpeningUseCase.execute).mockResolvedValue({
       reason: 'NO_CLOSED_PERIOD',
     });
-    vi.mocked(createProjectionUseCase.execute).mockResolvedValue(successOutcome());
+    vi.mocked(createProjectionUseCase.calculate).mockResolvedValue(successOutcome());
+    vi.mocked(createProjectionUseCase.persist).mockResolvedValue({
+      ok: true,
+      id: 'projection-1',
+    });
     vi.mocked(listDebtAccountsUseCase.execute).mockResolvedValue([
       {
         id: 'debt-1',
@@ -362,7 +382,7 @@ describe('ProjectionWorkspacePage', () => {
       target: { value: '65.5' },
     });
     fireEvent.change(await screen.findByLabelText('Life expectancy'), {
-      target: { value: '200' },
+      target: { value: '0' },
     });
 
     expect(await screen.findByText('必須是整數')).toBeInTheDocument();
@@ -700,7 +720,7 @@ describe('ProjectionWorkspacePage', () => {
     expect(screen.getAllByText('請輸入數字')).toHaveLength(2);
     expect(screen.queryByTestId('projection-results')).not.toBeInTheDocument();
     expect(screen.queryByText(/Preview is read-only/)).not.toBeInTheDocument();
-    expect(createProjectionUseCase.execute).not.toHaveBeenCalled();
+    expect(createProjectionUseCase.calculate).not.toHaveBeenCalled();
   });
 
   it('requires an integer manual opening balance', async () => {
@@ -718,11 +738,11 @@ describe('ProjectionWorkspacePage', () => {
     expect(screen.getByTestId('opening-validation-error')).toHaveTextContent(
       'Enter a whole-number opening net worth.',
     );
-    expect(createProjectionUseCase.execute).not.toHaveBeenCalled();
+    expect(createProjectionUseCase.calculate).not.toHaveBeenCalled();
   });
 
   it('shows warnings above the results without blocking SAVE', async () => {
-    vi.mocked(createProjectionUseCase.execute).mockResolvedValue(
+    vi.mocked(createProjectionUseCase.calculate).mockResolvedValue(
       successOutcome([
         {
           code: 'BASELINE_BEHIND',
@@ -744,7 +764,7 @@ describe('ProjectionWorkspacePage', () => {
   });
 
   it('lists resolver errors and stays in setup', async () => {
-    vi.mocked(createProjectionUseCase.execute).mockResolvedValue({
+    vi.mocked(createProjectionUseCase.calculate).mockResolvedValue({
       ok: false,
       code: 'PROJECTION_RESOLVE_FAILED',
       errors: [
@@ -774,7 +794,7 @@ describe('ProjectionWorkspacePage', () => {
     expect(screen.getByLabelText('Opening net worth')).toHaveValue(123456);
     expect(screen.getByLabelText('Birth year')).toHaveAttribute('readonly');
     await waitFor(() => expect(router.state.location.search).toBe(''));
-    expect(getStartingNetWorthUseCase.execute).not.toHaveBeenCalled();
+    expect(getProjectionOpeningUseCase.execute).not.toHaveBeenCalled();
 
     await act(async () => {
       void router.navigate('/other');
@@ -788,8 +808,8 @@ describe('ProjectionWorkspacePage', () => {
         openingNetWorth: { amount: 1, source: 'derived', anchorYearMonth: '2026-01' },
       }) as never,
     );
-    vi.mocked(getStartingNetWorthUseCase.execute).mockResolvedValue({
-      startingNetWorth: 380_000,
+    vi.mocked(getProjectionOpeningUseCase.execute).mockResolvedValue({
+      openingNetWorth: 380_000,
       anchorYearMonth: '2026-08',
       assets: 500_000,
       liabilities: 120_000,
@@ -837,14 +857,14 @@ describe('ProjectionWorkspacePage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'SAVE' }));
 
     expect(screen.getByText('Name is required.')).toBeInTheDocument();
-    expect(createProjectionUseCase.execute).toHaveBeenCalledTimes(1);
+    expect(createProjectionUseCase.persist).not.toHaveBeenCalled();
   });
 
   it('stays open and inert while saving', async () => {
     renderWorkspace();
     await fillValidSetup();
     await calculate();
-    vi.mocked(createProjectionUseCase.execute).mockImplementationOnce(
+    vi.mocked(createProjectionUseCase.persist).mockImplementationOnce(
       () => new Promise(() => undefined),
     );
 
@@ -862,7 +882,7 @@ describe('ProjectionWorkspacePage', () => {
     renderWorkspace();
     await fillValidSetup();
     await calculate();
-    vi.mocked(createProjectionUseCase.execute)
+    vi.mocked(createProjectionUseCase.persist)
       .mockResolvedValueOnce({
         ok: false,
         code: 'PROJECTION_WRITE_FAILED',
@@ -870,9 +890,6 @@ describe('ProjectionWorkspacePage', () => {
       .mockResolvedValueOnce({
         ok: true,
         id: 'projection-1',
-        result: projectionResult,
-        input: projectionInput,
-        warnings: [],
       });
 
     fireEvent.click(screen.getByRole('button', { name: 'SAVE' }));
@@ -894,16 +911,13 @@ describe('ProjectionWorkspacePage', () => {
   });
 
   it('closes on success, stays in preview, links the projection and prefills the last name', async () => {
+    vi.mocked(createProjectionUseCase.persist).mockResolvedValue({
+      ok: true,
+      id: 'projection-9',
+    });
     renderWorkspace();
     await fillValidSetup();
     await calculate();
-    vi.mocked(createProjectionUseCase.execute).mockResolvedValue({
-      ok: true,
-      id: 'projection-9',
-      result: projectionResult,
-      input: projectionInput,
-      warnings: [],
-    });
 
     fireEvent.click(screen.getByRole('button', { name: 'SAVE' }));
     const input = await screen.findByLabelText('Projection name');

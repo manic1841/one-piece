@@ -8,7 +8,7 @@ import { projectionRepository } from '@/infra/repositories/projectionRepository'
 import { transactionRepository } from '@/infra/repositories/transactionRepository';
 
 import { ProjectionCommandErrorCode, createProjectionUseCase } from './createProjectionUseCase';
-import { getStartingNetWorthUseCase } from './getStartingNetWorthUseCase';
+import { getProjectionOpeningUseCase } from './getProjectionOpeningUseCase';
 
 vi.mock('@/application/household/householdPermissionService', () => ({
   householdPermissionService: { assertWritePermission: vi.fn() },
@@ -30,8 +30,8 @@ vi.mock('@/infra/repositories/debtAccountRepository', () => ({
   debtAccountRepository: { getDebtAccounts: vi.fn() },
 }));
 
-vi.mock('./getStartingNetWorthUseCase', () => ({
-  getStartingNetWorthUseCase: { execute: vi.fn() },
+vi.mock('./getProjectionOpeningUseCase', () => ({
+  getProjectionOpeningUseCase: { execute: vi.fn() },
 }));
 
 vi.mock('@/firebase', () => ({ db: {} }));
@@ -79,18 +79,17 @@ describe('createProjectionUseCase', () => {
     vi.mocked(listAllLedgerCodesUseCase.execute).mockResolvedValue([]);
     vi.mocked(transactionRepository.listByDateRange).mockResolvedValue([]);
     vi.mocked(debtAccountRepository.getDebtAccounts).mockResolvedValue([]);
-    vi.mocked(getStartingNetWorthUseCase.execute).mockResolvedValue({
+    vi.mocked(getProjectionOpeningUseCase.execute).mockResolvedValue({
       reason: 'NO_CLOSED_PERIOD',
     });
   });
 
-  it('calculates without writing when persist is false', async () => {
-    const outcome = await createProjectionUseCase.execute(request({ persist: false }));
+  it('calculates without writing anything', async () => {
+    const outcome = await createProjectionUseCase.calculate(request());
 
     expect(outcome.ok).toBe(true);
     if (!outcome.ok) return;
-    expect(outcome.id).toBeNull();
-    expect(outcome.result.years).toHaveLength(2075 - 2026 + 1);
+    expect(outcome.calculation.result.years).toHaveLength(2075 - 2026 + 1);
     expect(projectionRepository.createProjectionAtomically).not.toHaveBeenCalled();
   });
 
@@ -100,7 +99,16 @@ describe('createProjectionUseCase', () => {
       id: 'projection-1',
     });
 
-    const outcome = await createProjectionUseCase.execute(request());
+    const calculated = await createProjectionUseCase.calculate(request());
+    expect(calculated.ok).toBe(true);
+    if (!calculated.ok) return;
+
+    const outcome = await createProjectionUseCase.persist({
+      householdId: 'household-1',
+      auth,
+      name: 'My projection',
+      calculation: calculated.calculation,
+    });
 
     expect(outcome).toMatchObject({ ok: true, id: 'projection-1' });
     expect(projectionRepository.createProjectionAtomically).toHaveBeenCalledWith(
@@ -122,8 +130,8 @@ describe('createProjectionUseCase', () => {
   });
 
   it('derives the opening balance and keeps its anchor in config', async () => {
-    vi.mocked(getStartingNetWorthUseCase.execute).mockResolvedValue({
-      startingNetWorth: 380_000,
+    vi.mocked(getProjectionOpeningUseCase.execute).mockResolvedValue({
+      openingNetWorth: 380_000,
       anchorYearMonth: '2026-08',
       assets: 500_000,
       liabilities: 120_000,
@@ -133,11 +141,24 @@ describe('createProjectionUseCase', () => {
       id: 'projection-2',
     });
 
-    const outcome = await createProjectionUseCase.execute(
+    const calculated = await createProjectionUseCase.calculate(
       request({ opening: { source: 'derived' } }),
     );
 
-    expect(outcome.ok).toBe(true);
+    expect(calculated.ok).toBe(true);
+    if (!calculated.ok) return;
+    expect(calculated.calculation.config.openingNetWorth).toEqual({
+      amount: 380_000,
+      source: 'derived',
+      anchorYearMonth: '2026-08',
+    });
+
+    await createProjectionUseCase.persist({
+      householdId: 'household-1',
+      auth,
+      name: 'My projection',
+      calculation: calculated.calculation,
+    });
     expect(projectionRepository.createProjectionAtomically).toHaveBeenCalledWith(
       expect.objectContaining({
         config: expect.objectContaining({
@@ -148,7 +169,7 @@ describe('createProjectionUseCase', () => {
   });
 
   it('fails validation before resolving or writing', async () => {
-    const outcome = await createProjectionUseCase.execute(
+    const outcome = await createProjectionUseCase.calculate(
       request({ assumptions: { ...assumptions, retirementAge: 65.5 } }),
     );
 
@@ -160,7 +181,7 @@ describe('createProjectionUseCase', () => {
   });
 
   it('returns every resolver error without writing', async () => {
-    const outcome = await createProjectionUseCase.execute(request({ rules: [ledgerRule] }));
+    const outcome = await createProjectionUseCase.calculate(request({ rules: [ledgerRule] }));
 
     expect(outcome).toMatchObject({
       ok: false,
@@ -191,26 +212,22 @@ describe('createProjectionUseCase', () => {
       id: 'projection-3',
     });
 
-    await createProjectionUseCase.execute(request({ rules: [ledgerRule] }));
+    const calculated = await createProjectionUseCase.calculate(request({ rules: [ledgerRule] }));
+    expect(calculated.ok).toBe(true);
+    if (!calculated.ok) return;
 
     expect(transactionRepository.listByDateRange).toHaveBeenCalledWith(
       'household-1',
       new Date(2025, 0, 1),
       new Date(2026, 0, 1),
     );
-    expect(projectionRepository.createProjectionAtomically).toHaveBeenCalledWith(
+    expect(calculated.calculation.source.ruleSources).toEqual([
       expect.objectContaining({
-        source: expect.objectContaining({
-          ruleSources: [
-            expect.objectContaining({
-              ruleId: 'rule-1',
-              baselineYear: 2025,
-              baselineAmount: 1400,
-            }),
-          ],
-        }),
+        ruleId: 'rule-1',
+        baselineYear: 2025,
+        baselineAmount: 1400,
       }),
-    );
+    ]);
   });
 
   it('maps document size failures to PROJECTION_TOO_LARGE', async () => {
@@ -220,7 +237,16 @@ describe('createProjectionUseCase', () => {
       document: 'annual',
     });
 
-    const outcome = await createProjectionUseCase.execute(request());
+    const calculated = await createProjectionUseCase.calculate(request());
+    expect(calculated.ok).toBe(true);
+    if (!calculated.ok) return;
+
+    const outcome = await createProjectionUseCase.persist({
+      householdId: 'household-1',
+      auth,
+      name: 'My projection',
+      calculation: calculated.calculation,
+    });
 
     expect(outcome).toMatchObject({
       ok: false,
@@ -233,7 +259,16 @@ describe('createProjectionUseCase', () => {
       new Error('batch failed'),
     );
 
-    const outcome = await createProjectionUseCase.execute(request());
+    const calculated = await createProjectionUseCase.calculate(request());
+    expect(calculated.ok).toBe(true);
+    if (!calculated.ok) return;
+
+    const outcome = await createProjectionUseCase.persist({
+      householdId: 'household-1',
+      auth,
+      name: 'My projection',
+      calculation: calculated.calculation,
+    });
 
     expect(outcome).toMatchObject({
       ok: false,
@@ -246,8 +281,18 @@ describe('createProjectionUseCase', () => {
       .mockResolvedValueOnce({ ok: true, id: 'projection-a' })
       .mockResolvedValueOnce({ ok: true, id: 'projection-b' });
 
-    const first = await createProjectionUseCase.execute(request());
-    const second = await createProjectionUseCase.execute(request());
+    const calculated = await createProjectionUseCase.calculate(request());
+    expect(calculated.ok).toBe(true);
+    if (!calculated.ok) return;
+
+    const persistRequest = {
+      householdId: 'household-1',
+      auth,
+      name: 'My projection',
+      calculation: calculated.calculation,
+    };
+    const first = await createProjectionUseCase.persist(persistRequest);
+    const second = await createProjectionUseCase.persist(persistRequest);
 
     expect(first).toMatchObject({ ok: true, id: 'projection-a' });
     expect(second).toMatchObject({ ok: true, id: 'projection-b' });

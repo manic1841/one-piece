@@ -33,6 +33,7 @@ export const RULE_LABELS = {
   END_YEAR: 'Year',
   DEBT_END: 'Ends with the debt account (follows debt).',
   BASELINE_POLICY: 'Baseline policy',
+  BASELINE_YEAR: 'Baseline year',
   CHOOSE_PLACEHOLDER: 'Not selected',
   DELETE: 'Delete rule',
   ADD_ACTION_PREFIX: 'Add',
@@ -60,7 +61,7 @@ export const END_CONDITION_LABELS = {
 
 export const BASELINE_POLICY_LABELS = {
   previousCompleteYear: 'Previous complete year',
-  specificYear: 'Latest available year',
+  specificYear: 'Specific year',
 } as const;
 
 export const PLAN_APPLY_LABELS = {

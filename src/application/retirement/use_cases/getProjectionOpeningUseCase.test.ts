@@ -6,7 +6,7 @@ import { ReportType } from '@/domains/report/schemas';
 import { type FinancialReport } from '@/domains/report/types';
 import { financialPeriodRepository } from '@/infra/repositories/financialPeriodRepository';
 
-import { getStartingNetWorthUseCase } from './getStartingNetWorthUseCase';
+import { getProjectionOpeningUseCase } from './getProjectionOpeningUseCase';
 
 vi.mock('@/application/household/householdPermissionService', () => ({
   householdPermissionService: {
@@ -45,7 +45,7 @@ const buildReport = (yearMonth: string, assets: number, liabilities: number): Fi
   },
 });
 
-describe('getStartingNetWorthUseCase', () => {
+describe('getProjectionOpeningUseCase', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -64,14 +64,14 @@ describe('getStartingNetWorthUseCase', () => {
       },
     );
 
-    const result = await getStartingNetWorthUseCase.execute({
+    const result = await getProjectionOpeningUseCase.execute({
       householdId: 'household-1',
       auth,
     });
 
     expect(result).not.toHaveProperty('reason');
     expect(result).toEqual({
-      startingNetWorth: 380_000,
+      openingNetWorth: 380_000,
       anchorYearMonth: '2026-08',
       assets: 500_000,
       liabilities: 120_000,
@@ -92,13 +92,13 @@ describe('getStartingNetWorthUseCase', () => {
       },
     );
 
-    const result = await getStartingNetWorthUseCase.execute({
+    const result = await getProjectionOpeningUseCase.execute({
       householdId: 'household-1',
       auth,
     });
 
     expect(result).toEqual({
-      startingNetWorth: 300_000,
+      openingNetWorth: 300_000,
       anchorYearMonth: '2026-07',
       assets: 400_000,
       liabilities: 100_000,
@@ -114,7 +114,7 @@ describe('getStartingNetWorthUseCase', () => {
       } as unknown as FinancialReport,
     ]);
 
-    const result = await getStartingNetWorthUseCase.execute({
+    const result = await getProjectionOpeningUseCase.execute({
       householdId: 'household-1',
       auth,
     });
@@ -129,7 +129,7 @@ describe('getStartingNetWorthUseCase', () => {
     ]);
     vi.mocked(financialPeriodRepository.getPeriod).mockResolvedValue({ status: 'OPEN' } as never);
 
-    const result = await getStartingNetWorthUseCase.execute({
+    const result = await getProjectionOpeningUseCase.execute({
       householdId: 'household-1',
       auth,
     });

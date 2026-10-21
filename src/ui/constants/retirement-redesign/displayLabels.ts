@@ -1,3 +1,15 @@
+export const PROJECTION_COMMON_LABELS = {
+  DASH: '—',
+  YES: 'Yes',
+  NO: 'No',
+  RETIRED: '退休',
+  WORKING: '工作中',
+  RATE_PREFIX: '利率',
+  RATIO_PREFIX: '比例',
+  CURRENCY_PREFIX: 'NT$',
+  LOADING: '載入中…',
+} as const;
+
 export const PROJECTION_RISK_LABELS = {
   retirementYear: '退休年',
   bankruptcyYear: '破產年',
@@ -15,14 +27,14 @@ export const PROJECTION_YEARLY_DETAIL_LABELS = {
   noIncomeItems: '無收入項目',
   noExpenseItems: '無支出項目',
   columns: {
-    year: 'Year',
-    age: 'Age',
-    status: 'Status',
-    income: 'Income',
-    expense: 'Expense',
+    year: '年度',
+    age: '年齡',
+    status: '狀態',
+    income: '收入',
+    expense: '支出',
     investmentReturn: '投資收益',
-    netCashFlow: 'Net',
-    netWorth: 'Net Worth',
+    netCashFlow: '淨現金流',
+    netWorth: '淨資產',
   },
 } as const;
 

@@ -58,6 +58,7 @@ export const PROJECTION_VIEW_LABELS = {
   RULE: 'Rule',
   SOURCE_TYPE: 'Source type',
   SOURCE_ID: 'Source',
+  BASELINE_POLICY: 'Baseline policy',
   BASELINE_YEAR: 'Baseline year',
   BASELINE_AMOUNT: 'Baseline amount',
   RULE_NAME: 'Name',
@@ -81,6 +82,22 @@ export const PROJECTION_VIEW_LABELS = {
   LEDGER_CODE: 'Ledger code',
   RULE_SOURCE: 'Rule',
   DEBT_ACCOUNT: 'Debt account',
+} as const;
+
+export const RENAME_ERROR_LABELS = {
+  NAME_REQUIRED: 'Name is required.',
+  NAME_TOO_LONG: 'Name must be at most 100 characters.',
+  WRITE_FAILED: 'Could not rename the projection.',
+} as const;
+
+export const SAVE_AS_PLAN_ERROR_LABELS = {
+  NAME_REQUIRED: 'Name is required.',
+  NAME_TOO_LONG: 'Name must be at most 100 characters.',
+  PLAN_INVALID: 'The projection configuration is not a valid plan.',
+  PLAN_TOO_LARGE: 'The plan is too large to save.',
+  PLAN_NOT_FOUND: 'The plan no longer exists.',
+  PROJECTION_NOT_FOUND: 'The projection no longer exists.',
+  WRITE_FAILED: 'Could not save the plan.',
 } as const;
 
 export const SAVE_AS_PLAN_LABELS = {

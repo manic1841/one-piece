@@ -1,16 +1,19 @@
 import { type ProjectionViewData } from '@/application/retirement/use_cases/getProjectionViewUseCase';
 import { ENGINE_VERSION } from '@/domains/retirement/logic/projectionEngine';
-import { type ProjectionRule } from '@/domains/retirement/projectionRules';
+import { PROJECTION_COMMON_LABELS } from '@/ui/constants/retirement-redesign/displayLabels';
 import {
   PROJECTION_VIEW_LABELS,
   SAVE_AS_PLAN_LABELS,
 } from '@/ui/constants/retirement-redesign/projectionLabels';
-import {
-  BASELINE_POLICY_LABELS,
-  END_CONDITION_LABELS,
-  RULE_METHOD_LABELS,
-} from '@/ui/constants/retirement-redesign/setupLabels';
+import { RULE_METHOD_LABELS } from '@/ui/constants/retirement-redesign/setupLabels';
 import { type RetirementProjectionVM } from '@/ui/features/retirement-redesign/viewmodels/projectionDisplayVm';
+import {
+  endConditionText,
+  mapProjectionPoint,
+  mapYearlyDetail,
+  parameterText,
+  percentText,
+} from '@/ui/features/retirement-redesign/viewmodels/projectionRows';
 import { formatCurrency, formatDate } from '@/ui/utils';
 
 export type { ProjectionViewData } from '@/application/retirement/use_cases/getProjectionViewUseCase';
@@ -47,11 +50,13 @@ export interface ProjectionViewVM {
   configSections: DefinitionSectionVM[];
 }
 
-const money = (value: number | null): string => (value === null ? '—' : formatCurrency(value));
+const money = (value: number | null): string =>
+  value === null ? PROJECTION_COMMON_LABELS.DASH : formatCurrency(value);
 
-const year = (value: number | null): string => (value === null ? '—' : String(value));
+const year = (value: number | null): string =>
+  value === null ? PROJECTION_COMMON_LABELS.DASH : String(value);
 
-const percent = (value: number): string => `${Number((value * 100).toFixed(4))}%`;
+const percent = percentText;
 
 const sourceTypeLabel = (type: string): string => {
   switch (type) {
@@ -66,38 +71,15 @@ const sourceTypeLabel = (type: string): string => {
   }
 };
 
-const parameterText = (rule: ProjectionRule): string => {
-  if ('rate' in rule.parameters) return `Rate ${percent(rule.parameters.rate)}`;
-  if ('ratio' in rule.parameters) return `Ratio ${percent(rule.parameters.ratio)}`;
-  if ('amount' in rule.parameters) return formatCurrency(rule.parameters.amount);
-  return '—';
-};
-
-const endConditionText = (rule: ProjectionRule): string => {
-  if (rule.endCondition === undefined) return '—';
-  switch (rule.endCondition.type) {
-    case 'retirementYearExclusive':
-      return END_CONDITION_LABELS.retirementYearExclusive;
-    case 'specificAge':
-      return `${END_CONDITION_LABELS.specificAge} ${rule.endCondition.age}`;
-    case 'specificYear':
-      return `${END_CONDITION_LABELS.specificYear} ${rule.endCondition.year}`;
-    case 'lifelong':
-      return END_CONDITION_LABELS.lifelong;
-  }
-};
-
 const emptyProjection = (retirementYear: number): RetirementProjectionVM => ({
   retirementYear,
-  retirementSavingsText: '—',
-  minYearText: '—',
-  minSavingsText: '—',
-  bankruptText: '—',
+  retirementSavingsText: PROJECTION_COMMON_LABELS.DASH,
+  minYearText: PROJECTION_COMMON_LABELS.DASH,
+  minSavingsText: PROJECTION_COMMON_LABELS.DASH,
+  bankruptText: PROJECTION_COMMON_LABELS.DASH,
   bankruptTone: 'default',
   chartData: [],
   yearlyDetails: [],
-  expenseBreakdownChartData: null,
-  risks: [],
 });
 
 /** Maps the frozen documents into display-only shapes; no relation to a plan. */
@@ -114,47 +96,18 @@ export const mapProjectionViewToVM = (data: ProjectionViewData): ProjectionViewV
       ? emptyProjection(retirementYear)
       : {
           retirementYear,
-          retirementSavingsText:
-            projection.retirementNetWorth === null
-              ? '—'
-              : formatCurrency(projection.retirementNetWorth),
-          minYearText:
-            projection.minNetWorthYear === null ? '—' : String(projection.minNetWorthYear),
+          retirementSavingsText: money(projection.retirementNetWorth),
+          minYearText: year(projection.minNetWorthYear),
           minSavingsText: formatCurrency(projection.minNetWorth),
           bankruptText:
-            projection.bankruptcyYear === null ? 'No' : `Yes (${projection.bankruptcyYear})`,
+            projection.bankruptcyYear === null
+              ? PROJECTION_COMMON_LABELS.NO
+              : `${PROJECTION_COMMON_LABELS.YES} (${projection.bankruptcyYear})`,
           bankruptTone: projection.isBankrupt ? 'negative' : 'positive',
-          chartData: years.map((entry) => ({
-            year: entry.year,
-            age: entry.age,
-            income: entry.inflows,
-            expense: entry.outflows,
-            investmentIncome: entry.return,
-            netCashFlow: entry.inflows - entry.outflows,
-            savings: entry.closing,
-            incomeText: formatCurrency(entry.inflows),
-            expenseText: formatCurrency(entry.outflows),
-            investmentIncomeText: formatCurrency(entry.return),
-            netCashFlowText: formatCurrency(entry.inflows - entry.outflows),
-            savingsText: formatCurrency(entry.closing),
-            isBankruptYear: projection.bankruptcyYear === entry.year,
-            isRetired: entry.isRetired,
-          })),
-          yearlyDetails: years.map((entry) => ({
-            year: entry.year,
-            age: entry.age,
-            isRetired: entry.isRetired,
-            statusText: entry.isRetired ? 'Retired' : 'Working',
-            incomeText: formatCurrency(entry.inflows),
-            expenseText: formatCurrency(entry.outflows),
-            investmentReturnText: formatCurrency(entry.return),
-            netCashFlowText: formatCurrency(entry.inflows - entry.outflows),
-            savingsText: formatCurrency(entry.closing),
-            incomeItems: [],
-            expenseItems: [],
-          })),
-          expenseBreakdownChartData: null,
-          risks: [],
+          chartData: years.map((entry) =>
+            mapProjectionPoint(entry, entry.inflows, entry.outflows, projection.bankruptcyYear),
+          ),
+          yearlyDetails: years.map(mapYearlyDetail),
         };
 
   const sourceSections =
@@ -250,11 +203,10 @@ export const mapProjectionViewToVM = (data: ProjectionViewData): ProjectionViewV
                       ...(rule.baselinePolicy === undefined
                         ? []
                         : [
-                            `${PROJECTION_VIEW_LABELS.SOURCE_TYPE}: ${
-                              BASELINE_POLICY_LABELS[
-                                rule.baselinePolicy as keyof typeof BASELINE_POLICY_LABELS
-                              ]
-                            }`,
+                            `${PROJECTION_VIEW_LABELS.BASELINE_POLICY}: ${rule.baselinePolicy}`,
+                            ...(rule.baselineYear === undefined
+                              ? []
+                              : [`${PROJECTION_VIEW_LABELS.BASELINE_YEAR}: ${rule.baselineYear}`]),
                           ]),
                       `${PROJECTION_VIEW_LABELS.ENABLED}: ${
                         rule.enabled ? PROJECTION_VIEW_LABELS.YES : PROJECTION_VIEW_LABELS.NO
@@ -294,7 +246,8 @@ export const mapProjectionViewToVM = (data: ProjectionViewData): ProjectionViewV
     id: projection.id,
     name: projection.name,
     createdAtText: formatDate(projection.createdAt),
-    periodText: config === null ? '—' : `${config.startYear}–${planEndYear}`,
+    periodText:
+      config === null ? PROJECTION_COMMON_LABELS.DASH : `${config.startYear}–${planEndYear}`,
     isStale: projection.engineVersion < ENGINE_VERSION,
     summary: {
       retirementNetWorthText: money(projection.retirementNetWorth),

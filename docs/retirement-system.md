@@ -219,6 +219,9 @@ ProjectionInput {
 }
 ```
 
+`birthYear` 僅用於輸出 `age = year - birthYear`，引擎不從它推導
+`retirementYear`（由呼叫端算好傳入）；少了它，輸出就無從標示年齡。
+
 金額項目為 `{ sourceRef, label, origin: 'rule' | 'event', amount }`，一律為正。
 
 每年依序計算：
