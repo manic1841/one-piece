@@ -1,9 +1,12 @@
+import { StrictMode } from 'react';
+
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { RouterProvider, createMemoryRouter } from 'react-router-dom';
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { listDebtAccountsUseCase } from '@/application/debt/use_cases/listDebtAccountsUseCase';
 import { createProjectionUseCase } from '@/application/retirement/use_cases/createProjectionUseCase';
+import { getProjectionViewUseCase } from '@/application/retirement/use_cases/getProjectionViewUseCase';
 import { getStartingNetWorthUseCase } from '@/application/retirement/use_cases/getStartingNetWorthUseCase';
 import { type RetirementPlanWorkspaceData } from '@/application/retirement/use_cases/retirementPlanLookup';
 import {
@@ -15,6 +18,10 @@ import ProjectionWorkspacePage from './ProjectionWorkspacePage';
 
 vi.mock('@/application/retirement/use_cases/getStartingNetWorthUseCase', () => ({
   getStartingNetWorthUseCase: { execute: vi.fn() },
+}));
+
+vi.mock('@/application/retirement/use_cases/getProjectionViewUseCase', () => ({
+  getProjectionViewUseCase: { execute: vi.fn() },
 }));
 
 vi.mock('@/application/retirement/use_cases/createProjectionUseCase', () => ({
@@ -166,17 +173,53 @@ async function calculate() {
   await screen.findByTestId('projection-results');
 }
 
-function renderWorkspace() {
+function renderWorkspace(initialEntry = '/retirement/new') {
   const router = createMemoryRouter(
     [
       { path: '/retirement/new', element: <ProjectionWorkspacePage /> },
       { path: '/other', element: <div>other</div> },
     ],
-    { initialEntries: ['/retirement/new'] },
+    { initialEntries: [initialEntry] },
   );
-  render(<RouterProvider router={router} />);
+  render(
+    <StrictMode>
+      <RouterProvider router={router} />
+    </StrictMode>,
+  );
   return router;
 }
+
+const preloadConfig = (overrides: Record<string, unknown> = {}) => ({
+  projection: {
+    id: 'projection-1',
+    name: 'Source projection',
+    engineVersion: 0,
+    createdAt: new Date('2026-03-02T00:00:00.000Z'),
+    createdBy: 'author@test.com',
+    retirementNetWorth: null,
+    finalNetWorth: 1,
+    minNetWorth: 0,
+    minNetWorthYear: null,
+    bankruptcyYear: null,
+    isBankrupt: false,
+  },
+  config: {
+    startYear: 2028,
+    openingNetWorth: { amount: 123_456, source: 'manual' as const },
+    assumptions: {
+      birthYear: 1990,
+      retirementAge: 60,
+      lifeExpectancy: 85,
+      inflationRate: 0.02,
+      annualReturnRate: 0.05,
+    },
+    projectionRules: [],
+    lifeEvents: [],
+    ...overrides,
+  },
+  source: { ruleSources: [] },
+  annual: { years: [] },
+});
 
 async function addRule(ruleType: 'income' | 'expense' = 'income') {
   if (ruleType === 'expense') {
@@ -721,6 +764,57 @@ describe('ProjectionWorkspacePage', () => {
     expect(await screen.findByText('找不到科目：expense:rent')).toBeInTheDocument();
     expect(screen.queryByTestId('projection-results')).not.toBeInTheDocument();
     expect(screen.queryByText(/Preview is read-only/)).not.toBeInTheDocument();
+  });
+
+  it('preloads a manual projection setup, marks it dirty and strips the query', async () => {
+    vi.mocked(getProjectionViewUseCase.execute).mockResolvedValue(preloadConfig() as never);
+    const router = renderWorkspace('/retirement/new?from=projection-1');
+
+    await waitFor(() => expect(screen.getByLabelText('Birth year')).toHaveValue(1990));
+    expect(screen.getByLabelText('Opening net worth')).toHaveValue(123456);
+    expect(screen.getByLabelText('Birth year')).toHaveAttribute('readonly');
+    await waitFor(() => expect(router.state.location.search).toBe(''));
+    expect(getStartingNetWorthUseCase.execute).not.toHaveBeenCalled();
+
+    await act(async () => {
+      void router.navigate('/other');
+    });
+    await waitFor(() => expect(confirmMock).toHaveBeenCalledTimes(1));
+  });
+
+  it('re-resolves a derived opening while keeping the rest of the preload', async () => {
+    vi.mocked(getProjectionViewUseCase.execute).mockResolvedValue(
+      preloadConfig({
+        openingNetWorth: { amount: 1, source: 'derived', anchorYearMonth: '2026-01' },
+      }) as never,
+    );
+    vi.mocked(getStartingNetWorthUseCase.execute).mockResolvedValue({
+      startingNetWorth: 380_000,
+      anchorYearMonth: '2026-08',
+      assets: 500_000,
+      liabilities: 120_000,
+    });
+    const router = renderWorkspace('/retirement/new?from=projection-1');
+
+    await waitFor(() => expect(screen.getByLabelText('Opening net worth')).toHaveValue(380000));
+    expect(screen.getByLabelText('Birth year')).toHaveValue(1990);
+    await waitFor(() => expect(router.state.location.search).toBe(''));
+  });
+
+  it('falls back to a blank, dirty setup when the source projection is gone', async () => {
+    vi.mocked(getProjectionViewUseCase.execute).mockResolvedValue(null);
+    const router = renderWorkspace('/retirement/new?from=missing');
+
+    expect(await screen.findByTestId('preload-warning')).toHaveTextContent(
+      'Could not load the source projection. Starting from a blank setup.',
+    );
+    expect(screen.getByLabelText('Opening net worth')).toHaveValue(null);
+    await waitFor(() => expect(router.state.location.search).toBe(''));
+
+    await act(async () => {
+      void router.navigate('/other');
+    });
+    await waitFor(() => expect(confirmMock).toHaveBeenCalledTimes(1));
   });
 
   it('shows no results area before calculation', async () => {

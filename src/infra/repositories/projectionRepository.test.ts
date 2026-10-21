@@ -44,6 +44,7 @@ vi.mock('firebase/firestore', () => {
     }),
     getDoc: vi.fn(),
     getDocs: vi.fn(),
+    updateDoc: vi.fn().mockResolvedValue(undefined),
     query: vi.fn((ref: unknown, ...constraints: unknown[]) => ({ ref, constraints })),
     orderBy: vi.fn((field: string, direction: string) => ({ field, direction })),
     writeBatch: vi.fn(() => {
@@ -59,7 +60,7 @@ vi.mock('firebase/firestore', () => {
   };
 });
 
-const { getDoc, getDocs, writeBatch } = await import('firebase/firestore');
+const { getDoc, getDocs, updateDoc, writeBatch } = await import('firebase/firestore');
 
 type MockBatch = {
   set: ReturnType<typeof vi.fn>;
@@ -239,9 +240,18 @@ describe('projectionRepository', () => {
     expect(batch().commit).toHaveBeenCalledTimes(1);
   });
 
-  it('does not expose an update method', () => {
+  it('does not expose a general update method', () => {
     expect('update' in projectionRepository).toBe(false);
     expect('updateProjection' in projectionRepository).toBe(false);
+  });
+
+  it('renames only the name on the main document', async () => {
+    await projectionRepository.renameProjectionName('household-1', 'projection-1', 'Renamed');
+
+    expect(updateDoc).toHaveBeenCalledWith(
+      expect.objectContaining({ path: 'households/household-1/projections/projection-1' }),
+      { name: 'Renamed' },
+    );
   });
 
   it('lists projections ordered by createdAt desc', async () => {

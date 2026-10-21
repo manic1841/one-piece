@@ -25,9 +25,10 @@ import ProjectDetailPage from '@/ui/features/project/pages/ProjectDetailPage';
 import ProjectsPage from '@/ui/features/project/pages/ProjectsPage';
 import ReportDetailPage from '@/ui/features/report/pages/ReportDetailPage';
 import ReportListPage from '@/ui/features/report/pages/ReportListPage';
+import ProjectionListPage from '@/ui/features/retirement-redesign/pages/ProjectionListPage';
+import ProjectionViewPage from '@/ui/features/retirement-redesign/pages/ProjectionViewPage';
 import ProjectionWorkspacePage from '@/ui/features/retirement-redesign/pages/ProjectionWorkspacePage';
 import RetirementPlanForm from '@/ui/features/retirement/pages/RetirementPlanForm';
-import RetirementPlanList from '@/ui/features/retirement/pages/RetirementPlanList';
 import SettingsIndexRedirect from '@/ui/features/setting/pages/SettingsIndexRedirect';
 import SettingsLayout from '@/ui/features/setting/pages/SettingsLayout';
 import AccountingSettingsPage from '@/ui/features/setting/pages/sections/AccountingSettingsPage';
@@ -84,8 +85,9 @@ const router = createBrowserRouter([
       { path: 'portfolios/:id', element: <PortfolioDetailPage /> },
       { path: 'reports', element: <ReportListPage /> },
       { path: 'reports/:period', element: <ReportDetailPage /> },
-      { path: 'retirement', element: <RetirementPlanList /> },
+      { path: 'retirement', element: <ProjectionListPage /> },
       { path: 'retirement/new', element: <ProjectionWorkspacePage /> },
+      { path: 'retirement/projections/:id', element: <ProjectionViewPage /> },
       { path: 'retirement/:id', element: <RetirementPlanForm /> },
       { path: 'debt', element: <DebtListPage /> },
       { path: 'debt/:id', element: <DebtDetailPage /> },

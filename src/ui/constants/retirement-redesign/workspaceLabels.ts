@@ -42,6 +42,7 @@ export const PROJECTION_WORKSPACE_LABELS = {
   SAVED_MESSAGE: 'Projection saved.',
   SAVED_LINK: 'View projection',
   DEFAULT_NAME_PREFIX: 'Projection',
+  PRELOAD_FAILED: 'Could not load the source projection. Starting from a blank setup.',
   LEAVE_TITLE: 'Leave this workspace?',
   LEAVE_CONTEXT: 'Your setup and preview live in memory only.',
   LEAVE_CONSEQUENCE: 'Leaving discards every unsaved change.',
