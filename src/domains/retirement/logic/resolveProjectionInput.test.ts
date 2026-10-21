@@ -219,6 +219,7 @@ describe('resolveProjectionInput', () => {
       expect(result.input.firstYear).toBe(2025);
       expect(result.input.lastYear).toBe(2065);
       expect(result.input.retirementYear).toBe(2045);
+      expect(result.input.birthYear).toBe(1980);
       expect(result.input.years.map((entry) => entry.year)).toEqual(
         Array.from({ length: 41 }, (_, index) => 2025 + index),
       );
