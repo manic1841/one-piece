@@ -133,6 +133,11 @@ export function useAssumptionDraft(markDirty: () => void, currentYear = new Date
     setBirthYearLocked(true);
   }, []);
 
+  /** CALCULATE reveals every field error, not only the touched ones. */
+  const revealAll = useCallback(() => {
+    setTouched(Object.fromEntries(FIELDS.map((field) => [field, true])));
+  }, []);
+
   return {
     values,
     errors: visibleErrors,
@@ -140,6 +145,7 @@ export function useAssumptionDraft(markDirty: () => void, currentYear = new Date
     valid: validation.ok,
     setField,
     validate,
+    revealAll,
     resetFrom,
   };
 }

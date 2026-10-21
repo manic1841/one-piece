@@ -36,10 +36,14 @@
 
 設定到預覽的兩階段、計算不落地、dirty 攔截、三 tab 唯讀檢視、`engineVersion` 過舊提示。
 
+`CALCULATE` 是 setup 的唯一前進動作：先以共用 plan schema 驗證三群組與期初，失敗時一次露出全部行內錯誤且不換階段；通過後才跑解析與引擎。解析錯誤全數列出且不落庫，警告列在結果區上方但不阻擋儲存。結果含六欄 summary、淨資產軌跡與逐年 breakdown；未計算時結果區不佔位。
+
+寫入只發生在預覽的 `SAVE` dialog：名稱必填、預填工作區名稱或本地時間戳，儲存中停在 dialog 且 Esc／背景點擊無效。失敗顯示 `RETRY`，成功關閉、留在預覽、顯示檢視頁連結，並以最後名稱預填下一次。`BACK TO SETUP` 只丟棄結果，不動草稿。
+
 ## 9. 備份與還原
 
 `projections` 以三份固定子文件進入 payload、還原沿用原 id、v1 備份直接拒絕。
 
 ## 10. 驗證重點
 
-schema 邊界、環偵測、原子性與錯誤碼。
+schema 邊界、環偵測、原子性與錯誤碼。建立投影另驗：計算被無效輸入擋下且全數錯誤可見、警告與結果並存、儲存 dialog 的必填／loading／失敗重試／成功連結與重新預填，以及 `PROJECTION_TOO_LARGE`、`PROJECTION_WRITE_FAILED` 的穩定對應。

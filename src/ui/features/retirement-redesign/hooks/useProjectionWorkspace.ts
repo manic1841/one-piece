@@ -2,15 +2,30 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { useBlocker } from 'react-router-dom';
 
+import { createProjectionUseCase } from '@/application/retirement/use_cases/createProjectionUseCase';
 import { getStartingNetWorthUseCase } from '@/application/retirement/use_cases/getStartingNetWorthUseCase';
 import { type RetirementPlanWorkspaceData } from '@/application/retirement/use_cases/retirementPlanLookup';
+import { type RetirementAssumptions } from '@/domains/retirement/assumptions';
+import { type LifeEvent } from '@/domains/retirement/lifeEvents';
+import {
+  type ProjectionResolveError,
+  type ProjectionSummary,
+} from '@/domains/retirement/logic/projectionTypes';
+import { type ProjectionRule } from '@/domains/retirement/projectionRules';
 import { useConfirm } from '@/ui/components/confirm/useConfirm';
+import {
+  PROJECTION_RESULT_LABELS,
+  resolveErrorLabel,
+} from '@/ui/constants/retirement-redesign/resultLabels';
 import { PROJECTION_WORKSPACE_LABELS } from '@/ui/constants/retirement-redesign/workspaceLabels';
 import { useAssumptionDraft } from '@/ui/features/retirement-redesign/hooks/useAssumptionDraft';
 import { useLifeEventDrafts } from '@/ui/features/retirement-redesign/hooks/useLifeEventDrafts';
 import { useRuleDrafts } from '@/ui/features/retirement-redesign/hooks/useRuleDrafts';
+import { mapProjectionResultToVM } from '@/ui/features/retirement-redesign/viewmodels/projectionResultVm';
 import { useAuthIdentity } from '@/ui/hooks/useAuthIdentity';
 import { useLoadingTask } from '@/ui/hooks/useLoadingTask';
+
+export type { ProjectionSummary } from '@/domains/retirement/logic/projectionTypes';
 
 export type ProjectionWorkspaceStage = 'setup' | 'preview';
 export type OpeningNetWorthSource = 'derived' | 'manual';
@@ -34,6 +49,19 @@ const EMPTY_OPENING: OpeningNetWorthVM = {
   anchorYearMonth: null,
 };
 
+interface ValidatedPlan {
+  assumptions: RetirementAssumptions;
+  rules: ProjectionRule[];
+  lifeEvents: LifeEvent[];
+}
+
+interface CalculatedProjection {
+  projection: ReturnType<typeof mapProjectionResultToVM>;
+  summary: ProjectionSummary;
+  warnings: ProjectionResolveError[];
+  source: ValidatedPlan;
+}
+
 /**
  * Controller for the projection workspace shell. The draft is a single
  * in-memory object; switching stages never changes the route and never drops
@@ -56,6 +84,12 @@ export function useProjectionWorkspace(householdId: string | undefined) {
   const [reportValue, setReportValue] = useState<ReportValue | null>(null);
   const [dirty, setDirty] = useState(false);
   const [appliedPlanName, setAppliedPlanName] = useState<string | null>(null);
+  const [openingValidationError, setOpeningValidationError] = useState<string | undefined>();
+  const [calculated, setCalculated] = useState<CalculatedProjection | null>(null);
+  const [resolveErrors, setResolveErrors] = useState<ProjectionResolveError[]>([]);
+  const [calculateError, setCalculateError] = useState<string | null>(null);
+  const [calculating, setCalculating] = useState(false);
+  const [savedId, setSavedId] = useState<string | null>(null);
 
   const seededRef = useRef(false);
   const promptingRef = useRef(false);
@@ -165,6 +199,9 @@ export function useProjectionWorkspace(householdId: string | undefined) {
       rules.replaceAll(plan.rules);
       events.replaceAll(plan.lifeEvents);
       setAppliedPlanName(plan.name);
+      setCalculated(null);
+      setResolveErrors([]);
+      setCalculateError(null);
       setStage('setup');
       markDirty();
     },
@@ -172,23 +209,128 @@ export function useProjectionWorkspace(householdId: string | undefined) {
   );
 
   /** One call the setup stage can use before saving: the three schema groups. */
+  const validateOpening = useCallback((): string | undefined => {
+    if (opening.source !== 'manual') return undefined;
+    const text = opening.amountText.trim();
+    const amount = Number(text);
+    if (text === '' || !Number.isInteger(amount)) {
+      return PROJECTION_RESULT_LABELS.OPENING_INVALID;
+    }
+    return undefined;
+  }, [opening.amountText, opening.source]);
+
   const validate = useCallback(() => {
     const assumptionsResult = assumptions.validate();
     const rulesResult = rules.validate();
     const eventsResult = events.validate();
+    const openingError = validateOpening();
 
     return {
-      ok: assumptionsResult.ok && rulesResult.ok && eventsResult.ok,
+      ok: assumptionsResult.ok && rulesResult.ok && eventsResult.ok && openingError === undefined,
       assumptions: assumptionsResult,
       rules: rulesResult,
       events: eventsResult,
+      openingError,
     };
+  }, [assumptions, events, rules, validateOpening]);
+
+  const revealErrors = useCallback(() => {
+    assumptions.revealAll();
+    rules.revealAll();
+    events.revealAll();
   }, [assumptions, events, rules]);
 
   const valid = assumptions.valid && rules.valid && events.valid;
 
   const goToPreview = useCallback(() => setStage('preview'), []);
-  const backToSetup = useCallback(() => setStage('setup'), []);
+
+  const backToSetup = useCallback(() => {
+    setStage('setup');
+    setCalculated(null);
+    setResolveErrors([]);
+    setCalculateError(null);
+    setOpeningValidationError(undefined);
+  }, []);
+
+  const calculate = useCallback(async () => {
+    const validation = validate();
+    setOpeningValidationError(validation.openingError);
+    setCalculateError(null);
+    setResolveErrors([]);
+
+    const { data: assumptionData } = validation.assumptions;
+    const { data: ruleData } = validation.rules;
+    const { data: eventData } = validation.events;
+
+    if (!validation.ok || !assumptionData || !ruleData || !eventData) {
+      revealErrors();
+      return;
+    }
+
+    const plan: ValidatedPlan = {
+      assumptions: assumptionData,
+      rules: ruleData,
+      lifeEvents: eventData,
+    };
+
+    setCalculating(true);
+
+    const outcome = await createProjectionUseCase.execute({
+      householdId: householdId ?? '',
+      auth,
+      startYear: new Date().getFullYear(),
+      opening: {
+        source: opening.source,
+        amount: Number(opening.amountText),
+      },
+      ...plan,
+      persist: false,
+    });
+    setCalculating(false);
+
+    if (!outcome.ok) {
+      if (outcome.code === 'PROJECTION_RESOLVE_FAILED') {
+        setResolveErrors(outcome.errors ?? []);
+        setCalculateError(PROJECTION_RESULT_LABELS.RESOLVE_FAILED);
+      } else {
+        setCalculateError(PROJECTION_RESULT_LABELS.CALCULATE_FAILED);
+      }
+      setCalculated(null);
+      return;
+    }
+
+    setCalculated({
+      projection: mapProjectionResultToVM(outcome.input, outcome.result),
+      summary: outcome.result.summary,
+      warnings: outcome.warnings,
+      source: plan,
+    });
+    setStage('preview');
+  }, [auth, householdId, opening.amountText, opening.source, revealErrors, validate]);
+
+  const save = useCallback(
+    async (name: string): Promise<string | null> => {
+      if (calculated === null) return null;
+
+      const outcome = await createProjectionUseCase.execute({
+        householdId: householdId ?? '',
+        auth,
+        startYear: new Date().getFullYear(),
+        opening: {
+          source: opening.source,
+          amount: Number(opening.amountText),
+        },
+        ...calculated.source,
+        name,
+        persist: true,
+      });
+
+      if (!outcome.ok || outcome.id === null) return null;
+      setSavedId(outcome.id);
+      return outcome.id;
+    },
+    [auth, calculated, householdId, opening.amountText, opening.source],
+  );
 
   return {
     stage,
@@ -199,8 +341,18 @@ export function useProjectionWorkspace(householdId: string | undefined) {
     appliedPlanName,
     applyPlan,
     validate,
+    revealErrors,
     valid,
     dirty,
+    calculated,
+    warningLabels: calculated?.warnings.map(resolveErrorLabel) ?? [],
+    errorLabels: resolveErrors.map(resolveErrorLabel),
+    calculateError,
+    calculating,
+    savedId,
+    calculate,
+    save,
+    openingValidationError,
     openingLoading,
     openingError,
     hasClosedPeriod: reportValue !== null,
