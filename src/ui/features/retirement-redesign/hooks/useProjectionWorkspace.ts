@@ -3,8 +3,11 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useBlocker } from 'react-router-dom';
 
 import { getStartingNetWorthUseCase } from '@/application/retirement/use_cases/getStartingNetWorthUseCase';
+import { type RetirementPlanWorkspaceData } from '@/application/retirement/use_cases/retirementPlanLookup';
 import { useConfirm } from '@/ui/components/confirm/useConfirm';
 import { PROJECTION_WORKSPACE_LABELS } from '@/ui/constants/retirement-redesign/workspaceLabels';
+import { useAssumptionDraft } from '@/ui/features/retirement-redesign/hooks/useAssumptionDraft';
+import { useRuleDrafts } from '@/ui/features/retirement-redesign/hooks/useRuleDrafts';
 import { useAuthIdentity } from '@/ui/hooks/useAuthIdentity';
 import { useLoadingTask } from '@/ui/hooks/useLoadingTask';
 
@@ -51,11 +54,14 @@ export function useProjectionWorkspace(householdId: string | undefined) {
   const [opening, setOpening] = useState<OpeningNetWorthVM>(EMPTY_OPENING);
   const [reportValue, setReportValue] = useState<ReportValue | null>(null);
   const [dirty, setDirty] = useState(false);
+  const [appliedPlanName, setAppliedPlanName] = useState<string | null>(null);
 
   const seededRef = useRef(false);
   const promptingRef = useRef(false);
 
   const markDirty = useCallback(() => setDirty(true), []);
+  const assumptions = useAssumptionDraft(markDirty);
+  const rules = useRuleDrafts(markDirty);
 
   const loadOpening = useCallback(async () => {
     await run(
@@ -151,12 +157,27 @@ export function useProjectionWorkspace(householdId: string | undefined) {
     void loadOpening();
   }, [loadOpening]);
 
+  const applyPlan = useCallback(
+    (plan: RetirementPlanWorkspaceData) => {
+      assumptions.resetFrom(plan.assumptions);
+      rules.replaceAll(plan.rules);
+      setAppliedPlanName(plan.name);
+      setStage('setup');
+      markDirty();
+    },
+    [assumptions, markDirty, rules],
+  );
+
   const goToPreview = useCallback(() => setStage('preview'), []);
   const backToSetup = useCallback(() => setStage('setup'), []);
 
   return {
     stage,
     opening,
+    assumptions,
+    rules,
+    appliedPlanName,
+    applyPlan,
     dirty,
     openingLoading,
     openingError,

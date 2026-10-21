@@ -1,26 +1,20 @@
+import { useState } from 'react';
+
 import { PageHeader } from '@/ui/components/PageHeader';
 import { PageSection } from '@/ui/components/PageSection';
 import { Button } from '@/ui/components/ui/button';
+import { PLAN_APPLY_LABELS } from '@/ui/constants/retirement-redesign/setupLabels';
 import { PROJECTION_WORKSPACE_LABELS } from '@/ui/constants/retirement-redesign/workspaceLabels';
 import { useAuthState } from '@/ui/contexts/useAuthState';
+import { useLedgerCodes } from '@/ui/features/ledger/hooks/useLedgerCodes';
+import { ApplyPlanDialog } from '@/ui/features/retirement-redesign/components/ApplyPlanDialog';
+import { AssumptionsSection } from '@/ui/features/retirement-redesign/components/AssumptionsSection';
 import { OpeningNetWorthSection } from '@/ui/features/retirement-redesign/components/OpeningNetWorthSection';
+import { ProjectionRulesSection } from '@/ui/features/retirement-redesign/components/ProjectionRulesSection';
 import { WorkspaceSteps } from '@/ui/features/retirement-redesign/components/WorkspaceSteps';
+import { useDebtAccountOptions } from '@/ui/features/retirement-redesign/hooks/useDebtAccountOptions';
+import { usePlanLibrary } from '@/ui/features/retirement-redesign/hooks/usePlanLibrary';
 import { useProjectionWorkspace } from '@/ui/features/retirement-redesign/hooks/useProjectionWorkspace';
-
-const PLACEHOLDER_GROUPS = [
-  {
-    title: PROJECTION_WORKSPACE_LABELS.ASSUMPTIONS_SECTION,
-    copy: PROJECTION_WORKSPACE_LABELS.ASSUMPTIONS_PLACEHOLDER,
-  },
-  {
-    title: PROJECTION_WORKSPACE_LABELS.RULES_SECTION,
-    copy: PROJECTION_WORKSPACE_LABELS.RULES_PLACEHOLDER,
-  },
-  {
-    title: PROJECTION_WORKSPACE_LABELS.EVENTS_SECTION,
-    copy: PROJECTION_WORKSPACE_LABELS.EVENTS_PLACEHOLDER,
-  },
-] as const;
 
 /**
  * `/retirement/new` projection workspace shell. Both stages share this route
@@ -28,8 +22,21 @@ const PLACEHOLDER_GROUPS = [
  */
 export default function ProjectionWorkspacePage() {
   const { userProfile } = useAuthState();
-  const workspace = useProjectionWorkspace(userProfile?.householdId);
+  const householdId = userProfile?.householdId;
+  const workspace = useProjectionWorkspace(householdId);
+  const planLibrary = usePlanLibrary(householdId);
+  const { codes: ledgerCodes } = useLedgerCodes();
+  const { accounts: debtAccounts } = useDebtAccountOptions(householdId);
+  const [applyOpen, setApplyOpen] = useState(false);
   const isPreview = workspace.stage === 'preview';
+
+  const handleApply = async (planId: string) => {
+    const plan = await planLibrary.getPlan(planId);
+    if (!plan) return false;
+    workspace.applyPlan(plan);
+    setApplyOpen(false);
+    return true;
+  };
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
@@ -38,7 +45,7 @@ export default function ProjectionWorkspacePage() {
         description={PROJECTION_WORKSPACE_LABELS.DESCRIPTION}
         actions={
           <>
-            <Button variant="outline" size="sm" disabled>
+            <Button variant="outline" size="sm" onClick={() => setApplyOpen(true)}>
               {PROJECTION_WORKSPACE_LABELS.APPLY_PLAN}
             </Button>
             <Button variant="outline" size="sm" disabled>
@@ -50,7 +57,13 @@ export default function ProjectionWorkspacePage() {
 
       <WorkspaceSteps stage={workspace.stage} />
 
-      <div className="space-y-2">
+      {workspace.appliedPlanName && (
+        <p className="text-sm text-muted-foreground" data-testid="applied-plan-name">
+          {PLAN_APPLY_LABELS.APPLIED_PREFIX} {workspace.appliedPlanName}
+        </p>
+      )}
+
+      <div className="grid grid-cols-1 gap-2">
         <OpeningNetWorthSection
           opening={workspace.opening}
           stage={workspace.stage}
@@ -65,16 +78,38 @@ export default function ProjectionWorkspacePage() {
           retry={workspace.retryOpening}
         />
 
-        {PLACEHOLDER_GROUPS.map((group, index) => (
-          <PageSection
-            key={group.title}
-            number={`0${index + 1}`}
-            title={group.title}
-            spacing="compact"
-          >
-            <p className="text-sm text-muted-foreground">{group.copy}</p>
-          </PageSection>
-        ))}
+        <AssumptionsSection
+          values={workspace.assumptions.values}
+          errors={workspace.assumptions.errors}
+          birthYearLocked={workspace.assumptions.birthYearLocked}
+          readOnly={isPreview}
+          setField={workspace.assumptions.setField}
+        />
+
+        <ProjectionRulesSection
+          rules={workspace.rules.rules}
+          errors={workspace.rules.errors}
+          readOnly={isPreview}
+          ledgerCodes={ledgerCodes}
+          debtAccounts={debtAccounts}
+          add={workspace.rules.add}
+          remove={workspace.rules.remove}
+          toggle={workspace.rules.toggle}
+          update={workspace.rules.update}
+          setRuleType={workspace.rules.setRuleType}
+          setMethod={workspace.rules.setMethod}
+          setSourceType={workspace.rules.setSourceType}
+        />
+
+        <PageSection
+          number="03"
+          title={PROJECTION_WORKSPACE_LABELS.EVENTS_SECTION}
+          spacing="compact"
+        >
+          <p className="text-sm text-muted-foreground">
+            {PROJECTION_WORKSPACE_LABELS.EVENTS_PLACEHOLDER}
+          </p>
+        </PageSection>
       </div>
 
       {isPreview && (
@@ -95,6 +130,16 @@ export default function ProjectionWorkspacePage() {
           <Button onClick={workspace.goToPreview}>{PROJECTION_WORKSPACE_LABELS.PREVIEW}</Button>
         )}
       </div>
+
+      <ApplyPlanDialog
+        open={applyOpen}
+        plans={planLibrary.plans}
+        loading={planLibrary.loading}
+        loadError={!!planLibrary.error}
+        onCancel={() => setApplyOpen(false)}
+        onRetry={() => void planLibrary.refresh()}
+        onApply={handleApply}
+      />
     </div>
   );
 }
