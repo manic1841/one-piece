@@ -26,7 +26,14 @@ const PAYLOAD_KEY_BY_DB_NAME: Record<string, string> = {
 };
 
 /** Collections intentionally outside the backup. */
-const EXCLUDED_DB_NAMES = new Set(['operations', 'users', 'access_control', 'households']);
+// `projections` joins the payload in backup v2 (#340); the repository lands first (#339).
+const EXCLUDED_DB_NAMES = new Set([
+  'operations',
+  'users',
+  'access_control',
+  'households',
+  'projections',
+]);
 
 /** Subcollections embedded inside their parent payload key, not backed up separately. */
 const EMBEDDED_SUBCOLLECTIONS = new Set(['snapshots', 'incomeStreams', 'expenseCategories']);
