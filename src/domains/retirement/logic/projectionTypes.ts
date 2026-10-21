@@ -19,9 +19,36 @@ export interface ProjectionInput {
   firstYear: number;
   lastYear: number;
   retirementYear: number;
+  birthYear: number;
   openingNetWorth: number;
   annualReturnRate: number;
   years: ProjectionYearInput[];
+}
+
+export interface ProjectionYearResult {
+  year: number;
+  age: number;
+  isRetired: boolean;
+  opening: number;
+  return: number;
+  inflows: number;
+  outflows: number;
+  closing: number;
+}
+
+/** Nullable fields mean "not applicable", never zero. */
+export interface ProjectionSummary {
+  retirementNetWorth: number | null;
+  finalNetWorth: number;
+  minNetWorth: number;
+  minNetWorthYear: number | null;
+  bankruptcyYear: number | null;
+  isBankrupt: boolean;
+}
+
+export interface ProjectionResult {
+  years: ProjectionYearResult[];
+  summary: ProjectionSummary;
 }
 
 export type ProjectionResolveErrorCode =

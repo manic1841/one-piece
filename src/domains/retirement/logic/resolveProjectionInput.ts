@@ -412,6 +412,7 @@ export function resolveProjectionInput(
       firstYear,
       lastYear,
       retirementYear,
+      birthYear: assumptions.birthYear,
       openingNetWorth: openingAmount ?? 0,
       annualReturnRate: assumptions.annualReturnRate,
       years,
