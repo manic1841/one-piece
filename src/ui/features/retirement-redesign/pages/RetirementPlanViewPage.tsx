@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 
 import { ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 
 import { EmptyState } from '@/ui/components/EmptyState';
 import { InlineEditableTitle } from '@/ui/components/InlineEditableTitle';
@@ -15,7 +16,7 @@ import { RetirementPlanDetail } from '@/ui/features/retirement-redesign/componen
 import { useRetirementPlanAccess } from '@/ui/features/retirement-redesign/hooks/useRetirementPlanAccess';
 import { useRetirementPlanDetail } from '@/ui/features/retirement-redesign/hooks/useRetirementPlanDetail';
 import { mapRetirementPlanToVM } from '@/ui/features/retirement-redesign/viewmodels/retirementPlanVm';
-import { formatDate } from '@/ui/utils';
+import { getTaskErrorMessage } from '@/ui/hooks/getErrorMessage';
 
 const SKELETON_ROWS = [0, 1, 2];
 
@@ -31,8 +32,19 @@ export default function RetirementPlanViewPage() {
   const backToList = () => navigate('/retirement/plans');
 
   const handleRename = async (name: string) => {
-    const saved = await rename(name);
-    if (!saved) throw new Error('rename failed');
+    const task = await rename(name);
+    if (task === null) return;
+    if (!task.ok) {
+      toast.error(getTaskErrorMessage(task));
+      return;
+    }
+    if (!task.value.ok) toast.error(PLAN_DETAIL_LABELS.RENAME_FAILED);
+  };
+
+  const handleDelete = async () => {
+    const task = await remove();
+    if (task === null) return;
+    if (!task.ok) toast.error(getTaskErrorMessage(task));
   };
 
   if (loading) {
@@ -85,12 +97,12 @@ export default function RetirementPlanViewPage() {
         onBack={backToList}
         meta={
           <p className="mt-1 text-sm text-muted-foreground">
-            {PLAN_DETAIL_LABELS.UPDATED_AT}: {plan === null ? '' : formatDate(plan.updatedAt)}
+            {PLAN_DETAIL_LABELS.UPDATED_AT}: {vm.updatedAtText}
           </p>
         }
       />
 
-      <RetirementPlanDetail plan={vm} canDelete={canManage} onDelete={() => void remove()} />
+      <RetirementPlanDetail plan={vm} canDelete={canManage} onDelete={() => void handleDelete()} />
     </div>
   );
 }

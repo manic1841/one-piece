@@ -13,20 +13,19 @@ import {
 
 import {
   type CreateProjectionAtomicallyInput,
-  PROJECTION_DOCUMENT_MAX_BYTES,
   type ProjectionAnnual,
   ProjectionAnnualSchema,
   type ProjectionConfig,
+  ProjectionConfigSchema,
   type ProjectionDocument,
   type ProjectionDocumentName,
   ProjectionDocumentSchema,
   type ProjectionSource,
   ProjectionSourceSchema,
   type ProjectionWriteResult,
-  createProjectionConfigSchema,
 } from '@/domains/retirement/logic/projectionDocuments';
 import { db } from '@/firebase';
-import { byteLength, fromFirestore, sanitize } from '@/infra/repositories/firestorePayload';
+import { fromFirestore, isDocumentTooLarge, sanitize } from '@/infra/repositories/firestorePayload';
 
 export type {
   CreateProjectionAtomicallyInput,
@@ -38,8 +37,6 @@ export type {
   ProjectionWriteResult,
 } from '@/domains/retirement/logic/projectionDocuments';
 export { PROJECTION_DOCUMENT_MAX_BYTES } from '@/domains/retirement/logic/projectionDocuments';
-
-const currentYear = (): number => new Date().getFullYear();
 
 class ProjectionRepository {
   private readonly collectionName = 'projections';
@@ -112,7 +109,7 @@ class ProjectionRepository {
     ];
 
     for (const [document, payload] of documents) {
-      if (byteLength(payload) > PROJECTION_DOCUMENT_MAX_BYTES) {
+      if (isDocumentTooLarge(payload)) {
         return { ok: false, code: 'PROJECTION_TOO_LARGE', document };
       }
     }
@@ -175,7 +172,7 @@ class ProjectionRepository {
     const snapshot = await getDoc(this.getConfigRef(householdId, projectionId));
     if (!snapshot.exists()) return null;
 
-    return createProjectionConfigSchema(currentYear()).parse(fromFirestore(snapshot.data()));
+    return ProjectionConfigSchema.parse(fromFirestore(snapshot.data()));
   }
 
   async getProjectionSource(

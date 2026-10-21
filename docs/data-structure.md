@@ -79,12 +79,13 @@ firestore
 
       ├─ retirementPlans/{planId}       # 退休計畫：可重複使用的假設模板（ADR-0083）
       │    ├─ name: string              # trim().min(1)、max(100)
-      │    ├─ assumptions: object       # 五個必填純量
+      │    ├─ assumptions: object       # 五個必填純量；currentAge = 當下年度 − birthYear，不落庫
       │    │    ├─ birthYear: integer            # 1900..當下年度；建立後不可變
       │    │    ├─ retirementAge: integer        # 1..120
-      │    │    ├─ lifeExpectancy: integer       # > retirementAge、>= currentAge、<=130
+      │    │    ├─ lifeExpectancy: integer       # > retirementAge、>= currentAge
       │    │    ├─ inflationRate: decimal        # -0.10..0.20，4 位小數
-      │    │    └─ annualReturnRate: decimal     # -0.50..0.30，4 位小數
+      │    │    ├─ annualReturnRate: decimal     # -0.50..0.30，4 位小數
+      │    │    # 交叉檢查：currentAge > 130 報錯；規則見 retirement-system.md §3
       │    ├─ projectionRules: array    # 每條必有 source（fixedAmount 除外）
       │    │    ├─ id: string
       │    │    ├─ name: string

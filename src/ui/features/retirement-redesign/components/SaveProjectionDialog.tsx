@@ -1,5 +1,14 @@
-import { useState } from 'react';
+import { type UseFormReturn } from 'react-hook-form';
 
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+  TextInput,
+} from '@/ui/components/form';
 import { Alert, AlertDescription } from '@/ui/components/ui/alert';
 import { Button } from '@/ui/components/ui/button';
 import {
@@ -9,98 +18,70 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/ui/components/ui/dialog';
-import { Input } from '@/ui/components/ui/input';
-import { Label } from '@/ui/components/ui/label';
 import { PROJECTION_WORKSPACE_LABELS } from '@/ui/constants/retirement-redesign/workspaceLabels';
-
-export interface SaveNameOutcome {
-  ok: boolean;
-  messages?: string[];
-}
+import { type SaveNameVM } from '@/ui/features/retirement-redesign/viewmodels/saveName.vm';
 
 interface SaveProjectionDialogProps {
   open: boolean;
   title?: string;
   nameLabel?: string;
-  requiredMessage?: string;
   confirmLabel?: string;
   savingLabel?: string;
-  defaultName: string;
+  form: UseFormReturn<SaveNameVM>;
+  submit: () => Promise<void>;
   onCancel: () => void;
-  onSave: (name: string) => Promise<SaveNameOutcome>;
 }
 
 /**
- * The only write gate. Esc and backdrop are inert while saving; failure keeps
- * the dialog open with every validation message listed.
+ * Dumb save gate. All form state lives in the controller; Esc and backdrop are
+ * inert while saving, and a failure keeps the dialog open with every message.
  */
 export function SaveProjectionDialog({
   open,
   title = PROJECTION_WORKSPACE_LABELS.SAVE_DIALOG_TITLE,
   nameLabel = PROJECTION_WORKSPACE_LABELS.SAVE_DIALOG_NAME,
-  requiredMessage = PROJECTION_WORKSPACE_LABELS.SAVE_DIALOG_NAME_REQUIRED,
   confirmLabel = PROJECTION_WORKSPACE_LABELS.SAVE_DIALOG_CONFIRM,
   savingLabel = PROJECTION_WORKSPACE_LABELS.SAVE_DIALOG_SAVING,
-  defaultName,
+  form,
+  submit,
   onCancel,
-  onSave,
 }: SaveProjectionDialogProps) {
-  const [name, setName] = useState(defaultName);
-  const [saving, setSaving] = useState(false);
-  const [messages, setMessages] = useState<string[]>([]);
-  const [failed, setFailed] = useState(false);
-
-  const submit = async () => {
-    if (name.trim() === '') {
-      setMessages([requiredMessage]);
-      return;
-    }
-
-    setMessages([]);
-    setSaving(true);
-    const outcome = await onSave(name.trim());
-    setSaving(false);
-    if (!outcome.ok) {
-      setFailed(true);
-      setMessages(outcome.messages ?? [PROJECTION_WORKSPACE_LABELS.SAVE_DIALOG_FAILED]);
-    }
-  };
+  const { errors, isSubmitting } = form.formState;
+  const messages = errors.root?.message?.split('\n') ?? [];
 
   return (
     <Dialog
       open={open}
       onOpenChange={(next) => {
-        if (next || saving) return;
+        if (next || isSubmitting) return;
+        form.reset();
         onCancel();
       }}
     >
       <DialogContent
         aria-describedby={undefined}
         onEscapeKeyDown={(event) => {
-          if (saving) event.preventDefault();
+          if (isSubmitting) event.preventDefault();
         }}
         onInteractOutside={(event) => {
-          if (saving) event.preventDefault();
+          if (isSubmitting) event.preventDefault();
         }}
       >
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
         </DialogHeader>
 
-        <div className="grid gap-2">
-          <Label htmlFor="projection-save-name">{nameLabel}</Label>
-          <Input
-            id="projection-save-name"
-            value={name}
-            onChange={(event) => {
-              setName(event.target.value);
-              setMessages([]);
-              setFailed(false);
-            }}
-            disabled={saving}
-            aria-invalid={messages.length > 0}
-          />
-        </div>
+        <Form {...form}>
+          <FormField name="name">
+            <FormItem>
+              <FormLabel>{nameLabel}</FormLabel>
+              <FormControl>
+                <TextInput disabled={isSubmitting} onChange={() => form.clearErrors()} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          </FormField>
+        </Form>
 
         {messages.length > 0 && (
           <Alert variant="warning">
@@ -115,13 +96,20 @@ export function SaveProjectionDialog({
         )}
 
         <DialogFooter>
-          <Button variant="outline" onClick={onCancel} disabled={saving}>
+          <Button
+            variant="outline"
+            onClick={() => {
+              form.reset();
+              onCancel();
+            }}
+            disabled={isSubmitting}
+          >
             {PROJECTION_WORKSPACE_LABELS.SAVE_DIALOG_CANCEL}
           </Button>
-          <Button onClick={submit} disabled={saving}>
-            {saving
+          <Button onClick={() => void submit()} disabled={isSubmitting}>
+            {isSubmitting
               ? savingLabel
-              : failed
+              : messages.length > 0
                 ? PROJECTION_WORKSPACE_LABELS.SAVE_DIALOG_RETRY
                 : confirmLabel}
           </Button>

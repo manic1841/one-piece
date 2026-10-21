@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { type RetirementPlanCreate } from '@/domains/retirement/planSchemas';
+import { type RetirementPlanCreate } from '@/domains/retirement/types';
 
 import { retirementPlanRepository } from './retirementPlanRepository';
 
@@ -27,6 +27,7 @@ vi.mock('firebase/firestore', () => {
 
   return {
     Timestamp: MockTimestamp,
+    serverTimestamp: vi.fn(() => new MockTimestamp(new Date('2026-01-01T00:00:00.000Z'))),
     collection: vi.fn((...args: unknown[]) => {
       const path = args.slice(1).join('/');
       state.calls.push(`collection:${path}`);
@@ -54,9 +55,9 @@ vi.mock('firebase/firestore', () => {
   };
 });
 
-const { getDoc, getDocs, setDoc, updateDoc, deleteDoc } = await import('firebase/firestore');
-
-const CURRENT_YEAR = 2026;
+const { Timestamp, getDoc, getDocs, setDoc, updateDoc, deleteDoc } = await import(
+  'firebase/firestore'
+);
 
 function validPlan(overrides: Record<string, unknown> = {}): RetirementPlanCreate {
   return {
@@ -96,14 +97,21 @@ function validPlan(overrides: Record<string, unknown> = {}): RetirementPlanCreat
   } as RetirementPlanCreate;
 }
 
+/** Firestore hands timestamps back, not Dates. */
+function storedPlan(overrides: Record<string, unknown> = {}) {
+  const plan = validPlan(overrides);
+  return {
+    ...plan,
+    id: 'plan-1',
+    createdAt: Timestamp.fromDate(plan.createdAt),
+    updatedAt: Timestamp.fromDate(plan.updatedAt),
+  };
+}
+
 const existingSnapshot = (overrides: Record<string, unknown> = {}) => ({
   exists: () => true,
   id: 'plan-1',
-  data: () => ({
-    ...validPlan(),
-    id: 'plan-1',
-    ...overrides,
-  }),
+  data: () => storedPlan(overrides),
 });
 
 describe('retirementPlanRepository', () => {
@@ -113,11 +121,10 @@ describe('retirementPlanRepository', () => {
     state.calls = [];
   });
 
-  it('writes a plan under retirementPlans and strips unknown keys', async () => {
+  it('writes a plan under retirementPlans with base audit fields', async () => {
     await retirementPlanRepository.createPlan({
       householdId: 'household-1',
-      currentYear: CURRENT_YEAR,
-      plan: validPlan({ unknown: 'value' }),
+      plan: validPlan(),
       userEmail: 'author@test.com',
     });
 
@@ -126,31 +133,17 @@ describe('retirementPlanRepository', () => {
     expect((ref as unknown as { path: string }).path).toBe(
       'households/household-1/retirementPlans/generated-1',
     );
-    expect(payload).not.toHaveProperty('unknown');
-    expect(payload).not.toHaveProperty('id');
     expect(payload).toMatchObject({
+      id: 'generated-1',
       name: 'Plan',
       createdBy: 'author@test.com',
       updatedBy: 'author@test.com',
     });
   });
 
-  it('returns a typed failure for an invalid plan without writing', async () => {
-    const result = await retirementPlanRepository.createPlan({
-      householdId: 'household-1',
-      currentYear: CURRENT_YEAR,
-      plan: validPlan({ name: '   ' }),
-      userEmail: 'author@test.com',
-    });
-
-    expect(result).toMatchObject({ ok: false, code: 'PLAN_INVALID' });
-    expect(setDoc).not.toHaveBeenCalled();
-  });
-
   it('rejects a plan over the per-document size limit without writing', async () => {
     const result = await retirementPlanRepository.createPlan({
       householdId: 'household-1',
-      currentYear: CURRENT_YEAR,
       plan: validPlan({
         lifeEvents: [
           {
@@ -169,12 +162,9 @@ describe('retirementPlanRepository', () => {
     expect(setDoc).not.toHaveBeenCalled();
   });
 
-  it('validates an update against the stored birthYear and never writes birthYear', async () => {
-    vi.mocked(getDoc).mockResolvedValue(existingSnapshot() as never);
-
+  it('updates a plan without writing birthYear', async () => {
     const result = await retirementPlanRepository.updatePlan({
       householdId: 'household-1',
-      currentYear: CURRENT_YEAR,
       planId: 'plan-1',
       userEmail: 'author@test.com',
       plan: {
@@ -200,52 +190,9 @@ describe('retirementPlanRepository', () => {
     );
   });
 
-  it('uses the stored birthYear for the current age cross-check', async () => {
-    vi.mocked(getDoc).mockResolvedValue(
-      existingSnapshot({ assumptions: { ...validPlan().assumptions, birthYear: 1900 } }) as never,
-    );
-
-    const result = await retirementPlanRepository.updatePlan({
-      householdId: 'household-1',
-      currentYear: CURRENT_YEAR,
-      planId: 'plan-1',
-      userEmail: 'author@test.com',
-      plan: {
-        ...validPlan(),
-        assumptions: {
-          retirementAge: 60,
-          lifeExpectancy: 125,
-          inflationRate: 0.02,
-          annualReturnRate: 0.05,
-        },
-      } as never,
-    });
-
-    expect(result).toMatchObject({ ok: false, code: 'PLAN_INVALID' });
-    expect(updateDoc).not.toHaveBeenCalled();
-  });
-
-  it('returns PLAN_NOT_FOUND when updating a missing plan', async () => {
-    vi.mocked(getDoc).mockResolvedValue({ exists: () => false } as never);
-
-    const result = await retirementPlanRepository.updatePlan({
-      householdId: 'household-1',
-      currentYear: CURRENT_YEAR,
-      planId: 'missing',
-      userEmail: 'author@test.com',
-      plan: validPlan() as never,
-    });
-
-    expect(result).toEqual({ ok: false, code: 'PLAN_NOT_FOUND' });
-    expect(updateDoc).not.toHaveBeenCalled();
-  });
-
   it('rejects an oversized update without writing', async () => {
-    vi.mocked(getDoc).mockResolvedValue(existingSnapshot() as never);
-
     const result = await retirementPlanRepository.updatePlan({
       householdId: 'household-1',
-      currentYear: CURRENT_YEAR,
       planId: 'plan-1',
       userEmail: 'author@test.com',
       plan: validPlan({
@@ -293,5 +240,14 @@ describe('retirementPlanRepository', () => {
     expect(plan?.id).toBe('plan-1');
     expect(plan?.name).toBe('Plan');
     expect(plan?.assumptions.birthYear).toBe(1990);
+    expect(plan?.createdAt).toBeInstanceOf(Date);
+  });
+
+  it('lists plans with timestamps converted back to Dates', async () => {
+    vi.mocked(getDocs).mockResolvedValue({ docs: [existingSnapshot()] } as never);
+
+    const [plan] = await retirementPlanRepository.listPlans('household-1');
+
+    expect(plan.updatedAt).toBeInstanceOf(Date);
   });
 });

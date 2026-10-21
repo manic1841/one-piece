@@ -2,134 +2,44 @@ import { useCallback, useMemo, useState } from 'react';
 
 import { type Resolver, type ResolverResult, useForm } from 'react-hook-form';
 
+import { type RetirementAssumptions } from '@/domains/retirement/assumptions';
 import {
-  type RetirementAssumptions,
-  createAssumptionsSchema,
-} from '@/domains/retirement/assumptions';
-import { RetirementSchemaErrorCode } from '@/domains/retirement/errorCodes';
-import { ASSUMPTION_LABELS } from '@/ui/constants/retirement-redesign/setupLabels';
-import { RETIREMENT_VALIDATION_LABELS } from '@/ui/constants/retirement/retirementValidationLabels';
-
-export interface AssumptionsVM {
-  birthYear: string;
-  retirementAge: string;
-  lifeExpectancy: string;
-  inflationRate: string;
-  annualReturnRate: string;
-}
-
-export type AssumptionField = keyof AssumptionsVM;
-
-const EMPTY: AssumptionsVM = {
-  birthYear: '',
-  retirementAge: '',
-  lifeExpectancy: '',
-  inflationRate: '',
-  annualReturnRate: '',
-};
-
-type AssumptionErrors = Partial<Record<AssumptionField, string>>;
-
-const FIELDS: AssumptionField[] = [
-  'birthYear',
-  'retirementAge',
-  'lifeExpectancy',
-  'inflationRate',
-  'annualReturnRate',
-];
-
-const INTEGER_FIELDS = new Set<AssumptionField>(['birthYear', 'retirementAge', 'lifeExpectancy']);
-
-/** Field text is a percentage; the stored value is the 4 dp decimal. */
-export function percentToDecimal(text: string): number {
-  if (text.trim() === '') return Number.NaN;
-  return Number((Number(text) / 100).toFixed(4));
-}
-
-export function decimalToPercentText(value: number): string {
-  return String(Number((value * 100).toFixed(4)));
-}
-
-function parseField(text: string): number {
-  if (text.trim() === '') return Number.NaN;
-  return Number(text);
-}
-
-function labelFor(code: string, field: AssumptionField, message: string): string {
-  if (code === 'invalid_type') {
-    return INTEGER_FIELDS.has(field)
-      ? RETIREMENT_VALIDATION_LABELS[RetirementSchemaErrorCode.NOT_INTEGER]
-      : ASSUMPTION_LABELS.INVALID_NUMBER;
-  }
-  if (code !== 'custom') return ASSUMPTION_LABELS.INVALID_NUMBER;
-  return RETIREMENT_VALIDATION_LABELS[message as RetirementSchemaErrorCode] ?? 'Invalid value';
-}
-
-function toDomain(values: AssumptionsVM) {
-  return {
-    birthYear: parseField(values.birthYear),
-    retirementAge: parseField(values.retirementAge),
-    lifeExpectancy: parseField(values.lifeExpectancy),
-    inflationRate: percentToDecimal(values.inflationRate),
-    annualReturnRate: percentToDecimal(values.annualReturnRate),
-  };
-}
-
-export interface ValidationOutcome<T, E = Partial<Record<string, string>>> {
-  ok: boolean;
-  data?: T;
-  errors: E;
-}
+  ASSUMPTION_FIELDS,
+  type AssumptionErrors,
+  type AssumptionField,
+  type AssumptionsVM,
+  EMPTY_ASSUMPTIONS_VM,
+  collectAssumptionErrors,
+  createAssumptionFormSchema,
+  mapAssumptionsToVM,
+  mapAssumptionsVMToDomain,
+} from '@/ui/features/retirement-redesign/viewmodels/assumptionForm.vm';
+import { type ValidationOutcome } from '@/ui/features/retirement-redesign/viewmodels/formValidation';
 
 export function useAssumptionDraft(markDirty: () => void, currentYear = new Date().getFullYear()) {
   const [birthYearLocked, setBirthYearLocked] = useState(false);
   const [revealed, setRevealed] = useState(false);
 
-  const schema = useMemo(() => createAssumptionsSchema(currentYear), [currentYear]);
+  const schema = useMemo(() => createAssumptionFormSchema(currentYear), [currentYear]);
 
-  const parse = useCallback(
-    (values: AssumptionsVM) => {
-      const errors: AssumptionErrors = {};
-      const parsed = schema.safeParse(toDomain(values));
+  const resolver = useCallback<Resolver<AssumptionsVM>>(
+    (values): ResolverResult<AssumptionsVM> => {
+      const parsed = schema.safeParse(values);
+      if (parsed.success) return { values, errors: {} };
 
-      if (parsed.success) return { ok: true as const, data: parsed.data, errors };
-
-      for (const issue of parsed.error.issues) {
-        const field = issue.path[0];
-        if (typeof field !== 'string' || !FIELDS.includes(field as AssumptionField)) continue;
-        if (errors[field as AssumptionField] !== undefined) continue;
-        errors[field as AssumptionField] = labelFor(
-          issue.code,
-          field as AssumptionField,
-          issue.message,
-        );
+      const fieldErrors: Record<string, { type: string; message: string }> = {};
+      for (const [field, message] of Object.entries(collectAssumptionErrors(parsed.error))) {
+        fieldErrors[field] = { type: 'validation', message };
       }
-      return { ok: false as const, errors };
+
+      return { values, errors: fieldErrors } as unknown as ResolverResult<AssumptionsVM>;
     },
     [schema],
   );
 
-  const resolver = useCallback<Resolver<AssumptionsVM>>(
-    (values): ResolverResult<AssumptionsVM> => {
-      const outcome = parse(values);
-      if (outcome.ok) return { values, errors: {} };
-
-      return {
-        values,
-        errors: Object.fromEntries(
-          Object.entries(outcome.errors).map(([field, message]) => [
-            field,
-            { type: 'validation', message },
-          ]),
-        ),
-      } as unknown as ResolverResult<AssumptionsVM>;
-    },
-    [parse],
-  );
-
   const form = useForm<AssumptionsVM>({
     mode: 'onChange',
-    defaultValues: EMPTY,
+    defaultValues: EMPTY_ASSUMPTIONS_VM,
     resolver,
   });
 
@@ -143,15 +53,24 @@ export function useAssumptionDraft(markDirty: () => void, currentYear = new Date
     [form, markDirty],
   );
 
-  const validate = useCallback((): ValidationOutcome<RetirementAssumptions> => {
-    return parse(form.getValues());
-  }, [form, parse]);
+  const validate = useCallback((): ValidationOutcome<RetirementAssumptions, AssumptionErrors> => {
+    const parsed = schema.safeParse(form.getValues());
+    if (parsed.success) {
+      return { ok: true, data: mapAssumptionsVMToDomain(parsed.data), errors: {} };
+    }
+    return { ok: false, errors: collectAssumptionErrors(parsed.error) };
+  }, [form, schema]);
 
-  const validation = useMemo(() => parse(values), [parse, values]);
+  const validation = useMemo<{ ok: boolean; errors: AssumptionErrors }>(() => {
+    const parsed = schema.safeParse(values);
+    return parsed.success
+      ? { ok: true, errors: {} }
+      : { ok: false, errors: collectAssumptionErrors(parsed.error) };
+  }, [schema, values]);
 
   const errors = useMemo(() => {
     const visible: AssumptionErrors = {};
-    for (const field of FIELDS) {
+    for (const field of ASSUMPTION_FIELDS) {
       const error = form.formState.errors[field]?.message;
       const show =
         revealed || form.formState.touchedFields[field] || form.formState.dirtyFields[field];
@@ -170,13 +89,7 @@ export function useAssumptionDraft(markDirty: () => void, currentYear = new Date
 
   const resetFrom = useCallback(
     (assumptions: RetirementAssumptions) => {
-      form.reset({
-        birthYear: String(assumptions.birthYear),
-        retirementAge: String(assumptions.retirementAge),
-        lifeExpectancy: String(assumptions.lifeExpectancy),
-        inflationRate: decimalToPercentText(assumptions.inflationRate),
-        annualReturnRate: decimalToPercentText(assumptions.annualReturnRate),
-      });
+      form.reset(mapAssumptionsToVM(assumptions));
       setBirthYearLocked(true);
       setRevealed(false);
     },

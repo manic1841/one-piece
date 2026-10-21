@@ -2,11 +2,8 @@ import { useCallback, useMemo } from 'react';
 
 import { type Resolver, type ResolverResult, useForm } from 'react-hook-form';
 
-import { RetirementSchemaErrorCode } from '@/domains/retirement/errorCodes';
 import {
   ALLOWED_METHODS_BY_RULE_TYPE,
-  type BaselinePolicy,
-  type EndCondition,
   type ProjectionRule,
   ProjectionRuleSchema,
   ProjectionRulesSchema,
@@ -14,287 +11,43 @@ import {
   type RuleSourceType,
   type RuleType,
 } from '@/domains/retirement/projectionRules';
-import { newId } from '@/shared/id';
-import { ASSUMPTION_LABELS } from '@/ui/constants/retirement-redesign/setupLabels';
-import { RETIREMENT_VALIDATION_LABELS } from '@/ui/constants/retirement/retirementValidationLabels';
+import { type ValidationOutcome } from '@/ui/features/retirement-redesign/viewmodels/formValidation';
 import {
-  decimalToPercentText,
-  percentToDecimal,
-} from '@/ui/features/retirement-redesign/hooks/useAssumptionDraft';
-import { type ValidationOutcome } from '@/ui/features/retirement-redesign/hooks/useAssumptionDraft';
+  type RuleDraftVM,
+  type RuleErrorsById,
+  RuleFormSchema,
+  type RulesForm,
+  blankRule,
+  collectRuleErrors,
+  mapRuleToVM,
+  mapRuleVMToDomain,
+  needsBaselinePolicy,
+} from '@/ui/features/retirement-redesign/viewmodels/ruleForm.vm';
 
-export type { RuleMethod, RuleSourceType, RuleType } from '@/domains/retirement/projectionRules';
-export { ALLOWED_METHODS_BY_RULE_TYPE } from '@/domains/retirement/projectionRules';
-
-export type EndConditionType = EndCondition['type'];
-export type RuleErrorField =
-  | 'name'
-  | 'ruleType'
-  | 'method'
-  | 'sourceType'
-  | 'sourceId'
-  | 'parameter'
-  | 'endCondition'
-  | 'endAge'
-  | 'endYear'
-  | 'baselinePolicy'
-  | 'baselineYear';
-
-export interface RuleDraftVM {
-  id: string;
-  name: string;
-  ruleType: RuleType;
-  method: RuleMethod;
-  enabled: boolean;
-  sourceType: RuleSourceType | '';
-  sourceId: string;
-  rateText: string;
-  ratioText: string;
-  amountText: string;
-  endConditionType: EndConditionType;
-  endAge: string;
-  endYear: string;
-  baselinePolicy: BaselinePolicy | '';
-  baselineYearText: string;
-  touched: boolean;
-}
-
-export type RuleErrors = Partial<Record<RuleErrorField, string>>;
-export type RuleErrorsById = Record<string, RuleErrors>;
-
-export interface RulesForm {
-  rules: RuleDraftVM[];
-}
+export type {
+  RuleDraftVM,
+  RuleErrors,
+  RuleErrorsById,
+  RuleMethod,
+  RuleSourceType,
+  RuleType,
+} from '@/ui/features/retirement-redesign/viewmodels/ruleForm.vm';
 
 const DEFAULT_METHOD: RuleMethod = 'inflation';
 
-function blankRule(ruleType: RuleType): RuleDraftVM {
-  return {
-    id: newId(),
-    name: '',
-    ruleType,
-    method: DEFAULT_METHOD,
-    enabled: true,
-    sourceType: 'ledgerCode',
-    sourceId: '',
-    rateText: '',
-    ratioText: '',
-    amountText: '',
-    endConditionType: 'retirementYearExclusive',
-    endAge: '',
-    endYear: '',
-    baselinePolicy: '',
-    baselineYearText: '',
-    touched: false,
-  };
-}
-
-export function hasSource(method: RuleMethod): boolean {
-  return method !== 'fixedAmount';
-}
-
-export function needsBaselinePolicy(method: RuleMethod, sourceType: RuleSourceType | ''): boolean {
-  return (method === 'inflation' || method === 'growthRate') && sourceType !== 'rule';
-}
-
-export function needsBaselineYear(baselinePolicy: BaselinePolicy | ''): boolean {
-  return baselinePolicy === 'specificYear';
-}
-
-function parseNumber(text: string): number {
-  return text.trim() === '' ? Number.NaN : Number(text);
-}
-
-function labelFor(code: string, message: string): string {
-  if (code === 'invalid_type') return ASSUMPTION_LABELS.INVALID_NUMBER;
-  if (code !== 'custom') return ASSUMPTION_LABELS.INVALID_NUMBER;
-  return RETIREMENT_VALIDATION_LABELS[message as RetirementSchemaErrorCode] ?? 'Invalid value';
-}
-
-function buildEndCondition(rule: RuleDraftVM): EndCondition {
-  switch (rule.endConditionType) {
-    case 'specificAge':
-      return { type: 'specificAge', age: parseNumber(rule.endAge) };
-    case 'specificYear':
-      return { type: 'specificYear', year: parseNumber(rule.endYear) };
-    case 'lifelong':
-      return { type: 'lifelong' };
-    default:
-      return { type: 'retirementYearExclusive' };
-  }
-}
-
-function baselineFields(rule: RuleDraftVM): {
-  baselinePolicy?: BaselinePolicy;
-  baselineYear?: number;
-} {
-  if (!needsBaselinePolicy(rule.method, rule.sourceType)) return {};
-  if (rule.baselinePolicy === '') return {};
-  if (rule.baselinePolicy === 'specificYear') {
-    return {
-      baselinePolicy: rule.baselinePolicy,
-      baselineYear: parseNumber(rule.baselineYearText),
-    };
-  }
-  return { baselinePolicy: rule.baselinePolicy };
-}
-
-function buildRule(rule: RuleDraftVM): unknown {
-  const shared = {
-    id: rule.id,
-    name: rule.name,
-    ruleType: rule.ruleType,
-    enabled: rule.enabled,
-    method: rule.method,
-  };
-  const source = { type: rule.sourceType as RuleSourceType, id: rule.sourceId };
-
-  switch (rule.method) {
-    case 'fixedAmount':
-      return {
-        ...shared,
-        parameters: { amount: parseNumber(rule.amountText) },
-        endCondition: buildEndCondition(rule),
-      };
-    case 'debtAmortization':
-      return { ...shared, source, parameters: {} };
-    case 'percentage':
-      return {
-        ...shared,
-        source,
-        parameters: { ratio: percentToDecimal(rule.ratioText) },
-        endCondition: buildEndCondition(rule),
-      };
-    case 'growthRate':
-      return {
-        ...shared,
-        source,
-        parameters: { rate: percentToDecimal(rule.rateText) },
-        endCondition: buildEndCondition(rule),
-        ...baselineFields(rule),
-      };
-    default:
-      return {
-        ...shared,
-        source,
-        parameters: {},
-        endCondition: buildEndCondition(rule),
-        ...baselineFields(rule),
-      };
-  }
-}
-
-function mapIssuePath(path: (string | number | symbol)[]): RuleErrorField | undefined {
-  const [head, second] = path;
-  if (head === 'source') return second === 'type' ? 'sourceType' : 'sourceId';
-  if (head === 'endCondition') {
-    if (second === 'age') return 'endAge';
-    if (second === 'year') return 'endYear';
-    return 'endCondition';
-  }
-  if (head === 'parameters') return 'parameter';
-  switch (head) {
-    case 'name':
-      return 'name';
-    case 'ruleType':
-      return 'ruleType';
-    case 'method':
-      return 'method';
-    case 'baselinePolicy':
-      return 'baselinePolicy';
-    case 'baselineYear':
-      return 'baselineYear';
-    default:
-      return undefined;
-  }
-}
-
-function ruleFromDomain(rule: ProjectionRule): RuleDraftVM {
-  return {
-    id: rule.id,
-    name: rule.name,
-    ruleType: rule.ruleType,
-    method: rule.method,
-    enabled: rule.enabled,
-    sourceType: rule.source?.type ?? '',
-    sourceId: rule.source?.id ?? '',
-    rateText:
-      rule.parameters && 'rate' in rule.parameters
-        ? decimalToPercentText(rule.parameters.rate)
-        : '',
-    ratioText:
-      rule.parameters && 'ratio' in rule.parameters
-        ? decimalToPercentText(rule.parameters.ratio)
-        : '',
-    amountText:
-      rule.parameters && 'amount' in rule.parameters ? String(rule.parameters.amount) : '',
-    endConditionType: rule.endCondition?.type ?? 'retirementYearExclusive',
-    endAge: rule.endCondition?.type === 'specificAge' ? String(rule.endCondition.age) : '',
-    endYear: rule.endCondition?.type === 'specificYear' ? String(rule.endCondition.year) : '',
-    baselinePolicy:
-      typeof rule.baselinePolicy === 'string' ? (rule.baselinePolicy as BaselinePolicy) : '',
-    baselineYearText: rule.baselineYear === undefined ? '' : String(rule.baselineYear),
-    touched: false,
-  };
-}
-
-function buildErrors(rules: RuleDraftVM[]): RuleErrorsById {
-  const errors: RuleErrorsById = {};
-  const parsedById = rules.map((rule) => ProjectionRuleSchema.safeParse(buildRule(rule)));
-  const built: unknown[] = [];
-
-  for (const [index, parsed] of parsedById.entries()) {
-    const rule = rules[index];
-    if (parsed.success) {
-      built.push(parsed.data);
-      continue;
-    }
-    const rowErrors: RuleErrors = {};
-    for (const issue of parsed.error.issues) {
-      const field = mapIssuePath(issue.path);
-      if (field !== undefined && rowErrors[field] === undefined) {
-        rowErrors[field] = labelFor(issue.code, issue.message);
-      }
-    }
-    errors[rule.id] = rowErrors;
-    built.push(buildRule(rule));
-  }
-
-  const all = ProjectionRulesSchema.safeParse(built);
-  if (!all.success) {
-    for (const issue of all.error.issues) {
-      const index = issue.path[0];
-      if (typeof index !== 'number') continue;
-      const rule = rules[index];
-      if (rule === undefined) continue;
-      const field = mapIssuePath(issue.path.slice(1));
-      if (field !== undefined && errors[rule.id]?.[field] === undefined) {
-        errors[rule.id] = {
-          ...errors[rule.id],
-          [field]: labelFor(issue.code, issue.message),
-        };
-      }
-    }
-  }
-
-  return errors;
-}
-
 export function useRuleDrafts(markDirty: () => void) {
   const resolver = useCallback<Resolver<RulesForm>>((values): ResolverResult<RulesForm> => {
-    const errors = buildErrors(values.rules);
-    const fieldErrors: Record<string, unknown> = {};
+    const parsed = RuleFormSchema.safeParse(values);
+    if (parsed.success) return { values, errors: {} };
 
-    for (const [index, rule] of values.rules.entries()) {
-      if (!rule.touched) continue;
-      const rowErrors = errors[rule.id];
-      if (rowErrors === undefined) continue;
-      fieldErrors[index] = Object.fromEntries(
-        Object.entries(rowErrors).map(([field, message]) => [
-          field,
-          { type: 'validation', message },
-        ]),
-      );
+    const fieldErrors: Record<string, Record<string, { type: string; message: string }>> = {};
+    for (const issue of parsed.error.issues) {
+      const [index, field] = issue.path;
+      if (typeof index !== 'number' || typeof field !== 'string') continue;
+      if (!values.rules[index]?.touched) continue;
+
+      fieldErrors[index] ??= {};
+      fieldErrors[index][field] ??= { type: 'validation', message: issue.message };
     }
 
     if (Object.keys(fieldErrors).length === 0) return { values, errors: {} };
@@ -428,10 +181,10 @@ export function useRuleDrafts(markDirty: () => void) {
 
   const validate = useCallback((): ValidationOutcome<ProjectionRule[], RuleErrorsById> => {
     const current = form.getValues('rules');
-    const errors = buildErrors(current);
+    const errors = collectRuleErrors(current);
     const built = current.map((rule) => {
-      const parsed = ProjectionRuleSchema.safeParse(buildRule(rule));
-      return parsed.success ? parsed.data : buildRule(rule);
+      const parsed = ProjectionRuleSchema.safeParse(mapRuleVMToDomain(rule));
+      return parsed.success ? parsed.data : mapRuleVMToDomain(rule);
     });
     const all = ProjectionRulesSchema.safeParse(built);
 
@@ -444,7 +197,7 @@ export function useRuleDrafts(markDirty: () => void) {
   }, [form]);
 
   const visibleErrors = useMemo(() => {
-    const all = buildErrors(rules);
+    const all = collectRuleErrors(rules);
     const visible: RuleErrorsById = {};
     for (const rule of rules) {
       if (rule.touched && all[rule.id]) visible[rule.id] = all[rule.id];
@@ -454,7 +207,7 @@ export function useRuleDrafts(markDirty: () => void) {
 
   const replaceAll = useCallback(
     (next: ProjectionRule[]) => {
-      form.reset({ rules: next.map(ruleFromDomain) });
+      form.reset({ rules: next.map(mapRuleToVM) });
     },
     [form],
   );
@@ -473,7 +226,7 @@ export function useRuleDrafts(markDirty: () => void) {
     form,
     rules,
     errors: visibleErrors,
-    valid: Object.keys(buildErrors(rules)).length === 0,
+    valid: Object.keys(collectRuleErrors(rules)).length === 0,
     add,
     revealAll,
     remove,

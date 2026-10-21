@@ -2,14 +2,11 @@ import { useCallback, useEffect, useState } from 'react';
 
 import { useNavigate, useParams } from 'react-router-dom';
 
-import {
-  type RetirementPlan,
-  deleteRetirementPlan,
-  getRetirementPlan,
-  renameRetirementPlan,
-} from '@/application/retirement/use_cases/retirementPlanLookup';
+import { getRetirementPlanUseCase } from '@/application/retirement/use_cases/getRetirementPlanUseCase';
+import { type RetirementPlan } from '@/domains/retirement/types';
 import { useConfirm } from '@/ui/components/confirm/useConfirm';
 import { PLAN_DETAIL_LABELS } from '@/ui/constants/retirement-redesign/planLabels';
+import { useRetirementPlanCmds } from '@/ui/features/retirement-redesign/hooks/useRetirementPlanCmds';
 import { useAuthIdentity } from '@/ui/hooks/useAuthIdentity';
 import { useLoadingTask } from '@/ui/hooks/useLoadingTask';
 
@@ -19,13 +16,17 @@ export function useRetirementPlanDetail(householdId: string | undefined) {
   const navigate = useNavigate();
   const auth = useAuthIdentity();
   const { confirm } = useConfirm();
+  const { renamePlan, deletePlan, errorMessage: commandError } = useRetirementPlanCmds(householdId);
 
   const [plan, setPlan] = useState<RetirementPlan | null>(null);
   const { loading, errorMessage, run } = useLoadingTask({ initiallyLoading: true });
 
   const reload = useCallback(async () => {
     await run(
-      async () => (householdId && id ? getRetirementPlan({ householdId, planId: id, auth }) : null),
+      async () =>
+        householdId && id
+          ? getRetirementPlanUseCase.execute({ householdId, planId: id, auth })
+          : null,
       {
         writeBack: (result) => {
           if (result.ok) setPlan(result.value);
@@ -39,26 +40,18 @@ export function useRetirementPlanDetail(householdId: string | undefined) {
   }, [reload]);
 
   const rename = useCallback(
-    async (name: string): Promise<boolean> => {
-      if (!plan || !householdId) return false;
+    async (name: string) => {
+      if (!plan || !householdId) return null;
 
-      const result = await renameRetirementPlan({
-        householdId,
-        planId: plan.id,
-        name,
-        userEmail: auth.email ?? '',
-        auth,
-      });
-      if (!result.ok) return false;
-
-      setPlan(result.plan);
-      return true;
+      const task = await renamePlan(plan.id, name);
+      if (task.ok && task.value.ok) setPlan({ ...plan, name: task.value.name });
+      return task;
     },
-    [auth, householdId, plan],
+    [householdId, plan, renamePlan],
   );
 
-  const remove = useCallback(async (): Promise<boolean> => {
-    if (!plan || !householdId) return false;
+  const remove = useCallback(async () => {
+    if (!plan || !householdId) return null;
 
     const confirmed = await confirm({
       title: PLAN_DETAIL_LABELS.DELETE_TITLE,
@@ -66,17 +59,17 @@ export function useRetirementPlanDetail(householdId: string | undefined) {
       consequence: PLAN_DETAIL_LABELS.DELETE_CONSEQUENCE,
       confirmLabel: PLAN_DETAIL_LABELS.DELETE_CONFIRM,
     });
-    if (!confirmed) return false;
+    if (!confirmed) return null;
 
-    await deleteRetirementPlan({ householdId, planId: plan.id, auth });
-    navigate('/retirement/plans');
-    return true;
-  }, [auth, confirm, householdId, navigate, plan]);
+    const task = await deletePlan(plan.id);
+    if (task.ok) navigate('/retirement/plans');
+    return task;
+  }, [confirm, deletePlan, householdId, navigate, plan]);
 
   return {
     plan,
     loading,
-    errorMessage,
+    errorMessage: errorMessage ?? commandError,
     notFound: !loading && errorMessage === null && plan === null,
     reload,
     rename,

@@ -5,12 +5,12 @@ import { CashFlowChart } from '@/ui/features/retirement-redesign/components/Cash
 import { YearlyDetails } from '@/ui/features/retirement-redesign/components/YearlyDetails';
 import { type ProjectionViewVM } from '@/ui/features/retirement-redesign/viewmodels/projectionViewVm';
 
-interface ProjectionProjectionTabProps {
+interface ProjectionResultTabProps {
   projection: ProjectionViewVM['projection'];
 }
 
 /** Cash flow and the shared yearly breakdown for the frozen annual results. */
-export function ProjectionProjectionTab({ projection }: ProjectionProjectionTabProps) {
+export function ProjectionResultTab({ projection }: ProjectionResultTabProps) {
   if (projection.chartData.length === 0) {
     return (
       <p className="py-8 text-sm text-muted-foreground" data-testid="projection-projection-tab">

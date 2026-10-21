@@ -1,10 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { householdPermissionService } from '@/application/household/householdPermissionService';
-import { type RetirementPlan } from '@/infra/repositories/retirementPlanRepository';
+import { type RetirementPlan } from '@/domains/retirement/types';
 import { retirementPlanRepository } from '@/infra/repositories/retirementPlanRepository';
 
-import { renameRetirementPlan } from './retirementPlanLookup';
+import { updateRetirementPlanUseCase } from './updateRetirementPlanUseCase';
 
 vi.mock('@/application/household/householdPermissionService', () => ({
   householdPermissionService: {
@@ -44,7 +44,7 @@ const plan: RetirementPlan = {
   updatedAt: new Date('2026-02-01T00:00:00Z'),
 };
 
-describe('renameRetirementPlan', () => {
+describe('updateRetirementPlanUseCase', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(householdPermissionService.assertWritePermission).mockResolvedValue();
@@ -55,17 +55,16 @@ describe('renameRetirementPlan', () => {
     vi.mocked(retirementPlanRepository.updatePlan).mockResolvedValue({ ok: true });
 
     const before = Date.now();
-    const result = await renameRetirementPlan({
+    const result = await updateRetirementPlanUseCase.execute({
       householdId: 'h1',
       planId: 'plan-1',
       name: '  New name  ',
-      userEmail: 'u1',
       auth,
     });
 
-    expect(result.ok).toBe(true);
+    expect(result).toEqual({ ok: true, name: 'New name' });
     const update = vi.mocked(retirementPlanRepository.updatePlan).mock.calls[0][0];
-    expect(update.plan.name).toBe('  New name  ');
+    expect(update.plan.name).toBe('New name');
     expect(update.plan.assumptions).toEqual({
       retirementAge: 60,
       lifeExpectancy: 85,
@@ -75,16 +74,30 @@ describe('renameRetirementPlan', () => {
     expect(update.plan.assumptions).not.toHaveProperty('birthYear');
     expect(update.plan.updatedAt.getTime()).toBeGreaterThanOrEqual(before);
     expect(update.plan.createdAt).toEqual(plan.createdAt);
+    expect(update.userEmail).toBe('user@example.com');
+  });
+
+  it('rejects a blank name before writing', async () => {
+    vi.mocked(retirementPlanRepository.getPlan).mockResolvedValue(plan);
+
+    const result = await updateRetirementPlanUseCase.execute({
+      householdId: 'h1',
+      planId: 'plan-1',
+      name: '   ',
+      auth,
+    });
+
+    expect(result).toEqual({ ok: false, code: 'NAME_REQUIRED' });
+    expect(retirementPlanRepository.updatePlan).not.toHaveBeenCalled();
   });
 
   it('returns PLAN_NOT_FOUND without writing when the plan is gone', async () => {
     vi.mocked(retirementPlanRepository.getPlan).mockResolvedValue(null);
 
-    const result = await renameRetirementPlan({
+    const result = await updateRetirementPlanUseCase.execute({
       householdId: 'h1',
       planId: 'plan-1',
       name: 'New name',
-      userEmail: 'u1',
       auth,
     });
 
@@ -96,17 +109,16 @@ describe('renameRetirementPlan', () => {
     vi.mocked(retirementPlanRepository.getPlan).mockResolvedValue(plan);
     vi.mocked(retirementPlanRepository.updatePlan).mockResolvedValue({
       ok: false,
-      code: 'PLAN_INVALID',
+      code: 'PLAN_TOO_LARGE',
     });
 
-    const result = await renameRetirementPlan({
+    const result = await updateRetirementPlanUseCase.execute({
       householdId: 'h1',
       planId: 'plan-1',
       name: 'New name',
-      userEmail: 'u1',
       auth,
     });
 
-    expect(result).toEqual({ ok: false, code: 'PLAN_INVALID' });
+    expect(result).toEqual({ ok: false, code: 'PLAN_TOO_LARGE' });
   });
 });

@@ -8,8 +8,8 @@ import { RETIREMENT_ASSUMPTION_BOUNDS } from './bounds';
 import { RetirementSchemaErrorCode } from './errorCodes';
 import { LifeEventSchema } from './lifeEvents';
 import { resolveRuleGraph } from './logic/ruleGraph';
-import { createRetirementPlanCreateSchema, createRetirementPlanUpdateSchema } from './planSchemas';
 import { ALLOWED_METHODS_BY_RULE_TYPE, ProjectionRulesSchema } from './projectionRules';
+import { createRetirementPlanCreateSchema, createRetirementPlanUpdateSchema } from './schemas';
 
 const CURRENT_YEAR = 2026;
 

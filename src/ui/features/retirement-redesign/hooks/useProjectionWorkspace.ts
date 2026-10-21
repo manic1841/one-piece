@@ -1,63 +1,45 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { useBlocker, useSearchParams } from 'react-router-dom';
-import { z } from 'zod';
 
-import {
-  type ProjectionCalculation,
-  createProjectionUseCase,
-} from '@/application/retirement/use_cases/createProjectionUseCase';
+import { type ProjectionCalculation } from '@/application/retirement/types';
 import { getProjectionOpeningUseCase } from '@/application/retirement/use_cases/getProjectionOpeningUseCase';
-import { type RetirementPlanWorkspaceData } from '@/application/retirement/use_cases/retirementPlanLookup';
-import { saveWorkspaceAsPlanUseCase } from '@/application/retirement/use_cases/saveProjectionAsPlanUseCase';
 import { type RetirementAssumptions } from '@/domains/retirement/assumptions';
 import { type LifeEvent } from '@/domains/retirement/lifeEvents';
-import {
-  type ProjectionResolveError,
-  type ProjectionSummary,
-} from '@/domains/retirement/logic/projectionTypes';
+import { type ProjectionResolveError } from '@/domains/retirement/logic/projectionTypes';
 import { type ProjectionRule } from '@/domains/retirement/projectionRules';
+import { type RetirementPlan } from '@/domains/retirement/types';
+import { defaultProjectionName } from '@/shared/projectionName';
 import { useConfirm } from '@/ui/components/confirm/useConfirm';
 import {
   PROJECTION_RESULT_LABELS,
+  resolveErrorLabel,
   resolveValidationIssueLabel,
 } from '@/ui/constants/retirement-redesign/resultLabels';
-import { resolveErrorLabel } from '@/ui/constants/retirement-redesign/resultLabels';
 import { PROJECTION_WORKSPACE_LABELS } from '@/ui/constants/retirement-redesign/workspaceLabels';
 import { useAssumptionDraft } from '@/ui/features/retirement-redesign/hooks/useAssumptionDraft';
 import { useLifeEventDrafts } from '@/ui/features/retirement-redesign/hooks/useLifeEventDrafts';
+import { useProjectionCmds } from '@/ui/features/retirement-redesign/hooks/useProjectionCmds';
 import { useProjectionPreload } from '@/ui/features/retirement-redesign/hooks/useProjectionPreload';
 import { useRuleDrafts } from '@/ui/features/retirement-redesign/hooks/useRuleDrafts';
 import { mapProjectionResultToVM } from '@/ui/features/retirement-redesign/viewmodels/projectionResultVm';
+import {
+  type ProjectionSummaryVM,
+  mapProjectionSummaryToVM,
+} from '@/ui/features/retirement-redesign/viewmodels/projectionViewVm';
+import {
+  EMPTY_OPENING,
+  type OpeningNetWorthVM,
+  type ReportValue,
+  type WorkspaceDraft,
+  openingSchema,
+  startYearSchema,
+} from '@/ui/features/retirement-redesign/viewmodels/workspaceDraft.vm';
+import { getTaskErrorMessage } from '@/ui/hooks/getErrorMessage';
 import { useAuthIdentity } from '@/ui/hooks/useAuthIdentity';
 import { useLoadingTask } from '@/ui/hooks/useLoadingTask';
 
-export type { ProjectionSummary } from '@/domains/retirement/logic/projectionTypes';
-
 export type ProjectionWorkspaceStage = 'setup' | 'preview';
-export type OpeningNetWorthSource = 'derived' | 'manual';
-
-export interface OpeningNetWorthVM {
-  source: OpeningNetWorthSource;
-  /** Raw field value; kept as a string at the field boundary. */
-  amountText: string;
-  /** Only present while the value is derived. */
-  anchorYearMonth: string | null;
-}
-
-interface ReportValue {
-  amountText: string;
-  anchorYearMonth: string;
-}
-
-export interface WorkspaceDraft {
-  assumptions: RetirementAssumptions;
-  rules: ProjectionRule[];
-  events: LifeEvent[];
-  startYear: number;
-  opening: OpeningNetWorthVM;
-  reportValue: ReportValue | null;
-}
 
 export interface SaveFailure {
   ok: false;
@@ -65,12 +47,6 @@ export interface SaveFailure {
 }
 
 export type SaveWorkspaceOutcome = { ok: true; id: string } | SaveFailure;
-
-const EMPTY_OPENING: OpeningNetWorthVM = {
-  source: 'derived',
-  amountText: '',
-  anchorYearMonth: null,
-};
 
 interface ValidatedPlan {
   assumptions: RetirementAssumptions;
@@ -80,25 +56,9 @@ interface ValidatedPlan {
 
 interface CalculatedProjection {
   projection: ReturnType<typeof mapProjectionResultToVM>;
-  summary: ProjectionSummary;
+  summary: ProjectionSummaryVM;
   calculation: ProjectionCalculation;
 }
-
-const openingSchema = z
-  .object({
-    source: z.enum(['derived', 'manual']),
-    amountText: z.string(),
-  })
-  .superRefine((value, ctx) => {
-    if (value.source !== 'manual') return;
-    const text = value.amountText.trim();
-    const amount = Number(text);
-    if (text === '' || !Number.isInteger(amount)) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['amountText'], message: 'INVALID' });
-    }
-  });
-
-const startYearSchema = z.number().int();
 
 /**
  * Controller for the projection workspace shell. The draft is a single
@@ -109,6 +69,15 @@ const startYearSchema = z.number().int();
 export function useProjectionWorkspace(householdId: string | undefined) {
   const auth = useAuthIdentity();
   const { confirm } = useConfirm();
+  const {
+    calculate: calculateProjection,
+    persist,
+    saveForm,
+    submitSaveForm,
+    saveWorkspaceAsPlan,
+    planForm,
+    submitPlanForm,
+  } = useProjectionCmds(householdId);
   const [searchParams, setSearchParams] = useSearchParams();
   const fromId = searchParams.get('from');
   const {
@@ -131,6 +100,7 @@ export function useProjectionWorkspace(householdId: string | undefined) {
   const [calculateError, setCalculateError] = useState<string | null>(null);
   const [calculating, setCalculating] = useState(false);
   const [savedId, setSavedId] = useState<string | null>(null);
+  const [lastSavedName, setLastSavedName] = useState<string | null>(null);
   const [savedAsPlan, setSavedAsPlan] = useState(false);
   const [startYear, setStartYearState] = useState(() => new Date().getFullYear());
   const [preloadWarning, setPreloadWarning] = useState<string | null>(null);
@@ -291,9 +261,9 @@ export function useProjectionWorkspace(householdId: string | undefined) {
   );
 
   const applyPlan = useCallback(
-    (plan: RetirementPlanWorkspaceData) => {
+    (plan: RetirementPlan) => {
       assumptions.resetFrom(plan.assumptions);
-      rules.replaceAll(plan.rules);
+      rules.replaceAll(plan.projectionRules);
       events.replaceAll(plan.lifeEvents);
       setAppliedPlanName(plan.name);
       setCalculated(null);
@@ -389,9 +359,7 @@ export function useProjectionWorkspace(householdId: string | undefined) {
 
     setCalculating(true);
 
-    const outcome = await createProjectionUseCase.calculate({
-      householdId: householdId ?? '',
-      auth,
+    const task = await calculateProjection({
       startYear,
       opening: {
         source: opening.source,
@@ -401,6 +369,13 @@ export function useProjectionWorkspace(householdId: string | undefined) {
     });
     setCalculating(false);
 
+    if (!task.ok) {
+      setCalculateError(getTaskErrorMessage(task, PROJECTION_RESULT_LABELS.CALCULATE_FAILED));
+      setCalculated(null);
+      return;
+    }
+
+    const outcome = task.value;
     if (!outcome.ok) {
       if (outcome.code === 'PROJECTION_RESOLVE_FAILED') {
         setResolveErrors(outcome.errors ?? []);
@@ -420,11 +395,11 @@ export function useProjectionWorkspace(householdId: string | undefined) {
 
     setCalculated({
       projection: mapProjectionResultToVM(outcome.calculation.input, outcome.calculation.result),
-      summary: outcome.calculation.result.summary,
+      summary: mapProjectionSummaryToVM(outcome.calculation.result.summary),
       calculation: outcome.calculation,
     });
     setStage('preview');
-  }, [auth, householdId, opening.amountText, opening.source, revealErrors, startYear, validate]);
+  }, [calculateProjection, opening.amountText, opening.source, revealErrors, startYear, validate]);
 
   const save = useCallback(
     async (name: string): Promise<SaveWorkspaceOutcome> => {
@@ -432,13 +407,12 @@ export function useProjectionWorkspace(householdId: string | undefined) {
         return { ok: false, messages: [PROJECTION_WORKSPACE_LABELS.SAVE_DIALOG_FAILED] };
       }
 
-      const outcome = await createProjectionUseCase.persist({
-        householdId,
-        auth,
-        name,
-        calculation: calculated.calculation,
-      });
+      const task = await persist({ name, calculation: calculated.calculation });
+      if (!task.ok) {
+        return { ok: false, messages: [getTaskErrorMessage(task)] };
+      }
 
+      const outcome = task.value;
       if (!outcome.ok) {
         return {
           ok: false,
@@ -450,9 +424,10 @@ export function useProjectionWorkspace(householdId: string | undefined) {
       }
 
       setSavedId(outcome.id);
+      setLastSavedName(name);
       return { ok: true, id: outcome.id };
     },
-    [auth, calculated, householdId],
+    [calculated, householdId, persist],
   );
 
   const saveAsPlan = useCallback(
@@ -475,15 +450,18 @@ export function useProjectionWorkspace(householdId: string | undefined) {
         return { ok: false, messages: [PROJECTION_WORKSPACE_LABELS.SAVE_DIALOG_FAILED] };
       }
 
-      const outcome = await saveWorkspaceAsPlanUseCase.execute({
-        householdId,
-        auth,
+      const task = await saveWorkspaceAsPlan({
         name,
         assumptions: assumptionData,
         projectionRules: ruleData,
         lifeEvents: eventData,
       });
 
+      if (!task.ok) {
+        return { ok: false, messages: [getTaskErrorMessage(task)] };
+      }
+
+      const outcome = task.value;
       if (!outcome.ok) {
         return {
           ok: false,
@@ -494,7 +472,7 @@ export function useProjectionWorkspace(householdId: string | undefined) {
       setSavedAsPlan(true);
       return { ok: true, id: outcome.id };
     },
-    [auth, householdId, revealErrors, validate],
+    [householdId, revealErrors, saveWorkspaceAsPlan, validate],
   );
 
   return {
@@ -511,8 +489,8 @@ export function useProjectionWorkspace(householdId: string | undefined) {
     valid,
     dirty,
     calculated,
-    warningLabels: calculated?.calculation.warnings.map(resolveErrorLabelSafe) ?? [],
-    errorLabels: resolveErrors.map(resolveErrorLabelSafe),
+    warningLabels: calculated?.calculation.warnings.map(resolveErrorLabel) ?? [],
+    errorLabels: resolveErrors.map(resolveErrorLabel),
     calculateError,
     calculating,
     savedId,
@@ -520,6 +498,21 @@ export function useProjectionWorkspace(householdId: string | undefined) {
     calculate,
     save,
     saveAsPlan,
+    saveForm,
+    lastSavedName,
+    submitSave: (onSuccess?: () => void) =>
+      submitSaveForm(async (name) => {
+        const outcome = await save(name);
+        if (outcome.ok) onSuccess?.();
+        return outcome;
+      }),
+    saveAsPlanForm: planForm,
+    submitSaveAsPlan: (onSuccess?: () => void) =>
+      submitPlanForm(async (name) => {
+        const outcome = await saveAsPlan(name);
+        if (outcome.ok) onSuccess?.();
+        return outcome;
+      }),
     startYear,
     setStartYear,
     openingValidationError,
@@ -531,9 +524,8 @@ export function useProjectionWorkspace(householdId: string | undefined) {
     enterManual,
     useReportValue,
     retryOpening,
+    defaultName: defaultProjectionName,
     goToPreview,
     backToSetup,
   };
 }
-
-const resolveErrorLabelSafe = resolveErrorLabel;

@@ -5,6 +5,7 @@ import {
   type ProjectionConfig,
   type ProjectionDocument,
   type ProjectionSource,
+  createProjectionConfigSchema,
 } from '@/domains/retirement/logic/projectionDocuments';
 import { projectionRepository } from '@/infra/repositories/projectionRepository';
 
@@ -42,11 +43,18 @@ export class GetProjectionViewUseCase {
     const projection = await projectionRepository.getProjection(householdId, projectionId);
     if (projection === null) return null;
 
-    const [config, source, annual] = await Promise.all([
+    const [storedConfig, source, annual] = await Promise.all([
       projectionRepository.getProjectionConfig(householdId, projectionId),
       projectionRepository.getProjectionSource(householdId, projectionId),
       projectionRepository.getProjectionAnnual(householdId, projectionId),
     ]);
+
+    // The repository only knows the shape; the clock-dependent bounds and the
+    // timing cross-checks are validated here, where the clock is available.
+    const config =
+      storedConfig === null
+        ? null
+        : createProjectionConfigSchema(new Date().getFullYear()).parse(storedConfig);
 
     return { projection, config, source, annual };
   }

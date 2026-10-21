@@ -7,7 +7,8 @@ import { debtAccountRepository } from '@/infra/repositories/debtAccountRepositor
 import { projectionRepository } from '@/infra/repositories/projectionRepository';
 import { transactionRepository } from '@/infra/repositories/transactionRepository';
 
-import { ProjectionCommandErrorCode, createProjectionUseCase } from './createProjectionUseCase';
+import { ProjectionCommandErrorCode } from '../errors';
+import { calculateProjectionUseCase } from './calculateProjectionUseCase';
 import { getProjectionOpeningUseCase } from './getProjectionOpeningUseCase';
 
 vi.mock('@/application/household/householdPermissionService', () => ({
@@ -72,7 +73,20 @@ function request(overrides: Record<string, unknown> = {}) {
   };
 }
 
-describe('createProjectionUseCase', () => {
+/** Serves one rent debit per requested year; unknown years stay empty. */
+function mockRentDebitByYear(nets: Record<number, number>): void {
+  vi.mocked(transactionRepository.listByDateRange).mockImplementation(((
+    _householdId: string,
+    from: Date,
+  ) => {
+    const debit = nets[from.getFullYear()];
+    return Promise.resolve(
+      debit === undefined ? [] : [{ entries: [{ ledgerCode: 'expense:rent', debit, credit: 0 }] }],
+    );
+  }) as never);
+}
+
+describe('calculateProjectionUseCase', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(householdPermissionService.assertWritePermission).mockResolvedValue();
@@ -85,48 +99,12 @@ describe('createProjectionUseCase', () => {
   });
 
   it('calculates without writing anything', async () => {
-    const outcome = await createProjectionUseCase.calculate(request());
+    const outcome = await calculateProjectionUseCase.execute(request());
 
     expect(outcome.ok).toBe(true);
     if (!outcome.ok) return;
     expect(outcome.calculation.result.years).toHaveLength(2075 - 2026 + 1);
     expect(projectionRepository.createProjectionAtomically).not.toHaveBeenCalled();
-  });
-
-  it('writes the main, config, source and results payloads in one call', async () => {
-    vi.mocked(projectionRepository.createProjectionAtomically).mockResolvedValue({
-      ok: true,
-      id: 'projection-1',
-    });
-
-    const calculated = await createProjectionUseCase.calculate(request());
-    expect(calculated.ok).toBe(true);
-    if (!calculated.ok) return;
-
-    const outcome = await createProjectionUseCase.persist({
-      householdId: 'household-1',
-      auth,
-      name: 'My projection',
-      calculation: calculated.calculation,
-    });
-
-    expect(outcome).toMatchObject({ ok: true, id: 'projection-1' });
-    expect(projectionRepository.createProjectionAtomically).toHaveBeenCalledWith(
-      expect.objectContaining({
-        householdId: 'household-1',
-        projection: expect.objectContaining({
-          name: 'My projection',
-          engineVersion: 1,
-          createdBy: 'user@example.com',
-        }),
-        config: expect.objectContaining({
-          startYear: 2026,
-          openingNetWorth: { amount: 100_000, source: 'manual' },
-        }),
-        source: { ruleSources: [] },
-        results: expect.objectContaining({ years: expect.any(Array) }),
-      }),
-    );
   });
 
   it('derives the opening balance and keeps its anchor in config', async () => {
@@ -136,12 +114,7 @@ describe('createProjectionUseCase', () => {
       assets: 500_000,
       liabilities: 120_000,
     });
-    vi.mocked(projectionRepository.createProjectionAtomically).mockResolvedValue({
-      ok: true,
-      id: 'projection-2',
-    });
-
-    const calculated = await createProjectionUseCase.calculate(
+    const calculated = await calculateProjectionUseCase.execute(
       request({ opening: { source: 'derived' } }),
     );
 
@@ -152,24 +125,10 @@ describe('createProjectionUseCase', () => {
       source: 'derived',
       anchorYearMonth: '2026-08',
     });
-
-    await createProjectionUseCase.persist({
-      householdId: 'household-1',
-      auth,
-      name: 'My projection',
-      calculation: calculated.calculation,
-    });
-    expect(projectionRepository.createProjectionAtomically).toHaveBeenCalledWith(
-      expect.objectContaining({
-        config: expect.objectContaining({
-          openingNetWorth: { amount: 380_000, source: 'derived', anchorYearMonth: '2026-08' },
-        }),
-      }),
-    );
   });
 
   it('fails validation before resolving or writing', async () => {
-    const outcome = await createProjectionUseCase.calculate(
+    const outcome = await calculateProjectionUseCase.execute(
       request({ assumptions: { ...assumptions, retirementAge: 65.5 } }),
     );
 
@@ -181,7 +140,7 @@ describe('createProjectionUseCase', () => {
   });
 
   it('returns every resolver error without writing', async () => {
-    const outcome = await createProjectionUseCase.calculate(request({ rules: [ledgerRule] }));
+    const outcome = await calculateProjectionUseCase.execute(request({ rules: [ledgerRule] }));
 
     expect(outcome).toMatchObject({
       ok: false,
@@ -212,7 +171,7 @@ describe('createProjectionUseCase', () => {
       id: 'projection-3',
     });
 
-    const calculated = await createProjectionUseCase.calculate(request({ rules: [ledgerRule] }));
+    const calculated = await calculateProjectionUseCase.execute(request({ rules: [ledgerRule] }));
     expect(calculated.ok).toBe(true);
     if (!calculated.ok) return;
 
@@ -230,72 +189,50 @@ describe('createProjectionUseCase', () => {
     ]);
   });
 
-  it('maps document size failures to PROJECTION_TOO_LARGE', async () => {
-    vi.mocked(projectionRepository.createProjectionAtomically).mockResolvedValue({
-      ok: false,
-      code: 'PROJECTION_TOO_LARGE',
-      document: 'annual',
-    });
+  it('keeps one baseline year per rule when rules share a ledger code', async () => {
+    vi.mocked(listAllLedgerCodesUseCase.execute).mockResolvedValue([
+      { code: 'expense:rent', label: 'Rent', type: 'expense', isCustom: false, isActive: true },
+    ]);
+    mockRentDebitByYear({ 2024: 800, 2025: 1400 });
 
-    const calculated = await createProjectionUseCase.calculate(request());
-    expect(calculated.ok).toBe(true);
-    if (!calculated.ok) return;
-
-    const outcome = await createProjectionUseCase.persist({
-      householdId: 'household-1',
-      auth,
-      name: 'My projection',
-      calculation: calculated.calculation,
-    });
-
-    expect(outcome).toMatchObject({
-      ok: false,
-      code: ProjectionCommandErrorCode.PROJECTION_TOO_LARGE,
-    });
-  });
-
-  it('maps a rejected batch to PROJECTION_WRITE_FAILED', async () => {
-    vi.mocked(projectionRepository.createProjectionAtomically).mockRejectedValue(
-      new Error('batch failed'),
+    const calculated = await calculateProjectionUseCase.execute(
+      request({
+        rules: [
+          ledgerRule,
+          { ...ledgerRule, id: 'rule-2', baselinePolicy: 'specificYear', baselineYear: 2024 },
+        ],
+      }),
     );
 
-    const calculated = await createProjectionUseCase.calculate(request());
     expect(calculated.ok).toBe(true);
     if (!calculated.ok) return;
 
-    const outcome = await createProjectionUseCase.persist({
-      householdId: 'household-1',
-      auth,
-      name: 'My projection',
-      calculation: calculated.calculation,
-    });
-
-    expect(outcome).toMatchObject({
-      ok: false,
-      code: ProjectionCommandErrorCode.PROJECTION_WRITE_FAILED,
-    });
+    expect(calculated.calculation.source.ruleSources).toHaveLength(2);
+    expect(calculated.calculation.source.ruleSources).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ ruleId: 'rule-1', baselineYear: 2025, baselineAmount: 1400 }),
+        expect.objectContaining({ ruleId: 'rule-2', baselineYear: 2024, baselineAmount: 800 }),
+      ]),
+    );
+    expect(calculated.calculation.warnings).toEqual([
+      expect.objectContaining({
+        code: 'BASELINE_BEHIND',
+        params: expect.objectContaining({ ruleId: 'rule-2' }),
+      }),
+    ]);
   });
 
-  it('uses a fresh repository id on every retry', async () => {
-    vi.mocked(projectionRepository.createProjectionAtomically)
-      .mockResolvedValueOnce({ ok: true, id: 'projection-a' })
-      .mockResolvedValueOnce({ ok: true, id: 'projection-b' });
+  it('fetches a shared ledger code and year only once', async () => {
+    vi.mocked(listAllLedgerCodesUseCase.execute).mockResolvedValue([
+      { code: 'expense:rent', label: 'Rent', type: 'expense', isCustom: false, isActive: true },
+    ]);
+    mockRentDebitByYear({ 2025: 1400 });
 
-    const calculated = await createProjectionUseCase.calculate(request());
+    const calculated = await calculateProjectionUseCase.execute(
+      request({ rules: [ledgerRule, { ...ledgerRule, id: 'rule-2' }] }),
+    );
+
     expect(calculated.ok).toBe(true);
-    if (!calculated.ok) return;
-
-    const persistRequest = {
-      householdId: 'household-1',
-      auth,
-      name: 'My projection',
-      calculation: calculated.calculation,
-    };
-    const first = await createProjectionUseCase.persist(persistRequest);
-    const second = await createProjectionUseCase.persist(persistRequest);
-
-    expect(first).toMatchObject({ ok: true, id: 'projection-a' });
-    expect(second).toMatchObject({ ok: true, id: 'projection-b' });
-    expect(projectionRepository.createProjectionAtomically).toHaveBeenCalledTimes(2);
+    expect(transactionRepository.listByDateRange).toHaveBeenCalledTimes(1);
   });
 });

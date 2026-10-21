@@ -1,5 +1,14 @@
-import { useState } from 'react';
+import { type UseFormReturn } from 'react-hook-form';
 
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+  TextInput,
+} from '@/ui/components/form';
 import { Alert, AlertDescription } from '@/ui/components/ui/alert';
 import { Button } from '@/ui/components/ui/button';
 import {
@@ -9,96 +18,68 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/ui/components/ui/dialog';
-import { Input } from '@/ui/components/ui/input';
-import { Label } from '@/ui/components/ui/label';
-import {
-  SAVE_AS_PLAN_ERROR_LABELS,
-  SAVE_AS_PLAN_LABELS,
-} from '@/ui/constants/retirement-redesign/projectionLabels';
-
-export interface SaveAsPlanOutcomeView {
-  ok: boolean;
-  code?: keyof typeof SAVE_AS_PLAN_ERROR_LABELS;
-}
+import { SAVE_AS_PLAN_LABELS } from '@/ui/constants/retirement-redesign/projectionLabels';
+import { type SaveNameVM } from '@/ui/features/retirement-redesign/viewmodels/saveName.vm';
 
 interface SaveAsPlanDialogProps {
-  defaultName: string;
+  form: UseFormReturn<SaveNameVM>;
+  submit: () => Promise<void>;
   onCancel: () => void;
-  onSave: (name: string) => Promise<SaveAsPlanOutcomeView>;
 }
 
 /** Creates a new plan from the projection's config; the projection stays untouched. */
-export function SaveAsPlanDialog({ defaultName, onCancel, onSave }: SaveAsPlanDialogProps) {
-  const [name, setName] = useState(defaultName);
-  const [saving, setSaving] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
-
-  const submit = async () => {
-    if (name.trim() === '') {
-      setMessage(SAVE_AS_PLAN_LABELS.NAME_REQUIRED);
-      return;
-    }
-
-    setMessage(null);
-    setSaving(true);
-    const outcome = await onSave(name.trim());
-    setSaving(false);
-    if (!outcome.ok) {
-      setMessage(
-        SAVE_AS_PLAN_ERROR_LABELS[outcome.code ?? 'WRITE_FAILED'] ?? SAVE_AS_PLAN_LABELS.FAILED,
-      );
-    }
-  };
+export function SaveAsPlanDialog({ form, submit, onCancel }: SaveAsPlanDialogProps) {
+  const { errors, isSubmitting } = form.formState;
+  const rootMessage = errors.root?.message ?? null;
+  const failed = rootMessage !== null || errors.name !== undefined;
 
   return (
     <Dialog
       open
       onOpenChange={(next) => {
-        if (next || saving) return;
+        if (next || isSubmitting) return;
         onCancel();
       }}
     >
       <DialogContent
         aria-describedby={undefined}
         onEscapeKeyDown={(event) => {
-          if (saving) event.preventDefault();
+          if (isSubmitting) event.preventDefault();
         }}
         onInteractOutside={(event) => {
-          if (saving) event.preventDefault();
+          if (isSubmitting) event.preventDefault();
         }}
       >
         <DialogHeader>
           <DialogTitle>{SAVE_AS_PLAN_LABELS.TITLE}</DialogTitle>
         </DialogHeader>
 
-        <div className="grid gap-2">
-          <Label htmlFor="save-as-plan-name">{SAVE_AS_PLAN_LABELS.NAME}</Label>
-          <Input
-            id="save-as-plan-name"
-            value={name}
-            onChange={(event) => {
-              setName(event.target.value);
-              setMessage(null);
-            }}
-            disabled={saving}
-            aria-invalid={message !== null}
-          />
-        </div>
+        <Form {...form}>
+          <FormField name="name">
+            <FormItem>
+              <FormLabel>{SAVE_AS_PLAN_LABELS.NAME}</FormLabel>
+              <FormControl>
+                <TextInput disabled={isSubmitting} onChange={() => form.clearErrors()} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          </FormField>
+        </Form>
 
-        {message !== null && (
+        {rootMessage !== null && (
           <Alert variant="warning">
-            <AlertDescription>{message}</AlertDescription>
+            <AlertDescription>{rootMessage}</AlertDescription>
           </Alert>
         )}
 
         <DialogFooter>
-          <Button variant="outline" onClick={onCancel} disabled={saving}>
+          <Button variant="outline" onClick={onCancel} disabled={isSubmitting}>
             {SAVE_AS_PLAN_LABELS.CANCEL}
           </Button>
-          <Button onClick={() => void submit()} disabled={saving}>
-            {saving
+          <Button onClick={() => void submit()} disabled={isSubmitting}>
+            {isSubmitting
               ? SAVE_AS_PLAN_LABELS.SAVING
-              : message !== null
+              : failed
                 ? SAVE_AS_PLAN_LABELS.RETRY
                 : SAVE_AS_PLAN_LABELS.CONFIRM}
           </Button>

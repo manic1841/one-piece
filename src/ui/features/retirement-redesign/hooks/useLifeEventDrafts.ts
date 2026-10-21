@@ -3,21 +3,24 @@ import { useCallback, useMemo, useRef, useState } from 'react';
 import { type Resolver, type ResolverResult, useForm } from 'react-hook-form';
 
 import { type LifeEvent, LifeEventsSchema } from '@/domains/retirement/lifeEvents';
+import { type ValidationOutcome } from '@/ui/features/retirement-redesign/viewmodels/formValidation';
 import {
   type EventErrorsById,
   type EventType,
+  type EventsForm,
   type LifeEventDraftVM,
+  LifeEventFormSchema,
   type PhaseDraftVM,
   type PhaseFocusRequest,
   blankEvent,
   blankPhase,
-  buildEvent,
-  eventFromDomain,
+  collectEventErrors,
   focusTargetFor,
+  mapEventDraftVMToDomain,
+  mapEventToVM,
   sortPhases,
-  validateEventDraft,
-} from '@/ui/features/retirement-redesign/hooks/lifeEventDraftModel';
-import { type ValidationOutcome } from '@/ui/features/retirement-redesign/hooks/useAssumptionDraft';
+  withPhaseIndex,
+} from '@/ui/features/retirement-redesign/viewmodels/lifeEventForm.vm';
 
 export type {
   EventErrorField,
@@ -29,26 +32,11 @@ export type {
   PhaseErrorField,
   PhaseErrors,
   PhaseFocusRequest,
-} from '@/ui/features/retirement-redesign/hooks/lifeEventDraftModel';
+} from '@/ui/features/retirement-redesign/viewmodels/lifeEventForm.vm';
 
-export interface EventsForm {
-  events: LifeEventDraftVM[];
-}
-
-function withPhaseIndex(event: LifeEventDraftVM): LifeEventDraftVM {
-  return {
-    ...event,
-    phasesById: Object.fromEntries(event.phases.map((phase) => [phase.id, phase])),
-  };
-}
-
-function buildErrors(events: LifeEventDraftVM[]): EventErrorsById {
-  const errors: EventErrorsById = {};
-  for (const event of events) {
-    const eventErrors = validateEventDraft(event);
-    if (Object.keys(eventErrors).length > 0) errors[event.id] = eventErrors;
-  }
-  return errors;
+interface RHFError {
+  type: string;
+  message: string;
 }
 
 export function useLifeEventDrafts(markDirty: () => void) {
@@ -56,35 +44,30 @@ export function useLifeEventDrafts(markDirty: () => void) {
   const sequenceRef = useRef(0);
 
   const resolver = useCallback<Resolver<EventsForm>>((values): ResolverResult<EventsForm> => {
-    const errors = buildErrors(values.events);
-    const fieldErrors: Record<string, unknown> = {};
+    const parsed = LifeEventFormSchema.safeParse(values);
+    if (parsed.success) return { values, errors: {} };
 
-    for (const [index, event] of values.events.entries()) {
-      const eventErrors = errors[event.id];
-      if (eventErrors === undefined) continue;
+    const fieldErrors: Record<number, Record<string, unknown>> = {};
+    for (const issue of parsed.error.issues) {
+      const [index, kind, phaseIndex, phaseField] = issue.path;
+      if (typeof index !== 'number' || typeof kind !== 'string') continue;
 
-      const row: Record<string, unknown> = {};
-      if (event.touched) {
-        if (eventErrors.name) row.name = { type: 'validation', message: eventErrors.name };
-        if (eventErrors.type) row.type = { type: 'validation', message: eventErrors.type };
-        if (eventErrors.phases) row.phases = { type: 'validation', message: eventErrors.phases };
+      const event = values.events[index];
+      if (event === undefined) continue;
+      const row: Record<string, unknown> = (fieldErrors[index] ??= {});
+      const rhfError: RHFError = { type: 'validation', message: issue.message };
+
+      if (kind === 'phases' && typeof phaseIndex === 'number' && typeof phaseField === 'string') {
+        const phase = event.phases[phaseIndex];
+        if (!phase?.touched) continue;
+        const phaseErrors = (row.phaseErrors ??= {}) as Record<number, Record<string, RHFError>>;
+        const phaseRow: Record<string, RHFError> = (phaseErrors[phaseIndex] ??= {});
+        phaseRow[phaseField] ??= rhfError;
+        continue;
       }
 
-      const phaseErrors: Record<number, unknown> = {};
-      for (const [phaseIndex, phase] of event.phases.entries()) {
-        if (!phase.touched) continue;
-        const phaseError = eventErrors.phaseErrors?.[phase.id];
-        if (phaseError === undefined) continue;
-        phaseErrors[phaseIndex] = Object.fromEntries(
-          Object.entries(phaseError).map(([field, message]) => [
-            field,
-            { type: 'validation', message },
-          ]),
-        );
-      }
-      if (Object.keys(phaseErrors).length > 0) row.phaseErrors = phaseErrors;
-
-      if (Object.keys(row).length > 0) fieldErrors[index] = row;
+      if (!event.touched) continue;
+      row[kind] ??= rhfError;
     }
 
     if (Object.keys(fieldErrors).length === 0) return { values, errors: {} };
@@ -212,9 +195,8 @@ export function useLifeEventDrafts(markDirty: () => void) {
 
   const validate = useCallback((): ValidationOutcome<LifeEvent[], EventErrorsById> => {
     const current = form.getValues('events');
-    const errors = buildErrors(current);
-    const built = current.map(buildEvent);
-    const all = LifeEventsSchema.safeParse(built);
+    const errors = collectEventErrors(current);
+    const all = LifeEventsSchema.safeParse(current.map(mapEventDraftVMToDomain));
     void form.trigger();
 
     return {
@@ -225,7 +207,7 @@ export function useLifeEventDrafts(markDirty: () => void) {
   }, [form]);
 
   const visibleErrors = useMemo(() => {
-    const all = buildErrors(events);
+    const all = collectEventErrors(events);
     const visible: EventErrorsById = {};
     for (const event of events) {
       const errors = all[event.id];
@@ -247,7 +229,7 @@ export function useLifeEventDrafts(markDirty: () => void) {
 
   const replaceAll = useCallback(
     (next: LifeEvent[]) => {
-      form.reset({ events: next.map((event) => withPhaseIndex(eventFromDomain(event))) });
+      form.reset({ events: next.map((event) => withPhaseIndex(mapEventToVM(event))) });
     },
     [form],
   );
@@ -270,7 +252,7 @@ export function useLifeEventDrafts(markDirty: () => void) {
     form,
     events,
     errors: visibleErrors,
-    valid: Object.keys(buildErrors(events)).length === 0,
+    valid: Object.keys(collectEventErrors(events)).length === 0,
     focusRequest,
     revealAll,
     add,

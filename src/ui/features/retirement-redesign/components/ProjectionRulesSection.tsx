@@ -16,11 +16,8 @@ import {
   type RuleMethod,
   type RuleSourceType,
   type RuleType,
-} from '@/ui/features/retirement-redesign/hooks/useRuleDrafts';
-
-interface RulesFormValue {
-  rules: RuleDraftVM[];
-}
+  type RulesForm as RulesFormValue,
+} from '@/ui/features/retirement-redesign/viewmodels/ruleForm.vm';
 
 interface ProjectionRulesSectionProps {
   form: UseFormReturn<RulesFormValue>;

@@ -1,15 +1,20 @@
 import { z } from 'zod';
 
+import { DOCUMENT_MAX_BYTES } from '@/shared/documentSize';
 import { TimestampSchema } from '@/shared/schemas/date';
 
-import { type RetirementAssumptions, createAssumptionsSchema } from '../assumptions';
+import {
+  type RetirementAssumptions,
+  RetirementAssumptionsSchema,
+  createAssumptionsSchema,
+} from '../assumptions';
 import { RetirementSchemaErrorCode } from '../errorCodes';
 import { type LifeEvent, LifeEventsSchema } from '../lifeEvents';
 import { addIssue } from '../numeric';
 import { type ProjectionRule, ProjectionRulesSchema, RuleSourceType } from '../projectionRules';
 import { type ProjectionYearResult, type RuleSourceSnapshot } from './projectionTypes';
 
-export const PROJECTION_DOCUMENT_MAX_BYTES = 900_000;
+export const PROJECTION_DOCUMENT_MAX_BYTES = DOCUMENT_MAX_BYTES;
 
 export type ProjectionDocumentName = 'main' | 'config' | 'source' | 'annual';
 
@@ -108,8 +113,11 @@ export const ProjectionAnnualSchema = z.object({
 /**
  * The config snapshot is the only place `specificYear <= startYear - 1` can be
  * checked: the rule schema has no clock and plans do not carry `startYear`.
+ * The clock only enters through the assumptions shape, so the structural
+ * variant (used to read) and the validated variant (used by the use case that
+ * owns the clock) share everything else.
  */
-export function createProjectionConfigSchema(currentYear: number) {
+function projectionConfigSchema<TSchema extends z.ZodType>(assumptions: TSchema) {
   return z
     .object({
       startYear: z.number().int(),
@@ -118,7 +126,7 @@ export function createProjectionConfigSchema(currentYear: number) {
         source: z.enum(['derived', 'manual']),
         anchorYearMonth: z.string().optional(),
       }),
-      assumptions: createAssumptionsSchema(currentYear),
+      assumptions,
       projectionRules: ProjectionRulesSchema,
       lifeEvents: LifeEventsSchema,
     })
@@ -155,6 +163,14 @@ export function createProjectionConfigSchema(currentYear: number) {
         }
       }
     });
+}
+
+/** Clock-free shape; repositories parse reads with this. */
+export const ProjectionConfigSchema = projectionConfigSchema(RetirementAssumptionsSchema);
+
+/** Adds the current-year bound and cross-field timing checks. */
+export function createProjectionConfigSchema(currentYear: number) {
+  return projectionConfigSchema(createAssumptionsSchema(currentYear));
 }
 
 export type ProjectionConfigInput = z.infer<ReturnType<typeof createProjectionConfigSchema>>;

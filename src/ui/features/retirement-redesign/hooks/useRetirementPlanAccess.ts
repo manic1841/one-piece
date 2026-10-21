@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 
 import { householdPermissionService } from '@/application/household/householdPermissionService';
 import { useAuthState } from '@/ui/contexts/useAuthState';
-import { useLoadingTask } from '@/ui/hooks/useLoadingTask';
+import { useLoadOnce } from '@/ui/features/retirement-redesign/hooks/useLoadOnce';
 
 /**
  * Whether the signed-in user may rename or delete plans. The application layer
@@ -11,22 +11,17 @@ import { useLoadingTask } from '@/ui/hooks/useLoadingTask';
 export function useRetirementPlanAccess(householdId: string | undefined) {
   const { user, isAdmin } = useAuthState();
   const [canManage, setCanManage] = useState(false);
-  const { loading, run } = useLoadingTask({ initiallyLoading: true });
 
-  useEffect(() => {
-    void run(
-      async () => {
-        if (!user || !householdId) return false;
-        if (isAdmin) return true;
-        return householdPermissionService.isUserAdmin(householdId, user.uid);
-      },
-      {
-        writeBack: (result) => {
-          if (result.ok) setCanManage(result.value);
-        },
-      },
-    );
-  }, [householdId, isAdmin, run, user]);
+  const { loading } = useLoadOnce(
+    async () => {
+      if (!user || !householdId) return false;
+      if (isAdmin) return true;
+      return householdPermissionService.isUserAdmin(householdId, user.uid);
+    },
+    setCanManage,
+    [householdId, isAdmin, user],
+    { initiallyLoading: true },
+  );
 
   return { canManage, loading };
 }

@@ -1,37 +1,41 @@
+import { z } from 'zod';
+
 import { RetirementSchemaErrorCode } from '@/domains/retirement/errorCodes';
 import { type LifeEvent, LifeEventSchema } from '@/domains/retirement/lifeEvents';
 import { newId } from '@/shared/id';
 import { ASSUMPTION_LABELS } from '@/ui/constants/retirement-redesign/setupLabels';
 import { RETIREMENT_VALIDATION_LABELS } from '@/ui/constants/retirement/retirementValidationLabels';
-import {
-  decimalToPercentText,
-  percentToDecimal,
-} from '@/ui/features/retirement-redesign/hooks/useAssumptionDraft';
+
+import { decimalToPercentText, percentToDecimal } from './assumptionForm.vm';
 
 export type EventType = LifeEvent['type'];
 export type PhaseErrorField = 'name' | 'startYear' | 'endYear' | 'amount' | 'growthRate';
 export type EventErrorField = 'name' | 'type' | 'phases';
 
-export interface PhaseDraftVM {
-  id: string;
-  name: string;
-  startYearText: string;
-  endYearText: string;
-  amountText: string;
-  growthRateText: string;
-  touched: boolean;
-}
+export const PhaseDraftFormSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  startYearText: z.string(),
+  endYearText: z.string(),
+  amountText: z.string(),
+  growthRateText: z.string(),
+  touched: z.boolean(),
+});
 
-export interface LifeEventDraftVM {
-  id: string;
-  name: string;
-  type: EventType;
-  enabled: boolean;
-  phases: PhaseDraftVM[];
+export type PhaseDraftVM = z.infer<typeof PhaseDraftFormSchema>;
+
+export const LifeEventDraftFormSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  type: z.enum(['income', 'expense']),
+  enabled: z.boolean(),
+  phases: z.array(PhaseDraftFormSchema),
   /** Mirror keyed by phase id so form field names stay stable while phases sort. */
-  phasesById?: Record<string, PhaseDraftVM>;
-  touched: boolean;
-}
+  phasesById: z.record(z.string(), PhaseDraftFormSchema).optional(),
+  touched: z.boolean(),
+});
+
+export type LifeEventDraftVM = z.infer<typeof LifeEventDraftFormSchema>;
 
 export type PhaseErrors = Partial<Record<PhaseErrorField, string>>;
 
@@ -44,6 +48,11 @@ export interface EventErrors {
 
 export type EventErrorsById = Record<string, EventErrors>;
 
+export const EventsFormSchema = z.object({ events: z.array(LifeEventDraftFormSchema) });
+
+export type EventsForm = z.infer<typeof EventsFormSchema>;
+
+/** An identifier and field the phase row should focus after a cross-phase fix. */
 export interface PhaseFocusRequest {
   eventId: string;
   phaseId: string;
@@ -101,7 +110,8 @@ export function sortPhases(phases: PhaseDraftVM[]): PhaseDraftVM[] {
   });
 }
 
-export function buildEvent(event: LifeEventDraftVM): unknown {
+/** VM -> domain payload. Unknown keys stay permissive for the domain parse. */
+export function mapEventDraftVMToDomain(event: LifeEventDraftVM): unknown {
   return {
     id: event.id,
     name: event.name,
@@ -116,6 +126,33 @@ export function buildEvent(event: LifeEventDraftVM): unknown {
         ? {}
         : { growthRate: parseGrowthRate(phase.growthRateText) }),
     })),
+  };
+}
+
+/** Keeps the id-keyed phase mirror in sync so form field names stay stable. */
+export function withPhaseIndex(event: LifeEventDraftVM): LifeEventDraftVM {
+  return {
+    ...event,
+    phasesById: Object.fromEntries(event.phases.map((phase) => [phase.id, phase])),
+  };
+}
+
+export function mapEventToVM(event: LifeEvent): LifeEventDraftVM {
+  return {
+    id: event.id,
+    name: event.name,
+    type: event.type,
+    enabled: event.enabled,
+    phases: event.phases.map((phase) => ({
+      id: newId(),
+      name: phase.name ?? '',
+      startYearText: String(phase.startYear),
+      endYearText: String(phase.endYear),
+      amountText: String(phase.amount),
+      growthRateText: phase.growthRate === undefined ? '' : decimalToPercentText(phase.growthRate),
+      touched: false,
+    })),
+    touched: false,
   };
 }
 
@@ -212,7 +249,7 @@ function crossPhaseIssues(event: LifeEventDraftVM) {
 
 /** The offending phase field for the two cross-phase failures. */
 export function focusTargetFor(event: LifeEventDraftVM): PhaseFocusRequest | null {
-  const parsed = LifeEventSchema.safeParse(buildEvent(event));
+  const parsed = LifeEventSchema.safeParse(mapEventDraftVMToDomain(event));
   const issues = [...(parsed.success ? [] : parsed.error.issues), ...crossPhaseIssues(event)];
 
   for (const issue of issues) {
@@ -241,40 +278,70 @@ export function focusTargetFor(event: LifeEventDraftVM): PhaseFocusRequest | nul
   return null;
 }
 
-export function eventFromDomain(event: LifeEvent): LifeEventDraftVM {
-  return {
-    id: event.id,
-    name: event.name,
-    type: event.type,
-    enabled: event.enabled,
-    phases: event.phases.map((phase) => ({
-      id: newId(),
-      name: phase.name ?? '',
-      startYearText: String(phase.startYear),
-      endYearText: String(phase.endYear),
-      amountText: String(phase.amount),
-      growthRateText: phase.growthRate === undefined ? '' : decimalToPercentText(phase.growthRate),
-      touched: false,
-    })),
-    touched: false,
-  };
-}
-
-export function validateEventDraft(event: LifeEventDraftVM): EventErrors {
-  const errors: EventErrors = {};
-  const parsed = LifeEventSchema.safeParse(buildEvent(event));
-
-  if (!parsed.success) {
-    for (const issue of parsed.error.issues) {
-      const mapped = mapIssue(issue, event.phases);
-      if (mapped !== null) applyMappedIssue(errors, event, mapped);
-    }
-  }
-
-  for (const issue of crossPhaseIssues(event)) {
+function applyIssues(
+  errors: EventErrors,
+  event: LifeEventDraftVM,
+  issues: { message: string; path: PropertyKey[] }[],
+): void {
+  for (const issue of issues) {
     const mapped = mapIssue(issue, event.phases);
     if (mapped !== null) applyMappedIssue(errors, event, mapped);
+  }
+}
+
+/** Per-event errors keyed by event id; fields carry display labels. */
+export function collectEventErrors(events: LifeEventDraftVM[]): EventErrorsById {
+  const errors: EventErrorsById = {};
+
+  for (const event of events) {
+    const eventErrors: EventErrors = {};
+    const parsed = LifeEventSchema.safeParse(mapEventDraftVMToDomain(event));
+
+    if (!parsed.success) applyIssues(eventErrors, event, parsed.error.issues);
+    applyIssues(eventErrors, event, crossPhaseIssues(event));
+
+    if (Object.keys(eventErrors).length > 0) errors[event.id] = eventErrors;
   }
 
   return errors;
 }
+
+/**
+ * Form VM gate. Semantic rules stay in the domain schema; the refinement only
+ * re-attributes their issues to form paths so the resolver and the submit gate
+ * share one parse.
+ */
+function addEventIssues(
+  ctx: z.RefinementCtx,
+  index: number,
+  event: LifeEventDraftVM,
+  errors: EventErrors,
+): void {
+  for (const field of ['name', 'type', 'phases'] as const) {
+    const message = errors[field];
+    if (message !== undefined) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: [index, field], message });
+    }
+  }
+
+  for (const [phaseIndex, phase] of event.phases.entries()) {
+    const phaseErrors = errors.phaseErrors?.[phase.id];
+    if (phaseErrors === undefined) continue;
+    for (const [field, message] of Object.entries(phaseErrors)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: [index, 'phases', phaseIndex, field],
+        message,
+      });
+    }
+  }
+}
+
+export const LifeEventFormSchema = EventsFormSchema.superRefine((value, ctx) => {
+  const errors = collectEventErrors(value.events);
+
+  for (const [index, event] of value.events.entries()) {
+    const eventErrors = errors[event.id];
+    if (eventErrors !== undefined) addEventIssues(ctx, index, event, eventErrors);
+  }
+});

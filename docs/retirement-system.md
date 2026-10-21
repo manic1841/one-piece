@@ -44,6 +44,10 @@ households/{householdId}/projections/{projectionId}
 `deleteDoc`。`birthYear` 建立後不可變；update schema 沒有 `birthYear`，其餘欄位
 必須整份送出（沒有 partial 版本）。
 
+計畫的驗證由取得時鐘的 use case 負責（`createRetirementPlanCreateSchema` /
+`createRetirementPlanUpdateSchema`）；repository 不比對 schema，只搬運資料並在
+寫入前擋下超過上限的 payload，讀取時以不含時鐘的 `RetirementPlanSchema` 檢查結構。
+
 **投影**是主文件加三份固定子文件，寫入只有一個方法
 `createProjectionAtomically`。主文件存名稱、`engineVersion`、建立者、建立時間與
 六欄 summary；子文件分別存設定快照、基準引用與逐年結果。三份子文件都**不存**
@@ -86,6 +90,10 @@ households/{householdId}/projections/{projectionId}
 update schema 沿用同一組交叉檢查，但以已存的 `birthYear` 代入。既有計畫若因時間
 推移變得不合法，**不夾取**，直到下一次寫入才以
 `LIFE_EXPECTANCY_BEFORE_CURRENT_AGE` 等穩定 code 失敗。
+
+讀取只做結構檢查，不跑時序交叉檢查：`birthYear.max` 在寫入時已成立、之後只會更
+寬；`currentAge` 與 `lifeExpectancy` 的檢查留給「使用該計畫」的 use case，避免一筆
+舊計畫讓整份清單打不開。
 
 ## 4. 投影規則與 Method
 
@@ -175,10 +183,15 @@ Firestore；來源資料由呼叫端備妥後傳入。它依規則圖的拓撲�
   月、改取更早期間，並觸發 `BASELINE_BEHIND`。
 - 「用報表值」一鍵重設只改 `source` 與 `amount`。
 
+從既有投影預填工作區時，`derived` 期初**重新解析**，不複製投影凍結的快照值；解
+析不到（當下沒有 `CLOSED` 期間）就把期初留空並顯示警告，不退回舊值。
+
 **規則基準**以 `source.id` 為鍵，取該年 `(credit − debit)` 的**淨額絕對值**。沒有
-分錄即 `MISSING_BASELINE`，不降級為 0。`specificYear` 由 `previousCompleteYear`
-往回找到第一個有分錄的年度；`previousCompleteYear = startYear − 1`，且
-`specificYear <= startYear − 1` 只在 config 階段驗證。
+分錄即 `MISSING_BASELINE`，不降級為 0。`baselineYear` 取該規則自己的基準年度
+（`specificYear` 用設定值，其餘用 `previousCompleteYear = startYear − 1`）；**不往
+回找有分錄的年度**，該年沒有分錄就是 `MISSING_BASELINE`。
+`specificYear <= startYear − 1` 只在 config 階段驗證。多條規則可共用同一科目：每
+條規則各自解析自己的基準年度，同科目的各年度淨額互不覆蓋。
 
 **錯誤與警告共用 `ProjectionResolveError` 型別與同一個陣列**，以 `severity` 區
 分。錯誤讓整次解析失敗、不落庫；警告只呈現，不阻擋儲存。

@@ -15,48 +15,55 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/ui/components/ui/tab
 import {
   PROJECTION_VIEW_LABELS,
   RENAME_ERROR_LABELS,
-  SAVE_AS_PLAN_ERROR_LABELS,
 } from '@/ui/constants/retirement-redesign/projectionLabels';
 import { useAuthState } from '@/ui/contexts/useAuthState';
-import { ProjectionProjectionTab } from '@/ui/features/retirement-redesign/components/ProjectionProjectionTab';
+import { ProjectionResultTab } from '@/ui/features/retirement-redesign/components/ProjectionResultTab';
 import { ProjectionSourceTab } from '@/ui/features/retirement-redesign/components/ProjectionSourceTab';
 import { ProjectionSummaryTab } from '@/ui/features/retirement-redesign/components/ProjectionSummaryTab';
 import { SaveAsPlanDialog } from '@/ui/features/retirement-redesign/components/SaveAsPlanDialog';
 import { useProjectionView } from '@/ui/features/retirement-redesign/hooks/useProjectionView';
+import { getTaskErrorMessage } from '@/ui/hooks/getErrorMessage';
 
 export default function ProjectionViewPage() {
   const { userProfile } = useAuthState();
   const { id } = useParams();
   const navigate = useNavigate();
   const { confirm } = useConfirm();
-  const { view, loading, error, notFound, reload, rename, remove, saveAsPlan } = useProjectionView(
-    userProfile?.householdId,
-    id,
-  );
+  const {
+    view,
+    loading,
+    error,
+    notFound,
+    reload,
+    rename,
+    remove,
+    saveAsPlanForm,
+    submitSaveAsPlan,
+  } = useProjectionView(userProfile?.householdId, id);
   const [saveAsPlanOpen, setSaveAsPlanOpen] = useState(false);
 
-  const handleSaveAsPlan = async (name: string) => {
-    const outcome = await saveAsPlan(name);
-    if (!outcome.ok) {
-      toast.error(SAVE_AS_PLAN_ERROR_LABELS[outcome.code]);
-      return outcome;
-    }
+  const openSaveAsPlan = () => {
+    saveAsPlanForm.reset({ name: view?.name ?? '' });
+    setSaveAsPlanOpen(true);
+  };
+
+  const handleSaveAsPlanSuccess = () => {
     setSaveAsPlanOpen(false);
     toast.success(PROJECTION_VIEW_LABELS.PLAN_SAVED);
-    return outcome;
   };
 
   const handleRename = async (name: string) => {
-    try {
-      await rename(name);
-    } catch (error) {
-      const code = error instanceof Error ? error.message : 'WRITE_FAILED';
-      toast.error(
-        RENAME_ERROR_LABELS[code as keyof typeof RENAME_ERROR_LABELS] ??
-          RENAME_ERROR_LABELS.WRITE_FAILED,
-      );
-      throw error;
+    const task = await rename(name);
+    if (!task.ok) {
+      toast.error(getTaskErrorMessage(task));
+      return;
     }
+    if (task.value.ok) return;
+
+    toast.error(
+      RENAME_ERROR_LABELS[task.value.code as keyof typeof RENAME_ERROR_LABELS] ??
+        RENAME_ERROR_LABELS.WRITE_FAILED,
+    );
   };
 
   const handleDelete = async () => {
@@ -70,9 +77,15 @@ export default function ProjectionViewPage() {
     if (!confirmed) return;
 
     try {
-      await remove();
+      const task = await remove();
+      if (!task.ok) {
+        toast.error(getTaskErrorMessage(task));
+        return;
+      }
       navigate('/retirement');
     } catch {
+      // `run` reports failures instead of throwing; keep a guard for the
+      // navigation itself.
       toast.error(PROJECTION_VIEW_LABELS.DELETE_FAILED);
     }
   };
@@ -98,7 +111,7 @@ export default function ProjectionViewPage() {
         }
         actions={
           view === null ? undefined : (
-            <Button variant="outline" size="sm" onClick={() => setSaveAsPlanOpen(true)}>
+            <Button variant="outline" size="sm" onClick={openSaveAsPlan}>
               {PROJECTION_VIEW_LABELS.SAVE_AS_PLAN}
             </Button>
           )
@@ -161,7 +174,7 @@ export default function ProjectionViewPage() {
               <ProjectionSummaryTab summary={view.summary} projection={view.projection} />
             </TabsContent>
             <TabsContent value="projection">
-              <ProjectionProjectionTab projection={view.projection} />
+              <ProjectionResultTab projection={view.projection} />
             </TabsContent>
             <TabsContent value="source">
               <ProjectionSourceTab
@@ -180,9 +193,9 @@ export default function ProjectionViewPage() {
 
       {saveAsPlanOpen && view !== null && (
         <SaveAsPlanDialog
-          defaultName={view.name}
+          form={saveAsPlanForm}
+          submit={() => submitSaveAsPlan(handleSaveAsPlanSuccess)}
           onCancel={() => setSaveAsPlanOpen(false)}
-          onSave={handleSaveAsPlan}
         />
       )}
     </div>

@@ -15,7 +15,7 @@ import { PROJECTION_WORKSPACE_LABELS } from '@/ui/constants/retirement-redesign/
 import {
   type AssumptionField,
   type AssumptionsVM,
-} from '@/ui/features/retirement-redesign/hooks/useAssumptionDraft';
+} from '@/ui/features/retirement-redesign/viewmodels/assumptionForm.vm';
 
 interface AssumptionsSectionProps {
   form: UseFormReturn<AssumptionsVM>;

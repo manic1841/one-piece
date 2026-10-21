@@ -2,16 +2,16 @@ import { z } from 'zod';
 
 import { TimestampSchema } from '@/shared/schemas/date';
 
-import { createAssumptionsSchema, createAssumptionsUpdateSchema } from './assumptions';
-import { RetirementSchemaErrorCode } from './errorCodes';
+import {
+  RetirementAssumptionsSchema,
+  createAssumptionsSchema,
+  createAssumptionsUpdateSchema,
+} from './assumptions';
 import { LifeEventsSchema } from './lifeEvents';
+import { retirementNameSchema } from './name';
 import { ProjectionRulesSchema } from './projectionRules';
 
-const nameField = z
-  .string()
-  .trim()
-  .min(1, RetirementSchemaErrorCode.NAME_REQUIRED)
-  .max(100, RetirementSchemaErrorCode.NAME_TOO_LONG);
+const nameField = retirementNameSchema;
 
 const auditShape = {
   createdBy: z.string(),
@@ -29,7 +29,6 @@ export function createRetirementPlanCreateSchema(currentYear: number) {
     ...auditShape,
   });
 }
-export type RetirementPlanCreate = z.infer<ReturnType<typeof createRetirementPlanCreateSchema>>;
 
 /**
  * Update input keeps the same full shape as create except the immutable
@@ -45,4 +44,17 @@ export function createRetirementPlanUpdateSchema(currentYear: number, birthYear:
     ...auditShape,
   });
 }
-export type RetirementPlanUpdate = z.infer<ReturnType<typeof createRetirementPlanUpdateSchema>>;
+
+/**
+ * Clock-free persisted shape. Persistence parses reads with this; the
+ * current-year bound and the cross-field timing checks belong to the use case
+ * that owns the clock, through the factory schemas above.
+ */
+export const RetirementPlanSchema = z.object({
+  id: z.string(),
+  name: nameField,
+  assumptions: RetirementAssumptionsSchema,
+  projectionRules: ProjectionRulesSchema,
+  lifeEvents: LifeEventsSchema,
+  ...auditShape,
+});

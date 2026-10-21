@@ -1,8 +1,16 @@
 import { type DocumentData, Timestamp } from 'firebase/firestore';
 
-/** UTF-8 byte size of the JSON payload used for the 900 KB document guard. */
+import { DOCUMENT_MAX_BYTES } from '@/shared/documentSize';
+
+export { DOCUMENT_MAX_BYTES };
+
+/** UTF-8 byte size of the JSON payload used for the document guard. */
 export function byteLength(value: unknown): number {
   return new TextEncoder().encode(JSON.stringify(value)).length;
+}
+
+export function isDocumentTooLarge(value: unknown): boolean {
+  return byteLength(value) > DOCUMENT_MAX_BYTES;
 }
 
 /**

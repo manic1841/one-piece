@@ -15,7 +15,7 @@ import {
   type PhaseDraftVM,
   type PhaseErrors,
   type PhaseFocusRequest,
-} from '@/ui/features/retirement-redesign/hooks/useLifeEventDrafts';
+} from '@/ui/features/retirement-redesign/viewmodels/lifeEventForm.vm';
 
 const FIELD_NAMES = {
   name: 'name',

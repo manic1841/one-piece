@@ -34,6 +34,8 @@ export const PLAN_DETAIL_LABELS = {
   DELETE_TITLE: 'Delete this plan?',
   DELETE_CONSEQUENCE: 'This cannot be undone.',
   DELETE_CONFIRM: 'DELETE',
+  RENAME_FAILED: 'Could not rename this plan.',
+  DELETE_FAILED: 'Could not delete this plan.',
   SOURCE_LEDGER: 'Ledger code',
   SOURCE_RULE: 'Another rule',
   SOURCE_DEBT: 'Debt account',

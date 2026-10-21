@@ -234,7 +234,7 @@ describe('ProjectionViewPage', () => {
     fireEvent.change(input, { target: { value: '   ' } });
     fireEvent.click(screen.getByRole('button', { name: 'SAVE' }));
 
-    expect(screen.getByText('Name is required.')).toBeInTheDocument();
+    expect(await screen.findByText('Name is required.')).toBeInTheDocument();
     expect(saveProjectionAsPlanUseCase.execute).not.toHaveBeenCalled();
 
     fireEvent.change(input, { target: { value: 'Reusable plan' } });

@@ -1,6 +1,10 @@
 import { z } from 'zod';
 
-import { getRetirementAssumptionBounds } from './bounds';
+import {
+  RETIREMENT_ASSUMPTION_BOUNDS,
+  type RetirementAssumptionBounds,
+  getRetirementAssumptionBounds,
+} from './bounds';
 import { RetirementSchemaErrorCode } from './errorCodes';
 import { addIssue, decimalField, integerField } from './numeric';
 
@@ -47,24 +51,30 @@ function crossCheck(
   }
 }
 
+function assumptionsShape(bounds: RetirementAssumptionBounds) {
+  return z.object({
+    birthYear: integerField(bounds.birthYear.min, bounds.birthYear.max),
+    retirementAge: integerField(bounds.retirementAge.min, bounds.retirementAge.max),
+    lifeExpectancy: integerField(bounds.lifeExpectancy.min, bounds.lifeExpectancy.max),
+    inflationRate: decimalField(bounds.inflationRate.min, bounds.inflationRate.max),
+    annualReturnRate: decimalField(bounds.annualReturnRate.min, bounds.annualReturnRate.max),
+  });
+}
+
+/**
+ * Structure-only assumptions: the shape the persisted document must have,
+ * without the current-year bound or the cross-field checks.
+ */
+export const RetirementAssumptionsSchema = assumptionsShape(RETIREMENT_ASSUMPTION_BOUNDS);
+
 /**
  * Create-time assumptions. The clock is injected so no factory defaults leak
  * into the persisted document.
  */
 export function createAssumptionsSchema(currentYear: number) {
-  const bounds = getRetirementAssumptionBounds(currentYear);
-
-  return z
-    .object({
-      birthYear: integerField(bounds.birthYear.min, bounds.birthYear.max),
-      retirementAge: integerField(bounds.retirementAge.min, bounds.retirementAge.max),
-      lifeExpectancy: integerField(bounds.lifeExpectancy.min, bounds.lifeExpectancy.max),
-      inflationRate: decimalField(bounds.inflationRate.min, bounds.inflationRate.max),
-      annualReturnRate: decimalField(bounds.annualReturnRate.min, bounds.annualReturnRate.max),
-    })
-    .superRefine((value, ctx) => {
-      crossCheck(value, currentYear, value.birthYear, ctx);
-    });
+  return assumptionsShape(getRetirementAssumptionBounds(currentYear)).superRefine((value, ctx) => {
+    crossCheck(value, currentYear, value.birthYear, ctx);
+  });
 }
 
 /**
@@ -72,15 +82,8 @@ export function createAssumptionsSchema(currentYear: number) {
  * shape and its stored value is passed in for the same cross-field checks.
  */
 export function createAssumptionsUpdateSchema(currentYear: number, birthYear: number) {
-  const bounds = getRetirementAssumptionBounds(currentYear);
-
-  return z
-    .object({
-      retirementAge: integerField(bounds.retirementAge.min, bounds.retirementAge.max),
-      lifeExpectancy: integerField(bounds.lifeExpectancy.min, bounds.lifeExpectancy.max),
-      inflationRate: decimalField(bounds.inflationRate.min, bounds.inflationRate.max),
-      annualReturnRate: decimalField(bounds.annualReturnRate.min, bounds.annualReturnRate.max),
-    })
+  return assumptionsShape(getRetirementAssumptionBounds(currentYear))
+    .omit({ birthYear: true })
     .superRefine((value, ctx) => {
       crossCheck(value, currentYear, birthYear, ctx);
     });

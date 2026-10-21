@@ -3,7 +3,7 @@ import { RouterProvider, createMemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { getProjectionOpeningUseCase } from '@/application/retirement/use_cases/getProjectionOpeningUseCase';
-import { type RetirementPlanWorkspaceData } from '@/application/retirement/use_cases/retirementPlanLookup';
+import { type RetirementPlan } from '@/domains/retirement/types';
 
 import { useProjectionWorkspace } from './useProjectionWorkspace';
 
@@ -168,7 +168,7 @@ describe('useProjectionWorkspace', () => {
     expect(latestRef.current.valid).toBe(false);
     expect(latestRef.current.validate().events.ok).toBe(false);
 
-    const plan: RetirementPlanWorkspaceData = {
+    const plan: RetirementPlan = {
       id: 'plan-1',
       name: 'Plan',
       assumptions: {
@@ -178,7 +178,7 @@ describe('useProjectionWorkspace', () => {
         inflationRate: 0.02,
         annualReturnRate: 0.05,
       },
-      rules: [],
+      projectionRules: [],
       lifeEvents: [
         {
           id: 'event-1',
@@ -188,6 +188,10 @@ describe('useProjectionWorkspace', () => {
           phases: [{ startYear: 2040, endYear: 2041, amount: 10 }],
         },
       ],
+      createdBy: 'u1',
+      updatedBy: 'u1',
+      createdAt: new Date('2026-01-01'),
+      updatedAt: new Date('2026-02-01'),
     };
 
     act(() => latestRef.current.applyPlan(plan));

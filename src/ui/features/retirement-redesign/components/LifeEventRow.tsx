@@ -17,7 +17,7 @@ import {
   type LifeEventDraftVM,
   type PhaseDraftVM,
   type PhaseFocusRequest,
-} from '@/ui/features/retirement-redesign/hooks/useLifeEventDrafts';
+} from '@/ui/features/retirement-redesign/viewmodels/lifeEventForm.vm';
 
 interface LifeEventRowProps {
   index: number;

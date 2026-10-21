@@ -5,14 +5,16 @@ import { RouterProvider, createMemoryRouter } from 'react-router-dom';
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { listDebtAccountsUseCase } from '@/application/debt/use_cases/listDebtAccountsUseCase';
-import { createProjectionUseCase } from '@/application/retirement/use_cases/createProjectionUseCase';
+import { calculateProjectionUseCase } from '@/application/retirement/use_cases/calculateProjectionUseCase';
 import { getProjectionOpeningUseCase } from '@/application/retirement/use_cases/getProjectionOpeningUseCase';
 import { getProjectionViewUseCase } from '@/application/retirement/use_cases/getProjectionViewUseCase';
-import { type RetirementPlanWorkspaceData } from '@/application/retirement/use_cases/retirementPlanLookup';
+import { persistProjectionUseCase } from '@/application/retirement/use_cases/persistProjectionUseCase';
+import { saveWorkspaceAsPlanUseCase } from '@/application/retirement/use_cases/saveWorkspaceAsPlanUseCase';
 import {
   type ProjectionInput,
   type ProjectionResult,
 } from '@/domains/retirement/logic/projectionTypes';
+import { type RetirementPlan } from '@/domains/retirement/types';
 
 import ProjectionWorkspacePage from './ProjectionWorkspacePage';
 
@@ -24,13 +26,28 @@ vi.mock('@/application/retirement/use_cases/getProjectionViewUseCase', () => ({
   getProjectionViewUseCase: { execute: vi.fn() },
 }));
 
-vi.mock('@/application/retirement/use_cases/createProjectionUseCase', () => ({
-  createProjectionUseCase: { calculate: vi.fn(), persist: vi.fn() },
+vi.mock('@/application/retirement/use_cases/calculateProjectionUseCase', () => ({
+  calculateProjectionUseCase: { execute: vi.fn() },
+}));
+
+vi.mock('@/application/retirement/use_cases/persistProjectionUseCase', () => ({
+  persistProjectionUseCase: { execute: vi.fn() },
+}));
+
+vi.mock('@/application/retirement/use_cases/saveProjectionAsPlanUseCase', () => ({
+  saveProjectionAsPlanUseCase: { execute: vi.fn() },
+}));
+
+vi.mock('@/application/retirement/use_cases/saveWorkspaceAsPlanUseCase', () => ({
+  saveWorkspaceAsPlanUseCase: { execute: vi.fn() },
+}));
+
+vi.mock('@/application/retirement/use_cases/createRetirementPlanUseCase', () => ({
+  createRetirementPlanUseCase: { execute: vi.fn() },
   ProjectionCommandErrorCode: {
     PROJECTION_VALIDATION_FAILED: 'PROJECTION_VALIDATION_FAILED',
     PROJECTION_RESOLVE_FAILED: 'PROJECTION_RESOLVE_FAILED',
     PROJECTION_TOO_LARGE: 'PROJECTION_TOO_LARGE',
-    PROJECTION_WRITE_FAILED: 'PROJECTION_WRITE_FAILED',
   },
 }));
 
@@ -79,7 +96,7 @@ vi.mock('@/ui/features/retirement-redesign/hooks/usePlanLibrary', () => ({
   usePlanLibrary: () => planLibraryMock,
 }));
 
-const planFixture: RetirementPlanWorkspaceData = {
+const planFixture: RetirementPlan = {
   id: 'plan-1',
   name: 'Early retirement',
   assumptions: {
@@ -89,7 +106,7 @@ const planFixture: RetirementPlanWorkspaceData = {
     inflationRate: 0.02,
     annualReturnRate: 0.05,
   },
-  rules: [],
+  projectionRules: [],
   lifeEvents: [
     {
       id: 'event-1',
@@ -99,6 +116,10 @@ const planFixture: RetirementPlanWorkspaceData = {
       phases: [{ startYear: 2040, endYear: 2041, amount: 50_000 }],
     },
   ],
+  createdBy: 'u1',
+  updatedBy: 'u1',
+  createdAt: new Date('2026-01-01'),
+  updatedAt: new Date('2026-02-01'),
 };
 
 const projectionInput: ProjectionInput = {
@@ -326,10 +347,14 @@ describe('ProjectionWorkspacePage', () => {
     vi.mocked(getProjectionOpeningUseCase.execute).mockResolvedValue({
       reason: 'NO_CLOSED_PERIOD',
     });
-    vi.mocked(createProjectionUseCase.calculate).mockResolvedValue(successOutcome());
-    vi.mocked(createProjectionUseCase.persist).mockResolvedValue({
+    vi.mocked(calculateProjectionUseCase.execute).mockResolvedValue(successOutcome());
+    vi.mocked(persistProjectionUseCase.execute).mockResolvedValue({
       ok: true,
       id: 'projection-1',
+    });
+    vi.mocked(saveWorkspaceAsPlanUseCase.execute).mockResolvedValue({
+      ok: true,
+      id: 'plan-1',
     });
     vi.mocked(listDebtAccountsUseCase.execute).mockResolvedValue([
       {
@@ -720,7 +745,7 @@ describe('ProjectionWorkspacePage', () => {
     expect(screen.getAllByText('請輸入數字')).toHaveLength(2);
     expect(screen.queryByTestId('projection-results')).not.toBeInTheDocument();
     expect(screen.queryByText(/Preview is read-only/)).not.toBeInTheDocument();
-    expect(createProjectionUseCase.calculate).not.toHaveBeenCalled();
+    expect(calculateProjectionUseCase.execute).not.toHaveBeenCalled();
   });
 
   it('requires an integer manual opening balance', async () => {
@@ -738,11 +763,11 @@ describe('ProjectionWorkspacePage', () => {
     expect(screen.getByTestId('opening-validation-error')).toHaveTextContent(
       'Enter a whole-number opening net worth.',
     );
-    expect(createProjectionUseCase.calculate).not.toHaveBeenCalled();
+    expect(calculateProjectionUseCase.execute).not.toHaveBeenCalled();
   });
 
   it('shows warnings above the results without blocking SAVE', async () => {
-    vi.mocked(createProjectionUseCase.calculate).mockResolvedValue(
+    vi.mocked(calculateProjectionUseCase.execute).mockResolvedValue(
       successOutcome([
         {
           code: 'BASELINE_BEHIND',
@@ -764,7 +789,7 @@ describe('ProjectionWorkspacePage', () => {
   });
 
   it('lists resolver errors and stays in setup', async () => {
-    vi.mocked(createProjectionUseCase.calculate).mockResolvedValue({
+    vi.mocked(calculateProjectionUseCase.execute).mockResolvedValue({
       ok: false,
       code: 'PROJECTION_RESOLVE_FAILED',
       errors: [
@@ -821,12 +846,29 @@ describe('ProjectionWorkspacePage', () => {
     await waitFor(() => expect(router.state.location.search).toBe(''));
   });
 
+  it('leaves the opening blank and warns when a derived opening no longer resolves', async () => {
+    vi.mocked(getProjectionViewUseCase.execute).mockResolvedValue(
+      preloadConfig({
+        openingNetWorth: { amount: 1, source: 'derived', anchorYearMonth: '2026-01' },
+      }) as never,
+    );
+    vi.mocked(getProjectionOpeningUseCase.execute).mockResolvedValue({
+      reason: 'NO_CLOSED_PERIOD',
+    });
+    const router = renderWorkspace('/retirement/new?from=projection-1');
+
+    expect(await screen.findByTestId('preload-warning')).toBeInTheDocument();
+    expect(screen.getByLabelText('Opening net worth')).toHaveValue(null);
+    expect(screen.getByLabelText('Birth year')).toHaveValue(1990);
+    await waitFor(() => expect(router.state.location.search).toBe(''));
+  });
+
   it('falls back to a blank, dirty setup when the source projection is gone', async () => {
     vi.mocked(getProjectionViewUseCase.execute).mockResolvedValue(null);
     const router = renderWorkspace('/retirement/new?from=missing');
 
     expect(await screen.findByTestId('preload-warning')).toHaveTextContent(
-      'Could not load the source projection. Starting from a blank setup.',
+      'Could not resolve the opening balance. Starting from a blank setup with the opening left empty.',
     );
     expect(screen.getByLabelText('Opening net worth')).toHaveValue(null);
     await waitFor(() => expect(router.state.location.search).toBe(''));
@@ -856,15 +898,15 @@ describe('ProjectionWorkspacePage', () => {
     fireEvent.change(input, { target: { value: '   ' } });
     fireEvent.click(screen.getByRole('button', { name: 'SAVE' }));
 
-    expect(screen.getByText('Name is required.')).toBeInTheDocument();
-    expect(createProjectionUseCase.persist).not.toHaveBeenCalled();
+    expect(await screen.findByText('Name is required.')).toBeInTheDocument();
+    expect(persistProjectionUseCase.execute).not.toHaveBeenCalled();
   });
 
   it('stays open and inert while saving', async () => {
     renderWorkspace();
     await fillValidSetup();
     await calculate();
-    vi.mocked(createProjectionUseCase.persist).mockImplementationOnce(
+    vi.mocked(persistProjectionUseCase.execute).mockImplementationOnce(
       () => new Promise(() => undefined),
     );
 
@@ -882,11 +924,8 @@ describe('ProjectionWorkspacePage', () => {
     renderWorkspace();
     await fillValidSetup();
     await calculate();
-    vi.mocked(createProjectionUseCase.persist)
-      .mockResolvedValueOnce({
-        ok: false,
-        code: 'PROJECTION_WRITE_FAILED',
-      })
+    vi.mocked(persistProjectionUseCase.execute)
+      .mockRejectedValueOnce(new Error('Could not save the projection. Nothing was written.'))
       .mockResolvedValueOnce({
         ok: true,
         id: 'projection-1',
@@ -911,7 +950,7 @@ describe('ProjectionWorkspacePage', () => {
   });
 
   it('closes on success, stays in preview, links the projection and prefills the last name', async () => {
-    vi.mocked(createProjectionUseCase.persist).mockResolvedValue({
+    vi.mocked(persistProjectionUseCase.execute).mockResolvedValue({
       ok: true,
       id: 'projection-9',
     });

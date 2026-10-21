@@ -20,7 +20,7 @@ import {
   hasSource,
   needsBaselinePolicy,
   needsBaselineYear,
-} from '@/ui/features/retirement-redesign/hooks/useRuleDrafts';
+} from '@/ui/features/retirement-redesign/viewmodels/ruleForm.vm';
 
 interface ProjectionRuleRowProps {
   index: number;

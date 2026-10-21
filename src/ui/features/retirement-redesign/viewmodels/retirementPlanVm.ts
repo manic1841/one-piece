@@ -1,5 +1,5 @@
-import { type RetirementPlan } from '@/application/retirement/use_cases/retirementPlanLookup';
 import { type ProjectionRule } from '@/domains/retirement/projectionRules';
+import { type RetirementPlan } from '@/domains/retirement/types';
 import { EVENT_LABELS, EVENT_TYPE_LABELS } from '@/ui/constants/retirement-redesign/eventLabels';
 import { PLAN_DETAIL_LABELS } from '@/ui/constants/retirement-redesign/planLabels';
 import {
@@ -10,7 +10,7 @@ import {
   RULE_METHOD_LABELS,
   RULE_TYPE_LABELS,
 } from '@/ui/constants/retirement-redesign/setupLabels';
-import { formatCurrency } from '@/ui/utils';
+import { formatCurrency, formatDate } from '@/ui/utils';
 
 export interface PlanDefinitionRow {
   label: string;
@@ -50,6 +50,7 @@ export interface PlanEventVM {
 export interface RetirementPlanVM {
   id: string;
   name: string;
+  updatedAtText: string;
   assumptions: PlanDefinitionRow[];
   rules: PlanRuleVM[];
   events: PlanEventVM[];
@@ -62,11 +63,11 @@ const percent = (value: number): string => `${Number((value * 100).toFixed(4))}%
 function ruleParameter(rule: ProjectionRule): string {
   switch (rule.method) {
     case 'growthRate':
-      return percent((rule.parameters as { rate: number }).rate);
+      return 'rate' in rule.parameters ? percent(rule.parameters.rate) : DASH;
     case 'percentage':
-      return percent((rule.parameters as { ratio: number }).ratio);
+      return 'ratio' in rule.parameters ? percent(rule.parameters.ratio) : DASH;
     case 'fixedAmount':
-      return formatCurrency((rule.parameters as { amount: number }).amount);
+      return 'amount' in rule.parameters ? formatCurrency(rule.parameters.amount) : DASH;
     case 'inflation':
     case 'debtAmortization':
       return DASH;
@@ -127,6 +128,7 @@ export function mapRetirementPlanToVM(plan: RetirementPlan): RetirementPlanVM {
   return {
     id: plan.id,
     name: plan.name,
+    updatedAtText: formatDate(plan.updatedAt),
     assumptions: [
       { label: ASSUMPTION_LABELS.BIRTH_YEAR, value: String(plan.assumptions.birthYear) },
       { label: ASSUMPTION_LABELS.RETIREMENT_AGE, value: String(plan.assumptions.retirementAge) },

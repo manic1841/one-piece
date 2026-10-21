@@ -1,38 +1,42 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 
-import {
-  type RetirementPlanSummary,
-  getRetirementPlanForWorkspace,
-  listRetirementPlanSummaries,
-} from '@/application/retirement/use_cases/retirementPlanLookup';
-import { useLoadingTask } from '@/ui/hooks/useLoadingTask';
+import { getRetirementPlanUseCase } from '@/application/retirement/use_cases/getRetirementPlanUseCase';
+import { listRetirementPlansUseCase } from '@/application/retirement/use_cases/listRetirementPlansUseCase';
+import { type RetirementPlan } from '@/domains/retirement/types';
+import { useLoadOnce } from '@/ui/features/retirement-redesign/hooks/useLoadOnce';
+import { useAuthIdentity } from '@/ui/hooks/useAuthIdentity';
 
-export type PlanSummary = RetirementPlanSummary;
+export interface PlanSummary {
+  id: string;
+  name: string;
+}
 
-/**
- * Minimal plan library seam. #339 replaces the data functions with repository
- * use cases; the hook surface is the swap point.
- */
+/** Plan picker library: summaries for the dialog, full plans on apply. */
 export function usePlanLibrary(householdId: string | undefined) {
-  const [plans, setPlans] = useState<RetirementPlanSummary[]>([]);
-  const { loading, error, run } = useLoadingTask({ initiallyLoading: true });
+  const auth = useAuthIdentity();
+  const [plans, setPlans] = useState<PlanSummary[]>([]);
 
-  const refresh = useCallback(async () => {
-    await run(async () => (householdId ? listRetirementPlanSummaries(householdId) : []), {
-      writeBack: (result) => {
-        if (result.ok) setPlans(result.value);
-      },
-    });
-  }, [householdId, run]);
-
-  useEffect(() => {
-    void refresh();
-  }, [refresh]);
+  const {
+    loading,
+    error,
+    reload: refresh,
+  } = useLoadOnce(
+    async () => {
+      if (!householdId) return [];
+      const loaded = await listRetirementPlansUseCase.execute({ householdId, auth });
+      return loaded.map(({ id, name }) => ({ id, name }));
+    },
+    setPlans,
+    [auth, householdId],
+    { initiallyLoading: true },
+  );
 
   const getPlan = useCallback(
-    (planId: string) =>
-      householdId ? getRetirementPlanForWorkspace(householdId, planId) : Promise.resolve(null),
-    [householdId],
+    (planId: string): Promise<RetirementPlan | null> =>
+      householdId
+        ? getRetirementPlanUseCase.execute({ householdId, planId, auth })
+        : Promise.resolve(null),
+    [auth, householdId],
   );
 
   return { plans, loading, error, refresh, getPlan };

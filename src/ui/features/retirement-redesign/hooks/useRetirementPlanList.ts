@@ -1,28 +1,20 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useState } from 'react';
 
-import {
-  type RetirementPlan,
-  listRetirementPlans,
-} from '@/application/retirement/use_cases/retirementPlanLookup';
+import { listRetirementPlansUseCase } from '@/application/retirement/use_cases/listRetirementPlansUseCase';
+import { type RetirementPlan } from '@/domains/retirement/types';
+import { useLoadOnce } from '@/ui/features/retirement-redesign/hooks/useLoadOnce';
 import { useAuthIdentity } from '@/ui/hooks/useAuthIdentity';
-import { useLoadingTask } from '@/ui/hooks/useLoadingTask';
 
 export function useRetirementPlanList(householdId: string | undefined) {
   const auth = useAuthIdentity();
   const [plans, setPlans] = useState<RetirementPlan[]>([]);
-  const { loading, errorMessage, run } = useLoadingTask({ initiallyLoading: true });
 
-  const reload = useCallback(async () => {
-    await run(async () => (householdId ? listRetirementPlans({ householdId, auth }) : []), {
-      writeBack: (result) => {
-        if (result.ok) setPlans(result.value);
-      },
-    });
-  }, [auth, householdId, run]);
-
-  useEffect(() => {
-    void reload();
-  }, [reload]);
+  const { loading, errorMessage, reload } = useLoadOnce(
+    async () => (householdId ? listRetirementPlansUseCase.execute({ householdId, auth }) : []),
+    setPlans,
+    [auth, householdId],
+    { initiallyLoading: true },
+  );
 
   return { plans, loading, errorMessage, reload };
 }

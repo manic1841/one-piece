@@ -1,10 +1,9 @@
 import { useCallback } from 'react';
 
-import { getProjectionOpeningUseCase } from '@/application/retirement/use_cases/getProjectionOpeningUseCase';
-import { getProjectionViewUseCase } from '@/application/retirement/use_cases/getProjectionViewUseCase';
+import { openWorkspaceFromProjection } from '@/application/retirement/workflows/openWorkspaceFromProjection';
 import { type AuthContext } from '@/application/types';
 import { PROJECTION_WORKSPACE_LABELS } from '@/ui/constants/retirement-redesign/workspaceLabels';
-import { type WorkspaceDraft } from '@/ui/features/retirement-redesign/hooks/useProjectionWorkspace';
+import { type WorkspaceDraft } from '@/ui/features/retirement-redesign/viewmodels/workspaceDraft.vm';
 import { type useLoadingTask } from '@/ui/hooks/useLoadingTask';
 
 interface PreloadTargets {
@@ -41,19 +40,7 @@ export function useProjectionPreload({
       await run(
         async () => {
           if (!householdId) return null;
-          const data = await getProjectionViewUseCase.execute({
-            householdId,
-            projectionId,
-            auth,
-          });
-          if (data === null || data.config === null) return null;
-
-          const derived =
-            data.config.openingNetWorth.source === 'derived'
-              ? await getProjectionOpeningUseCase.execute({ householdId, auth })
-              : null;
-
-          return { data, derived };
+          return openWorkspaceFromProjection.execute({ householdId, projectionId, auth });
         },
         {
           writeBack: (result) => {
@@ -110,18 +97,17 @@ export function useProjectionPreload({
                 reportValue,
               });
             } else {
+              // The derived opening is re-resolved, never copied from the frozen
+              // snapshot. Without a closed period it stays blank and warns.
               replaceAll({
                 assumptions: config.assumptions,
                 rules: config.projectionRules,
                 events: config.lifeEvents,
                 startYear: config.startYear,
-                opening: {
-                  source: 'derived',
-                  amountText: String(config.openingNetWorth.amount),
-                  anchorYearMonth: config.openingNetWorth.anchorYearMonth ?? null,
-                },
+                opening: { source: 'derived', amountText: '', anchorYearMonth: null },
                 reportValue: null,
               });
+              setWarning(PROJECTION_WORKSPACE_LABELS.PRELOAD_OPENING_UNRESOLVED);
             }
 
             markSeeded();

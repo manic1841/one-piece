@@ -4,10 +4,8 @@ import { Alert, AlertDescription } from '@/ui/components/ui/alert';
 import { Button } from '@/ui/components/ui/button';
 import { Label } from '@/ui/components/ui/label';
 import { PROJECTION_WORKSPACE_LABELS } from '@/ui/constants/retirement-redesign/workspaceLabels';
-import {
-  type OpeningNetWorthVM,
-  type ProjectionWorkspaceStage,
-} from '@/ui/features/retirement-redesign/hooks/useProjectionWorkspace';
+import { type ProjectionWorkspaceStage } from '@/ui/features/retirement-redesign/hooks/useProjectionWorkspace';
+import { type OpeningNetWorthVM } from '@/ui/features/retirement-redesign/viewmodels/workspaceDraft.vm';
 
 const OPENING_INPUT_ID = 'projection-opening-net-worth';
 const START_YEAR_INPUT_ID = 'projection-start-year';
@@ -24,7 +22,6 @@ interface OpeningNetWorthSectionProps {
   setStartYear: (value: string) => void;
   hasClosedPeriod: boolean;
   setAmount: (value: string) => void;
-  enterManual: () => void;
   useManualValue: () => void;
   useReportValue: () => void;
   retry: () => void;
@@ -47,7 +44,6 @@ export function OpeningNetWorthSection({
   setStartYear,
   hasClosedPeriod,
   setAmount,
-  enterManual,
   useManualValue,
   useReportValue,
   retry,
@@ -125,7 +121,7 @@ export function OpeningNetWorthSection({
               <p className="text-sm text-muted-foreground">
                 {PROJECTION_WORKSPACE_LABELS.OPENING_EMPTY}
               </p>
-              <Button variant="outline" size="sm" onClick={enterManual}>
+              <Button variant="outline" size="sm" onClick={useManualValue}>
                 {PROJECTION_WORKSPACE_LABELS.ENTER_MANUALLY}
               </Button>
             </div>

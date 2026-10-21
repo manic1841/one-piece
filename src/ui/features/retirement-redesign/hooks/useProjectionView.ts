@@ -1,24 +1,38 @@
 import { useCallback, useEffect, useState } from 'react';
 
-import { deleteProjectionUseCase } from '@/application/retirement/use_cases/deleteProjectionUseCase';
 import { getProjectionViewUseCase } from '@/application/retirement/use_cases/getProjectionViewUseCase';
-import { renameProjectionNameUseCase } from '@/application/retirement/use_cases/renameProjectionNameUseCase';
 import {
-  type SaveAsPlanOutcome,
-  saveProjectionAsPlanUseCase,
-} from '@/application/retirement/use_cases/saveProjectionAsPlanUseCase';
+  SAVE_AS_PLAN_ERROR_LABELS,
+  SAVE_AS_PLAN_LABELS,
+} from '@/ui/constants/retirement-redesign/projectionLabels';
+import { useProjectionCmds } from '@/ui/features/retirement-redesign/hooks/useProjectionCmds';
 import {
   type ProjectionViewVM,
   mapProjectionViewToVM,
 } from '@/ui/features/retirement-redesign/viewmodels/projectionViewVm';
+import { getTaskErrorMessage } from '@/ui/hooks/getErrorMessage';
 import { useAuthIdentity } from '@/ui/hooks/useAuthIdentity';
-import { useLoadingTask } from '@/ui/hooks/useLoadingTask';
+import { type LoadingTaskResult, useLoadingTask } from '@/ui/hooks/useLoadingTask';
+
+const failed = (error: unknown): LoadingTaskResult<never> => ({
+  ok: false,
+  kind: 'failed',
+  error,
+});
 
 export function useProjectionView(
   householdId: string | undefined,
   projectionId: string | undefined,
 ) {
   const auth = useAuthIdentity();
+  const {
+    renameProjection,
+    deleteProjection,
+    saveProjectionAsPlan,
+    saveAsPlanForm,
+    submitSaveAsPlanForm,
+    errorMessage,
+  } = useProjectionCmds(householdId);
   const [view, setView] = useState<ProjectionViewVM | null>(null);
   const [notFound, setNotFound] = useState(false);
   const { loading, error, run } = useLoadingTask({ initiallyLoading: true });
@@ -45,50 +59,62 @@ export function useProjectionView(
 
   const rename = useCallback(
     async (name: string) => {
-      if (!householdId || !projectionId) throw new Error('Missing projection.');
+      if (!householdId || !projectionId) return failed(new Error('Missing projection.'));
 
-      const outcome = await renameProjectionNameUseCase.execute({
-        householdId,
-        projectionId,
-        name,
-        auth,
-      });
-      if (!outcome.ok) throw new Error(outcome.code);
+      const task = await renameProjection(projectionId, name);
+      if (!task.ok) return task;
+
+      const outcome = task.value;
+      if (!outcome.ok) return task;
+
       setView((current) => (current === null ? null : { ...current, name: outcome.name }));
+      return task;
     },
-    [auth, householdId, projectionId],
+    [householdId, projectionId, renameProjection],
   );
 
-  const remove = useCallback(async () => {
-    if (!householdId || !projectionId) return;
-    await deleteProjectionUseCase.execute({ householdId, projectionId, auth });
-  }, [auth, householdId, projectionId]);
+  const remove = useCallback(
+    (): Promise<LoadingTaskResult<void>> =>
+      projectionId
+        ? deleteProjection(projectionId)
+        : Promise.resolve(failed(new Error('Missing projection.'))),
+    [deleteProjection, projectionId],
+  );
 
   const saveAsPlan = useCallback(
-    async (name: string): Promise<SaveAsPlanOutcome> => {
-      if (!householdId || !projectionId) return { ok: false, code: 'PROJECTION_NOT_FOUND' };
-      try {
-        return await saveProjectionAsPlanUseCase.execute({
-          householdId,
-          projectionId,
-          name,
-          auth,
-        });
-      } catch {
-        return { ok: false, code: 'WRITE_FAILED' };
-      }
-    },
-    [auth, householdId, projectionId],
+    (name: string): Promise<LoadingTaskResult<{ ok: boolean; code?: string }>> =>
+      projectionId
+        ? saveProjectionAsPlan(projectionId, name)
+        : Promise.resolve(failed(new Error('Missing projection.'))),
+    [projectionId, saveProjectionAsPlan],
   );
 
   return {
     view,
     loading,
     error,
+    errorMessage,
     notFound,
     reload: load,
     rename,
     remove,
     saveAsPlan,
+    saveAsPlanForm,
+    submitSaveAsPlan: (onSuccess?: () => void) =>
+      submitSaveAsPlanForm(async (name) => {
+        const task = await saveAsPlan(name);
+        if (!task.ok) return { ok: false, messages: [getTaskErrorMessage(task)] };
+
+        const outcome = task.value;
+        if (!outcome.ok) {
+          const code = outcome.code as keyof typeof SAVE_AS_PLAN_ERROR_LABELS;
+          return {
+            ok: false,
+            messages: [SAVE_AS_PLAN_ERROR_LABELS[code] ?? SAVE_AS_PLAN_LABELS.FAILED],
+          };
+        }
+        onSuccess?.();
+        return { ok: true };
+      }),
   };
 }

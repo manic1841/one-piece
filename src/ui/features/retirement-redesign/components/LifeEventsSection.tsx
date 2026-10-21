@@ -7,13 +7,13 @@ import { EVENT_LABELS } from '@/ui/constants/retirement-redesign/eventLabels';
 import { PROJECTION_WORKSPACE_LABELS } from '@/ui/constants/retirement-redesign/workspaceLabels';
 import { LifeEventRow } from '@/ui/features/retirement-redesign/components/LifeEventRow';
 import {
+  type EventErrorsById,
   type EventType,
   type EventsForm,
   type LifeEventDraftVM,
   type PhaseDraftVM,
   type PhaseFocusRequest,
-} from '@/ui/features/retirement-redesign/hooks/useLifeEventDrafts';
-import { type EventErrorsById } from '@/ui/features/retirement-redesign/hooks/useLifeEventDrafts';
+} from '@/ui/features/retirement-redesign/viewmodels/lifeEventForm.vm';
 
 interface LifeEventsSectionProps {
   form: UseFormReturn<EventsForm>;

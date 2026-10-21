@@ -21,15 +21,6 @@ import { useDebtAccountOptions } from '@/ui/features/retirement-redesign/hooks/u
 import { usePlanLibrary } from '@/ui/features/retirement-redesign/hooks/usePlanLibrary';
 import { useProjectionWorkspace } from '@/ui/features/retirement-redesign/hooks/useProjectionWorkspace';
 
-const pad = (value: number): string => String(value).padStart(2, '0');
-
-function defaultProjectionName(): string {
-  const now = new Date();
-  return `${PROJECTION_WORKSPACE_LABELS.DEFAULT_NAME_PREFIX} ${now.getFullYear()}-${pad(
-    now.getMonth() + 1,
-  )}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}`;
-}
-
 /**
  * `/retirement/new` projection workspace shell. Both stages share this route
  * and one in-memory draft; only the stage flag decides editability.
@@ -44,8 +35,6 @@ export default function ProjectionWorkspacePage() {
   const [applyOpen, setApplyOpen] = useState(false);
   const [saveOpen, setSaveOpen] = useState(false);
   const [saveAsPlanOpen, setSaveAsPlanOpen] = useState(false);
-  const [saveDefaultName, setSaveDefaultName] = useState('');
-  const [lastSavedName, setLastSavedName] = useState<string | null>(null);
   const isPreview = workspace.stage === 'preview';
 
   const handleApply = async (planId: string) => {
@@ -57,23 +46,15 @@ export default function ProjectionWorkspacePage() {
   };
 
   const openSave = () => {
-    setSaveDefaultName(lastSavedName ?? workspace.appliedPlanName ?? defaultProjectionName());
+    workspace.saveForm.reset({
+      name: workspace.lastSavedName ?? workspace.appliedPlanName ?? workspace.defaultName(),
+    });
     setSaveOpen(true);
   };
 
-  const handleSave = async (name: string) => {
-    const outcome = await workspace.save(name);
-    if (!outcome.ok) return outcome;
-
-    setLastSavedName(name);
-    setSaveOpen(false);
-    return outcome;
-  };
-
-  const handleSaveAsPlan = async (name: string) => {
-    const outcome = await workspace.saveAsPlan(name);
-    if (outcome.ok) setSaveAsPlanOpen(false);
-    return outcome;
+  const openSaveAsPlan = () => {
+    workspace.saveAsPlanForm.reset({ name: workspace.appliedPlanName ?? '' });
+    setSaveAsPlanOpen(true);
   };
 
   return (
@@ -86,7 +67,7 @@ export default function ProjectionWorkspacePage() {
             <Button variant="outline" size="sm" onClick={() => setApplyOpen(true)}>
               {PROJECTION_WORKSPACE_LABELS.APPLY_PLAN}
             </Button>
-            <Button variant="outline" size="sm" onClick={() => setSaveAsPlanOpen(true)}>
+            <Button variant="outline" size="sm" onClick={openSaveAsPlan}>
               {PROJECTION_WORKSPACE_LABELS.SAVE_AS_PLAN}
             </Button>
           </>
@@ -119,7 +100,6 @@ export default function ProjectionWorkspacePage() {
           startYearError={workspace.startYearValidationError}
           setStartYear={workspace.setStartYear}
           setAmount={workspace.setOpeningAmount}
-          enterManual={workspace.enterManual}
           useManualValue={workspace.enterManual}
           useReportValue={workspace.useReportValue}
           retry={workspace.retryOpening}
@@ -254,9 +234,9 @@ export default function ProjectionWorkspacePage() {
       {saveOpen && (
         <SaveProjectionDialog
           open
-          defaultName={saveDefaultName}
+          form={workspace.saveForm}
+          submit={() => workspace.submitSave(() => setSaveOpen(false))}
           onCancel={() => setSaveOpen(false)}
-          onSave={handleSave}
         />
       )}
 
@@ -265,12 +245,11 @@ export default function ProjectionWorkspacePage() {
           open
           title={PROJECTION_WORKSPACE_LABELS.SAVE_AS_PLAN_DIALOG_TITLE}
           nameLabel={PROJECTION_WORKSPACE_LABELS.SAVE_AS_PLAN_DIALOG_NAME}
-          requiredMessage={PROJECTION_WORKSPACE_LABELS.SAVE_AS_PLAN_DIALOG_NAME_REQUIRED}
           confirmLabel={PROJECTION_WORKSPACE_LABELS.SAVE_AS_PLAN_DIALOG_CONFIRM}
           savingLabel={PROJECTION_WORKSPACE_LABELS.SAVE_AS_PLAN_DIALOG_SAVING}
-          defaultName={workspace.appliedPlanName ?? ''}
+          form={workspace.saveAsPlanForm}
+          submit={() => workspace.submitSaveAsPlan(() => setSaveAsPlanOpen(false))}
           onCancel={() => setSaveAsPlanOpen(false)}
-          onSave={handleSaveAsPlan}
         />
       )}
 

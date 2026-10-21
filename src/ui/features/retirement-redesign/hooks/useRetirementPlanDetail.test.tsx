@@ -2,20 +2,22 @@ import { act, renderHook } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import {
-  deleteRetirementPlan,
-  getRetirementPlan,
-  renameRetirementPlan,
-} from '@/application/retirement/use_cases/retirementPlanLookup';
+import { deleteRetirementPlanUseCase } from '@/application/retirement/use_cases/deleteRetirementPlanUseCase';
+import { getRetirementPlanUseCase } from '@/application/retirement/use_cases/getRetirementPlanUseCase';
+import { updateRetirementPlanUseCase } from '@/application/retirement/use_cases/updateRetirementPlanUseCase';
 import { useConfirm } from '@/ui/components/confirm/useConfirm';
 import { useAuthIdentity } from '@/ui/hooks/useAuthIdentity';
 
 import { useRetirementPlanDetail } from './useRetirementPlanDetail';
 
-vi.mock('@/application/retirement/use_cases/retirementPlanLookup', () => ({
-  getRetirementPlan: vi.fn(),
-  renameRetirementPlan: vi.fn(),
-  deleteRetirementPlan: vi.fn(),
+vi.mock('@/application/retirement/use_cases/getRetirementPlanUseCase', () => ({
+  getRetirementPlanUseCase: { execute: vi.fn() },
+}));
+vi.mock('@/application/retirement/use_cases/updateRetirementPlanUseCase', () => ({
+  updateRetirementPlanUseCase: { execute: vi.fn() },
+}));
+vi.mock('@/application/retirement/use_cases/deleteRetirementPlanUseCase', () => ({
+  deleteRetirementPlanUseCase: { execute: vi.fn() },
 }));
 
 vi.mock('@/ui/components/confirm/useConfirm');
@@ -33,9 +35,9 @@ vi.mock('react-router-dom', async () => {
 
 const mockUseConfirm = vi.mocked(useConfirm);
 const mockUseAuthIdentity = vi.mocked(useAuthIdentity);
-const mockGet = vi.mocked(getRetirementPlan);
-const mockRename = vi.mocked(renameRetirementPlan);
-const mockDelete = vi.mocked(deleteRetirementPlan);
+const mockGet = vi.mocked(getRetirementPlanUseCase.execute);
+const mockRename = vi.mocked(updateRetirementPlanUseCase.execute);
+const mockDelete = vi.mocked(deleteRetirementPlanUseCase.execute);
 
 const plan = {
   id: 'plan-1',
@@ -69,8 +71,7 @@ describe('useRetirementPlanDetail', () => {
   });
 
   it('updates the view with the renamed plan', async () => {
-    const renamed = { ...plan, name: 'New name', updatedAt: new Date('2026-03-01') };
-    mockRename.mockResolvedValue({ ok: true, plan: renamed });
+    mockRename.mockResolvedValue({ ok: true, name: 'New name' });
 
     const { result } = renderDetail();
     await act(async () => {
@@ -85,11 +86,9 @@ describe('useRetirementPlanDetail', () => {
       householdId: 'h1',
       planId: 'plan-1',
       name: 'New name',
-      userEmail: 'user@example.com',
       auth: { uid: 'u1', email: 'user@example.com' },
     });
     expect(result.current.plan?.name).toBe('New name');
-    expect(result.current.plan?.updatedAt).toEqual(new Date('2026-03-01'));
   });
 
   it('does not delete when the confirm is cancelled', async () => {
@@ -100,12 +99,12 @@ describe('useRetirementPlanDetail', () => {
       await result.current.reload();
     });
 
-    let deleted: boolean | undefined;
+    let deleted: unknown;
     await act(async () => {
       deleted = await result.current.remove();
     });
 
-    expect(deleted).toBe(false);
+    expect(deleted).toBeNull();
     expect(mockDelete).not.toHaveBeenCalled();
     expect(navigate).not.toHaveBeenCalled();
   });

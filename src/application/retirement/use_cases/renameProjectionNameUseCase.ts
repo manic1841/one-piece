@@ -1,8 +1,7 @@
-import { z } from 'zod';
-
 import { householdPermissionService } from '@/application/household/householdPermissionService';
+import { nameFailureCode } from '@/application/retirement/errors';
 import { type AuthContext } from '@/application/types';
-import { RetirementSchemaErrorCode } from '@/domains/retirement/errorCodes';
+import { retirementNameSchema } from '@/domains/retirement/name';
 import { projectionRepository } from '@/infra/repositories/projectionRepository';
 
 interface RenameProjectionNameRequest {
@@ -14,13 +13,9 @@ interface RenameProjectionNameRequest {
 
 export type RenameProjectionNameOutcome =
   | { ok: true; name: string }
-  | { ok: false; code: 'NAME_REQUIRED' | 'NAME_TOO_LONG' | 'WRITE_FAILED' };
+  | { ok: false; code: 'NAME_REQUIRED' | 'NAME_TOO_LONG' };
 
-const nameSchema = z
-  .string()
-  .trim()
-  .min(1, RetirementSchemaErrorCode.NAME_REQUIRED)
-  .max(100, RetirementSchemaErrorCode.NAME_TOO_LONG);
+const nameSchema = retirementNameSchema;
 
 export class RenameProjectionNameUseCase {
   async execute(request: RenameProjectionNameRequest): Promise<RenameProjectionNameOutcome> {
@@ -28,12 +23,7 @@ export class RenameProjectionNameUseCase {
 
     const parsed = nameSchema.safeParse(request.name);
     if (!parsed.success) {
-      const message = parsed.error.issues[0]?.message;
-      return {
-        ok: false,
-        code:
-          message === RetirementSchemaErrorCode.NAME_TOO_LONG ? 'NAME_TOO_LONG' : 'NAME_REQUIRED',
-      };
+      return { ok: false, code: nameFailureCode(parsed.error.issues) ?? 'NAME_REQUIRED' };
     }
 
     await householdPermissionService.assertWritePermission(
@@ -42,12 +32,8 @@ export class RenameProjectionNameUseCase {
       auth.isGlobalAdmin,
     );
 
-    try {
-      await projectionRepository.renameProjectionName(householdId, projectionId, parsed.data);
-      return { ok: true, name: parsed.data };
-    } catch {
-      return { ok: false, code: 'WRITE_FAILED' };
-    }
+    await projectionRepository.renameProjectionName(householdId, projectionId, parsed.data);
+    return { ok: true, name: parsed.data };
   }
 }
 

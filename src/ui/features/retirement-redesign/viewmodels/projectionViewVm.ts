@@ -1,5 +1,6 @@
 import { type ProjectionViewData } from '@/application/retirement/use_cases/getProjectionViewUseCase';
 import { ENGINE_VERSION } from '@/domains/retirement/logic/projectionEngine';
+import { type ProjectionSummary } from '@/domains/retirement/logic/projectionTypes';
 import { PROJECTION_COMMON_LABELS } from '@/ui/constants/retirement-redesign/displayLabels';
 import {
   PROJECTION_VIEW_LABELS,
@@ -17,6 +18,7 @@ import {
 import { formatCurrency, formatDate } from '@/ui/utils';
 
 export type { ProjectionViewData } from '@/application/retirement/use_cases/getProjectionViewUseCase';
+export type { ProjectionSummary } from '@/domains/retirement/logic/projectionTypes';
 
 export interface ProjectionSummaryVM {
   retirementNetWorthText: string;
@@ -55,6 +57,17 @@ const money = (value: number | null): string =>
 
 const year = (value: number | null): string =>
   value === null ? PROJECTION_COMMON_LABELS.DASH : String(value);
+
+/** Summary numbers are formatted here, so rendering never touches a formatter. */
+export const mapProjectionSummaryToVM = (summary: ProjectionSummary): ProjectionSummaryVM => ({
+  retirementNetWorthText: money(summary.retirementNetWorth),
+  finalNetWorthText: money(summary.finalNetWorth),
+  minNetWorthText: money(summary.minNetWorth),
+  minNetWorthYearText: year(summary.minNetWorthYear),
+  bankruptcyYearText: year(summary.bankruptcyYear),
+  isBankruptText: summary.isBankrupt ? PROJECTION_COMMON_LABELS.YES : PROJECTION_COMMON_LABELS.NO,
+  isBankrupt: summary.isBankrupt,
+});
 
 const percent = percentText;
 
