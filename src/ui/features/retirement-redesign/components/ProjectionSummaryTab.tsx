@@ -1,8 +1,8 @@
 import { Metric, MetricGroup } from '@/ui/components/MetricGroup';
 import { PageSection } from '@/ui/components/PageSection';
 import { PROJECTION_RESULT_LABELS } from '@/ui/constants/retirement-redesign/resultLabels';
+import { NetWorthChart } from '@/ui/features/retirement-redesign/components/NetWorthChart';
 import { type ProjectionViewVM } from '@/ui/features/retirement-redesign/viewmodels/projectionViewVm';
-import { NetWorthChart } from '@/ui/features/retirement/components/projection/NetWorthChart';
 
 interface ProjectionSummaryTabProps {
   summary: ProjectionViewVM['summary'];
