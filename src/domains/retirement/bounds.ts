@@ -17,7 +17,7 @@ export interface RetirementAssumptionBounds {
 export const RETIREMENT_ASSUMPTION_BOUNDS: RetirementAssumptionBounds = {
   birthYear: { min: 1900, max: Number.POSITIVE_INFINITY },
   retirementAge: { min: 1, max: 120 },
-  lifeExpectancy: { min: 1, max: 130 },
+  lifeExpectancy: { min: 1, max: Number.POSITIVE_INFINITY },
   inflationRate: { min: -0.1, max: 0.2 },
   annualReturnRate: { min: -0.5, max: 0.3 },
 };

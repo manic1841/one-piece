@@ -28,21 +28,6 @@ export interface RetirementProjectionYearDetailVM {
   investmentReturnText: string;
   netCashFlowText: string;
   savingsText: string;
-  incomeItems: Array<{ name: string; amountText: string }>;
-  expenseItems: Array<{ name: string; amountText: string }>;
-}
-
-export interface ExpenseBreakdownSlice {
-  name: string;
-  value: number;
-  type: 'fixed' | 'variable';
-}
-
-export interface RetirementRiskVM {
-  key: 'retirementYear' | 'bankruptcyYear' | 'minSavingsYear' | 'lifeExpectancyEnd';
-  label: string;
-  valueText: string;
-  tone: MoneyTone;
 }
 
 export interface RetirementProjectionVM {
@@ -54,6 +39,4 @@ export interface RetirementProjectionVM {
   bankruptTone: MoneyTone;
   chartData: RetirementProjectionPointVM[];
   yearlyDetails: RetirementProjectionYearDetailVM[];
-  expenseBreakdownChartData: ExpenseBreakdownSlice[] | null;
-  risks: RetirementRiskVM[];
 }

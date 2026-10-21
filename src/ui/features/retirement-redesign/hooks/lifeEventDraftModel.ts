@@ -28,6 +28,8 @@ export interface LifeEventDraftVM {
   type: EventType;
   enabled: boolean;
   phases: PhaseDraftVM[];
+  /** Mirror keyed by phase id so form field names stay stable while phases sort. */
+  phasesById?: Record<string, PhaseDraftVM>;
   touched: boolean;
 }
 
@@ -90,8 +92,8 @@ function labelFor(message: string): string {
 /** Stable ascending order; blank or unparsable starts sink to the end. */
 export function sortPhases(phases: PhaseDraftVM[]): PhaseDraftVM[] {
   return [...phases].sort((left, right) => {
-    const leftYear = parseNumber(left.startYearText);
-    const rightYear = parseNumber(right.startYearText);
+    const leftYear = parseNumber(left?.startYearText ?? '');
+    const rightYear = parseNumber(right?.startYearText ?? '');
     if (Number.isNaN(leftYear) && Number.isNaN(rightYear)) return 0;
     if (Number.isNaN(leftYear)) return 1;
     if (Number.isNaN(rightYear)) return -1;
@@ -106,11 +108,11 @@ export function buildEvent(event: LifeEventDraftVM): unknown {
     type: event.type,
     enabled: event.enabled,
     phases: event.phases.map((phase) => ({
-      ...(phase.name.trim() === '' ? {} : { name: phase.name }),
-      startYear: parseNumber(phase.startYearText),
-      endYear: parseNumber(phase.endYearText),
-      amount: parseNumber(phase.amountText),
-      ...(phase.growthRateText.trim() === ''
+      ...((phase?.name ?? '').trim() === '' ? {} : { name: phase.name }),
+      startYear: parseNumber(phase?.startYearText ?? ''),
+      endYear: parseNumber(phase?.endYearText ?? ''),
+      amount: parseNumber(phase?.amountText ?? ''),
+      ...((phase?.growthRateText ?? '').trim() === ''
         ? {}
         : { growthRate: parseGrowthRate(phase.growthRateText) }),
     })),
@@ -182,8 +184,8 @@ function applyMappedIssue(errors: EventErrors, event: LifeEventDraftVM, mapped: 
  */
 function crossPhaseIssues(event: LifeEventDraftVM) {
   const phases = event.phases.map((phase) => ({
-    startYear: parseNumber(phase.startYearText),
-    endYear: parseNumber(phase.endYearText),
+    startYear: parseNumber(phase?.startYearText ?? ''),
+    endYear: parseNumber(phase?.endYearText ?? ''),
   }));
   if (
     !phases.every((phase) => Number.isInteger(phase.startYear) && Number.isInteger(phase.endYear))

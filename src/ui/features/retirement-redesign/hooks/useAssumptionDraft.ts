@@ -1,5 +1,7 @@
 import { useCallback, useMemo, useState } from 'react';
 
+import { type Resolver, type ResolverResult, useForm } from 'react-hook-form';
+
 import {
   type RetirementAssumptions,
   createAssumptionsSchema,
@@ -63,6 +65,16 @@ function labelFor(code: string, field: AssumptionField, message: string): string
   return RETIREMENT_VALIDATION_LABELS[message as RetirementSchemaErrorCode] ?? 'Invalid value';
 }
 
+function toDomain(values: AssumptionsVM) {
+  return {
+    birthYear: parseField(values.birthYear),
+    retirementAge: parseField(values.retirementAge),
+    lifeExpectancy: parseField(values.lifeExpectancy),
+    inflationRate: percentToDecimal(values.inflationRate),
+    annualReturnRate: percentToDecimal(values.annualReturnRate),
+  };
+}
+
 export interface ValidationOutcome<T, E = Partial<Record<string, string>>> {
   ok: boolean;
   data?: T;
@@ -70,77 +82,117 @@ export interface ValidationOutcome<T, E = Partial<Record<string, string>>> {
 }
 
 export function useAssumptionDraft(markDirty: () => void, currentYear = new Date().getFullYear()) {
-  const [values, setValues] = useState<AssumptionsVM>(EMPTY);
-  const [touched, setTouched] = useState<Partial<Record<AssumptionField, boolean>>>({});
   const [birthYearLocked, setBirthYearLocked] = useState(false);
+  const [revealed, setRevealed] = useState(false);
 
   const schema = useMemo(() => createAssumptionsSchema(currentYear), [currentYear]);
 
-  const setField = useCallback(
-    (field: AssumptionField, text: string) => {
-      setValues((current) => ({ ...current, [field]: text }));
-      setTouched((current) => ({ ...current, [field]: true }));
-      markDirty();
-    },
-    [markDirty],
-  );
+  const parse = useCallback(
+    (values: AssumptionsVM) => {
+      const errors: AssumptionErrors = {};
+      const parsed = schema.safeParse(toDomain(values));
 
-  const validate = useCallback((): ValidationOutcome<RetirementAssumptions> => {
-    const errors: AssumptionErrors = {};
-    const parsed = schema.safeParse({
-      birthYear: parseField(values.birthYear),
-      retirementAge: parseField(values.retirementAge),
-      lifeExpectancy: parseField(values.lifeExpectancy),
-      inflationRate: percentToDecimal(values.inflationRate),
-      annualReturnRate: percentToDecimal(values.annualReturnRate),
-    });
+      if (parsed.success) return { ok: true as const, data: parsed.data, errors };
 
-    if (parsed.success) return { ok: true, data: parsed.data, errors };
-
-    for (const issue of parsed.error.issues) {
-      const field = issue.path[0];
-      if (typeof field !== 'string' || !FIELDS.includes(field as AssumptionField)) continue;
-      if (errors[field as AssumptionField] === undefined) {
+      for (const issue of parsed.error.issues) {
+        const field = issue.path[0];
+        if (typeof field !== 'string' || !FIELDS.includes(field as AssumptionField)) continue;
+        if (errors[field as AssumptionField] !== undefined) continue;
         errors[field as AssumptionField] = labelFor(
           issue.code,
           field as AssumptionField,
           issue.message,
         );
       }
-    }
-    return { ok: false, errors };
-  }, [schema, values]);
+      return { ok: false as const, errors };
+    },
+    [schema],
+  );
 
-  const validation = useMemo(() => validate(), [validate]);
+  const resolver = useCallback<Resolver<AssumptionsVM>>(
+    (values): ResolverResult<AssumptionsVM> => {
+      const outcome = parse(values);
+      if (outcome.ok) return { values, errors: {} };
 
-  const visibleErrors = useMemo(() => {
+      return {
+        values,
+        errors: Object.fromEntries(
+          Object.entries(outcome.errors).map(([field, message]) => [
+            field,
+            { type: 'validation', message },
+          ]),
+        ),
+      } as unknown as ResolverResult<AssumptionsVM>;
+    },
+    [parse],
+  );
+
+  const form = useForm<AssumptionsVM>({
+    mode: 'onChange',
+    defaultValues: EMPTY,
+    resolver,
+  });
+
+  const values = form.watch();
+
+  const setField = useCallback(
+    (field: AssumptionField, text: string) => {
+      form.setValue(field, text, { shouldTouch: true, shouldDirty: true, shouldValidate: true });
+      markDirty();
+    },
+    [form, markDirty],
+  );
+
+  const validate = useCallback((): ValidationOutcome<RetirementAssumptions> => {
+    return parse(form.getValues());
+  }, [form, parse]);
+
+  const validation = useMemo(() => parse(values), [parse, values]);
+
+  const errors = useMemo(() => {
     const visible: AssumptionErrors = {};
     for (const field of FIELDS) {
-      if (touched[field] && validation.errors[field]) visible[field] = validation.errors[field];
+      const error = form.formState.errors[field]?.message;
+      const show =
+        revealed || form.formState.touchedFields[field] || form.formState.dirtyFields[field];
+      if (!show) continue;
+      if (typeof error === 'string') visible[field] = error;
+      else if (validation.errors[field] !== undefined) visible[field] = validation.errors[field];
     }
     return visible;
-  }, [touched, validation.errors]);
+  }, [
+    form.formState.dirtyFields,
+    form.formState.errors,
+    form.formState.touchedFields,
+    revealed,
+    validation.errors,
+  ]);
 
-  const resetFrom = useCallback((assumptions: RetirementAssumptions) => {
-    setValues({
-      birthYear: String(assumptions.birthYear),
-      retirementAge: String(assumptions.retirementAge),
-      lifeExpectancy: String(assumptions.lifeExpectancy),
-      inflationRate: decimalToPercentText(assumptions.inflationRate),
-      annualReturnRate: decimalToPercentText(assumptions.annualReturnRate),
-    });
-    setTouched({});
-    setBirthYearLocked(true);
-  }, []);
+  const resetFrom = useCallback(
+    (assumptions: RetirementAssumptions) => {
+      form.reset({
+        birthYear: String(assumptions.birthYear),
+        retirementAge: String(assumptions.retirementAge),
+        lifeExpectancy: String(assumptions.lifeExpectancy),
+        inflationRate: decimalToPercentText(assumptions.inflationRate),
+        annualReturnRate: decimalToPercentText(assumptions.annualReturnRate),
+      });
+      setBirthYearLocked(true);
+      setRevealed(false);
+    },
+    [form],
+  );
 
   /** CALCULATE reveals every field error, not only the touched ones. */
   const revealAll = useCallback(() => {
-    setTouched(Object.fromEntries(FIELDS.map((field) => [field, true])));
-  }, []);
+    setRevealed(true);
+    void form.trigger();
+  }, [form]);
 
   return {
+    form,
     values,
-    errors: visibleErrors,
+    errors,
     birthYearLocked,
     valid: validation.ok,
     setField,

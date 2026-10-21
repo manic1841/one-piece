@@ -1,17 +1,12 @@
-import { collection, doc, getDoc, getDocs } from 'firebase/firestore';
-
 import { householdPermissionService } from '@/application/household/householdPermissionService';
 import { type AuthContext } from '@/application/types';
 import { type RetirementAssumptions } from '@/domains/retirement/assumptions';
 import { type LifeEvent } from '@/domains/retirement/lifeEvents';
 import { type ProjectionRule } from '@/domains/retirement/projectionRules';
-import { db } from '@/firebase';
 import {
   type RetirementPlan,
   retirementPlanRepository,
 } from '@/infra/repositories/retirementPlanRepository';
-
-const COLLECTION = 'retirementPlans';
 
 export type { RetirementPlan } from '@/infra/repositories/retirementPlanRepository';
 
@@ -32,27 +27,23 @@ export interface RetirementPlanWorkspaceData {
 export async function listRetirementPlanSummaries(
   householdId: string,
 ): Promise<RetirementPlanSummary[]> {
-  const snapshot = await getDocs(collection(db, 'households', householdId, COLLECTION));
-  return snapshot.docs.map((entry) => ({
-    id: entry.id,
-    name: String(entry.data().name ?? ''),
-  }));
+  const plans = await retirementPlanRepository.listPlans(householdId);
+  return plans.map(({ id, name }) => ({ id, name }));
 }
 
 export async function getRetirementPlanForWorkspace(
   householdId: string,
   planId: string,
 ): Promise<RetirementPlanWorkspaceData | null> {
-  const snapshot = await getDoc(doc(db, 'households', householdId, COLLECTION, planId));
-  if (!snapshot.exists()) return null;
+  const plan = await retirementPlanRepository.getPlan(householdId, planId);
+  if (plan === null) return null;
 
-  const data = snapshot.data();
   return {
-    id: snapshot.id,
-    name: String(data.name ?? ''),
-    assumptions: data.assumptions as RetirementAssumptions,
-    rules: (data.projectionRules ?? []) as ProjectionRule[],
-    lifeEvents: (data.lifeEvents ?? []) as LifeEvent[],
+    id: plan.id,
+    name: plan.name,
+    assumptions: plan.assumptions,
+    rules: plan.projectionRules,
+    lifeEvents: plan.lifeEvents,
   };
 }
 

@@ -5,30 +5,29 @@ import { type AuthContext } from '@/application/types';
 import { calculateEquityTotal } from '@/domains/report/equityUtils';
 import { ReportType } from '@/domains/report/schemas';
 
-export interface StartingNetWorthResult {
-  startingNetWorth: number;
+export interface ProjectionOpeningResult {
+  openingNetWorth: number;
   anchorYearMonth: string;
   assets: number;
   liabilities: number;
 }
 
-export interface StartingNetWorthUnavailable {
+export interface ProjectionOpeningUnavailable {
   reason: 'NO_CLOSED_PERIOD';
 }
 
-export type StartingNetWorthSource = StartingNetWorthResult | StartingNetWorthUnavailable;
+export type ProjectionOpeningSource = ProjectionOpeningResult | ProjectionOpeningUnavailable;
 
 /**
- * Resolves the starting net worth for a retirement projection from the latest
- * CLOSED period's stored BALANCE_SHEET report (issue #127 Q1). Net Worth has a
- * single calculation path: assets.total - liabilities.total from the report;
- * the plan does not store a savings snapshot.
+ * Resolves the projection's derived opening net worth from the latest CLOSED
+ * period's stored balance sheet. Net worth has one calculation path:
+ * assets.total - liabilities.total from the report.
  */
-export const getStartingNetWorthUseCase = {
+export const getProjectionOpeningUseCase = {
   async execute(request: {
     householdId: string;
     auth: AuthContext;
-  }): Promise<StartingNetWorthSource> {
+  }): Promise<ProjectionOpeningSource> {
     const { householdId, auth } = request;
     await householdPermissionService.assertReadPermission(
       householdId,
@@ -51,7 +50,7 @@ export const getStartingNetWorthUseCase = {
         continue;
       }
       return {
-        startingNetWorth: calculateEquityTotal(report.data),
+        openingNetWorth: calculateEquityTotal(report.data),
         anchorYearMonth: report.yearMonth,
         assets: report.data.assets.total,
         liabilities: report.data.liabilities.total,

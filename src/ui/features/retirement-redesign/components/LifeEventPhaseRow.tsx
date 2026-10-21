@@ -1,18 +1,32 @@
 import { useEffect } from 'react';
 
-import { NumberInput, TextInput } from '@/ui/components/form';
+import {
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+  NumberInput,
+  TextInput,
+} from '@/ui/components/form';
 import { Button } from '@/ui/components/ui/button';
-import { Label } from '@/ui/components/ui/label';
 import { EVENT_LABELS } from '@/ui/constants/retirement-redesign/eventLabels';
 import {
   type PhaseDraftVM,
-  type PhaseErrorField,
   type PhaseErrors,
   type PhaseFocusRequest,
 } from '@/ui/features/retirement-redesign/hooks/useLifeEventDrafts';
 
+const FIELD_NAMES = {
+  name: 'name',
+  startYear: 'startYearText',
+  endYear: 'endYearText',
+  amount: 'amountText',
+  growthRate: 'growthRateText',
+} as const;
+
 interface LifeEventPhaseRowProps {
-  eventId: string;
+  eventIndex: number;
   phase: PhaseDraftVM;
   errors: PhaseErrors;
   readOnly: boolean;
@@ -21,15 +35,9 @@ interface LifeEventPhaseRowProps {
   remove: () => void;
 }
 
-function errorText(errors: PhaseErrors, field: PhaseErrorField) {
-  const error = errors[field];
-  if (!error) return null;
-  return <p className="text-destructive text-sm font-medium">{error}</p>;
-}
-
 /** One phase; blank starts sort last and overlap focus lands on the year input. */
 export function LifeEventPhaseRow({
-  eventId,
+  eventIndex,
   phase,
   errors,
   readOnly,
@@ -37,28 +45,29 @@ export function LifeEventPhaseRow({
   update,
   remove,
 }: LifeEventPhaseRowProps) {
-  const idFor = (field: PhaseErrorField) => `event-${eventId}-phase-${phase.id}-${field}`;
+  const prefix = `events.${eventIndex}.phasesById.${phase.id}`;
 
   useEffect(() => {
-    if (focusRequest?.eventId !== eventId || focusRequest.phaseId !== phase.id) return;
-    document.getElementById(`event-${eventId}-phase-${phase.id}-${focusRequest.field}`)?.focus();
+    if (focusRequest === null || focusRequest.phaseId !== phase.id) return;
+    document
+      .querySelector<HTMLInputElement>(`[name="${prefix}.${FIELD_NAMES[focusRequest.field]}"]`)
+      ?.focus();
     // `sequence` makes a repeated request on the same field focus again.
-  }, [eventId, focusRequest, phase.id]);
+  }, [focusRequest, phase.id, prefix]);
 
   return (
     <li data-testid="phase-row" className="grid gap-3 border-t border-border pt-3">
       <div className="flex items-end gap-2">
-        <div className="grid flex-1 gap-2">
-          <Label htmlFor={idFor('name')}>{EVENT_LABELS.PHASE_NAME}</Label>
-          <TextInput
-            id={idFor('name')}
-            value={phase.name}
-            onChange={(name) => update({ name })}
-            readOnly={readOnly}
-            error={!!errors.name}
-            aria-invalid={!!errors.name}
-          />
-          {errorText(errors, 'name')}
+        <div className="flex-1">
+          <FormField name={`${prefix}.name`}>
+            <FormItem>
+              <FormLabel>{EVENT_LABELS.PHASE_NAME}</FormLabel>
+              <FormControl>
+                <TextInput readOnly={readOnly} onChange={(name) => update({ name })} />
+              </FormControl>
+              <FormMessage>{errors.name}</FormMessage>
+            </FormItem>
+          </FormField>
         </div>
 
         {!readOnly && (
@@ -69,60 +78,57 @@ export function LifeEventPhaseRow({
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <div className="grid gap-2">
-          <Label htmlFor={idFor('startYear')}>{EVENT_LABELS.START_YEAR}</Label>
-          <NumberInput
-            id={idFor('startYear')}
-            value={phase.startYearText}
-            onChange={(startYearText) => update({ startYearText })}
-            readOnly={readOnly}
-            step={1}
-            error={!!errors.startYear}
-            aria-invalid={!!errors.startYear}
-          />
-          {errorText(errors, 'startYear')}
-        </div>
+        <FormField name={`${prefix}.startYearText`}>
+          <FormItem>
+            <FormLabel>{EVENT_LABELS.START_YEAR}</FormLabel>
+            <FormControl>
+              <NumberInput
+                readOnly={readOnly}
+                step={1}
+                onChange={(startYearText) => update({ startYearText })}
+              />
+            </FormControl>
+            <FormMessage>{errors.startYear}</FormMessage>
+          </FormItem>
+        </FormField>
 
-        <div className="grid gap-2">
-          <Label htmlFor={idFor('endYear')}>{EVENT_LABELS.END_YEAR}</Label>
-          <NumberInput
-            id={idFor('endYear')}
-            value={phase.endYearText}
-            onChange={(endYearText) => update({ endYearText })}
-            readOnly={readOnly}
-            step={1}
-            error={!!errors.endYear}
-            aria-invalid={!!errors.endYear}
-          />
-          {errorText(errors, 'endYear')}
-        </div>
+        <FormField name={`${prefix}.endYearText`}>
+          <FormItem>
+            <FormLabel>{EVENT_LABELS.END_YEAR}</FormLabel>
+            <FormControl>
+              <NumberInput
+                readOnly={readOnly}
+                step={1}
+                onChange={(endYearText) => update({ endYearText })}
+              />
+            </FormControl>
+            <FormMessage>{errors.endYear}</FormMessage>
+          </FormItem>
+        </FormField>
 
-        <div className="grid gap-2">
-          <Label htmlFor={idFor('amount')}>{EVENT_LABELS.AMOUNT}</Label>
-          <NumberInput
-            id={idFor('amount')}
-            value={phase.amountText}
-            onChange={(amountText) => update({ amountText })}
-            readOnly={readOnly}
-            error={!!errors.amount}
-            aria-invalid={!!errors.amount}
-          />
-          {errorText(errors, 'amount')}
-        </div>
+        <FormField name={`${prefix}.amountText`}>
+          <FormItem>
+            <FormLabel>{EVENT_LABELS.AMOUNT}</FormLabel>
+            <FormControl>
+              <NumberInput readOnly={readOnly} onChange={(amountText) => update({ amountText })} />
+            </FormControl>
+            <FormMessage>{errors.amount}</FormMessage>
+          </FormItem>
+        </FormField>
 
-        <div className="grid gap-2">
-          <Label htmlFor={idFor('growthRate')}>{EVENT_LABELS.GROWTH_RATE}</Label>
-          <NumberInput
-            id={idFor('growthRate')}
-            value={phase.growthRateText}
-            onChange={(growthRateText) => update({ growthRateText })}
-            readOnly={readOnly}
-            error={!!errors.growthRate}
-            aria-invalid={!!errors.growthRate}
-          />
-          <p className="text-sm text-muted-foreground">{EVENT_LABELS.GROWTH_RATE_HINT}</p>
-          {errorText(errors, 'growthRate')}
-        </div>
+        <FormField name={`${prefix}.growthRateText`}>
+          <FormItem>
+            <FormLabel>{EVENT_LABELS.GROWTH_RATE}</FormLabel>
+            <FormControl>
+              <NumberInput
+                readOnly={readOnly}
+                onChange={(growthRateText) => update({ growthRateText })}
+              />
+            </FormControl>
+            <p className="text-sm text-muted-foreground">{EVENT_LABELS.GROWTH_RATE_HINT}</p>
+            <FormMessage>{errors.growthRate}</FormMessage>
+          </FormItem>
+        </FormField>
       </div>
     </li>
   );

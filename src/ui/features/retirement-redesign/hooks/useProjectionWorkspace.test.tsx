@@ -2,13 +2,13 @@ import { act, render, waitFor } from '@testing-library/react';
 import { RouterProvider, createMemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { getStartingNetWorthUseCase } from '@/application/retirement/use_cases/getStartingNetWorthUseCase';
+import { getProjectionOpeningUseCase } from '@/application/retirement/use_cases/getProjectionOpeningUseCase';
 import { type RetirementPlanWorkspaceData } from '@/application/retirement/use_cases/retirementPlanLookup';
 
 import { useProjectionWorkspace } from './useProjectionWorkspace';
 
-vi.mock('@/application/retirement/use_cases/getStartingNetWorthUseCase', () => ({
-  getStartingNetWorthUseCase: { execute: vi.fn() },
+vi.mock('@/application/retirement/use_cases/getProjectionOpeningUseCase', () => ({
+  getProjectionOpeningUseCase: { execute: vi.fn() },
 }));
 
 const { authMock } = vi.hoisted(() => ({
@@ -46,7 +46,7 @@ function renderWorkspace() {
 }
 
 const closedResult = {
-  startingNetWorth: 380_000,
+  openingNetWorth: 380_000,
   anchorYearMonth: '2026-08',
   assets: 500_000,
   liabilities: 120_000,
@@ -63,7 +63,7 @@ describe('useProjectionWorkspace', () => {
   });
 
   it('seeds the derived opening balance from the latest CLOSED period without dirtying', async () => {
-    vi.mocked(getStartingNetWorthUseCase.execute).mockResolvedValue(closedResult);
+    vi.mocked(getProjectionOpeningUseCase.execute).mockResolvedValue(closedResult);
 
     renderWorkspace();
 
@@ -77,7 +77,7 @@ describe('useProjectionWorkspace', () => {
   });
 
   it('starts empty and offers manual entry when no period is closed', async () => {
-    vi.mocked(getStartingNetWorthUseCase.execute).mockResolvedValue({
+    vi.mocked(getProjectionOpeningUseCase.execute).mockResolvedValue({
       reason: 'NO_CLOSED_PERIOD',
     });
 
@@ -94,7 +94,7 @@ describe('useProjectionWorkspace', () => {
   });
 
   it('switching to manual clears the anchor and marks the workspace dirty', async () => {
-    vi.mocked(getStartingNetWorthUseCase.execute).mockResolvedValue(closedResult);
+    vi.mocked(getProjectionOpeningUseCase.execute).mockResolvedValue(closedResult);
 
     renderWorkspace();
     await waitFor(() => expect(latestRef.current.opening.amountText).toBe('380000'));
@@ -110,7 +110,7 @@ describe('useProjectionWorkspace', () => {
   });
 
   it('editing the amount marks the workspace dirty', async () => {
-    vi.mocked(getStartingNetWorthUseCase.execute).mockResolvedValue(closedResult);
+    vi.mocked(getProjectionOpeningUseCase.execute).mockResolvedValue(closedResult);
 
     renderWorkspace();
     await waitFor(() => expect(latestRef.current.openingLoading).toBe(false));
@@ -122,7 +122,7 @@ describe('useProjectionWorkspace', () => {
   });
 
   it('restoring the report value keeps the derived anchor and the dirty flag', async () => {
-    vi.mocked(getStartingNetWorthUseCase.execute).mockResolvedValue(closedResult);
+    vi.mocked(getProjectionOpeningUseCase.execute).mockResolvedValue(closedResult);
 
     renderWorkspace();
     await waitFor(() => expect(latestRef.current.opening.amountText).toBe('380000'));
@@ -142,7 +142,7 @@ describe('useProjectionWorkspace', () => {
   });
 
   it('switching stages keeps the route and the draft', async () => {
-    vi.mocked(getStartingNetWorthUseCase.execute).mockResolvedValue(closedResult);
+    vi.mocked(getProjectionOpeningUseCase.execute).mockResolvedValue(closedResult);
 
     const router = renderWorkspace();
     await waitFor(() => expect(latestRef.current.openingLoading).toBe(false));
@@ -159,7 +159,7 @@ describe('useProjectionWorkspace', () => {
   });
 
   it('includes the event group in setup validation and replacement', async () => {
-    vi.mocked(getStartingNetWorthUseCase.execute).mockResolvedValue(closedResult);
+    vi.mocked(getProjectionOpeningUseCase.execute).mockResolvedValue(closedResult);
 
     renderWorkspace();
     await waitFor(() => expect(latestRef.current.openingLoading).toBe(false));
@@ -197,7 +197,7 @@ describe('useProjectionWorkspace', () => {
   });
 
   it('registers beforeunload only while dirty', async () => {
-    vi.mocked(getStartingNetWorthUseCase.execute).mockResolvedValue(closedResult);
+    vi.mocked(getProjectionOpeningUseCase.execute).mockResolvedValue(closedResult);
 
     renderWorkspace();
     await waitFor(() => expect(latestRef.current.openingLoading).toBe(false));
@@ -214,7 +214,7 @@ describe('useProjectionWorkspace', () => {
   });
 
   it('asks before leaving and stays when the confirmation is cancelled', async () => {
-    vi.mocked(getStartingNetWorthUseCase.execute).mockResolvedValue(closedResult);
+    vi.mocked(getProjectionOpeningUseCase.execute).mockResolvedValue(closedResult);
 
     const router = renderWorkspace();
     await waitFor(() => expect(latestRef.current.openingLoading).toBe(false));
@@ -229,7 +229,7 @@ describe('useProjectionWorkspace', () => {
   });
 
   it('leaves when the confirmation is accepted', async () => {
-    vi.mocked(getStartingNetWorthUseCase.execute).mockResolvedValue(closedResult);
+    vi.mocked(getProjectionOpeningUseCase.execute).mockResolvedValue(closedResult);
     confirmMock.mockResolvedValue(true);
 
     const router = renderWorkspace();
@@ -244,7 +244,7 @@ describe('useProjectionWorkspace', () => {
   });
 
   it('does not ask to leave a clean workspace', async () => {
-    vi.mocked(getStartingNetWorthUseCase.execute).mockResolvedValue(closedResult);
+    vi.mocked(getProjectionOpeningUseCase.execute).mockResolvedValue(closedResult);
 
     const router = renderWorkspace();
     await waitFor(() => expect(latestRef.current.openingLoading).toBe(false));

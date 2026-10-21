@@ -1,4 +1,7 @@
+import { type z } from 'zod';
+
 import { type ProjectionResolveError } from '@/domains/retirement/logic/projectionTypes';
+import { RETIREMENT_VALIDATION_LABELS } from '@/ui/constants/retirement/retirementValidationLabels';
 
 export const PROJECTION_RESULT_LABELS = {
   RESULTS_SECTION: 'RESULTS',
@@ -18,8 +21,19 @@ export const PROJECTION_RESULT_LABELS = {
   CALCULATE_FAILED: 'Calculation failed.',
   WAIT_FOR_OPENING: 'The opening net worth is still loading.',
   OPENING_INVALID: 'Enter a whole-number opening net worth.',
+  START_YEAR_INVALID: 'Enter a whole-number start year.',
   RESOLVE_FAILED: 'The projection could not be calculated.',
+  ISSUE_SEPARATOR: ' · ',
 } as const;
+
+/** One readable line per Zod issue; every issue is listed, never collapsed. */
+export function resolveValidationIssueLabel(issue: z.ZodIssue): string {
+  const label =
+    RETIREMENT_VALIDATION_LABELS[issue.message as keyof typeof RETIREMENT_VALIDATION_LABELS];
+  const path = issue.path.filter((part) => typeof part === 'string').join('.');
+  if (label === undefined) return path === '' ? issue.message : `${path}: ${issue.message}`;
+  return path === '' ? label : `${path}: ${label}`;
+}
 
 const text = (value: unknown): string =>
   value === undefined || value === null ? '' : String(value);

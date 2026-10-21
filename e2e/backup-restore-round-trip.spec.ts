@@ -121,8 +121,13 @@ test('an exported backup can be uploaded back and restores the household', async
   expect(payload.schemaVersion).toBe(2);
   expect(payload.householdId).toBe(QA_HOUSEHOLD_ID);
   // Retirement plans and projections both travel in the v2 payload.
-  expect(payload.collections.retirementPlans).toBeInstanceOf(Array);
-  expect(payload.collections.projections).toBeInstanceOf(Array);
+  expect(payload.collections.retirementPlans).toHaveLength(1);
+  expect(payload.collections.projections).toHaveLength(1);
+  expect(payload.collections.projections[0]).toEqual(
+    expect.objectContaining({
+      projection: expect.objectContaining({ id: 'projection_qa_retirement' }),
+    }),
+  );
 
   // 3. Make the change: book an expense into the month read above so it moves
   //    that row. Nothing is asserted on the transaction list itself — the project
@@ -178,4 +183,15 @@ test('an exported backup can be uploaded back and restores the household', async
     .toBeCloseTo(before.expense, 2);
   const afterRestore = await readMonthFigure(page, FIGURE_MONTH);
   expect(afterRestore.income).toBeCloseTo(before.income, 2);
+
+  // 6. The retirement docs travelled too: both the plan and its projection are
+  //    back, so a restore that silently dropped a nested collection fails here.
+  await page.goto('/retirement/plans');
+  await expect(page.getByRole('cell', { name: 'QA 退休計畫' })).toBeVisible({
+    timeout: 20_000,
+  });
+  await page.goto('/retirement');
+  await expect(page.getByRole('cell', { name: 'QA 退休試算' })).toBeVisible({
+    timeout: 20_000,
+  });
 });

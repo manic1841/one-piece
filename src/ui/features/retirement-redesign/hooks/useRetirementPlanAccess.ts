@@ -2,52 +2,31 @@ import { useEffect, useState } from 'react';
 
 import { householdPermissionService } from '@/application/household/householdPermissionService';
 import { useAuthState } from '@/ui/contexts/useAuthState';
+import { useLoadingTask } from '@/ui/hooks/useLoadingTask';
 
 /**
- * Whether the signed-in user may rename or delete plans. Global admins bypass
- * the household role check, matching the application-layer guard.
+ * Whether the signed-in user may rename or delete plans. The application layer
+ * is still the authority; this hook only decides which buttons to render.
  */
 export function useRetirementPlanAccess(householdId: string | undefined) {
   const { user, isAdmin } = useAuthState();
   const [canManage, setCanManage] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const { loading, run } = useLoadingTask({ initiallyLoading: true });
 
   useEffect(() => {
-    let cancelled = false;
-
-    const load = async () => {
-      if (!user || !householdId) {
-        if (!cancelled) {
-          setCanManage(false);
-          setLoading(false);
-        }
-        return;
-      }
-
-      if (isAdmin) {
-        if (!cancelled) {
-          setCanManage(true);
-          setLoading(false);
-        }
-        return;
-      }
-
-      setLoading(true);
-      try {
-        const allowed = await householdPermissionService.isUserAdmin(householdId, user.uid);
-        if (!cancelled) setCanManage(allowed);
-      } catch {
-        if (!cancelled) setCanManage(false);
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    };
-
-    void load();
-    return () => {
-      cancelled = true;
-    };
-  }, [householdId, isAdmin, user]);
+    void run(
+      async () => {
+        if (!user || !householdId) return false;
+        if (isAdmin) return true;
+        return householdPermissionService.isUserAdmin(householdId, user.uid);
+      },
+      {
+        writeBack: (result) => {
+          if (result.ok) setCanManage(result.value);
+        },
+      },
+    );
+  }, [householdId, isAdmin, run, user]);
 
   return { canManage, loading };
 }

@@ -43,6 +43,7 @@ export default function ProjectionWorkspacePage() {
   const { accounts: debtAccounts } = useDebtAccountOptions(householdId);
   const [applyOpen, setApplyOpen] = useState(false);
   const [saveOpen, setSaveOpen] = useState(false);
+  const [saveAsPlanOpen, setSaveAsPlanOpen] = useState(false);
   const [saveDefaultName, setSaveDefaultName] = useState('');
   const [lastSavedName, setLastSavedName] = useState<string | null>(null);
   const isPreview = workspace.stage === 'preview';
@@ -60,13 +61,19 @@ export default function ProjectionWorkspacePage() {
     setSaveOpen(true);
   };
 
-  const handleSave = async (name: string): Promise<boolean> => {
-    const id = await workspace.save(name);
-    if (id === null) return false;
+  const handleSave = async (name: string) => {
+    const outcome = await workspace.save(name);
+    if (!outcome.ok) return outcome;
 
     setLastSavedName(name);
     setSaveOpen(false);
-    return true;
+    return outcome;
+  };
+
+  const handleSaveAsPlan = async (name: string) => {
+    const outcome = await workspace.saveAsPlan(name);
+    if (outcome.ok) setSaveAsPlanOpen(false);
+    return outcome;
   };
 
   return (
@@ -79,7 +86,7 @@ export default function ProjectionWorkspacePage() {
             <Button variant="outline" size="sm" onClick={() => setApplyOpen(true)}>
               {PROJECTION_WORKSPACE_LABELS.APPLY_PLAN}
             </Button>
-            <Button variant="outline" size="sm" disabled>
+            <Button variant="outline" size="sm" onClick={() => setSaveAsPlanOpen(true)}>
               {PROJECTION_WORKSPACE_LABELS.SAVE_AS_PLAN}
             </Button>
           </>
@@ -108,23 +115,25 @@ export default function ProjectionWorkspacePage() {
           error={workspace.openingError}
           validationError={workspace.openingValidationError}
           hasClosedPeriod={workspace.hasClosedPeriod}
-          canUseReportValue={workspace.canUseReportValue}
+          startYear={workspace.startYear}
+          startYearError={workspace.startYearValidationError}
+          setStartYear={workspace.setStartYear}
           setAmount={workspace.setOpeningAmount}
           enterManual={workspace.enterManual}
-          useManualValue={workspace.useManualValue}
+          useManualValue={workspace.enterManual}
           useReportValue={workspace.useReportValue}
           retry={workspace.retryOpening}
         />
 
         <AssumptionsSection
-          values={workspace.assumptions.values}
+          form={workspace.assumptions.form}
           errors={workspace.assumptions.errors}
           birthYearLocked={workspace.assumptions.birthYearLocked}
           readOnly={isPreview}
-          setField={workspace.assumptions.setField}
         />
 
         <ProjectionRulesSection
+          form={workspace.rules.form}
           rules={workspace.rules.rules}
           errors={workspace.rules.errors}
           readOnly={isPreview}
@@ -140,6 +149,7 @@ export default function ProjectionWorkspacePage() {
         />
 
         <LifeEventsSection
+          form={workspace.events.form}
           events={workspace.events.events}
           errors={workspace.events.errors}
           readOnly={isPreview}
@@ -200,6 +210,14 @@ export default function ProjectionWorkspacePage() {
         </div>
       )}
 
+      {workspace.savedAsPlan && (
+        <Alert data-testid="saved-as-plan-message">
+          <AlertDescription>
+            {PROJECTION_WORKSPACE_LABELS.SAVE_AS_PLAN_SAVED_MESSAGE}
+          </AlertDescription>
+        </Alert>
+      )}
+
       {workspace.savedId !== null && (
         <Alert>
           <AlertDescription className="flex flex-wrap items-center gap-3">
@@ -239,6 +257,20 @@ export default function ProjectionWorkspacePage() {
           defaultName={saveDefaultName}
           onCancel={() => setSaveOpen(false)}
           onSave={handleSave}
+        />
+      )}
+
+      {saveAsPlanOpen && (
+        <SaveProjectionDialog
+          open
+          title={PROJECTION_WORKSPACE_LABELS.SAVE_AS_PLAN_DIALOG_TITLE}
+          nameLabel={PROJECTION_WORKSPACE_LABELS.SAVE_AS_PLAN_DIALOG_NAME}
+          requiredMessage={PROJECTION_WORKSPACE_LABELS.SAVE_AS_PLAN_DIALOG_NAME_REQUIRED}
+          confirmLabel={PROJECTION_WORKSPACE_LABELS.SAVE_AS_PLAN_DIALOG_CONFIRM}
+          savingLabel={PROJECTION_WORKSPACE_LABELS.SAVE_AS_PLAN_DIALOG_SAVING}
+          defaultName={workspace.appliedPlanName ?? ''}
+          onCancel={() => setSaveAsPlanOpen(false)}
+          onSave={handleSaveAsPlan}
         />
       )}
 

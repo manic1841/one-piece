@@ -1,29 +1,16 @@
 import { useCallback } from 'react';
 
+import { getProjectionOpeningUseCase } from '@/application/retirement/use_cases/getProjectionOpeningUseCase';
 import { getProjectionViewUseCase } from '@/application/retirement/use_cases/getProjectionViewUseCase';
-import { getStartingNetWorthUseCase } from '@/application/retirement/use_cases/getStartingNetWorthUseCase';
 import { type AuthContext } from '@/application/types';
-import { type RetirementAssumptions } from '@/domains/retirement/assumptions';
-import { type LifeEvent } from '@/domains/retirement/lifeEvents';
-import { type ProjectionRule } from '@/domains/retirement/projectionRules';
 import { PROJECTION_WORKSPACE_LABELS } from '@/ui/constants/retirement-redesign/workspaceLabels';
+import { type WorkspaceDraft } from '@/ui/features/retirement-redesign/hooks/useProjectionWorkspace';
 import { type useLoadingTask } from '@/ui/hooks/useLoadingTask';
-
-interface PreloadOpening {
-  source: 'derived' | 'manual';
-  amountText: string;
-  anchorYearMonth: string | null;
-}
 
 interface PreloadTargets {
   setDirty: (dirty: boolean) => void;
   setWarning: (warning: string | null) => void;
-  setOpening: (opening: PreloadOpening) => void;
-  setReportValue: (value: { amountText: string; anchorYearMonth: string } | null) => void;
-  setStartYear: (year: number) => void;
-  resetAssumptions: (assumptions: RetirementAssumptions) => void;
-  replaceRules: (rules: ProjectionRule[]) => void;
-  replaceEvents: (events: LifeEvent[]) => void;
+  replaceAll: (draft: WorkspaceDraft) => void;
   markSeeded: () => void;
   clearParams: () => void;
 }
@@ -45,12 +32,7 @@ export function useProjectionPreload({
   run,
   setDirty,
   setWarning,
-  setOpening,
-  setReportValue,
-  setStartYear,
-  resetAssumptions,
-  replaceRules,
-  replaceEvents,
+  replaceAll,
   markSeeded,
   clearParams,
 }: UseProjectionPreloadArgs) {
@@ -68,7 +50,7 @@ export function useProjectionPreload({
 
           const derived =
             data.config.openingNetWorth.source === 'derived'
-              ? await getStartingNetWorthUseCase.execute({ householdId, auth })
+              ? await getProjectionOpeningUseCase.execute({ householdId, auth })
               : null;
 
           return { data, derived };
@@ -78,7 +60,20 @@ export function useProjectionPreload({
             if (!result.ok || result.value === null) {
               markSeeded();
               setWarning(PROJECTION_WORKSPACE_LABELS.PRELOAD_FAILED);
-              setOpening({ source: 'derived', amountText: '', anchorYearMonth: null });
+              replaceAll({
+                assumptions: {
+                  birthYear: 0,
+                  retirementAge: 0,
+                  lifeExpectancy: 0,
+                  inflationRate: 0,
+                  annualReturnRate: 0,
+                },
+                rules: [],
+                events: [],
+                startYear: new Date().getFullYear(),
+                opening: { source: 'derived', amountText: '', anchorYearMonth: null },
+                reportValue: null,
+              });
               setDirty(true);
               clearParams();
               return;
@@ -88,29 +83,44 @@ export function useProjectionPreload({
             const config = data.config;
             if (config === null) return;
 
-            resetAssumptions(config.assumptions);
-            replaceRules(config.projectionRules);
-            replaceEvents(config.lifeEvents);
-            setStartYear(config.startYear);
-
             if (config.openingNetWorth.source === 'manual') {
-              setOpening({
-                source: 'manual',
-                amountText: String(config.openingNetWorth.amount),
-                anchorYearMonth: null,
+              replaceAll({
+                assumptions: config.assumptions,
+                rules: config.projectionRules,
+                events: config.lifeEvents,
+                startYear: config.startYear,
+                opening: {
+                  source: 'manual',
+                  amountText: String(config.openingNetWorth.amount),
+                  anchorYearMonth: null,
+                },
+                reportValue: null,
               });
             } else if (derived !== null && !('reason' in derived)) {
               const reportValue = {
-                amountText: String(derived.startingNetWorth),
+                amountText: String(derived.openingNetWorth),
                 anchorYearMonth: derived.anchorYearMonth,
               };
-              setReportValue(reportValue);
-              setOpening({ source: 'derived', ...reportValue });
+              replaceAll({
+                assumptions: config.assumptions,
+                rules: config.projectionRules,
+                events: config.lifeEvents,
+                startYear: config.startYear,
+                opening: { source: 'derived', ...reportValue },
+                reportValue,
+              });
             } else {
-              setOpening({
-                source: 'derived',
-                amountText: String(config.openingNetWorth.amount),
-                anchorYearMonth: config.openingNetWorth.anchorYearMonth ?? null,
+              replaceAll({
+                assumptions: config.assumptions,
+                rules: config.projectionRules,
+                events: config.lifeEvents,
+                startYear: config.startYear,
+                opening: {
+                  source: 'derived',
+                  amountText: String(config.openingNetWorth.amount),
+                  anchorYearMonth: config.openingNetWorth.anchorYearMonth ?? null,
+                },
+                reportValue: null,
               });
             }
 
@@ -121,20 +131,6 @@ export function useProjectionPreload({
         },
       );
     },
-    [
-      auth,
-      clearParams,
-      householdId,
-      markSeeded,
-      replaceEvents,
-      replaceRules,
-      resetAssumptions,
-      run,
-      setDirty,
-      setOpening,
-      setReportValue,
-      setStartYear,
-      setWarning,
-    ],
+    [auth, clearParams, householdId, markSeeded, replaceAll, run, setDirty, setWarning],
   );
 }

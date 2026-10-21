@@ -5,15 +5,15 @@ import {
   type ProjectionConfig,
   type ProjectionDocument,
   type ProjectionSource,
-  projectionRepository,
-} from '@/infra/repositories/projectionRepository';
+} from '@/domains/retirement/logic/projectionDocuments';
+import { projectionRepository } from '@/infra/repositories/projectionRepository';
 
 export type {
   ProjectionAnnual,
   ProjectionConfig,
   ProjectionDocument,
   ProjectionSource,
-} from '@/infra/repositories/projectionRepository';
+} from '@/domains/retirement/logic/projectionDocuments';
 
 interface GetProjectionViewRequest {
   householdId: string;

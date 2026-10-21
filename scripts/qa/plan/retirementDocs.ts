@@ -5,11 +5,18 @@
  */
 import { z } from 'zod';
 
+import {
+  ProjectionAnnualSchema,
+  ProjectionDocumentSchema,
+  ProjectionSourceSchema,
+  createProjectionConfigSchema,
+} from '@/domains/retirement/logic/projectionDocuments';
 import { createRetirementPlanCreateSchema } from '@/domains/retirement/planSchemas';
 
-import { type Builder, QA_SEED_FIXED_NOW, audit, emit, hh } from './shared';
+import { type Builder, QA_SEED_FIXED_NOW, audit, auditShape, emit, hh } from './shared';
 
 const PLAN_ID = 'plan_qa_retirement';
+const PROJECTION_ID = 'projection_qa_retirement';
 const CURRENT_YEAR = QA_SEED_FIXED_NOW.getFullYear();
 
 export const buildRetirementDocs = (b: Builder) => {
@@ -35,4 +42,52 @@ export const buildRetirementDocs = (b: Builder) => {
   });
 
   emit(b, z.record(z.string(), z.unknown()), hh(b.identity, 'retirementPlans'), PLAN_ID, plan);
+
+  // One saved projection keeps the backup round-trip e2e honest about nested
+  // results travelling with the payload; it mirrors the plan, like a plan
+  // applied in the workspace would.
+  emit(
+    b,
+    ProjectionDocumentSchema.extend(auditShape),
+    hh(b.identity, 'projections'),
+    PROJECTION_ID,
+    {
+      name: 'QA 退休試算',
+      engineVersion: 1,
+      retirementNetWorth: null,
+      finalNetWorth: 0,
+      minNetWorth: 0,
+      minNetWorthYear: null,
+      bankruptcyYear: null,
+      isBankrupt: false,
+      ...audit(b.identity),
+    },
+  );
+  emit(
+    b,
+    createProjectionConfigSchema(CURRENT_YEAR),
+    hh(b.identity, 'projections', PROJECTION_ID, 'snapshots'),
+    'config',
+    {
+      startYear: CURRENT_YEAR,
+      openingNetWorth: { amount: 0, source: 'manual' },
+      assumptions: plan.assumptions,
+      projectionRules: plan.projectionRules,
+      lifeEvents: plan.lifeEvents,
+    },
+  );
+  emit(
+    b,
+    ProjectionSourceSchema,
+    hh(b.identity, 'projections', PROJECTION_ID, 'snapshots'),
+    'source',
+    { ruleSources: [] },
+  );
+  emit(
+    b,
+    ProjectionAnnualSchema,
+    hh(b.identity, 'projections', PROJECTION_ID, 'results'),
+    'annual',
+    { years: [] },
+  );
 };

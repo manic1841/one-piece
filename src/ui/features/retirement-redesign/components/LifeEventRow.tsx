@@ -1,6 +1,13 @@
-import { SelectField, TextInput } from '@/ui/components/form';
+import {
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+  SelectField,
+  TextInput,
+} from '@/ui/components/form';
 import { Button } from '@/ui/components/ui/button';
-import { Label } from '@/ui/components/ui/label';
 import { Switch } from '@/ui/components/ui/switch';
 import { EVENT_LABELS, EVENT_TYPE_LABELS } from '@/ui/constants/retirement-redesign/eventLabels';
 import { LifeEventPhaseRow } from '@/ui/features/retirement-redesign/components/LifeEventPhaseRow';
@@ -13,6 +20,7 @@ import {
 } from '@/ui/features/retirement-redesign/hooks/useLifeEventDrafts';
 
 interface LifeEventRowProps {
+  index: number;
   event: LifeEventDraftVM;
   errors: EventErrors;
   readOnly: boolean;
@@ -36,6 +44,7 @@ const TYPE_OPTIONS = Object.entries(EVENT_TYPE_LABELS).map(([value, label]) => (
  * and events never appear in a rule's percentage source list.
  */
 export function LifeEventRow({
+  index,
   event,
   errors,
   readOnly,
@@ -48,36 +57,25 @@ export function LifeEventRow({
   updatePhase,
   setType,
 }: LifeEventRowProps) {
-  const nameId = `event-${event.id}-name`;
-  const typeId = `event-${event.id}-type`;
-  const enabledId = `event-${event.id}-enabled`;
+  const prefix = `events.${index}`;
 
   return (
     <li data-testid="event-row" className="grid gap-3 border-b border-border pb-4">
       <div className="flex items-end gap-2">
-        <div className="grid flex-1 gap-2">
-          <Label htmlFor={nameId}>{EVENT_LABELS.NAME}</Label>
-          <TextInput
-            id={nameId}
-            value={event.name}
-            onChange={(name) => update({ name })}
-            readOnly={readOnly}
-            error={!!errors.name}
-            aria-invalid={!!errors.name}
-          />
-          {errors.name && <p className="text-destructive text-sm font-medium">{errors.name}</p>}
+        <div className="flex-1">
+          <FormField name={`${prefix}.name`}>
+            <FormItem>
+              <FormLabel>{EVENT_LABELS.NAME}</FormLabel>
+              <FormControl>
+                <TextInput readOnly={readOnly} onChange={(name) => update({ name })} />
+              </FormControl>
+              <FormMessage>{errors.name}</FormMessage>
+            </FormItem>
+          </FormField>
         </div>
 
-        <label
-          htmlFor={enabledId}
-          className="flex h-[34px] items-center gap-2 text-sm text-muted-foreground"
-        >
-          <Switch
-            id={enabledId}
-            checked={event.enabled}
-            onCheckedChange={toggle}
-            disabled={readOnly}
-          />
+        <label className="flex h-[34px] items-center gap-2 text-sm text-muted-foreground">
+          <Switch checked={event.enabled} onCheckedChange={toggle} disabled={readOnly} />
           {event.enabled ? EVENT_LABELS.ENABLED : EVENT_LABELS.DISABLED}
         </label>
 
@@ -88,17 +86,21 @@ export function LifeEventRow({
         )}
       </div>
 
-      <div className="grid gap-2 sm:max-w-xs">
-        <Label htmlFor={typeId}>{EVENT_LABELS.TYPE}</Label>
-        <SelectField
-          id={typeId}
-          value={event.type}
-          onChange={(value) => setType(value as EventType)}
-          options={TYPE_OPTIONS}
-          disabled={readOnly}
-          error={!!errors.type}
-        />
-        {errors.type && <p className="text-destructive text-sm font-medium">{errors.type}</p>}
+      <div className="sm:max-w-xs">
+        <FormField name={`${prefix}.type`}>
+          <FormItem>
+            <FormLabel>{EVENT_LABELS.TYPE}</FormLabel>
+            <FormControl>
+              <SelectField
+                value={event.type}
+                onChange={(value) => setType(value as EventType)}
+                options={TYPE_OPTIONS}
+                disabled={readOnly}
+              />
+            </FormControl>
+            <FormMessage>{errors.type}</FormMessage>
+          </FormItem>
+        </FormField>
       </div>
 
       <div className="grid gap-2">
@@ -118,7 +120,7 @@ export function LifeEventRow({
             {event.phases.map((phase) => (
               <LifeEventPhaseRow
                 key={phase.id}
-                eventId={event.id}
+                eventIndex={index}
                 phase={phase}
                 errors={errors.phaseErrors?.[phase.id] ?? {}}
                 readOnly={readOnly}

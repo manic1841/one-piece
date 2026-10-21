@@ -1,12 +1,20 @@
-import { type z } from 'zod';
+import { z } from 'zod';
 
 import { householdPermissionService } from '@/application/household/householdPermissionService';
 import { listAllLedgerCodesUseCase } from '@/application/ledger/use_cases/listAllLedgerCodesUseCase';
 import { type AuthContext } from '@/application/types';
 import { type RetirementAssumptions } from '@/domains/retirement/assumptions';
+import { RetirementSchemaErrorCode } from '@/domains/retirement/errorCodes';
 import { type LifeEvent } from '@/domains/retirement/lifeEvents';
+import {
+  type CreateProjectionAtomicallyInput,
+  type ProjectionAnnual,
+  type ProjectionConfig,
+  type ProjectionSource,
+} from '@/domains/retirement/logic/projectionDocuments';
 import { ENGINE_VERSION, calculateProjection } from '@/domains/retirement/logic/projectionEngine';
 import {
+  type ProjectionInput,
   type ProjectionResolveError,
   type ProjectionResult,
 } from '@/domains/retirement/logic/projectionTypes';
@@ -17,7 +25,7 @@ import { debtAccountRepository } from '@/infra/repositories/debtAccountRepositor
 import { projectionRepository } from '@/infra/repositories/projectionRepository';
 import { transactionRepository } from '@/infra/repositories/transactionRepository';
 
-import { getStartingNetWorthUseCase } from './getStartingNetWorthUseCase';
+import { getProjectionOpeningUseCase } from './getProjectionOpeningUseCase';
 
 export const ProjectionCommandErrorCode = {
   PROJECTION_VALIDATION_FAILED: 'PROJECTION_VALIDATION_FAILED',
@@ -46,16 +54,16 @@ export interface CreateProjectionRequest {
   assumptions: RetirementAssumptions;
   rules: ProjectionRule[];
   lifeEvents: LifeEvent[];
-  /** `false` runs the whole chain without touching Firestore (CALCULATE). */
-  persist?: boolean;
 }
 
-interface ProjectionSuccess {
-  ok: true;
-  id: string | null;
+/** Everything SAVE needs; calculated once and never recomputed. */
+export interface ProjectionCalculation {
+  input: ProjectionInput;
   result: ProjectionResult;
-  input: Parameters<typeof calculateProjection>[0];
   warnings: ProjectionResolveError[];
+  config: ProjectionConfig;
+  source: ProjectionSource;
+  startYear: number;
 }
 
 interface ProjectionFailure {
@@ -66,61 +74,72 @@ interface ProjectionFailure {
   warnings?: ProjectionResolveError[];
 }
 
-export type CreateProjectionOutcome = ProjectionSuccess | ProjectionFailure;
+export type CalculateProjectionOutcome =
+  | { ok: true; calculation: ProjectionCalculation }
+  | ProjectionFailure;
+
+export type PersistProjectionOutcome = { ok: true; id: string } | ProjectionFailure;
 
 const currentYear = (): number => new Date().getFullYear();
+
+const pad = (value: number): string => String(value).padStart(2, '0');
+
+/** LOCAL time, matching the workspace dialog default. */
+export function defaultProjectionName(now = new Date()): string {
+  return `Projection ${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(
+    now.getHours(),
+  )}:${pad(now.getMinutes())}`;
+}
+
+const nameSchema = z
+  .string()
+  .trim()
+  .min(1, RetirementSchemaErrorCode.NAME_REQUIRED)
+  .max(100, RetirementSchemaErrorCode.NAME_TOO_LONG);
 
 function startOfYear(year: number): Date {
   return new Date(year, 0, 1);
 }
 
-function ruleSource(rule: ProjectionRule): { type: RuleSourceType; id: string } | undefined {
-  return rule.source;
+/**
+ * Net amount for one ledger code in one baseline year. The baseline year is
+ * explicit now, so the cache key is rule + year rather than ledger code.
+ */
+async function loadLedgerNetForYear(
+  householdId: string,
+  ledgerCodeId: string,
+  year: number,
+): Promise<Map<number, number>> {
+  const transactions = await transactionRepository.listByDateRange(
+    householdId,
+    startOfYear(year),
+    startOfYear(year + 1),
+  );
+
+  let net = 0;
+  let found = false;
+  for (const transaction of transactions) {
+    for (const entry of transaction.entries) {
+      if (entry.ledgerCode !== ledgerCodeId) continue;
+      net += (entry.credit || 0) - (entry.debit || 0);
+      found = true;
+    }
+  }
+
+  const map = new Map<number, number>();
+  if (found) map.set(year, net);
+  return map;
 }
 
-/**
- * Baseline net amounts for one ledger code. `specificYear` means "newest
- * available year", so it walks backwards from the previous complete year and
- * stops at the first year that has entries.
- */
-async function loadLedgerNetByYear(input: {
-  householdId: string;
-  ledgerCodeId: string;
-  startYear: number;
-  specificYear: boolean;
-}): Promise<Map<number, number>> {
-  const { householdId, ledgerCodeId, startYear, specificYear } = input;
-
-  const loadYear = async (year: number): Promise<Map<number, number>> => {
-    const transactions = await transactionRepository.listByDateRange(
-      householdId,
-      startOfYear(year),
-      startOfYear(year + 1),
-    );
-
-    let net = 0;
-    let found = false;
-    for (const transaction of transactions) {
-      for (const entry of transaction.entries) {
-        if (entry.ledgerCode !== ledgerCodeId) continue;
-        net += (entry.credit || 0) - (entry.debit || 0);
-        found = true;
-      }
-    }
-
-    const map = new Map<number, number>();
-    if (found) map.set(year, net);
-    return map;
-  };
-
-  const previousCompleteYear = startYear - 1;
-  if (!specificYear) return loadYear(previousCompleteYear);
-
-  for (let year = previousCompleteYear; year >= 1900; year -= 1) {
-    const map = await loadYear(year);
-    if (map.size > 0) return map;
+function baselineYearFor(rule: ProjectionRule, startYear: number): number {
+  if (rule.baselinePolicy === 'specificYear' && typeof rule.baselineYear === 'number') {
+    return rule.baselineYear;
   }
-  return new Map();
+  return startYear - 1;
+}
+
+function ruleSource(rule: ProjectionRule): { type: RuleSourceType; id: string } | undefined {
+  return rule.source;
 }
 
 async function gatherRuleSources(input: {
@@ -150,15 +169,12 @@ async function gatherRuleSources(input: {
       const source = ruleSource(rule);
       if (source === undefined || !existing.has(source.id)) continue;
 
-      let pending = loaded.get(source.id);
+      const year = baselineYearFor(rule, startYear);
+      const key = `${rule.id}:${year}`;
+      let pending = loaded.get(key);
       if (pending === undefined) {
-        pending = loadLedgerNetByYear({
-          householdId,
-          ledgerCodeId: source.id,
-          startYear,
-          specificYear: rule.baselinePolicy === 'specificYear',
-        });
-        loaded.set(source.id, pending);
+        pending = loadLedgerNetForYear(householdId, source.id, year);
+        loaded.set(key, pending);
       }
       ledgerSources.set(source.id, { netByYear: await pending });
     }
@@ -185,23 +201,12 @@ async function gatherRuleSources(input: {
 }
 
 /**
- * Validate, resolve and calculate a projection. `persist` decides whether the
- * documents are written; a persisted projection is always four documents in
- * one batch with a fresh id per attempt.
+ * Validate, resolve and calculate without writing. The returned calculation is
+ * the frozen input SAVE reuses.
  */
 export class CreateProjectionUseCase {
-  async execute(request: CreateProjectionRequest): Promise<CreateProjectionOutcome> {
-    const {
-      householdId,
-      auth,
-      name,
-      startYear,
-      opening,
-      assumptions,
-      rules,
-      lifeEvents,
-      persist = true,
-    } = request;
+  async calculate(request: CreateProjectionRequest): Promise<CalculateProjectionOutcome> {
+    const { householdId, auth, startYear, opening, assumptions, rules, lifeEvents } = request;
 
     await householdPermissionService.assertWritePermission(
       householdId,
@@ -211,10 +216,9 @@ export class CreateProjectionUseCase {
 
     const userEmail = auth.email ?? auth.uid;
     const now = new Date();
-    const projectionName = name ?? `Projection ${now.toISOString().slice(0, 16).replace('T', ' ')}`;
 
     const parsed = createRetirementPlanCreateSchema(currentYear()).safeParse({
-      name: projectionName,
+      name: defaultProjectionName(now),
       assumptions,
       projectionRules: rules,
       lifeEvents,
@@ -236,7 +240,7 @@ export class CreateProjectionUseCase {
     let anchorYearMonth: string | undefined;
 
     if (opening.source === 'derived') {
-      const derived = await getStartingNetWorthUseCase.execute({ householdId, auth });
+      const derived = await getProjectionOpeningUseCase.execute({ householdId, auth });
       if ('reason' in derived) {
         return {
           ok: false,
@@ -245,7 +249,7 @@ export class CreateProjectionUseCase {
           warnings: [],
         };
       }
-      openingAmount = derived.startingNetWorth;
+      openingAmount = derived.openingNetWorth;
       anchorYearMonth = derived.anchorYearMonth;
     }
 
@@ -276,53 +280,77 @@ export class CreateProjectionUseCase {
     }
 
     const result = calculateProjection(resolved.input);
+    const config: ProjectionConfig = {
+      startYear,
+      openingNetWorth: {
+        amount: resolved.input.openingNetWorth,
+        source: opening.source,
+        ...(anchorYearMonth === undefined ? {} : { anchorYearMonth }),
+      },
+      assumptions: parsed.data.assumptions,
+      projectionRules: parsed.data.projectionRules,
+      lifeEvents: parsed.data.lifeEvents,
+    };
 
-    if (!persist) {
-      return {
-        ok: true,
-        id: null,
-        result,
+    return {
+      ok: true,
+      calculation: {
         input: resolved.input,
+        result,
         warnings: resolved.warnings,
+        config,
+        source: { ruleSources: resolved.ruleSources },
+        startYear,
+      },
+    };
+  }
+
+  /** Name-only write of the frozen calculation. */
+  async persist(request: {
+    householdId: string;
+    auth: AuthContext;
+    name: string;
+    calculation: ProjectionCalculation;
+  }): Promise<PersistProjectionOutcome> {
+    const { householdId, auth, calculation } = request;
+
+    await householdPermissionService.assertWritePermission(
+      householdId,
+      auth.uid,
+      auth.isGlobalAdmin,
+    );
+
+    const parsedName = nameSchema.safeParse(request.name);
+    if (!parsedName.success) {
+      return {
+        ok: false,
+        code: ProjectionCommandErrorCode.PROJECTION_VALIDATION_FAILED,
+        issues: parsedName.error.issues,
       };
     }
 
-    try {
-      const written = await projectionRepository.createProjectionAtomically({
-        householdId,
-        projection: {
-          name: parsed.data.name,
-          engineVersion: ENGINE_VERSION,
-          createdAt: now,
-          createdBy: userEmail,
-          ...result.summary,
-        },
-        config: {
-          startYear,
-          openingNetWorth: {
-            amount: resolved.input.openingNetWorth,
-            source: opening.source,
-            ...(anchorYearMonth === undefined ? {} : { anchorYearMonth }),
-          },
-          assumptions: parsed.data.assumptions,
-          projectionRules: parsed.data.projectionRules,
-          lifeEvents: parsed.data.lifeEvents,
-        },
-        source: { ruleSources: resolved.ruleSources },
-        results: { years: result.years },
-      });
+    const now = new Date();
+    const userEmail = auth.email ?? auth.uid;
+    const input: CreateProjectionAtomicallyInput = {
+      householdId,
+      projection: {
+        name: parsedName.data,
+        engineVersion: ENGINE_VERSION,
+        createdAt: now,
+        createdBy: userEmail,
+        ...calculation.result.summary,
+      },
+      config: calculation.config,
+      source: calculation.source,
+      results: { years: calculation.result.years } satisfies ProjectionAnnual,
+    };
 
+    try {
+      const written = await projectionRepository.createProjectionAtomically(input);
       if (!written.ok) {
         return { ok: false, code: ProjectionCommandErrorCode.PROJECTION_TOO_LARGE };
       }
-
-      return {
-        ok: true,
-        id: written.id,
-        result,
-        input: resolved.input,
-        warnings: resolved.warnings,
-      };
+      return { ok: true, id: written.id };
     } catch {
       return { ok: false, code: ProjectionCommandErrorCode.PROJECTION_WRITE_FAILED };
     }
