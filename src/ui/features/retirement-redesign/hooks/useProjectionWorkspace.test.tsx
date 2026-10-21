@@ -3,6 +3,7 @@ import { RouterProvider, createMemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { getStartingNetWorthUseCase } from '@/application/retirement/use_cases/getStartingNetWorthUseCase';
+import { type RetirementPlanWorkspaceData } from '@/application/retirement/use_cases/retirementPlanLookup';
 
 import { useProjectionWorkspace } from './useProjectionWorkspace';
 
@@ -155,6 +156,44 @@ describe('useProjectionWorkspace', () => {
 
     act(() => latestRef.current.backToSetup());
     expect(latestRef.current.stage).toBe('setup');
+  });
+
+  it('includes the event group in setup validation and replacement', async () => {
+    vi.mocked(getStartingNetWorthUseCase.execute).mockResolvedValue(closedResult);
+
+    renderWorkspace();
+    await waitFor(() => expect(latestRef.current.openingLoading).toBe(false));
+
+    act(() => latestRef.current.events.add());
+    expect(latestRef.current.valid).toBe(false);
+    expect(latestRef.current.validate().events.ok).toBe(false);
+
+    const plan: RetirementPlanWorkspaceData = {
+      id: 'plan-1',
+      name: 'Plan',
+      assumptions: {
+        birthYear: 1970,
+        retirementAge: 55,
+        lifeExpectancy: 90,
+        inflationRate: 0.02,
+        annualReturnRate: 0.05,
+      },
+      rules: [],
+      lifeEvents: [
+        {
+          id: 'event-1',
+          name: 'Trip',
+          type: 'expense',
+          enabled: true,
+          phases: [{ startYear: 2040, endYear: 2041, amount: 10 }],
+        },
+      ],
+    };
+
+    act(() => latestRef.current.applyPlan(plan));
+
+    expect(latestRef.current.events.events).toHaveLength(1);
+    expect(latestRef.current.events.events[0].name).toBe('Trip');
   });
 
   it('registers beforeunload only while dirty', async () => {
