@@ -6,10 +6,10 @@ import {
   RetirementAssumptionsSchema,
   createAssumptionsSchema,
   createAssumptionsUpdateSchema,
-} from './assumptions';
-import { LifeEventsSchema } from './lifeEvents';
-import { retirementNameSchema } from './name';
-import { ProjectionRulesSchema } from './projectionRules';
+} from '../assumptions';
+import { LifeEventsSchema } from '../lifeEvents';
+import { retirementNameSchema } from '../name';
+import { ProjectionRulesSchema } from '../projectionRules';
 
 const nameField = retirementNameSchema;
 

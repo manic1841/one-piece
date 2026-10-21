@@ -5,7 +5,7 @@ import {
   projectionRepository,
 } from '@/infra/repositories/projectionRepository';
 
-export type { ProjectionDocument } from '@/domains/retirement/logic/projectionDocuments';
+export type { ProjectionDocument } from '@/domains/retirement/schemas/projectionSchemas';
 
 interface ListProjectionsRequest {
   householdId: string;

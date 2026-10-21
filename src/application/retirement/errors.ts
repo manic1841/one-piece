@@ -1,7 +1,7 @@
 import { type z } from 'zod';
 
 import { RetirementSchemaErrorCode } from '@/domains/retirement/errorCodes';
-import { type ProjectionResolveError } from '@/domains/retirement/logic/projectionTypes';
+import { type ProjectionResolveError } from '@/domains/retirement/projectionTypes';
 
 export const ProjectionCommandErrorCode = {
   PROJECTION_VALIDATION_FAILED: 'PROJECTION_VALIDATION_FAILED',

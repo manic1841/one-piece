@@ -1,5 +1,5 @@
 import { type ProjectionDocument } from '@/application/retirement/use_cases/listProjectionsUseCase';
-import { ENGINE_VERSION } from '@/domains/retirement/logic/projectionEngine';
+import { ENGINE_VERSION } from '@/domains/retirement/calculators/projectionEngine';
 import { formatCurrency, formatDate } from '@/ui/utils';
 
 export interface ProjectionListRowVM {

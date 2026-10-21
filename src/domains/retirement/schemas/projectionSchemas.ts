@@ -12,7 +12,7 @@ import { RetirementSchemaErrorCode } from '../errorCodes';
 import { type LifeEvent, LifeEventsSchema } from '../lifeEvents';
 import { addIssue } from '../numeric';
 import { type ProjectionRule, ProjectionRulesSchema, RuleSourceType } from '../projectionRules';
-import { type ProjectionYearResult, type RuleSourceSnapshot } from './projectionTypes';
+import { type ProjectionYearResult, type RuleSourceSnapshot } from '../projectionTypes';
 
 export const PROJECTION_DOCUMENT_MAX_BYTES = DOCUMENT_MAX_BYTES;
 

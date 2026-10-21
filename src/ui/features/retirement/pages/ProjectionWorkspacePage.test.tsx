@@ -10,10 +10,7 @@ import { getProjectionViewUseCase } from '@/application/retirement/use_cases/get
 import { persistProjectionUseCase } from '@/application/retirement/use_cases/persistProjectionUseCase';
 import { calculateProjectionWorkflow } from '@/application/retirement/workflows/calculateProjection';
 import { saveWorkspaceAsPlanWorkflow } from '@/application/retirement/workflows/saveWorkspaceAsPlan';
-import {
-  type ProjectionInput,
-  type ProjectionResult,
-} from '@/domains/retirement/logic/projectionTypes';
+import { type ProjectionInput, type ProjectionResult } from '@/domains/retirement/projectionTypes';
 import { type RetirementPlan } from '@/domains/retirement/types';
 
 import ProjectionWorkspacePage from './ProjectionWorkspacePage';

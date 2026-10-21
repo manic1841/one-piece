@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
+import type { AmountItem, ProjectionInput } from '../projectionTypes';
 import { ENGINE_VERSION, calculateProjection } from './projectionEngine';
-import type { AmountItem, ProjectionInput } from './projectionTypes';
 
 function item(amount: number): AmountItem {
   return { sourceRef: 's', label: 'l', origin: 'rule', amount };

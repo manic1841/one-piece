@@ -23,7 +23,7 @@ import {
   type ProjectionSource,
   ProjectionSourceSchema,
   type ProjectionWriteResult,
-} from '@/domains/retirement/logic/projectionDocuments';
+} from '@/domains/retirement/schemas/projectionSchemas';
 import { db } from '@/firebase';
 import { fromFirestore, isDocumentTooLarge, sanitize } from '@/infra/repositories/firestorePayload';
 
@@ -35,8 +35,8 @@ export type {
   ProjectionDocumentName,
   ProjectionSource,
   ProjectionWriteResult,
-} from '@/domains/retirement/logic/projectionDocuments';
-export { PROJECTION_DOCUMENT_MAX_BYTES } from '@/domains/retirement/logic/projectionDocuments';
+} from '@/domains/retirement/schemas/projectionSchemas';
+export { PROJECTION_DOCUMENT_MAX_BYTES } from '@/domains/retirement/schemas/projectionSchemas';
 
 class ProjectionRepository {
   private readonly collectionName = 'projections';

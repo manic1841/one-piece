@@ -3,7 +3,7 @@ import type {
   ProjectionInput,
   ProjectionResult,
   ProjectionYearResult,
-} from './projectionTypes';
+} from '../projectionTypes';
 
 export const ENGINE_VERSION = 1;
 

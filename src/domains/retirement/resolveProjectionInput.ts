@@ -1,6 +1,6 @@
-import type { RetirementAssumptions } from '../assumptions';
-import type { LifeEvent } from '../lifeEvents';
-import type { ProjectionRule, RuleSource } from '../projectionRules';
+import type { RetirementAssumptions } from './assumptions';
+import type { LifeEvent } from './lifeEvents';
+import type { ProjectionRule, RuleSource } from './projectionRules';
 import type {
   AmountItem,
   ProjectionInput,

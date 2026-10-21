@@ -1,6 +1,6 @@
 import { type ProjectionViewData } from '@/application/retirement/use_cases/getProjectionViewUseCase';
-import { ENGINE_VERSION } from '@/domains/retirement/logic/projectionEngine';
-import { type ProjectionSummary } from '@/domains/retirement/logic/projectionTypes';
+import { ENGINE_VERSION } from '@/domains/retirement/calculators/projectionEngine';
+import { type ProjectionSummary } from '@/domains/retirement/projectionTypes';
 import { PROJECTION_COMMON_LABELS } from '@/ui/constants/retirement/displayLabels';
 import {
   PROJECTION_VIEW_LABELS,
@@ -18,7 +18,7 @@ import {
 import { formatCurrency, formatDate } from '@/ui/utils';
 
 export type { ProjectionViewData } from '@/application/retirement/use_cases/getProjectionViewUseCase';
-export type { ProjectionSummary } from '@/domains/retirement/logic/projectionTypes';
+export type { ProjectionSummary } from '@/domains/retirement/projectionTypes';
 
 export interface ProjectionSummaryVM {
   retirementNetWorthText: string;

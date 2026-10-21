@@ -1,8 +1,8 @@
 import { z } from 'zod';
 
 import { RetirementSchemaErrorCode } from './errorCodes';
-import { resolveRuleGraph } from './logic/ruleGraph';
 import { addIssue, decimalField } from './numeric';
+import { resolveRuleGraph } from './ruleGraph';
 
 export const RuleType = z.enum(['income', 'expense']);
 export type RuleType = z.infer<typeof RuleType>;

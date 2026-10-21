@@ -6,7 +6,7 @@ import {
   type ProjectionDocument,
   type ProjectionSource,
   createProjectionConfigSchema,
-} from '@/domains/retirement/logic/projectionDocuments';
+} from '@/domains/retirement/schemas/projectionSchemas';
 import { projectionRepository } from '@/infra/repositories/projectionRepository';
 
 export type {
@@ -14,7 +14,7 @@ export type {
   ProjectionConfig,
   ProjectionDocument,
   ProjectionSource,
-} from '@/domains/retirement/logic/projectionDocuments';
+} from '@/domains/retirement/schemas/projectionSchemas';
 
 interface GetProjectionViewRequest {
   householdId: string;

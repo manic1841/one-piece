@@ -1,6 +1,6 @@
 import { type z } from 'zod';
 
-import { type ProjectionResolveError } from '@/domains/retirement/logic/projectionTypes';
+import { type ProjectionResolveError } from '@/domains/retirement/projectionTypes';
 import { RETIREMENT_VALIDATION_LABELS } from '@/ui/constants/retirement/validationLabels';
 
 export const PROJECTION_RESULT_LABELS = {

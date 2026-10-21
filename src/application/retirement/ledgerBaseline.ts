@@ -1,4 +1,4 @@
-import { netForLedgerCode } from '@/domains/retirement/logic/ledgerBaseline';
+import { netForLedgerCode } from '@/domains/retirement/calculators/ledgerBaseline';
 import { transactionRepository } from '@/infra/repositories/transactionRepository';
 
 const startOfYear = (year: number): Date => new Date(year, 0, 1);

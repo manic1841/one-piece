@@ -168,7 +168,7 @@ Method 是判別聯集：
 
 ## 6. 基準解析與錯誤語意
 
-`resolveProjectionInput` 是純函式，位於 `src/domains/retirement/logic/`，不碰
+`resolveProjectionInput` 是純函式，位於 `src/domains/retirement/`，不碰
 Firestore；來源資料由呼叫端備妥後傳入。它依規則圖的拓撲順序逐條展開，直接產出引
 擎輸入，不建立中間表示。
 

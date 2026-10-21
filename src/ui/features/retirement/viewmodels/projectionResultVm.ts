@@ -1,7 +1,4 @@
-import {
-  type ProjectionInput,
-  type ProjectionResult,
-} from '@/domains/retirement/logic/projectionTypes';
+import { type ProjectionInput, type ProjectionResult } from '@/domains/retirement/projectionTypes';
 import { PROJECTION_COMMON_LABELS } from '@/ui/constants/retirement/displayLabels';
 import { type RetirementProjectionVM } from '@/ui/features/retirement/viewmodels/projectionDisplayVm';
 import {

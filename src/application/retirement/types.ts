@@ -1,17 +1,17 @@
 import { type AuthContext } from '@/application/types';
 import { type RetirementAssumptions } from '@/domains/retirement/assumptions';
 import { type LifeEvent } from '@/domains/retirement/lifeEvents';
-import {
-  type ProjectionConfig,
-  type ProjectionOpeningSourceKind,
-  type ProjectionSource,
-} from '@/domains/retirement/logic/projectionDocuments';
+import { type ProjectionRule } from '@/domains/retirement/projectionRules';
 import {
   type ProjectionInput,
   type ProjectionResolveError,
   type ProjectionResult,
-} from '@/domains/retirement/logic/projectionTypes';
-import { type ProjectionRule } from '@/domains/retirement/projectionRules';
+} from '@/domains/retirement/projectionTypes';
+import {
+  type ProjectionConfig,
+  type ProjectionOpeningSourceKind,
+  type ProjectionSource,
+} from '@/domains/retirement/schemas/projectionSchemas';
 
 export interface ProjectionOpening {
   source: ProjectionOpeningSourceKind;

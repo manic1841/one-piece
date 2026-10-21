@@ -5,8 +5,8 @@ import { useSearchParams } from 'react-router-dom';
 import { type ProjectionCalculation } from '@/application/retirement/types';
 import { type RetirementAssumptions } from '@/domains/retirement/assumptions';
 import { type LifeEvent } from '@/domains/retirement/lifeEvents';
-import { type ProjectionResolveError } from '@/domains/retirement/logic/projectionTypes';
 import { type ProjectionRule } from '@/domains/retirement/projectionRules';
+import { type ProjectionResolveError } from '@/domains/retirement/projectionTypes';
 import { type RetirementPlan } from '@/domains/retirement/types';
 import { defaultProjectionName } from '@/shared/projectionName';
 import {

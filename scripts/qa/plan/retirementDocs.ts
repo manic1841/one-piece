@@ -10,8 +10,8 @@ import {
   ProjectionDocumentSchema,
   ProjectionSourceSchema,
   createProjectionConfigSchema,
-} from '@/domains/retirement/logic/projectionDocuments';
-import { createRetirementPlanCreateSchema } from '@/domains/retirement/schemas';
+} from '@/domains/retirement/schemas/projectionSchemas';
+import { createRetirementPlanCreateSchema } from '@/domains/retirement/schemas/retirementSchemas';
 
 import { type Builder, QA_SEED_FIXED_NOW, audit, auditShape, emit, hh } from './shared';
 

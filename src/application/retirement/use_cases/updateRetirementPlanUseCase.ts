@@ -1,7 +1,7 @@
 import { householdPermissionService } from '@/application/household/householdPermissionService';
 import { nameFailureCode } from '@/application/retirement/errors';
 import { type AuthContext } from '@/application/types';
-import { createRetirementPlanUpdateSchema } from '@/domains/retirement/schemas';
+import { createRetirementPlanUpdateSchema } from '@/domains/retirement/schemas/retirementSchemas';
 import { retirementPlanRepository } from '@/infra/repositories/retirementPlanRepository';
 
 export interface UpdateRetirementPlanRequest {

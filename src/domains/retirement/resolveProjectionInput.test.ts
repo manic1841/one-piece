@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
-import type { RetirementAssumptions } from '../assumptions';
-import type { LifeEvent } from '../lifeEvents';
-import type { EndCondition, ProjectionRule, RuleType } from '../projectionRules';
+import type { RetirementAssumptions } from './assumptions';
+import type { LifeEvent } from './lifeEvents';
+import type { EndCondition, ProjectionRule, RuleType } from './projectionRules';
 import {
   type ResolveProjectionInputParams,
   type ResolveProjectionInputResult,

@@ -1,8 +1,8 @@
+import { type ProjectionRule } from '@/domains/retirement/projectionRules';
 import {
   type ProjectionYearResult,
   type RuleSourceSnapshot,
-} from '@/domains/retirement/logic/projectionTypes';
-import { type ProjectionRule } from '@/domains/retirement/projectionRules';
+} from '@/domains/retirement/projectionTypes';
 import { PROJECTION_COMMON_LABELS } from '@/ui/constants/retirement/displayLabels';
 import {
   BASELINE_POLICY_LABELS,
