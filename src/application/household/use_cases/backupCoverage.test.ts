@@ -25,19 +25,7 @@ const PAYLOAD_KEY_BY_DB_NAME: Record<string, string> = {
 };
 
 /** Collections intentionally outside the backup. */
-// `retirement_plans` is the legacy collection still read by the old runtime; the
-// v2 payload writes the new `retirementPlans` collection (ADR-0089).
-const EXCLUDED_DB_NAMES = new Set([
-  'operations',
-  'users',
-  'access_control',
-  'households',
-  'retirement_plans',
-  // Legacy plan subcollections, still read by the old runtime but no longer
-  // embedded in the v2 payload (the new plan is a single document).
-  'incomeStreams',
-  'expenseCategories',
-]);
+const EXCLUDED_DB_NAMES = new Set(['operations', 'users', 'access_control', 'households']);
 
 /** Subcollections embedded inside their parent payload key, not backed up separately. */
 const EMBEDDED_SUBCOLLECTIONS = new Set(['snapshots', 'config', 'source', 'annual']);

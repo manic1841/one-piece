@@ -1,7 +1,7 @@
 /**
  * Transaction journal: every seeded Transaction + Allocation doc, plus the
- * in-memory journal (InternalTxn[]) that snapshots, reports, and the
- * retirement import derive from. Cross-domain transactions (mortgage
+ * in-memory journal (InternalTxn[]) that snapshots and reports derive from.
+ * Cross-domain transactions (mortgage
  * drawdown, transfer, manual adjustment) live here so builders stay
  * independent (see docs/qa-seed-data.md §3).
  */

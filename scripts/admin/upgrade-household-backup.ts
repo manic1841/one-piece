@@ -31,6 +31,7 @@ import {
   AccountCategory,
   type AccountCategory as AccountCategoryType,
 } from '../../src/domains/account/types/categories';
+import { createRetirementPlanCreateSchema } from '../../src/domains/retirement/planSchemas';
 
 type Unknowns = Record<string, unknown>;
 
@@ -69,27 +70,31 @@ export const resolvePortfolioLinks = (
 };
 
 /**
- * The live v0 retirement plan "偉大的航道" (id lGcR485GBAfcl8AWqJyN), recomputed
- * into the v1 flat shape. Amounts come from the migrate-retirement-v1 rules
- * applied to the 2026-09-12 backup:
- * - currentYear 2025, retirement year 2040 (birthYear 1995 + age 45).
- * - Salary baselines projected to 2040 with 3% growth: 妹妹薪資 1,171,172.4,
- *   哥哥薪資 1,463,941.0, all-salary 3,689,158.7.
- * - DERIVED incomes: round(base x 0.4); non-pension streams keep their level
- *   after retirement (retirementAnnual = currentAnnual).
- * - SALARY_PERCENTAGE expenses: round(linked-or-all baseline x percentage);
- *   retirementMultiplier stays (v1 keeps it).
- * - Events keep their FIXED amounts; phases already carry amounts.
- * - Plan doc drops currentSavings / salaryGrowthRate / retirementTransition /
- *   summary (summary used savingsAtRetirement; Recalculate re-derives it).
+ * The live v0 retirement plan "偉大的航道" (id lGcR485GBAfcl8AWqJyN), reduced to
+ * the new model. The flat v0 incomes/expenses are not converted to rules — the
+ * projection resolver derives them from the journal and ADR-0089 treats the
+ * mapping as guesswork — so only the persisted assumptions survive. Rules and
+ * life events start empty; the plan is recomputed after import.
+ *
+ * Schema parsing at module load catches drift in the hand-written values.
  */
-export const upgradedRetirementPlan: Unknowns = {
-  id: 'lGcR485GBAfcl8AWqJyN',
+const upgradedRetirementPlanData = createRetirementPlanCreateSchema(2025).parse({
   createdBy: 'manic35153@gmail.com',
   createdAt: '2026-06-05T09:40:49.813Z',
   updatedBy: 'manic35153@gmail.com',
   updatedAt: '2026-06-05T09:40:49.813Z',
   name: '偉大的航道',
+  assumptions: {
+    birthYear: 1995,
+    retirementAge: 45,
+    lifeExpectancy: 100,
+    inflationRate: 0.02,
+    annualReturnRate: 0.06,
+  },
+  projectionRules: [],
+  lifeEvents: [],
+  // v0 fields below stay in the literal for reference; the new schema strips
+  // them when parsing.
   isActive: true,
   autoUpdate: true,
   currentYear: 2025,
@@ -253,9 +258,15 @@ export const upgradedRetirementPlan: Unknowns = {
       note: '2人',
     },
   ],
+});
+
+/** Plan document written over the single v0 record. */
+export const upgradedRetirementPlan: Unknowns = {
+  id: 'lGcR485GBAfcl8AWqJyN',
+  ...upgradedRetirementPlanData,
 };
 
-/** Replaces the single v0 plan record with the hardcoded v1 plan. */
+/** Replaces the single v0 plan record with the upgraded new-model plan. */
 export const replaceRetirementPlans = (plans: unknown[]): unknown[] => {
   if (plans.length !== 1) {
     throw new Error(`expected exactly 1 retirement plan, found ${plans.length}`);

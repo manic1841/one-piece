@@ -21,7 +21,7 @@ const projects = [
   { id: 'project-2', name: '教育' },
 ];
 
-const expenseCategories = [{ value: 'FOOD', label: '餐飲' }];
+const expenseCategoryOptions = [{ value: 'FOOD', label: '餐飲' }];
 const incomeCategories = [{ value: 'OTHER_INCOME', label: '其他收入' }];
 
 const ledgerCode = (
@@ -48,9 +48,9 @@ function renderForm(overrides: Partial<React.ComponentProps<typeof TransactionFo
       onClose={vi.fn()}
       onSubmit={onSubmit}
       projects={projects}
-      expenseCategories={expenseCategories}
+      expenseCategoryOptions={expenseCategoryOptions}
       incomeCategories={incomeCategories}
-      advancedCategories={[...expenseCategories, ...incomeCategories]}
+      advancedCategories={[...expenseCategoryOptions, ...incomeCategories]}
       allActiveLedgerCodes={allActiveLedgerCodes}
       {...overrides}
     />,

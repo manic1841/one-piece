@@ -29,7 +29,7 @@ import {
 import { useAuthIdentity } from '@/ui/hooks/useAuthIdentity';
 import { logger } from '@/utils/logger';
 
-const expenseCategories: TransactionFormCategoryOption[] = [
+const expenseCategoryOptions: TransactionFormCategoryOption[] = [
   ...DEFAULT_INTENT_MAPPINGS.filter((mapping) => mapping.type === 'EXPENSE').map((mapping) => ({
     value: mapping.intent,
     label: getIntentLabel(mapping.intent),
@@ -44,7 +44,7 @@ const incomeCategories: TransactionFormCategoryOption[] = [
 ];
 
 const advancedCategories: TransactionFormCategoryOption[] = [
-  ...expenseCategories,
+  ...expenseCategoryOptions,
   ...incomeCategories,
 ];
 
@@ -263,7 +263,7 @@ export const useTransactionForm = (
   };
 
   return {
-    expenseCategories,
+    expenseCategoryOptions,
     incomeCategories,
     advancedCategories,
     allActiveLedgerCodes,

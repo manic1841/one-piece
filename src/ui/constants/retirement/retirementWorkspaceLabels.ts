@@ -30,9 +30,7 @@ export type RetirementWorkspaceSectionKey = keyof typeof RetirementWorkspaceSect
 
 export const RetirementWorkspaceTermLabels = {
   incomeStream: 'Income Stream',
-  incomeStreams: 'Income Streams',
   expenseCategory: 'Expense Category',
-  expenseCategories: 'Expense Categories',
   retirementEvent: 'Life Event',
   retirementEvents: 'Life Events',
 } as const;

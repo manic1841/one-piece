@@ -39,7 +39,7 @@ interface TransactionFormProps {
   loading?: boolean;
   error?: string;
   projects: TransactionFormProjectOption[];
-  expenseCategories: TransactionFormCategoryOption[];
+  expenseCategoryOptions: TransactionFormCategoryOption[];
   incomeCategories: TransactionFormCategoryOption[];
   advancedCategories: TransactionFormCategoryOption[];
   allActiveLedgerCodes: LedgerCodeItem[];
@@ -60,7 +60,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
   loading = false,
   error,
   projects,
-  expenseCategories,
+  expenseCategoryOptions,
   incomeCategories,
   advancedCategories,
   allActiveLedgerCodes,
@@ -79,7 +79,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
     initialOutput,
     onSubmit,
     projects,
-    expenseCategories,
+    expenseCategoryOptions,
     incomeCategories,
     advancedCategories,
     loadIncomeAllocationTemplate,
@@ -134,7 +134,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
               <Form {...expenseForm}>
                 <ExpensePanel
                   projects={projects}
-                  categories={expenseCategories}
+                  categories={expenseCategoryOptions}
                   allLedgerCodes={allActiveLedgerCodes}
                 />
               </Form>

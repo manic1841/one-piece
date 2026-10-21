@@ -45,7 +45,7 @@ const buildQaSeedPlan = (identity: QaSeedIdentity): SeedDoc[] => {
   buildAccountSnapshotDocs(b, txns);
   buildProjectSnapshotDocs(b, txns, collectAllocations(b.docs));
   buildPortfolioSnapshotDocs(b, txns);
-  buildRetirementDocs(b, mortgage);
+  buildRetirementDocs(b);
   buildReportDocs(b, txns, mortgage.closingByMonth, carLoan.closingByMonth);
   buildMonthlyCloseDocs(b);
 
