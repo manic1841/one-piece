@@ -3,13 +3,28 @@ import { RouterProvider, createMemoryRouter } from 'react-router-dom';
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { listDebtAccountsUseCase } from '@/application/debt/use_cases/listDebtAccountsUseCase';
+import { createProjectionUseCase } from '@/application/retirement/use_cases/createProjectionUseCase';
 import { getStartingNetWorthUseCase } from '@/application/retirement/use_cases/getStartingNetWorthUseCase';
 import { type RetirementPlanWorkspaceData } from '@/application/retirement/use_cases/retirementPlanLookup';
+import {
+  type ProjectionInput,
+  type ProjectionResult,
+} from '@/domains/retirement/logic/projectionTypes';
 
 import ProjectionWorkspacePage from './ProjectionWorkspacePage';
 
 vi.mock('@/application/retirement/use_cases/getStartingNetWorthUseCase', () => ({
   getStartingNetWorthUseCase: { execute: vi.fn() },
+}));
+
+vi.mock('@/application/retirement/use_cases/createProjectionUseCase', () => ({
+  createProjectionUseCase: { execute: vi.fn() },
+  ProjectionCommandErrorCode: {
+    PROJECTION_VALIDATION_FAILED: 'PROJECTION_VALIDATION_FAILED',
+    PROJECTION_RESOLVE_FAILED: 'PROJECTION_RESOLVE_FAILED',
+    PROJECTION_TOO_LARGE: 'PROJECTION_TOO_LARGE',
+    PROJECTION_WRITE_FAILED: 'PROJECTION_WRITE_FAILED',
+  },
 }));
 
 vi.mock('@/application/debt/use_cases/listDebtAccountsUseCase', () => ({
@@ -78,6 +93,78 @@ const planFixture: RetirementPlanWorkspaceData = {
     },
   ],
 };
+
+const projectionInput: ProjectionInput = {
+  firstYear: 2026,
+  lastYear: 2027,
+  retirementYear: 2050,
+  birthYear: 1990,
+  openingNetWorth: 100_000,
+  annualReturnRate: 0.05,
+  years: [
+    { year: 2026, inflows: [], outflows: [] },
+    { year: 2027, inflows: [], outflows: [] },
+  ],
+};
+
+const projectionResult: ProjectionResult = {
+  years: [
+    {
+      year: 2026,
+      age: 36,
+      isRetired: false,
+      opening: 100_000,
+      return: 5_000,
+      inflows: 0,
+      outflows: 0,
+      closing: 105_000,
+    },
+    {
+      year: 2027,
+      age: 37,
+      isRetired: false,
+      opening: 105_000,
+      return: 5_250,
+      inflows: 0,
+      outflows: 0,
+      closing: 110_250,
+    },
+  ],
+  summary: {
+    retirementNetWorth: 300_000,
+    finalNetWorth: 110_250,
+    minNetWorth: 100_000,
+    minNetWorthYear: 2026,
+    bankruptcyYear: null,
+    isBankrupt: false,
+  },
+};
+
+function successOutcome(warnings: unknown[] = []) {
+  return {
+    ok: true as const,
+    id: null,
+    result: projectionResult,
+    input: projectionInput,
+    warnings: warnings as never,
+  };
+}
+
+async function fillValidSetup() {
+  await screen.findByText('No closed period yet.');
+  fireEvent.click(screen.getByRole('button', { name: 'ENTER MANUALLY' }));
+  fireEvent.change(screen.getByLabelText('Opening net worth'), { target: { value: '100000' } });
+  fireEvent.change(screen.getByLabelText('Birth year'), { target: { value: '1990' } });
+  fireEvent.change(screen.getByLabelText('Retirement age'), { target: { value: '60' } });
+  fireEvent.change(screen.getByLabelText('Life expectancy'), { target: { value: '85' } });
+  fireEvent.change(screen.getByLabelText('Inflation rate (%)'), { target: { value: '2' } });
+  fireEvent.change(screen.getByLabelText('Annual return rate (%)'), { target: { value: '5' } });
+}
+
+async function calculate() {
+  fireEvent.click(screen.getByRole('button', { name: 'CALCULATE' }));
+  await screen.findByTestId('projection-results');
+}
 
 function renderWorkspace() {
   const router = createMemoryRouter(
@@ -180,6 +267,7 @@ describe('ProjectionWorkspacePage', () => {
     vi.mocked(getStartingNetWorthUseCase.execute).mockResolvedValue({
       reason: 'NO_CLOSED_PERIOD',
     });
+    vi.mocked(createProjectionUseCase.execute).mockResolvedValue(successOutcome());
     vi.mocked(listDebtAccountsUseCase.execute).mockResolvedValue([
       {
         id: 'debt-1',
@@ -205,24 +293,23 @@ describe('ProjectionWorkspacePage', () => {
     ]);
   });
 
-  it('keeps the route when switching to preview and makes the inputs read-only', async () => {
+  it('keeps the route when calculating and makes the inputs read-only', async () => {
     const router = renderWorkspace();
-    fireEvent.change(await screen.findByLabelText('Retirement age'), {
-      target: { value: '65' },
-    });
+    await fillValidSetup();
 
-    fireEvent.click(screen.getByRole('button', { name: 'PREVIEW' }));
+    await calculate();
 
     expect(screen.getByText(/Preview is read-only/)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'SAVE' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'SAVE' })).toBeEnabled();
     expect(screen.getByLabelText('Opening net worth')).toHaveAttribute('readonly');
     expect(screen.getByLabelText('Retirement age')).toHaveAttribute('readonly');
     expect(router.state.location.pathname).toBe('/retirement/new');
 
     fireEvent.click(screen.getByRole('button', { name: 'BACK TO SETUP' }));
 
-    expect(screen.getByRole('button', { name: 'PREVIEW' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'CALCULATE' })).toBeInTheDocument();
     expect(screen.queryByText(/Preview is read-only/)).not.toBeInTheDocument();
+    expect(screen.queryByTestId('projection-results')).not.toBeInTheDocument();
   });
 
   it('shows inline schema labels for invalid assumptions', async () => {
@@ -391,15 +478,20 @@ describe('ProjectionWorkspacePage', () => {
     planLibraryMock.getPlan.mockResolvedValue(planFixture);
     renderWorkspace();
 
+    await fillValidSetup();
     await addRule();
-    fireEvent.click(await screen.findByRole('button', { name: 'PREVIEW' }));
+    const [rule] = ruleRows();
+    fireEvent.change(within(rule).getByLabelText('Rule name'), { target: { value: 'Rent' } });
+    await choose('Method', 'Fixed amount', rule);
+    fireEvent.change(within(rule).getByLabelText('Amount'), { target: { value: '100' } });
+    await calculate();
     expect(screen.getByText(/Preview is read-only/)).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'APPLY PLAN' }));
     fireEvent.click(await screen.findByRole('button', { name: 'APPLY' }));
 
     await waitFor(() =>
-      expect(screen.getByRole('button', { name: 'PREVIEW' })).toBeInTheDocument(),
+      expect(screen.getByRole('button', { name: 'CALCULATE' })).toBeInTheDocument(),
     );
     expect(screen.queryByText(/Preview is read-only/)).not.toBeInTheDocument();
     expect(screen.queryAllByTestId('rule-row')).toHaveLength(0);
@@ -553,5 +645,184 @@ describe('ProjectionWorkspacePage', () => {
     expect(within(row).getByLabelText('Event name')).toHaveValue('World trip');
     expect(within(row).getByLabelText('Type')).toHaveTextContent('Expense');
     expect(within(row).getByLabelText('Start year')).toHaveValue(2040);
+  });
+
+  it('blocks calculation on invalid setup and reveals every error inline', async () => {
+    renderWorkspace();
+    await screen.findByText('No closed period yet.');
+
+    fireEvent.click(screen.getByRole('button', { name: 'CALCULATE' }));
+
+    expect(screen.getAllByText('必須是整數')).toHaveLength(3);
+    expect(screen.getAllByText('請輸入數字')).toHaveLength(2);
+    expect(screen.queryByTestId('projection-results')).not.toBeInTheDocument();
+    expect(screen.queryByText(/Preview is read-only/)).not.toBeInTheDocument();
+    expect(createProjectionUseCase.execute).not.toHaveBeenCalled();
+  });
+
+  it('requires an integer manual opening balance', async () => {
+    renderWorkspace();
+    await screen.findByText('No closed period yet.');
+    fireEvent.click(screen.getByRole('button', { name: 'ENTER MANUALLY' }));
+    fireEvent.change(screen.getByLabelText('Birth year'), { target: { value: '1990' } });
+    fireEvent.change(screen.getByLabelText('Retirement age'), { target: { value: '60' } });
+    fireEvent.change(screen.getByLabelText('Life expectancy'), { target: { value: '85' } });
+    fireEvent.change(screen.getByLabelText('Inflation rate (%)'), { target: { value: '2' } });
+    fireEvent.change(screen.getByLabelText('Annual return rate (%)'), { target: { value: '5' } });
+
+    fireEvent.click(screen.getByRole('button', { name: 'CALCULATE' }));
+
+    expect(screen.getByTestId('opening-validation-error')).toHaveTextContent(
+      'Enter a whole-number opening net worth.',
+    );
+    expect(createProjectionUseCase.execute).not.toHaveBeenCalled();
+  });
+
+  it('shows warnings above the results without blocking SAVE', async () => {
+    vi.mocked(createProjectionUseCase.execute).mockResolvedValue(
+      successOutcome([
+        {
+          code: 'BASELINE_BEHIND',
+          params: { ruleId: 'rule-1', baselineYear: 2024 },
+          severity: 'warning',
+        },
+      ]),
+    );
+    renderWorkspace();
+    await fillValidSetup();
+
+    await calculate();
+
+    const warning = screen.getByTestId('projection-warnings');
+    expect(warning).toHaveTextContent('基準年度 2024 早於投影起點。');
+    expect(screen.getByTestId('metric-retirement-net-worth')).toHaveTextContent('NT$300,000');
+    expect(screen.getByTestId('metric-is-bankrupt')).toHaveTextContent('No');
+    expect(screen.getByRole('button', { name: 'SAVE' })).toBeEnabled();
+  });
+
+  it('lists resolver errors and stays in setup', async () => {
+    vi.mocked(createProjectionUseCase.execute).mockResolvedValue({
+      ok: false,
+      code: 'PROJECTION_RESOLVE_FAILED',
+      errors: [
+        {
+          code: 'MISSING_LEDGER_CODE',
+          params: { ledgerCodeId: 'expense:rent' },
+          severity: 'error',
+        },
+      ],
+      warnings: [],
+    });
+    renderWorkspace();
+    await fillValidSetup();
+
+    fireEvent.click(screen.getByRole('button', { name: 'CALCULATE' }));
+
+    expect(await screen.findByText('找不到科目：expense:rent')).toBeInTheDocument();
+    expect(screen.queryByTestId('projection-results')).not.toBeInTheDocument();
+    expect(screen.queryByText(/Preview is read-only/)).not.toBeInTheDocument();
+  });
+
+  it('shows no results area before calculation', async () => {
+    renderWorkspace();
+    await screen.findByText('No closed period yet.');
+    expect(screen.queryByTestId('projection-results')).not.toBeInTheDocument();
+  });
+
+  it('prefills the save dialog and requires a non-blank name', async () => {
+    renderWorkspace();
+    await fillValidSetup();
+    await calculate();
+
+    fireEvent.click(screen.getByRole('button', { name: 'SAVE' }));
+
+    const input = await screen.findByLabelText('Projection name');
+    expect((input as HTMLInputElement).value).toMatch(/^Projection \d{4}-\d{2}-\d{2} \d{2}:\d{2}$/);
+
+    fireEvent.change(input, { target: { value: '   ' } });
+    fireEvent.click(screen.getByRole('button', { name: 'SAVE' }));
+
+    expect(screen.getByText('Name is required.')).toBeInTheDocument();
+    expect(createProjectionUseCase.execute).toHaveBeenCalledTimes(1);
+  });
+
+  it('stays open and inert while saving', async () => {
+    renderWorkspace();
+    await fillValidSetup();
+    await calculate();
+    vi.mocked(createProjectionUseCase.execute).mockImplementationOnce(
+      () => new Promise(() => undefined),
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'SAVE' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'SAVE' }));
+
+    expect(await screen.findByRole('button', { name: 'SAVING...' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Cancel' })).toBeDisabled();
+
+    fireEvent.keyDown(document.activeElement ?? document.body, { key: 'Escape' });
+    await waitFor(() => expect(screen.getByLabelText('Projection name')).toBeInTheDocument());
+  });
+
+  it('shows an error and RETRY when saving fails, and Cancel returns to preview', async () => {
+    renderWorkspace();
+    await fillValidSetup();
+    await calculate();
+    vi.mocked(createProjectionUseCase.execute)
+      .mockResolvedValueOnce({
+        ok: false,
+        code: 'PROJECTION_WRITE_FAILED',
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        id: 'projection-1',
+        result: projectionResult,
+        input: projectionInput,
+        warnings: [],
+      });
+
+    fireEvent.click(screen.getByRole('button', { name: 'SAVE' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'SAVE' }));
+
+    expect(
+      await screen.findByText('Could not save the projection. Nothing was written.'),
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'RETRY' }));
+
+    expect(await screen.findByRole('link', { name: 'View projection' })).toHaveAttribute(
+      'href',
+      '/retirement/projections/projection-1',
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'SAVE' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Cancel' }));
+    expect(screen.getByRole('button', { name: 'SAVE' })).toBeInTheDocument();
+  });
+
+  it('closes on success, stays in preview, links the projection and prefills the last name', async () => {
+    renderWorkspace();
+    await fillValidSetup();
+    await calculate();
+    vi.mocked(createProjectionUseCase.execute).mockResolvedValue({
+      ok: true,
+      id: 'projection-9',
+      result: projectionResult,
+      input: projectionInput,
+      warnings: [],
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'SAVE' }));
+    const input = await screen.findByLabelText('Projection name');
+    fireEvent.change(input, { target: { value: 'First projection' } });
+    fireEvent.click(screen.getByRole('button', { name: 'SAVE' }));
+
+    const link = await screen.findByRole('link', { name: 'View projection' });
+    expect(link).toHaveAttribute('href', '/retirement/projections/projection-9');
+    expect(screen.getByText('Projection saved.')).toBeInTheDocument();
+    expect(screen.getByText(/Preview is read-only/)).toBeInTheDocument();
+    expect(screen.queryByLabelText('Projection name')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'SAVE' }));
+    expect(await screen.findByLabelText('Projection name')).toHaveValue('First projection');
   });
 });

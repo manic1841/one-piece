@@ -16,6 +16,7 @@ interface OpeningNetWorthSectionProps {
   stage: ProjectionWorkspaceStage;
   loading: boolean;
   error: unknown;
+  validationError?: string;
   hasClosedPeriod: boolean;
   canUseReportValue: boolean;
   setAmount: (value: string) => void;
@@ -35,6 +36,7 @@ export function OpeningNetWorthSection({
   stage,
   loading,
   error,
+  validationError,
   hasClosedPeriod,
   canUseReportValue,
   setAmount,
@@ -70,8 +72,15 @@ export function OpeningNetWorthSection({
             value={opening.amountText}
             onChange={setAmount}
             readOnly={isPreview || !isManual}
+            error={validationError !== undefined}
+            aria-invalid={validationError !== undefined}
             prefix="NT$"
           />
+          {validationError !== undefined && (
+            <p className="text-xs text-negative" data-testid="opening-validation-error">
+              {validationError}
+            </p>
+          )}
           <p className="text-xs text-muted-foreground" data-testid="opening-net-worth-note">
             {isManual
               ? PROJECTION_WORKSPACE_LABELS.OPENING_MANUAL_NOTE

@@ -1,6 +1,9 @@
 import { useState } from 'react';
 
+import { Link } from 'react-router-dom';
+
 import { PageHeader } from '@/ui/components/PageHeader';
+import { Alert, AlertDescription } from '@/ui/components/ui/alert';
 import { Button } from '@/ui/components/ui/button';
 import { PLAN_APPLY_LABELS } from '@/ui/constants/retirement-redesign/setupLabels';
 import { PROJECTION_WORKSPACE_LABELS } from '@/ui/constants/retirement-redesign/workspaceLabels';
@@ -10,11 +13,22 @@ import { ApplyPlanDialog } from '@/ui/features/retirement-redesign/components/Ap
 import { AssumptionsSection } from '@/ui/features/retirement-redesign/components/AssumptionsSection';
 import { LifeEventsSection } from '@/ui/features/retirement-redesign/components/LifeEventsSection';
 import { OpeningNetWorthSection } from '@/ui/features/retirement-redesign/components/OpeningNetWorthSection';
+import { ProjectionResults } from '@/ui/features/retirement-redesign/components/ProjectionResults';
 import { ProjectionRulesSection } from '@/ui/features/retirement-redesign/components/ProjectionRulesSection';
+import { SaveProjectionDialog } from '@/ui/features/retirement-redesign/components/SaveProjectionDialog';
 import { WorkspaceSteps } from '@/ui/features/retirement-redesign/components/WorkspaceSteps';
 import { useDebtAccountOptions } from '@/ui/features/retirement-redesign/hooks/useDebtAccountOptions';
 import { usePlanLibrary } from '@/ui/features/retirement-redesign/hooks/usePlanLibrary';
 import { useProjectionWorkspace } from '@/ui/features/retirement-redesign/hooks/useProjectionWorkspace';
+
+const pad = (value: number): string => String(value).padStart(2, '0');
+
+function defaultProjectionName(): string {
+  const now = new Date();
+  return `${PROJECTION_WORKSPACE_LABELS.DEFAULT_NAME_PREFIX} ${now.getFullYear()}-${pad(
+    now.getMonth() + 1,
+  )}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}`;
+}
 
 /**
  * `/retirement/new` projection workspace shell. Both stages share this route
@@ -28,6 +42,9 @@ export default function ProjectionWorkspacePage() {
   const { codes: ledgerCodes } = useLedgerCodes();
   const { accounts: debtAccounts } = useDebtAccountOptions(householdId);
   const [applyOpen, setApplyOpen] = useState(false);
+  const [saveOpen, setSaveOpen] = useState(false);
+  const [saveDefaultName, setSaveDefaultName] = useState('');
+  const [lastSavedName, setLastSavedName] = useState<string | null>(null);
   const isPreview = workspace.stage === 'preview';
 
   const handleApply = async (planId: string) => {
@@ -35,6 +52,20 @@ export default function ProjectionWorkspacePage() {
     if (!plan) return false;
     workspace.applyPlan(plan);
     setApplyOpen(false);
+    return true;
+  };
+
+  const openSave = () => {
+    setSaveDefaultName(lastSavedName ?? workspace.appliedPlanName ?? defaultProjectionName());
+    setSaveOpen(true);
+  };
+
+  const handleSave = async (name: string): Promise<boolean> => {
+    const id = await workspace.save(name);
+    if (id === null) return false;
+
+    setLastSavedName(name);
+    setSaveOpen(false);
     return true;
   };
 
@@ -69,6 +100,7 @@ export default function ProjectionWorkspacePage() {
           stage={workspace.stage}
           loading={workspace.openingLoading}
           error={workspace.openingError}
+          validationError={workspace.openingValidationError}
           hasClosedPeriod={workspace.hasClosedPeriod}
           canUseReportValue={workspace.canUseReportValue}
           setAmount={workspace.setOpeningAmount}
@@ -123,18 +155,86 @@ export default function ProjectionWorkspacePage() {
         </p>
       )}
 
+      {workspace.calculateError !== null && (
+        <Alert variant="destructive">
+          <AlertDescription>{workspace.calculateError}</AlertDescription>
+        </Alert>
+      )}
+
+      {isPreview && workspace.warningLabels.length > 0 && (
+        <Alert variant="warning" data-testid="projection-warnings">
+          <AlertDescription>
+            <ul className="list-disc space-y-1 pl-4">
+              {workspace.warningLabels.map((warning, index) => (
+                <li key={`${warning}-${index}`}>{warning}</li>
+              ))}
+            </ul>
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {workspace.calculating && (
+        <p className="text-sm text-muted-foreground">{PROJECTION_WORKSPACE_LABELS.CALCULATING}</p>
+      )}
+
+      {isPreview && workspace.calculated && (
+        <ProjectionResults
+          projection={workspace.calculated.projection}
+          summary={workspace.calculated.summary}
+        />
+      )}
+
+      {!workspace.calculated && workspace.errorLabels.length > 0 && (
+        <div className="space-y-1" role="alert" data-testid="projection-errors">
+          {workspace.errorLabels.map((error, index) => (
+            <p key={`${error}-${index}`} className="text-sm text-negative">
+              {error}
+            </p>
+          ))}
+        </div>
+      )}
+
+      {workspace.savedId !== null && (
+        <Alert>
+          <AlertDescription className="flex flex-wrap items-center gap-3">
+            <span>{PROJECTION_WORKSPACE_LABELS.SAVED_MESSAGE}</span>
+            <Link
+              to={`/retirement/projections/${workspace.savedId}`}
+              className="font-medium text-primary underline-offset-4 hover:underline"
+            >
+              {PROJECTION_WORKSPACE_LABELS.SAVED_LINK}
+            </Link>
+          </AlertDescription>
+        </Alert>
+      )}
+
       <div className="flex flex-wrap justify-end gap-2">
         {isPreview ? (
           <>
             <Button variant="outline" onClick={workspace.backToSetup}>
               {PROJECTION_WORKSPACE_LABELS.BACK_TO_SETUP}
             </Button>
-            <Button disabled>{PROJECTION_WORKSPACE_LABELS.SAVE}</Button>
+            <Button onClick={openSave} disabled={!workspace.calculated}>
+              {PROJECTION_WORKSPACE_LABELS.SAVE}
+            </Button>
           </>
         ) : (
-          <Button onClick={workspace.goToPreview}>{PROJECTION_WORKSPACE_LABELS.PREVIEW}</Button>
+          <Button onClick={() => void workspace.calculate()} disabled={workspace.calculating}>
+            {workspace.calculating
+              ? PROJECTION_WORKSPACE_LABELS.CALCULATING
+              : PROJECTION_WORKSPACE_LABELS.CALCULATE}
+          </Button>
         )}
       </div>
+
+      {saveOpen && (
+        <SaveProjectionDialog
+          open
+          defaultName={saveDefaultName}
+          onCancel={() => setSaveOpen(false)}
+          onSave={handleSave}
+        />
+      )}
 
       <ApplyPlanDialog
         open={applyOpen}

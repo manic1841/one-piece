@@ -413,11 +413,17 @@ export function useRuleDrafts(markDirty: () => void) {
     setRules(next.map(ruleFromDomain));
   }, []);
 
+  /** CALCULATE reveals every rule error, not only the touched rows. */
+  const revealAll = useCallback(() => {
+    setRules((current) => current.map((rule) => ({ ...rule, touched: true })));
+  }, []);
+
   return {
     rules,
     errors: visibleErrors,
     valid: validation.ok,
     add,
+    revealAll,
     remove,
     toggle,
     update,

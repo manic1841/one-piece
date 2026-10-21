@@ -189,11 +189,23 @@ export function useLifeEventDrafts(markDirty: () => void) {
     setEvents(next.map(eventFromDomain));
   }, []);
 
+  /** CALCULATE reveals every event and phase error. */
+  const revealAll = useCallback(() => {
+    setEvents((current) =>
+      current.map((event) => ({
+        ...event,
+        touched: true,
+        phases: event.phases.map((phase) => ({ ...phase, touched: true })),
+      })),
+    );
+  }, []);
+
   return {
     events,
     errors: visibleErrors,
     valid: validation.ok,
     focusRequest,
+    revealAll,
     add,
     remove,
     toggle,
