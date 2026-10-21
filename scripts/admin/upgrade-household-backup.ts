@@ -279,6 +279,7 @@ export const upgradeHouseholdBackup = (payload: HouseholdBackupPayload): Househo
 
   return {
     ...payload,
+    schemaVersion: 2,
     household: backfillHouseholdMemberUids(payload.household as Unknowns),
     collections: {
       ...payload.collections,
@@ -287,6 +288,7 @@ export const upgradeHouseholdBackup = (payload: HouseholdBackupPayload): Househo
         snapshots,
       })),
       retirementPlans: replaceRetirementPlans(payload.collections.retirementPlans),
+      projections: [],
     },
   };
 };

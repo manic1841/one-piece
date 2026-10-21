@@ -21,22 +21,26 @@ const RESTORE_OPS_FILE = path.join(USE_CASES_DIR, 'householdBackupRestoreOps.ts'
 
 /** DB collection name -> backup payload key. Absent = identity mapping. */
 const PAYLOAD_KEY_BY_DB_NAME: Record<string, string> = {
-  retirement_plans: 'retirementPlans',
   intent_mappings: 'intentMappings',
 };
 
 /** Collections intentionally outside the backup. */
-// `projections` joins the payload in backup v2 (#340); the repository lands first (#339).
+// `retirement_plans` is the legacy collection still read by the old runtime; the
+// v2 payload writes the new `retirementPlans` collection (ADR-0089).
 const EXCLUDED_DB_NAMES = new Set([
   'operations',
   'users',
   'access_control',
   'households',
-  'projections',
+  'retirement_plans',
+  // Legacy plan subcollections, still read by the old runtime but no longer
+  // embedded in the v2 payload (the new plan is a single document).
+  'incomeStreams',
+  'expenseCategories',
 ]);
 
 /** Subcollections embedded inside their parent payload key, not backed up separately. */
-const EMBEDDED_SUBCOLLECTIONS = new Set(['snapshots', 'incomeStreams', 'expenseCategories']);
+const EMBEDDED_SUBCOLLECTIONS = new Set(['snapshots', 'config', 'source', 'annual']);
 
 const collectSourceFiles = (dir: string): string[] => {
   return readdirSync(dir).flatMap((entry) => {
@@ -173,8 +177,8 @@ describe('household backup coverage contract (issue #256)', () => {
   it('scanner finds the known household collections', () => {
     const scanned = scannedCollectionNames();
     expect(
-      ['accounts', 'transactions', 'retirement_plans', 'financialPeriods'].every((name) =>
-        scanned.has(name),
+      ['accounts', 'transactions', 'retirementPlans', 'projections', 'financialPeriods'].every(
+        (name) => scanned.has(name),
       ),
       `scanner missed known collections; found: ${[...scanned].sort().join(', ')}`,
     ).toBe(true);

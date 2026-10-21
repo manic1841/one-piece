@@ -13,11 +13,8 @@ export interface ExistingHouseholdData {
   projects: Array<{ id: string }>;
   portfolios: Array<{ id: string }>;
   debtAccounts: Array<{ id: string }>;
-  retirementPlans: Array<{
-    id: string;
-    incomes: Array<{ id: string }>;
-    expenses: Array<{ id: string }>;
-  }>;
+  retirementPlans: Array<{ id: string }>;
+  projections: Array<{ id: string }>;
   transactions: Array<{ id: string }>;
   reports: Array<{ id: string }>;
   allocations: Array<{ id: string }>;
@@ -40,6 +37,17 @@ const getId = (entity: unknown): string => {
   return '';
 };
 
+/** ISO audit timestamps from the file become Dates so reads keep their type. */
+const reviveAuditTimestamps = (entity: unknown): DocumentData => {
+  const record = { ...(entity as Record<string, unknown>) };
+  for (const key of ['createdAt', 'updatedAt']) {
+    if (typeof record[key] === 'string') {
+      record[key] = new Date(record[key]);
+    }
+  }
+  return record as DocumentData;
+};
+
 export const buildDeleteRefs = async (
   householdId: string,
   existing: ExistingHouseholdData,
@@ -60,22 +68,17 @@ export const buildDeleteRefs = async (
     refs.push(toDocRef(`households/${householdId}/debtAccounts/${item.id}`)),
   );
 
-  existing.retirementPlans.forEach((plan) => {
-    refs.push(toDocRef(`households/${householdId}/retirement_plans/${plan.id}`));
-    plan.incomes.forEach((income) =>
-      refs.push(
-        toDocRef(
-          `households/${householdId}/retirement_plans/${plan.id}/incomeStreams/${income.id}`,
-        ),
-      ),
-    );
-    plan.expenses.forEach((expense) =>
-      refs.push(
-        toDocRef(
-          `households/${householdId}/retirement_plans/${plan.id}/expenseCategories/${expense.id}`,
-        ),
-      ),
-    );
+  existing.retirementPlans.forEach((plan) =>
+    refs.push(toDocRef(`households/${householdId}/retirementPlans/${plan.id}`)),
+  );
+
+  // Projection children first, then the main document.
+  existing.projections.forEach((projection) => {
+    const base = `households/${householdId}/projections/${projection.id}`;
+    refs.push(toDocRef(`${base}/results/annual`));
+    refs.push(toDocRef(`${base}/snapshots/source`));
+    refs.push(toDocRef(`${base}/snapshots/config`));
+    refs.push(toDocRef(base));
   });
 
   existing.transactions.forEach((item) =>
@@ -227,37 +230,24 @@ export const buildSetOps = (
   });
 
   backupData.collections.retirementPlans.forEach((plan) => {
-    const planRecord = plan as Record<string, unknown>;
-    const planId = getId(planRecord);
+    const planId = getId(plan);
     if (!planId) return;
 
     ops.push({
-      ref: toDocRef(`households/${householdId}/retirement_plans/${planId}`),
-      data: planRecord as DocumentData,
+      ref: toDocRef(`households/${householdId}/retirementPlans/${planId}`),
+      data: reviveAuditTimestamps(plan),
     });
+  });
 
-    const incomes = Array.isArray(planRecord.incomes) ? planRecord.incomes : [];
-    const expenses = Array.isArray(planRecord.expenses) ? planRecord.expenses : [];
+  backupData.collections.projections.forEach(({ projection, config, source, annual }) => {
+    const projectionId = getId(projection);
+    if (!projectionId) return;
 
-    incomes.forEach((income) => {
-      const id = getId(income);
-      if (!id) return;
-      ops.push({
-        ref: toDocRef(`households/${householdId}/retirement_plans/${planId}/incomeStreams/${id}`),
-        data: income as DocumentData,
-      });
-    });
-
-    expenses.forEach((expense) => {
-      const id = getId(expense);
-      if (!id) return;
-      ops.push({
-        ref: toDocRef(
-          `households/${householdId}/retirement_plans/${planId}/expenseCategories/${id}`,
-        ),
-        data: expense as DocumentData,
-      });
-    });
+    const base = `households/${householdId}/projections/${projectionId}`;
+    ops.push({ ref: toDocRef(base), data: projection as DocumentData });
+    ops.push({ ref: toDocRef(`${base}/snapshots/config`), data: config as DocumentData });
+    ops.push({ ref: toDocRef(`${base}/snapshots/source`), data: source as DocumentData });
+    ops.push({ ref: toDocRef(`${base}/results/annual`), data: annual as DocumentData });
   });
 
   backupData.collections.transactions.forEach((item) => {
