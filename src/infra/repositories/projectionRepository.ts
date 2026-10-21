@@ -7,6 +7,7 @@ import {
   getDocs,
   orderBy,
   query,
+  updateDoc,
   writeBatch,
 } from 'firebase/firestore';
 import { z } from 'zod';
@@ -289,6 +290,15 @@ class ProjectionRepository {
     batch.delete(this.getConfigRef(householdId, projectionId));
     batch.delete(this.getDocRef(householdId, projectionId));
     await batch.commit();
+  }
+
+  /** The one targeted update: everything else in a projection stays frozen. */
+  async renameProjectionName(
+    householdId: string,
+    projectionId: string,
+    name: string,
+  ): Promise<void> {
+    await updateDoc(this.getDocRef(householdId, projectionId), { name });
   }
 
   async getProjection(

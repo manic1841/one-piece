@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import { useBlocker } from 'react-router-dom';
+import { useBlocker, useSearchParams } from 'react-router-dom';
 
 import { createProjectionUseCase } from '@/application/retirement/use_cases/createProjectionUseCase';
 import { getStartingNetWorthUseCase } from '@/application/retirement/use_cases/getStartingNetWorthUseCase';
@@ -20,6 +20,7 @@ import {
 import { PROJECTION_WORKSPACE_LABELS } from '@/ui/constants/retirement-redesign/workspaceLabels';
 import { useAssumptionDraft } from '@/ui/features/retirement-redesign/hooks/useAssumptionDraft';
 import { useLifeEventDrafts } from '@/ui/features/retirement-redesign/hooks/useLifeEventDrafts';
+import { useProjectionPreload } from '@/ui/features/retirement-redesign/hooks/useProjectionPreload';
 import { useRuleDrafts } from '@/ui/features/retirement-redesign/hooks/useRuleDrafts';
 import { mapProjectionResultToVM } from '@/ui/features/retirement-redesign/viewmodels/projectionResultVm';
 import { useAuthIdentity } from '@/ui/hooks/useAuthIdentity';
@@ -71,6 +72,8 @@ interface CalculatedProjection {
 export function useProjectionWorkspace(householdId: string | undefined) {
   const auth = useAuthIdentity();
   const { confirm } = useConfirm();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const fromId = searchParams.get('from');
   const {
     loading: openingLoading,
     error: openingError,
@@ -90,14 +93,20 @@ export function useProjectionWorkspace(householdId: string | undefined) {
   const [calculateError, setCalculateError] = useState<string | null>(null);
   const [calculating, setCalculating] = useState(false);
   const [savedId, setSavedId] = useState<string | null>(null);
+  const [startYear, setStartYear] = useState(() => new Date().getFullYear());
+  const [preloadWarning, setPreloadWarning] = useState<string | null>(null);
 
   const seededRef = useRef(false);
+  const preloadStartedRef = useRef<string | null>(null);
   const promptingRef = useRef(false);
 
   const markDirty = useCallback(() => setDirty(true), []);
   const assumptions = useAssumptionDraft(markDirty);
   const rules = useRuleDrafts(markDirty);
   const events = useLifeEventDrafts(markDirty);
+  const { resetFrom: resetAssumptions } = assumptions;
+  const { replaceAll: replaceRules } = rules;
+  const { replaceAll: replaceEvents } = events;
 
   const loadOpening = useCallback(async () => {
     await run(
@@ -131,9 +140,45 @@ export function useProjectionWorkspace(householdId: string | undefined) {
     );
   }, [auth, householdId, run]);
 
+  const markSeeded = useCallback(() => {
+    seededRef.current = true;
+  }, []);
+  const clearParams = useCallback(() => {
+    setSearchParams({}, { replace: true });
+  }, [setSearchParams]);
+
+  const preloadFromProjection = useProjectionPreload({
+    auth,
+    householdId,
+    run,
+    setDirty,
+    setWarning: setPreloadWarning,
+    setOpening,
+    setReportValue,
+    setStartYear,
+    resetAssumptions,
+    replaceRules,
+    replaceEvents,
+    markSeeded,
+    clearParams,
+  });
+
   useEffect(() => {
-    void loadOpening();
-  }, [loadOpening]);
+    if (fromId === null) {
+      if (!seededRef.current) void loadOpening();
+      return;
+    }
+    if (preloadStartedRef.current === fromId) return;
+
+    // Start after the current task: StrictMode tears the first mount down before
+    // its run could settle, and the cleanup below lets the second mount start it.
+    preloadStartedRef.current = fromId;
+    const timer = setTimeout(() => void preloadFromProjection(fromId), 0);
+    return () => {
+      clearTimeout(timer);
+      preloadStartedRef.current = null;
+    };
+  }, [fromId, loadOpening, preloadFromProjection]);
 
   // Router blocker: an in-app navigation away from a dirty workspace asks first.
   const blocker = useBlocker(dirty);
@@ -278,7 +323,7 @@ export function useProjectionWorkspace(householdId: string | undefined) {
     const outcome = await createProjectionUseCase.execute({
       householdId: householdId ?? '',
       auth,
-      startYear: new Date().getFullYear(),
+      startYear,
       opening: {
         source: opening.source,
         amount: Number(opening.amountText),
@@ -306,7 +351,7 @@ export function useProjectionWorkspace(householdId: string | undefined) {
       source: plan,
     });
     setStage('preview');
-  }, [auth, householdId, opening.amountText, opening.source, revealErrors, validate]);
+  }, [auth, householdId, opening.amountText, opening.source, revealErrors, startYear, validate]);
 
   const save = useCallback(
     async (name: string): Promise<string | null> => {
@@ -315,7 +360,7 @@ export function useProjectionWorkspace(householdId: string | undefined) {
       const outcome = await createProjectionUseCase.execute({
         householdId: householdId ?? '',
         auth,
-        startYear: new Date().getFullYear(),
+        startYear,
         opening: {
           source: opening.source,
           amount: Number(opening.amountText),
@@ -329,12 +374,13 @@ export function useProjectionWorkspace(householdId: string | undefined) {
       setSavedId(outcome.id);
       return outcome.id;
     },
-    [auth, calculated, householdId, opening.amountText, opening.source],
+    [auth, calculated, householdId, opening.amountText, opening.source, startYear],
   );
 
   return {
     stage,
     opening,
+    preloadWarning,
     assumptions,
     rules,
     events,

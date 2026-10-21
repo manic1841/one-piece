@@ -40,6 +40,12 @@
 
 寫入只發生在預覽的 `SAVE` dialog：名稱必填、預填工作區名稱或本地時間戳，儲存中停在 dialog 且 Esc／背景點擊無效。失敗顯示 `RETRY`，成功關閉、留在預覽、顯示檢視頁連結，並以最後名稱預填下一次。`BACK TO SETUP` 只丟棄結果，不動草稿。
 
+`/retirement` 只列投影，固定欄序、名稱後接 `engineVersion` 過舊 glyph，淨資產為 null 時顯示破折號。頁首唯一的建立入口是 `NEW PROJECTION`；空清單不出現表頭或行動連結。
+
+`/retirement/projections/:id` 唯讀：只有名稱可改，其餘設定與結果皆不可編輯。`SOURCE` 從 `config` 文件溯源，`PROJECTION` 呈現歷史輸出。過舊投影顯示重算提示並連回工作區；`SAVE AS PLAN` 以新 plan schema 建立可重用 plan，`Danger Zone` 刪除投影。
+
+`?from=` 會預載來源投影的設定與結果，但期初淨資產仍即時重算；來源缺失時留白並提示。手動改期初或重新解析後的衍生值會蓋過預載，後續編輯以修改後的內容為準。
+
 ## 9. 備份與還原
 
 `projections` 以三份固定子文件進入 payload、還原沿用原 id、v1 備份直接拒絕。

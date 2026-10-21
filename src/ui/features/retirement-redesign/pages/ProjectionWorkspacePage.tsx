@@ -88,6 +88,12 @@ export default function ProjectionWorkspacePage() {
 
       <WorkspaceSteps stage={workspace.stage} />
 
+      {workspace.preloadWarning !== null && (
+        <Alert variant="warning" data-testid="preload-warning">
+          <AlertDescription>{workspace.preloadWarning}</AlertDescription>
+        </Alert>
+      )}
+
       {workspace.appliedPlanName && (
         <p className="text-sm text-muted-foreground" data-testid="applied-plan-name">
           {PLAN_APPLY_LABELS.APPLIED_PREFIX} {workspace.appliedPlanName}
