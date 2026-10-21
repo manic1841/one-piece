@@ -68,7 +68,15 @@ const planFixture: RetirementPlanWorkspaceData = {
     annualReturnRate: 0.05,
   },
   rules: [],
-  lifeEvents: [],
+  lifeEvents: [
+    {
+      id: 'event-1',
+      name: 'World trip',
+      type: 'expense',
+      enabled: true,
+      phases: [{ startYear: 2040, endYear: 2041, amount: 50_000 }],
+    },
+  ],
 };
 
 function renderWorkspace() {
@@ -94,6 +102,57 @@ async function addRule(ruleType: 'income' | 'expense' = 'income') {
 
 function ruleRows() {
   return screen.getAllByTestId('rule-row');
+}
+
+async function addEvent() {
+  fireEvent.click(screen.getByRole('button', { name: 'ADD EVENT' }));
+  const rows = await screen.findAllByTestId('event-row');
+  return rows[rows.length - 1];
+}
+
+function eventRows() {
+  return screen.getAllByTestId('event-row');
+}
+
+function phaseRows(row: HTMLElement) {
+  return within(row).getAllByTestId('phase-row');
+}
+
+async function addPhase(row: HTMLElement) {
+  fireEvent.click(within(row).getByRole('button', { name: 'ADD PHASE' }));
+  const phases = await within(row).findAllByTestId('phase-row');
+  return phases[phases.length - 1];
+}
+
+function fillPhase(
+  phase: HTMLElement,
+  values: Partial<{ start: string; end: string; amount: string; growth: string; name: string }>,
+) {
+  if (values.start !== undefined) {
+    fireEvent.change(within(phase).getByLabelText('Start year'), {
+      target: { value: values.start },
+    });
+  }
+  if (values.end !== undefined) {
+    fireEvent.change(within(phase).getByLabelText('End year'), {
+      target: { value: values.end },
+    });
+  }
+  if (values.amount !== undefined) {
+    fireEvent.change(within(phase).getByLabelText('Amount'), {
+      target: { value: values.amount },
+    });
+  }
+  if (values.growth !== undefined) {
+    fireEvent.change(within(phase).getByLabelText('Growth rate (%)'), {
+      target: { value: values.growth },
+    });
+  }
+  if (values.name !== undefined) {
+    fireEvent.change(within(phase).getByLabelText('Phase name'), {
+      target: { value: values.name },
+    });
+  }
 }
 
 async function choose(label: string, option: string, scope: HTMLElement = document.body) {
@@ -355,5 +414,144 @@ describe('ProjectionWorkspacePage', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'APPLY' }));
 
     expect(await screen.findByText('Could not load this plan.')).toBeInTheDocument();
+  });
+
+  it('adds, types, toggles and deletes a life event with no source picker', async () => {
+    renderWorkspace();
+    const row = await addEvent();
+
+    expect(within(row).queryByLabelText('Source')).not.toBeInTheDocument();
+    expect(within(row).queryByLabelText('Source type')).not.toBeInTheDocument();
+
+    await choose('Type', 'Expense', row);
+    expect(within(row).getByLabelText('Type')).toHaveTextContent('Expense');
+
+    const toggle = within(row).getByRole('switch');
+    expect(toggle).toHaveAttribute('aria-checked', 'true');
+    fireEvent.click(toggle);
+    expect(toggle).toHaveAttribute('aria-checked', 'false');
+
+    fireEvent.click(within(row).getByRole('button', { name: 'Delete event' }));
+    expect(screen.queryAllByTestId('event-row')).toHaveLength(0);
+    expect(screen.getByText(/No life events yet/)).toBeInTheDocument();
+  });
+
+  it('keeps events out of a rule percentage source list', async () => {
+    renderWorkspace();
+    const event = await addEvent();
+    fireEvent.change(within(event).getByLabelText('Event name'), {
+      target: { value: 'World trip' },
+    });
+
+    await addRule();
+    await addRule();
+    const [rule] = ruleRows();
+    await choose('Method', 'Percentage of rule', rule);
+    fireEvent.click(within(rule).getByLabelText('Source'));
+
+    expect(await screen.findByRole('option', { name: '(unnamed rule)' })).toBeInTheDocument();
+    expect(screen.queryByRole('option', { name: 'World trip' })).not.toBeInTheDocument();
+  });
+
+  it('adds phases and sorts them by start year', async () => {
+    renderWorkspace();
+    const row = await addEvent();
+    const first = phaseRows(row)[0];
+    const second = await addPhase(row);
+    const third = await addPhase(row);
+
+    fillPhase(first, { start: '2040', end: '2041', amount: '1' });
+    fillPhase(second, { start: '2030', end: '2031', amount: '1' });
+    fillPhase(third, { start: '2035', end: '2036', amount: '1' });
+
+    expect(
+      phaseRows(row).map(
+        (phase) => (within(phase).getByLabelText('Start year') as HTMLInputElement).value,
+      ),
+    ).toEqual(['2030', '2035', '2040']);
+  });
+
+  it('blocks overlapping phases and focuses the offending start year', async () => {
+    renderWorkspace();
+    const row = await addEvent();
+    const first = phaseRows(row)[0];
+    const second = await addPhase(row);
+
+    fillPhase(first, { start: '2020', end: '2030', amount: '1' });
+    fillPhase(second, { start: '2035', end: '2040', amount: '1' });
+    fireEvent.change(within(second).getByLabelText('Start year'), {
+      target: { value: '2025' },
+    });
+
+    expect(await within(row).findByText('階段不可重疊')).toBeInTheDocument();
+    const offending = phaseRows(row)[1];
+    await waitFor(() =>
+      expect(document.activeElement).toBe(within(offending).getByLabelText('Start year')),
+    );
+  });
+
+  it('blocks an end year before the start and focuses the end year', async () => {
+    renderWorkspace();
+    const row = await addEvent();
+    const phase = phaseRows(row)[0];
+
+    fillPhase(phase, { start: '2050', end: '2040', amount: '1' });
+
+    expect(await within(row).findByText('結束年度不得早於開始年度')).toBeInTheDocument();
+    await waitFor(() =>
+      expect(document.activeElement).toBe(within(phase).getByLabelText('End year')),
+    );
+  });
+
+  it('validates amount, growth rate and requires one phase', async () => {
+    renderWorkspace();
+    const row = await addEvent();
+    const phase = phaseRows(row)[0];
+
+    fillPhase(phase, { start: '2040', end: '2041', amount: '-1', growth: '25' });
+
+    expect(await within(row).findByText('金額不得為負')).toBeInTheDocument();
+    expect(within(row).getByText('成長率必須介於 -10% 到 20%')).toBeInTheDocument();
+
+    fireEvent.click(within(phase).getByRole('button', { name: 'Delete phase' }));
+    expect(await within(row).findByText('事件至少需要一個階段')).toBeInTheDocument();
+  });
+
+  it('accepts a blank optional phase name', async () => {
+    renderWorkspace();
+    const row = await addEvent();
+    const phase = phaseRows(row)[0];
+
+    fillPhase(phase, { start: '2040', end: '2041', amount: '500' });
+
+    expect(within(row).queryByText('階段名稱不可留白')).not.toBeInTheDocument();
+  });
+
+  it('marks the workspace dirty on an event edit', async () => {
+    const router = renderWorkspace();
+    await addEvent();
+
+    await act(async () => {
+      void router.navigate('/other');
+    });
+
+    await waitFor(() => expect(confirmMock).toHaveBeenCalledTimes(1));
+    expect(router.state.location.pathname).toBe('/retirement/new');
+  });
+
+  it('replaces the events when a plan is applied', async () => {
+    planLibraryMock.plans = [{ id: 'plan-1', name: 'Early retirement' }];
+    planLibraryMock.getPlan.mockResolvedValue(planFixture);
+    renderWorkspace();
+
+    await addEvent();
+    fireEvent.click(await screen.findByRole('button', { name: 'APPLY PLAN' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'APPLY' }));
+
+    await waitFor(() => expect(eventRows()).toHaveLength(1));
+    const [row] = eventRows();
+    expect(within(row).getByLabelText('Event name')).toHaveValue('World trip');
+    expect(within(row).getByLabelText('Type')).toHaveTextContent('Expense');
+    expect(within(row).getByLabelText('Start year')).toHaveValue(2040);
   });
 });

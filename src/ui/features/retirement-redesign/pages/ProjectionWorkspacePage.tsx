@@ -1,7 +1,6 @@
 import { useState } from 'react';
 
 import { PageHeader } from '@/ui/components/PageHeader';
-import { PageSection } from '@/ui/components/PageSection';
 import { Button } from '@/ui/components/ui/button';
 import { PLAN_APPLY_LABELS } from '@/ui/constants/retirement-redesign/setupLabels';
 import { PROJECTION_WORKSPACE_LABELS } from '@/ui/constants/retirement-redesign/workspaceLabels';
@@ -9,6 +8,7 @@ import { useAuthState } from '@/ui/contexts/useAuthState';
 import { useLedgerCodes } from '@/ui/features/ledger/hooks/useLedgerCodes';
 import { ApplyPlanDialog } from '@/ui/features/retirement-redesign/components/ApplyPlanDialog';
 import { AssumptionsSection } from '@/ui/features/retirement-redesign/components/AssumptionsSection';
+import { LifeEventsSection } from '@/ui/features/retirement-redesign/components/LifeEventsSection';
 import { OpeningNetWorthSection } from '@/ui/features/retirement-redesign/components/OpeningNetWorthSection';
 import { ProjectionRulesSection } from '@/ui/features/retirement-redesign/components/ProjectionRulesSection';
 import { WorkspaceSteps } from '@/ui/features/retirement-redesign/components/WorkspaceSteps';
@@ -101,15 +101,20 @@ export default function ProjectionWorkspacePage() {
           setSourceType={workspace.rules.setSourceType}
         />
 
-        <PageSection
-          number="03"
-          title={PROJECTION_WORKSPACE_LABELS.EVENTS_SECTION}
-          spacing="compact"
-        >
-          <p className="text-sm text-muted-foreground">
-            {PROJECTION_WORKSPACE_LABELS.EVENTS_PLACEHOLDER}
-          </p>
-        </PageSection>
+        <LifeEventsSection
+          events={workspace.events.events}
+          errors={workspace.events.errors}
+          readOnly={isPreview}
+          focusRequest={workspace.events.focusRequest}
+          add={workspace.events.add}
+          remove={workspace.events.remove}
+          toggle={workspace.events.toggle}
+          update={workspace.events.update}
+          setType={workspace.events.setType}
+          addPhase={workspace.events.addPhase}
+          removePhase={workspace.events.removePhase}
+          updatePhase={workspace.events.updatePhase}
+        />
       </div>
 
       {isPreview && (

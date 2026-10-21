@@ -7,6 +7,7 @@ import { type RetirementPlanWorkspaceData } from '@/application/retirement/use_c
 import { useConfirm } from '@/ui/components/confirm/useConfirm';
 import { PROJECTION_WORKSPACE_LABELS } from '@/ui/constants/retirement-redesign/workspaceLabels';
 import { useAssumptionDraft } from '@/ui/features/retirement-redesign/hooks/useAssumptionDraft';
+import { useLifeEventDrafts } from '@/ui/features/retirement-redesign/hooks/useLifeEventDrafts';
 import { useRuleDrafts } from '@/ui/features/retirement-redesign/hooks/useRuleDrafts';
 import { useAuthIdentity } from '@/ui/hooks/useAuthIdentity';
 import { useLoadingTask } from '@/ui/hooks/useLoadingTask';
@@ -62,6 +63,7 @@ export function useProjectionWorkspace(householdId: string | undefined) {
   const markDirty = useCallback(() => setDirty(true), []);
   const assumptions = useAssumptionDraft(markDirty);
   const rules = useRuleDrafts(markDirty);
+  const events = useLifeEventDrafts(markDirty);
 
   const loadOpening = useCallback(async () => {
     await run(
@@ -161,12 +163,29 @@ export function useProjectionWorkspace(householdId: string | undefined) {
     (plan: RetirementPlanWorkspaceData) => {
       assumptions.resetFrom(plan.assumptions);
       rules.replaceAll(plan.rules);
+      events.replaceAll(plan.lifeEvents);
       setAppliedPlanName(plan.name);
       setStage('setup');
       markDirty();
     },
-    [assumptions, markDirty, rules],
+    [assumptions, events, markDirty, rules],
   );
+
+  /** One call the setup stage can use before saving: the three schema groups. */
+  const validate = useCallback(() => {
+    const assumptionsResult = assumptions.validate();
+    const rulesResult = rules.validate();
+    const eventsResult = events.validate();
+
+    return {
+      ok: assumptionsResult.ok && rulesResult.ok && eventsResult.ok,
+      assumptions: assumptionsResult,
+      rules: rulesResult,
+      events: eventsResult,
+    };
+  }, [assumptions, events, rules]);
+
+  const valid = assumptions.valid && rules.valid && events.valid;
 
   const goToPreview = useCallback(() => setStage('preview'), []);
   const backToSetup = useCallback(() => setStage('setup'), []);
@@ -176,8 +195,11 @@ export function useProjectionWorkspace(householdId: string | undefined) {
     opening,
     assumptions,
     rules,
+    events,
     appliedPlanName,
     applyPlan,
+    validate,
+    valid,
     dirty,
     openingLoading,
     openingError,
