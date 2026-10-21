@@ -3,6 +3,7 @@ import { type RetirementAssumptions } from '@/domains/retirement/assumptions';
 import { type LifeEvent } from '@/domains/retirement/lifeEvents';
 import {
   type ProjectionConfig,
+  type ProjectionOpeningSourceKind,
   type ProjectionSource,
 } from '@/domains/retirement/logic/projectionDocuments';
 import {
@@ -12,10 +13,8 @@ import {
 } from '@/domains/retirement/logic/projectionTypes';
 import { type ProjectionRule } from '@/domains/retirement/projectionRules';
 
-export type ProjectionOpeningSource = 'derived' | 'manual';
-
 export interface ProjectionOpening {
-  source: ProjectionOpeningSource;
+  source: ProjectionOpeningSourceKind;
   /** Required for manual openings. */
   amount?: number;
 }
@@ -37,7 +36,6 @@ export interface ProjectionCalculation {
   warnings: ProjectionResolveError[];
   config: ProjectionConfig;
   source: ProjectionSource;
-  startYear: number;
 }
 
 export interface PlanDraft {

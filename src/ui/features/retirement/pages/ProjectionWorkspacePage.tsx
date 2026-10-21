@@ -1,0 +1,267 @@
+import { useState } from 'react';
+
+import { Link } from 'react-router-dom';
+
+import { PageHeader } from '@/ui/components/PageHeader';
+import { Alert, AlertDescription } from '@/ui/components/ui/alert';
+import { Button } from '@/ui/components/ui/button';
+import { PLAN_APPLY_LABELS } from '@/ui/constants/retirement/setupLabels';
+import { PROJECTION_WORKSPACE_LABELS } from '@/ui/constants/retirement/workspaceLabels';
+import { useAuthState } from '@/ui/contexts/useAuthState';
+import { useLedgerCodes } from '@/ui/features/ledger/hooks/useLedgerCodes';
+import { ApplyPlanDialog } from '@/ui/features/retirement/components/ApplyPlanDialog';
+import { AssumptionsSection } from '@/ui/features/retirement/components/AssumptionsSection';
+import { LifeEventsSection } from '@/ui/features/retirement/components/LifeEventsSection';
+import { OpeningNetWorthSection } from '@/ui/features/retirement/components/OpeningNetWorthSection';
+import { ProjectionResults } from '@/ui/features/retirement/components/ProjectionResults';
+import { ProjectionRulesSection } from '@/ui/features/retirement/components/ProjectionRulesSection';
+import { SaveProjectionDialog } from '@/ui/features/retirement/components/SaveProjectionDialog';
+import { WorkspaceSteps } from '@/ui/features/retirement/components/WorkspaceSteps';
+import { useDebtAccountOptions } from '@/ui/features/retirement/hooks/useDebtAccountOptions';
+import { usePlanLibrary } from '@/ui/features/retirement/hooks/usePlanLibrary';
+import { useProjectionWorkspace } from '@/ui/features/retirement/hooks/useProjectionWorkspace';
+
+/**
+ * `/retirement/new` projection workspace shell. Both stages share this route
+ * and one in-memory draft; only the stage flag decides editability.
+ */
+export default function ProjectionWorkspacePage() {
+  const { userProfile } = useAuthState();
+  const householdId = userProfile?.householdId;
+  const workspace = useProjectionWorkspace(householdId);
+  const planLibrary = usePlanLibrary(householdId);
+  const { codes: ledgerCodes } = useLedgerCodes();
+  const { accounts: debtAccounts } = useDebtAccountOptions(householdId);
+  const [applyOpen, setApplyOpen] = useState(false);
+  const [saveOpen, setSaveOpen] = useState(false);
+  const [saveAsPlanOpen, setSaveAsPlanOpen] = useState(false);
+  const isPreview = workspace.stage === 'preview';
+
+  const handleApply = async (planId: string) => {
+    const plan = await planLibrary.getPlan(planId);
+    if (!plan) return false;
+    workspace.applyPlan(plan);
+    setApplyOpen(false);
+    return true;
+  };
+
+  const openSave = () => {
+    workspace.saveForm.reset({
+      name: workspace.lastSavedName ?? workspace.appliedPlanName ?? workspace.defaultName(),
+    });
+    setSaveOpen(true);
+  };
+
+  const openSaveAsPlan = () => {
+    workspace.saveAsPlanForm.reset({ name: workspace.appliedPlanName ?? '' });
+    setSaveAsPlanOpen(true);
+  };
+
+  return (
+    <div className="mx-auto max-w-3xl space-y-6">
+      <PageHeader
+        title={PROJECTION_WORKSPACE_LABELS.TITLE}
+        description={PROJECTION_WORKSPACE_LABELS.DESCRIPTION}
+        actions={
+          <>
+            <Button variant="outline" size="sm" onClick={() => setApplyOpen(true)}>
+              {PROJECTION_WORKSPACE_LABELS.APPLY_PLAN}
+            </Button>
+            <Button variant="outline" size="sm" onClick={openSaveAsPlan}>
+              {PROJECTION_WORKSPACE_LABELS.SAVE_AS_PLAN}
+            </Button>
+          </>
+        }
+      />
+
+      <WorkspaceSteps stage={workspace.stage} />
+
+      {workspace.preloadWarning !== null && (
+        <Alert variant="warning" data-testid="preload-warning">
+          <AlertDescription>{workspace.preloadWarning}</AlertDescription>
+        </Alert>
+      )}
+
+      {workspace.appliedPlanName && (
+        <p className="text-sm text-muted-foreground" data-testid="applied-plan-name">
+          {PLAN_APPLY_LABELS.APPLIED_PREFIX} {workspace.appliedPlanName}
+        </p>
+      )}
+
+      <div className="grid grid-cols-1 gap-2">
+        <OpeningNetWorthSection
+          opening={workspace.opening}
+          stage={workspace.stage}
+          loading={workspace.openingLoading}
+          error={workspace.openingError}
+          validationError={workspace.openingValidationError}
+          hasClosedPeriod={workspace.hasClosedPeriod}
+          startYear={workspace.startYear}
+          startYearError={workspace.startYearValidationError}
+          setStartYear={workspace.setStartYear}
+          setAmount={workspace.setOpeningAmount}
+          useManualValue={workspace.enterManual}
+          useReportValue={workspace.useReportValue}
+          retry={workspace.retryOpening}
+        />
+
+        <AssumptionsSection
+          form={workspace.assumptions.form}
+          errors={workspace.assumptions.errors}
+          birthYearLocked={workspace.assumptions.birthYearLocked}
+          readOnly={isPreview}
+        />
+
+        <ProjectionRulesSection
+          form={workspace.rules.form}
+          rules={workspace.rules.rules}
+          errors={workspace.rules.errors}
+          readOnly={isPreview}
+          ledgerCodes={ledgerCodes}
+          debtAccounts={debtAccounts}
+          add={workspace.rules.add}
+          remove={workspace.rules.remove}
+          toggle={workspace.rules.toggle}
+          update={workspace.rules.update}
+          setRuleType={workspace.rules.setRuleType}
+          setMethod={workspace.rules.setMethod}
+          setSourceType={workspace.rules.setSourceType}
+        />
+
+        <LifeEventsSection
+          form={workspace.events.form}
+          events={workspace.events.events}
+          errors={workspace.events.errors}
+          readOnly={isPreview}
+          focusRequest={workspace.events.focusRequest}
+          add={workspace.events.add}
+          remove={workspace.events.remove}
+          toggle={workspace.events.toggle}
+          update={workspace.events.update}
+          setType={workspace.events.setType}
+          addPhase={workspace.events.addPhase}
+          removePhase={workspace.events.removePhase}
+          updatePhase={workspace.events.updatePhase}
+        />
+      </div>
+
+      {isPreview && (
+        <p className="text-sm text-muted-foreground">
+          {PROJECTION_WORKSPACE_LABELS.PREVIEW_READONLY_NOTE}
+        </p>
+      )}
+
+      {workspace.calculateError !== null && (
+        <Alert variant="destructive">
+          <AlertDescription>{workspace.calculateError}</AlertDescription>
+        </Alert>
+      )}
+
+      {isPreview && workspace.warningLabels.length > 0 && (
+        <Alert variant="warning" data-testid="projection-warnings">
+          <AlertDescription>
+            <ul className="list-disc space-y-1 pl-4">
+              {workspace.warningLabels.map((warning, index) => (
+                <li key={`${warning}-${index}`}>{warning}</li>
+              ))}
+            </ul>
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {workspace.calculating && (
+        <p className="text-sm text-muted-foreground">{PROJECTION_WORKSPACE_LABELS.CALCULATING}</p>
+      )}
+
+      {isPreview && workspace.calculated && (
+        <ProjectionResults
+          projection={workspace.calculated.projection}
+          summary={workspace.calculated.summary}
+        />
+      )}
+
+      {!workspace.calculated && workspace.errorLabels.length > 0 && (
+        <div className="space-y-1" role="alert" data-testid="projection-errors">
+          {workspace.errorLabels.map((error, index) => (
+            <p key={`${error}-${index}`} className="text-sm text-negative">
+              {error}
+            </p>
+          ))}
+        </div>
+      )}
+
+      {workspace.savedAsPlan && (
+        <Alert data-testid="saved-as-plan-message">
+          <AlertDescription>
+            {PROJECTION_WORKSPACE_LABELS.SAVE_AS_PLAN_SAVED_MESSAGE}
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {workspace.savedId !== null && (
+        <Alert>
+          <AlertDescription className="flex flex-wrap items-center gap-3">
+            <span>{PROJECTION_WORKSPACE_LABELS.SAVED_MESSAGE}</span>
+            <Link
+              to={`/retirement/projections/${workspace.savedId}`}
+              className="font-medium text-primary underline-offset-4 hover:underline"
+            >
+              {PROJECTION_WORKSPACE_LABELS.SAVED_LINK}
+            </Link>
+          </AlertDescription>
+        </Alert>
+      )}
+
+      <div className="flex flex-wrap justify-end gap-2">
+        {isPreview ? (
+          <>
+            <Button variant="outline" onClick={workspace.backToSetup}>
+              {PROJECTION_WORKSPACE_LABELS.BACK_TO_SETUP}
+            </Button>
+            <Button onClick={openSave} disabled={!workspace.calculated}>
+              {PROJECTION_WORKSPACE_LABELS.SAVE}
+            </Button>
+          </>
+        ) : (
+          <Button onClick={() => void workspace.calculate()} disabled={workspace.calculating}>
+            {workspace.calculating
+              ? PROJECTION_WORKSPACE_LABELS.CALCULATING
+              : PROJECTION_WORKSPACE_LABELS.CALCULATE}
+          </Button>
+        )}
+      </div>
+
+      {saveOpen && (
+        <SaveProjectionDialog
+          open
+          form={workspace.saveForm}
+          submit={() => workspace.submitSave(() => setSaveOpen(false))}
+          onCancel={() => setSaveOpen(false)}
+        />
+      )}
+
+      {saveAsPlanOpen && (
+        <SaveProjectionDialog
+          open
+          title={PROJECTION_WORKSPACE_LABELS.SAVE_AS_PLAN_DIALOG_TITLE}
+          nameLabel={PROJECTION_WORKSPACE_LABELS.SAVE_AS_PLAN_DIALOG_NAME}
+          confirmLabel={PROJECTION_WORKSPACE_LABELS.SAVE_AS_PLAN_DIALOG_CONFIRM}
+          savingLabel={PROJECTION_WORKSPACE_LABELS.SAVE_AS_PLAN_DIALOG_SAVING}
+          form={workspace.saveAsPlanForm}
+          submit={() => workspace.submitSaveAsPlan(() => setSaveAsPlanOpen(false))}
+          onCancel={() => setSaveAsPlanOpen(false)}
+        />
+      )}
+
+      <ApplyPlanDialog
+        open={applyOpen}
+        plans={planLibrary.plans}
+        loading={planLibrary.loading}
+        loadError={!!planLibrary.error}
+        onCancel={() => setApplyOpen(false)}
+        onRetry={() => void planLibrary.refresh()}
+        onApply={handleApply}
+      />
+    </div>
+  );
+}

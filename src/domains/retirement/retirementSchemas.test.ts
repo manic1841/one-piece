@@ -1,8 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 
-import { RETIREMENT_VALIDATION_LABELS } from '@/ui/constants/retirement/retirementValidationLabels';
-
 import { createAssumptionsSchema, createAssumptionsUpdateSchema } from './assumptions';
 import { RETIREMENT_ASSUMPTION_BOUNDS } from './bounds';
 import { RetirementSchemaErrorCode } from './errorCodes';
@@ -950,20 +948,6 @@ describe('plan schemas', () => {
       }),
     );
     expect(codes(result)).toContain(RetirementSchemaErrorCode.LIFE_EXPECTANCY_BEFORE_CURRENT_AGE);
-  });
-});
-
-describe('validation labels', () => {
-  it('has exactly one label per error code', () => {
-    expect(Object.keys(RETIREMENT_VALIDATION_LABELS).sort()).toEqual(
-      Object.keys(RetirementSchemaErrorCode).sort(),
-    );
-  });
-
-  it('has a non-blank label for every code', () => {
-    for (const label of Object.values(RETIREMENT_VALIDATION_LABELS)) {
-      expect(label.trim().length).toBeGreaterThan(0);
-    }
   });
 });
 

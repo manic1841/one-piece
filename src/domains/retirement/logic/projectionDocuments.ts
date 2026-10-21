@@ -39,11 +39,13 @@ export interface ProjectionDocument extends ProjectionSummaryFields {
   createdBy: string;
 }
 
+export type ProjectionOpeningSourceKind = 'derived' | 'manual';
+
 export interface ProjectionConfig {
   startYear: number;
   openingNetWorth: {
     amount: number;
-    source: 'derived' | 'manual';
+    source: ProjectionOpeningSourceKind;
     anchorYearMonth?: string;
   };
   assumptions: RetirementAssumptions;

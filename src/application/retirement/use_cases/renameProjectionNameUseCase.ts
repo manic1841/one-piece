@@ -21,16 +21,16 @@ export class RenameProjectionNameUseCase {
   async execute(request: RenameProjectionNameRequest): Promise<RenameProjectionNameOutcome> {
     const { householdId, projectionId, auth } = request;
 
-    const parsed = nameSchema.safeParse(request.name);
-    if (!parsed.success) {
-      return { ok: false, code: nameFailureCode(parsed.error.issues) ?? 'NAME_REQUIRED' };
-    }
-
     await householdPermissionService.assertWritePermission(
       householdId,
       auth.uid,
       auth.isGlobalAdmin,
     );
+
+    const parsed = nameSchema.safeParse(request.name);
+    if (!parsed.success) {
+      return { ok: false, code: nameFailureCode(parsed.error.issues) ?? 'NAME_REQUIRED' };
+    }
 
     await projectionRepository.renameProjectionName(householdId, projectionId, parsed.data);
     return { ok: true, name: parsed.data };

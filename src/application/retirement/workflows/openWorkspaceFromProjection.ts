@@ -1,5 +1,5 @@
 import { getProjectionOpeningUseCase } from '@/application/retirement/use_cases/getProjectionOpeningUseCase';
-import { type ProjectionOpeningSource } from '@/application/retirement/use_cases/getProjectionOpeningUseCase';
+import { type ProjectionOpeningLookup } from '@/application/retirement/use_cases/getProjectionOpeningUseCase';
 import { getProjectionViewUseCase } from '@/application/retirement/use_cases/getProjectionViewUseCase';
 import { type ProjectionViewData } from '@/application/retirement/use_cases/getProjectionViewUseCase';
 import { type AuthContext } from '@/application/types';
@@ -7,7 +7,7 @@ import { type AuthContext } from '@/application/types';
 export interface WorkspacePreload {
   data: ProjectionViewData;
   /** Only resolved for a derived opening; `null` for a manual one. */
-  derived: ProjectionOpeningSource | null;
+  derived: ProjectionOpeningLookup | null;
 }
 
 /**
