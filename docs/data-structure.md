@@ -77,54 +77,91 @@ firestore
        │         ├─ holdings: array
        │         └─ totalValue: number
 
-      ├─ retirement_plans/{planId}      # 退休規劃
-      │    ├─ name: string
-      │    ├─ isActive: boolean          # 同一 household 僅允許一筆 active=true
-      │    ├─ events: array
-      │    ├─ settings: object
+      ├─ retirementPlans/{planId}       # 退休計畫：可重複使用的假設模板（ADR-0083）
+      │    ├─ name: string              # trim().min(1)、max(100)
+      │    ├─ assumptions: object       # 五個必填純量
+      │    │    ├─ birthYear: integer            # 1900..當下年度；建立後不可變
+      │    │    ├─ retirementAge: integer        # 1..120
+      │    │    ├─ lifeExpectancy: integer       # > retirementAge、>= currentAge、<=130
+      │    │    ├─ inflationRate: decimal        # -0.10..0.20，4 位小數
+      │    │    └─ annualReturnRate: decimal     # -0.50..0.30，4 位小數
+      │    ├─ projectionRules: array    # 每條必有 source（fixedAmount 除外）
+      │    │    ├─ id: string
+      │    │    ├─ name: string
+      │    │    ├─ ruleType: "income" | "expense"
+      │    │    ├─ source: object       # 與 ruleType 正交
+      │    │    │    ├─ type: "ledgerCode" | "rule" | "debtAccount"
+      │    │    │    └─ id: string
+      │    │    ├─ method: "inflation" | "growthRate" | "percentage" | "fixedAmount" | "debtAmortization"
+      │    │    ├─ parameters: object   # 依 method 判別聯集；金額一律為正
+      │    │    ├─ endCondition: object # debtAmortization 以外才有
+      │    │    ├─ baselinePolicy?: "previousCompleteYear" | "specificYear"
+      │    │    └─ enabled: boolean     # 預設 true
+      │    ├─ lifeEvents: array         # 每條無 source
+      │    │    ├─ id: string
+      │    │    ├─ name: string
+      │    │    ├─ type: "income" | "expense"
+      │    │    ├─ enabled: boolean     # 預設 true
+      │    │    └─ phases: array        # min(1)，依 startYear 升冪且不重疊
+      │    │         ├─ name?: string
+      │    │         ├─ startYear: integer       # 1900..2200
+      │    │         ├─ endYear: integer         # >= startYear、<=2200
+      │    │         ├─ amount: number           # >= 0
+      │    │         └─ growthRate?: decimal     # -0.10..0.20，缺省跟隨通膨
+      │    ├─ createdBy: string         # audit；不顯示
+      │    ├─ updatedBy: string         # audit；不顯示
+      │    ├─ createdAt: Timestamp      # audit；不顯示
+      │    └─ updatedAt: Timestamp      # audit；只在前進時改
+      │
+      │    # 單一文件，上限 900_000 bytes（PLAN_TOO_LARGE）
+      # update 整份送出、只 omit birthYear；沒有 partial 版本
+
+      ├─ projections/{projectionId}     # 一次計算的凍結事實；建立後唯讀（ADR-0083）
+      │    ├─ name: string              # trim().min(1)；唯一可 rename 的欄位
+      │    ├─ engineVersion: integer    # 低於現行 ENGINE_VERSION 即過舊
+      │    ├─ createdAt: Timestamp
+      │    ├─ createdBy: string
+      │    ├─ retirementNetWorth: number | null
+      │    ├─ finalNetWorth: number
+      │    ├─ minNetWorth: number
+      │    ├─ minNetWorthYear: integer | null
+      │    ├─ bankruptcyYear: integer | null
+      │    ├─ isBankrupt: boolean
       │    │
-      │    ├─ incomeStreams/{incomeStreamId}   # 由交易分錄推導的收入流
-      │         ├─ name: string
-      │         ├─ incomeCategory: string       # e.g. "income:salary:charles"
-      │         ├─ type: "salary" | "bonus" | "pension" | "rent" | "other"
-      │         │
-      │         │  # --- 金額設定（v2：無計算模式、無連動年份模式）---
-      │         ├─ currentAnnual: number | null    # 匯自完整年度實際資料（唯讀）；null = 情境專用流，退休前貢獻 0
-      │         ├─ retirementAnnual?: number        # 退休年金額；缺省時以 currentAnnual 調整後水準沿用
-      │         ├─ growthRate?: number              # 年成長率（%），缺省 = 計畫通膨率
-      │         ├─ startYear: number                 # 具體年份（v2 無 startYearMode；連動由遷移解析寫入）
-      │         ├─ endYear?: number                  # 具體年份（v2 無 endYearMode；lifelong 終身流不寫 endYear）
-      │         │
-      │         │
-      │         ├─ calculatedFrom: object
-      │         │    ├─ ledgerCode: string      # e.g. "income:salary:charles"
-      │         │    ├─ sampleYear: number      # 表示資料來自哪個年度
-      │         │    ├─ totalAmount: number
-      │         │    ├─ monthlyAverage: number
-      │         │    ├─ sampleCount: number
-      │         │    └─ importedAt: string      # ISO datetime
-      │         └─ note?: string       │
-       │    └─ expenseCategories/{expenseCategoryId}  # 退休支出類別（含債務匯入）
-       │         ├─ name: string
-       │         ├─ type: "general" | "debt_payment"
-       │         ├─ sourceDebtAccountId?: string
-       │         ├─ includesPrincipal: boolean
-       │         ├─ interestOnly: boolean
-       │         ├─ expenseCategory?: string       # 匯入來源科目；"Import from Ledger" merge 對齊鍵
-       │         ├─ currentAnnual: number          # 目前年支出（匯自完整年度實際資料；v1 攤平為固定金額）
-       │         ├─ growthRate?: number            # 年成長率（%），缺省 = 計畫通膨率
-       │         ├─ retirementMultiplier: number   # 退休後水準（factor 0-1），IMMEDIATE 適用
-       │         ├─ startYear: number
-       │         ├─ endYear?: number | null        # general: 缺省 = 終身；債務匯入填 endYear
-       │         ├─ calculatedFrom?: object
-       │         │    ├─ debtAccountId?: string
-       │         │    ├─ sampleStartYearMonth?: string
-       │         │    ├─ sampleEndYearMonth?: string
-       │         │    ├─ totalPaid?: number
-       │         │    ├─ interestPaid?: number
-       │         │    ├─ sampleCount?: number
-       │         │    └─ importedAt?: string
-       │         └─ note?: string
+      │    ├─ snapshots/config          # 固定 docId
+      │    │    ├─ startYear: integer
+      │    │    ├─ openingNetWorth: object
+      │    │    │    ├─ amount: number
+      │    │    │    ├─ source: "derived" | "manual"
+      │    │    │    └─ anchorYearMonth?: string  # 只在 derived 時存在
+      │    │    ├─ assumptions: object  # 與 plan 共用子 schema
+      │    │    ├─ projectionRules: array
+      │    │    └─ lifeEvents: array
+      │    │
+      │    ├─ snapshots/source          # 固定 docId；不存分錄明細
+      │    │    └─ ruleSources: array
+      │    │         ├─ ruleId: string
+      │    │         ├─ sourceType: "ledgerCode" | "rule" | "debtAccount"
+      │    │         ├─ sourceId: string
+      │    │         ├─ baselineYear: integer
+      │    │         └─ baselineAmount: number
+      │    │
+      │    └─ results/annual            # 固定 docId；單一文件不切 chunk
+      │         └─ years: array
+      │              ├─ year: integer
+      │              ├─ age: integer
+      │              ├─ isRetired: boolean
+      │              ├─ opening: integer
+      │              ├─ return: integer
+      │              ├─ inflows: integer
+      │              ├─ outflows: integer
+      │              └─ closing: integer
+      │
+      │    # 四份文件共用 900_000 bytes 上限（PROJECTION_TOO_LARGE，逐文件判定）
+      # 主文件不含 startYear；三份子文件皆無 createdAt
+      # repository 無 update；rename 只改 name；delete 子先主後、單一 batch
+      # 建立一律四份文件同一個 batch 全寫（ADR-0088）
+
       ├─ allocations/{allocationId}     # 專案資金分配；新建資料的 ID = sourceTransactionId；legacy random ID 以 sourceTransactionId fallback 並在取代時 lazy normalize
        │    ├─ sourceTransactionId: string
        │    ├─ direction: "INCOME" | "EXPENSE"
@@ -243,4 +280,4 @@ firestore
 | Command 原子性、重試與 operation record   | [ADR-0038](adr/0038-command-atomicity-and-retry-policy.md)                                                                                                                                                                                                                                                |
 | 財務報表與快照                            | [ADR-0018](adr/0018-manual-financial-report-generation.md)、[ADR-0019](adr/0019-balance-sheet-hybrid-equity-derived.md)、[ADR-0020](adr/0020-cash-flow-ending-vs-actual-balance.md)、[ADR-0069](adr/0069-report-layer-rollup-label-resolution.md)、[ADR-0074](adr/0074-balance-sheet-group-items-flat.md) |
 | 財務期間與關帳工作流                      | [ADR-0050](adr/0050-financial-period-workflow-state.md)、[ADR-0051](adr/0051-reconciliation-statement-level-consistency.md)、[ADR-0052](adr/0052-monthly-close-stage-data-boundary.md)                                                                                                                    |
-| RetirementPlan 與收入/支出/事件子集合     | [ADR-0023](adr/0023-retirement-income-from-entries-only.md) 至 [ADR-0040](adr/0040-retirement-plan-atomic-writes.md)                                                                                                                                                                                      |
+| 退休計畫與投影                            | [ADR-0083](adr/0083-projection-is-frozen-plan-is-template.md) 至 [ADR-0089](adr/0089-delete-legacy-no-migration.md)                                                                                                                                                                                       |

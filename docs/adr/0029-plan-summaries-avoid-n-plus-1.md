@@ -3,4 +3,4 @@
 **狀態：** 已被 [ADR-0083](0083-projection-is-frozen-plan-is-template.md) 取代
 **規範來源：** 無（本決策已由 ADR-0083 取代，原規則已移除）
 
-清單頁只需顯示計畫摘要,若每筆都載入完整 incomeStreams/expenseCategories 子集合會造成 N+1 查詢。getPlanSummaries 僅讀主文件供清單頁使用,getPlan/getPlans 才完整組裝子集合資料。
+清單頁只需顯示計畫摘要,若每筆都載入完整子集合會造成 N+1 查詢。getPlanSummaries 僅讀主文件供清單頁使用,getPlan/getPlans 才完整組裝子集合資料。

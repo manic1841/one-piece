@@ -3,7 +3,7 @@
 **狀態：** 已被 [ADR-0088](0088-single-batch-all-or-nothing.md) 取代（子集合與 active fan-out 段）
 **規範來源：** 無（子集合與 active fan-out 段已由 ADR-0088 取代，交易邊界原則併入該 ADR）
 
-退休計畫的 create/update/delete/duplicate 會觸及主文件、`incomeStreams`/`expenseCategories` 子集合與 active fan-out，但原本拆成多個獨立 commit：`createPlan` 依序建立主文件與兩個子集合 batch、`updatePlan` 依序更新主文件與兩個子集合、`setOnlyActivePlan` 讀取全部計畫後單獨 batch commit、`deletePlan` 依序刪除兩個子集合與主文件。任一步驟失敗會留下殘缺子集合或孤兒主文件；併發啟用兩個計畫可能同時留下多筆 active，違反 [ADR-0036](0036-single-active-retirement-plan.md)。
+退休計畫的 create/update/delete/duplicate 會觸及主文件、兩個子集合與 active fan-out，但原本拆成多個獨立 commit：`createPlan` 依序建立主文件與兩個子集合 batch、`updatePlan` 依序更新主文件與兩個子集合、`setOnlyActivePlan` 讀取全部計畫後單獨 batch commit、`deletePlan` 依序刪除兩個子集合與主文件。任一步驟失敗會留下殘缺子集合或孤兒主文件；併發啟用兩個計畫可能同時留下多筆 active，違反 [ADR-0036](0036-single-active-retirement-plan.md)。
 
 因此把每個寫入 command（create、update、delete、duplicate）的主文件寫入、子集合整批替換與 active fan-out 放進同一個 Firestore transaction。Application 層持有 `runTransaction`，repository 接收 transaction 參數，比照 [ADR-0039](0039-allocation-atomicity-and-identity.md) 建立的模式。任一驗證或寫入失敗時全部回滾，不留部分資料。
 
@@ -13,7 +13,7 @@ Command 分類依 [ADR-0038](0038-command-atomicity-and-retry-policy.md)：updat
 
 ## Consequences
 
-- 併發視窗：fan-out 目標在 callback 外 preflight，preflight 之後、commit 之前由另一成員建立的新 active plan 不在本 transaction 的衝突集合內，存在殘留兩筆 active 的極小視窗。接受並文件化此視窗，不在 household 文件上加入 contention token 或 `activePlanId` 指標，不改變 ADR-0036 的資料形狀。兩筆既有計畫的併發啟用會因互相重寫 `isActive` 觸發衝突而收斂為單一 active；此視窗小於現狀每次 `setOnlyActivePlan` 的非原子批次，消除它需要改變資料形狀，收益不成比例。
+- 併發視窗：fan-out 目標在 callback 外 preflight，preflight 之後、commit 之前由另一成員建立的新 active plan 不在本 transaction 的衝突集合內，存在殘留兩筆 active 的極小視窗。接受並文件化此視窗，不在 household 文件上加入 contention token 或 `activePlanId` 指標，不改變 ADR-0036 的資料形狀。兩筆既有計畫的併發啟用會因互相重寫啟用旗標觸發衝突而收斂為單一 active；此視窗小於現狀每次 `setOnlyActivePlan` 的非原子批次，消除它需要改變資料形狀，收益不成比例。
 - 單一 household「至多一筆 active」；零筆 active 是合法狀態。create 與 duplicate 不自動啟用。
 - Firestore transaction 內不能 query，preflight 讀取為每次 retry 增加數個 round trip；換取 fan-out 目標與 children 清單在重試時保持新鮮。
 - 400 筆寫入上限（`PLAN_TOO_LARGE`）會拒絕極端大計畫而不是支援它；整批替換的既有取捨（[ADR-0030](0030-retirement-update-batch-replace.md)）維持，部分成功會破壞 desired-state 語意。

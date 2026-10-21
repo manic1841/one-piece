@@ -72,7 +72,7 @@ Page Header 規則：
 頁面依用途分兩類：
 
 - **資料密集頁**（Transactions、Accounts、Debt、Reports）：可使用完整內容寬度。
-- **閱讀 / 情境頁**（Retirement、Account Detail、Portfolio Detail）：限制在較窄的閱讀寬度，避免長行。容器上限屬 RWD 斷點契約，見 [`ui-layer-architecture.md`](ui-layer-architecture.md)。
+- **閱讀 / 情境頁**（退休投影／計畫、Account Detail、Portfolio Detail）：限制在較窄的閱讀寬度，避免長行。容器上限屬 RWD 斷點契約，見 [`ui-layer-architecture.md`](ui-layer-architecture.md)。
 
 原則：
 
@@ -103,7 +103,7 @@ Page Header 規則：
 
 ## 進階設定 (Advanced Settings)
 
-複雜設定預設隱藏，收在 `Advanced` 展開鈕之後（例：Retirement 的 Growth / Start Year / End Year）。
+複雜設定預設隱藏，收在 `Advanced` 展開鈕之後（例：交易表單的進階欄位；退休規則的參數只隨所選 Method 出現，不預先鋪滿）。
 
 原則：
 

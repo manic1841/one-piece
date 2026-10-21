@@ -287,9 +287,9 @@ const onSubmit = form.handleSubmit((vm) => {
 - **Forms are `noValidate`; required-ness is marked, not browser-enforced**: the `<form>` sets `noValidate` so the
   resolver and the explicit parse own validation — a native constraint bubble would preempt them and skip `FormMessage`.
   Required fields carry `FormLabel required` (the `*` marker) instead of a `required` attribute.
-- **Non-editable provenance rides through the form values**: import-derived fields an edit must not destroy (e.g.
-  `calculatedFrom`, `incomeCategory`, a read-only `currentAnnual`) are seeded into the form values and validated by the
-  gate, but are not bound to any input. They are carried data, not derived state, which is why they may sit in RHF.
+- **Non-editable provenance rides through the form values**: import-derived fields an edit must not destroy (e.g. a
+  rule's `source` and its resolved baseline year) are seeded into the form values and validated by the gate, but are
+  not bound to any input. They are carried data, not derived state, which is why they may sit in RHF.
 - **Repeaters bind by indexed path**: a repeated row group keeps its array in RHF (`useFieldArray`); each row binds
   `FormField name={`rows.${index}.field`}` through the same glue as a top-level field, and the React key is the row's
   `id`. No extra array/repeater contract is needed in the suite.
@@ -421,7 +421,7 @@ Global Header(sticky 系統狀態列)只負責:
 - 無 bottom nav 與 More 按鈕;除固定 pet 按鈕外無其他浮動導航元素。
 - 頂部列顯示 App 名稱與 household 切換器,不與 Logout 重疊。
 - 交易列表呈現全寬度卡片式,日期篩選輸入與按鈕直向堆疊、各自佔滿列寬。
-- 退休年度明細為 compact rows(Year 與 Savings 固定顯示,其餘欄位展開顯示),頁面與元件皆不出現水平捲軸。
+- 投影逐年明細為 compact rows(Year 與淨資產固定顯示,其餘欄位展開顯示),頁面與元件皆不出現水平捲軸。
 
 ### 768px(平板直式)
 
@@ -458,7 +458,7 @@ Global Header(sticky 系統狀態列)只負責:
 
 Detail 的編輯入口依欄位複雜度二選一:
 
-- **單一 metadata 欄位**(名稱)→ `InlineEditableTitle` inline edit,掛在 PageHeader title slot。適用:Account / Project / Portfolio / Retirement plan 名稱。
+- **單一 metadata 欄位**(名稱)→ `InlineEditableTitle` inline edit,掛在 PageHeader title slot。適用:Account / Project / Portfolio / Projection / Plan 名稱。
 - **多欄位 configuration** → Edit Form(dialog 或 detail 區塊)。適用:Debt。
 
 `PageHeader` 不知道「怎麼編輯名稱」——`title` 接受 `ReactNode`,由頁面自行傳入 `<InlineEditableTitle value={...} onSave={...} />`;儲存走既有 update command,成功後頁面自行 refetch／同步 state。
