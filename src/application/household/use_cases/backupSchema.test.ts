@@ -29,7 +29,7 @@ const baseFields = (id: string) => ({
 const base = baseFields('h1');
 
 const payload = {
-  schemaVersion: 1,
+  schemaVersion: 2,
   exportedAt: '2026-07-02T00:00:00.000Z',
   householdId: 'h1',
   household: {
@@ -136,38 +136,35 @@ const payload = {
       {
         ...baseFields('plan1'),
         name: '退休計畫',
-        currentYear: 2026,
-        birthYear: 1990,
-        retirementAge: 65,
-        lifeExpectancy: 90,
-        inflationRate: 2,
-        investmentReturnRate: 5,
-        incomes: [
-          {
-            id: 'inc1',
-            name: '薪水',
-            type: 'salary',
-            lifelong: true,
-            startYear: 2026,
-            currentAnnual: 1000000,
-            calculatedFrom: {
-              sampleYear: 2025,
-              totalAmount: 1000000,
-              monthlyAverage: 83333,
-              sampleCount: 12,
-              importedAt: '2026-01-01T00:00:00.000Z',
-            },
-          },
-        ],
-        summary: {
-          retirementYear: 2055,
-          startingNetWorth: 0,
-          anchorYearMonth: '2026-06',
-          minSavings: 0,
-          minSavingsYear: 2055,
-          isBankrupt: false,
-          lastCalculatedAt: T1,
+        assumptions: {
+          birthYear: 1990,
+          retirementAge: 65,
+          lifeExpectancy: 90,
+          inflationRate: 0.02,
+          annualReturnRate: 0.05,
         },
+        projectionRules: [],
+        lifeEvents: [],
+      },
+    ],
+    projections: [
+      {
+        projection: {
+          id: 'projection1',
+          name: '基準情境',
+          engineVersion: 3,
+          retirementNetWorth: 100,
+          finalNetWorth: 200,
+          minNetWorth: 50,
+          minNetWorthYear: 2050,
+          bankruptcyYear: null,
+          isBankrupt: false,
+          createdBy: 'u1',
+          createdAt: T0,
+        },
+        config: { startYear: 2026, note: 'kept verbatim' },
+        source: { ruleSources: [] },
+        annual: { years: [] },
       },
     ],
     transactions: [
@@ -266,7 +263,7 @@ describe('HouseholdBackupPayloadSchema', () => {
     expect(parsed.collections.debtAccounts[0].debtAccount.startDate).toBeInstanceOf(Date);
     expect(parsed.collections.debtAccounts[0].debtAccount.graceEndDate).toBeInstanceOf(Date);
     expect(parsed.collections.debtAccounts[0].debtAccount.closedAt).toBeInstanceOf(Date);
-    expect(parsed.collections.retirementPlans[0].summary?.lastCalculatedAt).toBeInstanceOf(Date);
+    expect(parsed.collections.projections[0].projection.createdAt).toBeInstanceOf(Date);
     expect(parsed.collections.transactions[0].date).toBeInstanceOf(Date);
     expect(parsed.collections.reports[0].createdAt).toBeInstanceOf(Date);
     expect(parsed.collections.allocations[0].date).toBeInstanceOf(Date);
@@ -282,11 +279,35 @@ describe('HouseholdBackupPayloadSchema', () => {
     expect(parsed.collections.transactions[0].date.toISOString()).toBe(T0.toISOString());
   });
 
-  it('leaves genuinely string-typed date fields as strings', () => {
+  it('passes retirement plans and projection children through untouched', () => {
     const parsed = HouseholdBackupPayloadSchema.parse(asFileContents());
 
-    const importedAt = parsed.collections.retirementPlans[0].incomes[0].calculatedFrom?.importedAt;
-    expect(importedAt).toBe('2026-01-01T00:00:00.000Z');
+    // Plans are `unknown[]`: the restore side revives their audit timestamps.
+    const plan = parsed.collections.retirementPlans[0] as Record<string, unknown>;
+    expect(plan.createdAt).toBe('2026-06-15T08:00:00.000Z');
+    expect(parsed.collections.projections[0].config).toEqual({
+      startYear: 2026,
+      note: 'kept verbatim',
+    });
+  });
+
+  it('rejects a schemaVersion 1 payload', () => {
+    const result = HouseholdBackupPayloadSchema.safeParse({
+      ...asFileContents(),
+      schemaVersion: 1,
+    });
+
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects a projection bundle missing one of the fixed child keys', () => {
+    const file = asFileContents();
+    const bundle = file.collections.projections[0] as Record<string, unknown>;
+    delete bundle.annual;
+
+    const result = HouseholdBackupPayloadSchema.safeParse(file);
+
+    expect(result.success).toBe(false);
   });
 
   it('rejects a timestamp without a zone designator', () => {

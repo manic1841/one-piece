@@ -11,6 +11,10 @@ import { beforeEach, describe, expect, it } from 'vitest';
 
 import { exportHouseholdBackupUseCase } from '@/application/household/use_cases/exportHouseholdBackupUseCase';
 import type { HouseholdBackupPayload } from '@/application/household/use_cases/exportHouseholdBackupUseCase';
+import {
+  type ExistingHouseholdData,
+  buildDeleteRefs,
+} from '@/application/household/use_cases/householdBackupRestoreOps';
 import { importHouseholdBackupUseCase } from '@/application/household/use_cases/importHouseholdBackupUseCase';
 import type { AuthContext } from '@/application/types';
 import { initialStageStates } from '@/domains/financial_period/schemas';
@@ -77,6 +81,64 @@ async function seedProjects(householdId: string, ids: string[]) {
   }
 }
 
+async function seedPlans(householdId: string, ids: string[]) {
+  for (const id of ids) {
+    await setDoc(
+      doc(db, `households/${householdId}/retirementPlans/${id}`),
+      withBase(id, {
+        name: `Plan ${id}`,
+        assumptions: {
+          birthYear: 1990,
+          retirementAge: 65,
+          lifeExpectancy: 90,
+          inflationRate: 0.02,
+          annualReturnRate: 0.05,
+        },
+        projectionRules: [],
+        lifeEvents: [],
+      }),
+    );
+  }
+}
+
+const NEW_YEAR = new Date('2024-03-01T00:00:00Z');
+
+const projectionMain = (id: string) => ({
+  id,
+  name: `Projection ${id}`,
+  engineVersion: 3,
+  retirementNetWorth: null,
+  finalNetWorth: 0,
+  minNetWorth: 0,
+  minNetWorthYear: null,
+  bankruptcyYear: null,
+  isBankrupt: false,
+  createdBy: 'backup-author',
+  createdAt: NEW_YEAR,
+});
+
+async function seedProjections(householdId: string, ids: string[]) {
+  for (const id of ids) {
+    const base = `households/${householdId}/projections/${id}`;
+    await setDoc(doc(db, base), projectionMain(id));
+    await setDoc(doc(db, `${base}/snapshots/config`), {
+      startYear: 2026,
+      openingNetWorth: { amount: 0, source: 'manual' },
+      assumptions: {
+        birthYear: 1990,
+        retirementAge: 65,
+        lifeExpectancy: 90,
+        inflationRate: 0.02,
+        annualReturnRate: 0.05,
+      },
+      projectionRules: [],
+      lifeEvents: [],
+    });
+    await setDoc(doc(db, `${base}/snapshots/source`), { ruleSources: [] });
+    await setDoc(doc(db, `${base}/results/annual`), { years: [] });
+  }
+}
+
 async function seedTransactions(householdId: string, ids: string[]) {
   for (const id of ids) {
     await setDoc(
@@ -138,6 +200,8 @@ describe('household backup/restore round-trip (Firestore Emulator)', () => {
     await seedHousehold(hid);
     await seedAccounts(hid, ['acc-1']);
     await seedNestedSnapshots(hid, 'accounts', 'acc-1', 3);
+    await seedPlans(hid, ['plan-1']);
+    await seedProjections(hid, ['projection-1']);
     await seedTransactions(hid, ['tx-1']);
 
     const payload = await exportHouseholdBackupUseCase.execute({
@@ -145,13 +209,20 @@ describe('household backup/restore round-trip (Firestore Emulator)', () => {
       auth: adminAuth,
     });
 
-    expect(payload.schemaVersion).toBe(1);
+    expect(payload.schemaVersion).toBe(2);
     expect(payload.householdId).toBe(hid);
     expect(payload.exportedAt).toBeTruthy();
     expect(payload.household).toBeTruthy();
     expect(payload.collections.accounts).toHaveLength(1);
     expect(payload.collections.accounts[0].snapshots).toHaveLength(3);
-    expect(payload.collections.transactions).toHaveLength(1);
+    expect(payload.collections.retirementPlans).toHaveLength(1);
+    expect(payload.collections.projections).toHaveLength(1);
+    expect(payload.collections.projections[0]).toEqual({
+      projection: expect.objectContaining({ id: 'projection-1', engineVersion: 3 }),
+      config: expect.objectContaining({ startYear: 2026 }),
+      source: { ruleSources: [] },
+      annual: { years: [] },
+    });
   });
 
   it('import restores a payload so a subsequent export round-trips to the same data', async () => {
@@ -280,6 +351,84 @@ describe('household backup/restore round-trip (Firestore Emulator)', () => {
     expect(restTx).toEqual(origTx);
   });
 
+  it('round-trips plans and projections with their ids and audit fields', async () => {
+    const hid = 'household-retirement-roundtrip';
+    await seedHousehold(hid);
+    await seedPlans(hid, ['plan-1']);
+    await seedProjections(hid, ['projection-1']);
+
+    const original = await exportHouseholdBackupUseCase.execute({
+      householdId: hid,
+      auth: adminAuth,
+    });
+    const fileContents = JSON.parse(JSON.stringify(original)) as HouseholdBackupPayload;
+
+    await deleteAllInCollection(`households/${hid}/retirementPlans`);
+    await deleteAllInCollection(`households/${hid}/projections`);
+
+    await importHouseholdBackupUseCase.execute({
+      householdId: hid,
+      auth: adminAuth,
+      backup: fileContents,
+    });
+
+    const plan = await getDoc(doc(db, `households/${hid}/retirementPlans/plan-1`));
+    expect(plan.exists()).toBe(true);
+    expect(plan.data()?.createdBy).toBe('admin-uid');
+    expect(plan.data()?.createdAt).toBeInstanceOf(Timestamp);
+    expect(plan.data()?.createdAt.toDate().toISOString()).toBe(NOW.toISOString());
+
+    const projection = await getDoc(doc(db, `households/${hid}/projections/projection-1`));
+    expect(projection.exists()).toBe(true);
+    expect(projection.data()).toMatchObject({
+      engineVersion: 3,
+      createdBy: 'backup-author',
+    });
+    expect(projection.data()?.createdAt).toBeInstanceOf(Timestamp);
+    expect(projection.data()?.createdAt.toDate().toISOString()).toBe(NEW_YEAR.toISOString());
+    // The restore reuses the backup id and never invents a sourceId.
+    expect(projection.data()?.sourceId).toBeUndefined();
+
+    for (const child of ['snapshots/config', 'snapshots/source', 'results/annual']) {
+      const docSnap = await getDoc(doc(db, `households/${hid}/projections/projection-1/${child}`));
+      expect(docSnap.exists(), child).toBe(true);
+    }
+
+    const restored = await exportHouseholdBackupUseCase.execute({
+      householdId: hid,
+      auth: adminAuth,
+    });
+    expect(restored.collections.retirementPlans).toEqual(original.collections.retirementPlans);
+    expect(restored.collections.projections).toEqual(original.collections.projections);
+  });
+
+  it('builds projection deletes children before the main document', async () => {
+    const existing: ExistingHouseholdData = {
+      accounts: [],
+      projects: [],
+      portfolios: [],
+      debtAccounts: [],
+      retirementPlans: [],
+      projections: [{ id: 'projection-1' }],
+      transactions: [],
+      reports: [],
+      allocations: [],
+      allocationTemplates: [],
+      ledgerCodes: [],
+      intentMappings: [],
+      financialPeriods: [],
+    };
+
+    const refs = await buildDeleteRefs('hid', existing, new Set());
+
+    expect(refs.map((ref) => ref.path)).toEqual([
+      'households/hid/projections/projection-1/results/annual',
+      'households/hid/projections/projection-1/snapshots/source',
+      'households/hid/projections/projection-1/snapshots/config',
+      'households/hid/projections/projection-1',
+    ]);
+  });
+
   it('malformed payloads are rejected with explicit errors before partial writes', async () => {
     const hid = 'household-malformed';
     await seedHousehold(hid);
@@ -292,16 +441,20 @@ describe('household backup/restore round-trip (Firestore Emulator)', () => {
         payload: { schemaVersion: 99, householdId: hid, household: {}, collections: {} },
       },
       {
+        label: 'schemaVersion 1',
+        payload: { schemaVersion: 1, householdId: hid, household: {}, collections: {} },
+      },
+      {
         label: 'missing household',
-        payload: { schemaVersion: 1, householdId: hid, collections: {} },
+        payload: { schemaVersion: 2, householdId: hid, collections: {} },
       },
       {
         label: 'missing collections',
-        payload: { schemaVersion: 1, householdId: hid, household: {} },
+        payload: { schemaVersion: 2, householdId: hid, household: {} },
       },
       {
         label: 'mismatched householdId',
-        payload: { schemaVersion: 1, householdId: 'other', household: {}, collections: {} },
+        payload: { schemaVersion: 2, householdId: 'other', household: {}, collections: {} },
       },
     ];
 

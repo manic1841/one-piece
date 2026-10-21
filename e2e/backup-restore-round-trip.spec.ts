@@ -116,9 +116,13 @@ test('an exported backup can be uploaded back and restores the household', async
   const payload = JSON.parse(await readFile(backupPath, 'utf8')) as {
     schemaVersion: number;
     householdId: string;
+    collections: Record<string, unknown[]>;
   };
-  expect(payload.schemaVersion).toBe(1);
+  expect(payload.schemaVersion).toBe(2);
   expect(payload.householdId).toBe(QA_HOUSEHOLD_ID);
+  // Retirement plans and projections both travel in the v2 payload.
+  expect(payload.collections.retirementPlans).toBeInstanceOf(Array);
+  expect(payload.collections.projections).toBeInstanceOf(Array);
 
   // 3. Make the change: book an expense into the month read above so it moves
   //    that row. Nothing is asserted on the transaction list itself — the project
