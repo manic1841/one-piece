@@ -1,5 +1,6 @@
 # 事件模型採分段 phases[] 設計
 
+**日期：** 2026-08-31
 **狀態：** 已接受
 **規範來源：** [retirement-system.md](../retirement-system.md) §5
 

@@ -108,6 +108,16 @@ describe('docs:check staging-reference guard (issue #164)', () => {
     expect(runGuard([filePath]).status).toBe(0);
   });
 
+  it('flags a dead relative link and names the file', () => {
+    const filePath = writeFixture('dead-link.md', '見 [不存在](missing-doc.md#x)\n');
+
+    const result = runGuard([filePath]);
+
+    expect(result.status).toBe(1);
+    expect(result.output).toContain('dead relative links');
+    expect(result.output).toContain('missing-doc.md');
+  });
+
   it('fails when the retired staging folder is recreated, and recovers once removed', () => {
     const stagingDir = path.join(repoRoot, 'docs', 'new-design');
     // Non-recursive mkdir throws if the folder already exists, so a pre-existing

@@ -1,5 +1,6 @@
 # updatePlan 對 incomes/expenses 採整批替換
 
+**日期：** 2026-08-31
 **狀態：** 已被 [ADR-0083](0083-projection-is-frozen-plan-is-template.md) 取代
 **規範來源：** 無（本決策已由 ADR-0083 取代，原規則已移除）
 

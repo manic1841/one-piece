@@ -2,7 +2,7 @@
 
 **日期：** 2026-09-17
 **狀態：** 已實作
-**規範來源：** [financial_report.md](../financial_report.md) §4
+**規範來源：** [financial_report.md](../financial_report.md) §6
 
 Dashboard v1 需要呈現家庭財務狀態，而系統中存在兩條互相矛盾的觀察路徑：已關帳期間的
 persisted reports（月度關帳工作流產出，代表已定案的會計結果），以及 live 計算路徑（最新
@@ -10,7 +10,7 @@ account snapshots 加總、即時債務餘額、即時投資槓桿）。兩者�
 不同；混用會讓同一畫面出現兩個互相矛盾的數字。因此決定 Dashboard 整頁錨定**最新已關帳
 期間的 report 月份**，不另建 live 淨值路徑。
 
-Dashboard 整頁錨定**最新已關帳期間的 report 月份**：淨資產只有一條計算路徑（該月資產負債表 equity），Financial Pulse 四指標全部跟著同一月份，缺月或缺指標顯示「—」佔位而不顯示 0。指標定義與計算公式見 [financial_report.md](../financial_report.md) §4。
+Dashboard 整頁錨定**最新已關帳期間的 report 月份**：淨資產只有一條計算路徑（該月資產負債表 equity），Financial Pulse 四指標全部跟著同一月份，缺月或缺指標顯示「—」佔位而不顯示 0。指標定義與計算公式見 [financial_report.md](../financial_report.md) §6。
 
 錨定契約只約束「錨定型」數值；Dashboard 的數值依來源另分「前瞻型」（如 `下月應付`，由債務排程確定性推導）與「衍生型」（任何能由既有紀錄確定性推導的值優先直接推導，而非要求使用者重複輸入）。**具名例外只有兩項**，皆獨立於 hero 與 Financial Pulse 的錨定基準之外：**近期交易**（最新 N 筆的即時事件流——交易是事件流，不是狀態指標）與**下月應付**。例外只能以獨立、具名、標示前瞻的形式存在，不得混入錨定區塊。
 

@@ -1,5 +1,6 @@
 # Retirement v1 平坦金額欄位：currentAnnual / retirementAnnual / 固定支出
 
+**日期：** 2026-09-21
 **狀態：** 已被 [ADR-0085](0085-source-method-rules-replace-flat-amounts.md) 取代
 **規範來源：** 無（本決策已由 ADR-0085 取代，原規則已移除）
 

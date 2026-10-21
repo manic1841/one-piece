@@ -2,7 +2,7 @@
 
 **日期：** 2026-09-29
 **狀態：** 已接受
-**規範來源：** [monthly-close.md](../monthly-close.md) §3（Report Drift、關帳前的 drift 把關）；[ADR-0071](0071-close-shows-preview-with-drift.md)（關帳畫面顯示即時 preview 並標註 drift）
+**規範來源：** [monthly-close.md](../monthly-close.md) §3（報表漂移把關）；[ADR-0071](0071-close-shows-preview-with-drift.md)（關帳畫面顯示即時 preview 並標註 drift）
 
 關帳畫面顯示的是即時重算的 Report Preview 與標註好的 Report Drift（[ADR-0071](0071-close-shows-preview-with-drift.md)），但關帳本身原本只檢查「Financial Reports 已確認 + 三張報表已產生」。結果是：畫面明明警示報表已過時，使用者仍可按關帳，把一份畫面自認過時的 Persisted Report 定案，且關帳之後 drift 標註消失（`CLOSED` 顯示 persisted、不比對），落差被永久凍結。本 ADR 定調：**Financial Reports 三張報表只要有任何 drift，關帳就不通過**，並由前端在同一畫面表達（停用關帳鈕 + 警示區塊 + 「回到 Financial Reports」捷徑）。警示只說「報表已不一致」，**不報漂移項數**——理由見下。判定與呈現的細節見 `規範來源`。
 

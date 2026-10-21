@@ -2,7 +2,7 @@
 
 **日期：** 2026-09-29
 **狀態：** 已接受
-**規範來源：** [monthly-close.md](../monthly-close.md) §3（Report Drift、Financial Reports 的確認即產生）；[financial_report.md](../financial_report.md) §0（顯示語意）、[CONTEXT.md](../../CONTEXT.md)（Report Preview／Persisted Report／Report Drift）
+**規範來源：** [monthly-close.md](../monthly-close.md) §3（報表漂移把關）；[financial_report.md](../financial_report.md) §2（顯示語意）、[CONTEXT.md](../../CONTEXT.md)（Report Preview／Persisted Report／Report Drift）
 
 關帳畫面（Financial Reports 三張報表與 Close Period 五個聚合數字）永遠顯示從現行分錄、當月快照與上月報表**即時重算**的 Report Preview，Persisted Report 只當狀態旗標與比對基準；兩者在 `IN_PROGRESS`／`NEEDS_REVIEW` 期間逐欄比對並標註 Report Drift，唯一例外是 `CLOSED`（唯讀回看顯示 persisted 定案紀錄、不比對）。理由是 persisted 只是產生當下的快照，報表產生後分錄或快照仍可能被修正；若直接顯示 persisted，使用者看到的不是現況，而 drift 標註同時提示「已產生報表已過時」。顯示模式由**期間狀態**決定，不是 `isPersisted` 旗標——reopen 後階段回 `PENDING` 但 persisted 檔案殘留，旗標無法表達「期間已重開」。比對與標註的規則（比對哪些節點、格式、警示色）屬主題文件，見 `規範來源`。
 

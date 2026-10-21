@@ -78,4 +78,35 @@ if [ "${#matches[@]}" -gt 0 ]; then
   exit 1
 fi
 
+# Relative links must resolve. ADRs point at their `規範來源` sections and the
+# index points at every topic file; a renamed or deleted doc otherwise leaves a
+# dead link that no other gate catches. Anchors are not verified (a section can
+# be renamed without breaking the target file), only the path.
+broken=()
+for target in "${targets[@]}"; do
+  [ -f "$target" ] || continue
+  dir=$(dirname "$target")
+  while IFS= read -r link; do
+    [ -z "$link" ] && continue
+    case "$link" in
+      http* | mailto:* | '#'*) continue ;;
+    esac
+    link_path=${link%%#*}
+    [ -z "$link_path" ] && continue
+    case "$link_path" in
+      /*) resolved=".${link_path}" ;;
+      *) resolved="${dir}/${link_path}" ;;
+    esac
+    if [ ! -e "$resolved" ]; then
+      broken+=("${target}: dead link -> ${link}")
+    fi
+  done < <(grep -oE '\]\([^)[:space:]]+\)' "$target" | sed 's/^](//; s/)$//')
+done
+
+if [ "${#broken[@]}" -gt 0 ]; then
+  echo "Permanent docs must not contain dead relative links:"
+  printf '%s\n' "${broken[@]}"
+  exit 1
+fi
+
 echo "docs:check OK"

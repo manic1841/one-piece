@@ -1,17 +1,22 @@
 # 開發指南 (Development Guide)
 
-本文件說明在 One-Piece 專案中新增功能或修改邏輯的標準流程。
+本文件是**準則與基本規範**：新增功能的流程、程式碼風格、文件責任歸屬、決策層級與
+UI 變更規則。指令與部署見 [operations.md](operations.md)；各功能怎麼運作住在那個功能的
+文件裡，本文件不複述。
 
 ## 1. 新增功能的標準流程
 
-當你想要新增一個功能（例如：處理資產買賣、自動對帳）時，請遵循以下步驟：
+### 第一步：讀設計，再讀程式碼
 
-### 第一步：定義領域模型 (Domain Layer)
+- 先讀 `docs/` 裡與該功能相關的設計文件與 ADR，再動手。
+- 行為與文件衝突時，以 `docs/` 為準並在同一個 task 內修正實作或文件。
+
+### 第二步：定義領域模型 (Domain Layer)
 
 - 在 `src/domains/{domain_name}/` 建立 `schemas.ts` 與 `types.ts`。
 - **嚴禁**直接在 `src/infra/schemas/` 定義業務類型。
 
-### 第二步：實作存取層 (Infrastructure Layer)
+### 第三步：實作存取層 (Infrastructure Layer)
 
 - 在 `src/infra/repositories/` 建立 Repository。
 - 一般 CRUD Repository 應繼承 `BaseRepository`，並引用 **Domain Layer** 定義的 Schema。
@@ -19,25 +24,25 @@
   讀寫封裝，可以使用明確的 custom Repository；仍須把資料契約放在 Domain
   Layer，並讓 transaction context 由 Application Use Case 傳入。
 
-### 第三步：建立原子使用案例 (Application Use Cases)
+### 第四步：建立原子使用案例 (Application Use Cases)
 
 - 在 `src/application/{domain_name}/use_cases/` 建立單一職責的操作。
 - 複雜的校驗邏輯應放進 **Domain Service**。
 
-### 第四步：建立控制器 (Controller Hook)
+### 第五步：建立控制器 (Controller Hook)
 
 - 在 `src/ui/features/{feature_name}/hooks/` 建立 Hook。
 - Hook 職責：管理 UI 狀態（含表單狀態）、注入 `AuthContext`、呼叫 Use Case。
 - 讀寫分離：寫入放 Command（`*Cmds`），讀取放 Query 或 Controller；`*Cmds` 內不得出現讀取。
 - 層級與可觸碰清單見 [`ui/ui-layer-architecture.md`](ui/ui-layer-architecture.md)。
 
-### 第五步：建立 UI Form ViewModel 與 Mapper (UI Layer)
+### 第六步：建立 UI Form ViewModel 與 Mapper (UI Layer)
 
 - 在 `src/ui/features/{feature_name}/viewmodels/` 建立表單 VM Schema（Zod）。
 - 定義 `mapXxxVMToDomain`，集中處理字串/日期/數值轉換。
 - 規則：Component 與 Hook 不得直接組裝 Domain payload。
 
-### 第六步：實作 UI 組件
+### 第七步：實作 UI 組件
 
 - 呼叫 Hook 並渲染畫面。
 - Component 與 Page（Surface）不得 import `@/domains`、`@/application`、`@/infra`，**連型別也不行**；需要 domain 形狀時由 ViewModel 轉出（ADR-0062）。
@@ -51,66 +56,78 @@
 - **單一職責**: 一個 Use Case 文件只做一件事（例如：`createTransactionUseCase.ts` 只負責建立交易）。
 - **表單一致性**: 表單資料必須先映射到 ViewModel，再由 mapper 轉換成 domain 型別。
 - **驗證一致性**: 所有新表單路徑統一採用 Zod schema，禁止分散式手寫驗證。
-- **格式一致性**: 正式程式碼與 Markdown 文件以 Prettier 為格式單一真相來源（設定在 `.prettierrc`：單引號、尾逗號、printWidth 100、`@trivago` import 排序）；依賴產物（`pnpm-lock.yaml`、`skills-lock.json`）不在格式範圍（見 `.prettierignore`），lockfile 格式只能由 pnpm 管理。
+- **格式一致性**: Prettier 是格式與 import 排序的單一真相來源，設定在 `.prettierrc`；不手動維護排序。commit 前跑 `pnpm format`。
 
-## 3. 維護建議
+## 3. 文件規範
 
-- **決策與規範分開更新**: 修改架構或業務取捨時，新增或修訂 `docs/adr/` 中的決策（只記為什麼）；修改規則、結構或流程時，更新該事實歸屬的主題文件。同一事實只留一處，分工見下。
-- **規範數值衝突裁決**: 當兩份文件對同一事實給出不同數值時（例如列高、頁寬），以**該事實歸屬文件中最新的實測值**為準，並在同一個 task 內修掉另一處的 stale 敘述（含 ADR 裡的歷史敘述），不讓兩個數字並存。衝突不會自己消失，只會累積。
-- **文件不記載會隨程式碼變動的值**: 值與程式識別字（像素級尺寸、class、欄寬、元件／常數名）住在程式碼、`design-system.md` 或 component catalog；文件只留語意不變式與指標。判斷法：**拿掉這個值，這句話還講得通嗎？** 講得通就是實作細節，不該手寫進文件。歸屬判準——跨頁可複用的規則住 `visual-standards.md`，單一工作流的呈現決定住該 feature 的文件（如 `monthly-close.md`）。
-- **設計暫置不在版控內**: 設計討論期的暫置內容（spec 套件、原型、實作計畫）不是事實來源；討論階段把決策記在 GitHub issue，原型以 throwaway 分支承載（見下）。功能落地時在同一個 task 內把行為/結構併入對應正式文件、取捨決策併入或修訂 ADR、術語更新 `CONTEXT.md`，然後刪除已整合的暫置檔案（git 歷史保留）；同一事實不得留在兩處。**repo 內不留任何設計暫置資料夾**——已退役的暫置資料夾不得重建。正式文件不得引用暫置路徑或 spec 檔名（含「spec 加編號」這類間接寫法），`pnpm docs:check` 會擋下並指出位置，並在該資料夾重現時直接失敗；CI 與 pre-commit 皆執行。
-- **原型捕獲準則**: 原型是為回答一個問題而生的可丟棄產物，不是例行產物，只在「問題需要跑起來才知道答案」時建立；建立流程與兩種形態（logic / UI）見 `.agents/skills/prototype/`。問題得解後依該 skill 規則 6 捕獲：驗證過的決策併入正式程式碼；原型本身作為 primary source commit 到一條 throwaway 分支（自 `main` 切出、永不併回 `main`，且須推到 `origin`，否則 pointer 指向一個別人不存在的 ref）；在**實作 issue** 留下指向該分支的 context pointer，並記下 verdict 與它解決的問題；`main` 只保留已驗證的決策。ADR 只記錄決策，不引用原型或暫置路徑。捕獲時內容不得改動。
-- **一份 spec 一條原型分支**: 同一份 spec 的原型只有一個。即使當初因故拆成多個 HTML 檔，所有檔案仍屬同一份原型、放同一條 `prototype/<spec>` 分支，不按檔數拆成多條。
-- **維護結構參考**: 如果修改了資料結構，更新 `docs/data-structure.md` 的欄位清單與 ADR 連結。
-- **保持 `docs/` 的準確性**: 主題文件說明現在如何運作，規範細節住在這裡；決策理由集中在 ADR。
-- **效能考量**: 避免在前端進行超大規模的資料處理與循環引用。
-- **備份/還原流程**: Settings 提供 household 等級的 JSON 備份與還原，限制為 household owner/admin（或 global admin）可執行。備份格式為 `schemaVersion: 2`，`1` 直接拒絕、沒有相容分支（ADR-0084）。備份涵蓋 household 資料域全部集合：根文檔、四個含 snapshot 子集合的實體（accounts/projects/portfolios/debtAccounts）、retirementPlans（raw `unknown[]` 原樣搬運）、projections（主文件與三份固定子文件 config/source/annual 的 bundle）、transactions、reports、allocations、allocationTemplates、ledgerCodes、intentMappings、financialPeriods；coverage 由 `backupCoverage.test.ts` 靜態掃描把關，新增集合未更新備份會讓測試失敗。三項設計排除：`operations`（冪等鍵紀錄，還原舊紀錄干擾重試與去重語意）、`users` 與 `access_control`（全域身分與存取層，隨備份還原有安全風險）。匯入以與匯出同組 domain schema 驗證 payload，驗證失敗即中止、不刪任何資料；刪除逐集合條件化，payload 缺 `financialPeriods` 鍵時本地該集合不受影響。**備份檔是 JSON，其中的時間欄位到達匯入端時是 ISO 字串**：字串到時間的還原由 domain schema 上的共用 timestamp 型別負責（`src/shared/schemas/date.ts`），匯入寫回的是驗證後的解析結果而非原始 payload，因此「長得像時間」的字串欄位（如匯入來源的 `importedAt`）不會被誤判。**已退役的集合**若仍出現在較舊的 payload 中，匯入時一律忽略（不還原、不刪除本地資料），取捨見 ADR-0080。還原信任備份值不重算衍生欄位，備份越舊其中的快取觀察值（debtAccount 餘額、專案快照餘額）越陳舊。
+### 3.1 一條事實只有一個家
 
-### 文件分工：每份文件回答什麼問題
+文件不是程式碼的鏡子。**程式碼能表達的事實不寫進文件**，文件只寫程式碼表達不了的
+那部分。判斷法：**拿掉這個值或識別字，這句話還講得通嗎？** 講得通就是實作細節。
 
-判斷一份文件該不該存在、內容該放哪，看它**回答什麼問題**，不看它叫什麼名字。每個問題只有一個地方負責回答。
+| 內容                                 | 唯一的家                          |
+| ------------------------------------ | --------------------------------- |
+| 這個詞在系統裡精確指什麼             | `CONTEXT.md`                      |
+| 當初為什麼這樣決定、被推翻的取捨     | `docs/adr/`                       |
+| 行為契約：不變式、錯誤語意、邊界語意 | 該功能的主題文件                  |
+| 功能的大方向與範圍                   | 該功能的主題文件（開頭段落）      |
+| 欄位、enum、數值範圍、識別字、路徑   | 程式碼（`src/domains/<domain>/`） |
+| 驗收                                 | 測試（測試名稱即紀錄）            |
+| 怎麼跑、怎麼驗、怎麼部署             | `operations.md`                   |
+| 怎麼操作、怎麼除錯                   | `testing.md`、`qa-faq.md`         |
+| 這個 repo 的 agent 怎麼運作          | `docs/agents/`、`AGENTS.md`       |
+| 這是什麼、怎麼啟動                   | `README.md`（路標，不是內容）     |
 
-| 文件                                                                                                                                                                         | 回答什麼問題                      | 不放什麼                                                       |
-| ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------- | -------------------------------------------------------------- |
-| `CONTEXT.md`                                                                                                                                                                 | 這個詞在我們的系統裡精確指什麼？  | 實作細節、任何「為什麼」、架構與 UI 詞彙                       |
-| `docs/adr/`                                                                                                                                                                  | 這個決定當初為什麼這樣下？        | 欄位清單、enum 全集、錯誤碼表、驗收清單、class 名              |
-| 主題文件（`architecture`、`data-structure`、`financial_report`、`retirement-system`、`debt-accounts`、`transaction-flow`、`monthly-close`、`ddd-design-principles`、`ui/*`） | 現在的規則與資料長怎樣？          | 決策理由                                                       |
-| `docs/agents/*`                                                                                                                                                              | AI agent 在這個 repo 該怎麼運作？ | 給人讀的架構知識                                               |
-| `development-guide`、`testing`、`qa-faq`                                                                                                                                     | 我要怎麼做、怎麼跑、踩過什麼坑？  | 架構解釋                                                       |
-| `README.md`                                                                                                                                                                  | 這是什麼、我要怎麼跑起來？        | 架構決策、domain 定義、長篇說明（README 是路標，不是內容本身） |
+主題文件留在文件裡的，只有**測試看不出意圖**的少量語意——例如某條規則存在的理由、
+兩層才成立的邊界、使用者看得到的失敗方式。可以從 code 直接讀到的形狀一律留給 code。
 
-UI 與架構詞彙的 glossary 住在 `docs/ui/ui-layer-architecture.md`，不進 `CONTEXT.md`。
+**禁止**：同一條事實同時寫在兩處。若兩處都有，選定歸屬後刪掉另一處，不要「先並存
+之後再說」。
 
-### ADR 只記「為什麼」
+### 3.2 spec 住 issue tracker
 
-ADR 回答的是**當初為什麼這樣決定**。規範細節（欄位、enum、公式、數值、驗收清單）住在該事實歸屬的主題文件，ADR 只留一行 `規範來源` 指標。
+- 設計討論期的 spec、實作計畫、決策草稿都住在 GitHub issue，不進 repo。
+- 功能落地時，在同一個 task 內拆成三份：決策進 `docs/adr/`、行為與結構進主題文件、
+  驗收進測試，然後在 issue 註明落地 PR 並關閉。spec 不留副本。
+- 決策若還沒被壓力測試過（術語、邊界、例外沒被質疑），先問一句「這個決定還沒被
+  grill 過，要照現況記錄嗎？」再寫 ADR。
+- ADR 只在**難以回復、沒有上下文會意外、且真的存在取捨**三者同時成立時才寫。格式見
+  `.agents/skills/domain-modeling/ADR-FORMAT.md`。
+- ADR 只記「為什麼」，規範來源用一行指標指向主題文件；細節未搬進歸屬文件前不得從
+  ADR 刪除（先加後刪）。
 
-判斷某個值該留還是該走，問一句：**拿掉這個值，這句話還講得通嗎？**
+### 3.3 原型
 
-- 還講得通 → 它是列舉細節，歸主題文件。
-- 講不通 → 它是這個決定的一部分，留在 ADR。
+原型是為了回答一個問題而生的可丟棄產物，只在「不跑起來就不知道答案」時建立。建立
+與捕獲流程見 `.agents/skills/prototype/`；捕獲時把驗證過的決策併入正式程式碼，原型本
+體 commit 到自 `main` 切出、永不併回的 throwaway 分支，並在實作 issue 留下指向該分支
+的 pointer 與 verdict。同一份 spec 只有一條原型分支。
 
-**先加後刪**：同一條事實還沒寫進它的歸屬文件之前，不得從 ADR 刪除。先讓新家成立，再拆舊家，兩件事在同一個 task 內完成。
+### 3.4 維護
 
-### 新增文件前的三個測試
+- **決策與事實分開更新**：改架構或取捨 → 新增／修訂 ADR；改規則、結構或流程 → 更新
+  該事實的歸屬文件。
+- **數值衝突裁決**：兩份文件對同一事實給出不同數值時，以該事實歸屬文件中最新的實測
+  值為準，並在同一個 task 內修掉另一處（含 ADR 的歷史敘述）。
+- **保持 `docs/` 的準確性**：主題文件說明現在如何運作；`docs:check` 會擋下失效的相對
+  連結與暫置路徑。
+- **效能考量**：避免在前端進行超大規模的資料處理與循環引用。
+
+### 3.5 新增文件前的三個測試
 
 1. **這個問題已經有文件在回答嗎？** 有就補進去，不要新開檔案。
-2. **這個內容會隨程式碼變動而過期嗎？** 會（例如「目前的 API 參數」）就屬於程式碼旁或自動產生的文件，不該手寫在獨立 markdown 裡。
-3. **這是「決定」還是「事實」？** 決定（有取捨、可能被推翻）→ ADR；事實（現在系統長怎樣）→ 主題文件或 `CONTEXT.md`。
+2. **這個內容會隨程式碼變動而過期嗎？** 會就屬於程式碼旁或自動產生的文件。
+3. **這是「決定」還是「事實」？** 決定 → ADR；事實 → 主題文件或 `CONTEXT.md`。
 
 ## 4. 設計決策層級與變更流程
 
 呈現層的改動依「這是不是一個已確認的決策」分三級；層級決定改動前是否需要先取得同意。
-
-### 設計決策層級
 
 - **DESIGN DECISION（設計決策）**：已確認的產品或 UI 決策。**AI agent 與開發者不得在取得明確同意前變更**。
 - **DESIGN GUIDELINE（設計準則）**：設計原則。必要時可依情境調整，但調整後的實作必須與整體設計語言一致。
 - **IMPLEMENTATION DETAIL（實作細節）**：工程實作選擇。可在不影響使用者可見設計的前提下自由變更。
 
 判斷順序：先問「這是決策、準則，還是細節？」——決策需要事前同意，準則需要維持一致，細節則不受此限。
-
-### 設計變更流程
 
 引入任何新模式（新元件、新視覺樣式、新互動）之前，先依序回答六個問題：
 
@@ -121,7 +138,7 @@ ADR 回答的是**當初為什麼這樣決定**。規範細節（欄位、enum�
 5. 這是否引入不必要的裝飾？
 6. 這是否重複既有的財務概念？
 
-若答案不明確，優先採用既有模式，而不是引入新模式。這六個問題與上面的層級是同一件事的兩面：層級說「誰能拍板」，流程說「拍板前該想什麼」。
+若答案不明確，優先採用既有模式，而不是引入新模式。
 
 ## 5. UI 變更的 AI 規則
 
@@ -144,11 +161,13 @@ AI agent 修改或建立任何 UI 時，**必須**遵守：
 15. 將 Navigator 視為獨立的導航層。
 16. Pixel Pet 的行為與其最終美術素材保持獨立。
 
-其中屬契約層面的細節（token、顏色、字體排印、圓角、漸層、元件表面）以 `docs/ui/` 的呈現層文件為準；本節只規範 AI agent 的義務。
+契約層面的細節（token、顏色、字體排印、圓角、漸層、元件表面）以 `docs/ui/` 為準；
+本節只規範 AI agent 的義務。
 
 ## 6. 頁面級視覺 review 的掃描方法論
 
-頁面級視覺 review 的價值在於**可重複的程序**：拿一份已落地的呈現層標準，逐節對照實際 UI，產出一份 gap inventory。當次的掃描結果是一次性證據，程序本身才是永久資產。
+頁面級視覺 review 的價值在於**可重複的程序**：拿一份已落地的呈現層標準，逐節對照實際
+UI，產出一份 gap inventory。當次的掃描結果是一次性證據，程序本身才是永久資產。
 
 ### 程序
 
@@ -167,133 +186,11 @@ AI agent 修改或建立任何 UI 時，**必須**遵守：
 
 ### 邊界
 
-- **證據一次性、方法可重複**：當次掃描的結果（哪些頁面 fail、runtime 量測數字）不進正式文件；正式文件只保留本節的程序。
-- **文件複述會變的值視為落差**：文件手寫了會隨程式碼變動的值或識別字（像素級尺寸、class、欄寬、元件／常數名）時，記為落差，並依 §3 的「文件不記載會隨程式碼變動的值」處理（值搬到程式碼或 `design-system.md`，文件只留語意不變式與指標）。
-- 裁決若牽涉跨文件的數值衝突，依 §3 的 **規範數值衝突裁決** 處理。
+- **證據一次性、方法可重複**：當次掃描的結果不進正式文件；正式文件只保留本節的程序。
+- **文件複述會變的值視為落差**：文件手寫了會隨程式碼變動的值或識別字時，記為落差並依
+  §3.1 處理。
+- 裁決若牽涉跨文件的數值衝突，依 §3.4 處理。
 
-## 7. 驗證命令
+## 7. 指令與部署
 
-- `pnpm test`: 執行不依賴 Firebase Emulator 的 unit tests。
-- `pnpm test:coverage`: 對相同的 unit test 範圍產生 text、JSON 與 HTML coverage 報告。
-- `pnpm test:integration`: 執行需要 Firebase Emulator 的 integration tests；執行前會在期限內重試等待 emulator 可連線。
-- `pnpm test:e2e`: 執行 Playwright browser smoke suite（見 [測試指南](testing.md) §E2E）。需要外部啟動的 emulator 與 chromium，較慢且不進本地 commit pipeline；由 CI 的 `e2e` job 在 PR 與 main push 上把關（見 §7.1）。
-- `pnpm typecheck:e2e`: 驗證 E2E 測試檔（`e2e/`）與 `playwright.config.ts` 的 TypeScript。E2E 檔案不在 `src/`，因此不在 `tsc -b` 的 build graph 內，由本命令獨立把關；CI 的 `e2e` job 在跑 Playwright 前執行。
-- `pnpm exec tsc --noEmit -p tsconfig.test.json`: 驗證測試檔的 TypeScript project 設定與 `@/*` 路徑別名；此 project 也由 root solution reference，供 IDE 解析使用，並以 declaration-only、no-check 方式納入 build graph，不進行完整語意型別檢查。
-- `pnpm exec tsc -b`: 依 root solution 執行完整 build graph 型別檢查（正式程式碼）。
-- `pnpm lint`: 執行唯讀 ESLint 檢查。
-- `pnpm lint:fix`: 明確執行 ESLint 自動修正。
-- `pnpm format`: 執行 Prettier 自動排版（寫入型驗證步驟，commit 前執行）。
-- `pnpm docs:check`: 驗證正式文件（`docs/`，加上根目錄 `CONTEXT.md`、`AGENTS.md`）不引用暫置路徑、spec 套件名、暫置檔名，以及「spec 加編號」的間接寫法，並斷言已退役的設計暫置資料夾不存在；實際攔阻樣式見 `scripts/check-doc-references.sh`。`prototype/<name>` 分支指標不在攔阻範圍。
-
-驗證收尾順序：`pnpm format` → `pnpm lint` → typecheck → tests → `pnpm docs:check`。format 放最前面，避免排版差異淹沒實質 diff。
-
-## 7.1 CI/CD 流程
-
-GitHub Actions 位於 `.github/workflows/`：
-
-- **CI**（`test.yml`）：對 main/develop 的 push 與 PR 觸發。依序執行 `pnpm lint`、`pnpm docs:check`、`tsc -b`、unit tests、Firestore Emulator integration tests。另有獨立的 **`e2e` job**，只在 PR 與 main push 執行（chromium + Playwright，見 ADR-0082），不在每次 push 觸發。CI 未含 format check——格式一致性由 `pnpm format` 在 commit 前承擔(見 §7 驗證命令)。Node 版本以 `.nvmrc`
-  為單一真相來源；依賴以 `--frozen-lockfile` 安裝並快取 pnpm store。同一分支的新
-  push 會取消舊的執行（concurrency），整體逾時 20 分鐘。
-- **Deploy to Firebase Hosting on PR**（`firebase-hosting-pull-request.yml`）：
-  CI 成功後，對每個 PR 與 develop 的 push 部署 Hosting preview channel；PR 為
-  `pr<N>-<branch>`（存 7 天），develop 的 push 為固定的 `develop`（每次 push
-  延長到 30 天），因此 develop 有一條長期穩定的 staging URL。
-- **Deploy to Firebase Hosting on merge**（`firebase-hosting-merge.yml`）：
-  CI 成功後，對 main 的 push 部署到 live channel。
-
-部署以「CI 綠燈」為閘門；lint 與型別檢查也必須通過，PR 才能被視為可合併。
-部署一律 checkout `workflow_run.head_sha`，部署的 commit 與測試的 commit 一致；
-兩個部署 workflow 都以 `workflow_run` 觸發（YAML 與 secrets 取自 `main`），
-修改部署 workflow 需合併到 `main` 後才生效。鎖定與觸發設計的取捨理由、以及
-channelId 必須明確傳入的原因，見各部署 workflow 檔內的 why 註解。
-
-**preview URL 會打生產後端**，且 URL 只是難猜而非私有。詳見
-[ADR 0047](adr/0047-preview-channel-shares-production-backend.md)：preview 僅供視覺確認，
-不在上面錄入資料；需要可寫入的環境請用本機 Firebase Emulator。
-
-不為 preview 另開 Firebase project（單一家庭使用，設定同步成本高於隔離效益）。Hosting
-配額是 **project 層級**而非 channel 層級（免費額度 10 GB 儲存與 10 GB/月傳輸）；channel
-數量本身不計費，但每個 channel 的 release 會佔用儲存，必要時在 console 設定各 channel 的
-「releases to keep」上限。
-
-各測試層級的完整說明(模擬器環境變數、security rules 測試、E2E 規劃)見
-[測試指南](testing.md)。
-
-## 8. CI/CD
-
-見上方 7.1 節的 GitHub Actions 流程說明。
-
-## 9. Docker 開發環境
-
-專案提供 root-level Docker development stack，固定 Node.js 24 與 pnpm 10，並以同一個 Compose project 啟動 Vite 與 Firebase Emulator。適合需要一致工具鏈或不想在 host 安裝 Node/pnpm 的開發者。
-
-```bash
-docker compose up --build
-```
-
-Vite 預設在 `http://localhost:5173`；若 host port 已被占用，可改用其他 port：
-
-```bash
-VITE_PORT=5174 docker compose up --build
-```
-
-- Vite host port: `5173` by default, or the value supplied through `VITE_PORT`
-- Firebase Emulator UI: `http://localhost:4000`
-- Firestore Emulator: `localhost:8080`
-- Auth Emulator: `localhost:9099`
-
-### 瀏覽器如何連到 emulator
-
-Compose 只發佈 app 的 port（`5173`）；emulator 的 `8080`/`9099` 只在 compose 網路內，且瀏覽器解析不到 `firebase` 這個 service hostname。因此前端預設**不直連 emulator**，而是走 Vite dev server 的同源 proxy（設定在 `vite.config.ts`，路徑常數在 `src/infra/emulatorEndpoints.ts`）：
-
-| 前端請求                                                                                      | 轉發目標                 |
-| --------------------------------------------------------------------------------------------- | ------------------------ |
-| `/__emulator/firestore/*`                                                                     | `http://firebase:8080/*` |
-| `/identitytoolkit.googleapis.com/*`、`/securetoken.googleapis.com/*`、`/www.googleapis.com/*` | `http://firebase:9099/*` |
-
-Auth 之所以用「假 API host」前綴而非自己的路徑前綴，是因為 `connectAuthEmulator` 會強制把 URL 路徑換成 `/`；Firestore 則是 channel base URL 直接由 `host:port` 字串串接，所以路徑前綴可以放在 host 裡。另有 `/emulator/auth` 前綴：Auth SDK 在 emulator 模式下 `signInWithPopup` 開啟的 widget 路徑若不轉發，會被 Vite 的 SPA fallback 吃掉（popup 載到 `index.html`，變黑畫面）。
-
-若瀏覽器本身就在 compose 網路內（可解析 `firebase`），可略過 proxy：
-
-```bash
-VITE_FIREBASE_EMULATOR_HOST=firebase docker compose up --build
-```
-
-Proxy 的上游可用 `FIRESTORE_EMULATOR_HOST` / `FIREBASE_AUTH_EMULATOR_HOST` 覆寫（兩者都接受有無 scheme 的寫法）。
-
-在 container 中執行驗證命令：
-
-```bash
-docker compose run --rm app pnpm test
-docker compose run --rm app pnpm test:integration
-docker compose down
-```
-
-`pnpm test` 不需要 emulator；`pnpm test:integration` 會透過 Compose service name 連線到 Firebase Emulator。若直接在 host 執行 integration tests，helper 會使用 published localhost ports。
-
-## 10. Release 流程
-
-`develop` 是持續整合線，`main` 是 release 線；兩個保護分支都不直推，一切透過 PR。版號以 `package.json` 的 `version` 為單一真相來源（`vite.config.ts` / `vitest.config.ts` 注入，SiteFooter 顯示）。本節以 2.0.1 的實際執行為準。
-
-### 常規發版
-
-1. **Feature**：從 `develop` 切 branch（`feat/`、`fix/`）→ PR 回 `develop` → CI 綠燈 → merge。
-2. **版號 bump**：從 `develop` 切 `release/X.Y.Z`，**只改 `package.json` 的 version** → PR 回 `develop` → merge。**merge 這個 PR 的時間點就是進版時間**，git 歷史可查。
-3. **進版 main**：開 `develop` → `main` 的 PR（body 註明進版與內容來源 PR）→ merge，main 同時帶入功能與版號。
-4. **Tag + Release**：merge 後執行 `gh release create vX.Y.Z --target main --generate-notes`——tag 打在 main HEAD，changelog 自動生成。
-
-版號 bump 走獨立 release branch 而非併入 feature PR 的理由：feature review 中途變更時版號範圍不會漂移；merge commit 是明確的進版宣告；受保護分支下它也是唯一不需要特權的路徑。
-
-### Hotfix
-
-main 上線後的緊急修復（出 `2.0.2` 這類 patch）：
-
-1. 從 **`main`** 切 `hotfix/X.Y.Z`，修復 + bump 一起走一個 PR 回 `main`。
-2. merge 後執行 `gh release create vX.Y.Z --target main --generate-notes`。
-3. cherry-pick 修復回 `develop`（bump 不 pick，下次 release branch 會帶）。
-
-### 版號語意
-
-依 semver：breaking change 或大型里程碑 → major、新功能 → minor、修復 → patch。`1.1.0 → 2.0.1` 的跳躍是之前忘記 bump 的補償，不是慣例；之後按 `2.1.0` / `2.0.2` 正常遞增。
-
-CI 觸發與 Hosting 部署（preview/live channel）的閘門設計見 §7.1；push 到 `main` 時 live 部署自動執行，release 時機在其後由上述第 4 步宣告。
+驗證命令、CI/CD、Docker、部署與 release 流程見 [operations.md](operations.md)。

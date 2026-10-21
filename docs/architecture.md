@@ -50,14 +50,10 @@
 ### 📂 Presentation (呈現層) - `src/ui/`
 
 - **職責**: UI 渲染與使用者互動。
-- **內容**:
-  - `features/[feature-name]/hooks/`: **控制器 (Controller)**。React 進入點，負責銜接 UI 與核心邏輯。
-  - `contexts/`: UI 自有的 React context 與 provider（Controller 範圍，例如認證狀態）。
-  - `components/`: React 組件。
 - **規則**: Component 只調用 feature Hook (Controller)，不直接觸碰業務邏輯或資料庫。
-  層級、可觸碰清單與呼叫方向以 [`ui/ui-layer-architecture.md`](ui/ui-layer-architecture.md) 為準；
-  UI 不得 import `@/domains`、`@/application`、`@/infra`，也不得 import `firebase/firestore`
-  （跨層實作由 `src/App.tsx` 這個 composition root 注入）。
+
+層級、可觸碰清單、呼叫方向與跨層注入一律以
+[`ui/ui-layer-architecture.md`](ui/ui-layer-architecture.md) 為準，本文件不重述。
 
 ### 📂 Shared - `src/shared/`
 

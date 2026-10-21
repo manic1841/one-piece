@@ -1,5 +1,6 @@
 # 債務還款匯入保留 N+1 快照查詢
 
+**日期：** 2026-09-11
 **狀態：** 已接受
 **規範來源：** [retirement-system.md](../retirement-system.md) §4
 

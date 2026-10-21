@@ -1,5 +1,6 @@
 # debt_payment 支出的本金/利息計算規則
 
+**日期：** 2026-08-31
 **狀態：** 已被 [ADR-0085](0085-source-method-rules-replace-flat-amounts.md) 取代
 **規範來源：** 無（本決策已由 ADR-0085 取代，原規則已移除）
 

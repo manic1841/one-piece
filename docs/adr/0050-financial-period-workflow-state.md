@@ -1,5 +1,6 @@
 # 財務期間狀態為唯一持久化的關帳工作流狀態
 
+**日期：** 2026-09-16
 **狀態：** 已接受
 **規範來源：** [monthly-close.md](../monthly-close.md)；[data-structure.md](../data-structure.md)
 

@@ -1,5 +1,6 @@
 # 採用 TypeScript 而非 JavaScript
 
+**日期：** 2026-08-31
 **狀態：** 已接受
 **規範來源：** [development-guide.md](../development-guide.md) §2
 

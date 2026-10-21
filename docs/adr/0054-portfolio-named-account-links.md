@@ -1,7 +1,8 @@
 # 投資組合帳戶連結邊界：具名單一來源 + 建立後不可變更
 
+**日期：** 2026-09-18
 **狀態：** 已接受
-**規範來源：** [data-structure.md](../data-structure.md) §portfolios；[CONTEXT.md](../../CONTEXT.md)（Portfolio）
+**規範來源：** [data-structure.md](../data-structure.md) §2；[CONTEXT.md](../../CONTEXT.md)（Portfolio）
 
 投資組合是觀察投資持倉與價值變化的管理視圖（ADR-0006 語意分離：描述投資部位，不取代實體帳戶或會計科目）。組合價值公式需要「哪個是證券戶、哪個是銀行戶」的確定答案，因此連結必須具名且唯一：每個 portfolio 恰好連結一個證券帳戶與一個銀行/現金帳戶，同一 household 中每個來源帳戶至多屬於一個 portfolio（防止同一期末餘額被重複計入）。
 

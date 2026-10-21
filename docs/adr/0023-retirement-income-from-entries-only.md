@@ -1,5 +1,6 @@
 # 退休收入流以 transactions.entries 為唯一來源
 
+**日期：** 2026-08-31
 **狀態：** 已接受
 **規範來源：** [retirement-system.md](../retirement-system.md) §6
 

@@ -2,7 +2,7 @@
 
 **日期：** 2026-10-06
 **狀態：** 已接受
-**規範來源：** [monthly-close.md](../monthly-close.md) §3「UI 組構：大一統步驟 registry」、§4「專案結算的顯示與重新確認」
+**規範來源：** [monthly-close.md](../monthly-close.md) §3（階段 UI 的組構原則）、§4（專案結算的資料邊界）
 
 `CloseStepDefinition` 曾同時帶 `control`、`render(ctx)` 與 `evidence()`：evidence 是一個零參數閉包，由 registry 從擁有資料的 stage hook 建構一個判別聯合（`CloseStageEvidence`），交給共用的 `CloseStageEvidenceList` 元件渲染。實際上八個階段裡只有 `PROJECT_SETTLEMENT` 用到它，其餘四個帶輸入的階段一律傳 `NO_EVIDENCE`、另外三個的 builder（zero-activity／adjustment／persistence）在任何畫面都到不了——`CloseStageEvidenceList` 從未渲染過這三種形狀。整個 evidence 通道因此是**只有一個消費者的第二條呈現路徑**：同一份資料既要餵輸入元件、又要被 registry 轉成另一種形狀再畫一次，於是改一次結算顯示要同時改 builder、聯合型別與共用元件三處。
 

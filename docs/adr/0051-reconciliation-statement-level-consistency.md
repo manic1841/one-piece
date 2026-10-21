@@ -1,7 +1,8 @@
 # 對帳為報表層級的科目一致性檢查，不做逐帳戶定位
 
+**日期：** 2026-09-16
 **狀態：** 已接受（2026-09 修訂）
-**規範來源：** [financial_report.md](../financial_report.md) §3；[CONTEXT.md](../../CONTEXT.md)（Reconciliation）
+**規範來源：** [financial_report.md](../financial_report.md) §5；[CONTEXT.md](../../CONTEXT.md)（Reconciliation）
 
 產品規格的 Account Reconciliation 階段（銀行餘額 vs 帳面餘額差異、定位問題帳戶）在資料架構上辦不到：實體帳戶與會計科目刻意分離（ADR-0007），帳面餘額無法逐帳戶計算。因此對帳的目的定義為**報表層級的科目一致性**——檢查整體科目的金額在跨報表之間是否一致，不一致時以警示提醒，不嘗試定位到單一帳戶，也不引入帳戶-科目映射。
 

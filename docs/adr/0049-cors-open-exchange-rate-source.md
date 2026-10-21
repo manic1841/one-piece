@@ -1,5 +1,6 @@
 # 匯率源使用 CORS 開放的每日匯率 CDN,不自建代理
 
+**日期：** 2026-09-15
 **狀態：** 已接受(2026-09)
 **規範來源：** [architecture.md](../architecture.md) §1；[CONTEXT.md](../../CONTEXT.md)（匯率）
 

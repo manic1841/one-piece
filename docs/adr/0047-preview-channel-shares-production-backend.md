@@ -1,7 +1,8 @@
 # Preview channel 共用生產後端,僅供視覺確認
 
+**日期：** 2026-09-12
 **狀態：** 已接受（2026-09）
-**規範來源：** [development-guide.md](../development-guide.md) §7.1
+**規範來源：** [operations.md](../operations.md) §2
 
 Firebase Hosting 的 preview channel 只隔離**前端靜態內容**,不隔離後端;preview URL 只是難猜(含隨機 hash),**並非私有**。本專案是家庭財務系統,交易寫入生產 Firestore,因此從 preview URL 登入並錄資料,資料會真的進生產庫。Security Rules 照舊生效,這不是外洩風險,而是**髒資料風險**,且資料一旦寫入只能靠備份/還原處理,屬於不可逆約束。
 

@@ -1,5 +1,6 @@
 # 關帳工作流階段資料建立邊界：階段確認冪等建立該階段資料
 
+**日期：** 2026-09-16
 **狀態：** 已接受
 **規範來源：** [monthly-close.md](../monthly-close.md)；[ui/visual-standards.md](../ui/visual-standards.md) §帳戶餘額階段排版
 

@@ -1,5 +1,6 @@
 # 退休計畫寫入的原子邊界
 
+**日期：** 2026-09-07
 **狀態：** 已被 [ADR-0088](0088-single-batch-all-or-nothing.md) 取代（子集合與 active fan-out 段）
 **規範來源：** 無（子集合與 active fan-out 段已由 ADR-0088 取代，交易邊界原則併入該 ADR）
 

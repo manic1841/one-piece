@@ -1,5 +1,6 @@
 # 移除監看清單：記帳完整性檢查不再是一個獨立功能
 
+**日期：** 2026-10-06
 **狀態：** 已接受（2026-10）
 **規範來源：** [monthly-close.md](../monthly-close.md) §3；[development-guide.md](../development-guide.md) §3；`CONTEXT.md`
 

@@ -1,5 +1,6 @@
 # 改用分錄表(Journal Entry)架構
 
+**日期：** 2026-08-31
 **狀態：** 已接受
 **規範來源：** [transaction-flow.md](../transaction-flow.md)；[data-structure.md](../data-structure.md)
 

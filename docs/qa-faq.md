@@ -43,7 +43,7 @@
 
 **症狀**:從容器內對 `localhost:8080` 的 REST 探測全部 ECONNREFUSED,以為 emulator 掛了。2026-09-22 實例:對 `localhost:8080/9099/4000` 逐一探測全部失敗,結論寫成「emulator 已停止」,但同一時間 `pnpm qa:seed` 正常結束。
 
-**根因**:本工作區可能是 dev-container(透過 docker compose 建立)。容器內 `localhost` 指容器自己,emulator 只能透過 service hostname `firebase` 連(`firebase:8080` / `firebase:9099`)。前端已改走 Vite 同源 proxy(見 `docs/development-guide.md` 的「瀏覽器如何連到 emulator」),所以瀏覽器端不再需要 `localhost:8080/9099`;那兩個 port 通常也沒有發佈到 host。
+**根因**:本工作區可能是 dev-container(透過 docker compose 建立)。容器內 `localhost` 指容器自己,emulator 只能透過 service hostname `firebase` 連(`firebase:8080` / `firebase:9099`)。前端已改走 Vite 同源 proxy(見 `docs/operations.md` 的「瀏覽器如何連到 emulator」),所以瀏覽器端不再需要 `localhost:8080/9099`;那兩個 port 通常也沒有發佈到 host。
 
 **判別法**:容器內(`pnpm qa:seed`、`curl firebase:8080`)用 `firebase:8080`;瀏覽器端看 DevTools 請求是否走同源路徑(`/__emulator/firestore/...`、`/identitytoolkit.googleapis.com/...`),不要去探 `localhost:8080`。admin 腳本(如 `pnpm qa:seed`)能連線成功就代表 emulator 活著。兩邊都失敗才懷疑 emulator 本身。整合測試的環境變數設定見 `docs/testing.md`。
 
@@ -145,9 +145,7 @@
 
 **判別法**:若 QA 環境仍疑似被清空,先確認搭的是哪個專案——integration 應只動 `demo-integration`,不應摸到 `demo-project`。要重建 `demo-project`:`pnpm qa:init && pnpm qa:seed`。
 
-**記錄自**:#208(2026-09-27,PR #202 live emulator 驗證發現)。
-
-**記錄自**:#120(2026-09-20)。
+**記錄自**:#208(2026-09-27,PR #202 live emulator 驗證發現);#120(2026-09-20)。
 
 ## 13. CI e2e job 被 cancelled → `--log-failed` 是空的
 

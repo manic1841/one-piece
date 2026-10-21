@@ -1,5 +1,6 @@
 # 採用 Firebase(Firestore + Auth)作為後端
 
+**日期：** 2026-08-31
 **狀態：** 已接受
 **規範來源：** [architecture.md](../architecture.md) §1；[data-structure.md](../data-structure.md)
 
