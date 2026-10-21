@@ -1,6 +1,6 @@
 import { Suspense, lazy } from 'react';
 
-import { BrowserRouter, Route, Routes } from 'react-router-dom';
+import { RouterProvider, createBrowserRouter } from 'react-router-dom';
 import { Toaster } from 'sonner';
 
 import { firebaseAuthGateway } from '@/infra/contexts/firebaseAuthGateway';
@@ -25,6 +25,7 @@ import ProjectDetailPage from '@/ui/features/project/pages/ProjectDetailPage';
 import ProjectsPage from '@/ui/features/project/pages/ProjectsPage';
 import ReportDetailPage from '@/ui/features/report/pages/ReportDetailPage';
 import ReportListPage from '@/ui/features/report/pages/ReportListPage';
+import ProjectionWorkspacePage from '@/ui/features/retirement-redesign/pages/ProjectionWorkspacePage';
 import RetirementPlanForm from '@/ui/features/retirement/pages/RetirementPlanForm';
 import RetirementPlanList from '@/ui/features/retirement/pages/RetirementPlanList';
 import SettingsIndexRedirect from '@/ui/features/setting/pages/SettingsIndexRedirect';
@@ -39,69 +40,77 @@ const GalleryPage = import.meta.env.DEV
   ? lazy(() => import('@/ui/features/app/pages/GalleryPage'))
   : null;
 
+const router = createBrowserRouter([
+  // Gated on DEV so the production bundle drops the chunk instead of shipping it dead.
+  ...(import.meta.env.DEV && GalleryPage !== null
+    ? [
+        {
+          path: '/gallery',
+          element: (
+            <Suspense fallback={null}>
+              <GalleryPage />
+            </Suspense>
+          ),
+        },
+      ]
+    : []),
+  { path: '/login', element: <Login /> },
+  { path: '/access-denied', element: <AccessDenied /> },
+  {
+    path: '/onboarding',
+    element: (
+      <ProtectedRoute>
+        <Onboarding />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: '/',
+    element: (
+      <ProtectedRoute requireHousehold>
+        <Layout />
+      </ProtectedRoute>
+    ),
+    children: [
+      { index: true, element: <Dashboard /> },
+      { path: 'close', element: <ClosePeriodPickerPage /> },
+      { path: 'close/:yearMonth', element: <ClosePeriodRouteGate /> },
+      { path: 'transactions', element: <Transactions /> },
+      { path: 'projects', element: <ProjectsPage /> },
+      { path: 'projects/:id', element: <ProjectDetailPage /> },
+      { path: 'accounts', element: <Accounts /> },
+      { path: 'accounts/:id', element: <AccountDetailPage /> },
+      { path: 'portfolios', element: <PortfoliosPage /> },
+      { path: 'portfolios/:id', element: <PortfolioDetailPage /> },
+      { path: 'reports', element: <ReportListPage /> },
+      { path: 'reports/:period', element: <ReportDetailPage /> },
+      { path: 'retirement', element: <RetirementPlanList /> },
+      { path: 'retirement/new', element: <ProjectionWorkspacePage /> },
+      { path: 'retirement/:id', element: <RetirementPlanForm /> },
+      { path: 'debt', element: <DebtListPage /> },
+      { path: 'debt/:id', element: <DebtDetailPage /> },
+      {
+        path: 'settings',
+        element: <SettingsLayout />,
+        children: [
+          { index: true, element: <SettingsIndexRedirect /> },
+          { path: 'household', element: <HouseholdSettingsPage /> },
+          { path: 'accounting', element: <AccountingSettingsPage /> },
+          { path: 'backup', element: <BackupSettingsPage /> },
+          { path: 'system', element: <SystemSettingsPage /> },
+        ],
+      },
+    ],
+  },
+]);
+
 function App() {
   return (
     <AuthStateProvider gateway={firebaseAuthGateway}>
       <Toaster theme="dark" />
       <AuthGate>
         <ConfirmDialogProvider>
-          <BrowserRouter>
-            <Routes>
-              {/* Gated on DEV so the production bundle drops the chunk instead of shipping it dead. */}
-              {import.meta.env.DEV && GalleryPage !== null && (
-                <Route
-                  path="/gallery"
-                  element={
-                    <Suspense fallback={null}>
-                      <GalleryPage />
-                    </Suspense>
-                  }
-                />
-              )}
-              <Route path="/login" element={<Login />} />
-              <Route path="/access-denied" element={<AccessDenied />} />
-              <Route
-                path="/onboarding"
-                element={
-                  <ProtectedRoute>
-                    <Onboarding />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/"
-                element={
-                  <ProtectedRoute requireHousehold>
-                    <Layout />
-                  </ProtectedRoute>
-                }
-              >
-                <Route index element={<Dashboard />} />
-                <Route path="close" element={<ClosePeriodPickerPage />} />
-                <Route path="close/:yearMonth" element={<ClosePeriodRouteGate />} />
-                <Route path="transactions" element={<Transactions />} />
-                <Route path="projects" element={<ProjectsPage />} />
-                <Route path="projects/:id" element={<ProjectDetailPage />} />
-                <Route path="accounts" element={<Accounts />} />
-                <Route path="accounts/:id" element={<AccountDetailPage />} />
-                <Route path="portfolios" element={<PortfoliosPage />} />
-                <Route path="portfolios/:id" element={<PortfolioDetailPage />} />
-                <Route path="reports" element={<ReportListPage />} />
-                <Route path="reports/:period" element={<ReportDetailPage />} />
-                <Route path="retirement" element={<RetirementPlanList />} />
-                <Route path="retirement/:id" element={<RetirementPlanForm />} />
-                <Route path="debt" element={<DebtListPage />} />
-                <Route path="debt/:id" element={<DebtDetailPage />} />
-                <Route path="settings" element={<SettingsLayout />}>
-                  <Route index element={<SettingsIndexRedirect />} />
-                  <Route path="household" element={<HouseholdSettingsPage />} />
-                  <Route path="accounting" element={<AccountingSettingsPage />} />
-                  <Route path="backup" element={<BackupSettingsPage />} />
-                  <Route path="system" element={<SystemSettingsPage />} />
-                </Route>
-              </Route>
-            </Routes>
-          </BrowserRouter>
+          <RouterProvider router={router} />
         </ConfirmDialogProvider>
       </AuthGate>
     </AuthStateProvider>
