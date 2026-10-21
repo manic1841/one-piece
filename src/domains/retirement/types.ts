@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { createRetirementPlanCreateSchema, createRetirementPlanUpdateSchema } from './schemas/retirementSchemas';
+import { createRetirementPlanCreateSchema, createRetirementPlanUpdateSchema } from './schemas';
 
 export type RetirementPlanCreate = z.infer<ReturnType<typeof createRetirementPlanCreateSchema>>;
 export type RetirementPlanUpdate = z.infer<ReturnType<typeof createRetirementPlanUpdateSchema>>;

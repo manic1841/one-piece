@@ -1,6 +1,6 @@
 import { type DocumentData, collection, doc, orderBy } from 'firebase/firestore';
 
-import { RetirementPlanSchema } from '@/domains/retirement/schemas/retirementSchemas';
+import { RetirementPlanSchema } from '@/domains/retirement/schemas';
 import {
   type RetirementPlan,
   type RetirementPlanCreate,

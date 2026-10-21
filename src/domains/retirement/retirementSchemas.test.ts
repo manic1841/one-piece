@@ -7,10 +7,7 @@ import { RetirementSchemaErrorCode } from './errorCodes';
 import { LifeEventSchema } from './lifeEvents';
 import { ALLOWED_METHODS_BY_RULE_TYPE, ProjectionRulesSchema } from './projectionRules';
 import { resolveRuleGraph } from './ruleGraph';
-import {
-  createRetirementPlanCreateSchema,
-  createRetirementPlanUpdateSchema,
-} from './schemas/retirementSchemas';
+import { createRetirementPlanCreateSchema, createRetirementPlanUpdateSchema } from './schemas';
 
 const CURRENT_YEAR = 2026;
 

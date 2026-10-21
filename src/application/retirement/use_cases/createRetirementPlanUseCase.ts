@@ -4,7 +4,7 @@ import { type AuthContext } from '@/application/types';
 import { type RetirementAssumptions } from '@/domains/retirement/assumptions';
 import { type LifeEvent } from '@/domains/retirement/lifeEvents';
 import { type ProjectionRule } from '@/domains/retirement/projectionRules';
-import { createRetirementPlanCreateSchema } from '@/domains/retirement/schemas/retirementSchemas';
+import { createRetirementPlanCreateSchema } from '@/domains/retirement/schemas';
 import { retirementPlanRepository } from '@/infra/repositories/retirementPlanRepository';
 
 export interface CreateRetirementPlanRequest {

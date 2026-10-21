@@ -32,7 +32,7 @@ import {
   AccountCategory,
   type AccountCategory as AccountCategoryType,
 } from '../../src/domains/account/types/categories';
-import { createRetirementPlanCreateSchema } from '../../src/domains/retirement/schemas/retirementSchemas';
+import { createRetirementPlanCreateSchema } from '../../src/domains/retirement/schemas';
 
 type Unknowns = Record<string, unknown>;
 

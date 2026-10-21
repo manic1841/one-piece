@@ -11,12 +11,13 @@ import {
 } from '@/application/retirement/types';
 import { getProjectionOpeningUseCase } from '@/application/retirement/use_cases/getProjectionOpeningUseCase';
 import { type AuthContext } from '@/application/types';
-import { baselineYearFor } from '@/domains/retirement/calculators/ledgerBaseline';
-import { calculateProjection } from '@/domains/retirement/calculators/projectionEngine';
+import { baselineYearFor, calculateProjection } from '@/domains/retirement/calculators';
 import { type ProjectionRule, type RuleSourceType } from '@/domains/retirement/projectionRules';
 import { resolveProjectionInput } from '@/domains/retirement/resolveProjectionInput';
-import { type ProjectionConfig } from '@/domains/retirement/schemas/projectionSchemas';
-import { createRetirementPlanCreateSchema } from '@/domains/retirement/schemas/retirementSchemas';
+import {
+  type ProjectionConfig,
+  createRetirementPlanCreateSchema,
+} from '@/domains/retirement/schemas';
 import { debtAccountRepository } from '@/infra/repositories/debtAccountRepository';
 import { defaultProjectionName } from '@/shared/projectionName';
 

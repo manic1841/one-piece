@@ -5,12 +5,12 @@ import {
 } from '@/application/retirement/errors';
 import { type ProjectionCalculation } from '@/application/retirement/types';
 import { type AuthContext } from '@/application/types';
-import { ENGINE_VERSION } from '@/domains/retirement/calculators/projectionEngine';
+import { ENGINE_VERSION } from '@/domains/retirement/calculators';
 import { retirementNameSchema } from '@/domains/retirement/name';
 import {
   type CreateProjectionAtomicallyInput,
   type ProjectionAnnual,
-} from '@/domains/retirement/schemas/projectionSchemas';
+} from '@/domains/retirement/schemas';
 import { projectionRepository } from '@/infra/repositories/projectionRepository';
 
 export interface PersistProjectionRequest {

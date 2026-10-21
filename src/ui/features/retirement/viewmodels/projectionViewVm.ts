@@ -1,5 +1,5 @@
 import { type ProjectionViewData } from '@/application/retirement/use_cases/getProjectionViewUseCase';
-import { ENGINE_VERSION } from '@/domains/retirement/calculators/projectionEngine';
+import { ENGINE_VERSION } from '@/domains/retirement/calculators';
 import { type ProjectionSummary } from '@/domains/retirement/projectionTypes';
 import { PROJECTION_COMMON_LABELS } from '@/ui/constants/retirement/displayLabels';
 import {

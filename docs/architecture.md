@@ -23,6 +23,7 @@
 
 - 一個 domain 只選**一個**切分軸線：依子聚合（`auth/user`, `auth/whitelist`）或依角色（`calculators/`, `schemas/`），不可混用。
 - 子資料夾名稱必須是群組的共同性質，不得使用 `logic`、`utils`、`helpers` 這類萬用字。
+- 子資料夾一律以 `index.ts` barrel 對外，外部只 import 資料夾路徑，不深入檔名。
 - 未達門檻的既有子資料夾應攤平；搬移時同步更新所有 import 指定符。
 
 ### 📂 Application (應用層) - `src/application/`

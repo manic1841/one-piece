@@ -29,7 +29,7 @@ import {
 import { PortfolioSchema, PortfolioSnapshotSchema } from '../../src/domains/portfolio/schemas';
 import { ProjectSchema, ProjectSnapshotSchema } from '../../src/domains/project/schemas';
 import { FinancialReportSchema } from '../../src/domains/report/schemas';
-import { createRetirementPlanCreateSchema } from '../../src/domains/retirement/schemas/retirementSchemas';
+import { createRetirementPlanCreateSchema } from '../../src/domains/retirement/schemas';
 
 const BACKUP_PATH = 'examples/household-backup-6UpTVwd6O3vt0a8QDYJw-2026-09-12T07-57-08-648Z.json';
 

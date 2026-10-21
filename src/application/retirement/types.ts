@@ -11,7 +11,7 @@ import {
   type ProjectionConfig,
   type ProjectionOpeningSourceKind,
   type ProjectionSource,
-} from '@/domains/retirement/schemas/projectionSchemas';
+} from '@/domains/retirement/schemas';
 
 export interface ProjectionOpening {
   source: ProjectionOpeningSourceKind;
