@@ -227,12 +227,12 @@
 - **`ListSectionHeader`** — 清單區塊的標題列：標題（可選 `(n)` 計數）＋ 尾端動作。section 標題 class 在此決定，垂直間距由呼叫端給（`className`）。
   - Props：`title`（必填）、`count?`、`actions?`、`className?`。
   - **不要用於**：頁面層級 section（用 `PageSection` 的 `title`）；資料表自身的表頭（那是 `data-table`）。
-  - 範例：`src/ui/features/retirement/components/detail/IncomeTabContent.tsx`、`src/ui/features/retirement/components/AssumptionsForm.tsx`
+  - 範例：`src/ui/features/setting/components/EmailWhitelistUI.tsx`、`src/ui/features/setting/components/BackupSettings.tsx`
 
 - **`RowActions`** — 可編輯列的列尾 edit／delete 成對動作：`edit` 是節點（通常是 dialog trigger），delete 是 destructive icon button。
   - Props：`edit?`、`onDelete`（必填）、`deleteLabel`（必填，delete 的無障礙名稱）、`className?`。
   - **不要用於**：密度或語意不同的列動作——交易列用較密的 `h-8 w-8` muted→primary 變體（見 `TransactionItem`），本元件不涵蓋。
-  - 範例：`src/ui/features/retirement/components/detail/IncomeTabContent.tsx`、`src/ui/features/retirement/components/detail/ExpenseTabContent.tsx`
+  - 範例：`src/ui/features/app/pages/GalleryCollections.tsx`
 
 - **`Avatar`** — 身分圓形：photo 或 initials，mono、uppercase。`rounded-full` 白名單內的本質圓形。
   - Props：`initials?`、`src?`、`alt?`、`size?`（`sm`/`default`）、`className?`。
@@ -326,7 +326,7 @@
   - `area` 的面積預設填到 0 基準線；`baselineValues` 逐點指定另一條線為下緣（堆疊帶，例如把投資報酬疊在收入之上）；基線逐點變動時，面積路徑的下緣會逐一描過基線取樣點，不會只收兩個角點而切過那條線。面積一律是該序列顏色的**單色資料歸屬漸層**：濃度端在該帶自己的線上，往它的基線淡出；基線在線的上方時（零基準以下的支出帶、或被堆疊在別人之下）方向整個反轉（[ADR-0078](../adr/0078-single-colour-data-affiliation-gradient.md)）。
   - 一旦提供 `children`，`ariaLabel` 不再掛 `role="img"`（交給疊加層自行標註語意）。
   - **不要用於**：需要 hover 明細——用 `InteractiveComposedChart`。
-  - 範例：`src/ui/features/retirement/components/projection/CashFlowChart.tsx`（收入＋投資報酬堆疊帶＋支出帶＋淨現金流線＋淨資產右軸線）。
+  - 範例：`src/ui/features/retirement-redesign/components/CashFlowChart.tsx`（收入＋投資報酬堆疊帶＋支出帶＋淨現金流線＋淨資產右軸線）。
 
 - **`charts / DonutChart`** — 圓環圖：圓環 ＋ 中心標題 ＋（可選）垂直圖例。切片顏色取自 `CHART_DONUT_COLORS` 類別色板（首片 `primary`，其餘 `chart-1..7`，依資料順序），佔比由數值推導並四捨五入為整數百分比。
   - Props：`segments`（`{ label, value }[]`）、`centerLabel`、`size?`、`showLegend?`、`ariaLabel?`、`className?`。
@@ -361,7 +361,7 @@
 - **`charts / InteractiveComposedChart`** — `ComposedChart` ＋ hover／鍵盤 scrubber：導線、共用 `ChartTooltip`。整塊以 `role="slider"` 呈現，滑鼠移到任一欄位（以指標 x 位置命中）或鍵盤左右鍵都能選取該欄（Escape 清除）。
   - Props：`labels`、`series`、`referenceLines?`、`points`（`{ title, value, meta? }[]`）、`height?`、`showLabels?`、`ariaLabel`（必填）、`className?`。
   - **不要用於**：只是要看趨勢、不需要明細——用 `ComposedChart`。
-  - 範例：`src/ui/features/retirement/components/projection/CashFlowChart.tsx`、`src/ui/features/retirement/components/projection/NetWorthChart.tsx`
+  - 範例：`src/ui/features/retirement-redesign/components/CashFlowChart.tsx`、`src/ui/features/retirement-redesign/components/NetWorthChart.tsx`
 
 ## data-table 套件
 
@@ -458,11 +458,11 @@
 - **`AdvancedDisclosure`** — 表單內「Advanced」揭露：field 形狀的邊框切換鈕（`ChevronDown`），展開後顯示次要欄位（visual-standards：複雜設定預設隱藏）。**不是** `ui/accordion`——那是有 mono 標題列的 section 級面板。
   - Props：`label`（必填）、`open`（必填，受控）、`onOpenChange`（必填）、`children`、`className?`。
   - **不要用於**：section 級可摺疊面板（用 `ui/accordion`）；區塊切換（用 `ui/tabs`）。
-  - 範例：`src/ui/features/retirement/components/IncomeDialog.tsx`、`src/ui/features/retirement/components/ExpenseDialog.tsx`
+  - 範例：`src/ui/features/app/pages/GalleryInteraction.tsx`
 - **`ReadoutField`** — 唯讀推導值的欄位列：label ＋ 與 input 同尺寸的邊框值框。用於表單算出的值（成長率、期間），不是輸入。
   - Props：`label`（必填）、`value`（必填，`ReactNode`）、`className?`。
   - **不要用於**：可編輯欄位（用 `NumberInput`／`TextInput`）；表單外的唯讀顯示（用 `Metric`／`FinancialNumber`）。
-  - 範例：`src/ui/features/retirement/components/IncomeDialog.tsx`（Growth／Duration readout）
+  - 範例：`src/ui/features/app/pages/GalleryForms.tsx`（Growth／Duration readout）
 
 ## sortable
 
@@ -490,7 +490,7 @@
 - 變體軸（variant／size／direction 等）與完整值以各檔案為準，本目錄不複述完整列舉；表面契約見 [`design-system.md`](design-system.md) §7。其中少數非預設變體值得先知道：`button` 另有 `text` variant（tertiary 動作），`alert` 與 `badge` 另有 `destructive` 變體，`sheet` 有四個進出方向。
 - **何時不要用**：表單欄位不要直接用 `input`／`select`／`textarea`，用 `form/` 的對應欄位（見下方裁決）；表格不要直接用 `table`，用 `data-table` 套件。
 - 這些元件的表面契約（尺寸、狀態、radius、shadow 允用清單）屬 [`design-system.md`](design-system.md) §7。
-- 範例：`src/ui/features/retirement/pages/RetirementPlanForm.tsx`
+- 範例：`src/ui/features/retirement-redesign/pages/ProjectionWorkspacePage.tsx`
 
 ### 近重複裁決
 
