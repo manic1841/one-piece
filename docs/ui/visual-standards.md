@@ -349,7 +349,7 @@ Reading order 不變。斷點與導覽切換契約見 [`ui-layer-architecture.md
 工程師 Review 時看到以下情況，優先視為 drift：
 
 - ❌ **Card everywhere**——每個區塊都套 Card。
-- ❌ **Excessive rounded corners**——`rounded-xl` / `rounded-2xl` / pill everything。
+- ❌ **Excessive rounded corners**——`rounded-xl` / pill everything。
 - ❌ **Shadow everywhere**。
 - ❌ **彩色代表資料類型**。
 - ❌ **大型 icon / illustration**。

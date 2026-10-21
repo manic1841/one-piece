@@ -6,6 +6,8 @@
 
 本文件是設計 token 與元件表面契約的唯一真相來源。實作以本文件為準；若與 `ui-layer-architecture.md` 的分層規則衝突，以分層規則為準——呈現層契約不涉入資料流、ViewModel/Hook 職責邊界與 display label API。
 
+**值與規範的分工**：本文件寫 token 的**用途、對應與禁止事項**，值一律以 `src/index.css`、`tailwind.config.js` 為準。文中出現的數值只有兩種情形會保留——拿掉它這句話就講不通（材質 recipe），或它記錄的是 code 推不回的來源（色碼 provenance）——兩者都標明為對照，牴觸時以 code 為準。
+
 **與 gallery 的分工**：`/gallery` 路由是全站畫面的規範樣板，它呈現的是本文件的契約，不是第二份規格——表面規格衝突時以本文件為準，場景組合方式以 gallery 為準（取捨見 [ADR-0075](../adr/0075-gallery-normative-template.md)）。
 
 ---
@@ -24,7 +26,7 @@
 
 ### 1.1 來源色碼 provenance
 
-現行色板取自**設計原型的元件 gallery**：介面視覺以該原型為來源依據。下表只記錄**來源色碼 → token** 的對應以防日後漂移；**現行值仍以 `src/index.css` 為唯一來源**，不在本文件複述。
+現行色板取自**設計原型的元件 gallery**：介面視覺以該原型為來源依據。下表只記錄**來源色碼 → token** 的對應以防日後漂移，是 provenance 對照，**不代表現行值**；現行值以 `src/index.css` 為唯一來源。
 
 | 來源色碼（原型）        | 對應 token                             |
 | ----------------------- | -------------------------------------- |
@@ -50,15 +52,15 @@
 
 原則：**回饋在按下瞬間、動畫可被中斷、路徑對稱**。本專案的互動以點擊/觸發為主（無拖曳手勢），因此以 CSS transition + `tailwindcss-animate` 為動態基礎，不為觸發式動畫引入 spring 函式庫。
 
-Token（定義於 `tailwind.config.js`，全部走 CSS 變數）：
+Token（定義於 `tailwind.config.js`，全部走 CSS 變數）。值不複述，只留 token 與它的對應：
 
-| Token            | 值                                                                  | 對應                                               |
-| ---------------- | ------------------------------------------------------------------- | -------------------------------------------------- |
-| `duration-fast`  | `120ms`                                                             | press 回饋、小狀態切換                             |
-| `duration-base`  | `240ms`                                                             | hover、開合、色彩過渡                              |
-| `duration-slow`  | `400ms`                                                             | 位移、materialize（對應 response 0.4s）            |
-| `ease-out-quint` | `cubic-bezier(0.22, 1, 0.36, 1)`                                    | 進場、展開（類似 critically damped，無 overshoot） |
-| `ease-in-quint`  | `cubic-bezier(0.75, 0, 0.85, 0.4)`（`ease-out-quint` 的反向控制點） | 退場，使路徑與進場對稱                             |
+| Token            | 對應                                               |
+| ---------------- | -------------------------------------------------- |
+| `duration-fast`  | press 回饋、小狀態切換                             |
+| `duration-base`  | hover、開合、色彩過渡                              |
+| `duration-slow`  | 位移、materialize（對應 response 0.4s）            |
+| `ease-out-quint` | 進場、展開（類似 critically damped，無 overshoot） |
+| `ease-in-quint`  | 退場（`ease-out-quint` 的反向控制點），使路徑對稱  |
 
 規則：
 
@@ -69,14 +71,16 @@ Token（定義於 `tailwind.config.js`，全部走 CSS 變數）：
 
 ## 3. 材質與層級
 
-以半透明層 + `backdrop-filter` 建立層級，取代實心色 + 1px 邊框：
+以半透明層 + `backdrop-filter` 建立層級，取代實心色 + 1px 邊框。材質 recipe 住在 `src/index.css` 的 utility，表面只聲明自己用的層級：
 
-| 層級              | 材質                                                               | 適用                        |
-| ----------------- | ------------------------------------------------------------------ | --------------------------- |
-| L0 內容           | `bg-background`，無模糊                                            | 頁面主體                    |
-| L1 浮動 chrome    | `bg-background/75` + `blur(20px) saturate(180%)`，大表面配較深陰影 | sticky 系統狀態列（header） |
-| L2 對話框 / sheet | 更強模糊 + 最深陰影 + 週邊 scrim                                   | dialog、sheet               |
-| L3 小型元素       | 實心 `card` / `popover` + 陰影，不使用透明                         | dropdown、popover、toast    |
+| 層級              | 材質                                                  | 適用                        |
+| ----------------- | ----------------------------------------------------- | --------------------------- |
+| L0 內容           | `bg-background`，無模糊                               | 頁面主體                    |
+| L1 浮動 chrome    | `material-chrome`；大表面另配陰影                     | sticky 系統狀態列（header） |
+| L2 對話框 / sheet | `material-surface`（比 L1 厚）+ 最深陰影 + 週邊 scrim | dialog、sheet               |
+| L3 小型元素       | 實心 `card` / `popover` + 陰影，不使用透明            | dropdown、popover、toast    |
+
+不直接手寫 `bg-*`／`backdrop-blur-*` 組合出 L1/L2：新增浮出層時用 utility，recipe 要改只改 `src/index.css`，否則兩處會各自漂移。
 
 規則：
 
@@ -87,7 +91,7 @@ Token（定義於 `tailwind.config.js`，全部走 CSS 變數）：
 
 ### 3.1 半徑與陰影收斂
 
-- `rounded-lg`（`--radius` = 0.25rem）為容器預設半徑；`rounded-xl` 已全站移除。`rounded-md`/`rounded-sm` 用於按鈕與小型 chip，`rounded` 用於 inline badge。
+- 半徑依表面尺度選擇。`rounded-lg` 是多數容器與互動元件的預設起點，不是硬性上限：次級元素往下降（`rounded-md`/`rounded-sm` 用於按鈕與小型 chip，`rounded` 用於 inline badge），需要更大圓角時往上升——目前只有貼齊視窗邊緣的 sheet 用 `rounded-t-2xl`，且只圓露出的一側。`rounded-xl` 已由守門測試排除，不再使用。
 - `rounded-full` 僅保留本質圓形元素：avatar、switch、spinner、狀態點、資料膠囊（progress 軌道）；pill / badge / icon button 類一律方角。
 - 陰影預設不使用；僅浮出層保留（dialog、sheet、dropdown、popover、select、toast、command palette、switch knob、L1 浮動 chrome）。Card base 無陰影，hover 不升起陰影。
 - Summary / Metric / Section / History / Table / Workflow 表面不強制 Card，改以 Typography / Divider / Whitespace 分層；Card 保留給 distinct module、interactive module、alert、special state。
@@ -96,18 +100,21 @@ Token（定義於 `tailwind.config.js`，全部走 CSS 變數）：
 
 字體一律使用**平台原生字族**（Apple 優先，其餘平台降級），不隨專案打包任何 webfont——與設計原型相同：原型的 `Inter` 在未安裝時即落到 `ui-sans-serif`（＝ Apple 系統字），因此原生堆疊才是與原型一致的做法。堆疊定義於 `tailwind.config.js` 的 `fontFamily`。
 
-| 角色       | 堆疊（依序）                                                                                                                                     | Apple           | Windows            |
-| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | --------------- | ------------------ |
-| UI／正文   | `-apple-system` → `BlinkMacSystemFont` → `"Segoe UI"` → `Roboto` → … → `"PingFang TC"` → `"Microsoft JhengHei"` → `"Noto Sans TC"` → `system-ui` | San Francisco   | Segoe UI           |
-| 中文       | 接在拉丁字族之後（逐字 fallback）                                                                                                                | PingFang TC     | Microsoft JhengHei |
-| 數字／等寬 | `"SFMono-Regular"` → `"SF Mono"` → `Menlo` → `Consolas` → `"Liberation Mono"` → … → `ui-monospace`                                               | SF Mono / Menlo | Consolas           |
+堆疊本身不複述，只留角色與它在各平台落到的字族：
+
+| 角色       | Tailwind class | Apple          | Windows  |
+| ---------- | -------------- | -------------- | -------- |
+| UI／正文   | `font-sans`    | San Francisco  | Segoe UI |
+| 數字／等寬 | `font-mono`    | SF Mono／Menlo | Consolas |
+
+中文（PingFang TC／Microsoft JhengHei／Noto Sans TC）接在拉丁字族之後，以逐字 fallback 取得。
 
 規則：
 
 - 中文字族排在拉丁字族**之後**是刻意的：拉丁字族不含 CJK，瀏覽器會逐字 fallback 到第一個有該字形的字族，順序不影響 Latin 的呈現。
 - **取捨**：原生字族讓畫面貼合各平台慣例（Apple 上與原型完全一致），代價是**同一份程式碼在不同 OS 的字寬與換行位置不同**、且無法保證離線環境的呈現一致。若日後需要跨平台逐像素一致，再引入打包的 webfont。
 - `font-mono` 為正式的資料樣式：金額、日期、代碼、badge、座標軸與標籤性 UI（FROM/TO/APPLY 等）一律使用；段落正文維持 UI 字族，不以等寬呈現長文。
-- Tracking 隨尺寸變化，定義於 Tailwind `letterSpacing`：display `-0.02em`、heading `-0.01em`、body `0`、caption `0.01em`。**11px 全大寫 mono 標籤**（eyebrow／label／module）用 `tracking-widest`（`0.1em`）——這類標籤的寬字距是刻意的，不要套 heading 的負字距。
+- Tracking 隨尺寸變化，定義於 Tailwind `letterSpacing`：display 用 `tracking-tight`、heading 用對應的負字距 class、body 不設、caption 用 `tracking-wide` 級距。**11px 全大寫 mono 標籤**（eyebrow／label／module）用 `tracking-widest`——這類標籤的寬字距是刻意的，不要套 heading 的負字距。
 - **Section 標題與 eyebrow 標籤分屬兩級**：section 標題（`PageSection` 的 title）比 eyebrow 標籤大一階、用重量建立層級（14px、`font-semibold`、`text-foreground`，仍為 mono 全大寫，不套 `tracking-widest`）；module 標籤、metric label、eyebrow 等標籤性文字維持 11px mono `tracking-widest`（`eyebrowClass`）。
 - Leading 與尺寸反比：標題 `leading-tight`、內文 `leading-relaxed`。
 - 間距一律用 `rem`/`em`，尊重使用者瀏覽器字體大小設定。
@@ -115,12 +122,7 @@ Token（定義於 `tailwind.config.js`，全部走 CSS 變數）：
 
 ## 5. 間距級距
 
-全站使用單一 spacing scale，對應 Tailwind 預設 spacing（一律以 `rem` 表達，對應 4px 網格）：
-
-```text
-0.25 · 0.5 · 0.75 · 1 · 1.5 · 2 · 3 · 4   (rem)
-  4  ·  8  ·  12  · 16 · 24 · 32 · 48 · 64   (px)
-```
+全站使用單一 spacing scale，即 Tailwind 預設 spacing（一律以 `rem` 表達，對應 4px 網格），由小到大的八個值依序是：最小、次小、小、中小、中、大、特大、最大。具體值不在此複述。
 
 > 各級距的**使用場景與禁止事項**屬頁面層級決策，見 [`visual-standards.md`](visual-standards.md) 的「間距」節；本節只定義級距本身。
 

@@ -8,7 +8,7 @@ import { Button } from '@/ui/components/ui/button';
 
 const GalleryChrome: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <div className="min-h-screen bg-background text-foreground">
-    <header className="sticky top-0 z-50 border-b border-border bg-background/75 backdrop-blur-xl backdrop-saturate-150">
+    <header className="material-chrome sticky top-0 z-50 border-b border-border">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 md:px-8">
         <div className="flex items-center gap-3">
           <h1 className="text-lg font-bold tracking-heading">ONE PIECE</h1>

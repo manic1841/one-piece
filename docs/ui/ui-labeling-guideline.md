@@ -35,31 +35,32 @@ Project detail and report UIs must also follow this rule:
 
 ## Canonical Wording
 
-**Wording 的權威是 pinning test，不是本文件**：`src/ui/constants/transaction/displayLabels.test.ts` 釘住 intentType、高風險 intent、完整 intent label 表與 ledger code wording，任何 wording 變更必須在同一個 task 內更新該測試。本節只記政策性範例與「為什麼」，完整對照表以測試為準：
+**Wording 的權威是 pinning test，不是本文件**：`src/ui/constants/transaction/displayLabels.test.ts` 釘住 intentType、高風險 intent、完整 intent label 表與 ledger code wording，任何 wording 變更必須在同一個 task 內更新該測試。本節只記**為什麼**，完整對照表以測試為準：
 
 ### Intent Type
 
-八個意圖類型（`INCOME`、`EXPENSE`、`INVESTMENT`、`FINANCING`、`TRANSFER`、`DEBT_PAYMENT`、`LIABILITY_BORROW`、`MANUAL`）的顯示文字由測試的 canonical intentType wording 釘住；測試另斷言「每個 domain intent mapping 都有 display label」與完整 intent label 表與 domain 同步。
+八個意圖類型的顯示文字由測試的 canonical intentType wording 釘住；測試另斷言「每個 domain intent mapping 都有 display label」與完整 intent label 表與 domain 同步。全部 enum 值與對應文字以測試為準，本節不列舉。
 
 ### High-risk Terms (must stay consistent)
 
-- `SALARY` 是「薪資」，不是「薪水」。
-- `INVESTMENT_INCOME` 是「投資收益」，不是「投資收入」。
-- `expense:living` 是「生活費」，不是「生活」。
-- `expense:housing` 是「家居」，不是「住房」。
-- `expense:social` 是「社交」，不是「人際」或「人情往來」。
-- `income:refund` 是「退款回補」，不是「退款」。
+釘住的重點不是那幾個字，而是**它們為什麼容易走歪**——這類詞在口語裡都有更順口或更寬的替代說法，只靠 reviewer 盯不住：
 
-以上六組的實際對照值由測試的高風險 wording 與 ledger code wording 釘住。
+- **口語壓過正式詞**：日常口語的短詞會不知不覺寫進 label（典型是薪資被寫成「薪水」）。
+- **相鄰概念被誤收**：字面像但語意不等的詞（投資的收益被寫成「收入」，會與收入側的分類混淆）。
+- **長短詞並存**：同一概念有簡稱與全稱，混用會讓前綴樹出現兩個同名層（生活類的支出）。
+- **泛詞溢用**：一個寬詞被拿來指涉只涵蓋部分情境的子類（退款只涵蓋回補那一種）。
+- **直譯感**：「家居」這種不像「住房」那樣的直譯，需要刻意維持才能在清單裡可辨。
+
+實際的 code 與 wording 對照以 `displayLabels.test.ts` 的高風險 wording 與 ledger code wording 為準。
 
 ## Scope (2026-09 decision)
 
-Managed display labels cover:
+Managed display labels cover the four families below. 路徑、識別字與實際字串以 code 為準，本節只界定哪些資料值歸 label 層管：
 
-- Transaction labels: `intentType`, `intent`, `ledgerCode` (via `displayLabels.ts`)
-- Account category labels (via `src/ui/constants/account/label.ts` `AccountCategoryLabels`)
-- Report view titles: 損益表 / 資產負債表 / 現金流量表 (via `src/ui/constants/report/reportViewLabels.ts`)
-- Debt labels (via `src/ui/constants/debt/label.ts`): `DebtTypeLabels` for 房貸 / 信貸, and the debtor status words 已結清 / 已停用 / 寬限期
+- Transaction labels: `intentType`, `intent`, `ledgerCode`
+- Account category labels
+- Report view titles
+- Debt type and status labels
 
 Free-form UI chrome (button text, error messages, subtitles, descriptive copy) is out of scope. Every feature's page chrome (titles, actions, error copy, column heads) is centralised under `src/ui/constants/<feature>/` for the same reason every other display string is: components must not carry literals. It is chrome, so it is not pinned here.
 
