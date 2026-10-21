@@ -1,7 +1,7 @@
 import { InteractiveComposedChart } from '@/ui/components/charts/InteractiveComposedChart';
 import { type ComposedSeries } from '@/ui/components/charts/composedChartGeometry';
-import { RetirementChartLabels } from '@/ui/constants/retirement/retirementWorkspaceLabels';
-import { type RetirementProjectionVM } from '@/ui/features/retirement/viewmodels/retirementDisplay.vm';
+import { PROJECTION_CHART_LABELS } from '@/ui/constants/retirement-redesign/displayLabels';
+import { type RetirementProjectionVM } from '@/ui/features/retirement-redesign/viewmodels/projectionDisplayVm';
 
 type NetWorthChartProps = {
   projection: RetirementProjectionVM;
@@ -36,17 +36,17 @@ export function NetWorthChart({ projection }: NetWorthChartProps) {
               {
                 index: retirementIndex,
                 tone: 'primary',
-                label: RetirementChartLabels.retirementMarker,
+                label: PROJECTION_CHART_LABELS.retirementMarker,
               },
             ]
           : []
       }
       points={projection.chartData.map((point) => ({
-        title: `${RetirementChartLabels.tooltipYearPrefix} ${point.year}`,
-        value: `${RetirementChartLabels.netWorth} ${point.savingsText}`,
+        title: `${PROJECTION_CHART_LABELS.tooltipYearPrefix} ${point.year}`,
+        value: `${PROJECTION_CHART_LABELS.netWorth} ${point.savingsText}`,
       }))}
       height={320}
-      ariaLabel={RetirementChartLabels.netWorthAriaLabel}
+      ariaLabel={PROJECTION_CHART_LABELS.netWorthAriaLabel}
     />
   );
 }

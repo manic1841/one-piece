@@ -1,8 +1,8 @@
 import { ChartLegend } from '@/ui/components/charts/ChartLegend';
 import { InteractiveComposedChart } from '@/ui/components/charts/InteractiveComposedChart';
 import { type ComposedSeries } from '@/ui/components/charts/composedChartGeometry';
-import { RetirementChartLabels } from '@/ui/constants/retirement/retirementWorkspaceLabels';
-import { type RetirementProjectionVM } from '@/ui/features/retirement/viewmodels/retirementDisplay.vm';
+import { PROJECTION_CHART_LABELS } from '@/ui/constants/retirement-redesign/displayLabels';
+import { type RetirementProjectionVM } from '@/ui/features/retirement-redesign/viewmodels/projectionDisplayVm';
 
 type RetirementProjectionProps = {
   projection: RetirementProjectionVM;
@@ -50,26 +50,26 @@ export function CashFlowChart({ projection }: RetirementProjectionProps) {
                 {
                   index: retirementIndex,
                   tone: 'primary',
-                  label: RetirementChartLabels.retirementMarker,
+                  label: PROJECTION_CHART_LABELS.retirementMarker,
                 },
               ]
             : []
         }
         points={projection.chartData.map((point) => ({
-          title: `${RetirementChartLabels.tooltipYearPrefix} ${point.year}`,
-          value: `${RetirementChartLabels.netCashFlow} ${point.netCashFlowText}`,
-          meta: `${RetirementChartLabels.income} ${point.incomeText} · ${RetirementChartLabels.investmentReturn} ${point.investmentIncomeText} · ${RetirementChartLabels.expense} ${point.expenseText} · ${RetirementChartLabels.netWorth} ${point.savingsText}`,
+          title: `${PROJECTION_CHART_LABELS.tooltipYearPrefix} ${point.year}`,
+          value: `${PROJECTION_CHART_LABELS.netCashFlow} ${point.netCashFlowText}`,
+          meta: `${PROJECTION_CHART_LABELS.income} ${point.incomeText} · ${PROJECTION_CHART_LABELS.investmentReturn} ${point.investmentIncomeText} · ${PROJECTION_CHART_LABELS.expense} ${point.expenseText} · ${PROJECTION_CHART_LABELS.netWorth} ${point.savingsText}`,
         }))}
         height={360}
-        ariaLabel={RetirementChartLabels.cashFlowAriaLabel}
+        ariaLabel={PROJECTION_CHART_LABELS.cashFlowAriaLabel}
       />
       <ChartLegend
         items={[
-          { label: RetirementChartLabels.income, tone: 'positive' },
-          { label: RetirementChartLabels.investmentReturn, tone: 'investment' },
-          { label: RetirementChartLabels.expense, tone: 'negative' },
-          { label: RetirementChartLabels.netCashFlow, tone: 'primary' },
-          { label: RetirementChartLabels.netWorth, tone: 'asset' },
+          { label: PROJECTION_CHART_LABELS.income, tone: 'positive' },
+          { label: PROJECTION_CHART_LABELS.investmentReturn, tone: 'investment' },
+          { label: PROJECTION_CHART_LABELS.expense, tone: 'negative' },
+          { label: PROJECTION_CHART_LABELS.netCashFlow, tone: 'primary' },
+          { label: PROJECTION_CHART_LABELS.netWorth, tone: 'asset' },
         ]}
       />
     </div>

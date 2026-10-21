@@ -10,7 +10,7 @@ import {
   END_CONDITION_LABELS,
   RULE_METHOD_LABELS,
 } from '@/ui/constants/retirement-redesign/setupLabels';
-import { type RetirementProjectionVM } from '@/ui/features/retirement/viewmodels/retirementDisplay.vm';
+import { type RetirementProjectionVM } from '@/ui/features/retirement-redesign/viewmodels/projectionDisplayVm';
 import { formatCurrency, formatDate } from '@/ui/utils';
 
 export type { ProjectionViewData } from '@/application/retirement/use_cases/getProjectionViewUseCase';

@@ -1,9 +1,9 @@
 import { PageSection } from '@/ui/components/PageSection';
 import { PROJECTION_VIEW_LABELS } from '@/ui/constants/retirement-redesign/projectionLabels';
 import { PROJECTION_RESULT_LABELS } from '@/ui/constants/retirement-redesign/resultLabels';
+import { CashFlowChart } from '@/ui/features/retirement-redesign/components/CashFlowChart';
+import { YearlyDetails } from '@/ui/features/retirement-redesign/components/YearlyDetails';
 import { type ProjectionViewVM } from '@/ui/features/retirement-redesign/viewmodels/projectionViewVm';
-import { CashFlowChart } from '@/ui/features/retirement/components/projection/CashFlowChart';
-import { YearlyDetails } from '@/ui/features/retirement/components/projection/YearlyDetails';
 
 interface ProjectionProjectionTabProps {
   projection: ProjectionViewVM['projection'];

@@ -14,18 +14,18 @@ import {
   TableBody,
   TableHeader,
 } from '@/ui/components/data-table';
-import { RetirementYearlyDetailLabels } from '@/ui/constants/retirement/retirementWorkspaceLabels';
+import { PROJECTION_YEARLY_DETAIL_LABELS } from '@/ui/constants/retirement-redesign/displayLabels';
 import {
   type RetirementProjectionVM,
   type RetirementProjectionYearDetailVM,
-} from '@/ui/features/retirement/viewmodels/retirementDisplay.vm';
+} from '@/ui/features/retirement-redesign/viewmodels/projectionDisplayVm';
 import { cn } from '@/ui/utils/cn';
 
 type RetirementProjectionProps = {
   projection: RetirementProjectionVM;
 };
 
-const COLUMNS = RetirementYearlyDetailLabels.columns;
+const COLUMNS = PROJECTION_YEARLY_DETAIL_LABELS.columns;
 
 const YearlyFieldLabels = [
   COLUMNS.age,
@@ -81,11 +81,11 @@ function YearBreakdownPanels({ row }: { row: RetirementProjectionYearDetailVM })
     <div className="grid gap-3 md:grid-cols-2">
       <div className="space-y-2">
         <div className="text-xs font-semibold text-muted-foreground">
-          {RetirementYearlyDetailLabels.incomeBreakdown}
+          {PROJECTION_YEARLY_DETAIL_LABELS.incomeBreakdown}
         </div>
         {row.incomeItems.length === 0 ? (
           <div className="text-sm text-muted-foreground">
-            {RetirementYearlyDetailLabels.noIncomeItems}
+            {PROJECTION_YEARLY_DETAIL_LABELS.noIncomeItems}
           </div>
         ) : (
           <div className="space-y-1.5">
@@ -102,11 +102,11 @@ function YearBreakdownPanels({ row }: { row: RetirementProjectionYearDetailVM })
       </div>
       <div className="space-y-2">
         <div className="text-xs font-semibold text-muted-foreground">
-          {RetirementYearlyDetailLabels.expenseBreakdown}
+          {PROJECTION_YEARLY_DETAIL_LABELS.expenseBreakdown}
         </div>
         {row.expenseItems.length === 0 ? (
           <div className="text-sm text-muted-foreground">
-            {RetirementYearlyDetailLabels.noExpenseItems}
+            {PROJECTION_YEARLY_DETAIL_LABELS.noExpenseItems}
           </div>
         ) : (
           <div className="space-y-1.5">
@@ -148,7 +148,7 @@ export function YearlyDetails({ projection }: RetirementProjectionProps) {
         onClick={() => setIsDetailsOpen((prev) => !prev)}
         aria-expanded={isDetailsOpen}
       >
-        <h4 className="text-sm font-semibold">{RetirementYearlyDetailLabels.sectionTitle}</h4>
+        <h4 className="text-sm font-semibold">{PROJECTION_YEARLY_DETAIL_LABELS.sectionTitle}</h4>
         <span className="text-muted-foreground">
           {isDetailsOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
         </span>
@@ -162,14 +162,14 @@ export function YearlyDetails({ projection }: RetirementProjectionProps) {
                 aria-hidden="true"
                 className="inline-block h-2.5 w-2.5 rounded-sm border border-border bg-muted"
               />
-              <span>{RetirementYearlyDetailLabels.workingLegend}</span>
+              <span>{PROJECTION_YEARLY_DETAIL_LABELS.workingLegend}</span>
             </div>
             <div className="flex items-center gap-1.5">
               <span
                 aria-hidden="true"
                 className="inline-block h-2.5 w-2.5 rounded-sm border border-warning/20 bg-warning/10"
               />
-              <span>{RetirementYearlyDetailLabels.retiredLegend}</span>
+              <span>{PROJECTION_YEARLY_DETAIL_LABELS.retiredLegend}</span>
             </div>
           </div>
           <MobileDataList>

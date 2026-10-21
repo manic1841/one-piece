@@ -2,8 +2,8 @@ import {
   type ProjectionInput,
   type ProjectionResult,
 } from '@/domains/retirement/logic/projectionTypes';
-import { RetirementRiskLabels } from '@/ui/constants/retirement/retirementWorkspaceLabels';
-import { type RetirementProjectionVM } from '@/ui/features/retirement/viewmodels/retirementDisplay.vm';
+import { PROJECTION_RISK_LABELS } from '@/ui/constants/retirement-redesign/displayLabels';
+import { type RetirementProjectionVM } from '@/ui/features/retirement-redesign/viewmodels/projectionDisplayVm';
 import { formatCurrency } from '@/ui/utils';
 
 /**
@@ -24,7 +24,7 @@ export function mapProjectionResultToVM(
       result.summary.retirementNetWorth === null
         ? '—'
         : formatCurrency(result.summary.retirementNetWorth),
-    minYearText: minYear === null ? RetirementRiskLabels.none : String(minYear),
+    minYearText: minYear === null ? PROJECTION_RISK_LABELS.none : String(minYear),
     minSavingsText: formatCurrency(result.summary.minNetWorth),
     bankruptText: bankruptYear === null ? '否' : `是 (${bankruptYear})`,
     bankruptTone: result.summary.isBankrupt ? 'negative' : 'positive',
@@ -77,25 +77,25 @@ export function mapProjectionResultToVM(
     risks: [
       {
         key: 'retirementYear',
-        label: RetirementRiskLabels.retirementYear,
+        label: PROJECTION_RISK_LABELS.retirementYear,
         valueText: String(input.retirementYear),
         tone: 'default',
       },
       {
         key: 'bankruptcyYear',
-        label: RetirementRiskLabels.bankruptcyYear,
-        valueText: bankruptYear === null ? RetirementRiskLabels.none : String(bankruptYear),
+        label: PROJECTION_RISK_LABELS.bankruptcyYear,
+        valueText: bankruptYear === null ? PROJECTION_RISK_LABELS.none : String(bankruptYear),
         tone: bankruptYear === null ? 'default' : 'negative',
       },
       {
         key: 'minSavingsYear',
-        label: RetirementRiskLabels.minSavingsYear,
-        valueText: minYear === null ? RetirementRiskLabels.none : String(minYear),
+        label: PROJECTION_RISK_LABELS.minSavingsYear,
+        valueText: minYear === null ? PROJECTION_RISK_LABELS.none : String(minYear),
         tone: 'default',
       },
       {
         key: 'lifeExpectancyEnd',
-        label: RetirementRiskLabels.lifeExpectancyEnd,
+        label: PROJECTION_RISK_LABELS.lifeExpectancyEnd,
         valueText: String(input.lastYear),
         tone: 'default',
       },

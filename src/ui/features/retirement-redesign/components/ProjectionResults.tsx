@@ -1,11 +1,11 @@
 import { Metric, MetricGroup } from '@/ui/components/MetricGroup';
 import { PageSection } from '@/ui/components/PageSection';
 import { PROJECTION_RESULT_LABELS } from '@/ui/constants/retirement-redesign/resultLabels';
+import { CashFlowChart } from '@/ui/features/retirement-redesign/components/CashFlowChart';
+import { NetWorthChart } from '@/ui/features/retirement-redesign/components/NetWorthChart';
+import { YearlyDetails } from '@/ui/features/retirement-redesign/components/YearlyDetails';
 import { type ProjectionSummary } from '@/ui/features/retirement-redesign/hooks/useProjectionWorkspace';
-import { CashFlowChart } from '@/ui/features/retirement/components/projection/CashFlowChart';
-import { NetWorthChart } from '@/ui/features/retirement/components/projection/NetWorthChart';
-import { YearlyDetails } from '@/ui/features/retirement/components/projection/YearlyDetails';
-import { type RetirementProjectionVM } from '@/ui/features/retirement/viewmodels/retirementDisplay.vm';
+import { type RetirementProjectionVM } from '@/ui/features/retirement-redesign/viewmodels/projectionDisplayVm';
 import { formatCurrency } from '@/ui/utils';
 
 interface ProjectionResultsProps {
