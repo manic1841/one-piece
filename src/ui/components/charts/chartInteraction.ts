@@ -54,7 +54,11 @@ export const useTooltipAllowance = (
  * place; `role`/`tabIndex` stay literal on each element so the a11y linter sees
  * them (jsx-a11y cannot read a spread).
  */
-export const useChartScrubber = (count: number, plotHeight: number) => {
+export const useChartScrubber = (
+  count: number,
+  plotHeight: number,
+  onActivate?: (index: number) => void,
+) => {
   const [active, setActive] = React.useState<number | null>(null);
   const { ref: tooltipRef, allowedTopRatio } = useTooltipAllowance(plotHeight, active);
 
@@ -63,6 +67,12 @@ export const useChartScrubber = (count: number, plotHeight: number) => {
       event.preventDefault();
       const step = event.key === 'ArrowRight' ? 1 : -1;
       setActive(clampIndex((active ?? -1) + step, count));
+      return;
+    }
+    if (event.key === 'Enter' || event.key === ' ') {
+      if (onActivate === undefined || active === null) return;
+      event.preventDefault();
+      onActivate(active);
       return;
     }
     if (event.key === 'Escape') setActive(null);

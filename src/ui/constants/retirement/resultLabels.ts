@@ -6,8 +6,7 @@ import { RETIREMENT_VALIDATION_LABELS } from '@/ui/constants/retirement/validati
 export const PROJECTION_RESULT_LABELS = {
   RESULTS_SECTION: 'RESULTS',
   SUMMARY_SECTION: 'SUMMARY',
-  NET_WORTH_SECTION: 'NET WORTH TRAJECTORY',
-  CASH_FLOW_SECTION: 'CASH FLOW',
+  TRAJECTORY_SECTION: 'TRAJECTORY',
   YEARS_SECTION: 'YEAR BY YEAR',
   METRIC_RETIREMENT_NET_WORTH: 'Net worth at retirement',
   METRIC_FINAL_NET_WORTH: 'Final net worth',
@@ -17,7 +16,6 @@ export const PROJECTION_RESULT_LABELS = {
   METRIC_IS_BANKRUPT: 'Bankrupt',
   YES: 'Yes',
   NO: 'No',
-  NONE: '—',
   CALCULATE_FAILED: 'Calculation failed.',
   WAIT_FOR_OPENING: 'The opening net worth is still loading.',
   OPENING_INVALID: 'Enter a whole-number opening net worth.',

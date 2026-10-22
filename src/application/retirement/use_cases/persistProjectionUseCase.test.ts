@@ -97,7 +97,7 @@ describe('persistProjectionUseCase', () => {
         householdId: 'household-1',
         projection: expect.objectContaining({
           name: 'My projection',
-          engineVersion: 1,
+          engineVersion: 2,
           createdBy: 'user@example.com',
         }),
         config: expect.objectContaining({

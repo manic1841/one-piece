@@ -142,3 +142,17 @@
     transform: translateY(-100%);
   }
 }
+
+/* Retirement event axis: spans grow out of their start year and single-year
+   nodes pop in on mount. The global reduced-motion rule settles both instantly. */
+@keyframes event-bar-grow {
+  from {
+    transform: scaleX(0);
+  }
+}
+
+@keyframes event-node-pop {
+  from {
+    transform: scale(0);
+  }
+}

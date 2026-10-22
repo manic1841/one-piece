@@ -21,6 +21,7 @@ const BAR_FILL_OPACITY = 0.6;
  */
 const AREA_GRADIENT_OPACITY = 0.38;
 const LINE_STROKE_WIDTH = 1.8;
+const DASHED_LINE_STROKE_WIDTH = 1.2;
 
 type ComposedChartProps = {
   labels: string[];
@@ -142,7 +143,8 @@ export function ComposedChart({
               d={line.path}
               fill="none"
               stroke={CHART_TONE_COLOR[line.tone]}
-              strokeWidth={LINE_STROKE_WIDTH}
+              strokeWidth={line.dashed ? DASHED_LINE_STROKE_WIDTH : LINE_STROKE_WIDTH}
+              {...(line.dashed ? { strokeDasharray: '5 4', strokeOpacity: 0.9 } : {})}
               strokeLinecap="round"
               strokeLinejoin="round"
               vectorEffect="non-scaling-stroke"
@@ -169,7 +171,7 @@ export function ComposedChart({
             {layout.leftLabels.map((label, index) => (
               <span
                 key={`left-${index}`}
-                className="absolute left-0 -translate-y-1/2 font-mono text-[10px] tabular-nums text-muted-foreground"
+                className="absolute left-0 -translate-y-1/2 font-mono text-[11px] tabular-nums text-muted-foreground"
                 style={{ top: `${(label.y / COMPOSED_CHART_HEIGHT) * 100}%` }}
               >
                 {label.text}
@@ -182,7 +184,7 @@ export function ComposedChart({
             {layout.rightLabels.map((label, index) => (
               <span
                 key={`right-${index}`}
-                className="absolute right-0 -translate-y-1/2 font-mono text-[10px] tabular-nums text-muted-foreground"
+                className="absolute right-0 -translate-y-1/2 font-mono text-[11px] tabular-nums text-muted-foreground"
                 style={{ top: `${(label.y / COMPOSED_CHART_HEIGHT) * 100}%` }}
               >
                 {label.text}
@@ -195,7 +197,7 @@ export function ComposedChart({
             <span
               key={`ref-label-${line.index}`}
               aria-hidden="true"
-              className="pointer-events-none absolute top-0 whitespace-nowrap font-mono text-[10px] uppercase tracking-widest"
+              className="pointer-events-none absolute top-0 whitespace-nowrap font-mono text-[11px] uppercase tracking-widest"
               style={{
                 left: `${line.xRatio * 100}%`,
                 transform:
@@ -220,7 +222,7 @@ export function ComposedChart({
           {xLabelIndices.map((index, position) => (
             <span
               key={`${labels[index]}-${index}`}
-              className="absolute whitespace-nowrap font-mono text-[10px] tabular-nums text-muted-foreground"
+              className="absolute whitespace-nowrap font-mono text-[11px] tabular-nums text-muted-foreground"
               style={{
                 left: `${layout.columns[index].xRatio * 100}%`,
                 transform:

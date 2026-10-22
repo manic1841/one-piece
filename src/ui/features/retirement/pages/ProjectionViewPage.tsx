@@ -17,12 +17,14 @@ import {
   RENAME_ERROR_LABELS,
 } from '@/ui/constants/retirement/projectionLabels';
 import { useAuthState } from '@/ui/contexts/useAuthState';
-import { ProjectionResultTab } from '@/ui/features/retirement/components/ProjectionResultTab';
-import { ProjectionSourceTab } from '@/ui/features/retirement/components/ProjectionSourceTab';
-import { ProjectionSummaryTab } from '@/ui/features/retirement/components/ProjectionSummaryTab';
+import { ProjectionOverviewTab } from '@/ui/features/retirement/components/ProjectionOverviewTab';
+import { ProjectionSnapshotTab } from '@/ui/features/retirement/components/ProjectionSnapshotTab';
+import { ProjectionTrendTab } from '@/ui/features/retirement/components/ProjectionTrendTab';
 import { SaveAsPlanDialog } from '@/ui/features/retirement/components/SaveAsPlanDialog';
 import { useProjectionView } from '@/ui/features/retirement/hooks/useProjectionView';
 import { getTaskErrorMessage } from '@/ui/hooks/getErrorMessage';
+
+type ViewTab = 'overview' | 'projection' | 'settings';
 
 export default function ProjectionViewPage() {
   const { userProfile } = useAuthState();
@@ -41,6 +43,15 @@ export default function ProjectionViewPage() {
     submitSaveAsPlan,
   } = useProjectionView(userProfile?.householdId, id);
   const [saveAsPlanOpen, setSaveAsPlanOpen] = useState(false);
+  const [tab, setTab] = useState<ViewTab>('overview');
+  // Selection is owned by the page: switching tabs keeps it, missing years reset it.
+  const [selectedYear, setSelectedYear] = useState<number | null>(null);
+
+  const selectedRowExists =
+    view !== null &&
+    selectedYear !== null &&
+    view.projection.yearlyDetails.some((row) => row.year === selectedYear);
+  const activeYear = selectedRowExists ? selectedYear : null;
 
   const openSaveAsPlan = () => {
     saveAsPlanForm.reset({ name: view?.name ?? '' });
@@ -163,24 +174,31 @@ export default function ProjectionViewPage() {
             </Alert>
           )}
 
-          <Tabs defaultValue="summary">
+          <Tabs value={tab} onValueChange={(next) => setTab(next as ViewTab)}>
             <TabsList aria-label={PROJECTION_VIEW_LABELS.TABS_LABEL} className="overflow-x-auto">
-              <TabsTrigger value="summary">{PROJECTION_VIEW_LABELS.TAB_SUMMARY}</TabsTrigger>
+              <TabsTrigger value="overview">{PROJECTION_VIEW_LABELS.TAB_OVERVIEW}</TabsTrigger>
               <TabsTrigger value="projection">{PROJECTION_VIEW_LABELS.TAB_PROJECTION}</TabsTrigger>
-              <TabsTrigger value="source">{PROJECTION_VIEW_LABELS.TAB_SOURCE}</TabsTrigger>
+              <TabsTrigger value="settings">{PROJECTION_VIEW_LABELS.TAB_SETTINGS}</TabsTrigger>
             </TabsList>
 
-            <TabsContent value="summary">
-              <ProjectionSummaryTab summary={view.summary} projection={view.projection} />
+            <TabsContent value="overview">
+              <ProjectionOverviewTab
+                view={view}
+                onSelectYear={(year) => {
+                  setSelectedYear(year);
+                  setTab('projection');
+                }}
+              />
             </TabsContent>
             <TabsContent value="projection">
-              <ProjectionResultTab projection={view.projection} />
-            </TabsContent>
-            <TabsContent value="source">
-              <ProjectionSourceTab
-                sourceSections={view.sourceSections}
-                configSections={view.configSections}
+              <ProjectionTrendTab
+                view={view}
+                selectedYear={activeYear}
+                onSelectYear={setSelectedYear}
               />
+            </TabsContent>
+            <TabsContent value="settings">
+              <ProjectionSnapshotTab view={view} />
             </TabsContent>
           </Tabs>
 

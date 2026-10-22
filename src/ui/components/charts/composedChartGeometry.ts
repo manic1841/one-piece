@@ -15,7 +15,7 @@ const PADDING_TOP = 16;
 const PADDING_BOTTOM = 16;
 const PADDING_SIDE = 10;
 const GRID_LINE_COUNT = 4;
-const MAX_X_LABELS = 8;
+const MAX_X_LABELS = 6;
 /** Fraction of a column slot the whole bar group occupies. */
 const COLUMN_FILL = 0.7;
 /** Fraction of each bar slot left as a gap between neighbouring bars. */
@@ -39,6 +39,11 @@ export type ComposedLineSeries = {
   axis?: ComposedAxis;
   /** Fill the area between the line and the axis zero baseline. */
   area?: boolean;
+  /**
+   * Render as a thin dashed line. Used for a secondary reference series that must not
+   * compete with the primary one (e.g. net worth while reading a cash-flow composition).
+   */
+  dashed?: boolean;
   /**
    * Per-point baseline for the area fill. Omitted, the area fills down to the axis
    * zero baseline; supplied, the band sits between `values` and this line, which is
@@ -81,6 +86,8 @@ export type ComposedLine = {
   key: string;
   tone: ChartTone;
   path: string;
+  /** Thin dashed stroke instead of a solid one. */
+  dashed?: boolean;
   areaPath?: string;
   /**
    * True when the band's baseline sits **above** its line on screen (a band below zero, or
@@ -251,6 +258,7 @@ export function buildComposedGeometry(
       key: `line-${seriesIndex}`,
       tone: item.tone,
       path,
+      ...(item.dashed ? { dashed: true } : {}),
       ...(areaPath ? { areaPath } : {}),
       // The gradient is anchored at the band's own line, so a band whose baseline sits
       // above it on screen (below zero, or stacked under another) runs bottom-up.

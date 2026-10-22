@@ -1,5 +1,3 @@
-import { type MoneyTone } from '@/ui/components/moneyTone';
-
 export interface RetirementProjectionPointVM {
   year: number;
   age: number;
@@ -7,6 +5,7 @@ export interface RetirementProjectionPointVM {
   expense: number;
   /** Investment income earned on the opening balance that year (issue #265). */
   investmentIncome: number;
+  /** Net worth change: inflows − outflows + investment return. */
   netCashFlow: number;
   savings: number;
   incomeText: string;
@@ -26,17 +25,19 @@ export interface RetirementProjectionYearDetailVM {
   incomeText: string;
   expenseText: string;
   investmentReturnText: string;
+  /** Signed net worth change behind `netCashFlowText`, for the tone of the net column. */
+  netCashFlow: number;
   netCashFlowText: string;
+  /** Net worth at the start of the year — the same basis as the retirement hero. */
+  opening: number;
+  openingText: string;
   savingsText: string;
 }
 
 export interface RetirementProjectionVM {
   retirementYear: number;
-  retirementSavingsText: string;
-  minYearText: string;
-  minSavingsText: string;
-  bankruptText: string;
-  bankruptTone: MoneyTone;
+  /** Year net worth first dropped below zero; `null` when it never did. */
+  negativeYear: number | null;
   chartData: RetirementProjectionPointVM[];
   yearlyDetails: RetirementProjectionYearDetailVM[];
 }

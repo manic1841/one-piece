@@ -47,21 +47,21 @@ export const RULE_TYPE_LABELS = {
 export const RULE_METHOD_LABELS = {
   inflation: 'Inflation',
   growthRate: 'Growth rate',
-  percentage: 'Percentage of rule',
+  percentage: 'Percentage',
   fixedAmount: 'Fixed amount',
   debtAmortization: 'Debt amortization',
 } as const;
 
 export const END_CONDITION_LABELS = {
-  retirementYearExclusive: 'Until retirement (exclusive)',
-  specificAge: 'Specific age',
-  specificYear: 'Specific year',
+  retirementYearExclusive: 'Until retirement',
+  specificAge: 'Age',
+  specificYear: 'Year',
   lifelong: 'Lifelong',
 } as const;
 
 export const BASELINE_POLICY_LABELS = {
   previousCompleteYear: 'Previous complete year',
-  specificYear: 'Specific year',
+  specificYear: 'Year',
 } as const;
 
 export const PLAN_APPLY_LABELS = {

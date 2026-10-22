@@ -11,7 +11,7 @@ import {
 import {
   type RetirementProjectionPointVM,
   type RetirementProjectionYearDetailVM,
-} from '@/ui/features/retirement/viewmodels/projectionDisplayVm';
+} from '@/ui/features/retirement/viewmodels/projectionDisplay.vm';
 import { formatCurrency } from '@/ui/utils';
 
 export const percentText = (value: number): string => `${Number((value * 100).toFixed(4))}%`;
@@ -59,7 +59,9 @@ export function mapProjectionPoint(
   expense: number,
   bankruptYear: number | null,
 ): RetirementProjectionPointVM {
-  const netCashFlow = entry.inflows - entry.outflows;
+  // Net worth change, not cash flow: the investment return is part of it so the
+  // line closes against `closing` and never contradicts the asset line.
+  const netCashFlow = entry.inflows - entry.outflows + entry.return;
 
   return {
     year: entry.year,
@@ -88,7 +90,10 @@ export function mapYearlyDetail(entry: ProjectionYearResult): RetirementProjecti
     incomeText: formatCurrency(entry.inflows),
     expenseText: formatCurrency(entry.outflows),
     investmentReturnText: formatCurrency(entry.return),
-    netCashFlowText: formatCurrency(entry.inflows - entry.outflows),
+    netCashFlow: entry.inflows - entry.outflows + entry.return,
+    netCashFlowText: formatCurrency(entry.inflows - entry.outflows + entry.return),
+    opening: entry.opening,
+    openingText: formatCurrency(entry.opening),
     savingsText: formatCurrency(entry.closing),
   };
 }

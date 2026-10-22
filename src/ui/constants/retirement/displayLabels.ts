@@ -20,32 +20,33 @@ export const PROJECTION_RISK_LABELS = {
 
 export const PROJECTION_YEARLY_DETAIL_LABELS = {
   sectionTitle: '每年明細',
-  retiredLegend: '退休後',
-  workingLegend: '退休前',
+  retirementDivider: '退休',
   incomeBreakdown: '收入明細',
   expenseBreakdown: '支出明細',
   noIncomeItems: '無收入項目',
   noExpenseItems: '無支出項目',
   columns: {
     year: '年度',
-    age: '年齡',
     status: '狀態',
     income: '收入',
     expense: '支出',
     investmentReturn: '投資收益',
-    netCashFlow: '淨現金流',
-    netWorth: '淨資產',
+    netCashFlow: '淨資產變動',
+    /** Yearly rows are stated at the start of the year, matching the retirement hero. */
+    openingNetWorth: '淨資產（年初）',
   },
 } as const;
 
 export const PROJECTION_CHART_LABELS = {
   retirementMarker: 'Retirement',
+  negativeMarker: 'Negative',
+  selectedMarker: 'Selected',
   tooltipYearPrefix: 'Year',
   netWorth: 'Net Worth',
   income: 'Income',
   investmentReturn: 'Investment Return',
   expense: 'Expense',
-  netCashFlow: 'Net Cash Flow',
-  cashFlowAriaLabel: 'Cash flow projection by year',
+  netCashFlow: 'Net Worth Change',
+  cashFlowAriaLabel: 'Net worth change projection by year',
   netWorthAriaLabel: 'Net worth projection by year',
 } as const;

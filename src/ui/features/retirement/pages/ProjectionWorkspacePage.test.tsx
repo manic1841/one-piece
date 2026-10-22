@@ -421,7 +421,7 @@ describe('ProjectionWorkspacePage', () => {
     await addRule();
     const [row] = ruleRows();
 
-    await choose('Method', 'Percentage of rule', row);
+    await choose('Method', 'Percentage', row);
     expect(within(row).getByLabelText('Ratio (%)')).toBeInTheDocument();
     expect(within(row).queryByLabelText('Source type')).not.toBeInTheDocument();
 
@@ -439,10 +439,10 @@ describe('ProjectionWorkspacePage', () => {
     const [row] = ruleRows();
     expect(within(row).getByLabelText('Side')).toHaveTextContent('Expense');
 
-    await choose('End condition', 'Specific age', row);
+    await choose('End condition', 'Age', row);
     expect(within(row).getByLabelText('Age')).toBeInTheDocument();
 
-    await choose('End condition', 'Specific year', row);
+    await choose('End condition', 'Year', row);
     expect(within(row).getByLabelText('Year')).toBeInTheDocument();
     expect(within(row).queryByLabelText('Age')).not.toBeInTheDocument();
 
@@ -486,7 +486,7 @@ describe('ProjectionWorkspacePage', () => {
     const rows = ruleRows();
     const second = rows[1];
 
-    await choose('Method', 'Percentage of rule', second);
+    await choose('Method', 'Percentage', second);
     const source = within(second).getByLabelText('Source');
     fireEvent.click(source);
     expect(await screen.findByRole('option', { name: 'Salary' })).toBeInTheDocument();
@@ -623,7 +623,7 @@ describe('ProjectionWorkspacePage', () => {
     await addRule();
     await addRule();
     const [rule] = ruleRows();
-    await choose('Method', 'Percentage of rule', rule);
+    await choose('Method', 'Percentage', rule);
     fireEvent.click(within(rule).getByLabelText('Source'));
 
     expect(await screen.findByRole('option', { name: '(unnamed rule)' })).toBeInTheDocument();

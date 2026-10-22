@@ -1,11 +1,18 @@
 import { ChartLegend } from '@/ui/components/charts/ChartLegend';
 import { InteractiveComposedChart } from '@/ui/components/charts/InteractiveComposedChart';
-import { type ComposedSeries } from '@/ui/components/charts/composedChartGeometry';
+import {
+  type ComposedReferenceLine,
+  type ComposedSeries,
+} from '@/ui/components/charts/composedChartGeometry';
 import { PROJECTION_CHART_LABELS } from '@/ui/constants/retirement/displayLabels';
-import { type RetirementProjectionVM } from '@/ui/features/retirement/viewmodels/projectionDisplayVm';
+import { type RetirementProjectionVM } from '@/ui/features/retirement/viewmodels/projectionDisplay.vm';
 
 type RetirementProjectionProps = {
   projection: RetirementProjectionVM;
+  /** Selected year, marked when it falls inside the projection period. */
+  selectedYear?: number | null;
+  /** Called with the activated year. */
+  onSelectYear?: (year: number) => void;
 };
 
 const buildSeries = (projection: RetirementProjectionVM): ComposedSeries[] => {
@@ -25,36 +32,49 @@ const buildSeries = (projection: RetirementProjectionVM): ComposedSeries[] => {
     },
     { kind: 'line', tone: 'negative', area: true, values: points.map((point) => -point.expense) },
     { kind: 'line', tone: 'primary', values: points.map((point) => point.netCashFlow) },
-    { kind: 'line', tone: 'asset', axis: 'right', values: points.map((point) => point.savings) },
+    // Net worth is the context line here, not the subject: thin and dashed so it never
+    // competes with the composition it overlaps.
+    {
+      kind: 'line',
+      tone: 'asset',
+      axis: 'right',
+      dashed: true,
+      values: points.map((point) => point.savings),
+    },
   ];
 };
 
 /**
- * 年度現金流投影：收入與投資報酬的堆疊帶（零以上）、支出帶（零以下）＋淨現金流線，
+ * 年度收支結構投影：收入與投資報酬的堆疊帶（零以上）、支出帶（零以下）＋淨資產變動線，
  * 疊上淨資產線（右軸）。資料即投影的 `chartData`，不新增計算（issue #265）。
+ * 變動線是「帶頂 − 支出帶」，含投資報酬，因此與淨資產線的斜率一致。
+ *
+ * 垂直標記與 `NetWorthChart` 同一個優先序：轉負 > 選取 > 退休，一格只留一條。
  */
-export function CashFlowChart({ projection }: RetirementProjectionProps) {
+export function CashFlowChart({
+  projection,
+  selectedYear = null,
+  onSelectYear,
+}: RetirementProjectionProps) {
   const labels = projection.chartData.map((point) => String(point.year));
-  const retirementIndex = projection.chartData.findIndex(
-    (point) => point.year === projection.retirementYear,
-  );
+  const indexOf = (year: number | null) =>
+    year === null ? -1 : projection.chartData.findIndex((point) => point.year === year);
+
+  const byPriority = new Map<number, ComposedReferenceLine>();
+  const add = (index: number, tone: 'negative' | 'primary', label: string) => {
+    if (index < 0 || byPriority.has(index)) return;
+    byPriority.set(index, { index, tone, label });
+  };
+  add(indexOf(projection.negativeYear), 'negative', PROJECTION_CHART_LABELS.negativeMarker);
+  add(indexOf(selectedYear), 'primary', PROJECTION_CHART_LABELS.selectedMarker);
+  add(indexOf(projection.retirementYear), 'primary', PROJECTION_CHART_LABELS.retirementMarker);
 
   return (
     <div className="space-y-3">
       <InteractiveComposedChart
         labels={labels}
         series={buildSeries(projection)}
-        referenceLines={
-          retirementIndex >= 0
-            ? [
-                {
-                  index: retirementIndex,
-                  tone: 'primary',
-                  label: PROJECTION_CHART_LABELS.retirementMarker,
-                },
-              ]
-            : []
-        }
+        referenceLines={[...byPriority.values()]}
         points={projection.chartData.map((point) => ({
           title: `${PROJECTION_CHART_LABELS.tooltipYearPrefix} ${point.year}`,
           value: `${PROJECTION_CHART_LABELS.netCashFlow} ${point.netCashFlowText}`,
@@ -62,6 +82,14 @@ export function CashFlowChart({ projection }: RetirementProjectionProps) {
         }))}
         height={360}
         ariaLabel={PROJECTION_CHART_LABELS.cashFlowAriaLabel}
+        {...(onSelectYear === undefined
+          ? {}
+          : {
+              onPointClick: (index: number) => {
+                const point = projection.chartData[index];
+                if (point !== undefined) onSelectYear(point.year);
+              },
+            })}
       />
       <ChartLegend
         items={[

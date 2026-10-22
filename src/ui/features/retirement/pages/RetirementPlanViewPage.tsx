@@ -15,7 +15,7 @@ import { useAuthState } from '@/ui/contexts/useAuthState';
 import { RetirementPlanDetail } from '@/ui/features/retirement/components/RetirementPlanDetail';
 import { useRetirementPlanAccess } from '@/ui/features/retirement/hooks/useRetirementPlanAccess';
 import { useRetirementPlanDetail } from '@/ui/features/retirement/hooks/useRetirementPlanDetail';
-import { mapRetirementPlanToVM } from '@/ui/features/retirement/viewmodels/retirementPlanVm';
+import { mapRetirementPlanToVM } from '@/ui/features/retirement/viewmodels/retirementPlan.vm';
 import { getTaskErrorMessage } from '@/ui/hooks/getErrorMessage';
 
 const SKELETON_ROWS = [0, 1, 2];

@@ -24,6 +24,8 @@ const ROUNDED_FULL_ALLOWED = new Set([
   'components/ui/switch.tsx',
   'features/app/layout/PixelPet.tsx',
   'features/dashboard/components/AssetCompositionBlock.tsx',
+  // Retiring event axis: single-year nodes are dots, span bars are capsules.
+  'features/retirement/components/LifeEventTimeline.tsx',
 ]);
 
 const SHADOW_ALLOWED = new Set([

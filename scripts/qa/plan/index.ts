@@ -14,7 +14,9 @@ import { buildMonthlyCloseDocs, buildReportDocs } from './reportDocs';
 import { buildRetirementDocs } from './retirementDocs';
 import {
   type AllocationJournal,
+  CAR_LOAN_ID,
   type InternalTxn,
+  MORTGAGE_ID,
   type QaSeedIdentity,
   type SeedDoc,
   inSeedWindow,
@@ -45,7 +47,14 @@ const buildQaSeedPlan = (identity: QaSeedIdentity): SeedDoc[] => {
   buildAccountSnapshotDocs(b, txns);
   buildProjectSnapshotDocs(b, txns, collectAllocations(b.docs));
   buildPortfolioSnapshotDocs(b, txns);
-  buildRetirementDocs(b);
+  buildRetirementDocs(
+    b,
+    txns,
+    new Map([
+      [MORTGAGE_ID, { monthlyPayment: mortgage.monthlyPayment, endDate: mortgage.endDate }],
+      [CAR_LOAN_ID, { monthlyPayment: carLoan.monthlyPayment, endDate: carLoan.endDate }],
+    ]),
+  );
   buildReportDocs(b, txns, mortgage.closingByMonth, carLoan.closingByMonth);
   buildMonthlyCloseDocs(b);
 

@@ -9,7 +9,7 @@ import { useProjectionCmds } from '@/ui/features/retirement/hooks/useProjectionC
 import {
   type ProjectionViewVM,
   mapProjectionViewToVM,
-} from '@/ui/features/retirement/viewmodels/projectionViewVm';
+} from '@/ui/features/retirement/viewmodels/projectionView.vm';
 import { getTaskErrorMessage } from '@/ui/hooks/getErrorMessage';
 import { useAuthIdentity } from '@/ui/hooks/useAuthIdentity';
 import { type LoadingTaskResult, useLoadingTask } from '@/ui/hooks/useLoadingTask';

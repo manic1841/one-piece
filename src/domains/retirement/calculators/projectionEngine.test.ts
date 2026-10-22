@@ -26,7 +26,7 @@ function input(overrides: Partial<ProjectionInput> = {}): ProjectionInput {
 
 describe('calculateProjection', () => {
   it('exports a version', () => {
-    expect(ENGINE_VERSION).toBe(1);
+    expect(ENGINE_VERSION).toBe(2);
   });
 
   it('applies the return to the opening balance', () => {
@@ -147,14 +147,15 @@ describe('calculateProjection', () => {
       }),
     );
 
+    // Year-start basis: the low point is the 2026 opening (2025's closing), not 2025's own closing.
     expect(result.summary.minNetWorth).toBe(600);
-    expect(result.summary.minNetWorthYear).toBe(2025);
+    expect(result.summary.minNetWorthYear).toBe(2026);
   });
 
   it('takes the minimum from the years even when never below the opening', () => {
     const result = calculateProjection(input());
 
-    expect(result.summary.minNetWorth).toBe(1100);
+    expect(result.summary.minNetWorth).toBe(1000);
     expect(result.summary.minNetWorthYear).toBe(2025);
   });
 

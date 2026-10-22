@@ -18,7 +18,7 @@
 
 - `primary` 為 teal（暗色底上承擔主要互動色）。
 - 顏色分兩層（見 [ADR-0081](../adr/0081-chart-tone-vs-categorical-palette.md)）：**語意 tone** 表達「資料的意義」，**`chart-*` 類別色板**表達「分類之間的差異」。硬編碼 hex 一律對齊 token。
-- 圖表色調由共用對應決定（`src/ui/components/charts/chartTheme.ts`）：語意圖表中 **accent 保留給「當前／選取／主要趨勢」**，其餘資料走語意 tone；分類拆解圖（donut）改用 `chart-*` 類別色板（下段）。圖表保持安靜，不使用裝飾性漸層。面積填色只允許**單色資料歸屬漸層**（單一色相、取自序列自身顏色，且濃度端落在該帶自己的線上、往它的基線淡出），見 [ADR-0078](../adr/0078-single-colour-data-affiliation-gradient.md)。
+- 圖表色調由共用對應決定（`src/ui/components/charts/chartTheme.ts`）：語意圖表中 **accent 保留給「當前／選取／主要趨勢」**，其餘資料走語意 tone；分類拆解圖（donut）改用 `chart-*` 類別色板（下段）。圖表保持安靜，不使用裝飾性漸層。面積填色只允許**單色資料歸屬漸層**（單一色相、取自序列自身顏色，且濃度端落在該帶自己的線上、往它的基線淡出），見 [ADR-0078](../adr/0078-single-colour-data-affiliation-gradient.md)。**次要脈絡序列**（同一張圖裡不是主體、只提供背景對照的線，例如收支圖上的淨資產）用細虛線（1.2px／`5 4`）而非實線，讓它不與主體爭視覺重量；主體序列維持實線 1.8px。
 - **語意 tone**（`positive`／`negative`／`warning`／`primary`／`neutral`／`investment`／`asset`）用於線圖、柱圖、金額與狀態，編碼資料的意義。**`chart-1..7` 為類別色板**：只在「以顏色編碼分類、而非編碼狀態」的並列拆解圖（donut）使用，依資料順序配色；不得用於金額或狀態呈現。這是「Color communicates state」的具名例外（見 `visual-standards.md` 核心設計原則 4）。
 - 層級由材質（§3）而非色差承擔。
 - 金額語意 token `positive`（收入/資產）與 `negative`（支出/負債警示）定義於 `src/index.css` 並註冊進 `tailwind.config.js`；全站金額一律經此 token 呈現。`destructive` 與 `negative` 同值（來源色板只有一個紅），仍僅用於不可逆動作與錯誤文字。
@@ -117,6 +117,7 @@ Token（定義於 `tailwind.config.js`，全部走 CSS 變數）。值不複述�
 - Tracking 隨尺寸變化，定義於 Tailwind `letterSpacing`：display 用 `tracking-tight`、heading 用對應的負字距 class、body 不設、caption 用 `tracking-wide` 級距。**11px 全大寫 mono 標籤**（eyebrow／label／module）用 `tracking-widest`——這類標籤的寬字距是刻意的，不要套 heading 的負字距。
 - **Section 標題與 eyebrow 標籤分屬兩級**：section 標題（`PageSection` 的 title）比 eyebrow 標籤大一階、用重量建立層級（14px、`font-semibold`、`text-foreground`，仍為 mono 全大寫，不套 `tracking-widest`）；module 標籤、metric label、eyebrow 等標籤性文字維持 11px mono `tracking-widest`（`eyebrowClass`）。
 - Leading 與尺寸反比：標題 `leading-tight`、內文 `leading-relaxed`。
+- **字級地板 11px**：表頭、行動版欄位標籤與圖表座標軸／參考線標籤不得低於 11px（CJK 在 10px 以下失去字形細節）。其餘 11px 以上的標籤級距不受影響。
 - 間距一律用 `rem`/`em`，尊重使用者瀏覽器字體大小設定。
 - 頁面標題使用重量（`font-semibold`/`font-bold`）建立層級，不以加大尺寸為唯一手段。
 
@@ -158,9 +159,10 @@ Token（定義於 `tailwind.config.js`，全部走 CSS 變數）。值不複述�
   - **通則**：所有 Data Table 遵循同一標準——表頭 muted、數字右對齊、財務數字 monospace、細分隔線；不使用厚重 border、不使用 zebra striping。可查看 Detail 的資料整列可點擊（List → Detail），不用 row 端常駐 View/Edit 按鈕。
   - **結構**：真表格 `table-fixed` + `border-collapse`；欄寬為明確 % 數且總和必須＝100（瀏覽器會等比壓縮超寬表格，破壞跨表對齊）；同頁多表格共用欄寬常數以保持跨表同軸。
   - **外框**：表格上下各有一條 `border-border` 細線收邊——第一列上緣、最後列下緣（`dataTableFrameClass`，由 DataTable 統一套用）。因為 `border-collapse`，有表頭時第一列上緣與表頭底線會合併成單線；`TableBody` 的 last-child 重置會清掉最後列下緣，外框規則從表格根套用、specificity 高於重置。只有單列時上緣交給該列自帶的規則（見 terminus）。
-  - **Header**：10px / 500 / uppercase / 0.08em / muted、row 約 40px、`pb-[9px]`、`align-bottom`、底線 `border-b border-border`；文字欄表頭左對齊、數字欄表頭右對齊（與資料同軸）。
+  - **Header**：11px / 500 / uppercase / 0.08em / muted、row 約 40px、`pb-[9px]`、`align-bottom`、底線 `border-b border-border`；文字欄表頭左對齊、數字欄表頭右對齊（與資料同軸）。
   - **對齊**：一般文字欄左對齊；數字欄右對齊 + `font-mono` + `tabular-nums`；日期/代碼欄 mono。
   - **數字**：table 層級正常大小（`text-sm`）；不顯示無意義 `.00`；空值顯示「—」。
+  - **金額語意**：一列裡只有**淨額**帶語意色（正負走 `moneyTone` 的 `signTone`），毛額維持 muted；淨額若同時是該列的主要觀察值（如淨資產），再以字重加一級。同一列不得讓毛額與淨額爭色。
   - **報表語意階層（surface）**：財務報表的列樣式由**語意角色**決定，不由縮排深度決定；角色語意與不變式見 [`visual-standards.md`](visual-standards.md) 的「財務報表語意階層」。各角色的表面規格：
     - Section：`11px / 600 / uppercase / 0.08em / foreground`；`bg-muted/40` 微背景帶 + `border-b border-border`。
     - Group：`13px / 500 / foreground`；金額 13px。

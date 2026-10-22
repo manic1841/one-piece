@@ -5,7 +5,12 @@ import type {
   ProjectionYearResult,
 } from '../projectionTypes';
 
-export const ENGINE_VERSION = 1;
+/**
+ * Bumped whenever output semantics change. v2: the minimum net worth is taken
+ * on the year-start balance, matching `retirementNetWorth` and the yearly rows,
+ * so one year never shows two different net-worth figures.
+ */
+export const ENGINE_VERSION = 2;
 
 function fail(message: string): never {
   throw new RangeError(message);
@@ -84,8 +89,9 @@ export function calculateProjection(input: ProjectionInput): ProjectionResult {
     const investmentReturn = opening * annualReturnRate;
     const closing = opening + inflows - outflows + investmentReturn;
 
-    if (closing < minNetWorth) {
-      minNetWorth = closing;
+    // Year-start basis, so the low point is a number the yearly table shows.
+    if (opening < minNetWorth) {
+      minNetWorth = opening;
       minNetWorthYear = year.year;
     }
     if (bankruptcyYear === null && closing < 0) bankruptcyYear = year.year;

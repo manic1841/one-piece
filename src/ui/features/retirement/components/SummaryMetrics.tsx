@@ -1,9 +1,10 @@
 import { Metric, MetricGroup } from '@/ui/components/MetricGroup';
 import { PageSection } from '@/ui/components/PageSection';
+import { PROJECTION_COMMON_LABELS } from '@/ui/constants/retirement/displayLabels';
 import { PROJECTION_RESULT_LABELS } from '@/ui/constants/retirement/resultLabels';
 
 export interface SummaryMetricValues {
-  retirementNetWorthText: string;
+  retirementNetWorthText: string | null;
   finalNetWorthText: string;
   minNetWorthText: string;
   minNetWorthYearText: string;
@@ -20,7 +21,7 @@ export function SummaryMetrics({ summary }: { summary: SummaryMetricValues }) {
         <Metric
           testId="metric-retirement-net-worth"
           label={PROJECTION_RESULT_LABELS.METRIC_RETIREMENT_NET_WORTH}
-          value={summary.retirementNetWorthText}
+          value={summary.retirementNetWorthText ?? PROJECTION_COMMON_LABELS.DASH}
         />
         <Metric
           testId="metric-final-net-worth"

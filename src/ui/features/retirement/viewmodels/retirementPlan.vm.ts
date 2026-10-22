@@ -1,5 +1,6 @@
 import { type ProjectionRule } from '@/domains/retirement/projectionRules';
 import { type RetirementPlan } from '@/domains/retirement/types';
+import { type DefinitionItem } from '@/ui/components/DefinitionRows';
 import { EVENT_LABELS, EVENT_TYPE_LABELS } from '@/ui/constants/retirement/eventLabels';
 import { PLAN_DETAIL_LABELS } from '@/ui/constants/retirement/planLabels';
 import {
@@ -12,10 +13,7 @@ import {
 } from '@/ui/constants/retirement/setupLabels';
 import { formatCurrency, formatDate } from '@/ui/utils';
 
-export interface PlanDefinitionRow {
-  label: string;
-  value: string;
-}
+export type PlanDefinitionRow = DefinitionItem;
 
 export interface PlanRuleVM {
   id: string;

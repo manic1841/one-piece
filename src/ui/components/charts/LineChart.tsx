@@ -104,7 +104,7 @@ export function LineChart({
             {geometry.yLabels.map((label) => (
               <span
                 key={label.text}
-                className="absolute left-0 -translate-y-1/2 font-mono text-[10px] tabular-nums text-muted-foreground"
+                className="absolute left-0 -translate-y-1/2 font-mono text-[11px] tabular-nums text-muted-foreground"
                 style={{ top: `${(label.y / LINE_CHART_HEIGHT) * 100}%` }}
               >
                 {label.text}
@@ -119,7 +119,7 @@ export function LineChart({
           {geometry.xLabels.map((label, index) => (
             <span
               key={`${label.text}-${index}`}
-              className="absolute whitespace-nowrap font-mono text-[10px] tabular-nums text-muted-foreground"
+              className="absolute whitespace-nowrap font-mono text-[11px] tabular-nums text-muted-foreground"
               style={{
                 left: `${(label.x / LINE_CHART_WIDTH) * 100}%`,
                 transform:

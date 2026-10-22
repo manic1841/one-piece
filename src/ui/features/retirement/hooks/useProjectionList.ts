@@ -5,7 +5,7 @@ import { useLoadOnce } from '@/ui/features/retirement/hooks/useLoadOnce';
 import {
   type ProjectionListRowVM,
   mapProjectionToListRowVM,
-} from '@/ui/features/retirement/viewmodels/projectionListVm';
+} from '@/ui/features/retirement/viewmodels/projectionList.vm';
 import { useAuthIdentity } from '@/ui/hooks/useAuthIdentity';
 
 export function useProjectionList(householdId: string | undefined) {

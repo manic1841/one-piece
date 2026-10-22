@@ -25,11 +25,11 @@ import {
   type SaveWorkspaceOutcome,
   useWorkspaceSave,
 } from '@/ui/features/retirement/hooks/useWorkspaceSave';
-import { mapProjectionResultToVM } from '@/ui/features/retirement/viewmodels/projectionResultVm';
+import { mapProjectionResultToVM } from '@/ui/features/retirement/viewmodels/projectionResult.vm';
 import {
   type ProjectionSummaryVM,
   mapProjectionSummaryToVM,
-} from '@/ui/features/retirement/viewmodels/projectionViewVm';
+} from '@/ui/features/retirement/viewmodels/projectionView.vm';
 import {
   type WorkspaceDraft,
   openingSchema,

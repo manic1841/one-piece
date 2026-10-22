@@ -9,7 +9,7 @@ import { PROJECTION_LIST_LABELS } from '@/ui/constants/retirement/projectionLabe
 import { useAuthState } from '@/ui/contexts/useAuthState';
 import { ListCell, ListPageScaffold } from '@/ui/features/retirement/components/ListPageScaffold';
 import { useProjectionList } from '@/ui/features/retirement/hooks/useProjectionList';
-import { type ProjectionListRowVM } from '@/ui/features/retirement/viewmodels/projectionListVm';
+import { type ProjectionListRowVM } from '@/ui/features/retirement/viewmodels/projectionList.vm';
 
 const COLUMNS = [
   { label: PROJECTION_LIST_LABELS.COLUMN_NAME, width: 36, align: 'text' as const },

@@ -34,6 +34,43 @@ vi.mock('@/ui/components/confirm/useConfirm', () => ({
   useConfirm: () => ({ confirm: confirmMock }),
 }));
 
+const START_YEAR = 2026;
+const RETIREMENT_YEAR = 2030;
+const MIN_YEAR = 2032;
+const BANKRUPT_YEAR = 2033;
+
+const yearRow = (year: number, closing: number) => ({
+  year,
+  age: year - 1990,
+  isRetired: year >= RETIREMENT_YEAR,
+  opening: closing + 10_000,
+  return: 1_000,
+  inflows: 50_000,
+  outflows: 20_000,
+  closing,
+});
+
+const YEARS = [
+  yearRow(2026, 900_000),
+  yearRow(2027, 800_000),
+  yearRow(2028, 700_000),
+  yearRow(2029, 600_000),
+  yearRow(2030, 500_000),
+  yearRow(2031, 400_000),
+  yearRow(2032, 300_000),
+  yearRow(2033, -10_000),
+  yearRow(2034, -90_000),
+  yearRow(2035, -200_000),
+];
+
+const lifeEvent = (id: string, name: string, startYear: number, endYear = startYear) => ({
+  id,
+  name,
+  type: 'expense' as const,
+  enabled: true,
+  phases: [{ startYear, endYear, amount: 50_000 }],
+});
+
 const viewData = (
   overrides: Partial<ProjectionViewData['projection']> = {},
 ): ProjectionViewData => ({
@@ -43,21 +80,21 @@ const viewData = (
     engineVersion: 1,
     createdAt: new Date('2026-03-02T00:00:00.000Z'),
     createdBy: 'author@test.com',
-    retirementNetWorth: 1_000_000,
-    finalNetWorth: 2_000_000,
-    minNetWorth: 900_000,
-    minNetWorthYear: 2040,
-    bankruptcyYear: 2045,
+    retirementNetWorth: 500_000,
+    finalNetWorth: -200_000,
+    minNetWorth: -200_000,
+    minNetWorthYear: MIN_YEAR,
+    bankruptcyYear: BANKRUPT_YEAR,
     isBankrupt: true,
     ...overrides,
   },
   config: {
-    startYear: 2026,
+    startYear: START_YEAR,
     openingNetWorth: { amount: 100_000, source: 'manual' },
     assumptions: {
       birthYear: 1990,
-      retirementAge: 60,
-      lifeExpectancy: 85,
+      retirementAge: 40,
+      lifeExpectancy: 45,
       inflationRate: 0.02,
       annualReturnRate: 0.05,
     },
@@ -73,13 +110,13 @@ const viewData = (
       },
     ],
     lifeEvents: [
-      {
-        id: 'event-1',
-        name: 'World trip',
-        type: 'expense',
-        enabled: true,
-        phases: [{ startYear: 2040, endYear: 2041, amount: 50_000 }],
-      },
+      lifeEvent('event-1', 'World trip', 2030),
+      lifeEvent('event-2', 'Car', 2031),
+      lifeEvent('event-3', 'Boat', 2032),
+      lifeEvent('event-4', 'Education', 2032, 2033),
+      lifeEvent('event-5', 'Move', 2033),
+      lifeEvent('event-6', 'Wedding', 2034),
+      lifeEvent('event-7', 'Trip', 2035),
     ],
   },
   source: {
@@ -93,30 +130,7 @@ const viewData = (
       },
     ],
   },
-  annual: {
-    years: [
-      {
-        year: 2026,
-        age: 36,
-        isRetired: false,
-        opening: 100_000,
-        return: 5_000,
-        inflows: 0,
-        outflows: 20_000,
-        closing: 85_000,
-      },
-      {
-        year: 2027,
-        age: 37,
-        isRetired: false,
-        opening: 85_000,
-        return: 4_250,
-        inflows: 0,
-        outflows: 20_000,
-        closing: 69_250,
-      },
-    ],
-  },
+  annual: { years: YEARS },
 });
 
 function openTab(name: string) {
@@ -136,6 +150,22 @@ function renderView() {
   );
   render(<RouterProvider router={router} />);
   return router;
+}
+
+/** Give the chart scrubber a measurable width so pointer maps to a column. */
+function chartSlider(label: string) {
+  const slider = screen.getByRole('slider', { name: label });
+  slider.getBoundingClientRect = () =>
+    ({ left: 0, top: 0, width: 1000, height: 320, right: 1000, bottom: 320 }) as DOMRect;
+  return slider;
+}
+
+const clickColumn = (slider: HTMLElement, index: number, columns: number) => {
+  fireEvent.click(slider, { clientX: (1000 / columns) * (index + 0.5) });
+};
+
+function isBefore(first: HTMLElement, second: HTMLElement) {
+  return Boolean(first.compareDocumentPosition(second) & Node.DOCUMENT_POSITION_FOLLOWING);
 }
 
 describe('ProjectionViewPage', () => {
@@ -158,49 +188,360 @@ describe('ProjectionViewPage', () => {
     vi.mocked(saveProjectionAsPlanWorkflow.execute).mockResolvedValue({ ok: true, id: 'plan-1' });
   });
 
-  it('opens on SUMMARY with all six metrics and no editable fields', async () => {
+  it('opens on OVERVIEW and names the three read-only tabs', async () => {
     renderView();
 
-    expect(await screen.findByTestId('projection-summary-tab')).toBeInTheDocument();
-    expect(screen.getByTestId('metric-retirement-net-worth')).toHaveTextContent('NT$1,000,000');
-    expect(screen.getByTestId('metric-final-net-worth')).toHaveTextContent('NT$2,000,000');
-    expect(screen.getByTestId('metric-min-net-worth')).toHaveTextContent('NT$900,000');
-    expect(screen.getByTestId('metric-min-net-worth-year')).toHaveTextContent('2040');
-    expect(screen.getByTestId('metric-bankruptcy-year')).toHaveTextContent('2045');
-    expect(screen.getByTestId('metric-is-bankrupt')).toHaveTextContent('Yes');
-    expect(screen.getByLabelText('Net worth projection by year')).toBeInTheDocument();
-
+    expect(await screen.findByTestId('projection-overview-tab')).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'OVERVIEW' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'PROJECTION' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'SETTINGS' })).toBeInTheDocument();
     expect(screen.queryAllByRole('textbox')).toHaveLength(0);
-    expect(screen.queryByRole('switch')).not.toBeInTheDocument();
-    expect(screen.queryByTestId('projection-projection-tab')).not.toBeInTheDocument();
   });
 
-  it('unmounts hidden tabs', async () => {
+  it('reads the verdict, the number behind it, then the trend and supporting metrics', async () => {
     renderView();
 
-    await screen.findByTestId('projection-summary-tab');
+    const verdict = await screen.findByTestId('overview-verdict');
+    expect(verdict).toHaveTextContent('淨資產於 2033 轉負，投影期末為 -NT$200,000。');
+
+    const hero = screen.getByTestId('overview-retirement-net-worth');
+    expect(hero).toHaveTextContent('NT$500,000');
+    expect(hero).toHaveTextContent('退休當下（年初）');
+    expect(hero).toHaveTextContent('Age 40 · 2030');
+
+    const chart = chartSlider('Net worth projection by year');
+    const minCard = screen.getByText('Lowest net worth');
+
+    expect(isBefore(verdict, hero)).toBe(true);
+    expect(isBefore(hero, chart)).toBe(true);
+    expect(isBefore(chart, minCard)).toBe(true);
+  });
+
+  it('states a sustained verdict when net worth never turns negative', async () => {
+    vi.mocked(getProjectionViewUseCase.execute).mockResolvedValue(
+      viewData({ bankruptcyYear: null, isBankrupt: false, minNetWorth: 300_000 }),
+    );
+    renderView();
+
+    const verdict = await screen.findByTestId('overview-verdict');
+    expect(verdict).toHaveTextContent('可支應至 2035');
+    expect(verdict).toHaveTextContent('NT$300,000');
+    expect(screen.queryByTestId('negative-net-worth-warning')).not.toBeInTheDocument();
+  });
+
+  it('degrades to the primary metric and an explanation without annual results', async () => {
+    const data = viewData({ retirementNetWorth: null });
+    vi.mocked(getProjectionViewUseCase.execute).mockResolvedValue({
+      ...data,
+      annual: { years: [] },
+    });
+    renderView();
+
+    const hero = await screen.findByTestId('overview-retirement-net-worth');
+    expect(hero).toHaveTextContent('—');
+    expect(screen.getByTestId('overview-empty')).toBeInTheDocument();
+    expect(screen.queryByRole('slider')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('overview-verdict')).not.toBeInTheDocument();
+
     openTab('PROJECTION');
-    expect(await screen.findByTestId('projection-projection-tab')).toBeInTheDocument();
-    expect(screen.queryByTestId('projection-summary-tab')).not.toBeInTheDocument();
-
-    openTab('SOURCE');
-    expect(await screen.findByTestId('projection-source-tab')).toBeInTheDocument();
-    expect(screen.queryByTestId('projection-projection-tab')).not.toBeInTheDocument();
+    expect(await screen.findByTestId('projection-projection-tab')).toHaveTextContent(
+      '選取一個年份以查看年度明細。',
+    );
+    expect(screen.queryByTestId('annual-year-panel')).not.toBeInTheDocument();
   });
 
-  it('renders SOURCE as headed definition lists, not inputs', async () => {
+  it('selects the clicked overview year and switches to PROJECTION', async () => {
     renderView();
 
-    await screen.findByTestId('projection-summary-tab');
-    openTab('SOURCE');
-    await screen.findByTestId('projection-source-tab');
+    await screen.findByTestId('projection-overview-tab');
+    const slider = chartSlider('Net worth projection by year');
+    clickColumn(slider, 3, YEARS.length);
 
-    expect(screen.getByText('BASELINE REFERENCES')).toBeInTheDocument();
-    expect(screen.getByText('CONFIGURATION SNAPSHOT')).toBeInTheDocument();
-    expect(screen.getByText('ASSUMPTIONS')).toBeInTheDocument();
-    expect(screen.getByText(/expense:rent/)).toBeInTheDocument();
-    expect(screen.getByText('2%')).toBeInTheDocument();
-    expect(screen.queryAllByRole('textbox')).toHaveLength(0);
+    expect(await screen.findByTestId('projection-projection-tab')).toBeInTheDocument();
+    expect(screen.getByTestId('annual-year-panel')).toHaveTextContent('2029 · Age 39');
+  });
+
+  it('keeps the selected year across tab switches', async () => {
+    renderView();
+
+    await screen.findByTestId('projection-overview-tab');
+    openTab('PROJECTION');
+    await screen.findByTestId('projection-projection-tab');
+
+    const slider = chartSlider('Net worth projection by year');
+    clickColumn(slider, 1, YEARS.length);
+    expect(screen.getByTestId('annual-year-panel')).toHaveTextContent('2027');
+
+    openTab('SETTINGS');
+    await screen.findByTestId('projection-snapshot-tab');
+    openTab('PROJECTION');
+
+    expect(await screen.findByTestId('annual-year-panel')).toHaveTextContent('2027');
+  });
+
+  it('defaults the trajectory to net worth and swaps to the cash-flow view', async () => {
+    renderView();
+
+    await screen.findByTestId('projection-overview-tab');
+    openTab('PROJECTION');
+    await screen.findByTestId('projection-projection-tab');
+
+    expect(
+      screen.getByRole('slider', { name: 'Net worth projection by year' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('slider', { name: 'Net worth change projection by year' }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '淨資產' })).toHaveAttribute('aria-pressed', 'true');
+
+    fireEvent.click(screen.getByRole('button', { name: '收支結構' }));
+
+    expect(
+      screen.getByRole('slider', { name: 'Net worth change projection by year' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('slider', { name: 'Net worth projection by year' }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '收支結構' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+  });
+
+  it('keeps the selected year when the trajectory view changes', async () => {
+    renderView();
+
+    await screen.findByTestId('projection-overview-tab');
+    openTab('PROJECTION');
+    await screen.findByTestId('projection-projection-tab');
+
+    fireEvent.click(await screen.findByRole('button', { name: '退休 · 2030' }));
+    fireEvent.click(screen.getByRole('button', { name: '收支結構' }));
+
+    expect(screen.getByTestId('annual-year-panel')).toHaveTextContent('2030');
+    fireEvent.click(screen.getByRole('button', { name: '淨資產' }));
+    expect(screen.getByTestId('annual-year-panel')).toHaveTextContent('2030');
+  });
+
+  it('hints when no year is selected and offers the full table anyway', async () => {
+    renderView();
+
+    await screen.findByTestId('projection-overview-tab');
+    openTab('PROJECTION');
+
+    expect(await screen.findByText('選取一個年份以查看年度明細。')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /全部年份/ })).toBeInTheDocument();
+    expect(screen.queryByTestId('annual-year-panel')).not.toBeInTheDocument();
+  });
+
+  it('renders only the key years that exist', async () => {
+    renderView();
+
+    await screen.findByTestId('projection-overview-tab');
+    openTab('PROJECTION');
+    await screen.findByTestId('projection-projection-tab');
+
+    expect(screen.getByRole('button', { name: '退休 · 2030' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '最低 · 2032' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '規劃期末 · 2035' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '淨資產轉負 · 2033' })).toBeInTheDocument();
+  });
+
+  it('hides the minimum and negative key years when they are missing', async () => {
+    vi.mocked(getProjectionViewUseCase.execute).mockResolvedValue(
+      viewData({ bankruptcyYear: null, isBankrupt: false, minNetWorthYear: null }),
+    );
+    renderView();
+
+    await screen.findByTestId('projection-overview-tab');
+    openTab('PROJECTION');
+    await screen.findByTestId('projection-projection-tab');
+
+    expect(screen.queryByRole('button', { name: /最低/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /淨資產轉負/ })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '退休 · 2030' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /規劃期末/ })).toBeInTheDocument();
+  });
+
+  it('opens the panel from a key year and swaps Summary with Cash flow', async () => {
+    renderView();
+
+    await screen.findByTestId('projection-overview-tab');
+    openTab('PROJECTION');
+    fireEvent.click(await screen.findByRole('button', { name: '最低 · 2032' }));
+
+    const panel = screen.getByTestId('annual-year-panel');
+    expect(panel).toHaveTextContent('2032 · Age 42');
+    expect(within(panel).getByText('淨資產變動')).toBeInTheDocument();
+    expect(within(panel).queryByText('收入')).not.toBeInTheDocument();
+
+    fireEvent.click(within(panel).getByRole('button', { name: 'Cash flow' }));
+    expect(within(panel).getByText('收入')).toBeInTheDocument();
+    expect(within(panel).getByText('投資收益')).toBeInTheDocument();
+
+    fireEvent.click(within(panel).getByRole('button', { name: 'Summary' }));
+    expect(within(panel).getByText('退休狀態')).toBeInTheDocument();
+  });
+
+  it('selects a table row and opens its detail in place', async () => {
+    renderView();
+
+    await screen.findByTestId('projection-overview-tab');
+    openTab('PROJECTION');
+    fireEvent.click(await screen.findByRole('button', { name: /全部年份/ }));
+
+    const row = screen.getByTestId('yearly-row-2028');
+    fireEvent.click(row);
+
+    expect(screen.getByTestId('annual-year-panel')).toHaveTextContent('2028');
+    expect(screen.getByTestId('yearly-detail-2028')).toBeInTheDocument();
+    expect(row).toHaveAttribute('aria-expanded', 'true');
+
+    const expand = within(row).getByRole('button', { name: '展開 2028 年明細' });
+    fireEvent.click(expand);
+
+    expect(screen.queryByTestId('yearly-detail-2028')).not.toBeInTheDocument();
+    expect(screen.getByTestId('annual-year-panel')).toHaveTextContent('2028');
+  });
+
+  it('selects the year from the expand button too, matching the row', async () => {
+    renderView();
+
+    await screen.findByTestId('projection-overview-tab');
+    openTab('PROJECTION');
+    fireEvent.click(await screen.findByRole('button', { name: /全部年份/ }));
+
+    const expand = within(screen.getByTestId('yearly-row-2028')).getByRole('button', {
+      name: '展開 2028 年明細',
+    });
+    fireEvent.click(expand);
+
+    expect(screen.getByTestId('yearly-row-2028')).toHaveAttribute('aria-current', 'true');
+    expect(screen.getByTestId('annual-year-panel')).toHaveTextContent('2028');
+    expect(screen.getByTestId('yearly-detail-2028')).toBeInTheDocument();
+  });
+
+  it('selects and expands a mobile row in place', async () => {
+    renderView();
+
+    await screen.findByTestId('projection-overview-tab');
+    openTab('PROJECTION');
+    fireEvent.click(await screen.findByRole('button', { name: /全部年份/ }));
+
+    const row = screen.getByTestId('yearly-row-mobile-2028');
+    fireEvent.click(row);
+    expect(screen.getByTestId('annual-year-panel')).toHaveTextContent('2028');
+
+    expect(row).toHaveAttribute('aria-expanded', 'true');
+    expect(within(row).getByText('投資收益')).toBeInTheDocument();
+  });
+
+  it('marks the selected mobile row with aria-current', async () => {
+    renderView();
+
+    await screen.findByTestId('projection-overview-tab');
+    openTab('PROJECTION');
+    fireEvent.click(await screen.findByRole('button', { name: /全部年份/ }));
+    fireEvent.click(screen.getByTestId('yearly-row-mobile-2027'));
+
+    expect(screen.getByTestId('yearly-row-mobile-2027')).toHaveAttribute('aria-current', 'true');
+    expect(screen.getByTestId('yearly-row-mobile-2028')).not.toHaveAttribute('aria-current');
+  });
+
+  it('marks the selected row with aria-current', async () => {
+    renderView();
+
+    await screen.findByTestId('projection-overview-tab');
+    openTab('PROJECTION');
+    fireEvent.click(await screen.findByRole('button', { name: /全部年份/ }));
+    fireEvent.click(screen.getByTestId('yearly-row-2027'));
+
+    expect(screen.getByTestId('yearly-row-2027')).toHaveAttribute('aria-current', 'true');
+    expect(screen.getByTestId('yearly-row-2028')).not.toHaveAttribute('aria-current');
+  });
+
+  it('selects through the keyboard scrubber', async () => {
+    renderView();
+
+    await screen.findByTestId('projection-overview-tab');
+    openTab('PROJECTION');
+    const slider = chartSlider('Net worth projection by year');
+
+    fireEvent.keyDown(slider, { key: 'ArrowRight' });
+    fireEvent.keyDown(slider, { key: 'Enter' });
+
+    expect(screen.getByTestId('annual-year-panel')).toHaveTextContent('2026');
+  });
+
+  it('reads opening facts, assumptions, rules and events in that order', async () => {
+    renderView();
+
+    await screen.findByTestId('projection-overview-tab');
+    openTab('SETTINGS');
+    const snapshot = await screen.findByTestId('projection-snapshot-tab');
+
+    const opening = within(snapshot).getByText('期初金額');
+    const assumptions = within(snapshot).getByText('假設');
+    const rules = within(snapshot).getByText('規則');
+    const events = within(snapshot).getByText('人生事件');
+
+    expect(isBefore(opening, assumptions)).toBe(true);
+    expect(isBefore(assumptions, rules)).toBe(true);
+    expect(isBefore(rules, events)).toBe(true);
+
+    expect(within(snapshot).getByText('Manual')).toBeInTheDocument();
+    expect(within(snapshot).getAllByRole('table')).toHaveLength(1);
+  });
+
+  it('shows assumptions, rules and their sources together without collapsing', async () => {
+    renderView();
+
+    await screen.findByTestId('projection-overview-tab');
+    openTab('SETTINGS');
+
+    expect(await screen.findByText('2%')).toBeInTheDocument();
+    // Mobile list and desktop table both render the same rule and its source.
+    expect(screen.getAllByText('Rent').length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/expense:rent/).length).toBeGreaterThan(0);
+  });
+
+  it('renders every event without an expand-all control', async () => {
+    renderView();
+
+    await screen.findByTestId('projection-overview-tab');
+    openTab('SETTINGS');
+
+    expect(await screen.findByTestId('life-event-timeline')).toBeInTheDocument();
+    expect(screen.getByText('World trip')).toBeInTheDocument();
+    expect(screen.getByText('Wedding')).toBeInTheDocument();
+    expect(screen.getByText('Trip')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '展開全部事件' })).not.toBeInTheDocument();
+  });
+
+  it('expands an event for its phase details', async () => {
+    renderView();
+
+    await screen.findByTestId('projection-overview-tab');
+    openTab('SETTINGS');
+
+    const eventRow = await screen.findByRole('button', { name: /^World trip / });
+    fireEvent.click(eventRow);
+
+    expect(screen.getByTestId('event-details-event-1')).toHaveTextContent('NT$50,000');
+    expect(eventRow).toHaveAttribute('aria-expanded', 'true');
+  });
+
+  it('places every event against the retirement anchor', async () => {
+    renderView();
+
+    await screen.findByTestId('projection-overview-tab');
+    openTab('SETTINGS');
+
+    expect(
+      await screen.findByRole('button', { name: /^World trip 2030 退休年/ }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^Trip 2035 退休後/ })).toBeInTheDocument();
+    expect(screen.getByText('退休')).toBeInTheDocument();
   });
 
   it('renames only through the title', async () => {
@@ -261,7 +602,7 @@ describe('ProjectionViewPage', () => {
     await waitFor(() =>
       expect(confirmMock).toHaveBeenCalledWith({
         title: 'Delete this projection?',
-        context: 'Base case · 2026–2075',
+        context: 'Base case · 2026–2035',
         consequence: 'This cannot be undone.',
         confirmLabel: 'DELETE',
       }),
@@ -317,7 +658,7 @@ describe('ProjectionViewPage', () => {
     expect(await screen.findByText('Could not load this projection.')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'RETRY' }));
 
-    expect(await screen.findByTestId('projection-summary-tab')).toBeInTheDocument();
+    expect(await screen.findByTestId('projection-overview-tab')).toBeInTheDocument();
   });
 
   it('shows an empty not-found state with a way back', async () => {
