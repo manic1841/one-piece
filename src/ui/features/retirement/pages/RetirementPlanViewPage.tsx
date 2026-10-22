@@ -49,7 +49,7 @@ export default function RetirementPlanViewPage() {
 
   if (loading) {
     return (
-      <div role="status" className="mx-auto max-w-3xl space-y-6 pb-20">
+      <div role="status" className="space-y-6 pb-20">
         <span className="sr-only">{PLAN_DETAIL_LABELS.LOADING_LABEL}</span>
         {SKELETON_ROWS.map((row) => (
           <Skeleton key={row} className="h-16" />
@@ -60,7 +60,7 @@ export default function RetirementPlanViewPage() {
 
   if (errorMessage !== null && plan === null) {
     return (
-      <div className="mx-auto max-w-3xl space-y-6 pb-20">
+      <div className="space-y-6 pb-20">
         <Button variant="ghost" size="sm" onClick={backToList} className="gap-2">
           <ArrowLeft size={16} aria-hidden="true" />
           {PLAN_DETAIL_LABELS.BACK_LABEL}
@@ -90,7 +90,7 @@ export default function RetirementPlanViewPage() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl space-y-8">
+    <div className="space-y-8">
       <PageHeader
         crumb={PLAN_DETAIL_LABELS.CRUMB}
         title={<InlineEditableTitle value={vm.name} onSave={handleRename} disabled={!canManage} />}

@@ -58,7 +58,7 @@ export default function ProjectionWorkspacePage() {
   };
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6">
+    <div className="space-y-6">
       <PageHeader
         title={PROJECTION_WORKSPACE_LABELS.TITLE}
         description={PROJECTION_WORKSPACE_LABELS.DESCRIPTION}

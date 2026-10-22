@@ -67,12 +67,7 @@ Page Header 規則：
 
 ## 頁面寬度
 
-桌面版以固定最大內容寬度置中。容器上限與斷點切換屬 RWD 斷點契約，見 [`ui-layer-architecture.md`](ui-layer-architecture.md)（[ADR-0044](../adr/0044-rwd-breakpoint-contract.md)），本節不重述數字。
-
-頁面依用途分兩類：
-
-- **資料密集頁**（Transactions、Accounts、Debt、Reports）：可使用完整內容寬度。
-- **閱讀 / 情境頁**（退休投影／計畫、Account Detail、Portfolio Detail）：限制在較窄的閱讀寬度，避免長行。容器上限屬 RWD 斷點契約，見 [`ui-layer-architecture.md`](ui-layer-architecture.md)。
+桌面版以固定最大內容寬度置中，全站所有頁面共用同一個容器，頁面**不另外設定寬度**（不寫頁面層級的 `max-w-*`）。容器上限與斷點切換屬 RWD 斷點契約，見 [`ui-layer-architecture.md`](ui-layer-architecture.md)（[ADR-0044](../adr/0044-rwd-breakpoint-contract.md)），本節不重述數字。
 
 原則：
 
