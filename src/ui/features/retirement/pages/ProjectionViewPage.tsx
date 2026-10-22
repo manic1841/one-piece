@@ -175,11 +175,15 @@ export default function ProjectionViewPage() {
           )}
 
           <Tabs value={tab} onValueChange={(next) => setTab(next as ViewTab)}>
-            <TabsList aria-label={PROJECTION_VIEW_LABELS.TABS_LABEL} className="overflow-x-auto">
-              <TabsTrigger value="overview">{PROJECTION_VIEW_LABELS.TAB_OVERVIEW}</TabsTrigger>
-              <TabsTrigger value="projection">{PROJECTION_VIEW_LABELS.TAB_PROJECTION}</TabsTrigger>
-              <TabsTrigger value="settings">{PROJECTION_VIEW_LABELS.TAB_SETTINGS}</TabsTrigger>
-            </TabsList>
+            <div className="overflow-x-auto pb-px">
+              <TabsList aria-label={PROJECTION_VIEW_LABELS.TABS_LABEL}>
+                <TabsTrigger value="overview">{PROJECTION_VIEW_LABELS.TAB_OVERVIEW}</TabsTrigger>
+                <TabsTrigger value="projection">
+                  {PROJECTION_VIEW_LABELS.TAB_PROJECTION}
+                </TabsTrigger>
+                <TabsTrigger value="settings">{PROJECTION_VIEW_LABELS.TAB_SETTINGS}</TabsTrigger>
+              </TabsList>
+            </div>
 
             <TabsContent value="overview">
               <ProjectionOverviewTab

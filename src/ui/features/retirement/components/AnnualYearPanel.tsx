@@ -95,13 +95,14 @@ export function AnnualYearPanel({ row, birthYear }: AnnualYearPanelProps) {
         </div>
       </div>
 
-      <FilterStrip
-        items={VIEW_ITEMS}
-        value={view}
-        onValueChange={(next) => setView(next as PanelView)}
-        ariaLabel={PROJECTION_VIEW_LABELS.PANEL_VIEW_LABEL}
-        className="mt-4 border-b border-border pb-2"
-      />
+      <div className="mt-4 flex border-b border-border">
+        <FilterStrip
+          items={VIEW_ITEMS}
+          value={view}
+          onValueChange={(next) => setView(next as PanelView)}
+          ariaLabel={PROJECTION_VIEW_LABELS.PANEL_VIEW_LABEL}
+        />
+      </div>
 
       <div className="mt-2">
         <DefinitionRows

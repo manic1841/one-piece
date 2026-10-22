@@ -198,6 +198,14 @@ describe('ProjectionViewPage', () => {
     expect(screen.queryAllByRole('textbox')).toHaveLength(0);
   });
 
+  it('scrolls the tab list on a wrapper so the list keeps its full-width rule', async () => {
+    renderView();
+
+    const tabList = await screen.findByRole('tablist');
+    expect(tabList).not.toHaveClass('overflow-x-auto');
+    expect(tabList.parentElement).toHaveClass('overflow-x-auto', 'pb-px');
+  });
+
   it('reads the verdict, the number behind it, then the trend and supporting metrics', async () => {
     renderView();
 
@@ -381,6 +389,20 @@ describe('ProjectionViewPage', () => {
 
     fireEvent.click(within(panel).getByRole('button', { name: 'Summary' }));
     expect(within(panel).getByText('退休狀態')).toBeInTheDocument();
+  });
+
+  it('owns the view divider on a full-width wrapper, not on the shrink-wrapped strip', async () => {
+    renderView();
+
+    await screen.findByTestId('projection-overview-tab');
+    openTab('PROJECTION');
+    fireEvent.click(await screen.findByRole('button', { name: '最低 · 2032' }));
+
+    const viewStrip = within(screen.getByTestId('annual-year-panel')).getByRole('group', {
+      name: '年度明細檢視',
+    });
+    expect(viewStrip).not.toHaveClass('border-b');
+    expect(viewStrip.parentElement).toHaveClass('flex', 'border-b');
   });
 
   it('selects a table row and opens its detail in place', async () => {
