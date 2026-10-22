@@ -29,6 +29,8 @@ export interface SnapshotRuleRowVM {
   methodText: string;
   parametersText: string;
   endConditionText: string;
+  /** `✓` when the rule holds its real value, `—` otherwise. */
+  keepsPaceText: string;
   /** `—` when the rule carries no baseline reference. */
   baselineText: string;
   /** Source reference (`Ledger code · expense:food`); `—` when the snapshot has none. */
@@ -190,6 +192,10 @@ const buildRuleGroups = (
           methodText: RULE_METHOD_LABELS[rule.method],
           parametersText: parameterText(rule),
           endConditionText: endConditionText(rule),
+          keepsPaceText:
+            rule.keepsPaceWithInflation === true
+              ? PROJECTION_COMMON_LABELS.CHECK
+              : PROJECTION_COMMON_LABELS.DASH,
           baselineText: baselineText(rule),
           sourceText: source?.sourceText ?? PROJECTION_COMMON_LABELS.DASH,
           sourceBaselineText:

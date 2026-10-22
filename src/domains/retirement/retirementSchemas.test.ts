@@ -617,6 +617,47 @@ describe('endCondition', () => {
   });
 });
 
+describe('keepsPaceWithInflation', () => {
+  it.each([
+    ['fixedAmount', undefined, { amount: 1 }, undefined],
+    ['percentage', ruleSource, { ratio: 0.5 }, undefined],
+    ['growthRate', ledgerSource, { rate: 0.02 }, 'previousCompleteYear'],
+    ['inflation', ledgerSource, {}, 'previousCompleteYear'],
+  ] as const)('is allowed on %s', (method, source, parameters, baselinePolicy) => {
+    const target = validRule({ id: 'rule-2', ruleType: 'income' });
+    const result = parseRules([
+      target,
+      validRule({
+        method,
+        source,
+        parameters,
+        baselinePolicy,
+        keepsPaceWithInflation: true,
+      }),
+    ]);
+    expect(result.success).toBe(true);
+  });
+
+  it('is forbidden on debtAmortization', () => {
+    const result = parseRules([
+      validRule({
+        method: 'debtAmortization',
+        source: debtSource,
+        parameters: {},
+        endCondition: undefined,
+        keepsPaceWithInflation: true,
+      }),
+    ]);
+    expect(codes(result)).toContain(RetirementSchemaErrorCode.KEEPS_PACE_WITH_INFLATION_FORBIDDEN);
+  });
+
+  it('defaults to false when absent', () => {
+    const result = parseRules([validRule()]);
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data[0].keepsPaceWithInflation).toBe(false);
+  });
+});
+
 describe('parameters', () => {
   it.each([
     [-0.1, true],

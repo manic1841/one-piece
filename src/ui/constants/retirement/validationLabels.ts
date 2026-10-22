@@ -41,6 +41,7 @@ export const RETIREMENT_VALIDATION_LABELS: Record<RetirementSchemaErrorCode, str
   BASELINE_YEAR_FORBIDDEN: '只有指定年度才填基準年度',
   BASELINE_YEAR_OUT_OF_RANGE: '基準年度必須介於 1900 到 2200',
   BASELINE_YEAR_AFTER_START: '基準年度必須早於投影起點',
+  KEEPS_PACE_WITH_INFLATION_FORBIDDEN: '債務攤還不支援維持通膨',
 
   EVENT_ID_REQUIRED: '事件 id 必填',
   EVENT_NAME_REQUIRED: '事件名稱必填',

@@ -87,6 +87,7 @@ interface BranchOptions {
   hasSource: boolean;
   requiresEndCondition: boolean;
   hasBaselinePolicy: boolean;
+  supportsKeepsPace?: boolean;
   validateSource?: (source: RuleSource, ctx: z.RefinementCtx) => void;
   validateBaseline?: (
     source: RuleSource,
@@ -161,12 +162,19 @@ function buildBranch(options: BranchOptions) {
         .transform((value) => value as number | undefined)
     : undefined;
 
+  const keepsPaceField = options.supportsKeepsPace
+    ? z.boolean().default(false)
+    : z
+        .undefined({ error: RetirementSchemaErrorCode.KEEPS_PACE_WITH_INFLATION_FORBIDDEN })
+        .optional();
+
   const shape = {
     ...baseShape,
     method: z.literal(method),
     source: sourceField,
     parameters: parameterSchemaByMethod[method],
     endCondition: endConditionField,
+    keepsPaceWithInflation: keepsPaceField,
     ...(baselinePolicyField ? { baselinePolicy: baselinePolicyField } : {}),
     ...(baselineYearField ? { baselineYear: baselineYearField } : {}),
   };
@@ -229,6 +237,7 @@ const inflationBranch = buildBranch({
   hasSource: true,
   requiresEndCondition: true,
   hasBaselinePolicy: true,
+  supportsKeepsPace: true,
   validateBaseline: validateBaselinePolicy,
 });
 
@@ -237,6 +246,7 @@ const growthRateBranch = buildBranch({
   hasSource: true,
   requiresEndCondition: true,
   hasBaselinePolicy: true,
+  supportsKeepsPace: true,
   validateBaseline: validateBaselinePolicy,
 });
 
@@ -245,6 +255,7 @@ const percentageBranch = buildBranch({
   hasSource: true,
   requiresEndCondition: true,
   hasBaselinePolicy: false,
+  supportsKeepsPace: true,
   validateSource: (source, ctx) => {
     if (source.type !== 'rule') {
       addIssue(ctx, RetirementSchemaErrorCode.PERCENTAGE_SOURCE_MUST_BE_RULE, ['source', 'type'], {
@@ -259,6 +270,7 @@ const fixedAmountBranch = buildBranch({
   hasSource: false,
   requiresEndCondition: true,
   hasBaselinePolicy: false,
+  supportsKeepsPace: true,
 });
 
 const debtAmortizationBranch = buildBranch({

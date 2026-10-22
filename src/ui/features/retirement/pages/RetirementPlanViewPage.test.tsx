@@ -54,6 +54,19 @@ const plan = {
   updatedAt: new Date('2026-03-02'),
 };
 
+const flaggedPlan = {
+  ...plan,
+  projectionRules: [
+    { ...plan.projectionRules[0], keepsPaceWithInflation: true },
+    {
+      ...plan.projectionRules[0],
+      id: 'rule-2',
+      name: 'Food',
+      keepsPaceWithInflation: false,
+    },
+  ],
+};
+
 const detail = (overrides: Record<string, unknown> = {}) => ({
   plan,
   loading: false,
@@ -99,6 +112,14 @@ describe('RetirementPlanViewPage', () => {
     // Only the title is editable, and only in edit mode.
     expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
     expect(screen.getByText('Last updated: 2026-03-02')).toBeInTheDocument();
+  });
+
+  it('shows the keeps-pace state of every rule', () => {
+    mockUseDetail.mockReturnValue(detail({ plan: flaggedPlan }) as never);
+    renderPage();
+
+    expect(screen.getAllByText('維持通膨')).toHaveLength(2);
+    expect(screen.getAllByText('✓')).toHaveLength(1);
   });
 
   it('renames through the inline title', async () => {

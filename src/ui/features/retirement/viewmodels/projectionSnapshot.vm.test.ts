@@ -57,3 +57,43 @@ describe('mapProjectionSnapshotToVM event spans', () => {
     expect(phase.clippedEndYear).toBe(2026);
   });
 });
+
+describe('mapProjectionSnapshotToVM keeps pace', () => {
+  const rule = (id: string, method: string, keepsPaceWithInflation: boolean) => ({
+    id,
+    name: id,
+    ruleType: 'expense' as const,
+    enabled: true,
+    method,
+    parameters: method === 'fixedAmount' ? { amount: 1 } : {},
+    endCondition: { type: 'lifelong' as const },
+    keepsPaceWithInflation,
+  });
+
+  const withRules = (rules: unknown[]): ProjectionConfig =>
+    ({ ...config([]), projectionRules: rules }) as unknown as ProjectionConfig;
+
+  it('marks an enabled rule and dashes the rest', () => {
+    const vm = mapProjectionSnapshotToVM(
+      PROJECTION as ProjectionDocument,
+      withRules([rule('a', 'fixedAmount', true), rule('b', 'fixedAmount', false)]),
+      null,
+      2035,
+    );
+
+    const rows = vm.ruleGroups.flatMap((group) => group.rows);
+    expect(rows.map((row) => row.keepsPaceText)).toEqual(['✓', '—']);
+  });
+
+  it('still shows the column for methods the workspace cannot toggle', () => {
+    const vm = mapProjectionSnapshotToVM(
+      PROJECTION as ProjectionDocument,
+      withRules([rule('a', 'inflation', true), rule('b', 'debtAmortization', false)]),
+      null,
+      2035,
+    );
+
+    const rows = vm.ruleGroups.flatMap((group) => group.rows);
+    expect(rows.map((row) => row.keepsPaceText)).toEqual(['✓', '—']);
+  });
+});

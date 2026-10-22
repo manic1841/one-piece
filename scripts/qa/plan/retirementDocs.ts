@@ -4,7 +4,9 @@
  * The plan carries all three input groups the new model defines (assumptions,
  * rules, life events). Rules cover every method and all three source kinds:
  * ledger baselines come from the seeded journal, debt rules reference the seeded
- * mortgage and car loan, and percentage/growth rules chain off other rules. The
+ * mortgage and car loan, and percentage/growth rules chain off other rules. One
+ * expense rule grows below inflation with `keepsPaceWithInflation`, so the
+ * frozen projection exercises the held branch. The
  * projection's config, source and annual documents are produced through the
  * production resolver and engine rather than hand-written, so schema drift and
  * baseline drift both fail the seed loudly.
@@ -158,6 +160,19 @@ export const buildRetirementDocs = (
         source: { type: 'rule', id: 'rule_food' },
         parameters: { rate: 0.06 },
         endCondition: { type: 'specificAge', age: 85 },
+      },
+      {
+        // Growth below inflation with the clamp on, so QA walks the held branch.
+        id: 'rule_insurance',
+        name: '保險',
+        ruleType: 'expense',
+        method: 'growthRate',
+        source: { type: 'ledgerCode', id: 'expense:food' },
+        parameters: { rate: 0.01 },
+        baselinePolicy: 'specificYear',
+        baselineYear: CURRENT_YEAR,
+        endCondition: { type: 'lifelong' },
+        keepsPaceWithInflation: true,
       },
     ],
     lifeEvents: [

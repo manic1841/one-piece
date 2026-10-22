@@ -13,7 +13,7 @@ interface TransactionEntries {
 /**
  * Net amount (`credit - debit`, entries are not stored as absolute values) for
  * one ledger code. Returns `undefined` when the year has no entry for the code
- * at all; the caller reports `MISSING_BASELINE` rather than downgrading to 0.
+ * at all; the caller reports `LEDGER_BASELINE_EMPTY` rather than downgrading to 0.
  */
 export function netForLedgerCode(
   transactions: TransactionEntries[],
@@ -36,7 +36,7 @@ export function netForLedgerCode(
 /**
  * `specificYear` uses its configured year unchanged; every other policy uses
  * the year before the projection starts. A year with no entries is not walked
- * back — it is `MISSING_BASELINE` for that rule.
+ * back — it is `LEDGER_BASELINE_EMPTY` for that rule.
  */
 export function baselineYearFor(rule: ProjectionRule, startYear: number): number {
   if (rule.baselinePolicy === 'specificYear' && typeof rule.baselineYear === 'number') {

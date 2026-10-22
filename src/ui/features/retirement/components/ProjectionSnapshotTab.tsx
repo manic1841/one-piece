@@ -24,7 +24,7 @@ import { LifeEventTimeline } from '@/ui/features/retirement/components/LifeEvent
 import { type ProjectionViewVM } from '@/ui/features/retirement/viewmodels/projectionView.vm';
 import { cn } from '@/ui/utils/cn';
 
-const RULE_COLUMN_WIDTHS = [15, 16, 9, 22, 11, 27] as const;
+const RULE_COLUMN_WIDTHS = [15, 14, 9, 17, 8, 12, 25] as const;
 
 interface ProjectionSnapshotTabProps {
   view: ProjectionViewVM;
@@ -115,6 +115,9 @@ export function ProjectionSnapshotTab({ view }: ProjectionSnapshotTabProps) {
                       <MobileDataField label={PROJECTION_VIEW_LABELS.COLUMN_END_CONDITION}>
                         <span className="text-sm">{rule.endConditionText}</span>
                       </MobileDataField>
+                      <MobileDataField label={PROJECTION_VIEW_LABELS.COLUMN_KEEPS_PACE}>
+                        <span className="text-sm">{rule.keepsPaceText}</span>
+                      </MobileDataField>
                       <MobileDataField label={PROJECTION_VIEW_LABELS.COLUMN_BASELINE_POLICY}>
                         <span className="text-sm">{rule.baselineText}</span>
                       </MobileDataField>
@@ -144,6 +147,9 @@ export function ProjectionSnapshotTab({ view }: ProjectionSnapshotTabProps) {
                     </DataTableHeadCell>
                     <DataTableHeadCell>
                       {PROJECTION_VIEW_LABELS.COLUMN_END_CONDITION}
+                    </DataTableHeadCell>
+                    <DataTableHeadCell>
+                      {PROJECTION_VIEW_LABELS.COLUMN_KEEPS_PACE}
                     </DataTableHeadCell>
                     <DataTableHeadCell>
                       {PROJECTION_VIEW_LABELS.COLUMN_BASELINE_POLICY}
@@ -180,6 +186,7 @@ export function ProjectionSnapshotTab({ view }: ProjectionSnapshotTabProps) {
                           <DataTableCell>{rule.methodText}</DataTableCell>
                           <DataTableCell align="number">{rule.parametersText}</DataTableCell>
                           <DataTableCell>{rule.endConditionText}</DataTableCell>
+                          <DataTableCell>{rule.keepsPaceText}</DataTableCell>
                           <DataTableCell>{rule.baselineText}</DataTableCell>
                           <DataTableCell>
                             {rule.sourceText}

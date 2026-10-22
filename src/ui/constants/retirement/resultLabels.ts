@@ -53,6 +53,8 @@ export function resolveErrorLabel(error: ProjectionResolveError): string {
       return params.kind === 'opening'
         ? '缺少期初淨資產基準。'
         : `規則 ${text(params.ruleId)} 缺少基準金額。`;
+    case 'LEDGER_BASELINE_EMPTY':
+      return `規則「${text(params.ruleName)}」的基準年度 ${text(params.baselineYear)} 沒有科目 ${text(params.ledgerCodeId)} 的分錄，請改基準年度或先補分錄。`;
     case 'DISABLED_REFERENCE':
       return `規則 ${text(params.ruleId)} 參照的規則已停用。`;
     case 'BASELINE_BEHIND':

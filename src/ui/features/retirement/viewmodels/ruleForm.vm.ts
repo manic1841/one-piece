@@ -33,7 +33,8 @@ export type RuleErrorField =
   | 'endAge'
   | 'endYear'
   | 'baselinePolicy'
-  | 'baselineYear';
+  | 'baselineYear'
+  | 'keepsPace';
 
 export const RuleDraftFormSchema = z.object({
   id: z.string(),
@@ -41,6 +42,7 @@ export const RuleDraftFormSchema = z.object({
   ruleType: z.enum(['income', 'expense']),
   method: z.enum(['inflation', 'growthRate', 'percentage', 'fixedAmount', 'debtAmortization']),
   enabled: z.boolean(),
+  keepsPace: z.boolean(),
   sourceType: z.enum(['ledgerCode', 'rule', 'debtAccount', '']),
   sourceId: z.string(),
   rateText: z.string(),
@@ -72,6 +74,7 @@ export function blankRule(ruleType: RuleType): RuleDraftVM {
     ruleType,
     method: DEFAULT_METHOD,
     enabled: true,
+    keepsPace: false,
     sourceType: 'ledgerCode',
     sourceId: '',
     rateText: '',
@@ -96,6 +99,11 @@ export function needsBaselinePolicy(method: RuleMethod, sourceType: RuleSourceTy
 
 export function needsBaselineYear(baselinePolicy: BaselinePolicy | ''): boolean {
   return baselinePolicy === 'specificYear';
+}
+
+/** `inflation` supports the flag but the difference is invisible in the common case. */
+export function showsKeepsPace(method: RuleMethod): boolean {
+  return method === 'growthRate' || method === 'percentage' || method === 'fixedAmount';
 }
 
 function parseNumber(text: string): number {
@@ -154,6 +162,7 @@ export function mapRuleVMToDomain(rule: RuleDraftVM): unknown {
         ...shared,
         parameters: { amount: parseNumber(rule.amountText) },
         endCondition: buildEndCondition(rule),
+        keepsPaceWithInflation: rule.keepsPace,
       };
     case 'debtAmortization':
       return { ...shared, source, parameters: {} };
@@ -163,6 +172,7 @@ export function mapRuleVMToDomain(rule: RuleDraftVM): unknown {
         source,
         parameters: { ratio: percentToDecimal(rule.ratioText) },
         endCondition: buildEndCondition(rule),
+        keepsPaceWithInflation: rule.keepsPace,
       };
     case 'growthRate':
       return {
@@ -170,6 +180,7 @@ export function mapRuleVMToDomain(rule: RuleDraftVM): unknown {
         source,
         parameters: { rate: percentToDecimal(rule.rateText) },
         endCondition: buildEndCondition(rule),
+        keepsPaceWithInflation: rule.keepsPace,
         ...baselineFields(rule),
       };
     default:
@@ -178,6 +189,7 @@ export function mapRuleVMToDomain(rule: RuleDraftVM): unknown {
         source,
         parameters: {},
         endCondition: buildEndCondition(rule),
+        keepsPaceWithInflation: rule.keepsPace,
         ...baselineFields(rule),
       };
   }
@@ -190,6 +202,7 @@ export function mapRuleToVM(rule: ProjectionRule): RuleDraftVM {
     ruleType: rule.ruleType,
     method: rule.method,
     enabled: rule.enabled,
+    keepsPace: rule.keepsPaceWithInflation ?? false,
     sourceType: rule.source?.type ?? '',
     sourceId: rule.source?.id ?? '',
     rateText:
@@ -232,6 +245,8 @@ function mapIssuePath(path: (string | number | symbol)[]): RuleErrorField | unde
       return 'baselinePolicy';
     case 'baselineYear':
       return 'baselineYear';
+    case 'keepsPaceWithInflation':
+      return 'keepsPace';
     default:
       return undefined;
   }

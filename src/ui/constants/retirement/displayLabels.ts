@@ -1,5 +1,6 @@
 export const PROJECTION_COMMON_LABELS = {
   DASH: '—',
+  CHECK: '✓',
   YES: 'Yes',
   NO: 'No',
   RETIRED: '退休',

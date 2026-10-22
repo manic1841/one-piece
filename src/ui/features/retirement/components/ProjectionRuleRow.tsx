@@ -20,6 +20,7 @@ import {
   hasSource,
   needsBaselinePolicy,
   needsBaselineYear,
+  showsKeepsPace,
 } from '@/ui/features/retirement/viewmodels/ruleForm.vm';
 
 interface ProjectionRuleRowProps {
@@ -176,6 +177,23 @@ export function ProjectionRuleRow({
                 />
               </FormControl>
               {hiddenMessage('parameter')}
+            </FormItem>
+          </FormField>
+        )}
+
+        {showsKeepsPace(rule.method) && (
+          <FormField name={`${prefix}.keepsPace`}>
+            <FormItem className="grid gap-2">
+              <span className="text-sm font-medium leading-none">{RULE_LABELS.KEEPS_PACE}</span>
+              <label className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Switch
+                  checked={rule.keepsPace}
+                  onCheckedChange={(keepsPace) => update({ keepsPace })}
+                  disabled={readOnly}
+                />
+                {rule.keepsPace ? RULE_LABELS.ENABLED : RULE_LABELS.DISABLED}
+              </label>
+              {hiddenMessage('keepsPace')}
             </FormItem>
           </FormField>
         )}

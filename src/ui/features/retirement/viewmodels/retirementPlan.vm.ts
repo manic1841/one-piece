@@ -1,6 +1,7 @@
 import { type ProjectionRule } from '@/domains/retirement/projectionRules';
 import { type RetirementPlan } from '@/domains/retirement/types';
 import { type DefinitionItem } from '@/ui/components/DefinitionRows';
+import { PROJECTION_COMMON_LABELS } from '@/ui/constants/retirement/displayLabels';
 import { EVENT_LABELS, EVENT_TYPE_LABELS } from '@/ui/constants/retirement/eventLabels';
 import { PLAN_DETAIL_LABELS } from '@/ui/constants/retirement/planLabels';
 import {
@@ -24,6 +25,7 @@ export interface PlanRuleVM {
   parameter: string;
   source: string;
   endCondition: string;
+  keepsPace: string;
   baselinePolicy: string;
   enabled: string;
 }
@@ -149,6 +151,10 @@ export function mapRetirementPlanToVM(plan: RetirementPlan): RetirementPlanVM {
       parameter: ruleParameter(rule),
       source: sourceLabel(rule.source, ruleNames),
       endCondition: endCondition(rule),
+      keepsPace:
+        rule.keepsPaceWithInflation === true
+          ? PROJECTION_COMMON_LABELS.CHECK
+          : PROJECTION_COMMON_LABELS.DASH,
       baselinePolicy: baselinePolicy(rule),
       enabled: rule.enabled ? RULE_LABELS.ENABLED : RULE_LABELS.DISABLED,
     })),

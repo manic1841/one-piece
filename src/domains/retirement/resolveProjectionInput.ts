@@ -145,7 +145,14 @@ function resolveBaseline(
 
   const net = ledger.netByYear.get(baselineYear);
   if (net === undefined) {
-    state.errors.push(failure('MISSING_BASELINE', { kind: 'rule', ruleId: rule.id }));
+    state.errors.push(
+      failure('LEDGER_BASELINE_EMPTY', {
+        ruleId: rule.id,
+        ruleName: rule.name,
+        ledgerCodeId: source.id,
+        baselineYear,
+      }),
+    );
     return undefined;
   }
 
@@ -202,9 +209,20 @@ function expandRule(
   const lastYear = Math.min(endYear, state.lastYear);
   const baselineYear = snapshot?.baselineYear ?? state.firstYear;
   const baselineAmount = snapshot?.baselineAmount ?? 0;
+  const inflation = 1 + state.assumptions.inflationRate;
 
+  let previous: number | undefined;
   for (let year = startYear; year <= lastYear; year += 1) {
-    series.set(year, expandAmount(rule, year, baselineYear, baselineAmount, state));
+    const raw = expandAmount(rule, year, baselineYear, baselineAmount, state);
+    // The first year has no previous amount to hold. With negative inflation
+    // the same expression is a ceiling rather than a floor.
+    const amount =
+      rule.keepsPaceWithInflation === true && previous !== undefined
+        ? Math.max(raw, previous * inflation)
+        : raw;
+
+    series.set(year, amount);
+    previous = amount;
   }
 
   return series;

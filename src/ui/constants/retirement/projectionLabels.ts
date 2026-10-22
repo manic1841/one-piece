@@ -79,6 +79,7 @@ export const PROJECTION_VIEW_LABELS = {
   COLUMN_PARAMETERS: '參數',
   COLUMN_END_CONDITION: '終止條件',
   COLUMN_BASELINE_POLICY: '基準政策',
+  COLUMN_KEEPS_PACE: '維持通膨',
   COLUMN_SOURCE_REF: '來源 · 基準',
   RULE_TYPE_INCOME: '收入',
   RULE_TYPE_EXPENSE: '支出',
@@ -142,9 +143,9 @@ export const PROJECTION_VIEW_LABELS = {
   PLAN_SAVED: 'Plan saved.',
   YES: 'Yes',
   NO: 'No',
-  LEDGER_CODE: 'Ledger code',
+  LEDGER_CODE: 'Code',
   RULE_SOURCE: 'Rule',
-  DEBT_ACCOUNT: 'Debt account',
+  DEBT_ACCOUNT: 'Debt',
 } as const;
 
 export const RENAME_ERROR_LABELS = {

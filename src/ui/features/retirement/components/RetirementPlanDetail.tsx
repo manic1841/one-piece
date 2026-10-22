@@ -21,6 +21,7 @@ function RuleBlock({ rule }: { rule: PlanRuleVM }) {
           { label: RULE_LABELS.METHOD, value: rule.method },
           { label: RULE_LABELS.SOURCE, value: rule.source },
           { label: RULE_LABELS.END_CONDITION, value: rule.endCondition },
+          { label: RULE_LABELS.KEEPS_PACE_DETAIL, value: rule.keepsPace },
           { label: RULE_LABELS.BASELINE_POLICY, value: rule.baselinePolicy },
           { label: rule.parameterLabel, value: rule.parameter },
           { label: 'State', value: rule.enabled },

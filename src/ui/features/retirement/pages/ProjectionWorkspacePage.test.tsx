@@ -518,6 +518,39 @@ describe('ProjectionWorkspacePage', () => {
     expect(screen.getByText(/No projection rules yet/)).toBeInTheDocument();
   });
 
+  it('shows the keeps-pace switch only where it has an effect', async () => {
+    renderWorkspace();
+    await addRule('expense');
+    const [row] = ruleRows();
+
+    expect(within(row).queryByText('每年至少跟隨通膨')).not.toBeInTheDocument();
+    expect(within(row).getAllByRole('switch')).toHaveLength(1);
+
+    await choose('Method', 'Fixed amount', row);
+    expect(within(row).getByText('每年至少跟隨通膨')).toBeInTheDocument();
+
+    const keepsPace = within(row).getAllByRole('switch')[1];
+    expect(keepsPace).toHaveAttribute('aria-checked', 'false');
+    fireEvent.click(keepsPace);
+    expect(keepsPace).toHaveAttribute('aria-checked', 'true');
+
+    await choose('Method', 'Debt amortization', row);
+    expect(within(row).queryByText('每年至少跟隨通膨')).not.toBeInTheDocument();
+  });
+
+  it('keeps the flag across a method switch and shows the field on percentage', async () => {
+    renderWorkspace();
+    await addRule('expense');
+    const [row] = ruleRows();
+
+    await choose('Method', 'Percentage', row);
+    expect(within(row).getByText('每年至少跟隨通膨')).toBeInTheDocument();
+    fireEvent.click(within(row).getAllByRole('switch')[1]);
+
+    await choose('Method', 'Growth rate', row);
+    expect(within(row).getAllByRole('switch')[1]).toHaveAttribute('aria-checked', 'true');
+  });
+
   it('confirms with the exact copy and applies the plan on APPLY', async () => {
     planLibraryMock.plans = [{ id: 'plan-1', name: 'Early retirement' }];
     planLibraryMock.getPlan.mockResolvedValue(planFixture);

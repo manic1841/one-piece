@@ -21,6 +21,7 @@ const ledgerRule: ProjectionRule = {
   parameters: {},
   endCondition: { type: 'lifelong' },
   baselinePolicy: 'previousCompleteYear',
+  keepsPaceWithInflation: false,
 };
 
 describe('ruleForm.vm', () => {
@@ -42,6 +43,30 @@ describe('ruleForm.vm', () => {
       parameters: { amount: 500 },
       endCondition: { type: 'retirementYearExclusive' },
     });
+  });
+
+  it('round-trips the keeps-pace flag on a supported method', () => {
+    const vm = {
+      ...blankRule('expense'),
+      method: 'fixedAmount' as const,
+      amountText: '500',
+      keepsPace: true,
+    };
+
+    expect(mapRuleVMToDomain(vm)).toMatchObject({ keepsPaceWithInflation: true });
+    expect(mapRuleToVM(mapRuleVMToDomain(vm) as ProjectionRule).keepsPace).toBe(true);
+  });
+
+  it('leaves the keeps-pace flag off a debt amortization payload', () => {
+    const vm = {
+      ...blankRule('expense'),
+      method: 'debtAmortization' as const,
+      sourceType: 'debtAccount' as const,
+      sourceId: 'debt-1',
+      keepsPace: true,
+    };
+
+    expect(mapRuleVMToDomain(vm)).not.toHaveProperty('keepsPaceWithInflation');
   });
 
   it('reports a self reference on the source id', () => {

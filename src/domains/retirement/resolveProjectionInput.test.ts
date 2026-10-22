@@ -35,17 +35,25 @@ function baseRule(overrides: RuleOverrides) {
   };
 }
 
-function fixedRule(overrides: RuleOverrides & { amount?: number; end?: EndCondition }) {
+function fixedRule(
+  overrides: RuleOverrides & { amount?: number; end?: EndCondition; keepsPace?: boolean },
+) {
   return {
     ...baseRule(overrides),
     method: 'fixedAmount',
     parameters: { amount: overrides.amount ?? 100 },
     endCondition: overrides.end ?? { type: 'lifelong' },
+    ...(overrides.keepsPace === undefined ? {} : { keepsPaceWithInflation: overrides.keepsPace }),
   } as ProjectionRule;
 }
 
 function percentageRule(
-  overrides: RuleOverrides & { targetId: string; ratio?: number; end?: EndCondition },
+  overrides: RuleOverrides & {
+    targetId: string;
+    ratio?: number;
+    end?: EndCondition;
+    keepsPace?: boolean;
+  },
 ) {
   return {
     ...baseRule(overrides),
@@ -53,6 +61,7 @@ function percentageRule(
     source: { type: 'rule', id: overrides.targetId },
     parameters: { ratio: overrides.ratio ?? 0.5 },
     endCondition: overrides.end ?? { type: 'lifelong' },
+    ...(overrides.keepsPace === undefined ? {} : { keepsPaceWithInflation: overrides.keepsPace }),
   } as ProjectionRule;
 }
 
@@ -79,6 +88,7 @@ function growthRule(
     rate?: number;
     baselinePolicy?: 'previousCompleteYear' | 'specificYear';
     end?: EndCondition;
+    keepsPace?: boolean;
   },
 ) {
   return {
@@ -88,6 +98,7 @@ function growthRule(
     parameters: { rate: overrides.rate ?? 0.1 },
     baselinePolicy: overrides.baselinePolicy ?? 'previousCompleteYear',
     endCondition: overrides.end ?? { type: 'lifelong' },
+    ...(overrides.keepsPace === undefined ? {} : { keepsPaceWithInflation: overrides.keepsPace }),
   } as ProjectionRule;
 }
 
@@ -451,7 +462,7 @@ describe('resolveProjectionInput', () => {
       }
     });
 
-    it('reports a missing baseline entry with the rule kind', () => {
+    it('reports a baseline year without entries as LEDGER_BASELINE_EMPTY', () => {
       const result = resolveProjectionInput(
         baseParams({
           rules: [inflationRule({ ledgerCodeId: 'code-1' })],
@@ -459,8 +470,28 @@ describe('resolveProjectionInput', () => {
         }),
       );
 
-      expect(codes(result)).toEqual(['MISSING_BASELINE']);
-      if (!result.ok) expect(result.errors[0].params).toEqual({ kind: 'rule', ruleId: 'rule-1' });
+      expect(codes(result)).toEqual(['LEDGER_BASELINE_EMPTY']);
+      if (!result.ok) {
+        expect(result.errors[0].params).toEqual({
+          ruleId: 'rule-1',
+          ruleName: 'Rule',
+          ledgerCodeId: 'code-1',
+          baselineYear: 2024,
+        });
+        expect(result.errors[0].severity).toBe('error');
+      }
+    });
+
+    it('keeps a missing specific baseline year as MISSING_BASELINE', () => {
+      const rule = inflationRule({ ledgerCodeId: 'code-1', baselinePolicy: 'specificYear' });
+      const result = resolveProjectionInput(
+        baseParams({ rules: [rule], ledgerSources: ledger({ 2024: [1_000, 0] }) }),
+      );
+
+      expect(codes(result)).toContain('MISSING_BASELINE');
+      if (!result.ok) {
+        expect(result.errors[0].params).toEqual({ kind: 'rule', ruleId: 'rule-1' });
+      }
     });
 
     it('reports a missing debt account', () => {
@@ -544,10 +575,147 @@ describe('resolveProjectionInput', () => {
       expect(result.ok).toBe(false);
       expect(codes(result)).toEqual([
         'DANGLING_REFERENCE',
-        'MISSING_BASELINE',
+        'LEDGER_BASELINE_EMPTY',
         'MISSING_DEBT_ACCOUNT',
         'MISSING_LEDGER_CODE',
       ]);
+    });
+  });
+
+  describe('keeps pace with inflation', () => {
+    const expanding = (keepsPace: boolean) =>
+      baseParams({
+        rules: [growthRule({ ledgerCodeId: 'code-1', rate: -0.1, keepsPace })],
+        ledgerSources: ledger({ 2024: [1_000, 0] }),
+      });
+
+    it('raises an amount that falls behind inflation to the inflation line', () => {
+      const result = expectOk(resolveProjectionInput(expanding(true)));
+
+      expect(items(result, 2025, 'outflows')[0].amount).toBeCloseTo(900);
+      expect(items(result, 2026, 'outflows')[0].amount).toBeCloseTo(918);
+      expect(items(result, 2027, 'outflows')[0].amount).toBeCloseTo(936.36);
+    });
+
+    it('leaves a method that already outgrows inflation untouched', () => {
+      const result = expectOk(
+        resolveProjectionInput(
+          baseParams({
+            rules: [growthRule({ ledgerCodeId: 'code-1', rate: 0.1, keepsPace: true })],
+            ledgerSources: ledger({ 2024: [1_000, 0] }),
+          }),
+        ),
+      );
+
+      expect(items(result, 2025, 'outflows')[0].amount).toBeCloseTo(1_100);
+      expect(items(result, 2026, 'outflows')[0].amount).toBeCloseTo(1_210);
+    });
+
+    it('keeps compounding the raw growth down when the flag is off', () => {
+      const result = expectOk(resolveProjectionInput(expanding(false)));
+
+      expect(items(result, 2025, 'outflows')[0].amount).toBeCloseTo(900);
+      expect(items(result, 2026, 'outflows')[0].amount).toBeCloseTo(810);
+    });
+
+    it('does not apply to the first year, which has no previous amount', () => {
+      const result = expectOk(resolveProjectionInput(expanding(true)));
+
+      expect(items(result, 2025, 'outflows')[0].amount).toBeCloseTo(900);
+    });
+
+    it('stops at the end condition instead of holding the line', () => {
+      const result = expectOk(
+        resolveProjectionInput(
+          baseParams({
+            rules: [
+              growthRule({
+                ledgerCodeId: 'code-1',
+                rate: -0.1,
+                keepsPace: true,
+                end: { type: 'specificYear', year: 2026 },
+              }),
+            ],
+            ledgerSources: ledger({ 2024: [1_000, 0] }),
+          }),
+        ),
+      );
+
+      expect(items(result, 2026, 'outflows')).toHaveLength(1);
+      expect(items(result, 2027, 'outflows')).toHaveLength(0);
+    });
+
+    it('acts as a ceiling when inflation is negative', () => {
+      const result = expectOk(
+        resolveProjectionInput(
+          baseParams({
+            assumptions: assumptions({ inflationRate: -0.05 }),
+            rules: [growthRule({ ledgerCodeId: 'code-1', rate: -0.1, keepsPace: true })],
+            ledgerSources: ledger({ 2024: [1_000, 0] }),
+          }),
+        ),
+      );
+
+      expect(items(result, 2025, 'outflows')[0].amount).toBeCloseTo(900);
+      expect(items(result, 2026, 'outflows')[0].amount).toBeCloseTo(855);
+    });
+
+    it('holds a referenced rule that drops to 0 and feeds the held value downstream', () => {
+      const base = fixedRule({
+        id: 'base',
+        ruleType: 'income',
+        amount: 1_000,
+        end: { type: 'specificYear', year: 2025 },
+      });
+      const dependent = percentageRule({
+        id: 'pct',
+        ruleType: 'income',
+        targetId: 'base',
+        keepsPace: true,
+      });
+      const result = expectOk(resolveProjectionInput(baseParams({ rules: [base, dependent] })));
+
+      const amount = (year: number) =>
+        items(result, year, 'inflows').find((item) => item.sourceRef === 'pct')?.amount;
+
+      expect(amount(2025)).toBe(500);
+      expect(amount(2026)).toBeCloseTo(510);
+    });
+
+    it('holds an inflation rule that reads a vanished rule source', () => {
+      const base = fixedRule({
+        id: 'base',
+        ruleType: 'income',
+        amount: 1_000,
+        end: { type: 'specificYear', year: 2025 },
+      });
+      const follower = {
+        ...baseRule({ id: 'follower', ruleType: 'income' }),
+        method: 'inflation' as const,
+        source: { type: 'rule' as const, id: 'base' },
+        parameters: {},
+        endCondition: { type: 'lifelong' as const },
+        keepsPaceWithInflation: true,
+      } as ProjectionRule;
+      const result = expectOk(resolveProjectionInput(baseParams({ rules: [base, follower] })));
+
+      expect(
+        items(result, 2026, 'inflows').find((item) => item.sourceRef === 'follower')?.amount,
+      ).toBeCloseTo(1_040.4);
+    });
+
+    it('holds a 0 baseline at 0 rather than growing it back', () => {
+      const result = expectOk(
+        resolveProjectionInput(
+          baseParams({
+            rules: [growthRule({ ledgerCodeId: 'code-1', rate: 0.05, keepsPace: true })],
+            ledgerSources: ledger({ 2024: [0, 0] }),
+          }),
+        ),
+      );
+
+      expect(items(result, 2026, 'outflows')[0].amount).toBe(0);
+      expect(items(result, 2030, 'outflows')[0].amount).toBe(0);
     });
   });
 

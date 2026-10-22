@@ -28,6 +28,8 @@ export const RULE_LABELS = {
   PARAMETER_RATE: 'Rate (%)',
   PARAMETER_RATIO: 'Ratio (%)',
   PARAMETER_AMOUNT: 'Amount',
+  KEEPS_PACE: '每年至少跟隨通膨',
+  KEEPS_PACE_DETAIL: '維持通膨',
   END_CONDITION: 'End condition',
   END_AGE: 'Age',
   END_YEAR: 'Year',
