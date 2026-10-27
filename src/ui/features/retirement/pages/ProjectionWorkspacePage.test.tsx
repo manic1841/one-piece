@@ -7,6 +7,7 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { listDebtAccountsUseCase } from '@/application/debt/use_cases/listDebtAccountsUseCase';
 import { getProjectionOpeningUseCase } from '@/application/retirement/use_cases/getProjectionOpeningUseCase';
 import { getProjectionViewUseCase } from '@/application/retirement/use_cases/getProjectionViewUseCase';
+import { getRetirementPlanUseCase } from '@/application/retirement/use_cases/getRetirementPlanUseCase';
 import { persistProjectionUseCase } from '@/application/retirement/use_cases/persistProjectionUseCase';
 import { calculateProjectionWorkflow } from '@/application/retirement/workflows/calculateProjection';
 import { saveWorkspaceAsPlanWorkflow } from '@/application/retirement/workflows/saveWorkspaceAsPlan';
@@ -52,14 +53,23 @@ vi.mock('@/application/debt/use_cases/listDebtAccountsUseCase', () => ({
   listDebtAccountsUseCase: { execute: vi.fn() },
 }));
 
-vi.mock('@/ui/features/ledger/hooks/useLedgerCodes', () => ({
-  useLedgerCodes: () => ({
+const { ledgerCodesMock } = vi.hoisted(() => ({
+  ledgerCodesMock: {
     codes: [
       { code: 'income:salary', label: '薪資', type: 'income', isCustom: false, isActive: true },
       { code: 'expense:living', label: '生活費', type: 'expense', isCustom: false, isActive: true },
-    ],
-    loading: false,
-  }),
+    ] as Array<{
+      code: string;
+      label: string;
+      type: string;
+      isCustom: boolean;
+      isActive: boolean;
+    }>,
+  },
+}));
+
+vi.mock('@/ui/features/ledger/hooks/useLedgerCodes', () => ({
+  useLedgerCodes: () => ({ codes: ledgerCodesMock.codes, loading: false }),
 }));
 
 const { authMock } = vi.hoisted(() => ({
@@ -79,18 +89,8 @@ vi.mock('@/ui/components/confirm/useConfirm', () => ({
   useConfirm: () => ({ confirm: confirmMock }),
 }));
 
-const { planLibraryMock } = vi.hoisted(() => ({
-  planLibraryMock: {
-    plans: [] as Array<{ id: string; name: string }>,
-    loading: false,
-    error: null as unknown,
-    refresh: vi.fn(),
-    getPlan: vi.fn(),
-  },
-}));
-
-vi.mock('@/ui/features/retirement/hooks/usePlanLibrary', () => ({
-  usePlanLibrary: () => planLibraryMock,
+vi.mock('@/application/retirement/use_cases/getRetirementPlanUseCase', () => ({
+  getRetirementPlanUseCase: { execute: vi.fn() },
 }));
 
 const planFixture: RetirementPlan = {
@@ -191,9 +191,8 @@ function successOutcome(warnings: unknown[] = []) {
   };
 }
 
-async function fillValidSetup() {
+async function fillAssumptions() {
   await screen.findByText('No closed period yet.');
-  fireEvent.click(screen.getByRole('button', { name: 'ENTER MANUALLY' }));
   fireEvent.change(screen.getByLabelText('Opening net worth'), { target: { value: '100000' } });
   fireEvent.change(screen.getByLabelText('Birth year'), { target: { value: '1990' } });
   fireEvent.change(screen.getByLabelText('Retirement age'), { target: { value: '60' } });
@@ -202,8 +201,27 @@ async function fillValidSetup() {
   fireEvent.change(screen.getByLabelText('Annual return rate (%)'), { target: { value: '5' } });
 }
 
+async function fillValidSetup() {
+  await fillAssumptions();
+  await addRule();
+  fireEvent.change(within(ruleInspector()).getByLabelText(/Rule name/), {
+    target: { value: 'Salary' },
+  });
+  await choose('Method', 'Fixed amount');
+  fireEvent.change(within(ruleInspector()).getByLabelText('Amount'), {
+    target: { value: '1000' },
+  });
+  fireEvent.click(screen.getByTestId('rule-confirm'));
+  await waitFor(() => expect(screen.queryByTestId('rule-inspector')).not.toBeInTheDocument());
+}
+
 async function calculate() {
-  fireEvent.click(screen.getByRole('button', { name: 'CALCULATE' }));
+  const button = screen.getByRole('button', { name: 'CALCULATE' });
+  expect(
+    button,
+    `${screen.getByTestId('workspace-action-bar').textContent ?? ''} | ${screen.queryByTestId('income-rule-error-summary')?.textContent ?? 'none'}`,
+  ).toBeEnabled();
+  fireEvent.click(button);
   await screen.findByTestId('projection-results');
 }
 
@@ -255,17 +273,36 @@ const preloadConfig = (overrides: Record<string, unknown> = {}) => ({
   annual: { years: [] },
 });
 
+/** ADD opens the dialog on a fresh rule; the rule is already live in the form. */
 async function addRule(ruleType: 'income' | 'expense' = 'income') {
-  if (ruleType === 'expense') {
-    fireEvent.click(screen.getAllByLabelText('Side')[0]);
-    fireEvent.click(await screen.findByRole('option', { name: 'Expense' }));
-    await waitFor(() => expect(screen.getAllByLabelText('Side')[0]).toHaveTextContent('Expense'));
-  }
   fireEvent.click(await screen.findByRole('button', { name: 'ADD RULE' }));
+  if (ruleType === 'expense') await choose('Side', 'Expense');
+}
+
+/** Names the rule and confirms, which closes the dialog and leaves the row. */
+async function confirmRule(name = 'Rule') {
+  fireEvent.change(within(ruleInspector()).getByLabelText(/Rule name/), {
+    target: { value: name },
+  });
+  fireEvent.click(screen.getByTestId('rule-confirm'));
+  await waitFor(() => expect(screen.queryByTestId('rule-inspector')).not.toBeInTheDocument());
+}
+
+/** Opening a row loads it into the dialog; the row itself has no fields. */
+function openAdvanced(row: HTMLElement) {
+  fireEvent.click(within(row).getByRole('button'));
+}
+
+function ruleInspector() {
+  return screen.getByTestId('rule-inspector');
 }
 
 function ruleRows() {
   return screen.getAllByTestId('rule-row');
+}
+
+function listbox() {
+  return screen.getByRole('listbox');
 }
 
 async function addEvent() {
@@ -336,11 +373,12 @@ describe('ProjectionWorkspacePage', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    ledgerCodesMock.codes = [
+      { code: 'income:salary', label: '薪資', type: 'income', isCustom: false, isActive: true },
+      { code: 'expense:living', label: '生活費', type: 'expense', isCustom: false, isActive: true },
+    ];
     confirmMock.mockResolvedValue(false);
-    planLibraryMock.plans = [];
-    planLibraryMock.loading = false;
-    planLibraryMock.error = null;
-    planLibraryMock.getPlan.mockResolvedValue(null);
+    vi.mocked(getRetirementPlanUseCase.execute).mockResolvedValue(null);
     vi.mocked(getProjectionOpeningUseCase.execute).mockResolvedValue({
       reason: 'NO_CLOSED_PERIOD',
     });
@@ -363,19 +401,29 @@ describe('ProjectionWorkspacePage', () => {
     ]);
   });
 
-  it('renders the fixed content order in one column', async () => {
+  it('renders the fixed numbered section order', async () => {
     renderWorkspace();
     await screen.findByText('No closed period yet.');
 
-    const headings = screen.getAllByText(
-      /OPENING NET WORTH|ASSUMPTIONS|PROJECTION RULES|LIFE EVENTS/,
-    );
-    expect(headings.map((heading) => heading.textContent)).toEqual([
-      'OPENING NET WORTH',
-      '01 / ASSUMPTIONS',
-      '02 / PROJECTION RULES',
-      '03 / LIFE EVENTS',
+    expect(screen.getAllByText(/^\d{2} \/ /).map((heading) => heading.textContent)).toEqual([
+      '01 / BASELINE',
+      '02 / ASSUMPTIONS',
+      '03 / RULES',
+      '04 / LIFE EVENTS',
     ]);
+  });
+
+  it('keeps both rule sides in one band under a single ADD', async () => {
+    renderWorkspace();
+    await screen.findByText('No closed period yet.');
+
+    // One ADD: the side is a field on the rule, not a second button.
+    expect(screen.getByRole('button', { name: 'ADD RULE' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'ADD INCOME RULE' })).not.toBeInTheDocument();
+
+    await addRule('expense');
+    expect(screen.getByTestId('expense-rule-status')).toHaveTextContent('1');
+    expect(screen.getByTestId('income-rule-status')).toHaveTextContent('0');
   });
 
   it('keeps the route when calculating and makes the inputs read-only', async () => {
@@ -385,30 +433,177 @@ describe('ProjectionWorkspacePage', () => {
     await calculate();
 
     expect(screen.getByText(/Preview is read-only/)).toBeInTheDocument();
+    expect(screen.getByTestId('workspace-summary')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'SAVE' })).toBeEnabled();
-    expect(screen.getByLabelText('Opening net worth')).toHaveAttribute('readonly');
-    expect(screen.getByLabelText('Retirement age')).toHaveAttribute('readonly');
+    expect(screen.queryByLabelText('Opening net worth')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('workspace-rail')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('workspace-pinned-bar')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'SAVE AS PLAN' })).not.toBeInTheDocument();
     expect(router.state.location.pathname).toBe('/retirement/new');
 
     fireEvent.click(screen.getByRole('button', { name: 'BACK TO SETUP' }));
 
     expect(screen.getByRole('button', { name: 'CALCULATE' })).toBeInTheDocument();
+    expect(screen.getByTestId('workspace-rail')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'SAVE AS PLAN' })).toBeInTheDocument();
     expect(screen.queryByText(/Preview is read-only/)).not.toBeInTheDocument();
     expect(screen.queryByTestId('projection-results')).not.toBeInTheDocument();
+  });
+
+  it('expands the baseline summary with the amount actually used', async () => {
+    renderWorkspace();
+    await fillValidSetup();
+    await calculate();
+
+    const summary = screen.getByTestId('workspace-summary');
+    const baseline = within(summary).getByTestId('summary-01');
+    fireEvent.click(within(baseline).getByRole('button', { name: 'Show summary' }));
+
+    expect(baseline).toHaveTextContent('NT$100,000');
+    expect(baseline).toHaveTextContent('Manual value');
+  });
+
+  it('seeds the opening from the snapshot and offers USE SNAPSHOT only after an edit', async () => {
+    vi.mocked(getProjectionOpeningUseCase.execute).mockResolvedValue({
+      openingNetWorth: 380_000,
+      anchorYearMonth: '2026-08',
+      assets: 500_000,
+      liabilities: 120_000,
+    });
+    renderWorkspace();
+
+    const input = await screen.findByLabelText('Opening net worth');
+    await waitFor(() => expect(input).toHaveValue(380000));
+    expect(screen.getByTestId('opening-net-worth-note')).toHaveTextContent(
+      'Derived from the latest closed period. As of 2026-08',
+    );
+    expect(screen.queryByRole('button', { name: 'USE SNAPSHOT' })).not.toBeInTheDocument();
+
+    fireEvent.change(input, { target: { value: '250000' } });
+    expect(input).toHaveValue(250000);
+    expect(screen.queryByTestId('opening-net-worth-note')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'USE SNAPSHOT' }));
+    expect(input).toHaveValue(380000);
+    expect(screen.getByTestId('opening-net-worth-note')).toHaveTextContent('As of 2026-08');
+    expect(screen.queryByRole('button', { name: 'USE SNAPSHOT' })).not.toBeInTheDocument();
+  });
+
+  it('keeps the opening typed before the snapshot resolves', async () => {
+    let resolveOpening: (value: unknown) => void = () => {};
+    vi.mocked(getProjectionOpeningUseCase.execute).mockReturnValue(
+      new Promise((resolve) => {
+        resolveOpening = resolve;
+      }) as never,
+    );
+    renderWorkspace();
+
+    const input = await screen.findByLabelText('Opening net worth');
+    fireEvent.change(input, { target: { value: '777' } });
+
+    await act(async () => {
+      resolveOpening({
+        openingNetWorth: 380_000,
+        anchorYearMonth: '2026-08',
+        assets: 500_000,
+        liabilities: 120_000,
+      });
+    });
+
+    expect(input).toHaveValue(777);
+    expect(screen.getByRole('button', { name: 'USE SNAPSHOT' })).toBeInTheDocument();
   });
 
   it('shows inline schema labels for invalid assumptions', async () => {
     renderWorkspace();
 
-    fireEvent.change(await screen.findByLabelText('Retirement age'), {
-      target: { value: '65.5' },
-    });
     fireEvent.change(await screen.findByLabelText('Life expectancy'), {
       target: { value: '0' },
     });
 
-    expect(await screen.findByText('必須是整數')).toBeInTheDocument();
-    expect(screen.getByText('超出允許範圍')).toBeInTheDocument();
+    expect(await screen.findByText('超出允許範圍')).toBeInTheDocument();
+  });
+
+  it('refreshes the rail indicators after the slider stops and marks later edits outdated', async () => {
+    renderWorkspace();
+    await fillValidSetup();
+
+    fireEvent.change(screen.getByLabelText('Retirement age'), { target: { value: '61' } });
+
+    const rail = await screen.findByTestId('rail-indicators', {}, { timeout: 2000 });
+    await waitFor(() => expect(rail).toHaveTextContent('NT$300,000'), { timeout: 2000 });
+    expect(rail).toHaveTextContent('NT$110,250');
+
+    fireEvent.change(screen.getByLabelText('Inflation rate (%)'), { target: { value: '3' } });
+    expect(rail).toHaveTextContent('OUTDATED');
+  });
+
+  it('includes the current rules and events in the indicator refresh', async () => {
+    renderWorkspace();
+    await fillValidSetup();
+
+    fireEvent.change(screen.getByLabelText('Retirement age'), { target: { value: '61' } });
+
+    await waitFor(
+      () => {
+        const [input] = vi.mocked(calculateProjectionWorkflow.execute).mock.lastCall ?? [];
+        expect(input?.rules).toHaveLength(1);
+        expect(input?.rules?.[0].parameters).toMatchObject({ amount: 1000 });
+      },
+      { timeout: 2000 },
+    );
+  });
+
+  it('adds a phase to the first event when an empty year is clicked with nothing selected', async () => {
+    renderWorkspace();
+    await fillValidSetup();
+    const row = await addEvent();
+    expect(phaseRows(row)).toHaveLength(1);
+
+    const track = screen.getByRole('toolbar', { name: 'Life event timeline' });
+    vi.spyOn(track, 'getBoundingClientRect').mockReturnValue({
+      left: 0,
+      top: 0,
+      width: 600,
+      height: 30,
+      right: 600,
+      bottom: 30,
+      x: 0,
+      y: 0,
+      toJSON: () => ({}),
+    });
+
+    fireEvent.pointerDown(track, { clientX: 300, pointerId: 1 });
+    fireEvent.pointerUp(track, { clientX: 300, pointerId: 1 });
+
+    expect(eventRows()).toHaveLength(1);
+    expect(phaseRows(row)).toHaveLength(2);
+  });
+
+  it('dashes the indicators and shows a reason when the refresh fails', async () => {
+    vi.mocked(calculateProjectionWorkflow.execute).mockResolvedValue({
+      ok: false,
+      code: 'PROJECTION_RESOLVE_FAILED',
+      errors: [],
+      warnings: [],
+    });
+    renderWorkspace();
+    await fillValidSetup();
+
+    fireEvent.change(screen.getByLabelText('Retirement age'), { target: { value: '61' } });
+
+    const rail = await screen.findByTestId('rail-indicators', {}, { timeout: 2000 });
+    await waitFor(() => expect(rail).toHaveTextContent('The projection could not be calculated.'), {
+      timeout: 2000,
+    });
+    expect(rail).toHaveTextContent('—');
+    expect(screen.getByRole('button', { name: 'CALCULATE' })).toBeEnabled();
+  });
+
+  it('shows the retirement year next to the slider', async () => {
+    renderWorkspace();
+    await fillAssumptions();
+    expect(screen.getByTestId('retirement-year')).toHaveTextContent('2050');
   });
 
   it('keeps birthYear editable on a fresh draft', async () => {
@@ -416,214 +611,217 @@ describe('ProjectionWorkspacePage', () => {
     expect(await screen.findByLabelText('Birth year')).not.toHaveAttribute('readonly');
   });
 
+  it('starts a fresh draft from default assumptions with the age slider last', async () => {
+    renderWorkspace();
+
+    expect(await screen.findByLabelText('Birth year')).toHaveValue(1995);
+    expect(screen.getByLabelText('Life expectancy')).toHaveValue(100);
+    expect(screen.getByLabelText('Inflation rate (%)')).toHaveValue(2);
+    expect(screen.getByLabelText('Annual return rate (%)')).toHaveValue(5);
+
+    const order = [
+      'Birth year',
+      'Life expectancy',
+      'Inflation rate (%)',
+      'Annual return rate (%)',
+      'Retirement age',
+    ].map((label) => screen.getByLabelText(label));
+    for (let index = 1; index < order.length; index += 1) {
+      expect(
+        order[index - 1].compareDocumentPosition(order[index]) & Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
+    }
+  });
+
   it('resets parameters and source when the method changes', async () => {
     renderWorkspace();
     await addRule();
-    const [row] = ruleRows();
 
-    await choose('Method', 'Percentage', row);
-    expect(within(row).getByLabelText('Ratio (%)')).toBeInTheDocument();
-    expect(within(row).queryByLabelText('Source type')).not.toBeInTheDocument();
+    await choose('Method', 'Percentage');
+    expect(within(ruleInspector()).getByLabelText('Ratio (%)')).toBeInTheDocument();
+    expect(within(ruleInspector()).queryByLabelText('Source type')).not.toBeInTheDocument();
 
-    await choose('Method', 'Fixed amount', row);
+    await choose('Method', 'Fixed amount');
 
-    expect(within(row).queryByLabelText('Ratio (%)')).not.toBeInTheDocument();
-    expect(within(row).getByLabelText('Amount')).toBeInTheDocument();
-    expect(within(row).queryByLabelText('Source')).not.toBeInTheDocument();
-    expect(within(row).getByText('No source needed for a fixed amount.')).toBeInTheDocument();
+    expect(within(ruleInspector()).queryByLabelText('Ratio (%)')).not.toBeInTheDocument();
+    expect(within(ruleInspector()).getByLabelText('Amount')).toBeInTheDocument();
+    expect(within(ruleInspector()).queryByLabelText('Source')).not.toBeInTheDocument();
+    expect(within(ruleInspector()).queryByText(/No source selected/)).not.toBeInTheDocument();
   });
 
   it('swaps end-condition inputs with the union variant', async () => {
     renderWorkspace();
     await addRule('expense');
-    const [row] = ruleRows();
-    expect(within(row).getByLabelText('Side')).toHaveTextContent('Expense');
+    expect(within(ruleInspector()).getByLabelText('Side')).toHaveTextContent('Expense');
 
-    await choose('End condition', 'Age', row);
-    expect(within(row).getByLabelText('Age')).toBeInTheDocument();
+    await choose('End condition', 'Age');
+    expect(within(ruleInspector()).getByLabelText('Age')).toBeInTheDocument();
 
-    await choose('End condition', 'Year', row);
-    expect(within(row).getByLabelText('Year')).toBeInTheDocument();
-    expect(within(row).queryByLabelText('Age')).not.toBeInTheDocument();
+    await choose('End condition', 'Year');
+    expect(within(ruleInspector()).getByLabelText('Year')).toBeInTheDocument();
+    expect(within(ruleInspector()).queryByLabelText('Age')).not.toBeInTheDocument();
 
-    await choose('End condition', 'Lifelong', row);
-    expect(within(row).queryByLabelText('Age')).not.toBeInTheDocument();
-    expect(within(row).queryByLabelText('Year')).not.toBeInTheDocument();
+    await choose('End condition', 'Lifelong');
+    expect(within(ruleInspector()).queryByLabelText('Age')).not.toBeInTheDocument();
+    expect(within(ruleInspector()).queryByLabelText('Year')).not.toBeInTheDocument();
 
-    await choose('Method', 'Debt amortization', row);
-    expect(within(row).queryByLabelText('End condition')).not.toBeInTheDocument();
-    expect(within(row).getByText(/follows debt/)).toBeInTheDocument();
+    await choose('Method', 'Debt amortization');
+    expect(within(ruleInspector()).queryByLabelText('End condition')).not.toBeInTheDocument();
+    expect(within(ruleInspector()).getAllByText(/follows debt/).length).toBeGreaterThan(0);
 
-    fireEvent.click(within(row).getByLabelText('Source'));
+    fireEvent.click(within(ruleInspector()).getByLabelText('Source'));
     expect(await screen.findByRole('option', { name: 'Mortgage' })).toBeInTheDocument();
   });
 
   it('shows baselinePolicy only for inflation/growthRate from a non-rule source and requires it', async () => {
     renderWorkspace();
     await addRule();
-    const [row] = ruleRows();
 
-    expect(within(row).getByLabelText('Baseline policy')).toBeInTheDocument();
+    expect(within(ruleInspector()).getByLabelText('Baseline policy')).toBeInTheDocument();
 
-    await choose('Source type', 'Another rule', row);
-    expect(within(row).queryByLabelText('Baseline policy')).not.toBeInTheDocument();
+    await choose('Source type', 'Another rule');
+    expect(within(ruleInspector()).queryByLabelText('Baseline policy')).not.toBeInTheDocument();
 
-    await choose('Source type', 'Ledger code', row);
-    expect(within(row).getByLabelText('Baseline policy')).toBeInTheDocument();
+    await choose('Source type', 'Ledger code');
+    expect(within(ruleInspector()).getByLabelText('Baseline policy')).toBeInTheDocument();
 
-    await choose('Source', '薪資', row);
-    expect(await within(row).findByText('此規則需要基準政策')).toBeInTheDocument();
+    await choose('Source', '薪資');
+    expect(await within(ruleInspector()).findByText('此規則需要基準政策')).toBeInTheDocument();
   });
 
-  it('routes the source picker by source type', async () => {
+  it('routes the source picker by method', async () => {
     renderWorkspace();
     await addRule();
-    await act(async () => {
-      fireEvent.change(screen.getByLabelText('Rule name'), { target: { value: 'Salary' } });
-    });
+    await confirmRule('Salary');
 
     await addRule('expense');
-    const rows = ruleRows();
-    const second = rows[1];
 
-    await choose('Method', 'Percentage', second);
-    const source = within(second).getByLabelText('Source');
-    fireEvent.click(source);
+    // A percentage draws from the other rules, never from the ledger.
+    await choose('Method', 'Percentage');
+    fireEvent.click(within(ruleInspector()).getByLabelText('Source'));
     expect(await screen.findByRole('option', { name: 'Salary' })).toBeInTheDocument();
+    expect(screen.queryByRole('option', { name: '薪資' })).not.toBeInTheDocument();
     fireEvent.keyDown(document.activeElement ?? document.body, { key: 'Escape' });
     await waitFor(() =>
       expect(screen.queryByRole('option', { name: 'Salary' })).not.toBeInTheDocument(),
     );
 
-    await choose('Method', 'Fixed amount', second);
-    expect(within(second).queryByLabelText('Source')).not.toBeInTheDocument();
+    await choose('Method', 'Fixed amount');
+    expect(within(ruleInspector()).queryByLabelText('Source')).not.toBeInTheDocument();
+  });
+
+  it('flags sources another rule already uses and counts what is left', async () => {
+    renderWorkspace();
+    await addRule();
+    const source = () => within(ruleInspector()).getByLabelText('Source');
+
+    expect(within(ruleInspector()).getByTestId('unassigned-count')).toHaveTextContent(
+      '2 ledger codes still unassigned',
+    );
+
+    fireEvent.click(source());
+    fireEvent.click(await screen.findByRole('option', { name: /薪資/ }));
+
+    expect(within(ruleInspector()).getByTestId('unassigned-count')).toHaveTextContent(
+      '1 ledger codes still unassigned',
+    );
+
+    // Same rule does not count as its own user.
+    fireEvent.click(source());
+    expect(await screen.findByRole('option', { name: /生活費/ })).toBeInTheDocument();
+    expect(within(listbox()).queryByText(/used by/)).not.toBeInTheDocument();
+    fireEvent.keyDown(document.activeElement ?? document.body, { key: 'Escape' });
+
+    await confirmRule('Salary');
+    await addRule('expense');
+    fireEvent.click(source());
+    expect(await within(listbox()).findByText('used by 1')).toBeInTheDocument();
   });
 
   it('toggles a rule enabled state', async () => {
     renderWorkspace();
     await addRule();
-    const [row] = ruleRows();
-    const toggle = within(row).getByRole('switch');
+    const toggle = screen.getByTestId('rule-enabled');
 
     expect(toggle).toHaveAttribute('aria-checked', 'true');
     fireEvent.click(toggle);
     expect(toggle).toHaveAttribute('aria-checked', 'false');
   });
 
-  it('deletes a rule', async () => {
+  it('deletes a rule from its dialog', async () => {
     renderWorkspace();
     await addRule();
     fireEvent.click(screen.getByRole('button', { name: 'Delete rule' }));
     expect(screen.queryAllByTestId('rule-row')).toHaveLength(0);
-    expect(screen.getByText(/No projection rules yet/)).toBeInTheDocument();
+    expect(screen.queryByTestId('rule-inspector')).not.toBeInTheDocument();
+    expect(screen.getByText(/No income rules yet/)).toBeInTheDocument();
   });
 
   it('shows the keeps-pace switch only where it has an effect', async () => {
     renderWorkspace();
     await addRule('expense');
-    const [row] = ruleRows();
 
-    expect(within(row).queryByText('每年至少跟隨通膨')).not.toBeInTheDocument();
-    expect(within(row).getAllByRole('switch')).toHaveLength(1);
+    expect(within(ruleInspector()).queryByText('每年至少跟隨通膨')).not.toBeInTheDocument();
 
-    await choose('Method', 'Fixed amount', row);
-    expect(within(row).getByText('每年至少跟隨通膨')).toBeInTheDocument();
+    await choose('Method', 'Fixed amount');
+    expect(within(ruleInspector()).getByText('每年至少跟隨通膨')).toBeInTheDocument();
 
-    const keepsPace = within(row).getAllByRole('switch')[1];
+    const keepsPace = screen.getByTestId('rule-keeps-pace');
     expect(keepsPace).toHaveAttribute('aria-checked', 'false');
     fireEvent.click(keepsPace);
     expect(keepsPace).toHaveAttribute('aria-checked', 'true');
 
-    await choose('Method', 'Debt amortization', row);
-    expect(within(row).queryByText('每年至少跟隨通膨')).not.toBeInTheDocument();
+    await choose('Method', 'Debt amortization');
+    expect(within(ruleInspector()).queryByText('每年至少跟隨通膨')).not.toBeInTheDocument();
   });
 
   it('keeps the flag across a method switch and shows the field on percentage', async () => {
     renderWorkspace();
     await addRule('expense');
-    const [row] = ruleRows();
 
-    await choose('Method', 'Percentage', row);
-    expect(within(row).getByText('每年至少跟隨通膨')).toBeInTheDocument();
-    fireEvent.click(within(row).getAllByRole('switch')[1]);
+    await choose('Method', 'Percentage');
+    expect(within(ruleInspector()).getByText('每年至少跟隨通膨')).toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('rule-keeps-pace'));
 
-    await choose('Method', 'Growth rate', row);
-    expect(within(row).getAllByRole('switch')[1]).toHaveAttribute('aria-checked', 'true');
+    await choose('Method', 'Growth rate');
+    expect(screen.getByTestId('rule-keeps-pace')).toHaveAttribute('aria-checked', 'true');
   });
 
-  it('confirms with the exact copy and applies the plan on APPLY', async () => {
-    planLibraryMock.plans = [{ id: 'plan-1', name: 'Early retirement' }];
-    planLibraryMock.getPlan.mockResolvedValue(planFixture);
-    const router = renderWorkspace();
-
-    fireEvent.click(await screen.findByRole('button', { name: 'APPLY PLAN' }));
-
-    expect(await screen.findByText('Replace current setup?')).toBeInTheDocument();
-    expect(
-      screen.getByText(
-        'Applying "Early retirement" replaces assumptions, rules and events in this workspace.',
-      ),
-    ).toBeInTheDocument();
-    expect(screen.getByText('Unsaved changes in the workspace will be lost.')).toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole('button', { name: 'APPLY' }));
+  it('applies the plan named in the query without a second confirmation', async () => {
+    vi.mocked(getRetirementPlanUseCase.execute).mockResolvedValue(planFixture);
+    const router = renderWorkspace('/retirement/new?plan=plan-1');
 
     await waitFor(() => expect(screen.getByLabelText('Birth year')).toHaveValue(1970));
     expect(screen.getByLabelText('Birth year')).toHaveAttribute('readonly');
     expect(screen.getByTestId('applied-plan-name')).toHaveTextContent('Early retirement');
-
+    expect(router.state.location.search).toBe('?applied=');
     await act(async () => {
       void router.navigate('/other');
     });
     await waitFor(() => expect(confirmMock).toHaveBeenCalledTimes(1));
   });
 
-  it('keeps the setup unchanged when the apply dialog is cancelled', async () => {
-    planLibraryMock.plans = [{ id: 'plan-1', name: 'Early retirement' }];
-    planLibraryMock.getPlan.mockResolvedValue(planFixture);
-    renderWorkspace();
+  it('applies every group from the plan', async () => {
+    vi.mocked(getRetirementPlanUseCase.execute).mockResolvedValue(planFixture);
+    renderWorkspace('/retirement/new?plan=plan-1');
 
-    fireEvent.click(await screen.findByRole('button', { name: 'APPLY PLAN' }));
-    fireEvent.click(await screen.findByRole('button', { name: 'Cancel' }));
-
-    expect(screen.queryByTestId('applied-plan-name')).not.toBeInTheDocument();
-    expect(screen.getByLabelText('Birth year')).toHaveValue(null);
-    expect(screen.getByLabelText('Birth year')).not.toHaveAttribute('readonly');
-  });
-
-  it('replaces every group and clears the preview when applying from preview', async () => {
-    planLibraryMock.plans = [{ id: 'plan-1', name: 'Early retirement' }];
-    planLibraryMock.getPlan.mockResolvedValue(planFixture);
-    renderWorkspace();
-
-    await fillValidSetup();
-    await addRule();
-    const [rule] = ruleRows();
-    fireEvent.change(within(rule).getByLabelText('Rule name'), { target: { value: 'Rent' } });
-    await choose('Method', 'Fixed amount', rule);
-    fireEvent.change(within(rule).getByLabelText('Amount'), { target: { value: '100' } });
-    await calculate();
-    expect(screen.getByText(/Preview is read-only/)).toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole('button', { name: 'APPLY PLAN' }));
-    fireEvent.click(await screen.findByRole('button', { name: 'APPLY' }));
-
-    await waitFor(() =>
-      expect(screen.getByRole('button', { name: 'CALCULATE' })).toBeInTheDocument(),
-    );
-    expect(screen.queryByText(/Preview is read-only/)).not.toBeInTheDocument();
+    await waitFor(() => expect(eventRows()).toHaveLength(1));
+    const [row] = eventRows();
+    expect(within(row).getByLabelText('Event name')).toHaveValue('World trip');
     expect(screen.queryAllByTestId('rule-row')).toHaveLength(0);
   });
 
-  it('reports a plan that could not be read', async () => {
-    planLibraryMock.plans = [{ id: 'plan-1', name: 'Early retirement' }];
-    planLibraryMock.getPlan.mockResolvedValue(null);
-    renderWorkspace();
+  it('starts from a blank setup and warns when the named plan cannot be read', async () => {
+    vi.mocked(getRetirementPlanUseCase.execute).mockResolvedValue(null);
+    const router = renderWorkspace('/retirement/new?plan=missing');
 
-    fireEvent.click(await screen.findByRole('button', { name: 'APPLY PLAN' }));
-    fireEvent.click(await screen.findByRole('button', { name: 'APPLY' }));
-
-    expect(await screen.findByText('Could not load this plan.')).toBeInTheDocument();
+    expect(
+      await screen.findByText('Could not load this plan. Starting from a blank setup.'),
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText('Birth year')).toHaveValue(1995);
+    expect(screen.getByLabelText('Birth year')).not.toHaveAttribute('readonly');
+    expect(screen.queryByTestId('applied-plan-name')).not.toBeInTheDocument();
+    expect(router.state.location.search).toBe('?applied=');
   });
 
   it('adds, types, toggles and deletes a life event with no source picker', async () => {
@@ -654,12 +852,13 @@ describe('ProjectionWorkspacePage', () => {
     });
 
     await addRule();
-    await addRule();
-    const [rule] = ruleRows();
-    await choose('Method', 'Percentage', rule);
-    fireEvent.click(within(rule).getByLabelText('Source'));
+    await confirmRule('Salary');
 
-    expect(await screen.findByRole('option', { name: '(unnamed rule)' })).toBeInTheDocument();
+    await addRule();
+    await choose('Method', 'Percentage');
+    fireEvent.click(within(ruleInspector()).getByLabelText('Source'));
+
+    expect(await screen.findByRole('option', { name: 'Salary' })).toBeInTheDocument();
     expect(screen.queryByRole('option', { name: 'World trip' })).not.toBeInTheDocument();
   });
 
@@ -749,49 +948,141 @@ describe('ProjectionWorkspacePage', () => {
     expect(router.state.location.pathname).toBe('/retirement/new');
   });
 
-  it('replaces the events when a plan is applied', async () => {
-    planLibraryMock.plans = [{ id: 'plan-1', name: 'Early retirement' }];
-    planLibraryMock.getPlan.mockResolvedValue(planFixture);
-    renderWorkspace();
-
-    await addEvent();
-    fireEvent.click(await screen.findByRole('button', { name: 'APPLY PLAN' }));
-    fireEvent.click(await screen.findByRole('button', { name: 'APPLY' }));
+  it('shows the plan event phase from the applied plan', async () => {
+    vi.mocked(getRetirementPlanUseCase.execute).mockResolvedValue(planFixture);
+    renderWorkspace('/retirement/new?plan=plan-1');
 
     await waitFor(() => expect(eventRows()).toHaveLength(1));
     const [row] = eventRows();
-    expect(within(row).getByLabelText('Event name')).toHaveValue('World trip');
     expect(within(row).getByLabelText('Type')).toHaveTextContent('Expense');
     expect(within(row).getByLabelText('Start year')).toHaveValue(2040);
   });
 
-  it('blocks calculation on invalid setup and reveals every error inline', async () => {
+  it('disables CALCULATE and explains every readiness blocker', async () => {
     renderWorkspace();
     await screen.findByText('No closed period yet.');
 
-    fireEvent.click(screen.getByRole('button', { name: 'CALCULATE' }));
+    expect(screen.getByRole('button', { name: 'CALCULATE' })).toBeDisabled();
+    const readiness = screen.getByTestId('workspace-action-bar');
+    expect(readiness).toHaveTextContent('Add at least one income rule.');
+    expect(readiness).toHaveTextContent('Resolve the opening net worth.');
 
-    expect(screen.getAllByText('必須是整數')).toHaveLength(3);
-    expect(screen.getAllByText('請輸入數字')).toHaveLength(2);
+    fireEvent.change(screen.getByLabelText('Life expectancy'), { target: { value: '0' } });
+    expect(readiness).toHaveTextContent('Fix the validation errors in the setup.');
+
     expect(screen.queryByTestId('projection-results')).not.toBeInTheDocument();
-    expect(screen.queryByText(/Preview is read-only/)).not.toBeInTheDocument();
     expect(calculateProjectionWorkflow.execute).not.toHaveBeenCalled();
+  });
+
+  it('routes back to the start gate from the applied plan block', async () => {
+    confirmMock.mockResolvedValue(true);
+    vi.mocked(getRetirementPlanUseCase.execute).mockResolvedValue(planFixture);
+    const router = renderWorkspace('/retirement/new?plan=plan-1');
+
+    await waitFor(() => expect(screen.getByTestId('applied-plan-name')).toBeInTheDocument());
+    fireEvent.click(screen.getByRole('button', { name: 'CHANGE PLAN' }));
+
+    // The pathname is already `/retirement/new`, so only the search proves the
+    // leave guard let the change-plan navigation through.
+    await waitFor(() => expect(router.state.location.search).toBe('?pick'));
+    expect(router.state.location.pathname).toBe('/retirement/new');
+  });
+
+  it('opens the life-event timeline first on a narrow screen', async () => {
+    const original = window.innerWidth;
+    window.innerWidth = 390;
+    try {
+      vi.mocked(getRetirementPlanUseCase.execute).mockResolvedValue(planFixture);
+      renderWorkspace('/retirement/new?plan=plan-1');
+
+      const timeline = await screen.findByRole('button', { name: 'Timeline' });
+      expect(timeline).toHaveClass('border-input');
+      expect(screen.getByRole('toolbar', { name: 'Life event timeline' })).toBeVisible();
+    } finally {
+      window.innerWidth = original;
+    }
+  });
+
+  it('labels the two stages without competing numbers', () => {
+    renderWorkspace();
+
+    const steps = screen.getByRole('list', { name: 'Projection workspace stages' });
+    expect(steps).toHaveTextContent('Setup');
+    expect(steps).toHaveTextContent('Preview');
+    expect(steps).not.toHaveTextContent('01');
+  });
+
+  it('shows only the source list on the rail while there is no result yet', () => {
+    renderWorkspace();
+
+    const rail = screen.getByTestId('workspace-rail');
+    expect(rail.children).toHaveLength(1);
+    expect(screen.getByTestId('rail-sources')).toBeInTheDocument();
+    expect(screen.queryByTestId('rail-indicators')).not.toBeInTheDocument();
+  });
+
+  it('keeps the rail metrics above the source list', async () => {
+    renderWorkspace();
+    await fillValidSetup();
+
+    fireEvent.change(screen.getByLabelText('Retirement age'), { target: { value: '61' } });
+
+    const indicators = await screen.findByTestId('rail-indicators');
+    const sources = screen.getByTestId('rail-sources');
+    expect(
+      indicators.compareDocumentPosition(sources) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  it('collapses the unassigned source list after five rows', async () => {
+    ledgerCodesMock.codes = Array.from({ length: 10 }, (_, index) => ({
+      code: `expense:extra-${index}`,
+      label: `Extra ${index}`,
+      type: 'expense',
+      isCustom: true,
+      isActive: true,
+    }));
+    renderWorkspace();
+
+    const sources = await screen.findByTestId('rail-sources');
+    expect(within(sources).getAllByRole('listitem')).toHaveLength(5);
+
+    fireEvent.click(within(sources).getByTestId('rail-sources-toggle'));
+    expect(within(sources).getAllByRole('listitem')).toHaveLength(11);
+    expect(within(sources).getByRole('button', { name: 'Show less' })).toBeInTheDocument();
+  });
+
+  it('treats a disabled rule and an unassigned source as non-blocking', async () => {
+    renderWorkspace();
+    await fillValidSetup();
+    openAdvanced(ruleRows()[0]);
+    await waitFor(() => expect(screen.getByTestId('rule-inspector')).toBeInTheDocument());
+    fireEvent.click(screen.getByTestId('rule-enabled'));
+    fireEvent.click(screen.getByTestId('rule-confirm'));
+    await waitFor(() => expect(screen.queryByTestId('rule-inspector')).not.toBeInTheDocument());
+
+    expect(screen.getByRole('button', { name: 'CALCULATE' })).toBeEnabled();
+    expect(screen.getByTestId('rail-sources')).toHaveTextContent('生活費');
   });
 
   it('requires an integer manual opening balance', async () => {
     renderWorkspace();
     await screen.findByText('No closed period yet.');
-    fireEvent.click(screen.getByRole('button', { name: 'ENTER MANUALLY' }));
     fireEvent.change(screen.getByLabelText('Birth year'), { target: { value: '1990' } });
     fireEvent.change(screen.getByLabelText('Retirement age'), { target: { value: '60' } });
     fireEvent.change(screen.getByLabelText('Life expectancy'), { target: { value: '85' } });
     fireEvent.change(screen.getByLabelText('Inflation rate (%)'), { target: { value: '2' } });
     fireEvent.change(screen.getByLabelText('Annual return rate (%)'), { target: { value: '5' } });
+    await addRule();
+    await choose('Method', 'Fixed amount');
+    fireEvent.change(within(ruleInspector()).getByLabelText('Amount'), {
+      target: { value: '1000' },
+    });
+    await confirmRule('Salary');
 
-    fireEvent.click(screen.getByRole('button', { name: 'CALCULATE' }));
-
-    expect(screen.getByTestId('opening-validation-error')).toHaveTextContent(
-      'Enter a whole-number opening net worth.',
+    expect(screen.getByRole('button', { name: 'CALCULATE' })).toBeDisabled();
+    expect(screen.getByTestId('workspace-action-bar')).toHaveTextContent(
+      'Resolve the opening net worth.',
     );
     expect(calculateProjectionWorkflow.execute).not.toHaveBeenCalled();
   });
@@ -848,7 +1139,7 @@ describe('ProjectionWorkspacePage', () => {
     await waitFor(() => expect(screen.getByLabelText('Birth year')).toHaveValue(1990));
     expect(screen.getByLabelText('Opening net worth')).toHaveValue(123456);
     expect(screen.getByLabelText('Birth year')).toHaveAttribute('readonly');
-    await waitFor(() => expect(router.state.location.search).toBe(''));
+    await waitFor(() => expect(router.state.location.search).toBe('?applied='));
     expect(getProjectionOpeningUseCase.execute).not.toHaveBeenCalled();
 
     await act(async () => {
@@ -873,7 +1164,7 @@ describe('ProjectionWorkspacePage', () => {
 
     await waitFor(() => expect(screen.getByLabelText('Opening net worth')).toHaveValue(380000));
     expect(screen.getByLabelText('Birth year')).toHaveValue(1990);
-    await waitFor(() => expect(router.state.location.search).toBe(''));
+    await waitFor(() => expect(router.state.location.search).toBe('?applied='));
   });
 
   it('leaves the opening blank and warns when a derived opening no longer resolves', async () => {
@@ -890,7 +1181,7 @@ describe('ProjectionWorkspacePage', () => {
     expect(await screen.findByTestId('preload-warning')).toBeInTheDocument();
     expect(screen.getByLabelText('Opening net worth')).toHaveValue(null);
     expect(screen.getByLabelText('Birth year')).toHaveValue(1990);
-    await waitFor(() => expect(router.state.location.search).toBe(''));
+    await waitFor(() => expect(router.state.location.search).toBe('?applied='));
   });
 
   it('falls back to a blank, dirty setup when the source projection is gone', async () => {
@@ -901,7 +1192,7 @@ describe('ProjectionWorkspacePage', () => {
       'Could not resolve the opening balance. Starting from a blank setup with the opening left empty.',
     );
     expect(screen.getByLabelText('Opening net worth')).toHaveValue(null);
-    await waitFor(() => expect(router.state.location.search).toBe(''));
+    await waitFor(() => expect(router.state.location.search).toBe('?applied='));
 
     await act(async () => {
       void router.navigate('/other');

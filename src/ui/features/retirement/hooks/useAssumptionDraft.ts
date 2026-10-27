@@ -8,7 +8,7 @@ import {
   type AssumptionErrors,
   type AssumptionField,
   type AssumptionsVM,
-  EMPTY_ASSUMPTIONS_VM,
+  DEFAULT_ASSUMPTIONS_VM,
   collectAssumptionErrors,
   createAssumptionFormSchema,
   mapAssumptionsToVM,
@@ -39,7 +39,7 @@ export function useAssumptionDraft(markDirty: () => void, currentYear = new Date
 
   const form = useForm<AssumptionsVM>({
     mode: 'onChange',
-    defaultValues: EMPTY_ASSUMPTIONS_VM,
+    defaultValues: DEFAULT_ASSUMPTIONS_VM,
     resolver,
   });
 

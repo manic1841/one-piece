@@ -10,8 +10,8 @@ interface WorkspaceStepsProps {
 /** Two fixed stages inside the single route; the step rail never navigates. */
 export function WorkspaceSteps({ stage }: WorkspaceStepsProps) {
   const steps = [
-    { id: 'setup' as const, number: '01', label: PROJECTION_WORKSPACE_LABELS.STEP_SETUP },
-    { id: 'preview' as const, number: '02', label: PROJECTION_WORKSPACE_LABELS.STEP_PREVIEW },
+    { id: 'setup' as const, label: PROJECTION_WORKSPACE_LABELS.STEP_SETUP },
+    { id: 'preview' as const, label: PROJECTION_WORKSPACE_LABELS.STEP_PREVIEW },
   ];
 
   return (
@@ -37,9 +37,6 @@ export function WorkspaceSteps({ stage }: WorkspaceStepsProps) {
                 label=""
                 className="shrink-0"
               />
-              <span className="font-mono font-semibold tracking-widest opacity-60">
-                {step.number}
-              </span>
               <span className="font-medium uppercase tracking-widest">{step.label}</span>
             </div>
           </li>

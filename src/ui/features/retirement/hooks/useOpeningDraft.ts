@@ -19,9 +19,9 @@ interface UseOpeningDraftArgs {
 }
 
 /**
- * The opening net worth draft: which source is selected, the raw amount text and
- * the last report value the user could switch back to. The derived value is
- * seeded once from the latest closed period; after that the user owns it.
+ * The opening net worth draft: the raw amount text and the snapshot the user
+ * could reset back to. The latest closed period seeds the amount once as a
+ * default value — there is no separate mode to switch into, typing is enough.
  */
 export function useOpeningDraft({ householdId, auth, markDirty, run }: UseOpeningDraftArgs) {
   const [opening, setOpening] = useState<OpeningNetWorthVM>(EMPTY_OPENING);
@@ -42,44 +42,61 @@ export function useOpeningDraft({ householdId, auth, markDirty, run }: UseOpenin
       },
       {
         writeBack: (result) => {
-          if (!result.ok || seededRef.current) return;
-          seededRef.current = true;
+          if (!result.ok) return;
 
           if ('reason' in result.value) {
+            if (seededRef.current) return;
+            seededRef.current = true;
             setReportValue(null);
             setOpening(EMPTY_OPENING);
             return;
           }
 
           const seeded: ReportValue = {
-            amountText: String(result.value.openingNetWorth),
+            amountText: String(Math.round(result.value.openingNetWorth)),
             anchorYearMonth: result.value.anchorYearMonth,
           };
+          // Remember the snapshot even when the user already typed, so USE
+          // SNAPSHOT still has something to restore — but never overwrite what
+          // is already on screen.
           setReportValue(seeded);
+          if (seededRef.current) return;
+          seededRef.current = true;
           setOpening({ source: 'derived', ...seeded });
         },
       },
     );
   }, [auth, householdId, run]);
 
+  /** Typing always means the user owns the value: manual source, no anchor. */
   const setOpeningAmount = useCallback(
     (amountText: string) => {
-      setOpening((current) => ({ ...current, amountText }));
+      seededRef.current = true;
+      setOpening({ source: 'manual', amountText, anchorYearMonth: null });
       markDirty();
     },
     [markDirty],
   );
 
-  const enterManual = useCallback(() => {
-    setOpening((current) => ({ ...current, source: 'manual', anchorYearMonth: null }));
-    markDirty();
-  }, [markDirty]);
-
-  const useReportValue = useCallback(() => {
+  const resetToSnapshot = useCallback(() => {
     if (reportValue === null) return;
     setOpening({ source: 'derived', ...reportValue });
     markDirty();
   }, [markDirty, reportValue]);
+
+  /**
+   * Amounts are whole NT dollars; the field only accepts decimals while it is
+   * being typed. Committing rewrites the text but keeps the source, so tabbing
+   * out of a seeded value does not turn it into a manual one.
+   */
+  const commitOpeningAmount = useCallback(() => {
+    setOpening((prev) => {
+      const amount = Number(prev.amountText);
+      if (prev.amountText.trim() === '' || !Number.isFinite(amount)) return prev;
+      const rounded = String(Math.round(amount));
+      return rounded === prev.amountText ? prev : { ...prev, amountText: rounded };
+    });
+  }, []);
 
   const replace = useCallback((next: OpeningNetWorthVM, nextReportValue: ReportValue | null) => {
     setOpening(next);
@@ -95,7 +112,7 @@ export function useOpeningDraft({ householdId, auth, markDirty, run }: UseOpenin
     reload: loadOpening,
     replace,
     setOpeningAmount,
-    enterManual,
-    useReportValue,
+    commitOpeningAmount,
+    resetToSnapshot,
   };
 }

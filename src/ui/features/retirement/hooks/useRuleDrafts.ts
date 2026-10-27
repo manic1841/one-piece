@@ -1,6 +1,6 @@
 import { useCallback, useMemo } from 'react';
 
-import { type Resolver, type ResolverResult, useForm } from 'react-hook-form';
+import { type Resolver, type ResolverResult, useFieldArray, useForm } from 'react-hook-form';
 
 import {
   ALLOWED_METHODS_BY_RULE_TYPE,
@@ -57,6 +57,11 @@ export function useRuleDrafts(markDirty: () => void) {
   const form = useForm<RulesForm>({ mode: 'onTouched', defaultValues: { rules: [] }, resolver });
   const rules = form.watch('rules');
 
+  // Registers `rules` as a field array so `useController` keeps values when the
+  // inspector rebinds from one array index to another (`rules.0.*` → `rules.1.*`).
+  // Without it RHF unsets the old path on unmount and leaves a hole in the array.
+  useFieldArray({ control: form.control, name: 'rules' });
+
   const commit = useCallback(
     (next: RuleDraftVM[]) => {
       form.reset({ rules: next } as never);
@@ -77,12 +82,24 @@ export function useRuleDrafts(markDirty: () => void) {
   );
 
   const add = useCallback(
-    (ruleType: RuleType) => commit([...form.getValues('rules'), blankRule(ruleType)]),
+    (ruleType: RuleType) => {
+      const draft = blankRule(ruleType);
+      commit([...form.getValues('rules'), draft]);
+      return draft.id;
+    },
     [commit, form],
   );
 
   const remove = useCallback(
     (id: string) => commit(form.getValues('rules').filter((rule) => rule.id !== id)),
+    [commit, form],
+  );
+
+  /** Restores a whole draft, untouched flag included (dialog cancel). */
+  const replace = useCallback(
+    (id: string, draft: RuleDraftVM) => {
+      commit(form.getValues('rules').map((rule) => (rule.id === id ? draft : rule)));
+    },
     [commit, form],
   );
 
@@ -230,6 +247,7 @@ export function useRuleDrafts(markDirty: () => void) {
     add,
     revealAll,
     remove,
+    replace,
     toggle,
     update,
     setMethod,

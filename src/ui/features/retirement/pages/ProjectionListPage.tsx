@@ -34,9 +34,11 @@ function NameCell({ row }: { row: ProjectionListRowVM }) {
 
 export default function ProjectionListPage() {
   const { userProfile } = useAuthState();
+  const householdId = userProfile?.householdId;
   const navigate = useNavigate();
-  const { rows, loading, error, reload } = useProjectionList(userProfile?.householdId);
+  const { rows, loading, error, reload } = useProjectionList(householdId);
   const open = (id: string) => navigate(`/retirement/projections/${id}`);
+  const start = () => navigate('/retirement/new');
 
   return (
     <div className="space-y-8">
@@ -44,7 +46,7 @@ export default function ProjectionListPage() {
         title={PROJECTION_LIST_LABELS.TITLE}
         description={PROJECTION_LIST_LABELS.DESCRIPTION}
         actions={
-          <Button onClick={() => navigate('/retirement/new')} className="gap-2">
+          <Button onClick={start} className="gap-2">
             <Plus size={16} aria-hidden="true" />
             {PROJECTION_LIST_LABELS.NEW_PROJECTION}
           </Button>
@@ -60,11 +62,7 @@ export default function ProjectionListPage() {
         retryLabel={PROJECTION_LIST_LABELS.RETRY}
         emptyTitle={PROJECTION_LIST_LABELS.EMPTY_TITLE}
         emptyDescription={PROJECTION_LIST_LABELS.EMPTY_DESCRIPTION}
-        emptyAction={
-          <Button onClick={() => navigate('/retirement/new')}>
-            {PROJECTION_LIST_LABELS.EMPTY_ACTION}
-          </Button>
-        }
+        emptyAction={<Button onClick={start}>{PROJECTION_LIST_LABELS.EMPTY_ACTION}</Button>}
         items={rows}
         columns={COLUMNS}
         rowTestId={(row) => `projection-row-${row.id}`}

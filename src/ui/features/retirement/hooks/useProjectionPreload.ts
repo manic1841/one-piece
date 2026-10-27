@@ -83,14 +83,14 @@ export function useProjectionPreload({
                 startYear: config.startYear,
                 opening: {
                   source: 'manual',
-                  amountText: String(config.openingNetWorth.amount),
+                  amountText: String(Math.round(config.openingNetWorth.amount)),
                   anchorYearMonth: null,
                 },
                 reportValue: null,
               });
             } else if (derived !== null && !('reason' in derived)) {
               const reportValue = {
-                amountText: String(derived.openingNetWorth),
+                amountText: String(Math.round(derived.openingNetWorth)),
                 anchorYearMonth: derived.anchorYearMonth,
               };
               replaceAll({

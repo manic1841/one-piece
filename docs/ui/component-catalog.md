@@ -76,6 +76,7 @@
 | `src/ui/components/form/FormMessage.tsx`                | form / FormMessage                |
 | `src/ui/components/form/ReadoutField.tsx`               | form / ReadoutField               |
 | `src/ui/components/form/Select.tsx`                     | form / Select                     |
+| `src/ui/components/form/Combobox.tsx`                   | form / Combobox                   |
 | `src/ui/components/form/TextArea.tsx`                   | form / TextArea                   |
 | `src/ui/components/form/TextInput.tsx`                  | form / TextInput                  |
 | `src/ui/components/sortable/SortableListScope.tsx`      | sortable / SortableListScope      |
@@ -452,6 +453,11 @@
   - 變體：選填的「無值」列以 `noneLabel` 表示；**option 不得自帶空字串 value**（違反時開發模式報錯）。
   - **不要用於**：需要自行組合 Radix parts 的場合（用 `ui/select`）。
   - 範例：`src/ui/features/account/pages/AccountForm.tsx`
+- **`Combobox`**（`ComboboxField`）— 可搜尋的單值選欄位，給長到不能捲的清單（科目、帳戶）。與 `SelectField` 同一個 string value 契約，多出 `hint` 與 `group` 讓呼叫端把清單一開就蓋掉的脈絡（已使用次數、未使用／已使用分組）留在選項上。
+  - Props：`options`（必填，`{ value, label, hint?, group? }`）、`value?`、`onChange?`、`onBlur?`、`noneLabel?`、`placeholder?`、`searchPlaceholder?`、`emptyLabel?`、`error?`、`disabled?`、`className?`、`id?`、`name?` 與 `aria-*`。
+  - 變體：「無值」列以 `noneLabel` 表示，emit `''`；`hint` 印在列尾當次要資訊，不參與選取；`group` 決定分區與先後（呼叫端把重要的一組排前面）。
+  - **不要用於**：5 項以內、不需要搜尋的清單（用 `Select`）；多選（目前沒有共用元件）。
+  - 範例：`src/ui/features/retirement/components/ProjectionRuleInspector.tsx`
 - **`TextArea`** — 多行文字。
   - Props：同 `TextInput` 的 string value 契約，另加 `error?`。
   - **不要用於**：單行輸入（用 `TextInput`）。
@@ -502,11 +508,12 @@
 
 以下「看起來一樣、其實契約不同」的元件，選錯會拿到錯的 value 契約或錯的 surface。數字輸入原本也是這樣一對（form／data-table 各一個），現已合併為單一 `NumberInput`，改用 `surface` 表達差異，不再列於此表：
 
-| 該用哪個                         | 用在                                                                  | 不要用在                             |
-| -------------------------------- | --------------------------------------------------------------------- | ------------------------------------ |
-| `form / TextInput`               | form 套件的文字欄位：RHF-free 的 **string** value 契約、帶 error 呈現 | data table 內；需要原生事件物件時    |
-| `ui/input`                       | 需要 shadcn 原始 surface／原生事件，或作為上游 primitive 被擴充       | 表單欄位（改用 `form / TextInput`）  |
-| `form / Select`（`SelectField`） | 單值選欄位：`options` ＋ `noneLabel`、string value 契約               | 需要自行組合 Radix parts 時          |
-| `ui/select`（Radix part 集）     | 需要自行組合 Radix parts 的場合，或被上游擴充                         | 一般表單欄位（改用 `form / Select`） |
+| 該用哪個                             | 用在                                                                  | 不要用在                                   |
+| ------------------------------------ | --------------------------------------------------------------------- | ------------------------------------------ |
+| `form / TextInput`                   | form 套件的文字欄位：RHF-free 的 **string** value 契約、帶 error 呈現 | data table 內；需要原生事件物件時          |
+| `ui/input`                           | 需要 shadcn 原始 surface／原生事件，或作為上游 primitive 被擴充       | 表單欄位（改用 `form / TextInput`）        |
+| `form / Select`（`SelectField`）     | 單值選欄位：`options` ＋ `noneLabel`、string value 契約               | 需要自行組合 Radix parts 時                |
+| `form / Combobox`（`ComboboxField`） | 同一契約但清單很長、需要搜尋，或選項要帶脈絡（`hint`／`group`）       | 5 項以內的一般欄位（改用 `form / Select`） |
+| `ui/select`（Radix part 集）         | 需要自行組合 Radix parts 的場合，或被上游擴充                         | 一般表單欄位（改用 `form / Select`）       |
 
 `NumberInput` 的 `form`／`table` 兩種 surface **共用的只有幾何與數字處理，不是整體外觀**；其餘各組的判準與表面規格見 [`design-system.md`](design-system.md) §7 的 `form` 與 `data-table`。

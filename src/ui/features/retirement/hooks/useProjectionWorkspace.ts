@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { useSearchParams } from 'react-router-dom';
 
@@ -6,7 +6,10 @@ import { type ProjectionCalculation } from '@/application/retirement/types';
 import { type RetirementAssumptions } from '@/domains/retirement/assumptions';
 import { type LifeEvent } from '@/domains/retirement/lifeEvents';
 import { type ProjectionRule } from '@/domains/retirement/projectionRules';
-import { type ProjectionResolveError } from '@/domains/retirement/projectionTypes';
+import {
+  type ProjectionResolveError,
+  type ProjectionSummary,
+} from '@/domains/retirement/projectionTypes';
 import { type RetirementPlan } from '@/domains/retirement/types';
 import { defaultProjectionName } from '@/shared/projectionName';
 import {
@@ -17,24 +20,37 @@ import {
 import { useAssumptionDraft } from '@/ui/features/retirement/hooks/useAssumptionDraft';
 import { useLifeEventDrafts } from '@/ui/features/retirement/hooks/useLifeEventDrafts';
 import { useOpeningDraft } from '@/ui/features/retirement/hooks/useOpeningDraft';
+import { usePlanPreload } from '@/ui/features/retirement/hooks/usePlanPreload';
 import { useProjectionCmds } from '@/ui/features/retirement/hooks/useProjectionCmds';
 import { useProjectionPreload } from '@/ui/features/retirement/hooks/useProjectionPreload';
 import { useRuleDrafts } from '@/ui/features/retirement/hooks/useRuleDrafts';
+import { useWorkspaceIndicators } from '@/ui/features/retirement/hooks/useWorkspaceIndicators';
 import { useWorkspaceLeaveGuard } from '@/ui/features/retirement/hooks/useWorkspaceLeaveGuard';
 import {
   type SaveWorkspaceOutcome,
   useWorkspaceSave,
 } from '@/ui/features/retirement/hooks/useWorkspaceSave';
+import { useWorkspaceUndo } from '@/ui/features/retirement/hooks/useWorkspaceUndo';
 import { mapProjectionResultToVM } from '@/ui/features/retirement/viewmodels/projectionResult.vm';
 import {
   type ProjectionSummaryVM,
   mapProjectionSummaryToVM,
 } from '@/ui/features/retirement/viewmodels/projectionView.vm';
 import {
+  assumptionsFilled,
+  currentAgeFor,
+  retirementAgeRange,
+  retirementYearFor,
+} from '@/ui/features/retirement/viewmodels/railIndicators.vm';
+import {
   type WorkspaceDraft,
   openingSchema,
   startYearSchema,
 } from '@/ui/features/retirement/viewmodels/workspaceDraft.vm';
+import {
+  buildProgress,
+  buildReadiness,
+} from '@/ui/features/retirement/viewmodels/workspaceReadiness.vm';
 import { getTaskErrorMessage } from '@/ui/hooks/getErrorMessage';
 import { useAuthIdentity } from '@/ui/hooks/useAuthIdentity';
 import { useLoadingTask } from '@/ui/hooks/useLoadingTask';
@@ -74,6 +90,7 @@ export function useProjectionWorkspace(householdId: string | undefined) {
   } = useProjectionCmds(householdId);
   const [searchParams, setSearchParams] = useSearchParams();
   const fromId = searchParams.get('from');
+  const planId = searchParams.get('plan');
   const {
     loading: openingLoading,
     error: openingError,
@@ -96,8 +113,18 @@ export function useProjectionWorkspace(householdId: string | undefined) {
   const [savedAsPlan, setSavedAsPlan] = useState(false);
   const [startYear, setStartYearState] = useState(() => new Date().getFullYear());
   const [preloadWarning, setPreloadWarning] = useState<string | null>(null);
+  const currentYear = new Date().getFullYear();
+  const calculateIndicatorsRef = useRef<(() => Promise<ProjectionSummary>) | undefined>(undefined);
+  const indicators = useWorkspaceIndicators(
+    () => calculateIndicatorsRef.current?.() ?? Promise.reject(new Error('not ready')),
+    PROJECTION_RESULT_LABELS.RESOLVE_FAILED,
+  );
+  const undo = useWorkspaceUndo();
 
-  const markDirty = useCallback(() => setDirty(true), []);
+  const markDirty = useCallback(() => {
+    setDirty(true);
+    indicators.markOutdated();
+  }, [indicators]);
   const openingDraft = useOpeningDraft({ householdId, auth, markDirty, run });
   const {
     opening,
@@ -108,8 +135,8 @@ export function useProjectionWorkspace(householdId: string | undefined) {
     reload: reloadOpening,
     replace: replaceOpening,
     setOpeningAmount,
-    enterManual,
-    useReportValue,
+    commitOpeningAmount,
+    resetToSnapshot,
   } = openingDraft;
   const assumptions = useAssumptionDraft(markDirty);
   const rules = useRuleDrafts(markDirty);
@@ -119,7 +146,9 @@ export function useProjectionWorkspace(householdId: string | undefined) {
   const { replaceAll: replaceEvents } = events;
 
   const clearParams = useCallback(() => {
-    setSearchParams({}, { replace: true });
+    // `applied` is a marker, not a replayable choice: a later refresh opens the
+    // workspace empty instead of asking for a start once more.
+    setSearchParams({ applied: '' }, { replace: true });
   }, [setSearchParams]);
 
   const replaceAll = useCallback(
@@ -165,6 +194,21 @@ export function useProjectionWorkspace(householdId: string | undefined) {
     [markDirty],
   );
 
+  const setRetirementAge = useCallback(
+    (next: string) => {
+      assumptions.setField('retirementAge', next);
+      indicators.schedule();
+    },
+    [assumptions, indicators],
+  );
+
+  const setAssumptionField = useCallback(
+    (field: Parameters<typeof assumptions.setField>[0], value: string) => {
+      assumptions.setField(field, value);
+    },
+    [assumptions],
+  );
+
   const applyPlan = useCallback(
     (plan: RetirementPlan) => {
       assumptions.resetFrom(plan.assumptions);
@@ -175,10 +219,21 @@ export function useProjectionWorkspace(householdId: string | undefined) {
       setResolveErrors([]);
       setCalculateError(null);
       setStage('setup');
+      indicators.reset();
+      undo.clear();
       markDirty();
     },
-    [assumptions, events, markDirty, rules],
+    [assumptions, events, indicators, markDirty, rules, undo],
   );
+
+  usePlanPreload({
+    householdId,
+    planId,
+    auth,
+    applyPlan,
+    setWarning: setPreloadWarning,
+    clearParams,
+  });
 
   const validateOpening = useCallback((): string | undefined => {
     const parsed = openingSchema.safeParse(opening);
@@ -228,6 +283,27 @@ export function useProjectionWorkspace(householdId: string | undefined) {
   }, [assumptions, events, rules]);
 
   const valid = assumptions.valid && rules.valid && events.valid;
+  const incomeRuleCount = rules.rules.filter((rule) => rule.ruleType === 'income').length;
+  const openingResolved = (() => {
+    if (opening.amountText.trim() === '') return false;
+    return openingSchema.safeParse(opening).success;
+  })();
+  const readiness = buildReadiness({ valid, incomeRuleCount, openingResolved });
+  const ageRange = retirementAgeRange(
+    currentAgeFor(assumptions.values.birthYear, currentYear),
+    Number(assumptions.values.lifeExpectancy) || 90,
+  );
+  const retirementYear = retirementYearFor(
+    assumptions.values.birthYear,
+    assumptions.values.retirementAge,
+  );
+  const progress = buildProgress({
+    hasBaseline: openingResolved,
+    assumptionsFilled: assumptionsFilled(assumptions.values),
+    incomeRuleCount,
+    expenseRuleCount: rules.rules.length - incomeRuleCount,
+    eventCount: events.events.length,
+  });
 
   const goToPreview = useCallback(() => setStage('preview'), []);
 
@@ -255,13 +331,46 @@ export function useProjectionWorkspace(householdId: string | undefined) {
     return { assumptions, rules, lifeEvents };
   }, [revealErrors, validate]);
 
+  const calculateIndicators = useCallback(async (): Promise<ProjectionSummary> => {
+    const assumptionsResult = assumptions.validate();
+    const openingError = validateOpening();
+    if (
+      !assumptionsResult.ok ||
+      assumptionsResult.data === undefined ||
+      openingError !== undefined
+    ) {
+      throw new Error(openingError ?? 'invalid');
+    }
+
+    // Only opening and assumptions gate the preview, but rules and events shape
+    // the numbers, so a parseable draft is always included in the sum.
+    const ruleResult = rules.validate();
+    const eventResult = events.validate();
+
+    const task = await calculateProjection({
+      startYear,
+      opening: { source: opening.source, amount: Number(opening.amountText) },
+      assumptions: assumptionsResult.data,
+      rules: ruleResult.data ?? [],
+      lifeEvents: eventResult.data ?? [],
+    });
+    if (!task.ok || !task.value.ok) throw new Error('calculate failed');
+    return task.value.calculation.result.summary;
+  }, [assumptions, calculateProjection, events, opening, rules, startYear, validateOpening]);
+  useEffect(() => {
+    calculateIndicatorsRef.current = calculateIndicators;
+  }, [calculateIndicators]);
+
   const { save: saveAction, saveAsPlan } = useWorkspaceSave({
     householdId,
     persist,
     saveAsPlanCommand: saveWorkspaceAsPlan,
     takeValidatedPlan,
     setSavedId,
-    setLastSavedName,
+    setLastSavedName: (name) => {
+      setLastSavedName(name);
+      undo.clear();
+    },
     setSavedAsPlan,
   });
 
@@ -316,9 +425,11 @@ export function useProjectionWorkspace(householdId: string | undefined) {
       summary: mapProjectionSummaryToVM(outcome.calculation.result.summary),
       calculation: outcome.calculation,
     });
+    indicators.reset();
     setStage('preview');
   }, [
     calculateProjection,
+    indicators,
     opening.amountText,
     opening.source,
     startYear,
@@ -377,12 +488,23 @@ export function useProjectionWorkspace(householdId: string | undefined) {
     openingLoading,
     openingError,
     hasClosedPeriod: reportValue !== null,
+    hasSnapshot: reportValue !== null,
     setOpeningAmount,
-    enterManual,
-    useReportValue,
+    commitOpeningAmount,
+    resetToSnapshot,
     retryOpening,
     defaultName: defaultProjectionName,
     goToPreview,
     backToSetup,
+    indicators: indicators.indicators,
+    readiness,
+    progress,
+    ageRange,
+    retirementYear,
+    setRetirementAge,
+    setAssumptionField,
+    undo: undo.undo,
+    canUndo: undo.canUndo,
+    pushUndo: undo.push,
   };
 }

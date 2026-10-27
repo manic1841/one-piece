@@ -18,9 +18,16 @@ export const RULE_LABELS = {
   METHOD: 'Method',
   ENABLED: 'Enabled',
   DISABLED: 'Disabled',
+  STATE: 'State',
   SOURCE_TYPE: 'Source type',
   SOURCE: 'Source',
-  NO_SOURCE: 'No source needed for a fixed amount.',
+  NO_SOURCE: 'No source selected.',
+  SOURCE_SEARCH: 'Search a source',
+  SOURCE_NO_MATCH: 'No matching source.',
+  SOURCE_UNASSIGNED: '{count} ledger codes still unassigned',
+  SOURCE_IN_USE: 'In use',
+  SOURCE_UNUSED: 'Unused',
+  SOURCE_USED_BY: 'used by {count}',
   RULE_SOURCE: 'Another rule',
   UNNAMED_RULE: '(unnamed rule)',
   LEDGER_SOURCE: 'Ledger code',
@@ -38,6 +45,12 @@ export const RULE_LABELS = {
   BASELINE_YEAR: 'Baseline year',
   CHOOSE_PLACEHOLDER: 'Not selected',
   DELETE: 'Delete rule',
+  CREATE: 'ADD',
+  DONE: 'DONE',
+  CANCEL: 'Cancel',
+  NEW_TITLE: 'New income rule',
+  NEW_TITLE_EXPENSE: 'New expense rule',
+  EDIT_TITLE: 'Edit rule',
   ADD_ACTION_PREFIX: 'Add',
 } as const;
 
@@ -65,23 +78,3 @@ export const BASELINE_POLICY_LABELS = {
   previousCompleteYear: 'Previous complete year',
   specificYear: 'Year',
 } as const;
-
-export const PLAN_APPLY_LABELS = {
-  TITLE: 'Replace current setup?',
-  CONTEXT_PREFIX: 'Applying',
-  CONTEXT_SUFFIX: 'replaces assumptions, rules and events in this workspace.',
-  CONSEQUENCE: 'Unsaved changes in the workspace will be lost.',
-  CONFIRM: 'APPLY',
-  CANCEL: 'Cancel',
-  PLAN_FIELD: 'Plan',
-  CHOOSE_PLACEHOLDER: 'Choose a plan',
-  LOADING: 'Loading plans...',
-  EMPTY: 'No saved plans yet.',
-  LOAD_ERROR: 'Could not load plans.',
-  PLAN_NOT_FOUND: 'Could not load this plan.',
-  RETRY: 'RETRY',
-  APPLIED_PREFIX: 'Applied plan:',
-} as const;
-
-export const planContextCopy = (planName: string): string =>
-  `${PLAN_APPLY_LABELS.CONTEXT_PREFIX} "${planName}" ${PLAN_APPLY_LABELS.CONTEXT_SUFFIX}`;

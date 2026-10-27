@@ -148,7 +148,7 @@ Token（定義於 `tailwind.config.js`，全部走 CSS 變數）。值不複述�
 
 - `badge`：小圓角 + `border-strong` 可見邊界 + `font-mono text-[11px]`，棄用 rounded-full 藥丸；`destructive` 變體以 `border-negative/40 text-negative` 呈現。
 - `alert`：單列模式——狀態 glyph + `AlertDescription` + 文字動作按鈕（`button-variants` 的 `text` variant）；不再提供 `AlertTitle` 標題槽。
-- `button`：新增 `text` variant（透明底、透明邊界、tertiary 動作），與 `outline`/`ghost` 互補。
+- `button`：新增 `text` variant（透明底、透明邊界、tertiary 動作），與 `outline`/`ghost` 互補。`text` variant 放在行內 meta 位置（欄位 label 列、`HouseholdSwitcher`）時要把盒子抹平——`h-auto px-0 py-0` 加上與該列同級的字級，取代 36px 的表單按鈕盒：主體是那一列，附屬動作不該長得比它還重。抹平一律用同一組 class，不另外硬寫高度。
 - `progress`：`bg-muted` 實心軌道 + `bg-accent` 填充。
 - `tabs`：全站統一**底線式**（取代原膠囊／segmented 樣式）。`TabsList` 無底色、無圓角、無內距，只有一條滿寬的 `border-b border-border` 細線，標籤靠左。`TabsTrigger` 無底色；active 態＝文字 `text-foreground` 且 `font-semibold`，並以 `border-b-2 border-primary` 的底線咬住細線（`-mb-px` 讓 2px 底線與 1px 細線重疊成單線）；未選中為 `text-muted-foreground` 且 hover **不提亮**（active 狀態只靠字重、字色與底線三個訊號）。移除 press 縮放；focus 為 `ring-2 ring-ring ring-offset-0`（光環貼齊觸發區）。同款底線亦可套用於語意為 filter 的篩選列——該列以 `role=group` 的容器包住 `role=button` 的選項（選取態以 `aria-pressed` 標示），對齊相同 class token，不因此變成 tab。細線的**擁有者必須是滿寬的父層**，不可掛在會收縮的 `inline-flex` 篩選列上，也不可在細線與觸發區之間留 `padding`（否則底線浮空、細線只畫到內容寬）。需要橫向捲動時，捲動容器放在 `TabsList`/篩選列**外層**並加 `pb-px` 吸收 `-mb-px` 的 1px 外溢，避免 `overflow-x-auto` 連帶產生垂直捲軸。
 - `YearMonthPicker`：按鈕式（`MON YYYY ▾` outline 按鈕）+ Popover 內雙 Select；選擇僅暫存在 picker 內部（draft state），按 APPLY 才 commit，Escape/外點取消。

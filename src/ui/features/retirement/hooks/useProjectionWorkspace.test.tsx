@@ -93,13 +93,13 @@ describe('useProjectionWorkspace', () => {
     expect(latestRef.current.dirty).toBe(false);
   });
 
-  it('switching to manual clears the anchor and marks the workspace dirty', async () => {
+  it('typing the amount clears the anchor and marks the workspace dirty', async () => {
     vi.mocked(getProjectionOpeningUseCase.execute).mockResolvedValue(closedResult);
 
     renderWorkspace();
     await waitFor(() => expect(latestRef.current.opening.amountText).toBe('380000'));
 
-    act(() => latestRef.current.enterManual());
+    act(() => latestRef.current.setOpeningAmount('380000'));
 
     expect(latestRef.current.opening).toEqual({
       source: 'manual',
@@ -107,6 +107,24 @@ describe('useProjectionWorkspace', () => {
       anchorYearMonth: null,
     });
     expect(latestRef.current.dirty).toBe(true);
+  });
+
+  it('derives the retirement year once birth year and age are set', async () => {
+    vi.mocked(getProjectionOpeningUseCase.execute).mockResolvedValue({
+      reason: 'NO_CLOSED_PERIOD',
+    });
+
+    renderWorkspace();
+    await waitFor(() => expect(latestRef.current.openingLoading).toBe(false));
+
+    expect(latestRef.current.retirementYear).toBe(2060);
+
+    act(() => {
+      latestRef.current.setAssumptionField('birthYear', '1990');
+      latestRef.current.setRetirementAge('60');
+    });
+
+    expect(latestRef.current.retirementYear).toBe(2050);
   });
 
   it('editing the amount marks the workspace dirty', async () => {
@@ -127,11 +145,8 @@ describe('useProjectionWorkspace', () => {
     renderWorkspace();
     await waitFor(() => expect(latestRef.current.opening.amountText).toBe('380000'));
 
-    act(() => {
-      latestRef.current.enterManual();
-      latestRef.current.setOpeningAmount('1');
-    });
-    act(() => latestRef.current.useReportValue());
+    act(() => latestRef.current.setOpeningAmount('1'));
+    act(() => latestRef.current.resetToSnapshot());
 
     expect(latestRef.current.opening).toEqual({
       source: 'derived',
@@ -139,6 +154,25 @@ describe('useProjectionWorkspace', () => {
       anchorYearMonth: '2026-08',
     });
     expect(latestRef.current.dirty).toBe(true);
+  });
+
+  it('commits a typed decimal to whole NT dollars without changing the source', async () => {
+    vi.mocked(getProjectionOpeningUseCase.execute).mockResolvedValue(closedResult);
+
+    renderWorkspace();
+    await waitFor(() => expect(latestRef.current.opening.amountText).toBe('380000'));
+
+    act(() => latestRef.current.setOpeningAmount('1200.6'));
+    act(() => latestRef.current.commitOpeningAmount());
+
+    expect(latestRef.current.opening.amountText).toBe('1201');
+    expect(latestRef.current.opening.source).toBe('manual');
+
+    act(() => latestRef.current.resetToSnapshot());
+    act(() => latestRef.current.commitOpeningAmount());
+
+    expect(latestRef.current.opening.source).toBe('derived');
+    expect(latestRef.current.opening.amountText).toBe('380000');
   });
 
   it('switching stages keeps the route and the draft', async () => {

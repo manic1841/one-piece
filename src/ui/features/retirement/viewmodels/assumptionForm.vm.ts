@@ -34,12 +34,16 @@ export type AssumptionsVM = z.infer<typeof AssumptionTextSchema>;
 
 export type AssumptionErrors = Partial<Record<AssumptionField, string>>;
 
-export const EMPTY_ASSUMPTIONS_VM: AssumptionsVM = {
-  birthYear: '',
-  retirementAge: '',
-  lifeExpectancy: '',
-  inflationRate: '',
-  annualReturnRate: '',
+/**
+ * A new draft starts from a usable scenario instead of five empty boxes, so the
+ * user edits values rather than transcribing them.
+ */
+export const DEFAULT_ASSUMPTIONS_VM: AssumptionsVM = {
+  birthYear: '1995',
+  retirementAge: '65',
+  lifeExpectancy: '100',
+  inflationRate: '2',
+  annualReturnRate: '5',
 };
 
 /** Field text is a percentage; the stored value is the 4 dp decimal. */

@@ -6,12 +6,18 @@ import { type RetirementPlan } from '@/domains/retirement/types';
 import { useLoadOnce } from '@/ui/features/retirement/hooks/useLoadOnce';
 import { useAuthIdentity } from '@/ui/hooks/useAuthIdentity';
 
+/** Card-sized plan summary: a name plus the assumptions that identify the scenario. */
 export interface PlanSummary {
   id: string;
   name: string;
+  retirementAge: number;
+  lifeExpectancy: number;
+  inflationRate: number;
+  annualReturnRate: number;
+  updatedAt: Date;
 }
 
-/** Plan picker library: summaries for the dialog, full plans on apply. */
+/** Plan picker library: summaries for the entry dialog, full plans on apply. */
 export function usePlanLibrary(householdId: string | undefined) {
   const auth = useAuthIdentity();
   const [plans, setPlans] = useState<PlanSummary[]>([]);
@@ -24,7 +30,15 @@ export function usePlanLibrary(householdId: string | undefined) {
     async () => {
       if (!householdId) return [];
       const loaded = await listRetirementPlansUseCase.execute({ householdId, auth });
-      return loaded.map(({ id, name }) => ({ id, name }));
+      return loaded.map((plan) => ({
+        id: plan.id,
+        name: plan.name,
+        retirementAge: plan.assumptions.retirementAge,
+        lifeExpectancy: plan.assumptions.lifeExpectancy,
+        inflationRate: plan.assumptions.inflationRate,
+        annualReturnRate: plan.assumptions.annualReturnRate,
+        updatedAt: plan.updatedAt,
+      }));
     },
     setPlans,
     [auth, householdId],

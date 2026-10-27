@@ -44,7 +44,7 @@ export function StatusGlyph({ type, label, className }: StatusGlyphProps) {
         className,
       )}
     >
-      <span className="text-[10px] leading-none">{glyphMap[type]}</span>
+      <span className="text-[11px] leading-none">{glyphMap[type]}</span>
       {(label ?? defaultLabelMap[type]) !== '' && <span>{label ?? defaultLabelMap[type]}</span>}
     </span>
   );

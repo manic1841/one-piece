@@ -2,12 +2,9 @@ import * as React from 'react';
 
 import { cn } from '@/ui/utils';
 
-interface SwitchProps {
-  id?: string;
+interface SwitchProps extends Omit<React.ComponentProps<'button'>, 'onChange' | 'type'> {
   checked: boolean;
   onCheckedChange: (checked: boolean) => void;
-  disabled?: boolean;
-  className?: string;
 }
 
 export const Switch: React.FC<SwitchProps> = ({
@@ -16,8 +13,10 @@ export const Switch: React.FC<SwitchProps> = ({
   onCheckedChange,
   disabled,
   className,
+  ...rest
 }) => (
   <button
+    {...rest}
     id={id}
     type="button"
     role="switch"

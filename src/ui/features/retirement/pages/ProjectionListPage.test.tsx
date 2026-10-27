@@ -105,12 +105,20 @@ describe('ProjectionListPage', () => {
     expect(screen.getAllByRole('button', { name: 'NEW PROJECTION' })).toHaveLength(2);
   });
 
-  it('navigates to the empty-state CTA target', async () => {
+  it('sends the empty-state CTA to the start gate', async () => {
     const router = renderList();
 
     await screen.findByText('No projections have been calculated yet.');
-    const emptyAction = screen.getAllByRole('button', { name: 'NEW PROJECTION' })[1];
-    fireEvent.click(emptyAction);
+    fireEvent.click(screen.getAllByRole('button', { name: 'NEW PROJECTION' })[1]);
+
+    await waitFor(() => expect(router.state.location.pathname).toBe('/retirement/new'));
+    expect(router.state.location.search).toBe('');
+  });
+
+  it('sends the header action to the start gate', async () => {
+    const router = renderList();
+
+    fireEvent.click((await screen.findAllByRole('button', { name: 'NEW PROJECTION' }))[0]);
 
     await waitFor(() => expect(router.state.location.pathname).toBe('/retirement/new'));
   });

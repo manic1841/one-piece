@@ -4,6 +4,7 @@ import { Alert, AlertDescription } from '@/ui/components/ui/alert';
 import { Button } from '@/ui/components/ui/button';
 import { Label } from '@/ui/components/ui/label';
 import { PROJECTION_WORKSPACE_LABELS } from '@/ui/constants/retirement/workspaceLabels';
+import { WORKSPACE_SECTION_LABELS } from '@/ui/constants/retirement/workspaceRailLabels';
 import { type ProjectionWorkspaceStage } from '@/ui/features/retirement/hooks/useProjectionWorkspace';
 import { type OpeningNetWorthVM } from '@/ui/features/retirement/viewmodels/workspaceDraft.vm';
 
@@ -21,17 +22,23 @@ interface OpeningNetWorthSectionProps {
   startYearError?: string;
   setStartYear: (value: string) => void;
   hasClosedPeriod: boolean;
+  /** Whether a snapshot exists, i.e. whether USE SNAPSHOT has something to restore. */
+  hasSnapshot: boolean;
   setAmount: (value: string) => void;
-  useManualValue: () => void;
-  useReportValue: () => void;
+  /** Rewrites a typed decimal to whole NT dollars when the field loses focus. */
+  commitAmount: () => void;
+  resetToSnapshot: () => void;
   retry: () => void;
 }
 
 /**
- * Opening net worth with its two paths: `derived` (read-only, anchored to the
- * latest CLOSED period) and `manual` (integer, no anchor). A workspace with no
- * closed period starts empty and offers ENTER MANUALLY. The start year is
- * frozen into the config at calculate.
+ * Opening net worth. The latest closed period seeds the field once as a default
+ * value, so there is no mode to switch into: the input is always editable and
+ * typing drops the anchor. USE SNAPSHOT puts the seeded value back. The start
+ * year shares the row — both are the same one-off baseline decision and are
+ * frozen into the config at calculate. The year only needs four digits, so it
+ * takes a narrow column and the amount takes the rest: the width follows the
+ * content instead of splitting the row evenly.
  */
 export function OpeningNetWorthSection({
   opening,
@@ -43,23 +50,28 @@ export function OpeningNetWorthSection({
   startYearError,
   setStartYear,
   hasClosedPeriod,
+  hasSnapshot,
   setAmount,
-  useManualValue,
-  useReportValue,
+  commitAmount,
+  resetToSnapshot,
   retry,
 }: OpeningNetWorthSectionProps) {
   const isPreview = stage === 'preview';
-  const isManual = opening.source === 'manual';
-  const showEmptyState = !loading && !error && !hasClosedPeriod && !isManual;
-  const showManualButton = !isPreview && !isManual;
-  const showReportButton = !isPreview && isManual && hasClosedPeriod;
+  const canReset = hasSnapshot && opening.source === 'manual' && !isPreview;
+
+  const note = loading
+    ? PROJECTION_WORKSPACE_LABELS.LOADING
+    : !hasClosedPeriod
+      ? PROJECTION_WORKSPACE_LABELS.OPENING_EMPTY
+      : opening.source === 'derived' && opening.anchorYearMonth !== null
+        ? `${PROJECTION_WORKSPACE_LABELS.OPENING_DERIVED_NOTE} ${PROJECTION_WORKSPACE_LABELS.OPENING_ANCHOR_PREFIX} ${opening.anchorYearMonth}`
+        : '';
 
   return (
-    <PageSection title={PROJECTION_WORKSPACE_LABELS.OPENING_SECTION}>
-      {loading && (
-        <p className="text-sm text-muted-foreground">{PROJECTION_WORKSPACE_LABELS.LOADING}</p>
-      )}
-
+    <PageSection
+      number={WORKSPACE_SECTION_LABELS.NUMBER_BASELINE}
+      title={WORKSPACE_SECTION_LABELS.BASELINE}
+    >
       {!!error && !loading && (
         <Alert variant="warning">
           <AlertDescription>{PROJECTION_WORKSPACE_LABELS.OPENING_LOAD_ERROR}</AlertDescription>
@@ -69,80 +81,66 @@ export function OpeningNetWorthSection({
         </Alert>
       )}
 
-      {!loading && (
-        <div className="grid max-w-sm gap-4">
-          <div className="grid gap-2">
+      <div className="grid max-w-md gap-4 sm:grid-cols-[5.5rem_minmax(0,1fr)] sm:items-start">
+        <div className="grid gap-2">
+          <div className="flex items-center sm:h-5">
             <Label htmlFor={START_YEAR_INPUT_ID}>
               {PROJECTION_WORKSPACE_LABELS.START_YEAR_FIELD}
             </Label>
-            <NumberInput
-              id={START_YEAR_INPUT_ID}
-              value={String(startYear)}
-              onChange={setStartYear}
-              readOnly={isPreview}
-              step={1}
-              error={startYearError !== undefined}
-              aria-invalid={startYearError !== undefined}
-            />
-            {startYearError !== undefined && (
-              <p className="text-destructive text-xs" data-testid="start-year-validation-error">
-                {startYearError}
-              </p>
-            )}
           </div>
-
-          <div className="grid gap-2">
-            <Label htmlFor={OPENING_INPUT_ID}>{PROJECTION_WORKSPACE_LABELS.OPENING_FIELD}</Label>
-            <NumberInput
-              id={OPENING_INPUT_ID}
-              value={opening.amountText}
-              onChange={setAmount}
-              readOnly={isPreview || !isManual}
-              error={validationError !== undefined}
-              aria-invalid={validationError !== undefined}
-              prefix={OPENING_PREFIX}
-            />
-            {validationError !== undefined && (
-              <p className="text-destructive text-xs" data-testid="opening-validation-error">
-                {validationError}
-              </p>
-            )}
-            <p className="text-xs text-muted-foreground" data-testid="opening-net-worth-note">
-              {isManual
-                ? PROJECTION_WORKSPACE_LABELS.OPENING_MANUAL_NOTE
-                : opening.anchorYearMonth
-                  ? `${PROJECTION_WORKSPACE_LABELS.OPENING_DERIVED_NOTE} ${PROJECTION_WORKSPACE_LABELS.OPENING_ANCHOR_PREFIX} ${opening.anchorYearMonth}`
-                  : ''}
+          <NumberInput
+            id={START_YEAR_INPUT_ID}
+            value={String(startYear)}
+            onChange={setStartYear}
+            readOnly={isPreview}
+            step={1}
+            error={startYearError !== undefined}
+            aria-invalid={startYearError !== undefined}
+          />
+          {startYearError !== undefined && (
+            <p className="text-destructive text-xs" data-testid="start-year-validation-error">
+              {startYearError}
             </p>
-          </div>
-
-          {showEmptyState && (
-            <div className="flex flex-wrap items-center gap-3">
-              <p className="text-sm text-muted-foreground">
-                {PROJECTION_WORKSPACE_LABELS.OPENING_EMPTY}
-              </p>
-              <Button variant="outline" size="sm" onClick={useManualValue}>
-                {PROJECTION_WORKSPACE_LABELS.ENTER_MANUALLY}
-              </Button>
-            </div>
-          )}
-
-          {!showEmptyState && (showManualButton || showReportButton) && (
-            <div className="flex flex-wrap gap-2">
-              {showManualButton && (
-                <Button variant="outline" size="sm" onClick={useManualValue}>
-                  {PROJECTION_WORKSPACE_LABELS.USE_MANUAL_VALUE}
-                </Button>
-              )}
-              {showReportButton && (
-                <Button variant="text" size="sm" onClick={useReportValue}>
-                  {PROJECTION_WORKSPACE_LABELS.USE_REPORT_VALUE}
-                </Button>
-              )}
-            </div>
           )}
         </div>
-      )}
+
+        <div className="grid gap-2">
+          <div className="flex items-center justify-between gap-3 sm:h-5">
+            <Label htmlFor={OPENING_INPUT_ID}>{PROJECTION_WORKSPACE_LABELS.OPENING_FIELD}</Label>
+            {canReset && (
+              <Button
+                variant="text"
+                size="sm"
+                className="h-auto shrink-0 px-0 py-0 text-xs"
+                onClick={resetToSnapshot}
+              >
+                {PROJECTION_WORKSPACE_LABELS.USE_SNAPSHOT}
+              </Button>
+            )}
+          </div>
+          <NumberInput
+            id={OPENING_INPUT_ID}
+            value={opening.amountText}
+            onChange={setAmount}
+            onBlur={commitAmount}
+            readOnly={isPreview}
+            error={validationError !== undefined}
+            aria-invalid={validationError !== undefined}
+            prefix={OPENING_PREFIX}
+            data-testid="opening-net-worth-value"
+          />
+          {validationError !== undefined && (
+            <p className="text-destructive text-xs" data-testid="opening-validation-error">
+              {validationError}
+            </p>
+          )}
+          {note !== '' && (
+            <p className="text-[13px] text-muted-foreground" data-testid="opening-net-worth-note">
+              {note}
+            </p>
+          )}
+        </div>
+      </div>
     </PageSection>
   );
 }

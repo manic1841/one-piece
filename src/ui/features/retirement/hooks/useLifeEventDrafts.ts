@@ -107,6 +107,22 @@ export function useLifeEventDrafts(markDirty: () => void) {
     [commit, form],
   );
 
+  /** Timeline click on an empty timeline: new event that already has the range. */
+  const addEventWithPhase = useCallback(
+    (startYear: number, endYear: number) => {
+      const phase = {
+        ...blankPhase(),
+        startYearText: String(startYear),
+        endYearText: String(endYear),
+        touched: true,
+      };
+      const created = { ...blankEvent(), phases: [phase], touched: true };
+      commit([...form.getValues('events'), created]);
+      return { eventId: created.id, phaseId: phase.id };
+    },
+    [commit, form],
+  );
+
   const remove = useCallback(
     (id: string) => commit(form.getValues('events').filter((event) => event.id !== id)),
     [commit, form],
@@ -149,6 +165,106 @@ export function useLifeEventDrafts(markDirty: () => void) {
       );
     },
     [commit, form],
+  );
+
+  /** Timeline create: a phase already carrying the clicked range. */
+  const addPhaseAt = useCallback(
+    (eventId: string, startYear: number, endYear: number) => {
+      let phaseId = '';
+      commit(
+        form.getValues('events').map((event) => {
+          if (event.id !== eventId) return event;
+          const phase = {
+            ...blankPhase(),
+            startYearText: String(startYear),
+            endYearText: String(endYear),
+            touched: true,
+          };
+          phaseId = phase.id;
+          return {
+            ...event,
+            phases: sortPhases([...event.phases, phase]),
+            touched: true,
+            type: event.type,
+          };
+        }),
+      );
+      return phaseId;
+    },
+    [commit, form],
+  );
+
+  /** Timeline drag/resize settlement on one phase. */
+  const setPhaseRange = useCallback(
+    (eventId: string, phaseId: string, startYear: number, endYear: number) => {
+      commit(
+        form.getValues('events').map((event) =>
+          event.id === eventId
+            ? {
+                ...event,
+                phases: sortPhases(
+                  event.phases.map((phase) =>
+                    phase.id === phaseId
+                      ? {
+                          ...phase,
+                          startYearText: String(startYear),
+                          endYearText: String(endYear),
+                          touched: true,
+                        }
+                      : phase,
+                  ),
+                ),
+                touched: true,
+              }
+            : event,
+        ),
+      );
+    },
+    [commit, form],
+  );
+
+  /** Re-parent a phase; it adopts the target event's side. */
+  const movePhase = useCallback(
+    (
+      fromEventId: string,
+      phaseId: string,
+      targetEventId: string,
+      startYear: number,
+      endYear: number,
+    ) => {
+      const current = form.getValues('events');
+      const source = current.find((event) => event.id === fromEventId);
+      const moving = source?.phases.find((phase) => phase.id === phaseId);
+      if (moving === undefined) return;
+
+      const moved = {
+        ...moving,
+        startYearText: String(startYear),
+        endYearText: String(endYear),
+        touched: true,
+      };
+      commit(
+        current.map((event) => {
+          if (event.id === fromEventId && fromEventId !== targetEventId) {
+            return { ...event, phases: event.phases.filter((phase) => phase.id !== phaseId) };
+          }
+          if (event.id !== targetEventId) return event;
+          const phases =
+            fromEventId === targetEventId
+              ? event.phases.map((phase) => (phase.id === phaseId ? moved : phase))
+              : [...event.phases, moved];
+          return { ...event, phases: sortPhases(phases), touched: true };
+        }),
+      );
+    },
+    [commit, form],
+  );
+
+  const snapshot = useCallback(() => form.getValues('events'), [form]);
+
+  const replaceDrafts = useCallback(
+    (next: LifeEventDraftVM[]) => commit(next.map(withPhaseIndex)),
+    [commit],
   );
 
   const removePhase = useCallback(
@@ -261,6 +377,12 @@ export function useLifeEventDrafts(markDirty: () => void) {
     update,
     setType,
     addPhase,
+    addPhaseAt,
+    addEventWithPhase,
+    setPhaseRange,
+    movePhase,
+    snapshot,
+    replaceDrafts,
     removePhase,
     updatePhase,
     validate,
