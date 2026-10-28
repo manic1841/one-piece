@@ -13,6 +13,7 @@ import {
 } from '@/domains/retirement/projectionRules';
 import { type ValidationOutcome } from '@/ui/features/retirement/viewmodels/formValidation';
 import {
+  DEFAULT_RATE_TEXT,
   type RuleDraftVM,
   type RuleErrorsById,
   RuleFormSchema,
@@ -125,7 +126,7 @@ export function useRuleDrafts(markDirty: () => void) {
 
           const reset: Partial<RuleDraftVM> = {
             method,
-            rateText: '',
+            rateText: method === 'growthRate' ? DEFAULT_RATE_TEXT : '',
             ratioText: '',
             amountText: '',
             baselinePolicy: '',
@@ -165,7 +166,18 @@ export function useRuleDrafts(markDirty: () => void) {
           if (rule.id !== id) return rule;
           const allowed = ALLOWED_METHODS_BY_RULE_TYPE[ruleType];
           if (allowed.includes(rule.method)) return { ...rule, ruleType, touched: true };
-          return { ...rule, ruleType, method: DEFAULT_METHOD, touched: true };
+          // `debtAccount` is only reachable through debt amortization, so a side
+          // that drops that method has to drop the now-unreachable source type
+          // too — otherwise the picker keeps listing debt accounts for a source
+          // type the select can no longer even name.
+          return {
+            ...rule,
+            ruleType,
+            method: DEFAULT_METHOD,
+            sourceType: 'ledgerCode',
+            sourceId: '',
+            touched: true,
+          };
         }),
       );
     },

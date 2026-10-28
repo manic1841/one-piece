@@ -1,27 +1,29 @@
 import { z } from 'zod';
 
+import { RETIREMENT_GROWTH_RATE_BOUNDS, RETIREMENT_YEAR_BOUNDS } from './bounds';
 import { RetirementSchemaErrorCode } from './errorCodes';
 import { addIssue, hasMoreThanFourDecimalPlaces } from './numeric';
 
-const YEAR_MIN = 1900;
-const YEAR_MAX = 2200;
-
 function phaseYearField() {
   return z.number().superRefine((value, ctx) => {
-    if (!Number.isInteger(value) || value < YEAR_MIN || value > YEAR_MAX) {
+    if (
+      !Number.isInteger(value) ||
+      value < RETIREMENT_YEAR_BOUNDS.min ||
+      value > RETIREMENT_YEAR_BOUNDS.max
+    ) {
       addIssue(ctx, RetirementSchemaErrorCode.PHASE_YEAR_OUT_OF_RANGE, [], {
-        min: YEAR_MIN,
-        max: YEAR_MAX,
+        min: RETIREMENT_YEAR_BOUNDS.min,
+        max: RETIREMENT_YEAR_BOUNDS.max,
       });
     }
   });
 }
 
 const growthRateField = z.number().superRefine((value, ctx) => {
-  if (value < -0.1 || value > 0.2) {
+  if (value < RETIREMENT_GROWTH_RATE_BOUNDS.min || value > RETIREMENT_GROWTH_RATE_BOUNDS.max) {
     addIssue(ctx, RetirementSchemaErrorCode.GROWTH_RATE_OUT_OF_RANGE, [], {
-      min: -0.1,
-      max: 0.2,
+      min: RETIREMENT_GROWTH_RATE_BOUNDS.min,
+      max: RETIREMENT_GROWTH_RATE_BOUNDS.max,
     });
   }
   if (hasMoreThanFourDecimalPlaces(value)) {

@@ -113,11 +113,6 @@ export function WorkspaceSummary({
 
       <SummaryLine
         number={WORKSPACE_SECTION_LABELS.NUMBER_RULES}
-        title={WORKSPACE_SECTION_LABELS.RULES}
-        text={`${rules.length}`}
-      />
-
-      <SummaryLine
         title={WORKSPACE_SECTION_LABELS.INCOME}
         text={`${rules.filter((rule) => rule.ruleType === 'income').length}`}
       >

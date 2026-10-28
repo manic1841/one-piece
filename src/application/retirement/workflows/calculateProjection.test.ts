@@ -10,6 +10,7 @@ import { transactionRepository } from '@/infra/repositories/transactionRepositor
 import { ProjectionCommandErrorCode } from '../errors';
 import { getProjectionOpeningUseCase } from '../use_cases/getProjectionOpeningUseCase';
 import { calculateProjectionWorkflow } from './calculateProjection';
+import { compareRetirementAges } from './compareRetirementAges';
 
 vi.mock('@/application/household/householdPermissionService', () => ({
   householdPermissionService: { assertWritePermission: vi.fn() },
@@ -104,6 +105,24 @@ describe('calculateProjectionWorkflow', () => {
     expect(outcome.ok).toBe(true);
     if (!outcome.ok) return;
     expect(outcome.calculation.result.years).toHaveLength(2075 - 2026 + 1);
+    expect(projectionRepository.createProjectionAtomically).not.toHaveBeenCalled();
+  });
+
+  it('captures source facts once for every retirement-age comparison', async () => {
+    vi.mocked(listAllLedgerCodesUseCase.execute).mockResolvedValue([
+      { code: 'expense:rent' },
+    ] as never);
+    mockRentDebitByYear({ 2025: 1_000 });
+    const outcome = await calculateProjectionWorkflow.execute(request({ rules: [ledgerRule] }));
+    expect(outcome.ok).toBe(true);
+    if (!outcome.ok) return;
+    const reads = vi.mocked(transactionRepository.listByDateRange).mock.calls.length;
+    const comparisons = compareRetirementAges(outcome.comparisonInput, 2026);
+    expect(comparisons).toHaveLength(85 - 36);
+    expect(comparisons.every((row) => row.outcome.ok)).toBe(true);
+    expect(transactionRepository.listByDateRange).toHaveBeenCalledTimes(reads);
+    expect(listAllLedgerCodesUseCase.execute).toHaveBeenCalledTimes(1);
+    expect(householdPermissionService.assertWritePermission).toHaveBeenCalledTimes(1);
     expect(projectionRepository.createProjectionAtomically).not.toHaveBeenCalled();
   });
 

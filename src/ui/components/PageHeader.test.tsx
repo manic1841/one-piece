@@ -31,4 +31,10 @@ describe('PageHeader', () => {
     fireEvent.click(screen.getByRole('button'));
     expect(onBack).toHaveBeenCalledTimes(1);
   });
+
+  it('names the icon-only back button', () => {
+    render(<PageHeader title="DETAIL" onBack={vi.fn()} backLabel="Back to projections" />);
+
+    expect(screen.getByRole('button', { name: 'Back to projections' })).toBeInTheDocument();
+  });
 });

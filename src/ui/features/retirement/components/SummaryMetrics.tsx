@@ -11,6 +11,8 @@ export interface SummaryMetricValues {
   bankruptcyYearText: string;
   isBankruptText: string;
   isBankrupt: boolean;
+  minNetWorthNegative: boolean;
+  finalNetWorthNegative: boolean;
 }
 
 /** Shared six-metric block used by the calculated preview and the saved view. */
@@ -27,11 +29,13 @@ export function SummaryMetrics({ summary }: { summary: SummaryMetricValues }) {
           testId="metric-final-net-worth"
           label={PROJECTION_RESULT_LABELS.METRIC_FINAL_NET_WORTH}
           value={summary.finalNetWorthText}
+          tone={summary.finalNetWorthNegative ? 'negative' : 'default'}
         />
         <Metric
           testId="metric-min-net-worth"
           label={PROJECTION_RESULT_LABELS.METRIC_MIN_NET_WORTH}
           value={summary.minNetWorthText}
+          tone={summary.minNetWorthNegative ? 'negative' : 'default'}
         />
         <Metric
           testId="metric-min-net-worth-year"

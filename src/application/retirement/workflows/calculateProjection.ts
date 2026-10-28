@@ -13,7 +13,10 @@ import { getProjectionOpeningUseCase } from '@/application/retirement/use_cases/
 import { type AuthContext } from '@/application/types';
 import { baselineYearFor, calculateProjection } from '@/domains/retirement/calculators';
 import { type ProjectionRule, type RuleSourceType } from '@/domains/retirement/projectionRules';
-import { resolveProjectionInput } from '@/domains/retirement/resolveProjectionInput';
+import {
+  type ResolveProjectionInputParams,
+  resolveProjectionInput,
+} from '@/domains/retirement/resolveProjectionInput';
 import {
   type ProjectionConfig,
   createRetirementPlanCreateSchema,
@@ -22,7 +25,11 @@ import { debtAccountRepository } from '@/infra/repositories/debtAccountRepositor
 import { defaultProjectionName } from '@/shared/projectionName';
 
 export type CalculateProjectionOutcome =
-  | { ok: true; calculation: ProjectionCalculation }
+  | {
+      ok: true;
+      calculation: ProjectionCalculation;
+      comparisonInput: ResolveProjectionInputParams;
+    }
   | ProjectionFailure;
 
 const currentYear = (): number => new Date().getFullYear();
@@ -165,7 +172,7 @@ export class CalculateProjectionWorkflow {
       rules: parsed.data.projectionRules,
     });
 
-    const resolved = resolveProjectionInput({
+    const comparisonInput: ResolveProjectionInputParams = {
       assumptions: parsed.data.assumptions,
       rules: parsed.data.projectionRules,
       lifeEvents: parsed.data.lifeEvents,
@@ -173,7 +180,8 @@ export class CalculateProjectionWorkflow {
       opening: { amount: openingAmount, source: opening.source, anchorYearMonth },
       ledgerSources,
       debtAccounts,
-    });
+    };
+    const resolved = resolveProjectionInput(comparisonInput);
 
     if (!resolved.ok) {
       return {
@@ -199,6 +207,7 @@ export class CalculateProjectionWorkflow {
 
     return {
       ok: true,
+      comparisonInput,
       calculation: {
         input: resolved.input,
         result,

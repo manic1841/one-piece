@@ -1,3 +1,5 @@
+import { useState } from 'react';
+
 import { Plus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
@@ -8,6 +10,7 @@ import { Button } from '@/ui/components/ui/button';
 import { PROJECTION_LIST_LABELS } from '@/ui/constants/retirement/projectionLabels';
 import { useAuthState } from '@/ui/contexts/useAuthState';
 import { ListCell, ListPageScaffold } from '@/ui/features/retirement/components/ListPageScaffold';
+import { ProjectionStartDialog } from '@/ui/features/retirement/components/ProjectionStartDialog';
 import { useProjectionList } from '@/ui/features/retirement/hooks/useProjectionList';
 import { type ProjectionListRowVM } from '@/ui/features/retirement/viewmodels/projectionList.vm';
 
@@ -37,8 +40,19 @@ export default function ProjectionListPage() {
   const householdId = userProfile?.householdId;
   const navigate = useNavigate();
   const { rows, loading, error, reload } = useProjectionList(householdId);
+  const [startOpen, setStartOpen] = useState(false);
   const open = (id: string) => navigate(`/retirement/projections/${id}`);
-  const start = () => navigate('/retirement/new');
+
+  // A blank start is the plain route; a plan rides in the query so the
+  // workspace applies it on mount.
+  const startBlank = () => {
+    setStartOpen(false);
+    navigate('/retirement/new');
+  };
+  const startFromPlan = (planId: string) => {
+    setStartOpen(false);
+    navigate(`/retirement/new?plan=${planId}`);
+  };
 
   return (
     <div className="space-y-8">
@@ -46,7 +60,7 @@ export default function ProjectionListPage() {
         title={PROJECTION_LIST_LABELS.TITLE}
         description={PROJECTION_LIST_LABELS.DESCRIPTION}
         actions={
-          <Button onClick={start} className="gap-2">
+          <Button onClick={() => setStartOpen(true)} className="gap-2">
             <Plus size={16} aria-hidden="true" />
             {PROJECTION_LIST_LABELS.NEW_PROJECTION}
           </Button>
@@ -62,7 +76,9 @@ export default function ProjectionListPage() {
         retryLabel={PROJECTION_LIST_LABELS.RETRY}
         emptyTitle={PROJECTION_LIST_LABELS.EMPTY_TITLE}
         emptyDescription={PROJECTION_LIST_LABELS.EMPTY_DESCRIPTION}
-        emptyAction={<Button onClick={start}>{PROJECTION_LIST_LABELS.EMPTY_ACTION}</Button>}
+        emptyAction={
+          <Button onClick={() => setStartOpen(true)}>{PROJECTION_LIST_LABELS.EMPTY_ACTION}</Button>
+        }
         items={rows}
         columns={COLUMNS}
         rowTestId={(row) => `projection-row-${row.id}`}
@@ -94,6 +110,14 @@ export default function ProjectionListPage() {
           </>
         )}
       />
+
+      {startOpen && (
+        <ProjectionStartDialog
+          onSelectBlank={startBlank}
+          onSelectPlan={startFromPlan}
+          onCancel={() => setStartOpen(false)}
+        />
+      )}
     </div>
   );
 }

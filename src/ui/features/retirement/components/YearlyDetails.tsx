@@ -14,6 +14,7 @@ import {
   TableBody,
   TableHeader,
 } from '@/ui/components/data-table';
+import { sectionTitleClass } from '@/ui/components/eyebrow';
 import { MONEY_TONE_CLASS, signTone } from '@/ui/components/moneyTone';
 import { PROJECTION_YEARLY_DETAIL_LABELS } from '@/ui/constants/retirement/displayLabels';
 import { PROJECTION_VIEW_LABELS } from '@/ui/constants/retirement/projectionLabels';
@@ -29,7 +30,7 @@ type RetirementProjectionProps = {
   selectedYear?: number | null;
   onSelectYear?: (year: number) => void;
   /** Collapse trigger title. */
-  title?: string;
+  title: string;
 };
 
 const COLUMNS = PROJECTION_YEARLY_DETAIL_LABELS.columns;
@@ -89,7 +90,7 @@ export function YearlyDetails({
   projection,
   selectedYear = null,
   onSelectYear,
-  title = PROJECTION_YEARLY_DETAIL_LABELS.sectionTitle,
+  title,
 }: RetirementProjectionProps) {
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [expandedYears, setExpandedYears] = useState<Record<number, boolean>>({});
@@ -114,11 +115,11 @@ export function YearlyDetails({
     <div>
       <button
         type="button"
-        className="mb-1 flex w-full items-center justify-between rounded-md py-1 text-left"
+        className="mb-2 flex w-full items-center justify-between gap-3 border-b border-border pb-2 text-left"
         onClick={() => setIsDetailsOpen((prev) => !prev)}
         aria-expanded={isDetailsOpen}
       >
-        <h4 className="text-sm font-semibold">{title}</h4>
+        <h2 className={sectionTitleClass}>{title}</h2>
         <span className="text-muted-foreground">
           {isDetailsOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
         </span>

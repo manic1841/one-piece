@@ -1,5 +1,6 @@
 import * as React from 'react';
 
+import { StatusGlyph, type StatusGlyphType } from '@/ui/components/StatusGlyph';
 import { sectionTitleClass } from '@/ui/components/eyebrow';
 import { cn } from '@/ui/utils/cn';
 
@@ -12,6 +13,12 @@ type PageSectionProps = {
   title?: string;
   /** Optional trailing control aligned to the section heading. */
   action?: React.ReactNode;
+  /** Section state. Callers pass it only when the state is worth reporting. */
+  status?: StatusGlyphType;
+  /** One-line reason hung under the heading, so a gap is explained where it is. */
+  hint?: string;
+  /** Test hook for the band itself. */
+  testId?: string;
   /** Vertical rhythm: `default` is the page band; `compact` tightens dense stacks. */
   spacing?: PageSectionSpacing;
   children?: React.ReactNode;
@@ -31,31 +38,45 @@ const HEADER_MARGIN_CLASS: Record<PageSectionSpacing, string> = {
 /**
  * Full-width section band separating page regions (visual-standards: structure
  * over cards). Number + title is optional; content-only sections render as a
- * plain band.
+ * plain band. `status` and `hint` report the band's own state so a blocker is
+ * explained where the work happens instead of only in the action bar.
  */
 export function PageSection({
   number,
   title,
   action,
+  status,
+  hint,
+  testId,
   spacing = 'default',
   children,
   className,
 }: PageSectionProps) {
   const hasHeading = number !== undefined || title !== undefined;
   return (
-    <section className={cn('border-b border-border', SPACING_CLASS[spacing], className)}>
+    <section
+      data-testid={testId}
+      className={cn('border-b border-border', SPACING_CLASS[spacing], className)}
+    >
       {(hasHeading || action !== undefined) && (
-        <div
-          className={cn('flex items-center justify-between gap-4', HEADER_MARGIN_CLASS[spacing])}
-        >
-          {hasHeading && (
-            <p className={sectionTitleClass}>
-              {number !== undefined && title !== undefined
-                ? `${number} / ${title}`
-                : (number ?? title)}
-            </p>
-          )}
-          {action}
+        <div className={cn(HEADER_MARGIN_CLASS[spacing])}>
+          <div className="flex items-center justify-between gap-4">
+            {hasHeading && (
+              <p className={cn(sectionTitleClass, 'flex items-center gap-2')}>
+                {status !== undefined && (
+                  <>
+                    <StatusGlyph type={status} label="" />
+                    <span className="sr-only">{status}</span>
+                  </>
+                )}
+                {number !== undefined && title !== undefined
+                  ? `${number} / ${title}`
+                  : (number ?? title)}
+              </p>
+            )}
+            {action}
+          </div>
+          {hint !== undefined && <p className="mt-1 text-xs text-muted-foreground">{hint}</p>}
         </div>
       )}
       {children}

@@ -1,10 +1,14 @@
 /** 退休投影工作區（#341 骨架）的顯示文字單一來源。 */
 
 export const PROJECTION_WORKSPACE_LABELS = {
-  TITLE: 'New Projection',
+  TITLE: 'New projection',
   DESCRIPTION: 'Set up the assumptions, rules and events, then preview the projection.',
   APPLIED_PLAN_PREFIX: 'Applied plan',
   CHANGE_PLAN: 'CHANGE PLAN',
+  EDIT_BASELINE: 'Edit baseline',
+  CLOSE_BASELINE: 'DONE',
+  BASELINE_SUMMARY_START: 'Start',
+  PLAN_CONTEXT_PREFIX: 'Based on',
   SAVE_AS_PLAN: 'SAVE AS PLAN',
   STEPS_ARIA_LABEL: 'Projection workspace stages',
   STEP_SETUP: 'Setup',
@@ -24,7 +28,6 @@ export const PROJECTION_WORKSPACE_LABELS = {
   RULES_PLACEHOLDER: 'Income and expense rules will be edited here.',
   EVENTS_SECTION: 'LIFE EVENTS',
   EVENTS_PLACEHOLDER: 'Life events will be edited here.',
-  PREVIEW_READONLY_NOTE: 'Preview is read-only. Go back to setup to edit.',
   PREVIEW: 'PREVIEW',
   CALCULATE: 'CALCULATE',
   CALCULATING: 'CALCULATING...',

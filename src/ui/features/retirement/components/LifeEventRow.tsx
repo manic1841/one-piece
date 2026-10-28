@@ -4,12 +4,15 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-  SelectField,
   TextInput,
 } from '@/ui/components/form';
 import { Button } from '@/ui/components/ui/button';
 import { Switch } from '@/ui/components/ui/switch';
-import { EVENT_LABELS, EVENT_TYPE_LABELS } from '@/ui/constants/retirement/eventLabels';
+import {
+  EVENT_LABELS,
+  EVENT_TYPE_LABELS,
+  EVENT_TYPE_TONE,
+} from '@/ui/constants/retirement/eventLabels';
 import { LifeEventPhaseRow } from '@/ui/features/retirement/components/LifeEventPhaseRow';
 import {
   type EventErrors,
@@ -18,9 +21,9 @@ import {
   type PhaseDraftVM,
   type PhaseFocusRequest,
 } from '@/ui/features/retirement/viewmodels/lifeEventForm.vm';
+import { cn } from '@/ui/utils/cn';
 
 interface LifeEventRowProps {
-  index: number;
   event: LifeEventDraftVM;
   errors: EventErrors;
   readOnly: boolean;
@@ -34,17 +37,11 @@ interface LifeEventRowProps {
   setType: (type: EventType) => void;
 }
 
-const TYPE_OPTIONS = Object.entries(EVENT_TYPE_LABELS).map(([value, label]) => ({
-  value,
-  label,
-}));
-
 /**
  * One life event. There is deliberately no source picker: amounts are typed
  * and events never appear in a rule's percentage source list.
  */
 export function LifeEventRow({
-  index,
   event,
   errors,
   readOnly,
@@ -57,7 +54,7 @@ export function LifeEventRow({
   updatePhase,
   setType,
 }: LifeEventRowProps) {
-  const prefix = `events.${index}`;
+  const prefix = `eventsById.${event.id}`;
 
   return (
     <li data-testid="event-row" className="grid gap-3 border-b border-border pb-4">
@@ -65,7 +62,7 @@ export function LifeEventRow({
         <div className="flex-1">
           <FormField name={`${prefix}.name`}>
             <FormItem>
-              <FormLabel>{EVENT_LABELS.NAME}</FormLabel>
+              <FormLabel required>{EVENT_LABELS.NAME}</FormLabel>
               <FormControl>
                 <TextInput readOnly={readOnly} onChange={(name) => update({ name })} />
               </FormControl>
@@ -80,27 +77,26 @@ export function LifeEventRow({
         </label>
 
         {!readOnly && (
-          <Button variant="text" size="sm" onClick={remove}>
+          <Button variant="destructive" size="sm" onClick={remove}>
             {EVENT_LABELS.DELETE}
           </Button>
         )}
       </div>
 
-      <div className="sm:max-w-xs">
-        <FormField name={`${prefix}.type`}>
-          <FormItem>
-            <FormLabel>{EVENT_LABELS.TYPE}</FormLabel>
-            <FormControl>
-              <SelectField
-                value={event.type}
-                onChange={(value) => setType(value as EventType)}
-                options={TYPE_OPTIONS}
-                disabled={readOnly}
-              />
-            </FormControl>
-            <FormMessage>{errors.type}</FormMessage>
-          </FormItem>
-        </FormField>
+      <div className="flex items-center gap-2">
+        <label className="flex items-center gap-2 text-sm text-muted-foreground">
+          {EVENT_LABELS.TYPE}
+          <Switch
+            checked={event.type === 'expense'}
+            onCheckedChange={(expense) => setType(expense ? 'expense' : 'income')}
+            disabled={readOnly}
+            error={errors.type !== undefined}
+          />
+          <span className={cn('font-mono text-sm', EVENT_TYPE_TONE[event.type].text)}>
+            {EVENT_TYPE_LABELS[event.type]}
+          </span>
+        </label>
+        {errors.type && <p className="text-destructive text-sm font-medium">{errors.type}</p>}
       </div>
 
       <div className="grid gap-2">
@@ -120,7 +116,7 @@ export function LifeEventRow({
             {event.phases.map((phase) => (
               <LifeEventPhaseRow
                 key={phase.id}
-                eventIndex={index}
+                eventId={event.id}
                 phase={phase}
                 errors={errors.phaseErrors?.[phase.id] ?? {}}
                 readOnly={readOnly}

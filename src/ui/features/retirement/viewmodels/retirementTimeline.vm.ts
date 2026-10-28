@@ -170,11 +170,18 @@ export const timelineBarLabel = (bar: TimelineBar): string =>
     ? `${bar.name}，${bar.startYear}–${bar.endYear}`
     : `${bar.name}，${bar.startYear}`;
 
-/** bar 相對視窗的水平幾何（比例 0..1）；完全在視窗外時 `visible=false`。 */
+/**
+ * bar 相對視窗的水平幾何（比例 0..1）；完全在視窗外時 `visible=false`。
+ *
+ * 兩端各自回報是否被視窗切掉：被切掉的那一頭要畫成斷面，否則一條橫跨視窗
+ * 邊界的 bar 看起來就像剛好在邊界結束。
+ */
 export interface BarGeometry {
   left: number;
   width: number;
   visible: boolean;
+  clippedStart: boolean;
+  clippedEnd: boolean;
 }
 
 export const barGeometry = (
@@ -187,7 +194,13 @@ export const barGeometry = (
   const left = clamp(leftRaw, 0, 1);
   const right = clamp(rightRaw, 0, 1);
   const width = Math.max(right - left, 0);
-  return { left, width, visible: width > 0 };
+  return {
+    left,
+    width,
+    visible: width > 0,
+    clippedStart: leftRaw < 0 && right > 0,
+    clippedEnd: rightRaw > 1 && left < 1,
+  };
 };
 
 /* --------------------------- roving tabindex --------------------------- */

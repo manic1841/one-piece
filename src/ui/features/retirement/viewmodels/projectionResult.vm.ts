@@ -1,9 +1,24 @@
+import { type ProjectionCalculation } from '@/application/retirement/types';
 import { type ProjectionInput, type ProjectionResult } from '@/domains/retirement/projectionTypes';
+import { resolveErrorLabel } from '@/ui/constants/retirement/resultLabels';
 import { type RetirementProjectionVM } from '@/ui/features/retirement/viewmodels/projectionDisplay.vm';
 import {
   mapProjectionPoint,
   mapYearlyDetail,
 } from '@/ui/features/retirement/viewmodels/projectionRows.vm';
+
+export function mapProjectionWarningsToVM(calculation: ProjectionCalculation): string[] {
+  const names = new Map(calculation.config.projectionRules.map((rule) => [rule.id, rule.name]));
+  return calculation.warnings.map((warning) =>
+    resolveErrorLabel({
+      ...warning,
+      params: {
+        ...warning.params,
+        ruleName: names.get(String(warning.params.ruleId)) ?? warning.params.ruleName,
+      },
+    }),
+  );
+}
 
 /**
  * Adapts the pure engine output to the existing projection presentation VM so

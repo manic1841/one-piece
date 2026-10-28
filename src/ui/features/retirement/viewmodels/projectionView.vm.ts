@@ -33,6 +33,9 @@ export interface ProjectionSummaryVM {
   bankruptcyYearText: string;
   isBankruptText: string;
   isBankrupt: boolean;
+  /** Net worth below zero, so the metric carries the negative tone. */
+  minNetWorthNegative: boolean;
+  finalNetWorthNegative: boolean;
   /** Numeric counterparts of the text fields, for jump targets. */
   bankruptcyYear: number | null;
   minNetWorthYear: number | null;
@@ -65,6 +68,8 @@ export const mapProjectionSummaryToVM = (summary: ProjectionSummary): Projection
   bankruptcyYearText: year(summary.bankruptcyYear),
   isBankruptText: summary.isBankrupt ? PROJECTION_COMMON_LABELS.YES : PROJECTION_COMMON_LABELS.NO,
   isBankrupt: summary.isBankrupt,
+  minNetWorthNegative: summary.minNetWorth < 0,
+  finalNetWorthNegative: summary.finalNetWorth < 0,
   bankruptcyYear: summary.bankruptcyYear,
   minNetWorthYear: summary.minNetWorthYear,
 });

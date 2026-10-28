@@ -96,6 +96,13 @@ export function useAssumptionDraft(markDirty: () => void, currentYear = new Date
     [form],
   );
 
+  /** Back to the unsaved defaults, as if the workspace had just been opened blank. */
+  const resetToBlank = useCallback(() => {
+    form.reset(DEFAULT_ASSUMPTIONS_VM);
+    setBirthYearLocked(false);
+    setRevealed(false);
+  }, [form]);
+
   /** CALCULATE reveals every field error, not only the touched ones. */
   const revealAll = useCallback(() => {
     setRevealed(true);
@@ -112,5 +119,6 @@ export function useAssumptionDraft(markDirty: () => void, currentYear = new Date
     validate,
     revealAll,
     resetFrom,
+    resetToBlank,
   };
 }

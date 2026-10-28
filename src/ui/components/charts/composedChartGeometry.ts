@@ -126,7 +126,11 @@ interface Scale {
   max: number;
 }
 
-/** Include 0 (bars need a baseline), then pad the range so the extremes breathe. */
+/**
+ * Include 0 (bars need a baseline), then pad the data extremes so they breathe.
+ * A side that is only the 0 baseline is not padded, so all-positive data never
+ * shows a negative tick.
+ */
 const buildScale = (values: number[]): Scale => {
   const min = Math.min(0, ...values);
   const max = Math.max(0, ...values);
@@ -135,7 +139,7 @@ const buildScale = (values: number[]): Scale => {
     return { min: min - pad, max: max + pad };
   }
   const pad = (max - min) * RANGE_PAD;
-  return { min: min - pad, max: max + pad };
+  return { min: min < 0 ? min - pad : min, max: max > 0 ? max + pad : max };
 };
 
 const innerHeight = COMPOSED_CHART_HEIGHT - PADDING_TOP - PADDING_BOTTOM;

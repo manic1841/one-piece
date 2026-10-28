@@ -26,8 +26,8 @@ import ProjectsPage from '@/ui/features/project/pages/ProjectsPage';
 import ReportDetailPage from '@/ui/features/report/pages/ReportDetailPage';
 import ReportListPage from '@/ui/features/report/pages/ReportListPage';
 import ProjectionListPage from '@/ui/features/retirement/pages/ProjectionListPage';
-import ProjectionStartPage from '@/ui/features/retirement/pages/ProjectionStartPage';
 import ProjectionViewPage from '@/ui/features/retirement/pages/ProjectionViewPage';
+import ProjectionWorkspacePage from '@/ui/features/retirement/pages/ProjectionWorkspacePage';
 import RetirementPlanListPage from '@/ui/features/retirement/pages/RetirementPlanListPage';
 import RetirementPlanViewPage from '@/ui/features/retirement/pages/RetirementPlanViewPage';
 import SettingsIndexRedirect from '@/ui/features/setting/pages/SettingsIndexRedirect';
@@ -87,7 +87,7 @@ const router = createBrowserRouter([
       { path: 'reports', element: <ReportListPage /> },
       { path: 'reports/:period', element: <ReportDetailPage /> },
       { path: 'retirement', element: <ProjectionListPage /> },
-      { path: 'retirement/new', element: <ProjectionStartPage /> },
+      { path: 'retirement/new', element: <ProjectionWorkspacePage /> },
       { path: 'retirement/projections/:id', element: <ProjectionViewPage /> },
       { path: 'retirement/plans', element: <RetirementPlanListPage /> },
       { path: 'retirement/plans/:id', element: <RetirementPlanViewPage /> },

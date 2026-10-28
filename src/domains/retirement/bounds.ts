@@ -31,3 +31,19 @@ export function getRetirementAssumptionBounds(currentYear: number): RetirementAs
     },
   };
 }
+
+/**
+ * Absolute range for a projection year: phases and the start year share it, and
+ * the UI lists it in a picker. The engine has no clock, so this is not narrowed
+ * by the current year — an imported plan may legitimately start in the past.
+ */
+export const RETIREMENT_YEAR_BOUNDS = { min: 1900, max: 2200 } as const;
+
+/**
+ * Top of the numbers offered for an age (life expectancy). The schema keeps
+ * `lifeExpectancy.max` open; a picker needs something finite to list.
+ */
+export const RETIREMENT_AGE_LIST_MAX = 130;
+
+/** Growth rate shared by rules and phases; the UI slider spans the same range. */
+export const RETIREMENT_GROWTH_RATE_BOUNDS = { min: -0.1, max: 0.2 } as const;

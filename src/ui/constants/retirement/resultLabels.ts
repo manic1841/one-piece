@@ -39,6 +39,7 @@ const text = (value: unknown): string =>
 /** Stable zh-TW copy for every resolver error and warning code. */
 export function resolveErrorLabel(error: ProjectionResolveError): string {
   const params = error.params;
+  const rulePrefix = params.ruleName ? `規則「${text(params.ruleName)}」：` : '';
 
   switch (error.code) {
     case 'CYCLE':
@@ -58,10 +59,10 @@ export function resolveErrorLabel(error: ProjectionResolveError): string {
     case 'DISABLED_REFERENCE':
       return `規則 ${text(params.ruleId)} 參照的規則已停用。`;
     case 'BASELINE_BEHIND':
-      return `基準年度 ${text(params.baselineYear ?? params.anchorYearMonth)} 早於投影起點。`;
+      return `${rulePrefix}基準年度 ${text(params.baselineYear ?? params.anchorYearMonth)} 早於投影起點。`;
     case 'BASELINE_AFTER_START':
-      return `基準年度 ${text(params.baselineYear ?? params.anchorYearMonth)} 晚於投影起點。`;
+      return `${rulePrefix}基準年度 ${text(params.baselineYear ?? params.anchorYearMonth)} 晚於投影起點。`;
     case 'DEBT_ENDED_BEFORE_START':
-      return `債務已於 ${text(params.endYear)} 結束，整段期間早於投影起點。`;
+      return `${rulePrefix}債務已於 ${text(params.endYear)} 結束，整段期間早於投影起點。`;
   }
 }

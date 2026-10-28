@@ -6,8 +6,10 @@ import {
   blankPhase,
   collectEventErrors,
   focusTargetFor,
+  isCompleteYear,
   mapEventDraftVMToDomain,
   mapEventToVM,
+  sortEvents,
   sortPhases,
 } from './lifeEventForm.vm';
 
@@ -24,6 +26,22 @@ describe('lifeEventForm.vm', () => {
     const sorted = sortPhases([phase('2050', '2051'), blank, phase('2030', '2031')]);
 
     expect(sorted.map((item) => item.startYearText)).toEqual(['2030', '2050', '']);
+  });
+
+  it('treats only a four-digit year as settled', () => {
+    expect(['1', '19', '190'].every((text) => isCompleteYear(text))).toBe(false);
+    expect(isCompleteYear('1998')).toBe(true);
+    expect(isCompleteYear(undefined)).toBe(false);
+  });
+
+  it('sorts events by their earliest settled start, sinking year-less ones', () => {
+    const late = { ...blankEvent(), phases: [phase('2060', '2060')] };
+    const early = { ...blankEvent(), phases: [phase('2030', '2030'), phase('2010', '2010')] };
+    const empty = blankEvent();
+
+    const sorted = sortEvents([late, empty, early]);
+
+    expect(sorted.map((event) => event.id)).toEqual([early.id, late.id, empty.id]);
   });
 
   it('omits blank optional fields from the domain payload', () => {

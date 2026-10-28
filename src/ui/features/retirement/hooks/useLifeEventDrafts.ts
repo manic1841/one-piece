@@ -3,6 +3,11 @@ import { useCallback, useMemo, useRef, useState } from 'react';
 import { type Resolver, type ResolverResult, useForm } from 'react-hook-form';
 
 import { type LifeEvent, LifeEventsSchema } from '@/domains/retirement/lifeEvents';
+import { EVENT_LABELS } from '@/ui/constants/retirement/eventLabels';
+import {
+  nextDefaultName,
+  useLifeEventPhases,
+} from '@/ui/features/retirement/hooks/useLifeEventPhases';
 import { type ValidationOutcome } from '@/ui/features/retirement/viewmodels/formValidation';
 import {
   type EventErrorsById,
@@ -10,16 +15,14 @@ import {
   type EventsForm,
   type LifeEventDraftVM,
   LifeEventFormSchema,
-  type PhaseDraftVM,
   type PhaseFocusRequest,
   blankEvent,
   blankPhase,
   collectEventErrors,
-  focusTargetFor,
   mapEventDraftVMToDomain,
   mapEventToVM,
-  sortPhases,
-  withPhaseIndex,
+  mirrorEventsForm,
+  sortEvents,
 } from '@/ui/features/retirement/viewmodels/lifeEventForm.vm';
 
 export type {
@@ -74,12 +77,23 @@ export function useLifeEventDrafts(markDirty: () => void) {
     return { values, errors: { events: fieldErrors } } as unknown as ResolverResult<EventsForm>;
   }, []);
 
-  const form = useForm<EventsForm>({ mode: 'onTouched', defaultValues: { events: [] }, resolver });
+  const form = useForm<EventsForm>({
+    mode: 'onTouched',
+    defaultValues: { events: [], eventsById: {} },
+    resolver,
+  });
   const events = form.watch('events');
+  /**
+   * Authoritative drafts. RHF keeps a value mirror for validation, but a field
+   * whose ref is not an `<input>` (the type select) unsets its own path on
+   * register, so mutations read this instead of `getValues`.
+   */
+  const latest = useRef<LifeEventDraftVM[]>([]);
 
   const commit = useCallback(
     (next: LifeEventDraftVM[]) => {
-      form.reset({ events: next.map(withPhaseIndex) } as never);
+      latest.current = next;
+      form.reset(mirrorEventsForm(next) as never);
       markDirty();
     },
     [form, markDirty],
@@ -91,226 +105,75 @@ export function useLifeEventDrafts(markDirty: () => void) {
     setFocusRequest({ ...request, sequence: sequenceRef.current });
   }, []);
 
+  const phases = useLifeEventPhases({ latest, commit, requestFocus });
+
   const update = useCallback(
     (id: string, patch: Partial<Omit<LifeEventDraftVM, 'phases'>>) => {
       commit(
-        form
-          .getValues('events')
-          .map((event) => (event.id === id ? { ...event, ...patch, touched: true } : event)),
+        latest.current.map((event) =>
+          event.id === id ? { ...event, ...patch, touched: true } : event,
+        ),
       );
     },
-    [commit, form],
+    [commit],
   );
 
-  const add = useCallback(
-    () => commit([...form.getValues('events'), blankEvent()]),
-    [commit, form],
-  );
-
-  /** Timeline click on an empty timeline: new event that already has the range. */
+  /** Empty-state / header create: a new event that already has a one-year phase. */
   const addEventWithPhase = useCallback(
     (startYear: number, endYear: number) => {
       const phase = {
         ...blankPhase(),
+        name: nextDefaultName([], EVENT_LABELS.PHASE_NAME_PREFIX),
         startYearText: String(startYear),
         endYearText: String(endYear),
-        touched: true,
       };
-      const created = { ...blankEvent(), phases: [phase], touched: true };
-      commit([...form.getValues('events'), created]);
+      const created = {
+        ...blankEvent(),
+        name: nextDefaultName(
+          latest.current.map((event) => event.name),
+          EVENT_LABELS.EVENT_NAME_PREFIX,
+        ),
+        phases: [phase],
+      };
+      commit(sortEvents([...latest.current, created]));
       return { eventId: created.id, phaseId: phase.id };
     },
-    [commit, form],
+    [commit],
   );
 
   const remove = useCallback(
-    (id: string) => commit(form.getValues('events').filter((event) => event.id !== id)),
-    [commit, form],
+    (id: string) => commit(latest.current.filter((event) => event.id !== id)),
+    [commit],
   );
 
   const toggle = useCallback(
     (id: string) => {
       commit(
-        form
-          .getValues('events')
-          .map((event) =>
-            event.id === id ? { ...event, enabled: !event.enabled, touched: true } : event,
-          ),
+        latest.current.map((event) =>
+          event.id === id ? { ...event, enabled: !event.enabled, touched: true } : event,
+        ),
       );
     },
-    [commit, form],
+    [commit],
   );
 
   const setType = useCallback(
     (id: string, type: EventType) => {
       commit(
-        form
-          .getValues('events')
-          .map((event) => (event.id === id ? { ...event, type, touched: true } : event)),
-      );
-    },
-    [commit, form],
-  );
-
-  const addPhase = useCallback(
-    (eventId: string) => {
-      commit(
-        form
-          .getValues('events')
-          .map((event) =>
-            event.id === eventId
-              ? { ...event, phases: [...event.phases, blankPhase()], touched: true }
-              : event,
-          ),
-      );
-    },
-    [commit, form],
-  );
-
-  /** Timeline create: a phase already carrying the clicked range. */
-  const addPhaseAt = useCallback(
-    (eventId: string, startYear: number, endYear: number) => {
-      let phaseId = '';
-      commit(
-        form.getValues('events').map((event) => {
-          if (event.id !== eventId) return event;
-          const phase = {
-            ...blankPhase(),
-            startYearText: String(startYear),
-            endYearText: String(endYear),
-            touched: true,
-          };
-          phaseId = phase.id;
-          return {
-            ...event,
-            phases: sortPhases([...event.phases, phase]),
-            touched: true,
-            type: event.type,
-          };
-        }),
-      );
-      return phaseId;
-    },
-    [commit, form],
-  );
-
-  /** Timeline drag/resize settlement on one phase. */
-  const setPhaseRange = useCallback(
-    (eventId: string, phaseId: string, startYear: number, endYear: number) => {
-      commit(
-        form.getValues('events').map((event) =>
-          event.id === eventId
-            ? {
-                ...event,
-                phases: sortPhases(
-                  event.phases.map((phase) =>
-                    phase.id === phaseId
-                      ? {
-                          ...phase,
-                          startYearText: String(startYear),
-                          endYearText: String(endYear),
-                          touched: true,
-                        }
-                      : phase,
-                  ),
-                ),
-                touched: true,
-              }
-            : event,
+        latest.current.map((event) =>
+          event.id === id ? { ...event, type, touched: true } : event,
         ),
       );
     },
-    [commit, form],
-  );
-
-  /** Re-parent a phase; it adopts the target event's side. */
-  const movePhase = useCallback(
-    (
-      fromEventId: string,
-      phaseId: string,
-      targetEventId: string,
-      startYear: number,
-      endYear: number,
-    ) => {
-      const current = form.getValues('events');
-      const source = current.find((event) => event.id === fromEventId);
-      const moving = source?.phases.find((phase) => phase.id === phaseId);
-      if (moving === undefined) return;
-
-      const moved = {
-        ...moving,
-        startYearText: String(startYear),
-        endYearText: String(endYear),
-        touched: true,
-      };
-      commit(
-        current.map((event) => {
-          if (event.id === fromEventId && fromEventId !== targetEventId) {
-            return { ...event, phases: event.phases.filter((phase) => phase.id !== phaseId) };
-          }
-          if (event.id !== targetEventId) return event;
-          const phases =
-            fromEventId === targetEventId
-              ? event.phases.map((phase) => (phase.id === phaseId ? moved : phase))
-              : [...event.phases, moved];
-          return { ...event, phases: sortPhases(phases), touched: true };
-        }),
-      );
-    },
-    [commit, form],
-  );
-
-  const snapshot = useCallback(() => form.getValues('events'), [form]);
-
-  const replaceDrafts = useCallback(
-    (next: LifeEventDraftVM[]) => commit(next.map(withPhaseIndex)),
     [commit],
   );
 
-  const removePhase = useCallback(
-    (eventId: string, phaseId: string) => {
-      commit(
-        form.getValues('events').map((event) =>
-          event.id === eventId
-            ? {
-                ...event,
-                phases: event.phases.filter((phase) => phase.id !== phaseId),
-                touched: true,
-              }
-            : event,
-        ),
-      );
-    },
-    [commit, form],
-  );
+  const snapshot = useCallback(() => latest.current, []);
 
-  const updatePhase = useCallback(
-    (eventId: string, phaseId: string, patch: Partial<PhaseDraftVM>) => {
-      let focus: PhaseFocusRequest | null = null;
-      const next = form.getValues('events').map((event) => {
-        if (event.id !== eventId) return event;
-
-        const phases = sortPhases(
-          event.phases.map((phase) =>
-            phase.id === phaseId ? { ...phase, ...patch, touched: true } : phase,
-          ),
-        );
-        const updated = { ...event, phases, touched: true };
-
-        if (patch.startYearText !== undefined || patch.endYearText !== undefined) {
-          focus = focusTargetFor(updated);
-        }
-        return updated;
-      });
-
-      commit(next);
-      if (focus !== null) requestFocus(focus);
-    },
-    [commit, form, requestFocus],
-  );
+  const replaceDrafts = useCallback((next: LifeEventDraftVM[]) => commit(next), [commit]);
 
   const validate = useCallback((): ValidationOutcome<LifeEvent[], EventErrorsById> => {
-    const current = form.getValues('events');
+    const current = latest.current;
     const errors = collectEventErrors(current);
     const all = LifeEventsSchema.safeParse(current.map(mapEventDraftVMToDomain));
     void form.trigger();
@@ -345,24 +208,24 @@ export function useLifeEventDrafts(markDirty: () => void) {
 
   const replaceAll = useCallback(
     (next: LifeEvent[]) => {
-      form.reset({ events: next.map((event) => withPhaseIndex(mapEventToVM(event))) });
+      const drafts = next.map(mapEventToVM);
+      latest.current = drafts;
+      form.reset(mirrorEventsForm(drafts) as never);
     },
     [form],
   );
 
   /** CALCULATE reveals every event and phase error. */
   const revealAll = useCallback(() => {
-    form.setValue(
-      'events',
-      form.getValues('events').map((event) => ({
+    commit(
+      latest.current.map((event) => ({
         ...event,
         touched: true,
         phases: event.phases.map((phase) => ({ ...phase, touched: true })),
       })),
-      { shouldDirty: true, shouldTouch: true },
     );
     void form.trigger();
-  }, [form]);
+  }, [commit, form]);
 
   return {
     form,
@@ -371,20 +234,14 @@ export function useLifeEventDrafts(markDirty: () => void) {
     valid: Object.keys(collectEventErrors(events)).length === 0,
     focusRequest,
     revealAll,
-    add,
     remove,
     toggle,
     update,
     setType,
-    addPhase,
-    addPhaseAt,
+    ...phases,
     addEventWithPhase,
-    setPhaseRange,
-    movePhase,
     snapshot,
     replaceDrafts,
-    removePhase,
-    updatePhase,
     validate,
     replaceAll,
   };

@@ -1,5 +1,6 @@
 import { z } from 'zod';
 
+import { RETIREMENT_GROWTH_RATE_BOUNDS } from './bounds';
 import { RetirementSchemaErrorCode } from './errorCodes';
 import { addIssue, decimalField } from './numeric';
 import { resolveRuleGraph } from './ruleGraph';
@@ -62,11 +63,15 @@ const ratioSchema = decimalField(0, 2, {
   tooManyCode: RetirementSchemaErrorCode.PARAMETER_TOO_MANY_DECIMAL_PLACES,
 });
 
-const rateSchema = decimalField(-0.1, 0.2, {
-  belowCode: RetirementSchemaErrorCode.PARAMETER_OUT_OF_RANGE,
-  aboveCode: RetirementSchemaErrorCode.PARAMETER_OUT_OF_RANGE,
-  tooManyCode: RetirementSchemaErrorCode.PARAMETER_TOO_MANY_DECIMAL_PLACES,
-});
+const rateSchema = decimalField(
+  RETIREMENT_GROWTH_RATE_BOUNDS.min,
+  RETIREMENT_GROWTH_RATE_BOUNDS.max,
+  {
+    belowCode: RetirementSchemaErrorCode.PARAMETER_OUT_OF_RANGE,
+    aboveCode: RetirementSchemaErrorCode.PARAMETER_OUT_OF_RANGE,
+    tooManyCode: RetirementSchemaErrorCode.PARAMETER_TOO_MANY_DECIMAL_PLACES,
+  },
+);
 
 const amountSchema = z.number().superRefine((value, ctx) => {
   if (value < 0) {

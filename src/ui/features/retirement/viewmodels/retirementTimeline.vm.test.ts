@@ -148,13 +148,28 @@ describe('barGeometry', () => {
       left: 0.2,
       width: 0.2,
       visible: true,
+      clippedStart: false,
+      clippedEnd: false,
     });
   });
 
-  it('clamps a bar that overhangs the window edges', () => {
-    const geometry = barGeometry({ startYear: 2024, endYear: 2027 }, 2026, 10);
-    expect(geometry.left).toBe(0);
-    expect(geometry.width).toBeCloseTo(0.2);
+  it('clamps a bar that overhangs the window edges and flags each clipped side', () => {
+    const startClipped = barGeometry({ startYear: 2024, endYear: 2027 }, 2026, 10);
+    expect(startClipped.left).toBe(0);
+    expect(startClipped.width).toBeCloseTo(0.2);
+    expect(startClipped).toMatchObject({ clippedStart: true, clippedEnd: false });
+
+    const endClipped = barGeometry({ startYear: 2034, endYear: 2040 }, 2026, 10);
+    expect(endClipped).toMatchObject({ clippedStart: false, clippedEnd: true });
+  });
+
+  it('flags both sides of a bar wider than the window', () => {
+    expect(barGeometry({ startYear: 2020, endYear: 2040 }, 2026, 10)).toMatchObject({
+      left: 0,
+      width: 1,
+      clippedStart: true,
+      clippedEnd: true,
+    });
   });
 
   it('marks a bar entirely outside the window as not visible', () => {

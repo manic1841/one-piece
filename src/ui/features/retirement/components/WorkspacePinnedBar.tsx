@@ -38,29 +38,31 @@ export function WorkspacePinnedBar({
           ? WORKSPACE_RAIL_LABELS.READY
           : readiness.blockers.map((blocker) => READINESS_BLOCKER_LABELS[blocker]).join(' ')}
       </p>
-      <dl className="flex flex-wrap gap-x-4 gap-y-1 font-mono tabular-nums">
-        <div className="flex gap-1">
-          <dt className="text-muted-foreground">{WORKSPACE_RAIL_LABELS.METRIC_RETIREMENT}</dt>
-          <dd>{value(indicators.retirementNetWorthText)}</dd>
-        </div>
-        <div className="flex gap-1">
-          <dt className="text-muted-foreground">{WORKSPACE_RAIL_LABELS.METRIC_MIN}</dt>
-          <dd>{value(indicators.minNetWorthText)}</dd>
-          {indicators.minNetWorthYear !== null && (
-            <button
-              type="button"
-              className="underline-offset-2 hover:underline"
-              onClick={() => onJumpToYear(indicators.minNetWorthYear ?? 0)}
-            >
-              {indicators.minNetWorthYear}
-            </button>
-          )}
-        </div>
-        <div className="flex gap-1">
-          <dt className="text-muted-foreground">{WORKSPACE_RAIL_LABELS.METRIC_FINAL}</dt>
-          <dd>{value(indicators.finalNetWorthText)}</dd>
-        </div>
-      </dl>
+      {indicators.status !== 'idle' && (
+        <dl className="flex flex-wrap gap-x-4 gap-y-1 font-mono tabular-nums">
+          <div className="flex gap-1">
+            <dt className="text-muted-foreground">{WORKSPACE_RAIL_LABELS.METRIC_RETIREMENT}</dt>
+            <dd>{value(indicators.retirementNetWorthText)}</dd>
+          </div>
+          <div className="flex gap-1">
+            <dt className="text-muted-foreground">{WORKSPACE_RAIL_LABELS.METRIC_MIN}</dt>
+            <dd>{value(indicators.minNetWorthText)}</dd>
+            {indicators.minNetWorthYear !== null && (
+              <button
+                type="button"
+                className="underline-offset-2 hover:underline"
+                onClick={() => onJumpToYear(indicators.minNetWorthYear ?? 0)}
+              >
+                {indicators.minNetWorthYear}
+              </button>
+            )}
+          </div>
+          <div className="flex gap-1">
+            <dt className="text-muted-foreground">{WORKSPACE_RAIL_LABELS.METRIC_FINAL}</dt>
+            <dd>{value(indicators.finalNetWorthText)}</dd>
+          </div>
+        </dl>
+      )}
     </div>
   );
 }

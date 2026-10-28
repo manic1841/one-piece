@@ -1,39 +1,33 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 
-import { ChevronLeft, ChevronRight } from 'lucide-react';
-
 import { Button } from '@/ui/components/ui/button';
 import { RULE_TYPE_LABELS } from '@/ui/constants/retirement/setupLabels';
 import {
   WORKSPACE_ACTION_LABELS,
   WORKSPACE_RAIL_LABELS,
 } from '@/ui/constants/retirement/workspaceRailLabels';
+import { useIsDesktop } from '@/ui/features/app/layout/useIsDesktop';
+import { LifeEventTimelineTrack } from '@/ui/features/retirement/components/LifeEventTimelineTrack';
+import { useTimelineGesture } from '@/ui/features/retirement/components/useTimelineGesture';
 import { type LifeEventDraftVM } from '@/ui/features/retirement/viewmodels/lifeEventForm.vm';
 import {
   DESKTOP_VISIBLE_YEARS,
   MOBILE_VISIBLE_YEARS,
-  TIMELINE_DRAG_THRESHOLD_PX,
   TIMELINE_PAN_STEPS,
   type TimelineFocus,
   type TimelineFocusKey,
   type TimelineRow,
-  barGeometry,
   clampWindowStart,
   deriveTimelineRange,
   initialTimelineFocus,
   initialWindowStart,
   mapTimelineRows,
-  moveDraftFromDelta,
   moveTimelineFocus,
   panWindowStart,
-  resizeDraftFromEdge,
-  timelineBarLabel,
   timelineFocusBar,
   timelineWindowBounds,
   windowStartToRevealBar,
-  yearAtPoint,
 } from '@/ui/features/retirement/viewmodels/retirementTimeline.vm';
-import { cn } from '@/ui/utils/cn';
 
 export interface TimelineSelection {
   eventId: string;
@@ -50,7 +44,7 @@ interface LifeEventTimelineEditorProps {
   selection: TimelineSelection | null;
   revealYear: number | null;
   onSelect: (selection: TimelineSelection) => void;
-  onCreate: (startYear: number, endYear: number) => void;
+  onCreate: (startYear: number, endYear: number, eventId: string | null) => void;
   onGestureStart: () => void;
   onRangeChange: (
     eventId: string,
@@ -61,45 +55,33 @@ interface LifeEventTimelineEditorProps {
   ) => void;
 }
 
-type Gesture =
-  | {
-      kind: 'create';
-      anchorYear: number;
-      currentYear: number;
-    }
-  | {
-      kind: 'move' | 'start' | 'end';
-      eventId: string;
-      phaseId: string;
-      origStart: number;
-      origEnd: number;
-      anchorYear: number;
-      year: number;
-      targetEventId: string;
-      moved: boolean;
-    };
+const ROW_HEIGHT = 48;
+/** Vertical breathing room above and below the bar inside a row. */
+const BAR_TOP = 8;
+const BAR_HEIGHT = ROW_HEIGHT - BAR_TOP * 2;
 
-const ROW_HEIGHT = 30;
+/**
+ * Left edge kept free for the event name. The name sits on the same line as
+ * the bar, so the years start after the gutter — and stay narrow enough on a
+ * phone that five visible years still resolve a whole year per column.
+ */
+const GUTTER_DESKTOP = 96;
+const GUTTER_MOBILE = 72;
 
-const useVisibleYears = () => {
-  const [mobile, setMobile] = useState(
-    () => typeof window !== 'undefined' && window.innerWidth < 768,
-  );
-  useEffect(() => {
-    if (typeof window.matchMedia !== 'function') return;
-    const query = window.matchMedia('(max-width: 767px)');
-    const listener = () => setMobile(query.matches);
-    listener();
-    query.addEventListener?.('change', listener);
-    return () => query.removeEventListener?.('change', listener);
-  }, []);
-  return mobile ? MOBILE_VISIBLE_YEARS : DESKTOP_VISIBLE_YEARS;
-};
+const FOCUS_KEYS: TimelineFocusKey[] = [
+  'ArrowLeft',
+  'ArrowRight',
+  'ArrowUp',
+  'ArrowDown',
+  'Home',
+  'End',
+];
 
 /**
  * Editable life-event timeline. One row per event, one bar per phase, a fixed
  * window with pan only. Drags write to the draft on release; every gesture
- * pushes one undo entry through `onGestureStart`.
+ * pushes one undo entry through `onGestureStart`. The gesture machine lives in
+ * `useTimelineGesture`, the drawing in `LifeEventTimelineTrack`.
  */
 export function LifeEventTimelineEditor({
   events,
@@ -115,7 +97,9 @@ export function LifeEventTimelineEditor({
   onGestureStart,
   onRangeChange,
 }: LifeEventTimelineEditorProps) {
-  const visibleYears = useVisibleYears();
+  const isDesktop = useIsDesktop();
+  const visibleYears = isDesktop ? DESKTOP_VISIBLE_YEARS : MOBILE_VISIBLE_YEARS;
+  const gutter = isDesktop ? GUTTER_DESKTOP : GUTTER_MOBILE;
   const range = useMemo(
     () =>
       deriveTimelineRange({
@@ -130,248 +114,125 @@ export function LifeEventTimelineEditor({
     initialWindowStart(range, range.startYear, visibleYears),
   );
   const [focus, setFocus] = useState<TimelineFocus | null>(null);
-  const [gesture, setGesture] = useState<Gesture | null>(null);
   const trackRef = useRef<HTMLDivElement>(null);
+  /** The plotting area only — the gutter is not a year. */
+  const plotRef = useRef<HTMLDivElement>(null);
   const rowsRef = useRef<HTMLDivElement>(null);
-  const gestureStarted = useRef(false);
   const currentWindowStart = clampWindowStart(windowStart, bounds);
 
-  useEffect(() => {
-    if (focus === null) return;
-    const bar = trackRef.current?.querySelector<HTMLElement>(
-      `[data-bar="${focus.rowIndex}:${focus.barIndex}"]`,
+  /**
+   * Brings a year range into the window. Run during render rather than in an
+   * effect so no frame is painted at the old window.
+   */
+  const reveal = (startYear: number, endYear: number) =>
+    setWindowStart((current) =>
+      windowStartToRevealBar({ startYear, endYear }, current, visibleYears, bounds),
     );
-    bar?.focus();
-  }, [focus]);
 
-  // The rail can ask for a year. Adjusting state during render (instead of in
-  // an effect) means no frame is painted at the old window.
   const [revealedYear, setRevealedYear] = useState<number | null>(null);
   if (revealYear !== null && revealYear !== revealedYear) {
     setRevealedYear(revealYear);
-    setWindowStart((current) =>
-      windowStartToRevealBar(
-        { startYear: revealYear, endYear: revealYear },
-        current,
-        visibleYears,
-        bounds,
-      ),
-    );
+    reveal(revealYear, revealYear);
   }
-  const rows = useMemo<TimelineRow[]>(() => {
-    return mapTimelineRows(
-      events.map((event) => ({
-        id: event.id,
-        name: event.name.trim() === '' ? RULE_TYPE_LABELS[event.type] : event.name,
-        type: event.type,
-        phases: event.phases.map((phase, index) => {
-          const start = Number(phase.startYearText);
-          const end = Number(phase.endYearText);
-          return {
-            index,
-            name: phase.name,
-            startYear: Number.isFinite(start) ? start : range.startYear,
-            endYear: Number.isFinite(end) ? end : Number.isFinite(start) ? start : range.startYear,
-          };
-        }),
-      })),
-    );
-  }, [events, range.startYear]);
+
+  // Selecting a phase from outside the timeline (the rail, a row's ADD) has to
+  // bring it into view too, or the click looks like it did nothing. The key
+  // carries the years as well, so typing a year in the inspector drags the
+  // window along instead of moving the bar out of sight.
+  const selectedPhase =
+    selection === null
+      ? undefined
+      : events
+          .find((event) => event.id === selection.eventId)
+          ?.phases.find((entry) => entry.id === selection.phaseId);
+  const selectedStart = Number(selectedPhase?.startYearText);
+  const selectedEnd = Number(selectedPhase?.endYearText);
+  const revealKey =
+    selection === null || !Number.isFinite(selectedStart)
+      ? null
+      : `${selection.phaseId}:${selectedStart}:${Number.isFinite(selectedEnd) ? selectedEnd : selectedStart}`;
+  const [revealedKey, setRevealedKey] = useState<string | null>(null);
+  if (revealKey !== null && revealKey !== revealedKey) {
+    setRevealedKey(revealKey);
+    reveal(selectedStart, Number.isFinite(selectedEnd) ? selectedEnd : selectedStart);
+  }
+
+  useEffect(() => {
+    if (focus === null) return;
+    trackRef.current
+      ?.querySelector<HTMLElement>(`[data-bar="${focus.rowIndex}:${focus.barIndex}"]`)
+      ?.focus();
+  }, [focus]);
+
+  const rows = useMemo<TimelineRow[]>(
+    () =>
+      mapTimelineRows(
+        events.map((event) => ({
+          id: event.id,
+          name: event.name.trim() === '' ? RULE_TYPE_LABELS[event.type] : event.name,
+          type: event.type,
+          phases: event.phases.map((phase, index) => {
+            const start = Number(phase.startYearText);
+            const end = Number(phase.endYearText);
+            return {
+              index,
+              name: phase.name,
+              startYear: Number.isFinite(start) ? start : range.startYear,
+              endYear: Number.isFinite(end)
+                ? end
+                : Number.isFinite(start)
+                  ? start
+                  : range.startYear,
+            };
+          }),
+        })),
+      ),
+    [events, range.startYear],
+  );
+
+  const phases = (eventId: string) => events.find((event) => event.id === eventId)?.phases ?? [];
+  const phaseIdAt = (eventId: string, barIndex: number) => phases(eventId)[barIndex]?.id ?? '';
 
   const anchorYear =
     retirementYear !== null && retirementYear >= range.startYear && retirementYear <= range.endYear
       ? retirementYear
       : null;
 
-  const yearFromEvent = (event: React.PointerEvent): number => {
-    const rect = trackRef.current?.getBoundingClientRect();
-    if (rect === undefined) return currentWindowStart;
-    return yearAtPoint(event.clientX, rect, currentWindowStart, visibleYears);
-  };
+  const gesture = useTimelineGesture({
+    rows,
+    range,
+    visibleYears,
+    rowHeight: ROW_HEIGHT,
+    readOnly,
+    windowStart: currentWindowStart,
+    plotRef,
+    rowsRef,
+    captureRef: trackRef,
+    phaseIdAt,
+    setFocus,
+    onSelect,
+    onCreate,
+    onGestureStart,
+    onRangeChange,
+  });
 
-  const rowAt = (clientY: number): number => {
-    const rect = rowsRef.current?.getBoundingClientRect();
-    if (rect === undefined) return 0;
-    return Math.max(0, Math.min(rows.length - 1, Math.floor((clientY - rect.top) / ROW_HEIGHT)));
-  };
-
-  const onBackgroundPointerDown = (event: React.PointerEvent) => {
-    if (readOnly) return;
-    const year = yearFromEvent(event);
-    gestureStarted.current = false;
-    setGesture({ kind: 'create', anchorYear: year, currentYear: year });
-    trackRef.current?.setPointerCapture(event.pointerId);
-  };
-
-  const onBarPointerDown = (event: React.PointerEvent, rowIndex: number, barIndex: number) => {
-    if (readOnly) return;
-    event.stopPropagation();
-    const row = rows[rowIndex];
-    const bar = row?.bars[barIndex];
-    if (bar === undefined) return;
-    gestureStarted.current = false;
-    const year = yearFromEvent(event);
-    setGesture({
-      kind: 'move',
-      eventId: bar.eventId,
-      phaseId:
-        bar.id.split(':')[1] === undefined ? '' : (phasesOf(bar.eventId)[bar.index]?.id ?? ''),
-      origStart: bar.startYear,
-      origEnd: bar.endYear,
-      anchorYear: year,
-      year,
-      targetEventId: bar.eventId,
-      moved: false,
-    });
-    trackRef.current?.setPointerCapture(event.pointerId);
-    setFocus({ rowIndex, barIndex });
-  };
-
-  const phasesOf = (eventId: string) => events.find((event) => event.id === eventId)?.phases ?? [];
-
-  const onEdgePointerDown = (
-    event: React.PointerEvent,
-    bar: { eventId: string; index: number; startYear: number; endYear: number },
-    edge: 'start' | 'end',
-  ) => {
-    if (readOnly) return;
-    event.stopPropagation();
-    gestureStarted.current = false;
-    const year = yearFromEvent(event);
-    setGesture({
-      kind: edge,
-      eventId: bar.eventId,
-      phaseId: phasesOf(bar.eventId)[bar.index]?.id ?? '',
-      origStart: bar.startYear,
-      origEnd: bar.endYear,
-      anchorYear: year,
-      year,
-      targetEventId: bar.eventId,
-      moved: false,
-    });
-    trackRef.current?.setPointerCapture(event.pointerId);
-  };
-
-  const applyGesture = (
-    current: Extract<Gesture, { kind: 'move' | 'start' | 'end' }>,
-    year: number,
-  ) => {
-    const draft =
-      current.kind === 'move'
-        ? moveDraftFromDelta({
-            eventId: current.eventId,
-            index: 0,
-            targetEventId: current.targetEventId,
-            origStart: current.origStart,
-            origEnd: current.origEnd,
-            deltaYears: year - current.anchorYear,
-            range,
-          })
-        : resizeDraftFromEdge({
-            eventId: current.eventId,
-            index: 0,
-            edge: current.kind,
-            origStart: current.origStart,
-            origEnd: current.origEnd,
-            year,
-          });
-    onRangeChange(
-      current.eventId,
-      current.phaseId,
-      'targetEventId' in draft ? draft.targetEventId : current.targetEventId,
-      draft.startYear,
-      draft.endYear,
-    );
-  };
-
-  const onPointerMove = (event: React.PointerEvent) => {
-    if (gesture === null) return;
-    const year = yearFromEvent(event);
-    if (gesture.kind === 'create') {
-      setGesture({ ...gesture, currentYear: year });
-      return;
-    }
-    const targetEventId = rows[rowAt(event.clientY)]?.id ?? gesture.targetEventId;
-    const moved =
-      gesture.moved ||
-      (Math.abs(year - gesture.anchorYear) * (trackRef.current?.clientWidth ?? 1)) / visibleYears >
-        TIMELINE_DRAG_THRESHOLD_PX;
-    const next = { ...gesture, year, targetEventId, moved };
-    setGesture(next);
-    if (year === gesture.year) return;
-    if (!gestureStarted.current) {
-      if (!moved) return;
-      gestureStarted.current = true;
-      onGestureStart();
-    }
-    applyGesture(next, year);
-  };
-
-  const settle = () => {
-    if (gesture === null) return;
-
-    if (gesture.kind === 'create') {
-      const start = Math.min(gesture.anchorYear, gesture.currentYear);
-      const end = Math.max(gesture.anchorYear, gesture.currentYear);
-      onCreate(start, end);
-      setGesture(null);
-      return;
-    }
-
-    if (!gesture.moved) {
-      onSelect({ eventId: gesture.eventId, phaseId: gesture.phaseId });
-      setGesture(null);
-      return;
-    }
-
-    // A keyboard-free pointer drag may never cross the threshold in a single
-    // move event, so the final position is always written once more.
-    if (!gestureStarted.current) onGestureStart();
-    applyGesture(gesture, gesture.year);
-    gestureStarted.current = false;
-    setGesture(null);
-  };
-
-  const preview = (bar: { startYear: number; endYear: number }) => {
-    if (gesture === null || gesture.kind === 'create') return bar;
-    if (gesture.kind === 'move') {
-      const delta = gesture.year - gesture.anchorYear;
-      return { startYear: gesture.origStart + delta, endYear: gesture.origEnd + delta };
-    }
-    if (gesture.kind === 'start') {
-      return { startYear: Math.min(gesture.year, gesture.origEnd), endYear: gesture.origEnd };
-    }
-    return { startYear: gesture.origStart, endYear: Math.max(gesture.year, gesture.origStart) };
-  };
-
+  /** Roving tabindex: the arrows walk the bars, Enter selects the focused one. */
   const onKeyDown = (event: React.KeyboardEvent) => {
-    const keys: TimelineFocusKey[] = [
-      'ArrowLeft',
-      'ArrowRight',
-      'ArrowUp',
-      'ArrowDown',
-      'Home',
-      'End',
-    ];
-    if (!keys.includes(event.key as TimelineFocusKey)) {
-      if (event.key === 'Enter' || event.key === ' ') {
-        const bar = timelineFocusBar(rows, focus);
-        if (bar !== null) {
-          event.preventDefault();
-          onSelect({ eventId: bar.eventId, phaseId: phasesOf(bar.eventId)[bar.index]?.id ?? '' });
-        }
-      }
+    if (!FOCUS_KEYS.includes(event.key as TimelineFocusKey)) {
+      if (event.key !== 'Enter' && event.key !== ' ') return;
+      const bar = timelineFocusBar(rows, focus);
+      if (bar === null) return;
+      event.preventDefault();
+      onSelect({ eventId: bar.eventId, phaseId: phaseIdAt(bar.eventId, bar.index) });
       return;
     }
     event.preventDefault();
-    const activeFocus = focus ?? initialTimelineFocus(rows);
-    if (activeFocus === null) return;
-    const next = moveTimelineFocus(rows, activeFocus, event.key as TimelineFocusKey);
+    const from = focus ?? initialTimelineFocus(rows);
+    if (from === null) return;
+    const next = moveTimelineFocus(rows, from, event.key as TimelineFocusKey);
     setFocus(next);
     const bar = timelineFocusBar(rows, next);
-    if (bar !== null) {
-      setWindowStart((current) => windowStartToRevealBar(bar, current, visibleYears, bounds));
-    }
+    if (bar !== null) reveal(bar.startYear, bar.endYear);
   };
 
   const ticks: number[] = [];
@@ -379,20 +240,45 @@ export function LifeEventTimelineEditor({
     ticks.push(year);
   }
 
+  const pan = (step: number) => setWindowStart((current) => panWindowStart(current, step, bounds));
+
   return (
     <div data-testid="life-event-timeline-editor" className="grid gap-2">
       <div className="flex items-center justify-between gap-2">
-        <p className="text-xs text-muted-foreground">{WORKSPACE_ACTION_LABELS.EVENT_ADD_HINT}</p>
-        <div className="flex items-center gap-1">
-          {TIMELINE_PAN_STEPS.map((step) => (
+        <div className="grid gap-0.5">
+          <p className="text-xs text-muted-foreground">
+            {selection === null
+              ? WORKSPACE_ACTION_LABELS.EVENT_ADD_HINT_NEW
+              : WORKSPACE_ACTION_LABELS.EVENT_ADD_HINT}
+          </p>
+          {anchorYear !== null && (
+            <p className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+              <span
+                className="w-3 border-t border-dashed border-border-strong"
+                aria-hidden="true"
+              />
+              {WORKSPACE_RAIL_LABELS.RETIREMENT_YEAR} {retirementYear}
+            </p>
+          )}
+          {anchorYear === null && retirementYear !== null && (
+            <p className="text-[11px] text-muted-foreground">
+              {WORKSPACE_RAIL_LABELS.RETIREMENT_YEAR} {retirementYear}
+              <span className="ml-1">· {WORKSPACE_ACTION_LABELS.TIMELINE_OUTSIDE_VIEW}</span>
+            </p>
+          )}
+        </div>
+        <div className="flex items-center gap-1 font-mono">
+          {/* The coarse step sits on the outside, so the fine one is always nearest the bars. */}
+          {[...TIMELINE_PAN_STEPS].reverse().map((step) => (
             <Button
               key={`left-${step}`}
               variant="text"
               size="sm"
               aria-label={`Pan ${step} year${step === 1 ? '' : 's'} back`}
-              onClick={() => setWindowStart((current) => panWindowStart(current, -step, bounds))}
+              disabled={currentWindowStart <= bounds.minStart}
+              onClick={() => pan(-step)}
             >
-              <ChevronLeft size={14} />
+              {step === 1 ? '\u2039' : '\u00ab'}
             </Button>
           ))}
           {TIMELINE_PAN_STEPS.map((step) => (
@@ -401,111 +287,36 @@ export function LifeEventTimelineEditor({
               variant="text"
               size="sm"
               aria-label={`Pan ${step} year${step === 1 ? '' : 's'} forward`}
-              onClick={() => setWindowStart((current) => panWindowStart(current, step, bounds))}
+              disabled={currentWindowStart >= bounds.maxStart}
+              onClick={() => pan(step)}
             >
-              <ChevronRight size={14} />
+              {step === 1 ? '\u203a' : '\u00bb'}
             </Button>
           ))}
         </div>
       </div>
 
-      <div
-        ref={trackRef}
-        role="toolbar"
-        aria-label={WORKSPACE_ACTION_LABELS.TIMELINE_LABEL}
-        className={cn(
-          'relative grid select-none border-y border-border py-1',
-          !readOnly && 'cursor-crosshair',
-        )}
-        onPointerDown={onBackgroundPointerDown}
-        onPointerMove={onPointerMove}
-        onPointerUp={settle}
-        onPointerCancel={() => setGesture(null)}
+      <LifeEventTimelineTrack
+        rows={rows}
+        ticks={ticks}
+        windowStart={currentWindowStart}
+        anchorYear={anchorYear}
+        visibleYears={visibleYears}
+        gutter={gutter}
+        rowHeight={ROW_HEIGHT}
+        barTop={BAR_TOP}
+        barHeight={BAR_HEIGHT}
+        readOnly={readOnly}
+        selection={selection}
+        focus={focus}
+        trackRef={trackRef}
+        plotRef={plotRef}
+        rowsRef={rowsRef}
+        phases={phases}
+        onSelect={onSelect}
+        gesture={gesture}
         onKeyDown={onKeyDown}
-        tabIndex={0}
-      >
-        <div className="pointer-events-none absolute inset-0 grid">
-          {ticks.map((tick) => (
-            <span
-              key={tick}
-              className={cn(
-                'border-l border-border/60',
-                tick === anchorYear && 'border-dashed border-border-strong',
-              )}
-              style={{
-                gridColumn: tick - currentWindowStart + 1,
-              }}
-            />
-          ))}
-        </div>
-
-        <div ref={rowsRef}>
-          {rows.map((row, rowIndex) => (
-            <div key={row.id} className="relative" style={{ height: ROW_HEIGHT }}>
-              <span className="pointer-events-none absolute left-1 top-1 z-10 max-w-[40%] truncate text-[11px] text-muted-foreground">
-                {row.name.trim() === '' ? RULE_TYPE_LABELS[row.tone] : row.name}
-              </span>
-              {row.bars.map((bar, barIndex) => {
-                const barPreview = preview(bar);
-                const shape = barGeometry(barPreview, currentWindowStart, visibleYears);
-                if (!shape.visible) return null;
-                const phaseId = phasesOf(row.id)[bar.index]?.id ?? '';
-                const active = selection?.phaseId === phaseId;
-
-                return (
-                  <span
-                    key={bar.id}
-                    role="button"
-                    tabIndex={focus?.rowIndex === rowIndex && focus?.barIndex === barIndex ? 0 : -1}
-                    aria-label={timelineBarLabel(bar)}
-                    data-bar={`${rowIndex}:${barIndex}`}
-                    className={cn(
-                      'absolute top-2 h-3.5 rounded-sm',
-                      row.tone === 'income' ? 'bg-primary' : 'bg-muted-foreground/70',
-                      active && 'ring-2 ring-ring',
-                      !readOnly && 'cursor-grab',
-                    )}
-                    style={{
-                      left: `${shape.left * 100}%`,
-                      width: `${Math.max(shape.width * 100, 0.8)}%`,
-                    }}
-                    onPointerDown={(event) => onBarPointerDown(event, rowIndex, barIndex)}
-                  >
-                    {!readOnly && (
-                      <>
-                        <span
-                          className="absolute inset-y-0 -left-1 w-2 cursor-ew-resize"
-                          aria-hidden="true"
-                          onPointerDown={(event) => onEdgePointerDown(event, bar, 'start')}
-                        />
-                        <span
-                          className="absolute inset-y-0 -right-1 w-2 cursor-ew-resize"
-                          aria-hidden="true"
-                          onPointerDown={(event) => onEdgePointerDown(event, bar, 'end')}
-                        />
-                      </>
-                    )}
-                  </span>
-                );
-              })}
-            </div>
-          ))}
-        </div>
-
-        <div className="mt-1 flex border-t border-border pt-1">
-          {ticks.map((tick) => (
-            <span
-              key={tick}
-              className={cn(
-                'flex-1 text-center font-mono text-[11px] tabular-nums text-muted-foreground',
-                tick === anchorYear && 'font-semibold text-foreground',
-              )}
-            >
-              {tick === anchorYear ? WORKSPACE_RAIL_LABELS.RETIREMENT_YEAR : tick}
-            </span>
-          ))}
-        </div>
-      </div>
+      />
     </div>
   );
 }

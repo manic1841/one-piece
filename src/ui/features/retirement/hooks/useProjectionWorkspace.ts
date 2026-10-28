@@ -2,28 +2,22 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { useSearchParams } from 'react-router-dom';
 
-import { type ProjectionCalculation } from '@/application/retirement/types';
-import { type RetirementAssumptions } from '@/domains/retirement/assumptions';
-import { type LifeEvent } from '@/domains/retirement/lifeEvents';
-import { type ProjectionRule } from '@/domains/retirement/projectionRules';
-import {
-  type ProjectionResolveError,
-  type ProjectionSummary,
-} from '@/domains/retirement/projectionTypes';
+import { type ProjectionSummary } from '@/domains/retirement/projectionTypes';
 import { type RetirementPlan } from '@/domains/retirement/types';
 import { defaultProjectionName } from '@/shared/projectionName';
 import {
   PROJECTION_RESULT_LABELS,
   resolveErrorLabel,
-  resolveValidationIssueLabel,
 } from '@/ui/constants/retirement/resultLabels';
 import { useAssumptionDraft } from '@/ui/features/retirement/hooks/useAssumptionDraft';
 import { useLifeEventDrafts } from '@/ui/features/retirement/hooks/useLifeEventDrafts';
 import { useOpeningDraft } from '@/ui/features/retirement/hooks/useOpeningDraft';
 import { usePlanPreload } from '@/ui/features/retirement/hooks/usePlanPreload';
+import { useProjectionCalculate } from '@/ui/features/retirement/hooks/useProjectionCalculate';
 import { useProjectionCmds } from '@/ui/features/retirement/hooks/useProjectionCmds';
 import { useProjectionPreload } from '@/ui/features/retirement/hooks/useProjectionPreload';
 import { useRuleDrafts } from '@/ui/features/retirement/hooks/useRuleDrafts';
+import { useWorkspaceDerived } from '@/ui/features/retirement/hooks/useWorkspaceDerived';
 import { useWorkspaceIndicators } from '@/ui/features/retirement/hooks/useWorkspaceIndicators';
 import { useWorkspaceLeaveGuard } from '@/ui/features/retirement/hooks/useWorkspaceLeaveGuard';
 import {
@@ -31,45 +25,15 @@ import {
   useWorkspaceSave,
 } from '@/ui/features/retirement/hooks/useWorkspaceSave';
 import { useWorkspaceUndo } from '@/ui/features/retirement/hooks/useWorkspaceUndo';
-import { mapProjectionResultToVM } from '@/ui/features/retirement/viewmodels/projectionResult.vm';
-import {
-  type ProjectionSummaryVM,
-  mapProjectionSummaryToVM,
-} from '@/ui/features/retirement/viewmodels/projectionView.vm';
-import {
-  assumptionsFilled,
-  currentAgeFor,
-  retirementAgeRange,
-  retirementYearFor,
-} from '@/ui/features/retirement/viewmodels/railIndicators.vm';
-import {
-  type WorkspaceDraft,
-  openingSchema,
-  startYearSchema,
-} from '@/ui/features/retirement/viewmodels/workspaceDraft.vm';
-import {
-  buildProgress,
-  buildReadiness,
-} from '@/ui/features/retirement/viewmodels/workspaceReadiness.vm';
-import { getTaskErrorMessage } from '@/ui/hooks/getErrorMessage';
+import { useWorkspaceValidation } from '@/ui/features/retirement/hooks/useWorkspaceValidation';
+import { mapProjectionWarningsToVM } from '@/ui/features/retirement/viewmodels/projectionResult.vm';
+import { type WorkspaceDraft } from '@/ui/features/retirement/viewmodels/workspaceDraft.vm';
 import { useAuthIdentity } from '@/ui/hooks/useAuthIdentity';
 import { useLoadingTask } from '@/ui/hooks/useLoadingTask';
 
 export type ProjectionWorkspaceStage = 'setup' | 'preview';
 
 export type { SaveWorkspaceOutcome } from '@/ui/features/retirement/hooks/useWorkspaceSave';
-
-interface ValidatedPlan {
-  assumptions: RetirementAssumptions;
-  rules: ProjectionRule[];
-  lifeEvents: LifeEvent[];
-}
-
-interface CalculatedProjection {
-  projection: ReturnType<typeof mapProjectionResultToVM>;
-  summary: ProjectionSummaryVM;
-  calculation: ProjectionCalculation;
-}
 
 /**
  * Controller for the projection workspace shell. The draft is a single
@@ -104,10 +68,6 @@ export function useProjectionWorkspace(householdId: string | undefined) {
   const [appliedPlanName, setAppliedPlanName] = useState<string | null>(null);
   const [openingValidationError, setOpeningValidationError] = useState<string | undefined>();
   const [startYearValidationError, setStartYearValidationError] = useState<string | undefined>();
-  const [calculated, setCalculated] = useState<CalculatedProjection | null>(null);
-  const [resolveErrors, setResolveErrors] = useState<ProjectionResolveError[]>([]);
-  const [calculateError, setCalculateError] = useState<string | null>(null);
-  const [calculating, setCalculating] = useState(false);
   const [savedId, setSavedId] = useState<string | null>(null);
   const [lastSavedName, setLastSavedName] = useState<string | null>(null);
   const [savedAsPlan, setSavedAsPlan] = useState(false);
@@ -137,6 +97,7 @@ export function useProjectionWorkspace(householdId: string | undefined) {
     setOpeningAmount,
     commitOpeningAmount,
     resetToSnapshot,
+    resetDraft: resetOpeningDraft,
   } = openingDraft;
   const assumptions = useAssumptionDraft(markDirty);
   const rules = useRuleDrafts(markDirty);
@@ -146,9 +107,9 @@ export function useProjectionWorkspace(householdId: string | undefined) {
   const { replaceAll: replaceEvents } = events;
 
   const clearParams = useCallback(() => {
-    // `applied` is a marker, not a replayable choice: a later refresh opens the
-    // workspace empty instead of asking for a start once more.
-    setSearchParams({ applied: '' }, { replace: true });
+    // The chosen plan has been applied; nothing in the query is replayable any
+    // more, so drop it. `{}` keeps the URL free of a trailing `?`.
+    setSearchParams({}, { replace: true });
   }, [setSearchParams]);
 
   const replaceAll = useCallback(
@@ -209,24 +170,83 @@ export function useProjectionWorkspace(householdId: string | undefined) {
     [assumptions],
   );
 
+  const { validate, revealErrors, takeValidatedPlan, validateOpening } = useWorkspaceValidation({
+    assumptions,
+    rules,
+    events,
+    opening,
+    startYear,
+  });
+
+  const incomeRuleCount = rules.rules.filter((rule) => rule.ruleType === 'income').length;
+  const valid = assumptions.valid && rules.valid && events.valid;
+  const derived = useWorkspaceDerived({
+    assumptions: assumptions.values,
+    rulesReady: valid,
+    eventCount: events.events.length,
+    ruleCount: rules.rules.length,
+    incomeRuleCount,
+    opening,
+    currentYear,
+  });
+
+  const {
+    calculated,
+    resolveErrors,
+    calculateError,
+    calculating,
+    calculate,
+    reset: resetCalculation,
+    retirementComparisons,
+    applyRetirementAge: applyCalculatedRetirementAge,
+  } = useProjectionCalculate({
+    startYear,
+    opening,
+    calculateProjection,
+    validate,
+    takeValidatedPlan,
+    onSuccess: () => {
+      indicators.reset();
+      setStage('preview');
+    },
+    setOpeningValidationError,
+    setStartYearValidationError,
+  });
+
   const applyPlan = useCallback(
     (plan: RetirementPlan) => {
       assumptions.resetFrom(plan.assumptions);
       rules.replaceAll(plan.projectionRules);
       events.replaceAll(plan.lifeEvents);
+      // A plan carries assumptions, rules and events only. Everything else goes
+      // back to its blank default so the result is not a mix of two scenarios.
+      resetOpeningDraft();
+      setStartYearState(currentYear);
+      setSavedId(null);
+      setLastSavedName(null);
+      setSavedAsPlan(false);
+      setPreloadWarning(null);
       setAppliedPlanName(plan.name);
-      setCalculated(null);
-      setResolveErrors([]);
-      setCalculateError(null);
+      resetCalculation();
       setStage('setup');
       indicators.reset();
       undo.clear();
       markDirty();
     },
-    [assumptions, events, indicators, markDirty, rules, undo],
+    [
+      assumptions,
+      currentYear,
+      events,
+      indicators,
+      markDirty,
+      resetCalculation,
+      resetOpeningDraft,
+      rules,
+      undo,
+    ],
   );
 
-  usePlanPreload({
+  const applyPlanById = usePlanPreload({
     householdId,
     planId,
     auth,
@@ -235,101 +255,52 @@ export function useProjectionWorkspace(householdId: string | undefined) {
     clearParams,
   });
 
-  const validateOpening = useCallback((): string | undefined => {
-    const parsed = openingSchema.safeParse(opening);
-    return parsed.success ? undefined : PROJECTION_RESULT_LABELS.OPENING_INVALID;
-  }, [opening]);
+  /**
+   * Re-apply the plan already in the query. Picking the same plan again keeps
+   * the URL identical, so the preload effect will not fire on its own.
+   */
+  const reapplyPlan = useCallback(() => {
+    if (planId !== null) void applyPlanById(planId);
+  }, [applyPlanById, planId]);
 
-  const validateStartYear = useCallback((): string | undefined => {
-    return startYearSchema.safeParse(startYear).success
-      ? undefined
-      : PROJECTION_RESULT_LABELS.START_YEAR_INVALID;
-  }, [startYear]);
-
-  const validateCore = useCallback(() => {
-    const assumptionsResult = assumptions.validate();
-    const rulesResult = rules.validate();
-    const eventsResult = events.validate();
-
-    return {
-      assumptions: assumptionsResult,
-      rules: rulesResult,
-      events: eventsResult,
-    };
-  }, [assumptions, events, rules]);
-
-  const validate = useCallback(() => {
-    const core = validateCore();
-    const openingError = validateOpening();
-    const startYearError = validateStartYear();
-
-    return {
-      ok:
-        core.assumptions.ok &&
-        core.rules.ok &&
-        core.events.ok &&
-        openingError === undefined &&
-        startYearError === undefined,
-      ...core,
-      openingError,
-      startYearError,
-    };
-  }, [validateCore, validateOpening, validateStartYear]);
-
-  const revealErrors = useCallback(() => {
-    assumptions.revealAll();
-    rules.revealAll();
-    events.revealAll();
-  }, [assumptions, events, rules]);
-
-  const valid = assumptions.valid && rules.valid && events.valid;
-  const incomeRuleCount = rules.rules.filter((rule) => rule.ruleType === 'income').length;
-  const openingResolved = (() => {
-    if (opening.amountText.trim() === '') return false;
-    return openingSchema.safeParse(opening).success;
-  })();
-  const readiness = buildReadiness({ valid, incomeRuleCount, openingResolved });
-  const ageRange = retirementAgeRange(
-    currentAgeFor(assumptions.values.birthYear, currentYear),
-    Number(assumptions.values.lifeExpectancy) || 90,
-  );
-  const retirementYear = retirementYearFor(
-    assumptions.values.birthYear,
-    assumptions.values.retirementAge,
-  );
-  const progress = buildProgress({
-    hasBaseline: openingResolved,
-    assumptionsFilled: assumptionsFilled(assumptions.values),
-    incomeRuleCount,
-    expenseRuleCount: rules.rules.length - incomeRuleCount,
-    eventCount: events.events.length,
-  });
+  /**
+   * Discard everything and start over blank. The route does not change element
+   * on a same-path restart, so nothing unmounts — the reset has to happen here.
+   */
+  const resetToBlank = useCallback(() => {
+    assumptions.resetToBlank();
+    rules.replaceAll([]);
+    events.replaceAll([]);
+    resetOpeningDraft();
+    setStartYearState(currentYear);
+    setSavedId(null);
+    setLastSavedName(null);
+    setSavedAsPlan(false);
+    setPreloadWarning(null);
+    setAppliedPlanName(null);
+    resetCalculation();
+    setStage('setup');
+    indicators.reset();
+    undo.clear();
+    markDirty();
+  }, [
+    assumptions,
+    currentYear,
+    events,
+    indicators,
+    markDirty,
+    resetCalculation,
+    resetOpeningDraft,
+    rules,
+    undo,
+  ]);
 
   const goToPreview = useCallback(() => setStage('preview'), []);
 
   const backToSetup = useCallback(() => {
     setStage('setup');
-    setCalculated(null);
-    setResolveErrors([]);
-    setCalculateError(null);
-    setOpeningValidationError(undefined);
-    setStartYearValidationError(undefined);
-  }, []);
-
-  /** Validation gate shared by CALCULATE and SAVE AS PLAN; reveals errors. */
-  const takeValidatedPlan = useCallback((): ValidatedPlan | null => {
-    const validation = validate();
-    const { data: assumptions } = validation.assumptions;
-    const { data: rules } = validation.rules;
-    const { data: lifeEvents } = validation.events;
-
-    if (!validation.ok || !assumptions || !rules || !lifeEvents) {
-      revealErrors();
-      return null;
-    }
-
-    return { assumptions, rules, lifeEvents };
-  }, [revealErrors, validate]);
+    resetCalculation();
+  }, [resetCalculation]);
 
   const calculateIndicators = useCallback(async (): Promise<ProjectionSummary> => {
     const assumptionsResult = assumptions.validate();
@@ -374,73 +345,22 @@ export function useProjectionWorkspace(householdId: string | undefined) {
     setSavedAsPlan,
   });
 
-  const calculate = useCallback(async () => {
-    const validation = validate();
-    setOpeningValidationError(validation.openingError);
-    setStartYearValidationError(validation.startYearError);
-    setCalculateError(null);
-    setResolveErrors([]);
-
-    const plan = takeValidatedPlan();
-    if (plan === null) return;
-
-    setCalculating(true);
-
-    const task = await calculateProjection({
-      startYear,
-      opening: {
-        source: opening.source,
-        amount: Number(opening.amountText),
-      },
-      ...plan,
-    });
-    setCalculating(false);
-
-    if (!task.ok) {
-      setCalculateError(getTaskErrorMessage(task, PROJECTION_RESULT_LABELS.CALCULATE_FAILED));
-      setCalculated(null);
-      return;
-    }
-
-    const outcome = task.value;
-    if (!outcome.ok) {
-      if (outcome.code === 'PROJECTION_RESOLVE_FAILED') {
-        setResolveErrors(outcome.errors ?? []);
-        setCalculateError(PROJECTION_RESULT_LABELS.RESOLVE_FAILED);
-      } else if (outcome.issues !== undefined) {
-        setCalculateError(
-          outcome.issues
-            .map(resolveValidationIssueLabel)
-            .join(PROJECTION_RESULT_LABELS.ISSUE_SEPARATOR),
-        );
-      } else {
-        setCalculateError(PROJECTION_RESULT_LABELS.CALCULATE_FAILED);
-      }
-      setCalculated(null);
-      return;
-    }
-
-    setCalculated({
-      projection: mapProjectionResultToVM(outcome.calculation.input, outcome.calculation.result),
-      summary: mapProjectionSummaryToVM(outcome.calculation.result.summary),
-      calculation: outcome.calculation,
-    });
-    indicators.reset();
-    setStage('preview');
-  }, [
-    calculateProjection,
-    indicators,
-    opening.amountText,
-    opening.source,
-    startYear,
-    takeValidatedPlan,
-    validate,
-  ]);
-
   const save = useCallback(
     async (name: string): Promise<SaveWorkspaceOutcome> =>
       saveAction(name, calculated === null ? null : calculated.calculation),
     [calculated, saveAction],
+  );
+
+  const applyRetirementAge = useCallback(
+    (age: number) => {
+      if (!applyCalculatedRetirementAge(age)) return;
+      assumptions.setField('retirementAge', String(age));
+      setSavedId(null);
+      setSavedAsPlan(false);
+      undo.clear();
+      markDirty();
+    },
+    [applyCalculatedRetirementAge, assumptions, markDirty, undo],
   );
 
   return {
@@ -451,13 +371,18 @@ export function useProjectionWorkspace(householdId: string | undefined) {
     rules,
     events,
     appliedPlanName,
+    planId,
     applyPlan,
+    resetToBlank,
+    reapplyPlan,
     validate,
     revealErrors,
     valid,
     dirty,
     calculated,
-    warningLabels: calculated?.calculation.warnings.map(resolveErrorLabel) ?? [],
+    retirementComparisons,
+    applyRetirementAge,
+    warningLabels: calculated ? mapProjectionWarningsToVM(calculated.calculation) : [],
     errorLabels: resolveErrors.map(resolveErrorLabel),
     calculateError,
     calculating,
@@ -497,10 +422,11 @@ export function useProjectionWorkspace(householdId: string | undefined) {
     goToPreview,
     backToSetup,
     indicators: indicators.indicators,
-    readiness,
-    progress,
-    ageRange,
-    retirementYear,
+    readiness: derived.readiness,
+    progress: derived.progress,
+    ageRange: derived.ageRange,
+    assumptionBounds: derived.assumptionBounds,
+    retirementYear: derived.retirementYear,
     setRetirementAge,
     setAssumptionField,
     undo: undo.undo,

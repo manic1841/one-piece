@@ -39,6 +39,9 @@ interface ProjectionRulesSectionProps {
   setRuleType: (id: string, ruleType: RuleType) => void;
   setMethod: (id: string, method: RuleMethod) => void;
   setSourceType: (id: string, sourceType: RuleSourceType) => void;
+  /** Band state and reason: an invalid rule, or no income rule yet. */
+  status?: 'error';
+  hint?: string;
 }
 
 const GROUPS: ReadonlyArray<{
@@ -79,6 +82,8 @@ export function ProjectionRulesSection({
   setRuleType,
   setMethod,
   setSourceType,
+  status,
+  hint,
 }: ProjectionRulesSectionProps) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [editing, setEditing] = useState<{
@@ -149,6 +154,7 @@ export function ProjectionRulesSection({
     });
 
   const unassignedCount = ledgerCodes.filter((code) => !usageByCode.has(code.code)).length;
+  const isEmpty = list.length === 0;
 
   const ruleOptionsFor = (ruleId: string): ComboboxOption[] =>
     list
@@ -158,56 +164,85 @@ export function ProjectionRulesSection({
         label: (candidate.name ?? '').trim() || RULE_LABELS.UNNAMED_RULE,
       }));
 
+  const sourceLabelFor = (rule: RuleDraftVM) => {
+    if (rule.sourceType === 'ledgerCode') {
+      return ledgerCodes.find((code) => code.code === rule.sourceId)?.label ?? rule.sourceId;
+    }
+    if (rule.sourceType === 'debtAccount') {
+      return debtAccounts.find((account) => account.id === rule.sourceId)?.name ?? rule.sourceId;
+    }
+    if (rule.sourceType === 'rule') {
+      return ruleOptionsFor(rule.id).find((option) => option.value === rule.sourceId)?.label ?? '';
+    }
+    return RULE_LABELS.NO_SOURCE;
+  };
+
   return (
     <Form {...form}>
       <PageSection
         number={WORKSPACE_SECTION_LABELS.NUMBER_RULES}
         title={WORKSPACE_SECTION_LABELS.RULES}
+        status={status}
+        hint={hint}
+        testId="section-rules"
         action={
-          !readOnly && (
-            <Button variant="text" size="sm" className="shrink-0" onClick={startCreate}>
+          !readOnly &&
+          !isEmpty && (
+            <Button variant="outline" size="sm" className="shrink-0" onClick={startCreate}>
               {RULE_LABELS.ADD}
             </Button>
           )
         }
       >
         <div className="grid gap-8">
-          {GROUPS.map(({ side, label, emptyLabel }) => {
-            const sideRules = list
-              .map((rule) => ({ rule }))
-              .filter((entry) => entry.rule.ruleType === side);
-            const errorCount = sideRules.filter(
-              (entry) => errors[entry.rule.id] !== undefined,
-            ).length;
+          {isEmpty ? (
+            <div className="grid justify-items-start gap-3 py-2">
+              <p className="text-[13px] text-muted-foreground">{RULE_LABELS.EMPTY}</p>
+              {!readOnly && (
+                <Button variant="outline" size="sm" onClick={startCreate}>
+                  {RULE_LABELS.ADD}
+                </Button>
+              )}
+            </div>
+          ) : (
+            GROUPS.map(({ side, label, emptyLabel }) => {
+              const sideRules = list
+                .map((rule) => ({ rule }))
+                .filter((entry) => entry.rule.ruleType === side);
+              const errorCount = sideRules.filter(
+                (entry) => errors[entry.rule.id] !== undefined,
+              ).length;
 
-            return (
-              <div key={side} className="grid gap-3">
-                <div className="flex items-center gap-3">
-                  <p className={eyebrowClass}>{label}</p>
-                  <span className={eyebrowClass} data-testid={`${side}-rule-status`}>
-                    {sideRules.length}
-                    {errorCount > 0 && ` · ${errorCount} WARNING`}
-                  </span>
+              return (
+                <div key={side} className="grid gap-3">
+                  <div className="flex items-center gap-3">
+                    <p className={eyebrowClass}>{label}</p>
+                    <span className={eyebrowClass} data-testid={`${side}-rule-status`}>
+                      {sideRules.length}
+                      {errorCount > 0 && ` · ${errorCount} WARNING`}
+                    </span>
+                  </div>
+
+                  {sideRules.length === 0 ? (
+                    <p className="text-muted-foreground text-[13px]">{emptyLabel}</p>
+                  ) : (
+                    <ul className="grid gap-1">
+                      {sideRules.map(({ rule }) => (
+                        <ProjectionRuleRow
+                          key={rule.id}
+                          rule={rule}
+                          sourceLabel={sourceLabelFor(rule)}
+                          selected={rule.id === selectedId}
+                          errorCount={Object.keys(errors[rule.id] ?? {}).length}
+                          onSelect={() => startEdit(rule)}
+                        />
+                      ))}
+                    </ul>
+                  )}
                 </div>
-
-                {sideRules.length === 0 ? (
-                  <p className="text-muted-foreground text-[13px]">{emptyLabel}</p>
-                ) : (
-                  <ul className="grid gap-1">
-                    {sideRules.map(({ rule }) => (
-                      <ProjectionRuleRow
-                        key={rule.id}
-                        rule={rule}
-                        selected={rule.id === selectedId}
-                        errorCount={Object.keys(errors[rule.id] ?? {}).length}
-                        onSelect={() => startEdit(rule)}
-                      />
-                    ))}
-                  </ul>
-                )}
-              </div>
-            );
-          })}
+              );
+            })
+          )}
 
           {editingRule !== null && editingIndex >= 0 && (
             <ProjectionRuleDialog

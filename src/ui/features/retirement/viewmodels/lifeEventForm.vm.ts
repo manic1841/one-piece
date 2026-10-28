@@ -48,7 +48,11 @@ export interface EventErrors {
 
 export type EventErrorsById = Record<string, EventErrors>;
 
-export const EventsFormSchema = z.object({ events: z.array(LifeEventDraftFormSchema) });
+export const EventsFormSchema = z.object({
+  events: z.array(LifeEventDraftFormSchema),
+  /** Mirror keyed by event id so event field names stay stable while events sort. */
+  eventsById: z.record(z.string(), LifeEventDraftFormSchema).optional(),
+});
 
 export type EventsForm = z.infer<typeof EventsFormSchema>;
 
@@ -110,6 +114,38 @@ export function sortPhases(phases: PhaseDraftVM[]): PhaseDraftVM[] {
   });
 }
 
+/**
+ * A year is only worth reordering on once the user stopped mid-number. Typing
+ * `1998` passes through `1` / `19` / `190`; sorting on those would drag the row
+ * away from under the cursor three times.
+ */
+export function isCompleteYear(text: string | undefined): boolean {
+  return /^\d{4}$/.test((text ?? '').trim());
+}
+
+/** Earliest start of the event; `NaN` when no phase carries a usable year. */
+function eventStartYear(event: LifeEventDraftVM): number {
+  let earliest = Number.NaN;
+  for (const phase of event.phases) {
+    const year = parseNumber(phase?.startYearText ?? '');
+    if (Number.isNaN(year)) continue;
+    if (Number.isNaN(earliest) || year < earliest) earliest = year;
+  }
+  return earliest;
+}
+
+/** Stable ascending by earliest phase start; events without a year sink. */
+export function sortEvents(events: LifeEventDraftVM[]): LifeEventDraftVM[] {
+  return [...events].sort((left, right) => {
+    const leftYear = eventStartYear(left);
+    const rightYear = eventStartYear(right);
+    if (Number.isNaN(leftYear) && Number.isNaN(rightYear)) return 0;
+    if (Number.isNaN(leftYear)) return 1;
+    if (Number.isNaN(rightYear)) return -1;
+    return leftYear - rightYear;
+  });
+}
+
 /** VM -> domain payload. Unknown keys stay permissive for the domain parse. */
 export function mapEventDraftVMToDomain(event: LifeEventDraftVM): unknown {
   return {
@@ -129,12 +165,18 @@ export function mapEventDraftVMToDomain(event: LifeEventDraftVM): unknown {
   };
 }
 
-/** Keeps the id-keyed phase mirror in sync so form field names stay stable. */
-export function withPhaseIndex(event: LifeEventDraftVM): LifeEventDraftVM {
+/** Keeps the id-keyed mirrors in sync so form field names stay stable. */
+export function withMirrors(event: LifeEventDraftVM): LifeEventDraftVM {
   return {
     ...event,
     phasesById: Object.fromEntries(event.phases.map((phase) => [phase.id, phase])),
   };
+}
+
+/** The whole form value: the list plus both id-keyed mirrors. */
+export function mirrorEventsForm(events: LifeEventDraftVM[]): EventsForm {
+  const mirrored = events.map(withMirrors);
+  return { events: mirrored, eventsById: Object.fromEntries(mirrored.map((e) => [e.id, e])) };
 }
 
 export function mapEventToVM(event: LifeEvent): LifeEventDraftVM {

@@ -49,7 +49,9 @@ export const FormControl = ({ children }: FormControlProps) => {
       childOnBlur?.(...args);
     },
     ref: field.ref,
-    error,
+    // Omitted rather than `false`: a non-input child (a label wrapping a switch)
+    // would render it as an invalid boolean DOM attribute otherwise.
+    error: error || undefined,
     'aria-invalid': error,
     'aria-describedby': describedBy,
   });

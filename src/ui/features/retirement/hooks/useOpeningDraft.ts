@@ -84,6 +84,11 @@ export function useOpeningDraft({ householdId, auth, markDirty, run }: UseOpenin
     markDirty();
   }, [markDirty, reportValue]);
 
+  /** Back to the seeded default: the snapshot when there is one, otherwise empty. */
+  const resetDraft = useCallback(() => {
+    setOpening(reportValue === null ? EMPTY_OPENING : { source: 'derived', ...reportValue });
+  }, [reportValue]);
+
   /**
    * Amounts are whole NT dollars; the field only accepts decimals while it is
    * being typed. Committing rewrites the text but keeps the source, so tabbing
@@ -114,5 +119,6 @@ export function useOpeningDraft({ householdId, auth, markDirty, run }: UseOpenin
     setOpeningAmount,
     commitOpeningAmount,
     resetToSnapshot,
+    resetDraft,
   };
 }

@@ -10,12 +10,6 @@ export const WORKSPACE_RAIL_LABELS = {
   JUMP_TO_YEAR: 'Jump to {year}',
   OPENING_SOURCE: 'Opening source',
   OPENING_MANUAL: 'Manual value',
-  SOURCES: 'Sources',
-  SOURCES_USED: 'used by rules',
-  SOURCES_UNASSIGNED: 'Unassigned',
-  SOURCES_MORE: '+{count} more',
-  SOURCES_SHOW_LESS: 'Show less',
-  SOURCES_ALL_ASSIGNED: 'Every source is assigned.',
   RETIREMENT_YEAR: 'Retirement year',
   SECTION_APPEARS: 'appears in the setup',
 } as const;
@@ -50,7 +44,6 @@ export const WORKSPACE_SECTION_LABELS = {
 } as const;
 
 export const WORKSPACE_ACTION_LABELS = {
-  CANCEL: 'CANCEL',
   UNDO: 'UNDO',
   BLOCKED_HINT: 'CALCULATE is disabled until readiness passes.',
   PREVIEW_SUMMARY: 'Setup summary (read-only)',
@@ -60,9 +53,10 @@ export const WORKSPACE_ACTION_LABELS = {
   VIEW_TIMELINE: 'Timeline',
   NO_EVENTS: 'No life events yet.',
   EVENT_ADD_HINT: 'Click an empty year to add a phase.',
+  EVENT_ADD_HINT_NEW: 'Click an empty year to add an event.',
   TIMELINE_LABEL: 'Life event timeline',
   EVENTS_LIST_LABEL: 'Life events list',
-  INSPECTOR: 'Event details',
-  CLOSE_INSPECTOR: 'Close details',
-  NO_SELECTION: 'Select a phase on the timeline to edit it.',
+  INSPECTOR: 'Details',
+  NO_SELECTION: 'Select a phase to edit it.',
+  TIMELINE_OUTSIDE_VIEW: 'outside this window',
 } as const;

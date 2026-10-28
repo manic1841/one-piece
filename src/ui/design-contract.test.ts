@@ -26,6 +26,8 @@ const ROUNDED_FULL_ALLOWED = new Set([
   'features/dashboard/components/AssetCompositionBlock.tsx',
   // Retiring event axis: single-year nodes are dots, span bars are capsules.
   'features/retirement/components/LifeEventTimeline.tsx',
+  // Status dot in the event-details summary (income / expense tone).
+  'features/retirement/components/LifeEventInspector.tsx',
 ]);
 
 const SHADOW_ALLOWED = new Set([

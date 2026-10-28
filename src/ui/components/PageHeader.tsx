@@ -12,6 +12,8 @@ interface PageHeaderProps {
   meta?: React.ReactNode;
   actions?: React.ReactNode;
   onBack?: () => void;
+  /** Accessible name for the icon-only back button. */
+  backLabel?: string;
 }
 
 export const PageHeader: React.FC<PageHeaderProps> = ({
@@ -22,12 +24,19 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
   meta,
   actions,
   onBack,
+  backLabel = 'Back',
 }) => {
   return (
     <div className="flex flex-col gap-4 border-b border-border pb-6 sm:flex-row sm:items-start sm:justify-between">
       <div className="flex items-center gap-2 min-w-0">
         {onBack && (
-          <Button variant="ghost" size="icon" onClick={onBack} className="shrink-0">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onBack}
+            aria-label={backLabel}
+            className="shrink-0"
+          >
             <ArrowLeft className="h-5 w-5" />
           </Button>
         )}

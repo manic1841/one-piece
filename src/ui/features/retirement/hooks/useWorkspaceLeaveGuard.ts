@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 
-import { useBlocker } from 'react-router-dom';
+import { NavigationType, useBlocker } from 'react-router-dom';
 
 import { useConfirm } from '@/ui/components/confirm/useConfirm';
 import { PROJECTION_WORKSPACE_LABELS } from '@/ui/constants/retirement/workspaceLabels';
@@ -14,7 +14,17 @@ export function useWorkspaceLeaveGuard(dirty: boolean) {
   const { confirm } = useConfirm();
   const promptingRef = useRef(false);
 
-  const blocker = useBlocker(dirty);
+  // Same-path REPLACE is the workspace tidying its own query (dropping
+  // `?plan=`, or swapping it for another), not the user leaving; every other
+  // way out is guarded.
+  const blocker = useBlocker(
+    ({ currentLocation, nextLocation, historyAction }) =>
+      dirty &&
+      !(
+        historyAction === NavigationType.Replace &&
+        currentLocation.pathname === nextLocation.pathname
+      ),
+  );
 
   useEffect(() => {
     if (blocker.state !== 'blocked' || promptingRef.current) return;

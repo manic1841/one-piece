@@ -212,6 +212,8 @@
   - 範例：`src/ui/features/dashboard/pages/DashboardPage.tsx`（FINANCIAL SNAPSHOT，5 欄）、`src/ui/features/project/pages/ProjectDetailPage.tsx`（SUMMARY，3 欄）、`src/ui/features/debt/pages/DebtDetailPage.tsx`（LOAN INFORMATION，4 欄）、`src/ui/features/debt/pages/DebtListPage.tsx`（SUMMARY，2 欄）。
 
 - **`PageSection`** — 頁面層級的全寬 section band（`border-b` ＋ `py-10`），visual-standards 的「structure over cards」：頁面區域用 band 分段，不用浮動卡片。number ＋ title 為選用的 section 標題（14px mono 全大寫 `font-semibold text-foreground`，`sectionTitleClass`，比 eyebrow 標籤大一階）；僅內容時是素 band。
+  - **band 狀態**：`status` 在標題前放 `StatusGlyph`（並補 `sr-only` 狀態字），`hint` 在標題下掛一行 muted 原因。呼叫端只在值得回報時才傳——驗證錯誤用 `status="error"`，單純「還沒填」只給 `hint`，避免每頁排版都長滿字形。
+  - **不要用於**：同一段落的第二層標題（用 `Module`）。
   - Props：`number?`、`title?`、`action?`（與標題同列的尾端控件）、`spacing?`（`default`/`compact`，後者收緊密集堆疊）、`children`、`className?`。
   - **不要用於**：section 內的個別單元（用 `Module`）；需要 sticky 或導航的區域（用 `PageHeader` / `Toolbar`）。
   - 範例：`src/ui/features/dashboard/pages/DashboardPage.tsx`（`spacing="compact"` 堆疊）、`src/ui/features/project/pages/ProjectDetailPage.tsx`、`src/ui/features/debt/pages/DebtDetailPage.tsx`、`src/ui/features/debt/pages/DebtListPage.tsx`。
@@ -301,8 +303,9 @@
 - **`drawer / DrawerPanel`** — 抽屜的內容殼，放在 `SheetContent` 內。
   - Props：`title`（必填）、`description?`、`onClose?`（僅 inline 分支自畫；live 的關閉鈕由 `SheetContent` 擁有）、`footer?`、`children?`、`titleClassName?`、`inline?`。
   - 使用規則：**抽屜／panel 用 `DrawerPanel`；非抽屜語意的 sheet（如 Pixel Pet 行動版 navigator）才直接用 `ui/sheet`**。
+  - 同一份內容同時要當欄位與抽屜時，把 `inline` 當參數傳，抽屜**只在窄屏、且只在開啟時 render**：寬螢幕同時掛兩個實例會讓同一組表單欄位被註冊兩次，而留在樹上的已關閉面板會繼續把焦點扣在自己的 focus trap（`LifeEventsSection.tsx`）。
   - **不要用於**：非抽屜語意的 sheet；需要自組 `SheetContent` 內部結構的場合。
-  - 範例：`src/ui/features/monthly_close/stages/securities_trade/components/TradeDrawer.tsx`、`src/ui/features/app/pages/GalleryInteraction.tsx`
+  - 範例：`src/ui/features/monthly_close/stages/securities_trade/components/TradeDrawer.tsx`、`src/ui/features/app/pages/GalleryInteraction.tsx`、`src/ui/features/retirement/components/LifeEventsSection.tsx`
 
 - **`confirm / ConfirmDialogProvider`** — 全站掛載的 promise-based 確認對話（`useConfirm()` 回傳 `Promise<boolean>`）。結構為 Title → Context → Consequence → Actions。字串輸入是不可逆刪除的預設（destructive `DELETE`）；可逆動作傳結構化 options 並用非 destructive 標籤。
   - **不要用於**：需要多欄位輸入的對話（那不是 confirm）。
@@ -456,6 +459,7 @@
 - **`Combobox`**（`ComboboxField`）— 可搜尋的單值選欄位，給長到不能捲的清單（科目、帳戶）。與 `SelectField` 同一個 string value 契約，多出 `hint` 與 `group` 讓呼叫端把清單一開就蓋掉的脈絡（已使用次數、未使用／已使用分組）留在選項上。
   - Props：`options`（必填，`{ value, label, hint?, group? }`）、`value?`、`onChange?`、`onBlur?`、`noneLabel?`、`placeholder?`、`searchPlaceholder?`、`emptyLabel?`、`error?`、`disabled?`、`className?`、`id?`、`name?` 與 `aria-*`。
   - 變體：「無值」列以 `noneLabel` 表示，emit `''`；`hint` 印在列尾當次要資訊，不參與選取；`group` 決定分區與先後（呼叫端把重要的一組排前面）。
+  - 注意：清單列是 cmdk item，`data-disabled` 屬性恆存在（值 `"true"`／`"false"`），所以列樣式（含 `pointer-events`）必須寫成 `data-[disabled=true]:*`。寫成裸 `data-[disabled]:*` 會讓每一列都吃不到點擊，鍵盤仍可用，滑鼠全失效。
   - **不要用於**：5 項以內、不需要搜尋的清單（用 `Select`）；多選（目前沒有共用元件）。
   - 範例：`src/ui/features/retirement/components/ProjectionRuleInspector.tsx`
 - **`TextArea`** — 多行文字。

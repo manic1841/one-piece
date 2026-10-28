@@ -15,6 +15,27 @@ vi.mock('@/ui/contexts/useAuthState', () => ({
   useAuthState: () => ({ userProfile: { uid: 'user-1', householdId: 'household-1' } }),
 }));
 
+const { planLibraryMock } = vi.hoisted(() => ({
+  planLibraryMock: {
+    plans: [] as Array<{
+      id: string;
+      name: string;
+      retirementAge: number;
+      lifeExpectancy: number;
+      inflationRate: number;
+      annualReturnRate: number;
+      updatedAt: Date;
+    }>,
+    loading: false,
+    error: null as unknown,
+    refresh: vi.fn(),
+  },
+}));
+
+vi.mock('@/ui/features/retirement/hooks/usePlanLibrary', () => ({
+  usePlanLibrary: () => planLibraryMock,
+}));
+
 const document = (overrides: Partial<ProjectionDocument> = {}): ProjectionDocument => ({
   id: 'projection-1',
   name: 'Base case',
@@ -46,6 +67,9 @@ function renderList() {
 describe('ProjectionListPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    planLibraryMock.plans = [];
+    planLibraryMock.loading = false;
+    planLibraryMock.error = null;
     vi.mocked(listProjectionsUseCase.execute).mockResolvedValue([]);
   });
 
@@ -105,22 +129,43 @@ describe('ProjectionListPage', () => {
     expect(screen.getAllByRole('button', { name: 'NEW PROJECTION' })).toHaveLength(2);
   });
 
-  it('sends the empty-state CTA to the start gate', async () => {
+  it('sends the empty-state CTA to the start dialog and on to blank', async () => {
     const router = renderList();
 
     await screen.findByText('No projections have been calculated yet.');
     fireEvent.click(screen.getAllByRole('button', { name: 'NEW PROJECTION' })[1]);
 
+    fireEvent.click(await screen.findByRole('button', { name: 'Start blank' }));
+
     await waitFor(() => expect(router.state.location.pathname).toBe('/retirement/new'));
     expect(router.state.location.search).toBe('');
   });
 
-  it('sends the header action to the start gate', async () => {
+  it('sends the header action to the start dialog', async () => {
+    renderList();
+    fireEvent.click((await screen.findAllByRole('button', { name: 'NEW PROJECTION' }))[0]);
+
+    expect(await screen.findByRole('dialog')).toBeInTheDocument();
+  });
+
+  it('carries the picked plan in the query', async () => {
+    planLibraryMock.plans = [
+      {
+        id: 'plan-1',
+        name: 'Early retirement',
+        retirementAge: 60,
+        lifeExpectancy: 85,
+        inflationRate: 0.02,
+        annualReturnRate: 0.05,
+        updatedAt: new Date('2026-03-02T00:00:00.000Z'),
+      },
+    ];
     const router = renderList();
 
     fireEvent.click((await screen.findAllByRole('button', { name: 'NEW PROJECTION' }))[0]);
+    fireEvent.click(await screen.findByTestId('plan-option-plan-1'));
 
-    await waitFor(() => expect(router.state.location.pathname).toBe('/retirement/new'));
+    await waitFor(() => expect(router.state.location.search).toBe('?plan=plan-1'));
   });
 
   it('shows a skeleton first', () => {

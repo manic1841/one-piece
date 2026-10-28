@@ -198,7 +198,7 @@ describe('useProjectionWorkspace', () => {
     renderWorkspace();
     await waitFor(() => expect(latestRef.current.openingLoading).toBe(false));
 
-    act(() => latestRef.current.events.add());
+    act(() => latestRef.current.events.addEventWithPhase(2045, 2045));
     expect(latestRef.current.valid).toBe(false);
     expect(latestRef.current.validate().events.ok).toBe(false);
 

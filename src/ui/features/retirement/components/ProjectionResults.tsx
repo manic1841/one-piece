@@ -21,8 +21,8 @@ export function ProjectionResults({ projection, summary }: ProjectionResultsProp
         <ProjectionTrajectory projection={projection} />
       </PageSection>
 
-      <PageSection title={PROJECTION_RESULT_LABELS.YEARS_SECTION} spacing="compact">
-        <YearlyDetails projection={projection} />
+      <PageSection spacing="compact">
+        <YearlyDetails projection={projection} title={PROJECTION_RESULT_LABELS.YEARS_SECTION} />
       </PageSection>
     </div>
   );

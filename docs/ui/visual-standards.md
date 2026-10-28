@@ -106,6 +106,19 @@ Page Header 規則：
 
 不要把 domain complexity 全部丟給使用者。
 
+### 欄位順序與上下層揭露 (Field Order & Disclosure)
+
+選取 Phase 的編輯器若同時修改它所屬的 Event，桌機以並列的 Event / Phase 區域呈現，避免把必要欄位藏在收合層級，也讓窄欄位不被整個頁寬拉長；行動版依 Event → Phase 的閱讀順序垂直堆疊。兩者都屬於同一個選取細節，不重複顯示摘要列。
+
+其他「剛選中的東西」與「它的上層」編輯面板仍遵循以下順序：
+
+1. **選中的東西先出現**——它是這個面板存在的理由。
+2. **上層物件收在上方的揭露列**，摘要行右側以單行小字顯示識別值，點開才出現欄位。
+3. **上層欄位有錯誤時強制展開**，訊息不得藏在收起的區域裡。
+4. 上層的值若已由摘要行呈現，面板標題與描述不再重述一次。
+
+揭露列只用在「同一筆編輯的上下層」，與上面的 `Advanced`（同一層的選填欄位）是兩件事。
+
 ## 工作流 (Workflow)
 
 Monthly Close 是全站最重要的 workflow UI。其階段模型、資料建立邊界與確認語意見 [monthly-close.md](../monthly-close.md)，不在本節重述：
@@ -242,6 +255,7 @@ Mobile 不是 Desktop 縮小，而是相同資訊階層的不同排版。
 - Table → compact rows / grouped list。
 - Secondary information 可收進 Accordion。
 - Primary action 保持容易觸及。
+- 底部固定列（sticky dock）以 `--bottom-overlay`（由 shell 量測系統級固定浮層髮布，無浮層時為 `0`）加上 `env(safe-area-inset-bottom)` 讓位，永不與固定浮層或 home indicator 重疊；高度不得寫死。
 - Reading order 與 Desktop 一致（見「響應式原則」）。
 
 行動版導覽由 Pixel Pet 獨家擁有，契約見 [`ui-layer-architecture.md`](ui-layer-architecture.md)。

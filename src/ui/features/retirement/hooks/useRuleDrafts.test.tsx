@@ -29,3 +29,33 @@ describe('useRuleDrafts add', () => {
     expect(first).not.toBe(second);
   });
 });
+
+describe('useRuleDrafts setRuleType', () => {
+  it('drops the debt source when the new side cannot amortize', () => {
+    render(<Harness />);
+    let id: string | null = null;
+    act(() => {
+      id = latest.add('expense');
+    });
+    if (id === null) throw new Error('no draft');
+
+    act(() => {
+      latest.setMethod(id, 'debtAmortization');
+    });
+    act(() => {
+      latest.setSourceType(id, 'debtAccount');
+    });
+
+    // Income has no debt amortization, so the method falls back and the source
+    // pair has to fall back with it — a debt account is not a valid source then.
+    act(() => {
+      latest.setRuleType(id, 'income');
+    });
+
+    const [rule] = latest.rules;
+    expect(rule.ruleType).toBe('income');
+    expect(rule.method).toBe('inflation');
+    expect(rule.sourceType).toBe('ledgerCode');
+    expect(rule.sourceId).toBe('');
+  });
+});

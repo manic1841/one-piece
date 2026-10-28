@@ -1,39 +1,44 @@
 import { useRef, useState } from 'react';
 
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 
 import { PageHeader } from '@/ui/components/PageHeader';
+import { useConfirm } from '@/ui/components/confirm/useConfirm';
 import { Alert, AlertDescription } from '@/ui/components/ui/alert';
 import { Button } from '@/ui/components/ui/button';
 import { PROJECTION_COMMON_LABELS } from '@/ui/constants/retirement/displayLabels';
+import { PREVIEW_LABELS } from '@/ui/constants/retirement/previewLabels';
 import { PROJECTION_WORKSPACE_LABELS } from '@/ui/constants/retirement/workspaceLabels';
 import { useAuthState } from '@/ui/contexts/useAuthState';
 import { useLedgerCodes } from '@/ui/features/ledger/hooks/useLedgerCodes';
 import { AssumptionsSection } from '@/ui/features/retirement/components/AssumptionsSection';
 import { LifeEventsSection } from '@/ui/features/retirement/components/LifeEventsSection';
 import { OpeningNetWorthSection } from '@/ui/features/retirement/components/OpeningNetWorthSection';
-import { ProjectionResults } from '@/ui/features/retirement/components/ProjectionResults';
 import { ProjectionRulesSection } from '@/ui/features/retirement/components/ProjectionRulesSection';
+import { ProjectionStartDialog } from '@/ui/features/retirement/components/ProjectionStartDialog';
 import { SaveProjectionDialog } from '@/ui/features/retirement/components/SaveProjectionDialog';
 import { WorkspaceActionBar } from '@/ui/features/retirement/components/WorkspaceActionBar';
+import { WorkspaceNotices } from '@/ui/features/retirement/components/WorkspaceNotices';
 import { WorkspacePinnedBar } from '@/ui/features/retirement/components/WorkspacePinnedBar';
+import { WorkspacePreview } from '@/ui/features/retirement/components/WorkspacePreview';
 import { WorkspaceRail } from '@/ui/features/retirement/components/WorkspaceRail';
 import { WorkspaceSteps } from '@/ui/features/retirement/components/WorkspaceSteps';
-import { WorkspaceSummary } from '@/ui/features/retirement/components/WorkspaceSummary';
 import { useDebtAccountOptions } from '@/ui/features/retirement/hooks/useDebtAccountOptions';
 import { useProjectionWorkspace } from '@/ui/features/retirement/hooks/useProjectionWorkspace';
-import { buildSourceInventory } from '@/ui/features/retirement/viewmodels/sourceInventory.vm';
+import { buildSectionState } from '@/ui/features/retirement/viewmodels/workspaceSectionState.vm';
 import { formatCurrency } from '@/ui/utils';
 import { cn } from '@/ui/utils/cn';
 
 /**
- * `/retirement/new` projection workspace shell. Desktop is a two-column
+ * `/retirement/new` projection workspace shell, and the blank start of a new
+ * projection. Desktop is a two-column
  * workspace: inputs on the left in a fixed numbered order, derived summary in
  * the rail on the right, decisions in the fixed bottom bar. Mobile is one
  * column in the same reading order.
  */
 export default function ProjectionWorkspacePage() {
   const navigate = useNavigate();
+  const { confirm } = useConfirm();
   const { userProfile } = useAuthState();
   const householdId = userProfile?.householdId;
   const workspace = useProjectionWorkspace(householdId);
@@ -41,6 +46,7 @@ export default function ProjectionWorkspacePage() {
   const { accounts: debtAccounts } = useDebtAccountOptions(householdId);
   const [saveOpen, setSaveOpen] = useState(false);
   const [saveAsPlanOpen, setSaveAsPlanOpen] = useState(false);
+  const [startOpen, setStartOpen] = useState(false);
   const lifeEventsRef = useRef<HTMLDivElement>(null);
   const [revealYear, setRevealYear] = useState<number | null>(null);
   const isPreview = workspace.stage === 'preview';
@@ -57,25 +63,6 @@ export default function ProjectionWorkspacePage() {
 
   const labelForSource = (sourceId: string) =>
     ledgerCodes.find((code) => code.code === sourceId)?.label ?? PROJECTION_COMMON_LABELS.DASH;
-
-  const inventory = buildSourceInventory(
-    workspace.rules.rules.map((rule) => ({
-      sourceType: rule.sourceType,
-      sourceId: rule.sourceId,
-    })),
-    [
-      ...ledgerCodes.map((code) => ({
-        id: code.code,
-        label: code.label,
-        type: code.type === 'income' ? ('income' as const) : ('expense' as const),
-      })),
-      ...debtAccounts.map((account) => ({
-        id: account.id,
-        label: account.name,
-        type: 'debt' as const,
-      })),
-    ],
-  );
 
   const jumpToYear = (year: number) => {
     lifeEventsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -99,6 +86,36 @@ export default function ProjectionWorkspacePage() {
     workspace.pushUndo(() => workspace.events.replaceDrafts(snapshot));
   };
 
+  /**
+   * Starting over discards the draft, so a dirty workspace confirms first. The
+   * confirm stacks on the open picker; cancelling it leaves the picker up.
+   * REPLACE keeps the guard quiet — same pathname, the workspace rewriting its
+   * own query.
+   */
+  const chooseStart = async (planId: string | null) => {
+    if (workspace.dirty) {
+      const confirmed = await confirm({
+        title: PROJECTION_WORKSPACE_LABELS.LEAVE_TITLE,
+        context: PROJECTION_WORKSPACE_LABELS.LEAVE_CONTEXT,
+        consequence: PROJECTION_WORKSPACE_LABELS.LEAVE_CONSEQUENCE,
+        confirmLabel: PROJECTION_WORKSPACE_LABELS.LEAVE_CONFIRM,
+        cancelLabel: PROJECTION_WORKSPACE_LABELS.LEAVE_CANCEL,
+      });
+      if (!confirmed) return;
+    }
+
+    setStartOpen(false);
+    // A plan re-applies itself from the query; blank has nothing to read, so the
+    // draft is reset here before the query is dropped. Re-picking the plan that
+    // is already in the query leaves the URL unchanged, so ask directly.
+    if (planId === null) workspace.resetToBlank();
+    else if (planId === workspace.planId) workspace.reapplyPlan();
+
+    navigate(planId === null ? '/retirement/new' : `/retirement/new?plan=${planId}`, {
+      replace: true,
+    });
+  };
+
   const changeRange = (
     eventId: string,
     phaseId: string,
@@ -119,17 +136,60 @@ export default function ProjectionWorkspacePage() {
       ? null
       : formatCurrency(amount);
   })();
+  const showRail = !isPreview && workspace.indicators.status !== 'idle';
+
+  const sectionState = buildSectionState({
+    blockers: workspace.readiness.blockers,
+    openingValidationError: workspace.openingValidationError,
+    assumptionsInvalid: Object.keys(workspace.assumptions.errors).length > 0,
+    rulesInvalid: Object.keys(workspace.rules.errors).length > 0,
+    eventsInvalid: Object.keys(workspace.events.errors).length > 0,
+  });
 
   return (
     <div className="space-y-6">
       <PageHeader
         title={PROJECTION_WORKSPACE_LABELS.TITLE}
-        description={PROJECTION_WORKSPACE_LABELS.DESCRIPTION}
+        onBack={() => void navigate('/retirement')}
+        description={
+          !isPreview && workspace.appliedPlanName ? (
+            <span
+              className="flex flex-wrap items-baseline gap-x-1.5"
+              data-testid="applied-plan-name"
+            >
+              <span>{PROJECTION_WORKSPACE_LABELS.DESCRIPTION}</span>
+              <span aria-hidden="true">·</span>
+              <span>{PROJECTION_WORKSPACE_LABELS.PLAN_CONTEXT_PREFIX}</span>
+              <span className="font-medium text-foreground">{workspace.appliedPlanName}</span>
+              <Button
+                variant="text"
+                size="sm"
+                className="h-auto px-0 py-0 text-xs"
+                onClick={() => setStartOpen(true)}
+              >
+                {PROJECTION_WORKSPACE_LABELS.CHANGE_PLAN}
+              </Button>
+            </span>
+          ) : isPreview ? (
+            PREVIEW_LABELS.DESCRIPTION
+          ) : (
+            PROJECTION_WORKSPACE_LABELS.DESCRIPTION
+          )
+        }
         actions={
           !isPreview && (
-            <Button variant="text" size="sm" onClick={openSaveAsPlan}>
-              {PROJECTION_WORKSPACE_LABELS.SAVE_AS_PLAN}
-            </Button>
+            <div className="flex items-center gap-2">
+              {/* Blank starts get the picker here; applied ones already have it
+                  inline in the description. */}
+              {!workspace.appliedPlanName && (
+                <Button variant="text" size="sm" onClick={() => setStartOpen(true)}>
+                  {PROJECTION_WORKSPACE_LABELS.CHANGE_PLAN}
+                </Button>
+              )}
+              <Button variant="outline" size="sm" onClick={openSaveAsPlan}>
+                {PROJECTION_WORKSPACE_LABELS.SAVE_AS_PLAN}
+              </Button>
+            </div>
           )
         }
       />
@@ -142,88 +202,28 @@ export default function ProjectionWorkspacePage() {
         </Alert>
       )}
 
-      {workspace.appliedPlanName && (
-        <div className="flex flex-wrap items-center gap-3" data-testid="applied-plan-name">
-          <span className="text-xs tracking-wide text-muted-foreground uppercase">
-            {PROJECTION_WORKSPACE_LABELS.APPLIED_PLAN_PREFIX}
-          </span>
-          <span className="text-sm font-medium">{workspace.appliedPlanName}</span>
-          <Button variant="text" size="sm" onClick={() => void navigate('/retirement/new?pick')}>
-            {PROJECTION_WORKSPACE_LABELS.CHANGE_PLAN}
-          </Button>
-        </div>
-      )}
-
       <div
-        className={cn(
-          'grid gap-8',
-          !isPreview && 'md:grid-cols-[minmax(0,42rem)_18rem] md:gap-x-16',
-        )}
+        className={cn('grid gap-8', showRail && 'md:grid-cols-[minmax(0,52rem)_14rem] md:gap-x-10')}
       >
         <div className="min-w-0 [&_label]:text-xs">
           {isPreview ? (
-            <div className="grid gap-6">
-              <WorkspaceSummary
-                startYear={workspace.startYear}
-                opening={workspace.opening}
-                openingAmount={openingAmountText}
-                assumptions={workspace.assumptions.values}
-                rules={workspace.rules.rules}
-                events={workspace.events.events}
-                labelForSource={labelForSource}
-              />
-
-              <p className="text-sm text-muted-foreground">
-                {PROJECTION_WORKSPACE_LABELS.PREVIEW_READONLY_NOTE}
-              </p>
-
-              {workspace.calculateError !== null && (
-                <Alert variant="destructive">
-                  <AlertDescription>{workspace.calculateError}</AlertDescription>
-                </Alert>
-              )}
-
-              {workspace.warningLabels.length > 0 && (
-                <Alert variant="warning" data-testid="projection-warnings">
-                  <AlertDescription>
-                    <ul className="list-disc space-y-1 pl-4">
-                      {workspace.warningLabels.map((warning, index) => (
-                        <li key={`${warning}-${index}`}>{warning}</li>
-                      ))}
-                    </ul>
-                  </AlertDescription>
-                </Alert>
-              )}
-
-              {workspace.calculated && (
-                <ProjectionResults
-                  projection={workspace.calculated.projection}
-                  summary={workspace.calculated.summary}
-                />
-              )}
-
-              {workspace.savedAsPlan && (
-                <Alert data-testid="saved-as-plan-message">
-                  <AlertDescription>
-                    {PROJECTION_WORKSPACE_LABELS.SAVE_AS_PLAN_SAVED_MESSAGE}
-                  </AlertDescription>
-                </Alert>
-              )}
-
-              {workspace.savedId !== null && (
-                <Alert>
-                  <AlertDescription className="flex flex-wrap items-center gap-3">
-                    <span>{PROJECTION_WORKSPACE_LABELS.SAVED_MESSAGE}</span>
-                    <Link
-                      to={`/retirement/projections/${workspace.savedId}`}
-                      className="text-primary font-medium underline-offset-4 hover:underline"
-                    >
-                      {PROJECTION_WORKSPACE_LABELS.SAVED_LINK}
-                    </Link>
-                  </AlertDescription>
-                </Alert>
-              )}
-            </div>
+            <WorkspacePreview
+              retirementComparisons={workspace.retirementComparisons}
+              onApplyRetirementAge={workspace.applyRetirementAge}
+              appliedPlanName={workspace.appliedPlanName}
+              startYear={workspace.startYear}
+              opening={workspace.opening}
+              openingAmount={openingAmountText}
+              assumptions={workspace.assumptions.values}
+              rules={workspace.rules.rules}
+              events={workspace.events.events}
+              labelForSource={labelForSource}
+              calculateError={workspace.calculateError}
+              warningLabels={workspace.warningLabels}
+              calculated={workspace.calculated}
+              savedAsPlan={workspace.savedAsPlan}
+              savedId={workspace.savedId}
+            />
           ) : (
             <div className="grid">
               <OpeningNetWorthSection
@@ -241,17 +241,26 @@ export default function ProjectionWorkspacePage() {
                 commitAmount={workspace.commitOpeningAmount}
                 resetToSnapshot={workspace.resetToSnapshot}
                 retry={workspace.retryOpening}
+                status={
+                  workspace.openingValidationError === undefined
+                    ? sectionState.baseline?.status
+                    : 'error'
+                }
+                hint={sectionState.baseline?.hint}
               />
 
               <AssumptionsSection
                 form={workspace.assumptions.form}
                 errors={workspace.assumptions.errors}
+                bounds={workspace.assumptionBounds}
                 birthYearLocked={workspace.assumptions.birthYearLocked}
                 readOnly={isPreview}
                 ageRange={workspace.ageRange}
                 retirementYear={workspace.retirementYear}
-                onRetirementAgeChange={(event) => workspace.setRetirementAge(event.target.value)}
+                onRetirementAgeChange={workspace.setRetirementAge}
                 onFieldChange={workspace.setAssumptionField}
+                status={sectionState.assumptions?.status}
+                hint={sectionState.assumptions?.hint}
               />
 
               <ProjectionRulesSection
@@ -269,6 +278,8 @@ export default function ProjectionWorkspacePage() {
                 setRuleType={workspace.rules.setRuleType}
                 setMethod={workspace.rules.setMethod}
                 setSourceType={workspace.rules.setSourceType}
+                status={sectionState.rules?.status}
+                hint={sectionState.rules?.hint}
               />
 
               <div id="life-events" ref={lifeEventsRef} className="scroll-mt-6">
@@ -283,7 +294,8 @@ export default function ProjectionWorkspacePage() {
                   lifeExpectancy={lifeExpectancy || 1}
                   retirementYear={workspace.retirementYear}
                   revealYear={revealYear}
-                  add={workspace.events.add}
+                  canUndo={workspace.canUndo}
+                  onUndo={workspace.undo}
                   remove={workspace.events.remove}
                   toggle={workspace.events.toggle}
                   update={workspace.events.update}
@@ -295,6 +307,8 @@ export default function ProjectionWorkspacePage() {
                   updatePhase={workspace.events.updatePhase}
                   onGestureStart={rememberEvents}
                   onRangeChange={changeRange}
+                  status={sectionState.events?.status}
+                  hint={sectionState.events?.hint}
                 />
               </div>
 
@@ -314,44 +328,25 @@ export default function ProjectionWorkspacePage() {
                 </Alert>
               )}
 
-              {workspace.savedAsPlan && (
-                <Alert data-testid="saved-as-plan-message">
-                  <AlertDescription>
-                    {PROJECTION_WORKSPACE_LABELS.SAVE_AS_PLAN_SAVED_MESSAGE}
-                  </AlertDescription>
-                </Alert>
-              )}
-
-              {workspace.savedId !== null && (
-                <Alert>
-                  <AlertDescription className="flex flex-wrap items-center gap-3">
-                    <span>{PROJECTION_WORKSPACE_LABELS.SAVED_MESSAGE}</span>
-                    <Link
-                      to={`/retirement/projections/${workspace.savedId}`}
-                      className="text-primary font-medium underline-offset-4 hover:underline"
-                    >
-                      {PROJECTION_WORKSPACE_LABELS.SAVED_LINK}
-                    </Link>
-                  </AlertDescription>
-                </Alert>
-              )}
+              <WorkspaceNotices savedAsPlan={workspace.savedAsPlan} savedId={workspace.savedId} />
             </div>
           )}
         </div>
 
-        {!isPreview && (
+        {showRail && (
           <WorkspaceRail
             className="md:sticky md:top-6 md:self-start"
             indicators={workspace.indicators}
             retirementYear={workspace.retirementYear}
-            inventory={inventory}
             finalYear={finalYear}
             onJumpToYear={jumpToYear}
           />
         )}
       </div>
 
-      <div className="sticky bottom-0 z-10">
+      {/* Docks above whatever the shell publishes as a bottom overlay (the
+          emulator banner) so the primary action is never covered. */}
+      <div className="sticky bottom-[var(--bottom-overlay,0px)] z-10">
         {!isPreview && (
           <WorkspacePinnedBar
             readiness={workspace.readiness}
@@ -363,16 +358,21 @@ export default function ProjectionWorkspacePage() {
         <WorkspaceActionBar
           preview={isPreview}
           readiness={workspace.readiness}
-          canUndo={workspace.canUndo}
           calculating={workspace.calculating}
           canSave={workspace.calculated !== null}
-          onCancel={() => void navigate('/retirement')}
-          onUndo={workspace.undo}
           onCalculate={() => void workspace.calculate()}
           onBack={workspace.backToSetup}
           onSave={openSave}
         />
       </div>
+
+      {startOpen && (
+        <ProjectionStartDialog
+          onSelectBlank={() => void chooseStart(null)}
+          onSelectPlan={(planId) => void chooseStart(planId)}
+          onCancel={() => setStartOpen(false)}
+        />
+      )}
 
       {saveOpen && (
         <SaveProjectionDialog

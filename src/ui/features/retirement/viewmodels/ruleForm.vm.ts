@@ -67,6 +67,12 @@ export type RulesForm = z.infer<typeof RulesFormSchema>;
 
 const DEFAULT_METHOD: RuleMethod = 'inflation';
 
+/**
+ * Growth rate is a slider, which cannot express "blank", so switching to the
+ * method seeds a plausible value instead of landing on an invalid empty field.
+ */
+export const DEFAULT_RATE_TEXT = '2';
+
 export function blankRule(ruleType: RuleType): RuleDraftVM {
   return {
     id: newId(),

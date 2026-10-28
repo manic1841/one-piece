@@ -5,6 +5,8 @@ import { cn } from '@/ui/utils';
 interface SwitchProps extends Omit<React.ComponentProps<'button'>, 'onChange' | 'type'> {
   checked: boolean;
   onCheckedChange: (checked: boolean) => void;
+  /** Injected by `FormControl`; a switch has no invalid styling of its own. */
+  error?: boolean;
 }
 
 export const Switch: React.FC<SwitchProps> = ({
@@ -12,6 +14,7 @@ export const Switch: React.FC<SwitchProps> = ({
   checked,
   onCheckedChange,
   disabled,
+  error,
   className,
   ...rest
 }) => (
@@ -21,6 +24,7 @@ export const Switch: React.FC<SwitchProps> = ({
     type="button"
     role="switch"
     aria-checked={checked}
+    aria-invalid={error || undefined}
     disabled={disabled}
     onClick={() => onCheckedChange(!checked)}
     className={cn(

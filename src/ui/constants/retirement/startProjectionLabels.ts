@@ -1,16 +1,16 @@
-/** Entry dialog copy: pick a blank setup or start from a saved plan. */
+/** Start picker dialog copy: pick a blank setup or start from a saved plan. */
 
 export const START_PROJECTION_LABELS = {
-  TITLE: 'NEW PROJECTION',
-  DESCRIPTION: 'Start blank or from a saved plan.',
-  START_BLANK: 'START BLANK',
-  PLAN_SECTION: 'FROM PLAN',
+  TITLE: 'Start a projection',
+  DESCRIPTION: 'Use a saved plan, or start from scratch.',
+  START_BLANK: 'Start blank',
+  START_BLANK_HINT: 'No saved plan. Set assumptions and rules yourself.',
+  PLAN_SECTION: 'FROM A SAVED PLAN',
   LOADING: 'Loading plans…',
   LOAD_ERROR: 'Could not load plans.',
   RETRY: 'RETRY',
-  EMPTY: 'No saved plans yet. Create one in Plans, then come back.',
-  BROWSE_PLANS: 'GO TO PLANS',
-  CANCEL: 'Cancel',
+  EMPTY: 'No saved plans yet.',
+  UPDATED_PREFIX: 'Updated',
   RETIREMENT_AGE_PREFIX: 'Retires at',
   LIFE_EXPECTANCY_PREFIX: 'Lives to',
   INFLATION_PREFIX: 'Inflation',

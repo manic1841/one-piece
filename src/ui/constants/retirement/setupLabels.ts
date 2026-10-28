@@ -1,7 +1,10 @@
 /** Setup-stage chrome for the projection workspace (#342). */
 
 export const ASSUMPTION_LABELS = {
+  AGE_GROUP: 'AGE',
+  RATE_GROUP: 'RETURNS & INFLATION',
   BIRTH_YEAR: 'Birth year',
+  BIRTH_YEAR_LOCKED: 'From the selected plan. Choose another plan to use a different birth year.',
   RETIREMENT_AGE: 'Retirement age',
   LIFE_EXPECTANCY: 'Life expectancy',
   INFLATION_RATE: 'Inflation rate (%)',
@@ -30,6 +33,15 @@ export const RULE_LABELS = {
   SOURCE_USED_BY: 'used by {count}',
   RULE_SOURCE: 'Another rule',
   UNNAMED_RULE: '(unnamed rule)',
+  SUMMARY_OF: 'of',
+  SUMMARY_PER_YEAR: '/ year',
+  SUMMARY_FOLLOWS_INFLATION: 'follows inflation',
+  SUMMARY_ANNUAL_GROWTH: 'annual growth',
+  SUMMARY_LOAN_SCHEDULE: 'follows loan schedule',
+  SUMMARY_UNTIL_RETIREMENT: 'until retirement',
+  SUMMARY_LIFELONG: 'for life',
+  SUMMARY_THROUGH_AGE: 'through age {age}',
+  SUMMARY_THROUGH_YEAR: 'through {year}',
   LEDGER_SOURCE: 'Ledger code',
   DEBT_SOURCE: 'Debt account',
   PARAMETER_RATE: 'Rate (%)',

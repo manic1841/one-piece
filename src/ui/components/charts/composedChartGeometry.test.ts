@@ -25,6 +25,21 @@ const baselineYOf = (areaPath: string): number => {
 const lineYOf = (path: string): number => pathYs(path)[0];
 
 describe('buildComposedGeometry', () => {
+  it('does not pad past zero for data on only one side of the baseline', () => {
+    const positive = buildComposedGeometry(
+      ['A', 'B'],
+      [{ kind: 'line', tone: 'asset', values: [10, 20], area: true }],
+    );
+    expect(positive.leftLabels.at(-1)?.text).toBe('0');
+    expect(positive.leftLabels.some((label) => label.text.startsWith('-'))).toBe(false);
+    const negative = buildComposedGeometry(
+      ['A', 'B'],
+      [{ kind: 'line', tone: 'negative', values: [-10, -20] }],
+    );
+    expect(negative.leftLabels[0]?.text).toBe('0');
+    const zero = buildComposedGeometry(['A'], [{ kind: 'line', tone: 'asset', values: [0] }]);
+    expect(zero.lines[0]?.points.every((point) => Number.isFinite(point.topRatio))).toBe(true);
+  });
   it('grows positive bars up from the zero baseline and negative bars down', () => {
     const layout = buildComposedGeometry(
       ['A', 'B'],

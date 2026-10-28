@@ -1,5 +1,3 @@
-import { useEffect } from 'react';
-
 import {
   FormControl,
   FormField,
@@ -7,26 +5,22 @@ import {
   FormLabel,
   FormMessage,
   NumberInput,
+  SelectField,
   TextInput,
 } from '@/ui/components/form';
 import { Button } from '@/ui/components/ui/button';
+import { PROJECTION_COMMON_LABELS } from '@/ui/constants/retirement/displayLabels';
 import { EVENT_LABELS } from '@/ui/constants/retirement/eventLabels';
+import { usePhaseFieldFocus } from '@/ui/features/retirement/components/usePhaseFieldFocus';
 import {
   type PhaseDraftVM,
   type PhaseErrors,
   type PhaseFocusRequest,
 } from '@/ui/features/retirement/viewmodels/lifeEventForm.vm';
-
-const FIELD_NAMES = {
-  name: 'name',
-  startYear: 'startYearText',
-  endYear: 'endYearText',
-  amount: 'amountText',
-  growthRate: 'growthRateText',
-} as const;
+import { RETIREMENT_YEAR_OPTIONS } from '@/ui/features/retirement/viewmodels/numberOptions.vm';
 
 interface LifeEventPhaseRowProps {
-  eventIndex: number;
+  eventId: string;
   phase: PhaseDraftVM;
   errors: PhaseErrors;
   readOnly: boolean;
@@ -37,7 +31,7 @@ interface LifeEventPhaseRowProps {
 
 /** One phase; blank starts sort last and overlap focus lands on the year input. */
 export function LifeEventPhaseRow({
-  eventIndex,
+  eventId,
   phase,
   errors,
   readOnly,
@@ -45,18 +39,11 @@ export function LifeEventPhaseRow({
   update,
   remove,
 }: LifeEventPhaseRowProps) {
-  const prefix = `events.${eventIndex}.phasesById.${phase.id}`;
-
-  useEffect(() => {
-    if (focusRequest === null || focusRequest.phaseId !== phase.id) return;
-    document
-      .querySelector<HTMLInputElement>(`[name="${prefix}.${FIELD_NAMES[focusRequest.field]}"]`)
-      ?.focus();
-    // `sequence` makes a repeated request on the same field focus again.
-  }, [focusRequest, phase.id, prefix]);
+  const prefix = `eventsById.${eventId}.phasesById.${phase.id}`;
+  const rowRef = usePhaseFieldFocus<HTMLLIElement>(focusRequest, eventId, phase.id);
 
   return (
-    <li data-testid="phase-row" className="grid gap-3 border-t border-border pt-3">
+    <li ref={rowRef} data-testid="phase-row" className="grid gap-3 border-t border-border pt-3">
       <div className="flex items-end gap-2">
         <div className="flex-1">
           <FormField name={`${prefix}.name`}>
@@ -82,10 +69,12 @@ export function LifeEventPhaseRow({
           <FormItem>
             <FormLabel>{EVENT_LABELS.START_YEAR}</FormLabel>
             <FormControl>
-              <NumberInput
-                readOnly={readOnly}
-                step={1}
+              <SelectField
+                value={phase.startYearText}
                 onChange={(startYearText) => update({ startYearText })}
+                options={RETIREMENT_YEAR_OPTIONS}
+                placeholder={PROJECTION_COMMON_LABELS.DASH}
+                disabled={readOnly}
               />
             </FormControl>
             <FormMessage>{errors.startYear}</FormMessage>
@@ -96,10 +85,12 @@ export function LifeEventPhaseRow({
           <FormItem>
             <FormLabel>{EVENT_LABELS.END_YEAR}</FormLabel>
             <FormControl>
-              <NumberInput
-                readOnly={readOnly}
-                step={1}
+              <SelectField
+                value={phase.endYearText}
                 onChange={(endYearText) => update({ endYearText })}
+                options={RETIREMENT_YEAR_OPTIONS}
+                placeholder={PROJECTION_COMMON_LABELS.DASH}
+                disabled={readOnly}
               />
             </FormControl>
             <FormMessage>{errors.endYear}</FormMessage>

@@ -61,7 +61,23 @@ describe('ProjectionRulesSection', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
 
     expect(screen.queryAllByTestId('rule-row')).toHaveLength(0);
-    expect(screen.getByText(/No income rules yet/)).toBeInTheDocument();
+    // Both sides are empty, so the whole-section empty state replaces the groups.
+    expect(screen.getByText(/No projection rules yet/)).toBeInTheDocument();
+  });
+
+  it('keeps one ADD: the empty state owns it, the header gets it back with a rule', async () => {
+    render(<Harness />);
+
+    // Empty: the centred empty state carries the only ADD, both buttons say the same.
+    expect(screen.getAllByRole('button', { name: 'ADD RULE' })).toHaveLength(1);
+
+    fireEvent.click(screen.getByRole('button', { name: 'ADD RULE' }));
+    await confirm('Salary');
+
+    expect(screen.queryByText(/No projection rules yet/)).not.toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: 'ADD RULE' })).toHaveLength(1);
+    // Only the expense side is empty now, so it keeps the plain line.
+    expect(screen.getByText(/No expense rules yet/)).toBeInTheDocument();
   });
 
   it('restores an edited rule on cancel and keeps it on confirm', async () => {

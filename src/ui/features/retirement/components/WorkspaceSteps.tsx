@@ -1,7 +1,6 @@
 import { StatusGlyph } from '@/ui/components/StatusGlyph';
 import { PROJECTION_WORKSPACE_LABELS } from '@/ui/constants/retirement/workspaceLabels';
 import { type ProjectionWorkspaceStage } from '@/ui/features/retirement/hooks/useProjectionWorkspace';
-import { cn } from '@/ui/utils/cn';
 
 interface WorkspaceStepsProps {
   stage: ProjectionWorkspaceStage;
@@ -17,20 +16,21 @@ export function WorkspaceSteps({ stage }: WorkspaceStepsProps) {
   return (
     <ol
       aria-label={PROJECTION_WORKSPACE_LABELS.STEPS_ARIA_LABEL}
-      className="grid grid-cols-1 gap-1 border-b border-border pb-4 md:grid-cols-2"
+      className="flex items-center gap-2 border-b border-border pb-3 text-xs"
     >
       {steps.map((step) => {
         const isCurrent = step.id === stage;
         const isDone = step.id === 'setup' && stage === 'preview';
 
         return (
-          <li key={step.id} className="flex min-w-0">
+          <li key={step.id} className="flex items-center gap-2">
             <div
               aria-current={isCurrent ? 'step' : undefined}
-              className={cn(
-                'flex h-10 w-full items-center gap-2 px-2 text-xs',
-                isCurrent ? 'bg-elevated text-foreground' : 'text-muted-foreground',
-              )}
+              className={
+                isCurrent
+                  ? 'flex items-center gap-2 text-foreground'
+                  : 'flex items-center gap-2 text-muted-foreground'
+              }
             >
               <StatusGlyph
                 type={isDone ? 'verified' : isCurrent ? 'active' : 'waiting'}
@@ -39,6 +39,11 @@ export function WorkspaceSteps({ stage }: WorkspaceStepsProps) {
               />
               <span className="font-medium uppercase tracking-widest">{step.label}</span>
             </div>
+            {step.id === 'setup' && (
+              <span aria-hidden="true" className="text-muted-foreground">
+                →
+              </span>
+            )}
           </li>
         );
       })}

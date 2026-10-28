@@ -61,4 +61,8 @@ export function usePlanPreload({
       startedRef.current = null;
     };
   }, [planId, preload]);
+
+  // Choosing the same plan again does not change the query, so the effect above
+  // stays silent; the picker calls this to re-apply on purpose.
+  return preload;
 }

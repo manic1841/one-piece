@@ -8,6 +8,7 @@ import {
   TextInput,
 } from '@/ui/components/form';
 import { Switch } from '@/ui/components/ui/switch';
+import { RETIREMENT_GROWTH_RATE_BOUNDS } from '@/ui/constants/retirement/bounds';
 import {
   BASELINE_POLICY_LABELS,
   END_CONDITION_LABELS,
@@ -15,6 +16,7 @@ import {
   RULE_METHOD_LABELS,
   RULE_TYPE_LABELS,
 } from '@/ui/constants/retirement/setupLabels';
+import { PercentSlider } from '@/ui/features/retirement/components/PercentSlider';
 import {
   ALLOWED_METHODS_BY_RULE_TYPE,
   type RuleDraftVM,
@@ -51,6 +53,9 @@ const TYPE_OPTIONS: SelectFieldOption[] = Object.entries(RULE_TYPE_LABELS).map(
     label,
   }),
 );
+
+/** Domain ratio -> the percentage the slider and its readout speak. */
+const percent = (ratio: number) => Math.round(ratio * 100);
 
 /**
  * Every editable field of one rule, hosted by `ProjectionRuleDialog`. The list row
@@ -127,7 +132,12 @@ export function ProjectionRuleInspector({
             <FormItem>
               <FormLabel>{RULE_LABELS.PARAMETER_RATE}</FormLabel>
               <FormControl>
-                <NumberInput readOnly={readOnly} onChange={(rateText) => update({ rateText })} />
+                <PercentSlider
+                  min={percent(RETIREMENT_GROWTH_RATE_BOUNDS.min)}
+                  max={percent(RETIREMENT_GROWTH_RATE_BOUNDS.max)}
+                  disabled={readOnly}
+                  onChange={(rateText) => update({ rateText })}
+                />
               </FormControl>
               {hiddenMessage('parameter')}
             </FormItem>
